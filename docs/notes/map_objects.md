@@ -93,6 +93,8 @@ is snapshotted and restored, the original runs, bytes and EAX compared.
 | 0052E5B0 | CUnit::Reset | ours only: blank state |
 | 00515D70, 0050E660, 0052E310, 00515720, 00510560, 00546230 | destructor bodies | ours only: engine object base state (vtable 0073B8E0, no owner) |
 | 0052E2A0 | CUnit::DeletingDestructor (slot 0) | ours only: counted |
+| 0050CA50, 0050CBA0, 0050D600, 0050D5E0 | CFigureAnimationState Play, Queue, SetTime, Advance (map_object_animation_state.cpp; A-U2) | SetTime: original vs ours on +0x40..+0x78 when the animation does not end, else ours only; the rest ours only |
+| 0051CC20, 0051CCD0 | CObject3DClientSpecific InvisiblePulse / StunnedPulse (unit_client_animation.cpp) | original, parts put back, ours; CheckNear |
 
 Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEffect::Tick`, 00524FE0
 (hit onto the statistics block); sound system (global 007AF784) 006B8600 / 006B7C10 / 006B7CB0 /

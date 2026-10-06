@@ -200,6 +200,7 @@ Code (layouts, vtable slots and per-function comments are in `unit.h`, `unit_db.
 | 0052B7A0, 0052BBE0 | Lever::SetState, UseSpots | unit_lever.cpp | ours only / output (coordinates within 8 ULPs) |
 | 00529DD0, 00529F90, 0052A100, 0052A200, 0052AC20, 0052AB30, 0052AC90, 0052A2C0, 0052A4B0, 0052A680, 0052ADC0 | MagicTrap Construct, DestructBody, CreateTrap, DestroyTrap, UpdateTrap, FireAtOccupants, ForgetObject, SetUp, CastAtUnits, UpdateVictims, LoadTrap | magic_trap.cpp | ours only (LoadTrap through a recording stream with a round trip through the original Save) |
 | 0052B070, 0052A920 | MagicTrap::SaveTrap, FindTrapVictims | magic_trap.cpp | both into capture streams / output (empty scratch CPtrList) |
+| 00535B30, 005352B0, 00535480 | CUnitClientSpecific AdvanceTime (slot 40), RestartAnimation (14), StartIdleAnimation | unit_client_animation.cpp (A-U2) | ours only (last time, queue length) |
 
 Other callees stay forwarders (`originals_units.h`); only 006AC970 `CreateItem` (called through its address by GiveStartingEquipment) and FatalError 00480080 are Rebirth-patched.
 

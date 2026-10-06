@@ -219,7 +219,7 @@ public:
     virtual void Slot18() = 0;
     virtual void Slot19() = 0;
     virtual void Slot20() = 0;
-    virtual void Slot21() = 0;
+    virtual bool InvisibleSlot() = 0;   // 21 (0x54): 0050FA10 IsInvisible
     virtual void Slot22() = 0;
     virtual void Slot23() = 0;
     virtual void Slot24() = 0;

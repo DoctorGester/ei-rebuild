@@ -135,7 +135,7 @@ public:
     // the server's CopyItem; rewritten slots stay plain members, rewrite guide rule 4).
     virtual void Slot13();
     virtual void Slot14();
-    virtual void Slot15();
+    virtual CEngineObject* FigureManager();  // 15: the figure manager (+0x3C)
     virtual void Slot16();
     virtual void Slot17();
     virtual void Slot18();
@@ -160,6 +160,17 @@ public:
     // 32 (world_time.cpp). 0055FB50: seconds per tick become 1 / speed (0: stopped; negative: the
     // setting 0079BE5C) times 1/15, keeping the time of day (slot 31). The server's 0058EEE0 as above.
     virtual void SetTimeSpeed(float speed);
+    virtual void Slot33();
+    virtual void Slot34();
+    virtual void Slot35();
+    virtual void Slot36();
+    virtual void Slot37();
+    virtual void Slot38();
+    virtual void Slot39();
+    virtual void Slot40();
+    // 41: `object` moves to `position` (sector map, network state; net_state.cpp and
+    // unit_client_path.cpp reach it through VCall).
+    virtual void MoveObject(CEngineObject* object, const float* position);
 
     // 0055FCB0 (world_time.cpp). Stores the wind direction (+0x24) and strength (+0x30).
     void SetWind(const Vector3* direction, float strength);

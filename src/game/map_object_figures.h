@@ -29,19 +29,38 @@ struct AlignedPtrArray {
 };
 static_assert(sizeof(AlignedPtrArray) == 0x10);
 
+struct FigurePart;
+
+// What animates one figure part (class id 0x300B, made by the part's manager on first use and
+// kept counted at FigurePart +0x50). Only the fields the animation state sets.
+struct FigurePartAnimator : CEngineObject {
+    const struct FigureAnimation* animation;    // +0x1C the animation it plays (null: none)
+    FigurePart* part;               // +0x20 the part it animates
+    std::uint8_t unknown_24[0x48 - 0x24];
+    int unknown_48;                 // +0x48 cleared when the animation changes
+};
+static_assert(offsetof(FigurePartAnimator, part) == 0x20);
+static_assert(offsetof(FigurePartAnimator, unknown_48) == 0x48);
+
 // A part of an object's figure (a scene node; names provisional). Only what the figure code
 // reads: its position relative to the object, the piece's offset and box in the figure.
 struct FigurePart : CEngineObject {
     float position[3];              // +0x01C
     std::uint8_t unknown_028[0x2C - 0x28];
     float alpha;                    // +0x02C (a unit's fade-in, CUnitClientSpecific +0x78)
-    std::uint8_t unknown_030[0x18C - 0x30];
+    std::uint8_t unknown_030[0x40 - 0x30];
+    float tint[3];                  // +0x040 a colour the client half sets (stunned: red, 0, 0)
+    FigurePartAnimator* previousAnimator;   // +0x04C the animator before an animation change
+    FigurePartAnimator* animator;   // +0x050 counted; made on first use (Animator())
+    std::uint8_t unknown_054[0x18C - 0x54];
     float offset[3];                // +0x18C the piece's place in the figure
     float unknown_198;              // +0x198
     float boxMin[3];                // +0x19C
     float boxMax[3];                // +0x1A8
 };
 static_assert(offsetof(FigurePart, position) == 0x1C);
+static_assert(offsetof(FigurePart, tint) == 0x40);
+static_assert(offsetof(FigurePart, animator) == 0x50);
 static_assert(offsetof(FigurePart, offset) == 0x18C);
 static_assert(offsetof(FigurePart, boxMin) == 0x19C);
 static_assert(offsetof(FigurePart, boxMax) == 0x1A8);
@@ -59,10 +78,12 @@ static_assert(offsetof(FigurePieceRecord, boxMax) == 0x44);
 
 // One animation of a figure's animation database (0x58 bytes).
 struct FigureAnimation {
-    std::uint8_t unknown_00[0x14];
+    char name[0x14];                // +0x00 (the figure manager's 005ACCF0 takes the entry as its name)
     std::uint32_t key;              // +0x14 animation key bits (docs/notes/combat.md): kind 0x3C0000, number 0x3FC00000
     std::uint32_t flags;            // +0x18 bit 0: a bow's arrow shows from frame arrowFrom to arrowTo
-    std::uint8_t unknown_1C[0x28 - 0x1C];
+    std::uint8_t unknown_1C[4];
+    std::uint32_t frameCount;       // +0x20 the animation's length in frames
+    std::uint8_t unknown_24[0x28 - 0x24];
     std::uint32_t arrowFrom;        // +0x28
     std::uint32_t arrowTo;          // +0x2C
     std::uint32_t stepFrames[4];    // +0x30 the footsteps' frames + 1 (0 ends the list)
@@ -107,19 +128,49 @@ public:
 class CObject3D;
 
 // The figure's animation state (CObject3D + 0x98; 0050D0E0 adds a part, 0050D350 removes one,
-// 0050D3A0 lets go of every part, 0050D7C0 rescales). Only its back pointer is named.
+// 0050D3A0 lets go of every part, 0050D7C0 rescales).
 class CFigureAnimationState : public CEngineObject {
 public:
+    // map_object_animation_state.cpp (A-U2).
+    // 0050CA50. Plays `animation` from its start: each part keeps its animator as the previous
+    // one (making it first, Animator()), the figure manager (the world's slot 15) is asked to set
+    // the animation on this state by the owner's model name (005ACCF0); when it does not, each
+    // part's animator takes it (AnimatePart). Then SetTime(0) and `current` = `animation`.
+    void Play(FigureAnimation* animation);
+    // 0050CBA0. Queues `animation` after the one playing (the queue's AddTail). Returns the node.
+    void* Queue(FigureAnimation* animation);
+    // 0050D600. The frame reached becomes `frame` (`changed` set when it differs): with nothing
+    // playing the next queued animation starts at 0; while the frame lies beyond the animation's
+    // frame count the count is taken off, the callback (+0x64) runs, and the next queued animation
+    // plays, or else the animation holds its last frame unless its key's top bits are 10 (loops).
+    // When the animation changed, the figure manager or the parts take it as in Play.
+    void SetTime(float frame);
+    // 0050D5E0. SetTime(time + `frames`).
+    void Advance(float frames);
+
+    // Each part's animator plays `animation` (0050CA50 / 0050D600 inline it): the part's manager
+    // is told (005ACA60) and the animator's +0x48 cleared.
+    static void AnimatePart(FigurePart* part, const FigureAnimation* animation);
+
     CObject3D* owner;               // +0x1C
-    std::uint8_t unknown_20[0x40 - 0x20];
+    std::uint8_t unknown_20[4];
+    // +0x24 the parts the animation moves (MFC CPtrList; 0050D0E0 adds, 0050D350 removes).
+    mfc::CTypedPtrList<FigurePart> parts;
     FigureAnimation* current;       // +0x40 the animation playing, or null
-    std::uint8_t unknown_44[0x50 - 0x44];
-    int unknown_50;                 // +0x50 (the client update asks for below 3)
-    std::uint8_t unknown_54[0x60 - 0x54];
+    // +0x44 the animations queued after it (MFC CPtrList; the client update keeps fewer than 3).
+    mfc::CTypedPtrList<FigureAnimation> queue;
     float time;                     // +0x60 the frame reached
+    // +0x64 called (with the owner in ECX) each time an animation's end is passed, or null.
+    void(__fastcall* onEnd)(CObject3D* owner);
+    std::uint8_t unknown_68[0x74 - 0x68];
+    std::uint8_t changed;           // +0x74 set when the frame or the animation changed
 };
+static_assert(offsetof(CFigureAnimationState, parts) == 0x24);
 static_assert(offsetof(CFigureAnimationState, current) == 0x40);
+static_assert(offsetof(CFigureAnimationState, queue) == 0x44);
 static_assert(offsetof(CFigureAnimationState, time) == 0x60);
+static_assert(offsetof(CFigureAnimationState, onEnd) == 0x64);
+static_assert(offsetof(CFigureAnimationState, changed) == 0x74);
 
 // A counted reference: the pointer slot is the `this` of 00519580.
 struct CountedRef {

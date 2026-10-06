@@ -172,3 +172,18 @@ __declspec(naked) inline int __fastcall ObjectFindPartIndexOriginal(const void* 
     EI_ORIGINAL(0x00517990)
 __declspec(naked) inline float* __fastcall ObjectPartPositionOriginal(const void* /*object*/, void*, float* /*out*/,
                                                                       void* /*part*/) EI_ORIGINAL(0x005188B0)
+// A-U2. The figure's animation state (map_object_animation_state.cpp, rewritten; called through their game addresses so
+// the verify wrappers see the calls): 0050CA50 plays an animation entry (RET 4), 0050CBA0 queues one (RET 4; EAX the
+// list node), 0050D5E0 advances by a number of frames (RET 4). 00535480: the client controller starts the unit's idle
+// animation (RET 4: play (byte) or queue; unit_client_animation.cpp). No results unless noted.
+class CFigureAnimationState;
+class CUnitClientSpecific;
+struct FigureAnimation;
+__declspec(naked) inline void __fastcall FigurePlayOriginal(CFigureAnimationState* /*state*/, void*,
+                                                            const void* /*animation*/) EI_ORIGINAL(0x0050CA50)
+__declspec(naked) inline void* __fastcall FigureQueueOriginal(CFigureAnimationState* /*state*/, void*,
+                                                              const void* /*animation*/) EI_ORIGINAL(0x0050CBA0)
+__declspec(naked) inline void __fastcall FigureAdvanceOriginal(CFigureAnimationState* /*state*/, void*,
+                                                               float /*frames*/) EI_ORIGINAL(0x0050D5E0)
+__declspec(naked) inline void __fastcall ClientStartIdleAnimationOriginal(CUnitClientSpecific* /*controller*/, void*,
+                                                                          int /*play*/) EI_ORIGINAL(0x00535480)
