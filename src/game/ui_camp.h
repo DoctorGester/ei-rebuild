@@ -871,9 +871,14 @@ class CRepairGrid : public CUiWindow {
 public:
     // 006279E0. Builds the grid for the item list `items`.
     void Build(void* items);
+    // 00627C90 (slot 20, RET 4; ui_panel_draws.cpp). The depth buffer cleared to 0 over the screen
+    // and to 1 over the grid; each item's model in its cell (depth 2^(3 - row) * 6), its
+    // count when more than one and its repair price (owner slot 54, kind 8) on the surface; the
+    // window's sprites and models; the depth buffer cleared to 1 again. Returns 1.
+    BOOL Draw(int pass);
 
-    int unknown_148;                 // +0x148 8
-    std::uint8_t unknown_14C[4];
+    int unknown_148;                 // +0x148 8 (the cells' mode)
+    CUiWindow* owner_;               // +0x14C the camp
     void* items_;                    // +0x150
 };
 static_assert(offsetof(CRepairGrid, items_) == 0x150);
@@ -886,9 +891,13 @@ public:
     // 00622A80. Builds the strip at y 0 (`top`) or 500: eight regions, a hidden highlight frame
     // and the cells.
     void Build(bool top);
+    // 00622C10 (slot 20, RET 4; ui_panel_draws.cpp). The highlight frame (scene object 0) on the
+    // selected cell when it holds one of the hero's spell list (+0x760) entries, else hidden; each
+    // entry's model in its cell; then the window's sprites and models. Returns 1.
+    BOOL Draw(int pass);
 
-    int unknown_148;                 // +0x148 0
-    std::uint8_t unknown_14C[4];
+    int unknown_148;                 // +0x148 0 (the cells' mode)
+    CUiWindow* owner_;               // +0x14C the camp or the hero screen
     int y_;                          // +0x150
     int selected_;                   // +0x154 -1
 };
