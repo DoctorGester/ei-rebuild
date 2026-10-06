@@ -115,7 +115,7 @@ void CHudActionColumn::Select(int index) {
     if (previous >= 0 && previous < count_) HighlightAt(previous, 0);
     HighlightAt(index, 1);
     interface_->PlaySound(kSoundClick, 0);
-    int action = static_cast<int>(actions_.data_[index]);
+    int action = static_cast<int>(actions_.data[index]);
     owner_->SetPendingAction(action == 0 ? kPendingOrder : kPendingFollow, index, action);
 }
 namespace {

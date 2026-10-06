@@ -24,10 +24,10 @@ constexpr int kMaxParty = 64;
 
 const UiDwordArray* Party(CBattleScreenSetup* self) { return reinterpret_cast<const UiDwordArray*>(self->partyArray_); }
 CUnit* Member(CBattleScreenSetup* self, int i) {
-    return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(Party(self)->data_[i]));
+    return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(Party(self)->data[i]));
 }
 int PartySize(CBattleScreenSetup* self) {
-    int n = Party(self)->size_;
+    int n = Party(self)->size;
     return n < kMaxParty ? n : kMaxParty;
 }
 HudPortraitSlot& Slot(CBattleScreenSetup* self, int i) { return static_cast<CHudPortraits*>(self->portraits_)->slots_[i]; }
@@ -79,7 +79,7 @@ static void __fastcall ToggleMemberVerify(CBattleScreenSetup* self, void*, int i
         chosen[i] = member ? (member->flags_ & 0x10) : 0;
         markersBefore[i] = Marker(self, i);
     }
-    bool skipped = client || index >= Party(self)->size_;
+    bool skipped = client || index >= Party(self)->size;
     if (!skipped && index >= 0 && index < count) {
         if (self->interface_->shiftDown_) {
             chosen[index] = chosen[index] == 0 ? 1u : 0u;

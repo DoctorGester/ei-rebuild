@@ -100,8 +100,8 @@ EI_VERIFY(0x0063C180, WeaponBarSetUnitVerify, 7, s_weaponBarSetUnit);
 static void(__fastcall* s_actionsSetUnit)(CHudActionColumn*, void*, CUnit*, int);
 static std::vector<std::uint8_t> ActionState(CHudActionColumn* self) {
     std::vector<std::uint8_t> out = PanelState(self);
-    const int* data = reinterpret_cast<const int*>(self->actions_.data_);
-    int size = self->actions_.size_;
+    const int* data = reinterpret_cast<const int*>(self->actions_.data);
+    int size = self->actions_.size;
     Append(out, &size, 4);
     if (data && size > 0) Append(out, data, static_cast<std::size_t>(size) * 4);
     return out;

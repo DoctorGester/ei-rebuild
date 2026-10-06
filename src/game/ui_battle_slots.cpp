@@ -84,7 +84,7 @@ EI_REPLACE_METHOD(0x00635E60, CBattleScreenSetup::Close);
 bool CBattleScreenSetup::PollShown() {
     if (hasHero_) {
         UiDwordArray& party = Party();
-        if (party.size_ > 0) CameraSetTargetOriginal(camera::TheCamera(), nullptr, reinterpret_cast<void*>(party.data_[0]));
+        if (party.size > 0) CameraSetTargetOriginal(camera::TheCamera(), nullptr, reinterpret_cast<void*>(party.data[0]));
         if (AutoSaveEnabled()) AutoSaveOriginal(AutoSaveName(), 1);
         hasHero_ = false;
         interface_->ShowHelp(0);
@@ -119,11 +119,11 @@ void CBattleScreenSetup::OnUnitLeft(CUnit* unit) {
     }
     UiDwordArray& party = Party();
     int index = 0;
-    while (index < party.size_ && party.data_[index] != reinterpret_cast<std::uintptr_t>(unit)) ++index;
-    if (index >= party.size_) return;
-    int after = party.size_ - index - 1;
-    if (after != 0) std::memmove(&party.data_[index], &party.data_[index + 1], after * sizeof(party.data_[0]));
-    --party.size_;
+    while (index < party.size && party.data[index] != reinterpret_cast<std::uintptr_t>(unit)) ++index;
+    if (index >= party.size) return;
+    int after = party.size - index - 1;
+    if (after != 0) std::memmove(&party.data[index], &party.data[index + 1], after * sizeof(party.data[0]));
+    --party.size;
     PortraitsRebuildOriginal(portraits_, nullptr, 0);
     BattleRefreshSelectionOriginal(this);
 }
@@ -136,11 +136,11 @@ void CBattleScreenSetup::SaveState() {
     UiDwordArray& party = Party();
     // The original collects the ids into a CDWordArray first; the bytes written are the same.
     int count = 0;
-    for (int i = 0; i < party.size_; ++i)
-        if (reinterpret_cast<CUnit*>(party.data_[i])->flags_ & kUnitSelected) ++count;
+    for (int i = 0; i < party.size; ++i)
+        if (reinterpret_cast<CUnit*>(party.data[i])->flags_ & kUnitSelected) ++count;
     stream->Write(&count, 4);
-    for (int i = 0; i < party.size_; ++i) {
-        auto* unit = reinterpret_cast<CUnit*>(party.data_[i]);
+    for (int i = 0; i < party.size; ++i) {
+        auto* unit = reinterpret_cast<CUnit*>(party.data[i]);
         if (unit->flags_ & kUnitSelected) stream->Write(&unit->id_, 4);
     }
     stream->Write(&Map(map_)->zoom_, 4);
@@ -183,23 +183,23 @@ void CBattleScreenSetup::OnUnitJoined(CUnit* unit) {
             found = true;
             break;
         }
-        if (place < party.size_ && reinterpret_cast<CUnit*>(party.data_[place])->id_ == id) ++place;
+        if (place < party.size && reinterpret_cast<CUnit*>(party.data[place])->id_ == id) ++place;
     }
     bool selected = false;
     if (found) {
-        int count = party.size_;
+        int count = party.size;
         if (place >= count) {
             PartyArraySetSizeOriginal(&party, nullptr, place + 1, -1);
         } else {
             PartyArraySetSizeOriginal(&party, nullptr, count + 1, -1);
-            std::memmove(&party.data_[place + 1], &party.data_[place], (count - place) * sizeof(party.data_[0]));
+            std::memmove(&party.data[place + 1], &party.data[place], (count - place) * sizeof(party.data[0]));
         }
-        party.data_[place] = reinterpret_cast<std::uintptr_t>(unit);
+        party.data[place] = reinterpret_cast<std::uintptr_t>(unit);
         selected = player->records[record].unknown_778 != 0;
     } else {
-        int count = party.size_;
+        int count = party.size;
         PartyArraySetSizeOriginal(&party, nullptr, count + 1, -1);
-        party.data_[count] = reinterpret_cast<std::uintptr_t>(unit);
+        party.data[count] = reinterpret_cast<std::uintptr_t>(unit);
     }
     PortraitsRebuildOriginal(portraits_, nullptr, 0);
     if (selected) {
@@ -207,11 +207,11 @@ void CBattleScreenSetup::OnUnitJoined(CUnit* unit) {
         MarkPortrait(place);
     }
     // A hero the save had selected.
-    for (int i = 0; i < heroes_.size_; ++i) {
-        if (static_cast<int>(heroes_.data_[i]) != unit->id_) continue;
-        int after = heroes_.size_ - i - 1;
-        if (after != 0) std::memmove(&heroes_.data_[i], &heroes_.data_[i + 1], after * sizeof(heroes_.data_[0]));
-        --heroes_.size_;
+    for (int i = 0; i < heroes_.size; ++i) {
+        if (static_cast<int>(heroes_.data[i]) != unit->id_) continue;
+        int after = heroes_.size - i - 1;
+        if (after != 0) std::memmove(&heroes_.data[i], &heroes_.data[i + 1], after * sizeof(heroes_.data[0]));
+        --heroes_.size;
         ClientWorldControlUnitOriginal(ClientWorld(), nullptr, unit);
         MarkPortrait(place);
         break;

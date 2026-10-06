@@ -140,27 +140,27 @@ void NodPortrait(CBattleScreenSetup* self, int i) {
 
 void CBattleScreenSetup::ToggleMember(int index) {
     auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
-    auto unitAt = [party](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data_[i])); };
+    auto unitAt = [party](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i])); };
     if (IsNetworkClientOriginal()) return;
-    if (index >= party->size_) return;
+    if (index >= party->size) return;
 
     UiDwordArray chosen{reinterpret_cast<void*>(0x0073C3D0), nullptr, 0, 0, 0};
-    for (int i = 0; i < party->size_; ++i) {
+    for (int i = 0; i < party->size; ++i) {
         CUnit* member = unitAt(i);
-        ChosenSetAtGrow(&chosen, nullptr, chosen.size_, member ? (member->flags_ & kFlagSelected) : 0);
+        ChosenSetAtGrow(&chosen, nullptr, chosen.size, member ? (member->flags_ & kFlagSelected) : 0);
     }
     if (interface_->shiftDown_) {
-        chosen.data_[index] = chosen.data_[index] == 0 ? 1u : 0u;
+        chosen.data[index] = chosen.data[index] == 0 ? 1u : 0u;
     } else {
-        for (int i = 0; i < chosen.size_; ++i)
-            if (chosen.data_[i] != 0) chosen.data_[i] = 0;
-        chosen.data_[index] = 1;
+        for (int i = 0; i < chosen.size; ++i)
+            if (chosen.data[i] != 0) chosen.data[i] = 0;
+        chosen.data[index] = 1;
     }
     WorldClearSelection(kWorld, nullptr, nullptr);
 
-    for (int i = 0; i < party->size_; ++i) {
+    for (int i = 0; i < party->size; ++i) {
         auto* portraits = static_cast<CHudPortraits*>(portraits_);
-        std::uint32_t value = chosen.data_[i];
+        std::uint32_t value = chosen.data[i];
         reinterpret_cast<CUiMesh*>(portraits->sceneObjects_.data[i * 5 + 4])->visible_ = static_cast<int>(value);
         Quaternion turn;
         const Quaternion* rest = reinterpret_cast<const Quaternion*>(0x007C8150);   // identity
@@ -172,7 +172,7 @@ void CBattleScreenSetup::ToggleMember(int index) {
         }
         portraits->slots_[i].restB_ = *rest;
         CUnit* member = unitAt(i);
-        if (member && chosen.data_[i] != 0) {
+        if (member && chosen.data[i] != 0) {
             WorldControlUnit(kWorld, nullptr, member);
             if (index == i) reinterpret_cast<SlotEvent>(vtable_[0x80 / 4])(this, unitAt(i)->id_, 0, 0);
         }
@@ -183,7 +183,7 @@ void CBattleScreenSetup::ToggleMember(int index) {
     if (*reinterpret_cast<const int*>(0x007B0098) == 1) {
         if (auto* player = static_cast<std::uint8_t*>(WorldGetPlayer(kServerWorld, nullptr, 0))) {
             for (int i = 0; i < Field<int>(player, 0xA4); ++i) {
-                if (i >= party->size_) continue;
+                if (i >= party->size) continue;
                 std::uint8_t* record = Field<std::uint8_t*>(player, 0xA0) + i * 0x784;
                 CUnit* member = unitAt(i);
                 if (member->id_ == Field<int>(record, 0x1C))
@@ -192,7 +192,7 @@ void CBattleScreenSetup::ToggleMember(int index) {
         }
     }
     RefreshSelectionAt(this);
-    if (chosen.data_) gamecrt::operator_delete(chosen.data_);
+    if (chosen.data) gamecrt::operator_delete(chosen.data);
 }
 EI_REPLACE_METHOD(0x006379E0, CBattleScreenSetup::ToggleMember);
 
@@ -200,12 +200,12 @@ EI_REPLACE_METHOD(0x006379E0, CBattleScreenSetup::ToggleMember);
 
 void CBattleScreenSetup::AttackUnit(CUnit* target, int ctrl) {
     auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
-    auto unitAt = [party](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data_[i])); };
+    auto unitAt = [party](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i])); };
     int kind = 0;
     while (kind < 6 && orderKeys_[kind] == 0) ++kind;
 
     OrderUnits units{reinterpret_cast<void*>(0x007402AC), nullptr, 0, 0, 0};
-    for (int i = 0; i < party->size_; ++i) {
+    for (int i = 0; i < party->size; ++i) {
         CUnit* member = unitAt(i);
         if (!member || !(member->flags_ & kFlagSelected)) continue;
         int n = units.size;
@@ -227,8 +227,8 @@ EI_REPLACE_METHOD(0x00637190, CBattleScreenSetup::AttackUnit);
 void CBattleScreenSetup::OrderDeadUnit(CUnit* target, int ctrl) {
     auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
     OrderUnits units{reinterpret_cast<void*>(0x007402AC), nullptr, 0, 0, 0};
-    for (int i = 0; i < party->size_; ++i) {
-        auto* member = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data_[i]));
+    for (int i = 0; i < party->size; ++i) {
+        auto* member = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i]));
         if (!member || !(member->flags_ & kFlagSelected)) continue;
         int n = units.size;
         OrderUnitsSetSize(&units, nullptr, n + 1, -1);
@@ -247,8 +247,8 @@ EI_REPLACE_METHOD(0x006373A0, CBattleScreenSetup::OrderDeadUnit);
 
 void CBattleScreenSetup::UseOnUnit(CUnit* target, char quick, int ctrl) {
     auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
-    auto unitAt = [party](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data_[i])); };
-    for (int i = 0; i < party->size_; ++i) {
+    auto unitAt = [party](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i])); };
+    for (int i = 0; i < party->size; ++i) {
         CUnit* member = unitAt(i);
         if (!member || !(member->flags_ & kFlagSelected)) continue;
         float position[3];   // the target's position, passed to the (unused) argument of the checks
@@ -270,10 +270,10 @@ EI_REPLACE_METHOD(0x00637500, CBattleScreenSetup::UseOnUnit);
 
 void CBattleScreenSetup::UseAtPoint(float x, float y, float z, CUnit* unit, char quick) {
     auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
-    auto unitAt = [party](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data_[i])); };
+    auto unitAt = [party](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i])); };
     // The original works on its argument slots, so the shift below stays for the later members.
     float point[3] = {x, y, z};
-    for (int i = 0; i < party->size_; ++i) {
+    for (int i = 0; i < party->size; ++i) {
         CUnit* member = unitAt(i);
         if (!member || !(member->flags_ & kFlagSelected)) continue;
         if (member == unit) {
@@ -339,17 +339,17 @@ void CBattleScreenSetup::OnUnitSpeech(int id, unsigned event, char* extra) {
     }
 
     auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
-    auto unitAt = [party](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data_[i])); };
+    auto unitAt = [party](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i])); };
     if (event == 0x30) {
         // The member's timed face (no null test, as the original).
-        for (int i = 0; i < party->size_; ++i) {
+        for (int i = 0; i < party->size; ++i) {
             if (unitAt(i)->id_ != id) continue;
             HudPortraitSlot* slots = static_cast<CHudPortraits*>(portraits_)->slots_;
             slots[i].faceTimer_ = 0.0f;
             static_cast<CHudPortraits*>(portraits_)->slots_[i].faceMode_ = 1;
         }
     } else if (event - 0xB <= 0x15 - 0xB) {
-        for (int i = 0; i < party->size_; ++i) {
+        for (int i = 0; i < party->size; ++i) {
             if (unitAt(i)->id_ != id) continue;
             static_cast<CHudPortraits*>(portraits_)->slots_[i].wobbleTime_ = PortraitDelay(UiRandom().Next());
             static_cast<CHudPortraits*>(portraits_)->slots_[i].wobbleKind_ = 2;

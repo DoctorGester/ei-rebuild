@@ -74,17 +74,10 @@ void LeaveGame();
 
 static_assert(sizeof(CUiWindow) == 0x148);
 
-// An MFC CPtrArray-like array (vtable, data, size, capacity, growth) with zeroed new slots.
-struct UiItemArray {
-    void* vtable_;
-    char** data_;
-    int size_;
-    int capacity_;
-    int growBy_;
-    // 0062A390 (not rewritten; an MFC SetSize instantiation). `growBy` -1 keeps the step.
-    void SetSize(int newSize, int growBy);
-};
-static_assert(sizeof(UiItemArray) == 0x14);
+// An MFC CArray of item pointers with zeroed new slots. Its SetSize is the instantiation's
+// (0062A390, not rewritten; `growBy` -1 keeps the step), through UiItemsSetSize (ui_screens.cpp).
+using UiItemArray = mfc::CArray<char*>;
+void __fastcall UiItemsSetSize(UiItemArray* items, void*, int newSize, int growBy);
 
 // The item predicates of the camp screens (005EE050-005EE130, thiscall on the owning screen,
 // which they do not read; RET 4; ui_screens.cpp). Loot items (type 0x3007, CItemLoot) are sorted

@@ -190,25 +190,25 @@ static void __fastcall TokenizeVerify(CUiScrollText* self, void*, const mfc::CSt
     UiTokenArray& own = self->tokens_;
     UiTokenArray& copy = scratch->tokens_;
     copy = own;
-    if (own.data_) {
-        int capacity = own.maxSize_ > 0 ? own.maxSize_ : 1;
-        copy.data_ = static_cast<UiTextToken**>(gamecrt::operator_new(capacity * sizeof(UiTextToken*)));
-        std::memcpy(copy.data_, own.data_, own.size_ * sizeof(UiTextToken*));
+    if (own.data) {
+        int capacity = own.maxSize > 0 ? own.maxSize : 1;
+        copy.data = static_cast<UiTextToken**>(gamecrt::operator_new(capacity * sizeof(UiTextToken*)));
+        std::memcpy(copy.data, own.data, own.size * sizeof(UiTextToken*));
     }
-    int before = own.size_;
+    int before = own.size;
     s_tokenize(scratch, nullptr, text);
     self->CUiScrollText::Tokenize(text);
-    bool ok = copy.size_ == own.size_;
+    bool ok = copy.size == own.size;
     int bad = -1;
-    for (int i = before; ok && i < own.size_; ++i) {
-        if (!SameToken(copy.data_[i], own.data_[i])) {
+    for (int i = before; ok && i < own.size; ++i) {
+        if (!SameToken(copy.data[i], own.data[i])) {
             ok = false;
             bad = i;
         }
     }
     ei::verify::Check("CUiScrollText::Tokenize", true, ok, "tokens %d: %d vs %d, first difference %d, text \"%.60s\"",
-                      before, copy.size_, own.size_, bad, static_cast<const char*>(*text));
-    for (int i = before; i < copy.size_; ++i) FreeToken(copy.data_[i]);
-    if (copy.data_) gamecrt::operator_delete(copy.data_);
+                      before, copy.size, own.size, bad, static_cast<const char*>(*text));
+    for (int i = before; i < copy.size; ++i) FreeToken(copy.data[i]);
+    if (copy.data) gamecrt::operator_delete(copy.data);
 }
 EI_VERIFY(0x0065D4B0, TokenizeVerify, 7, s_tokenize);

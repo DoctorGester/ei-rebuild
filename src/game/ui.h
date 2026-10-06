@@ -669,17 +669,10 @@ class CHudQuickItems;
 class CHudSpellColumn;
 class CHudActionColumn;
 
-// An MFC CDWordArray (vtable, data, size, capacity, growth).
-struct UiDwordArray {
-    void* vtable_;
-    std::uint32_t* data_;
-    int size_;
-    int capacity_;
-    int growBy_;
-    // 0059C660 (not rewritten; an MFC SetSize instantiation). `growBy` -1 keeps the step.
-    void SetSize(int size, int growBy);
-};
-static_assert(sizeof(UiDwordArray) == 0x14);
+// An MFC CDWordArray. Its SetSize is the instantiation's (0059C660, not rewritten; `growBy` -1
+// keeps the step), through UiDwordsSetSize (ui_battle_setup.cpp).
+using UiDwordArray = mfc::CArray<std::uint32_t>;
+void __fastcall UiDwordsSetSize(UiDwordArray* array, void*, int size, int growBy);
 
 // The interface's renderer (CInterface3D +0x08), only as the HUD uses it.
 struct UiD3DDevice {
@@ -1145,16 +1138,10 @@ struct UiPointF {
     float x;
     float y;
 };
-struct UiPointArray {
-    // 00453100 (not rewritten). Sets the size; `growBy` -1 keeps the growth step.
-    void SetSize(int size, int growBy);
-
-    UiPointF* data_;
-    int size_;
-    int capacity_;
-    int growBy_;
-};
-static_assert(sizeof(UiPointArray) == 0x10);
+using UiPointArray = lib::AlignedArray<UiPointF>;
+// 00453100 (the 8-byte aligned arrays' SetSize; aligned_arrays.cpp), through its address
+// (ui_hud_map.cpp). `growBy` -1 keeps the growth step.
+void __fastcall UiPointsSetSize(UiPointArray* points, void*, int size, int growBy);
 
 // Map (set up by 00641F20, vtables 00742660 / 0074262C; 615..800 x 0..165). Regions: 0 the
 // sling button, 1 the round map, 2 the map area, 3 and 4 the two view buttons, 5 a button
@@ -1469,14 +1456,8 @@ struct UiWordToken : UiTextToken {
     int width_;                      // +0x0C its width in the token's font (005F8340)
 };
 static_assert(sizeof(UiWordToken) == 0x10);
-// MFC CArray of token pointers (SetSize 0065E010).
-struct UiTokenArray {
-    void* vtable_;
-    UiTextToken** data_;             // +0x04
-    int size_;                       // +0x08
-    int maxSize_;                    // +0x0C
-    int growBy_;                     // +0x10
-};
+// MFC CArray of token pointers (SetSize 0065E010, ui_scroll_text.cpp).
+using UiTokenArray = mfc::CArray<UiTextToken*>;
 
 // A scrolling text: a scroll bar subclass (constructor 0065CC00) showing tokenised text; the
 // battle screen's message log and the objectives window's quest log.

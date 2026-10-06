@@ -90,33 +90,21 @@ __declspec(naked) void VarsAt::Construct() EI_ORIGINAL(0x004C00D0)
 __declspec(naked) void VarsAt::Destruct() EI_ORIGINAL(0x004BE090)
 VarsAt* Vars(ScriptVars* vars) { return static_cast<VarsAt*>(vars); }
 
-// CArray template members of the loader's arrays (MFC code, not rewritten).
-struct BindingArray : mfc::CArray<ScriptBinding> {
-    int Add(const ScriptBinding* binding);   // 004D5B50
-};
-__declspec(naked) int BindingArray::Add(const ScriptBinding*) EI_ORIGINAL(0x004D5B50)
-
-struct SubCallArray : mfc::CArray<ScriptSubCall> {
-    int Add(const ScriptSubCall* call);      // 004D5CB0: deep-copies the nested SSCCmd
-    void SetSize(int size, int growBy);      // 004C4FD0: deletes the nested SSCCmds it drops
-};
-__declspec(naked) int SubCallArray::Add(const ScriptSubCall*) EI_ORIGINAL(0x004D5CB0)
-void SubCallArray::SetSize(int a0, int a1) { SubCallArraySetSizeOriginal((void*)this, nullptr, a0, a1); }
-
-struct CmdArray : mfc::CArray<SSCCmd> {
-    void SetSize(int size, int growBy);                  // 004CD2B0
-    void SetAtGrow(int index, const SSCCmd* cmd);        // 004D65E0: copies the SSCCmd
-    int Add(const SSCCmd* cmd);                          // 004D5ED0: copies the SSCCmd
-};
-void CmdArray::SetSize(int a0, int a1) { CmdArraySetSizeOriginal((void*)this, nullptr, a0, a1); }
-__declspec(naked) void CmdArray::SetAtGrow(int, const SSCCmd*) EI_ORIGINAL(0x004D65E0)
-__declspec(naked) int CmdArray::Add(const SSCCmd*) EI_ORIGINAL(0x004D5ED0)
-CmdArray* Cmds(mfc::CArray<SSCCmd>* array) { return static_cast<CmdArray*>(array); }
-
-struct IfThenArray : mfc::CArray<ScriptIfThen> {
-    void SetSize(int size, int growBy);   // 004C59C0
-};
-void IfThenArray::SetSize(int a0, int a1) { IfThenArraySetSizeOriginal((void*)this, nullptr, a0, a1); }
+// CArray template members of the loader's arrays (MFC code, not rewritten; thiscall on the array).
+// 004D5B50 bindings' Add; 004D5CB0 sub-calls' Add (deep-copies the nested SSCCmd) and 004C4FD0
+// their SetSize (deletes the nested SSCCmds it drops); 004CD2B0 commands' SetSize, 004D65E0
+// SetAtGrow and 004D5ED0 Add (both copy the SSCCmd); 004C59C0 if-then pairs' SetSize.
+__declspec(naked) int __fastcall BindingsAdd(mfc::CArray<ScriptBinding>*, void*, const ScriptBinding*) EI_ORIGINAL(0x004D5B50)
+__declspec(naked) int __fastcall SubCallsAdd(mfc::CArray<ScriptSubCall>*, void*, const ScriptSubCall*) EI_ORIGINAL(0x004D5CB0)
+void SubCallsSetSize(mfc::CArray<ScriptSubCall>* calls, int size, int growBy) {
+    SubCallArraySetSizeOriginal(calls, nullptr, size, growBy);
+}
+void CmdsSetSize(mfc::CArray<SSCCmd>* cmds, int size, int growBy) { CmdArraySetSizeOriginal(cmds, nullptr, size, growBy); }
+__declspec(naked) void __fastcall CmdsSetAtGrow(mfc::CArray<SSCCmd>*, void*, int, const SSCCmd*) EI_ORIGINAL(0x004D65E0)
+__declspec(naked) int __fastcall CmdsAdd(mfc::CArray<SSCCmd>*, void*, const SSCCmd*) EI_ORIGINAL(0x004D5ED0)
+void IfThensSetSize(mfc::CArray<ScriptIfThen>* pairs, int size, int growBy) {
+    IfThenArraySetSizeOriginal(pairs, nullptr, size, growBy);
+}
 
 struct DefinitionAt : ScriptDefinition {
     void Reset();      // 004D3320: empties everything (name and parameters too)
@@ -125,10 +113,9 @@ struct DefinitionAt : ScriptDefinition {
 __declspec(naked) void DefinitionAt::Reset() EI_ORIGINAL(0x004D3320)
 __declspec(naked) void DefinitionAt::Destruct() EI_ORIGINAL(0x004BE9D0)
 
-struct DefinitionArray : mfc::CArray<ScriptDefinition> {
-    int Add(const ScriptDefinition* script);   // 004D6100: copies the definition
-};
-__declspec(naked) int DefinitionArray::Add(const ScriptDefinition*) EI_ORIGINAL(0x004D6100)
+// 004D6100: the definitions' Add (copies the definition).
+__declspec(naked) int __fastcall DefinitionsAdd(mfc::CArray<ScriptDefinition>*, void*, const ScriptDefinition*)
+    EI_ORIGINAL(0x004D6100)
 
 // 004D6340: the define list's destructor, through its address.
 __declspec(naked) void __fastcall DefinesDestructAt(ScriptDefineList*) EI_ORIGINAL(0x004D6340)
@@ -309,7 +296,7 @@ struct LocalDefinition {
 
 // What DeclareScript and GlobalVars do to Load's definition before parsing (inline in the game).
 void ClearDefinition(ScriptDefinition* decl) {
-    static_cast<IfThenArray&>(decl->ifThen).SetSize(0, -1);
+    IfThensSetSize(&decl->ifThen, 0, -1);
     Vars(&decl->vars)->Clear();
     decl->index = 0;
     decl->params = game::EmptyText();
@@ -370,7 +357,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
     InlineSetSize(cmd->groupArgs, CountChar(signature, 'g'), false);
     FreeArray(cmd->localBindings);
     FreeArray(cmd->globalBindings);
-    static_cast<SubCallArray&>(cmd->subCalls).SetSize(0, -1);
+    SubCallsSetSize(&cmd->subCalls, 0, -1);
 
     BOOL result;
     if (!*pos) {
@@ -513,9 +500,9 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
 
         if (bind) {
             if (local.varIndex >= 0) {
-                static_cast<BindingArray&>(cmd->localBindings).Add(&local);
+                BindingsAdd(&cmd->localBindings, nullptr, &local);
             } else if (global.varIndex >= 0) {
-                static_cast<BindingArray&>(cmd->globalBindings).Add(&global);
+                BindingsAdd(&cmd->globalBindings, nullptr, &global);
             } else {
                 sub.type = 0;
                 sub.argIndex = 0;
@@ -532,7 +519,7 @@ BOOL CScript::LoadFunction(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* t
                     DeleteCmd(sub.cmd);
                     return 0;
                 }
-                static_cast<SubCallArray&>(cmd->subCalls).Add(&sub);
+                SubCallsAdd(&cmd->subCalls, nullptr, &sub);
             }
         }
 
@@ -558,7 +545,7 @@ BOOL CScript::LoadConditions(mfc::CArray<SSCCmd>* conditions, ScriptPos* pos, co
     LocalToken token;
     mfc::CString text;
     LocalCmd cmd;
-    Cmds(conditions)->SetSize(0, -1);
+    CmdsSetSize(conditions, 0, -1);
     for (;;) {
         if (!*pos) return Error(this, token.line, 1, GameText(0x0078D740));
         cmd.Get()->Clear();
@@ -570,7 +557,7 @@ BOOL CScript::LoadConditions(mfc::CArray<SSCCmd>* conditions, ScriptPos* pos, co
         const char* signature = SignatureAt(id, kScriptFloat);
         if (!signature) return Error(this, token.line, 9, GameText(0x0078D858));   // "Function returning float expected"
         if (!Orig(this)->LoadFunctionAt(cmd.Get(), pos, tokens, id, locals, signature, 0, 0)) return 0;
-        Cmds(conditions)->SetAtGrow(conditions->size, cmd.Get());
+        CmdsSetAtGrow(conditions, nullptr, conditions->size, cmd.Get());
     }
 }
 EI_REPLACE_METHOD(0x004D0BF0, CScript::LoadConditions);
@@ -620,7 +607,7 @@ BOOL CScript::LoadScriptBody(ScriptDefinition* script, ScriptPos* pos, const Scr
         pair.commands = NewCommandList();
         if (!Orig(this)->LoadCommandsAt(&pair.commands->commands, pos, tokens, &script->vars)) return 0;
         const int n = script->ifThen.size;
-        static_cast<IfThenArray&>(script->ifThen).SetSize(n + 1, -1);
+        IfThensSetSize(&script->ifThen, n + 1, -1);
         script->ifThen.data[n] = pair;
     }
 }
@@ -718,7 +705,7 @@ BOOL CScript::LoadCommands(mfc::CArray<SSCCmd>* commands, ScriptPos* pos, const 
     SSCCmd* cmd = local.Get();
     LocalVars empty;
     if (!locals) locals = empty.Get();
-    Cmds(commands)->SetSize(0, -1);
+    CmdsSetSize(commands, 0, -1);
     for (;;) {
         if (!*pos) return Error(this, tokens->tail->data.line, 1, GameText(0x0078D740));
         cmd->Clear();
@@ -777,7 +764,7 @@ BOOL CScript::LoadCommands(mfc::CArray<SSCCmd>* commands, ScriptPos* pos, const 
                     return 0;
                 cmd->stringArgs.data[0] = Mbscmp(scripts.data[index].name, text) == 0 ? text : qualified;
                 StoreIntAsFloat(&cmd->floatArgs.data[0], index);
-                Cmds(commands)->Add(cmd);
+                CmdsAdd(commands, nullptr, cmd);
                 continue;
             }
             if (Vars(Globals())->HasVariableAt(text)) {
@@ -789,7 +776,7 @@ BOOL CScript::LoadCommands(mfc::CArray<SSCCmd>* commands, ScriptPos* pos, const 
             }
         }
         if (!ok) return 0;
-        Cmds(commands)->Add(cmd);
+        CmdsAdd(commands, nullptr, cmd);
     }
 }
 EI_REPLACE_METHOD(0x004D1330, CScript::LoadCommands);
@@ -894,7 +881,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
                 if (!Orig(this)->LoadVariableDeclarationsAt(decl, &pos, &tokens, 0)) return fail(0);
                 if (!Orig(this)->ExpectLexemeAt(&tokens, &pos, kLexOpen)) return fail(0);
                 if (!Orig(this)->LoadScriptBodyAt(decl, &pos, &tokens)) return fail(0);
-                static_cast<DefinitionArray&>(Scripts()).Add(decl);
+                DefinitionsAdd(&Scripts(), nullptr, decl);
             } else {
                 ScriptDefinition* declared = &Scripts().data[index];
                 if (declared->ifThen.size != 0)   // "Multiple declaration of script %s"
@@ -916,7 +903,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
                 return fail(Error(this, token.line, 15, GameText(0x0078BC18), static_cast<const char*>(word)));
             if (!Orig(this)->ExpectLexemeAt(&tokens, &pos, kLexOpen)) return fail(0);
             if (!Orig(this)->LoadVariableDeclarationsAt(decl, &pos, &tokens, 0)) return fail(0);
-            static_cast<DefinitionArray&>(Scripts()).Add(decl);
+            DefinitionsAdd(&Scripts(), nullptr, decl);
             break;
         }
         case kLexGlobalVars: {

@@ -34,7 +34,7 @@ static void __fastcall BattleScreenCreateVerify(CBattleScreenSetup* self, void*)
     Counts before = CountsOf(self);
     int children = self->children_.size;
     int inputs = InputCount(self);
-    int heroes = self->heroes_.size_;
+    int heroes = self->heroes_.size;
     bool loading = *reinterpret_cast<const int*>(0x007AFE1C) != 0;
     self->Create();
     Counts after = CountsOf(self);
@@ -54,12 +54,12 @@ static void __fastcall BattleScreenCreateVerify(CBattleScreenSetup* self, void*)
                   self->portraitMode_ == 0 && self->unknown_164 == 0 && self->unknown_1FC == 0 &&
                   !self->unknown_1C0 && !self->unknown_1C1 &&
                   (*reinterpret_cast<const std::uint32_t*>(0x0079B2B0) & 0x40) == 0;
-    bool heroOk = loading || self->heroes_.size_ == heroes + (self->hasHero_ ? 1 : 0);
+    bool heroOk = loading || self->heroes_.size == heroes + (self->hasHero_ ? 1 : 0);
     bool ok = order && vtables && owners && fields && heroOk && InputCount(self) == inputs + 2 &&
               after.objects >= before.objects + 3;
     ei::verify::Check("CBattleScreenSetup::Create", true, ok,
                       "order %d vtables %d owners %d fields %d heroes %d->%d inputs %d->%d objects %d->%d", order,
-                      vtables, owners, fields, heroes, self->heroes_.size_, inputs, InputCount(self),
+                      vtables, owners, fields, heroes, self->heroes_.size, inputs, InputCount(self),
                       before.objects, after.objects);
 }
 EI_VERIFY(0x00635250, BattleScreenCreateVerify, 0, s_unused);

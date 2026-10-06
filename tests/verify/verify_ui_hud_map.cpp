@@ -100,9 +100,9 @@ ViewCopy CopyView(CHudMap* map) {
     ViewCopy c;
     std::memcpy(c.centre, &map->centreX_, sizeof(c.centre));
     std::memcpy(c.needle, reinterpret_cast<std::uint8_t*>(map->sceneObjects_.data[10]) + 0x34, 16);
-    c.polygonSize = map->visibleArea_.size_;
+    c.polygonSize = map->visibleArea_.size;
     c.polygon.resize(c.polygonSize * sizeof(UiPointF));
-    if (c.polygonSize) std::memcpy(c.polygon.data(), map->visibleArea_.data_, c.polygon.size());
+    if (c.polygonSize) std::memcpy(c.polygon.data(), map->visibleArea_.data, c.polygon.size());
     auto* area = reinterpret_cast<CUiMesh*>(map->sceneObjects_.data[1]);
     c.area = Copy(area);
     c.uvCount = area->uvCount_;
