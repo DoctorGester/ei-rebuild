@@ -99,15 +99,28 @@ static_assert(sizeof(LinkArchiveNode) == 0x18);
 
 // Loads .lnk link files and the figures they name (vtable 0073D808; created at startup with
 // figures.res and menus.res). Only the archive list is known.
+class CLinkMesh;
+class ITransformPipeline;
+struct VertexPacket;
+
 class CLinkFigureLoader {
 public:
     // 004F6D30. Opens `path` as a memory-mapped archive and appends it to the list, unless an
     // archive of that exact name is already open. Returns 1 on success or when already open.
     int AddArchive(const stlp::string* path);
+    // 004F7F00 (RET 0x18; link_figure.cpp). Reads a FIG / FIG8 part record at *cursor (moved past
+    // it) into `mesh` as part `name`: its header (two dwords, bounds fitted to the vertices morphed
+    // by s, t, u) and its elements (CLinkMesh::AddPart).
+    void LoadFigPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);
+    // 004F87D0 (RET 0x18). The same for the older record without a FIG header (6 morph corners).
+    void LoadOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);
 
-    std::uint8_t unknown_00[0x0C];
-    LinkArchiveNode* archives_;   // +0x0C list sentinel
+    void* vtable_;                    // +0x00
+    int refCount_;                    // +0x04
+    ITransformPipeline* pipeline_;    // +0x08 the renderer's (+0x24) +0xAC -> +0xC
+    LinkArchiveNode* archives_;       // +0x0C list sentinel
 };
+static_assert(offsetof(CLinkFigureLoader, pipeline_) == 0x08);
 static_assert(offsetof(CLinkFigureLoader, archives_) == 0x0C);
 
 // ---- Databases (006D0000-006E0000) -----------------------------------------------------------------

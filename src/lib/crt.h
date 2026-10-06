@@ -34,6 +34,15 @@ int __cdecl read(int fd, void* buffer, unsigned count);       // 006EB046
 int __cdecl write(int fd, const void* buffer, unsigned count);// 006EB642
 int __cdecl close(int fd);                                    // 006EAF66
 
+// Stream I/O (the game's FILE is opaque here).
+struct CrtFile;
+CrtFile* __cdecl fopen(const char* path, const char* mode);                          // 006E9107
+int __cdecl fclose(CrtFile* file);                                                   // 006E8EB8
+int __cdecl fseek(CrtFile* file, long offset, int origin);                           // 006E95D2
+long __cdecl ftell(CrtFile* file);                                                   // 006E97C4
+std::size_t __cdecl fread(void* to, std::size_t size, std::size_t count, CrtFile* file);          // 006E8F35
+std::size_t __cdecl fwrite(const void* from, std::size_t size, std::size_t count, CrtFile* file); // 006E968B
+
 } // namespace gamecrt
 
 namespace game {
