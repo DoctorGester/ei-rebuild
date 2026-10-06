@@ -89,11 +89,19 @@ std::uint8_t* __fastcall AllocateBlocks32(int count) {
     return reinterpret_cast<std::uint8_t*>(AlignedArray<Block32>::Allocate(count));
 }
 
+std::uint8_t* __fastcall AllocateBlocks8(int count) {
+    struct Block8 {
+        std::uint8_t bytes[8];
+    };
+    return reinterpret_cast<std::uint8_t*>(AlignedArray<Block8>::Allocate(count));
+}
+
 } // namespace view
 
 EI_REPLACE(0x004F0EF0, view::CameraViewMatrix);
 EI_REPLACE(0x004F15C0, view::LightRotation);
 EI_REPLACE(0x004F1440, view::LightShearMatrix);
 EI_REPLACE(0x004E5710, view::AllocateBlocks32);
+EI_REPLACE(0x004F65B0, view::AllocateBlocks8);
 // 004E5660 is a byte-for-byte copy of CubicSegment::Evaluate (0040E440).
 EI_REPLACE_METHOD(0x004E5660, CubicSegment::Evaluate);

@@ -2,7 +2,8 @@
 // with NearlyEqual (rule 7). CameraViewMatrix runs every drawn frame (00569E40 through 00566360's
 // camera; `newgame`, `world_load`); LightRotation / LightShearMatrix with every shadow (DrawShadow
 // 0051CE60; `newgame`); the cubic copy from the unit motion code (ai_motion.cpp; any scenario with
-// moving units, `newgame`); AllocateBlocks32 from the weather and terrain draws (ours only: alignment
+// moving units, `newgame`); AllocateBlocks32 from the weather and terrain draws, AllocateBlocks8 from the
+// interface windows, figure rasteriser and shadows (ours only: alignment
 // and the stored block pointer).
 #include "verify.h"
 
@@ -67,6 +68,16 @@ std::uint8_t* __fastcall AllocateBlocks32Verify(int count) {
     return result;
 }
 
+// 004F65B0: ours only, as above.
+std::uint8_t* __fastcall AllocateBlocks8Verify(int count) {
+    std::uint8_t* result = view::AllocateBlocks8(count);
+    auto aligned = reinterpret_cast<std::uintptr_t>(result);
+    auto block = reinterpret_cast<std::uintptr_t>(reinterpret_cast<void**>(result)[-1]);
+    bool ok = (aligned & 0x1F) == 0 && aligned - block >= 4 && aligned - block <= 0x23;
+    ei::verify::Check("view::AllocateBlocks8", true, ok, "count %d", count);
+    return result;
+}
+
 // 004E5660: FLD [ESP+4] (4), FMUL [ECX+0xC] (3).
 float(__fastcall* s_cubic)(const CubicSegment*, void*, float);
 float __fastcall CubicVerify(const CubicSegment* self, void*, float t) {
@@ -83,3 +94,4 @@ EI_VERIFY(0x004F15C0, LightRotationVerify, 7, s_lightRotation);
 EI_VERIFY(0x004F1440, LightShearMatrixVerify, 6, s_lightShear);
 EI_VERIFY(0x004E5710, AllocateBlocks32Verify, 0, s_unused);
 EI_VERIFY(0x004E5660, CubicVerify, 7, s_cubic);
+EI_VERIFY(0x004F65B0, AllocateBlocks8Verify, 0, s_unused);

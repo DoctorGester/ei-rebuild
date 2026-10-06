@@ -353,3 +353,14 @@ nodes go back to the node allocator's 0x18-byte list through `stlp::deallocate` 
 Not ported: 004DEBC0 (`Find`, only called by the original GetItemTexts, which is rewritten and inlines the lookup),
 004DEC40 (Rebirth) and its 21-byte forwarder 004DEFA0, 004DED20 (setlocale / _setmbcp, slot 2). Scenarios: `newgame`
 (client start adds the text archives, briefings add / remove zone texts), `world_load`.
+
+### Zone exit area, aligned 8-byte blocks
+
+| Address | Name | Verify |
+|---|---|---|
+| 004E59F0 | `ZoneExit::Contains` (`exit_area.cpp`; world.h's +0x24 is now `angle`; world_client.cpp's forwarder removed) | against the original (pure). FindExitAt (world_client.cpp) and 005677F0; `zone_base_bz1g`, `newgame` |
+| 004F65B0 | `view::AllocateBlocks8` (as 004545A0) | ours only: alignment, block pointer. Interface windows, figure rasteriser, shadows |
+
+Contains: a zero or NaN angle tests the rectangle as is (x1 > x, x > x2, y1 > y, y > y2 reject; NaN passes); otherwise
+the point is turned by -angle about the centre (centre x and the x offset kept unrounded, as the original keeps
+them on the FPU stack) and a NaN turned x is outside.

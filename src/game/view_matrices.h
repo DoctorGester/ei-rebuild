@@ -26,5 +26,7 @@ void __stdcall LightShearMatrix(float* out, const Vector3* direction);
 // 004E5710 (__fastcall). A 32-byte aligned block for `count` 32-byte elements (the operator_new block
 // pointer stored just before it), as 00452DA0.
 std::uint8_t* __fastcall AllocateBlocks32(int count);
+// 004F65B0 (__fastcall). The same for 8-byte elements (as 004545A0).
+std::uint8_t* __fastcall AllocateBlocks8(int count);
 
 } // namespace view
