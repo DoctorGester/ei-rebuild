@@ -264,7 +264,7 @@ struct PatrolLook {
     std::uint32_t data[4];
 };
 __declspec(naked) PatrolLook* PatrolLook::Set(float, float, float, int) EI_ORIGINAL(0x004BA1A0)
-__declspec(naked) void __fastcall PatrolPointsClear(void*, void*, int, int) EI_ORIGINAL(0x004C9970)
+
 __declspec(naked) void __fastcall PatrolLooksSetAtGrow(void*, void*, int, PatrolLook*) EI_ORIGINAL(0x004CDCB0)
 
 // The unit's +0x240 object (server-side unit state).
@@ -1373,7 +1373,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             void* state = UnitStateArg(cmd);
             if (!state) break;
             void* patrol = BrainOf(state)->FindPatrolMode();
-            if (patrol) PatrolPointsClear(static_cast<char*>(patrol) + 8, nullptr, 0, -1);
+            if (patrol) PatrolPointArraySetSizeOriginal(static_cast<char*>(patrol) + 8, nullptr, 0, -1);
             break;
         }
         case 0x2A: {   // UMPatrolAddPoint(unit, x, y)

@@ -98,13 +98,26 @@ struct AILook {
 };
 static_assert(sizeof(AILook) == 0x10);
 
-// CArray<AILook> (0x14 bytes; vtable 0073D4B4, base 0073D460). The game's template code is used.
+// CArray<AILook> (0x14 bytes; vtable 0073D4B4, base 0073D460). The modes call the template code
+// through its addresses (Construct, SetSize, Copy, GetAt) so the verify wrappers see their calls;
+// the rewritten bodies are Init, Resize, CopyFrom and ElementAt (unit_ai_looks.cpp).
 struct AILookArray {
     void Construct();                               // 005573F0 (base vtable, empty)
     void SetSize(int size, int growBy);             // 005D8EE0
     void Copy(const AILookArray* other);            // 005D8B60
     void Destroy();                                 // 004CB770 (base vtable, frees the data)
     void GetAt(AILook* out, int index) const;       // 005D9DE0
+
+    // 005573F0. Base vtable, no data, growth step 0. Returns this.
+    AILookArray* Init();
+    // 005D8EE0. CArray::SetSize: growBy -1 keeps the step; new elements are zeroed (also when they
+    // fit the capacity); a shrink only lowers the size. Growing past the capacity adds the step
+    // (0: an eighth of the size, 4..1024) or exactly what is needed, whichever is more.
+    void Resize(int size, int growBy);
+    // 005D8B60. CArray::Copy: Resize to the other's size (keeping the step), then its elements.
+    void CopyFrom(const AILookArray* other);
+    // 005D9DE0. CArray::GetAt returning by value (into `out`, which EAX returns).
+    AILook* ElementAt(AILook* out, int index) const;
 
     void* vtable;
     AILook* data;                   // +0x04
@@ -119,6 +132,9 @@ constexpr std::uintptr_t kLookArrayBaseVtable = 0x0073D460;
 // A move the modes prepare on the stack (0x20 bytes): where to go and what to look at there.
 struct AIMoveOrder {
     void Reset();                                   // 00545B20 (point 0, looks emptied)
+    // 00545B20 (unit_ai_looks.cpp; the modes call it through Reset, its address). The point zeroed,
+    // the looks' data freed, size and capacity 0 (step and vtable kept).
+    void Clear();
 
     Vector3 point;                  // +0x00
     AILookArray looks;              // +0x0C
@@ -233,8 +249,11 @@ struct PatrolMode : AIMode {
     void Execute(AIBrain* brain);
     // 005D1690. The last point, or null.
     PatrolPoint* LastPoint();
-    // 005D12B0. Appends a point (snapped to the AI map's half-cell grid). Not rewritten.
+    // 005D12B0 (through its address, so the verify wrapper sees Evaluate's calls).
     void AddPoint(const Vector3* position);
+    // 005D12B0 (unit_ai_looks.cpp). Appends a point with no looks at ((n + 0.5) / 2, z 0) for
+    // n = 2x rounded to nearest (so 0..0.5 above `position`, not the middle of its half-cell).
+    void AppendPoint(const Vector3* position);
 
     void* pointsVtable;             // +0x08 CArray (vtable 0073FF74 / 0073FF80)
     PatrolPoint* points;            // +0x0C
