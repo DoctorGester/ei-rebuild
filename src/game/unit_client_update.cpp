@@ -48,11 +48,6 @@ __declspec(naked) void __fastcall CallShowWeaponParts(CUnitClientSpecific*, void
 __declspec(naked) void __fastcall CallUpdateArrow(CUnitClientSpecific*) EI_ORIGINAL(0x00538C20)
 __declspec(naked) FigurePart* __fastcall CallFirstDrawnPart(CObject3DClientSpecific*) EI_ORIGINAL(0x0051B6D0)
 __declspec(naked) FigurePart* __fastcall CallNextDrawnPart(CObject3DClientSpecific*) EI_ORIGINAL(0x0051B6F0)
-// 005380D0. Plays a speech; false when the same one played within 5 seconds (RET 4, AL).
-__declspec(naked) bool __fastcall Speak(CUnitClientSpecific*, void*, ClientSpeech*) EI_ORIGINAL(0x005380D0)
-// 005392F0 (library: STLport list::erase). Removes `at`, the next node to *out (RET 8).
-__declspec(naked) void __fastcall EraseSpeech(ClientSpeechNode**, void*, ClientSpeechNode** /*out*/,
-                                              ClientSpeechNode* /*at*/) EI_ORIGINAL(0x005392F0)
 
 // Is sound `handle` still playing or waiting to play?
 bool SoundBusy(int handle) {
@@ -131,14 +126,14 @@ int CUnitClientSpecific::UpdateClient() {
         if (delay == 0) {
             if (first->talking) SetTalking(unit, true);
             if (first->kind == kSpeechAfterSpeech || first->kind == kSpeechAfterSpeech2) {
-                if (!SoundBusy(speechSound) && Speak(this, nullptr, first)) speechSound = first->sound;
+                if (!SoundBusy(speechSound) && ClientSpeakOriginal(this, nullptr, first)) speechSound = first->sound;
             } else {
-                Speak(this, nullptr, first);
+                ClientSpeakOriginal(this, nullptr, first);
             }
         } else if (delay < 0 && !SoundBusy(first->sound)) {
             if (speech->next->value.talking) SetTalking(unit, false);
             ClientSpeechNode* after;
-            EraseSpeech(&speech, nullptr, &after, speech->next);
+            SpeechEraseOriginal(&speech, nullptr, &after, speech->next);
         }
     }
     if (unit->unknown_255 == kModeSpecialIdle && unit->Object3D()->animation->queue.count < kIdleRestartBelow)

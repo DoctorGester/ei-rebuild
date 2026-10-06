@@ -202,6 +202,7 @@ Code (layouts, vtable slots and per-function comments are in `unit.h`, `unit_db.
 | 0052B070, 0052A920 | MagicTrap::SaveTrap, FindTrapVictims | magic_trap.cpp | both into capture streams / output (empty scratch CPtrList) |
 | 00535B30, 005352B0, 00535480 | CUnitClientSpecific AdvanceTime (slot 40), RestartAnimation (14), StartIdleAnimation | unit_client_animation.cpp (A-U2) | ours only (last time, queue length) |
 | 00537500, 00537C00, 005373D0, 00534140 | HitEffect (46: hit sound by weapon class and material, blood particles, decal), SparkEffect (47), DeathEffect (48), OwnerPlayerChanged (18: party light) | unit_client_effects.cpp (A-U2) | ours only (effect source count; controller unchanged) |
+| 00537D80, 00538040, 005380D0, 00537F60, 00537FD0 | Say (51: queue filters, kinds 0x1D-0x2A queue behind), StopSpeech (52), Speak, SpeechReplaced / SpeechFinished (filters) | unit_client_speech.cpp (A-U2) | filters: original vs ours; the rest ours only |
 
 Other callees stay forwarders (`originals_units.h`); only 006AC970 `CreateItem` (called through its address by GiveStartingEquipment) and FatalError 00480080 are Rebirth-patched.
 
@@ -274,3 +275,5 @@ Other callees stay forwarders (`originals_units.h`); only 006AC970 `CreateItem` 
 A-U2 notes: HitEffect's third argument is a flags word whose stack slot the original reuses for the material CString;
 heroes index the armour table 0073EC78 by the hit location without a range check (kept). Forwarded: 0056CE90 (decal),
 00511830 / 005119B0 (the companion's light); 00498400 and 0051C9F0 moved to originals_effects.h / originals_units.h.
+Say's new queue entry has three padding bytes of stack garbage in the original (ours zero); StopSpeech frees the nodes
+through stlp::deallocate where the original pushes them on the 32-byte free list (0079B230) itself.
