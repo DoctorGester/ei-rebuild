@@ -33,17 +33,8 @@ constexpr std::uint32_t kArmed = 0x80000;   // flags_
 constexpr int kSlotDead = 0xDC / 4;         // CUnit slot 55: non-zero when dead
 
 // The units inside (+0x268): an MFC CList whose elements are counted references.
-struct VictimNode {
-    VictimNode* next;
-    VictimNode* prev;
-    CEngineObject* unit;
-};
-struct VictimList {
-    void* vtable;
-    VictimNode* head;
-    VictimNode* tail;
-    int count;
-};
+using VictimList = mfc::CTypedPtrList<CEngineObject>;
+using VictimNode = VictimList::Node;
 
 // MFC CPtrList (vtable 0073D454, blocks of 10) as the original keeps it on the stack.
 using PtrList = mfc::CTypedPtrList<CEngineObject>;
@@ -101,7 +92,7 @@ void MagicTrap::UpdateVictims() {
     VictimList* victims = reinterpret_cast<VictimList*>(&inside);
     for (VictimNode* node = victims->head; node;) {
         VictimNode* next = node->next;
-        if (!StaysInside(this, node->unit)) {
+        if (!StaysInside(this, node->data)) {
             // CList::RemoveAt, inlined.
             if (node == victims->head) victims->head = node->next;
             else node->prev->next = node->next;
@@ -121,10 +112,10 @@ void MagicTrap::UpdateVictims() {
         PtrNode* next = node->next;
         CEngineObject* unit = node->data;
         VictimNode* known = victims->head;
-        while (known && known->unit != unit) known = known->next;
+        while (known && known->data != unit) known = known->next;
         if (!known) {
             VictimNode* added = VictimNewNode(victims, nullptr, victims->tail, nullptr);
-            ReferenceSet(&added->unit, nullptr, unit);
+            ReferenceSet(&added->data, nullptr, unit);
             if (victims->tail) victims->tail->next = added;
             else victims->head = added;
             victims->tail = added;
@@ -379,7 +370,7 @@ void MagicTrap::SaveTrap(UnitStream* stream) {
     stream->Write(&value, 4);
     for (VictimNode* node = At<VictimNode*>(this, 0x26C); node;) {
         VictimNode* next = node->next;
-        CountedRefSave(&node->unit, nullptr, stream);
+        CountedRefSave(&node->data, nullptr, stream);
         node = next;
     }
     value = At<int>(this, 0x25C);

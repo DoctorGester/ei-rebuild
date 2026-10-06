@@ -274,12 +274,57 @@ that are left and may only go down).
 
 The device's mesh buffers (007AEDE0-007AEE3C) are declared once in `src/game/device_buffers.h`.
 
-Left as per-file layouts (the cleanup count went from 155 to 124 in D3): scene_loader's
-`ArrayBody` / `VtArray` family and aligned_arrays.cpp's untyped `Array`, the STLport list / vector
-views (`ListNode`, `ObjectList`, `PathCellList`, `NameList`, ...), script_exec's `PtrList` /
-`ItemList` wrappers, `StringArray` (CStringArray) x4, `RecordArray` x4, `UiDwordArray` and the
-remaining `...Array` structs of the unit AI, world, party and UI files. Hand-inlined SetSize copies
-remain in ui_window.cpp (region points), map_spec, party_lifetime, particle and map-object files.
+D3b (124 -> 56 per-file container structs):
+- `mfc::CStringArray` (mfc.h): CArray's layout over CStrings without constructors (so it sits in
+  layouts); its members are MFC's own code through their addresses (Construct 006FE925, Destruct
+  006FE958, SetSize 006FE9B8, SetAtGrow 006FEBFA / 006FEBCE, RemoveAt 006FED3C, Copy 006FEB61; the
+  forwarders moved to src/lib/mfc.cpp and originals_library.h's StringArray* names are inline
+  wrappers now). `console::CStringArray` derives from it and adds the constructor / destructor for
+  locals. The per-file StringArray copies (app_frame, map_spec, scene_material, world, world_effect,
+  sound, object3d_figure_setup) use it.
+- `RecordPtrArray` (world.h) = `mfc::CArray<std::uint8_t*>` for the CArray<record*> instantiation
+  (vtable 0073FAA4; SetSize 005719B0 / SetAtGrow stay forwarded): world_units, world_zone,
+  world_quests, world_party, ui_hero_figure, ui_hero_screen, ui_camp, CreatePartyUnits.
+- `ZoneExitArray` = `mfc::CArray<ZoneExit>`; its SetSize stays the instantiation's
+  (`ZoneExitsSetSizeOriginal`, 00573080, originals_world.h). `ProjectileList` =
+  `mfc::CTypedPtrList<Projectile>` (FreeNode 0059C810 forwarded as ProjectileFreeNode).
+  world_save: IdArray / ObjectPtrArray / SharedObjectList / DwordList / ObjectList on the templates
+  with their original members as free forwarders (005985C0, 0059CA60, 0059CC60; 004C98F0).
+  world_party's carried items (+0xB0) are `lib::AlignedArray<CEngineObject*>` (0059CB50 is the
+  aligned SetSize, checked in Ghidra); world_tick's id lists and world_sync's static arrays too.
+- aligned_arrays.cpp registers its SetSize / Add / SetAtGrow / Copy / Allocate / destructor
+  replacements on `lib::AlignedArray<T>` members (element types `Blob<K>`); `AlignedArray::Copy`
+  added (operator=: SetSize to the source's size, memcpy).
+- Particles: 00497D50 (sprites) and 00499200 (draw order) are registered on `mfc::CArray<T>`
+  SetSize / SetAtGrow (the hand-written bodies were MFC's code); the inlined vertex and frame
+  SetSize copies (particle_render, particle_create) call `lib::AlignedArray::SetSize`.
+- ui_mesh_build's sprite arrays are AlignedArray instantiations (0044F960 / 005A6E70 / 0044FA90 /
+  00452FC0 are all registered on aligned_arrays.cpp or AlignedArray); the forwarder-only holder
+  structs (map_object EffectArray, clip WordArray, unit_ai_brain AIRecordArray, unit_ai_modes
+  CandidateList, ui_item_info ItemList, ui_battle_setup PartyArray, script_exec PartyList) became
+  free forwarders; script_exec's PtrList / ItemList / PartyArray are mfc::CList<void*> /
+  mfc::CArray<PartySlot> built through their original constructors and destructors.
+- CList views (combat_*, ai_refresh, magic_trap, world_quests shares, script tokens) are
+  `mfc::CList<T>` / `CTypedPtrList<T>` aliases (node element renamed to `data`).
+
+Left (56): scene_loader's `ArrayBody` / `VtArray` family (members registered on the derived
+structs; next step: lib::AlignedArray / mfc::CArray with free forwarders, touching scene_* and their
+verify wrappers); the STLport list / vector views (world_client_maps PlainList / CellList,
+world_client_view ObjectList, base_manager IdList, camera NearbyList, item_stock StockList,
+item_db_text TextSourceList, ui_battle_update List, ui_briefing NameList, unit_skins RecordList /
+StringList, party_records PartyRecordList) need an stlp::list view in stlp.h first; the arrays with
+rewritten members (unit_ai.h AILookArray / PatrolPointArray / AICallArray / AIReportArray,
+party.h PartyMemberArray, model.h TweenArray, script_parse_load's five, ai_map PathCellList,
+map_object_figures AlignedPtrArray, lightning LightningPointArray, core_streams AlignedObjectArray)
+need their registrations moved to free functions or template members; ui.h UiDwordArray /
+UiPointArray / UiTokenArray and ui_screens UiItemArray (trailing-underscore fields used widely);
+false positives that are not container layouts (figure_mesh OffsetList, item_parts PartList,
+figure_part_draw LightList, figure_part_bounds LineList (a renderer object), ui_camp ItemList /
+ui_panel_draws CampItemList / SlotList (party objects), sound WaveList, world SavedPartyList,
+world_game EntryList (our own helper), combat_actions AnimationList (CArray plus a dword),
+script_array RawArray, script_save List, ai_plan List, script.h ScriptDefineList / ScriptList,
+ai_map BlockCostList, fake_unit Array). Hand-inlined SetSize copies remain in ui_window.cpp (region
+points), map_spec and party_lifetime.
 
 ## Open items
 

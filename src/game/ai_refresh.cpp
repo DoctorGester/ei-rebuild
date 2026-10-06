@@ -52,20 +52,7 @@ std::uint32_t& CellWord(CAIMap* map, int x, int y) {
     return *reinterpret_cast<std::uint32_t*>(At<std::uint8_t**>(map, kCells)[y] + x * 9);
 }
 
-struct ObjectList {
-    struct Node {
-        Node* next;
-        Node* prev;
-        void* data;
-    };
-    void* vtable;
-    Node* head;
-    Node* tail;
-    int count;
-    Node* free;
-    mfc::CPlex* blocks;
-    int blockSize;
-};
+using ObjectList = mfc::CList<void*>;
 
 } // namespace
 

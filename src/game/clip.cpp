@@ -52,11 +52,8 @@ std::uint32_t LerpColor(std::uint32_t a, std::uint32_t b, float t) {
     return (c3 << 24) | (c1 << 8) | (c2 << 16) | c0;
 }
 
-// CWordArray::SetSize (MFC, 006FEEFA) on the work buffer 0079B668.
-struct WordArray {
-    void SetSize(int newSize, int growBy);
-};
-void WordArray::SetSize(int n, int g) { WordArraySetSizeOriginal(this, nullptr, n, g); }
+// The work buffer 0079B668: a CWordArray (SetSize is MFC's, 006FEEFA).
+mfc::CArray<std::uint16_t>& WorkWords() { return *reinterpret_cast<mfc::CArray<std::uint16_t>*>(0x0079B668); }
 
 void Emit(std::uint16_t index) { clip::Buffer()[clip::BufferCount()++] = index; }
 
@@ -140,7 +137,7 @@ int __fastcall ClipTriangle(TLVertex* vertices, const std::uint8_t* outcodes, st
     std::uint8_t c1 = outcodes[tri[1]];
     std::uint8_t c2 = outcodes[tri[2]];
     int combined = c0 | c1 | c2;
-    reinterpret_cast<WordArray*>(0x0079B668)->SetSize(0x20, -1);
+    WordArraySetSizeOriginal(&WorkWords(), nullptr, 0x20, -1);
     *indexCount = 3;
     if (c0 & c1 & c2 & 0x3F) {
         *indexCount = 0;

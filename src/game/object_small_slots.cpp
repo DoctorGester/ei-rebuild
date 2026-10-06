@@ -17,12 +17,7 @@ constexpr int kDressedArmourSlots = 3;   // body, trousers, helmet
 constexpr int kNoSound = -1;
 
 // The MFC CArray layout slot 44 empties.
-struct RawArray {
-    void* vtable;
-    void* data;
-    int size;
-    int capacity;
-};
+using RawArray = mfc::CArray<std::uint8_t>;
 } // namespace
 
 bool CMapObject::ApplyScience(int, int) {
@@ -37,7 +32,7 @@ void CMapObject::FreeArray(void* array, int) {
         gamecrt::operator_delete(raw->data);
         raw->data = nullptr;
     }
-    raw->capacity = 0;
+    raw->maxSize = 0;
     raw->size = 0;
 }
 EI_REPLACE_METHOD(0x0050F120, CMapObject::FreeArray);

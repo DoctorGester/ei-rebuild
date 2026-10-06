@@ -235,18 +235,7 @@ struct LocalMotionOrder {
 };
 
 // A CList<CUnit*> as the controller fills them (vtable, head, tail, count, free list, blocks).
-struct UnitList {
-    void* vtable;
-    struct Node {
-        Node* next;
-        Node* prev;
-        CEngineObject* data;
-    }* head;
-    Node* tail;
-    int count;
-    Node* free;
-    void* blocks;
-};
+using UnitList = mfc::CTypedPtrList<CEngineObject>;
 
 // A player's party: an STLport hash_map<id, unit> at player + 0x40 (00455830 begin, 004558B0 the
 // next bucket's head).
