@@ -270,6 +270,10 @@ __declspec(naked) inline void __fastcall AnimationStateReleasePartsOriginal(void
 __declspec(naked) inline void* __fastcall Object3DLoadPartOriginal(void* /*object*/, void*, const char* /*name*/,
                                                                    void* /*model*/, std::uint32_t /*arg*/)
     EI_ORIGINAL(0x00517240)
+// 0050D920: the animation state appends the name (+0x1C) of each part it animates to the CStringArray `out` (thiscall,
+// RET 4; no result).
+__declspec(naked) inline void __fastcall AnimationStatePartNamesOriginal(void* /*state*/, void*, void* /*out*/)
+    EI_ORIGINAL(0x0050D920)
 // 0050D0E0: the animation state animates `part` too (thiscall, RET 4; no result).
 __declspec(naked) inline void __fastcall AnimationStateAddPartOriginal(void* /*state*/, void*, void* /*part*/)
     EI_ORIGINAL(0x0050D0E0)

@@ -222,6 +222,22 @@ public:
 };
 static_assert(offsetof(CFigureInstance, pieces) == 0x14);
 
+// The figure cache (the world's slot 23): builds the figures objects hold at +0xF0. Only the slots
+// the 3D object calls; the scale is passed as float bits.
+class CFigureCache {
+public:
+    virtual void Slot0();
+    virtual void Slot1();
+    virtual void Slot2();
+    // 3: the figure of model `name` (an stlp::string) made of the pieces `pieceNames` (an STLport
+    // vector<string>), at the scale; referenced by the caller.
+    virtual CFigureInstance* BuildFigure(const void* name, const void* pieceNames, std::uint32_t x, std::uint32_t y,
+                                         std::uint32_t z, int flag);
+    // 4: the whole figure of model `name` at the scale.
+    virtual CFigureInstance* BuildWholeFigure(const void* name, std::uint32_t x, std::uint32_t y, std::uint32_t z,
+                                              int flag);
+};
+
 // A counted reference: the pointer slot is the `this` of 00519580.
 struct CountedRef {
     // 00519580 (object3d_lifetime.cpp). object = `value`: the new object gains a reference, the
@@ -319,6 +335,13 @@ public:
     // CStringArray `partNames` is loaded by LoadPart (with the cached model; failures logged).
     // Without a figure manager: FatalError. Returns 1.
     int LoadParts(const char* model, const void* partList, std::uint32_t arg);
+    // 00516DA0 (RET 0xC). Builds the figure of `model` (+0xA4) for the part names `partList` (a
+    // CStringArray): the animation state is rescaled and given the model; with no names and an
+    // animation state the names are the state's parts (0050D920) and the figure the cache's whole
+    // figure (slot 4), otherwise the cache's figure of those pieces (slot 3); then LoadParts, an
+    // animated unit (class 0x50 / 0x54) plays nothing, the bounds are recomputed and flags_ 0x80
+    // is set unless both `arg` and the figure are 0 (then cleared). Returns 1.
+    int MakeFigure(const char* model, void* partList, std::uint32_t arg);
     // 00517990. The index of the part name (+0x114) equal to `partName` (_mbscmp), or -1.
     int FindPartIndex(const char* partName);
 

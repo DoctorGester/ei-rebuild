@@ -103,3 +103,21 @@ static int __fastcall LoadPartsVerify(CObject3D* self, void*, const char* model,
     return result;
 }
 EI_VERIFY(0x00517110, LoadPartsVerify, 0, s_unusedLoadParts);
+
+// - MakeFigure (00516DA0): ours only; returns 1, the model name is `model` and flags_ 0x80 is set
+//   unless both `arg` and the figure are 0. Reached by the client player's OnNewObject (00668330:
+//   every object a zone load sends to the client), the interface's unit models (005FC1F0, ui_*).
+namespace {
+void* s_unusedMakeFigure;
+} // namespace
+
+static int __fastcall MakeFigureVerify(CObject3D* self, void*, const char* model, void* partList, std::uint32_t arg) {
+    int result = self->MakeFigure(model, partList, arg);
+    bool loaded = (self->flags_ & 0x80) != 0;
+    bool ok = result == 1 && self->name && model && std::strcmp(self->name, model) == 0 &&
+              loaded == (arg != 0 || self->figure != nullptr);
+    ei::verify::Check("CObject3D::MakeFigure", true, ok, "%s: result %d, flags %08X", model ? model : "-", result,
+                      self->flags_);
+    return result;
+}
+EI_VERIFY(0x00516DA0, MakeFigureVerify, 0, s_unusedMakeFigure);

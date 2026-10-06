@@ -22,6 +22,7 @@
 #include <cfloat>
 #include <cmath>
 #include <cstring>
+#include <new>
 
 namespace {
 constexpr int kTypeHero = 0x32;                  // type_ of the player's units: a fixed x / y box
@@ -255,3 +256,91 @@ int CObject3D::LoadParts(const char* model, const void* partList, std::uint32_t 
     return 1;
 }
 EI_REPLACE_METHOD(0x00517110, CObject3D::LoadParts);
+
+// --- Building the figure ----------------------------------------------------------------------
+
+namespace {
+constexpr int kClassUnit50 = 0x50;
+constexpr int kClassUnit54 = 0x54;
+constexpr std::uint32_t kFlagFigureLoaded = 0x80;   // flags_
+
+// An STLport vector<string> of the piece names, as the cache's slot 3 reads it (the original
+// builds it with 005195B0 / 004DDBA0 and assigns each name).
+struct PieceNames {
+    stlp::string* begin;
+    stlp::string* end;
+    stlp::string* endOfStorage;
+};
+
+PieceNames MakePieceNames(const PartNameArray* names) {
+    PieceNames out{};
+    int count = names->count;
+    if (count > 0) {
+        out.begin = static_cast<stlp::string*>(stlp::allocate(static_cast<std::size_t>(count) * sizeof(stlp::string)));
+        for (int i = 0; i < count; ++i) {
+            const char* text = names->names[i];
+            new (&out.begin[i]) stlp::string(text, text + std::strlen(text));
+        }
+        out.end = out.begin + count;
+        out.endOfStorage = out.end;
+    }
+    return out;
+}
+
+void FreePieceNames(PieceNames& names) {
+    for (stlp::string* s = names.begin; s != names.end; ++s) s->~string();
+    if (names.begin)
+        stlp::deallocate(names.begin, static_cast<std::size_t>(names.endOfStorage - names.begin) * sizeof(stlp::string));
+}
+
+// 00517110 (LoadParts, above), through its address so its wrapper runs.
+__declspec(naked) int __fastcall LoadPartsAt(CObject3D*, void*, const char*, const void*, std::uint32_t)
+    EI_ORIGINAL(0x00517110)
+
+CFigureCache* FigureCacheOf(const CObject3D* object) {
+    return static_cast<CWorld*>(object->ManagerContext())->FigureCache();
+}
+} // namespace
+
+int CObject3D::MakeFigure(const char* model, void* partList, std::uint32_t arg) {
+    *reinterpret_cast<mfc::CString*>(&name) = model;
+    if (animation) {
+        AnimationStateSetScaleOriginal(animation, nullptr, std::bit_cast<std::uint32_t>(scale[0]),
+                                       std::bit_cast<std::uint32_t>(scale[1]), std::bit_cast<std::uint32_t>(scale[2]));
+        AnimationStateSetModelOriginal(animation, nullptr, model);
+    }
+    auto* names = static_cast<const PartNameArray*>(partList);
+    if (names->count == 0 && animation) {
+        AnimationStatePartNamesOriginal(animation, nullptr, partList);
+        stlp::string key(model, model + std::strlen(model));
+        CFigureInstance* made = FigureCacheOf(this)->BuildWholeFigure(
+            &key, std::bit_cast<std::uint32_t>(scale[0]), std::bit_cast<std::uint32_t>(scale[1]),
+            std::bit_cast<std::uint32_t>(scale[2]), 0);
+        reinterpret_cast<CountedRef*>(&figure)->Assign(static_cast<CEngineObject*>(static_cast<void*>(made)));
+    } else {
+        PieceNames pieces = MakePieceNames(names);
+        {
+            stlp::string key(model, model + std::strlen(model));
+            CFigureInstance* made = FigureCacheOf(this)->BuildFigure(
+                &key, &pieces, std::bit_cast<std::uint32_t>(scale[0]), std::bit_cast<std::uint32_t>(scale[1]),
+                std::bit_cast<std::uint32_t>(scale[2]), 0);
+            auto* old = static_cast<CFigureInstance*>(static_cast<void*>(figure));
+            figure = static_cast<CEngineObject*>(static_cast<void*>(made));
+            if (made) ++made->refCount;
+            // 00457720: the old figure loses a reference and is deleted at the last one.
+            if (old && --old->refCount == 0) old->DeletingDestructor(1);
+        }
+        FreePieceNames(pieces);
+    }
+    LoadPartsAt(this, nullptr, model, partList, arg);
+    int classId = GetClassId();
+    if ((classId == kClassUnit54 || GetClassId() == kClassUnit50) && animation) {
+        animation->Play(nullptr);
+        FigureApplyPendingOriginal(animation);
+    }
+    ComputeBounds();
+    if (arg == 0 && !figure) flags_ &= ~kFlagFigureLoaded;
+    else flags_ |= kFlagFigureLoaded;
+    return 1;
+}
+EI_REPLACE_METHOD(0x00516DA0, CObject3D::MakeFigure);
