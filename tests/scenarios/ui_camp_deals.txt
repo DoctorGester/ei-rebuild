@@ -3,7 +3,9 @@
 # constructor's trade page, which takes anything but quest items and magic: a quick item put there
 # from the strip (campputon: the camp's slot 42 with mode 1 -> PutOnFromStrip -> itemParts_[2]) is
 # sold with the first action button (region 0: the deal, the money goes up) and a second one is
-# taken back with the second button (region 1). Esc leaves the camp.
+# taken back with the second button (region 1). Esc leaves the camp. A new game's player has no
+# items, so two wands (quick items, class 0x3006) are given first (the first run's campputon found
+# an empty item strip).
 reject Script error
 wait 6000
 console thingamabob
@@ -12,6 +14,10 @@ newgame
 speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
+console @GiveItem(0,"wand 3.iron[lightning]")
+wait 300
+console @GiveItem(0,"wand 3.iron[fireball]")
+wait 300
 
 screen 5 1
 wait 2500

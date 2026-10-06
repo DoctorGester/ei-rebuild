@@ -1,7 +1,9 @@
 # The statistics panel's -/+ buttons on the multiplayer hero screen's new hero (00624790 click,
 # 00624A60 the held repeat; docs/notes/ui.md, section 5). The panel's page 10 regions (ShowStats):
-# 6-9 the minus column (x 140..160) and 10-13 the plus column (x 160..180) at y 165, 180, 195 and
-# 225 (strength, dexterity, intelligence, height). Nothing is created or sent.
+# 6-9 the minus column (x 140..160) and 10-13 the plus column (x 160..180), rows of 15 at y 165,
+# 180, 195 and 240 (after the third row ShowStats moves down three times; checked against 006233C0:
+# the first run's clicks at y 232 fell between rows 195..210 and 240..255). Layout coordinates; the
+# regions are not offset by the panel. Nothing is created or sent.
 reject Script error
 wait 6000
 
@@ -17,9 +19,9 @@ click 170 172
 wait 600
 click 150 187
 wait 600
-click 170 232
+click 170 247
 wait 400
-click 150 232
+click 150 247
 wait 400
 # Esc: back to the list, Esc: the main menu.
 key esc
