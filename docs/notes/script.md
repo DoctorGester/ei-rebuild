@@ -273,7 +273,9 @@ Functions of 0x00480000-0x004B0000 and 0x004D8000-0x00500000 that belong to othe
 
 - Attachment facts: attachPoint 1-7 = "hd", "hd" + 1 in z, "lh2", "rh2", "ll2", "rl2", "bd"; 8-12 = "body00".."body04";
   every part falls back to "bd", then to the position raised by the bounds' upper z extent. Not a unit or attachPoint > 12:
-  position raised by radius * 1.6 (bounds bit 0) or the box height. Attach recurses through Add/RemoveEffectSource.
+  position raised by radius * 1.6 (bounds bit 0) or the box height. Attach recurses through Add/RemoveEffectSource; the
+  nested Attach(object) from AddEffectSource runs before the outer call sets the origin, so the wrapper checks the origin
+  only for calls that change the attachment (the first version compared it there: 573 false mismatches).
 - .mob facts: the .mob wind strength is clamped by the float at 0079BE58, which nothing writes (0), so ChangeWind gets
   at most 0; the weather chunk's last two floats are read and unused. 00481660's branch under 0079BCF4 (the colour
   quantisation 0049BEA0 and its STLport map / list / introsort helpers 00482640, 00483540, 004825A0, 00482AA0, 0049BB70,
