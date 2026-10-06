@@ -155,7 +155,8 @@ for +0x50). Record Load: the original Save gives back the bytes read. LoadParty 
 (items registered under their ids; the copy equals the source). Global 007C8344 = the party being loaded
 (LoadingParty). StatsLoad / StatsSave moved to originals_units.h.
 
-Candidates next: 
+Candidates next (A-H6 left): the party's 006629D0 / 00662AC0 / 00662DD0, then by size 00667EC0, 006407E0, 00640060,
+0067CEF0, 006570E0. 00661FB0 / 00661FE0 (party item resets) look simple, but no scenario is known to reach them.
 
 Unit records (party_members.cpp, A-H6; all ours only, scenario party_records): 006628D0 AddMember (Create when no item
 manager; a stack record constructed, assigned to the new entry, destroyed; name / key / prototype / extra), 006621F0
