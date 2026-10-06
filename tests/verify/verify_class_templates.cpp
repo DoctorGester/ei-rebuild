@@ -56,8 +56,8 @@ void __fastcall FillVerify(ClassTemplate* self) {
     ClassTemplateFill(self);
     s_fill(scratch);
 
-    int allowed = ListDifference(scratch->allowed, self->allowed);
-    int magic = ListDifference(scratch->magic, self->magic);
+    int allowed = ListDifference(reinterpret_cast<const std::uint8_t*>(&scratch->allowed), reinterpret_cast<const std::uint8_t*>(&self->allowed));
+    int magic = ListDifference(reinterpret_cast<const std::uint8_t*>(&scratch->magic), reinterpret_cast<const std::uint8_t*>(&self->magic));
     ei::verify::Check("ClassTemplateFill", true, allowed < 0 && magic < 0,
                       "class %d: all-list vector +0x%X, magic-list vector +0x%X", self->type, allowed, magic);
     ei::VCall<void>(scratch, 0, 1);   // scalar deleting destructor
