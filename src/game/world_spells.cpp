@@ -118,7 +118,7 @@ void CWorldServer::CreateMissile(const void* spell, CEngineObject* caster, Vecto
     Projectile* missile = memory ? ProjectileConstruct(memory, nullptr) : nullptr;
     MissileInit(missile, nullptr, this, spell, caster, &from, target, &end, extra);
     if (MissileUpdate(missile, nullptr)) {
-        auto& list = projectiles_.list;
+        auto& list = projectiles_;
         ProjectileList::Node* node = ProjectileNewNode(&projectiles_, nullptr, list.tail, nullptr);
         auto* old = reinterpret_cast<std::uint8_t*>(node->data);
         node->data = missile;

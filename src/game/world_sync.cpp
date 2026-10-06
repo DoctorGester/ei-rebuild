@@ -7,6 +7,7 @@
 #include "core_streams.h"
 #include "object.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 
 #include "ei/hook.h"
@@ -74,13 +75,7 @@ constexpr int kKindNoRangeTest = 3;
 
 // A function-static aligned pointer array of the original ({data, size, capacity, growBy}; the
 // data block from 0047B940, freed through the pointer stored before it).
-struct StaticPtrArray {
-    CEngineObject** data;
-    int size;
-    int capacity;
-    int growBy;
-};
-static_assert(sizeof(StaticPtrArray) == 0x10);
+using StaticPtrArray = lib::AlignedArray<CEngineObject*>;
 
 // SyncPlayer's four function statics (their guard bits at 007AFF58) and their atexit destructors.
 StaticPtrArray& Collected() { return *reinterpret_cast<StaticPtrArray*>(0x007AFF48); }

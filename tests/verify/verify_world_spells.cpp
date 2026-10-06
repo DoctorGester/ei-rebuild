@@ -9,7 +9,7 @@ namespace {
 void* s_unused;
 
 bool MissileListConsistent(const CWorldServer* world, int* count) {
-    const auto& list = world->projectiles_.list;
+    const auto& list = world->projectiles_;
     int n = 0;
     const ProjectileList::Node* previous = nullptr;
     for (const auto* node = list.head; node; node = node->next, ++n) {

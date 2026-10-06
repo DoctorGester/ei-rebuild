@@ -60,14 +60,6 @@ constexpr int kTextFormat = 1;
 
 UnitStats* StatsOf(char* hero) { return reinterpret_cast<UnitStats*>(reinterpret_cast<PartyUnitRecord*>(hero)->stats); }
 
-struct RecordArray {
-    void* vtable;
-    std::uint8_t** data;
-    int size;
-    int capacity;
-    int growBy;
-};
-
 } // namespace
 
 // --- 00625530 / 00625560: the trade panel's experience figures ------------------------------------
@@ -194,7 +186,7 @@ EI_REPLACE(0x00617820, HeroScreenUpdate);
 
 void CMpHeroScreen::Close() {
     MpHeroesSaveOriginal(MpHeroesObject());
-    RecordArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
+    RecordPtrArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
     auto* party = reinterpret_cast<PartyRecords*>(LocalPlayerData());
     for (int i = 0; i < party->count; ++i) {
         auto* record = reinterpret_cast<std::uint8_t*>(&party->records[i]);
@@ -368,7 +360,7 @@ constexpr int kPreviewAnimation = 0x21;      // the skill animation the preview 
 
 void CMpHeroScreen::MakePreview(int flag) {
     previewModel_ = nullptr;
-    RecordArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
+    RecordPtrArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
     auto* player = reinterpret_cast<CParty*>(LocalPlayerData());
     if (player->members_.size == 0) {
         player->Clear(1, 0);
@@ -408,7 +400,7 @@ EI_REPLACE(0x00616E20, HeroScreenMakePreview);
 // --- 00616910: a hero shown -------------------------------------------------------------------
 
 void CMpHeroScreen::ShowHero(int index) {
-    RecordArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
+    RecordPtrArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
     auto* player = reinterpret_cast<CParty*>(LocalPlayerData());
     if (player->members_.size > 0) {
         int size = records.size;

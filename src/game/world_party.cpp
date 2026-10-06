@@ -6,6 +6,7 @@
 #include "core_maths.h"
 
 #include "lib/crt.h"
+#include "lib/containers.h"
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
@@ -47,23 +48,13 @@ constexpr int kExitSize = 0x3C;
 
 using ObjectList = mfc::CTypedPtrList<CEngineObject>;
 
-// A CArray of item pointers (the player's carried items at WorldPlayer + 0xB0: data, size, ...).
-struct ItemArray {
-    CEngineObject** data;
-    int size;
-};
+// The player's carried items (WorldPlayer + 0xB0): an aligned array of item pointers (its SetSize
+// 0059CB50 is lib::AlignedArray's, called through ItemArraySetSize).
+using ItemArray = lib::AlignedArray<CEngineObject*>;
 
 // CArray<int> (vtable 0073EBD4), and the CArray of record pointers CreateUnits takes (0073FAA4).
-template <typename T>
-struct LocalArray {
-    void* vtable;
-    T* data;
-    int size;
-    int capacity;
-    int growBy;
-};
-using IdArray = LocalArray<int>;
-using RecordArray = LocalArray<std::uint8_t*>;
+using IdArray = mfc::CArray<int>;
+using RecordArray = RecordPtrArray;
 
 // 004621A0 (RET 8). CPtrList::NewNode(prev, next), out of line.
 inline ObjectList::Node* __fastcall PtrListNewNode(ObjectList* l, void*, ObjectList::Node* prev, ObjectList::Node* next) { return static_cast<ObjectList::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }

@@ -113,17 +113,9 @@ static_assert(sizeof(ZoneExit) == 0x3C);
 static_assert(offsetof(ZoneExit, target) == 0x28);
 
 // MFC CArray<ZoneExit> (CWorldServer + 0xEC; the map database's zone records hold one at +0x48).
-struct ZoneExitArray {
-    void* vtable;
-    ZoneExit* data;                       // +0x04
-    int size;                             // +0x08
-    int capacity;                         // +0x0C
-    int growBy;                           // +0x10
-
-    // 00573080. CArray::SetSize(size, growBy) (-1 keeps growBy); new records are constructed.
-    void SetSize(int newSize, int newGrowBy);
-};
-static_assert(sizeof(ZoneExitArray) == 0x14);
+// Its SetSize is the instantiation's own: ZoneExitsSetSizeOriginal (00573080, originals_world.h;
+// new records are constructed).
+using ZoneExitArray = mfc::CArray<ZoneExit>;
 
 // Members both world classes share (base class, 0055E000-0055FFFF).
 class CWorld : public CEngineObject {
@@ -216,16 +208,9 @@ struct Projectile {
     // 0067E6D0. Moves the missile one tick; 0 once it has hit or expired.
     int Update();
 };
-// The world server's missiles: an MFC CList of counted pointers (CWorldServer + 0x12E28).
-struct ProjectileList {
-    using Node = mfc::CTypedPtrList<Projectile>::Node;
-    // 0059C810. Releases the node's missile and returns the node to the free list (the last one
-    // frees every block).
-    void FreeNode(Node* node);
-
-    mfc::CTypedPtrList<Projectile> list;
-};
-static_assert(sizeof(ProjectileList) == 0x1C);
+// The world server's missiles: an MFC CList of counted pointers (CWorldServer + 0x12E28). Its
+// FreeNode (0059C810, world_tick.cpp) releases the node's missile.
+using ProjectileList = mfc::CTypedPtrList<Projectile>;
 
 // The stream the world's save and load code reads and writes (the CMemoryStream holding
 // mission.sav) is the engine's CStream (core_streams.h); version_ is the save format version.
@@ -705,12 +690,11 @@ bool __fastcall ReleaseIfIdentified(void* functor, void*, CEngineObject* object)
 using PendingMap = stlp::hash_map<std::uint32_t, void*, stlp::IntHash>;
 int __fastcall PendingMapLookup(const PendingMap* map, void*, const std::uint32_t* key, void** value);
 // 0056E400 / 0056E440 (RET 4). Record `index` of a vector of 0x50- / 0xB4-byte records, or null.
-// The party records handed to CWorldClient::CreatePartyUnits: an MFC pointer array.
-struct PartyRecordArray {
-    void* vtable;
-    void** data;                          // +0x04
-    int count;                            // +0x08
-};
+// The unit / party records (0x784 bytes) handed around as MFC CArray<record*> (vtable 0073FAA4):
+// CWorldClient::CreatePartyUnits, CWorldServer's unit creation, the hero screens. Its SetSize
+// (005719B0) and SetAtGrow stay the instantiation's own (RecordArraySetSizeOriginal /
+// RecordArraySetAtGrowOriginal, originals_library.h).
+using RecordPtrArray = mfc::CArray<std::uint8_t*>;
 struct RecordVector {
     const std::uint8_t* start;
     const std::uint8_t* finish;
@@ -804,7 +788,7 @@ public:
     // the figure from the part names (the hair "hr.%.2d" by the prototype's number), items, player
     // (+0); each unit is filed with AddObject. Armour of type 0 is put on only with `allArmour`.
     // Stops at the first unit that cannot be created or given a figure.
-    void CreatePartyUnits(const PartyRecordArray* party, char allArmour);
+    void CreatePartyUnits(const RecordPtrArray* party, char allArmour);
     // 0056DAF0 (RET 0xC; the camera's 0040E4C0). Appends to the plain pointer list `out` every
     // object of the sector grid's cells around `point` whose (x, y) (+0x1C plus +0x128) lies within
     // radius + hypot(+0x144, +0x148) of the point. The cell range (+0x138..+0x144, truncated and

@@ -24,8 +24,7 @@ Entries Snapshot(const ObjectIdMap& map) {
 }
 
 // Walks the missile list both ways: links agree, the last node is the tail, the count matches.
-bool MissilesConsistent(const ProjectileList& missiles) {
-    const auto& list = missiles.list;
+bool MissilesConsistent(const ProjectileList& list) {
     int count = 0;
     const ProjectileList::Node* previous = nullptr;
     for (const ProjectileList::Node* node = list.head; node; node = node->next) {
@@ -44,7 +43,7 @@ static void __fastcall TickVerify(CWorldServer* self, void*, char force) {
     bool ok = self->tick_ == tick + 1 && MissilesConsistent(self->projectiles_);
     self->timedObjects_.map.ForEach([&](const auto* node) { ok = ok && node->value; });
     ei::verify::Check("CWorldServer::Tick", true, ok, "tick %d force %d missiles %d", self->tick_, force,
-                      self->projectiles_.list.count);
+                      self->projectiles_.count);
 }
 EI_VERIFY(0x0058DCD0, TickVerify, 0, s_unused);
 
