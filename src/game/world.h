@@ -31,13 +31,26 @@ namespace world {
 constexpr int kClassUnit = 0x50;   // CEngineObject::GetClassId() of units
 }
 
+// hash_map<unsigned, CEngineObject*> plus the highest key ever inserted (several instantiations
+// share this shape: 005999E0 / 00599BD0 are its Set).
+struct ObjectIdMap {
+    stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash> map;   // +0x00
+    int maxId;                                                      // +0x14
+
+    // 005999E0 and 00599BD0 (identical code, different template instantiations): map[key] = value
+    // and raise maxId.
+    void Set(const unsigned& key, CEngineObject* const& value);
+};
+static_assert(sizeof(ObjectIdMap) == 0x18);
+
 // A player (one per human or AI side). Fields named only as far as used here.
 struct WorldPlayer {
     std::uint8_t unknown_000[0x20];
     CPlayerServer* server;               // +0x020 the player's connection (player_messages.h), or null
 
     int id;                              // +0x024 player number (0 = the local player)
-    std::uint8_t unknown_028[0xA0 - 0x28];
+    ObjectIdMap objects;                 // +0x028 its objects by id (the briefing screen walks it)
+    std::uint8_t unknown_040[0xA0 - 0x40];
     std::uint8_t* mercs;                 // +0x0A0 0x784-byte records, unit id at +0x1C
     int mercCount;                       // +0x0A4
     std::uint8_t unknown_0A8[0xC4 - 0xA8];
@@ -45,7 +58,9 @@ struct WorldPlayer {
     std::uint8_t unknown_0D8[0xE0 - 0xD8];
     // +0x0E0 an item list (CPtrList); the HUD top panel's page 1 lists it (0064A7A0).
     mfc::CTypedPtrList<CEngineObject> items;
-    std::uint8_t unknown_0FC[0x110 - 0xFC];
+    std::uint8_t unknown_0FC[0x104 - 0xFC];
+    int lastScreen;                      // +0x104 the interface screen it comes from (5: the camp)
+    std::uint8_t unknown_108[0x110 - 0x108];
     int lastTick;                        // +0x110
     std::uint8_t unknown_114[0x130 - 0x114];
     std::uint32_t dirty;                 // +0x130 changes still to send to this player
@@ -54,6 +69,8 @@ static_assert(offsetof(WorldPlayer, server) == 0x20);
 static_assert(offsetof(WorldPlayer, mercs) == 0xA0);
 static_assert(offsetof(WorldPlayer, variables) == 0xC4);
 static_assert(offsetof(WorldPlayer, items) == 0xE0);
+static_assert(offsetof(WorldPlayer, objects) == 0x28);
+static_assert(offsetof(WorldPlayer, lastScreen) == 0x104);
 
 // What CWorldClient::LocalView (005699F0) returns: the local view, +0x1C its player.
 struct LocalViewData {
@@ -76,18 +93,6 @@ struct PlayerIterator {
     }
 };
 static_assert(sizeof(PlayerIterator) == 8);
-
-// hash_map<unsigned, CEngineObject*> plus the highest key ever inserted (several instantiations
-// share this shape: 005999E0 / 00599BD0 are its Set).
-struct ObjectIdMap {
-    stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash> map;   // +0x00
-    int maxId;                                                      // +0x14
-
-    // 005999E0 and 00599BD0 (identical code, different template instantiations): map[key] = value
-    // and raise maxId.
-    void Set(const unsigned& key, CEngineObject* const& value);
-};
-static_assert(sizeof(ObjectIdMap) == 0x18);
 
 // A zone exit as the world server keeps it (0x3C bytes); the client keeps the same records.
 struct ZoneExit {
