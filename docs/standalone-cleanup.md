@@ -153,3 +153,11 @@ standalone build still needs source for them (vanilla behaviour):
 - `EI_REBIRTH_IMPLEMENTS` declarations are only read by the hook installer; they can stay or go.
 - Forwarder `EffectArray::SetSize` (map_object.cpp) -> 0050FE70 CArray<MapEffect>::SetSize.
 - `CCampPages::Price` calls the item's price through its vtable (slot 16); fine standalone.
+
+## Original functions reached only from rewritten code
+
+Not ported because every caller is rewritten; dead once the hooks go (the standalone build drops them):
+script area (A-S5) 004C17F0, 004C98B0 (SSCCmd::Execute), 004D0AF0 (LoadFunction), 004D3650 / 004D3670 / 004D6310
+(CScript::Load's #define pair and list), 004D5880 (LoadFile's CStdioFile read; our LoadFile forwards to it),
+004C17E0 (a counted-pointer release, 0069AC20 and unwind funclets). The static `CSysInfo` object 004DDCB0-004DE8B0
+is built by the static initialiser table before the hooks and needs the standalone build's own startup.
