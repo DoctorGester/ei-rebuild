@@ -403,3 +403,19 @@ FitBounds).
 Scenario: `newgame` (00568800, the world client's object creation, calls the world view's loader slot 3 004F7150).
 Morphs are plain floats: FIG8 lerp(lerp(lerp(c0,c1,s), lerp(c2,c3,s), t), lerp(lerp(c4,c5,s), lerp(c6,c7,s), t), u),
 old records lerp(lerp(lerp(c0,c1,s), c2, t), lerp(lerp(c3,c4,s), c5, t), u).
+
+### Link figures, the mesh's slots
+
+`CLinkMesh` is now declared with its virtual slots 0-6 (novtable); `LinkMapNode` gives the map nodes (key +0x10, value
++0x1C) and `Next` the in-order successor (as 0043DBE0). Erase 004F4E40 / 004F5090 added to library.csv.
+
+| Address | Name | Verify |
+|---|---|---|
+| 004F2F90 | `SetMorph` | original on a byte copy, 0xB0 bytes |
+| 004F45E0, 004F3040, 004F3780 | slots 1, 2, 6: `UpdateScreenRect`, `HasPart`, `GetPartData` | original on a byte copy / pure / into scratch outputs |
+| 004F2FB0 | slot 3 `CollectPartNames` | original into a fresh vector; the names ours appended compared |
+| 004F30D0, 004F3530 | slots 4, 5: `LoadPart` (forwards to the loader's 004F7480), `RemovePart` | ours only: a loaded part is a part; a removed part is gone and the arrays shrank by its counts |
+
+Original bug kept: `RemovePart` lowers the later parts' starts by the removed part's starts, not its counts (only
+right for the first part), and picks the later parts by their index start alone.
+Not ported: slots 7-14 (004F3870 ... 004F4850): part draws through the D3D device (renderer direction).

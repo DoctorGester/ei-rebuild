@@ -96,3 +96,7 @@ __declspec(naked) inline LinkPartRanges* __fastcall LinkRangeMapAtOriginal(LinkS
 __declspec(naked) inline void** __fastcall LinkRangeMapFindOriginal(LinkStringMap* /*map*/, void*, void** /*out*/,
                                                                     const stlp::string* /*key*/)
     EI_ORIGINAL(0x004F5C90)
+// 004F4E40: the part ranges' erase(iterator) (RET 4; the node goes back to the node pool).
+struct LinkMapNode;
+__declspec(naked) inline void __fastcall LinkRangeMapEraseOriginal(LinkStringMap* /*map*/, void*, LinkMapNode* /*node*/)
+    EI_ORIGINAL(0x004F4E40)

@@ -174,8 +174,116 @@ void __fastcall LoadOldVerify(CLinkFigureLoader* self, void*, CLinkMesh* mesh, c
                cursor, s, t, u);
 }
 
+// ---- CLinkMesh's slots ------------------------------------------------------------------------------
+// Reached with the meshes the loader slots hand out: HasPart from 004F7150 for every requested part of
+// a cached figure; UpdateScreenRect and GetPartData from the part draws (slots 7-14) and their callers.
+
+// 004F2F90: MOV EAX,[ESP+4] (4), MOV EDX,[ESP+8] (4). The original on a byte copy.
+void(__fastcall* s_setMorph)(CLinkMesh*, void*, float, float, float);
+void __fastcall SetMorphVerify(CLinkMesh* self, void*, float s, float t, float u) {
+    alignas(16) unsigned char copy[sizeof(CLinkMesh)];
+    std::memcpy(copy, self, sizeof(CLinkMesh));
+    s_setMorph(reinterpret_cast<CLinkMesh*>(copy), nullptr, s, t, u);
+    self->SetMorph(s, t, u);
+    ei::verify::Check("CLinkMesh::SetMorph", true, std::memcmp(copy, self, sizeof(CLinkMesh)) == 0, "");
+}
+
+// 004F45E0: PUSH ECX, PUSH ESI, PUSH EDI (3), MOV ESI,ECX (2). The original on a byte copy.
+void(__fastcall* s_updateRect)(CLinkMesh*);
+void __fastcall UpdateScreenRectVerify(CLinkMesh* self) {
+    alignas(16) unsigned char copy[sizeof(CLinkMesh)];
+    std::memcpy(copy, self, sizeof(CLinkMesh));
+    s_updateRect(reinterpret_cast<CLinkMesh*>(copy));
+    self->CLinkMesh::UpdateScreenRect();
+    const RECT& e = reinterpret_cast<CLinkMesh*>(copy)->screenRect_;
+    const RECT& a = self->screenRect_;
+    ei::verify::Check("CLinkMesh::UpdateScreenRect", true, std::memcmp(copy, self, sizeof(CLinkMesh)) == 0,
+                      "%d %d %d %d / %d %d %d %d", e.left, e.top, e.right, e.bottom, a.left, a.top, a.right, a.bottom);
+}
+
+// 004F3040: SUB ESP,8 (3), PUSH EBX (1), MOV EBX,ECX (2). Pure.
+bool(__fastcall* s_hasPart)(CLinkMesh*, void*, const stlp::string*);
+bool __fastcall HasPartVerify(CLinkMesh* self, void*, const stlp::string* name) {
+    bool expected = s_hasPart(self, nullptr, name);
+    bool actual = self->CLinkMesh::HasPart(name);
+    ei::verify::Check("CLinkMesh::HasPart", expected, actual, "\"%.*s\"", static_cast<int>(name->size()), name->data());
+    return actual;
+}
+
+// 004F3780: MOV EAX,[ESP+4] (4), PUSH ESI (1). The original into scratch outputs.
+bool(__fastcall* s_getPartData)(CLinkMesh*, void*, const stlp::string*, VertexPacket**, MeshCorner**, std::uint16_t**,
+                                int*, int*);
+bool __fastcall GetPartDataVerify(CLinkMesh* self, void*, const stlp::string* name, VertexPacket** vertices,
+                                  MeshCorner** corners, std::uint16_t** indices, int* vertexCount, int* indexCount) {
+    VertexPacket* ev = nullptr;
+    MeshCorner* ec = nullptr;
+    std::uint16_t* eix = nullptr;
+    int evc = -1;
+    int eic = -1;
+    bool expected = s_getPartData(self, nullptr, name, &ev, &ec, &eix, &evc, &eic);
+    bool actual = self->CLinkMesh::GetPartData(name, vertices, corners, indices, vertexCount, indexCount);
+    bool same = expected == actual && (!actual || (ev == *vertices && ec == *corners && eix == *indices &&
+                                                   evc == *vertexCount && eic == *indexCount));
+    ei::verify::Check("CLinkMesh::GetPartData", true, same, "\"%.*s\" result %d / %d", static_cast<int>(name->size()),
+                      name->data(), expected, actual);
+    return actual;
+}
+
+// 004F2FB0: PUSH EBX, MOV EBX,ECX, PUSH ESI (4), MOV EAX,[EBX+0x9C] (6). The original into a fresh vector.
+void(__fastcall* s_collectNames)(CLinkMesh*, void*, stlp::vector<stlp::string>*);
+void __fastcall CollectPartNamesVerify(CLinkMesh* self, void*, stlp::vector<stlp::string>* out) {
+    std::size_t before = out->size();
+    stlp::vector<stlp::string> expected;
+    s_collectNames(self, nullptr, &expected);
+    self->CLinkMesh::CollectPartNames(out);
+    bool same = out->size() - before == expected.size();
+    for (std::size_t i = 0; same && i < expected.size(); ++i) same = expected.begin()[i] == out->begin()[before + i];
+    ei::verify::Check("CLinkMesh::CollectPartNames", true, same, "%u names, %u before",
+                      static_cast<unsigned>(expected.size()), static_cast<unsigned>(before));
+    expected.clear();
+    expected.FreeStorage();
+}
+
+void* s_unused;   // registrations without a trampoline
+
+// 004F30D0 (ours only: the loader reads files and changes the mesh). A loaded part is a part afterwards.
+bool __fastcall LoadPartVerify(CLinkMesh* self, void*, const stlp::string* name) {
+    bool loaded = self->CLinkMesh::LoadPart(name);
+    ei::verify::Check("CLinkMesh::LoadPart", true, !loaded || self->CLinkMesh::HasPart(name), "\"%.*s\"",
+                      static_cast<int>(name->size()), name->data());
+    return loaded;
+}
+
+// 004F3530 (ours only: the original erases the map node). The result says whether the part was
+// there; afterwards it is gone and each array is shorter by its count.
+bool __fastcall RemovePartVerify(CLinkMesh* self, void*, const stlp::string* name) {
+    bool present = HasPart(self, name);
+    Sizes before(self);
+    LinkPartRanges removed{};
+    if (present) removed = *LinkRangeMapAtOriginal(&self->ranges_, nullptr, name);
+    bool result = self->CLinkMesh::RemovePart(name);
+    Sizes after(self);
+    bool same = result == present && !HasPart(self, name) &&
+                (!present || (after.vertices == before.vertices - removed.vertices.count &&
+                              after.normals == before.normals - removed.normals.count &&
+                              after.texCoords == before.texCoords - removed.texCoords.count &&
+                              after.corners == before.corners - removed.corners.count &&
+                              after.words == before.words - removed.words.count &&
+                              after.indices == before.indices - removed.indices.count));
+    ei::verify::Check("CLinkMesh::RemovePart", true, same, "\"%.*s\" present %d", static_cast<int>(name->size()),
+                      name->data(), present);
+    return result;
+}
+
 } // namespace
 
 EI_VERIFY(0x004F30F0, AddPartVerify, 7, s_addPart);
 EI_VERIFY(0x004F7F00, LoadFigVerify, 7, s_loadFig);
 EI_VERIFY(0x004F87D0, LoadOldVerify, 7, s_loadOld);
+EI_VERIFY(0x004F2F90, SetMorphVerify, 8, s_setMorph);
+EI_VERIFY(0x004F45E0, UpdateScreenRectVerify, 5, s_updateRect);
+EI_VERIFY(0x004F3040, HasPartVerify, 6, s_hasPart);
+EI_VERIFY(0x004F3780, GetPartDataVerify, 5, s_getPartData);
+EI_VERIFY(0x004F2FB0, CollectPartNamesVerify, 10, s_collectNames);
+EI_VERIFY(0x004F30D0, LoadPartVerify, 0, s_unused);
+EI_VERIFY(0x004F3530, RemovePartVerify, 0, s_unused);

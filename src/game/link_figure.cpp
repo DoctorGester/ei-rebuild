@@ -5,6 +5,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/gameapi.h"
 
 #include <cstring>
 
@@ -175,3 +176,134 @@ void CLinkFigureLoader::LoadOldPart(CLinkMesh* mesh, const stlp::string* name, c
     if (packets) AlignedArray<VertexPacket>::Free(packets);
 }
 EI_REPLACE_METHOD(0x004F87D0, CLinkFigureLoader::LoadOldPart);
+
+// ---- CLinkMesh's slots ----------------------------------------------------------------------------
+
+namespace {
+
+// 004F7480 (thiscall on the loader, RET 8, AL): loads part `name` into `mesh` unless it has it.
+__declspec(naked) bool __fastcall LoaderLoadPart(CLinkFigureLoader* /*loader*/, void*, CLinkMesh* /*mesh*/,
+                                                 const stlp::string* /*name*/) EI_ORIGINAL(0x004F7480)
+
+// The node of part `name` in the ranges map, or the header.
+LinkMapNode* FindRanges(LinkStringMap* map, const stlp::string* name) {
+    void* found;
+    LinkRangeMapFindOriginal(map, nullptr, &found, name);
+    return static_cast<LinkMapNode*>(found);
+}
+
+// Moves the elements after [start, start + count) down over them and shortens the array (the
+// capacity and block stay).
+template <typename T>
+void CloseGap(T* data, int& size, int start, int count, int elementBytes) {
+    int after = size - start - count;
+    if (after != 0) {
+        auto* bytes = reinterpret_cast<std::uint8_t*>(data);
+        std::memmove(bytes + start * elementBytes, bytes + (start + count) * elementBytes,
+                     static_cast<std::size_t>(after) * static_cast<std::size_t>(elementBytes));
+    }
+    size -= count;
+}
+
+constexpr int kNoRect = 2000000000;
+
+} // namespace
+
+LinkMapNode* LinkMapNode::Next() {
+    LinkMapNode* node = this;
+    if (node->right) {
+        node = node->right;
+        while (node->left) node = node->left;
+        return node;
+    }
+    LinkMapNode* up = node->parent;
+    while (node == up->right) {
+        node = up;
+        up = up->parent;
+    }
+    if (node->right != up) node = up;
+    return node;
+}
+
+void CLinkMesh::SetMorph(float s, float t, float u) {
+    morph_[0] = s;
+    morph_[1] = t;
+    morph_[2] = u;
+}
+EI_REPLACE_METHOD(0x004F2F90, CLinkMesh::SetMorph);
+
+void CLinkMesh::UpdateScreenRect() {
+    gameapi::SetRect(&screenRect_, kNoRect, kNoRect, -kNoRect, -kNoRect);
+    for (LinkMapNode* node = headers_.header->left; node != headers_.header; node = node->Next()) {
+        const RECT& part = node->Value<LinkPartHeader>().screen;
+        if (gameapi::IsRectEmpty(&part)) continue;
+        if (part.left < screenRect_.left) screenRect_.left = part.left;
+        if (screenRect_.right < part.right) screenRect_.right = part.right;
+        if (part.top < screenRect_.top) screenRect_.top = part.top;
+        if (screenRect_.bottom < part.bottom) screenRect_.bottom = part.bottom;
+    }
+}
+void __fastcall LinkMeshUpdateScreenRect(CLinkMesh* self) { self->CLinkMesh::UpdateScreenRect(); }
+EI_REPLACE(0x004F45E0, LinkMeshUpdateScreenRect);
+
+bool CLinkMesh::HasPart(const stlp::string* name) { return FindRanges(&ranges_, name) != ranges_.header; }
+bool __fastcall LinkMeshHasPart(CLinkMesh* self, void*, const stlp::string* name) { return self->CLinkMesh::HasPart(name); }
+EI_REPLACE(0x004F3040, LinkMeshHasPart);
+
+void CLinkMesh::CollectPartNames(stlp::vector<stlp::string>* out) {
+    for (LinkMapNode* node = ranges_.header->left; node != ranges_.header; node = node->Next()) out->push_back(node->key);
+}
+void __fastcall LinkMeshCollectPartNames(CLinkMesh* self, void*, stlp::vector<stlp::string>* out) {
+    self->CLinkMesh::CollectPartNames(out);
+}
+EI_REPLACE(0x004F2FB0, LinkMeshCollectPartNames);
+
+bool CLinkMesh::LoadPart(const stlp::string* name) { return LoaderLoadPart(loader_, nullptr, this, name); }
+bool __fastcall LinkMeshLoadPart(CLinkMesh* self, void*, const stlp::string* name) { return self->CLinkMesh::LoadPart(name); }
+EI_REPLACE(0x004F30D0, LinkMeshLoadPart);
+
+bool CLinkMesh::RemovePart(const stlp::string* name) {
+    LinkMapNode* node = FindRanges(&ranges_, name);
+    if (node == ranges_.header) return false;
+    LinkPartRanges removed = node->Value<LinkPartRanges>();
+    LinkRangeMapEraseOriginal(&ranges_, nullptr, node);
+
+    CloseGap(vertices_.data, vertices_.size, removed.vertices.start, removed.vertices.count, sizeof(VertexPacket));
+    CloseGap(normals_.data, normals_.size, removed.normals.start, removed.normals.count, sizeof(NormalPacket));
+    CloseGap(texCoords_.data, texCoords_.size, removed.texCoords.start, removed.texCoords.count, sizeof(TexCoord));
+    CloseGap(corners_.data, corners_.size, removed.corners.start, removed.corners.count, sizeof(MeshCorner));
+    CloseGap(words_.data, words_.size, removed.words.start, removed.words.count, 4);
+    CloseGap(indices_.data, indices_.size, removed.indices.start, removed.indices.count, 2);
+
+    for (LinkMapNode* n = ranges_.header->left; n != ranges_.header; n = n->Next()) {
+        LinkPartRanges& r = n->Value<LinkPartRanges>();
+        if (!(static_cast<std::uint32_t>(r.indices.start) > static_cast<std::uint32_t>(removed.indices.start))) continue;
+        r.vertices.start -= removed.vertices.start;
+        r.normals.start -= removed.normals.start;
+        r.texCoords.start -= removed.texCoords.start;
+        r.corners.start -= removed.corners.start;
+        r.words.start -= removed.words.start;
+        r.indices.start -= removed.indices.start;
+    }
+    return true;
+}
+bool __fastcall LinkMeshRemovePart(CLinkMesh* self, void*, const stlp::string* name) { return self->CLinkMesh::RemovePart(name); }
+EI_REPLACE(0x004F3530, LinkMeshRemovePart);
+
+bool CLinkMesh::GetPartData(const stlp::string* name, VertexPacket** vertices, MeshCorner** corners,
+                            std::uint16_t** indices, int* vertexCount, int* indexCount) {
+    LinkMapNode* node = FindRanges(&ranges_, name);
+    if (node == ranges_.header) return false;
+    const LinkPartRanges& r = node->Value<LinkPartRanges>();
+    *vertices = vertices_.data + r.vertices.start;
+    *corners = reinterpret_cast<MeshCorner*>(corners_.data) + r.corners.start;
+    *indices = indices_.data + r.indices.start;
+    *indexCount = r.indices.count;
+    *vertexCount = r.vertices.count;
+    return true;
+}
+bool __fastcall LinkMeshGetPartData(CLinkMesh* self, void*, const stlp::string* name, VertexPacket** vertices,
+                                    MeshCorner** corners, std::uint16_t** indices, int* vertexCount, int* indexCount) {
+    return self->CLinkMesh::GetPartData(name, vertices, corners, indices, vertexCount, indexCount);
+}
+EI_REPLACE(0x004F3780, LinkMeshGetPartData);
