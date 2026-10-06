@@ -243,7 +243,18 @@ void __fastcall UpdatePartyUnitsVerify(CPlayerServer* self) {
                       self->partyUnits_.size);
 }
 
+// 0066E7D0: MOV EAX,FS:[0] (6). Only appends to the stream (the items' Save writes into a stack
+// stream): compared as the other appenders (A-H10).
+void(__fastcall* s_sendItemsGiven)(CPlayerServer*, void*, const mfc::CTypedPtrList<CEngineObject>*, int);
+void __fastcall SendItemsGivenVerify(CPlayerServer* self, void*, const mfc::CTypedPtrList<CEngineObject>* items,
+                                     int flag) {
+    CheckAppend("CPlayerServer::SendItemsGiven", self, [&] { self->SendItemsGiven(items, flag); return 0; },
+                [&] { s_sendItemsGiven(self, nullptr, items, flag); return 0; });
+}
+
 } // namespace
+
+EI_VERIFY(0x0066E7D0, SendItemsGivenVerify, 6, s_sendItemsGiven);
 
 EI_VERIFY(0x0066E130, UpdatePartyUnitsVerify, 0, s_unused);
 EI_VERIFY(0x0066D270, ReceiveVerify, 0, s_unused);

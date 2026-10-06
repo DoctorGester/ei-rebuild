@@ -129,6 +129,9 @@ when 0079BE70 is set, handed to 00535240 unreleased), 00667E60 0x13 string event
 Rebirth-patched; world_client.cpp now uses the shared InterfaceStringEventOriginal), 00669710 / 00669750 start / stop
 the link's recording: ours only (result, stream moved). New shared forwarders: FloatTable* and BucketVectorDestroy
 (originals_library.h), PathWrite/ReadOriginal (originals_ai.h, net_state.cpp uses them), InterfaceStringEventOriginal.
+Server side: 0066E7D0 CPlayerServer::SendItemsGiven (slot 17, RET 8; player_sync.cpp): messages 0x05 (the items' and
+their spells' states, 0069FB60 / 0055E8A0 forwarded) and 0x06 (money, flag byte, ids, -1; the original stores each value
+in its first argument's stack slot before writing it). Verify: appends only, ours / stream restored / original.
 
 `FindCommandByKey` (00462F70) loops back to 00462F73 inside the 5 bytes the hook's jump overwrites, so its wrapper copies the whole 61-byte body (no calls) to executable memory at DLL load, before the hooks are
 installed, and runs that copy as the original (`stolenBytes` 0). Constructors allocate nothing, so the original runs safely on a copy.
