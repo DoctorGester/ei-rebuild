@@ -93,9 +93,18 @@ the resulting state.
 | 005BC970 | MarkVisibleCells | ai_movement.cpp | original marks a copy of the grid, ours the real one, compared |
 | 005B36B0, 005B3890 | CUnitLayer::Add, Remove | ai_unit_layer.cpp | ours only: non-empty blocks / no nodes of the unit left |
 | 005B39D0, 005B3A70, 005B3B20, 005B3B90 | small / large layer Set, Merge | ai_unit_layer.cpp | original first (its 16 map bytes recorded and restored), then ours |
+| 005C35F0, 005C2F50, 005C2FB0, 005C3050, 005C3090, 005C1D50, 005C2D40, 005C30E0, 005C31A0, 005C3200 | LocalSearch Reset, PickCurrent, Requeue, Best, CostAt, StepCost, Expand, ExpandAll, ExpandUntil, PathTo | ai_local_search.cpp | in place: search header and node block recorded, original, recorded, put back, ours, compared (Expand / Requeue sampled after 512 calls); Best / CostAt / StepCost pure; PathTo x, y on a scratch list |
+| 005C22A0, 005C21A0, 005C2420, 005C24F0, 005C2B10, 005C2C90, 005C2CF0, 005C2A30, 005C33F0, 005C3530, 005C1EA0, 005C25D0, 005B9580 | LocalSearch PlaceWindow, SetUnit, Begin, BeginForClass, BeginInRect(For, ForClass), CommitDirections, Save / RestoreLevels, Attach, Recenter; CAIMap::CostContextFor | ai_local_search.cpp | in place as above (CommitDirections / levels with the map bytes under the window); Attach ours only (fresh grid); SaveLevels' first (allocating) call ours only; CostContextFor output |
+| 005BD200, 005BD2A0, 005C5DA0, 005C5E60, 005C6000, 005C5CC0 | PathCellList AddHead, AddTail, AppendList, Reversed, RemoveRepeats; PathCell::Step | ai_path_cells.cpp | ours only against a model of the list taken before (cells as 8-byte records, links checked); Reversed and Step: the original on scratch outputs |
 | 005C0930, 005C0BD0, 005C0DF0, 005C1010, 005C11D0 | CSectorMap: UnitsAt, FindUnitsInRadius, Add, Remove, Move | sector_map.cpp | UnitsAt pure; others in `verified.txt` |
 
 ## Original bugs and oddities kept on purpose
+
+- Local search (`LocalSearch`, ai_map.h; CAIMap + 0x2594 / + 0x2614): `Requeue` leaves a node that is its bucket's head in
+  place even when its cost changes. `PathTo` fills the cells' second dword from a stack slot it never writes; its only
+  caller (JoinLocalSearches) leaves the forward search's address there (Best pushes ESI), so ours writes that address.
+  `ExpandUntil` forms the target's row pointer without a bounds check (only compared). `Recenter` that fails on a
+  move of 31 cells or more has already moved the window and row table (the nodes stay); its grid copy (005C4BA0) is inlined.
 
 - FindPath computes the fractional part of the snapped target twice from `targetX` (the second was presumably meant to be `targetY`), stores odd values in the second dword of single-cell path entries (the unit's y in
   half-cells minus 0.5 in one branch, min(|dx|, |dy|) in the other) before overwriting the low half with 0x200, and re-checks whether the unit is in the target cell in its local-search branch. SnapTarget divides 0/0
@@ -111,7 +120,9 @@ the resulting state.
 
 ## Skipped and why
 
-- Large, stateful, left as forwarders (next candidates): the local search and path smoothing (005C2420, 005C25D0, 005C2CF0, 005C35F0, 005C46C0), 005B89F0 (area application) and 005AFEE0 (region update) called by
+- Run only by the static initialiser 005C42A0 (before the hooks): the smoothing tables 005C42B0 and its helpers 005C3690, 005C3840, 005C3A00,
+  005C3E10, 005C4050, 005C4F30, 005C5930, 005C5AB0, 005C5A80.
+- Large, stateful, left as forwarders (next candidates): the path smoothing 005C46C0, 005B89F0 (area application) and 005AFEE0 (region update) called by
   RefreshArea, 005BD200 AddPathCell, 005C8D40 VisibilityGrid::Include, 005BCCB0 and the shape cache helpers (005BE320, 005BE450, 005BE730 ...).
 - 005B43C0 CAIMap::Load (Rebirth-patched). 005BF8F0 / 005BF5F0 (spiral table constructor) run from the static initializer 005BF8E0, before the hooks are installed. 005C6E30 (waypoint constructor) is inlined. 005A0000-005AF000
   (AI helpers of other systems: voice, groups) and 005C8xxx / 005C9xxx above 005C8D40 (time wheel, containers) are not movement code.
