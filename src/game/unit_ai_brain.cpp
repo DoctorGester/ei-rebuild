@@ -206,7 +206,7 @@ void AIBrain::ResetMemory() {
     noticedX = 0.0f;
     noticedY = 0.0f;
     noticedLevel = 0;
-    unknown_0F0 = 0;
+    nearbyCountdown = 0;
     reports.SetSize(0, -1);
     calls.SetSize(0, -1);
     noticedKind = 0;

@@ -39,7 +39,6 @@ __declspec(naked) void __fastcall SteerAlong(CAIMap*, void*, CUnit*, PathCellLis
 
 // The sector map through its original addresses (rewritten in sector_map.cpp), so the verify
 // build's wrappers see these calls.
-CSectorMap* Sectors(CAIMap* map) { return reinterpret_cast<CSectorMap*>(reinterpret_cast<char*>(map) + 0x124); }
 
 // FPATAN: atan2(y, x), unrounded.
 __declspec(naked) double __cdecl Fpatan(double, double) {
@@ -262,9 +261,9 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
     std::memcpy(&path->goal, target, sizeof(goal));
     if (target->x * target->x + target->y * target->y > 100000000.0) return false;   // NaN goes on
 
-    SectorMapRemove(Sectors(this), nullptr, unit);
+    SectorMapRemove(SectorMap(), nullptr, unit);
     if (!SnapTarget(unit, &goal, false, minDistance)) {
-        SectorMapAdd(Sectors(this), nullptr, unit);
+        SectorMapAdd(SectorMap(), nullptr, unit);
         return false;
     }
     std::memcpy(&path->targetY, &goal.y, 4);
@@ -275,7 +274,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
     float fy = 1.0f / (1.0f * 0.5f) * from.y;
     float ddx = fx - goal.x, ddy = fy - goal.y;
     if (!(ddy * ddy + ddx * ddx >= 0.001f)) {
-        SectorMapAdd(Sectors(this), nullptr, unit);
+        SectorMapAdd(SectorMap(), nullptr, unit);
         return false;
     }
     int tx = x87::fistp(goal.x - 0.5f);
@@ -327,7 +326,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
             // Far, or the local search failed: snap to a cell in the unit's region and plan.
             std::memcpy(&goal, target, sizeof(goal));
             if (!SnapTarget(unit, &goal, true, minDistance)) {
-                SectorMapAdd(Sectors(this), nullptr, unit);
+                SectorMapAdd(SectorMap(), nullptr, unit);
                 return false;
             }
             int gx = x87::fistp(goal.x - 0.5f);
@@ -376,7 +375,7 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
     }
 
 done:
-    SectorMapAdd(Sectors(this), nullptr, unit);
+    SectorMapAdd(SectorMap(), nullptr, unit);
     if (!found) path->failed = true;
     path->flag6F = false;
     return found;
