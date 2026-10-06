@@ -22,8 +22,9 @@ wait 500
 click 400 560
 wait 300
 
-console @AddUnitToServer("HeroWolf1","WolfTutor","HeroWolf1",Add(GSGetVar(0,"hx"),4),GSGetVar(0,"hy"),0)
-console @AddUnitToServer("HeroWolf2","WolfTutor","HeroWolf2",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),4),0)
+# Wolves at +3 like ui_quick_items (at +4 they were not drawn: +x is down-screen, +y right).
+console @AddUnitToServer("HeroWolf1","WolfTutor","HeroWolf1",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("HeroWolf2","WolfTutor","HeroWolf2",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),3),0)
 waitfor 10 IsAlive(GetObjectByName("HeroWolf1"))
 waitfor 10 IsAlive(GetObjectByName("HeroWolf2"))
 console @BlockUnit(GetObjectByName("HeroWolf1"),1)
