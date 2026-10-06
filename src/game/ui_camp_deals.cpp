@@ -126,13 +126,82 @@ bool CCampPages::DeconstructSpell() {
     spellMade_ = nullptr;
     return true;
 }
+// --- 006129C0: an item taken apart -------------------------------------------------------------------
+
 namespace {
+const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
+// The instruction (blueprint) items by the item's class: weapon, armour, quick item.
+const char* InstructionName(int itemClass) {
+    switch (itemClass) {
+    case kWeaponClass: return GameText(0x007938D0);     // "Instruction Weapon"
+    case kArmorClass: return GameText(0x007938E4);      // "Instruction Armor"
+    case kQuickItemClass: return GameText(0x007938F8);  // "Instruction Quick Item"
+    default: return nullptr;
+    }
+}
+const char* MaterialText() { return GameText(0x007938C4); }         // "material"
+const char* SpellContainerText() { return GameText(0x007938A0); }   // "spell container"
+// The quick item prototypes by name (an STLport map; 00613820 inserts a missing name).
+void* QuickItemsByName() { return reinterpret_cast<void*>(0x007C8744); }
+constexpr int kSpellContainerClass = 0x3008;
+
+// A new item named `name` from the results' item manager added to them (when one is made).
+void AddNamed(CParty* results, const char* name, std::uint32_t prototypeIndex, bool setIndex) {
+    auto* item = static_cast<CItemLoot*>(ItemManagerCreateItemOriginal(results->ItemManager(), nullptr, name));
+    if (!item) return;
+    ++item->refCount_;
+    if (setIndex) item->index_ = prototypeIndex;
+    AddAndRelease(results, item);
+}
+} // namespace
+
+bool CCampPages::DeconstructItem() {
+    CParty* results = PartyOf(itemResults_);
+    CItem* copy = results->CopyItem(ItemAt(results, 0));
+    itemMade_ = reinterpret_cast<std::uint8_t*>(copy);
+    ++copy->refCount_;
+    PartyRemoveItemOriginal(results, nullptr, ItemAt(results, 0), 0);
+
+    if (const char* instruction = InstructionName(copy->type_))
+        AddNamed(results, instruction, PrototypeIndex(copy), true);
+    // A material per one the prototype needs; a material index out of range reads its key through
+    // null, as in the original.
+    for (std::uint32_t i = 0; i < reinterpret_cast<const itemdb::ItemRecordHead*>(copy->GetPrototype())->unknown_4C; ++i) {
+        auto* material = reinterpret_cast<const itemdb::MaterialRecordHead*>(
+            itemdb::Materials().At(MaterialIndex(copy->unknown_18), itemdb::kMaterialSize));
+        // The original builds CString("material") + '.' + key (operator+ twice); the text is the same.
+        mfc::CString name(MaterialText());
+        name += ".";
+        name += *reinterpret_cast<const mfc::CString*>(&material->key);
+        AddNamed(results, name, 0, false);
+    }
+    if (copy->spell_) {
+        CResourceManager* manager = results->ItemManager();
+        auto* record = static_cast<const char*>(FindQuickItemOriginal(QuickItemsByName(), nullptr, SpellContainerText()));
+        int index = static_cast<int>(record - itemdb::QuickItems().begin) / itemdb::kQuickItemSize;
+        auto* container = static_cast<CItem*>(FactoryMakeItemOriginal(manager, nullptr, kSpellContainerClass, index, 0, -1));
+        if (container) {
+            ++container->refCount_;
+            CSpell* clone = static_cast<CSpell*>(copy->spell_)->Clone(results->SpellManager());
+            container->AttachSpell(clone);
+            PartyAddItemOriginal(results, nullptr, container, 0, 0);
+            container->Release();
+        }
+    }
+    reinterpret_cast<CEngineObject*>(itemMade_)->Release();
+    itemMade_ = nullptr;
+    return true;
+}
+
+namespace {
+bool __fastcall CampDeconstructItem(CCampPages* self, void*) { return self->DeconstructItem(); }
 bool __fastcall CampDeconstructSpell(CCampPages* self, void*) { return self->DeconstructSpell(); }
-// 00612500 through its address (its wrapper runs); 006129C0 (not rewritten): an item taken apart.
+// 00612500 / 006129C0 through their address (their wrappers run).
 __declspec(naked) bool __fastcall DeconstructSpellAt(CCampPages*) EI_ORIGINAL(0x00612500)
 __declspec(naked) bool __fastcall DeconstructItemAt(CCampPages*) EI_ORIGINAL(0x006129C0)
 } // namespace
 EI_REPLACE(0x00612500, CampDeconstructSpell);
+EI_REPLACE(0x006129C0, CampDeconstructItem);
 
 // --- 00611220: the first action button ---------------------------------------------------------
 

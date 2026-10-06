@@ -694,6 +694,12 @@ public:
     // spellMade_ while the original leaves the list; a "Prototype" item for its spell and a "Rune"
     // item per modifier go into the results; the copy released.
     bool DeconstructSpell();
+    // 006129C0 (ui_camp_deals.cpp). The item maker's result taken apart: a copy of the first result made
+    // (itemMade_ meanwhile) and the result removed; an "Instruction Weapon / Armor / Quick Item" with
+    // its prototype index, a "material.<key>" per material its prototype needs (+0x4C), and for an
+    // item with a spell a "spell container" (MakeItem 0x3008) holding a clone of it, each added to
+    // the results. Returns true.
+    bool DeconstructItem();
 
     std::uint8_t unknown_148[0x164 - 0x148];
     CUiWindow* descPanel_;           // +0x164 the description panel (vtable 007404DC)
