@@ -26,6 +26,9 @@ __declspec(naked) inline float* __fastcall HoverPickSurface(void*, void*, float*
 __declspec(naked) inline void __fastcall CountedRelease(void*, void*, int) EI_ORIGINAL(0x00575510)
 __declspec(naked) inline void __fastcall MenuFrame578910(void*) EI_ORIGINAL(0x00578910)
 __declspec(naked) inline double __fastcall HoverPlayerVariable(void*, void*, const char*) EI_ORIGINAL(0x00578B50)
+// 005927C0 (RET 4): the server makes (or updates) the world object of a .mob record. Patched by Rebirth.
+__declspec(naked) inline void __fastcall WorldMakeObjectOriginal(void* /*world*/, void*, void* /*spec*/)
+    EI_ORIGINAL(0x005927C0)
 __declspec(naked) inline void __fastcall WorldPrepareMap(void* /*world*/, void*, const char* /*name*/)
     EI_ORIGINAL(0x0057ED60)
 // 0057F440 (rewritten as IsMultiplayerClient): no arguments (a plain RET, ECX is not read); AL/EAX = 1 when

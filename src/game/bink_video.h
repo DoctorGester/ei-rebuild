@@ -9,6 +9,9 @@
 
 struct CDXSurface;
 
+// 005DA400. The loading screen's movie at progress step `progress` (bink_video.cpp).
+void __fastcall ShowLoadingMovie(int progress);
+
 // The Bink handle's first fields (Bink 1.x: Width, Height, Frames, FrameNum, LastFrameNum).
 struct BinkHeader {
     std::uint32_t width;        // +0x00
