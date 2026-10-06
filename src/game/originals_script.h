@@ -76,3 +76,23 @@ __declspec(naked) inline void* __fastcall TempObjectsRemoveTailOriginal(void* /*
 // 004BE490 (rewritten as ScriptDropInstancesAndRuns, script_cleanup.cpp; plain RET): the zone reset calls it
 // through its address so the verify wrapper sees the call.
 __declspec(naked) inline void __fastcall ScriptDropInstancesAndRunsOriginal(CScript* /*script*/) EI_ORIGINAL(0x004BE490)
+
+// The link figures' STLport map<string, ...> members (link_figure.h; library instantiations):
+// 004F4B90 the part headers' operator[] (RET 4, EAX = the value, a zeroed 0x50-byte header when new),
+// 004F4CE0 the part ranges' operator[] (RET 4, EAX = the value), 004F5C90 the part ranges' find
+// (RET 8, *out = the node or the header, EAX = out).
+struct LinkStringMap;
+struct LinkPartHeader;
+struct LinkPartRanges;
+namespace stlp {
+class string;
+}
+__declspec(naked) inline LinkPartHeader* __fastcall LinkHeaderMapAtOriginal(LinkStringMap* /*map*/, void*,
+                                                                            const stlp::string* /*key*/)
+    EI_ORIGINAL(0x004F4B90)
+__declspec(naked) inline LinkPartRanges* __fastcall LinkRangeMapAtOriginal(LinkStringMap* /*map*/, void*,
+                                                                           const stlp::string* /*key*/)
+    EI_ORIGINAL(0x004F4CE0)
+__declspec(naked) inline void** __fastcall LinkRangeMapFindOriginal(LinkStringMap* /*map*/, void*, void** /*out*/,
+                                                                    const stlp::string* /*key*/)
+    EI_ORIGINAL(0x004F5C90)

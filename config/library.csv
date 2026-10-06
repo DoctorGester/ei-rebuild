@@ -1721,6 +1721,8 @@ address,name,library,signature,notes
 004F0810,stlp hash_map node create (0x10C bytes with a string key),STLport,,"A-S5: operator new(0x10C), the key string copy-constructed at +8 and the value copied; only the container insert (004F0610, library) calls it"
 004F08D0,stlp node create (0x14-byte node with a string),STLport,,"A-S5: same code as 004E15C0 (another instantiation)"
 004F09E0,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 2 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
+004F4B90,"stlp::map<string,V>::operator[]",STLport,,A-S6: lower_bound then insert of a zeroed 0x50-byte value (the link mesh part headers); EAX = the value
+004F4CE0,"stlp::map<string,V>::operator[]",STLport,,A-S6: lower_bound then insert of a zeroed 0x30-byte value (the link mesh part ranges); EAX = the value
 004F4EC0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 0040C720 (reviewed)
 004F4F30,"stlp::_Rb_tree<K,V,KoV,C,A>::_Rb_tree",STLport,,"inventory sweep: header node from the free list 0079B22C, empty tree; loose-family member of 004393C0 (reviewed)"
 004F5360,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 3 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code

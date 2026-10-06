@@ -386,3 +386,20 @@ Scenario: `newgame` (005810A0 -> 005809D0 reads "quest.reg" through the file str
 Not ported: 004DABC0 (no callers; an Attach-like window setup) and the unlisted 004DAB40 (a grow helper, no callers).
 Original quirks kept: `ReserveRead` growing reloads at `base` with min(capacity, high - cur) bytes; the reload count can be
 negative after a large read (passed to fread as is); Seek's out-of-window path returns no meaningful EAX (ours: the old cursor).
+
+### Link figures, part loading (`link_figure.cpp`, `link_figure.h`)
+
+`CLinkMesh` (vtable 0073D790, 0xB0 bytes): part headers map<string, 0x50> +0x14, morph coefficients +0x30, six
+aligned arrays +0x3C (vertex packets, normal packets, texture coordinates, 6-byte corners, dwords, words), part ranges
+map<string, 0x30> +0x9C, loader +0xA8, pipeline +0xAC. The maps stay STLport (operator[] 004F4B90 / 004F4CE0 added to
+library.csv, find 004F5C90; forwarders in originals_script.h). `ITransformPipeline` is 3DfpFPU.dll's pipeline (slot 7
+FitBounds).
+
+| Address | Name | Verify |
+|---|---|---|
+| 004F30F0 | `CLinkMesh::AddPart` | original on a scratch mesh (original constructor 004F2C00 / destructor 004F2E40): appended elements, ranges, result |
+| 004F7F00, 004F87D0 | `CLinkFigureLoader::LoadFigPart` (FIG / FIG8), `LoadOldPart` (6 morph corners) | same: cursor, header dwords, bounds (NearlyEqual, new parts), appended elements (vertices NearlyEqual) |
+
+Scenario: `newgame` (00568800, the world client's object creation, calls the world view's loader slot 3 004F7150).
+Morphs are plain floats: FIG8 lerp(lerp(lerp(c0,c1,s), lerp(c2,c3,s), t), lerp(lerp(c4,c5,s), lerp(c6,c7,s), t), u),
+old records lerp(lerp(lerp(c0,c1,s), c2, t), lerp(lerp(c3,c4,s), c5, t), u).
