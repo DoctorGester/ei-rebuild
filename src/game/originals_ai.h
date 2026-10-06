@@ -21,6 +21,8 @@ __declspec(naked) inline void __fastcall FinishDraw(char*, void*, void* /*render
 __declspec(naked) inline void __fastcall AlarmReset(void*) EI_ORIGINAL(0x005AEA40)
 __declspec(naked) inline void __fastcall PathToMotionOrder(void*, void*, void* /*out*/) EI_ORIGINAL(0x005B22C0)
 __declspec(naked) inline void __fastcall PathClear(void*) EI_ORIGINAL(0x005B23A0)
+// 00546100: AIPath's destructor body (the points freed, both cell lists emptied; plain RET).
+__declspec(naked) inline void __fastcall AIPathDestructOriginal(AIPath*) EI_ORIGINAL(0x00546100)
 __declspec(naked) inline bool __fastcall PlanPath(CAIMap*, void*, CUnit*, int, int, int, int, AIPath*, int, int)
     EI_ORIGINAL(0x005B9C90)
 __declspec(naked) inline bool __fastcall MapFindPath(void*, void*, CUnit*, const void* /*target*/, void* /*path*/, float /*range*/, float /*minDistance*/)

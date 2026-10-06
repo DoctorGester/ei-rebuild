@@ -39,7 +39,7 @@ Weapon stats as the unit stats code (00538960) combines them: min damage = weapo
 max = (spread + damage) x material damage, attack = weapon attack x material attack, damage type = first
 non-zero weight (6 if none).
 
-Record values (item_db_records.cpp, A-H6; ours only, every run: the vectors grow while the databases load): 006A8F20
+Record values (item_db_records.cpp; ours only, every run: the vectors grow while the databases load): 006A8F20
 ItemRecordHead::Assign (three strings, +0x0C, +0x14..+0x1C, +0x34..+0x4C, byte +0x68, CStringArray::Copy of +0x20; the
 +0x50 array, +0x64 and +0x6C are not copied) and the five kinds' uninitialized_copy / uninitialized_fill_n (__fastcall, RET 8,
 the second stack argument an unused tag): weapons 006AB9C0 / 006ABB50 (vtable 00744068; own bytes +0x6C..+0x83, +0x8C..+0xB4),
@@ -75,11 +75,10 @@ context's spell manager), +0x48, +0x40; armour adds its two absorption rows (not
 kind_ / recordType_ through the stack slot of its stream argument, CItem's the spell id likewise (kept). Scenarios:
 Save every new game's autosave, Load world_load and ui_saveload.
 Constructors leave +0x40 (CItem) and the quick, quest, loot and scroll fields (+0x4C..) as they are; +0x20..+0x3C
-start at -1.0. The link at +0x1C is a CRefCounted (16-bit count) that Destroy deletes at 0.
-IsSameAs compares the base floats (+0x20..+0x2C, +0x34..+0x3C) as "equal or unordered" (FCOMP, TEST AH,40h) and
-the armour's rows and masks as dwords; the subclasses' slot 13 inline CItem::InitFromRecord and add their record
-fields (`WeaponRecord`, `ArmorRecord`, `QuickItemRecord`, `LootItemRecord` in item_db.h; the quest item takes the
-head's +0x6C). Scenarios: items (weapons, armour, potion, rune, quest items; merges in the party list), trader_stock.
+start at -1.0. The link at +0x1C is a CRefCounted (16-bit count) that Destroy deletes at 0. IsSameAs compares the
+base floats (+0x20..+0x2C, +0x34..+0x3C) as "equal or unordered" (FCOMP, TEST AH,40h) and the armour's rows and masks
+as dwords; the subclasses' slot 13 inline CItem::InitFromRecord and add their record fields (the quest item takes the
+head's +0x6C).
 
 ## Item parts, constructor and names
 
@@ -105,7 +104,7 @@ head's +0x6C). Scenarios: items (weapons, armour, potion, rune, quest items; mer
   database, not reproduced).
 - `CSpellManager::CreateSpellFromText` (00689030, spell_text.cpp): ours only, a spell with an index in range.
 
-## Party item lists and CopyTo (area ticket A-H)
+## Party item lists and CopyTo
 
 All ours only, with checks of the copies' values and of the lists' counts and order.
 
@@ -119,8 +118,7 @@ All ours only, with checks of the copies' values and of the lists' counts and or
 Clone = the owning manager's CreateObject(kind, -1) (slot 23), then the source's slot 15; on failure the new
 item gets a reference and is released. CopyTo destroys the target (slot 3), gives it +0x18 and dwords
 +0x20..+0x40, a CSpell::Clone (0068B410) of the attached spell or none, count 1; the overrides call the base
-through its address (`CItem::CallCopyTo`). The record adds clone with the world's spell manager (CWorld slot
-22 `SpellManager`, 0055EBA0: +0x4C). The party's adds merge with a held item that is the same (slot 14), else
+through its address (`CItem::CallCopyTo`). The record adds clone with the world's spell manager (CWorld slot 22, 0055EBA0: +0x4C). The party's adds merge with a held item that is the same (slot 14), else
 the party's slot 24 (0055E940: the factory makes the item, the source copies itself into it) gives the copy;
 array growth is AlignedPtrArray::SetSize (00519D70). Reached by ui_camp (0060FCA0 / 0060FE40 / 0060E900),
 trader_stock (004A6F60 into 00661DB0), party_records (0058FD90 / 00590C70).
@@ -138,8 +136,7 @@ trader_stock (004A6F60 into 00661DB0), party_records (0058FD90 / 00590C70).
 | 006611D0, 00661190, 006614F0, 00661640, 00661700 | CParty::DestructBody, DeletingDestruct (slot 0), CreateParty (slot 2), DestroyParty (slot 3), Clear (RET 8) | ours only: managers, arrays, zone name, variables as each leaves them |
 
 A constructed record has seven empty strings, empty lists, +0x724 0.8, +0x728 0.2, height 1.0, +0x770 2, +0x774 0,
-+0x778 0, +0x77C -1, +0x780 1 (the destructor sets the same). Every new game reaches them: the party record reset
-adds the hero (006628D0 builds a record on the stack, grows the array, destroys the stack record).
++0x778 0, +0x77C -1, +0x780 1 (the destructor sets the same).
 
 CParty (0x70): +0x1C item manager (0xBC, CResourceManager with vtable 0073F25C), +0x20 item constructor, +0x24 spell
 manager (0xD4), +0x28 spell constructor (getters: slots 18, 16, 22, 17), +0x2C records, +0x40 items, +0x50, +0x54
@@ -148,17 +145,14 @@ the party is the context of its items (CItem::LoadItem's slot 22 finds the party
 Create re-attaches the spell manager; DestroyParty drops the four objects by count and deletes them whatever the count
 (kept). The constructor copies an uninitialised stack byte into the map's three functor bytes (not reproduced).
 
-Serialisation (party_save.cpp, A-H5): 0065F9B0 / 0065FDE0 record Load / Save, 006618C0 / 00661C10 LoadParty /
+Serialisation (party_save.cpp): 0065F9B0 / 0065FDE0 record Load / Save, 006618C0 / 00661C10 LoadParty /
 SaveParty (RET 8, the flag covers the variables), 00661300 Assign (operator=), 006613C0 CopyConstruct. Saves:
 original into a scratch memory stream, bytes compared (ISAAC state restored before ours: SaveParty draws the key
 for +0x50). Record Load: the original Save gives back the bytes read. LoadParty / Assign / CopyConstruct ours only
 (items registered under their ids; the copy equals the source). Global 007C8344 = the party being loaded
 (LoadingParty). StatsLoad / StatsSave moved to originals_units.h.
 
-Candidates next (A-H6 left): the party's 006629D0 / 00662AC0 / 00662DD0, then by size 00667EC0, 006407E0, 00640060,
-0067CEF0, 006570E0. 00661FB0 / 00661FE0 (party item resets) look simple, but no scenario is known to reach them.
-
-Unit records (party_members.cpp, A-H6; all ours only, scenario party_records): 006628D0 AddMember (Create when no item
+Unit records (party_members.cpp; all ours only, scenario party_records): 006628D0 AddMember (Create when no item
 manager; a stack record constructed, assigned to the new entry, destroyed; name / key / prototype / extra), 006621F0
 FillFromPrototype (model text, NPC stats, scales, starting armour / weapons / spells cloned; the lists come straight from the
 prototype instead of through 005143E0's CStringArrays, same names in the same order), 00664950 Assign (shallow: the item list
@@ -168,11 +162,9 @@ uninitialised statistics to the new record (BuildNpcStats then overwrites them).
 
 ## Item texts (004E0000-004E15C0; item_db_text, scenario items)
 
-The range holds item names / descriptions from the text resources and the text manager's archive list.
-(004E1770-004E5000 is CVisibilityFog and rain/snow, 004E5E50-004F0000 the DirectDraw device: other areas.)
-The item databases are filled elsewhere (00456440 Rebirth-patched, 0057CB50, 0057DEE0, readers around
-006995E0-0069A780). The "can't parse color/percentage" strings at 004A0xxx belong to a 3DS material chunk
-reader (004A0BA0, 004A09E0), not item code; not rewritten (reads through a CFile).
+The range holds item names / descriptions from the text resources and the text manager's archive list. The item databases are filled
+elsewhere (00456440 Rebirth-patched, 0057CB50, 0057DEE0). The "can't parse color/percentage" strings at 004A0xxx belong to a 3DS material chunk
+reader (004A0BA0, 004A09E0), not item code.
 
 **CTextManager** (`*(CTextManager**)0x007AF788`): `+0x1C` STLport list of text archives (node: next, prev,
 `+0x08` stlp::string name, `+0x14` CMappedResource*), `+0x20` read cursor, `+0x24` start of the current text
@@ -287,8 +279,7 @@ compared with 1).
 | 0067F170, 0067F260, 0067F410, 0067F580, 0067F660, 0067F7C0 | CreateArrow (class 0x4E), CreateParticle (0x4A / 0x5A), CreateLightning (0x4D, with a target), CreateSound, CreateSoundSequence (class 99, max(count, 1) names), CreatePointLight (0x4B, flags 0x840) | ours only: class and kept pointer |
 | 0067EE00, 0067EE40, 0067EE80 | ReleaseVisual / Sound / Light | ours only: pointer null |
 
-Damage reaches the world only through these, so the scenarios' HP checks are what shows it arrives. Every sequence with more than one FP
-operation before a store is a naked helper in `spell_effect_internal.h`. Rebirth-patched callee: 005C11D0 (CSectorMap::Move, the teleport).
+Every sequence with more than one FP operation before a store is a naked helper in `spell_effect_internal.h`. Rebirth-patched callee: 005C11D0 (CSectorMap::Move, the teleport).
 
 Original bugs kept: lightning (1) builds its light at the target's slot-48 position without checking the target;
 healing (0x18) and charm (0x24) call the target's class id without a null check; arrow and acid ray impacts read
@@ -297,8 +288,7 @@ target or caster that is not a unit returns without changing state, so the effec
 strike (4) uses -7 as bolt width factor; the walls compute the normal with a z of 0 * k. Fireworks, clairvoyance
 and possession keep a unit list on the stack for the whole function, emptied at the end.
 
-Risks: scenario wolves are placed 5 to 13 units from the hero without checking terrain (AddUnitToServer on
-blocked ground fails the `IsAlive` waitfor); if a missile spell needs a caster to fly, its waitfor fails.
+Risk: scenario wolves are placed 5 to 13 units from the hero without checking terrain (blocked ground fails the `IsAlive` waitfor).
 Not rewritten: 0067AC70 (missile target), 0067C640 (CEffectShowVisibility ids), 00688510 (buff record
 constructor), 005B2A00 / 005B2760 (footprint builders), 005C98C0 (AI noise), 005CBBE0, 00554450; 0067F360 (no
 callers), 0067E510 / 0067E5D0 (constructor / destructor), 0067E7D0 / 0067E960 (save / load).
@@ -386,7 +376,7 @@ is reached by loading a save with class templates (004A6C40); which scenario rea
 
 Original bugs kept: the template's prototype and material vectors are shuffled in place; an item whose build fails
 (EndCreateItem null) is dereferenced; the 004ABD00 / 00684B20 lookups insert a null entry for every unknown name;
-a material entry with an unknown material is loaded with a null record. 004A6DF0, 004A6F60, 004A6DC0 are rewritten in class_template_stock.cpp (A-S4, script.md).
+a material entry with an unknown material is loaded with a null record. 004A6DF0, 004A6F60, 004A6DC0 are rewritten in class_template_stock.cpp (script.md).
 
 ## HUD panel displays (ui_hud_panels; scenario ui_hud)
 
@@ -402,27 +392,81 @@ rewritten functions is on the Rebirth list (their caller 006462A0 is).
 Texts go through the panel surface's DrawText (005FDE20, Rebirth-patched) and Place (005E6FA0, Rebirth-patched),
 both through their addresses.
 
-A-H6: 0064A7A0 CHudTopPanel::ShowItems (`this` is the top panel, ECX; Ghidra's decompile mislabels it) builds page 1's
-text: "format_money" with the local party's +0x50 when above 0, then the local player's item list (WorldPlayer +0xE0, a
-CPtrList) merged by kind (slot 14) into the client world's copies (0055E940, not rewritten), one FormatItemName line each,
-copies released; into the log when page 1 is up. Ours only (stateful): one line per kind plus the money line. Reached by
-every battle screen setup (00635250 / 00636150; scenario ui_hud). 0064D9B0 CObjectivesWindow::DrawQuestList
-(ui_objectives.cpp; via RefreshQuests 0064E8B0, scenario ui_hud's TAB): ours only, the five marks' and the cursor's
-visibility against the quests' states. ShowParts reads the unit's six body part records (+0x374, 0x1C bytes: state,
-durability, maximum) with label positions from tables 00742434 / 0074244C. In ToggleFlag the button frame's
-third value 0.48046875 is unreachable.
+### HUD portraits and top panel (ui_hud_portrait_setup.cpp, ui_hud_top_panel.cpp, ui_objectives.cpp)
 
-## What is left in 0x00640000-0x006C0000 (A-H11, 2026-10-07)
+| Address | Name | Verify (ours only) |
+|---|---|---|
+| 006407E0 | CHudPortraits::Rebuild (RET 4) | portraits = party (+ players), 5 sprites and 1 region each, slots' hit points / build / player -1; every newgame |
+| 00640060 | CHudPortraits::AddPortrait (RET 0x10, called through its address) | one more slot, 5 sprites, a region y 510..600, the player flag, current = restA |
+| 00640670 | CHudPortraits::ShowFace (RET 8; Update calls it through its address) | slots and referenced objects unchanged; spells_cast (low mana), hits |
+| 00649AF0 | CHudTopPanel::Build (RET 8: page, shown) | rectangle, 4 regions, 6 sprites (the original calls AddSprite 005FF3C0 six times), page and slide state; every newgame |
+| 0064A4E0, 0064A630 | AddPickedUp (RET 8), AddMoney (RET 4) | page 0's text grew by a line ending in "\n"; from OnItemsPicked 00636150 (no scenario known) |
+| 0064A7A0 | CHudTopPanel::ShowItems (`this` is the top panel, ECX; Ghidra mislabels it) | stateful: one line per kind plus the money line |
+| 0064D9B0 | CObjectivesWindow::DrawQuestList (via RefreshQuests 0064E8B0, scenario ui_hud's TAB) | the five marks' and the cursor's visibility against the quests' states |
 
-Classification: functions.csv kind game, minus library.csv, dead_code.csv and EI_REPLACE. The sweep added 115
-entries to library.csv: 90 with the same instructions as an existing entry (data addresses masked, every call to the
-same callee or to library code: STLport copy / fill / list / hashtable helpers, aligned buffer and counted pointer
-destructors) and 25 reviewed quest database container instantiations (006AF4D0..006B3E60: vector reserve /
-insert_overflow / fill_insert / copy / uninitialized_copy of the 0x38- and 0x6C-byte records, their compiler-made
-copy constructors, operator= and destructors). Left after the later sweeps and ports below (UI_INPUT_HANDLER /
-UI_WHEEL_HANDLER registrations counted as rewritten): 756 functions, 147.4 KB (the texture manager's 6 KB is the
-renderer's; 00646C25 is a tail of 006462A0 that Ghidra splits off). Bytes per group (R = in
-docs/rebirth-patched-functions.txt):
+`ShowItems` builds page 1's text: "format_money" with the local party's +0x50 when above 0, then the local player's item list (WorldPlayer +0xE0,
+a CPtrList) merged by kind (slot 14) into the client world's copies (0055E940, not rewritten), one FormatItemName line each, copies released; into the
+log when page 1 is up. Reached by every battle screen setup (00635250 / 00636150). `ShowParts` reads the unit's six body part records (+0x374, 0x1C
+bytes: state, durability, maximum) with label positions from tables 00742434 / 0074244C. In ToggleFlag the button frame's third value 0.48046875 is
+unreachable. The original builds top-panel lines with CString operator+ temporaries; ours appends to one CString (same text). ShowPage / Layout are
+called through their addresses so their wrappers run.
+Kept (portraits): the sex letter ("m" / "f") keeps the previous portrait's value for a figure that is neither "unhuma" nor "unhufe"; AddPortrait's
+count % 4 switch leaves the texel offsets uninitialised for a negative count (ours 0) and indexes the column's frame and restB_ by count % 6. The
+multiplayer branch (players without a live unit) uses the name maps' find_or_insert directly (00514880 / 0053D340, one temporary string less). Not
+reached by a harness scenario. 006407E0 holds EI_Plugin Fixes sites (rebirth.md), so the installer keeps the original under Rebirth. 0064AB20 /
+0064AD40 / 0064B3A0 / 0064ACD0 (the slot vector) are library entries. CUnit +0xC8 is `build`, CUiMesh +0x34 `orientation_`.
+
+## Players and connections (player.cpp, player_client.cpp, player_messages.cpp)
+
+CPlayer (player_messages.h), 0x134 bytes: units_ max id +0x54, the embedded party +0x70..+0xE0, the given items +0xE0 (CPtrList of counted items), the
+recharge id list +0x114 (vtable 00743138). `CPlayerConnection` names the connection's slots 13..23 (CPlayerServer 00743280 / CPlayerClient 00743180,
+not 00743188: Pump is slot 6, ReceiveMessages slot 23). 0047B670 (object map clear) is `ObjectMapClearOriginal` in originals_world.h. Message
+senders, handlers and the sync code are in `objects.md` ("Players").
+
+| Address | Name | Verify |
+|---|---|---|
+| 00664BF0 | CPlayer::Construct | ours only: vtable, empty maps / lists (block 10), party created, Destroy's state; newgame |
+| 00664E20, 00664E00 | DestructBody, DeletingDestruct (RET 4) | ours only: base vtable, lists empty / returns this |
+| 00664DE0, 00664DF0 | class name "CPlayer" (00794CA4), id 0xF | against the original |
+| 00665010, 006650E0, 00665380 | CreatePlayer (returns 1), DestroyPlayer (slot 3 and the destructor's copy) | ours only: lists and maps empty, no link / connection, id -1 |
+| 00665200, 00665950, 00665A60 | Clear, SetConnection (RET 4), SetPlayerId (RET 4) | ours only: items released, maps / lists empty, units gone / fields |
+| 00665990, 00665A10, 006651D0 | Connect (RET 4), Disconnect, ForgetKnownObjects | ours only: link, cleared lists / maps |
+| 00665440, 00665640 | IsLeader (RET 4, BOOL), HasLoot (RET 4, BOOL) | against the original (6 stolen bytes each) |
+| 00665470, 00665550, 00665780, 00665870 | GiveItems (RET 8), TakeAllItems, TakeLoot / TakeItem (RET 4, BOOL) | ours only: item count, count dropped by the result |
+| 00665A70, 00665B50, 00665BE0, 00665CC0, 00665D20 | AddUnit / RemoveUnit (from CUnit::SetPlayer), ItemUsed, AssignParty (returns CParty::Assign's result), ReleaseTamedUnits (CUnitController slot 39 is TamingStage) | ours only: unit in / out of units_, units left keep the player |
+| 00664B70 | PlayerMessageError (`__fastcall`: format, previous type in DL, type; RET 4) | ours only (FatalError through 00480080) |
+| 00667230, 0066C9A0 | CPlayerClient::CreateClient, CPlayerServer::CreateServer (slot 2) | ours only: 256 handlers, spot entries, empty streams (client state 0; server sent arrays empty, timer 900..1800) |
+
+Both handler tables store the handlers' game addresses (40 client types, 25 server types), so rewritten handlers run through their hooks. handlers_ is
+a lib::AlignedArray on both classes (allocators 0066BE00 / 00671240 are AllocAligned32). CPlayerServer +0x44 is an int (-1 after Create), +0x74 the
+unit placements (`mfc::CArray<UnitPlacement>`, SetSize 0059C3D0 is `PlacementsSetSizeOriginal` in originals_gameplay.h, also used by world_party.cpp).
+Kept: Clear's unit loop stops at the first map entry without a unit (the rest stay); the constructor's maps keep their uninitialised functor bytes;
+HasLoot reads +0x4C of every carried item whatever its class; ReleaseTamedUnits (like Clear's sibling walks) goes on from the node of a unit that
+SetPlayer has just erased, reading the freed node as the original does; Connect / Disconnect / GiveItems / TakeAllItems call the connection without a
+null test.
+
+## Save screen pieces (ui_saveload.cpp, ui_menu_keys.cpp)
+
+| Address | Name | Verify |
+|---|---|---|
+| 00653A50 | SaveEntry::MakeTitle (RET 4, unused argument) | original first, then ours: same title |
+| 00655050 | CSaveLoadWindow::OnChar (input side, RET 0xC) | ours only: name grew at the caret, kept or restarted |
+| 006570E0 | QuickSave (`__fastcall` slot, DL frame step) | ours only: info.sav header and shot.sav read back; newgame's savea |
+| 006575B0 | QuickLoad (`__fastcall` slot) | ours only: the flow's request is 2 when the folder exists |
+
+Shared forwarders: 006EAF20 `_access` (gamecrt::access), 00578D00 (ServerFlagOriginal), 00458010 (FrameStepOriginal, originals_ui.h), 005F8340
+(InterfaceTextExtentOriginal). Not rewritten: 00653BD0 (the zone title). Kept: QuickSave uses the surface even when its allocation failed.
+
+## What is left in 0x00640000-0x006C0000
+
+Classification: functions.csv kind game, minus library.csv, dead_code.csv and EI_REPLACE. 115 entries were added to library.csv from this range: 90 with
+the same instructions as an existing entry (STLport copy / fill / list / hashtable helpers, aligned buffer and counted pointer destructors) and 25
+reviewed quest database container instantiations (006AF4D0..006B3E60), plus 25 for the item database's record vectors (resize, fill_insert,
+insert_overflow, copy, uninitialized copy / fill of the 0x50 / 0x78 / 0x7C / 0x8C / 0xB4 / 0xC8 kinds) and the portrait slot vector's four, and 32 for the
+spell database (vectors of the 0x24 modifier, 0x34 and 0x84 spell records and strings, 00684D60..00688470). Game code that stays: the item kinds'
+operator= (006A8FB0 ...) and serialisers 006A7940..006A7E10, the spell serialisers 00684C50 / 00684EF0 / 00684FE0; 006B4000-006C0000 was reviewed in A-H13 (26 library, 1 dead; `sound.md`).
+Remaining by group (R = bytes of Rebirth-patched functions, docs/rebirth-patched-functions.txt; sizes as of this sweep, 756 functions, 147.4 KB; the
+texture manager's 6 KB is the renderer's; 00646C25 is a tail of 006462A0 that Ghidra splits off):
 
 | Range | Group | Functions | Bytes | R bytes | Largest |
 |---|---|---|---|---|---|
@@ -447,99 +491,5 @@ docs/rebirth-patched-functions.txt):
 | 6AE000-6B4000 | quest database | 17 | 3235 | 923 | 006AE3A0, 006AE740, 006AE220, 006AE0F0 |
 | 6B4000-6C0000 | sound (Miles), misc | 70 | 15007 | 1442 | 006BB3A0, 006B6D80, 006BFC80, 006B7D10 |
 
-Later: 25 more for the item database's record vectors (resize, fill_insert, insert_overflow, copy, uninitialized
-copy / fill of the 0x50 / 0x78 / 0x7C / 0x8C / 0xB4 / 0xC8 kinds) and the portrait slot vector's four; the kinds'
-operator= (006A8FB0 ...) and the serialisers 006A7940..006A7E10 stay game code; 32 for the spell database (vectors of the 0x24 modifier, 0x34 and 0x84 spell records and of strings, 00684D60..00688470; the serialisers 00684C50 / 00684EF0 / 00684FE0 stay). Not reviewed: 006B4000-006C0000.
-
-### HUD portraits setup (ui_hud_portrait_setup.cpp, A-H11)
-
-| Address | Name | Verify (ours only) |
-|---|---|---|
-| 006407E0 | CHudPortraits::Rebuild (RET 4) | portraits = party (+ players), 5 sprites and 1 region each, slots' hit points / build / player -1; every newgame |
-| 00640060 | CHudPortraits::AddPortrait (RET 0x10, called through its address) | one more slot, 5 sprites, a region y 510..600, the player flag, current = restA |
-| 00640670 | CHudPortraits::ShowFace (RET 8; Update calls it through its address) | slots and referenced objects unchanged; spells_cast (low mana), hits |
-
-Kept: the sex letter ("m" / "f") keeps the previous portrait's value for a figure that is neither "unhuma" nor
-"unhufe"; AddPortrait's count % 4 switch leaves the texel offsets uninitialised for a negative count (ours 0) and
-indexes the column's frame and restB_ by count % 6. The multiplayer branch (players without a live unit) uses the
-name maps' find_or_insert directly (00514880 / 0053D340, one temporary string less than the original). Not
-reached by a harness scenario. 006407E0 holds EI_Plugin Fixes sites (rebirth.md), so the installer keeps the original under Rebirth. 0064AB20 / 0064AD40 / 0064B3A0 / 0064ACD0 (the slot vector) are library entries.
-CUnit +0xC8 is now `build`, CUiMesh +0x34 `orientation_`.
-
-### HUD top panel (ui_hud_top_panel.cpp, A-H11)
-
-| Address | Name | Verify (ours only) |
-|---|---|---|
-| 00649AF0 | CHudTopPanel::Build (RET 8: page, shown) | rectangle, 4 regions, 6 sprites (the check said 8 until X17; the original calls AddSprite 005FF3C0 six times), page and slide state; every newgame |
-| 0064A4E0, 0064A630 | AddPickedUp (RET 8), AddMoney (RET 4) | page 0's text grew by a line ending in "\n"; from OnItemsPicked 00636150 (no scenario known) |
-
-The original builds each line with CString operator+ temporaries (kind + " " + name + "\n"); ours appends to one
-CString (same text). ShowPage / Layout are called through their addresses so their wrappers run.
-
-Next candidates (A-H11 left): the players group 00664BF0..00665D20 (CPlayer constructor / destructor, three identical
-resets 00665010 / 006650E0 / 00665380, Clear 00665200, item list adds / removes 00665470 / 00665550 / 00665780 /
-00665870, connection set 00665950, object list 00665BE0 / 00665CC0, unit sweeps 00665640 / 00665D20; every new game,
-but the connection's virtual slots +0x10..+0x58 need declaring first); the save screen's 006570E0 / 006575B0 /
-00655050 / 00653A50; the client / server message handlers 0066F4C0, 00670310, 00667230.
-
-## Players (player.cpp, A-H12)
-
-CPlayer (player_messages.h) now has its whole layout (0x134 bytes): units_ max id +0x54, the embedded party
-+0x70..+0xE0, the given items +0xE0 (CPtrList of counted items), the recharge id list +0x114 (vtable 00743138).
-`CPlayerConnection` names the connection's slots 13..23 (CPlayerServer 00743280 / CPlayerClient 00743180; the
-client's vtable is 00743180, not 00743188: Pump is slot 6 and ReceiveMessages slot 23). 0047B670 (object map clear)
-moved to originals_world.h (ObjectMapClearOriginal).
-
-| Address | Name | Verify |
-|---|---|---|
-| 00664BF0 | CPlayer::Construct | ours only: vtable, empty maps / lists (block 10), party created, Destroy's state; newgame |
-| 00664E20, 00664E00 | DestructBody, DeletingDestruct (RET 4) | ours only: base vtable, lists empty / returns this |
-| 00664DE0, 00664DF0 | class name "CPlayer" (00794CA4), id 0xF | against the original |
-| 00665010, 006650E0, 00665380 | CreatePlayer (returns 1), DestroyPlayer (slot 3 and the destructor's copy) | ours only: lists and maps empty, no link / connection, id -1 |
-| 00665200 | Clear | ours only: items released, maps and lists empty, units gone |
-| 00665950, 00665A60 | SetConnection (RET 4), SetPlayerId (RET 4) | ours only: fields |
-
-Kept: Clear's unit loop stops at the first map entry without a unit (the rest stay); the constructor's maps keep
-their uninitialised functor bytes.
-
-Second part (the link, given items, units):
-
-| Address | Name | Verify |
-|---|---|---|
-| 00665990, 00665A10, 006651D0 | Connect (RET 4), Disconnect, ForgetKnownObjects | ours only: link, cleared lists / maps |
-| 00665440, 00665640 | IsLeader (RET 4, BOOL), HasLoot (RET 4, BOOL) | against the original (6 stolen bytes each) |
-| 00665470, 00665550 | GiveItems (RET 8), TakeAllItems | ours only: item count |
-| 00665780, 00665870 | TakeLoot / TakeItem (RET 4, BOOL) | ours only: count dropped by the result |
-| 00665A70, 00665B50 | AddUnit / RemoveUnit (RET 4; from CUnit::SetPlayer) | ours only: unit in / out of units_ |
-| 00665BE0, 00665CC0 | ItemUsed (RET 4), AssignParty (RET 4, returns CParty::Assign's result) | ours only |
-| 00665D20 | ReleaseTamedUnits (CUnitController slot 39 is now TamingStage) | ours only: units left keep the player |
-
-Kept: HasLoot reads +0x4C of every carried item whatever its class; ReleaseTamedUnits (like Clear's sibling walks)
-goes on from the node of a unit that SetPlayer has just erased, reading the freed node as the original does.
-Connect / Disconnect / GiveItems / TakeAllItems call the connection without a null test.
-Also 00664B70, PlayerMessageError (__fastcall: format, previous type in DL, type; RET 4): ours only (FatalError through 00480080).
-
-## Save screen pieces (A-H12)
-
-| Address | Name | Verify |
-|---|---|---|
-| 00653A50 | SaveEntry::MakeTitle (RET 4, unused argument; ui_saveload.cpp) | original first, then ours: same title |
-| 00655050 | CSaveLoadWindow::OnChar (input side, RET 0xC; ui_menu_keys.cpp) | ours only: name grew at the caret, kept or restarted |
-| 006570E0 | QuickSave (__fastcall slot, DL frame step; ui_saveload.cpp) | ours only: info.sav header and shot.sav read back; newgame's savea |
-| 006575B0 | QuickLoad (__fastcall slot) | ours only: the flow's request is 2 when the folder exists |
-
-Moved to shared headers: 006EAF20 _access (gamecrt::access), 00578D00 (ServerFlagOriginal) and 00458010
-(FrameStepOriginal, originals_ui.h), 005F8340 (InterfaceTextExtentOriginal). Not rewritten: 00653BD0 (the zone title).
-Kept: QuickSave uses the surface even when its allocation failed.
-
-## Player connections: the handler tables (A-H12)
-
-| Address | Name | Verify |
-|---|---|---|
-| 00667230 | CPlayerClient::CreateClient (slot 2; player_client.cpp) | ours only: 256 handlers, spot entries, state 0, empty streams |
-| 0066C9A0 | CPlayerServer::CreateServer (slot 2; player_messages.cpp) | ours only: 256 handlers, spot entries, sent arrays empty, timer 900..1800 |
-
-Both tables store the handlers' game addresses (40 client types, 25 server types), so rewritten handlers run
-through their hooks. handlers_ is now a lib::AlignedArray on both classes (their allocators 0066BE00 / 00671240 are
-AllocAligned32). CPlayerServer +0x44 is an int (-1 after Create), +0x74 the unit placements (mfc::CArray<UnitPlacement>,
-SetSize 0059C3D0 now PlacementsSetSizeOriginal in originals_gameplay.h, also used by world_party.cpp).
+Next candidates: the other server message handlers 0066F890..00671060 (`objects.md`; 0066F4C0 / 00670310 done in A-H13); the party's 006629D0 / 00662AC0 / 00662DD0; 00667EC0, 0067CEF0,
+00661FB0 / 00661FE0 (party item resets; no scenario is known to reach them).

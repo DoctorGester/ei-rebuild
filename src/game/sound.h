@@ -5,6 +5,8 @@
 // and the music state machine (CMusicSystem, world/app object + 0x1A8). Names are provisional.
 // See docs/notes/sound.md for the map of the range.
 
+#include "engine_object.h"
+
 #include "../lib/mfc.h"
 
 // BOOL results are full 0/1 ints in EAX.
@@ -282,8 +284,10 @@ struct MusicTheme {
 static_assert(sizeof(MusicTheme) == 0x38);
 
 // CMusicSystem (0x58 bytes, vtable 00744098, class id 0xE): picks the music for the game state.
-struct CMusicSystem {
-    std::uint8_t base[0x1C];            // +0x00 CEngineObject
+struct CMusicSystem : CEngineObject {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744098);
+    static constexpr std::uintptr_t kThemeArrayVtable = std::uintptr_t(0x007440CC);
+
     void* themesVtable;                 // +0x1C CArray<MusicTheme>
     MusicTheme* themes;                 // +0x20
     std::int32_t themeCount;            // +0x24
@@ -313,11 +317,32 @@ struct CMusicSystem {
     void PlayMainMenu();                               // 006B51F0
     void PlayJingle(const char* name);                 // 006B5270
     int UpdateMusic();                                // 006B5350 (vtable slot 6)
+
+    // A-H13 (sound_music.cpp).
+    // 006B4350. Constructor body: CEngineObject's fields, an empty theme array, the strings
+    // constructed empty, the vtable, then ResetThemes (theme, +0x3C, is left as it is).
+    // Returns this.
+    CMusicSystem* Construct();
+    // 006B44B0. Destructor body: ResetThemes (the array through SetSize(0)), the four strings
+    // destroyed, the theme array's destructor (006B56C0), CEngineObject's.
+    void DestructBody();
+    // 006B4490 (slot 0, RET 4). DestructBody, then operator delete when bit 0 of `flags` is set.
+    CMusicSystem* DeletingDestruct(unsigned flags);
+    // 006B4690 (slot 3, the engine object's Destroy; named so, rule 4). State 0, the themes
+    // destroyed and freed, credits / main menu / jingle / combat track "none", jinglePlaying,
+    // calmDue, inCombat and holding 0.
+    void ResetThemes();
+    // 006B4E10 / 006B4E20 (ECX not read). The sound manager's stream fades out / in.
+    void FadeOut();
+    void FadeIn();
 };
 static_assert(offsetof(CMusicSystem, credits) == 0x30);
 static_assert(offsetof(CMusicSystem, holding) == 0x44);
 static_assert(offsetof(CMusicSystem, calmDue) == 0x54);
 static_assert(sizeof(CMusicSystem) == 0x58);
+// 006B4470 / 006B4480 (slots 11, 12): "CMusicSystem" (007967F4), class id 0xE.
+const char* __fastcall MusicSystemClassName(CMusicSystem* self);
+int __fastcall MusicSystemClassId(CMusicSystem* self);
 
 namespace sound {
 inline CSoundManager* Manager() { return *reinterpret_cast<CSoundManager* const*>(0x007AF784); }

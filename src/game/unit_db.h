@@ -97,7 +97,7 @@ struct UnitNpcRecord {
     CStringVector unknown_30;       // 9
     CStringVector unknown_3C;       // 10
     CStringVector unknown_48;       // 11
-    std::uint32_t unknown_54;       // 12
+    float experienceFloor;          // +0x54 12: experience a hero keeps when it dies in a network game (0066F4C0)
     std::uint32_t unknown_58;       // 13
     std::uint8_t unknown_5C;        // 14 (one byte)
     std::uint8_t unknown_5D[3];
@@ -105,7 +105,7 @@ struct UnitNpcRecord {
 static_assert(offsetof(UnitNpcRecord, attributes) == 0x18);
 static_assert(offsetof(UnitNpcRecord, skills) == 0x1B);
 static_assert(offsetof(UnitNpcRecord, skillNames) == 0x24);
-static_assert(offsetof(UnitNpcRecord, unknown_54) == 0x54);
+static_assert(offsetof(UnitNpcRecord, experienceFloor) == 0x54);
 static_assert(offsetof(UnitNpcRecord, unknown_5C) == 0x5C);
 static_assert(sizeof(UnitNpcRecord) == 0x60);
 

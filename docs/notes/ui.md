@@ -266,19 +266,19 @@ probably CanEquip, hero creation (00617A50).
 | 00618060, 00619150, 006183B0 | `CMpHeroScreen::Rename` (the edit gets the name after "\|" via Mid 006FD9B4, surface 3 the part before + " \| "), `PlayVoice` (unit prototype -> sound set map 007C8A6C (00619FB0 forwarded) -> a random entry with flags 0x2282; ours counts the entries instead of the original's temporary vector), `Continue` (heroes saved, the connection screen 00741CD0 built inline: `CMpConnectScreen`) (`ui_hero_screen_click.cpp`; the old free forwarders are now `RenameAt` / `PlayVoiceAt` / `ContinueAt`) | ours only: editing on; sound handle; the connection screen on top iff a hero is selected. PlayVoice: ui_hero_screen voice rows |
 | 00618850, 006186F0 | `CMpHeroScreen::RefreshHero` (slot 47: stats slots restored, size factors, figure scale 00517700, SetFromStats, controller slot 31, DrawStats), `CreateHero` (sum stat20 + stat18 + stat10 vs 00741C98 equal or unordered, a name; forwarder renamed `CreateHeroAt`) | ours only: the figure's scale = hero +0x724..; mode 11 with the name given, or unchanged. RefreshHero: ui_hero_stats |
 | 006159E0, 00617820, 00615850, 00625530, 00625560 | `CMpHeroScreen::Draw` (slot 20; mode 11 the experience lines, the hover info with the voice rows' "lmp_select_voice", preview at depth 553 / 400), `Update` (24; turn fmod 007C7F10, scroll bars, create button tint when the attributes sum to 00741C98 (equal or unordered) and the name is set), `Close` (26), `CTradePanel::Experience` / `PurchaseCost` (`ui_hero_screen.cpp`) | the last two pure side by side; the rest ours only: Draw returns 1, mode / selection kept; Update's turn recomputed (CheckNear) and the tint; Close clears the preview. ui_hero_screen (mode 11 not reached) |
-| 00611220, 00611760, 00612500 | `CCampPages::DoAction` / `UndoAction` (the two action buttons by page; trade pages stock the constructor's class template (+0x198) lists 0069908x-006992xx with the sold records), `DeconstructSpell` ("Prototype" + a "Rune" per modifier) (`ui_camp_deals.cpp`) | ours only: money (cost_ off except page 1), the lists the page gives back empty, the made item the only result; ui_camp_deals (item trade page: sell, take back; first central run decides) |
+| 00611220, 00611760, 00612500 | `CCampPages::DoAction` / `UndoAction` (the two action buttons by page; trade pages stock the constructor's class template (+0x198) lists 0069908x-006992xx with the sold records), `DeconstructSpell` ("Prototype" + a "Rune" per modifier) (`ui_camp_deals.cpp`) | ours only: money (cost_ off except page 1), the lists the page gives back empty, the made item the only result; ui_camp_deals (item trade page: sell, take back) |
 | 006129C0 | `CCampPages::DeconstructItem` (`ui_camp_deals.cpp`): "Instruction Weapon / Armor / Quick Item" with the prototype index, "material.<key>" per prototype +0x4C (the material record's +0 is a CString key; the name is built with += instead of two operator+), a "spell container" (00613820 by name instead of the inlined map insert; MakeItem 0x3008) with a clone of the spell | ours only: true, itemMade_ cleared, results >= before - 1. Needs a made item (not reached) |
 | 00633260, 00615800, 00634500, 00634560 | `CMpHeroScreen::Destroy` (the destructor body: not the main menu's, the hero screen's vtable 0074214C slot 0 00633240 calls it), `MpVoiceEntry::Destroy`, `ReleaseCachedObjects` (the model / texture caches, in key order; `ui_hero_screen.cpp`) | ours only: caches empty and arrays freed; the walk visits `count` nodes. ui_hero_screen (Esc to the main menu) |
 | 006167C0, 00616560, 00616910 | `CMpHeroScreen::DrawHeroList` (ten rows from heroTop_, a hero record is a CParty whose first member's text 0 is the name), `DrawVoices` (eleven rows, frame at 97.5, offset + 00741C94), `ShowHero` (RET 4; the preview 00616E20 is `MakePreview`, below) (`ui_hero_screen.cpp`; callers use `Call*`) | ours only: the selection frame shown iff the selection is among the rows; ShowHero's index and turn. ui_hero_screen |
-| 00624790, 00624A60 | `CHeroStatsPanel::OnLButtonDown` (input 2: page 10's -/+ buttons, regions 6-13 via `StepPoint`, a hold starts at -0.5 s with the capture; else regions 0 / 1 the owner's previous / next hero), `Update` (24: the held button repeats after 0.25 s; the hold ends when it cannot step) (`ui_stats_buttons.cpp`; +0x174 / +0x178 now `heldRegion_` / `holdTime_`) | ours only: the hold state left (CheckNear on the time). ui_hero_stats (new; its -/+ coordinates come from ShowStats' page-10 layout, unconfirmed); ui_camp reaches the arrows |
+| 00624790, 00624A60 | `CHeroStatsPanel::OnLButtonDown` (input 2: page 10's -/+ buttons, regions 6-13 via `StepPoint`, a hold starts at -0.5 s with the capture; else regions 0 / 1 the owner's previous / next hero), `Update` (24: the held button repeats after 0.25 s; the hold ends when it cannot step) (`ui_stats_buttons.cpp`; +0x174 / +0x178 now `heldRegion_` / `holdTime_`) | ours only: the hold state left (CheckNear on the time). ui_hero_stats (its -/+ coordinates come from ShowStats' page-10 layout, unconfirmed); ui_camp reaches the arrows |
 | 006242E0, 00624590 | `CHeroStatsPanel::DrawRow` (RET 0x10: "perk <label>" text or the label, "%d" / "%d/%d"), `DrawPart` (RET 0xC: "     " + "hl_<name>", the armour "%.1f" = the largest of the first six damage types' three-layer sums, a NaN keeps the old maximum) (`ui_stats_rows.cpp`) | ours only: page / points kept; the armour recomputed a second way (CheckNear). ui_camp, ui_describe, ui_hero_screen |
 | 00626D70, 00626920 | `CTradePanel::ClampScroll` (tops in [0, held - 10] / [0, learnable - 23], the four arrows shown where it can scroll, then DrawLists), `OnLButtonDown` (input 2: regions 0-3 scroll, 4-9 a school level, 10 science (both then held, +0x19C / +0x1A0 now `heldRegion_` / `holdTime_`), 11-33 a learnable perk, 34 up and below 0 a held perk's next level; spent experience += price, record `bought`, BuildLists) (`ui_trade_panel_input.cpp`) | ClampScroll side by side (tops, arrows); the click ours only (tops in range, spent only grows, the hold). ClampScroll: ui_camp / ui_describe (page 1's BuildLists); the click is not in a scenario |
 | 00622C10, 00627C90 | `CHeroQuickStrip::Draw` (frame on the selected one of the hero's +0x760 entries, their models), `CRepairGrid::Draw` (depth clears as the trade grid's, models at depth 2^(3 - row) * 6, count and repair price (slot 54, kind 8)) (`ui_panel_draws.cpp`; `UiRenderer` got `result_` / `caps_` / `stencil_`) | ours only: result 1, the frame shown iff the selection holds an entry; the last clear succeeded. Quick strip: every camp frame; repair grid not in a scenario |
-| 006284A0, 00628F80 | `CConstructorPage::DrawSpellMaker` / `DrawItemMaker` (`ui_panel_draws.cpp`; +0x154 is the highlight's time `pulse_`, not a selection; the spell maker's texts are `CSpellMakerPage`). The highlight (scene object 4) colour: p = (cos(5 t) + 1) / 2 stored as float, alpha 130 (1 - p) + 240 p, the other two 80 (1 - p) and 160 p + 80 (1 - p), truncated and clamped (a value on an integer edge may differ at another FPU precision). The item maker draws the blueprint and part between depth clears (count 0 = the whole screen) | ours only: result 1, highlight hidden again, time not going back. ui_camp_deals clicks pages 3, 5, 6 (with trader class 1 the item maker is offered; first run decides) |
+| 006284A0, 00628F80 | `CConstructorPage::DrawSpellMaker` / `DrawItemMaker` (`ui_panel_draws.cpp`; +0x154 is the highlight's time `pulse_`, not a selection; the spell maker's texts are `CSpellMakerPage`). The highlight (scene object 4) colour: p = (cos(5 t) + 1) / 2 stored as float, alpha 130 (1 - p) + 240 p, the other two 80 (1 - p) and 160 p + 80 (1 - p), truncated and clamped (a value on an integer edge may differ at another FPU precision). The item maker draws the blueprint and part between depth clears (count 0 = the whole screen) | ours only: result 1, highlight hidden again, time not going back. ui_camp_deals clicks pages 3, 5, 6 (with trader class 1 the item maker is offered) |
 | 006229E0, 00622A30, 00622960, 00622860, 00622BC0, 00622D40 | `CHeroEquipPanel::ShowWeapon` / `ShowArmour` / `OnRightDown` (input 5 of 007418AC; does not mark the event used) / `ItemAt` (slot 25), `CHeroQuickStrip::ShowEntry` / `ItemAt` (`ui_equip_panels.cpp`; both panels' +0x14C is now `owner_`) | ItemAt side by side (item and topic); the rest ours only: the index is the item's first place or -1; a right click on a filled weapon slot shows it. ui_camp, ui_describe, ui_hero_screen |
 | 00625430, 00626F10, 006255A0, 00625860 | `CTradePanel::ResetRecords` (Build now calls it; it inlined the same loop), `SnapshotRecord` (record from the member's UnitStats, floats copied as dwords), `Settle` (keep / all as bytes; the all-branch tests the low byte of `keep`; 00626FA0 is `RestoreRecord`, below), `SelectHero` (`ui_trade_panel.cpp`) | SnapshotRecord side by side (record bytes but +0x2B, +0x39..); the rest ours only: record count = members, nothing left bought, the index. ui_camp, ui_hero_screen |
-| 00626FA0, 00616E20 | A-I9: `CTradePanel::RestoreRecord` (the record back into the member's statistics; the hit point maximum before / after stored as float, both above 1: HealSlots by old hp / old max * new max - Reduce(new max)), `CMpHeroScreen::MakePreview` (RET 4; records handed over with 005789C0, skill animation 0x21 (its entry's +0x10 index byte, now `FigureAnimation::index`) from a random frame, controller slot 14 now `RestartAnimation(float)`) | RestoreRecord side by side (0x704 stats bytes and the record; differing dwords CheckNear), scenario ui_trade_restore (new: page 1 school bought, undo, Esc); MakePreview ours only (preview = the client unit of the first record's id), ui_hero_screen |
-| 00616AC0 | A-I9: `CMpHeroScreen::ChooseFigure` (slot 52; `ui_hero_figure.cpp`): +0x1BC / +0x1C0 are two item strips (vtable 00741BF4) whose +0x17C (`CUiItemStrip::selected_`) is the chosen figure; the strip listing the prototype picks the voice list (names_ -> voiceLists_[1]); the hero's voice (text 6) is the list's first file, read even when the list is empty. Shared forwarders added: `StatsPanelSetHeroOriginal`, `TradePanelResetRecordsOriginal`, `TradePanelSelectHeroOriginal` (ui_camp.cpp uses it now), `ScrollbarSetRangeOriginal`, `PartyEquipFromPrototypeOriginal` (006625B0) | ours only: one record of the prototype, attributes / height by mode, strips' selections, voice list from row 0, equipment fields. ui_hero_screen (regions 5 of the list and 4 of the new hero call slot 52) |
+| 00626FA0, 00616E20 | `CTradePanel::RestoreRecord` (the record back into the member's statistics; the hit point maximum before / after stored as float, both above 1: HealSlots by old hp / old max * new max - Reduce(new max)), `CMpHeroScreen::MakePreview` (RET 4; records handed over with 005789C0, skill animation 0x21 (its entry's +0x10 index byte, now `FigureAnimation::index`) from a random frame, controller slot 14 now `RestartAnimation(float)`) | RestoreRecord side by side (0x704 stats bytes and the record; differing dwords CheckNear), scenario ui_trade_restore (page 1 school bought, undo, Esc); MakePreview ours only (preview = the client unit of the first record's id), ui_hero_screen |
+| 00616AC0 | `CMpHeroScreen::ChooseFigure` (slot 52; `ui_hero_figure.cpp`): +0x1BC / +0x1C0 are two item strips (vtable 00741BF4) whose +0x17C (`CUiItemStrip::selected_`) is the chosen figure; the strip listing the prototype picks the voice list (names_ -> voiceLists_[1]); the hero's voice (text 6) is the list's first file, read even when the list is empty. Shared forwarders added: `StatsPanelSetHeroOriginal`, `TradePanelResetRecordsOriginal`, `TradePanelSelectHeroOriginal` (ui_camp.cpp uses it now), `ScrollbarSetRangeOriginal`, `PartyEquipFromPrototypeOriginal` (006625B0) | ours only: one record of the prototype, attributes / height by mode, strips' selections, voice list from row 0, equipment fields. ui_hero_screen (regions 5 of the list and 4 of the new hero call slot 52) |
 | 00620380, 00620960, 00620F10, 00621010, 00620E10, 006210F0, 006212A0, 00621420, 00621510, 00621530 | `CUiItemStrip::Build` (RET 4), `SetTab`, `OnMouseMove`, `OnLButtonUp`, `OnLButtonDown`, `OnWheel`, `OnLButtonDownForward`, `SetFilter`, `SelectTab`, `CycleTab` | Build side by side with its regions and sprites recorded and removed again; SetTab / MouseMove / LButtonUp original, restore, ours; the rest ours only |
 | 005EE050, 005EE080, 005EE0B0, 005EE0D0, 005EE110, 005EE130 | `UiItemKinds::IsSpell`, `IsModifier`, `IsSpellContainer` (BOOL), `IsPart`, `IsKindOne`, `IsBuildable` (`ui_screens.cpp`; `verify_ui_camp_items.cpp`) | pure, side by side |
 | 005EE1B0, 005EE2C0, 00621570 | `CItemScreen::MoveItem` (RET 0x18), `ReturnAll` (RET 8; `ui_item_screen.cpp`), `CUiItemStrip::ScrollToItem` (RET 4) | ours only: the target holds the result, a whole stack left the source, a refused move changes nothing, a turning move's item has its state flagged; ReturnAll empties the source; ScrollToItem's list is the rebuild rule's for the tab it ends on, scroll stopped, the last match within the seven visible slots |
@@ -302,8 +302,7 @@ Hazards and facts (the code has the rest):
   refused = the cancel sound; moves go through 005EE1B0 (it reads the interface's Shift flag +0x7D itself); items whose record +0x10 flag is set (made by a
   constructor) go back to the constructor's parts list and strip (+0x1EC / +0x1F0), the others to the local player (00578BA0) and the item strip (+0x1E0).
   Leaving (page 7) without a constructor still calls ReturnAll (005EE2C0) with the null constructor lists +0x1C8 / +0x1B4 as `to` and
-  their empty source lists as `from`; ReturnAll reads `to` only when `from` holds something, and so must its wrapper (X13: the wrapper's
-  log message read `to`'s count and faulted at 0x44).
+  their empty source lists as `from`; ReturnAll reads `to` only when `from` holds something, and so must its wrapper (the wrapper's log message read `to`'s count and faulted at 0x44).
   A hero record keeps a clone of a weapon put on (006608D0 copies the item): compare counts, not identity. Hero skills (`HeroSchoolSkill`,
   `HeroManaUnits`): 00527EB0's result is stored as float then FISTP; the mana maximum (00523F50) is stored as float, divided by the period (00523CD0,
   unrounded) and truncated (`StoreFloat`: under /fp:fast the compiler drops the float store). The sound system (005F7E60) gets the game's own string
@@ -330,77 +329,44 @@ each record unwritten.
 
 Not rewritten: 00612CF0 (camp slot 39, a debug fill; no caller but the vtable) (the trade grid draw 00627390 is in `ui_trade_grid_draw.cpp`, renderer.md),
 0062CF70, 006312C0 (the global map's path search, reached only from the click 0062F950), 00617A50 (creates the hero:
-.mp files, records array 007C82A0..007C82AC); the exchange window (0062C250, 0062C9C0) and the lobby screens (0061C430, 0061C700, 0061D470, 0061E2F0 ...,
-00618A10, 00616AC0, 006159E0) need a network session, no scenario.
+.mp files, records array 007C82A0..007C82AC); the exchange window (0062C250, 0062C9C0) and the lobby screens (0061C430, 0061C700, 0061D470, 0061E2F0 ...) need a network session, no scenario.
 
-### Briefing / base screen (A-I10; `ui_briefing.h`, `ui_briefing.cpp`, `ui_briefing_input.cpp`; `verify_ui_briefing.cpp`)
+### Briefing / base screen (`ui_briefing*.cpp`, `ui_briefing.h`, `ui_person_texts.cpp`; `verify_ui_briefing*.cpp`)
 
-Screen 3 of a "brief" zone (zone_base_bz1g creates it: Create 006024B0, Update 00604130, Draw 00602BF0). States +0x16C: 0 walking, 1 topic
-choice, 2 dialogue starting, 3 phrases, 4 rewards. Scenario `ui_base_dialogue` (new): the leader walks to Smith (MoveToObject), `clickunit
-Smith`, region 0 (the first topic), clicks through the phrases, Esc; the first central run decides how far it gets. A person can talk when
-its server controller's command is 0 or 0xB and the next one 9 (or it has none).
+Screen 3 of a "brief" zone (zone_base_bz1g creates it: Create 006024B0, Update 00604130, Draw 00602BF0). States +0x16C: 0 walking, 1 topic choice, 2 dialogue
+starting, 3 phrases, 4 rewards. Scenario `ui_base_dialogue`: the leader walks to Smith (MoveToObject), `clickunit Smith`, region 0 (the first topic), waits 4 s,
+clicks through the phrases, Esc, a second Esc takes the rewards. A person can talk when its server controller's command is 0 or 0xB and the next one 9 (or it
+has none).
 
 | Address | Name | Verify |
 |---|---|---|
+| 006024B0, 00604130 | `Create` (slot 25), `Update` (24) | ours only: four more hidden meshes, two more surfaces, topicBar_ / text_ the next children, state fields, edge fade 4 with the old one kept, people_ text keys; Update: state 0..4, markPhase_ < 1, from states 0 / 1 no finished mover left and the meshes hidden but for state 1's topic list (skipped when the frame left the zone) |
 | 00602BB0, 00606F40, 00603010, 00608C70, 006030C0, 00603090, 00602490 | `Close` (26), `OnMessageResult` (27; the load window inline as the battle screen's), `OnUnitLeft` (30), `OnGameOver` (31), `OnBriefing` (34, "briefing <name>"), `ShowChat` (36), `SaveState` (40: one zero dword) | OnUnitLeft side by side (leader, party array); the rest ours only (camera flags / fade, window on top, stream +4) |
 | 006030F0, 00603360, 00608B60, 006071E0 | `OnLeftDown` (input 2), `OnLeftDouble` (7; nothing while the chat window is active), `OpenTopics` (five rows 210..570 x 440.., "goodbye" appended, bar range count - 5), `DrawTopics` | ours only: state valid; OpenTopics state 1 with "goodbye" last or state 0 |
-
 | 00603D00, 006034A0 | `OnMouseMove` (input 4: hovered topic row, cursors 0xD / 0xE / 0xF, a person's topics and "pers" label in surface 1), `OnKeyDown` (input 9, `ui_briefing_keys.cpp`: Enter / Esc / Space by state, action 4 the objectives window when a "q.<zone>.<quest>" = 1 lies in this allod, 0xB camera to the leader, '5' / '6' "saveq") | ours only: the hovered row valid; Enter / Esc / Space used, Esc / Enter leave state 3 |
 | 00607360, 006078C0 | `FindTopics` ("b.<person>.<topic>" = 1, bit compare; a network client sorts them; the last "constr..." topic last), `TopicTitle` (first line of "briefing <topic>", "constr..." -> "briefing constr") (`ui_briefing_topics.cpp`) | side by side: the topic list; the title |
+| 006064E0 | `StartDialogue(immediate, remember)` (`ui_briefing_start.cpp`) | ours only: state 0 / 2 / 3, a person, the three facings flat, normalised and along the places |
+| 00608210, 00607A60, 00607BB0 | `StartPhrases` (camera saved to +0x1F8, look-at +0x204 = position + the rotation's z axis, 0066F840(3, 0) to the server, state 3, +0x244 1), `PlaySpeakerAnimation` (the controller's +0x978 callback 006023F0), `ViewSpeaker` (`ui_briefing_dialogue.cpp`) | StartPhrases ours only: state 0, or savedCamera_ / lookAt_ against the camera; PlaySpeakerAnimation ours only; ViewSpeaker side by side on the bytes of message 0x0F, the stream put back between runs |
+| 00607EC0, 006062C0 | `ViewPreset` ("#camera n"), `HideSpeaker` ("#hide") | ViewPreset side by side like ViewSpeaker; HideSpeaker ours only: the person gone from speakers_ / third_ |
+| 00602C90, 00607720 | `OnUnitJoined` (slot 29; the leader's "b.<zone>" topic starts at once), `LoadPersonTexts` = `PersonTextMap::Load` (`ui_person_texts.cpp`; the battle screen's setup calls it too) | ours only: the unit once more in party_; the map stays ordered |
+| 00608450, 00604C50 | `FinishDialogue` (the "b.*.<topic>" variable completes through 00592090's address), `NextPhrase(skip)` (`ui_briefing_phrases.cpp`) | ours only: state 0, speakers / shown items empty, no third or reward unit, briefingStarted_ off / state kept or 4, the text only grows, firstPhrase_ off, skipped to the end no shown items and no speaker |
+| 006089D0, 00605DE0 | `MovePerson` (a person walks to a place, RET 0x28), `ShowItem` ("#show"; `ui_briefing_people.cpp`) | ours only: no mover when placed at once, else at most one new first mover; a person last in speakers_ once, an item shown once, first |
 
-00608D10 (slot 35, `MOV AL,1; RET`, 3 bytes) is too short to hook. Shared helpers: `BriefingVariables` (00578C40 into a 100-bucket table,
-00581790; walked with 005E0DB0), `BriefingPlayerName` (00578A90); forwarders added to originals_ui.h (the screen's 006064E0 / 00604C50 /
-00608450 / 00608B60 / 006071E0 / 00607360, 00578C40, 0063B5D0, 0064BE40) and originals_world.h (00578A40); `MapRecord::allod` added.
-Next (mapped, not ported): 00608210 the phrases' start (camera saved to +0x1F8, look-at +0x204 = position + the rotation's z axis,
-0066F840(3, 0) to the server, state 3, +0x244 1), 00607BB0 / 00607A60 / 006062C0 (speakers +0x1A4 hero, +0x1A8 person, +0x1AC third,
-their places +0x1B0.. and directions +0x1D4..), 00602C90 (slot 29), 00607720, then 006064E0 / 00604C50 / 00608450, Create and Update.
-Original quirks kept: the mouse move's exit check names the zone of exit_ (+0x164), not of the exit under the mouse; the key handler builds
-the objectives window inline and calls its setup even when the allocation failed.
-
-A-I11 (`ui_briefing_dialogue.cpp`; `verify_ui_briefing_dialogue.cpp`, `player_out_mark.h`): 00608210 `StartPhrases` (ours only: state 0, or
-savedCamera_ / lookAt_ against the camera), 00607A60 `PlaySpeakerAnimation` (ours only: the controller's +0x978 callback 006023F0), 00607BB0
-`ViewSpeaker` (side by side on the bytes of message 0x0F, the stream put back between runs). Fields: speakers +0x1A8 / +0x1AC, places_
-+0x1B0 / directions_ +0x1D4 ([0] person, [1] leader, [2] third), +0x244 firstPhrase_, +0x248 dialogueText_; WorldPlayer::server (+0x20),
-UnitController::actionDone (+0x978), the prototype's viewDistance / viewHeight (+0x28 / +0x2C). Forwarders: 0066F840, 006B4E10, 0066EDA0
-(originals_ui.h), 00555840 / 00555700 (originals_units.h; script_exec's member now calls it). ui_base_dialogue waits 4 s after the topic.
-player_messages.h cannot be included next to ui_briefing.h (three MfcArray templates), hence the forwarder and the helper file.
-Then 00607EC0 `ViewPreset` ("#camera n": side by side like ViewSpeaker) and 006062C0 `HideSpeaker` ("#hide": ours only, the person
-gone from speakers_ / third_). Fields: speakers_ +0x294 (12-byte BriefingSpeaker), shown_ +0x278 (BriefingShownItem list), thirdPlace_ /
-thirdDirection_ +0x210 / +0x21C. Forwarders 00578760 (unit height), 006089D0 (a person walks to a place, RET 0x28), 00607BB0. The list
-erase (00609A80) and vector erase (0060B490 / 0060AC00) are inlined; HideSpeaker's search of the party (result unused) is left out.
-Not hooked: 006023F0 (the speakers' animation-done callback, `PlaySpeakerAnimation(unit, 0, 0)` for the speaker whose unit it is) is no
-function in Ghidra or function_sizes.inc.
-Then 00602C90 `OnUnitJoined` (slot 29; ours only: the unit once more in party_; the leader's "b.<zone>" topic starts at once) and
-00607720 `LoadPersonTexts` (ours only: the map stays ordered) = the new `PersonTextMap::Load` (`ui_person_texts.cpp`), which the battle
-screen's setup now calls instead of its inline copy (forwarders 004DEFA0 / 00609E70 moved to originals_ui.h). OnUnitJoined's unused
-server-world lookup after the insert is left out.
-A-I12 (`ui_briefing_start.cpp`; `verify_ui_briefing_start.cpp`): 006064E0 `StartDialogue(immediate, remember)` (ours only:
-state 0 / 2 / 3, a person, the three facings flat, normalised and along the places). Fields: immediate_ +0x27C, personHome_ /
-personHomeDirection_ +0x228 / +0x234 (the person's place, noWalk_). The "constr" topic's number is `Mid(7)` (006FD9B4, not
-Right). Movers erased inline (00609A40, pool 0x30). Forwarders 00608210, 00578560, 00578B00 (originals_ui.h; harness.cpp uses
-them now). 00608450 `FinishDialogue` (ours only: state 0, speakers / shown items empty, no third or reward unit,
-briefingStarted_ off; the "b.*.<topic>" variable completes through 00592090's address). Forwarders 006B4E20 (music fade in),
-0066ED30, 00592090 (originals_ui.h). Its unused party search (00578BA0) is left out, as in HideSpeaker.
-00604C50 `NextPhrase(skip)` (`ui_briefing_phrases.cpp`; ours only: state kept or 4, the text only grows, firstPhrase_ off;
-skipped to the end no shown items and no speaker). `BriefingRecord` (0x6C: exp, gold, four name lists, specials +0x68) added
-to ui_briefing.h; +0x254 is speaking_ (the phrase's speaker), text_ a CUiScrollText. Forwarders 00605DE0 (#show, not ported),
-00607A60 / 00607EC0 / 006062C0 (through their address). Original quirks kept: "#show .. weapon" shows the item twice (flag
-0, then 1); the camera / animation loops compare the speakers with the last split line's second word unchecked.
-ui_base_dialogue: a second Esc takes the rewards.
-A-I13 (`ui_briefing_create.cpp`; `verify_ui_briefing_create.cpp`): 006024B0 `Create` (ours only: four more hidden
-meshes, two more surfaces, topicBar_ / text_ the next children, state fields, edge fade 4 with the old one kept, people_
-text keys) and 00604130 `Update` (ours only: state 0..4, markPhase_ < 1; from states 0 / 1 no finished mover left and the
-meshes hidden but for state 1's topic list; skipped when the frame left the zone). Fields: autosave_ +0x27E, people_
-+0x284 (stlp::vector<int>), markPhase_ +0x290; `BriefingMover::kDone / kWalking / kTurning`. Forwarders 0065CC00 /
-005EACB0 moved to originals_ui.h (ui_battle_setup.cpp and ui_objectives.cpp use them), 00578A20 too (ui_battle_update.cpp),
-00607720 added. Left out: Update's sort / unique of the marked ids (only membership is used). Original quirks kept: Create
-reads the map record's camera circle without a null check; the people walk stops at an entry with a null object.
-Then (`ui_briefing_people.cpp`; `verify_ui_briefing_people.cpp`): 006089D0 `MovePerson` (ours only: no mover when placed
-at once, else at most one new first mover with the arguments) and 00605DE0 `ShowItem` ("#show"; ours only: a person last
-in speakers_ once; an item shown once, first). Forwarders 0060AC20 (loot name index find-or-insert, library), 0060AB00 /
-0060A660 (speaker vector copy / insert_overflow). Quirks kept: the new speaker's flag byte is uninitialised in the original
-(ours false); the third argument of ShowItem is not read (so "#show .. weapon" shows the item twice); the server player 0
-is not null-checked; the leader's server unit gets flag 0x40000000 when the leader is shown.
+Layout notes: speakers +0x1A4 hero, +0x1A8 person, +0x1AC third (0x1A8 / 0x1AC as speakers), places_ +0x1B0 / directions_ +0x1D4 ([0] person, [1] leader, [2]
+third), thirdPlace_ / thirdDirection_ +0x210 / +0x21C, personHome_ / personHomeDirection_ +0x228 / +0x234, immediate_ +0x27C, autosave_ +0x27E, people_ +0x284
+(stlp::vector<int>), markPhase_ +0x290, speakers_ +0x294 (12-byte BriefingSpeaker), shown_ +0x278 (BriefingShownItem list), +0x244 firstPhrase_, +0x248
+dialogueText_, +0x254 speaking_ (the phrase's speaker), text_ a CUiScrollText; `BriefingRecord` (0x6C: exp, gold, four name lists, specials +0x68);
+`BriefingMover::kDone / kWalking / kTurning`. The "constr" topic's number is `Mid(7)` (006FD9B4, not Right). Shared helpers: `BriefingVariables` (00578C40 into a
+100-bucket table, 00581790; walked with 005E0DB0), `BriefingPlayerName` (00578A90). player_messages.h cannot be included next to ui_briefing.h (three MfcArray
+templates), hence the forwarders (originals_ui.h) and the helper file `player_out_mark.h`. Inlined in the original, not separate functions: the list erase
+(00609A80), vector erase (0060B490 / 0060AC00), movers erase (00609A40, pool 0x30). 00608D10 (slot 35, `MOV AL,1; RET`) is too short to hook; 006023F0 is no function
+in Ghidra or function_sizes.inc.
+Kept: the mouse move's exit check names the zone of exit_ (+0x164), not of the exit under the mouse; the key handler builds the objectives window inline and calls
+its setup even when the allocation failed; Create reads the map record's camera circle without a null check; the people walk stops at an entry with a null object;
+"#show .. weapon" shows the item twice (flag 0, then 1; ShowItem's third argument is not read); the camera / animation loops compare the speakers with the last
+split line's second word unchecked; the new speaker's flag byte is uninitialised (ours false); the server player 0 is not null-checked; the leader's server unit
+gets flag 0x40000000 when the leader is shown. Left out as unused: Update's sort / unique of the marked ids (only membership is used), the unused party searches
+(00578BA0) in HideSpeaker / FinishDialogue, OnUnitJoined's server-world lookup.
 
 ## 6. Battle screen: update, selection, orders, pending actions (00635250-0064BE80)
 
@@ -481,7 +447,7 @@ they need the interface's key flag +0x7F during a click, or Ctrl / Alt held duri
 SetPendingAction plus an immediate 00637500 / 00637750 and `CSpell::IsOffensive` (0068B770, Rebirth-patched: call through its
 address).
 
-A-I6 quirks kept: `OnUnitJoined` appends a unit without a record but marks the portrait at the count of records matched; `OnMessageResult` (0x20001) writes the load window's flags without checking the allocation; the message box's OK copies the edit text into the caller's buffer without a length check; `CMpHeroScreen::OnKeyDown` leaves the paging keys unused outside modes 9 / 10.
+Quirks kept (screens): `OnUnitJoined` appends a unit without a record but marks the portrait at the count of records matched; `OnMessageResult` (0x20001) writes the load window's flags without checking the allocation; the message box's OK copies the edit text into the caller's buffer without a length check; `CMpHeroScreen::OnKeyDown` leaves the paging keys unused outside modes 9 / 10.
 
 ## 7. Battle HUD panels
 
@@ -507,7 +473,7 @@ sectors 35..80), top panel 180..620 x 0..100 (sling 385..415 x 0..20, page butto
 | quick items / spell column / action column Draw | 0063CDC0, 0063F190, 0063FD50 (identical) | ours only: returns 1 |
 | `CHudSpellColumn`, `CHudActionColumn` | OnMouseDown 0063F1E0 / 0063FDA0, OnDoubleClick 0063F220, OnMouseMove 0063F2D0 / 0063FE40; OnMouseUp 0063F260 / 0063FDE0 | side by side; ours only |
 | `CHudPortraits` | OnMouseDown 00641CE0, OnMouseUp 00641E20, OnMouseMove 00641EA0 | ours only |
-| destructor bodies (A-I9) | `DestroyBody`: map 00635CA0 (aligned arrays), unit panel 00635D00 (two CStringArrays, two CStrings; +0x164 / +0x19C / +0x1B0 declared), top panel 00635E00, weapon bar 0063BC70, quick items 0063CA70, spell column 0063E460, action column 0063F490 (`ui_hud_destroy.cpp`; the inlined MFC array destructors write the array's vtable, then delete the storage), portraits 0063FF70 (`ui_screen_constructors.cpp`; slot strings, node-allocator storage). 006381E0 `PartyIds::Equals` (`ui_battle_update.cpp`) | destructors ours only (window base empty, array vtables), ui_camp (the battle screen closes); Equals pure side by side, every battle frame. 0063C010 / 0063F6E0 (a panel reset: scene objects cleared, +0x14C 0, +0x150 -1, the regions' tips cleared) have no references: dead |
+| destructor bodies | `DestroyBody`: map 00635CA0 (aligned arrays), unit panel 00635D00 (two CStringArrays, two CStrings; +0x164 / +0x19C / +0x1B0 declared), top panel 00635E00, weapon bar 0063BC70, quick items 0063CA70, spell column 0063E460, action column 0063F490 (`ui_hud_destroy.cpp`; the inlined MFC array destructors write the array's vtable, then delete the storage), portraits 0063FF70 (`ui_screen_constructors.cpp`; slot strings, node-allocator storage). 006381E0 `PartyIds::Equals` (`ui_battle_update.cpp`) | destructors ours only (window base empty, array vtables), ui_camp (the battle screen closes); Equals pure side by side, every battle frame. 0063C010 / 0063F6E0 (a panel reset: scene objects cleared, +0x14C 0, +0x150 -1, the regions' tips cleared) have no references: dead |
 | `CHudMap` | OnMouseDown 00645060; OnMouseMove 00645610, OnWheel 00645640 | ours only; side by side |
 | `CHudUnitPanel` | OnMouseDown 00648330, OnMouseMove 006484C0, OnWheel 006484F0; OnMouseUp 00648370 | side by side (wheel also the result); ours only |
 | `CHudClock`, `CHudMovePanel`, `CHudTopPanel` | OnMouseDown 00648D30 / 00649630 / 0064A1C0, OnMouseMove 00649160 / 00649750 / 0064A2C0, OnWheel 0064A2F0; OnMouseUp 00649670 / 0064A200, MovePanel Update 00649550 | side by side; ours only |
@@ -587,10 +553,8 @@ overwritten at once.
 Not rewritten: the tutorial / help window (00658000-0065A500, `tutor`, created by 005F86F0; 0065A5E0 pulse needs inline x87), the
 controls' constructors and the edit control (0065AEA0, 0065E320, 0065BC30, 0065BCD0, 0065C010, keys 0065C610: no scenario types into
 one), the objectives window's key handler 0064E5A0, quest list 0064E8B0, exit selection 0064E990, clicks 0064E330, update 0064E760,
-0065F9B0 (CParty load: only when a save is loaded), 00651940 / 0065B8B0 / 00649AF0 (window builders and layouts), 006570E0 (the
-autosave: the picture from a window surface, renderer.md), 006592C0, 0065D150, 0065C930, 00667EC0 (multiplayer object creation),
-0067CEF0 (CEffectMoshka's per-frame flight: float maths, no scenario creates the birds), 006407E0 / 00640060 (portraits: EI_Plugin patches
-them at runtime, Fixes and NPlayers, rebirth.md).
+00651940 / 0065B8B0 (window builders and layouts), 006592C0, 0065D150, 0065C930. The portraits' 006407E0 / 00640060, the quick save 006570E0, 00649AF0 and
+0065F9B0 are rewritten (`items_spells.md`; EI_Plugin patches the portraits at runtime, rebirth.md).
 
 ## 9. Item descriptions, item view, sprite shapes, surface helpers (005E0000-00610000)
 
@@ -629,13 +593,7 @@ unchecked on the material line); `DescribeCarriedSpell` without an item or spell
 `DescribeBlueprint` for a kind outside 0-2 uses an uninitialised record (unreachable); `DrawItem` writes the new turning state's count
 before checking the allocation; `Ring` writes two vertex records before the array when count is 0.
 
-Not rewritten: the base / briefing screen (id 3, 0x2A4 bytes, vtables 00740578 / 007405AC: Update 00604130 (dialogue state +0x16C: 0 idle,
-1 topic choice, 2 dialogue starting, 3 phrases, 4 rewards), Create 006024B0, slot 34 006030C0 (the interface command "BRIEFING <name>" of
-005F8070, from client message handler 00667E60), click 006030F0, keys 006034A0, dialogue start 006064E0 ("constrN" opens the camp with
-constructor N), script step 00604C50, rewards 00608450, destructor 005F6BA0): needs a "brief" zone (maps bz2g .. bz18h) or an interface
-"briefing" command; no scenario does it, and they move NPCs and the camera and play voice files, so they could only be checked "ours
-only" (left for a pass that adds a base scenario). 005E6D90 (sprite draw) and the STLport algorithm instantiations (0060BF20 / 0060C070 /
-0060C0B0, 0060C390 / 0060C510, 0060A660).
+Not rewritten: 005E6D90 (sprite draw) and the STLport algorithm instantiations (0060BF20 / 0060C070 / 0060C0B0, 0060C390 / 0060C510, 0060A660).
 
 ## 10. Harness steps and scenario lessons for the interface
 
@@ -659,8 +617,7 @@ The steps added for UI work (`screen`, `clickregion` / `moveregion`, `wheel`, `d
   #exit 1, gz4g's 5, bz4g's and bz13h's 1, gz11k's 4, gz15h's 2..4, gz20g's); `gz21g` names zonemichel.mpr / .mob which the install lacks (NewZone
   fails; untested); `gz6g` loads its frozen map when `z.gz6g.frozen` is nonzero; no zone needs quest state to load. Not tried: edge zones,
   `endofgame`, leaving a zone other than zone1. Scenarios `zone_gz2g_traps` (party at (67, 15), zone2's traps 1324..1330, MTF4 armed with a wolf),
-  `zone_base_bz1g` (mode 3, party at (59.25, 54.25), the base's Smith), `zone_gz3g` (party at (23, 138.5), the Pyramid trap 4515): the first central
-  run decides whether their position, trap and Smith checks hold.
+  `zone_base_bz1g` (mode 3, party at (59.25, 54.25), the base's Smith), `zone_gz3g` (party at (23, 138.5), the Pyramid trap 4515): their position, trap and Smith checks are the scenarios' own.
 
 Scenario lessons:
 - **Race with a zone's intro script.** The server drops a hero with flag 0x800000 (script BlockUnit / IsUnitBlocked) in 0066FFF0 before FindPlayerMode
