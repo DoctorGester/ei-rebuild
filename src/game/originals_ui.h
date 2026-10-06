@@ -424,3 +424,16 @@ __declspec(naked) inline void* __fastcall ObjectivesConstructOriginal(void* /*me
     EI_ORIGINAL(0x0063B5D0)
 __declspec(naked) inline void __fastcall ObjectivesSetupOriginal(void* /*window*/, void*, const char* /*zone*/, void* /*distances*/,
                                                                  int /*twoButtons*/, int /*listZones*/) EI_ORIGINAL(0x0064BE40)
+// A-I13. 0065CC00: the scrolling text's constructor (CUiScrollText; RET 0x1C, returns this): the interface, a string
+// (the exe's empty text), the layout rectangle by value (left, top, right, bottom) and the lines' height. 005EACB0: the
+// battle view's camera and pick input side (0x2C bytes, vtable 00740208; RET 4, returns this).
+__declspec(naked) inline void* __fastcall ScrollTextConstructOriginal(void* /*memory*/, void*, CInterface3D*, const char* /*text*/,
+                                                                      int /*left*/, int /*top*/, int /*right*/, int /*bottom*/,
+                                                                      float /*lineHeight*/) EI_ORIGINAL(0x0065CC00)
+__declspec(naked) inline void* __fastcall ViewInputConstructOriginal(void* /*memory*/, void*, CInterface3D*) EI_ORIGINAL(0x005EACB0)
+// 00607720 (rewritten as CBriefingScreen::LoadPersonTexts; through its address so the wrapper runs; plain RET).
+// 00578A20 (the client glue 007AFEA5, not read; RET 0xC): whether exit `exit` can be taken now by the party whose unit
+// records are listed in `records` (a CArray of record pointers); fills `second` (the same kind of array). Returns 0 / 1.
+__declspec(naked) inline void __fastcall BriefingLoadPersonTextsOriginal(void* /*screen*/) EI_ORIGINAL(0x00607720)
+__declspec(naked) inline int __fastcall GameCanLeaveZoneOriginal(void* /*glue*/, void*, void* /*records*/, int /*exit*/,
+                                                                 void* /*second*/) EI_ORIGINAL(0x00578A20)

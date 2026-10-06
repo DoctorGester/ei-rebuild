@@ -59,7 +59,7 @@ void EndTimedObjects(CWorldServer* world) {
 }
 
 void ClearMissiles(CWorldServer* world) {
-    auto& list = world->projectiles_.list;
+    auto& list = world->projectiles_;
     for (auto* node = list.head; node; node = node->next)
         if (node->data) RefRelease(node->data, nullptr);
     list.RemoveAll();
@@ -172,7 +172,7 @@ void FreeListBlocks(mfc::CTypedPtrList<T>& list) {
 }
 
 void ClearMissilePointers(CWorldServer* world) {
-    auto& list = world->projectiles_.list;
+    auto& list = world->projectiles_;
     for (auto* node = list.head; node; node = node->next) MissilePtrDestruct(&node->data, nullptr, 0);
     FreeListBlocks(list);
 }
@@ -185,7 +185,7 @@ void CWorldServer::ResetZone() {
     FreeListBlocks(shared);
     StringArraySetSize(&mobFiles_, nullptr, 0, -1);
     CountdownsClear(countdowns_, nullptr);
-    reinterpret_cast<ZoneExitArray*>(&exitsVtable_)->SetSize(0, -1);
+    ZoneExitsSetSizeOriginal(&exitsVtable_, nullptr, 0, -1);
     QueueReset(commandsA_, nullptr);
     QueueReset(commandsB_, nullptr);
     ClearMissilePointers(this);
@@ -267,7 +267,7 @@ void CWorldServer::TeardownZone() {
     ClearMapObjectsAt(this, nullptr);
 
     // The missiles' counted pointers, released inline (16-bit count at +4, slot 0 deletes).
-    auto& missiles = projectiles_.list;
+    auto& missiles = projectiles_;
     for (auto* node = missiles.head; node; node = node->next) {
         auto* missile = reinterpret_cast<std::uint8_t*>(node->data);
         if (missile && --*reinterpret_cast<std::int16_t*>(missile + 4) == 0 && missile)

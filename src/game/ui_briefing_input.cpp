@@ -127,7 +127,7 @@ void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
     }
     case 1: {
         int region = RegionAt(x, y);
-        if (region < 0 || region >= kTopicRows || region + topicTop_ >= topics_.size_) return;
+        if (region < 0 || region >= kTopicRows || region + topicTop_ >= topics_.size) return;
         interface_->PlaySound(ClickSound(), 0);
         topic_ = topics_[region + topicTop_];
         ClearRegions();
@@ -160,7 +160,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     if (state_ == 1) {
         int region = RegionAt(x, y);
         int hovered = -1;
-        if (region >= 0 && region < kTopicRows && region + topicTop_ < topics_.size_) hovered = region + topicTop_;
+        if (region >= 0 && region < kTopicRows && region + topicTop_ < topics_.size) hovered = region + topicTop_;
         if (hovered != hoveredTopic_) {
             hoveredTopic_ = hovered;
             BriefingDrawTopicsOriginal(this);
@@ -179,7 +179,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         if (IsNetworkClientOriginal() && leader_ && leader_->id_ == id) return;
         if (!CanTalk(object)) return;
         BriefingFindTopicsOriginal(this, nullptr, id);
-        if (topics_.size_ > 0) GameCursor()->SetShape(kCursorTalk);
+        if (topics_.size > 0) GameCursor()->SetShape(kCursorTalk);
         const PersonTextNode* node = personTexts_.Find(id);
         if (node == personTexts_.header) return;
         CUiSurface* label = surfaces_.data[1];
@@ -234,7 +234,7 @@ void CBriefingScreen::OnLeftDouble(int buttons, int x, int y) {
 
 void CBriefingScreen::OpenTopics(CEngineObject* person) {
     BriefingFindTopicsOriginal(this, nullptr, person->id_);
-    if (topics_.size_ <= 0) {
+    if (topics_.size <= 0) {
         state_ = 0;
         return;
     }
@@ -244,8 +244,8 @@ void CBriefingScreen::OpenTopics(CEngineObject* person) {
     }
     for (int top = kRowRegionTop; top < kRowRegionEnd; top += kRowHeight)
         AddRegion()->CallSetRect(kRowRegionLeft, top, kRowRegionRight, top + kRowHeight);
-    topics_.SetAtGrow(topics_.size_, GoodbyeTopic());
-    ScrollbarSetRangeOriginal(topicBar_, nullptr, topics_.size_ > kTopicRows ? topics_.size_ - kTopicRows : 0);
+    topics_.SetAtGrow(topics_.size, GoodbyeTopic());
+    ScrollbarSetRangeOriginal(topicBar_, nullptr, topics_.size > kTopicRows ? topics_.size - kTopicRows : 0);
     topicBar_->CallSetPosition(0);
     topicTop_ = 0;
     hoveredTopic_ = -1;
@@ -263,7 +263,7 @@ void CBriefingScreen::DrawTopics() {
     SurfaceClearOriginal(surface);
     int row = topicTop_;
     for (int bottom = kRowTextFirstBottom; bottom < kRowTextEnd; bottom += kRowHeight, ++row) {
-        if (row >= topics_.size_) break;
+        if (row >= topics_.size) break;
         RECT rect{kRowTextLeft, bottom - kRowTextHeight, kRowTextRight, bottom};
         std::uint32_t colour = row != hoveredTopic_ ? kTopicColour : kHoveredTopicColour;
         mfc::CString title;

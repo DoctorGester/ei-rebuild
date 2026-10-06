@@ -39,7 +39,6 @@ constexpr std::uint32_t kGameOverQuit = 0x20002;
 constexpr std::uint32_t kLeaveAnswer = 0x90001;
 constexpr std::uint32_t kLoadWindowClosed = 0x100001;
 constexpr int kGameOverResult = 0x20000;
-constexpr int kShowChatSlot = 36;
 
 // 006091C0: the chat window shows itself (thiscall, plain RET).
 __declspec(naked) void __fastcall ChatWindowShowAt(CUiWindow* /*chat*/) EI_ORIGINAL(0x006091C0)
@@ -150,10 +149,7 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
     default:
         break;
     }
-    if (IsNetworkClientOriginal()) {
-        using Fn = void(__thiscall*)(CBriefingScreen*, char);
-        reinterpret_cast<Fn>(vtable_[kShowChatSlot])(this, 1);
-    }
+    if (IsNetworkClientOriginal()) VirtualShowChat(1);
 }
 
 // --- 00602C90: slot 29 --------------------------------------------------------------------------
@@ -205,7 +201,7 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
         std::memcpy(&bits, &node->value, 4);
         if (bits != kOneBits) continue;
         StringSplit(node->key, &parts, '.');
-        if (parts.size_ != kTopicNameParts) continue;
+        if (parts.size != kTopicNameParts) continue;
         topic_ = parts[2];
         briefingStarted_ = true;
         BriefingStartDialogueOriginal(this, nullptr, 1, 1);

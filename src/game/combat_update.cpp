@@ -740,19 +740,7 @@ namespace {
 // The lists RefreshItemSpells uses: two CPtrLists the unit fills with its items (vtables 0073BE80
 // and 0073F12C, blocks of 10; 005316F0) and the armour spell list (+0x91C, nodes of 0x14 bytes:
 // next, prev, the item (referenced), the countdown, a "still worn" byte).
-struct ItemList {
-    void* vtable;
-    struct Node {
-        Node* next;
-        Node* prev;
-        CEngineObject* data;
-    }* head;
-    Node* tail;
-    int count;
-    Node* free;
-    void* blocks;
-    int blockSize;
-};
+using ItemList = mfc::CTypedPtrList<CEngineObject>;
 struct SpellEntry {
     SpellEntry* next;
     SpellEntry* prev;

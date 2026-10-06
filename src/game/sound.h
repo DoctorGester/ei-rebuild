@@ -76,14 +76,7 @@ struct DeferredSound {
 static_assert(sizeof(DeferredSound) == 0x48);
 
 // MFC CStringArray (0x14 bytes), as embedded in the sound records.
-struct SoundNameArray {
-    void* vtable;
-    mfc::CString* data;
-    std::int32_t size;
-    std::int32_t maxSize;
-    std::int32_t growBy;
-};
-static_assert(sizeof(SoundNameArray) == 0x14);
+using SoundNameArray = mfc::CStringArray;
 
 // An ambient emitter (16 at CSoundManager + 0x26C, 0x38 bytes): plays one of its names at random
 // intervals while the listener is within `outerRadius` (006B9B10).

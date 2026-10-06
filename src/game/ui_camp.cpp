@@ -996,13 +996,7 @@ EI_REPLACE(0x00612600, CampCanMakeItem);
 namespace {
 
 // The record array CreateUnits-style callers pass (CArray of record pointers, vtable 0073FAA4).
-struct CloseRecordArray {
-    void* vtable;
-    std::uint8_t** data;
-    int size;
-    int capacity;
-    int growBy;
-};
+using CloseRecordArray = RecordPtrArray;
 // 005719B0 (RET 8): its SetSize(size, growBy).
 inline void __fastcall CloseRecordsSetSize(CloseRecordArray* a, void*, int n, int g) { RecordArraySetSizeOriginal(a, nullptr, n, g); }
 

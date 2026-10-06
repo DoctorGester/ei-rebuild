@@ -63,7 +63,10 @@ __declspec(naked) CUiWindow* RawPanel::ConstructQuickItems(CInterface3D*, CUiWin
 __declspec(naked) CUiWindow* RawPanel::ConstructSpellColumn(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063E2A0)
 __declspec(naked) CUiWindow* RawPanel::ConstructActionColumn(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063F300)
 __declspec(naked) CUiWindow* RawPanel::ConstructPortraits(CInterface3D*, CUiWindow*) EI_ORIGINAL(0x0063FE70)
-__declspec(naked) CUiWindow* RawPanel::ConstructTextLog(CInterface3D*, void*, RECT, float) EI_ORIGINAL(0x0065CC00)
+CUiWindow* RawPanel::ConstructTextLog(CInterface3D* ui, void* font, RECT rect, float speed) {
+    return static_cast<CUiWindow*>(ScrollTextConstructOriginal(this, nullptr, ui, static_cast<const char*>(font), rect.left,
+                                                               rect.top, rect.right, rect.bottom, speed));
+}
 __declspec(naked) CUiWindow* RawPanel::ConstructWindow(CInterface3D*) EI_ORIGINAL(0x005FE700)
 __declspec(naked) void RawPanel::BuildUnitPanel(int, std::uint8_t) EI_ORIGINAL(0x006456E0)
 __declspec(naked) void RawPanel::BuildMap(float, std::uint8_t) EI_ORIGINAL(0x00641F20)
@@ -71,7 +74,7 @@ __declspec(naked) void RawPanel::BuildClock(int) EI_ORIGINAL(0x00648520)
 __declspec(naked) void RawPanel::BuildTopPanel(int, std::uint8_t) EI_ORIGINAL(0x00649AF0)
 void RawPanel::ShowTopPanelPage() { TopPanelShowPageOriginal(this); }
 void RawPanel::AddLogText(const char* a0) { LogAddTextOriginal((void*)this, nullptr, a0); }
-__declspec(naked) void* RawPanel::ConstructViewInput(CInterface3D*) EI_ORIGINAL(0x005EACB0)
+void* RawPanel::ConstructViewInput(CInterface3D* ui) { return ViewInputConstructOriginal(this, nullptr, ui); }
 
 RawPanel* Raw(void* memory) { return static_cast<RawPanel*>(memory); }
 
@@ -112,10 +115,7 @@ void GameObjects::MarkInterfaceChanged() { GameMarkInterfaceChangedOriginal(this
 GameObjects* GameAt(std::uintptr_t address) { return reinterpret_cast<GameObjects*>(address); }
 
 // The party array of the battle screen (+0x168).
-struct PartyArray {
-    void SetSize(int size, int growBy);         // 005EBDB0
-};
-__declspec(naked) void PartyArray::SetSize(int, int) EI_ORIGINAL(0x005EBDB0)
+__declspec(naked) void __fastcall PartyArraySetSize(void* /*array*/, void*, int, int) EI_ORIGINAL(0x005EBDB0)
 
 // Interface manager fields the panels are built from (set by the options and saved games).
 std::uint8_t UiByte(CInterface3D* ui, int offset) { return reinterpret_cast<const std::uint8_t*>(ui)[offset]; }
@@ -324,7 +324,7 @@ void CBattleScreenSetup::Create() {
     unknown_180 = -1;
     GameAt(0x007AFEA6)->ResetView(0, 0);
     GameAt(0x007AFEA5)->MarkInterfaceChanged();
-    reinterpret_cast<PartyArray*>(partyArray_)->SetSize(0, -1);
+    PartyArraySetSize(partyArray_, nullptr, 0, -1);
     unknown_1C0 = false;
     unknown_1C1 = false;
     std::memset(orderKeys_, 0, 6);   // +0x18D dword and +0x191 word

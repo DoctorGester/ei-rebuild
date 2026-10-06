@@ -54,11 +54,8 @@ EI_REPLACE_METHOD(0x0050F1C0, CMapObject::Update);
 // --- Effects ---------------------------------------------------------------------------------
 
 namespace {
-// 0050FE70: CArray<MapEffect>::SetSize(newSize, growBy) (thiscall on the array at +0x194).
-struct EffectArray {
-    void SetSize(int size, int growBy);
-};
-void EffectArray::SetSize(int a0, int a1) { EffectArraySetSizeOriginal((void*)this, nullptr, a0, a1); }
+// 0050FE70: CArray<MapEffect>::SetSize(newSize, growBy) (thiscall on the array at +0x194):
+// EffectArraySetSizeOriginal.
 
 constexpr int kRebirthMaxEffects = 20;
 constexpr double kRebirthSameStrength = 0.001;   // addon.dll's constant (a double)
@@ -88,7 +85,7 @@ std::uintptr_t CMapObject::AddEffect(const MapEffect* effect) {
     bool rebirth = ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellEffectsOverflow);
     if (rebirth && effectCount >= kRebirthMaxEffects) return 0;   // addon.dll drops it (and logs)
     int count = effectCount;
-    reinterpret_cast<EffectArray*>(&effectsVtable)->SetSize(count + 1, -1);
+    EffectArraySetSizeOriginal(&effectsVtable, nullptr, count + 1, -1);
     std::memcpy(&effects[count], effect, sizeof(MapEffect));
     changedParts = static_cast<std::uint16_t>(changedParts | 8);   // part 3
     flags_ |= kFlagDirty;

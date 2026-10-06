@@ -616,7 +616,7 @@ int __stdcall StartNetworkZone(const char* zone) {
     ExitArrayConstruct(&exits, nullptr);
     exits.vtable = reinterpret_cast<void*>(kExitArrayVtable);
     const auto* source = reinterpret_cast<const ZoneExitArray*>(zoneRecord + kZoneExits);
-    exits.SetSize(source->size, -1);
+    ZoneExitsSetSizeOriginal(&exits, nullptr, source->size, -1);
     for (int i = 0; i < source->size; ++i) {
         alignas(4) std::uint8_t copy[sizeof(ZoneExit)];
         ZoneExit* exit = ExitArrayGetAt(source, nullptr, reinterpret_cast<ZoneExit*>(copy), i);

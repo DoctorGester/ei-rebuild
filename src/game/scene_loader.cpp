@@ -894,13 +894,13 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
         char* n = Element(&s.nodes, i, node::kSize);
         if (Length(*At<mfc::CString>(n, node::kParent)) == 0) {
             ++tops;
-            s.roots.SetAtGrow(s.roots.size_, *At<mfc::CString>(n, node::kName));
+            s.roots.SetAtGrow(s.roots.size, *At<mfc::CString>(n, node::kName));
         }
     }
     if (tops > 1) {
         mfc::CString message;
         message.Format(GameText(kManyTopsText), fileName);
-        for (int i = 0; i < s.roots.size_; ++i) message += s.roots[i] + GameText(kNewLineText);
+        for (int i = 0; i < s.roots.size; ++i) message += s.roots[i] + GameText(kNewLineText);
         game::FatalError(message);
         return 0;
     }

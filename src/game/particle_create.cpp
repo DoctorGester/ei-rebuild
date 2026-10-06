@@ -16,6 +16,7 @@
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "originals_core.h"
 #include "originals_engine.h"
@@ -787,59 +788,15 @@ struct FrameRect {
 };
 static_assert(sizeof(FrameRect) == 16);
 
-// The frame rectangle array (+0x1D0 data, +0x1D4 size, +0x1D8 max, +0x1DC grow by) and its
-// inlined SetSize(n); blocks are 32-byte aligned like the element array.
-struct FrameArray {
-    FrameRect* data;
-    int size;
-    int max;
-    int growBy;
-};
-
-FrameRect* NewFrames(int count) {
-    auto* raw = static_cast<std::uint8_t*>(gamecrt::operator_new(static_cast<std::size_t>(count) * 16 + 0x24));
-    auto* aligned = reinterpret_cast<std::uint8_t*>((reinterpret_cast<std::uintptr_t>(raw) + 0x23) & ~std::uintptr_t{0x1F});
-    reinterpret_cast<void**>(aligned)[-1] = raw;
-    return reinterpret_cast<FrameRect*>(aligned);
-}
-
-void SetFrameCount(FrameArray& a, int n) {
-    if (n == 0) {
-        if (a.data) {
-            gamecrt::operator_delete(reinterpret_cast<void**>(a.data)[-1]);
-            a.data = nullptr;
-        }
-        a.max = 0;
-        a.size = 0;
-    } else if (!a.data) {
-        a.data = NewFrames(n);
-        a.max = n;
-        a.size = n;
-    } else if (n <= a.max) {
-        a.size = n;
-    } else {
-        int grow = a.growBy;
-        if (grow == 0) {
-            grow = a.size / 8;
-            if (grow < 4) grow = 4;
-            else if (grow > 1024) grow = 1024;
-        }
-        int capacity = a.max + grow;
-        if (!(n < capacity)) capacity = n;
-        FrameRect* data = NewFrames(capacity);
-        std::memcpy(data, a.data, static_cast<std::size_t>(a.size) * sizeof(FrameRect));
-        gamecrt::operator_delete(reinterpret_cast<void**>(a.data)[-1]);
-        a.data = data;
-        a.size = n;
-        a.max = capacity;
-    }
-}
+// The frame rectangle array (+0x1D0 data, +0x1D4 size, +0x1D8 capacity, +0x1DC grow by); the
+// original inlines its SetSize(n).
+using FrameArray = lib::AlignedArray<FrameRect>;
 
 // The frames are cells of a grid `columns` wide, row 0 at the top (v = 1), each inset by 1/512.
 void BuildFrames(CParticleSource* s) {
     float step = Store(D(EI_ONE) / static_cast<double>(s->frameColumns));
     auto& frames = *reinterpret_cast<FrameArray*>(&s->frameBase);
-    SetFrameCount(frames, s->frameCount);
+    frames.SetSize(s->frameCount);
     FrameRect* rect = frames.data;
     for (int i = 0; i < s->frameCount; ++i, ++rect) {
         double column = static_cast<double>(i % s->frameColumns);

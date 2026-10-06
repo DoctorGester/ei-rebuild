@@ -54,7 +54,7 @@ bool StartsWith(const char* file, const char* name) {
 } // namespace
 
 void UnitDatabase::CountSoundFiles(void* sounds) {
-    StringArray files;
+    mfc::CStringArray files;
     StringArrayConstruct(&files);
     SoundSystemListFilesOriginal(sounds, nullptr, &files, kSoundPattern);
     for (int i = 0; i < files.size; ++i) reinterpret_cast<mfc::CString*>(files.data)[i].MakeLower();

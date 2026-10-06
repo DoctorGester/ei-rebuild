@@ -34,25 +34,13 @@ struct Str : mfc::CString {
 inline Str& Ops(mfc::CString& s) { return static_cast<Str&>(s); }
 inline const Str& Ops(const mfc::CString& s) { return static_cast<const Str&>(s); }
 
-// MFC CStringArray (0x14 bytes).
-class CStringArray {
+// MFC CStringArray as a local or member: mfc::CStringArray constructed and destroyed with the object.
+class CStringArray : public mfc::CStringArray {
 public:
-    CStringArray();                                     // 006FE925
-    ~CStringArray();                                    // 006FE958
-    void SetSize(int size, int growBy);                 // 006FE9B8
-    void SetAtGrow(int index, const mfc::CString& s);   // 006FEBFA
-    void SetAtGrow(int index, const char* s);           // 006FEBCE
-    void RemoveAt(int index, int count);                // 006FED3C
-
-    int GetSize() const { return size_; }
-    const mfc::CString& operator[](int i) const { return data_[i]; }
-    mfc::CString& operator[](int i) { return data_[i]; }
-
-    void* vtable_;
-    mfc::CString* data_;
-    int size_;
-    int maxSize_;
-    int growBy_;
+    CStringArray() { Construct(); }     // 006FE925
+    ~CStringArray() { Destruct(); }     // 006FE958
+    CStringArray(const CStringArray&) = delete;
+    CStringArray& operator=(const CStringArray&) = delete;
 };
 static_assert(sizeof(CStringArray) == 0x14);
 

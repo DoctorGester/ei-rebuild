@@ -387,23 +387,20 @@ to ui_briefing.h; +0x254 is speaking_ (the phrase's speaker), text_ a CUiScrollT
 00607A60 / 00607EC0 / 006062C0 (through their address). Original quirks kept: "#show .. weapon" shows the item twice (flag
 0, then 1); the camera / animation loops compare the speakers with the last split line's second word unchecked.
 ui_base_dialogue: a second Esc takes the rewards.
-Mapped for the next step (headers only so far: `MapRecord` restricted / restrictX/Y/Radius / cage +0x34..+0x44,
-`WorldPlayer::objects` +0x28 (ObjectIdMap) and `lastScreen` +0x104 (5: from the camp)). Create 006024B0: chatActive_ 0;
-+0x27E = 1 unless loading (save stream resized to 0) or lastScreen 5 (an autosave flag, as the global map's); FindMap(local
-name) kept; LoadPersonTexts; LoadTexture("saveload", 3, 0); four sprites (AddSprite(0): SetRectangle 20,100, 200,430-600,570
-plain 0x80000000 no texture; SetFrame 10,100, 195,425-605,575 border 5 (2,0xFE,0xB4,0xF9); SetRectangle 155,416-645,580 plain
-0xA0000000; SetFrame 20,100, 150,411-650,585); surfaces (200,430,600,570,5,1) and (0,0,250,30,5,1); topicBar_ (0065AEA0:
-584,440-594,560, 3.0, 0, 1.0); text_ (0065CC00: "", 165,426-635,570, 10.0); scene objects hidden, surfaces Freeze(0,0),
-children SetEnabled(0,1); state 0, exitPending_ 1, exit_ 0, leader_ 0; edge fade saved, set 4.0; music PlayBriefing(record
-allod or "gipat"), noWalk_ = record cage; 00578950, 005786A0(0,0); inputs 00741154 and 005EACB0; camera flag 0x40 off,
-SetBounds((restrictX, restrictY, 0), radius) when restricted (the first record, unchecked), 0x200 on, SetTargetId(-1);
-briefingStarted_ 0, voice_ -1, speaking_ 0; network client: chat_ (00608D20, 0x170) as a child and slot 36 with 1; then the
-ids of the local player's objects that are text keys pushed into the int vector +0x284..+0x28C; +0x290 (a float, Update
-adds the frame time and wraps it at 1) = 0. 0065CC00 and 005EACB0 are forwarded in ui_battle_setup.cpp: move them to
-originals_ui.h when Create needs them. Update 00604130 (state machine; movers walk / turn / done, case 0 marks people with
-open topics through dialogue events 1 / 2, case 2 waits for the waited movers, 3 / 4 the phrase timer or voice) not mapped
-in detail yet.
-Next: Create 006024B0 and Update 00604130.
+A-I13 (`ui_briefing_create.cpp`; `verify_ui_briefing_create.cpp`): 006024B0 `Create` (ours only: four more hidden
+meshes, two more surfaces, topicBar_ / text_ the next children, state fields, edge fade 4 with the old one kept, people_
+text keys) and 00604130 `Update` (ours only: state 0..4, markPhase_ < 1; from states 0 / 1 no finished mover left and the
+meshes hidden but for state 1's topic list; skipped when the frame left the zone). Fields: autosave_ +0x27E, people_
++0x284 (stlp::vector<int>), markPhase_ +0x290; `BriefingMover::kDone / kWalking / kTurning`. Forwarders 0065CC00 /
+005EACB0 moved to originals_ui.h (ui_battle_setup.cpp and ui_objectives.cpp use them), 00578A20 too (ui_battle_update.cpp),
+00607720 added. Left out: Update's sort / unique of the marked ids (only membership is used). Original quirks kept: Create
+reads the map record's camera circle without a null check; the people walk stops at an entry with a null object.
+Then (`ui_briefing_people.cpp`; `verify_ui_briefing_people.cpp`): 006089D0 `MovePerson` (ours only: no mover when placed
+at once, else at most one new first mover with the arguments) and 00605DE0 `ShowItem` ("#show"; ours only: a person last
+in speakers_ once; an item shown once, first). Forwarders 0060AC20 (loot name index find-or-insert, library), 0060AB00 /
+0060A660 (speaker vector copy / insert_overflow). Quirks kept: the new speaker's flag byte is uninitialised in the original
+(ours false); the third argument of ShowItem is not read (so "#show .. weapon" shows the item twice); the server player 0
+is not null-checked; the leader's server unit gets flag 0x40000000 when the leader is shown.
 
 ## 6. Battle screen: update, selection, orders, pending actions (00635250-0064BE80)
 

@@ -17,6 +17,7 @@
 #include "world.h"
 
 #include "lib/mfc.h"
+#include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -31,11 +32,15 @@ struct BriefingMover {
     BriefingMover* prev;
     float target[3];                 // +0x08
     float direction[3];              // +0x14 the facing at the target
-    int state;                       // +0x20 0 done, 1 walking, 2 turning
+    int state;                       // +0x20 kDone, kWalking or kTurning
     CEngineObject* person;           // +0x24 the client object
     bool waited;                     // +0x28 the dialogue waits for this one
     std::uint8_t unknown_29[3];
-    float time;                      // +0x2C
+    float time;                      // +0x2C seconds on the way (Update gives up after 30)
+
+    static constexpr int kDone = 0;
+    static constexpr int kWalking = 1;
+    static constexpr int kTurning = 2;
 };
 static_assert(offsetof(BriefingMover, person) == 0x24);
 static_assert(offsetof(BriefingMover, time) == 0x2C);
@@ -147,6 +152,31 @@ public:
     void ShowChat(char show);
     // 00602490 (slot 40). The screen's part of a save game: one zero dword.
     void SaveState();
+    // 006024B0 (slot 25; ui_briefing_create.cpp). Builds the screen: the four backdrop sprites,
+    // surfaces 0 (topics) and 1 (a person's label), topicBar_ and text_ as children, the people
+    // of the base (people_), the zone's music and camera limits, the screen's own inputs (00741154
+    // and the view's 005EACB0) and a network client's chat window. A saved game's screen part is
+    // dropped (the save stream resized to 0).
+    void Create();
+    // 00604130 (slot 24; ui_briefing_create.cpp). Per frame: markPhase_, the children, everything
+    // hidden but by state; the movers walk, turn or give up after 30 s (put at their place) and the
+    // done ones go; then by state: 0 / 1 the people with open topics are marked (dialogue event 1,
+    // the others 2) and the leader's pending exit is left once it can be (00578A20); 1 the topic
+    // list shown; 2 the phrases start once no waited mover walks; 3 the next phrase when the
+    // voice ends or phraseTime_ runs out; 4 the speaker stops blinking then.
+    void Update();
+    // Update's part for states 0 and 1: every person of people_ that has a client unit is marked
+    // (dialogue event 1) when a "b.<person>.<topic>" variable is 1 for a topic that is not
+    // "constr...", else unmarked (event 2).
+    void MarkPeople();
+    // Update's part for states 0 and 1: with exitPending_, a party and exit_'s zone not "none" nor
+    // visited ("z.<zone>" not 1), the party leaves through exit_ once 00578A20 allows it.
+    void LeaveIfExitOpen();
+    // Slot 36 (ShowChat for this screen) through the vtable.
+    void VirtualShowChat(int show) {
+        using Fn = void(__thiscall*)(CBriefingScreen*, int);
+        reinterpret_cast<Fn>(vtable_[36])(this, show);
+    }
 
     // Input side (window + 0x94; ui_briefing_input.cpp).
     // 006030F0 (input 2). Left button down: with the chat window active (chatActive_) it gets the
@@ -252,6 +282,22 @@ public:
     // with the leader; a dialogue that started by itself (briefingStarted_) puts the camera on the
     // leader (message 0x04) and frees it, otherwise it goes back to savedCamera_ / lookAt_.
     void FinishDialogue();
+    // 006089D0 (RET 0x28; ui_briefing_people.cpp). `unit` (a client unit) goes to (x, y) at its
+    // server unit's height (`z` is not read), facing (dx, dy, dz): `immediate` puts the server
+    // unit there at once (sector map, both units turned, the controller repositioned); otherwise,
+    // unless the server unit is blocked (0x800000), a mover is put first in movers_ (walking,
+    // `waited`) and the server unit's brain walks there (`run`).
+    void MovePerson(CUnit* unit, float x, float y, float z, float dx, float dy, float dz, bool waited, bool immediate,
+                    int run);
+    // 00605DE0 (RET 0xC; ui_briefing_people.cpp). "#show <name>": a person `name` joins the
+    // speakers (moved to the end; the server hears event 1; the leader's server unit gets flag
+    // 0x40000000; its controller's actionDone the speakers' callback 006023F0). Anything else with
+    // `index` >= 0 is a loot item ("_" read as " ", lowercased, the loot table's name index): an
+    // item of that name shown already goes (006062C0), then slot `index` % 7 (x 300, 500, 200,
+    // 400, 600, 75, 725; y 300 or 500) gets a backdrop and frame for the first seven, the item's
+    // figure "initqu<n>item" (tinted from index 8) with its image "quitem<n>" in a new texture,
+    // turned over about x; it goes first in shown_. The third argument is not read.
+    void ShowItem(const char* name, int index, int unused);
     // Removes the shown items' meshes (and the item texture) from the scene and empties shown_
     // (inlined in 00608450 and 00604C50).
     void ClearShownItems();
@@ -305,10 +351,11 @@ public:
     BriefingShownItem* shown_;       // +0x278 the items shown (list header)
     bool immediate_;                 // +0x27C the dialogue's people are placed at once (006064E0's first argument)
     bool noWalk_;                    // +0x27D the zone's map record +0x44: the leader does not walk
-    bool unknown_27E;                // +0x27E
+    bool autosave_;                  // +0x27E Create sets it unless loading or back from the camp
     std::uint8_t unknown_27F;
     CUiWindow* chat_;                // +0x280 a network client's chat window (608D20), else null
-    std::uint8_t unknown_284[0x294 - 0x284];
+    stlp::vector<int> people_;       // +0x284 ids of the local player's objects that are text keys (Create)
+    float markPhase_;                // +0x290 Update adds the frame time, kept below 1
     BriefingSpeaker* speakers_;      // +0x294 the people in the dialogue (vector begin, end, capacity)
     BriefingSpeaker* speakersEnd_;   // +0x298
     BriefingSpeaker* speakersCapacity_;   // +0x29C
@@ -341,5 +388,8 @@ static_assert(offsetof(CBriefingScreen, personHomeDirection_) == 0x234);
 static_assert(offsetof(CBriefingScreen, immediate_) == 0x27C);
 static_assert(offsetof(CBriefingScreen, shown_) == 0x278);
 static_assert(offsetof(CBriefingScreen, speakers_) == 0x294);
+static_assert(offsetof(CBriefingScreen, autosave_) == 0x27E);
+static_assert(offsetof(CBriefingScreen, people_) == 0x284);
+static_assert(offsetof(CBriefingScreen, markPhase_) == 0x290);
 static_assert(offsetof(CBriefingScreen, chatActive_) == 0x2A0);
 static_assert(sizeof(CBriefingScreen) == 0x2A4);

@@ -370,15 +370,12 @@ __declspec(naked) void PartyManager::EndRedeploy(void*) EI_ORIGINAL(0x004A8880)
 __declspec(naked) void PartyManager::QuestCompleted() EI_ORIGINAL(0x004A88E0)
 PartyManager* ThePartyManager() { return reinterpret_cast<PartyManager*>(0x007AA5A0); }
 
-struct PartyList {
-    void* Find(const char* name);                        // 004A5E10
-    void Create(const char* name);                       // 004A5E90
-    void Remove(const char* name);                       // 004A5FA0
-};
-__declspec(naked) void* PartyList::Find(const char*) EI_ORIGINAL(0x004A5E10)
-__declspec(naked) void PartyList::Create(const char*) EI_ORIGINAL(0x004A5E90)
-__declspec(naked) void PartyList::Remove(const char*) EI_ORIGINAL(0x004A5FA0)
-PartyList* Parties() { return reinterpret_cast<PartyList*>(0x007AA5A0 + 0x24); }
+// The named party records (party_records.h, PartyRecordList), through the originals: find 004A5E10, add 004A5E90,
+// remove 004A5FA0.
+__declspec(naked) void* __fastcall PartiesFind(void* /*records*/, void*, const char*) EI_ORIGINAL(0x004A5E10)
+__declspec(naked) void __fastcall PartiesCreate(void* /*records*/, void*, const char*) EI_ORIGINAL(0x004A5E90)
+__declspec(naked) void __fastcall PartiesRemove(void* /*records*/, void*, const char*) EI_ORIGINAL(0x004A5FA0)
+void* Parties() { return reinterpret_cast<void*>(0x007AA5A0 + 0x24); }
 
 // A party (PartyList::Find): +0x40 {items, count}, +0x50 money.
 struct Party {
@@ -489,34 +486,17 @@ struct MoviePaths {
 };
 __declspec(naked) const mfc::CString* MoviePaths::Directory() EI_ORIGINAL(0x00578DC0)
 
-// MFC-style containers the commands keep on the stack.
-struct PtrList {      // CPtrList (0x1C)
-    PtrList* Construct(int blockSize);                   // 004C96A0
-    void Destruct();                                     // 004C96F0
-    std::uint32_t data[7];
+// MFC containers the commands keep on the stack, built and destroyed through the originals: the
+// units found (CPtrList: constructor 004C96A0, destructor 004C96F0), the items given to a player
+// (constructor 004C98C0, AddTail 004C98F0, destructor 00427830) and the party slots (CArray of
+// 40-byte slots: constructor 004BB000, destructor 004BB020).
+using PtrList = mfc::CList<void*>;
+struct PartySlot {
+    std::uint8_t bytes[40];
 };
-PtrList* PtrList::Construct(int a0) { return (PtrList*)PtrListConstructOriginal((void*)this, nullptr, a0); }
-void PtrList::Destruct() { PtrListDestruct4C96F0Original((void*)this); }
-struct ItemList {     // list of items given to a player (0x1C)
-    ItemList* Construct(int blockSize);                  // 004C98C0
-    void AddTail(void* item);                            // 004C98F0
-    void Destruct();                                     // 00427830
-    std::uint32_t data[7];
-};
-ItemList* ItemList::Construct(int a0) { return (ItemList*)ItemListConstructOriginal((void*)this, nullptr, a0); }
-void ItemList::AddTail(void* a0) { PtrListAddTailOriginal((void*)this, nullptr, a0); }
-void ItemList::Destruct() { PtrListDestructOriginal(this); }
-struct PartyArray {   // CArray of 40-byte party slots (0x14)
-    PartyArray* Construct();                             // 004BB000
-    void Destruct();                                     // 004BB020
-    void* vtable;
-    char* data;
-    int size;
-    int maxSize;
-    int growBy;
-};
-__declspec(naked) PartyArray* PartyArray::Construct() EI_ORIGINAL(0x004BB000)
-__declspec(naked) void PartyArray::Destruct() EI_ORIGINAL(0x004BB020)
+using PartyArray = mfc::CArray<PartySlot>;
+__declspec(naked) PartyArray* __fastcall PartySlotsConstruct(PartyArray*) EI_ORIGINAL(0x004BB000)
+__declspec(naked) void __fastcall PartySlotsDestruct(PartyArray*) EI_ORIGINAL(0x004BB020)
 struct ObjectIterator {   // (list, node)
     void* First(void* list);                             // 00404920
     void* Next();                                        // 00404960
@@ -633,12 +613,12 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     // Other objects: the units around the new place are taken off the sector map, moved off cells
     // they cannot stay in, and put back.
     PtrList units;
-    units.Construct(10);
+    PtrListConstructOriginal(&units, nullptr, 10);
     float radius = Field<float>(object, 0x134) + Field<float>(object, 0x134);
     map->FindUnitsInRadius(Position(object), &units, radius);
-    ListNode* pos = reinterpret_cast<ListNode*>(units.data[1]);
+    ListNode* pos = reinterpret_cast<ListNode*>(units.head);
     while (pos) map->Remove(*GetNext<CEngineObject*>(&pos));
-    pos = reinterpret_cast<ListNode*>(units.data[1]);
+    pos = reinterpret_cast<ListNode*>(units.head);
     while (pos) {
         Vec3 free;
         CEngineObject* unit = *GetNext<CEngineObject*>(&pos);
@@ -651,7 +631,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
         map->Add(unit);
     }
     reinterpret_cast<Unit*>(object)->MarkChanged(2);
-    units.Destruct();
+    PtrListDestruct4C96F0Original(&units);
 }
 
 void GiveSkill(const SSCCmd* cmd) {
@@ -678,7 +658,7 @@ void RedeployParty(const SSCCmd* cmd) {
     if (!player) return;
     PlayerState* state = StateOf(player);
     PartyArray slots;
-    slots.Construct();
+    PartySlotsConstruct(&slots);
     TheWorld()->CollectParty(player, &slots);
     void* players = static_cast<char*>(player) + 0x70;
     ThePartyManager()->BeginRedeploy(players);
@@ -687,18 +667,18 @@ void RedeployParty(const SSCCmd* cmd) {
     auto* units = reinterpret_cast<mfc::CArray<char>*>(static_cast<char*>(player) + 0x9C);
     if (slots.size == 1 && units->size == 1) {
         char* unit = units->data;    // element 0 (0x784 bytes each)
-        *reinterpret_cast<int*>(slots.data) = *reinterpret_cast<int*>(unit + 0x1C);
+        *reinterpret_cast<int*>(slots.data[0].bytes) = *reinterpret_cast<int*>(unit + 0x1C);
     }
     state->PrepareRedeploy();
     Field<std::uint32_t>(state, 0x38 + 8) = 0xC4A42000u;   // -1313.0f
     TheWorld()->Redeploy(player, &slots, 0);
-    slots.Destruct();
+    PartySlotsDestruct(&slots);
 }
 
 void CopyLoot(const SSCCmd* cmd, bool replace) {
     if (!TheWorld()->GetPlayer(Ftol(cmd->floatArgs.data[0]))) return;
-    void* from = Parties()->Find(Text(cmd, 0));
-    void* to = Parties()->Find(Text(cmd, 1));
+    void* from = PartiesFind(Parties(), nullptr, Text(cmd, 0));
+    void* to = PartiesFind(Parties(), nullptr, Text(cmd, 1));
     if (!from || !to) return;
     // Party items: {data, count} at +0x40.
     auto items = [](void* party) { return reinterpret_cast<void**>(static_cast<char*>(party) + 0x40); };
@@ -1532,11 +1512,11 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0x9A: {   // CreateParty(player, name)
-            if (TheWorld()->GetPlayer(Ftol(f[0]))) Parties()->Create(Text(cmd, 0));
+            if (TheWorld()->GetPlayer(Ftol(f[0]))) PartiesCreate(Parties(), nullptr, Text(cmd, 0));
             break;
         }
         case 0x9B: {   // RemoveParty(player, name)
-            if (TheWorld()->GetPlayer(Ftol(f[0]))) Parties()->Remove(Text(cmd, 0));
+            if (TheWorld()->GetPlayer(Ftol(f[0]))) PartiesRemove(Parties(), nullptr, Text(cmd, 0));
             break;
         }
         case 0x9C: {   // SetCurrentParty(player, name): the party list's +0x0C
@@ -1553,25 +1533,25 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0xA7: {   // GiveMoney(player, amount): player +0xC0
             void* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
-            ItemList items;
-            items.Construct(10);
+            PtrList items;
+            ItemListConstructOriginal(&items, nullptr, 10);
             Field<int>(player, 0xC0) += Ftol(f[1]);
             static_cast<Player*>(player)->GiveItems(&items, 0);
-            items.Destruct();
+            PtrListDestructOriginal(&items);
             break;
         }
         case 0x92:     // GiveQuestItem(player, item)
         case 0xA6: {   // GiveItem(player, item)
             void* player = TheWorld()->GetPlayer(Ftol(f[0]));
             if (!player) break;
-            ItemList items;
-            items.Construct(10);
+            PtrList items;
+            ItemListConstructOriginal(&items, nullptr, 10);
             void* item = TheWorld()->FindItem(Text(cmd, 0));
             if (item) {
-                items.AddTail(item);
+                PtrListAddTailOriginal(&items, nullptr, item);
                 static_cast<Player*>(player)->GiveItems(&items, 0);
             }
-            items.Destruct();
+            PtrListDestructOriginal(&items);
             break;
         }
         case 0x93: {   // EraseQuestItem(player, id)

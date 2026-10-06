@@ -616,10 +616,10 @@ constexpr std::uintptr_t kNone = 0x007846F0;        // "none"
 
 } // namespace
 
-void CWorldClient::CreatePartyUnits(const PartyRecordArray* party, char allArmour) {
+void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour) {
     mfc::CString hair;
-    for (int i = 0; i < party->count; ++i) {
-        std::uint8_t* record = static_cast<std::uint8_t*>(party->data[i]);
+    for (int i = 0; i < party->size; ++i) {
+        std::uint8_t* record = party->data[i];
         console::CStringArray parts;
         for (std::uintptr_t name : kPartNames) {
             if (SameText(GameString(name), GameString(kHair))) {

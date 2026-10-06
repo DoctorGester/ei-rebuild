@@ -87,7 +87,7 @@ static void __fastcall ClearMapObjectsVerify(CWorldServer* self, void*) {
     self->ClearMapObjects();
     auto* first = self->mapObjects_.map.First();
     bool objectsGone = !first || !first->value;
-    const auto& missiles = self->projectiles_.list;
+    const auto& missiles = self->projectiles_;
     const auto& counted = self->counted_;
     bool listsEmpty = !missiles.head && !missiles.tail && missiles.count == 0 && !missiles.blocks && !counted.head &&
                       !counted.tail && counted.count == 0 && !counted.blocks;

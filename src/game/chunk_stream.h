@@ -71,7 +71,7 @@ public:
     // count followed by one string chunk per element (all with the array chunk's id). CStrings are
     // returned and passed by value as in the original (hidden return pointer, callee-destroyed
     // argument). The arrays are MFC CStringArrays (console::CStringArray; the map specs pass their
-    // own declaration of it, mapspec::StringArray).
+    // mfc::CStringArray in their layouts).
     mfc::CString* ReadString(mfc::CString* out);                             // 0042C580, returns out
     mfc::CString* ReadEncodedString(mfc::CString* out);                      // 0042C650, returns out
     void WriteString(std::uint32_t id, mfc::CString text);                   // 0042C820

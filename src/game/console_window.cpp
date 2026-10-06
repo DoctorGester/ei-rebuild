@@ -79,9 +79,9 @@ void ConsoleWindow::AddText(const char* text) {
     CStringArray pieces;
     StringSplit(text, &pieces, '\n');
     if (lines_.GetSize() != 0)
-        lines_[lines_.GetSize() - 1] += *pieces.data_;   // the original reads piece 0 unchecked
+        lines_[lines_.GetSize() - 1] += *pieces.data;   // the original reads piece 0 unchecked
     else
-        lines_.SetAtGrow(lines_.GetSize(), *pieces.data_);
+        lines_.SetAtGrow(lines_.GetSize(), *pieces.data);
     for (int i = 1; i < pieces.GetSize(); ++i) lines_.SetAtGrow(lines_.GetSize(), pieces[i]);
     if (scroll_ != 0) scroll_ += pieces.GetSize();
     if (lines_.GetSize() > history_) lines_.RemoveAt(0, lines_.GetSize() - history_);

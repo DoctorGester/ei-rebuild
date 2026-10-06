@@ -12,13 +12,7 @@
 
 namespace {
 
-struct PairArray {
-    void* vtable;
-    int (*data)[2];
-    int size;
-    int capacity;
-    int growBy;
-};
+using PairArray = mfc::CArray<int[2]>;
 
 __declspec(naked) void __fastcall PairSetSize(PairArray*, void*, int, int) EI_ORIGINAL(0x005BEC40)
 __declspec(naked) int __fastcall PairAdd(PairArray*, void*, const int*) EI_ORIGINAL(0x005BDD70)
