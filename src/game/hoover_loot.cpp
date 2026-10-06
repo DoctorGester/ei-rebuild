@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <cstring>
 #include "originals_library.h"
+#include "lib/mfc.h"
 
 namespace {
 
@@ -25,21 +26,9 @@ T& At(const void* base, std::size_t offset) {
     return *reinterpret_cast<T*>(static_cast<char*>(const_cast<void*>(base)) + offset);
 }
 
-// MFC CPtrList (after its vtable): head, tail, count, free list, blocks, block size.
-struct PtrListNode {
-    PtrListNode* next;
-    PtrListNode* prev;
-    void* data;
-};
-struct PtrList {
-    std::uintptr_t vtable;
-    PtrListNode* head;
-    PtrListNode* tail;
-    int count;
-    PtrListNode* free;
-    void* blocks;
-    int blockSize;
-};
+// MFC CPtrList (mfc::CTypedPtrList layout).
+using PtrList = mfc::CTypedPtrList<void>;
+using PtrListNode = PtrList::Node;
 
 // CPtrList::NewNode(prev, next) (004621A0, data cleared). The original inlines it for the armour
 // and weapons (with the same effects).

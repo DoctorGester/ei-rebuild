@@ -19,6 +19,7 @@
 #include "originals_core.h"
 #include "originals_engine.h"
 #include "originals_library.h"
+#include "lib/mfc.h"
 #include "originals_units.h"
 
 namespace {
@@ -45,20 +46,9 @@ struct VictimList {
 };
 
 // MFC CPtrList (vtable 0073D454, blocks of 10) as the original keeps it on the stack.
-struct PtrNode {
-    PtrNode* next;
-    PtrNode* prev;
-    CEngineObject* data;
-};
-struct PtrList {
-    std::uintptr_t vtable = 0x0073D454;
-    PtrNode* head = nullptr;
-    PtrNode* tail = nullptr;
-    int count = 0;
-    void* free = nullptr;
-    void* blocks = nullptr;
-    int blockSize = 10;
-};
+using PtrList = mfc::CTypedPtrList<CEngineObject>;
+using PtrNode = PtrList::Node;
+PtrList NewPtrList() { return PtrList{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10}; }
 
 // The trap's map object context [00455940, rewritten in object.cpp]; the living units of the sides
 // `sides` in the circles of `area` (+0x240), appended to `out` after emptying it [0052A920, fastcall
@@ -124,8 +114,8 @@ void MagicTrap::UpdateVictims() {
 
     if (!(flags_ & kArmed)) return;
     void* context = ManagerContextOf(this);
-    PtrList found;
-    PtrList newcomers;
+    PtrList found = NewPtrList();
+    PtrList newcomers = NewPtrList();
     FindVictims(context, &area, sides, &found);
     for (PtrNode* node = found.head; node;) {
         PtrNode* next = node->next;
@@ -448,7 +438,7 @@ void DestroyPtrList(PtrList& list) {
     list.free = nullptr;
     list.tail = nullptr;
     list.head = nullptr;
-    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(list.blocks));
+    mfc::PlexFreeDataChain(list.blocks);
 }
 } // namespace
 
@@ -492,7 +482,7 @@ EI_REPLACE_METHOD(0x0052AC20, MagicTrap::UpdateTrap);
 
 void MagicTrap::FireAtOccupants() {
     void* context = ManagerContextOf(this);
-    PtrList found;
+    PtrList found = NewPtrList();
     if (flags_ & kArmed) {
         FindVictims(context, &area, sides, &found);
         if (found.count) CastAtNewcomers(this, nullptr, &found);

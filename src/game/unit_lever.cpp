@@ -44,30 +44,6 @@ void __fastcall ControllerResync(void* a0) { ControllerRepositionOriginal(a0); }
 
 constexpr int kSlotWorldActive = 0x68 / 4;   // world: () -> non-zero when the map is live
 
-// MFC CPtrList (vtable 0073D454, blocks of 10) as the original keeps it on the stack.
-struct PtrNode {
-    PtrNode* next;
-    PtrNode* prev;
-    void* data;
-};
-struct PtrList {
-    std::uintptr_t vtable = 0x0073D454;
-    PtrNode* head = nullptr;
-    PtrNode* tail = nullptr;
-    int count = 0;
-    PtrNode* free = nullptr;
-    mfc::CPlex* blocks = nullptr;
-    int blockSize = 10;
-    // The destructor's RemoveAll (the elements need nothing).
-    void RemoveAll() {
-        count = 0;
-        free = nullptr;
-        tail = nullptr;
-        head = nullptr;
-        mfc::PlexFreeDataChain(blocks);
-    }
-};
-
 } // namespace
 
 void Lever::SetState(int state, float duration) {
@@ -96,12 +72,12 @@ void Lever::SetState(int state, float duration) {
 
     std::uint8_t* world = static_cast<std::uint8_t*>(ObjectWorld(this));
     if (!ei::VCall<int>(world, kSlotWorldActive)) return;
-    PtrList around;
+    mfc::CTypedPtrList<void> around{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};   // CPtrList on the stack
     void* sectors = world + 0x294;
     float radius = At<float>(this, 0x134) + 0.5f;
     SectorMapFindUnitsInRadius(sectors, nullptr, &At<float>(this, 0x1C), &around, radius);
-    for (PtrNode* node = around.head; node;) {
-        PtrNode* next = node->next;
+    for (auto* node = around.head; node;) {
+        auto* next = node->next;
         SectorMapRemove(AsSectorMap(sectors), nullptr, AsEngineObject(node->data));
         node = next;
     }
@@ -131,8 +107,8 @@ void Lever::SetState(int state, float duration) {
     MapEndRefresh(map);
     map[2] = 1;
 
-    for (PtrNode* node = around.head; node;) {
-        PtrNode* next = node->next;
+    for (auto* node = around.head; node;) {
+        auto* next = node->next;
         void* unit = node->data;
         if (!MapCanLeaveCell(map, nullptr, unit)) {
             float* at = &At<float>(unit, 0x1C);

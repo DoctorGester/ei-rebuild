@@ -81,7 +81,7 @@ src/game/figure_part_draw.cpp,57,0,6,0,0,0,0,1,1
 src/game/figure_part_draw_plain.cpp,22,0,2,0,0,0,0,0,0
 src/game/figure_rasterise.cpp,8,0,0,2,0,0,0,0,0
 src/game/game_strings.h,0,0,0,0,1,0,0,0,0
-src/game/hoover_loot.cpp,15,1,0,0,0,0,0,0,1
+src/game/hoover_loot.cpp,15,1,0,0,0,0,0,0,0
 src/game/item.cpp,22,0,0,0,0,0,0,0,0
 src/game/item_constructor.cpp,16,14,1,0,7,0,0,5,0
 src/game/item_db_text.cpp,2,1,0,0,0,0,0,0,0
@@ -95,7 +95,7 @@ src/game/lightning.cpp,0,0,0,1,0,0,0,1,0
 src/game/lightning.h,0,0,0,0,0,0,0,0,1
 src/game/lightning_draw.cpp,0,7,0,0,0,0,0,0,1
 src/game/lightning_start.cpp,0,3,0,0,4,0,0,0,0
-src/game/magic_trap.cpp,55,5,0,0,8,0,0,0,2
+src/game/magic_trap.cpp,55,5,0,0,7,0,0,0,1
 src/game/map_database.cpp,0,0,1,0,27,0,0,0,0
 src/game/map_object.cpp,0,10,0,1,0,0,0,5,1
 src/game/map_object.h,0,0,0,0,0,0,47,1,0
@@ -167,7 +167,6 @@ src/game/party_records.cpp,0,2,0,0,0,0,0,0,0
 src/game/party_records.h,0,0,0,0,0,0,0,0,1
 src/game/player_client.cpp,0,0,0,0,0,0,1,0,0
 src/game/player_messages.cpp,0,5,1,0,0,0,0,2,0
-src/game/player_messages.h,0,0,0,0,0,0,0,0,1
 src/game/quaternion.cpp,0,0,4,1,1,0,0,0,0
 src/game/quest_database.cpp,18,0,0,0,16,0,0,0,0
 src/game/refptr_copies.cpp,0,3,0,0,0,0,0,0,0
@@ -292,7 +291,7 @@ src/game/unit_db_destroy.cpp,0,0,0,0,1,0,0,0,0
 src/game/unit_equipment.cpp,0,2,0,0,6,0,0,0,0
 src/game/unit_hits.cpp,7,0,0,1,4,0,0,0,0
 src/game/unit_items.cpp,1,4,0,0,0,0,0,0,0
-src/game/unit_lever.cpp,30,1,0,0,1,0,0,0,1
+src/game/unit_lever.cpp,30,1,0,0,0,0,0,0,0
 src/game/unit_motion_tick.cpp,109,0,8,0,1,0,0,1,0
 src/game/unit_params_skill.cpp,3,0,0,0,0,0,0,0,0
 src/game/unit_points.cpp,20,5,0,0,0,0,0,0,0
