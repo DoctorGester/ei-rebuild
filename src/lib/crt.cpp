@@ -29,6 +29,13 @@ __declspec(naked) int __cdecl read(int, void*, unsigned) EI_ORIGINAL(0x006EB046)
 __declspec(naked) int __cdecl write(int, const void*, unsigned) EI_ORIGINAL(0x006EB642)
 __declspec(naked) int __cdecl close(int) EI_ORIGINAL(0x006EAF66)
 
+__declspec(naked) CrtFile* __cdecl fopen(const char*, const char*) EI_ORIGINAL(0x006E9107)
+__declspec(naked) int __cdecl fclose(CrtFile*) EI_ORIGINAL(0x006E8EB8)
+__declspec(naked) int __cdecl fseek(CrtFile*, long, int) EI_ORIGINAL(0x006E95D2)
+__declspec(naked) long __cdecl ftell(CrtFile*) EI_ORIGINAL(0x006E97C4)
+__declspec(naked) std::size_t __cdecl fread(void*, std::size_t, std::size_t, CrtFile*) EI_ORIGINAL(0x006E8F35)
+__declspec(naked) std::size_t __cdecl fwrite(const void*, std::size_t, std::size_t, CrtFile*) EI_ORIGINAL(0x006E968B)
+
 } // namespace gamecrt
 
 namespace game {

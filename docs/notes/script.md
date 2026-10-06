@@ -381,3 +381,68 @@ Not ported: 004DEBC0 (`Find`, only called by the original GetItemTexts, which is
 Contains: a zero or NaN angle tests the rectangle as is (x1 > x, x > x2, y1 > y, y > y2 reject; NaN passes); otherwise
 the point is turned by -angle about the centre (centre x and the x offset kept unrounded, as the original keeps
 them on the FPU stack) and a NaN turned x is outside.
+
+## A-S6 (2026-10-07): the rest of 0x004C0000-0x00500000, continued
+
+### Buffered file streams (`buffered_file.cpp`, `buffered_file.h`)
+
+A `GameBuffer` whose block is a window onto a file (`base` = file position of `begin`); abstract vtable 0073F8C8
+(constructor / destructor 00580DD0 / 00580DF0, slots 7 / 8 pure), file vtable 0073F8A4 (+0x1C `FILE*`, destructor
+00580E60). The game's stdio is now in `lib/crt.h` (fopen 006E9107, fclose 006E8EB8, fseek 006E95D2, ftell 006E97C4,
+fread 006E8F35, fwrite 006E968B).
+
+| Address | Name | Verify |
+|---|---|---|
+| 004DAAF0, 004DB040, 004DAC80 | `Flush`, `BufferedStreamCommit` (slot 2, `Rebase`), `ReleaseBlock` | original on a byte copy with a cloned block; base, flags, capacity, offsets, old capacity's bytes |
+| 004DAE30, 004DAFC0, 004DB200, 004DB420, 004DB0F0 | slots 0, 1, 3, 4, 6 (`ReserveRead`, `ReserveWrite`, `ReadMore`, `WriteMore`, `Seek`) | same, plus result and bytes read (the original reads into a scratch destination); Seek's EAX only on the in-window path |
+| 004DB5E0, 004DB630 | `BufferedFileReadAt` / `WriteAt` (slots 7 / 8) | original then ours (both seek first): result, bytes read |
+| 004DB680, 004DB700 | `BufferedFile::Close`, `Open` | ours only: no block / file after Close; Open's window or error bit |
+| 004DA580, 004DA590 | `BufferViewReserve` (the fixed view's empty slots 0 / 1) | ours only |
+
+Scenario: `newgame` (005810A0 -> 005809D0 reads "quest.reg" through the file stream when the server exists).
+Not ported: 004DABC0 (no callers; an Attach-like window setup) and the unlisted 004DAB40 (a grow helper, no callers).
+Original quirks kept: `ReserveRead` growing reloads at `base` with min(capacity, high - cur) bytes; the reload count can be
+negative after a large read (passed to fread as is); Seek's out-of-window path returns no meaningful EAX (ours: the old cursor).
+
+### Link figures, part loading (`link_figure.cpp`, `link_figure.h`)
+
+`CLinkMesh` (vtable 0073D790, 0xB0 bytes): part headers map<string, 0x50> +0x14, morph coefficients +0x30, six
+aligned arrays +0x3C (vertex packets, normal packets, texture coordinates, 6-byte corners, dwords, words), part ranges
+map<string, 0x30> +0x9C, loader +0xA8, pipeline +0xAC. The maps stay STLport (operator[] 004F4B90 / 004F4CE0 added to
+library.csv, find 004F5C90; forwarders in originals_script.h). `ITransformPipeline` is 3DfpFPU.dll's pipeline (slot 7
+FitBounds).
+
+| Address | Name | Verify |
+|---|---|---|
+| 004F30F0 | `CLinkMesh::AddPart` | original on a scratch mesh (original constructor 004F2C00 / destructor 004F2E40): appended elements, ranges, result |
+| 004F7F00, 004F87D0 | `CLinkFigureLoader::LoadFigPart` (FIG / FIG8), `LoadOldPart` (6 morph corners) | same: cursor, header dwords, bounds (NearlyEqual, new parts), appended elements (vertices NearlyEqual) |
+
+Scenario: `newgame` (00568800, the world client's object creation, calls the world view's loader slot 3 004F7150).
+Morphs are plain floats: FIG8 lerp(lerp(lerp(c0,c1,s), lerp(c2,c3,s), t), lerp(lerp(c4,c5,s), lerp(c6,c7,s), t), u),
+old records lerp(lerp(lerp(c0,c1,s), c2, t), lerp(lerp(c3,c4,s), c5, t), u).
+
+### Link figures, the mesh's slots
+
+`CLinkMesh` is now declared with its virtual slots 0-6 (novtable); `LinkMapNode` gives the map nodes (key +0x10, value
++0x1C) and `Next` the in-order successor (as 0043DBE0). Erase 004F4E40 / 004F5090 added to library.csv.
+
+| Address | Name | Verify |
+|---|---|---|
+| 004F2F90 | `SetMorph` | original on a byte copy, 0xB0 bytes |
+| 004F45E0, 004F3040, 004F3780 | slots 1, 2, 6: `UpdateScreenRect`, `HasPart`, `GetPartData` | original on a byte copy / pure / into scratch outputs |
+| 004F2FB0 | slot 3 `CollectPartNames` | original into a fresh vector; the names ours appended compared |
+| 004F30D0, 004F3530 | slots 4, 5: `LoadPart` (forwards to the loader's 004F7480), `RemovePart` | ours only: a loaded part is a part; a removed part is gone and the arrays shrank by its counts |
+
+Original bug kept: `RemovePart` lowers the later parts' starts by the removed part's starts, not its counts (only
+right for the first part), and picks the later parts by their index start alone.
+Not ported: slots 7-14 (004F3870 ... 004F4850): part draws through the D3D device (renderer direction).
+
+### A-S6 leftovers (next ticket)
+
+Loader slots and members 004F77C0 (load a .lnk), 004F7B10 / 004F7D20 / 004F7150 / 004F7080 / 004F75E0 / 004F7480 /
+004F7370 (cache multimap +0x28 of meshes by name and morph; strings and refcounts with EH paths), the mesh constructor /
+destructors 004F2C00 / 004F2E40 / 004F2D40 / deleting 004F2E00 / 004F2E20, the length-prefixed string reader 004DB9C0
+(keeps the old string for length 0), 004F2650 / 004F29F0, 004F9E50-004FAB00 (004FAB00 finds an archive), the STLport
+map members around 004F4CD0-004F5F00 (classify as library); rain / snow draws 004E4240 / 004E4C80 (build vertices then
+draw through the device: coordinate with the renderer), the fog object's slots 004E2290-004E24E0 (never reached in the
+current runs), CSkyObject 004D9110-004D9EB0, CServerSpecificManager 004D6900-004D6BA0, the .mob decoder 004D8E10.
