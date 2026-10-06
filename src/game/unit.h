@@ -194,7 +194,7 @@ public:
     virtual void Slot36();
     virtual void Slot37();
     virtual void HostileMaskChanged();      // 38: server 00552CD0 (the brain), base empty (00533CA0)
-    virtual void Slot39();
+    virtual int TamingStage();              // 39: server 005460A0 (+0x908, the taming stage), base 0 (00533CB0)
     virtual void AdvanceTime(float time);   // 40: client 00535B30
 };
 

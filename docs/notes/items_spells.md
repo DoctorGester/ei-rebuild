@@ -501,3 +501,19 @@ moved to originals_world.h (ObjectMapClearOriginal).
 
 Kept: Clear's unit loop stops at the first map entry without a unit (the rest stay); the constructor's maps keep
 their uninitialised functor bytes.
+
+Second part (the link, given items, units):
+
+| Address | Name | Verify |
+|---|---|---|
+| 00665990, 00665A10, 006651D0 | Connect (RET 4), Disconnect, ForgetKnownObjects | ours only: link, cleared lists / maps |
+| 00665440, 00665640 | IsLeader (RET 4, BOOL), HasLoot (RET 4, BOOL) | against the original (6 stolen bytes each) |
+| 00665470, 00665550 | GiveItems (RET 8), TakeAllItems | ours only: item count |
+| 00665780, 00665870 | TakeLoot / TakeItem (RET 4, BOOL) | ours only: count dropped by the result |
+| 00665A70, 00665B50 | AddUnit / RemoveUnit (RET 4; from CUnit::SetPlayer) | ours only: unit in / out of units_ |
+| 00665BE0, 00665CC0 | ItemUsed (RET 4), AssignParty (RET 4, returns CParty::Assign's result) | ours only |
+| 00665D20 | ReleaseTamedUnits (CUnitController slot 39 is now TamingStage) | ours only: units left keep the player |
+
+Kept: HasLoot reads +0x4C of every carried item whatever its class; ReleaseTamedUnits (like Clear's sibling walks)
+goes on from the node of a unit that SetPlayer has just erased, reading the freed node as the original does.
+Connect / Disconnect / GiveItems / TakeAllItems call the connection without a null test.
