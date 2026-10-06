@@ -107,10 +107,8 @@ void CAIMap::BuildCellsTo(int x, int y, PathCellList* path) {
                    static_cast<std::uint16_t>(stale >> 16)};
         return c;
     };
-    std::int8_t** marks = reinterpret_cast<std::int8_t**>(*reinterpret_cast<std::uint8_t***>(
-        reinterpret_cast<std::uint8_t*>(this) + 0x26BC));
     // Walk back along the marks (directions 1..8; 0 ends), each cell added at the head.
-    while (int dir = marks[y][x]) {
+    while (int dir = marks.rows[y][x]) {
         PathCellList::Node* node = path->NewNode(nullptr, path->head);
         node->data = cellAt(x, y);
         if (path->head) path->head->prev = node;

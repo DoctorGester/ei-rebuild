@@ -78,9 +78,9 @@ struct PassCostContext {
     const int* costs;       // CAIMap + 0x14: cost per passability nibble
     const int* climb;       // middle of the climb table of the size class
     int shift;              // size class * 4: the nibble in AIMapCell::passable
-    float unknown_0C;       // 0.1
+    float backwardSpeed;    // +0x0C 0.1, or the unit's (CostContextFor)
     float unknown_10;       // 10
-    float unknown_14;       // 0.1
+    float forwardSpeed;     // +0x14 0.1, or the unit's
 };
 static_assert(sizeof(PassCostContext) == 0x18);
 
@@ -174,8 +174,16 @@ struct PathCell {
     std::int16_t x, y;
     std::uint16_t flags;        // 0x200 on a path that is a single cell
     std::uint16_t unknown_6;
+
+    // 005C5CC0 (RET 8). The neighbour in direction 1..8 (1 = y - 1, then clockwise towards -x: 2 =
+    // (-1, -1), 3 = (-1, 0), 4 = (-1, +1), 5 = (0, +1), 6 = (+1, +1), 7 = (+1, 0), 8 = (+1, -1)) into
+    // `out` (x and y only); any other direction copies the whole cell. Returns `out`.
+    PathCell* Step(PathCell* out, int direction) const;
 };
 static_assert(sizeof(PathCell) == 8);
+
+// The vtable of CList<PathCell> (PathCellList).
+inline void* PathCellListVtable() { return reinterpret_cast<void*>(0x0073EDB0); }
 
 // MFC CList<PathCell, PathCell&> (0x1C bytes); the game inlines most of its operations.
 struct PathCellList {
@@ -196,6 +204,16 @@ struct PathCellList {
     Node* NewNode(Node* prev, Node* next);
     // 00556D40. Frees all nodes and blocks.
     void RemoveAll();
+    // 005BD200 / 005BD2A0 (RET 4; ai_path_cells.cpp). Adds a copy of `cell` first / last; returns its node.
+    Node* AddHead(const PathCell* cell);
+    Node* AddTail(const PathCell* cell);
+    // 005C5DA0 (RET 4). Appends copies of `other`'s cells.
+    void AppendList(const PathCellList* other);
+    // 005C5E60 (RET 4). Constructs `out` (blocks of 0x80) holding the cells in reverse order; returns `out`.
+    PathCellList* Reversed(PathCellList* out) const;
+    // 005C6000. Removes each cell equal (x, y) to the one before it (the first is compared with
+    // (-1, -1)); an emptied list frees its blocks.
+    void RemoveRepeats();
 };
 static_assert(sizeof(PathCellList) == 0x1C);
 
@@ -244,6 +262,121 @@ static_assert(offsetof(AIPath, steps) == 0x20);
 static_assert(offsetof(AIPath, cells) == 0x3C);
 static_assert(offsetof(AIPath, goal) == 0x60);
 static_assert(offsetof(AIPath, smoothing) == 0x84);
+
+class CAIMap;
+
+// A cell of the local search's window (0x14 bytes). Name provisional.
+struct SearchNode {
+    int cost;                   // +0x00 0x7FFFFFFF until reached
+    SearchNode* next;           // +0x04 in its bucket, or in the settled list
+    SearchNode* prev;           // +0x08 in its bucket
+    std::int16_t x, y;          // +0x0C window coordinates (0..33)
+    bool usable;                // +0x10 false on the window's border and outside a rectangle
+    bool settled;               // +0x11 expanded, or the start
+    std::int8_t direction;      // +0x12 1..8: the way back to the cell it was reached from; 0 none
+    std::uint8_t unknown_13;
+};
+static_assert(sizeof(SearchNode) == 0x14);
+
+// {data, rows, width, height}: a grid allocated in one block with a row pointer table (005B1470
+// for nodes, 005B14C0 for bytes).
+template <typename T>
+struct SearchGrid {
+    T* data;
+    T** rows;
+    int width, height;
+};
+static_assert(sizeof(SearchGrid<SearchNode>) == 0x10);
+
+// The local search (0x80 bytes; CAIMap + 0x2594 forward, + 0x2614 backward, and the region map's):
+// Dijkstra over a 34 x 34 window of map cells whose border is never entered. Open nodes wait in
+// four sorted lists chosen by the low two bits of the node's x; `current` is the cheapest head.
+// Methods in ai_local_search.cpp. Name provisional.
+struct LocalSearch {
+    // 005C35F0. Puts every settled and queued node back to unreached; the search is inactive.
+    void Reset();
+    // 005C2F50. `current` = the cheapest bucket head (null when every bucket is empty).
+    void PickCurrent();
+    // 005C2FB0. Moves `node` to its place in its bucket for `cost` (a node already at the head
+    // stays there).
+    void Requeue(SearchNode* node, int cost);
+    // 005C3050. The current node's map cell and cost (cost 0x7FFFFFFF when there is none).
+    void Best(int* x, int* y, int* cost);
+    // 005C3090. The cost of map cell (x, y) if it is settled, else 0x7FFFFFFF.
+    int CostAt(int x, int y);
+    // 005C1D50. The cost of stepping between `current` and `node` (neighbours), `factor` 0x400
+    // straight or 0x5A8 diagonal; -1 when the step is impossible. A backward search prices the
+    // step from `node` into `current`.
+    int StepCost(const SearchNode* node, int factor);
+    // 005C2D40. Settles `current`, relaxes its eight neighbours, picks the next current.
+    void Expand();
+    // 005C30E0. Expands until nothing is left (when active).
+    void ExpandAll();
+    // 005C31A0. Expands until map cell (x, y) is current; false when the search runs out (or is
+    // inactive).
+    bool ExpandUntil(int x, int y);
+    // 005C3200. The path from the start to map cell (x, y), walked back along the directions, into
+    // `out` (emptied first; nothing when the cell is outside the window).
+    void PathTo(int x, int y, PathCellList* out);
+    // 005C22A0. Places the window over map cells (x0, y0) and (x1, y1): less than 32 apart, both on
+    // the map; centred, both at least one cell inside. False (window unchanged) otherwise.
+    bool PlaceWindow(int x0, int y0, int x1, int y1);
+    // 005C21A0. Takes the unit's cost tables, size class and standing level.
+    void SetUnit(CUnit* unit);
+    // 005C2420. Starts a search for `unit` at (x0, y0) with the window over it and (x1, y1).
+    bool Begin(CUnit* unit, int x0, int y0, int x1, int y1);
+    // 005C24F0. Begin for a size class instead of a unit.
+    bool BeginForClass(int sizeClass, int x0, int y0, int x1, int y1);
+    // 005C2B10. Starts a search at (sx, sy) confined to the rectangle (x0, y0)-(x1, y1) (x0 <= x1,
+    // y0 <= y1, at most 28 apart): the row below and the column right of it are made unusable.
+    bool BeginInRect(int x0, int y0, int x1, int y1, int sx, int sy);
+    // 005C2C90 / 005C2CF0. BeginInRect for a unit / a size class.
+    bool BeginInRectFor(CUnit* unit, int x0, int y0, int x1, int y1, int sx, int sy);
+    bool BeginInRectForClass(int sizeClass, int x0, int y0, int x1, int y1, int sx, int sy);
+    // 005C2A30. Copies the reached cells' directions into the map's marks (CAIMap::marks) where
+    // they are still 0.
+    void CommitDirections();
+    // 005C33F0. Saves the window's cell levels into `levels` (zeroing them in the map with `clear`).
+    void SaveLevels(bool clear);
+    // 005C3530. Puts the saved cell levels back.
+    void RestoreLevels();
+    // 005C1EA0 (RET 8). Attaches the search to `map`: a fresh 34 x 34 node grid (the border
+    // unusable) and the row table.
+    void Attach(CAIMap* map, bool backward);
+    // 005C25D0 (RET 0x14). Moves the window over (x0, y0)-(x1, y1) keeping what was searched: the
+    // nodes are shifted, then (with `settleInside`) the ones cheaper than the cheapest kept border
+    // node are settled and the rest queued, or (without) the settled stay and the reached are
+    // queued. False when the window cannot be placed (unchanged) or moved 31 cells or more (the
+    // window and row table are already moved, the nodes not).
+    bool Recenter(int x0, int y0, int x1, int y1, bool settleInside);
+
+    bool active;                        // +0x00
+    bool levelsSaved;                   // +0x01 the window's cell levels are in `levels`
+    std::uint8_t unknown_02[2];
+    SearchGrid<SearchNode> nodes;       // +0x04 34 x 34
+    SearchGrid<std::uint8_t> levels;    // +0x14 saved cell levels (005C33F0 / 005C3530)
+    CAIMap* map;                        // +0x24
+    void* cellRowsVtable;               // +0x28 CArray<AIMapCell*>: the window's map rows
+    AIMapCell** cellRows;               // +0x2C cellRows[i] = &map cell (originX, originY + i)
+    int cellRowCount;                   // +0x30
+    int cellRowMax;                     // +0x34
+    int cellRowGrowBy;                  // +0x38
+    SearchNode* settledList;            // +0x3C linked through `next`
+    SearchNode* buckets[4];             // +0x40 open nodes by x & 3, sorted by cost
+    SearchNode* current;                // +0x50 the cheapest open node
+    int originX, originY;               // +0x54 map cell of window cell (0, 0)
+    int currentCost;                    // +0x5C cost of the node being expanded
+    PassCostContext costs;              // +0x60
+    int sizeClass;                      // +0x78
+    bool backward;                      // +0x7C searching from the target (prices steps reversed)
+    std::uint8_t level;                 // +0x7D standing level
+    std::uint8_t unknown_7E[2];
+};
+static_assert(offsetof(LocalSearch, map) == 0x24);
+static_assert(offsetof(LocalSearch, settledList) == 0x3C);
+static_assert(offsetof(LocalSearch, costs) == 0x60);
+static_assert(offsetof(LocalSearch, backward) == 0x7C);
+static_assert(sizeof(LocalSearch) == 0x80);
 
 // The navigation grid of the current map, loaded by CAIMap::Load (005B43C0, patched by Rebirth).
 // Name from the game's error strings; layout provisional.
@@ -355,6 +488,9 @@ public:
     // 005B9510. The passability cost tables for size class `sizeClass`; returns the climb table's
     // middle (EAX, as the original).
     const int* CostContext(int sizeClass, struct PassCostContext* out);
+    // 005B9580 (RET 8). CostContext for `unit`: its size class, its movement speeds (0052F920) in
+    // +0x14 / +0x0C, and the alternative cost table when CUnit::unknown_43C is set.
+    void CostContextFor(CUnit* unit, struct PassCostContext* out);
     // 005BA5A0. Is the cell under `unit` passable for it at a cost below 12000? (A cell with a
     // kind-3 occluder is evaluated at the size class's level through 005B8BA0.) Only AL is set
     // when the unit is outside the map.
@@ -414,7 +550,10 @@ public:
     std::uint8_t unknown_003;
     int dirtyMinX, dirtyMaxX;           // +0x004
     int dirtyMinY, dirtyMaxY;           // +0x00C
-    std::uint8_t unknown_014[0xD8 - 0x14];
+    int passCosts[16];                  // +0x014 cost per passability nibble (1/1024)
+    int passCostsAlt[16];               // +0x054 the same for units with CUnit::unknown_43C set
+    int stepCosts[16];                  // +0x094 step speeds per nibble (SetStepSpeeds)
+    std::uint8_t unknown_0D4[0xD8 - 0xD4];
     ClimbTable climbLarge;              // +0x0D8 size classes other than 0
     std::uint8_t unknown_0E0[0xEC - 0xE0];
     ClimbTable climbSmall;              // +0x0EC size class 0
@@ -436,7 +575,9 @@ public:
     std::uint8_t unitLayerSmall[0x12A4 - 0x27C];    // +0x27C unit occupancy (005B36B0 / 005B3890)
     std::uint8_t unitLayerLarge[0x22CC - 0x12A4];   // +0x12A4
     std::uint8_t unknown_22CC[0x22F8 - 0x22CC];
-    std::uint8_t regions[0x2694 - 0x22F8];          // +0x22F8 region map (005B0600)
+    std::uint8_t regions[0x2594 - 0x22F8];          // +0x22F8 region map (005B0600)
+    LocalSearch forwardSearch;                      // +0x2594
+    LocalSearch backwardSearch;                     // +0x2614
     int lastFootprintOwner;             // +0x2694 set by StampFootprint
     std::uint32_t unknown_2698;
     AIMapCell** cells;                  // +0x269C rows of cells
@@ -444,7 +585,11 @@ public:
     int height;                         // +0x26A4
     std::uint32_t unknown_26A8;
     std::uint32_t** occluders;          // +0x26AC rows of per-cell occluder words (see LineOfSight)
+    std::uint8_t unknown_26B0[0x26B8 - 0x26B0];
+    SearchGrid<std::int8_t> marks;      // +0x26B8 per-cell marks: path directions (BuildCellsTo), reach answers
 };
+static_assert(offsetof(CAIMap, passCosts) == 0x14);
+static_assert(offsetof(CAIMap, stepCosts) == 0x94);
 static_assert(offsetof(CAIMap, climbLarge) == 0xD8);
 static_assert(offsetof(CAIMap, climbSmall) == 0xEC);
 static_assert(offsetof(CAIMap, bridgeHeights) == 0x10C);
@@ -454,9 +599,12 @@ static_assert(offsetof(CAIMap, bridges) == 0x1A0);
 static_assert(offsetof(CAIMap, waterDepth) == 0x1F8);
 static_assert(offsetof(CAIMap, unitLayerLarge) == 0x12A4);
 static_assert(offsetof(CAIMap, regions) == 0x22F8);
+static_assert(offsetof(CAIMap, forwardSearch) == 0x2594);
+static_assert(offsetof(CAIMap, backwardSearch) == 0x2614);
 static_assert(offsetof(CAIMap, lastFootprintOwner) == 0x2694);
 static_assert(offsetof(CAIMap, cells) == 0x269C);
 static_assert(offsetof(CAIMap, occluders) == 0x26AC);
+static_assert(offsetof(CAIMap, marks) == 0x26B8);
 
 // A cached lookup in the global spiral of cell offsets (pairs of int16 dx, dy ordered by distance).
 struct SpiralCache {

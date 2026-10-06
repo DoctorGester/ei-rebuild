@@ -14,4 +14,7 @@ inline const char* EmptyText() { return reinterpret_cast<const char*>(kEmptyText
 // 00795D74: "Can't find texture format %d.\n" (the texture manager's FatalError, 00691D80).
 inline const char* CantFindTextureFormatText() { return reinterpret_cast<const char*>(0x00795D74); }
 
+// 007846F0: "none" (a prototype's weapon name that gives no weapon).
+inline const char* NoneText() { return reinterpret_cast<const char*>(0x007846F0); }
+
 } // namespace game

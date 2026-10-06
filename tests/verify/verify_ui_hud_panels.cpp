@@ -11,6 +11,9 @@
 #include "verify.h"
 
 #include "../../src/game/core_transform.h"
+#include "../../src/game/item.h"
+#include "../../src/game/party.h"
+#include "../../src/game/world.h"
 #include "../../src/game/ui.h"
 #include "../../src/game/unit.h"
 
@@ -257,8 +260,30 @@ void __fastcall LayoutVerify(CHudTopPanel* self, void*) {
 }
 } // namespace
 
+// 0064A7A0 (stolen 0; it makes and releases item copies): ours only. Page 1's text has one line
+// for the money when above 0 and one per kind of the player's items (slot 14), and the log shows
+// it when page 1 is up.
+static void __fastcall ShowItemsVerify(CHudTopPanel* self) {
+    WorldPlayer* player = reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player;
+    std::vector<CItem*> kinds;
+    for (auto* node = player->items.head; node; node = node->next) {
+        auto* item = static_cast<CItem*>(node->data);
+        bool seen = false;
+        for (CItem* kind : kinds) seen = seen || kind->IsSameAsSlot(item);
+        if (!seen) kinds.push_back(item);
+    }
+    int money = static_cast<int>(reinterpret_cast<CParty*>(LocalPlayerData())->unknown_50);
+    self->ShowItems();
+    const char* text = self->pageTexts_[1];
+    int lines = 0;
+    for (const char* c = text; *c; ++c) lines += *c == 10;
+    int expected = static_cast<int>(kinds.size()) + (money > 0 ? 1 : 0);
+    ei::verify::Check("CHudTopPanel::ShowItems", expected, lines, "%d kinds, money %d", static_cast<int>(kinds.size()), money);
+}
+
 EI_VERIFY(0x006477E0, ShowHealthVerify, 6, s_showHealth);
 EI_VERIFY(0x00647B70, ShowPartsVerify, 7, s_showParts);
 EI_VERIFY(0x00649810, ToggleFlagVerify, 0, s_unused);
 EI_VERIFY(0x0064A320, ShowPageVerify, 8, s_showPage);
 EI_VERIFY(0x00649E20, LayoutVerify, 6, s_layout);
+EI_VERIFY(0x0064A7A0, ShowItemsVerify, 0, s_unused);

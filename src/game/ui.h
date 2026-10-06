@@ -1239,6 +1239,11 @@ public:
     // the current slide offset.
     void Layout();
     void CallLayout();                             // through 00649E20 (its verify wrapper)
+    // 0064A7A0 (ui_hud_panels.cpp). Builds page 1's text: the money ("format_money" with the
+    // local party's +0x50, when above 0), then the local player's item list (+0xE0) merged by
+    // kind (slot 14; counts added) into the world's copies (0055E940), one item name per line;
+    // shown in the message log when page 1 is up.
+    void ShowItems();
 
     CBattleScreen* owner_;           // +0x148
     int sliding_;                    // +0x14C
@@ -1562,6 +1567,10 @@ public:
     // 0064DC60 (__fastcall): when the selected quest changed, its description in the log and a
     // marker and region per place of the quest on the zone picture.
     void ShowQuest();
+    // 0064D9B0 (__fastcall). Draws the quest list: up to five rows from `unknown_1C0`, each with
+    // its title ("quest " text, else the quest's name) and its state mark (scene objects 16-20:
+    // state 2 one frame, 3 the other, else hidden); the selected row gets the cursor (object 2).
+    void DrawQuestList();
     // Not rewritten.
     void SelectExit(int index);      // 0064E990
     void RefreshQuests();            // 0064E8B0
