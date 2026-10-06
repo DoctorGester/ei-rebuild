@@ -16,6 +16,7 @@
 // DeltaField's begin / end.
 
 #include "core_transform.h"
+#include "effects.h"
 #include "net_delta.h"
 #include "lib/mfc.h"
 
@@ -327,3 +328,34 @@ static_assert(offsetof(CEffectArrow, light_) == 0x2D8);
 static_assert(offsetof(CEffectArrow, sound_) == 0x43C);
 static_assert(offsetof(CEffectArrow, soundName_) == 0x6A0);
 static_assert(sizeof(CEffectArrow) == 0x6C0);
+
+// What a unit sees, shown in the fog of war (clairvoyance; vtable 0074381C, class id 0x5E, created
+// by CSpellEffect::CreateParticle and Start). The server recomputes the seen squares from the
+// seer's sight every tick and sends them; the client reveals them in a fog object of its own.
+// 0x170 bytes. world_effect_visibility.cpp.
+class CEffectShowVisibility : public CEffect {
+public:
+    // The constructor gives the grid one square (cells and rows allocated) and does not Reset.
+    CEffectShowVisibility* Construct();           // 0067C340
+    void Destruct();                              // 0067C490
+    CEffectShowVisibility* DeletingDestruct(unsigned flags);  // 0067C470 (slot 0)
+    static std::uintptr_t Vtable();               // 0074381C
+    void Reset();                                 // 0067C5F0 (slot 18): grid cleared, fog released
+    void SetUnits(int observerId, int seerId);    // 0067C640
+    void Start(int update);                       // 0067C660 (slot 23)
+    int Unpack(int update, DeltaField* field);    // 0067C6B0 (slot 21)
+    void Pack(DeltaField* field);                 // 0067C7A0 (slot 22)
+    int Tick();                                   // 0067C840 (slot 6)
+    void LoadState(void* stream);                 // 0067C8E0 (slot 9)
+    void SaveState(void* stream);                 // 0067C910 (slot 10)
+
+    // The fog object is a CVisibilityFog (effects.h), reference counted as an engine object.
+    CVisibilityFog* Fog() { return reinterpret_cast<CVisibilityFog*>(fog_); }
+
+    int observerId_;           // +0x14C unit (the second unit of the sight computation)
+    int seerId_;               // +0x150 unit whose sight is shown; the effect follows it
+    CEngineObject* fog_;       // +0x154 client only, null: none
+    FogGrid grid_;             // +0x158
+};
+static_assert(offsetof(CEffectShowVisibility, grid_) == 0x158);
+static_assert(sizeof(CEffectShowVisibility) == 0x170);

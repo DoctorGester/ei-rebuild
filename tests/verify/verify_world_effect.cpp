@@ -698,3 +698,51 @@ EI_VERIFY(0x0067B9A0, SaveVerify_CEffectArrow, 5, s_save_CEffectArrow);
 // The CString reader uses more of the stream: ours only.
 static void __fastcall ArrowLoadVerify(CEffectArrow* self, void*, void* stream) { self->LoadState(stream); }
 EI_VERIFY(0x0067B8E0, ArrowLoadVerify, 0, s_unused);
+
+// --- CEffectShowVisibility (world_effect_visibility.cpp; scenario spells_cast: clairvoyance) -------
+
+static void __fastcall VisibilityResetVerify(CEffectShowVisibility* self) {
+    self->Reset();
+    bool ok = self->fog_ == nullptr && self->seerId_ == -1 && self->observerId_ == -1 && self->grid_.width == 1 &&
+              self->grid_.height == 1 && self->grid_.x0 == 0x7FFFFFFF && self->grid_.rows[0] == self->grid_.cells;
+    ei::verify::Check("CEffectShowVisibility::Reset", true, ok, "object %p", self);
+}
+EI_VERIFY(0x0067C5F0, VisibilityResetVerify, 0, s_unused);
+
+// 0067C640: MOV EAX,[ESP+4]; MOV EDX,[ESP+8] (8 bytes).
+static void(__fastcall* s_visibilitySetUnits)(CEffectShowVisibility*, void*, int, int);
+static void __fastcall VisibilitySetUnitsVerify(CEffectShowVisibility* self, void*, int observer, int seer) {
+    SameWrites<int>("CEffectShowVisibility::SetUnits", self, sizeof(CEffectShowVisibility), nullptr, 0, false,
+                    [&] { self->SetUnits(observer, seer); return 0; },
+                    [&] { s_visibilitySetUnits(self, nullptr, observer, seer); return 0; });
+}
+EI_VERIFY(0x0067C640, VisibilitySetUnitsVerify, 8, s_visibilitySetUnits);
+
+// Ours only (makes a fog object and reveals the squares in it).
+static void __fastcall VisibilityStartVerify(CEffectShowVisibility* self, void*, int update) {
+    self->Start(update);
+    ei::verify::Check("CEffectShowVisibility::Start", true, update != 0 || self->fog_ != nullptr, "object %p", self);
+}
+EI_VERIFY(0x0067C660, VisibilityStartVerify, 0, s_unused);
+
+EI_UNPACK_VERIFY(0x0067C6B0, CEffectShowVisibility, "CEffectShowVisibility::Unpack");
+EI_VERIFY(0x0067C6B0, UnpackVerify_CEffectShowVisibility, 0, s_unused);
+// 0067C7A0: PUSH -1; PUSH imm32 (7).
+EI_PACK_VERIFY(0x0067C7A0, CEffectShowVisibility, 7, "CEffectShowVisibility::Pack");
+EI_VERIFY(0x0067C7A0, PackVerify_CEffectShowVisibility, 7, s_pack_CEffectShowVisibility);
+// 0067C910: PUSH ECX; PUSH ESI; MOV ESI,[ESP+0Ch] (6).
+EI_SAVE_VERIFY(0x0067C910, CEffectShowVisibility, 6, "CEffectShowVisibility::SaveState");
+EI_VERIFY(0x0067C910, SaveVerify_CEffectShowVisibility, 6, s_save_CEffectShowVisibility);
+// 0067C8E0: PUSH ESI; MOV ESI,[ESP+8] (5).
+EI_LOAD_VERIFY(0x0067C8E0, CEffectShowVisibility, 5, "CEffectShowVisibility::LoadState");
+EI_VERIFY(0x0067C8E0, LoadVerify_CEffectShowVisibility, 5, s_load_CEffectShowVisibility);
+
+// Ours only (the sight computation reallocates the grid): on the server the effect is at the seer.
+static int __fastcall VisibilityTickVerify(CEffectShowVisibility* self) {
+    int result = self->Tick();
+    bool ok = result == 0 || result == 1;
+    if (result == 1) ok = ok && self->grid_.width >= 1 && self->grid_.rows != nullptr;
+    ei::verify::Check("CEffectShowVisibility::Tick", true, ok, "object %p result %d", self, result);
+    return result;
+}
+EI_VERIFY(0x0067C840, VisibilityTickVerify, 0, s_unused);

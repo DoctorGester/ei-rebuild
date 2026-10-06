@@ -174,3 +174,13 @@ Kept: Load does not recompute the moving flag; Unpack does not either; Start cop
 Not rewritten: 0067AA00 (the missile's Reset) and 0067B390 / 0067B430 (its destructor), reachable only through the
 abstract vtable; 0067B050 (an out-of-line CEffect constructor, called only by the arrow constructor, now unused).
 CWorld gained slots 28 (RawSurfaceHeightAt) and 40 (ObjectWithId); CMapObject +0x144 extent.
+
+CEffectShowVisibility (0x5E, vtable 0074381C, 0x170; world_effect_visibility.cpp): +0x14C observer, +0x150 seer
+(SetUnits 0067C640, from vision fog 0x17 with caster and target), +0x154 counted fog object (client: made by the fog
+manager *007AF75C, 004E28D0), +0x158 FogGrid (cells / rows allocated by the constructor). The server's Tick follows
+the seer and recomputes the grid (005CD210) and marks the effect changed; Pack / Unpack send the grid through a stack
+memory stream (FogGrid Write / Read 005C8CC0 / 005C8BF0); Start reveals it in the fog (CVisibilityFog::Reveal). Reset
+does not reset the base. Verify: SetUnits side by side; Pack, Save, Load as the other effects; constructor against
+the original with the two grid blocks compared by shape; the rest ours only. Script casts have no caster, so only the
+new scenario spells_hero.txt (the hero casts vision fog and arrow from the battle screen) reaches it; not run yet.
+Not rewritten: 0067C5D0 (FogGrid free, unwind only), 0067C450 / 0067C460 (class name / id).
