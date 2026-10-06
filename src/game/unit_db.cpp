@@ -164,7 +164,7 @@ void UnitNpcRecord::Serialize(ChunkArchive* ar) {
     InlineStrings(ar, 9, &unknown_30);
     InlineStrings(ar, 10, &unknown_3C);
     InlineStrings(ar, 11, &unknown_48);
-    Dword(ar, 12, &unknown_54);
+    Dword(ar, 12, &experienceFloor);
     Dword(ar, 13, &unknown_58);
     ArchiveField(ar, nullptr, 14, &unknown_5C, 1);
 }

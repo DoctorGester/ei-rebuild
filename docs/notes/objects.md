@@ -117,11 +117,15 @@ were once swapped, also in its verify wrapper; multiplayer only).
 | 00669490, 00669A30, 00669C90 | 0x06 items received (money, items gathered in reverse with AddHead, 00665470 and the quest log with the money gained), 0x80 party (sized block into LoadParty(1); recharge list +0x114 gets items with charge < max; a multiplayer client restores its variables from a copy 004A8A50 / 00461540 / 004AA950; 005652E0, `GameFlow::ReturnLocalParty`), 0x83 party update (LoadParty(0)) | ours only |
 | 00669FA0, 00667E60, 00669710, 00669750 | 0x0E path markers (scratch unit class 0x32 reads the path through a delta field; sources 0x2039 / 0x203A-B when 0079BE70 is set, handed to 00535240 unreleased), 0x13 string event (005F8070 through its address, Rebirth-patched), start / stop the link's recording | ours only (result, stream moved) |
 | 00667EC0 | CPlayerClient::OnNewObject (0x40; multiplayer only, no scenario reaches it) | ours only (0, or 1 with the stream moved) |
+| 0066F4C0 | CPlayerServer::OnLeaderDied (slot 20, from CUnitServer::UpdateServer when the dead unit IsLeader): single player 0x09 + 0x0B (hero id, 0xFF); a network game revives a one-hero party (money / experience shares 007C5490 / 007C5494 over the NPC record's +0x54 `experienceFloor`, shared object, new id, CollectParty / SendParty / Redeploy, the old brain's +0x12C units and the old hero into the new one's) | ours only: stream +1 / +9; network: flag70_ 1, lastPosition_.z -1313 (hero_death) |
+| 00670310, 00670670, 006706A0, 00670730, 00670760, 006707D0 | CPlayerServer::OnUseOrder (0x36: units, flag, kind, value, object; nearest unit asked by CheckOrder / CheckOrderAt from its path end, else the nearest; Player mode CommandUse), UseOrderDistanceSquared, AIPath::Construct / TargetPoint, AIOrder::MakeUse / AimPoint | handler and the two builders ours only (result 1, stream moved by 4 * (n + 5)); the rest against the original (ui_battle_commands' dead-wolf clicks: one unit only) |
 
 Kept in CPlayerClient / CPlayerServer: the login's two 64-byte text buffers are sent with uninitialised bytes after the
 texts (ours zeroes them); 0x06's flag byte goes out zero-extended (the original's upper three bytes are stack garbage);
 OnNewObject reads the world's slot 19 as its `manager40_` (the client world's empty 00566310 / 00566320 are not called)
-and a figure or state that cannot be read returns 0 with the object made and unreleased. Names: CMapObjectVirtuals slots
+and a figure or state that cannot be read returns 0 with the object made and unreleased. OnLeaderDied in a network game with a party
+of more than one record reads two uninitialised stack ids (ours: -1, no object); the 0x36 unit array is
+`mfc::CArray<CUnit*>` (vtable 007402AC; 00671200 RemoveAt in library.csv); the AIPath is destroyed through 00546100. Names: CMapObjectVirtuals slots
 30 ApplyBaseScale, 34 TakePrototype, 61 SetScriptName; `CUnit::modelHeight` (+0xF4).
 
 Verify rule for the changed-sender wrappers: `CEffect::SendDelta` leaves flags_ bit 1 set, so the original's second run

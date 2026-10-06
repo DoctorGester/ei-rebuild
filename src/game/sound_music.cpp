@@ -14,6 +14,7 @@
 #include "random.h"
 
 #include "ei/hook.h"
+#include "ei/vcall.h"
 
 #include <new>
 
@@ -308,3 +309,75 @@ int CMusicSystem::UpdateMusic() {
     return 1;
 }
 EI_REPLACE_METHOD(0x006B5350, CMusicSystem::UpdateMusic);
+
+// ---- Lifetime and the engine object's slots (A-H13) ----
+
+namespace {
+// 006B56C0: the theme array's destructor (CArray<MusicTheme>::~CArray, a template instantiation).
+__declspec(naked) void __fastcall ThemesDestruct(void*) EI_ORIGINAL(0x006B56C0)
+constexpr int kMusicClassId = 0xE;
+// "CMusicSystem" (007967F4).
+const char* MusicClassNameText() { return reinterpret_cast<const char*>(std::uintptr_t(0x007967F4)); }
+} // namespace
+
+CMusicSystem* CMusicSystem::Construct() {
+    ClearFields();
+    ei::SetVtable(this, CEngineObject::kVtableAddress);
+    themesVtable = reinterpret_cast<void*>(kThemeArrayVtable);
+    themes = nullptr;
+    themeGrow = 0;
+    themeMax = 0;
+    themeCount = 0;
+    new (&credits) mfc::CString();
+    new (&mainMenu) mfc::CString();
+    new (&combatTrack) mfc::CString();
+    new (&jingle) mfc::CString();
+    ei::SetVtable(this, kVtableAddress);
+    ResetThemes();
+    return this;
+}
+EI_REPLACE_METHOD(0x006B4350, CMusicSystem::Construct);
+
+void CMusicSystem::ResetThemes() {
+    state = 0;
+    ThemesSetSize(&themesVtable, nullptr, 0, -1);
+    jingle = game::NoneText();
+    mainMenu = jingle;
+    credits = mainMenu;
+    jinglePlaying = 0;
+    calmDue = 0;
+    inCombat = 0;
+    holding = 0;
+    combatTrack = game::NoneText();
+}
+EI_REPLACE_METHOD(0x006B4690, CMusicSystem::ResetThemes);
+
+void CMusicSystem::DestructBody() {
+    ei::SetVtable(this, kVtableAddress);
+    ResetThemes();
+    jingle.~CString();
+    combatTrack.~CString();
+    mainMenu.~CString();
+    credits.~CString();
+    ThemesDestruct(&themesVtable);
+    DestructBase();
+}
+EI_REPLACE_METHOD(0x006B44B0, CMusicSystem::DestructBody);
+
+CMusicSystem* CMusicSystem::DeletingDestruct(unsigned flags) {
+    DestructBody();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x006B4490, CMusicSystem::DeletingDestruct);
+
+void CMusicSystem::FadeOut() { sound::Manager()->FadeOutStream(); }
+void CMusicSystem::FadeIn() { sound::Manager()->FadeInStream(); }
+EI_REPLACE_METHOD(0x006B4E10, CMusicSystem::FadeOut);
+EI_REPLACE_METHOD(0x006B4E20, CMusicSystem::FadeIn);
+
+// 006B4470 / 006B4480: slots 11 and 12.
+const char* __fastcall MusicSystemClassName(CMusicSystem*) { return MusicClassNameText(); }
+int __fastcall MusicSystemClassId(CMusicSystem*) { return kMusicClassId; }
+EI_REPLACE(0x006B4470, MusicSystemClassName);
+EI_REPLACE(0x006B4480, MusicSystemClassId);

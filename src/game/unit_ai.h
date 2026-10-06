@@ -116,6 +116,12 @@ struct AIOrder {
     void MakeAttack(CEngineObject* object);
     // 005CF780 (RET 8). Clear, then a cast (5) of `spell` at `object` (referenced).
     void MakeCast(int spell, CEngineObject* object);
+    // 00670760 (RET 8; player_server_handlers.cpp). Clear, then a use (6) of `object` (referenced)
+    // with `what`.
+    void MakeUse(CEngineObject* object, int what);
+    // 006707D0 (RET 4). Where the order aims: the object's AimPoint (slot 53), or `point` without
+    // an object. Returns `out`.
+    Vector3* AimPoint(Vector3* out) const;
 
     int kind;                       // +0x00
     int what;                       // +0x04 6 for an attack, the spell for a cast

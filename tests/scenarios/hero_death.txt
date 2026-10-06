@@ -1,0 +1,15 @@
+# The hero dies in single player: CUnitServer::UpdateServer (00552300) finds the dead unit is the
+# party's leader (CPlayer::IsLeader) and runs the player connection's slot 20, CPlayerServer::
+# OnLeaderDied (0066F4C0): message 0x09 and 0x0B with the hero's id to the client (the game-over
+# path). The report's call count for CPlayerServer::OnLeaderDied must be 1. The game runs ~5.5x faster.
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @InflictDamage(GetLeader(),100000)
+wait 3000
+report
+quit
