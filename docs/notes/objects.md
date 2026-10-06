@@ -100,6 +100,10 @@ ForgetObject (ours only: not in the map, the sent list +0x50D8 or the groups +0x
 (hash_map). CUnitServer::IsFighting (0054B580) is Rebirth-patched: called through its address. Fixed on the way:
 CWorldServer::CollectSharedObjects (00594A30, world_server.cpp) had its two stack arguments swapped (its only caller,
 0066E430, pushes the player id first), and so had its verify wrapper; it only runs for a multiplayer client.
+Third group: 0066D270 ReceiveMessages (slot 23: packets decompressed into 007C83D0, handlers by type from the table at
++0x28 / +0x2C; ours only, result 0 or 1) and 0066E130 UpdatePartyUnits (the party units from group +0x50F8, the
+player's units and what their brains see / know; each brain's +0x12C list then becomes the gathered group through
+004B3200; ours only). The receive errors go through 00664B70 (fatal) with the previous and current type.
 SendItems calls SendObject14 directly (the original goes through slot 22 of 00743280, which is it). PartyRecords
 moved to party_record_lookup.h (unit.h declares a second one).
 

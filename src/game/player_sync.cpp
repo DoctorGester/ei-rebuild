@@ -39,6 +39,27 @@ constexpr std::uint32_t kFlagDeltaPending = 2;   // flags_: the object's delta i
 constexpr std::uint32_t kRefreshMinimum = 900;   // updates until the party is sent again: 900..1800
 constexpr std::uint32_t kRefreshSpread = 901;
 
+constexpr std::uint8_t kMessageJoin = 0;    // the two types handled before the player has joined
+constexpr std::uint8_t kMessageJoin8 = 8;
+constexpr int kStateLeaving = 3;
+
+// The stream the received packets are decompressed into (007C83D0).
+CMemoryStream& ReceivedMessages() { return *reinterpret_cast<CMemoryStream*>(0x007C83D0); }
+// The receive errors' formats ("Serv pkt read error prevID=%x curID=%x", ...), read from the exe.
+const char* TextReadPastEnd() { return reinterpret_cast<const char*>(0x00794F0C); }
+const char* TextNoHandler() { return reinterpret_cast<const char*>(0x00794EDC); }
+const char* TextHandlerFailed() { return reinterpret_cast<const char*>(0x00794EA4); }
+const char* TextUnknownType() { return reinterpret_cast<const char*>(0x00794E7C); }
+// 00664B70 (RET 4): formats the message with the previous and the current type (bytes) and raises
+// the fatal error; returns its result.
+__declspec(naked) int __fastcall MessageError(const char* /*format*/, int /*previous*/, int /*type*/)
+    EI_ORIGINAL(0x00664B70)
+
+constexpr std::uint32_t kNoPartyCopy = 0xFFFFFFFF;   // CPlayerServer::unknown24_
+
+// The brain embedded in a unit's controller (CUnitServer + 0x980).
+AIBrain* BrainOf(CUnit* unit) { return reinterpret_cast<AIBrain*>(static_cast<CUnitServer*>(unit->controller)->brain); }
+
 // 2.0 (0073CDB8): a unit level at most this asks the client to refresh the party.
 float LowLevel() { return *reinterpret_cast<const float*>(0x0073CDB8); }
 
@@ -246,16 +267,13 @@ int CPlayerServer::SendPartyState() {
     for (int i = 0; i < count; ++i) {
         auto* unit = static_cast<CUnit*>(partyUnits_.data[i].AsUnit());
         if (refreshPending_ != 2 && !ObjectSlots(unit)->IsDead()) {
-            auto* controller = static_cast<CUnitServer*>(unit->controller);
-            if (UnitServerIsFightingOriginal(controller)) refreshPending_ = 2;
+            if (UnitServerIsFightingOriginal(unit->controller)) refreshPending_ = 2;
             // A neighbour hostile to this player whose aggression is aimed at the unit.
-            auto& neighbours = reinterpret_cast<AIBrain*>(controller->brain)->unknown_0F4;
-            for (auto* node = neighbours.head; node != nullptr;) {
+            for (auto* node = BrainOf(unit)->unknown_0F4.head; node != nullptr;) {
                 auto* other = static_cast<CUnit*>(node->data);
                 node = node->next;
                 if ((playerBit & other->relationsB & other->relationsA) == 0) continue;
-                auto* otherController = static_cast<CUnitServer*>(other->controller);
-                if (reinterpret_cast<AIBrain*>(otherController->brain)->AggressionEnemy() == unit) refreshPending_ = 2;
+                if (BrainOf(other)->AggressionEnemy() == unit) refreshPending_ = 2;
             }
         }
         WriteDword(&out_, static_cast<std::uint32_t>(unit->id_));
@@ -313,6 +331,79 @@ void CPlayerServer::SendParty() {
     party->Destruct();
 }
 
+int CPlayerServer::ReceiveMessages() {
+    if (state_ == kStateLeaving) return 0;
+    netlink::NetLink* link = Owner()->link_;
+    if (link == nullptr) return 0;
+    CMemoryStream& in = ReceivedMessages();
+    while (link->HasIncoming()) {
+        QueueStream packet;
+        if (!link->Receive(packet.Get())) return 0;
+        packet.Get()->DecompressTo(&decompressor_, &in);
+        in.Seek(0);
+        in.ok_ = 1;
+        std::uint8_t type = 0xFF;
+        std::uint8_t previous = 0xFF;
+        for (;;) {
+            if (!in.ok_) return MessageError(TextReadPastEnd(), previous, type);
+            previous = type;
+            if (in.Read(&type, 1) == 0) break;
+            if (state_ == 0 && type != kMessageJoin && type != kMessageJoin8) break;
+            if (static_cast<int>(type) >= handlerCount_) return MessageError(TextUnknownType(), previous, type);
+            auto handler = handlers_[type];
+            if (handler == nullptr) return MessageError(TextNoHandler(), previous, type);
+            if (!handler(this, nullptr)) return MessageError(TextHandlerFailed(), previous, type);
+            if (state_ == kStateLeaving) return 0;
+        }
+    }
+    return 1;
+}
+
+void CPlayerServer::UpdatePartyUnits() {
+    ScriptGroup known;
+    ScriptGroupConstructOriginal(&known);
+    known.vtable = scriptvtable::kRefs;
+    ScriptGroup party;
+    ScriptGroupConstructOriginal(&party);
+    party.vtable = scriptvtable::kRefs;
+    GroupAssignOriginal(&party, nullptr, &group50F8_);
+    CPlayer::ObjectMap& units = Owner()->units_;
+    if (unknown24_ == kNoPartyCopy) {
+        for (CPlayer::ObjectMap::Node* node = units.First(); node && node->value; node = units.After(node)) {
+            auto* unit = static_cast<CUnit*>(node->value);
+            party.Insert(unit);
+            AIBrain* brain = BrainOf(unit);
+            party.InsertAll(&brain->visible);
+            known.InsertAll(&brain->unknown_12C);
+        }
+        partyUnits_.Union(party, known);
+        for (CPlayer::ObjectMap::Node* node = units.First(); node && node->value; node = units.After(node))
+            ScriptGroupToListOriginal(&known, nullptr, &BrainOf(static_cast<CUnit*>(node->value))->unknown_12C);
+    } else {
+        PtrArraySetSize(&partyUnits_, nullptr, party.size, -1);
+        for (int i = 0; i < party.size; ++i) {
+            ScriptObjectRef copy;
+            ScriptRefAtOriginal(&party, nullptr, &copy, i);
+            partyUnits_.data[i].Reset();
+            partyUnits_.data[i].Construct(copy);
+            copy.Reset();
+        }
+        unknown24_ = kNoPartyCopy;
+    }
+    party.vtable = scriptvtable::kRefsBase;
+    if (party.data != nullptr) {
+        ScriptRefElementsDestruct(party.data, party.size);
+        gamecrt::operator_delete(party.data);
+    }
+    known.vtable = scriptvtable::kRefsBase;
+    if (known.data != nullptr) {
+        for (int i = 0; i < known.size; ++i) ScriptRefDestroy(&known.data[i].object, nullptr, 0);
+        gamecrt::operator_delete(known.data);
+    }
+}
+
+EI_REPLACE_METHOD(0x0066E130, CPlayerServer::UpdatePartyUnits);
+EI_REPLACE_METHOD(0x0066D270, CPlayerServer::ReceiveMessages);
 EI_REPLACE_METHOD(0x0066D100, CPlayerServer::Flush);
 EI_REPLACE_METHOD(0x0066E430, CPlayerServer::SendPartyState);
 EI_REPLACE_METHOD(0x0066DC90, CPlayerServer::ForgetObject);

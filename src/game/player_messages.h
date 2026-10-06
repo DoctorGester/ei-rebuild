@@ -100,6 +100,16 @@ public:
     // 0066EF80. Message 0x80: the party saved (with its variables) as a sized block; the next
     // refresh in 900..1800 updates (ISAAC).
     void SendParty();
+    // 0066D270 (slot 23). Every packet waiting on the link is decompressed (+0x28B0) into the
+    // received stream (007C83D0) and its messages run through the handlers; before the player has
+    // joined (state 0) only types 0 and 8, the rest of such a packet is dropped. A read past the
+    // end, a type without a handler or a refusing handler ends in the fatal error 00664B70 (its
+    // result returned). 0 when leaving (state 3, also after a handler) or without a link, else 1.
+    int ReceiveMessages();
+    // 0066E130. The party units (partyUnits_) recomputed: with +0x24 at -1, group50F8_ plus the
+    // player's units, the units they see and what they know (the brains' +0x12C lists), and every
+    // brain then knows all of it; otherwise partyUnits_ becomes a copy of group50F8_ and +0x24 -1.
+    void UpdatePartyUnits();
 
     CPlayer* Owner() const { return reinterpret_cast<CPlayer*>(player_); }
 
@@ -108,7 +118,10 @@ public:
     std::uint8_t* player_;          // +0x1C the world player (+0xC4 variables, +0x100, +0x130 dirty bits)
     int state_;                     // +0x20
     std::uint32_t unknown24_;       // +0x24 sent with message 0x60
-    std::uint8_t unknown_28[0x38 - 0x28];
+    // +0x28 the message handlers by type (thiscall, 0: refused), built by 0066C9A0; +0x2C their count.
+    int(__fastcall** handlers_)(CPlayerServer*, void*);
+    int handlerCount_;              // +0x2C
+    std::uint8_t unknown_30[0x38 - 0x30];
     Vector3 lastPosition_;          // +0x38 sent with 0x04 / 0x0F
     std::uint32_t unknown_44;
     BitStream out_;                 // +0x48 messages to the client (CMemoryStream)

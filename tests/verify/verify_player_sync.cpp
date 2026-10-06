@@ -183,8 +183,38 @@ void __fastcall SendPartyVerify(CPlayerServer* self) {
     ei::verify::Check("CPlayerServer::SendParty", true, ok, "player %p timer %d", self, self->refreshTimer_);
 }
 
+// Ours only (consumes the link and runs the handlers): the result is 0 or 1.
+int __fastcall ReceiveVerify(CPlayerServer* self) {
+    int result = self->ReceiveMessages();
+    bool ok = result == 0 || result == 1;
+    ei::verify::Check("CPlayerServer::ReceiveMessages", true, ok, "player %p: result %d state %d", self, result,
+                      self->state_);
+    return result;
+}
+
+// Ours only (rewrites the brains' lists): +0x24 is -1 after, and the party units hold group50F8_
+// (and, when +0x24 was -1, every unit of the player).
+void __fastcall UpdatePartyUnitsVerify(CPlayerServer* self) {
+    bool all = self->unknown24_ == 0xFFFFFFFFu;
+    self->UpdatePartyUnits();
+    bool ok = self->unknown24_ == 0xFFFFFFFFu;
+    for (int i = 0; i < self->group50F8_.size; ++i) {
+        CEngineObject* object = self->group50F8_.data[i].object;
+        ok = ok && (object == nullptr || self->partyUnits_.Contains(object));
+    }
+    if (all) {
+        CPlayer::ObjectMap& units = self->Owner()->units_;
+        for (CPlayer::ObjectMap::Node* node = units.First(); node && node->value; node = units.After(node))
+            ok = ok && self->partyUnits_.Contains(node->value);
+    }
+    ei::verify::Check("CPlayerServer::UpdatePartyUnits", true, ok, "player %p: %d party units", self,
+                      self->partyUnits_.size);
+}
+
 } // namespace
 
+EI_VERIFY(0x0066E130, UpdatePartyUnitsVerify, 0, s_unused);
+EI_VERIFY(0x0066D270, ReceiveVerify, 0, s_unused);
 EI_VERIFY(0x0066E430, PartyStateVerify, 7, s_partyState);
 EI_VERIFY(0x0066DC90, ForgetObjectVerify, 0, s_unused);
 EI_VERIFY(0x0066E110, IsPartyUnitVerify, 10, s_isPartyUnit);
