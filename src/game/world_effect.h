@@ -18,6 +18,7 @@
 #include "core_transform.h"
 #include "effects.h"
 #include "net_delta.h"
+#include "spell.h"
 #include "lib/mfc.h"
 
 #include <cstddef>
@@ -330,6 +331,35 @@ static_assert(offsetof(CEffectArrow, light_) == 0x2D8);
 static_assert(offsetof(CEffectArrow, sound_) == 0x43C);
 static_assert(offsetof(CEffectArrow, soundName_) == 0x6A0);
 static_assert(sizeof(CEffectArrow) == 0x6C0);
+
+// A bow or crossbow shot (vtable 007437B8, class id 0x5B, "CEffectArrowFigure"; made by
+// CUnitServer::DeliverAttack 0054F450 with the hit it carries). A missile at twice the speed. The
+// client shows it as a figure object of its own (class 0x38, model "efar1", texture "arrow01",
+// filed in the client world's maps) that follows it, turned along the velocity; on arrival the
+// server hands the hit to the target (its slot 31). 0x19C bytes. world_effect_missile.cpp.
+class CEffectArrowFigure : public CEffectMissile {
+public:
+    // The constructor resets (Reset); the destructor resets twice (inline, then slot 18).
+    CEffectArrowFigure* Construct();              // 0067BB90
+    void Destruct();                              // 0067BCD0
+    CEffectArrowFigure* DeletingDestruct(unsigned flags);     // 0067BCB0 (slot 0)
+    static std::uintptr_t Vtable();               // 007437B8
+    void Reset();                                 // 0067BAA0 (slot 18): figure out of the maps and released
+    int Tick();                                   // 0067BE20 (slot 6)
+    void MoveFigure();                            // 0067BEF0 (slot 24): the figure follows
+    void Start(int update);                       // 0067BF20 (slot 23): 0 makes the figure
+    int Unpack(int update, DeltaField* field);    // 0067C080 (slot 21)
+    void Pack(DeltaField* field);                 // 0067C170 (slot 22)
+    void LoadState(void* stream);                 // 0067C200 (slot 9)
+    void SaveState(void* stream);                 // 0067C290 (slot 10)
+
+    CEngineObject* figure_;    // +0x158 client only: the figure object (a CObject3D, counted), null: none
+    int casterId_;             // +0x15C the shooter, -1: none
+    DamageInfo hit_;           // +0x160 delivered on arrival (multiplier 1 after Reset)
+};
+static_assert(offsetof(CEffectArrowFigure, figure_) == 0x158);
+static_assert(offsetof(CEffectArrowFigure, hit_) == 0x160);
+static_assert(sizeof(CEffectArrowFigure) == 0x19C);
 
 // What a unit sees, shown in the fog of war (clairvoyance; vtable 0074381C, class id 0x5E, created
 // by CSpellEffect::CreateParticle and Start). The server recomputes the seen squares from the

@@ -248,7 +248,6 @@ namespace {
 
 // Constructor bodies not rewritten yet (ECX = the memory; they return it).
 __declspec(naked) CEngineObject* __fastcall ConstructAmbientSound(void*) EI_ORIGINAL(0x00677510)
-__declspec(naked) CEngineObject* __fastcall ConstructArrowFigure(void*) EI_ORIGINAL(0x0067BB90)
 __declspec(naked) CEngineObject* __fastcall ConstructMoshka(void*) EI_ORIGINAL(0x0067C950)
 __declspec(naked) CEngineObject* __fastcall ConstructTornado(void*) EI_ORIGINAL(0x0067D670)
 
@@ -275,7 +274,7 @@ CEngineObject* __fastcall EffectNewObject(CBaseManager*, void*, int type) {
     case 0x4D: object = NewEffect<CEffectLightning>(); break;
     case 0x4E: object = NewEffect<CEffectArrow>(); break;
     case 0x5A: object = NewEffect<CEffectWall>(); break;
-    case 0x5B: object = NewEffect(0x19C, &ConstructArrowFigure); break;
+    case 0x5B: object = NewEffect<CEffectArrowFigure>(); break;
     case 0x5E: object = NewEffect<CEffectShowVisibility>(); break;
     case 99: object = NewEffect<CEffectSoundSeq>(); break;
     case 100: object = NewEffect(0x16C, &ConstructMoshka); break;

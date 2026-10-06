@@ -140,6 +140,18 @@ __declspec(naked) inline bool __fastcall UnitServerIsFightingOriginal(void* /*co
 __declspec(naked) inline void __fastcall ObjectSetupFigureOriginal(void* /*object*/, void*, const char* /*model*/)
     EI_ORIGINAL(0x005179E0)
 __declspec(naked) inline void __fastcall FigureApplyPendingOriginal(void* /*figure state*/) EI_ORIGINAL(0x0050D450)
+// A 3D object's figure (thiscall on the object): 00516DA0 builds it from model `model` and the part names `parts` (a
+// CStringArray; RET 0xC, nonzero on success); 00518840 gives its animation state (+0x98) the model's animations (RET 8,
+// returns 1); 00518860 restarts that state (plain RET). On the figure the object holds at +0x94: 0051C970 loads its
+// textures (plain RET), 0051C250 swaps texture `from` for `to` (null: none; RET 8).
+__declspec(naked) inline int __fastcall Object3DMakeFigureOriginal(void* /*object*/, void*, const char* /*model*/,
+                                                                   void* /*parts*/, int /*flag*/) EI_ORIGINAL(0x00516DA0)
+__declspec(naked) inline void __fastcall Object3DSetAnimationsOriginal(void* /*object*/, void*, const char* /*model*/,
+                                                                       int /*flag*/) EI_ORIGINAL(0x00518840)
+__declspec(naked) inline void __fastcall Object3DRestartAnimationOriginal(void* /*object*/) EI_ORIGINAL(0x00518860)
+__declspec(naked) inline void __fastcall FigureLoadTexturesOriginal(void* /*figure*/) EI_ORIGINAL(0x0051C970)
+__declspec(naked) inline void __fastcall FigureSwapTextureOriginal(void* /*figure*/, void*, const char* /*from*/,
+                                                                   const char* /*to*/) EI_ORIGINAL(0x0051C250)
 // 0050F7A0 / 0050F900: the map object part of Load(stream) / Save(stream) (both RET 4, EAX not a result).
 __declspec(naked) inline void __fastcall MapObjectLoadOriginal(void* /*object*/, void*, void* /*stream*/)
     EI_ORIGINAL(0x0050F7A0)

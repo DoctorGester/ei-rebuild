@@ -570,9 +570,11 @@ __declspec(naked) std::uint8_t* __fastcall FindPrototypeByName(void*, void*, con
 // [00516DA0], 00518840 / 00518860 after it, 0050EA40, the position [00517700], the items
 // [005315B0 release all, 00531070 weapon, 00530730 armour, 00531180 quick item].
 __declspec(naked) void __fastcall UnitSetPrototype2(void*, void*, const char*) EI_ORIGINAL(0x005308D0)
-__declspec(naked) int __fastcall UnitMakeFigure(void*, void*, const char*, console::CStringArray*, int) EI_ORIGINAL(0x00516DA0)
-__declspec(naked) void __fastcall Unit518840(void*, void*, const char*, int) EI_ORIGINAL(0x00518840)
-__declspec(naked) void __fastcall Unit518860(void*) EI_ORIGINAL(0x00518860)
+int __fastcall UnitMakeFigure(void* a0, void*, const char* a2, console::CStringArray* a3, int a4) {
+    return Object3DMakeFigureOriginal(a0, nullptr, a2, a3, a4);
+}
+void __fastcall Unit518840(void* a0, void*, const char* a2, int a3) { Object3DSetAnimationsOriginal(a0, nullptr, a2, a3); }
+void __fastcall Unit518860(void* a0) { Object3DRestartAnimationOriginal(a0); }
 void __fastcall Unit50EA40(void* a0) { ObjectPrepareOriginal(a0); }
 __declspec(naked) void __fastcall UnitSetPosition(void*, void*, const float*) EI_ORIGINAL(0x00517700)
 __declspec(naked) void __fastcall UnitReleaseAllItems(void*) EI_ORIGINAL(0x005315B0)
@@ -581,8 +583,10 @@ void __fastcall UnitEquipArmour(void* a0, void*, void* a2) { UnitEquipArmourOrig
 __declspec(naked) void __fastcall UnitAddQuickItem(void*, void*, void*) EI_ORIGINAL(0x00531180)
 // The figure's 0051C970 and its texture swap [0051C250: from, to (null: none)]; an armour's type
 // [006A39E0, on the item].
-__declspec(naked) void __fastcall Figure51C970(void*) EI_ORIGINAL(0x0051C970)
-__declspec(naked) void __fastcall FigureSwapTexture(void*, void*, const char*, const char*) EI_ORIGINAL(0x0051C250)
+void __fastcall Figure51C970(void* a0) { FigureLoadTexturesOriginal(a0); }
+void __fastcall FigureSwapTexture(void* a0, void*, const char* a2, const char* a3) {
+    FigureSwapTextureOriginal(a0, nullptr, a2, a3);
+}
 __declspec(naked) int __fastcall ArmourType(void*) EI_ORIGINAL(0x006A39E0)
 
 constexpr int kSlotCreate = 0x5C / 4;        // object manager: (type, id) -> object

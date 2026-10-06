@@ -228,6 +228,7 @@ constexpr int kSetStunned = 46;           // 0xB8 (CUnit::SetFlag1000000 for uni
 } // namespace mapslot
 
 struct Vector3;
+struct DamageInfo;   // spell.h
 
 // The map objects' virtual slots past CEngineObject's, as callers reach them through the vtable
 // (CMapObject 0073DAA0, CUnit 0073EA8C, ...). The rewritten slot bodies stay plain members of the
@@ -252,7 +253,9 @@ public:
     virtual void Slot28() = 0;
     virtual void Slot29() = 0;
     virtual void Slot30() = 0;
-    virtual void Slot31() = 0;
+    // 31 (0x7C): a hit (DamageInfo) from `attacker` (units: to the controller's TakeHit; other
+    // objects ignore it, 0050E460).
+    virtual void ReceiveHit(DamageInfo* hit, CEngineObject* attacker, CEngineObject* caster) = 0;
     virtual void Slot32() = 0;
     virtual void Slot33() = 0;
     virtual void Slot34() = 0;

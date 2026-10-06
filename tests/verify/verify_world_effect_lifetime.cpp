@@ -136,6 +136,7 @@ bool Destroyed(const CEffectPointLight* e) { return DestroyedBase(e) && e->light
 bool Destroyed(const CEffectParticle* e) { return DestroyedBase(e) && e->source_ == nullptr && e->attachedTo_ == -1; }
 bool Destroyed(const CEffectLightning* e) { return DestroyedBase(e) && e->bolt_ == nullptr && e->toObject_ == -1; }
 bool Destroyed(const CEffectArrow* e);
+bool Destroyed(const CEffectArrowFigure* e);
 bool Destroyed(const CEffectShowVisibility* e);
 
 // A destructor body called directly (only slot 0 calls them).
@@ -193,6 +194,18 @@ CEffectArrow* __fastcall ArrowDeleteVerify(CEffectArrow* self, void*, unsigned f
     return DeleteOurs("CEffectArrow::DeletingDestruct", self, flags);
 }
 
+// CEffectArrowFigure (world_effect_missile.cpp; the factory constructs it directly, so only a
+// direct call of the bodies reaches these): no figure left.
+CEffectArrowFigure*(__fastcall* s_arrowFigureCtor)(CEffectArrowFigure*);
+CEffectArrowFigure* __fastcall ArrowFigureCtorVerify(CEffectArrowFigure* self) {
+    return ConstructBoth("CEffectArrowFigure::Construct", s_arrowFigureCtor, self);
+}
+bool Destroyed(const CEffectArrowFigure* e) { return DestroyedBase(e) && e->figure_ == nullptr && e->casterId_ == -1; }
+void __fastcall ArrowFigureDestructVerify(CEffectArrowFigure* self) { DestructOurs("CEffectArrowFigure::Destruct", self); }
+CEffectArrowFigure* __fastcall ArrowFigureDeleteVerify(CEffectArrowFigure* self, void*, unsigned flags) {
+    return DeleteOurs("CEffectArrowFigure::DeletingDestruct", self, flags);
+}
+
 // CEffectShowVisibility (world_effect_visibility.cpp; scenario spells_cast): both allocate the
 // grid's cells and rows, so those two pointers are compared by shape (rows[0] == cells) and the
 // original's blocks are freed with its scratch.
@@ -238,6 +251,9 @@ EI_VERIFY(0x0067E170, EffectNewObjectVerify, 0, s_unused);
 EI_VERIFY(0x0067C340, VisibilityCtorVerify, 7, s_visibilityCtor);
 EI_VERIFY(0x0067C490, VisibilityDestructVerify, 0, s_unused);
 EI_VERIFY(0x0067C470, VisibilityDeleteVerify, 0, s_unused);
+EI_VERIFY(0x0067BB90, ArrowFigureCtorVerify, 7, s_arrowFigureCtor);
+EI_VERIFY(0x0067BCD0, ArrowFigureDestructVerify, 0, s_unused);
+EI_VERIFY(0x0067BCB0, ArrowFigureDeleteVerify, 0, s_unused);
 EI_VERIFY(0x0067AE30, ArrowCtorVerify, 7, s_arrowCtor);
 EI_VERIFY(0x0067B1C0, ArrowDestructVerify, 0, s_unused);
 EI_VERIFY(0x0067B1A0, ArrowDeleteVerify, 0, s_unused);

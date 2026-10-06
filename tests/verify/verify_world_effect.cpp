@@ -699,6 +699,67 @@ EI_VERIFY(0x0067B9A0, SaveVerify_CEffectArrow, 5, s_save_CEffectArrow);
 static void __fastcall ArrowLoadVerify(CEffectArrow* self, void*, void* stream) { self->LoadState(stream); }
 EI_VERIFY(0x0067B8E0, ArrowLoadVerify, 0, s_unused);
 
+// --- CEffectArrowFigure (world_effect_missile.cpp; scenario effects_bow, vanilla) ------------------
+
+// Ours only (removes and releases the figure): the fields Reset sets.
+static void __fastcall ArrowFigureResetVerify(CEffectArrowFigure* self) {
+    self->Reset();
+    bool ok = BaseCleared(self) && self->targetId_ == -1 && self->arrived_ == 0 && self->fromCaster_ == 0 &&
+              self->casterId_ == -1 && self->figure_ == nullptr && Bits(self->hit_.multiplier) == 0x3F800000u &&
+              Bits(self->hit_.amount) == 0;
+    ei::verify::Check("CEffectArrowFigure::Reset", true, ok, "object %p", self);
+}
+EI_VERIFY(0x0067BAA0, ArrowFigureResetVerify, 0, s_unused);
+
+// Ours only (on arrival the server delivers the hit): while flying the position moved by the
+// velocity Steer left; otherwise arrived.
+static int __fastcall ArrowFigureTickVerify(CEffectArrowFigure* self) {
+    Vector3 before = self->localPosition_;
+    int result = self->Tick();
+    bool ok = result == 0 || result == 1;
+    if (result == 1) {
+        float x = before.x + self->velocity_.x;
+        ok = ok && Bits(self->localPosition_.x) == Bits(x);
+    } else {
+        ok = ok && self->arrived_ == 1;
+    }
+    ei::verify::Check("CEffectArrowFigure::Tick", true, ok, "object %p result %d", self, result);
+    return result;
+}
+EI_VERIFY(0x0067BE20, ArrowFigureTickVerify, 0, s_unused);
+
+// Ours only (moves the figure in the client's sector grid): the figure is at the shot.
+static bool FigureAtShot(const CEffectArrowFigure* self) {
+    if (self->figure_ == nullptr) return true;
+    return std::memcmp(reinterpret_cast<const char*>(self->figure_) + 0x1C, &self->localPosition_, 12) == 0;
+}
+static void __fastcall ArrowFigureMoveVerify(CEffectArrowFigure* self) {
+    self->MoveFigure();
+    ei::verify::Check("CEffectArrowFigure::MoveFigure", true, FigureAtShot(self), "object %p", self);
+}
+EI_VERIFY(0x0067BEF0, ArrowFigureMoveVerify, 0, s_unused);
+
+// Ours only (makes the figure object and files it in the client's maps): a new start leaves a
+// figure.
+static void __fastcall ArrowFigureStartVerify(CEffectArrowFigure* self, void*, int update) {
+    self->Start(update);
+    bool ok = update != 0 ? FigureAtShot(self) : self->figure_ != nullptr;
+    ei::verify::Check("CEffectArrowFigure::Start", true, ok, "object %p update %d", self, update);
+}
+EI_VERIFY(0x0067BF20, ArrowFigureStartVerify, 0, s_unused);
+
+EI_UNPACK_VERIFY(0x0067C080, CEffectArrowFigure, "CEffectArrowFigure::Unpack");
+EI_VERIFY(0x0067C080, UnpackVerify_CEffectArrowFigure, 0, s_unused);
+// 0067C170: SUB ESP,10h; PUSH ESI; PUSH EDI (5). Both run Steer first (it rewrites all it writes).
+EI_PACK_VERIFY(0x0067C170, CEffectArrowFigure, 5, "CEffectArrowFigure::Pack");
+EI_VERIFY(0x0067C170, PackVerify_CEffectArrowFigure, 5, s_pack_CEffectArrowFigure);
+// 0067C290: PUSH ESI; MOV ESI,[ESP+8] (5).
+EI_SAVE_VERIFY(0x0067C290, CEffectArrowFigure, 5, "CEffectArrowFigure::SaveState");
+EI_VERIFY(0x0067C290, SaveVerify_CEffectArrowFigure, 5, s_save_CEffectArrowFigure);
+// The figure reference is resolved against the world (a reference taken): ours only.
+static void __fastcall ArrowFigureLoadVerify(CEffectArrowFigure* self, void*, void* stream) { self->LoadState(stream); }
+EI_VERIFY(0x0067C200, ArrowFigureLoadVerify, 0, s_unused);
+
 // --- CEffectShowVisibility (world_effect_visibility.cpp; scenario spells_cast: clairvoyance) -------
 
 static void __fastcall VisibilityResetVerify(CEffectShowVisibility* self) {

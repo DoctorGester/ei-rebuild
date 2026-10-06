@@ -222,3 +222,15 @@ function (vanilla's "Parameter of type float expected"). hudstate logs the colum
 Calls in one run (both installs): CEffectArrow Reset 4, Tick 8, Unpack 1 (Pack none); CEffectMissile::SetTarget 1;
 CEffectShowVisibility SetUnits 1, Reset 4, Tick 105, Pack 51, Unpack 52. ui_battle_spells also uses GiveUnitSpell, so
 its column holds only the hero's two spells.
+
+CEffectArrowFigure (0x5B, vtable 007437B8, 0x19C; world_effect_missile.cpp, A-H9): +0x158 the figure object (class
+0x38 from the object manager with the next client id 007AF63C, counted; model "efar1", texture "arrow01" swapped for "",
+filed with CWorldClient::AddObject; the original reads the object's +0x94 figure before making the figure), +0x15C the
+shooter, +0x160 the DamageInfo DeliverAttack copies in (multiplier 1 after Reset). Tick: on the server, once arrived,
+the target's slot 31 (CMapObjectVirtuals::ReceiveHit) gets (hit, shooter, shooter); the shooter is looked up before the
+target is tested. Slot 24 moves the figure in the client's object grid (CWorldClient +0x120) and rolls it along the
+velocity. The factory now constructs it directly. Verify: Pack / Save against the original, constructor on seeded
+scratch, the rest ours only (Load: the figure reference is resolved against the world). Scenario effects_bow (new; the
+bow is selected on the weapon bar only in vanilla: Rebirth's layout moves the bar). Its vanilla run shows 2 mismatches
+of CUnitClientSpecific::UpdateArrow (units area, ours-only wrapper; first time a hero holds a bow), not investigated.
+Forwarders moved to originals_units.h: 00516DA0, 00518840, 00518860, 0051C970, 0051C250 (world_client_maps.cpp uses them).
