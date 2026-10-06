@@ -150,7 +150,7 @@ bool CWorldServer::IsObjectShared(int objectId, int playerId) {
     return false;
 }
 
-void CWorldServer::CollectSharedObjects(ScriptGroup* group, int playerId) {
+void CWorldServer::CollectSharedObjects(int playerId, ScriptGroup* group) {
     group->SetSize(0, -1);
     int player = SharedListPlayer(playerId);
     for (auto* node = static_cast<SharedObjectNode*>(sharedObjects_); node;) {

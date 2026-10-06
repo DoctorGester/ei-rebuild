@@ -471,7 +471,7 @@ namespace {
 
 // Object setup, through the original addresses (thiscall as fastcall).
 void __fastcall ObjectMarkNew(CEngineObject* a0, void*) { ObjectPrepareOriginal((void*)a0); }
-__declspec(naked) void __fastcall ObjectAnnounce(CEngineObject*, void*) EI_ORIGINAL(0x0050EA70)
+void __fastcall ObjectAnnounce(CEngineObject* a0, void*) { MapObjectSendDeltaOriginal(a0); }
 __declspec(naked) void __fastcall ObjectSetMovement(CEngineObject*, void*, const void*) EI_ORIGINAL(0x00517700)
 void __fastcall ObjectSetName(CEngineObject* a0, void*, const char* a2) { ObjectSetupFigureOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall ObjectSetSecondName(CEngineObject*, void*, const char*) EI_ORIGINAL(0x0050F150)

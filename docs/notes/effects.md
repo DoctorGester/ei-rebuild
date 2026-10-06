@@ -201,3 +201,9 @@ Next candidates (A-H7 left): class 0x5B (CEffectArrowFigure, vtable 007437B8, 00
 DeliverAttack 0054F450, no scenario shoots a bow yet); the Moshka (100, 0067C950..0067D660; the client world keeps one at
 +0x1B0 and draws it every frame through 0067CEF0, which only runs with a followed object); Tornado (0x65, 0067D670..0067E070,
 from the server weather 0058CCD0); CPlayerServer sync (0066D100..0066F080, forwarded by world_sync.cpp, live every tick).
+
+A-H8: spells_hero showed no missile / visibility calls because the hero was blocked (`BlockUnit`, flag 0x800000):
+the server drops a blocked unit's orders, casts included (0066FFF0), so only the new game's own three casts
+(point lights) ran; every newgame scenario shows those 3 CastSpell. The scenario now waits for the intro
+script's block, lifts it and waits for the arrow to hurt the second wolf. ui_battle_spells blocks the hero the
+same way (it only checks that UseOnUnit is reached).
