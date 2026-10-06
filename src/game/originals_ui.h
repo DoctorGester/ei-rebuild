@@ -217,3 +217,16 @@ __declspec(naked) inline void __fastcall TopPanelShowPageOriginal(void* /*panel*
 __declspec(naked) inline void __fastcall LoadSavedGameOriginal(const char* /*name*/) EI_ORIGINAL(0x006575B0)
 // 005F7E90: the interface stops sound `id` (thiscall, the interface not read; -1 none; RET 4).
 __declspec(naked) inline void __fastcall InterfaceStopSoundOriginal(CInterface3D*, void*, int /*id*/) EI_ORIGINAL(0x005F7E90)
+// The camp (CCampPages, thiscall on the window): 0060E9E0 (rewritten as ShowPage; through its address so the wrapper runs)
+// shows a page (RET 4); 00611930 (rewritten as UpdateAction, likewise) works out the page's action (plain RET); 00611220 /
+// 00611760 carry out the first / second action button's deal (plain RET).
+__declspec(naked) inline void __fastcall CampShowPageOriginal(void* /*camp*/, void*, int /*page*/) EI_ORIGINAL(0x0060E9E0)
+__declspec(naked) inline void __fastcall CampUpdateActionOriginal(void* /*camp*/) EI_ORIGINAL(0x00611930)
+__declspec(naked) inline void __fastcall CampDoActionOriginal(void* /*camp*/) EI_ORIGINAL(0x00611220)
+__declspec(naked) inline void __fastcall CampDoSecondActionOriginal(void* /*camp*/) EI_ORIGINAL(0x00611760)
+// 00621570 (rewritten as CUiItemStrip::ScrollToItem; through its address so the wrapper runs; RET 4).
+__declspec(naked) inline void __fastcall ItemStripScrollToItemOriginal(void* /*strip*/, void*, void* /*item*/)
+    EI_ORIGINAL(0x00621570)
+// 005F7C80 / 005F7C60: a multiplayer client's chat line takes Backspace / Enter (ECX = the interface; plain RET).
+__declspec(naked) inline void __fastcall ChatKeyBackspaceOriginal(CInterface3D*) EI_ORIGINAL(0x005F7C80)
+__declspec(naked) inline void __fastcall ChatKeyEnterOriginal(CInterface3D*) EI_ORIGINAL(0x005F7C60)

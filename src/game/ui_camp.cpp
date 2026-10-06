@@ -42,7 +42,7 @@ __declspec(naked) void CampPanel::ShowHelp(int) EI_ORIGINAL(0x005F2910)
 __declspec(naked) void CampPanel::ShowStats(int) EI_ORIGINAL(0x006233C0)
 __declspec(naked) void CampPanel::SelectTrade(int) EI_ORIGINAL(0x00625860)
 __declspec(naked) int CampPanel::SettleTrade(char, char) EI_ORIGINAL(0x006255A0)
-__declspec(naked) void CampPanel::AddItem(void*) EI_ORIGINAL(0x00621570)
+void CampPanel::AddItem(void* item) { ItemStripScrollToItemOriginal(this, nullptr, item); }
 CampPanel* Panel(void* window) { return static_cast<CampPanel*>(window); }
 
 // The camp's item helpers (thiscall on the camp; 005EE050.. in ui_screens.cpp are their siblings).

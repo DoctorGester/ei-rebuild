@@ -28,19 +28,6 @@ float Store(double v) {
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 CCamera* Camera() { return reinterpret_cast<CCamera*>(0x0079B2A8); }
 
-struct CameraKeys {
-    void* vtable;
-    CInterface3D* ui;        // +0x04
-    bool moving;             // +0x08 a direction is held
-    std::uint8_t unknown_09[0x20 - 0x09];
-    float x;                 // +0x20 right (+1) / left (-1)
-    float y;                 // +0x24 forward / back
-    float z;                 // +0x28 up / down
-
-    void OnKeyDown(int key, int repeat, int flags);
-};
-static_assert(offsetof(CameraKeys, x) == 0x20);
-
 bool ModifierHeld(const CInterface3D* ui) {
     const auto* bytes = reinterpret_cast<const std::uint8_t*>(ui);
     return bytes[0x7C] != 0 || bytes[0x7E] != 0;   // Ctrl or Alt
@@ -52,55 +39,55 @@ std::uint32_t Bits(float f) {
     return b;
 }
 
-void CameraKeys::OnKeyDown(int, int, int flags) {
+} // namespace
+
+void CCameraInput::OnKeyDown(int, int, int flags) {
     int character = static_cast<signed char>(reinterpret_cast<const std::uint8_t*>(0x0079BF70)[flags & 0x1FF]);
     switch (character) {
-    case 5: x = 1.0f; moving = true; break;
-    case 6: x = -1.0f; moving = true; break;
-    case 7: y = -1.0f; moving = true; break;
-    case 8: y = 1.0f; moving = true; break;
-    case 9: z = -1.0f; moving = true; break;
-    case 10: z = 1.0f; moving = true; break;
+    case 5: x_ = 1.0f; handled_ = true; break;
+    case 6: x_ = -1.0f; handled_ = true; break;
+    case 7: y_ = -1.0f; handled_ = true; break;
+    case 8: y_ = 1.0f; handled_ = true; break;
+    case 9: z_ = -1.0f; handled_ = true; break;
+    case 10: z_ = 1.0f; handled_ = true; break;
     case 13:
     case 14:
     case 15:
     case 16: {
         unsigned slot = static_cast<unsigned>(character - 13);
-        if (ModifierHeld(ui))
+        if (ModifierHeld(interface_))
             Camera()->SaveView(slot);
         else
             Camera()->RestoreView(slot);
-        moving = true;
+        handled_ = true;
         return;
     }
     default:
         break;
     }
-    if (!moving) return;
+    if (!handled_) return;
     float direction[3] = {0.0f, 0.0f, 0.0f};
-    if (!ModifierHeld(ui)) {
+    if (!ModifierHeld(interface_)) {
         // Pan along (y, -x) at the pan speed; no turning or tilting.
-        float left = -x;
+        float left = -x_;
         float speed = Store(D(GameFloat(0x0079BDC0)) * D(GameFloat(0x0079BDB8)));
-        direction[0] = Store(D(y) * D(speed));
+        direction[0] = Store(D(y_) * D(speed));
         direction[1] = Store(D(left) * D(speed));
         Camera()->Pan(direction);
         Camera()->SetTurnRate(0.0f);
-        Camera()->SetUnknownD0(Bits(Store(D(GameFloat(0x0079BDE4)) * D(GameFloat(0x0079BDDC)) * D(z))));
+        Camera()->SetUnknownD0(Bits(Store(D(GameFloat(0x0079BDE4)) * D(GameFloat(0x0079BDDC)) * D(z_))));
         Camera()->SetTiltRate(0.0f);
         return;
     }
     // With a modifier: no panning; turn by y, tilt by x (times 50).
     Camera()->Pan(direction);
-    Camera()->SetTurnRate(Store(D(GameFloat(0x0079BDCC)) * D(GameFloat(0x0079BDC4)) * D(y)));
-    Camera()->SetUnknownD0(Bits(Store(D(GameFloat(0x0079BDE4)) * D(GameFloat(0x0079BDDC)) * D(z))));
+    Camera()->SetTurnRate(Store(D(GameFloat(0x0079BDCC)) * D(GameFloat(0x0079BDC4)) * D(y_)));
+    Camera()->SetUnknownD0(Bits(Store(D(GameFloat(0x0079BDE4)) * D(GameFloat(0x0079BDDC)) * D(z_))));
     Camera()->SetTiltRate(
-        Store(D(GameFloat(0x0079BDD8)) * D(GameFloat(0x0079BDD0)) * D(x) * D(GameFloat(0x0074023C))));
+        Store(D(GameFloat(0x0079BDD8)) * D(GameFloat(0x0079BDD0)) * D(x_) * D(GameFloat(0x0074023C))));
 }
 
-} // namespace
-
 void __fastcall CameraKeysOnKeyDown(void* self, void*, int key, int repeat, int flags) {
-    static_cast<CameraKeys*>(self)->OnKeyDown(key, repeat, flags);
+    static_cast<CCameraInput*>(self)->OnKeyDown(key, repeat, flags);
 }
 EI_REPLACE(0x005EADD0, CameraKeysOnKeyDown);

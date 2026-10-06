@@ -76,6 +76,14 @@ wheel 790 15 -360
 wait 300
 wheel 700 80 120
 wait 300
+# Over the view no panel takes the wheel: the camera input zooms (005EB540), in and back out.
+wheel 400 300 120
+wait 300
+wheel 400 300 -120
+wait 300
+# A right click on the view: the camera input's right button (005EAD00 / 005EAD50).
+rclick 400 300
+wait 300
 
 # Movement panel: the inner button twice (toggles a flag and back), then a movement mode.
 click 10 590
