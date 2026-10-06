@@ -94,6 +94,9 @@ public:
     int OnNewObject();
     // 00667E60 (0x13). A text run as the interface's string event (005F8070).
     int OnStringEvent();
+    // 00667510 (slot 3) and its copy 00667600 (slot 15). State 0, the array +0x50D8 freed, both
+    // streams emptied (Resize(0)), +0x84 and the send-party flag cleared, both coders reset.
+    void Clear();
     // 00669710 (RET 4) / 00669750. With a link: request 2 is queued and the link records into
     // `path` (NetLink::OpenRecording) / the link stops recording.
     void StartRecording(const char* path);
@@ -116,7 +119,9 @@ public:
     std::uint8_t unknown_86[2];
     CoderState compressor_;         // +0x88 for the requests sent
     CoderState decompressor_;       // +0x28B0 for the messages received
+    PlayerObjectArray array50D8_;   // +0x50D8 (aligned storage; Clear frees it)
 };
+static_assert(offsetof(CPlayerClient, array50D8_) == 0x50D8);
 static_assert(offsetof(CPlayerClient, handlers_) == 0x24);
 static_assert(offsetof(CPlayerClient, in_) == 0x34);
 static_assert(offsetof(CPlayerClient, out_) == 0x5C);

@@ -151,6 +151,19 @@ int __fastcall PartyUpdateVerify(CPlayerClient* self) {
 int __fastcall PathMarkerVerify(CPlayerClient* self) {
     return CheckHandler("CPlayerClient::OnPathMarker", self, [&] { return self->OnPathMarker(); });
 }
+// Ours only (commits the coders' output, frees the array): the coders start over, everything is
+// empty.
+void __fastcall CoderResetVerify(CoderState* self) {
+    self->Reset();
+    bool ok = self->matchPos == -1 && self->pos == 0 && self->out.sink == nullptr && self->out.bits == 0;
+    ei::verify::Check("CoderState::Reset", true, ok, "coder %p", self);
+}
+void __fastcall ClearVerify(CPlayerClient* self) {
+    self->Clear();
+    bool ok = self->state_ == 0 && self->array50D8_.data == nullptr && self->array50D8_.size == 0 &&
+              self->in_.size_ == 0 && self->out_.size_ == 0 && self->sendParty_ == 0 && self->compressor_.matchPos == -1;
+    ei::verify::Check("CPlayerClient::Clear", true, ok, "client %p", self);
+}
 // Multiplayer only (no scenario): 1 and the stream moved, or 0.
 int __fastcall NewObjectVerify(CPlayerClient* self) {
     return CheckBlock("CPlayerClient::OnNewObject", self, [&] { return self->OnNewObject(); });
@@ -179,6 +192,9 @@ EI_VERIFY(0x00669C90, PartyUpdateVerify, 0, s_unused);
 EI_VERIFY(0x00669FA0, PathMarkerVerify, 0, s_unused);
 EI_VERIFY(0x00667E60, StringEventVerify, 0, s_unused);
 EI_VERIFY(0x00667EC0, NewObjectVerify, 0, s_unused);
+EI_VERIFY(0x006671A0, CoderResetVerify, 0, s_unused);
+EI_VERIFY(0x00667510, ClearVerify, 0, s_unused);
+EI_VERIFY(0x00667600, ClearVerify, 0, s_unused);
 EI_VERIFY(0x00669710, StartRecordingVerify, 0, s_unused);
 EI_VERIFY(0x00669750, StopRecordingVerify, 0, s_unused);
 

@@ -201,6 +201,9 @@ struct CoderState {
     void Decompress(GameBuffer* in, GameBuffer* out);
     // 0042FD10. Writes the match in progress (length and offset codes); ends it.
     void EncodeMatch(std::int32_t at);
+    // 006671A0 (player_client.cpp, A-H10). Ends the output (out.End: pending bits stored, the sink
+    // committed), then Construct.
+    void Reset();
 };
 static_assert(offsetof(CoderState, chain) == 0x800);
 static_assert(offsetof(CoderState, head) == 0x1800);

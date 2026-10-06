@@ -740,3 +740,31 @@ int CPlayerClient::OnNewObject() {
 }
 
 EI_REPLACE_METHOD(0x00667EC0, CPlayerClient::OnNewObject);
+
+// --- A-H10: clearing the connection ------------------------------------------------------------
+
+void CoderState::Reset() {
+    out.End();
+    Construct();
+}
+
+void CPlayerClient::Clear() {
+    state_ = 0;
+    if (array50D8_.data != nullptr) {
+        // Aligned storage: the block's own pointer is kept just before the data.
+        gamecrt::operator_delete(reinterpret_cast<void**>(array50D8_.data)[-1]);
+        array50D8_.data = nullptr;
+    }
+    array50D8_.capacity = 0;
+    array50D8_.size = 0;
+    in_.Resize(0);
+    out_.Resize(0);
+    unknown_84 = 0;
+    sendParty_ = 0;
+    compressor_.Reset();
+    decompressor_.Reset();
+}
+
+EI_REPLACE_METHOD(0x006671A0, CoderState::Reset);
+EI_REPLACE_METHOD(0x00667510, CPlayerClient::Clear);
+EI_REPLACE_METHOD(0x00667600, CPlayerClient::Clear);

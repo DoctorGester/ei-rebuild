@@ -137,6 +137,11 @@ slot 19 is read as its manager40_; the client world's 00566310 / 00566320 (empty
 that cannot be read returns 0 with the object made and unreleased. New names: CMapObjectVirtuals slots 30
 (ApplyBaseScale), 34 (TakePrototype), 61 (SetScriptName); CUnit::modelHeight (+0xF4); CPlayer::sessionKind100_ (+0x100).
 Verify: ours only (0, or 1 with the stream moved).
+00667510 (slot 3) / 00667600 (slot 15, the same bytes) CPlayerClient::Clear and 006671A0 CoderState::Reset (out.End, then
+Construct): ours only (fields cleared, coders restarted). +0x50D8 named array50D8_ (a PlayerObjectArray, aligned storage).
+Left in CPlayerClient: 00666D10 / 00666FD0 / 00666FB0 (constructor / destructor / slot 0), 00667230 (Create: the handler
+table), 00667B40 (RET 4, a stream copy), 00667BA0 (slot 14: unit added on the client, the quest log and the session's
++0x2600 record), the 3-byte stubs 00666EE0..00666F60.
 
 `FindCommandByKey` (00462F70) loops back to 00462F73 inside the 5 bytes the hook's jump overwrites, so its wrapper copies the whole 61-byte body (no calls) to executable memory at DLL load, before the hooks are
 installed, and runs that copy as the original (`stolenBytes` 0). Constructors allocate nothing, so the original runs safely on a copy.
