@@ -40,7 +40,7 @@ struct CampPanel {
 };
 void CampPanel::ShowHelp(int topic) { InfoPanelShowHelpOriginal(this, nullptr, topic); }
 __declspec(naked) void CampPanel::ShowStats(int) EI_ORIGINAL(0x006233C0)
-__declspec(naked) void CampPanel::SelectTrade(int) EI_ORIGINAL(0x00625860)
+void CampPanel::SelectTrade(int index) { TradePanelSelectHeroOriginal(this, nullptr, index); }
 int CampPanel::SettleTrade(char a, char all) { return TradePanelSettleOriginal(this, nullptr, a, all); }
 void CampPanel::AddItem(void* item) { ItemStripScrollToItemOriginal(this, nullptr, item); }
 CampPanel* Panel(void* window) { return static_cast<CampPanel*>(window); }
@@ -1613,9 +1613,8 @@ struct TextTableGlue {
 };
 void* TextTableGlue::Table() { return GameFlowOriginal(); }
 void __fastcall TextLookup(void* a0, void*, mfc::CString* a2, int a3) { TextsReadLineOriginal(a0, nullptr, a2, a3); }
-// The stats panel's hero name (006232D0, RET 8) and the trade panel's hero (00625860, RET 4).
+// The stats panel's hero name (006232D0, RET 8; the trade panel's hero 00625860 is in originals_ui.h).
 __declspec(naked) void __fastcall StatsPanelSetHero(CUiWindow*, void*, int, const char*) EI_ORIGINAL(0x006232D0)
-__declspec(naked) void __fastcall TradePanelSetHero(CUiWindow*, void*, int) EI_ORIGINAL(0x00625860)
 } // namespace
 
 void CCampPages::Update() {
@@ -1703,7 +1702,7 @@ void CCampPages::ShowHero() {
         name = own;
     }
     StatsPanelSetHero(statsPanel_, nullptr, hero_, name);
-    TradePanelSetHero(trade_, nullptr, hero_);
+    TradePanelSelectHeroOriginal(trade_, nullptr, hero_);
 }
 EI_REPLACE_METHOD(0x0060F830, CCampPages::ShowHero);
 

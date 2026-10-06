@@ -83,7 +83,7 @@ void CUiItemStrip::Build(char top) {
     std::memset(&scrollTimer_, 0, 4);
     scrollDirection_ = 0;
     count_ = 0;
-    unknown_17C = -1;
+    selected_ = -1;
     tabsEnabled_ = true;
 
     // Regions 0 / 1 the scroll arrows, 2-4 and 5-7 the tab buttons at the left and right ends,
