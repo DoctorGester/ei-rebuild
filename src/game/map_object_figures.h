@@ -33,6 +33,7 @@ struct AlignedPtrArray {
 static_assert(sizeof(AlignedPtrArray) == 0x10);
 
 struct FigurePart;
+struct FootprintPart;   // ai_map.h: a figure part's box (0x38 bytes)
 
 // What animates one figure part (class id 0x300B, made by the part's manager on first use and
 // kept counted at FigurePart +0x50). Only the fields the animation state sets.
@@ -55,7 +56,9 @@ struct FigurePart : CEngineObject {
     float tint[3];                  // +0x040 a colour the client half sets (stunned: red, 0, 0)
     FigurePartAnimator* previousAnimator;   // +0x04C the animator before an animation change
     FigurePartAnimator* animator;   // +0x050 counted; made on first use (Animator())
-    std::uint8_t unknown_054[0x18C - 0x54];
+    std::uint8_t unknown_054[0x74 - 0x54];
+    float pivot[3];                 // +0x074 copied to the object's part box (FootprintPart::pivot)
+    std::uint8_t unknown_080[0x18C - 0x80];
     float offset[3];                // +0x18C the piece's place in the figure
     float unknown_198;              // +0x198
     float boxMin[3];                // +0x19C
@@ -261,6 +264,16 @@ public:
     // 00518D30. For units (class id 0x50) with an animation database whose length is neither 0
     // nor NaN: (start + (end - start) * time) / length, else 1. In ST0, unrounded.
     double AnimationFactor(float time);
+    // object3d_figure_setup.cpp (A-U4).
+    // 005179E0. Sets the figure up for the model `model` (RET 4): the animation state (+0x98) is
+    // rescaled (0050D7C0), given the model (0050D320), plays nothing and applies it; one part box
+    // (+0x15C, CArray of FootprintPart, grown like MFC's SetSize) and one part name (+0x110) per
+    // animated part: the figure manager's bounds of the part (005AC010 with the model and the
+    // scale), the part's pivot, flags 4 (| 0x400 "BASE", 0x90 "CROWN", 0x890 "EMPTY" name
+    // prefixes); then the state releases its parts (0050C990). The bounds (+0x124..+0x14C) span
+    // every box's pivot + min / max + offset (heroes, type_ 0x32: x and y -0.5..0.5); without an
+    // animation state the box stays empty (FLT_MAX). Returns nothing.
+    void SetUpAnimatedFigure(const char* model);
     // 00517990. The index of the part name (+0x114) equal to `partName` (_mbscmp), or -1.
     int FindPartIndex(const char* partName);
 
@@ -328,7 +341,7 @@ public:
     CEngineObject* figure;          // +0x0F0 counted reference (slot 0 deletes)
     float defaultScale[3];          // +0x0F4 from 007AF1D0 (constructor, Create3D)
     int dirtyRect[4];               // +0x100 RECT: the screen area the last DrawCollectDirty covered
-    std::uint8_t unknown_110[0x114 - 0x110];
+    void* partNameArrayVtable;      // +0x110 \ CStringArray of the part names
     char** partNames;               // +0x114 the figure's part names (00517990), in the order of
     int partNameCount;              // +0x118 the part boxes (CUnit::partBoxes, +0x160)
     std::uint8_t unknown_11C[0x124 - 0x11C];
@@ -339,7 +352,7 @@ public:
     float above[3];                 // +0x144 box maximum - centre
     std::uint8_t unknown_150[0x15C - 0x150];   // cleared with the bounds
     void* partBoxArrayVtable;       // +0x15C \ CArray of the part boxes (vtable 0073DE40)
-    void* partBoxes;                // +0x160 |
+    FootprintPart* partBoxes;       // +0x160 | (ai_map.h)
     int partBoxCount;               // +0x164 |
     int partBoxCapacity;            // +0x168 |
     int partBoxGrowBy;              // +0x16C /

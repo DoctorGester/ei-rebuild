@@ -256,3 +256,25 @@ __declspec(naked) inline void* __fastcall SkillFindOriginal(void* /*database*/, 
     EI_ORIGINAL(0x0051FE00)
 __declspec(naked) inline void __fastcall StatsLearnSkillOriginal(void* /*stats*/, void*, void* /*database*/, void* /*record*/)
     EI_ORIGINAL(0x00526450)
+
+// A-U4 (object3d_figure_setup.cpp). The figure's animation state (CObject3D + 0x98, thiscall): 0050D7C0 rescales it to
+// x, y, z given as float bits (RET 0xC), 0050D320 sets its model (sets +0x74, the figure manager's slot 15 and 005AC880;
+// RET 4), 0050C990 releases every part it animates and empties the list (plain RET). None returns a result.
+__declspec(naked) inline void __fastcall AnimationStateSetScaleOriginal(void* /*state*/, void*, std::uint32_t, std::uint32_t,
+                                                                        std::uint32_t) EI_ORIGINAL(0x0050D7C0)
+__declspec(naked) inline void __fastcall AnimationStateSetModelOriginal(void* /*state*/, void*, const char* /*model*/)
+    EI_ORIGINAL(0x0050D320)
+__declspec(naked) inline void __fastcall AnimationStateReleasePartsOriginal(void* /*state*/) EI_ORIGINAL(0x0050C990)
+// 005AA5F0 (rewritten as FindFigureModel, figure_models.cpp): the figure manager's model named `name` (an STLport
+// string; thiscall, RET 4). 005AC010 (rewritten as LoadFigureBounds): a figure part's bounding volume into `out`
+// (thiscall on the manager, RET 0x1C; returns 1, 0 without data). Through their addresses so the wrappers run.
+__declspec(naked) inline void* __fastcall FigureManagerFindModelOriginal(void* /*manager*/, void*, const void* /*name*/)
+    EI_ORIGINAL(0x005AA5F0)
+__declspec(naked) inline int __fastcall FigureManagerPartBoundsOriginal(void* /*manager*/, void*, void* /*out*/, void* /*model*/,
+                                                                        const char* /*directory*/, const char* /*name*/,
+                                                                        std::uint32_t, std::uint32_t, std::uint32_t)
+    EI_ORIGINAL(0x005AC010)
+// 006B7110 (thiscall on the sound system, RET 8): the names of its files matching `pattern` in every resource it
+// searches, appended to the CStringArray `out` (emptied first). No result.
+__declspec(naked) inline void __fastcall SoundSystemListFilesOriginal(void* /*sounds*/, void*, void* /*out*/,
+                                                                      const char* /*pattern*/) EI_ORIGINAL(0x006B7110)

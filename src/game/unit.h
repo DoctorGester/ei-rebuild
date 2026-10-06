@@ -381,6 +381,10 @@ public:
     // 005313B0. Releases carried item `index` and closes the gap.
     // Returns the new count (EAX).
     int RemoveCarried(int index);
+    // unit_item_lists.cpp (A-U4). 005316F0 (RET 8). Empties both lists, then adds every item the
+    // unit holds to `items` (weapons, armour, quick items, spells, the carried ones; empty slots
+    // skipped) and each one's spell (CItem +0x44) to `spells` when it has one (0069FB60).
+    void CollectItems(mfc::CTypedPtrList<CEngineObject>* items, mfc::CTypedPtrList<void>* itemSpells);
     // 00531110. Sends the equipment ids to the controller (slot 32: the 7 armour ids, slot 33:
     // the 4 weapon ids). Returns what slot 33 leaves in EAX.
     std::uintptr_t SendEquipment();

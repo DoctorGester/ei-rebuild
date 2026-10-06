@@ -284,3 +284,13 @@ heroes index the armour table 0073EC78 by the hit location without a range check
 00511830 / 005119B0 (the companion's light); 00498400 and 0051C9F0 moved to originals_effects.h / originals_units.h.
 Say's new queue entry has three padding bytes of stack garbage in the original (ours zero); StopSpeech frees the nodes
 through stlp::deallocate where the original pushes them on the 32-byte free list (0079B230) itself.
+
+A-U4 (2026-10-07):
+| Address | Name | File | Verify |
+|---|---|---|---|
+| 005179E0 | CObject3D::SetUpAnimatedFigure (part boxes, part names, bounds of an animated figure; zone loader, levers) | object3d_figure_setup.cpp | ours only: box / name counts, state's parts released, bounds recomputed from the boxes (CheckNear) |
+| 0053A8E0 | UnitDatabase::CountSoundFiles (model sound names lower-cased, "*.wav" files counted by prefix) | unit_sound_counts.cpp | ours, then the original recounts; counts compared |
+| 005316F0 | CUnit::CollectItems (items and their spells into two lists; armour spell refresh 005528F0) | unit_item_lists.cpp | output (scratch lists) |
+Inlined: 00519FC0 (zero part boxes), 0069FB60 (list AddTail pair), STLport vector<int>::resize (004FE0C0). Ghidra calls
+00700EFE MakeUpper; it is MakeLower (_mbslwr at 006EC8A8, misnamed _mbsupr). Shared forwarders added to
+originals_units.h (0050D7C0, 0050D320, 0050C990, 005AA5F0, 005AC010, 006B7110).

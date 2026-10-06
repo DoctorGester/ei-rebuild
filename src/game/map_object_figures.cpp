@@ -54,8 +54,9 @@ void __fastcall SetPartOwner(FigurePart* a0, void*, CObject3D* a2) { FigurePartS
 // 0050D0E0. Animation state: a part was added.
 __declspec(naked) void __fastcall AnimationAddPart(void*, void*, FigurePart*) EI_ORIGINAL(0x0050D0E0)
 // 0050D7C0. Animation state: rescale to x, y, z given as float bits.
-__declspec(naked) void __fastcall AnimationSetScale(void*, void*, std::uint32_t, std::uint32_t, std::uint32_t)
-    EI_ORIGINAL(0x0050D7C0)
+void AnimationSetScale(void* state, void*, std::uint32_t x, std::uint32_t y, std::uint32_t z) {
+    AnimationStateSetScaleOriginal(state, nullptr, x, y, z);
+}
 // 005197B0. map<string, piece>::find on the figure's piece map at figure + 0x14: writes the node,
 // or the map's header when absent, to *out.
 void __fastcall FindPiece(void* a0, void*, const FigurePieceRecord** a2, const stlp::string* a3) { StringMapFindOriginal(a0, nullptr, (void**)a2, (const void*)a3); }
