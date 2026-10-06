@@ -38,10 +38,10 @@ struct CampPanel {
     int SettleTrade(char a, char all);           // 006255A0 (trade panel)
     void AddItem(void* item);                    // 00621570 (an item strip)
 };
-__declspec(naked) void CampPanel::ShowHelp(int) EI_ORIGINAL(0x005F2910)
+void CampPanel::ShowHelp(int topic) { InfoPanelShowHelpOriginal(this, nullptr, topic); }
 __declspec(naked) void CampPanel::ShowStats(int) EI_ORIGINAL(0x006233C0)
 __declspec(naked) void CampPanel::SelectTrade(int) EI_ORIGINAL(0x00625860)
-__declspec(naked) int CampPanel::SettleTrade(char, char) EI_ORIGINAL(0x006255A0)
+int CampPanel::SettleTrade(char a, char all) { return TradePanelSettleOriginal(this, nullptr, a, all); }
 void CampPanel::AddItem(void* item) { ItemStripScrollToItemOriginal(this, nullptr, item); }
 CampPanel* Panel(void* window) { return static_cast<CampPanel*>(window); }
 
@@ -52,8 +52,10 @@ struct CampItems {
     // 005EE1B0: moves `item` from `from` to `to`; returns the item now held.
     void* Move(void* item, void* to, void* from, int a, int b, int c);
 };
-__declspec(naked) void* CampItems::ReturnAll(void*, void*) EI_ORIGINAL(0x005EE2C0)
-__declspec(naked) void* CampItems::Move(void*, void*, void*, int, int, int) EI_ORIGINAL(0x005EE1B0)
+void* CampItems::ReturnAll(void* owner, void* list) { return ItemScreenReturnAllOriginal(this, nullptr, owner, list); }
+void* CampItems::Move(void* item, void* to, void* from, int a, int b, int c) {
+    return ItemScreenMoveItemOriginal(this, nullptr, static_cast<CItem*>(item), to, from, a, b, c);
+}
 
 // 00578B20 (on 007AFEA5): the client leaves the interface screen for the world.
 struct LocalClient {
@@ -244,12 +246,14 @@ struct CampKinds {
     bool IsKindOne(const std::uint8_t* item);          // 005EE110
     bool IsBlueprint(const std::uint8_t* item);        // 005EE130
 };
-__declspec(naked) bool CampKinds::IsSpellContainer(const std::uint8_t*) EI_ORIGINAL(0x005EE0B0)
+bool CampKinds::IsSpellContainer(const std::uint8_t* item) {
+    return static_cast<std::uint8_t>(ItemKindIsSpellContainerOriginal(item)) != 0;
+}
 bool CampKinds::IsSpell(const std::uint8_t* a0) { return ItemKindIsSpellOriginal((const void*)a0); }
 bool CampKinds::IsModifier(const std::uint8_t* a0) { return ItemKindIsModifierOriginal((const void*)a0); }
 bool CampKinds::IsPart(const std::uint8_t* a0) { return ItemKindIsPartOriginal((const void*)a0); }
 __declspec(naked) bool CampKinds::IsKindOne(const std::uint8_t*) EI_ORIGINAL(0x005EE110)
-__declspec(naked) bool CampKinds::IsBlueprint(const std::uint8_t*) EI_ORIGINAL(0x005EE130)
+bool CampKinds::IsBlueprint(const std::uint8_t* item) { return ItemKindIsBuildableOriginal(item); }
 
 // 0068B7C0 (thiscall on the spell): the spell has a cast-flag modifier.
 __declspec(naked) bool __fastcall SpellHasCastFlag(const std::uint8_t*) EI_ORIGINAL(0x0068B7C0)
@@ -508,16 +512,16 @@ struct TradeAt {
     int Experience();      // 00625530
 };
 __declspec(naked) bool TradeAt::CanLevelUp() EI_ORIGINAL(0x00625510)
-__declspec(naked) int TradeAt::LevelUpCost() EI_ORIGINAL(0x00625560)
-__declspec(naked) int TradeAt::Experience() EI_ORIGINAL(0x00625530)
+int TradeAt::LevelUpCost() { return TradePanelPurchaseCostOriginal(this); }
+int TradeAt::Experience() { return TradePanelExperienceOriginal(this); }
 
 // The help panel: 005EE6C0 describes an item (null: nothing), 005F2910 shows "camphelp<topic>".
 struct HelpAt {
     void Describe(const void* item);
     void ShowHelp(int topic);
 };
-__declspec(naked) void HelpAt::Describe(const void*) EI_ORIGINAL(0x005EE6C0)
-__declspec(naked) void HelpAt::ShowHelp(int) EI_ORIGINAL(0x005F2910)
+void HelpAt::Describe(const void* item) { InfoPanelDescribeOriginal(this, nullptr, const_cast<void*>(item)); }
+void HelpAt::ShowHelp(int topic) { InfoPanelShowHelpOriginal(this, nullptr, topic); }
 
 // Whether the constructors can make something from their slots (they also set spellMade_ /
 // itemMade_; thiscall on the camp, AL).
@@ -717,10 +721,14 @@ struct HoverAt {
     void Describe(HoverInfo* info);                   // 005F1590 (description panel)
     void DrawHero(int pass, void* hero, std::uint32_t turn, float depth, int flag);   // 005EC300 (the camp)
 };
-__declspec(naked) void HoverAt::TradeInfo(int, int, HoverInfo*) EI_ORIGINAL(0x00625690)
-__declspec(naked) void HoverAt::StatsInfo(int, int, HoverInfo*) EI_ORIGINAL(0x00624CB0)
-__declspec(naked) void HoverAt::Describe(HoverInfo*) EI_ORIGINAL(0x005F1590)
-__declspec(naked) void HoverAt::DrawHero(int, void*, std::uint32_t, float, int) EI_ORIGINAL(0x005EC300)
+void HoverAt::TradeInfo(int x, int y, HoverInfo* info) { TradePanelHoverInfoOriginal(this, nullptr, x, y, info); }
+void HoverAt::StatsInfo(int x, int y, HoverInfo* info) { StatsPanelHoverInfoOriginal(this, nullptr, x, y, info); }
+void HoverAt::Describe(HoverInfo* info) { InfoPanelDescribeStatsOriginal(this, nullptr, info); }
+void HoverAt::DrawHero(int pass, void* hero, std::uint32_t turn, float depth, int flag) {
+    float turnValue;
+    std::memcpy(&turnValue, &turn, sizeof turnValue);
+    WindowDrawHeroPreviewOriginal(this, nullptr, pass, hero, turnValue, depth, flag);
+}
 
 // A panel's or strip's item under (x, y) (slot 25, +0x64); also gives a help topic.
 std::uint8_t* ItemUnder(void* panel, int x, int y, int* topic) {
@@ -1005,14 +1013,14 @@ struct GameGlue {
 };
 void GameGlue::SetServerFlag(std::uint8_t f) { SetServerFlagOriginal(f); }
 __declspec(naked) std::uint8_t* GameGlue::PlayerData() EI_ORIGINAL(0x00578BA0)
-__declspec(naked) void GameGlue::TakeRecords(CloseRecordArray*) EI_ORIGINAL(0x005789E0)
+void GameGlue::TakeRecords(CloseRecordArray* records) { GameTakeUnitRecordsOriginal(this, nullptr, records); }
 GameGlue* GlueAt(std::uintptr_t address) { return reinterpret_cast<GameGlue*>(address); }
 
 // The description panels' Describe (005EE6C0) through its address.
 struct DescribeAt {
     void Describe(void* item);
 };
-__declspec(naked) void DescribeAt::Describe(void*) EI_ORIGINAL(0x005EE6C0)
+void DescribeAt::Describe(void* item) { InfoPanelDescribeOriginal(this, nullptr, item); }
 
 constexpr int kRecordSize = 0x784;
 constexpr std::uint32_t kRecordBias = 100000000;
@@ -1506,7 +1514,7 @@ namespace {
 // finishes; 00532A20 takes statistics (RET 4).
 __declspec(naked) void __fastcall UnitClearWeapon(std::uint8_t*, void*, int) EI_ORIGINAL(0x005310D0)
 void __fastcall UnitGiveWeapon(std::uint8_t* a0, void*, std::uint8_t* a2) { UnitAddWeaponOriginal((void*)a0, nullptr, (void*)a2); }
-__declspec(naked) void __fastcall UnitWeaponsDone(std::uint8_t*) EI_ORIGINAL(0x00531110)
+void UnitWeaponsDone(std::uint8_t* unit) { UnitSendEquipmentOriginal(unit); }
 __declspec(naked) void __fastcall UnitTakeStats(std::uint8_t*, void*, std::uint8_t*) EI_ORIGINAL(0x00532A20)
 
 void FigureCall(std::uint8_t* unit, int slot) {

@@ -43,6 +43,7 @@ static_assert(offsetof(PersonTextNode, text) == 0x14);
 inline int BoxSelectThreshold() { return *reinterpret_cast<const int*>(0x0079BDB0); }
 
 struct ItemHoverInfo;
+struct ClassTemplate;
 struct PartyUnitRecord;
 
 // Slot 51 (+0xCC) of the camp and the multiplayer hero screen: the record of the hero shown.
@@ -481,10 +482,10 @@ struct TradeRecord {
     std::uint8_t schools[6];         // +0x01 stats +0x6CB..
     std::uint8_t perks[36];          // +0x07 stats +0x6D3..
     std::uint8_t unknown_2B;         // +0x2B not written
-    int unknown_2C;                  // +0x2C stats +0x04
-    int unknown_30;                  // +0x30 stats +0x08
-    int unknown_34;                  // +0x34 stats +0x700
-    std::uint8_t unknown_38;         // +0x38 0
+    float experience;                // +0x2C stats +0x04
+    float spentExperience;           // +0x30 stats +0x08
+    float pendingExperience;         // +0x34 stats +0x700
+    std::uint8_t bought;             // +0x38 0; 1 once something was bought on the panel
     std::uint8_t unknown_39[3];      // not written
 };
 static_assert(sizeof(TradeRecord) == 0x3C);
@@ -520,6 +521,24 @@ public:
     // (kind 3: the perk's record name without its level digits, plus "0"; held ones with their
     // level); the hero's statistics with it.
     void HoverInfo(int x, int y, ItemHoverInfo* info);
+    // 00625530 (ui_hero_screen.cpp). The experience the shown hero can spend, from its record:
+    // pending plus earned minus spent, truncated.
+    int Experience() const;
+    // 00625560. What the hero (owner's slot 51) has spent since its record was made (the cost of the
+    // perks bought on the panel), truncated.
+    int PurchaseCost();
+    // 00626D70 (ui_trade_panel.cpp). Keeps perkTop_ in [0, held - 10] and learnableTop_ in
+    // [0, learnable - 23], shows the four scroll arrows (scene objects 0-3) only where the list
+    // can scroll, then draws the lists (006261A0).
+    void ClampScroll();
+    // 00626920 (input slot 2, RET 0xC). Regions 0 / 1 scroll the held perks up / down, 2 / 3 the
+    // learnable ones; from 4 the "perk" sound, then a purchase the experience covers: 4-9 a
+    // school level and 10 science (below 100; then held: heldRegion_, holdTime_ -0.5, the mouse
+    // captured), 11-33 a learnable perk, 34 up (and below 0) the next level of a held perk; the
+    // spent experience grows by the price, the record is marked bought and the lists rebuilt.
+    void OnLButtonDown(int buttons, int x, int y);
+    // The record of the hero shown (recordIndex_).
+    const TradeRecord& Record() const { return records_.begin[recordIndex_]; }
 
     std::uint8_t unknown_148[4];
     CUiWindow* owner_;               // +0x14C the camp or the hero screen (slot 51: the hero record)
@@ -532,8 +551,8 @@ public:
     TradeRows science_;              // +0x180 (one)
     int experience_;                 // +0x18C experience the hero can spend
     TradeRecords records_;           // +0x190 one per party member
-    int unknown_19C;                 // +0x19C -1 after Build
-    int unknown_1A0;                 // +0x1A0 0 after Build
+    int heldRegion_;                 // +0x19C the school / science row held after a purchase (-1 after Build)
+    float holdTime_;                 // +0x1A0 from -0.5 s (0 after Build)
     void* textsVtable_;              // +0x1A4 CStringArray: the titles
     char** texts_;                   // +0x1A8
 };
@@ -543,7 +562,7 @@ static_assert(offsetof(CTradePanel, science_) == 0x180);
 static_assert(offsetof(CTradePanel, experience_) == 0x18C);
 static_assert(offsetof(CTradePanel, texts_) == 0x1A8);
 static_assert(offsetof(CTradePanel, records_) == 0x190);
-static_assert(offsetof(CTradePanel, unknown_1A0) == 0x1A0);
+static_assert(offsetof(CTradePanel, holdTime_) == 0x1A0);
 
 // --- Camp pages -----------------------------------------------------------------------------
 //
@@ -657,6 +676,24 @@ public:
     // "camp_spell_trade", "camp_spell_constr", "camp_item_trade", "camp_item_constr",
     // "camp_repair"; none for other pages.
     const char* HelpTopic();
+    // 00611220 (ui_camp_deals.cpp; the first action button). The buy sound, then by page: 0 (with the
+    // item constructor offered and shown) every weapon and armour of the hero repaired; 1 the trade
+    // settled (SettleTrade(1, 0); the money is left alone); 2 / 4 the spell / item constructor buys
+    // what was put in its third list (each item repaired, its record added to the template's stock
+    // lists, or for loot of kind 0 dropped) and the lists go back (the first to the constructor's
+    // strip, the second to the player); 3 / 5 the made spell / item replaces what is in the results
+    // (or, while deconstructing_, DeconstructSpell / DeconstructItem); 6 the repairs' items repaired
+    // and given back. Then the money goes down by cost_.
+    void DoAction();
+    // 00611760 (the second action button). The cancel sound, then by page: 1 the trade settled with
+    // (0, 0); 2 / 4 the constructor's lists given back (the second to the strip, the third to the
+    // player); 3 / 5 every result moved back (made items to the constructor, the rest to the player);
+    // 6 the repairs' items given back.
+    void UndoAction();
+    // 00612500 (returns AL 1). The spell container in the results taken apart: a copy kept in
+    // spellMade_ while the original leaves the list; a "Prototype" item for its spell and a "Rune"
+    // item per modifier go into the results; the copy released.
+    bool DeconstructSpell();
 
     std::uint8_t unknown_148[0x164 - 0x148];
     CUiWindow* descPanel_;           // +0x164 the description panel (vtable 007404DC)
@@ -666,7 +703,9 @@ public:
     bool fromHeroScreen_;            // +0x194 opened from the multiplayer hero screen (closes with a pending value)
     bool spellConstructor_;          // +0x195 the spell constructor's pages are offered
     bool itemConstructor_;           // +0x196 the item constructor's pages are offered
-    std::uint8_t unknown_197[0x1A0 - 0x197];
+    std::uint8_t unknown_197;
+    ClassTemplate* constructor_;     // +0x198 the constructor's class template ("constr.current"), or null
+    std::uint8_t unknown_19C[4];
     std::uint8_t** heroes_;          // +0x1A0 the party's heroes (data of an array)
     std::uint8_t unknown_1A4[0x1B0 - 0x1A4];
     int hero_;                       // +0x1B0 the hero shown
@@ -741,6 +780,30 @@ public:
     // hero arrows (scene objects 0, 1) and their regions' tooltips only for a party of more than
     // one, +0x170 = the hero's height * 100 (truncated), then DrawStats (through its address).
     void SetHero(int heroIndex, const char* title);
+    // 00624790 (input slot 2, RET 0xC; ui_stats_buttons.cpp). On the new hero's page (10) a -/+
+    // button (regions 6-13) steps a point (StepPoint), plays "perk" and refreshes the owner (slot
+    // 47); a button that stepped is held (holdTime_ -0.5, the mouse captured). Elsewhere region 0 /
+    // 1 play "hero" and show the owner's previous / next hero (slots 49 / 48).
+    void OnLButtonDown(int buttons, int x, int y);
+    // 00624A60 (slot 24). While a button is held on page 10: after a quarter of a second (holdTime_
+    // adding the frame time) it repeats every frame; when it can step no more the hold ends (the
+    // capture cleared). The owner is refreshed (slot 47) on every repeat attempt.
+    void Update();
+    // A -/+ button of page 10: regions 6-8 take a point from strength, dexterity, intelligence
+    // (above 15), 9 the height down (points_ >= 1), 10-12 give one (below 35, while the three add
+    // up to under 75), 13 the height up (points_ <= 99; height = points_ * 0.01). True when it
+    // changed something.
+    bool StepPoint(int region);
+    // 006242E0 (RET 0x10; ui_stats_rows.cpp). A row on surface 0: the text of "perk <label>" (when
+    // the texts have it, else `label` itself) on the left, `value` ("%d", or "%d/%d" with a
+    // maximum >= 0) on the right.
+    void DrawRow(RECT* rect, const char* label, int value, int maximum);
+    // 00624590 (RET 0xC). A body part's row: "     " plus the text of "hl_<name>" on the left, its
+    // armour ("%.1f") on the right.
+    void DrawPart(RECT* rect, const char* name, int part);
+    // The armour shown for body part `part`: per damage type the three layers' absorption summed
+    // (stored as float), the largest of the first six types (from 0).
+    float PartArmour(int part);
 
     std::uint8_t unknown_148[4];
     CUiWindow* owner_;               // +0x14C
@@ -751,8 +814,8 @@ public:
     char** texts_;                   // +0x160 CStringArray data: weapon labels, the points texts, ...
     std::uint8_t unknown_164[0x170 - 0x164];
     int points_;                     // +0x170 skill points left (page 10); SetHero puts the height * 100 here
-    int unknown_174_;                // +0x174 -1
-    int unknown_178_;                // +0x178 0
+    int heldRegion_;                 // +0x174 the -/+ button held on page 10 (-1 none)
+    float holdTime_;                 // +0x178 seconds it has been held (from -0.5)
 };
 static_assert(offsetof(CHeroStatsPanel, owner_) == 0x14C);
 static_assert(offsetof(CHeroStatsPanel, page_) == 0x158);

@@ -84,6 +84,34 @@ Names are provisional.
 | 00469CA0-0046E490, 0046A4B0, 0046E5E0, 0045D5B0..0045DFB0 | the zone file's records (base, object, flame, magic trap, lever, unit with behaviours / patrols / waypoints, particle source, light, sound), chunk readers / writers, editor rotation, zone diplomacy table constructor | map_spec*.cpp | `verify_map_spec` |
 | 0066EE10, 0066EF30, 0066F180, 0066EBD0, 0066EC10, 0066EC70, 0066ECD0, 0066ED30, 0066EDA0, 0066EA10, 0066EA30, 0066EA70, 0066EAC0, 0066EB40, 0066EB90, 0066F1F0, 0066F280, 0066F2C0, 0066D6A0, 0066D6E0, 0066D770, 0066D7B0, 0066D250, 0066D260 | CPlayerServer SetVariable, DeleteVariable, SendGameTime, SendState02 / 70 / 71 / 72, SendPosition04 / 0F, Send17, SendObject0A, SendPair16, SendObjects0C, SendObject14, SendText0D / 08, SendValue15, SendPair18, SendObject43 / 0B, SendText13, SendText, SetDisconnect, SetFlag70 | player_messages.cpp | ours into the stream; the stream (header and bytes), +0x1C..+0x48, +0x70 and the player's dirty bits saved, restored, original, compared with the result (skipped when ours grew the buffer) |
 | 0066EE80, 0066F240, 0066D230, 006621B0, 00665DE0 | SetVariableMax, SendState73, WriteTo; PartyRecords::Find; CPlayer::Tick | player_messages.cpp | ours only (they read what they change or call other writers) / pure / ours only (object list consistent) |
+| 0066DBA0, 0066E020, 0066F080 | CPlayerServer SendObjectsChanged (0x41) / SendTimedChanged (0x51), SendItems | player_sync.cpp (A-H8) | ours, the stream restored, original, stream compared (a pending delta is written once, by ours) |
+| 0066D7F0, 0066DDE0, 0066DAD0, 0066DF40, 0066D100 | SendObjectsAdded (0x40) / SendTimedAdded (0x50), SendObjectsRemoved (0x42) / SendTimedRemoved (0x52), Flush | player_sync.cpp | ours only: objects in / out of the player's map, counted once, stream grown / result 0 or 1, messages emptied |
+
+Player sync (A-H8): CPlayer (the world player) +0x1C link, +0x28 / +0x58 hash_maps of the map / timed objects the
+client knows (each counted once; +0x3C / +0x6C the highest id), +0x70 an embedded CParty (slot 18 its item manager),
++0x10C log flag (Flush prints both sizes to cout). CPlayerServer +0x88 / +0x28B0 the send / receive coders. The
+"changed" senders compare the object's stamp with the world's update count; a pending delta (flags_ bit 1) is written
+first (0050EA70 for map objects, CEffect::SendDelta for timed ones). world_sync.cpp names the six senders by the
+DiffObjectSets output they get (Kept / Added / Removed): its "Kept" array gets the removals, "Removed" the changes.
+Second group: 0066E430 SendPartyState (0x60; ours, stream and +0x5120 restored, original, compared), 0066DC90
+ForgetObject (ours only: not in the map, the sent list +0x50D8 or the groups +0x50F8 / +0x510C), 0066E110 IsPartyUnit
+(pure), 0066EF80 SendParty (0x80 and the refresh timer; ours only). CPlayerServer +0x50D8 / +0x50E8 sent object arrays,
++0x50F8 / +0x510C script groups, +0x5120 refresh flag, +0x5124 timer; CPlayer +0x24 id, +0x40 the player's units
+(hash_map). CUnitServer::IsFighting (0054B580) is Rebirth-patched: called through its address. Fixed on the way:
+CWorldServer::CollectSharedObjects (00594A30, world_server.cpp) had its two stack arguments swapped (its only caller,
+0066E430, pushes the player id first), and so had its verify wrapper; it only runs for a multiplayer client.
+Third group: 0066D270 ReceiveMessages (slot 23: packets decompressed into 007C83D0, handlers by type from the table at
++0x28 / +0x2C; ours only, result 0 or 1) and 0066E130 UpdatePartyUnits (the party units from group +0x50F8, the
+player's units and what their brains see / know; each brain's +0x12C list then becomes the gathered group through
+004B3200; ours only). The receive errors go through 00664B70 (fatal) with the previous and current type.
+Client side (player_client.h / .cpp, A-H8): CPlayerClient (vtable 00743188) +0x1C player, +0x20 state, +0x24 / +0x28
+handler table (00667230), +0x34 received stream, +0x5C requests, +0x85 send-party flag, +0x88 / +0x28B0 coders.
+00667680 Pump (slot 4: login message 0 with version 100, "Tango", "Very top secret", the player's +0xFC; state 2 sends the
+camera anchor as 0x40), 00667810 SendToServer, 00667970 DispatchMessages, 00667A30 ReceiveMessages (slot 21, one packet per
+call): ours only (`verify_player_client.cpp`). The login's two 64-byte text buffers are sent with uninitialised bytes after
+the texts in the original; ours zeroes them. Error formats via 00664B70 (PlayerMessageErrorOriginal, originals_gameplay.h).
+SendItems calls SendObject14 directly (the original goes through slot 22 of 00743280, which is it). PartyRecords
+moved to party_record_lookup.h (unit.h declares a second one).
 
 `FindCommandByKey` (00462F70) loops back to 00462F73 inside the 5 bytes the hook's jump overwrites, so its wrapper copies the whole 61-byte body (no calls) to executable memory at DLL load, before the hooks are
 installed, and runs that copy as the original (`stolenBytes` 0). Constructors allocate nothing, so the original runs safely on a copy.

@@ -289,7 +289,7 @@ static void __fastcall StatsBuildVerify(CHeroStatsPanel* self, void*) {
     int textsAfter = *reinterpret_cast<const int*>(reinterpret_cast<std::uint8_t*>(self) + 0x164);
     bool ok = after.regions == before.regions + 2 && after.surfaces == before.surfaces + 1 &&
               after.sceneObjects == before.sceneObjects + 12 && textsAfter == texts + 8 && self->rect_.top == 100 &&
-              self->rect_.bottom == 400 && self->unknown_174_ == -1 && self->unknown_178_ == 0;
+              self->rect_.bottom == 400 && self->heldRegion_ == -1 && self->holdTime_ == 0.0f;
     ei::verify::Check("CHeroStatsPanel::Build", true, ok, "regions %d->%d sprites %d->%d texts %d->%d",
                       before.regions, after.regions, before.sceneObjects, after.sceneObjects, texts, textsAfter);
 }

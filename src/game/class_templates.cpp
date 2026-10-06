@@ -15,6 +15,7 @@
 #include <cstring>
 #include "originals_library.h"
 #include "originals_engine.h"
+#include "originals_gameplay.h"
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -81,12 +82,12 @@ void __fastcall StringCopy(RawString* a0, void*, const RawString* a2) { StringCo
 
 // The template's filter lists (+0x11C all, +0x1D4 spells and modifiers only), __thiscall (record):
 // each appends the record to one vector unless already there. 00699260 also takes two counts.
-__declspec(naked) void __fastcall AddArmor(void*, void*, void*) EI_ORIGINAL(0x00699080)
-__declspec(naked) void __fastcall AddWeapon(void*, void*, void*) EI_ORIGINAL(0x006990E0)
-__declspec(naked) void __fastcall AddQuickItem(void*, void*, void*) EI_ORIGINAL(0x00699140)
+void AddArmor(void* list, void*, void* record) { StockAddArmorOriginal(list, nullptr, record); }
+void AddWeapon(void* list, void*, void* record) { StockAddWeaponOriginal(list, nullptr, record); }
+void AddQuickItem(void* list, void*, void* record) { StockAddQuickItemOriginal(list, nullptr, record); }
 __declspec(naked) void __fastcall AddFourthKind(void*, void*, void*, int, int) EI_ORIGINAL(0x00699260)
-__declspec(naked) void __fastcall AddSpell(void*, void*, void*) EI_ORIGINAL(0x006991A0)
-__declspec(naked) void __fastcall AddModifier(void*, void*, void*) EI_ORIGINAL(0x00699200)
+void AddSpell(void* list, void*, void* record) { StockAddSpellOriginal(list, nullptr, record); }
+void AddModifier(void* list, void*, void* record) { StockAddModifierOriginal(list, nullptr, record); }
 
 template <typename T>
 T& At(void* base, std::size_t offset) {

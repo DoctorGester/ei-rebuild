@@ -5,13 +5,17 @@
 # (GiveUnitSpell), the portrait click shows them at (780, 450) and (780, 490), a click on a button
 # starts its target mode and "clickunit" on a wolf ends it. The report's call counts show what was
 # reached (CEffectShowVisibility::Tick / Pack / Unpack, CEffectArrow::Unpack with fromCaster_).
+# The hero must not be blocked: the server drops orders, casts included, of a unit with flag
+# 0x800000 (BlockUnit; 0066FFF0), so with the hero blocked only the new game's own three casts ran.
+# The zone's intro script blocks the hero for ~37 s: wait for that block and lift it.
 reject Script error
 wait 6000
 console thingamabob
 newgame
 speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
-console @BlockUnit(GetLeader(),1)
+waitfor 15 IsUnitBlocked(GetLeader())
+console @BlockUnit(GetLeader(),0)
 console @GodMode(0,1)
 console @GSSetVar(0,"hx",GetX(GetLeader()))
 console @GSSetVar(0,"hy",GetY(GetLeader()))
@@ -31,14 +35,18 @@ console @BlockUnit(GetObjectByName("HeroWolf1"),1)
 console @BlockUnit(GetObjectByName("HeroWolf2"),1)
 wait 500
 
+check Not(IsUnitBlocked(GetLeader()))
 click 780 450
 wait 200
 clickunit HeroWolf1
 wait 1000
+console @GSSetVar(0,"w2",HP(GetObjectByName("HeroWolf2")))
+check Not(IsUnitBlocked(GetLeader()))
 click 780 490
 wait 200
 clickunit HeroWolf2
-wait 3000
+waitfor 15 IsLess(HP(GetObjectByName("HeroWolf2")),GSGetVar(0,"w2"))
+wait 1000
 check IsAlive(GetLeader())
 report
 quit

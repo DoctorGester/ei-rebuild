@@ -254,7 +254,7 @@ static void __fastcall TradeBuildVerify(CTradePanel* self) {
     int records = static_cast<int>(self->records_.end - self->records_.begin);
     ei::verify::Check(name, party, records, "records");
     if (party > 0) ei::verify::Check(name, party - 1, self->recordIndex_, "record index");
-    ei::verify::Check(name, -1, self->unknown_19C, "+0x19C");
-    ei::verify::Check(name, 0, self->unknown_1A0, "+0x1A0");
+    ei::verify::Check(name, -1, self->heldRegion_, "+0x19C");
+    ei::verify::Check(name, 0.0f, self->holdTime_, "+0x1A0");
 }
 EI_VERIFY(0x00624F10, TradeBuildVerify, 0, s_tradeBuild);

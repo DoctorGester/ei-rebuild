@@ -150,11 +150,11 @@ EI_VERIFY(0x005949D0, IsSharedVerify, 9, s_isShared);
 
 // 00594A30: PUSH EBX; PUSH EBP; MOV EBP,[ESP+0x10] (6 bytes). Writes only the group: the original
 // fills a clone, ours the real group.
-static void(__fastcall* s_collectShared)(CWorldServer*, void*, ScriptGroup*, int);
-static void __fastcall CollectSharedVerify(CWorldServer* self, void*, ScriptGroup* group, int playerId) {
+static void(__fastcall* s_collectShared)(CWorldServer*, void*, int, ScriptGroup*);
+static void __fastcall CollectSharedVerify(CWorldServer* self, void*, int playerId, ScriptGroup* group) {
     ScriptGroup scratch = CloneGroup(*group);
-    s_collectShared(self, nullptr, &scratch, playerId);
-    self->CollectSharedObjects(group, playerId);
+    s_collectShared(self, nullptr, playerId, &scratch);
+    self->CollectSharedObjects(playerId, group);
     ei::verify::Check("CWorldServer::CollectSharedObjects", true, SameGroup(scratch, *group), "player %d size %d vs %d", playerId,
                       scratch.size, group->size);
     DestroyGroup(scratch);

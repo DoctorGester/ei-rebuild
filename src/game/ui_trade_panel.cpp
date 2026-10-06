@@ -47,8 +47,8 @@ __declspec(naked) void __fastcall RowsInsertOverflow(TradeRows*, void*, TradeRow
 
 // 00626D70 (__fastcall): clamps the two scroll positions, shades the four arrows and draws.
 // 006261A0 through its address (the rewrite below when hooked).
-__declspec(naked) void __fastcall ClampScroll(CTradePanel*) EI_ORIGINAL(0x00626D70)
-__declspec(naked) void __fastcall DrawListsAt(CTradePanel*) EI_ORIGINAL(0x006261A0)
+void ClampScrollAt(CTradePanel* panel) { TradePanelClampScrollOriginal(panel); }
+void DrawListsAt(CTradePanel* panel) { TradePanelDrawListsOriginal(panel); }
 // 00626090 (thiscall, RET 8): a price as text ("%d", "%.1fk", "%dk", ... ; negative as 0x7FFFFFFF).
 __declspec(naked) void __fastcall FormatPrice(CTradePanel*, void*, int, mfc::CString*) EI_ORIGINAL(0x00626090)
 
@@ -221,7 +221,7 @@ void CTradePanel::BuildLists() {
     std::memcpy(&plus, stats + 4, 4);
     std::memcpy(&minus, stats + 8, 4);
     experience_ = static_cast<int>(static_cast<double>(earned) + plus - minus);
-    ClampScroll(this);
+    ClampScrollAt(this);
     DrawListsAt(this);
 }
 namespace {
@@ -419,8 +419,8 @@ void CTradePanel::Build() {
             recordIndex_ = i;
             FillRecord(this);
         }
-        unknown_19C = -1;
-        unknown_1A0 = 0;
+        heldRegion_ = -1;
+        holdTime_ = 0.0f;
     }
 }
 namespace {

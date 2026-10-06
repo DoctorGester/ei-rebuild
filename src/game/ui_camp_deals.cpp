@@ -1,0 +1,289 @@
+// The camp's two action buttons (00611220 / 00611760) and taking a spell container apart
+// (00612500). See docs/notes/ui.md, section 5.
+#include "ui_camp.h"
+
+#include "class_templates.h"
+#include "item.h"
+#include "item_db.h"
+#include "party.h"
+#include "spell.h"
+#include "unit.h"
+#include "world.h"
+
+#include "ei/hook.h"
+#include "originals_gameplay.h"
+#include "originals_ui.h"
+
+#include <cstdint>
+
+namespace {
+
+const char* const kBuySound = reinterpret_cast<const char*>(0x00793800);      // "buttons\camp\buy.wav"
+const char* const kCancelSound = reinterpret_cast<const char*>(0x007937E4);   // "buttons\messbox\cancel.wav"
+const char* const kPrototypeItem = reinterpret_cast<const char*>(0x007938B8);  // "Prototype"
+const char* const kRuneItem = reinterpret_cast<const char*>(0x007938B0);       // "Rune"
+// The spell prototypes (their by-name lookup 00613920 is a thiscall on the table).
+void* SpellTable() { return reinterpret_cast<void*>(0x007C8510); }
+
+// Pages of the action buttons.
+enum CampPage {
+    kEquipment = 0,
+    kTrade = 1,
+    kSpellTrade = 2,
+    kSpellMaker = 3,
+    kItemTrade = 4,
+    kItemMaker = 5,
+    kRepair = 6,
+};
+
+// Loot (CItemLoot) kinds and record types the constructors take.
+constexpr std::uint32_t kKindOwnPrice = 0;
+constexpr std::uint32_t kRecordWeapon = 0;
+constexpr std::uint32_t kRecordArmor = 1;
+constexpr std::uint32_t kRecordQuickItem = 2;
+constexpr int kLootClass = 0x3007;
+constexpr int kWeaponClass = 0x3004;
+constexpr int kArmorClass = 0x3005;
+constexpr int kQuickItemClass = 0x3006;
+
+CParty* PartyOf(void* list) { return static_cast<CParty*>(list); }
+CParty* PlayerParty() { return reinterpret_cast<CParty*>(LocalPlayerData()); }
+CItem* ItemAt(CParty* party, int index) { return static_cast<CItem*>(party->items_.data[index]); }
+int ItemCount(const CParty* party) { return party->items_.size; }
+// The prototype index an item's packed id carries (its high word).
+std::uint32_t PrototypeIndex(const CEngineObject* object) { return object->unknown_18 >> 16; }
+// An item record (+0x1C) marked as made by a constructor (+0x10).
+bool MadeByConstructor(const CItem* item) {
+    auto* record = reinterpret_cast<const std::uint8_t*>(item->unknown_1C);
+    return record && record[0x10];
+}
+
+// The stock lists of a class template: everything (+0x11C) and spells and modifiers (+0x1D4).
+void* AllowedList(ClassTemplate* t) { return &t->allowed; }
+void* MagicList(ClassTemplate* t) { return &t->magic; }
+
+// Every item of `list` back to `to`, then the strip scrolled to the last one.
+void ReturnAll(CCampPages* camp, void* to, void* list, CUiItemStrip* strip) {
+    CItem* last = ItemScreenReturnAllOriginal(camp, nullptr, to, list);
+    ItemStripScrollToItemOriginal(strip, nullptr, last);
+}
+
+// The made spell or item replaces the results: every result removed, the made one added
+// and released.
+void TakeMade(CParty* results, CEngineObject*& made) {
+    while (ItemCount(results) != 0) PartyRemoveItemOriginal(results, nullptr, ItemAt(results, 0), 0);
+    PartyAddItemOriginal(results, nullptr, made, 0, 0);
+    made->Release();
+    made = nullptr;
+}
+
+// Every result moved back: made items to the constructor's first list and strip, the others to the
+// player and the item strip.
+void ReturnResults(CCampPages* camp, CParty* results, void* constructorList, CUiItemStrip* constructorStrip) {
+    while (ItemCount(results) != 0) {
+        CItem* item = ItemAt(results, 0);
+        bool made = MadeByConstructor(item);
+        void* to = made ? constructorList : static_cast<void*>(PlayerParty());
+        CItem* moved = ItemScreenMoveItemOriginal(camp, nullptr, item, to, results, 0, 1, 0);
+        ItemStripScrollToItemOriginal(made ? constructorStrip : camp->itemStrip_, nullptr, moved);
+    }
+}
+
+} // namespace
+
+// --- 00612500: a spell container taken apart ---------------------------------------------------------
+
+namespace {
+// A new item named `name` from the results' item manager, counted.
+CItemLoot* NewLoot(CParty* party, const char* name) {
+    auto* item = static_cast<CItemLoot*>(ItemManagerCreateItemOriginal(party->ItemManager(), nullptr, name));
+    ++item->refCount_;
+    return item;
+}
+void AddAndRelease(CParty* party, CItemLoot* item) {
+    PartyAddItemOriginal(party, nullptr, item, 0, 0);
+    item->Release();
+}
+} // namespace
+
+bool CCampPages::DeconstructSpell() {
+    CParty* results = PartyOf(spellResults_);
+    CItem* copy = results->CopyItem(ItemAt(results, 0));
+    spellMade_ = reinterpret_cast<std::uint8_t*>(copy);
+    ++copy->refCount_;
+    PartyRemoveItemOriginal(results, nullptr, ItemAt(results, 0), 0);
+    auto* spell = static_cast<CSpell*>(copy->spell_);
+
+    CItemLoot* prototype = NewLoot(results, kPrototypeItem);
+    prototype->index_ = PrototypeIndex(spell);
+    AddAndRelease(results, prototype);
+    for (int i = 0; i < spell->GetModifierCount(); ++i) {
+        CItemLoot* rune = NewLoot(results, kRuneItem);
+        rune->index_ = spell->modifiers_[i] - 1;
+        AddAndRelease(results, rune);
+    }
+    reinterpret_cast<CEngineObject*>(spellMade_)->Release();
+    spellMade_ = nullptr;
+    return true;
+}
+namespace {
+bool __fastcall CampDeconstructSpell(CCampPages* self, void*) { return self->DeconstructSpell(); }
+// 00612500 through its address (its wrapper runs); 006129C0 (not rewritten): an item taken apart.
+__declspec(naked) bool __fastcall DeconstructSpellAt(CCampPages*) EI_ORIGINAL(0x00612500)
+__declspec(naked) bool __fastcall DeconstructItemAt(CCampPages*) EI_ORIGINAL(0x006129C0)
+} // namespace
+EI_REPLACE(0x00612500, CampDeconstructSpell);
+
+// --- 00611220: the first action button ---------------------------------------------------------
+
+namespace {
+
+// The spell constructor's third list: each item repaired, its spell's (container), spell's or
+// modifier's record added to the template's spell stock.
+void StockSpells(CCampPages* camp, CParty* list) {
+    void* stock = MagicList(camp->constructor_);
+    for (int i = 0; i < ItemCount(list); ++i) {
+        CItem* item = ItemAt(list, i);
+        item->Repair();
+        if (static_cast<std::uint8_t>(ItemKindIsSpellContainerOriginal(item))) {
+            char* prototype = static_cast<CSpell*>(item->spell_)->GetPrototype();
+            const char* name = *reinterpret_cast<const char* const*>(prototype + 4);
+            StockAddSpellOriginal(stock, nullptr, SpellPrototypeByNameOriginal(SpellTable(), nullptr, name));
+        } else if (ItemKindIsSpellOriginal(item)) {
+            std::uint32_t index = static_cast<CItemLoot*>(item)->index_;
+            StockAddSpellOriginal(stock, nullptr, itemdb::Spells().At(index, itemdb::kSpellSize));
+        } else if (ItemKindIsModifierOriginal(item)) {
+            std::uint32_t index = static_cast<CItemLoot*>(item)->index_;
+            StockAddModifierOriginal(stock, nullptr, itemdb::SpellModifiers().At(index, itemdb::kSpellModifierSize));
+        }
+    }
+}
+
+// The item constructor's third list, from the end: each item repaired; weapons, armour and quick
+// items that can be taken apart and blueprint parts add their record to the template's stock;
+// loot priced by itself (kind 0) leaves the list.
+void StockItems(CCampPages* camp, CParty* list) {
+    void* stock = AllowedList(camp->constructor_);
+    for (int i = ItemCount(list) - 1; i >= 0; --i) {
+        CItem* item = ItemAt(list, i);
+        item->Repair();
+        int kind = -1;
+        std::uint32_t index = 0;
+        if (ItemKindIsBuildableOriginal(item)) {
+            index = PrototypeIndex(item);
+            if (item->type_ == kWeaponClass) kind = kRecordWeapon;
+            else if (item->type_ == kArmorClass) kind = kRecordArmor;
+            else if (item->type_ == kQuickItemClass) kind = kRecordQuickItem;
+        } else if (ItemKindIsPartOriginal(item)) {
+            auto* loot = static_cast<CItemLoot*>(item);
+            index = loot->index_;
+            if (loot->recordType_ <= kRecordQuickItem) kind = static_cast<int>(loot->recordType_);
+        } else if (item->type_ == kLootClass && static_cast<CItemLoot*>(item)->kind_ == kKindOwnPrice) {
+            PartyRemoveItemOriginal(list, nullptr, item, 1);
+        }
+        if (kind == static_cast<int>(kRecordWeapon))
+            StockAddWeaponOriginal(stock, nullptr, itemdb::Weapons().At(index, itemdb::kWeaponSize));
+        else if (kind == static_cast<int>(kRecordArmor))
+            StockAddArmorOriginal(stock, nullptr, itemdb::Armors().At(index, itemdb::kArmorSize));
+        else if (kind == static_cast<int>(kRecordQuickItem))
+            StockAddQuickItemOriginal(stock, nullptr, itemdb::QuickItems().At(index, itemdb::kQuickItemSize));
+    }
+}
+
+void RepairAll(CParty* list) {
+    for (int i = 0; i < ItemCount(list); ++i) ItemAt(list, i)->Repair();
+}
+
+} // namespace
+
+void CCampPages::DoAction() {
+    interface_->PlaySound(kBuySound, 0);
+    switch (page_) {
+    case kEquipment:
+        if (itemConstructor_ && !noConstructor_) {
+            using HeroFn = PartyUnitRecord*(__thiscall*)(CCampPages*);
+            PartyUnitRecord* hero = reinterpret_cast<HeroFn>(vtable_[51])(this);
+            for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) static_cast<CItem*>(hero->weapons[i])->Repair();
+            for (int i = 0; i < static_cast<int>(hero->armorCount); ++i) static_cast<CItem*>(hero->armor[i])->Repair();
+        }
+        break;
+    case kTrade:
+        TradePanelSettleOriginal(trade_, nullptr, 1, 0);
+        return;
+    case kSpellTrade:
+        reinterpret_cast<CParty*>(constructor_->spells)->SpellManager();
+        StockSpells(this, PartyOf(spellParts_[2]));
+        ReturnAll(this, spellParts_[0], spellParts_[2], spellStrip_);
+        ReturnAll(this, PlayerParty(), spellParts_[1], itemStrip_);
+        break;
+    case kSpellMaker:
+        if (deconstructing_) {
+            DeconstructSpellAt(this);
+        } else if (spellMade_) {
+            auto* made = reinterpret_cast<CEngineObject*>(spellMade_);
+            TakeMade(PartyOf(spellResults_), made);
+            spellMade_ = nullptr;
+        }
+        break;
+    case kItemTrade:
+        reinterpret_cast<CParty*>(constructor_->items)->ItemManager();
+        StockItems(this, PartyOf(itemParts_[2]));
+        ReturnAll(this, itemParts_[0], itemParts_[2], partStrip_);
+        ReturnAll(this, PlayerParty(), itemParts_[1], itemStrip_);
+        break;
+    case kItemMaker:
+        if (deconstructing_) {
+            DeconstructItemAt(this);
+        } else if (itemMade_) {
+            auto* made = reinterpret_cast<CEngineObject*>(itemMade_);
+            TakeMade(PartyOf(itemResults_), made);
+            itemMade_ = nullptr;
+        }
+        break;
+    case kRepair:
+        RepairAll(PartyOf(itemExtra_));
+        ReturnAll(this, PlayerParty(), itemExtra_, itemStrip_);
+        break;
+    default:
+        break;
+    }
+    PlayerParty()->Money() -= cost_;
+}
+namespace {
+void __fastcall CampDoAction(CCampPages* self, void*) { self->DoAction(); }
+} // namespace
+EI_REPLACE(0x00611220, CampDoAction);
+
+// --- 00611760: the second action button --------------------------------------------------------
+
+void CCampPages::UndoAction() {
+    interface_->PlaySound(kCancelSound, 0);
+    switch (page_) {
+    case kTrade:
+        TradePanelSettleOriginal(trade_, nullptr, 0, 0);
+        return;
+    case kSpellTrade:
+        ReturnAll(this, spellParts_[0], spellParts_[1], spellStrip_);
+        ReturnAll(this, PlayerParty(), spellParts_[2], itemStrip_);
+        break;
+    case kSpellMaker:
+        ReturnResults(this, PartyOf(spellResults_), spellParts_[0], spellStrip_);
+        break;
+    case kItemTrade:
+        ReturnAll(this, itemParts_[0], itemParts_[1], partStrip_);
+        ReturnAll(this, PlayerParty(), itemParts_[2], itemStrip_);
+        break;
+    case kItemMaker:
+        ReturnResults(this, PartyOf(itemResults_), itemParts_[0], partStrip_);
+        break;
+    case kRepair:
+        ReturnAll(this, PlayerParty(), itemExtra_, itemStrip_);
+        break;
+    default:
+        break;
+    }
+}
+namespace {
+void __fastcall CampUndoAction(CCampPages* self, void*) { self->UndoAction(); }
+} // namespace
+EI_REPLACE(0x00611760, CampUndoAction);

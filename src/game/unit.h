@@ -138,7 +138,12 @@ static_assert(offsetof(PartyUnitRecord, spells) == 0x760);
 struct PartyRecords {
     // 006621B0. The record of the unit with id `unitId`, or null (not rewritten).
     PartyUnitRecord* Find(int unitId);
+
+    std::uint8_t unknown_00[0x30];
+    PartyUnitRecord* records;        // +0x30
+    int count;                       // +0x34
 };
+static_assert(offsetof(PartyRecords, records) == 0x30);
 
 // One of a unit's six body part records (+0x374, 0x1C bytes) as the unit panel reads them: the
 // part's state (0 none: not shown; 1 drawn in red; 3 with a bar of `durability` / `maxDurability`).
@@ -175,12 +180,12 @@ public:
     virtual void Slot22();
     virtual void Slot23();
     virtual void Slot24();
-    virtual void Slot25();
+    virtual void ShowWeapon(std::uint32_t index);   // 25: the weapon the figure holds (-1 none)
     virtual bool ArmourPutOn(std::uint32_t itemId);     // 26: client 005381B0 (WearArmourModel)
     virtual bool ArmourTakenOff(std::uint32_t slot);    // 27: client 005385A0 (RemoveArmourModel)
     virtual void Slot28();
     virtual void Slot29();
-    virtual void Slot30();
+    virtual void RefreshModel();            // 30: after a weapon change
     virtual void Slot31();
     virtual void Slot32();
     virtual void Slot33();
@@ -573,7 +578,7 @@ public:
     int carriedCapacity;            // +0x4A8
     int carriedGrowBy;              // +0x4AC (0: an eighth of the count, 4..1024)
     float resistances[6];           // +0x4B0 per damage type (see ResistanceTo)
-    std::uint8_t unknown_4C8[0x4DC - 0x4C8];
+    float levels4C8[5];             // +0x4C8 any at most 2 (or NaN) asks for a party refresh (0066E430)
 };
 static_assert(offsetof(CUnit, prototypeName) == 0xA4);
 static_assert(offsetof(CUnit, orientation) == 0x34);

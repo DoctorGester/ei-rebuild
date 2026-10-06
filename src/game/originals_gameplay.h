@@ -62,6 +62,10 @@ __declspec(naked) inline void __fastcall PlayerDisconnectOriginal(void* /*player
 __declspec(naked) inline void* __fastcall PlayerCreateOriginal(void* /*session*/) EI_ORIGINAL(0x0066C180)
 __declspec(naked) inline void __fastcall PlayerStateRefreshOriginal(void* /*state*/) EI_ORIGINAL(0x0066EF80)
 __declspec(naked) inline void __fastcall PlayerResendPartyOriginal(void* /*state*/) EI_ORIGINAL(0x0066F450)
+// 00664B70 (RET 4): formats a message error ("... prevID=%x curID=%x") with the previous and the current message
+// type (bytes) and raises the fatal error 00480080; returns its result.
+__declspec(naked) inline int __fastcall PlayerMessageErrorOriginal(const char* /*format*/, int /*previous*/, int /*type*/)
+    EI_ORIGINAL(0x00664B70)
 
 // C3l. The unit record's four item lists (arrays of counted entries at +0x730 quick, +0x740 belt, +0x750 worn, +0x760 spells;
 // data / count / capacity at +0, +4, +8): Add(item) makes the item's record entry (0069FF70 with the item's manager context),
@@ -110,3 +114,17 @@ __declspec(naked) inline void __fastcall PlayerPathMessageOriginal(void* /*sink*
     EI_ORIGINAL(0x0066D490)
 __declspec(naked) inline int __fastcall StateObjectsAddedOriginal(void* /*state*/, void*, const void* /*objects*/)
     EI_ORIGINAL(0x0066D7F0)
+
+// A-I7. A class template's stock lists (+0x11C all, +0x1D4 spells and modifiers; thiscall on the list, RET 4): each
+// appends the record to its vector unless already there (no result): 00699080 armour, 006990E0 weapon, 00699140 quick
+// item, 006991A0 spell, 00699200 modifier.
+__declspec(naked) inline void __fastcall StockAddArmorOriginal(void* /*list*/, void*, void* /*record*/) EI_ORIGINAL(0x00699080)
+__declspec(naked) inline void __fastcall StockAddWeaponOriginal(void* /*list*/, void*, void* /*record*/) EI_ORIGINAL(0x006990E0)
+__declspec(naked) inline void __fastcall StockAddQuickItemOriginal(void* /*list*/, void*, void* /*record*/)
+    EI_ORIGINAL(0x00699140)
+__declspec(naked) inline void __fastcall StockAddSpellOriginal(void* /*list*/, void*, void* /*record*/) EI_ORIGINAL(0x006991A0)
+__declspec(naked) inline void __fastcall StockAddModifierOriginal(void* /*list*/, void*, void* /*record*/)
+    EI_ORIGINAL(0x00699200)
+// 00613920: the spell prototype named `name` (thiscall on the spell table 007C8510, RET 4), or null.
+__declspec(naked) inline char* __fastcall SpellPrototypeByNameOriginal(void* /*table*/, void*, const char* /*name*/)
+    EI_ORIGINAL(0x00613920)

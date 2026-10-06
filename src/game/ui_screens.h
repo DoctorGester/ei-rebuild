@@ -21,6 +21,8 @@
 #include <cstddef>
 #include <cstdint>
 
+class CItemInfoPanel;
+
 // Offset of the input sub-object (the second vtable) inside every window.
 constexpr std::ptrdiff_t kUiInputOffset = 0x94;
 
@@ -243,6 +245,26 @@ int HeroManaUnits(void* stats);
 bool HeroCanUseSpell(void* stats, char* spell);
 
 // --- Multiplayer hero screen ----------------------------------------------------------------
+
+// A voice of the hero screen (8 bytes: two CStrings, kept as their pointers).
+struct MpVoiceEntry {
+    // 00615800. The destructor: the name, then the file.
+    void Destroy();
+
+    const char* file;           // +0 CString
+    const char* name;           // +4 CString
+};
+static_assert(sizeof(MpVoiceEntry) == 8);
+struct MpVoiceVector {
+    MpVoiceEntry* begin;
+    MpVoiceEntry* end;
+    MpVoiceEntry* capacity;
+};
+struct MpStringVector {
+    const char** begin;         // CStrings
+    const char** end;
+    const char** capacity;
+};
 //
 // Opened by the main menu's Multiplayer button (region 5 of 00632D70; vtables 00742118/0074214C,
 // 0x220 bytes). Modes (+0x190, set by 00615D30): 9 hero list, 10 new hero (portrait, name and
@@ -292,17 +314,55 @@ public:
     // Called through the vtable, as the original does.
     char* Hero();                       // slot 51 (+0xCC)
     void Refresh();                     // slot 47 (+0xBC), 00618850 here
-    // Not rewritten.
-    void ShowHero(int index);           // 00616910
-    void DrawVoices();                  // 00616560
+    // 00616910 (RET 4; ui_hero_screen.cpp). The local player's first record handed to the client
+    // world; hero `index` (when in the list; else none, -1) copied into the local party and made
+    // current; the preview rebuilt (00616E20 with 1); the hero's unit re-armed (four slots
+    // cleared, its weapons given, the equipment sent, the chosen weapon shown); the turn reset and
+    // the list redrawn.
+    void ShowHero(int index);
+    // 00616560. The voices' surface (2): the "lmp_voices" title and eleven rows from voiceTop_,
+    // the selection frame (scene object 2) on the chosen one.
+    void DrawVoices();
+    // 006167C0. The hero list's surface (0): ten rows of names from heroTop_, the selection frame
+    // (scene object 2) on the selected hero.
+    void DrawHeroList();
+    MpVoiceVector& Voices() { return *reinterpret_cast<MpVoiceVector*>(voices_); }
+    // The three above through their original address (their wrappers run; ui_screens.cpp).
+    void CallShowHero(int index);
+    void CallDrawVoices();
+    void CallDrawHeroList();
+
+    // 006159E0 (slot 20, RET 4; ui_hero_screen.cpp). On the statistics page (11) the experience
+    // lines on surface 2; then what is under the mouse for the description panel (the equipment
+    // panels' item or help topic, the trade panel's or the statistics' entry, on the new hero's
+    // page the voice rows' "lmp_select_voice"), the children drawn and the hero previewed (list
+    // with a hero selected at depth 553, new hero at 400). Returns 1.
+    BOOL Draw(int pass);
+    // 00617820 (slot 24). The children's update; a held rotate arrow turns the preview by twice the
+    // frame time (modulo 007C7F10); the two scroll bars' moves redraw the hero list and the voices;
+    // on the new hero's page the create button (scene object 9) is bright only when the three
+    // attributes add up to 00741C98's points and the name is not empty.
+    void Update();
+    // 00615850 (slot 26). The heroes saved (006632B0 on 007C82A0), the local player's unit records
+    // handed to 005789E0, the preview cleared and the description panel emptied.
+    void Close();
+    // 00633260 (the destructor body; slot 0 00633240 deletes): the two voice lists' entries and
+    // storage, the CString +0x1F4, the two string vectors, the texture and model caches (objects
+    // released, nodes erased), then the container's body (00600BA0).
+    void Destroy();
+    // The level-up and experience lines of the statistics page (inlined by Draw).
+    void DrawExperience();
 
     CUiWindow window;
-    std::uint8_t unknown_148[0x190 - 0x148];
+    std::uint8_t unknown_148[0x164 - 0x148];
+    CItemInfoPanel* descPanel_; // +0x164 the description panel
+    std::uint8_t* hoveredItem_; // +0x168 the item under the mouse (set by Draw)
+    std::uint8_t unknown_16C[0x190 - 0x16C];
     int mode_;                  // +0x190 9, 10, 11
     int heroIndex_;             // +0x194 selected hero
     void* heroScroll_;          // +0x198 scroll bar of the hero list
     int heroTop_;               // +0x19C first row shown
-    std::uint8_t unknown_1A0[4];
+    std::uint8_t* previewModel_;// +0x1A0 the hero's figure shown by the preview (005EC300)
     char* weapon_;              // +0x1A4
     char* armor_;               // +0x1A8
     char* spellContainer_;      // +0x1AC
@@ -311,20 +371,25 @@ public:
     void* spellPanel_;          // +0x1B8
     std::uint8_t unknown_1BC[0x1C4 - 0x1BC];
     void* tradePanel_;          // +0x1C4 (CTradePanel; 006255A0)
-    void** defaults_;           // +0x1C8 its first entry goes to slot 52 for a new hero
-    std::uint8_t unknown_1CC[0x1E0 - 0x1CC];
+    void** defaults_;           // +0x1C8 STLport vector<CString>; its first entry goes to slot 52 for a new hero
+    void** defaultsEnd_;        // +0x1CC
+    void** defaultsCapacity_;   // +0x1D0 (also its allocator proxy)
+    MpStringVector names_;      // +0x1D4 STLport vector<CString>
     float turn_;                // +0x1E0 the preview's turn
     int rotating_;              // +0x1E4 0, 1 or 2 while a rotate arrow is held
     std::uint8_t* renameEdit_;  // +0x1E8 the hero list's rename edit window (+0x179: editing)
     void* nameEdit_;            // +0x1EC the new hero's name edit window (0065C290 sets its text)
     void* voiceScroll_;         // +0x1F0
-    std::uint8_t unknown_1F4[0x210 - 0x1F4];
+    const char* text_;          // +0x1F4 CString
+    MpVoiceVector voiceLists_[2];   // +0x1F8, +0x204 (voices_ points at one of them)
     char** voices_;             // +0x210 STLport vector of {CString file, CString name} (8 bytes)
     int voiceTop_;              // +0x214
     int voiceIndex_;            // +0x218
     int voiceSound_;            // +0x21C
 };
 static_assert(offsetof(CMpHeroScreen, rotating_) == 0x1E4);
+static_assert(offsetof(CMpHeroScreen, descPanel_) == 0x164);
+static_assert(offsetof(CMpHeroScreen, previewModel_) == 0x1A0);
 static_assert(offsetof(CMpHeroScreen, renameEdit_) == 0x1E8);
 static_assert(offsetof(CMpHeroScreen, tradePanel_) == 0x1C4);
 static_assert(offsetof(CMpHeroScreen, mode_) == 0x190);
@@ -333,6 +398,8 @@ static_assert(offsetof(CMpHeroScreen, weapon_) == 0x1A4);
 static_assert(offsetof(CMpHeroScreen, weaponPanel_) == 0x1B4);
 static_assert(offsetof(CMpHeroScreen, voiceScroll_) == 0x1F0);
 static_assert(offsetof(CMpHeroScreen, voices_) == 0x210);
+static_assert(offsetof(CMpHeroScreen, names_) == 0x1D4);
+static_assert(offsetof(CMpHeroScreen, voiceLists_) == 0x1F8);
 static_assert(sizeof(CMpHeroScreen) == 0x220);
 
 // The multiplayer heroes (records of 0x74 bytes; +0x30 CString name, +0x70 CString file).

@@ -2,6 +2,7 @@
 // docs/notes/objects.md.
 
 #include "player_messages.h"
+#include "party_record_lookup.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
