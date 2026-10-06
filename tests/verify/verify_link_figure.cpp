@@ -69,6 +69,15 @@ const char* AppendedDiff(const CLinkMesh* expected, const CLinkMesh* actual, con
     if (after.corners - before.corners != added.corners) return "corner count";
     if (after.words - before.words != added.words) return "word count";
     if (after.indices - before.indices != added.indices) return "index count";
+    // The comparisons below read added.x elements from `before.x` on: both arrays must hold them.
+    if (before.vertices < 0 || before.normals < 0 || before.texCoords < 0 || before.corners < 0 || before.words < 0 ||
+        before.indices < 0 || after.vertices > actual->vertices_.capacity || after.normals > actual->normals_.capacity ||
+        after.texCoords > actual->texCoords_.capacity || after.corners > actual->corners_.capacity ||
+        after.words > actual->words_.capacity || after.indices > actual->indices_.capacity ||
+        added.vertices > expected->vertices_.capacity || added.normals > expected->normals_.capacity ||
+        added.texCoords > expected->texCoords_.capacity || added.corners > expected->corners_.capacity ||
+        added.words > expected->words_.capacity || added.indices > expected->indices_.capacity)
+        return "array bounds";
     for (int i = 0; i < added.vertices; ++i) {
         const float* e = &expected->vertices_.data[i].block[0][0];
         const float* a = &actual->vertices_.data[before.vertices + i].block[0][0];
@@ -81,8 +90,8 @@ const char* AppendedDiff(const CLinkMesh* expected, const CLinkMesh* actual, con
     if (!SameBytes(expected->normals_.data, actual->normals_.data + before.normals, added.normals)) return "normals";
     if (!SameBytes(expected->texCoords_.data, actual->texCoords_.data + before.texCoords, added.texCoords))
         return "texcoords";
-    if (!SameBytes(expected->corners_.data, actual->corners_.data + before.corners * 3, added.corners * 3))
-        return "corners";
+    // corners_ holds whole 6-byte triangles (IndexTriangle), so its index is in triangles.
+    if (!SameBytes(expected->corners_.data, actual->corners_.data + before.corners, added.corners)) return "corners";
     if (!SameBytes(expected->words_.data, actual->words_.data + before.words, added.words)) return "words";
     if (!SameBytes(expected->indices_.data, actual->indices_.data + before.indices, added.indices)) return "indices";
     return nullptr;

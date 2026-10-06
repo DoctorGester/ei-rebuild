@@ -452,3 +452,12 @@ destructors 004F2C00 / 004F2E40 / 004F2D40 / deleting 004F2E00 / 004F2E20, the l
 map members around 004F4CD0-004F5F00 (classify as library); rain / snow draws 004E4240 / 004E4C80 (build vertices then
 draw through the device: coordinate with the renderer), the fog object's slots 004E2290-004E24E0 (never reached in the
 current runs), CSkyObject 004D9110-004D9EB0, CServerSpecificManager 004D6900-004D6BA0, the .mob decoder 004D8E10.
+
+X20 (2026-10-07): the link figure checks after D3. corners_ became lib::AlignedArray<IndexTriangle>
+(6-byte elements; before it was a uint16_t* array indexed per index), and link_figure.cpp was
+converted to triangle indexing, but AppendedDiff still compared `corners_.data + before.corners * 3`
+over `added.corners * 3` elements: three times the offset and length in 6-byte units, so every call
+"differed" and reading past the block crashed (C0000005 in SameBytes<IndexTriangle>). Fixed the check
+to triangle units, added a capacity guard before the element comparisons ("array bounds"), and
+static_asserts on the CLinkMesh array offsets and element sizes. 004F30F0 / 004F7F00 / 004F87D0
+re-enabled.

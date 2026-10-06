@@ -3,6 +3,3 @@
 004D8490 DecalBuilder::AddTerrainTriangle: 12 of 37M calls still differ (whole extra triangles, or a corner >0.05 off); X18 (2026-10-07): no port bug found, first 4 mismatches now logged in full
 004D85F0 DecalBuilder::AddTriangle: the same rare clip-edge case as 004D8490 (2 of 75M); X18
 004D7BD0 DecalBuilder::ClipPlane: the same rare clip-edge case (1 of 95M); X18
-004F30F0 CLinkMesh::AddPart: after D3 moved link_figure to lib::AlignedArray, its check reads the corners wrong and crashes; X20 (2026-10-07)
-004F7F00 CLinkFigureLoader::LoadFigPart: same (X20)
-004F87D0 CLinkFigureLoader::LoadOldPart: same (X20)
