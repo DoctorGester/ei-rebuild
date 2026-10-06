@@ -161,3 +161,7 @@ through `game::FatalError` (EI_ORIGINAL). Forwarders are in `unit_ai.h`, `unit_a
   unit left visible). Kept: Update lists an allied corpse in +0x12C twice (the inlined AddTail, then 005CD500); See skips a dead
   hostile unit unless the unit sees all; "using sense life " is printed without a line end before the "sees unit" line.
   `CAIMap::SectorMap()` (ai_map.h) replaces ai_path.cpp's offset helper.
+- `unit_ai_mode_lifetime.cpp`: 005D3760 PlayerMode::Construct, 005D0F60 PatrolMode::Construct, 005D1240 / 005D1220 Patrol
+  destructor / deleting destructor, 005D2950 / 005D2930 Fear's, 005D1210 / 005D2920 GetType (1, 7), 005D0A90 the abstract base's
+  Execute (remark, LookAround). Verify: constructors output on a copy (the fields they write), GetType pure, the rest ours only.
+  Kept: Patrol's destructor leaves the point array's pointer and count behind (freed).

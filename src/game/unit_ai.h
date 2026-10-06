@@ -247,6 +247,18 @@ void __fastcall EnterIdle(AIMode* self, void*, AIBrain* brain);
 // 005D0A50. Slot 6 (Enter) of CorpseWatcher, Player and the abstract base 0073D22C: drop the
 // action and target.
 void __fastcall ClearAction(AIMode* self, void*, AIBrain* brain);
+// 005D0A90 (unit_ai_mode_lifetime.cpp). Slot 5 (Execute) of the abstract base 0073D15C: the idle
+// remark (1 in 1001), then LookAround(0).
+void __fastcall LookAroundExecute(AIMode* self, void*, AIBrain* brain);
+// 005D1210 / 005D2920. Slot 8 (GetType) of Patrol (1) and Fear (7).
+int __fastcall PatrolType(AIMode* self);
+int __fastcall FearType(AIMode* self);
+// The root vtable a mode's destructor leaves (CRefObject's, 0073BB68).
+inline void* const kRootVtable = reinterpret_cast<void*>(0x0073BB68);
+inline void* const kPatrolVtable = reinterpret_cast<void*>(0x0073FF40);
+inline void* const kPatrolPointsVtable = reinterpret_cast<void*>(0x0073FF74);
+inline void* const kPatrolPointsBaseVtable = reinterpret_cast<void*>(0x0073FF80);
+inline void* const kPlayerVtable = reinterpret_cast<void*>(0x0073F0F8);
 } // namespace aimode
 
 // Guard (vtable 0073D128, 0x20 bytes): stay near a point.
@@ -288,6 +300,13 @@ struct PatrolMode : AIMode {
     // 005D12B0 (unit_ai_looks.cpp). Appends a point with no looks at ((n + 0.5) / 2, z 0) for
     // n = 2x rounded to nearest (so 0..0.5 above `position`, not the middle of its half-cell).
     void AppendPoint(const Vector3* position);
+    // unit_ai_mode_lifetime.cpp. 005D0F60: the vtables, no points, index 0 (+4 untouched); returns
+    // this. 005D1240: frees every point's looks and the points (the array keeps its pointer and
+    // count), the root vtable last. 005D1220 (slot 0, RET 4): the destructor, then operator
+    // delete when `flags` bit 0 is set; returns this.
+    PatrolMode* Construct();
+    void Destruct();
+    PatrolMode* DeletingDestruct(int flags);
 
     void* pointsVtable;             // +0x08 CArray (vtable 0073FF74 / 0073FF80)
     PatrolPoint* points;            // +0x0C
@@ -380,6 +399,10 @@ struct FearMode : AIMode {
     // 005D2850 (unit_ai_brain.cpp; after operator new). The vtable, distance from 0073FF00, 3, an
     // unset point (x = -1313), +0x24 = 0 and `flag`; +4 and +0x14..+0x20 are left alone. Returns this.
     FearMode* Construct(std::uint8_t flag);
+    // unit_ai_mode_lifetime.cpp. 005D2950: the root vtable. 005D2930 (slot 0, RET 4): that, then
+    // operator delete when `flags` bit 0 is set; returns this.
+    void Destruct();
+    FearMode* DeletingDestruct(int flags);
     // 005D3650 (slot 6). Busy; drops action and target.
     void Enter(AIBrain* brain);
     // 005D3680 (slot 7). Clears busy.
@@ -401,6 +424,10 @@ static_assert(offsetof(FearMode, flag) == 0x28);
 // Player (vtables 0073F0C4 / 0073F0F8, 0x24 bytes): the party's units.
 struct PlayerMode : AIMode {
     enum { kStateFollow = 0, kStateCommand = 1, kStateMoveTo = 2 };
+
+    // 005D3760 (unit_ai_mode_lifetime.cpp). Vtable 0073F0F8, no target or leader, point 0, state 0,
+    // not running (+4 and the padding untouched); returns this.
+    PlayerMode* Construct();
 
     // 005D4A90 (slot 5). State 0: follow the leader (unless the leader is moving itself) and fight
     // (005D4170); state 1: wait for the commanded action to end; state 2: walk to `point` (staying
