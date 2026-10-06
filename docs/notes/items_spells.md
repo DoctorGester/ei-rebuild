@@ -411,3 +411,39 @@ every battle screen setup (00635250 / 00636150; scenario ui_hud). 0064D9B0 CObje
 visibility against the quests' states. ShowParts reads the unit's six body part records (+0x374, 0x1C bytes: state,
 durability, maximum) with label positions from tables 00742434 / 0074244C. In ToggleFlag the button frame's
 third value 0.48046875 is unreachable.
+
+## What is left in 0x00640000-0x006C0000 (A-H11, 2026-10-07)
+
+Classification: functions.csv kind game, minus library.csv, dead_code.csv and EI_REPLACE. The sweep added 115
+entries to library.csv: 90 with the same instructions as an existing entry (data addresses masked, every call to the
+same callee or to library code: STLport copy / fill / list / hashtable helpers, aligned buffer and counted pointer
+destructors) and 25 reviewed quest database container instantiations (006AF4D0..006B3E60: vector reserve /
+insert_overflow / fill_insert / copy / uninitialized_copy of the 0x38- and 0x6C-byte records, their compiler-made
+copy constructors, operator= and destructors). Left: 841 functions, 179.6 KB (the texture manager's 6 KB is the
+renderer's). Bytes per group (R = in docs/rebirth-patched-functions.txt):
+
+| Range | Group | Functions | Bytes | R bytes | Largest |
+|---|---|---|---|---|---|
+| 640000-64B000 | HUD battle screen panels | 44 | 23502 | 13275 | 00641F20, 006462A0, 006456E0, 006407E0 |
+| 64B000-64EA80 | HUD helpers, objectives window | 22 | 3689 | 0 | 0064E330, 0064B3A0 |
+| 64EA80-651000 | quest log, map text | 17 | 5132 | 0 | 0064EA80, 0064F650 |
+| 651000-653000 | options and keyboard screens | 14 | 6576 | 0 | 00651940, 00651350 |
+| 653000-65A000 | save / load screen, tutorial | 50 | 18772 | 5945 | 00659420, 006567A0, 006570E0 |
+| 65A000-65F000 | interface widgets (lists, scrollbars, text scroll), DirectInput mouse, rich edit | 75 | 13135 | 1494 | 0065B8B0, 0065D150 |
+| 65F000-664B00 | party, party records | 48 | 5742 | 0 | 006625B0, 00662AC0 |
+| 664B00-666000 | players | 26 | 4446 | 0 | 00664E20, 00664BF0 |
+| 666000-672000 | client / server player messages | 93 | 14526 | 76 | 0066F4C0, 00670310, 00667230 |
+| 672000-67E000 | world effects | 44 | 2360 | 0 | 006776E0, 00677510 |
+| 67E000-684000 | spell effects (save / load, constructors) | 13 | 2521 | 0 | 00683B80, 0067E7D0 |
+| 684000-68D000 | spell database, spell manager | 91 | 21209 | 1174 | 00684550, 00685BE0, 006850D0 |
+| 68D000-68F6C0 | lights, materials | 34 | 4977 | 681 | 0068E640, 0068D5A0 |
+| 68F6C0-693C60 | texture manager (renderer's) | 36 | 5996 | 298 | 00690B30, 0068FA10 |
+| 693C60-699000 | registry, ini | 11 | 860 | 0 | 00694300 |
+| 699000-69F000 | trader stock | 28 | 3859 | 0 | 0069BAC0, 0069EF50 |
+| 69F000-6A6000 | items | 33 | 2419 | 0 | 0069FB60, 006A0AA0 |
+| 6A6000-6AE000 | item database | 75 | 21615 | 1141 | 006A67A0, 006A9420 |
+| 6AE000-6B4000 | quest database | 17 | 3235 | 923 | 006AE3A0, 006AE740 |
+| 6B4000-6C0000 | sound (Miles codec, wave markers), misc | 70 | 15007 | 1442 | 006BB3A0, 006B6D80 |
+
+Not yet reviewed for library code: the item database's record containers (006A6E50..006AB890 look like vector
+instantiations of the item record kinds) and the 006B4000-006C0000 block.

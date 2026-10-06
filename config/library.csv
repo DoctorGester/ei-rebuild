@@ -3484,3 +3484,118 @@ address,name,library,signature,notes
 0052C740,"CList<TYPE,ARG_TYPE>::Serialize",MFC,void __thiscall(CArchive&),"U7 review: the magic trap victim list (vtable 0073E730, counted references): WriteCount and the raw pointer of each element, or ReadCount, then per element a raw pointer read and AddTail (NewNode inlined); the same shape as 00405190. Only the vtable refers to it; loading a nonzero count would dereference stale pointers"
 00522160,stlp::uninitialized_copy (0x18-byte records),STLport,,"U7 review: copy-constructs [first,last) into result (2 CString copies, a dword, vector<CString> copy via 00522740); returns the end of the destination"
 005222F0,stlp::uninitialized_fill_n (0x18-byte records),STLport,,"U7 review: copy-constructs n copies of one record (same element copy as 00522160); returns the end"
+0064AD30,stlp::list<T>::begin,STLport,iterator* __thiscall(iterator*),A-H11 sweep: same instructions as 0041FCC0 (data addresses masked; every call goes to the same callee or to library code)
+0064B600,stlp::distance<list<T>::iterator>,STLport,,A-H11 sweep: same instructions as 00587890 (data addresses masked; every call goes to the same callee or to library code)
+0064B620,stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection),STLport,,A-H11 sweep: same instructions as 0043D7F0 (data addresses masked; every call goes to the same callee or to library code)
+0064B720,"ConstructElements (12-byte elements, zero fill)",MFC,,A-H11 sweep: same instructions as 0046F0E0 (data addresses masked; every call goes to the same callee or to library code)
+0064ECB0,stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection),STLport,,A-H11 sweep: same instructions as 00439DD0 (data addresses masked; every call goes to the same callee or to library code)
+0064F880,"stlp pair<string, T>::pair(const string&, const T&)",STLport,,A-H11 sweep: same instructions as 005729D0 (data addresses masked; every call goes to the same callee or to library code)
+0064F9E0,stlp::uninitialized_copy<pair*>,STLport,,A-H11 sweep: same instructions as 0042B3C0 (data addresses masked; every call goes to the same callee or to library code)
+0064FA10,stlp::uninitialized_fill_n<pair*>,STLport,,A-H11 sweep: same instructions as 0042B3F0 (data addresses masked; every call goes to the same callee or to library code)
+00652E10,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408BE0 (data addresses masked; every call goes to the same callee or to library code)
+00653150,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408C20 (data addresses masked; every call goes to the same callee or to library code)
+006531A0,stlp::uninitialized_copy<T*>,STLport,,A-H11 sweep: same instructions as 0042B6C0 (data addresses masked; every call goes to the same callee or to library code)
+006531C0,stlp::uninitialized_fill_n<T*>,STLport,,A-H11 sweep: same instructions as 0042B6E0 (data addresses masked; every call goes to the same callee or to library code)
+00653680,stlp::uninitialized_copy<T*>,STLport,,A-H11 sweep: same instructions as 0042B6C0 (data addresses masked; every call goes to the same callee or to library code)
+00653820,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408C20 (data addresses masked; every call goes to the same callee or to library code)
+0065A840,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),A-H11 sweep: same instructions as 00411530 (data addresses masked; every call goes to the same callee or to library code)
+0065A850,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),A-H11 sweep: same instructions as 00411530 (data addresses masked; every call goes to the same callee or to library code)
+00663940,aligned buffer destructor,compiler,,A-H11 sweep: same instructions as 00570DF0 (data addresses masked; every call goes to the same callee or to library code)
+00663AB0,aligned buffer destructor,compiler,,A-H11 sweep: same instructions as 00570DF0 (data addresses masked; every call goes to the same callee or to library code)
+00663BE0,aligned buffer destructor,compiler,,A-H11 sweep: same instructions as 00570DF0 (data addresses masked; every call goes to the same callee or to library code)
+00663D10,aligned buffer destructor,compiler,,A-H11 sweep: same instructions as 00570DF0 (data addresses masked; every call goes to the same callee or to library code)
+006643F0,aligned buffer destructor,compiler,,A-H11 sweep: same instructions as 00570DF0 (data addresses masked; every call goes to the same callee or to library code)
+006665C0,stlp::hashtable::_M_delete_node,STLport,,A-H11 sweep: same instructions as 004074B0 (data addresses masked; every call goes to the same callee or to library code)
+00666670,stlp::hashtable::_M_delete_node,STLport,,A-H11 sweep: same instructions as 004074B0 (data addresses masked; every call goes to the same callee or to library code)
+0066B550,aligned buffer destructor,compiler,,A-H11 sweep: same instructions as 00570DF0 (data addresses masked; every call goes to the same callee or to library code)
+006711E0,aligned buffer destructor,compiler,,A-H11 sweep: same instructions as 00570DF0 (data addresses masked; every call goes to the same callee or to library code)
+006728A0,"stlp::pair<K,V>::pair",STLport,,A-H11 sweep: same instructions as 00407DE0 (data addresses masked; every call goes to the same callee or to library code)
+00672EC0,stlp::__stl_next_prime,STLport,,A-H11 sweep: same instructions as 0040AE00 (data addresses masked; every call goes to the same callee or to library code)
+00673E00,exception scalar deleting destructor,CRT,void* __thiscall(unsigned),A-H11 sweep: same instructions as 0041F740 (data addresses masked; every call goes to the same callee or to library code)
+0067E0D0,counted pointer destructor,compiler,,A-H11 sweep: same instructions as 005715C0 (data addresses masked; every call goes to the same callee or to library code)
+00683A60,counted pointer destructor,compiler,,A-H11 sweep: same instructions as 005715C0 (data addresses masked; every call goes to the same callee or to library code)
+00683A70,counted pointer destructor,compiler,,A-H11 sweep: same instructions as 005715C0 (data addresses masked; every call goes to the same callee or to library code)
+00683A80,counted pointer destructor,compiler,,A-H11 sweep: same instructions as 005715C0 (data addresses masked; every call goes to the same callee or to library code)
+00683A90,counted pointer assignment,compiler,,A-H11 sweep: same instructions as 0056F1A0 (data addresses masked; every call goes to the same callee or to library code)
+00683AB0,counted pointer assignment,compiler,,A-H11 sweep: same instructions as 0056F1A0 (data addresses masked; every call goes to the same callee or to library code)
+00684330,counted pointer destructor,compiler,,A-H11 sweep: same instructions as 005715C0 (data addresses masked; every call goes to the same callee or to library code)
+006896B0,stlp::hashtable<unsigned;T*>::end,STLport,iterator __thiscall(),A-H11 sweep: same instructions as 00598E40 (data addresses masked; every call goes to the same callee or to library code)
+00689950,"stlp pair<string, T>::pair(const string&, const T&)",STLport,,A-H11 sweep: same instructions as 005729D0 (data addresses masked; every call goes to the same callee or to library code)
+00689E40,stlp::hashtable<unsigned;T*>::end,STLport,iterator __thiscall(),A-H11 sweep: same instructions as 00598E40 (data addresses masked; every call goes to the same callee or to library code)
+0068C500,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),A-H11 sweep: same instructions as 00411530 (data addresses masked; every call goes to the same callee or to library code)
+0069BD30,stlp vector<T*>::push_back,STLport,,A-H11 sweep: same instructions as 0056E840 (data addresses masked; every call goes to the same callee or to library code)
+0069BDC0,stlp vector<T*>::push_back,STLport,,A-H11 sweep: same instructions as 0056E840 (data addresses masked; every call goes to the same callee or to library code)
+0069BDF0,stlp vector<T*>::push_back,STLport,,A-H11 sweep: same instructions as 0056E840 (data addresses masked; every call goes to the same callee or to library code)
+0069BE60,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),A-H11 sweep: same instructions as 00411530 (data addresses masked; every call goes to the same callee or to library code)
+0069BE70,stlp list<counted ptr>::~list,STLport,,A-H11 sweep: same instructions as 00572E90 (data addresses masked; every call goes to the same callee or to library code)
+0069C120,"stlp vector<T*>::erase(first, last)",STLport,,A-H11 sweep: same instructions as 0056F5E0 (data addresses masked; every call goes to the same callee or to library code)
+0069C2E0,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),A-H11 sweep: same instructions as 00411530 (data addresses masked; every call goes to the same callee or to library code)
+0069C380,"stlp vector<T*>::erase(first, last)",STLport,,A-H11 sweep: same instructions as 0056F5E0 (data addresses masked; every call goes to the same callee or to library code)
+0069C3C0,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),A-H11 sweep: same instructions as 00411530 (data addresses masked; every call goes to the same callee or to library code)
+0069C400,stlp::list<T>::begin,STLport,iterator* __thiscall(iterator*),A-H11 sweep: same instructions as 0041FCC0 (data addresses masked; every call goes to the same callee or to library code)
+0069CA00,stlp::list<T>::begin,STLport,iterator* __thiscall(iterator*),A-H11 sweep: same instructions as 0041FCC0 (data addresses masked; every call goes to the same callee or to library code)
+0069CA10,stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection),STLport,,A-H11 sweep: same instructions as 00439100 (data addresses masked; every call goes to the same callee or to library code)
+0069D600,stlp::distance<list<T>::iterator>,STLport,,A-H11 sweep: same instructions as 00587890 (data addresses masked; every call goes to the same callee or to library code)
+0069D620,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408BE0 (data addresses masked; every call goes to the same callee or to library code)
+0069D640,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408BE0 (data addresses masked; every call goes to the same callee or to library code)
+0069D660,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408BE0 (data addresses masked; every call goes to the same callee or to library code)
+0069D870,stlp::list<T>::iterator copy,STLport,,A-H11 sweep: same instructions as 0040A950 (data addresses masked; every call goes to the same callee or to library code)
+0069DAE0,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408BE0 (data addresses masked; every call goes to the same callee or to library code)
+0069DDB0,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408BE0 (data addresses masked; every call goes to the same callee or to library code)
+0069DF10,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408BE0 (data addresses masked; every call goes to the same callee or to library code)
+0069E450,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408C20 (data addresses masked; every call goes to the same callee or to library code)
+0069EB10,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408C20 (data addresses masked; every call goes to the same callee or to library code)
+0069EB40,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408C20 (data addresses masked; every call goes to the same callee or to library code)
+0069F400,stlp::uninitialized_copy<T*>,STLport,,A-H11 sweep: same instructions as 0042B6C0 (data addresses masked; every call goes to the same callee or to library code)
+0069F420,stlp::uninitialized_fill_n<T*>,STLport,,A-H11 sweep: same instructions as 0042B6E0 (data addresses masked; every call goes to the same callee or to library code)
+0069F440,stlp::uninitialized_copy<T*>,STLport,,A-H11 sweep: same instructions as 0042B6C0 (data addresses masked; every call goes to the same callee or to library code)
+0069F460,stlp::__uninitialized_copy (16-byte elements),STLport,,A-H11 sweep: same instructions as 00441360 (data addresses masked; every call goes to the same callee or to library code)
+0069F4A0,stlp::uninitialized_fill_n (16-byte elements),STLport,,A-H11 sweep: same instructions as 004413A0 (data addresses masked; every call goes to the same callee or to library code)
+0069F4E0,stlp::__uninitialized_copy (16-byte elements),STLport,,A-H11 sweep: same instructions as 00441360 (data addresses masked; every call goes to the same callee or to library code)
+0069F520,stlp::uninitialized_copy<T*>,STLport,,A-H11 sweep: same instructions as 0042B6C0 (data addresses masked; every call goes to the same callee or to library code)
+0069F540,stlp::uninitialized_fill_n<T*>,STLport,,A-H11 sweep: same instructions as 0042B6E0 (data addresses masked; every call goes to the same callee or to library code)
+0069F560,stlp::uninitialized_copy<T*>,STLport,,A-H11 sweep: same instructions as 0042B6C0 (data addresses masked; every call goes to the same callee or to library code)
+0069F580,stlp::uninitialized_copy<T*>,STLport,,A-H11 sweep: same instructions as 0042B6C0 (data addresses masked; every call goes to the same callee or to library code)
+0069F5A0,stlp::uninitialized_fill_n<T*>,STLport,,A-H11 sweep: same instructions as 0042B6E0 (data addresses masked; every call goes to the same callee or to library code)
+0069F5C0,stlp::uninitialized_copy<T*>,STLport,,A-H11 sweep: same instructions as 0042B6C0 (data addresses masked; every call goes to the same callee or to library code)
+0069F5E0,stlp::uninitialized_copy<T*>,STLport,,A-H11 sweep: same instructions as 0042B6C0 (data addresses masked; every call goes to the same callee or to library code)
+0069F600,stlp::uninitialized_fill_n<T*>,STLport,,A-H11 sweep: same instructions as 0042B6E0 (data addresses masked; every call goes to the same callee or to library code)
+006A5A70,ConstructElements<float>,MFC,"void __stdcall(float*,int)",A-H11 sweep: same instructions as 004CC870 (data addresses masked; every call goes to the same callee or to library code)
+006A7710,"stlp pair<string, T>::pair(const string&, const T&)",STLport,,A-H11 sweep: same instructions as 005729D0 (data addresses masked; every call goes to the same callee or to library code)
+006ADBD0,"stlp vector<T*>::erase(first, last)",STLport,,A-H11 sweep: same instructions as 0056F5E0 (data addresses masked; every call goes to the same callee or to library code)
+006ADEE0,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408C20 (data addresses masked; every call goes to the same callee or to library code)
+006B0750,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_delete_node",STLport,,A-H11 sweep: same instructions as 004616A0 (data addresses masked; every call goes to the same callee or to library code)
+006B0840,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_delete_node",STLport,,A-H11 sweep: same instructions as 004616A0 (data addresses masked; every call goes to the same callee or to library code)
+006B0B10,stlp::hashtable<unsigned;T*>::end,STLport,iterator __thiscall(),A-H11 sweep: same instructions as 00598E40 (data addresses masked; every call goes to the same callee or to library code)
+006B0B30,stlp::hashtable<unsigned;T*>::end,STLport,iterator __thiscall(),A-H11 sweep: same instructions as 00598E40 (data addresses masked; every call goes to the same callee or to library code)
+006B1C90,exception scalar deleting destructor,CRT,void* __thiscall(unsigned),A-H11 sweep: same instructions as 0041F740 (data addresses masked; every call goes to the same callee or to library code)
+006B1EE0,exception scalar deleting destructor,CRT,void* __thiscall(unsigned),A-H11 sweep: same instructions as 0041F740 (data addresses masked; every call goes to the same callee or to library code)
+006B2FA0,stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection),STLport,,A-H11 sweep: same instructions as 0043B360 (data addresses masked; every call goes to the same callee or to library code)
+006BC140,"stlp pair<string, T>::pair(const string&, const T&)",STLport,,A-H11 sweep: same instructions as 005729D0 (data addresses masked; every call goes to the same callee or to library code)
+006BC550,stlp::hashtable<unsigned;T*>::end,STLport,iterator __thiscall(),A-H11 sweep: same instructions as 00598E40 (data addresses masked; every call goes to the same callee or to library code)
+006BD360,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_delete_node",STLport,,A-H11 sweep: same instructions as 004616A0 (data addresses masked; every call goes to the same callee or to library code)
+006AF4D0,compiler-generated destructor (quest database record with vectors),compiler,,"A-H11 review: frees the record's vectors and strings to the node pool; no game logic"
+006AF5A0,compiler-generated destructor (quest record with CString vectors),compiler,,"A-H11 review: destroys the CString vectors and strings member by member; no game logic"
+006AF7D0,stlp::_Destroy range (0x38-byte quest records),STLport,,"A-H11 review: destroys [first,last) element by element (strings and vectors); no game logic"
+006AF920,stlp::_Destroy range (0x6C-byte quest records),STLport,,"A-H11 review: destroys [first,last) element by element (strings and vectors); no game logic"
+006AFB60,stlp::vector<CString>::erase(first last),STLport,,"A-H11 review: CString::operator= down the tail, then ~CString on the leftovers"
+006B02B0,stlp::vector<T*>::reserve,STLport,,"A-H11 review: node-pool reallocation when n exceeds the capacity"
+006B0EF0,stlp::vector<T>::_M_insert_overflow (0x38-byte records),STLport,,"A-H11 review: new length size+max(size n), uninitialized copies around the fill, old block destroyed and freed"
+006B1480,stlp::vector<T>::_M_insert_overflow (0x6C-byte records),STLport,,"A-H11 review: new length size+max(size n), uninitialized copies around the fill, old block destroyed and freed"
+006B1770,stlp::_Construct (0x38-byte record copy),STLport,,"A-H11 review: placement copy construction (null-checked) of a quest record; members copied by their own copy constructors"
+006B1910,stlp::_Construct (0x6C-byte record copy),STLport,,"A-H11 review: placement copy construction (null-checked) of a quest record; members copied by their own copy constructors"
+006B1B20,compiler-generated copy constructor (0x38-byte quest record),compiler,,"A-H11 review: string, two dwords, vectors copied member by member"
+006B1CB0,compiler-generated copy constructor (0x6C-byte quest record),compiler,,"A-H11 review: string, two dwords, CString vectors copied member by member"
+006B2100,stlp::vector<T>::reserve (0x38-byte records),STLport,,"A-H11 review: allocate, uninitialized copy, destroy and free the old block"
+006B2240,stlp::vector<T>::reserve (0x6C-byte records),STLport,,"A-H11 review: allocate, uninitialized copy, destroy and free the old block"
+006B2450,stlp::vector<T>::_M_fill_insert (0x38-byte records),STLport,,"A-H11 review: copy of the value, move of the tail, fill; overflow path through 006B0EF0"
+006B27E0,stlp::vector<T>::_M_fill_insert (0x6C-byte records),STLport,,"A-H11 review: copy of the value, move of the tail, fill; overflow path through 006B1480"
+006B2BA0,stlp::copy (0x6C-byte records),STLport,,"A-H11 review: element-wise operator= (string, dwords, CString vectors, strings) over [first,last)"
+006B2E20,stlp::uninitialized_copy (0x38-byte records),STLport,,"A-H11 review: copy construction of each element in place; returns the end"
+006B31E0,stlp::uninitialized_fill_n (0x38-byte records),STLport,,"A-H11 review: n copy constructions of one record; returns the end"
+006B3360,stlp::uninitialized_copy (0x6C-byte records),STLport,,"A-H11 review: copy construction of each element in place; returns the end"
+006B35A0,stlp::uninitialized_fill_n (0x6C-byte records),STLport,,"A-H11 review: n copy constructions of one record; returns the end"
+006B37E0,stlp::copy (0x38-byte records),STLport,,"A-H11 review: element-wise operator= over [first,last) forwards; returns the end"
+006B39E0,stlp::copy (0x6C-byte records; second instantiation beside 006B2BA0),STLport,,"A-H11 review: element-wise operator= over [first,last) forwards; returns the end"
+006B3CC0,compiler-generated operator= (0x38-byte quest record),compiler,,"A-H11 review: member-wise assignment (string, dwords, vectors)"
+006B3E60,compiler-generated operator= (0x6C-byte quest record),compiler,,"A-H11 review: member-wise assignment (string, dwords, CString vectors)"
