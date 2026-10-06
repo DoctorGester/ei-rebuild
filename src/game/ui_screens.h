@@ -16,7 +16,10 @@
 //   key down: (virtual-key code, repeat count, scan code and flags);
 //   wheel: (key flags, wheel delta, x, y).
 
+#include "bink_video.h"
 #include "ui.h"
+
+#include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -540,6 +543,39 @@ static_assert(offsetof(CEscMenu, hovered_) == 0x164);
 // --- Credits ------------------------------------------------------------------------------------
 //
 // The titles window (vtables 00740C08/00740C3C, 0x1FC bytes; main menu region 4).
+// A line of the titles' script (the value of a lines_ node, after next / prev).
+struct TitleLine {
+    // 0062BCB0 (ui_credits.cpp). The destructor: style, then text.
+    void Destroy();
+
+    bool scroll;                // +0 the first word is "#scroll"
+    std::uint8_t unknown_1[3];
+    float speed;                // +4 the second word (atof): the scroll speed, or the seconds shown
+    const char* text;           // +8 CString: the fourth word (the header)
+    const char* style;          // +0xC CString: the third word (the text file in the archive)
+};
+static_assert(sizeof(TitleLine) == 0x10);
+
+// The titles' scrolling text surface (0x58 bytes, constructor 0065ED30; not rewritten).
+class CUiScrollingSurface : public CUiSurface {
+public:
+    // 0065EF30 (RET 8). Loads the text file `name` of `archive` (a CMappedResource) into the
+    // surface; whether it was found.
+    bool Load(void* archive, const char* name);
+    // 0065F1C0 (RET 8). Starts the text at `speed` (0: still), from below the surface when
+    // `fromBelow`; the start time is the game time.
+    void Start(float speed, char fromBelow);
+
+    std::uint8_t unknown_38[4];
+    float startTime_;           // +0x3C
+    std::uint8_t unknown_40[4];
+    int offset_;                // +0x44
+    float speed_;               // +0x48 0 once the text has scrolled through
+    std::uint8_t unknown_4C[0x58 - 0x4C];
+};
+static_assert(offsetof(CUiScrollingSurface, speed_) == 0x48);
+static_assert(sizeof(CUiScrollingSurface) == 0x58);
+
 class CCreditsScreen {
 public:
     void OnLButtonDown(int flags, int x, int y);   // 0062BFE0
@@ -553,20 +589,32 @@ public:
     // and the header surface (+0x168), both frozen; the display's +0x14 kept in savedDisplay_ and
     // cleared; the player +0x1D8 starts "Movies\<name>.bik".
     void Build();
+    // 0062BD80 (slot 20, RET 4; ui_credits.cpp). Once the game time passes nextLineAt_ and the
+    // text has stopped: both surfaces frozen, then the next line: its text file loaded and started
+    // (a "#scroll" line scrolls at its speed under its header, another stays for its speed in
+    // seconds), or past the last line finished_. The movie steps (005DBD80, stretched unless the
+    // movie flag 00784752 is 1); when it has ended after the last line: "<name>fout" played, the
+    // screen flag cleared and the titles closed as Close() does (returns 1); otherwise the
+    // container's draw.
+    BOOL Draw(int pass);
+    // 0062BD00 (slot 26; ui_credits.cpp). The lines freed, font smoothing set back to
+    // fontSmoothing_ (never read: kept), the display's +0x14 restored, the screen flag set and the
+    // cursor shown.
+    void OnClose();
 
     CUiWindow window;
     std::uint8_t unknown_148[0x164 - 0x148];
-    CUiSurface* textSurface_;   // +0x164 the scrolling text (0x58 bytes, constructor 0065ED30)
+    CUiScrollingSurface* textSurface_;   // +0x164 the scrolling text
     CUiSurface* headerSurface_; // +0x168
     int fontSmoothing_;         // +0x16C passed (as uiParam) to SPI_GETFONTSMOOTHING, never written
     std::uint8_t archive_[0x1C8 - 0x170];   // +0x170 CMappedResource ("outro.res")
-    void* lines_;               // +0x1C8 STLport list of TitleLine (its sentinel node)
-    int unknown_1CC;            // +0x1CC cleared by Build
-    void* currentLine_;         // +0x1D0 list iterator: the first line (the sentinel without a script)
+    stlp::list<TitleLine> lines_;   // +0x1C8
+    float nextLineAt_;          // +0x1CC game time the current line ends (0 from Build and for scrolls)
+    stlp::list<TitleLine>::Node* currentLine_;   // +0x1D0 the next line (the sentinel at the end)
     const char* name_;          // +0x1D4 CString ("Titles")
-    std::uint8_t player_[0x1F4 - 0x1D8];    // +0x1D8 the movie player (constructor 005DB340)
+    CBinkVideo player_;         // +0x1D8 the movie player (constructor 005DB340)
     bool fromGame_;             // +0x1F4 opened in a game (pending value 0xCCCCCCCC) or the menu
-    bool unknown_1F5;           // +0x1F5 cleared by Build
+    bool finished_;             // +0x1F5 the last line has gone (cleared by Build)
     std::uint8_t unknown_1F6[2];
     int savedDisplay_;          // +0x1F8 the display's (00500960) +0x14 while the titles run
 };
@@ -576,15 +624,6 @@ static_assert(offsetof(CCreditsScreen, fromGame_) == 0x1F4);
 static_assert(offsetof(CCreditsScreen, savedDisplay_) == 0x1F8);
 static_assert(sizeof(CCreditsScreen) == 0x1FC);
 
-// A line of the titles' script (the value of a lines_ node, after next / prev).
-struct TitleLine {
-    bool scroll;                // +0 the first word is "#scroll"
-    std::uint8_t unknown_1[3];
-    float speed;                // +4 the second word (atof)
-    const char* text;           // +8 CString: the fourth word
-    const char* style;          // +0xC CString: the third word
-};
-static_assert(sizeof(TitleLine) == 0x10);
 
 // --- Main menu ----------------------------------------------------------------------------------
 //

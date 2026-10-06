@@ -126,6 +126,43 @@ private:
     T* eos_ = nullptr;
 };
 
+// list<T> (4 bytes): the sentinel node, allocated by the owner's constructor (its next is the
+// first node, its prev the last). Nodes {next, prev, value}. Walking and clear are written here;
+// inserting stays with each instantiation's own code.
+template <typename T>
+class list {
+public:
+    struct Node {
+        Node* next;
+        Node* prev;
+        T value;
+    };
+
+    list() = default;
+    list(const list&) = delete;
+
+    Node* begin() const { return node_->next; }
+    Node* end() const { return node_; }
+
+    // clear() as STLport writes it: each node's value destroyed by `destroy(&value)` (the
+    // instantiation's own element destructor), the node returned to the pool, the sentinel linked
+    // to itself.
+    template <typename F> void ClearWith(F destroy) {
+        Node* cur = node_->next;
+        while (cur != node_) {
+            Node* node = cur;
+            cur = cur->next;
+            destroy(&node->value);
+            deallocate(node, sizeof(Node));
+        }
+        node_->next = node_;
+        node_->prev = node_;
+    }
+
+private:
+    Node* node_ = nullptr;
+};
+
 // map<K, V> (_Rb_tree, 0xC bytes): the header node (allocated by the owner's constructor; its
 // parent is the root, its left / right children the leftmost / rightmost node), the element count,
 // the empty compare object (one byte). Keys are ordered by operator<. Only the lookups are written

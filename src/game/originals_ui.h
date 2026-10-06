@@ -53,6 +53,10 @@ __declspec(naked) inline void* __fastcall MessageBoxConstructOriginal(void* /*me
     EI_ORIGINAL(0x00634650)
 // 00620380: CUiItemStrip::Build(top) (RET 4; the flag is a byte; rewritten in ui_item_strip.cpp).
 __declspec(naked) inline void __fastcall ItemStripBuildOriginal(void* /*strip*/, void*, int /*top*/) EI_ORIGINAL(0x00620380)
+// 00458270 (__fastcall: ECX the section name, DL clears the screen first; then clear-after and two values on
+// the stack, RET 0xC): plays the movies listed under a section (the titles' "<name>fin" / "<name>fout").
+__declspec(naked) inline void __fastcall PlayMoviesOriginal(const char* /*section*/, int /*clearFirst*/, int, int, int)
+    EI_ORIGINAL(0x00458270)
 // 00630860: CGlobalMap::SelectZone(index, isLink) (RET 8; the flag is a byte; rewritten in ui_global_map_places.cpp).
 __declspec(naked) inline void __fastcall GlobalMapSelectZoneOriginal(void* /*map*/, void*, int /*index*/, int /*isLink*/)
     EI_ORIGINAL(0x00630860)
