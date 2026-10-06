@@ -1,0 +1,58 @@
+#pragma once
+
+// The client side of a player's connection (CPlayerClient, vtable 00743188; 00666FD0-0066A880): it
+// sends the client's requests (+0x5C) compressed to the server and runs the server's messages
+// (+0x34) through its handler table (built by 00667230). The single-player game runs it next to
+// CPlayerServer (player_messages.h) over the loopback link. Names are provisional; see
+// docs/notes/objects.md.
+
+#include "player_messages.h"
+
+#include <cstddef>
+#include <cstdint>
+
+class CPlayerClient {
+public:
+    // player_client.cpp (A-H8).
+    // 00667680 (slot 4). State 0: once the link is connected, the party (message 8, with the
+    // variables, when +0x85 is set) and the login (message 0: version 100, "Tango", "Very top
+    // secret", the player's +0xFC) are queued, state 1, and everything is sent (SendToServer's
+    // result); without a connected link 1. State 1: 1. State 2: the camera's anchor x, y as
+    // message 0x40, then sent. Other states: sent.
+    int Pump();
+    // 00667810. Compresses the queued requests (coder +0x88) and sends them on the link (slot 8);
+    // the queue is emptied unless there is no link. 1 without a link, 0 when it is not connected,
+    // else the send's result.
+    int SendToServer();
+    // 00667970. Runs every message of the received stream (+0x34, from its start) through the
+    // handlers by type. 1 at the end of the stream; a read past the end, a type without a handler
+    // or a refusing handler ends in the fatal error 00664B70 (its result returned).
+    int DispatchMessages();
+    // 00667A30 (slot 21). One packet from the link, decompressed (+0x28B0) into +0x34 and
+    // dispatched: 1 when there was none or it ran through, 0 without a link, when the receive
+    // failed or the dispatch returned 0.
+    int ReceiveMessages();
+
+    CPlayer* Owner() const { return reinterpret_cast<CPlayer*>(player_); }
+
+    void* vtable_;
+    std::uint8_t engineObject_[0x1C - 0x04];
+    std::uint8_t* player_;          // +0x1C the world player
+    int state_;                     // +0x20 0 connecting, 1 logged in, 2 sending the camera, ...
+    // +0x24 the message handlers by type (thiscall, 0: refused), built by 00667230; +0x28 their count.
+    int(__fastcall** handlers_)(CPlayerClient*, void*);
+    int handlerCount_;              // +0x28
+    std::uint8_t unknown_2C[0x34 - 0x2C];
+    BitStream in_;                  // +0x34 the server's messages being run
+    BitStream out_;                 // +0x5C requests for the server
+    std::uint8_t unknown_84;
+    std::uint8_t sendParty_;        // +0x85 the login sends the party first
+    std::uint8_t unknown_86[2];
+    CoderState compressor_;         // +0x88 for the requests sent
+    CoderState decompressor_;       // +0x28B0 for the messages received
+};
+static_assert(offsetof(CPlayerClient, handlers_) == 0x24);
+static_assert(offsetof(CPlayerClient, in_) == 0x34);
+static_assert(offsetof(CPlayerClient, out_) == 0x5C);
+static_assert(offsetof(CPlayerClient, sendParty_) == 0x85);
+static_assert(offsetof(CPlayerClient, decompressor_) == 0x28B0);

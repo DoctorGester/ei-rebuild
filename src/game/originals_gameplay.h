@@ -62,6 +62,10 @@ __declspec(naked) inline void __fastcall PlayerDisconnectOriginal(void* /*player
 __declspec(naked) inline void* __fastcall PlayerCreateOriginal(void* /*session*/) EI_ORIGINAL(0x0066C180)
 __declspec(naked) inline void __fastcall PlayerStateRefreshOriginal(void* /*state*/) EI_ORIGINAL(0x0066EF80)
 __declspec(naked) inline void __fastcall PlayerResendPartyOriginal(void* /*state*/) EI_ORIGINAL(0x0066F450)
+// 00664B70 (RET 4): formats a message error ("... prevID=%x curID=%x") with the previous and the current message
+// type (bytes) and raises the fatal error 00480080; returns its result.
+__declspec(naked) inline int __fastcall PlayerMessageErrorOriginal(const char* /*format*/, int /*previous*/, int /*type*/)
+    EI_ORIGINAL(0x00664B70)
 
 // C3l. The unit record's four item lists (arrays of counted entries at +0x730 quick, +0x740 belt, +0x750 worn, +0x760 spells;
 // data / count / capacity at +0, +4, +8): Add(item) makes the item's record entry (0069FF70 with the item's manager context),

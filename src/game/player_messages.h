@@ -170,7 +170,9 @@ public:
     ObjectMap knownTimed_;                      // +0x58 timed objects (effects) sent to the client
     int maxTimedId_;                            // +0x6C
     void* party_;                               // +0x70 an embedded CParty (0x70 bytes); slot 18 its item manager
-    std::uint8_t unknown_74[0x10C - 0x74];
+    std::uint8_t unknown_74[0xFC - 0x74];
+    std::uint32_t unknownFC_;                   // +0xFC sent with the client's login (00667680)
+    std::uint8_t unknown_100[0x10C - 0x100];
     int logTraffic_;                            // +0x10C logs the size of every flush
     std::uint8_t unknown_110[0x114 - 0x110];
     mfc::CTypedPtrList<void> objects_;          // +0x114 object ids (stored as the node data)

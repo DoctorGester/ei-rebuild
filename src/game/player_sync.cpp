@@ -8,6 +8,7 @@
 #include "combat.h"
 #include "map_object.h"
 #include "net_link.h"
+#include "originals_gameplay.h"
 #include "originals_library.h"
 #include "originals_script.h"
 #include "originals_units.h"
@@ -50,10 +51,6 @@ const char* TextReadPastEnd() { return reinterpret_cast<const char*>(0x00794F0C)
 const char* TextNoHandler() { return reinterpret_cast<const char*>(0x00794EDC); }
 const char* TextHandlerFailed() { return reinterpret_cast<const char*>(0x00794EA4); }
 const char* TextUnknownType() { return reinterpret_cast<const char*>(0x00794E7C); }
-// 00664B70 (RET 4): formats the message with the previous and the current type (bytes) and raises
-// the fatal error; returns its result.
-__declspec(naked) int __fastcall MessageError(const char* /*format*/, int /*previous*/, int /*type*/)
-    EI_ORIGINAL(0x00664B70)
 
 constexpr std::uint32_t kNoPartyCopy = 0xFFFFFFFF;   // CPlayerServer::unknown24_
 
@@ -345,14 +342,14 @@ int CPlayerServer::ReceiveMessages() {
         std::uint8_t type = 0xFF;
         std::uint8_t previous = 0xFF;
         for (;;) {
-            if (!in.ok_) return MessageError(TextReadPastEnd(), previous, type);
+            if (!in.ok_) return PlayerMessageErrorOriginal(TextReadPastEnd(), previous, type);
             previous = type;
             if (in.Read(&type, 1) == 0) break;
             if (state_ == 0 && type != kMessageJoin && type != kMessageJoin8) break;
-            if (static_cast<int>(type) >= handlerCount_) return MessageError(TextUnknownType(), previous, type);
+            if (static_cast<int>(type) >= handlerCount_) return PlayerMessageErrorOriginal(TextUnknownType(), previous, type);
             auto handler = handlers_[type];
-            if (handler == nullptr) return MessageError(TextNoHandler(), previous, type);
-            if (!handler(this, nullptr)) return MessageError(TextHandlerFailed(), previous, type);
+            if (handler == nullptr) return PlayerMessageErrorOriginal(TextNoHandler(), previous, type);
+            if (!handler(this, nullptr)) return PlayerMessageErrorOriginal(TextHandlerFailed(), previous, type);
             if (state_ == kStateLeaving) return 0;
         }
     }
