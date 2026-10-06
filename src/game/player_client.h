@@ -83,6 +83,15 @@ public:
     // and the first one go to the unit's client controller (00535240). Neither source is
     // released here.
     int OnPathMarker();
+    // 00667EC0 (0x40; multiplayer). A map object the server announces: header (id, class,
+    // prototype index, flags), scale, second name, model, two texture names, part names, script
+    // name, prototype value. The world's object manager makes it; units get their model's height
+    // and resistances; peasant heads get their prototype's hair ("hr.%.2d") or lose it; the figure
+    // is built (0 when that fails), a few models lose or gain parts or a particle source; the
+    // textures are swapped (units of class 0x32: "mo%dp" / "mo%ds" by id); the player keeps it
+    // (counted); its state is read (0 when that fails); it is filed in the client world and its
+    // visibility level is the party variable its second name names.
+    int OnNewObject();
     // 00667E60 (0x13). A text run as the interface's string event (005F8070).
     int OnStringEvent();
     // 00669710 (RET 4) / 00669750. With a link: request 2 is queued and the link records into

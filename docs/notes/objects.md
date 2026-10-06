@@ -132,6 +132,11 @@ the link's recording: ours only (result, stream moved). New shared forwarders: F
 Server side: 0066E7D0 CPlayerServer::SendItemsGiven (slot 17, RET 8; player_sync.cpp): messages 0x05 (the items' and
 their spells' states, 0069FB60 / 0055E8A0 forwarded) and 0x06 (money, flag byte, ids, -1; the original stores each value
 in its first argument's stack slot before writing it). Verify: appends only, ours / stream restored / original.
+00667EC0 CPlayerClient::OnNewObject (0x40, multiplayer only, so no scenario reaches it): see player_client.h. The world's
+slot 19 is read as its manager40_; the client world's 00566310 / 00566320 (empty) are not called. Kept: a figure or state
+that cannot be read returns 0 with the object made and unreleased. New names: CMapObjectVirtuals slots 30
+(ApplyBaseScale), 34 (TakePrototype), 61 (SetScriptName); CUnit::modelHeight (+0xF4); CPlayer::sessionKind100_ (+0x100).
+Verify: ours only (0, or 1 with the stream moved).
 
 `FindCommandByKey` (00462F70) loops back to 00462F73 inside the 5 bytes the hook's jump overwrites, so its wrapper copies the whole 61-byte body (no calls) to executable memory at DLL load, before the hooks are
 installed, and runs that copy as the original (`stolenBytes` 0). Constructors allocate nothing, so the original runs safely on a copy.

@@ -151,6 +151,10 @@ int __fastcall PartyUpdateVerify(CPlayerClient* self) {
 int __fastcall PathMarkerVerify(CPlayerClient* self) {
     return CheckHandler("CPlayerClient::OnPathMarker", self, [&] { return self->OnPathMarker(); });
 }
+// Multiplayer only (no scenario): 1 and the stream moved, or 0.
+int __fastcall NewObjectVerify(CPlayerClient* self) {
+    return CheckBlock("CPlayerClient::OnNewObject", self, [&] { return self->OnNewObject(); });
+}
 int __fastcall StringEventVerify(CPlayerClient* self) {
     return CheckHandler("CPlayerClient::OnStringEvent", self, [&] { return self->OnStringEvent(); });
 }
@@ -174,6 +178,7 @@ EI_VERIFY(0x00669A30, PartyVerify, 0, s_unused);
 EI_VERIFY(0x00669C90, PartyUpdateVerify, 0, s_unused);
 EI_VERIFY(0x00669FA0, PathMarkerVerify, 0, s_unused);
 EI_VERIFY(0x00667E60, StringEventVerify, 0, s_unused);
+EI_VERIFY(0x00667EC0, NewObjectVerify, 0, s_unused);
 EI_VERIFY(0x00669710, StartRecordingVerify, 0, s_unused);
 EI_VERIFY(0x00669750, StopRecordingVerify, 0, s_unused);
 
