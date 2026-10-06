@@ -1159,6 +1159,9 @@ public:
     // compass needle scene object 10), clips the view polygon to the world rectangle and builds
     // the visible-area mesh (scene object 1) and the world-bounds quad (scene object 0).
     void UpdateView();
+    // 00635CA0 (ui_hud_destroy.cpp; slot 0 00635C80 calls it). Destructor body: the visible
+    // area's and the view polygon's aligned storage freed, then the window base's (005FE930).
+    void DestroyBody();
 
     CBattleScreen* owner_;           // +0x148
     float centreX_;                  // +0x14C world point at the map's centre (the camera's)
@@ -1200,21 +1203,30 @@ public:
     void OnMouseUp(int buttons, int x, int y);     // 00648370
     void OnMouseMove(int buttons, int x, int y);   // 006484C0
     BOOL OnWheel(int buttons, int delta, int x, int y);   // 006484F0
+    // 00635D00 (ui_hud_destroy.cpp; slot 0 00635CE0 calls it). Destructor body: the part labels,
+    // textsVtable_'s array, the two strings (+0x168 first), then the window base's (005FE930).
+    void DestroyBody();
 
     CBattleScreen* owner_;           // +0x148
     std::uint8_t unknown_14C[0x150 - 0x14C];
     CUnit* hoverUnit_;               // +0x150 the unit under the mouse (HoverUnit), or null
-    std::uint8_t unknown_154[0x16C - 0x154];
+    std::uint8_t unknown_154[0x164 - 0x154];
+    char* strings_[2];               // +0x164 CStrings
     int sliding_;                    // +0x16C set when the sling button starts the slide
     std::uint8_t unknown_170[0x17C - 0x170];
     float slideDirection_;           // +0x17C +1 / -1
     int bodyPart_;                   // +0x180 selected body part 0-3 (scene objects 3-6)
-    std::uint8_t unknown_184[0x1B4 - 0x184];
+    std::uint8_t unknown_184[0x19C - 0x184];
+    void* textsVtable_;              // +0x19C CStringArray
+    std::uint8_t unknown_1A0[0x1B0 - 0x1A0];
+    void* partLabelsVtable_;         // +0x1B0 CStringArray (its data:)
     mfc::CString* partLabels_;       // +0x1B4 four: the shown names of "skull", "torso", "leg", "arm"
 };
 static_assert(offsetof(CHudUnitPanel, hoverUnit_) == 0x150);
 static_assert(offsetof(CHudUnitPanel, slideDirection_) == 0x17C);
 static_assert(offsetof(CHudUnitPanel, bodyPart_) == 0x180);
+static_assert(offsetof(CHudUnitPanel, textsVtable_) == 0x19C);
+static_assert(offsetof(CHudUnitPanel, partLabels_) == 0x1B4);
 
 // Game clock (set up by 00648520, vtables 007425C8 / 00742594; 720..800 x 520..600).
 class CHudClock : public CUiWindow {
@@ -1280,6 +1292,9 @@ public:
     // kind (slot 14; counts added) into the world's copies (0055E940), one item name per line;
     // shown in the message log when page 1 is up.
     void ShowItems();
+    // 00635E00 (ui_hud_destroy.cpp; slot 0 00635DE0 calls it). Destructor body: the two page
+    // texts (page 1 first), then the window base's (005FE930).
+    void DestroyBody();
 
     CBattleScreen* owner_;           // +0x148
     int sliding_;                    // +0x14C

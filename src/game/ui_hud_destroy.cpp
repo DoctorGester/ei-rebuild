@@ -1,9 +1,11 @@
-// Destructor bodies of the battle HUD's panels (0063BC70, 0063CA70, 0063E460, 0063F490); each
-// panel's slot 0 calls its body and then frees the window. See ui.h and docs/notes/ui.md.
+// Destructor bodies of the battle HUD's panels (00635CA0, 00635D00, 00635E00, 0063BC70, 0063CA70,
+// 0063E460, 0063F490); each panel's slot 0 calls its body and then frees the window. See ui.h and
+// docs/notes/ui.md.
 #include "ui.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/mfc.h"
 #include "originals_library.h"
 
 namespace {
@@ -39,3 +41,26 @@ void CHudActionColumn::DestroyBody() {
     DestroyBase();
 }
 EI_REPLACE_METHOD(0x0063F490, CHudActionColumn::DestroyBody);
+
+void CHudMap::DestroyBody() {
+    if (visibleArea_.data_) FreeAligned(visibleArea_.data_);
+    if (viewPolygon_) FreeAligned(viewPolygon_);
+    DestroyBase();
+}
+EI_REPLACE_METHOD(0x00635CA0, CHudMap::DestroyBody);
+
+void CHudUnitPanel::DestroyBody() {
+    StringArrayDestruct(&partLabelsVtable_);
+    StringArrayDestruct(&textsVtable_);
+    reinterpret_cast<mfc::CString*>(&strings_[1])->~CString();
+    reinterpret_cast<mfc::CString*>(&strings_[0])->~CString();
+    DestroyBase();
+}
+EI_REPLACE_METHOD(0x00635D00, CHudUnitPanel::DestroyBody);
+
+void CHudTopPanel::DestroyBody() {
+    reinterpret_cast<mfc::CString*>(&pageTexts_[1])->~CString();
+    reinterpret_cast<mfc::CString*>(&pageTexts_[0])->~CString();
+    DestroyBase();
+}
+EI_REPLACE_METHOD(0x00635E00, CHudTopPanel::DestroyBody);

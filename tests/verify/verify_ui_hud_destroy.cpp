@@ -39,3 +39,21 @@ static void __fastcall ActionColumnDestroyVerify(CHudActionColumn* self) {
                       BaseEmpty(self) && self->actions_.vtable_ == reinterpret_cast<void*>(0x0073C3D0), "");
 }
 EI_VERIFY(0x0063F490, ActionColumnDestroyVerify, 0, s_unused);
+
+static void __fastcall MapDestroyVerify(CHudMap* self) {
+    self->DestroyBody();
+    ei::verify::Check("CHudMap::DestroyBody", true, BaseEmpty(self), "");
+}
+EI_VERIFY(0x00635CA0, MapDestroyVerify, 0, s_unused);
+
+static void __fastcall UnitPanelDestroyVerify(CHudUnitPanel* self) {
+    self->DestroyBody();
+    ei::verify::Check("CHudUnitPanel::DestroyBody", true, BaseEmpty(self), "");
+}
+EI_VERIFY(0x00635D00, UnitPanelDestroyVerify, 0, s_unused);
+
+static void __fastcall TopPanelDestroyVerify(CHudTopPanel* self) {
+    self->DestroyBody();
+    ei::verify::Check("CHudTopPanel::DestroyBody", true, BaseEmpty(self), "");
+}
+EI_VERIFY(0x00635E00, TopPanelDestroyVerify, 0, s_unused);
