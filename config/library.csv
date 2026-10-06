@@ -3599,3 +3599,7 @@ address,name,library,signature,notes
 006B39E0,stlp::copy (0x6C-byte records; second instantiation beside 006B2BA0),STLport,,"A-H11 review: element-wise operator= over [first,last) forwards; returns the end"
 006B3CC0,compiler-generated operator= (0x38-byte quest record),compiler,,"A-H11 review: member-wise assignment (string, dwords, vectors)"
 006B3E60,compiler-generated operator= (0x6C-byte quest record),compiler,,"A-H11 review: member-wise assignment (string, dwords, CString vectors)"
+0064AB20,stlp::vector<HudPortraitSlot>::push_back (a default slot),STLport,void __thiscall(),"A-H11 review: the slot's inline default constructor (identity quaternions, empty CStrings) into the end, or _M_insert_overflow 0064B3A0 with a temporary; called by 00640060 through a forwarder"
+0064AD40,stlp::vector<HudPortraitSlot>::erase(first last),STLport,HudPortraitSlot* __thiscall(HudPortraitSlot*, HudPortraitSlot*),"A-H11 review: member-wise assignment down the tail, slot destructor 0064ACD0 on the rest; returns first"
+0064B3A0,stlp::vector<HudPortraitSlot>::_M_insert_overflow,STLport,,"A-H11 review: new length size+max(size n), node-pool or operator new, uninitialized copies, old block freed"
+0064ACD0,compiler-generated destructor (HudPortraitSlot),compiler,,"A-H11 review: the three CStrings (+0x54, +0x50, +0x40)"

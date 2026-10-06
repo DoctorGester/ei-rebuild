@@ -447,3 +447,18 @@ renderer's). Bytes per group (R = in docs/rebirth-patched-functions.txt):
 
 Not yet reviewed for library code: the item database's record containers (006A6E50..006AB890 look like vector
 instantiations of the item record kinds) and the 006B4000-006C0000 block.
+
+### HUD portraits setup (ui_hud_portrait_setup.cpp, A-H11)
+
+| Address | Name | Verify (ours only) |
+|---|---|---|
+| 006407E0 | CHudPortraits::Rebuild (RET 4) | portraits = party (+ players), 5 sprites and 1 region each, slots' hit points / build / player -1; every newgame |
+| 00640060 | CHudPortraits::AddPortrait (RET 0x10, called through its address) | one more slot, 5 sprites, a region y 510..600, the player flag, current = restA |
+| 00640670 | CHudPortraits::ShowFace (RET 8; Update calls it through its address) | slots and referenced objects unchanged; spells_cast (low mana), hits |
+
+Kept: the sex letter ("m" / "f") keeps the previous portrait's value for a figure that is neither "unhuma" nor
+"unhufe"; AddPortrait's count % 4 switch leaves the texel offsets uninitialised for a negative count (ours 0) and
+indexes the column's frame and restB_ by count % 6. The multiplayer branch (players without a live unit) uses the
+name maps' find_or_insert directly (00514880 / 0053D340, one temporary string less than the original). Not
+reached by a harness scenario. 0064AB20 / 0064AD40 / 0064B3A0 / 0064ACD0 (the slot vector) are library entries.
+CUnit +0xC8 is now `build`, CUiMesh +0x34 `orientation_`.

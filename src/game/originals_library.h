@@ -353,6 +353,9 @@ __declspec(naked) inline void* __fastcall PointArrayConstructOriginal(void* /*ar
 // the iterator to `out` (RET 8: out, key; EAX = out).
 __declspec(naked) inline void* __fastcall NameMapInsertOriginal(void* /*map*/, void*, const void* /*pair*/)
     EI_ORIGINAL(0x00514880)
+// 0053D340: the same find_or_insert on another hash_map<string, T*> instantiation (the figure prototypes, 007AF3A4).
+__declspec(naked) inline void* __fastcall FigureMapInsertOriginal(void* /*map*/, void*, const void* /*pair*/)
+    EI_ORIGINAL(0x0053D340)
 __declspec(naked) inline void** __fastcall StringMapFindOriginal(void* /*map*/, void*, void** /*out*/, const void* /*key*/)
     EI_ORIGINAL(0x005197B0)
 // vector<CString>: 0051F5B0 resize(count) (RET 4), 0052E010 clear (destroys the elements, plain RET); no result.
