@@ -278,6 +278,8 @@ __declspec(naked) inline void __fastcall MpHeroesSaveOriginal(void* /*heroes*/) 
 // from, limit, merge, turning) (RET 0x18, what `to` now holds).
 __declspec(naked) inline int __stdcall ItemKindIsSpellContainerOriginal(const void* /*item*/) EI_ORIGINAL(0x005EE0B0)
 __declspec(naked) inline bool __stdcall ItemKindIsBuildableOriginal(const void* /*item*/) EI_ORIGINAL(0x005EE130)
+// 005EE110: the item is a material (class 0x3007, kind 1; RET 4, AL; ECX not read).
+__declspec(naked) inline bool __stdcall ItemKindIsKindOneOriginal(const void* /*item*/) EI_ORIGINAL(0x005EE110)
 __declspec(naked) inline CItem* __fastcall ItemScreenReturnAllOriginal(void* /*screen*/, void*, void* /*to*/, void* /*from*/)
     EI_ORIGINAL(0x005EE2C0)
 __declspec(naked) inline CItem* __fastcall ItemScreenMoveItemOriginal(void* /*screen*/, void*, CItem* /*item*/, void* /*to*/,

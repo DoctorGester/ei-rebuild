@@ -706,9 +706,17 @@ struct UiRenderer {
     void FlushBatchA();
     void FlushBatchB();
 
-    std::uint8_t unknown_00[0x54];
+    std::uint8_t unknown_00[0x08];
+    long result_;                    // +0x08 the last device call's result
+    std::uint8_t unknown_0C[0x54 - 0x0C];
     UiD3DDevice* device_;            // +0x54
+    std::uint8_t unknown_58[0x90 - 0x58];
+    std::uint32_t caps_;             // +0x90 (0x4000 with stencil_: the depth buffer has a stencil)
+    std::uint8_t unknown_94[0x9C - 0x94];
+    int stencil_;                    // +0x9C
 };
+static_assert(offsetof(UiRenderer, caps_) == 0x90);
+static_assert(offsetof(UiRenderer, stencil_) == 0x9C);
 static_assert(offsetof(UiRenderer, device_) == 0x54);
 
 // Direct3D 7 render states the HUD sets around its drawing.

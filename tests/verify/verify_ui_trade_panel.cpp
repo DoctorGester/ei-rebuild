@@ -11,7 +11,10 @@
 #include "verify.h"
 #include "pixel_settle.h"
 
+#include "../../src/game/party.h"
 #include "../../src/game/ui_camp.h"
+#include "../../src/game/unit.h"
+#include "../../src/game/world.h"
 #include "../../src/hook/log.h"
 #include "../../src/lib/gameapi.h"
 
@@ -258,3 +261,66 @@ static void __fastcall TradeBuildVerify(CTradePanel* self) {
     ei::verify::Check(name, 0.0f, self->holdTime_, "+0x1A0");
 }
 EI_VERIFY(0x00624F10, TradeBuildVerify, 0, s_tradeBuild);
+
+namespace {
+void* s_unused;
+} // namespace
+
+// 00626F10, side by side: the original fills the record first, its bytes are kept and the record
+// put back, then ours; the bytes it writes compared (all but +0x2B and +0x39..+0x3B). Reached by
+// every trade panel Build (ui_camp, ui_describe, ui_hero_screen).
+static void(__fastcall* s_snapshotRecord)(CTradePanel*);
+static void __fastcall TradeSnapshotVerify(CTradePanel* self) {
+    if (self->recordIndex_ < 0) {
+        self->SnapshotRecord();
+        return;
+    }
+    TradeRecord& record = self->records_.begin[self->recordIndex_];
+    TradeRecord before = record;
+    s_snapshotRecord(self);
+    TradeRecord expected = record;
+    record = before;
+    self->SnapshotRecord();
+    expected.unknown_2B = record.unknown_2B;
+    std::memcpy(expected.unknown_39, record.unknown_39, sizeof(expected.unknown_39));
+    ei::verify::Check("CTradePanel::SnapshotRecord", 0, std::memcmp(&expected, &record, sizeof(record)), "record %d",
+                      self->recordIndex_);
+}
+EI_VERIFY(0x00626F10, TradeSnapshotVerify, 7, s_snapshotRecord);
+
+// 00625430, ours only: one record per party member, recordIndex_ at the last. Not in a scenario
+// (called by the hero screen's 006186F0 / 00617A50 and the lobby).
+static void __fastcall TradeResetRecordsVerify(CTradePanel* self) {
+    self->ResetRecords();
+    int count = static_cast<int>(self->records_.end - self->records_.begin);
+    int members = reinterpret_cast<CParty*>(LocalPlayerData())->members_.size;
+    ei::verify::Check("CTradePanel::ResetRecords", true, count == members && (count == 0 || self->recordIndex_ == count - 1),
+                      "records %d, members %d, index %d", count, members, self->recordIndex_);
+}
+EI_VERIFY(0x00625430, TradeResetRecordsVerify, 0, s_unused);
+
+// 006255A0, ours only (it rewrites the hero's statistics): with `all` every record ends not bought
+// and recordIndex_ is unchanged; otherwise the current record ends not bought. The hero screen's
+// take-back and mode changes (ui_hero_screen), the camp's Close.
+static void __fastcall TradeSettleVerify(CTradePanel* self, void*, int keep, int all) {
+    int index = self->recordIndex_;
+    self->Settle(keep, all);
+    bool ok = true;
+    if (static_cast<std::uint8_t>(all)) {
+        ok = self->recordIndex_ == index;
+        for (TradeRecord* r = self->records_.begin; r != self->records_.end; ++r) ok = ok && !r->bought;
+    } else {
+        ok = !self->records_.begin[index].bought;
+    }
+    ei::verify::Check("CTradePanel::Settle", true, ok, "keep %d all %d index %d", keep & 0xFF, all & 0xFF, index);
+}
+EI_VERIFY(0x006255A0, TradeSettleVerify, 0, s_unused);
+
+// 00625860, ours only: the record index and both scroll positions as asked. The camp's hero arrows
+// (ui_camp).
+static void __fastcall TradeSelectHeroVerify(CTradePanel* self, void*, int index) {
+    self->SelectHero(index);
+    ei::verify::Check("CTradePanel::SelectHero", true, self->recordIndex_ == index,
+                      "index %d -> %d", index, self->recordIndex_);
+}
+EI_VERIFY(0x00625860, TradeSelectHeroVerify, 0, s_unused);

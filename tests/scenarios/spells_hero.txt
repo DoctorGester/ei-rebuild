@@ -1,13 +1,21 @@
-# Spells cast by the hero (a caster, unlike script casts): vision fog makes a
-# CEffectShowVisibility (world_effect_visibility.cpp) linking the hero and the target, and the
-# arrow's missile (CEffectArrow, world_effect_missile.cpp) starts at the caster's effect point on
-# the client. The casts go through the battle screen as in ui_battle_spells.txt: two spells given
-# (GiveUnitSpell), the portrait click shows them at (780, 450) and (780, 490), a click on a button
-# starts its target mode and "clickunit" on a wolf ends it. The report's call counts show what was
-# reached (CEffectShowVisibility::Tick / Pack / Unpack, CEffectArrow::Unpack with fromCaster_).
+# Spells cast by the hero (a caster, unlike script casts): the arrow's missile (CEffectArrow,
+# world_effect_missile.cpp) starts at the caster's effect point on the client, and vision fog makes
+# a CEffectShowVisibility (world_effect_visibility.cpp) linking the hero and the target. The report's
+# call counts show what was reached (CEffectArrow / CEffectShowVisibility Tick, Pack, Unpack).
+#
+# Giving the spells: GiveUnitSpell does not work on the hero. It puts the spell into the unit's own
+# slots (CUnit::AddSpell 00531820), but a party unit's spells are read from its player's party
+# record (CUnit::GetSpell 005319A0), so the column kept the hero's own two spells (healing 0x18 and
+# 0x0C). The spells are given as "spell container[<spell>]" items (GiveItem, FindItem 006AC970) and
+# put on in the camp's magic page (page 1, region 5), as clicks in its item strip do; that page's
+# CanEquip (006100E0) wants the spell's level within the school's skill, hence the GiveSkill lines.
+# The column then holds healing, 0x0C, vision fog (0x17) and the fire arrow (0): four buttons at
+# (780, 370), (780, 410), (780, 450) and (780, 490) (hudstate logs the slots).
+#
 # The hero must not be blocked: the server drops orders, casts included, of a unit with flag
-# 0x800000 (BlockUnit; 0066FFF0), so with the hero blocked only the new game's own three casts ran.
-# The zone's intro script blocks the hero for ~37 s: wait for that block and lift it.
+# 0x800000 (BlockUnit; 0066FFF0). The zone's intro script blocks the hero for ~37 s: wait for that
+# block and lift it. Or() is a Rebirth addon function (vanilla: "Parameter of type float
+# expected"), so the checks use plain comparisons.
 reject Script error
 wait 6000
 console thingamabob
@@ -17,14 +25,33 @@ waitfor 15 IsGreater(HP(GetLeader()),0)
 waitfor 15 IsUnitBlocked(GetLeader())
 console @BlockUnit(GetLeader(),0)
 console @GodMode(0,1)
+console @GiveSkill(GetLeader(),"elemental",5)
+console @GiveSkill(GetLeader(),"sense",5)
+console @GiveSkill(GetLeader(),"astral",5)
+console @GiveIntelligence(GetLeader(),60)
+console @GiveItem(0,"spell container[vision_fog]")
+wait 300
+console @GiveItem(0,"spell container[arrow{e2}]")
+wait 300
+
+# The camp's magic page: both containers on the hero.
+screen 5
+wait 3000
+clickregion 5
+wait 500
+campputon 3008 2
+wait 500
+key esc
+wait 3000
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
 console @GSSetVar(0,"hx",GetX(GetLeader()))
 console @GSSetVar(0,"hy",GetY(GetLeader()))
-console @GiveUnitSpell(GetLeader(),"vision_fog")
-console @GiveUnitSpell(GetLeader(),"arrow{e2}")
-wait 500
 
+# The hero's portrait: selects it and shows its spells.
 click 400 560
 wait 300
+hudstate
 
 # Wolves at +3 like ui_quick_items (at +4 they were not drawn: +x is down-screen, +y right).
 console @AddUnitToServer("HeroWolf1","WolfTutor","HeroWolf1",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
@@ -35,25 +62,19 @@ console @BlockUnit(GetObjectByName("HeroWolf1"),1)
 console @BlockUnit(GetObjectByName("HeroWolf2"),1)
 wait 500
 
-# The column may hold a spell the hero already knows (the run of 2026-10-06 cast a healing-like
-# spell: three attached particles, a sound and a light, and no arrow), so every button of a
-# three-spell column is used, each on a wolf; the arrow must then hurt one of them.
+# The arrow (the fourth button) on the first wolf, which must lose hit points.
 console @GSSetVar(0,"w1",HP(GetObjectByName("HeroWolf1")))
-console @GSSetVar(0,"w2",HP(GetObjectByName("HeroWolf2")))
 check Not(IsUnitBlocked(GetLeader()))
-click 780 410
-wait 200
-clickunit HeroWolf1
-wait 1000
-click 780 450
-wait 200
-clickunit HeroWolf1
-wait 1000
 click 780 490
 wait 200
+clickunit HeroWolf1
+waitfor 15 IsLess(HP(GetObjectByName("HeroWolf1")),GSGetVar(0,"w1"))
+
+# Vision fog (the third button) on the second wolf.
+click 780 450
+wait 200
 clickunit HeroWolf2
-waitfor 15 Or(IsLess(HP(GetObjectByName("HeroWolf1")),GSGetVar(0,"w1")),IsLess(HP(GetObjectByName("HeroWolf2")),GSGetVar(0,"w2")))
-wait 1000
+wait 3000
 check IsAlive(GetLeader())
 report
 quit
