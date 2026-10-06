@@ -27,4 +27,7 @@ inline const char* ArrowFigureTextureText() { return reinterpret_cast<const char
 inline const char* MoshkaModelText() { return reinterpret_cast<const char*>(0x00795474); }
 inline const char* MoshkaTextureText() { return reinterpret_cast<const char*>(0x0079546C); }
 
+// 0079548C: the tornado's looping sound "nature\tornado\circle.wav" (CEffectTornado).
+inline const char* TornadoSoundText() { return reinterpret_cast<const char*>(0x0079548C); }
+
 } // namespace game

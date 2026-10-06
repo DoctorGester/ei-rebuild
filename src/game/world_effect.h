@@ -434,6 +434,39 @@ static_assert(offsetof(CEffectMoshka, bird_) == 0x14C);
 static_assert(offsetof(CEffectMoshka, state_) == 0x168);
 static_assert(sizeof(CEffectMoshka) == 0x16C);
 
+// A tornado crossing the map (class id 0x65, vtable 007438F8, "CEffectTornado"; the server weather
+// 0058CCD0 launches it). It moves in a straight line for framesLeft_ ticks, carries a particle
+// source (0x200A) and the looping sound "nature\tornado\circle.wav"; on the server every 8th tick
+// (while more than 20 remain) the units within 5 take a hit of 5 (damage type 6). The source stops
+// emitting for the last 110 ticks. 0x15C bytes. world_effect_tornado.cpp.
+class CEffectTornado : public CEffect {
+public:
+    // The constructor resets inline (as Reset); the destructor resets twice (inline, slot 18).
+    CEffectTornado* Construct();                  // 0067D670
+    void Destruct();                              // 0067D800
+    CEffectTornado* DeletingDestruct(unsigned flags); // 0067D7E0 (slot 0)
+    static std::uintptr_t Vtable();               // 007438F8
+    void Reset();                                 // 0067D970 (slot 18): source cleared and released, sound stopped
+    // 0067DA50 (RET 8). From `from` towards `to` at a random speed 0.096 .. 0.216 per tick; the
+    // ticks to go are the distance over the speed (rounded, at least 0; 0 when the points meet).
+    void Launch(const Vector3* from, const Vector3* to);
+    int Tick();                                   // 0067DBD0 (slot 6): 0 once the ticks are used up
+    int Unpack(int update, DeltaField* field);    // 0067DDD0 (slot 21)
+    void Pack(DeltaField* field);                 // 0067DEB0 (slot 22)
+    void Start(int update);                       // 0067DF10 (slot 23)
+    void LoadState(void* stream);                 // 0067E020 (slot 9)
+    void SaveState(void* stream);                 // 0067E070 (slot 10)
+
+    CParticleSource* Source() { return reinterpret_cast<CParticleSource*>(source_); }
+
+    CEngineObject* source_;    // +0x14C client: the CParticleSource (counted), null: none
+    int sound_;                // +0x150 client: the looping sound's handle, -1: none
+    int framesLeft_;           // +0x154 ticks still to move
+    int launchTick_;           // +0x158 the world's tick at Launch (Start catches the source up, at most 30)
+};
+static_assert(offsetof(CEffectTornado, source_) == 0x14C);
+static_assert(sizeof(CEffectTornado) == 0x15C);
+
 class CBaseManager;   // base_manager.h
 
 // 0067E170 (world_effect_lifetime.cpp). The effect manager's slot 14 (NewObject, RET 4): a new

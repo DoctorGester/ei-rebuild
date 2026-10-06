@@ -250,3 +250,13 @@ ours / generator restored / original (CheckNear); Unpack both; constructor on se
 factory constructs it directly. Kept: an unknown state leaves Update's target unset (never happens: Follow sets 0).
 Not rewritten: 0067CAB0 / 0067CAC0 (class name / id), 0067D650 / 0067D660 (3-byte Pack / Start stubs). 007C8430 (pi/2,
 set at startup) is a constant here.
+
+CEffectTornado (0x65, vtable 007438F8, 0x15C; world_effect_tornado.cpp, A-H10): +0x14C particle source 0x200A (client),
++0x150 looping sound "nature\tornado\circle.wav" (near 10, far 40), +0x154 ticks left, +0x158 launch tick. Launch
+(0067DA50, from the server weather 0058CCD0's helper 0058CEA9) aims at a random speed 0.096..0.216 per tick, ticks =
+lrint(distance / speed). Tick moves it (source and sound follow), stops the source for the last 110 ticks, and on the
+server every 8th tick above 20 hands each player-owned unit within 5 (CSectorMap::FindUnitsInRadius) a hit of 5
+(weight 1 on type 6) through its controller's slot 20 (CUnitServerVirtuals::TakeHitSlot, map_object.h). Start catches
+a new source up by at most 29 ticks. Verify: Launch ours / object and ISAAC restored / original; Pack, Save, Load against
+the original; constructor on seeded scratch; the rest ours only. No scenario starts weather with a tornado yet.
+Not rewritten: 0067D7C0 / 0067D7D0 (class name / id), 0067E0D0 (a 12-byte counted-pointer release, unwind only).

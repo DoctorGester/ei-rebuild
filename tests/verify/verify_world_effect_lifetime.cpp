@@ -139,6 +139,7 @@ bool Destroyed(const CEffectArrow* e);
 bool Destroyed(const CEffectArrowFigure* e);
 bool Destroyed(const CEffectShowVisibility* e);
 bool Destroyed(const CEffectMoshka* e);
+bool Destroyed(const CEffectTornado* e);
 
 // A destructor body called directly (only slot 0 calls them).
 template <typename T>
@@ -251,6 +252,18 @@ CEffectMoshka* __fastcall MoshkaDeleteVerify(CEffectMoshka* self, void*, unsigne
     return DeleteOurs("CEffectMoshka::DeletingDestruct", self, flags);
 }
 
+// CEffectTornado (world_effect_tornado.cpp; the factory constructs it directly, so only a direct
+// call of the bodies reaches these): no source or sound left.
+CEffectTornado*(__fastcall* s_tornadoCtor)(CEffectTornado*);
+CEffectTornado* __fastcall TornadoCtorVerify(CEffectTornado* self) {
+    return ConstructBoth("CEffectTornado::Construct", s_tornadoCtor, self);
+}
+bool Destroyed(const CEffectTornado* e) { return DestroyedBase(e) && e->source_ == nullptr && e->sound_ == -1; }
+void __fastcall TornadoDestructVerify(CEffectTornado* self) { DestructOurs("CEffectTornado::Destruct", self); }
+CEffectTornado* __fastcall TornadoDeleteVerify(CEffectTornado* self, void*, unsigned flags) {
+    return DeleteOurs("CEffectTornado::DeletingDestruct", self, flags);
+}
+
 // The factory (every effect created; scenarios spells, effects): ours only (it allocates). A new
 // object reports the requested class id (slot 12) and carries it in type_.
 CEngineObject* __fastcall EffectNewObjectVerify(CBaseManager* manager, void*, int type) {
@@ -263,6 +276,9 @@ CEngineObject* __fastcall EffectNewObjectVerify(CBaseManager* manager, void*, in
 } // namespace
 
 EI_VERIFY(0x0067E170, EffectNewObjectVerify, 0, s_unused);
+EI_VERIFY(0x0067D670, TornadoCtorVerify, 7, s_tornadoCtor);
+EI_VERIFY(0x0067D800, TornadoDestructVerify, 0, s_unused);
+EI_VERIFY(0x0067D7E0, TornadoDeleteVerify, 0, s_unused);
 EI_VERIFY(0x0067C950, MoshkaCtorVerify, 7, s_moshkaCtor);
 EI_VERIFY(0x0067CAF0, MoshkaDestructVerify, 0, s_unused);
 EI_VERIFY(0x0067CAD0, MoshkaDeleteVerify, 0, s_unused);

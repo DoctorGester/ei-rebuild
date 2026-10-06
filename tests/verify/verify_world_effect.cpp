@@ -15,6 +15,7 @@
 #include "fake_stream.h"
 #include "verify.h"
 
+#include "../../src/game/random.h"
 #include "../../src/game/world_effect.h"
 
 #include "ei/vcall.h"
@@ -807,6 +808,72 @@ static int __fastcall VisibilityTickVerify(CEffectShowVisibility* self) {
     return result;
 }
 EI_VERIFY(0x0067C840, VisibilityTickVerify, 0, s_unused);
+
+// --- CEffectTornado (world_effect_tornado.cpp; the server weather launches it: no scenario yet) ------
+
+// Ours only (stops the sound, clears and releases the source).
+static void __fastcall TornadoResetVerify(CEffectTornado* self) {
+    self->Reset();
+    ei::verify::Check("CEffectTornado::Reset", true, BaseCleared(self) && self->source_ == nullptr && self->sound_ == -1,
+                      "object %p", self);
+}
+EI_VERIFY(0x0067D970, TornadoResetVerify, 0, s_unused);
+
+// 0067DA50: PUSH EBP; MOV EBP,ESP; SUB ESP,0Ch (6). Ours with the ISAAC generator (007A9D40) saved,
+// object and generator put back, the original: generator and integers bit for bit, the floats near.
+static void(__fastcall* s_tornadoLaunch)(CEffectTornado*, void*, const Vector3*, const Vector3*);
+static void __fastcall TornadoLaunchVerify(CEffectTornado* self, void*, const Vector3* from, const Vector3* to) {
+    IsaacRandom& random = IsaacRandom::Global();
+    static IsaacRandom randomBefore, randomOurs;
+    Vector3 start = *from, end = *to;
+    std::memcpy(&randomBefore, &random, sizeof(IsaacRandom));
+    Snapshot before(self, sizeof(CEffectTornado), nullptr, 0);
+    self->Launch(&start, &end);
+    Snapshot ours(self, sizeof(CEffectTornado), nullptr, 0);
+    const auto* o = reinterpret_cast<const CEffectTornado*>(ours.a.data());
+    std::memcpy(&randomOurs, &random, sizeof(IsaacRandom));
+    before.Restore();
+    std::memcpy(&random, &randomBefore, sizeof(IsaacRandom));
+    s_tornadoLaunch(self, nullptr, &start, &end);
+    bool same = std::memcmp(&randomOurs, &random, sizeof(IsaacRandom)) == 0 && o->framesLeft_ == self->framesLeft_ &&
+                o->launchTick_ == self->launchTick_ && o->moving_ == self->moving_ &&
+                o->changeStamp_ == self->changeStamp_ && o->flags_ == self->flags_ &&
+                std::memcmp(&o->localPosition_, &self->localPosition_, 12) == 0;
+    ei::verify::Check("CEffectTornado::Launch", true, same, "object %p: ticks %d vs %d", self, self->framesLeft_,
+                      o->framesLeft_);
+    ei::verify::CheckNear("CEffectTornado::Launch", self->velocity_.x, o->velocity_.x, "velocity x");
+    ei::verify::CheckNear("CEffectTornado::Launch", self->velocity_.y, o->velocity_.y, "velocity y");
+}
+EI_VERIFY(0x0067DA50, TornadoLaunchVerify, 6, s_tornadoLaunch);
+
+// Ours only (hurts units on the server, moves the sound): one tick used, the result says whether
+// any are left.
+static int __fastcall TornadoTickVerify(CEffectTornado* self) {
+    int ticks = self->framesLeft_;
+    int result = self->Tick();
+    bool ok = self->framesLeft_ == ticks - 1 && result == (self->framesLeft_ >= 0 ? 1 : 0);
+    ei::verify::Check("CEffectTornado::Tick", true, ok, "object %p ticks %d result %d", self, ticks, result);
+    return result;
+}
+EI_VERIFY(0x0067DBD0, TornadoTickVerify, 0, s_unused);
+
+// Ours only (plays the sound and makes the source): a source afterwards.
+static void __fastcall TornadoStartVerify(CEffectTornado* self, void*, int update) {
+    self->Start(update);
+    ei::verify::Check("CEffectTornado::Start", true, self->source_ != nullptr, "object %p update %d", self, update);
+}
+EI_VERIFY(0x0067DF10, TornadoStartVerify, 0, s_unused);
+
+EI_UNPACK_VERIFY(0x0067DDD0, CEffectTornado, "CEffectTornado::Unpack");
+EI_VERIFY(0x0067DDD0, UnpackVerify_CEffectTornado, 0, s_unused);
+// 0067DEB0: SUB ESP,0Ch; PUSH ESI; MOV ESI,ECX (6).
+EI_PACK_VERIFY(0x0067DEB0, CEffectTornado, 6, "CEffectTornado::Pack");
+EI_VERIFY(0x0067DEB0, PackVerify_CEffectTornado, 6, s_pack_CEffectTornado);
+// 0067E070 / 0067E020: PUSH ESI; MOV ESI,[ESP+8] (5).
+EI_SAVE_VERIFY(0x0067E070, CEffectTornado, 5, "CEffectTornado::SaveState");
+EI_VERIFY(0x0067E070, SaveVerify_CEffectTornado, 5, s_save_CEffectTornado);
+EI_LOAD_VERIFY(0x0067E020, CEffectTornado, 5, "CEffectTornado::LoadState");
+EI_VERIFY(0x0067E020, LoadVerify_CEffectTornado, 5, s_load_CEffectTornado);
 
 // --- CEffectSoundSeq Start / Unpack (world_effect_sequence.cpp; scenario spells: the fireball's
 // sequence) -------------------------------------------------------------------------------------------
