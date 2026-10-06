@@ -277,7 +277,7 @@ void CEscMenu::Build() {
         gameapi::CopyRect(&rect, reinterpret_cast<const RECT*>(source));
         region->CallSetRect(rect.left, rect.top, rect.right, rect.bottom);
     }
-    window.models_.data_[0]->Play(1);
+    window.models_.data[0]->Play(1);
     window.interface_->PlaySound(GameText(0x00793F90), 0);   // "buttons\menu\shift.wav"
 }
 EI_REPLACE_METHOD(0x0062AB20, CEscMenu::Build);

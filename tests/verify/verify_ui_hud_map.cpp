@@ -47,7 +47,7 @@ int FirstDifference(const std::vector<std::uint8_t>& a, const std::vector<std::u
 } // namespace
 
 static void __fastcall BuildMarkersVerify(CHudMap* self, void*) {
-    auto* mesh = reinterpret_cast<CUiMesh*>(self->sceneObjects_.data_[2]);
+    auto* mesh = reinterpret_cast<CUiMesh*>(self->sceneObjects_.data[2]);
     s_buildMarkers(self, nullptr);
     MeshCopy expected = Copy(mesh);
     self->CHudMap::BuildMarkers();
@@ -99,16 +99,16 @@ struct ViewCopy {
 ViewCopy CopyView(CHudMap* map) {
     ViewCopy c;
     std::memcpy(c.centre, &map->centreX_, sizeof(c.centre));
-    std::memcpy(c.needle, reinterpret_cast<std::uint8_t*>(map->sceneObjects_.data_[10]) + 0x34, 16);
+    std::memcpy(c.needle, reinterpret_cast<std::uint8_t*>(map->sceneObjects_.data[10]) + 0x34, 16);
     c.polygonSize = map->visibleArea_.size_;
     c.polygon.resize(c.polygonSize * sizeof(UiPointF));
     if (c.polygonSize) std::memcpy(c.polygon.data(), map->visibleArea_.data_, c.polygon.size());
-    auto* area = reinterpret_cast<CUiMesh*>(map->sceneObjects_.data_[1]);
+    auto* area = reinterpret_cast<CUiMesh*>(map->sceneObjects_.data[1]);
     c.area = Copy(area);
     c.uvCount = area->uvCount_;
     c.uvs.resize(c.uvCount * 8);
     if (c.uvCount) std::memcpy(c.uvs.data(), area->uvs_, c.uvs.size());
-    auto* bounds = reinterpret_cast<CUiMesh*>(map->sceneObjects_.data_[0]);
+    auto* bounds = reinterpret_cast<CUiMesh*>(map->sceneObjects_.data[0]);
     c.boundsVisible = bounds->visible_;
     std::memset(c.boundsQuad, 0, sizeof(c.boundsQuad));
     std::memset(c.boundsUv, 0, sizeof(c.boundsUv));

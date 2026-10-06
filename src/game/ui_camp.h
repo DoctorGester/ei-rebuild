@@ -393,7 +393,7 @@ public:
     void Close();
     // The marker sprites: the scene objects after the arrow, the base and the island (zones,
     // then quests, then links, then the three layers).
-    CUiMesh* Marker(int index) const { return reinterpret_cast<CUiMesh*>(sceneObjects_.data_[3 + index]); }
+    CUiMesh* Marker(int index) const { return reinterpret_cast<CUiMesh*>(sceneObjects_.data[3 + index]); }
 
     std::uint8_t unknown_148[0x164 - 0x148];
     int zoneCount_;                  // +0x164

@@ -23,16 +23,16 @@ bool EndsWithNewline(const char* text) {
 } // namespace
 
 static void __fastcall TopPanelBuildVerify(CHudTopPanel* self, void*, int page, int shown) {
-    const int regions = self->regions_.size_;
-    const int sprites = self->sceneObjects_.size_;
+    const int regions = self->regions_.size;
+    const int sprites = self->sceneObjects_.size;
     self->CHudTopPanel::Build(page, shown);
     const bool in = static_cast<char>(shown) != 0;
     const bool ok = self->rect_.left == 0xB4 && self->rect_.top == 0 && self->rect_.right == 0x26C &&
-                    self->rect_.bottom == 100 && self->regions_.size_ == regions + 4 &&
-                    self->sceneObjects_.size_ == sprites + 6 && self->page_ == page && self->sliding_ == 1 &&
+                    self->rect_.bottom == 100 && self->regions_.size == regions + 4 &&
+                    self->sceneObjects_.size == sprites + 6 && self->page_ == page && self->sliding_ == 1 &&
                     self->travel_ == 0x5F && self->slideDirection_ == (in ? 1.0f : -1.0f);
     ei::verify::Check("CHudTopPanel::Build", true, ok, "page %d shown %d regions %d sprites %d", page, shown,
-                      self->regions_.size_, self->sceneObjects_.size_);
+                      self->regions_.size, self->sceneObjects_.size);
 }
 EI_VERIFY(0x00649AF0, TopPanelBuildVerify, 0, s_unused);
 

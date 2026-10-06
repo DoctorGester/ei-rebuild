@@ -295,7 +295,7 @@ public:
         return out;
     }
     void Turn(CUiMesh* sprite) const { std::memcpy(reinterpret_cast<std::uint8_t*>(sprite) + 0x34, map_->turn_, 16); }
-    CEngineObject* Texture(int index) const { return map_->objects_.data_[index]; }
+    CEngineObject* Texture(int index) const { return map_->objects_.data[index]; }
 
     // A marker of the map model: the figure at `local`, scaled, turned, white; returns the sprite.
     CUiMesh* Marker(const char* figure, const Vector3& local, float scale) const {
@@ -792,15 +792,15 @@ void CGlobalMap::Update() {
         if (!(D(turn_[0]) >= D(GameFloat(0x0073B858)))) {   // FCOMP; TEST AH,1: below 0 or unordered
             for (float& c : turn_) c = -c;
         }
-        CEngineObject** sprites = sceneObjects_.data_;
+        CEngineObject** sprites = sceneObjects_.data;
         Vector3 at = {position_[0], position_[1], position_[2]};
         SetPosition(reinterpret_cast<CUiMesh*>(sprites[1]), builder.ModelPoint(at));
         builder.Turn(reinterpret_cast<CUiMesh*>(sprites[1]));
         builder.Turn(reinterpret_cast<CUiMesh*>(sprites[2]));
         for (int k = 3; k < 6; ++k) builder.Turn(reinterpret_cast<CUiMesh*>(sprites[markerCount_ + k]));
-        for (int i = 0; i < zoneCount_; ++i) builder.Turn(reinterpret_cast<CUiMesh*>(sceneObjects_.data_[3 + i]));
+        for (int i = 0; i < zoneCount_; ++i) builder.Turn(reinterpret_cast<CUiMesh*>(sceneObjects_.data[3 + i]));
         for (int i = 0; i < questCount_; ++i) {
-            CUiMesh* sprite = reinterpret_cast<CUiMesh*>(sceneObjects_.data_[3 + zoneCount_ + i]);
+            CUiMesh* sprite = reinterpret_cast<CUiMesh*>(sceneObjects_.data[3 + zoneCount_ + i]);
             Vector3 local = {quests_.data[i].x, quests_.data[i].y, quests_.data[i].z};
             SetPosition(sprite, builder.ModelPoint(local));
             builder.Turn(sprite);
@@ -808,7 +808,7 @@ void CGlobalMap::Update() {
             Ops(sprite)->Position(&x, &y, &depth);
         }
         for (int i = 0; i < linkCount_; ++i) {
-            CUiMesh* sprite = reinterpret_cast<CUiMesh*>(sceneObjects_.data_[3 + questCount_ + zoneCount_ + i]);
+            CUiMesh* sprite = reinterpret_cast<CUiMesh*>(sceneObjects_.data[3 + questCount_ + zoneCount_ + i]);
             Vector3 local = {links_.data[i].x, links_.data[i].y, links_.data[i].z};
             SetPosition(sprite, builder.ModelPoint(local));
             builder.Turn(sprite);
@@ -818,7 +818,7 @@ void CGlobalMap::Update() {
             int right = GameFtol(D(x) + D(GameFloat(0x0073CCF8)));
             int top = GameFtol(D(y) - D(GameFloat(0x0073E124)));
             int left = GameFtol(D(x) - D(GameFloat(0x0073CCF8)));
-            regions_.data_[3 + i]->CallSetRect(left, top, right, bottom);
+            regions_.data[3 + i]->CallSetRect(left, top, right, bottom);
         }
     }
 
@@ -827,19 +827,19 @@ void CGlobalMap::Update() {
     bobTime_ = Store(time);
     double bob = D(GameFloat(0x0073B86C)) - x87::fcos(time * D(GameFloat(0x0073BF34))) * D(GameFloat(0x0073BAD4));
     Vector3 above = {position_[0], position_[1], Store(bob + D(position_[2]))};
-    SetPosition(reinterpret_cast<CUiMesh*>(sceneObjects_.data_[0]), builder.ModelPoint(above));
+    SetPosition(reinterpret_cast<CUiMesh*>(sceneObjects_.data[0]), builder.ModelPoint(above));
     // The layers' texture frames run at their own rates.
-    SetFrameFraction(sceneObjects_.data_[markerCount_ + 3], bobTime_, GameFloat(0x0073D09C));
-    SetFrameFraction(sceneObjects_.data_[markerCount_ + 4], bobTime_, GameFloat(0x0073F8A0));
-    SetFrameFraction(sceneObjects_.data_[markerCount_ + 5], bobTime_, GameFloat(0x007420E0));
+    SetFrameFraction(sceneObjects_.data[markerCount_ + 3], bobTime_, GameFloat(0x0073D09C));
+    SetFrameFraction(sceneObjects_.data[markerCount_ + 4], bobTime_, GameFloat(0x0073F8A0));
+    SetFrameFraction(sceneObjects_.data[markerCount_ + 5], bobTime_, GameFloat(0x007420E0));
 
     if (selectPending_ != 0) reinterpret_cast<MapScreenMore*>(this)->RefreshSelection();
     selectPending_ = 0;
 
     // The weather is drawn straight into texture 4's surface; in the switch-over that texture has
     // only the new renderer's memory (00691D80, ticket R8), drawn into directly (no Lock / Unlock).
-    if (objects_.size_ > 4) {
-        std::uint8_t* holder = *reinterpret_cast<std::uint8_t**>(reinterpret_cast<std::uint8_t*>(objects_.data_[4]) + 0x5C);
+    if (objects_.size > 4) {
+        std::uint8_t* holder = *reinterpret_cast<std::uint8_t**>(reinterpret_cast<std::uint8_t*>(objects_.data[4]) + 0x5C);
         auto* lock = reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78);
         gameapi::EnterCriticalSection(lock);
         std::uint32_t desc[0x1F] = {};

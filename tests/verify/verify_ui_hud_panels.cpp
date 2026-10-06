@@ -23,7 +23,7 @@
 namespace {
 void* s_unused;
 
-CUiMesh* Sprite(CUiWindow* window, int index) { return reinterpret_cast<CUiMesh*>(window->sceneObjects_.data_[index]); }
+CUiMesh* Sprite(CUiWindow* window, int index) { return reinterpret_cast<CUiMesh*>(window->sceneObjects_.data[index]); }
 
 // The fields a bar display writes on sprite `index`: visibility, colour row, the quad's right
 // edge (and the two values the original copies onto themselves) and four texture coordinates.
@@ -180,7 +180,7 @@ struct PageState {
     bool moved;
 };
 
-CUiScrollText* Log(CHudTopPanel* p) { return static_cast<CUiScrollText*>(p->owner_->children_.data_[9]); }
+CUiScrollText* Log(CHudTopPanel* p) { return static_cast<CUiScrollText*>(p->owner_->children_.data[9]); }
 
 PageState ReadPage(CHudTopPanel* p) {
     PageState s{};
@@ -222,16 +222,16 @@ struct LayoutState {
 constexpr int kPlaced[5] = {0, 1, 3, 4, 5};
 
 CTransformObject* Placed(CHudTopPanel* p, int i) {
-    return static_cast<CTransformObject*>(p->sceneObjects_.data_[kPlaced[i]]);
+    return static_cast<CTransformObject*>(p->sceneObjects_.data[kPlaced[i]]);
 }
 
 LayoutState ReadLayout(CHudTopPanel* p) {
     LayoutState s{};
     for (int i = 0; i < 5; ++i) s.positions[i] = Placed(p, i)->localPosition_;
     s.logRect = Log(p)->rect_;
-    for (int i = 1; i < p->regions_.size_; ++i) {
-        s.offsets.push_back(p->regions_.data_[i]->offsetX_);
-        s.offsets.push_back(p->regions_.data_[i]->offsetY_);
+    for (int i = 1; i < p->regions_.size; ++i) {
+        s.offsets.push_back(p->regions_.data[i]->offsetX_);
+        s.offsets.push_back(p->regions_.data[i]->offsetY_);
     }
     return s;
 }
@@ -243,7 +243,7 @@ void __fastcall LayoutVerify(CHudTopPanel* self, void*) {
     s_layout(self, nullptr);
     LayoutState expected = ReadLayout(self);
     for (int i = 0; i < 5; ++i) Placed(self, i)->localPosition_ = Vector3{-9.0f, -9.0f, -9.0f};
-    for (int i = 1; i < self->regions_.size_; ++i) self->regions_.data_[i]->offsetX_ = self->regions_.data_[i]->offsetY_ = 12345;
+    for (int i = 1; i < self->regions_.size; ++i) self->regions_.data[i]->offsetX_ = self->regions_.data[i]->offsetY_ = 12345;
     self->Layout();
     LayoutState actual = ReadLayout(self);
     int bad = -1;

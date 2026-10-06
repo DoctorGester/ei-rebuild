@@ -76,7 +76,7 @@ static void __fastcall HeroScreenUpdateVerify(CMpHeroScreen* self, void*) {
         double points = static_cast<double>(stats->stat20Base) + stats->stat18Base + stats->stat10Base;
         const char* name = static_cast<CUiEditField*>(self->nameEdit_)->text_;
         bool ready = points == *reinterpret_cast<const volatile float*>(0x00741C98) && name && name[0];
-        auto* button = reinterpret_cast<CUiMesh*>(self->window.sceneObjects_.data_[9]);
+        auto* button = reinterpret_cast<CUiMesh*>(self->window.sceneObjects_.data[9]);
         ei::verify::Check("CMpHeroScreen::Update create button", ready ? 1.0f : 0.5f, button->tint_[0], "points %g",
                           points);
     }
@@ -115,7 +115,7 @@ static void __fastcall HeroScreenDestroyVerify(CMpHeroScreen* self) {
     self->Destroy();
     auto* screen = reinterpret_cast<CItemScreen*>(self);
     ei::verify::Check("CMpHeroScreen::Destroy", true,
-                      screen->models_.count == 0 && screen->textures_.count == 0 && !self->window.sceneObjects_.data_,
+                      screen->models_.count == 0 && screen->textures_.count == 0 && !self->window.sceneObjects_.data,
                       "models %u textures %u", screen->models_.count, screen->textures_.count);
 }
 EI_VERIFY(0x00633260, HeroScreenDestroyVerify, 0, s_unused);
@@ -127,7 +127,7 @@ EI_VERIFY(0x00633260, HeroScreenDestroyVerify, 0, s_unused);
 
 namespace {
 bool FrameShown(CMpHeroScreen* self) {
-    return reinterpret_cast<CUiMesh*>(self->window.sceneObjects_.data_[2])->visible_ != 0;
+    return reinterpret_cast<CUiMesh*>(self->window.sceneObjects_.data[2])->visible_ != 0;
 }
 int MpHeroTotal() {
     const RecordTable& heroes = MpHeroes();

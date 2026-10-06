@@ -365,7 +365,7 @@ constexpr std::uint32_t kText = 0xA7D7E4;
 class Writer {
 public:
     explicit Writer(CItemInfoPanel* panel)
-        : panel_(panel), draw_(reinterpret_cast<SurfaceDraw*>(panel->surfaces_.data_[0])), rect_{15, 10, 185, 25} {}
+        : panel_(panel), draw_(reinterpret_cast<SurfaceDraw*>(panel->surfaces_.data[0])), rect_{15, 10, 185, 25} {}
 
     SurfaceDraw* Draw() { return draw_; }
     RECT* Rect() { return &rect_; }
@@ -479,7 +479,7 @@ void DurationLine(Writer& w, std::uint32_t ticks) {
 
 void CItemInfoPanel::DescribeItem() {
     CItem* item = Item();
-    SurfaceDraw* draw = reinterpret_cast<SurfaceDraw*>(surfaces_.data_[0]);
+    SurfaceDraw* draw = reinterpret_cast<SurfaceDraw*>(surfaces_.data[0]);
     draw->Begin();
     draw->Clear();
     draw->End();
@@ -838,7 +838,7 @@ void CItemInfoPanel::DescribeCarriedSpell() {
     CItem* item = Item();
     void* spell = item ? SpellOf(item) : nullptr;
     if (!spell) {
-        reinterpret_cast<SurfaceDraw*>(surfaces_.data_[0])->End();   // without a Begin, as the original
+        reinterpret_cast<SurfaceDraw*>(surfaces_.data[0])->End();   // without a Begin, as the original
         return;
     }
     Texts* texts = TextManager();

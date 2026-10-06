@@ -76,7 +76,7 @@ int FirstDifferentRow(const Pixels& a, const Pixels& b) {
 }
 
 void* PanelSurface(CItemInfoPanel* panel) {
-    return panel->surfaces_.size_ > 0 ? panel->surfaces_.data_[0] : nullptr;
+    return panel->surfaces_.size > 0 ? panel->surfaces_.data[0] : nullptr;
 }
 
 // The original draws, its pixels are recorded and the old ones put back, ours draws; the pixels
@@ -274,14 +274,14 @@ std::uint8_t* TurnOf(CItem* item) { return *reinterpret_cast<std::uint8_t**>(rei
 static void(__thiscall* s_drawItem)(CItemScreen*, int, ItemCell*);
 static void __fastcall DrawItemVerify(CItemScreen* self, void*, int pass, ItemCell* cell) {
     CItem* item = cell->item;
-    int sceneObjects = self->sceneObjects_.size_;
+    int sceneObjects = self->sceneObjects_.size;
     std::uint8_t* turn = TurnOf(item);
     if (!turn) {
         self->DrawItem(pass, cell);
         turn = TurnOf(item);
-        bool ok = turn && *reinterpret_cast<std::uintptr_t*>(turn) == 0x007403F8 && self->sceneObjects_.size_ == sceneObjects;
+        bool ok = turn && *reinterpret_cast<std::uintptr_t*>(turn) == 0x007403F8 && self->sceneObjects_.size == sceneObjects;
         ei::verify::Check("CItemScreen::DrawItem", true, ok, "new turning state %p, scene objects %d -> %d", turn,
-                          sceneObjects, self->sceneObjects_.size_);
+                          sceneObjects, self->sceneObjects_.size);
         return;
     }
     TurnState turnBefore(turn);
@@ -290,7 +290,7 @@ static void __fastcall DrawItemVerify(CItemScreen* self, void*, int pass, ItemCe
     ModelState modelBefore;
     if (hadModel) modelBefore = ModelState(model);
     s_drawItem(self, pass, cell);
-    int sceneAfterOriginal = self->sceneObjects_.size_;
+    int sceneAfterOriginal = self->sceneObjects_.size;
     model = self->CachedModel(item);
     if (!model) {
         // No model could be made: both return before drawing.
@@ -306,10 +306,10 @@ static void __fastcall DrawItemVerify(CItemScreen* self, void*, int pass, ItemCe
     ModelState actual(model);
     TurnState actualTurn(turn);
     bool ok = expected == actual && expectedTurn == actualTurn && sceneAfterOriginal == sceneObjects &&
-              self->sceneObjects_.size_ == sceneObjects;
+              self->sceneObjects_.size == sceneObjects;
     ei::verify::Check("CItemScreen::DrawItem", true, ok, "kind %x mode %d: model %d turn %d scene objects %d/%d/%d",
                       KindOf(item), cell->mode, expected == actual, expectedTurn == actualTurn, sceneObjects,
-                      sceneAfterOriginal, self->sceneObjects_.size_);
+                      sceneAfterOriginal, self->sceneObjects_.size);
 }
 EI_VERIFY(0x005ECA10, DrawItemVerify, 5, s_drawItem);
 
@@ -317,7 +317,7 @@ EI_VERIFY(0x005ECA10, DrawItemVerify, 5, s_drawItem);
 // after the original, put back, and ours must leave the same (both draw, the face is drawn twice).
 static void(__thiscall* s_drawHeroFace)(CItemScreen*, int, HeroFaceCell*);
 static void __fastcall DrawHeroFaceVerify(CItemScreen* self, void*, int pass, HeroFaceCell* cell) {
-    int sceneObjects = self->sceneObjects_.size_;
+    int sceneObjects = self->sceneObjects_.size;
     mfc::CString modelName, textureName;
     CItemScreen::FaceNames(cell->prototype, &modelName, &textureName);
     std::uint8_t* model = self->CachedModelNamed(modelName);
@@ -325,7 +325,7 @@ static void __fastcall DrawHeroFaceVerify(CItemScreen* self, void*, int pass, He
     ModelState modelBefore;
     if (hadModel) modelBefore = ModelState(model);
     s_drawHeroFace(self, pass, cell);
-    int sceneAfterOriginal = self->sceneObjects_.size_;
+    int sceneAfterOriginal = self->sceneObjects_.size;
     model = self->CachedModelNamed(modelName);
     if (!model) {
         self->DrawHeroFace(pass, cell);
@@ -337,10 +337,10 @@ static void __fastcall DrawHeroFaceVerify(CItemScreen* self, void*, int pass, He
     if (hadModel) modelBefore.Restore(model);
     self->DrawHeroFace(pass, cell);
     ModelState actual(model);
-    bool ok = expected == actual && sceneAfterOriginal == sceneObjects && self->sceneObjects_.size_ == sceneObjects;
+    bool ok = expected == actual && sceneAfterOriginal == sceneObjects && self->sceneObjects_.size == sceneObjects;
     ei::verify::Check("CItemScreen::DrawHeroFace", true, ok, "%s / %s: model %d scene objects %d/%d/%d",
                       static_cast<const char*>(modelName), static_cast<const char*>(textureName), expected == actual,
-                      sceneObjects, sceneAfterOriginal, self->sceneObjects_.size_);
+                      sceneObjects, sceneAfterOriginal, self->sceneObjects_.size);
 }
 EI_VERIFY(0x005ED7B0, DrawHeroFaceVerify, 7, s_drawHeroFace);
 
@@ -424,10 +424,10 @@ EI_VERIFY(0x005F2F90, TrimTexturesVerify, 0, s_unused);
 // 005F2A90: ours only (it adds sprites). 31 scene objects must be added (the strip, 4 x 6 column
 // pieces, 6 bars).
 static void __fastcall IconBuildVerify(CItemIconWindow* self, void*) {
-    int before = self->sceneObjects_.size_;
+    int before = self->sceneObjects_.size;
     self->Build();
-    ei::verify::Check("CItemIconWindow::Build", true, self->sceneObjects_.size_ == before + 31, "scene objects %d -> %d",
-                      before, self->sceneObjects_.size_);
+    ei::verify::Check("CItemIconWindow::Build", true, self->sceneObjects_.size == before + 31, "scene objects %d -> %d",
+                      before, self->sceneObjects_.size);
 }
 EI_VERIFY(0x005F2A90, IconBuildVerify, 0, s_unused);
 
@@ -445,21 +445,21 @@ EI_VERIFY(0x005EDD80, CreateBaseVerify, 0, s_unused);
 static void __fastcall ItemScreenDestroyVerify(CItemScreen* self) {
     ItemScreenDestroy(self);
     ei::verify::Check("ItemScreenDestroy", true,
-                      self->models_.count == 0 && self->textures_.count == 0 && !self->sceneObjects_.data_,
+                      self->models_.count == 0 && self->textures_.count == 0 && !self->sceneObjects_.data,
                       "models %u textures %u", self->models_.count, self->textures_.count);
 }
 EI_VERIFY(0x005F6470, ItemScreenDestroyVerify, 0, s_unused);
 static void __fastcall CampScreenDestroyVerify(CItemScreen* self) {
     CampScreenDestroy(self);
     ei::verify::Check("CampScreenDestroy", true,
-                      self->models_.count == 0 && self->textures_.count == 0 && !self->sceneObjects_.data_,
+                      self->models_.count == 0 && self->textures_.count == 0 && !self->sceneObjects_.data,
                       "models %u textures %u", self->models_.count, self->textures_.count);
 }
 EI_VERIFY(0x005F6620, CampScreenDestroyVerify, 0, s_unused);
 static void __fastcall Screen9DestroyVerify(CItemScreen* self) {
     Screen9Destroy(self);
     ei::verify::Check("Screen9Destroy", true,
-                      self->models_.count == 0 && self->textures_.count == 0 && !self->sceneObjects_.data_,
+                      self->models_.count == 0 && self->textures_.count == 0 && !self->sceneObjects_.data,
                       "models %u textures %u", self->models_.count, self->textures_.count);
 }
 EI_VERIFY(0x005F7010, Screen9DestroyVerify, 0, s_unused);
@@ -467,7 +467,7 @@ EI_VERIFY(0x005F7010, Screen9DestroyVerify, 0, s_unused);
 // 005EE440: ours only (a builder). One surface more, 45 item texts and 25 skill texts more.
 static void __fastcall InfoPanelBuildVerify(CItemInfoPanel* self, void*, int x, int y) {
     auto* bytes = reinterpret_cast<std::uint8_t*>(self);
-    int surfaces = self->surfaces_.size_;
+    int surfaces = self->surfaces_.size;
     int items, skills;
     std::memcpy(&items, bytes + 0x1C8 + 8, 4);
     std::memcpy(&skills, bytes + 0x1DC + 8, 4);
@@ -475,9 +475,9 @@ static void __fastcall InfoPanelBuildVerify(CItemInfoPanel* self, void*, int x, 
     int itemsAfter, skillsAfter;
     std::memcpy(&itemsAfter, bytes + 0x1C8 + 8, 4);
     std::memcpy(&skillsAfter, bytes + 0x1DC + 8, 4);
-    bool ok = self->surfaces_.size_ == surfaces + 1 && itemsAfter == items + 45 && skillsAfter == skills + 25 &&
+    bool ok = self->surfaces_.size == surfaces + 1 && itemsAfter == items + 45 && skillsAfter == skills + 25 &&
               self->x_ == x && self->y_ == y;
     ei::verify::Check("CItemInfoPanel::Build", true, ok, "surfaces %d -> %d, items %d -> %d, skills %d -> %d",
-                      surfaces, self->surfaces_.size_, items, itemsAfter, skills, skillsAfter);
+                      surfaces, self->surfaces_.size, items, itemsAfter, skills, skillsAfter);
 }
 EI_VERIFY(0x005EE440, InfoPanelBuildVerify, 0, s_unused);

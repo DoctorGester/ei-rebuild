@@ -16,12 +16,12 @@
 
 namespace {
 // The game's CArray template instantiations for the trajectory arrays.
-__declspec(naked) int __fastcall WaypointsAdd(GameArray<MotionWaypoint>*, void*, const MotionWaypoint*)
+__declspec(naked) int __fastcall WaypointsAdd(mfc::CArray<MotionWaypoint>*, void*, const MotionWaypoint*)
     EI_ORIGINAL(0x005C8400)
-__declspec(naked) void __fastcall WaypointsSetAtGrow(GameArray<MotionWaypoint>*, void*, int, const MotionWaypoint*)
+__declspec(naked) void __fastcall WaypointsSetAtGrow(mfc::CArray<MotionWaypoint>*, void*, int, const MotionWaypoint*)
     EI_ORIGINAL(0x005C87F0)
-__declspec(naked) void __fastcall StepSpeedsSetAtGrow(GameArray<float>*, void*, int, float) EI_ORIGINAL(0x005C8950)
-__declspec(naked) void __fastcall PointsSetSize(GameArray<MotionPoint>*, void*, int, int) EI_ORIGINAL(0x005C8560)
+__declspec(naked) void __fastcall StepSpeedsSetAtGrow(mfc::CArray<float>*, void*, int, float) EI_ORIGINAL(0x005C8950)
+__declspec(naked) void __fastcall PointsSetSize(mfc::CArray<MotionPoint>*, void*, int, int) EI_ORIGINAL(0x005C8560)
 
 // FPATAN: atan2(y, x), unrounded.
 __declspec(naked) double __cdecl Fpatan(double, double) {

@@ -45,7 +45,7 @@ PortraitsCopy CopyPortraits(CHudPortraits* p) {
             const auto* b = static_cast<const std::uint8_t*>(src);
             c.objects.insert(c.objects.end(), b, b + size);
         };
-        CEngineObject** o = p->sceneObjects_.data_ + i * 5;
+        CEngineObject** o = p->sceneObjects_.data + i * 5;
         put(Bytes(o[1]) + 0x34, 16);
         for (int k = 2; k <= 3; ++k) {
             auto* bar = reinterpret_cast<CUiMesh*>(o[k]);
@@ -55,8 +55,8 @@ PortraitsCopy CopyPortraits(CHudPortraits* p) {
         put(Bytes(o[5]) + 0x220, 4);
         put(Bytes(o[5]) + 0xD4, 4);
     }
-    std::memcpy(c.marker, Bytes(p->sceneObjects_.data_[0]) + 0x220, 4);
-    std::memcpy(c.marker + 4, Bytes(p->sceneObjects_.data_[0]) + 0x1C, 12);
+    std::memcpy(c.marker, Bytes(p->sceneObjects_.data[0]) + 0x220, 4);
+    std::memcpy(c.marker + 4, Bytes(p->sceneObjects_.data[0]) + 0x1C, 12);
     return c;
 }
 

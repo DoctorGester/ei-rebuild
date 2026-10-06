@@ -38,8 +38,8 @@ public:
             sides_.push_back(*s);
             Mark(&(*s)->handled_, true);
         }
-        for (int i = 0; i < container_->children_.size_; ++i) {
-            CUiWindow* child = container_->children_.data_[i];
+        for (int i = 0; i < container_->children_.size; ++i) {
+            CUiWindow* child = container_->children_.data[i];
             children_.push_back(child);
             Mark(&child->inputHandled_, Qualifies(child));
         }
@@ -85,11 +85,11 @@ private:
     }
     bool Same() const {
         if (static_cast<std::size_t>(container_->inputsEnd_ - container_->inputsBegin_) != sides_.size()) return false;
-        if (static_cast<std::size_t>(container_->children_.size_) != children_.size()) return false;
+        if (static_cast<std::size_t>(container_->children_.size) != children_.size()) return false;
         for (std::size_t i = 0; i < sides_.size(); ++i)
             if (container_->inputsBegin_[i] != sides_[i]) return false;
         for (std::size_t i = 0; i < children_.size(); ++i)
-            if (container_->children_.data_[i] != children_[i]) return false;
+            if (container_->children_.data[i] != children_[i]) return false;
         return true;
     }
     // Every flag still marked gets its value back, for the members still in the lists.
@@ -101,8 +101,8 @@ private:
                     if (*s == sides_[i]) present = true;
             } else {
                 CUiWindow* child = children_[i - sides_.size()];
-                for (int k = 0; k < container_->children_.size_; ++k)
-                    if (container_->children_.data_[k] == child) present = true;
+                for (int k = 0; k < container_->children_.size; ++k)
+                    if (container_->children_.data[k] == child) present = true;
             }
             if (present && FlagByte(*members_[i].flag) == kMarker) FlagByte(*members_[i].flag) = members_[i].saved;
         }
@@ -218,12 +218,12 @@ static void __fastcall DeactivateVerify(UiContainerInput* self, void*) {
     CUiContainer* c = self->Container();
     UiInputSide** sides = c->inputsBegin_;
     UiInputSide** sidesEnd = c->inputsEnd_;
-    CUiWindow** children = c->children_.data_;
-    int count = c->children_.size_;
+    CUiWindow** children = c->children_.data;
+    int count = c->children_.size;
     self->OnDeactivate();
-    bool ok = c->inputsBegin_ == sides && c->inputsEnd_ == sidesEnd && c->children_.data_ == children &&
-              c->children_.size_ == count;
-    ei::verify::Check("UiContainerInput::OnDeactivate", true, ok, "children %d -> %d", count, c->children_.size_);
+    bool ok = c->inputsBegin_ == sides && c->inputsEnd_ == sidesEnd && c->children_.data == children &&
+              c->children_.size == count;
+    ei::verify::Check("UiContainerInput::OnDeactivate", true, ok, "children %d -> %d", count, c->children_.size);
 }
 EI_VERIFY(0x00601A60, DeactivateVerify, 0, s_unused);
 
@@ -234,8 +234,8 @@ static void* s_unusedLifetime;
 // 00600B20: the base constructed, then an empty container with its two vtables.
 static CUiContainer* __fastcall ContainerConstructVerify(CUiContainer* self, void*, CInterface3D* ui) {
     CUiContainer* result = self->CUiContainer::Construct(ui);
-    bool ok = result == self && self->interface_ == ui && !self->children_.data_ && self->children_.size_ == 0 &&
-              self->children_.capacity_ == 0 && self->children_.growBy_ == 0 && !self->inputsBegin_ &&
+    bool ok = result == self && self->interface_ == ui && !self->children_.data && self->children_.size == 0 &&
+              self->children_.capacity == 0 && self->children_.growBy == 0 && !self->inputsBegin_ &&
               !self->inputsEnd_ && !self->inputsCapacity_ && self->vtable_ == reinterpret_cast<void**>(0x00741008) &&
               self->inputVtable_ == reinterpret_cast<void**>(0x00740FD4);
     ei::verify::Check("CUiContainer::Construct", true, ok, "window %p", self);
@@ -247,8 +247,8 @@ EI_VERIFY(0x00600B20, ContainerConstructVerify, 0, s_unusedLifetime);
 // destructor body leaves +0x148 alone; the object's memory is freed only after the body).
 static void __fastcall ContainerDestroyVerify(CUiContainer* self) {
     self->CUiContainer::DestroyContainer();
-    bool ok = !self->children_.data_ && self->children_.size_ == 0 && self->children_.capacity_ == 0;
-    ei::verify::Check("CUiContainer::DestroyContainer", true, ok, "size %d", self->children_.size_);
+    bool ok = !self->children_.data && self->children_.size == 0 && self->children_.capacity == 0;
+    ei::verify::Check("CUiContainer::DestroyContainer", true, ok, "size %d", self->children_.size);
 }
 EI_VERIFY(0x00600BA0, ContainerDestroyVerify, 0, s_unusedLifetime);
 

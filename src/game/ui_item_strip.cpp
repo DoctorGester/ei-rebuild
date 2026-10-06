@@ -160,7 +160,7 @@ BOOL CUiItemStrip::Draw(int pass) {
     const int first = static_cast<int>(position);
     const float frac = StoreFloat(position - static_cast<float>(first));
     const float hundred = GameFloat(0x0073BAB0), fifty = GameFloat(0x0074023C), one = GameFloat(0x0073B84C);
-    CEngineObject** sprites = window.sceneObjects_.data_;
+    CEngineObject** sprites = window.sceneObjects_.data;
     const std::uint32_t dim = 0x3E480000;   // 0.1953125
     auto* left = reinterpret_cast<std::uint8_t*>(sprites[0]);
     auto* right = reinterpret_cast<std::uint8_t*>(sprites[1]);
@@ -170,7 +170,7 @@ BOOL CUiItemStrip::Draw(int pass) {
 
     reinterpret_cast<CUiMesh*>(sprites[9])->Place(fifty - frac * hundred, static_cast<float>(top_), scale_ + scale_);
     for (int i = 0; i < 8; ++i) {
-        reinterpret_cast<CUiMesh*>(window.sceneObjects_.data_[10 + i])
+        reinterpret_cast<CUiMesh*>(window.sceneObjects_.data[10 + i])
             ->Place(((static_cast<float>(i) - frac) + one) * hundred, static_cast<float>(top_) + fifty, scale_);
     }
     window.DrawBase(pass);
@@ -205,7 +205,7 @@ BOOL CUiItemStrip::Draw(int pass) {
     };
     const char* const kNumber = reinterpret_cast<const char*>(0x0078EEEC);   // "%d"
     mfc::CString text;
-    auto* counts = reinterpret_cast<StripSurface*>(window.surfaces_.data_[0]);
+    auto* counts = reinterpret_cast<StripSurface*>(window.surfaces_.data[0]);
     counts->GetDC();
     counts->Clear();
     for (int i = 0; i < 8; ++i) {
@@ -217,7 +217,7 @@ BOOL CUiItemStrip::Draw(int pass) {
         counts->Text(text, &rect, 1, 0xA7D7E4, 2, 1);
     }
     counts->ReleaseDC();
-    auto* numbers = reinterpret_cast<StripSurface*>(window.surfaces_.data_[1]);
+    auto* numbers = reinterpret_cast<StripSurface*>(window.surfaces_.data[1]);
     numbers->GetDC();
     numbers->Clear();
     for (int i = 0; i < 8; ++i) {

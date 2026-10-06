@@ -57,10 +57,10 @@ EI_VERIFY(0x0062AC90, SetRectFromVerify, 8, s_setRectFrom);
 
 // CMainMenu::AddVersionLine (006335E0): one surface more.
 static void __fastcall AddVersionLineVerify(CMainMenu* self) {
-    int surfaces = self->surfaces_.size_;
+    int surfaces = self->surfaces_.size;
     self->CMainMenu::AddVersionLine();
-    ei::verify::Check("CMainMenu::AddVersionLine", true, self->surfaces_.size_ == surfaces + 1, "surfaces %d -> %d",
-                      surfaces, self->surfaces_.size_);
+    ei::verify::Check("CMainMenu::AddVersionLine", true, self->surfaces_.size == surfaces + 1, "surfaces %d -> %d",
+                      surfaces, self->surfaces_.size);
 }
 EI_VERIFY(0x006335E0, AddVersionLineVerify, 0, s_unused);
 
@@ -68,18 +68,18 @@ EI_VERIFY(0x006335E0, AddVersionLineVerify, 0, s_unused);
 // extra input side more, the hour 0, the interface's saved state clear, the map edge fade kept and
 // set to 6.
 static void __fastcall MainMenuCreateVerify(CMainMenu* self) {
-    int regions = self->regions_.size_;
-    int surfaces = self->surfaces_.size_;
+    int regions = self->regions_.size;
+    int surfaces = self->surfaces_.size;
     int inputs = InputCount(self);
     float fade = MapEdgeFade();
     self->CMainMenu::Create();
     CInterface3D* ui = self->interface_;
     bool ok = self->hovered_ == -1 && self->rect_.left == 0 && self->rect_.top == 0 && self->rect_.right == 800 &&
-              self->rect_.bottom == 600 && self->regions_.size_ == regions + 6 && self->surfaces_.size_ == surfaces + 1 &&
+              self->rect_.bottom == 600 && self->regions_.size == regions + 6 && self->surfaces_.size == surfaces + 1 &&
               InputCount(self) == inputs + 1 && self->hour_ == 0.0f && ui->fastGame_ == 0 && ui->unknown_8C == 0 &&
               ui->unknown_90 == 0 && std::memcmp(&self->savedEdgeFade_, &fade, 4) == 0 && MapEdgeFade() == 6.0f;
     ei::verify::Check("CMainMenu::Create", true, ok, "regions %d surfaces %d inputs %d rain %d daylight %d",
-                      self->regions_.size_, self->surfaces_.size_, InputCount(self), self->rain_ ? 1 : 0,
+                      self->regions_.size, self->surfaces_.size, InputCount(self), self->rain_ ? 1 : 0,
                       self->daylight_ ? 1 : 0);
 }
 EI_VERIFY(0x006326B0, MainMenuCreateVerify, 0, s_unused);
@@ -102,12 +102,12 @@ EI_VERIFY(0x00632910, MainMenuCloseVerify, 0, s_unused);
 // CMainMenu::OnMessageResult (00632940): only the titles' 0xCCCCCCCC adds a surface (the version
 // line); other answers leave the surfaces (0x10001 and 0x20001 leave the menu and are not checked).
 static void __fastcall MainMenuMessageResultVerify(CMainMenu* self, void*, int result) {
-    int surfaces = self->surfaces_.size_;
+    int surfaces = self->surfaces_.size;
     self->CMainMenu::OnMessageResult(result);
     if (result == 0x10001 || result == 0x20001) return;
     int expected = static_cast<std::uint32_t>(result) == 0xCCCCCCCC ? surfaces + 1 : surfaces;
-    ei::verify::Check("CMainMenu::OnMessageResult", true, self->surfaces_.size_ == expected, "result %X surfaces %d -> %d",
-                      result, surfaces, self->surfaces_.size_);
+    ei::verify::Check("CMainMenu::OnMessageResult", true, self->surfaces_.size == expected, "result %X surfaces %d -> %d",
+                      result, surfaces, self->surfaces_.size);
 }
 EI_VERIFY(0x00632940, MainMenuMessageResultVerify, 0, s_unused);
 

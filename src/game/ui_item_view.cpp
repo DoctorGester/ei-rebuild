@@ -425,7 +425,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         double half = D(GameFloat(0x007403E0));
         AsSprite(frame)->SetRectangle(frameDepth, 100.0f, Store(D(cell->x) - half), Store(D(cell->y) - half),
                                       Store(D(cell->x) + half), Store(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
-        Set(frame, 0x280, objects_.data_[2]);
+        Set(frame, 0x280, objects_.data[2]);
         AsSprite(frame)->Draw(pass);
         RemoveSceneObject(reinterpret_cast<CEngineObject*>(frame));
     }
@@ -445,7 +445,7 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
         CUiMesh* mark = AddSprite(0);
         AsSprite(mark)->SetRectangle(Store(D(pz) * D(GameFloat(0x0073CD70))), 100.0f, 0.0f, 0.0f, 35.0f, 35.0f, 0, 0,
                                      0x20, 0x20);
-        Set(mark, 0x280, objects_.data_[1]);
+        Set(mark, 0x280, objects_.data[1]);
         AsSprite(mark)->SetScale(scale);
         SetShade(reinterpret_cast<std::uint8_t*>(mark), cell->mode == 9 ? 0x3F000000 : 0x3F800000);
         float step = Store(D(scale) * D(GameFloat(0x007403DC)));
@@ -605,7 +605,7 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
     double half = D(GameFloat(0x007403E0));
     AsSprite(frame)->SetRectangle(frameDepth, 100.0f, Store(D(cell->x) - half), Store(D(cell->y) - half),
                                   Store(D(cell->x) + half), Store(D(cell->y) + half), 0x9D, 0x9D, 0xE3, 0xE3);
-    Set(frame, 0x280, objects_.data_[2]);
+    Set(frame, 0x280, objects_.data[2]);
     AsSprite(frame)->Draw(pass);
     RemoveSceneObject(reinterpret_cast<CEngineObject*>(frame));
     AsSprite(model)->Draw(pass);

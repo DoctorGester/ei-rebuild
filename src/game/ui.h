@@ -11,6 +11,8 @@
 #include "engine_object.h"
 #include "item_db.h"
 
+#include "lib/containers.h"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -201,31 +203,12 @@ static_assert(offsetof(CInterface3D, rightDown_) == 0x80);
 static_assert(offsetof(CInterface3D, unknown_8C) == 0x8C);
 static_assert(offsetof(CInterface3D, fastGame_) == 0x94);
 
-// The interface's growable pointer arrays (an MFC CArray-like template the game inlines): the
-// storage is aligned to 32 bytes, with the pointer returned by operator new stored just before it.
-// Growth: by growBy_ when set, otherwise by size / 8 clamped to [4, 1024].
+// The interface's growable pointer arrays: engine aligned arrays of pointers (lib::AlignedArray).
+// The original has one out-of-line SetSize per array (006003D0, 006004E0, 00600730, 00600840,
+// 00600950, 00601D00) and SetAtGrow (006005F0), registered on AlignedArray's members; Add,
+// RemoveAt and RemoveAll it inlines.
 template <typename T>
-struct UiPtrArray {
-    T** data_;
-    int size_;
-    int capacity_;
-    int growBy_;
-
-    // 006003D0, 006004E0, 00600730, 00600840, 00600950 (one instantiation per array). Sets the
-    // size (new slots are not initialised); `growBy` -1 keeps the current growth step.
-    void SetSize(int newSize, int growBy);
-
-    // Inlined by the original at each Add call site: appends `item` (null included).
-    void Append(T* item);
-    // 006005F0 (RET 8). Stores `item` at `index`, growing the array to index + 1 first when it is
-    // that short (SetSize, inlined).
-    void SetAtGrow(int index, T* item);
-    // Inlined by the original: removes the slot at `index`, shifting the rest down.
-    void RemoveSlot(int index);
-    // Inlined by the original: frees the storage and empties the array.
-    void FreeStorage();
-};
-static_assert(sizeof(UiPtrArray<void>) == 0x10);
+using UiPtrArray = lib::AlignedArray<T*>;
 
 // Allocates storage for `bytes` with the interface arrays' 32-byte alignment (00600A80 for 4-byte
 // elements, 004F65B0 for 8-byte ones); FreeAligned releases it.
@@ -1860,8 +1843,8 @@ public:
     // the key, Enter answers as OK and Esc as cancel, and the key is marked used.
     void OnKeyDown(int key, int repeat, int flags);
     // The check boxes: the first two sprites (Build adds them first).
-    CUiMesh* EasyBox() const { return reinterpret_cast<CUiMesh*>(sceneObjects_.data_[0]); }
-    CUiMesh* HardBox() const { return reinterpret_cast<CUiMesh*>(sceneObjects_.data_[1]); }
+    CUiMesh* EasyBox() const { return reinterpret_cast<CUiMesh*>(sceneObjects_.data[0]); }
+    CUiMesh* HardBox() const { return reinterpret_cast<CUiMesh*>(sceneObjects_.data[1]); }
     // The texture shift of a checked box (0xBDB80000).
     static constexpr float kCheckedOffset = -0.08984375f;
 

@@ -16,13 +16,13 @@ struct ClampState {
 };
 ClampState Capture(CTradePanel* self) {
     ClampState s = {self->perkTop_, self->learnableTop_, {}};
-    for (int i = 0; i < 4; ++i) s.shown[i] = reinterpret_cast<CUiMesh*>(self->sceneObjects_.data_[i])->visible_;
+    for (int i = 0; i < 4; ++i) s.shown[i] = reinterpret_cast<CUiMesh*>(self->sceneObjects_.data[i])->visible_;
     return s;
 }
 void Restore(CTradePanel* self, const ClampState& s) {
     self->perkTop_ = s.perkTop;
     self->learnableTop_ = s.learnableTop;
-    for (int i = 0; i < 4; ++i) reinterpret_cast<CUiMesh*>(self->sceneObjects_.data_[i])->visible_ = s.shown[i];
+    for (int i = 0; i < 4; ++i) reinterpret_cast<CUiMesh*>(self->sceneObjects_.data[i])->visible_ = s.shown[i];
 }
 
 } // namespace

@@ -10,7 +10,7 @@ namespace {
 void* s_unused;
 
 bool BaseEmpty(const CUiWindow* window) {
-    return !window->sceneObjects_.data_ && !window->surfaces_.data_ && !window->regions_.data_ && !window->models_.data_;
+    return !window->sceneObjects_.data && !window->surfaces_.data && !window->regions_.data && !window->models_.data;
 }
 } // namespace
 

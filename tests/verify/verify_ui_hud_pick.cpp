@@ -49,12 +49,12 @@ std::vector<CUiMesh*> Sprites(CBattleScreen* screen) {
     for (int slot = 0; slot < 8; ++slot) {
         int index = quick->regionItem_[slot];
         if (index >= 0 && index < quick->unknown_14C)
-            out.push_back(reinterpret_cast<CUiMesh*>(quick->sceneObjects_.data_[index]));
+            out.push_back(reinterpret_cast<CUiMesh*>(quick->sceneObjects_.data[index]));
     }
     for (int i = 0; i < screen->spellColumn_->count_; ++i)
-        out.push_back(reinterpret_cast<CUiMesh*>(screen->spellColumn_->sceneObjects_.data_[i]));
+        out.push_back(reinterpret_cast<CUiMesh*>(screen->spellColumn_->sceneObjects_.data[i]));
     for (int i = 0; i < screen->actionColumn_->count_; ++i)
-        out.push_back(reinterpret_cast<CUiMesh*>(screen->actionColumn_->sceneObjects_.data_[i]));
+        out.push_back(reinterpret_cast<CUiMesh*>(screen->actionColumn_->sceneObjects_.data[i]));
     return out;
 }
 

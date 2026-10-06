@@ -285,7 +285,7 @@ __declspec(naked) int CUiMesh::Commit() EI_ORIGINAL(0x005EA150)
 // --- 00643DC0 ----------------------------------------------------------------------------------
 
 void CHudMap::BuildMarkers() {
-    CUiMesh* mesh = reinterpret_cast<CUiMesh*>(sceneObjects_.data_[2]);
+    CUiMesh* mesh = reinterpret_cast<CUiMesh*>(sceneObjects_.data[2]);
     CBaseManager* objects = Objects();
     MapLocalView* view = LocalView();
     int unitCount = view ? view->UnitCount() : 0;
@@ -470,10 +470,10 @@ void CHudMap::UpdateView() {
     Vector3 up = {0.0f, 0.0f, 1.0f};
     Quaternion turn;
     turn.SetAxisAngle(up, angle);
-    std::memcpy(reinterpret_cast<std::uint8_t*>(sceneObjects_.data_[10]) + 0x34, &turn, sizeof(turn));
+    std::memcpy(reinterpret_cast<std::uint8_t*>(sceneObjects_.data[10]) + 0x34, &turn, sizeof(turn));
 
     // The view polygon in world units.
-    auto* area = reinterpret_cast<CUiMesh*>(sceneObjects_.data_[1]);
+    auto* area = reinterpret_cast<CUiMesh*>(sceneObjects_.data[1]);
     UiPointArray& points = visibleArea_;
     int count = viewPolygonCount_;
     points.SetSize(count, -1);   // the original inlines the same code
@@ -568,7 +568,7 @@ void CHudMap::UpdateView() {
     area->Commit();
 
     // The world's bounds (scene object 0), clamped to the map square [-1, 1].
-    auto* bounds = reinterpret_cast<CUiMesh*>(sceneObjects_.data_[0]);
+    auto* bounds = reinterpret_cast<CUiMesh*>(sceneObjects_.data[0]);
     float left = Store(-D(centreX_) * D(scale_));
     float top = Store(-(-D(centreY_) * D(scale_)));
     double rightRaw = (D(worldWidth_) - D(centreX_)) * D(scale_);

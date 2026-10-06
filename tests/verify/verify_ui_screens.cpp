@@ -36,23 +36,23 @@ struct StripState {
         std::memset(shades, 0, sizeof(shades));
         if (withShades)
             for (int i = 0; i < 6; ++i)
-                std::memcpy(shades[i], reinterpret_cast<char*>(s->window.sceneObjects_.data_[i + 2]) + 0x224, 12);
+                std::memcpy(shades[i], reinterpret_cast<char*>(s->window.sceneObjects_.data[i + 2]) + 0x224, 12);
         capture = UiCapture(s->window.interface_);
     }
     void Restore(CUiItemStrip* s, bool withShades) const {
         std::memcpy(reinterpret_cast<char*>(s) + 0x150, fields, sizeof(fields));
         if (withShades)
             for (int i = 0; i < 6; ++i)
-                std::memcpy(reinterpret_cast<char*>(s->window.sceneObjects_.data_[i + 2]) + 0x224, shades[i], 12);
+                std::memcpy(reinterpret_cast<char*>(s->window.sceneObjects_.data[i + 2]) + 0x224, shades[i], 12);
         UiCapture(s->window.interface_) = capture;
     }
     bool operator==(const StripState& o) const { return std::memcmp(this, &o, sizeof(*this)) == 0; }
 };
 
 bool HasTabObjects(const CUiItemStrip* s) {
-    if (s->window.sceneObjects_.size_ < 8 || !s->window.sceneObjects_.data_) return false;
+    if (s->window.sceneObjects_.size < 8 || !s->window.sceneObjects_.data) return false;
     for (int i = 2; i < 8; ++i)
-        if (!s->window.sceneObjects_.data_[i]) return false;
+        if (!s->window.sceneObjects_.data[i]) return false;
     return true;
 }
 } // namespace
@@ -211,8 +211,8 @@ static void __fastcall RebuildListVerify(CUiItemStrip* self, void*) {
     // The list must be the source items whose tab (by the original classifiers) is the current one.
     bool ok = self->count_ == self->list_.size_;
     int n = 0;
-    for (int i = 0; ok && i < self->source_->size_; ++i) {
-        char* item = self->source_->data_[i];
+    for (int i = 0; ok && i < self->source_->size; ++i) {
+        char* item = self->source_->data[i];
         bool keep;
         if (self->filter_ == 0 && self->tab_ == 5) {
             keep = true;
@@ -229,7 +229,7 @@ static void __fastcall RebuildListVerify(CUiItemStrip* self, void*) {
     }
     ok = ok && n == self->list_.size_;
     ei::verify::Check("CUiItemStrip::RebuildList", true, ok, "filter %d tab %d source %d list %d", self->filter_,
-                      self->tab_, self->source_->size_, self->list_.size_);
+                      self->tab_, self->source_->size, self->list_.size_);
 }
 EI_VERIFY(0x006212F0, RebuildListVerify, 0, s_unused);
 
@@ -342,13 +342,13 @@ EI_VERIFY(0x0062B300, EscKeyDownVerify, 0, s_unused);
 // The menu's Create (ui_layouts.cpp), ours only: one model and the five regions are added, the
 // window covers the layout.
 static void __fastcall EscBuildVerify(CEscMenu* self, void*) {
-    int models = self->window.models_.size_;
-    int regions = self->window.regions_.size_;
+    int models = self->window.models_.size;
+    int regions = self->window.regions_.size;
     self->CEscMenu::Build();
-    bool ok = self->window.models_.size_ == models + 1 && self->window.regions_.size_ == regions + 5 &&
+    bool ok = self->window.models_.size == models + 1 && self->window.regions_.size == regions + 5 &&
               self->window.rect_.right == 800 && self->window.rect_.bottom == 600;
     ei::verify::Check("CEscMenu::Build", true, ok, "models %d->%d regions %d->%d", models,
-                      self->window.models_.size_, regions, self->window.regions_.size_);
+                      self->window.models_.size, regions, self->window.regions_.size);
 }
 EI_VERIFY(0x0062AB20, EscBuildVerify, 0, s_unused);
 
@@ -410,31 +410,31 @@ EI_VERIFY(0x00632D70, MainMenuLButtonDownVerify, 0, s_unused);
 // one and the cancel button), the button regions enabled (two on one row), and with flag 4 the
 // edit field as a child.
 static void __fastcall MessageBoxBuildVerify(CMessageBox* self, void*) {
-    int surfaces = self->surfaces_.size_;
-    int sprites = self->sceneObjects_.size_;
-    int regions = self->regions_.size_;
-    int children = self->children_.size_;
+    int surfaces = self->surfaces_.size;
+    int sprites = self->sceneObjects_.size;
+    int regions = self->regions_.size;
+    int children = self->children_.size;
     self->CMessageBox::Build();
     std::uint32_t flags = self->flags_;
     bool two = (flags & 2) && (flags & 1);
     int buttons = two ? 2 : 1;
-    bool ok = self->surfaces_.size_ == surfaces + 1 && self->sceneObjects_.size_ == sprites + 2 + buttons &&
-              self->regions_.size_ == regions + 2 - ((flags & 3) == 1 ? 1 : 0);
+    bool ok = self->surfaces_.size == surfaces + 1 && self->sceneObjects_.size == sprites + 2 + buttons &&
+              self->regions_.size == regions + 2 - ((flags & 3) == 1 ? 1 : 0);
     if (ok) {
         // The button regions (screen coordinates after the layout scaling): enabled rectangles,
         // two of them side by side on one row.
-        const CUiRegion* last = self->regions_.data_[self->regions_.size_ - 1];
+        const CUiRegion* last = self->regions_.data[self->regions_.size - 1];
         ok = last->enabled_ && last->bounds_.bottom > last->bounds_.top && last->bounds_.right > last->bounds_.left;
         if (two) {
-            const CUiRegion* first = self->regions_.data_[self->regions_.size_ - 2];
+            const CUiRegion* first = self->regions_.data[self->regions_.size - 2];
             ok = ok && first->enabled_ && first->bounds_.top == last->bounds_.top &&
                  first->bounds_.right < last->bounds_.left;
         }
     }
-    if (flags & 4) ok = ok && self->edit_ && self->children_.size_ == children + 1;
+    if (flags & 4) ok = ok && self->edit_ && self->children_.size == children + 1;
     ei::verify::Check("CMessageBox::Build", true, ok, "flags %X surfaces %d->%d sprites %d->%d regions %d->%d", flags,
-                      surfaces, self->surfaces_.size_, sprites, self->sceneObjects_.size_, regions,
-                      self->regions_.size_);
+                      surfaces, self->surfaces_.size, sprites, self->sceneObjects_.size, regions,
+                      self->regions_.size);
 }
 EI_VERIFY(0x00634790, MessageBoxBuildVerify, 0, s_unused);
 
@@ -443,27 +443,27 @@ EI_VERIFY(0x00634790, MessageBoxBuildVerify, 0, s_unused);
 // cancel), four regions (OK and cancel side by side on one row, the two check boxes one above the
 // other), easy_ 0. Reached by ui_main_menu (the main menu's region 0).
 static void __fastcall DifficultyBoxBuildVerify(CDifficultyBox* self, void*) {
-    int surfaces = self->surfaces_.size_;
-    int sprites = self->sceneObjects_.size_;
-    int regions = self->regions_.size_;
+    int surfaces = self->surfaces_.size;
+    int sprites = self->sceneObjects_.size;
+    int regions = self->regions_.size;
     self->CDifficultyBox::Build();
-    bool ok = self->surfaces_.size_ == surfaces + 1 && self->sceneObjects_.size_ == sprites + 6 &&
-              self->regions_.size_ == regions + 4 && self->easy_ == 0;
+    bool ok = self->surfaces_.size == surfaces + 1 && self->sceneObjects_.size == sprites + 6 &&
+              self->regions_.size == regions + 4 && self->easy_ == 0;
     if (ok) {
         auto shift = [&](int i) {
             std::uint32_t v;
-            std::memcpy(&v, reinterpret_cast<const std::uint8_t*>(self->sceneObjects_.data_[sprites + i]) + 0xCC, 4);
+            std::memcpy(&v, reinterpret_cast<const std::uint8_t*>(self->sceneObjects_.data[sprites + i]) + 0xCC, 4);
             return v;
         };
         ok = shift(0) != 0xBDB80000u && shift(1) == 0xBDB80000u;
-        const CUiRegion* const* r = self->regions_.data_ + regions;
+        const CUiRegion* const* r = self->regions_.data + regions;
         ok = ok && r[0]->enabled_ && r[1]->enabled_ && r[0]->bounds_.top == r[1]->bounds_.top &&
              r[0]->bounds_.right < r[1]->bounds_.left && r[2]->bounds_.left == r[3]->bounds_.left &&
              r[2]->bounds_.bottom < r[3]->bounds_.top && r[3]->bounds_.bottom < r[0]->bounds_.top;
     }
     ei::verify::Check("CDifficultyBox::Build", true, ok, "surfaces %d->%d sprites %d->%d regions %d->%d easy %d",
-                      surfaces, self->surfaces_.size_, sprites, self->sceneObjects_.size_, regions,
-                      self->regions_.size_, self->easy_);
+                      surfaces, self->surfaces_.size, sprites, self->sceneObjects_.size, regions,
+                      self->regions_.size, self->easy_);
 }
 EI_VERIFY(0x006337B0, DifficultyBoxBuildVerify, 0, s_unused);
 
@@ -479,16 +479,16 @@ static void __fastcall CreditsBuildVerify(CCreditsScreen* self, void*) {
             ++n;
         return n;
     };
-    int surfaces = self->window.surfaces_.size_;
+    int surfaces = self->window.surfaces_.size;
     int before = countLines();
     self->CCreditsScreen::Build();
     int after = countLines();
     const std::uint8_t* display = reinterpret_cast<std::uint8_t*(__cdecl*)()>(0x00500960)();
     std::uint32_t display14;
     std::memcpy(&display14, display + 0x14, 4);
-    bool ok = self->window.surfaces_.size_ == surfaces + 2 &&
-              self->textSurface_ == self->window.surfaces_.data_[surfaces] &&
-              self->headerSurface_ == self->window.surfaces_.data_[surfaces + 1] && self->unknown_1CC == 0 &&
+    bool ok = self->window.surfaces_.size == surfaces + 2 &&
+              self->textSurface_ == self->window.surfaces_.data[surfaces] &&
+              self->headerSurface_ == self->window.surfaces_.data[surfaces + 1] && self->unknown_1CC == 0 &&
               !self->unknown_1F5 && display14 == 0;
     if (after == before) {
         ok = ok && self->currentLine_ == self->lines_;
@@ -505,7 +505,7 @@ static void __fastcall CreditsBuildVerify(CCreditsScreen* self, void*) {
         }
     }
     ei::verify::Check("CCreditsScreen::Build", true, ok, "surfaces %d->%d lines %d->%d", surfaces,
-                      self->window.surfaces_.size_, before, after);
+                      self->window.surfaces_.size, before, after);
 }
 EI_VERIFY(0x0062B7D0, CreditsBuildVerify, 0, s_unused);
 

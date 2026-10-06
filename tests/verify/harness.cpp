@@ -923,12 +923,12 @@ void PostWheel(int x, int y, int delta) {
 void PostRegionMouse(const std::string& verb, int index) {
     auto* ui = reinterpret_cast<CInterface3D*>(0x007C7D50);
     CUiWindow* window = ui->GetActiveWindow();
-    if (!window || index < 0 || index >= window->regions_.size_ || !window->regions_.data_[index]) {
+    if (!window || index < 0 || index >= window->regions_.size || !window->regions_.data[index]) {
         Log("harness: %s %d: no such region (window %p, %d regions)", verb.c_str(), index, window,
-            window ? window->regions_.size_ : 0);
+            window ? window->regions_.size : 0);
         return;
     }
-    const CUiRegion* region = window->regions_.data_[index];
+    const CUiRegion* region = window->regions_.data[index];
     POINT point{(region->bounds_.left + region->bounds_.right) / 2 + region->offsetX_,
                 (region->bounds_.top + region->bounds_.bottom) / 2 + region->offsetY_};
     Log("harness: %s %d: window %p region (%d,%d)-(%d,%d) enabled %d", verb.c_str(), index, window,
@@ -1125,8 +1125,8 @@ std::string CampPutOn(const std::string& argument) {
     auto* source = strip ? *reinterpret_cast<UiPtrArray<std::uint8_t>**>(strip + 0x1AC) : nullptr;
     if (!source) return "campputon: the camp has no item strip source";
     std::vector<std::uint8_t*> chosen;
-    for (int i = 0; i < source->size_; ++i) {
-        std::uint8_t* item = source->data_[i];
+    for (int i = 0; i < source->size; ++i) {
+        std::uint8_t* item = source->data[i];
         unsigned itemType = item ? *reinterpret_cast<unsigned*>(item + 0x10) : 0;
         Log("harness: campputon: page %d, source item %d %p type %04X", page, i, item, itemType);
         if (item && itemType == type && static_cast<int>(chosen.size()) < count) chosen.push_back(item);

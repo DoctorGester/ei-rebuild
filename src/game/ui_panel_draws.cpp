@@ -82,7 +82,7 @@ void FlushBatches(CInterface3D* ui) {
 
 BOOL CHeroQuickStrip::Draw(int pass) {
     PartyUnitRecord* hero = ShownHero(owner_);
-    auto* frame = static_cast<CUiMesh*>(static_cast<void*>(sceneObjects_.data_[0]));
+    auto* frame = static_cast<CUiMesh*>(static_cast<void*>(sceneObjects_.data[0]));
     int count = static_cast<int>(hero->spellCount);
     if (selected_ >= 0 && selected_ < count) {
         frame->visible_ = 1;
@@ -115,7 +115,7 @@ BOOL CRepairGrid::Draw(int pass) {
     ClearDepth(ui->renderer_, &inside, 1.0f);
 
     mfc::CString text;
-    auto* surface = reinterpret_cast<SurfaceText*>(surfaces_.data_[0]);
+    auto* surface = reinterpret_cast<SurfaceText*>(surfaces_.data[0]);
     surface->Begin();
     surface->Clear();
     auto* list = static_cast<CampItemList*>(items_);
@@ -193,7 +193,7 @@ void DrawSprite(CUiMesh* sprite, int pass, float x, float y) {
     SpriteDrawOriginal(sprite, nullptr, pass);
 }
 
-CUiMesh* Highlight(CUiWindow* window) { return static_cast<CUiMesh*>(static_cast<void*>(window->sceneObjects_.data_[4])); }
+CUiMesh* Highlight(CUiWindow* window) { return static_cast<CUiMesh*>(static_cast<void*>(window->sceneObjects_.data[4])); }
 
 struct SlotList {
     std::uint8_t unknown_00[0x40];
@@ -254,7 +254,7 @@ BOOL CConstructorPage::DrawSpellMaker(int pass) {
         using BestFn = void(__thiscall*)(CUiWindow*, int, int*, int*);   // slot 45: the party's best
         reinterpret_cast<BestFn>(owner_->vtable_[45])(owner_, school, &skill, &mana);
     }
-    auto* surface = reinterpret_cast<SurfaceText*>(surfaces_.data_[0]);
+    auto* surface = reinterpret_cast<SurfaceText*>(surfaces_.data[0]);
     surface->Begin();
     surface->Clear();
     if (hasSpell) {

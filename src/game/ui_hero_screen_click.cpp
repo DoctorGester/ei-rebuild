@@ -157,7 +157,7 @@ constexpr int kNameOffset = 0x30;   // a hero record's CString name
 } // namespace
 
 void CMpHeroScreen::CloseRenameEdit() {
-    SurfaceFreeze(window.surfaces_.data_[3], nullptr, 0, 0);
+    SurfaceFreeze(window.surfaces_.data[3], nullptr, 0, 0);
     WindowSetEnabled(renameEdit_, nullptr, 0, 1);
     EditActivate(renameEdit_, nullptr, 0);
 }
@@ -165,9 +165,9 @@ void CMpHeroScreen::CloseRenameEdit() {
 void CMpHeroScreen::BackToNewHero() {
     uiorig::PlayUiSound(window.interface_, GameText(kSoundCancel), 0);
     StatsSetHero(statsPanel_, nullptr, 0, const_cast<char*>(game::EmptyText()));
-    reinterpret_cast<SurfaceDraw*>(window.surfaces_.data_[0])->Begin();
-    reinterpret_cast<SurfaceDraw*>(window.surfaces_.data_[0])->Clear();
-    reinterpret_cast<SurfaceDraw*>(window.surfaces_.data_[0])->End();
+    reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Begin();
+    reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Clear();
+    reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->End();
     TradeSetHero(tradePanel_, nullptr, 0, 0);
     SetMode(this, nullptr, kModeNewHero);
     EditSetText(nameEdit_, nullptr, *reinterpret_cast<void**>(Hero()));
@@ -364,9 +364,9 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         uiorig::PlayUiSound(ui, GameText(kSoundSelect), 0);
         VirtualAt<StoreFn>(this, 52)(this, *defaults_);
         StatsSetHero(statsPanel_, nullptr, 0, const_cast<char*>(game::EmptyText()));
-        reinterpret_cast<SurfaceDraw*>(window.surfaces_.data_[0])->Begin();
-        reinterpret_cast<SurfaceDraw*>(window.surfaces_.data_[0])->Clear();
-        reinterpret_cast<SurfaceDraw*>(window.surfaces_.data_[0])->End();
+        reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Begin();
+        reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Clear();
+        reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->End();
         turn_ = 0.0f;
         SetMode(this, nullptr, 10);
         EditSetText(nameEdit_, nullptr, game::EmptyText());
@@ -441,7 +441,7 @@ void CMpHeroScreen::Rename() {
         name = name.Left(bar);
         CStringTrimRightOriginal(&name);
     }
-    auto* surface = reinterpret_cast<SurfaceDraw*>(window.surfaces_.data_[3]);
+    auto* surface = reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[3]);
     SurfaceFreeze(surface, nullptr, 1, 0);
     surface->Begin();
     surface->Clear();

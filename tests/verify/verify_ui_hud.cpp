@@ -92,7 +92,7 @@ bool TintsMatch(CUiWindow* w, int first, int count, int selected) {
     for (int i = 0; i < count; ++i) {
         std::uint32_t want = i == selected ? 0x3F800000u : 0x3F000000u;
         for (int k = 0; k < 3; ++k)
-            if (TintBits(w->sceneObjects_.data_[first + i], k) != want) return false;
+            if (TintBits(w->sceneObjects_.data[first + i], k) != want) return false;
     }
     return true;
 }
@@ -413,7 +413,7 @@ static void __fastcall MovePanelUpdateVerify(CHudMovePanel* self, void*) {
     bool ok = self->flag_ == flag;
     if (view) {
         std::uint32_t bits;
-        std::memcpy(&bits, reinterpret_cast<std::uint8_t*>(self->sceneObjects_.data_[5]) + 0xCC, 4);
+        std::memcpy(&bits, reinterpret_cast<std::uint8_t*>(self->sceneObjects_.data[5]) + 0xCC, 4);
         ok = ok && bits == shown;
     }
     ei::verify::Check("CHudMovePanel::Update", true, ok, "flag %d/%d", flag, self->flag_);

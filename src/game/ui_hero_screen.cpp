@@ -88,7 +88,7 @@ EI_REPLACE_METHOD(0x00625560, CTradePanel::PurchaseCost);
 // --- 006159E0: Draw (slot 20) ------------------------------------------------------------------
 
 void CMpHeroScreen::DrawExperience() {
-    CUiSurface* surface = window.surfaces_.data_[2];
+    CUiSurface* surface = window.surfaces_.data[2];
     mfc::CString text;
     mfc::CString line;
     SurfaceGetDC(surface);
@@ -180,7 +180,7 @@ void CMpHeroScreen::Update() {
     bool equal = x87::IsNaN(static_cast<float>(points)) || x87::IsNaN(target) || points == target;
     bool ready = equal && name.GetLength() != 0;
     float shade = ready ? 1.0f : 0.5f;
-    auto* button = reinterpret_cast<CUiMesh*>(window.sceneObjects_.data_[kCreateButton]);
+    auto* button = reinterpret_cast<CUiMesh*>(window.sceneObjects_.data[kCreateButton]);
     button->tint_[0] = shade;
     button->tint_[1] = shade;
     button->tint_[2] = shade;
@@ -294,7 +294,7 @@ constexpr int kListFormat = 0x800;
 constexpr float kFrameDepth = 3.0f;
 
 CUiMesh* SelectionFrame(CUiWindow& window) {
-    return reinterpret_cast<CUiMesh*>(window.sceneObjects_.data_[kSelectionFrame]);
+    return reinterpret_cast<CUiMesh*>(window.sceneObjects_.data[kSelectionFrame]);
 }
 // A multiplayer hero record (a party, 0x74 bytes) and its name: its first member's text 0.
 CParty* MpHero(std::uint32_t index) { return reinterpret_cast<CParty*>(MpHeroes().begin + index * kMpHeroSize); }
@@ -304,7 +304,7 @@ std::uint32_t MpHeroCount() {
 } // namespace
 
 void CMpHeroScreen::DrawHeroList() {
-    CUiSurface* surface = window.surfaces_.data_[0];
+    CUiSurface* surface = window.surfaces_.data[0];
     SurfaceGetDC(surface);
     SurfaceClearOriginal(surface);
     SelectionFrame(window)->visible_ = 0;
@@ -328,7 +328,7 @@ void __fastcall HeroScreenDrawHeroList(CMpHeroScreen* self) { self->DrawHeroList
 EI_REPLACE(0x006167C0, HeroScreenDrawHeroList);
 
 void CMpHeroScreen::DrawVoices() {
-    CUiSurface* surface = window.surfaces_.data_[2];
+    CUiSurface* surface = window.surfaces_.data[2];
     SurfaceGetDC(surface);
     SurfaceClearOriginal(surface);
     SelectionFrame(window)->visible_ = 0;

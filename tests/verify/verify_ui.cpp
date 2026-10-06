@@ -32,14 +32,14 @@ struct ArraySnapshot {
 
     template <typename T>
     void Take(const UiPtrArray<T>& a) {
-        size = a.size_;
-        capacity = a.capacity_;
-        growBy = a.growBy_;
-        hasData = a.data_ != nullptr;
-        data = a.data_;
-        complete = size >= 0 && size <= kMax && (size == 0 || a.data_);
+        size = a.size;
+        capacity = a.capacity;
+        growBy = a.growBy;
+        hasData = a.data != nullptr;
+        data = a.data;
+        complete = size >= 0 && size <= kMax && (size == 0 || a.data);
         if (complete)
-            for (int i = 0; i < size; ++i) items[i] = a.data_[i];
+            for (int i = 0; i < size; ++i) items[i] = a.data[i];
     }
 };
 
@@ -63,27 +63,27 @@ bool Aligned(const void* p) { return (reinterpret_cast<std::uintptr_t>(p) & 0x1F
 template <typename T>
 bool AppendedCorrectly(const ArraySnapshot& before, const UiPtrArray<T>& a, const void* item) {
     if (!before.complete) return true;
-    if (a.size_ != before.size + 1 || !a.data_ || !Aligned(a.data_)) return false;
+    if (a.size != before.size + 1 || !a.data || !Aligned(a.data)) return false;
     int capacity = ExpectedCapacity(before.hasData, before.size, before.capacity, before.growBy);
-    if (a.capacity_ != capacity || a.growBy_ != before.growBy) return false;
+    if (a.capacity != capacity || a.growBy != before.growBy) return false;
     for (int i = 0; i < before.size; ++i)
-        if (a.data_[i] != before.items[i]) return false;
-    return a.data_[before.size] == item;
+        if (a.data[i] != before.items[i]) return false;
+    return a.data[before.size] == item;
 }
 
 // The array after removing slot `index` from the snapshot `before`.
 template <typename T>
 bool RemovedCorrectly(const ArraySnapshot& before, const UiPtrArray<T>& a, int index) {
     if (!before.complete) return true;
-    if (a.size_ != before.size - 1 || a.capacity_ != before.capacity) return false;
-    for (int i = 0; i < a.size_; ++i)
-        if (a.data_[i] != before.items[i < index ? i : i + 1]) return false;
+    if (a.size != before.size - 1 || a.capacity != before.capacity) return false;
+    for (int i = 0; i < a.size; ++i)
+        if (a.data[i] != before.items[i < index ? i : i + 1]) return false;
     return true;
 }
 
 template <typename T>
 bool Empty(const UiPtrArray<T>& a) {
-    return !a.data_ && a.size_ == 0 && a.capacity_ == 0;
+    return !a.data && a.size == 0 && a.capacity == 0;
 }
 } // namespace
 
@@ -343,7 +343,7 @@ static int(__fastcall* s_regionAt)(const CUiWindow*, void*, int, int);
 static int __fastcall RegionAtVerify(const CUiWindow* self, void*, int x, int y) {
     int expected = s_regionAt(self, nullptr, x, y);
     ei::verify::Check("CUiWindow::RegionAt", expected, self->CUiWindow::RegionAt(x, y), "(%d,%d) regions %d", x, y,
-                      self->regions_.size_);
+                      self->regions_.size);
     return expected;
 }
 EI_VERIFY(0x005FFCC0, RegionAtVerify, 7, s_regionAt);
@@ -364,13 +364,13 @@ static void RegionTipsCheck(const char* name, CUiWindow* self, Run run) {
     CUiTooltip* tips[kMax];
     int states[kMax];
     bool inside[kMax];
-    int count = self->regions_.size_;
+    int count = self->regions_.size;
     bool complete = count >= 0 && count <= kMax;
     if (complete) {
         POINT mouse{self->interface_->mouseX_, self->interface_->mouseY_};
         self->interface_->CallScalePointFromScreen(&mouse);
         for (int i = 0; i < count; ++i) {
-            CUiRegion* region = self->regions_.data_[i];
+            CUiRegion* region = self->regions_.data[i];
             tips[i] = region->tip_;
             states[i] = tips[i] ? tips[i]->state_ : 0;
             inside[i] = tips[i] && region->CUiRegion::HitTest(mouse.x, mouse.y) != 0;
@@ -407,7 +407,7 @@ static void __fastcall AddObjectVerify(CUiWindow* self, void*, CEngineObject* ob
     int refs = object ? object->refCount_ : 0;
     self->CUiWindow::AddObject(object);
     bool ok = object ? AppendedCorrectly(before, self->objects_, object) && object->refCount_ == refs + 1
-                     : self->objects_.size_ == before.size;
+                     : self->objects_.size == before.size;
     ei::verify::Check("CUiWindow::AddObject", true, ok, "object %p size %d", object, before.size);
 }
 EI_VERIFY(0x005FEDD0, AddObjectVerify, 0, s_unused);
@@ -420,7 +420,7 @@ static void __fastcall RemoveObjectVerify(CUiWindow* self, void*, CEngineObject*
         for (int i = 0; i < before.size && index < 0; ++i)
             if (before.items[i] == object) index = i;
     self->CUiWindow::RemoveObject(object);
-    bool ok = index >= 0 ? RemovedCorrectly(before, self->objects_, index) : self->objects_.size_ == before.size;
+    bool ok = index >= 0 ? RemovedCorrectly(before, self->objects_, index) : self->objects_.size == before.size;
     ei::verify::Check("CUiWindow::RemoveObject", true, ok, "object %p index %d", object, index);
 }
 EI_VERIFY(0x005FF110, RemoveObjectVerify, 0, s_unused);
@@ -444,7 +444,7 @@ static BOOL __fastcall RemoveSceneObjectVerify(CUiWindow* self, void*, CEngineOb
     BOOL result = self->CUiWindow::RemoveSceneObject(object);
     bool ok = !before.complete ||
               (index >= 0 ? result == 1 && RemovedCorrectly(before, self->sceneObjects_, index)
-                          : result == 0 && self->sceneObjects_.size_ == before.size);
+                          : result == 0 && self->sceneObjects_.size == before.size);
     ei::verify::Check("CUiWindow::RemoveSceneObject", true, ok, "object %p index %d", object, index);
     return result;
 }
@@ -469,7 +469,7 @@ static CUiSurface* __fastcall AddSurfaceVerify(CUiWindow* self, void*, CUiSurfac
     ArraySnapshot before;
     before.Take(self->surfaces_);
     CUiSurface* result = self->CUiWindow::AddSurface(surface);
-    bool ok = (surface ? AppendedCorrectly(before, self->surfaces_, surface) : self->surfaces_.size_ == before.size) &&
+    bool ok = (surface ? AppendedCorrectly(before, self->surfaces_, surface) : self->surfaces_.size == before.size) &&
               result == surface;
     ei::verify::Check("CUiWindow::AddSurface", true, ok, "surface %p size %d", surface, before.size);
     return result;
@@ -525,7 +525,7 @@ static CUiModel* __fastcall AddModelVerify(CUiWindow* self) {
     before.Take(self->models_);
     CUiModel* model = self->CUiWindow::AddModel();
     bool ok = model ? AppendedCorrectly(before, self->models_, model) && !model->object_
-                    : self->models_.size_ == before.size;
+                    : self->models_.size == before.size;
     ei::verify::Check("CUiWindow::AddModel", true, ok, "size %d", before.size);
     return model;
 }
@@ -546,13 +546,13 @@ static void SetSizeCheck(const char* name, UiPtrArray<T>* self, int newSize, int
     self->SetSize(newSize, growBy);
     if (!before.complete) return;
     int step = growBy != -1 ? growBy : before.growBy;
-    bool ok = self->growBy_ == step && self->size_ == newSize;
+    bool ok = self->growBy == step && self->size == newSize;
     if (newSize == 0) {
-        ok &= !self->data_ && self->capacity_ == 0;
+        ok &= !self->data && self->capacity == 0;
     } else if (!before.hasData) {
-        ok &= self->data_ && Aligned(self->data_) && self->capacity_ == newSize;
+        ok &= self->data && Aligned(self->data) && self->capacity == newSize;
     } else if (newSize <= before.capacity) {
-        ok &= self->data_ == before.data && self->capacity_ == before.capacity;
+        ok &= self->data == before.data && self->capacity == before.capacity;
     } else {
         int grow = step;
         if (grow == 0) {
@@ -562,8 +562,8 @@ static void SetSizeCheck(const char* name, UiPtrArray<T>* self, int newSize, int
         }
         int capacity = grow + before.capacity;
         if (newSize >= capacity) capacity = newSize;
-        ok &= self->data_ && Aligned(self->data_) && self->capacity_ == capacity;
-        for (int i = 0; i < before.size; ++i) ok &= self->data_[i] == before.items[i];
+        ok &= self->data && Aligned(self->data) && self->capacity == capacity;
+        for (int i = 0; i < before.size; ++i) ok &= self->data[i] == before.items[i];
     }
     ei::verify::Check(name, true, ok, "size %d -> %d grow %d", before.size, newSize, growBy);
 }
@@ -608,12 +608,12 @@ static CUiMesh* __fastcall AddSpriteVerify(CUiWindow* self, void*, const char* n
     auto* object = reinterpret_cast<CEngineObject*>(sprite);
     bool ok;
     if (!sprite) {
-        ok = self->sceneObjects_.size_ == before.size;
+        ok = self->sceneObjects_.size == before.size;
     } else {
         bool listed = false;
         for (int i = 0; before.complete && i < before.size; ++i) listed |= before.items[i] == object;
-        ok = listed ? self->sceneObjects_.size_ == before.size : AppendedCorrectly(before, self->sceneObjects_, object);
-        CEngineObject* texture = self->objects_.size_ > 0 ? self->objects_.data_[0] : nullptr;
+        ok = listed ? self->sceneObjects_.size == before.size : AppendedCorrectly(before, self->sceneObjects_, object);
+        CEngineObject* texture = self->objects_.size > 0 ? self->objects_.data[0] : nullptr;
         ok &= sprite->material_ == self->blackMaterial_ && sprite->texture_ == texture;
     }
     ei::verify::Check("CUiWindow::AddSprite", true, ok, "name %p sprite %p size %d", name, sprite, before.size);

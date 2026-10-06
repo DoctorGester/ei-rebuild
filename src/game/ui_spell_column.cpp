@@ -126,7 +126,7 @@ void CHudSpellColumn::SetUnit(CUnit* unit) {
             tip += line;
         }
         // The region of the spell's index (the original does not count the missing ones).
-        regions_.data_[i]->SetTipString(tip, 1, static_cast<int>(i) + 0x1E);
+        regions_.data[i]->SetTipString(tip, 1, static_cast<int>(i) + 0x1E);
     }
 }
 EI_REPLACE_METHOD(0x0063E820, CHudSpellColumn::SetUnit);

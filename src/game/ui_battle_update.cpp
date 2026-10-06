@@ -67,7 +67,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
     unknown_14C = 0;
     selected_ = -1;
     for (int i = 0; i < 8; ++i) {
-        regions_.data_[i]->SetTip(0, 1, 0);
+        regions_.data[i]->SetTip(0, 1, 0);
         regionItem_[i] = -1;
     }
     EntriesSetSize(&entriesVtable_, nullptr, 0, -1);
@@ -84,7 +84,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
     // The sprite just added: placed in its row (x from 007428AC, 695; Rebirth moves it), its
     // region pointing at it, scaled, opaque.
     auto place = [&](int slot) {
-        CEngineObject* sprite = sceneObjects_.data_[unknown_14C - 1];
+        CEngineObject* sprite = sceneObjects_.data[unknown_14C - 1];
         const float right = *reinterpret_cast<const volatile float*>(0x007428AC);
         if (slot < 4)
             SpritePlace(sprite, nullptr, right - static_cast<float>(slot * 50), 575.0f, 20.0f);
@@ -93,7 +93,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         int last = unknown_14C - 1;
         regionItem_[slot] = last;
         if (last >= 0 && last < unknown_14C) {
-            CEngineObject* shown = sceneObjects_.data_[last];
+            CEngineObject* shown = sceneObjects_.data[last];
             SpriteScale(shown, nullptr, slot < 4 ? 0.55f : 0.85f);
             std::uint32_t opaque = 0xFF000000;
             std::memcpy(reinterpret_cast<std::uint8_t*>(shown) + 0xD8, &opaque, 4);
@@ -113,7 +113,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         }
         finish(item, true);
         ItemTipAt(slot, &tip);
-        regions_.data_[slot]->SetTipString(tip, 1, static_cast<int>(slot) + 0x2A);
+        regions_.data[slot]->SetTipString(tip, 1, static_cast<int>(slot) + 0x2A);
         place(static_cast<int>(slot));
     }
 
@@ -141,7 +141,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         finish(item, false);
         // The original passes the same CString for the second and third texts.
         ItemTexts(*reinterpret_cast<void**>(0x007AF788), nullptr, item, &tip, &unused, &unused);
-        regions_.data_[slot]->SetTipString(tip, 1, 0);
+        regions_.data[slot]->SetTipString(tip, 1, 0);
         place(slot);
         ++slot;
     }
@@ -552,7 +552,7 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
             WorldSelect(world, nullptr, nullptr);
             using MarkFn = void(__thiscall*)(void*, int);
             // Portrait i's selection marker (scene object 5 i + 4) and face state.
-            auto marker = [&](int i) { return reinterpret_cast<CUiMesh*>(portraits_->sceneObjects_.data_[i * 5 + 4]); };
+            auto marker = [&](int i) { return reinterpret_cast<CUiMesh*>(portraits_->sceneObjects_.data[i * 5 + 4]); };
             auto slot = [&](int i) -> HudPortraitSlot& { return static_cast<CHudPortraits*>(portraits_)->slots_[i]; };
             for (int i = 0; i < party->size_; ++i) {
                 CUnit* unit = unitAt(i);

@@ -67,9 +67,9 @@ struct HeroState {
     int points;
 };
 HeroState Snapshot(CHeroStatsPanel* self) {
-    return HeroState{reinterpret_cast<CUiMesh*>(self->sceneObjects_.data_[0])->visible_,
-                     reinterpret_cast<CUiMesh*>(self->sceneObjects_.data_[1])->visible_,
-                     self->regions_.data_[0]->tip_ ? 1 : 0, self->regions_.data_[1]->tip_ ? 1 : 0,
+    return HeroState{reinterpret_cast<CUiMesh*>(self->sceneObjects_.data[0])->visible_,
+                     reinterpret_cast<CUiMesh*>(self->sceneObjects_.data[1])->visible_,
+                     self->regions_.data[0]->tip_ ? 1 : 0, self->regions_.data[1]->tip_ ? 1 : 0,
                      self->heroIndex_, self->points_};
 }
 mfc::CString& Title(CHeroStatsPanel* self) { return *reinterpret_cast<mfc::CString*>(&self->title_); }

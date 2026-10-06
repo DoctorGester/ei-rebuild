@@ -4,6 +4,8 @@
 #include "maths.h"
 #include "unit.h"
 
+#include "lib/mfc.h"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -406,22 +408,12 @@ struct SmoothStep {
     int direction;
 };
 static_assert(sizeof(SmoothStep) == 0x24);
-// MFC CArray<T> layout (0x14 bytes); the game's template instantiations do the resizing.
-template <typename T>
-struct GameArray {
-    void* vtable;
-    T* data;        // +0x04
-    int size;       // +0x08
-    int capacity;   // +0x0C
-    int growBy;     // +0x10 0 = an eighth of the size, clamped to 4..1024
-};
-static_assert(sizeof(GameArray<int>) == 0x14);
 // One of the 81 transition tables (previous direction * 9 + next direction; 0 at the path's end),
 // built by the static initialiser 005C42B0 at 007C3058.
 struct SmoothTable {
-    GameArray<SmoothCopy> copies;       // +0x00
-    GameArray<SmoothStep> steps;        // +0x14 from the previous cell's states
-    GameArray<SmoothStep> chained;      // +0x28 between the new states
+    mfc::CArray<SmoothCopy> copies;       // +0x00
+    mfc::CArray<SmoothStep> steps;        // +0x14 from the previous cell's states
+    mfc::CArray<SmoothStep> chained;      // +0x28 between the new states
 };
 static_assert(sizeof(SmoothTable) == 0x3C);
 // The node pool (007C3038): an array of nodes and a bump pointer.
@@ -429,7 +421,7 @@ struct SmoothPool {
     // 005C4C20 (RET 8). CArray<SmoothNode>::SetSize (new nodes zeroed; growBy -1 keeps the step).
     void SetSize(int size, int growBy);
 
-    GameArray<SmoothNode> nodes;
+    mfc::CArray<SmoothNode> nodes;
     int unknown_14;                     // set to 0 by each pass, not read
     SmoothNode* next;                   // the next free node
 };

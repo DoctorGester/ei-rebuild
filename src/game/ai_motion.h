@@ -9,7 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 
-// GameArray (the MFC CArray<T> layout) is in ai_map.h.
+// The arrays are mfc::CArray (lib/mfc.h).
 
 // The first 0x20 bytes of AIPath: what the unit is told to do. Kinds:
 //   0 stand at (x, y) facing `angle` (set by Start / Reset),
@@ -84,9 +84,9 @@ struct UnitMotion {
     // 005C6290. Slows the points down where the turn to the next one takes longer than the way.
     void LimitSpeeds(float turnRate);
 
-    GameArray<MotionPoint> points;          // +0x00
-    GameArray<MotionWaypoint> waypoints;    // +0x14
-    GameArray<float> stepSpeeds;            // +0x28 per step: AIPath step speed (1/512 units)
+    mfc::CArray<MotionPoint> points;          // +0x00
+    mfc::CArray<MotionWaypoint> waypoints;    // +0x14
+    mfc::CArray<float> stepSpeeds;            // +0x28 per step: AIPath step speed (1/512 units)
     float speedScale;                       // +0x3C
     float baseTurnRate;                     // +0x40 radians per tick
     float turnRate;                         // +0x44

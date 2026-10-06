@@ -59,8 +59,8 @@ static CHudPortraits* __fastcall PortraitsVerify(CHudPortraits* self, void*, CIn
     bool ok = r == self && Is(self->vtable_, 0x00742A18) && Is(self->inputVtable_, 0x007429E4) && self->interface_ == ui &&
               self->owner_ == owner && self->count_ == 0 && !self->slots_ && !self->slotsEnd_ && !self->slotsCapacity_ &&
               self->rect_.left == 250 && self->rect_.top == 440 && self->rect_.right == 550 && self->rect_.bottom == 600 &&
-              self->sceneObjects_.size_ == 1 && self->sceneObjects_.data_[0] != nullptr;
-    ei::verify::Check("CHudPortraits::Construct", true, ok, "objects %d", self->sceneObjects_.size_);
+              self->sceneObjects_.size == 1 && self->sceneObjects_.data[0] != nullptr;
+    ei::verify::Check("CHudPortraits::Construct", true, ok, "objects %d", self->sceneObjects_.size);
     return r;
 }
 EI_VERIFY(0x0063FE70, PortraitsVerify, 0, s_portraits);
@@ -71,7 +71,7 @@ static void(__fastcall* s_portraitsDestroy)(CHudPortraits*);
 static void __fastcall PortraitsDestroyVerify(CHudPortraits* self) {
     int slots = static_cast<int>(self->slotsEnd_ - self->slots_);
     self->DestroyBody();
-    bool ok = !self->sceneObjects_.data_ && !self->surfaces_.data_ && !self->regions_.data_ && !self->models_.data_;
+    bool ok = !self->sceneObjects_.data && !self->surfaces_.data && !self->regions_.data && !self->models_.data;
     ei::verify::Check("CHudPortraits::DestroyBody", true, ok, "slots %d", slots);
 }
 EI_VERIFY(0x0063FF70, PortraitsDestroyVerify, 0, s_portraitsDestroy);

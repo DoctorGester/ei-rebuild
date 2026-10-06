@@ -13,24 +13,24 @@ namespace {
 void* s_unused;
 
 template <typename T>
-void CloneArray(GameArray<T>& copy, const GameArray<T>& source) {
+void CloneArray(mfc::CArray<T>& copy, const mfc::CArray<T>& source) {
     copy = source;
     if (source.data) {
-        int capacity = source.capacity > source.size ? source.capacity : source.size;
+        int capacity = source.maxSize > source.size ? source.maxSize : source.size;
         copy.data = static_cast<T*>(gamecrt::operator_new((capacity > 0 ? capacity : 1) * sizeof(T)));
         std::memcpy(copy.data, source.data, source.size * sizeof(T));
     }
 }
 
 template <typename T>
-void FreeArray(GameArray<T>& array) {
+void FreeArray(mfc::CArray<T>& array) {
     if (array.data) gamecrt::operator_delete(array.data);
     array.data = nullptr;
 }
 
 template <typename T>
-bool SameArray(const GameArray<T>& a, const GameArray<T>& b) {
-    if (a.size != b.size || a.capacity != b.capacity || a.growBy != b.growBy || a.vtable != b.vtable) return false;
+bool SameArray(const mfc::CArray<T>& a, const mfc::CArray<T>& b) {
+    if (a.size != b.size || a.maxSize != b.maxSize || a.growBy != b.growBy || a.vtable != b.vtable) return false;
     if ((a.data == nullptr) != (b.data == nullptr)) return false;
     return a.size <= 0 || !a.data || std::memcmp(a.data, b.data, a.size * sizeof(T)) == 0;
 }

@@ -157,7 +157,7 @@ void CUiItemStrip::SetTab(int tab) {
     position = static_cast<float>(GameFtol(static_cast<double>(pending_) + position));
     tab_ = tab;
     for (int i = 0; i < 6; ++i) {
-        auto* object = reinterpret_cast<char*>(window.sceneObjects_.data_[i + 2]);
+        auto* object = reinterpret_cast<char*>(window.sceneObjects_.data[i + 2]);
         float shade = i == tab ? 1.0f : 0.5f;
         auto* color = reinterpret_cast<float*>(object + 0x224);
         color[0] = shade;
@@ -187,8 +187,8 @@ void CUiItemStrip::SetFilter(int filter) {
     default: return;
     }
     for (int i = 2; i < 8; ++i) {
-        *reinterpret_cast<std::uint32_t*>(reinterpret_cast<char*>(window.sceneObjects_.data_[i]) + 0xCC) = column;
-        SetRegionTip(window.regions_.data_[i], nullptr, tipBase + i, 1, 0);
+        *reinterpret_cast<std::uint32_t*>(reinterpret_cast<char*>(window.sceneObjects_.data[i]) + 0xCC) = column;
+        SetRegionTip(window.regions_.data[i], nullptr, tipBase + i, 1, 0);
     }
 }
 EI_REPLACE_METHOD(0x00621420, CUiItemStrip::SetFilter);
@@ -261,15 +261,15 @@ EI_REPLACE_METHOD(0x00621A80, CUiItemStrip::ArmorTab);
 void CUiItemStrip::RebuildList() {
     list_.SetSize(0, -1);
     if (filter_ == 0 && tab_ == 5) {
-        for (int i = 0; i < source_->size_; ++i) {
+        for (int i = 0; i < source_->size; ++i) {
             int index = list_.size_;
-            char* item = source_->data_[i];
+            char* item = source_->data[i];
             list_.SetSize(index + 1, -1);
             list_.data_[index] = item;
         }
     } else {
-        for (int i = 0; i < source_->size_; ++i) {
-            char* item = source_->data_[i];
+        for (int i = 0; i < source_->size; ++i) {
+            char* item = source_->data[i];
             if (TabOf(item) == tab_) {
                 int index = list_.size_;
                 list_.SetSize(index + 1, -1);
@@ -303,12 +303,12 @@ void CUiItemStrip::ScrollToItem(char* item) {
         list_.data_[index] = entry;
     };
     if (filter_ == 0 && tab_ == 5) {
-        for (int i = 0; i < source_->size_; ++i) append(source_->data_[i]);
+        for (int i = 0; i < source_->size; ++i) append(source_->data[i]);
     } else {
         int tab = TabOf(item);
         if (TabKeysEnabled()) CallSetTab(tab);
-        for (int i = 0; i < source_->size_; ++i)
-            if (TabOf(source_->data_[i]) == tab_) append(source_->data_[i]);
+        for (int i = 0; i < source_->size; ++i)
+            if (TabOf(source_->data[i]) == tab_) append(source_->data[i]);
     }
     if (!(found < 0.0f)) {
         float& position = position_[tab_];
@@ -620,7 +620,7 @@ EI_REPLACE(0x006177D0, MpHeroLButtonUp);
 // --- CEscMenu ---------------------------------------------------------------------------------
 
 void CEscMenu::OnMouseMove(int flags, int x, int y) {
-    CUiModel* model = window.models_.data_[0];
+    CUiModel* model = window.models_.data[0];
     int region = window.RegionAt(x, y);
     // Hovering a stone plays its animation (the first two only in single player).
     switch (region) {

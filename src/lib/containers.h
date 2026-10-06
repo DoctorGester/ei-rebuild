@@ -109,13 +109,15 @@ struct AlignedArray {
         capacity = newCapacity;
     }
 
-    void SetAtGrow(int index, const T& value) {
+    // SetAtGrow / Add take the element by value, as the out-of-line copies do (006005F0: RET 8),
+    // so they can be registered on these members.
+    void SetAtGrow(int index, T value) {
         if (index >= size) SetSize(index + 1);
         data[index] = value;
     }
 
     // Add (inlined at its call sites): SetSize(size + 1), then the new element; its index.
-    int Add(const T& value) {
+    int Add(T value) {
         int index = size;
         SetSize(index + 1);
         data[index] = value;

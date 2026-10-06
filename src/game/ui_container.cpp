@@ -48,14 +48,14 @@ void CUiContainer::DestroyContainer() {
     inputVtable_ = ContainerInputVtable();
     for (UiInputSide** side = inputsBegin_; side != inputsEnd_; ++side)
         if (*side) DeleteInstance(*side);
-    for (int i = 0; i < children_.size_; ++i)
-        if (CUiWindow* child = children_.data_[i]) DeleteInstance(child);
+    for (int i = 0; i < children_.size; ++i)
+        if (CUiWindow* child = children_.data[i]) DeleteInstance(child);
     children_.SetSize(0, -1);
     // The vector's storage goes back to the node pool (the pointers are left as they are).
     if (inputsBegin_)
         stlp::deallocate(inputsBegin_, static_cast<std::size_t>(inputsCapacity_ - inputsBegin_) * sizeof(UiInputSide*));
     // The children array's destructor (its storage is already freed).
-    if (children_.data_) FreeAligned(children_.data_);
+    if (children_.data) FreeAligned(children_.data);
     DestroyBase();
 }
 EI_REPLACE_METHOD(0x00600BA0, CUiContainer::DestroyContainer);
@@ -89,15 +89,15 @@ double CUiContainer::FrameTime() { return x87::FromUnsigned(FrameMilliseconds())
 EI_REPLACE_METHOD(0x00600270, CUiContainer::FrameTime);
 
 void CUiContainer::UpdateBase() {
-    for (int i = 0; i < children_.size_; ++i) children_.data_[i]->VirtualUpdate();
+    for (int i = 0; i < children_.size; ++i) children_.data[i]->VirtualUpdate();
 }
 EI_REPLACE_METHOD(0x006010E0, CUiContainer::UpdateBase);
 
 void CUiContainer::RedrawContainer() {
     if (!interface_->drawing_) return;
     RedrawBase();
-    for (int i = 0; i < children_.size_; ++i) {
-        CUiWindow* child = children_.data_[i];
+    for (int i = 0; i < children_.size; ++i) {
+        CUiWindow* child = children_.data[i];
         if (child->enabled_) child->VirtualRedraw();
     }
 }
@@ -106,8 +106,8 @@ EI_REPLACE_METHOD(0x00601040, CUiContainer::RedrawContainer);
 void CUiContainer::RedrawChildTips() {
     if (!interface_->drawing_) return;
     RedrawTips();
-    for (int i = 0; i < children_.size_; ++i) {
-        CUiWindow* child = children_.data_[i];
+    for (int i = 0; i < children_.size; ++i) {
+        CUiWindow* child = children_.data[i];
         if (child->enabled_) child->VirtualRedrawTips();
     }
 }
@@ -115,8 +115,8 @@ EI_REPLACE_METHOD(0x00601090, CUiContainer::RedrawChildTips);
 
 void CUiContainer::ShowChildren(int show) {
     WindowShowSurfacesOriginal(this, nullptr, show);
-    for (int i = 0; i < children_.size_; ++i) {
-        CUiWindow* child = children_.data_[i];
+    for (int i = 0; i < children_.size; ++i) {
+        CUiWindow* child = children_.data[i];
         if (child->enabled_) child->VirtualShow(show);
     }
 }
@@ -135,14 +135,14 @@ void UiContainerInput::Dispatch(int slot, int a, int b, int c, bool atPoint) {
             return;
         }
     }
-    for (int i = 0; i < self->children_.size_; ++i) {
-        CUiWindow* child = self->children_.data_[i];
+    for (int i = 0; i < self->children_.size; ++i) {
+        CUiWindow* child = self->children_.data[i];
         if (!child->enabled_) continue;
         if (atPoint && !child->ContainsPoint(b, c)) continue;
-        child = self->children_.data_[i];
+        child = self->children_.data[i];
         child->inputHandled_ = false;
         child->Input()->Event(slot, a, b, c);
-        if (self->children_.data_[i]->inputHandled_) {
+        if (self->children_.data[i]->inputHandled_) {
             handled_ = true;
             return;
         }
@@ -152,7 +152,7 @@ void UiContainerInput::Dispatch(int slot, int a, int b, int c, bool atPoint) {
 void UiContainerInput::OnDeactivate() {
     CUiContainer* self = Container();
     for (UiInputSide** side = self->inputsBegin_; side != self->inputsEnd_; ++side) (*side)->Deactivate();
-    for (int i = 0; i < self->children_.size_; ++i) self->children_.data_[i]->Input()->Deactivate();
+    for (int i = 0; i < self->children_.size; ++i) self->children_.data[i]->Input()->Deactivate();
 }
 EI_REPLACE_METHOD(0x00601A60, UiContainerInput::OnDeactivate);
 
@@ -200,13 +200,13 @@ int UiContainerInput::OnWheel(int flags, int delta, int x, int y) {
             return 1;
         }
     }
-    for (int i = 0; i < self->children_.size_; ++i) {
-        CUiWindow* child = self->children_.data_[i];
+    for (int i = 0; i < self->children_.size; ++i) {
+        CUiWindow* child = self->children_.data[i];
         if (!child->enabled_ || !child->ContainsPoint(x, y)) continue;
-        child = self->children_.data_[i];
+        child = self->children_.data[i];
         child->inputHandled_ = false;
         child->Input()->Wheel(flags, delta, x, y);
-        if (self->children_.data_[i]->inputHandled_) {
+        if (self->children_.data[i]->inputHandled_) {
             handled_ = true;
             return 1;
         }

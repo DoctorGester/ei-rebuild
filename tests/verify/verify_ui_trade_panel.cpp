@@ -81,8 +81,8 @@ int FirstDifferentRow(const Pixels& a, const Pixels& b) {
 // The quads and texture coordinates of every scene object from `first` on (interface sprites).
 std::vector<std::uint8_t> SpriteBytes(CUiWindow* window, int first) {
     std::vector<std::uint8_t> out;
-    for (int i = first; i < window->sceneObjects_.size_; ++i) {
-        auto* mesh = reinterpret_cast<CUiMesh*>(window->sceneObjects_.data_[i]);
+    for (int i = first; i < window->sceneObjects_.size; ++i) {
+        auto* mesh = reinterpret_cast<CUiMesh*>(window->sceneObjects_.data[i]);
         int counts[2] = {mesh ? mesh->quadCount_ : -1, mesh ? mesh->uvCount_ : -1};
         out.insert(out.end(), reinterpret_cast<std::uint8_t*>(counts), reinterpret_cast<std::uint8_t*>(counts + 2));
         if (!mesh) continue;
@@ -178,11 +178,11 @@ EI_VERIFY(0x00625880, TradeBuildListsVerify, 7, s_buildLists);
 
 static void(__fastcall* s_drawLists)(CTradePanel*);
 static void __fastcall TradeDrawListsVerify(CTradePanel* self) {
-    void* surface = self->surfaces_.size_ > 0 ? self->surfaces_.data_[0] : nullptr;
+    void* surface = self->surfaces_.size > 0 ? self->surfaces_.data[0] : nullptr;
     Pixels before;
     bool pixels = AccessPixels(surface, before, false);
     s_drawLists(self);
-    int expectedCount = self->sceneObjects_.size_;
+    int expectedCount = self->sceneObjects_.size;
     std::vector<std::uint8_t> expectedSprites = SpriteBytes(self, 4);
     Pixels expected;
     if (pixels) pixels = AccessPixels(surface, expected, false) && AccessPixels(surface, before, true);
@@ -211,11 +211,11 @@ static void __fastcall TradeDrawListsVerify(CTradePanel* self) {
         }
     }
     std::vector<std::uint8_t> actualSprites = SpriteBytes(self, 4);
-    bool same = row == -1 && expectedCount == self->sceneObjects_.size_ && expectedSprites == actualSprites;
+    bool same = row == -1 && expectedCount == self->sceneObjects_.size && expectedSprites == actualSprites;
     ei::verify::Check("CTradePanel::DrawLists", true, same,
                       "pixel row %d (compared: %d%s), scene objects %d/%d, sprite bytes %d/%d%s", row,
                       pixels && !unstable, unstable ? ", original unstable" : "", expectedCount,
-                      self->sceneObjects_.size_, static_cast<int>(expectedSprites.size()),
+                      self->sceneObjects_.size, static_cast<int>(expectedSprites.size()),
                       static_cast<int>(actualSprites.size()), expectedSprites == actualSprites ? "" : " differ");
 }
 EI_VERIFY(0x006261A0, TradeDrawListsVerify, 7, s_drawLists);
@@ -228,9 +228,9 @@ EI_VERIFY(0x006261A0, TradeDrawListsVerify, 7, s_drawLists);
 // hero screen's Create (ui_hero_screen).
 static void* s_tradeBuild;
 static void __fastcall TradeBuildVerify(CTradePanel* self) {
-    int surfaces = self->surfaces_.size_;
-    int regions = self->regions_.size_;
-    int objects = self->sceneObjects_.size_;
+    int surfaces = self->surfaces_.size;
+    int regions = self->regions_.size;
+    int objects = self->sceneObjects_.size;
     auto titleCount = [self] { return *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(self) + 0x1AC); };
     int titles = titleCount();
     self->Build();
@@ -240,13 +240,13 @@ static void __fastcall TradeBuildVerify(CTradePanel* self) {
     RECT expectedRect = {200, 100, 600, 500};
     ei::verify::Check(name, 0, std::memcmp(&expectedRect, &self->rect_, sizeof(RECT)), "rect (%d,%d,%d,%d)",
                       self->rect_.left, self->rect_.top, self->rect_.right, self->rect_.bottom);
-    ei::verify::Check(name, surfaces + 1, self->surfaces_.size_, "surfaces");
-    ei::verify::Check(name, regions + 44, self->regions_.size_, "regions");
-    ei::verify::Check(name, objects + 4, self->sceneObjects_.size_, "scene objects");
+    ei::verify::Check(name, surfaces + 1, self->surfaces_.size, "surfaces");
+    ei::verify::Check(name, regions + 44, self->regions_.size, "regions");
+    ei::verify::Check(name, objects + 4, self->sceneObjects_.size, "scene objects");
     ei::verify::Check(name, titles + 3, titleCount(), "titles");
-    if (self->regions_.size_ == regions + 44) {
-        RECT first = self->regions_.data_[regions]->bounds_;
-        RECT last = self->regions_.data_[regions + 43]->bounds_;
+    if (self->regions_.size == regions + 44) {
+        RECT first = self->regions_.data[regions]->bounds_;
+        RECT last = self->regions_.data[regions + 43]->bounds_;
         RECT expectedFirst = {360, 320, 380, 330};
         RECT expectedLast = {215, 465, 385, 480};
         ei::verify::Check(name, 0, std::memcmp(&first, &expectedFirst, sizeof(RECT)), "first region (%d,%d,%d,%d)",

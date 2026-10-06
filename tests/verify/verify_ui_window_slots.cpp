@@ -114,8 +114,8 @@ void __fastcall Forward(void* self) {
 // reach (all, or the enabled ones), judged before the call.
 void InstallChildren(Recorder& r, CUiContainer* self, int slot, void* forward, bool enabledOnly,
                      std::vector<Call>& expected) {
-    for (int i = 0; i < self->children_.size_; ++i) {
-        CUiWindow* child = self->children_.data_[i];
+    for (int i = 0; i < self->children_.size; ++i) {
+        CUiWindow* child = self->children_.data[i];
         if (!enabledOnly || child->enabled_) expected.push_back(Call{child, slot});
         r.Install(child, slot, forward, kTableSlots);
     }
@@ -123,21 +123,21 @@ void InstallChildren(Recorder& r, CUiContainer* self, int slot, void* forward, b
 
 // The window's shown surfaces with a stand-in on slot 0.
 void InstallSurfaces(Recorder& r, CUiWindow* self, std::vector<Call>& expected) {
-    for (int i = 0; i < self->surfaces_.size_; ++i) {
-        CUiSurface* surface = self->surfaces_.data_[i];
+    for (int i = 0; i < self->surfaces_.size; ++i) {
+        CUiSurface* surface = self->surfaces_.data[i];
         if (surface->Shown()) expected.push_back(Call{surface, 0});
         r.Install(surface, 0, reinterpret_cast<void*>(&Forward<0>), 16);
     }
 }
 
 bool Listed(CUiWindow* self, void* object) {
-    for (int i = 0; i < self->surfaces_.size_; ++i)
-        if (self->surfaces_.data_[i] == object) return true;
+    for (int i = 0; i < self->surfaces_.size; ++i)
+        if (self->surfaces_.data[i] == object) return true;
     return false;
 }
 bool ListedChild(CUiContainer* self, void* object) {
-    for (int i = 0; i < self->children_.size_; ++i)
-        if (self->children_.data_[i] == object) return true;
+    for (int i = 0; i < self->children_.size; ++i)
+        if (self->children_.data[i] == object) return true;
     return false;
 }
 
@@ -205,10 +205,10 @@ EI_VERIFY(0x00601090, RedrawChildTipsVerify, 0, s_unused);
 
 // 005FEB90 draws (ours only): returns 1, the lists it walks are unchanged.
 static BOOL __fastcall DrawBaseVerify(CUiWindow* self, void*, int pass) {
-    int objects = self->sceneObjects_.size_;
-    int models = self->models_.size_;
+    int objects = self->sceneObjects_.size;
+    int models = self->models_.size;
     BOOL result = self->CUiWindow::DrawBase(pass);
-    bool ok = result == 1 && self->sceneObjects_.size_ == objects && self->models_.size_ == models;
+    bool ok = result == 1 && self->sceneObjects_.size == objects && self->models_.size == models;
     ei::verify::Check("CUiWindow::DrawBase", true, ok, "objects %d models %d", objects, models);
     return result;
 }

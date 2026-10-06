@@ -131,7 +131,7 @@ void CItemScreen::CreateBase() {
     }
     iconWindow_ = icons;
     reinterpret_cast<CUiContainer*>(this)->AddChild(icons);
-    iconWindow_->AddObject(objects_.data_[0]);
+    iconWindow_->AddObject(objects_.data[0]);
     using BuildFn = void(__thiscall*)(CUiWindow*);
     reinterpret_cast<BuildFn>(iconWindow_->vtable_[18])(iconWindow_);
     LoadTexture(reinterpret_cast<const char*>(0x00792EBC), 3, 0);   // "modifiers2"
