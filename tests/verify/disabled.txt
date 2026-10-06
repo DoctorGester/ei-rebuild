@@ -1,3 +1,2 @@
 # Rewritten functions that are NOT hooked (the original runs), one hex address per line, with the
 # reason. For rewrites found broken in game until they are fixed; keep this list short.
-005179E0 CObject3D::SetUpAnimatedFigure: mismatches every call ("0 parts, centre ..."); A-U4 fixing (2026-10-07)
