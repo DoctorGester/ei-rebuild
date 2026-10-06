@@ -115,6 +115,7 @@
 #include "../../src/game/spell.h"
 #include "../../src/game/unit.h"
 #include "../../src/game/originals_engine.h"
+#include "../../src/game/originals_ui.h"
 #include "../../src/game/originals_world.h"
 #include "../../src/render/render.h"
 
@@ -144,11 +145,11 @@ SyncFn g_sync;
 // 005DC620: the console's command executor; the command text is passed in ECX.
 __declspec(naked) void __fastcall ConsoleExecute(const char*) EI_ORIGINAL(0x005DC620)
 
-// 00578B00: the client asks the server for interface screen `id` (the server answers with message 7,
-// 00669D50 -> CInterface3D::CreateScreen 005F5BA0: 1 battle, 3 briefing, 4 global map, 5 camp).
-__declspec(naked) void __stdcall RequestScreen(int) EI_ORIGINAL(0x00578B00)
-// 00578560: sets player 0's "constr_current" (the constructor the camp opens with; 0 none).
-__declspec(naked) void __stdcall SetCurrentConstructor(float) EI_ORIGINAL(0x00578560)
+// 00578B00 (GameRequestScreenOriginal): the client asks the server for interface screen `id` (the server answers
+// with message 7, 00669D50 -> CInterface3D::CreateScreen 005F5BA0: 1 battle, 3 briefing, 4 global map, 5 camp).
+void RequestScreen(int id) { GameRequestScreenOriginal(nullptr, nullptr, id); }
+// 00578560 (GameSetConstructorOriginal): sets player 0's "constr_current" (the constructor the camp opens with).
+void SetCurrentConstructor(float constructor) { GameSetConstructorOriginal(nullptr, nullptr, constructor); }
 // 004A74F0 (__thiscall on the class template vector 007AA5D8): the template of a class, null if none.
 __declspec(naked) void* __fastcall FindClassTemplate(void*, void*, int) EI_ORIGINAL(0x004A74F0)
 constexpr std::uintptr_t kClassTemplates = 0x007AA5D8;

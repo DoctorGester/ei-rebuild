@@ -63,6 +63,28 @@ struct BriefingShownItem {
 };
 static_assert(sizeof(BriefingShownItem) == 0x18);
 
+// A briefing's record (0x6C bytes; the quest database's briefings, by topic in the hash_map at
+// 007C87D4, read by quest_database.cpp): its rewards as NextPhrase lists them.
+struct BriefingRecord {
+    struct NameList {                // an STLport vector<CString>
+        mfc::CString* begin;
+        mfc::CString* end;
+        mfc::CString* capacity;
+    };
+    std::uint8_t unknown_00[0x0C];
+    float experience;                // +0x0C
+    float gold;                      // +0x10
+    NameList giveItems;              // +0x14 item names
+    NameList removeItems;            // +0x20
+    NameList giveQuests;             // +0x2C variables "a.b.<quest>"
+    NameList completeQuests;         // +0x38
+    std::uint8_t unknown_44[0x68 - 0x44];
+    int specials;                    // +0x68 "brief_get_specials_<n>" when above 0
+};
+static_assert(offsetof(BriefingRecord, giveItems) == 0x14);
+static_assert(offsetof(BriefingRecord, completeQuests) == 0x38);
+static_assert(sizeof(BriefingRecord) == 0x6C);
+
 // The local player's name (its zone): 00578A90 copy-constructs it into raw storage, destroyed at
 // the end of the scope.
 class BriefingPlayerName {
@@ -209,6 +231,41 @@ public:
     // of that name (its meshes and texture).
     void HideSpeaker(const char* name, int immediate, int time);
 
+    // 006064E0 (RET 8; ui_briefing_start.cpp). Dialogue topic_ starts: "goodbye" (or no leader)
+    // back to state 0; a "constr..." topic opens the camp (screen 5) with constructor N (the topic
+    // from its eighth character) when that class template exists. Otherwise the "#show" lines of
+    // the text "briefing <topic>" name the people: the first one not the leader is person_, a
+    // second third_; without one, state 0. The places: the person's (or, with noWalk_, the
+    // leader's) position, the other 2.5 + viewDistance along its facing, the third one beside
+    // the middle; their facings across, flat and normalised. With `remember` the people's
+    // positions are kept first (personHome_, thirdPlace_). A mover of the third person (or of the
+    // person, noWalk_) is dropped, its target kept unless it was waited for; then the leader (or,
+    // noWalk_, the person) and the third walk to their places (006089D0, waited, `immediate`).
+    // `immediate` starts the phrases at once (StartPhrases), else state 2.
+    void StartDialogue(bool immediate, bool remember);
+    // 00608450 (ui_briefing_start.cpp). The dialogue ends (the rewards taken, or skipped): the voice
+    // stops, the music fades in, the shown items go, every speaker leaves (the server hears event 2,
+    // its blink stops, its server unit's flag 0x40000000 back, height 0, action dropped) and the
+    // list is emptied; the leader and the person back to height 0, the third speaker walks back to
+    // thirdPlace_ (and is forgotten), with noWalk_ the person to personHome_. The first "b.*.<topic>"
+    // variable (three parts) completes (00592090 for player 0). State 0, the server hears event 0
+    // with the leader; a dialogue that started by itself (briefingStarted_) puts the camera on the
+    // leader (message 0x04) and frees it, otherwise it goes back to savedCamera_ / lookAt_.
+    void FinishDialogue();
+    // Removes the shown items' meshes (and the item texture) from the scene and empties shown_
+    // (inlined in 00608450 and 00604C50).
+    void ClearShownItems();
+
+    // 00604C50 (RET 4; ui_briefing_phrases.cpp). The next phrase of the current text: its lines up
+    // to the next "#phrase <speaker> [voice]" are carried out ("#nolips", "#show", "#hide",
+    // "#animation n", "#camera n [angle distance height]"); the phrase (up to the next '#') goes,
+    // headed by the speaker's name, into dialogueText_ and (unless `skip`) the text window, with
+    // its voice "<t|s>\briefing\<topic>\<n>.mp3" and phraseTime_. After the last phrase: state 4
+    // and the briefing record's rewards as lines (experience, gold, items given and lost, quests).
+    // The camera then views the phrase's speaker, who talks (an animation, blinking unless
+    // "#nolips") while the others listen; skipping to the end shows the whole text at once.
+    void NextPhrase(bool skip);
+
     int exit_;                      // +0x164 the exit a "leave_zone" answer leaves through
     bool exitPending_;               // +0x168 Create sets it (Update checks the leader's exit)
     std::uint8_t unknown_169[3];
@@ -229,23 +286,24 @@ public:
     Vector3 lookAt_;                 // +0x204 position + the camera rotation's z axis then
     Vector3 thirdPlace_;             // +0x210 where the third speaker goes when hidden (006062C0)
     Vector3 thirdDirection_;         // +0x21C
-    std::uint8_t unknown_228[0x240 - 0x228];
+    Vector3 personHome_;             // +0x228 where the person stood when the dialogue started (noWalk_)
+    Vector3 personHomeDirection_;    // +0x234 and its facing
     BriefingMover* movers_;          // +0x240 the people walking to their places (list header)
     bool firstPhrase_;               // +0x244 set when the phrases start (the first one lasts a second longer)
     std::uint8_t unknown_245[3];
     mfc::CString dialogueText_;      // +0x248 the dialogue's text so far (shown whole when skipped)
     float phraseTime_;               // +0x24C time left of a phrase without a voice
     int voice_;                      // +0x250 the phrase's voice (sound id), -1 none
-    CUnit* rewardUnit_;              // +0x254
+    CUnit* speaking_;                // +0x254 the speaker of the current phrase (NextPhrase), or null
     std::uint8_t unknown_258[4];
-    CUiWindow* text_;                // +0x25C the dialogue text (a CUiScrollText)
+    CUiScrollText* text_;            // +0x25C the dialogue text
     CUiScrollbar* topicBar_;         // +0x260 the topic list's scroll bar
     int topicTop_;                   // +0x264 first topic row shown
     float savedEdgeFade_;            // +0x268 the map edge fade (0079BD34) Create replaced
     PersonTextMap personTexts_;      // +0x26C "pers" texts by text key (map<int, CString>)
     std::uint8_t unknown_270[0x278 - 0x270];
     BriefingShownItem* shown_;       // +0x278 the items shown (list header)
-    std::uint8_t unknown_27C;
+    bool immediate_;                 // +0x27C the dialogue's people are placed at once (006064E0's first argument)
     bool noWalk_;                    // +0x27D the zone's map record +0x44: the leader does not walk
     bool unknown_27E;                // +0x27E
     std::uint8_t unknown_27F;
@@ -278,6 +336,9 @@ static_assert(offsetof(CBriefingScreen, personTexts_) == 0x26C);
 static_assert(offsetof(CBriefingScreen, noWalk_) == 0x27D);
 static_assert(offsetof(CBriefingScreen, chat_) == 0x280);
 static_assert(offsetof(CBriefingScreen, thirdPlace_) == 0x210);
+static_assert(offsetof(CBriefingScreen, personHome_) == 0x228);
+static_assert(offsetof(CBriefingScreen, personHomeDirection_) == 0x234);
+static_assert(offsetof(CBriefingScreen, immediate_) == 0x27C);
 static_assert(offsetof(CBriefingScreen, shown_) == 0x278);
 static_assert(offsetof(CBriefingScreen, speakers_) == 0x294);
 static_assert(offsetof(CBriefingScreen, chatActive_) == 0x2A0);

@@ -374,7 +374,36 @@ Then 00602C90 `OnUnitJoined` (slot 29; ours only: the unit once more in party_; 
 00607720 `LoadPersonTexts` (ours only: the map stays ordered) = the new `PersonTextMap::Load` (`ui_person_texts.cpp`), which the battle
 screen's setup now calls instead of its inline copy (forwarders 004DEFA0 / 00609E70 moved to originals_ui.h). OnUnitJoined's unused
 server-world lookup after the insert is left out.
-Next: 006064E0 / 00604C50 / 00608450, Create and Update.
+A-I12 (`ui_briefing_start.cpp`; `verify_ui_briefing_start.cpp`): 006064E0 `StartDialogue(immediate, remember)` (ours only:
+state 0 / 2 / 3, a person, the three facings flat, normalised and along the places). Fields: immediate_ +0x27C, personHome_ /
+personHomeDirection_ +0x228 / +0x234 (the person's place, noWalk_). The "constr" topic's number is `Mid(7)` (006FD9B4, not
+Right). Movers erased inline (00609A40, pool 0x30). Forwarders 00608210, 00578560, 00578B00 (originals_ui.h; harness.cpp uses
+them now). 00608450 `FinishDialogue` (ours only: state 0, speakers / shown items empty, no third or reward unit,
+briefingStarted_ off; the "b.*.<topic>" variable completes through 00592090's address). Forwarders 006B4E20 (music fade in),
+0066ED30, 00592090 (originals_ui.h). Its unused party search (00578BA0) is left out, as in HideSpeaker.
+00604C50 `NextPhrase(skip)` (`ui_briefing_phrases.cpp`; ours only: state kept or 4, the text only grows, firstPhrase_ off;
+skipped to the end no shown items and no speaker). `BriefingRecord` (0x6C: exp, gold, four name lists, specials +0x68) added
+to ui_briefing.h; +0x254 is speaking_ (the phrase's speaker), text_ a CUiScrollText. Forwarders 00605DE0 (#show, not ported),
+00607A60 / 00607EC0 / 006062C0 (through their address). Original quirks kept: "#show .. weapon" shows the item twice (flag
+0, then 1); the camera / animation loops compare the speakers with the last split line's second word unchecked.
+ui_base_dialogue: a second Esc takes the rewards.
+Mapped for the next step (headers only so far: `MapRecord` restricted / restrictX/Y/Radius / cage +0x34..+0x44,
+`WorldPlayer::objects` +0x28 (ObjectIdMap) and `lastScreen` +0x104 (5: from the camp)). Create 006024B0: chatActive_ 0;
++0x27E = 1 unless loading (save stream resized to 0) or lastScreen 5 (an autosave flag, as the global map's); FindMap(local
+name) kept; LoadPersonTexts; LoadTexture("saveload", 3, 0); four sprites (AddSprite(0): SetRectangle 20,100, 200,430-600,570
+plain 0x80000000 no texture; SetFrame 10,100, 195,425-605,575 border 5 (2,0xFE,0xB4,0xF9); SetRectangle 155,416-645,580 plain
+0xA0000000; SetFrame 20,100, 150,411-650,585); surfaces (200,430,600,570,5,1) and (0,0,250,30,5,1); topicBar_ (0065AEA0:
+584,440-594,560, 3.0, 0, 1.0); text_ (0065CC00: "", 165,426-635,570, 10.0); scene objects hidden, surfaces Freeze(0,0),
+children SetEnabled(0,1); state 0, exitPending_ 1, exit_ 0, leader_ 0; edge fade saved, set 4.0; music PlayBriefing(record
+allod or "gipat"), noWalk_ = record cage; 00578950, 005786A0(0,0); inputs 00741154 and 005EACB0; camera flag 0x40 off,
+SetBounds((restrictX, restrictY, 0), radius) when restricted (the first record, unchecked), 0x200 on, SetTargetId(-1);
+briefingStarted_ 0, voice_ -1, speaking_ 0; network client: chat_ (00608D20, 0x170) as a child and slot 36 with 1; then the
+ids of the local player's objects that are text keys pushed into the int vector +0x284..+0x28C; +0x290 (a float, Update
+adds the frame time and wraps it at 1) = 0. 0065CC00 and 005EACB0 are forwarded in ui_battle_setup.cpp: move them to
+originals_ui.h when Create needs them. Update 00604130 (state machine; movers walk / turn / done, case 0 marks people with
+open topics through dialogue events 1 / 2, case 2 waits for the waited movers, 3 / 4 the phrase timer or voice) not mapped
+in detail yet.
+Next: Create 006024B0 and Update 00604130.
 
 ## 6. Battle screen: update, selection, orders, pending actions (00635250-0064BE80)
 

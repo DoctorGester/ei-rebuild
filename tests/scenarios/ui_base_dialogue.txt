@@ -32,6 +32,9 @@ click 400 300
 wait 800
 click 400 300
 wait 800
+# Esc skips the rest of the phrases (00604C50 with 1, state 4), the second takes the rewards (00608450)
+key esc
+wait 800
 key esc
 wait 800
 check IsAlive(GetLeader())

@@ -371,6 +371,32 @@ __declspec(naked) inline void __fastcall GameSetUnitHeightOriginal(void* /*glue*
 __declspec(naked) inline void __fastcall BriefingMovePersonOriginal(void* /*screen*/, void*, void* /*unit*/, float, float, float,
                                                                     float, float, float, int /*waited*/, int /*immediate*/,
                                                                     int /*time*/) EI_ORIGINAL(0x006089D0)
+// A-I12. 00608210 (rewritten as CBriefingScreen::StartPhrases; through its address so the wrapper runs; plain RET).
+// 00578560 (the client glue 007AFEA6, not read; RET 4): the local player's "constr.current" = `constructor` (the
+// constructor the camp opens with; message to the server). 00578B00 (the client glue, not read; RET 4): the client
+// asks the server for interface screen `id` (1 battle, 3 briefing, 4 global map, 5 camp).
+__declspec(naked) inline void __fastcall BriefingStartPhrasesOriginal(void* /*screen*/) EI_ORIGINAL(0x00608210)
+__declspec(naked) inline void __fastcall GameSetConstructorOriginal(void* /*glue*/, void*, float /*constructor*/)
+    EI_ORIGINAL(0x00578560)
+__declspec(naked) inline void __fastcall GameRequestScreenOriginal(void* /*glue*/, void*, int /*id*/) EI_ORIGINAL(0x00578B00)
+// 006B4E20 (on the music system [007AF760], ECX not read): the sound manager's stream fades in (006BAFE0). 0066ED30
+// (rewritten as CPlayerServer::SendPosition04; through its address so the wrapper runs; RET 0xC): message 0x04, a
+// position and two dwords. 00592090 (rewritten as CWorldServer::CompleteBriefing; through its address so the wrapper
+// runs; RET 8): briefing variable `name` is complete for player `playerId`.
+// 00605DE0 (the briefing screen; RET 0xC): "#show": a dialogue item `name` shown (index, flag). Through their address so
+// the wrappers run: 00607A60 PlaySpeakerAnimation (RET 0xC), 00607EC0 ViewPreset (RET 4), 006062C0 HideSpeaker (RET 0xC).
+__declspec(naked) inline void __fastcall BriefingShowItemOriginal(void* /*screen*/, void*, const char* /*name*/, int /*index*/,
+                                                                  int /*flag*/) EI_ORIGINAL(0x00605DE0)
+__declspec(naked) inline void __fastcall BriefingSpeakerAnimationOriginal(void* /*screen*/, void*, void* /*unit*/, int /*talking*/,
+                                                                          int /*third*/) EI_ORIGINAL(0x00607A60)
+__declspec(naked) inline void __fastcall BriefingViewPresetOriginal(void* /*screen*/, void*, int /*preset*/) EI_ORIGINAL(0x00607EC0)
+__declspec(naked) inline void __fastcall BriefingHideSpeakerOriginal(void* /*screen*/, void*, const char* /*name*/, int /*immediate*/,
+                                                                     int /*time*/) EI_ORIGINAL(0x006062C0)
+__declspec(naked) inline void __fastcall MusicFadeInOriginal(void* /*music*/) EI_ORIGINAL(0x006B4E20)
+__declspec(naked) inline int __fastcall PlayerSendPosition04Original(void* /*server*/, void*, const Vector3* /*at*/,
+                                                                     std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0066ED30)
+__declspec(naked) inline void __fastcall WorldCompleteBriefingOriginal(void* /*world*/, void*, int /*playerId*/,
+                                                                      const char* /*name*/) EI_ORIGINAL(0x00592090)
 // 00607BB0 (rewritten as CBriefingScreen::ViewSpeaker; through its address so the wrapper runs; RET 0x10).
 __declspec(naked) inline void __fastcall BriefingViewSpeakerOriginal(void* /*screen*/, void*, void* /*unit*/, float /*angle*/,
                                                                      float /*distance*/, float /*height*/) EI_ORIGINAL(0x00607BB0)
