@@ -1,0 +1,214 @@
+// The path smoother (PathSmoother, CAIMap + 0x22CC): a dynamic programme over the path's cells
+// that may move each cell to a neighbour when that makes the path cheaper, counting step costs and
+// turns. CAIMap::FindPath runs it on every new path (through its address). See ai_map.h and
+// docs/notes/ai.md.
+#include "ai_map.h"
+
+#include "ei/hook.h"
+#include "ei/x87.h"
+#include "lib/crt.h"
+#include "lib/mfc.h"
+
+#include <cstdint>
+
+namespace {
+
+constexpr int kUnreached = 0x7FFFFFFF;
+constexpr int kStates = 9;
+constexpr float kTurnCost = 60.0f;          // 0073F090
+constexpr float kDiagonalEndCost = 2048.0f; // 0073FE40
+
+// The original stores these products to a float before FISTP.
+float StoreFloat(float v) {
+    volatile float r = v;
+    return r;
+}
+
+bool IsDiagonal(int direction) { return direction == 2 || direction == 4 || direction == 6 || direction == 8; }
+
+// |v| as CDQ / XOR / SUB computes it.
+int CdqAbs(int v) {
+    auto u = static_cast<std::uint32_t>(v);
+    auto sign = static_cast<std::uint32_t>(v >> 31);
+    return static_cast<int>((u ^ sign) - sign);
+}
+
+// The cost of `turn` eighths of a turn, as the original rounds it.
+int TurnCost(int turn, float scale) { return x87::fistp(StoreFloat(static_cast<float>(turn) * scale * kTurnCost)); }
+
+// The inlined RemoveAll.
+void FreeAll(PathCellList* list) {
+    list->count = 0;
+    list->free = nullptr;
+    list->tail = nullptr;
+    list->head = nullptr;
+    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(list->blocks));
+    list->blocks = nullptr;
+}
+
+} // namespace
+
+void SmoothPool::SetSize(int size, int growByArg) {
+    if (growByArg != -1) nodes.growBy = growByArg;
+    if (size == 0) {
+        if (nodes.data) {
+            gamecrt::operator_delete(nodes.data);
+            nodes.data = nullptr;
+        }
+        nodes.capacity = 0;
+        nodes.size = 0;
+        return;
+    }
+    if (!nodes.data) {
+        nodes.data = static_cast<SmoothNode*>(gamecrt::operator_new(size * sizeof(SmoothNode)));
+        for (int i = 0; i < size; ++i) nodes.data[i] = SmoothNode{0, nullptr};
+        nodes.capacity = size;
+        nodes.size = size;
+        return;
+    }
+    if (size <= nodes.capacity) {
+        for (int i = nodes.size; i < size; ++i) nodes.data[i] = SmoothNode{0, nullptr};
+        nodes.size = size;
+        return;
+    }
+    int grow = nodes.growBy;
+    if (grow == 0) {
+        grow = nodes.size / 8;
+        if (grow < 4) grow = 4;
+        else if (grow > 1024) grow = 1024;
+    }
+    int newMax = nodes.capacity + grow;
+    if (newMax <= size) newMax = size;
+    auto* data = static_cast<SmoothNode*>(gamecrt::operator_new(newMax * sizeof(SmoothNode)));
+    for (int i = 0; i < nodes.size; ++i) data[i] = nodes.data[i];
+    for (int i = nodes.size; i < size; ++i) data[i] = SmoothNode{0, nullptr};
+    gamecrt::operator_delete(nodes.data);
+    nodes.size = size;
+    nodes.data = data;
+    nodes.capacity = newMax;
+}
+EI_REPLACE_METHOD(0x005C4C20, SmoothPool::SetSize);
+
+void PathSmoother::Relax(const SmoothStep* step, const SmoothState* from, SmoothState* to) {
+    if (from->cost == kUnreached) return;
+    const AIMapCell& a = map->cells[y + step->dy][x + step->dx];
+    const AIMapCell& b = map->cells[y + step->dy + step->stepY][x + step->dx + step->stepX];
+    if (b.level > level && b.level >= a.level) return;
+    int pass = costs.costs[(b.passable >> (costs.shift & 31)) & 0xF];
+    if (pass < 0) return;
+    int climb = costs.climb[static_cast<int>(b.groundLevel) - static_cast<int>(a.groundLevel)];
+    if (climb < 0) return;
+    int cost = (((climb * pass) >> 10) * step->factor >> 10) + from->cost + TurnCost(step->turn, costs.unknown_10);
+    if (cost >= to->cost) return;
+    to->cost = cost;
+    to->node->direction = step->direction;
+    to->node->prev = from->node;
+}
+EI_REPLACE_METHOD(0x005C44D0, PathSmoother::Relax);
+
+void PathSmoother::Advance(const SmoothState* from, SmoothState* to, const SmoothTable* table) {
+    SmoothPool& pool = SmoothNodePool();
+    for (int i = 0; i < kStates; ++i) to[i].cost = kUnreached;
+    for (int i = 0; i < kStates; ++i) to[i].node = pool.next++;
+    for (int i = 0; i < table->copies.size; ++i) {
+        const SmoothCopy& copy = table->copies.data[i];
+        to[copy.to] = from[copy.from];
+    }
+    for (int i = 0; i < table->steps.size; ++i) {
+        const SmoothStep& step = table->steps.data[i];
+        Relax(&step, &from[step.from], &to[step.to]);
+    }
+    for (int i = 0; i < table->chained.size; ++i) {
+        const SmoothStep& step = table->chained.data[i];
+        Relax(&step, &to[step.from], &to[step.to]);
+    }
+}
+EI_REPLACE_METHOD(0x005C45D0, PathSmoother::Advance);
+
+int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCellList* path, int startDirection, float fraction) {
+    if (path->count < 3) return 0;
+    map = mapArg;
+    mapArg->CostContextFor(unit, &costs);
+    sizeClass = unit->sizeClass;
+    level = static_cast<std::uint8_t>(StandingLevel(unit));
+    int previousBest = kUnreached;
+    const int tailX = path->tail->data.x, tailY = path->tail->data.y;
+    const int headX = path->head->data.x, headY = path->head->data.y;
+    SmoothPool& pool = SmoothNodePool();
+    for (;;) {
+        SmoothState first[kStates], second[kStates];
+        pool.SetSize((path->count + 5) * 10, -1);
+        pool.unknown_14 = 0;
+        for (SmoothState& s : first) s = SmoothState{0, nullptr};
+        // The first cell: a state per direction it is left in.
+        pool.next = pool.nodes.data;
+        const AIMapCell& head = map->cells[headY][headX];
+        for (int d = 1; d <= 8; ++d) {
+            SmoothState& state = first[d - 1];
+            state.node = pool.next++;
+            state.node->direction = d - 4 >= 1 ? d - 4 : d + 4;
+            state.node->prev = nullptr;
+            state.cost = kUnreached;
+            PathCell origin{0, 0, 0, 0}, offset;
+            origin.Step(&offset, d);
+            const AIMapCell& to = map->cells[headY + offset.y][headX + offset.x];
+            int pass = costs.costs[(to.passable >> (costs.shift & 31)) & 0xF];
+            if (to.level > level && to.level >= head.level) continue;
+            if (pass < 0) continue;
+            int climb = costs.climb[static_cast<int>(to.groundLevel) - static_cast<int>(head.groundLevel)];
+            if (climb <= 0) continue;
+            int cost = (climb * pass) >> 10;
+            if (IsDiagonal(d)) cost = (cost * 0x5A8) >> 10;
+            int turn = CdqAbs(d - startDirection);
+            if (turn > 4) turn = 8 - turn;
+            int turns = turn - 1 < 0 ? 0 : turn - 1;
+            state.cost = TurnCost(turns, costs.unknown_10) + cost;
+        }
+        // Along the path: each cell's states from the previous one's, through the table of the
+        // previous and the next step's directions.
+        SmoothState* from = first;
+        SmoothState* to = second;
+        int previousDirection = 0;
+        const PathCellList::Node* cell = path->head;
+        for (const PathCellList::Node* next = cell->next; next; next = next->next) {
+            int direction = DirectionSteps()[(next->data.y - cell->data.y) * 3 - cell->data.x + next->data.x];
+            x = cell->data.x;
+            y = cell->data.y;
+            Advance(from, to, &SmoothTables()[direction + previousDirection * 9]);
+            SmoothState* swap = from;
+            from = to;
+            to = swap;
+            previousDirection = direction;
+            cell = next;
+        }
+        x = cell->data.x;
+        y = cell->data.y;
+        Advance(from, to, &SmoothTables()[previousDirection * 9]);
+        // The cheapest end state; a diagonal one pays for the target's offset in its cell.
+        int best = kUnreached;
+        SmoothNode* bestNode = nullptr;
+        for (int d = 1; d <= 8; ++d) {
+            SmoothState& state = to[d - 1];
+            if (state.cost == kUnreached) continue;
+            if (IsDiagonal(d)) state.cost += x87::fistp(StoreFloat((1.0f - fraction) * kDiagonalEndCost));
+            if (state.cost < best) {
+                best = state.cost;
+                bestNode = state.node;
+            }
+        }
+        if (best >= previousBest) return best;
+        previousBest = best;
+        // Rebuild the cells from the tail back along the chain. The original gives them second
+        // dwords from two stack slots it never writes; ours keep the old tail's.
+        std::uint16_t staleFlags = path->tail->data.flags, staleWord = path->tail->data.unknown_6;
+        FreeAll(path);
+        PathCell tail{static_cast<std::int16_t>(tailX), static_cast<std::int16_t>(tailY), staleFlags, staleWord};
+        path->AddHead(&tail);
+        for (const SmoothNode* node = bestNode; node; node = node->prev) {
+            PathCell stepped{0, 0, staleFlags, staleWord};
+            path->head->data.Step(&stepped, node->direction);
+            path->AddHead(&stepped);
+        }
+    }
+}
+EI_REPLACE_METHOD(0x005C46C0, PathSmoother::Smooth);

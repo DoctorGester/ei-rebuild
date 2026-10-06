@@ -96,6 +96,7 @@ the resulting state.
 | 005C35F0, 005C2F50, 005C2FB0, 005C3050, 005C3090, 005C1D50, 005C2D40, 005C30E0, 005C31A0, 005C3200 | LocalSearch Reset, PickCurrent, Requeue, Best, CostAt, StepCost, Expand, ExpandAll, ExpandUntil, PathTo | ai_local_search.cpp | in place: search header and node block recorded, original, recorded, put back, ours, compared (Expand / Requeue sampled after 512 calls); Best / CostAt / StepCost pure; PathTo x, y on a scratch list |
 | 005C22A0, 005C21A0, 005C2420, 005C24F0, 005C2B10, 005C2C90, 005C2CF0, 005C2A30, 005C33F0, 005C3530, 005C1EA0, 005C25D0, 005B9580 | LocalSearch PlaceWindow, SetUnit, Begin, BeginForClass, BeginInRect(For, ForClass), CommitDirections, Save / RestoreLevels, Attach, Recenter; CAIMap::CostContextFor | ai_local_search.cpp | in place as above (CommitDirections / levels with the map bytes under the window); Attach ours only (fresh grid); SaveLevels' first (allocating) call ours only; CostContextFor output |
 | 005BD200, 005BD2A0, 005C5DA0, 005C5E60, 005C6000, 005C5CC0 | PathCellList AddHead, AddTail, AppendList, Reversed, RemoveRepeats; PathCell::Step | ai_path_cells.cpp | ours only against a model of the list taken before (cells as 8-byte records, links checked); Reversed and Step: the original on scratch outputs |
+| 005C46C0, 005C45D0, 005C44D0, 005C4C20 | PathSmoother Smooth, Advance, Relax; SmoothPool::SetSize | ai_path_smooth.cpp | Smooth: the original on a copy of the path, result and cells' x, y compared; Advance: pool and states after the original (pool put back) and ours; Relax: the original on a scratch state; SetSize ours only |
 | 005C0930, 005C0BD0, 005C0DF0, 005C1010, 005C11D0 | CSectorMap: UnitsAt, FindUnitsInRadius, Add, Remove, Move | sector_map.cpp | UnitsAt pure; others in `verified.txt` |
 
 ## Original bugs and oddities kept on purpose
@@ -105,6 +106,10 @@ the resulting state.
   caller (JoinLocalSearches) leaves the forward search's address there (Best pushes ESI), so ours writes that address.
   `ExpandUntil` forms the target's row pointer without a bounds check (only compared). `Recenter` that fails on a
   move of 31 cells or more has already moved the window and row table (the nodes stay); its grid copy (005C4BA0) is inlined.
+- Path smoother (CAIMap + 0x22CC, trellis of nine states per cell over the transition tables 007C3058, node pool 007C3038):
+  the cells it rebuilds get second dwords from two stack slots the original never writes (the tail one, the stepped ones);
+  ours give them the old tail's. Which value vanilla leaves depends on FindPath's earlier calls; the steering reads the
+  last step's flags as its speed word (see BuildCellsTo). The first-cell climb test is `<= 0`, the later ones `< 0`.
 
 - FindPath computes the fractional part of the snapped target twice from `targetX` (the second was presumably meant to be `targetY`), stores odd values in the second dword of single-cell path entries (the unit's y in
   half-cells minus 0.5 in one branch, min(|dx|, |dy|) in the other) before overwriting the low half with 0x200, and re-checks whether the unit is in the target cell in its local-search branch. SnapTarget divides 0/0
@@ -122,7 +127,7 @@ the resulting state.
 
 - Run only by the static initialiser 005C42A0 (before the hooks): the smoothing tables 005C42B0 and its helpers 005C3690, 005C3840, 005C3A00,
   005C3E10, 005C4050, 005C4F30, 005C5930, 005C5AB0, 005C5A80.
-- Large, stateful, left as forwarders (next candidates): the path smoothing 005C46C0, 005B89F0 (area application) and 005AFEE0 (region update) called by
+- Large, stateful, left as forwarders (next candidates): 005B89F0 (area application) and 005AFEE0 (region update) called by
   RefreshArea, 005BD200 AddPathCell, 005C8D40 VisibilityGrid::Include, 005BCCB0 and the shape cache helpers (005BE320, 005BE450, 005BE730 ...).
 - 005B43C0 CAIMap::Load (Rebirth-patched). 005BF8F0 / 005BF5F0 (spiral table constructor) run from the static initializer 005BF8E0, before the hooks are installed. 005C6E30 (waypoint constructor) is inlined. 005A0000-005AF000
   (AI helpers of other systems: voice, groups) and 005C8xxx / 005C9xxx above 005C8D40 (time wheel, containers) are not movement code.

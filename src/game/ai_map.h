@@ -378,6 +378,89 @@ static_assert(offsetof(LocalSearch, costs) == 0x60);
 static_assert(offsetof(LocalSearch, backward) == 0x7C);
 static_assert(sizeof(LocalSearch) == 0x80);
 
+// The path smoother's trellis (005C46C0): per path cell nine states, one per direction the unit
+// leaves the cell in (index direction - 1; index 8 unused), each the cheapest cost so far and its
+// back-pointer chain. Names provisional.
+struct SmoothNode {
+    int direction;              // the way back to the previous cell (1..8)
+    SmoothNode* prev;
+};
+struct SmoothState {
+    int cost;                   // 0x7FFFFFFF unreachable
+    SmoothNode* node;
+};
+// A transition table entry: state `from` of the previous cell carries over to state `to`.
+struct SmoothCopy {
+    int from, to;
+};
+// A transition table step (0x24 bytes): from state `from` to state `to`, a step of `factor`
+// between the cells at (dx, dy) and (dx + stepX, dy + stepY) from the current cell, with `turn`
+// eighths of a turn; the reached state's node gets `direction`.
+struct SmoothStep {
+    int from, to;
+    int dx, dy;
+    int stepX, stepY;
+    int turn;
+    int factor;
+    int direction;
+};
+static_assert(sizeof(SmoothStep) == 0x24);
+// MFC CArray<T> layout (0x14 bytes); the game's template instantiations do the resizing.
+template <typename T>
+struct GameArray {
+    void* vtable;
+    T* data;        // +0x04
+    int size;       // +0x08
+    int capacity;   // +0x0C
+    int growBy;     // +0x10 0 = an eighth of the size, clamped to 4..1024
+};
+static_assert(sizeof(GameArray<int>) == 0x14);
+// One of the 81 transition tables (previous direction * 9 + next direction; 0 at the path's end),
+// built by the static initialiser 005C42B0 at 007C3058.
+struct SmoothTable {
+    GameArray<SmoothCopy> copies;       // +0x00
+    GameArray<SmoothStep> steps;        // +0x14 from the previous cell's states
+    GameArray<SmoothStep> chained;      // +0x28 between the new states
+};
+static_assert(sizeof(SmoothTable) == 0x3C);
+// The node pool (007C3038): an array of nodes and a bump pointer.
+struct SmoothPool {
+    // 005C4C20 (RET 8). CArray<SmoothNode>::SetSize (new nodes zeroed; growBy -1 keeps the step).
+    void SetSize(int size, int growBy);
+
+    GameArray<SmoothNode> nodes;
+    int unknown_14;                     // set to 0 by each pass, not read
+    SmoothNode* next;                   // the next free node
+};
+static_assert(sizeof(SmoothPool) == 0x1C);
+inline SmoothPool& SmoothNodePool() { return *reinterpret_cast<SmoothPool*>(0x007C3038); }
+inline const SmoothTable* SmoothTables() { return reinterpret_cast<const SmoothTable*>(0x007C3058); }
+// The direction (1..8, 0 for none) of the step (dx, dy) in -1..1: DirectionSteps()[dy * 3 + dx].
+inline const int* DirectionSteps() { return reinterpret_cast<const int*>(0x00791988); }
+
+// The path smoother at CAIMap + 0x22CC (0x2C bytes; ai_path_smooth.cpp). Name provisional.
+struct PathSmoother {
+    // 005C46C0 (RET 0x14). Re-plans the path's cells (at least three; else 0) through a trellis of
+    // the eight directions per cell: step costs, a turn cost against `startDirection` (1..8) and
+    // the previous step, and diagonal end states charged (1 - fraction) * 2048. While a pass finds
+    // a cheaper path the cells are rebuilt from the tail along it and the pass repeats. Returns the
+    // last pass's cost.
+    int Smooth(CUnit* unit, CAIMap* map, PathCellList* path, int startDirection, float fraction);
+    // 005C45D0 (RET 0xC). The states of the next cell (`to`, fresh nodes from the pool) from those
+    // of the current one through `table`.
+    void Advance(const SmoothState* from, SmoothState* to, const SmoothTable* table);
+    // 005C44D0 (RET 0xC). Relaxes `to` through `step` from `from`.
+    void Relax(const SmoothStep* step, const SmoothState* from, SmoothState* to);
+
+    std::uint8_t level;             // +0x00 standing level
+    std::uint8_t unknown_01[3];
+    int sizeClass;                  // +0x04
+    CAIMap* map;                    // +0x08
+    int x, y;                       // +0x0C the current cell
+    PassCostContext costs;          // +0x14
+};
+static_assert(sizeof(PathSmoother) == 0x2C);
+
 // The navigation grid of the current map, loaded by CAIMap::Load (005B43C0, patched by Rebirth).
 // Name from the game's error strings; layout provisional.
 class CAIMap {
@@ -574,7 +657,7 @@ public:
     std::uint8_t unknown_1FC[0x27C - 0x1FC];
     std::uint8_t unitLayerSmall[0x12A4 - 0x27C];    // +0x27C unit occupancy (005B36B0 / 005B3890)
     std::uint8_t unitLayerLarge[0x22CC - 0x12A4];   // +0x12A4
-    std::uint8_t unknown_22CC[0x22F8 - 0x22CC];
+    PathSmoother smoother;                          // +0x22CC
     std::uint8_t regions[0x2594 - 0x22F8];          // +0x22F8 region map (005B0600)
     LocalSearch forwardSearch;                      // +0x2594
     LocalSearch backwardSearch;                     // +0x2614
@@ -599,6 +682,7 @@ static_assert(offsetof(CAIMap, bridges) == 0x1A0);
 static_assert(offsetof(CAIMap, waterDepth) == 0x1F8);
 static_assert(offsetof(CAIMap, unitLayerLarge) == 0x12A4);
 static_assert(offsetof(CAIMap, regions) == 0x22F8);
+static_assert(offsetof(CAIMap, smoother) == 0x22CC);
 static_assert(offsetof(CAIMap, forwardSearch) == 0x2594);
 static_assert(offsetof(CAIMap, backwardSearch) == 0x2614);
 static_assert(offsetof(CAIMap, lastFootprintOwner) == 0x2694);
