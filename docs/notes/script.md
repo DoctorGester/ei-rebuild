@@ -329,3 +329,14 @@ with a clear sign inside); the vertex arrays are 4-vertex SoA packets (x[4], y[4
 the packets by triangles * 3 / 4 + 1 + the vertex count (not count / 4: over-reserves, kept); `Finish` pads the last
 packet with copies of vertex 0. The statics' guard bits and empty atexit handlers are not reproduced. A triangle
 whose corner lies on a clipping edge can come out differently if a distance rounds across zero (rule 7).
+
+### View and light matrices (`view_matrices.cpp`, `view_matrices.h`)
+
+| Address | Name | Verify |
+|---|---|---|
+| 004F0EF0 | `view::CameraViewMatrix` (stdcall: rows = the camera rotation's X axis (0040D940), Y and Z axes inline, column 3 = -position . row) | original into a scratch matrix, NearlyEqual |
+| 004F15C0, 004F1440 | `view::LightRotation`, `view::LightShearMatrix` (the shadow's projection; map_object_shadow.cpp still calls them through their addresses) | same; acos is the C++ one (the original's _CIacos), within a few ULPs |
+| 004E5660 | a byte copy of `CubicSegment::Evaluate` (0040E440), registered to the same method | against the original, CheckNear |
+| 004E5710 | `view::AllocateBlocks32` (as 00452DA0) | ours only: alignment, stored block pointer |
+
+Scenarios: every frame (`newgame`, `world_load`); shadows for the light pair; unit motion for the cubic.
