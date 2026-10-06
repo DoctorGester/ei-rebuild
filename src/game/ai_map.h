@@ -174,8 +174,16 @@ struct PathCell {
     std::int16_t x, y;
     std::uint16_t flags;        // 0x200 on a path that is a single cell
     std::uint16_t unknown_6;
+
+    // 005C5CC0 (RET 8). The neighbour in direction 1..8 (1 = y - 1, then clockwise towards -x: 2 =
+    // (-1, -1), 3 = (-1, 0), 4 = (-1, +1), 5 = (0, +1), 6 = (+1, +1), 7 = (+1, 0), 8 = (+1, -1)) into
+    // `out` (x and y only); any other direction copies the whole cell. Returns `out`.
+    PathCell* Step(PathCell* out, int direction) const;
 };
 static_assert(sizeof(PathCell) == 8);
+
+// The vtable of CList<PathCell> (PathCellList).
+inline void* PathCellListVtable() { return reinterpret_cast<void*>(0x0073EDB0); }
 
 // MFC CList<PathCell, PathCell&> (0x1C bytes); the game inlines most of its operations.
 struct PathCellList {
@@ -196,6 +204,16 @@ struct PathCellList {
     Node* NewNode(Node* prev, Node* next);
     // 00556D40. Frees all nodes and blocks.
     void RemoveAll();
+    // 005BD200 / 005BD2A0 (RET 4; ai_path_cells.cpp). Adds a copy of `cell` first / last; returns its node.
+    Node* AddHead(const PathCell* cell);
+    Node* AddTail(const PathCell* cell);
+    // 005C5DA0 (RET 4). Appends copies of `other`'s cells.
+    void AppendList(const PathCellList* other);
+    // 005C5E60 (RET 4). Constructs `out` (blocks of 0x80) holding the cells in reverse order; returns `out`.
+    PathCellList* Reversed(PathCellList* out) const;
+    // 005C6000. Removes each cell equal (x, y) to the one before it (the first is compared with
+    // (-1, -1)); an emptied list frees its blocks.
+    void RemoveRepeats();
 };
 static_assert(sizeof(PathCellList) == 0x1C);
 
