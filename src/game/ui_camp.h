@@ -198,6 +198,29 @@ public:
     // server flag (+0x60, a byte), the local player's +0x50, the top panel's page-0 text with its
     // zero, savedFlag_ (a byte) and savedSelection_.
     void SaveState();
+    // 006361B0 (slot 29, RET 4). `unit` joined the party (a network client instead empties the top
+    // panel's page-0 text as OnUnitLeft does). Its place: when the local player has a record for it
+    // (LocalPlayerData +0x30 / +0x34, 0x784 bytes, unit id +0x1C) it goes after the party units
+    // that come before that record in record order (the array grown by one, the tail moved up), and
+    // the record's selection byte (+0x778) decides; otherwise it is appended, not selected (the
+    // place used below is then the count of records matched). The portraits are rebuilt (006407E0
+    // with 0); a selected unit is controlled (00566030) and its portrait marked (MarkPortrait). When
+    // its id is among heroes_ (the save's selection) it is taken out of heroes_, controlled and
+    // marked. Then RefreshSelection.
+    void OnUnitJoined(CUnit* unit);
+    // The portrait at `index` shows the selection marker (sprite index * 5 + 4 visible) and its face's
+    // rest orientation (restB_) turns about -x by 007C8144 / 7 (0049E800).
+    void MarkPortrait(int index);
+    // 00635EB0 (slot 27, RET 4). A message box's answer: 0x10001 (the "leave_zone" question) leaves
+    // through the saved exit savedSelection_ (00578AC0); 0x20001 (game over: load) opens the load
+    // window (built inline: 0x194 bytes, vtables 00741388 / 00741354; flags written even when the
+    // allocation failed); 0x20002, 0x90001 and 0x100001 close every window (+0x44), drop the sessions
+    // (0057ECA0) and leave the game (00581660).
+    void OnMessageResult(int result);
+    // 006365E0 (slot 31, RET 4). The game ends: 00578920(1) / 00578940, then lost (`won` 0): the
+    // game-over sound and the box "game_over" / "game_over_msg" (result 0x20000, OK and cancel);
+    // won: "end_of_game" / "end_of_game_msg" (0xFFFF0000); opened on top (005F7350 with 1, 1).
+    void OnGameOver(char won);
     UiDwordArray& Party() { return *reinterpret_cast<UiDwordArray*>(partyArray_); }
 
     // The client's party ids (STLport vector<int>s): the ids of players with a unit, the camera's

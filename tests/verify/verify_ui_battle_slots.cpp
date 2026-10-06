@@ -4,8 +4,9 @@
 // original and ours run, the two byte sequences are compared and the original's bytes are then
 // written to the real stream. The other slots save, open help or change the camera, so only ours
 // runs and the wrapper checks the state it leaves. Scenarios: every new game reaches PollShown and
-// SaveState (the "savea" autosave); the zone scenarios close the screen (Close); OnItemsPicked and
-// OnUnitLeft are not known to be reached by a scenario.
+// SaveState (the "savea" autosave) and OnUnitJoined (the hero joins); the zone scenarios close the
+// screen (Close); OnItemsPicked, OnUnitLeft, OnMessageResult and OnGameOver are not known to be
+// reached by a scenario.
 #include "verify.h"
 
 #include "../../src/game/camera.h"
@@ -134,3 +135,46 @@ static void __fastcall UnitLeftVerify(CBattleScreenSetup* self, void*, CUnit* un
                       static_cast<int>(before.size()), static_cast<int>(after.size()));
 }
 EI_VERIFY(0x006364E0, UnitLeftVerify, 0, s_unused);
+
+static void __fastcall UnitJoinedVerify(CBattleScreenSetup* self, void*, CUnit* unit) {
+    UiDwordArray& party = self->Party();
+    std::vector<std::uintptr_t> before(party.data_, party.data_ + party.size_);
+    bool client = IsMultiplayerClient() != 0;
+    self->OnUnitJoined(unit);
+    if (client) return;
+    // One more entry: the unit, the others in their old order.
+    std::vector<std::uintptr_t> others;
+    int count = 0;
+    for (int i = 0; i < party.size_; ++i) {
+        if (party.data_[i] == reinterpret_cast<std::uintptr_t>(unit) && count++ == 0) continue;
+        others.push_back(party.data_[i]);
+    }
+    bool inHeroes = false;
+    for (int i = 0; i < self->heroes_.size_; ++i) inHeroes |= static_cast<int>(self->heroes_.data_[i]) == unit->id_;
+    bool ok = party.size_ == static_cast<int>(before.size()) + 1 && count >= 1 && others == before && !inHeroes;
+    ei::verify::Check("CBattleScreenSetup::OnUnitJoined", true, ok, "unit %d, party %d -> %d", unit->id_,
+                      static_cast<int>(before.size()), party.size_);
+}
+EI_VERIFY(0x006361B0, UnitJoinedVerify, 0, s_unused);
+
+static void __fastcall MessageResultVerify(CBattleScreenSetup* self, void*, int result) {
+    CInterface3D* ui = self->interface_;
+    self->OnMessageResult(result);
+    bool ok = true;
+    if (result == 0x20001) {
+        CUiWindow* top = ui->GetActiveWindow();
+        ok = top != nullptr && top->vtable_ == reinterpret_cast<void**>(0x00741388);
+    } else if (result == 0x20002 || result == 0x90001 || result == 0x100001) {
+        ok = ui->closeAll_;
+    }
+    ei::verify::Check("CBattleScreenSetup::OnMessageResult", true, ok, "result %X", result);
+}
+EI_VERIFY(0x00635EB0, MessageResultVerify, 0, s_unused);
+
+static void __fastcall GameOverVerify(CBattleScreenSetup* self, void*, char won) {
+    self->OnGameOver(won);
+    auto* top = static_cast<CMessageBox*>(self->interface_->GetActiveWindow());
+    bool ok = top != nullptr && top->result_ == (won ? 0xFFFF0000u : 0x20000u);
+    ei::verify::Check("CBattleScreenSetup::OnGameOver", true, ok, "won %d", won);
+}
+EI_VERIFY(0x006365E0, GameOverVerify, 0, s_unused);
