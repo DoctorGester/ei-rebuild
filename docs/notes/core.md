@@ -218,121 +218,84 @@ Not hooked: 0040ECD0 (camera file load, Rebirth-patched, `CameraPatch`), 0040C7E
   the 3DS readers at 004A0350-004A4800 and more found by scanning aligned starts after a RET. A
   rerun of `tools/find_dead_code.py` drops hand-added rows that only coincidental dwords keep alive.
 
-## MFC CString: Mid and Right (settled 2026-10-07)
+## MFC CString: Mid and Right
 
-006FDA6D is `CString::Right(nCount)`: it clamps a negative count to 0, returns a copy when the count
-reaches the length, else `AllocCopy(dest, nCount, len - nCount, 0)` (pushes 0, len - n, n, &dest).
-006FD9B4 is `Mid(nFirst)`: it calls `Mid(nFirst, len - nFirst)` (006FD9D7). `mfc::CString::Mid(int)`
-was declared at 006FDA6D and is now `Right(int)`; every call site keeps its address (camera_object's
-`title.Right(4)`: 0040E9A0 calls 006FDA6D with 4; scene_loader, scene_material, script_parse,
-item_constructor, options, spell_text, world_game pass `len - k`, which Right turns into the same
-tail). Views with their own `Mid(int)` (console::Str, ...) still call 006FD9B4. config/library.csv
-had the two names swapped and is corrected.
+006FDA6D is `CString::Right(nCount)`: it clamps a negative count to 0, returns a copy when the count reaches the
+length, else `AllocCopy(dest, nCount, len - nCount, 0)`. 006FD9B4 is `Mid(nFirst)`: it calls `Mid(nFirst, len - nFirst)`
+(006FD9D7). Call sites passing `len - k` (scene_loader, scene_material, script_parse, item_constructor, options,
+spell_text, world_game) therefore use `Right`; camera_object's `title.Right(4)` is 0040E9A0 calling 006FDA6D with 4.
+Views with their own `Mid(int)` (console::Str, ...) still call 006FD9B4. config/library.csv has them in this order.
 
-## Shared containers (ticket D3)
+## Shared containers
 
-The game's container templates are declared once in `src/lib` and reused by every port (rewrite
-guide, "Clean code"; `tools/check_cleanup.py` counts the per-file `struct ...Array/...List` layouts
-that are left and may only go down).
+The game's container templates are declared once in `src/lib` and reused by every port (rewrite guide, "Clean code";
+`tools/check_cleanup.py` counts the per-file `struct ...Array/...List` layouts that are left and may only go down; 56
+remain).
 
-- `mfc::CArray<T, Elements>` (`src/lib/mfc.h`, 0x14 bytes: vtable, data, size, maxSize, growBy).
-  MFC 4.2's SetSize / SetAtGrow / Add / InsertAt / RemoveAt / Copy written once: growth to
-  max(newSize, maxSize + step), step = growBy or size / 8 clamped to 4..1024, memcpy of the old
-  elements, only the new ones constructed, the old block freed without destruction; SetSize(0)
-  destroys and frees; RemoveAt memmoves the tail down. `Elements` is the instantiation's
-  ConstructElements / DestructElements: `PlainElements` (zero-filled, nothing destroyed) by default,
-  `RawElements` (nothing), or an instantiation's own pair (terrain records 006C4F10 / 006C4EE0, flag
-  arrays 006C4F90 / 006C4F60, tile lists 006C5050 / 006C5010; the bone's morph frames 00452E20 /
-  00452DF0). The vtable is a field: each instantiation keeps its own constant.
-  The afxcoll classes CByteArray / CWordArray / CDWordArray / CUIntArray share the layout and are
-  `mfc::CArray<uint8_t / uint16_t / uint32_t>`; their SetSize stays MFC's own code (006FF64A,
-  006FEEFA, 006FF993, 006FF29A, through originals_library.h).
-  Out-of-line game instantiations still forwarded with the template as their type: 00557B80 (combat
-  steps), 005B16D0 (excluded regions), 005C8560 / 005C8950 (motion points / step speeds), 00453CA0 /
-  00453E00 (scene corner records), 0044F7E0 (bone morph frames). 005C4C20 (the path smoother's node
-  pool) is CArray<SmoothNode>::SetSize.
-- `mfc::CList<T, Elements>` (0x1C bytes: vtable, head, tail, count, free, CPlex blocks, blockSize)
-  with NewNode / FreeNode / RemoveAll / AddHead / AddTail / RemoveHead / RemoveTail / InsertBefore /
-  InsertAfter / RemoveAt / Find / FindIndex. `mfc::CTypedPtrList<T>` is `CList<T*>` (CPtrList's
-  nodes: data zeroed, nothing destroyed; CPtrList's vtable 0073D454).
-- `mfc::CMap<K, V>` (0x1C bytes) with its `CMapAssoc` (pack 4: a 64-bit key at +8); the inlined
-  GetNextAssoc walk (`Next`) and RemoveAll. Hashing and the association pool stay with each
-  instantiation's GetAssocAt / InitHashTable / NewAssoc (scene meshes: 004540A0 / 00453FD0 /
-  00454040, 004541C0 / 004540F0 / 00454160, 004542E0 / 00454210 / 00454280).
-- `lib::AlignedArray<T>` (`src/lib/containers.h`, 0x10 bytes: data, size, capacity, growBy): the
-  engine's arrays in 32-byte aligned blocks (operator new of count * sizeof(T) + 0x24, the block
-  pointer stored before the data; `AllocAligned32` / `FreeAligned32`). The per-size allocators
-  00406B30 / 00406B50, 00452C20, 00452D80, 00452DA0, 00452E70, 00452E90, 00453A10, 00468F70,
-  004ECB50, 004ECB70, 004F65B0, 00600A80, 00695B00-00695B40, 00476EF0, 00477250 all compute the same.
-  SetSize(n, growBy) keeps the contents (no element construction); SetSizeDiscard is the renderer's
-  inlined variant that drops them when it grows (no 0 branch); Add / SetAtGrow take the element by
-  value; RemoveAt shifts down; RemoveAll frees. Registered on it: 005A6E70 (figure mesh colours,
-  uint32), 004F57B0 (`TriangleIndexArray`, 6-byte triangles), 006003D0 / 006004E0 / 00600730 /
-  00600840 / 00600950 / 00601D00 SetSize and 006005F0 SetAtGrow (`UiPtrArray<T>` = AlignedArray<T*>).
-  The animation / figure loader copies (0044F1B0-00454A30) are in aligned_arrays.cpp.
-- STLport `stlp::string`, `vector`, `hash_map` (`src/lib/stlp.h`) as before.
+- `mfc::CArray<T, Elements>` (`src/lib/mfc.h`, 0x14 bytes: vtable, data, size, maxSize, growBy). MFC 4.2's SetSize /
+  SetAtGrow / Add / InsertAt / RemoveAt / Copy written once: growth to max(newSize, maxSize + step), step = growBy or
+  size / 8 clamped to 4..1024, memcpy of the old elements, only the new ones constructed, the old block freed without
+  destruction; SetSize(0) destroys and frees; RemoveAt memmoves the tail down. `Elements` is the instantiation's
+  ConstructElements / DestructElements: `PlainElements` (zero-filled, nothing destroyed) by default, `RawElements`
+  (nothing), or its own pair (terrain records 006C4F10 / 006C4EE0, flag arrays 006C4F90 / 006C4F60, tile lists
+  006C5050 / 006C5010; the bone's morph frames 00452E20 / 00452DF0). The vtable is a field: each instantiation keeps its
+  own constant. CByteArray / CWordArray / CDWordArray / CUIntArray share the layout (`CArray<uint8_t / uint16_t /
+  uint32_t>`); their SetSize stays MFC's own code (006FF64A, 006FEEFA, 006FF993, 006FF29A via originals_library.h).
+  `mfc::CStringArray`: CArray's layout over CStrings without constructors (it sits in layouts); its members are MFC's
+  own code through their addresses (Construct 006FE925, Destruct 006FE958, SetSize 006FE9B8, SetAtGrow 006FEBFA /
+  006FEBCE, RemoveAt 006FED3C, Copy 006FEB61; src/lib/mfc.cpp); `console::CStringArray` adds the constructor /
+  destructor for locals.
+  Aliases: `RecordPtrArray` (world.h) = `CArray<uint8_t*>` (vtable 0073FAA4; SetSize 005719B0 / SetAtGrow forwarded);
+  `ZoneExitArray` = `CArray<ZoneExit>` (SetSize 00573080 forwarded as `ZoneExitsSetSizeOriginal`); world_save's id /
+  object / shared lists and world_party's carried items (+0xB0, `AlignedArray<CEngineObject*>`, 0059CB50 is the aligned
+  SetSize) on the templates with their original members (005985C0, 0059CA60, 0059CC60, 004C98F0) as free forwarders;
+  particle arrays 00497D50 (sprites) / 00499200 (draw order) registered on `CArray<T>`.
+  Out-of-line instantiations still forwarded with the template as their type: 00557B80 (combat steps), 005B16D0
+  (excluded regions), 005C8560 / 005C8950 (motion points / step speeds), 00453CA0 / 00453E00 (scene corner records),
+  0044F7E0 (bone morph frames); 005C4C20 (the path smoother's node pool) is `CArray<SmoothNode>::SetSize`.
+- `mfc::CList<T, Elements>` (0x1C bytes: vtable, head, tail, count, free, CPlex blocks, blockSize) with NewNode /
+  FreeNode / RemoveAll / AddHead / AddTail / RemoveHead / RemoveTail / InsertBefore / InsertAfter / RemoveAt / Find /
+  FindIndex. `mfc::CTypedPtrList<T>` is `CList<T*>` (CPtrList's nodes: data zeroed, nothing destroyed; vtable 0073D454;
+  `ProjectileList` with FreeNode 0059C810 forwarded). The combat / ai_refresh / magic_trap / world_quests / script
+  lists are aliases (node element `data`).
+- `mfc::CMap<K, V>` (0x1C bytes) with its `CMapAssoc` (pack 4: a 64-bit key at +8); the inlined GetNextAssoc walk
+  (`Next`) and RemoveAll. Hashing and the association pool stay with each instantiation's GetAssocAt / InitHashTable /
+  NewAssoc (scene meshes: 004540A0 / 00453FD0 / 00454040, 004541C0 / 004540F0 / 00454160, 004542E0 / 00454210 / 00454280).
+- `lib::AlignedArray<T>` (`src/lib/containers.h`, 0x10 bytes: data, size, capacity, growBy): the engine's arrays in
+  32-byte aligned blocks (operator new of count * sizeof(T) + 0x24, the block pointer stored before the data;
+  `AllocAligned32` / `FreeAligned32`). The per-size allocators 00406B30 / 00406B50, 00452C20, 00452D80, 00452DA0,
+  00452E70, 00452E90, 00453A10, 00468F70, 004ECB50, 004ECB70, 004F65B0, 00600A80, 00695B00-00695B40, 00476EF0,
+  00477250 all compute the same. SetSize(n, growBy) keeps the contents (no element construction); SetSizeDiscard is the
+  renderer's inlined variant that drops them when it grows; Add / SetAtGrow take the element by value; RemoveAt shifts
+  down; RemoveAll frees; `Copy` = operator= (SetSize to the source's size, memcpy). Registered on it: 005A6E70 (figure
+  mesh colours), 0044F960 / 0044FA90 / 00452FC0 (ui_mesh_build sprite arrays), 004F57B0 (`TriangleIndexArray`, 6-byte
+  triangles), 006003D0 / 006004E0 / 00600730 / 00600840 / 00600950 / 00601D00 SetSize and 006005F0 SetAtGrow
+  (`UiPtrArray<T>` = `AlignedArray<T*>`). The animation / figure loader copies (0044F1B0-00454A30) are in
+  aligned_arrays.cpp (element types `Blob<K>`).
+- STLport `stlp::string`, `vector`, `hash_map`: `src/lib/stlp.h`. The device's mesh buffers (007AEDE0-007AEE3C):
+  `src/game/device_buffers.h`.
 
-The device's mesh buffers (007AEDE0-007AEE3C) are declared once in `src/game/device_buffers.h`.
-
-D3b (124 -> 56 per-file container structs):
-- `mfc::CStringArray` (mfc.h): CArray's layout over CStrings without constructors (so it sits in
-  layouts); its members are MFC's own code through their addresses (Construct 006FE925, Destruct
-  006FE958, SetSize 006FE9B8, SetAtGrow 006FEBFA / 006FEBCE, RemoveAt 006FED3C, Copy 006FEB61; the
-  forwarders moved to src/lib/mfc.cpp and originals_library.h's StringArray* names are inline
-  wrappers now). `console::CStringArray` derives from it and adds the constructor / destructor for
-  locals. The per-file StringArray copies (app_frame, map_spec, scene_material, world, world_effect,
-  sound, object3d_figure_setup) use it.
-- `RecordPtrArray` (world.h) = `mfc::CArray<std::uint8_t*>` for the CArray<record*> instantiation
-  (vtable 0073FAA4; SetSize 005719B0 / SetAtGrow stay forwarded): world_units, world_zone,
-  world_quests, world_party, ui_hero_figure, ui_hero_screen, ui_camp, CreatePartyUnits.
-- `ZoneExitArray` = `mfc::CArray<ZoneExit>`; its SetSize stays the instantiation's
-  (`ZoneExitsSetSizeOriginal`, 00573080, originals_world.h). `ProjectileList` =
-  `mfc::CTypedPtrList<Projectile>` (FreeNode 0059C810 forwarded as ProjectileFreeNode).
-  world_save: IdArray / ObjectPtrArray / SharedObjectList / DwordList / ObjectList on the templates
-  with their original members as free forwarders (005985C0, 0059CA60, 0059CC60; 004C98F0).
-  world_party's carried items (+0xB0) are `lib::AlignedArray<CEngineObject*>` (0059CB50 is the
-  aligned SetSize, checked in Ghidra); world_tick's id lists and world_sync's static arrays too.
-- aligned_arrays.cpp registers its SetSize / Add / SetAtGrow / Copy / Allocate / destructor
-  replacements on `lib::AlignedArray<T>` members (element types `Blob<K>`); `AlignedArray::Copy`
-  added (operator=: SetSize to the source's size, memcpy).
-- Particles: 00497D50 (sprites) and 00499200 (draw order) are registered on `mfc::CArray<T>`
-  SetSize / SetAtGrow (the hand-written bodies were MFC's code); the inlined vertex and frame
-  SetSize copies (particle_render, particle_create) call `lib::AlignedArray::SetSize`.
-- ui_mesh_build's sprite arrays are AlignedArray instantiations (0044F960 / 005A6E70 / 0044FA90 /
-  00452FC0 are all registered on aligned_arrays.cpp or AlignedArray); the forwarder-only holder
-  structs (map_object EffectArray, clip WordArray, unit_ai_brain AIRecordArray, unit_ai_modes
-  CandidateList, ui_item_info ItemList, ui_battle_setup PartyArray, script_exec PartyList) became
-  free forwarders; script_exec's PtrList / ItemList / PartyArray are mfc::CList<void*> /
-  mfc::CArray<PartySlot> built through their original constructors and destructors.
-- CList views (combat_*, ai_refresh, magic_trap, world_quests shares, script tokens) are
-  `mfc::CList<T>` / `CTypedPtrList<T>` aliases (node element renamed to `data`).
-
-Left (56): scene_loader's `ArrayBody` / `VtArray` family (members registered on the derived
-structs; next step: lib::AlignedArray / mfc::CArray with free forwarders, touching scene_* and their
-verify wrappers); the STLport list / vector views (world_client_maps PlainList / CellList,
-world_client_view ObjectList, base_manager IdList, camera NearbyList, item_stock StockList,
-item_db_text TextSourceList, ui_battle_update List, ui_briefing NameList, unit_skins RecordList /
-StringList, party_records PartyRecordList) need an stlp::list view in stlp.h first; the arrays with
-rewritten members (unit_ai.h AILookArray / PatrolPointArray / AICallArray / AIReportArray,
-party.h PartyMemberArray, model.h TweenArray, script_parse_load's five, ai_map PathCellList,
-map_object_figures AlignedPtrArray, lightning LightningPointArray, core_streams AlignedObjectArray)
-need their registrations moved to free functions or template members; ui.h UiDwordArray /
-UiPointArray / UiTokenArray and ui_screens UiItemArray (trailing-underscore fields used widely);
-false positives that are not container layouts (figure_mesh OffsetList, item_parts PartList,
-figure_part_draw LightList, figure_part_bounds LineList (a renderer object), ui_camp ItemList /
-ui_panel_draws CampItemList / SlotList (party objects), sound WaveList, world SavedPartyList,
-world_game EntryList (our own helper), combat_actions AnimationList (CArray plus a dword),
-script_array RawArray, script_save List, ai_plan List, script.h ScriptDefineList / ScriptList,
-ai_map BlockCostList, fake_unit Array). Hand-inlined SetSize copies remain in ui_window.cpp (region
-points), map_spec and party_lifetime.
+Left (candidate list): scene_loader's `ArrayBody` / `VtArray` family (next: AlignedArray / CArray with free
+forwarders, touching scene_* and their verify wrappers); the STLport list / vector views (world_client_maps PlainList /
+CellList, world_client_view ObjectList, base_manager IdList, camera NearbyList, item_stock StockList, item_db_text
+TextSourceList, ui_battle_update List, ui_briefing NameList, unit_skins RecordList / StringList, party_records
+PartyRecordList) need an stlp::list view first; the arrays with rewritten members (unit_ai.h AILookArray /
+PatrolPointArray / AICallArray / AIReportArray, party.h PartyMemberArray, model.h TweenArray, script_parse_load's five,
+ai_map PathCellList, map_object_figures AlignedPtrArray, lightning LightningPointArray, core_streams
+AlignedObjectArray) need their registrations moved to free functions or template members; ui.h UiDwordArray /
+UiPointArray / UiTokenArray and ui_screens UiItemArray (trailing-underscore fields used widely). Not container
+layouts (checker false positives): figure_mesh OffsetList, item_parts PartList, figure_part_draw LightList,
+figure_part_bounds LineList, ui_camp ItemList / ui_panel_draws CampItemList / SlotList, sound WaveList, world
+SavedPartyList, world_game EntryList, combat_actions AnimationList, script_array RawArray, script_save List, ai_plan
+List, script.h ScriptDefineList / ScriptList, ai_map BlockCostList, fake_unit Array. Hand-inlined SetSize copies
+remain in ui_window.cpp (region points), map_spec and party_lifetime.
 
 ## Open items
 
-- Library instantiations (config/library.csv, ~270 in 0x400000-0x440000) stay original and are
-  reached through forwarders; the standalone build replaces them (`cleanup-plan.md`, phase 2).
-- Static initialisers and `WinMain` (00456440) cannot run through the hook; 004632A0 (lever table
-  constructor), 00444740 (debug panel), 00458870 (GameOptions) and 0045E820 are examples.
-- 00481660 / 00481F00 (the .mob object reader called from `LoadMapObjects`) and 0049BEA0 (median-cut
-  colour quantisation once per zone load, built on STLport list / hash_map / introsort instantiations:
-  reproducing it needs the game's node allocator and iteration order) are the largest live leftovers
-  of the neighbouring ranges.
+- Library instantiations (config/library.csv, ~270 in 0x400000-0x440000) stay original and are reached through
+  forwarders; the standalone build replaces them (`cleanup-plan.md`, phase 2).
+- Static initialisers and `WinMain` (00456440) cannot run through the hook; 004632A0 (lever table constructor),
+  00444740 (debug panel), 00458870 (GameOptions) and 0045E820 are examples.
+- 00481660 / 00481F00 (the .mob object reader called from `LoadMapObjects`) and 0049BEA0 (median-cut colour
+  quantisation once per zone load, built on STLport list / hash_map / introsort instantiations: reproducing it needs the
+  game's node allocator and iteration order) are the largest live leftovers of the neighbouring ranges.
