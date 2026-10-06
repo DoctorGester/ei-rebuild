@@ -7,7 +7,9 @@
 // the equipment taken back on the statistics page.
 #include "verify.h"
 
+#include "../../src/game/map_object_figures.h"
 #include "../../src/game/ui_screens.h"
+#include "../../src/game/unit.h"
 
 #include <cstdint>
 #include <cstring>
@@ -142,3 +144,28 @@ static void __fastcall HeroContinueVerify(CMpHeroScreen* self) {
     ei::verify::Check("CMpHeroScreen::Continue", valid, connect, "top window %p", static_cast<void*>(top));
 }
 EI_VERIFY(0x006183B0, HeroContinueVerify, 0, s_unused);
+
+// 00618850 (slot 47), ours only: with a preview figure, its scale is the hero's three size values
+// (+0x724..+0x72C). The new hero's -/+ buttons (ui_hero_stats) and the mode changes.
+static void __fastcall HeroRefreshVerify(CMpHeroScreen* self) {
+    self->RefreshHero();
+    if (!self->previewModel_) return;
+    auto* hero = reinterpret_cast<PartyUnitRecord*>(self->Hero());
+    auto* figure = reinterpret_cast<CObject3D*>(self->previewModel_);
+    ei::verify::Check("CMpHeroScreen::RefreshHero", 0, std::memcmp(figure->scale, &hero->unknown_724, 12),
+                      "scale %g / %g", static_cast<double>(figure->scale[0]), static_cast<double>(hero->unknown_724));
+}
+EI_VERIFY(0x00618850, HeroRefreshVerify, 0, s_unused);
+
+// 006186F0, ours only: either the mode is now 11 and the hero carries the typed name, or nothing
+// changed but the sound. Region 1 / Enter on the new hero (not in a scenario: ui_hero_stats leaves
+// with Esc).
+static void __fastcall HeroCreateVerify(CMpHeroScreen* self) {
+    int mode = self->mode_;
+    self->CreateHero();
+    const char* typed = reinterpret_cast<CUiEditField*>(self->nameEdit_)->text_;
+    const char* given = reinterpret_cast<PartyUnitRecord*>(self->Hero())->texts[0];
+    bool ok = self->mode_ == mode || (self->mode_ == 11 && std::strcmp(typed, given) == 0);
+    ei::verify::Check("CMpHeroScreen::CreateHero", true, ok, "mode %d -> %d", mode, self->mode_);
+}
+EI_VERIFY(0x006186F0, HeroCreateVerify, 0, s_unused);

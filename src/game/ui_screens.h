@@ -363,6 +363,15 @@ public:
     // 006183B0. Enter / region 1 of the list: with a hero selected the heroes are saved and the
     // connection screen opened on top (built inline); otherwise a message box ("lmp_..." texts).
     void Continue();
+    // 00618850 (slot 47; called through Refresh()). With a preview figure: the hero's statistics
+    // slots restored, its size factors (+0x724 / +0x728), the figure's scale, the figure's unit
+    // statistics and its controller's slot 31; then the statistics panel redrawn.
+    void RefreshHero();
+    // 006186F0. Region 1 / Enter of the new hero: when the three attributes add up to 00741C98's
+    // points (equal or unordered) and a name is typed, the first weapon, +0x740 entry and spell
+    // entry shown, the name given to the hero and the statistics panel, refreshed, mode 11;
+    // otherwise the cancel sound.
+    void CreateHero();
 
     CUiWindow window;
     std::uint8_t unknown_148[0x164 - 0x148];
