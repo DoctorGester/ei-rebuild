@@ -142,7 +142,7 @@ public:
     // ...s when not `detailed`). Returns the texture.
     void* ComposeSkin(int detailed, void* target);
 
-    // 00535770 (not rewritten; forwarded from unit_figure_queries.cpp, RET 4). The point the weapon
+    // 00535770 (unit_client_wounds.cpp, A-U4; RET 4). The point the weapon
     // in hand acts from: the node named by the weapon's model (weaponIds[unit->activeWeapon], 006A0CC0;
     // "baserh3" without one) in the unit's figure animation (0050CC20 on the unit's +0x98), its +0x74
     // copied to `out` (relative to the unit, not turned by its orientation). False (AL) when the
@@ -267,6 +267,10 @@ public:
     // header freed, the MFC list +0x58 emptied, then the base (vtable 0073EDBC, no unit) and
     // CEngineObject's destructor body.
     void DestructClientBody();
+    // 00533AD0 (unit_client_lifetime.cpp, A-U4). The constructor: the engine object's fields, no
+    // unit, the list +0x58 (vtable 0073EDB0, block size 0x80), an empty speech queue (its header
+    // node allocated), no face texture, fully faded in, the vtable 0073ECD8. Returns this.
+    CUnitClientSpecific* ConstructClient();
     // 005340C0. Virtual slot 3 (Destroy): the three particle sources stop (CParticleSource::Stop)
     // and are released, the face texture released; no blink.
     void DestroyClient();
@@ -383,6 +387,7 @@ static_assert(offsetof(CUnitClientSpecific, armourIds) == 0xA0);
 static_assert(offsetof(CUnitClientSpecific, weaponIds) == 0xBC);
 static_assert(offsetof(CUnitClientSpecific, blinks) == 0xD0);
 static_assert(offsetof(CUnitClientSpecific, eyesClosed) == 0xD8);
+static_assert(sizeof(CUnitClientSpecific) == 0xDC);
 
 struct AttackParams;   // combat.h
 

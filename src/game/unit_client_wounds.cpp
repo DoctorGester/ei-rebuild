@@ -1,10 +1,12 @@
-// A party unit's wounds on the client (CUnitClientSpecific): the wound level of each body part
+// A party unit's wounds, face texture and weapon point on the client (CUnitClientSpecific): the wound level of each body part
 // (00536EA0) and the composed wounds texture the figure shows (005370F0, called by RefreshWounds
 // 00537360). See unit_client_models.h.
 #include "unit_client_models.h"
 
 #include "core_maths.h"
+#include "item.h"
 #include "item_db.h"
+#include "map_object_figures.h"
 #include "ui.h"
 #include "unit.h"
 #include "unit_db.h"
@@ -155,3 +157,28 @@ bool CUnitClientSpecific::LoadFaceTexture() {
     return false;
 }
 EI_REPLACE_METHOD(0x00538DB0, CUnitClientSpecific::LoadFaceTexture);
+
+// --- The weapon point -------------------------------------------------------------------------
+
+namespace {
+constexpr std::uint32_t kWeaponSlots = 4;
+constexpr std::uint32_t kNoWeapon = 0xFFFFFFFF;
+constexpr const char* kHandNode = "baserh3";   // 0078FB04
+} // namespace
+
+bool CUnitClientSpecific::WeaponPoint(Vector3* out) {
+    mfc::CString node;
+    std::uint32_t slot = unit->activeWeapon;
+    std::uint32_t weapon = slot < kWeaponSlots ? weaponIds[slot] : kNoWeapon;
+    if (!WeaponBaseFigure(weapon, &node)) node = kHandNode;
+    const auto* found = static_cast<const std::uint8_t*>(
+        AnimationStateFindNodeOriginal(unit->Object3D()->animation, nullptr, static_cast<const char*>(node)));
+    if (!found) return false;
+    // The node's position (+0x74; a figure part's pivot, FigurePart::pivot).
+    const auto* position = reinterpret_cast<const FigurePart*>(found)->pivot;
+    out->x = position[0];
+    out->y = position[1];
+    out->z = position[2];
+    return true;
+}
+EI_REPLACE_METHOD(0x00535770, CUnitClientSpecific::WeaponPoint);

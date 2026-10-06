@@ -9,6 +9,9 @@
 #include "../../src/game/unit.h"
 #include "../../src/game/unit_client_models.h"
 
+#include <cstdint>
+#include <cstring>
+
 namespace {
 void* s_unusedCreate;
 void* s_unusedDestroy;
@@ -55,3 +58,29 @@ static void __fastcall DestructClientBodyVerify(CUnitClientSpecific* self) {
     ei::verify::Check("CUnitClientSpecific::DestructClientBody", true, ok, "");
 }
 EI_VERIFY(0x00533EA0, DestructClientBodyVerify, 0, s_unusedDestructBody);
+
+// A-U4. ConstructClient (00533AD0): the original runs on a raw copy of the object's bytes (it
+// allocates only the speech header, freed again), ours on the object; every byte compared except
+// the header pointer (+0x9C), plus the header linked to itself. Reached by the object factory for
+// every client unit controller (every game start).
+// 00533AD0: PUSH -1; PUSH 0071E953 (7 bytes).
+static CUnitClientSpecific*(__fastcall* s_constructClient)(CUnitClientSpecific*);
+static CUnitClientSpecific* __fastcall ConstructClientVerify(CUnitClientSpecific* self) {
+    alignas(CUnitClientSpecific) std::uint8_t scratch[sizeof(CUnitClientSpecific)];
+    std::memcpy(scratch, self, sizeof(scratch));
+    auto* expected = reinterpret_cast<CUnitClientSpecific*>(scratch);
+    CUnitClientSpecific* original = s_constructClient(expected);
+    CUnitClientSpecific* result = self->ConstructClient();
+    const auto* ours = reinterpret_cast<const std::uint8_t*>(self);
+    int first = -1;
+    for (int i = 0; i < static_cast<int>(sizeof(scratch)) && first < 0; ++i) {
+        if (i >= 0x9C && i < 0xA0) continue;
+        if (scratch[i] != ours[i]) first = i;
+    }
+    bool ok = first < 0 && original == expected && result == self && self->speech->next == self->speech &&
+              self->speech->prev == self->speech;
+    stlp::deallocate(expected->speech, sizeof(ClientSpeechNode));
+    ei::verify::Check("CUnitClientSpecific::ConstructClient", true, ok, "first differing byte +0x%X", first);
+    return result;
+}
+EI_VERIFY(0x00533AD0, ConstructClientVerify, 7, s_constructClient);

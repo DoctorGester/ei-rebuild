@@ -64,8 +64,6 @@ Vector3 Rotate(const Quaternion& q, const Vector3& v) {
 }
 } // namespace
 
-__declspec(naked) bool CUnitClientSpecific::WeaponPoint(Vector3*) EI_ORIGINAL(0x00535770)
-
 char* CUnit::FindAnimation(std::uint32_t key, bool anyOfKind) {
     if (type_ < kUnitTypeHero || type_ > kTypeLastUnit) return nullptr;
     if (char* entry = RandomAnimation(this, nullptr, key)) return entry;

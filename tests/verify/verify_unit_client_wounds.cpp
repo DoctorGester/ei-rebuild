@@ -7,6 +7,7 @@
 // change: combat (heroes hit), combat_more.
 #include "verify.h"
 
+#include "../../src/game/maths.h"
 #include "../../src/game/unit_client_models.h"
 
 #include <cstdint>
@@ -52,3 +53,18 @@ static bool __fastcall LoadFaceTextureVerify(CUnitClientSpecific* self) {
     return result;
 }
 EI_VERIFY(0x00538DB0, LoadFaceTextureVerify, 0, s_unusedLoadFace);
+
+// - WeaponPoint (00535770): output. The original into a scratch vector (seeded with `out`), ours
+//   into `out`; result and the three floats bitwise (copies). Reached by the original EffectPoint
+//   (00532860) for another unit's weapon point (spells_cast, effects).
+// 00535770: PUSH -1; PUSH 0071EA58 (7 bytes).
+static bool(__fastcall* s_weaponPoint)(CUnitClientSpecific*, void*, Vector3*);
+static bool __fastcall WeaponPointVerify(CUnitClientSpecific* self, void*, Vector3* out) {
+    Vector3 scratch = *out;
+    bool expected = s_weaponPoint(self, nullptr, &scratch);
+    bool actual = self->WeaponPoint(out);
+    bool same = expected == actual && std::memcmp(&scratch, out, sizeof(Vector3)) == 0;
+    ei::verify::Check("CUnitClientSpecific::WeaponPoint", true, same, "%d / %d", expected ? 1 : 0, actual ? 1 : 0);
+    return actual;
+}
+EI_VERIFY(0x00535770, WeaponPointVerify, 7, s_weaponPoint);

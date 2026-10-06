@@ -10,6 +10,7 @@
 namespace {
 constexpr int kNone = -1;
 constexpr std::uint32_t kNoModel = 0xFFFFFFFFu;
+constexpr int kList58BlockSize = 0x80;
 
 // Takes the face texture and releases it.
 void ReleaseFace(CUnitClientSpecific* self) {
@@ -88,3 +89,25 @@ void CUnitClientSpecific::DestructClientBody() {
     DestructBase();
 }
 EI_REPLACE_METHOD(0x00533EA0, CUnitClientSpecific::DestructClientBody);
+
+CUnitClientSpecific* CUnitClientSpecific::ConstructClient() {
+    ClearFields();
+    *reinterpret_cast<std::uintptr_t*>(this) = kBaseVtableAddress;
+    unit = nullptr;
+    list58.vtable = reinterpret_cast<void*>(kList58VtableAddress);
+    list58.count = 0;
+    list58.free = nullptr;
+    list58.tail = nullptr;
+    list58.head = nullptr;
+    list58.blocks = nullptr;
+    list58.blockSize = kList58BlockSize;
+    auto* header = static_cast<ClientSpeechNode*>(stlp::allocate(sizeof(ClientSpeechNode)));
+    speech = header;
+    header->next = header;
+    header->prev = header;
+    faceTexture = nullptr;
+    *reinterpret_cast<std::uintptr_t*>(this) = kVtableAddress;
+    fadeIn = 1.0f;
+    return this;
+}
+EI_REPLACE_METHOD(0x00533AD0, CUnitClientSpecific::ConstructClient);
