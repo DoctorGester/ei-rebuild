@@ -16,7 +16,7 @@ void* s_unused;
 
 std::vector<CEngineObject*> Objects(const CUiWindow* window) {
     const auto& array = window->objects_;
-    return std::vector<CEngineObject*>(array.data_, array.data_ + array.size_);
+    return std::vector<CEngineObject*>(array.data, array.data + array.size);
 }
 
 // The list is `before` with `added` appended (or unchanged without it).
@@ -30,8 +30,8 @@ bool AppendedOnly(const std::vector<CEngineObject*>& before, const CUiWindow* wi
 // After slot 19: with `show` 0 no surface keeps a DirectDraw surface; otherwise every shown one
 // has its surface back and nothing kept in memory.
 bool SurfacesShownAs(const CUiWindow* window, int show) {
-    for (int i = 0; i < window->surfaces_.size_; ++i) {
-        const CUiSurface* surface = window->surfaces_.data_[i];
+    for (int i = 0; i < window->surfaces_.size; ++i) {
+        const CUiSurface* surface = window->surfaces_.data[i];
         if (show == 0) {
             if (surface->holder_) return false;
         } else if (surface->Shown() && (!surface->holder_ || surface->kept_)) {
@@ -65,13 +65,13 @@ EI_VERIFY(0x005FF0B0, CreateTextureVerify, 0, s_unused);
 static void __fastcall ShowSurfacesVerify(CUiWindow* self, void*, int show) {
     self->CUiWindow::ShowSurfaces(show);
     ei::verify::Check("CUiWindow::ShowSurfaces", true, SurfacesShownAs(self, show), "show %d surfaces %d", show,
-                      self->surfaces_.size_);
+                      self->surfaces_.size);
 }
 EI_VERIFY(0x006002C0, ShowSurfacesVerify, 0, s_unused);
 
 static void __fastcall ShowChildrenVerify(CUiContainer* self, void*, int show) {
     self->CUiContainer::ShowChildren(show);
     ei::verify::Check("CUiContainer::ShowChildren", true, SurfacesShownAs(self, show), "show %d children %d", show,
-                      self->children_.size_);
+                      self->children_.size);
 }
 EI_VERIFY(0x00601AC0, ShowChildrenVerify, 0, s_unused);

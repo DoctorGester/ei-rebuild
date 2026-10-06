@@ -117,9 +117,9 @@ void CGlobalMap::SelectZone(int index, bool isLink) {
         CUiMesh* marker = Marker(i);
         int state = zones_.data[i].state;
         if (state == 0) {
-            marker->texture_ = objects_.data_[2];
+            marker->texture_ = objects_.data[2];
         } else if (state == 1 || state == 2) {
-            marker->texture_ = objects_.data_[0];
+            marker->texture_ = objects_.data[0];
             float scale = state == 1 ? 1.0f : 0.5f;
             for (int k = 0; k < 3; ++k) marker->tint_[k] = i == zone ? fog_[k] * scale : scale;
         } else {

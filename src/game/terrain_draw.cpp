@@ -14,6 +14,8 @@
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_render.h"
+#include "lib/containers.h"
+#include "lib/mfc.h"
 
 #include <cstdint>
 #include <cstring>
@@ -25,36 +27,27 @@ using terrain::TileVertex;
 
 // --- The statics (function-local in the original: constructed on first use, freed at exit) -------
 
-// An aligned array as the engine's template keeps it: data 32-byte aligned with the raw block
-// before it, size, capacity, growth (0: an eighth of the size, 4..1024).
-struct AlignedArray {
-    char* data;
-    int size;
-    int capacity;
-    int growBy;
-};
-struct MfcArray {            // CByteArray / CWordArray
-    void* vtable;
-    void* data;
-    int size;
-    int capacity;
-    int growBy;
+// The device vertex the pages are drawn from (a D3D TL vertex, 32 bytes, filled as bytes).
+struct PageVertex {
+    std::uint8_t bytes[32];
 };
 
-AlignedArray& Vertices() { return *reinterpret_cast<AlignedArray*>(0x007C8890); }     // 32 bytes each
-MfcArray& Flags() { return *reinterpret_cast<MfcArray*>(0x007C8848); }                 // a byte per vertex
-MfcArray& ClippedIndices() { return *reinterpret_cast<MfcArray*>(0x007C8860); }        // the clipper's output
-MfcArray& Indices() { return *reinterpret_cast<MfcArray*>(0x007C8878); }
-AlignedArray& Used() { return *reinterpret_cast<AlignedArray*>(0x007C88A8); }          // bytes
-AlignedArray& Renumber() { return *reinterpret_cast<AlignedArray*>(0x007C88B8); }      // words
+// Engine aligned arrays (lib::AlignedArray; the original inlines their SetSize with the per-size
+// allocators) and CByteArray / CWordArray (mfc::CArray layout, SetSize through MFC's afxcoll code).
+lib::AlignedArray<PageVertex>& Vertices() { return *reinterpret_cast<lib::AlignedArray<PageVertex>*>(0x007C8890); }
+mfc::CArray<std::uint8_t>& Flags() { return *reinterpret_cast<mfc::CArray<std::uint8_t>*>(0x007C8848); }             // a byte per vertex
+mfc::CArray<std::uint16_t>& ClippedIndices() { return *reinterpret_cast<mfc::CArray<std::uint16_t>*>(0x007C8860); }  // the clipper's output
+mfc::CArray<std::uint16_t>& Indices() { return *reinterpret_cast<mfc::CArray<std::uint16_t>*>(0x007C8878); }
+lib::AlignedArray<std::uint8_t>& Used() { return *reinterpret_cast<lib::AlignedArray<std::uint8_t>*>(0x007C88A8); }
+lib::AlignedArray<std::uint16_t>& Renumber() { return *reinterpret_cast<lib::AlignedArray<std::uint16_t>*>(0x007C88B8); }
 std::uint8_t& Guards() { return *reinterpret_cast<std::uint8_t*>(0x007C88A0); }
 std::uint8_t& ClipGuards() { return *reinterpret_cast<std::uint8_t*>(0x007C88C8); }
 
 // The statics' constructors and exit handlers.
-__declspec(naked) void __fastcall WordArrayConstruct(MfcArray*) EI_ORIGINAL(0x006FEE9A)
-__declspec(naked) void __fastcall ByteArrayConstruct(MfcArray*) EI_ORIGINAL(0x006FF5EA)
-inline void __fastcall WordArraySetSize(MfcArray* a, void*, int n, int g) { WordArraySetSizeOriginal(a, nullptr, n, g); }
-inline void __fastcall ByteArraySetSize(MfcArray* a, void*, int n, int g) { ByteArraySetSizeOriginal(a, nullptr, n, g); }
+__declspec(naked) void __fastcall WordArrayConstruct(mfc::CArray<std::uint16_t>*) EI_ORIGINAL(0x006FEE9A)
+__declspec(naked) void __fastcall ByteArrayConstruct(mfc::CArray<std::uint8_t>*) EI_ORIGINAL(0x006FF5EA)
+inline void __fastcall WordArraySetSize(mfc::CArray<std::uint16_t>* a, void*, int n, int g) { WordArraySetSizeOriginal(a, nullptr, n, g); }
+inline void __fastcall ByteArraySetSize(mfc::CArray<std::uint8_t>* a, void*, int n, int g) { ByteArraySetSizeOriginal(a, nullptr, n, g); }
 void(__cdecl* const kFreeUsed)() = reinterpret_cast<void(__cdecl*)()>(0x006C1300);
 void(__cdecl* const kFreeRenumber)() = reinterpret_cast<void(__cdecl*)()>(0x006C1320);
 void(__cdecl* const kDestroyFlags)() = reinterpret_cast<void(__cdecl*)()>(0x006C1340);
@@ -62,80 +55,18 @@ void(__cdecl* const kDestroyClipped)() = reinterpret_cast<void(__cdecl*)()>(0x00
 void(__cdecl* const kDestroyIndices)() = reinterpret_cast<void(__cdecl*)()>(0x006C1360);
 void(__cdecl* const kFreeVertices)() = reinterpret_cast<void(__cdecl*)()>(0x006C1370);
 
-// Aligned allocations of n elements (32-byte, 2-byte, 1-byte elements; ECX = n) and the CRT.
-char* __fastcall AllocBytes(int a0) { return AllocAligned32Original(a0); }
 // 006C30E0 SectorData::ApplyWaterLevels (terrain_sector.cpp).
 __declspec(naked) void __fastcall ApplyWaterLevels(SectorData*) EI_ORIGINAL(0x006C30E0)
 
-void FreeAligned(AlignedArray& a) { GameDelete(reinterpret_cast<void**>(a.data)[-1]); }
-
-// The growth step of the aligned arrays: growBy, else size / 8 (rounded towards zero) in 4..1024.
-int GrowthStep(const AlignedArray& a) {
-    if (a.growBy != 0) return a.growBy;
-    int step = a.size / 8;
-    if (step < 4) return 4;
-    if (step > 0x400) return 0x400;
-    return step;
-}
-
-// SetSize of the vertex array: the contents are kept when it grows. The size is four times the
-// vertex count (the original's unit is 8 bytes) while the elements are 32 bytes: the buffer is four
-// times larger than needed, as in the original.
-void SizeVertices(int size) {
-    AlignedArray& a = Vertices();
-    if (size == 0) {
-        if (a.data) {
-            FreeAligned(a);
-            a.data = nullptr;
-        }
-        a.capacity = 0;
-        a.size = 0;
-        return;
-    }
-    if (!a.data) {
-        a.data = AllocVertices(size);
-        a.capacity = size;
-        a.size = size;
-        return;
-    }
-    if (size <= a.capacity) {
-        a.size = size;
-        return;
-    }
-    int grown = GrowthStep(a) + a.capacity;
-    int capacity = size < grown ? grown : size;
-    char* data = AllocVertices(capacity);
-    std::memcpy(data, a.data, static_cast<std::size_t>(a.size) * 32);
-    FreeAligned(a);
-    a.data = data;
-    a.size = size;
-    a.capacity = capacity;
-}
-
-// SetSize of the clipping work arrays: the old contents are dropped when they grow.
-void SizeScratch(AlignedArray& a, int size, char* (__fastcall* alloc)(int)) {
-    if (!a.data) {
-        a.data = alloc(size);
-        a.capacity = size;
-        a.size = size;
-        return;
-    }
-    if (size <= a.capacity) {
-        a.size = size;
-        return;
-    }
-    int grown = GrowthStep(a) + a.capacity;
-    int capacity = size < grown ? grown : size;
-    char* data = alloc(capacity);
-    FreeAligned(a);
-    a.data = data;
-    a.size = size;
-    a.capacity = capacity;
-}
+// SetSize of the vertex array keeps the contents when it grows (lib::AlignedArray::SetSize). The
+// size is four times the vertex count (the original's unit is 8 bytes) while the elements are 32
+// bytes: the buffer is four times larger than needed, as in the original. The clipping work arrays
+// drop their old contents when they grow (SetSizeDiscard).
+void SizeVertices(int size) { Vertices().SetSize(size); }
 
 void EnsureStatics() {
     if (!(Guards() & 1)) {
-        Vertices() = AlignedArray{};
+        Vertices() = lib::AlignedArray<PageVertex>{};
         Guards() |= 1;
         GameAtExit(kFreeVertices);
     }
@@ -158,12 +89,12 @@ void EnsureStatics() {
 
 void EnsureClipStatics() {
     if (!(ClipGuards() & 1)) {
-        Renumber() = AlignedArray{};
+        Renumber() = lib::AlignedArray<std::uint16_t>{};
         ClipGuards() |= 1;
         GameAtExit(kFreeRenumber);
     }
     if (!(ClipGuards() & 2)) {
-        Used() = AlignedArray{};
+        Used() = lib::AlignedArray<std::uint8_t>{};
         ClipGuards() |= 2;
         GameAtExit(kFreeUsed);
     }
@@ -191,8 +122,8 @@ int VerticesPerTile(int lod) { return reinterpret_cast<const int*>(0x0079699C)[l
 int TrianglesPerTile(int lod) { return reinterpret_cast<const int*>(0x007969A8)[lod]; }
 
 void FillVertices(int lod, const TileVertex* entries, int tiles, int vertexCount) {
-    char* out = Vertices().data;
-    auto* flags = static_cast<std::uint8_t*>(Flags().data);
+    char* out = reinterpret_cast<char*>(Vertices().data);
+    auto* flags = Flags().data;
     if (lod == 0) {
         for (int i = 0; i < vertexCount; ++i) PutVertex(out + i * 32, flags + i, entries[i]);
     } else if (lod == 1) {
@@ -226,7 +157,7 @@ void PutTriangles(std::uint16_t* indices, int& count, int base, const std::uint1
 
 // Fills the index list; returns the index count and sets `vertexCount` to the vertices used.
 int FillIndices(const SectorData* s, int lod, int tiles, const std::uint8_t* edges, int& vertexCount) {
-    auto* indices = static_cast<std::uint16_t*>(Indices().data);
+    auto* indices = Indices().data;
     int count = 0;
     int base = 0;
     bool seams = s->unknown_174 != 0 || s->unknown_178 != 0;
@@ -257,14 +188,14 @@ int FillIndices(const SectorData* s, int lod, int tiles, const std::uint8_t* edg
 // renumbered to them. Returns the new vertex count.
 int CompactClipped(int vertexCount, int indexCount) {
     EnsureClipStatics();
-    SizeScratch(Renumber(), vertexCount, &AllocWords);
-    SizeScratch(Used(), vertexCount, &AllocBytes);
-    auto* used = reinterpret_cast<std::uint8_t*>(Used().data);
+    Renumber().SetSizeDiscard(vertexCount);
+    Used().SetSizeDiscard(vertexCount);
+    auto* used = Used().data;
     std::memset(used, 0, static_cast<std::size_t>(vertexCount));
-    auto* clipped = static_cast<std::uint16_t*>(ClippedIndices().data);
+    auto* clipped = ClippedIndices().data;
     for (int i = 0; i < indexCount; ++i) used[clipped[i]] = 0xFF;
-    char* vertices = Vertices().data;
-    auto* renumber = reinterpret_cast<std::uint16_t*>(Renumber().data);
+    char* vertices = reinterpret_cast<char*>(Vertices().data);
+    auto* renumber = Renumber().data;
     int kept = 0;
     for (int i = 0; i < vertexCount; ++i) {
         if (!used[i]) continue;
@@ -312,7 +243,7 @@ int __fastcall DrawSectorPage(SectorData* s, void*, void* context, void* /*unuse
         int mode = s->quarterMode[quarter];
         if (mode == 2) continue;   // hidden
         bool clip = mode == 1;
-        const terrain::InlineArray<TileVertex>& list = s->tiles[quarter].data[page];
+        const terrain::TileList& list = s->tiles[quarter].data[page];
         int tiles = list.size / 9;
         if (tiles == 0) continue;
         int lod = s->unknown_170;
@@ -338,7 +269,7 @@ int __fastcall DrawSectorPage(SectorData* s, void*, void* context, void* /*unuse
         if (!(indexCount > 0)) continue;
         ThisCall<void>(clipper, kClipperProcess, Vertices().data, vertexCount);
         SetRenderState(kRenderState, 1);
-        void* indices = clip ? ClippedIndices().data : Indices().data;
+        std::uint16_t* indices = clip ? ClippedIndices().data : Indices().data;
         if (!ThisCall<int>(context, kContextDraw, Vertices().data, vertexCount, indices, indexCount)) return 0;
         SetRenderState(kRenderState, 0);
     }

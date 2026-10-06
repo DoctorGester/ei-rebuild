@@ -13,6 +13,7 @@
 #include "render/render.h"
 #include "originals_core.h"
 #include "originals_library.h"
+#include "device_buffers.h"
 #include "originals_render.h"
 
 #include <cstdint>
@@ -27,89 +28,42 @@ T& At(void* object, int offset) {
 
 // --- The statics ---------------------------------------------------------------------------------
 
-struct AlignedArray {      // the engine's aligned array: data (32-byte aligned), size, capacity, growth
-    char* data;
-    int size;
-    int capacity;
-    int growBy;
-};
+using devicebuffers::ProjectedVertex;
 
-AlignedArray& Strip() { return *reinterpret_cast<AlignedArray*>(0x007AF000); }      // TL vertices of the points
-AlignedArray& Ribbon() { return *reinterpret_cast<AlignedArray*>(0x007AF010); }     // TL vertices, two per point
-AlignedArray& Projected() { return *reinterpret_cast<AlignedArray*>(0x007AF020); }  // 16 bytes per point
-AlignedArray& Indices() { return *reinterpret_cast<AlignedArray*>(0x007AF030); }    // words
-AlignedArray& Clipped() { return *reinterpret_cast<AlignedArray*>(0x007AF040); }    // a flag byte per point
+// The engine's aligned arrays (lib::AlignedArray; the original's inlined SetSize calls 004ECB70,
+// 00468F70, 004ECB50 and 00406B30 for the element sizes, which AlignedArray::Allocate matches).
+lib::AlignedArray<TLVertex>& Strip() { return *reinterpret_cast<lib::AlignedArray<TLVertex>*>(0x007AF000); }      // TL vertices of the points
+lib::AlignedArray<TLVertex>& Ribbon() { return *reinterpret_cast<lib::AlignedArray<TLVertex>*>(0x007AF010); }     // TL vertices, two per point
+lib::AlignedArray<ProjectedVertex>& Projected() { return *reinterpret_cast<lib::AlignedArray<ProjectedVertex>*>(0x007AF020); }
+lib::AlignedArray<std::uint16_t>& Indices() { return *reinterpret_cast<lib::AlignedArray<std::uint16_t>*>(0x007AF030); }
+lib::AlignedArray<std::uint8_t>& Clipped() { return *reinterpret_cast<lib::AlignedArray<std::uint8_t>*>(0x007AF040); }    // a flag byte per point
 std::uint8_t& Guards() { return *reinterpret_cast<std::uint8_t*>(0x007AF050); }
 // The texture coordinates of the next cross section: u (007AF05C) and the two v values.
 float& CurrentU() { return *reinterpret_cast<float*>(0x007AF05C); }
 float& TopV() { return *reinterpret_cast<float*>(0x007AF058); }
 float& BottomV() { return *reinterpret_cast<float*>(0x007AF054); }
 
-char* __fastcall Alloc16(int a0) { return AllocAligned16(a0); }
-char* __fastcall AllocBytes(int a0) { return AllocAligned32Original(a0); }
 // The index array's SetAtGrow (00452FC0) and Add (00504E50).
-__declspec(naked) void __fastcall IndicesSetAtGrow(AlignedArray*, void*, int /*index*/, int /*value*/) EI_ORIGINAL(0x00452FC0)
-__declspec(naked) void __fastcall IndicesAdd(AlignedArray*, void*, int /*value*/) EI_ORIGINAL(0x00504E50)
+__declspec(naked) void __fastcall IndicesSetAtGrow(lib::AlignedArray<std::uint16_t>*, void*, int /*index*/, int /*value*/) EI_ORIGINAL(0x00452FC0)
+__declspec(naked) void __fastcall IndicesAdd(lib::AlignedArray<std::uint16_t>*, void*, int /*value*/) EI_ORIGINAL(0x00504E50)
 
-void FreeAligned(AlignedArray& a) {
-    if (a.data) {
-        GameDelete(reinterpret_cast<void**>(a.data)[-1]);
-        a.data = nullptr;
-    }
-}
-
-// SetSize of an aligned array, keeping the contents when it grows (growth: growBy, else an eighth of
-// the size within 4..1024).
-void SetSize(AlignedArray& a, int size, int elementSize, char* (__fastcall* alloc)(int)) {
-    if (size == 0) {
-        FreeAligned(a);
-        a.capacity = 0;
-        a.size = 0;
-        return;
-    }
-    if (!a.data) {
-        a.data = alloc(size);
-        a.capacity = size;
-        a.size = size;
-        return;
-    }
-    if (size <= a.capacity) {
-        a.size = size;
-        return;
-    }
-    int step = a.growBy;
-    if (step == 0) {
-        step = a.size / 8;
-        if (step < 4) step = 4;
-        else if (step > 0x400) step = 0x400;
-    }
-    int grown = step + a.capacity;
-    int capacity = size < grown ? grown : size;
-    char* data = alloc(capacity);
-    std::memcpy(data, a.data, static_cast<std::size_t>(a.size) * elementSize);
-    GameDelete(reinterpret_cast<void**>(a.data)[-1]);
-    a.data = data;
-    a.size = size;
-    a.capacity = capacity;
+// One function-local static array: constructed empty once (its guard bit), destroyed at exit.
+template <typename T>
+void EnsureStatic(std::uint8_t bit, lib::AlignedArray<T>& array, std::uintptr_t onExit) {
+    if (Guards() & bit) return;
+    array = lib::AlignedArray<T>{};
+    Guards() |= bit;
+    GameAtExit(reinterpret_cast<void(__cdecl*)()>(onExit));
 }
 
 void EnsureStatics() {
-    struct Static {
-        std::uint8_t bit;
-        AlignedArray& (*array)();
-        std::uintptr_t onExit;
-    };
-    static const Static kStatics[] = {
-        {1, &Clipped, 0x00502C80}, {2, &Indices, 0x00502C60}, {4, &Projected, 0x00502C40},
-        {8, &Ribbon, 0x00502C20},  {0x10, &Strip, 0x00502C00},
-    };
-    for (const Static& s : kStatics) {
-        if (Guards() & s.bit) continue;
-        s.array() = AlignedArray{};
-        Guards() |= s.bit;
-        GameAtExit(reinterpret_cast<void(__cdecl*)()>(s.onExit));
-    }
+    EnsureStatic(1, Clipped(), 0x00502C80);
+    EnsureStatic(2, Indices(), 0x00502C60);
+    EnsureStatic(4, Projected(), 0x00502C40);
+    EnsureStatic(8, Ribbon(), 0x00502C20);
+    EnsureStatic(0x10, Strip(), 0x00502C00);
 }
+
 
 // --- Device calls --------------------------------------------------------------------------------
 
@@ -233,8 +187,8 @@ void AddQuad(int count, bool firstBySetAtGrow) {
     IndicesAdd(&Indices(), nullptr, count - 1);
 }
 
-TLVertex* StripAt(int i) { return reinterpret_cast<TLVertex*>(Strip().data) + i; }
-TLVertex** RibbonData() { return reinterpret_cast<TLVertex**>(&Ribbon().data); }
+TLVertex* StripAt(int i) { return Strip().data + i; }
+TLVertex** RibbonData() { return &Ribbon().data; }
 
 } // namespace
 
@@ -328,8 +282,8 @@ __declspec(naked) void __fastcall EmitSection(const TLVertex* /*src*/, const flo
 // the previous point, mode 2 from the previous to the next point (the last point: the segment from
 // the previous one), else (1, 0). __fastcall: out in ECX, index in EDX. Returns out.
 float* __fastcall StripDirection(float* out, int index, int mode, const void* array) {
-    const auto* points = static_cast<const AlignedArray*>(array);
-    const TLVertex* v = reinterpret_cast<const TLVertex*>(points->data);
+    const auto* points = static_cast<const lib::AlignedArray<TLVertex>*>(array);
+    const TLVertex* v = points->data;
     if (mode == 1 || (mode == 2 && !(index < points->size - 1))) {
         out[0] = v[index].x - v[index - 1].x;
         out[1] = v[index].y - v[index - 1].y;
@@ -386,23 +340,17 @@ int __fastcall DrawRibbon(char* renderer, void*, const int* points, float width,
 
     int n = points[1];
     if (n == 0) {
-        FreeAligned(Projected());
-        Projected().capacity = 0;
-        Projected().size = 0;
-        FreeAligned(Strip());
-        Strip().capacity = 0;
-        Strip().size = 0;
+        Projected().RemoveAll();
+        Strip().RemoveAll();
     } else {
-        SetSize(Projected(), n, 16, &Alloc16);
-        SetSize(Strip(), n, 32, &AllocVertices);
+        Projected().SetSize(n);
+        Strip().SetSize(n);
     }
-    SetSize(Ribbon(), n * 2 + 100, 32, &AllocVertices);
-    SetSize(Clipped(), n, 1, &AllocBytes);
+    Ribbon().SetSize(n * 2 + 100);
+    Clipped().SetSize(n);
     // The index array is sized for the ribbon and then freed at once; the indices are appended later.
-    SetSize(Indices(), Ribbon().size * 3 + 0x96, 2, &AllocWords);
-    FreeAligned(Indices());
-    Indices().capacity = 0;
-    Indices().size = 0;
+    Indices().SetSize(Ribbon().size * 3 + 0x96);
+    Indices().RemoveAll();
 
     if (mode == 2) return 1;
     if (points[1] < 2) return 1;
@@ -428,7 +376,7 @@ int __fastcall DrawRibbon(char* renderer, void*, const int* points, float width,
     // The projected points as TL vertices: opaque white, black specular; the ends transparent.
     for (int i = 0; i < Projected().size; ++i) {
         TLVertex* v = StripAt(i);
-        std::memcpy(v, Projected().data + i * 16, 16);
+        std::memcpy(v, &Projected().data[i], 16);
         v->color = 0xFFFFFFFF;
         v->specular = 0xFF000000;
     }

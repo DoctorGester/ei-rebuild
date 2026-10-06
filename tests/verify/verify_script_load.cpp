@@ -120,10 +120,10 @@ std::vector<unsigned char> Saved(Save save, const void* object) {
 }
 
 template <typename T>
-bool Empty(const MfcArray<T>& a) { return !a.data && a.size == 0 && a.maxSize == 0; }
+bool Empty(const mfc::CArray<T>& a) { return !a.data && a.size == 0 && a.maxSize == 0; }
 template <typename T>
-MfcArray<T> EmptyLike(const MfcArray<T>& a) {
-    MfcArray<T> e{};
+mfc::CArray<T> EmptyLike(const mfc::CArray<T>& a) {
+    mfc::CArray<T> e{};
     e.vtable = a.vtable;
     e.growBy = a.growBy;
     return e;
@@ -148,19 +148,19 @@ bool WellFormed(const ScriptList& l) {
 }
 
 template <typename T>
-bool SameShape(const MfcArray<T>& a, const MfcArray<T>& b) { return a.size == b.size && a.maxSize == b.maxSize; }
+bool SameShape(const mfc::CArray<T>& a, const mfc::CArray<T>& b) { return a.size == b.size && a.maxSize == b.maxSize; }
 
 bool SameString(const mfc::CString& a, const mfc::CString& b) {
     return std::strcmp(static_cast<const char*>(a), static_cast<const char*>(b)) == 0;
 }
-bool SameNames(const MfcArray<mfc::CString>& a, const MfcArray<mfc::CString>& b) {
+bool SameNames(const mfc::CArray<mfc::CString>& a, const mfc::CArray<mfc::CString>& b) {
     if (!SameShape(a, b)) return false;
     for (int i = 0; i < a.size; ++i)
         if (!SameString(a.data[i], b.data[i])) return false;
     return true;
 }
 
-void FreeNames(MfcArray<mfc::CString>& names) { NamesSetSize(&names, nullptr, 0, -1); }
+void FreeNames(mfc::CArray<mfc::CString>& names) { NamesSetSize(&names, nullptr, 0, -1); }
 
 void Release(CEngineObject* object) {
     if (object) object->Release();
@@ -214,7 +214,7 @@ void __fastcall FloatsLoadVerify(ScriptNamedValues<float>* self, void*, ScriptSt
     VarsVerify<float>(
         "ScriptFloatsLoad", s_floats, &ScriptFloatsLoad, self, stream,
         [](const float& a, const float& b) { return std::memcmp(&a, &b, 4) == 0; },
-        [](MfcArray<float>& a) { gamecrt::operator_delete(a.data); });
+        [](mfc::CArray<float>& a) { gamecrt::operator_delete(a.data); });
 }
 
 // 004C3200: SUB ESP,0xC; PUSH EBX; PUSH EBP; PUSH ESI; PUSH EDI (7 bytes).
@@ -222,7 +222,7 @@ VarsLoadFn<mfc::CString> s_strings;
 void __fastcall StringsLoadVerify(ScriptNamedValues<mfc::CString>* self, void*, ScriptStream* stream) {
     VarsVerify<mfc::CString>(
         "ScriptStringsLoad", s_strings, &ScriptStringsLoad, self, stream, SameString,
-        [](MfcArray<mfc::CString>& a) { FreeNames(a); });
+        [](mfc::CArray<mfc::CString>& a) { FreeNames(a); });
 }
 
 // 004C36B0: SUB ESP,0xC; PUSH EBX; PUSH EBP (5 bytes).
@@ -231,7 +231,7 @@ void __fastcall ObjectsLoadVerify(ScriptNamedValues<ScriptObjectRef>* self, void
     VarsVerify<ScriptObjectRef>(
         "ScriptObjectsLoad", s_objects, &ScriptObjectsLoad, self, stream,
         [](const ScriptObjectRef& a, const ScriptObjectRef& b) { return a.object == b.object; },
-        [](MfcArray<ScriptObjectRef>& a) {
+        [](mfc::CArray<ScriptObjectRef>& a) {
             if (a.data) {
                 DestructRefs(a.data, a.size);
                 gamecrt::operator_delete(a.data);
@@ -245,7 +245,7 @@ void __fastcall GroupsLoadVerify(ScriptNamedValues<ScriptGroup>* self, void*, Sc
     VarsVerify<ScriptGroup>(
         "ScriptGroupsLoad", s_groups, &ScriptGroupsLoad, self, stream,
         SameGroup,
-        [](MfcArray<ScriptGroup>& a) {
+        [](mfc::CArray<ScriptGroup>& a) {
             if (a.data) {
                 for (int i = 0; i < a.size; ++i) GroupDestroy(&a.data[i], nullptr, 0);
                 gamecrt::operator_delete(a.data);
@@ -314,7 +314,7 @@ bool EmptyCmd(const SSCCmd& c) {
            Empty(c.localBindings) && Empty(c.globalBindings) && Empty(c.subCalls);
 }
 template <typename T>
-bool NullSlots(const MfcArray<T*>& a) {
+bool NullSlots(const mfc::CArray<T*>& a) {
     for (int i = 0; i < a.size; ++i)
         if (a.data[i]) return false;
     return true;
@@ -416,14 +416,14 @@ void __fastcall DeclCommandsVerify(ScriptDecl* self, ScriptStream* stream) {
 }
 
 // 004CA000: SUB ESP,0x10; PUSH EBX; PUSH EBP (5 bytes).
-void(__fastcall* s_ifThen)(MfcArray<ScriptIfThen>*, ScriptStream*);
-void __fastcall IfThenVerify(MfcArray<ScriptIfThen>* self, ScriptStream* stream) {
+void(__fastcall* s_ifThen)(mfc::CArray<ScriptIfThen>*, ScriptStream*);
+void __fastcall IfThenVerify(mfc::CArray<ScriptIfThen>* self, ScriptStream* stream) {
     if (!Empty(*self)) {
         ScriptIfThenLoad(self, stream);
         ei::verify::Check("ScriptIfThenLoad", true, self->size >= 0, "ours only");
         return;
     }
-    MfcArray<ScriptIfThen> scratch = EmptyLike(*self);
+    mfc::CArray<ScriptIfThen> scratch = EmptyLike(*self);
     RecordStream record(stream);
     s_ifThen(&scratch, record.AsScript());
     ReplayStream replay(stream, record);

@@ -38,7 +38,7 @@ __declspec(naked) void __cdecl CopyFloat(float* /*to*/, const float* /*from*/) {
 }
 
 // The float array resized with `setSize`, then each value copied (the source's size re-read).
-void CopyFloats(MfcArray<float>* to, const MfcArray<float>* from,
+void CopyFloats(mfc::CArray<float>* to, const mfc::CArray<float>* from,
                 void(__fastcall* setSize)(void*, void*, int, int)) {
     setSize(to, nullptr, from->size, -1);
     for (int i = 0; i < from->size; ++i) CopyFloat(&to->data[i], &from->data[i]);
@@ -46,7 +46,7 @@ void CopyFloats(MfcArray<float>* to, const MfcArray<float>* from,
 
 // A plain array resized with `setSize`, then each element copied as raw words.
 template <typename T>
-void CopyPlain(MfcArray<T>* to, const MfcArray<T>* from, void(__fastcall* setSize)(void*, void*, int, int)) {
+void CopyPlain(mfc::CArray<T>* to, const mfc::CArray<T>* from, void(__fastcall* setSize)(void*, void*, int, int)) {
     setSize(to, nullptr, from->size, -1);
     for (int i = 0; i < from->size; ++i) to->data[i] = from->data[i];
 }
@@ -159,7 +159,7 @@ __declspec(naked) void __fastcall SubCallsCopyConstruct(void*, void*, const void
 __declspec(naked) void __fastcall NamesCopyConstructAt(void*, void*, const void*) EI_ORIGINAL(0x004CBA00)
 
 template <typename T>
-void InitArray(MfcArray<T>* a, std::uintptr_t vtable) {
+void InitArray(mfc::CArray<T>* a, std::uintptr_t vtable) {
     a->data = nullptr;
     a->size = 0;
     a->maxSize = 0;
@@ -175,7 +175,7 @@ struct TempString {
 };
 
 // A string array constructed empty, resized with 004C2510, each element assigned from a GetAt copy.
-void CopyConstructStrings(MfcArray<mfc::CString>* to, const MfcArray<mfc::CString>* from) {
+void CopyConstructStrings(mfc::CArray<mfc::CString>* to, const mfc::CArray<mfc::CString>* from) {
     InitArray(to, kStringsVtable);
     NamesSetSize(to, nullptr, from->size, -1);
     for (int i = 0; i < from->size; ++i) {
@@ -207,7 +207,7 @@ void Release(CEngineObject* object) {
 
 } // namespace
 
-SSCCmd* __fastcall ScriptCmdCopyAt(const MfcArray<SSCCmd>* self, void*, SSCCmd* out, int index) {
+SSCCmd* __fastcall ScriptCmdCopyAt(const mfc::CArray<SSCCmd>* self, void*, SSCCmd* out, int index) {
     CopyConstructCmd(out, &self->data[index]);
     return out;
 }
@@ -215,7 +215,7 @@ EI_REPLACE(0x004CE750, ScriptCmdCopyAt);
 
 // The nested call's command is deep-copied into a new one; when operator new fails, the copy's
 // command is null.
-ScriptSubCall* __fastcall ScriptSubCallCopyAt(const MfcArray<ScriptSubCall>* self, void*, ScriptSubCall* out,
+ScriptSubCall* __fastcall ScriptSubCallCopyAt(const mfc::CArray<ScriptSubCall>* self, void*, ScriptSubCall* out,
                                               int index) {
     const ScriptSubCall* from = &self->data[index];
     out->type = from->type;
@@ -233,8 +233,8 @@ EI_REPLACE(0x004CCAA0, ScriptSubCallCopyAt);
 
 // A name array: storage for exactly the source's size (the inlined SetSize from empty), then each
 // name assigned from a GetAt copy.
-MfcArray<mfc::CString>* __fastcall ScriptNamesCopyConstruct(MfcArray<mfc::CString>* self, void*,
-                                                            const MfcArray<mfc::CString>* other) {
+mfc::CArray<mfc::CString>* __fastcall ScriptNamesCopyConstruct(mfc::CArray<mfc::CString>* self, void*,
+                                                            const mfc::CArray<mfc::CString>* other) {
     InitArray(self, kStringsVtable);
     int n = other->size;
     if (n == 0) {

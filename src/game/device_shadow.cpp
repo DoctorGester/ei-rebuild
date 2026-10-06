@@ -8,6 +8,7 @@
 #include "clip.h"
 
 #include "ei/hook.h"
+#include "device_buffers.h"
 #include "render/render.h"
 #include "originals_core.h"
 #include "originals_library.h"
@@ -23,20 +24,13 @@ T& At(void* base, int offset) {
     return *reinterpret_cast<T*>(static_cast<char*>(base) + offset);
 }
 
-struct AlignedArray {
-    char* data;
-    int size;
-    int capacity;
-    int growBy;
-};
-AlignedArray& Vertices() { return *reinterpret_cast<AlignedArray*>(0x007AEE00); }        // TL vertices
-AlignedArray& ClipIndices() { return *reinterpret_cast<AlignedArray*>(0x007AEDE0); }     // words
-AlignedArray& Projected() { return *reinterpret_cast<AlignedArray*>(0x007AEE10); }       // x, y, z, rhw
-AlignedArray& CornerOutcodes() { return *reinterpret_cast<AlignedArray*>(0x007AEE20); }  // a byte per vertex
-AlignedArray& Outcodes() { return *reinterpret_cast<AlignedArray*>(0x007AEE30); }        // a byte per vertex
+using devicebuffers::ClipIndices;
+using devicebuffers::CornerOutcodes;
+using devicebuffers::Outcodes;
+using devicebuffers::Projected;
+using devicebuffers::ProjectedVertex;
+using devicebuffers::Vertices;
 
-char* __fastcall Alloc16(int a0) { return AllocAligned16(a0); }
-char* __fastcall AllocBytes(int a0) { return AllocAligned32Original(a0); }
 // 004F2650: the pipeline projects `blocks` blocks of positions with outcodes [positions, out,
 // outcodes, blocks, last]; 0 on screen, 1 crossing, 2 outside.
 __declspec(naked) int __fastcall ProjectBlocks(void*, void*, const void*, void*, void*, int, std::uint32_t) EI_ORIGINAL(0x004F2650)
@@ -45,66 +39,6 @@ __declspec(naked) int __fastcall ProjectBlocks(void*, void*, const void*, void*,
 // count, flags].
 void __fastcall DrawVertexBuffer(char* a0, void*, const void* a2, int a3) { DeviceDrawVertexBufferOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) int __fastcall DrawPrimitive(char*, void*, int, int, void*, int, const void*, int, int) EI_ORIGINAL(0x004EB550)
-
-int GrowthStep(const AlignedArray& a) {
-    if (a.growBy != 0) return a.growBy;
-    int step = a.size / 8;
-    if (step < 4) return 4;
-    if (step > 0x400) return 0x400;
-    return step;
-}
-
-// SetSize without keeping the contents.
-void Resize(AlignedArray& a, int size, char* (__fastcall* alloc)(int)) {
-    if (!a.data) {
-        a.data = alloc(size);
-        a.capacity = size;
-        a.size = size;
-        return;
-    }
-    if (size <= a.capacity) {
-        a.size = size;
-        return;
-    }
-    int grown = GrowthStep(a) + a.capacity;
-    int capacity = size < grown ? grown : size;
-    char* data = alloc(capacity);
-    GameDelete(reinterpret_cast<void**>(a.data)[-1]);
-    a.data = data;
-    a.size = size;
-    a.capacity = capacity;
-}
-
-// SetSize keeping the contents; 0 frees the block.
-void SetSize(AlignedArray& a, int size, int elementSize, char* (__fastcall* alloc)(int)) {
-    if (size == 0) {
-        if (a.data) {
-            GameDelete(reinterpret_cast<void**>(a.data)[-1]);
-            a.data = nullptr;
-        }
-        a.capacity = 0;
-        a.size = 0;
-        return;
-    }
-    if (!a.data) {
-        a.data = alloc(size);
-        a.capacity = size;
-        a.size = size;
-        return;
-    }
-    if (size <= a.capacity) {
-        a.size = size;
-        return;
-    }
-    int grown = GrowthStep(a) + a.capacity;
-    int capacity = size < grown ? grown : size;
-    char* data = alloc(capacity);
-    std::memcpy(data, a.data, static_cast<std::size_t>(a.size) * elementSize);
-    GameDelete(reinterpret_cast<void**>(a.data)[-1]);
-    a.data = data;
-    a.size = size;
-    a.capacity = capacity;
-}
 
 template <typename R, typename... Args>
 R ThisCall(void* object, int slot, Args... args) {
@@ -132,9 +66,9 @@ bool OneOrNaN(const float* v) {
 // The vertices: projected position, the colour / specular pair, the vertex's texture coordinate
 // (each copied as qwords).
 void Fill(TLVertex* out, int count, const void* colours, const char* uvs) {
-    const char* projected = Projected().data;
+    const ProjectedVertex* projected = Projected().data;
     for (int i = 0; i < count; ++i) {
-        std::memcpy(&out[i].x, projected + i * 16, 16);
+        std::memcpy(&out[i].x, &projected[i], 16);
         std::memcpy(&out[i].color, colours, 8);
         std::memcpy(&out[i].u, uvs + i * 8, 8);
     }
@@ -142,7 +76,7 @@ void Fill(TLVertex* out, int count, const void* colours, const char* uvs) {
 
 void Scale(int count, const float* scale) {
     if (OneOrNaN(scale)) return;
-    for (int i = 0; i < count; ++i) ScaleZ(&reinterpret_cast<TLVertex*>(Vertices().data)[i].z, scale);
+    for (int i = 0; i < count; ++i) ScaleZ(&Vertices().data[i].z, scale);
 }
 
 // The new renderer (src/render) gets the geometry in model space with the screen stack's matrix
@@ -175,8 +109,8 @@ int DrawFlat(char* device, const void* positions, const char* uvs, int blocks, c
     void* transform = At<void*>(pipeline, 0xC);
     int count = blocks * 4;
     std::uint32_t colours[2] = {colour, specular};
-    Resize(Projected(), count * 10, &Alloc16);
-    Resize(Outcodes(), count, &AllocBytes);
+    Projected().SetSizeDiscard(count * 10);
+    Outcodes().SetSizeDiscard(count);
     int visibility = ProjectBlocks(pipeline, nullptr, positions, Projected().data, Outcodes().data, blocks, last);
     if (visibility != 2 && render::Active())
         HandOver(device, positions, uvs, count, indices, indexCount, colours, &zScale, visibility == 1);
@@ -184,11 +118,11 @@ int DrawFlat(char* device, const void* positions, const char* uvs, int blocks, c
     if (visibility == 0) {
         TLVertex* target = static_cast<TLVertex*>(LockVertexBuffer(device, nullptr, count));
         if (!target) {
-            Resize(Vertices(), count, &AllocVerticesOriginal);
-            target = reinterpret_cast<TLVertex*>(Vertices().data);
+            Vertices().SetSizeDiscard(count);
+            target = Vertices().data;
         }
         Fill(target, count, colours, uvs);
-        if (target == reinterpret_cast<TLVertex*>(Vertices().data)) {
+        if (target == Vertices().data) {
             Scale(count, &zScale);
             DrawPrimitive(device, nullptr, 4, 0x1C4, Vertices().data, count, indices, indexCount, 0);
             return 0;
@@ -200,17 +134,17 @@ int DrawFlat(char* device, const void* positions, const char* uvs, int blocks, c
     if (visibility == 2) return 2;
     if (visibility != 1) return 0;
 
-    Resize(Vertices(), count * 10, &AllocVerticesOriginal);
-    Fill(reinterpret_cast<TLVertex*>(Vertices().data), count, colours, uvs);
-    Resize(ClipIndices(), indexCount * 10, &AllocWords);
-    Resize(CornerOutcodes(), Outcodes().size * 10, &AllocBytes);
+    Vertices().SetSizeDiscard(count * 10);
+    Fill(Vertices().data, count, colours, uvs);
+    ClipIndices().SetSizeDiscard(indexCount * 10);
+    CornerOutcodes().SetSizeDiscard(Outcodes().size * 10);
     std::memcpy(CornerOutcodes().data, Outcodes().data, static_cast<std::size_t>(Outcodes().size));
     int vertexCount = count;
     int clippedIndices = indexCount;
     ThisCall<int>(transform, 37, static_cast<void*>(Vertices().data), static_cast<void*>(CornerOutcodes().data),
                   indices, static_cast<void*>(ClipIndices().data), &vertexCount, &clippedIndices);
-    SetSize(Vertices(), vertexCount, sizeof(TLVertex), &AllocVerticesOriginal);
-    SetSize(ClipIndices(), clippedIndices, 2, &AllocWords);
+    Vertices().SetSize(vertexCount);
+    ClipIndices().SetSize(clippedIndices);
     ThisCall<void>(transform, 34, static_cast<void*>(Vertices().data), Vertices().size);
     if (vertexCount == 0 || clippedIndices == 0) return 0;
     Scale(vertexCount, &zScale);

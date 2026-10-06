@@ -38,16 +38,15 @@ TextOps& Ops(mfc::CString& s) { return static_cast<TextOps&>(s); }
 // 006FD5D0: operator+(TCHAR, const CString&).
 __declspec(naked) mfc::CString __stdcall CharPlus(char, const mfc::CString&) EI_ORIGINAL(0x006FD5D0)
 
-// MFC arrays.
-struct MfcArrayOps : MfcArray {
-    void ConstructDWordArray();                 // 006FF933 CDWordArray::CDWordArray
-    void DestroyDWordArray();                   // 006FF966 CDWordArray::~CDWordArray
-    void SetSizeDWord(int size, int growBy);    // 006FF993 CDWordArray::SetSize
-    void SetSizeByte(int size, int growBy);     // 006FF64A CByteArray::SetSize
-    void SetSizeWord(int size, int growBy);     // 006FEEFA CWordArray::SetSize
-    void SetSizeUInt(int size, int growBy);     // 006FF29A (4-byte elements)
-};
-MfcArrayOps& Ops(MfcArray& a) { return static_cast<MfcArrayOps&>(a); }
+// MFC's afxcoll arrays (mfc::CArray layout), through their own code: CDWordArray's constructor,
+// destructor and SetSize, and the byte / word / uint SetSize.
+using MfcDWords = mfc::CArray<std::uint32_t>;
+__declspec(naked) void __fastcall DWordArrayConstruct(MfcDWords*) EI_ORIGINAL(0x006FF933)
+__declspec(naked) void __fastcall DWordArrayDestroy(MfcDWords*) EI_ORIGINAL(0x006FF966)
+__declspec(naked) void __fastcall DWordArraySetSize(MfcDWords*, void*, int, int) EI_ORIGINAL(0x006FF993)
+void SetSizeBytes(mfc::CArray<std::uint8_t>* a, int n) { ByteArraySetSizeOriginal(a, nullptr, n, -1); }      // 006FF64A
+void SetSizeWords(mfc::CArray<std::uint16_t>* a, int n) { WordArraySetSizeOriginal(a, nullptr, n, -1); }     // 006FEEFA
+void SetSizeUInts(mfc::CArray<std::uint32_t>* a, int n) { UIntArraySetSizeOriginal(a, nullptr, n, -1); }     // 006FF29A
 
 // 004513A0: SetSize of an aligned int array (CArray<int> with the aligned allocator).
 __declspec(naked) void __fastcall AlignedIntSetSize(DwordArray*, void*, int, int) EI_ORIGINAL(0x004513A0)
@@ -84,56 +83,8 @@ mfc::CString ReadString(const CIniFile* ini, const char* section, const char* ke
 
 // --- Aligned arrays -------------------------------------------------------------------------------
 
-void* AllocateAligned(int bytes) {   // 00695B00 / 00695B20 / 00695B40 / 00453A10
-    auto* raw = static_cast<std::uint8_t*>(gamecrt::operator_new(static_cast<std::size_t>(bytes + 0x24)));
-    auto* data = reinterpret_cast<std::uint8_t*>((reinterpret_cast<std::uintptr_t>(raw) + 0x23) & ~std::uintptr_t{0x1F});
-    reinterpret_cast<std::uint8_t**>(data)[-1] = raw;
-    return data;
-}
-
-void FreeAligned(void* data) { gamecrt::operator_delete(static_cast<std::uint8_t**>(data)[-1]); }
-
-// SetSize(count) of an aligned array of `element`-byte values: 0 frees the block, growing keeps
-// the contents. All four arrays share the layout data, size, capacity, growBy.
-void ResizeAligned(AlignedArray& array, int count, int element) {
-    if (count == 0) {
-        if (array.data) {
-            FreeAligned(array.data);
-            array.data = nullptr;
-        }
-        array.capacity = 0;
-        array.size = 0;
-        return;
-    }
-    if (!array.data) {
-        array.data = AllocateAligned(count * element);
-        array.capacity = count;
-        array.size = count;
-        return;
-    }
-    if (count <= array.capacity) {
-        array.size = count;
-        return;
-    }
-    int grow = array.growBy;
-    if (grow == 0) {
-        grow = array.size / 8;
-        if (grow < 4)
-            grow = 4;
-        else if (grow > 0x400)
-            grow = 0x400;
-    }
-    int capacity = array.capacity + grow;
-    if (!(count < capacity)) capacity = count;
-    void* data = AllocateAligned(capacity * element);
-    std::memcpy(data, array.data, static_cast<std::uint32_t>(array.size * element));
-    FreeAligned(array.data);
-    array.data = data;
-    array.capacity = capacity;
-    array.size = count;
-}
-
-AlignedArray& AsAligned(DwordArray& a) { return reinterpret_cast<AlignedArray&>(a); }
+// The byte, short and int arrays are engine aligned arrays (lib::AlignedArray); their inlined
+// SetSize allocates through 00695B00 / 00695B20 / 00695B40 / 00453A10.
 
 // The list as integers in a temporary aligned int array (the original's 004513A0 + atoi loop).
 // Returns 0 when the value is empty (the temporary then stays empty).
@@ -145,41 +96,39 @@ BOOL ReadIntTemp(CIniFile* ini, const char* section, const char* key, DwordArray
     return 1;
 }
 
-template <typename T> BOOL ReadAlignedVia(CIniFile* ini, const char* section, const char* key, AlignedArray* out) {
+template <typename T> BOOL ReadAlignedVia(CIniFile* ini, const char* section, const char* key, lib::AlignedArray<T>* out) {
     DwordArray temp{nullptr, 0, 0, 0};
     BOOL ok = ReadIntTemp(ini, section, key, temp);
     if (ok) {
         int count = temp.size;
-        ResizeAligned(*out, count, sizeof(T));
-        for (int i = 0; i < count; ++i) static_cast<T*>(out->data)[i] = static_cast<T>(temp.data[i]);
+        out->SetSize(count);
+        for (int i = 0; i < count; ++i) out->data[i] = static_cast<T>(temp.data[i]);
     }
-    if (temp.data) FreeAligned(temp.data);
+    temp.FreeData();
     return ok;
 }
 
 // The list as integers in a temporary CDWordArray, then copied as T into `out` (resized by
 // `setSize`, one of the MFC SetSize forwarders).
 template <typename T>
-BOOL ReadMfcVia(CIniFile* ini, const char* section, const char* key, MfcArray* out,
-                void (MfcArrayOps::*setSize)(int, int)) {
-    MfcArray temp;
-    Ops(temp).ConstructDWordArray();
+BOOL ReadMfcVia(CIniFile* ini, const char* section, const char* key, mfc::CArray<T>* out,
+                void (*setSize)(mfc::CArray<T>*, int)) {
+    MfcDWords temp;
+    DWordArrayConstruct(&temp);
     BOOL ok;
     {
         console::CStringArray codes;
         ok = CallGetList(ini, nullptr, section, key, &codes, kListSeparator);
         if (ok) {
-            Ops(temp).SetSizeDWord(codes.GetSize(), -1);
-            for (int i = 0; i < temp.size; ++i)
-                static_cast<std::uint32_t*>(temp.data)[i] = static_cast<std::uint32_t>(GameAtoi(codes[i]));
+            DWordArraySetSize(&temp, nullptr, codes.GetSize(), -1);
+            for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(GameAtoi(codes[i]));
         }
     }
     if (ok) {
-        (Ops(*out).*setSize)(temp.size, -1);
-        for (int i = 0; i < temp.size; ++i)
-            static_cast<T*>(out->data)[i] = static_cast<T>(static_cast<std::uint32_t*>(temp.data)[i]);
+        setSize(out, temp.size);
+        for (int i = 0; i < temp.size; ++i) out->data[i] = static_cast<T>(temp.data[i]);
     }
-    Ops(temp).DestroyDWordArray();
+    DWordArrayDestroy(&temp);
     return ok;
 }
 
@@ -191,12 +140,6 @@ __declspec(naked) mfc::CString TextOps::Mid(int, int) const EI_ORIGINAL(0x006FD9
 __declspec(naked) void TextOps::TrimRight() EI_ORIGINAL(0x006FE216)
 __declspec(naked) void TextOps::TrimLeft() EI_ORIGINAL(0x006FE11F)
 void TextOps::AppendChar(char a0) { CStringAppendCharOriginal((void*)this, nullptr, a0); }
-__declspec(naked) void MfcArrayOps::ConstructDWordArray() EI_ORIGINAL(0x006FF933)
-__declspec(naked) void MfcArrayOps::DestroyDWordArray() EI_ORIGINAL(0x006FF966)
-__declspec(naked) void MfcArrayOps::SetSizeDWord(int, int) EI_ORIGINAL(0x006FF993)
-void MfcArrayOps::SetSizeByte(int n, int g) { ByteArraySetSizeOriginal(this, nullptr, n, g); }
-void MfcArrayOps::SetSizeWord(int n, int g) { WordArraySetSizeOriginal(this, nullptr, n, g); }
-void MfcArrayOps::SetSizeUInt(int a0, int a1) { UIntArraySetSizeOriginal(this, nullptr, a0, a1); }
 
 // --- Construction ----------------------------------------------------------------------------------
 
@@ -296,17 +239,17 @@ BOOL CIniFile::GetList(const char* section, const char* key, console::CStringArr
 EI_REPLACE_METHOD(0x00696090, CIniFile::GetList);
 
 BOOL CIniFile::GetIntArrayCopy(const char* section, const char* key, DwordArray* out) {
-    return ReadAlignedVia<std::uint32_t>(this, section, key, &AsAligned(*out));
+    return ReadAlignedVia<std::uint32_t>(this, section, key, out);
 }
 EI_REPLACE_METHOD(0x006961D0, CIniFile::GetIntArrayCopy);
 
-BOOL CIniFile::GetByteArray(const char* section, const char* key, AlignedArray* out) {
-    return ReadAlignedVia<std::uint8_t>(this, section, key, out);
+BOOL CIniFile::GetByteArray(const char* section, const char* key, lib::AlignedArray<std::uint8_t>* out) {
+    return ReadAlignedVia(this, section, key, out);
 }
 EI_REPLACE_METHOD(0x006963F0, CIniFile::GetByteArray);
 
-BOOL CIniFile::GetShortArray(const char* section, const char* key, AlignedArray* out) {
-    return ReadAlignedVia<std::uint16_t>(this, section, key, out);
+BOOL CIniFile::GetShortArray(const char* section, const char* key, lib::AlignedArray<std::uint16_t>* out) {
+    return ReadAlignedVia(this, section, key, out);
 }
 EI_REPLACE_METHOD(0x00696610, CIniFile::GetShortArray);
 
@@ -314,33 +257,33 @@ BOOL CIniFile::GetIntArray(const char* section, const char* key, DwordArray* out
     console::CStringArray codes;
     if (!CallGetList(this, nullptr, section, key, &codes, kListSeparator)) return 0;
     int count = codes.GetSize();
-    ResizeAligned(AsAligned(*out), count, 4);
+    out->SetSize(count);
     for (int i = 0; i < count; ++i) out->data[i] = static_cast<std::uint32_t>(GameAtoi(codes[i]));
     return 1;
 }
 EI_REPLACE_METHOD(0x00696830, CIniFile::GetIntArray);
 
-BOOL CIniFile::GetMfcByteArray(const char* section, const char* key, MfcArray* out) {
-    return ReadMfcVia<std::uint8_t>(this, section, key, out, &MfcArrayOps::SetSizeByte);
+BOOL CIniFile::GetMfcByteArray(const char* section, const char* key, mfc::CArray<std::uint8_t>* out) {
+    return ReadMfcVia(this, section, key, out, &SetSizeBytes);
 }
 EI_REPLACE_METHOD(0x006969F0, CIniFile::GetMfcByteArray);
 
-BOOL CIniFile::GetMfcWordArray(const char* section, const char* key, MfcArray* out) {
-    return ReadMfcVia<std::uint16_t>(this, section, key, out, &MfcArrayOps::SetSizeWord);
+BOOL CIniFile::GetMfcWordArray(const char* section, const char* key, mfc::CArray<std::uint16_t>* out) {
+    return ReadMfcVia(this, section, key, out, &SetSizeWords);
 }
 EI_REPLACE_METHOD(0x00696B20, CIniFile::GetMfcWordArray);
 
-BOOL CIniFile::GetMfcUIntArray(const char* section, const char* key, MfcArray* out) {
-    return ReadMfcVia<std::uint32_t>(this, section, key, out, &MfcArrayOps::SetSizeUInt);
+BOOL CIniFile::GetMfcUIntArray(const char* section, const char* key, mfc::CArray<std::uint32_t>* out) {
+    return ReadMfcVia(this, section, key, out, &SetSizeUInts);
 }
 EI_REPLACE_METHOD(0x00696C50, CIniFile::GetMfcUIntArray);
 
-BOOL CIniFile::GetMfcDWordArray(const char* section, const char* key, MfcArray* out) {
+BOOL CIniFile::GetMfcDWordArray(const char* section, const char* key, mfc::CArray<std::uint32_t>* out) {
     console::CStringArray codes;
     if (!CallGetList(this, nullptr, section, key, &codes, kListSeparator)) return 0;
-    Ops(*out).SetSizeDWord(codes.GetSize(), -1);
+    DWordArraySetSize(out, nullptr, codes.GetSize(), -1);
     for (int i = 0; i < codes.GetSize(); ++i)
-        static_cast<std::uint32_t*>(out->data)[i] = static_cast<std::uint32_t>(GameAtoi(codes[i]));
+        out->data[i] = static_cast<std::uint32_t>(GameAtoi(codes[i]));
     return 1;
 }
 EI_REPLACE_METHOD(0x00696D80, CIniFile::GetMfcDWordArray);

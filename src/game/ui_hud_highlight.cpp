@@ -23,7 +23,7 @@ constexpr float kOwnScaleOn = 1.0f;       // the player's items (top row)
 constexpr float kOwnScaleOff = 0.85f;     // 3F59999A
 constexpr int kBottomRow = 4;             // slots 0-3
 
-CUiMesh* Sprite(CUiWindow* window, int index) { return reinterpret_cast<CUiMesh*>(window->sceneObjects_.data_[index]); }
+CUiMesh* Sprite(CUiWindow* window, int index) { return reinterpret_cast<CUiMesh*>(window->sceneObjects_.data[index]); }
 
 // 005E7060 is rewritten below; its callers here go through its address so its wrapper runs.
 void SetSpriteScale(CUiMesh* sprite, float scale) {

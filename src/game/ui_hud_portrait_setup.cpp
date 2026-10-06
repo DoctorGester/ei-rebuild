@@ -96,8 +96,8 @@ void CHudPortraits::ShowFace(int index, int state) {
     else if (state == 3)
         name += GameText(0x00792558);   // "b"
     const int texture = index / 4 + 1;
-    if (static_cast<char>(CopyImage(objects_.data_[texture], name, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0)) == 0)
-        CopyImage(objects_.data_[texture], slots_[index].FaceName(), 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
+    if (static_cast<char>(CopyImage(objects_.data[texture], name, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0)) == 0)
+        CopyImage(objects_.data[texture], slots_[index].FaceName(), 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
 }
 
 void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide, int hasPlayer) {
@@ -112,7 +112,7 @@ void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide
     case 3: u = 0x80; v = 0x80; break;
     default: break;   // a negative count (not reached; the original leaves u, v uninitialised)
     }
-    CopyImage(objects_.data_[objects_.size_ - 1], picture, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
+    CopyImage(objects_.data[objects_.size - 1], picture, 0x80, 0x80, 0x80, 0x80, u, v, 0, 0);
     SlotsPushDefault(&slots_);
     slots_[count_].hasPlayer_ = player;
     CUiMesh* face = AddSprite(model);
@@ -156,24 +156,24 @@ void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide
     }
     face->uOffset_ = static_cast<float>(u) * Texel();
     face->vOffset_ = static_cast<float>(v + 0x80) * Texel();
-    face->texture_ = objects_.data_[objects_.size_ - 1];
+    face->texture_ = objects_.data[objects_.size - 1];
 
     // The health and mana bars (hidden for a player), the frame and the hit flash.
     const float barScale = static_cast<float>(right - x - 6);
     CUiMesh* health = AddSprite(nullptr);
     health->SetRectangle(7.0f, barScale, static_cast<float>(x + 3), 587.0f, static_cast<float>(right - 3), 592.0f, 9, 9,
                          0x49, 0x16);
-    health->texture_ = objects_.data_[0];
+    health->texture_ = objects_.data[0];
     if (player) health->visible_ = 0;
     CUiMesh* mana = AddSprite(nullptr);
     mana->SetRectangle(7.0f, barScale, static_cast<float>(x + 3), 592.0f, static_cast<float>(right - 3), 597.0f, 9, 0x23,
                        0x49, 0x30);
-    mana->texture_ = objects_.data_[0];
+    mana->texture_ = objects_.data[0];
     if (player) mana->visible_ = 0;
     CUiMesh* frame = AddSprite(nullptr);
     frame->SetFrame(20.0f, 80.0f, static_cast<float>(x), 510.0f, static_cast<float>(right), 600.0f, 3.0f, 0x1B, 0x60, 0x5A,
                     0x65);
-    frame->texture_ = objects_.data_[0];
+    frame->texture_ = objects_.data[0];
     CUiMesh* flash = AddSprite(nullptr);
     flash->SetRectangle(22.0f, 80.0f, static_cast<float>(x), 510.0f, static_cast<float>(right), 600.0f, 0, 0, 0x100,
                         0x100);
@@ -181,7 +181,7 @@ void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide
     flash->flags_ |= 0x100;
     flash->visible_ = 0;
 
-    Sprite(sceneObjects_.data_[column * 5 + 4])->visible_ = 0;   // the column's frame
+    Sprite(sceneObjects_.data[column * 5 + 4])->visible_ = 0;   // the column's frame
     slots_[column].restB_ = Identity();
     ++count_;
     AddRegion()->CallSetRect(x, 510, right, 600);
@@ -190,7 +190,7 @@ void CHudPortraits::AddPortrait(const char* model, const char* picture, int wide
 void CHudPortraits::Rebuild(int wide) {
     ClearSceneObjects();
     ClearRegions();
-    while (objects_.size_ > 1) RemoveObjectAt(1);
+    while (objects_.size > 1) RemoveObjectAt(1);
     AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 0.0f, 0.0f, 20.0f, 20.0f, 0x22, 0x96, 0x36, 0xAA);   // the marker
     count_ = 0;
 
@@ -218,7 +218,7 @@ void CHudPortraits::Rebuild(int wide) {
         AddPortraitAt(model, picture, wide, 0);
 
         if (owner_->party_[i]->flags_ & 0x10) {
-            Sprite(sceneObjects_.data_[i * 5 + 4])->visible_ = 1;
+            Sprite(sceneObjects_.data[i * 5 + 4])->visible_ = 1;
             Quaternion turn;
             slots_[i].restB_ = *turn.SetAxisAngle(Vector3{-1.0f, 0.0f, 0.0f}, WobbleAngle() * Seventh());
         }
@@ -233,7 +233,7 @@ void CHudPortraits::Rebuild(int wide) {
         slots_[i].playerId_ = -1;
         BattleShowPanelUnitOriginal(owner_, nullptr, owner_->party_[i], &tip);
         const int tipId = 0x37 + i;
-        regions_.data_[i]->SetTipString(tip, 1, tipId < 0x3A && !IsMultiplayerClient() ? tipId : 0);
+        regions_.data[i]->SetTipString(tip, 1, tipId < 0x3A && !IsMultiplayerClient() ? tipId : 0);
     }
 
     if (!IsMultiplayerClient()) return;
@@ -266,7 +266,7 @@ void CHudPortraits::Rebuild(int wide) {
         slots_[count_ - 1].FaceName() = picture;
         slots_[count_ - 1].faceState_ = 0;
         slots_[count_ - 1].playerId_ = player->serial_;
-        regions_.data_[count_ - 1]->SetTipString(player->name_.start, 1, 0);
+        regions_.data[count_ - 1]->SetTipString(player->name_.start, 1, 0);
     }
 }
 

@@ -262,11 +262,11 @@ void DrawSchool(CTradePanel* panel, SurfaceDraw* draw, RECT* row, TradeRow* scho
 } // namespace
 
 void CTradePanel::DrawLists() {
-    SurfaceDraw* draw = reinterpret_cast<SurfaceDraw*>(surfaces_.data_[0]);
+    SurfaceDraw* draw = reinterpret_cast<SurfaceDraw*>(surfaces_.data[0]);
     draw->Begin();
     draw->Clear();
     mfc::CString value;
-    while (sceneObjects_.size_ > 4) RemoveSceneObjectAt(sceneObjects_.size_ - 1);
+    while (sceneObjects_.size > 4) RemoveSceneObjectAt(sceneObjects_.size - 1);
 
     RECT title = {0, 10, 200, 25};
     draw->Text(texts_[0], &title, 0, 0xFFFFFF, 1, 1);

@@ -40,13 +40,13 @@ struct PanelState {
 };
 PanelState Snapshot(CUiWindow* panel, int count, int selected) {
     PanelState s{{}, selected};
-    for (int i = 0; i < count && i < panel->sceneObjects_.size_; ++i)
-        s.sprites.push_back(Read(reinterpret_cast<CUiMesh*>(panel->sceneObjects_.data_[i])));
+    for (int i = 0; i < count && i < panel->sceneObjects_.size; ++i)
+        s.sprites.push_back(Read(reinterpret_cast<CUiMesh*>(panel->sceneObjects_.data[i])));
     return s;
 }
 void Restore(CUiWindow* panel, const PanelState& s, int* selected) {
     for (std::size_t i = 0; i < s.sprites.size(); ++i)
-        Write(reinterpret_cast<CUiMesh*>(panel->sceneObjects_.data_[i]), s.sprites[i]);
+        Write(reinterpret_cast<CUiMesh*>(panel->sceneObjects_.data[i]), s.sprites[i]);
     *selected = s.selected;
 }
 

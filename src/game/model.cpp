@@ -158,56 +158,7 @@ Matrix4* __stdcall ProjectionMatrix(Matrix4* out, float fov, float aspect, float
 #pragma float_control(pop)
 EI_REPLACE(0x004F0E80, ProjectionMatrix);
 
-// ---- TriangleIndexArray -------------------------------------------------------------------------
-
-namespace {
-// operator_new block with the data aligned to 32 bytes; the block pointer is stored before it.
-std::uint16_t* AllocateTriangles(int count) {
-    char* block = static_cast<char*>(gamecrt::operator_new(static_cast<unsigned>(count * 3 + 0x12) * 2));
-    auto* data = reinterpret_cast<std::uint16_t*>(reinterpret_cast<std::uintptr_t>(block + 0x23) & ~std::uintptr_t(0x1F));
-    reinterpret_cast<char**>(data)[-1] = block;
-    return data;
-}
-void FreeTriangles(std::uint16_t* data) { gamecrt::operator_delete(reinterpret_cast<char**>(data)[-1]); }
-} // namespace
-
-void TriangleIndexArray::Resize(int count, int newGrowBy) {
-    if (newGrowBy != -1) growBy = newGrowBy;
-    if (count == 0) {
-        if (data) {
-            FreeTriangles(data);
-            data = nullptr;
-        }
-        capacity = 0;
-        size = 0;
-        return;
-    }
-    if (!data) {
-        data = AllocateTriangles(count);
-        capacity = count;
-        size = count;
-        return;
-    }
-    if (count <= capacity) {
-        size = count;
-        return;
-    }
-    int step = growBy;
-    if (step == 0) {
-        step = size / 8;
-        if (step < 4) step = 4;
-        else if (step > 0x400) step = 0x400;
-    }
-    int newCapacity = step + capacity;
-    if (count >= newCapacity) newCapacity = count;
-    std::uint16_t* fresh = AllocateTriangles(newCapacity);
-    std::memcpy(fresh, data, static_cast<unsigned>(size * 6));
-    FreeTriangles(data);
-    data = fresh;
-    size = count;
-    capacity = newCapacity;
-}
-EI_REPLACE_METHOD(0x004F57B0, TriangleIndexArray::Resize);
+EI_REPLACE_METHOD(0x004F57B0, TriangleIndexArray::SetSize);   // the figure parts' triangle indices
 
 // ---- CLinkFigureLoader ---------------------------------------------------------------------------
 

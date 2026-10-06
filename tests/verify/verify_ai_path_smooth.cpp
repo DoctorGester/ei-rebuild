@@ -104,7 +104,7 @@ EI_VERIFY(0x005C44D0, RelaxVerify, 7, s_relax);
 // 005C4C20: ours only: the size and room for it.
 static void __fastcall SetSizeVerify(SmoothPool* self, void*, int size, int growBy) {
     self->SetSize(size, growBy);
-    bool ok = self->nodes.size == size && self->nodes.capacity >= size && (size == 0) == (self->nodes.data == nullptr);
-    ei::verify::Check("SmoothPool::SetSize", true, ok, "size %d max %d", self->nodes.size, self->nodes.capacity);
+    bool ok = self->nodes.size == size && self->nodes.maxSize >= size && (size == 0) == (self->nodes.data == nullptr);
+    ei::verify::Check("SmoothPool::SetSize", true, ok, "size %d max %d", self->nodes.size, self->nodes.maxSize);
 }
 EI_VERIFY(0x005C4C20, SetSizeVerify, 0, s_unusedSetSize);

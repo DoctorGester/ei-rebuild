@@ -14,7 +14,7 @@
 namespace {
 void* s_unused;
 
-std::vector<std::string> Names(const MfcArray<mfc::CString>& names) {
+std::vector<std::string> Names(const mfc::CArray<mfc::CString>& names) {
     std::vector<std::string> out;
     for (int i = 0; i < names.size; ++i) out.emplace_back(static_cast<const char*>(names.data[i]));
     return out;
@@ -95,7 +95,7 @@ void __fastcall GroupsVerify(ScriptNamedValues<ScriptGroup>* self, void*, const 
 // ---- Clears: ours only, then every array is empty with no storage ---------------------------------
 
 template <typename T>
-bool Empty(const MfcArray<T>& a) { return !a.data && a.size == 0 && a.maxSize == 0; }
+bool Empty(const mfc::CArray<T>& a) { return !a.data && a.size == 0 && a.maxSize == 0; }
 template <typename T>
 bool Empty(const ScriptNamedValues<T>* v) { return Empty(v->values) && Empty(v->names); }
 

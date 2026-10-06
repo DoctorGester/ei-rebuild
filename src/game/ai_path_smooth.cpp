@@ -48,45 +48,8 @@ void FreeAll(PathCellList* list) {
 
 } // namespace
 
-void SmoothPool::SetSize(int size, int growByArg) {
-    if (growByArg != -1) nodes.growBy = growByArg;
-    if (size == 0) {
-        if (nodes.data) {
-            gamecrt::operator_delete(nodes.data);
-            nodes.data = nullptr;
-        }
-        nodes.capacity = 0;
-        nodes.size = 0;
-        return;
-    }
-    if (!nodes.data) {
-        nodes.data = static_cast<SmoothNode*>(gamecrt::operator_new(size * sizeof(SmoothNode)));
-        for (int i = 0; i < size; ++i) nodes.data[i] = SmoothNode{0, nullptr};
-        nodes.capacity = size;
-        nodes.size = size;
-        return;
-    }
-    if (size <= nodes.capacity) {
-        for (int i = nodes.size; i < size; ++i) nodes.data[i] = SmoothNode{0, nullptr};
-        nodes.size = size;
-        return;
-    }
-    int grow = nodes.growBy;
-    if (grow == 0) {
-        grow = nodes.size / 8;
-        if (grow < 4) grow = 4;
-        else if (grow > 1024) grow = 1024;
-    }
-    int newMax = nodes.capacity + grow;
-    if (newMax <= size) newMax = size;
-    auto* data = static_cast<SmoothNode*>(gamecrt::operator_new(newMax * sizeof(SmoothNode)));
-    for (int i = 0; i < nodes.size; ++i) data[i] = nodes.data[i];
-    for (int i = nodes.size; i < size; ++i) data[i] = SmoothNode{0, nullptr};
-    gamecrt::operator_delete(nodes.data);
-    nodes.size = size;
-    nodes.data = data;
-    nodes.capacity = newMax;
-}
+// CArray<SmoothNode>::SetSize (mfc::CArray: new nodes zeroed, nothing destroyed).
+void SmoothPool::SetSize(int size, int growByArg) { nodes.SetSize(size, growByArg); }
 EI_REPLACE_METHOD(0x005C4C20, SmoothPool::SetSize);
 
 void PathSmoother::Relax(const SmoothStep* step, const SmoothState* from, SmoothState* to) {

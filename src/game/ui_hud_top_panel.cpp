@@ -25,7 +25,7 @@ float FloatFromBits(std::uint32_t bits) {
 }
 
 // The message log, the battle screen's child window 9.
-void* MessageLog(CBattleScreen* screen) { return screen->children_.data_[9]; }
+void* MessageLog(CBattleScreen* screen) { return screen->children_.data[9]; }
 
 } // namespace
 

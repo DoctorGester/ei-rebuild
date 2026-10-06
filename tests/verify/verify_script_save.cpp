@@ -93,8 +93,8 @@ void __fastcall GroupsSaveVerify(const ScriptNamedValues<ScriptGroup>* self, voi
 }
 
 // 004CAEC0 (__fastcall): SUB ESP,8; PUSH EBX; MOV EBX,ECX (6 bytes).
-void(__fastcall* s_areasSave)(const MfcArray<ScriptArea>*, ScriptStream*);
-void __fastcall AreasSaveVerify(const MfcArray<ScriptArea>* self, ScriptStream* stream) {
+void(__fastcall* s_areasSave)(const mfc::CArray<ScriptArea>*, ScriptStream*);
+void __fastcall AreasSaveVerify(const mfc::CArray<ScriptArea>* self, ScriptStream* stream) {
     CaptureStream expected, actual;
     s_areasSave(self, &expected);
     ScriptAreasSave(self, &actual);

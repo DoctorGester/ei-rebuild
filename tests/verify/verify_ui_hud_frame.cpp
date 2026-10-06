@@ -32,7 +32,7 @@ ClockCopy CopyClock(CHudClock* clock) {
     std::memcpy(&c.blink, &clock->blink_, 4);
     std::memcpy(&c.dial, &clock->dial_, 4);
     std::memcpy(&c.interfaceSpeed, reinterpret_cast<std::uint8_t*>(clock->interface_) + 0x94, 4);
-    auto bytes = [&](int k) { return reinterpret_cast<std::uint8_t*>(clock->sceneObjects_.data_[k]); };
+    auto bytes = [&](int k) { return reinterpret_cast<std::uint8_t*>(clock->sceneObjects_.data[k]); };
     for (int k = 0; k < 6; ++k) std::memcpy(c.rotation[k], bytes(k) + 0x34, 16);
     for (int k = 1; k < 6; ++k) std::memcpy(c.position[k], bytes(k) + 0x1C, 12);
     std::memcpy(c.faceTint, bytes(0) + 0x224, 12);
@@ -116,7 +116,7 @@ TopCopy CopyTop(CHudTopPanel* panel) {
     c.sliding = panel->sliding_;
     c.offset = panel->offset_;
     std::memcpy(&c.slide, &panel->slide_, 4);
-    auto* sling = reinterpret_cast<std::uint8_t*>(panel->sceneObjects_.data_[2]);
+    auto* sling = reinterpret_cast<std::uint8_t*>(panel->sceneObjects_.data[2]);
     std::memcpy(c.slingRotation, sling + 0x34, 16);
     std::memcpy(c.slingPosition, sling + 0x1C, 12);
     auto* shared = reinterpret_cast<std::uint8_t*>(panel->interface_);

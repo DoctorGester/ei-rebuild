@@ -28,11 +28,11 @@ constexpr char kNewLine[] = {'\n', '\0'};                           // 00784340
 constexpr std::uint32_t kRed = 0x0000FF;                             // COLORREF
 
 // The panel's scene object `index` (the HUD's are interface sprites).
-CUiMesh* Sprite(CUiWindow* window, int index) { return reinterpret_cast<CUiMesh*>(window->sceneObjects_.data_[index]); }
+CUiMesh* Sprite(CUiWindow* window, int index) { return reinterpret_cast<CUiMesh*>(window->sceneObjects_.data[index]); }
 
 // Text into the panel's first surface (005FDE20, Rebirth-patched: through its address).
 void DrawPanelText(CUiWindow* window, const char* text, RECT rect, std::uint32_t colour, int a, int b) {
-    SurfaceDrawText(window->surfaces_.data_[0], nullptr, text, &rect, 0, colour, a, b);
+    SurfaceDrawText(window->surfaces_.data[0], nullptr, text, &rect, 0, colour, a, b);
 }
 
 // A horizontal bar sprite filled to `ratio` (0..1): its right edge moves to ratio - 0.5 and its
@@ -62,7 +62,7 @@ bool BarRatio(int value, int maximum, float* ratio) {
 }
 
 // The battle screen's message log (its tenth child window).
-CUiScrollText* MessageLog(CBattleScreen* screen) { return static_cast<CUiScrollText*>(screen->children_.data_[9]); }
+CUiScrollText* MessageLog(CBattleScreen* screen) { return static_cast<CUiScrollText*>(screen->children_.data[9]); }
 
 // The local view's order setting a unit's +0x438 flag (0066AF30, thiscall; sends it to the server).
 struct LocalViewOrders {
@@ -238,16 +238,16 @@ EI_REPLACE_METHOD(0x0064A7A0, CHudTopPanel::ShowItems);
 void CHudTopPanel::Layout() {
     // Place (005E6FA0) is Rebirth-patched: through its address.
     float offset = static_cast<float>(offset_);
-    SpritePlaceOriginal(sceneObjects_.data_[0], nullptr, 400.0f, 57.5f - offset, 20.0f);
-    SpritePlaceOriginal(sceneObjects_.data_[1], nullptr, 400.0f, 10.0f - offset, 20.0f);
-    SpritePlaceOriginal(sceneObjects_.data_[3], nullptr, 200.0f, 10.0f - offset, 10.0f);
-    SpritePlaceOriginal(sceneObjects_.data_[4], nullptr, 230.0f, 10.0f - offset, 10.0f);
-    SpritePlaceOriginal(sceneObjects_.data_[5], nullptr, 400.0f, 47.5f - offset, 18.0f);
+    SpritePlaceOriginal(sceneObjects_.data[0], nullptr, 400.0f, 57.5f - offset, 20.0f);
+    SpritePlaceOriginal(sceneObjects_.data[1], nullptr, 400.0f, 10.0f - offset, 20.0f);
+    SpritePlaceOriginal(sceneObjects_.data[3], nullptr, 200.0f, 10.0f - offset, 10.0f);
+    SpritePlaceOriginal(sceneObjects_.data[4], nullptr, 230.0f, 10.0f - offset, 10.0f);
+    SpritePlaceOriginal(sceneObjects_.data[5], nullptr, 400.0f, 47.5f - offset, 18.0f);
     RECT rect{190, 25 - offset_, 610, 89 - offset_};
     MessageLog(owner_)->CallSetRect(&rect);
-    for (int i = 1; i < regions_.size_; ++i) {
-        regions_.data_[i]->offsetX_ = 0;
-        regions_.data_[i]->offsetY_ = -offset_;
+    for (int i = 1; i < regions_.size; ++i) {
+        regions_.data[i]->offsetX_ = 0;
+        regions_.data[i]->offsetY_ = -offset_;
     }
 }
 EI_REPLACE_METHOD(0x00649E20, CHudTopPanel::Layout);

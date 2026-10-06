@@ -42,17 +42,17 @@ void AppendText(std::vector<std::uint8_t>& out, const char* s) {
 std::vector<std::uint8_t> PanelState(CUiWindow* panel) {
     std::vector<std::uint8_t> out;
     Append(out, reinterpret_cast<const std::uint8_t*>(panel) + 0x14C, 12);
-    Append(out, &panel->sceneObjects_.size_, 4);
-    for (int i = 0; i < panel->sceneObjects_.size_; ++i) {
-        auto* sprite = reinterpret_cast<const std::uint8_t*>(panel->sceneObjects_.data_[i]);
+    Append(out, &panel->sceneObjects_.size, 4);
+    for (int i = 0; i < panel->sceneObjects_.size; ++i) {
+        auto* sprite = reinterpret_cast<const std::uint8_t*>(panel->sceneObjects_.data[i]);
         if (!sprite) continue;
         Append(out, sprite + 0x1C, 12);    // local position
         Append(out, sprite + 0x34, 16);    // local rotation
         Append(out, sprite + 0xCC, 16);    // texture corner, -1, colour
     }
-    Append(out, &panel->regions_.size_, 4);
-    for (int i = 0; i < panel->regions_.size_; ++i) {
-        const CUiRegion* region = panel->regions_.data_[i];
+    Append(out, &panel->regions_.size, 4);
+    for (int i = 0; i < panel->regions_.size; ++i) {
+        const CUiRegion* region = panel->regions_.data[i];
         if (!region) continue;
         Append(out, &region->bounds_, sizeof(region->bounds_));
         const std::uint8_t* tip = reinterpret_cast<const std::uint8_t*>(region->tip_);

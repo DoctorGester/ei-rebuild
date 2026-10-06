@@ -336,9 +336,9 @@ __declspec(naked) void CObjectivesWindow::RefreshQuests() EI_ORIGINAL(0x0064E8B0
 void CObjectivesWindow::ShowZone(const char* zone) {
     *reinterpret_cast<mfc::CString*>(&shownZone_) = zone;
     // Drop what the previous zone added: its picture texture, exit markers and exit regions.
-    while (objects_.size_ > 2) RemoveObjectAt(2);
-    while (sceneObjects_.size_ > 0x15) RemoveSceneObjectAt(0x15);
-    while (regions_.size_ > 9) RemoveRegionAt(9);
+    while (objects_.size > 2) RemoveObjectAt(2);
+    while (sceneObjects_.size > 0x15) RemoveSceneObjectAt(0x15);
+    while (regions_.size > 9) RemoveRegionAt(9);
 
     ZoneView* map = FindZone(shownZone_);
     if (!map) {
@@ -357,11 +357,11 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     float halfWidth = Store(widthShare * kPictureHalf);
     int u1 = GameFtol(widthShare * kTexels);
     int v0 = GameFtol((1.0f - D(heightShare)) * kTexels);
-    CUiMesh* picture = reinterpret_cast<CUiMesh*>(sceneObjects_.data_[3]);
+    CUiMesh* picture = reinterpret_cast<CUiMesh*>(sceneObjects_.data[3]);
     picture->SetRectangle(10.0f, 100.0f, Store(kPictureCentreX - D(halfWidth)), Store(kPictureCentreY - D(halfHeight)),
                           Store(D(halfWidth) + kPictureCentreX), Store(D(halfHeight) + kPictureCentreY), 0, v0, u1,
                           0x100);
-    SetSpriteTexture(picture, objects_.data_[2]);
+    SetSpriteTexture(picture, objects_.data[2]);
 
     // The exits that lead somewhere: a marker (triangle pointing out of the picture) and a region.
     float nearest = Bits(kFarAway);
@@ -455,8 +455,8 @@ void CObjectivesWindow::ShowZone(const char* zone) {
     }
     SelectExit(nearestExit_);
     if (twoButtons_ != 0 && !anyKnown) {
-        reinterpret_cast<CUiMesh*>(sceneObjects_.data_[0])->visible_ = 0;
-        regions_.data_[0]->SetTip(0, 1, 0);
+        reinterpret_cast<CUiMesh*>(sceneObjects_.data[0])->visible_ = 0;
+        regions_.data[0]->SetTip(0, 1, 0);
     }
 
     // The quests: the player's variables "q.<zone>.<quest>" that are not 0, sorted by name.
@@ -512,7 +512,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
             if (foundText) {
                 Texts()->ReadLine(&title, 1);
                 Texts()->ReadToHash(&text, 1);
-                auto* surface = reinterpret_cast<SurfaceDraw*>(surfaces_.data_[1]);
+                auto* surface = reinterpret_cast<SurfaceDraw*>(surfaces_.data[1]);
                 surface->Begin();
                 surface->Clear();
                 RECT titleRect = {0, 5, 340, 25};
@@ -576,7 +576,7 @@ void CObjectivesWindow::ShowQuest() {
     mfc::CString variable;
     if (shownQuest_ == selectedQuest_) return;
     shownQuest_ = selectedQuest_;
-    LogClear(children_.data_[0]);
+    LogClear(children_.data[0]);
     auto* quests = reinterpret_cast<CStringArray*>(quests_);
     if (selectedQuest_ < 0 || selectedQuest_ >= quests->GetSize()) return;
     LastQuest() = (*quests)[selectedQuest_];
@@ -645,14 +645,14 @@ void CObjectivesWindow::ShowQuest() {
         text += GameText(0x007946A4);
     }
     ReaderClose(texts);
-    LogSetTextOriginal(children_.data_[0], nullptr, text);
+    LogSetTextOriginal(children_.data[0], nullptr, text);
 
     // The quest's places on the zone picture: a red marker and a region each, after the exits'.
     ZoneView* map = FindZone(shownZone_);
     if (!map) return;
     FillQuestPlaces(this, nullptr, (*quests)[selectedQuest_]);
-    while (sceneObjects_.size_ > exitCount_ + 0x15) RemoveSceneObjectAt(exitCount_ + 0x15);
-    while (regions_.size_ > exitCount_ + 9) RemoveRegionAt(exitCount_ + 9);
+    while (sceneObjects_.size > exitCount_ + 0x15) RemoveSceneObjectAt(exitCount_ + 0x15);
+    while (regions_.size > exitCount_ + 9) RemoveRegionAt(exitCount_ + 9);
     const float red[3] = {1.0f, 0.0f, 0.0f};
     for (unsigned i = 0; i < static_cast<unsigned>(questPlacesEnd_ - questPlacesBegin_); ++i) {
         float worldWidth = Store(static_cast<double>(map->width << 5));
@@ -668,7 +668,7 @@ void CObjectivesWindow::ShowQuest() {
         float top = Store(D(y) - kMarkerHalfWidth);
         float left = Store(D(x) - kMarkerHalfWidth);
         marker->SetRectangle(5.0f, 100.0f, left, top, right, bottom, 0, 0, 0x80, 0x80);
-        SetSpriteTexture(marker, objects_.data_[1]);
+        SetSpriteTexture(marker, objects_.data[1]);
         std::memcpy(reinterpret_cast<std::uint8_t*>(marker) + 0x224, red, sizeof(red));
         CUiRegion* region = AddRegion();
         int bottomPixel = GameFtol(D(bottom));
@@ -763,7 +763,7 @@ void CObjectivesWindow::Build() {
         mark->SetRectangle(2.8f, 100.0f, 62.0f, static_cast<float>(top), 79.0f, static_cast<float>(top + 22), 4,
                            0xA4, 0x48, 0xFC);
         mark->visible_ = 0;
-        SetSpriteTexture(mark, objects_.data_[1]);
+        SetSpriteTexture(mark, objects_.data[1]);
     }
 
     // Regions 0-3: the buttons and the two arrows; 4-8: the list rows.
@@ -834,10 +834,10 @@ void CObjectivesWindow::Build() {
                 break;
             }
         if (zones->Size() > 1) {
-            reinterpret_cast<CUiMesh*>(sceneObjects_.data_[14])->visible_ = 1;
-            reinterpret_cast<CUiMesh*>(sceneObjects_.data_[15])->visible_ = 1;
-            regions_.data_[2]->SetTip(0x13948, 1, 0);
-            regions_.data_[3]->SetTip(0x13949, 1, 0);
+            reinterpret_cast<CUiMesh*>(sceneObjects_.data[14])->visible_ = 1;
+            reinterpret_cast<CUiMesh*>(sceneObjects_.data[15])->visible_ = 1;
+            regions_.data[2]->SetTip(0x13948, 1, 0);
+            regions_.data[3]->SetTip(0x13949, 1, 0);
         }
         ShowZone(zones->begin[zoneIndex_]);
         table->~VariableTable();
@@ -848,9 +848,9 @@ void CObjectivesWindow::DrawQuestList() {
     CTextManager* texts = Texts();
     mfc::CString title;
     mfc::CString variable;
-    auto mesh = [this](int index) { return reinterpret_cast<CUiMesh*>(sceneObjects_.data_[index]); };
+    auto mesh = [this](int index) { return reinterpret_cast<CUiMesh*>(sceneObjects_.data[index]); };
     mesh(2)->visible_ = 0;
-    void* surface = surfaces_.data_[0];
+    void* surface = surfaces_.data[0];
     SurfaceGetDC(surface);
     SurfaceClearOriginal(surface);
     for (int i = 16; i < 21; ++i) mesh(i)->visible_ = 0;

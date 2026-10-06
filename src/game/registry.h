@@ -18,6 +18,7 @@
 
 #include <cstdint>
 
+#include "../lib/containers.h"
 #include "../lib/mfc.h"
 #include "resource.h"
 
@@ -25,14 +26,9 @@ namespace console {
 class CStringArray;
 }
 
-// An MFC-style array of dwords on a 32-byte aligned block (the raw block pointer is stored just
-// before the data): CArray<int> / CArray<float> as the registry fills them.
-struct DwordArray {
-    std::uint32_t* data;    // +0x00
-    int size;               // +0x04
-    int capacity;           // +0x08
-    int growBy;             // +0x0C 0: an eighth of the size, 4..1024
-};
+// The int / float arrays the registry fills: engine aligned arrays of dwords (lib::AlignedArray;
+// the inlined SetSize allocates through 00453A10 / 004D9ED0).
+using DwordArray = lib::AlignedArray<std::uint32_t>;
 
 enum RegistryType : std::uint8_t {
     kRegInt = 0,

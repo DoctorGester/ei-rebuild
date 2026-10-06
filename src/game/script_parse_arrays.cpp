@@ -44,7 +44,7 @@ const ElementKind kLooks{sizeof(AILook), ConstructLooks, nullptr, nullptr};
 
 // Grows `array` by one element and returns the old size (the new element's index).
 template <typename T>
-int Append(MfcArray<T>* array, const ElementKind& kind) {
+int Append(mfc::CArray<T>* array, const ElementKind& kind) {
     int index = array->size;
     InlineSetSize(Raw(array), index + 1, kind);
     return index;
@@ -52,14 +52,14 @@ int Append(MfcArray<T>* array, const ElementKind& kind) {
 
 } // namespace
 
-int __fastcall ScriptBindingsAdd(MfcArray<ScriptBinding>* array, void*, const ScriptBinding* binding) {
+int __fastcall ScriptBindingsAdd(mfc::CArray<ScriptBinding>* array, void*, const ScriptBinding* binding) {
     int index = Append(array, kBindings);
     array->data[index] = *binding;
     return index;
 }
 EI_REPLACE(0x004D5B50, ScriptBindingsAdd);
 
-int __fastcall ScriptSubCallsAdd(MfcArray<ScriptSubCall>* array, void*, const ScriptSubCall* call) {
+int __fastcall ScriptSubCallsAdd(mfc::CArray<ScriptSubCall>* array, void*, const ScriptSubCall* call) {
     int index = Append(array, kSubCalls);
     ScriptSubCall& element = array->data[index];
     element.type = call->type;
@@ -69,20 +69,20 @@ int __fastcall ScriptSubCallsAdd(MfcArray<ScriptSubCall>* array, void*, const Sc
 }
 EI_REPLACE(0x004D5CB0, ScriptSubCallsAdd);
 
-int __fastcall ScriptCmdsAdd(MfcArray<SSCCmd>* array, void*, const SSCCmd* cmd) {
+int __fastcall ScriptCmdsAdd(mfc::CArray<SSCCmd>* array, void*, const SSCCmd* cmd) {
     int index = Append(array, kCmds);
     ScriptCmdAssign(&array->data[index], nullptr, cmd);
     return index;
 }
 EI_REPLACE(0x004D5ED0, ScriptCmdsAdd);
 
-void __fastcall ScriptCmdsSetAtGrow(MfcArray<SSCCmd>* array, void*, int index, const SSCCmd* cmd) {
+void __fastcall ScriptCmdsSetAtGrow(mfc::CArray<SSCCmd>* array, void*, int index, const SSCCmd* cmd) {
     if (index >= array->size) InlineSetSize(Raw(array), index + 1, kCmds);
     ScriptCmdAssign(&array->data[index], nullptr, cmd);
 }
 EI_REPLACE(0x004D65E0, ScriptCmdsSetAtGrow);
 
-int __fastcall ScriptDefinitionsAdd(MfcArray<ScriptDefinition>* array, void*, const ScriptDefinition* definition) {
+int __fastcall ScriptDefinitionsAdd(mfc::CArray<ScriptDefinition>* array, void*, const ScriptDefinition* definition) {
     int index = Append(array, kDefinitions);
     ScriptDefinitionAssign(&array->data[index], nullptr, definition);   // inlined in the original
     return index;
@@ -111,7 +111,7 @@ EI_REPLACE(0x004D5A90, ScriptFindVariableName);
 EI_REPLACE(0x004D5AD0, ScriptFindVariableName);
 EI_REPLACE(0x004D5B10, ScriptFindVariableName);
 
-MfcArray<SSCCmd>* __fastcall ScriptCmdArrayConstruct(MfcArray<SSCCmd>* array) {
+mfc::CArray<SSCCmd>* __fastcall ScriptCmdArrayConstruct(mfc::CArray<SSCCmd>* array) {
     array->data = nullptr;
     array->growBy = 0;
     array->maxSize = 0;
@@ -121,7 +121,7 @@ MfcArray<SSCCmd>* __fastcall ScriptCmdArrayConstruct(MfcArray<SSCCmd>* array) {
 }
 EI_REPLACE(0x004D5A10, ScriptCmdArrayConstruct);
 
-MfcArray<ScriptIfThen>* __fastcall ScriptIfThenArrayConstruct(MfcArray<ScriptIfThen>* array) {
+mfc::CArray<ScriptIfThen>* __fastcall ScriptIfThenArrayConstruct(mfc::CArray<ScriptIfThen>* array) {
     array->data = nullptr;
     array->growBy = 0;
     array->maxSize = 0;
@@ -131,19 +131,19 @@ MfcArray<ScriptIfThen>* __fastcall ScriptIfThenArrayConstruct(MfcArray<ScriptIfT
 }
 EI_REPLACE(0x004D5A30, ScriptIfThenArrayConstruct);
 
-void __fastcall ScriptNamesSetAtGrow(MfcArray<mfc::CString>* array, void*, int index, const mfc::CString* text) {
+void __fastcall ScriptNamesSetAtGrow(mfc::CArray<mfc::CString>* array, void*, int index, const mfc::CString* text) {
     if (index >= array->size) InlineSetSize(Raw(array), index + 1, kStrings);
     array->data[index] = *text;
 }
 EI_REPLACE(0x004CE5F0, ScriptNamesSetAtGrow);
 
-void __fastcall ScriptStringsCopyTo(const MfcArray<mfc::CString>* array, void*, int index, mfc::CString* out) {
+void __fastcall ScriptStringsCopyTo(const mfc::CArray<mfc::CString>* array, void*, int index, mfc::CString* out) {
     mfc::CString copy(array->data[index]);   // the by-value GetAt (004C2680)
     *out = copy;
 }
 EI_REPLACE(0x004C2F80, ScriptStringsCopyTo);
 
-void __fastcall ScriptLooksSetAtGrow(MfcArray<AILook>* array, void*, int index, const AILook* look) {
+void __fastcall ScriptLooksSetAtGrow(mfc::CArray<AILook>* array, void*, int index, const AILook* look) {
     if (index >= array->size) InlineSetSize(Raw(array), index + 1, kLooks);
     array->data[index] = *look;
 }

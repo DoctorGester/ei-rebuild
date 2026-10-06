@@ -44,8 +44,8 @@ EI_VERIFY(0x005F5BA0, CreateScreenVerify, 0, s_unused);
 static CEngineObject* __fastcall ReplaceSceneObjectVerify(CUiWindow* self, void*, CEngineObject* object,
                                                           const char* name) {
     int index = -1;
-    for (int i = 0; i < self->sceneObjects_.size_; ++i)
-        if (self->sceneObjects_.data_[i] == object) {
+    for (int i = 0; i < self->sceneObjects_.size; ++i)
+        if (self->sceneObjects_.data[i] == object) {
             index = i;
             break;
         }
@@ -54,20 +54,20 @@ static CEngineObject* __fastcall ReplaceSceneObjectVerify(CUiWindow* self, void*
         std::memcpy(placement, reinterpret_cast<std::uint8_t*>(object) + 0x1C, 12);
         std::memcpy(placement + 12, reinterpret_cast<std::uint8_t*>(object) + 0x34, 16);
     }
-    int count = self->sceneObjects_.size_;
+    int count = self->sceneObjects_.size;
     CEngineObject* made = self->ReplaceSceneObject(object, name);
     if (index < 0 || !made) {
-        ei::verify::Check("CUiWindow::ReplaceSceneObject", true, made == nullptr && self->sceneObjects_.size_ == count,
+        ei::verify::Check("CUiWindow::ReplaceSceneObject", true, made == nullptr && self->sceneObjects_.size == count,
                           "%s: index %d, made %p", name, index, made);
         return made;
     }
     std::uint8_t now[28];
     std::memcpy(now, reinterpret_cast<std::uint8_t*>(made) + 0x1C, 12);
     std::memcpy(now + 12, reinterpret_cast<std::uint8_t*>(made) + 0x34, 16);
-    bool ok = self->sceneObjects_.size_ == count && self->sceneObjects_.data_[index] == made &&
+    bool ok = self->sceneObjects_.size == count && self->sceneObjects_.data[index] == made &&
               std::memcmp(now, placement, sizeof(now)) == 0;
     ei::verify::Check("CUiWindow::ReplaceSceneObject", true, ok, "%s: index %d, count %d -> %d", name, index, count,
-                      self->sceneObjects_.size_);
+                      self->sceneObjects_.size);
     return made;
 }
 EI_VERIFY(0x005FF460, ReplaceSceneObjectVerify, 0, s_unused);
@@ -78,12 +78,12 @@ static void __fastcall DestroyBaseVerify(CUiWindow* self, void*) {
     self->DestroyBase();
     std::uint32_t held[3];
     std::memcpy(held, reinterpret_cast<std::uint8_t*>(self) + 0xEC, sizeof(held));
-    bool ok = held[0] == 0 && held[1] == 0 && held[2] == 0 && !self->objects_.data_ && self->objects_.size_ == 0 &&
-              !self->sceneObjects_.data_ && self->sceneObjects_.size_ == 0 && !self->surfaces_.data_ &&
-              !self->regions_.data_ && !self->models_.data_;
+    bool ok = held[0] == 0 && held[1] == 0 && held[2] == 0 && !self->objects_.data && self->objects_.size == 0 &&
+              !self->sceneObjects_.data && self->sceneObjects_.size == 0 && !self->surfaces_.data &&
+              !self->regions_.data && !self->models_.data;
     ei::verify::Check("CUiWindow::DestroyBase", true, ok, "objects %d scene %d surfaces %d regions %d models %d",
-                      self->objects_.size_, self->sceneObjects_.size_, self->surfaces_.size_, self->regions_.size_,
-                      self->models_.size_);
+                      self->objects_.size, self->sceneObjects_.size, self->surfaces_.size, self->regions_.size,
+                      self->models_.size);
 }
 EI_VERIFY(0x005FE930, DestroyBaseVerify, 0, s_unused);
 
@@ -95,8 +95,8 @@ static CUiWindow* __fastcall WindowConstructVerify(CUiWindow* self, void*, CInte
     std::memcpy(materials, reinterpret_cast<std::uint8_t*>(self) + 0xEC, sizeof(materials));
     bool ok = result == self && self->vtable_ == reinterpret_cast<void**>(0x00740F60) &&
               self->inputVtable_ == reinterpret_cast<void**>(0x00740F2C) && self->interface_ == ui &&
-              !self->objects_.data_ && !self->sceneObjects_.data_ && !self->surfaces_.data_ && !self->regions_.data_ &&
-              !self->models_.data_ && materials[0] && materials[1];
+              !self->objects_.data && !self->sceneObjects_.data && !self->surfaces_.data && !self->regions_.data &&
+              !self->models_.data && materials[0] && materials[1];
     ei::verify::Check("CUiWindow::Construct", true, ok, "vtable %p interface %p materials %08X %08X", self->vtable_,
                       self->interface_, materials[0], materials[1]);
     return result;
@@ -105,11 +105,11 @@ EI_VERIFY(0x005FE700, WindowConstructVerify, 0, s_unused);
 
 // 00600D30: ours only. A child is appended (null leaves the list alone).
 static void __fastcall AddChildVerify(CUiContainer* self, void*, CUiWindow* child) {
-    int before = self->children_.size_;
+    int before = self->children_.size;
     self->AddChild(child);
-    bool ok = child ? self->children_.size_ == before + 1 && self->children_.data_[before] == child
-                    : self->children_.size_ == before;
-    ei::verify::Check("CUiContainer::AddChild", true, ok, "children %d -> %d", before, self->children_.size_);
+    bool ok = child ? self->children_.size == before + 1 && self->children_.data[before] == child
+                    : self->children_.size == before;
+    ei::verify::Check("CUiContainer::AddChild", true, ok, "children %d -> %d", before, self->children_.size);
 }
 EI_VERIFY(0x00600D30, AddChildVerify, 0, s_unused);
 
@@ -162,8 +162,8 @@ static void* __fastcall Screen8ConstructVerify(void* self, void*, CInterface3D* 
 EI_VERIFY(0x005F6D50, Screen8ConstructVerify, 0, s_unused);
 static void __fastcall Screen8DestroyVerify(void* self) {
     Screen8Destroy(self);
-    ei::verify::Check("Screen8Destroy", true, !static_cast<CUiWindow*>(self)->sceneObjects_.data_, "scene %p",
-                      static_cast<CUiWindow*>(self)->sceneObjects_.data_);
+    ei::verify::Check("Screen8Destroy", true, !static_cast<CUiWindow*>(self)->sceneObjects_.data, "scene %p",
+                      static_cast<CUiWindow*>(self)->sceneObjects_.data);
 }
 EI_VERIFY(0x005F6E40, Screen8DestroyVerify, 0, s_unused);
 
@@ -208,10 +208,10 @@ EI_VERIFY(0x005F8C90, MessageTextVerify, 7, s_messageText);
 
 // 006005F0: ours only (it may reallocate). The item is stored and the array is long enough.
 static void __fastcall SetAtGrowVerify(UiPtrArray<CEngineObject>* self, void*, int index, CEngineObject* item) {
-    int before = self->size_;
+    int before = self->size;
     self->SetAtGrow(index, item);
-    bool ok = self->data_[index] == item && self->size_ == (index >= before ? index + 1 : before);
-    ei::verify::Check("UiPtrArray::SetAtGrow", true, ok, "index %d size %d -> %d", index, before, self->size_);
+    bool ok = self->data[index] == item && self->size == (index >= before ? index + 1 : before);
+    ei::verify::Check("UiPtrArray::SetAtGrow", true, ok, "index %d size %d -> %d", index, before, self->size);
 }
 EI_VERIFY(0x006005F0, SetAtGrowVerify, 0, s_unused);
 

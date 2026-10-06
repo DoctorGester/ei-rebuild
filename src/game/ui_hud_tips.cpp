@@ -76,7 +76,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
     ClearSceneObjects();
     count_ = 0;
     selected_ = -1;
-    for (int i = 0; i < 4; ++i) regions_.data_[i]->SetTip(0, 1, 0);
+    for (int i = 0; i < 4; ++i) regions_.data[i]->SetTip(0, 1, 0);
     if (!unit_) return;
 
     for (unsigned slot = 0; slot < 4; ++slot) {
@@ -121,7 +121,7 @@ void CHudWeaponBar::SetUnit(CUnit* unit) {
             line.Format(GameText(0x00787C18), labels_[3], static_cast<const char*>(description));   // "%s %s\n"
             tip += line;
         }
-        regions_.data_[slot]->SetTipString(tip, 1, static_cast<int>(slot) + 0x26);
+        regions_.data[slot]->SetTipString(tip, 1, static_cast<int>(slot) + 0x26);
     }
     selected_ = static_cast<int>(unit_->unknown_270);
     if (selected_ >= count_) selected_ = -1;
@@ -215,10 +215,10 @@ void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
     DwordArraySetSize(&actions_, nullptr, 0, -1);
     count_ = 0;
     selected_ = -1;
-    for (int i = 0; i < 6; ++i) regions_.data_[i]->SetTip(0, 1, 0);
+    for (int i = 0; i < 6; ++i) regions_.data[i]->SetTip(0, 1, 0);
     if (static_cast<std::uint8_t>(extra) != 0) {
         AddActionButton(this, nullptr, GameText(0x0079457C), GameText(0x00794588), -1);   // "initqi1item", "skill0011"
-        regions_.data_[count_ - 1]->SetTip(0x290E, 1, 0x1C);
+        regions_.data[count_ - 1]->SetTip(0x290E, 1, 0x1C);
     }
     CUnit* shown = unit_;
     if (!shown) return;
@@ -234,6 +234,6 @@ void CHudActionColumn::SetUnit(CUnit* unit, int extra) {
     title.Format(GameText(0x00793044), labels_[0], Get<std::uint8_t>(shown, 0x408));   // "%s %d\n"
     if (TextsOpenSection(Texts(), nullptr, GameText(0x0079454C)) != 0) Texts()->ReadToHash(&hint, 1);   // "tip 10511"
     tip = mfc::operator+(mfc::operator+(mfc::operator+(tip, GameText(0x00784340)), title), hint);   // "\n"
-    regions_.data_[count_ - 1]->SetTipString(tip, 1, 0x1D);
+    regions_.data[count_ - 1]->SetTipString(tip, 1, 0x1D);
 }
 EI_REPLACE_METHOD(0x0063F800, CHudActionColumn::SetUnit);

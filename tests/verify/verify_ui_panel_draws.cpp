@@ -15,7 +15,7 @@ static BOOL __fastcall QuickStripDrawVerify(CHeroQuickStrip* self, void*, int pa
     BOOL result = self->Draw(pass);
     PartyUnitRecord* hero = ShownHero(self->owner_);
     bool selected = self->selected_ >= 0 && self->selected_ < static_cast<int>(hero->spellCount);
-    auto* frame = static_cast<CUiMesh*>(static_cast<void*>(self->sceneObjects_.data_[0]));
+    auto* frame = static_cast<CUiMesh*>(static_cast<void*>(self->sceneObjects_.data[0]));
     ei::verify::Check("CHeroQuickStrip::Draw", true, result == 1 && (frame->visible_ != 0) == selected,
                       "result %d, selected %d of %u, frame %d", result, self->selected_, hero->spellCount,
                       frame->visible_);
@@ -40,7 +40,7 @@ EI_VERIFY(0x00627C90, RepairGridDrawVerify, 0, s_unused);
 // constructor pages need a constructor record (`screen 5 <N>` with a constructor class; not in a
 // scenario yet).
 static void CheckMakerDraw(const char* name, CConstructorPage* self, BOOL result, float pulse) {
-    auto* highlight = static_cast<CUiMesh*>(static_cast<void*>(self->sceneObjects_.data_[4]));
+    auto* highlight = static_cast<CUiMesh*>(static_cast<void*>(self->sceneObjects_.data[4]));
     ei::verify::Check(name, true, result == 1 && highlight->visible_ == 0 && !(self->pulse_ < pulse),
                       "result %d, highlight %d, pulse %f -> %f", result, highlight->visible_, pulse, self->pulse_);
 }

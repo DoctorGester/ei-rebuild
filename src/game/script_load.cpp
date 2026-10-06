@@ -391,7 +391,7 @@ EI_REPLACE(0x004C57C0, ScriptDeclCommandsLoad);
 
 // A definition's if-then pairs: the ids of the condition and command blocks, resolved in the
 // saved script's block lists (FindBlock). The first id defaults to -1 when the read leaves it.
-void __fastcall ScriptIfThenLoad(MfcArray<ScriptIfThen>* pairs, ScriptStream* stream) {
+void __fastcall ScriptIfThenLoad(mfc::CArray<ScriptIfThen>* pairs, ScriptStream* stream) {
     int count = ReadInt(stream);
     InlineSetSize(Raw(pairs), count, kIfThen);
     for (int i = 0; i < pairs->size; ++i) {
@@ -586,7 +586,7 @@ void __fastcall ScriptInstancesLoad(RawList* list, ScriptStream* stream) {
             int index;
             mfc::CString name;
             mfc::CString params;
-            MfcArray<ScriptIfThen> ifThen;
+            mfc::CArray<ScriptIfThen> ifThen;
             ScriptVars vars;
         } temp{};
         temp.ifThen.vtable = reinterpret_cast<void*>(0x0073D430);
@@ -692,7 +692,7 @@ void __fastcall ScriptLoad(CScript* script, void*, ScriptStream* stream) {
     WorldBlocksLoadOrig(&At<RawList>(script, 0x178), stream);
 
     // Definitions (+0x8C).
-    auto& scripts = At<MfcArray<ScriptDefinition>>(script, 0x8C);
+    auto& scripts = At<mfc::CArray<ScriptDefinition>>(script, 0x8C);
     DefinitionsSetSize(&scripts, nullptr, ReadInt(stream), -1);
     for (int i = 0; i < scripts.size; ++i) {
         ScriptDefinition* definition = &scripts.data[i];
@@ -711,7 +711,7 @@ void __fastcall ScriptLoad(CScript* script, void*, ScriptStream* stream) {
     LoadingScript() = nullptr;
 
     if (StreamVersion(stream) < 0x57) return;
-    auto& areas = At<MfcArray<ScriptArea>>(script, 0x194);
+    auto& areas = At<mfc::CArray<ScriptArea>>(script, 0x194);
     AreasSetSize(&areas, nullptr, ReadInt(stream), -1);
     for (int i = 0; i < areas.size; ++i) {
         ScriptArea* area = &areas.data[i];

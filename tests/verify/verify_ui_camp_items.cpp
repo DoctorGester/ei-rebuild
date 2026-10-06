@@ -135,8 +135,8 @@ static void __fastcall ScrollToItemVerify(CUiItemStrip* self, void*, char* item)
     // The list the rebuild rule gives for the tab the strip is on now.
     std::vector<char*> expected;
     bool all = self->filter_ == 0 && self->tab_ == 5;
-    for (int i = 0; i < self->source_->size_; ++i) {
-        char* entry = self->source_->data_[i];
+    for (int i = 0; i < self->source_->size; ++i) {
+        char* entry = self->source_->data[i];
         if (all || self->CUiItemStrip::TabOf(entry) == self->tab_) expected.push_back(entry);
     }
     bool ok = self->list_.size_ == static_cast<int>(expected.size()) && self->pending_ == 0.0f &&

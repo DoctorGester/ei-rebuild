@@ -35,8 +35,8 @@ int QuestPlaces(const CObjectivesWindow* w) { return static_cast<int>(w->questPl
 
 // Regions and sprites beyond the fixed ones and the exits' must be the quest places' (or none).
 bool ExtrasMatch(const CObjectivesWindow* w, int exits) {
-    int regions = w->regions_.size_ - 9 - exits;
-    int sprites = w->sceneObjects_.size_ - 0x15 - exits;
+    int regions = w->regions_.size - 9 - exits;
+    int sprites = w->sceneObjects_.size - 0x15 - exits;
     return regions == sprites && (regions == 0 || regions == QuestPlaces(w));
 }
 
@@ -45,8 +45,8 @@ bool PageMatches(CObjectivesWindow* w, int expected) { return w->exitCount_ == e
 
 static void __fastcall ObjectivesBuildVerify(CObjectivesWindow* self, void*) {
     int texts = *reinterpret_cast<const int*>(self->objectiveTexts_ + 8);   // CStringArray size
-    int regionsBefore = self->regions_.size_;
-    int spritesBefore = self->sceneObjects_.size_;
+    int regionsBefore = self->regions_.size;
+    int spritesBefore = self->sceneObjects_.size;
     CInterface3D* ui = self->interface_;
     bool pendingBefore = ui->pendingFlag_;
     self->CObjectivesWindow::Build();
@@ -71,8 +71,8 @@ static void __fastcall ObjectivesBuildVerify(CObjectivesWindow* self, void*) {
                       "%s: zone %s list %d texts %d->%d exits %d/%d quest places %d regions %d->%d sprites %d->%d "
                       "pending %d->%d (value %X)",
                       failed, self->shownZone_ ? self->shownZone_ : "?", self->listZones_, texts, textsAfter, expected,
-                      self->exitCount_, QuestPlaces(self), regionsBefore, self->regions_.size_, spritesBefore,
-                      self->sceneObjects_.size_, pendingBefore, ui->pendingFlag_, ui->pendingValue_);
+                      self->exitCount_, QuestPlaces(self), regionsBefore, self->regions_.size, spritesBefore,
+                      self->sceneObjects_.size, pendingBefore, ui->pendingFlag_, ui->pendingValue_);
 }
 EI_VERIFY(0x0064BE80, ObjectivesBuildVerify, 0, s_unused);
 
@@ -85,7 +85,7 @@ static void __fastcall ObjectivesShowZoneVerify(CObjectivesWindow* self, void*, 
     bool ok = expected < 0 ? ui->pendingFlag_ && ui->pendingValue_ == 0
                            : PageMatches(self, expected) && _stricmp(self->shownZone_, name) == 0;
     ei::verify::Check("CObjectivesWindow::ShowZone", true, ok, "exits %d/%d quest places %d regions %d sprites %d",
-                      expected, self->exitCount_, QuestPlaces(self), self->regions_.size_, self->sceneObjects_.size_);
+                      expected, self->exitCount_, QuestPlaces(self), self->regions_.size, self->sceneObjects_.size);
 }
 EI_VERIFY(0x0064CC10, ObjectivesShowZoneVerify, 0, s_unused);
 
@@ -97,8 +97,8 @@ static void __fastcall ObjectivesShowQuestVerify(CObjectivesWindow* self, void*)
     self->CObjectivesWindow::ShowQuest();
     bool ok = self->shownQuest_ == self->selectedQuest_ && ExtrasMatch(self, self->exitCount_);
     ei::verify::Check("CObjectivesWindow::ShowQuest", true, ok, "quest %d->%d (selected %d) places %d regions %d sprites %d",
-                      shownBefore, self->shownQuest_, self->selectedQuest_, QuestPlaces(self), self->regions_.size_,
-                      self->sceneObjects_.size_);
+                      shownBefore, self->shownQuest_, self->selectedQuest_, QuestPlaces(self), self->regions_.size,
+                      self->sceneObjects_.size);
 }
 EI_VERIFY(0x0064DC60, ObjectivesShowQuestVerify, 0, s_unused);
 
@@ -121,9 +121,9 @@ static void __fastcall ObjectivesDrawQuestListVerify(CObjectivesWindow* self, vo
             shown = state == 2 || state == 3;
             cursor = cursor || row == self->selectedQuest_;
         }
-        ok = ok && (reinterpret_cast<CUiMesh*>(self->sceneObjects_.data_[16 + i])->visible_ != 0) == shown;
+        ok = ok && (reinterpret_cast<CUiMesh*>(self->sceneObjects_.data[16 + i])->visible_ != 0) == shown;
     }
-    ok = ok && (reinterpret_cast<CUiMesh*>(self->sceneObjects_.data_[2])->visible_ != 0) == cursor;
+    ok = ok && (reinterpret_cast<CUiMesh*>(self->sceneObjects_.data[2])->visible_ != 0) == cursor;
     ei::verify::Check("CObjectivesWindow::DrawQuestList", true, ok, "%d quests from %d, selected %d", count,
                       self->unknown_1C0, self->selectedQuest_);
 }

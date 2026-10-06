@@ -92,13 +92,13 @@ bool Same(const TweenArray& a, const TweenArray& b) {
 
 // ---- TriangleIndexArray helpers ---------------------------------------------------------------
 
-std::uint16_t* AllocTriangles(int count) {
+IndexTriangle* AllocTriangles(int count) {
     char* block = static_cast<char*>(gamecrt::operator_new(static_cast<unsigned>(count * 3 + 0x12) * 2));
-    auto* data = reinterpret_cast<std::uint16_t*>(reinterpret_cast<std::uintptr_t>(block + 0x23) & ~std::uintptr_t(0x1F));
+    auto* data = reinterpret_cast<IndexTriangle*>(reinterpret_cast<std::uintptr_t>(block + 0x23) & ~std::uintptr_t(0x1F));
     reinterpret_cast<char**>(data)[-1] = block;
     return data;
 }
-void FreeTriangles(std::uint16_t* data) {
+void FreeTriangles(IndexTriangle* data) {
     if (data) gamecrt::operator_delete(reinterpret_cast<char**>(data)[-1]);
 }
 
@@ -177,7 +177,7 @@ static void __fastcall ResizeVerify(TriangleIndexArray* self, void*, int count, 
     }
     int oldSize = self->size;
     s_resize(&scratch, nullptr, count, growBy);
-    self->Resize(count, growBy);
+    self->SetSize(count, growBy);
     int kept = oldSize < self->size ? oldSize : self->size;
     bool same = scratch.size == self->size && scratch.capacity == self->capacity && scratch.growBy == self->growBy &&
                 !scratch.data == !self->data &&

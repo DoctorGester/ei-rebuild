@@ -39,9 +39,9 @@ std::vector<std::uint8_t> QuickItemsState(CHudQuickItems* panel) {
     Append(out, &panel->entryCount_, 4);
     if (panel->entries_) Append(out, panel->entries_, static_cast<std::size_t>(panel->entryCount_) * 12);
     Append(out, panel->regionItem_, sizeof(panel->regionItem_));
-    Append(out, &panel->sceneObjects_.size_, 4);
-    for (int i = 0; i < panel->sceneObjects_.size_; ++i) {
-        auto* sprite = reinterpret_cast<const std::uint8_t*>(panel->sceneObjects_.data_[i]);
+    Append(out, &panel->sceneObjects_.size, 4);
+    for (int i = 0; i < panel->sceneObjects_.size; ++i) {
+        auto* sprite = reinterpret_cast<const std::uint8_t*>(panel->sceneObjects_.data[i]);
         if (!sprite) continue;
         Append(out, sprite + 0x1C, 12);    // local position
         Append(out, sprite + 0x34, 16);    // local rotation

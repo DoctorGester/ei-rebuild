@@ -107,7 +107,7 @@ struct MapState {
 // Markers 0 .. markerCount + 2 (the zones, quests, links and the three layers) when they exist.
 int MarkerCount(CGlobalMap* self) {
     int n = self->markerCount_ + 3;
-    int available = self->sceneObjects_.size_ - 3;
+    int available = self->sceneObjects_.size - 3;
     return n < available ? n : (available > 0 ? available : 0);
 }
 

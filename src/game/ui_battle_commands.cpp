@@ -161,7 +161,7 @@ void CBattleScreenSetup::ToggleMember(int index) {
     for (int i = 0; i < party->size_; ++i) {
         auto* portraits = static_cast<CHudPortraits*>(portraits_);
         std::uint32_t value = chosen.data_[i];
-        reinterpret_cast<CUiMesh*>(portraits->sceneObjects_.data_[i * 5 + 4])->visible_ = static_cast<int>(value);
+        reinterpret_cast<CUiMesh*>(portraits->sceneObjects_.data[i * 5 + 4])->visible_ = static_cast<int>(value);
         Quaternion turn;
         const Quaternion* rest = reinterpret_cast<const Quaternion*>(0x007C8150);   // identity
         if (value != 0) {

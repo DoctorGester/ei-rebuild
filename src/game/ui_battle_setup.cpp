@@ -212,27 +212,27 @@ void CBattleScreenSetup::Create() {
     void* memory = gamecrt::operator_new(0x16C);
     weaponBar_ = memory ? Raw(memory)->ConstructWeaponBar(interface_, this) : nullptr;
     AddChild(weaponBar_);
-    weaponBar_->AddObject(objects_.data_[0]);
+    weaponBar_->AddObject(objects_.data[0]);
 
     memory = gamecrt::operator_new(0x1A0);
     quickItems_ = memory ? Raw(memory)->ConstructQuickItems(interface_, this) : nullptr;
     AddChild(quickItems_);
-    quickItems_->AddObject(objects_.data_[0]);
+    quickItems_->AddObject(objects_.data[0]);
 
     memory = gamecrt::operator_new(0x16C);
     spellColumn_ = memory ? Raw(memory)->ConstructSpellColumn(interface_, this) : nullptr;
     AddChild(spellColumn_);
-    spellColumn_->AddObject(objects_.data_[1]);
+    spellColumn_->AddObject(objects_.data[1]);
 
     memory = gamecrt::operator_new(0x180);
     actionColumn_ = memory ? Raw(memory)->ConstructActionColumn(interface_, this) : nullptr;
     AddChild(actionColumn_);
-    actionColumn_->AddObject(objects_.data_[1]);
+    actionColumn_->AddObject(objects_.data[1]);
 
     memory = gamecrt::operator_new(0x164);
     portraits_ = memory ? Raw(memory)->ConstructPortraits(interface_, this) : nullptr;
     AddChild(portraits_);
-    portraits_->AddObject(objects_.data_[2]);
+    portraits_->AddObject(objects_.data[2]);
 
     // The unit panel (two CStrings and two CStringArrays of its own).
     {
@@ -250,8 +250,8 @@ void CBattleScreenSetup::Create() {
         unitPanel_ = panel;
     }
     AddChild(unitPanel_);
-    unitPanel_->AddObject(objects_.data_[2]);
-    unitPanel_->AddObject(objects_.data_[1]);
+    unitPanel_->AddObject(objects_.data[2]);
+    unitPanel_->AddObject(objects_.data[1]);
     Raw(unitPanel_)->BuildUnitPanel(UiInt(interface_, 0x8C), UiByte(interface_, 0x89));
 
     // The map (its point arrays start empty).
@@ -268,17 +268,17 @@ void CBattleScreenSetup::Create() {
         map_ = panel;
     }
     AddChild(map_);
-    map_->AddObject(objects_.data_[2]);
+    map_->AddObject(objects_.data[2]);
     Raw(map_)->BuildMap(mapZoom, UiByte(interface_, 0x8B));
 
     clock_ = NewPlainPanel(interface_, 0x15C, this, 0x007425C8, 0x00742594);
     AddChild(clock_);
-    clock_->AddObject(objects_.data_[2]);
+    clock_->AddObject(objects_.data[2]);
     Raw(clock_)->BuildClock(UiInt(interface_, 0x94));
 
     movePanel_ = NewPlainPanel(interface_, 0x154, this, 0x00742530, 0x007424FC);
     AddChild(movePanel_);
-    movePanel_->AddObject(objects_.data_[2]);
+    movePanel_->AddObject(objects_.data[2]);
     using CreateFn = void(__thiscall*)(CUiWindow*);
     reinterpret_cast<CreateFn>(movePanel_->vtable_[18])(movePanel_);   // slot 18 (+0x48)
 
@@ -302,7 +302,7 @@ void CBattleScreenSetup::Create() {
         topPanel_ = panel;
     }
     AddChild(topPanel_);
-    topPanel_->AddObject(objects_.data_[2]);
+    topPanel_->AddObject(objects_.data[2]);
     Raw(topPanel_)->BuildTopPanel(UiInt(interface_, 0x90), UiByte(interface_, 0x8A));
     {
         // The saved message text goes back to the top panel and, when it shows page 0, the log.
@@ -311,7 +311,7 @@ void CBattleScreenSetup::Create() {
         panelText += text;
         if (*reinterpret_cast<const int*>(reinterpret_cast<std::uint8_t*>(topPanel_) + 0x160) == 0) {
             CUiContainer* owner = *reinterpret_cast<CUiContainer**>(reinterpret_cast<std::uint8_t*>(topPanel_) + 0x148);
-            Raw(owner->children_.data_[9])->AddLogText(text);
+            Raw(owner->children_.data[9])->AddLogText(text);
         }
     }
     Raw(topPanel_)->ShowTopPanelPage();

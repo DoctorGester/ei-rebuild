@@ -32,7 +32,7 @@ void ScriptGroup::DestructBody() {
 EI_REPLACE_METHOD(0x004B5EF0, ScriptGroup::DestructBody);
 
 void __fastcall ScriptDeclDestruct(ScriptDecl* block) {
-    MfcArray<SSCCmd>& commands = block->commands;
+    mfc::CArray<SSCCmd>& commands = block->commands;
     SetVtable(&commands, 0x0073D3D0);   // CArray<SSCCmd>
     if (!commands.data) return;
     for (int i = 0; i < commands.size; ++i) ScriptCmdDestruct(&commands.data[i]);

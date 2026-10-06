@@ -87,13 +87,37 @@ struct AlignedArray {
         capacity = newCapacity;
     }
 
-    void SetAtGrow(int index, const T& value) {
+    // The renderer's work buffers inline a SetSize that does not keep the contents: no 0 branch,
+    // and growing past the capacity frees the old block without copying it.
+    void SetSizeDiscard(int count) {
+        if (!data) {
+            data = Allocate(count);
+            capacity = count;
+            size = count;
+            return;
+        }
+        if (count <= capacity) {
+            size = count;
+            return;
+        }
+        int newCapacity = GrowStep() + capacity;
+        if (count >= newCapacity) newCapacity = count;
+        T* fresh = Allocate(newCapacity);
+        Free(data);
+        data = fresh;
+        size = count;
+        capacity = newCapacity;
+    }
+
+    // SetAtGrow / Add take the element by value, as the out-of-line copies do (006005F0: RET 8),
+    // so they can be registered on these members.
+    void SetAtGrow(int index, T value) {
         if (index >= size) SetSize(index + 1);
         data[index] = value;
     }
 
     // Add (inlined at its call sites): SetSize(size + 1), then the new element; its index.
-    int Add(const T& value) {
+    int Add(T value) {
         int index = size;
         SetSize(index + 1);
         data[index] = value;

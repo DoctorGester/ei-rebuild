@@ -8,7 +8,9 @@
 // round").
 #include "scene_loader.h"
 
+#include "../lib/containers.h"
 #include "../lib/crt.h"
+#include "../lib/mfc.h"
 #include "ei/hook.h"
 #include "originals_library.h"
 #include "originals_render.h"
@@ -26,21 +28,28 @@ T& At(const void* base, std::size_t offset) {
 
 // --- Layouts -------------------------------------------------------------------------------------
 
-// The engine's aligned array: data (32-byte aligned, raw block before it), size, capacity, growth.
-struct AlignedArray {
-    char* data;
-    int size;
-    int capacity;
-    int growBy;
+// The bone's arrays: engine aligned arrays (lib::AlignedArray; the inlined SetSize allocates
+// through 00452DA0 / 00452D80 / 00452C20 for 32 / 40 / 12-byte elements) and two CArrays
+// (mfc::CArray): the normals (12 bytes, zeroed when added) and the morph frames (constructed by
+// 00452E20, destroyed by 00452DF0). The keys are filled byte-wise.
+template <std::size_t K>
+struct KeyBytes {
+    char bytes[K];
 };
-// An MFC CArray with plain new storage (after its vtable): data, size, capacity, growth.
-struct NewArray {
-    std::uintptr_t vtable;
-    char* data;
-    int size;
-    int capacity;
-    int growBy;
+struct Point3 {
+    float v[3];
 };
+using PointArray = lib::AlignedArray<Point3>;
+using PositionKeys = lib::AlignedArray<KeyBytes<0x28>>;
+using RotationKeys = lib::AlignedArray<KeyBytes<0x20>>;
+using BoneChildren = lib::AlignedArray<char*>;
+using NormalArray = mfc::CArray<Point3>;
+using MorphFrame = KeyBytes<0x18>;
+struct MorphFrameElements {
+    static void Construct(MorphFrame* frames, int count);
+    static void Destruct(MorphFrame* frames, int count);
+};
+using MorphFrames = mfc::CArray<MorphFrame, MorphFrameElements>;
 
 // The bone (0x128 bytes).
 constexpr std::size_t kBoneName = 0x04;        // CString
@@ -71,20 +80,16 @@ constexpr std::size_t kNodeChildren = 0x10C + 4;               // node pointers
 
 // 00452C40: SetAtGrow on the skeleton's bone list [this +4; index, &value].
 __declspec(naked) void __fastcall BoneListSetAtGrow(void*, void*, int, char* const*) EI_ORIGINAL(0x00452C40)
-// Aligned allocations of n elements: 32 bytes [00452DA0], 40 [00452D80], 12 [00452C20].
-__declspec(naked) char* __fastcall Alloc32(int) EI_ORIGINAL(0x00452DA0)
-__declspec(naked) char* __fastcall Alloc40(int) EI_ORIGINAL(0x00452D80)
-__declspec(naked) char* __fastcall Alloc12(int) EI_ORIGINAL(0x00452C20)
 // Element helpers [pointer, count]: 12-byte zeroing 00452DC0, morph frame constructor 00452E20
 // and destructor 00452DF0.
 __declspec(naked) void __stdcall ConstructMorphFrames(void*, int) EI_ORIGINAL(0x00452E20)
 __declspec(naked) void __stdcall DestroyMorphFrames(void*, int) EI_ORIGINAL(0x00452DF0)
 // Out-of-line SetSize [size, growth or -1]: the morph frames 0044F7E0, a frame's points 0044F1D0,
 // the children 0044F540; a frame's points copied from a point array 0044F410.
-__declspec(naked) void __fastcall MorphFramesSetSize(NewArray*, void*, int, int) EI_ORIGINAL(0x0044F7E0)
-__declspec(naked) void __fastcall PointsSetSize(AlignedArray*, void*, int, int) EI_ORIGINAL(0x0044F1D0)
-__declspec(naked) void __fastcall PointsCopy(AlignedArray*, void*, const AlignedArray*) EI_ORIGINAL(0x0044F410)
-__declspec(naked) void __fastcall ChildrenSetSize(AlignedArray*, void*, int, int) EI_ORIGINAL(0x0044F540)
+__declspec(naked) void __fastcall MorphFramesSetSize(MorphFrames*, void*, int, int) EI_ORIGINAL(0x0044F7E0)
+__declspec(naked) void __fastcall PointsSetSize(PointArray*, void*, int, int) EI_ORIGINAL(0x0044F1D0)
+__declspec(naked) void __fastcall PointsCopy(PointArray*, void*, const PointArray*) EI_ORIGINAL(0x0044F410)
+__declspec(naked) void __fastcall ChildrenSetSize(BoneChildren*, void*, int, int) EI_ORIGINAL(0x0044F540)
 // Vector helpers, __fastcall out in ECX: b - a [00448A10 scales instead: v * t, t as float bits],
 // a + b [0040CDC0]. Each component is one rounded operation.
 __declspec(naked) float* __fastcall VectorSubtract(float*, const float* /*b*/, const float* /*a*/) EI_ORIGINAL(0x0044A230)
@@ -96,118 +101,8 @@ __declspec(naked) void __fastcall BuildBoneAt(char*, char*, const char*, int) EI
 
 // --- Arrays --------------------------------------------------------------------------------------
 
-int GrowthStep(int growBy, int size) {
-    if (growBy != 0) return growBy;
-    int step = size / 8;
-    if (step < 4) return 4;
-    if (step > 0x400) return 0x400;
-    return step;
-}
-
-// SetSize of an aligned array as inlined: contents kept, 0 frees the block.
-void SetAligned(AlignedArray& a, int size, int elementSize, char* (__fastcall* alloc)(int)) {
-    if (size == 0) {
-        if (a.data) {
-            gamecrt::operator_delete(reinterpret_cast<void**>(a.data)[-1]);
-            a.data = nullptr;
-        }
-        a.capacity = 0;
-        a.size = 0;
-        return;
-    }
-    if (!a.data) {
-        a.data = alloc(size);
-        a.capacity = size;
-        a.size = size;
-        return;
-    }
-    if (size <= a.capacity) {
-        a.size = size;
-        return;
-    }
-    int grown = GrowthStep(a.growBy, a.size) + a.capacity;
-    int capacity = size < grown ? grown : size;
-    char* data = alloc(capacity);
-    std::memcpy(data, a.data, static_cast<std::size_t>(a.size) * elementSize);
-    gamecrt::operator_delete(reinterpret_cast<void**>(a.data)[-1]);
-    a.data = data;
-    a.size = size;
-    a.capacity = capacity;
-}
-
-// SetSize of the normals-sized CArray (12-byte elements zeroed when added; nothing destroyed).
-void SetNormals(NewArray& a, int size) {
-    if (size == 0) {
-        if (a.data) {
-            gamecrt::operator_delete(a.data);
-            a.data = nullptr;
-        }
-        a.capacity = 0;
-        a.size = 0;
-        return;
-    }
-    if (!a.data) {
-        a.data = static_cast<char*>(gamecrt::operator_new(static_cast<std::size_t>(size) * 12));
-        ZeroPoints(a.data, size);
-        a.capacity = size;
-        a.size = size;
-        return;
-    }
-    if (size <= a.capacity) {
-        if (size > a.size) ZeroPoints(a.data + a.size * 12, size - a.size);
-        a.size = size;
-        return;
-    }
-    int grown = GrowthStep(a.growBy, a.size) + a.capacity;
-    int capacity = size < grown ? grown : size;
-    char* data = static_cast<char*>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * 12));
-    std::memcpy(data, a.data, static_cast<std::size_t>(a.size) * 12);
-    ZeroPoints(data + a.size * 12, size - a.size);
-    gamecrt::operator_delete(a.data);
-    a.data = data;
-    a.size = size;
-    a.capacity = capacity;
-}
-
-// SetSize of the morph frame CArray as inlined (elements constructed by 00452E20, destroyed by
-// 00452DF0).
-void SetMorphFrames(NewArray& a, int size) {
-    if (size == 0) {
-        if (a.data) {
-            DestroyMorphFrames(a.data, a.size);
-            gamecrt::operator_delete(a.data);
-            a.data = nullptr;
-        }
-        a.capacity = 0;
-        a.size = 0;
-        return;
-    }
-    if (!a.data) {
-        a.data = static_cast<char*>(gamecrt::operator_new(static_cast<std::size_t>(size) * kMorphFrameSize));
-        ConstructMorphFrames(a.data, size);
-        a.capacity = size;
-        a.size = size;
-        return;
-    }
-    if (size <= a.capacity) {
-        if (a.size < size) {
-            ConstructMorphFrames(a.data + a.size * kMorphFrameSize, size - a.size);
-        } else if (a.size > size) {
-            DestroyMorphFrames(a.data + size * kMorphFrameSize, a.size - size);
-        }
-        a.size = size;
-        return;
-    }
-    int grown = GrowthStep(a.growBy, a.size) + a.capacity;
-    int capacity = size < grown ? grown : size;
-    char* data = static_cast<char*>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * kMorphFrameSize));
-    std::memcpy(data, a.data, static_cast<std::size_t>(a.size) * kMorphFrameSize);
-    ConstructMorphFrames(data + a.size * kMorphFrameSize, size - a.size);
-    gamecrt::operator_delete(a.data);
-    a.data = data;
-    a.size = size;
-    a.capacity = capacity;
-}
+void MorphFrameElements::Construct(MorphFrame* frames, int count) { ConstructMorphFrames(frames, count); }
+void MorphFrameElements::Destruct(MorphFrame* frames, int count) { DestroyMorphFrames(frames, count); }
 
 // --- x87 -----------------------------------------------------------------------------------------
 
@@ -250,7 +145,7 @@ int NodeCount(const char* node, std::size_t array) { return At<int>(node, array 
 void CopyPositions(char* bone, const char* node) {
     for (int i = 0; i < NodeCount(node, kNodePositions); ++i) {
         const char* src = NodeRecord(node, kNodePositions, i, 0x18);
-        char* dst = At<AlignedArray>(bone, kBonePositions).data + i * 0x28;
+        char* dst = At<PositionKeys>(bone, kBonePositions).data[i].bytes;
         int frame = At<short>(src, 0);
         At<int>(dst, 0) = frame;
         At<int>(dst, 4) = frame + 1;
@@ -265,7 +160,7 @@ void CopyPositions(char* bone, const char* node) {
 void CopyRotations(char* bone, const char* node) {
     for (int i = 0; i < NodeCount(node, kNodeRotations); ++i) {
         const char* src = NodeRecord(node, kNodeRotations, i, 0x14);
-        char* dst = At<AlignedArray>(bone, kBoneRotations).data + i * 0x20;
+        char* dst = At<RotationKeys>(bone, kBoneRotations).data[i].bytes;
         int frame = At<short>(src, 0);
         At<int>(dst, 0) = frame;
         At<int>(dst, 4) = frame + 1;
@@ -283,15 +178,15 @@ void CopyRotations(char* bone, const char* node) {
 
 // Morph frame `frame` as the key's points moved towards the next key's by t (from the previous key
 // when `fromPrevious`): a + (b - a) * t, each operation rounded; the very first key is copied.
-const AlignedArray& KeyPoints(const char* node, int key) {
-    return At<AlignedArray>(NodeRecord(node, kNodeMorph, key, 0x14), 4);
+const PointArray& KeyPoints(const char* node, int key) {
+    return At<PointArray>(NodeRecord(node, kNodeMorph, key, 0x14), 4);
 }
 
 // One morph frame per frame (the bone's frame count): before each key the points between the
 // previous key and it (or the key itself before the first), at a key the points from it towards
 // the next one (or a copy of the last key).
 void BuildMorphFrames(char* bone, const char* node) {
-    NewArray& frames = At<NewArray>(bone, kBoneMorph);
+    MorphFrames& frames = At<MorphFrames>(bone, kBoneMorph);
     int key = 0;
     int previousFrame = 0;
     float t = 0.0f;
@@ -299,13 +194,13 @@ void BuildMorphFrames(char* bone, const char* node) {
         int keyFrame = At<short>(NodeRecord(node, kNodeMorph, key, 0x14), 0);
         if (frame < keyFrame) {
             FrameRatio(frame - previousFrame, keyFrame - previousFrame, &t);
-            char* out = frames.data + offset;
+            char* out = reinterpret_cast<char*>(frames.data) + offset;
             At<int>(out, 0) = frame;
             ++frame;
             At<int>(out, 4) = frame;
-            PointsSetSize(&At<AlignedArray>(out, kMorphFramePoints), nullptr, KeyPoints(node, 0).size, -1);
-            for (int j = 0; j < At<AlignedArray>(frames.data + offset, kMorphFramePoints).size; ++j) {
-                float* p = reinterpret_cast<float*>(At<AlignedArray>(frames.data + offset, kMorphFramePoints).data) + j * 3;
+            PointsSetSize(&At<PointArray>(out, kMorphFramePoints), nullptr, KeyPoints(node, 0).size, -1);
+            for (int j = 0; j < At<PointArray>(reinterpret_cast<char*>(frames.data) + offset, kMorphFramePoints).size; ++j) {
+                float* p = At<PointArray>(reinterpret_cast<char*>(frames.data) + offset, kMorphFramePoints).data[j].v;
                 if (key <= 0) {
                     std::memcpy(p, KeyPoints(node, key).data + j * 12, 12);
                     continue;
@@ -326,19 +221,19 @@ void BuildMorphFrames(char* bone, const char* node) {
         if (key < NodeCount(node, kNodeMorph)) {
             FrameRatio(frame - keyFrame, At<short>(NodeRecord(node, kNodeMorph, key, 0x14), 0) - keyFrame, &toNext);
         }
-        char* out = frames.data + offset;
+        char* out = reinterpret_cast<char*>(frames.data) + offset;
         At<int>(out, 0) = frame;
         ++frame;
         At<int>(out, 4) = frame;
-        PointsSetSize(&At<AlignedArray>(out, kMorphFramePoints), nullptr, KeyPoints(node, 0).size, -1);
+        PointsSetSize(&At<PointArray>(out, kMorphFramePoints), nullptr, KeyPoints(node, 0).size, -1);
         if (key >= NodeCount(node, kNodeMorph)) {
-            PointsCopy(&At<AlignedArray>(frames.data + offset, kMorphFramePoints), nullptr, &KeyPoints(node, key - 1));
+            PointsCopy(&At<PointArray>(reinterpret_cast<char*>(frames.data) + offset, kMorphFramePoints), nullptr, &KeyPoints(node, key - 1));
             continue;
         }
         std::uint32_t tBits;
         std::memcpy(&tBits, &toNext, 4);
-        for (int j = 0; j < At<AlignedArray>(frames.data + offset, kMorphFramePoints).size; ++j) {
-            float* p = reinterpret_cast<float*>(At<AlignedArray>(frames.data + offset, kMorphFramePoints).data) + j * 3;
+        for (int j = 0; j < At<PointArray>(reinterpret_cast<char*>(frames.data) + offset, kMorphFramePoints).size; ++j) {
+            float* p = At<PointArray>(reinterpret_cast<char*>(frames.data) + offset, kMorphFramePoints).data[j].v;
             const float* a = reinterpret_cast<const float*>(KeyPoints(node, key - 1).data) + j * 3;
             const float* b = reinterpret_cast<const float*>(KeyPoints(node, key).data) + j * 3;
             float d[3], s[3], r[3];
@@ -361,38 +256,38 @@ void __fastcall BuildBone(char* skeleton, char* bone, const char* node, int fram
     At<mfc::CString>(bone, kBoneName) = At<mfc::CString>(node, node::kName);
     At<int>(bone, kBoneFrames) = static_cast<short>(frames);
 
-    SetAligned(At<AlignedArray>(bone, kBoneRotations), NodeCount(node, kNodeRotations), 0x20, &Alloc32);
-    SetAligned(At<AlignedArray>(bone, kBonePositions), NodeCount(node, kNodePositions), 0x28, &Alloc40);
-    SetNormals(At<NewArray>(bone, kBoneNormals), NodeCount(node, kNodeNormals));
+    At<RotationKeys>(bone, kBoneRotations).SetSize(NodeCount(node, kNodeRotations));
+    At<PositionKeys>(bone, kBonePositions).SetSize(NodeCount(node, kNodePositions));
+    At<NormalArray>(bone, kBoneNormals).SetSize(NodeCount(node, kNodeNormals));
     int morphKeys = NodeCount(node, kNodeMorph);
-    SetMorphFrames(At<NewArray>(bone, kBoneMorph), morphKeys != 0 ? morphKeys + 1 : 0);
+    At<MorphFrames>(bone, kBoneMorph).SetSize(morphKeys != 0 ? morphKeys + 1 : 0);
     std::memcpy(bone + kBoneVectorA, node + 0x98, 16);
     std::memcpy(bone + kBoneVectorB, node + 0x8C, 12);
     if (NodeCount(node, kNodeMorph) != 0) {
-        AlignedArray& a = At<AlignedArray>(bone, kBonePointsA);
-        SetAligned(a, KeyPoints(node, 0).size, 12, &Alloc12);
+        PointArray& a = At<PointArray>(bone, kBonePointsA);
+        a.SetSize(KeyPoints(node, 0).size);
         std::memset(a.data, 0, static_cast<std::size_t>(a.size) * 12);
-        AlignedArray& b = At<AlignedArray>(bone, kBonePointsB);
-        SetAligned(b, KeyPoints(node, 0).size, 12, &Alloc12);
+        PointArray& b = At<PointArray>(bone, kBonePointsB);
+        b.SetSize(KeyPoints(node, 0).size);
         std::memset(b.data, 0, static_cast<std::size_t>(b.size) * 12);
     }
 
     CopyPositions(bone, node);
     CopyRotations(bone, node);
     if (NodeCount(node, kNodeMorph) == 0) {
-        MorphFramesSetSize(&At<NewArray>(bone, kBoneMorph), nullptr, 0, -1);
+        MorphFramesSetSize(&At<MorphFrames>(bone, kBoneMorph), nullptr, 0, -1);
     } else {
-        SetMorphFrames(At<NewArray>(bone, kBoneMorph), NodeCount(node, kNodePositions));
-        if (At<NewArray>(bone, kBoneMorph).size > 0) BuildMorphFrames(bone, node);
+        At<MorphFrames>(bone, kBoneMorph).SetSize(NodeCount(node, kNodePositions));
+        if (At<MorphFrames>(bone, kBoneMorph).size > 0) BuildMorphFrames(bone, node);
     }
 
-    ChildrenSetSize(&At<AlignedArray>(bone, kBoneChildren), nullptr, NodeCount(node, kNodeChildren), -1);
-    for (int i = 0; i < At<AlignedArray>(bone, kBoneChildren).size; ++i) {
+    ChildrenSetSize(&At<BoneChildren>(bone, kBoneChildren), nullptr, NodeCount(node, kNodeChildren), -1);
+    for (int i = 0; i < At<BoneChildren>(bone, kBoneChildren).size; ++i) {
         void* block = gamecrt::operator_new(0x128);
         char* child = block ? ConstructBone(block) : nullptr;
-        reinterpret_cast<char**>(At<AlignedArray>(bone, kBoneChildren).data)[i] = child;
-        At<char*>(reinterpret_cast<char**>(At<AlignedArray>(bone, kBoneChildren).data)[i], kBoneParent) = bone;
-        BuildBoneAt(skeleton, reinterpret_cast<char**>(At<AlignedArray>(bone, kBoneChildren).data)[i],
+        At<BoneChildren>(bone, kBoneChildren).data[i] = child;
+        At<char*>(At<BoneChildren>(bone, kBoneChildren).data[i], kBoneParent) = bone;
+        BuildBoneAt(skeleton, At<BoneChildren>(bone, kBoneChildren).data[i],
                     At<const char* const*>(node, kNodeChildren)[i], frames);
     }
 

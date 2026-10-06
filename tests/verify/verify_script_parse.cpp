@@ -40,7 +40,7 @@ bool SameText(const mfc::CString& a, const mfc::CString& b) {
 }
 
 template <typename T>
-bool SameShape(const MfcArray<T>& a, const MfcArray<T>& b, bool capacity) {
+bool SameShape(const mfc::CArray<T>& a, const mfc::CArray<T>& b, bool capacity) {
     return a.size == b.size && a.growBy == b.growBy && (!capacity || a.maxSize == b.maxSize);
 }
 
@@ -78,7 +78,7 @@ bool SameCmd(const SSCCmd& a, const SSCCmd& b, bool capacity) {
     return true;
 }
 
-bool SameCmds(const MfcArray<SSCCmd>& a, const MfcArray<SSCCmd>& b) {
+bool SameCmds(const mfc::CArray<SSCCmd>& a, const mfc::CArray<SSCCmd>& b) {
     if (!SameShape(a, b, true)) return false;
     for (int i = 0; i < a.size; ++i)
         if (!SameCmd(a.data[i], b.data[i], true)) return false;
@@ -109,7 +109,7 @@ struct ScratchCmd {
     SSCCmd* Get() { return reinterpret_cast<SSCCmd*>(storage); }
 };
 
-struct CmdArrayAt : MfcArray<SSCCmd> {
+struct CmdArrayAt : mfc::CArray<SSCCmd> {
     void SetSize(int size, int growBy);   // 004CD2B0
 };
 __declspec(naked) void CmdArrayAt::SetSize(int, int) EI_ORIGINAL(0x004CD2B0)
@@ -129,7 +129,7 @@ struct DefinitionAt : ScriptDefinition {
 };
 __declspec(naked) void DefinitionAt::Destruct() EI_ORIGINAL(0x004BE9D0)
 
-bool SameNames(const MfcArray<mfc::CString>& a, const MfcArray<mfc::CString>& b) {
+bool SameNames(const mfc::CArray<mfc::CString>& a, const mfc::CArray<mfc::CString>& b) {
     if (a.size != b.size) return false;
     for (int i = 0; i < a.size; ++i)
         if (!SameText(a.data[i], b.data[i])) return false;
@@ -384,8 +384,8 @@ static BOOL __fastcall LoadFunctionVerify(CScript* self, void*, SSCCmd* cmd, Scr
 EI_VERIFY(0x004CFBC0, LoadFunctionVerify, 7, s_loadFunction);
 
 // 004D0BF0: PUSH -1; PUSH imm32 (7 bytes). The original fills a scratch array.
-static BOOL(__fastcall* s_loadConditions)(CScript*, void*, MfcArray<SSCCmd>*, ScriptPos*, const ScriptTokenList*, ScriptVars*);
-static BOOL __fastcall LoadConditionsVerify(CScript* self, void*, MfcArray<SSCCmd>* conditions, ScriptPos* pos,
+static BOOL(__fastcall* s_loadConditions)(CScript*, void*, mfc::CArray<SSCCmd>*, ScriptPos*, const ScriptTokenList*, ScriptVars*);
+static BOOL __fastcall LoadConditionsVerify(CScript* self, void*, mfc::CArray<SSCCmd>* conditions, ScriptPos* pos,
                                             const ScriptTokenList* tokens, ScriptVars* locals) {
     CmdArrayAt scratch{};
     scratch.vtable = conditions->vtable;
@@ -436,7 +436,7 @@ static BOOL __fastcall LoadDeclarationsVerify(CScript* self, void*, ScriptDefini
     ScriptDefinition* scratch = reinterpret_cast<ScriptDefinition*>(storage);
     new (&scratch->name) mfc::CString(script->name);
     new (&scratch->params) mfc::CString;
-    scratch->ifThen = MfcArray<ScriptIfThen>{script->ifThen.vtable, nullptr, 0, 0, 0};
+    scratch->ifThen = mfc::CArray<ScriptIfThen>{script->ifThen.vtable, nullptr, 0, 0, 0};
     static_cast<VarsAt*>(&scratch->vars)->Construct();
     scratch->index = script->index;
 
@@ -469,7 +469,7 @@ static BOOL __fastcall LoadScriptBodyVerify(CScript* self, void*, ScriptDefiniti
 }
 EI_VERIFY(0x004D1030, LoadScriptBodyVerify, 0, s_unused);
 
-static BOOL __fastcall LoadCommandsVerify(CScript* self, void*, MfcArray<SSCCmd>* commands, ScriptPos* pos,
+static BOOL __fastcall LoadCommandsVerify(CScript* self, void*, mfc::CArray<SSCCmd>* commands, ScriptPos* pos,
                                           const ScriptTokenList* tokens, ScriptVars* locals) {
     BOOL actual = self->LoadCommands(commands, pos, tokens, locals);
     bool ok = actual != 1 || EndsWithClose(tokens, *pos);

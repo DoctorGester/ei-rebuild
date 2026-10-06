@@ -23,7 +23,7 @@ T Read(const char** cursor) {
 
 // Appends `count` elements to an aligned array; returns where they start.
 template <typename T>
-int Append(AlignedArray<T>& array, const T* from, int count) {
+int Append(lib::AlignedArray<T>& array, const T* from, int count) {
     int start = array.size;
     array.SetSize(start + count);
     if (count) std::memcpy(array.data + start, from, static_cast<std::size_t>(count) * sizeof(T));
@@ -48,7 +48,7 @@ float Morph6(const float* v, float s, float t, float u) {
 }
 
 // The temporary packet array of the loaders (operator_new, 32-byte aligned, block pointer before it).
-VertexPacket* AllocatePackets(int count) { return count ? AlignedArray<VertexPacket>::Allocate(count) : nullptr; }
+VertexPacket* AllocatePackets(int count) { return count ? lib::AlignedArray<VertexPacket>::Allocate(count) : nullptr; }
 
 void SetW(VertexPacket& packet) {
     for (int k = 3; k >= 0; --k) std::memcpy(&packet.block[3][k], &kOne, 4);
@@ -72,8 +72,8 @@ bool CLinkMesh::AddPart(const stlp::string* name, const VertexPacket* vertices, 
     ranges.texCoords = {Append(texCoords_, texCoords, texCoordCount), texCoordCount};
 
     int start = corners_.size;
-    corners_.Resize(start + cornerCount, -1);
-    std::memcpy(corners_.data + start * 3, corners, static_cast<std::size_t>(cornerCount) * sizeof(MeshCorner));
+    corners_.SetSize(start + cornerCount, -1);
+    std::memcpy(corners_.data + start, corners, static_cast<std::size_t>(cornerCount) * sizeof(MeshCorner));
     ranges.corners = {start, cornerCount};
 
     // The original's out-of-line SetSize(n, -1) (00452EB0 / 0044FA90) for these two.
@@ -125,7 +125,7 @@ void CLinkFigureLoader::LoadFigPart(CLinkMesh* mesh, const stlp::string* name, c
                   reinterpret_cast<const MeshCorner*>(corners), fig.cornerCount,
                   reinterpret_cast<const std::uint32_t*>(words), fig.wordCount,
                   reinterpret_cast<const std::uint16_t*>(indices), fig.indexCount);
-    if (packets) AlignedArray<VertexPacket>::Free(packets);
+    if (packets) lib::AlignedArray<VertexPacket>::Free(packets);
 }
 EI_REPLACE_METHOD(0x004F7F00, CLinkFigureLoader::LoadFigPart);
 
@@ -173,7 +173,7 @@ void CLinkFigureLoader::LoadOldPart(CLinkMesh* mesh, const stlp::string* name, c
                   reinterpret_cast<const MeshCorner*>(corners), cornerCount,
                   reinterpret_cast<const std::uint32_t*>(words), wordCount,
                   reinterpret_cast<const std::uint16_t*>(indices), indexCount);
-    if (packets) AlignedArray<VertexPacket>::Free(packets);
+    if (packets) lib::AlignedArray<VertexPacket>::Free(packets);
 }
 EI_REPLACE_METHOD(0x004F87D0, CLinkFigureLoader::LoadOldPart);
 
@@ -296,7 +296,7 @@ bool CLinkMesh::GetPartData(const stlp::string* name, VertexPacket** vertices, M
     if (node == ranges_.header) return false;
     const LinkPartRanges& r = node->Value<LinkPartRanges>();
     *vertices = vertices_.data + r.vertices.start;
-    *corners = reinterpret_cast<MeshCorner*>(corners_.data) + r.corners.start;
+    *corners = reinterpret_cast<MeshCorner*>(corners_.data + r.corners.start);
     *indices = indices_.data + r.indices.start;
     *indexCount = r.indices.count;
     *vertexCount = r.vertices.count;

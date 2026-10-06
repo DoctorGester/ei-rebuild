@@ -26,14 +26,14 @@ std::vector<std::uint8_t> StripState(CUiItemStrip* strip, int regions, int objec
     Append(out, &strip->window.rect_, sizeof(RECT));
     Append(out, self + 0x150, 0x194 - 0x150);   // tab .. hovered
     CUiWindow& w = strip->window;
-    Append(out, &w.regions_.size_, 4);
-    for (int i = regions; i < w.regions_.size_; ++i) {
-        const CUiRegion* region = w.regions_.data_[i];
+    Append(out, &w.regions_.size, 4);
+    for (int i = regions; i < w.regions_.size; ++i) {
+        const CUiRegion* region = w.regions_.data[i];
         if (region) Append(out, &region->bounds_, sizeof(RECT));
     }
-    Append(out, &w.sceneObjects_.size_, 4);
-    for (int i = objects; i < w.sceneObjects_.size_; ++i) {
-        auto* sprite = reinterpret_cast<const std::uint8_t*>(w.sceneObjects_.data_[i]);
+    Append(out, &w.sceneObjects_.size, 4);
+    for (int i = objects; i < w.sceneObjects_.size; ++i) {
+        auto* sprite = reinterpret_cast<const std::uint8_t*>(w.sceneObjects_.data[i]);
         if (!sprite) continue;
         Append(out, sprite + 0x08, 4);     // flags
         Append(out, sprite + 0x1C, 12);    // local position
@@ -54,12 +54,12 @@ std::vector<std::uint8_t> StripState(CUiItemStrip* strip, int regions, int objec
 static void(__fastcall* s_stripBuild)(CUiItemStrip*, void*, int);
 static void __fastcall StripBuildVerify(CUiItemStrip* self, void*, int top) {
     CUiWindow& w = self->window;
-    int regions = w.regions_.size_;
-    int objects = w.sceneObjects_.size_;
+    int regions = w.regions_.size;
+    int objects = w.sceneObjects_.size;
     s_stripBuild(self, nullptr, top);
     std::vector<std::uint8_t> expected = StripState(self, regions, objects);
-    while (w.regions_.size_ > regions) w.RemoveRegionAt(w.regions_.size_ - 1);
-    while (w.sceneObjects_.size_ > objects) w.RemoveSceneObjectAt(w.sceneObjects_.size_ - 1);
+    while (w.regions_.size > regions) w.RemoveRegionAt(w.regions_.size - 1);
+    while (w.sceneObjects_.size > objects) w.RemoveSceneObjectAt(w.sceneObjects_.size - 1);
     self->Build(static_cast<char>(top));
     std::vector<std::uint8_t> actual = StripState(self, regions, objects);
     int at = -1;
@@ -91,7 +91,7 @@ static BOOL __fastcall StripDrawVerify(CUiItemStrip* self, void*, int pass) {
     float position = self->position_[self->tab_];
     std::uint32_t wantLeft = position > 0.0f ? 0x3E480000u : 0u;
     std::uint32_t wantRight = static_cast<float>(self->list_.size_ - 7) > position ? 0x3E480000u : 0u;
-    CEngineObject** sprites = self->window.sceneObjects_.data_;
+    CEngineObject** sprites = self->window.sceneObjects_.data;
     std::uint32_t left, right;
     std::memcpy(&left, reinterpret_cast<const std::uint8_t*>(sprites[0]) + 0xCC, 4);
     std::memcpy(&right, reinterpret_cast<const std::uint8_t*>(sprites[1]) + 0xCC, 4);

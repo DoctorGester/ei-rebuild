@@ -267,7 +267,7 @@ void CSaveLoadWindow::GivePictureMemory(CEngineObject* texture) {
 // --- 00656E10 ------------------------------------------------------------------------------------
 
 void CSaveLoadWindow::ShowPicture() {
-    ShowSprite(sceneObjects_.data_[3], 0);
+    ShowSprite(sceneObjects_.data[3], 0);
     int selected = selected_;
     if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
     SaveEntry* entry = entriesBegin_ + selected;
@@ -275,8 +275,8 @@ void CSaveLoadWindow::ShowPicture() {
     if (isSave_ && selected == 0) {
         // The new save: the game's picture.
         if (!dialog_) return;
-        ShowSprite(sceneObjects_.data_[3], 1);
-        SetSpriteTexture(sceneObjects_.data_[3], dialog_);
+        ShowSprite(sceneObjects_.data[3], 1);
+        SetSpriteTexture(sceneObjects_.data[3], dialog_);
         return;
     }
     mfc::CString folder;
@@ -288,7 +288,7 @@ void CSaveLoadWindow::ShowPicture() {
         found = find.FindFile(path, 0);
     }
     if (!found) return;
-    char* holder = HolderOf(objects_.data_[1]);
+    char* holder = HolderOf(objects_.data[1]);
     gameapi::EnterCriticalSection(DeviceLock());
     PicturePixels pixels(holder);
     if (!pixels.Begin()) return;   // (the device lock stays held, as in the original)
@@ -302,8 +302,8 @@ void CSaveLoadWindow::ShowPicture() {
     pixels.Mirror();
     gameapi::LeaveCriticalSection(DeviceLock());
     pixels.End();
-    ShowSprite(sceneObjects_.data_[3], 1);
-    SetSpriteTexture(sceneObjects_.data_[3], objects_.data_[1]);
+    ShowSprite(sceneObjects_.data[3], 1);
+    SetSpriteTexture(sceneObjects_.data[3], objects_.data[1]);
 }
 EI_REPLACE_METHOD(0x00656E10, CSaveLoadWindow::ShowPicture);
 
@@ -495,7 +495,7 @@ void CSaveLoadWindow::FillEntries() {
             CEngineObject* shot = CreateTexture(0x100, 0x100, 0x1E);
             dialog_ = shot;
             ++shot->refCount_;
-            RemoveObjectAt(objects_.size_ - 1);
+            RemoveObjectAt(objects_.size - 1);
             GivePictureMemory(dialog_);
             char* holder = HolderOf(dialog_);
             gameapi::EnterCriticalSection(DeviceLock());

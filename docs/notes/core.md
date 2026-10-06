@@ -229,6 +229,58 @@ item_constructor, options, spell_text, world_game pass `len - k`, which Right tu
 tail). Views with their own `Mid(int)` (console::Str, ...) still call 006FD9B4. config/library.csv
 had the two names swapped and is corrected.
 
+## Shared containers (ticket D3)
+
+The game's container templates are declared once in `src/lib` and reused by every port (rewrite
+guide, "Clean code"; `tools/check_cleanup.py` counts the per-file `struct ...Array/...List` layouts
+that are left and may only go down).
+
+- `mfc::CArray<T, Elements>` (`src/lib/mfc.h`, 0x14 bytes: vtable, data, size, maxSize, growBy).
+  MFC 4.2's SetSize / SetAtGrow / Add / InsertAt / RemoveAt / Copy written once: growth to
+  max(newSize, maxSize + step), step = growBy or size / 8 clamped to 4..1024, memcpy of the old
+  elements, only the new ones constructed, the old block freed without destruction; SetSize(0)
+  destroys and frees; RemoveAt memmoves the tail down. `Elements` is the instantiation's
+  ConstructElements / DestructElements: `PlainElements` (zero-filled, nothing destroyed) by default,
+  `RawElements` (nothing), or an instantiation's own pair (terrain records 006C4F10 / 006C4EE0, flag
+  arrays 006C4F90 / 006C4F60, tile lists 006C5050 / 006C5010; the bone's morph frames 00452E20 /
+  00452DF0). The vtable is a field: each instantiation keeps its own constant.
+  The afxcoll classes CByteArray / CWordArray / CDWordArray / CUIntArray share the layout and are
+  `mfc::CArray<uint8_t / uint16_t / uint32_t>`; their SetSize stays MFC's own code (006FF64A,
+  006FEEFA, 006FF993, 006FF29A, through originals_library.h).
+  Out-of-line game instantiations still forwarded with the template as their type: 00557B80 (combat
+  steps), 005B16D0 (excluded regions), 005C8560 / 005C8950 (motion points / step speeds), 00453CA0 /
+  00453E00 (scene corner records), 0044F7E0 (bone morph frames). 005C4C20 (the path smoother's node
+  pool) is CArray<SmoothNode>::SetSize.
+- `mfc::CList<T, Elements>` (0x1C bytes: vtable, head, tail, count, free, CPlex blocks, blockSize)
+  with NewNode / FreeNode / RemoveAll / AddHead / AddTail / RemoveHead / RemoveTail / InsertBefore /
+  InsertAfter / RemoveAt / Find / FindIndex. `mfc::CTypedPtrList<T>` is `CList<T*>` (CPtrList's
+  nodes: data zeroed, nothing destroyed; CPtrList's vtable 0073D454).
+- `mfc::CMap<K, V>` (0x1C bytes) with its `CMapAssoc` (pack 4: a 64-bit key at +8); the inlined
+  GetNextAssoc walk (`Next`) and RemoveAll. Hashing and the association pool stay with each
+  instantiation's GetAssocAt / InitHashTable / NewAssoc (scene meshes: 004540A0 / 00453FD0 /
+  00454040, 004541C0 / 004540F0 / 00454160, 004542E0 / 00454210 / 00454280).
+- `lib::AlignedArray<T>` (`src/lib/containers.h`, 0x10 bytes: data, size, capacity, growBy): the
+  engine's arrays in 32-byte aligned blocks (operator new of count * sizeof(T) + 0x24, the block
+  pointer stored before the data; `AllocAligned32` / `FreeAligned32`). The per-size allocators
+  00406B30 / 00406B50, 00452C20, 00452D80, 00452DA0, 00452E70, 00452E90, 00453A10, 00468F70,
+  004ECB50, 004ECB70, 004F65B0, 00600A80, 00695B00-00695B40, 00476EF0, 00477250 all compute the same.
+  SetSize(n, growBy) keeps the contents (no element construction); SetSizeDiscard is the renderer's
+  inlined variant that drops them when it grows (no 0 branch); Add / SetAtGrow take the element by
+  value; RemoveAt shifts down; RemoveAll frees. Registered on it: 005A6E70 (figure mesh colours,
+  uint32), 004F57B0 (`TriangleIndexArray`, 6-byte triangles), 006003D0 / 006004E0 / 00600730 /
+  00600840 / 00600950 / 00601D00 SetSize and 006005F0 SetAtGrow (`UiPtrArray<T>` = AlignedArray<T*>).
+  The animation / figure loader copies (0044F1B0-00454A30) are in aligned_arrays.cpp.
+- STLport `stlp::string`, `vector`, `hash_map` (`src/lib/stlp.h`) as before.
+
+The device's mesh buffers (007AEDE0-007AEE3C) are declared once in `src/game/device_buffers.h`.
+
+Left as per-file layouts (the cleanup count went from 155 to 124 in D3): scene_loader's
+`ArrayBody` / `VtArray` family and aligned_arrays.cpp's untyped `Array`, the STLport list / vector
+views (`ListNode`, `ObjectList`, `PathCellList`, `NameList`, ...), script_exec's `PtrList` /
+`ItemList` wrappers, `StringArray` (CStringArray) x4, `RecordArray` x4, `UiDwordArray` and the
+remaining `...Array` structs of the unit AI, world, party and UI files. Hand-inlined SetSize copies
+remain in ui_window.cpp (region points), map_spec, party_lifetime, particle and map-object files.
+
 ## Open items
 
 - Library instantiations (config/library.csv, ~270 in 0x400000-0x440000) stay original and are

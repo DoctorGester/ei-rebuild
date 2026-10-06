@@ -286,7 +286,7 @@ bool GetObjectTypeID(Call* call) {
 bool GetObjectsOnMap(Call* call) {
     ScriptGroup* group = *static_cast<ScriptGroup**>(call->result);
     group->SetSize(0, -1);
-    const MfcArray<float>& classes = call->cmd->floatArgs;
+    const mfc::CArray<float>& classes = call->cmd->floatArgs;
     bool all = classes.size == 1 && (Status(-1.0f, classes.data[0]) & 0x45) == 0x40;
     ForWorldObjects([&](CEngineObject* object) {
         if (!object) return;

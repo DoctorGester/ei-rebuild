@@ -33,7 +33,7 @@ bool PendingUnchanged(CUiWindow* w, const Pending& before) {
 // Flag 4 of the first surface (+0x0C): set while the window rests, cleared while it slides.
 bool SurfaceFrozen(CUiWindow* w) {
     std::uint32_t flags;
-    std::memcpy(&flags, reinterpret_cast<std::uint8_t*>(w->surfaces_.data_[0]) + 0x0C, 4);
+    std::memcpy(&flags, reinterpret_cast<std::uint8_t*>(w->surfaces_.data[0]) + 0x0C, 4);
     return (flags & 4) != 0;
 }
 } // namespace
@@ -210,12 +210,12 @@ struct WindowCounts {
     int objects, sceneObjects, surfaces, regions, models, children;
 };
 WindowCounts CountsOf(CUiContainer* w) {
-    return WindowCounts{w->objects_.size_, w->sceneObjects_.size_, w->surfaces_.size_, w->regions_.size_,
-                        w->models_.size_, w->children_.size_};
+    return WindowCounts{w->objects_.size, w->sceneObjects_.size, w->surfaces_.size, w->regions_.size,
+                        w->models_.size, w->children_.size};
 }
 bool HasChild(CUiContainer* w, CUiWindow* child) {
-    for (int i = 0; i < w->children_.size_; ++i)
-        if (w->children_.data_[i] == child) return true;
+    for (int i = 0; i < w->children_.size; ++i)
+        if (w->children_.data[i] == child) return true;
     return false;
 }
 } // namespace

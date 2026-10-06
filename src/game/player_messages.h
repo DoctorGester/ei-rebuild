@@ -12,6 +12,7 @@
 #include "net_delta.h"
 #include "script.h"
 
+#include "lib/containers.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
@@ -26,13 +27,7 @@ class NetLink;  // net_link.h
 
 // A pointer array of the sync (SyncPlayer's statics, the player state's sent objects): data on a
 // 32-byte boundary (0047B940), size, capacity, grow-by.
-struct PlayerObjectArray {
-    CEngineObject** data;
-    int size;
-    int capacity;
-    int growBy;
-};
-static_assert(sizeof(PlayerObjectArray) == 0x10);
+using PlayerObjectArray = lib::AlignedArray<CEngineObject*>;
 
 class CPlayerServer {
 public:

@@ -101,11 +101,11 @@ ScriptDecl* __fastcall NewWorldScriptVerify(CScript* self, void*) {
 // ---- Areas ------------------------------------------------------------------------------------------
 
 // 004BCE10: MOV EAX,FS:[0] (6 bytes).
-MfcArray<ScriptAreaPart>*(__fastcall* s_findArea)(CScript*, void*, int);
-MfcArray<ScriptAreaPart>* __fastcall FindAreaVerify(CScript* self, void*, int id) {
+mfc::CArray<ScriptAreaPart>*(__fastcall* s_findArea)(CScript*, void*, int);
+mfc::CArray<ScriptAreaPart>* __fastcall FindAreaVerify(CScript* self, void*, int id) {
     ScratchScript scratch;
-    auto& areas = Field<MfcArray<ScriptArea>>(self, 0x194);
-    auto& copy = Field<MfcArray<ScriptArea>>(scratch.bytes, 0x194);
+    auto& areas = Field<mfc::CArray<ScriptArea>>(self, 0x194);
+    auto& copy = Field<mfc::CArray<ScriptArea>>(scratch.bytes, 0x194);
     copy = areas;
     if (areas.data) {
         copy.data = static_cast<ScriptArea*>(
@@ -114,8 +114,8 @@ MfcArray<ScriptAreaPart>* __fastcall FindAreaVerify(CScript* self, void*, int id
     }
     int oldSize = areas.size;
 
-    MfcArray<ScriptAreaPart>* expected = s_findArea(scratch.Script(), nullptr, id);
-    MfcArray<ScriptAreaPart>* actual = ScriptFindArea(self, nullptr, id);
+    mfc::CArray<ScriptAreaPart>* expected = s_findArea(scratch.Script(), nullptr, id);
+    mfc::CArray<ScriptAreaPart>* actual = ScriptFindArea(self, nullptr, id);
 
     int expectedIndex = static_cast<int>(reinterpret_cast<ScriptArea*>(expected) - copy.data);
     int actualIndex = static_cast<int>(reinterpret_cast<ScriptArea*>(actual) - areas.data);
@@ -162,8 +162,8 @@ ScriptObjectRef* __fastcall NewTempObjectVerify(CScript* self, void*) {
 void(__fastcall* s_cmdClear)(SSCCmd*);
 void __fastcall CmdClearVerify(SSCCmd* self) {
     // A deep copy through CArray<SSCCmd>::Copy from a one-element view of the command.
-    MfcArray<SSCCmd> source{reinterpret_cast<void*>(0x0073D3DC), self, 1, 1, 0};
-    MfcArray<SSCCmd> copies{reinterpret_cast<void*>(0x0073D3DC), nullptr, 0, 0, 0};
+    mfc::CArray<SSCCmd> source{reinterpret_cast<void*>(0x0073D3DC), self, 1, 1, 0};
+    mfc::CArray<SSCCmd> copies{reinterpret_cast<void*>(0x0073D3DC), nullptr, 0, 0, 0};
     CommandsCopy(&copies, nullptr, &source);
     SSCCmd* copy = copies.data;
     // The arrays' vtables and growBy are not copied by the assignment; Clear keeps them.

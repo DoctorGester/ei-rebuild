@@ -56,7 +56,7 @@ void CHeroStatsPanel::DrawRow(RECT* rect, const char* label, int value, int maxi
         number.Format(kRangeFormat, value, maximum);
     else
         number.Format(kValueFormat, value);
-    CUiSurface* surface = surfaces_.data_[0];
+    CUiSurface* surface = surfaces_.data[0];
     SurfaceDrawText(surface, nullptr, name, rect, 0, kRowColour, kLeft, 1);
     SurfaceDrawText(surface, nullptr, number, rect, 0, kRowColour, kRight, 1);
 }
@@ -93,7 +93,7 @@ void CHeroStatsPanel::DrawPart(RECT* rect, const char* name, int part) {
         TextsGetString(GameTexts(), nullptr, key, &label);
     }
     label = mfc::CString(kPartIndent) + label;
-    CUiSurface* surface = surfaces_.data_[0];
+    CUiSurface* surface = surfaces_.data[0];
     SurfaceDrawText(surface, nullptr, label, rect, 0, kRowColour, kLeft, 1);
     number.Format(kArmourFormat, static_cast<double>(PartArmour(part)));
     SurfaceDrawText(surface, nullptr, number, rect, 0, kRowColour, kRight, 1);

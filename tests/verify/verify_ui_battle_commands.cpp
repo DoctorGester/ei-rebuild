@@ -32,7 +32,7 @@ int PartySize(CBattleScreenSetup* self) {
 }
 HudPortraitSlot& Slot(CBattleScreenSetup* self, int i) { return static_cast<CHudPortraits*>(self->portraits_)->slots_[i]; }
 int Marker(CBattleScreenSetup* self, int i) {
-    return reinterpret_cast<CUiMesh*>(self->portraits_->sceneObjects_.data_[i * 5 + 4])->visible_;
+    return reinterpret_cast<CUiMesh*>(self->portraits_->sceneObjects_.data[i * 5 + 4])->visible_;
 }
 
 // Every member selected before an order: its portrait nods (kind 1; 2 when the order made the

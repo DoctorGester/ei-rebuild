@@ -19,8 +19,8 @@ struct Counts {
     int objects, sceneObjects, surfaces, regions, models;
 };
 Counts CountsOf(CUiWindow* w) {
-    return Counts{w->objects_.size_, w->sceneObjects_.size_, w->surfaces_.size_, w->regions_.size_,
-                  w->models_.size_};
+    return Counts{w->objects_.size, w->sceneObjects_.size, w->surfaces_.size, w->regions_.size,
+                  w->models_.size};
 }
 std::uintptr_t VtableOf(const CUiWindow* w) { return w ? reinterpret_cast<std::uintptr_t>(w->vtable_) : 0; }
 int InputCount(CUiContainer* w) { return static_cast<int>(w->inputsEnd_ - w->inputsBegin_); }
@@ -32,7 +32,7 @@ int InputCount(CUiContainer* w) { return static_cast<int>(w->inputsEnd_ - w->inp
 // three textures, the fields Create resets, one more hero id in a new game.
 static void __fastcall BattleScreenCreateVerify(CBattleScreenSetup* self, void*) {
     Counts before = CountsOf(self);
-    int children = self->children_.size_;
+    int children = self->children_.size;
     int inputs = InputCount(self);
     int heroes = self->heroes_.size_;
     bool loading = *reinterpret_cast<const int*>(0x007AFE1C) != 0;
@@ -41,8 +41,8 @@ static void __fastcall BattleScreenCreateVerify(CBattleScreenSetup* self, void*)
     CUiWindow* panels[11] = {self->weaponBar_, self->quickItems_, self->spellColumn_, self->actionColumn_,
                              self->portraits_, self->unitPanel_, self->map_, self->clock_,
                              self->movePanel_, self->messageLog_, self->topPanel_};
-    bool order = self->children_.size_ == children + 11;
-    for (int i = 0; order && i < 11; ++i) order = self->children_.data_[children + i] == panels[i];
+    bool order = self->children_.size == children + 11;
+    for (int i = 0; order && i < 11; ++i) order = self->children_.data[children + i] == panels[i];
     bool vtables = VtableOf(self->unitPanel_) == 0x007426F8 && VtableOf(self->map_) == 0x00742660 &&
                    VtableOf(self->clock_) == 0x007425C8 && VtableOf(self->movePanel_) == 0x00742530 &&
                    VtableOf(self->topPanel_) == 0x00742498 &&
@@ -136,7 +136,7 @@ static void __fastcall CampShowPageVerify(CCampPages* self, void*, int page) {
     bool shades = true;
     for (int i = 2; i < 10 && shown >= 0 && shown < 8; ++i) {
         std::uint32_t bits;
-        std::memcpy(&bits, reinterpret_cast<std::uint8_t*>(self->sceneObjects_.data_[i]) + 0x224, 4);
+        std::memcpy(&bits, reinterpret_cast<std::uint8_t*>(self->sceneObjects_.data[i]) + 0x224, 4);
         shades = shades && bits == (i == shown + 2 ? 0x3F800000u : 0x3F000000u);
     }
     bool ok = pageOk && panels && self->itemStrip_->slots_ == slots && shades;
@@ -170,8 +170,8 @@ struct ActionState {
 ActionState ActionOf(CCampPages* c) {
     ActionState s{c->cost_, c->actionEnabled_, c->actionShown_, c->deconstructing_, c->itemMade_ != nullptr,
                   c->spellMade_ != nullptr, 0, 0};
-    std::memcpy(&s.shade0, reinterpret_cast<std::uint8_t*>(c->sceneObjects_.data_[0]) + 0x224, 4);
-    std::memcpy(&s.shade1, reinterpret_cast<std::uint8_t*>(c->sceneObjects_.data_[1]) + 0x224, 4);
+    std::memcpy(&s.shade0, reinterpret_cast<std::uint8_t*>(c->sceneObjects_.data[0]) + 0x224, 4);
+    std::memcpy(&s.shade1, reinterpret_cast<std::uint8_t*>(c->sceneObjects_.data[1]) + 0x224, 4);
     return s;
 }
 } // namespace
@@ -243,19 +243,19 @@ static void __fastcall StatsShowVerify(CHeroStatsPanel* self, void*, int page) {
     self->ShowStats(page);
     int rows = page == 0 ? 9 : page == 10 ? 13 : 8;
     bool shown = true;
-    for (int i = 4; i < self->sceneObjects_.size_; ++i)
-        shown = shown && *reinterpret_cast<const int*>(reinterpret_cast<std::uint8_t*>(self->sceneObjects_.data_[i]) +
+    for (int i = 4; i < self->sceneObjects_.size; ++i)
+        shown = shown && *reinterpret_cast<const int*>(reinterpret_cast<std::uint8_t*>(self->sceneObjects_.data[i]) +
                                                        0x220) == (page == 10 ? 1 : 0);
-    bool ok = self->page_ == page && self->regions_.size_ == 2 + rows && shown;
-    ei::verify::Check("CHeroStatsPanel::ShowStats", true, ok, "page %d regions %d", page, self->regions_.size_);
+    bool ok = self->page_ == page && self->regions_.size == 2 + rows && shown;
+    ei::verify::Check("CHeroStatsPanel::ShowStats", true, ok, "page %d regions %d", page, self->regions_.size);
 }
 EI_VERIFY(0x006233C0, StatsShowVerify, 0, s_unused);
 
 // Drawing only (text through GDI); ours only: the panel's state is left alone.
 static void __fastcall StatsDrawVerify(CHeroStatsPanel* self, void*) {
-    int page = self->page_, regions = self->regions_.size_, points = self->points_;
+    int page = self->page_, regions = self->regions_.size, points = self->points_;
     self->DrawStats();
-    bool ok = self->page_ == page && self->regions_.size_ == regions && self->points_ == points;
+    bool ok = self->page_ == page && self->regions_.size == regions && self->points_ == points;
     ei::verify::Check("CHeroStatsPanel::DrawStats", true, ok, "page %d", page);
 }
 EI_VERIFY(0x00623880, StatsDrawVerify, 0, s_unused);
@@ -432,8 +432,8 @@ EI_VERIFY(0x0060E6B0, CampCloseVerify, 0, s_unused);
 // 0060E3E0: ours only (a destructor body). The window base must be left empty.
 static void __fastcall TradePanelDestroyVerify(CUiWindow* self) {
     TradePanelDestroy(self);
-    ei::verify::Check("TradePanelDestroy", true, !self->sceneObjects_.data_ && !self->objects_.data_,
-                      "scene %p objects %p", self->sceneObjects_.data_, self->objects_.data_);
+    ei::verify::Check("TradePanelDestroy", true, !self->sceneObjects_.data && !self->objects_.data,
+                      "scene %p objects %p", self->sceneObjects_.data, self->objects_.data);
 }
 EI_VERIFY(0x0060E3E0, TradePanelDestroyVerify, 0, s_unused);
 
@@ -626,8 +626,8 @@ static void __fastcall GlobalMapDestroyVerify(CGlobalMap* self) {
     GlobalMapDestroy(self);
     bool ok = self->zones_.vtable == reinterpret_cast<void*>(0x00740BFC) &&
               self->links_.vtable == reinterpret_cast<void*>(0x00740BF0) &&
-              self->quests_.vtable == reinterpret_cast<void*>(0x00740BE4) && !self->sceneObjects_.data_;
-    ei::verify::Check("GlobalMapDestroy", true, ok, "scene %p", self->sceneObjects_.data_);
+              self->quests_.vtable == reinterpret_cast<void*>(0x00740BE4) && !self->sceneObjects_.data;
+    ei::verify::Check("GlobalMapDestroy", true, ok, "scene %p", self->sceneObjects_.data);
 }
 EI_VERIFY(0x005F6920, GlobalMapDestroyVerify, 0, s_unused);
 

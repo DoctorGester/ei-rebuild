@@ -182,7 +182,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
         if (topics_.size_ > 0) GameCursor()->SetShape(kCursorTalk);
         const PersonTextNode* node = personTexts_.Find(id);
         if (node == personTexts_.header) return;
-        CUiSurface* label = surfaces_.data_[1];
+        CUiSurface* label = surfaces_.data[1];
         SurfaceGetDC(label);
         SurfaceClearOriginal(label);
         RECT rect{0, 0, 0, 0};
@@ -258,7 +258,7 @@ void CBriefingScreen::OpenTopics(CEngineObject* person) {
 void CBriefingScreen::DrawTopics() {
     mfc::CString prefix;
     GameTexts()->GetString(TopicPrefixKey(), &prefix);
-    CUiSurface* surface = surfaces_.data_[0];
+    CUiSurface* surface = surfaces_.data[0];
     SurfaceGetDC(surface);
     SurfaceClearOriginal(surface);
     int row = topicTop_;

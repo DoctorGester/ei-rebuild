@@ -117,9 +117,9 @@ std::string Text(const char* s) { return s ? s : ""; }
 // original's run (memory_texture.h); ours then writes the memory.
 static void(__fastcall* s_showPicture)(CSaveLoadWindow*, void*);
 static void __fastcall ShowPictureVerify(CSaveLoadWindow* self, void*) {
-    CEngineObject* sprite = self->sceneObjects_.data_[3];
+    CEngineObject* sprite = self->sceneObjects_.data[3];
     SpriteState before = SpriteOf(sprite);
-    CEngineObject* texture = self->objects_.size_ > 1 ? self->objects_.data_[1] : nullptr;
+    CEngineObject* texture = self->objects_.size > 1 ? self->objects_.data[1] : nullptr;
     char* holder = HolderOf(texture);
     auto* lentHolder = reinterpret_cast<CDXSurface*>(holder);
     bool lent = memory_texture::Lend(lentHolder);
@@ -171,7 +171,7 @@ ListState StateOf(CSaveLoadWindow* w) {
     s.maxPosition = w->scrollbar_->maxPosition_;
     s.position = w->scrollbar_->position_;
     s.moved = w->scrollbar_->moved_;
-    s.objects = w->objects_.size_;
+    s.objects = w->objects_.size;
     s.shot = w->dialog_ != nullptr;
     return s;
 }

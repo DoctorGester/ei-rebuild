@@ -86,8 +86,8 @@ CUiRegion* AddRect(CUiWindow* window, const RECT& r) {
 }
 
 void ShowFrom(CUiWindow* window, int first, std::uint32_t shown) {
-    for (int i = first; i < window->sceneObjects_.size_; ++i)
-        std::memcpy(reinterpret_cast<std::uint8_t*>(window->sceneObjects_.data_[i]) + 0x220, &shown, 4);
+    for (int i = first; i < window->sceneObjects_.size; ++i)
+        std::memcpy(reinterpret_cast<std::uint8_t*>(window->sceneObjects_.data[i]) + 0x220, &shown, 4);
 }
 
 constexpr std::uint32_t kBright = 0xA7D7E4;
@@ -100,7 +100,7 @@ constexpr std::uint32_t kGrey = 0x828282;
 void CHeroStatsPanel::ShowStats(int page) {
     RECT rect = {0x14, 0xA5, 0xB4, 0xB4};
     page_ = page;
-    while (regions_.size_ > 2) RemoveRegionAt(2);
+    while (regions_.size > 2) RemoveRegionAt(2);
     ShowFrom(this, 4, 0);
     if (page_ == 0) {
         // Equipment: four rows, a gap, three rows, the weapon's two lines.
@@ -152,7 +152,7 @@ EI_REPLACE_METHOD(0x006233C0, CHeroStatsPanel::ShowStats);
 // --- 00623880 ----------------------------------------------------------------------------------
 
 void CHeroStatsPanel::DrawStats() {
-    SurfaceDraw* draw = reinterpret_cast<SurfaceDraw*>(surfaces_.data_[0]);
+    SurfaceDraw* draw = reinterpret_cast<SurfaceDraw*>(surfaces_.data[0]);
     draw->Begin();
     draw->Clear();
     RECT title = {0, 0x1B, 0xC8, 0x2B};
@@ -357,7 +357,7 @@ void BuildCellGrid(CUiWindow* window) {
         float pictureDepth = Store(D(depth) + D(depth));
         int bottom = top + 100;
         for (int left = 200; left < 600; left += 100) {
-            CEngineObject** textures = window->objects_.data_;
+            CEngineObject** textures = window->objects_.data;
             CEngineObject* texture = top <= 200 ? (left <= 300 ? textures[0] : textures[1])
                                                 : (left <= 300 ? textures[2] : textures[3]);
             int right = left + 100;
@@ -420,7 +420,7 @@ void CHeroEquipPanel::Build(bool body) {
             CUiMesh* picture = AddSprite(0);
             picture->SetRectangle(7.0f, 100.0f, quarters[i][0], quarters[i][1], quarters[i][2], quarters[i][3], 0x1C,
                                   0x1C, 0xE4, 0xE4);
-            SetSpriteField(picture, 0x280, reinterpret_cast<std::uint32_t>(objects_.data_[i + 1]));
+            SetSpriteField(picture, 0x280, reinterpret_cast<std::uint32_t>(objects_.data[i + 1]));
         }
     }
     selected_ = -1;
@@ -534,7 +534,7 @@ void AddMakerPictures(CConstructorPage* page) {
         CUiMesh* picture = page->AddSprite(0);
         picture->SetRectangle(7.0f, 100.0f, quarters[i][0], quarters[i][1], quarters[i][2], quarters[i][3], 0x1C, 0x1C,
                               0xE4, 0xE4);
-        SetSpriteField(picture, 0x280, reinterpret_cast<std::uint32_t>(page->objects_.data_[i]));
+        SetSpriteField(picture, 0x280, reinterpret_cast<std::uint32_t>(page->objects_.data[i]));
     }
     CUiMesh* frame = page->AddSprite(0);
     Builder(frame)->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);

@@ -63,7 +63,7 @@ bool EmptyList(CScript* script, std::size_t offset) {
     return !l.head && !l.tail && l.count == 0 && !l.free && !l.blocks;
 }
 template <typename T>
-bool EmptyArray(const MfcArray<T>& a) { return !a.data && a.size == 0 && a.maxSize == 0; }
+bool EmptyArray(const mfc::CArray<T>& a) { return !a.data && a.size == 0 && a.maxSize == 0; }
 
 // Ours only (frees and releases): the state the reset leaves.
 void __fastcall ResetVerify(CScript* script) {
@@ -99,7 +99,7 @@ void __fastcall ResetVerify(CScript* script) {
 
 // ---- AddParameter ------------------------------------------------------------------------------------
 
-int FindName(const MfcArray<mfc::CString>& names, const char* name) {
+int FindName(const mfc::CArray<mfc::CString>& names, const char* name) {
     for (int i = 0; i < names.size; ++i)
         if (std::strcmp(names.data[i], name) == 0) return i;
     return -1;
@@ -109,7 +109,7 @@ int FindName(const MfcArray<mfc::CString>& names, const char* name) {
 // and the letter appended, or nothing changed when the name was there.
 BOOL __fastcall AddParameterVerify(ScriptDefinition* self, void*, const mfc::CString* name, int type) {
     ScriptVars& v = self->vars;
-    MfcArray<mfc::CString>* namesOf[] = {&v.floatNames, &v.stringNames, &v.objectNames, &v.groupNames};
+    mfc::CArray<mfc::CString>* namesOf[] = {&v.floatNames, &v.stringNames, &v.objectNames, &v.groupNames};
     const int* valuesOf[] = {&v.floats.size, &v.strings.size, &v.objects.size, &v.groups.size};
     bool known = type >= 1 && type <= 4;
     std::string text = static_cast<const char*>(*name);
@@ -127,7 +127,7 @@ BOOL __fastcall AddParameterVerify(ScriptDefinition* self, void*, const mfc::CSt
     } else if (existed) {
         ok = result == 0 && now == params && namesOf[type - 1]->size == names && *valuesOf[type - 1] == values;
     } else {
-        const MfcArray<mfc::CString>& n = *namesOf[type - 1];
+        const mfc::CArray<mfc::CString>& n = *namesOf[type - 1];
         ok = result == 1 && n.size == names + 1 && *valuesOf[type - 1] == values + 1 &&
              text == static_cast<const char*>(n.data[names]) && now == params + "fsog"[type - 1];
     }
@@ -143,7 +143,7 @@ __declspec(naked) void __fastcall DefinitionAssign(void*, void*, const void*) EI
 __declspec(naked) void __fastcall DefinitionDestruct(void*) EI_ORIGINAL(0x004BE9D0)
 
 template <typename T>
-bool SameEmptied(const MfcArray<T>& a, const MfcArray<T>& b) {
+bool SameEmptied(const mfc::CArray<T>& a, const mfc::CArray<T>& b) {
     return a.vtable == b.vtable && a.data == b.data && a.size == b.size && a.maxSize == b.maxSize;
 }
 

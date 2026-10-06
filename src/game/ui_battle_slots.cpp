@@ -114,7 +114,7 @@ void CBattleScreenSetup::OnUnitLeft(CUnit* unit) {
         CHudTopPanel* panel = TopPanel(topPanel_);
         reinterpret_cast<mfc::CString*>(&panel->pageTexts_[0])->Empty();
         if (panel->page_ == 0)
-            LogSetTextOriginal(panel->owner_->children_.data_[kMessageLogChild], nullptr, game::EmptyText());
+            LogSetTextOriginal(panel->owner_->children_.data[kMessageLogChild], nullptr, game::EmptyText());
         return;
     }
     UiDwordArray& party = Party();
@@ -157,7 +157,7 @@ EI_REPLACE_METHOD(0x00635080, CBattleScreenSetup::SaveState);
 
 void CBattleScreenSetup::MarkPortrait(int index) {
     auto* portraits = static_cast<CHudPortraits*>(portraits_);
-    reinterpret_cast<CUiMesh*>(portraits->sceneObjects_.data_[index * kPortraitSprites + 4])->visible_ = 1;
+    reinterpret_cast<CUiMesh*>(portraits->sceneObjects_.data[index * kPortraitSprites + 4])->visible_ = 1;
     const Vector3 axis = {-1.0f, 0.0f, 0.0f};
     Quaternion turn;
     portraits->slots_[index].restB_ = *turn.SetAxisAngle(axis, SelectedFaceAngle());
@@ -168,7 +168,7 @@ void CBattleScreenSetup::OnUnitJoined(CUnit* unit) {
         CHudTopPanel* panel = TopPanel(topPanel_);
         reinterpret_cast<mfc::CString*>(&panel->pageTexts_[0])->Empty();
         if (panel->page_ == 0)
-            LogSetTextOriginal(panel->owner_->children_.data_[kMessageLogChild], nullptr, game::EmptyText());
+            LogSetTextOriginal(panel->owner_->children_.data[kMessageLogChild], nullptr, game::EmptyText());
         return;
     }
     LocalPlayerBlock* player = LocalPlayer();

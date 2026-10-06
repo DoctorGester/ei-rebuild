@@ -6,6 +6,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "lib/mfc.h"
+
 using BOOL = int;
 
 class CStream;
@@ -16,16 +18,6 @@ int __fastcall TextKeyFromName(const char* name);
 
 // 004613A0. Text keys are 1000000000..1999999999. __fastcall (id in ECX).
 BOOL __fastcall IsTextKey(int id);
-
-// An MFC CArray as laid out in game.exe (vtable, data, size, max size, grow by).
-template <typename T>
-struct MfcArray {
-    void* vtable;
-    T* data;
-    int size;
-    int maxSize;
-    int growBy;
-};
 
 // One "#allod" entry of map.txt (0x2C bytes). Only the name is used here.
 struct AllodRecord {
@@ -62,8 +54,8 @@ struct CMapDatabase {
     // false if the file is not found.
     bool Load(const char* fileName);
 
-    MfcArray<AllodRecord> allods;   // +0x00
-    MfcArray<MapRecord> maps;       // +0x14
+    mfc::CArray<AllodRecord> allods;   // +0x00
+    mfc::CArray<MapRecord> maps;       // +0x14
 };
 static_assert(offsetof(CMapDatabase, maps) == 0x14);
 static_assert(sizeof(CMapDatabase) == 0x28);

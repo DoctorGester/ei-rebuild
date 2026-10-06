@@ -114,7 +114,7 @@ int __fastcall TradeGridDraw(CTradeGrid* self, void*, int pass) {
     self->DrawBase(pass);
 
     mfc::CString text;
-    auto* surface = reinterpret_cast<SurfaceText*>(self->surfaces_.data_[0]);
+    auto* surface = reinterpret_cast<SurfaceText*>(self->surfaces_.data[0]);
     surface->Begin();
     surface->Clear();
     DrawItems(self, pass, At<void*>(self, 0x150), surface, text, GameFloat(0x0073D618), 48.0f, 24.0f, 0x0F, 0x41,

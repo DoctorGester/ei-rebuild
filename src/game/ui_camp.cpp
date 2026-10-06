@@ -206,7 +206,7 @@ void CCampPages::ShowPage(int page) {
         page_ = page;
         Panel(statsPanel_)->ShowStats(page);
         Panel(trade_)->SelectTrade(hero_);
-        SurfaceDraw* title = reinterpret_cast<SurfaceDraw*>(surfaces_.data_[1]);
+        SurfaceDraw* title = reinterpret_cast<SurfaceDraw*>(surfaces_.data[1]);
         title->Begin();
         title->Clear();
         RECT rect = {0, 10, 200, 30};
@@ -216,19 +216,19 @@ void CCampPages::ShowPage(int page) {
 
     // The hero arrows (scene objects 0/1, regions 0/1) only where a hero can be chosen.
     if (page_ == 0 && (!itemConstructor_ || noConstructor_)) {
-        SetShown(sceneObjects_.data_[0], 0);
-        SetShown(sceneObjects_.data_[1], 0);
-        regions_.data_[0]->SetTip(0, 1, 0);
-        regions_.data_[1]->SetTip(0, 1, 0);
+        SetShown(sceneObjects_.data[0], 0);
+        SetShown(sceneObjects_.data[1], 0);
+        regions_.data[0]->SetTip(0, 1, 0);
+        regions_.data[1]->SetTip(0, 1, 0);
     } else {
-        SetShown(sceneObjects_.data_[0], 1);
-        SetShown(sceneObjects_.data_[1], 1);
-        regions_.data_[0]->SetTip(0x4EE8, 1, 0);
-        regions_.data_[1]->SetTip(0x4EE9, 1, 0);
+        SetShown(sceneObjects_.data[0], 1);
+        SetShown(sceneObjects_.data[1], 1);
+        regions_.data[0]->SetTip(0x4EE8, 1, 0);
+        regions_.data[1]->SetTip(0x4EE9, 1, 0);
     }
     // The page buttons (scene objects 2-9) half bright, the current one full.
-    for (int i = 2; i < 10; ++i) SetShade(sceneObjects_.data_[i], 0x3F000000);
-    SetShade(sceneObjects_.data_[page_ + 2], 0x3F800000);
+    for (int i = 2; i < 10; ++i) SetShade(sceneObjects_.data[i], 0x3F000000);
+    SetShade(sceneObjects_.data[page_ + 2], 0x3F800000);
     interface_->ShowHelp(0);
 }
 EI_REPLACE_METHOD(0x0060E9E0, CCampPages::ShowPage);
@@ -675,7 +675,7 @@ void CCampPages::UpdateAction() {
     mfc::CString text;
     mfc::CString line;
     CTextManager* texts = *reinterpret_cast<CTextManager**>(0x007AF788);
-    SurfaceDraw* draw = reinterpret_cast<SurfaceDraw*>(surfaces_.data_[0]);
+    SurfaceDraw* draw = reinterpret_cast<SurfaceDraw*>(surfaces_.data[0]);
     draw->Begin();
     draw->Clear();
     if (reinterpret_cast<const int*>(static_cast<const char*>(action))[-2] != 0) {
@@ -695,8 +695,8 @@ void CCampPages::UpdateAction() {
     draw->Text(line, &top, 1, 0xFFFFFF, 1, 1);
     draw->End();
 
-    SetShadeOf(sceneObjects_.data_[0], actionEnabled_);
-    SetShadeOf(sceneObjects_.data_[1], actionShown_);
+    SetShadeOf(sceneObjects_.data[0], actionEnabled_);
+    SetShadeOf(sceneObjects_.data[1], actionShown_);
 }
 EI_REPLACE_METHOD(0x00611930, CCampPages::UpdateAction);
 

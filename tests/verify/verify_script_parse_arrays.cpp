@@ -24,9 +24,9 @@ using namespace scriptcompare;
 
 template <typename T>
 struct ScratchArray {
-    MfcArray<T> array;
+    mfc::CArray<T> array;
     int oldSize;
-    explicit ScratchArray(const MfcArray<T>& real) : array(real), oldSize(real.size) {
+    explicit ScratchArray(const mfc::CArray<T>& real) : array(real), oldSize(real.size) {
         if (real.data) {
             array.data = static_cast<T*>(gamecrt::operator_new(static_cast<unsigned>(real.maxSize) * sizeof(T)));
             std::memcpy(array.data, real.data, static_cast<unsigned>(real.size) * sizeof(T));
@@ -36,15 +36,15 @@ struct ScratchArray {
     ~ScratchArray() { gamecrt::operator_delete(array.data); }
 
     // Same shape as `real` and the same bytes in the elements that were there before.
-    bool SameOld(const MfcArray<T>& real) const {
+    bool SameOld(const mfc::CArray<T>& real) const {
         return SameShape(array, real, true) &&
                (!oldSize || std::memcmp(array.data, real.data, static_cast<unsigned>(oldSize) * sizeof(T)) == 0);
     }
 };
 
 // 004D5B50: SUB ESP,0xC; PUSH EBX; MOV EBX,ECX (6 bytes).
-int(__fastcall* s_bindingsAdd)(MfcArray<ScriptBinding>*, void*, const ScriptBinding*);
-int __fastcall BindingsAddVerify(MfcArray<ScriptBinding>* self, void*, const ScriptBinding* binding) {
+int(__fastcall* s_bindingsAdd)(mfc::CArray<ScriptBinding>*, void*, const ScriptBinding*);
+int __fastcall BindingsAddVerify(mfc::CArray<ScriptBinding>* self, void*, const ScriptBinding* binding) {
     ScratchArray<ScriptBinding> scratch(*self);
     int expected = s_bindingsAdd(&scratch.array, nullptr, binding);
     int actual = ScriptBindingsAdd(self, nullptr, binding);
@@ -56,8 +56,8 @@ int __fastcall BindingsAddVerify(MfcArray<ScriptBinding>* self, void*, const Scr
 }
 
 // 004D5CB0: SUB ESP,0xC; PUSH EBX; MOV EBX,ECX (6 bytes).
-int(__fastcall* s_subCallsAdd)(MfcArray<ScriptSubCall>*, void*, const ScriptSubCall*);
-int __fastcall SubCallsAddVerify(MfcArray<ScriptSubCall>* self, void*, const ScriptSubCall* call) {
+int(__fastcall* s_subCallsAdd)(mfc::CArray<ScriptSubCall>*, void*, const ScriptSubCall*);
+int __fastcall SubCallsAddVerify(mfc::CArray<ScriptSubCall>* self, void*, const ScriptSubCall* call) {
     ScratchArray<ScriptSubCall> scratch(*self);
     int expected = s_subCallsAdd(&scratch.array, nullptr, call);
     int actual = ScriptSubCallsAdd(self, nullptr, call);
@@ -74,8 +74,8 @@ int __fastcall SubCallsAddVerify(MfcArray<ScriptSubCall>* self, void*, const Scr
 }
 
 // 004D5ED0: SUB ESP,0xC; PUSH EBX; PUSH EBP; MOV EBP,ECX (7 bytes).
-int(__fastcall* s_cmdsAdd)(MfcArray<SSCCmd>*, void*, const SSCCmd*);
-int __fastcall CmdsAddVerify(MfcArray<SSCCmd>* self, void*, const SSCCmd* cmd) {
+int(__fastcall* s_cmdsAdd)(mfc::CArray<SSCCmd>*, void*, const SSCCmd*);
+int __fastcall CmdsAddVerify(mfc::CArray<SSCCmd>* self, void*, const SSCCmd* cmd) {
     ScratchArray<SSCCmd> scratch(*self);
     int expected = s_cmdsAdd(&scratch.array, nullptr, cmd);
     int actual = ScriptCmdsAdd(self, nullptr, cmd);
@@ -90,8 +90,8 @@ int __fastcall CmdsAddVerify(MfcArray<SSCCmd>* self, void*, const SSCCmd* cmd) {
 // 004D65E0: SUB ESP,8; PUSH EBX; PUSH EBP; MOV EBP,ECX (7 bytes). Against the original when the
 // index is past the end (the loader's only use: appending a condition); otherwise ours only (the
 // original would assign into the shared element): the element equals the source.
-void(__fastcall* s_cmdsSetAtGrow)(MfcArray<SSCCmd>*, void*, int, const SSCCmd*);
-void __fastcall CmdsSetAtGrowVerify(MfcArray<SSCCmd>* self, void*, int index, const SSCCmd* cmd) {
+void(__fastcall* s_cmdsSetAtGrow)(mfc::CArray<SSCCmd>*, void*, int, const SSCCmd*);
+void __fastcall CmdsSetAtGrowVerify(mfc::CArray<SSCCmd>* self, void*, int index, const SSCCmd* cmd) {
     if (index < self->size) {
         ScriptCmdsSetAtGrow(self, nullptr, index, cmd);
         ei::verify::Check("ScriptCmdsSetAtGrow", true, SameCmd(self->data[index], *cmd, false),
@@ -110,8 +110,8 @@ void __fastcall CmdsSetAtGrowVerify(MfcArray<SSCCmd>* self, void*, int index, co
 }
 
 // 004D6100: SUB ESP,0x10; PUSH EBX; MOV EBX,ECX (6 bytes).
-int(__fastcall* s_definitionsAdd)(MfcArray<ScriptDefinition>*, void*, const ScriptDefinition*);
-int __fastcall DefinitionsAddVerify(MfcArray<ScriptDefinition>* self, void*, const ScriptDefinition* definition) {
+int(__fastcall* s_definitionsAdd)(mfc::CArray<ScriptDefinition>*, void*, const ScriptDefinition*);
+int __fastcall DefinitionsAddVerify(mfc::CArray<ScriptDefinition>* self, void*, const ScriptDefinition* definition) {
     ScratchArray<ScriptDefinition> scratch(*self);
     int expected = s_definitionsAdd(&scratch.array, nullptr, definition);
     int actual = ScriptDefinitionsAdd(self, nullptr, definition);
@@ -156,10 +156,10 @@ int __fastcall FindName4Verify(const ScriptNamedValues<float>* v, void*, const c
 // 004D5A10 / 004D5A30: the original into a 0xCC scratch, ours into the real array; all 0x14 bytes and
 // the returned pointers. MOV EAX,ECX; XOR ECX,ECX; MOV [EAX+4],ECX (7 bytes).
 template <typename T>
-using ConstructFn = MfcArray<T>*(__fastcall*)(MfcArray<T>*);
+using ConstructFn = mfc::CArray<T>*(__fastcall*)(mfc::CArray<T>*);
 template <typename T>
-MfcArray<T>* CheckConstruct(ConstructFn<T> original, ConstructFn<T> ours, const char* label, MfcArray<T>* self) {
-    MfcArray<T> scratch;
+mfc::CArray<T>* CheckConstruct(ConstructFn<T> original, ConstructFn<T> ours, const char* label, mfc::CArray<T>* self) {
+    mfc::CArray<T> scratch;
     std::memset(&scratch, 0xCC, sizeof(scratch));
     bool returned = original(&scratch) == &scratch;
     returned = ours(self) == self && returned;
@@ -168,19 +168,19 @@ MfcArray<T>* CheckConstruct(ConstructFn<T> original, ConstructFn<T> ours, const 
     return self;
 }
 ConstructFn<SSCCmd> s_cmdArrayConstruct;
-MfcArray<SSCCmd>* __fastcall CmdArrayConstructVerify(MfcArray<SSCCmd>* self) {
+mfc::CArray<SSCCmd>* __fastcall CmdArrayConstructVerify(mfc::CArray<SSCCmd>* self) {
     return CheckConstruct(s_cmdArrayConstruct, ScriptCmdArrayConstruct, "ScriptCmdArrayConstruct", self);
 }
 ConstructFn<ScriptIfThen> s_ifThenArrayConstruct;
-MfcArray<ScriptIfThen>* __fastcall IfThenArrayConstructVerify(MfcArray<ScriptIfThen>* self) {
+mfc::CArray<ScriptIfThen>* __fastcall IfThenArrayConstructVerify(mfc::CArray<ScriptIfThen>* self) {
     return CheckConstruct(s_ifThenArrayConstruct, ScriptIfThenArrayConstruct, "ScriptIfThenArrayConstruct", self);
 }
 
 // 004CE5F0 (ScriptDefinition::AddParameter's names; script_parse, every Script with parameters):
 // against the original on a scratch array when the index is past the end (the only use); ours only
 // otherwise (the original would assign into the shared string). SUB ESP,8; PUSH EBX; MOV EBX,ECX (6).
-void(__fastcall* s_namesSetAtGrow)(MfcArray<mfc::CString>*, void*, int, const mfc::CString*);
-void __fastcall NamesSetAtGrowVerify(MfcArray<mfc::CString>* self, void*, int index, const mfc::CString* text) {
+void(__fastcall* s_namesSetAtGrow)(mfc::CArray<mfc::CString>*, void*, int, const mfc::CString*);
+void __fastcall NamesSetAtGrowVerify(mfc::CArray<mfc::CString>* self, void*, int index, const mfc::CString* text) {
     if (index < self->size) {
         ScriptNamesSetAtGrow(self, nullptr, index, text);
         ei::verify::Check("ScriptNamesSetAtGrow", true, SameText(self->data[index], *text),
@@ -199,8 +199,8 @@ void __fastcall NamesSetAtGrowVerify(MfcArray<mfc::CString>* self, void*, int in
 
 // 004C2F80 (SSCCmd::SetParameters: every string argument bound to a variable; script_exec): the
 // original into a scratch string, ours into `out`. MOV EAX,FS:[0] (6 bytes).
-void(__fastcall* s_stringsCopyTo)(const MfcArray<mfc::CString>*, void*, int, mfc::CString*);
-void __fastcall StringsCopyToVerify(const MfcArray<mfc::CString>* self, void*, int index, mfc::CString* out) {
+void(__fastcall* s_stringsCopyTo)(const mfc::CArray<mfc::CString>*, void*, int, mfc::CString*);
+void __fastcall StringsCopyToVerify(const mfc::CArray<mfc::CString>* self, void*, int index, mfc::CString* out) {
     mfc::CString expected;
     s_stringsCopyTo(self, nullptr, index, &expected);
     ScriptStringsCopyTo(self, nullptr, index, out);
@@ -210,8 +210,8 @@ void __fastcall StringsCopyToVerify(const MfcArray<mfc::CString>* self, void*, i
 
 // 004CDCB0 (the patrol looks of UMPatrol, AIBrain::PlanLooks; unit_ai, script_exec): against the
 // original on a scratch array (plain elements, any index). SUB ESP,8; PUSH EBX; PUSH EBP; MOV EBX,ECX (7).
-void(__fastcall* s_looksSetAtGrow)(MfcArray<AILook>*, void*, int, const AILook*);
-void __fastcall LooksSetAtGrowVerify(MfcArray<AILook>* self, void*, int index, const AILook* look) {
+void(__fastcall* s_looksSetAtGrow)(mfc::CArray<AILook>*, void*, int, const AILook*);
+void __fastcall LooksSetAtGrowVerify(mfc::CArray<AILook>* self, void*, int index, const AILook* look) {
     ScratchArray<AILook> scratch(*self);
     s_looksSetAtGrow(&scratch.array, nullptr, index, look);
     ScriptLooksSetAtGrow(self, nullptr, index, look);
@@ -243,14 +243,14 @@ ScriptNamedValues<float>* __fastcall FloatsCopyConstructVerify(ScriptNamedValues
                                                                const ScriptNamedValues<float>* other) {
     return CopyConstructCheck<float>(
         "ScriptFloatsCopyConstruct", s_floatsCopyConstruct, ScriptFloatsCopyConstruct, ScriptFloatsDestruct,
-        [](const MfcArray<float>& a, const MfcArray<float>& b) { return SamePlain(a, b, true); }, self, other);
+        [](const mfc::CArray<float>& a, const mfc::CArray<float>& b) { return SamePlain(a, b, true); }, self, other);
 }
 NamedCopyFn<mfc::CString> s_stringsCopyConstruct;
 ScriptNamedValues<mfc::CString>* __fastcall StringsCopyConstructVerify(ScriptNamedValues<mfc::CString>* self, void*,
                                                                        const ScriptNamedValues<mfc::CString>* other) {
     return CopyConstructCheck<mfc::CString>(
         "ScriptStringsCopyConstruct", s_stringsCopyConstruct, ScriptStringsCopyConstruct, ScriptStringsDestruct,
-        [](const MfcArray<mfc::CString>& a, const MfcArray<mfc::CString>& b) { return SameStrings(a, b, true); },
+        [](const mfc::CArray<mfc::CString>& a, const mfc::CArray<mfc::CString>& b) { return SameStrings(a, b, true); },
         self, other);
 }
 

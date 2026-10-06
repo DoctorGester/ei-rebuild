@@ -149,7 +149,7 @@ int CWorldServer::Update() {
     // back to every local player.
     ScriptGroup heroes;
     InitGroup(&heroes);
-    auto& names = At<MfcArray<mfc::CString>>(this, kGlobalGroupNames);
+    auto& names = At<mfc::CArray<mfc::CString>>(this, kGlobalGroupNames);
     for (int i = 0; i < names.size; ++i) {
         bool found;
         {

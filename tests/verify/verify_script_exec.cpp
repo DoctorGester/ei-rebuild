@@ -362,8 +362,8 @@ EI_VERIFY(0x004BF000, TickVerify, 0, s_unused);
 namespace {
 
 // A copy of an area's parts with its own data block, for the original to append to.
-MfcArray<ScriptAreaPart> CloneParts(const MfcArray<ScriptAreaPart>& parts) {
-    MfcArray<ScriptAreaPart> copy = parts;
+mfc::CArray<ScriptAreaPart> CloneParts(const mfc::CArray<ScriptAreaPart>& parts) {
+    mfc::CArray<ScriptAreaPart> copy = parts;
     if (parts.data) {
         copy.data = static_cast<ScriptAreaPart*>(gamecrt::operator_new(parts.maxSize * sizeof(ScriptAreaPart)));
         std::memcpy(copy.data, parts.data, parts.size * sizeof(ScriptAreaPart));
@@ -372,7 +372,7 @@ MfcArray<ScriptAreaPart> CloneParts(const MfcArray<ScriptAreaPart>& parts) {
 }
 
 // Same counts and parts; a circle leaves its fourth value unset.
-bool SameParts(const MfcArray<ScriptAreaPart>& a, const MfcArray<ScriptAreaPart>& b) {
+bool SameParts(const mfc::CArray<ScriptAreaPart>& a, const mfc::CArray<ScriptAreaPart>& b) {
     if (a.size != b.size || a.maxSize != b.maxSize || a.growBy != b.growBy) return false;
     for (int i = 0; i < a.size; ++i) {
         const ScriptAreaPart& p = a.data[i];
@@ -383,8 +383,8 @@ bool SameParts(const MfcArray<ScriptAreaPart>& a, const MfcArray<ScriptAreaPart>
     return true;
 }
 
-void(__fastcall* s_addRect)(MfcArray<ScriptAreaPart>*, void*, float, float, float, float);
-void(__fastcall* s_addRound)(MfcArray<ScriptAreaPart>*, void*, float, float, float);
+void(__fastcall* s_addRect)(mfc::CArray<ScriptAreaPart>*, void*, float, float, float, float);
+void(__fastcall* s_addRound)(mfc::CArray<ScriptAreaPart>*, void*, float, float, float);
 void(__fastcall* s_moveLight)(CScript*, void*, const SSCCmd*);
 
 int FindLight(CScript* script, int id) {
@@ -397,8 +397,8 @@ int FindLight(CScript* script, int id) {
 } // namespace
 
 // 004B1ED0: SUB ESP,0x14; PUSH EBX; MOV EBX,ECX (6 bytes). The original appends to a copy.
-static void __fastcall AddRectVerify(MfcArray<ScriptAreaPart>* area, void*, float x1, float y1, float x2, float y2) {
-    MfcArray<ScriptAreaPart> copy = CloneParts(*area);
+static void __fastcall AddRectVerify(mfc::CArray<ScriptAreaPart>* area, void*, float x1, float y1, float x2, float y2) {
+    mfc::CArray<ScriptAreaPart> copy = CloneParts(*area);
     s_addRect(&copy, nullptr, x1, y1, x2, y2);
     ScriptAreaAddRect(area, nullptr, x1, y1, x2, y2);
     ei::verify::Check("ScriptAreaAddRect", true, SameParts(copy, *area), "%d parts", area->size);
@@ -407,8 +407,8 @@ static void __fastcall AddRectVerify(MfcArray<ScriptAreaPart>* area, void*, floa
 EI_VERIFY(0x004B1ED0, AddRectVerify, 6, s_addRect);
 
 // 004B2070: SUB ESP,0x14; PUSH EBX; PUSH EBP (5 bytes).
-static void __fastcall AddRoundVerify(MfcArray<ScriptAreaPart>* area, void*, float x, float y, float radius) {
-    MfcArray<ScriptAreaPart> copy = CloneParts(*area);
+static void __fastcall AddRoundVerify(mfc::CArray<ScriptAreaPart>* area, void*, float x, float y, float radius) {
+    mfc::CArray<ScriptAreaPart> copy = CloneParts(*area);
     s_addRound(&copy, nullptr, x, y, radius);
     ScriptAreaAddRound(area, nullptr, x, y, radius);
     ei::verify::Check("ScriptAreaAddRound", true, SameParts(copy, *area), "%d parts", area->size);

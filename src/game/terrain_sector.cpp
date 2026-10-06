@@ -44,100 +44,41 @@ constexpr int kVertices = 33 * 33;      // per layer
 
 IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 
-// MFC's growth step when none is set: an eighth of the current size, 4..1024.
-int GrowStep(int growBy, int size) {
-    if (growBy) return growBy;
-    int step = size / 8;
-    if (step < 4) return 4;
-    if (step > 0x400) return 0x400;
-    return step;
-}
-
-int NewCapacity(int growBy, int size, int capacity, int wanted) {
-    int grown = GrowStep(growBy, size) + capacity;
-    return grown > wanted ? grown : wanted;
-}
-
-// 32-byte aligned blocks with the raw pointer just before them (00453A10, 006C50A0, 006C50C0).
-void* AllocAligned(std::size_t bytes) {
-    char* raw = static_cast<char*>(gamecrt::operator_new(bytes + 0x24));
-    char* p = reinterpret_cast<char*>((reinterpret_cast<std::uintptr_t>(raw) + 0x23) & ~std::uintptr_t(0x1F));
-    reinterpret_cast<void**>(p)[-1] = raw;
-    return p;
-}
-
-void FreeAligned(void* p) { gamecrt::operator_delete(static_cast<void**>(p)[-1]); }
-
 // Element helpers of the original (not rewritten).
 __declspec(naked) void __stdcall DestroyRecords(SectorVertex*, int) EI_ORIGINAL(0x006C4EE0)
-__declspec(naked) void __stdcall ConstructFlagArrays(MfcObArray<std::uint8_t>*, int) EI_ORIGINAL(0x006C4F90)
-__declspec(naked) void __stdcall DestroyFlagArrays(MfcObArray<std::uint8_t>*, int) EI_ORIGINAL(0x006C4F60)
-__declspec(naked) void __stdcall ConstructTileLists(InlineArray<TileVertex>*, int) EI_ORIGINAL(0x006C5050)
-__declspec(naked) void __stdcall DestroyTileLists(InlineArray<TileVertex>*, int) EI_ORIGINAL(0x006C5010)
+__declspec(naked) void __stdcall ConstructFlagArrays(FlagArray*, int) EI_ORIGINAL(0x006C4F90)
+__declspec(naked) void __stdcall DestroyFlagArrays(FlagArray*, int) EI_ORIGINAL(0x006C4F60)
+__declspec(naked) void __stdcall ConstructTileLists(TileList*, int) EI_ORIGINAL(0x006C5050)
+__declspec(naked) void __stdcall DestroyTileLists(TileList*, int) EI_ORIGINAL(0x006C5010)
 
 struct MfcOps {
     void SetSizeByte(int size, int growBy);     // 006FF64A CByteArray::SetSize
     void SetAtGrowByte(int index, std::uint8_t value);  // 006FF7DC CByteArray::SetAtGrow
-    void DestroyTileList(int flags);            // 006C5120 (element of the tile lists)
 };
 void MfcOps::SetSizeByte(int n, int g) { ByteArraySetSizeOriginal(this, nullptr, n, g); }
 __declspec(naked) void MfcOps::SetAtGrowByte(int, std::uint8_t) EI_ORIGINAL(0x006FF7DC)
-__declspec(naked) void MfcOps::DestroyTileList(int) EI_ORIGINAL(0x006C5120)
 
 struct OwnerOps {
     void LightSector(SectorData* sector);       // 006CA9C0 point lights reaching the sector
 };
 __declspec(naked) void OwnerOps::LightSector(SectorData*) EI_ORIGINAL(0x006CA9C0)
 
-// 006C4F10: records start zeroed.
-void ConstructRecords(SectorVertex* records, int count) {
-    std::memset(records, 0, sizeof(SectorVertex) * count);
-}
+} // namespace
 
-// SetSize of the dword arrays on aligned blocks (+0x1A4, +0x2B4, +0x374), new size > 0.
-void ResizeAlignedInts(InlineArray<int>& a, int n) {
-    if (!a.data) {
-        a.data = static_cast<int*>(AllocAligned(n * 4));
-        a.capacity = n;
-        a.size = n;
-    } else if (n <= a.capacity) {
-        a.size = n;
-    } else {
-        int capacity = NewCapacity(a.growBy, a.size, a.capacity, n);
-        int* data = static_cast<int*>(AllocAligned(capacity * 4));
-        std::memcpy(data, a.data, a.size * 4);
-        FreeAligned(a.data);
-        a.data = data;
-        a.size = n;
-        a.capacity = capacity;
-    }
+// The sector's CArray element policies. The records start zeroed (006C4F10, inlined) and release
+// their lights when dropped (006C4EE0); the flag arrays and tile lists go through the original
+// helpers, which match the loops the original inlines in their SetSize(0) (the CByteArray
+// destructor through its vtable, 006C5120 per tile list).
+void RecordElements::Construct(SectorVertex* records, int count) {
+    std::memset(static_cast<void*>(records), 0, sizeof(SectorVertex) * count);
 }
+void RecordElements::Destruct(SectorVertex* records, int count) { DestroyRecords(records, count); }
+void FlagArrayElements::Construct(FlagArray* arrays, int count) { ConstructFlagArrays(arrays, count); }
+void FlagArrayElements::Destruct(FlagArray* arrays, int count) { DestroyFlagArrays(arrays, count); }
+void TileListElements::Construct(TileList* lists, int count) { ConstructTileLists(lists, count); }
+void TileListElements::Destruct(TileList* lists, int count) { DestroyTileLists(lists, count); }
 
-// SetSize of a tile list (aligned, 12-byte elements, no constructors).
-void ResizeTileList(InlineArray<TileVertex>& a, int n) {
-    if (n == 0) {
-        if (a.data) {
-            FreeAligned(a.data);
-            a.data = nullptr;
-        }
-        a.capacity = 0;
-        a.size = 0;
-    } else if (!a.data) {
-        a.data = static_cast<TileVertex*>(AllocAligned(n * 12 + 0));
-        a.capacity = n;
-        a.size = n;
-    } else if (n <= a.capacity) {
-        a.size = n;
-    } else {
-        int capacity = NewCapacity(a.growBy, a.size, a.capacity, n);
-        TileVertex* data = static_cast<TileVertex*>(AllocAligned(capacity * 12));
-        std::memcpy(data, a.data, a.size * 12);
-        FreeAligned(a.data);
-        a.data = data;
-        a.size = n;
-        a.capacity = capacity;
-    }
-}
+namespace {
 
 // Texture page of a tile texture: the first `pages` pages hold `perPage` textures each, the
 // last ones 8 each.
@@ -220,7 +161,7 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
 
     // Water material per tile.
     if (hasWater) {
-        ResizeAlignedInts(waterTiles, 0x100);
+        waterTiles.SetSize(0x100);
         const std::uint8_t* src = data + 0x4610 + (hasWaterTiles ? 0x200 : 0);
         for (int i = 0; i < 0x100; ++i) {
             std::uint16_t v;
@@ -228,38 +169,15 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
             waterTiles.data[i] = v == 0xFFFF ? -1 : v;
         }
     } else {
-        if (waterTiles.data) {
-            FreeAligned(waterTiles.data);
-            waterTiles.data = nullptr;
-        }
-        waterTiles.capacity = 0;
-        waterTiles.size = 0;
+        waterTiles.RemoveAll();
     }
 
     // Vertex positions: one or two layers of 33x33 (CArray<Vector3>::SetSize, zeroing new ones).
-    int count = hasWater ? 2 * kVertices : kVertices;
-    if (!vertices.data) {
-        vertices.data = static_cast<float*>(gamecrt::operator_new(count * 12));
-        std::memset(vertices.data, 0, count * 12);
-        vertices.capacity = count;
-        vertices.size = count;
-    } else if (vertices.capacity >= count) {
-        if (vertices.size < count) std::memset(vertices.data + vertices.size * 3, 0, (count - vertices.size) * 12);
-        vertices.size = count;
-    } else {
-        int capacity = NewCapacity(vertices.growBy, vertices.size, vertices.capacity, count);
-        float* grown = static_cast<float*>(gamecrt::operator_new(capacity * 12));
-        std::memcpy(grown, vertices.data, vertices.size * 12);
-        std::memset(grown + vertices.size * 3, 0, (count - vertices.size) * 12);
-        gamecrt::operator_delete(vertices.data);
-        vertices.data = grown;
-        vertices.size = count;
-        vertices.capacity = capacity;
-    }
+    vertices.SetSize(hasWater ? 2 * kVertices : kVertices);
 
     // Each vertex is 8 bytes: x and y displacement (signed bytes), height (u16), packed normal.
     const std::uint8_t* src = data;
-    float* out = vertices.data;
+    float* out = vertices.data->xyz;
     for (int layer = 0; layer < (hasWater ? 2 : 1); ++layer) {
         double x0 = static_cast<double>(sx) * One() * SectorCells();
         double y = static_cast<double>(sy) * One() * SectorCells();
@@ -290,7 +208,7 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
                         out[0] = Store(x);
                         out[1] = Store(y);
                     } else {
-                        std::memcpy(out, vertices.data + vi * 3, 8);
+                        std::memcpy(out, vertices.data[vi].xyz, 8);
                     }
                 }
                 x += One();
@@ -307,125 +225,12 @@ int SectorData::Load(void* archive, int sectorX, int sectorY, int pageCount, int
 
 namespace {
 
-// CArray<SectorVertex>::SetSize (records start zeroed; dropped ones release their lights).
-void ResizeRecords(MfcObArray<SectorVertex>& a, int n) {
-    if (!a.data) {
-        a.data = static_cast<SectorVertex*>(gamecrt::operator_new(n * sizeof(SectorVertex)));
-        ConstructRecords(a.data, n);
-        a.capacity = n;
-        a.size = n;
-    } else if (a.capacity >= n) {
-        if (a.size < n) ConstructRecords(a.data + a.size, n - a.size);
-        else if (a.size > n) DestroyRecords(a.data + n, a.size - n);
-        a.size = n;
-    } else {
-        int capacity = NewCapacity(a.growBy, a.size, a.capacity, n);
-        SectorVertex* data = static_cast<SectorVertex*>(gamecrt::operator_new(capacity * sizeof(SectorVertex)));
-        std::memcpy(data, a.data, a.size * sizeof(SectorVertex));
-        ConstructRecords(data + a.size, n - a.size);
-        gamecrt::operator_delete(a.data);
-        a.data = data;
-        a.size = n;
-        a.capacity = capacity;
-    }
-}
-
-// CArray<CByteArray>::SetSize for one quarter's tile flags.
-void ResizeFlagArrays(MfcObArray<MfcObArray<std::uint8_t>>& a, int n) {
-    using Destructor = void(__thiscall*)(void*, int);
-    if (n == 0) {
-        if (a.data) {
-            for (int i = 0; i < a.size; ++i)
-                (*reinterpret_cast<Destructor* const*>(&a.data[i]))[1](&a.data[i], 0);
-            gamecrt::operator_delete(a.data);
-            a.data = nullptr;
-        }
-        a.capacity = 0;
-        a.size = 0;
-    } else if (!a.data) {
-        a.data = static_cast<MfcObArray<std::uint8_t>*>(gamecrt::operator_new(n * 0x14));
-        ConstructFlagArrays(a.data, n);
-        a.capacity = n;
-        a.size = n;
-    } else if (n <= a.capacity) {
-        if (a.size < n) ConstructFlagArrays(a.data + a.size, n - a.size);
-        else if (a.size > n) DestroyFlagArrays(a.data + n, a.size - n);
-        a.size = n;
-    } else {
-        int capacity = NewCapacity(a.growBy, a.size, a.capacity, n);
-        auto* data = static_cast<MfcObArray<std::uint8_t>*>(gamecrt::operator_new(capacity * 0x14));
-        std::memcpy(data, a.data, a.size * 0x14);
-        ConstructFlagArrays(data + a.size, n - a.size);
-        gamecrt::operator_delete(a.data);
-        a.data = data;
-        a.size = n;
-        a.capacity = capacity;
-    }
-}
-
-// CArray of tile lists, SetSize for one quarter.
-void ResizeTileLists(MfcObArray<InlineArray<TileVertex>>& a, int n) {
-    if (n == 0) {
-        if (a.data) {
-            for (int i = 0; i < a.size; ++i)
-                reinterpret_cast<MfcOps*>(&a.data[i])->DestroyTileList(0);
-            gamecrt::operator_delete(a.data);
-            a.data = nullptr;
-        }
-        a.size = 0;
-        a.capacity = 0;
-    } else if (!a.data) {
-        a.data = static_cast<InlineArray<TileVertex>*>(gamecrt::operator_new(n * 0x10));
-        ConstructTileLists(a.data, n);
-        a.capacity = n;
-        a.size = n;
-    } else if (n <= a.capacity) {
-        if (a.size < n) ConstructTileLists(a.data + a.size, n - a.size);
-        else if (a.size > n) DestroyTileLists(a.data + n, a.size - n);
-        a.size = n;
-    } else {
-        int capacity = NewCapacity(a.growBy, a.size, a.capacity, n);
-        auto* data = static_cast<InlineArray<TileVertex>*>(gamecrt::operator_new(capacity * 0x10));
-        std::memcpy(data, a.data, a.size * 0x10);
-        ConstructTileLists(data + a.size, n - a.size);
-        gamecrt::operator_delete(a.data);
-        a.data = data;
-        a.size = n;
-        a.capacity = capacity;
-    }
-}
-
-void ResizeAnimated(InlineArray<AnimatedTile>& a, int n) {
-    if (n == 0) {
-        if (a.data) {
-            FreeAligned(a.data);
-            a.data = nullptr;
-        }
-        a.capacity = 0;
-        a.size = 0;
-    } else if (!a.data) {
-        a.data = static_cast<AnimatedTile*>(AllocAligned(n * sizeof(AnimatedTile)));
-        a.capacity = n;
-        a.size = n;
-    } else if (n <= a.capacity) {
-        a.size = n;
-    } else {
-        int capacity = NewCapacity(a.growBy, a.size, a.capacity, n);
-        auto* data = static_cast<AnimatedTile*>(AllocAligned(capacity * sizeof(AnimatedTile)));
-        std::memcpy(data, a.data, a.size * sizeof(AnimatedTile));
-        FreeAligned(a.data);
-        a.data = data;
-        a.size = n;
-        a.capacity = capacity;
-    }
-}
-
 // Vertex records: water material (water layer), normals, height range. Returns the tile words.
 const std::uint8_t* BuildRecords(SectorData& s) {
     const std::uint8_t* tiles = s.data;
     const std::uint8_t* src = s.data;
     SectorVertex* rec = s.records.data;
-    const float* vin = s.vertices.data;
+    const float* vin = s.vertices.data->xyz;
     std::memcpy(&s.minZ, "\xca\xf2\x49\x71", 4);    // 1e30
     s.maxZ = 0.0f;
     for (int layer = 0; layer < (s.hasWater ? 2 : 1); ++layer) {
@@ -469,9 +274,9 @@ const std::uint8_t* BuildRecords(SectorData& s) {
 int CountTiles(SectorData& s, const std::uint8_t* tiles, int* counts) {
     const TerrainFields* owner = s.owner;
     int animated = 0;
-    ResizeAlignedInts(s.classCounts, 16);
+    s.classCounts.SetSize(16);
     std::memset(s.classCounts.data, 0, 16 * 4);
-    ResizeAlignedInts(s.tileTextures, s.hasWaterTiles ? 0x200 : 0x100);
+    s.tileTextures.SetSize(s.hasWaterTiles ? 0x200 : 0x100);
 
     const std::uint8_t* src = tiles;
     int* out = s.tileTextures.data;
@@ -626,7 +431,7 @@ void ComputeBounds(SectorData& s) {
 } // namespace
 
 void SectorData::Build() {
-    ResizeRecords(records, hasWater ? 2 * kVertices : kVertices);
+    records.SetSize(hasWater ? 2 * kVertices : kVertices);
     const std::uint8_t* tileWords = BuildRecords(*this);
 
     int pageCount = pages * 2 + 4;
@@ -634,15 +439,15 @@ void SectorData::Build() {
     int counts[1024] = {};
     int animatedCount = CountTiles(*this, tileWords, counts);
     for (int q = 0; q < 4; ++q) {
-        ResizeFlagArrays(tileFlags[q], pageCount);
-        ResizeTileLists(tiles[q], pageCount);
+        tileFlags[q].SetSize(pageCount);
+        tiles[q].SetSize(pageCount);
         for (int k = 0; k < pageCount; ++k) {
             int c = counts[q * 256 + k];
             reinterpret_cast<MfcOps*>(&tileFlags[q].data[k])->SetSizeByte(c, -1);
-            ResizeTileList(tiles[q].data[k], c * 9);
+            tiles[q].data[k].SetSize(c * 9);
         }
     }
-    ResizeAnimated(animated, animatedCount);
+    animated.SetSize(animatedCount);
     if (hasWaterTiles) hasWaterTiles = 1;
 
     std::memset(counts, 0, sizeof(counts));
@@ -662,7 +467,7 @@ void SectorData::Build() {
                 reinterpret_cast<MfcOps*>(&waterMaterials)->SetAtGrowByte(waterMaterials.size, static_cast<std::uint8_t>(id));
         }
         if (hasWater) {
-            MfcObArray<float>& levels = owner->waterLevels[owner->sectorsX * sy + sx];
+            mfc::CArray<float>& levels = owner->waterLevels[owner->sectorsX * sy + sx];
             for (int k = 0; k < waterMaterials.size; ++k) {
                 int id = waterMaterials.data[k];
                 std::memcpy(&levels.data[id], &owner->materials[id].level, 4);
@@ -673,7 +478,7 @@ void SectorData::Build() {
 }
 
 void SectorData::ApplyWaterLevels() {
-    MfcObArray<float>& levels = owner->waterLevels[owner->sectorsX * sy + sx];
+    mfc::CArray<float>& levels = owner->waterLevels[owner->sectorsX * sy + sx];
     for (;;) {
         int k = 0;
         for (; k < waterMaterials.size; ++k) {
@@ -684,7 +489,7 @@ void SectorData::ApplyWaterLevels() {
         unsigned id = waterMaterials.data[k];
         double level = levels.data[id];
         SectorVertex* rec = records.data + kVertices;
-        float* z = vertices.data + kVertices * 3 + 2;
+        float* z = &vertices.data[kVertices].xyz[2];
         for (int i = 0; i < kVertices; ++i, ++rec, z += 3) {
             if (rec->waterMaterial == id) {
                 rec->position[2] = Store(level + rec->position[2]);

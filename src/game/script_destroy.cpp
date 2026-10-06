@@ -57,18 +57,18 @@ __declspec(naked) void __fastcall WorldBlockBody(void*) EI_ORIGINAL(0x004BF7E0)
 __declspec(naked) void __fastcall CmdDestructAt(void*) EI_ORIGINAL(0x004BF640)
 
 template <typename T>
-void SetBaseVtable(MfcArray<T>* a, std::uintptr_t vtable) {
+void SetBaseVtable(mfc::CArray<T>* a, std::uintptr_t vtable) {
     a->vtable = reinterpret_cast<void*>(vtable);
 }
 
 // The inlined destructor of an array whose elements need nothing.
 template <typename T>
-void FreePlain(MfcArray<T>* a, std::uintptr_t vtable) {
+void FreePlain(mfc::CArray<T>* a, std::uintptr_t vtable) {
     SetBaseVtable(a, vtable);
     if (a->data) gamecrt::operator_delete(a->data);
 }
 
-void FreeStrings(MfcArray<mfc::CString>* a) {
+void FreeStrings(mfc::CArray<mfc::CString>* a) {
     SetBaseVtable(a, kStringsBaseVtable);
     if (a->data) {
         DestructStrings(a->data, a->size);

@@ -57,99 +57,6 @@ void* AllocAligned(std::size_t bytes) {
 
 void FreeAligned(void* data) { gamecrt::operator_delete(static_cast<void**>(data)[-1]); }
 
-// --- UiPtrArray ------------------------------------------------------------------------------
-
-template <typename T>
-void UiPtrArray<T>::SetSize(int newSize, int growBy) {
-    if (growBy != -1) growBy_ = growBy;
-    if (newSize == 0) {
-        if (data_) {
-            FreeAligned(data_);
-            data_ = nullptr;
-        }
-        capacity_ = 0;
-        size_ = 0;
-        return;
-    }
-    if (!data_) {
-        data_ = static_cast<T**>(AllocAligned(static_cast<std::size_t>(newSize) * 4));
-        capacity_ = newSize;
-        size_ = newSize;
-        return;
-    }
-    if (newSize <= capacity_) {
-        size_ = newSize;
-        return;
-    }
-    int newCapacity = GrownCapacity(size_, capacity_, growBy_, newSize);
-    auto** data = static_cast<T**>(AllocAligned(static_cast<std::size_t>(newCapacity) * 4));
-    std::memcpy(data, data_, static_cast<std::size_t>(size_) * 4);
-    FreeAligned(data_);
-    data_ = data;
-    size_ = newSize;
-    capacity_ = newCapacity;
-}
-
-template <typename T>
-void UiPtrArray<T>::Append(T* item) {
-    int index = size_;
-    int newSize = index + 1;
-    if (newSize == 0) {
-        // Unreachable in practice (size -1); the original then stores through a null array.
-        if (data_) {
-            FreeAligned(data_);
-            data_ = nullptr;
-        }
-        capacity_ = 0;
-        size_ = 0;
-    } else if (!data_) {
-        data_ = static_cast<T**>(AllocAligned(static_cast<std::size_t>(newSize) * 4));
-        capacity_ = newSize;
-        size_ = newSize;
-    } else if (newSize <= capacity_) {
-        size_ = newSize;
-    } else {
-        int newCapacity = GrownCapacity(index, capacity_, growBy_, newSize);
-        auto** data = static_cast<T**>(AllocAligned(static_cast<std::size_t>(newCapacity) * 4));
-        std::memcpy(data, data_, static_cast<std::size_t>(size_) * 4);
-        FreeAligned(data_);
-        data_ = data;
-        size_ = newSize;
-        capacity_ = newCapacity;
-    }
-    data_[index] = item;
-}
-
-template <typename T>
-void UiPtrArray<T>::SetAtGrow(int index, T* item) {
-    if (index >= size_) SetSize(index + 1, -1);
-    data_[index] = item;
-}
-
-template <typename T>
-void UiPtrArray<T>::RemoveSlot(int index) {
-    // REP MOVSD of the size - index - 1 following slots (skipped when that is 0).
-    int count = size_ - index - 1;
-    for (int i = 0; i < count; ++i) data_[index + i] = data_[index + i + 1];
-    --size_;
-}
-
-template <typename T>
-void UiPtrArray<T>::FreeStorage() {
-    if (data_) {
-        FreeAligned(data_);
-        data_ = nullptr;
-    }
-    capacity_ = 0;
-    size_ = 0;
-}
-
-template struct UiPtrArray<CEngineObject>;
-template struct UiPtrArray<CUiSurface>;
-template struct UiPtrArray<CUiRegion>;
-template struct UiPtrArray<CUiModel>;
-template struct UiPtrArray<CUiWindow>;   // the containers' children
-
 // The original has a separate (identical) copy of SetSize for each of the window's arrays; the two
 // CEngineObject lists share one instantiation here.
 EI_REPLACE_METHOD(0x006003D0, UiPtrArray<CEngineObject>::SetSize);
@@ -283,8 +190,8 @@ EI_REPLACE_METHOD(0x005FC880, CUiRegion::OnMouseMove);
 int CUiWindow::RegionAt(int x, int y) const {
     POINT point{x, y};
     interface_->CallScalePointFromScreen(&point);
-    for (int i = 0; i < regions_.size_; ++i) {
-        if (regions_.data_[i]->HitTest(point.x, point.y)) return i;
+    for (int i = 0; i < regions_.size; ++i) {
+        if (regions_.data[i]->HitTest(point.x, point.y)) return i;
     }
     return -1;
 }
@@ -301,8 +208,8 @@ void CUiWindow::UpdateRegionTips(int) {
     POINT mouse{interface_->mouseX_, interface_->mouseY_};
     interface_->CallScalePointFromScreen(&mouse);
     // Inlines CUiRegion::OnMouseMove for every region with a tooltip.
-    for (int i = 0; i < regions_.size_; ++i) {
-        CUiRegion* region = regions_.data_[i];
+    for (int i = 0; i < regions_.size; ++i) {
+        CUiRegion* region = regions_.data[i];
         if (region->tip_) region->OnMouseMove(mouse.x, mouse.y);
     }
 }
@@ -312,24 +219,24 @@ EI_REPLACE_METHOD(0x005FEBF0, CUiWindow::UpdateRegionTips);
 void CUiWindow::RedrawTips() {
     POINT mouse{interface_->mouseX_, interface_->mouseY_};
     interface_->CallScalePointFromScreen(&mouse);
-    for (int i = 0; i < regions_.size_; ++i) {
-        CUiRegion* region = regions_.data_[i];
+    for (int i = 0; i < regions_.size; ++i) {
+        CUiRegion* region = regions_.data[i];
         if (region->tip_) region->OnMouseMove(mouse.x, mouse.y);
-        if (CUiTooltip* tip = regions_.data_[i]->tip_) reinterpret_cast<CUiWindow*>(tip)->VirtualRedraw();
+        if (CUiTooltip* tip = regions_.data[i]->tip_) reinterpret_cast<CUiWindow*>(tip)->VirtualRedraw();
     }
 }
 EI_REPLACE_METHOD(0x005FED00, CUiWindow::RedrawTips);
 
 BOOL CUiWindow::DrawBase(int pass) {
-    for (int i = 0; i < sceneObjects_.size_; ++i) SpriteDrawOriginal(sceneObjects_.data_[i], nullptr, pass);
-    for (int i = 0; i < models_.size_; ++i) models_.data_[i]->Draw(reinterpret_cast<UiDrawPass*>(pass));
+    for (int i = 0; i < sceneObjects_.size; ++i) SpriteDrawOriginal(sceneObjects_.data[i], nullptr, pass);
+    for (int i = 0; i < models_.size; ++i) models_.data[i]->Draw(reinterpret_cast<UiDrawPass*>(pass));
     return 1;
 }
 EI_REPLACE_METHOD(0x005FEB90, CUiWindow::DrawBase);
 
 void CUiWindow::RedrawBase() {
-    for (int i = 0; i < surfaces_.size_; ++i) {
-        CUiSurface* surface = surfaces_.data_[i];
+    for (int i = 0; i < surfaces_.size; ++i) {
+        CUiSurface* surface = surfaces_.data[i];
         if (surface->Shown()) surface->Blit();
     }
 }
@@ -343,17 +250,17 @@ EI_REPLACE_METHOD(0x006002A0, CUiWindow::SetEnabled);
 
 void CUiWindow::AddObject(CEngineObject* object) {
     if (!object) return;
-    objects_.Append(object);
+    objects_.Add(object);
     ++object->refCount_;
 }
 EI_REPLACE_METHOD(0x005FEDD0, CUiWindow::AddObject);
 
 void CUiWindow::RemoveObject(CEngineObject* object) {
     if (!object) return;
-    for (int i = 0; i < objects_.size_; ++i) {
-        if (objects_.data_[i] == object) {
-            objects_.data_[i]->Release();
-            objects_.RemoveSlot(i);
+    for (int i = 0; i < objects_.size; ++i) {
+        if (objects_.data[i] == object) {
+            objects_.data[i]->Release();
+            objects_.RemoveAt(i);
             return;
         }
     }
@@ -361,16 +268,16 @@ void CUiWindow::RemoveObject(CEngineObject* object) {
 EI_REPLACE_METHOD(0x005FF110, CUiWindow::RemoveObject);
 
 void CUiWindow::RemoveObjectAt(int index) {
-    objects_.data_[index]->Release();
-    objects_.RemoveSlot(index);
+    objects_.data[index]->Release();
+    objects_.RemoveAt(index);
 }
 EI_REPLACE_METHOD(0x005FF180, CUiWindow::RemoveObjectAt);
 
 BOOL CUiWindow::RemoveSceneObject(CEngineObject* object) {
-    for (int i = 0; i < sceneObjects_.size_; ++i) {
-        if (sceneObjects_.data_[i] == object) {
+    for (int i = 0; i < sceneObjects_.size; ++i) {
+        if (sceneObjects_.data[i] == object) {
             // Unlike RemoveObject, the slot is removed before the release.
-            sceneObjects_.RemoveSlot(i);
+            sceneObjects_.RemoveAt(i);
             object->Release();
             return 1;
         }
@@ -380,14 +287,14 @@ BOOL CUiWindow::RemoveSceneObject(CEngineObject* object) {
 EI_REPLACE_METHOD(0x005FF700, CUiWindow::RemoveSceneObject);
 
 void CUiWindow::RemoveSceneObjectAt(int index) {
-    sceneObjects_.data_[index]->Release();
-    sceneObjects_.RemoveSlot(index);
+    sceneObjects_.data[index]->Release();
+    sceneObjects_.RemoveAt(index);
 }
 EI_REPLACE_METHOD(0x005FF770, CUiWindow::RemoveSceneObjectAt);
 
 void CUiWindow::ClearSceneObjects() {
-    for (int i = 0; i < sceneObjects_.size_; ++i) sceneObjects_.data_[i]->Release();
-    sceneObjects_.FreeStorage();
+    for (int i = 0; i < sceneObjects_.size; ++i) sceneObjects_.data[i]->Release();
+    sceneObjects_.RemoveAll();
 }
 EI_REPLACE_METHOD(0x005FF7D0, CUiWindow::ClearSceneObjects);
 
@@ -395,28 +302,28 @@ EI_REPLACE_METHOD(0x005FF7D0, CUiWindow::ClearSceneObjects);
 // the surface through the result).
 CUiSurface* CUiWindow::AddSurface(CUiSurface* surface) {
     if (!surface) return nullptr;
-    surfaces_.Append(surface);
+    surfaces_.Add(surface);
     return surface;
 }
 EI_REPLACE_METHOD(0x005FFA90, CUiWindow::AddSurface);
 
 void CUiWindow::RemoveSurfaceAt(int index) {
-    if (CUiSurface* surface = surfaces_.data_[index]) {
+    if (CUiSurface* surface = surfaces_.data[index]) {
         surface->ReleaseContents();
         gamecrt::operator_delete(surface);
     }
-    surfaces_.RemoveSlot(index);
+    surfaces_.RemoveAt(index);
 }
 EI_REPLACE_METHOD(0x005FFBF0, CUiWindow::RemoveSurfaceAt);
 
 void CUiWindow::ClearSurfaces() {
-    for (int i = 0; i < surfaces_.size_; ++i) {
-        if (CUiSurface* surface = surfaces_.data_[i]) {
+    for (int i = 0; i < surfaces_.size; ++i) {
+        if (CUiSurface* surface = surfaces_.data[i]) {
             surface->ReleaseContents();
             gamecrt::operator_delete(surface);
         }
     }
-    surfaces_.FreeStorage();
+    surfaces_.RemoveAll();
 }
 EI_REPLACE_METHOD(0x005FFC50, CUiWindow::ClearSurfaces);
 
@@ -427,7 +334,7 @@ CEngineObject* CUiWindow::LoadTexture(const char* name, int kind, const char* di
     int loaded = directory ? TextureLoadFromOriginal(manager, nullptr, texture, directory)
                            : TextureLoadOriginal(manager, nullptr, texture);
     if (!loaded) return nullptr;
-    objects_.Append(texture);
+    objects_.Add(texture);
     ++texture->refCount_;
     return texture;
 }
@@ -437,9 +344,9 @@ CEngineObject* CUiWindow::CreateTexture(int width, int height, int kind) {
     auto* texture = reinterpret_cast<CEngineObject*>(
         NewManagedTextureOriginal(UiTextureManager(), nullptr, width, height, kind));
     if (!texture) return nullptr;
-    int index = objects_.size_;
+    int index = objects_.size;
     objects_.SetSize(index + 1, -1);
-    objects_.data_[index] = texture;
+    objects_.data[index] = texture;
     texture->flags_ |= 0x40000;
     ++texture->refCount_;
     return texture;
@@ -447,8 +354,8 @@ CEngineObject* CUiWindow::CreateTexture(int width, int height, int kind) {
 EI_REPLACE_METHOD(0x005FF0B0, CUiWindow::CreateTexture);
 
 void CUiWindow::ShowSurfaces(int show) {
-    for (int i = 0; i < surfaces_.size_; ++i) {
-        CUiSurface* surface = surfaces_.data_[i];
+    for (int i = 0; i < surfaces_.size; ++i) {
+        CUiSurface* surface = surfaces_.data[i];
         if (show == 0 || surface->Shown()) surface->CallSwapContents(show);
     }
 }
@@ -471,28 +378,28 @@ CUiRegion* CUiWindow::AddRegion() {
         region->offsetX_ = 0;
         region->offsetY_ = 0;
     }
-    regions_.Append(region);
+    regions_.Add(region);
     return region;
 }
 EI_REPLACE_METHOD(0x005FF830, CUiWindow::AddRegion);
 
 void CUiWindow::RemoveRegionAt(int index) {
-    if (CUiRegion* region = regions_.data_[index]) {
+    if (CUiRegion* region = regions_.data[index]) {
         region->ReleaseContents();
         gamecrt::operator_delete(region);
     }
-    regions_.RemoveSlot(index);
+    regions_.RemoveAt(index);
 }
 EI_REPLACE_METHOD(0x005FF9C0, CUiWindow::RemoveRegionAt);
 
 void CUiWindow::ClearRegions() {
-    for (int i = 0; i < regions_.size_; ++i) {
-        if (CUiRegion* region = regions_.data_[i]) {
+    for (int i = 0; i < regions_.size; ++i) {
+        if (CUiRegion* region = regions_.data[i]) {
             region->ReleaseContents();
             gamecrt::operator_delete(region);
         }
     }
-    regions_.FreeStorage();
+    regions_.RemoveAll();
 }
 EI_REPLACE_METHOD(0x005FFA20, CUiWindow::ClearRegions);
 
@@ -500,19 +407,19 @@ CUiModel* CUiWindow::AddModel() {
     auto* model = static_cast<CUiModel*>(gamecrt::operator_new(sizeof(CUiModel)));
     if (!model) return nullptr;
     model->object_ = nullptr;   // 005FC1C0, the constructor
-    models_.Append(model);
+    models_.Add(model);
     return model;
 }
 EI_REPLACE_METHOD(0x005FFD80, CUiWindow::AddModel);
 
 void CUiWindow::ClearModels() {
-    for (int i = 0; i < models_.size_; ++i) {
-        if (CUiModel* model = models_.data_[i]) {
+    for (int i = 0; i < models_.size; ++i) {
+        if (CUiModel* model = models_.data[i]) {
             model->ReleaseObject();
             gamecrt::operator_delete(model);
         }
     }
-    models_.FreeStorage();
+    models_.RemoveAll();
 }
 EI_REPLACE_METHOD(0x005FFF40, CUiWindow::ClearModels);
 
@@ -540,8 +447,8 @@ void CopyFloat(void* to, const void* from) {
 } // namespace
 
 CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* name) {
-    for (int i = 0; i < sceneObjects_.size_; ++i) {
-        if (sceneObjects_.data_[i] != object) continue;
+    for (int i = 0; i < sceneObjects_.size; ++i) {
+        if (sceneObjects_.data[i] != object) continue;
         std::uint8_t* made = NewModelObject(ModelManager(), nullptr, name);
         if (!made) return nullptr;
         int references;
@@ -551,7 +458,7 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* 
         AttachToWindow(made, nullptr, this);
         auto* old = reinterpret_cast<std::uint8_t*>(object);
         std::memcpy(made + 0x27C, reinterpret_cast<std::uint8_t*>(this) + 0xEC, 4);
-        CEngineObject* texture = objects_.size_ > 0 ? objects_.data_[0] : nullptr;
+        CEngineObject* texture = objects_.size > 0 ? objects_.data[0] : nullptr;
         std::memcpy(made + 0x280, &texture, 4);
         std::memcpy(made + 0x1C, old + 0x1C, 12);
         CopyFloat(made + 0xCC, old + 0xCC);
@@ -560,19 +467,19 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* 
         std::memcpy(made + 0x280, old + 0x280, 4);
         volatile float scale = static_cast<float>(SpriteScale(old));
         SetSpriteScale(made, nullptr, scale);
-        sceneObjects_.RemoveSlot(i);
+        sceneObjects_.RemoveAt(i);
         using ReleaseFn = void(__thiscall*)(void*);
         reinterpret_cast<ReleaseFn>((*reinterpret_cast<void***>(object))[4])(object);
         // Back in at the same place: the original grows the array as SetSize does (inlined when
         // the place is the end) and shifts the rest up with memmove.
-        int size = sceneObjects_.size_;
+        int size = sceneObjects_.size;
         if (i < size) {
             sceneObjects_.SetSize(size + 1, -1);
-            std::memmove(&sceneObjects_.data_[i + 1], &sceneObjects_.data_[i], static_cast<std::size_t>(size - i) * 4);
+            std::memmove(&sceneObjects_.data[i + 1], &sceneObjects_.data[i], static_cast<std::size_t>(size - i) * 4);
         } else {
             sceneObjects_.SetSize(i + 1, -1);
         }
-        sceneObjects_.data_[i] = reinterpret_cast<CEngineObject*>(made);
+        sceneObjects_.data[i] = reinterpret_cast<CEngineObject*>(made);
         return reinterpret_cast<CEngineObject*>(made);
     }
     return nullptr;
@@ -585,15 +492,15 @@ CUiMesh* CUiWindow::AddSprite(const char* name) {
     auto* object = reinterpret_cast<CEngineObject*>(NewModelObject(ModelManager(), nullptr, name));
     if (!object) return nullptr;
     bool listed = false;
-    for (int i = 0; i < sceneObjects_.size_ && !listed; ++i) listed = sceneObjects_.data_[i] == object;
+    for (int i = 0; i < sceneObjects_.size && !listed; ++i) listed = sceneObjects_.data[i] == object;
     if (!listed) {
-        sceneObjects_.SetAtGrow(sceneObjects_.size_, object);
+        sceneObjects_.SetAtGrow(sceneObjects_.size, object);
         ++object->refCount_;
         AttachToWindow(reinterpret_cast<std::uint8_t*>(object), nullptr, this);
     }
     auto* sprite = reinterpret_cast<CUiMesh*>(object);
     sprite->material_ = blackMaterial_;
-    sprite->texture_ = objects_.size_ > 0 ? objects_.data_[0] : nullptr;
+    sprite->texture_ = objects_.size > 0 ? objects_.data[0] : nullptr;
     return sprite;
 }
 EI_REPLACE_METHOD(0x005FF3C0, CUiWindow::AddSprite);
@@ -666,7 +573,7 @@ EI_REPLACE_METHOD(0x005FE700, CUiWindow::Construct);
 
 void CUiContainer::AddChild(CUiWindow* child) {
     if (!child) return;
-    children_.Append(child);
+    children_.Add(child);
 }
 EI_REPLACE_METHOD(0x00600D30, CUiContainer::AddChild);
 
@@ -682,26 +589,26 @@ void CUiWindow::DestroyBase() {
         if (object) object->Release();
         std::memset(self + offset, 0, 4);
     }
-    for (int i = 0; i < sceneObjects_.size_; ++i) sceneObjects_.data_[i]->Release();
+    for (int i = 0; i < sceneObjects_.size; ++i) sceneObjects_.data[i]->Release();
     sceneObjects_.SetSize(0, -1);
-    for (int i = 0; i < surfaces_.size_; ++i) {
-        if (CUiSurface* surface = surfaces_.data_[i]) {
+    for (int i = 0; i < surfaces_.size; ++i) {
+        if (CUiSurface* surface = surfaces_.data[i]) {
             surface->ReleaseContents();
             gamecrt::operator_delete(surface);
         }
     }
     surfaces_.SetSize(0, -1);
-    for (int i = 0; i < regions_.size_; ++i) {
-        if (CUiRegion* region = regions_.data_[i]) {
+    for (int i = 0; i < regions_.size; ++i) {
+        if (CUiRegion* region = regions_.data[i]) {
             region->ReleaseContents();
             gamecrt::operator_delete(region);
         }
     }
     regions_.SetSize(0, -1);
-    for (int i = 0; i < objects_.size_; ++i) objects_.data_[i]->Release();
+    for (int i = 0; i < objects_.size; ++i) objects_.data[i]->Release();
     objects_.SetSize(0, -1);
-    for (int i = 0; i < models_.size_; ++i) {
-        if (CUiModel* model = models_.data_[i]) {
+    for (int i = 0; i < models_.size; ++i) {
+        if (CUiModel* model = models_.data[i]) {
             model->ReleaseObject();
             gamecrt::operator_delete(model);
         }
@@ -709,11 +616,11 @@ void CUiWindow::DestroyBase() {
     models_.SetSize(0, -1);
     std::memset(self + 0x08, 0, 4);
     // The arrays' destructors (their storage is already freed above, so these find nothing).
-    if (models_.data_) FreeAligned(models_.data_);
-    if (regions_.data_) FreeAligned(regions_.data_);
-    if (surfaces_.data_) FreeAligned(surfaces_.data_);
-    if (sceneObjects_.data_) FreeAligned(sceneObjects_.data_);
-    if (objects_.data_) FreeAligned(objects_.data_);
+    if (models_.data) FreeAligned(models_.data);
+    if (regions_.data) FreeAligned(regions_.data);
+    if (surfaces_.data) FreeAligned(surfaces_.data);
+    if (sceneObjects_.data) FreeAligned(sceneObjects_.data);
+    if (objects_.data) FreeAligned(objects_.data);
     // The CTransformObject and CEngineObject levels.
     inputVtable_ = reinterpret_cast<void**>(0x007401D0);
     vtable_ = reinterpret_cast<void**>(0x0073BA38);

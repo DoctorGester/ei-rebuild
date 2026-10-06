@@ -58,60 +58,12 @@ RawString MakeString(const char* text, int length) {
     return s;
 }
 
-// --- DwordArray ------------------------------------------------------------------------------------
-
-std::uint32_t* AllocateDwords(int count) {   // 00453A10 / 004D9ED0
-    auto* raw = static_cast<std::uint8_t*>(gamecrt::operator_new(static_cast<std::size_t>(count * 4 + 0x24)));
-    auto* data = reinterpret_cast<std::uint32_t*>((reinterpret_cast<std::uintptr_t>(raw) + 0x23) & ~std::uintptr_t{0x1F});
-    reinterpret_cast<std::uint8_t**>(data)[-1] = raw;
-    return data;
-}
-
-void FreeDwords(DwordArray& array) {
-    if (array.data) {
-        gamecrt::operator_delete(reinterpret_cast<std::uint8_t**>(array.data)[-1]);
-        array.data = nullptr;
-    }
-    array.capacity = 0;
-    array.size = 0;
-}
-
-// SetSize(count) for count > 0, keeping the contents when the block grows.
-void ResizeDwords(DwordArray& array, int count) {
-    if (!array.data) {
-        array.data = AllocateDwords(count);
-        array.capacity = count;
-        array.size = count;
-        return;
-    }
-    if (count <= array.capacity) {
-        array.size = count;
-        return;
-    }
-    int grow = array.growBy;
-    if (grow == 0) {
-        grow = array.size / 8;
-        if (grow < 4)
-            grow = 4;
-        else if (grow > 0x400)
-            grow = 0x400;
-    }
-    int capacity = array.capacity + grow;
-    if (!(count < capacity)) capacity = count;
-    std::uint32_t* data = AllocateDwords(capacity);
-    std::memcpy(data, array.data, static_cast<std::uint32_t>(array.size) * 4);
-    gamecrt::operator_delete(reinterpret_cast<std::uint8_t**>(array.data)[-1]);
-    array.data = data;
-    array.size = count;
-    array.capacity = capacity;
-}
-
 // GetIntArray / GetFloatArray: the values are copied as dwords.
 BOOL GetDwordArray(CFileRegistry* registry, const char* section, const char* key, unsigned type, DwordArray* out) {
     int isScalar;
     const std::uint8_t* value = registry->FindData(section, key, type, &isScalar);
     if (!value) {
-        FreeDwords(*out);
+        out->RemoveAll();
         return 0;
     }
     int count;
@@ -121,11 +73,11 @@ BOOL GetDwordArray(CFileRegistry* registry, const char* section, const char* key
         count = U16(value);
         value += 2;
         if (count == 0) {
-            FreeDwords(*out);
+            out->RemoveAll();
             return 1;
         }
     }
-    ResizeDwords(*out, count);
+    out->SetSize(count);
     for (int i = 0; i < count; ++i) out->data[i] = U32(value + 4 * i);
     return 1;
 }

@@ -236,9 +236,9 @@ void CHudQuickItems::Update() {
     if (!unit_) return;
     for (unsigned i = 0; i < 4; ++i) {
         if (!unit_->GetQuickItem(i)) continue;
-        if (!regions_.data_[i]->HasActiveTip()) continue;
+        if (!regions_.data[i]->HasActiveTip()) continue;
         ItemTipAt(i, &text);
-        regions_.data_[i]->SetTipText(text);
+        regions_.data[i]->SetTipText(text);
     }
 }
 EI_REPLACE_METHOD(0x0063D9D0, CHudQuickItems::Update);
@@ -379,7 +379,7 @@ void CHudMap::OnMouseDown(int, int x, int y) {
     view_ = region == 3 ? 1 : 2;
     // Scene objects 6 and 7 are the buttons of views 1 and 2.
     for (int i = 0; i < 2; ++i)
-        SetTint(sceneObjects_.data_[6 + i], view_ == i + 1 ? kTintOn : kTintOff);
+        SetTint(sceneObjects_.data[6 + i], view_ == i + 1 ? kTintOn : kTintOff);
 }
 UI_INPUT_HANDLER(0x00645060, CHudMap, OnMouseDown);
 
@@ -411,7 +411,7 @@ void CHudUnitPanel::OnMouseUp(int, int x, int y) {
         interface_->PlaySound(kSoundClick, 0);
         bodyPart_ = region - 1;
         // Scene objects 3-6 are the body parts.
-        for (int i = 0; i < 4; ++i) SetTint(sceneObjects_.data_[3 + i], bodyPart_ == i ? kTintOn : kTintOff);
+        for (int i = 0; i < 4; ++i) SetTint(sceneObjects_.data[3 + i], bodyPart_ == i ? kTintOn : kTintOff);
     }
     if (region >= 0) inputHandled_ = true;
 }
@@ -501,7 +501,7 @@ void CHudMovePanel::Update() {
     flag_ = flag;
     // Scene object 5 shows the flag through its +0xCC float.
     std::uint32_t bits = flag == 0 ? 0x3EAC0000u : flag == 1 ? 0u : 0x3EF60000u;
-    std::memcpy(reinterpret_cast<std::uint8_t*>(sceneObjects_.data_[5]) + 0xCC, &bits, 4);
+    std::memcpy(reinterpret_cast<std::uint8_t*>(sceneObjects_.data[5]) + 0xCC, &bits, 4);
 }
 EI_REPLACE_METHOD(0x00649550, CHudMovePanel::Update);
 
