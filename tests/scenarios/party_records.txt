@@ -2,6 +2,8 @@
 # AddLoot / CopyLoot (004A5E10 for both names; an unknown name finds the unnamed record),
 # RemoveParty (004A5FA0, including its skip after an erase: of two adjacent "zxA" records one is
 # left). A new game also runs the reset (004A5BD0) and the class templates (004A7630 / 004A7080).
+# The player's own records (party_members.cpp): AddUnitToParty (006628D0 -> 006621F0, 00664950),
+# CopyItems from the hero (00660500), RemoveUnitFromParty (006620F0, then again for a missing key).
 reject Script error
 wait 6000
 console thingamabob
@@ -20,6 +22,10 @@ console @RemoveParty(GetPlayer(GetLeader()),"zxA")
 console @RemoveParty(GetPlayer(GetLeader()),"zxA")
 console @RemoveParty(GetPlayer(GetLeader()),"zxB")
 console @RemoveParty(GetPlayer(GetLeader()),"zxMissing")
+console @AddUnitToParty(GetPlayer(GetLeader()),"zxCopy","Human Hero")
+console @CopyItems(GetPlayer(GetLeader()),"Hero","zxCopy")
+console @RemoveUnitFromParty(GetPlayer(GetLeader()),"zxCopy")
+console @RemoveUnitFromParty(GetPlayer(GetLeader()),"zxCopy")
 check IsAlive(GetLeader())
 report
 quit

@@ -9,6 +9,7 @@
 #include <cstdint>
 
 class CInterface3D;
+class CItem;
 namespace mfc { class CString; }
 namespace ui_gdi { struct GameDC; }
 struct ItemObjectCache;
@@ -188,3 +189,31 @@ __declspec(naked) inline void __fastcall SurfaceSwapContentsOriginal(void* /*sur
     EI_ORIGINAL(0x005FD7A0)
 __declspec(naked) inline void __fastcall WindowShowSurfacesOriginal(void* /*window*/, void*, int /*show*/)
     EI_ORIGINAL(0x006002C0)
+
+// A-I6. 005E67B0: the cursor (007C7BD8) is held in place while the right button turns the view (thiscall, RET 4: a
+// byte into +0x90 under its lock when the cursor exists; no result).
+__declspec(naked) inline void __fastcall CursorSetHeldOriginal(void* /*cursor*/, void*, char /*held*/) EI_ORIGINAL(0x005E67B0)
+// 006570E0: saves the game under `name` (ECX; DL the autosave flag; plain RET, no result).
+__declspec(naked) inline void __fastcall AutoSaveOriginal(const char* /*name*/, int /*flag*/) EI_ORIGINAL(0x006570E0)
+// 0040D3B0 (rewritten as CCamera::SetTarget; through its address so the wrapper runs): the camera follows `target`
+// (thiscall on 0079B2A8, RET 4).
+__declspec(naked) inline void __fastcall CameraSetTargetOriginal(void* /*camera*/, void*, const void* /*target*/)
+    EI_ORIGINAL(0x0040D3B0)
+// 005EBDB0: the battle screen's party array (an MFC CArray of unit pointers) SetSize (RET 8; growBy -1 keeps the step).
+__declspec(naked) inline void __fastcall PartyArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
+    EI_ORIGINAL(0x005EBDB0)
+// 00637DC0 (rewritten as CBattleScreenSetup::RefreshSelection; through its address so the wrapper runs; ECX, plain RET).
+__declspec(naked) inline void __fastcall BattleRefreshSelectionOriginal(void* /*screen*/) EI_ORIGINAL(0x00637DC0)
+// 006407E0: the portraits rebuild their slots from the battle screen's party (RET 4: camera player first; no result).
+__declspec(naked) inline void __fastcall PortraitsRebuildOriginal(void* /*portraits*/, void*, int /*cameraFirst*/)
+    EI_ORIGINAL(0x006407E0)
+// The top panel (thiscall): 0064A4E0 adds the "combat_picked_up" (or with `crippled` "combat_crippled") line of an item
+// (RET 8); 0064A630 the picked-up money line, for money > 0 (RET 4); 0064A7A0 shows its current page (plain RET).
+__declspec(naked) inline void __fastcall TopPanelPickedUpOriginal(void* /*panel*/, void*, CItem* /*item*/, char /*crippled*/)
+    EI_ORIGINAL(0x0064A4E0)
+__declspec(naked) inline void __fastcall TopPanelMoneyOriginal(void* /*panel*/, void*, int /*money*/) EI_ORIGINAL(0x0064A630)
+__declspec(naked) inline void __fastcall TopPanelShowPageOriginal(void* /*panel*/) EI_ORIGINAL(0x0064A7A0)
+// 006575B0: loads the saved game `name` (ECX; plain RET; not on a network client).
+__declspec(naked) inline void __fastcall LoadSavedGameOriginal(const char* /*name*/) EI_ORIGINAL(0x006575B0)
+// 005F7E90: the interface stops sound `id` (thiscall, the interface not read; -1 none; RET 4).
+__declspec(naked) inline void __fastcall InterfaceStopSoundOriginal(CInterface3D*, void*, int /*id*/) EI_ORIGINAL(0x005F7E90)

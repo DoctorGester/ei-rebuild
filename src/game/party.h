@@ -76,7 +76,7 @@ public:
     virtual void Slot19();
     virtual void Slot20();
     virtual void Slot21();
-    virtual void Slot22();
+    virtual CSpellManager* SpellManager();     // 22: spellManager_
     virtual void Slot23();
     // 24: 0055E940. A new item made like `item` (the item factory, slot 18) and given its values
     // (its slot 15 with the spell manager, slot 22).
@@ -93,6 +93,22 @@ public:
     // and not `all`, the count drops by one and the item is returned; otherwise it is released
     // and removed, and the result is null (also when it is not in the list).
     CItem* RemoveItem(CItem* item, int all);   // `all` read as a byte
+
+    // 006628D0 (RET 0xC; party_members.cpp). Appends a unit record: Create (slot 2) when there is
+    // no item manager; a constructed record assigned to the new entry (its statistics are the
+    // stack's leftover bytes, as in the original); `name` as text 1 and its text key (-1 when
+    // empty) as the key (+0x1C), `prototype` as text 5, `extra` as text 0; then
+    // FillFromPrototype. Returns the record.
+    PartyUnitRecord* AddMember(const char* name, const char* prototype, const char* extra);
+    // 006621F0 (RET 4). Gives `record` what its prototype (text 5) says: text 2 from its model,
+    // the NPC statistics, the three scales (+0x724..+0x72C), copies (CItem::Clone) of the starting
+    // armour, of the two weapons unless empty or "none", and of the spells; text 6 = text 5.
+    // Returns 1. (The original reads the lists through 005143E0, whose only failure, a missing
+    // prototype, cannot happen after the record was read; here they come from the record.)
+    BOOL FillFromPrototype(PartyUnitRecord* record);
+    // 006620F0 (RET 4). Destroys the first record whose key (+0x1C) is `key` and closes the gap;
+    // 1 when there was one, else 0.
+    BOOL RemoveMember(int key);
 
     // 00661050 (party_lifetime.cpp). Constructor body: CEngineObject's fields, empty record and
     // item arrays, an empty variable map with NextPrime(100) buckets (its functor bytes are the

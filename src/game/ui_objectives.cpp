@@ -844,6 +844,46 @@ void CObjectivesWindow::Build() {
     }
     interface_->ShowHelp(0);
 }
+void CObjectivesWindow::DrawQuestList() {
+    CTextManager* texts = Texts();
+    mfc::CString title;
+    mfc::CString variable;
+    auto mesh = [this](int index) { return reinterpret_cast<CUiMesh*>(sceneObjects_.data_[index]); };
+    mesh(2)->visible_ = 0;
+    void* surface = surfaces_.data_[0];
+    SurfaceGetDC(surface);
+    SurfaceClearOriginal(surface);
+    for (int i = 16; i < 21; ++i) mesh(i)->visible_ = 0;
+    auto* quests = reinterpret_cast<CStringArray*>(quests_);
+    int row = unknown_1C0;
+    int y = 13;
+    for (int i = 16; i < 21 && row < quests->GetSize(); ++i, ++row, y += 24) {
+        CUiMesh* mark = mesh(i);
+        mark->visible_ = 1;
+        bool found;
+        {
+            mfc::CString questWord(GameText(0x00790790));     // "quest "
+            mfc::CString key = questWord + (*quests)[row];
+            found = FindText(key) != 0;
+        }
+        if (found) texts->ReadLine(&title, 1);
+        else title = (*quests)[row];
+        variable.Format(GameText(0x0079469C), shownZone_, static_cast<const char*>((*quests)[row]));   // "q.%s.%s"
+        int state = static_cast<int>(LocalPlayerVariable(variable));
+        if (state == 2) mark->uOffset_ = 0.265625f;
+        else if (state == 3) mark->uOffset_ = 0.0f;
+        else mark->visible_ = 0;
+        if (row == selectedQuest_) {
+            SpritePlaceOriginal(mesh(2), nullptr, 215.0f, static_cast<float>(y + 29), 3.0f);
+            mesh(2)->visible_ = 1;
+        }
+        RECT rect{36, y, 320, y + 21};
+        SurfaceDrawText(surface, nullptr, title, &rect, 1, 0xA7D7E4, 0, 1);
+    }
+    SurfaceReleaseDC(surface);
+}
+
 EI_REPLACE_METHOD(0x0064BE80, CObjectivesWindow::Build);
+EI_REPLACE_METHOD(0x0064D9B0, CObjectivesWindow::DrawQuestList);
 EI_REPLACE_METHOD(0x0064CC10, CObjectivesWindow::ShowZone);
 EI_REPLACE_METHOD(0x0064DC60, CObjectivesWindow::ShowQuest);
