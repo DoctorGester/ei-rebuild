@@ -559,6 +559,11 @@ public:
     // from learnableTop_, each price in grey when it is over the experience, with a coin sprite
     // per price (the scene objects past the first four are dropped first).
     void DrawLists();
+    // 00626090 (RET 8; `this` is not read; ui_trade_panel.cpp). A price as text into `out`:
+    // "%d" below 1000, "%.1fk" (price * 0.001f) below 10000, "%dk" below a million, "%.1fm"
+    // (* 1e-6f) below ten million, "%dm" below 1e9, else "%.1fg" (* 1e-9f); a negative price
+    // shows as 0x7FFFFFFF.
+    void FormatPrice(int price, mfc::CString* out);
     // 00625690 (RET 0xC). What the statistics under the screen point (x, y) are, for the
     // description panel: nothing while the panel is hidden or off its rows; regions 4-9 the
     // schools (kind 1), 10 science (kind 2), 11-33 the learnable perks and 34 up the held ones

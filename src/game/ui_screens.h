@@ -118,8 +118,21 @@ static_assert(offsetof(ItemPrototypeRecord, buildable_) == 0x68);
 // `visible_` slots. Vtables 007419E8/00741A1C (strip) and 00741948/0074197C (strip that forwards
 // item clicks to its owner); created by the camp screen (0060C870) and the exchange window
 // (0062C250). Regions: 0/1 left/right arrows, 2-7 tabs, 8 the strip.
+struct MpStringVector;
+
 class CUiItemStrip {
 public:
+    // 00621160 (RET 8; ui_item_strip_setup.cpp; the camp's three strips and the exchange window's,
+    // built inline by their Creates). The background texture "Inventory02" (`top`) or
+    // "Inventory01", the strip built (Build through its address), the arrows' tips 0x4FB0 /
+    // 0x4FB1, two text surfaces (x 50..750, y top_ + 15..35 and top_ + 65..85), nine slots and the
+    // source list.
+    void Setup(UiPtrArray<char>* source, char top);
+    // 00629A40 (RET 0xC; ui_item_strip_setup.cpp). The figure strips (vtable 00741BF4: the hero
+    // screen's two, the exchange window's): the name list, the texture "InventoryM01", Build, the
+    // arrows' tips 0x9DD0 / 0x9DD1 unless `noArrowTips`, no tabs and the six tab buttons' sprites
+    // (scene objects 2..7) hidden.
+    void SetupFigures(MpStringVector* names, char top, char noArrowTips);
     // 00620380 (RET 4; ui_item_strip.cpp; from the camp's and the hero screen's strip setup
     // 00621160 / 00629A40). Lays the strip out along the top edge (`top`: y 0, scale 8) or the
     // bottom (y 500, scale 4): the scroll state cleared, nine regions (arrows, six tab buttons, the
@@ -199,7 +212,10 @@ public:
     bool tabsEnabled_;          // +0x18C
     std::uint8_t unknown_18D[3];
     int hovered_;               // +0x190 -1
-    int filter_;                // +0x194 0 items, 1 spells, 2 armour
+    union {
+        int filter_;                // +0x194 0 items, 1 spells, 2 armour
+        MpStringVector* figures_;   // +0x194 the figure strips (vtable 00741BF4): the figure names
+    };
     UiItemArray list_;          // +0x198 the visible items
     UiPtrArray<char>* source_;  // +0x1AC all the items (data, size)
     int slots_;                 // +0x1B0 9
