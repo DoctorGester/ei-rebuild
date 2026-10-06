@@ -12,6 +12,7 @@ struct Vector3 {
     float Length() const;                           // 00401E20
     const Vector3* AddInPlace(const Vector3& v);    // 00410750 (core_maths.cpp); returns &v
     void DivideInPlace(float d);                    // 004679B0 (object_maths.cpp)
+    double LengthSquared() const;                   // 004D8470 (ground_decal.cpp), unrounded in ST0
 };
 static_assert(sizeof(Vector3) == 12);
 

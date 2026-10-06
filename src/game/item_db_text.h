@@ -52,6 +52,12 @@ public:
     BOOL ReadLine(mfc::CString* out, BOOL advance);    // 004DF8D0: up to CR/LF, skips "##" lines
     BOOL ReadToHash(mfc::CString* out, BOOL advance);  // 004DFB80: up to '#'
 
+    // The archive list (text_sources.cpp): 004DEDB0 sources_.Add(path, 0) (RET 4), 004DEDD0
+    // sources_.Remove(path) (RET 4), 004DED40 (vtable 0073F6F0 slot 3) sources_.Clear().
+    BOOL AddSource(const char* path);
+    void RemoveSource(const char* path);
+    void ClearSources();
+
     std::uint8_t unknown_00[0x1C];
     SourceNode* sources_;   // +0x1C list sentinel
     const char* cursor_;    // +0x20 read position in the current text
@@ -81,6 +87,14 @@ struct TextSourceList {
     Node** Insert(Node** out, Node* pos, const void* value);
     // 004E15C0 (not rewritten): allocates a node and copy-constructs the pair (RET 4).
     Node* CreateNode(const void* value);
+
+    // text_sources.cpp. 004DE930 (RET 8): unless an archive of that exact name is listed (then 1),
+    // appends a new CMappedResource under `path` and returns its OpenResource(path, writable); a
+    // failed open stays in the list. 004DEAF0 (RET 4): closes, deletes and unlinks the archive named
+    // `path`, if any. 004DEB60: closes and deletes every archive, then frees the nodes.
+    BOOL Add(const char* path, BOOL writable);
+    void Remove(const char* path);
+    void Clear();
 };
 
 // 004E1540. Copies an iterator (thiscall: *out = *this).

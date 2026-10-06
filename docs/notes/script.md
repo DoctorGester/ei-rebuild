@@ -297,3 +297,70 @@ Functions of 0x00480000-0x004B0000 and 0x004D8000-0x00500000 that belong to othe
 - Clouds: SetRamp's alpha is trunc(255 - pow(width / 255, max(0, i - start)) * 255) >> 4 with the CRT pow; a last-bit pow
   difference can only matter on an exact multiple of 16 (SetRamp's wrapper would show it). Draw's blend is
   trunc((step + phase) / 16 * 254 + 1); the original's third SetRamp argument is the fade speed.
+
+## A-S5 (2026-10-07): the rest of 0x004C0000-0x00500000
+
+Classification of what was left (363 functions, 90.6 KB, before this ticket; config/functions.csv `game` minus
+library, dead and EI_REPLACE):
+
+| Kind | Functions | Decision |
+|---|---|---|
+| Library templates | 25 (MFC: CArray ElementAt 004C98B0, Construct/DestructElements 004CD740 / 004CDE30 / 004D6840, CList GetNext 004D6580, the #define CList's Serialize / deleting destructor 004D63E0 / 004D6590; STLport: vector<char> 004D8EB0 / 004D9070, vector<string> 004DC900 / 004DCE90 / 004DD0D0 / 004DD7C0 / 004DDAC0 / 004DDBA0 / 004DDC90, copy 004E35C0, node creators 004E15C0 / 004F06D0 / 004F0810 / 004F08D0 / 004F65F0 / 004F6710 / 004FB8B0 / 004FC6E0) | config/library.csv |
+| Dead | 5: the dumper's writer 004D41C0 (Rebirth patches three operands in it, nothing calls it) and what only it reaches (004D4E80, 004D38F0, 004D5EC0, 004D65B0) | config/dead_code.csv |
+| Called only by rewritten originals | 004DEBC0 (TextSourceList::Find: GetItemTexts), 004C17F0 (SSCCmd::Execute), 004D0AF0 (LoadFunction), 004D3650 / 004D3670 / 004D6310 (Load: the #define pair and list), 004D5880 (LoadFile: CStdioFile TRY / CATCH), 004C17E0 (a counted pointer release: 0069AC20 and unwind funclets) | stay; dead in the standalone build (docs/standalone-cleanup.md) |
+| Device layer (004E5E50-004F0B00, 004FCA60-004FDB50 state blocks) | 72 + about 15, 21 KB + | not ported: the renderer worker replaces them (no flat device rewrites, docs/notes/renderer.md section 9) |
+| Static initialisers | `CSysInfo` 004DDCB0-004DE8B0 (26, 3.1 KB: OS version, computer / user name, memory, CPU; built by the static initialiser table at 00783310 before the hooks) | standalone build |
+| Real game code | ported: ground decals 004D6C50-004D89A0 (15), view / light matrices and helpers (6), the text archive list (6), 004E59F0 (28 in all; the range is at 51.9 %, 72.9 KB left). Left: mob script decoder 004D8E10, `CServerSpecificManager` 004D6900-004D6BA0, `CSkyObject` 004D9110-004D9EB0, buffered file streams 004DA580-004DB9C0 (vtables 0073F8A4 / 0073F8C8), CStringArray join 004DC390, text archive list 004DE930-004DEFA0 (004DEC40 Rebirth), fog and rain / snow 004E1EB0-004E5840, 004E58A0 / 004E59F0, the TL library loader and matrices 004F0B90-004F15C0 (004F1330 Rebirth), figure / link loading 004F2650-004FBD80, the effect manager and STLport members 004FC320-004FF4C0 | port, largest and most called first |
+
+### Ground decals (`ground_decal.cpp`, `ground_decal.h`)
+
+| Address | Name | Verify |
+|---|---|---|
+| 004D7F50, 004D8000, 004D7F60, 004D8780, 004D89A0 | `DecalBuilder::Construct`, `Begin`, `Touches`, `Reserve`, `Finish` | Construct / Touches: the original on a copy, result and bytes; Begin / Reserve / Finish: the original on a deep copy of the builder and its three arrays, shapes and used elements (Begin's fields with NearlyEqual) |
+| 004D85F0, 004D8490, 004D7BD0, 004D74B0, 004D71D0, 004D6CF0, 004D6C50 | `AddTriangle`, `AddTerrainTriangle`, `ClipPlane`, `ClipFromV`, `ClipFromUMax`, `Emit`, `AddVertex` | original first; counts, new vertices (NearlyEqual) and indices recorded, counts and the input triangle put back, then ours |
+| 004D6E90, 004D7140, 004D8470 | `decal::ClipTriangle`, `decal::Interpolate`, `Vector3::LengthSquared` | the original on copies; counts, triangles, NearlyEqual |
+
+Reached by every frame with shadows (`newgame`, `world_load`): 0056C750 projects a shadow quad (DrawShadow 0051CE60,
+006CEDE0), 006CCF20 adds the terrain triangles under it. The original's clip stages are five hand-unrolled functions
+with a function-static triangle buffer per stage (007AA710 plane, 007AA750 u >= 0, 007AA790 v >= 0, 007AA7D0 u <= 1,
+007AA810 v <= 1); `ClipStage` is one recursive stage function with a buffer per stage, which gives the same in-place
+clipping and emission order. Facts: a corner is inside when its distance's sign bit is clear (-0 is outside, NaN
+with a clear sign inside); the vertex arrays are 4-vertex SoA packets (x[4], y[4], z[4], w untouched); `Reserve` grows
+the packets by triangles * 3 / 4 + 1 + the vertex count (not count / 4: over-reserves, kept); `Finish` pads the last
+packet with copies of vertex 0. The statics' guard bits and empty atexit handlers are not reproduced. A triangle
+whose corner lies on a clipping edge can come out differently if a distance rounds across zero (rule 7).
+
+### View and light matrices (`view_matrices.cpp`, `view_matrices.h`)
+
+| Address | Name | Verify |
+|---|---|---|
+| 004F0EF0 | `view::CameraViewMatrix` (stdcall: rows = the camera rotation's X axis (0040D940), Y and Z axes inline, column 3 = -position . row) | original into a scratch matrix, NearlyEqual |
+| 004F15C0, 004F1440 | `view::LightRotation`, `view::LightShearMatrix` (the shadow's projection; map_object_shadow.cpp still calls them through their addresses) | same; acos is the C++ one (the original's _CIacos), within a few ULPs |
+| 004E5660 | a byte copy of `CubicSegment::Evaluate` (0040E440), registered to the same method | against the original, CheckNear |
+| 004E5710 | `view::AllocateBlocks32` (as 00452DA0) | ours only: alignment, stored block pointer |
+
+Scenarios: every frame (`newgame`, `world_load`); shadows for the light pair; unit motion for the cubic.
+
+### Text archive list (`text_sources.cpp`; declarations in `item_db_text.h`)
+
+| Address | Name | Verify |
+|---|---|---|
+| 004DE930, 004DEAF0, 004DEB60 | `TextSourceList::Add`, `Remove`, `Clear` | ours only: list shape (Add: listed name gives 1 and no change, else one node more at the end with that name and an archive; Remove: the name gone, one node fewer; Clear: empty) |
+| 004DEDB0, 004DEDD0, 004DED40 | `CTextManager::AddSource`, `RemoveSource`, `ClearSources` (list at +0x1C; 004DED40 is slot 3 of vtable 0073F6F0) | same checks on the manager's list |
+
+Add keeps a failed archive in the list (unlike `CLinkFigureLoader::AddArchive`) and returns OpenResource's result;
+nodes go back to the node allocator's 0x18-byte list through `stlp::deallocate` (the original inlines the push).
+Not ported: 004DEBC0 (`Find`, only called by the original GetItemTexts, which is rewritten and inlines the lookup),
+004DEC40 (Rebirth) and its 21-byte forwarder 004DEFA0, 004DED20 (setlocale / _setmbcp, slot 2). Scenarios: `newgame`
+(client start adds the text archives, briefings add / remove zone texts), `world_load`.
+
+### Zone exit area, aligned 8-byte blocks
+
+| Address | Name | Verify |
+|---|---|---|
+| 004E59F0 | `ZoneExit::Contains` (`exit_area.cpp`; world.h's +0x24 is now `angle`; world_client.cpp's forwarder removed) | against the original (pure). FindExitAt (world_client.cpp) and 005677F0; `zone_base_bz1g`, `newgame` |
+| 004F65B0 | `view::AllocateBlocks8` (as 004545A0) | ours only: alignment, block pointer. Interface windows, figure rasteriser, shadows |
+
+Contains: a zero or NaN angle tests the rectangle as is (x1 > x, x > x2, y1 > y, y > y2 reject; NaN passes); otherwise
+the point is turned by -angle about the centre (centre x and the x offset kept unrounded, as the original keeps
+them on the FPU stack) and a NaN turned x is outside.
