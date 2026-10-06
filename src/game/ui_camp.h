@@ -770,6 +770,20 @@ public:
     // hero arrows (scene objects 0, 1) and their regions' tooltips only for a party of more than
     // one, +0x170 = the hero's height * 100 (truncated), then DrawStats (through its address).
     void SetHero(int heroIndex, const char* title);
+    // 00624790 (input slot 2, RET 0xC; ui_stats_buttons.cpp). On the new hero's page (10) a -/+
+    // button (regions 6-13) steps a point (StepPoint), plays "perk" and refreshes the owner (slot
+    // 47); a button that stepped is held (holdTime_ -0.5, the mouse captured). Elsewhere region 0 /
+    // 1 play "hero" and show the owner's previous / next hero (slots 49 / 48).
+    void OnLButtonDown(int buttons, int x, int y);
+    // 00624A60 (slot 24). While a button is held on page 10: after a quarter of a second (holdTime_
+    // adding the frame time) it repeats every frame; when it can step no more the hold ends (the
+    // capture cleared). The owner is refreshed (slot 47) on every repeat attempt.
+    void Update();
+    // A -/+ button of page 10: regions 6-8 take a point from strength, dexterity, intelligence
+    // (above 15), 9 the height down (points_ >= 1), 10-12 give one (below 35, while the three add
+    // up to under 75), 13 the height up (points_ <= 99; height = points_ * 0.01). True when it
+    // changed something.
+    bool StepPoint(int region);
 
     std::uint8_t unknown_148[4];
     CUiWindow* owner_;               // +0x14C
@@ -780,8 +794,8 @@ public:
     char** texts_;                   // +0x160 CStringArray data: weapon labels, the points texts, ...
     std::uint8_t unknown_164[0x170 - 0x164];
     int points_;                     // +0x170 skill points left (page 10); SetHero puts the height * 100 here
-    int unknown_174_;                // +0x174 -1
-    int unknown_178_;                // +0x178 0
+    int heldRegion_;                 // +0x174 the -/+ button held on page 10 (-1 none)
+    float holdTime_;                 // +0x178 seconds it has been held (from -0.5)
 };
 static_assert(offsetof(CHeroStatsPanel, owner_) == 0x14C);
 static_assert(offsetof(CHeroStatsPanel, page_) == 0x158);

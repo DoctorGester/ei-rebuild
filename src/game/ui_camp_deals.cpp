@@ -59,8 +59,8 @@ bool MadeByConstructor(const CItem* item) {
 }
 
 // The stock lists of a class template: everything (+0x11C) and spells and modifiers (+0x1D4).
-void* AllowedList(ClassTemplate* t) { return t->allowed; }
-void* MagicList(ClassTemplate* t) { return t->magic; }
+void* AllowedList(ClassTemplate* t) { return &t->allowed; }
+void* MagicList(ClassTemplate* t) { return &t->magic; }
 
 // Every item of `list` back to `to`, then the strip scrolled to the last one.
 void ReturnAll(CCampPages* camp, void* to, void* list, CUiItemStrip* strip) {
