@@ -360,7 +360,9 @@ public:
     Vector3 position_;              // +0x1C
     std::uint8_t unknown_28[0x98 - 0x28];
     float color_[3];                // +0x98 r, g, b
-    std::uint8_t unknown_A4[0x100 - 0xA4];
+    std::uint8_t unknown_A4[0xE0 - 0xA4];
+    float range_;                   // +0xE0
+    std::uint8_t unknown_E4[0x100 - 0xE4];
     float rangeSquared_;            // +0x100
     float inverseRangeSquared_;     // +0x104
     std::uint8_t unknown_108[0x114 - 0x108];

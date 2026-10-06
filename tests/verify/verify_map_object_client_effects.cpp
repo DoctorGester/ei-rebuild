@@ -17,6 +17,7 @@
 #include "../../src/game/map_object.h"
 #include "../../src/game/map_object_figures.h"
 #include "../../src/game/map_object_shadow.h"
+#include "../../src/game/spell.h"
 #include "../../src/game/unit.h"
 
 #include <cstdint>
@@ -158,3 +159,85 @@ static void __fastcall EffectsChangedVerify(CMapObjectClientSpecific* self, void
     ei::verify::Check("CMapObjectClientSpecific::EffectsChanged", true, true, "");
 }
 EI_VERIFY(0x005117D0, EffectsChangedVerify, 0, s_unusedChanged);
+
+// --- Lights: ours only (the light manager and the factory's list change). ---
+// - HideLight (005119B0) / ShowLight (00511950): a light that could change (not held, shown /
+//   hidden) changes its hidden flag 0x80; any other light keeps its flags.
+// - CreateLight (00511830): a light of the factory's class 0x31 exists with the given range, flags_
+//   0x500 set, at the object's x and y.
+// - SetLightMode (00511A00): mode 1 leaves a held light (0x200) whose id is on the factory's list;
+//   mode 2 leaves none.
+// - DestroyClientCompanion (005107B0): no light, no particles, no object.
+// Reached by: the party light of a unit joining the player (CUnitClientSpecific slot 18) and its
+// end on death (slot 48): units, combat, map_objects. SetLightMode's callers (slot 19) were not
+// traced to a scenario.
+namespace {
+void* s_unusedHide;
+void* s_unusedShow;
+void* s_unusedCreate;
+void* s_unusedMode;
+void* s_unusedDestroy;
+
+struct LitNode {
+    LitNode* next;
+    LitNode* prev;
+    int id;
+};
+
+bool OnLitList(int id) {
+    char* factory = *reinterpret_cast<char**>(0x007AF748);
+    LitNode* head = *reinterpret_cast<LitNode**>(factory + 0xD4);
+    for (LitNode* node = head->next; node != head; node = node->next)
+        if (node->id == id) return true;
+    return false;
+}
+
+void CheckToggle(const char* name, CMapObjectClientSpecific* self, bool show) {
+    CEngineObject* light = self->light;
+    std::uint32_t before = light ? light->flags_ : 0;
+    if (show) self->ShowLight();
+    else self->HideLight();
+    bool ok = self->light == light;
+    if (ok && light) {
+        bool changes = !(before & 0x200) && (show ? (before & 0x80) != 0 : (before & 0x80) == 0);
+        std::uint32_t expected = changes ? (show ? before & ~0x80u : before | 0x80u) : before;
+        ok = light->flags_ == expected;
+    }
+    ei::verify::Check(name, true, ok, "flags 0x%X -> 0x%X", before, light ? light->flags_ : 0);
+}
+} // namespace
+
+static void __fastcall HideLightVerify(CMapObjectClientSpecific* self) { CheckToggle("CMapObjectClientSpecific::HideLight", self, false); }
+EI_VERIFY(0x005119B0, HideLightVerify, 0, s_unusedHide);
+
+static void __fastcall ShowLightVerify(CMapObjectClientSpecific* self) { CheckToggle("CMapObjectClientSpecific::ShowLight", self, true); }
+EI_VERIFY(0x00511950, ShowLightVerify, 0, s_unusedShow);
+
+static void __fastcall CreateLightVerify(CMapObjectClientSpecific* self, void*, const float* colour, float radius, bool flag) {
+    self->CreateLight(colour, radius, flag);
+    const CMapObject* owner = CompanionOwner(self);
+    auto* light = static_cast<CLight*>(self->light);
+    bool ok = light && light->type_ == 0x31 && std::memcmp(&light->range_, &radius, 4) == 0 &&
+              (light->flags_ & 0x500) == 0x500 && (!flag || (light->flags_ & 0x40)) &&
+              std::memcmp(&light->position_.x, &owner->positionX, 4) == 0 &&
+              std::memcmp(&light->position_.y, &owner->positionY, 4) == 0;
+    ei::verify::Check("CMapObjectClientSpecific::CreateLight", true, ok, "object %d radius %g", owner->id_, radius);
+}
+EI_VERIFY(0x00511830, CreateLightVerify, 0, s_unusedCreate);
+
+static void __fastcall SetLightModeVerify(CMapObjectClientSpecific* self, void*, int mode) {
+    bool had = self->light != nullptr;
+    self->SetLightMode(mode);
+    bool ok = true;
+    if (mode == 1) ok = self->light && (self->light->flags_ & 0x200) && OnLitList(self->light->id_);
+    else if (mode == 2) ok = self->light == nullptr;
+    ei::verify::Check("CMapObjectClientSpecific::SetLightMode", true, ok, "mode %d, light before %d", mode, had);
+}
+EI_VERIFY(0x00511A00, SetLightModeVerify, 0, s_unusedMode);
+
+static void __fastcall DestroyClientCompanionVerify(CMapObjectClientSpecific* self) {
+    self->DestroyClientCompanion();
+    bool ok = !self->light && !self->object && self->particles.size == 0;
+    ei::verify::Check("CMapObjectClientSpecific::DestroyClientCompanion", true, ok, "");
+}
+EI_VERIFY(0x005107B0, DestroyClientCompanionVerify, 0, s_unusedDestroy);

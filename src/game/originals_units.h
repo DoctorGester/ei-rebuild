@@ -216,6 +216,12 @@ __declspec(naked) inline void __fastcall CompanionParticlesSetSizeOriginal(void*
 // growBy) (RET 8, no result).
 __declspec(naked) inline void __fastcall CompanionSoundsSetSizeOriginal(void* /*array*/, void*, int /*count*/,
                                                                        int /*growBy*/) EI_ORIGINAL(0x00512330)
+// 00511830 / 005119B0 (map_object_client_effects.cpp, rewritten; through their addresses so the wrappers run): the map
+// object's client companion makes a light of `colour` (rgba) and `radius` (RET 0xC; `flag` adds flags_ 0x40) / hides
+// it (plain RET). No result.
+__declspec(naked) inline void __fastcall CompanionCreateLightOriginal(void* /*companion*/, void*, const float* /*colour*/,
+                                                                      float /*radius*/, int /*flag*/) EI_ORIGINAL(0x00511830)
+__declspec(naked) inline void __fastcall CompanionHideLightOriginal(void* /*companion*/) EI_ORIGINAL(0x005119B0)
 __declspec(naked) inline void __fastcall ClientDestructBodyOriginal(CUnitClientSpecific* /*controller*/)
     EI_ORIGINAL(0x00533EA0)
 

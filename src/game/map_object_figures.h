@@ -129,6 +129,12 @@ public:
     // 19 / 20: client 0051B7E0 (CObject3DClientSpecific::Draw) / 0051CE60 (DrawShadow); server 0051AC60 / 0051AC70.
     virtual int DrawParts(void* context, int* dirty);
     virtual int DrawPartsShadow(void* context);
+    virtual void Slot21();
+    virtual void Slot22();
+    virtual void Slot23();
+    virtual void Slot24();
+    virtual void Slot25(int);                       // 25: client 0051C9D0 (empty)
+    virtual void SetLit(int lit);                   // 26: client 0051C9E0 (0051C9F0): the object's light is on / off
 
     CObject3D* object;              // +0x1C the object it belongs to
 };

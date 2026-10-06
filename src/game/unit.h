@@ -1169,6 +1169,23 @@ public:
     // 005112A0. One sound record per effect type: a new type plays its "<sound>\start.wav", a
     // vanished one its "<sound>\end.wav" (unless the object is dead) and is removed.
     void UpdateEffectSounds(bool first);
+    // 00511830 (RET 0xC). A new point light (the light factory's class 0x31) of `colour` (rgb of an
+    // rgba) and `radius`, 2 above the object, replaces the light (the old one hidden first); flags_
+    // 0x580 (0x40 more with `flag`), then shown.
+    void CreateLight(const float* colour, float radius, bool flag);
+    // 00511950. A hidden light (flags_ 0x80) that is not held (0x200) is shown: the light manager
+    // adds it and a unit's client half lights its figure.
+    void ShowLight();
+    // 005119B0. A shown light not held is hidden: the light manager drops it and the client half
+    // unlights the figure.
+    void HideLight();
+    // 00511A00 (RET 4), virtual slot 19. Mode 1: the light (a new default one, 0079BEB0 / 0079BEBC,
+    // when there is none) is shown and held (flags_ 0x200), its id added to the light factory's
+    // list (+0xD4); mode 2: a light is hidden, its id removed from the list and the light released.
+    void SetLightMode(int mode);
+    // 005107B0, virtual slot 3 (Destroy): +0x20 / +0x24 cleared, no particles, the light hidden,
+    // its id removed and released, no object.
+    void DestroyClientCompanion();
 
     CUnit* object;          // +0x1C
     std::uint32_t unknown_20;   // +0x20 cleared by Create and Destroy

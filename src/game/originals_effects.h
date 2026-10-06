@@ -16,6 +16,14 @@ __declspec(naked) inline void* __fastcall ParticleCreateSourceOriginal(void* /*m
     EI_ORIGINAL(0x00498400)
 __declspec(naked) inline void __fastcall SoundStop(void* /*manager*/, void*, int /*sound*/) EI_ORIGINAL(0x006B94A0)
 __declspec(naked) inline void __fastcall RemoveLight(void*, void*, CEngineObject* /*light*/) EI_ORIGINAL(0x006CA720)
+// 006CA5D0: the light manager (*007AF738) adds a light (RET 4, no result).
+__declspec(naked) inline void __fastcall LightManagerAddOriginal(void*, void*, CEngineObject* /*light*/) EI_ORIGINAL(0x006CA5D0)
+// 0068D010 (CLight): sets the colour (+0x98, +0xC8) and the position (RET 8; EAX 1, not read).
+__declspec(naked) inline void __fastcall SetLightColorPosition(CEngineObject* /*light*/, void*, const void* /*color*/,
+                                                               const void* /*position*/) EI_ORIGINAL(0x0068D010)
+// 00511FB0: the light factory's (*007AF748) list of lit ids (+0xD4): removes every entry equal to *id (RET 4).
+__declspec(naked) inline void __fastcall LightIdsRemoveOriginal(void* /*list*/, void*, const int* /*id*/)
+    EI_ORIGINAL(0x00511FB0)
 __declspec(naked) inline std::uint8_t __fastcall IsLit(void*, void*, const float*) EI_ORIGINAL(0x006CB020)
 
 // 00675CA0: an effect / world object is marked new (flags |= 2, stamp = the world stamp at 007AFFC8); plain RET.
