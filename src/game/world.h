@@ -259,8 +259,9 @@ public:
     // 005949D0. Whether object `objectId` is on the shared-object list for player `playerId` (or
     // for everyone). In multiplayer the player is looked up on the game server.
     bool IsObjectShared(int objectId, int playerId);
-    // 00594A30. Fills `group` with the objects on that list for player `playerId`.
-    void CollectSharedObjects(ScriptGroup* group, int playerId);
+    // 00594A30 (RET 8: the player first). Fills `group` with the objects on that list for player
+    // `playerId`.
+    void CollectSharedObjects(int playerId, ScriptGroup* group);
     // 0058B6D0. ORs `mask` into every player's dirty flags.
     void MarkPlayersDirty(std::uint32_t mask);
     // world_time.cpp. 0058EEA0 / 0058EEE0: slots 31 / 32 (see CWorld).

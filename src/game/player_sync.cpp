@@ -5,15 +5,21 @@
 #include "player_messages.h"
 
 #include "base_manager.h"
+#include "combat.h"
 #include "map_object.h"
 #include "net_link.h"
 #include "originals_library.h"
+#include "originals_script.h"
 #include "originals_units.h"
 #include "party.h"
+#include "random.h"
 #include "resource_manager.h"
 #include "unit.h"
+#include "unit_ai.h"
 #include "world.h"
 #include "world_effect.h"
+
+#include "lib/crt.h"
 
 #include "ei/hook.h"
 
@@ -27,7 +33,14 @@ constexpr std::uint8_t kMessageObjectRemoved = 0x42;
 constexpr std::uint8_t kMessageTimedAdded = 0x50;
 constexpr std::uint8_t kMessageTimedChanged = 0x51;
 constexpr std::uint8_t kMessageTimedRemoved = 0x52;
+constexpr std::uint8_t kMessagePartyState = 0x60;
+constexpr std::uint8_t kMessageParty = 0x80;
 constexpr std::uint32_t kFlagDeltaPending = 2;   // flags_: the object's delta is still to be written
+constexpr std::uint32_t kRefreshMinimum = 900;   // updates until the party is sent again: 900..1800
+constexpr std::uint32_t kRefreshSpread = 901;
+
+// 2.0 (0073CDB8): a unit level at most this asks the client to refresh the party.
+float LowLevel() { return *reinterpret_cast<const float*>(0x0073CDB8); }
 
 // The game's cout, the flush manipulator and the texts of the traffic log (read from the exe).
 void* GameCout() { return reinterpret_cast<void*>(0x007C56B0); }
@@ -214,7 +227,97 @@ void CPlayerServer::SendItems() {
     }
 }
 
+int CPlayerServer::SendPartyState() {
+    refreshPending_ = 0;
+    CPlayer* player = Owner();
+    const float low = LowLevel();
+    for (CPlayer::ObjectMap::Node* node = player->units_.First(); node && node->value; node = player->units_.After(node)) {
+        const float* levels = static_cast<CUnit*>(node->value)->levels4C8;
+        if (!(levels[0] > low) || !(levels[1] > low) || !(levels[2] > low) || !(levels[3] > low) || !(levels[4] > low))
+            refreshPending_ = 1;
+    }
+
+    int count = partyUnits_.size;
+    WriteByte(&out_, kMessagePartyState);
+    WriteByte(&out_, static_cast<CWorldServer*>(player->ManagerContext())->unknown6C_ != 0 ? 1 : 0);
+    WriteDword(&out_, unknown24_);
+    WriteDword(&out_, static_cast<std::uint32_t>(count));
+    std::uint32_t playerBit = 1u << (player->playerId_ & 31);
+    for (int i = 0; i < count; ++i) {
+        auto* unit = static_cast<CUnit*>(partyUnits_.data[i].AsUnit());
+        if (refreshPending_ != 2 && !ObjectSlots(unit)->IsDead()) {
+            auto* controller = static_cast<CUnitServer*>(unit->controller);
+            if (UnitServerIsFightingOriginal(controller)) refreshPending_ = 2;
+            // A neighbour hostile to this player whose aggression is aimed at the unit.
+            auto& neighbours = reinterpret_cast<AIBrain*>(controller->brain)->unknown_0F4;
+            for (auto* node = neighbours.head; node != nullptr;) {
+                auto* other = static_cast<CUnit*>(node->data);
+                node = node->next;
+                if ((playerBit & other->relationsB & other->relationsA) == 0) continue;
+                auto* otherController = static_cast<CUnitServer*>(other->controller);
+                if (reinterpret_cast<AIBrain*>(otherController->brain)->AggressionEnemy() == unit) refreshPending_ = 2;
+            }
+        }
+        WriteDword(&out_, static_cast<std::uint32_t>(unit->id_));
+    }
+    out_.Write(&refreshPending_, 4);
+
+    // The objects shared with the hero of a multiplayer client that plays one.
+    ScriptGroup shared;
+    ScriptGroupConstructOriginal(&shared);
+    shared.vtable = scriptvtable::kRefs;
+    if (IsMultiplayerClient() && player->Party()->members_.size == 1)
+        WorldServer()->CollectSharedObjects(static_cast<int>(player->Party()->members_.data[0].unknown_01C), &shared);
+    int sharedCount = shared.size;
+    WriteDword(&out_, static_cast<std::uint32_t>(sharedCount));
+    for (int i = 0; i < sharedCount; ++i) WriteDword(&out_, static_cast<std::uint32_t>(shared.data[i].AsUnit()->id_));
+    shared.vtable = scriptvtable::kRefsBase;
+    if (shared.data != nullptr) {
+        for (int i = 0; i < shared.size; ++i) shared.data[i].Reset();
+        gamecrt::operator_delete(shared.data);
+    }
+    return 1;
+}
+
+int CPlayerServer::ForgetObject(CEngineObject* object) {
+    CPlayer::ObjectMap& known = Owner()->knownObjects_;
+    if (known.Find(object->id_) != nullptr) {
+        Forget(known, object->id_);
+        object->Release();
+        for (int i = 0; i < sentObjects_.size; ++i) {
+            CEngineObject** data = sentObjects_.data;
+            if (data[i] != object) continue;
+            std::memmove(&data[i], &data[i + 1], static_cast<std::size_t>(sentObjects_.size - i - 1) * 4);
+            --sentObjects_.size;
+            object->Release();
+            --i;
+        }
+        WriteByte(&out_, kMessageObjectRemoved);
+        WriteDword(&out_, static_cast<std::uint32_t>(object->id_));
+    }
+    group50F8_.Remove(object);
+    partyUnits_.Remove(object);
+    return 1;
+}
+
+BOOL CPlayerServer::IsPartyUnit(CEngineObject* object) { return partyUnits_.Contains(object) != 0; }
+
+void CPlayerServer::SendParty() {
+    alignas(4) unsigned char bytes[sizeof(CMemoryStream)];
+    auto* party = reinterpret_cast<CMemoryStream*>(bytes);
+    party->Construct();
+    Owner()->Party()->SaveParty(party, 1);
+    WriteByte(&out_, kMessageParty);
+    out_.WriteSized(party);
+    refreshTimer_ = static_cast<int>(IsaacRandom::Global().Next() % kRefreshSpread + kRefreshMinimum);
+    party->Destruct();
+}
+
 EI_REPLACE_METHOD(0x0066D100, CPlayerServer::Flush);
+EI_REPLACE_METHOD(0x0066E430, CPlayerServer::SendPartyState);
+EI_REPLACE_METHOD(0x0066DC90, CPlayerServer::ForgetObject);
+EI_REPLACE_METHOD(0x0066E110, CPlayerServer::IsPartyUnit);
+EI_REPLACE_METHOD(0x0066EF80, CPlayerServer::SendParty);
 EI_REPLACE_METHOD(0x0066D7F0, CPlayerServer::SendObjectsAdded);
 EI_REPLACE_METHOD(0x0066DAD0, CPlayerServer::SendObjectsRemoved);
 EI_REPLACE_METHOD(0x0066DBA0, CPlayerServer::SendObjectsChanged);

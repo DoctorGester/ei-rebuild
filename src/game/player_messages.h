@@ -10,6 +10,7 @@
 #include "engine_object.h"
 #include "maths.h"
 #include "net_delta.h"
+#include "script.h"
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"
@@ -23,11 +24,15 @@ namespace netlink {
 class NetLink;  // net_link.h
 }
 
-// A pointer array as SyncPlayer's statics hand it over: data, size (capacity and grow-by follow).
+// A pointer array of the sync (SyncPlayer's statics, the player state's sent objects): data on a
+// 32-byte boundary (0047B940), size, capacity, grow-by.
 struct PlayerObjectArray {
     CEngineObject** data;
     int size;
+    int capacity;
+    int growBy;
 };
+static_assert(sizeof(PlayerObjectArray) == 0x10);
 
 class CPlayerServer {
 public:
@@ -81,6 +86,20 @@ public:
     // 0066F080. Every item of the player's item list (+0x114) the party's item manager knows is
     // sent (SendObject14, slot 22).
     void SendItems();
+    // 0066E430. Message 0x60: the world's +0x6C flag, +0x24, the party units (partyUnits_) by id and
+    // whether the client should refresh the party (refreshPending_: 1 when a unit of the player has
+    // a level at most 2, 2 when a party unit fights or is the enemy of a hostile neighbour), then the
+    // objects shared with a multiplayer client's single hero. Returns 1.
+    int SendPartyState();
+    // 0066DC90 (RET 4). A map object leaves the world: when the client knows it, it is dropped from
+    // the player's map and the sent list (each drop releases it) and message 0x42 goes out; it
+    // leaves both groups in any case. Returns 1.
+    int ForgetObject(CEngineObject* object);
+    // 0066E110 (RET 4). Whether `object` is one of the party units (partyUnits_).
+    BOOL IsPartyUnit(CEngineObject* object);
+    // 0066EF80. Message 0x80: the party saved (with its variables) as a sized block; the next
+    // refresh in 900..1800 updates (ISAAC).
+    void SendParty();
 
     CPlayer* Owner() const { return reinterpret_cast<CPlayer*>(player_); }
 
@@ -88,7 +107,8 @@ public:
     std::uint8_t engineObject_[0x1C - 0x04];
     std::uint8_t* player_;          // +0x1C the world player (+0xC4 variables, +0x100, +0x130 dirty bits)
     int state_;                     // +0x20
-    std::uint8_t unknown_24[0x38 - 0x24];
+    std::uint32_t unknown24_;       // +0x24 sent with message 0x60
+    std::uint8_t unknown_28[0x38 - 0x28];
     Vector3 lastPosition_;          // +0x38 sent with 0x04 / 0x0F
     std::uint32_t unknown_44;
     BitStream out_;                 // +0x48 messages to the client (CMemoryStream)
@@ -96,7 +116,16 @@ public:
     std::uint8_t unknown_71[0x88 - 0x71];
     CoderState compressor_;         // +0x88 for the messages sent (Flush)
     CoderState decompressor_;       // +0x28B0 for the messages received
+    PlayerObjectArray sentObjects_; // +0x50D8 map objects the client has (counted)
+    PlayerObjectArray sentTimed_;   // +0x50E8 timed objects the client has (counted)
+    ScriptGroup group50F8_;         // +0x50F8
+    ScriptGroup partyUnits_;        // +0x510C units always sent (message 0x60; the timed objects' slot 20)
+    int refreshPending_;            // +0x5120 0, 1 or 2 (SendPartyState)
+    int refreshTimer_;              // +0x5124 updates until the party is sent again
 };
+static_assert(offsetof(CPlayerServer, sentObjects_) == 0x50D8);
+static_assert(offsetof(CPlayerServer, partyUnits_) == 0x510C);
+static_assert(offsetof(CPlayerServer, refreshTimer_) == 0x5124);
 static_assert(offsetof(CPlayerServer, player_) == 0x1C);
 static_assert(offsetof(CPlayerServer, compressor_) == 0x88);
 static_assert(offsetof(CPlayerServer, decompressor_) == 0x28B0);
@@ -120,10 +149,11 @@ public:
 
     netlink::NetLink* link_;                             // +0x1C the connection to the player's client, null: none
     void* connection_;                          // +0x20 CPlayerServer / CPlayerClient
-    std::uint8_t unknown_24[0x28 - 0x24];
+    int playerId_;                              // +0x24 player number (0 = the local player)
     ObjectMap knownObjects_;                    // +0x28 map objects sent to the client
     int maxObjectId_;                           // +0x3C highest id put in knownObjects_
-    std::uint8_t unknown_40[0x58 - 0x40];
+    ObjectMap units_;                           // +0x40 the player's units by id
+    std::uint8_t unknown_54[0x58 - 0x54];
     ObjectMap knownTimed_;                      // +0x58 timed objects (effects) sent to the client
     int maxTimedId_;                            // +0x6C
     void* party_;                               // +0x70 an embedded CParty (0x70 bytes); slot 18 its item manager

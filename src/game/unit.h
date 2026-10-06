@@ -573,7 +573,7 @@ public:
     int carriedCapacity;            // +0x4A8
     int carriedGrowBy;              // +0x4AC (0: an eighth of the count, 4..1024)
     float resistances[6];           // +0x4B0 per damage type (see ResistanceTo)
-    std::uint8_t unknown_4C8[0x4DC - 0x4C8];
+    float levels4C8[5];             // +0x4C8 any at most 2 (or NaN) asks for a party refresh (0066E430)
 };
 static_assert(offsetof(CUnit, prototypeName) == 0xA4);
 static_assert(offsetof(CUnit, orientation) == 0x34);

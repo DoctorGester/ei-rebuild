@@ -133,8 +133,62 @@ int __fastcall FlushVerify(CPlayerServer* self) {
     return result;
 }
 
+// 0066E430: PUSH -1; PUSH imm32 (7). Only the stream and refreshPending_ change (the shared-object
+// group is built and destroyed inside): ours, both restored, original, both compared.
+int(__fastcall* s_partyState)(CPlayerServer*);
+int __fastcall PartyStateVerify(CPlayerServer* self) {
+    int pending = self->refreshPending_;
+    int oursPending = 0;
+    int result = CheckAppend(
+        "CPlayerServer::SendPartyState", self,
+        [&] {
+            int r = self->SendPartyState();
+            oursPending = self->refreshPending_;
+            self->refreshPending_ = pending;
+            return r;
+        },
+        [&] { return s_partyState(self); });
+    ei::verify::Check("CPlayerServer::SendPartyState.pending", oursPending, self->refreshPending_, "player %p", self);
+    return result;
+}
+
+// Ours only (releases the object): gone from the map, the sent list and both groups.
+int __fastcall ForgetObjectVerify(CPlayerServer* self, void*, CEngineObject* object) {
+    int id = object->id_;
+    int result = self->ForgetObject(object);
+    bool ok = result == 1 && self->Owner()->knownObjects_.Find(id) == nullptr;
+    for (int i = 0; i < self->sentObjects_.size; ++i) ok = ok && self->sentObjects_.data[i] != object;
+    for (int i = 0; i < self->group50F8_.size; ++i) ok = ok && self->group50F8_.data[i].object != object;
+    for (int i = 0; i < self->partyUnits_.size; ++i) ok = ok && self->partyUnits_.data[i].object != object;
+    ei::verify::Check("CPlayerServer::ForgetObject", true, ok, "player %p object id %d", self, id);
+    return result;
+}
+
+// 0066E110: MOV EAX,[ESP+4]; ADD ECX,510Ch (10). Pure.
+BOOL(__fastcall* s_isPartyUnit)(CPlayerServer*, void*, CEngineObject*);
+BOOL __fastcall IsPartyUnitVerify(CPlayerServer* self, void*, CEngineObject* object) {
+    BOOL expected = s_isPartyUnit(self, nullptr, object);
+    BOOL actual = self->IsPartyUnit(object);
+    ei::verify::Check("CPlayerServer::IsPartyUnit", expected, actual, "player %p object %p", self, object);
+    return expected;
+}
+
+// Ours only (advances the ISAAC generator): message 0x80 appended, the timer in 900..1800.
+void __fastcall SendPartyVerify(CPlayerServer* self) {
+    std::uint32_t size = self->out_.size_;
+    std::uint32_t at = self->out_.position_;
+    self->SendParty();
+    bool ok = self->out_.size_ > size && self->out_.data_[at] == 0x80 && self->refreshTimer_ >= 900 &&
+              self->refreshTimer_ <= 1800;
+    ei::verify::Check("CPlayerServer::SendParty", true, ok, "player %p timer %d", self, self->refreshTimer_);
+}
+
 } // namespace
 
+EI_VERIFY(0x0066E430, PartyStateVerify, 7, s_partyState);
+EI_VERIFY(0x0066DC90, ForgetObjectVerify, 0, s_unused);
+EI_VERIFY(0x0066E110, IsPartyUnitVerify, 10, s_isPartyUnit);
+EI_VERIFY(0x0066EF80, SendPartyVerify, 0, s_unused);
 EI_VERIFY(0x0066DBA0, ObjectsChangedVerify, 5, s_objectsChanged);
 EI_VERIFY(0x0066E020, TimedChangedVerify, 5, s_timedChanged);
 EI_VERIFY(0x0066F080, SendItemsVerify, 7, s_sendItems);

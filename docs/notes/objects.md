@@ -93,6 +93,13 @@ client knows (each counted once; +0x3C / +0x6C the highest id), +0x70 an embedde
 "changed" senders compare the object's stamp with the world's update count; a pending delta (flags_ bit 1) is written
 first (0050EA70 for map objects, CEffect::SendDelta for timed ones). world_sync.cpp names the six senders by the
 DiffObjectSets output they get (Kept / Added / Removed): its "Kept" array gets the removals, "Removed" the changes.
+Second group: 0066E430 SendPartyState (0x60; ours, stream and +0x5120 restored, original, compared), 0066DC90
+ForgetObject (ours only: not in the map, the sent list +0x50D8 or the groups +0x50F8 / +0x510C), 0066E110 IsPartyUnit
+(pure), 0066EF80 SendParty (0x80 and the refresh timer; ours only). CPlayerServer +0x50D8 / +0x50E8 sent object arrays,
++0x50F8 / +0x510C script groups, +0x5120 refresh flag, +0x5124 timer; CPlayer +0x24 id, +0x40 the player's units
+(hash_map). CUnitServer::IsFighting (0054B580) is Rebirth-patched: called through its address. Fixed on the way:
+CWorldServer::CollectSharedObjects (00594A30, world_server.cpp) had its two stack arguments swapped (its only caller,
+0066E430, pushes the player id first), and so had its verify wrapper; it only runs for a multiplayer client.
 SendItems calls SendObject14 directly (the original goes through slot 22 of 00743280, which is it). PartyRecords
 moved to party_record_lookup.h (unit.h declares a second one).
 
