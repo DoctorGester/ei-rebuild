@@ -277,5 +277,6 @@ Functions of 0x00480000-0x004B0000 and 0x004D8000-0x00500000 that belong to othe
   at most 0; the weather chunk's last two floats are read and unused. 00481660's branch under 0079BCF4 (the colour
   quantisation 0049BEA0 and its STLport map / list / introsort helpers 00482640, 00483540, 004825A0, 00482AA0, 0049BB70,
   0049C5A0, 0049D*, ...) never runs: nothing in game.exe, addon.dll or EI_Plugin.asi writes 0079BCF4 (bss, a byte search
-  finds its address only in the test at 00481704). Not reproduced; those helpers are effectively dead.
+  finds its address only in the test at 00481704). Not reproduced; the 78 functions only that branch reaches (callers
+  closed over Ghidra's xrefs, no Unwind or unnamed callers) are in config/dead_code.csv.
 - Original bugs kept: 00481660 deletes every record while the hash_map still holds the pointers (freed with the map).
