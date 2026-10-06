@@ -38,10 +38,12 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
-- A-S done 2026-10-05 (40 functions in 0x004B0000-0x004C0000). A-S2 (cut off by the usage limit; 20 functions merged). A-S4 done (37; 78 quantiser functions marked dead). A-S5 done (28; 25 library, 5 dead). A-S6 queued (figure/.lnk loader 004F7F00 / 004F87D0 / 004F30F0, buffered file streams). A-S3 done 2026-10-05 (38 functions; leftovers: .mob reader 00481660 / 00481F00, particle attach 004849F0 / 00484C00, colour quantisation 0049BEA0). Was: scripts 0x004C0000-0x00500000 plus the 0x00480000-0x004B0000 leftovers.
+- A-S done 2026-10-05 (40 functions in 0x004B0000-0x004C0000). A-S2 (cut off by the usage limit; 20 functions merged). A-S4 done (37; 78 quantiser functions marked dead). A-S5 done (28; 25 library, 5 dead). A-S6 done (24). A-S7 queued (loader cache and slots 004F77C0..004F7480, string reader 004DB9C0, CSkyObject, CServerSpecificManager, .mob decoder 004D8E10). A-S3 done 2026-10-05 (38 functions; leftovers: .mob reader 00481660 / 00481F00, particle attach 004849F0 / 00484C00, colour quantisation 0049BEA0). Was: scripts 0x004C0000-0x00500000 plus the 0x00480000-0x004B0000 leftovers.
 
 
 ## Verify checks
+
+- X19 (taken 2026-10-07) 004F30F0 CLinkMesh::AddPart (A-S6, in disabled.txt): its check fails every call, e.g. '"rl3" present 0 result 1 counts 5 5 29 29 20 102 vertex -1' (139665 of 139665).
 
 - X17 (done 2026-10-07, branch worktree-agent-a480cc2226016ece2) Four rewrites in tests/verify/disabled.txt: A-S5's ground decal builder 004D7BD0 ClipPlane / 004D85F0 AddTriangle / 004D8490 AddTerrainTriangle (mismatch e.g. "vertices 0 -> 3 / 3, indices 0 -> 3 / 3", 0.03-6% of calls) and A-H11's 00649AF0 CHudTopPanel::Build (its check fails every call: "page 0 shown 0 regions 4 sprites 6").
 
