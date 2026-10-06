@@ -342,3 +342,14 @@ __declspec(naked) inline void __fastcall BriefingOpenTopicsOriginal(void* /*scre
 __declspec(naked) inline void __fastcall BriefingDrawTopicsOriginal(void* /*screen*/) EI_ORIGINAL(0x006071E0)
 __declspec(naked) inline void __fastcall BriefingFindTopicsOriginal(void* /*screen*/, void*, int /*personId*/)
     EI_ORIGINAL(0x00607360)
+// 00578C40: the client glue (007AFEA4, not read) copies the local player's variables whose names start with `prefix`
+// into `out` (a NamedFloatTable; emptied when there is no player; RET 8).
+__declspec(naked) inline void __fastcall GameCopyVariablesOriginal(void* /*glue*/, void*, const char* /*prefix*/,
+                                                                   void* /*out*/) EI_ORIGINAL(0x00578C40)
+// 0063B5D0 (rewritten as CObjectivesWindow::Construct; through its address so the wrapper runs; RET 4, returns this).
+// 0064BE40: the objectives window's setup before it opens (thiscall, RET 0x10): zoneName_ = zone, exitDistances_ = the
+// second, twoButtons_ = the third, listZones_ = the fourth argument.
+__declspec(naked) inline void* __fastcall ObjectivesConstructOriginal(void* /*memory*/, void*, CInterface3D*)
+    EI_ORIGINAL(0x0063B5D0)
+__declspec(naked) inline void __fastcall ObjectivesSetupOriginal(void* /*window*/, void*, const char* /*zone*/, void* /*distances*/,
+                                                                 int /*twoButtons*/, int /*listZones*/) EI_ORIGINAL(0x0064BE40)

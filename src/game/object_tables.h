@@ -37,7 +37,8 @@ static_assert(sizeof(AllodRecord) == 0x2C);
 // One map/zone entry (0x5C bytes): +0 name, +4 allod name, +8 and +0xC other names.
 struct MapRecord {
     char* name;   // CString
-    std::uint8_t unknown_4[0x5C - 4];
+    char* allod;  // +0x04 CString
+    std::uint8_t unknown_8[0x5C - 8];
 };
 static_assert(sizeof(MapRecord) == 0x5C);
 

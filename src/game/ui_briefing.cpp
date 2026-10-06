@@ -9,6 +9,8 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/stlp.h"
+#include "originals_engine.h"
 #include "originals_ui.h"
 #include "originals_world.h"
 
@@ -40,7 +42,49 @@ constexpr int kShowChatSlot = 36;
 // 006091C0: the chat window shows itself (thiscall, plain RET).
 __declspec(naked) void __fastcall ChatWindowShowAt(CUiWindow* /*chat*/) EI_ORIGINAL(0x006091C0)
 
+void* VariableGlue() { return reinterpret_cast<void*>(0x007AFEA4); }
+
 } // namespace
+
+// --- The variable copies ------------------------------------------------------------------------
+
+BriefingVariables::BriefingVariables(const char* prefix) {
+    NamedTableConstructOriginal(&table_);
+    GameCopyVariablesOriginal(VariableGlue(), nullptr, prefix, &table_);
+}
+
+BriefingVariables::~BriefingVariables() {
+    std::size_t n = static_cast<std::size_t>(table_.finish - table_.buckets);
+    for (std::size_t b = 0; b < n; ++b) {
+        NamedFloatTable::Node* node = table_.buckets[b];
+        while (node) {
+            NamedFloatTable::Node* next = node->next;
+            reinterpret_cast<mfc::CString*>(&node->key)->~CString();
+            stlp::deallocate(node, sizeof(NamedFloatTable::Node));
+            node = next;
+        }
+        table_.buckets[b] = nullptr;
+    }
+    table_.count = 0;
+    if (table_.buckets)
+        stlp::deallocate(table_.buckets, static_cast<std::size_t>(table_.endOfStorage - table_.buckets) * sizeof(void*));
+}
+
+NamedFloatTable::Node* BriefingVariables::First() const {
+    std::size_t n = static_cast<std::size_t>(table_.finish - table_.buckets);
+    for (std::size_t b = 0; b < n; ++b)
+        if (table_.buckets[b]) return table_.buckets[b];
+    return nullptr;
+}
+
+NamedFloatTable::Node* BriefingVariables::Next(NamedFloatTable::Node* node) const {
+    if (node->next) return node->next;
+    struct {
+        NamedFloatTable::Node* node;
+        const NamedFloatTable* table;
+    } iterator{node, &table_};
+    return static_cast<NamedFloatTable::Node*>(VariableIteratorNextOriginal(&iterator));
+}
 
 // --- 00602BB0: slot 26 --------------------------------------------------------------------------
 

@@ -10,8 +10,10 @@
 // walking to their places), 3 phrases, 4 rewards.
 
 #include "console.h"
+#include "object_tables.h"
 #include "ui.h"
 #include "ui_camp.h"
+#include "world.h"
 
 #include "lib/mfc.h"
 
@@ -36,6 +38,37 @@ struct BriefingMover {
 };
 static_assert(offsetof(BriefingMover, person) == 0x24);
 static_assert(offsetof(BriefingMover, time) == 0x2C);
+
+// The local player's name (its zone): 00578A90 copy-constructs it into raw storage, destroyed at
+// the end of the scope.
+class BriefingPlayerName {
+public:
+    BriefingPlayerName() { LocalPlayerName(reinterpret_cast<mfc::CString*>(raw_)); }
+    ~BriefingPlayerName() { reinterpret_cast<mfc::CString*>(raw_)->~CString(); }
+    BriefingPlayerName(const BriefingPlayerName&) = delete;
+    BriefingPlayerName& operator=(const BriefingPlayerName&) = delete;
+    operator const char*() const { return *reinterpret_cast<const mfc::CString*>(raw_); }
+
+private:
+    alignas(4) std::uint8_t raw_[4];
+};
+
+// A copy of the local player's variables whose names start with a prefix (00578C40 into an
+// STLport hash_map<CString, float> of 100 buckets, 00581790), walked in the table's order and
+// freed as the original's inlined destructor does (ui_briefing.cpp).
+class BriefingVariables {
+public:
+    explicit BriefingVariables(const char* prefix);
+    ~BriefingVariables();
+    BriefingVariables(const BriefingVariables&) = delete;
+    BriefingVariables& operator=(const BriefingVariables&) = delete;
+
+    NamedFloatTable::Node* First() const;
+    NamedFloatTable::Node* Next(NamedFloatTable::Node* node) const;
+
+private:
+    NamedFloatTable table_;
+};
 
 class CBriefingScreen : public CUiContainer {
 public:
@@ -75,6 +108,23 @@ public:
     // the moving ones, or with the dialogue running (state not 0), is handled as a click (input
     // slot 2); on the ground the leader runs there.
     void OnLeftDouble(int buttons, int x, int y);
+    // 00603D00 (input 4). Mouse move: with the chat window active, cursor 0xD and the event to it;
+    // otherwise cursor 0, the container's handler (006012D0), then by state: 1 the hovered topic
+    // row (redrawn when it changes), 3 cursor 0xE, 4 cursor 0. Walking (state 0, right button up):
+    // over a person who can talk (as OnLeftDown; on a network client not the leader) its topics
+    // are looked up (00607360; cursor 0xE when it has any) and its "pers" text, when it has one,
+    // is shown in surface 1 at the mouse (-125, -20); over a zone exit, cursor 0xF when the zone
+    // of exit_ (not of the exit found: kept) is not "none" and its "z.<zone>" variable is not 1.
+    void OnMouseMove(int buttons, int x, int y);
+    // 006034A0 (input 9; ui_briefing_keys.cpp). Keys: with the chat window active only Esc,
+    // which gives the input back. Otherwise the container's handler (00601820), then Backspace /
+    // Enter go to a network client's chat line; Enter (single player) and Esc skip the phrases
+    // (00604C50 with 1 until the state changes) or take the rewards; Esc also opens the escape
+    // menu (state 0), ends the start (2: 006064E0 with 1, 0) or the topic choice (1); Space the
+    // next phrase. Other keys while walking by their action (0079BF70): 4 the objectives window
+    // when a quest of this allod ("q.<quest>.<zone>.." = 1) is active, 0xB the camera to the
+    // leader, '5' / '6' quick save / load "saveq". Every handled key sets inputHandled_.
+    void OnKeyDown(int key, int repeat, int flags);
 
     // 00608B60 (RET 4). Opens the topics of `person` (00607360): none leaves state 0; otherwise
     // the leader stops (unless noWalk_), five topic rows (regions at x 210..570 from y 440, 24
@@ -85,6 +135,15 @@ public:
     // 24 high from y 12): "topic_prefix" text + " " + the topic's title (006078C0), white for
     // hoveredTopic_, else 0xA7D7E4.
     void DrawTopics();
+    // 00607360 (RET 4; ui_briefing_topics.cpp). topics_ becomes the topics of the person whose
+    // name has the text key `personId`: every "b.<person>.<topic>" variable equal to 1 (bit
+    // compare), in the variable table's order (a network client sorts them, 0060B330 / 0060B440),
+    // and last the last "constr..." one found.
+    void FindTopics(int personId);
+    // 006078C0 (RET 8; ui_briefing_topics.cpp; the screen is not read). A topic's title into
+    // `out` (constructed here, returned): the first line of the text "briefing <topic>"
+    // (lowercased; "constr..." topics share "briefing constr"), empty without one.
+    mfc::CString* TopicTitle(mfc::CString* out, const char* topic);
 
     int exit_;                      // +0x164 the exit a "leave_zone" answer leaves through
     bool exitPending_;               // +0x168 Create sets it (Update checks the leader's exit)
