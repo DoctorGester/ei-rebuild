@@ -89,3 +89,10 @@ __declspec(naked) inline void __fastcall ShowBoltOriginal(void* /*glue*/, void*,
 // 0055E940 (CWorld's slot 24, called directly on the client world 007AF5B8; RET 4): a new item made like `item` by the
 // item factory and given its values; EAX is the copy.
 __declspec(naked) inline CItem* __fastcall WorldCopyItemOriginal(void* /*world*/, void*, CItem* /*item*/) EI_ORIGINAL(0x0055E940)
+
+// A quest variable ("q." prefix) changed: 005F7FC0 tells the quest log (007C7D50), 00565380 the client world (007AF5B8)
+// (both RET 8: name, value bits; EAX not a result).
+__declspec(naked) inline void __fastcall QuestLogUpdateOriginal(void* /*log*/, void*, const char* /*name*/,
+                                                                std::uint32_t /*value*/) EI_ORIGINAL(0x005F7FC0)
+__declspec(naked) inline void __fastcall ClientQuestUpdateOriginal(void* /*world*/, void*, const char* /*name*/,
+                                                                   std::uint32_t /*value*/) EI_ORIGINAL(0x00565380)

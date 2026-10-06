@@ -164,10 +164,6 @@ void UnloadQuestTexts() {
 namespace {
 
 constexpr std::uintptr_t kQuestPrefix = 0x00783D7C;   // "q."
-// 005F7FC0 (RET 8). The quest log (007C7D50) hears of a quest variable.
-__declspec(naked) void __fastcall QuestLogUpdate(void*, void*, const char*, std::uint32_t) EI_ORIGINAL(0x005F7FC0)
-// 00565380 (RET 8). The client world (007AF5B8) hears of a quest variable.
-__declspec(naked) void __fastcall ClientQuestUpdate(void*, void*, const char*, std::uint32_t) EI_ORIGINAL(0x00565380)
 
 } // namespace
 
@@ -183,8 +179,8 @@ void GameFlow::OnVariableChanged(const void* event) {
                                 reinterpret_cast<const unsigned char*>(Text(kQuestPrefix))) == 0;
     }
     if (quest) {
-        QuestLogUpdate(reinterpret_cast<void*>(0x007C7D50), nullptr, name, value);
-        ClientQuestUpdate(reinterpret_cast<void*>(0x007AF5B8), nullptr, name, value);
+        QuestLogUpdateOriginal(reinterpret_cast<void*>(0x007C7D50), nullptr, name, value);
+        ClientQuestUpdateOriginal(reinterpret_cast<void*>(0x007AF5B8), nullptr, name, value);
     }
 }
 

@@ -33,6 +33,38 @@ public:
     // failed or the dispatch returned 0.
     int ReceiveMessages();
 
+    // Message handlers (player_client.cpp; each returns 1).
+    // 00667D80 (RET 4). A text from the received stream into a CString constructed at `out`;
+    // returns `out`.
+    void* ReadText(void* out);
+    // 00669850 (0x81). A variable (name, value bits) set in the party's table (read first, the
+    // value dropped); a quest variable ("q.", longer than 2) goes to the quest log and the client
+    // world too.
+    int OnSetVariable();
+    // 00669960 (0x82). A variable (name) removed; a quest variable is announced with value 0.
+    int OnDeleteVariable();
+    // 00669EB0 (0x08). The game flow (007AFE20) changes zone (name, entrance).
+    int OnZoneChange();
+    // 00669F40 (0x0D). The music system (*007AF760) plays a jingle (name).
+    int OnJingle();
+    // 00669010 (0x02). The zone: the player cleared (00665200), then the client world loads the
+    // block read from the stream (00567AB0, Rebirth-patched). 0 when the block cannot be read.
+    int OnZone();
+    // 006690F0 / 006691C0 (0x03 / 0x05). A block for the client world's 00567A60 / 00567950.
+    // 0 when it cannot be read.
+    int OnWorldBlock3();
+    int OnWorldBlock5();
+    // 00669290 (0x0A). The player drops an item (id); the quest log is refreshed with an empty
+    // list.
+    int OnItemRemoved();
+    // 00669350 (0x17). The player's 00665550, then the quest log refreshed with an empty list.
+    int OnQuestItemsChanged();
+    // 0066A480 (0x15) / 0066A5A0 (0x18). Experience shown over each of the player's units / over
+    // one unit (id): the amount (a float) times 0073E128 ^ (the unit's +0x33E - 25), rounded
+    // through a float to the nearest integer, kind 8 (the client world's 0056CE40).
+    int OnExperienceAll();
+    int OnExperience();
+
     CPlayer* Owner() const { return reinterpret_cast<CPlayer*>(player_); }
 
     void* vtable_;

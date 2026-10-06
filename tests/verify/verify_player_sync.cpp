@@ -13,6 +13,7 @@
 #include "verify.h"
 
 #include "../../src/game/player_messages.h"
+#include "../../src/game/world_effect.h"
 
 #include <cstring>
 #include <vector>
@@ -62,9 +63,48 @@ int __fastcall ObjectsChangedVerify(CPlayerServer* self, void*, const PlayerObje
                        [&] { return s_objectsChanged(self, nullptr, objects); });
 }
 Sender s_timedChanged;
+// CEffect::SendDelta leaves flags_ bit 1 set, so the original's run packs the changed effects a
+// second time, against the snapshots ours just updated: their state fields (the four streams and
+// their bytes) are saved before ours and put back before the original (skipped when ours grew one).
+struct StreamSnapshot {
+    BitStream* stream;
+    BitStream header;
+    std::vector<unsigned char> bytes;
+};
 int __fastcall TimedChangedVerify(CPlayerServer* self, void*, const PlayerObjectArray* objects) {
-    return CheckAppend("CPlayerServer::SendTimedChanged", self, [&] { return self->SendTimedChanged(objects); },
-                       [&] { return s_timedChanged(self, nullptr, objects); });
+    std::vector<StreamSnapshot> saved;
+    for (int i = 0; i < objects->size; ++i) {
+        auto* effect = static_cast<CEffect*>(objects->data[i]);
+        if (!(effect->flags_ & 2)) continue;
+        BitStream* streams[4] = {&effect->state_.snapshot[0], &effect->state_.snapshot[1], &effect->state_.out[0],
+                                 &effect->state_.out[1]};
+        for (BitStream* s : streams) {
+            StreamSnapshot snap{s, {}, {}};
+            RawCopy(&snap.header, s);
+            if (s->data_) snap.bytes.assign(s->data_, s->data_ + s->capacity_);
+            saved.push_back(snap);
+        }
+    }
+    std::vector<std::uint32_t> flags;
+    for (int i = 0; i < objects->size; ++i) flags.push_back(objects->data[i]->flags_);
+    OutState before(self);
+    int actual = self->SendTimedChanged(objects);
+    OutState after(self);
+    bool grown = after.header.data_ != before.header.data_ || after.header.capacity_ != before.header.capacity_;
+    for (const StreamSnapshot& snap : saved)
+        grown = grown || snap.stream->data_ != snap.header.data_ || snap.stream->capacity_ != snap.header.capacity_;
+    if (grown) return actual;
+    before.Restore(self);
+    for (const StreamSnapshot& snap : saved) {
+        RawCopy(snap.stream, &snap.header);
+        if (!snap.bytes.empty()) std::memcpy(snap.stream->data_, snap.bytes.data(), snap.bytes.size());
+    }
+    for (int i = 0; i < objects->size; ++i) objects->data[i]->flags_ = flags[i];
+    int expected = s_timedChanged(self, nullptr, objects);
+    OutState again(self);
+    ei::verify::Check("CPlayerServer::SendTimedChanged", true, again.SameAs(after) && expected == actual,
+                      "player %p: stream size %u vs %u", self, again.header.size_, after.header.size_);
+    return expected;
 }
 
 // 0066F080: PUSH ESI; PUSH EDI; MOV EDI,ECX; MOV EAX,[EDI+1Ch] (7).
