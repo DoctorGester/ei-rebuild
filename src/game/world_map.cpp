@@ -154,8 +154,6 @@ __declspec(naked) void* __fastcall MissilePtrDestruct(void*, void*, unsigned) EI
 void __stdcall CountedRangeRelease(void* a0, int a1) { CountedRangeReleaseOriginal(a0, a1); }
 __declspec(naked) void __fastcall CountdownsClear(void*, void*) EI_ORIGINAL(0x006D43E0)
 void __fastcall PlayerClear(WorldPlayer* a0, void*) { PlayerClearOriginal((void*)a0); }
-// 0047B670. The object map's clear (every object id hash map; nodes freed).
-__declspec(naked) void __fastcall ObjectMapClear(void*, void*) EI_ORIGINAL(0x0047B670)
 // 0059D6D0. The other id maps' clear.
 __declspec(naked) void __fastcall IdMapClear(void*, void*) EI_ORIGINAL(0x0059D6D0)
 // 00404410. A manager's clear.
@@ -210,7 +208,7 @@ void CWorldServer::ResetZone() {
 
     for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node))
         ei::VCall<void>(node->value, kSlotObjectEnd);
-    ObjectMapClear(&objects_, nullptr);
+    ObjectMapClearOriginal(&objects_);
     ObjectIdMap* const maps[] = {reinterpret_cast<ObjectIdMap*>(reinterpret_cast<std::uint8_t*>(this) + 0x12D88),
                                  &mapObjects_, &otherMapObjects_, &updateMap_, &namedObjects_};
     for (ObjectIdMap* map : maps) {
