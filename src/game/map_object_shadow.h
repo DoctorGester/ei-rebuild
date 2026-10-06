@@ -62,6 +62,13 @@ public:
     FigurePart* FirstDrawnPart();
     FigurePart* NextDrawnPart();
 
+    // unit_client_animation.cpp (A-U2). The pulse of an invisible or stunned unit: the clock
+    // (+0xE8) moves on by `frames`, its phase fmod(clock, 30) folded at 15 gives 0.2..0.7.
+    // 0051CC20: every drawn part takes it as its alpha. 0051CCD0: every drawn part takes the tint
+    // (pulse, 0, 0) and flags_ 0x10.
+    void InvisiblePulse(float frames);
+    void StunnedPulse(float frames);
+
     CObject3D* object;              // +0x1C
     CEngineObject** material;       // +0x20 its object's +0x60 is the shadow colour key; the
                                     //       first of the two part sets Draw walks (+0x24 the
@@ -85,6 +92,8 @@ public:
     float bounds[4];                // +0x80 minimum x, y and maximum x, y in the light's view
     std::uint32_t sphere;           // +0x90 the shadow's bounding sphere (the scene object's slot
     float sphereCentre[3];          // +0x94  7), its centre relative to the object
+    std::uint8_t unknown_A0[0xE8 - 0xA0];
+    float pulseClock;               // +0xE8 frames counted by the invisible / stunned pulses
 };
 static_assert(offsetof(CObject3DClientSpecific, object) == 0x1C);
 static_assert(offsetof(CObject3DClientSpecific, vertices) == 0x4C);
@@ -93,3 +102,4 @@ static_assert(offsetof(CObject3DClientSpecific, texCoords) == 0x6C);
 static_assert(offsetof(CObject3DClientSpecific, texture) == 0x7C);
 static_assert(offsetof(CObject3DClientSpecific, bounds) == 0x80);
 static_assert(offsetof(CObject3DClientSpecific, sphere) == 0x90);
+static_assert(offsetof(CObject3DClientSpecific, pulseClock) == 0xE8);

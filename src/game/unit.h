@@ -153,6 +153,7 @@ static_assert(sizeof(UnitBodyPart) == 0x1C);
 struct AIPath;       // ai_map.h
 struct UnitMotion;   // ai_motion.h
 class CObject3D;     // map_object_figures.h
+class CMapObject;    // map_object.h
 
 // The unit's controller (CUnit + 0x240) as the unit code calls it: CUnitServer (class id 0x3E,
 // vtable 0073EF38, combat.h) on the server, CUnitClientSpecific (0x3D, 0073ECD8,
@@ -482,6 +483,8 @@ public:
     UnitParams* Params() { return reinterpret_cast<UnitParams*>(unknown_330); }
     // The unit as the 3D object it starts with (map_object_figures.h; CUnit repeats its fields).
     CObject3D* Object3D() { return reinterpret_cast<CObject3D*>(this); }
+    // The unit as the map object it starts with (map_object.h; CUnit repeats its fields).
+    CMapObject* MapObject() { return reinterpret_cast<CMapObject*>(this); }
     UnitMotion* Motion() { return reinterpret_cast<UnitMotion*>(motion); }
 
     // Not rewritten (forwarders):
@@ -508,7 +511,9 @@ public:
     float above[3];                 // +0x144 box maximum - centre
     std::uint8_t unknown_150[0x160 - 0x150];
     FootprintPart* partBoxes;       // +0x160 per figure part (the index 00517990 finds by name)
-    std::uint8_t unknown_164[0x17E - 0x164];
+    std::uint8_t unknown_164[0x178 - 0x164];
+    float animationSpeed;           // +0x178 the animation's speed factor (the client's 00535850)
+    std::uint8_t unknown_17C[0x17E - 0x17C];
     std::int16_t hitPoints;         // +0x17E
     std::int16_t maxHitPoints;      // +0x180
     std::uint16_t mana;             // +0x182

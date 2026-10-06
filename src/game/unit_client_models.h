@@ -152,6 +152,26 @@ public:
     // without the flag.
     void UpdateArrow();
 
+    // unit_client_animation.cpp (A-U2).
+    // 00535B30. Virtual slot 40: the unit moves on to world time `time`. Before the last time (or
+    // NaN) it is only put back on the ground (+0x320 above, the world's MoveObject); otherwise the
+    // step (more than 500 becomes 500..600, one IsaacRandom draw) runs the invisible / stunned
+    // pulses, places the unit on its path (00535850) unless +0x260 (then the animation speed is
+    // 1), and advances the animation by the step (times the animation speed when +0x25C is 2;
+    // not when +0x25C is 1).
+    void AdvanceTime(float time);
+    // 005352B0. Virtual slot 14: unless the unit is frozen (flags_ 0x10000000) the animation queue
+    // is emptied and the unit's animations start again: the special idle (StartIdleAnimation(1))
+    // for +0x255 == -2, else the entries +0x254 (played) and +0x255 (queued behind it, or played
+    // alone); then the animation is advanced to `time` + 1 - +0x258 when that is above 0 (+0x2C /
+    // +0x30 take the state), the last time becoming +0x258 plus it, else +0x258.
+    void RestartAnimation(float time);
+    // 00535480. Unless frozen, finds an idle animation (CUnit::FindAnimation with any of the kind)
+    // for the weapon in hand (bit of its prototype's type; no bit for an unknown id) or the natural
+    // weapon (+0x34F, when below 7), with 0x10000 for non-heroes and 0x80580000 for +0x255 == -2;
+    // plays it (`play`) or queues it.
+    void StartIdleAnimation(std::uint8_t play);
+
     // unit_client_equipment.cpp (A-U).
     // 00536100. Virtual slot 29 (equipment changed): for heroes the composed skins are renewed:
     // the detailed one (ComposeSkin(1)) into the first part set's texture (client half +0x20, read
@@ -206,7 +226,7 @@ public:
     std::uint8_t unknown_020[0x2C - 0x20];
     float lastAnimationTime;        // +0x2C the animation state's time (+0x60) at the last update
     const FigureAnimation* lastAnimation;   // +0x30 the animation at the last update
-    std::uint8_t unknown_034[4];
+    float lastTime;                 // +0x34 the world time the unit was last advanced to (slot 40)
     std::uint8_t motionOrder[0x20]; // +0x38 the order part of a path (AIPath; slot 16): MotionOrder()
     std::uint8_t unknown_058[0x74 - 0x58];   // +0x58 an MFC list (vtable 0073EDB0, block size 0x80)
     std::uint8_t weaponHidden;      // +0x74 ShowWeaponParts' state (cleared by a weapon change)
@@ -231,6 +251,7 @@ public:
 };
 static_assert(offsetof(CUnitClientSpecific, lastAnimationTime) == 0x2C);
 static_assert(offsetof(CUnitClientSpecific, lastAnimation) == 0x30);
+static_assert(offsetof(CUnitClientSpecific, lastTime) == 0x34);
 static_assert(offsetof(CUnitClientSpecific, footprint) == 0x80);
 static_assert(offsetof(CUnitClientSpecific, motionOrder) == 0x38);
 static_assert(offsetof(CUnitClientSpecific, weaponHidden) == 0x74);

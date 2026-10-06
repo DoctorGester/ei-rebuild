@@ -14,6 +14,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "originals_engine.h"
+#include "originals_units.h"
 #include "originals_world.h"
 
 #include <cmath>
@@ -32,7 +33,7 @@ constexpr float kFadeStep = 0.06666667f;              // 0073DF6C, 1/15
 constexpr int kSpeechAfterSpeech = 2;                 // ClientSpeech::kind values that wait
 constexpr int kSpeechAfterSpeech2 = 0x1C;
 constexpr std::int8_t kModeSpecialIdle = -2;          // the unit's +0x255
-constexpr int kIdleRestartBelow = 3;                  // CFigureAnimationState::unknown_50
+constexpr int kIdleRestartBelow = 3;                  // CFigureAnimationState::queue.count
 constexpr float kIntRange = 2147483648.0f;            // 2^31: FISTP's int range is below it
 
 // Not rewritten (forwarders):
@@ -55,8 +56,6 @@ __declspec(naked) bool __fastcall Speak(CUnitClientSpecific*, void*, ClientSpeec
 // 005392F0 (library: STLport list::erase). Removes `at`, the next node to *out (RET 8).
 __declspec(naked) void __fastcall EraseSpeech(ClientSpeechNode**, void*, ClientSpeechNode** /*out*/,
                                               ClientSpeechNode* /*at*/) EI_ORIGINAL(0x005392F0)
-// 00535480. Starts the idle animation of the weapon in hand (0: 0050CBA0, else 0050CA50; RET 4).
-__declspec(naked) void __fastcall StartIdleAnimation(CUnitClientSpecific*, void*, int) EI_ORIGINAL(0x00535480)
 
 // Is sound `handle` still playing or waiting to play?
 bool SoundBusy(int handle) {
@@ -145,8 +144,8 @@ int CUnitClientSpecific::UpdateClient() {
             EraseSpeech(&speech, nullptr, &after, speech->next);
         }
     }
-    if (unit->unknown_255 == kModeSpecialIdle && unit->Object3D()->animation->unknown_50 < kIdleRestartBelow)
-        StartIdleAnimation(this, nullptr, 0);
+    if (unit->unknown_255 == kModeSpecialIdle && unit->Object3D()->animation->queue.count < kIdleRestartBelow)
+        ClientStartIdleAnimationOriginal(this, nullptr, 0);
     return 1;
 }
 EI_REPLACE_METHOD(0x005341A0, CUnitClientSpecific::UpdateClient);
