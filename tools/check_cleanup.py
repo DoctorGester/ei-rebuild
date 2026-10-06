@@ -18,6 +18,10 @@ PATTERNS = {
     'float_control pragma': re.compile(r'#\s*pragma\s+float_control'),
     'raw game address (0x004..0x007 literal)': re.compile(r'\b0x00[4-7][0-9A-Fa-f]{5}\b(?!\s*\))'),
     '*At view struct': re.compile(r'\bstruct\s+\w+At\b'),
+    # Ways around the rules above: a virtual called through a placeholder name (SlotNN()) instead of a
+    # named slot, and byte arithmetic on a pointer with a literal offset instead of a member.
+    'placeholder virtual (SlotNN)': re.compile(r'\bSlot\d+\s*\('),
+    'byte offset arithmetic': re.compile(r'(?:char|uint8_t|byte)\s*\*\s*>\s*\([^()]*(?:\([^()]*\))?[^()]*\)\s*\+\s*0x'),
 }
 # A literal address directly inside EI_ORIGINAL(...)/EI_REPLACE(...)/EI_VERIFY(...) is how hooks are
 # written and is not counted; the lookahead above skips "0x...)" and the prefix test below the rest.
@@ -53,7 +57,7 @@ def main(argv):
     base = {}
     if os.path.exists(BASELINE):
         for r in csv.DictReader(open(BASELINE, newline='')):
-            base[r['file']] = {k: int(r[k]) for k in PATTERNS}
+            base[r['file']] = {k: int(r[k]) for k in PATTERNS if r.get(k) not in (None, '')}
     if '--update' in argv:
         with open(BASELINE, 'w', newline='') as f:
             w = csv.writer(f, lineterminator='\n')
@@ -61,7 +65,8 @@ def main(argv):
             for rel in sorted(now):
                 row = now[rel]
                 if rel in base or not base:
-                    row = {k: min(row[k], base.get(rel, row)[k]) if base else row[k] for k in PATTERNS}
+                    old = base.get(rel, {})
+                    row = {k: min(row[k], old.get(k, row[k])) for k in PATTERNS}
                 else:
                     row = {k: 0 for k in PATTERNS}
                 if any(row.values()):
@@ -70,11 +75,12 @@ def main(argv):
         return 0
     problems = 0
     for rel, row in sorted(now.items()):
-        allowed = base.get(rel, {k: 0 for k in PATTERNS})
+        allowed = base.get(rel, {})
         for k in PATTERNS:
-            if row[k] > allowed[k]:
+            limit = allowed.get(k, 0 if rel not in base else row[k])
+            if row[k] > limit:
                 problems += 1
-                print(f'{rel}: {row[k]} {k} (allowed {allowed[k]}); write it the clean way '
+                print(f'{rel}: {row[k]} {k} (allowed {limit}); write it the clean way '
                       f'(docs/rewrite-guide.md, "Clean code")')
     totals = {k: sum(r[k] for r in now.values()) for k in PATTERNS}
     print('cleanup counts: ' + ', '.join(f'{v:,} {k}' for k, v in totals.items()) + f'; {problems} problem(s)')
