@@ -14,6 +14,8 @@
 #include <cstddef>
 #include <cstdint>
 
+class CItem;
+
 // (UiDwordArray, the MFC CArray<DWORD>-like array, is in ui.h.)
 
 // --- Battle screen --------------------------------------------------------------------------
@@ -173,6 +175,31 @@ public:
     // 0xB..0x15 make its portrait shake (kind 2) after a random delay.
     void OnUnitSpeech(int id, unsigned event, char* extra);
 
+    // Slots of the screen's main vtable (00740764; ui_battle_slots.cpp).
+    // 00635E60 (slot 26). The screen closes: the camera back to free placement (kFree), the world
+    // update period 55 ms, the cursor no longer held, the client glue's 00578920(1) / 00578940, and
+    // the party emptied (SetSize(0, -1)).
+    void Close();
+    // 006360F0 (slot 35, AL; the interface polls it every frame until it answers true). After a new
+    // game (hasHero_): the camera follows the first party unit, the autosave "savea" when the
+    // option 0079BE7C is on, hasHero_ cleared, then the help topic (005F86F0 with 0). Returns 1.
+    bool PollShown();
+    // 00636150 (slot 28, RET 0xC). Items were picked up: each item of `items` gives the top panel's
+    // "picked up" line (0064A4E0 with `crippled`), the money its line (0064A630), the top panel shows
+    // its page (0064A7A0), then RefreshSelection (00637DC0).
+    void OnItemsPicked(mfc::CTypedPtrList<CItem>* items, int money, int crippled);
+    // 006364E0 (slot 30, RET 4). `unit` left the party: removed from the party array (the rest
+    // moved down), the portraits rebuilt (006407E0 with 0) and RefreshSelection; nothing when it is
+    // not in the party. A network client instead empties the top panel's page-0 text and, while the
+    // panel shows page 0, the message log's (0065CFE0 with "").
+    void OnUnitLeft(CUnit* unit);
+    // 00635080 (slot 40). Writes the screen's part of a save game into the save stream (007AFDF8):
+    // the count and ids of the selected party units (flag 0x10), the map's zoom, the interface's
+    // server flag (+0x60, a byte), the local player's +0x50, the top panel's page-0 text with its
+    // zero, savedFlag_ (a byte) and savedSelection_.
+    void SaveState();
+    UiDwordArray& Party() { return *reinterpret_cast<UiDwordArray*>(partyArray_); }
+
     // The client's party ids (STLport vector<int>s): the ids of players with a unit, the camera's
     // player's id, the ids of the others. Compared and copied as a whole (006381E0, 0064AF30).
     struct IdVector {
@@ -265,6 +292,14 @@ struct GlobalMapPlace {
 };
 static_assert(sizeof(GlobalMapPlace) == 0x18);
 
+// The global map's weather (vtable 007420D4, 0x34 bytes; 00499F10 draws it into the map's texture).
+class __declspec(novtable) GlobalMapWeather {
+public:
+    virtual void Slot0() = 0;                                   // 0: 0049A090
+    virtual void Slot1() = 0;                                   // 1: 0049A220
+    virtual GlobalMapWeather* DeletingDestruct(int flags) = 0;  // 2: 0062EDA0 (00499E90, then delete)
+};
+
 class CGlobalMap : public CUiWindow {
 public:
     // 0062D350 (slot 25). Builds the map of the local player's allod: the island model, the
@@ -304,6 +339,26 @@ public:
     // 0-3, 4-7 / 8-11 / 12-15 the three layers' plain colours from entries 4-15 (each ARGB from
     // four ints, alpha last), 16 and up the weather object's ramp from entries 16 and 17.
     void SetWeather();
+    // Input side (ui_global_map_input.cpp; `this` the window). The right button turns the map by
+    // dragging: 0062FF60 (slot 5, RET 0xC) starts the drag (dragging_, turning_ 0, the point
+    // in layout coordinates (005F7E00) and the angle kept, the mouse motion cleared, the cursor held
+    // in place); 0062FFC0 (slot 6, RET 0xC) and 0062FF10 (slot 1, plain RET) end it (dragging_
+    // cleared, the zone selection refreshed, the motion cleared, the cursor let go and put back at
+    // the mouse position (SetCursorPos)).
+    void OnRightDown(int buttons, int x, int y);
+    void OnRightUp(int buttons, int x, int y);
+    void OnDeactivate();
+    // 00630580 (slot 9, RET 0xC). The container's handler first; Esc opens the escape menu (built
+    // inline: 0x168 bytes, container constructor 00600B20, vtables 007412A4 / 00741270) and marks
+    // the key used; an unused key whose action (KeyActions) is '5' quick-saves ("saveq",
+    // 006570E0 with 0), '6' quick-loads it (006575B0).
+    void OnKeyDown(int key, int repeat, int flags);
+    // 0062EE30 (slot 27, RET 4; the result is not read). A window above closed: no turn, no drag,
+    // the zone selection refreshed, and a mouse move (input slot 4) at the mouse position.
+    void OnMessageResult(int result);
+    // 0062EDD0 (slot 26). The map closes: the weather deleted (its slot 2 with 1), the backdrop
+    // surface released (005FD120) and deleted, the wind sound stopped (005F7E90).
+    void Close();
     // The marker sprites: the scene objects after the arrow, the base and the island (zones,
     // then quests, then links, then the three layers).
     CUiMesh* Marker(int index) const { return reinterpret_cast<CUiMesh*>(sceneObjects_.data_[3 + index]); }
@@ -328,11 +383,14 @@ public:
     float centreY_;                  // +0x208 280
     int selectPending_;              // +0x20C 1: the zone selection is refreshed (00630670) on the next update
     CUiSurface* backdrop_;           // +0x210 a full-screen surface (not in the surface list)
-    void* weather_;                  // +0x214 (vtable 007420D4, 0x34 bytes)
+    GlobalMapWeather* weather_;      // +0x214
     int weatherTable_[18];           // +0x218 .. +0x25C
     int weatherIndex_;               // +0x260
     bool dragging_;                  // +0x264 the map is turned with the mouse
-    std::uint8_t unknown_265[0x278 - 0x265];
+    std::uint8_t unknown_265[3];
+    POINT dragStart_;                // +0x268 where the drag began (layout)
+    float dragAngle_;                // +0x270 angle_ when the drag began
+    std::uint8_t unknown_274[0x278 - 0x274];
     bool gipat_;                     // +0x278 the allod is gipat
     std::uint8_t unknown_279[3];
     int noCamp_;                     // +0x27C the player's "i.nocamp" (1: no camp button)
@@ -352,6 +410,8 @@ static_assert(offsetof(CGlobalMap, backdrop_) == 0x210);
 static_assert(offsetof(CGlobalMap, weatherTable_) == 0x218);
 static_assert(offsetof(CGlobalMap, weatherIndex_) == 0x260);
 static_assert(offsetof(CGlobalMap, gipat_) == 0x278);
+static_assert(offsetof(CGlobalMap, dragStart_) == 0x268);
+static_assert(offsetof(CGlobalMap, dragAngle_) == 0x270);
 static_assert(offsetof(CGlobalMap, autosave_) == 0x28C);
 static_assert(sizeof(CGlobalMap) == 0x294);
 

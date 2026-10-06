@@ -69,7 +69,7 @@ __declspec(naked) void RawPanel::BuildUnitPanel(int, std::uint8_t) EI_ORIGINAL(0
 __declspec(naked) void RawPanel::BuildMap(float, std::uint8_t) EI_ORIGINAL(0x00641F20)
 __declspec(naked) void RawPanel::BuildClock(int) EI_ORIGINAL(0x00648520)
 __declspec(naked) void RawPanel::BuildTopPanel(int, std::uint8_t) EI_ORIGINAL(0x00649AF0)
-__declspec(naked) void RawPanel::ShowTopPanelPage() EI_ORIGINAL(0x0064A7A0)
+void RawPanel::ShowTopPanelPage() { TopPanelShowPageOriginal(this); }
 void RawPanel::AddLogText(const char* a0) { LogAddTextOriginal((void*)this, nullptr, a0); }
 __declspec(naked) void* RawPanel::ConstructViewInput(CInterface3D*) EI_ORIGINAL(0x005EACB0)
 

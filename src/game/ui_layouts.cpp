@@ -557,7 +557,7 @@ struct BoxMetricsAt {
 };
 __declspec(naked) SIZE BoxMetricsAt::TextExtentRaw(char*, int) EI_ORIGINAL(0x005F8340)
 
-__declspec(naked) CUiWindow* __fastcall EditConstruct(void* /*memory*/, void*, CInterface3D*, RECT) EI_ORIGINAL(0x0065C010)
+__declspec(naked) CUiEditField* __fastcall EditConstruct(void* /*memory*/, void*, CInterface3D*, RECT) EI_ORIGINAL(0x0065C010)
 __declspec(naked) void __fastcall EditSetLook(CUiWindow*, void*, int, int, int /*font*/, int, COLORREF, COLORREF)
     EI_ORIGINAL(0x0065C1A0)
 __declspec(naked) void __fastcall EditSetText(CUiWindow*, void*, const char*) EI_ORIGINAL(0x0065C290)
@@ -674,8 +674,7 @@ void CDifficultyBox::Build() {
     CUiMesh* hardBox = AddSprite(0);
     hardBox->SetRectangle(2.5f, 100.0f, static_cast<float>(boxLeft), static_cast<float>(row + 0x18),
                           static_cast<float>(boxRight), static_cast<float>(row + 0x2D), 0xD1, 0x37, 0xE6, 0x4C);
-    const std::uint32_t checked = 0xBDB80000;
-    std::memcpy(reinterpret_cast<std::uint8_t*>(hardBox) + 0xCC, &checked, 4);
+    hardBox->uOffset_ = kCheckedOffset;
 
     int bottom = top + total;
     Shade(this, 3.0f, 200.0f, static_cast<float>(top), 600.0f, static_cast<float>(bottom));

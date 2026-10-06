@@ -244,7 +244,6 @@ __declspec(naked) void WeatherObject::Start() EI_ORIGINAL(0x00499EE0)
 // 00500960: the display settings (007AF060).
 std::uint8_t* DisplaySettings() { return reinterpret_cast<std::uint8_t*>(0x007AF060); }
 // 006570E0: saves the game into saves\<name> (ECX name, DL flag).
-__declspec(naked) void __fastcall AutoSave(const char*, int) EI_ORIGINAL(0x006570E0)
 
 // --- Sprite fields set directly -------------------------------------------------------------------
 
@@ -676,7 +675,7 @@ void CGlobalMap::Create() {
             weather->Construct(0x100);
             *reinterpret_cast<std::uintptr_t*>(weather) = 0x007420D4;
         }
-        weather_ = weather;
+        weather_ = reinterpret_cast<GlobalMapWeather*>(weather);
         weather->Start();
     }
     static const int kWeather[18] = {0, 0, 10, 0xFF, 0x9B, 0, 0xE1, 0x64, 0x9B, 0, 0x7D, 0x6E, 0x69, 10, 0xC3, 0xB9,
@@ -690,7 +689,7 @@ void CGlobalMap::Create() {
     reinterpret_cast<UpdateFn>(vtable_[24])(this);   // slot 24 (+0x60)
     windSound_ = interface_->PlaySound(GameText(0x007940F8), 1);   // buttons\globalmap\wind.wav
     if (autosave_) {
-        if (*reinterpret_cast<const int*>(0x0079BE7C) != 0) AutoSave(GameText(0x007940F0), 1);   // "saveb"
+        if (*reinterpret_cast<const int*>(0x0079BE7C) != 0) AutoSaveOriginal(GameText(0x007940F0), 1);   // "saveb"
         autosave_ = false;
     }
     interface_->ShowHelp(0);
@@ -854,7 +853,7 @@ void CGlobalMap::Update() {
             if (hr != 0) FatalDirectX(hr, GameText(0x0078E30C));   // "Can't lock surface"
         }
         float seconds = Store(FrameTime(this));
-        static_cast<WeatherDraw*>(weather_)->Draw(reinterpret_cast<void*>(desc[9]), seconds);   // lpSurface
+        reinterpret_cast<WeatherDraw*>(weather_)->Draw(reinterpret_cast<void*>(desc[9]), seconds);   // lpSurface
         gameapi::LeaveCriticalSection(lock);
         if (!direct) {
             using UnlockFn = long(__stdcall*)(void*, RECT*);

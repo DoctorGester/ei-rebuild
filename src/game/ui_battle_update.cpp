@@ -194,7 +194,6 @@ __declspec(naked) void __fastcall PartySetAtGrow(UiDwordArray*, void*, int, CUni
 __declspec(naked) void __stdcall PartyConstruct(void*, int) EI_ORIGINAL(0x0060AEC0)
 // 006407E0 (thiscall on the portraits, RET 4): rebuilds them (`cameraFirst`: the first is the
 // camera's player; the original pushes a dword whose low byte only is set).
-__declspec(naked) void __fastcall PortraitsRebuild(CUiWindow*, void*, int) EI_ORIGINAL(0x006407E0)
 // 0040D420 (thiscall on the camera 0079B2A8, RET 4): follows the unit with an id. 00637DC0
 // (thiscall on the battle screen): the selection's refresh.
 __declspec(naked) void __fastcall CameraFollow(void*, void*, int) EI_ORIGINAL(0x0040D420)
@@ -330,7 +329,7 @@ void RebuildClientParty(CBattleScreenSetup* screen) {
                 PartySetAtGrow(party, nullptr, party->size_, unit);
             }
         }
-        PortraitsRebuild(screen->portraits_, nullptr, cameraFirst ? 1 : 0);
+        PortraitsRebuildOriginal(screen->portraits_, nullptr, cameraFirst ? 1 : 0);
         if (screen->unknown_210 != ids.camera) {
             CameraFollow(reinterpret_cast<void*>(0x0079B2A8), nullptr, ids.camera);
             RefreshSelectionAt(screen);

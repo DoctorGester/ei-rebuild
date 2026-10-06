@@ -19,11 +19,30 @@ wait 1500
 clickregion 1
 wait 1500
 
-# A new game: the difficulty question (OK and cancel buttons), cancelled.
+# A new game: the difficulty question (OK and cancel buttons), cancelled. Its check boxes
+# (regions 2 / 3, 00633DD0) and Esc (00633EC0) first.
+clickregion 0
+wait 1500
+clickregion 2
+wait 300
+clickregion 3
+wait 300
+key esc
+wait 1500
 clickregion 0
 wait 1500
 clickregion 1
 wait 1500
+
+# The quit box (Esc on the menu): its cancel button (00634D20), then Esc on it (00634E60).
+key esc
+wait 1000
+clickregion 1
+wait 1000
+key esc
+wait 1000
+key esc
+wait 1000
 
 # The titles; a click ends them.
 clickregion 4
