@@ -1193,14 +1193,14 @@ void Unlink(WaveList& list, WaveNode* node) {
 }
 void PushFront(WaveList& list, const WaveRecord* record) {
     WaveNode* node = ListNewNode(&list, nullptr, nullptr, list.head);
-    RecordCopy(&node->record, nullptr, record);
+    RecordCopy(&node->data, nullptr, record);
     if (list.head) list.head->prev = node;
     else list.tail = node;
     list.head = node;
 }
 void PushBack(WaveList& list, const WaveRecord* record) {
     WaveNode* node = ListNewNode(&list, nullptr, list.tail, nullptr);
-    RecordCopy(&node->record, nullptr, record);
+    RecordCopy(&node->data, nullptr, record);
     if (list.tail) list.tail->next = node;
     else list.head = node;
     list.tail = node;
@@ -1216,11 +1216,11 @@ void CacheSet(CSoundManager* m, const std::uint32_t* key, WaveNode* node) {
 }
 // A record copied out of a node (its own copy of the name).
 void CopyOut(WaveRecord* out, const WaveNode* node) {
-    out->data = node->record.data;
-    StringCopy(out->name, nullptr, node->record.name);
-    out->lastUsed = node->record.lastUsed;
-    out->size = node->record.size;
-    out->uses = node->record.uses;
+    out->data = node->data.data;
+    StringCopy(out->name, nullptr, node->data.name);
+    out->lastUsed = node->data.lastUsed;
+    out->size = node->data.size;
+    out->uses = node->data.uses;
 }
 
 // A cached wave: moved to the front with one more use and the time of now, then given to the voice.

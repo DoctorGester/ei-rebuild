@@ -11,11 +11,11 @@ namespace {
 void* s_unused;
 
 const char* NameOf(const PartyRecord* r) { return static_cast<const char*>(r->name); }
-int Count(const PartyRecordList* l) { return static_cast<int>(l->finish - l->start); }
+int Count(const NamedPartyRecords* l) { return static_cast<int>(l->records.size()); }
 
 // 004A5E10: PUSH EBX; PUSH EBP; PUSH ESI; PUSH EDI; MOV EDI,ECX (6 bytes).
-void*(__fastcall* s_find)(const PartyRecordList*, void*, const char*);
-void* __fastcall FindVerify(const PartyRecordList* self, void*, const char* name) {
+void*(__fastcall* s_find)(const NamedPartyRecords*, void*, const char*);
+void* __fastcall FindVerify(const NamedPartyRecords* self, void*, const char* name) {
     void* expected = s_find(self, nullptr, name);
     void* actual = PartyRecordsFind(self, nullptr, name);
     ei::verify::Check("PartyRecordsFind", expected, actual, "\"%s\" in %d records", name, Count(self));
@@ -23,19 +23,19 @@ void* __fastcall FindVerify(const PartyRecordList* self, void*, const char* name
 }
 
 // 004A5E90: ours only; one more record, named `name`, referenced once.
-void __fastcall AddVerify(PartyRecordList* self, void*, const char* name) {
+void __fastcall AddVerify(NamedPartyRecords* self, void*, const char* name) {
     std::vector<char> copy(name, name + std::strlen(name) + 1);
     int before = Count(self);
     PartyRecordsAdd(self, nullptr, name);
-    const PartyRecord* last = self->finish[-1];
+    const PartyRecord* last = self->records.end()[-1];
     bool ok = Count(self) == before + 1 && last && last->refCount == 1 && std::strcmp(NameOf(last), copy.data()) == 0;
     ei::verify::Check("PartyRecordsAdd", true, ok, "%d -> %d records", before, Count(self));
 }
 
 // 004A5FA0: ours only; the remaining pointers are those the original's walk leaves (a matching
 // record is erased and the one moved into its slot is skipped).
-void __fastcall RemoveVerify(PartyRecordList* self, void*, const char* name) {
-    std::vector<PartyRecord*> expected(self->start, self->finish);
+void __fastcall RemoveVerify(NamedPartyRecords* self, void*, const char* name) {
+    std::vector<PartyRecord*> expected(self->records.begin(), self->records.end());
     std::vector<bool> matches;
     for (PartyRecord* r : expected) matches.push_back(std::strcmp(NameOf(r), name) == 0);
     for (std::size_t i = 0; i < expected.size(); ++i) {
@@ -46,22 +46,22 @@ void __fastcall RemoveVerify(PartyRecordList* self, void*, const char* name) {
     }
     PartyRecordsRemove(self, nullptr, name);
     bool ok = static_cast<std::size_t>(Count(self)) == expected.size() &&
-              (expected.empty() || std::memcmp(self->start, expected.data(), expected.size() * sizeof(void*)) == 0);
+              (expected.empty() || std::memcmp(self->records.begin(), expected.data(), expected.size() * sizeof(void*)) == 0);
     ei::verify::Check("PartyRecordsRemove", true, ok, "%d records left, %u expected", Count(self),
                       static_cast<unsigned>(expected.size()));
 }
 
 // 004A5BD0: ours only; one unnamed record referenced once, both strings empty.
-void __fastcall ResetVerify(PartyRecordList* self) {
+void __fastcall ResetVerify(NamedPartyRecords* self) {
     PartyRecordsReset(self);
-    bool ok = Count(self) == 1 && self->start[0]->refCount == 1 && NameOf(self->start[0])[0] == 0 &&
+    bool ok = Count(self) == 1 && self->records.begin()[0]->refCount == 1 && NameOf(self->records.begin()[0])[0] == 0 &&
               static_cast<const char*>(self->text0C)[0] == 0 && static_cast<const char*>(self->text10)[0] == 0;
     ei::verify::Check("PartyRecordsReset", true, ok, "%d records", Count(self));
 }
 
 // ---- The party manager: ours only ---------------------------------------------------------------
 
-int Records(void* manager) { return Count(reinterpret_cast<PartyRecordList*>(static_cast<char*>(manager) + 0x24)); }
+int Records(void* manager) { return Count(reinterpret_cast<NamedPartyRecords*>(static_cast<char*>(manager) + 0x24)); }
 int Templates(void* manager) {
     auto* v = reinterpret_cast<void**>(static_cast<char*>(manager) + 0x38);
     return static_cast<int>(static_cast<void**>(v[1]) - static_cast<void**>(v[0]));

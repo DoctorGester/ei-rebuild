@@ -277,7 +277,7 @@ void AIAttention::Choose(AIBrain* brain, int* partAndObject, AIObjectList* candi
         allies.AddTail(self);
         for (auto* node = brain->unknown_0F4.head; node; node = node->next) {
             auto* other = static_cast<CUnit*>(node->data);
-            if (MapObject(other)->IsDead() == 0 && !brain->reports.Contains(other) && Allied(self->side, other->side))
+            if (MapObject(other)->IsDead() == 0 && !ReportsContains(&brain->reports, nullptr, other) && Allied(self->side, other->side))
                 allies.AddTail(other);
         }
         for (auto* node = allies.head; node; node = node->next) {
@@ -326,7 +326,7 @@ void AIAttention::Choose(AIBrain* brain, int* partAndObject, AIObjectList* candi
         int seen = 0;
         for (const Scored& entry : scored)
             if (entry.object == object) ++seen;
-        if (seen == 1 && partAndObject[1] != current[1]) brain->reports.Add(object, kRejectedReport);
+        if (seen == 1 && partAndObject[1] != current[1]) ReportsAdd(&brain->reports, nullptr, object, kRejectedReport);
         scored.erase(scored.begin() + chosen);
     }
     partAndObject[0] = current[0];

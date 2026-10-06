@@ -117,9 +117,9 @@ BOOL __fastcall TextOpen(CTextManager* self, void*, const char* key) {
         self->cursor_ = nullptr;
     }
     const char* text = nullptr;
-    for (CTextManager::SourceNode* node = self->sources_->next; node != self->sources_; node = node->next) {
+    for (CTextManager::SourceNode* node = self->sources_.head->next; node != self->sources_.head; node = node->next) {
         // CMappedResource vtable slot 5, GetFile(name, size): the file's data or null.
-        text = ei::VCall<const char*>(node->source, 5, key, &self->length_);
+        text = ei::VCall<const char*>(node->data.source, 5, key, &self->length_);
         if (text) break;
     }
     self->cursor_ = text;

@@ -234,7 +234,7 @@ void ClearSpellList(StockList& list) {
     StockListNode* node = head->next;
     while (node != head) {
         StockListNode* next = node->next;
-        if (node->value) ei::VCall<void>(node->value, 4);
+        if (node->data) ei::VCall<void>(node->data, 4);
         node->next = static_cast<StockListNode*>(NodeFreeList());
         NodeFreeList() = node;
         node = next;
@@ -266,7 +266,7 @@ void AddSpell(ItemStock* stock, Constructor* ctor, StockList& spells) {
     unsigned index = count > 1 ? GlobalRandom().Next() % count : 0;
     StockListNode* node = spells.head->next;
     for (unsigned i = 0; i < index; ++i) node = node->next;
-    void* spell = node->value;
+    void* spell = node->data;
     if (!(At<float>(spell, 0x40) > power)) ctor->SetSpellObject(spell);
 }
 
@@ -616,7 +616,7 @@ void ItemStock::GenerateSpells(StockList* out, const float* levels, unsigned thr
             if (GlobalRandom().Next() % 101 < threshold) continue;
             ClearModifierList(chosen);
             int count = 0;
-            char* recipe = static_cast<char*>(n->value);
+            char* recipe = static_cast<char*>(n->data);
             char* prototype = FindSpellPrototype(kSpellPrototypes, nullptr, At<stlp::string>(recipe, 0).data());
             int level = At<int>(prototype, 0x44);
             int budget = x87::fistp(levels[At<int>(prototype, 0x14)]);
@@ -912,7 +912,7 @@ void ItemStock::GenerateScrolls(int /*minCount*/, int /*maxCount*/, StockList* o
         ctor->BeginCreateItem(0x3008, -1);
         ctor->SetPrototype(prototype);
         ctor->SetMaterial(nullptr);
-        ctor->SetSpellObject(n->value);
+        ctor->SetSpellObject(n->data);
         char* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
         AddReference(item);

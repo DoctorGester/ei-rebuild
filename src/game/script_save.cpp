@@ -44,19 +44,9 @@ const T& Field(const CScript* script, std::size_t offset) {
     return *reinterpret_cast<const T*>(reinterpret_cast<const char*>(script) + offset);
 }
 
-// MFC CList (0x1C): vtable, head, tail, count, free list, blocks, block size. Nodes: next, prev,
-// then the element.
-struct ListNode {
-    ListNode* next;
-    ListNode* prev;
-};
-struct List {
-    void* vtable;
-    ListNode* head;     // +0x04
-    ListNode* tail;     // +0x08
-    int count;          // +0x0C
-};
-const void* NodeData(const ListNode* node) { return node + 1; }
+using List = ScriptList;
+using ListNode = ScriptListNode;
+const void* NodeData(const ListNode* node) { return node->data.bytes; }
 
 void WriteInt(ScriptStream* stream, int value) { stream->Write(&value, 4); }
 

@@ -9,6 +9,7 @@
 
 #include "../lib/crt.h"
 #include "../lib/mfc.h"
+#include "../lib/stlp.h"
 #include "ei/hook.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
@@ -81,13 +82,15 @@ __declspec(naked) void __fastcall CacheRegister(void*, void*, int, const char*) 
 // [00575E50: position, first, last, tag]; the node allocator [00405950: ECX bytes].
 __declspec(naked) void __fastcall PrototypeTextures(const char*, const char*, const char*, void*, void*) EI_ORIGINAL(0x00535CB0)
 __declspec(naked) void __fastcall StringsConstruct(void*, void*, const void*) EI_ORIGINAL(0x0053BB80)
-__declspec(naked) char* __fastcall StringsCopy(void*, void*, int, const char*, const char*) EI_ORIGINAL(0x0053D7F0)
+__declspec(naked) stlp::string* __fastcall StringsCopy(void*, void*, int, const stlp::string*, const stlp::string*)
+    EI_ORIGINAL(0x0053D7F0)
 __declspec(naked) void __fastcall StringDestroyFlag(void*, void*, int) EI_ORIGINAL(0x004DDC90)
-void __fastcall StringsFree(char* a0, int a1) { NodeFree12Original((void*)a0, (std::size_t)a1); }
-__declspec(naked) void __fastcall StringsDeallocate(void*, void*, char*, int) EI_ORIGINAL(0x0053BF40)
-__declspec(naked) void __fastcall StringCopyConstruct(char*, const void*) EI_ORIGINAL(0x004F5DF0)
-void __fastcall StringsInsertOverflow(void* a0, void*, char* a2, const void* a3, int a4) { StringVectorInsertOverflowOriginal(a0, nullptr, (void*)a2, a3, (unsigned)a4); }
-__declspec(naked) void __fastcall StringsInsertRange(void*, void*, char*, const char*, const char*, int) EI_ORIGINAL(0x00575E50)
+void __fastcall StringsFree(stlp::string* a0, int a1) { NodeFree12Original(a0, static_cast<std::size_t>(a1)); }
+__declspec(naked) void __fastcall StringsDeallocate(void*, void*, stlp::string*, int) EI_ORIGINAL(0x0053BF40)
+__declspec(naked) void __fastcall StringCopyConstruct(stlp::string*, const void*) EI_ORIGINAL(0x004F5DF0)
+void __fastcall StringsInsertOverflow(void* a0, void*, stlp::string* a2, const void* a3, int a4) { StringVectorInsertOverflowOriginal(a0, nullptr, a2, a3, static_cast<unsigned>(a4)); }
+__declspec(naked) void __fastcall StringsInsertRange(void*, void*, stlp::string*, const stlp::string*, const stlp::string*, int)
+    EI_ORIGINAL(0x00575E50)
 inline char* __fastcall NodeAllocate(int a0) { return (char*)NodeAllocateOriginal((std::size_t)a0); }
 // STLport string members (as in figure_part_draw.cpp).
 inline void __fastcall StringInitRange(void* a0, void*, const char* a2, const char* a3, int a4) { StringInitRangeOriginal((void*)a0, nullptr, a2, a3, (const void*)a4); }
@@ -115,16 +118,15 @@ struct TextureSet {
 };
 static_assert(sizeof(TextureSet) == 0x28 && offsetof(TextureSet, size) == 0x24);
 
-// The list from 005683D0 (begin, end, end of storage): 12-byte records.
-struct RecordList {
-    char* begin;
-    char* end;
-    char* storageEnd;
+// The vector 005683D0 fills: 12-byte texture records, copied as bytes.
+struct TextureRecord {
+    std::uint8_t bytes[12];
 };
+using RecordList = stlp::vector<TextureRecord>;
 
 // The texture records copied into the set's byte array (SetSize inlined: kept contents, 0 frees).
 void CopyRecords(TextureSet& set, const RecordList& list) {
-    int size = static_cast<int>(list.end - list.begin) / 12 * 12;
+    int size = static_cast<int>(list.size()) * static_cast<int>(sizeof(TextureRecord));
     if (size == 0) {
         if (set.bytes) {
             gamecrt::operator_delete(reinterpret_cast<void**>(set.bytes)[-1]);
@@ -153,7 +155,7 @@ void CopyRecords(TextureSet& set, const RecordList& list) {
         set.byteCount = size;
         set.capacity = capacity;
     }
-    std::memcpy(set.bytes, list.begin, static_cast<std::size_t>(size));
+    std::memcpy(set.bytes, list.begin(), static_cast<std::size_t>(size));
 }
 
 // The original's inlined strcpy / strcat: the bytes up to and including the terminator.
@@ -279,29 +281,25 @@ void DressUnit(char* self, const char* record) {
 
 // --- The other units -----------------------------------------------------------------------------
 
-struct StringList {   // vector<string>: 12-byte strings
-    char* begin;
-    char* end;
-    char* storageEnd;
-};
-int Count12(const char* from, const char* to) { return static_cast<int>(to - from) / 12; }
+using StringList = stlp::vector<stlp::string>;
+int Capacity(StringList& list) { return static_cast<int>(list.EndOfStorage() - list.Start()); }
 
 // Room for `needed` strings as inlined (reserve): a copy into new storage, the old strings destroyed
 // and freed.
 void Reserve(StringList& list, int needed) {
-    int size = Count12(list.begin, list.end);
-    if (!(static_cast<std::uint32_t>(Count12(list.begin, list.storageEnd)) < static_cast<std::uint32_t>(needed))) return;
-    char* storage;
-    if (list.begin) {
-        storage = StringsCopy(&list, nullptr, needed, list.begin, list.end);
-        for (char* s = list.begin; s != list.end; s += 12) StringDestroyFlag(s, nullptr, 0);
-        StringsFree(list.begin, Count12(list.begin, list.storageEnd));
+    int size = static_cast<int>(list.size());
+    if (!(static_cast<std::uint32_t>(Capacity(list)) < static_cast<std::uint32_t>(needed))) return;
+    stlp::string* storage;
+    if (list.Start()) {
+        storage = StringsCopy(&list, nullptr, needed, list.Start(), list.Finish());
+        for (stlp::string* s = list.Start(); s != list.Finish(); ++s) StringDestroyFlag(s, nullptr, 0);
+        StringsFree(list.Start(), Capacity(list));
     } else {
-        storage = needed ? NodeAllocate(needed * 12) : nullptr;
+        storage = needed ? reinterpret_cast<stlp::string*>(NodeAllocate(needed * static_cast<int>(sizeof(stlp::string)))) : nullptr;
     }
-    list.begin = storage;
-    list.end = storage + size * 12;
-    list.storageEnd = storage + needed * 12;
+    list.Start() = storage;
+    list.Finish() = storage + size;
+    list.EndOfStorage() = storage + needed;
 }
 
 void FigureUnit(char* self, const char* record) {
@@ -320,22 +318,22 @@ void FigureUnit(char* self, const char* record) {
         PrototypeTextures(prototype, record + 4, record + 0x10, &first, &second);
     } else {
         int count = static_cast<int>(At<const char* const*>(record, 0x34) - names);
-        Reserve(first, Count12(first.begin, first.end) + count);
+        Reserve(first, static_cast<int>(first.size()) + count);
         for (const char* const* p = At<const char* const*>(record, 0x30); p != At<const char* const*>(record, 0x34); ++p) {
             const char* text = *p;
             alignas(4) char string[12];
             StringInitWithAllocator(string, nullptr, &kAllocator);
             StringInitRange(string, nullptr, text, text + std::strlen(text), 0);
-            if (first.end != first.storageEnd) {
-                StringCopyConstruct(first.end, string);
-                first.end += 12;
+            if (first.Finish() != first.EndOfStorage()) {
+                StringCopyConstruct(first.Finish(), string);
+                ++first.Finish();
             } else {
-                StringsInsertOverflow(&first, nullptr, first.end, string, 1);
+                StringsInsertOverflow(&first, nullptr, first.Finish(), string, 1);
             }
             StringBufferFree(string);
         }
     }
-    StringsInsertRange(&first, nullptr, first.end, second.begin, second.end, 0);
+    StringsInsertRange(&first, nullptr, first.Finish(), second.Start(), second.Finish(), 0);
 
     alignas(4) char name[12];
     At<char*>(name, 0) = nullptr;
@@ -348,10 +346,10 @@ void FigureUnit(char* self, const char* record) {
                    At<std::uint32_t>(record, 0x28), At<std::uint32_t>(record, 0x2C), 0);
     StringBufferFree(name);
 
-    for (char* s = second.begin; s != second.end; s += 12) StlStringDestroy(s);
-    StringsDeallocate(&second.storageEnd, nullptr, second.begin, Count12(second.begin, second.storageEnd));
-    for (char* s = first.begin; s != first.end; s += 12) StringDestroyFlag(s, nullptr, 0);
-    StringsDeallocate(&first.storageEnd, nullptr, first.begin, Count12(first.begin, first.storageEnd));
+    for (stlp::string* s = second.Start(); s != second.Finish(); ++s) StlStringDestroy(s);
+    StringsDeallocate(&second.EndOfStorage(), nullptr, second.Start(), Capacity(second));
+    for (stlp::string* s = first.Start(); s != first.Finish(); ++s) StringDestroyFlag(s, nullptr, 0);
+    StringsDeallocate(&first.EndOfStorage(), nullptr, first.Start(), Capacity(first));
 }
 
 struct RecordVector {

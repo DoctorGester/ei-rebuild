@@ -314,8 +314,8 @@ void __fastcall RefreshBuffersVerify(CFigureMesh* self, void*) {
 EI_VERIFY(0x005A6D40, RefreshBuffersVerify, 0, s_refreshBuffers);
 
 // 005A0B10 (allocates), ours only: the offsets equal the source.
-void(__fastcall* s_setOffsets)(CFigureMesh*, void*, const CFigureMesh::OffsetList*);
-void __fastcall SetOffsetsVerify(CFigureMesh* self, void*, const CFigureMesh::OffsetList* offsets) {
+void(__fastcall* s_setOffsets)(CFigureMesh*, void*, const CFigureMesh::OffsetSpan*);
+void __fastcall SetOffsetsVerify(CFigureMesh* self, void*, const CFigureMesh::OffsetSpan* offsets) {
     self->SetOffsets(offsets);
     bool ok = self->offsets_.size == offsets->count &&
               (offsets->count <= 0 || std::memcmp(self->offsets_.data, offsets->data, static_cast<std::size_t>(offsets->count) * 12) == 0);

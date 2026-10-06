@@ -107,6 +107,12 @@ public:
         if (start_) deallocate(start_, static_cast<std::size_t>(eos_ - start_) * sizeof(T));
     }
 
+    // The three pointers by reference, for code that inlines the original's own vector operations
+    // (reserve, push_back through the instantiation's _M_insert_overflow) on the same object.
+    T*& Start() { return start_; }
+    T*& Finish() { return finish_; }
+    T*& EndOfStorage() { return eos_; }
+
     // erase(pos): shift the tail down by assignment, destroy the last element.
     void erase(T* pos) {
         for (T* p = pos; p + 1 != finish_; ++p) p->AssignFrom(p[1]);
@@ -119,6 +125,26 @@ private:
     T* finish_ = nullptr;
     T* eos_ = nullptr;
 };
+
+// list<T>: one pointer to the sentinel node the constructor allocates (its next is the first
+// element, its prev the last; an empty list's sentinel points at itself). Nodes are next, prev,
+// then the element, from the node allocator. The game's instantiations keep their own insert /
+// erase / clear (reached through their addresses), so only the layout and the walk are here.
+template <typename T>
+struct list {
+    struct Node {
+        Node* next;
+        Node* prev;
+        T data;
+    };
+
+    Node* head;   // the sentinel
+
+    Node* First() const { return head->next; }
+    Node* End() const { return head; }
+    bool Empty() const { return head->next == head; }
+};
+static_assert(sizeof(list<int>) == 4 && sizeof(list<int>::Node) == 12);
 
 // Hash for pointer keys: the pointer value itself.
 struct PointerHash {

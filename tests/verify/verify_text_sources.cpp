@@ -18,18 +18,17 @@ using Node = TextSourceList::Node;
 
 int CountNodes(const TextSourceList* list) {
     int n = 0;
-    for (Node* node = list->sentinel->next; node != list->sentinel; node = node->next) ++n;
+    for (Node* node = list->head->next; node != list->head; node = node->next) ++n;
     return n;
 }
 
 bool Named(const Node* node, const char* path) {
     std::size_t length = std::strlen(path);
-    return static_cast<std::size_t>(node->nameEnd - node->nameBegin) == length &&
-           std::memcmp(node->nameBegin, path, length) == 0;
+    return node->data.name.size() == length && std::memcmp(node->data.name.data(), path, length) == 0;
 }
 
 bool Listed(const TextSourceList* list, const char* path) {
-    for (Node* node = list->sentinel->next; node != list->sentinel; node = node->next) {
+    for (Node* node = list->head->next; node != list->head; node = node->next) {
         if (Named(node, path)) return true;
     }
     return false;
@@ -38,11 +37,11 @@ bool Listed(const TextSourceList* list, const char* path) {
 BOOL CheckedAdd(TextSourceList* list, const char* path, BOOL writable, const char* name) {
     int before = CountNodes(list);
     bool listed = Listed(list, path);
-    BOOL result = list->Add(path, writable);
+    BOOL result = TextSourcesAdd(list, nullptr, path, writable);
     int after = CountNodes(list);
-    Node* last = list->sentinel->prev;
+    Node* last = list->head->prev;
     bool ok = listed ? (result == 1 && after == before)
-                     : (after == before + 1 && Named(last, path) && last->source != nullptr);
+                     : (after == before + 1 && Named(last, path) && last->data.source != nullptr);
     ei::verify::Check(name, true, ok, "%s: listed %d, %d -> %d nodes, result %d", path, listed, before, after, result);
     return result;
 }
@@ -50,7 +49,7 @@ BOOL CheckedAdd(TextSourceList* list, const char* path, BOOL writable, const cha
 void CheckedRemove(TextSourceList* list, const char* path, const char* name) {
     int before = CountNodes(list);
     bool listed = Listed(list, path);
-    list->Remove(path);
+    TextSourcesRemove(list, nullptr, path);
     int after = CountNodes(list);
     bool ok = after == before - (listed ? 1 : 0) && !Listed(list, path);
     ei::verify::Check(name, true, ok, "%s: listed %d, %d -> %d nodes", path, listed, before, after);
@@ -58,20 +57,20 @@ void CheckedRemove(TextSourceList* list, const char* path, const char* name) {
 
 void CheckedClear(TextSourceList* list, const char* name) {
     int before = CountNodes(list);
-    list->Clear();
-    bool ok = list->sentinel->next == list->sentinel && list->sentinel->prev == list->sentinel;
+    TextSourcesClear(list);
+    bool ok = list->head->next == list->head && list->head->prev == list->head;
     ei::verify::Check(name, true, ok, "%d nodes before", before);
 }
 
-TextSourceList* SourcesOf(CTextManager* self) { return reinterpret_cast<TextSourceList*>(&self->sources_); }
+TextSourceList* SourcesOf(CTextManager* self) { return &self->sources_; }
 
 BOOL __fastcall AddVerify(TextSourceList* self, void*, const char* path, BOOL writable) {
-    return CheckedAdd(self, path, writable, "TextSourceList::Add");
+    return CheckedAdd(self, path, writable, "TextSourcesAdd");
 }
 void __fastcall RemoveVerify(TextSourceList* self, void*, const char* path) {
-    CheckedRemove(self, path, "TextSourceList::Remove");
+    CheckedRemove(self, path, "TextSourcesRemove");
 }
-void __fastcall ClearVerify(TextSourceList* self) { CheckedClear(self, "TextSourceList::Clear"); }
+void __fastcall ClearVerify(TextSourceList* self) { CheckedClear(self, "TextSourcesClear"); }
 BOOL __fastcall AddSourceVerify(CTextManager* self, void*, const char* path) {
     return CheckedAdd(SourcesOf(self), path, 0, "CTextManager::AddSource");
 }

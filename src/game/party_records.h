@@ -5,6 +5,7 @@
 // strings. Names are provisional.
 
 #include "lib/mfc.h"
+#include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -19,27 +20,26 @@ struct PartyRecord {
 static_assert(sizeof(PartyRecord) == 0x7C);
 static_assert(offsetof(PartyRecord, name) == 0x78);
 
-// STLport vector of counted pointers, then two strings (007AA5A0 +0x24).
-struct PartyRecordList {
-    PartyRecord** start;
-    PartyRecord** finish;
-    PartyRecord** eos;
+// The named records (007AA5A0 +0x24): an STLport vector of counted pointers, then two strings.
+struct NamedPartyRecords {
+    stlp::vector<PartyRecord*> records;
     mfc::CString text0C;        // +0x0C
     mfc::CString text10;        // +0x10
 };
+static_assert(sizeof(NamedPartyRecords) == 0x14);
 
 // 004A5BD0 (__thiscall, new game). Releases every record, empties the two strings, adds one
 // unnamed record and gives its party the member "Hero" ("Human Hero"), the zone text "gz1g" and
 // the variable gtime = 6.
-void __fastcall PartyRecordsReset(PartyRecordList* list);
+void __fastcall PartyRecordsReset(NamedPartyRecords* list);
 // 004A5E10 (__thiscall). The party (+0x08) of the first record named `name` (_mbscmp), else of the
 // last unnamed record, else null.
-void* __fastcall PartyRecordsFind(const PartyRecordList* list, void* edx, const char* name);
+void* __fastcall PartyRecordsFind(const NamedPartyRecords* list, void* edx, const char* name);
 // 004A5E90 (__thiscall). Appends a new record named `name`.
-void __fastcall PartyRecordsAdd(PartyRecordList* list, void* edx, const char* name);
+void __fastcall PartyRecordsAdd(NamedPartyRecords* list, void* edx, const char* name);
 // 004A5FA0 (__thiscall). Removes the records named `name`; after a removal the record moved into
 // the slot is skipped (original behaviour).
-void __fastcall PartyRecordsRemove(PartyRecordList* list, void* edx, const char* name);
+void __fastcall PartyRecordsRemove(NamedPartyRecords* list, void* edx, const char* name);
 
 // The party manager (007AA5A0): records at +0x24, class templates at +0x38. __thiscall.
 // 004A88A0 / 004A88C0: new game; the records reset (004A5BD0), then five / four templates (004A7630).
@@ -60,7 +60,7 @@ bool __fastcall PartyMapStore(void* map, void* edx, const int* key, const void* 
 
 // 004BAEC0 (__fastcall: ECX player, EDX name; script_runtime_helpers.cpp). The party a script's
 // "owner::name" text refers to: `name` loses its "owner::" prefix; an owner (empty without "::")
-// equal to the manager's current name (007AA5A0 +0x34, PartyRecordList::text10) gives the
+// equal to the manager's current name (007AA5A0 +0x34, NamedPartyRecords::text10) gives the
 // player's own party (+0x70), any other the records' party of that owner (PartyRecordsFind).
 // Null without a player.
 void* __fastcall PartyForScript(void* player, mfc::CString* name);

@@ -8,6 +8,7 @@
 
 #include "base_manager.h"
 #include "engine_object.h"
+#include "lib/containers.h"
 #include "lib/mfc.h"
 #include "maths.h"
 
@@ -20,19 +21,11 @@ struct LightningPoint {
 };
 static_assert(sizeof(LightningPoint) == 16);
 
-// CArray of LightningPoint whose buffer is aligned to 32 bytes (the raw operator new block is kept
-// just before the data, at data[-1]). Library instantiation, not rewritten.
-struct LightningPointArray {
-    LightningPoint* data;
-    int size;
-    int capacity;
-    int growBy;
-
-    // 00468C50. CArray::SetSize (growBy -1 keeps the current one). No reallocation while the new size
-    // fits the capacity; new elements are left uninitialised.
-    void SetSize(int newSize, int newGrowBy);
-};
-static_assert(sizeof(LightningPointArray) == 0x10);
+// An aligned array of LightningPoint (the raw operator new block is kept just before the data, at
+// data[-1]). Its SetSize (00468C50) is the library instantiation's, reached through
+// LightningPointsSetSize (lightning.cpp).
+using LightningPointArray = lib::AlignedArray<LightningPoint>;
+void __fastcall LightningPointsSetSize(LightningPointArray* points, void*, int newSize, int newGrowBy);
 
 // A random noise key: two rows of the noise table (0..15) and their weights, scaled together to a
 // fixed length.

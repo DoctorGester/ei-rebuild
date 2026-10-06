@@ -130,10 +130,8 @@ struct DefinitionArray : mfc::CArray<ScriptDefinition> {
 };
 __declspec(naked) int DefinitionArray::Add(const ScriptDefinition*) EI_ORIGINAL(0x004D6100)
 
-struct DefineListAt : ScriptDefineList {
-    void Destruct();   // 004D6340
-};
-__declspec(naked) void DefineListAt::Destruct() EI_ORIGINAL(0x004D6340)
+// 004D6340: the define list's destructor, through its address.
+__declspec(naked) void __fastcall DefinesDestructAt(ScriptDefineList*) EI_ORIGINAL(0x004D6340)
 
 struct TokenListAt : ScriptTokenList {
     void Destruct();   // 004CA260
@@ -846,7 +844,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
         }
         Ops(*text).UnlockBuffer();
         *text = result;
-        static_cast<DefineListAt&>(defines).Destruct();
+        DefinesDestructAt(&defines);
     }
 
     auto fail = [&tokens](BOOL value) {

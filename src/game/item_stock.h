@@ -11,6 +11,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "lib/stlp.h"
+
 // STLport vector of pointers (start, finish, end of storage).
 struct StockPtrVector {
     char** start;
@@ -39,15 +41,9 @@ struct StockMaterialVector {
     std::size_t size() const { return static_cast<std::size_t>(finish - start); }
 };
 
-// STLport list node / list of pointers (the list object is the sentinel pointer).
-struct StockListNode {
-    StockListNode* next;
-    StockListNode* prev;
-    void* value;
-};
-struct StockList {
-    StockListNode* head;
-};
+// STLport list of pointers (the list object is the sentinel pointer).
+using StockList = stlp::list<void*>;
+using StockListNode = StockList::Node;
 
 // A vector of spell recipes (0x34-byte records inline; 007C8568 for weapons, 007C855C for armors):
 // +0x00 the spell's name (STLport string), +0x0C / +0x18 the required / optional modifier names

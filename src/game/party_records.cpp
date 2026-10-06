@@ -30,7 +30,7 @@ __declspec(naked) PartyRecord** __fastcall RecordCopy(PartyRecord**, PartyRecord
 __declspec(naked) void __fastcall RecordPtrDestroy(PartyRecord**, void*, int) EI_ORIGINAL(0x004AB960)
 __declspec(naked) void __fastcall RecordPtrRelease(PartyRecord**) EI_ORIGINAL(0x004A5D70)
 void __fastcall RecordPtrCopy(PartyRecord** a0, void*, PartyRecord* const* a2) { CountedPtrCopyOriginal((void*)a0, nullptr, (void* const*)a2); }
-__declspec(naked) void __fastcall RecordInsertOverflow(PartyRecordList*, void*, PartyRecord**, PartyRecord* const*,
+__declspec(naked) void __fastcall RecordInsertOverflow(NamedPartyRecords*, void*, PartyRecord**, PartyRecord* const*,
                                                        unsigned) EI_ORIGINAL(0x004AB320)
 // The embedded party: 006628D0 adds a member record (three strings), 00460BC0 sets a named
 // variable (+0x54 table).
@@ -65,25 +65,25 @@ const char* NameOf(const PartyRecord* record) { return *reinterpret_cast<const c
 
 } // namespace
 
-void __fastcall PartyRecordsReset(PartyRecordList* list) {
-    PartyRecord** end = list->finish;
-    PartyRecord** newEnd = RecordCopy(end, end, list->start);
+void __fastcall PartyRecordsReset(NamedPartyRecords* list) {
+    PartyRecord** end = list->records.Finish();
+    PartyRecord** newEnd = RecordCopy(end, end, list->records.Start());
     for (PartyRecord** p = newEnd; p != end; ++p) RecordPtrDestroy(p, nullptr, 0);
-    list->finish = newEnd;
+    list->records.Finish() = newEnd;
     AssignText(&list->text0C, nullptr, game::EmptyText());
     AssignText(&list->text10, nullptr, game::EmptyText());
 
     PartyRecord* temp = NewRecord();
     if (temp) ++temp->refCount;
-    if (list->finish == list->eos) {
-        RecordInsertOverflow(list, nullptr, list->finish, &temp, 1);
+    if (list->records.Finish() == list->records.EndOfStorage()) {
+        RecordInsertOverflow(list, nullptr, list->records.Finish(), &temp, 1);
     } else {
-        if (list->finish) RecordPtrCopy(list->finish, nullptr, &temp);
-        ++list->finish;
+        if (list->records.Finish()) RecordPtrCopy(list->records.Finish(), nullptr, &temp);
+        ++list->records.Finish();
     }
     Release(temp);
 
-    char* party = (*list->start)->party;
+    char* party = (*list->records.Start())->party;
     PartyAddMember(party, nullptr, kHero, kHumanHero, game::EmptyText());
     AssignText(party + 0x68, nullptr, kFirstZone);
     *reinterpret_cast<int*>(party + 0x6C) = 0;
@@ -91,42 +91,42 @@ void __fastcall PartyRecordsReset(PartyRecordList* list) {
 }
 EI_REPLACE(0x004A5BD0, PartyRecordsReset);
 
-void* __fastcall PartyRecordsFind(const PartyRecordList* list, void*, const char* name) {
+void* __fastcall PartyRecordsFind(const NamedPartyRecords* list, void*, const char* name) {
     void* unnamed = nullptr;
-    for (unsigned i = 0; i < static_cast<unsigned>(list->finish - list->start); ++i) {
-        if (MbsCmp(NameOf(list->start[i]), name) == 0) return list->start[i]->party;
-        if (MbsCmp(NameOf(list->start[i]), game::EmptyText()) == 0) unnamed = list->start[i]->party;
+    for (unsigned i = 0; i < static_cast<unsigned>(list->records.size()); ++i) {
+        if (MbsCmp(NameOf(list->records.begin()[i]), name) == 0) return list->records.begin()[i]->party;
+        if (MbsCmp(NameOf(list->records.begin()[i]), game::EmptyText()) == 0) unnamed = list->records.begin()[i]->party;
     }
     return unnamed;
 }
 EI_REPLACE(0x004A5E10, PartyRecordsFind);
 
-void __fastcall PartyRecordsAdd(PartyRecordList* list, void*, const char* name) {
+void __fastcall PartyRecordsAdd(NamedPartyRecords* list, void*, const char* name) {
     PartyRecord* record = NewRecord();
     AssignText(&record->name, nullptr, name);
     PartyRecord* temp = record;
     if (temp) ++temp->refCount;
-    if (list->finish == list->eos) {
-        RecordInsertOverflow(list, nullptr, list->finish, &temp, 1);
+    if (list->records.Finish() == list->records.EndOfStorage()) {
+        RecordInsertOverflow(list, nullptr, list->records.Finish(), &temp, 1);
     } else {
-        if (list->finish) {
-            *list->finish = temp;
+        if (list->records.Finish()) {
+            *list->records.Finish() = temp;
             if (temp) ++temp->refCount;
         }
-        ++list->finish;
+        ++list->records.Finish();
     }
     Release(temp);
 }
 EI_REPLACE(0x004A5E90, PartyRecordsAdd);
 
-void __fastcall PartyRecordsRemove(PartyRecordList* list, void*, const char* name) {
-    for (unsigned i = 0; i < static_cast<unsigned>(list->finish - list->start); ++i) {
-        if (MbsCmp(NameOf(list->start[i]), name) != 0) continue;
+void __fastcall PartyRecordsRemove(NamedPartyRecords* list, void*, const char* name) {
+    for (unsigned i = 0; i < static_cast<unsigned>(list->records.Finish() - list->records.Start()); ++i) {
+        if (MbsCmp(NameOf(list->records.Start()[i]), name) != 0) continue;
         // erase(i): the tail moved down one slot by counted assignment, the last slot released.
         // The index still advances, so the record moved into slot i is not tested.
-        PartyRecord** p = list->start + i;
-        if (p + 1 != list->finish) {
-            for (int n = static_cast<int>(list->finish - (p + 1)); n > 0; --n, ++p) {
+        PartyRecord** p = list->records.Start() + i;
+        if (p + 1 != list->records.Finish()) {
+            for (int n = static_cast<int>(list->records.Finish() - (p + 1)); n > 0; --n, ++p) {
                 PartyRecord* next = p[1];
                 PartyRecord* old = p[0];
                 p[0] = next;
@@ -134,8 +134,8 @@ void __fastcall PartyRecordsRemove(PartyRecordList* list, void*, const char* nam
                 Release(old);
             }
         }
-        --list->finish;
-        RecordPtrRelease(list->finish);
+        --list->records.Finish();
+        RecordPtrRelease(list->records.Finish());
     }
 }
 EI_REPLACE(0x004A5FA0, PartyRecordsRemove);

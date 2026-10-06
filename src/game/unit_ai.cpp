@@ -128,11 +128,11 @@ __declspec(naked) void UnitController::UseOnUnit(CEngineObject*, int) EI_ORIGINA
 __declspec(naked) void UnitController::UseOnUnit2(CEngineObject*, int) EI_ORIGINAL(0x00555480)
 __declspec(naked) void UnitController::UseSpecial(CEngineObject*, int) EI_ORIGINAL(0x00555630)
 
-__declspec(naked) void AILookArray::Construct() EI_ORIGINAL(0x005573F0)
-__declspec(naked) void AILookArray::SetSize(int, int) EI_ORIGINAL(0x005D8EE0)
-__declspec(naked) void AILookArray::Copy(const AILookArray*) EI_ORIGINAL(0x005D8B60)
-void AILookArray::Destroy() { AiLookArrayDestructOriginal((void*)this); }
-__declspec(naked) void AILookArray::GetAt(AILook*, int) const EI_ORIGINAL(0x005D9DE0)
+__declspec(naked) void __fastcall LooksConstructAt(AILookArray*) EI_ORIGINAL(0x005573F0)
+__declspec(naked) void __fastcall LooksSetSizeAt(AILookArray*, void*, int, int) EI_ORIGINAL(0x005D8EE0)
+__declspec(naked) void __fastcall LooksCopyAt(AILookArray*, void*, const AILookArray*) EI_ORIGINAL(0x005D8B60)
+void __fastcall LooksDestroyAt(AILookArray* looks) { AiLookArrayDestructOriginal(looks); }
+__declspec(naked) void __fastcall LooksGetAt(const AILookArray*, void*, AILook*, int) EI_ORIGINAL(0x005D9DE0)
 __declspec(naked) void AIMoveOrder::Reset() EI_ORIGINAL(0x00545B20)
 
 // The perception memory at +0xD0, the report list at +0x164 and the corpse list at +0x148 are
@@ -166,9 +166,9 @@ AIMemory* MemoryOf(AIBrain* brain) { return reinterpret_cast<AIMemory*>(brain->m
 } // namespace
 
 void AIBrain::Perceive(UnitController* who) { MemoryOf(this)->Update(who); }
-void AIBrain::Report(CEngineObject* object, int what) { reports.Add(object, what); }
+void AIBrain::Report(CEngineObject* object, int what) { ReportsAdd(&reports, nullptr, object, what); }
 AIRef* AIBrain::PopCorpse(AIRef* out) { return reinterpret_cast<AICorpses*>(&corpses)->PopHead(out); }
-bool AIBrain::IsReported(CEngineObject* object) { return reports.Contains(object); }
+bool AIBrain::IsReported(CEngineObject* object) { return ReportsContains(&reports, nullptr, object); }
 void AIBrain::ChooseTarget(int* partAndObject, void* candidates, const Vector3* from, int a, int b) {
     ChooseThroughAddress(&attention, nullptr, this, partAndObject, candidates, from, a, b);
 }

@@ -75,7 +75,7 @@ int SurfaceDraw::Text(const char* text, RECT* rect, int format, std::uint32_t co
 
 // An item list of the camp (0x70 bytes, 00661050): the first node's item at **(+0x40), the
 // count at +0x44.
-struct ItemList {
+struct CampItemSet {
     std::uint8_t unknown_00[0x40];
     void** first;                    // +0x40
     int count;                       // +0x44
@@ -86,7 +86,7 @@ struct ItemList {
 // player and into the item strip.
 void TakeResults(CCampPages* camp, void* const& results, void* owner, CUiItemStrip* strip) {
     CampItems* items = reinterpret_cast<CampItems*>(camp);
-    for (ItemList* list = static_cast<ItemList*>(results); list->count != 0; list = static_cast<ItemList*>(results)) {
+    for (CampItemSet* list = static_cast<CampItemSet*>(results); list->count != 0; list = static_cast<CampItemSet*>(results)) {
         std::uint8_t* item = static_cast<std::uint8_t*>(*list->first);
         std::uint8_t* record = *reinterpret_cast<std::uint8_t**>(item + 0x1C);
         if (record && record[0x10]) {
@@ -281,8 +281,8 @@ T Read(const std::uint8_t* p, int offset) {
 int ItemType(const std::uint8_t* item) { return Read<int>(item, 0x10); }
 
 // An item list's entry `i` (00661050 lists: data at +0x40, count at +0x44).
-std::uint8_t* Entry(void* list, int i) { return static_cast<std::uint8_t*>(static_cast<ItemList*>(list)->first[i]); }
-int CountOf(void* list) { return static_cast<ItemList*>(list)->count; }
+std::uint8_t* Entry(void* list, int i) { return static_cast<std::uint8_t*>(static_cast<CampItemSet*>(list)->first[i]); }
+int CountOf(void* list) { return static_cast<CampItemSet*>(list)->count; }
 
 double D(float f) { return f; }
 float Store(double v) {
@@ -1328,9 +1328,9 @@ bool IsMade(const std::uint8_t* item) {
     return record && record[0x10];
 }
 
-// Whether `list` (an ItemList) holds `item`.
+// Whether `list` (a CampItemSet) holds `item`.
 bool ListHolds(void* list, const std::uint8_t* item) {
-    ItemList* l = static_cast<ItemList*>(list);
+    CampItemSet* l = static_cast<CampItemSet*>(list);
     for (int i = 0; i < l->count; ++i)
         if (l->first[i] == static_cast<const void*>(item)) return true;
     return false;
@@ -1462,10 +1462,10 @@ void CCampPages::MoveItem(std::uint8_t* item, int mode) {
                 toPlayer(item, itemResults_);
             // With Shift every other kind-one item goes too.
             if (ShiftHeld(interface_)) {
-                for (int i = 0; i < static_cast<ItemList*>(itemResults_)->count; ++i) {
-                    if (!kinds->IsKindOne(static_cast<std::uint8_t*>(static_cast<ItemList*>(itemResults_)->first[i])))
+                for (int i = 0; i < static_cast<CampItemSet*>(itemResults_)->count; ++i) {
+                    if (!kinds->IsKindOne(static_cast<std::uint8_t*>(static_cast<CampItemSet*>(itemResults_)->first[i])))
                         continue;
-                    auto* it = static_cast<std::uint8_t*>(static_cast<ItemList*>(itemResults_)->first[i]);
+                    auto* it = static_cast<std::uint8_t*>(static_cast<CampItemSet*>(itemResults_)->first[i]);
                     if (IsMade(it))
                         Panel(partStrip_)->AddItem(items->Move(it, itemParts_[0], itemResults_, 0, 1, 0));
                     else
@@ -1474,10 +1474,10 @@ void CCampPages::MoveItem(std::uint8_t* item, int mode) {
                 }
             }
             // Then the first spell container left goes as well.
-            for (int i = 0; i < static_cast<ItemList*>(itemResults_)->count; ++i) {
-                if (!kinds->IsSpellContainer(static_cast<std::uint8_t*>(static_cast<ItemList*>(itemResults_)->first[i])))
+            for (int i = 0; i < static_cast<CampItemSet*>(itemResults_)->count; ++i) {
+                if (!kinds->IsSpellContainer(static_cast<std::uint8_t*>(static_cast<CampItemSet*>(itemResults_)->first[i])))
                     continue;
-                auto* it = static_cast<std::uint8_t*>(static_cast<ItemList*>(itemResults_)->first[i]);
+                auto* it = static_cast<std::uint8_t*>(static_cast<CampItemSet*>(itemResults_)->first[i]);
                 if (IsMade(it))
                     Panel(partStrip_)->AddItem(items->Move(it, itemParts_[0], itemResults_, 0, 1, 0));
                 else

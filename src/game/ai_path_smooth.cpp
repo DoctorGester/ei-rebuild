@@ -36,15 +36,6 @@ int CdqAbs(int v) {
 // The cost of `turn` eighths of a turn, as the original rounds it.
 int TurnCost(int turn, float scale) { return x87::fistp(StoreFloat(static_cast<float>(turn) * scale * kTurnCost)); }
 
-// The inlined RemoveAll.
-void FreeAll(PathCellList* list) {
-    list->count = 0;
-    list->free = nullptr;
-    list->tail = nullptr;
-    list->head = nullptr;
-    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(list->blocks));
-    list->blocks = nullptr;
-}
 
 } // namespace
 
@@ -164,13 +155,13 @@ int PathSmoother::Smooth(CUnit* unit, CAIMap* mapArg, PathCellList* path, int st
         // Rebuild the cells from the tail back along the chain. The original gives them second
         // dwords from two stack slots it never writes; ours keep the old tail's.
         std::uint16_t staleFlags = path->tail->data.flags, staleWord = path->tail->data.unknown_6;
-        FreeAll(path);
+        path->RemoveAll();
         PathCell tail{static_cast<std::int16_t>(tailX), static_cast<std::int16_t>(tailY), staleFlags, staleWord};
-        path->AddHead(&tail);
+        path->AddHead(tail);
         for (const SmoothNode* node = bestNode; node; node = node->prev) {
             PathCell stepped{0, 0, staleFlags, staleWord};
             path->head->data.Step(&stepped, node->direction);
-            path->AddHead(&stepped);
+            path->AddHead(stepped);
         }
     }
 }

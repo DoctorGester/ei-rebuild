@@ -197,7 +197,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 if (!skip) LogAddTextOriginal(text_, nullptr, line);
             };
             auto addItems = [&](const BriefingRecord::NameList& list) {
-                for (const mfc::CString* it = list.begin; it != list.end; ++it) {
+                for (const mfc::CString* it = list.begin(); it != list.end(); ++it) {
                     CEngineObject* item = ItemManagerCreateItemOriginal(ItemManager(), nullptr, *it);
                     if (!item) continue;
                     ++item->refCount_;
@@ -208,7 +208,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
                 }
             };
             auto addQuests = [&](const BriefingRecord::NameList& list) {
-                for (const mfc::CString* it = list.begin; it != list.end; ++it) {
+                for (const mfc::CString* it = list.begin(); it != list.end(); ++it) {
                     StringSplit(*it, &parts, '.');
                     if (parts.GetSize() != kQuestNameParts) continue;
                     if (!TextOpen(texts, nullptr, mfc::CString(QuestSection()) + parts[2])) continue;

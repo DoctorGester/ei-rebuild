@@ -194,9 +194,9 @@ void** __fastcall AlignedAllocVerify(int count) {
     return result;
 }
 
-void __fastcall AlignedClearVerify(AlignedObjectArray* self) {
-    self->Clear();
-    ei::verify::Check("AlignedObjectArray::Clear", true, !self->data && !self->size && !self->capacity, "");
+void __fastcall AlignedClearVerify(lib::AlignedArray<CEngineObject*>* self) {
+    AlignedObjectsClear(self);
+    ei::verify::Check("AlignedObjectsClear", true, !self->data && !self->size && !self->capacity, "");
 }
 
 // --- Coder state ---------------------------------------------------------------------------------

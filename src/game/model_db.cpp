@@ -136,121 +136,76 @@ EI_REPLACE(0x006D4270, Print2SerializeHook);
 
 // ---- TweenArray ---------------------------------------------------------------------------------
 
-void TweenArray::RemoveAll() {
-    if (data) {
-        gamecrt::operator_delete(data);
-        data = nullptr;
-    }
-    maxSize = 0;
-    size = 0;
-}
+// 006D43E0 / 006D4840: RemoveAll / SetSize (RET 8).
 EI_REPLACE_METHOD(0x006D43E0, TweenArray::RemoveAll);
-
-void TweenArray::SetSize(int count, int newGrowBy) {
-    if (newGrowBy != -1) growBy = newGrowBy;
-    if (count == 0) {
-        if (data) {
-            gamecrt::operator_delete(data);
-            data = nullptr;
-        }
-        maxSize = 0;
-        size = 0;
-        return;
-    }
-    if (!data) {
-        data = static_cast<TweenEntry*>(gamecrt::operator_new(static_cast<unsigned>(count) << 4));
-        std::memset(data, 0, static_cast<unsigned>(count) << 4);
-        maxSize = count;
-        size = count;
-        return;
-    }
-    if (count <= maxSize) {
-        if (count > size) std::memset(data + size, 0, static_cast<unsigned>(count - size) << 4);
-        size = count;
-        return;
-    }
-    int step = growBy;
-    if (step == 0) {
-        step = size / 8;
-        if (step < 4) step = 4;
-        else if (step > 0x400) step = 0x400;
-    }
-    int newMax = step + maxSize;
-    if (count >= newMax) newMax = count;
-    auto* fresh = static_cast<TweenEntry*>(gamecrt::operator_new(static_cast<unsigned>(newMax) << 4));
-    std::memcpy(fresh, data, static_cast<unsigned>(size) << 4);
-    std::memset(fresh + size, 0, static_cast<unsigned>(count - size) << 4);
-    gamecrt::operator_delete(data);
-    size = count;
-    data = fresh;
-    maxSize = newMax;
-}
 EI_REPLACE_METHOD(0x006D4840, TweenArray::SetSize);
 
-void TweenArray::SetTarget(int key, float target, int steps) {
+void __fastcall TweenSetTarget(TweenArray* tweens, void*, int key, float target, int steps) {
+    TweenArray& a = *tweens;
     if (steps < 1) steps = 1;
-    int count = size;
+    int count = a.size;
     for (int i = 0; i < count; ++i) {
-        if (data[i].key != key) continue;
-        data[i].step = (target - data[i].value) / steps;
-        data[i].steps = steps;
+        if (a.data[i].key != key) continue;
+        a.data[i].step = (target - a.data[i].value) / steps;
+        a.data[i].steps = steps;
         return;
     }
     // A new entry. The original first copies an uninitialised local into it; every field is
     // overwritten below.
-    SetSize(count + 1, -1);
-    TweenEntry& e = data[size - 1];
+    a.SetSize(count + 1, -1);
+    TweenEntry& e = a.data[a.size - 1];
     e.key = key;
     e.value = 0.0f;
     e.steps = steps;
-    e.step = (target - data[count].value) / steps;
+    e.step = (target - a.data[count].value) / steps;
 }
-EI_REPLACE_METHOD(0x006D4410, TweenArray::SetTarget);
+EI_REPLACE(0x006D4410, TweenSetTarget);
 
-bool TweenArray::Tick() {
+bool __fastcall TweenTick(TweenArray* tweens) {
+    TweenArray& a = *tweens;
     bool moving = false;
-    for (int i = 0; i < size; ++i) {
-        TweenEntry* e = &data[i];
+    for (int i = 0; i < a.size; ++i) {
+        TweenEntry* e = &a.data[i];
         if (e->steps > 0) {
             --e->steps;
             moving = true;
             e->value = e->step + e->value;
         } else if (!(e->value < 0.0f) && !(e->value > 0.0f)) {
             // Finished and back at zero (or NaN): remove it.
-            int after = size - i - 1;
+            int after = a.size - i - 1;
             if (after != 0) std::memmove(e, e + 1, static_cast<unsigned>(after) << 4);
-            --size;
+            --a.size;
             --i;
         }
     }
     return moving;
 }
-EI_REPLACE_METHOD(0x006D44E0, TweenArray::Tick);
+EI_REPLACE(0x006D44E0, TweenTick);
 
-void TweenArray::Save(ScriptStream* stream) const {
-    int count = size;
+void __fastcall TweenSave(const TweenArray* tweens, void*, ScriptStream* stream) {
+    int count = tweens->size;
     stream->Write(&count, 4);
-    for (int i = 0; i < size; ++i) stream->Write(&data[i], 16);
+    for (int i = 0; i < tweens->size; ++i) stream->Write(&tweens->data[i], 16);
 }
-EI_REPLACE_METHOD(0x006D4570, TweenArray::Save);
-EI_REPLACE_METHOD(0x006D47E0, TweenArray::Save);
+EI_REPLACE(0x006D4570, TweenSave);
+EI_REPLACE(0x006D47E0, TweenSave);
 
-void TweenArray::ReadEntries(ScriptStream* stream, int unread) {
+void TweenReadEntries(TweenArray& a, ScriptStream* stream, int unread) {
     int count = unread;
     stream->Read(&count, 4);
-    SetSize(count, -1);
-    for (int i = 0; i < size; ++i) stream->Read(&data[i], 16);
+    a.SetSize(count, -1);
+    for (int i = 0; i < a.size; ++i) stream->Read(&a.data[i], 16);
 }
 
-void TweenArray::Load(ScriptStream* stream, void* world) {
+void __fastcall TweenLoad(TweenArray* tweens, void*, ScriptStream* stream, void* world) {
     // The original reads the count into its `stream` argument slot.
-    ReadEntries(stream, reinterpret_cast<int>(stream));
-    for (int i = 0; i < size; ++i) ApplyWaterLevel(world, nullptr, data[i].key, data[i].value);
+    TweenReadEntries(*tweens, stream, reinterpret_cast<int>(stream));
+    for (int i = 0; i < tweens->size; ++i) ApplyWaterLevel(world, nullptr, tweens->data[i].key, tweens->data[i].value);
 }
-EI_REPLACE_METHOD(0x006D45D0, TweenArray::Load);
+EI_REPLACE(0x006D45D0, TweenLoad);
 
-void TweenArray::LoadEntries(ScriptStream* stream) {
+void __fastcall TweenLoadEntries(TweenArray* tweens, void*, ScriptStream* stream) {
     // The original reads the count into an uninitialised local; the game's streams always write it.
-    ReadEntries(stream, 0);
+    TweenReadEntries(*tweens, stream, 0);
 }
-EI_REPLACE_METHOD(0x006D4660, TweenArray::LoadEntries);
+EI_REPLACE(0x006D4660, TweenLoadEntries);

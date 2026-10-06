@@ -29,10 +29,10 @@ int CountInCell(const SectorGrid* grid, const CEngineObject* object, const float
     std::uint32_t cx = CellIndex(position[0]);
     std::uint32_t cy = CellIndex(position[1]);
     if (cx >= grid->width_ || cy >= grid->height_) return -1;
-    SectorListNode* head = grid->rows_[cy][cx];
+    SectorListNode* head = grid->rows_[cy][cx].head;
     int count = 0;
     for (SectorListNode* node = head->next; node != head; node = node->next)
-        if (node->value == object) ++count;
+        if (node->data == object) ++count;
     return count;
 }
 
@@ -43,8 +43,8 @@ int CountInCell(const SectorGrid* grid, const CEngineObject* object, const float
 // would). The rows not touched stay null: the move reads no other cell.
 struct ScratchGrid {
     SectorGrid grid{};
-    std::vector<SectorListNode**> rows;
-    std::vector<std::vector<SectorListNode*>> rowCells;
+    std::vector<SectorList*> rows;
+    std::vector<std::vector<SectorList>> rowCells;
     std::vector<std::pair<std::uint32_t, std::uint32_t>> cells;
 
     explicit ScratchGrid(const SectorGrid& real) {
@@ -58,31 +58,31 @@ struct ScratchGrid {
         for (auto& c : cells)
             if (c.first == x && c.second == y) return;
         if (!rows[y]) {
-            rowCells.emplace_back(real.width_, nullptr);
+            rowCells.emplace_back(real.width_, SectorList{nullptr});
             rows[y] = rowCells.back().data();
         }
         auto* head = static_cast<SectorListNode*>(stlp::allocate(sizeof(SectorListNode)));
         head->next = head->prev = head;
-        head->value = nullptr;
-        SectorListNode* source = real.rows_[y][x];
+        head->data = nullptr;
+        SectorListNode* source = real.rows_[y][x].head;
         for (SectorListNode* node = source->next; node != source; node = node->next) {
             auto* copy = static_cast<SectorListNode*>(stlp::allocate(sizeof(SectorListNode)));
-            copy->value = node->value;
-            if (copy->value) ++copy->value->refCount_;
+            copy->data = node->data;
+            if (copy->data) ++copy->data->refCount_;
             copy->prev = head->prev;
             copy->next = head;
             head->prev->next = copy;
             head->prev = copy;
         }
-        rows[y][x] = head;
+        rows[y][x].head = head;
         cells.emplace_back(x, y);
     }
     ~ScratchGrid() {
         for (auto& c : cells) {
-            SectorListNode* head = rows[c.second][c.first];
+            SectorListNode* head = rows[c.second][c.first].head;
             for (SectorListNode* node = head->next; node != head;) {
                 SectorListNode* next = node->next;
-                if (node->value) node->value->Release();
+                if (node->data) node->data->Release();
                 stlp::deallocate(node, sizeof(SectorListNode));
                 node = next;
             }
@@ -94,8 +94,8 @@ struct ScratchGrid {
 std::vector<CEngineObject*> CellValues(const SectorGrid& grid, std::uint32_t x, std::uint32_t y) {
     std::vector<CEngineObject*> values;
     if (x >= grid.width_ || y >= grid.height_) return values;
-    SectorListNode* head = grid.rows_[y][x];
-    for (SectorListNode* node = head->next; node != head; node = node->next) values.push_back(node->value);
+    SectorListNode* head = grid.rows_[y][x].head;
+    for (SectorListNode* node = head->next; node != head; node = node->next) values.push_back(node->data);
     return values;
 }
 
@@ -280,7 +280,7 @@ int CountIdInList(void* client, int offset, int id) {
     SectorListNode* head = ListHead(client, offset);
     int count = 0;
     for (SectorListNode* node = head->next; node != head; node = node->next)
-        if (node->value->id_ == id) ++count;
+        if (node->data->id_ == id) ++count;
     return count;
 }
 
@@ -292,7 +292,7 @@ bool ListEmpty(void* client, int offset) {
 bool GridEmpty(const SectorGrid& grid) {
     for (std::uint32_t y = 0; y < grid.height_; ++y)
         for (std::uint32_t x = 0; x < grid.width_; ++x) {
-            SectorListNode* head = grid.rows_[y][x];
+            SectorListNode* head = grid.rows_[y][x].head;
             if (head->next != head) return false;
         }
     return true;
@@ -333,7 +333,7 @@ static void __fastcall ClearMapsVerify(CWorldClient* client, void*) {
               At<void*>(client, 0xC0) == nullptr && At<void*>(client, 0x1F4) == nullptr && At<int>(client, 0xEC) == 0;
     SectorListNode* head = ListHead(client, 0xB8);
     for (SectorListNode* node = head->next; node != head; node = node->next)
-        if (node->value->id_ > 0) ok = false;
+        if (node->data->id_ > 0) ok = false;
     ei::verify::Check("CWorldClient::ClearMaps", true, ok, "");
 }
 EI_VERIFY(0x00564E70, ClearMapsVerify, 0, s_unused);
@@ -528,7 +528,7 @@ static void __fastcall ObjectsInRangeVerify(CWorldClient* client, void*, const f
     SectorListNode* last = head->prev;   // the entries after it are the call's
     auto appended = [head](SectorListNode* from) {
         std::vector<CEngineObject*> values;
-        for (SectorListNode* node = from->next; node != head; node = node->next) values.push_back(node->value);
+        for (SectorListNode* node = from->next; node != head; node = node->next) values.push_back(node->data);
         return values;
     };
     s_inRange(client, nullptr, p, radius, out);

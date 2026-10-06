@@ -79,7 +79,7 @@ void MaybeRemark(AIBrain* brain, int what) {
 
 // An order on the stack: the looks array is constructed and given its derived vtable.
 void ConstructOrder(AIMoveOrder* order) {
-    order->looks.Construct();
+    LooksConstructAt(&order->looks);
     order->looks.vtable = reinterpret_cast<void*>(kLookArrayVtable);
 }
 
@@ -98,7 +98,7 @@ void StartMove(AIBrain* brain, AIMoveOrder* order) {
     brain->action = AIBrain::kActionMove;
     brain->actionTime = AIBrain::kNoTime;
     std::memcpy(&brain->actionPoint, &order->point, sizeof(Vector3));
-    brain->looks.Copy(&order->looks);
+    LooksCopyAt(&brain->looks, nullptr, &order->looks);
     brain->owner->MoveTo(&brain->actionPoint, 0, 0, kMoveTime);
 }
 
@@ -177,7 +177,7 @@ void GuardMode::Execute(AIBrain* brain) {
             return;
         }
         if (!brain->FindStandPoint(reinterpret_cast<const Vector3*>(&brain->owner->unit->positionX), radius, &order.point)) {
-            order.looks.Destroy();
+            LooksDestroyAt(&order.looks);
             return;
         }
     }
@@ -242,10 +242,10 @@ void PatrolMode::Execute(AIBrain* brain) {
     AIMoveOrder order;
     std::memcpy(&order.point, &next->position, sizeof(Vector3));
     ConstructOrder(&order);
-    order.looks.SetSize(next->looks.size, -1);
+    LooksSetSizeAt(&order.looks, nullptr, next->looks.size, -1);
     for (int i = 0; i < next->looks.size; ++i) {
         AILook look;
-        next->looks.GetAt(&look, i);
+        LooksGetAt(&next->looks, nullptr, &look, i);
         std::memcpy(&order.looks.data[i], &look, sizeof(AILook));
     }
     if (order.looks.size <= 0) {
@@ -275,7 +275,7 @@ void SentryMode::Execute(AIBrain* brain) {
     if (brain->action != AIBrain::kActionNone) return;
     AIMoveOrder order;
     ConstructOrder(&order);
-    order.looks.SetSize(0, -1);
+    LooksSetSizeAt(&order.looks, nullptr, 0, -1);
     std::memcpy(&order.point, &point, sizeof(Vector3));
     bool far = GameRandom()->Next() % 11 == 0;
     Vector3 none{0.0f, 0.0f, 0.0f};
@@ -372,7 +372,7 @@ void SuspectionMode::Execute(AIBrain* brain) {
         if (brain->owner->inCombat) level -= 50;
         if (!brain->FindStandPoint(&point, kStandRadius, &order.point)) {
             level -= 5;
-            order.looks.Destroy();
+            LooksDestroyAt(&order.looks);
             return;
         }
     } else {
@@ -384,7 +384,7 @@ void SuspectionMode::Execute(AIBrain* brain) {
     brain->action = AIBrain::kActionMove;
     brain->actionTime = AIBrain::kNoTime;
     std::memcpy(&brain->actionPoint, &order.point, sizeof(Vector3));
-    brain->looks.Copy(&order.looks);
+    LooksCopyAt(&brain->looks, nullptr, &order.looks);
     brain->owner->MoveTo(&brain->actionPoint, 0, 0, kMoveTime);
     level = brain->noticedLevel;
     DestroyLooks(&order);
@@ -396,7 +396,7 @@ void SuspectionMode::Enter(AIBrain* brain) {
     AIMoveOrder order;
     ConstructOrder(&order);
     order.point = Vector3{0.0f, 0.0f, 0.0f};
-    order.looks.SetSize(0, -1);
+    LooksSetSizeAt(&order.looks, nullptr, 0, -1);
     std::memcpy(&order.point, &point, sizeof(Vector3));
     Vector3 none{0.0f, 0.0f, 0.0f};
     brain->PlanLooks(&order, &none, kNoWander, false);

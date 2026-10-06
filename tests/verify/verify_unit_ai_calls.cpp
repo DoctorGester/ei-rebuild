@@ -42,7 +42,7 @@ static void __fastcall UpdateVerify(AICallArray* self, void*, CUnit* unit, void*
             kind = -3;
         }
     }
-    self->Update(unit, memory);
+    CallsUpdate(self, nullptr, unit, memory);
     bool ok = self->size == static_cast<int>(expected.size()) &&
               (expected.empty() || std::memcmp(expected.data(), self->data, expected.size() * sizeof(AICallRecord)) == 0) &&
               std::memcmp(&noticedX, &brain->noticedX, 4) == 0 && std::memcmp(&noticedY, &brain->noticedY, 4) == 0 &&

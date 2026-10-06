@@ -437,26 +437,29 @@ struct ScriptDefine {
     mfc::CString name;
     mfc::CString value;
 };
-// CList<ScriptDefine, ScriptDefine&> (vtable 0073D4C0, 0x1C bytes).
-struct ScriptDefineList {
-    struct Node {
-        Node* next;
-        Node* prev;
-        ScriptDefine data;
-    };
-    void* vtable;
-    Node* head;
-    Node* tail;
-    int count;
-    Node* free;
-    mfc::CPlex* blocks;
-    int blockSize;
-
-    // 004D6340 (script_runtime_helpers.cpp). The destructor: the vtable (0073D4C0), every define's
-    // value and name destroyed, the list emptied and its blocks freed.
-    void Destruct();
+// Construct- / DestructElements of CList<ScriptDefine>: zeroed, then both strings constructed;
+// destroyed value first, then name.
+struct ScriptDefineElements {
+    static void Construct(ScriptDefine* defines, int count) {
+        std::memset(static_cast<void*>(defines), 0, static_cast<std::size_t>(count) * sizeof(ScriptDefine));
+        for (int i = 0; i < count; ++i) {
+            new (&defines[i].name) mfc::CString;
+            new (&defines[i].value) mfc::CString;
+        }
+    }
+    static void Destruct(ScriptDefine* defines, int count) {
+        for (int i = 0; i < count; ++i) {
+            defines[i].value.~CString();
+            defines[i].name.~CString();
+        }
+    }
 };
-static_assert(sizeof(ScriptDefineList) == 0x1C);
+// CList<ScriptDefine, ScriptDefine&> (vtable 0073D4C0, 0x1C bytes).
+using ScriptDefineList = mfc::CList<ScriptDefine, ScriptDefineElements>;
+static_assert(sizeof(ScriptDefineList::Node) == 0x10);
+// 004D6340 (script_runtime_helpers.cpp). The list's destructor: the vtable (0073D4C0), every
+// define's value and name destroyed, the list emptied and its blocks freed.
+void __fastcall ScriptDefinesDestruct(ScriptDefineList* defines);
 // 004D34F0. Inserts a define before the first one with a shorter name (else before the last one;
 // at the end only when the list is empty).
 void __fastcall AddDefine(ScriptDefineList* defines, const ScriptDefine* define);
@@ -662,22 +665,14 @@ void __fastcall ScriptIfThenLoad(mfc::CArray<ScriptIfThen>* pairs, ScriptStream*
 // node read from the head. 004CA480 particle sources (+0x14), 004CA5D0 FX sources (+0x30),
 // 004CA720 lightning (+0x4C), 004CA810 WorldScript blocks (+0x178), 004CA980 instances (+0x140),
 // 004CAC00 runs (+0x15C).
-// MFC CList header (0x1C bytes) and node (next, prev, then the element) of the script's lists.
-struct ScriptListNode {
-    ScriptListNode* next;
-    ScriptListNode* prev;
-    char* Data() { return reinterpret_cast<char*>(this + 1); }
+// The script's CLists (0x1C bytes) seen with the element as bytes: each list's element type
+// differs, and their NewNode / element helpers stay the instantiations' own. A node's element
+// starts at `data.bytes` (+8).
+struct ScriptListElement {
+    char bytes[4];
 };
-struct ScriptList {
-    void* vtable;
-    ScriptListNode* head;   // +0x04
-    ScriptListNode* tail;   // +0x08
-    int count;              // +0x0C
-    ScriptListNode* free;   // +0x10
-    mfc::CPlex* blocks;     // +0x14
-    int blockSize;          // +0x18
-};
-static_assert(sizeof(ScriptList) == 0x1C);
+using ScriptList = mfc::CList<ScriptListElement, mfc::RawElements<ScriptListElement>>;
+using ScriptListNode = ScriptList::Node;
 void __fastcall ScriptParticlesLoad(ScriptList* list, ScriptStream* stream);
 void __fastcall ScriptFxSourcesLoad(ScriptList* list, ScriptStream* stream);
 void __fastcall ScriptLightningLoad(ScriptList* list, ScriptStream* stream);

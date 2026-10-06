@@ -8,6 +8,7 @@
 #include "engine_object.h"
 #include "maths.h"
 
+#include "lib/containers.h"
 #include "lib/mfc.h"
 
 #include <cstddef>
@@ -17,23 +18,10 @@ class CObject3D;
 class CTransformObject;   // core_transform.h
 
 // A growable pointer array whose storage is 32-byte aligned (the block from operator new is
-// kept at data[-1]): data, size, capacity, grow-by (0: an eighth of the size, 4..1024).
-struct AlignedPtrArray {
-    // 00519E80. data[index] = value, growing the array to index + 1 first when needed.
-    void SetAtGrow(int index, void* value);
-    // 00519D70. Resizes to `size` (0 frees the storage); `growBy` replaces the grow-by unless -1.
-    // New elements are not cleared.
-    void SetSize(int size, int growBy);
-    // 00519A10 (object3d_figure_setup.cpp, A-U4). Appends `value` (SetAtGrow at the size).
-    // Returns its index.
-    int Add(void* value);
-
-    void** data;
-    int size;
-    int capacity;
-    int growBy;
-};
-static_assert(sizeof(AlignedPtrArray) == 0x10);
+// kept at data[-1]). Registered on the template: SetAtGrow 00519E80 and SetSize 00519D70
+// (map_object_figures.cpp) and their copies 0051A010 / 0051A190, 00663960-00663D30 and
+// 00664490-00664710; Add 00519A10 (object3d_figure_setup.cpp).
+using AlignedPtrArray = lib::AlignedArray<void*>;
 
 struct FigurePart;
 struct FootprintPart;   // ai_map.h: a figure part's box (0x38 bytes)

@@ -12,6 +12,7 @@
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
+#include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -284,16 +285,9 @@ __declspec(naked) inline void __fastcall ViewStackFreeNode(void* /*alloc*/, void
     EI_ORIGINAL(0x00411E20)
 __declspec(naked) inline void __fastcall ViewStackFreeMap(void** /*map*/, int /*size*/) EI_ORIGINAL(0x00411EA0)
 
-// A node of the std::list<CObject3D*> (STLport, 12-byte nodes) that CWorldClient::ObjectsInRange
-// (0056DAF0) fills; the list is its sentinel pointer.
-struct NearbyNode {
-    NearbyNode* next;
-    NearbyNode* prev;
-    CObject3D* object;
-};
-struct NearbyList {
-    NearbyNode* header;
-};
+// The STLport list<CObject3D*> (12-byte nodes) that CWorldClient::ObjectsInRange (0056DAF0) fills.
+using NearbyList = stlp::list<CObject3D*>;
+using NearbyNode = NearbyList::Node;
 
 // Names for the game's globals and constants the camera code uses. The floating-point constants
 // are read from the exe at run time (volatile): the original multiplies them at run time and the

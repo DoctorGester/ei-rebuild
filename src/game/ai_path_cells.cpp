@@ -5,18 +5,9 @@
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
+#include "originals_units.h"
 
 namespace {
-
-// The inlined RemoveAll (the nodes need no destruction).
-void FreeAll(PathCellList* list) {
-    list->count = 0;
-    list->free = nullptr;
-    list->tail = nullptr;
-    list->head = nullptr;
-    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(list->blocks));
-    list->blocks = nullptr;
-}
 
 constexpr int kBlockSize = 0x80;
 
@@ -38,70 +29,58 @@ PathCell* PathCell::Step(PathCell* out, int direction) const {
 }
 EI_REPLACE_METHOD(0x005C5CC0, PathCell::Step);
 
-PathCellList::Node* PathCellList::AddHead(const PathCell* cell) {
-    Node* node = NewNode(nullptr, head);
-    node->data = *cell;
-    if (head) head->prev = node;
-    else tail = node;
-    head = node;
-    return node;
-}
-EI_REPLACE_METHOD(0x005BD200, PathCellList::AddHead);
+void PathCellElements::Construct(PathCell* cells, int count) { ConstructPathCells(cells, count); }
 
-PathCellList::Node* PathCellList::AddTail(const PathCell* cell) {
-    Node* node = NewNode(tail, nullptr);
-    node->data = *cell;
-    if (tail) tail->next = node;
-    else head = node;
-    tail = node;
-    return node;
-}
+// 005BD200 / 005BD2A0: CList<PathCell>::AddHead / AddTail (RET 4).
+EI_REPLACE_METHOD(0x005BD200, PathCellList::AddHead);
 EI_REPLACE_METHOD(0x005BD2A0, PathCellList::AddTail);
 
-void PathCellList::AppendList(const PathCellList* other) {
-    for (const Node* n = other->head; n;) {
-        const Node* next = n->next;
+void __fastcall PathCellsAppend(PathCellList* list, void*, const PathCellList* other) {
+    for (const PathCellList::Node* n = other->head; n;) {
+        const PathCellList::Node* next = n->next;
         PathCell cell = n->data;
-        AddTail(&cell);
+        list->AddTail(cell);
         n = next;
     }
 }
-EI_REPLACE_METHOD(0x005C5DA0, PathCellList::AppendList);
+EI_REPLACE(0x005C5DA0, PathCellsAppend);
 
-PathCellList* PathCellList::Reversed(PathCellList* out) const {
+PathCellList* __fastcall PathCellsReversed(const PathCellList* list, void*, PathCellList* out) {
+    using Node = PathCellList::Node;
     // The original first builds a reversed local list, then copies it into `out` in order.
     PathCellList reversed{PathCellListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kBlockSize};
-    for (const Node* n = head; n; n = n->next) reversed.AddHead(&n->data);
+    for (const Node* n = list->head; n; n = n->next) reversed.AddHead(n->data);
     *out = PathCellList{PathCellListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kBlockSize};
     for (const Node* n = reversed.head; n;) {
         const Node* next = n->next;
         PathCell cell = n->data;
-        out->AddTail(&cell);
+        out->AddTail(cell);
         n = next;
     }
-    FreeAll(&reversed);
+    reversed.RemoveAll();
     return out;
 }
-EI_REPLACE_METHOD(0x005C5E60, PathCellList::Reversed);
+EI_REPLACE(0x005C5E60, PathCellsReversed);
 
-void PathCellList::RemoveRepeats() {
+void __fastcall PathCellsRemoveRepeats(PathCellList* list) {
+    using Node = PathCellList::Node;
     std::int16_t lastX = -1, lastY = -1;
-    for (Node* n = head; n;) {
+    for (Node* n = list->head; n;) {
         Node* next = n->next;
         bool repeat = n->data.x == lastX && n->data.y == lastY;
         lastX = n->data.x;
         lastY = n->data.y;
         if (repeat) {
             // The inlined RemoveAt.
-            if (n == head) head = n->next;
+            if (n == list->head) list->head = n->next;
             else n->prev->next = n->next;
-            if (n == tail) tail = n->prev;
+            if (n == list->tail) list->tail = n->prev;
             else n->next->prev = n->prev;
-            n->next = free;
-            free = n;
-            if (--count == 0) FreeAll(this);
+            n->next = list->free;
+            list->free = n;
+            if (--list->count == 0) list->RemoveAll();
         }
         n = next;
     }
 }
-EI_REPLACE_METHOD(0x005C6000, PathCellList::RemoveRepeats);
+EI_REPLACE(0x005C6000, PathCellsRemoveRepeats);

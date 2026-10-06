@@ -40,20 +40,11 @@ void __fastcall ScriptDeclDestruct(ScriptDecl* block) {
 }
 EI_REPLACE(0x004BF7E0, ScriptDeclDestruct);
 
-void ScriptDefineList::Destruct() {
-    SetVtable(this, 0x0073D4C0);   // CList<ScriptDefine>
-    for (Node* node = head; node; node = node->next) {
-        node->data.value.~CString();
-        node->data.name.~CString();
-    }
-    count = 0;
-    free = nullptr;
-    tail = nullptr;
-    head = nullptr;
-    mfc::PlexFreeDataChain(blocks);
-    blocks = nullptr;
+void __fastcall ScriptDefinesDestruct(ScriptDefineList* defines) {
+    SetVtable(defines, 0x0073D4C0);   // CList<ScriptDefine>
+    defines->RemoveAll();
 }
-EI_REPLACE_METHOD(0x004D6340, ScriptDefineList::Destruct);
+EI_REPLACE(0x004D6340, ScriptDefinesDestruct);
 
 // ---- The AI map's sector map ------------------------------------------------------------------------
 

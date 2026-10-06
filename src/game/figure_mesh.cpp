@@ -669,7 +669,7 @@ void CFigureMesh::RefreshBuffers() {
 }
 EI_REPLACE_METHOD(0x005A6D40, CFigureMesh::RefreshBuffers);
 
-void CFigureMesh::SetOffsets(const OffsetList* offsets) {
+void CFigureMesh::SetOffsets(const OffsetSpan* offsets) {
     offsets_.SetSize(offsets->count);
     std::memcpy(offsets_.data, offsets->data, static_cast<std::size_t>(offsets->count) * sizeof(Vector3));
 }

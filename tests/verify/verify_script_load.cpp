@@ -521,11 +521,11 @@ void ListVerify(const char* name, ListLoadFn original, ListLoadFn ours, ScriptLi
     bool ok = scratch.count == self->count && WellFormed(scratch) && WellFormed(*self);
     int index = 0;
     for (ScriptListNode *a = scratch.head, *b = self->head; ok && a && b; a = a->next, b = b->next, ++index)
-        ok = same(a->Data(), b->Data());
+        ok = same(a->data.bytes, b->data.bytes);
     char what[64];
     std::snprintf(what, sizeof(what), "%d vs %d nodes, node %d", scratch.count, self->count, index);
     Report(name, ok, replay, record, what);
-    for (ScriptListNode* node = scratch.head; node; node = node->next) destroy(node->Data());
+    for (ScriptListNode* node = scratch.head; node; node = node->next) destroy(node->data.bytes);
     mfc::PlexFreeDataChain(scratch.blocks);
 }
 

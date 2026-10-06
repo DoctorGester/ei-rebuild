@@ -190,7 +190,7 @@ ListNode* __fastcall NewRunNode(RawList* a0, void*, ListNode* a2, ListNode* a3) 
 template <typename Fill>
 void AppendNode(RawList* list, NewNodeFn newNode, Fill fill) {
     ListNode* node = newNode(list, nullptr, list->tail, nullptr);
-    fill(node->Data());
+    fill(node->data.bytes);
     if (list->tail) list->tail->next = node;
     else list->head = node;
     list->tail = node;
@@ -420,7 +420,7 @@ ScriptDecl* __fastcall ScriptFindBlock(const CScript* script, void*, int id) {
     std::size_t offset = id < 0 ? 0x178 : 0x70;
     const auto* list = reinterpret_cast<const RawList*>(reinterpret_cast<const char*>(script) + offset);
     for (ListNode* node = list->head; node;) {
-        auto* block = reinterpret_cast<ScriptDecl*>(node->Data());
+        auto* block = reinterpret_cast<ScriptDecl*>(node->data.bytes);
         node = node->next;
         if (block->id == id) return block;
     }
@@ -498,7 +498,7 @@ void __fastcall ScriptParticlesLoad(RawList* list, ScriptStream* stream) {
         });
     }
     for (ListNode* node = list->head; node;) {
-        char* data = node->Data();
+        char* data = node->data.bytes;
         node = node->next;
         At<CEngineObject*>(data, 0x00) = AcquireById(ReadInt(stream));
         stream->Read(data + 0x04, 4);
@@ -526,7 +526,7 @@ void __fastcall ScriptFxSourcesLoad(RawList* list, ScriptStream* stream) {
         });
     }
     for (ListNode* node = list->head; node;) {
-        char* data = node->Data();
+        char* data = node->data.bytes;
         node = node->next;
         FxSourceLoad(data, nullptr, stream);
     }
@@ -543,7 +543,7 @@ void __fastcall ScriptLightningLoad(RawList* list, ScriptStream* stream) {
         });
     }
     for (ListNode* node = list->head; node;) {
-        char* data = node->Data();
+        char* data = node->data.bytes;
         node = node->next;
         At<CEngineObject*>(data, 0x00) = AcquireById(ReadInt(stream));
         stream->Read(data + 0x04, 4);
@@ -566,7 +566,7 @@ void __fastcall ScriptWorldBlocksLoad(RawList* list, ScriptStream* stream) {
         // Its destructor frees nothing (no commands).
     }
     for (ListNode* node = list->head; node;) {
-        auto* block = reinterpret_cast<ScriptDecl*>(node->Data());
+        auto* block = reinterpret_cast<ScriptDecl*>(node->data.bytes);
         node = node->next;
         stream->Read(&block->id, 4);
         int size = ReadInt(stream);
@@ -602,7 +602,7 @@ void __fastcall ScriptInstancesLoad(RawList* list, ScriptStream* stream) {
         VarsDestruct(&temp.vars);
     }
     for (ListNode* node = list->head; node;) {
-        auto* instance = reinterpret_cast<ScriptDefinition*>(node->Data());
+        auto* instance = reinterpret_cast<ScriptDefinition*>(node->data.bytes);
         node = node->next;
         stream->Read(&instance->index, 4);
         // The original reads each string (00461190) into a temporary and assigns it: 004B3D10.
@@ -636,7 +636,7 @@ void __fastcall ScriptRunsLoad(RawList* list, ScriptStream* stream) {
         VarsDestruct(&temp.vars);
     }
     for (ListNode* node = list->head; node;) {
-        auto* run = reinterpret_cast<ScriptRun*>(node->Data());
+        auto* run = reinterpret_cast<ScriptRun*>(node->data.bytes);
         node = node->next;
         int id = 0;
         stream->Read(&id, 4);
@@ -649,7 +649,7 @@ void __fastcall ScriptRunsLoad(RawList* list, ScriptStream* stream) {
         int* killFlag = nullptr;
         int k = 0;
         for (ListNode* inst = At<RawList>(LoadingScript(), 0x140).head; inst; ++k) {
-            char* data = inst->Data();
+            char* data = inst->data.bytes;
             inst = inst->next;
             if (k == instanceIndex) {
                 killFlag = reinterpret_cast<int*>(data);
@@ -684,7 +684,7 @@ void __fastcall ScriptLoad(CScript* script, void*, ScriptStream* stream) {
     int blocks = ReadInt(stream);
     for (int i = 0; i < blocks; ++i) NewCommandList(script);
     for (ListNode* node = At<RawList>(script, 0x70).head; node;) {
-        auto* block = reinterpret_cast<ScriptDecl*>(node->Data());
+        auto* block = reinterpret_cast<ScriptDecl*>(node->data.bytes);
         node = node->next;
         stream->Read(&block->id, 4);
         DeclCommandsLoadOrig(block, stream);

@@ -38,12 +38,6 @@ void SetDefaults(PartyUnitRecord& record) {
     record.unknown_77C = -1;
 }
 
-// MFC's default growth: an eighth of the size (rounded towards zero), 4..1024.
-int DefaultGrowBy(int size) {
-    int grow = size / 8;
-    if (grow < 4) return 4;
-    return grow > 1024 ? 1024 : grow;
-}
 
 } // namespace
 
@@ -109,46 +103,11 @@ void __stdcall ConstructPartyUnitRecords(PartyUnitRecord* records, int count) {
 }
 EI_REPLACE(0x00664880, ConstructPartyUnitRecords);
 
-void PartyMemberArray::SetSize(int newSize, int newGrowBy) {
-    if (newGrowBy != -1) growBy = newGrowBy;
-    if (newSize == 0) {
-        if (data != nullptr) {
-            for (int i = 0; i != size; ++i) data[i].Destruct();
-            gamecrt::operator_delete(data);
-            data = nullptr;
-        }
-        capacity = 0;
-        size = 0;
-        return;
-    }
-    if (data == nullptr) {
-        data = static_cast<PartyUnitRecord*>(gamecrt::operator_new(static_cast<std::size_t>(newSize) * sizeof(PartyUnitRecord)));
-        ConstructPartyUnitRecords(data, newSize);
-        capacity = newSize;
-        size = newSize;
-        return;
-    }
-    if (newSize <= capacity) {
-        if (newSize > size) {
-            ConstructPartyUnitRecords(data + size, newSize - size);
-        } else {
-            for (int i = newSize; i != size; ++i) data[i].Destruct();
-        }
-        size = newSize;
-        return;
-    }
-    int grow = growBy != 0 ? growBy : DefaultGrowBy(size);
-    int newCapacity = capacity + grow;
-    if (newSize >= newCapacity) newCapacity = newSize;
-    auto* fresh =
-        static_cast<PartyUnitRecord*>(gamecrt::operator_new(static_cast<std::size_t>(newCapacity) * sizeof(PartyUnitRecord)));
-    std::memcpy(fresh, data, static_cast<std::size_t>(size) * sizeof(PartyUnitRecord));
-    ConstructPartyUnitRecords(fresh + size, newSize - size);
-    gamecrt::operator_delete(data);
-    data = fresh;
-    size = newSize;
-    capacity = newCapacity;
+void PartyUnitRecordElements::Destruct(PartyUnitRecord* records, int count) {
+    for (int i = 0; i != count; ++i) records[i].Destruct();
 }
+
+// 00663FA0: CArray<PartyUnitRecord>::SetSize.
 EI_REPLACE_METHOD(0x00663FA0, PartyMemberArray::SetSize);
 
 // --- The managers and constructors a party makes ------------------------------------------------
@@ -207,10 +166,10 @@ void ReleaseItems(const AlignedPtrArray& items) {
 CParty* CParty::Construct() {
     ClearFields();
     ei::SetVtable(this, kBaseVtableAddress);
-    members_.vtable = reinterpret_cast<void*>(PartyMemberArray::kVtableAddress);
+    members_.vtable = reinterpret_cast<void*>(kPartyMemberArrayVtable);
     members_.data = nullptr;
     members_.growBy = 0;
-    members_.capacity = 0;
+    members_.maxSize = 0;
     members_.size = 0;
     items_.data = nullptr;
     items_.growBy = 0;
@@ -234,7 +193,7 @@ void CParty::DestructBody() {
     zone_.~CString();
     variables_.Destroy();
     if (items_.data != nullptr) gamecrt::operator_delete(items_.data[-1]);
-    members_.vtable = reinterpret_cast<void*>(PartyMemberArray::kVtableAddress);
+    members_.vtable = reinterpret_cast<void*>(kPartyMemberArrayVtable);
     if (members_.data != nullptr) {
         for (int i = 0; i != members_.size; ++i) members_.data[i].Destruct();
         gamecrt::operator_delete(members_.data);

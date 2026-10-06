@@ -31,7 +31,7 @@ bool NewItemsValid(const StockList* list, std::size_t skip, int lo, int hi) {
     std::size_t i = 0;
     for (const StockListNode* node = list->head->next; node != list->head; node = node->next, ++i) {
         if (i < skip) continue;
-        const char* item = static_cast<const char*>(node->value);
+        const char* item = static_cast<const char*>(node->data);
         if (!item || *reinterpret_cast<const int*>(item + 4) < 1) return false;
         int kind = *reinterpret_cast<const int*>(item + 0x10);
         if (kind < lo || kind > hi) return false;
@@ -134,7 +134,7 @@ void CheckInstructions(const char* name, ItemStock* self, const StockPtrVector& 
     std::size_t i = 0;
     for (const StockListNode* node = out->head->next; ok && node != out->head; node = node->next, ++i) {
         if (i < before) continue;
-        const char* item = static_cast<const char*>(node->value);
+        const char* item = static_cast<const char*>(node->data);
         if (!item || *reinterpret_cast<const int*>(item + 4) < 1) {
             ok = false;
             break;
@@ -280,7 +280,7 @@ static void __fastcall GenerateSpellsVerify(ItemStock* self, void*, StockList* o
     std::size_t i = 0;
     for (const StockListNode* node = out->head->next; ok && node != out->head; node = node->next, ++i) {
         if (i < before) continue;
-        const char* spell = static_cast<const char*>(node->value);
+        const char* spell = static_cast<const char*>(node->data);
         if (spell && *reinterpret_cast<const int*>(spell + 4) < 1) ok = false;
     }
     ei::verify::Check("ItemStock::GenerateSpells", true, ok, "threshold %u, %u recipes: %u -> %u spells", threshold,
@@ -392,7 +392,7 @@ void CheckMagicInstructions(const char* name, ItemStock* self, const StockPtrVec
     std::size_t i = 0;
     for (const StockListNode* node = out->head->next; ok && node != out->head; node = node->next, ++i) {
         if (i < before) continue;
-        const char* item = static_cast<const char*>(node->value);
+        const char* item = static_cast<const char*>(node->data);
         if (!item || *reinterpret_cast<const int*>(item + 4) < 1) {
             ok = false;
             break;
