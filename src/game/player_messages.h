@@ -30,6 +30,11 @@ class NetLink;  // net_link.h
 // 32-byte boundary (0047B940), size, capacity, grow-by.
 using PlayerObjectArray = lib::AlignedArray<CEngineObject*>;
 
+// A unit placement (0x28 bytes; built by 004CEE20, not read by the rewritten code).
+struct UnitPlacement {
+    std::uint8_t bytes[0x28];
+};
+
 class CPlayerServer {
 public:
     // Variables and state.
@@ -118,15 +123,23 @@ public:
     std::uint8_t* player_;          // +0x1C the world player (+0xC4 variables, +0x100, +0x130 dirty bits)
     int state_;                     // +0x20
     std::uint32_t unknown24_;       // +0x24 sent with message 0x60
-    // +0x28 the message handlers by type (thiscall, 0: refused), built by 0066C9A0; +0x2C their count.
-    int(__fastcall** handlers_)(CPlayerServer*, void*);
-    int handlerCount_;              // +0x2C
-    std::uint8_t unknown_30[0x38 - 0x30];
+    // 0066C9A0 (slot 2; player_messages.cpp). The outgoing messages emptied, both sent-object
+    // arrays released and freed, state 0, the last position 0 and +0x44 -1, both unit groups
+    // emptied, +0x24 -1, no refresh pending, +0x70 0, the placements emptied (0059C3D0), both
+    // coders reset, the next party refresh in 900..1800 updates (ISAAC), then the handler table:
+    // 256 entries, zeroed, and the 25 handlers by message type (their game addresses). Returns 1.
+    BOOL CreateServer();
+
+    // +0x28 the message handlers by type (thiscall, 0: refused), built by 0066C9A0 (256 of them).
+    using Handler = int(__fastcall*)(CPlayerServer*, void*);
+    lib::AlignedArray<Handler> handlers_;
     Vector3 lastPosition_;          // +0x38 sent with 0x04 / 0x0F
-    std::uint32_t unknown_44;
+    int unknown_44;                 // +0x44 -1 after Create
     BitStream out_;                 // +0x48 messages to the client (CMemoryStream)
     std::uint8_t flag70_;           // +0x70
-    std::uint8_t unknown_71[0x88 - 0x71];
+    std::uint8_t unknown_71[3];
+    // +0x74 the unit placements (an MFC CArray; SetSize 0059C3D0, ConstructElements 004CEE20).
+    mfc::CArray<UnitPlacement> placements_;
     CoderState compressor_;         // +0x88 for the messages sent (Flush)
     CoderState decompressor_;       // +0x28B0 for the messages received
     PlayerObjectArray sentObjects_; // +0x50D8 map objects the client has (counted)
@@ -145,6 +158,8 @@ static_assert(offsetof(CPlayerServer, decompressor_) == 0x28B0);
 static_assert(offsetof(CPlayerServer, lastPosition_) == 0x38);
 static_assert(offsetof(CPlayerServer, out_) == 0x48);
 static_assert(offsetof(CPlayerServer, flag70_) == 0x70);
+static_assert(offsetof(CPlayerServer, handlers_) == 0x28);
+static_assert(offsetof(CPlayerServer, placements_) == 0x74);
 
 // A world player's connection to its client (CPlayer::connection_): CPlayerServer (vtable 00743280)
 // or CPlayerClient (00743180). Neither class derives from this declaration (their slot bodies are

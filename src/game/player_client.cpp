@@ -210,7 +210,7 @@ int CPlayerClient::DispatchMessages() {
         if (!in_.ok_) return PlayerMessageErrorOriginal(TextReadPastEnd(), previous, type);
         previous = type;
         if (in_.Read(&type, 1) == 0) return 1;
-        if (static_cast<int>(type) >= handlerCount_) return PlayerMessageErrorOriginal(TextUnknownType(), previous, type);
+        if (static_cast<int>(type) >= handlers_.size) return PlayerMessageErrorOriginal(TextUnknownType(), previous, type);
         auto handler = handlers_[type];
         if (handler == nullptr) return PlayerMessageErrorOriginal(TextNoHandler(), previous, type);
         if (!handler(this, nullptr)) return PlayerMessageErrorOriginal(TextHandlerFailed(), previous, type);
@@ -747,6 +747,51 @@ void CoderState::Reset() {
     out.End();
     Construct();
 }
+
+namespace {
+
+constexpr int kClientHandlerCount = 0x100;
+
+// The client's message handlers (thiscall, RET 0) by type, as 00667230 stores them.
+struct HandlerEntry {
+    std::uint8_t type;
+    std::uintptr_t address;
+};
+constexpr HandlerEntry kClientHandlers[] = {
+    {0x00, std::uintptr_t(0x00667DA0)}, {0x01, std::uintptr_t(0x00667DE0)}, {0x02, std::uintptr_t(0x00669010)},
+    {0x03, std::uintptr_t(0x006690F0)}, {0x04, std::uintptr_t(0x00667C20)}, {0x05, std::uintptr_t(0x006691C0)},
+    {0x06, std::uintptr_t(0x00669490)}, {0x07, std::uintptr_t(0x00669D50)}, {0x08, std::uintptr_t(0x00669EB0)},
+    {0x09, std::uintptr_t(0x00669F30)}, {0x0A, std::uintptr_t(0x00669290)}, {0x0B, std::uintptr_t(0x00667DF0)},
+    {0x0C, std::uintptr_t(0x006696A0)}, {0x0D, std::uintptr_t(0x00669F40)}, {0x0E, std::uintptr_t(0x00669FA0)},
+    {0x0F, std::uintptr_t(0x00667D10)}, {0x12, std::uintptr_t(0x00667E20)}, {0x13, std::uintptr_t(0x00667E60)},
+    {0x14, std::uintptr_t(0x0066A420)}, {0x15, std::uintptr_t(0x0066A480)}, {0x16, std::uintptr_t(0x00669400)},
+    {0x17, std::uintptr_t(0x00669350)}, {0x18, std::uintptr_t(0x0066A5A0)}, {0x19, std::uintptr_t(0x0066A620)},
+    {0x40, std::uintptr_t(0x00667EC0)}, {0x41, std::uintptr_t(0x006687B0)}, {0x42, std::uintptr_t(0x00668850)},
+    {0x43, std::uintptr_t(0x0066A3B0)}, {0x50, std::uintptr_t(0x00668940)}, {0x51, std::uintptr_t(0x00668A30)},
+    {0x52, std::uintptr_t(0x00668AA0)}, {0x60, std::uintptr_t(0x00668C50)}, {0x70, std::uintptr_t(0x00669760)},
+    {0x71, std::uintptr_t(0x006697B0)}, {0x72, std::uintptr_t(0x00669800)}, {0x73, std::uintptr_t(0x0066A400)},
+    {0x80, std::uintptr_t(0x00669A30)}, {0x81, std::uintptr_t(0x00669850)}, {0x82, std::uintptr_t(0x00669960)},
+    {0x83, std::uintptr_t(0x00669C90)},
+};
+
+} // namespace
+
+BOOL CPlayerClient::CreateClient() {
+    state_ = 0;
+    array50D8_.SetSize(0, -1);
+    in_.Resize(0);
+    out_.Resize(0);
+    unknown_84 = 0;
+    sendParty_ = 0;
+    compressor_.Reset();
+    decompressor_.Reset();
+    handlers_.SetSize(kClientHandlerCount);
+    std::memset(static_cast<void*>(handlers_.data), 0, static_cast<std::size_t>(handlers_.size) * sizeof(Handler));
+    for (const HandlerEntry& entry : kClientHandlers)
+        handlers_[entry.type] = reinterpret_cast<Handler>(entry.address);
+    return 1;
+}
+EI_REPLACE_METHOD(0x00667230, CPlayerClient::CreateClient);
 
 void CPlayerClient::Clear() {
     state_ = 0;

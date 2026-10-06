@@ -191,3 +191,18 @@ static void __fastcall PlayerTickVerify(CPlayer* self) {
     ei::verify::Check("CPlayer::Tick", true, ok, "player %p: %d nodes, count %d", self, nodes, self->objects_.count);
 }
 EI_VERIFY(0x00665DE0, PlayerTickVerify, 0, s_unused);
+
+// 0066C9A0 (the server's Create; every newgame): ours only (it allocates the table and draws a random
+// number). 256 handlers (spot checks: 0x00 0066F890, 0x36 00670310, 0x50 00670B60), type 0x0A empty,
+// state 0, both sent-object arrays empty, the refresh timer in 900..1800.
+static BOOL __fastcall CreateServerVerify(CPlayerServer* self) {
+    BOOL result = self->CreateServer();
+    auto at = [self](int type) { return reinterpret_cast<std::uintptr_t>(self->handlers_[type]); };
+    bool ok = result == 1 && self->state_ == 0 && self->handlers_.size == 0x100 && at(0x00) == 0x0066F890u &&
+              at(0x36) == 0x00670310u && at(0x50) == 0x00670B60u && at(0x0A) == 0 && self->sentObjects_.size == 0 &&
+              self->sentTimed_.size == 0 && self->refreshTimer_ >= 900 && self->refreshTimer_ < 1801 && self->out_.size_ == 0;
+    ei::verify::Check("CPlayerServer::CreateServer", true, ok, "server %p: %d handlers timer %d", self,
+                      self->handlers_.size, self->refreshTimer_);
+    return result;
+}
+EI_VERIFY(0x0066C9A0, CreateServerVerify, 0, s_unused);

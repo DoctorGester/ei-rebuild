@@ -385,7 +385,7 @@ int CPlayerServer::ReceiveMessages() {
             previous = type;
             if (in.Read(&type, 1) == 0) break;
             if (state_ == 0 && type != kMessageJoin && type != kMessageJoin8) break;
-            if (static_cast<int>(type) >= handlerCount_) return PlayerMessageErrorOriginal(TextUnknownType(), previous, type);
+            if (static_cast<int>(type) >= handlers_.size) return PlayerMessageErrorOriginal(TextUnknownType(), previous, type);
             auto handler = handlers_[type];
             if (handler == nullptr) return PlayerMessageErrorOriginal(TextNoHandler(), previous, type);
             if (!handler(this, nullptr)) return PlayerMessageErrorOriginal(TextHandlerFailed(), previous, type);

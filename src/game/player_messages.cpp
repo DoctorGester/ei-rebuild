@@ -4,11 +4,13 @@
 #include "player_messages.h"
 #include "party.h"
 #include "party_record_lookup.h"
+#include "random.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "originals_core.h"
 #include "originals_engine.h"
+#include "originals_gameplay.h"
 
 #include <cstring>
 
@@ -265,7 +267,67 @@ void CPlayer::Tick() {
     connection_->TickDone();
 }
 
+// --- 0066C9A0: the server's Create ---------------------------------------------------------------
+
+namespace {
+
+constexpr int kServerHandlerCount = 0x100;
+
+// The server's message handlers (thiscall, RET 0) by type, as 0066C9A0 stores them.
+struct HandlerEntry {
+    std::uint8_t type;
+    std::uintptr_t address;
+};
+constexpr HandlerEntry kServerHandlers[] = {
+    {0x00, std::uintptr_t(0x0066F890)}, {0x01, std::uintptr_t(0x0066FA90)}, {0x02, std::uintptr_t(0x0066FAA0)},
+    {0x03, std::uintptr_t(0x00670C20)}, {0x04, std::uintptr_t(0x00670CE0)}, {0x05, std::uintptr_t(0x00670DA0)},
+    {0x06, std::uintptr_t(0x00670E00)}, {0x07, std::uintptr_t(0x00670EB0)}, {0x08, std::uintptr_t(0x00670F50)},
+    {0x09, std::uintptr_t(0x00671060)}, {0x10, std::uintptr_t(0x0066FAC0)}, {0x30, std::uintptr_t(0x0066FFF0)},
+    {0x31, std::uintptr_t(0x00670190)}, {0x32, std::uintptr_t(0x006708D0)}, {0x33, std::uintptr_t(0x00670820)},
+    {0x34, std::uintptr_t(0x00670960)}, {0x35, std::uintptr_t(0x006709D0)}, {0x36, std::uintptr_t(0x00670310)},
+    {0x37, std::uintptr_t(0x00670810)}, {0x38, std::uintptr_t(0x00670A40)}, {0x39, std::uintptr_t(0x00670A90)},
+    {0x3A, std::uintptr_t(0x0066FBD0)}, {0x3B, std::uintptr_t(0x0066FB70)}, {0x40, std::uintptr_t(0x00670B20)},
+    {0x50, std::uintptr_t(0x00670B60)},
+};
+
+// The sent-object arrays emptied as 0047B620 does: every object released (slot 4), the block freed.
+void ReleaseAll(PlayerObjectArray& objects) {
+    // The data pointer is read once, the size after every release.
+    CEngineObject** element = objects.data;
+    for (int i = 0; i < objects.size; ++i) (*element++)->Release();
+    objects.RemoveAll();
+}
+
+} // namespace
+
+BOOL CPlayerServer::CreateServer() {
+    out_.Resize(0);
+    ReleaseAll(sentObjects_);
+    ReleaseAll(sentTimed_);
+    state_ = 0;
+    lastPosition_.x = 0.0f;
+    lastPosition_.y = 0.0f;
+    lastPosition_.z = 0.0f;
+    unknown_44 = -1;
+    group50F8_.SetSize(0, -1);
+    partyUnits_.SetSize(0, -1);
+    unknown24_ = 0xFFFFFFFFu;
+    refreshPending_ = 0;
+    flag70_ = 0;
+    PlacementsSetSizeOriginal(&placements_, nullptr, 0, -1);
+    compressor_.Reset();
+    decompressor_.Reset();
+    refreshTimer_ = static_cast<int>(IsaacRandom::Global().Next() % 0x385u + 0x384u);
+    handlers_.SetSize(kServerHandlerCount);
+    std::memset(static_cast<void*>(handlers_.data), 0, static_cast<std::size_t>(handlers_.size) * sizeof(Handler));
+    for (const HandlerEntry& entry : kServerHandlers)
+        handlers_[entry.type] = reinterpret_cast<Handler>(entry.address);
+    return 1;
+}
+
 // --- Hooks ---------------------------------------------------------------------------------------
+
+EI_REPLACE_METHOD(0x0066C9A0, CPlayerServer::CreateServer);
 
 EI_REPLACE_METHOD(0x0066EE10, CPlayerServer::SetVariable);
 EI_REPLACE_METHOD(0x0066EE80, CPlayerServer::SetVariableMax);

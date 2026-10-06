@@ -68,8 +68,6 @@ __declspec(naked) void __fastcall IdArraySetAtGrow(IdArray*, void*, int, int) EI
 __declspec(naked) void __fastcall ItemArraySetSize(void*, void*, int, int) EI_ORIGINAL(0x0059CB50)
 // 005719B0 (RET 8). The record array's SetSize(size, growBy).
 inline void __fastcall RecordArraySetSize(RecordArray* a, void*, int n, int g) { RecordArraySetSizeOriginal(a, nullptr, n, g); }
-// 0059C3D0 (RET 8). The placement array's SetSize(size, growBy).
-__declspec(naked) void __fastcall PlacementsSetSize(void*, void*, int, int) EI_ORIGINAL(0x0059C3D0)
 // 006A0110. A quest item's description: the names of the zones it belongs to (a vector at +0x70).
 __declspec(naked) std::uint8_t* __fastcall QuestItemInfo(CEngineObject*, void*) EI_ORIGINAL(0x006A0110)
 // 00665470 (RET 8). Puts a list of items into the player's inventory.
@@ -252,7 +250,7 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     QuaternionFromAxisAngle(&rotation, nullptr, &up, angle);
 
     CreateUnitsAt(this, nullptr, player, &records, &start, rotation, placements);
-    if (placements) PlacementsSetSize(placements, nullptr, 0, -1);
+    if (placements) PlacementsSetSizeOriginal(placements, nullptr, 0, -1);
     void* state = At<void*>(player, 0x20);
     if (At<std::uint32_t>(state, 0x40) != kNoStart) {
         std::memcpy(&At<std::uint8_t>(state, 0x38), &start, sizeof(start));

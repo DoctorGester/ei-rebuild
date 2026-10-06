@@ -531,3 +531,15 @@ Also 00664B70, PlayerMessageError (__fastcall: format, previous type in DL, type
 Moved to shared headers: 006EAF20 _access (gamecrt::access), 00578D00 (ServerFlagOriginal) and 00458010
 (FrameStepOriginal, originals_ui.h), 005F8340 (InterfaceTextExtentOriginal). Not rewritten: 00653BD0 (the zone title).
 Kept: QuickSave uses the surface even when its allocation failed.
+
+## Player connections: the handler tables (A-H12)
+
+| Address | Name | Verify |
+|---|---|---|
+| 00667230 | CPlayerClient::CreateClient (slot 2; player_client.cpp) | ours only: 256 handlers, spot entries, state 0, empty streams |
+| 0066C9A0 | CPlayerServer::CreateServer (slot 2; player_messages.cpp) | ours only: 256 handlers, spot entries, sent arrays empty, timer 900..1800 |
+
+Both tables store the handlers' game addresses (40 client types, 25 server types), so rewritten handlers run
+through their hooks. handlers_ is now a lib::AlignedArray on both classes (their allocators 0066BE00 / 00671240 are
+AllocAligned32). CPlayerServer +0x44 is an int (-1 after Create), +0x74 the unit placements (mfc::CArray<UnitPlacement>,
+SetSize 0059C3D0 now PlacementsSetSizeOriginal in originals_gameplay.h, also used by world_party.cpp).

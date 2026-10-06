@@ -94,6 +94,10 @@ public:
     int OnNewObject();
     // 00667E60 (0x13). A text run as the interface's string event (005F8070).
     int OnStringEvent();
+    // 00667230 (slot 2). Clear's state (the +0x50D8 array through SetSize(0)), then the handler
+    // table: 256 entries (grown as an aligned array), zeroed, and the 40 handlers by message type
+    // (their game addresses, so the rewritten ones run through their hooks). Returns 1.
+    BOOL CreateClient();
     // 00667510 (slot 3) and its copy 00667600 (slot 15). State 0, the array +0x50D8 freed, both
     // streams emptied (Resize(0)), +0x84 and the send-party flag cleared, both coders reset.
     void Clear();
@@ -108,10 +112,9 @@ public:
     std::uint8_t engineObject_[0x1C - 0x04];
     std::uint8_t* player_;          // +0x1C the world player
     int state_;                     // +0x20 0 connecting, 1 logged in, 2 sending the camera, ...
-    // +0x24 the message handlers by type (thiscall, 0: refused), built by 00667230; +0x28 their count.
-    int(__fastcall** handlers_)(CPlayerClient*, void*);
-    int handlerCount_;              // +0x28
-    std::uint8_t unknown_2C[0x34 - 0x2C];
+    // +0x24 the message handlers by type (thiscall, 0: refused), built by 00667230 (256 of them).
+    using Handler = int(__fastcall*)(CPlayerClient*, void*);
+    lib::AlignedArray<Handler> handlers_;
     BitStream in_;                  // +0x34 the server's messages being run
     BitStream out_;                 // +0x5C requests for the server
     std::uint8_t unknown_84;
