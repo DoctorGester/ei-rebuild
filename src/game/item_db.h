@@ -144,8 +144,11 @@ struct ArmorRecord : ItemRecordHead {
     std::uint32_t absorbFirst[7];       // +0x70 item absorb_[0]
     std::uint8_t unknown_8C[0x94 - 0x8C];
     std::uint32_t absorbOthers[7];      // +0x94 item absorb_[1]
-    std::uint8_t unknown_B0[kArmorSize - 0xB0];
+    std::uint8_t unknown_B0[0xB4 - 0xB0];
+    std::uint8_t showsWounds;           // +0xB4 0: the piece hides the wounds of the parts it covers (00536EA0)
+    std::uint8_t unknown_B5[kArmorSize - 0xB5];
 };
+static_assert(offsetof(ArmorRecord, showsWounds) == 0xB4);
 static_assert(offsetof(ArmorRecord, absorbOthers) == 0x94);
 static_assert(sizeof(ArmorRecord) == kArmorSize);
 

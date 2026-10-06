@@ -1,7 +1,7 @@
 // Checks for object3d_figure_setup.cpp (A-U4).
 // - SetUpAnimatedFigure (005179E0): ours only (it loads the model, plays and releases the animation
-//   state's parts: a second run would find no parts). Checked: one box and one part name per part
-//   the state animated before, every box flagged 4, the state's part list empty, both bounds flags
+//   state's parts: a second run would find no parts). Checked: one part name per box (the
+//   state's parts appear during the call), every box flagged 4, the state's part list empty, both bounds flags
 //   set, and the bounds recomputed here from the boxes (heroes: x / y -0.5..0.5) agree (CheckNear).
 // Reached by: the zone loader (005927C0) for every animated object and unit of a zone, so every
 // scenario that starts a game (units, unit_create, world_load); levers (Lever::SetState) too.
@@ -31,14 +31,15 @@ bool Near(float a, float b) { return ei::verify::NearlyEqual(a, b, 8, 1e-5f); }
 } // namespace
 
 static void __fastcall SetUpAnimatedFigureVerify(CObject3D* self, void*, const char* model) {
-    int parts = self->animation ? self->animation->parts.count : 0;
     bool hadAnimation = self->animation != nullptr;
     self->SetUpAnimatedFigure(model);
+    // The state's parts appear during the call (0050D320 gives it the model), so the count is
+    // the boxes made, not the list before.
+    int parts = hadAnimation ? self->partBoxCount : 0;
 
     bool ok = (self->boundsFlags & 3) == 3;
     if (hadAnimation) {
-        ok = ok && self->partBoxCount == parts && self->partNameCount == parts && self->animation->parts.count == 0 &&
-             !self->animation->parts.head;
+        ok = ok && self->partNameCount == parts && self->animation->parts.count == 0 && !self->animation->parts.head;
     }
     float high[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
     float low[3] = {FLT_MAX, FLT_MAX, FLT_MAX};
@@ -121,3 +122,28 @@ static int __fastcall MakeFigureVerify(CObject3D* self, void*, const char* model
     return result;
 }
 EI_VERIFY(0x00516DA0, MakeFigureVerify, 0, s_unusedMakeFigure);
+
+// - UpdatePartBounds (00518100): the original runs, the bounds (+0x124..+0x150) are kept and put
+//   back, ours runs; flags compared exactly, the ten floats CheckNear (the parts' world transforms
+//   are recomputed from the same inputs by both). Reached by the world's 00566030 when a unit
+//   becomes the controlled one (every game start; ui_battle_commands).
+// 00518100: SUB ESP,0x48; PUSH ESI; MOV ESI,ECX (6 bytes).
+static void(__fastcall* s_updatePartBounds)(CObject3D*);
+static void __fastcall UpdatePartBoundsVerify(CObject3D* self) {
+    std::uint8_t before[0x150 - 0x124];
+    auto* bounds = reinterpret_cast<std::uint8_t*>(&self->boundsFlags);
+    std::memcpy(before, bounds, sizeof(before));
+    s_updatePartBounds(self);
+    std::uint32_t flags = self->boundsFlags;
+    float expected[10] = {self->center[0], self->center[1], self->center[2], self->radius,   self->below[0],
+                          self->below[1],  self->below[2],  self->above[0],  self->above[1], self->above[2]};
+    std::memcpy(bounds, before, sizeof(before));
+    self->UpdatePartBounds();
+    float actual[10] = {self->center[0], self->center[1], self->center[2], self->radius,   self->below[0],
+                        self->below[1],  self->below[2],  self->above[0],  self->above[1], self->above[2]};
+    bool ok = flags == self->boundsFlags;
+    for (int i = 0; i < 10; ++i) ok = ok && Near(expected[i], actual[i]);
+    ei::verify::Check("CObject3D::UpdatePartBounds", true, ok, "%d parts, radius %g vs %g", self->parts.size,
+                      expected[3], actual[3]);
+}
+EI_VERIFY(0x00518100, UpdatePartBoundsVerify, 6, s_updatePartBounds);

@@ -348,6 +348,12 @@ public:
     // CStringArray `partNames` is loaded by LoadPart (with the cached model; failures logged).
     // Without a figure manager: FatalError. Returns 1.
     int LoadParts(const char* model, const void* partList, std::uint32_t arg);
+    // 00518100 (plain RET; the world's 00566030 when a unit becomes the controlled one). With the
+    // figure loaded (flags_ 0x80): each part's world transform is updated from the object's
+    // (part slot 15) and its world box grows the bounds (0059FDF0); the centre (+0x128) is the
+    // box centre relative to the position, below / above the box minus the centre, the radius
+    // the length of `below`; bounds flags 2 and 1 set.
+    void UpdatePartBounds();
     // 00516DA0 (RET 0xC). Builds the figure of `model` (+0xA4) for the part names `partList` (a
     // CStringArray): the animation state is rescaled and given the model; with no names and an
     // animation state the names are the state's parts (0050D920) and the figure the cache's whole

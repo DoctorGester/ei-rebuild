@@ -103,6 +103,11 @@ static_assert(offsetof(SkinRequest, flags) == 0x24);
 
 class CUnitClientSpecific : public CEngineObject {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073ECD8);
+    // The controller base class's vtable (the destructor body ends with it) and the list +0x58's.
+    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073EDBC);
+    static constexpr std::uintptr_t kList58VtableAddress = std::uintptr_t(0x0073EDB0);
+
     // 005381B0. Virtual slot 26: the unit puts on armour piece `itemId` (packed: prototype index
     // in the high half, number in the low half). For a body armour, trousers or helmet not
     // already worn, each part of its group is replaced by "<part>.armor<number>" when the unit's
@@ -137,7 +142,7 @@ public:
     // ...s when not `detailed`). Returns the texture.
     void* ComposeSkin(int detailed, void* target);
 
-    // 00535770 (not rewritten; forwarded from unit_figure_queries.cpp, RET 4). The point the weapon
+    // 00535770 (unit_client_wounds.cpp, A-U4; RET 4). The point the weapon
     // in hand acts from: the node named by the weapon's model (weaponIds[unit->activeWeapon], 006A0CC0;
     // "baserh3" without one) in the unit's figure animation (0050CC20 on the unit's +0x98), its +0x74
     // copied to `out` (relative to the unit, not turned by its orientation). False (AL) when the
@@ -162,6 +167,12 @@ public:
     // eyesClosed becomes 1 / 0.
     void BlinkClose(bool force);
     void BlinkOpen(bool force);
+    // 00538DB0 (unit_client_wounds.cpp, A-U4). The face texture the blink uses (+0xCC), loaded
+    // once: the texture manager's texture of kind 0x3D named "<model>mouth_<skin, 2 digits>"
+    // (heroes, the prototype's +0x0C) or "<model>mouth", loaded (006922A0); one that did not load
+    // (flags_ bit 8 clear) is dropped and blinking stops. False (AL) without a prototype or a
+    // loaded face.
+    bool LoadFaceTexture();
     // 005344E0. Virtual slot 13 (figures loaded): the drawn parts take the fade-in as alpha.
     // Returns 1.
     int FiguresLoaded();
@@ -251,6 +262,15 @@ public:
     // 00533E80. Virtual slot 0, the deleting destructor: the destructor body (00533EA0), then the
     // memory freed for bit 0 of `flags`. Returns this.
     CUnitClientSpecific* DeleteClient(std::uint32_t flags);
+    // 00533EA0 (unit_client_lifetime.cpp, A-U4). The destructor body: the three particle sources
+    // stop and are released, the face texture released (no blink), the speech queue's nodes and
+    // header freed, the MFC list +0x58 emptied, then the base (vtable 0073EDBC, no unit) and
+    // CEngineObject's destructor body.
+    void DestructClientBody();
+    // 00533AD0 (unit_client_lifetime.cpp, A-U4). The constructor: the engine object's fields, no
+    // unit, the list +0x58 (vtable 0073EDB0, block size 0x80), an empty speech queue (its header
+    // node allocated), no face texture, fully faded in, the vtable 0073ECD8. Returns this.
+    CUnitClientSpecific* ConstructClient();
     // 005340C0. Virtual slot 3 (Destroy): the three particle sources stop (CParticleSource::Stop)
     // and are released, the face texture released; no blink.
     void DestroyClient();
@@ -309,6 +329,20 @@ public:
     // chance left `out` empty), else 0.
     int ActionSound(const FigureAnimation* animation, float from, float to, mfc::CString* out, std::uint8_t miss);
 
+    // unit_client_wounds.cpp (A-U4).
+    // 00536EA0 (RET 4). The wound level of each of the six body parts (head, body, hands, legs)
+    // into (*levels)[0..5]: 0 for a part without state or maximum, at full durability, or at 75%
+    // or more; 1 above 33%, 2 above one point, 3 at one point or less. Heroes (type_ 0x32) show
+    // none under armour whose record hides them (ArmorRecord::showsWounds; trousers: legs, body
+    // armour: body and hands, helmet: head); others show each pair of hands / legs at the worse
+    // level. True (AL) when any part was wounded before the armour test.
+    bool WoundLevels(std::uint8_t** levels);
+    // 005370F0 (plain RET). The unit's wounds texture: with any wound, a skin request of the six
+    // levels and the textures "<model><part>w<level>.mmp" of the wounded parts (128 pixels for
+    // heroes, else 64) is composed by the texture manager (00693180) as "mo<id>w". Returns its
+    // result, or 0 without wounds.
+    int ComposeWoundsTexture();
+
     AIPath* MotionPath() { return reinterpret_cast<AIPath*>(motionOrder); }
 
     CUnit* unit;                    // +0x1C
@@ -317,7 +351,7 @@ public:
     const FigureAnimation* lastAnimation;   // +0x30 the animation at the last update
     float lastTime;                 // +0x34 the world time the unit was last advanced to (slot 40)
     std::uint8_t motionOrder[0x20]; // +0x38 the order part of a path (AIPath; slot 16): MotionOrder()
-    std::uint8_t unknown_058[0x74 - 0x58];   // +0x58 an MFC list (vtable 0073EDB0, block size 0x80)
+    mfc::CTypedPtrList<void> list58;        // +0x58 an MFC list (vtable 0073EDB0, block size 0x80)
     std::uint8_t weaponHidden;      // +0x74 ShowWeaponParts' state (cleared by a weapon change)
     std::uint8_t arrowHidden;       // +0x75 the bow's arrow part is flagged hidden
     std::uint8_t snapHeading;       // +0x76 the next path placement turns the unit to the path at once (00535850)
@@ -353,6 +387,7 @@ static_assert(offsetof(CUnitClientSpecific, armourIds) == 0xA0);
 static_assert(offsetof(CUnitClientSpecific, weaponIds) == 0xBC);
 static_assert(offsetof(CUnitClientSpecific, blinks) == 0xD0);
 static_assert(offsetof(CUnitClientSpecific, eyesClosed) == 0xD8);
+static_assert(sizeof(CUnitClientSpecific) == 0xDC);
 
 struct AttackParams;   // combat.h
 
