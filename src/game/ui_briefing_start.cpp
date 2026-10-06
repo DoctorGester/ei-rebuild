@@ -1,15 +1,21 @@
-// The briefing / base screen's dialogue start (CBriefingScreen::StartDialogue, ui_briefing.h): who
-// takes part, where they stand and how they get there. See docs/notes/ui.md, "Briefing / base screen".
+// The briefing / base screen's dialogue start and end (CBriefingScreen::StartDialogue /
+// FinishDialogue, ui_briefing.h): who takes part, where they stand, how they get there and back.
+// See docs/notes/ui.md, "Briefing / base screen".
 #include "ui_briefing.h"
 
+#include "camera.h"
 #include "class_templates.h"
 #include "console.h"
 #include "core_maths.h"
 #include "item_db_text.h"
 #include "object_tables.h"
+#include "sound.h"
 #include "text_reader.h"
 #include "unit.h"
+#include "unit_ai.h"
+#include "unit_client_models.h"
 #include "unit_db.h"
+#include "world.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -17,6 +23,8 @@
 #include "lib/stlp.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "originals_units.h"
+#include "originals_world.h"
 
 #include <cmath>
 
@@ -29,7 +37,15 @@ const char* ShowLine() { return reinterpret_cast<const char*>(0x007906DC); }    
 const ClassTemplateVector* ClassTemplates() { return reinterpret_cast<const ClassTemplateVector*>(0x007AA5D8); }
 void* UnitGlue() { return reinterpret_cast<void*>(0x007AFEA6); }
 void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
+const char* TopicPrefix() { return reinterpret_cast<const char*>(0x007906FC); }        // "b."
+void* MusicSystem() { return *reinterpret_cast<void* const*>(0x007AF760); }
 
+WorldPlayer* LocalServerPlayer() { return static_cast<WorldPlayer*>(WorldGetPlayer(WorldServer(), nullptr, 0)); }
+
+constexpr int kStateWalking = 0;
+constexpr int kEventEnds = 0;
+constexpr int kEventLeaves = 2;
+constexpr int kTopicNameParts = 3;
 constexpr int kConstructorPrefix = 6;    // "constr"
 constexpr int kConstructorNumber = 7;    // where the constructor's number starts
 constexpr int kCampScreen = 5;
@@ -199,3 +215,85 @@ void CBriefingScreen::StartDialogue(bool immediate, bool remember) {
         state_ = kStateStarting;
 }
 EI_REPLACE_METHOD(0x006064E0, CBriefingScreen::StartDialogue);
+
+// --- 00608450 -----------------------------------------------------------------------------------
+
+void CBriefingScreen::FinishDialogue() {
+    if (voice_ != -1) sound::Manager()->StopSound(voice_);
+    voice_ = -1;
+    MusicFadeInOriginal(MusicSystem());
+
+    for (BriefingShownItem* node = shown_->next; node != shown_; node = node->next) {
+        if (node->item) {
+            RemoveObject(node->item->texture_);
+            RemoveSceneObject(reinterpret_cast<CEngineObject*>(node->item));
+        }
+        if (node->back) RemoveSceneObject(node->back);
+        if (node->frame) RemoveSceneObject(node->frame);
+    }
+    // list::clear (the name's destructor 0060ABE0, the node back to the pool 005FA8E0).
+    for (BriefingShownItem* node = shown_->next; node != shown_;) {
+        BriefingShownItem* next = node->next;
+        node->name.~CString();
+        stlp::deallocate(node, sizeof(BriefingShownItem));
+        node = next;
+    }
+    shown_->next = shown_;
+    shown_->prev = shown_;
+
+    for (BriefingSpeaker* speaker = speakers_; speaker != speakersEnd_; ++speaker) {
+        CUnit* unit = speaker->unit;
+        void* server = LocalServerPlayer()->server;
+        if (server) PlayerSendDialogueEventOriginal(server, nullptr, kEventLeaves, unit->id_);
+        auto* model = reinterpret_cast<CUnitClientSpecific*>(unit->controller);
+        model->blinks = 0;
+        model->BlinkOpen(true);
+        auto* serverUnit = reinterpret_cast<CUnit*>(WorldFindUnit(WorldServer(), nullptr, unit->id_));
+        if (!serverUnit) continue;
+        serverUnit->SetFlag40000000Off(true);
+        GameSetUnitHeightOriginal(UnitGlue(), nullptr, unit->id_, 0.0f);
+        auto* controller = reinterpret_cast<UnitController*>(serverUnit->controller);
+        controller->actionDone = nullptr;
+        ControllerStopActionOriginal(controller);
+        // (The original then looks for the unit among the party's first members; the result is
+        // not used.)
+    }
+    // vector::clear (0060AB60, then the entries' destructor 0060AC00).
+    for (BriefingSpeaker* speaker = speakers_; speaker != speakersEnd_; ++speaker) speaker->name.~CString();
+    speakersEnd_ = speakers_;
+    rewardUnit_ = nullptr;
+
+    if (leader_) GameSetUnitHeightOriginal(UnitGlue(), nullptr, leader_->id_, 0.0f);
+    if (person_) GameSetUnitHeightOriginal(UnitGlue(), nullptr, person_->id_, 0.0f);
+    if (third_) {
+        BriefingMovePersonOriginal(this, nullptr, third_, thirdPlace_.x, thirdPlace_.y, thirdPlace_.z, thirdDirection_.x,
+                                   thirdDirection_.y, thirdDirection_.z, 0, 0, 0);
+        third_ = nullptr;
+    }
+    if (noWalk_ && person_) {
+        BriefingMovePersonOriginal(this, nullptr, person_, personHome_.x, personHome_.y, personHome_.z,
+                                   personHomeDirection_.x, personHomeDirection_.y, personHomeDirection_.z, 0, 0, 0);
+    }
+
+    BriefingVariables variables(TopicPrefix());
+    console::CStringArray parts;
+    for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
+        StringSplit(node->key, &parts, '.');
+        if (parts.GetSize() != kTopicNameParts || Compare(topic_, parts[2]) != 0) continue;
+        WorldCompleteBriefingOriginal(WorldServer(), nullptr, 0, node->key);
+        break;
+    }
+
+    state_ = kStateWalking;
+    void* server = LocalServerPlayer()->server;
+    if (server) PlayerSendDialogueEventOriginal(server, nullptr, kEventEnds, leader_->id_);
+    Vector3 at = Position(leader_);
+    if (briefingStarted_) {
+        PlayerSendPosition04Original(LocalServerPlayer()->server, nullptr, &at, 0, 1);
+        camera::TheCamera()->flags_ &= ~CCamera::kFree;
+        briefingStarted_ = false;
+    } else {
+        PlayerSendViewOriginal(LocalServerPlayer()->server, nullptr, &savedCamera_, &lookAt_, 0);
+    }
+}
+EI_REPLACE_METHOD(0x00608450, CBriefingScreen::FinishDialogue);

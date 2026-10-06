@@ -221,6 +221,15 @@ public:
     // noWalk_, the person) and the third walk to their places (006089D0, waited, `immediate`).
     // `immediate` starts the phrases at once (StartPhrases), else state 2.
     void StartDialogue(bool immediate, bool remember);
+    // 00608450 (ui_briefing_start.cpp). The dialogue ends (the rewards taken, or skipped): the voice
+    // stops, the music fades in, the shown items go, every speaker leaves (the server hears event 2,
+    // its blink stops, its server unit's flag 0x40000000 back, height 0, action dropped) and the
+    // list is emptied; the leader and the person back to height 0, the third speaker walks back to
+    // thirdPlace_ (and is forgotten), with noWalk_ the person to personHome_. The first "b.*.<topic>"
+    // variable (three parts) completes (00592090 for player 0). State 0, the server hears event 0
+    // with the leader; a dialogue that started by itself (briefingStarted_) puts the camera on the
+    // leader (message 0x04) and frees it, otherwise it goes back to savedCamera_ / lookAt_.
+    void FinishDialogue();
 
     int exit_;                      // +0x164 the exit a "leave_zone" answer leaves through
     bool exitPending_;               // +0x168 Create sets it (Update checks the leader's exit)
@@ -250,7 +259,7 @@ public:
     mfc::CString dialogueText_;      // +0x248 the dialogue's text so far (shown whole when skipped)
     float phraseTime_;               // +0x24C time left of a phrase without a voice
     int voice_;                      // +0x250 the phrase's voice (sound id), -1 none
-    CUnit* rewardUnit_;              // +0x254
+    CUnit* rewardUnit_;              // +0x254 (FinishDialogue clears it)
     std::uint8_t unknown_258[4];
     CUiWindow* text_;                // +0x25C the dialogue text (a CUiScrollText)
     CUiScrollbar* topicBar_;         // +0x260 the topic list's scroll bar

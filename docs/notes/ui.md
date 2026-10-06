@@ -378,8 +378,10 @@ A-I12 (`ui_briefing_start.cpp`; `verify_ui_briefing_start.cpp`): 006064E0 `Start
 state 0 / 2 / 3, a person, the three facings flat, normalised and along the places). Fields: immediate_ +0x27C, personHome_ /
 personHomeDirection_ +0x228 / +0x234 (the person's place, noWalk_). The "constr" topic's number is `Mid(7)` (006FD9B4, not
 Right). Movers erased inline (00609A40, pool 0x30). Forwarders 00608210, 00578560, 00578B00 (originals_ui.h; harness.cpp uses
-them now).
-Next: 00604C50 / 00608450, Create and Update.
+them now). 00608450 `FinishDialogue` (ours only: state 0, speakers / shown items empty, no third or reward unit,
+briefingStarted_ off; the "b.*.<topic>" variable completes through 00592090's address). Forwarders 006B4E20 (music fade in),
+0066ED30, 00592090 (originals_ui.h). Its unused party search (00578BA0) is left out, as in HideSpeaker.
+Next: 00604C50, Create and Update.
 
 ## 6. Battle screen: update, selection, orders, pending actions (00635250-0064BE80)
 
