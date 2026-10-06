@@ -135,3 +135,13 @@ through `game::FatalError` (EI_ORIGINAL). Forwarders are in `unit_ai.h`, `unit_a
   a model taken before. Scenario `unit_ai` (UMPatrolAddPoint; every Guard / Patrol / Sentry move). Kept: AppendPoint rounds
   2x to nearest, so its point is (n + 0.5) / 2, 0..0.5 above the asked one, not its half-cell's middle. The patrol point
   array's SetSize 004C9970 moved to `originals_ai.h` (also used by script_exec.cpp).
+- `unit_ai_targets.cpp`: 005D0030 AIAttention::Choose (the target choice), 005CF9A0 Score, 005CF7F0 IsUsable, 005CFE20
+  AIDistance2, AIOrder 00545F40 Clear / 005CF720 MakeAttack / 005CF780 MakeCast. The attention at brain + 0xA4 is now a struct
+  (two CArrays of 0x28-byte AIAttackOption: weapons, spells; +0x28 the heal weight); UnitController gained `stats` (+0x1E0),
+  `protection` (+0x8E4) and `brain` (+0x980). Verify: Score / IsUsable / AIDistance2 pure against the original; Choose
+  differential (original first, the reports it added or raised put back, ours; pair and reports compared); the orders ours
+  only. Forwarders: 00522AE0 ExcessDamage (originals_ai.h), 0054C960 CheckOrderAt, 005CF3C0 CanReach (unit_ai.cpp).
+  Choose keeps its scored candidates in a local vector instead of the original's CList (heap traffic differs, not the result).
+  Kept: Score's group bonus counts the group minus one for kinds 1 and 4..7, the whole group for 2 and 3; kind 3 multiplies
+  by (effect / 4) / 2; the weapons are only scored when `alliesOnly` is off; the order checked for a target off the path
+  has an uninitialised point (ours zero).

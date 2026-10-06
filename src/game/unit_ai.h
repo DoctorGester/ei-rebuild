@@ -21,6 +21,7 @@
 #include <cstdint>
 
 struct AIBrain;
+struct AIOrder;
 
 // The stream the save-game code passes to Load/Save (vtable slot 1 Read, slot 2 Write); +8 is the
 // version of the file being read.
@@ -53,6 +54,13 @@ struct UnitController {
     int nextCommand;                // +0x1B4 the queued command
     std::uint8_t unknown_1B8[4];
     CEngineObject* nextTarget;      // +0x1BC
+    std::uint8_t unknown_1C0[0x1E0 - 0x1C0];
+    UnitStats stats;                // +0x1E0
+    std::uint16_t protection[8];    // +0x8E4 what an attack's damage words are measured against (00522AE0)
+    std::uint8_t unknown_8F4[0x980 - 0x8F4];
+    std::uint8_t brain[0x190];      // +0x980 the AIBrain (Brain())
+
+    AIBrain* Brain();
 
     // 00552CF0 (RET 4; unit_ai_brain.cpp). The unit's CUnit::AddHostileMask (its EAX returned).
     std::uintptr_t AddHostileMask(std::uint32_t mask);
@@ -68,6 +76,8 @@ struct UnitController {
     void Attack(CEngineObject* target, int how, int unknown, int flags);
     // 0054C8B0. Whether the player's order check accepts `order` (see AttackTarget).
     bool CheckOrder(const void* order);
+    // 0054C960 (RET 8). The same check with the unit moved to `point` meanwhile (only AL).
+    bool CheckOrderAt(const AIOrder* order, const Vector3* point);
     void CastAt(int spell, const Vector3* point, int run);  // 00554D00
     void TurnTo(const Vector3* point, int time, int unused, float limit);   // 00554830
     void UseOnPoint(CEngineObject* object, int a, int b);   // 00555570
@@ -87,6 +97,27 @@ static_assert(offsetof(UnitController, command) == 0x190);
 static_assert(offsetof(UnitController, commandTarget) == 0x198);
 static_assert(offsetof(UnitController, nextCommand) == 0x1B4);
 static_assert(offsetof(UnitController, nextTarget) == 0x1BC);
+static_assert(offsetof(UnitController, stats) == 0x1E0);
+static_assert(offsetof(UnitController, protection) == 0x8E4);
+static_assert(offsetof(UnitController, brain) == 0x980);
+
+// An order as the controller's order checks take it (0x1C bytes, built on the stack).
+struct AIOrder {
+    // 00545F40. Kind 9 (none): the object released and cleared, the flag cleared.
+    void Clear();
+    // 005CF720 (RET 4). Clear, then an attack (3, 6) on `object` (referenced).
+    void MakeAttack(CEngineObject* object);
+    // 005CF780 (RET 8). Clear, then a cast (5) of `spell` at `object` (referenced).
+    void MakeCast(int spell, CEngineObject* object);
+
+    int kind;                       // +0x00
+    int what;                       // +0x04 6 for an attack, the spell for a cast
+    CEngineObject* object;          // +0x08 counted
+    float point[3];                 // +0x0C left uninitialised by the AI's orders
+    std::uint8_t flag;              // +0x18
+    std::uint8_t unknown_19[3];
+};
+static_assert(sizeof(AIOrder) == 0x1C);
 
 // One remembered look direction of the current move (0x10 bytes).
 struct AILook {
@@ -486,6 +517,64 @@ struct AIReportArray {
 };
 static_assert(sizeof(AIReportArray) == 0x14);
 
+// One way the unit can attack or help (0x28 bytes): a weapon (part -1) or a spell.
+struct AIAttackOption {
+    int kind;                       // +0x00 0..3 attacks (2, 3 hit an area), 4..6 helping spells, 7 healing
+    int part;                       // +0x04 -1 a weapon, else the spell
+    float range;                    // +0x08
+    int maxCount;                   // +0x0C cap on the group-size bonus
+    float radius;                   // +0x10 area of kinds 2 and 3
+    int effect;                     // +0x14 effect type (kinds 4..6), strength (kind 3)
+    std::uint16_t damage[8];        // +0x18 measured against the target's protection (00522AE0)
+};
+static_assert(sizeof(AIAttackOption) == 0x28);
+
+// CArray<AIAttackOption> (0x14 bytes).
+struct AIAttackOptions {
+    void* vtable;
+    AIAttackOption* data;           // +0x04
+    int size;                       // +0x08
+    int max;                        // +0x0C
+    int growBy;                     // +0x10
+};
+static_assert(sizeof(AIAttackOptions) == 0x14);
+
+using AIObjectList = mfc::CTypedPtrList<CEngineObject>;
+
+// The brain's attention (+0xA4, 0x2C bytes): the unit's attack options and choosing a target
+// (unit_ai_targets.cpp; the methods are __thiscall on the attention, the brain passed).
+struct AIAttention {
+    // 005D0030 (RET 0x18). The best {part, object} to attack or help into `partAndObject`: the
+    // current attack scored first, then (without `alliesOnly`) every weapon against every
+    // candidate and every spell against the unit and its allies in sight; the best that scores
+    // above the current one and passes IsUsable, the order check (with `alliesOnly`, for targets
+    // not near the path) and CanReach wins; a rejected one seen once is reported (20).
+    void Choose(AIBrain* brain, int* partAndObject, AIObjectList* candidates, const Vector3* from, bool alliesOnly,
+                int reachArg);
+    // 005CF7F0 (RET 8). False when the part has no option or an area option (kinds 2, 3) would
+    // also hit an ally near the target or the unit itself; true without an object.
+    bool IsUsable(AIBrain* brain, const int* partAndObject);
+    // 005CF9A0 (RET 0x1C; `this` unused). How good `option` is against `candidate` (`group` the
+    // others it would hit or help): by kind, minus 25 per unit of distance beyond the range (x10
+    // outside kinds 0..4) when it reached `threshold`, minus twice the hits needed for attacks.
+    // -1e30 when it cannot apply. Returned unrounded (ST0).
+    double Score(const Vector3* from, CUnit* self, AIObjectList* group, CEngineObject* current, CUnit* candidate,
+                 float threshold, const AIAttackOption* option);
+    // 005CF3C0 (RET 0xC; not rewritten). Whether the unit can get at the target (a path search).
+    bool CanReach(AIBrain* brain, const int* partAndObject, int arg);
+
+    // The option of `part`: the weapons first, then the spells; null when there is none.
+    const AIAttackOption* FindOption(int part) const;
+
+    AIAttackOptions weapons;        // +0x00
+    AIAttackOptions spells;         // +0x14
+    float healWeight;               // +0x28 kind 7's score when the target is badly hurt
+};
+static_assert(sizeof(AIAttention) == 0x2C);
+
+// 005CFE20 (__fastcall, unit_ai_targets.cpp). The squared 2D distance, unrounded (ST0).
+double __fastcall AIDistance2(const Vector3* a, const Vector3* b);
+
 // The brain (controller + 0x980, 0x190 bytes; the controller's voice object follows at +0xB10).
 struct AIBrain {
     // Actions (`action`).
@@ -660,7 +749,7 @@ struct AIBrain {
     mfc::CTypedPtrList<AIMode> modes;   // +0x070 (elements are counted references)
     AIMode* current;                // +0x08C
     std::uint8_t alarmRecords[0x14];    // +0x090 CArray of 0x4C-byte alarm records (data at +0x94)
-    std::uint8_t attention[0xD0 - 0xA4]; // +0x0A4 (005CF220, 005CFE40, 005D0030)
+    AIAttention attention;          // +0x0A4
     std::uint8_t memory[0x10];      // +0x0D0 perception memory (005CB700 ...); continues below
     float noticedX;                 // +0x0E0
     float noticedY;                 // +0x0E4
@@ -695,6 +784,9 @@ static_assert(offsetof(AIBrain, corpses) == 0x148);
 static_assert(offsetof(AIBrain, reports) == 0x164);
 static_assert(offsetof(AIBrain, seesEnemy) == 0x18C);
 static_assert(sizeof(AIBrain) == 0x190);
+static_assert(offsetof(AIBrain, attention) == 0xA4);
+
+inline AIBrain* UnitController::Brain() { return reinterpret_cast<AIBrain*>(brain); }
 
 // The mode constructors the script's UM* commands call after operator new (script_unit_modes.cpp;
 // __thiscall, each returns the mode). 004BA1C0 Guard (point, radius, wander: GuardMode::Set),
