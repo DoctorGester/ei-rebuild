@@ -161,10 +161,12 @@ struct UnitModelRecord {
     const std::uint32_t* SoundCounts() const { return *reinterpret_cast<std::uint32_t* const*>(unknown_144); }
     std::uint32_t idleSoundChance;  // +0x150 0x25 percent
     std::uint32_t attackSoundChance;    // +0x154 0x26 percent
-    std::uint32_t unknown_158;      // 0x2F
-    std::uint32_t unknown_15C;      // 0x30
-    std::uint32_t unknown_160;      // 0x31
-    std::uint32_t unknown_164;      // 0x32
+    // The eyes on the skin texture (in 256ths of its width; the blink, 00538ED0 / 00539010; read
+    // as signed ints): left, distance of their bottom from the bottom edge, width, height.
+    std::uint32_t eyeLeft;          // +0x158 0x2F
+    std::uint32_t eyeBottom;        // +0x15C 0x30
+    std::uint32_t eyeWidth;         // +0x160 0x31
+    std::uint32_t eyeHeight;        // +0x164 0x32
 };
 static_assert(offsetof(UnitModelRecord, damageWeights) == 0x50);
 static_assert(offsetof(UnitModelRecord, slots) == 0x88);

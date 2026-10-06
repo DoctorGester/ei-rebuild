@@ -15,10 +15,17 @@
 #include <cstdint>
 
 class CParticleSource;   // effects.h
+class CTexture;          // texture.h
+struct tagRECT;          // windows.h RECT
 class CUnit;
 struct AIPath;    // ai_map.h
 struct FigureAnimation;   // map_object_figures.h
 struct Vector3;   // maths.h
+
+// unit_client_blink.cpp (A-U3). 00533980 (__fastcall, RET 8): blits rectangle `from` of `source`
+// to `at` (x, y) of `target`, then the same halved on each next level of both mip chains until
+// either ends (DirectDraw surfaces; nothing without them).
+void __fastcall BlitMipChain(CTexture* target, const int* at, CTexture* source, const tagRECT* from);
 
 // An entry of a client controller's speech queue (0x14 bytes; the value of a node of the STLport
 // list at +0x9C; 005380D0 plays one).
@@ -148,6 +155,13 @@ public:
     // the step sounds (00534B60); the speech queue (+0x9C); for +0x255 == -2 with animation
     // state +0x50 below 3, 00535480(0). Returns 1.
     int UpdateClient();
+    // unit_client_blink.cpp (A-U3). 00538ED0 / 00539010 (RET 4): the blink. With a face texture
+    // (+0xCC) and a skin texture (the client half's material), unless the eyes already are so
+    // (`force` copies anyway), the face's closed / open eyes are copied into the skin's eye
+    // rectangle (the model's +0x158..+0x164 in 256ths of the skin, 00533980 down the mip chain);
+    // eyesClosed becomes 1 / 0.
+    void BlinkClose(bool force);
+    void BlinkOpen(bool force);
     // 005344E0. Virtual slot 13 (figures loaded): the drawn parts take the fade-in as alpha.
     // Returns 1.
     int FiguresLoaded();

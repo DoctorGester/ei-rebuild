@@ -144,10 +144,10 @@ void UnitModelRecord::Serialize(ChunkArchive* ar) {
     ArchiveString(ar, nullptr, 0x2C, &hitMaterial);
     ArchiveField(ar, nullptr, 0x2D, &swapFeet, 1);
     Dword(ar, 0x2E, &unknown_120);
-    Dword(ar, 0x2F, &unknown_158);
-    Dword(ar, 0x30, &unknown_15C);
-    Dword(ar, 0x31, &unknown_160);
-    Dword(ar, 0x32, &unknown_164);
+    Dword(ar, 0x2F, &eyeLeft);
+    Dword(ar, 0x30, &eyeBottom);
+    Dword(ar, 0x31, &eyeWidth);
+    Dword(ar, 0x32, &eyeHeight);
 }
 EI_REPLACE_METHOD(0x0052DC70, UnitModelRecord::Serialize);
 
