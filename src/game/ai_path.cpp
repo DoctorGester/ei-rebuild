@@ -26,9 +26,9 @@ void __fastcall FacingDirection(const void* a0, void*, Vector3* a2) { Quaternion
 
 // Local searches at CAIMap + 0x2594 / + 0x2614 (forward and backward), the path builder and the
 // long-range planner.
-struct CLocalSearch;
-bool __fastcall LocalSearch(CLocalSearch* a0, void*, CUnit* a2, int a3, int a4, int a5, int a6) { return LocalSearchBeginOriginal((void*)a0, nullptr, (void*)a2, a3, a4, a5, a6); }
-void __fastcall LocalSearchReset(CLocalSearch* a0, void*) { LocalSearchResetOriginal((void*)a0); }
+bool BeginLocalSearch(LocalSearch* search, CUnit* unit, int x0, int y0, int x1, int y1) {
+    return LocalSearchBeginOriginal(search, nullptr, unit, x0, y0, x1, y1);
+}
 __declspec(naked) bool __fastcall BuildLocalPath(CAIMap*, void*, PathCellList*, int) EI_ORIGINAL(0x005B9690)
 // 005C46C0 on CAIMap + 0x22CC: smooths the start of the path; the result goes to AIPath::smoothing.
 __declspec(naked) int __fastcall SmoothPath(void*, void*, CUnit*, CAIMap*, PathCellList*, int, std::uint32_t)
@@ -313,11 +313,9 @@ bool CAIMap::FindPath(CUnit* unit, const Vector3* target, AIPath* path, float ra
             // Close: a two-way local search.
             pathCells.RemoveAll();
             if (ux != tx || uy != ty) {
-                auto* forward = reinterpret_cast<CLocalSearch*>(reinterpret_cast<char*>(this) + 0x2594);
-                auto* backward = reinterpret_cast<CLocalSearch*>(reinterpret_cast<char*>(this) + 0x2614);
-                if (LocalSearch(forward, nullptr, unit, ux, uy, tx, ty)) {
-                    if (!LocalSearch(backward, nullptr, unit, tx, ty, ux, uy)) {
-                        LocalSearchReset(forward, nullptr);
+                if (BeginLocalSearch(&forwardSearch, unit, ux, uy, tx, ty)) {
+                    if (!BeginLocalSearch(&backwardSearch, unit, tx, ty, ux, uy)) {
+                        LocalSearchResetOriginal(&forwardSearch);
                     } else {
                         found = BuildLocalPath(this, nullptr, &pathCells, 0);
                         tried = found;

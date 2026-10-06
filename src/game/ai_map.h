@@ -245,6 +245,90 @@ static_assert(offsetof(AIPath, cells) == 0x3C);
 static_assert(offsetof(AIPath, goal) == 0x60);
 static_assert(offsetof(AIPath, smoothing) == 0x84);
 
+class CAIMap;
+
+// A cell of the local search's window (0x14 bytes). Name provisional.
+struct SearchNode {
+    int cost;                   // +0x00 0x7FFFFFFF until reached
+    SearchNode* next;           // +0x04 in its bucket, or in the settled list
+    SearchNode* prev;           // +0x08 in its bucket
+    std::int16_t x, y;          // +0x0C window coordinates (0..33)
+    bool usable;                // +0x10 false on the window's border and outside a rectangle
+    bool settled;               // +0x11 expanded, or the start
+    std::int8_t direction;      // +0x12 1..8: the way back to the cell it was reached from; 0 none
+    std::uint8_t unknown_13;
+};
+static_assert(sizeof(SearchNode) == 0x14);
+
+// {data, rows, width, height}: a grid allocated in one block with a row pointer table (005B1470
+// for nodes, 005B14C0 for bytes).
+template <typename T>
+struct SearchGrid {
+    T* data;
+    T** rows;
+    int width, height;
+};
+static_assert(sizeof(SearchGrid<SearchNode>) == 0x10);
+
+// The local search (0x80 bytes; CAIMap + 0x2594 forward, + 0x2614 backward, and the region map's):
+// Dijkstra over a 34 x 34 window of map cells whose border is never entered. Open nodes wait in
+// four sorted lists chosen by the low two bits of the node's x; `current` is the cheapest head.
+// Methods in ai_local_search.cpp. Name provisional.
+struct LocalSearch {
+    // 005C35F0. Puts every settled and queued node back to unreached; the search is inactive.
+    void Reset();
+    // 005C2F50. `current` = the cheapest bucket head (null when every bucket is empty).
+    void PickCurrent();
+    // 005C2FB0. Moves `node` to its place in its bucket for `cost` (a node already at the head
+    // stays there).
+    void Requeue(SearchNode* node, int cost);
+    // 005C3050. The current node's map cell and cost (cost 0x7FFFFFFF when there is none).
+    void Best(int* x, int* y, int* cost);
+    // 005C3090. The cost of map cell (x, y) if it is settled, else 0x7FFFFFFF.
+    int CostAt(int x, int y);
+    // 005C1D50. The cost of stepping between `current` and `node` (neighbours), `factor` 0x400
+    // straight or 0x5A8 diagonal; -1 when the step is impossible. A backward search prices the
+    // step from `node` into `current`.
+    int StepCost(const SearchNode* node, int factor);
+    // 005C2D40. Settles `current`, relaxes its eight neighbours, picks the next current.
+    void Expand();
+    // 005C30E0. Expands until nothing is left (when active).
+    void ExpandAll();
+    // 005C31A0. Expands until map cell (x, y) is current; false when the search runs out (or is
+    // inactive).
+    bool ExpandUntil(int x, int y);
+    // 005C3200. The path from the start to map cell (x, y), walked back along the directions, into
+    // `out` (emptied first; nothing when the cell is outside the window).
+    void PathTo(int x, int y, PathCellList* out);
+
+    bool active;                        // +0x00
+    bool levelsSaved;                   // +0x01 the window's cell levels are in `levels`
+    std::uint8_t unknown_02[2];
+    SearchGrid<SearchNode> nodes;       // +0x04 34 x 34
+    SearchGrid<std::uint8_t> levels;    // +0x14 saved cell levels (005C33F0 / 005C3530)
+    CAIMap* map;                        // +0x24
+    void* cellRowsVtable;               // +0x28 CArray<AIMapCell*>: the window's map rows
+    AIMapCell** cellRows;               // +0x2C cellRows[i] = &map cell (originX, originY + i)
+    int cellRowCount;                   // +0x30
+    int cellRowMax;                     // +0x34
+    int cellRowGrowBy;                  // +0x38
+    SearchNode* settledList;            // +0x3C linked through `next`
+    SearchNode* buckets[4];             // +0x40 open nodes by x & 3, sorted by cost
+    SearchNode* current;                // +0x50 the cheapest open node
+    int originX, originY;               // +0x54 map cell of window cell (0, 0)
+    int currentCost;                    // +0x5C cost of the node being expanded
+    PassCostContext costs;              // +0x60
+    int sizeClass;                      // +0x78
+    bool backward;                      // +0x7C searching from the target (prices steps reversed)
+    std::uint8_t level;                 // +0x7D standing level
+    std::uint8_t unknown_7E[2];
+};
+static_assert(offsetof(LocalSearch, map) == 0x24);
+static_assert(offsetof(LocalSearch, settledList) == 0x3C);
+static_assert(offsetof(LocalSearch, costs) == 0x60);
+static_assert(offsetof(LocalSearch, backward) == 0x7C);
+static_assert(sizeof(LocalSearch) == 0x80);
+
 // The navigation grid of the current map, loaded by CAIMap::Load (005B43C0, patched by Rebirth).
 // Name from the game's error strings; layout provisional.
 class CAIMap {
@@ -436,7 +520,9 @@ public:
     std::uint8_t unitLayerSmall[0x12A4 - 0x27C];    // +0x27C unit occupancy (005B36B0 / 005B3890)
     std::uint8_t unitLayerLarge[0x22CC - 0x12A4];   // +0x12A4
     std::uint8_t unknown_22CC[0x22F8 - 0x22CC];
-    std::uint8_t regions[0x2694 - 0x22F8];          // +0x22F8 region map (005B0600)
+    std::uint8_t regions[0x2594 - 0x22F8];          // +0x22F8 region map (005B0600)
+    LocalSearch forwardSearch;                      // +0x2594
+    LocalSearch backwardSearch;                     // +0x2614
     int lastFootprintOwner;             // +0x2694 set by StampFootprint
     std::uint32_t unknown_2698;
     AIMapCell** cells;                  // +0x269C rows of cells
@@ -454,6 +540,8 @@ static_assert(offsetof(CAIMap, bridges) == 0x1A0);
 static_assert(offsetof(CAIMap, waterDepth) == 0x1F8);
 static_assert(offsetof(CAIMap, unitLayerLarge) == 0x12A4);
 static_assert(offsetof(CAIMap, regions) == 0x22F8);
+static_assert(offsetof(CAIMap, forwardSearch) == 0x2594);
+static_assert(offsetof(CAIMap, backwardSearch) == 0x2614);
 static_assert(offsetof(CAIMap, lastFootprintOwner) == 0x2694);
 static_assert(offsetof(CAIMap, cells) == 0x269C);
 static_assert(offsetof(CAIMap, occluders) == 0x26AC);
