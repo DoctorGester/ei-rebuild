@@ -318,7 +318,7 @@ namespace {
 
 // The vertices of a FIG mesh: FIG8 files hold 8 versions of each of the three blocks (0x80 bytes
 // each), morphed; other versions hold the three blocks once. The fourth block is set to 1.0.
-void LoadVertices(AlignedArray<VertexPacket>& vertices, char** cursor, std::uint32_t magic, float s, float t, float u) {
+void LoadVertices(lib::AlignedArray<VertexPacket>& vertices, char** cursor, std::uint32_t magic, float s, float t, float u) {
     const std::uint32_t one = 0x3F800000;
     if (magic == kFig8Magic) {
         for (int i = 0; i < vertices.size; ++i) {
@@ -343,7 +343,7 @@ void LoadVertices(AlignedArray<VertexPacket>& vertices, char** cursor, std::uint
 
 // Sizes `array` to `count` and copies `count` elements from the cursor.
 template <typename T>
-void LoadArray(AlignedArray<T>& array, char** cursor, int count) {
+void LoadArray(lib::AlignedArray<T>& array, char** cursor, int count) {
     array.SetSize(count);
     if (count != 0) {
         std::memcpy(array.data, *cursor, static_cast<std::size_t>(count) * sizeof(T));
@@ -612,7 +612,7 @@ EI_REPLACE_METHOD(0x0059FDF0, CFigureMesh::ExtendWorldBox);
 namespace {
 // Negates one component block of every packet (FLD / FCHS / FSTP in the original).
 template <typename Packet>
-void NegateBlock(AlignedArray<Packet>& packets, int block) {
+void NegateBlock(lib::AlignedArray<Packet>& packets, int block) {
     for (int i = 0; i < packets.size; ++i) {
         float* v = reinterpret_cast<float*>(&packets.data[i]) + block * 4;
         for (int k = 0; k < 4; ++k) v[k] = -v[k];
@@ -620,7 +620,7 @@ void NegateBlock(AlignedArray<Packet>& packets, int block) {
 }
 
 // Swaps the first two corners of every triangle (reverses the winding after a mirror).
-void ReverseWinding(AlignedArray<std::uint16_t>& indices) {
+void ReverseWinding(lib::AlignedArray<std::uint16_t>& indices) {
     std::uint16_t* p = indices.data;
     for (int i = 0; i < indices.size; i += 3, p += 3) {
         std::uint16_t first = p[0];
@@ -630,7 +630,7 @@ void ReverseWinding(AlignedArray<std::uint16_t>& indices) {
 }
 
 // The shared buffer DrawOffset moves the vertices into (a function-less global at 007C2E18).
-AlignedArray<VertexPacket>& OffsetVertices() { return *reinterpret_cast<AlignedArray<VertexPacket>*>(0x007C2E18); }
+lib::AlignedArray<VertexPacket>& OffsetVertices() { return *reinterpret_cast<lib::AlignedArray<VertexPacket>*>(0x007C2E18); }
 } // namespace
 
 void CFigureMesh::MirrorX() {
@@ -647,7 +647,7 @@ void CFigureMesh::MirrorY() {
 }
 EI_REPLACE_METHOD(0x005A4BF0, CFigureMesh::MirrorY);
 
-EI_REPLACE_METHOD(0x005A6E70, AlignedArray<std::uint32_t>::Resize);
+EI_REPLACE_METHOD(0x005A6E70, lib::AlignedArray<std::uint32_t>::SetSize);
 
 void CFigureMesh::RefreshBuffers() {
     buffers_.vertices = vertices_.data;
@@ -655,7 +655,7 @@ void CFigureMesh::RefreshBuffers() {
     buffers_.normals = normals_.data;
     buffers_.normalCount = normals_.size;
     // 005A6E70 through its address (the verify build checks it there).
-    using ResizeFn = void(__fastcall*)(AlignedArray<std::uint32_t>*, void*, int, int);
+    using ResizeFn = void(__fastcall*)(lib::AlignedArray<std::uint32_t>*, void*, int, int);
     reinterpret_cast<ResizeFn>(0x005A6E70)(&colorsA_, nullptr, normals_.size * 4, -1);
     reinterpret_cast<ResizeFn>(0x005A6E70)(&colorsB_, nullptr, normals_.size * 4, -1);
     buffers_.texCoords = texCoords_.data;
@@ -679,12 +679,12 @@ int CFigureMesh::DrawOffset(void* pipelineOwner, void* arg1, void* arg2, void* a
     void* vertices = buffers_.vertices;
     if (offsets_.size != 0) {
         const VertexPacket* source = static_cast<const VertexPacket*>(buffers_.vertices);
-        AlignedArray<VertexPacket>& moved = OffsetVertices();
+        lib::AlignedArray<VertexPacket>& moved = OffsetVertices();
         // Sized like SetSize, except that a larger buffer is not given the old contents (they are
         // all rewritten below) and 0 allocates an empty buffer instead of freeing it.
         int packets = buffers_.vertexCount;
         if (!moved.data) {
-            moved.data = AlignedArray<VertexPacket>::Allocate(packets);
+            moved.data = lib::AlignedArray<VertexPacket>::Allocate(packets);
             moved.capacity = packets;
             moved.size = packets;
         } else if (packets <= moved.capacity) {
@@ -698,8 +698,8 @@ int CFigureMesh::DrawOffset(void* pipelineOwner, void* arg1, void* arg2, void* a
             }
             int newCapacity = moved.capacity + step;
             if (packets >= newCapacity) newCapacity = packets;
-            VertexPacket* fresh = AlignedArray<VertexPacket>::Allocate(newCapacity);
-            AlignedArray<VertexPacket>::Free(moved.data);
+            VertexPacket* fresh = lib::AlignedArray<VertexPacket>::Allocate(newCapacity);
+            lib::AlignedArray<VertexPacket>::Free(moved.data);
             moved.data = fresh;
             moved.size = packets;
             moved.capacity = newCapacity;

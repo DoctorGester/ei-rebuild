@@ -3,7 +3,11 @@
 // MFC 4.2 classes statically linked into game.exe, used by rewritten code through the original
 // implementations (config/library.csv). Layouts match MFC so objects can be shared with original code.
 
+#include "crt.h"
+
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 namespace mfc {
 
@@ -86,27 +90,171 @@ void __fastcall PlexFreeDataChain(CPlex* head);                                 
 // The game's CPtrList vtable (lists the code builds on the stack use blocks of 10).
 inline void* PtrListVtable() { return reinterpret_cast<void*>(0x0073D454); }
 
-// CTypedPtrList<CPtrList, T*> (0x1C bytes). The game inlines these operations; this mirrors MFC 4.2.
+// ---- Collection templates (AFXTEMPL.H) ------------------------------------------------------------
+//
+// The game's CArray / CList / CTypedPtrList instantiations share one layout each and differ only in
+// the element type and the vtable, so one template serves all of them (docs/notes/core.md, "Shared
+// containers"). The vtable is a plain field: an object the original constructs keeps the one its
+// constructor wrote, and code that builds one itself passes the instantiation's vtable. The
+// templates have no constructors, so they can sit in layouts and be brace-initialised.
+//
+// The member functions are MFC 4.2's, written once: an instantiation the game calls out of line can
+// either be registered on these members or keep forwarding to its original address.
+
+// MFC 4.2's default ConstructElements / DestructElements for element types without constructors:
+// new elements are zero-filled (the bitwise zeroing before the placement new), nothing is destroyed.
+// An instantiation whose elements the original constructs out of line (CString, records with
+// constructors) passes its own policy with the same two static functions.
 template <typename T>
-struct CTypedPtrList {
+struct PlainElements {
+    static void Construct(T* elements, int count) {
+        std::memset(static_cast<void*>(elements), 0, static_cast<std::size_t>(count) * sizeof(T));
+    }
+    static void Destruct(T*, int) {}
+};
+
+// No construction at all: the engine's own arrays and the instantiations the game compiled without
+// the zeroing (new slots keep the heap's bytes).
+template <typename T>
+struct RawElements {
+    static void Construct(T*, int) {}
+    static void Destruct(T*, int) {}
+};
+
+// CArray<T, ARG> (0x14 bytes): vtable, data, size, allocated size, growth step.
+template <typename T, typename Elements = PlainElements<T>>
+struct CArray {
+    void* vtable;
+    T* data;        // +0x04 operator new storage (new BYTE[])
+    int size;       // +0x08
+    int maxSize;    // +0x0C
+    int growBy;     // +0x10 0 = size / 8 clamped to 4..1024
+
+    T& operator[](int index) { return data[index]; }
+    const T& operator[](int index) const { return data[index]; }
+    int GetSize() const { return size; }
+
+    // SetSize(newSize, growBy): 0 frees the storage; growing past maxSize reallocates to
+    // max(newSize, maxSize + step), copying the old elements with memcpy and constructing only the
+    // new ones; the old storage is freed without destroying anything. growBy -1 keeps the step.
+    void SetSize(int newSize, int newGrowBy = -1) {
+        if (newGrowBy != -1) growBy = newGrowBy;
+        if (newSize == 0) {
+            if (data) {
+                Elements::Destruct(data, size);
+                gamecrt::operator_delete(data);
+                data = nullptr;
+            }
+            size = maxSize = 0;
+        } else if (!data) {
+            data = static_cast<T*>(gamecrt::operator_new(static_cast<std::size_t>(newSize) * sizeof(T)));
+            Elements::Construct(data, newSize);
+            size = maxSize = newSize;
+        } else if (newSize <= maxSize) {
+            if (newSize > size) Elements::Construct(data + size, newSize - size);
+            else if (size > newSize) Elements::Destruct(data + newSize, size - newSize);
+            size = newSize;
+        } else {
+            int step = growBy;
+            if (step == 0) {
+                step = size / 8;
+                step = step < 4 ? 4 : step > 1024 ? 1024 : step;
+            }
+            int newMax = newSize < maxSize + step ? maxSize + step : newSize;
+            T* fresh = static_cast<T*>(gamecrt::operator_new(static_cast<std::size_t>(newMax) * sizeof(T)));
+            std::memcpy(static_cast<void*>(fresh), data, static_cast<std::size_t>(size) * sizeof(T));
+            Elements::Construct(fresh + size, newSize - size);
+            gamecrt::operator_delete(data);
+            data = fresh;
+            size = newSize;
+            maxSize = newMax;
+        }
+    }
+
+    void RemoveAll() { SetSize(0, -1); }
+
+    void SetAtGrow(int index, const T& value) {
+        if (index >= size) SetSize(index + 1, -1);
+        data[index] = value;
+    }
+
+    // Add: SetAtGrow at the end; returns the new element's index.
+    int Add(const T& value) {
+        int index = size;
+        SetAtGrow(index, value);
+        return index;
+    }
+
+    // InsertAt: grows by `count`, moves the tail up with memmove (the slots it vacates are
+    // destroyed and constructed again), then assigns `value` to each new slot.
+    void InsertAt(int index, const T& value, int count = 1) {
+        if (index >= size) {
+            SetSize(index + count, -1);
+        } else {
+            int oldSize = size;
+            SetSize(size + count, -1);
+            Elements::Destruct(data + oldSize, count);
+            std::memmove(static_cast<void*>(data + index + count), data + index,
+                         static_cast<std::size_t>(oldSize - index) * sizeof(T));
+            Elements::Construct(data + index, count);
+        }
+        while (count--) data[index++] = value;
+    }
+
+    // RemoveAt: destroys `count` elements and moves the tail down with memmove; the storage stays.
+    void RemoveAt(int index, int count = 1) {
+        int moveCount = size - (index + count);
+        Elements::Destruct(data + index, count);
+        if (moveCount)
+            std::memmove(static_cast<void*>(data + index), data + index + count,
+                         static_cast<std::size_t>(moveCount) * sizeof(T));
+        size -= count;
+    }
+
+    // Copy (operator= of the elements): SetSize to the source's size, then assign element by element.
+    void Copy(const CArray& source) {
+        SetSize(source.size, -1);
+        for (int i = 0; i < source.size; ++i) data[i] = source.data[i];
+    }
+
+    // The destructor's body (~CArray): destroy the elements and free the storage. The vtable
+    // writes around it are the caller's.
+    void FreeData() {
+        if (data) {
+            Elements::Destruct(data, size);
+            gamecrt::operator_delete(data);
+        }
+    }
+};
+static_assert(sizeof(CArray<int>) == 0x14);
+
+// CList<T, ARG> (0x1C bytes): vtable, head, tail, count, free nodes, CPlex blocks, block size. A
+// node is next, prev, then the element. Nodes are carved `blockSize` at a time and recycled
+// through the free list; removing the last node frees every block (RemoveAll).
+template <typename T, typename Elements = PlainElements<T>>
+struct CList {
     struct Node {
         Node* next;
         Node* prev;
-        T* data;
+        T data;
     };
 
     void* vtable;
-    Node* head;
-    Node* tail;
-    int count;
-    Node* free;
-    CPlex* blocks;
-    int blockSize;
+    Node* head;         // +0x04
+    Node* tail;         // +0x08
+    int count;          // +0x0C
+    Node* free;         // +0x10
+    CPlex* blocks;      // +0x14
+    int blockSize;      // +0x18
 
-    // NewNode: take a node from the free list, carving a new block of `blockSize` when empty.
+    int GetCount() const { return count; }
+    bool IsEmpty() const { return count == 0; }
+
+    // NewNode: take a node from the free list, carving a new block of `blockSize` when empty (the
+    // block's nodes are pushed last to first, so the first node is used first).
     Node* NewNode(Node* prev, Node* next) {
         if (!free) {
-            CPlex* block = PlexCreate(blocks, blockSize, sizeof(Node));
+            CPlex* block = PlexCreate(blocks, static_cast<unsigned>(blockSize), sizeof(Node));
             Node* node = reinterpret_cast<Node*>(block + 1) + (blockSize - 1);
             for (int i = blockSize - 1; i >= 0; --i, --node) {
                 node->next = free;
@@ -118,34 +266,20 @@ struct CTypedPtrList {
         node->prev = prev;
         node->next = next;
         ++count;
-        node->data = nullptr;
+        Elements::Construct(&node->data, 1);
         return node;
     }
 
     // FreeNode: return to the free list; the last node frees all blocks (RemoveAll).
     void FreeNode(Node* node) {
+        Elements::Destruct(&node->data, 1);
         node->next = free;
         free = node;
-        if (--count == 0) {
-            count = 0;
-            free = nullptr;
-            tail = nullptr;
-            head = nullptr;
-            PlexFreeDataChain(blocks);
-            blocks = nullptr;
-        }
-    }
-
-    Node* AddHead(T* value) {
-        Node* node = NewNode(nullptr, head);
-        node->data = value;
-        if (head) head->prev = node;
-        else tail = node;
-        head = node;
-        return node;
+        if (--count == 0) RemoveAll();
     }
 
     void RemoveAll() {
+        for (Node* n = head; n; n = n->next) Elements::Destruct(&n->data, 1);
         count = 0;
         free = nullptr;
         tail = nullptr;
@@ -154,7 +288,16 @@ struct CTypedPtrList {
         blocks = nullptr;
     }
 
-    Node* AddTail(T* value) {
+    Node* AddHead(const T& value) {
+        Node* node = NewNode(nullptr, head);
+        node->data = value;
+        if (head) head->prev = node;
+        else tail = node;
+        head = node;
+        return node;
+    }
+
+    Node* AddTail(const T& value) {
         Node* node = NewNode(tail, nullptr);
         node->data = value;
         if (tail) tail->next = node;
@@ -163,10 +306,44 @@ struct CTypedPtrList {
         return node;
     }
 
-    Node* Find(const T* value) const {
-        for (Node* n = head; n; n = n->next)
-            if (n->data == value) return n;
-        return nullptr;
+    T RemoveHead() {
+        Node* old = head;
+        T value = old->data;
+        head = old->next;
+        if (head) head->prev = nullptr;
+        else tail = nullptr;
+        FreeNode(old);
+        return value;
+    }
+
+    T RemoveTail() {
+        Node* old = tail;
+        T value = old->data;
+        tail = old->prev;
+        if (tail) tail->next = nullptr;
+        else head = nullptr;
+        FreeNode(old);
+        return value;
+    }
+
+    Node* InsertBefore(Node* position, const T& value) {
+        if (!position) return AddHead(value);
+        Node* node = NewNode(position->prev, position);
+        node->data = value;
+        if (position->prev) position->prev->next = node;
+        else head = node;
+        position->prev = node;
+        return node;
+    }
+
+    Node* InsertAfter(Node* position, const T& value) {
+        if (!position) return AddTail(value);
+        Node* node = NewNode(position, position->next);
+        node->data = value;
+        if (position->next) position->next->prev = node;
+        else tail = node;
+        position->next = node;
+        return node;
     }
 
     void RemoveAt(Node* node) {
@@ -176,7 +353,31 @@ struct CTypedPtrList {
         else node->next->prev = node->prev;
         FreeNode(node);
     }
+
+    // Find: the first node from the head whose element equals `value` (a template, so a pointer
+    // list can be searched with a pointer to const).
+    template <typename V>
+    Node* Find(const V& value) const {
+        for (Node* n = head; n; n = n->next)
+            if (n->data == value) return n;
+        return nullptr;
+    }
+
+    // FindIndex: the index-th node from the head, or null.
+    Node* FindIndex(int index) const {
+        if (index >= count || index < 0) return nullptr;
+        Node* n = head;
+        while (index--) n = n->next;
+        return n;
+    }
 };
+static_assert(sizeof(CList<int>) == 0x1C);
+
+// CTypedPtrList<CPtrList, T*>: a CPtrList (the non-template list of void*, same layout) with typed
+// elements. The game inlines its operations; they are CList<T*>'s (a new node's data is zeroed,
+// nothing destroyed).
+template <typename T>
+using CTypedPtrList = CList<T*>;
 
 CString __stdcall operator+(const CString& a, const char* b);   // 00700C05
 CString __stdcall operator+(const char* a, const CString& b);   // 00700C79

@@ -41,21 +41,21 @@ EI_VERIFY(0x005A18E0, LoadBoundsVerify, 7, s_loadBounds);
 // ---- 005A2500 / 005A5C70 LoadFig ----------------------------------------------------------------
 
 template <typename T>
-void ClearArray(AlignedArray<T>& a) {
+void ClearArray(lib::AlignedArray<T>& a) {
     a.data = nullptr;
     a.size = 0;
     a.capacity = 0;
 }
 
 template <typename T>
-void FreeArray(AlignedArray<T>& a) {
-    if (a.data) AlignedArray<T>::Free(a.data);
+void FreeArray(lib::AlignedArray<T>& a) {
+    if (a.data) lib::AlignedArray<T>::Free(a.data);
 }
 
 // Equal sizes, growth steps and contents; capacities too when ours started without a buffer (the
 // original always starts without one).
 template <typename T>
-bool SameArray(const AlignedArray<T>& theirs, const AlignedArray<T>& ours, bool compareCapacity) {
+bool SameArray(const lib::AlignedArray<T>& theirs, const lib::AlignedArray<T>& ours, bool compareCapacity) {
     if (theirs.size != ours.size || theirs.growBy != ours.growBy) return false;
     if (compareCapacity && theirs.capacity != ours.capacity) return false;
     if (!theirs.data != !ours.data) return false;
@@ -66,14 +66,14 @@ bool SameArray(const AlignedArray<T>& theirs, const AlignedArray<T>& ours, bool 
 // meshes, colorsA_ of old-format ones) the contents are whatever the fresh heap block held, which
 // differs between the two runs.
 template <typename T>
-bool SameShape(const AlignedArray<T>& theirs, const AlignedArray<T>& ours, bool compareCapacity) {
+bool SameShape(const lib::AlignedArray<T>& theirs, const lib::AlignedArray<T>& ours, bool compareCapacity) {
     return theirs.size == ours.size && theirs.growBy == ours.growBy && !theirs.data == !ours.data &&
            (!compareCapacity || theirs.capacity == ours.capacity);
 }
 
 // The first differing dword of two arrays of equal size (-1 if none), for the mismatch message.
 template <typename T>
-int FirstDifference(const AlignedArray<T>& theirs, const AlignedArray<T>& ours, std::uint32_t* a, std::uint32_t* b) {
+int FirstDifference(const lib::AlignedArray<T>& theirs, const lib::AlignedArray<T>& ours, std::uint32_t* a, std::uint32_t* b) {
     if (!theirs.data || !ours.data) return -1;
     int words = static_cast<int>(theirs.size * sizeof(T) / 4);
     for (int i = 0; i < words; ++i) {
@@ -278,23 +278,23 @@ EI_VERIFY(0x005A4BF0, MirrorYVerify, 6, s_mirrorY);
 
 // 005A6E70: MOV EAX,[ESP+8]; PUSH EBX (5 bytes). The original on a copy with its own buffer, ours
 // on the real array; sizes, capacity, step and the kept elements compared.
-void(__fastcall* s_resize)(AlignedArray<std::uint32_t>*, void*, int, int);
-void __fastcall ResizeVerify(AlignedArray<std::uint32_t>* self, void*, int count, int growBy) {
-    AlignedArray<std::uint32_t> scratch = *self;
+void(__fastcall* s_resize)(lib::AlignedArray<std::uint32_t>*, void*, int, int);
+void __fastcall ResizeVerify(lib::AlignedArray<std::uint32_t>* self, void*, int count, int growBy) {
+    lib::AlignedArray<std::uint32_t> scratch = *self;
     if (self->data) {
-        scratch.data = AlignedArray<std::uint32_t>::Allocate(self->capacity);
+        scratch.data = lib::AlignedArray<std::uint32_t>::Allocate(self->capacity);
         std::memcpy(scratch.data, self->data, static_cast<std::size_t>(self->size) * 4);
     }
     int oldSize = self->size;
     s_resize(&scratch, nullptr, count, growBy);
-    self->Resize(count, growBy);
+    self->SetSize(count, growBy);
     int kept = oldSize < self->size ? oldSize : self->size;
     bool same = scratch.size == self->size && scratch.capacity == self->capacity && scratch.growBy == self->growBy &&
                 !scratch.data == !self->data &&
                 (!self->data || kept <= 0 || std::memcmp(scratch.data, self->data, static_cast<std::size_t>(kept) * 4) == 0);
-    ei::verify::Check("AlignedArray<uint32>::Resize", true, same, "%d -> %d: size %d/%d cap %d/%d", oldSize, count,
+    ei::verify::Check("lib::AlignedArray<uint32>::Resize", true, same, "%d -> %d: size %d/%d cap %d/%d", oldSize, count,
                       scratch.size, self->size, scratch.capacity, self->capacity);
-    if (scratch.data) AlignedArray<std::uint32_t>::Free(scratch.data);
+    if (scratch.data) lib::AlignedArray<std::uint32_t>::Free(scratch.data);
 }
 EI_VERIFY(0x005A6E70, ResizeVerify, 5, s_resize);
 
@@ -328,7 +328,7 @@ int(__fastcall* s_drawOffset)(CFigureMesh*, void*, void*, void*, void*, void*);
 int __fastcall DrawOffsetVerify(CFigureMesh* self, void*, void* owner, void* a1, void* a2, void* a3) {
     int result = self->DrawOffset(owner, a1, a2, a3);
     bool ok = result == self->buffers_.vertexCount * 4;
-    const auto* moved = reinterpret_cast<const AlignedArray<VertexPacket>*>(0x007C2E18);
+    const auto* moved = reinterpret_cast<const lib::AlignedArray<VertexPacket>*>(0x007C2E18);
     if (ok && self->offsets_.size > 0 && self->buffers_.vertexCount > 0) {
         const auto* src = static_cast<const VertexPacket*>(self->buffers_.vertices);
         float x = self->offsets_.data[0].x + src[0].block[0][0];

@@ -36,8 +36,8 @@ public:
     // matrix whose columns 3, 2 and 0 are the origin, the u and the v corner), the projection
     // direction (normalised in place in the copy) and the point the cut-off plane is placed from,
     // `depth` * 0.33 back along the direction.
-    void Begin(AlignedArray<VertexPacket>* points, AlignedArray<DecalTexCoord>* texCoords,
-               AlignedArray<std::uint16_t>* indices, float* const* corners, const Vector3* direction,
+    void Begin(lib::AlignedArray<VertexPacket>* points, lib::AlignedArray<DecalTexCoord>* texCoords,
+               lib::AlignedArray<std::uint16_t>* indices, float* const* corners, const Vector3* direction,
                const Vector3* point, float depth);
     // 004D7F60 (RET 8). Whether a sphere around `center` can touch the decal: its u and v ranges
     // widened by radius * the axis lengths overlap [0, 1]. The result is in AL only.
@@ -63,9 +63,9 @@ public:
     // 004D6C50: appends one vertex; returns its index (AX only).
     std::uint16_t AddVertex(const DecalVertex* v);
 
-    AlignedArray<VertexPacket>* points_;       // +0x00 x[4], y[4], z[4] per packet (w untouched)
-    AlignedArray<DecalTexCoord>* texCoords_;   // +0x04
-    AlignedArray<std::uint16_t>* indices_;     // +0x08
+    lib::AlignedArray<VertexPacket>* points_;       // +0x00 x[4], y[4], z[4] per packet (w untouched)
+    lib::AlignedArray<DecalTexCoord>* texCoords_;   // +0x04
+    lib::AlignedArray<std::uint16_t>* indices_;     // +0x08
     Vector3 uAxis_;          // +0x0C the u edge across the direction, over its squared length
     Vector3 vAxis_;          // +0x18 the same for v
     Vector3 normal_;         // +0x24 the (normalised) direction
