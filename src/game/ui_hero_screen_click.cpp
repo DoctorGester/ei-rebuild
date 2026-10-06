@@ -15,6 +15,7 @@
 #include "originals_units.h"
 #include "console.h"
 #include "unit.h"
+#include "map_object_figures.h"
 
 #include <cstdint>
 #include <cstring>
@@ -31,7 +32,7 @@ constexpr std::uintptr_t kSoundSelect = 0x00793A60;   // buttons\save_select.wav
 // Rebirth-patched), 006186F0 create the hero, 00617A50 the statistics page's next, 006183B0
 // continue to the connection screen, 00618060 rename, 00619150 the voice's sound.
 __declspec(naked) void __fastcall SetMode(CMpHeroScreen*, void*, int) EI_ORIGINAL(0x00615D30)
-__declspec(naked) void __fastcall CreateHero(CMpHeroScreen*) EI_ORIGINAL(0x006186F0)
+__declspec(naked) void __fastcall CreateHeroAt(CMpHeroScreen*) EI_ORIGINAL(0x006186F0)
 __declspec(naked) void __fastcall StatsNext(CMpHeroScreen*) EI_ORIGINAL(0x00617A50)
 __declspec(naked) void __fastcall ContinueAt(CMpHeroScreen*) EI_ORIGINAL(0x006183B0)
 __declspec(naked) void __fastcall RenameAt(CMpHeroScreen*) EI_ORIGINAL(0x00618060)
@@ -210,7 +211,7 @@ void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
         else if (mode_ == kModeStats)
             StatsNext(this);
         else if (mode_ == kModeNewHero)
-            CreateHero(this);
+            CreateHeroAt(this);
         UiHandled(this) = true;
         return;
     case VK_ESCAPE:
@@ -282,7 +283,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
             SetMode(this, nullptr, 9);
             return;
         case 1:
-            CreateHero(this);
+            CreateHeroAt(this);
             return;
         case 2:
             rotate(1);
@@ -546,3 +547,59 @@ namespace {
 void __fastcall MpHeroContinue(CMpHeroScreen* self) { self->Continue(); }
 } // namespace
 EI_REPLACE(0x006183B0, MpHeroContinue);
+
+// --- 00618850 / 006186F0: the new hero's statistics and its creation --------------------------------
+
+namespace {
+// 00623880 (rewritten; through its address so the wrapper runs) is StatsPanelDrawStatsOriginal.
+const char* SoundCancel() { return GameText(kSoundCancel); }
+// The points the three attributes must add up to (a float in the exe's data).
+float AttributePoints() { return *reinterpret_cast<const float*>(0x00741C98); }
+} // namespace
+
+void CMpHeroScreen::RefreshHero() {
+    if (previewModel_) {
+        auto* hero = reinterpret_cast<PartyUnitRecord*>(Hero());
+        auto* stats = reinterpret_cast<UnitStats*>(hero->stats);
+        stats->RestoreSlots();
+        // The third argument (the height's address) is not read.
+        stats->GetFactors(&hero->unknown_724, &hero->unknown_728, static_cast<int>(reinterpret_cast<std::intptr_t>(&hero->height)));
+        reinterpret_cast<CObject3D*>(previewModel_)->SetFigureScale(&hero->unknown_724);
+        auto* unit = reinterpret_cast<CUnit*>(previewModel_);
+        unit->SetFromStats(reinterpret_cast<UnitStats*>(reinterpret_cast<PartyUnitRecord*>(Hero())->stats));
+        static_cast<CUnitController*>(unit->controller)->Slot31();
+    }
+    StatsPanelDrawStatsOriginal(statsPanel_);
+}
+namespace {
+void __fastcall MpHeroRefresh(CMpHeroScreen* self) { self->RefreshHero(); }
+} // namespace
+EI_REPLACE(0x00618850, MpHeroRefresh);
+
+void CMpHeroScreen::CreateHero() {
+    mfc::CString name(reinterpret_cast<CUiEditField*>(nameEdit_)->text_);
+    auto* hero = reinterpret_cast<PartyUnitRecord*>(Hero());
+    auto* stats = reinterpret_cast<UnitStats*>(hero->stats);
+    double sum = static_cast<double>(stats->stat20Base) + stats->stat18Base + stats->stat10Base;
+    float points = AttributePoints();
+    // FCOMP; TEST AH,0x40: equal or unordered.
+    if (sum < points || sum > points || name.GetLength() == 0) {
+        window.interface_->PlaySound(SoundCancel(), 0);
+        return;
+    }
+    window.interface_->PlaySound(GameText(0x00793A88), 0);   // "buttons\messbox\ok.wav"
+    weapon_ = static_cast<int>(hero->weaponCount) > 0 ? reinterpret_cast<char*>(hero->weapons[0]) : nullptr;
+    ShowWeapon(weaponPanel_, nullptr, weapon_);
+    armor_ = static_cast<int>(hero->quickItemCount) > 0 ? reinterpret_cast<char*>(hero->quickItems[0]) : nullptr;
+    ShowArmour(weaponPanel_, nullptr, armor_);
+    spellContainer_ = static_cast<int>(hero->spellCount) > 0 ? reinterpret_cast<char*>(hero->spells[0]) : nullptr;
+    ShowContainer(spellPanel_, nullptr, spellContainer_);
+    hero->texts[0] = name;
+    StatsSetHero(statsPanel_, nullptr, 0, const_cast<char*>(static_cast<const char*>(name)));
+    Refresh();
+    SetMode(this, nullptr, kModeStats);
+}
+namespace {
+void __fastcall MpHeroCreate(CMpHeroScreen* self) { self->CreateHero(); }
+} // namespace
+EI_REPLACE(0x006186F0, MpHeroCreate);

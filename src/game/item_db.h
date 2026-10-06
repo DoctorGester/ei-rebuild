@@ -46,6 +46,30 @@ constexpr int kQuestItemSize = 0x78;
 constexpr int kSpellSize = 0x84;
 constexpr int kSpellModifierSize = 0x24;
 
+// A spell prototype (kSpellSize bytes; 007C8510): the fields the camp's spell maker reads.
+struct SpellRecord {
+    std::uint8_t unknown_00[0x14];
+    int school;                         // +0x14
+    float mana;                         // +0x18
+    std::uint8_t unknown_1C[0x44 - 0x1C];
+    int skill;                          // +0x44 the school skill it needs
+    std::uint8_t unknown_48[0x84 - 0x48];
+};
+static_assert(offsetof(SpellRecord, skill) == 0x44);
+static_assert(sizeof(SpellRecord) == 0x84);
+
+// A spell modifier prototype (kSpellModifierSize bytes; 007C8530).
+struct SpellModifierRecord {
+    std::uint8_t unknown_00[0x0C];
+    std::uint32_t kind;                 // +0x0C
+    float mana;                         // +0x10 added to the spell's
+    std::uint8_t unknown_14[4];
+    int skill;                          // +0x18 added to the spell's
+    std::uint8_t unknown_1C[0x24 - 0x1C];
+};
+static_assert(offsetof(SpellModifierRecord, skill) == 0x18);
+static_assert(sizeof(SpellModifierRecord) == 0x24);
+
 // The fields every item prototype starts with (weapons, armours, quick, quest and loot items).
 // The values +0x34..+0x48 go to the item (CItem::InitFromRecord), with the item offset noted.
 struct ItemRecordHead {
@@ -176,7 +200,7 @@ R* __fastcall FillItemRecords(R* dest, int count, const R* value, int tag);
 
 // The start of a material record (kMaterialSize bytes).
 struct MaterialRecordHead {
-    std::uint8_t unknown_00[0x04];
+    const char* key;                    // +0x00 CString (the camp's "material.<key>" loot items)
     const char* soundName;              // +0x04 CString: the material of hit sounds ("Metal", "Bone", ...)
     const char* name;                   // +0x08 CString
 };

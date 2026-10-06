@@ -521,6 +521,18 @@ public:
     // (kind 3: the perk's record name without its level digits, plus "0"; held ones with their
     // level); the hero's statistics with it.
     void HoverInfo(int x, int y, ItemHoverInfo* info);
+    // 00625430 (ui_trade_panel.cpp). The records emptied, then one per party member filled from
+    // it (SnapshotRecord through its address; recordIndex_ is left at the last).
+    void ResetRecords();
+    // 00626F10 (__fastcall). Record recordIndex_ (when >= 0) from the party member's statistics:
+    // science, the six schools, 36 perk levels, the experience values; bought cleared.
+    void SnapshotRecord();
+    // 006255A0 (RET 8; both flags read as bytes). With `all`, every bought record is kept
+    // (SnapshotRecord, with `keep`) or undone (00626FA0 puts the hero's statistics back), then
+    // recordIndex_ is put back; otherwise only the current record when bought, then BuildLists.
+    void Settle(int keep, int all);
+    // 00625860 (RET 4). Shows party member `index`: scroll positions 0, then BuildLists.
+    void SelectHero(int index);
     // 00625530 (ui_hero_screen.cpp). The experience the shown hero can spend, from its record:
     // pending plus earned minus spent, truncated.
     int Experience() const;
@@ -694,6 +706,12 @@ public:
     // spellMade_ while the original leaves the list; a "Prototype" item for its spell and a "Rune"
     // item per modifier go into the results; the copy released.
     bool DeconstructSpell();
+    // 006129C0 (ui_camp_deals.cpp). The item maker's result taken apart: a copy of the first result made
+    // (itemMade_ meanwhile) and the result removed; an "Instruction Weapon / Armor / Quick Item" with
+    // its prototype index, a "material.<key>" per material its prototype needs (+0x4C), and for an
+    // item with a spell a "spell container" (MakeItem 0x3008) holding a clone of it, each added to
+    // the results. Returns true.
+    bool DeconstructItem();
 
     std::uint8_t unknown_148[0x164 - 0x148];
     CUiWindow* descPanel_;           // +0x164 the description panel (vtable 007404DC)
@@ -833,9 +851,22 @@ public:
     // highlight frames; with `body` (the camp) the panel is 500 high and gets the seven body slot
     // regions and the four body pictures (textures camp1..camp4).
     void Build(bool body);
+    // 006229E0 (RET 4; ui_equip_panels.cpp). The hero's shown weapon (+0x774) becomes `weapon`'s
+    // place in the hero's weapon list (+0x730), or -1.
+    void ShowWeapon(CItem* weapon);
+    // 00622A30 (RET 4). selected_ becomes `item`'s place in the hero's +0x740 list, or -1.
+    void ShowArmour(CItem* item);
+    // 00622960 (input slot 5, RET 0xC). On the camp's body (body_) while enabled: a right click on
+    // one of the first four weapon slots the hero fills plays "change" and shows that weapon; the
+    // owner's slot 46 (the weapons refreshed) on any region. The event is not marked used.
+    void OnRightDown(int buttons, int x, int y);
+    // 00622860 (slot 25, RET 0xC). The item under (x, y) with its help topic: regions 0-3 the
+    // weapons (topic 2), 4-7 the +0x740 list from its end (3), on the body regions 8-14 the armour
+    // worn at body part region - 8 (topic region - 4); null elsewhere or while disabled (topic 0).
+    CItem* ItemAt(int x, int y, int* topic);
 
     int unknown_148;                 // +0x148 0
-    std::uint8_t unknown_14C[4];
+    CUiWindow* owner_;               // +0x14C the camp or the hero screen
     bool body_;                      // +0x150
     std::uint8_t unknown_151[3];
     int selected_;                   // +0x154 -1
@@ -871,9 +902,14 @@ class CRepairGrid : public CUiWindow {
 public:
     // 006279E0. Builds the grid for the item list `items`.
     void Build(void* items);
+    // 00627C90 (slot 20, RET 4; ui_panel_draws.cpp). The depth buffer cleared to 0 over the screen
+    // and to 1 over the grid; each item's model in its cell (depth 2^(3 - row) * 6), its
+    // count when more than one and its repair price (owner slot 54, kind 8) on the surface; the
+    // window's sprites and models; the depth buffer cleared to 1 again. Returns 1.
+    BOOL Draw(int pass);
 
-    int unknown_148;                 // +0x148 8
-    std::uint8_t unknown_14C[4];
+    int unknown_148;                 // +0x148 8 (the cells' mode)
+    CUiWindow* owner_;               // +0x14C the camp
     void* items_;                    // +0x150
 };
 static_assert(offsetof(CRepairGrid, items_) == 0x150);
@@ -886,9 +922,19 @@ public:
     // 00622A80. Builds the strip at y 0 (`top`) or 500: eight regions, a hidden highlight frame
     // and the cells.
     void Build(bool top);
+    // 00622BC0 (RET 4; ui_equip_panels.cpp). selected_ becomes `item`'s place in the hero's +0x760
+    // list, or -1.
+    void ShowEntry(CItem* item);
+    // 00622D40 (slot 25, RET 0xC). The hero's +0x760 entry under (x, y) (regions 0-7, topic 1), or
+    // null (topic 0 off the cells or while disabled).
+    CItem* ItemAt(int x, int y, int* topic);
+    // 00622C10 (slot 20, RET 4; ui_panel_draws.cpp). The highlight frame (scene object 0) on the
+    // selected cell when it holds one of the hero's spell list (+0x760) entries, else hidden; each
+    // entry's model in its cell; then the window's sprites and models. Returns 1.
+    BOOL Draw(int pass);
 
-    int unknown_148;                 // +0x148 0
-    std::uint8_t unknown_14C[4];
+    int unknown_148;                 // +0x148 0 (the cells' mode)
+    CUiWindow* owner_;               // +0x14C the camp or the hero screen
     int y_;                          // +0x150
     int selected_;                   // +0x154 -1
 };
@@ -905,10 +951,35 @@ public:
     // 00628CC0. The item maker: the blueprint and two part slots, the grid, the pictures
     // (constritem1..4) and a highlight frame.
     void BuildItemMaker(void* slots);
+    // 006284A0 (slot 20 of the spell maker, RET 4; ui_panel_draws.cpp). The slots' items (a spell
+    // container at (250, 300), the spell at (350, 300), the modifiers down the 2 x 4 grid from
+    // (450, 150)); the cost lines on the surface: "<text 0> <best skill> (<needed>)" and "<text 1>
+    // <most mana> (<the larger of the summed and the last spell's mana>)" with a spell, else the
+    // two texts; the window's sprites and models; then, without a container, the pulsing highlight
+    // (scene object 4, its plain colour from cos(5 * pulse_)) on the empty grid cells (with a
+    // spell) or on the container and spell slots. Returns 1.
+    BOOL DrawSpellMaker(int pass);
+    // 00628F80 (slot 20 of the item maker, RET 4). The window's sprites and models first; the
+    // blueprint (250, 300) and the part (350, 250) drawn between depth clears of their slots, a
+    // spell container at (350, 350), the materials down the grid; then, without a blueprint or a
+    // container, the pulsing highlight on the blueprint and part slots (no part), the grid cells
+    // the part has room for beyond the materials, or the container slot (none left). Returns 1.
+    BOOL DrawItemMaker(int pass);
 
-    int kind_;                       // +0x148 6 spell maker, 7 item maker
-    std::uint8_t unknown_14C[4];
-    void* slots_;                    // +0x150
-    int selected_;                   // +0x154 0
+    int kind_;                       // +0x148 6 spell maker, 7 item maker (the cells' mode)
+    CUiWindow* owner_;               // +0x14C the camp
+    void* slots_;                    // +0x150 an item list (0x70 bytes, 00661050)
+    float pulse_;                    // +0x154 the highlight's time (0 when built)
 };
 static_assert(offsetof(CConstructorPage, slots_) == 0x150);
+static_assert(offsetof(CConstructorPage, pulse_) == 0x154);
+// The spell maker's cost texts ("infoitem_35", "infoitem_36"): a CStringArray at +0x158.
+class CSpellMakerPage : public CConstructorPage {
+public:
+    void* textsVtable_;              // +0x158
+    const char** texts_;             // +0x15C CString data
+    int textCount_;                  // +0x160
+    std::uint8_t unknown_164[0x16C - 0x164];
+};
+static_assert(offsetof(CSpellMakerPage, texts_) == 0x15C);
+static_assert(sizeof(CSpellMakerPage) == 0x16C);

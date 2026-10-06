@@ -83,3 +83,14 @@ static bool __fastcall CampDeconstructSpellVerify(CCampPages* self, void*) {
     return result;
 }
 EI_VERIFY(0x00612500, CampDeconstructSpellVerify, 0, s_unused);
+
+// 006129C0: returns 1 and holds no made item; the results lost the item and gained its parts (at
+// least the instruction for a weapon, armour or quick item; creation may fail, so >= before - 1).
+static bool __fastcall CampDeconstructItemVerify(CCampPages* self, void*) {
+    int before = CountOf(self->itemResults_);
+    bool result = self->DeconstructItem();
+    bool ok = result && !self->itemMade_ && CountOf(self->itemResults_) >= before - 1;
+    ei::verify::Check("CCampPages::DeconstructItem", true, ok, "results %d -> %d", before, CountOf(self->itemResults_));
+    return result;
+}
+EI_VERIFY(0x006129C0, CampDeconstructItemVerify, 0, s_unused);

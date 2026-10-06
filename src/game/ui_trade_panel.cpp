@@ -2,6 +2,8 @@
 // schools and perks (00625880) and their drawing (006261A0). See docs/notes/ui.md ("Ninth pass",
 // "Tenth pass").
 #include "ui_camp.h"
+#include "party.h"
+#include "unit.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -404,21 +406,8 @@ void CTradePanel::Build() {
         TextsGetString(table, nullptr, GameText(0x00793E44), &text);   // "perks_av"
         TitlesSetAtGrow(titles, nullptr, *size, &text);
 
-        // One statistics record per party member (the vector emptied first; the records hold no
-        // resources). The original pushes uninitialised stack bytes; 00626F10 writes all but
-        // +0x2B and +0x39..+0x3B. Ours pushes zeros.
-        records_.end = records_.begin;
-        const TradeRecord blank{};
-        for (int i = 0; i < PartyRecordCount(); ++i) {
-            if (records_.end != records_.capacity) {
-                if (records_.end) *records_.end = blank;
-                ++records_.end;
-            } else {
-                RecordsInsertOverflow(&records_, nullptr, records_.end, &blank, 1);
-            }
-            recordIndex_ = i;
-            FillRecord(this);
-        }
+        // One statistics record per party member (inlined in the original; 00625430's body).
+        ResetRecords();
         heldRegion_ = -1;
         holdTime_ = 0.0f;
     }
@@ -427,3 +416,97 @@ namespace {
 void __fastcall TradeBuild(CTradePanel* self) { self->Build(); }
 } // namespace
 EI_REPLACE(0x00624F10, TradeBuild);
+
+// --- 00625430: the records again ----------------------------------------------------------------
+
+void CTradePanel::ResetRecords() {
+    // The vector emptied first (the records hold no resources). The original pushes uninitialised
+    // stack bytes; 00626F10 writes all but +0x2B and +0x39..+0x3B. Ours pushes zeros.
+    records_.end = records_.begin;
+    const TradeRecord blank{};
+    for (int i = 0; i < PartyRecordCount(); ++i) {
+        if (records_.end != records_.capacity) {
+            if (records_.end) *records_.end = blank;
+            ++records_.end;
+        } else {
+            RecordsInsertOverflow(&records_, nullptr, records_.end, &blank, 1);
+        }
+        recordIndex_ = i;
+        FillRecord(this);
+    }
+}
+namespace {
+void __fastcall TradeResetRecords(CTradePanel* self) { self->ResetRecords(); }
+} // namespace
+EI_REPLACE(0x00625430, TradeResetRecords);
+
+// --- 00626F10: the record from the hero ---------------------------------------------------------
+
+namespace {
+// 00626FA0 (__fastcall, not rewritten): the hero's statistics back from record recordIndex_ (the
+// hit points kept in proportion).
+__declspec(naked) void __fastcall RestoreRecord(CTradePanel*) EI_ORIGINAL(0x00626FA0)
+
+UnitStats* PartyMemberStats(int index) {
+    CParty* party = reinterpret_cast<CParty*>(TradePlayerData(reinterpret_cast<void*>(0x007AFEA5)));
+    return reinterpret_cast<UnitStats*>(party->members_.data[index].stats);
+}
+} // namespace
+
+void CTradePanel::SnapshotRecord() {
+    if (recordIndex_ < 0) return;
+    TradeRecord& record = records_.begin[recordIndex_];
+    const UnitStats* stats = PartyMemberStats(recordIndex_);
+    for (int i = 0; i < 6; ++i) record.schools[i] = stats->skills[i];
+    record.science = stats->attributes[0];
+    for (int i = 0; i < 36; ++i) record.perks[i] = stats->skillLevels[i];
+    // Copied as dwords, as the original does.
+    std::memcpy(&record.experience, &stats->experience, sizeof(float));
+    std::memcpy(&record.pendingExperience, &stats->pendingExperience, sizeof(float));
+    std::memcpy(&record.spentExperience, &stats->spentExperience, sizeof(float));
+    record.bought = 0;
+}
+namespace {
+void __fastcall TradeSnapshotRecord(CTradePanel* self) { self->SnapshotRecord(); }
+} // namespace
+EI_REPLACE(0x00626F10, TradeSnapshotRecord);
+
+// --- 006255A0 / 00625860: settling and choosing the hero --------------------------------------------
+
+void CTradePanel::Settle(int keep, int all) {
+    bool keepIt = static_cast<std::uint8_t>(keep) != 0;
+    if (static_cast<std::uint8_t>(all)) {
+        int saved = recordIndex_;
+        for (unsigned i = 0; i < static_cast<unsigned>(records_.end - records_.begin); ++i) {
+            if (!records_.begin[i].bought) continue;
+            recordIndex_ = static_cast<int>(i);
+            if (keepIt)
+                FillRecord(this);
+            else
+                RestoreRecord(this);
+        }
+        recordIndex_ = saved;
+        return;
+    }
+    if (!records_.begin[recordIndex_].bought) return;
+    if (keepIt)
+        FillRecord(this);
+    else
+        RestoreRecord(this);
+    TradePanelBuildListsOriginal(this);
+}
+namespace {
+void __fastcall TradeSettle(CTradePanel* self, void*, int keep, int all) { self->Settle(keep, all); }
+} // namespace
+EI_REPLACE(0x006255A0, TradeSettle);
+
+void CTradePanel::SelectHero(int index) {
+    recordIndex_ = index;
+    perkTop_ = 0;
+    learnableTop_ = 0;
+    TradePanelBuildListsOriginal(this);
+}
+namespace {
+void __fastcall TradeSelectHero(CTradePanel* self, void*, int index) { self->SelectHero(index); }
+} // namespace
+EI_REPLACE(0x00625860, TradeSelectHero);
