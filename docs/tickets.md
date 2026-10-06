@@ -52,6 +52,8 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Cleanup (docs/cleanup-plan.md)
 
+- D3 (next, user 2026-10-06) Shared containers: one layout-exact header for the game's container instantiations (MFC CArray / CTypedPtrArray / CList / CMap, the engine's 32-byte aligned arrays, STLport vector / list / hash_map views); replace the per-file copies (AlignedArray x11, UiPtrArray x6, ListNode x6, MfcArray x5, RecordArray x5, ...) and hand-inlined SetSize / RemoveAt / Add; rewrite-guide rule plus a check_cleanup column for per-file container declarations. Behaviour unchanged.
+
 - C2 Phase 1 for the engine base and core networking (0x00400000-0x00440000, fully ported): one
   real declaration per class, members instead of At<>/offsets, virtual calls instead of VCall,
   globals instead of addresses, duplicates merged; behaviour unchanged. Split per class family:
