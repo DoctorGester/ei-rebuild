@@ -5,6 +5,7 @@
 
 #include "item.h"
 #include "net_link.h"
+#include "originals_engine.h"
 #include "originals_world.h"
 #include "party.h"
 #include "unit.h"
@@ -93,6 +94,16 @@ CPlayer* CPlayer::DeletingDestruct(unsigned flags) {
     return this;
 }
 EI_REPLACE_METHOD(0x00664E00, CPlayer::DeletingDestruct);
+
+// 00664B70 (__fastcall, RET 4). The message dispatchers' fatal error: `format` ("... prevID=%x
+// curID=%x") with the previous and the current message type (their low bytes; the callers set
+// only DL) raises FatalError (00480080, patched by Rebirth: through its address); its result.
+int __fastcall PlayerMessageError(const char* format, std::uint32_t previous, std::uint32_t type) {
+    mfc::CString text;
+    text.Format(format, previous & 0xFF, type & 0xFF);
+    return FatalErrorOriginal(text);
+}
+EI_REPLACE(0x00664B70, PlayerMessageError);
 
 // 00664DE0 / 00664DF0: slots 11 and 12.
 const char* __fastcall PlayerClassName(CPlayer*) { return reinterpret_cast<const char*>(0x00794CA4); }

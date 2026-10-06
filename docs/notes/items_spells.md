@@ -517,3 +517,4 @@ Second part (the link, given items, units):
 Kept: HasLoot reads +0x4C of every carried item whatever its class; ReleaseTamedUnits (like Clear's sibling walks)
 goes on from the node of a unit that SetPlayer has just erased, reading the freed node as the original does.
 Connect / Disconnect / GiveItems / TakeAllItems call the connection without a null test.
+| 00664B70 | PlayerMessageError (__fastcall format, previous in DL, type; RET 4) | ours only (FatalError, through 00480080) |

@@ -55,6 +55,16 @@ bool Destroyed(const CPlayer* p) {
 }
 } // namespace
 
+int __fastcall PlayerMessageError(const char* format, std::uint32_t previous, std::uint32_t type);
+
+// 00664B70: ours only (FatalError may end the game); counted before it runs. No scenario (a broken
+// message stream).
+static int __fastcall PlayerMessageErrorVerify(const char* format, std::uint32_t previous, std::uint32_t type) {
+    ei::verify::Check("PlayerMessageError", true, format != nullptr, "prev %02X type %02X", previous & 0xFF, type & 0xFF);
+    return PlayerMessageError(format, previous, type);
+}
+EI_VERIFY(0x00664B70, PlayerMessageErrorVerify, 0, s_unused);
+
 const char* __fastcall PlayerClassName(CPlayer*);
 int __fastcall PlayerClassId(CPlayer*);
 
