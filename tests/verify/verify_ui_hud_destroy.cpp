@@ -36,7 +36,7 @@ EI_VERIFY(0x0063E460, SpellColumnDestroyVerify, 0, s_unused);
 static void __fastcall ActionColumnDestroyVerify(CHudActionColumn* self) {
     self->DestroyBody();
     ei::verify::Check("CHudActionColumn::DestroyBody", true,
-                      BaseEmpty(self) && self->actions_.vtable_ == reinterpret_cast<void*>(0x0073C3D0), "");
+                      BaseEmpty(self) && self->actions_.vtable == reinterpret_cast<void*>(0x0073C3D0), "");
 }
 EI_VERIFY(0x0063F490, ActionColumnDestroyVerify, 0, s_unused);
 

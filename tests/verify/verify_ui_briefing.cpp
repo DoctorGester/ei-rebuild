@@ -30,14 +30,14 @@ struct PartyState {
     static PartyState Take(const CBriefingScreen* screen) {
         PartyState s{};
         s.leader = screen->leader_;
-        s.size = screen->party_.size_;
-        for (int i = 0; i < s.size && i < kPartySnapshot; ++i) s.data[i] = screen->party_.data_[i];
+        s.size = screen->party_.size;
+        for (int i = 0; i < s.size && i < kPartySnapshot; ++i) s.data[i] = screen->party_.data[i];
         return s;
     }
     void Put(CBriefingScreen* screen) const {
         screen->leader_ = leader;
-        screen->party_.size_ = size;
-        for (int i = 0; i < size && i < kPartySnapshot; ++i) screen->party_.data_[i] = data[i];
+        screen->party_.size = size;
+        for (int i = 0; i < size && i < kPartySnapshot; ++i) screen->party_.data[i] = data[i];
     }
 };
 
@@ -70,7 +70,7 @@ static void __fastcall MessageResultVerify(CBriefingScreen* self, void*, std::ui
 EI_VERIFY(0x00606F40, MessageResultVerify, 0, s_unused);
 
 static void __fastcall UnitLeftVerify(CBriefingScreen* self, void*, CUnit* unit) {
-    if (self->party_.size_ > kPartySnapshot) {
+    if (self->party_.size > kPartySnapshot) {
         self->OnUnitLeft(unit);
         return;
     }
@@ -88,16 +88,16 @@ static void __fastcall UnitLeftVerify(CBriefingScreen* self, void*, CUnit* unit)
 static void __fastcall UnitJoinedVerify(CBriefingScreen* self, void*, CUnit* unit) {
     auto count = [&] {
         int n = 0;
-        for (int i = 0; i < self->party_.size_; ++i) n += reinterpret_cast<CUnit*>(self->party_.data_[i]) == unit;
+        for (int i = 0; i < self->party_.size; ++i) n += reinterpret_cast<CUnit*>(self->party_.data[i]) == unit;
         return n;
     };
     int before = count();
-    int size = self->party_.size_;
+    int size = self->party_.size;
     self->OnUnitJoined(unit);
     int after = count();
-    bool ok = self->party_.size_ == size ? after == before : (self->party_.size_ >= size + 1 && after == before + 1);
+    bool ok = self->party_.size == size ? after == before : (self->party_.size >= size + 1 && after == before + 1);
     ei::verify::Check("CBriefingScreen::OnUnitJoined", true, ok, "unit %d: party %d -> %d", unit->id_, size,
-                      self->party_.size_);
+                      self->party_.size);
 }
 EI_VERIFY(0x00602C90, UnitJoinedVerify, 0, s_unused);
 

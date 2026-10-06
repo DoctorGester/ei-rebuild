@@ -413,28 +413,28 @@ bool Crosses(float prev, float cur, float edge) {
 // afterwards the points outside are removed.
 template <typename Cut, typename Outside>
 void ClipPass(UiPointArray& points, Cut cut, Outside outside) {
-    int count = points.size_;
+    int count = points.size;
     for (int i = 0; i < count; ++i) {
-        UiPointF cur = points.data_[i];
-        UiPointF prev = points.data_[i == 0 ? count - 1 : i - 1];
+        UiPointF cur = points.data[i];
+        UiPointF prev = points.data[i == 0 ? count - 1 : i - 1];
         UiPointF cross;
         if (!cut(prev, cur, &cross)) continue;
-        int size = points.size_;
+        int size = points.size;
         if (i < size) {
-            points.SetSize(size + 1, -1);
-            std::memmove(&points.data_[i + 1], &points.data_[i], (size - i) * sizeof(UiPointF));
+            UiPointsSetSize(&points, nullptr, size + 1, -1);
+            std::memmove(&points.data[i + 1], &points.data[i], (size - i) * sizeof(UiPointF));
         } else {
-            points.SetSize(i + 1, -1);
+            UiPointsSetSize(&points, nullptr, i + 1, -1);
         }
-        points.data_[i] = cross;
+        points.data[i] = cross;
         ++i;
         ++count;
     }
     for (int i = 0; i < count; ++i) {
-        if (!outside(points.data_[i])) continue;
-        int tail = points.size_ - i - 1;
-        if (tail != 0) std::memmove(&points.data_[i], &points.data_[i + 1], tail * sizeof(UiPointF));
-        --points.size_;
+        if (!outside(points.data[i])) continue;
+        int tail = points.size - i - 1;
+        if (tail != 0) std::memmove(&points.data[i], &points.data[i + 1], tail * sizeof(UiPointF));
+        --points.size;
         --i;
         --count;
     }
@@ -443,7 +443,7 @@ void ClipPass(UiPointArray& points, Cut cut, Outside outside) {
 } // namespace
 
 __declspec(naked) void CUiMesh::SetUvCount(int) EI_ORIGINAL(0x005EA380)
-__declspec(naked) void UiPointArray::SetSize(int, int) EI_ORIGINAL(0x00453100)
+__declspec(naked) void __fastcall UiPointsSetSize(UiPointArray*, void*, int, int) EI_ORIGINAL(0x00453100)
 
 void CHudMap::UpdateView() {
     // Follow the camera: the map is centred on its target and turns with its facing.
@@ -476,13 +476,13 @@ void CHudMap::UpdateView() {
     auto* area = reinterpret_cast<CUiMesh*>(sceneObjects_.data[1]);
     UiPointArray& points = visibleArea_;
     int count = viewPolygonCount_;
-    points.SetSize(count, -1);   // the original inlines the same code
+    UiPointsSetSize(&points, nullptr, count, -1);   // the original inlines the same code
     for (int i = 0; i < count; ++i) {
         const UiPointF& v = viewPolygon_[i];
         double x = D(v.x) / D(zoom_);
         float y = Store(D(v.y) / D(zoom_));
-        points.data_[i].x = Store(x / D(scale_) + D(centreX_));
-        points.data_[i].y = Store(D(centreY_) - D(y) / D(scale_));
+        points.data[i].x = Store(x / D(scale_) + D(centreX_));
+        points.data[i].y = Store(D(centreY_) - D(y) / D(scale_));
     }
 
     // Clipped to the world rectangle: x >= 0, y >= 0, x <= width, y <= height.
@@ -522,7 +522,7 @@ void CHudMap::UpdateView() {
              [height](const UiPointF& v) { return v.y > height; });
 
     // The visible-area mesh: a fan over the clipped polygon, textured by world position.
-    count = points.size_;
+    count = points.size;
     area->SetVertexCount(count);
     for (int i = 0; i < count; ++i) {
         area->vertices_[i].position = static_cast<std::int16_t>(i);
@@ -530,8 +530,8 @@ void CHudMap::UpdateView() {
     }
     area->SetUvCount(count);
     for (int i = 0; i < count; ++i) {
-        area->uvs_[i * 2] = Store(D(points.data_[i].x) / D(textureSize_));
-        area->uvs_[i * 2 + 1] = Store(D(points.data_[i].y) / D(textureSize_));
+        area->uvs_[i * 2] = Store(D(points.data[i].x) / D(textureSize_));
+        area->uvs_[i * 2 + 1] = Store(D(points.data[i].y) / D(textureSize_));
     }
     if (count > 2) {
         area->SetIndexCount((count - 2) * 3);
@@ -547,17 +547,17 @@ void CHudMap::UpdateView() {
     int quads = count / 4;
     if (count % 4 != 0) {
         ++quads;
-        UiPointF first = points.data_[0];
+        UiPointF first = points.data[0];
         for (int k = 4 - count % 4; k > 0; --k) {
-            int size = points.size_;
-            points.SetSize(size + 1, -1);
-            points.data_[size] = first;
+            int size = points.size;
+            UiPointsSetSize(&points, nullptr, size + 1, -1);
+            points.data[size] = first;
         }
     }
     area->SetQuadCount(quads);
     for (int q = 0; q < quads; ++q) {
         for (int k = 0; k < 4; ++k) {
-            const UiPointF& v = points.data_[q * 4 + k];
+            const UiPointF& v = points.data[q * 4 + k];
             double x = (D(v.x) - D(centreX_)) * D(scale_);
             float y = Store(-((D(v.y) - D(centreY_)) * D(scale_)));
             float mapY = Store(D(y) * D(zoom_));

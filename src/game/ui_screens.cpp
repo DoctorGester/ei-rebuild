@@ -86,7 +86,7 @@ __declspec(naked) void UiInput::BaseKeyUp(int, int, int) EI_ORIGINAL(0x006019A0)
 __declspec(naked) void UiInput::BaseChar(int, int, int) EI_ORIGINAL(0x006018E0)
 __declspec(naked) int UiInput::BaseWheel(int, int, int, int) EI_ORIGINAL(0x00601730)
 
-__declspec(naked) void UiItemArray::SetSize(int, int) EI_ORIGINAL(0x0062A390)
+__declspec(naked) void __fastcall UiItemsSetSize(UiItemArray*, void*, int, int) EI_ORIGINAL(0x0062A390)
 
 // --- Item predicates -------------------------------------------------------------------------
 
@@ -260,25 +260,25 @@ int CUiItemStrip::ArmorTab(const char* item) {
 EI_REPLACE_METHOD(0x00621A80, CUiItemStrip::ArmorTab);
 
 void CUiItemStrip::RebuildList() {
-    list_.SetSize(0, -1);
+    UiItemsSetSize(&list_, nullptr, 0, -1);
     if (filter_ == 0 && tab_ == 5) {
         for (int i = 0; i < source_->size; ++i) {
-            int index = list_.size_;
+            int index = list_.size;
             char* item = source_->data[i];
-            list_.SetSize(index + 1, -1);
-            list_.data_[index] = item;
+            UiItemsSetSize(&list_, nullptr, index + 1, -1);
+            list_.data[index] = item;
         }
     } else {
         for (int i = 0; i < source_->size; ++i) {
             char* item = source_->data[i];
             if (TabOf(item) == tab_) {
-                int index = list_.size_;
-                list_.SetSize(index + 1, -1);
-                list_.data_[index] = item;
+                int index = list_.size;
+                UiItemsSetSize(&list_, nullptr, index + 1, -1);
+                list_.data[index] = item;
             }
         }
     }
-    count_ = list_.size_;
+    count_ = list_.size;
 }
 EI_REPLACE_METHOD(0x006212F0, CUiItemStrip::RebuildList);
 
@@ -295,13 +295,13 @@ void CUiItemStrip::ScrollToItem(char* item) {
     if (!item) return;
     auto* wanted = reinterpret_cast<CItem*>(item);
     float found = -1.0f;   // the list index of the last match (FILD of the size, stored as float)
-    list_.SetSize(0, -1);
+    UiItemsSetSize(&list_, nullptr, 0, -1);
     // The original inlines the array's SetSize (0062A390) in the second loop.
     auto append = [&](char* entry) {
-        if (wanted->IsSameAsSlot(reinterpret_cast<CItem*>(entry))) found = static_cast<float>(list_.size_);
-        int index = list_.size_;
-        list_.SetSize(index + 1, -1);
-        list_.data_[index] = entry;
+        if (wanted->IsSameAsSlot(reinterpret_cast<CItem*>(entry))) found = static_cast<float>(list_.size);
+        int index = list_.size;
+        UiItemsSetSize(&list_, nullptr, index + 1, -1);
+        list_.data[index] = entry;
     };
     if (filter_ == 0 && tab_ == 5) {
         for (int i = 0; i < source_->size; ++i) append(source_->data[i]);
@@ -345,8 +345,8 @@ char* CUiItemStrip::ItemAt(int x, int y, int* cursor) {
     constexpr float kSlotsPerPixel = 0.01f;
     int index = GameFtol(static_cast<double>(point.x - 50) * kSlotsPerPixel + position_[tab_]);
     CallRebuildList();
-    if (index < 0 || index >= list_.size_) return nullptr;
-    return list_.data_[index];
+    if (index < 0 || index >= list_.size) return nullptr;
+    return list_.data[index];
 }
 EI_REPLACE_METHOD(0x00621F30, CUiItemStrip::ItemAt);
 

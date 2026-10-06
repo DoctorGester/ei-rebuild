@@ -306,18 +306,18 @@ void RebuildClientParty(CBattleScreenSetup* screen) {
             if (unitId == ids.camera) {
                 WorldControl(reinterpret_cast<void*>(kWorld), nullptr, unit);
                 // Insert at the front (the original's inlined InsertAt).
-                int n = party->size_;
+                int n = party->size;
                 if (n <= 0) {
                     PartySetSize(party, nullptr, 1, -1);
                 } else {
                     PartySetSize(party, nullptr, n + 1, -1);
-                    GameMemmove(party->data_ + 1, party->data_, static_cast<std::size_t>(n) * 4);
-                    PartyConstruct(party->data_, 1);
+                    GameMemmove(party->data + 1, party->data, static_cast<std::size_t>(n) * 4);
+                    PartyConstruct(party->data, 1);
                 }
-                party->data_[0] = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(unit));
+                party->data[0] = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(unit));
                 cameraFirst = true;
             } else {
-                PartySetAtGrow(party, nullptr, party->size_, unit);
+                PartySetAtGrow(party, nullptr, party->size, unit);
             }
         }
         PortraitsRebuildOriginal(screen->portraits_, nullptr, cameraFirst ? 1 : 0);
@@ -353,8 +353,8 @@ void CBattleScreenSetup::Update() {
     auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
     CUnit* first = nullptr;
     int selected = 0;
-    for (int i = 0; i < party->size_; ++i) {
-        auto* unit = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data_[i]));
+    for (int i = 0; i < party->size; ++i) {
+        auto* unit = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i]));
         if (unit && (At<std::uint8_t>(unit, 8) & 0x10)) {
             if (!first) first = unit;
             ++selected;
@@ -417,8 +417,8 @@ void CBattleScreenSetup::Update() {
         List inside;
         IndexListConstruct(&inside, nullptr, &allocator);
         for (ListNode* node = units.head->next; node != units.head; node = node->next) {
-            for (int i = 0; i < party->size_; ++i) {
-                if (party->data_[i] != node->data) continue;
+            for (int i = 0; i < party->size; ++i) {
+                if (party->data[i] != node->data) continue;
                 ListNode* end;
                 IndexListEnd(&inside, nullptr, &end);
                 ListNode* inserted;
@@ -430,8 +430,8 @@ void CBattleScreenSetup::Update() {
             void* figure = At<void*>(unit, 0x94);
             reinterpret_cast<MarkFn>((*reinterpret_cast<void***>(figure))[26])(figure, on);
         };
-        for (int i = 0; i < party->size_; ++i) {
-            auto* unit = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data_[i]));
+        for (int i = 0; i < party->size; ++i) {
+            auto* unit = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i]));
             std::uint32_t flags = At<std::uint32_t>(unit, 8);
             if (!(flags & 0x10) && (flags & 0x100)) {
                 At<std::uint32_t>(unit, 8) = flags & ~0x100u;
@@ -439,7 +439,7 @@ void CBattleScreenSetup::Update() {
             }
         }
         for (ListNode* node = inside.head->next; node != inside.head; node = node->next) {
-            auto* unit = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data_[node->data]));
+            auto* unit = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[node->data]));
             std::uint32_t flags = At<std::uint32_t>(unit, 8);
             if (!(flags & 0x10) && !(flags & 0x100)) {
                 At<std::uint32_t>(unit, 8) = flags | 0x100;
@@ -520,7 +520,7 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
     }
 
     auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
-    auto unitAt = [&](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data_[i])); };
+    auto unitAt = [&](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i])); };
     int first = -1;
     std::uint8_t allocator = 0;
     List units;
@@ -530,8 +530,8 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
     IndexListConstruct(&inside, nullptr, &allocator);
     if (units.head->next != units.head) {
         for (ListNode* node = units.head->next; node != units.head; node = node->next) {
-            for (int i = 0; i < party->size_; ++i) {
-                if (party->data_[i] != node->data) continue;
+            for (int i = 0; i < party->size; ++i) {
+                if (party->data[i] != node->data) continue;
                 ListNode* end;
                 IndexListEnd(&inside, nullptr, &end);
                 ListNode* inserted;
@@ -545,7 +545,7 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
             // Portrait i's selection marker (scene object 5 i + 4) and face state.
             auto marker = [&](int i) { return reinterpret_cast<CUiMesh*>(portraits_->sceneObjects_.data[i * 5 + 4]); };
             auto slot = [&](int i) -> HudPortraitSlot& { return static_cast<CHudPortraits*>(portraits_)->slots_[i]; };
-            for (int i = 0; i < party->size_; ++i) {
+            for (int i = 0; i < party->size; ++i) {
                 CUnit* unit = unitAt(i);
                 std::uint32_t flags = At<std::uint32_t>(unit, 8);
                 if (!(flags & 0x10) && (flags & 0x100)) {
@@ -713,8 +713,8 @@ void CBattleScreenSetup::RefreshSelection() {
     auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
     CUnit* first = nullptr;
     int selected = 0;
-    for (int i = 0; i < party->size_; ++i) {
-        auto* unit = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data_[i]));
+    for (int i = 0; i < party->size; ++i) {
+        auto* unit = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i]));
         if (!unit || !(At<std::uint32_t>(unit, 8) & 0x10)) continue;
         if (!first) first = unit;
         ++selected;

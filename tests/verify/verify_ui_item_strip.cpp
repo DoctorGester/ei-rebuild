@@ -90,7 +90,7 @@ static BOOL __fastcall StripDrawVerify(CUiItemStrip* self, void*, int pass) {
     BOOL result = self->Draw(pass);
     float position = self->position_[self->tab_];
     std::uint32_t wantLeft = position > 0.0f ? 0x3E480000u : 0u;
-    std::uint32_t wantRight = static_cast<float>(self->list_.size_ - 7) > position ? 0x3E480000u : 0u;
+    std::uint32_t wantRight = static_cast<float>(self->list_.size - 7) > position ? 0x3E480000u : 0u;
     CEngineObject** sprites = self->window.sceneObjects_.data;
     std::uint32_t left, right;
     std::memcpy(&left, reinterpret_cast<const std::uint8_t*>(sprites[0]) + 0xCC, 4);

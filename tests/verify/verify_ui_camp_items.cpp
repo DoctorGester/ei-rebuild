@@ -139,16 +139,16 @@ static void __fastcall ScrollToItemVerify(CUiItemStrip* self, void*, char* item)
         char* entry = self->source_->data[i];
         if (all || self->CUiItemStrip::TabOf(entry) == self->tab_) expected.push_back(entry);
     }
-    bool ok = self->list_.size_ == static_cast<int>(expected.size()) && self->pending_ == 0.0f &&
+    bool ok = self->list_.size == static_cast<int>(expected.size()) && self->pending_ == 0.0f &&
               self->velocity_ == 0.0f && self->count_ == count;
     int found = -1;
-    for (int i = 0; ok && i < self->list_.size_; ++i) {
-        ok &= self->list_.data_[i] == expected[i];
+    for (int i = 0; ok && i < self->list_.size; ++i) {
+        ok &= self->list_.data[i] == expected[i];
         if (reinterpret_cast<CItem*>(item)->IsSameAsSlot(reinterpret_cast<CItem*>(expected[i]))) found = i;
     }
     float position = self->position_[self->tab_];
     if (ok && found >= 0) ok = position >= static_cast<float>(found - 6) && position <= static_cast<float>(found);
     ei::verify::Check("CUiItemStrip::ScrollToItem", true, ok, "tab %d filter %d list %d found %d position %g",
-                      self->tab_, self->filter_, self->list_.size_, found, position);
+                      self->tab_, self->filter_, self->list_.size, found, position);
 }
 EI_VERIFY(0x00621570, ScrollToItemVerify, 0, s_unused);

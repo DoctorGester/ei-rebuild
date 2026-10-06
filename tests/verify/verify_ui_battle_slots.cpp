@@ -63,8 +63,8 @@ int FirstDifference(const Recording& a, const Recording& b) {
 
 bool InParty(CBattleScreenSetup* screen, const CUnit* unit) {
     UiDwordArray& party = screen->Party();
-    for (int i = 0; i < party.size_; ++i)
-        if (party.data_[i] == reinterpret_cast<std::uintptr_t>(unit)) return true;
+    for (int i = 0; i < party.size; ++i)
+        if (party.data[i] == reinterpret_cast<std::uintptr_t>(unit)) return true;
     return false;
 }
 } // namespace
@@ -90,9 +90,9 @@ static void __fastcall CloseVerify(CBattleScreenSetup* self, void*) {
     self->Close();
     bool held = reinterpret_cast<const std::uint8_t*>(GameCursor())[0x90] != 0 && GameCursor()->enabled_;
     bool ok = (camera::TheCamera()->flags_ & CCamera::kFree) != 0 && *reinterpret_cast<const int*>(0x0078FF34) == 55 &&
-              self->Party().size_ == 0 && !held;
+              self->Party().size == 0 && !held;
     ei::verify::Check("CBattleScreenSetup::Close", true, ok, "camera flags %X, party %d", camera::TheCamera()->flags_,
-                      self->Party().size_);
+                      self->Party().size);
 }
 EI_VERIFY(0x00635E60, CloseVerify, 0, s_unused);
 
@@ -115,7 +115,7 @@ EI_VERIFY(0x00636150, ItemsPickedVerify, 0, s_unused);
 
 static void __fastcall UnitLeftVerify(CBattleScreenSetup* self, void*, CUnit* unit) {
     UiDwordArray& party = self->Party();
-    std::vector<std::uintptr_t> before(party.data_, party.data_ + party.size_);
+    std::vector<std::uintptr_t> before(party.data, party.data + party.size);
     bool wasIn = InParty(self, unit);
     bool client = IsMultiplayerClient() != 0;
     self->OnUnitLeft(unit);
@@ -130,7 +130,7 @@ static void __fastcall UnitLeftVerify(CBattleScreenSetup* self, void*, CUnit* un
         }
         expected.push_back(u);
     }
-    std::vector<std::uintptr_t> after(party.data_, party.data_ + party.size_);
+    std::vector<std::uintptr_t> after(party.data, party.data + party.size);
     ei::verify::Check("CBattleScreenSetup::OnUnitLeft", true, expected == after, "in party %d, %d -> %d", wasIn,
                       static_cast<int>(before.size()), static_cast<int>(after.size()));
 }
@@ -138,22 +138,22 @@ EI_VERIFY(0x006364E0, UnitLeftVerify, 0, s_unused);
 
 static void __fastcall UnitJoinedVerify(CBattleScreenSetup* self, void*, CUnit* unit) {
     UiDwordArray& party = self->Party();
-    std::vector<std::uintptr_t> before(party.data_, party.data_ + party.size_);
+    std::vector<std::uintptr_t> before(party.data, party.data + party.size);
     bool client = IsMultiplayerClient() != 0;
     self->OnUnitJoined(unit);
     if (client) return;
     // One more entry: the unit, the others in their old order.
     std::vector<std::uintptr_t> others;
     int count = 0;
-    for (int i = 0; i < party.size_; ++i) {
-        if (party.data_[i] == reinterpret_cast<std::uintptr_t>(unit) && count++ == 0) continue;
-        others.push_back(party.data_[i]);
+    for (int i = 0; i < party.size; ++i) {
+        if (party.data[i] == reinterpret_cast<std::uintptr_t>(unit) && count++ == 0) continue;
+        others.push_back(party.data[i]);
     }
     bool inHeroes = false;
-    for (int i = 0; i < self->heroes_.size_; ++i) inHeroes |= static_cast<int>(self->heroes_.data_[i]) == unit->id_;
-    bool ok = party.size_ == static_cast<int>(before.size()) + 1 && count >= 1 && others == before && !inHeroes;
+    for (int i = 0; i < self->heroes_.size; ++i) inHeroes |= static_cast<int>(self->heroes_.data[i]) == unit->id_;
+    bool ok = party.size == static_cast<int>(before.size()) + 1 && count >= 1 && others == before && !inHeroes;
     ei::verify::Check("CBattleScreenSetup::OnUnitJoined", true, ok, "unit %d, party %d -> %d", unit->id_,
-                      static_cast<int>(before.size()), party.size_);
+                      static_cast<int>(before.size()), party.size);
 }
 EI_VERIFY(0x006361B0, UnitJoinedVerify, 0, s_unused);
 

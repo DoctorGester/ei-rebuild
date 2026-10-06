@@ -209,7 +209,7 @@ EI_VERIFY(0x00621530, CycleTabVerify, 0, s_unused);
 static void __fastcall RebuildListVerify(CUiItemStrip* self, void*) {
     self->CUiItemStrip::RebuildList();
     // The list must be the source items whose tab (by the original classifiers) is the current one.
-    bool ok = self->count_ == self->list_.size_;
+    bool ok = self->count_ == self->list_.size;
     int n = 0;
     for (int i = 0; ok && i < self->source_->size; ++i) {
         char* item = self->source_->data[i];
@@ -225,11 +225,11 @@ static void __fastcall RebuildListVerify(CUiItemStrip* self, void*) {
             }
             keep = tab == self->tab_;
         }
-        if (keep) ok = n < self->list_.size_ && self->list_.data_[n++] == item;
+        if (keep) ok = n < self->list_.size && self->list_.data[n++] == item;
     }
-    ok = ok && n == self->list_.size_;
+    ok = ok && n == self->list_.size;
     ei::verify::Check("CUiItemStrip::RebuildList", true, ok, "filter %d tab %d source %d list %d", self->filter_,
-                      self->tab_, self->source_->size, self->list_.size_);
+                      self->tab_, self->source_->size, self->list_.size);
 }
 EI_VERIFY(0x006212F0, RebuildListVerify, 0, s_unused);
 

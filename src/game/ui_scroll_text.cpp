@@ -40,15 +40,12 @@ __declspec(naked) SIZE TextMetricsAt::TextExtentRaw(char*, int) EI_ORIGINAL(0x00
 
 // 0065E010 (RET 8): CArray::SetSize of the token array. The original calls it for a format token
 // and inlines the same template code (SetAtGrow) for a word.
-struct TokenArrayOps : UiTokenArray {
-    void SetSize(int size, int growBy);
-};
-__declspec(naked) void TokenArrayOps::SetSize(int, int) EI_ORIGINAL(0x0065E010)
+__declspec(naked) void __fastcall TokensSetSize(UiTokenArray*, void*, int, int) EI_ORIGINAL(0x0065E010)
 
 void Append(UiTokenArray& tokens, UiTextToken* token) {
-    int index = tokens.size_;
-    static_cast<TokenArrayOps&>(tokens).SetSize(index + 1, -1);
-    tokens.data_[index] = token;
+    int index = tokens.size;
+    TokensSetSize(&tokens, nullptr, index + 1, -1);
+    tokens.data[index] = token;
 }
 
 bool IsFormat(const char* token) {
@@ -101,7 +98,7 @@ void CUiScrollText::Tokenize(const mfc::CString* text) {
                 format->colour_ = colour;
             } else if (t[1] == 'F') {
                 format->font_ = t[2] - '0';
-                format->newline_ = tokens_.size_ != 0;
+                format->newline_ = tokens_.size != 0;
                 font = t[2] - '0';
             }
             pos = NextToken(text, pos, &token);

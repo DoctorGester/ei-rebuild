@@ -163,24 +163,24 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
     for (; record < count; ++record) {
         int id = RecordUnitId(player->records[record]);
         if (unit->id_ == id) break;
-        if (place < party_.size_ && reinterpret_cast<CUnit*>(party_.data_[place])->id_ == id) ++place;
+        if (place < party_.size && reinterpret_cast<CUnit*>(party_.data[place])->id_ == id) ++place;
     }
     if (record < count) {
         // CArray::InsertAt(place, unit) inlined (the slot is zeroed, 0060AEC0, then written); the
         // original then looks the unit up in the server world without using the result.
-        int size = party_.size_;
+        int size = party_.size;
         if (place >= size) {
             PartyArraySetSizeOriginal(&party_, nullptr, place + 1, -1);
         } else {
             PartyArraySetSizeOriginal(&party_, nullptr, size + 1, -1);
-            std::memmove(&party_.data_[place + 1], &party_.data_[place], (size - place) * sizeof(party_.data_[0]));
+            std::memmove(&party_.data[place + 1], &party_.data[place], (size - place) * sizeof(party_.data[0]));
         }
-        party_.data_[place] = reinterpret_cast<std::uintptr_t>(unit);
+        party_.data[place] = reinterpret_cast<std::uintptr_t>(unit);
     } else {
         // 0060AD50: SetAtGrow(size, unit).
-        int size = party_.size_;
+        int size = party_.size;
         PartyArraySetSizeOriginal(&party_, nullptr, size + 1, -1);
-        party_.data_[size] = reinterpret_cast<std::uintptr_t>(unit);
+        party_.data[size] = reinterpret_cast<std::uintptr_t>(unit);
     }
     if (unit->id_ != RecordUnitId(player->records[0])) return;
 
@@ -214,13 +214,13 @@ EI_REPLACE_METHOD(0x00602C90, CBriefingScreen::OnUnitJoined);
 
 void CBriefingScreen::OnUnitLeft(CUnit* unit) {
     if (unit == leader_) leader_ = nullptr;
-    int count = party_.size_;
+    int count = party_.size;
     int index = 0;
-    while (index < count && reinterpret_cast<CUnit*>(party_.data_[index])->id_ != unit->id_) ++index;
+    while (index < count && reinterpret_cast<CUnit*>(party_.data[index])->id_ != unit->id_) ++index;
     if (index >= count) return;
     int after = count - index - 1;
-    if (after != 0) std::memmove(&party_.data_[index], &party_.data_[index + 1], after * sizeof(party_.data_[0]));
-    --party_.size_;
+    if (after != 0) std::memmove(&party_.data[index], &party_.data[index + 1], after * sizeof(party_.data[0]));
+    --party_.size;
 }
 EI_REPLACE_METHOD(0x00603010, CBriefingScreen::OnUnitLeft);
 

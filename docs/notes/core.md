@@ -229,7 +229,7 @@ Views with their own `Mid(int)` (console::Str, ...) still call 006FD9B4. config/
 ## Shared containers
 
 The game's container templates are declared once in `src/lib` and reused by every port (rewrite guide, "Clean code";
-`tools/check_cleanup.py` counts the per-file `struct ...Array/...List` layouts that are left and may only go down; 56
+`tools/check_cleanup.py` counts the per-file `struct ...Array/...List` layouts that are left and may only go down; 6
 remain).
 
 - `mfc::CArray<T, Elements>` (`src/lib/mfc.h`, 0x14 bytes: vtable, data, size, maxSize, growBy). MFC 4.2's SetSize /
@@ -272,23 +272,34 @@ remain).
   triangles), 006003D0 / 006004E0 / 00600730 / 00600840 / 00600950 / 00601D00 SetSize and 006005F0 SetAtGrow
   (`UiPtrArray<T>` = `AlignedArray<T*>`). The animation / figure loader copies (0044F1B0-00454A30) are in
   aligned_arrays.cpp (element types `Blob<K>`).
-- STLport `stlp::string`, `vector`, `hash_map`: `src/lib/stlp.h`. The device's mesh buffers (007AEDE0-007AEE3C):
+- STLport `stlp::string`, `vector`, `hash_map`, `list`: `src/lib/stlp.h`. `list<T>` is the sentinel pointer (nodes
+  next, prev, `data`); the instantiations keep their own insert / erase / clear, reached as free or static
+  `__fastcall` forwarders (world_client_maps `GridOpsA/B`, `PlainOps`, `CellOps`; the text manager's
+  `TextSources...` 004E1530 / 004E1550 / 004E1590 / 004DE930 / 004DEAF0 / 004DEB60). `vector<T>` has `Start` /
+  `Finish` / `EndOfStorage` references for code that inlines the original's reserve / push_back (unit_skins,
+  party_records' `NamedPartyRecords`). The device's mesh buffers (007AEDE0-007AEE3C):
   `src/game/device_buffers.h`.
 
-Left (candidate list): scene_loader's `ArrayBody` / `VtArray` family (next: AlignedArray / CArray with free
-forwarders, touching scene_* and their verify wrappers); the STLport list / vector views (world_client_maps PlainList /
-CellList, world_client_view ObjectList, base_manager IdList, camera NearbyList, item_stock StockList, item_db_text
-TextSourceList, ui_battle_update List, ui_briefing NameList, unit_skins RecordList / StringList, party_records
-PartyRecordList) need an stlp::list view first; the arrays with rewritten members (unit_ai.h AILookArray /
-PatrolPointArray / AICallArray / AIReportArray, party.h PartyMemberArray, model.h TweenArray, script_parse_load's five,
-ai_map PathCellList, map_object_figures AlignedPtrArray, lightning LightningPointArray, core_streams
-AlignedObjectArray) need their registrations moved to free functions or template members; ui.h UiDwordArray /
-UiPointArray / UiTokenArray and ui_screens UiItemArray (trailing-underscore fields used widely). Not container
-layouts (checker false positives): figure_mesh OffsetList, item_parts PartList, figure_part_draw LightList,
-figure_part_bounds LineList, ui_camp ItemList / ui_panel_draws CampItemList / SlotList, sound WaveList, world
-SavedPartyList, world_game EntryList, combat_actions AnimationList, script_array RawArray, script_save List, ai_plan
-List, script.h ScriptDefineList / ScriptList, ai_map BlockCostList, fake_unit Array. Hand-inlined SetSize copies
-remain in ui_window.cpp (region points), map_spec and party_lifetime.
+D3c (56 -> 6): registrations moved to template members where the original body is MFC's / the engine's
+template code (PathCellList NewNode / AddHead / AddTail 005B1B70 / 005BD200 / 005BD2A0; AILookArray SetSize / Copy
+005D8EE0 / 005D8B60; TweenArray RemoveAll / SetSize 006D43E0 / 006D4840; PartyMemberArray SetSize 00663FA0;
+AlignedPtrArray = `AlignedArray<void*>` SetAtGrow / SetSize / Add 00519E80 / 00519D70 / 00519A10 and copies), the rest
+to free `__fastcall` functions (PathCells..., Tween..., Looks..., PatrolPoints..., CallsUpdate, Reports...,
+ScriptDefinesDestruct 004D6340, AlignedObjectsClear 0047B620). Lists: BlockCostList, the sound cache (`WaveList`,
+CSoundManager +0x854, 0x1C bytes), ScriptDefineList / ScriptList and ai_plan's region / waypoint lists are
+`mfc::CList`. UI arrays (`UiDwordArray`, `UiTokenArray`, `UiItemArray` on CArray, `UiPointArray` on AlignedArray) reach
+their instantiations' SetSize through free forwarders; fields renamed at the uses. Spans and party objects that were
+named ...List renamed (OffsetSpan, LightSpan, PartSpan, LineBatch, CampItemSet, CampItemSlots, SpellSlots,
+SavedParties, EntryPicks). The glow's static arrays (lightning_draw) use the template SetSize instead of inlined copies.
+Behaviour notes: AlignedPtrArray's SetAtGrow(-1) faults like the original's (both write through the null array);
+AILookArray's Copy assigns element by element where 005D8B60 memcpys (same bytes).
+
+Left (6): scene_loader's untyped `ArrayBody` / `VtArray` family (PointArray, TexCoordArray, IndexArray, GroupArray,
+NodeArray; ~200 uses in scene_* / face_normal / map_database and six verify files). Next step: type each array
+(points, (u, v), FileFace, FaceGroup, rot / pos / morph keys, normals) as `AlignedArray<T>` / `CArray<T, Elements>` with
+the construct / destruct forwarders as Elements policies, which also replaces the element-size-generic
+`SetSizeInline` / `SetSizeAligned`. Hand-inlined SetSize copies remain in ui_window.cpp (region points), map_spec,
+party_lifetime and unit_skins (`CopyRecords`, an `AlignedArray<char>::SetSize`).
 
 ## Open items
 
