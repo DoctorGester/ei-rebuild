@@ -14,6 +14,7 @@
 #include <cstdint>
 
 class CItem;   // item.h
+class CStream;   // core_streams.h
 struct UnitStats;
 struct UnitParams;
 struct DamageInfo;   // spell.h
@@ -75,8 +76,18 @@ struct PartyUnitRecord {
     void RemoveArmor(CItem* entry);
     void RemoveSpell(CItem* entry);
 
+    // 0065F9B0 (RET 4; party_save.cpp). ClearItems and the defaults, then texts 0, 2-5 (text 6
+    // becomes a copy of text 5), +0x1C, the stats (005287A0), +0x724..0x72F and the four lists
+    // (a count, then item ids resolved in the item manager of the party being loaded, 007C8344,
+    // and counted), then text 1; from version 0x51 +0x770, +0x774 and the byte +0x778, from 0x5B
+    // +0x77C, from 0x61 +0x780, from 0x6B text 6.
+    void Load(CStream* stream);
+    // 0065FDE0 (RET 4). Writes what Load reads (newest version): strings with their zero, item
+    // ids (-1 for an empty entry).
+    void Save(CStream* stream);
+
     mfc::CString texts[7];          // +0x000 names (empty when constructed)
-    std::uint8_t unknown_01C[4];
+    std::uint32_t unknown_01C;      // +0x01C saved and loaded
     std::uint8_t stats[0x724 - 0x20];   // +0x20 the unit's statistics (UnitStats)
     float unknown_724;              // +0x724 0.8 when constructed
     float unknown_728;              // +0x728 0.2 when constructed

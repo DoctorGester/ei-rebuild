@@ -69,9 +69,6 @@ __declspec(naked) void __fastcall PlanSave(void*, void*, UnitStream*) EI_ORIGINA
 // 0050E220 / 0050E290: a counted reference by id (load resolves through `context`).
 void __fastcall CountedRefLoad(void* a0, void*, UnitStream* a2, void* a3) { CountedRefLoadOriginal(a0, nullptr, (void*)a2, a3); }
 void __fastcall CountedRefSave(void* a0, void*, UnitStream* a2) { CountedRefSaveOriginal(a0, nullptr, (void*)a2); }
-// 005287A0 / 00528800: UnitStats.
-__declspec(naked) void __fastcall StatsLoad(void*, void*, UnitStream*) EI_ORIGINAL(0x005287A0)
-__declspec(naked) void __fastcall StatsSave(void*, void*, UnitStream*) EI_ORIGINAL(0x00528800)
 // 005D8310 / 005D8860: the AI brain at +0x980.
 __declspec(naked) void __fastcall BrainLoad(void*, void*, UnitStream*) EI_ORIGINAL(0x005D8310)
 __declspec(naked) void __fastcall BrainSave(void*, void*, UnitStream*) EI_ORIGINAL(0x005D8860)
@@ -158,7 +155,7 @@ void CUnitServer::LoadServer(UnitStream* stream) {
     stream->Read(Address(this, 0x178), 4);
     LoadOrder(stream, &action);
     LoadOrder(stream, &action2);
-    StatsLoad(&stats, nullptr, stream);
+    UnitStatsLoadOriginal(&stats, nullptr, stream);
     if (stream->version < kVersionFixedMaximum)
         At<int>(this, 0x8DC) = At<int>(At<void*>(unit, 0x170), 0x2C);
     for (int i = 0; i < 4; ++i) stream->Read(&moveFactors[i], 4);
@@ -215,7 +212,7 @@ void CUnitServer::SaveServer(UnitStream* stream) {
     WriteCopy(stream, At<int>(this, 0x178));
     SaveOrder(stream, &action);
     SaveOrder(stream, &action2);
-    StatsSave(&stats, nullptr, stream);
+    UnitStatsSaveOriginal(&stats, nullptr, stream);
     for (int i = 0; i < 4; ++i) WriteCopy(stream, moveFactors[i]);
     stream->Write(Address(this, 0x908), 4);
     WriteCopy(stream, At<int>(this, 0x90C));
