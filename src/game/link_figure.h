@@ -144,6 +144,12 @@ static_assert(offsetof(CLinkMesh, screenRect_) == 0x20);
 static_assert(offsetof(CLinkMesh, morph_) == 0x30);
 static_assert(offsetof(CLinkMesh, vertices_) == 0x3C);
 static_assert(offsetof(CLinkMesh, corners_) == 0x6C);
+static_assert(offsetof(CLinkMesh, normals_) == 0x4C && offsetof(CLinkMesh, texCoords_) == 0x5C);
+static_assert(offsetof(CLinkMesh, words_) == 0x7C && offsetof(CLinkMesh, indices_) == 0x8C);
+static_assert(offsetof(CLinkMesh, loader_) == 0xA8);
+// corners_ is indexed in whole triangles: one element is one 6-byte MeshCorner.
+static_assert(sizeof(*CLinkMesh::corners_.data) == sizeof(MeshCorner) && sizeof(MeshCorner) == 6);
+static_assert(sizeof(*CLinkMesh::words_.data) == 4 && sizeof(*CLinkMesh::indices_.data) == 2);
 static_assert(offsetof(CLinkMesh, ranges_) == 0x9C);
 static_assert(offsetof(CLinkMesh, pipeline_) == 0xAC);
 static_assert(sizeof(CLinkMesh) == 0xB0);
