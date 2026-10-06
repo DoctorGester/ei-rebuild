@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <cstdint>
 
+class CParticleSource;   // effects.h
 class CUnit;
 struct AIPath;    // ai_map.h
 struct FigureAnimation;   // map_object_figures.h
@@ -227,6 +228,16 @@ public:
     // remembers it with the time. False (AL) when the same speech played less than 5 s ago.
     bool Speak(ClientSpeech* speech);
 
+    // unit_client_lifetime.cpp (A-U2).
+    // 00533FE0. Virtual slot 2 (Create): no sources, times, animation or motion order (AIPath::Reset
+    // on +0x38), weapon / arrow shown, +0x76 = 1 (snap the heading), fully faded in, no sounds,
+    // speech, flash, footprint or blink, every armour and weapon model -1, the face texture
+    // released. Returns 1.
+    int CreateClient();
+    // 005340C0. Virtual slot 3 (Destroy): the three particle sources stop (CParticleSource::Stop)
+    // and are released, the face texture released; no blink.
+    void DestroyClient();
+
     // object_small_slots.cpp (A-U2). 005391B0, virtual slot 36: 1 when a weapon model is held
     // (any weapon id not -1). 005391E0, slot 37: 1 when one of the first three armour slots (body,
     // trousers, helmet) holds a model.
@@ -284,7 +295,7 @@ public:
     AIPath* MotionPath() { return reinterpret_cast<AIPath*>(motionOrder); }
 
     CUnit* unit;                    // +0x1C
-    std::uint8_t unknown_020[0x2C - 0x20];
+    CParticleSource* sources[3];    // +0x20 particle sources the controller keeps (counted)
     float lastAnimationTime;        // +0x2C the animation state's time (+0x60) at the last update
     const FigureAnimation* lastAnimation;   // +0x30 the animation at the last update
     float lastTime;                 // +0x34 the world time the unit was last advanced to (slot 40)
@@ -292,20 +303,21 @@ public:
     std::uint8_t unknown_058[0x74 - 0x58];   // +0x58 an MFC list (vtable 0073EDB0, block size 0x80)
     std::uint8_t weaponHidden;      // +0x74 ShowWeaponParts' state (cleared by a weapon change)
     std::uint8_t arrowHidden;       // +0x75 the bow's arrow part is flagged hidden
-    std::uint8_t unknown_076[2];
+    std::uint8_t snapHeading;       // +0x76 the next path placement turns the unit to the path at once (00535850)
+    std::uint8_t unknown_077;
     float fadeIn;                   // +0x78 1 when fully shown; the drawn parts take it as alpha
     int flashCountdown;             // +0x7C the drawn parts get their colours back (0051C9F0 with 0) at 0
     int footprint;                  // +0x80 the last footprint (0056D150), -1 none
     int footprintRepeats;           // +0x84 further steps that may reuse it
     int idleSound;                  // +0x88 the idle animation's sound handle
-    std::uint8_t unknown_08C[4];
+    int unknown_08C;                // +0x8C -1 after Create
     int speechSound;                // +0x90 the sound of the last speech that waits (-1 none)
     const SpeechRecord* lastSpeech; // +0x94 the speech played last (005380D0)
     std::uint32_t lastSpeechTime;   // +0x98 when (timeGetTime)
     ClientSpeechNode* speech;       // +0x9C the speech queue (STLport list header node)
     std::uint32_t armourIds[7];     // +0xA0 packed ids of the armour worn, -1 none
     std::uint32_t weaponIds[4];     // +0xBC
-    std::uint8_t unknown_0CC[0xD0 - 0xCC];   // +0xCC the face texture the blink changes
+    CEngineObject* faceTexture;     // +0xCC the face texture the blink changes (counted)
     std::uint8_t blinks;            // +0xD0
     std::uint8_t unknown_0D1[3];
     int blinkTimer;                 // +0xD4 ticks to the next blink change
