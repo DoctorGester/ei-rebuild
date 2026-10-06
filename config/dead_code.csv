@@ -607,3 +607,4 @@ address,size,name,evidence
 004D38F0,209,FUN_004d38f0,"referenced only from dead code 004D38B0 004D39D0 004D41C0 004D53C0 (A-S5)"
 004D5EC0,16,FUN_004d5ec0,"referenced only from dead code 004D41C0 (A-S5)"
 004D65B0,40,FUN_004d65b0,"referenced only from dead code 004D4E80 (A-S5)"
+006BBA00,57,FUN_006bba00,"no references (A-H13 sweep: no call, jump or stored address; two registry string reads at +0xCC of a sound object)"

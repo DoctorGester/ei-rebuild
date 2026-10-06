@@ -75,6 +75,7 @@ scratch copy of the object, ours on the real one.
 | 006B8250 / 006B8600 | `Play2D` (RET 0x20) / `Play3D` (RET 0x1C) | ours only: -1, or a voice holding the arguments under the returned handle, or a deferred record |
 | 006B89F0 | `LoadSample` (RET 0x10) | ours only: 0, or 1 with the voice playing under the newest handle, a cache node of that name (unless an MP3 was cached) |
 | 006B4710 | `CMusicSystem::LoadThemes` (named so: Create is a CEngineObject virtual, rule 4) | original into a scratch music system after ours succeeded; credits, main menu, every theme compared |
+| 006B4350, 006B44B0, 006B4490, 006B4690, 006B4470 / 006B4480, 006B4E10 / 006B4E20 | `CMusicSystem` Construct, DestructBody, DeletingDestruct, `ResetThemes` (slot 3; strings become "none" 007846F0, theme +0x3C kept), class name / id 0xE, `FadeOut` / `FadeIn` (the manager's stream; ECX unused) | name / id against the original; the rest ours only (`verify_sound_lifetime.cpp`; CMusicSystem now derives from CEngineObject) |
 | 006B4E30, 006B4F70 / 006B4F90 / 006B5080 / 006B5170 / 006B51F0 / 006B5270, 006B5350 | `SetZoneMode`, `Stop` / `PlayBriefing` / `PlayConstructor` / `PlayCredits` / `PlayMainMenu` / `PlayJingle`, `UpdateMusic` (slot 6) | ours only; resulting state (returns 1, inCombat follows the fight state) |
 
 Non-obvious: Play2D/Play3D with no voice (AllocateVoice -1) return -1 for a one-shot and make a
@@ -112,7 +113,9 @@ goes through a naked helper. Miles is called through game.exe's import table (00
 - Miles/DirectSound side: Open / Close / Reset (006B6A30, 006B6D80, 006B73E0), stream open / close /
   fill (006BAAC0, 006BAC90, 006BB3A0 Rebirth-patched), stream and MIDI thread loops (006BB910,
   006BBCB0), MIDI (006BBB80, 006BBC70), AllocateVoice 006B7D10.
-- CMusicSystem constructor / destructor / Serialize (006B4350, 006B44B0, 006B5770).
+- Library (A-H13, config/library.csv): the CArray<MusicTheme> members 006B56C0-006B5BC0 and MusicTheme's operator= /
+  destructor 006B4D40 / 006B4D90; the cache list and wave cache members 006BBDF0-006BE240; unwind-only destructors 006B62D0 /
+  006B6350 / 006BE300 and the name array element constructors 006B63D0 / 006B63F0. 006BBA00 is dead (no references).
 - Ambient sounds 006C68B0 (Rebirth-patched) and 006CB390 (terrain material ambience, 2 KB): good next
   candidates together with the terrain owner.
 - STLport hash_map / list instantiations 006BBF30-006BDDB0.

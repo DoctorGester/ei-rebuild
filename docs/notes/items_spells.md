@@ -464,7 +464,7 @@ the same instructions as an existing entry (STLport copy / fill / list / hashtab
 reviewed quest database container instantiations (006AF4D0..006B3E60), plus 25 for the item database's record vectors (resize, fill_insert,
 insert_overflow, copy, uninitialized copy / fill of the 0x50 / 0x78 / 0x7C / 0x8C / 0xB4 / 0xC8 kinds) and the portrait slot vector's four, and 32 for the
 spell database (vectors of the 0x24 modifier, 0x34 and 0x84 spell records and strings, 00684D60..00688470). Game code that stays: the item kinds'
-operator= (006A8FB0 ...) and serialisers 006A7940..006A7E10, the spell serialisers 00684C50 / 00684EF0 / 00684FE0; 006B4000-006C0000 is not reviewed.
+operator= (006A8FB0 ...) and serialisers 006A7940..006A7E10, the spell serialisers 00684C50 / 00684EF0 / 00684FE0; 006B4000-006C0000 was reviewed in A-H13 (26 library, 1 dead; `sound.md`).
 Remaining by group (R = bytes of Rebirth-patched functions, docs/rebirth-patched-functions.txt; sizes as of this sweep, 756 functions, 147.4 KB; the
 texture manager's 6 KB is the renderer's; 00646C25 is a tail of 006462A0 that Ghidra splits off):
 
