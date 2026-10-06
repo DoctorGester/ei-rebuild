@@ -73,6 +73,18 @@ public:
     // 004A50D0 (RET 8). Rebuilds into this stream (from its start) `base` with the difference read
     // from `diff` (at its position), until base's size is reached or `diff` runs out.
     void ApplyDiff(CStream* base, CStream* diff);
+    // core_stream_chunks.cpp (A-S4): tagged blocks (a four-byte tag, the size including these
+    // eight bytes, then the content).
+    // 004A4940 (RET 8, AL). Reads the next block's tag into *tag and its content into `out`
+    // (emptied, reading_ cleared, written, sought to 0). False when the tag, the size or the
+    // content cannot be read (`out` is then already emptied once the size was read).
+    bool ReadTagged(std::uint32_t* tag, CStream* out);
+    // 004A4A90 (RET 8, AL). From the start (reading_ set), reads blocks until one has tag `id`;
+    // when none has, `out` is emptied and the result is false.
+    bool FindTagged(std::uint32_t id, CStream* out);
+    // 004A48F0 (RET 8). Reads bytes into `buffer` until a zero or `capacity` bytes;
+    // buffer[capacity - 1] is always set to zero.
+    void ReadText(char* buffer, int capacity);
     // 004A52D0 (RET 0xC, AL). Reads the magic number and the version (four bytes each, into one
     // variable); true and version_ set when the magic matches and oldest <= version <= newest
     // (signed).
