@@ -184,3 +184,7 @@ does not reset the base. Verify: SetUnits side by side; Pack, Save, Load as the 
 the original with the two grid blocks compared by shape; the rest ours only. Script casts have no caster, so only the
 new scenario spells_hero.txt (the hero casts vision fog and arrow from the battle screen) reaches it; not run yet.
 Not rewritten: 0067C5D0 (FogGrid free, unwind only), 0067C450 / 0067C460 (class name / id).
+
+The effect factory 0067E170 (EffectNewObject, the effect manager's slot 14, RET 4; world_effect_lifetime.cpp): operator new
+of the class size and its constructor body, type_ = class id; the ambient sound, class 0x5B, Moshka (100) and Tornado
+(0x65) constructors through their addresses. Verify: ours only, the object's slot 12 and type_ equal the request.

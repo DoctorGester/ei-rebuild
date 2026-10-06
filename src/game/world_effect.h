@@ -359,3 +359,9 @@ public:
 };
 static_assert(offsetof(CEffectShowVisibility, grid_) == 0x158);
 static_assert(sizeof(CEffectShowVisibility) == 0x170);
+
+class CBaseManager;   // base_manager.h
+
+// 0067E170 (world_effect_lifetime.cpp). The effect manager's slot 14 (NewObject, RET 4): a new
+// effect of class `type` (0x48..0x4E, 0x5A, 0x5B, 0x5E, 99..0x65) with type_ set, or null.
+CEngineObject* __fastcall EffectNewObject(CBaseManager* manager, void*, int type);

@@ -223,8 +223,18 @@ CEffectShowVisibility* __fastcall VisibilityDeleteVerify(CEffectShowVisibility* 
     return DeleteOurs("CEffectShowVisibility::DeletingDestruct", self, flags);
 }
 
+// The factory (every effect created; scenarios spells, effects): ours only (it allocates). A new
+// object reports the requested class id (slot 12) and carries it in type_.
+CEngineObject* __fastcall EffectNewObjectVerify(CBaseManager* manager, void*, int type) {
+    CEngineObject* object = EffectNewObject(manager, nullptr, type);
+    bool ok = object == nullptr || (object->type_ == type && object->GetClassId() == type);
+    ei::verify::Check("EffectNewObject", true, ok, "type %X object %p", type, object);
+    return object;
+}
+
 } // namespace
 
+EI_VERIFY(0x0067E170, EffectNewObjectVerify, 0, s_unused);
 EI_VERIFY(0x0067C340, VisibilityCtorVerify, 7, s_visibilityCtor);
 EI_VERIFY(0x0067C490, VisibilityDestructVerify, 0, s_unused);
 EI_VERIFY(0x0067C470, VisibilityDeleteVerify, 0, s_unused);
