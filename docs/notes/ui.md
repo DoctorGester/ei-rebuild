@@ -50,7 +50,7 @@ on scan 0x29, modifier flags at CInterface3D +0x7C Ctrl / +0x7D Shift / +0x7E Al
 
 | Range | What |
 |---|---|
-| 00601B70-00610000 | briefing / dialogue screen (id 3): 006024B0 Create, 006030F0 click, 006034A0 keys, 00604C50 script step, 006064E0, 00608450; not rewritten, reached only by a dialogue |
+| 00601B70-00610000 | briefing / base screen (id 3, `CBriefingScreen`, section 5 "Briefing / base screen"): 006024B0 Create, 006030F0 click, 006034A0 keys, 00604C50 phrase step, 006064E0 dialogue start, 00608450 rewards |
 | 00610020-00612CF0 | camp screen (007408E8 / 0074091C, 0x260 bytes, Create 0060C870 Rebirth-patched) |
 | 00613EA0-006195B0 | multiplayer hero screen (`lmp_*`, 00742118 / 0074214C, 0x220 bytes; Create 00613EA0 and mode switch 00615D30 Rebirth-patched) |
 | 0061B2C0-0061E2F0 | multiplayer connection screen (`config\addrbook.ini`; 00741C9C / 00741CD0; 0061B2C0 and 0061D780 Rebirth-patched), another lobby window 0061E2F0-00620300 |
@@ -332,6 +332,30 @@ Not rewritten: 00612CF0 (camp slot 39, a debug fill; no caller but the vtable) (
 0062CF70, 006312C0 (the global map's path search, reached only from the click 0062F950), 00617A50 (creates the hero:
 .mp files, records array 007C82A0..007C82AC); the exchange window (0062C250, 0062C9C0) and the lobby screens (0061C430, 0061C700, 0061D470, 0061E2F0 ...,
 00618A10, 00616AC0, 006159E0) need a network session, no scenario.
+
+### Briefing / base screen (A-I10; `ui_briefing.h`, `ui_briefing.cpp`, `ui_briefing_input.cpp`; `verify_ui_briefing.cpp`)
+
+Screen 3 of a "brief" zone (zone_base_bz1g creates it: Create 006024B0, Update 00604130, Draw 00602BF0). States +0x16C: 0 walking, 1 topic
+choice, 2 dialogue starting, 3 phrases, 4 rewards. Scenario `ui_base_dialogue` (new): the leader walks to Smith (MoveToObject), `clickunit
+Smith`, region 0 (the first topic), clicks through the phrases, Esc; the first central run decides how far it gets. A person can talk when
+its server controller's command is 0 or 0xB and the next one 9 (or it has none).
+
+| Address | Name | Verify |
+|---|---|---|
+| 00602BB0, 00606F40, 00603010, 00608C70, 006030C0, 00603090, 00602490 | `Close` (26), `OnMessageResult` (27; the load window inline as the battle screen's), `OnUnitLeft` (30), `OnGameOver` (31), `OnBriefing` (34, "briefing <name>"), `ShowChat` (36), `SaveState` (40: one zero dword) | OnUnitLeft side by side (leader, party array); the rest ours only (camera flags / fade, window on top, stream +4) |
+| 006030F0, 00603360, 00608B60, 006071E0 | `OnLeftDown` (input 2), `OnLeftDouble` (7; nothing while the chat window is active), `OpenTopics` (five rows 210..570 x 440.., "goodbye" appended, bar range count - 5), `DrawTopics` | ours only: state valid; OpenTopics state 1 with "goodbye" last or state 0 |
+
+| 00603D00, 006034A0 | `OnMouseMove` (input 4: hovered topic row, cursors 0xD / 0xE / 0xF, a person's topics and "pers" label in surface 1), `OnKeyDown` (input 9, `ui_briefing_keys.cpp`: Enter / Esc / Space by state, action 4 the objectives window when a "q.<zone>.<quest>" = 1 lies in this allod, 0xB camera to the leader, '5' / '6' "saveq") | ours only: the hovered row valid; Enter / Esc / Space used, Esc / Enter leave state 3 |
+| 00607360, 006078C0 | `FindTopics` ("b.<person>.<topic>" = 1, bit compare; a network client sorts them; the last "constr..." topic last), `TopicTitle` (first line of "briefing <topic>", "constr..." -> "briefing constr") (`ui_briefing_topics.cpp`) | side by side: the topic list; the title |
+
+00608D10 (slot 35, `MOV AL,1; RET`, 3 bytes) is too short to hook. Shared helpers: `BriefingVariables` (00578C40 into a 100-bucket table,
+00581790; walked with 005E0DB0), `BriefingPlayerName` (00578A90); forwarders added to originals_ui.h (the screen's 006064E0 / 00604C50 /
+00608450 / 00608B60 / 006071E0 / 00607360, 00578C40, 0063B5D0, 0064BE40) and originals_world.h (00578A40); `MapRecord::allod` added.
+Next (mapped, not ported): 00608210 the phrases' start (camera saved to +0x1F8, look-at +0x204 = position + the rotation's z axis,
+0066F840(3, 0) to the server, state 3, +0x244 1), 00607BB0 / 00607A60 / 006062C0 (speakers +0x1A4 hero, +0x1A8 person, +0x1AC third,
+their places +0x1B0.. and directions +0x1D4..), 00602C90 (slot 29), 00607720, then 006064E0 / 00604C50 / 00608450, Create and Update.
+Original quirks kept: the mouse move's exit check names the zone of exit_ (+0x164), not of the exit under the mouse; the key handler builds
+the objectives window inline and calls its setup even when the allocation failed.
 
 ## 6. Battle screen: update, selection, orders, pending actions (00635250-0064BE80)
 

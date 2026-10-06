@@ -293,6 +293,9 @@ public:
     FigurePart* FindPartByPrefix(const char* prefix);
     // 005169A0. The first part (parts, then pending parts) named exactly `partName`, or null.
     FigurePart* FindPart(const char* partName);
+    // 00516B50 (object3d_figure_setup.cpp, A-U4; RET 8). Every part (parts, then pending parts)
+    // whose name starts with `prefix` (strstr at the name's start) appended to `out`.
+    void CollectPartsByPrefix(const char* prefix, AlignedPtrArray* out);
     // 005167E0. Takes `part` out of the parts (it forgets its owner, 0059F3D0) or else out of the
     // pending parts, tells the animation state (+0x98, 0050D350) and releases it. The side half
     // (+0x94, slot 15) hears of it first, found or not. Returns 1 when it was there, else 0.

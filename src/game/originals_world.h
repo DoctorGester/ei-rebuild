@@ -96,3 +96,7 @@ __declspec(naked) inline void __fastcall QuestLogUpdateOriginal(void* /*log*/, v
                                                                 std::uint32_t /*value*/) EI_ORIGINAL(0x005F7FC0)
 __declspec(naked) inline void __fastcall ClientQuestUpdateOriginal(void* /*world*/, void*, const char* /*name*/,
                                                                    std::uint32_t /*value*/) EI_ORIGINAL(0x00565380)
+
+// A-I10. 00578A40: the client glue (007AFEA5, not read) names the zone exit `exit` leads to (thiscall, RET 4; a C string,
+// "none" for none).
+__declspec(naked) inline const char* __fastcall GameExitZoneOriginal(void* /*glue*/, void*, int /*exit*/) EI_ORIGINAL(0x00578A40)

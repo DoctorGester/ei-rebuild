@@ -1,0 +1,38 @@
+# The base screen's dialogue (ticket A-I10). bz1g is a "brief" zone: its screen is the briefing /
+# base screen (id 3, Create 006024B0, Update 00604130). A left click on a person (input slot 2,
+# 006030F0, dialogue state +0x16C = 0) picks the client object (00565D00); a unit whose brain is
+# idle starts the dialogue (00608B60: the person's topics (00607360) as five regions plus
+# "goodbye", state 1). A click on a topic region starts it (006064E0, state 3: phrases, each click
+# 00604C50), then rewards (state 4, 00608450). The leader walks to Smith first so that the base
+# camera (it follows the leader) has him on screen; the verify counts show how far it got.
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitfor 15 IsUnitBlocked(GetLeader())
+zone bz1g 0
+waitzone 20 bz1g
+waitfor 15 IsGreater(HP(GetLeader()),0)
+check IsAlive(GetObjectByName("Smith"))
+console @MoveToObject(GetLeader(),GetObjectByName("Smith"))
+waitfor 20 IsLess(DistanceUnitUnit(GetLeader(),GetObjectByName("Smith")),4)
+speed 55
+wait 1500
+clickunit Smith
+wait 1500
+clickregion 0
+wait 1500
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+click 400 300
+wait 800
+key esc
+wait 800
+check IsAlive(GetLeader())
+report
+quit

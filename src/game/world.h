@@ -162,7 +162,7 @@ public:
     // 32 (world_time.cpp). 0055FB50: seconds per tick become 1 / speed (0: stopped; negative: the
     // setting 0079BE5C) times 1/15, keeping the time of day (slot 31). The server's 0058EEE0 as above.
     virtual void SetTimeSpeed(float speed);
-    virtual void Slot33();
+    virtual void* MaterialManager();      // 33: the material manager (0051C970 registers part materials)
     virtual void Slot34();
     virtual void Slot35();
     virtual void Slot36();
