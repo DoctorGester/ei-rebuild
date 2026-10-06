@@ -1,4 +1,2 @@
 # Rewritten functions that are NOT hooked (the original runs), one hex address per line, with the
 # reason. For rewrites found broken in game until they are fixed; keep this list short.
-0066E020 CPlayerServer::SendTimedChanged: with A-H8 its wrapper (stream save/restore) corrupts delta fields; crashes in BeginWriteB (X16, 2026-10-06)
-0066DBA0 CPlayerServer::SendChanged: same as 0066E020 (X16)

@@ -157,3 +157,14 @@ A-H8 later: 00669350 0x17 (00665550, quest log refresh), 0066A480 / 0066A5A0 0x1
 ours only. SendTimedChanged's 310 central mismatches were a wrapper artifact: CEffect::SendDelta leaves flags_ bit 1
 set, so the original's second run packed the effects again against the snapshots ours had just updated; the wrapper
 now saves and restores the changed effects' four state streams (0066E020 back on).
+
+X16 (2026-10-06): that save/restore crashed most scenarios (C0000005 in RewindAndEmpty under BeginWriteBVerify). The
+saved stream headers were RawCopy'd into a local, then copied into a std::vector by push_back: CMemoryStream is
+__declspec(novtable), so its implicit copy constructor copies the members but not the vtable pointer (a fresh
+vector slot holds 0), and RawCopy then wrote that null vptr back into the real effects' four streams. The original's
+re-run then reached BeginWriteBVerify (IsMemoryField false, so ours only) and RewindAndEmpty's virtual Seek called
+through vtable 0. Rule: never copy a game stream (or any novtable class) by value; RawCopy / memcpy only. The wrapper
+no longer touches the delta fields: ours runs, the player's stream is restored, the original runs with flags_ bit 1
+cleared on every listed object (so it writes the messages from the fields ours packed, without packing again), the
+flags are put back, the streams compared; skipped when ours grew the stream or a packed effect is listed twice.
+SendObjectsChanged's wrapper was not involved (0050EA70 clears bit 1 itself); both are hooked again.
