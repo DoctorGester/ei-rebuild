@@ -99,3 +99,29 @@ static void __fastcall ForceSeeVerify(std::uint8_t* memory, void*, CUnit* self, 
     ei::verify::Check("AIBrain::ForceSee", true, ok, "unit %p object %p: %d %d %d", self, object, dv, ds, dc);
 }
 EI_VERIFY(0x005CBC80, ForceSeeVerify, 0, s_unused);
+
+// 005CBE90 SeeCorpse: takes references and logs, so ours only: the corpse at the tail of +0x12C,
+// and at the corpses' tail when that list grew.
+static void __fastcall SeeCorpseVerify(std::uint8_t* memory, void*, CUnit* self, CEngineObject* corpse) {
+    AIBrain* brain = BrainOfMemory(memory);
+    int seen = brain->unknown_12C.count, corpses = brain->corpses.count;
+    brain->SeeCorpse(self, corpse);
+    int dc = brain->corpses.count - corpses;
+    bool ok = brain->unknown_12C.count == seen + 1 && brain->unknown_12C.tail->data == corpse &&
+              (dc == 0 || (dc == 1 && brain->corpses.tail->data == corpse));
+    ei::verify::Check("AIBrain::SeeCorpse", true, ok, "unit %p corpse %p", self, corpse);
+}
+EI_VERIFY(0x005CBE90, SeeCorpseVerify, 0, s_unused);
+
+// 005CB850 MeasureExposure: PUSH EBP; MOV EBP,ESP; SUB ESP,0x6C (6 bytes). Output: the original
+// into a scratch array, ours into the unit's; the five floats within a few ULPs. A distance on a
+// range's rounding edge could decide differently (rare).
+static void(__fastcall* s_measureExposure)(std::uint8_t*, void*, UnitController*, float*);
+static void __fastcall MeasureExposureVerify(std::uint8_t* memory, void*, UnitController* self, float* out) {
+    float theirs[5];
+    s_measureExposure(memory, nullptr, self, theirs);
+    BrainOfMemory(memory)->MeasureExposure(self, out);
+    for (int i = 0; i < 5; ++i)
+        ei::verify::CheckNear("AIBrain::MeasureExposure", theirs[i], out[i], "unit %p [%d]: %f vs %f", self->unit, i, theirs[i], out[i]);
+}
+EI_VERIFY(0x005CB850, MeasureExposureVerify, 6, s_measureExposure);

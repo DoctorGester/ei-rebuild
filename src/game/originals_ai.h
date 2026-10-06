@@ -63,6 +63,9 @@ __declspec(naked) inline void __fastcall BrainRemoveModeOriginal(void* /*brain*/
 // matching protection word (negative differences count 0). Only the low 16 bits are meaningful.
 __declspec(naked) inline std::uint32_t __fastcall ExcessDamageOriginal(const std::uint16_t* /*damage*/, void*,
                                                                       const std::uint16_t* /*protection*/) EI_ORIGINAL(0x00522AE0)
+// 005BC3E0 (CAIMap::LineOfSight, ai_map.cpp) through its address, its ST0 taken unrounded (RET 8).
+__declspec(naked) inline double __fastcall LineOfSightOriginal(CAIMap*, void*, const Vector3* /*from*/, const Vector3* /*to*/)
+    EI_ORIGINAL(0x005BC3E0)
 // 004C9970: CArray<PatrolPoint>::SetSize(size, growBy) (RET 8; elements constructed / destroyed).
 __declspec(naked) inline void __fastcall PatrolPointArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x004C9970)

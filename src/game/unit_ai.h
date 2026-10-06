@@ -728,6 +728,14 @@ struct AIBrain {
     // stands at or beyond one of the two sight ranges: a corpse joins +0x12C (and the corpses
     // when allied), a living unit the visible list's head (both counted); each logged.
     void ForceSee(CUnit* self, CEngineObject* object);
+    // 005CBE90 (RET 8; the server's OnDamaged). Logs and adds `corpse` to +0x12C (and to the
+    // corpses when its side is allied with the unit's), both counted.
+    void SeeCorpse(CUnit* self, CEngineObject* corpse);
+    // 005CB850 (RET 8; each server tick). The unit's exposure to the living hostile units nearby
+    // (+0xF4) into `out` (5 floats, CUnit + 0x4C8): per kind the smallest distance / range ratio,
+    // at most 3 (a zero range counts 3). [0] sight (scaled by the line of sight between the eyes,
+    // only within range), [4], [1], [2] three other ranges; [3] stays 3.
+    void MeasureExposure(UnitController* self, float* out);
     bool IsReported(CEngineObject* object);                             // 005CC560 on +0x164
     void Perceive(UnitController* owner);       // 005CB700 through its address (UpdateMemory)
     // 005CB700 (thiscall on +0xD0; unit_ai_brain.cpp). Ages the reports (one tick off each; an

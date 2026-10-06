@@ -1,14 +1,18 @@
-// The perception memory's queries over the visible units (005CB260, 005CB480, 005CB670), forcing
+// The perception memory's queries over the visible units (005CB260, 005CB480, 005CB670), the
+// exposure to hostile units (005CB850), corpses seen (005CBE90), forcing
 // an object into sight (005CBC80) and the counted lists' AddTail (005CD500).
 #include "unit_ai.h"
 
 #include "console.h"
 #include "map_object.h"
 #include "object_diplomacy.h"
+#include "originals_ai.h"
 #include "originals_library.h"
+#include "world.h"
 
 #include "ei/hook.h"
 
+#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -137,6 +141,70 @@ void AIBrain::ForceSee(CUnit* self, CEngineObject* object) {
         console::EndLine(AiLog()->PutFloat(distance) << "m distance");
     }
 }
+
+void AIBrain::SeeCorpse(CUnit* self, CEngineObject* corpse) {
+    console::GameOStream& os = PutLong(*AiLog() << "Unit ", self->id_) << " sees corpse of unit ";
+    console::EndLine(PutLong(os, corpse->id_));
+    AddCountedTail(&unknown_12C, nullptr, corpse);
+    if (Allied(self->side, static_cast<CUnit*>(corpse)->side)) AddCountedTail(&corpses, nullptr, corpse);
+}
+
+void __fastcall SeeCorpseHook(std::uint8_t* memory, void*, CUnit* self, CEngineObject* corpse) {
+    BrainOfMemory(memory)->SeeCorpse(self, corpse);
+}
+EI_REPLACE(0x005CBE90, SeeCorpseHook);
+
+namespace {
+constexpr float kMaxExposure = 3.0f;            // 0073FE90
+
+bool IsNaN(double v) {
+    auto bits = std::bit_cast<std::uint64_t>(v);
+    return (bits & 0x7FF0000000000000ull) == 0x7FF0000000000000ull && (bits & 0x000FFFFFFFFFFFFFull) != 0;
+}
+
+// distance / range, at most 3 (NaN kept); 3 for a zero (or NaN) range.
+float Exposure(float distance, double range) {
+    if (range == 0.0 || IsNaN(range)) return kMaxExposure;
+    float ratio = RoundToFloat(distance / range);
+    return !(ratio >= kMaxExposure) ? ratio : kMaxExposure;
+}
+
+// The smaller of the two; NaN `value` wins.
+void KeepLower(float& slot, float value) { slot = !(value >= slot) ? value : slot; }
+} // namespace
+
+void AIBrain::MeasureExposure(UnitController* self, float* out) {
+    for (int i = 0; i < 5; ++i) out[i] = kMaxExposure;
+    CUnit* unit = self->unit;
+    Vector3 eye;
+    static_cast<CMapObjectVirtuals*>(static_cast<CEngineObject*>(unit))->EyePoint(&eye);
+    for (auto* node = unknown_0F4.head; node; node = node->next) {
+        auto* other = static_cast<CUnit*>(node->data);
+        if (IsDead(other) || !unit->IsHostileTo(other)) continue;
+        UnitController* theirs = ControllerOf(other);
+        double dx = static_cast<double>(other->positionX) - unit->positionX;
+        double dy = static_cast<double>(other->positionY) - unit->positionY;
+        double dz = static_cast<double>(other->positionZ) - unit->positionZ;
+        float distance = RoundToFloat(std::sqrt(dz * dz + dy * dy + dx * dx));
+        float sight = RoundToFloat(static_cast<double>(theirs->moveFactors[3]) * self->moveFactors[2] *
+                                   theirs->stats.valuesB0[0].current * self->stats.valuesE0[0].current);
+        if (!(distance >= sight)) {
+            Vector3 theirEye;
+            Vector3 to = *static_cast<CMapObjectVirtuals*>(static_cast<CEngineObject*>(other))->EyePoint(&theirEye);
+            double range = LineOfSightOriginal(WorldServer()->AIMap(), nullptr, &eye, &to) * sight;
+            KeepLower(out[0], Exposure(distance, range));
+        }
+        KeepLower(out[4], Exposure(distance, static_cast<double>(theirs->stats.valuesB0[2].current) * self->stats.valuesE0[2].current));
+        KeepLower(out[1], Exposure(distance, static_cast<double>(theirs->stats.valuesB0[4].current) * self->stats.valuesE0[4].current));
+        KeepLower(out[2], Exposure(distance, static_cast<double>(theirs->moveFactors[1]) * self->moveFactors[0] *
+                                                 theirs->stats.valuesB0[3].current * self->stats.valuesE0[3].current));
+    }
+}
+
+void __fastcall MeasureExposureHook(std::uint8_t* memory, void*, UnitController* self, float* out) {
+    BrainOfMemory(memory)->MeasureExposure(self, out);
+}
+EI_REPLACE(0x005CB850, MeasureExposureHook);
 
 void __fastcall ForceSeeHook(std::uint8_t* memory, void*, CUnit* self, CEngineObject* object) {
     BrainOfMemory(memory)->ForceSee(self, object);

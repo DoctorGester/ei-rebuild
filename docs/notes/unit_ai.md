@@ -150,3 +150,6 @@ through `game::FatalError` (EI_ORIGINAL). Forwarders are in `unit_ai.h`, `unit_a
   sequences compared), NearestEnemy pure, ForceSee and AddCountedTail ours only (list deltas). Kept: FindEnemiesNear asks the
   visible unit's IsHostileTo(self) where the others ask the unit's; ForceSee's "sight" test compares the observer's ranges as
   the original does (forced when at or beyond either of them, or when the object attacks the unit).
+- Also in `unit_ai_memory.cpp`: 005CB850 MeasureExposure (each server tick: five exposure ratios into CUnit + 0x4C8; output
+  verify against the original, CheckNear) and 005CBE90 SeeCorpse (OnDamaged; ours only). `CMapObjectVirtuals` slot 48 is now
+  `EyePoint` (map_object.h); LineOfSight is called through its address (`LineOfSightOriginal`, originals_ai.h).
