@@ -14,6 +14,7 @@
 #include "../../src/game/unit.h"
 
 #include <cstring>
+#include <string>
 
 namespace {
 void* s_unused;
@@ -138,6 +139,79 @@ static void __fastcall LeftDoubleVerify(void* input, void*, int buttons, int x, 
                       "state %d -> %d", before, self->state_);
 }
 EI_VERIFY(0x00603360, LeftDoubleVerify, 0, s_unused);
+
+// Mouse move: ours only; in state 1 the hovered topic is -1 or a shown row's topic.
+static void __fastcall MouseMoveVerify(void* input, void*, int buttons, int x, int y) {
+    auto* self = WindowFromInput<CBriefingScreen>(input);
+    self->OnMouseMove(buttons, x, y);
+    bool ok = true;
+    if (self->state_ == 1 && !self->chatActive_) {
+        int h = self->hoveredTopic_;
+        ok = h == -1 || (h >= self->topicTop_ && h < self->topicTop_ + 5 && h < self->topics_.size_);
+    }
+    ei::verify::Check("CBriefingScreen::OnMouseMove", true, ok, "hovered %d, top %d", self->hoveredTopic_,
+                      self->topicTop_);
+}
+EI_VERIFY(0x00603D00, MouseMoveVerify, 0, s_unused);
+
+// Keys (ui_briefing_keys.cpp): ours only; Enter, Esc and Space are always used (unless the chat
+// window had the input), and Enter / Esc leave the phrases behind (state not 3). ui_base_dialogue
+// ends with Esc.
+static void __fastcall KeyDownVerify(void* input, void*, int key, int repeat, int flags) {
+    auto* self = WindowFromInput<CBriefingScreen>(input);
+    bool chat = self->chatActive_ != 0;
+    int before = self->state_;
+    self->OnKeyDown(key, repeat, flags);
+    bool ok = true;
+    if (!chat && (key == VK_RETURN || key == VK_ESCAPE || key == VK_SPACE)) ok = self->inputHandled_;
+    if (!chat && before == 3 && (key == VK_ESCAPE || (key == VK_RETURN && !self->chat_))) ok = ok && self->state_ != 3;
+    ei::verify::Check("CBriefingScreen::OnKeyDown", true, ok, "key %X, state %d -> %d", key, before, self->state_);
+}
+EI_VERIFY(0x006034A0, KeyDownVerify, 0, s_unused);
+
+// --- Topics (ui_briefing_topics.cpp) -----------------------------------------------------------
+// Side by side: FindTopics only rebuilds topics_ (the original's list is recorded, then ours is
+// compared with it); TopicTitle writes a fresh string (both into raw storage). Reached by the
+// mouse moving over Smith and by the topic list's drawing (ui_base_dialogue).
+
+namespace {
+void* s_findTopics;
+void* s_topicTitle;
+
+std::string TopicsText(const CBriefingScreen* self) {
+    std::string text;
+    for (int i = 0; i < self->topics_.size_; ++i) {
+        text += static_cast<const char*>(self->topics_[i]);
+        text += '|';
+    }
+    return text;
+}
+} // namespace
+
+static void __fastcall FindTopicsVerify(CBriefingScreen* self, void*, int personId) {
+    reinterpret_cast<void(__fastcall*)(CBriefingScreen*, void*, int)>(s_findTopics)(self, nullptr, personId);
+    std::string expected = TopicsText(self);
+    self->FindTopics(personId);
+    std::string actual = TopicsText(self);
+    ei::verify::Check("CBriefingScreen::FindTopics", true, expected == actual, "person %d: %.80s / %.80s", personId,
+                      expected.c_str(), actual.c_str());
+}
+// 00607360: PUSH -0x1; PUSH 0x0072B000 (2 + 5 bytes).
+EI_VERIFY(0x00607360, FindTopicsVerify, 7, s_findTopics);
+
+static mfc::CString* __fastcall TopicTitleVerify(CBriefingScreen* self, void*, mfc::CString* out, const char* topic) {
+    alignas(4) std::uint8_t raw[4];
+    auto* expected = reinterpret_cast<mfc::CString* (__fastcall*)(CBriefingScreen*, void*, mfc::CString*, const char*)>(
+        s_topicTitle)(self, nullptr, reinterpret_cast<mfc::CString*>(raw), topic);
+    mfc::CString* actual = self->TopicTitle(out, topic);
+    bool ok = std::strcmp(*expected, *actual) == 0;
+    ei::verify::Check("CBriefingScreen::TopicTitle", true, ok, "%s: %.60s / %.60s", topic,
+                      static_cast<const char*>(*expected), static_cast<const char*>(*actual));
+    expected->~CString();
+    return actual;
+}
+// 006078C0: PUSH -0x1; PUSH 0x0072B087 (2 + 5 bytes).
+EI_VERIFY(0x006078C0, TopicTitleVerify, 7, s_topicTitle);
 
 static void __fastcall OpenTopicsVerify(CBriefingScreen* self, void*, CEngineObject* person) {
     self->OpenTopics(person);

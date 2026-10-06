@@ -345,7 +345,17 @@ its server controller's command is 0 or 0xB and the next one 9 (or it has none).
 | 00602BB0, 00606F40, 00603010, 00608C70, 006030C0, 00603090, 00602490 | `Close` (26), `OnMessageResult` (27; the load window inline as the battle screen's), `OnUnitLeft` (30), `OnGameOver` (31), `OnBriefing` (34, "briefing <name>"), `ShowChat` (36), `SaveState` (40: one zero dword) | OnUnitLeft side by side (leader, party array); the rest ours only (camera flags / fade, window on top, stream +4) |
 | 006030F0, 00603360, 00608B60, 006071E0 | `OnLeftDown` (input 2), `OnLeftDouble` (7; nothing while the chat window is active), `OpenTopics` (five rows 210..570 x 440.., "goodbye" appended, bar range count - 5), `DrawTopics` | ours only: state valid; OpenTopics state 1 with "goodbye" last or state 0 |
 
-00608D10 (slot 35, `MOV AL,1; RET`, 3 bytes) is too short to hook.
+| 00603D00, 006034A0 | `OnMouseMove` (input 4: hovered topic row, cursors 0xD / 0xE / 0xF, a person's topics and "pers" label in surface 1), `OnKeyDown` (input 9, `ui_briefing_keys.cpp`: Enter / Esc / Space by state, action 4 the objectives window when a "q.<zone>.<quest>" = 1 lies in this allod, 0xB camera to the leader, '5' / '6' "saveq") | ours only: the hovered row valid; Enter / Esc / Space used, Esc / Enter leave state 3 |
+| 00607360, 006078C0 | `FindTopics` ("b.<person>.<topic>" = 1, bit compare; a network client sorts them; the last "constr..." topic last), `TopicTitle` (first line of "briefing <topic>", "constr..." -> "briefing constr") (`ui_briefing_topics.cpp`) | side by side: the topic list; the title |
+
+00608D10 (slot 35, `MOV AL,1; RET`, 3 bytes) is too short to hook. Shared helpers: `BriefingVariables` (00578C40 into a 100-bucket table,
+00581790; walked with 005E0DB0), `BriefingPlayerName` (00578A90); forwarders added to originals_ui.h (the screen's 006064E0 / 00604C50 /
+00608450 / 00608B60 / 006071E0 / 00607360, 00578C40, 0063B5D0, 0064BE40) and originals_world.h (00578A40); `MapRecord::allod` added.
+Next (mapped, not ported): 00608210 the phrases' start (camera saved to +0x1F8, look-at +0x204 = position + the rotation's z axis,
+0066F840(3, 0) to the server, state 3, +0x244 1), 00607BB0 / 00607A60 / 006062C0 (speakers +0x1A4 hero, +0x1A8 person, +0x1AC third,
+their places +0x1B0.. and directions +0x1D4..), 00602C90 (slot 29), 00607720, then 006064E0 / 00604C50 / 00608450, Create and Update.
+Original quirks kept: the mouse move's exit check names the zone of exit_ (+0x164), not of the exit under the mouse; the key handler builds
+the objectives window inline and calls its setup even when the allocation failed.
 
 ## 6. Battle screen: update, selection, orders, pending actions (00635250-0064BE80)
 

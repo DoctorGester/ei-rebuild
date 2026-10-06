@@ -9,13 +9,19 @@
 #include "unit.h"
 #include "unit_ai.h"
 
+#include "ui_cursor.h"
+#include "world.h"
+
 #include "ei/hook.h"
+#include "ei/x87.h"
+#include "lib/crt.h"
 #include "originals_ui.h"
 #include "originals_world.h"
 
 namespace {
 
 void* ClientWorld() { return reinterpret_cast<void*>(0x007AF5B8); }
+void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
 void* ServerWorld() { return reinterpret_cast<void*>(0x007AFF60); }
 const char* ClickSound() { return reinterpret_cast<const char*>(0x00793394); }    // "buttons\base\click1.wav"
 const char* TopicPrefixKey() { return reinterpret_cast<const char*>(0x007934F4); }   // "topic_prefix"
@@ -44,6 +50,20 @@ constexpr std::uint32_t kTopicColour = 0xA7D7E4;
 constexpr std::uint32_t kHoveredTopicColour = 0xFFFFFF;
 constexpr int kTextFormat = 1;
 
+// Cursor shapes.
+constexpr int kCursorNormal = 0;
+constexpr int kCursorChat = 0xD;
+constexpr int kCursorTalk = 0xE;
+constexpr int kCursorExit = 0xF;
+
+// The person's name label (surface 1) left and up of the mouse.
+constexpr int kLabelOffsetX = 0x7D;
+constexpr int kLabelOffsetY = 0x14;
+constexpr std::uint32_t kLabelColour = 0xA7D7E4;
+
+const char* NoZone() { return reinterpret_cast<const char*>(0x007846F0); }         // "none"
+const char* ZoneVariablePrefix() { return reinterpret_cast<const char*>(0x007900E8); }   // "z."
+
 // 00565D00: the client world's unit drawn at a screen point (thiscall, RET 4: the point's x, y).
 __declspec(naked) CEngineObject* __fastcall ClientUnitAtAt(void* /*world*/, void*, const int* /*point*/)
     EI_ORIGINAL(0x00565D00)
@@ -64,6 +84,8 @@ bool CanTalk(CEngineObject* person) {
     return (controller->command == kCommandStand || controller->command == kCommandIdle) &&
            controller->nextCommand == kNextCommandNone;
 }
+
+CWorldClient* TheClientWorld() { return static_cast<CWorldClient*>(ClientWorld()); }
 
 bool IsPerson(CEngineObject* object) { return object && static_cast<CMapObjectVirtuals*>(object)->IsDead() == 0; }
 
@@ -123,6 +145,68 @@ void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
     default:
         return;
     }
+}
+
+// --- 00603D00: input slot 4 ---------------------------------------------------------------------
+
+void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
+    if (chatActive_) {
+        GameCursor()->SetShape(kCursorChat);
+        if (chat_) chat_->Input()->Event(UiInputSide::kMouseMove, buttons, x, y);
+        return;
+    }
+    GameCursor()->SetShape(kCursorNormal);
+    InputOf(this)->BaseMouseMove(buttons, x, y);
+    if (state_ == 1) {
+        int region = RegionAt(x, y);
+        int hovered = -1;
+        if (region >= 0 && region < kTopicRows && region + topicTop_ < topics_.size_) hovered = region + topicTop_;
+        if (hovered != hoveredTopic_) {
+            hoveredTopic_ = hovered;
+            BriefingDrawTopicsOriginal(this);
+        }
+    } else if (state_ == 3) {
+        GameCursor()->SetShape(kCursorTalk);
+    } else if (state_ == 4) {
+        GameCursor()->SetShape(kCursorNormal);
+    }
+    if (interface_->rightDown_ || state_ != 0) return;
+
+    int point[2] = {x, y};
+    CEngineObject* object = ClientUnitAtAt(ClientWorld(), nullptr, point);
+    if (IsPerson(object)) {
+        int id = object->id_;
+        if (IsNetworkClientOriginal() && leader_ && leader_->id_ == id) return;
+        if (!CanTalk(object)) return;
+        BriefingFindTopicsOriginal(this, nullptr, id);
+        if (topics_.size_ > 0) GameCursor()->SetShape(kCursorTalk);
+        const PersonTextNode* node = personTexts_.Find(id);
+        if (node == personTexts_.header) return;
+        CUiSurface* label = surfaces_.data_[1];
+        SurfaceGetDC(label);
+        SurfaceClearOriginal(label);
+        RECT rect{0, 0, 0, 0};
+        SurfaceDrawText(label, nullptr, node->text, &rect, kTextFormat, kLabelColour, 1, 1);
+        SurfaceReleaseDC(label);
+        POINT at{x, y};
+        interface_->CallScalePointFromScreen(&at);
+        label->MoveTo(at.x - kLabelOffsetX, at.y - kLabelOffsetY);
+        label->Freeze(1, 0);
+        return;
+    }
+    float picked[3];
+    float* p = HoverPickSurface(ClientWorld(), nullptr, picked, x, y);
+    float ground[3] = {p[0], p[1], p[2]};
+    int exit = 0;
+    if (!TheClientWorld()->FindExitAt(ground, &exit)) return;
+    mfc::CString zone(GameExitZoneOriginal(ClientGlue(), nullptr, exit_));
+    if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(zone)),
+                         reinterpret_cast<const unsigned char*>(NoZone())) == 0)
+        return;
+    mfc::CString variable(ZoneVariablePrefix());
+    variable += zone;
+    float visited = PlayerZeroVariable(variable);
+    if (!x87::IsNaN(visited) && visited != 1.0f) GameCursor()->SetShape(kCursorExit);
 }
 
 // --- 00603360: input slot 7 ---------------------------------------------------------------------
@@ -196,11 +280,15 @@ namespace {
 void __fastcall BriefingLeftDown(void* input, void*, int buttons, int x, int y) {
     WindowFromInput<CBriefingScreen>(input)->OnLeftDown(buttons, x, y);
 }
+void __fastcall BriefingMouseMove(void* input, void*, int buttons, int x, int y) {
+    WindowFromInput<CBriefingScreen>(input)->OnMouseMove(buttons, x, y);
+}
 void __fastcall BriefingLeftDouble(void* input, void*, int buttons, int x, int y) {
     WindowFromInput<CBriefingScreen>(input)->OnLeftDouble(buttons, x, y);
 }
 } // namespace
 EI_REPLACE(0x006030F0, BriefingLeftDown);
 EI_REPLACE(0x00603360, BriefingLeftDouble);
+EI_REPLACE(0x00603D00, BriefingMouseMove);
 EI_REPLACE_METHOD(0x00608B60, CBriefingScreen::OpenTopics);
 EI_REPLACE_METHOD(0x006071E0, CBriefingScreen::DrawTopics);
