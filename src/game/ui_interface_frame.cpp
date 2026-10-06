@@ -93,7 +93,7 @@ struct SurfaceAt {
     void Freeze(int save);           // 005FD7A0 saves the surface's contents
 };
 __declspec(naked) void SurfaceAt::ReleaseContents() EI_ORIGINAL(0x005FD120)
-__declspec(naked) void SurfaceAt::Freeze(int) EI_ORIGINAL(0x005FD7A0)
+void SurfaceAt::Freeze(int save) { SurfaceSwapContentsOriginal(this, nullptr, save); }
 
 struct InterfaceAt : CInterface3D {
     void Activate(CUiWindow* window);                       // 005F71C0

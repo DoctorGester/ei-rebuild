@@ -420,6 +420,42 @@ void CUiWindow::ClearSurfaces() {
 }
 EI_REPLACE_METHOD(0x005FFC50, CUiWindow::ClearSurfaces);
 
+CEngineObject* CUiWindow::LoadTexture(const char* name, int kind, const char* directory) {
+    void* manager = UiTextureManager();
+    auto* texture = static_cast<CEngineObject*>(TextureNamedOriginal(manager, nullptr, kind, name));
+    if (!texture) return nullptr;
+    int loaded = directory ? TextureLoadFromOriginal(manager, nullptr, texture, directory)
+                           : TextureLoadOriginal(manager, nullptr, texture);
+    if (!loaded) return nullptr;
+    objects_.Append(texture);
+    ++texture->refCount_;
+    return texture;
+}
+EI_REPLACE_METHOD(0x005FEF20, CUiWindow::LoadTexture);
+
+CEngineObject* CUiWindow::CreateTexture(int width, int height, int kind) {
+    auto* texture = reinterpret_cast<CEngineObject*>(
+        NewManagedTextureOriginal(UiTextureManager(), nullptr, width, height, kind));
+    if (!texture) return nullptr;
+    int index = objects_.size_;
+    objects_.SetSize(index + 1, -1);
+    objects_.data_[index] = texture;
+    texture->flags_ |= 0x40000;
+    ++texture->refCount_;
+    return texture;
+}
+EI_REPLACE_METHOD(0x005FF0B0, CUiWindow::CreateTexture);
+
+void CUiWindow::ShowSurfaces(int show) {
+    for (int i = 0; i < surfaces_.size_; ++i) {
+        CUiSurface* surface = surfaces_.data_[i];
+        if (show == 0 || surface->Shown()) surface->CallSwapContents(show);
+    }
+}
+EI_REPLACE_METHOD(0x006002C0, CUiWindow::ShowSurfaces);
+
+void CUiSurface::CallSwapContents(int restore) { SurfaceSwapContentsOriginal(this, nullptr, restore); }
+
 CUiRegion* CUiWindow::AddRegion() {
     auto* region = static_cast<CUiRegion*>(gamecrt::operator_new(sizeof(CUiRegion)));
     if (region) {

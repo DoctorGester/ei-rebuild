@@ -369,16 +369,25 @@ public:
     bool Shown() const { return (flags_ & kShown) != 0; }
     static constexpr std::uint32_t kShown = 4;   // set and cleared by Freeze (005FD760)
 
+    // Calls 005FD7A0 through its address (the wrapper runs).
+    void CallSwapContents(int restore);
+
     void* vtable_;
     CInterface3D* interface_;        // +0x04
     std::uint8_t unknown_08[0x0C - 0x08];
     std::uint32_t flags_;            // +0x0C
-    std::uint8_t unknown_10[0x24 - 0x10];
+    void* holder_;                   // +0x10 the DirectDraw surface's holder (null while swapped out)
+    int width_;                      // +0x14
+    int height_;                     // +0x18
+    std::uint8_t* kept_;             // +0x1C the contents kept in memory while swapped out
+    std::uint32_t keptSize_;         // +0x20
     RECT rect_;                      // +0x24 screen coordinates
     std::uint8_t unknown_34[0x38 - 0x34];
 };
 static_assert(offsetof(CUiSurface, rect_) == 0x24);
 static_assert(offsetof(CUiSurface, flags_) == 0x0C);
+static_assert(offsetof(CUiSurface, holder_) == 0x10);
+static_assert(offsetof(CUiSurface, kept_) == 0x1C);
 static_assert(sizeof(CUiSurface) == 0x38);
 
 // The draw pass a window's slot 20 is given: slot 7 sets the colour the 3D draws use (+0x18).
@@ -565,10 +574,18 @@ public:
     // when the lock fails and the error report returns 0). ui_item_view.cpp.
     int CopyImage(CEngineObject* texture, const char* name, int imageWidth, int imageHeight, int width, int height,
                   int x, int y, int unused1, int unused2);
-    // Layout helpers (not rewritten): 005FEF20 loads a texture into the referenced objects,
-    // 005FF0B0 creates an empty one.
-    int LoadTexture(const char* name, int a, int b);
-    CEngineObject* CreateTexture(int width, int height, int format);
+    // 005FEF20 (RET 0xC; ui_window.cpp). The texture manager's texture `name` of `kind` (found or
+    // made, 00691D00), loaded (006922A0, or from `directory` with 006926F0) and appended to the
+    // referenced objects with one more reference; null when either step fails (a texture made but
+    // not loaded is kept by the manager, as in the original).
+    CEngineObject* LoadTexture(const char* name, int kind, const char* directory);
+    // 005FF0B0 (RET 0xC; ui_window.cpp). A new CPU-filled texture (00691D80) appended to the
+    // referenced objects with one more reference and flag 0x40000; null when none is made.
+    CEngineObject* CreateTexture(int width, int height, int kind);
+    // 006002C0 (RET 4; virtual slot 19 of the plain windows, ui_window.cpp). `show` 0: every
+    // surface keeps its contents in memory and lets its DirectDraw surface go (005FD7A0 with 0);
+    // otherwise the shown surfaces (flag 4) get theirs back (005FD7A0 with `show`).
+    void ShowSurfaces(int show);
     // 005FF3C0 (RET 4; ui_window.cpp). Object `name` of the model manager (007AF5F4; null: a new
     // interface sprite, CUiMesh) added to the scene objects (once: one reference taken and the
     // object attached to the window), given the black material and the first referenced object
@@ -583,6 +600,11 @@ public:
     void VirtualRedraw() { CallVirtual(22); }
     void VirtualRedrawTips() { CallVirtual(23); }
     void VirtualUpdate() { CallVirtual(24); }
+    // Slot 19 (+0x4C): show or hide the window's surfaces (and a container's children).
+    void VirtualShow(int show) {
+        using Fn = void(__thiscall*)(CUiWindow*, int);
+        reinterpret_cast<Fn>(vtable_[19])(this, show);
+    }
     void CallVirtual(int slot) {
         using Fn = void(__thiscall*)(CUiWindow*);
         reinterpret_cast<Fn>(vtable_[slot])(this);
@@ -619,6 +641,9 @@ static_assert(offsetof(CUiWindow, models_) == 0x138);
 // Set when a screen is activated (005F71C0 / 005F7350), cleared when every window is closed; the
 // main loop runs its frames only while it is set (00784750; app_frame.cpp's Running).
 inline bool& InterfaceHasScreen() { return *reinterpret_cast<bool*>(0x00784750); }
+
+// The texture manager (CTextureManager, texture.h) the windows load their textures from.
+inline void* UiTextureManager() { return *reinterpret_cast<void* const*>(0x007AF744); }
 
 // The in-game key bindings (config\keyboard.ini, read by 00462C10): the action of each scan code
 // (0x200 entries, the WM_KEYDOWN flags & 0x1FF).
@@ -1256,6 +1281,9 @@ public:
     void DestroyContainer();
     // 00600CC0 (RET 4; ui_container.cpp). Appends an extra input side (null is ignored).
     void AddInput(UiInputSide* input);
+    // 00601AC0 (RET 4; the containers' slot 19, ui_container.cpp). The window's own surfaces
+    // (006002C0), then every enabled child's slot 19 with `show`.
+    void ShowChildren(int show);
 
     UiPtrArray<CUiWindow> children_;          // +0x148
     UiInputSide** inputsBegin_;               // +0x158 extra input sides (STLport vector)

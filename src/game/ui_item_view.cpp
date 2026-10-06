@@ -621,7 +621,9 @@ void* PixelDecoder() { return *reinterpret_cast<void* const*>(0x007AF06C); }
 
 // The texture manager (thiscall): 00691D80 makes a texture (width, height, format), 00691CF0 finds
 // a loaded image by file name.
-__declspec(naked) std::uint8_t* __fastcall NewManagedTexture(void*, void*, int, int, int) EI_ORIGINAL(0x00691D80)
+std::uint8_t* NewManagedTexture(void* manager, void*, int width, int height, int kind) {
+    return NewManagedTextureOriginal(manager, nullptr, width, height, kind);
+}
 __declspec(naked) std::uint8_t* __fastcall FindImage(void*, void*, const char*) EI_ORIGINAL(0x00691CF0)
 
 // 004800E0 (cdecl): a fatal DirectX error; what it returns decides whether the caller goes on.

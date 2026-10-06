@@ -169,3 +169,22 @@ __declspec(naked) inline void __fastcall FigurePlayAnimationOriginal(void* /*fig
                                                                      int /*restart*/) EI_ORIGINAL(0x005187B0)
 __declspec(naked) inline void* __fastcall ManagerFindNamedOriginal(void* /*manager*/, void*, const mfc::CString* /*name*/,
                                                                    std::uint32_t /*kind*/) EI_ORIGINAL(0x00512B20)
+
+// A-I5. The texture manager [007AF744] (thiscall): 00691D00 its texture of `kind` named `name`, found or made (RET 8);
+// 006922A0 / 006926F0 (rewritten in texture.cpp; through their address so the wrappers run) load it, from the archives or
+// from `directory` (RET 4 / 8; nonzero on success); 00691D80 (rewritten as CTextureManager::NewTexture) a new CPU-filled
+// texture (width, height, kind; RET 0xC).
+__declspec(naked) inline void* __fastcall TextureNamedOriginal(void* /*manager*/, void*, int /*kind*/, const char* /*name*/)
+    EI_ORIGINAL(0x00691D00)
+__declspec(naked) inline int __fastcall TextureLoadOriginal(void* /*manager*/, void*, void* /*texture*/) EI_ORIGINAL(0x006922A0)
+__declspec(naked) inline int __fastcall TextureLoadFromOriginal(void* /*manager*/, void*, void* /*texture*/,
+                                                                const char* /*directory*/) EI_ORIGINAL(0x006926F0)
+__declspec(naked) inline std::uint8_t* __fastcall NewManagedTextureOriginal(void* /*manager*/, void*, int /*width*/,
+                                                                            int /*height*/, int /*kind*/)
+    EI_ORIGINAL(0x00691D80)
+// 005FD7A0 (rewritten as CUiSurface::SwapContents): keeps a surface's contents in memory (0) or restores them (1) (RET 4).
+// 006002C0 (rewritten as CUiWindow::ShowSurfaces): a window's slot 19 for its surfaces (RET 4).
+__declspec(naked) inline void __fastcall SurfaceSwapContentsOriginal(void* /*surface*/, void*, int /*restore*/)
+    EI_ORIGINAL(0x005FD7A0)
+__declspec(naked) inline void __fastcall WindowShowSurfacesOriginal(void* /*window*/, void*, int /*show*/)
+    EI_ORIGINAL(0x006002C0)
