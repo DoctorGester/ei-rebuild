@@ -3019,6 +3019,7 @@ address,name,library,signature,notes
 0066BFB0,stlp::vector<T>::_M_allocate_and_copy,STLport,,"inventory sweep: node-pool allocate n, copy [first,last); loose-family member of 004081F0 (reviewed)"
 006710A0,"CArray<TYPE,ARG_TYPE>::SetSize",MFC,,inventory sweep: MFC SetSize (non-trivial elements: ConstructElements helper); loose-family member of 00450F20 (reviewed)
 006711E0,aligned buffer destructor,compiler,,A-H11 sweep: same instructions as 00570DF0 (data addresses masked; every call goes to the same callee or to library code)
+00671200,"CArray<CUnit*>::RemoveAt",MFC,"void __thiscall(int,int)","A-H13: instantiation of the use order's unit array (vtable 007402AC; memmove of the tail, size - count); OnUseOrder uses mfc::CArray::RemoveAt"
 006713C0,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 00408F90 (reviewed)"
 00671650,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 004A5950 (reviewed)"
 00672190,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 0040C720 (reviewed)

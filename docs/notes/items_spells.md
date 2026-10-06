@@ -491,5 +491,5 @@ texture manager's 6 KB is the renderer's; 00646C25 is a tail of 006462A0 that Gh
 | 6AE000-6B4000 | quest database | 17 | 3235 | 923 | 006AE3A0, 006AE740, 006AE220, 006AE0F0 |
 | 6B4000-6C0000 | sound (Miles), misc | 70 | 15007 | 1442 | 006BB3A0, 006B6D80, 006BFC80, 006B7D10 |
 
-Next candidates: 0066F4C0, 00670310 and the other message handlers (`objects.md`); the party's 006629D0 / 00662AC0 / 00662DD0; 00667EC0, 0067CEF0,
+Next candidates: the other server message handlers 0066F890..00671060 (`objects.md`; 0066F4C0 / 00670310 done in A-H13); the party's 006629D0 / 00662AC0 / 00662DD0; 00667EC0, 0067CEF0,
 00661FB0 / 00661FE0 (party item resets; no scenario is known to reach them).

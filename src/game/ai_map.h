@@ -244,6 +244,15 @@ struct AIPath {
     Vector3* Destination(Vector3* out);
     // 005B23A0. Empties the path, the steps and the order.
     void Clear();
+    // 006706A0 (player_server_handlers.cpp). An out-of-line copy of the inlined constructor: both
+    // cell lists empty (blocks of 0x80), no points (vtable kPointsVtable), then Clear. Returns this.
+    // The destructor body is 00546100 (AIPathDestructOriginal).
+    AIPath* Construct();
+    // 00670730 (RET 4). The search's target cell (targetX, targetY) in world units: each times
+    // 0074326C * 0073B86C, z 0. Returns `out`.
+    Vector3* TargetPoint(Vector3* out) const;
+
+    static constexpr std::uintptr_t kPointsVtable = std::uintptr_t(0x0073F07C);
 
     std::uint8_t unknown_00[0x20];
     PathCellList steps;         // +0x20 the next cells to walk (at most 32)
