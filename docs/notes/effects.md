@@ -151,3 +151,53 @@ destructor 00675FB0 / 00676910 (only reachable through the abstract base's vtabl
 temporaries, random picks 00676DD0..00676F90 passed as callbacks); CEffectArrow / ArrowFigure / ShowVisibility /
 Moshka / Tornado (0067AAB0-0067E000); dead code 00675CC0 (UpdateMoving), 0067A2C0 (UpdateEnds); STLport
 instantiations.
+
+## Missiles (world_effect_missile.cpp, A-H7)
+
+CEffectMissile (abstract, vtable 00743754, 0x158): +0x14C arrived, +0x150 target id, +0x154 "from caster".
+CEffectArrow (0x4E, vtable 007436F0, 0x6C0) embeds a CEffectParticle (+0x158), CEffectPointLight (+0x2D8) and
+CEffectSound (+0x43C), then the sound name CString +0x6A0, light colour / range, particle type / size, caster id
++0x6BC. Steer (0067AAB0, shared with class 0x5B, which doubles the speed 0.6667) aims at the target's
++0x1C position with z + extent.z / 2 + pointOffset.z; arrived when the planar distance is below one step (or NaN).
+On a client the missile is kept 1 above the world's slot 28 height. Tick moves, and on a client moves the parts
+(slot 24, Start(1) each). Start copies the settings into the parts (light velocity (0.0001, 0, 0), flags 0x840,
+sound radius 30, looping) and starts them. Scenario spells (arrow, acid ray).
+
+| Address | Name | Verify |
+|---|---|---|
+| 0067AAB0, 0067AC70 | Steer, SetTarget | ours, restore, original (velocity CheckNear) / bytes |
+| 0067AC90, 0067AD10, 0067B450, 0067B4E0 | Tick, Reset, MoveParts, Start | ours only: position moved / fields / parts at the arrow / parts' settings |
+| 0067B690, 0067B800, 0067B9A0, 0067B8E0 | Unpack, Pack, SaveState, LoadState | as the other effects (Load ours only: CString reader) |
+| 0067AE30, 0067B1C0, 0067B1A0 | Construct, Destruct, DeletingDestruct | original on seeded scratch, all bytes / ours only |
+
+Kept: Load does not recompute the moving flag; Unpack does not either; Start copies the sound name unbounded.
+Not rewritten: 0067AA00 (the missile's Reset) and 0067B390 / 0067B430 (its destructor), reachable only through the
+abstract vtable; 0067B050 (an out-of-line CEffect constructor, called only by the arrow constructor, now unused).
+CWorld gained slots 28 (RawSurfaceHeightAt) and 40 (ObjectWithId); CMapObject +0x144 extent.
+
+CEffectShowVisibility (0x5E, vtable 0074381C, 0x170; world_effect_visibility.cpp): +0x14C observer, +0x150 seer
+(SetUnits 0067C640, from vision fog 0x17 with caster and target), +0x154 counted fog object (client: made by the fog
+manager *007AF75C, 004E28D0), +0x158 FogGrid (cells / rows allocated by the constructor). The server's Tick follows
+the seer and recomputes the grid (005CD210) and marks the effect changed; Pack / Unpack send the grid through a stack
+memory stream (FogGrid Write / Read 005C8CC0 / 005C8BF0); Start reveals it in the fog (CVisibilityFog::Reveal). Reset
+does not reset the base. Verify: SetUnits side by side; Pack, Save, Load as the other effects; constructor against
+the original with the two grid blocks compared by shape; the rest ours only. Script casts have no caster, so only the
+new scenario spells_hero.txt (the hero casts vision fog and arrow from the battle screen) reaches it; not run yet.
+Not rewritten: 0067C5D0 (FogGrid free, unwind only), 0067C450 / 0067C460 (class name / id).
+
+The effect factory 0067E170 (EffectNewObject, the effect manager's slot 14, RET 4; world_effect_lifetime.cpp): operator new
+of the class size and its constructor body, type_ = class id; the ambient sound, class 0x5B, Moshka (100) and Tornado
+(0x65) constructors through their addresses. Verify: ours only, the object's slot 12 and type_ equal the request.
+
+CEffectSoundSeq Start 00676C00 / Unpack 00676FD0 (world_effect_sequence.cpp): the first name (when not empty) and
+the others go into a stack CStringArray handed to CSoundManager::AddSequence with a chooser for their count (ten
+small ISAAC pickers, 00676DD0..00676F90, now ours); an update moves the sequence through SetSoundPosition with the
+sequence id (kept). The chooser takes the number of sounds started so far in EDX: the rewritten
+SoundSequence::PlayNext (sound_manager.cpp) left EDX undefined, so a sequence with a first name could skip it;
+it now passes it (C++ fastcall, the naked CallChooser removed). Verify: ours only (Start: an id or -1; Unpack
+result).
+
+Next candidates (A-H7 left): class 0x5B (CEffectArrowFigure, vtable 007437B8, 0067BAA0..0067C290; bow shots from
+DeliverAttack 0054F450, no scenario shoots a bow yet); the Moshka (100, 0067C950..0067D660; the client world keeps one at
++0x1B0 and draws it every frame through 0067CEF0, which only runs with a followed object); Tornado (0x65, 0067D670..0067E070,
+from the server weather 0058CCD0); CPlayerServer sync (0066D100..0066F080, forwarded by world_sync.cpp, live every tick).

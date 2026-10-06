@@ -37,9 +37,6 @@ constexpr int kIdleRestartBelow = 3;                  // CFigureAnimationState::
 constexpr float kIntRange = 2147483648.0f;            // 2^31: FISTP's int range is below it
 
 // Not rewritten (forwarders):
-// 0051C9F0. The client half: with 0 every drawn part takes back the colour it kept (with 1 it
-// keeps it and turns white). RET 4.
-__declspec(naked) void __fastcall RestorePartColours(CObject3DClientSpecific*, void*, int) EI_ORIGINAL(0x0051C9F0)
 // 00538ED0 / 00539010. The blink: the face texture with closed / open eyes (RET 4).
 __declspec(naked) void __fastcall CloseEyes(CUnitClientSpecific*, void*, int) EI_ORIGINAL(0x00538ED0)
 __declspec(naked) void __fastcall OpenEyes(CUnitClientSpecific*, void*, int) EI_ORIGINAL(0x00539010)
@@ -51,11 +48,6 @@ __declspec(naked) void __fastcall CallShowWeaponParts(CUnitClientSpecific*, void
 __declspec(naked) void __fastcall CallUpdateArrow(CUnitClientSpecific*) EI_ORIGINAL(0x00538C20)
 __declspec(naked) FigurePart* __fastcall CallFirstDrawnPart(CObject3DClientSpecific*) EI_ORIGINAL(0x0051B6D0)
 __declspec(naked) FigurePart* __fastcall CallNextDrawnPart(CObject3DClientSpecific*) EI_ORIGINAL(0x0051B6F0)
-// 005380D0. Plays a speech; false when the same one played within 5 seconds (RET 4, AL).
-__declspec(naked) bool __fastcall Speak(CUnitClientSpecific*, void*, ClientSpeech*) EI_ORIGINAL(0x005380D0)
-// 005392F0 (library: STLport list::erase). Removes `at`, the next node to *out (RET 8).
-__declspec(naked) void __fastcall EraseSpeech(ClientSpeechNode**, void*, ClientSpeechNode** /*out*/,
-                                              ClientSpeechNode* /*at*/) EI_ORIGINAL(0x005392F0)
 
 // Is sound `handle` still playing or waiting to play?
 bool SoundBusy(int handle) {
@@ -113,7 +105,7 @@ int CUnitClientSpecific::UpdateClient() {
         fadeIn = !(next >= 1.0f) ? next : 1.0f;   // the original's select keeps a NaN
     }
     if (flashCountdown > 0 && --flashCountdown == 0)
-        RestorePartColours(static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached), nullptr, 0);
+        ClientPartColoursOriginal(static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached), nullptr, 0);
 
     if (blinks) {
         if (blinkTimer > 0) {
@@ -134,14 +126,14 @@ int CUnitClientSpecific::UpdateClient() {
         if (delay == 0) {
             if (first->talking) SetTalking(unit, true);
             if (first->kind == kSpeechAfterSpeech || first->kind == kSpeechAfterSpeech2) {
-                if (!SoundBusy(speechSound) && Speak(this, nullptr, first)) speechSound = first->sound;
+                if (!SoundBusy(speechSound) && ClientSpeakOriginal(this, nullptr, first)) speechSound = first->sound;
             } else {
-                Speak(this, nullptr, first);
+                ClientSpeakOriginal(this, nullptr, first);
             }
         } else if (delay < 0 && !SoundBusy(first->sound)) {
             if (speech->next->value.talking) SetTalking(unit, false);
             ClientSpeechNode* after;
-            EraseSpeech(&speech, nullptr, &after, speech->next);
+            SpeechEraseOriginal(&speech, nullptr, &after, speech->next);
         }
     }
     if (unit->unknown_255 == kModeSpecialIdle && unit->Object3D()->animation->queue.count < kIdleRestartBelow)

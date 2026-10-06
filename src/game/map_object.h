@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 
+class CStream;              // core_streams.h
 struct DeltaState;          // net_delta.h
 struct UnitVitalsPacked;    // unit.h
 
@@ -137,6 +138,15 @@ public:
     // companion detached and released, then the 3D object's Destroy (00516080).
     void DestroyMapObject();
 
+    // map_object_save.cpp (A-U2).
+    // 0050F7A0. Virtual slot 9 (Load): the companion's Load, then +0x178, the position, the
+    // orientation, the name, the scale, the effects (count, then MapEffect::Load 00688550 each),
+    // flags_, the second name and, from version 0x4F, the base scale.
+    void LoadMapObject(CStream* stream);
+    // 0050F900. Virtual slot 10 (Save): the same fields (names with their terminators; the base
+    // scale always).
+    void SaveMapObject(CStream* stream);
+
     // The packed vitals (+0x17C) and the network state (+0x1C4).
     UnitVitalsPacked* PackedVitals() { return reinterpret_cast<UnitVitalsPacked*>(packedVitals); }
     DeltaState* NetState() { return reinterpret_cast<DeltaState*>(netState); }
@@ -161,7 +171,9 @@ public:
     float scale[3];                 // +0x0C4
     std::uint8_t unknown_0D0[0x128 - 0xD0];
     float pointOffset[3];           // +0x128 (GroundPoint)
-    std::uint8_t unknown_134[0x170 - 0x134];
+    std::uint8_t unknown_134[0x144 - 0x134];
+    float extent[3];                // +0x144 half the bounding box (units: box maximum - centre)
+    std::uint8_t unknown_150[0x170 - 0x150];
     CEngineObject* companion;       // +0x170 CMapObjectServer / CMapObjectClientSpecific
     int unknown_174;                // +0x174 (5 after Create)
     float unknown_178;              // +0x178 (1 after Create)
@@ -185,6 +197,7 @@ public:
 static_assert(offsetof(CMapObject, positionX) == 0x1C);
 static_assert(offsetof(CMapObject, orientation) == 0x34);
 static_assert(offsetof(CMapObject, name) == 0xA4);
+static_assert(offsetof(CMapObject, extent) == 0x144);
 static_assert(offsetof(CMapObject, scale) == 0xC4);
 static_assert(offsetof(CMapObject, pointOffset) == 0x128);
 static_assert(offsetof(CMapObject, companion) == 0x170);

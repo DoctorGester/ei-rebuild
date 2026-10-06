@@ -1,0 +1,43 @@
+# Spells cast by the hero (a caster, unlike script casts): vision fog makes a
+# CEffectShowVisibility (world_effect_visibility.cpp) linking the hero and the target, and the
+# arrow's missile (CEffectArrow, world_effect_missile.cpp) starts at the caster's effect point on
+# the client. The casts go through the battle screen as in ui_battle_spells.txt: two spells given
+# (GiveUnitSpell), the portrait click shows them at (780, 450) and (780, 490), a click on a button
+# starts its target mode and "clickunit" on a wolf ends it. The report's call counts show what was
+# reached (CEffectShowVisibility::Tick / Pack / Unpack, CEffectArrow::Unpack with fromCaster_).
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),1)
+console @GodMode(0,1)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+console @GiveUnitSpell(GetLeader(),"vision_fog")
+console @GiveUnitSpell(GetLeader(),"arrow")
+wait 500
+
+click 400 560
+wait 300
+
+console @AddUnitToServer("HeroWolf1","WolfTutor","HeroWolf1",Add(GSGetVar(0,"hx"),4),GSGetVar(0,"hy"),0)
+console @AddUnitToServer("HeroWolf2","WolfTutor","HeroWolf2",GSGetVar(0,"hx"),Add(GSGetVar(0,"hy"),4),0)
+waitfor 10 IsAlive(GetObjectByName("HeroWolf1"))
+waitfor 10 IsAlive(GetObjectByName("HeroWolf2"))
+console @BlockUnit(GetObjectByName("HeroWolf1"),1)
+console @BlockUnit(GetObjectByName("HeroWolf2"),1)
+wait 500
+
+click 780 450
+wait 200
+clickunit HeroWolf1
+wait 1000
+click 780 490
+wait 200
+clickunit HeroWolf2
+wait 3000
+check IsAlive(GetLeader())
+report
+quit

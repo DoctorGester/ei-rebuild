@@ -187,3 +187,18 @@ __declspec(naked) inline void __fastcall FigureAdvanceOriginal(CFigureAnimationS
                                                                float /*frames*/) EI_ORIGINAL(0x0050D5E0)
 __declspec(naked) inline void __fastcall ClientStartIdleAnimationOriginal(CUnitClientSpecific* /*controller*/, void*,
                                                                           int /*play*/) EI_ORIGINAL(0x00535480)
+// 0051C9F0: the client half (CObject3DClientSpecific): with 0 every drawn part takes back the colour it kept, with 1 it
+// keeps it and turns white (RET 4, no result).
+class CObject3DClientSpecific;
+__declspec(naked) inline void __fastcall ClientPartColoursOriginal(CObject3DClientSpecific* /*half*/, void*, int /*flash*/)
+    EI_ORIGINAL(0x0051C9F0)
+// 005380D0 (unit_client_speech.cpp, rewritten; through its address for the wrapper): the client controller plays a
+// speech (RET 4, AL: false when the same one played within 5 s). 005392F0 (library: STLport list::erase of the speech
+// queue): removes `at`, the next node to *out (RET 8).
+struct ClientSpeech;
+struct ClientSpeechNode;
+__declspec(naked) inline bool __fastcall ClientSpeakOriginal(CUnitClientSpecific* /*controller*/, void*,
+                                                             ClientSpeech* /*speech*/) EI_ORIGINAL(0x005380D0)
+__declspec(naked) inline void __fastcall SpeechEraseOriginal(ClientSpeechNode** /*queue*/, void*,
+                                                             ClientSpeechNode** /*out*/, ClientSpeechNode* /*at*/)
+    EI_ORIGINAL(0x005392F0)

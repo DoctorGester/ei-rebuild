@@ -100,7 +100,7 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 0x24, &combat[2]);
     Dword(ar, 0x25, &unknown_28);
     Dword(ar, 0x26, &unknown_2C);
-    Dword(ar, 0x27, &unknown_7C);
+    Dword(ar, 0x27, &hitSoundKind);
     Dword(ar, 0x28, &shake);
     Dword(ar, 0x29, &unknown_50);
     ArchiveString(ar, nullptr, 0x2A, &secondWeaponName);
@@ -137,11 +137,11 @@ void UnitModelRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 0x25, &idleSoundChance);
     Dword(ar, 0x26, &attackSoundChance);
     ArchiveField(ar, nullptr, 0x27, protection, sizeof(protection));
-    Dword(ar, 0x28, &unknown_108);
+    Dword(ar, 0x28, &bloodKind);
     Dword(ar, 0x29, &unknown_114);
     Dword(ar, 0x2A, &footprintKind);
     Dword(ar, 0x2B, &footPart);
-    ArchiveString(ar, nullptr, 0x2C, &unknown_118);
+    ArchiveString(ar, nullptr, 0x2C, &hitMaterial);
     ArchiveField(ar, nullptr, 0x2D, &swapFeet, 1);
     Dword(ar, 0x2E, &unknown_120);
     Dword(ar, 0x2F, &unknown_158);

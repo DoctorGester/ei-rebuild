@@ -251,7 +251,7 @@ void __fastcall DestroyModelRecord(UnitModelRecord* record) {
     if (counts->begin) stlp::deallocate(counts->begin, static_cast<std::size_t>((static_cast<int>(counts->eos - counts->begin) >> 2) * 4));
     DestroyStringsAndFree(&record->soundNames);
     DestroyString(&record->soundFolder);
-    DestroyString(&record->unknown_118);
+    DestroyString(&record->hitMaterial);
     DestroyStringsAndFree(&record->unknown_F8);
     DestroyStringsAndFree(&record->unknown_EC);
     DestroyString(&record->unknown_E8);

@@ -22,7 +22,7 @@ void __fastcall AssignLight(CEngineObject** a0, void*, void* a2) { CountedRefSto
 __declspec(naked) void __fastcall AssignSource(void** /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x0056F1A0)
 
 // CParticleSource (effects.cpp, through the game addresses).
-__declspec(naked) void* __fastcall CreateSource(void* /*manager*/, void*, int /*type*/) EI_ORIGINAL(0x00498400)
+inline void* __fastcall CreateSource(void* manager, void*, int type) { return ParticleCreateSourceOriginal(manager, nullptr, type); }
 __declspec(naked) void __fastcall ScaleSource(void* /*source*/, void*, float /*factor*/) EI_ORIGINAL(0x00485480)
 void __fastcall AttachSource(void* a0, void*, void* a2) { ParticleSourceAttachOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall StopSource(void* /*source*/) EI_ORIGINAL(0x00485360)

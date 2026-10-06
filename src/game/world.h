@@ -20,6 +20,7 @@ using BOOL = int;
 struct ScriptGroup;
 class CAIMap;       // ai_map.h
 class CBaseManager;
+struct CSoundManager;   // sound.h
 class CSectorMap;   // sector_map.h
 class CSpellManager;   // spell.h
 class Terrain;
@@ -148,7 +149,8 @@ public:
     virtual void Slot25();
     virtual int IsServer();               // 26: 1 for the server (0058A380), 0 for the client (0055EB30)
     virtual void Slot27();                // 27: the terrain height (CWorldServer::GridHeight 00594220)
-    virtual void Slot28();                // 28: the server's AI map height (0058A390), client 00564070
+    // 28: the server's AI map height (0058A390), client 00564070; in ST0 (RET 8).
+    virtual double RawSurfaceHeightAt(float x, float y);
     // 29 / 30: the ground height and the height of the water surface at (x, y), in ST0 (server
     // 0058A3D0 / 0058A3F0 call slots 27 / 28; client 005618E0 / 00561930 also clamp, 00560F00).
     virtual double GroundHeightAt(float x, float y);
@@ -167,7 +169,8 @@ public:
     virtual void Slot37();
     virtual void Slot38();
     virtual void Slot39();
-    virtual void Slot40();
+    // 40: the world object with this id, or null (server 00593AA0 FindObject, client 0055FAE0).
+    virtual CEngineObject* ObjectWithId(int id);
     // 41: `object` moves to `position` (sector map, network state; net_state.cpp and
     // unit_client_path.cpp reach it through VCall).
     virtual void MoveObject(CEngineObject* object, const float* position);
@@ -837,7 +840,9 @@ public:
     std::uint8_t unknown_0E4[0x180 - 0xE4];
     Terrain* terrain_;                    // +0x180
     char* zoneName_;                      // +0x184 CString
-    std::uint8_t unknown_188[0x1D4 - 0x188];
+    std::uint8_t unknown_188[0x1CC - 0x188];
+    CSoundManager* sounds_;               // +0x1CC the sound manager (owned; the client controller's hit sounds)
+    std::uint8_t unknown_1D0[4];
     PlatformSet platforms_;               // +0x1D4
     std::uint8_t unknown_1F8[0x20C - 0x1F8];
     std::uint8_t* session_;               // +0x20C local session; its +0x20 is the local view

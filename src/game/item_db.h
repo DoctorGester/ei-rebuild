@@ -176,7 +176,8 @@ R* __fastcall FillItemRecords(R* dest, int count, const R* value, int tag);
 
 // The start of a material record (kMaterialSize bytes).
 struct MaterialRecordHead {
-    std::uint8_t unknown_00[0x08];
+    std::uint8_t unknown_00[0x04];
+    const char* soundName;              // +0x04 CString: the material of hit sounds ("Metal", "Bone", ...)
     const char* name;                   // +0x08 CString
 };
 

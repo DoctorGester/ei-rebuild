@@ -183,7 +183,7 @@ src/game/script_reset.cpp,11,0,0,0,0,0
 src/game/script_save.cpp,9,0,0,0,0,0
 src/game/script_vars.cpp,0,0,1,0,0,0
 src/game/script_vars_append.cpp,0,0,1,0,0,0
-src/game/sound_manager.cpp,0,0,2,1,0,0
+src/game/sound_manager.cpp,0,0,1,1,0,0
 src/game/spell.cpp,4,0,0,0,0,0
 src/game/spell_cast.cpp,0,11,2,1,2,0
 src/game/spell_effect.cpp,0,1,0,1,0,0
