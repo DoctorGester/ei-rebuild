@@ -49,7 +49,7 @@ struct UnitPrototypeRecord {
     float speed;                    // +0x60 13
     float combat[5];                // +0x64 14, 15, 0x24, 16, 17
     std::uint32_t naturalWeapon;    // +0x78 0x12
-    std::uint32_t unknown_7C;       // 0x27
+    std::uint32_t hitSoundKind;     // +0x7C 0x27 (low byte) the weapon class of its hits: the hit sound class (CUnitClientSpecific::HitEffect)
     float damage;                   // +0x80 0x13
     float damageSpread;             // +0x84 0x14
     std::uint32_t skillLevel;       // +0x88 0x15
@@ -144,11 +144,11 @@ struct UnitModelRecord {
     CStringVector unknown_EC;       // 0x1F
     CStringVector unknown_F8;       // 0x20
     float height;                   // +0x104 0x21 (the object stands this much lower)
-    std::uint32_t unknown_108;      // 0x28
+    std::uint32_t bloodKind;        // +0x108 0x28 1..4 blood (particles 0x200F / 0x2031..0x2033 and a decal), 5..8 particles only
     int footprintKind;              // +0x10C 0x2A the footprint texture (-1: none; 0056D150)
     std::uint32_t footPart;         // +0x110 0x2B the foot parts "ll<n>" / "rl<n>" (1..8)
     std::uint32_t unknown_114;      // 0x29
-    mfc::CString unknown_118;       // 0x2C
+    mfc::CString hitMaterial;       // +0x118 0x2C the material its hit sounds use ("stone", "leather", ...)
     std::uint8_t swapFeet;          // +0x11C 0x2D (one byte) the first step is the right foot
     std::uint8_t unknown_11D[3];
     std::uint32_t unknown_120;      // 0x2E

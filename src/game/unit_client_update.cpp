@@ -37,9 +37,6 @@ constexpr int kIdleRestartBelow = 3;                  // CFigureAnimationState::
 constexpr float kIntRange = 2147483648.0f;            // 2^31: FISTP's int range is below it
 
 // Not rewritten (forwarders):
-// 0051C9F0. The client half: with 0 every drawn part takes back the colour it kept (with 1 it
-// keeps it and turns white). RET 4.
-__declspec(naked) void __fastcall RestorePartColours(CObject3DClientSpecific*, void*, int) EI_ORIGINAL(0x0051C9F0)
 // 00538ED0 / 00539010. The blink: the face texture with closed / open eyes (RET 4).
 __declspec(naked) void __fastcall CloseEyes(CUnitClientSpecific*, void*, int) EI_ORIGINAL(0x00538ED0)
 __declspec(naked) void __fastcall OpenEyes(CUnitClientSpecific*, void*, int) EI_ORIGINAL(0x00539010)
@@ -113,7 +110,7 @@ int CUnitClientSpecific::UpdateClient() {
         fadeIn = !(next >= 1.0f) ? next : 1.0f;   // the original's select keeps a NaN
     }
     if (flashCountdown > 0 && --flashCountdown == 0)
-        RestorePartColours(static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached), nullptr, 0);
+        ClientPartColoursOriginal(static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached), nullptr, 0);
 
     if (blinks) {
         if (blinkTimer > 0) {

@@ -10,6 +10,10 @@
 
 class CEngineObject;
 
+// 00498400: the particle manager (*007AF754) makes a source of `type` (RET 4; EAX the source, referenced).
+inline void* ParticleManagerObject() { return *reinterpret_cast<void* const*>(0x007AF754); }
+__declspec(naked) inline void* __fastcall ParticleCreateSourceOriginal(void* /*manager*/, void*, int /*type*/)
+    EI_ORIGINAL(0x00498400)
 __declspec(naked) inline void __fastcall SoundStop(void* /*manager*/, void*, int /*sound*/) EI_ORIGINAL(0x006B94A0)
 __declspec(naked) inline void __fastcall RemoveLight(void*, void*, CEngineObject* /*light*/) EI_ORIGINAL(0x006CA720)
 __declspec(naked) inline std::uint8_t __fastcall IsLit(void*, void*, const float*) EI_ORIGINAL(0x006CB020)

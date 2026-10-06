@@ -201,6 +201,7 @@ Code (layouts, vtable slots and per-function comments are in `unit.h`, `unit_db.
 | 00529DD0, 00529F90, 0052A100, 0052A200, 0052AC20, 0052AB30, 0052AC90, 0052A2C0, 0052A4B0, 0052A680, 0052ADC0 | MagicTrap Construct, DestructBody, CreateTrap, DestroyTrap, UpdateTrap, FireAtOccupants, ForgetObject, SetUp, CastAtUnits, UpdateVictims, LoadTrap | magic_trap.cpp | ours only (LoadTrap through a recording stream with a round trip through the original Save) |
 | 0052B070, 0052A920 | MagicTrap::SaveTrap, FindTrapVictims | magic_trap.cpp | both into capture streams / output (empty scratch CPtrList) |
 | 00535B30, 005352B0, 00535480 | CUnitClientSpecific AdvanceTime (slot 40), RestartAnimation (14), StartIdleAnimation | unit_client_animation.cpp (A-U2) | ours only (last time, queue length) |
+| 00537500, 00537C00, 005373D0, 00534140 | HitEffect (46: hit sound by weapon class and material, blood particles, decal), SparkEffect (47), DeathEffect (48), OwnerPlayerChanged (18: party light) | unit_client_effects.cpp (A-U2) | ours only (effect source count; controller unchanged) |
 
 Other callees stay forwarders (`originals_units.h`); only 006AC970 `CreateItem` (called through its address by GiveStartingEquipment) and FatalError 00480080 are Rebirth-patched.
 
@@ -269,3 +270,7 @@ Other callees stay forwarders (`originals_units.h`); only 006AC970 `CreateItem` 
   member with one of these names would silently override (check_thunks catches it when hooked).
 - SkillPrice may show a rare off-by-one at a truncation edge (rule 7); the serialisers' verify relies on loading being repeatable (fields found by id, archive left as it was); the scenario
   prints MaxHP / MaxMana around the stat raises instead of checking them; `ComposeSkin` and `WearArmourModel` build CString / STLport temporaries in the original's order.
+
+A-U2 notes: HitEffect's third argument is a flags word whose stack slot the original reuses for the material CString;
+heroes index the armour table 0073EC78 by the hit location without a range check (kept). Forwarded: 0056CE90 (decal),
+00511830 / 005119B0 (the companion's light); 00498400 and 0051C9F0 moved to originals_effects.h / originals_units.h.

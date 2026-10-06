@@ -172,6 +172,28 @@ public:
     // plays it (`play`) or queues it.
     void StartIdleAnimation(std::uint8_t play);
 
+    // unit_client_effects.cpp (A-U2).
+    // 00537500. Virtual slot 46, a hit on body location `location` (0 head .. 5 right leg) of
+    // strength `amount`; nothing for flag 8 or an amount up to 0.0001. The hit sound
+    // "weapons\<class>\<material>\1.wav" (class by the attacker's weapon, UnitParams +0x20: a
+    // kind below 0x10, else the prototype's hitSoundKind; material: the model's hitMaterial, for
+    // heroes the first armour worn over the location (0073EC78) as "stone" (crystal, bone, stone),
+    // "Metal" or "leather") plays at 1000 from the unit; for a location's part ("hd", "bd", "lh2",
+    // "rh2", "ll2", "rl2") of loaded figures, blood particles of the model's bloodKind (0x200F,
+    // 0x2031..0x2033) attach to the unit, and blood kinds 1..4 leave a decal near the part (two
+    // rand() offsets within the unit's size, a rand() variant; 0056CE90).
+    void HitEffect(int location, float amount, std::uint32_t flags);
+    // 00537C00. Virtual slot 47 (the argument is not read): sparks (particles 0x2043, 10 alpha)
+    // attach to the unit, sized by its radius; the parts flash (0051C9F0 with 1) unless they are
+    // already, and the flash lasts at least 4 more ticks.
+    void SparkEffect(int unused);
+    // 005373D0. Virtual slot 48 (death): the companion's light goes out (005119B0); blood kinds
+    // 1..4 leave a decal under the body part "bd" (or the unit, sized 0.75 x its smaller extent).
+    void DeathEffect();
+    // 00534140. Virtual slot 18 (the unit's player changed): with a player the companion shows the
+    // party light (colour 0079BEA0, alpha 1, radius 0079BEAC; 00511830).
+    void OwnerPlayerChanged(void* player);
+
     // unit_client_equipment.cpp (A-U).
     // 00536100. Virtual slot 29 (equipment changed): for heroes the composed skins are renewed:
     // the detailed one (ComposeSkin(1)) into the first part set's texture (client half +0x20, read
