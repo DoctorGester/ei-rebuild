@@ -461,10 +461,10 @@ EI_REPLACE_METHOD(0x005271C0, UnitParams::Period);
 
 // --- Map object state ------------------------------------------------------------------------
 
-BOOL CMapObjectServer::IsDead() { return static_cast<std::int16_t>(x87::fistp(hitPoints)) <= 0; }
+BOOL CMapObjectServer::IsDead() { return static_cast<std::int16_t>(x87::fistp(vitals.hitPoints)) <= 0; }
 EI_REPLACE_METHOD(0x005156A0, CMapObjectServer::IsDead);
 
-BOOL CMapObjectServer::IsOverkilled() { return maxHitPoints * kOverkill > hitPoints ? 1 : 0; }
+BOOL CMapObjectServer::IsOverkilled() { return vitals.maxHitPoints * kOverkill > vitals.hitPoints ? 1 : 0; }
 EI_REPLACE_METHOD(0x005156C0, CMapObjectServer::IsOverkilled);
 
 BOOL CMapObjectClientSpecific::IsDead() { return object->hitPoints <= 0; }
