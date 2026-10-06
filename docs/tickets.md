@@ -33,7 +33,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- A-H done 2026-10-05 (38 functions). A-H2 done 2026-10-05 (41 functions; next candidates at the end of items_spells.md). A-H3 done (44 addresses). A-H4 cut off (nothing committed). A-H5 cut off (6 merged). A-H6 done (21). A-H7 done (27). A-H8 (taken 2026-10-06; effects.md next candidates; spells_hero passes now but shows no CEffectMissile / ShowVisibility wrapper calls, find out why) (candidates at the end of items_spells.md's Party section; 0064A7A0). (candidates at the end of items_spells.md "Area ticket A-H").
+- A-H done 2026-10-05 (38 functions). A-H2 done 2026-10-05 (41 functions; next candidates at the end of items_spells.md). A-H3 done (44 addresses). A-H4 cut off (nothing committed). A-H5 cut off (6 merged). A-H6 done (21). A-H7 done (27). A-H8 done (30). A-H9 queued (effects: 0x5B, Moshka 0067CEF0, Tornado, 0066E7D0; client handlers 00667EC0 / 00669A30 / 00669490 / 00669FA0). Was: ( effects.md next candidates; spells_hero passes now but shows no CEffectMissile / ShowVisibility wrapper calls, find out why) (candidates at the end of items_spells.md's Party section; 0064A7A0). (candidates at the end of items_spells.md "Area ticket A-H").
 
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
@@ -42,6 +42,8 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 
 ## Verify checks
+
+- X16 (taken 2026-10-06) A-H8's changed-object senders 0066DBA0 / 0066E020 (player_sync.cpp, verify_player_sync.cpp) crash most scenarios when hooked: C0000005 in DeltaField::BeginWriteB / RewindAndEmpty (net_delta.cpp) under BeginWriteBVerify. Both are in disabled.txt. A-H8 said the wrapper saves and restores each changed effect's four state streams before running the original; that or ours corrupts the delta fields.
 
 
 
