@@ -465,6 +465,17 @@ static_assert(sizeof(PathSmoother) == 0x2C);
 // Name from the game's error strings; layout provisional.
 class CAIMap {
 public:
+    // script_runtime_helpers.cpp (A-S4): the sector map (+0x124) as the script runtime calls it.
+    // 004BA090 (RET 4). refreshUnits = the low byte of `on`; returns the old byte (AL).
+    std::uint8_t SetRefreshUnits(int on);
+    // 004BA0A0 / 004BA0C0 (RET 4). CSectorMap::Add / Remove (AL).
+    bool AddToSectors(CEngineObject* object);
+    bool RemoveFromSectors(CEngineObject* object);
+    // 004BA0E0 (RET 8). CSectorMap::Move, through its address (Rebirth patches it; AL).
+    bool MoveInSectors(CEngineObject* object, const Vector3* position);
+    // 004BA100 (RET 0xC). CSectorMap::FindUnitsInRadius into `result` (a CTypedPtrList<CEngineObject>).
+    void FindUnitsInRadius(const Vector3* position, void* result, float radius);
+
     // 005B80F0. Can `unit` stand on cell (x, y)? `reason` gets 0 (ok or not a unit), 1 (cell level
     // too high) or 2 (water too deep).
     bool CanStandAt(CUnit* unit, int x, int y, int* reason);

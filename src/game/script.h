@@ -130,6 +130,9 @@ struct ScriptGroup : MfcArray<ScriptObjectRef> {
     // out-of-line copy, called through its original address where the game calls it).
     void Resize(int newSize);
     void SetSize(int newSize, int growBy);   // 004C2050
+    // 004B5EF0 (script_runtime_helpers.cpp). The destructor body: the base vtable (0073D11C), every
+    // reference released (slot 4) and cleared, the storage freed (size and pointer left).
+    void DestructBody();
 };
 static_assert(sizeof(ScriptGroup) == 0x14);
 
@@ -492,6 +495,10 @@ struct ScriptDefineList {
     Node* free;
     mfc::CPlex* blocks;
     int blockSize;
+
+    // 004D6340 (script_runtime_helpers.cpp). The destructor: the vtable (0073D4C0), every define's
+    // value and name destroyed, the list emptied and its blocks freed.
+    void Destruct();
 };
 static_assert(sizeof(ScriptDefineList) == 0x1C);
 // 004D34F0. Inserts a define before the first one with a shorter name (else before the last one;
@@ -519,6 +526,10 @@ struct ScriptDecl {
     int id;
 };
 static_assert(sizeof(ScriptDecl) == 0x18);
+// 004BF7E0 (__fastcall; script_runtime_helpers.cpp). A command block's destructor body: the
+// commands array's vtable (0073D3D0), each command destroyed (SSCCmd's destructor inlined), the
+// storage freed.
+void __fastcall ScriptDeclDestruct(ScriptDecl* block);
 
 // One `if(...)then(...)` pair of a script definition.
 struct ScriptIfThen {
