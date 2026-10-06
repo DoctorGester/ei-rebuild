@@ -230,3 +230,12 @@ __declspec(naked) inline void __fastcall ItemStripScrollToItemOriginal(void* /*s
 // 005F7C80 / 005F7C60: a multiplayer client's chat line takes Backspace / Enter (ECX = the interface; plain RET).
 __declspec(naked) inline void __fastcall ChatKeyBackspaceOriginal(CInterface3D*) EI_ORIGINAL(0x005F7C80)
 __declspec(naked) inline void __fastcall ChatKeyEnterOriginal(CInterface3D*) EI_ORIGINAL(0x005F7C60)
+// 00566030: the client world (007AF5B8) controls `unit` (thiscall, RET 4; no result).
+__declspec(naked) inline void __fastcall ClientWorldControlUnitOriginal(void* /*world*/, void*, void* /*unit*/)
+    EI_ORIGINAL(0x00566030)
+// 0057ECA0: the game (007AFE20) drops its network client and server sessions (thiscall, plain RET).
+__declspec(naked) inline void __fastcall GameDisconnectOriginal(void* /*game*/) EI_ORIGINAL(0x0057ECA0)
+// 00578AC0: the client glue (007AFEA5, not read) leaves the zone through exit `exit` (a network client asks its
+// session; otherwise the local view, 0066B140; RET 4).
+__declspec(naked) inline void __fastcall GameLeaveThroughExitOriginal(void* /*glue*/, void*, int /*exit*/)
+    EI_ORIGINAL(0x00578AC0)

@@ -79,3 +79,35 @@ static void __fastcall HeroButtonDownVerify(void* input, void*, int flags, int x
     }
 }
 EI_VERIFY(0x00617050, HeroButtonDownVerify, 0, s_unused);
+
+// The keys (00618A10), ours only: Enter and Esc are always used; Esc moves 10 -> 9 and 11 -> 10 and
+// closes the screen from the list (pending value 0); the paging keys keep the selection in its list
+// (the hero list in mode 9, the voices in mode 10). Scenario: ui_screens (Up / Down / Esc on the list).
+static void __fastcall HeroKeyDownVerify(void* input, void*, int key, int repeat, int flags) {
+    auto* self = WindowFromInput<CMpHeroScreen>(input);
+    CInterface3D* ui = self->window.interface_;
+    int mode = self->mode_;
+    bool renaming = self->renameEdit_[0x179] != 0;
+    self->OnKeyDown(key, repeat, flags);
+    bool ok = true;
+    if (key == VK_RETURN || key == VK_ESCAPE) ok = UiHandled(self);
+    if (key == VK_ESCAPE && !renaming) {
+        if (mode == 10)
+            ok = ok && self->mode_ == 9;
+        else if (mode == 11)
+            ok = ok && self->mode_ == 10;
+        else if (mode == 9)
+            ok = ok && ui->pendingFlag_ && ui->pendingValue_ == 0;
+    }
+    bool paging = key == VK_PRIOR || key == VK_NEXT || key == VK_UP || key == VK_DOWN;
+    int heroes = HeroCount() > 0 ? HeroCount() : 1;
+    if (paging && mode == 9) ok = UiHandled(self) && self->heroIndex_ >= -1 && self->heroIndex_ < heroes;
+    if (paging && mode == 10) {
+        auto** voices = reinterpret_cast<std::uint8_t**>(self->voices_);
+        int count = static_cast<int>((voices[1] - voices[0]) >> 3);
+        ok = UiHandled(self) && self->voiceIndex_ >= -1 && self->voiceIndex_ < (count > 0 ? count : 1);
+    }
+    ei::verify::Check("CMpHeroScreen::OnKeyDown", true, ok, "key %X, mode %d -> %d, hero %d, voice %d", key, mode,
+                      self->mode_, self->heroIndex_, self->voiceIndex_);
+}
+EI_VERIFY(0x00618A10, HeroKeyDownVerify, 0, s_unused);

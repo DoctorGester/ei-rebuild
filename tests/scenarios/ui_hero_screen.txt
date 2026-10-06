@@ -26,9 +26,25 @@ wait 300
 # Region 4: the attributes back to their defaults.
 clickregion 4
 wait 500
-# Region 0: back to the list (mode 9); Esc leaves for the main menu.
+# The voice keys (00618A10, mode 10): Down / PgDn / Up move the voice, each played.
+key down
+wait 500
+key pgdn
+wait 500
+key up
+wait 500
+# Region 0: back to the list (mode 9); a new hero again and Esc back (00618A10); PgUp / PgDn on the
+# list; Esc leaves for the main menu.
 clickregion 0
 wait 1500
+clickregion 5
+wait 1500
+key esc
+wait 1500
+key pgdn
+wait 300
+key pgup
+wait 300
 key esc
 wait 3000
 report
