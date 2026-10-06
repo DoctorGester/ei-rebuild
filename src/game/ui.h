@@ -162,7 +162,9 @@ public:
     std::uint8_t unknown_45[0x48 - 0x45];
     std::uint32_t pendingValue_;     // +0x48
     bool pendingFlag_;               // +0x4C
-    std::uint8_t unknown_4D[0x68 - 0x4D];
+    std::uint8_t unknown_4D[0x60 - 0x4D];
+    std::uint8_t serverFlag_;        // +0x60 the server flag kept for the first window (PushWindow)
+    std::uint8_t unknown_61[0x68 - 0x61];
     int mouseX_;                     // +0x68 mouse position in screen coordinates
     int mouseY_;                     // +0x6C
     std::uint8_t unknown_70[0x7C - 0x70];

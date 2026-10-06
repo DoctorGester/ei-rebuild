@@ -14,6 +14,8 @@
 #include <cstddef>
 #include <cstdint>
 
+class CItem;
+
 // (UiDwordArray, the MFC CArray<DWORD>-like array, is in ui.h.)
 
 // --- Battle screen --------------------------------------------------------------------------
@@ -172,6 +174,31 @@ public:
     // message log. Then event 0x30 shows that member's timed face (+0x48 1, +0x4C 0), events
     // 0xB..0x15 make its portrait shake (kind 2) after a random delay.
     void OnUnitSpeech(int id, unsigned event, char* extra);
+
+    // Slots of the screen's main vtable (00740764; ui_battle_slots.cpp).
+    // 00635E60 (slot 26). The screen closes: the camera back to free placement (kFree), the world
+    // update period 55 ms, the cursor no longer held, the client glue's 00578920(1) / 00578940, and
+    // the party emptied (SetSize(0, -1)).
+    void Close();
+    // 006360F0 (slot 35, AL; the interface polls it every frame until it answers true). After a new
+    // game (hasHero_): the camera follows the first party unit, the autosave "savea" when the
+    // option 0079BE7C is on, hasHero_ cleared, then the help topic (005F86F0 with 0). Returns 1.
+    bool PollShown();
+    // 00636150 (slot 28, RET 0xC). Items were picked up: each item of `items` gives the top panel's
+    // "picked up" line (0064A4E0 with `crippled`), the money its line (0064A630), the top panel shows
+    // its page (0064A7A0), then RefreshSelection (00637DC0).
+    void OnItemsPicked(mfc::CTypedPtrList<CItem>* items, int money, int crippled);
+    // 006364E0 (slot 30, RET 4). `unit` left the party: removed from the party array (the rest
+    // moved down), the portraits rebuilt (006407E0 with 0) and RefreshSelection; nothing when it is
+    // not in the party. A network client instead empties the top panel's page-0 text and, while the
+    // panel shows page 0, the message log's (0065CFE0 with "").
+    void OnUnitLeft(CUnit* unit);
+    // 00635080 (slot 40). Writes the screen's part of a save game into the save stream (007AFDF8):
+    // the count and ids of the selected party units (flag 0x10), the map's zoom, the interface's
+    // server flag (+0x60, a byte), the local player's +0x50, the top panel's page-0 text with its
+    // zero, savedFlag_ (a byte) and savedSelection_.
+    void SaveState();
+    UiDwordArray& Party() { return *reinterpret_cast<UiDwordArray*>(partyArray_); }
 
     // The client's party ids (STLport vector<int>s): the ids of players with a unit, the camera's
     // player's id, the ids of the others. Compared and copied as a whole (006381E0, 0064AF30).
