@@ -68,6 +68,11 @@ public:
     // (pulse, 0, 0) and flags_ 0x10.
     void InvisiblePulse(float frames);
     void StunnedPulse(float frames);
+    // map_object_client_effects.cpp (A-U3). 0051CCA0: every drawn part's alpha back to 1 (an
+    // invisibility ended). 0051CD60: every drawn part's tint cleared and flags_ 0x10 off (a stun
+    // ended).
+    void ResetPartAlpha();
+    void ClearPartTints();
 
     CObject3D* object;              // +0x1C
     CEngineObject** material;       // +0x20 its object's +0x60 is the shadow colour key; the

@@ -411,8 +411,7 @@ void CMapObjectClientSpecific::DestructBody() {
     SetVtable(this, kClientCompanionVtable);
     SetDword(this, 0x20, 0);
     SetDword(this, 0x24, 0);
-    SetParticleCount(particles, nullptr, 0, -1);
-    auto*& light = At<CEngineObject*>(this, 0x50);
+    SetParticleCount(&particles, nullptr, 0, -1);
     if (light) {
         light->flags_ &= ~0x200u;
         if (CEngineObject* shown = light; shown && !(shown->flags_ & 0x80) && !(shown->flags_ & 0x200)) {
@@ -430,12 +429,11 @@ void CMapObjectClientSpecific::DestructBody() {
     SetDword(this, 0x1C, 0);
     if (light) light->Release();
     DestroyArray(reinterpret_cast<char*>(this) + 0x3C, kSoundArrayVtable);
-    SetVtable(particles, kParticleArrayVtable);
-    if (char* data = At<char*>(particles, 4)) {
-        int count = At<int>(particles, 8);
-        for (int i = 0; i < count; ++i)
-            if (CEngineObject* source = At<CEngineObject*>(data + 0x10 * i, 8)) source->Release();
-        gamecrt::operator_delete(At<void*>(particles, 4));
+    SetVtable(&particles, kParticleArrayVtable);
+    if (EffectParticle* data = particles.data) {
+        for (int i = 0; i < particles.size; ++i)
+            if (data[i].source) reinterpret_cast<CEngineObject*>(data[i].source)->Release();
+        gamecrt::operator_delete(particles.data);
     }
     SetVtable(this, kCompanionBaseVtable);
     SetDword(this, 0x1C, 0);

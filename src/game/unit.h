@@ -1084,6 +1084,52 @@ static_assert(offsetof(CMapObjectServer, stringCount) == 0x88);
 static_assert(sizeof(CMapObjectServer) == 0x94);
 static_assert(offsetof(CMapObjectServer, vitals) == 0x20);
 
+class CParticleSource;   // effects.h
+
+// One effect particle record of the client companion (CArray at +0x28, 0x10 bytes).
+struct EffectParticle {
+    int type;                   // +0x00 the effect type
+    int power;                  // +0x04 the effect's power byte
+    CParticleSource* source;    // +0x08 counted; null when the effect has no lasting source
+    std::uint8_t present;       // +0x0C set while the effect list is compared
+    std::uint8_t unknown_0D[3];
+};
+static_assert(sizeof(EffectParticle) == 0x10);
+
+// One looping effect sound record (CArray at +0x3C, 0x14 bytes).
+struct EffectSoundRecord {
+    int kind;                   // +0x00 the effect type
+    int unknown_04;             // -1
+    int handle;                 // +0x08 feeble mind's sound sequence, -1 none
+    std::uint32_t timer;        // +0x0C ticks to the next stench sound
+    std::uint8_t present;       // +0x10 set while the effect list is compared
+    std::uint8_t unknown_11[3];
+};
+static_assert(sizeof(EffectSoundRecord) == 0x14);
+
+// map_object_client_effects.cpp (A-U3). 005114D0 (__fastcall, RET 0xC): an effect's sound at
+// `position`: "<folder of kind><suffix>" when `play` (types with a folder); stench (0x13) only
+// clears the record's timer; feeble mind (0x20) starts its sound sequence into the record (and the
+// bare suffix) or stops it and plays its end sound.
+void __fastcall PlayEffectSound(bool play, EffectSoundRecord* record, const float* position, int kind,
+                                const char* suffix);
+
+// The two MFC CArrays of the client companion (vtable, data, size, capacity, grow by).
+struct EffectParticleArray {
+    void* vtable;
+    EffectParticle* data;
+    int size;
+    int capacity;
+    int growBy;
+};
+struct EffectSoundArray {
+    void* vtable;
+    EffectSoundRecord* data;
+    int size;
+    int capacity;
+    int growBy;
+};
+
 // The client-side companion of a map object (GetClassName "CMapObjectClientSpecific", vtable
 // 0073DBEC); +0x1C is the object it belongs to (a unit for these two).
 class CMapObjectClientSpecific : public CEngineObject {
@@ -1108,11 +1154,31 @@ public:
     // countdown and end sounds, looping effect sounds, the light following the object. Returns 1.
     int Update();
 
+    // map_object_client_effects.cpp (A-U3). 005117D0, virtual slot 13: the object's effect list
+    // changed; the particles (00510B80) and the looping sounds (005112A0) follow it. `first` is
+    // set when the list arrives with the object (no sounds; particles run 30 ticks ahead, the
+    // scale effects' one-shot rings are left out).
+    void EffectsChanged(bool first);
+    // 00510B80. One particle record per effect (types 9-0x0E, 0x10, 0x13, 0x19, 0x1A, 0x1D-0x22 merged
+    // to the highest power); records still matching are kept (a power change rescales the
+    // source), new ones make the source of their type (0x0F invisibility and 0x19 stun set flags_
+    // 0x10000 / 0x40000 on the object; 0x11 / 0x1D / 0x1E only spawn a ring); records whose effect is
+    // gone stop their source and undo their flag (the parts' alpha / tint reset) when no other
+    // record of the type is left.
+    void UpdateEffectParticles(bool first);
+    // 005112A0. One sound record per effect type: a new type plays its "<sound>\start.wav", a
+    // vanished one its "<sound>\end.wav" (unless the object is dead) and is removed.
+    void UpdateEffectSounds(bool first);
+
     CUnit* object;          // +0x1C
     std::uint32_t unknown_20;   // +0x20 cleared by Create and Destroy
     std::uint32_t unknown_24;
-    std::uint8_t particles[0x3C - 0x28];   // +0x28 MFC CArray of the effect particles (0x10 each; SetSize 005121B0)
-    std::uint8_t unknown_3C[0x54 - 0x3C];  // +0x3C the looping sounds (CArray), +0x50 the light
+    EffectParticleArray particles;  // +0x28 the effect particles (SetSize 005121B0)
+    EffectSoundArray sounds;        // +0x3C the looping effect sounds (SetSize 00512330)
+    CEngineObject* light;           // +0x50 counted
     int endSound;           // +0x54 the end sound's handle (-1 none)
 };
 static_assert(offsetof(CMapObjectClientSpecific, endSound) == 0x54);
+static_assert(offsetof(CMapObjectClientSpecific, sounds) == 0x3C);
+static_assert(offsetof(CMapObjectClientSpecific, light) == 0x50);
+

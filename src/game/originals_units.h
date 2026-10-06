@@ -212,6 +212,10 @@ __declspec(naked) inline void __fastcall SpeechEraseOriginal(ClientSpeechNode** 
 // result). 00533EA0: the client controller's destructor body (plain RET).
 __declspec(naked) inline void __fastcall CompanionParticlesSetSizeOriginal(void* /*array*/, void*, int /*count*/,
                                                                            int /*growBy*/) EI_ORIGINAL(0x005121B0)
+// 00512330 (library, MFC CArray::SetSize): the client companion's sound array (+0x3C; 0x14-byte records): SetSize(count,
+// growBy) (RET 8, no result).
+__declspec(naked) inline void __fastcall CompanionSoundsSetSizeOriginal(void* /*array*/, void*, int /*count*/,
+                                                                       int /*growBy*/) EI_ORIGINAL(0x00512330)
 __declspec(naked) inline void __fastcall ClientDestructBodyOriginal(CUnitClientSpecific* /*controller*/)
     EI_ORIGINAL(0x00533EA0)
 

@@ -21,6 +21,7 @@
 class CStream;              // core_streams.h
 struct DeltaState;          // net_delta.h
 struct UnitVitalsPacked;    // unit.h
+class CObject3D;            // map_object_figures.h
 
 // An active effect (0x14 bytes; CArray at +0x194, the same record as UnitEffect in unit.h).
 // Effect types seen: 0x09-0x0E shields and sights, 0x0F invisibility, 0x10 silence, 0x11 lichdom,
@@ -156,6 +157,9 @@ public:
     // 0050F120. Virtual slot 44: frees the data of the MFC array `array` (operator delete) and
     // empties it (data, size, capacity). The second argument is unread.
     void FreeArray(void* array, int unused);
+
+    // The object as the CObject3D it derives from in the original (map_object_figures.h).
+    CObject3D* Object3D() { return reinterpret_cast<CObject3D*>(this); }
 
     // The packed vitals (+0x17C) and the network state (+0x1C4).
     UnitVitalsPacked* PackedVitals() { return reinterpret_cast<UnitVitalsPacked*>(packedVitals); }
