@@ -86,6 +86,10 @@ public:
     // 0066F080. Every item of the player's item list (+0x114) the party's item manager knows is
     // sent (SendObject14, slot 22).
     void SendItems();
+    // 0066E7D0 (RET 8; A-H10). For a joined player (state 1): message 0x05, a stream with the
+    // given items' spells and then the items (0069FB60 gathers them, 0055E8A0 writes each list),
+    // and message 0x06: the party's money, the flag's low byte, the items' ids and -1.
+    void SendItemsGiven(const mfc::CTypedPtrList<CEngineObject>* items, int flag);
     // 0066E430. Message 0x60: the world's +0x6C flag, +0x24, the party units (partyUnits_) by id and
     // whether the client should refresh the party (refreshPending_: 1 when a unit of the player has
     // a level at most 2, 2 when a party unit fights or is the enemy of a hostile neighbour), then the
@@ -172,7 +176,8 @@ public:
     void* party_;                               // +0x70 an embedded CParty (0x70 bytes); slot 18 its item manager
     std::uint8_t unknown_74[0xFC - 0x74];
     std::uint32_t unknownFC_;                   // +0xFC sent with the client's login (00667680)
-    std::uint8_t unknown_100[0x10C - 0x100];
+    int sessionKind100_;                        // +0x100 3: the client runs 00538DB0 on the controllers of new units (00667EC0)
+    std::uint8_t unknown_104[0x10C - 0x104];
     int logTraffic_;                            // +0x10C logs the size of every flush
     std::uint8_t unknown_110[0x114 - 0x110];
     mfc::CTypedPtrList<void> objects_;          // +0x114 object ids (stored as the node data)

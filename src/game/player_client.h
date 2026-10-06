@@ -64,6 +64,43 @@ public:
     // through a float to the nearest integer, kind 8 (the client world's 0056CE40).
     int OnExperienceAll();
     int OnExperience();
+    // A-H10.
+    // 00669490 (0x06). The party's money (read into it) and items by id (until -1; found in the
+    // client world's item manager, gathered in reverse) with a flag byte: the player takes them
+    // (00665480), the quest log shows them with the money gained. 0 when the stream runs out.
+    int OnItemsReceived();
+    // 00669A30 (0x80). The party: a sized block loaded into the player's party (with variables;
+    // a multiplayer client keeps its own); the player's recharge list (+0x114) gets every item
+    // whose charge is below its maximum; the client world applies the variables (005652E0), "party
+    // received on client" is logged and the game flow's ReturnLocalParty runs.
+    int OnParty();
+    // 00669C90 (0x83). A sized block loaded into the party without its variables.
+    int OnPartyUpdate();
+    // 00669FA0 (0x0E). A path shown as markers: kind (0..3), a flag, x, y, a unit id and a value.
+    // Except for kind 3 a scratch unit (class 0x32) reads the path through a delta field and,
+    // with markers on (0079BE70), a particle source 0x2039 (colour by kind, +0x11C the value)
+    // runs one tick on it; with markers on, a source 0x203A (0x203B with the flag) at (x, y, 0)
+    // and the first one go to the unit's client controller (00535240). Neither source is
+    // released here.
+    int OnPathMarker();
+    // 00667EC0 (0x40; multiplayer). A map object the server announces: header (id, class,
+    // prototype index, flags), scale, second name, model, two texture names, part names, script
+    // name, prototype value. The world's object manager makes it; units get their model's height
+    // and resistances; peasant heads get their prototype's hair ("hr.%.2d") or lose it; the figure
+    // is built (0 when that fails), a few models lose or gain parts or a particle source; the
+    // textures are swapped (units of class 0x32: "mo%dp" / "mo%ds" by id); the player keeps it
+    // (counted); its state is read (0 when that fails); it is filed in the client world and its
+    // visibility level is the party variable its second name names.
+    int OnNewObject();
+    // 00667E60 (0x13). A text run as the interface's string event (005F8070).
+    int OnStringEvent();
+    // 00667510 (slot 3) and its copy 00667600 (slot 15). State 0, the array +0x50D8 freed, both
+    // streams emptied (Resize(0)), +0x84 and the send-party flag cleared, both coders reset.
+    void Clear();
+    // 00669710 (RET 4) / 00669750. With a link: request 2 is queued and the link records into
+    // `path` (NetLink::OpenRecording) / the link stops recording.
+    void StartRecording(const char* path);
+    void StopRecording();
 
     CPlayer* Owner() const { return reinterpret_cast<CPlayer*>(player_); }
 
@@ -82,7 +119,9 @@ public:
     std::uint8_t unknown_86[2];
     CoderState compressor_;         // +0x88 for the requests sent
     CoderState decompressor_;       // +0x28B0 for the messages received
+    PlayerObjectArray array50D8_;   // +0x50D8 (aligned storage; Clear frees it)
 };
+static_assert(offsetof(CPlayerClient, array50D8_) == 0x50D8);
 static_assert(offsetof(CPlayerClient, handlers_) == 0x24);
 static_assert(offsetof(CPlayerClient, in_) == 0x34);
 static_assert(offsetof(CPlayerClient, out_) == 0x5C);

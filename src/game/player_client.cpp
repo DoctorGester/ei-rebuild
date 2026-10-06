@@ -13,6 +13,20 @@
 #include "sound.h"
 #include "unit.h"
 #include "world.h"
+#include "base_manager.h"
+#include "effects.h"
+#include "item.h"
+#include "resource_manager.h"
+#include "originals_ai.h"
+#include "originals_effects.h"
+#include "originals_ui.h"
+#include "unit_client_models.h"
+#include "unit_db.h"
+#include "originals_units.h"
+#include "console.h"
+#include "map_object.h"
+#include "map_object_figures.h"
+#include "lib/crt.h"
 
 #include "ei/hook.h"
 
@@ -341,3 +355,416 @@ EI_REPLACE_METHOD(0x00667680, CPlayerClient::Pump);
 EI_REPLACE_METHOD(0x00667810, CPlayerClient::SendToServer);
 EI_REPLACE_METHOD(0x00667970, CPlayerClient::DispatchMessages);
 EI_REPLACE_METHOD(0x00667A30, CPlayerClient::ReceiveMessages);
+
+// --- A-H10: items, party, path markers, string events, recording ---------------------------------
+
+namespace {
+
+constexpr int kClassScratchUnit = 0x32;            // the object manager's class of the scratch unit
+constexpr int kKindNoPath = 3;               // OnPathMarker: no path to read
+constexpr int kPathParticles = 0x2039;
+constexpr int kMarkerParticles = 0x203A;     // 0x203B with the flag
+constexpr std::uint32_t kMarkerSpeedA = 0x3F000000u;   // 0074317C (0.5)
+constexpr std::uint32_t kMarkerSpeedB = 0x501502F9u;   // float bits (1e10)
+constexpr std::uint8_t kRequestRecording = 2;
+
+// 0079BE70: path markers are shown (written by 006524A0).
+bool MarkersShown() { return *reinterpret_cast<const int*>(0x0079BE70) != 0; }
+const char* TextPartyReceived() { return reinterpret_cast<const char*>(0x00794DF8); }   // "party received on client"
+
+// 005652E0 (plain RET): the client world gives its objects the party's variables.
+__declspec(naked) void __fastcall ClientApplyVariables(void* /*world*/) EI_ORIGINAL(0x005652E0)
+// 0052EA40 (RET 8): a unit's motion speeds (float bits; only this handler calls it).
+__declspec(naked) void __fastcall UnitSetMotionSpeeds(void* /*unit*/, void*, std::uint32_t, std::uint32_t)
+    EI_ORIGINAL(0x0052EA40)
+// 00535240 (RET 8): the unit's client controller keeps the two marker sources (+0x24, +0x28; the
+// old ones stopped and released, the new ones referenced).
+__declspec(naked) void __fastcall ControllerSetMarkers(void* /*controller*/, void*, void* /*path*/, void* /*marker*/)
+    EI_ORIGINAL(0x00535240)
+
+// The STLport table's inlined destructor: every node deleted (004616A0), the buckets cleared, the
+// count zeroed, then the bucket vector destroyed (00609F50).
+void DestroyTable(PartyVariableMap* table) {
+    table->ClearWith([table](PartyVariableMap::Node* node) { FloatTableDeleteNodeOriginal(table, nullptr, node); });
+    BucketVectorDestroyOriginal(table->BucketVector());
+}
+
+} // namespace
+
+int CPlayerClient::OnItemsReceived() {
+    mfc::CTypedPtrList<CEngineObject> items{EmptyListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kListBlockSize};
+    int& money = Owner()->Party()->Money();
+    int before = money;
+    in_.Read(&money, 4);
+    std::uint8_t flag = 0;   // the original passes this byte with three bytes of the stack slot above it
+    in_.Read(&flag, 1);
+    int result = 1;
+    for (;;) {
+        int id;
+        in_.Read(&id, 4);
+        if (id == -1) break;
+        if (!in_.ok_) {
+            result = 0;
+            break;
+        }
+        auto* manager = static_cast<CBaseManager*>(WorldClient()->itemManager_);
+        if (CEngineObject* item = manager->FindObject(static_cast<unsigned>(id))) items.AddHead(item);
+    }
+    if (result != 0) {
+        PlayerGiveItemsOriginal(Owner(), nullptr, &items, flag);
+        QuestLogRefresh(QuestLog(), nullptr, &items, money - before, flag);
+    }
+    items.RemoveAll();   // the list's inlined destructor
+    return result;
+}
+
+int CPlayerClient::OnParty() {
+    CParty* party = Owner()->Party();
+    PartyVariableMap saved;
+    FloatTableCopyConstructOriginal(&saved, nullptr, &party->variables_);
+    {
+        MemoryStream block;
+        in_.ReadSized(block.Get());
+        block.Get()->CMemoryStream::Seek(0);
+        if (in_.ok_) {
+            party->LoadParty(block.Get(), 1);
+            mfc::CTypedPtrList<void>& recharging = Owner()->objects_;
+            recharging.RemoveAll();
+            ObjectListIterator walk{nullptr, nullptr};
+            for (CEngineObject* object = walk.First(party->ItemManager()); object != nullptr; object = walk.Next()) {
+                auto* item = static_cast<CItem*>(object);
+                if (item->chargeMax_ > item->charge_)
+                    recharging.AddTail(reinterpret_cast<void*>(static_cast<std::intptr_t>(item->id_)));
+            }
+            if (walk.manager != nullptr) --walk.manager->refCount_;   // the iterator's inlined destructor
+        }
+        if (IsMultiplayerClient()) {
+            // A multiplayer client keeps its variables (the table's three functor bytes included).
+            PartyVariableMap* variables = &party->variables_;
+            FloatTableClearOriginal(variables);
+            std::memcpy(variables->Functors(), saved.Functors(), 3);
+            FloatTableCopyFromOriginal(variables, nullptr, &saved);
+        }
+        ClientApplyVariables(WorldClient());
+        void* log = OstreamPutString(GameCout(), nullptr, TextPartyReceived());
+        log = OstreamPutChar(log, nullptr, '\n');
+        OstreamManipulate(log, nullptr, FlushManipulator());
+        Flow()->ReturnLocalParty();
+    }
+    DestroyTable(&saved);
+    return 1;
+}
+
+int CPlayerClient::OnPartyUpdate() {
+    MemoryStream block;
+    in_.ReadSized(block.Get());
+    block.Get()->CMemoryStream::Seek(0);
+    if (in_.ok_) Owner()->Party()->LoadParty(block.Get(), 0);
+    return 1;
+}
+
+int CPlayerClient::OnPathMarker() {
+    alignas(4) unsigned char fieldBytes[sizeof(DeltaField)];
+    auto* field = reinterpret_cast<DeltaField*>(fieldBytes);
+    field->Construct();
+    CEngineObject* pathSource = nullptr;
+    int kind;
+    in_.Read(&kind, 4);
+    int flag;
+    in_.Read(&flag, 4);
+    Vector3 at{0.0f, 0.0f, 0.0f};
+    in_.Read(&at.x, 4);
+    in_.Read(&at.y, 4);
+    int unitId;
+    in_.Read(&unitId, 4);
+    float value;
+    in_.Read(&value, 4);
+    if (kind != kKindNoPath) {
+        CEngineObject* walker = camera::ObjectManager()->CreateObject(kClassScratchUnit, -1);
+        ++walker->refCount_;
+        // The controller's slot 16 (00533DF0 for the client's): its path.
+        AIPath* path = static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(walker)->controller)->MotionPath();
+        DeltaField* writing = field->BeginWriteB(0);
+        PathWriteOriginal(path, nullptr, writing);
+        writing->EndField();
+        DeltaField* reading = field->BeginReadB(0, &in_);
+        PathReadOriginal(path, nullptr, reading);
+        reading->EndField();
+        if (MarkersShown()) {
+            UnitSetMotionSpeeds(walker, nullptr, kMarkerSpeedA, kMarkerSpeedB);
+            auto* source = static_cast<CParticleSource*>(
+                ParticleCreateSourceOriginal(ParticleManagerObject(), nullptr, kPathParticles));
+            pathSource = reinterpret_cast<CEngineObject*>(source);
+            source->Attach(walker);
+            source->unknown_11C = value;
+            if (kind == 0) source->alpha = 1.0f;
+            else if (kind == 1) source->alpha = 0.0f;
+            else if (kind == 2) source->alpha = 2.0f;
+            pathSource->Slot6();   // one tick
+            source->Attach(nullptr);
+        }
+        walker->Release();
+    }
+    if (MarkersShown()) {
+        auto* marker = static_cast<CParticleSource*>(ParticleCreateSourceOriginal(
+            ParticleManagerObject(), nullptr, flag != 0 ? kMarkerParticles + 1 : kMarkerParticles));
+        marker->position = at;
+        auto* owner = reinterpret_cast<CEngineObject*>(player_);
+        CEngineObject* unit = WorldFindUnit(owner->ManagerContext(), nullptr, unitId);
+        if (unit != nullptr) ControllerSetMarkers(static_cast<CUnit*>(unit)->controller, nullptr, pathSource, marker);
+    }
+    field->Destruct();
+    return 1;
+}
+
+int CPlayerClient::OnStringEvent() {
+    TextBuffer text;
+    ReadText(text.bytes);
+    InterfaceStringEventOriginal(QuestLog(), nullptr, *text.Get());
+    return 1;
+}
+
+void CPlayerClient::StartRecording(const char* path) {
+    netlink::NetLink* link = Owner()->link_;
+    if (link == nullptr) return;
+    WriteByte(&out_, kRequestRecording);
+    link->OpenRecording(path);
+}
+
+void CPlayerClient::StopRecording() {
+    netlink::NetLink* link = Owner()->link_;
+    if (link != nullptr) link->CloseRecording();
+}
+
+EI_REPLACE_METHOD(0x00669490, CPlayerClient::OnItemsReceived);
+EI_REPLACE_METHOD(0x00669A30, CPlayerClient::OnParty);
+EI_REPLACE_METHOD(0x00669C90, CPlayerClient::OnPartyUpdate);
+EI_REPLACE_METHOD(0x00669FA0, CPlayerClient::OnPathMarker);
+EI_REPLACE_METHOD(0x00667E60, CPlayerClient::OnStringEvent);
+EI_REPLACE_METHOD(0x00669710, CPlayerClient::StartRecording);
+EI_REPLACE_METHOD(0x00669750, CPlayerClient::StopRecording);
+
+// --- A-H10: a new map object (message 0x40, multiplayer) ----------------------------------------
+
+namespace {
+
+constexpr int kClassUnitObject = 0x50;      // GetClassId of units
+constexpr int kTypeHumanoid = 0x32;         // type_ of units with heads and the "mo%d" skins
+constexpr std::uint32_t kHeaderFlagHidden = 8;
+constexpr std::uint32_t kFlagNoParts = 0x200;
+constexpr std::uint32_t kFlagCow = 0x10000000;
+constexpr std::uint32_t kPartFlagFigure = 8;
+constexpr int kWeaponPike = 5;
+constexpr int kWispParticles = 0x204D;
+constexpr float kWispSize = 0.05f;          // 0073C52C
+constexpr int kTextSize = 0x100;
+constexpr int kSessionClient = 3;
+
+// The header of message 0x40.
+struct NewObjectHeader {
+    int id;
+    int type;
+    std::uint32_t prototype;   // the object's unknown_18
+    std::uint32_t flags;
+};
+
+// Model and part names the handler compares with (the exe's strings).
+const char* TextCow1() { return reinterpret_cast<const char*>(0x00793FA8); }        // "unmoco1"
+const char* TextCow2() { return reinterpret_cast<const char*>(0x0078A5C0); }        // "unmoco2"
+const char* TextHuman() { return reinterpret_cast<const char*>(0x007908C8); }       // "unhuma"
+const char* TextHumanFemale() { return reinterpret_cast<const char*>(0x00792EA4); } // "unhufe"
+const char* TextHairPart() { return reinterpret_cast<const char*>(0x0078FB38); }    // "hr"
+const char* TextHairFormat() { return reinterpret_cast<const char*>(0x0078FB0C); }  // "hr.%.2d"
+const char* TextGoblin() { return reinterpret_cast<const char*>(0x00794DF0); }      // "unmogo"
+const char* TextAxePart() { return reinterpret_cast<const char*>(0x00794DE4); }     // "rh3.axeth00"
+const char* TextSwordPart() { return reinterpret_cast<const char*>(0x00794DD8); }   // "rh3.sword00"
+const char* TextPikePart() { return reinterpret_cast<const char*>(0x00794DCC); }    // "rh3.pike00"
+const char* TextSlingPart() { return reinterpret_cast<const char*>(0x00794DC4); }   // "sling"
+const char* TextWisp() { return reinterpret_cast<const char*>(0x00794DBC); }        // "unmowi"
+const char* TextSkinFrom() { return reinterpret_cast<const char*>(0x0078FB7C); }    // "mo%dp"
+const char* TextSkinTo() { return reinterpret_cast<const char*>(0x0078FB44); }      // "mo%ds"
+const char* TextNone() { return reinterpret_cast<const char*>(0x007846F0); }        // "none"
+
+bool Same(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
+
+// 00455B50: the 1% check (rand) that runs 00455BA0 / 00458DA0 (ECX is the client, not read).
+__declspec(naked) void __fastcall NewObjectCheckOriginal(void* /*client*/) EI_ORIGINAL(0x00455B50)
+// 0050EAB0 (RET 8): the map object reads its full network state (its slot 49 between the
+// state's begin / end). Nonzero when it was read.
+__declspec(naked) int __fastcall MapObjectReadStateOriginal(void* /*object*/, void*, int /*second*/, BitStream* /*from*/)
+    EI_ORIGINAL(0x0050EAB0)
+// 005654F0 (RET 8): the client world's variable name for an object's second name, as a CString
+// constructed at `out`; returns `out`.
+__declspec(naked) mfc::CString* __fastcall ClientVariableNameOriginal(void* /*world*/, void*, void* /*out*/,
+                                                                     const char* /*name*/) EI_ORIGINAL(0x005654F0)
+// 00538DB0 (plain RET): a unit's client controller, for client sessions of kind 3.
+__declspec(naked) void __fastcall ControllerClientSessionOriginal(void* /*controller*/) EI_ORIGINAL(0x00538DB0)
+
+const UnitPrototypeRecord* PrototypeRecord(std::uint32_t index) {
+    return reinterpret_cast<const UnitPrototypeRecord*>(unitdb::Prototypes().At(index, unitdb::kPrototypeSize));
+}
+
+// FindPart, then RemovePart when there is one (the original inlines both calls).
+void RemovePartNamed(CObject3D* object, const char* name) {
+    if (FigurePart* part = object->FindPart(name)) object->RemovePart(part);
+}
+
+} // namespace
+
+int CPlayerClient::OnNewObject() {
+    NewObjectCheckOriginal(this);
+    console::CStringArray parts;
+    mfc::CString scriptName;
+    mfc::CString secondName;
+    NewObjectHeader header;
+    in_.Read(&header, sizeof(header));
+    float scale[3];
+    in_.Read(scale, sizeof(scale));
+    {
+        TextBuffer text;
+        in_.ReadString(text.bytes);
+        secondName = *text.Get();
+    }
+    if (!in_.ok_) return 0;
+    char model[kTextSize];
+    char textureFrom[kTextSize];
+    char textureTo[kTextSize];
+    char part[kTextSize];
+    in_.ReadText(model, kTextSize);
+    in_.ReadText(textureFrom, kTextSize);
+    in_.ReadText(textureTo, kTextSize);
+    std::uint16_t count = 0;   // read into the low half of a stack dword
+    in_.Read(&count, 2);
+    parts.SetSize(count, -1);
+    for (std::uint16_t i = 0; i < count; ++i) {
+        in_.ReadText(part, kTextSize);
+        parts[i] = part;
+    }
+    {
+        TextBuffer text;
+        in_.ReadString(text.bytes);
+        scriptName = *text.Get();
+    }
+    int prototypeValue;
+    in_.Read(&prototypeValue, 4);
+
+    // The world's slot 19 is its object manager (+0x40).
+    auto* world = static_cast<CWorld*>(Owner()->ManagerContext());
+    CEngineObject* created = static_cast<CBaseManager*>(world->manager40_)->CreateObject(header.type, header.id);
+    if (created == nullptr) return 0;
+    auto* object = static_cast<CMapObject*>(created);
+    auto* figure = static_cast<CObject3D*>(created);
+    *reinterpret_cast<mfc::CString*>(&object->name) = model;
+    bool isUnit = created->GetClassId() == kClassUnitObject;
+    created->unknown_18 = header.prototype;
+    figure->SetFigureScale(scale);
+    std::memcpy(object->baseScale, scale, sizeof(scale));
+    ObjectSlots(created)->ApplyBaseScale();
+    *reinterpret_cast<mfc::CString*>(&object->name2) = static_cast<const char*>(secondName);   // 0050F150
+    if (isUnit) {
+        auto* unit = static_cast<CUnit*>(created);
+        const UnitPrototypeRecord* prototype = PrototypeRecord(header.prototype);
+        auto* modelRecord = reinterpret_cast<const UnitModelRecord*>(
+            unitdb::Models().At(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
+        unit->modelHeight[0] = 0.0f;
+        unit->modelHeight[1] = modelRecord->height;
+        unit->modelHeight[2] = 0.0f;
+        std::memcpy(unit->resistances, modelRecord->unknown_2C, sizeof(unit->resistances));
+        unit->SetPrototype23CIndex(prototypeValue);
+    }
+    if (header.flags & kHeaderFlagHidden) created->flags_ |= kHeaderFlagHidden;
+    if (Same(model, TextCow1()) || Same(model, TextCow2())) created->flags_ |= kFlagCow;
+    if (created->type_ == kTypeHumanoid && (Same(model, TextHuman()) || Same(model, TextHumanFemale()))) {
+        // The head part takes the prototype's hair, or goes without one.
+        for (int i = 0; i < parts.GetSize(); ++i) {
+            if (GameMbscmp(parts[i], TextHairPart()) != 0) continue;
+            int hair = PrototypeRecord(header.prototype)->hair;
+            if (hair == -1) parts.RemoveAt(i, 1);
+            else parts[i].Format(TextHairFormat(), hair);
+            break;
+        }
+    }
+    if (Object3DMakeFigureOriginal(figure, nullptr, model, &parts, 1) == 0) return 0;   // the object is left made
+    if (Same(model, TextGoblin())) {
+        RemovePartNamed(figure, TextAxePart());
+        RemovePartNamed(figure, TextSwordPart());
+        bool pike = static_cast<int>(PrototypeRecord(created->unknown_18)->naturalWeapon) == kWeaponPike;
+        RemovePartNamed(figure, pike ? TextPikePart() : TextSlingPart());
+    }
+    if (Same(model, TextWisp())) {
+        auto* source =
+            static_cast<CParticleSource*>(ParticleCreateSourceOriginal(ParticleManagerObject(), nullptr, kWispParticles));
+        source->Attach(created);
+        source->ScaleSize(kWispSize / source->baseSize);
+        source->attachPoint = 0;
+    }
+    if (!isUnit) {
+        for (int i = 0; i < figure->parts.size; ++i) static_cast<FigurePart*>(figure->parts.data[i])->flags_ |= kPartFlagFigure;   // 00517910
+        created->flags_ |= kFlagNoParts;
+    }
+    CEngineObject* attached = figure->attached;
+    FigureLoadTexturesOriginal(attached);
+    // (The client world's 00566310 and 00566320 around the texture swap are empty.)
+    Object3DSetAnimationsOriginal(figure, nullptr, model, 0);
+    Object3DRestartAnimationOriginal(figure);
+    const char* to = textureTo;
+    if (created->type_ == kTypeHumanoid) {
+        gamecrt::sprintf(textureFrom, TextSkinFrom(), created->id_);
+        gamecrt::sprintf(textureTo, TextSkinTo(), created->id_);
+    } else if (Same(textureTo, TextNone())) {
+        to = nullptr;
+    }
+    FigureSwapTextureOriginal(attached, nullptr, textureFrom, to);
+    if (isUnit) ObjectSlots(created)->SetScriptName(scriptName);
+
+    // The player keeps it, counted.
+    CPlayer* player = Owner();
+    if (header.id > player->maxObjectId_) player->maxObjectId_ = header.id;
+    player->knownObjects_[header.id] = created;
+    ++created->refCount_;
+    if (created->GetClassId() == kClassUnitObject)
+        ObjectSlots(created)->TakePrototype(reinterpret_cast<const UnitPrototypeRecord*>(static_cast<CUnit*>(created)->GetPrototype())->name);
+    else
+        ObjectSlots(created)->TakePrototype(model);
+    ObjectPrepareOriginal(created);
+    if (MapObjectReadStateOriginal(created, nullptr, 0, &in_) == 0) return 0;
+    WorldClient()->AddObject(created);
+    if (object->name2[0] != 0) {
+        TextBuffer variable;
+        ClientVariableNameOriginal(WorldClient(), nullptr, variable.bytes, object->name2);
+        object->SetVisibilityLevel(NamedTableGet(&player->Party()->variables_, nullptr, *variable.Get()));
+    }
+    if (player->sessionKind100_ == kSessionClient && created->GetClassId() == kClassUnitObject)
+        ControllerClientSessionOriginal(static_cast<CUnit*>(created)->controller);
+    return 1;
+}
+
+EI_REPLACE_METHOD(0x00667EC0, CPlayerClient::OnNewObject);
+
+// --- A-H10: clearing the connection ------------------------------------------------------------
+
+void CoderState::Reset() {
+    out.End();
+    Construct();
+}
+
+void CPlayerClient::Clear() {
+    state_ = 0;
+    if (array50D8_.data != nullptr) {
+        // Aligned storage: the block's own pointer is kept just before the data.
+        gamecrt::operator_delete(reinterpret_cast<void**>(array50D8_.data)[-1]);
+        array50D8_.data = nullptr;
+    }
+    array50D8_.capacity = 0;
+    array50D8_.size = 0;
+    in_.Resize(0);
+    out_.Resize(0);
+    unknown_84 = 0;
+    sendParty_ = 0;
+    compressor_.Reset();
+    decompressor_.Reset();
+}
+
+EI_REPLACE_METHOD(0x006671A0, CoderState::Reset);
+EI_REPLACE_METHOD(0x00667510, CPlayerClient::Clear);
+EI_REPLACE_METHOD(0x00667600, CPlayerClient::Clear);

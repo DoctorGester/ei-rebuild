@@ -522,7 +522,9 @@ public:
     const char* prototypeName;      // +0x0A4 e.g. "unhuma"
     std::uint8_t unknown_0A8[0xCC - 0xA8];
     float animationCC;              // +0x0CC an animation time
-    std::uint8_t unknown_0D0[0x124 - 0xD0];
+    std::uint8_t unknown_0D0[0xF4 - 0xD0];
+    float modelHeight[3];           // +0x0F4 (0, the model record's height, 0); set by the client's 00667EC0
+    std::uint8_t unknown_100[0x124 - 0x100];
     // The figure parts' bounding box as CObject3D keeps it (map_object_figures.h, 00518310).
     std::uint32_t boundsFlags;      // +0x124 bits 1 and 2: the bounds are valid
     float center[3];                // +0x128 relative to the position
@@ -598,6 +600,7 @@ public:
     float levels4C8[5];             // +0x4C8 any at most 2 (or NaN) asks for a party refresh (0066E430)
 };
 static_assert(offsetof(CUnit, prototypeName) == 0xA4);
+static_assert(offsetof(CUnit, modelHeight) == 0xF4);
 static_assert(offsetof(CUnit, orientation) == 0x34);
 static_assert(offsetof(CUnit, boundsFlags) == 0x124);
 static_assert(offsetof(CUnit, center) == 0x128);

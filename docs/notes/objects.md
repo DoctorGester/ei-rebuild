@@ -119,6 +119,29 @@ reads back as sent), 00669960 0x82 delete variable, 00669EB0 0x08 zone change (G
 empty CPtrList, vtable 0073BE80): ours only (result, stream moved). 00665870 moved to originals_gameplay.h.
 SendItems calls SendObject14 directly (the original goes through slot 22 of 00743280, which is it). PartyRecords
 moved to party_record_lookup.h (unit.h declares a second one).
+A-H10 handlers (message types from 00667230's table): 00669490 0x06 items received (money, items gathered in reverse
+with AddHead, 00665470 and the quest log with the money gained; the flag byte goes out zero-extended, the original's
+upper three bytes are stack garbage), 00669A30 0x80 party (sized block into LoadParty(1); the recharge list +0x114 gets
+the items with charge < max; a multiplayer client restores its variables from a copy (004A8A50 / 00461540 / 004AA950);
+005652E0, "party received on client", GameFlow::ReturnLocalParty), 00669C90 0x83 party update (LoadParty(0)),
+00669FA0 0x0E path markers (scratch unit class 0x32 reads the path through a delta field; sources 0x2039 / 0x203A-B
+when 0079BE70 is set, handed to 00535240 unreleased), 00667E60 0x13 string event (005F8070 through its address,
+Rebirth-patched; world_client.cpp now uses the shared InterfaceStringEventOriginal), 00669710 / 00669750 start / stop
+the link's recording: ours only (result, stream moved). New shared forwarders: FloatTable* and BucketVectorDestroy
+(originals_library.h), PathWrite/ReadOriginal (originals_ai.h, net_state.cpp uses them), InterfaceStringEventOriginal.
+Server side: 0066E7D0 CPlayerServer::SendItemsGiven (slot 17, RET 8; player_sync.cpp): messages 0x05 (the items' and
+their spells' states, 0069FB60 / 0055E8A0 forwarded) and 0x06 (money, flag byte, ids, -1; the original stores each value
+in its first argument's stack slot before writing it). Verify: appends only, ours / stream restored / original.
+00667EC0 CPlayerClient::OnNewObject (0x40, multiplayer only, so no scenario reaches it): see player_client.h. The world's
+slot 19 is read as its manager40_; the client world's 00566310 / 00566320 (empty) are not called. Kept: a figure or state
+that cannot be read returns 0 with the object made and unreleased. New names: CMapObjectVirtuals slots 30
+(ApplyBaseScale), 34 (TakePrototype), 61 (SetScriptName); CUnit::modelHeight (+0xF4); CPlayer::sessionKind100_ (+0x100).
+Verify: ours only (0, or 1 with the stream moved).
+00667510 (slot 3) / 00667600 (slot 15, the same bytes) CPlayerClient::Clear and 006671A0 CoderState::Reset (out.End, then
+Construct): ours only (fields cleared, coders restarted). +0x50D8 named array50D8_ (a PlayerObjectArray, aligned storage).
+Left in CPlayerClient: 00666D10 / 00666FD0 / 00666FB0 (constructor / destructor / slot 0), 00667230 (Create: the handler
+table), 00667B40 (RET 4, a stream copy), 00667BA0 (slot 14: unit added on the client, the quest log and the session's
++0x2600 record), the 3-byte stubs 00666EE0..00666F60.
 
 `FindCommandByKey` (00462F70) loops back to 00462F73 inside the 5 bytes the hook's jump overwrites, so its wrapper copies the whole 61-byte body (no calls) to executable memory at DLL load, before the hooks are
 installed, and runs that copy as the original (`stolenBytes` 0). Constructors allocate nothing, so the original runs safely on a copy.

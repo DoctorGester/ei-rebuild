@@ -262,13 +262,16 @@ public:
     virtual void Slot27() = 0;
     virtual void Slot28() = 0;
     virtual void Slot29() = 0;
-    virtual void Slot30() = 0;
+    // 30 (0x78): the scale becomes the base scale (+0x1AC; 0050E440, units 00532AA0). Returns the z
+    // component's bits.
+    virtual std::uint32_t ApplyBaseScale() = 0;
     // 31 (0x7C): a hit (DamageInfo) from `attacker` (units: to the controller's TakeHit; other
     // objects ignore it, 0050E460).
     virtual void ReceiveHit(DamageInfo* hit, CEngineObject* attacker, CEngineObject* caster) = 0;
     virtual void Slot32() = 0;
     virtual void Slot33() = 0;
-    virtual void Slot34() = 0;
+    // 34 (0x88): the prototype by name (units 0052EB70: their statistics; 0050E9B0 for others).
+    virtual void TakePrototype(const char* prototype) = 0;
     virtual void Slot35() = 0;
     virtual void Slot36() = 0;
     virtual void Slot37() = 0;
@@ -292,6 +295,13 @@ public:
     virtual Vector3* AimPoint(Vector3* out) = 0;        // 53 (0xD4)
     virtual int Slot54() = 0;                           // 54 (0xD8)
     virtual int IsDead() = 0;                           // 55 (0xDC): non-zero when dead or gone
+    virtual void Slot56() = 0;
+    virtual void Slot57() = 0;
+    virtual void Slot58() = 0;
+    virtual void Slot59() = 0;
+    virtual void Slot60() = 0;
+    // 61 (0xF4): units (00446830) keep `name` in their CString +0x238 (the script name).
+    virtual void SetScriptName(const char* name) = 0;
 };
 
 // A map object's companion (CMapObjectServer / CMapObjectClientSpecific) as the base class calls it.

@@ -14,6 +14,7 @@
 #include "originals_world.h"
 #include "originals_library.h"
 #include "originals_gameplay.h"
+#include "originals_ui.h"
 
 #include <cstring>
 
@@ -211,7 +212,7 @@ template <typename T> T& Slot(void* object, int offset) {
 }
 
 // Callees, through their addresses (thiscall as fastcall).
-__declspec(naked) void __fastcall InputStringEvent(void*, void*, const char*) EI_ORIGINAL(0x005F8070)
+// 005F8070: InterfaceStringEventOriginal (originals_ui.h).
 __declspec(naked) void __fastcall SoundSetVolumeA(void*, void*, int) EI_ORIGINAL(0x006B7740)
 __declspec(naked) void __fastcall SoundSetVolumeB(void*, void*, int) EI_ORIGINAL(0x006B78A0)
 __declspec(naked) void __fastcall SoundSetVolumeC(void*, void*, int) EI_ORIGINAL(0x006B7A00)
@@ -259,7 +260,7 @@ int CWorldClient::Segment() {
     void* self = this;
     int frames = ++Slot<int>(self, 0x6EC);
     if (frames == 10) {
-        InputStringEvent(kInputHandler, nullptr, kAutosave);
+        InterfaceStringEventOriginal(kInputHandler, nullptr, kAutosave);
         void* sound = Slot<void*>(self, 0x1CC);
         SoundSetVolumeA(sound, nullptr, *reinterpret_cast<int*>(0x0079BCC8));
         SoundSetVolumeB(Slot<void*>(self, 0x1CC), nullptr, *reinterpret_cast<int*>(0x0079BCCC));
