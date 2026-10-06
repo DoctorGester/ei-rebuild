@@ -33,12 +33,12 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- A-H done 2026-10-05 (38 functions). A-H2 done 2026-10-05 (41 functions; next candidates at the end of items_spells.md). A-H3 done (44 addresses). A-H4 cut off (nothing committed). A-H5 cut off (6 merged). A-H6 done (21). A-H7 done (27). A-H8 done (30). A-H9 cut off (11 merged: bow arrows). A-H10 done (32). A-H11 done (6; 204 library). A-H12 done (41). A-H13 done (2 handlers + helpers, music lifetime, range classified). A-H14 queued (sound.md next candidates) (CPlayer 00664BF0..00665D20, save screen, message handlers). Was ( first fix spells_hero: 'Parameter of type float expected' in vanilla, no wolf damaged in Rebirth) (effects: 0x5B, Moshka 0067CEF0, Tornado, 0066E7D0; client handlers 00667EC0 / 00669A30 / 00669490 / 00669FA0). Was: ( effects.md next candidates; spells_hero passes now but shows no CEffectMissile / ShowVisibility wrapper calls, find out why) (candidates at the end of items_spells.md's Party section; 0064A7A0). (candidates at the end of items_spells.md "Area ticket A-H").
+- A-H .. A-H13 done. A-H14 queued (sound.md next candidates; CPlayer 00664BF0..00665D20, save screen, message handlers).
 
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
-- A-S done 2026-10-05 (40 functions in 0x004B0000-0x004C0000). A-S2 (cut off by the usage limit; 20 functions merged). A-S4 done (37; 78 quantiser functions marked dead). A-S5 done (28; 25 library, 5 dead). A-S6 done (24). A-S7 queued (loader cache and slots 004F77C0..004F7480, string reader 004DB9C0, CSkyObject, CServerSpecificManager, .mob decoder 004D8E10). A-S3 done 2026-10-05 (38 functions; leftovers: .mob reader 00481660 / 00481F00, particle attach 004849F0 / 00484C00, colour quantisation 0049BEA0). Was: scripts 0x004C0000-0x00500000 plus the 0x00480000-0x004B0000 leftovers.
+- A-S done 2026-10-05 (40 functions in 0x004B0000-0x004C0000). A-S2 (cut off by the usage limit; 20 functions merged). A-S4 done (37; 78 quantiser functions marked dead). A-S5 done (28; 25 library, 5 dead). A-S6 done (24). A-S7 taken (loader cache and slots 004F77C0..004F7480, string reader 004DB9C0, CSkyObject, CServerSpecificManager, .mob decoder 004D8E10). A-S3 done 2026-10-05 (38 functions; leftovers: .mob reader 00481660 / 00481F00, particle attach 004849F0 / 00484C00, colour quantisation 0049BEA0). Was: scripts 0x004C0000-0x00500000 plus the 0x00480000-0x004B0000 leftovers.
 
 
 ## Verify checks
@@ -55,7 +55,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Cleanup (docs/cleanup-plan.md)
 
-- D3 first part merged 2026-10-07 (155 -> 124 per-file containers); D3b brought it to 56 (what is left: docs/notes/core.md, "Shared containers"). D3b was the rest (scene_loader ArrayBody/VtArray, STLport list/vector views, script_exec PtrList/ItemList, StringArray x4, RecordArray x4, UiDwordArray; inlined SetSize in ui_window, map_spec, party_lifetime, particles, map objects). Was: Shared containers: one layout-exact header for the game's container instantiations (MFC CArray / CTypedPtrArray / CList / CMap, the engine's 32-byte aligned arrays, STLport vector / list / hash_map views); replace the per-file copies (AlignedArray x11, UiPtrArray x6, ListNode x6, MfcArray x5, RecordArray x5, ...) and hand-inlined SetSize / RemoveAt / Add; rewrite-guide rule plus a check_cleanup column for per-file container declarations. Behaviour unchanged.
+- D3/D3b/D3c done 2026-10-07: per-file containers 155 -> 6. D3d (taken): the last 6 (scene_loader ArrayBody/VtArray family) and the inlined SetSize in ui_window, map_spec, party_lifetime, unit_skins CopyRecords (docs/notes/core.md, "Shared containers").
 
 - C2 Phase 1 for the engine base and core networking (0x00400000-0x00440000, fully ported): one
   real declaration per class, members instead of At<>/offsets, virtual calls instead of VCall,
