@@ -211,7 +211,9 @@ void* __fastcall MessageBoxConstruct(void* a0, void*, CInterface3D* a2, const ch
 // records, 0x784 bytes each), 00578A20 (RET 0xC) whether the saved zone exit can be taken now
 // (the records, the exit, a second array it fills).
 __declspec(naked) std::uint8_t* __fastcall LocalPlayerData(void*) EI_ORIGINAL(0x00578BA0)
-__declspec(naked) int __fastcall CanLeaveZone(void*, void*, void*, int, void*) EI_ORIGINAL(0x00578A20)
+int __fastcall CanLeaveZone(void* glue, void*, void* records, int exit, void* second) {
+    return GameCanLeaveZoneOriginal(glue, nullptr, records, exit, second);
+}
 // 0059D2E0 (thiscall on a CArray<void*>, RET 8): SetAtGrow.
 __declspec(naked) void __fastcall RecordsSetAtGrow(void*, void*, int, void*) EI_ORIGINAL(0x0059D2E0)
 

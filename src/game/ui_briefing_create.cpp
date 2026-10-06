@@ -1,0 +1,433 @@
+// The briefing / base screen's Create (slot 25, 006024B0) and per-frame Update (slot 24,
+// 00604130): CBriefingScreen, ui_briefing.h. See docs/notes/ui.md, "Briefing / base screen".
+#include "ui_briefing.h"
+
+#include "camera.h"
+#include "core_maths.h"
+#include "core_transform.h"
+#include "object_tables.h"
+#include "sound.h"
+#include "unit.h"
+#include "unit_ai.h"
+#include "unit_client_models.h"
+#include "world.h"
+
+#include "ei/hook.h"
+#include "ei/x87.h"
+#include "lib/crt.h"
+#include "lib/stlp.h"
+#include "originals_ai.h"
+#include "originals_engine.h"
+#include "originals_library.h"
+#include "originals_ui.h"
+#include "originals_units.h"
+#include "originals_world.h"
+
+#include <algorithm>
+#include <cmath>
+#include <cstring>
+
+namespace {
+
+void* ClientWorld() { return reinterpret_cast<void*>(0x007AF5B8); }
+void* ServerWorld() { return reinterpret_cast<void*>(0x007AFF60); }
+void* VariableGlue() { return reinterpret_cast<void*>(0x007AFEA4); }
+void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
+void* UnitGlue() { return reinterpret_cast<void*>(0x007AFEA6); }
+void* SectorMap() { return reinterpret_cast<void*>(0x007B01F4); }   // the server world + 0x294
+void* MapDatabase() { return reinterpret_cast<void*>(0x0079BF00); }
+CMusicSystem* Music() { return *reinterpret_cast<CMusicSystem* const*>(0x007AF760); }
+float& MapEdgeFade() { return *reinterpret_cast<float*>(0x0079BD34); }
+void* SaveStream() { return reinterpret_cast<void*>(0x007AFDF8); }
+bool LoadingGame() { return *reinterpret_cast<const int*>(0x007AFE1C) != 0; }
+void** ScreenInputVtable() { return reinterpret_cast<void**>(0x00741154); }
+void* RecordArrayVtable() { return reinterpret_cast<void*>(0x0073FAA4); }
+
+const char* SaveLoadTexture() { return reinterpret_cast<const char*>(0x00793380); }   // "saveload"
+const char* DefaultAllod() { return reinterpret_cast<const char*>(0x0079014C); }      // "gipat"
+const char* TopicPrefix() { return reinterpret_cast<const char*>(0x007906FC); }       // "b."
+const char* ConstructorTopic() { return reinterpret_cast<const char*>(0x007933B4); }  // "constr"
+const char* NoZone() { return reinterpret_cast<const char*>(0x007846F0); }            // "none"
+const char* ZoneVariablePrefix() { return reinterpret_cast<const char*>(0x007900E8); }   // "z."
+const char* EmptyText() { return reinterpret_cast<const char*>(0x0079B298); }
+
+// 00608D20: a network client's chat window (0x170 bytes; RET 4, returns this).
+__declspec(naked) CUiWindow* __fastcall ChatWindowConstruct(void* /*memory*/, void*, CInterface3D*) EI_ORIGINAL(0x00608D20)
+
+constexpr int kFromCamp = 5;              // WorldPlayer::lastScreen
+constexpr float kEdgeFade = 4.0f;
+constexpr int kTextureKind = 3;
+constexpr std::uint32_t kPlainFlag = 0x100;   // CUiMesh::flags_: drawn in plainColour_
+constexpr std::uint32_t kDarkBackdrop = 0x80000000;
+constexpr std::uint32_t kTextBackdrop = 0xA0000000;
+constexpr int kSurfaceFormat = 5;
+constexpr int kTopicBarChild = 0;
+constexpr int kTextChild = 1;
+constexpr int kTopicsSurface = 0;
+constexpr int kTopicBackdrop = 0;
+constexpr int kTopicFrame = 1;
+
+// The states (CBriefingScreen::state_).
+constexpr int kWalking = 0;
+constexpr int kChoosing = 1;
+constexpr int kStarting = 2;
+constexpr int kPhrases = 3;
+constexpr int kRewards = 4;
+
+constexpr float kMoverTimeout = 30.0f;      // 0073BAF0
+constexpr double kCloseEnough = 0.01;       // 0073CE20, squared distance
+constexpr int kEventOpenTopics = 1;
+constexpr int kEventNoTopics = 2;
+constexpr int kTopicNameParts = 3;
+constexpr int kConstructorPrefix = 6;       // "constr"
+constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
+
+int Compare(const char* a, const char* b) {
+    return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+}
+
+MapRecord* FindLocalMap() {
+    BriefingPlayerName name;
+    return reinterpret_cast<MapRecord*>(MapDatabaseFind(MapDatabase(), nullptr, name));
+}
+
+WorldPlayer* LocalViewPlayer() {
+    return reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player;
+}
+
+CUnit* ServerUnit(int id) { return reinterpret_cast<CUnit*>(WorldFindUnit(ServerWorld(), nullptr, id)); }
+UnitController* ControllerOf(CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller); }
+
+// A copy of `v`, normalised unless its length is zero (or NaN: FCOM, TEST AH,0x40).
+Vector3 Normalised(const float* v) {
+    Vector3 out{v[0], v[1], v[2]};
+    float length = std::sqrt(out.x * out.x + out.y * out.y + out.z * out.z);
+    if (length == 0.0f || x87::IsNaN(length)) return out;
+    float inverse = 1.0f / length;
+    out.x = StoreFloat(out.x * inverse);
+    out.y = StoreFloat(out.y * inverse);
+    out.z = StoreFloat(out.z * inverse);
+    return out;
+}
+
+// 00609A40 inlined: the node unlinked and back to the pool.
+void EraseMover(BriefingMover* node) {
+    node->prev->next = node->next;
+    node->next->prev = node->prev;
+    stlp::deallocate(node, sizeof(BriefingMover));
+}
+
+// A mover that took too long is put at its place, facing its direction, at once.
+void PlaceMover(BriefingMover* node) {
+    CUnit* unit = ServerUnit(node->person->id_);
+    if (!unit) return;
+    UnitController* controller = ControllerOf(unit);
+    Vector3 target{node->target[0], node->target[1], node->target[2]};
+    SectorMapMove(SectorMap(), nullptr, unit, &target);
+    Vector3 facing = Normalised(node->direction);
+    reinterpret_cast<CTransformObject*>(unit)->SetHeading(&facing.x);
+    reinterpret_cast<CTransformObject*>(node->person)->SetHeading(&facing.x);
+    ControllerRepositionOriginal(controller);
+}
+
+// A walking mover near its target starts turning (its server unit turns over a second).
+void StepWalking(BriefingMover* node) {
+    const CUnit* person = reinterpret_cast<const CUnit*>(node->person);
+    float dy = node->target[1] - person->positionY;
+    float dx = node->target[0] - person->positionX;
+    if (dx * dx + dy * dy >= kCloseEnough) return;
+    node->state = BriefingMover::kTurning;
+    CUnit* unit = ServerUnit(node->person->id_);
+    if (!unit) return;
+    Vector3 facing = Normalised(node->direction);
+    ControllerOf(unit)->Brain()->TurnTowards(&facing, 1.0f);
+}
+
+// A turning mover whose facing (the client unit's -y axis, flat) is near its direction is done.
+void StepTurning(BriefingMover* node) {
+    const CUnit* person = reinterpret_cast<const CUnit*>(node->person);
+    Vector3 axis;
+    person->orientation.AxisY(&axis);
+    float facingX = StoreFloat(-axis.x);
+    float facingY = -axis.y;
+    Vector3 direction = Normalised(node->direction);
+    float dy = direction.y - facingY;
+    float dx = direction.x - facingX;
+    if (dx * dx + dy * dy >= kCloseEnough) return;
+    node->state = BriefingMover::kDone;
+}
+
+void SetMeshesVisible(CUiWindow* window, int visible) {
+    for (int i = 0; i < window->sceneObjects_.size; ++i)
+        reinterpret_cast<CUiMesh*>(window->sceneObjects_.data[i])->visible_ = visible;
+}
+
+// The speaker's lips stop (CUnitClientSpecific's blink: eyes open).
+void StopTalking(CUnit* speaker) {
+    auto* model = reinterpret_cast<CUnitClientSpecific*>(speaker->controller);
+    model->blinks = 0;
+    model->BlinkOpen(true);
+}
+
+// Whether the voice `handle` has ended (neither playing nor waiting).
+bool VoiceEnded(int handle) {
+    CSoundManager* sounds = sound::Manager();
+    return !sounds->FindPlaying(handle) && !sounds->FindDeferred(static_cast<std::uint32_t>(handle));
+}
+
+} // namespace
+
+// --- 006024B0: slot 25 --------------------------------------------------------------------------
+
+void CBriefingScreen::Create() {
+    chatActive_ = 0;
+    autosave_ = false;
+    if (LoadingGame())
+        StreamResizeOriginal(SaveStream(), nullptr, 0);
+    else if (LocalViewPlayer()->lastScreen != kFromCamp)
+        autosave_ = true;
+    MapRecord* map = FindLocalMap();
+    BriefingLoadPersonTextsOriginal(this);
+    LoadTexture(SaveLoadTexture(), kTextureKind, nullptr);
+
+    // The backdrops: a dark one behind the topics with a frame, a lighter one behind the text
+    // with a frame.
+    CUiMesh* sprite = AddSprite(nullptr);
+    sprite->SetRectangle(20.0f, 100.0f, 200.0f, 430.0f, 600.0f, 570.0f, 0, 0, 0x100, 0x100);
+    sprite->texture_ = nullptr;
+    sprite->flags_ |= kPlainFlag;
+    sprite->plainColour_ = kDarkBackdrop;
+    AddSprite(nullptr)->SetFrame(10.0f, 100.0f, 195.0f, 425.0f, 605.0f, 575.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
+    sprite = AddSprite(nullptr);
+    sprite->SetRectangle(20.0f, 100.0f, 155.0f, 416.0f, 645.0f, 580.0f, 0, 0, 0x100, 0x100);
+    sprite->texture_ = nullptr;
+    sprite->plainColour_ = kTextBackdrop;
+    sprite->flags_ |= kPlainFlag;
+    AddSprite(nullptr)->SetFrame(20.0f, 100.0f, 150.0f, 411.0f, 650.0f, 585.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
+
+    // Surface 0 the topic rows, 1 a person's label.
+    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
+    AddSurface(memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 200, 430, 600, 570, kSurfaceFormat, 1)
+                      : nullptr);
+    memory = gamecrt::operator_new(sizeof(CUiSurface));
+    AddSurface(memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 0, 0, 250, 30, kSurfaceFormat, 1)
+                      : nullptr);
+
+    memory = gamecrt::operator_new(sizeof(CUiScrollbar));
+    topicBar_ = memory ? static_cast<CUiScrollbar*>(memory)->Construct(interface_, RECT{584, 440, 594, 560}, 3.0f, 0, 1.0f)
+                       : nullptr;
+    AddChild(topicBar_);
+    memory = gamecrt::operator_new(0x1C8);
+    text_ = memory ? static_cast<CUiScrollText*>(
+                         ScrollTextConstructOriginal(memory, nullptr, interface_, EmptyText(), 165, 426, 635, 570, 10.0f))
+                   : nullptr;
+    AddChild(text_);
+
+    SetMeshesVisible(this, 0);
+    for (int i = 0; i < surfaces_.size; ++i) surfaces_.data[i]->Freeze(0, 0);
+    for (int i = 0; i < children_.size; ++i) WindowSetEnabled(children_.data[i], nullptr, 0, 1);
+    state_ = kWalking;
+    exitPending_ = true;
+    exit_ = 0;
+    leader_ = nullptr;
+    savedEdgeFade_ = MapEdgeFade();
+    MapEdgeFade() = kEdgeFade;
+
+    if (MapRecord* record = FindLocalMap()) {
+        Music()->PlayBriefing(record->allod);
+        noWalk_ = record->cage;
+    } else {
+        Music()->PlayBriefing(DefaultAllod());
+        noWalk_ = false;
+    }
+    GameMarkInterfaceChangedOriginal(ClientGlue());
+    GameSetWeatherOriginal(UnitGlue(), nullptr, 0, 0.0f);
+
+    // The screen's own input side (its third dword is left as allocated) and the view's.
+    auto* input = static_cast<UiInputSide*>(gamecrt::operator_new(0xC));
+    if (input) {
+        input->vtable_ = ScreenInputVtable();
+        input->owner_ = interface_;
+    }
+    AddInput(input);
+    memory = gamecrt::operator_new(0x2C);
+    AddInput(memory ? static_cast<UiInputSide*>(ViewInputConstructOriginal(memory, nullptr, interface_)) : nullptr);
+
+    // The camera: no longer free, kept within the zone's circle (the first lookup's record,
+    // not checked for null, as the original), the alternate limits, no target.
+    CCamera* camera = camera::TheCamera();
+    camera->flags_ &= ~CCamera::kFree;
+    if (map->restricted) {
+        Vector3 centre{map->restrictX, map->restrictY, 0.0f};
+        camera->SetBounds(&centre, map->restrictRadius);
+    }
+    camera->flags_ |= CCamera::kAlternate;
+    camera->SetTargetId(-1);
+    briefingStarted_ = false;
+    voice_ = -1;
+    speaking_ = nullptr;
+
+    if (IsNetworkClientOriginal()) {
+        memory = gamecrt::operator_new(0x170);
+        chat_ = memory ? ChatWindowConstruct(memory, nullptr, interface_) : nullptr;
+        AddChild(chat_);
+        VirtualShowChat(1);
+    } else {
+        chat_ = nullptr;
+    }
+
+    // The people of the base: the local player's objects whose ids are text keys. The walk ends
+    // at an empty entry, as the original's does.
+    const auto& objects = LocalViewPlayer()->objects.map;
+    for (auto* node = objects.First(); node && node->value; node = objects.After(node)) {
+        int id = node->value->id_;
+        if (IsTextKeyOriginal(id)) people_.push_back(id);
+    }
+    markPhase_ = 0.0f;
+}
+
+namespace {
+void __fastcall BriefingCreate(CBriefingScreen* self, void*) { self->Create(); }
+} // namespace
+EI_REPLACE(0x006024B0, BriefingCreate);
+
+// --- 00604130: slot 24 --------------------------------------------------------------------------
+
+void CBriefingScreen::Update() {
+    markPhase_ = StoreFloat(static_cast<float>(WindowFrameTimeOriginal(this) + markPhase_));
+    while (markPhase_ >= 1.0f) markPhase_ = StoreFloat(markPhase_ - 1.0f);
+    UiUpdateChildrenOriginal(this);
+    SetMeshesVisible(this, 0);
+    for (int i = 0; i < surfaces_.size; ++i) surfaces_.data[i]->Freeze(0, 0);
+    WindowSetEnabled(children_.data[kTopicBarChild], nullptr, 0, 1);
+    WindowSetEnabled(children_.data[kTextChild], nullptr, 0, 1);
+
+    for (BriefingMover* node = movers_->next; node != movers_; node = node->next) {
+        node->time = StoreFloat(static_cast<float>(WindowFrameTimeOriginal(this) + node->time));
+        if (node->time > kMoverTimeout) {
+            PlaceMover(node);
+            node->state = BriefingMover::kDone;
+        } else if (node->state == BriefingMover::kWalking) {
+            StepWalking(node);
+        } else if (node->state == BriefingMover::kTurning) {
+            StepTurning(node);
+        }
+    }
+    for (BriefingMover* node = movers_->next; node != movers_;) {
+        BriefingMover* next = node->next;
+        if (node->state == BriefingMover::kDone) EraseMover(node);
+        node = next;
+    }
+
+    switch (state_) {
+    case kChoosing: {
+        surfaces_.data[kTopicsSurface]->Freeze(1, 0);
+        reinterpret_cast<CUiMesh*>(sceneObjects_.data[kTopicBackdrop])->visible_ = 1;
+        reinterpret_cast<CUiMesh*>(sceneObjects_.data[kTopicFrame])->visible_ = 1;
+        WindowSetEnabled(topicBar_, nullptr, 1, 1);
+        int position;
+        if (ScrollbarTakePositionOriginal(topicBar_, nullptr, &position)) {
+            topicTop_ = position;
+            BriefingDrawTopicsOriginal(this);
+        }
+        MarkPeople();
+        LeaveIfExitOpen();
+        break;
+    }
+    case kWalking:
+        MarkPeople();
+        LeaveIfExitOpen();
+        break;
+    case kStarting:
+        state_ = kPhrases;
+        for (BriefingMover* node = movers_->next; node != movers_; node = node->next) {
+            if (node->state > 0 && node->waited) {
+                state_ = kStarting;
+                break;
+            }
+        }
+        if (state_ == kPhrases) BriefingStartPhrasesOriginal(this);
+        break;
+    case kPhrases:
+        SetMeshesVisible(this, 1);
+        WindowSetEnabled(text_, nullptr, 1, 1);
+        if (voice_ != -1) {
+            if (VoiceEnded(voice_)) BriefingNextPhraseOriginal(this, nullptr, 0);
+        } else {
+            phraseTime_ = StoreFloat(static_cast<float>(phraseTime_ - WindowFrameTimeOriginal(this)));
+            if (!(phraseTime_ >= 0.0f)) BriefingNextPhraseOriginal(this, nullptr, 0);
+        }
+        break;
+    case kRewards:
+        SetMeshesVisible(this, 1);
+        WindowSetEnabled(text_, nullptr, 1, 1);
+        if (voice_ != -1) {
+            if (speaking_ && VoiceEnded(voice_)) StopTalking(speaking_);
+        } else {
+            phraseTime_ = StoreFloat(static_cast<float>(phraseTime_ - WindowFrameTimeOriginal(this)));
+            if (speaking_ && !(phraseTime_ >= 0.0f)) StopTalking(speaking_);
+        }
+        break;
+    default:
+        break;
+    }
+}
+
+void CBriefingScreen::MarkPeople() {
+    BriefingVariables variables(TopicPrefix());
+    console::CStringArray parts;
+    // The people with a topic open (the original sorts and dedups the list; only membership is
+    // used).
+    stlp::vector<int> open;
+    for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
+        std::uint32_t bits;
+        std::memcpy(&bits, &node->value, 4);
+        if (bits != kOneBits) continue;
+        StringSplit(node->key, &parts, '.');
+        if (parts.GetSize() != kTopicNameParts) continue;
+        if (Compare(parts[2].Left(kConstructorPrefix), ConstructorTopic()) == 0) continue;
+        int id = TextKeyFromName(parts[1]);
+        if (std::find(people_.begin(), people_.end(), id) == people_.end()) continue;
+        open.push_back(id);
+    }
+    for (int* id = people_.begin(); id != people_.end(); ++id) {
+        if (!WorldFindUnit(ClientWorld(), nullptr, *id)) continue;
+        bool hasTopics = std::find(open.begin(), open.end(), *id) != open.end();
+        auto* player = static_cast<WorldPlayer*>(WorldGetPlayer(ServerWorld(), nullptr, 0));
+        if (player && player->server)
+            PlayerSendDialogueEventOriginal(player->server, nullptr, hasTopics ? kEventOpenTopics : kEventNoTopics, *id);
+    }
+    open.clear();
+    open.FreeStorage();
+}
+
+void CBriefingScreen::LeaveIfExitOpen() {
+    struct PartyRecords {
+        std::uint8_t unknown_00[0x30];
+        void* records;               // +0x30 the unit records (0x784 bytes each)
+        int count;                   // +0x34
+    };
+    const auto* party = reinterpret_cast<const PartyRecords*>(LocalPlayerData());
+    if (!exitPending_ || party->count <= 0) return;
+    mfc::CString zone(GameExitZoneOriginal(ClientGlue(), nullptr, exit_));
+    if (Compare(zone, NoZone()) == 0) return;
+    mfc::CString variable(ZoneVariablePrefix());
+    variable += zone;
+    float visited = PlayerZeroVariable(variable);
+    if (visited == 1.0f || x87::IsNaN(visited)) return;
+    mfc::CArray<void*> records{RecordArrayVtable(), nullptr, 0, 0, 0};
+    mfc::CArray<void*> second{RecordArrayVtable(), nullptr, 0, 0, 0};
+    records.SetSize(1);
+    records[0] = party->records;
+    if (GameCanLeaveZoneOriginal(ClientGlue(), nullptr, &records, exit_, &second)) {
+        InterfaceHasScreen() = false;
+        GameLeaveThroughExitOriginal(ClientGlue(), nullptr, exit_);
+    }
+    second.FreeData();
+    records.FreeData();
+}
+
+namespace {
+void __fastcall BriefingUpdate(CBriefingScreen* self, void*) { self->Update(); }
+} // namespace
+EI_REPLACE(0x00604130, BriefingUpdate);

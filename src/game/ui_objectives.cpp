@@ -267,8 +267,10 @@ struct ScrollbarAt {
 __declspec(naked) void ScrollbarAt::SetRange(int) EI_ORIGINAL(0x0065AFE0)
 
 // 0065CC00 (not rewritten): the scrolling text window (a scroll bar subclass) over `rect`.
-__declspec(naked) CUiWindow* __fastcall ConstructTextLog(void* /*memory*/, void*, CInterface3D*, const void* /*font*/,
-                                                         RECT, float /*lineHeight*/) EI_ORIGINAL(0x0065CC00)
+CUiWindow* __fastcall ConstructTextLog(void* memory, void*, CInterface3D* ui, const void* font, RECT rect, float lineHeight) {
+    return static_cast<CUiWindow*>(ScrollTextConstructOriginal(memory, nullptr, ui, static_cast<const char*>(font), rect.left,
+                                                               rect.top, rect.right, rect.bottom, lineHeight));
+}
 
 // Sprite fields the builder sets directly.
 void SetSpriteTexture(CUiMesh* sprite, void* texture) {
