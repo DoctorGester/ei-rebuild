@@ -120,6 +120,26 @@ private:
     T* eos_ = nullptr;
 };
 
+// list<T>: one pointer to the sentinel node the constructor allocates (its next is the first
+// element, its prev the last; an empty list's sentinel points at itself). Nodes are next, prev,
+// then the element, from the node allocator. The game's instantiations keep their own insert /
+// erase / clear (reached through their addresses), so only the layout and the walk are here.
+template <typename T>
+struct list {
+    struct Node {
+        Node* next;
+        Node* prev;
+        T data;
+    };
+
+    Node* head;   // the sentinel
+
+    Node* First() const { return head->next; }
+    Node* End() const { return head; }
+    bool Empty() const { return head->next == head; }
+};
+static_assert(sizeof(list<int>) == 4 && sizeof(list<int>::Node) == 12);
+
 // Hash for pointer keys: the pointer value itself.
 struct PointerHash {
     template <typename T> std::uint32_t operator()(T* p) const { return reinterpret_cast<std::uint32_t>(p); }

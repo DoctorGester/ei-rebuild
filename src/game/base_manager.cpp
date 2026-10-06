@@ -24,14 +24,8 @@ using MapIterator = typename Map::Iterator;
 using ObjectPair = ObjectMap::Pair;
 using CountPair = SpareCountMap::Pair;
 // Destroy's list<int> of ids: the sentinel node of a circular list.
-struct IdNode {
-    IdNode* next;
-    IdNode* prev;
-    int id;
-};
-struct IdList {
-    IdNode* head;
-};
+using IdList = stlp::list<int>;
+using IdNode = IdList::Node;
 
 // The manager's object lists (objectList_ and the spare lists) are CTypedPtrLists with this vtable.
 constexpr std::uintptr_t kObjectListVtable = 0x0073B8D4;
@@ -326,7 +320,7 @@ void CBaseManager::Destroy() {
     });
     IdNode* head = ids.head;
     for (IdNode* n = head->next; n != head; n = n->next) {
-        CEngineObject** found = ObjectsFind(&objects_, nullptr, &n->id);
+        CEngineObject** found = ObjectsFind(&objects_, nullptr, &n->data);
         if (found) (*found)->Release();
     }
     for (IdNode* n = head->next; n != head;) {

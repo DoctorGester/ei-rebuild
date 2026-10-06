@@ -112,19 +112,14 @@ __declspec(naked) void ObjectVector::InsertOverflow(CEngineObject**, CEngineObje
 
 ObjectVector& DrawList(std::uintptr_t address) { return *reinterpret_cast<ObjectVector*>(address); }
 
-// STLport list<counted pointer> node (next, prev, value) and the list (head node pointer).
-struct ObjectListNode {
-    ObjectListNode* next;
-    ObjectListNode* prev;
-    CEngineObject* value;
-};
-struct ObjectList {
-    ObjectListNode* head;
+// STLport list<counted pointer>.
+using ObjectList = stlp::list<CEngineObject*>;
+using ObjectListNode = ObjectList::Node;
 
-    // 0056E8A0. insert(pos, value): new node holding a reference; returns *result.
-    ObjectListNode** Insert(ObjectListNode** result, ObjectListNode* pos, CEngineObject* const& value);
-};
-ObjectListNode** ObjectList::Insert(ObjectListNode** a0, ObjectListNode* a1, CEngineObject* const& a2) { return (ObjectListNode**)ListInsert56E8A0Original((void*)this, nullptr, (void**)a0, (void*)a1, (const void*)&a2); }
+// 0056E8A0. insert(pos, value): new node holding a reference; returns *result.
+ObjectListNode** ObjectListInsert(ObjectList* list, ObjectListNode** result, ObjectListNode* pos, CEngineObject* const& value) {
+    return reinterpret_cast<ObjectListNode**>(ListInsert56E8A0Original(list, nullptr, reinterpret_cast<void**>(result), pos, &value));
+}
 
 // The frame's lists (0056AFE0 clears them before collecting).
 constexpr std::uintptr_t kTouchedModels = 0x007AF508;   // models to keep loaded (by last use)
@@ -170,7 +165,7 @@ int CWorldClient::CollectVisible(void* list, const float* view, float animTime, 
     ObjectListNode* node = static_cast<ObjectList*>(list)->head->next;
     if (node == static_cast<ObjectList*>(list)->head) return 0;
     do {
-        CEngineObject* object = node->value;
+        CEngineObject* object = node->data;
         if (object && Field<void*>(object, 0x94)) {
             bool process = true;
             if (object->GetClassId() == kClassUnit) {
@@ -184,7 +179,7 @@ int CWorldClient::CollectVisible(void* list, const float* view, float animTime, 
                     CEngineObject* held = object;
                     ++held->refCount_;
                     ObjectListNode* result;
-                    DeferredUnits()->Insert(&result, DeferredUnits()->head, held);
+                    ObjectListInsert(DeferredUnits(), &result, DeferredUnits()->head, held);
                     held->Release();
                     process = false;
                 }

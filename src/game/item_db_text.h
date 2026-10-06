@@ -16,21 +16,25 @@
 #include "item.h"
 
 #include "lib/mfc.h"
+#include "lib/stlp.h"
 
 class CMappedResource;
 
+// An archive the texts are looked up in: the pair<string, CMappedResource*> of the archive list.
+struct TextSource {
+    stlp::string name;          // +0x00
+    CMappedResource* source;    // +0x0C
+};
+static_assert(sizeof(TextSource) == 0x10);
+
+// The archive list (STLport list<pair<string, CMappedResource*>>, CTextManager +0x1C). Nodes come
+// from the STLport node allocator's 0x18-byte free list (0079B22C).
+using TextSourceList = stlp::list<TextSource>;
+static_assert(sizeof(TextSourceList::Node) == 0x18);
+
 class CTextManager {
 public:
-    // A node of the archive list (an STLport list): the value is a pair of the archive's name
-    // (stlp::string, +0x08) and the archive.
-    struct SourceNode {
-        SourceNode* next;
-        SourceNode* prev;
-        char* nameBegin;     // +0x08
-        char* nameEnd;       // +0x0C
-        char* nameCapacity;  // +0x10
-        CMappedResource* source;   // +0x14
-    };
+    using SourceNode = TextSourceList::Node;
 
     // 004E0000. Whether `p` is at or past the end of the current text (signed compare).
     BOOL IsPastEnd(const char* p);
@@ -59,43 +63,36 @@ public:
     void ClearSources();
 
     std::uint8_t unknown_00[0x1C];
-    SourceNode* sources_;   // +0x1C list sentinel
+    TextSourceList sources_;   // +0x1C
     const char* cursor_;    // +0x20 read position in the current text
     const char* text_;      // +0x24 start of the current text (null: none)
     std::uint32_t length_;  // +0x28 size of the current text, written by GetFile
 };
 static_assert(offsetof(CTextManager, sources_) == 0x1C);
 static_assert(offsetof(CTextManager, length_) == 0x28);
-static_assert(offsetof(CTextManager::SourceNode, source) == 0x14);
+static_assert(offsetof(CTextManager::SourceNode, data.source) == 0x14);
 
 // The game's text manager (the global pointer at 007AF788).
 inline CTextManager* GameTexts() { return *reinterpret_cast<CTextManager* const*>(0x007AF788); }
 
-// The archive list (STLport list<pair<string, CMappedResource*>>, CTextManager +0x1C). Nodes come
-// from the STLport node allocator's 0x18-byte free list (0079B22C).
-struct TextSourceList {
-    using Node = CTextManager::SourceNode;
-    Node* sentinel;
-
-    // 004E1530. Begin iterator: *out = sentinel->next.
-    void Begin(Node** out);
-    // 004E1550. erase(pos): unlinks the node, frees its name and returns the node to the free
-    // list; *out = the next node. Returns out.
-    Node** Erase(Node** out, Node* pos);
-    // 004E1590. insert(pos, value): a new node (004E15C0 copies the pair) linked before `pos`;
-    // *out = the new node. Returns out.
-    Node** Insert(Node** out, Node* pos, const void* value);
-    // 004E15C0 (not rewritten): allocates a node and copy-constructs the pair (RET 4).
-    Node* CreateNode(const void* value);
-
-    // text_sources.cpp. 004DE930 (RET 8): unless an archive of that exact name is listed (then 1),
-    // appends a new CMappedResource under `path` and returns its OpenResource(path, writable); a
-    // failed open stays in the list. 004DEAF0 (RET 4): closes, deletes and unlinks the archive named
-    // `path`, if any. 004DEB60: closes and deletes every archive, then frees the nodes.
-    BOOL Add(const char* path, BOOL writable);
-    void Remove(const char* path);
-    void Clear();
-};
+// The archive list's members (thiscall on the list).
+using TextSourceNode = TextSourceList::Node;
+// 004E1530. Begin iterator: *out = the first node.
+void __fastcall TextSourcesBegin(TextSourceList* list, void*, TextSourceNode** out);
+// 004E1550. erase(pos): unlinks the node, frees its name and returns the node to the free list;
+// *out = the next node. Returns out.
+TextSourceNode** __fastcall TextSourcesErase(TextSourceList* list, void*, TextSourceNode** out, TextSourceNode* pos);
+// 004E1590. insert(pos, value): a new node (004E15C0 copies the pair) linked before `pos`; *out =
+// the new node. Returns out.
+TextSourceNode** __fastcall TextSourcesInsert(TextSourceList* list, void*, TextSourceNode** out, TextSourceNode* pos,
+                                              const TextSource* value);
+// text_sources.cpp. 004DE930 (RET 8): unless an archive of that exact name is listed (then 1),
+// appends a new CMappedResource under `path` and returns its OpenResource(path, writable); a
+// failed open stays in the list. 004DEAF0 (RET 4): closes, deletes and unlinks the archive named
+// `path`, if any. 004DEB60: closes and deletes every archive, then frees the nodes.
+BOOL __fastcall TextSourcesAdd(TextSourceList* list, void*, const char* path, BOOL writable);
+void __fastcall TextSourcesRemove(TextSourceList* list, void*, const char* path);
+void __fastcall TextSourcesClear(TextSourceList* list);
 
 // 004E1540. Copies an iterator (thiscall: *out = *this).
 struct TextSourceIterator {

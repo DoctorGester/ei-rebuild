@@ -12,6 +12,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/stlp.h"
 #include "originals_library.h"
 #include "originals_engine.h"
 #include "originals_units.h"
@@ -219,14 +220,8 @@ __declspec(naked) void __fastcall RecordsSetAtGrow(void*, void*, int, void*) EI_
 
 // STLport list<CUnit*> (00411850 constructor, RET 4) and list<int> (00404A70 constructor,
 // 004049D0 end(), 00404A40 insert, RET 4 / 4 / 0xC); 00404D70 (__fastcall) frees a node.
-struct ListNode {
-    ListNode* next;
-    ListNode* prev;
-    std::uintptr_t value;
-};
-struct List {
-    ListNode* header;
-};
+using List = stlp::list<std::uintptr_t>;
+using ListNode = List::Node;
 __declspec(naked) void __fastcall UnitListConstruct(List*, void*, const void*) EI_ORIGINAL(0x00411850)
 __declspec(naked) void __fastcall IndexListConstruct(List*, void*, const void*) EI_ORIGINAL(0x00404A70)
 __declspec(naked) ListNode** __fastcall IndexListEnd(List*, void*, ListNode**) EI_ORIGINAL(0x004049D0)
@@ -281,7 +276,7 @@ void RebuildClientParty(CBattleScreenSetup* screen) {
     IdsConstruct(&ids.without, nullptr, &allocators[1]);
     ids.camera = -1;
     for (ListNode* node = (*players)->next; node != *players; node = node->next) {
-        std::uint8_t* player = reinterpret_cast<std::uint8_t*>(node->value);
+        std::uint8_t* player = reinterpret_cast<std::uint8_t*>(node->data);
         int* unitId = &At<int>(player, 0x2C);
         int* playerId = &At<int>(player, 0x30);
         if (At<int>(player, 0x24) == 0 && *unitId >= 0) {
@@ -340,7 +335,7 @@ void RebuildClientParty(CBattleScreenSetup* screen) {
 
 // Frees a list's nodes (00404D70) and empties it (the header is freed by the caller).
 void FreeListNodes(List* list) {
-    ListNode* header = list->header;
+    ListNode* header = list->head;
     for (ListNode* node = header->next; node != header;) {
         ListNode* next = node->next;
         if (node) NodeFree(node, 0xC);
@@ -421,9 +416,9 @@ void CBattleScreenSetup::Update() {
         UnitsInBox(reinterpret_cast<void*>(kWorld), nullptr, &selectionBox_, &units);
         List inside;
         IndexListConstruct(&inside, nullptr, &allocator);
-        for (ListNode* node = units.header->next; node != units.header; node = node->next) {
+        for (ListNode* node = units.head->next; node != units.head; node = node->next) {
             for (int i = 0; i < party->size_; ++i) {
-                if (party->data_[i] != node->value) continue;
+                if (party->data_[i] != node->data) continue;
                 ListNode* end;
                 IndexListEnd(&inside, nullptr, &end);
                 ListNode* inserted;
@@ -443,8 +438,8 @@ void CBattleScreenSetup::Update() {
                 mark(unit, 0);
             }
         }
-        for (ListNode* node = inside.header->next; node != inside.header; node = node->next) {
-            auto* unit = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data_[node->value]));
+        for (ListNode* node = inside.head->next; node != inside.head; node = node->next) {
+            auto* unit = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data_[node->data]));
             std::uint32_t flags = At<std::uint32_t>(unit, 8);
             if (!(flags & 0x10) && !(flags & 0x100)) {
                 At<std::uint32_t>(unit, 8) = flags | 0x100;
@@ -452,11 +447,11 @@ void CBattleScreenSetup::Update() {
             }
         }
         FreeListNodes(&inside);
-        if (inside.header) NodeFree(inside.header, 0xC);
+        if (inside.head) NodeFree(inside.head, 0xC);
         FreeListNodes(&units);
-        if (units.header) {
-            *reinterpret_cast<void**>(units.header) = NodeFreeList();
-            NodeFreeList() = units.header;
+        if (units.head) {
+            *reinterpret_cast<void**>(units.head) = NodeFreeList();
+            NodeFreeList() = units.head;
         }
     }
 
@@ -533,10 +528,10 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
     UnitsInBox(world, nullptr, &selectionBox_, &units);
     List inside;
     IndexListConstruct(&inside, nullptr, &allocator);
-    if (units.header->next != units.header) {
-        for (ListNode* node = units.header->next; node != units.header; node = node->next) {
+    if (units.head->next != units.head) {
+        for (ListNode* node = units.head->next; node != units.head; node = node->next) {
             for (int i = 0; i < party->size_; ++i) {
-                if (party->data_[i] != node->value) continue;
+                if (party->data_[i] != node->data) continue;
                 ListNode* end;
                 IndexListEnd(&inside, nullptr, &end);
                 ListNode* inserted;
@@ -561,8 +556,8 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
                 marker(i)->visible_ = 0;
                 slot(i).restB_ = *reinterpret_cast<const Quaternion*>(0x007C8150);   // identity
             }
-            for (ListNode* node = inside.header->next; node != inside.header; node = node->next) {
-                int i = static_cast<int>(node->value);
+            for (ListNode* node = inside.head->next; node != inside.head; node = node->next) {
+                int i = static_cast<int>(node->data);
                 marker(i)->visible_ = 1;
                 const Vector3 axis = {-1.0f, 0.0f, 0.0f};
                 const float angle = *reinterpret_cast<const volatile float*>(0x007C8144) *
@@ -570,7 +565,7 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
                 Quaternion turn;
                 turn.SetAxisAngle(axis, angle);
                 slot(i).restB_ = turn;
-                WorldControl(world, nullptr, unitAt(static_cast<int>(node->value)));
+                WorldControl(world, nullptr, unitAt(static_cast<int>(node->data)));
             }
             int id = At<int>(unitAt(first), 0xC);
             using EventFn = void(__thiscall*)(void*, int, int, int);
@@ -580,11 +575,11 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
     RefreshSelectionAt(this);
     unknown_1C1 = false;
     FreeListNodes(&inside);
-    if (inside.header) NodeFree(inside.header, 0xC);
+    if (inside.head) NodeFree(inside.head, 0xC);
     FreeListNodes(&units);
-    if (units.header) {
-        *reinterpret_cast<void**>(units.header) = NodeFreeList();
-        NodeFreeList() = units.header;
+    if (units.head) {
+        *reinterpret_cast<void**>(units.head) = NodeFreeList();
+        NodeFreeList() = units.head;
     }
 }
 namespace {

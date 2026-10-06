@@ -124,8 +124,8 @@ static void(__fastcall* s_listBegin)(TextSourceList*, void*, CTextManager::Sourc
 static void __fastcall ListBeginVerify(TextSourceList* self, void*, CTextManager::SourceNode** out) {
     CTextManager::SourceNode* expected = nullptr;
     s_listBegin(self, nullptr, &expected);
-    self->Begin(out);
-    ei::verify::Check("TextSourceList::Begin", expected, *out, "list %p", self->sentinel);
+    TextSourcesBegin(self, nullptr, out);
+    ei::verify::Check("TextSourcesBegin", expected, *out, "list %p", self->head);
 }
 EI_VERIFY(0x004E1530, ListBeginVerify, 8, s_listBegin);
 
@@ -149,22 +149,22 @@ static TextSourceList::Node** __fastcall ListEraseVerify(TextSourceList* self, v
                                                          TextSourceList::Node* pos) {
     TextSourceList::Node* next = pos->next;
     TextSourceList::Node* prev = pos->prev;
-    TextSourceList::Node** result = self->Erase(out, pos);
+    TextSourceList::Node** result = TextSourcesErase(self, nullptr, out, pos);
     bool ok = result == out && *out == next && prev->next == next && next->prev == prev &&
               *reinterpret_cast<TextSourceList::Node**>(0x0079B22C) == pos;
-    ei::verify::Check("TextSourceList::Erase", true, ok, "list %p node %p", self->sentinel, pos);
+    ei::verify::Check("TextSourcesErase", true, ok, "list %p node %p", self->head, pos);
     return result;
 }
 EI_VERIFY(0x004E1550, ListEraseVerify, 0, s_unusedList);
 
 static TextSourceList::Node** __fastcall ListInsertVerify(TextSourceList* self, void*, TextSourceList::Node** out,
-                                                          TextSourceList::Node* pos, const void* value) {
+                                                          TextSourceList::Node* pos, const TextSource* value) {
     TextSourceList::Node* prev = pos->prev;
-    TextSourceList::Node** result = self->Insert(out, pos, value);
+    TextSourceList::Node** result = TextSourcesInsert(self, nullptr, out, pos, value);
     TextSourceList::Node* node = *out;
     bool ok = result == out && node && node->next == pos && node->prev == prev && prev->next == node &&
               pos->prev == node;
-    ei::verify::Check("TextSourceList::Insert", true, ok, "list %p before %p", self->sentinel, pos);
+    ei::verify::Check("TextSourcesInsert", true, ok, "list %p before %p", self->head, pos);
     return result;
 }
 EI_VERIFY(0x004E1590, ListInsertVerify, 0, s_unusedList);

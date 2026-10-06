@@ -12,10 +12,9 @@
 namespace {
 
 // The exact name comparison of the list (length, then the bytes).
-bool SameName(const TextSourceList::Node* node, const char* path) {
+bool SameName(const TextSourceNode* node, const char* path) {
     std::size_t length = std::strlen(path);
-    return static_cast<std::size_t>(node->nameEnd - node->nameBegin) == length &&
-           std::memcmp(node->nameBegin, path, length) == 0;
+    return node->data.name.size() == length && std::memcmp(node->data.name.data(), path, length) == 0;
 }
 
 void CloseAndDelete(CMappedResource* source) {
@@ -23,44 +22,41 @@ void CloseAndDelete(CMappedResource* source) {
     delete source;   // the scalar deleting destructor (slot 0, flag 1); a null source is skipped
 }
 
-// The value Insert copies into the new node: the pair<string, CMappedResource*>.
-struct SourcePair {
-    stlp::string name;
-    CMappedResource* source;
-};
-static_assert(sizeof(SourcePair) == 0x10);
-
 } // namespace
 
-BOOL TextSourceList::Add(const char* path, BOOL writable) {
-    for (Node* node = sentinel->next; node != sentinel; node = node->next) {
+BOOL __fastcall TextSourcesAdd(TextSourceList* list, void*, const char* path, BOOL writable) {
+    using Node = TextSourceNode;
+    for (Node* node = list->head->next; node != list->head; node = node->next) {
         if (SameName(node, path)) return 1;
     }
     void* memory = gamecrt::operator_new(sizeof(CMappedResource));
     CMappedResource* resource = memory ? static_cast<CMappedResource*>(memory)->Construct() : nullptr;
     {
-        SourcePair value{stlp::string(path), resource};
+        TextSource value{stlp::string(path), resource};
         Node* inserted;
-        Insert(&inserted, sentinel, &value);
+        TextSourcesInsert(list, nullptr, &inserted, list->head, &value);
     }
-    return sentinel->prev->source->OpenResource(path, writable);
+    return list->head->prev->data.source->OpenResource(path, writable);
 }
 
-void TextSourceList::Remove(const char* path) {
-    for (Node* node = sentinel->next; node != sentinel; node = node->next) {
+void __fastcall TextSourcesRemove(TextSourceList* list, void*, const char* path) {
+    using Node = TextSourceNode;
+    for (Node* node = list->head->next; node != list->head; node = node->next) {
         if (!SameName(node, path)) continue;
-        CloseAndDelete(node->source);
+        CloseAndDelete(node->data.source);
         Node* next;
-        Erase(&next, node);
+        TextSourcesErase(list, nullptr, &next, node);
         return;
     }
 }
 
-void TextSourceList::Clear() {
-    for (Node* node = sentinel->next; node != sentinel; node = node->next) CloseAndDelete(node->source);
+void __fastcall TextSourcesClear(TextSourceList* list) {
+    using Node = TextSourceNode;
+    Node* sentinel = list->head;
+    for (Node* node = sentinel->next; node != sentinel; node = node->next) CloseAndDelete(node->data.source);
     for (Node* node = sentinel->next; node != sentinel;) {
         Node* next = node->next;
-        FreeStringStorage(&node->nameBegin);
+        FreeStringStorage(&node->data.name);
         stlp::deallocate(node, sizeof(Node));
         node = next;
     }
@@ -69,16 +65,16 @@ void TextSourceList::Clear() {
 }
 
 BOOL CTextManager::AddSource(const char* path) {
-    return reinterpret_cast<TextSourceList*>(&sources_)->Add(path, 0);
+    return TextSourcesAdd(&sources_, nullptr, path, 0);
 }
 
-void CTextManager::RemoveSource(const char* path) { reinterpret_cast<TextSourceList*>(&sources_)->Remove(path); }
+void CTextManager::RemoveSource(const char* path) { TextSourcesRemove(&sources_, nullptr, path); }
 
-void CTextManager::ClearSources() { reinterpret_cast<TextSourceList*>(&sources_)->Clear(); }
+void CTextManager::ClearSources() { TextSourcesClear(&sources_); }
 
-EI_REPLACE_METHOD(0x004DE930, TextSourceList::Add);
-EI_REPLACE_METHOD(0x004DEAF0, TextSourceList::Remove);
-EI_REPLACE_METHOD(0x004DEB60, TextSourceList::Clear);
+EI_REPLACE(0x004DE930, TextSourcesAdd);
+EI_REPLACE(0x004DEAF0, TextSourcesRemove);
+EI_REPLACE(0x004DEB60, TextSourcesClear);
 EI_REPLACE_METHOD(0x004DEDB0, CTextManager::AddSource);
 EI_REPLACE_METHOD(0x004DEDD0, CTextManager::RemoveSource);
 EI_REPLACE_METHOD(0x004DED40, CTextManager::ClearSources);
