@@ -138,7 +138,65 @@ int __fastcall ExperienceVerify(CPlayerClient* self) {
     return CheckHandler("CPlayerClient::OnExperience", self, [&] { return self->OnExperience(); });
 }
 
+// A-H10 (ours only: they load the party, give items, make particle sources, record).
+int __fastcall ItemsReceivedVerify(CPlayerClient* self) {
+    return CheckBlock("CPlayerClient::OnItemsReceived", self, [&] { return self->OnItemsReceived(); });
+}
+int __fastcall PartyVerify(CPlayerClient* self) {
+    return CheckHandler("CPlayerClient::OnParty", self, [&] { return self->OnParty(); });
+}
+int __fastcall PartyUpdateVerify(CPlayerClient* self) {
+    return CheckHandler("CPlayerClient::OnPartyUpdate", self, [&] { return self->OnPartyUpdate(); });
+}
+int __fastcall PathMarkerVerify(CPlayerClient* self) {
+    return CheckHandler("CPlayerClient::OnPathMarker", self, [&] { return self->OnPathMarker(); });
+}
+// Ours only (commits the coders' output, frees the array): the coders start over, everything is
+// empty.
+void __fastcall CoderResetVerify(CoderState* self) {
+    self->Reset();
+    bool ok = self->matchPos == -1 && self->pos == 0 && self->out.sink == nullptr && self->out.bits == 0;
+    ei::verify::Check("CoderState::Reset", true, ok, "coder %p", self);
+}
+void __fastcall ClearVerify(CPlayerClient* self) {
+    self->Clear();
+    bool ok = self->state_ == 0 && self->array50D8_.data == nullptr && self->array50D8_.size == 0 &&
+              self->in_.size_ == 0 && self->out_.size_ == 0 && self->sendParty_ == 0 && self->compressor_.matchPos == -1;
+    ei::verify::Check("CPlayerClient::Clear", true, ok, "client %p", self);
+}
+// Multiplayer only (no scenario): 1 and the stream moved, or 0.
+int __fastcall NewObjectVerify(CPlayerClient* self) {
+    return CheckBlock("CPlayerClient::OnNewObject", self, [&] { return self->OnNewObject(); });
+}
+int __fastcall StringEventVerify(CPlayerClient* self) {
+    return CheckHandler("CPlayerClient::OnStringEvent", self, [&] { return self->OnStringEvent(); });
+}
+// With a link one request byte is queued.
+void __fastcall StartRecordingVerify(CPlayerClient* self, void*, const char* path) {
+    bool linked = self->Owner()->link_ != nullptr;
+    std::uint32_t size = self->out_.size_;
+    self->StartRecording(path);
+    ei::verify::Check("CPlayerClient::StartRecording", true, self->out_.size_ == size + (linked ? 1u : 0u),
+                      "client %p", self);
+}
+void __fastcall StopRecordingVerify(CPlayerClient* self) {
+    self->StopRecording();
+    ei::verify::Check("CPlayerClient::StopRecording", true, true, "client %p", self);
+}
+
 } // namespace
+
+EI_VERIFY(0x00669490, ItemsReceivedVerify, 0, s_unused);
+EI_VERIFY(0x00669A30, PartyVerify, 0, s_unused);
+EI_VERIFY(0x00669C90, PartyUpdateVerify, 0, s_unused);
+EI_VERIFY(0x00669FA0, PathMarkerVerify, 0, s_unused);
+EI_VERIFY(0x00667E60, StringEventVerify, 0, s_unused);
+EI_VERIFY(0x00667EC0, NewObjectVerify, 0, s_unused);
+EI_VERIFY(0x006671A0, CoderResetVerify, 0, s_unused);
+EI_VERIFY(0x00667510, ClearVerify, 0, s_unused);
+EI_VERIFY(0x00667600, ClearVerify, 0, s_unused);
+EI_VERIFY(0x00669710, StartRecordingVerify, 0, s_unused);
+EI_VERIFY(0x00669750, StopRecordingVerify, 0, s_unused);
 
 EI_VERIFY(0x00669350, QuestItemsVerify, 0, s_unused);
 EI_VERIFY(0x0066A480, ExperienceAllVerify, 0, s_unused);

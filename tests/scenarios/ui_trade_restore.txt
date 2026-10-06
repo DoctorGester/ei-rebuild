@@ -11,7 +11,8 @@ newgame
 speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
-console @GiveUnitExp(GetLeader(),50000)
+# GiveUnitExp is a Rebirth script command (addon.dll); vanilla has none, so only the Rebirth run gains the experience.
+rebirth console @GiveUnitExp(GetLeader(),50000)
 wait 300
 
 screen 5
