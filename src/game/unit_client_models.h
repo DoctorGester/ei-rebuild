@@ -309,6 +309,20 @@ public:
     // chance left `out` empty), else 0.
     int ActionSound(const FigureAnimation* animation, float from, float to, mfc::CString* out, std::uint8_t miss);
 
+    // unit_client_wounds.cpp (A-U4).
+    // 00536EA0 (RET 4). The wound level of each of the six body parts (head, body, hands, legs)
+    // into (*levels)[0..5]: 0 for a part without state or maximum, at full durability, or at 75%
+    // or more; 1 above 33%, 2 above one point, 3 at one point or less. Heroes (type_ 0x32) show
+    // none under armour whose record hides them (ArmorRecord::showsWounds; trousers: legs, body
+    // armour: body and hands, helmet: head); others show each pair of hands / legs at the worse
+    // level. True (AL) when any part was wounded before the armour test.
+    bool WoundLevels(std::uint8_t** levels);
+    // 005370F0 (plain RET). The unit's wounds texture: with any wound, a skin request of the six
+    // levels and the textures "<model><part>w<level>.mmp" of the wounded parts (128 pixels for
+    // heroes, else 64) is composed by the texture manager (00693180) as "mo<id>w". Returns its
+    // result, or 0 without wounds.
+    int ComposeWoundsTexture();
+
     AIPath* MotionPath() { return reinterpret_cast<AIPath*>(motionOrder); }
 
     CUnit* unit;                    // +0x1C

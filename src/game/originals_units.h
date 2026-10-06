@@ -293,6 +293,13 @@ __declspec(naked) inline void* __fastcall FigureManagerLoadPartOriginal(void* /*
                                                                         const char* /*part*/, void* /*model*/, std::uint32_t,
                                                                         std::uint32_t, std::uint32_t, std::uint32_t /*arg*/,
                                                                         std::uint32_t /*detached*/) EI_ORIGINAL(0x005AC2B0)
+// 00693180 (rewritten as ComposeTexture, texture_compose.cpp; through its address so the wrapper runs): the texture
+// manager composes the skin `request` into the cached texture `name` (or `fallback`), its name into `out` (thiscall,
+// RET 0x1C; 1 / 0).
+__declspec(naked) inline int __fastcall TextureManagerComposeOriginal(void* /*manager*/, void*, void* /*out*/,
+                                                                      void* /*request*/, void* /*name*/, void* /*fallback*/,
+                                                                      int /*mipCount*/, int /*fill*/, int /*format*/)
+    EI_ORIGINAL(0x00693180)
 // 006B7110 (thiscall on the sound system, RET 8): the names of its files matching `pattern` in every resource it
 // searches, appended to the CStringArray `out` (emptied first). No result.
 __declspec(naked) inline void __fastcall SoundSystemListFilesOriginal(void* /*sounds*/, void*, void* /*out*/,
