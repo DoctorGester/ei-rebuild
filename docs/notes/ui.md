@@ -322,7 +322,7 @@ before the vector; the trade panel's BuildLists pushes copies of a row whose pri
 the last record reads the next record's name through null), `DrawLists` leaves the third school's row empty, 00626F10 leaves +0x2B and +0x39..+0x3B of
 each record unwritten.
 
-Not rewritten: 00612CF0 (camp slot 39, a debug fill; no caller but the vtable), drawing slots 20 (the trade grid draw 00627390 is in `ui_trade_grid_draw.cpp`, renderer.md),
+Not rewritten: 00612CF0 (camp slot 39, a debug fill; no caller but the vtable) (the trade grid draw 00627390 is in `ui_trade_grid_draw.cpp`, renderer.md),
 0062CF70, 006312C0 (the global map's path search, reached only from the click 0062F950), 00617A50 (creates the hero:
 .mp files, records array 007C82A0..007C82AC); the exchange window (0062C250, 0062C9C0) and the lobby screens (0061C430, 0061C700, 0061D470, 0061E2F0 ...,
 00618A10, 00616AC0, 006159E0) need a network session, no scenario.
