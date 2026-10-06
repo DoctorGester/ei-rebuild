@@ -463,3 +463,13 @@ indexes the column's frame and restB_ by count % 6. The multiplayer branch (play
 name maps' find_or_insert directly (00514880 / 0053D340, one temporary string less than the original). Not
 reached by a harness scenario. 006407E0 holds EI_Plugin Fixes sites (rebirth.md), so the installer keeps the original under Rebirth. 0064AB20 / 0064AD40 / 0064B3A0 / 0064ACD0 (the slot vector) are library entries.
 CUnit +0xC8 is now `build`, CUiMesh +0x34 `orientation_`.
+
+### HUD top panel (ui_hud_top_panel.cpp, A-H11)
+
+| Address | Name | Verify (ours only) |
+|---|---|---|
+| 00649AF0 | CHudTopPanel::Build (RET 8: page, shown) | rectangle, 4 regions, 8 sprites, page and slide state; every newgame |
+| 0064A4E0, 0064A630 | AddPickedUp (RET 8), AddMoney (RET 4) | page 0's text grew by a line ending in "\n"; from OnItemsPicked 00636150 (no scenario known) |
+
+The original builds each line with CString operator+ temporaries (kind + " " + name + "\n"); ours appends to one
+CString (same text). ShowPage / Layout are called through their addresses so their wrappers run.
