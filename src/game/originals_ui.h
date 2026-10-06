@@ -371,6 +371,14 @@ __declspec(naked) inline void __fastcall GameSetUnitHeightOriginal(void* /*glue*
 __declspec(naked) inline void __fastcall BriefingMovePersonOriginal(void* /*screen*/, void*, void* /*unit*/, float, float, float,
                                                                     float, float, float, int /*waited*/, int /*immediate*/,
                                                                     int /*time*/) EI_ORIGINAL(0x006089D0)
+// A-I12. 00608210 (rewritten as CBriefingScreen::StartPhrases; through its address so the wrapper runs; plain RET).
+// 00578560 (the client glue 007AFEA6, not read; RET 4): the local player's "constr.current" = `constructor` (the
+// constructor the camp opens with; message to the server). 00578B00 (the client glue, not read; RET 4): the client
+// asks the server for interface screen `id` (1 battle, 3 briefing, 4 global map, 5 camp).
+__declspec(naked) inline void __fastcall BriefingStartPhrasesOriginal(void* /*screen*/) EI_ORIGINAL(0x00608210)
+__declspec(naked) inline void __fastcall GameSetConstructorOriginal(void* /*glue*/, void*, float /*constructor*/)
+    EI_ORIGINAL(0x00578560)
+__declspec(naked) inline void __fastcall GameRequestScreenOriginal(void* /*glue*/, void*, int /*id*/) EI_ORIGINAL(0x00578B00)
 // 00607BB0 (rewritten as CBriefingScreen::ViewSpeaker; through its address so the wrapper runs; RET 0x10).
 __declspec(naked) inline void __fastcall BriefingViewSpeakerOriginal(void* /*screen*/, void*, void* /*unit*/, float /*angle*/,
                                                                      float /*distance*/, float /*height*/) EI_ORIGINAL(0x00607BB0)

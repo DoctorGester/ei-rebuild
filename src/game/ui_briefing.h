@@ -209,6 +209,19 @@ public:
     // of that name (its meshes and texture).
     void HideSpeaker(const char* name, int immediate, int time);
 
+    // 006064E0 (RET 8; ui_briefing_start.cpp). Dialogue topic_ starts: "goodbye" (or no leader)
+    // back to state 0; a "constr..." topic opens the camp (screen 5) with constructor N (the topic
+    // from its eighth character) when that class template exists. Otherwise the "#show" lines of
+    // the text "briefing <topic>" name the people: the first one not the leader is person_, a
+    // second third_; without one, state 0. The places: the person's (or, with noWalk_, the
+    // leader's) position, the other 2.5 + viewDistance along its facing, the third one beside
+    // the middle; their facings across, flat and normalised. With `remember` the people's
+    // positions are kept first (personHome_, thirdPlace_). A mover of the third person (or of the
+    // person, noWalk_) is dropped, its target kept unless it was waited for; then the leader (or,
+    // noWalk_, the person) and the third walk to their places (006089D0, waited, `immediate`).
+    // `immediate` starts the phrases at once (StartPhrases), else state 2.
+    void StartDialogue(bool immediate, bool remember);
+
     int exit_;                      // +0x164 the exit a "leave_zone" answer leaves through
     bool exitPending_;               // +0x168 Create sets it (Update checks the leader's exit)
     std::uint8_t unknown_169[3];
@@ -229,7 +242,8 @@ public:
     Vector3 lookAt_;                 // +0x204 position + the camera rotation's z axis then
     Vector3 thirdPlace_;             // +0x210 where the third speaker goes when hidden (006062C0)
     Vector3 thirdDirection_;         // +0x21C
-    std::uint8_t unknown_228[0x240 - 0x228];
+    Vector3 personHome_;             // +0x228 where the person stood when the dialogue started (noWalk_)
+    Vector3 personHomeDirection_;    // +0x234 and its facing
     BriefingMover* movers_;          // +0x240 the people walking to their places (list header)
     bool firstPhrase_;               // +0x244 set when the phrases start (the first one lasts a second longer)
     std::uint8_t unknown_245[3];
@@ -245,7 +259,7 @@ public:
     PersonTextMap personTexts_;      // +0x26C "pers" texts by text key (map<int, CString>)
     std::uint8_t unknown_270[0x278 - 0x270];
     BriefingShownItem* shown_;       // +0x278 the items shown (list header)
-    std::uint8_t unknown_27C;
+    bool immediate_;                 // +0x27C the dialogue's people are placed at once (006064E0's first argument)
     bool noWalk_;                    // +0x27D the zone's map record +0x44: the leader does not walk
     bool unknown_27E;                // +0x27E
     std::uint8_t unknown_27F;
@@ -278,6 +292,9 @@ static_assert(offsetof(CBriefingScreen, personTexts_) == 0x26C);
 static_assert(offsetof(CBriefingScreen, noWalk_) == 0x27D);
 static_assert(offsetof(CBriefingScreen, chat_) == 0x280);
 static_assert(offsetof(CBriefingScreen, thirdPlace_) == 0x210);
+static_assert(offsetof(CBriefingScreen, personHome_) == 0x228);
+static_assert(offsetof(CBriefingScreen, personHomeDirection_) == 0x234);
+static_assert(offsetof(CBriefingScreen, immediate_) == 0x27C);
 static_assert(offsetof(CBriefingScreen, shown_) == 0x278);
 static_assert(offsetof(CBriefingScreen, speakers_) == 0x294);
 static_assert(offsetof(CBriefingScreen, chatActive_) == 0x2A0);

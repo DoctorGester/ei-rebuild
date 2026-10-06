@@ -374,7 +374,12 @@ Then 00602C90 `OnUnitJoined` (slot 29; ours only: the unit once more in party_; 
 00607720 `LoadPersonTexts` (ours only: the map stays ordered) = the new `PersonTextMap::Load` (`ui_person_texts.cpp`), which the battle
 screen's setup now calls instead of its inline copy (forwarders 004DEFA0 / 00609E70 moved to originals_ui.h). OnUnitJoined's unused
 server-world lookup after the insert is left out.
-Next: 006064E0 / 00604C50 / 00608450, Create and Update.
+A-I12 (`ui_briefing_start.cpp`; `verify_ui_briefing_start.cpp`): 006064E0 `StartDialogue(immediate, remember)` (ours only:
+state 0 / 2 / 3, a person, the three facings flat, normalised and along the places). Fields: immediate_ +0x27C, personHome_ /
+personHomeDirection_ +0x228 / +0x234 (the person's place, noWalk_). The "constr" topic's number is `Mid(7)` (006FD9B4, not
+Right). Movers erased inline (00609A40, pool 0x30). Forwarders 00608210, 00578560, 00578B00 (originals_ui.h; harness.cpp uses
+them now).
+Next: 00604C50 / 00608450, Create and Update.
 
 ## 6. Battle screen: update, selection, orders, pending actions (00635250-0064BE80)
 
