@@ -22,4 +22,9 @@ inline const char* NoneText() { return reinterpret_cast<const char*>(0x007846F0)
 inline const char* ArrowFigureModelText() { return reinterpret_cast<const char*>(0x0079543C); }
 inline const char* ArrowFigureTextureText() { return reinterpret_cast<const char*>(0x00795434); }
 
+// The bird circling the followed hero (CEffectMoshka): model 00795474 "unmobi", texture 0079546C
+// "bird00".
+inline const char* MoshkaModelText() { return reinterpret_cast<const char*>(0x00795474); }
+inline const char* MoshkaTextureText() { return reinterpret_cast<const char*>(0x0079546C); }
+
 } // namespace game
