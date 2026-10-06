@@ -130,7 +130,9 @@ New and changed code is written the way the cleanup plan (docs/cleanup-plan.md) 
 does not need a second pass:
 - fields are members of the class's one declaration (in its header, with `static_assert`s on
   offsets), not `At<>`/`Field<>` offsets or `*At` view structs; add the members you need;
-- virtual calls go through declared virtual functions, not `VCall`;
+- virtual calls go through declared and named virtual functions, not `VCall` and not a placeholder
+  `SlotNN()` (name the slot when you call it);
+- no byte arithmetic on pointers with literal offsets (`reinterpret_cast<uint8_t*>(p) + 0x..`);
 - game globals are named (`constexpr` address in one header, or an accessor), not literal
   addresses in the code; hook registrations (`EI_REPLACE`, `EI_ORIGINAL`, `EI_VERIFY`) keep theirs;
 - no `__asm`, no `#pragma float_control` (rule 7);
