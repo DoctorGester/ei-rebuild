@@ -330,3 +330,15 @@ __declspec(naked) inline void __fastcall HeroScreenDrawVoicesOriginal(void* /*sc
 __declspec(naked) inline void __fastcall TradePanelBuildListsOriginal(void* /*panel*/) EI_ORIGINAL(0x00625880)
 __declspec(naked) inline void __fastcall TradePanelDrawListsOriginal(void* /*panel*/) EI_ORIGINAL(0x006261A0)
 __declspec(naked) inline void __fastcall TradePanelClampScrollOriginal(void* /*panel*/) EI_ORIGINAL(0x00626D70)
+// A-I10. The briefing / base screen (CBriefingScreen, ui_briefing.h; thiscall on the window): 006064E0 starts dialogue topic_
+// (RET 8: a flag, a second flag); 00604C50 the next phrase (RET 4: `skip`, the phrase's voice stopped); 00608450 the rewards
+// taken (plain RET); 00608B60 (rewritten as OpenTopics; through its address so the wrapper runs) a person's topics (RET 4);
+// 006071E0 draws the topic list (plain RET); 00607360 fills topics_ with a person's topics (RET 4: the person's id).
+__declspec(naked) inline void __fastcall BriefingStartDialogueOriginal(void* /*screen*/, void*, int, int) EI_ORIGINAL(0x006064E0)
+__declspec(naked) inline void __fastcall BriefingNextPhraseOriginal(void* /*screen*/, void*, int /*skip*/) EI_ORIGINAL(0x00604C50)
+__declspec(naked) inline void __fastcall BriefingTakeRewardsOriginal(void* /*screen*/) EI_ORIGINAL(0x00608450)
+__declspec(naked) inline void __fastcall BriefingOpenTopicsOriginal(void* /*screen*/, void*, void* /*person*/)
+    EI_ORIGINAL(0x00608B60)
+__declspec(naked) inline void __fastcall BriefingDrawTopicsOriginal(void* /*screen*/) EI_ORIGINAL(0x006071E0)
+__declspec(naked) inline void __fastcall BriefingFindTopicsOriginal(void* /*screen*/, void*, int /*personId*/)
+    EI_ORIGINAL(0x00607360)
