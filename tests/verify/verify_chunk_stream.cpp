@@ -494,11 +494,11 @@ void(__fastcall* s_readStringArray)(Chunk*, void*, CStringArray*);
 void __fastcall ReadStringArrayVerify(Chunk* self, void*, CStringArray* array) {
     alignas(CStringArray) std::uint8_t raw[sizeof(CStringArray)];
     auto* scratch = reinterpret_cast<CStringArray*>(raw);
-    scratch->vtable_ = array->vtable_;
-    scratch->data_ = nullptr;
-    scratch->size_ = 0;
-    scratch->maxSize_ = 0;
-    scratch->growBy_ = array->growBy_;
+    scratch->vtable = array->vtable;
+    scratch->data = nullptr;
+    scratch->size = 0;
+    scratch->maxSize = 0;
+    scratch->growBy = array->growBy;
     if (RunRecorded("Chunk::ReadStringArray", self, [&] { self->ReadStringArray(array); },
                     [&](Chunk* c) { s_readStringArray(c, nullptr, scratch); })) {
         bool same = scratch->GetSize() == array->GetSize();

@@ -22,7 +22,7 @@ src/game/ai_unit_layer.cpp,0,2,0,0,0,0,0,0,0
 src/game/ai_water_patch.cpp,0,0,0,2,1,0,0,0,0
 src/game/aligned_arrays.cpp,0,0,0,0,0,0,0,0,1
 src/game/app_device_list.cpp,0,0,0,0,0,0,0,3,0
-src/game/app_frame.cpp,8,1,0,0,1,0,0,1,1
+src/game/app_frame.cpp,8,1,0,0,1,0,0,1,0
 src/game/app_registry.cpp,0,2,0,0,0,0,0,0,0
 src/game/base_manager.cpp,0,1,0,0,1,0,0,0,1
 src/game/base_manager.h,0,0,0,0,1,0,0,0,0
@@ -110,7 +110,7 @@ src/game/map_object_figures.h,0,0,0,0,0,0,14,0,1
 src/game/map_object_lifetime.cpp,24,2,0,0,19,0,0,30,0
 src/game/map_object_shadow.cpp,25,9,1,1,0,0,0,1,0
 src/game/map_spec.cpp,1,8,0,0,9,0,0,3,0
-src/game/map_spec.h,0,0,0,0,0,0,1,0,2
+src/game/map_spec.h,0,0,0,0,0,0,1,0,1
 src/game/map_spec_effect.cpp,0,1,0,0,7,0,0,3,0
 src/game/map_spec_unit.cpp,2,3,0,0,9,0,0,2,1
 src/game/menu_rects.cpp,0,1,0,0,36,0,0,0,1
@@ -185,7 +185,7 @@ src/game/scene_bone_frames.cpp,16,0,0,0,0,0,0,0,0
 src/game/scene_bones.cpp,51,0,1,0,0,0,0,0,0
 src/game/scene_loader.cpp,48,4,1,0,23,0,0,0,5
 src/game/scene_loader.h,0,0,0,0,0,0,0,0,1
-src/game/scene_material.cpp,0,0,0,0,25,0,0,0,1
+src/game/scene_material.cpp,0,0,0,0,25,0,0,0,0
 src/game/scene_meshes.cpp,10,0,0,0,0,0,0,0,0
 src/game/scene_normals.cpp,13,0,0,0,0,0,0,0,0
 src/game/scene_registry.cpp,19,0,1,0,2,0,0,0,0
@@ -305,7 +305,7 @@ src/game/unit_stats_pack.cpp,0,0,1,1,1,0,0,2,0
 src/game/unit_update.cpp,1,14,1,1,1,0,0,4,0
 src/game/unit_vitals.cpp,2,0,4,1,24,0,0,6,0
 src/game/weather_draw.cpp,10,0,0,0,0,0,0,1,0
-src/game/world.h,0,0,0,0,0,0,17,0,5
+src/game/world.h,0,0,0,0,0,0,17,0,4
 src/game/world_briefing.cpp,0,0,0,0,10,0,0,1,0
 src/game/world_client.cpp,13,17,0,0,0,0,0,4,0
 src/game/world_client_draw.cpp,71,5,6,0,17,0,0,8,0

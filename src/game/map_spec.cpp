@@ -37,7 +37,7 @@ constexpr int kFileRead = 13;   // CFile
 constexpr int kFileWrite = 14;
 
 // MFC CStringArray (library).
-void __fastcall StringArrayAppend(StringArray* a0, void*, const StringArray* a2) { StringArrayCopyOriginal((void*)a0, nullptr, (const void*)a2); }
+void __fastcall StringArrayAppend(mfc::CStringArray* a0, void*, const mfc::CStringArray* a2) { StringArrayCopyOriginal((void*)a0, nullptr, (const void*)a2); }
 // MFC CArray helpers (library): SetSize of the 12-byte array, zeroing 8-byte elements.
 void __fastcall AreasSetSize(PlainArray* a0, void*, int a2, int a3) { Array12SetSizeOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __stdcall ConstructTargets(void* /*first*/, int /*count*/) EI_ORIGINAL(0x0046F110)
@@ -645,13 +645,13 @@ EI_REPLACE(0x0046A4B0, QuaternionRotate);
 // ---- 0046E5E0: the zone's diplomacy table --------------------------------------------------------
 
 namespace {
-void __fastcall StringArraySetAtGrow(StringArray* a0, void*, int a2, const char* a3) { StringArraySetAtGrowTextOriginal((void*)a0, nullptr, a2, a3); }
+void __fastcall StringArraySetAtGrow(mfc::CStringArray* a0, void*, int a2, const char* a3) { StringArraySetAtGrowTextOriginal((void*)a0, nullptr, a2, a3); }
 } // namespace
 
 // The diplomacy of the zone's 32 players (0x1014 bytes; made by the zone loader 00481660): every
 // pair 1 but a player with itself (0), and the player names "Player-<i>". Returns this.
 std::int32_t* __fastcall DiplomacyConstruct(std::int32_t* self) {
-    auto* names = reinterpret_cast<StringArray*>(self + 0x400);
+    auto* names = reinterpret_cast<mfc::CStringArray*>(self + 0x400);
     StringArrayConstruct(names);
     for (int i = 0; i < 0x400; ++i) self[i] = 1;
     for (int i = 0; i < 32; ++i) self[i * 33] = 0;

@@ -67,7 +67,7 @@ struct UnitSpec {
     Behaviour behaviour[5];      // +0x090
     mfc::CString prototype;      // +0x20C ("none")
     std::uint8_t stats[0xAC];    // +0x210
-    StringArray lists[5];        // +0x2BC ... +0x30C (chunks BBBB0005 ... BBBB0009)
+    mfc::CStringArray lists[5];   // +0x2BC ... +0x30C (chunks BBBB0005 ... BBBB0009)
     std::uint32_t unknown_320;   // +0x320
 };
 static_assert(offsetof(UnitSpec, behaviour) == 0x90);
@@ -386,7 +386,7 @@ UnitSpec* __fastcall UnitSpecConstruct(UnitSpec* self) {
     ObjectSpecConstruct(&self->object);
     VectorConstruct(self->behaviour, sizeof(Behaviour), 5, kBehaviourConstruct, kBehaviourDestruct);
     new (&self->prototype) mfc::CString();
-    for (StringArray& list : self->lists) StringArrayConstruct(&list);
+    for (mfc::CStringArray& list : self->lists) list.Construct();
     self->unknown_320 = 0;
     SetVtable(self, kUnitVtable);
     self->object.base.kind = 5;
@@ -421,7 +421,7 @@ EI_REPLACE(0x0046C120, UnitSpecDelete);
 // 0046C2F0: the destructor of the block at +0x210 (the five string lists; reached only when an
 // exception unwinds the constructor).
 void __fastcall UnitStatsDestruct(std::uint8_t* self) {
-    for (int i = 4; i >= 0; --i) StringArrayDestruct(reinterpret_cast<StringArray*>(self + 0xAC + i * 0x14));
+    for (int i = 4; i >= 0; --i) StringArrayDestruct(reinterpret_cast<mfc::CStringArray*>(self + 0xAC + i * 0x14));
 }
 EI_REPLACE(0x0046C2F0, UnitStatsDestruct);
 

@@ -21,16 +21,6 @@
 
 namespace mapspec {
 
-// An MFC CStringArray (0x14 bytes; constructor 006FE925, destructor 006FE958).
-struct StringArray {
-    void* vtable;
-    mfc::CString* data;
-    int size;
-    int max;
-    int grow;
-};
-static_assert(sizeof(StringArray) == 0x14);
-
 // An MFC CArray of plain elements (0x14 bytes).
 struct PlainArray {
     void* vtable;
@@ -72,7 +62,7 @@ struct ObjectSpec {
     std::uint8_t unknown_6F;
     mfc::CString parentIname;    // +0x70
     mfc::CString unknown_74;     // +0x74
-    StringArray parts;           // +0x78
+    mfc::CStringArray parts;      // +0x78
 };
 static_assert(offsetof(ObjectSpec, model) == 0x4C);
 static_assert(offsetof(ObjectSpec, scale) == 0x60);
@@ -138,7 +128,7 @@ public:
 // of every pair of the 32 players (1 by default, 0 with itself, 2 hostile) and their names.
 struct ZoneDiplomacy {
     std::int32_t relations[32][32];
-    StringArray names;           // +0x1000
+    mfc::CStringArray names;      // +0x1000
 };
 static_assert(offsetof(ZoneDiplomacy, names) == 0x1000);
 static_assert(sizeof(ZoneDiplomacy) == 0x1014);

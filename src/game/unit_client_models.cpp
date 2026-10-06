@@ -465,7 +465,7 @@ void AddPrototypePrefix(const CUnit* unit, mfc::CString& texture) {
 }
 
 void AddTexture(SkinRequest& request, const mfc::CString& texture) {
-    request.textures.SetAtGrow(request.textures.size_, texture);
+    request.textures.SetAtGrow(request.textures.size, texture);
 }
 
 void AddArmourTexture(SkinRequest& request, const CUnit* unit, mfc::CString& texture, std::uint32_t id) {

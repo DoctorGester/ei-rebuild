@@ -376,11 +376,11 @@ int __fastcall TokenizeVerify(const char* text, CStringArray* out) {
     CStringArray scratch;
     int expected = s_tokenize(text, &scratch);
     int actual = Tokenize(text, out);
-    bool same = expected == actual && scratch.GetSize() == out->GetSize() && scratch.maxSize_ == out->maxSize_ &&
-                scratch.growBy_ == out->growBy_;
+    bool same = expected == actual && scratch.GetSize() == out->GetSize() && scratch.maxSize == out->maxSize &&
+                scratch.growBy == out->growBy;
     for (int i = 0; same && i < out->GetSize(); ++i) same = Text(scratch[i]) == Text((*out)[i]);
     ei::verify::Check("Tokenize", true, same, "'%s': %d tokens (max %d) vs %d (max %d): %s",
-                      text, scratch.GetSize(), scratch.maxSize_, out->GetSize(), out->maxSize_, Joined(out).c_str());
+                      text, scratch.GetSize(), scratch.maxSize, out->GetSize(), out->maxSize, Joined(out).c_str());
     return expected;
 }
 EI_VERIFY(0x004DC200, TokenizeVerify, 7, s_tokenize);

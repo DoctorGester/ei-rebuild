@@ -44,7 +44,7 @@ static_assert(sizeof(LightSpec) == 0x68);
 
 struct SoundSpec {               // 0073C7B8
     EffectSpec effect;
-    StringArray sounds;          // +0x54 (none made without any)
+    mfc::CStringArray sounds;     // +0x54 (none made without any)
     std::int32_t unknown_68;     // +0x68 (10)
     std::int32_t unknown_6C;     // +0x6C (15)
     std::int32_t unknown_70;     // +0x70 (1)

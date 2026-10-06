@@ -205,7 +205,7 @@ void CBriefingScreen::OnUnitJoined(CUnit* unit) {
         std::memcpy(&bits, &node->value, 4);
         if (bits != kOneBits) continue;
         StringSplit(node->key, &parts, '.');
-        if (parts.size_ != kTopicNameParts) continue;
+        if (parts.size != kTopicNameParts) continue;
         topic_ = parts[2];
         briefingStarted_ = true;
         BriefingStartDialogueOriginal(this, nullptr, 1, 1);

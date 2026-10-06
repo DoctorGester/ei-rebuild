@@ -141,11 +141,11 @@ int CMusicSystem::LoadThemes() {
     {
         console::CStringArray sections;
         reg.GetSectionNames(&sections);
-        for (int i = 0; i < sections.size_; ++i) {
-            const char* section = sections.data_[i];
+        for (int i = 0; i < sections.size; ++i) {
+            const char* section = sections.data[i];
             if (CompareNoCase(section, Text(0x0079683C)) == 0) continue;   // "common"
             LocalTheme read;
-            read.name = sections.data_[i];
+            read.name = sections.data[i];
             read.dungeon = 0;
             read.briefing = reg.GetString(section, Text(0x00796830), Copy(game::EmptyText()));      // "Briefing"
             read.constructor = reg.GetString(section, Text(0x00796824), Copy(game::EmptyText()));   // "Constructor"

@@ -305,7 +305,7 @@ double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)
 void __fastcall ControllerReposition(void* a0, void*) { ControllerRepositionOriginal(a0); }
 // 005935C0 (RET 4). RemoveObjectFromServer. Patched by Rebirth: original address.
 // 006FEBFA / 006FE9B8. CStringArray::SetAtGrow(int, const CString&) / SetSize(int, int).
-void __fastcall StringArraySetAtGrow(StringArray* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal((void*)a0, nullptr, a2, a3); }
+void __fastcall StringArraySetAtGrow(mfc::CStringArray* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal((void*)a0, nullptr, a2, a3); }
 // 0050EA40 / 0050E9F0 (RET 4) / 005179E0 (RET 4). Map object: prepares the record array before
 // Load, MarkChanged(part), CObject3D's animated figure setup for its figure name.
 void __fastcall MapObjectBeginLoad(CEngineObject* a0, void*) { ObjectPrepareOriginal((void*)a0); }

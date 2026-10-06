@@ -21,14 +21,6 @@ void __fastcall AppendChar(mfc::CString* a0, void*, char a2) { CStringAppendChar
 inline int __fastcall FindChar(const mfc::CString* s, void*, char c) { return CStringFindCharOriginal(s, nullptr, c); }
 void __fastcall StringArraySetAtGrow(void* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal(a0, nullptr, a2, a3); }
 
-struct StringArray {   // CStringArray
-    std::uintptr_t vtable;
-    mfc::CString* data;
-    int size;
-    int max;
-    int grow;
-};
-
 const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 bool Is(const mfc::CString& s, std::uintptr_t text) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(s)),
@@ -54,7 +46,7 @@ constexpr Entry kMaterials[] = {{0x007844B0, 0x11}, {0x007844AC, 0x12}, {0x00784
 // parts gives (1, 0x15); an unknown texture type 1, an unknown material 0x15 (after the error).
 int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
     mfc::CString rest(name);
-    StringArray parts;
+    mfc::CStringArray parts;
     StringArrayConstruct(&parts);
     AppendChar(&rest, nullptr, '.');
     for (int dot = FindChar(&rest, nullptr, '.'); dot != -1; dot = FindChar(&rest, nullptr, '.')) {

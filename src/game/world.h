@@ -125,19 +125,6 @@ struct ZoneExitArray {
 };
 static_assert(sizeof(ZoneExitArray) == 0x14);
 
-// MFC CStringArray (vtable, data, size, capacity, growBy).
-struct StringArray {
-    void* vtable;
-    char** data;                          // +0x04 CStrings
-    int size;                             // +0x08
-    int capacity;                         // +0x0C
-    int growBy;                           // +0x10
-
-    // 006FEBCE. CStringArray::SetAtGrow(index, text).
-    void SetAtGrow(int index, const char* text);
-};
-static_assert(sizeof(StringArray) == 0x14);
-
 // Members both world classes share (base class, 0055E000-0055FFFF).
 class CWorld : public CEngineObject {
 public:
@@ -546,7 +533,7 @@ public:
     ObjectIdMap updateMap_;               // +0x104
     std::uint8_t unknown_11C[0x120 - 0x11C];
     char* zoneName_;                      // +0x120 CString: the zone's map database name
-    StringArray mobFiles_;                // +0x124 .mob files loaded in this zone (LoadMobFile)
+    mfc::CStringArray mobFiles_;           // +0x124 .mob files loaded in this zone (LoadMobFile)
     int gameResult_;                      // +0x138 0 while the game runs
     std::uint32_t unknown13C_;            // +0x13C saved and loaded
     std::uint8_t unknown_140[0x15C - 0x140];

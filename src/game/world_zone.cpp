@@ -113,7 +113,6 @@ void UnitRecordBuilder::Destruct() { PartyRecordsDestructOriginal((void*)this); 
 
 __declspec(naked) ZoneExit* ZoneExit::DeletingDestructor(unsigned) EI_ORIGINAL(0x004608B0)
 __declspec(naked) void ZoneExitArray::SetSize(int, int) EI_ORIGINAL(0x00573080)
-void StringArray::SetAtGrow(int a2, const char* a3) { StringArraySetAtGrowTextOriginal((void*)this, nullptr, a2, a3); }
 
 // ---- Zone exits -------------------------------------------------------------------------------
 
@@ -198,7 +197,7 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
 
 int CWorldServer::LoadMobFile(const char* file) {
     for (int i = 0; i < mobFiles_.size; ++i) {
-        if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(mobFiles_.data[i]),
+        if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(mobFiles_[i])),
                             reinterpret_cast<const unsigned char*>(file)) == 0)
             return 1;
     }
