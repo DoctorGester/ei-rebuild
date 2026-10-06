@@ -1514,7 +1514,7 @@ namespace {
 // finishes; 00532A20 takes statistics (RET 4).
 __declspec(naked) void __fastcall UnitClearWeapon(std::uint8_t*, void*, int) EI_ORIGINAL(0x005310D0)
 void __fastcall UnitGiveWeapon(std::uint8_t* a0, void*, std::uint8_t* a2) { UnitAddWeaponOriginal((void*)a0, nullptr, (void*)a2); }
-__declspec(naked) void __fastcall UnitWeaponsDone(std::uint8_t*) EI_ORIGINAL(0x00531110)
+void UnitWeaponsDone(std::uint8_t* unit) { UnitSendEquipmentOriginal(unit); }
 __declspec(naked) void __fastcall UnitTakeStats(std::uint8_t*, void*, std::uint8_t*) EI_ORIGINAL(0x00532A20)
 
 void FigureCall(std::uint8_t* unit, int slot) {

@@ -314,9 +314,23 @@ public:
     // Called through the vtable, as the original does.
     char* Hero();                       // slot 51 (+0xCC)
     void Refresh();                     // slot 47 (+0xBC), 00618850 here
-    // Not rewritten.
-    void ShowHero(int index);           // 00616910
-    void DrawVoices();                  // 00616560
+    // 00616910 (RET 4; ui_hero_screen.cpp). The local player's first record handed to the client
+    // world; hero `index` (when in the list; else none, -1) copied into the local party and made
+    // current; the preview rebuilt (00616E20 with 1); the hero's unit re-armed (four slots
+    // cleared, its weapons given, the equipment sent, the chosen weapon shown); the turn reset and
+    // the list redrawn.
+    void ShowHero(int index);
+    // 00616560. The voices' surface (2): the "lmp_voices" title and eleven rows from voiceTop_,
+    // the selection frame (scene object 2) on the chosen one.
+    void DrawVoices();
+    // 006167C0. The hero list's surface (0): ten rows of names from heroTop_, the selection frame
+    // (scene object 2) on the selected hero.
+    void DrawHeroList();
+    MpVoiceVector& Voices() { return *reinterpret_cast<MpVoiceVector*>(voices_); }
+    // The three above through their original address (their wrappers run; ui_screens.cpp).
+    void CallShowHero(int index);
+    void CallDrawVoices();
+    void CallDrawHeroList();
 
     // 006159E0 (slot 20, RET 4; ui_hero_screen.cpp). On the statistics page (11) the experience
     // lines on surface 2; then what is under the mouse for the description panel (the equipment

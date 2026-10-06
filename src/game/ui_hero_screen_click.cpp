@@ -33,7 +33,6 @@ __declspec(naked) void __fastcall Continue(CMpHeroScreen*) EI_ORIGINAL(0x006183B
 __declspec(naked) void __fastcall Rename(CMpHeroScreen*) EI_ORIGINAL(0x00618060)
 __declspec(naked) void __fastcall PlayVoice(CMpHeroScreen*) EI_ORIGINAL(0x00619150)
 // 006167C0: the hero list drawn again (plain RET).
-void DrawHeroList(CMpHeroScreen* screen) { HeroScreenDrawListOriginal(screen); }
 // 00618FF0 / 00619090 (rewritten as ClampHeroSelection / ClampVoiceSelection; through their address so the
 // wrappers run; plain RET).
 __declspec(naked) void __fastcall ClampHeroAt(CMpHeroScreen*) EI_ORIGINAL(0x00618FF0)
@@ -188,7 +187,7 @@ void CMpHeroScreen::FinishRename() {
     name = typed;
     PartySendTransferOriginal(MpHeroes().begin + heroIndex_ * kMpHeroSize, nullptr, HeroesTransfer());
     CloseRenameEdit();
-    ShowHero(heroIndex_);
+    CallShowHero(heroIndex_);
 }
 
 void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
@@ -213,7 +212,7 @@ void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
     case VK_ESCAPE:
         if (renaming) {
             CloseRenameEdit();
-            DrawHeroList(this);
+            CallDrawHeroList();
         } else if (mode_ == kModeList) {
             BackToMainMenu(ui);
         } else if (mode_ == kModeStats) {
@@ -313,7 +312,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         const mfc::CString& file = *reinterpret_cast<const mfc::CString*>(voices[0] + index * 8);
         *reinterpret_cast<mfc::CString*>(Hero() + 0x18) = file;
         PlayVoice(this);
-        DrawVoices();
+        CallDrawVoices();
         return;
     }
 
@@ -397,7 +396,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     int index = heroTop_ + region - 9;
     if (index < 0 || static_cast<unsigned>(index) >= static_cast<unsigned>(HeroCount())) return;
     uiorig::PlayUiSound(ui, GameText(kSoundSelect), 0);
-    ShowHero(index);
+    CallShowHero(index);
 }
 
 namespace {

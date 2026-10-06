@@ -208,3 +208,9 @@ __declspec(naked) inline void __fastcall CompanionParticlesSetSizeOriginal(void*
                                                                            int /*growBy*/) EI_ORIGINAL(0x005121B0)
 __declspec(naked) inline void __fastcall ClientDestructBodyOriginal(CUnitClientSpecific* /*controller*/)
     EI_ORIGINAL(0x00533EA0)
+
+// A-I7. 005310D0 (rewritten as CUnit::RemoveWeapon): clears weapon slot `slot` (RET 4; EAX not read by these callers).
+// 00531110 (rewritten as CUnit::SendEquipment): sends the unit's equipment (plain RET). Through their address so the
+// wrappers run.
+__declspec(naked) inline void __fastcall UnitRemoveWeaponOriginal(void* /*unit*/, void*, int /*slot*/) EI_ORIGINAL(0x005310D0)
+__declspec(naked) inline void __fastcall UnitSendEquipmentOriginal(void* /*unit*/) EI_ORIGINAL(0x00531110)

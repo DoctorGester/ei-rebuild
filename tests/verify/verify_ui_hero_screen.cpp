@@ -115,3 +115,44 @@ static void __fastcall HeroScreenDestroyVerify(CMpHeroScreen* self) {
                       "models %u textures %u", screen->models_.count, screen->textures_.count);
 }
 EI_VERIFY(0x00633260, HeroScreenDestroyVerify, 0, s_unused);
+
+// --- 006167C0 / 00616560 / 00616910: the lists drawn and a hero shown; ours only ----------------------
+// They draw text and send the hero's records, so they run once: the selection frame (scene object 2)
+// is shown exactly when the selection is among the rows drawn; ShowHero keeps a valid index (else
+// -1) and resets the turn. ui_hero_screen (the list, the new hero's voice rows and keys).
+
+namespace {
+bool FrameShown(CMpHeroScreen* self) {
+    return reinterpret_cast<CUiMesh*>(self->window.sceneObjects_.data_[2])->visible_ != 0;
+}
+int MpHeroTotal() {
+    const RecordTable& heroes = MpHeroes();
+    return static_cast<int>(heroes.end - heroes.begin) / kMpHeroSize;
+}
+} // namespace
+
+static void __fastcall HeroListDrawVerify(CMpHeroScreen* self) {
+    self->DrawHeroList();
+    int top = self->heroTop_, selected = self->heroIndex_;
+    bool expected = selected >= top && selected < top + 10 && selected < MpHeroTotal() && top >= 0;
+    ei::verify::Check("CMpHeroScreen::DrawHeroList", expected, FrameShown(self), "top %d selected %d", top, selected);
+}
+EI_VERIFY(0x006167C0, HeroListDrawVerify, 0, s_unused);
+
+static void __fastcall VoicesDrawVerify(CMpHeroScreen* self) {
+    self->DrawVoices();
+    MpVoiceVector& voices = self->Voices();
+    int count = static_cast<int>(voices.end - voices.begin);
+    int top = self->voiceTop_, selected = self->voiceIndex_;
+    bool expected = selected >= top && selected < top + 11 && selected < count && top >= 0;
+    ei::verify::Check("CMpHeroScreen::DrawVoices", expected, FrameShown(self), "top %d selected %d", top, selected);
+}
+EI_VERIFY(0x00616560, VoicesDrawVerify, 0, s_unused);
+
+static void __fastcall ShowHeroVerify(CMpHeroScreen* self, void*, int index) {
+    self->ShowHero(index);
+    int expected = index >= 0 && index < MpHeroTotal() ? index : -1;
+    ei::verify::Check("CMpHeroScreen::ShowHero", true, self->heroIndex_ == expected && self->turn_ == 0.0f,
+                      "index %d -> %d", index, self->heroIndex_);
+}
+EI_VERIFY(0x00616910, ShowHeroVerify, 0, s_unused);

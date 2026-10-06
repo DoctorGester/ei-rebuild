@@ -180,12 +180,12 @@ public:
     virtual void Slot22();
     virtual void Slot23();
     virtual void Slot24();
-    virtual void Slot25();
+    virtual void ShowWeapon(std::uint32_t index);   // 25: the weapon the figure holds (-1 none)
     virtual bool ArmourPutOn(std::uint32_t itemId);     // 26: client 005381B0 (WearArmourModel)
     virtual bool ArmourTakenOff(std::uint32_t slot);    // 27: client 005385A0 (RemoveArmourModel)
     virtual void Slot28();
     virtual void Slot29();
-    virtual void Slot30();
+    virtual void RefreshModel();            // 30: after a weapon change
     virtual void Slot31();
     virtual void Slot32();
     virtual void Slot33();

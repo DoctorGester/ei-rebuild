@@ -16,6 +16,10 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "originals_gameplay.h"
+#include "originals_units.h"
+#include "lib/gameapi.h"
+#include "party.h"
 
 #include <cmath>
 #include <cstdint>
@@ -156,12 +160,12 @@ void CMpHeroScreen::Update() {
     int position;
     if (ScrollbarTakePositionOriginal(heroScroll_, nullptr, &position)) {
         heroTop_ = position;
-        HeroScreenDrawListOriginal(this);
+        CallDrawHeroList();
     }
     if (ScrollbarTakePositionOriginal(voiceScroll_, nullptr, &position)) {
         voiceTop_ = position;
         if (mode_ != kModeNewHero) return;
-        DrawVoices();
+        CallDrawVoices();
     }
     if (mode_ != kModeNewHero) return;
 
@@ -274,3 +278,112 @@ namespace {
 void __fastcall HeroScreenDestroy(CMpHeroScreen* self) { self->Destroy(); }
 } // namespace
 EI_REPLACE(0x00633260, HeroScreenDestroy);
+
+// --- 006167C0 / 00616560: the hero list and the voices drawn -----------------------------------------
+
+namespace {
+const char* const kVoicesKey = reinterpret_cast<const char*>(0x00793A24);   // "lmp_voices"
+// The voice rows' first y offset of the selection frame.
+float VoiceFrameTop() { return *reinterpret_cast<const volatile float*>(0x00741C94); }
+constexpr int kSelectionFrame = 2;           // scene object
+constexpr std::uint32_t kListColour = 0xA7D7E4;
+constexpr int kListFormat = 0x800;
+constexpr float kFrameDepth = 3.0f;
+
+CUiMesh* SelectionFrame(CUiWindow& window) {
+    return reinterpret_cast<CUiMesh*>(window.sceneObjects_.data_[kSelectionFrame]);
+}
+// A multiplayer hero record (a party, 0x74 bytes) and its name: its first member's text 0.
+CParty* MpHero(std::uint32_t index) { return reinterpret_cast<CParty*>(MpHeroes().begin + index * kMpHeroSize); }
+std::uint32_t MpHeroCount() {
+    return static_cast<std::uint32_t>(static_cast<int>(MpHeroes().end - MpHeroes().begin) / kMpHeroSize);
+}
+} // namespace
+
+void CMpHeroScreen::DrawHeroList() {
+    CUiSurface* surface = window.surfaces_.data_[0];
+    SurfaceGetDC(surface);
+    SurfaceClearOriginal(surface);
+    SelectionFrame(window)->visible_ = 0;
+    RECT rect = {12, 13, 265, 33};
+    std::uint32_t index = static_cast<std::uint32_t>(heroTop_);
+    for (int y = 262; y < 502; y += 24, ++index) {
+        if (index >= MpHeroCount()) break;
+        if (static_cast<int>(index) == heroIndex_) {
+            SelectionFrame(window)->visible_ = 1;
+            SelectionFrame(window)->Place(240.0f, static_cast<float>(y), kFrameDepth);
+        }
+        const char* name = *reinterpret_cast<const char* const*>(MpHero(index)->members_.data);
+        SurfaceDrawText(surface, nullptr, name, &rect, 1, kListColour, kListFormat, 1);
+        gameapi::OffsetRect(&rect, 0, 24);
+    }
+    SurfaceReleaseDC(surface);
+}
+namespace {
+void __fastcall HeroScreenDrawHeroList(CMpHeroScreen* self) { self->DrawHeroList(); }
+} // namespace
+EI_REPLACE(0x006167C0, HeroScreenDrawHeroList);
+
+void CMpHeroScreen::DrawVoices() {
+    CUiSurface* surface = window.surfaces_.data_[2];
+    SurfaceGetDC(surface);
+    SurfaceClearOriginal(surface);
+    SelectionFrame(window)->visible_ = 0;
+    mfc::CString title;
+    RECT rect = {10, 5, 190, 20};
+    TextsGetString(GameTexts(), nullptr, kVoicesKey, &title);
+    SurfaceDrawText(surface, nullptr, title, &rect, 0, kWhite, 1, 1);
+    rect = {20, 25, 175, 40};
+    std::uint32_t index = static_cast<std::uint32_t>(voiceTop_);
+    for (int offset = 0; offset < 165; offset += 15, ++index) {
+        MpVoiceVector& voices = Voices();
+        int bytes = static_cast<int>(reinterpret_cast<char*>(voices.end) - reinterpret_cast<char*>(voices.begin));
+        if (index >= static_cast<std::uint32_t>(bytes >> 3)) break;
+        if (static_cast<int>(index) == voiceIndex_) {
+            SelectionFrame(window)->visible_ = 1;
+            float y = static_cast<float>(static_cast<double>(offset) + VoiceFrameTop());
+            SelectionFrame(window)->Place(97.5f, y, kFrameDepth);
+        }
+        SurfaceDrawText(surface, nullptr, voices.begin[index].name, &rect, 0, kListColour, kListFormat, 1);
+        gameapi::OffsetRect(&rect, 0, 15);
+    }
+    SurfaceReleaseDC(surface);
+}
+namespace {
+void __fastcall HeroScreenDrawVoices(CMpHeroScreen* self) { self->DrawVoices(); }
+} // namespace
+EI_REPLACE(0x00616560, HeroScreenDrawVoices);
+
+// --- 00616910: a hero shown -------------------------------------------------------------------
+
+void CMpHeroScreen::ShowHero(int index) {
+    RecordArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
+    auto* player = reinterpret_cast<CParty*>(LocalPlayerData());
+    if (player->members_.size > 0) {
+        int size = records.size;
+        RecordArraySetSizeOriginal(&records, nullptr, size + 1, -1);
+        records.data[size] = reinterpret_cast<std::uint8_t*>(player->members_.data);
+        GameTakeUnitRecordsOriginal(ClientGlue(), nullptr, &records);
+    }
+    heroIndex_ = -1;
+    if (index >= 0 && static_cast<std::uint32_t>(index) < MpHeroCount()) {
+        heroIndex_ = index;
+        PartyCopyFrom(player, nullptr, MpHero(index));
+        MpHeroesSelectOriginal(MpHeroesObject(), nullptr, MpHero(index));
+    }
+    HeroScreenMakePreviewOriginal(this, nullptr, 1);
+    auto* hero = reinterpret_cast<PartyUnitRecord*>(Hero());
+    auto* unit = static_cast<CUnit*>(GameUnitByIdOriginal(ClientGlue(), nullptr, hero->unknown_01C));
+    for (int slot = 0; slot < 4; ++slot) UnitRemoveWeaponOriginal(unit, nullptr, slot);
+    for (int i = 0; i < static_cast<int>(hero->weaponCount); ++i) UnitAddWeaponOriginal(unit, nullptr, hero->weapons[i]);
+    UnitSendEquipmentOriginal(unit);
+    unit->Controller()->ShowWeapon(hero->weaponIndex);
+    unit->Controller()->RefreshModel();
+    turn_ = 0.0f;
+    CallDrawHeroList();
+    if (records.data) gamecrt::operator_delete(records.data);
+}
+namespace {
+void __fastcall HeroScreenShowHero(CMpHeroScreen* self, void*, int index) { self->ShowHero(index); }
+} // namespace
+EI_REPLACE(0x00616910, HeroScreenShowHero);

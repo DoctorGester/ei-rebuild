@@ -295,3 +295,15 @@ __declspec(naked) inline void __fastcall FreeBlock4ProxyOriginal(void* /*proxy*/
     EI_ORIGINAL(0x00520F20)
 __declspec(naked) inline void __fastcall DestroyModelMapOriginal(void* /*map*/) EI_ORIGINAL(0x00634160)
 __declspec(naked) inline void __fastcall DestroyTextureMapOriginal(void* /*map*/) EI_ORIGINAL(0x00634200)
+// 00578980: the client glue (007AFEA5, not read) finds the unit with id `id` in the client world (0055FB00 on 007AF5B8;
+// RET 4; EAX the unit or null). 00662F80: the multiplayer heroes (007C82A0) make `hero` the current one (RET 4).
+__declspec(naked) inline void* __fastcall GameUnitByIdOriginal(void* /*glue*/, void*, std::uint32_t /*id*/)
+    EI_ORIGINAL(0x00578980)
+__declspec(naked) inline void __fastcall MpHeroesSelectOriginal(void* /*heroes*/, void*, void* /*hero*/) EI_ORIGINAL(0x00662F80)
+// 00616E20 (thiscall on the hero screen, RET 4): the preview's unit made for the local player's first record.
+__declspec(naked) inline void __fastcall HeroScreenMakePreviewOriginal(void* /*screen*/, void*, int /*flag*/)
+    EI_ORIGINAL(0x00616E20)
+// 00616910 / 00616560 (rewritten as CMpHeroScreen::ShowHero (RET 4) / DrawVoices; plain RET).
+__declspec(naked) inline void __fastcall HeroScreenShowHeroOriginal(void* /*screen*/, void*, int /*index*/)
+    EI_ORIGINAL(0x00616910)
+__declspec(naked) inline void __fastcall HeroScreenDrawVoicesOriginal(void* /*screen*/) EI_ORIGINAL(0x00616560)
