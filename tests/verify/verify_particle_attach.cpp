@@ -66,8 +66,13 @@ EI_VERIFY(0x00485280, AttachmentOffsetVerify, 10, s_attachmentOffset);
 // local position without an object).
 static void (__fastcall* s_attach)(CParticleSource*, void*, void*);
 static void __fastcall AttachVerify(CParticleSource* self, void*, void* object) {
+    // AddEffectSource calls Attach(object) again from inside the outer Attach, before the outer
+    // call sets the origin: such a nested call with the object already attached changes nothing,
+    // so only the attachment is checked then.
+    const bool unchanged = object && self->attachedTo == object;
     self->Attach(object);
     ei::verify::Check("Attach attachedTo", object, self->attachedTo, "%p");
+    if (unchanged) return;
     if (!object) {
         CheckPoint("Attach origin (position)", self->position, self->origin);
         return;
