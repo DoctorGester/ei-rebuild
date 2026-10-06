@@ -38,8 +38,17 @@ static_assert(sizeof(AllodRecord) == 0x2C);
 struct MapRecord {
     char* name;   // CString
     char* allod;  // +0x04 CString
-    std::uint8_t unknown_8[0x5C - 8];
+    std::uint8_t unknown_8[0x34 - 8];
+    bool restricted;        // +0x34 "#restrict x y radius": the camera stays in that circle
+    std::uint8_t unknown_35[3];
+    float restrictX;        // +0x38
+    float restrictY;        // +0x3C
+    float restrictRadius;   // +0x40
+    bool cage;              // +0x44 "#cage": a base where the party does not walk to the people
+    std::uint8_t unknown_45[0x5C - 0x45];
 };
+static_assert(offsetof(MapRecord, restricted) == 0x34);
+static_assert(offsetof(MapRecord, cage) == 0x44);
 static_assert(sizeof(MapRecord) == 0x5C);
 
 // The map database loaded from map.txt / map_LMP.txt (global at 0079BF00; constructor 0045E820,

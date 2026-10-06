@@ -470,7 +470,7 @@ CUnit +0xC8 is now `build`, CUiMesh +0x34 `orientation_`.
 
 | Address | Name | Verify (ours only) |
 |---|---|---|
-| 00649AF0 | CHudTopPanel::Build (RET 8: page, shown) | rectangle, 4 regions, 8 sprites, page and slide state; every newgame |
+| 00649AF0 | CHudTopPanel::Build (RET 8: page, shown) | rectangle, 4 regions, 6 sprites (the check said 8 until X17; the original calls AddSprite 005FF3C0 six times), page and slide state; every newgame |
 | 0064A4E0, 0064A630 | AddPickedUp (RET 8), AddMoney (RET 4) | page 0's text grew by a line ending in "\n"; from OnItemsPicked 00636150 (no scenario known) |
 
 The original builds each line with CString operator+ temporaries (kind + " " + name + "\n"); ours appends to one

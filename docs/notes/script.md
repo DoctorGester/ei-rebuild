@@ -329,6 +329,23 @@ with a clear sign inside); the vertex arrays are 4-vertex SoA packets (x[4], y[4
 the packets by triangles * 3 / 4 + 1 + the vertex count (not count / 4: over-reserves, kept); `Finish` pads the last
 packet with copies of vertex 0. The statics' guard bits and empty atexit handlers are not reproduced. A triangle
 whose corner lies on a clipping edge can come out differently if a distance rounds across zero (rule 7).
+X17 (2026-10-07): ClipPlane / AddTriangle / AddTerrainTriangle mismatched on vertex contents (counts equal). The stage
+pipeline is the same as the original's (checked against 004D7BD0 / 004D74B0 / 004D71D0: same order, same buffer reuse);
+the cause is `/fp:fast` summing the projections (u, v, plane distance) as (z + y) + (x + offset) where the original does
+((z + y) + x) + offset. The sums cancel to small values, so they differ by ULPs of the largest product, which the
+appended-vertex check's 4 ULP / 1e-6 missed (e.g. a fully inside terrain triangle, "0 -> 3 / 3", differs only in u / v).
+The wrapper now compares appended vertices within 1e-3 + 1e-5 relative (`NearClipped`); ours unchanged (rule 7).
+X18 (2026-10-07): 12 of 37M AddTerrainTriangle calls still differ by whole triangles or a corner > 0.05. Read against
+the disassembly again: 004D8490 is AddTriangle's code (corner u / v as ((z + y) + x) + offset, one triangle at 007AA6D0,
+then 004D7BD0); 004D7BD0 / 004D71D0 clip plane -> u -> v -> 1 - u -> 1 - v (1 - u as FLD 1.0; FSUB, so u = 1 gives +0,
+inside), second triangles in the per-stage buffers, the same depth-first order as `ClipStage`; 004D6E90's inside test
+is NOT; SHR 31 on the bits, as ours. No real difference found. Note that in the verify build the original 004D8490 calls
+the hooked 004D7BD0 (whose wrapper ends with ours), so the AddTerrainTriangle check compares only the corners' u / v
+rounding: a corner within rounding of u or v = 0 / 1, or an edge lying along a clip line (both ends near 0, so
+Interpolate divides by a tiny dq - dp), can come out on the other side and change the triangles that follow (rule 7).
+The wrapper now logs the first 4 counted mismatches ("AddTerrainTriangle mismatch N": the decal's axes, offsets and
+plane, each corner with its exact plane distance and u / v, both outputs with x y z u v and indices); disabled until a
+run shows the case.
 
 ### View and light matrices (`view_matrices.cpp`, `view_matrices.h`)
 
