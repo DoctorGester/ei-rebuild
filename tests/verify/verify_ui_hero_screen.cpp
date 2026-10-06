@@ -5,6 +5,7 @@
 
 #include "../../src/game/originals_ui.h"
 #include "../../src/game/ui_camp.h"
+#include "../../src/game/ui_item_info.h"
 #include "../../src/game/ui_screens.h"
 #include "../../src/game/unit.h"
 
@@ -86,3 +87,31 @@ static void __fastcall HeroScreenCloseVerify(CMpHeroScreen* self, void*) {
                       static_cast<void*>(self->previewModel_));
 }
 EI_VERIFY(0x00615850, HeroScreenCloseVerify, 0, s_unused);
+
+// --- 00615800 / 00634500 / 00634560 / 00633260: the hero screen's destruction; ours only ---------------
+// Leaving the hero screen (Esc in ui_hero_screen) deletes it. The entry destructor leaves nothing to
+// check; the caches' walk must visit exactly `count` nodes in key order before releasing; after the
+// destructor body the caches are empty and the window's arrays freed.
+
+static void __fastcall VoiceEntryDestroyVerify(MpVoiceEntry* self) { self->Destroy(); }
+EI_VERIFY(0x00615800, VoiceEntryDestroyVerify, 0, s_unused);
+
+static void __fastcall ReleaseCachedObjectsVerify(ItemObjectCache* cache) {
+    std::uint32_t visited = 0;
+    for (ItemObjectCache::Node* node = cache->header->left; node != cache->header && visited <= cache->count;
+         node = node->Next())
+        ++visited;
+    ei::verify::Check("ReleaseCachedObjects", cache->count, visited, "walk");
+    ReleaseCachedObjects(cache);
+}
+EI_VERIFY(0x00634500, ReleaseCachedObjectsVerify, 0, s_unused);
+EI_VERIFY(0x00634560, ReleaseCachedObjectsVerify, 0, s_unused);
+
+static void __fastcall HeroScreenDestroyVerify(CMpHeroScreen* self) {
+    self->Destroy();
+    auto* screen = reinterpret_cast<CItemScreen*>(self);
+    ei::verify::Check("CMpHeroScreen::Destroy", true,
+                      screen->models_.count == 0 && screen->textures_.count == 0 && !self->window.sceneObjects_.data_,
+                      "models %u textures %u", screen->models_.count, screen->textures_.count);
+}
+EI_VERIFY(0x00633260, HeroScreenDestroyVerify, 0, s_unused);

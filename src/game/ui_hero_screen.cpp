@@ -204,3 +204,73 @@ namespace {
 void __fastcall HeroScreenClose(CMpHeroScreen* self, void*) { self->Close(); }
 } // namespace
 EI_REPLACE(0x00615850, HeroScreenClose);
+
+// --- 00615800: a voice entry's destructor -------------------------------------------------------
+
+void MpVoiceEntry::Destroy() {
+    CStringDestroy(&name);
+    CStringDestroy(&file);
+}
+namespace {
+void __fastcall VoiceEntryDestroy(MpVoiceEntry* self) { self->Destroy(); }
+} // namespace
+EI_REPLACE(0x00615800, VoiceEntryDestroy);
+
+// --- 00634500 / 00634560: the caches' objects released ----------------------------------------------
+
+ItemObjectCache::Node* ItemObjectCache::Node::Next() {
+    Node* node = this;
+    if (node->right) {
+        node = node->right;
+        while (node->left) node = node->left;
+        return node;
+    }
+    Node* up = node->parent;
+    while (node == up->right) {
+        node = up;
+        up = up->parent;
+    }
+    return node->right != up ? up : node;
+}
+
+void __fastcall ReleaseCachedObjects(ItemObjectCache* cache) {
+    for (ItemObjectCache::Node* node = cache->header->left; node != cache->header; node = node->Next())
+        static_cast<CEngineObject*>(node->object)->Release();
+}
+EI_REPLACE(0x00634500, ReleaseCachedObjects);
+EI_REPLACE(0x00634560, ReleaseCachedObjects);
+
+// --- 00633260: the destructor body -------------------------------------------------------------
+
+namespace {
+void DestroyVoices(MpVoiceVector& voices) {
+    for (MpVoiceEntry* entry = voices.begin; entry != voices.end; ++entry) entry->Destroy();
+    FreeBlock8Original(voices.begin, static_cast<int>(voices.capacity - voices.begin));
+}
+void DestroyStrings(const char** begin, const char** end) {
+    for (const char** at = begin; at != end; ++at) CStringDestroy(at);
+}
+// 00634500 / 00634560 through their address (their wrappers run).
+__declspec(naked) void __fastcall ReleaseModelsAt(ItemObjectCache*) EI_ORIGINAL(0x00634500)
+__declspec(naked) void __fastcall ReleaseTexturesAt(ItemObjectCache*) EI_ORIGINAL(0x00634560)
+} // namespace
+
+void CMpHeroScreen::Destroy() {
+    auto* screen = reinterpret_cast<CItemScreen*>(this);
+    DestroyVoices(voiceLists_[1]);
+    DestroyVoices(voiceLists_[0]);
+    CStringDestroy(&text_);
+    DestroyStrings(names_.begin, names_.end);
+    FreeBlock4Original(names_.begin, static_cast<int>(names_.capacity - names_.begin));
+    for (void** at = defaults_; at != defaultsEnd_; ++at) CStringDestroy(at);
+    FreeBlock4ProxyOriginal(&defaultsCapacity_, nullptr, defaults_, static_cast<int>(defaultsCapacity_ - defaults_));
+    ReleaseTexturesAt(&screen->textures_);
+    DestroyTextureMapOriginal(&screen->textures_);
+    ReleaseModelsAt(&screen->models_);
+    DestroyModelMapOriginal(&screen->models_);
+    DestroyContainerBody(this);
+}
+namespace {
+void __fastcall HeroScreenDestroy(CMpHeroScreen* self) { self->Destroy(); }
+} // namespace
+EI_REPLACE(0x00633260, HeroScreenDestroy);
