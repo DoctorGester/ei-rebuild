@@ -26,22 +26,24 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- A-I (cut off by the usage limit; 12 functions merged). A-I2 done 2026-10-05 (36 functions). A-I3 done (27). A-I4 cut off (12 merged). A-I5 cut off (4 merged). A-I6 done (29). A-I7 done (21). A-I8 done (21). A-I9 done (12; Mid/Right fixed). A-I10 done (15; ui_base_dialogue reaches the dialogue). A-I11 (taken 2026-10-07) (next: hero screen 006159E0 / 00617820 / 00615850, camp deals 00611220 / 00611760, main menu destructor 00633260).
+- A-I (cut off by the usage limit; 12 functions merged). A-I2 done 2026-10-05 (36 functions). A-I3 done (27). A-I4 cut off (12 merged). A-I5 cut off (4 merged). A-I6 done (29). A-I7 done (21). A-I8 done (21). A-I9 done (12; Mid/Right fixed). A-I10 done (15; ui_base_dialogue reaches the dialogue). A-I11 done (9). A-I12 queued (006064E0, 00604C50, 00608450, briefing Create / Update) (next: hero screen 006159E0 / 00617820 / 00615850, camp deals 00611220 / 00611760, main menu destructor 00633260).
 
 
 - I11 Next interface functions (ui.md, battle screen section); 0063EF60 / 0063E020 need modifier keys held during a click (harness step).
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- A-H done 2026-10-05 (38 functions). A-H2 done 2026-10-05 (41 functions; next candidates at the end of items_spells.md). A-H3 done (44 addresses). A-H4 cut off (nothing committed). A-H5 cut off (6 merged). A-H6 done (21). A-H7 done (27). A-H8 done (30). A-H9 cut off (11 merged: bow arrows). A-H10 done (32). A-H11 (taken 2026-10-07). Was ( first fix spells_hero: 'Parameter of type float expected' in vanilla, no wolf damaged in Rebirth) (effects: 0x5B, Moshka 0067CEF0, Tornado, 0066E7D0; client handlers 00667EC0 / 00669A30 / 00669490 / 00669FA0). Was: ( effects.md next candidates; spells_hero passes now but shows no CEffectMissile / ShowVisibility wrapper calls, find out why) (candidates at the end of items_spells.md's Party section; 0064A7A0). (candidates at the end of items_spells.md "Area ticket A-H").
+- A-H done 2026-10-05 (38 functions). A-H2 done 2026-10-05 (41 functions; next candidates at the end of items_spells.md). A-H3 done (44 addresses). A-H4 cut off (nothing committed). A-H5 cut off (6 merged). A-H6 done (21). A-H7 done (27). A-H8 done (30). A-H9 cut off (11 merged: bow arrows). A-H10 done (32). A-H11 done (6; 204 library). A-H12 queued (CPlayer 00664BF0..00665D20, save screen, message handlers). Was ( first fix spells_hero: 'Parameter of type float expected' in vanilla, no wolf damaged in Rebirth) (effects: 0x5B, Moshka 0067CEF0, Tornado, 0066E7D0; client handlers 00667EC0 / 00669A30 / 00669490 / 00669FA0). Was: ( effects.md next candidates; spells_hero passes now but shows no CEffectMissile / ShowVisibility wrapper calls, find out why) (candidates at the end of items_spells.md's Party section; 0064A7A0). (candidates at the end of items_spells.md "Area ticket A-H").
 
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
-- A-S done 2026-10-05 (40 functions in 0x004B0000-0x004C0000). A-S2 (cut off by the usage limit; 20 functions merged). A-S4 done (37; 78 quantiser functions marked dead). A-S5 (taken 2026-10-07). A-S3 done 2026-10-05 (38 functions; leftovers: .mob reader 00481660 / 00481F00, particle attach 004849F0 / 00484C00, colour quantisation 0049BEA0). Was: scripts 0x004C0000-0x00500000 plus the 0x00480000-0x004B0000 leftovers.
+- A-S done 2026-10-05 (40 functions in 0x004B0000-0x004C0000). A-S2 (cut off by the usage limit; 20 functions merged). A-S4 done (37; 78 quantiser functions marked dead). A-S5 done (28; 25 library, 5 dead). A-S6 queued (figure/.lnk loader 004F7F00 / 004F87D0 / 004F30F0, buffered file streams). A-S3 done 2026-10-05 (38 functions; leftovers: .mob reader 00481660 / 00481F00, particle attach 004849F0 / 00484C00, colour quantisation 0049BEA0). Was: scripts 0x004C0000-0x00500000 plus the 0x00480000-0x004B0000 leftovers.
 
 
 ## Verify checks
+
+- X17 (taken 2026-10-07) Four rewrites in tests/verify/disabled.txt: A-S5's ground decal builder 004D7BD0 ClipPlane / 004D85F0 AddTriangle / 004D8490 AddTerrainTriangle (mismatch e.g. "vertices 0 -> 3 / 3, indices 0 -> 3 / 3", 0.03-6% of calls) and A-H11's 00649AF0 CHudTopPanel::Build (its check fails every call: "page 0 shown 0 regions 4 sprites 6").
 
 
 
