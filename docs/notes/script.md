@@ -364,3 +364,25 @@ Not ported: 004DEBC0 (`Find`, only called by the original GetItemTexts, which is
 Contains: a zero or NaN angle tests the rectangle as is (x1 > x, x > x2, y1 > y, y > y2 reject; NaN passes); otherwise
 the point is turned by -angle about the centre (centre x and the x offset kept unrounded, as the original keeps
 them on the FPU stack) and a NaN turned x is outside.
+
+## A-S6 (2026-10-07): the rest of 0x004C0000-0x00500000, continued
+
+### Buffered file streams (`buffered_file.cpp`, `buffered_file.h`)
+
+A `GameBuffer` whose block is a window onto a file (`base` = file position of `begin`); abstract vtable 0073F8C8
+(constructor / destructor 00580DD0 / 00580DF0, slots 7 / 8 pure), file vtable 0073F8A4 (+0x1C `FILE*`, destructor
+00580E60). The game's stdio is now in `lib/crt.h` (fopen 006E9107, fclose 006E8EB8, fseek 006E95D2, ftell 006E97C4,
+fread 006E8F35, fwrite 006E968B).
+
+| Address | Name | Verify |
+|---|---|---|
+| 004DAAF0, 004DB040, 004DAC80 | `Flush`, `BufferedStreamCommit` (slot 2, `Rebase`), `ReleaseBlock` | original on a byte copy with a cloned block; base, flags, capacity, offsets, old capacity's bytes |
+| 004DAE30, 004DAFC0, 004DB200, 004DB420, 004DB0F0 | slots 0, 1, 3, 4, 6 (`ReserveRead`, `ReserveWrite`, `ReadMore`, `WriteMore`, `Seek`) | same, plus result and bytes read (the original reads into a scratch destination); Seek's EAX only on the in-window path |
+| 004DB5E0, 004DB630 | `BufferedFileReadAt` / `WriteAt` (slots 7 / 8) | original then ours (both seek first): result, bytes read |
+| 004DB680, 004DB700 | `BufferedFile::Close`, `Open` | ours only: no block / file after Close; Open's window or error bit |
+| 004DA580, 004DA590 | `BufferViewReserve` (the fixed view's empty slots 0 / 1) | ours only |
+
+Scenario: `newgame` (005810A0 -> 005809D0 reads "quest.reg" through the file stream when the server exists).
+Not ported: 004DABC0 (no callers; an Attach-like window setup) and the unlisted 004DAB40 (a grow helper, no callers).
+Original quirks kept: `ReserveRead` growing reloads at `base` with min(capacity, high - cur) bytes; the reload count can be
+negative after a large read (passed to fread as is); Seek's out-of-window path returns no meaningful EAX (ours: the old cursor).
