@@ -483,11 +483,11 @@ EI_VERIFY(0x006B9950, AddEmitterVerify, 0, s_unusedAddEmitter);
 
 // 006BA2D0: ours only (plays the first sound). A started sequence is active under its new id.
 using AddSequenceFn = int(__fastcall*)(CSoundManager*, void*, const SoundNameArray*, int, const float*, float, float, int,
-                                       int, int(__fastcall*)(int));
+                                       int, int(__fastcall*)(int, int));
 static AddSequenceFn s_unusedAddSequence;
 static int __fastcall AddSequenceVerify(CSoundManager* self, void*, const SoundNameArray* names, int priority,
                                         const float* position, float nearDist, float farDist, int randomOrder, int count,
-                                        int(__fastcall* chooser)(int)) {
+                                        int(__fastcall* chooser)(int, int)) {
     int r = self->CSoundManager::AddSequence(names, priority, position, nearDist, farDist, randomOrder, count, chooser);
     bool ok = r == -1 || (ValidSequence(self, static_cast<std::uint32_t>(r)) != nullptr &&
                           self->sequences[r & 0xFF].active == 1 && self->sequences[r & 0xFF].handle != -1);

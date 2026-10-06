@@ -106,19 +106,6 @@ __declspec(naked) void __stdcall CallWithOne(void* /*fn*/, void* /*arg*/) {
     }
 }
 
-// A sequence's chooser: called with the previous index in ECX and nothing on the stack.
-__declspec(naked) int __stdcall CallChooser(void* /*fn*/, int /*previous*/) {
-    __asm {
-        push ebp
-        mov ebp, esp
-        mov ecx, dword ptr [ebp + 12]
-        call dword ptr [ebp + 8]
-        mov esp, ebp
-        pop ebp
-        ret 8
-    }
-}
-
 // Not rewritten.
 // hash_map<string, cached wave>::operator[] on the slot's wave name (CSoundManager + 0x870);
 // returns the value: a pointer to the cache list node, whose +0x20 is the use count.
@@ -520,8 +507,9 @@ EI_REPLACE_METHOD(0x006B9AA0, CSoundManager::RemoveEmitter);
 // 006BA140. Starts the sequence's next sound; false when it is over or the sound did not start.
 int SoundSequence::PlayNext(CSoundManager* manager) {
     if (chooser != nullptr) {
+        int played = remaining;
         ++remaining;
-        int next = CallChooser(reinterpret_cast<void*>(chooser), index);
+        int next = chooser(index, played);
         index = next;
         if (next < 0) return 0;
         index = next & 0xBFFFFFFF;
@@ -543,7 +531,7 @@ EI_REPLACE_METHOD(0x006BA140, SoundSequence::PlayNext);
 
 // 006BA2D0. Returns the sequence id (generation << 8 | slot) or -1.
 int CSoundManager::AddSequence(const SoundNameArray* names, int priority, const float* position, float nearDist,
-                               float farDist, int randomOrder, int count, int(__fastcall* chooser)(int)) {
+                               float farDist, int randomOrder, int count, int(__fastcall* chooser)(int, int)) {
     if (enabled == 0 || names->size < 1) return -1;
     int i = 0;
     while (i < 8 && sequences[i].active != 0) ++i;

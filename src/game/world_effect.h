@@ -16,7 +16,9 @@
 // DeltaField's begin / end.
 
 #include "core_transform.h"
+#include "effects.h"
 #include "net_delta.h"
+#include "lib/mfc.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -115,6 +117,8 @@ public:
     static std::uintptr_t Vtable();               // 0074344C
     void Reset();                                 // 00676B10 (slot 18)
     int Tick();                                   // 00677250 (slot 6)
+    void Start(int update);                       // 00676C00 (slot 23; world_effect_sequence.cpp)
+    int Unpack(int update, DeltaField* field);    // 00676FD0 (slot 21)
     void Pack(DeltaField* field);                 // 00677180 (slot 22)
     void LoadState(void* stream);                 // 006772D0 (slot 9)
     void SaveState(void* stream);                 // 00677430 (slot 10)
@@ -265,3 +269,101 @@ public:
 };
 static_assert(offsetof(CEffectLightning, bolt_) == 0x168);
 static_assert(sizeof(CEffectLightning) == 0x178);
+
+// A missile homing on a world object (abstract base, vtable 00743754: slots 21-24 pure). 0x158
+// bytes. Subclasses: CEffectArrow (0x4E) and the class 0x5B missile (twice as fast).
+class CEffectMissile : public CEffect {
+public:
+    // 0067AAB0. Aims the velocity at the target's centre at the missile speed (planar). 0 once
+    // within one step or when the target is gone (arrived_ set, velocity zero without a target);
+    // on a client the height is then kept above the ground. Returns 1 while flying.
+    int Steer();
+    // 0067AC70. A new target: arrived_ cleared.
+    void SetTarget(int objectId);
+
+    int arrived_;              // +0x14C
+    int targetId_;             // +0x150 world object id, -1: none
+    std::uint8_t fromCaster_;  // +0x154 the client starts the missile at the caster's effect point
+    std::uint8_t unknown_155[3];
+};
+static_assert(offsetof(CEffectMissile, arrived_) == 0x14C);
+static_assert(sizeof(CEffectMissile) == 0x158);
+
+// A spell missile: a particle source, a light and a looping sound flying together (vtable
+// 007436F0, class id 0x4E; created by CSpellEffect::CreateArrow). 0x6C0 bytes.
+class CEffectArrow : public CEffectMissile {
+public:
+    // world_effect_missile.cpp. The three embedded effects are built and destroyed with their own
+    // constructor and destructor bodies; the constructor ends with Reset.
+    CEffectArrow* Construct();                    // 0067AE30
+    void Destruct();                              // 0067B1C0
+    CEffectArrow* DeletingDestruct(unsigned flags);   // 0067B1A0 (slot 0)
+    static std::uintptr_t Vtable();               // 007436F0
+    int Tick();                                   // 0067AC90 (slot 6)
+    void Reset();                                 // 0067AD10 (slot 18)
+    void MoveParts();                             // 0067B450 (slot 24): the parts follow, Start(1)
+    void Start(int update);                       // 0067B4E0 (slot 23)
+    int Unpack(int update, DeltaField* field);    // 0067B690 (slot 21)
+    void Pack(DeltaField* field);                 // 0067B800 (slot 22)
+    void LoadState(void* stream);                 // 0067B8E0 (slot 9)
+    void SaveState(void* stream);                 // 0067B9A0 (slot 10)
+
+    // The embedded effects (the classes are abstract in C++, so the members are their bytes).
+    CEffectParticle& Particle() { return *reinterpret_cast<CEffectParticle*>(particle_); }
+    CEffectPointLight& Light() { return *reinterpret_cast<CEffectPointLight*>(light_); }
+    CEffectSound& Sound() { return *reinterpret_cast<CEffectSound*>(sound_); }
+    const CEffectParticle& Particle() const { return *reinterpret_cast<const CEffectParticle*>(particle_); }
+    const CEffectPointLight& Light() const { return *reinterpret_cast<const CEffectPointLight*>(light_); }
+    const CEffectSound& Sound() const { return *reinterpret_cast<const CEffectSound*>(sound_); }
+
+    alignas(4) std::uint8_t particle_[sizeof(CEffectParticle)];   // +0x158
+    alignas(4) std::uint8_t light_[sizeof(CEffectPointLight)];    // +0x2D8
+    alignas(4) std::uint8_t sound_[sizeof(CEffectSound)];         // +0x43C
+    mfc::CString soundName_;       // +0x6A0
+    Vector3 lightColor_;           // +0x6A4
+    float lightRange_;             // +0x6B0
+    int particleType_;             // +0x6B4
+    float particleSize_;           // +0x6B8
+    int casterId_;                 // +0x6BC unit, -1: none
+};
+static_assert(offsetof(CEffectArrow, light_) == 0x2D8);
+static_assert(offsetof(CEffectArrow, sound_) == 0x43C);
+static_assert(offsetof(CEffectArrow, soundName_) == 0x6A0);
+static_assert(sizeof(CEffectArrow) == 0x6C0);
+
+// What a unit sees, shown in the fog of war (clairvoyance; vtable 0074381C, class id 0x5E, created
+// by CSpellEffect::CreateParticle and Start). The server recomputes the seen squares from the
+// seer's sight every tick and sends them; the client reveals them in a fog object of its own.
+// 0x170 bytes. world_effect_visibility.cpp.
+class CEffectShowVisibility : public CEffect {
+public:
+    // The constructor gives the grid one square (cells and rows allocated) and does not Reset.
+    CEffectShowVisibility* Construct();           // 0067C340
+    void Destruct();                              // 0067C490
+    CEffectShowVisibility* DeletingDestruct(unsigned flags);  // 0067C470 (slot 0)
+    static std::uintptr_t Vtable();               // 0074381C
+    void Reset();                                 // 0067C5F0 (slot 18): grid cleared, fog released
+    void SetUnits(int observerId, int seerId);    // 0067C640
+    void Start(int update);                       // 0067C660 (slot 23)
+    int Unpack(int update, DeltaField* field);    // 0067C6B0 (slot 21)
+    void Pack(DeltaField* field);                 // 0067C7A0 (slot 22)
+    int Tick();                                   // 0067C840 (slot 6)
+    void LoadState(void* stream);                 // 0067C8E0 (slot 9)
+    void SaveState(void* stream);                 // 0067C910 (slot 10)
+
+    // The fog object is a CVisibilityFog (effects.h), reference counted as an engine object.
+    CVisibilityFog* Fog() { return reinterpret_cast<CVisibilityFog*>(fog_); }
+
+    int observerId_;           // +0x14C unit (the second unit of the sight computation)
+    int seerId_;               // +0x150 unit whose sight is shown; the effect follows it
+    CEngineObject* fog_;       // +0x154 client only, null: none
+    FogGrid grid_;             // +0x158
+};
+static_assert(offsetof(CEffectShowVisibility, grid_) == 0x158);
+static_assert(sizeof(CEffectShowVisibility) == 0x170);
+
+class CBaseManager;   // base_manager.h
+
+// 0067E170 (world_effect_lifetime.cpp). The effect manager's slot 14 (NewObject, RET 4): a new
+// effect of class `type` (0x48..0x4E, 0x5A, 0x5B, 0x5E, 99..0x65) with type_ set, or null.
+CEngineObject* __fastcall EffectNewObject(CBaseManager* manager, void*, int type);

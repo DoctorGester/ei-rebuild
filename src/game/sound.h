@@ -112,7 +112,9 @@ struct SoundSequence {
     std::int32_t index;         // +0x34 next name
     std::int32_t priority;      // +0x38
     std::int32_t random;        // +0x3C pick names at random
-    int(__fastcall* chooser)(int previous);  // +0x40 returns the next index (bit 30: loop it), < 0 ends
+    // +0x40 returns the next index (bit 30: loop it), < 0 ends; called with the previous index (ECX) and
+    // the number of sounds started before (EDX).
+    int(__fastcall* chooser)(int previous, int played);
     std::int32_t generation;    // +0x44
     std::int32_t id;            // +0x48 generation << 8 | slot (-1: free)
 
@@ -237,7 +239,7 @@ struct CSoundManager {
                      int maxInterval);                                                    // 006B9A30
     int RemoveEmitter(int index);                                                         // 006B9AA0
     int AddSequence(const SoundNameArray* names, int priority, const float* position, float nearDist, float farDist,
-                    int random, int count, int(__fastcall* chooser)(int));                // 006BA2D0
+                    int random, int count, int(__fastcall* chooser)(int, int));                // 006BA2D0
     int MoveSequence(std::uint32_t id, const float* position);                           // 006BA400
     int UpdateSequence(std::uint32_t id, const float* position, float nearDist, float farDist, int count);  // 006BA5E0
     int RemoveSequence(std::uint32_t id);                                                 // 006BA7C0

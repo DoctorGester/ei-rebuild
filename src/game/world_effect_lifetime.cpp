@@ -241,3 +241,48 @@ EI_REPLACE_METHOD(0x0067A0B0, CEffectLightning::Destruct);
 
 CEffectLightning* CEffectLightning::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
 EI_REPLACE_METHOD(0x0067A090, CEffectLightning::DeletingDestruct);
+
+// --- The effect manager's factory ----------------------------------------------------------------
+
+namespace {
+
+// Constructor bodies not rewritten yet (ECX = the memory; they return it).
+__declspec(naked) CEngineObject* __fastcall ConstructAmbientSound(void*) EI_ORIGINAL(0x00677510)
+__declspec(naked) CEngineObject* __fastcall ConstructArrowFigure(void*) EI_ORIGINAL(0x0067BB90)
+__declspec(naked) CEngineObject* __fastcall ConstructMoshka(void*) EI_ORIGINAL(0x0067C950)
+__declspec(naked) CEngineObject* __fastcall ConstructTornado(void*) EI_ORIGINAL(0x0067D670)
+
+template <typename T>
+CEngineObject* NewEffect() {
+    void* memory = gamecrt::operator_new(sizeof(T));
+    return memory != nullptr ? static_cast<T*>(memory)->Construct() : nullptr;
+}
+
+CEngineObject* NewEffect(std::size_t size, CEngineObject*(__fastcall* construct)(void*)) {
+    void* memory = gamecrt::operator_new(size);
+    return memory != nullptr ? construct(memory) : nullptr;
+}
+
+} // namespace
+
+CEngineObject* __fastcall EffectNewObject(CBaseManager*, void*, int type) {
+    CEngineObject* object;
+    switch (type) {
+    case 0x48: object = NewEffect<CEffectSound>(); break;
+    case 0x49: object = NewEffect(0x174, &ConstructAmbientSound); break;
+    case 0x4A: object = NewEffect<CEffectParticle>(); break;
+    case 0x4B: object = NewEffect<CEffectPointLight>(); break;
+    case 0x4D: object = NewEffect<CEffectLightning>(); break;
+    case 0x4E: object = NewEffect<CEffectArrow>(); break;
+    case 0x5A: object = NewEffect<CEffectWall>(); break;
+    case 0x5B: object = NewEffect(0x19C, &ConstructArrowFigure); break;
+    case 0x5E: object = NewEffect<CEffectShowVisibility>(); break;
+    case 99: object = NewEffect<CEffectSoundSeq>(); break;
+    case 100: object = NewEffect(0x16C, &ConstructMoshka); break;
+    case 0x65: object = NewEffect(0x15C, &ConstructTornado); break;
+    default: return nullptr;
+    }
+    if (object != nullptr) object->type_ = type;
+    return object;
+}
+EI_REPLACE(0x0067E170, EffectNewObject);

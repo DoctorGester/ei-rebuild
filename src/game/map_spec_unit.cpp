@@ -398,6 +398,8 @@ UnitSpec* __fastcall UnitSpecConstruct(UnitSpec* self) {
 }
 EI_REPLACE(0x0046C010, UnitSpecConstruct);
 
+const void* UnitSpecBehaviours(const UnitSpec* spec) { return spec->behaviour; }
+
 // 0046C140: the destructor body.
 void __fastcall UnitSpecDestruct(UnitSpec* self) {
     SetVtable(self, kUnitVtable);
