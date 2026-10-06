@@ -107,6 +107,12 @@ public:
         if (start_) deallocate(start_, static_cast<std::size_t>(eos_ - start_) * sizeof(T));
     }
 
+    // The three pointers by reference, for code that inlines the original's own vector operations
+    // (reserve, push_back through the instantiation's _M_insert_overflow) on the same object.
+    T*& Start() { return start_; }
+    T*& Finish() { return finish_; }
+    T*& EndOfStorage() { return eos_; }
+
     // erase(pos): shift the tail down by assignment, destroy the last element.
     void erase(T* pos) {
         for (T* p = pos; p + 1 != finish_; ++p) p->AssignFrom(p[1]);

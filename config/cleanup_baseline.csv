@@ -156,7 +156,6 @@ src/game/particle_render.cpp,0,0,1,1,1,0,0,0,0
 src/game/particle_tick.cpp,0,0,0,1,0,0,0,0,0
 src/game/party.h,0,0,0,0,0,0,9,0,1
 src/game/party_records.cpp,0,2,0,0,0,0,0,0,0
-src/game/party_records.h,0,0,0,0,0,0,0,0,1
 src/game/player_client.cpp,0,0,0,0,0,0,1,0,0
 src/game/player_messages.cpp,0,3,1,0,0,0,0,2,0
 src/game/quaternion.cpp,0,0,4,1,1,0,0,0,0
@@ -220,7 +219,6 @@ src/game/ui_battle_commands.cpp,15,0,0,0,0,0,0,3,0
 src/game/ui_battle_hover.cpp,23,7,0,0,0,0,0,0,0
 src/game/ui_battle_setup.cpp,0,2,0,0,2,0,0,5,0
 src/game/ui_battle_update.cpp,49,1,0,0,1,0,0,4,0
-src/game/ui_briefing.h,0,0,0,0,0,0,0,0,1
 src/game/ui_camera_keys.cpp,0,0,0,1,0,0,0,0,0
 src/game/ui_camp.cpp,0,0,3,3,21,17,0,4,0
 src/game/ui_camp.h,0,0,0,0,0,0,2,0,0
@@ -284,7 +282,7 @@ src/game/unit_record.cpp,0,0,2,0,0,0,0,0,0
 src/game/unit_save.cpp,8,6,0,0,0,0,0,0,0
 src/game/unit_size_class.cpp,8,1,0,0,0,0,0,0,0
 src/game/unit_skill_price.cpp,2,0,0,0,4,0,0,0,0
-src/game/unit_skins.cpp,32,0,0,0,3,0,0,0,2
+src/game/unit_skins.cpp,32,0,0,0,3,0,0,0,0
 src/game/unit_stats.cpp,2,0,0,1,0,0,0,0,0
 src/game/unit_stats_pack.cpp,0,0,1,1,1,0,0,2,0
 src/game/unit_update.cpp,1,14,1,1,1,0,0,4,0
