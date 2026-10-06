@@ -46,6 +46,10 @@ wait 500
 
 # An effect on the wolf, then its death clears its effects.
 console @CastSpellUnit("speed{d1}",GetX(GetObjectByName("Wolf1")),GetY(GetObjectByName("Wolf1")),GetObjectByName("Wolf1"))
+# Invisibility and strength on the wolf too: the client companion's particles, sounds and the strength ring
+# (map_object_client_effects.cpp); the death below ends them (the parts' alpha reset, 0051CCA0).
+console @CastSpellUnit("invisibility{d1}",GetX(GetObjectByName("Wolf1")),GetY(GetObjectByName("Wolf1")),GetObjectByName("Wolf1"))
+console @CastSpellUnit("strength{d2}",GetX(GetObjectByName("Wolf1")),GetY(GetObjectByName("Wolf1")),GetObjectByName("Wolf1"))
 wait 1000
 console @InflictDamage(GetObjectByName("Wolf1"),1000)
 waitfor 10 Not(IsAlive(GetObjectByName("Wolf1")))

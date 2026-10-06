@@ -99,6 +99,8 @@ is snapshotted and restored, the original runs, bytes and EAX compared.
 | 005157C0, 005157E0, 0050E460, 005391B0, 005391E0 | CMapObjectServer CreateServer / DestroyServer (slots 2 / 3), CMapObject::CompanionQuery (31), CUnitClientSpecific HasWeaponModels / HasArmourModels (36 / 37) (object_small_slots.cpp; A-U2) | create / destroy ours only; the rest pure |
 | 0050F0F0, 0050F120, 00510770, 00533E80 | CMapObject ApplyScience (41: logs, false) / FreeArray (44), CMapObjectClientSpecific::CreateClientCompanion (2), CUnitClientSpecific::DeleteClient (0) (object_small_slots.cpp; A-U2) | ours only |
 | 0051CC20, 0051CCD0 | CObject3DClientSpecific InvisiblePulse / StunnedPulse (unit_client_animation.cpp) | original, parts put back, ours; CheckNear |
+| 005117D0, 00510B80, 005112A0, 005114D0 | CMapObjectClientSpecific EffectsChanged (slot 13), UpdateEffectParticles, UpdateEffectSounds, PlayEffectSound (map_object_client_effects.cpp; A-U3) | ours only: records present, one per merged type at the highest power / per effect otherwise, one sound per type; stench timer 0, feeble mind handle toggles |
+| 0051CCA0, 0051CD60 | CObject3DClientSpecific ResetPartAlpha / ClearPartTints (invisibility / stun ended) | original, parts put back, ours; bitwise |
 
 Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEffect::Tick`, 00524FE0
 (hit onto the statistics block); sound system (global 007AF784) 006B8600 / 006B7C10 / 006B7CB0 /
@@ -127,6 +129,11 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
   (ours zero-extends); its light list starts with SetSize(16) / SetSize(0), the paths for an existing
   list cannot run.
 
+- A-U3 effect visuals: the scale effects' rings (0x11 / 0x1D / 0x1E) are made, attached and scaled
+  but never referenced by the record; a source of an unknown type logs and uses 0x2013 without a
+  null check; feeble mind's start plays the bare "\start.wav" (the folder is empty for type 0x20)
+  even when `first` is set. Ours builds the merged effect list in one allocation (the original
+  grows a CArray).
 - Create3D drops the side half (+0x94) without releasing it; Destroy3D only decrements the placed
   parts' counts (no release, nothing freed at 0) while it releases the pending ones.
 
@@ -134,8 +141,7 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
 
 - The client companion's Destroy (005107B0: light removal) and CArray Serialize / SetSize instantiations.
 - 0050F170 (fade mode from a float, slot 47): small, next candidate.
-- Client effect visuals (00510B80, 005112A0, 005114D0) and light helpers (00511830, 00511950,
-  005119B0, 00511A00): large, many callees; next candidates.
+- Light helpers (00511830, 00511950, 005119B0, 00511A00): next candidates.
 - 0050E9B0 (slot 34) and 0050F080 (stats refresh): depend on the UnitStats builders (00522C50 /
   005136D0).
 - 0050C230 (bone hierarchy update, recursive), 005179E0 / 00516DA0 (animated figures), 0051C3D0

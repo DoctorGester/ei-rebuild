@@ -141,8 +141,9 @@ int CMapObjectClientSpecific::Update() {
             if (left >= kEndSoundTicks || effect.ending) continue;
             if (!(IsTextKey(OwnerOf(this)->id_) & 0xFF)) continue;   // AL only
             int handle = EndSound(this);
-            void* sounds = SoundSystem();
-            if (handle != -1 && (SoundIsPlaying(sounds, nullptr, handle) || SoundIsQueued(sounds, nullptr, handle)))
+            void* soundSystem = SoundSystem();
+            if (handle != -1 &&
+                (SoundIsPlaying(soundSystem, nullptr, handle) || SoundIsQueued(soundSystem, nullptr, handle)))
                 continue;
             EndSound(this) = PlaySound3D(SoundSystem(), nullptr, kEndSoundName, 0, &OwnerOf(this)->positionX,
                                          kEndSoundNear, kEndSoundFar, 0, 0);
@@ -170,10 +171,10 @@ int CMapObjectClientSpecific::Update() {
     }
 
     // The light follows the object, kLightHeight above it, aimed down at it.
-    CEngineObject* light = Light(this);
-    if (light && !(light->flags_ & kFlagHidden)) {
+    CEngineObject* lamp = Light(this);
+    if (lamp && !(lamp->flags_ & kFlagHidden)) {
         float lightPosition[3];
-        std::memcpy(lightPosition, PositionOf(light), sizeof(lightPosition));
+        std::memcpy(lightPosition, PositionOf(lamp), sizeof(lightPosition));
         float lightZ = lightPosition[2] - kLightHeight;   // FSTP to the copy
         CMapObject* owner = OwnerOf(this);
         double dx = static_cast<double>(lightPosition[0]) - owner->positionX;
@@ -185,7 +186,7 @@ int CMapObjectClientSpecific::Update() {
             direction[0] = owner->positionX - lightPosition[0];
             direction[1] = owner->positionY - lightPosition[1];
             direction[2] = owner->positionZ - lightZ;
-            AimLight(LightManager(), nullptr, light, direction);
+            AimLight(LightManager(), nullptr, lamp, direction);
             owner = OwnerOf(this);
             float* position = PositionOf(Light(this));
             std::memcpy(position, &owner->positionX, 2 * sizeof(float));
