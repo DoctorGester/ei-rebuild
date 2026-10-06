@@ -514,7 +514,9 @@ public:
     float radius;                   // +0x134
     float below[3];                 // +0x138 box minimum - centre
     float above[3];                 // +0x144 box maximum - centre
-    std::uint8_t unknown_150[0x160 - 0x150];
+    std::uint8_t unknown_150[8];
+    float unknown_158;              // +0x158 part of the AI's eye height (005CA410)
+    std::uint8_t unknown_15C[4];
     FootprintPart* partBoxes;       // +0x160 per figure part (the index 00517990 finds by name)
     std::uint8_t unknown_164[0x178 - 0x164];
     float animationSpeed;           // +0x178 the animation's speed factor (the client's 00535850)
@@ -964,7 +966,8 @@ struct UnitStats {
     float rate;                     // +0x030 at least 1
     float modeSpeeds[4];            // +0x034
     float unknown_044;              // +0x044 -2 for text-key units
-    std::uint8_t unknown_048[8];
+    float unknown_048;              // +0x048 the AI's peripheral sight range (005CA5A0)
+    std::uint8_t unknown_04C[4];
     float load;                     // +0x050 carried weight
     float capacity;                 // +0x054
     float loadFactor;               // +0x058 LegsFactor when +0x60 is 1, else 1

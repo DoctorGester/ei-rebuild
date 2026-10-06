@@ -44,7 +44,7 @@ bool Empty(const mfc::CTypedPtrList<T>& list) {
 bool MemoryEmpty(const AIBrain* brain) {
     return Empty(brain->unknown_0F4) && Empty(brain->visible) && Empty(brain->unknown_12C) && Empty(brain->corpses) &&
            brain->noticedX == 0.0f && brain->noticedY == 0.0f && brain->noticedLevel == 0 && brain->noticedKind == 0 &&
-           brain->unknown_0F0 == 0;
+           brain->nearbyCountdown == 0;
 }
 
 bool ModesCleared(const AIBrain* brain) {

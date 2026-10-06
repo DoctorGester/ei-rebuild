@@ -264,6 +264,7 @@ static_assert(offsetof(AIPath, goal) == 0x60);
 static_assert(offsetof(AIPath, smoothing) == 0x84);
 
 class CAIMap;
+class CSectorMap;
 
 // A cell of the local search's window (0x14 bytes). Name provisional.
 struct SearchNode {
@@ -465,6 +466,8 @@ static_assert(sizeof(PathSmoother) == 0x2C);
 // Name from the game's error strings; layout provisional.
 class CAIMap {
 public:
+    // The sector map embedded at +0x124 (sector_map.h).
+    CSectorMap* SectorMap() { return reinterpret_cast<CSectorMap*>(&unknown_124); }
     // script_runtime_helpers.cpp (A-S4): the sector map (+0x124) as the script runtime calls it.
     // 004BA090 (RET 4). refreshUnits = the low byte of `on`; returns the old byte (AL).
     std::uint8_t SetRefreshUnits(int on);

@@ -10,6 +10,7 @@
 // count at +4, released through 0040A3A0) kept in the brain's mode list; the brain holds a counted
 // pointer to the mode in charge.
 
+#include "ai_map.h"
 #include "core_refcount.h"
 #include "engine_object.h"
 #include "maths.h"
@@ -574,6 +575,38 @@ struct AIAttention {
 };
 static_assert(sizeof(AIAttention) == 0x2C);
 
+// The AI's eye (the world server's +0x2838, 007B2798; only the leading part): the unit being
+// updated's position, eye and facing (unit_ai_sight.cpp; __thiscall on the viewer, the memory
+// passed as the brain's +0xD0).
+struct AIViewer {
+    // 005CAA00 (RET 8; UpdateMemory each brain tick). The viewer moves to the owner's unit, the
+    // nearby units are listed again when due (Refresh), units in the visible list it no longer
+    // sees are dropped ("lost from sight": an enemy notices 1000 / -2; a corpse is listed as one
+    // first, an allied one noticing 800 / -3), then new ones are looked for (See).
+    void Update(UnitController* owner, AIBrain* brain);
+    // 005CA1D0 (RET 8). Every 8..11 updates (random): the units of the sector cells within the
+    // larger of the unit's two sight ranges become the nearby list (+0xF4, counted).
+    void Refresh(CUnit* self, AIBrain* brain);
+    // 005CA5A0 (RET 8). Nearby units not yet visible (corpses not yet listed) that the unit sees:
+    // within sight range, inside the view cone and the line of sight; or with peripheral vision;
+    // or sensed alive. Players' units see everything; others only enemies.
+    void See(CUnit* self, AIBrain* brain);
+    // 005CA410 (RET 4). Raises the eye by the AI map's ground level of its cell and the unit's
+    // height parts and sets the facing from the unit's orientation (once per update).
+    void Prepare(CUnit* self);
+
+    CAIMap* map;                    // +0x00
+    int unknown_04;
+    Vector3 eye;                    // +0x08
+    Vector3 facing;                 // +0x14
+    int cellX;                      // +0x20 AI map cell of the eye
+    int cellY;                      // +0x24
+    std::uint8_t ready;             // +0x28 Prepare has run
+    std::uint8_t unknown_29[3];
+};
+static_assert(offsetof(AIViewer, facing) == 0x14);
+static_assert(offsetof(AIViewer, ready) == 0x28);
+
 // 005CFE20 (__fastcall, unit_ai_targets.cpp). The squared 2D distance, unrounded (ST0).
 double __fastcall AIDistance2(const Vector3* a, const Vector3* b);
 
@@ -781,12 +814,13 @@ struct AIBrain {
     AIMode* current;                // +0x08C
     std::uint8_t alarmRecords[0x14];    // +0x090 CArray of 0x4C-byte alarm records (data at +0x94)
     AIAttention attention;          // +0x0A4
-    std::uint8_t memory[0x10];      // +0x0D0 perception memory (005CB700 ...); continues below
+    std::uint8_t memory[8];         // +0x0D0 perception memory (005CB700 ...); continues below
+    SpiralCache sightCells;         // +0x0D8 the cells around the unit it looks for units in (005CA1D0)
     float noticedX;                 // +0x0E0
     float noticedY;                 // +0x0E4
     int noticedLevel;               // +0x0E8
     int noticedKind;                // +0x0EC
-    int unknown_0F0;
+    int nearbyCountdown;            // +0x0F0 updates until the nearby units are listed again (005CA1D0)
     mfc::CTypedPtrList<CEngineObject> unknown_0F4;  // +0x0F4 (elements are counted references)
     mfc::CTypedPtrList<CEngineObject> visible;  // +0x110 units in sight
     mfc::CTypedPtrList<CEngineObject> unknown_12C;  // +0x12C (elements are counted references)
