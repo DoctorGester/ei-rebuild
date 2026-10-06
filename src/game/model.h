@@ -165,3 +165,8 @@ struct TweenArray : MfcArray<TweenEntry> {
     void ReadEntries(ScriptStream* stream, int unread);
 };
 static_assert(sizeof(TweenArray) == 0x14);
+
+// model_names.cpp (A-S4). 004DBCA0 (__fastcall: ECX out, EDX cursor): a length-prefixed name (a
+// four-byte length, then the characters) at *cursor into `out` (emptied for length 0), the
+// cursor moved past it (the skeleton links' child / parent names, figure_links.cpp).
+void __fastcall ReadPrefixedName(mfc::CString* out, const std::uint8_t** cursor);

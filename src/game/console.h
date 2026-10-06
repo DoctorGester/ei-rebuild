@@ -91,6 +91,8 @@ public:
         floatUsed_ = 1;
         return *this << d;
     }
+    // 004BA9D0: the same, out of line, for a float argument (script_runtime_helpers.cpp).
+    GameOStream& PutFloatArgument(float f);
 
 private:
     void* vbtable_;

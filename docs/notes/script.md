@@ -268,11 +268,20 @@ Functions of 0x00480000-0x004B0000 and 0x004D8000-0x00500000 that belong to othe
 | Area (file) | Addresses and names | Verify |
 |---|---|---|
 | .mob reader (`mob_reader.cpp`, `map_spec.h`) | 00481F00 `ReadMobChunks` (scripts, weather, records, players), 00481660 `LoadMobFile` (relations applied, traps get their hostile mask and origin, units their alarm records 005D6D20, records deleted, scripts loaded unless keepIds) | ours only (records keyed by id, count, maxId; result). Every zone load (`newgame`, `world_load`, `zone_*`) |
+| Trader stock (`class_template_stock.cpp`, `class_templates.h`: `allowed` / `magic` are now `ItemStock`) | 004A6DC0 `ClassTemplateSetLevels`, 004A6DF0 `ClassTemplateGenerateItems`, 004A6F60 `ClassTemplateGenerateMagic` (list<CItem*> sentinel from the node pool, generators, AddItem(1, 1) + Release, nodes back to the pool) | ours only: levels in both stocks / the class index. `trader_stock` |
+| Runtime helpers the script code forwarded to (`script_runtime_helpers.cpp`, `party_script.cpp`) | 004BAEC0 `PartyForScript` ("owner::name"), 004B5EF0 `ScriptGroup::DestructBody`, 004BF7E0 `ScriptDeclDestruct` (each command through ScriptCmdDestruct; the original inlines it with the arrays' out-of-line destructors, same order), 004D6340 `ScriptDefineList::Destruct`, 004BA090 `CAIMap::SetRefreshUnits`, 004BA0A0 / 004BA0C0 / 004BA0E0 / 004BA100 the sector map wrappers (Move through its address: Rebirth), 004BA9D0 `GameOStream::PutFloatArgument` | PartyForScript and SetRefreshUnits against the original (copy of the name / flag put back); the rest ours only (vtables, list emptied, bool results). `script_exec`, `script_copy`, `world_load` |
+| Save game difference coding (`core_stream_diff.cpp`, `core_streams.h`) | 004A4DA0 `CStream::WriteDiff`, 004A50D0 `CStream::ApplyDiff` (run headers patched in place; a full run of 255 is followed by an empty run of the other kind) | both against the original: WriteDiff into two scratch memory streams; ApplyDiff original into a scratch, the difference stream sought back, ours into the real one. `world_load`, `ui_saveload` |
+| Tagged blocks and text (`core_stream_chunks.cpp`) | 004A4940 `CStream::ReadTagged`, 004A4A90 `FindTagged`, 004A48F0 `ReadText` | against the original: original first into scratch outputs, the stream sought back, ours on the real ones (result, tag, end position, output bytes). `world_load`, `ui_saveload`, `newgame` |
+| Buffer strings (`game_buffer_strings.cpp`, `net_coder.h`) | 004DA200 `GameBuffer::ReadString` (string assign inlined: overwrite and cut, or overwrite and append through 0040C2A0), 004DA380 `WriteString` | ReadString against the original on a byte copy of the buffer and a scratch string when the whole string lies before `end` / `high`, else ours only; WriteString ours only (header, characters and cursor where it was). `net_lobby`, `newgame` |
+| Global map clouds (`global_map_clouds.cpp/.h`, `CCloudNoise`) | 00499DC0 Construct, 00499E90 DestructBody, 00499E30 base deleting destructor, 00499EE0 Start, 00499F10 Draw, 0049A010 SetRamp, 0049A090 MakeLayer (slot 0), 0049A220 Generate (slot 1) | SetRamp, MakeLayer (generator state saved and replayed) and Generate steps 7-14 against the original; the rest ours only (buffers, step / fade ranges). `ui_camp`, `frames_basic` (`screen 4`) |
+| Model helpers (`face_normal.cpp`, `model_names.cpp`; `MeshFace` +0x24 is now `normal` / `distance`) | 0049AEC0 `scene::ComputeFaceNormal` (edges from vertex 1 normalised unless below 1e-10 squared, crossed, normalised; zero or NaN length takes 007A9C98), 004DBCA0 `ReadPrefixedName` | both against the original (face copy, CheckNear; scratch CString and cursor). Fake unit scene (`ui_hero_screen`), skeleton links (`newgame`, `models`) |
 | Particle attachment (`particle_attach.cpp`) | 004849F0 `CParticleSource::Attach`, 00484C00 `AttachmentPoint`, 00484B40 `PartPoint`, 00485280 `AttachmentOffset`, 00485380 `StopAndClear` (+ `ReleaseAllParticles`, shared with Clear) | PartPoint / AttachmentPoint / AttachmentOffset against the original (CheckNear; a unit's effect point, attachPoint 0, not compared: 00532860 can read uninitialised stack); Attach / StopAndClear ours only (attachedTo, listed in the object's sources, origin = the original's attachment point or the position). `particles`, `spells_cast` |
 
 - Attachment facts: attachPoint 1-7 = "hd", "hd" + 1 in z, "lh2", "rh2", "ll2", "rl2", "bd"; 8-12 = "body00".."body04";
   every part falls back to "bd", then to the position raised by the bounds' upper z extent. Not a unit or attachPoint > 12:
-  position raised by radius * 1.6 (bounds bit 0) or the box height. Attach recurses through Add/RemoveEffectSource.
+  position raised by radius * 1.6 (bounds bit 0) or the box height. Attach recurses through Add/RemoveEffectSource; the
+  nested Attach(object) from AddEffectSource runs before the outer call sets the origin, so the wrapper checks the origin
+  only for calls that change the attachment (the first version compared it there: 573 false mismatches).
 - .mob facts: the .mob wind strength is clamped by the float at 0079BE58, which nothing writes (0), so ChangeWind gets
   at most 0; the weather chunk's last two floats are read and unused. 00481660's branch under 0079BCF4 (the colour
   quantisation 0049BEA0 and its STLport map / list / introsort helpers 00482640, 00483540, 004825A0, 00482AA0, 0049BB70,
@@ -280,3 +289,11 @@ Functions of 0x00480000-0x004B0000 and 0x004D8000-0x00500000 that belong to othe
   finds its address only in the test at 00481704). Not reproduced; the 78 functions only that branch reaches (callers
   closed over Ghidra's xrefs, no Unwind or unnamed callers) are in config/dead_code.csv.
 - Original bugs kept: 00481660 deletes every record while the hash_map still holds the pointers (freed with the map).
+- Skipped: 004D5880 (ReadTextFile: MFC TRY / CATCH around CStdioFile, whose constructor throws the game's CFileException;
+  our code cannot catch the game's C++ exceptions), 004BA120 (the display object's background colour: needs a declared
+  display class with its slot 0).
+- Not ported (yet): 004A4AF0 (replaces a tagged block; no callers found), 004A8310 / 004A8560 (party load / save: tagged
+  stream helpers 00409AE0.. and STLport tables), 004A66C0 / 004A6580 (ItemStock / ClassTemplate constructors: STLport members).
+- Clouds: SetRamp's alpha is trunc(255 - pow(width / 255, max(0, i - start)) * 255) >> 4 with the CRT pow; a last-bit pow
+  difference can only matter on an exact multiple of 16 (SetRamp's wrapper would show it). Draw's blend is
+  trunc((step + phase) / 16 * 254 + 1); the original's third SetRamp argument is the fade speed.

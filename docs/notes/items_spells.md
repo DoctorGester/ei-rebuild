@@ -386,7 +386,7 @@ is reached by loading a save with class templates (004A6C40); which scenario rea
 
 Original bugs kept: the template's prototype and material vectors are shuffled in place; an item whose build fails
 (EndCreateItem null) is dereferenced; the 004ABD00 / 00684B20 lookups insert a null entry for every unknown name;
-a material entry with an unknown material is loaded with a null record. Not rewritten: 004A6DF0, 004A6F60, 004A6DC0.
+a material entry with an unknown material is loaded with a null record. 004A6DF0, 004A6F60, 004A6DC0 are rewritten in class_template_stock.cpp (A-S4, script.md).
 
 ## HUD panel displays (ui_hud_panels; scenario ui_hud)
 
