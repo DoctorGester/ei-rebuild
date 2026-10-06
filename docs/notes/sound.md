@@ -116,6 +116,12 @@ goes through a naked helper. Miles is called through game.exe's import table (00
 - Library (A-H13, config/library.csv): the CArray<MusicTheme> members 006B56C0-006B5BC0 and MusicTheme's operator= /
   destructor 006B4D40 / 006B4D90; the cache list and wave cache members 006BBDF0-006BE240; unwind-only destructors 006B62D0 /
   006B6350 / 006BE300 and the name array element constructors 006B63D0 / 006B63F0. 006BBA00 is dead (no references).
+- Live game code left in 006B4000-006C0000 (next candidates): CSoundManager name / id / deleting destructor / Create
+  (006B6290 / 006B62A0 / 006B62B0 / 006B6D70), `ClearWaveSources` 006B7060 (the CPtrList at +0xE4, vtable 00744130: each
+  source deleted through its slot 0; sound.h's `waveSources` is that list's head), `StopAll(stopStream)` 006B71C0 (voices
+  ended, deferred sounds deleted, then StopStream(4)), `OpenRegistry` 006BAE20 (+0x58 path, ".reg" appended), 006BAEA0
+  `CurrentStreamName` (under the +0x188 lock), constructor / destructor 006B6040 / 006B65D0, 006B96E0, 006B8960; the terrain
+  sector's 006BF4A0..006BFC80 (`models.md`).
 - Ambient sounds 006C68B0 (Rebirth-patched) and 006CB390 (terrain material ambience, 2 KB): good next
   candidates together with the terrain owner.
 - STLport hash_map / list instantiations 006BBF30-006BDDB0.
