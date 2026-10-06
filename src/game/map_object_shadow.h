@@ -76,6 +76,12 @@ public:
     // unit_client_wounds.cpp (A-U4). 0051C920: the wounds texture (+0xD8) and its material (+0xDC)
     // are taken off and released (the material deleted at its last reference).
     void HideWounds();
+    // object3d_specific_slots.cpp (A-U4). 0051AD20: virtual slot 18 (GetScale; the class declares no
+    // virtuals, so the member is registered as it is): x, y, z = figureScale. 0051C970: each drawn part (the cursor +0x48 walks them
+    // from 0, up to the first null) registers its material with the world's material manager
+    // (world slot 33, 0068EAF0 with the part's type_).
+    void ExtraScale(float* x, float* y, float* z);
+    void RegisterPartMaterials();
 
     CObject3D* object;              // +0x1C
     CEngineObject** material;       // +0x20 its object's +0x60 is the shadow colour key; the
@@ -105,6 +111,8 @@ public:
     struct WoundsMaterial* woundsMaterial;  // +0xDC the material drawing it (counted; slot 0 deletes)
     std::uint8_t unknown_E0[0xE8 - 0xE0];
     float pulseClock;               // +0xE8 frames counted by the invisible / stunned pulses
+    std::uint8_t unknown_EC[4];
+    float figureScale[3];           // +0xF0 the figure's extra scale (slot 18, ExtraScale)
 };
 static_assert(offsetof(CObject3DClientSpecific, object) == 0x1C);
 static_assert(offsetof(CObject3DClientSpecific, vertices) == 0x4C);
