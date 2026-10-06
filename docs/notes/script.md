@@ -437,6 +437,12 @@ Original bug kept: `RemovePart` lowers the later parts' starts by the removed pa
 right for the first part), and picks the later parts by their index start alone.
 Not ported: slots 7-14 (004F3870 ... 004F4850): part draws through the D3D device (renderer direction).
 
+X19 (2026-10-07): `AddPart` 004F30F0 returns a bool in AL, not an int: its success path ends `MOV EDI,EAX` (004F4CE0's
+value pointer) then `MOV AL,1`, so EAX's upper bytes are that pointer. The wrapper read the trampoline's result as int,
+so `expected == actual` failed on every call (the port itself matched). `AddPart` and the trampoline are now `bool`;
+the AddPart and loader checks name the first differing field ("result", "vertex count", ..., "vertex", "normals", ...,
+"ranges", "bounds", "cursor or header"). Removed from disabled.txt.
+
 ### A-S6 leftovers (next ticket)
 
 Loader slots and members 004F77C0 (load a .lnk), 004F7B10 / 004F7D20 / 004F7150 / 004F7080 / 004F75E0 / 004F7480 /
