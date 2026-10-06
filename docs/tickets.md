@@ -43,7 +43,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Verify checks
 
-- X19 (taken 2026-10-07) 004F30F0 CLinkMesh::AddPart (A-S6, in disabled.txt): its check fails every call, e.g. '"rl3" present 0 result 1 counts 5 5 29 29 20 102 vertex -1' (139665 of 139665).
+- X20 (taken 2026-10-07) Link figure loader hooks 004F30F0 / 004F7F00 / 004F87D0 are in disabled.txt: after D3 converted link_figure to lib::AlignedArray, the X19 checks report "corners differs" on every call and then crash in SameBytes<IndexTriangle> (AppendedDiff, verify_link_figure.cpp) reading past an array. Fix the checks (or the conversion), then re-enable.
 
 - X17 (done 2026-10-07, branch worktree-agent-a480cc2226016ece2) Four rewrites in tests/verify/disabled.txt: A-S5's ground decal builder 004D7BD0 ClipPlane / 004D85F0 AddTriangle / 004D8490 AddTerrainTriangle (mismatch e.g. "vertices 0 -> 3 / 3, indices 0 -> 3 / 3", 0.03-6% of calls) and A-H11's 00649AF0 CHudTopPanel::Build (its check fails every call: "page 0 shown 0 regions 4 sprites 6").
 
@@ -54,7 +54,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Cleanup (docs/cleanup-plan.md)
 
-- D3 (taken 2026-10-06, user) Shared containers: one layout-exact header for the game's container instantiations (MFC CArray / CTypedPtrArray / CList / CMap, the engine's 32-byte aligned arrays, STLport vector / list / hash_map views); replace the per-file copies (AlignedArray x11, UiPtrArray x6, ListNode x6, MfcArray x5, RecordArray x5, ...) and hand-inlined SetSize / RemoveAt / Add; rewrite-guide rule plus a check_cleanup column for per-file container declarations. Behaviour unchanged.
+- D3 first part merged 2026-10-07 (155 -> 124 per-file containers); D3b queued for the rest (scene_loader ArrayBody/VtArray, STLport list/vector views, script_exec PtrList/ItemList, StringArray x4, RecordArray x4, UiDwordArray; inlined SetSize in ui_window, map_spec, party_lifetime, particles, map objects). Was: Shared containers: one layout-exact header for the game's container instantiations (MFC CArray / CTypedPtrArray / CList / CMap, the engine's 32-byte aligned arrays, STLport vector / list / hash_map views); replace the per-file copies (AlignedArray x11, UiPtrArray x6, ListNode x6, MfcArray x5, RecordArray x5, ...) and hand-inlined SetSize / RemoveAt / Add; rewrite-guide rule plus a check_cleanup column for per-file container declarations. Behaviour unchanged.
 
 - C2 Phase 1 for the engine base and core networking (0x00400000-0x00440000, fully ported): one
   real declaration per class, members instead of At<>/offsets, virtual calls instead of VCall,
