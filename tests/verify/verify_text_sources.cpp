@@ -1,0 +1,90 @@
+// Checks for text_sources.cpp, ours only (they open and free archives): the list's shape after
+// each call. Add: an archive already listed gives 1 and no change, otherwise one more node at the
+// end named `path` with an archive object. Remove: one node fewer when the name was listed, and the
+// name is gone. Clear: the list is empty. Reached by the client's start (00561E50 adds the text
+// archives: `newgame`, `world_load`), the zone briefings (005809D0 / 00580F10 / 005800C0 /
+// 0057F560 add and remove "<zone>" texts: `newgame`) and the client's teardown (005629B0 / 005628E0).
+#include "verify.h"
+
+#include "../../src/game/item_db_text.h"
+
+#include <cstring>
+
+namespace {
+
+void* s_unused;
+
+using Node = TextSourceList::Node;
+
+int CountNodes(const TextSourceList* list) {
+    int n = 0;
+    for (Node* node = list->sentinel->next; node != list->sentinel; node = node->next) ++n;
+    return n;
+}
+
+bool Named(const Node* node, const char* path) {
+    std::size_t length = std::strlen(path);
+    return static_cast<std::size_t>(node->nameEnd - node->nameBegin) == length &&
+           std::memcmp(node->nameBegin, path, length) == 0;
+}
+
+bool Listed(const TextSourceList* list, const char* path) {
+    for (Node* node = list->sentinel->next; node != list->sentinel; node = node->next) {
+        if (Named(node, path)) return true;
+    }
+    return false;
+}
+
+BOOL CheckedAdd(TextSourceList* list, const char* path, BOOL writable, const char* name) {
+    int before = CountNodes(list);
+    bool listed = Listed(list, path);
+    BOOL result = list->Add(path, writable);
+    int after = CountNodes(list);
+    Node* last = list->sentinel->prev;
+    bool ok = listed ? (result == 1 && after == before)
+                     : (after == before + 1 && Named(last, path) && last->source != nullptr);
+    ei::verify::Check(name, true, ok, "%s: listed %d, %d -> %d nodes, result %d", path, listed, before, after, result);
+    return result;
+}
+
+void CheckedRemove(TextSourceList* list, const char* path, const char* name) {
+    int before = CountNodes(list);
+    bool listed = Listed(list, path);
+    list->Remove(path);
+    int after = CountNodes(list);
+    bool ok = after == before - (listed ? 1 : 0) && !Listed(list, path);
+    ei::verify::Check(name, true, ok, "%s: listed %d, %d -> %d nodes", path, listed, before, after);
+}
+
+void CheckedClear(TextSourceList* list, const char* name) {
+    int before = CountNodes(list);
+    list->Clear();
+    bool ok = list->sentinel->next == list->sentinel && list->sentinel->prev == list->sentinel;
+    ei::verify::Check(name, true, ok, "%d nodes before", before);
+}
+
+TextSourceList* SourcesOf(CTextManager* self) { return reinterpret_cast<TextSourceList*>(&self->sources_); }
+
+BOOL __fastcall AddVerify(TextSourceList* self, void*, const char* path, BOOL writable) {
+    return CheckedAdd(self, path, writable, "TextSourceList::Add");
+}
+void __fastcall RemoveVerify(TextSourceList* self, void*, const char* path) {
+    CheckedRemove(self, path, "TextSourceList::Remove");
+}
+void __fastcall ClearVerify(TextSourceList* self) { CheckedClear(self, "TextSourceList::Clear"); }
+BOOL __fastcall AddSourceVerify(CTextManager* self, void*, const char* path) {
+    return CheckedAdd(SourcesOf(self), path, 0, "CTextManager::AddSource");
+}
+void __fastcall RemoveSourceVerify(CTextManager* self, void*, const char* path) {
+    CheckedRemove(SourcesOf(self), path, "CTextManager::RemoveSource");
+}
+void __fastcall ClearSourcesVerify(CTextManager* self) { CheckedClear(SourcesOf(self), "CTextManager::ClearSources"); }
+
+} // namespace
+
+EI_VERIFY(0x004DE930, AddVerify, 0, s_unused);
+EI_VERIFY(0x004DEAF0, RemoveVerify, 0, s_unused);
+EI_VERIFY(0x004DEB60, ClearVerify, 0, s_unused);
+EI_VERIFY(0x004DEDB0, AddSourceVerify, 0, s_unused);
+EI_VERIFY(0x004DEDD0, RemoveSourceVerify, 0, s_unused);
+EI_VERIFY(0x004DED40, ClearSourcesVerify, 0, s_unused);

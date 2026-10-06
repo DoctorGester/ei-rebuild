@@ -42,8 +42,6 @@ __forceinline T Field(const void* object, int offset) {
 
 } // namespace
 
-__declspec(naked) bool ZoneExit::Contains(float, float) const EI_ORIGINAL(0x004E59F0)
-
 CWorldClient* WorldClient() { return reinterpret_cast<CWorldClient*>(0x007AF5B8); }
 
 // ---- Heights -------------------------------------------------------------------------------------

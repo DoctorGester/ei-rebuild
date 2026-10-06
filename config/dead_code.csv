@@ -602,3 +602,8 @@ address,size,name,evidence
 0049E420,64,FUN_0049e420,"only reached from 00481660's branch under 0079BCF4, which nothing in game.exe or Rebirth's binaries writes (zero-initialised; A-S4, docs/notes/script.md)"
 0049E460,390,FUN_0049e460,"only reached from 00481660's branch under 0079BCF4, which nothing in game.exe or Rebirth's binaries writes (zero-initialised; A-S4, docs/notes/script.md)"
 0049E5F0,336,FUN_0049e5f0,"only reached from 00481660's branch under 0079BCF4, which nothing in game.exe or Rebirth's binaries writes (zero-initialised; A-S4, docs/notes/script.md)"
+004D41C0,3156,FUN_004d41c0,"the script dumper's per-command writer: called only by itself and by dead code 004D50C0; Rebirth patches three keyword-table operands in it but never calls it (A-S5, docs/notes/script.md)"
+004D4E80,569,FUN_004d4e80,"referenced only from dead code 004D41C0 004D50C0 (A-S5)"
+004D38F0,209,FUN_004d38f0,"referenced only from dead code 004D38B0 004D39D0 004D41C0 004D53C0 (A-S5)"
+004D5EC0,16,FUN_004d5ec0,"referenced only from dead code 004D41C0 (A-S5)"
+004D65B0,40,FUN_004d65b0,"referenced only from dead code 004D4E80 (A-S5)"
