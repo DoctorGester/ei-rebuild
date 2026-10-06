@@ -14,6 +14,7 @@
 #include <cstdint>
 
 class CItem;   // item.h
+class CParty;   // party.h
 class CStream;   // core_streams.h
 struct UnitStats;
 struct UnitParams;
@@ -75,6 +76,14 @@ struct PartyUnitRecord {
     void RemoveQuickItem(CItem* entry);
     void RemoveArmor(CItem* entry);
     void RemoveSpell(CItem* entry);
+
+    // 00660500 (RET 8; party_members.cpp). ClearItems, then each of the four lists sized to
+    // `source`'s and filled with `party`'s copies (CParty slot 24) of its items, each with the
+    // source item's count (+0x48) and a reference.
+    void CopyItemsFrom(const PartyUnitRecord* source, CParty* party);
+    // 00664950 (RET 4). operator=: the strings assigned, everything else copied (the item lists'
+    // pointers too: the lists are shared, not copied). Returns this.
+    PartyUnitRecord* Assign(const PartyUnitRecord* source);
 
     // 0065F9B0 (RET 4; party_save.cpp). ClearItems and the defaults, then texts 0, 2-5 (text 6
     // becomes a copy of text 5), +0x1C, the stats (005287A0), +0x724..0x72F and the four lists

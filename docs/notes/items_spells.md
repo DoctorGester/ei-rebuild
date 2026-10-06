@@ -145,9 +145,17 @@ for +0x50). Record Load: the original Save gives back the bytes read. LoadParty 
 (items registered under their ids; the copy equals the source). Global 007C8344 = the party being loaded
 (LoadingParty). StatsLoad / StatsSave moved to originals_units.h.
 
-Candidates next: the record's CopyItemsFrom (00660500), DeltaField's empty (00675F70, 19 callers) with the effect constructors /
+Candidates next: DeltaField's empty (00675F70, 19 callers) with the effect constructors /
 destructors, item database record assignment and destructors (006A8F20 with 24 callers, 006A8FB0, 006A88F0..),
 the HUD top panel's text refresh 0064A7A0, the objectives window 0064D9B0.
+
+Unit records (party_members.cpp, A-H6; all ours only, scenario party_records): 006628D0 AddMember (Create when no item
+manager; a stack record constructed, assigned to the new entry, destroyed; name / key / prototype / extra), 006621F0
+FillFromPrototype (model text, NPC stats, scales, starting armour / weapons / spells cloned; the lists come straight from the
+prototype instead of through 005143E0's CStringArrays, same names in the same order), 00664950 Assign (shallow: the item list
+pointers are copied), 00660500 CopyItemsFrom (party slot 24 copies with the source counts), 006620F0 RemoveMember, and three
+more copies of AlignedPtrArray::SetAtGrow (00664490 / 006645D0 / 00664710). Kept: AddMember assigns the stack record's
+uninitialised statistics to the new record (BuildNpcStats then overwrites them).
 
 ## Item texts (004E0000-004E15C0; item_db_text, scenario items)
 
