@@ -2,6 +2,7 @@
 // docs/notes/objects.md.
 
 #include "player_messages.h"
+#include "party.h"
 #include "party_record_lookup.h"
 
 #include "ei/hook.h"
@@ -258,11 +259,10 @@ void CPlayer::Tick() {
         auto* current = node;
         node = node->next;
         int id = static_cast<int>(reinterpret_cast<std::intptr_t>(current->data));
-        void* manager = ei::VCall<void*>(&party_, 18, id);
-        void* object = ManagerFindObject(manager, nullptr, id);
+        CEngineObject* object = ManagerFindObject(Party()->ItemManager(), nullptr, id);
         if (object == nullptr || ei::VCall<int>(object, 6) == 0) objects_.RemoveAt(current);
     }
-    ei::VCall<void>(connection_, 21);
+    connection_->TickDone();
 }
 
 // --- Hooks ---------------------------------------------------------------------------------------

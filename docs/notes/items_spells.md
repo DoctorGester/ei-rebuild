@@ -481,3 +481,23 @@ resets 00665010 / 006650E0 / 00665380, Clear 00665200, item list adds / removes 
 00665870, connection set 00665950, object list 00665BE0 / 00665CC0, unit sweeps 00665640 / 00665D20; every new game,
 but the connection's virtual slots +0x10..+0x58 need declaring first); the save screen's 006570E0 / 006575B0 /
 00655050 / 00653A50; the client / server message handlers 0066F4C0, 00670310, 00667230.
+
+## Players (player.cpp, A-H12)
+
+CPlayer (player_messages.h) now has its whole layout (0x134 bytes): units_ max id +0x54, the embedded party
++0x70..+0xE0, the given items +0xE0 (CPtrList of counted items), the recharge id list +0x114 (vtable 00743138).
+`CPlayerConnection` names the connection's slots 13..23 (CPlayerServer 00743280 / CPlayerClient 00743180; the
+client's vtable is 00743180, not 00743188: Pump is slot 6 and ReceiveMessages slot 23). 0047B670 (object map clear)
+moved to originals_world.h (ObjectMapClearOriginal).
+
+| Address | Name | Verify |
+|---|---|---|
+| 00664BF0 | CPlayer::Construct | ours only: vtable, empty maps / lists (block 10), party created, Destroy's state; newgame |
+| 00664E20, 00664E00 | DestructBody, DeletingDestruct (RET 4) | ours only: base vtable, lists empty / returns this |
+| 00664DE0, 00664DF0 | class name "CPlayer" (00794CA4), id 0xF | against the original |
+| 00665010, 006650E0, 00665380 | CreatePlayer (returns 1), DestroyPlayer (slot 3 and the destructor's copy) | ours only: lists and maps empty, no link / connection, id -1 |
+| 00665200 | Clear | ours only: items released, maps and lists empty, units gone |
+| 00665950, 00665A60 | SetConnection (RET 4), SetPlayerId (RET 4) | ours only: fields |
+
+Kept: Clear's unit loop stops at the first map entry without a unit (the rest stay); the constructor's maps keep
+their uninitialised functor bytes.
