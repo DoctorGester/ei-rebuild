@@ -4,10 +4,16 @@
 // ("Area ticket A-H").
 #include "ui.h"
 
+#include "item.h"
+#include "item_db_text.h"
+#include "party.h"
+
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_engine.h"
 #include "originals_ui.h"
+#include "originals_world.h"
 #include "unit.h"
 #include "unit_db.h"
 #include "world.h"
@@ -18,6 +24,7 @@ namespace {
 
 constexpr const char* kSoundClick = "buttons\\battle\\click.wav";   // 00794460
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
+constexpr char kNewLine[] = {'\n', '\0'};                           // 00784340
 constexpr std::uint32_t kRed = 0x0000FF;                             // COLORREF
 
 // The panel's scene object `index` (the HUD's are interface sprites).
@@ -177,6 +184,56 @@ void CHudTopPanel::ShowPage() {
     }
 }
 EI_REPLACE_METHOD(0x0064A320, CHudTopPanel::ShowPage);
+
+void CHudTopPanel::ShowItems() {
+    CTextManager* texts = GameTexts();
+    // A local CPtrList (MFC's vtable, blocks of 10) of the world's copies.
+    mfc::CTypedPtrList<CItem> merged{reinterpret_cast<void*>(0x0073BE80), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    WorldPlayer* player = reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player;
+    mfc::CString line;
+    mfc::CString format;
+    for (auto* node = player->items.head; node;) {
+        auto* item = static_cast<CItem*>(node->data);
+        node = node->next;
+        CItem* same = nullptr;
+        for (auto* entry = merged.head; entry && !same; entry = entry->next)
+            if (entry->data->IsSameAsSlot(item)) same = entry->data;
+        if (same) {
+            same->unknown_48 += item->unknown_48;
+            continue;
+        }
+        CItem* copy = WorldCopyItemOriginal(WorldClient(), nullptr, item);
+        copy->unknown_48 = item->unknown_48;
+        ++copy->refCount_;
+        merged.AddTail(copy);
+    }
+
+    mfc::CString& text = *reinterpret_cast<mfc::CString*>(&pageTexts_[1]);
+    text.Empty();
+    auto* party = reinterpret_cast<CParty*>(LocalPlayerData());
+    if (static_cast<int>(party->unknown_50) > 0) {
+        TextsGetString(texts, nullptr, "format_money", &format);
+        line.Format(format, static_cast<int>(party->unknown_50));
+        text += line;
+        text += kNewLine;
+    }
+    for (auto* node = merged.head; node;) {
+        CItem* item = node->data;
+        node = node->next;
+        texts->FormatItemName(item, &line);
+        text += line;
+        text += kNewLine;
+        item->Release();
+    }
+    merged.RemoveAll();
+    if (page_ == 1) {
+        CUiScrollText* log = MessageLog(owner_);
+        LogSetTextOriginal(log, nullptr, text);
+        log->CallSetPosition(0);
+    }
+    merged.RemoveAll();
+}
+EI_REPLACE_METHOD(0x0064A7A0, CHudTopPanel::ShowItems);
 
 void CHudTopPanel::Layout() {
     // Place (005E6FA0) is Rebirth-patched: through its address.

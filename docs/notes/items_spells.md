@@ -147,7 +147,7 @@ for +0x50). Record Load: the original Save gives back the bytes read. LoadParty 
 
 Candidates next: DeltaField's empty (00675F70, 19 callers) with the effect constructors /
 destructors, item database record assignment and destructors (006A8F20 with 24 callers, 006A8FB0, 006A88F0..),
-the HUD top panel's text refresh 0064A7A0, the objectives window 0064D9B0.
+
 
 Unit records (party_members.cpp, A-H6; all ours only, scenario party_records): 006628D0 AddMember (Create when no item
 manager; a stack record constructed, assigned to the new entry, destroyed; name / key / prototype / extra), 006621F0
@@ -391,6 +391,14 @@ rewritten functions is on the Rebirth list (their caller 006462A0 is).
 | 0064A320, 00649E20 | CHudTopPanel::ShowPage, Layout | original with tints / positions spoiled, then ours: tints, message log position / maximum / moved flag; five sprites (4 ULPs), log rect, region offsets |
 
 Texts go through the panel surface's DrawText (005FDE20, Rebirth-patched) and Place (005E6FA0, Rebirth-patched),
-both through their addresses. ShowParts reads the unit's six body part records (+0x374, 0x1C bytes: state,
+both through their addresses.
+
+A-H6: 0064A7A0 CHudTopPanel::ShowItems (`this` is the top panel, ECX; Ghidra's decompile mislabels it) builds page 1's
+text: "format_money" with the local party's +0x50 when above 0, then the local player's item list (WorldPlayer +0xE0, a
+CPtrList) merged by kind (slot 14) into the client world's copies (0055E940, not rewritten), one FormatItemName line each,
+copies released; into the log when page 1 is up. Ours only (stateful): one line per kind plus the money line. Reached by
+every battle screen setup (00635250 / 00636150; scenario ui_hud). 0064D9B0 CObjectivesWindow::DrawQuestList
+(ui_objectives.cpp; via RefreshQuests 0064E8B0, scenario ui_hud's TAB): ours only, the five marks' and the cursor's
+visibility against the quests' states. ShowParts reads the unit's six body part records (+0x374, 0x1C bytes: state,
 durability, maximum) with label positions from tables 00742434 / 0074244C. In ToggleFlag the button frame's
 third value 0.48046875 is unreachable.

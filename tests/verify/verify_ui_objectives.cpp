@@ -9,6 +9,7 @@
 
 #include "../../src/game/object_tables.h"
 #include "../../src/game/ui.h"
+#include "../../src/game/world.h"
 
 #include <cstring>
 
@@ -100,3 +101,30 @@ static void __fastcall ObjectivesShowQuestVerify(CObjectivesWindow* self, void*)
                       self->sceneObjects_.size_);
 }
 EI_VERIFY(0x0064DC60, ObjectivesShowQuestVerify, 0, s_unused);
+
+// 0064D9B0 draws into the window's surface: ours only. Afterwards row i's mark (object 16 + i) is
+// shown exactly when the row exists and its "q.<zone>.<quest>" state is 2 or 3, and the cursor
+// (object 2) exactly when the selected quest is one of the rows.
+static void __fastcall ObjectivesDrawQuestListVerify(CObjectivesWindow* self, void*) {
+    self->DrawQuestList();
+    auto* quests = reinterpret_cast<const mfc::CString*>(*reinterpret_cast<char* const*>(self->quests_ + 4));
+    int count = *reinterpret_cast<const int*>(self->quests_ + 8);
+    bool ok = true;
+    bool cursor = false;
+    for (int i = 0; i < 5; ++i) {
+        int row = self->unknown_1C0 + i;
+        bool shown = false;
+        if (row < count) {
+            mfc::CString variable;
+            variable.Format("q.%s.%s", self->shownZone_, static_cast<const char*>(quests[row]));
+            int state = static_cast<int>(LocalPlayerVariable(variable));
+            shown = state == 2 || state == 3;
+            cursor = cursor || row == self->selectedQuest_;
+        }
+        ok = ok && (reinterpret_cast<CUiMesh*>(self->sceneObjects_.data_[16 + i])->visible_ != 0) == shown;
+    }
+    ok = ok && (reinterpret_cast<CUiMesh*>(self->sceneObjects_.data_[2])->visible_ != 0) == cursor;
+    ei::verify::Check("CObjectivesWindow::DrawQuestList", true, ok, "%d quests from %d, selected %d", count,
+                      self->unknown_1C0, self->selectedQuest_);
+}
+EI_VERIFY(0x0064D9B0, ObjectivesDrawQuestListVerify, 0, s_unused);
