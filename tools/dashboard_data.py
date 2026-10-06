@@ -1,0 +1,169 @@
+"""Collects the numbers behind the progress dashboard, for the working tree and for past commits.
+
+For each sampled first-parent commit of main (and the working tree last) it computes, from that
+commit's own files:
+  - ported game code: functions and bytes rewritten (EI_REPLACE*, UI_INPUT_HANDLER / UI_WHEEL_HANDLER)
+    against config/functions.csv minus library and dead code, overall and per address range;
+  - lines of code under src/ (game, lib, render, hook) and tests/;
+  - cleanup artefacts: EI_ORIGINAL sites, functions forwarded from several files, At<>/Field<> uses,
+    VCall uses, __asm blocks, float_control pragmas, verify wrappers, scenarios.
+
+usage: python tools/dashboard_data.py [--every N] [--out build/dashboard/data.json]
+Reads history through `git cat-file --batch`; nothing is checked out.
+"""
+import argparse, csv, io, json, os, re, subprocess, sys
+from collections import defaultdict
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+AREAS = [
+    (0x400000, 0x480000, 'Engine base, network, app'),
+    (0x480000, 0x4C0000, 'Script runtime, engine misc'),
+    (0x4C0000, 0x500000, 'Scripts'),
+    (0x500000, 0x540000, 'Units, combat, map objects'),
+    (0x540000, 0x5A0000, 'AI, world, server'),
+    (0x5A0000, 0x5E0000, 'AI paths, world client'),
+    (0x5E0000, 0x640000, 'Interface'),
+    (0x640000, 0x6C0000, 'HUD, items, spells, effects'),
+    (0x6C0000, 0x740000, 'Game code in the CRT/MFC range'),
+]
+
+COMMENT = re.compile(r'//[^\n]*|/\*.*?\*/', re.S)
+REPLACE = re.compile(r'EI_REPLACE(?:_METHOD)?\(\s*0x([0-9A-Fa-f]+)')
+HANDLER = re.compile(r'UI_(?:INPUT|WHEEL)_HANDLER\(\s*0x([0-9A-Fa-f]+)')
+ORIGINAL = re.compile(r'\bEI_ORIGINAL\s*\(\s*0[xX]([0-9A-Fa-f]+)\s*\)')
+CLEANUP = {
+    'offset_access': re.compile(r'\b(?:At|Field)\s*<'),
+    'vcall': re.compile(r'\bVCall\b'),
+    'asm_blocks': re.compile(r'\b__asm\b'),
+    'float_control': re.compile(r'#\s*pragma\s+float_control'),
+}
+
+
+class Tree:
+    """Files of one commit (or of the working tree when commit is None)."""
+
+    def __init__(self, commit, batch):
+        self.commit, self.batch = commit, batch
+        if commit:
+            out = subprocess.run(['git', 'ls-tree', '-r', '--name-only', commit], cwd=ROOT,
+                                 capture_output=True, text=True).stdout
+            self.paths = out.split('\n')
+        else:
+            self.paths = []
+            for top in ('src', 'tests', 'config'):
+                for d, _, names in os.walk(os.path.join(ROOT, top)):
+                    for n in names:
+                        self.paths.append(os.path.relpath(os.path.join(d, n), ROOT).replace(os.sep, '/'))
+
+    def read(self, path):
+        if not self.commit:
+            p = os.path.join(ROOT, path)
+            return open(p, encoding='utf-8', errors='replace').read() if os.path.exists(p) else None
+        return self.batch.read(f'{self.commit}:{path}')
+
+
+class Batch:
+    def __init__(self):
+        self.p = subprocess.Popen(['git', 'cat-file', '--batch'], cwd=ROOT, stdin=subprocess.PIPE,
+                                  stdout=subprocess.PIPE)
+
+    def read(self, spec):
+        self.p.stdin.write((spec + '\n').encode()); self.p.stdin.flush()
+        header = self.p.stdout.readline().decode()
+        if header.endswith('missing\n'):
+            return None
+        size = int(header.split()[2])
+        data = self.p.stdout.read(size); self.p.stdout.read(1)
+        return data.decode('utf-8', errors='replace')
+
+
+def addresses(text, column='address'):
+    return {int(r[column], 16) for r in csv.DictReader(io.StringIO(text))} if text else set()
+
+
+def measure(tree):
+    sizes = {}
+    for line in (tree.read('src/hook/function_sizes.inc') or '').splitlines():
+        m = re.match(r'\{0x([0-9A-F]+), (\d+)\}', line)
+        if m:
+            sizes[int(m.group(1), 16)] = int(m.group(2))
+    funcs = tree.read('config/functions.csv')
+    if not funcs or not sizes:
+        return None
+    game = {int(r['address'], 16) for r in csv.DictReader(io.StringIO(funcs)) if r['kind'] == 'game'}
+    game -= addresses(tree.read('config/library.csv')) | addresses(tree.read('config/dead_code.csv'))
+
+    replaced, loc, cleanup = set(), defaultdict(int), defaultdict(int)
+    origin_files = defaultdict(set)
+    for path in tree.paths:
+        if not path.endswith(('.cpp', '.h', '.inc', '.txt', '.py')):
+            continue
+        if not (path.startswith('src/') or path.startswith('tests/')):
+            continue
+        text = tree.read(path)
+        if text is None:
+            continue
+        part = ('tests/scenarios' if path.startswith('tests/scenarios') else 'tests/verify'
+                if path.startswith('tests/') else '/'.join(path.split('/')[:2]))
+        loc[part] += text.count('\n')
+        if path.startswith('tests/scenarios') and path.endswith('.txt'):
+            cleanup['scenarios'] += 1
+        if not path.endswith(('.cpp', '.h')):
+            continue
+        code = COMMENT.sub('', text)
+        if path.startswith('src/'):
+            replaced |= {int(a, 16) for a in REPLACE.findall(code)}
+            replaced |= {int(a, 16) for a in HANDLER.findall(code)}
+            for a in ORIGINAL.findall(code):
+                cleanup['forwarder_sites'] += 1
+                origin_files[int(a, 16)].add(path)
+            if not path.startswith('src/hook/'):
+                for k, rx in CLEANUP.items():
+                    cleanup[k] += len(rx.findall(code))
+        else:
+            cleanup['verify_wrappers'] += len(re.findall(r'\bEI_VERIFY\s*\(', code))
+    cleanup['forwarded_from_several_files'] = sum(1 for f in origin_files.values() if len(f) > 1)
+
+    total = sum(sizes.get(a, 0) for a in game)
+    done = game & replaced
+    areas = []
+    for lo, hi, name in AREAS:
+        g = {a for a in game if lo <= a < hi}
+        d = g & done
+        areas.append({'name': name, 'range': f'{lo:06X}-{hi:06X}', 'functions': len(g), 'ported_functions': len(d),
+                      'bytes': sum(sizes.get(a, 0) for a in g), 'ported_bytes': sum(sizes.get(a, 0) for a in d)})
+    return {'functions': len(game), 'ported_functions': len(done), 'bytes': total,
+            'ported_bytes': sum(sizes.get(a, 0) for a in done), 'areas': areas, 'loc': dict(loc),
+            'cleanup': dict(cleanup)}
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--every', type=int, default=8, help='sample every Nth first-parent commit')
+    ap.add_argument('--out', default=os.path.join(ROOT, 'build', 'dashboard', 'data.json'))
+    args = ap.parse_args()
+    log = subprocess.run(['git', 'log', '--first-parent', '--reverse', '--format=%H %cI %s', 'main'], cwd=ROOT,
+                         capture_output=True, text=True).stdout.strip().split('\n')
+    commits = [l.split(' ', 2) for l in log]
+    sample = commits[::args.every]
+    if sample[-1] != commits[-1]:
+        sample.append(commits[-1])
+    batch = Batch()
+    history = []
+    for sha, when, subject in sample:
+        m = measure(Tree(sha, batch))
+        if m:
+            m.update(commit=sha[:7], date=when, subject=subject[:80])
+            history.append(m)
+            print(f'{sha[:7]} {when[:16]} {100 * m["ported_bytes"] / m["bytes"]:.1f}%', file=sys.stderr)
+    current = measure(Tree(None, batch))
+    current.update(commit='working tree', date=subprocess.run(['git', 'log', '-1', '--format=%cI'], cwd=ROOT,
+                   capture_output=True, text=True).stdout.strip(), subject='')
+    os.makedirs(os.path.dirname(args.out), exist_ok=True)
+    json.dump({'current': current, 'history': history}, open(args.out, 'w'), indent=1)
+    print(f'wrote {args.out}: {len(history)} history points', file=sys.stderr)
+
+
+if __name__ == '__main__':
+    main()
