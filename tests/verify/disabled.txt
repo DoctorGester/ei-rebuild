@@ -3,3 +3,4 @@
 004D7BD0 DecalBuilder::ClipPlane: mismatches (A-S5); X17 fixing (2026-10-07)
 004D85F0 DecalBuilder::AddTriangle: mismatches; X17
 004D8490 DecalBuilder::AddTerrainTriangle: mismatches; X17
+00649AF0 CHudTopPanel::Build: its check fails every call ("page 0 shown 0 regions 4 sprites 6"); X17 (2026-10-07)
