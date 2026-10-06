@@ -66,7 +66,7 @@ int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_c
 void WriteString(ScriptStream* stream, const mfc::CString& s) { stream->Write(static_cast<const char*>(s), Length(s) + 1); }
 
 // Variable i's name, or a single zero byte when the name array is shorter.
-void WriteName(ScriptStream* stream, const MfcArray<mfc::CString>& names, int i) {
+void WriteName(ScriptStream* stream, const mfc::CArray<mfc::CString>& names, int i) {
     if (i < names.size) {
         WriteString(stream, names.data[i]);
     } else {
@@ -150,7 +150,7 @@ void __fastcall ScriptGroupsSave(const ScriptNamedValues<ScriptGroup>* vars, voi
 }
 EI_REPLACE(0x004C4330, ScriptGroupsSave);
 
-void __fastcall ScriptAreasSave(const MfcArray<ScriptArea>* areas, ScriptStream* stream) {
+void __fastcall ScriptAreasSave(const mfc::CArray<ScriptArea>* areas, ScriptStream* stream) {
     WriteInt(stream, areas->size);
     for (int i = 0; i < areas->size; ++i) {
         const ScriptArea& area = areas->data[i];
@@ -197,7 +197,7 @@ void __fastcall ScriptSave(CScript* script, void*, ScriptStream* stream) {
     SavingScript() = script;
 
     // Point lights: the CArray at +0x00 (data +0x04, size +0x08; 0x20-byte slots).
-    const auto& lights = Field<MfcArray<std::uint8_t[0x20]>>(script, 0x00);
+    const auto& lights = Field<mfc::CArray<std::uint8_t[0x20]>>(script, 0x00);
     WriteInt(stream, lights.size);
     for (int i = 0; i < lights.size; ++i) PointLightSave(lights.data[i], nullptr, stream);
 
@@ -214,7 +214,7 @@ void __fastcall ScriptSave(CScript* script, void*, ScriptStream* stream) {
     });
 
     // Definitions (+0x8C).
-    const auto& scripts = Field<MfcArray<ScriptDefinition>>(script, 0x8C);
+    const auto& scripts = Field<mfc::CArray<ScriptDefinition>>(script, 0x8C);
     WriteInt(stream, scripts.size);
     for (int i = 0; i < scripts.size; ++i) DefinitionSave(&scripts.data[i], nullptr, stream);
 
@@ -236,6 +236,6 @@ void __fastcall ScriptSave(CScript* script, void*, ScriptStream* stream) {
     stream->Write(&Field<int>(script, 0x1A8), 4);
     stream->Write(&Field<int>(script, 0x1AC), 4);
     SavingScript() = nullptr;
-    AreasSaveOrig(&Field<MfcArray<ScriptArea>>(script, 0x194), stream);
+    AreasSaveOrig(&Field<mfc::CArray<ScriptArea>>(script, 0x194), stream);
 }
 EI_REPLACE(0x004C0F90, ScriptSave);

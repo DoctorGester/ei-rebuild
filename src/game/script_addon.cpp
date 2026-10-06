@@ -172,7 +172,7 @@ const Built& Build() {
 // object and group pointers): MFC's, through the game's heap, except that a full array grows to
 // size + growBy elements, growBy 0 meaning 4 (its clamp of size / 8 always gives 4).
 template <typename T>
-void ArgumentsSetSize(MfcArray<T>& a, int n) {
+void ArgumentsSetSize(mfc::CArray<T>& a, int n) {
     static_assert(sizeof(T) == 4);
     constexpr bool strings = std::is_same_v<T, mfc::CString>;
     if (n <= a.size) {

@@ -40,7 +40,7 @@ int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_c
 // 10010D8F: every string argument appended in order (each by its CString length).
 std::string Joined(Call* call) {
     std::string text;
-    const MfcArray<mfc::CString>& strings = call->cmd->stringArgs;
+    const mfc::CArray<mfc::CString>& strings = call->cmd->stringArgs;
     for (int i = 0; i < strings.size; ++i) text.append(static_cast<const char*>(strings.data[i]), Length(strings.data[i]));
     return text;
 }

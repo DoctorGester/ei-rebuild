@@ -14,17 +14,17 @@ inline bool SameText(const mfc::CString& a, const mfc::CString& b) {
 
 // Size, growth step and (when `capacity`) the allocated size.
 template <typename T>
-bool SameShape(const MfcArray<T>& a, const MfcArray<T>& b, bool capacity) {
+bool SameShape(const mfc::CArray<T>& a, const mfc::CArray<T>& b, bool capacity) {
     return a.vtable == b.vtable && a.size == b.size && a.growBy == b.growBy && (!capacity || a.maxSize == b.maxSize);
 }
 
 // Arrays of plain elements: shape and element bytes.
 template <typename T>
-bool SamePlain(const MfcArray<T>& a, const MfcArray<T>& b, bool capacity) {
+bool SamePlain(const mfc::CArray<T>& a, const mfc::CArray<T>& b, bool capacity) {
     return SameShape(a, b, capacity) && (!a.size || std::memcmp(a.data, b.data, a.size * sizeof(T)) == 0);
 }
 
-inline bool SameStrings(const MfcArray<mfc::CString>& a, const MfcArray<mfc::CString>& b, bool capacity) {
+inline bool SameStrings(const mfc::CArray<mfc::CString>& a, const mfc::CArray<mfc::CString>& b, bool capacity) {
     if (!SameShape(a, b, capacity)) return false;
     for (int i = 0; i < a.size; ++i)
         if (!SameText(a.data[i], b.data[i])) return false;
@@ -48,7 +48,7 @@ inline bool SameCmd(const SSCCmd& a, const SSCCmd& b, bool capacity) {
     return true;
 }
 
-inline bool SameGroups(const MfcArray<ScriptGroup>& a, const MfcArray<ScriptGroup>& b, bool capacity) {
+inline bool SameGroups(const mfc::CArray<ScriptGroup>& a, const mfc::CArray<ScriptGroup>& b, bool capacity) {
     if (!SameShape(a, b, capacity)) return false;
     for (int i = 0; i < a.size; ++i)
         if (!SamePlain<ScriptObjectRef>(a.data[i], b.data[i], false)) return false;

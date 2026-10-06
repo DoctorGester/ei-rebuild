@@ -121,7 +121,7 @@ void __fastcall FxDestructVerify(ScriptFxSource* self) {
     DestructVerify("ScriptFxSourceDestruct", &ScriptFxSourceDestruct, self);
 }
 
-MfcList<ScriptParticleSource>::Node* FindParticleSource(CScript* script, int id) {
+mfc::CList<ScriptParticleSource>::Node* FindParticleSource(CScript* script, int id) {
     for (auto* node = script->particles_.head; node; node = node->next)
         if (node->data.id == id) return node;
     return nullptr;

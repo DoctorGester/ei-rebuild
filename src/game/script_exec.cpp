@@ -91,7 +91,7 @@ constexpr int kClassLever = 0x5D;
 constexpr int kClassQuestItem = 0x14;
 
 // Script helpers (script.h types, original addresses).
-__declspec(naked) void __fastcall SetParametersOrig(SSCCmd*, void*, const MfcArray<ScriptBinding>*, ScriptVars*)
+__declspec(naked) void __fastcall SetParametersOrig(SSCCmd*, void*, const mfc::CArray<ScriptBinding>*, ScriptVars*)
     EI_ORIGINAL(0x004B3F60)
 __declspec(naked) void __fastcall CalcParametersOrig(SSCCmd*, void*, CScript*, ScriptVars*, const ScriptSubCall*)
     EI_ORIGINAL(0x004B4030)
@@ -684,7 +684,7 @@ void RedeployParty(const SSCCmd* cmd) {
     ThePartyManager()->BeginRedeploy(players);
     ThePartyManager()->EndRedeploy(players);
     // One slot and one party unit: the slot gets the unit's id.
-    auto* units = reinterpret_cast<MfcArray<char>*>(static_cast<char*>(player) + 0x9C);
+    auto* units = reinterpret_cast<mfc::CArray<char>*>(static_cast<char*>(player) + 0x9C);
     if (slots.size == 1 && units->size == 1) {
         char* unit = units->data;    // element 0 (0x784 bytes each)
         *reinterpret_cast<int*>(slots.data) = *reinterpret_cast<int*>(unit + 0x1C);

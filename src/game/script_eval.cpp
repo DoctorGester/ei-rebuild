@@ -294,7 +294,7 @@ void Store(ScriptObjectRef* slot, CEngineObject* object) {
 // ---- CScript forwarders -------------------------------------------------------------------------
 
 __declspec(naked) ScriptObjectRef* CScript::NewTempObject() EI_ORIGINAL(0x004B59F0)
-__declspec(naked) MfcArray<ScriptAreaPart>* CScript::FindArea(int) EI_ORIGINAL(0x004BCE10)
+__declspec(naked) mfc::CArray<ScriptAreaPart>* CScript::FindArea(int) EI_ORIGINAL(0x004BCE10)
 
 // ---- SSCCmd -------------------------------------------------------------------------------------
 
@@ -648,7 +648,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         if (!o) return;
         void* player = TheWorld()->GetPlayer(0);
         if (!player) return;
-        auto& visible = Field<MfcArray<CEngineObject*>>(Field<void*>(player, 0x20), 0x510C);
+        auto& visible = Field<mfc::CArray<CEngineObject*>>(Field<void*>(player, 0x20), 0x510C);
         bool found = false;
         for (int i = 0; i < visible.size; ++i)
             if (visible.data[i] == o) {
@@ -667,7 +667,7 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0xC5: { // IsInArea(area, x, y)
         int area = x87::fistp(f[0]);
         float x = f[1], y = f[2];
-        const MfcArray<ScriptAreaPart>* parts = script->FindArea(area);
+        const mfc::CArray<ScriptAreaPart>* parts = script->FindArea(area);
         bool inside = false;
         for (int i = 0, n = parts->size; i < n; ++i) {
             const ScriptAreaPart& part = parts->data[i];

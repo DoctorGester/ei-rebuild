@@ -17,7 +17,7 @@ namespace {
 
 // CList::RemoveAll as inlined: each element destroyed in place, the list emptied, its blocks freed.
 template <typename T, typename Destroy>
-void RemoveAll(MfcList<T>& list, Destroy destroy) {
+void RemoveAll(mfc::CList<T>& list, Destroy destroy) {
     for (auto* node = list.head; node; node = node->next) destroy(&node->data);
     list.count = 0;
     list.free = nullptr;
@@ -95,7 +95,7 @@ void __fastcall ScriptResetZone(CScript* script) {
     script->forDepth_ = 0;
     ScriptFreeTemporaries(script);
 
-    MfcArray<ScriptPointLight>& lights = script->pointLights_;
+    mfc::CArray<ScriptPointLight>& lights = script->pointLights_;
     for (int i = 0; i < lights.size; ++i) {
         if (CEngineObject* object = lights.data[i].object) {
             WorldServer()->RemoveTimedObject(object->id_);

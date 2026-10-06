@@ -52,7 +52,7 @@ constexpr std::uintptr_t kPartsVtable = 0x0073D328;     // CArray<ScriptAreaPart
 // the empty temporary's commands copied in (004CC0C0), linked; the id is the list's count (the
 // field right after the tail) with `idBits`.
 ScriptDecl* AppendBlock(ScriptList* list, std::uint32_t idBits) {
-    MfcArray<SSCCmd> empty{reinterpret_cast<void*>(kCommandsVtable), nullptr, 0, 0, 0};
+    mfc::CArray<SSCCmd> empty{reinterpret_cast<void*>(kCommandsVtable), nullptr, 0, 0, 0};
     ScriptListNode* node = NewBlockNode(list, nullptr, list->tail, nullptr);
     auto* block = reinterpret_cast<ScriptDecl*>(node->Data());
     CommandsCopy(&block->commands, nullptr, &empty);
@@ -80,12 +80,12 @@ EI_REPLACE(0x004BF900, ScriptNewWorldScript);
 // 004BCE10 CScript::FindArea. A linear search by id; when absent the array grows by one (SetSize
 // 004CDB30 constructs the slot), the empty temporary's parts are copied in (004CE2F0) and the last
 // slot gets the id.
-MfcArray<ScriptAreaPart>* __fastcall ScriptFindArea(CScript* script, void*, int id) {
-    auto& areas = Field<MfcArray<ScriptArea>>(script, 0x194);
+mfc::CArray<ScriptAreaPart>* __fastcall ScriptFindArea(CScript* script, void*, int id) {
+    auto& areas = Field<mfc::CArray<ScriptArea>>(script, 0x194);
     for (int i = 0; i < areas.size; ++i) {
         if (areas.data[i].id == id) return &areas.data[i].parts;
     }
-    MfcArray<ScriptAreaPart> empty{reinterpret_cast<void*>(kPartsVtable), nullptr, 0, 0, 0};
+    mfc::CArray<ScriptAreaPart> empty{reinterpret_cast<void*>(kPartsVtable), nullptr, 0, 0, 0};
     int index = areas.size;
     AreasSetSize(&areas, nullptr, index + 1, -1);
     PartsCopy(&areas.data[index].parts, nullptr, &empty);

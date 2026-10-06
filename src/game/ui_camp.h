@@ -404,9 +404,9 @@ public:
     float bobTime_;                  // +0x178 seconds, for the arrow's bobbing and the layers' frames
     char* allodTitle_;               // +0x17C CString
     float position_[3];              // +0x180 the current zone on the map model
-    MfcArray<GlobalMapZone> zones_;  // +0x18C
-    MfcArray<GlobalMapPlace> links_; // +0x1A0
-    MfcArray<GlobalMapPlace> quests_;   // +0x1B4
+    mfc::CArray<GlobalMapZone> zones_;  // +0x18C
+    mfc::CArray<GlobalMapPlace> links_; // +0x1A0
+    mfc::CArray<GlobalMapPlace> quests_;   // +0x1B4
     std::uint8_t unknown_1C8[0x1EC - 0x1C8];
     float turn_[4];                  // +0x1EC the model's orientation (a quaternion)
     float angle_;                    // +0x1FC the model's turn about z (mod 007C8020)

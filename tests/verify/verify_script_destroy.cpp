@@ -46,7 +46,7 @@ public:
         if (*nRefs < 0) return;   // the shared empty string or a locked buffer
         Add(nRefs);
     }
-    void Strings(const MfcArray<mfc::CString>& a) {
+    void Strings(const mfc::CArray<mfc::CString>& a) {
         for (int i = 0; i < a.size; ++i) String(a.data[i]);
     }
     void Object(const CEngineObject* o) {
@@ -213,8 +213,8 @@ void __fastcall CmdDestructVerify(SSCCmd* self) {
     Counters counters;
     counters.Cmd(*self);
     std::vector<int> t0 = counters.Read();
-    MfcArray<SSCCmd> source{reinterpret_cast<void*>(0x0073D3DC), self, 1, 1, 0};
-    MfcArray<SSCCmd> copies{reinterpret_cast<void*>(0x0073D3DC), nullptr, 0, 0, 0};
+    mfc::CArray<SSCCmd> source{reinterpret_cast<void*>(0x0073D3DC), self, 1, 1, 0};
+    mfc::CArray<SSCCmd> copies{reinterpret_cast<void*>(0x0073D3DC), nullptr, 0, 0, 0};
     CommandsCopy(&copies, nullptr, &source);
     Compare("ScriptCmdDestruct", self, copies.data, counters, t0, s_cmdDestruct, ScriptCmdDestruct);
     gamecrt::operator_delete(copies.data);
@@ -284,8 +284,8 @@ void* __fastcall SubCallDestroyVerify(ScriptSubCall* self, void*, int flags) {
     if (self->cmd) counters.Cmd(*self->cmd);
     std::vector<int> t0 = counters.Read();
     ScriptSubCall copy = *self;
-    MfcArray<SSCCmd> source{reinterpret_cast<void*>(0x0073D3DC), self->cmd, self->cmd ? 1 : 0, 1, 0};
-    MfcArray<SSCCmd> copies{reinterpret_cast<void*>(0x0073D3DC), nullptr, 0, 0, 0};
+    mfc::CArray<SSCCmd> source{reinterpret_cast<void*>(0x0073D3DC), self->cmd, self->cmd ? 1 : 0, 1, 0};
+    mfc::CArray<SSCCmd> copies{reinterpret_cast<void*>(0x0073D3DC), nullptr, 0, 0, 0};
     if (self->cmd) {
         CommandsCopy(&copies, nullptr, &source);
         copy.cmd = copies.data;
@@ -339,7 +339,7 @@ void* __fastcall FxSourceDestroyVerify(void* self, void*, int flags) {
 // its body (004BF7E0) writes the base vtable 0073D3D0, destroys the commands and frees the array.
 void* __fastcall WorldBlockDestroyVerify(void* self, void*, int flags) {
     if (flags & 1) return ScriptWorldBlockDestroy(self, nullptr, flags);
-    auto* cmds = static_cast<MfcArray<SSCCmd>*>(self);
+    auto* cmds = static_cast<mfc::CArray<SSCCmd>*>(self);
     Counters counters;
     for (int i = 0; i < cmds->size; ++i) counters.Cmd(cmds->data[i]);
     std::vector<int> t0 = counters.Read();
@@ -377,11 +377,11 @@ void* __fastcall CmdElementDestroyVerify(SSCCmd* self, void*, int flags) {
 // 004B3900: ours only (the four appends check the contents): every array's size as the appends
 // set it (the other set's counts captured first; it may be this set).
 void __fastcall AppendFromVerify(ScriptVars* self, void*, const ScriptVars* other) {
-    const MfcArray<int>* mine[8];
-    const MfcArray<int>* theirs[8];
+    const mfc::CArray<int>* mine[8];
+    const mfc::CArray<int>* theirs[8];
     for (int i = 0; i < 8; ++i) {
-        mine[i] = reinterpret_cast<const MfcArray<int>*>(reinterpret_cast<const char*>(self) + i * 0x14);
-        theirs[i] = reinterpret_cast<const MfcArray<int>*>(reinterpret_cast<const char*>(other) + i * 0x14);
+        mine[i] = reinterpret_cast<const mfc::CArray<int>*>(reinterpret_cast<const char*>(self) + i * 0x14);
+        theirs[i] = reinterpret_cast<const mfc::CArray<int>*>(reinterpret_cast<const char*>(other) + i * 0x14);
     }
     // Values grow by the other's value count; names become the old value count plus the other's
     // name count.
@@ -496,10 +496,10 @@ void __fastcall GroupsDestructVerify(ScriptNamedValues<ScriptGroup>* self) {
 }
 // 004BC810: PUSH -1; PUSH 0x7184E8 (7 bytes). The CString array's scalar deleting destructor
 // (004C1860).
-void(__fastcall* s_namesDestruct)(MfcArray<mfc::CString>*);
-void __fastcall NamesDestructVerify(MfcArray<mfc::CString>* self) {
+void(__fastcall* s_namesDestruct)(mfc::CArray<mfc::CString>*);
+void __fastcall NamesDestructVerify(mfc::CArray<mfc::CString>* self) {
     DestructOnCopy("ScriptNamesDestruct", s_namesDestruct, &ScriptNamesDestruct, NamesCopyConstructAt, self,
-                   [](Counters& c, const MfcArray<mfc::CString>& v) { c.Strings(v); });
+                   [](Counters& c, const mfc::CArray<mfc::CString>& v) { c.Strings(v); });
 }
 
 // Destructors without a copy constructor: ours only. Only the vtables listed change (to the base
@@ -521,14 +521,14 @@ void DestructModel(const char* name, void(__fastcall* ours)(T*), T* self, const 
 }
 
 // 004BC9A0: the reference array's scalar deleting destructor (004C1840).
-void __fastcall RefArrayDestructVerify(MfcArray<ScriptObjectRef>* self) {
+void __fastcall RefArrayDestructVerify(mfc::CArray<ScriptObjectRef>* self) {
     Counters counters;
     for (int i = 0; i < self->size; ++i) counters.Object(self->data[i].object);
     DestructModel("ScriptRefArrayDestruct", &ScriptRefArrayDestruct, self, counters, 0, scriptvtable::kRefsBase);
 }
 // 004BCA20: the group array's scalar deleting destructor (004C18A0). The groups' own vtables are in
 // the freed storage and not checked.
-void __fastcall GroupArrayDestructVerify(MfcArray<ScriptGroup>* self) {
+void __fastcall GroupArrayDestructVerify(mfc::CArray<ScriptGroup>* self) {
     Counters counters;
     for (int i = 0; i < self->size; ++i)
         for (int k = 0; k < self->data[i].size; ++k) counters.Object(self->data[i].data[k].object);

@@ -30,7 +30,7 @@ void __fastcall ObjectiveDestructVerify(ScriptQuestObjective* self) {
 // 004BAA40 QStart: ours only (the old objectives are freed): no objectives left, the name set.
 void __fastcall QuestStartVerify(const char* name) {
     ScriptQuestStart(name);
-    const MfcArray<ScriptQuestObjective>& objectives = ScriptQuestObjectives();
+    const mfc::CArray<ScriptQuestObjective>& objectives = ScriptQuestObjectives();
     ei::verify::Check("ScriptQuestStart", true,
                       !objectives.data && objectives.size == 0 && objectives.maxSize == 0 &&
                           std::strcmp(ScriptQuestName(), name) == 0,
@@ -42,7 +42,7 @@ void __fastcall QuestStartVerify(const char* name) {
 // destroyed and the size taken back; then ours appends. PUSH -1; PUSH 0x718338 (7 bytes).
 void(__fastcall* s_addObjective)(int, const mfc::CString*, float);
 void __fastcall AddObjectiveVerify(int type, const mfc::CString* text, float value) {
-    MfcArray<ScriptQuestObjective>& objectives = ScriptQuestObjectives();
+    mfc::CArray<ScriptQuestObjective>& objectives = ScriptQuestObjectives();
     int size = objectives.size;
     s_addObjective(type, text, value);
     ScriptQuestObjective& added = objectives.data[size];

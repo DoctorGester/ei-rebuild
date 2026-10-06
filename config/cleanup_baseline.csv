@@ -82,7 +82,6 @@ src/game/figure_part_draw_plain.cpp,22,0,2,0,0,0,0,0,0
 src/game/figure_rasterise.cpp,8,0,0,2,0,0,0,0,0
 src/game/game_strings.h,0,0,0,0,1,0,0,0,0
 src/game/hoover_loot.cpp,15,1,0,0,0,0,0,0,1
-src/game/ini_file.h,0,0,0,0,0,0,0,0,2
 src/game/item.cpp,22,0,0,0,0,0,0,0,0
 src/game/item_constructor.cpp,16,14,1,0,7,0,0,5,0
 src/game/item_db_text.cpp,2,1,0,0,0,0,0,0,0
@@ -117,7 +116,7 @@ src/game/map_spec_unit.cpp,2,3,0,0,9,0,0,2,1
 src/game/menu_rects.cpp,0,1,0,0,36,0,0,0,1
 src/game/misc_400.cpp,0,0,0,0,1,0,0,0,0
 src/game/model.cpp,0,0,0,4,0,0,0,0,0
-src/game/model.h,0,0,0,0,0,0,0,0,2
+src/game/model.h,0,0,0,0,0,0,0,0,1
 src/game/net_classes.h,0,0,0,0,8,0,0,0,0
 src/game/net_client.cpp,0,2,0,0,0,0,0,0,0
 src/game/net_client_awards.cpp,8,5,1,1,4,0,0,0,0
@@ -154,7 +153,6 @@ src/game/object.h,0,0,0,0,1,0,0,0,0
 src/game/object3d_figure_setup.cpp,0,0,0,0,0,0,0,0,1
 src/game/object_small_slots.cpp,0,0,0,0,0,0,0,0,1
 src/game/object_tables.cpp,0,0,0,0,2,0,0,0,0
-src/game/object_tables.h,0,0,0,0,0,0,0,0,1
 src/game/options.cpp,0,0,4,0,126,0,0,0,0
 src/game/originals_library.h,0,0,13,0,3,0,0,0,0
 src/game/particle_callbacks.cpp,0,0,1,1,6,0,0,11,0
@@ -174,7 +172,6 @@ src/game/quaternion.cpp,0,0,4,1,1,0,0,0,0
 src/game/quest_database.cpp,18,0,0,0,16,0,0,0,0
 src/game/refptr_copies.cpp,0,3,0,0,0,0,0,0,0
 src/game/registry.cpp,0,0,1,0,1,0,0,0,0
-src/game/registry.h,0,0,0,0,0,0,0,0,1
 src/game/renderer_init.cpp,68,0,2,0,0,0,0,1,0
 src/game/renderer_lines.cpp,14,0,0,0,0,0,0,0,0
 src/game/renderer_rect.cpp,26,0,0,0,0,0,0,0,0
@@ -195,7 +192,7 @@ src/game/scene_normals.cpp,13,0,0,0,0,0,0,0,0
 src/game/scene_registry.cpp,19,0,1,0,2,0,0,0,0
 src/game/scene_skeleton.cpp,34,1,0,0,0,0,0,0,0
 src/game/scene_weld.cpp,6,0,0,0,0,0,0,0,0
-src/game/script.h,0,0,0,0,0,0,0,0,5
+src/game/script.h,0,0,0,0,0,0,0,0,3
 src/game/script_addon.cpp,0,0,5,0,1,0,0,1,0
 src/game/script_addon_commands.cpp,39,4,0,0,0,0,0,3,0
 src/game/script_addon_units.cpp,22,1,0,0,0,0,0,0,0

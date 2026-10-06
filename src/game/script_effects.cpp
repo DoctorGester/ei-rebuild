@@ -92,8 +92,8 @@ void __fastcall ScriptCreateFx(CScript*, void*, const SSCCmd* cmd) {
 // 004BCFF0: CreateLightning(id, x1, y1, z1, x2, y2, z2, width). A negative (or NaN) id takes the
 // next automatic one; others are truncated. The bolt is always added, even when the id exists.
 void __fastcall ScriptCreateLightning(CScript* script, void*, const SSCCmd* cmd) {
-    MfcList<ScriptLightning>& list = script->lightning_;
-    auto* node = static_cast<MfcList<ScriptLightning>::Node*>(
+    mfc::CList<ScriptLightning>& list = script->lightning_;
+    auto* node = static_cast<mfc::CList<ScriptLightning>::Node*>(
         ScriptLightningListNewNodeOriginal(&list, nullptr, list.tail, nullptr));
     node->data.object = nullptr;
     node->data.id = -1;
@@ -133,7 +133,7 @@ void __fastcall ScriptCreateParticleSource(CScript* script, void*, const SSCCmd*
     int id = static_cast<int>(std::lrint(f[0]));
     if (id < 0) id = script->nextParticleId_--;
 
-    MfcList<ScriptParticleSource>& list = script->particles_;
+    mfc::CList<ScriptParticleSource>& list = script->particles_;
     ScriptParticleSource* source = nullptr;
     for (auto* node = list.head; node; node = node->next) {
         if (node->data.id == id) {
@@ -145,7 +145,7 @@ void __fastcall ScriptCreateParticleSource(CScript* script, void*, const SSCCmd*
         DropEffect(&source->object);
     } else {
         // The original copies a temporary whose fields are all written below.
-        auto* node = static_cast<MfcList<ScriptParticleSource>::Node*>(
+        auto* node = static_cast<mfc::CList<ScriptParticleSource>::Node*>(
             ScriptParticleListNewNodeOriginal(&list, nullptr, list.tail, nullptr));
         node->data.object = nullptr;
         if (list.tail) list.tail->next = node;

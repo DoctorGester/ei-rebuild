@@ -66,7 +66,7 @@ std::vector<unsigned char> VarsImage(const ScriptVars* v) {
 }
 
 template <typename T>
-std::vector<unsigned char> Raw(const MfcArray<T>& a) {
+std::vector<unsigned char> Raw(const mfc::CArray<T>& a) {
     auto* p = reinterpret_cast<const unsigned char*>(a.data);
     std::vector<unsigned char> out(reinterpret_cast<const unsigned char*>(&a.size), reinterpret_cast<const unsigned char*>(&a.size) + 4);
     if (a.size > 0) out.insert(out.end(), p, p + a.size * sizeof(T));
@@ -138,17 +138,17 @@ void __fastcall FxAssignVerify(void* self, void*, const void* other) {
 // carry the derived vtables) ----
 
 template <typename T>
-bool HasVtable(const MfcArray<T>& a, std::uintptr_t vtable) {
+bool HasVtable(const mfc::CArray<T>& a, std::uintptr_t vtable) {
     return reinterpret_cast<std::uintptr_t>(a.vtable) == vtable;
 }
 
-std::vector<std::string> Strings(const MfcArray<mfc::CString>& a) {
+std::vector<std::string> Strings(const mfc::CArray<mfc::CString>& a) {
     std::vector<std::string> out;
     for (int i = 0; i < a.size; ++i) out.emplace_back(static_cast<const char*>(a.data[i]));
     return out;
 }
 
-std::vector<CEngineObject*> Objects(const MfcArray<ScriptObjectRef>& a) {
+std::vector<CEngineObject*> Objects(const mfc::CArray<ScriptObjectRef>& a) {
     std::vector<CEngineObject*> out;
     for (int i = 0; i < a.size; ++i) out.push_back(a.data[i].object);
     return out;
@@ -173,8 +173,8 @@ ScriptVars* __fastcall VarsCopyVerify(ScriptVars* self, void*, const ScriptVars*
     return self;
 }
 
-MfcArray<mfc::CString>* __fastcall NamesCopyVerify(MfcArray<mfc::CString>* self, void*,
-                                                   const MfcArray<mfc::CString>* other) {
+mfc::CArray<mfc::CString>* __fastcall NamesCopyVerify(mfc::CArray<mfc::CString>* self, void*,
+                                                   const mfc::CArray<mfc::CString>* other) {
     std::vector<std::string> expected = Strings(*other);
     ScriptNamesCopyConstruct(self, nullptr, other);
     bool ok = Strings(*self) == expected && self->maxSize == self->size && self->growBy == 0 &&
@@ -208,7 +208,7 @@ ScriptNamedValues<ScriptGroup>* __fastcall GroupsCopyVerify(ScriptNamedValues<Sc
     return self;
 }
 
-SSCCmd* __fastcall CmdCopyAtVerify(const MfcArray<SSCCmd>* self, void*, SSCCmd* out, int index) {
+SSCCmd* __fastcall CmdCopyAtVerify(const mfc::CArray<SSCCmd>* self, void*, SSCCmd* out, int index) {
     std::vector<unsigned char> expected = CmdImage(&self->data[index]);
     ScriptCmdCopyAt(self, nullptr, out, index);
     bool ok = CmdImage(out) == expected && CmdVtables(out);
@@ -216,7 +216,7 @@ SSCCmd* __fastcall CmdCopyAtVerify(const MfcArray<SSCCmd>* self, void*, SSCCmd* 
     return out;
 }
 
-ScriptSubCall* __fastcall SubCallCopyAtVerify(const MfcArray<ScriptSubCall>* self, void*, ScriptSubCall* out,
+ScriptSubCall* __fastcall SubCallCopyAtVerify(const mfc::CArray<ScriptSubCall>* self, void*, ScriptSubCall* out,
                                               int index) {
     const ScriptSubCall* from = &self->data[index];
     std::vector<unsigned char> expected = CmdImage(from->cmd);

@@ -124,8 +124,8 @@ EI_VERIFY(0x00696090, IniGetListVerify, 6, s_iniGetList);
     }
 
 EI_INI_ALIGNED_WRAPPER(IniIntArrayCopy, GetIntArrayCopy, DwordArray, 4)
-EI_INI_ALIGNED_WRAPPER(IniByteArray, GetByteArray, AlignedArray, 1)
-EI_INI_ALIGNED_WRAPPER(IniShortArray, GetShortArray, AlignedArray, 2)
+EI_INI_ALIGNED_WRAPPER(IniByteArray, GetByteArray, lib::AlignedArray<std::uint8_t>, 1)
+EI_INI_ALIGNED_WRAPPER(IniShortArray, GetShortArray, lib::AlignedArray<std::uint16_t>, 2)
 EI_INI_ALIGNED_WRAPPER(IniIntArray, GetIntArray, DwordArray, 4)
 EI_VERIFY(0x006961D0, IniIntArrayCopyVerify, 7, s_IniIntArrayCopy);
 EI_VERIFY(0x006963F0, IniByteArrayVerify, 7, s_IniByteArray);
@@ -134,24 +134,24 @@ EI_VERIFY(0x00696830, IniIntArrayVerify, 7, s_IniIntArray);
 
 // MFC arrays: the scratch has no vtable (SetSize does not use it); its data is freed with
 // operator delete, as MFC's destructors do.
-#define EI_INI_MFC_WRAPPER(Name, Method, Element)                                                              \
-    static BOOL(__fastcall* s_##Name)(CIniFile*, void*, const char*, const char*, MfcArray*);                 \
+#define EI_INI_MFC_WRAPPER(Name, Method, Type)                                                                 \
+    static BOOL(__fastcall* s_##Name)(CIniFile*, void*, const char*, const char*, mfc::CArray<Type>*);        \
     static BOOL __fastcall Name##Verify(CIniFile* self, void*, const char* section, const char* key,          \
-                                        MfcArray* out) {                                                       \
-        MfcArray scratch{};                                                                                    \
+                                        mfc::CArray<Type>* out) {                                              \
+        mfc::CArray<Type> scratch{};                                                                           \
         BOOL expected = s_##Name(self, nullptr, section, key, &scratch);                                       \
         BOOL actual = self->Method(section, key, out);                                                         \
         bool same = expected == actual && (!expected || SameBytes(scratch.data, scratch.size, out->data,      \
-                                                                  out->size, Element));                        \
+                                                                  out->size, sizeof(Type)));                   \
         ei::verify::Check("CIniFile::" #Method, true, same, "[%s] %s", section, key);                         \
         if (scratch.data) gamecrt::operator_delete(scratch.data);                                              \
         return expected;                                                                                       \
     }
 
-EI_INI_MFC_WRAPPER(IniMfcByteArray, GetMfcByteArray, 1)
-EI_INI_MFC_WRAPPER(IniMfcWordArray, GetMfcWordArray, 2)
-EI_INI_MFC_WRAPPER(IniMfcUIntArray, GetMfcUIntArray, 4)
-EI_INI_MFC_WRAPPER(IniMfcDWordArray, GetMfcDWordArray, 4)
+EI_INI_MFC_WRAPPER(IniMfcByteArray, GetMfcByteArray, std::uint8_t)
+EI_INI_MFC_WRAPPER(IniMfcWordArray, GetMfcWordArray, std::uint16_t)
+EI_INI_MFC_WRAPPER(IniMfcUIntArray, GetMfcUIntArray, std::uint32_t)
+EI_INI_MFC_WRAPPER(IniMfcDWordArray, GetMfcDWordArray, std::uint32_t)
 EI_VERIFY(0x006969F0, IniMfcByteArrayVerify, 7, s_IniMfcByteArray);
 EI_VERIFY(0x00696B20, IniMfcWordArrayVerify, 7, s_IniMfcWordArray);
 EI_VERIFY(0x00696C50, IniMfcUIntArrayVerify, 7, s_IniMfcUIntArray);

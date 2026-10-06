@@ -67,7 +67,7 @@ void __fastcall PurgeVerify(CScript* self) {
 }
 
 template <typename T>
-bool EmptyList(const MfcList<T>& list) {
+bool EmptyList(const mfc::CList<T>& list) {
     return list.count == 0 && !list.head && !list.tail && !list.free && !list.blocks;
 }
 
@@ -89,7 +89,7 @@ void __fastcall ResetZoneVerify(CScript* self) {
               EmptyList(self->fxSources_) && EmptyList(self->particles_) && EmptyList(self->lightning_);
     for (auto* node = self->runs_.head; ok && node; node = node->next)
         ok = node->data.index == 0 && !node->data.killFlag && node->data.ticks == 0;
-    const MfcArray<ScriptPointLight>& lights = self->pointLights_;
+    const mfc::CArray<ScriptPointLight>& lights = self->pointLights_;
     for (int i = 0; ok && i < lights.size; ++i) {
         const ScriptPointLight& l = lights.data[i];
         ok = !l.object && l.id == 0 && l.removeWhenDone == 0 && l.moving == 0 && l.steps == 0;

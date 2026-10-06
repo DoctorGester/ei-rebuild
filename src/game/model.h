@@ -6,8 +6,9 @@
 
 #include "chunk_archive.h"
 #include "maths.h"
-#include "script.h"   // MfcArray, ScriptStream
+#include "script.h"   // ScriptStream
 
+#include "lib/containers.h"
 #include "lib/stlp.h"
 
 #include <cstddef>
@@ -74,19 +75,13 @@ Matrix4* __stdcall ShearMatrix(Matrix4* out, const Vector3* dir);
 // 004F0E80. Perspective projection; `fov` in radians (full angle). Returns out.
 Matrix4* __stdcall ProjectionMatrix(Matrix4* out, float fov, float aspect, float zNear, float zFar);
 
-// Triangle index buffer of a figure part: 3 uint16 indices per triangle, data 32-byte aligned with
-// the operator_new block stored just before it. 16 bytes.
-struct TriangleIndexArray {
-    std::uint16_t* data;   // +0x00
-    int size;              // +0x04 triangles
-    int capacity;          // +0x08
-    int growBy;            // +0x0C 0 = size / 8 clamped to 4..1024
-
-    // 004F57B0. Resizes to `count` triangles (growBy -1 keeps the current step), keeping the
-    // contents; 0 frees the buffer.
-    void Resize(int count, int newGrowBy);
+// Triangle index buffer of a figure part: 3 uint16 indices per triangle, an engine aligned array
+// (lib::AlignedArray). Its SetSize (004F57B0, growBy -1 keeps the step) is AlignedArray::SetSize.
+struct IndexTriangle {
+    std::uint16_t index[3];
 };
-static_assert(sizeof(TriangleIndexArray) == 16);
+static_assert(sizeof(IndexTriangle) == 6);
+using TriangleIndexArray = lib::AlignedArray<IndexTriangle>;
 
 // A node of CLinkFigureLoader's archive list (std::list<pair<string, CMMIOResource*>>).
 struct LinkArchiveNode {
@@ -163,7 +158,7 @@ static_assert(sizeof(TweenEntry) == 16);
 
 // CArray<TweenEntry> of the world (at 007AFF60 + 0x70). MFC SetSize semantics; new entries are
 // zero-filled, never constructed.
-struct TweenArray : MfcArray<TweenEntry> {
+struct TweenArray : mfc::CArray<TweenEntry> {
     void RemoveAll();                                  // 006D43E0
     void SetSize(int count, int newGrowBy);            // 006D4840
     void SetTarget(int key, float target, int steps);  // 006D4410 (reached via 00593FA0)

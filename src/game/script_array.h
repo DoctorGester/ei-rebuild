@@ -17,7 +17,7 @@ struct RawArray {
     int growBy;     // +0x10
 };
 template <typename T>
-RawArray* Raw(MfcArray<T>* a) { return reinterpret_cast<RawArray*>(a); }
+RawArray* Raw(mfc::CArray<T>* a) { return reinterpret_cast<RawArray*>(a); }
 
 using RangeFn = void(__stdcall*)(void* first, int count);
 

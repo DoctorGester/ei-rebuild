@@ -340,7 +340,7 @@ EI_REPLACE_METHOD(0x004D37F0, CScript::QualifyName);
 
 int CScript::FindScript(const char* name) {
     for (;;) {
-        const MfcArray<ScriptDefinition>& scripts = Scripts();
+        const mfc::CArray<ScriptDefinition>& scripts = Scripts();
         for (int i = 0; i < scripts.size; ++i)
             if (Mbscmp(scripts.data[i].name, name) == 0) return i;
         // Not found: retry without the leading "!<file>!" qualification.

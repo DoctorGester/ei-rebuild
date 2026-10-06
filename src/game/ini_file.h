@@ -13,24 +13,6 @@ namespace console {
 class CStringArray;
 }
 
-// An MFC array (CByteArray, CWordArray, CDWordArray, CUIntArray; 0x14 bytes): vtable, data,
-// size, maximum size, growth step.
-struct MfcArray {
-    void* vtable;
-    void* data;
-    int size;
-    int maxSize;
-    int growBy;
-};
-
-// The aligned arrays of bytes and 16-bit values (like DwordArray, element size aside).
-struct AlignedArray {
-    void* data;
-    int size;
-    int capacity;
-    int growBy;
-};
-
 class CIniFile {
 public:
     CIniFile* Construct();                                  // 00695B80 (empty path)
@@ -57,13 +39,13 @@ public:
     // Lists of integers (atoi of each item) into the different array types. Each returns 0, `out`
     // untouched, when the value is empty; otherwise `out` holds exactly the items.
     BOOL GetIntArrayCopy(const char* section, const char* key, DwordArray* out);       // 006961D0
-    BOOL GetByteArray(const char* section, const char* key, AlignedArray* out);        // 006963F0
-    BOOL GetShortArray(const char* section, const char* key, AlignedArray* out);       // 00696610
+    BOOL GetByteArray(const char* section, const char* key, lib::AlignedArray<std::uint8_t>* out);        // 006963F0
+    BOOL GetShortArray(const char* section, const char* key, lib::AlignedArray<std::uint16_t>* out);       // 00696610
     BOOL GetIntArray(const char* section, const char* key, DwordArray* out);           // 00696830
-    BOOL GetMfcByteArray(const char* section, const char* key, MfcArray* out);         // 006969F0
-    BOOL GetMfcWordArray(const char* section, const char* key, MfcArray* out);         // 00696B20
-    BOOL GetMfcUIntArray(const char* section, const char* key, MfcArray* out);         // 00696C50
-    BOOL GetMfcDWordArray(const char* section, const char* key, MfcArray* out);        // 00696D80
+    BOOL GetMfcByteArray(const char* section, const char* key, mfc::CArray<std::uint8_t>* out);         // 006969F0
+    BOOL GetMfcWordArray(const char* section, const char* key, mfc::CArray<std::uint16_t>* out);         // 00696B20
+    BOOL GetMfcUIntArray(const char* section, const char* key, mfc::CArray<std::uint32_t>* out);         // 00696C50
+    BOOL GetMfcDWordArray(const char* section, const char* key, mfc::CArray<std::uint32_t>* out);        // 00696D80
 
     // Writers (WritePrivateProfileString); each returns its result.
     BOOL WriteString(const char* section, const char* key, mfc::CString value);        // 00696E60

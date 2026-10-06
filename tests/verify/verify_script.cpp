@@ -373,7 +373,7 @@ EI_VERIFY(0x004B37D0, FindVariableVerify, 6, s_findVariable);
 // SetParameters only copies variables into the arguments, so running it twice gives the same
 // state: run ours, record the bound arguments, run the original and compare.
 // 004B3F60: PUSH ECX; PUSH EBX; MOV EBX,[ESP+0xC] (6 bytes).
-static void(__fastcall* s_setParameters)(SSCCmd*, void*, const MfcArray<ScriptBinding>*, ScriptVars*);
+static void(__fastcall* s_setParameters)(SSCCmd*, void*, const mfc::CArray<ScriptBinding>*, ScriptVars*);
 
 namespace {
 std::uint32_t BoundValue(const SSCCmd* cmd, const ScriptBinding& b) {
@@ -387,7 +387,7 @@ std::uint32_t BoundValue(const SSCCmd* cmd, const ScriptBinding& b) {
 }
 } // namespace
 
-static void __fastcall SetParametersVerify(SSCCmd* self, void*, const MfcArray<ScriptBinding>* bindings, ScriptVars* vars) {
+static void __fastcall SetParametersVerify(SSCCmd* self, void*, const mfc::CArray<ScriptBinding>* bindings, ScriptVars* vars) {
     self->SetParameters(bindings, vars);
     std::vector<std::uint32_t> ours;
     for (int i = 0; i < bindings->size; ++i) ours.push_back(BoundValue(self, bindings->data[i]));

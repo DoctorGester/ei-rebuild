@@ -36,7 +36,7 @@ __declspec(naked) void World::AddTimedObject(void*) EI_ORIGINAL(0x0058E520)
 World* TheWorld() { return reinterpret_cast<World*>(0x007AFF60); }
 
 // CArray<ScriptAreaPart>::SetSize(newSize, -1) as the area functions inline it.
-void SetPartCount(MfcArray<ScriptAreaPart>* parts, int newSize) {
+void SetPartCount(mfc::CArray<ScriptAreaPart>* parts, int newSize) {
     constexpr int kSize = sizeof(ScriptAreaPart);
     if (newSize == 0) {
         if (parts->data) {
@@ -76,7 +76,7 @@ void SetPartCount(MfcArray<ScriptAreaPart>* parts, int newSize) {
     parts->maxSize = newMax;
 }
 
-void AddPart(MfcArray<ScriptAreaPart>* parts, const ScriptAreaPart& part) {
+void AddPart(mfc::CArray<ScriptAreaPart>* parts, const ScriptAreaPart& part) {
     int at = parts->size;
     SetPartCount(parts, at + 1);
     parts->data[at] = part;
@@ -141,7 +141,7 @@ void LightStep(PointLight* light, const float* target, const float* position) {
 
 // ---- Areas --------------------------------------------------------------------------------------
 
-void __fastcall ScriptAreaAddRect(MfcArray<ScriptAreaPart>* area, void*, float x1, float y1, float x2, float y2) {
+void __fastcall ScriptAreaAddRect(mfc::CArray<ScriptAreaPart>* area, void*, float x1, float y1, float x2, float y2) {
     ScriptAreaPart part = {};
     part.isRect = 1;
     part.x = x1;
@@ -152,7 +152,7 @@ void __fastcall ScriptAreaAddRect(MfcArray<ScriptAreaPart>* area, void*, float x
 }
 EI_REPLACE(0x004B1ED0, ScriptAreaAddRect);
 
-void __fastcall ScriptAreaAddRound(MfcArray<ScriptAreaPart>* area, void*, float x, float y, float radius) {
+void __fastcall ScriptAreaAddRound(mfc::CArray<ScriptAreaPart>* area, void*, float x, float y, float radius) {
     ScriptAreaPart part = {};
     part.isRect = 0;
     part.x = x;

@@ -15,7 +15,7 @@ namespace {
 
 // 004CDF40: CArray<ScriptQuestObjective>::SetSize(size, growBy) (library; new elements get an empty
 // text).
-__declspec(naked) void __fastcall ObjectivesSetSize(MfcArray<ScriptQuestObjective>*, void*, int, int)
+__declspec(naked) void __fastcall ObjectivesSetSize(mfc::CArray<ScriptQuestObjective>*, void*, int, int)
     EI_ORIGINAL(0x004CDF40)
 // 004CE110: the quest table's hashtable find_or_insert(pair) (library, RET 4): the pair in the table, a
 // copy of `pair` inserted when its key is missing.
@@ -31,7 +31,7 @@ void __fastcall ScriptQuestObjectiveDestruct(ScriptQuestObjective* objective) { 
 // 004BAA40 (QStart; __fastcall with the name in ECX). The old objectives are destroyed and freed, the
 // array emptied, and the quest named.
 void __fastcall ScriptQuestStart(const char* name) {
-    MfcArray<ScriptQuestObjective>& objectives = ScriptQuestObjectives();
+    mfc::CArray<ScriptQuestObjective>& objectives = ScriptQuestObjectives();
     if (objectives.data) {
         ScriptQuestObjective* objective = objectives.data;
         for (int n = objectives.size; n != 0; --n, ++objective) ScriptQuestObjectiveDestruct(objective);
@@ -48,7 +48,7 @@ void __fastcall ScriptQuestStart(const char* name) {
 void __fastcall ScriptQuestAddObjective(int type, const mfc::CString* text, float value) {
     mfc::CString copy;
     copy = *text;
-    MfcArray<ScriptQuestObjective>& objectives = ScriptQuestObjectives();
+    mfc::CArray<ScriptQuestObjective>& objectives = ScriptQuestObjectives();
     int at = objectives.size;
     ObjectivesSetSize(&objectives, nullptr, at + 1, -1);
     ScriptQuestObjective& objective = objectives.data[at];

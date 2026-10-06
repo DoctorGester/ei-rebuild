@@ -29,8 +29,8 @@ using namespace scriptparse;
 
 __declspec(naked) int __cdecl CScript::Error(CScript*, int, int, const char*, ...) EI_ORIGINAL(0x004CF470)
 __declspec(naked) ScriptDecl* CScript::NewCommandList() EI_ORIGINAL(0x004BF540)
-__declspec(naked) MfcArray<SSCCmd>* CScript::NewWorldScript() EI_ORIGINAL(0x004BF900)
-__declspec(naked) void CScript::RunWorldScript(MfcArray<SSCCmd>*) EI_ORIGINAL(0x004BCC60)
+__declspec(naked) mfc::CArray<SSCCmd>* CScript::NewWorldScript() EI_ORIGINAL(0x004BF900)
+__declspec(naked) void CScript::RunWorldScript(mfc::CArray<SSCCmd>*) EI_ORIGINAL(0x004BCC60)
 __declspec(naked) void SSCCmd::Clear() EI_ORIGINAL(0x004B5F70)
 __declspec(naked) void SSCCmd::Destruct() EI_ORIGINAL(0x004BF640)
 __declspec(naked) BOOL ScriptDefinition::AddParameter(const mfc::CString&, int) EI_ORIGINAL(0x004BB800)
@@ -45,12 +45,12 @@ struct Original : CScript {
     int FindScriptAt(const char* name);
     BOOL LoadFunctionAt(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* tokens, int id, ScriptVars* locals,
                         const char* signature, BOOL assignment, BOOL scriptCall);
-    BOOL LoadConditionsAt(MfcArray<SSCCmd>* conditions, ScriptPos* pos, const ScriptTokenList* tokens, ScriptVars* locals);
+    BOOL LoadConditionsAt(mfc::CArray<SSCCmd>* conditions, ScriptPos* pos, const ScriptTokenList* tokens, ScriptVars* locals);
     BOOL LoadScriptBodyAt(ScriptDefinition* script, ScriptPos* pos, const ScriptTokenList* tokens);
     BOOL LoadAssignOperatorAt(SSCCmd* cmd, ScriptPos* pos, const ScriptTokenList* tokens, ScriptVars* locals,
                               const mfc::CString* name);
     BOOL LoadVariableDeclarationsAt(ScriptDefinition* script, ScriptPos* pos, const ScriptTokenList* tokens, BOOL qualify);
-    BOOL LoadCommandsAt(MfcArray<SSCCmd>* commands, ScriptPos* pos, const ScriptTokenList* tokens, ScriptVars* locals);
+    BOOL LoadCommandsAt(mfc::CArray<SSCCmd>* commands, ScriptPos* pos, const ScriptTokenList* tokens, ScriptVars* locals);
     BOOL LoadAt(mfc::CString* text, BOOL runWorldScript);
 };
 __declspec(naked) BOOL Original::TokenizeAt(const mfc::CString&, ScriptTokenList*) EI_ORIGINAL(0x004CF7A0)
@@ -59,14 +59,14 @@ __declspec(naked) mfc::CString* Original::QualifyNameAt(mfc::CString*, const mfc
 __declspec(naked) int Original::FindScriptAt(const char*) EI_ORIGINAL(0x004D3780)
 __declspec(naked) BOOL Original::LoadFunctionAt(SSCCmd*, ScriptPos*, const ScriptTokenList*, int, ScriptVars*, const char*,
                                                 BOOL, BOOL) EI_ORIGINAL(0x004CFBC0)
-__declspec(naked) BOOL Original::LoadConditionsAt(MfcArray<SSCCmd>*, ScriptPos*, const ScriptTokenList*, ScriptVars*)
+__declspec(naked) BOOL Original::LoadConditionsAt(mfc::CArray<SSCCmd>*, ScriptPos*, const ScriptTokenList*, ScriptVars*)
     EI_ORIGINAL(0x004D0BF0)
 __declspec(naked) BOOL Original::LoadScriptBodyAt(ScriptDefinition*, ScriptPos*, const ScriptTokenList*) EI_ORIGINAL(0x004D1030)
 __declspec(naked) BOOL Original::LoadAssignOperatorAt(SSCCmd*, ScriptPos*, const ScriptTokenList*, ScriptVars*,
                                                       const mfc::CString*) EI_ORIGINAL(0x004D1D50)
 __declspec(naked) BOOL Original::LoadVariableDeclarationsAt(ScriptDefinition*, ScriptPos*, const ScriptTokenList*, BOOL)
     EI_ORIGINAL(0x004D1FE0)
-__declspec(naked) BOOL Original::LoadCommandsAt(MfcArray<SSCCmd>*, ScriptPos*, const ScriptTokenList*, ScriptVars*)
+__declspec(naked) BOOL Original::LoadCommandsAt(mfc::CArray<SSCCmd>*, ScriptPos*, const ScriptTokenList*, ScriptVars*)
     EI_ORIGINAL(0x004D1330)
 BOOL Original::LoadAt(mfc::CString* a0, BOOL a1) { return (BOOL)ScriptLoadLine((void*)this, nullptr, (const mfc::CString*)a0, (int)a1); }
 Original* Orig(CScript* script) { return static_cast<Original*>(script); }
@@ -91,19 +91,19 @@ __declspec(naked) void VarsAt::Destruct() EI_ORIGINAL(0x004BE090)
 VarsAt* Vars(ScriptVars* vars) { return static_cast<VarsAt*>(vars); }
 
 // CArray template members of the loader's arrays (MFC code, not rewritten).
-struct BindingArray : MfcArray<ScriptBinding> {
+struct BindingArray : mfc::CArray<ScriptBinding> {
     int Add(const ScriptBinding* binding);   // 004D5B50
 };
 __declspec(naked) int BindingArray::Add(const ScriptBinding*) EI_ORIGINAL(0x004D5B50)
 
-struct SubCallArray : MfcArray<ScriptSubCall> {
+struct SubCallArray : mfc::CArray<ScriptSubCall> {
     int Add(const ScriptSubCall* call);      // 004D5CB0: deep-copies the nested SSCCmd
     void SetSize(int size, int growBy);      // 004C4FD0: deletes the nested SSCCmds it drops
 };
 __declspec(naked) int SubCallArray::Add(const ScriptSubCall*) EI_ORIGINAL(0x004D5CB0)
 void SubCallArray::SetSize(int a0, int a1) { SubCallArraySetSizeOriginal((void*)this, nullptr, a0, a1); }
 
-struct CmdArray : MfcArray<SSCCmd> {
+struct CmdArray : mfc::CArray<SSCCmd> {
     void SetSize(int size, int growBy);                  // 004CD2B0
     void SetAtGrow(int index, const SSCCmd* cmd);        // 004D65E0: copies the SSCCmd
     int Add(const SSCCmd* cmd);                          // 004D5ED0: copies the SSCCmd
@@ -111,9 +111,9 @@ struct CmdArray : MfcArray<SSCCmd> {
 void CmdArray::SetSize(int a0, int a1) { CmdArraySetSizeOriginal((void*)this, nullptr, a0, a1); }
 __declspec(naked) void CmdArray::SetAtGrow(int, const SSCCmd*) EI_ORIGINAL(0x004D65E0)
 __declspec(naked) int CmdArray::Add(const SSCCmd*) EI_ORIGINAL(0x004D5ED0)
-CmdArray* Cmds(MfcArray<SSCCmd>* array) { return static_cast<CmdArray*>(array); }
+CmdArray* Cmds(mfc::CArray<SSCCmd>* array) { return static_cast<CmdArray*>(array); }
 
-struct IfThenArray : MfcArray<ScriptIfThen> {
+struct IfThenArray : mfc::CArray<ScriptIfThen> {
     void SetSize(int size, int growBy);   // 004C59C0
 };
 void IfThenArray::SetSize(int a0, int a1) { IfThenArraySetSizeOriginal((void*)this, nullptr, a0, a1); }
@@ -125,7 +125,7 @@ struct DefinitionAt : ScriptDefinition {
 __declspec(naked) void DefinitionAt::Reset() EI_ORIGINAL(0x004D3320)
 __declspec(naked) void DefinitionAt::Destruct() EI_ORIGINAL(0x004BE9D0)
 
-struct DefinitionArray : MfcArray<ScriptDefinition> {
+struct DefinitionArray : mfc::CArray<ScriptDefinition> {
     int Add(const ScriptDefinition* script);   // 004D6100: copies the definition
 };
 __declspec(naked) int DefinitionArray::Add(const ScriptDefinition*) EI_ORIGINAL(0x004D6100)
@@ -154,7 +154,7 @@ __declspec(naked) BOOL __fastcall ReadTextFile(const char*, mfc::CString*) EI_OR
 // ---- Small helpers ------------------------------------------------------------------------------
 
 // Index of `name` in a variable name array (004D5A50/5A90/5AD0/5B10, identical copies).
-int FindName(const MfcArray<mfc::CString>& names, const char* name) {
+int FindName(const mfc::CArray<mfc::CString>& names, const char* name) {
     for (int i = 0; i < names.size; ++i)
         if (Mbscmp(names.data[i], name) == 0) return i;
     return -1;
@@ -194,7 +194,7 @@ int CountChar(const char* text, char c) {
 // zeroing (floats, object and group pointers) or with the CString helpers; only strings are
 // destructed when the array shrinks.
 template <typename T>
-void InlineSetSize(MfcArray<T>& a, int n, bool strings) {
+void InlineSetSize(mfc::CArray<T>& a, int n, bool strings) {
     auto construct = [strings](T* p, int count) {
         if (strings) ConstructStrings(reinterpret_cast<mfc::CString*>(p), count);
         else std::memset(p, 0, static_cast<unsigned>(count) * 4);
@@ -238,7 +238,7 @@ void InlineSetSize(MfcArray<T>& a, int n, bool strings) {
 
 // Frees an array's buffer and empties it (the bindings arrays in LoadFunction).
 template <typename T>
-void FreeArray(MfcArray<T>& a) {
+void FreeArray(mfc::CArray<T>& a) {
     if (a.data) {
         gamecrt::operator_delete(a.data);
         a.data = nullptr;
@@ -555,7 +555,7 @@ EI_REBIRTH_IMPLEMENTS(0x004CFBC0, ei::rebirth::Patch::AddNewScriptCommands);
 
 // ---- Sections -----------------------------------------------------------------------------------
 
-BOOL CScript::LoadConditions(MfcArray<SSCCmd>* conditions, ScriptPos* pos, const ScriptTokenList* tokens,
+BOOL CScript::LoadConditions(mfc::CArray<SSCCmd>* conditions, ScriptPos* pos, const ScriptTokenList* tokens,
                              ScriptVars* locals) {
     LocalToken token;
     mfc::CString text;
@@ -713,7 +713,7 @@ BOOL CScript::LoadVariableDeclarations(ScriptDefinition* script, ScriptPos* pos,
 }
 EI_REPLACE_METHOD(0x004D1FE0, CScript::LoadVariableDeclarations);
 
-BOOL CScript::LoadCommands(MfcArray<SSCCmd>* commands, ScriptPos* pos, const ScriptTokenList* tokens, ScriptVars* locals) {
+BOOL CScript::LoadCommands(mfc::CArray<SSCCmd>* commands, ScriptPos* pos, const ScriptTokenList* tokens, ScriptVars* locals) {
     LocalToken token;
     mfc::CString text, qualified;
     LocalCmd local;
@@ -769,7 +769,7 @@ BOOL CScript::LoadCommands(MfcArray<SSCCmd>* commands, ScriptPos* pos, const Scr
                 Orig(this)->QualifyNameAt(reinterpret_cast<mfc::CString*>(&name), text);
                 qualified = name;
             }
-            MfcArray<ScriptDefinition>& scripts = Scripts();
+            mfc::CArray<ScriptDefinition>& scripts = Scripts();
             int index = 0;
             for (; index < scripts.size; ++index)
                 if (Mbscmp(scripts.data[index].name, text) == 0 || Mbscmp(scripts.data[index].name, qualified) == 0) break;
@@ -807,7 +807,7 @@ BOOL CScript::Load(mfc::CString* text, BOOL runWorldScript) {
     ScriptTokenList tokens{reinterpret_cast<void*>(0x0073D424), nullptr, nullptr, 0, nullptr, nullptr, 10};
     LocalDefinition definition;
     ScriptDefinition* decl = definition.Get();
-    MfcArray<SSCCmd>* worldScript = nullptr;
+    mfc::CArray<SSCCmd>* worldScript = nullptr;
 
     ErrorLine() = 0;
     ErrorCode() = 0;

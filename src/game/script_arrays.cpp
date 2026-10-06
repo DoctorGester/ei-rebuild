@@ -14,7 +14,7 @@
 namespace {
 
 template <typename T>
-void InitArray(MfcArray<T>* a, void* vtable) {
+void InitArray(mfc::CArray<T>* a, void* vtable) {
     a->data = nullptr;
     a->growBy = 0;
     a->maxSize = 0;
@@ -23,12 +23,12 @@ void InitArray(MfcArray<T>* a, void* vtable) {
 }
 
 template <typename T>
-void FreePlain(MfcArray<T>* a, void* baseVtable) {
+void FreePlain(mfc::CArray<T>* a, void* baseVtable) {
     a->vtable = baseVtable;
     if (a->data) gamecrt::operator_delete(a->data);
 }
 
-void FreeStrings(MfcArray<mfc::CString>* a) {
+void FreeStrings(mfc::CArray<mfc::CString>* a) {
     a->vtable = scriptvtable::kStringsBase;
     if (a->data) {
         CStringElementsDestruct(a->data, a->size);
@@ -37,7 +37,7 @@ void FreeStrings(MfcArray<mfc::CString>* a) {
 }
 
 // Each reference released and cleared (the inlined DestructElements<ScriptObjectRef>).
-void FreeRefs(MfcArray<ScriptObjectRef>* a) {
+void FreeRefs(mfc::CArray<ScriptObjectRef>* a) {
     a->vtable = scriptvtable::kRefsBase;
     if (a->data) {
         ScriptObjectRef* ref = a->data;
@@ -91,13 +91,13 @@ void __fastcall ScriptObjectsDestruct(ScriptNamedValues<ScriptObjectRef>* vars) 
 }
 
 // 004BC810
-void __fastcall ScriptNamesDestruct(MfcArray<mfc::CString>* names) { FreeStrings(names); }
+void __fastcall ScriptNamesDestruct(mfc::CArray<mfc::CString>* names) { FreeStrings(names); }
 
 // 004BC9A0
-void __fastcall ScriptRefArrayDestruct(MfcArray<ScriptObjectRef>* refs) { FreeRefs(refs); }
+void __fastcall ScriptRefArrayDestruct(mfc::CArray<ScriptObjectRef>* refs) { FreeRefs(refs); }
 
 // 004BCA20: each group's references reset (004B5AE0) and its storage freed, then the array's.
-void __fastcall ScriptGroupArrayDestruct(MfcArray<ScriptGroup>* groups) {
+void __fastcall ScriptGroupArrayDestruct(mfc::CArray<ScriptGroup>* groups) {
     groups->vtable = scriptvtable::kGroupsBase;
     if (!groups->data) return;
     ScriptGroup* group = groups->data;
@@ -136,7 +136,7 @@ void __fastcall ScriptRunDestruct(ScriptRun* run) {
 // its storage, then the array's storage.
 void __fastcall ScriptGroupsDestruct(ScriptNamedValues<ScriptGroup>* vars) {
     FreeStrings(&vars->names);
-    MfcArray<ScriptGroup>& groups = vars->values;
+    mfc::CArray<ScriptGroup>& groups = vars->values;
     groups.vtable = scriptvtable::kGroupsBase;
     if (!groups.data) return;
     ScriptGroup* group = groups.data;

@@ -72,8 +72,8 @@ bool CLinkMesh::AddPart(const stlp::string* name, const VertexPacket* vertices, 
     ranges.texCoords = {Append(texCoords_, texCoords, texCoordCount), texCoordCount};
 
     int start = corners_.size;
-    corners_.Resize(start + cornerCount, -1);
-    std::memcpy(corners_.data + start * 3, corners, static_cast<std::size_t>(cornerCount) * sizeof(MeshCorner));
+    corners_.SetSize(start + cornerCount, -1);
+    std::memcpy(corners_.data + start, corners, static_cast<std::size_t>(cornerCount) * sizeof(MeshCorner));
     ranges.corners = {start, cornerCount};
 
     // The original's out-of-line SetSize(n, -1) (00452EB0 / 0044FA90) for these two.
@@ -296,7 +296,7 @@ bool CLinkMesh::GetPartData(const stlp::string* name, VertexPacket** vertices, M
     if (node == ranges_.header) return false;
     const LinkPartRanges& r = node->Value<LinkPartRanges>();
     *vertices = vertices_.data + r.vertices.start;
-    *corners = reinterpret_cast<MeshCorner*>(corners_.data) + r.corners.start;
+    *corners = reinterpret_cast<MeshCorner*>(corners_.data + r.corners.start);
     *indices = indices_.data + r.indices.start;
     *indexCount = r.indices.count;
     *vertexCount = r.vertices.count;

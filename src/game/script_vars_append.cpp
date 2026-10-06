@@ -57,7 +57,7 @@ void Release(CEngineObject* object) {
 }
 
 // The name of the other set's variable i into slot `to` of this set's names.
-void CopyName(MfcArray<mfc::CString>* names, int to, const MfcArray<mfc::CString>* otherNames, int i) {
+void CopyName(mfc::CArray<mfc::CString>* names, int to, const mfc::CArray<mfc::CString>* otherNames, int i) {
     TempString name;
     StringAt(otherNames, nullptr, &name, i);
     names->data[to] = name.Get();

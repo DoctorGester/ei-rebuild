@@ -30,7 +30,7 @@ void CopyFloat(float* dst, const float* src) {
     }
 }
 
-int FindName(const MfcArray<mfc::CString>& names, const char* name) {
+int FindName(const mfc::CArray<mfc::CString>& names, const char* name) {
     for (int i = 0; i < names.size; ++i)
         if (GameMbscmp(names.data[i], name) == 0) return i;
     return -1;
@@ -185,7 +185,7 @@ EI_REPLACE(0x004BB800, ScriptAddParameter);
 
 // ---- SSCCmd -------------------------------------------------------------------------------------
 
-void SSCCmd::SetParameters(const MfcArray<ScriptBinding>* bindings, ScriptVars* vars) {
+void SSCCmd::SetParameters(const mfc::CArray<ScriptBinding>* bindings, ScriptVars* vars) {
     for (int k = 0; k < bindings->size; ++k) {
         const ScriptBinding& b = bindings->data[k];
         switch (b.type) {
