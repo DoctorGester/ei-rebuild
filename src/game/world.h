@@ -93,12 +93,13 @@ static_assert(sizeof(ObjectIdMap) == 0x18);
 struct ZoneExit {
     std::uint8_t unknown_00[0x14];
     float x1, y1, x2, y2;                 // +0x14 rectangle
-    std::uint8_t unknown_24[4];
+    float angle;                          // +0x24 rotation about the rectangle's centre (radians)
     char* target;                         // +0x28 CString: target zone ("" = none)
     int entrance;                         // +0x2C entrance number in the target zone
     std::uint8_t unknown_30[0x3C - 0x30];
 
-    // 004E59F0. Whether (x, y) lies inside the exit area; not rewritten.
+    // 004E59F0 (exit_area.cpp). Whether (x, y) lies inside the exit area (rotated by `angle` about
+    // the rectangle's centre when it is not 0).
     bool Contains(float x, float y) const;
     // 004608B0. Scalar deleting destructor (flags & 1: free the record too); returns this.
     ZoneExit* DeletingDestructor(unsigned flags);
