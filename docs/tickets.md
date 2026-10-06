@@ -33,7 +33,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- A-H done 2026-10-05 (38 functions). A-H2 done 2026-10-05 (41 functions; next candidates at the end of items_spells.md). A-H3 done (44 addresses). A-H4 cut off (nothing committed). A-H5 cut off (6 merged). A-H6 done (21). A-H7 done (27). A-H8 queued (effects.md next candidates) (candidates at the end of items_spells.md's Party section; 0064A7A0). (candidates at the end of items_spells.md "Area ticket A-H").
+- A-H done 2026-10-05 (38 functions). A-H2 done 2026-10-05 (41 functions; next candidates at the end of items_spells.md). A-H3 done (44 addresses). A-H4 cut off (nothing committed). A-H5 cut off (6 merged). A-H6 done (21). A-H7 done (27). A-H8 (taken 2026-10-06; effects.md next candidates; spells_hero passes now but shows no CEffectMissile / ShowVisibility wrapper calls, find out why) (candidates at the end of items_spells.md's Party section; 0064A7A0). (candidates at the end of items_spells.md "Area ticket A-H").
 
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
@@ -43,7 +43,6 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Verify checks
 
-- X14 (taken 2026-10-06) tests/scenarios/spells_hero.txt (new, A-H7): `clickunit HeroWolf1/2: not drawn this frame` in both installs; place the wolves on screen (see ui_quick_items' placement) so vision fog and the arrow are cast by the hero.
 
 
 
