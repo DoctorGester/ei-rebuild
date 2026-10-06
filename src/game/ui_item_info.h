@@ -65,7 +65,13 @@ static_assert(sizeof(HeroFaceCell) == 0x14);
 // 00784754 is set). 005F2F20 / 005F2F90 release the least recently used objects beyond that.
 struct ItemObjectCache {
     struct Node {
-        std::uint8_t unknown_00[0x10];   // colour, parent, left, right
+        // The in-order successor (STLport's _M_increment, as the original inlines it).
+        Node* Next();
+
+        int colour;
+        Node* parent;                    // +0x04 (the header's: the root)
+        Node* left;                      // +0x08 (the header's: the leftmost)
+        Node* right;                     // +0x0C (the header's: the rightmost)
         std::uint8_t key[0x0C];          // +0x10 stlp::string
         void* object;                    // +0x1C
         std::uint32_t lastUse;           // +0x20 timeGetTime
@@ -76,6 +82,9 @@ struct ItemObjectCache {
     std::uint32_t limit;             // +0x0C
 };
 static_assert(sizeof(ItemObjectCache) == 0x10);
+// 00634500 / 00634560 (ui_hero_screen.cpp; thiscall on the cache). Every cached object released
+// (slot 4), in key order (the hero screen's model and texture caches).
+void __fastcall ReleaseCachedObjects(ItemObjectCache* cache);
 
 // 005F2F20 / 005F2F90 (__fastcall on the cache). Release the least recently used entries of the
 // model / texture cache beyond its limit (ui_item_screen.cpp).

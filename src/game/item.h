@@ -97,6 +97,8 @@ public:
 
     // 006A0520. Attaches `spell` (counted; the previous one released); the price is left alone.
     void SetSpell(CSpell* spell);
+    // The condition back to its maximum (+0x20 = +0x24; the camp's repairs).
+    void Repair() { unknown_20 = unknown_24; }
 
     std::uint32_t unknown_1C;
     std::uint32_t unknown_20;     // +0x20 both set from prototype +0x48

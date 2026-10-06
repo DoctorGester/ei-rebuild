@@ -126,3 +126,12 @@ through `game::FatalError` (EI_ORIGINAL). Forwarders are in `unit_ai.h`, `unit_a
 - Most are verified "ours only" with consistency checks: a wrong branch that leaves a consistent state would pass; the scenario (patrol, guard, sentry, follow, aggression) is the behavioural check. Think writes the "new
   motivation" line through the console ostream 007C54E8 like the original; the scenario does not `expect` it (the stream may not be the in-game console). Floats: `double` locals for values the original keeps on the FPU
   stack, `volatile float` where it stores to a float. `AIMode::refs` is a 16-bit count (INC word); a 32-bit increment would corrupt the padding.
+
+## A-W5 (2026-10-06)
+
+- `unit_ai_looks.cpp`: 005573F0 / 005D8EE0 / 005D8B60 / 005D9DE0 (CArray<AILook> Init, Resize, CopyFrom, ElementAt), 00545B20
+  (AIMoveOrder::Clear), 005D12B0 (PatrolMode::AppendPoint). The modes keep calling them through their addresses (the old
+  forwarder names) so the wrappers count them. Verify: Init / ElementAt output against the original; the rest ours only against
+  a model taken before. Scenario `unit_ai` (UMPatrolAddPoint; every Guard / Patrol / Sentry move). Kept: AppendPoint rounds
+  2x to nearest, so its point is (n + 0.5) / 2, 0..0.5 above the asked one, not its half-cell's middle. The patrol point
+  array's SetSize 004C9970 moved to `originals_ai.h` (also used by script_exec.cpp).

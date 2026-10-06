@@ -458,8 +458,8 @@ void CHeroStatsPanel::Build() {
         texts->GetString(GameText(key), &text);
         array->SetAtGrow(array->GetSize(), text);
     }
-    unknown_174_ = -1;
-    unknown_178_ = 0;
+    heldRegion_ = -1;
+    holdTime_ = 0.0f;
 }
 namespace {
 void __fastcall StatsBuild(CHeroStatsPanel* self, void*) { self->Build(); }

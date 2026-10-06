@@ -50,7 +50,7 @@ __declspec(naked) void __fastcall CancelExchange(void*) EI_ORIGINAL(0x0041E3E0)
 // 005FC730: a region's tooltip (text "tip_<id>").
 __declspec(naked) void __fastcall SetRegionTip(CUiRegion*, void*, int, int, int) EI_ORIGINAL(0x005FC730)
 // 0065B090: a scroll bar's position; returns whether it moved since the last call.
-__declspec(naked) BOOL __fastcall TakeScrollPos(void*, void*, int*) EI_ORIGINAL(0x0065B090)
+BOOL TakeScrollPos(void* bar, void*, int* position) { return ScrollbarTakePositionOriginal(bar, nullptr, position); }
 // The hero screen's equipment panels.
 
 // Unit statistics (UnitStats, not rewritten here; called through their addresses).
@@ -512,8 +512,9 @@ EI_REPLACE_METHOD(0x006110F0, CCampScreen::ShowPageTabs);
 
 // --- CMpHeroScreen ----------------------------------------------------------------------------
 
-__declspec(naked) void CMpHeroScreen::ShowHero(int) EI_ORIGINAL(0x00616910)
-__declspec(naked) void CMpHeroScreen::DrawVoices() EI_ORIGINAL(0x00616560)
+void CMpHeroScreen::CallShowHero(int index) { HeroScreenShowHeroOriginal(this, nullptr, index); }
+void CMpHeroScreen::CallDrawVoices() { HeroScreenDrawVoicesOriginal(this); }
+void CMpHeroScreen::CallDrawHeroList() { HeroScreenDrawListOriginal(this); }
 
 char* CMpHeroScreen::Hero() { return Virtual<char*(__thiscall*)(CMpHeroScreen*)>(this, 51)(this); }
 void CMpHeroScreen::Refresh() { Virtual<void(__thiscall*)(CMpHeroScreen*)>(this, 47)(this); }
@@ -529,7 +530,7 @@ void CMpHeroScreen::ClampHeroSelection() {
     if (heroTop_ > selected) heroTop_ = selected;
     SetScrollPos(heroScroll_, heroTop_);
     TakeScrollPos(heroScroll_, nullptr, &heroTop_);
-    ShowHero(heroIndex_);
+    CallShowHero(heroIndex_);
 }
 EI_REPLACE_METHOD(0x00618FF0, CMpHeroScreen::ClampHeroSelection);
 
@@ -546,7 +547,7 @@ void CMpHeroScreen::ClampVoiceSelection() {
     // Each voice is {file, name}; the hero keeps the file name at +0x18.
     const auto& file = *reinterpret_cast<const mfc::CString*>(voices_[0] + voiceIndex_ * 8);
     *reinterpret_cast<mfc::CString*>(Hero() + 0x18) = file;
-    DrawVoices();
+    CallDrawVoices();
 }
 EI_REPLACE_METHOD(0x00619090, CMpHeroScreen::ClampVoiceSelection);
 

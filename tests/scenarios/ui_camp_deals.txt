@@ -1,0 +1,32 @@
+# The camp's action buttons (00611220 / 00611760; docs/notes/ui.md, section 5). The camp opens
+# with trader class 1 (as a base dialogue's "constr1" answer); page 4 (region 8) is the item
+# constructor's trade page, which takes anything but quest items and magic: a quick item put there
+# from the strip (campputon: the camp's slot 42 with mode 1 -> PutOnFromStrip -> itemParts_[2]) is
+# sold with the first action button (region 0: the deal, the money goes up) and a second one is
+# taken back with the second button (region 1). Esc leaves the camp.
+reject Script error
+wait 6000
+console thingamabob
+
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+
+screen 5 1
+wait 2500
+clickregion 8
+wait 500
+campputon 3006 1
+wait 500
+clickregion 0
+wait 500
+campputon 3006 1
+wait 500
+clickregion 1
+wait 500
+key esc
+wait 2000
+waitfor 10 IsGreater(HP(GetLeader()),0)
+report
+quit

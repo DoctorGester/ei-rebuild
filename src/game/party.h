@@ -152,6 +152,8 @@ public:
     // 006613C0 (RET 4). Copy constructor: Construct, then `source` copied as Assign does
     // (without the Clear). Returns this.
     CParty* CopyConstruct(CParty* source);
+    // The money (+0x50; the camp's deals and the trade read it).
+    int& Money() { return reinterpret_cast<int&>(unknown_50); }
 
     CResourceManager* itemManager_;         // +0x1C (CItemManager's vtable; slot 18 returns it)
     CItemConstructor* itemConstructor_;     // +0x20 (slot 16)
@@ -159,7 +161,7 @@ public:
     CSpellConstructor* spellConstructor_;   // +0x28 (slot 17)
     PartyMemberArray members_;              // +0x2C
     AlignedPtrArray items_;                 // +0x40 CItem*
-    std::uint32_t unknown_50;               // +0x50 cleared by Clear
+    std::uint32_t unknown_50;               // +0x50 cleared by Clear (the party's money)
     PartyVariableMap variables_;            // +0x54
     mfc::CString zone_;                     // +0x68 the zone name ("gz1g" after a new game)
     std::uint32_t unknown_6C;               // +0x6C cleared by Clear

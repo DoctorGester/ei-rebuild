@@ -59,6 +59,9 @@ __declspec(naked) inline void* __fastcall ModePlayerConstructOriginal(void* /*mo
 __declspec(naked) inline void __fastcall BrainAddModeOriginal(void* /*brain*/, void*, void* /*mode*/) EI_ORIGINAL(0x005D5F60)
 __declspec(naked) inline void __fastcall BrainClearModesOriginal(void* /*brain*/) EI_ORIGINAL(0x005D4DF0)
 __declspec(naked) inline void __fastcall BrainRemoveModeOriginal(void* /*brain*/, void*, int /*index*/) EI_ORIGINAL(0x005D6140)
+// 004C9970: CArray<PatrolPoint>::SetSize(size, growBy) (RET 8; elements constructed / destroyed).
+__declspec(naked) inline void __fastcall PatrolPointArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
+    EI_ORIGINAL(0x004C9970)
 // 005D12B0: patrol mode adds a point (RET 4, no result).
 __declspec(naked) inline void __fastcall PatrolAddPointOriginal(void* /*mode*/, void*, const void* /*point*/) EI_ORIGINAL(0x005D12B0)
 // 005AEA60: AI voice raises its level to at least `level` (RET 4, no result).
