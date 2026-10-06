@@ -4,6 +4,7 @@
 // - The "changed" senders and SendItems only append to the player's outgoing stream (an object's
 //   pending delta is written once, by ours): ours runs, the stream's header and bytes are saved,
 //   restored, the original runs, and both must match (skipped when ours grew the stream's buffer).
+//   SendTimedChanged's original runs with the effects' "delta pending" bit cleared (see there).
 // - The "added" / "removed" senders change the player's maps and reference counts: ours only. Added:
 //   each object is in the map under its id, counted once more, the stream grew. Removed: no id is
 //   left in the map, the stream grew by five bytes per object.
@@ -13,6 +14,7 @@
 #include "verify.h"
 
 #include "../../src/game/player_messages.h"
+#include "../../src/game/world.h"
 #include "../../src/game/world_effect.h"
 
 #include <cstring>
@@ -63,44 +65,34 @@ int __fastcall ObjectsChangedVerify(CPlayerServer* self, void*, const PlayerObje
                        [&] { return s_objectsChanged(self, nullptr, objects); });
 }
 Sender s_timedChanged;
-// CEffect::SendDelta leaves flags_ bit 1 set, so the original's run packs the changed effects a
-// second time, against the snapshots ours just updated: their state fields (the four streams and
-// their bytes) are saved before ours and put back before the original (skipped when ours grew one).
-struct StreamSnapshot {
-    BitStream* stream;
-    BitStream header;
-    std::vector<unsigned char> bytes;
-};
+// CEffect::SendDelta leaves flags_ bit 1 set, so the original's run would pack the changed effects
+// a second time. Instead ours runs, then the original runs with bit 1 cleared on every object: it
+// writes the same messages from the state fields ours just packed, and the effects' delta fields
+// are not touched again (SendDelta and the field writers have their own checks). The flags are
+// put back afterwards. Skipped when ours grew the player's stream or an object packed by ours is
+// listed twice (its first message holds the first pack's bytes).
 int __fastcall TimedChangedVerify(CPlayerServer* self, void*, const PlayerObjectArray* objects) {
-    std::vector<StreamSnapshot> saved;
-    for (int i = 0; i < objects->size; ++i) {
-        auto* effect = static_cast<CEffect*>(objects->data[i]);
-        if (!(effect->flags_ & 2)) continue;
-        BitStream* streams[4] = {&effect->state_.snapshot[0], &effect->state_.snapshot[1], &effect->state_.out[0],
-                                 &effect->state_.out[1]};
-        for (BitStream* s : streams) {
-            StreamSnapshot snap{s, {}, {}};
-            RawCopy(&snap.header, s);
-            if (s->data_) snap.bytes.assign(s->data_, s->data_ + s->capacity_);
-            saved.push_back(snap);
-        }
-    }
-    std::vector<std::uint32_t> flags;
-    for (int i = 0; i < objects->size; ++i) flags.push_back(objects->data[i]->flags_);
     OutState before(self);
     int actual = self->SendTimedChanged(objects);
     OutState after(self);
-    bool grown = after.header.data_ != before.header.data_ || after.header.capacity_ != before.header.capacity_;
-    for (const StreamSnapshot& snap : saved)
-        grown = grown || snap.stream->data_ != snap.header.data_ || snap.stream->capacity_ != snap.header.capacity_;
-    if (grown) return actual;
-    before.Restore(self);
-    for (const StreamSnapshot& snap : saved) {
-        RawCopy(snap.stream, &snap.header);
-        if (!snap.bytes.empty()) std::memcpy(snap.stream->data_, snap.bytes.data(), snap.bytes.size());
+    if (after.header.data_ != before.header.data_ || after.header.capacity_ != before.header.capacity_) return actual;
+    const int stamp = static_cast<CWorldServer*>(self->Owner()->ManagerContext())->updateCount_;
+    std::vector<CEngineObject*> packed;
+    for (int i = 0; i < objects->size; ++i) {
+        auto* effect = static_cast<CEffect*>(objects->data[i]);
+        if (effect->changeStamp_ != stamp || !(effect->flags_ & 2)) continue;
+        for (CEngineObject* other : packed)
+            if (other == effect) return actual;
+        packed.push_back(effect);
     }
-    for (int i = 0; i < objects->size; ++i) objects->data[i]->flags_ = flags[i];
+    std::vector<std::uint32_t> flags;
+    for (int i = 0; i < objects->size; ++i) {
+        flags.push_back(objects->data[i]->flags_);
+        objects->data[i]->flags_ &= ~2u;
+    }
+    before.Restore(self);
     int expected = s_timedChanged(self, nullptr, objects);
+    for (int i = 0; i < objects->size; ++i) objects->data[i]->flags_ = flags[i];
     OutState again(self);
     ei::verify::Check("CPlayerServer::SendTimedChanged", true, again.SameAs(after) && expected == actual,
                       "player %p: stream size %u vs %u", self, again.header.size_, after.header.size_);
