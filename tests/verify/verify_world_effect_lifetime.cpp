@@ -135,6 +135,7 @@ bool Destroyed(const CEffectSoundSeq* e) { return DestroyedBase(e) && e->sound_ 
 bool Destroyed(const CEffectPointLight* e) { return DestroyedBase(e) && e->light_ == nullptr; }
 bool Destroyed(const CEffectParticle* e) { return DestroyedBase(e) && e->source_ == nullptr && e->attachedTo_ == -1; }
 bool Destroyed(const CEffectLightning* e) { return DestroyedBase(e) && e->bolt_ == nullptr && e->toObject_ == -1; }
+bool Destroyed(const CEffectArrow* e);
 
 // A destructor body called directly (only slot 0 calls them).
 template <typename T>
@@ -179,7 +180,23 @@ CEffectLightning* __fastcall LightningDeleteVerify(CEffectLightning* self, void*
     return DeleteOurs("CEffectLightning::DeletingDestruct", self, flags);
 }
 
+// CEffectArrow (world_effect_missile.cpp; scenario spells): the three parts destroyed as well.
+CEffectArrow*(__fastcall* s_arrowCtor)(CEffectArrow*);
+CEffectArrow* __fastcall ArrowCtorVerify(CEffectArrow* self) { return ConstructBoth("CEffectArrow::Construct", s_arrowCtor, self); }
+bool Destroyed(const CEffectArrow* e) {
+    return DestroyedBase(e) && Destroyed(&e->Particle()) && Destroyed(&e->Light()) && Destroyed(&e->Sound()) &&
+           e->targetId_ == -1;
+}
+void __fastcall ArrowDestructVerify(CEffectArrow* self) { DestructOurs("CEffectArrow::Destruct", self); }
+CEffectArrow* __fastcall ArrowDeleteVerify(CEffectArrow* self, void*, unsigned flags) {
+    return DeleteOurs("CEffectArrow::DeletingDestruct", self, flags);
+}
+
 } // namespace
+
+EI_VERIFY(0x0067AE30, ArrowCtorVerify, 7, s_arrowCtor);
+EI_VERIFY(0x0067B1C0, ArrowDestructVerify, 0, s_unused);
+EI_VERIFY(0x0067B1A0, ArrowDeleteVerify, 0, s_unused);
 
 EI_VERIFY(0x0066C4F0, QueueStreamVerify, 11, s_queueStream);
 EI_VERIFY(0x00677EC0, FieldCtorVerify, 5, s_fieldCtor);

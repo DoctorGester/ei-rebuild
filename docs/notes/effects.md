@@ -151,3 +151,26 @@ destructor 00675FB0 / 00676910 (only reachable through the abstract base's vtabl
 temporaries, random picks 00676DD0..00676F90 passed as callbacks); CEffectArrow / ArrowFigure / ShowVisibility /
 Moshka / Tornado (0067AAB0-0067E000); dead code 00675CC0 (UpdateMoving), 0067A2C0 (UpdateEnds); STLport
 instantiations.
+
+## Missiles (world_effect_missile.cpp, A-H7)
+
+CEffectMissile (abstract, vtable 00743754, 0x158): +0x14C arrived, +0x150 target id, +0x154 "from caster".
+CEffectArrow (0x4E, vtable 007436F0, 0x6C0) embeds a CEffectParticle (+0x158), CEffectPointLight (+0x2D8) and
+CEffectSound (+0x43C), then the sound name CString +0x6A0, light colour / range, particle type / size, caster id
++0x6BC. Steer (0067AAB0, shared with class 0x5B, which doubles the speed 0.6667) aims at the target's
++0x1C position with z + extent.z / 2 + pointOffset.z; arrived when the planar distance is below one step (or NaN).
+On a client the missile is kept 1 above the world's slot 28 height. Tick moves, and on a client moves the parts
+(slot 24, Start(1) each). Start copies the settings into the parts (light velocity (0.0001, 0, 0), flags 0x840,
+sound radius 30, looping) and starts them. Scenario spells (arrow, acid ray).
+
+| Address | Name | Verify |
+|---|---|---|
+| 0067AAB0, 0067AC70 | Steer, SetTarget | ours, restore, original (velocity CheckNear) / bytes |
+| 0067AC90, 0067AD10, 0067B450, 0067B4E0 | Tick, Reset, MoveParts, Start | ours only: position moved / fields / parts at the arrow / parts' settings |
+| 0067B690, 0067B800, 0067B9A0, 0067B8E0 | Unpack, Pack, SaveState, LoadState | as the other effects (Load ours only: CString reader) |
+| 0067AE30, 0067B1C0, 0067B1A0 | Construct, Destruct, DeletingDestruct | original on seeded scratch, all bytes / ours only |
+
+Kept: Load does not recompute the moving flag; Unpack does not either; Start copies the sound name unbounded.
+Not rewritten: 0067AA00 (the missile's Reset) and 0067B390 / 0067B430 (its destructor), reachable only through the
+abstract vtable; 0067B050 (an out-of-line CEffect constructor, called only by the arrow constructor, now unused).
+CWorld gained slots 28 (RawSurfaceHeightAt) and 40 (ObjectWithId); CMapObject +0x144 extent.

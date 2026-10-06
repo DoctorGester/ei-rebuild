@@ -148,7 +148,8 @@ public:
     virtual void Slot25();
     virtual int IsServer();               // 26: 1 for the server (0058A380), 0 for the client (0055EB30)
     virtual void Slot27();                // 27: the terrain height (CWorldServer::GridHeight 00594220)
-    virtual void Slot28();                // 28: the server's AI map height (0058A390), client 00564070
+    // 28: the server's AI map height (0058A390), client 00564070; in ST0 (RET 8).
+    virtual double RawSurfaceHeightAt(float x, float y);
     // 29 / 30: the ground height and the height of the water surface at (x, y), in ST0 (server
     // 0058A3D0 / 0058A3F0 call slots 27 / 28; client 005618E0 / 00561930 also clamp, 00560F00).
     virtual double GroundHeightAt(float x, float y);
@@ -160,6 +161,15 @@ public:
     // 32 (world_time.cpp). 0055FB50: seconds per tick become 1 / speed (0: stopped; negative: the
     // setting 0079BE5C) times 1/15, keeping the time of day (slot 31). The server's 0058EEE0 as above.
     virtual void SetTimeSpeed(float speed);
+    virtual void Slot33();
+    virtual void Slot34();
+    virtual void Slot35();
+    virtual void Slot36();
+    virtual void Slot37();
+    virtual void Slot38();
+    virtual void Slot39();
+    // 40: the world object with this id, or null (server 00593AA0 FindObject, client 0055FAE0).
+    virtual CEngineObject* ObjectWithId(int id);
 
     // 0055FCB0 (world_time.cpp). Stores the wind direction (+0x24) and strength (+0x30).
     void SetWind(const Vector3* direction, float strength);

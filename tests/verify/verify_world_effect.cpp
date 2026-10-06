@@ -606,3 +606,95 @@ static Vector3* __fastcall ParticlePositionVerify(CEffectParticle* self, void*, 
     return result;
 }
 EI_VERIFY(0x00678BA0, ParticlePositionVerify, 6, s_particlePosition);
+
+// --- Missiles (world_effect_missile.cpp; scenario spells: the arrow and the acid ray) ---------------
+
+// 0067AAB0: PUSH EBP; MOV EBP,ESP; SUB ESP,28h (6 bytes). Writes only the velocity and arrived_
+// (the world lookups are read-only): ours, restore, original; floats within a few ULPs.
+static int(__fastcall* s_missileSteer)(CEffectMissile*);
+static int __fastcall MissileSteerVerify(CEffectMissile* self) {
+    Vector3 velocity = self->velocity_;
+    int arrived = self->arrived_;
+    int actual = self->Steer();
+    Vector3 ours = self->velocity_;
+    int oursArrived = self->arrived_;
+    self->velocity_ = velocity;
+    self->arrived_ = arrived;
+    int expected = s_missileSteer(self);
+    ei::verify::Check("CEffectMissile::Steer", true, expected == actual && oursArrived == self->arrived_,
+                      "object %p: result %d vs %d, arrived %d vs %d", self, expected, actual, self->arrived_, oursArrived);
+    ei::verify::CheckNear("CEffectMissile::Steer.x", self->velocity_.x, ours.x, "object %p", self);
+    ei::verify::CheckNear("CEffectMissile::Steer.y", self->velocity_.y, ours.y, "object %p", self);
+    ei::verify::CheckNear("CEffectMissile::Steer.z", self->velocity_.z, ours.z, "object %p", self);
+    return expected;
+}
+EI_VERIFY(0x0067AAB0, MissileSteerVerify, 6, s_missileSteer);
+
+// 0067AC70: MOV EAX,[ESP+4] (4); MOV DWORD PTR [ECX+14Ch],0 (10).
+static void(__fastcall* s_missileSetTarget)(CEffectMissile*, void*, int);
+static void __fastcall MissileSetTargetVerify(CEffectMissile* self, void*, int id) {
+    SameWrites<int>("CEffectMissile::SetTarget", self, sizeof(CEffectMissile), nullptr, 0, false,
+                    [&] { self->SetTarget(id); return 0; }, [&] { s_missileSetTarget(self, nullptr, id); return 0; });
+}
+EI_VERIFY(0x0067AC70, MissileSetTargetVerify, 14, s_missileSetTarget);
+
+// Ours only (a client tick moves the sound, light and source): while flying the position moved by
+// the velocity Steer left; otherwise arrived.
+static int __fastcall ArrowTickVerify(CEffectArrow* self) {
+    Vector3 before = self->localPosition_;
+    int result = self->Tick();
+    bool ok = result == 0 || result == 1;
+    if (result == 1) {
+        float x = before.x + self->velocity_.x;
+        ok = ok && Bits(self->localPosition_.x) == Bits(x);
+    } else {
+        ok = ok && self->arrived_ == 1;
+    }
+    ei::verify::Check("CEffectArrow::Tick", true, ok, "object %p result %d", self, result);
+    return result;
+}
+EI_VERIFY(0x0067AC90, ArrowTickVerify, 0, s_unused);
+
+static void __fastcall ArrowResetVerify(CEffectArrow* self) {
+    self->Reset();
+    bool ok = BaseCleared(self) && self->targetId_ == -1 && self->arrived_ == 0 && self->casterId_ == -1 &&
+              self->Particle().source_ == nullptr && self->Light().light_ == nullptr && self->Sound().sound_ == -1 &&
+              Bits(self->particleSize_) == 0x3F800000u;
+    ei::verify::Check("CEffectArrow::Reset", true, ok, "object %p", self);
+}
+EI_VERIFY(0x0067AD10, ArrowResetVerify, 0, s_unused);
+
+// Ours only (the parts' Start(1) moves them): the parts placed at the arrow.
+static bool PartsAtArrow(const CEffectArrow* self) {
+    return std::memcmp(&self->Particle().localPosition_, &self->localPosition_, 12) == 0 &&
+           std::memcmp(&self->Light().localPosition_, &self->localPosition_, 12) == 0 &&
+           std::memcmp(&self->Sound().localPosition_, &self->localPosition_, 12) == 0;
+}
+static void __fastcall ArrowMovePartsVerify(CEffectArrow* self) {
+    self->MoveParts();
+    ei::verify::Check("CEffectArrow::MoveParts", true, PartsAtArrow(self), "object %p", self);
+}
+EI_VERIFY(0x0067B450, ArrowMovePartsVerify, 0, s_unused);
+
+// Ours only (starts the source, light and sound): the parts carry the arrow's settings.
+static void __fastcall ArrowStartVerify(CEffectArrow* self, void*, int update) {
+    self->Start(update);
+    bool ok = PartsAtArrow(self) && self->Particle().type_ == self->particleType_ &&
+              Bits(self->Particle().size_) == Bits(self->particleSize_) &&
+              Bits(self->Light().range_) == Bits(self->lightRange_) && self->Light().lightFlags_ == 0x840 &&
+              std::strcmp(self->Sound().name_, self->soundName_) == 0 && self->Sound().looping_ == 1;
+    ei::verify::Check("CEffectArrow::Start", true, ok, "object %p update %d", self, update);
+}
+EI_VERIFY(0x0067B4E0, ArrowStartVerify, 0, s_unused);
+
+EI_UNPACK_VERIFY(0x0067B690, CEffectArrow, "CEffectArrow::Unpack");
+EI_VERIFY(0x0067B690, UnpackVerify_CEffectArrow, 0, s_unused);
+// 0067B800: SUB ESP,10h; PUSH ESI; PUSH EDI (5). Both run Steer first (it rewrites all it writes).
+EI_PACK_VERIFY(0x0067B800, CEffectArrow, 5, "CEffectArrow::Pack");
+EI_VERIFY(0x0067B800, PackVerify_CEffectArrow, 5, s_pack_CEffectArrow);
+// 0067B9A0: PUSH EBX; PUSH EBP; MOV EBX,ECX; PUSH ESI (5).
+EI_SAVE_VERIFY(0x0067B9A0, CEffectArrow, 5, "CEffectArrow::SaveState");
+EI_VERIFY(0x0067B9A0, SaveVerify_CEffectArrow, 5, s_save_CEffectArrow);
+// The CString reader uses more of the stream: ours only.
+static void __fastcall ArrowLoadVerify(CEffectArrow* self, void*, void* stream) { self->LoadState(stream); }
+EI_VERIFY(0x0067B8E0, ArrowLoadVerify, 0, s_unused);

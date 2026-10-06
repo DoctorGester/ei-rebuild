@@ -161,7 +161,9 @@ public:
     float scale[3];                 // +0x0C4
     std::uint8_t unknown_0D0[0x128 - 0xD0];
     float pointOffset[3];           // +0x128 (GroundPoint)
-    std::uint8_t unknown_134[0x170 - 0x134];
+    std::uint8_t unknown_134[0x144 - 0x134];
+    float extent[3];                // +0x144 half the bounding box (units: box maximum - centre)
+    std::uint8_t unknown_150[0x170 - 0x150];
     CEngineObject* companion;       // +0x170 CMapObjectServer / CMapObjectClientSpecific
     int unknown_174;                // +0x174 (5 after Create)
     float unknown_178;              // +0x178 (1 after Create)
@@ -185,6 +187,7 @@ public:
 static_assert(offsetof(CMapObject, positionX) == 0x1C);
 static_assert(offsetof(CMapObject, orientation) == 0x34);
 static_assert(offsetof(CMapObject, name) == 0xA4);
+static_assert(offsetof(CMapObject, extent) == 0x144);
 static_assert(offsetof(CMapObject, scale) == 0xC4);
 static_assert(offsetof(CMapObject, pointOffset) == 0x128);
 static_assert(offsetof(CMapObject, companion) == 0x170);
