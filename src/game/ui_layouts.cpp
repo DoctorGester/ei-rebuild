@@ -702,7 +702,6 @@ namespace {
 // movie. The tokenizer 00445D20 (start) / 00445D30 (next word; null at the end) splits a CString at
 // a separator; 0062C090 (RET 0xC, ECX unused) inserts a copy of a TitleLine before a list node.
 __declspec(naked) void __fastcall TitlesStopMusic(void*) EI_ORIGINAL(0x006B4F70)
-__declspec(naked) void __fastcall TitlesPlayMovies(const char*, int, int, int, int) EI_ORIGINAL(0x00458270)
 __declspec(naked) void __fastcall TitlesRemoveCr(mfc::CString*) EI_ORIGINAL(0x004461E0)
 __declspec(naked) CUiSurface* __fastcall TitlesScrollSurface(void*, void*, CInterface3D*, RECT*) EI_ORIGINAL(0x0065ED30)
 __declspec(naked) CUiSurface* __fastcall TitlesPlainSurface(void*, void*, CInterface3D*, RECT*, int)
@@ -734,8 +733,8 @@ void CCreditsScreen::Build() {
         TitlesStopMusic(*reinterpret_cast<void**>(0x007AF760));
     }
     CursorShowOriginal(reinterpret_cast<void*>(0x007C7BD8), nullptr, 0);
-    TitlesPlayMovies(mfc::operator+(name, GameText(0x00794040)), 1, 0, 0, 0);   // "<name>fin"
-    unknown_1CC = 0;
+    PlayMoviesOriginal(mfc::operator+(name, GameText(0x00794040)), 1, 0, 0, 0);   // "<name>fin"
+    nextLineAt_ = 0.0f;
     // (As the original: the field's address goes in as uiParam, so it is never written; then font
     // smoothing is switched off.)
     gameapi::SystemParametersInfoA(0x4A, static_cast<UINT>(reinterpret_cast<std::uintptr_t>(&fontSmoothing_)), nullptr,
@@ -749,7 +748,7 @@ void CCreditsScreen::Build() {
     std::uint32_t size = 0;
     void* data = archive->GetFile(GameText(0x00794028), &size);   // "credits.scr"
     if (!data) {
-        currentLine_ = lines_;
+        currentLine_ = lines_.End();
     } else {
         mfc::CString script;
         GameMemmove(script.GetBufferSetLength(static_cast<int>(size)), data, size);
@@ -777,12 +776,12 @@ void CCreditsScreen::Build() {
             TitlesTokenNext(&words);
             *LineString(&record.text) = words.WordOrNull();
             void* inserted;
-            TitlesInsertLine(&inserted, lines_, &record);   // push_back
+            TitlesInsertLine(&inserted, lines_.End(), &record);   // push_back
             LineString(&record.style)->~CString();
             LineString(&record.text)->~CString();
             TitlesTokenNext(&lines);
         }
-        currentLine_ = *static_cast<void**>(lines_);   // the first line
+        currentLine_ = lines_.First();
         archive->CloseFile(data);
     }
 
@@ -790,7 +789,8 @@ void CCreditsScreen::Build() {
     {
         void* memory = gamecrt::operator_new(0x58);
         RECT rect = {10, 0x96, 0x316, 0x1C2};
-        textSurface_ = window.AddSurface(memory ? TitlesScrollSurface(memory, nullptr, ui, &rect) : nullptr);
+        textSurface_ = static_cast<CUiScrollingSurface*>(
+            window.AddSurface(memory ? TitlesScrollSurface(memory, nullptr, ui, &rect) : nullptr));
         textSurface_->Freeze(0, 0);
     }
     {
@@ -804,10 +804,10 @@ void CCreditsScreen::Build() {
     std::memcpy(&kept, TitlesDisplay() + 0x14, 4);
     savedDisplay_ = static_cast<int>(kept);
     Put<std::uint32_t>(TitlesDisplay(), 0x14, 0);
-    TitlesPlay(player_, nullptr,
+    TitlesPlay(&player_, nullptr,
                mfc::operator+(mfc::operator+(mfc::operator+(*Glue(0x007AFEA4)->Directory(), GameText(0x00784A4C)), name),
                               GameText(0x00794018)),   // "<folder>Movies\<name>.bik"
                0);
-    unknown_1F5 = false;
+    finished_ = false;
 }
 EI_REPLACE_METHOD(0x0062B7D0, CCreditsScreen::Build);

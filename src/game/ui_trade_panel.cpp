@@ -52,8 +52,8 @@ __declspec(naked) void __fastcall RowsInsertOverflow(TradeRows*, void*, TradeRow
 // 006261A0 through its address (the rewrite below when hooked).
 void ClampScrollAt(CTradePanel* panel) { TradePanelClampScrollOriginal(panel); }
 void DrawListsAt(CTradePanel* panel) { TradePanelDrawListsOriginal(panel); }
-// 00626090 (thiscall, RET 8): a price as text ("%d", "%.1fk", "%dk", ... ; negative as 0x7FFFFFFF).
-__declspec(naked) void __fastcall FormatPrice(CTradePanel*, void*, int, mfc::CString*) EI_ORIGINAL(0x00626090)
+// 00626090 through its address (its verify wrapper runs).
+__declspec(naked) void __fastcall FormatPriceAt(CTradePanel*, void*, int, mfc::CString*) EI_ORIGINAL(0x00626090)
 
 struct SurfaceDraw {
     void* Begin() { return SurfaceGetDC(this); }                                                                   // 005FDC00
@@ -253,7 +253,7 @@ void DrawSchool(CTradePanel* panel, SurfaceDraw* draw, RECT* row, TradeRow* scho
     RECT levelRect = shifted;
     draw->Text(*value, &levelRect, 0, kBright, 2, 1);
     if (school->level < 100) {
-        FormatPrice(panel, nullptr, school->price, value);
+        FormatPriceAt(panel, nullptr, school->price, value);
         draw->Text(*value, row, 0, PriceColour(school->price, panel->experience_), 2, 1);
         PriceSprite(panel, *row, 350.0f, 390.0f);
     }
@@ -298,7 +298,7 @@ void CTradePanel::DrawLists() {
         draw->Text(perk->name, &row, 0, kBright, 0, 1);
         if (Str(perk->nextKey)->GetLength() != 0) {
             std::uint32_t colour = PriceColour(perk->price, experience_);
-            FormatPrice(this, nullptr, perk->price, &value);
+            FormatPriceAt(this, nullptr, perk->price, &value);
             draw->Text(value, &row, 0, colour, 2, 1);
             PriceSprite(this, row, 350.0f, 390.0f);
         }
@@ -318,7 +318,7 @@ void CTradePanel::DrawLists() {
             priceColour = PriceColour(perk->price, experience_);
         }
         draw->Text(perk->name, &row, 0, textColour, 0, 1);
-        FormatPrice(this, nullptr, perk->price, &value);
+        FormatPriceAt(this, nullptr, perk->price, &value);
         draw->Text(value, &row, 0, priceColour, 2, 1);
         PriceSprite(this, row, 550.0f, 590.0f);
         Down(&row);
@@ -539,3 +539,31 @@ namespace {
 void __fastcall TradeSelectHero(CTradePanel* self, void*, int index) { self->SelectHero(index); }
 } // namespace
 EI_REPLACE(0x00625860, TradeSelectHero);
+
+// --- 00626090: a price as text -------------------------------------------------------------------
+
+void CTradePanel::FormatPrice(int price, mfc::CString* out) {
+    constexpr float kThousandth = 0.001f;        // 0074040C
+    constexpr float kMillionth = 1e-6f;          // 00741F10
+    constexpr float kBillionth = 1e-9f;          // 00741F14
+    if (price < 0) {
+        price = 0x7FFFFFFF;
+    } else if (price < 1000) {
+        out->Format("%d", price);
+        return;
+    } else if (price < 10000) {
+        out->Format("%.1fk", static_cast<double>(price) * kThousandth);
+        return;
+    } else if (price < 1000000) {
+        out->Format("%dk", price / 1000);
+        return;
+    } else if (price < 10000000) {
+        out->Format("%.1fm", static_cast<double>(price) * kMillionth);
+        return;
+    } else if (price < 1000000000) {
+        out->Format("%dm", price / 1000000);
+        return;
+    }
+    out->Format("%.1fg", static_cast<double>(price) * kBillionth);
+}
+EI_REPLACE_METHOD(0x00626090, CTradePanel::FormatPrice);

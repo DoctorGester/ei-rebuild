@@ -96,6 +96,12 @@ public:
         eos_ = fresh + len;
     }
 
+    // pop_back(): destroy the last element (a trivial one: the finish pointer steps back).
+    void pop_back() {
+        --finish_;
+        finish_->~T();
+    }
+
     // clear(): destroy every element in order; keep the storage.
     void clear() {
         for (T* p = start_; p != finish_; ++p) p->~T();
@@ -143,8 +149,72 @@ struct list {
     Node* First() const { return head->next; }
     Node* End() const { return head; }
     bool Empty() const { return head->next == head; }
+
+    // clear() as STLport writes it, for an instantiation the original inlines: each element
+    // destroyed by `destroy(&data)` (its own destructor), the node returned to the pool, the
+    // sentinel linked to itself.
+    template <typename F> void ClearWith(F destroy) {
+        Node* cur = head->next;
+        while (cur != head) {
+            Node* node = cur;
+            cur = cur->next;
+            destroy(&node->data);
+            deallocate(node, sizeof(Node));
+        }
+        head->next = head;
+        head->prev = head;
+    }
 };
 static_assert(sizeof(list<int>) == 4 && sizeof(list<int>::Node) == 12);
+
+// map<K, V> (_Rb_tree, 0xC bytes): the header node (allocated by the owner's constructor; its
+// parent is the root, its left / right children the leftmost / rightmost node), the element count,
+// the empty compare object (one byte). Keys are ordered by operator<. Only the lookups are written
+// here; inserting and erasing (node allocation, rebalancing) stay with each instantiation's own
+// code, forwarded with this type (e.g. the global map's 006316E0 insert with a hint).
+template <typename K, typename V>
+class map {
+public:
+    struct Node {
+        std::uint32_t color;   // +0x00 (a bool and padding)
+        Node* parent;          // +0x04
+        Node* left;            // +0x08
+        Node* right;           // +0x0C
+        K first;               // +0x10
+        V second;
+    };
+
+    map() = default;
+    map(const map&) = delete;
+
+    Node* end() const { return header_; }
+    std::size_t size() const { return count_; }
+
+    // lower_bound (e.g. 00631C80): the first node whose key is not less than `key`, or end().
+    Node* lower_bound(const K& key) const {
+        Node* result = header_;
+        for (Node* n = header_->parent; n;) {
+            if (n->first < key) {
+                n = n->right;
+            } else {
+                result = n;
+                n = n->left;
+            }
+        }
+        return result;
+    }
+    // find (e.g. 00631C20): the node holding `key`, or end().
+    Node* find(const K& key) const {
+        Node* n = lower_bound(key);
+        return n == header_ || key < n->first ? header_ : n;
+    }
+
+private:
+    Node* header_ = nullptr;
+    std::size_t count_ = 0;
+    std::uint8_t compare_ = 0;
+    std::uint8_t unknown_09[3] = {};
+};
 
 // Hash for pointer keys: the pointer value itself.
 struct PointerHash {

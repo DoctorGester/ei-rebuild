@@ -472,11 +472,10 @@ EI_VERIFY(0x006337B0, DifficultyBoxBuildVerify, 0, s_unused);
 // nothing was read), every new line's speed finite, +0x1CC and +0x1F5 cleared and the display's
 // +0x14 zero. Reached by ui_main_menu (the main menu's region 4).
 static void __fastcall CreditsBuildVerify(CCreditsScreen* self, void*) {
+    using Node = stlp::list<TitleLine>::Node;
     auto countLines = [&]() {
         int n = 0;
-        void* sentinel = self->lines_;
-        for (void* node = *static_cast<void**>(sentinel); node != sentinel && n < 100000; node = *static_cast<void**>(node))
-            ++n;
+        for (Node* node = self->lines_.First(); node != self->lines_.End() && n < 100000; node = node->next) ++n;
         return n;
     };
     int surfaces = self->window.surfaces_.size;
@@ -486,21 +485,22 @@ static void __fastcall CreditsBuildVerify(CCreditsScreen* self, void*) {
     const std::uint8_t* display = reinterpret_cast<std::uint8_t*(__cdecl*)()>(0x00500960)();
     std::uint32_t display14;
     std::memcpy(&display14, display + 0x14, 4);
+    std::uint32_t nextLineBits;
+    std::memcpy(&nextLineBits, &self->nextLineAt_, 4);
     bool ok = self->window.surfaces_.size == surfaces + 2 &&
               self->textSurface_ == self->window.surfaces_.data[surfaces] &&
-              self->headerSurface_ == self->window.surfaces_.data[surfaces + 1] && self->unknown_1CC == 0 &&
-              !self->unknown_1F5 && display14 == 0;
+              self->headerSurface_ == self->window.surfaces_.data[surfaces + 1] && nextLineBits == 0 &&
+              !self->finished_ && display14 == 0;
     if (after == before) {
-        ok = ok && self->currentLine_ == self->lines_;
+        ok = ok && self->currentLine_ == self->lines_.End();
     } else {
         // The first of the new nodes (the list was empty before in every opening seen).
-        void* node = *static_cast<void**>(self->lines_);
-        for (int i = 0; i < before; ++i) node = *static_cast<void**>(node);
+        Node* node = self->lines_.First();
+        for (int i = 0; i < before; ++i) node = node->next;
         ok = ok && (before != 0 || self->currentLine_ == node);
-        for (; node != self->lines_; node = *static_cast<void**>(node)) {
-            const auto* line = reinterpret_cast<const TitleLine*>(static_cast<const std::uint8_t*>(node) + 8);
+        for (; node != self->lines_.End(); node = node->next) {
             std::uint32_t bits;
-            std::memcpy(&bits, &line->speed, 4);
+            std::memcpy(&bits, &node->data.speed, 4);
             ok = ok && (bits & 0x7F800000u) != 0x7F800000u;   // finite
         }
     }

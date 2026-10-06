@@ -26,19 +26,40 @@ struct AllodRecord {
 };
 static_assert(sizeof(AllodRecord) == 0x2C);
 
+// One "#exit" of a map entry (0x3C bytes; map_database.h has the loader's view).
+struct MapExit {
+    float passTime;         // +0x00 "#passtime": the time the way takes
+    float deploy[4];        // +0x04
+    float remove[4];        // +0x14
+    float angle;            // +0x24
+    char* target;           // +0x28 CString: the zone it leads to
+    int targetExit;         // +0x2C the target zone's exit the party arrives at
+    float view;             // +0x30
+    bool hasDeployAngle;    // +0x34
+    std::uint8_t unknown_35[3];
+    float deployAngle;      // +0x38
+};
+static_assert(offsetof(MapExit, target) == 0x28);
+static_assert(sizeof(MapExit) == 0x3C);
+
 // One map/zone entry (0x5C bytes): +0 name, +4 allod name, +8 and +0xC other names.
 struct MapRecord {
     char* name;   // CString
     char* allod;  // +0x04 CString
-    std::uint8_t unknown_8[0x34 - 8];
+    std::uint8_t unknown_8[0x28 - 8];
+    int kind;               // +0x28 0 game, 1 edge, 2 brief
+    std::uint8_t unknown_2C[0x34 - 0x2C];
     bool restricted;        // +0x34 "#restrict x y radius": the camera stays in that circle
     std::uint8_t unknown_35[3];
     float restrictX;        // +0x38
     float restrictY;        // +0x3C
     float restrictRadius;   // +0x40
     bool cage;              // +0x44 "#cage": a base where the party does not walk to the people
-    std::uint8_t unknown_45[0x5C - 0x45];
+    std::uint8_t unknown_45[3];
+    mfc::CArray<MapExit> exits;   // +0x48
 };
+static_assert(offsetof(MapRecord, kind) == 0x28);
+static_assert(offsetof(MapRecord, exits) == 0x48);
 static_assert(offsetof(MapRecord, restricted) == 0x34);
 static_assert(offsetof(MapRecord, cage) == 0x44);
 static_assert(sizeof(MapRecord) == 0x5C);
@@ -59,6 +80,9 @@ struct CMapDatabase {
 };
 static_assert(offsetof(CMapDatabase, maps) == 0x14);
 static_assert(sizeof(CMapDatabase) == 0x28);
+
+// The game's map database (0079BF00).
+inline CMapDatabase* GameMapDatabase() { return reinterpret_cast<CMapDatabase*>(0x0079BF00); }
 
 // An STLport hash_map<CString, float> (hash __stl_hash_string, nodes {next, key, value}).
 struct NamedFloatTable {

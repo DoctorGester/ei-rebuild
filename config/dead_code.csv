@@ -411,10 +411,12 @@ address,size,name,evidence
 005FFF40,103,FUN_005fff40,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00600D00,48,FUN_00600d00,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00600E90,91,FUN_00600e90,"no references at all (no call/jmp, no absolute pointer in code or data)"
+00601ED0,384,FUN_00601ed0,"referenced only from vtable(s) installed only by dead code 0073F7F8 (the demo / autoplay screen; its constructors 005794B0 / 00579730 are dead)"
 00602050,66,FUN_00602050,referenced only from vtable(s) installed only by dead code 0073F7F8
 006020A0,18,FUN_006020a0,referenced only from vtable(s) installed only by dead code 0073F7F8
 006020C0,173,FUN_006020c0,referenced only from vtable(s) installed only by dead code 0073F7C4
 00602170,31,FUN_00602170,referenced only from vtable(s) installed only by dead code 0073F7F8
+00602190,464,FUN_00602190,referenced only from dead code 00601ED0 006020C0 00602170
 006179D0,116,FUN_006179d0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00618670,128,FUN_00618670,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00624440,322,FUN_00624440,"no references at all (no call/jmp, no absolute pointer in code or data)"
