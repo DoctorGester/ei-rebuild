@@ -7,6 +7,7 @@
 #include "sector_map.h"
 #include "unit.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 
 #include "ei/hook.h"
@@ -115,7 +116,9 @@ private:
 } // namespace
 
 __declspec(naked) int Projectile::Update() EI_ORIGINAL(0x0067E6D0)
-__declspec(naked) void ProjectileList::FreeNode(Node*) EI_ORIGINAL(0x0059C810)
+// 0059C810. Releases the node's missile and returns the node to the free list (the last one frees
+// every block).
+__declspec(naked) void __fastcall ProjectileFreeNode(ProjectileList*, void*, ProjectileList::Node*) EI_ORIGINAL(0x0059C810)
 
 // ---- The tick ------------------------------------------------------------------------------------
 
@@ -146,7 +149,7 @@ void CWorldServer::Tick(char force) {
     if (CountdownsTick(countdowns_, nullptr)) MarkPlayersDirty(0x20);
 
     // Missiles: those whose Update returns 0 are unlinked and freed.
-    auto& missiles = projectiles_.list;
+    auto& missiles = projectiles_;
     for (ProjectileList::Node* next = missiles.head; next;) {
         ProjectileList::Node* current = next;
         next = current->next;
@@ -159,7 +162,7 @@ void CWorldServer::Tick(char force) {
             missiles.tail = current->prev;
         else
             current->next->prev = current->prev;
-        projectiles_.FreeNode(current);
+        ProjectileFreeNode(&projectiles_, nullptr, current);
     }
 
     if (unknown160_ != 0 || force) CommandQueueRun(commandsA_, nullptr);
@@ -232,25 +235,9 @@ void CWorldServer::SetGameResult(int result) {
 namespace {
 // UpdateUnits' two function-local id lists (00453A50-style arrays: data, size, max, grow; the data
 // block starts one dword after its allocation), with their guard bits at 007AFF00.
-struct IdArray {
-    unsigned* data;
-    int size;
-    int max;
-    int grow;
-    // 004538D0 SetAtGrow(index, value).
-    void SetAtGrow(int index, unsigned value);
-    // What UpdateUnits does at its start: frees the block and empties the array.
-    void Reset() {
-        if (data) {
-            gamecrt::operator_delete(reinterpret_cast<void**>(data)[-1]);
-            data = nullptr;
-        }
-        max = 0;
-        size = 0;
-    }
-};
-__declspec(naked) void IdArray::SetAtGrow(int, unsigned) EI_ORIGINAL(0x004538D0)
-static_assert(sizeof(IdArray) == 0x10);
+using IdArray = lib::AlignedArray<unsigned>;
+// 004538D0: the instantiation's SetAtGrow(index, value) (RET 8).
+__declspec(naked) void __fastcall IdArraySetAtGrow(IdArray*, void*, int, unsigned) EI_ORIGINAL(0x004538D0)
 
 IdArray& RemovedIds() { return *reinterpret_cast<IdArray*>(0x007AFEF0); }   // flagged for removal
 IdArray& SleepingIds() { return *reinterpret_cast<IdArray*>(0x007AFEE0); }  // leave the update map
@@ -277,8 +264,8 @@ void CWorldServer::UpdateUnits() {
         SleepingIds() = IdArray{};
         GameAtExit(reinterpret_cast<void(__cdecl*)()>(kSleepingIdsDestructor));
     }
-    RemovedIds().Reset();
-    SleepingIds().Reset();
+    RemovedIds().RemoveAll();
+    SleepingIds().RemoveAll();
 
     // The walk stops at the end or at an entry without an object.
     if (unknown12D64_ != 1) {
@@ -287,7 +274,7 @@ void CWorldServer::UpdateUnits() {
         for (auto* node = objects.First(); node && node->value; node = objects.After(node)) {
             CEngineObject* object = node->value;
             object->Slot6();
-            if (object->flags_ & 1) RemovedIds().SetAtGrow(RemovedIds().size, static_cast<unsigned>(object->id_));
+            if (object->flags_ & 1) IdArraySetAtGrow(&RemovedIds(), nullptr, RemovedIds().size, static_cast<unsigned>(object->id_));
         }
     } else {
         if (ei::rebirth::Enabled(ei::rebirth::Patch::FixSpellEffectsOverflow)) TickSleepingEffects();
@@ -297,12 +284,12 @@ void CWorldServer::UpdateUnits() {
         for (auto* node = awake.First(); node && node->value; node = awake.After(node)) {
             CEngineObject* object = node->value;
             object->Slot6();
-            if (object->flags_ & 1) RemovedIds().SetAtGrow(RemovedIds().size, static_cast<unsigned>(object->id_));
+            if (object->flags_ & 1) IdArraySetAtGrow(&RemovedIds(), nullptr, RemovedIds().size, static_cast<unsigned>(object->id_));
             if (object->GetClassId() != world::kClassUnit) continue;
             if (--SleepCountdown(object) > 0) continue;
             auto* controller = reinterpret_cast<const std::uint8_t*>(static_cast<CUnit*>(object)->controller);
             if (controller[0x174] == 0 && controller[0x9B7] == 0 && controller[0xB0C] == 0)
-                SleepingIds().SetAtGrow(SleepingIds().size, static_cast<unsigned>(object->id_));
+                IdArraySetAtGrow(&SleepingIds(), nullptr, SleepingIds().size, static_cast<unsigned>(object->id_));
             else
                 SleepCountdown(object) = WakeCountdown(object);
         }

@@ -59,22 +59,10 @@ constexpr int kSlotFileClose = 19;    // MFC CFile slot 19 (+0x4C): Close
 
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
-// CArray of pointers (vtable 0073FAA4); the destructor is inlined by its users.
-struct PtrArray {
-    void* vtable;
-    void** data;
-    int size;
-    int capacity;
-    int growBy;
-
-    void SetSize(int newSize, int newGrowBy);   // 005719B0 (RET 8)
-};
-static_assert(sizeof(PtrArray) == 0x14);
-void PtrArray::SetSize(int n, int g) { RecordArraySetSizeOriginal(this, nullptr, n, g); }
 
 // 0058EF20 (RET 0x20). Creates the units described by `records` (pointers to 0x784-byte unit
 // records) around `position` with `rotation`; ids come from the records (+0x1C).
-__declspec(naked) void __fastcall ServerCreateUnits(CWorldServer*, void*, int /*zero*/, PtrArray* /*records*/,
+__declspec(naked) void __fastcall ServerCreateUnits(CWorldServer*, void*, int /*zero*/, RecordPtrArray* /*records*/,
                                                     const Vector3* /*position*/, Float4 /*rotation*/,
                                                     int /*placements*/) EI_ORIGINAL(0x0058EF20)
 // 005935C0 (RET 4). RemoveObjectFromServer. Patched by Rebirth: always the original address.
@@ -112,8 +100,6 @@ void UnitRecordBuilder::Destruct() { PartyRecordsDestructOriginal((void*)this); 
 } // namespace
 
 __declspec(naked) ZoneExit* ZoneExit::DeletingDestructor(unsigned) EI_ORIGINAL(0x004608B0)
-__declspec(naked) void ZoneExitArray::SetSize(int, int) EI_ORIGINAL(0x00573080)
-void StringArray::SetAtGrow(int a2, const char* a3) { StringArraySetAtGrowTextOriginal((void*)this, nullptr, a2, a3); }
 
 // ---- Zone exits -------------------------------------------------------------------------------
 
@@ -125,7 +111,7 @@ void CWorldServer::SetZoneExits(const ZoneExitArray* source) {
         gamecrt::operator_delete(exits->data);
         exits->data = nullptr;
     }
-    exits->capacity = 0;
+    exits->maxSize = 0;
     exits->size = 0;
     for (int i = 0; i < source->size; ++i) {
         const ZoneExit* from = &source->data[i];
@@ -136,7 +122,7 @@ void CWorldServer::SetZoneExits(const ZoneExitArray* source) {
                                                   reinterpret_cast<const unsigned char*>(kNoExit)) != 0)
             game::FatalError(Text(kWrongEntrance));
         int index = exits->size;
-        exits->SetSize(index + 1, -1);
+        ZoneExitsSetSizeOriginal(exits, nullptr, index + 1, -1);
         ZoneExit* to = &exits->data[index];
         auto* src = reinterpret_cast<const std::uint8_t*>(from);
         auto* dst = reinterpret_cast<std::uint8_t*>(to);
@@ -154,14 +140,14 @@ void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const cha
     UnitRecordBuilder builder;
     builder.Construct();
     builder.Fill(game::EmptyText(), prototype, name);
-    PtrArray records;
+    RecordPtrArray records;
     records.vtable = reinterpret_cast<void*>(kPtrArrayVtable);
     records.data = nullptr;
     records.growBy = 0;
-    records.capacity = 0;
+    records.maxSize = 0;
     records.size = 0;
-    void* record = builder.Record();
-    records.SetSize(1, -1);
+    auto* record = static_cast<std::uint8_t*>(builder.Record());
+    RecordArraySetSizeOriginal(&records, nullptr, 1, -1);
     records.data[0] = record;
     At<unsigned>(records.data[0], 0x1C) = id;
     ServerCreateUnits(this, nullptr, 0, &records, position, DefaultRotation(), 0);
@@ -198,7 +184,7 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
 
 int CWorldServer::LoadMobFile(const char* file) {
     for (int i = 0; i < mobFiles_.size; ++i) {
-        if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(mobFiles_.data[i]),
+        if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(mobFiles_[i])),
                             reinterpret_cast<const unsigned char*>(file)) == 0)
             return 1;
     }
@@ -239,9 +225,9 @@ void CWorldServer::ClearMapObjects() {
         node = next;
     }
 
-    for (auto* node = projectiles_.list.head; node; node = node->next)
+    for (auto* node = projectiles_.head; node; node = node->next)
         if (node->data) RefRelease(node->data, nullptr);
-    projectiles_.list.RemoveAll();
+    projectiles_.RemoveAll();
 
     for (auto* node = counted_.head; node; node = node->next)
         CountedPtrDestroy(reinterpret_cast<void**>(&node->data), nullptr, 0);

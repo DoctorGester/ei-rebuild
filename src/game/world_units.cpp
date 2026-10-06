@@ -96,17 +96,7 @@ struct Placement {
     std::uint32_t value24;    // +0x24
 };
 static_assert(sizeof(Placement) == 0x28);
-struct PlacementArray {
-    void* vtable;
-    Placement* data;
-    int size;
-};
-
-struct RecordArray {
-    void* vtable;
-    std::uint8_t** data;
-    int size;
-};
+using PlacementArray = mfc::CArray<Placement>;
 
 // The unit creation message 005927C0 reads (0x324 bytes; constructor 0046C010, vtable 0073C6E0).
 // Fields written here: +0x18 id, +0x20 position, +0x2C rotation, +0x48, +0x50 type, +0x54 / +0x70 /
@@ -287,7 +277,7 @@ CEngineObject* MakeItem(CWorldServer* world, std::uint8_t* itemRecord, bool refV
 
 void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* position, Float4 rotation,
                                void* placementsArg) {
-    auto* records = static_cast<RecordArray*>(recordsArg);
+    auto* records = static_cast<RecordPtrArray*>(recordsArg);
     auto* placements = static_cast<PlacementArray*>(placementsArg);
     // Destroyed after the two strings (declared after it), as the original does.
     struct Message {

@@ -115,10 +115,7 @@ void GameObjects::MarkInterfaceChanged() { GameMarkInterfaceChangedOriginal(this
 GameObjects* GameAt(std::uintptr_t address) { return reinterpret_cast<GameObjects*>(address); }
 
 // The party array of the battle screen (+0x168).
-struct PartyArray {
-    void SetSize(int size, int growBy);         // 005EBDB0
-};
-__declspec(naked) void PartyArray::SetSize(int, int) EI_ORIGINAL(0x005EBDB0)
+__declspec(naked) void __fastcall PartyArraySetSize(void* /*array*/, void*, int, int) EI_ORIGINAL(0x005EBDB0)
 
 // Interface manager fields the panels are built from (set by the options and saved games).
 std::uint8_t UiByte(CInterface3D* ui, int offset) { return reinterpret_cast<const std::uint8_t*>(ui)[offset]; }
@@ -327,7 +324,7 @@ void CBattleScreenSetup::Create() {
     unknown_180 = -1;
     GameAt(0x007AFEA6)->ResetView(0, 0);
     GameAt(0x007AFEA5)->MarkInterfaceChanged();
-    reinterpret_cast<PartyArray*>(partyArray_)->SetSize(0, -1);
+    PartyArraySetSize(partyArray_, nullptr, 0, -1);
     unknown_1C0 = false;
     unknown_1C1 = false;
     std::memset(orderKeys_, 0, 6);   // +0x18D dword and +0x191 word

@@ -11,17 +11,6 @@
 
 namespace {
 void* s_unused;
-
-// MFC CStringArray (0x14 bytes: vtable, data, size, max, grow by).
-struct StringArray {
-    void* vtable;
-    char** data;
-    int size;
-    int maxSize;
-    int growBy;
-};
-__declspec(naked) void __fastcall StringArrayConstruct(StringArray* /*self*/) EI_ORIGINAL(0x006FE925)
-__declspec(naked) void __fastcall StringArrayDestruct(StringArray* /*self*/) EI_ORIGINAL(0x006FE958)
 } // namespace
 
 // 00674CE0: PUSH EBX; PUSH EBP; PUSH ESI; MOV ESI,EDX (5 bytes).
@@ -38,16 +27,16 @@ EI_VERIFY(0x00674CE0, WildcardVerify, 5, s_wildcard);
 // one; the names must be the same, in the same order.
 static void(__fastcall* s_listFiles)(const CMappedResource*, void*, void*, const char*);
 static void __fastcall ListFilesVerify(const CMappedResource* self, void*, void* out, const char* pattern) {
-    StringArray scratch;
-    StringArrayConstruct(&scratch);
+    mfc::CStringArray scratch;
+    scratch.Construct();
     s_listFiles(self, nullptr, &scratch, pattern);
     self->ListFiles(out, pattern);
-    auto* actual = static_cast<StringArray*>(out);
+    auto* actual = static_cast<mfc::CStringArray*>(out);
     bool same = scratch.size == actual->size;
-    for (int i = 0; same && i < scratch.size; ++i) same = std::strcmp(scratch.data[i], actual->data[i]) == 0;
+    for (int i = 0; same && i < scratch.size; ++i) same = std::strcmp(scratch[i], (*actual)[i]) == 0;
     ei::verify::Check("CMappedResource::ListFiles", true, same, "\"%s\": %d vs %d names", pattern ? pattern : "(all)",
                       scratch.size, actual->size);
-    StringArrayDestruct(&scratch);
+    scratch.Destruct();
 }
 EI_VERIFY(0x00674AC0, ListFilesVerify, 6, s_listFiles);
 

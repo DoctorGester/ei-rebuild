@@ -258,7 +258,7 @@ void CBriefingScreen::NextPhrase(bool skip) {
 
     // The phrase's speaker: the last line's second word (read unchecked, as the original does,
     // only while comparing with a speaker).
-    auto named = [&words] { return static_cast<const char*>(words.data_[1]); };
+    auto named = [&words] { return static_cast<const char*>(words.data[1]); };
     if (!skip || last) {
         if (leader_) GameSetUnitHeightOriginal(UnitGlue(), nullptr, leader_->id_, 0.0f);
         if (person_) GameSetUnitHeightOriginal(UnitGlue(), nullptr, person_->id_, 0.0f);

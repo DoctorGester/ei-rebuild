@@ -1,6 +1,6 @@
 #pragma once
 
-// The client side of a player's connection (CPlayerClient, vtable 00743188; 00666FD0-0066A880): it
+// The client side of a player's connection (CPlayerClient, vtable 00743180; 00666FD0-0066A880): it
 // sends the client's requests (+0x5C) compressed to the server and runs the server's messages
 // (+0x34) through its handler table (built by 00667230). The single-player game runs it next to
 // CPlayerServer (player_messages.h) over the loopback link. Names are provisional; see
@@ -14,7 +14,7 @@
 class CPlayerClient {
 public:
     // player_client.cpp (A-H8).
-    // 00667680 (slot 4). State 0: once the link is connected, the party (message 8, with the
+    // 00667680 (slot 6). State 0: once the link is connected, the party (message 8, with the
     // variables, when +0x85 is set) and the login (message 0: version 100, "Tango", "Very top
     // secret", the player's +0xFC) are queued, state 1, and everything is sent (SendToServer's
     // result); without a connected link 1. State 1: 1. State 2: the camera's anchor x, y as
@@ -28,7 +28,7 @@ public:
     // handlers by type. 1 at the end of the stream; a read past the end, a type without a handler
     // or a refusing handler ends in the fatal error 00664B70 (its result returned).
     int DispatchMessages();
-    // 00667A30 (slot 21). One packet from the link, decompressed (+0x28B0) into +0x34 and
+    // 00667A30 (slot 23). One packet from the link, decompressed (+0x28B0) into +0x34 and
     // dispatched: 1 when there was none or it ran through, 0 without a link, when the receive
     // failed or the dispatch returned 0.
     int ReceiveMessages();

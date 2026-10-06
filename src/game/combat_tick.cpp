@@ -188,20 +188,7 @@ void ClearAction(UnitAction* order) {
 }
 
 // A CPtrList on the stack (vtable 0073D454), as 005468D0 fills it.
-struct UnitPtrList {
-    void* vtable;
-    struct Node {
-        Node* next;
-        Node* prev;
-        CEngineObject* data;
-    }* head;
-    Node* tail;
-    int count;
-    Node* free;
-    void* blocks;
-    int blockSize;
-};
-static_assert(sizeof(UnitPtrList) == 0x1C);
+using UnitPtrList = mfc::CTypedPtrList<CEngineObject>;
 void* const kPtrListVtable = reinterpret_cast<void*>(0x0073D454);
 } // namespace
 

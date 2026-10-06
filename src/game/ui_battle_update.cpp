@@ -236,13 +236,7 @@ void __fastcall NodeFree(void* a0, std::uint32_t a1) { StlNodeFreeOriginal(a0, (
 void*& NodeFreeList() { return *reinterpret_cast<void**>(0x0079B228); }   // the 12-byte nodes
 
 // An MFC CArray<void*> as the update builds them on the stack (vtable 0073FAA4).
-struct PtrArray {
-    void* vtable;
-    void** data;
-    int size;
-    int capacity;
-    int growBy;
-};
+using PtrArray = mfc::CArray<void*>;
 
 template <typename T>
 T& At(void* p, int offset) {
@@ -628,7 +622,7 @@ void CBattleScreenSetup::OnQuestVariable(const char* name, float value) {
     StringSplit(name, &parts, '.');
     const float complete = GameFloatAt(0x0073CDB8);   // 2
     const float failed = GameFloatAt(0x0073BAA4);     // 3
-    if (parts.size_ == 3) {
+    if (parts.size == 3) {
         const char* key;
         if (EqualOrNaN(value, complete)) {
             if (unknown_1FC <= 3) unknown_1FC = 3;
@@ -650,7 +644,7 @@ void CBattleScreenSetup::OnQuestVariable(const char* name, float value) {
         if (found) TextReadLine(texts, nullptr, &text, 1);
         mfc::CString colour(GameText(0x00794370));   // colour code 0x31E3EE43 and a space
         text = colour + title + GameText(0x0078DA40) + text;
-    } else if (parts.size_ == 4) {
+    } else if (parts.size == 4) {
         if (!IsNetworkClientOriginal()) {
             const char* dot = GameText(0x00783D78);
             mfc::CString variable = parts[0] + dot + parts[1] + dot + parts[2];

@@ -59,7 +59,7 @@ void EndTimedObjects(CWorldServer* world) {
 }
 
 void ClearMissiles(CWorldServer* world) {
-    auto& list = world->projectiles_.list;
+    auto& list = world->projectiles_;
     for (auto* node = list.head; node; node = node->next)
         if (node->data) RefRelease(node->data, nullptr);
     list.RemoveAll();
@@ -154,8 +154,6 @@ __declspec(naked) void* __fastcall MissilePtrDestruct(void*, void*, unsigned) EI
 void __stdcall CountedRangeRelease(void* a0, int a1) { CountedRangeReleaseOriginal(a0, a1); }
 __declspec(naked) void __fastcall CountdownsClear(void*, void*) EI_ORIGINAL(0x006D43E0)
 void __fastcall PlayerClear(WorldPlayer* a0, void*) { PlayerClearOriginal((void*)a0); }
-// 0047B670. The object map's clear (every object id hash map; nodes freed).
-__declspec(naked) void __fastcall ObjectMapClear(void*, void*) EI_ORIGINAL(0x0047B670)
 // 0059D6D0. The other id maps' clear.
 __declspec(naked) void __fastcall IdMapClear(void*, void*) EI_ORIGINAL(0x0059D6D0)
 // 00404410. A manager's clear.
@@ -174,7 +172,7 @@ void FreeListBlocks(mfc::CTypedPtrList<T>& list) {
 }
 
 void ClearMissilePointers(CWorldServer* world) {
-    auto& list = world->projectiles_.list;
+    auto& list = world->projectiles_;
     for (auto* node = list.head; node; node = node->next) MissilePtrDestruct(&node->data, nullptr, 0);
     FreeListBlocks(list);
 }
@@ -187,7 +185,7 @@ void CWorldServer::ResetZone() {
     FreeListBlocks(shared);
     StringArraySetSize(&mobFiles_, nullptr, 0, -1);
     CountdownsClear(countdowns_, nullptr);
-    reinterpret_cast<ZoneExitArray*>(&exitsVtable_)->SetSize(0, -1);
+    ZoneExitsSetSizeOriginal(&exitsVtable_, nullptr, 0, -1);
     QueueReset(commandsA_, nullptr);
     QueueReset(commandsB_, nullptr);
     ClearMissilePointers(this);
@@ -210,7 +208,7 @@ void CWorldServer::ResetZone() {
 
     for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node))
         ei::VCall<void>(node->value, kSlotObjectEnd);
-    ObjectMapClear(&objects_, nullptr);
+    ObjectMapClearOriginal(&objects_);
     ObjectIdMap* const maps[] = {reinterpret_cast<ObjectIdMap*>(reinterpret_cast<std::uint8_t*>(this) + 0x12D88),
                                  &mapObjects_, &otherMapObjects_, &updateMap_, &namedObjects_};
     for (ObjectIdMap* map : maps) {
@@ -269,7 +267,7 @@ void CWorldServer::TeardownZone() {
     ClearMapObjectsAt(this, nullptr);
 
     // The missiles' counted pointers, released inline (16-bit count at +4, slot 0 deletes).
-    auto& missiles = projectiles_.list;
+    auto& missiles = projectiles_;
     for (auto* node = missiles.head; node; node = node->next) {
         auto* missile = reinterpret_cast<std::uint8_t*>(node->data);
         if (missile && --*reinterpret_cast<std::int16_t*>(missile + 4) == 0 && missile)

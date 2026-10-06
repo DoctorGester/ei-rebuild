@@ -68,7 +68,7 @@ void CBriefingScreen::FindTopics(int personId) {
     for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
         if (Bits(node->value) != kOneBits) continue;
         StringSplit(node->key, &parts, '.');
-        if (parts.size_ != kTopicNameParts || TextKeyFromName(parts[1]) != personId) continue;
+        if (parts.size != kTopicNameParts || TextKeyFromName(parts[1]) != personId) continue;
         name = parts[2];
         bool isConstructor;
         {
@@ -91,8 +91,8 @@ void CBriefingScreen::FindTopics(int personId) {
         TopicFinalSortAt(list.begin(), list.end(), personId);
     }
     topics_.SetSize(0, -1);
-    for (stlp::string* topic = list.begin(); topic != list.end(); ++topic) topics_.SetAtGrow(topics_.size_, topic->data());
-    if (constructor.GetLength() != 0) topics_.SetAtGrow(topics_.size_, constructor);
+    for (stlp::string* topic = list.begin(); topic != list.end(); ++topic) topics_.SetAtGrow(topics_.size, topic->data());
+    if (constructor.GetLength() != 0) topics_.SetAtGrow(topics_.size, constructor);
 }
 EI_REPLACE_METHOD(0x00607360, CBriefingScreen::FindTopics);
 

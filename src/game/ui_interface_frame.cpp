@@ -242,43 +242,43 @@ void CInterface3D::OnStringEvent(const char* event) {
     mfc::CString unused;
     mfc::CString text(event);
     SplitWords(text, &words, ' ');
-    words.data_[0].MakeLower();
+    words.data[0].MakeLower();
     // Rebirth's NewStringEvents (context hook at 005F80EF): "gameover [title [text]]" plays
     // buttons\gameover.wav and shows a message window (the texts default to the keys game_over and
     // game_over_msg).
-    if (ei::rebirth::Enabled(ei::rebirth::Patch::NewStringEvents) && std::strcmp(words.data_[0], "gameover") == 0) {
+    if (ei::rebirth::Enabled(ei::rebirth::Patch::NewStringEvents) && std::strcmp(words.data[0], "gameover") == 0) {
         void* menu = reinterpret_cast<void*>(0x007AFEA5);
         MenuSet578920(menu, nullptr, 1);
         MenuCall578940(menu, nullptr);
         PlaySound("buttons\\gameover.wav", 0);
-        const char* title = words.size_ > 1 ? static_cast<const char*>(words.data_[1]) : "game_over";
-        const char* message = words.size_ > 2 ? static_cast<const char*>(words.data_[2]) : "game_over_msg";
+        const char* title = words.size > 1 ? static_cast<const char*>(words.data[1]) : "game_over";
+        const char* message = words.size > 2 ? static_cast<const char*>(words.data[2]) : "game_over_msg";
         void* memory = gamecrt::operator_new(0x180);
         void* window = memory ? MessageWindowConstruct(memory, nullptr, this, title, message, 0x20000, 3, 1) : nullptr;
         InterfaceShowWindow(this, nullptr, window, 1, 1);
         return;
     }
     auto top = [this]() { return stackEnd_[-1]; };
-    if (Compare(words.data_[0], 0x007930E8) == 0 || Compare(words.data_[0], 0x007930DC) == 0) {
+    if (Compare(words.data[0], 0x007930E8) == 0 || Compare(words.data[0], 0x007930DC) == 0) {
         // "say" / "say_block" text [key]: the top window shows the text.
-        if (words.size_ < 2) return;
-        int number = words.size_ > 2 ? TextNumber(words.data_[2]) : 0;
-        int kind = Compare(words.data_[0], 0x007930DC) != 0 ? 0x2A : 0x2B;
+        if (words.size < 2) return;
+        int number = words.size > 2 ? TextNumber(words.data[2]) : 0;
+        int kind = Compare(words.data[0], 0x007930DC) != 0 ? 0x2A : 0x2B;
         if (stackBegin_ != stackEnd_)
-            ei::VCall<void>(top(), kSlotSay, number, kind, static_cast<const char*>(words.data_[1]));
-    } else if (Compare(words.data_[0], 0x007930D0) == 0) {   // "tutorial" name: queued
-        if (words.size_ < 2) return;
+            ei::VCall<void>(top(), kSlotSay, number, kind, static_cast<const char*>(words.data[1]));
+    } else if (Compare(words.data[0], 0x007930D0) == 0) {   // "tutorial" name: queued
+        if (words.size < 2) return;
         void* queue = reinterpret_cast<std::uint8_t*>(this) + 0x84;
         void* end;
         QueueEnd(queue, nullptr, &end);
         void* out;
-        QueueInsert(queue, nullptr, &out, end, &words.data_[1]);
-    } else if (Compare(words.data_[0], 0x007930C4) == 0) {   // "briefing" name
-        if (words.size_ < 2 || stackBegin_ == stackEnd_) return;
-        ei::VCall<void>(top(), kSlotShowBriefing, static_cast<const char*>(words.data_[1]));
-    } else if (Compare(words.data_[0], 0x00787704) == 0) {   // "autosave"
+        QueueInsert(queue, nullptr, &out, end, &words.data[1]);
+    } else if (Compare(words.data[0], 0x007930C4) == 0) {   // "briefing" name
+        if (words.size < 2 || stackBegin_ == stackEnd_) return;
+        ei::VCall<void>(top(), kSlotShowBriefing, static_cast<const char*>(words.data[1]));
+    } else if (Compare(words.data[0], 0x00787704) == 0) {   // "autosave"
         reinterpret_cast<std::uint8_t*>(this)[0x81] = 1;
-    } else if (Compare(words.data_[0], 0x00790664) == 0) {   // "endofgame"
+    } else if (Compare(words.data[0], 0x00790664) == 0) {   // "endofgame"
         if (stackBegin_ != stackEnd_) ei::VCall<void>(top(), kSlotEndOfGame, 1);
     }
 }

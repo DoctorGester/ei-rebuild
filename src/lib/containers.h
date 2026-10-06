@@ -141,6 +141,13 @@ struct AlignedArray {
         size = 0;
     }
 
+    // operator= (0044F410, 00474C80): SetSize to the source's size (keeping the step), then its
+    // elements with memcpy.
+    void Copy(const AlignedArray& source) {
+        SetSize(source.size);
+        std::memcpy(static_cast<void*>(data), source.data, static_cast<std::size_t>(source.size) * sizeof(T));
+    }
+
     // The destructors (0044F1B0, ...): the block freed, the fields left as they were.
     void FreeData() {
         if (data) Free(data);

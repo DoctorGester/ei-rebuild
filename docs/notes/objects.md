@@ -104,7 +104,7 @@ Third group: 0066D270 ReceiveMessages (slot 23: packets decompressed into 007C83
 +0x28 / +0x2C; ours only, result 0 or 1) and 0066E130 UpdatePartyUnits (the party units from group +0x50F8, the
 player's units and what their brains see / know; each brain's +0x12C list then becomes the gathered group through
 004B3200; ours only). The receive errors go through 00664B70 (fatal) with the previous and current type.
-Client side (player_client.h / .cpp, A-H8): CPlayerClient (vtable 00743188) +0x1C player, +0x20 state, +0x24 / +0x28
+Client side (player_client.h / .cpp, A-H8): CPlayerClient (vtable 00743180) +0x1C player, +0x20 state, +0x24 / +0x28
 handler table (00667230), +0x34 received stream, +0x5C requests, +0x85 send-party flag, +0x88 / +0x28B0 coders.
 00667680 Pump (slot 4: login message 0 with version 100, "Tango", "Very top secret", the player's +0xFC; state 2 sends the
 camera anchor as 0x40), 00667810 SendToServer, 00667970 DispatchMessages, 00667A30 ReceiveMessages (slot 21, one packet per

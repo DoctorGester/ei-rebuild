@@ -393,30 +393,16 @@ constexpr std::uintptr_t kIdArrayVtable = 0x0073C3D0;     // CArray<int>
 constexpr int kTypeHero = 0x32;
 constexpr std::uint32_t kMinimumWeight = 0x3C23D70A;      // 0.01f
 
-// A node of the list of shares (0x10 bytes): the unit's controller and its experience.
-struct ShareNode {
-    ShareNode* next;
-    ShareNode* prev;
+// An element of the list of shares: the unit's controller and its experience (nodes of 0x10 bytes).
+struct Share {
     std::uint8_t* controller;
     float share;
 };
-struct ShareList {
-    void* vtable;
-    ShareNode* head;
-    ShareNode* tail;
-    int count;
-    void* free;
-    void* blocks;
-    int blockSize;
-};
+using ShareList = mfc::CList<Share>;
+using ShareNode = ShareList::Node;
+static_assert(sizeof(ShareNode) == 0x10);
 
-struct IdArray {
-    void* vtable;
-    int* data;
-    int size;
-    int capacity;
-    int growBy;
-};
+using IdArray = mfc::CArray<int>;
 
 __declspec(naked) ShareNode* __fastcall ShareListNewNode(ShareList*, void*, ShareNode* /*prev*/, ShareNode* /*next*/)
     EI_ORIGINAL(0x0059D5F0)
@@ -455,13 +441,13 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         auto* controller = *reinterpret_cast<std::uint8_t**>(reinterpret_cast<std::uint8_t*>(unit) + 0x240);
         if (!controller) continue;
         ShareNode* node = ShareListNewNode(&list, nullptr, list.tail, nullptr);
-        node->controller = controller;
+        node->data.controller = controller;
         std::uint32_t zero = 0;
-        std::memcpy(&node->share, &zero, 4);
+        std::memcpy(&node->data.share, &zero, 4);
         if (list.tail) list.tail->next = node;
         else list.head = node;
         list.tail = node;
-        total = static_cast<float>(Weight(node->controller) + total);
+        total = static_cast<float>(Weight(node->data.controller) + total);
         volatile float stored = total;   // FSTP into the float total
         total = stored;
     }
@@ -471,10 +457,10 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
 
     for (ShareNode* node = list.head; node;) {
         ShareNode* next = node->next;
-        float share = static_cast<float>(Weight(node->controller) * amount / divisor);
+        float share = static_cast<float>(Weight(node->data.controller) * amount / divisor);
         volatile float stored = share;
-        node->share = stored;
-        DataGainExperience(node->controller, nullptr, stored);
+        node->data.share = stored;
+        DataGainExperience(node->data.controller, nullptr, stored);
         node = next;
     }
     ShareNode* cursor = list.head;
@@ -483,14 +469,14 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         if (!unit || !*reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(unit) + 0x240)) continue;
         ShareNode* node = cursor;
         cursor = node->next;
-        RecordGainExperience(p->mercs + 0x20, nullptr, node->share);
+        RecordGainExperience(p->mercs + 0x20, nullptr, node->data.share);
     }
     for (WorldPlayer* p = it.First(ei::VCall<CEngineObject*>(world, 20)); p; p = it.Next()) {
         void* state = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(p) + 0x20);
         if (!state) continue;
         for (ShareNode* node = list.head; node; node = node->next) {
-            auto* unit = *reinterpret_cast<CEngineObject**>(node->controller + 0x1C);
-            PlayerSendPair(state, nullptr, unit->id_, node->share);
+            auto* unit = *reinterpret_cast<CEngineObject**>(node->data.controller + 0x1C);
+            PlayerSendPair(state, nullptr, unit->id_, node->data.share);
         }
     }
     if (it.list) {
@@ -557,16 +543,8 @@ constexpr int kBeltSlots = 4;
 constexpr int kSpellSlots = 8;
 constexpr int kSlotRecordFromItem = 24;   // the party records (WorldPlayer + 0x70): slot 24 (+0x60)
 
-struct RecordArray {
-    void* vtable;
-    std::uint8_t** data;
-    int size;
-    int capacity;
-    int growBy;
-};
-
 inline int __fastcall PartyAddItem(void* a0, void*, void* a2, int a3, int a4) { return (int)PartyAddItemOriginal((void*)a0, nullptr, a2, a3, a4); }
-void __fastcall RecordArraySetAtGrow(RecordArray* a0, void*, int a2, std::uint8_t* a3) { RecordArraySetAtGrowOriginal((void*)a0, nullptr, a2, (void*)a3); }
+void __fastcall RecordArraySetAtGrow(RecordPtrArray* a0, void*, int a2, std::uint8_t* a3) { RecordArraySetAtGrowOriginal((void*)a0, nullptr, a2, (void*)a3); }
 // The unit record's lists (+0x730 quick items, +0x740 belt, +0x750 worn, +0x760 spells): remove the first entry
 // (00660A50, 00660C30, 00660E10, 00660FF0); add an entry (006608D0, 00660AB0, 00660C90, 00660E70; they return
 // the record entry).
@@ -671,7 +649,7 @@ void CWorldServer::SyncPartyRecords(WorldPlayer* player) {
         PartyAddItem(records, nullptr, node->data, 1, 1);
         node = next;
     }
-    RecordArray list{reinterpret_cast<void*>(kRecordArrayVtable), nullptr, 0, 0, 0};
+    RecordPtrArray list{reinterpret_cast<void*>(kRecordArrayVtable), nullptr, 0, 0, 0};
     for (int i = 0; i < player->mercCount; ++i) RecordArraySetAtGrow(&list, nullptr, list.size, player->mercs + i * 0x784);
     for (int i = 0; i < list.size; ++i) {
         std::uint8_t* record = list.data[i];
@@ -704,14 +682,14 @@ __declspec(naked) void __fastcall PlacementsSetAtGrow(void*, void*, int, const P
 __declspec(naked) void* __fastcall BrainFindFollowMode(void*, void*) EI_ORIGINAL(0x005D5E90)
 __declspec(naked) void __fastcall RecordStatsFinish(void*, void*) EI_ORIGINAL(0x00523C80)
 inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { UnitSetControllerOriginal((void*)a0, nullptr, a2); }
-__declspec(naked) void __fastcall StorePartyAt(CWorldServer*, void*, RecordArray*, void*, void*) EI_ORIGINAL(0x0058FD90)
+__declspec(naked) void __fastcall StorePartyAt(CWorldServer*, void*, RecordPtrArray*, void*, void*) EI_ORIGINAL(0x0058FD90)
 // 00590160 (RET 8). The player's items into its party records before leaving.
 __declspec(naked) void __fastcall StorePlayerItems(CWorldServer*, void*, WorldPlayer*, void* /*records*/) EI_ORIGINAL(0x00590160)
 // 0066F0C0. The player state before a zone change.
 __declspec(naked) void __fastcall StateBeforeZoneChange(void*, void*) EI_ORIGINAL(0x0066F0C0)
 // 0065F740. The unit record's destructor body.
 __declspec(naked) void __fastcall UnitRecordDestruct(void*, void*) EI_ORIGINAL(0x0065F740)
-inline void __fastcall RecordArraySetSize(RecordArray* a, void*, int n, int g) { RecordArraySetSizeOriginal(a, nullptr, n, g); }
+inline void __fastcall RecordArraySetSize(RecordPtrArray* a, void*, int n, int g) { RecordArraySetSizeOriginal(a, nullptr, n, g); }
 
 // One record rebuilt from its living unit (as SyncPartyRecords does, without the items'
 // records), plus the unit's +0x268 / +0x26C (single player) and +0x438.
@@ -753,7 +731,7 @@ void StoreRecord(CWorldServer* world, void* records, std::uint8_t* record, CEngi
 } // namespace
 
 void CWorldServer::StoreParty(void* recordsArg, void* partyRecords, void* placements) {
-    auto* list = static_cast<RecordArray*>(recordsArg);
+    auto* list = static_cast<RecordPtrArray*>(recordsArg);
     if (unknown12D64_ == 1) {
         // Each record remembers whom its unit follows (-1: nobody).
         for (int i = 0; i < list->size; ++i) {
@@ -794,7 +772,7 @@ void CWorldServer::CollectParty(WorldPlayer* player, void* placements) {
     }
     if (!(unknown12D64_ == 1 || unknown12D64_ == kKindNoRangeTest) || unknown15C_ == 0) return;
 
-    RecordArray list{reinterpret_cast<void*>(kRecordArrayVtable), nullptr, 0, 0, 0};
+    RecordPtrArray list{reinterpret_cast<void*>(kRecordArrayVtable), nullptr, 0, 0, 0};
     // Records whose unit is gone (or dead, outside a network client game) are dropped (the
     // inlined CArray::RemoveAt).
     for (int i = 0; i < player->mercCount; ++i) {

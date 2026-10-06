@@ -63,14 +63,6 @@ __declspec(naked) int __fastcall IniGetList(void*, void*, const char* /*section*
 mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return CStringConcatTextOriginal(a0, a1, a2); }
 mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return CStringConcatOriginal(a0, a1, a2); }
 
-struct StringArray {
-    void* vtable;
-    mfc::CString* data;
-    int size;
-    int max;
-    int grow;
-};
-
 // Fills the renderer's rectangle (+0x24) of the primary surface with black (Blt with
 // DDBLT_COLORFILL | DDBLT_WAIT) under the render lock (taken twice, as the original does); the
 // result goes to the renderer's +8.
@@ -145,8 +137,8 @@ EI_REPLACE(0x00458010, FrameStep);
 // 007AF460 + "..." (each from the directory 007AF458 + "..."), clearing the screen before and,
 // with `clearAfter`, after each.
 void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter, int a, int b) {
-    StringArray list;
-    StringArrayConstruct(&list);
+    mfc::CStringArray list;
+    list.Construct();
     alignas(4) std::uint8_t ini[4];
     IniConstruct(ini);
     {
@@ -168,7 +160,7 @@ void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter
         if (clearAfter) ClearScreen();
     }
     IniDestruct(ini);
-    StringArrayDestruct(&list);
+    list.Destruct();
 }
 EI_REPLACE(0x00458270, PlayMovies);
 

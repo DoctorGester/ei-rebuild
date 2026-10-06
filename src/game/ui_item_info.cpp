@@ -296,13 +296,8 @@ __declspec(naked) char* SpellAt::Prototype() EI_ORIGINAL(0x0068BA20)
 __declspec(naked) int SpellAt::ModifierCount() EI_ORIGINAL(0x0068BA60)
 SpellAt* Of(void* spell) { return static_cast<SpellAt*>(spell); }
 
-// The panel's item list (00661050 class, at +0x150; thiscall).
-struct ItemList {
-    void Clear(int a, int b);               // 00661700
-    int Add(CItem* item, int a, int b);    // 00661DB0
-};
-void ItemList::Clear(int a, int b) { PartyResetOriginal(this, nullptr, a, b); }
-int ItemList::Add(CItem* item, int a, int b) { return (int)PartyAddItemOriginal(this, nullptr, item, a, b); }
+// The panel's item list (+0x150) is a party object (class 00661050): emptied by 00661700
+// (PartyResetOriginal), filled by 00661DB0 (PartyAddItemOriginal).
 
 } // namespace
 
@@ -1061,7 +1056,7 @@ void WeaponLines(Writer& w, const ItemHoverInfo* info) {
 } // namespace
 
 void CItemInfoPanel::DescribeStats(ItemHoverInfo* info) {
-    reinterpret_cast<ItemList*>(itemList_)->Clear(1, 0);
+    PartyResetOriginal(itemList_, nullptr, 1, 0);
     DescribeItem();
     if (info->kind < 0) return;
     Texts* texts = TextManager();
@@ -1188,7 +1183,7 @@ EI_REPLACE_METHOD(0x005F1590, CItemInfoPanel::DescribeStats);
 // --- 005F2910: a camp help topic ----------------------------------------------------------------------
 
 void CItemInfoPanel::ShowHelp(int topic) {
-    reinterpret_cast<ItemList*>(itemList_)->Clear(1, 0);
+    PartyResetOriginal(itemList_, nullptr, 1, 0);
     DescribeItem();
     Texts* texts = TextManager();
     Writer w(this);
@@ -1216,9 +1211,8 @@ void CItemInfoPanel::Describe(CItem* item) {
         CItem* shown = items_[0];
         if (reinterpret_cast<SameFn>((*reinterpret_cast<void***>(shown))[14])(shown, item)) return;
     }
-    ItemList* list = reinterpret_cast<ItemList*>(itemList_);
-    list->Clear(1, 0);
-    if (item) list->Add(item, 0, 1);
+    PartyResetOriginal(itemList_, nullptr, 1, 0);
+    if (item) PartyAddItemOriginal(itemList_, nullptr, item, 0, 1);
     DescribeItem();
 }
 EI_REPLACE_METHOD(0x005EE6C0, CItemInfoPanel::Describe);

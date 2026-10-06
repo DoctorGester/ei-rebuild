@@ -1153,20 +1153,8 @@ void __fastcall PlayEffectSound(bool play, EffectSoundRecord* record, const floa
                                 const char* suffix);
 
 // The two MFC CArrays of the client companion (vtable, data, size, capacity, grow by).
-struct EffectParticleArray {
-    void* vtable;
-    EffectParticle* data;
-    int size;
-    int capacity;
-    int growBy;
-};
-struct EffectSoundArray {
-    void* vtable;
-    EffectSoundRecord* data;
-    int size;
-    int capacity;
-    int growBy;
-};
+using EffectParticleArray = mfc::CArray<EffectParticle>;
+using EffectSoundArray = mfc::CArray<EffectSoundRecord>;
 
 // The client-side companion of a map object (GetClassName "CMapObjectClientSpecific", vtable
 // 0073DBEC); +0x1C is the object it belongs to (a unit for these two).

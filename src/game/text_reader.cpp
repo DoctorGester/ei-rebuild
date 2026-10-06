@@ -226,7 +226,7 @@ BOOL __fastcall TextSplit(CTextManager* self, void*, console::CStringArray* word
         if (code == 10 || code == 13) {
             // The line's last word (a word still open when the text ends is not added).
             if (console::Length(word) != 0) {
-                words->SetAtGrow(words->size_, word);
+                words->SetAtGrow(words->size, word);
                 word.Empty();
             }
             break;
@@ -235,7 +235,7 @@ BOOL __fastcall TextSplit(CTextManager* self, void*, console::CStringArray* word
             if (inWord) {
                 inWord = false;
                 if (console::Length(word) != 0) {
-                    words->SetAtGrow(words->size_, word);
+                    words->SetAtGrow(words->size, word);
                     word.Empty();
                 }
             }
@@ -268,7 +268,7 @@ BOOL __fastcall TextFindLine(CTextManager* self, void*, const char* key) {
         return 0;
     }
     StringSplit(key, &keyWords, ' ');
-    if (keyWords.size_ <= 1) {
+    if (keyWords.size <= 1) {
         // One word: the line whose first word is the key.
         while (PeekWordCall(self, nullptr, &word)) {
             if (MbsCmp(word, key) == 0) return 1;
@@ -283,14 +283,14 @@ BOOL __fastcall TextFindLine(CTextManager* self, void*, const char* key) {
     }
     // Several words: the line whose first words, lower-cased, are the key's words.
     while (SplitCall(self, nullptr, &lineWords, 0)) {
-        if (lineWords.size_ >= keyWords.size_) {
+        if (lineWords.size >= keyWords.size) {
             int i = 0;
-            if (keyWords.size_ <= 0) return 1;
+            if (keyWords.size <= 0) return 1;
             for (;;) {
-                word = lineWords.data_[i];
+                word = lineWords.data[i];
                 word.MakeLower();
-                if (MbsCmp(word, keyWords.data_[i]) != 0) break;
-                if (++i >= keyWords.size_) return 1;
+                if (MbsCmp(word, keyWords.data[i]) != 0) break;
+                if (++i >= keyWords.size) return 1;
             }
         }
         mfc::CString next;

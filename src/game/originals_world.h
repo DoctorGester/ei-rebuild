@@ -14,6 +14,9 @@ class CUnit;
 class CWorldServer;
 struct ObjectIdMap;
 
+// 0047B670 (plain RET): an object id map with its highest id (the world's, the player's known objects): every
+// object released (slot 4) until a null one, the nodes freed, count and highest id 0.
+__declspec(naked) inline void __fastcall ObjectMapClearOriginal(void* /*map*/) EI_ORIGINAL(0x0047B670)
 __declspec(naked) inline double __fastcall SurfaceHeightRaw(void* /*owner*/, void*, float /*x*/, float /*y*/)
     EI_ORIGINAL(0x00564070)
 __declspec(naked) inline CUnit* __fastcall HoverObjectAt(void*, void*, const int*) EI_ORIGINAL(0x005659D0)
@@ -100,3 +103,6 @@ __declspec(naked) inline void __fastcall ClientQuestUpdateOriginal(void* /*world
 // A-I10. 00578A40: the client glue (007AFEA5, not read) names the zone exit `exit` leads to (thiscall, RET 4; a C string,
 // "none" for none).
 __declspec(naked) inline const char* __fastcall GameExitZoneOriginal(void* /*glue*/, void*, int /*exit*/) EI_ORIGINAL(0x00578A40)
+// D3b. 00573080: CArray<ZoneExit>::SetSize(size, growBy) (RET 8, no result; -1 keeps growBy, new records constructed).
+__declspec(naked) inline void __fastcall ZoneExitsSetSizeOriginal(void* /*exits*/, void*, int /*size*/, int /*growBy*/)
+    EI_ORIGINAL(0x00573080)

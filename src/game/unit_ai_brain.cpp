@@ -64,12 +64,8 @@ Mode* NewMode(void* vtable) {
 // with RefPtr::Share (which may hand out a clone).
 RefPtr* AsRefPtr(AIMode** element) { return reinterpret_cast<RefPtr*>(element); }
 
-// CArray::SetSize instantiations of the brain's arrays (thiscall, RET 8).
-struct AIRecordArray {
-    void SetAlarmRecordsSize(int size, int growBy);     // 005D9840 (0x4C-byte alarm records, +0x90)
-};
-__declspec(naked) void AIRecordArray::SetAlarmRecordsSize(int, int) EI_ORIGINAL(0x005D9840)
-AIRecordArray* AsArray(std::uint8_t* array) { return reinterpret_cast<AIRecordArray*>(array); }
+// 005D9840: CArray::SetSize of the brain's 0x4C-byte alarm records (+0x90; thiscall, RET 8).
+__declspec(naked) void __fastcall AlarmRecordsSetSize(void* /*array*/, void*, int, int) EI_ORIGINAL(0x005D9840)
 
 // The inlined CList RemoveAll of the mode list, each element released first.
 void ReleaseAllModes(mfc::CTypedPtrList<AIMode>& modes) {
@@ -187,7 +183,7 @@ void AIBrain::Init() {
     unknown_36 = 0;
     actionTime = kNoTime;
     seesEnemy = 0;
-    AsArray(alarmRecords)->SetAlarmRecordsSize(0, -1);
+    AlarmRecordsSetSize(alarmRecords, nullptr, 0, -1);
     unknown_38 = InitialUnknown38();
     position = Vector3{0.0f, 0.0f, 0.0f};
     alertMode = 0;

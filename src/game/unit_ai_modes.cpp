@@ -113,11 +113,8 @@ void SetPositions(AIBrain* brain, const Vector3* where, float nearX, float nearY
     if (previous == kUnsetBits) std::memcpy(&brain->previousPosition, where, sizeof(Vector3));
 }
 
-// The static candidate list of Aggression::Evaluate (007C54C8, guard bit 0 of 007C54E4).
-struct CandidateList {
-    void Construct(int blockSize);                  // 004C96A0
-};
-void CandidateList::Construct(int a0) { PtrListConstructOriginal((void*)this, nullptr, a0); }
+// The static candidate list of Aggression::Evaluate (007C54C8, guard bit 0 of 007C54E4): a CPtrList
+// built by 004C96A0.
 constexpr std::uintptr_t kCandidates = 0x007C54C8;
 constexpr std::uintptr_t kCandidatesGuard = 0x007C54E4;
 constexpr std::uintptr_t kCandidatesDestructor = 0x005D2570;
@@ -450,7 +447,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     auto* guard = reinterpret_cast<std::uint8_t*>(kCandidatesGuard);
     if (!(*guard & 1)) {
         *guard |= 1;
-        reinterpret_cast<CandidateList*>(kCandidates)->Construct(10);
+        PtrListConstructOriginal(reinterpret_cast<mfc::CList<void*>*>(kCandidates), nullptr, 10);
         GameAtExit(reinterpret_cast<void(__cdecl*)()>(kCandidatesDestructor));
     }
     CUnit* self = brain->owner->unit;

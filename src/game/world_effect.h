@@ -98,16 +98,6 @@ public:
 static_assert(offsetof(CEffectSound, sound_) == 0x25C);
 static_assert(sizeof(CEffectSound) == 0x264);
 
-// MFC CStringArray (vtable, data, size, max, grow by), only for the layouts below.
-struct EffectStringArray {
-    void* vtable;
-    char** data;
-    int size;
-    int maxSize;
-    int growBy;
-};
-static_assert(sizeof(EffectStringArray) == 0x14);
-
 // A sequence of sounds picked at random (vtable 0074344C, class id 99). 0x174 bytes.
 class CEffectSoundSeq : public CEffect {
 public:
@@ -126,7 +116,7 @@ public:
     double Radius();                              // 00676930 (slot 19): radius_
 
     char* name_;               // +0x14C CString: the first sound
-    EffectStringArray names_;  // +0x150 the others
+    mfc::CStringArray names_;  // +0x150 the others
     float volume_;             // +0x164
     float radius_;             // +0x168
     std::uint8_t noFade_;      // +0x16C
@@ -147,7 +137,7 @@ public:
     void SaveState(void* stream);                 // 00677C60 (slot 10)
     double Radius();                              // 00677690 (slot 19): radius_
 
-    EffectStringArray names_;  // +0x14C
+    mfc::CStringArray names_;  // +0x14C
     float volume_;             // +0x160
     float radius_;             // +0x164
     int unknown_168;           // +0x168

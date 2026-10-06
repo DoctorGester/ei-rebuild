@@ -29,9 +29,9 @@ bool SameText(const mfc::CString& a, const mfc::CString& b) {
     return std::strcmp(static_cast<const char*>(a), static_cast<const char*>(b)) == 0;
 }
 bool SameWords(const console::CStringArray& a, const console::CStringArray& b) {
-    if (a.size_ != b.size_) return false;
-    for (int i = 0; i < a.size_; ++i)
-        if (!SameText(a.data_[i], b.data_[i])) return false;
+    if (a.size != b.size) return false;
+    for (int i = 0; i < a.size; ++i)
+        if (!SameText(a.data[i], b.data[i])) return false;
     return true;
 }
 int Offset(const CTextManager* t) { return t->text_ ? static_cast<int>(t->cursor_ - t->text_) : -1; }

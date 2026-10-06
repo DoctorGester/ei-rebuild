@@ -87,9 +87,9 @@ static void __fastcall SetAtGrowVerify(ParticleDepthArray* self, void*, int inde
     self->ParticleDepthArray::SetAtGrow(index, value);
     int expectedSize = index >= sizeBefore ? index + 1 : sizeBefore;
     ei::verify::Check("ParticleDepthArray::SetAtGrow", true,
-                      self->size == expectedSize && self->max >= self->size &&
+                      self->size == expectedSize && self->maxSize >= self->size &&
                           !std::memcmp(&self->data[index], &value, sizeof(value)),
-                      "index %d size %d -> %d, max %d", index, sizeBefore, self->size, self->max);
+                      "index %d size %d -> %d, max %d", index, sizeBefore, self->size, self->maxSize);
 }
 EI_VERIFY(0x00499200, SetAtGrowVerify, 0, s_unusedSetAtGrow);
 

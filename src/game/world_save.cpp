@@ -70,17 +70,8 @@ constexpr int kSharedObjectNodeSize = 0x28;
 
 // ---- Local layouts ----------------------------------------------------------------------------
 
-// MFC CArray<int> (vtable 0073C3D0).
-struct IdArray {
-    void* vtable;
-    int* data;
-    int size;
-    int capacity;
-    int growBy;
-
-    void SetSize(int newSize, int newGrowBy);   // 0059C660 (RET 8)
-};
-static_assert(sizeof(IdArray) == 0x14);
+// MFC CArray<int> (vtable 0073C3D0; SetSize 0059C660, DwordArraySetSizeOriginal).
+using IdArray = mfc::CArray<int>;
 
 // The 12-byte record an object keeps at +0x1C (vtable 0073FA88, 16-bit count at +4), restored for
 // the item manager's objects.
@@ -92,18 +83,9 @@ struct ObjectRecord {
 };
 static_assert(sizeof(ObjectRecord) == 0xC);
 
-// MFC CArray of object pointers (vtable 0073FAC8).
-struct ObjectPtrArray {
-    void* vtable;
-    CEngineObject** data;
-    int size;
-    int capacity;
-    int growBy;
-
-    void Construct();   // 005985C0
-    void Destruct();    // 0059A100 (releases the objects through slot 4, frees the data)
-};
-static_assert(sizeof(ObjectPtrArray) == 0x14);
+// MFC CArray of object pointers (vtable 0073FAC8): constructor 005985C0, destructor 0059A100
+// (releases the objects through slot 4, frees the data).
+using ObjectPtrArray = mfc::CArray<CEngineObject*>;
 
 // An element of the shared-object list (+0x12E60, 0x20 bytes): object id, player, a third dword
 // and an array of objects.
@@ -118,57 +100,17 @@ struct SharedObject {
 };
 static_assert(sizeof(SharedObject) == 0x20);
 
-struct SharedObjectNode {
-    SharedObjectNode* next;
-    SharedObjectNode* prev;
-    SharedObject value;
-};
+// MFC CList<SharedObject> at +0x12E60 (its NewNode 0059CA60 constructs the element).
+using SharedObjectList = mfc::CList<SharedObject>;
+using SharedObjectNode = SharedObjectList::Node;
 static_assert(sizeof(SharedObjectNode) == kSharedObjectNodeSize);
-
-// MFC CList<SharedObject> at +0x12E60.
-struct SharedObjectList {
-    void* vtable;
-    SharedObjectNode* head;
-    SharedObjectNode* tail;
-    int count;
-    void* free;
-    void* blocks;
-    int blockSize;
-
-    SharedObjectNode* NewNode(SharedObjectNode* prev, SharedObjectNode* next);   // 0059CA60 (RET 8)
-};
-static_assert(sizeof(SharedObjectList) == 0x1C);
 
 SharedObjectList& SharedObjects(CWorldServer* world) { return At<SharedObjectList>(world, 0x12E60); }
 
 // A player's MFC list of plain dwords (+0x114, AddTail 0059CC60) and of objects (+0xE0, AddTail
 // 004C98F0); only head and the node layout are read here.
-struct DwordList {
-    struct Node {
-        Node* next;
-        Node* prev;
-        std::uint32_t value;
-    };
-    void* vtable;
-    Node* head;
-    Node* tail;
-    int count;
-
-    void AddTail(std::uint32_t value);   // 0059CC60 (RET 4)
-};
-struct ObjectList {
-    struct Node {
-        Node* next;
-        Node* prev;
-        CEngineObject* object;
-    };
-    void* vtable;
-    Node* head;
-    Node* tail;
-    int count;
-
-    void AddTail(CEngineObject* object);   // 004C98F0 (RET 4)
-};
+using DwordList = mfc::CList<std::uint32_t>;
+using ObjectList = mfc::CTypedPtrList<CEngineObject>;
 
 // Player fields saved with the world.
 constexpr int kPlayerState = 0x20;          // CPlayerServer*
@@ -305,7 +247,7 @@ double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)
 void __fastcall ControllerReposition(void* a0, void*) { ControllerRepositionOriginal(a0); }
 // 005935C0 (RET 4). RemoveObjectFromServer. Patched by Rebirth: original address.
 // 006FEBFA / 006FE9B8. CStringArray::SetAtGrow(int, const CString&) / SetSize(int, int).
-void __fastcall StringArraySetAtGrow(StringArray* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal((void*)a0, nullptr, a2, a3); }
+void __fastcall StringArraySetAtGrow(mfc::CStringArray* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal((void*)a0, nullptr, a2, a3); }
 // 0050EA40 / 0050E9F0 (RET 4) / 005179E0 (RET 4). Map object: prepares the record array before
 // Load, MarkChanged(part), CObject3D's animated figure setup for its figure name.
 void __fastcall MapObjectBeginLoad(CEngineObject* a0, void*) { ObjectPrepareOriginal((void*)a0); }
@@ -313,14 +255,15 @@ void __fastcall MapObjectSetupFigure(CEngineObject* a0, void*, const char* a2) {
 
 } // namespace
 
-void IdArray::SetSize(int n, int g) { DwordArraySetSizeOriginal(this, nullptr, n, g); }
-__declspec(naked) void ObjectPtrArray::Construct() EI_ORIGINAL(0x005985C0)
-void ObjectPtrArray::Destruct() { CountedPtrArrayDestructOriginal(this); }
+namespace {
+__declspec(naked) void __fastcall ObjectPtrArrayConstruct(ObjectPtrArray*) EI_ORIGINAL(0x005985C0)
+void ObjectPtrArrayDestruct(ObjectPtrArray* a) { CountedPtrArrayDestructOriginal(a); }
+__declspec(naked) SharedObjectNode* __fastcall SharedObjectsNewNode(SharedObjectList*, void*, SharedObjectNode* /*prev*/,
+                                                                     SharedObjectNode* /*next*/) EI_ORIGINAL(0x0059CA60)
+__declspec(naked) void __fastcall DwordListAddTail(DwordList*, void*, std::uint32_t) EI_ORIGINAL(0x0059CC60)
+} // namespace
 __declspec(naked) void SharedObject::CopyFrom(const SharedObject*) EI_ORIGINAL(0x0059B510)
 __declspec(naked) void SharedObject::Load(WorldStream*) EI_ORIGINAL(0x00589CA0)
-__declspec(naked) SharedObjectNode* SharedObjectList::NewNode(SharedObjectNode*, SharedObjectNode*) EI_ORIGINAL(0x0059CA60)
-__declspec(naked) void DwordList::AddTail(std::uint32_t) EI_ORIGINAL(0x0059CC60)
-void ObjectList::AddTail(CEngineObject* a0) { PtrListAddTailOriginal((void*)this, nullptr, (void*)a0); }
 
 namespace {
 
@@ -433,7 +376,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
     stranded.vtable = reinterpret_cast<void*>(kIdArrayVtable);
     stranded.data = nullptr;
     stranded.growBy = 0;
-    stranded.capacity = 0;
+    stranded.maxSize = 0;
     stranded.size = 0;
     for (auto* node = world->objects_.map.First(); node; node = world->objects_.map.After(node)) {
         CEngineObject* object = node->value;
@@ -441,7 +384,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
         if (AIMapCanLeaveCell(AIMap(world), nullptr, object)) continue;
         int id = object->id_;
         int index = stranded.size;
-        stranded.SetSize(index + 1, -1);
+        DwordArraySetSizeOriginal(&stranded, nullptr, index + 1, -1);
         stranded.data[index] = id;
     }
     for (int i = 0; i < stranded.size; ++i) {
@@ -482,17 +425,17 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
             if (id == -1) break;
             CEngineObject* object = ManagerFindObject(items, nullptr, id);
             if (!object) continue;
-            At<ObjectList>(player, kPlayerObjects).AddTail(object);
+            PtrListAddTailOriginal(&At<ObjectList>(player, kPlayerObjects), nullptr, object);
             ++object->refCount_;
         }
         stream->Read(&At<std::uint8_t>(player, kPlayer108), 1);
         if (stream->version_ >= kVersionPlayerLists) {
             auto& ids = At<DwordList>(player, kPlayerIds);
             int count = ReadValue<int>(stream);
-            for (int i = 0; i < count; ++i) ids.AddTail(0);
+            for (int i = 0; i < count; ++i) DwordListAddTail(&ids, nullptr, 0);
             for (auto* node = ids.head; node;) {
                 auto* next = node->next;
-                stream->Read(&node->value, 4);
+                stream->Read(&node->data, 4);
                 node = next;
             }
         }
@@ -617,7 +560,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 At<std::uint32_t>(memory, 4) = 0;   // written before the null test
                 Projectile* missile = memory ? ProjectileConstruct(memory, nullptr) : nullptr;
                 ProjectileLoad(missile, nullptr, stream);
-                auto& list = projectiles_.list;
+                auto& list = projectiles_;
                 ProjectileList::Node* node = ProjectileNewNode(&projectiles_, nullptr, list.tail, nullptr);
                 RefPtrAssign(&node->data, nullptr, missile);
                 if (list.tail) list.tail->next = node;
@@ -700,17 +643,17 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                     empty.objectId = 0;
                     empty.player = 0;
                     empty.unknown_08 = 0;
-                    empty.objects.Construct();
-                    SharedObjectNode* node = shared.NewNode(shared.tail, nullptr);
-                    node->value.CopyFrom(&empty);
+                    ObjectPtrArrayConstruct(&empty.objects);
+                    SharedObjectNode* node = SharedObjectsNewNode(&shared, nullptr, shared.tail, nullptr);
+                    node->data.CopyFrom(&empty);
                     if (shared.tail) shared.tail->next = node;
                     else shared.head = node;
                     shared.tail = node;
-                    empty.objects.Destruct();
+                    ObjectPtrArrayDestruct(&empty.objects);
                 }
                 for (SharedObjectNode* node = shared.head; node;) {
                     SharedObjectNode* next = node->next;
-                    node->value.Load(stream);
+                    node->data.Load(stream);
                     node = next;
                 }
             }
@@ -740,7 +683,7 @@ void SavePlayers(CWorldServer* world, WorldStream* stream) {
         stream->Write(&At<std::uint8_t>(player, kPlayer100), 4);
         for (auto* node = At<ObjectList>(player, kPlayerObjects).head; node;) {
             auto* next = node->next;
-            WriteCopy(stream, node->object->id_);
+            WriteCopy(stream, node->data->id_);
             node = next;
         }
         WriteCopy(stream, -1);
@@ -749,7 +692,7 @@ void SavePlayers(CWorldServer* world, WorldStream* stream) {
         WriteCopy(stream, ids.count);
         for (auto* node = ids.head; node;) {
             auto* next = node->next;
-            stream->Write(&node->value, 4);
+            stream->Write(&node->data, 4);
             node = next;
         }
     }
@@ -833,7 +776,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
         WriteCopy(stream, node->value->id_);
     WriteCopy(stream, -1);
 
-    for (auto* node = projectiles_.list.head; node;) {
+    for (auto* node = projectiles_.head; node;) {
         auto* next = node->next;
         Projectile* missile = node->data;
         WriteCopy(stream, static_cast<std::uint8_t>(1));
@@ -879,12 +822,12 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     WriteCopy(stream, shared.count);
     for (SharedObjectNode* node = shared.head; node;) {
         SharedObjectNode* next = node->next;
-        WriteCopy(stream, node->value.objectId);
-        WriteCopy(stream, node->value.player);
-        WriteCopy(stream, node->value.unknown_08);
-        int count = node->value.objects.size;
+        WriteCopy(stream, node->data.objectId);
+        WriteCopy(stream, node->data.player);
+        WriteCopy(stream, node->data.unknown_08);
+        int count = node->data.objects.size;
         WriteCopy(stream, count);
-        for (int i = 0; i < count; ++i) WriteCopy(stream, node->value.objects.data[i]->id_);
+        for (int i = 0; i < count; ++i) WriteCopy(stream, node->data.objects.data[i]->id_);
         node = next;
     }
 
@@ -950,8 +893,8 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
     // original leaves unset; they are overwritten below).
     SharedObjectList& shared = SharedObjects(this);
     ObjectPtrArray empty{reinterpret_cast<void*>(kObjectPtrArrayVtable), nullptr, 0, 0, 0};
-    SharedObjectNode* node = shared.NewNode(nullptr, shared.head);
-    ObjectPtrArrayCopy(&node->value.objects, nullptr, &empty);
+    SharedObjectNode* node = SharedObjectsNewNode(&shared, nullptr, nullptr, shared.head);
+    ObjectPtrArrayCopy(&node->data.objects, nullptr, &empty);
     if (shared.head) shared.head->prev = node;
     else shared.tail = node;
     shared.head = node;
@@ -961,7 +904,7 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
         gamecrt::operator_delete(empty.data);
     }
 
-    SharedObject& entry = shared.head->value;
+    SharedObject& entry = shared.head->data;
     entry.objectId = id;
     entry.player = player;
     entry.unknown_08 = value;

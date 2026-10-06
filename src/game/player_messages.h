@@ -21,6 +21,7 @@
 
 class CPlayer;
 class CParty;   // party.h
+class CUnit;    // unit.h
 namespace netlink {
 class NetLink;  // net_link.h
 }
@@ -145,41 +146,97 @@ static_assert(offsetof(CPlayerServer, lastPosition_) == 0x38);
 static_assert(offsetof(CPlayerServer, out_) == 0x48);
 static_assert(offsetof(CPlayerServer, flag70_) == 0x70);
 
-// A world player (vtable 00743104; "CPlayer"). Only what its per-tick update uses.
+// A world player's connection to its client (CPlayer::connection_): CPlayerServer (vtable 00743280)
+// or CPlayerClient (00743180). Neither class derives from this declaration (their slot bodies are
+// registered by address); it names the slots after CEngineObject's that the player calls.
+class CPlayerConnection : public CEngineObject {
+public:
+    virtual void ForgetSentObjects();       // 13: server 0066CE50 (sent objects, party units); client empty
+    virtual void UnitChanged(CUnit* unit);  // 14: client 00667BA0 (the unit's controller); server empty
+    virtual void ResetState();              // 15: server 0066CF20, client 00667600
+    virtual void Leave();                   // 16: server 0066D020 (state 3, flushed); client empty
+    // 17: server 0066E7D0 (CPlayerServer::SendItemsGiven); client empty.
+    virtual void ItemsGiven(const mfc::CTypedPtrList<CEngineObject>* items, int flag);
+    virtual void ItemsTaken();              // 18: server 0066EA10 (message 0x17); client empty
+    virtual void ItemTaken(CEngineObject* item);   // 19: server 0066EA30 (message 0x0A); client empty
+    virtual void PartyChanged();            // 20: server 0066F4C0; client empty
+    virtual void TickDone();                // 21: server 0066D090 (empties +0x50F8); client empty
+    virtual void ItemUsed(CEngineObject* item);    // 22: server 0066EB40 (message 0x14); client empty
+    virtual int Receive();                  // 23: server 0066D270, client 00667A30
+
+    CPlayer* player_;   // +0x1C the owner (set by CPlayer::SetConnection)
+};
+static_assert(offsetof(CPlayerConnection, player_) == 0x1C);
+
+// A world player (vtable 00743104; "CPlayer", class id 0xF; 0x134 bytes, made by 0066C110).
+// player.cpp: the constructor, destructor, Create / Destroy and the item and unit lists.
 class CPlayer : public CEngineObject {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743104);
     // The world objects the player knows, by id, each counted once (player_sync.cpp).
     using ObjectMap = stlp::hash_map<int, CEngineObject*, stlp::IntHash>;
 
+    // 00664BF0. Constructor body: the maps (NextPrime(100) buckets each; their functor bytes are
+    // left as they are), the party (constructed, then created), the lists (block size 10), then
+    // what DestroyPlayer leaves. Returns this.
+    CPlayer* Construct();
+    // 00664E20. Destructor body: DestroyPlayer, the party destroyed (slot 3), the lists emptied,
+    // the party destructed, the maps freed, the link released; CEngineObject's last.
+    void DestructBody();
+    // 00664E00 (slot 0, RET 4). DestructBody, then operator delete when bit 0 of `flags` is set.
+    CPlayer* DeletingDestruct(unsigned flags);
+    // 00665010 (slot 2). DestroyPlayer; returns 1.
+    BOOL CreatePlayer();
+    // 006650E0 (slot 3) and 00665380 (the destructor's copy). The recharge list emptied, Clear,
+    // the party destroyed and created again (slots 3, 2); +0x130 0, id -1, +0x108 0; the link
+    // disconnected (slot 11) and released, the connection detached and released (slot 4);
+    // +0x110 -1, +0x100 and +0x104 0.
+    void DestroyPlayer();
+    // 00665200. The given items released and the list emptied, both known-object maps cleared
+    // (0047B670), every unit taken away (CUnit::SetPlayer(null), until the first is null), the
+    // unit map emptied (max id 0), the recharge list emptied, then the connection's slot 13.
+    void Clear();
+    // 00665950 (RET 4). The old connection loses its owner and a reference (slot 4); the new one
+    // gets this player as owner and a reference.
+    void SetConnection(CPlayerConnection* connection);
+    // 00665A60 (RET 4).
+    void SetPlayerId(int id);
+
     // 00665DE0. Ticks the objects in the list at +0x114 (slot 6; looked up by id through the
     // party's slot 18 manager) and drops the ones that are gone or whose tick returned 0, then runs
-    // slot 21 of the connection at +0x20.
+    // slot 21 of the connection.
     void Tick();
 
     // The embedded party (party.h; the class is abstract in C++, so the member is its bytes).
     CParty* Party() { return reinterpret_cast<CParty*>(&party_); }
 
-    netlink::NetLink* link_;                             // +0x1C the connection to the player's client, null: none
-    void* connection_;                          // +0x20 CPlayerServer / CPlayerClient
+    netlink::NetLink* link_;                    // +0x1C the connection to the player's client, null: none
+    CPlayerConnection* connection_;             // +0x20 CPlayerServer / CPlayerClient (counted)
     int playerId_;                              // +0x24 player number (0 = the local player)
     ObjectMap knownObjects_;                    // +0x28 map objects sent to the client
     int maxObjectId_;                           // +0x3C highest id put in knownObjects_
-    ObjectMap units_;                           // +0x40 the player's units by id
-    std::uint8_t unknown_54[0x58 - 0x54];
+    ObjectMap units_;                           // +0x40 the player's units by id (counted)
+    int maxUnitId_;                             // +0x54 highest id put in units_
     ObjectMap knownTimed_;                      // +0x58 timed objects (effects) sent to the client
     int maxTimedId_;                            // +0x6C
-    void* party_;                               // +0x70 an embedded CParty (0x70 bytes); slot 18 its item manager
-    std::uint8_t unknown_74[0xFC - 0x74];
+    alignas(4) std::uint8_t party_[0x70];       // +0x70 an embedded CParty; slot 18 its item manager
+    mfc::CTypedPtrList<CEngineObject> items_;   // +0xE0 items given to the player (counted; CPtrList)
     std::uint32_t unknownFC_;                   // +0xFC sent with the client's login (00667680)
     int sessionKind100_;                        // +0x100 3: the client runs 00538DB0 on the controllers of new units (00667EC0)
-    std::uint8_t unknown_104[0x10C - 0x104];
+    std::uint32_t unknown_104;                  // +0x104
+    std::uint8_t unknown_108;                   // +0x108
     int logTraffic_;                            // +0x10C logs the size of every flush
-    std::uint8_t unknown_110[0x114 - 0x110];
-    mfc::CTypedPtrList<void> objects_;          // +0x114 object ids (stored as the node data)
+    int unknown_110;                            // +0x110 -1 after Create
+    mfc::CTypedPtrList<void> objects_;          // +0x114 ids of items recharging (vtable 00743138)
+    int unknown_130;                            // +0x130 0 after Create, -1 after 006651D0
 };
 static_assert(offsetof(CPlayer, link_) == 0x1C);
 static_assert(offsetof(CPlayer, knownObjects_) == 0x28);
+static_assert(offsetof(CPlayer, maxUnitId_) == 0x54);
 static_assert(offsetof(CPlayer, maxTimedId_) == 0x6C);
-static_assert(offsetof(CPlayer, logTraffic_) == 0x10C);
 static_assert(offsetof(CPlayer, party_) == 0x70);
+static_assert(offsetof(CPlayer, items_) == 0xE0);
+static_assert(offsetof(CPlayer, unknown_108) == 0x108);
+static_assert(offsetof(CPlayer, logTraffic_) == 0x10C);
 static_assert(offsetof(CPlayer, objects_) == 0x114);
+static_assert(sizeof(CPlayer) == 0x134);

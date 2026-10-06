@@ -53,13 +53,7 @@ struct SpriteRecord {   // 8 bytes: colour, texture rectangle
     std::uint32_t colour;
     const float* rect;
 };
-struct SpriteArray {    // CArray (vtable 0073C584) at 0079C1E0
-    std::uintptr_t vtable;
-    SpriteRecord* data;
-    int size;
-    int max;
-    int grow;
-};
+using SpriteArray = mfc::CArray<SpriteRecord>;   // vtable 0073C584, at 0079C1E0
 SpriteArray& Sprites() { return *reinterpret_cast<SpriteArray*>(0x0079C1E0); }
 LightningPointArray& GlowPoints() { return *reinterpret_cast<LightningPointArray*>(0x0079C1D0); }
 std::uint8_t& GlowGuards() { return *reinterpret_cast<std::uint8_t*>(0x0079C1F4); }
@@ -76,13 +70,13 @@ void SizeSprites() {
     if (!a.data) {
         a.data = static_cast<SpriteRecord*>(gamecrt::operator_new(0x40));
         ConstructSprites(a.data, 8);
-        a.max = 8;
+        a.maxSize = 8;
         a.size = 8;
-    } else if (a.max >= 8) {
+    } else if (a.maxSize >= 8) {
         if (a.size < 8) ConstructSprites(a.data + a.size, 8 - a.size);
         a.size = 8;
     } else {
-        int capacity = a.max + GrowStep(a.grow, a.size);
+        int capacity = a.maxSize + GrowStep(a.growBy, a.size);
         if (capacity <= 8) capacity = 8;
         auto* data = static_cast<SpriteRecord*>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * 8));
         std::memcpy(data, a.data, static_cast<std::size_t>(a.size) * 8);
@@ -90,7 +84,7 @@ void SizeSprites() {
         gamecrt::operator_delete(a.data);
         a.data = data;
         a.size = 8;
-        a.max = capacity;
+        a.maxSize = capacity;
     }
 }
 void SizePoints() {
