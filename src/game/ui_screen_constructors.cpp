@@ -8,6 +8,7 @@
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
+#include "lib/stlp.h"
 #include "originals_ui.h"
 
 #include <new>
@@ -105,3 +106,16 @@ CHudPortraits* CHudPortraits::Construct(CInterface3D* ui, CBattleScreen* owner) 
     return this;
 }
 EI_REPLACE_METHOD(0x0063FE70, CHudPortraits::Construct);
+
+// --- 0063FF70: its destructor body -----------------------------------------------------------------
+
+void CHudPortraits::DestroyBody() {
+    for (HudPortraitSlot* slot = slots_; slot != slotsEnd_; ++slot) {
+        reinterpret_cast<mfc::CString*>(&slot->modelSuffix_)->~CString();
+        reinterpret_cast<mfc::CString*>(&slot->modelPrefix_)->~CString();
+        reinterpret_cast<mfc::CString*>(&slot->faceName_)->~CString();
+    }
+    if (slots_) stlp::deallocate(slots_, static_cast<std::size_t>(slotsCapacity_ - slots_) * sizeof(HudPortraitSlot));
+    DestroyBase();
+}
+EI_REPLACE_METHOD(0x0063FF70, CHudPortraits::DestroyBody);

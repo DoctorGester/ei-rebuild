@@ -796,6 +796,10 @@ public:
     // highlighted.
     void SetUnit(CUnit* unit);
 
+    // 0063BC70 (ui_hud_destroy.cpp; slot 0 0063BC50 calls it). Destructor body: the labels, then the
+    // window base's (005FE930).
+    void DestroyBody();
+
     CBattleScreen* owner_;           // +0x148
     int count_;                      // +0x14C slots in use
     int selected_;                   // +0x150
@@ -859,6 +863,11 @@ public:
         CEngineObject* item;         // +8
     };
 
+    // 0063CA70 (ui_hud_destroy.cpp; slot 0 0063CA50 calls it). Destructor body: the labels, the entries
+    // array (its vtable 007428A0 written, the storage deleted), then the
+    // window base's (005FE930).
+    void DestroyBody();
+
     CBattleScreen* owner_;           // +0x148
     int unknown_14C;                 // +0x14C sprites added (the shown entries)
     int selected_;                   // +0x150
@@ -909,6 +918,10 @@ public:
     // replaced by labels when absent: an area for flag 0x10000000, a time under 2 ticks).
     void SetUnit(CUnit* unit);
 
+    // 0063E460 (ui_hud_destroy.cpp; slot 0 0063E440 calls it). Destructor body: the labels, then the
+    // window base's (005FE930).
+    void DestroyBody();
+
     CBattleScreen* owner_;           // +0x148
     int count_;                      // +0x14C sprites added
     int selected_;                   // +0x150
@@ -945,6 +958,11 @@ public:
     // button (tip 0x290E); with a unit the science button ("skill0009", action 0) whose tip is
     // the "perk Science" text, the unit's science level (+0x408) and the "tip 10511" text.
     void SetUnit(CUnit* unit, int extra);
+
+    // 0063F490 (ui_hud_destroy.cpp; slot 0 0063F470 calls it). Destructor body: the labels, the actions
+    // array (its vtable 0073C3D0 written, the storage deleted), then the
+    // window base's (005FE930).
+    void DestroyBody();
 
     CBattleScreen* owner_;           // +0x148
     int count_;                      // +0x14C buttons added
@@ -1006,6 +1024,10 @@ public:
     // 440..600 (vtables 00742A18 / 007429E4), no portraits, and the selection marker sprite (a
     // 20x20 rectangle at depth 10, scale 80, texels 0x22, 0x96 - 0x36, 0xAA). Returns this.
     CHudPortraits* Construct(CInterface3D* ui, CBattleScreen* owner);
+    // 0063FF70 (ui_screen_constructors.cpp; slot 0 0063FF50 calls it). Destructor body: each
+    // slot's three strings (suffix, prefix, face name), the slots' storage back to the node
+    // allocator, then the window base's (005FE930).
+    void DestroyBody();
 
     CBattleScreen* owner_;           // +0x148
     int count_;                      // +0x14C

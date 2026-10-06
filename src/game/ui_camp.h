@@ -232,6 +232,10 @@ public:
         int* capacity;
     };
     struct PartyIds {
+        // 006381E0 (RET 4; ui_battle_update.cpp). Both id vectors hold the same ids in the same
+        // order (the camera's id is not compared). AL.
+        bool Equals(const PartyIds& other) const;
+
         IdVector withUnit;
         int camera;
         IdVector without;
