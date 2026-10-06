@@ -311,3 +311,7 @@ Skipped: 0050E9B0 (CMapObject slot 34) packs vitals the builder never writes whe
 before touching them without a stats block): uninitialised stack in the original, cannot be compared.
 Lesson (005179E0 check): the animation state's parts appear during the call (0050D320 gives it the model), so the
 wrapper's count taken before the call was 0 and every call reported a mismatch; it now counts the boxes made.
+A-U4 skipped: levers (0052B1F0 constructor, 0052B650 / 0052B560 net state; no scenario has a lever), 00529B80 (class 0x3010,
+not on zone1), 0051C3D0 / 0051C250 / 0051B050 / 0051B160 / 0051C9F0 (client half's material sets and colour stack: renderer
+data), 00539E70 / 0053EBC0 (database destructors), STL / MFC instantiations (005335E0 hash_map operator[], 00539440 CList
+Serialize, 00512060 CArray SetAtGrow, 0051E5D0 vector insert).
