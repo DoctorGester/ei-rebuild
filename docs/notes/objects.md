@@ -84,6 +84,17 @@ Names are provisional.
 | 00469CA0-0046E490, 0046A4B0, 0046E5E0, 0045D5B0..0045DFB0 | the zone file's records (base, object, flame, magic trap, lever, unit with behaviours / patrols / waypoints, particle source, light, sound), chunk readers / writers, editor rotation, zone diplomacy table constructor | map_spec*.cpp | `verify_map_spec` |
 | 0066EE10, 0066EF30, 0066F180, 0066EBD0, 0066EC10, 0066EC70, 0066ECD0, 0066ED30, 0066EDA0, 0066EA10, 0066EA30, 0066EA70, 0066EAC0, 0066EB40, 0066EB90, 0066F1F0, 0066F280, 0066F2C0, 0066D6A0, 0066D6E0, 0066D770, 0066D7B0, 0066D250, 0066D260 | CPlayerServer SetVariable, DeleteVariable, SendGameTime, SendState02 / 70 / 71 / 72, SendPosition04 / 0F, Send17, SendObject0A, SendPair16, SendObjects0C, SendObject14, SendText0D / 08, SendValue15, SendPair18, SendObject43 / 0B, SendText13, SendText, SetDisconnect, SetFlag70 | player_messages.cpp | ours into the stream; the stream (header and bytes), +0x1C..+0x48, +0x70 and the player's dirty bits saved, restored, original, compared with the result (skipped when ours grew the buffer) |
 | 0066EE80, 0066F240, 0066D230, 006621B0, 00665DE0 | SetVariableMax, SendState73, WriteTo; PartyRecords::Find; CPlayer::Tick | player_messages.cpp | ours only (they read what they change or call other writers) / pure / ours only (object list consistent) |
+| 0066DBA0, 0066E020, 0066F080 | CPlayerServer SendObjectsChanged (0x41) / SendTimedChanged (0x51), SendItems | player_sync.cpp (A-H8) | ours, the stream restored, original, stream compared (a pending delta is written once, by ours) |
+| 0066D7F0, 0066DDE0, 0066DAD0, 0066DF40, 0066D100 | SendObjectsAdded (0x40) / SendTimedAdded (0x50), SendObjectsRemoved (0x42) / SendTimedRemoved (0x52), Flush | player_sync.cpp | ours only: objects in / out of the player's map, counted once, stream grown / result 0 or 1, messages emptied |
+
+Player sync (A-H8): CPlayer (the world player) +0x1C link, +0x28 / +0x58 hash_maps of the map / timed objects the
+client knows (each counted once; +0x3C / +0x6C the highest id), +0x70 an embedded CParty (slot 18 its item manager),
++0x10C log flag (Flush prints both sizes to cout). CPlayerServer +0x88 / +0x28B0 the send / receive coders. The
+"changed" senders compare the object's stamp with the world's update count; a pending delta (flags_ bit 1) is written
+first (0050EA70 for map objects, CEffect::SendDelta for timed ones). world_sync.cpp names the six senders by the
+DiffObjectSets output they get (Kept / Added / Removed): its "Kept" array gets the removals, "Removed" the changes.
+SendItems calls SendObject14 directly (the original goes through slot 22 of 00743280, which is it). PartyRecords
+moved to party_record_lookup.h (unit.h declares a second one).
 
 `FindCommandByKey` (00462F70) loops back to 00462F73 inside the 5 bytes the hook's jump overwrites, so its wrapper copies the whole 61-byte body (no calls) to executable memory at DLL load, before the hooks are
 installed, and runs that copy as the original (`stolenBytes` 0). Constructors allocate nothing, so the original runs safely on a copy.

@@ -7,6 +7,7 @@
 #include "fake_stream.h"
 #include "verify.h"
 
+#include "../../src/game/party_record_lookup.h"
 #include "../../src/game/player_messages.h"
 
 #include <cstring>

@@ -131,6 +131,9 @@ __declspec(naked) inline void __fastcall CountedRefSaveOriginal(void* /*ref*/, v
 // the flags at +8 (plain RET, EAX not a result). 005179E0: sets up the object's animated figure for a model name (RET 4;
 // EAX not a result). 0050D450: applies the pending animation change of a figure state once (flag at +0x74; plain RET).
 __declspec(naked) inline void __fastcall ObjectPrepareOriginal(void* /*object*/) EI_ORIGINAL(0x0050EA40)
+// 0050EA70: the map object's delta (slot 32 first when flag bits 0x11 at +0x1DC are set, then the network state's
+// write mode 1 around slot 50), flags_ bit 1 cleared (plain RET, EAX not a result).
+__declspec(naked) inline void __fastcall MapObjectSendDeltaOriginal(void* /*object*/) EI_ORIGINAL(0x0050EA70)
 __declspec(naked) inline void __fastcall ObjectSetupFigureOriginal(void* /*object*/, void*, const char* /*model*/)
     EI_ORIGINAL(0x005179E0)
 __declspec(naked) inline void __fastcall FigureApplyPendingOriginal(void* /*figure state*/) EI_ORIGINAL(0x0050D450)
