@@ -1756,11 +1756,11 @@ Declare once (src/game/originals.h), include everywhere, replace by the port lat
 - `src/game/ui_surface_pixels.cpp:83`: `int PixelConverter::Init(const void*)`
 
 ### 0x0051FE80: 2 files, 2 sites, signatures differ
-- `src/game/originals_units.h:161`: `int __fastcall SkillIndexOfOriginal(const void* /*database*/, void*, const char* /*name*/)`
+- `src/game/originals_units.h:164`: `int __fastcall SkillIndexOfOriginal(const void* /*database*/, void*, const char* /*name*/)`
 - `src/game/ui_item_info.cpp:349`: `int SkillDatabase::IndexOf(const char*)`
 
 ### 0x005335E0: 2 files, 2 sites, signatures differ
-- `src/game/originals_units.h:159`: `void** __fastcall PrototypeMapAtOriginal(void* /*map*/, void*, const void* /*key*/)`
+- `src/game/originals_units.h:162`: `void** __fastcall PrototypeMapAtOriginal(void* /*map*/, void*, const void* /*key*/)`
 - `src/game/ui_item_view.cpp:533`: `char** __fastcall UnitPrototypeAt(void*, void*, const stlp::string*)`
 
 ### 0x00566030: 2 files, 2 sites, same signature, names differ
