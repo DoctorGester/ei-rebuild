@@ -67,7 +67,7 @@ void ParseSpellText(mfc::CString& text, console::CStringArray& codes) {
         Ops(text).TrimLeft();
         return;
     }
-    mfc::CString inner = Ops(text).Mid(Length(text) - brace - 1);
+    mfc::CString inner = Ops(text).Right(Length(text) - brace - 1);
     Ops(inner).TrimRight();
     Ops(inner).TrimLeft();
     Ops(inner).TrimRight('}');
