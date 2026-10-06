@@ -73,6 +73,9 @@ public:
     // ended).
     void ResetPartAlpha();
     void ClearPartTints();
+    // unit_client_wounds.cpp (A-U4). 0051C920: the wounds texture (+0xD8) and its material (+0xDC)
+    // are taken off and released (the material deleted at its last reference).
+    void HideWounds();
 
     CObject3D* object;              // +0x1C
     CEngineObject** material;       // +0x20 its object's +0x60 is the shadow colour key; the
@@ -97,7 +100,10 @@ public:
     float bounds[4];                // +0x80 minimum x, y and maximum x, y in the light's view
     std::uint32_t sphere;           // +0x90 the shadow's bounding sphere (the scene object's slot
     float sphereCentre[3];          // +0x94  7), its centre relative to the object
-    std::uint8_t unknown_A0[0xE8 - 0xA0];
+    std::uint8_t unknown_A0[0xD8 - 0xA0];
+    CEngineObject* woundsTexture;   // +0xD8 the wounds texture (counted; 0051C3D0 loads it)
+    struct WoundsMaterial* woundsMaterial;  // +0xDC the material drawing it (counted; slot 0 deletes)
+    std::uint8_t unknown_E0[0xE8 - 0xE0];
     float pulseClock;               // +0xE8 frames counted by the invisible / stunned pulses
 };
 static_assert(offsetof(CObject3DClientSpecific, object) == 0x1C);
@@ -108,3 +114,11 @@ static_assert(offsetof(CObject3DClientSpecific, texture) == 0x7C);
 static_assert(offsetof(CObject3DClientSpecific, bounds) == 0x80);
 static_assert(offsetof(CObject3DClientSpecific, sphere) == 0x90);
 static_assert(offsetof(CObject3DClientSpecific, pulseClock) == 0xE8);
+static_assert(offsetof(CObject3DClientSpecific, woundsTexture) == 0xD8);
+
+// The material that draws a wounds texture (0x24 bytes, vtable 0073DF68; 0051C3D0 makes it).
+// Only the counted-object part: slot 0 is the deleting destructor.
+struct WoundsMaterial {
+    virtual void DeletingDestructor(unsigned flags);   // 0
+    int refCount;                   // +0x04
+};

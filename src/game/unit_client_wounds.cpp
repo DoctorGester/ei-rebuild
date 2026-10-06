@@ -7,6 +7,7 @@
 #include "item.h"
 #include "item_db.h"
 #include "map_object_figures.h"
+#include "map_object_shadow.h"
 #include "ui.h"
 #include "unit.h"
 #include "unit_db.h"
@@ -126,6 +127,16 @@ int CUnitClientSpecific::ComposeWoundsTexture() {
     return result;
 }
 EI_REPLACE_METHOD(0x005370F0, CUnitClientSpecific::ComposeWoundsTexture);
+
+void CObject3DClientSpecific::HideWounds() {
+    CEngineObject* oldTexture = woundsTexture;
+    woundsTexture = nullptr;
+    if (oldTexture) oldTexture->Release();
+    WoundsMaterial* oldMaterial = woundsMaterial;
+    woundsMaterial = nullptr;
+    if (oldMaterial && --oldMaterial->refCount == 0) oldMaterial->DeletingDestructor(1);
+}
+EI_REPLACE_METHOD(0x0051C920, CObject3DClientSpecific::HideWounds);
 
 // --- The face texture -------------------------------------------------------------------------
 

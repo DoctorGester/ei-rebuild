@@ -16,6 +16,7 @@
 
 #include "../../src/game/ai_map.h"
 #include "../../src/game/map_object_figures.h"
+#include "../../src/lib/crt.h"
 
 #include <cfloat>
 #include <cmath>
@@ -147,3 +148,21 @@ static void __fastcall UpdatePartBoundsVerify(CObject3D* self) {
                       expected[3], actual[3]);
 }
 EI_VERIFY(0x00518100, UpdatePartBoundsVerify, 6, s_updatePartBounds);
+
+// - CollectPartsByPrefix (00516B50): output. The original appends to an empty scratch array, ours
+//   to `out`; what ours appended is compared with the scratch, which is freed. Reached only by
+//   RemoveArmourModel (00538710: Rebirth's GiveUnitArmor refuses text-key units, so rarely).
+// 00516B50: SUB ESP,0x10; PUSH EBX; PUSH EBP (5 bytes).
+static void(__fastcall* s_collectPartsByPrefix)(CObject3D*, void*, const char*, AlignedPtrArray*);
+static void __fastcall CollectPartsByPrefixVerify(CObject3D* self, void*, const char* prefix, AlignedPtrArray* out) {
+    AlignedPtrArray scratch{};
+    s_collectPartsByPrefix(self, nullptr, prefix, &scratch);
+    int before = out->size;
+    self->CollectPartsByPrefix(prefix, out);
+    bool ok = out->size - before == scratch.size;
+    for (int i = 0; ok && i < scratch.size; ++i) ok = out->data[before + i] == scratch.data[i];
+    ei::verify::Check("CObject3D::CollectPartsByPrefix", true, ok, "%s: %d / %d", prefix ? prefix : "-", scratch.size,
+                      out->size - before);
+    if (scratch.data) gamecrt::operator_delete(scratch.data[-1]);
+}
+EI_VERIFY(0x00516B50, CollectPartsByPrefixVerify, 5, s_collectPartsByPrefix);
