@@ -33,7 +33,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- A-H done 2026-10-05 (38 functions). A-H2 done 2026-10-05 (41 functions; next candidates at the end of items_spells.md). A-H3 done (44 addresses). A-H4 cut off (nothing committed). A-H5 cut off (6 merged). A-H6 done (21). A-H7 done (27). A-H8 done (30). A-H9 cut off (11 merged: bow arrows). A-H10 done (32). A-H11 done (6; 204 library). A-H12 done (41). A-H13 (taken 2026-10-07) (CPlayer 00664BF0..00665D20, save screen, message handlers). Was ( first fix spells_hero: 'Parameter of type float expected' in vanilla, no wolf damaged in Rebirth) (effects: 0x5B, Moshka 0067CEF0, Tornado, 0066E7D0; client handlers 00667EC0 / 00669A30 / 00669490 / 00669FA0). Was: ( effects.md next candidates; spells_hero passes now but shows no CEffectMissile / ShowVisibility wrapper calls, find out why) (candidates at the end of items_spells.md's Party section; 0064A7A0). (candidates at the end of items_spells.md "Area ticket A-H").
+- A-H done 2026-10-05 (38 functions). A-H2 done 2026-10-05 (41 functions; next candidates at the end of items_spells.md). A-H3 done (44 addresses). A-H4 cut off (nothing committed). A-H5 cut off (6 merged). A-H6 done (21). A-H7 done (27). A-H8 done (30). A-H9 cut off (11 merged: bow arrows). A-H10 done (32). A-H11 done (6; 204 library). A-H12 done (41). A-H13 done (2 handlers + helpers, music lifetime, range classified). A-H14 queued (sound.md next candidates) (CPlayer 00664BF0..00665D20, save screen, message handlers). Was ( first fix spells_hero: 'Parameter of type float expected' in vanilla, no wolf damaged in Rebirth) (effects: 0x5B, Moshka 0067CEF0, Tornado, 0066E7D0; client handlers 00667EC0 / 00669A30 / 00669490 / 00669FA0). Was: ( effects.md next candidates; spells_hero passes now but shows no CEffectMissile / ShowVisibility wrapper calls, find out why) (candidates at the end of items_spells.md's Party section; 0064A7A0). (candidates at the end of items_spells.md "Area ticket A-H").
 
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
@@ -42,6 +42,8 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 
 ## Verify checks
+
+- X21 0066F4C0 CPlayerServer::OnLeaderDied (A-H13, in disabled.txt): in vanilla hero_death the player stream grew 10 bytes; the check expects 1 (0x09) or 9 (0x09 + 0x0B). Find what the extra byte is (ours or the check).
 
 
 - X17 (done 2026-10-07, branch worktree-agent-a480cc2226016ece2) Four rewrites in tests/verify/disabled.txt: A-S5's ground decal builder 004D7BD0 ClipPlane / 004D85F0 AddTriangle / 004D8490 AddTerrainTriangle (mismatch e.g. "vertices 0 -> 3 / 3, indices 0 -> 3 / 3", 0.03-6% of calls) and A-H11's 00649AF0 CHudTopPanel::Build (its check fails every call: "page 0 shown 0 regions 4 sprites 6").
