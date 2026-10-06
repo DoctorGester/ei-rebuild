@@ -94,6 +94,7 @@ is snapshotted and restored, the original runs, bytes and EAX compared.
 | 00515D70, 0050E660, 0052E310, 00515720, 00510560, 00546230 | destructor bodies | ours only: engine object base state (vtable 0073B8E0, no owner) |
 | 0052E2A0 | CUnit::DeletingDestructor (slot 0) | ours only: counted |
 | 0050CA50, 0050CBA0, 0050D600, 0050D5E0 | CFigureAnimationState Play, Queue, SetTime, Advance (map_object_animation_state.cpp; A-U2) | SetTime: original vs ours on +0x40..+0x78 when the animation does not end, else ours only; the rest ours only |
+| 00516370, 005161E0, 00516D50, 00515E90, 00516460, 00516420, 00516490 | CObject3D slots 14 CombineRotation3D (0040CB80's body), 20 CopyFigure, 19 AttachSpecific, 5 RemoveAllEffectSources, 22-24 DrawFigure / DrawCollectDirty / DrawFigureShadow (object3d_slots.cpp; A-U2) | 14: original vs ours (CheckNear); the rest ours only |
 | 0051CC20, 0051CCD0 | CObject3DClientSpecific InvisiblePulse / StunnedPulse (unit_client_animation.cpp) | original, parts put back, ours; CheckNear |
 
 Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEffect::Tick`, 00524FE0

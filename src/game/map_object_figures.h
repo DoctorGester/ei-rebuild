@@ -13,6 +13,9 @@
 #include <cstddef>
 #include <cstdint>
 
+class CObject3D;
+class CTransformObject;   // core_transform.h
+
 // A growable pointer array whose storage is 32-byte aligned (the block from operator new is
 // kept at data[-1]): data, size, capacity, grow-by (0: an eighth of the size, 4..1024).
 struct AlignedPtrArray {
@@ -123,6 +126,11 @@ public:
     virtual void Slot17();                          // 17: client 0051B2D0 (a part by id, 00516920)
     // 18: the figure's extra scale: client +0xF0..+0xF8 (0051AD20), server 1, 1, 1 (0051AC30).
     virtual void GetScale(float* x, float* y, float* z);
+    // 19 / 20: client 0051B7E0 (CObject3DClientSpecific::Draw) / 0051CE60 (DrawShadow); server 0051AC60 / 0051AC70.
+    virtual int DrawParts(void* context, int* dirty);
+    virtual int DrawPartsShadow(void* context);
+
+    CObject3D* object;              // +0x1C the object it belongs to
 };
 
 class CObject3D;
@@ -268,13 +276,38 @@ public:
     // list's blocks), detaches it (004849F0 with null) and releases it. Nothing when not there.
     void RemoveEffectSource(CEngineObject* source);
 
+    // object3d_slots.cpp (A-U2).
+    // 00516370. Virtual slot 14 (CTransformObject::CombineRotation's place; the same body as
+    // 0040CB80): worldOrientation = parent * orientation.
+    void CombineRotation3D(const Quaternion* parent);
+    // 005161E0. Virtual slot 20: takes `other`'s parts (the array copied, no references taken)
+    // and its transform (CTransformObject::CopyTransform 00401490).
+    void CopyFigure(const CObject3D* other);
+    // 00516D50. Virtual slot 19: a side half (type 0x46) replaces the attached one, which is
+    // detached (+0x1C cleared) and released; the new one points back here and gains a reference.
+    // Other objects (and null) are ignored.
+    void AttachSpecific(CEngineObject* half);
+    // 00515E90. Virtual slot 5: every effect source is taken out of the list, detached (004849F0
+    // with null) and released.
+    void RemoveAllEffectSources();
+    // 00516460 / 00516420 / 00516490. Virtual slots 22 / 23 / 24: the side half draws the figure
+    // (its slot 19; slot 23 first empties dirtyRect and has it filled) / the shadow (its slot 20).
+    // 1 without a side half, else the half's result.
+    int DrawFigure(void* context);
+    int DrawCollectDirty(void* context);
+    int DrawFigureShadow(void* context);
+
     // The side-specific half (+0x94).
     CObject3DSpecific* Specific() const { return static_cast<CObject3DSpecific*>(attached); }
+    // The object as the CTransformObject it starts with (core_transform.h).
+    CTransformObject* Transform() { return reinterpret_cast<CTransformObject*>(this); }
+    const CTransformObject* Transform() const { return reinterpret_cast<const CTransformObject*>(this); }
 
     float position[3];              // +0x01C
     std::uint8_t unknown_028[0x34 - 0x28];
     Quaternion orientation;         // +0x034
-    std::uint8_t unknown_044[0x94 - 0x44];
+    Quaternion worldOrientation;    // +0x044 the parent's rotation times the orientation (slot 14)
+    std::uint8_t unknown_054[0x94 - 0x54];
     CEngineObject* attached;        // +0x094 the object slot 19 accepts (type 0x46)
     CFigureAnimationState* animation;   // +0x098 the figure's animation state
     std::uint32_t unknown_09C;      // +0x09C cleared by Create3D / Destroy3D
@@ -288,7 +321,8 @@ public:
     AlignedPtrArray pendingParts;   // +0x0E0 FigurePart*, built by LoadFigures
     CEngineObject* figure;          // +0x0F0 counted reference (slot 0 deletes)
     float defaultScale[3];          // +0x0F4 from 007AF1D0 (constructor, Create3D)
-    std::uint8_t unknown_100[0x114 - 0x100];
+    int dirtyRect[4];               // +0x100 RECT: the screen area the last DrawCollectDirty covered
+    std::uint8_t unknown_110[0x114 - 0x110];
     char** partNames;               // +0x114 the figure's part names (00517990), in the order of
     int partNameCount;              // +0x118 the part boxes (CUnit::partBoxes, +0x160)
     std::uint8_t unknown_11C[0x124 - 0x11C];
@@ -305,6 +339,8 @@ public:
     int partBoxGrowBy;              // +0x16C /
 };
 static_assert(offsetof(CObject3D, orientation) == 0x34);
+static_assert(offsetof(CObject3D, worldOrientation) == 0x44);
+static_assert(offsetof(CObject3D, dirtyRect) == 0x100);
 static_assert(offsetof(CObject3D, attached) == 0x94);
 static_assert(offsetof(CObject3D, effectSources) == 0xA8);
 static_assert(offsetof(CObject3D, defaultScale) == 0xF4);
