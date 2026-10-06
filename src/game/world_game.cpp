@@ -2085,7 +2085,7 @@ void GameFlow::UpdateFromServer() {
                                     reinterpret_cast<const unsigned char*>(Text(kQuestVariablePrefix))) == 0;
         }
         if (!quest) continue;
-        mfc::CString rest = Ops(name).Mid(console::Length(name) - 2);
+        mfc::CString rest = Ops(name).Right(console::Length(name) - 2);
         int dot = Ops(rest).Find(Text(kDot));
         if (dot > 0) {
             mfc::CString folder = rest.Left(dot);

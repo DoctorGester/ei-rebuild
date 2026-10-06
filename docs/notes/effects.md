@@ -234,3 +234,29 @@ scratch, the rest ours only (Load: the figure reference is resolved against the 
 bow is selected on the weapon bar only in vanilla: Rebirth's layout moves the bar). Its vanilla run shows 2 mismatches
 of CUnitClientSpecific::UpdateArrow (units area, ours-only wrapper; first time a hero holds a bow), not investigated.
 Forwarders moved to originals_units.h: 00516DA0, 00518840, 00518860, 0051C970, 0051C250 (world_client_maps.cpp uses them).
+
+A-H10: the effects_bow UpdateArrow mismatches were the check's: it looked up "rh3_arrow00", the part is "rh3.arrow00"
+(0078FAF8), so it found nothing whenever the arrow state changed.
+
+CEffectMoshka (100, vtable 0074387C, 0x16C; world_effect_moshka.cpp, A-H10): the client world's bird (+0x1B0, made by
+00566C20 with the constructor, told to follow the session's leader by 00565380 / 00566C20). +0x14C figure (class 0x38,
+"unmobi" / "bird00", filed with AddObject, lit, animation 0 played), +0x150 particle source 0x203C (scale 0.5, attached),
++0x154 followed id, +0x158 last time, +0x15C timer, +0x160 circle angle, +0x164 perch height, +0x168 state (0 perched
+200 frames, 1 circling within 5 of the leader for 100, 2 flying to the perch at +0x1C for 150, then Reset). Update
+(0067CEF0, from the draw pass with the animation time) steps at most 5 frames, keeps the bird 0.5 above the surface
+(slot 28, platforms), moves it at sqrt(sqrt(distance)) * 0.03 + 0.3 per frame (sector grid Move, RollTowards) and advances
+its animation. FindPerch (0067CD90) draws ISAAC angles until the AI map's line of sight is above 0.5. Verify: FindPerch
+ours / generator restored / original (CheckNear); Unpack both; constructor on seeded scratch; the rest ours only. The
+factory constructs it directly. Kept: an unknown state leaves Update's target unset (never happens: Follow sets 0).
+Not rewritten: 0067CAB0 / 0067CAC0 (class name / id), 0067D650 / 0067D660 (3-byte Pack / Start stubs). 007C8430 (pi/2,
+set at startup) is a constant here.
+
+CEffectTornado (0x65, vtable 007438F8, 0x15C; world_effect_tornado.cpp, A-H10): +0x14C particle source 0x200A (client),
++0x150 looping sound "nature\tornado\circle.wav" (near 10, far 40), +0x154 ticks left, +0x158 launch tick. Launch
+(0067DA50, from the server weather 0058CCD0's helper 0058CEA9) aims at a random speed 0.096..0.216 per tick, ticks =
+lrint(distance / speed). Tick moves it (source and sound follow), stops the source for the last 110 ticks, and on the
+server every 8th tick above 20 hands each player-owned unit within 5 (CSectorMap::FindUnitsInRadius) a hit of 5
+(weight 1 on type 6) through its controller's slot 20 (CUnitServerVirtuals::TakeHitSlot, map_object.h). Start catches
+a new source up by at most 29 ticks. Verify: Launch ours / object and ISAAC restored / original; Pack, Save, Load against
+the original; constructor on seeded scratch; the rest ours only. No scenario starts weather with a tornado yet.
+Not rewritten: 0067D7C0 / 0067D7D0 (class name / id), 0067E0D0 (a 12-byte counted-pointer release, unwind only).

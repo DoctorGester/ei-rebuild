@@ -443,7 +443,7 @@ void GameOptions::LoadFromRegistry(const char* path) {
         if (x != -1) {
             l.SetBits(field::kResolutionX, static_cast<std::uint32_t>(GameAtoi(resolution.Left(x))));
             l.SetBits(field::kResolutionY,
-                      static_cast<std::uint32_t>(GameAtoi(Ops(resolution).Mid(Length(resolution) - x - 1))));
+                      static_cast<std::uint32_t>(GameAtoi(Ops(resolution).Right(Length(resolution) - x - 1))));
         }
     }
     l.Read(kVideoValues);

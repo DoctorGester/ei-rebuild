@@ -1,0 +1,33 @@
+# The trade panel's restore (00626FA0; docs/notes/ui.md, section 5): the camp's page 1 (region 5)
+# shows the trade panel (200, 100)-(600, 500); its first school row is (215, 135)-(385, 150). With
+# experience given, a click there buys a school level (the record is marked bought); the second
+# action button (region 1, UndoAction: Settle(0, 0)) and leaving with Esc (page 7: Settle(0, 1))
+# put the hero's statistics back from the record.
+reject Script error
+wait 6000
+console thingamabob
+
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GiveUnitExp(GetLeader(),50000)
+wait 300
+
+screen 5
+wait 2500
+clickregion 5
+wait 500
+click 300 142
+wait 300
+click 300 142
+wait 300
+clickregion 1
+wait 500
+click 300 142
+wait 300
+key esc
+wait 2000
+waitfor 10 IsGreater(HP(GetLeader()),0)
+report
+quit

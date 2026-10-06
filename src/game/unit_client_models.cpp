@@ -218,7 +218,7 @@ __declspec(naked) int __fastcall WeaponTypeOf(std::uint32_t) EI_ORIGINAL(0x006A2
 constexpr int kSlotWeaponChanged = 0x78 / 4;   // the controller's slot 30, after the change
 constexpr int kWeaponBow = 5;
 constexpr std::uint32_t kArrowPartFlag = 0x80;  // set in the arrow part's flags_
-const char* const kBowArrow = Text(0x0078FAF8);   // "rh3_arrow00"
+const char* const kBowArrow = Text(0x0078FAF8);   // "rh3.arrow00"
 
 std::uint32_t WeaponIdOf(const CUnitClientSpecific* self, std::uint32_t slot) {
     return slot < 4 ? self->weaponIds[slot] : kNone;

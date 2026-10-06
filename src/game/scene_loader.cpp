@@ -910,7 +910,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     if (ext != -1) {
         if (!registryName) {
             if (Ops(s.path).Find(GameText(kScenesDirText)) == 0) {
-                s.path = GameText(kIniDirText) + Ops(s.path).Mid(Length(s.path) - 7);
+                s.path = GameText(kIniDirText) + Ops(s.path).Right(Length(s.path) - 7);
                 --ext;
             }
             s.path = s.path.Left(ext) + GameText(kRegExtText);
@@ -978,7 +978,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     for (int t = 0; t < s.textureNames.body.size; ++t) {
         void* owner = *At<void*>(u, unit::kTextureOwner);
         void* texture = FindTexture(owner, nullptr, s.textureNames.Id(t));
-        bool bmp = gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(Ops(s.textureNames.Name(t)).Mid(4))),
+        bool bmp = gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(Ops(s.textureNames.Name(t)).Right(4))),
                                     reinterpret_cast<const unsigned char*>(GameText(kBmpExtText))) == 0;
         if (bmp) {
             const mfc::CString& name = s.textureNames.Name(t);

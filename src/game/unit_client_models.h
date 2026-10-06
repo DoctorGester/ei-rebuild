@@ -123,7 +123,7 @@ public:
     // name (005168F0), the unit's active weapon becomes `slot` and the byte +0x74 is cleared; the
     // new weapon's parts (none for an empty slot or a slot beyond 3) are added from the unit's
     // model (00517240, each animated with the figure through 00518820), and for a bow (type 5) the
-    // part "rh3_arrow00" gets flag 0x80, which +0x75 records (+0x75 is left alone without a new
+    // part "rh3.arrow00" gets flag 0x80, which +0x75 records (+0x75 is left alone without a new
     // weapon). Then slot 30. Returns 1.
     int ChangeWeaponModel(std::uint32_t slot);
 
@@ -178,7 +178,7 @@ public:
     // its part names from 006A0FF0, the parts found by FindPart) unless +0x74 already says so;
     // +0x74 and +0x75 take the new state.
     void ShowWeaponParts(bool hidden);
-    // 00538C20. For heroes with a bow in hand: the arrow part "rh3_arrow00" shows (flags_ 0x80
+    // 00538C20. For heroes with a bow in hand: the arrow part "rh3.arrow00" shows (flags_ 0x80
     // cleared, +0x75 = 0) when the animation (flag 1 in its +0x18) passes its frame +0x28, and
     // is hidden again (+0x75 = 1) outside the window up to frame +0x2C, or always for animations
     // without the flag.

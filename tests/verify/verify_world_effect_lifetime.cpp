@@ -138,6 +138,8 @@ bool Destroyed(const CEffectLightning* e) { return DestroyedBase(e) && e->bolt_ 
 bool Destroyed(const CEffectArrow* e);
 bool Destroyed(const CEffectArrowFigure* e);
 bool Destroyed(const CEffectShowVisibility* e);
+bool Destroyed(const CEffectMoshka* e);
+bool Destroyed(const CEffectTornado* e);
 
 // A destructor body called directly (only slot 0 calls them).
 template <typename T>
@@ -236,6 +238,32 @@ CEffectShowVisibility* __fastcall VisibilityDeleteVerify(CEffectShowVisibility* 
     return DeleteOurs("CEffectShowVisibility::DeletingDestruct", self, flags);
 }
 
+// CEffectMoshka (world_effect_moshka.cpp; the client world makes its bird with the constructor,
+// 00566C20): no figure, source or followed object left.
+CEffectMoshka*(__fastcall* s_moshkaCtor)(CEffectMoshka*);
+CEffectMoshka* __fastcall MoshkaCtorVerify(CEffectMoshka* self) {
+    return ConstructBoth("CEffectMoshka::Construct", s_moshkaCtor, self);
+}
+bool Destroyed(const CEffectMoshka* e) {
+    return DestroyedBase(e) && e->bird_ == nullptr && e->source_ == nullptr && e->followedId_ == -1;
+}
+void __fastcall MoshkaDestructVerify(CEffectMoshka* self) { DestructOurs("CEffectMoshka::Destruct", self); }
+CEffectMoshka* __fastcall MoshkaDeleteVerify(CEffectMoshka* self, void*, unsigned flags) {
+    return DeleteOurs("CEffectMoshka::DeletingDestruct", self, flags);
+}
+
+// CEffectTornado (world_effect_tornado.cpp; the factory constructs it directly, so only a direct
+// call of the bodies reaches these): no source or sound left.
+CEffectTornado*(__fastcall* s_tornadoCtor)(CEffectTornado*);
+CEffectTornado* __fastcall TornadoCtorVerify(CEffectTornado* self) {
+    return ConstructBoth("CEffectTornado::Construct", s_tornadoCtor, self);
+}
+bool Destroyed(const CEffectTornado* e) { return DestroyedBase(e) && e->source_ == nullptr && e->sound_ == -1; }
+void __fastcall TornadoDestructVerify(CEffectTornado* self) { DestructOurs("CEffectTornado::Destruct", self); }
+CEffectTornado* __fastcall TornadoDeleteVerify(CEffectTornado* self, void*, unsigned flags) {
+    return DeleteOurs("CEffectTornado::DeletingDestruct", self, flags);
+}
+
 // The factory (every effect created; scenarios spells, effects): ours only (it allocates). A new
 // object reports the requested class id (slot 12) and carries it in type_.
 CEngineObject* __fastcall EffectNewObjectVerify(CBaseManager* manager, void*, int type) {
@@ -248,6 +276,12 @@ CEngineObject* __fastcall EffectNewObjectVerify(CBaseManager* manager, void*, in
 } // namespace
 
 EI_VERIFY(0x0067E170, EffectNewObjectVerify, 0, s_unused);
+EI_VERIFY(0x0067D670, TornadoCtorVerify, 7, s_tornadoCtor);
+EI_VERIFY(0x0067D800, TornadoDestructVerify, 0, s_unused);
+EI_VERIFY(0x0067D7E0, TornadoDeleteVerify, 0, s_unused);
+EI_VERIFY(0x0067C950, MoshkaCtorVerify, 7, s_moshkaCtor);
+EI_VERIFY(0x0067CAF0, MoshkaDestructVerify, 0, s_unused);
+EI_VERIFY(0x0067CAD0, MoshkaDeleteVerify, 0, s_unused);
 EI_VERIFY(0x0067C340, VisibilityCtorVerify, 7, s_visibilityCtor);
 EI_VERIFY(0x0067C490, VisibilityDestructVerify, 0, s_unused);
 EI_VERIFY(0x0067C470, VisibilityDeleteVerify, 0, s_unused);

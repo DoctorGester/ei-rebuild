@@ -62,7 +62,7 @@ int __fastcall ParseMaterial(const char* name, int* texture, int* material) {
             mfc::CString part = rest.Left(dot);
             StringArraySetAtGrow(&parts, nullptr, parts.size, &part);
         }
-        mfc::CString tail = rest.Mid(rest.GetLength() - dot - 1);
+        mfc::CString tail = rest.Right(rest.GetLength() - dot - 1);
         rest = tail;
     }
     if (parts.size != 3) {

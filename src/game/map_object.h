@@ -302,6 +302,22 @@ public:
     virtual int Query(int first, int second);   // 15: 005104C0 in both (0)
 };
 
+// A unit's server half (CUnit::controller, +0x240: CUnitServer, class 0x3E) as callers reach it
+// through its vtable. Only slot 20 is named.
+class CUnitServerVirtuals : public CEngineObject {
+public:
+    virtual void Slot13() = 0;
+    virtual void Slot14() = 0;
+    virtual void Slot15() = 0;
+    virtual void Slot16() = 0;
+    virtual void Slot17() = 0;
+    virtual void Slot18() = 0;
+    virtual void Slot19() = 0;
+    // 20 (0x50): 00553F40 CUnitServer::TakeHit(hit, attacker, source); either unit may be null.
+    virtual int TakeHitSlot(DamageInfo* hit, CEngineObject* attacker, CEngineObject* source) = 0;
+};
+inline CUnitServerVirtuals* ServerSlots(CEngineObject* controller) { return static_cast<CUnitServerVirtuals*>(controller); }
+
 // An object seen through its virtual slots.
 inline CMapObjectVirtuals* ObjectSlots(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object); }
 
