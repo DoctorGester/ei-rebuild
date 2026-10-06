@@ -485,7 +485,7 @@ struct TradeRecord {
     float experience;                // +0x2C stats +0x04
     float spentExperience;           // +0x30 stats +0x08
     float pendingExperience;         // +0x34 stats +0x700
-    std::uint8_t unknown_38;         // +0x38 0
+    std::uint8_t bought;             // +0x38 0; 1 once something was bought on the panel
     std::uint8_t unknown_39[3];      // not written
 };
 static_assert(sizeof(TradeRecord) == 0x3C);
@@ -527,6 +527,16 @@ public:
     // 00625560. What the hero (owner's slot 51) has spent since its record was made (the cost of the
     // perks bought on the panel), truncated.
     int PurchaseCost();
+    // 00626D70 (ui_trade_panel.cpp). Keeps perkTop_ in [0, held - 10] and learnableTop_ in
+    // [0, learnable - 23], shows the four scroll arrows (scene objects 0-3) only where the list
+    // can scroll, then draws the lists (006261A0).
+    void ClampScroll();
+    // 00626920 (input slot 2, RET 0xC). Regions 0 / 1 scroll the held perks up / down, 2 / 3 the
+    // learnable ones; from 4 the "perk" sound, then a purchase the experience covers: 4-9 a
+    // school level and 10 science (below 100; then held: heldRegion_, holdTime_ -0.5, the mouse
+    // captured), 11-33 a learnable perk, 34 up (and below 0) the next level of a held perk; the
+    // spent experience grows by the price, the record is marked bought and the lists rebuilt.
+    void OnLButtonDown(int buttons, int x, int y);
     // The record of the hero shown (recordIndex_).
     const TradeRecord& Record() const { return records_.begin[recordIndex_]; }
 
@@ -541,8 +551,8 @@ public:
     TradeRows science_;              // +0x180 (one)
     int experience_;                 // +0x18C experience the hero can spend
     TradeRecords records_;           // +0x190 one per party member
-    int unknown_19C;                 // +0x19C -1 after Build
-    int unknown_1A0;                 // +0x1A0 0 after Build
+    int heldRegion_;                 // +0x19C the school / science row held after a purchase (-1 after Build)
+    float holdTime_;                 // +0x1A0 from -0.5 s (0 after Build)
     void* textsVtable_;              // +0x1A4 CStringArray: the titles
     char** texts_;                   // +0x1A8
 };
@@ -552,7 +562,7 @@ static_assert(offsetof(CTradePanel, science_) == 0x180);
 static_assert(offsetof(CTradePanel, experience_) == 0x18C);
 static_assert(offsetof(CTradePanel, texts_) == 0x1A8);
 static_assert(offsetof(CTradePanel, records_) == 0x190);
-static_assert(offsetof(CTradePanel, unknown_1A0) == 0x1A0);
+static_assert(offsetof(CTradePanel, holdTime_) == 0x1A0);
 
 // --- Camp pages -----------------------------------------------------------------------------
 //

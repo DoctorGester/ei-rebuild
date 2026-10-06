@@ -307,3 +307,8 @@ __declspec(naked) inline void __fastcall HeroScreenMakePreviewOriginal(void* /*s
 __declspec(naked) inline void __fastcall HeroScreenShowHeroOriginal(void* /*screen*/, void*, int /*index*/)
     EI_ORIGINAL(0x00616910)
 __declspec(naked) inline void __fastcall HeroScreenDrawVoicesOriginal(void* /*screen*/) EI_ORIGINAL(0x00616560)
+// The trade panel (rewritten in ui_trade_panel.cpp; through their address so the wrappers run; ECX, plain RET):
+// 00625880 BuildLists, 006261A0 DrawLists, 00626D70 ClampScroll.
+__declspec(naked) inline void __fastcall TradePanelBuildListsOriginal(void* /*panel*/) EI_ORIGINAL(0x00625880)
+__declspec(naked) inline void __fastcall TradePanelDrawListsOriginal(void* /*panel*/) EI_ORIGINAL(0x006261A0)
+__declspec(naked) inline void __fastcall TradePanelClampScrollOriginal(void* /*panel*/) EI_ORIGINAL(0x00626D70)

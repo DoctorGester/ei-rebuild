@@ -214,3 +214,9 @@ __declspec(naked) inline void __fastcall ClientDestructBodyOriginal(CUnitClientS
 // wrappers run.
 __declspec(naked) inline void __fastcall UnitRemoveWeaponOriginal(void* /*unit*/, void*, int /*slot*/) EI_ORIGINAL(0x005310D0)
 __declspec(naked) inline void __fastcall UnitSendEquipmentOriginal(void* /*unit*/) EI_ORIGINAL(0x00531110)
+// 0051FE00: the skill database (007AF268) finds the skill level named `name` by _mbsicmp (thiscall, RET 4), or null.
+// 00526450 (rewritten as UnitStats::LearnSkill; through its address so the wrapper runs; RET 8).
+__declspec(naked) inline void* __fastcall SkillFindOriginal(void* /*database*/, void*, const void* /*name*/)
+    EI_ORIGINAL(0x0051FE00)
+__declspec(naked) inline void __fastcall StatsLearnSkillOriginal(void* /*stats*/, void*, void* /*database*/, void* /*record*/)
+    EI_ORIGINAL(0x00526450)

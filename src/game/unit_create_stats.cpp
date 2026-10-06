@@ -137,9 +137,11 @@ __declspec(naked) int __fastcall ResetStatsAt(UnitStats*) EI_ORIGINAL(0x005233E0
 __declspec(naked) void __fastcall AddScaledExperienceAt(UnitStats*, void*, float) EI_ORIGINAL(0x00523960)
 __declspec(naked) void* __fastcall RefillSlotsAt(UnitStats*) EI_ORIGINAL(0x00525AF0)
 // 0051FE00. Skill database: the skill named `name` by _mbsicmp, or null. Not rewritten.
-__declspec(naked) void* __fastcall FindSkill(void*, void*, const void*) EI_ORIGINAL(0x0051FE00)
+void* FindSkill(void* database, void*, const void* name) { return SkillFindOriginal(database, nullptr, name); }
 // 00526450. Statistics: learns `skill` of the skill database. Not rewritten.
-__declspec(naked) void __fastcall LearnSkillAt(UnitStats*, void*, void*, void*) EI_ORIGINAL(0x00526450)
+void LearnSkillAt(UnitStats* stats, void*, void* database, void* record) {
+    StatsLearnSkillOriginal(stats, nullptr, database, record);
+}
 // 00524CD0. Statistics: recomputes the current values at `scale`. Not rewritten.
 __declspec(naked) void __fastcall RecomputeAt(UnitStats*, void*, std::uint32_t) EI_ORIGINAL(0x00524CD0)
 // This file's functions through their addresses, so their verify wrappers stay in the path.
