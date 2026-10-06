@@ -284,3 +284,20 @@ heroes index the armour table 0073EC78 by the hit location without a range check
 00511830 / 005119B0 (the companion's light); 00498400 and 0051C9F0 moved to originals_effects.h / originals_units.h.
 Say's new queue entry has three padding bytes of stack garbage in the original (ours zero); StopSpeech frees the nodes
 through stlp::deallocate where the original pushes them on the 32-byte free list (0079B230) itself.
+
+A-U4 (2026-10-07):
+| Address | Name | File | Verify |
+|---|---|---|---|
+| 005179E0 | CObject3D::SetUpAnimatedFigure (part boxes, part names, bounds of an animated figure; zone loader, levers) | object3d_figure_setup.cpp | ours only: box / name counts, state's parts released, bounds recomputed from the boxes (CheckNear) |
+| 0053A8E0 | UnitDatabase::CountSoundFiles (model sound names lower-cased, "*.wav" files counted by prefix) | unit_sound_counts.cpp | ours, then the original recounts; counts compared |
+| 005316F0 | CUnit::CollectItems (items and their spells into two lists; armour spell refresh 005528F0) | unit_item_lists.cpp | output (scratch lists) |
+| 0052EB70 | CUnit::PackPrototypeStats (slot 34: fresh vitals / stats from the prototype, packed to +0x17C / +0x330) | unit_prototype_stats.cpp | differential (both packed blocks) |
+| 00516DA0 | CObject3D::MakeFigure (figure from the cache: whole for an animated object without names, slot 4; else from the piece names, slot 3; then LoadParts, bounds, flags_ 0x80) | object3d_figure_setup.cpp | ours only (result 1, name, flag 0x80 rule) |
+| 005190C0, 00519380, 0051A010, 0051A190 | CObject3D::RandomAnimation (variant bits, chance +0x1C narrowing, rand()), RandomAnimationOfKind; the candidate list's SetAtGrow / SetSize copies (registered with AlignedPtrArray's members) | object3d_animations.cpp | rand state saved: original vs ours (entry, generator after) / ours only |
+| 00517240, 00517110, 00519A10 | CObject3D::LoadPart (one part object, piece box, BASE / CROWN / EMPTY flags), LoadParts (model name + parts by name), AlignedPtrArray::Add | object3d_figure_setup.cpp | ours only (part listed, flag 4, pivot = position / result 1, name / index, size) |
+Inlined: 00519FC0 (zero part boxes), 0069FB60 (list AddTail pair), STLport vector<int>::resize (004FE0C0). Ghidra calls
+00700EFE MakeUpper; it is MakeLower (_mbslwr at 006EC8A8, misnamed _mbsupr). Shared forwarders added to
+originals_units.h (0050D7C0, 0050D320, 0050C990, 0050D0E0, 005AA5F0, 005AC010, 005AC2B0, 006B7110, 00517240).
+Kept: LoadPart returns null for a part the figure has no piece of without releasing the new part object (leak).
+Skipped: 0050E9B0 (CMapObject slot 34) packs vitals the builder never writes when the prototype exists (005136D0 returns
+before touching them without a stats block): uninitialised stack in the original, cannot be compared.

@@ -218,6 +218,17 @@ Not hooked: 0040ECD0 (camera file load, Rebirth-patched, `CameraPatch`), 0040C7E
   the 3DS readers at 004A0350-004A4800 and more found by scanning aligned starts after a RET. A
   rerun of `tools/find_dead_code.py` drops hand-added rows that only coincidental dwords keep alive.
 
+## MFC CString: Mid and Right (settled 2026-10-07)
+
+006FDA6D is `CString::Right(nCount)`: it clamps a negative count to 0, returns a copy when the count
+reaches the length, else `AllocCopy(dest, nCount, len - nCount, 0)` (pushes 0, len - n, n, &dest).
+006FD9B4 is `Mid(nFirst)`: it calls `Mid(nFirst, len - nFirst)` (006FD9D7). `mfc::CString::Mid(int)`
+was declared at 006FDA6D and is now `Right(int)`; every call site keeps its address (camera_object's
+`title.Right(4)`: 0040E9A0 calls 006FDA6D with 4; scene_loader, scene_material, script_parse,
+item_constructor, options, spell_text, world_game pass `len - k`, which Right turns into the same
+tail). Views with their own `Mid(int)` (console::Str, ...) still call 006FD9B4. config/library.csv
+had the two names swapped and is corrected.
+
 ## Open items
 
 - Library instantiations (config/library.csv, ~270 in 0x400000-0x440000) stay original and are

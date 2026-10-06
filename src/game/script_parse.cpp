@@ -406,7 +406,7 @@ void __fastcall ApplyDefines(mfc::CString* line, const ScriptDefineList* defines
             const StringOps& text = Ops(*line);
             int at = text.Find(node->data.name);
             if (at < 0) break;
-            mfc::CString right = static_cast<const mfc::CString&>(text).Mid(Length(*line) - Length(node->data.name) - at);
+            mfc::CString right = static_cast<const mfc::CString&>(text).Right(Length(*line) - Length(node->data.name) - at);
             mfc::CString left = text.Left(at);
             *line = (left + node->data.value) + right;
         }

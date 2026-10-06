@@ -481,6 +481,22 @@ void __fastcall BattleScreenUpdate(CBattleScreenSetup* self) { self->Update(); }
 } // namespace
 EI_REPLACE(0x00638280, BattleScreenUpdate);
 
+// --- 006381E0: the party ids compared --------------------------------------------------------------
+
+namespace {
+bool SameIds(const IdVector& a, const IdVector& b) {
+    if (a.end - a.begin != b.end - b.begin) return false;
+    for (const int *x = a.begin, *y = b.begin; x != a.end; ++x, ++y)
+        if (*x != *y) return false;
+    return true;
+}
+} // namespace
+
+bool CBattleScreenSetup::PartyIds::Equals(const PartyIds& other) const {
+    return SameIds(withUnit, other.withUnit) && SameIds(without, other.without);
+}
+EI_REPLACE_METHOD(0x006381E0, CBattleScreenSetup::PartyIds::Equals);
+
 // --- 00638B30: the battle screen's left button release -----------------------------------------
 
 namespace {

@@ -4,13 +4,17 @@
 #include "verify.h"
 
 #include "../../src/game/originals_ui.h"
+#include "../../src/game/party.h"
+#include "../../src/game/world.h"
 #include "../../src/game/ui_camp.h"
 #include "../../src/game/ui_item_info.h"
 #include "../../src/game/ui_screens.h"
 #include "../../src/game/unit.h"
+#include "../../src/lib/crt.h"
 
 #include <cmath>
 #include <cstdint>
+#include <string>
 
 namespace {
 void* s_unused;
@@ -156,3 +160,58 @@ static void __fastcall ShowHeroVerify(CMpHeroScreen* self, void*, int index) {
                       "index %d -> %d", index, self->heroIndex_);
 }
 EI_VERIFY(0x00616910, ShowHeroVerify, 0, s_unused);
+
+// 00616E20, ours only (it hands records to the client world, draws a random number and restarts
+// the figure's animation): the local player has a record, and the preview is the client unit with
+// that record's id (the original's own lookup 00578980). Reached by ShowHero (ui_hero_screen).
+static void __fastcall MakePreviewVerify(CMpHeroScreen* self, void*, int flag) {
+    self->MakePreview(flag);
+    auto* player = reinterpret_cast<CParty*>(LocalPlayerData());
+    bool ok = player->members_.size > 0;
+    void* unit = ok ? GameUnitByIdOriginal(reinterpret_cast<void*>(0x007AFEA5), nullptr, player->members_.data->unknown_01C)
+                    : nullptr;
+    ei::verify::Check("CMpHeroScreen::MakePreview", true, ok && unit == self->previewModel_, "members %d, preview %p, unit %p",
+                      player->members_.size, static_cast<void*>(self->previewModel_), unit);
+}
+EI_VERIFY(0x00616E20, MakePreviewVerify, 0, s_unused);
+
+// 00616AC0 (slot 52), ours only (it rebuilds the party): one record of the prototype (text 5) with
+// the attributes and height the mode asks for (25 / 0.7 on the hero list, else the old record's),
+// text_ the prototype, each figure strip's selection its index in that strip's list (or -1), the
+// voice list of the strip that lists it from row 0, the equipment fields the record's first
+// entries. ui_hero_screen (a new hero: the first default figure; the figure rows).
+static void __fastcall ChooseFigureVerify(CMpHeroScreen* self, void*, const char* prototype) {
+    auto* player = reinterpret_cast<CParty*>(LocalPlayerData());
+    float kept[4] = {25.0f, 25.0f, 25.0f, 0.7f};
+    if (player->members_.size > 0 && self->mode_ != 9) {
+        const auto* stats = reinterpret_cast<const UnitStats*>(player->members_.data->stats);
+        kept[0] = stats->stat10;
+        kept[1] = stats->stat18;
+        kept[2] = stats->stat20;
+        kept[3] = player->members_.data->height;
+    }
+    std::string name = prototype;   // the caller's string may be text_ itself
+    self->ChooseFigure(prototype);
+    auto indexIn = [&](const char* const* begin, const char* const* end) {
+        int i = 0;
+        for (const char* const* e = begin; e != end; ++e, ++i)
+            if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(*e), reinterpret_cast<const unsigned char*>(name.c_str())) == 0)
+                return i;
+        return -1;
+    };
+    int first = indexIn(reinterpret_cast<const char* const*>(self->defaults_), reinterpret_cast<const char* const*>(self->defaultsEnd_));
+    int second = indexIn(self->names_.begin, self->names_.end);
+    PartyUnitRecord* hero = player->members_.data;
+    const auto* stats = reinterpret_cast<const UnitStats*>(hero->stats);
+    bool ok = player->members_.size == 1 && name == static_cast<const char*>(hero->texts[5]) && name == self->text_ &&
+              self->figureStrips_[0]->selected_ == first && self->figureStrips_[1]->selected_ == second &&
+              self->voices_ == reinterpret_cast<char**>(&self->voiceLists_[second >= 0 ? 1 : 0]) && self->voiceIndex_ == 0 &&
+              self->voiceTop_ == 0 && stats->stat10 == kept[0] && stats->stat10Base == kept[0] && stats->stat18 == kept[1] &&
+              stats->stat20Base == kept[2] && hero->height == kept[3] &&
+              self->weapon_ == (hero->weaponCount ? reinterpret_cast<char*>(hero->weapons[0]) : nullptr) &&
+              self->spellContainer_ == (hero->spellCount ? reinterpret_cast<char*>(hero->spells[0]) : nullptr);
+    ei::verify::Check("CMpHeroScreen::ChooseFigure", true, ok, "%s: members %d, strips %d / %d (expected %d / %d), mode %d",
+                      name.c_str(), player->members_.size, self->figureStrips_[0]->selected_, self->figureStrips_[1]->selected_,
+                      first, second, self->mode_);
+}
+EI_VERIFY(0x00616AC0, ChooseFigureVerify, 0, s_unused);

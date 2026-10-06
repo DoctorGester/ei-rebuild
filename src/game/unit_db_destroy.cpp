@@ -247,7 +247,7 @@ void DestroyStringsAndFree(CStringVector* v) {
 // vectors +0xF8 / +0xEC, the CString +0xE8, the six slots (their level names, through the CRT's
 // vector destructor iterator) and the name.
 void __fastcall DestroyModelRecord(UnitModelRecord* record) {
-    auto* counts = reinterpret_cast<RawVector*>(record->unknown_144);
+    auto* counts = reinterpret_cast<RawVector*>(&record->soundCounts);
     if (counts->begin) stlp::deallocate(counts->begin, static_cast<std::size_t>((static_cast<int>(counts->eos - counts->begin) >> 2) * 4));
     DestroyStringsAndFree(&record->soundNames);
     DestroyString(&record->soundFolder);

@@ -5,7 +5,10 @@
 #include "ui_camp.h"
 #include "ui_item_info.h"
 
+#include "core_maths.h"
 #include "item_db_text.h"
+#include "map_object_figures.h"
+#include "random.h"
 #include "unit.h"
 #include "world.h"
 
@@ -353,6 +356,54 @@ namespace {
 void __fastcall HeroScreenDrawVoices(CMpHeroScreen* self) { self->DrawVoices(); }
 } // namespace
 EI_REPLACE(0x00616560, HeroScreenDrawVoices);
+
+// --- 00616E20: the preview's unit -------------------------------------------------------------
+
+namespace {
+const char* const kHeroName = reinterpret_cast<const char*>(0x0078B0F4);         // "Hero"
+const char* const kHumanHero = reinterpret_cast<const char*>(0x0078B0FC);        // "Human Hero"
+const char* const kEmptyText = reinterpret_cast<const char*>(0x0079B298);        // ""
+constexpr int kPreviewAnimation = 0x21;      // the skill animation the preview plays
+} // namespace
+
+void CMpHeroScreen::MakePreview(int flag) {
+    previewModel_ = nullptr;
+    RecordArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
+    auto* player = reinterpret_cast<CParty*>(LocalPlayerData());
+    if (player->members_.size == 0) {
+        player->Clear(1, 0);
+        player->AddMember(kHeroName, kHumanHero, kEmptyText);
+    }
+    PartyUnitRecord* first = player->members_.data;
+    int size = records.size;
+    RecordArraySetSizeOriginal(&records, nullptr, size + 1, -1);
+    records.data[size] = reinterpret_cast<std::uint8_t*>(first);
+    GameTakeUnitRecordsFlagOriginal(ClientGlue(), nullptr, &records, flag);
+    auto* unit = static_cast<CUnit*>(GameUnitByIdOriginal(ClientGlue(), nullptr, player->members_.data->unknown_01C));
+    unit->SetPrototype23C(unit->GetPrototype());
+    previewModel_ = reinterpret_cast<std::uint8_t*>(unit);
+    if (unit) {
+        FigureAnimation* animation = reinterpret_cast<CObject3D*>(unit)->FindSkillAnimation(kPreviewAnimation);
+        if (animation) {
+            std::uint32_t random = IsaacRandom::Global().Next();
+            double frames = x87::FromUnsigned(gameapi::timeGetTime()) * 0.0009765625f * 15.0f;
+            int start = static_cast<int>(frames - static_cast<int>(random % 51));
+            unit->SetUnknown254(-1, static_cast<std::int8_t>(animation->index), start, 0);
+        }
+        CUnitController* controller = unit->Controller();
+        controller->ShowWeapon(0xFFFFFFFF);
+        controller->RefreshModel();
+        double now = x87::FromUnsigned(gameapi::timeGetTime()) * 0.0009765625f * 15.0f;
+        controller->RestartAnimation(StoreFloat(static_cast<float>(now - 1.0f)));
+        unit->SetFromStats(reinterpret_cast<UnitStats*>(player->members_.data->stats));
+        unit->Controller()->Slot31();
+    }
+    if (records.data) gamecrt::operator_delete(records.data);
+}
+namespace {
+void __fastcall HeroScreenMakePreview(CMpHeroScreen* self, void*, int flag) { self->MakePreview(flag); }
+} // namespace
+EI_REPLACE(0x00616E20, HeroScreenMakePreview);
 
 // --- 00616910: a hero shown -------------------------------------------------------------------
 

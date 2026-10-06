@@ -538,7 +538,7 @@ CItem* CItemManager::CreateItem(const char* name) {
     console::CStringArray parts;      // the name split at '.'
     int bracket = AsText(text).Find('[');
     if (bracket != -1) {
-        extra = AsText(text).Mid(console::Length(text) - bracket - 1);
+        extra = AsText(text).Right(console::Length(text) - bracket - 1);
         console::Ops(extra).TrimLeft('[');
         console::Ops(extra).TrimRight(']');
         AsText(extra).TrimSpaceLeft();
