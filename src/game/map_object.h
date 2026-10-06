@@ -269,7 +269,7 @@ public:
     virtual void Slot45() = 0;
     virtual void Slot46() = 0;
     virtual void Slot47() = 0;
-    virtual void Slot48() = 0;
+    virtual Vector3* EyePoint(Vector3* out) = 0;        // 48 (0xC0): where the object sees from; returns `out`
     virtual void Slot49() = 0;
     virtual void Slot50() = 0;
     virtual void Slot51() = 0;

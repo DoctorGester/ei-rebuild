@@ -27,7 +27,7 @@ static void __fastcall CurrentAttackVerify(std::uint8_t* attention, void*, AIBra
     ei::verify::Check("AIBrain::CurrentAttack part", theirs[0], partAndObject[0], "brain %p action %d", brain, brain->action);
     ei::verify::Check("AIBrain::CurrentAttack object", theirs[1], partAndObject[1], "brain %p action %d", brain,
                       brain->action);
-    ei::verify::Check("AIBrain::CurrentAttack this", static_cast<void*>(brain->attention), static_cast<void*>(attention),
+    ei::verify::Check("AIBrain::CurrentAttack this", static_cast<void*>(&brain->attention), static_cast<void*>(attention),
                       "brain %p", brain);
 }
 EI_VERIFY(0x005CF220, CurrentAttackVerify, 5, s_currentAttack);
@@ -36,7 +36,7 @@ EI_VERIFY(0x005CF220, CurrentAttackVerify, 5, s_currentAttack);
 // or cast action has a target; `this` is the brain's +0xA4.
 static void __fastcall LookAroundVerify(std::uint8_t* attention, void*, AIBrain* brain, int unused) {
     brain->LookAround(unused);
-    bool ok = attention == brain->attention &&
+    bool ok = attention == reinterpret_cast<std::uint8_t*>(&brain->attention) &&
               !((brain->action == AIBrain::kActionAttack) && brain->target == nullptr);
     ei::verify::Check("AIBrain::LookAround", true, ok, "brain %p action %d target %p", brain, brain->action, brain->target);
 }

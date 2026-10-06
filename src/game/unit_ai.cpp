@@ -119,6 +119,8 @@ __declspec(naked) bool UnitController::CanCast(int) EI_ORIGINAL(0x0054B820)
 __declspec(naked) void UnitController::Cast(int, CEngineObject*, int) EI_ORIGINAL(0x00554F50)
 __declspec(naked) void UnitController::Attack(CEngineObject*, int, int, int) EI_ORIGINAL(0x00554B30)
 bool UnitController::CheckOrder(const void* a0) { return UnitCheckOrderOriginal((void*)this, nullptr, a0); }
+__declspec(naked) bool UnitController::CheckOrderAt(const AIOrder*, const Vector3*) EI_ORIGINAL(0x0054C960)
+__declspec(naked) bool AIAttention::CanReach(AIBrain*, const int*, int) EI_ORIGINAL(0x005CF3C0)
 __declspec(naked) void UnitController::CastAt(int, const Vector3*, int) EI_ORIGINAL(0x00554D00)
 __declspec(naked) void UnitController::TurnTo(const Vector3*, int, int, float) EI_ORIGINAL(0x00554830)
 __declspec(naked) void UnitController::UseOnPoint(CEngineObject*, int, int) EI_ORIGINAL(0x00555570)
@@ -145,12 +147,10 @@ struct AIMemory {
 __declspec(naked) void AIMemory::Update(UnitController*) EI_ORIGINAL(0x005CB700)
 __declspec(naked) void AIMemory::Forget(CEngineObject*) EI_ORIGINAL(0x005CC020)
 
-// The brain's attention at +0xA4.
-struct AIAttention {
-    void Choose(AIBrain* brain, int* partAndObject, void* candidates, const Vector3* from, int a, int b); // 005D0030
-};
-__declspec(naked) void AIAttention::Choose(AIBrain*, int*, void*, const Vector3*, int, int) EI_ORIGINAL(0x005D0030)
-AIAttention* AttentionOf(AIBrain* brain) { return reinterpret_cast<AIAttention*>(reinterpret_cast<char*>(brain) + 0xA4); }
+// 005D0030 (AIAttention::Choose, unit_ai_targets.cpp) through its address, so its verify wrapper
+// sees the modes' calls.
+__declspec(naked) void __fastcall ChooseThroughAddress(AIAttention*, void*, AIBrain*, int*, void*, const Vector3*, int, int)
+    EI_ORIGINAL(0x005D0030)
 
 struct AIMemoryLists {
     void CollectEnemies(CUnit* self, void* list);       // 005CB260
@@ -170,7 +170,7 @@ void AIBrain::Report(CEngineObject* object, int what) { reports.Add(object, what
 AIRef* AIBrain::PopCorpse(AIRef* out) { return reinterpret_cast<AICorpses*>(&corpses)->PopHead(out); }
 bool AIBrain::IsReported(CEngineObject* object) { return reports.Contains(object); }
 void AIBrain::ChooseTarget(int* partAndObject, void* candidates, const Vector3* from, int a, int b) {
-    AttentionOf(this)->Choose(this, partAndObject, candidates, from, a, b);
+    ChooseThroughAddress(&attention, nullptr, this, partAndObject, candidates, from, a, b);
 }
 void AIBrain::CollectEnemies(CUnit* self, void* list) {
     reinterpret_cast<AIMemoryLists*>(memory)->CollectEnemies(self, list);
