@@ -45,8 +45,6 @@ __declspec(naked) int __cdecl GameFtol(double) {
 __declspec(naked) int __fastcall PlaySoundAt(CInterface3D*, void*, const char*, int) EI_ORIGINAL(0x005F7E60)
 __declspec(naked) void __fastcall LeaveGameAt(void*) EI_ORIGINAL(0x00581660)
 // 005F7C80 / 005F7C60: the chat line (when it is not open: 005E3930 / 005E36C0).
-__declspec(naked) void __fastcall ChatKeyBackspace(CInterface3D*) EI_ORIGINAL(0x005F7C80)
-__declspec(naked) void __fastcall ChatKeyEnter(CInterface3D*) EI_ORIGINAL(0x005F7C60)
 // 0041E3E0: the client cancels the running exchange (+0x260C).
 __declspec(naked) void __fastcall CancelExchange(void*) EI_ORIGINAL(0x0041E3E0)
 // 005FC730: a region's tooltip (text "tip_<id>").
@@ -717,11 +715,11 @@ void CExchangeScreen::OnKeyDown(int key, int repeat, int flags) {
     if (UiHandled(this)) return;
     switch (key) {
     case VK_BACK:
-        ChatKeyBackspace(window.interface_);
+        ChatKeyBackspaceOriginal(window.interface_);
         UiHandled(this) = true;
         break;
     case VK_RETURN:
-        ChatKeyEnter(window.interface_);
+        ChatKeyEnterOriginal(window.interface_);
         UiHandled(this) = true;
         break;
     case VK_ESCAPE:

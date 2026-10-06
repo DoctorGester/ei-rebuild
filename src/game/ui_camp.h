@@ -614,6 +614,26 @@ public:
     // flag's low byte, the heroes array (vtable 007402AC), the page titles' CStringArray; the
     // camp's vtables 0074091C / 007408E8. Returns this.
     CCampPages* Construct(CInterface3D* ui, int fromHeroScreen);
+    // Input side (ui_camp_input.cpp; `this` the window). 0060F470 (slot 2, RET 0xC): the
+    // container's handler first; region 0 / 1 work out the action (UpdateAction) and carry out
+    // the first (00611220, when actionEnabled_) or second (00611760, when actionShown_) button's
+    // deal; on the equipment page regions 2 / 3 turn the hero (turning_ 1 / 2, the move sound,
+    // the mouse taken); regions 4-11 show page region - 4 unless shown.
+    void OnLButtonDown(int buttons, int x, int y);
+    // 0060F5B0 (slot 3, RET 0xC): the container's handler, the mouse let go when this took it,
+    // turning_ 0.
+    void OnLButtonUp(int buttons, int x, int y);
+    // 0060F600 (slot 9, RET 0xC): Esc shows page 7 (leaves); on a network client Backspace and
+    // Enter go to the chat line; those mark the key used, other keys go to the container.
+    void OnKeyDown(int key, int repeat, int flags);
+    // 0060E900 (slot 27, RET 4). The answer 0x10001 takes the shown hero's first weapon back into
+    // the party's items (00661DB0 with 0, 1; the hero's entry removed, 00660A50), no weapon
+    // chosen (+0x774 -1), the item strip scrolled to it (00621570) and the hero re-armed (slot 46).
+    void OnMessageResult(int result);
+    // 0060E980 (slot 41). The help topic of the page: "camp_weapons", "camp_skills",
+    // "camp_spell_trade", "camp_spell_constr", "camp_item_trade", "camp_item_constr",
+    // "camp_repair"; none for other pages.
+    const char* HelpTopic();
 
     std::uint8_t unknown_148[0x164 - 0x148];
     CUiWindow* descPanel_;           // +0x164 the description panel (vtable 007404DC)
@@ -659,9 +679,10 @@ public:
     bool noConstructor_;             // +0x254 the player's "i.noconstr" = 1: second pages hidden
     std::uint8_t unknown_255[0x258 - 0x255];
     std::uint32_t heroTurn_;         // +0x258 passed to the hero preview (005EC300)
-    std::uint8_t unknown_25C[0x260 - 0x25C];
+    int turning_;                    // +0x25C 1 / 2 while a turn button is held (Update turns the hero)
 };
 static_assert(offsetof(CCampPages, page_) == 0x190);
+static_assert(offsetof(CCampPages, turning_) == 0x25C);
 static_assert(offsetof(CCampPages, hero_) == 0x1B0);
 static_assert(offsetof(CCampPages, spellResults_) == 0x1D4);
 static_assert(offsetof(CCampPages, statsPanel_) == 0x1D8);
