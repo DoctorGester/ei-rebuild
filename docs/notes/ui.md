@@ -214,6 +214,7 @@ harness steps `clickregion` / `moveregion`). The harness's `newgame` bypasses th
 | 00634790, 006337B0, 0062B7D0 | `CMessageBox::Build`, `CDifficultyBox::Build`, `CCreditsScreen::Build` (slot 25) | ours only: surface / sprite / region counts, the edit field as a child with flag 4; easy_ 0; +2 surfaces kept in +0x164 / +0x168, the script's lines appended |
 | 0062AB20, 0062AE90 | `CEscMenu::Build` (slot 25), `OnLButtonDown` | ours: one model and five regions added; the window opened on top (vtable, save flag), resume's pending value |
 | 0062AD10, 0062B300, 0062ACC0 | `CEscMenu::OnMouseMove`, `OnKeyDown`, `OnMessageResult` (slot 27) | ours: hovered region; Esc sets handled and pending value 0; pending value / leave-game flag |
+| 00634D20, 00634E60, 00633DD0, 00633EC0 | `CMessageBox::OnLButtonDown` / `OnKeyDown`, `CDifficultyBox::OnLButtonDown` / `OnKeyDown` (`ui_message_box.cpp`; `verify_ui_message_box.cpp`; scenario ui_main_menu) | answers ours only: result_ \| (region + 1) pending, the edit text copied, the difficulty; the check boxes (regions 2 / 3) side by side; the exit question's OK (movie, quit) unchecked |
 | 0062BFE0, 0062C010, 0062D090 | `CCreditsScreen::OnLButtonDown` / `OnKeyDown`, `CExchangeScreen::OnKeyDown` | ours: closed (pending 0xCCCCCCCC or the leave-game flag); handled for Backspace / Enter / Esc |
 
 Quirks kept: the Esc menu click stores the save / options flags through the new window without checking the allocation and

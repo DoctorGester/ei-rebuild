@@ -53,7 +53,7 @@ CMessageBox* CMessageBox::Construct(CInterface3D* ui, const char* titleKey, cons
     texts->GetString(titleKey, &text);
     AsString(&title_) = text;
     if (flags_ & kEditField) {
-        editText_ = textKey;
+        editText_ = const_cast<char*>(textKey);   // the caller's buffer: OK copies the answer into it
     } else {
         editText_ = nullptr;
         texts->GetString(textKey, &text);

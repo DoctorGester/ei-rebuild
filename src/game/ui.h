@@ -1688,6 +1688,17 @@ static_assert(offsetof(COptionsWindow, waitingForKey_) == 0x3F4);
 static_assert(offsetof(COptionsWindow, slide_) == 0x3F8);
 static_assert(sizeof(COptionsWindow) == 0x418);
 
+// The message box's edit field (constructor 0065C010: interface, RECT; vtables 00742DF4 / 00742DC0,
+// 0x17C bytes; text set by 0065C290).
+class CUiEditField : public CUiWindow {
+public:
+    std::uint8_t unknown_148[0x170 - 0x148];
+    const char* text_;               // +0x170 CString: the text typed
+    std::uint8_t unknown_174[0x17C - 0x174];
+};
+static_assert(offsetof(CUiEditField, text_) == 0x170);
+static_assert(sizeof(CUiEditField) == 0x17C);
+
 // The message box (constructor 00634650: interface, title and text keys, result, flags, format;
 // vtables 00742348 / 00742314, 0x180 bytes; the new game's difficulty question 0074225C is built
 // on it with its own Create 006337B0). Flags: 1 an OK button, 2 with 1 also a cancel button (neither: one
@@ -1705,14 +1716,25 @@ public:
     // block, the dark shade and frame behind it and the buttons below (regions with tips
     // 0xC3B4 OK / 0xC3B5 cancel).
     void Build();
+    // 00634D20 (input side slot 2, RET 0xC; ui_message_box.cpp). The container's handler first;
+    // then region 0 (OK): for the exit question (result_ 0xFFFF0000) the exit movie and the game
+    // quits; otherwise the OK sound and, with the edit field, its text copied into editText_;
+    // region 1 the cancel sound; any region n >= 0 then leaves result_ | (n + 1) pending.
+    void OnLButtonDown(int buttons, int x, int y);
+    // 00634E60 (input side slot 9, RET 0xC). The container's handler first; unless a child used
+    // the key, Enter answers as region 0 (the edit text copied before the sound) and Esc as
+    // region 1, and the key is marked used.
+    void OnKeyDown(int key, int repeat, int flags);
+    // The OK answer's edit text into editText_ (the caller's buffer).
+    void CopyEditText();
 
     const char* title_;              // +0x164 CString (text of the title key)
     const char* text_;               // +0x168 CString (text of the text key)
     std::uint32_t result_;           // +0x16C 0xFFFF0000: the text in font 1, else 2
     std::uint32_t flags_;            // +0x170
     std::uint32_t format_;           // +0x174 added to the text's DrawText format
-    CUiWindow* edit_;                // +0x178 the edit field (flag 4)
-    const char* editText_;           // +0x17C
+    CUiEditField* edit_;             // +0x178 the edit field (flag 4)
+    char* editText_;                 // +0x17C the edit field's first text; OK copies the typed one here
 };
 static_assert(offsetof(CMessageBox, title_) == 0x164);
 static_assert(offsetof(CMessageBox, edit_) == 0x178);
@@ -1720,10 +1742,23 @@ static_assert(sizeof(CMessageBox) == 0x180);
 
 // The new game's difficulty question (vtables 0074225C / 00742228, 0x184 bytes; the main menu's
 // region 0): a message box ("option_difficulty", OK and cancel) with two check boxes. Its button
-// handler 00633DD0 (not rewritten) sets easy_ from the boxes (regions 2 / 3) and copies it to
-// 0079BEC0 on OK.
+// handler sets easy_ from the boxes (regions 2 / 3) and copies it to GameDifficulty() on OK.
 class CDifficultyBox : public CMessageBox {
 public:
+    // 00633DD0 (input side slot 2, RET 0xC; ui_message_box.cpp; no container handler). Region 0
+    // OK: easy_ to GameDifficulty(), the OK sound, result_ | 1 pending; 1 cancel: the cancel
+    // sound, result_ | 2; 2 / 3 check easy / hard (the checked box's sprite shows the texture
+    // shifted by kCheckedOffset, the other unshifted).
+    void OnLButtonDown(int buttons, int x, int y);
+    // 00633EC0 (input side slot 9, RET 0xC). The container's handler first; unless a child used
+    // the key, Enter answers as OK and Esc as cancel, and the key is marked used.
+    void OnKeyDown(int key, int repeat, int flags);
+    // The check boxes: the first two sprites (Build adds them first).
+    CUiMesh* EasyBox() const { return reinterpret_cast<CUiMesh*>(sceneObjects_.data_[0]); }
+    CUiMesh* HardBox() const { return reinterpret_cast<CUiMesh*>(sceneObjects_.data_[1]); }
+    // The texture shift of a checked box (0xBDB80000).
+    static constexpr float kCheckedOffset = -0.08984375f;
+
     // 006337B0 (slot 25, ui_layouts.cpp). Builds the box: the "saveload" textures, a surface over
     // 200..600 x 100..500 with the title, the "tip option_difficulty" text and the
     // "difficulty_easy" / "difficulty_hard" labels; the check boxes beside them (hard checked),
@@ -1735,3 +1770,6 @@ public:
 };
 static_assert(offsetof(CDifficultyBox, easy_) == 0x180);
 static_assert(sizeof(CDifficultyBox) == 0x184);
+
+// 0079BEC0: the game's difficulty (1 easy, 0 hard; combat reads it).
+inline int& GameDifficulty() { return *reinterpret_cast<int*>(0x0079BEC0); }
