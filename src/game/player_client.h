@@ -47,6 +47,16 @@ public:
     int OnZoneChange();
     // 00669F40 (0x0D). The music system (*007AF760) plays a jingle (name).
     int OnJingle();
+    // 00669010 (0x02). The zone: the player cleared (00665200), then the client world loads the
+    // block read from the stream (00567AB0, Rebirth-patched). 0 when the block cannot be read.
+    int OnZone();
+    // 006690F0 / 006691C0 (0x03 / 0x05). A block for the client world's 00567A60 / 00567950.
+    // 0 when it cannot be read.
+    int OnWorldBlock3();
+    int OnWorldBlock5();
+    // 00669290 (0x0A). The player drops an item (id); the quest log is refreshed with an empty
+    // list.
+    int OnItemRemoved();
 
     CPlayer* Owner() const { return reinterpret_cast<CPlayer*>(player_); }
 

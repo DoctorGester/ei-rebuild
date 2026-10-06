@@ -64,6 +64,8 @@ __declspec(naked) inline void __fastcall PlayerStateRefreshOriginal(void* /*stat
 __declspec(naked) inline void __fastcall PlayerResendPartyOriginal(void* /*state*/) EI_ORIGINAL(0x0066F450)
 // 00664B70 (RET 4): formats a message error ("... prevID=%x curID=%x") with the previous and the current message
 // type (bytes) and raises the fatal error 00480080; returns its result.
+// 00665870 (RET 4): the player drops the item with this id from its item list.
+__declspec(naked) inline void __fastcall PlayerRemoveItemOriginal(void* /*player*/, void*, int /*id*/) EI_ORIGINAL(0x00665870)
 __declspec(naked) inline int __fastcall PlayerMessageErrorOriginal(const char* /*format*/, int /*previous*/, int /*type*/)
     EI_ORIGINAL(0x00664B70)
 

@@ -114,6 +114,9 @@ Client handlers: 00667D80 ReadText (side by side, stream restored), 00669850 0x8
 reads back as sent), 00669960 0x82 delete variable, 00669EB0 0x08 zone change (GameFlow::RequestZoneChange), 00669F40
 0x0D jingle (CMusicSystem::PlayJingle): ours only, result 1 and the stream moved. The quest-variable notifications
 005F7FC0 / 00565380 moved to originals_world.h (shared with world_briefing.cpp).
+00669010 0x02 zone (player cleared, client world 00567AB0, Rebirth-patched, through its address), 006690F0 / 006691C0
+0x03 / 0x05 world blocks (00567A60 / 00567950), 00669290 0x0A item removed (00665870, then the quest log 005F7F30 with an
+empty CPtrList, vtable 0073BE80): ours only (result, stream moved). 00665870 moved to originals_gameplay.h.
 SendItems calls SendObject14 directly (the original goes through slot 22 of 00743280, which is it). PartyRecords
 moved to party_record_lookup.h (unit.h declares a second one).
 

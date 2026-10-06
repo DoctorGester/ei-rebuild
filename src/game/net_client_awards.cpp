@@ -31,7 +31,7 @@ __declspec(naked) void** __fastcall TimersErase(void* /*list*/, void*, void** /*
 // The world (0x7AFF60) and its players (outside this range).
 __declspec(naked) void __fastcall AwardExperience(void* /*world*/, void*, void* /*player*/, std::uint32_t /*amount bits*/) EI_ORIGINAL(0x005911C0)
 void __fastcall PlayerGiveItems(void* a0, void*, ObjectList* a2, int a3) { PlayerGiveItemsOriginal(a0, nullptr, (void*)a2, a3); }
-__declspec(naked) void __fastcall PlayerRemoveItem(void* /*player*/, void*, int /*index*/) EI_ORIGINAL(0x00665870)
+void __fastcall PlayerRemoveItem(void* player, void*, int index) { PlayerRemoveItemOriginal(player, nullptr, index); }
 __declspec(naked) CEngineObject* __fastcall ManagerCreateItem(void* /*manager*/, void*, const char* /*name*/) EI_ORIGINAL(0x006AC970)
 // MFC list helpers instantiated in the exe: the counted list's NewNode and element assignment,
 // RemoveAll of both list kinds.

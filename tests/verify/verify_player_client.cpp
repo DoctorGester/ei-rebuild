@@ -104,8 +104,34 @@ int __fastcall JingleVerify(CPlayerClient* self) {
     return CheckHandler("CPlayerClient::OnJingle", self, [&] { return self->OnJingle(); });
 }
 
+// The block readers (the world loads them; ours only): 1 and the stream moved, or 0.
+template <typename Handler>
+int CheckBlock(const char* label, CPlayerClient* self, Handler handler) {
+    std::uint32_t position = self->in_.position_;
+    int result = handler();
+    ei::verify::Check(label, true, result == 0 || (result == 1 && self->in_.position_ > position), "client %p: %d", self,
+                      result);
+    return result;
+}
+int __fastcall ZoneVerify(CPlayerClient* self) {
+    return CheckBlock("CPlayerClient::OnZone", self, [&] { return self->OnZone(); });
+}
+int __fastcall WorldBlock3Verify(CPlayerClient* self) {
+    return CheckBlock("CPlayerClient::OnWorldBlock3", self, [&] { return self->OnWorldBlock3(); });
+}
+int __fastcall WorldBlock5Verify(CPlayerClient* self) {
+    return CheckBlock("CPlayerClient::OnWorldBlock5", self, [&] { return self->OnWorldBlock5(); });
+}
+int __fastcall ItemRemovedVerify(CPlayerClient* self) {
+    return CheckHandler("CPlayerClient::OnItemRemoved", self, [&] { return self->OnItemRemoved(); });
+}
+
 } // namespace
 
+EI_VERIFY(0x00669010, ZoneVerify, 0, s_unused);
+EI_VERIFY(0x006690F0, WorldBlock3Verify, 0, s_unused);
+EI_VERIFY(0x006691C0, WorldBlock5Verify, 0, s_unused);
+EI_VERIFY(0x00669290, ItemRemovedVerify, 0, s_unused);
 EI_VERIFY(0x00667D80, ReadTextVerify, 6, s_readText);
 EI_VERIFY(0x00669850, SetVariableVerify, 0, s_unused);
 EI_VERIFY(0x00669960, DeleteVariableVerify, 0, s_unused);
