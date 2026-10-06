@@ -76,7 +76,6 @@ __declspec(naked) void __fastcall MapObjectDestroy(void*) EI_ORIGINAL(0x0050E840
 inline void __fastcall SetParticleCount(void* a0, void*, int a2, int a3) { CompanionParticlesSetSizeOriginal(a0, nullptr, a2, a3); }
 // 006CA720. Light manager: removes a light.
 // 00511FB0. The light list (007AF748 + 0xD4): erases the entries with id *id.
-__declspec(naked) void __fastcall EraseLightId(void*, void*, const int*) EI_ORIGINAL(0x00511FB0)
 // 00511B90. A counted reference: assign.
 void __fastcall AssignReference(CEngineObject** a0, void*, CEngineObject* a2) { CountedRefStoreOriginal((void*)a0, nullptr, (void*)a2); }
 // The server unit controller's members (00546230).
@@ -423,7 +422,7 @@ void CMapObjectClientSpecific::DestructBody() {
             }
         }
         int id = light->id_;
-        EraseLightId(*reinterpret_cast<char**>(0x007AF748) + 0xD4, nullptr, &id);
+        LightIdsRemoveOriginal(*reinterpret_cast<char**>(0x007AF748) + 0xD4, nullptr, &id);
         AssignReference(&light, nullptr, nullptr);
     }
     SetDword(this, 0x1C, 0);

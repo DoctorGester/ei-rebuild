@@ -194,12 +194,19 @@ public:
     virtual void Slot36();
     virtual void Slot37();
     virtual void HostileMaskChanged();      // 38: server 00552CD0 (the brain), base empty (00533CA0)
+    virtual void Slot39();
+    virtual void AdvanceTime(float time);   // 40: client 00535B30
 };
 
 class CUnit : public CEngineObject {
 public:
     // 0050E930. Called when the unit leaves the sector map; not rewritten (sector_map.cpp).
     void OnLeftSectorMap();
+
+    // unit_vision.cpp (A-U3). 0052FC40, virtual slot 25: the world time moved on to `time`. The
+    // controller's slot 40 runs; a text-key (party) unit then marks its sight on the client world
+    // (0056D740): its VisionRange at the world's daylight (0055FC50), around its position.
+    void AdvanceUnitTime(float time);
 
     // 0050E9F0. Records that part `part` (0..15; negative: none) of the object changed, marks it
     // dirty (flags_ bit 1) and stamps it with the world's change counter. Returns what the original
@@ -656,7 +663,8 @@ struct UnitParams {
     std::uint8_t damageSpread;      // +0x1E (truncated)
     std::uint8_t naturalWeapon;     // +0x1F
     std::int16_t unknown_20;        // +0x20 7 after Reset
-    std::uint8_t valuesB0[6];       // +0x22 UnitStats::valuesB0[i].current
+    std::uint8_t valuesB0[6];       // +0x22 UnitStats::valuesB0[i].current ([0] / [1]: the sight range by night / the
+                                    //       percentage of it by day, VisionRange)
     std::uint8_t valuesE0[6];       // +0x28 UnitStats::valuesE0[i].current
     std::uint8_t unknown_2E[2];
     UnitParamsSlot slots[6];        // +0x30
@@ -664,6 +672,10 @@ struct UnitParams {
     std::uint8_t skills[8];         // +0xDB
     std::uint8_t skillLevels[0x24]; // +0xE3
     std::uint8_t flags;             // +0x107 (UnitStats::flags, low byte)
+
+    // unit_vision.cpp (A-U3). 005271E0 (RET 4): the sight range at `daylight` (0 night .. 1 day):
+    // valuesB0[0] x ((1 - daylight) + valuesB0[1] x daylight x 0.01). ST0, unrounded.
+    double VisionRange(float daylight);
 };
 static_assert(offsetof(UnitParams, attackRate) == 0x0E);
 static_assert(offsetof(UnitParams, combat) == 0x18);
@@ -1169,6 +1181,23 @@ public:
     // 005112A0. One sound record per effect type: a new type plays its "<sound>\start.wav", a
     // vanished one its "<sound>\end.wav" (unless the object is dead) and is removed.
     void UpdateEffectSounds(bool first);
+    // 00511830 (RET 0xC). A new point light (the light factory's class 0x31) of `colour` (rgb of an
+    // rgba) and `radius`, 2 above the object, replaces the light (the old one hidden first); flags_
+    // 0x580 (0x40 more with `flag`), then shown.
+    void CreateLight(const float* colour, float radius, bool flag);
+    // 00511950. A hidden light (flags_ 0x80) that is not held (0x200) is shown: the light manager
+    // adds it and a unit's client half lights its figure.
+    void ShowLight();
+    // 005119B0. A shown light not held is hidden: the light manager drops it and the client half
+    // unlights the figure.
+    void HideLight();
+    // 00511A00 (RET 4), virtual slot 19. Mode 1: the light (a new default one, 0079BEB0 / 0079BEBC,
+    // when there is none) is shown and held (flags_ 0x200), its id added to the light factory's
+    // list (+0xD4); mode 2: a light is hidden, its id removed from the list and the light released.
+    void SetLightMode(int mode);
+    // 005107B0, virtual slot 3 (Destroy): +0x20 / +0x24 cleared, no particles, the light hidden,
+    // its id removed and released, no object.
+    void DestroyClientCompanion();
 
     CUnit* object;          // +0x1C
     std::uint32_t unknown_20;   // +0x20 cleared by Create and Destroy

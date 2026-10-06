@@ -50,9 +50,8 @@ static char* UnitPrototype(void* unit) { return static_cast<char*>(::UnitPrototy
 __declspec(naked) int __fastcall UnitLevel(void*) EI_ORIGINAL(0x00532D40)
 // The world (007AF5B8): the time of day [0055FC50, ST0].
 double __fastcall WorldDayTime(void* a0) { return WorldDayTimeOriginal(a0); }
-// The unit's parameters (+0x330) [thiscall]: the vision range at a time of day [005271E0, ST0];
-// the description texts [005270E0: unit +0x17C, out, name is a text key].
-__declspec(naked) double __fastcall VisionRange(void*, void*, float) EI_ORIGINAL(0x005271E0)
+// The unit's parameters (+0x330) [thiscall]: the vision range at a time of day [005271E0, ST0;
+// UnitParamsVisionRangeOriginal, originals_units.h]; the description texts [005270E0: unit +0x17C, out, name is a text key].
 // 004613A0: whether an id is a text key [__fastcall].
 // 005F13A0 [__fastcall, Rebirth-patched]: the description as lines [description, out, 1].
 __declspec(naked) void __fastcall DescriptionLines(void*, console::CStringArray*, int) EI_ORIGINAL(0x005F13A0)
@@ -157,7 +156,7 @@ void __fastcall DrawUnitInfo(char* self, void*, char* unit) {
     panel.DrawLine();
 
     float dayTime = static_cast<float>(WorldDayTime(reinterpret_cast<void*>(0x007AF5B8)));
-    int vision = x87::fistp(static_cast<float>(VisionRange(stats, nullptr, dayTime)));
+    int vision = x87::fistp(static_cast<float>(UnitParamsVisionRangeOriginal(stats, nullptr, dayTime)));
     panel.text.Format(kValueUnit, static_cast<const char*>(panel.labels[6]), vision, static_cast<const char*>(panel.labels[13]));
     panel.DrawLine();
 

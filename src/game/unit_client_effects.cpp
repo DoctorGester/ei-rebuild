@@ -69,11 +69,6 @@ constexpr int kBloodParticles[8] = {0x200F, 0x2031, 0x2032, 0x2033, 0x200F, 0x20
 __declspec(naked) void __fastcall AddBloodDecal(CWorldClient*, void*, float /*x*/, float /*y*/, float /*size*/,
                                                 float /*length*/, std::uint32_t /*kind*/, int /*fresh*/)
     EI_ORIGINAL(0x0056CE90)
-// 00511830 (RET 0xC). The map object's client companion shows a light of `colour` (rgba) and
-// `radius`. 005119B0: it hides it.
-__declspec(naked) void __fastcall CompanionShowLight(CEngineObject*, void*, const float* /*colour*/, float /*radius*/,
-                                                     int /*flag*/) EI_ORIGINAL(0x00511830)
-__declspec(naked) void __fastcall CompanionHideLight(CEngineObject*) EI_ORIGINAL(0x005119B0)
 
 // The party light (0079BEA0: r, g, b; 0079BEAC: radius).
 const float* PartyLightColour() { return reinterpret_cast<const float*>(0x0079BEA0); }
@@ -216,7 +211,7 @@ void CUnitClientSpecific::SparkEffect(int) {
 EI_REPLACE_METHOD(0x00537C00, CUnitClientSpecific::SparkEffect);
 
 void CUnitClientSpecific::DeathEffect() {
-    CompanionHideLight(unit->MapObject()->companion);
+    CompanionHideLightOriginal(unit->MapObject()->companion);
     std::uint32_t blood = ModelOf(unit)->bloodKind;
     if (blood == 0 || blood > kLastDecalBlood) return;
     float at[3];
@@ -241,6 +236,6 @@ void CUnitClientSpecific::OwnerPlayerChanged(void* player) {
     if (!player) return;
     const float* rgb = PartyLightColour();
     float colour[4] = {rgb[0], rgb[1], rgb[2], 1.0f};
-    CompanionShowLight(unit->MapObject()->companion, nullptr, colour, PartyLightRadius(), 0);
+    CompanionCreateLightOriginal(unit->MapObject()->companion, nullptr, colour, PartyLightRadius(), 0);
 }
 EI_REPLACE_METHOD(0x00534140, CUnitClientSpecific::OwnerPlayerChanged);

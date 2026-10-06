@@ -13,10 +13,7 @@ using namespace effect;
 namespace {
 
 // The light manager (*007AF738), thiscall.
-__declspec(naked) void __fastcall AddLight(void*, void*, CEngineObject* /*light*/) EI_ORIGINAL(0x006CA5D0)
 void __fastcall MoveLight(void* a0, void*, CEngineObject* a2, const Vector3* a3) { LightMoveOriginal(a0, nullptr, a2, (const float*)a3); }
-// 0068D010 (CLight): sets the colour and the position.
-__declspec(naked) void __fastcall SetLightColorPosition(CEngineObject* /*light*/, void*, const Vector3* /*color*/, const Vector3* /*position*/) EI_ORIGINAL(0x0068D010)
 // 00511B90 / 0056F1A0: reference-counted pointer assignment (ECX = the pointer).
 void __fastcall AssignLight(CEngineObject** a0, void*, void* a2) { CountedRefStoreOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall AssignSource(void** /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x0056F1A0)
@@ -231,7 +228,7 @@ int CEffectPointLight::Tick() {
         // Every 16th frame the light is re-registered at its new place.
         RemoveLight(LightManager(), nullptr, light_);
         std::memcpy(&LightPosition(light_), &localPosition_, sizeof(Vector3));
-        AddLight(LightManager(), nullptr, light_);
+        LightManagerAddOriginal(LightManager(), nullptr, light_);
         return 1;
     }
     MoveLight(LightManager(), nullptr, light_, &delta);
@@ -254,7 +251,7 @@ void CEffectPointLight::Start(int update) {
         SetLightColorPosition(light_, nullptr, &color, &position);
         SetLightRange(light_, Bits(range_) & 0x7FFFFFFFu);
         LightFlags(light_) |= lightFlags_;
-        AddLight(LightManager(), nullptr, light_);
+        LightManagerAddOriginal(LightManager(), nullptr, light_);
         if (moving_ != 0) LightFlags(light_) |= 0x100;
     } else {
         auto* light = reinterpret_cast<char*>(light_);
@@ -278,7 +275,7 @@ void CEffectPointLight::Start(int update) {
             RemoveLight(LightManager(), nullptr, light_);
             std::memcpy(&LightPosition(light_), &localPosition_, sizeof(Vector3));
             SetLightRange(light_, Bits(range_) & 0x7FFFFFFFu);
-            AddLight(LightManager(), nullptr, light_);
+            LightManagerAddOriginal(LightManager(), nullptr, light_);
         }
     }
     // A negative range (or NaN) sets flag 0x400.

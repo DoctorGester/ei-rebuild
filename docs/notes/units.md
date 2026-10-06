@@ -203,6 +203,8 @@ Code (layouts, vtable slots and per-function comments are in `unit.h`, `unit_db.
 | 00535B30, 005352B0, 00535480 | CUnitClientSpecific AdvanceTime (slot 40), RestartAnimation (14), StartIdleAnimation | unit_client_animation.cpp (A-U2) | ours only (last time, queue length) |
 | 00537500, 00537C00, 005373D0, 00534140 | HitEffect (46: hit sound by weapon class and material, blood particles, decal), SparkEffect (47), DeathEffect (48), OwnerPlayerChanged (18: party light) | unit_client_effects.cpp (A-U2) | ours only (effect source count; controller unchanged) |
 | 00533FE0, 005340C0 | CUnitClientSpecific CreateClient / DestroyClient (slots 2 / 3) | unit_client_lifetime.cpp (A-U2) | ours only (blank state / released) |
+| 0052FC40, 005271E0, 00526860, 0050F170 | CUnit::AdvanceUnitTime (slot 25: controller slot 40, then a party unit's sight on the client world, 0056D740), UnitParams::VisionRange (valuesB0[0] x ((1 - day) + valuesB0[1] % x day)), WeaponPrototypeSkillBonus (weapon prototype +0x7B / +0x7C by type), CMapObject::SetVisibilityLevel (slot 47 with 0 / 1 / 2) | unit_vision.cpp (A-U3) | ours only / pure (CheckNear) / pure / ours only |
+| 00538ED0, 00539010, 00533980 | BlinkClose / BlinkOpen (the face texture's closed / open eyes over the skin's eye rectangle, model +0x158..+0x164), BlitMipChain (DirectDraw Blt down both mip chains) | unit_client_blink.cpp (A-U3) | ours only (eyesClosed by the rule) |
 | 00537D80, 00538040, 005380D0, 00537F60, 00537FD0 | Say (51: queue filters, kinds 0x1D-0x2A queue behind), StopSpeech (52), Speak, SpeechReplaced / SpeechFinished (filters) | unit_client_speech.cpp (A-U2) | filters: original vs ours; the rest ours only |
 
 Other callees stay forwarders (`originals_units.h`); only 006AC970 `CreateItem` (called through its address by GiveStartingEquipment) and FatalError 00480080 are Rebirth-patched.
@@ -245,9 +247,8 @@ Other callees stay forwarders (`originals_units.h`); only 006AC970 `CreateItem` 
 
 - 0052EA40 (SetMotionSpeeds with given speeds): only the multiplayer client calls it (00669FA0).
 - Large or stateful, next candidates: 005316F0, 0052EB70 and 0050E9B0 (slot 34:
-  pack stack copies that 005136D0 fills, stack garbage), 0052FC40, 00526860 / 005271E0 (skill / attack builders), 00522AE0 / 00522B20 (results depend on leftover register halves), record
-  destructors 0053EBC0 and others, 00535B30 / 00537D80 / 005380D0 (client timers, speech: audio-adjacent), 00538ED0 / 00539010 / 005352B0 / 00533980 / 00533EA0 (client arrow
-  part, figure, animation code, destructor), 0053A8E0 (counts each model's .wav files), 005190C0 / 00519380 (random animations; forwarded locally).
+  pack stack copies that 005136D0 fills, stack garbage), 00522AE0 / 00522B20 (results depend on leftover register halves), record
+  destructors 0053EBC0 and others, 00533EA0 (client destructor), 0053A8E0 (counts each model's .wav files), 005190C0 / 00519380 (random animations; forwarded locally).
 - Not unit logic: 00500000-0050E000 (`map_objects.md`), figure loading, bounds and wound textures (005179E0, 00516DA0, 0051C3D0, 005370F0, 00536EA0), map object effect visuals (00510B80, 005112A0,
   005114D0, 00511A00), 00529B80 (class 0x3010's update: a script CreateParticleSource), 0051FF40 (writes "perks.pdb", no references: dead), unit database STLport code (library: 0053F530, 0053FCC0,
   0053F950, 00520FA0, 00521220, 0053E2A0, 00521C70, 0051F790, 005225E0, 00522480, 00522010, 00522160, 005222F0, 0052C740), 0053A200 and 00520220 (Rebirth-patched).
@@ -272,6 +273,11 @@ Other callees stay forwarders (`originals_units.h`); only 006AC970 `CreateItem` 
   member with one of these names would silently override (check_thunks catches it when hooked).
 - SkillPrice may show a rare off-by-one at a truncation edge (rule 7); the serialisers' verify relies on loading being repeatable (fields found by id, archive left as it was); the scenario
   prints MaxHP / MaxMana around the stat raises instead of checking them; `ComposeSkin` and `WearArmourModel` build CString / STLport temporaries in the original's order.
+
+A-U3 notes: the blink's rectangles mix units as the original does (closed: top = the face offset itself, unscaled;
+open: top = (eye height + offset) x scale); BlitMipChain never releases the attached mip surfaces it gets (kept), and copies
+nothing when a texture has no DirectDraw surface (the switch-over's memory-only / decoded holders; the original would crash).
+Integer edges follow _ftol of double maths (the original's x87 at 24 bits could differ by one at a truncation edge).
 
 A-U2 notes: HitEffect's third argument is a flags word whose stack slot the original reuses for the material CString;
 heroes index the armour table 0073EC78 by the hit location without a range check (kept). Forwarded: 0056CE90 (decal),

@@ -101,6 +101,7 @@ is snapshotted and restored, the original runs, bytes and EAX compared.
 | 0051CC20, 0051CCD0 | CObject3DClientSpecific InvisiblePulse / StunnedPulse (unit_client_animation.cpp) | original, parts put back, ours; CheckNear |
 | 005117D0, 00510B80, 005112A0, 005114D0 | CMapObjectClientSpecific EffectsChanged (slot 13), UpdateEffectParticles, UpdateEffectSounds, PlayEffectSound (map_object_client_effects.cpp; A-U3) | ours only: records present, one per merged type at the highest power / per effect otherwise, one sound per type; stench timer 0, feeble mind handle toggles |
 | 0051CCA0, 0051CD60 | CObject3DClientSpecific ResetPartAlpha / ClearPartTints (invisibility / stun ended) | original, parts put back, ours; bitwise |
+| 00511830, 00511950, 005119B0, 00511A00, 005107B0 | CMapObjectClientSpecific CreateLight, ShowLight, HideLight, SetLightMode (slot 19; mode 1 holds the light on and lists its id at *007AF748 + 0xD4, mode 2 drops it), DestroyClientCompanion (slot 3) | ours only: hidden flag toggles as the rules say; new light class 0x31 with the radius at +0xE0; held light listed / no light |
 
 Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEffect::Tick`, 00524FE0
 (hit onto the statistics block); sound system (global 007AF784) 006B8600 / 006B7C10 / 006B7CB0 /
@@ -139,9 +140,8 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
 
 ## Skipped and why
 
-- The client companion's Destroy (005107B0: light removal) and CArray Serialize / SetSize instantiations.
+- CArray Serialize / SetSize instantiations (library).
 - 0050F170 (fade mode from a float, slot 47): small, next candidate.
-- Light helpers (00511830, 00511950, 005119B0, 00511A00): next candidates.
 - 0050E9B0 (slot 34) and 0050F080 (stats refresh): depend on the UnitStats builders (00522C50 /
   005136D0).
 - 0050C230 (bone hierarchy update, recursive), 005179E0 / 00516DA0 (animated figures), 0051C3D0
