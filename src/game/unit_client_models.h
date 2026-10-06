@@ -227,6 +227,12 @@ public:
     // remembers it with the time. False (AL) when the same speech played less than 5 s ago.
     bool Speak(ClientSpeech* speech);
 
+    // object_small_slots.cpp (A-U2). 005391B0, virtual slot 36: 1 when a weapon model is held
+    // (any weapon id not -1). 005391E0, slot 37: 1 when one of the first three armour slots (body,
+    // trousers, helmet) holds a model.
+    int HasWeaponModels();
+    int HasArmourModels();
+
     // unit_client_equipment.cpp (A-U).
     // 00536100. Virtual slot 29 (equipment changed): for heroes the composed skins are renewed:
     // the detailed one (ComposeSkin(1)) into the first part set's texture (client half +0x20, read

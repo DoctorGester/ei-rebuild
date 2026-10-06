@@ -147,6 +147,10 @@ public:
     // scale always).
     void SaveMapObject(CStream* stream);
 
+    // object_small_slots.cpp (A-U2). 0050E460, virtual slot 31: the companion's slot 15 with the
+    // first two arguments (the third is not read). Both companions return 0.
+    int CompanionQuery(int first, int second, int unused);
+
     // The packed vitals (+0x17C) and the network state (+0x1C4).
     UnitVitalsPacked* PackedVitals() { return reinterpret_cast<UnitVitalsPacked*>(packedVitals); }
     DeltaState* NetState() { return reinterpret_cast<DeltaState*>(netState); }
@@ -266,6 +270,14 @@ public:
     virtual Vector3* AimPoint(Vector3* out) = 0;        // 53 (0xD4)
     virtual int Slot54() = 0;                           // 54 (0xD8)
     virtual int IsDead() = 0;                           // 55 (0xDC): non-zero when dead or gone
+};
+
+// A map object's companion (CMapObjectServer / CMapObjectClientSpecific) as the base class calls it.
+class CMapObjectCompanion : public CEngineObject {
+public:
+    virtual void Slot13();
+    virtual void Slot14();
+    virtual int Query(int first, int second);   // 15: 005104C0 in both (0)
 };
 
 // An object seen through its virtual slots.

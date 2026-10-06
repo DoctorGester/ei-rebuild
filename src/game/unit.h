@@ -1055,6 +1055,11 @@ public:
     // string with its terminator; Load appends to the array).
     void LoadServer(CStream* stream);
     void SaveServer(CStream* stream);
+    // object_small_slots.cpp (A-U2). 005157C0, virtual slot 2 (Create): no map object, the vitals
+    // reset (00523370). Returns 1. 005157E0, slot 3 (Destroy): the vitals reset, the string array
+    // emptied, no map object.
+    int CreateServer();
+    void DestroyServer();
 
     std::uint8_t unknown_1C[0x20 - 0x1C];   // +0x1C the map object (map_object.h CompanionOwner)
     UnitVitals vitals;      // +0x20 hit points +0x28, maximum +0x2C
