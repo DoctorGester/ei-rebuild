@@ -54,6 +54,9 @@ struct UnitController {
     std::uint8_t unknown_1B8[4];
     CEngineObject* nextTarget;      // +0x1BC
 
+    // 00552CF0 (RET 4; unit_ai_brain.cpp). The unit's CUnit::AddHostileMask (its EAX returned).
+    std::uintptr_t AddHostileMask(std::uint32_t mask);
+
     // Not rewritten (forwarders).
     void Idle();                                            // 00555180
     void StopQueued();                                      // 00555200
@@ -400,6 +403,12 @@ struct AIRef {
     CEngineObject* object;
 };
 
+namespace console {
+class GameOStream;
+}
+// 007C53C4: the stream the AI's perception messages go to.
+inline console::GameOStream* AiLog() { return *reinterpret_cast<console::GameOStream**>(0x007C53C4); }
+
 // 005CA050 (ECX = out, EDX = point; unit_ai_brain.cpp). Copies x and y of a point (the AI events'
 // and the heard calls' noticed points); returns `out`.
 float* __fastcall CopyPoint2(float* out, const float* point);
@@ -410,13 +419,21 @@ struct AICallRecord {
     int kind;                       // +0x0C
     int unknown_10;                 // +0x10 0 when added
     char* text;                     // +0x14 CString
+
+    // 00558D00 (unit_ai_brain.cpp). The element destructor: frees the text (CString::~CString).
+    void Destruct();
 };
 static_assert(sizeof(AICallRecord) == 0x18);
 
 // CArray<AICallRecord> (brain + 0x178).
 struct AICallArray {
     void SetSize(int size, int growBy);             // 005CDD60
-    void Update(CUnit* unit, void* memory);         // 005CC9D0 (each tick, from UpdateMemory)
+    // 005CC9D0 (RET 8; unit_ai_brain.cpp; each tick, from UpdateMemory). Counts every call down;
+    // one that runs out is dropped after it is heard: with a hostility mask (+0x10) the unit's
+    // controller takes the mask (logged "hear delayed sound"), else, when the memory's noticed
+    // level is below 900, the call's point becomes the noticed point (900, kind -3; logged when the
+    // level rose by more than 100 or the point lies more than sqrt(10) away).
+    void Update(CUnit* unit, void* memory);
 
     void* vtable;
     AICallRecord* data;             // +0x04
