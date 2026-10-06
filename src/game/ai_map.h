@@ -100,6 +100,42 @@ struct VisibilityGrid {
 static_assert(sizeof(VisibilityGrid) == 0x18);
 
 // The region map at CAIMap + 0x22F8: connected areas per size class.
+// A cell of a path (CList element, 8 bytes). Layout provisional.
+struct PathCell {
+    std::int16_t x, y;
+    std::uint16_t flags;        // 0x200 on a path that is a single cell
+    std::uint16_t unknown_6;
+
+    // 005C5CC0 (RET 8). The neighbour in direction 1..8 (1 = y - 1, then clockwise towards -x: 2 =
+    // (-1, -1), 3 = (-1, 0), 4 = (-1, +1), 5 = (0, +1), 6 = (+1, +1), 7 = (+1, 0), 8 = (+1, -1)) into
+    // `out` (x and y only); any other direction copies the whole cell. Returns `out`.
+    PathCell* Step(PathCell* out, int direction) const;
+};
+static_assert(sizeof(PathCell) == 8);
+
+// The vtable of CList<PathCell> (PathCellList).
+inline void* PathCellListVtable() { return reinterpret_cast<void*>(0x0073EDB0); }
+
+// ConstructElements of CList<PathCell>: the instantiation's own (00539980, ai_path_cells.cpp).
+struct PathCellElements {
+    static void Construct(PathCell* cells, int count);
+    static void Destruct(PathCell*, int) {}
+};
+// MFC CList<PathCell, PathCell&> (0x1C bytes); the game inlines most of its operations. Registered
+// on the template: NewNode 005B1B70 (ai_path.cpp), AddHead / AddTail 005BD200 / 005BD2A0
+// (ai_path_cells.cpp). RemoveAll is 00556D40's code.
+using PathCellList = mfc::CList<PathCell, PathCellElements>;
+static_assert(sizeof(PathCellList::Node) == 0x10);
+
+// 005C5DA0 (thiscall, RET 4; ai_path_cells.cpp). Appends copies of `other`'s cells to `list`.
+void __fastcall PathCellsAppend(PathCellList* list, void*, const PathCellList* other);
+// 005C5E60 (thiscall, RET 4). Constructs `out` (blocks of 0x80) holding `list`'s cells in reverse
+// order; returns `out`.
+PathCellList* __fastcall PathCellsReversed(const PathCellList* list, void*, PathCellList* out);
+// 005C6000 (thiscall). Removes each cell equal (x, y) to the one before it (the first is compared
+// with (-1, -1)); an emptied list frees its blocks.
+void __fastcall PathCellsRemoveRepeats(PathCellList* list);
+
 // A block a search reaches: {block x, block y, cost}.
 struct BlockCost {
     int x, y, cost;
@@ -140,7 +176,7 @@ struct CRegionMap {
     bool FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, void* chain, void* excluded);
     // 005AF5F0 (RET 4, AL; ai_region_reach.cpp). Expands the two block searches until they meet and
     // joins their paths into `chain`; false when one runs out.
-    bool JoinBlockSearches(struct PathCellList* chain);
+    bool JoinBlockSearches(PathCellList* chain);
     // 005AFAE0 (RET 0xC; ai_region_reach.cpp). Per size class the block (bx, by)'s edge words:
     // the local search cost to each neighbour's representative cell / 128. The first argument is
     // not read.
@@ -168,53 +204,6 @@ struct ClimbTable {
     int count;
 };
 
-// A cell of a path (CList element, 8 bytes). Layout provisional.
-struct PathCell {
-    std::int16_t x, y;
-    std::uint16_t flags;        // 0x200 on a path that is a single cell
-    std::uint16_t unknown_6;
-
-    // 005C5CC0 (RET 8). The neighbour in direction 1..8 (1 = y - 1, then clockwise towards -x: 2 =
-    // (-1, -1), 3 = (-1, 0), 4 = (-1, +1), 5 = (0, +1), 6 = (+1, +1), 7 = (+1, 0), 8 = (+1, -1)) into
-    // `out` (x and y only); any other direction copies the whole cell. Returns `out`.
-    PathCell* Step(PathCell* out, int direction) const;
-};
-static_assert(sizeof(PathCell) == 8);
-
-// The vtable of CList<PathCell> (PathCellList).
-inline void* PathCellListVtable() { return reinterpret_cast<void*>(0x0073EDB0); }
-
-// MFC CList<PathCell, PathCell&> (0x1C bytes); the game inlines most of its operations.
-struct PathCellList {
-    struct Node {
-        Node* next;
-        Node* prev;
-        PathCell data;
-    };
-    void* vtable;
-    Node* head;         // +0x04
-    Node* tail;         // +0x08
-    int count;          // +0x0C
-    Node* free;         // +0x10
-    void* blocks;       // +0x14 CPlex chain
-    int blockSize;      // +0x18
-
-    // 005B1B70. Takes a node from the free list (allocating a block when empty) and counts it.
-    Node* NewNode(Node* prev, Node* next);
-    // 00556D40. Frees all nodes and blocks.
-    void RemoveAll();
-    // 005BD200 / 005BD2A0 (RET 4; ai_path_cells.cpp). Adds a copy of `cell` first / last; returns its node.
-    Node* AddHead(const PathCell* cell);
-    Node* AddTail(const PathCell* cell);
-    // 005C5DA0 (RET 4). Appends copies of `other`'s cells.
-    void AppendList(const PathCellList* other);
-    // 005C5E60 (RET 4). Constructs `out` (blocks of 0x80) holding the cells in reverse order; returns `out`.
-    PathCellList* Reversed(PathCellList* out) const;
-    // 005C6000. Removes each cell equal (x, y) to the one before it (the first is compared with
-    // (-1, -1)); an emptied list frees its blocks.
-    void RemoveRepeats();
-};
-static_assert(sizeof(PathCellList) == 0x1C);
 
 // A unit's path (name and layout provisional). Its methods at 005C7xxx steer along `steps`.
 struct AIPath {
@@ -598,10 +587,10 @@ public:
     double LargestStepAlong(const Vector3* from, const Vector3* to);
     // 005B9690 (RET 8, AL; ai_join.cpp). Joins the forward and backward local searches where they
     // meet: the path into `cells`, the summed cost into `cost` (optional); false when they cannot.
-    bool JoinLocalSearches(struct PathCellList* cells, int* cost);
+    bool JoinLocalSearches(PathCellList* cells, int* cost);
     // 005B9A20 (RET 0xC; ai_join.cpp). The path to cell (x, y) walked back along the direction marks
     // (+0x26BC) into `path` (emptied first).
-    void BuildCellsTo(int x, int y, struct PathCellList* path);
+    void BuildCellsTo(int x, int y, PathCellList* path);
     // 005B7EF0 (RET 8; ai_water_patch.cpp). Adds (or lifts) the water depths around `position` as
     // a pseudo unit of the small-unit layer.
     void StampWaterPatch(const Vector3* position, bool add);

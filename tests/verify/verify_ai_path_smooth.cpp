@@ -60,7 +60,7 @@ void* s_unusedSetSize;
 static int __fastcall SmoothVerify(PathSmoother* self, void*, CUnit* unit, CAIMap* map, PathCellList* path,
                                    int startDirection, float fraction) {
     PathCellList copy{path->vtable, nullptr, nullptr, 0, nullptr, nullptr, path->blockSize};
-    for (const PathCellList::Node* n = path->head; n; n = n->next) copy.AddTail(&n->data);
+    for (const PathCellList::Node* n = path->head; n; n = n->next) copy.AddTail(n->data);
     int expected = s_smooth(self, nullptr, unit, map, &copy, startDirection, fraction);
     std::vector<int> expectedCells = CellsXY(&copy);
     mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(copy.blocks));

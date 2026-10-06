@@ -37,38 +37,27 @@ constexpr int kStartMarks = 0x26BC;      // rows of per-cell bytes; the start ce
 constexpr int kUnreachable = 0x7FFFFFFF;
 constexpr std::uint32_t kAllOffsets = 0x60AD78EC;   // the spiral radius covering every offset
 
-// The region nodes and the waypoint nodes (MFC CList nodes).
-struct RegionNode {
-    RegionNode* next;
-    RegionNode* prev;
-    std::int16_t x, y;
-};
-struct WaypointNode {
-    WaypointNode* next;
-    WaypointNode* prev;
+// The chain of regions is a CList<PathCell> (block x, y); the waypoints a CList of {x, y, the
+// region node it belongs to} whose NewNode stays the instantiation's (005BEDB0).
+using RegionNode = PathCellList::Node;
+struct Waypoint {
     int x, y;
     RegionNode* region;
 };
-struct List {
-    void* vtable;
-    void* head;
-    void* tail;
-    int count;
-    void* free;
-    void* blocks;
-    int blockSize;
-};
+using WaypointList = mfc::CList<Waypoint, mfc::RawElements<Waypoint>>;
+using WaypointNode = WaypointList::Node;
+static_assert(sizeof(WaypointNode) == 0x14);
 
 // 00556D10 (RET 4) / 00556D40: the region list's constructor (block size) and RemoveAll.
-void __fastcall RegionListConstruct(List* a0, void*, int a2) { CellListConstructOriginal((void*)a0, nullptr, a2); }
+void __fastcall RegionListConstruct(PathCellList* a0, void*, int a2) { CellListConstructOriginal((void*)a0, nullptr, a2); }
 void __fastcall ListRemoveAll(void* a0, void*) { CellListRemoveAllOriginal(a0); }
 // 005B0D90 (RET 0x1C, AL). The region map's chain of regions from (fromX, fromY) to (toX, toY),
 // avoiding the regions in `excluded` (AIPath + 0x70).
-__declspec(naked) bool __fastcall RegionChain(void*, void*, int, int, int, int, int, List*, void*) EI_ORIGINAL(0x005B0D90)
+__declspec(naked) bool __fastcall RegionChain(void*, void*, int, int, int, int, int, PathCellList*, void*) EI_ORIGINAL(0x005B0D90)
 // 005B9BC0 (RET 4). Prepares the region chain (CAIMap).
-__declspec(naked) void __fastcall PrepareChain(CAIMap*, void*, List*) EI_ORIGINAL(0x005B9BC0)
+__declspec(naked) void __fastcall PrepareChain(CAIMap*, void*, PathCellList*) EI_ORIGINAL(0x005B9BC0)
 // 005BEDB0 (RET 8). The waypoint list's NewNode(prev, next).
-__declspec(naked) WaypointNode* __fastcall WaypointNewNode(List*, void*, void*, void*) EI_ORIGINAL(0x005BEDB0)
+__declspec(naked) WaypointNode* __fastcall WaypointNewNode(WaypointList*, void*, WaypointNode*, WaypointNode*) EI_ORIGINAL(0x005BEDB0)
 // 005BFC40 (RET 8). SpiralCache::Get (radius as float bits).
 __declspec(naked) const std::int16_t* __fastcall SpiralGet(void*, void*, std::uint32_t, int*) EI_ORIGINAL(0x005BFC40)
 // The local search: begin (RET 0x14: unit, from, to), continue (RET 0x14: from, to, fresh), whether
@@ -108,14 +97,10 @@ void CommitLeg(void* search) {
 }
 
 // An inlined CList destructor: the nodes need no destruction; the blocks are freed.
+template <typename List>
 void DestroyList(List& list, std::uintptr_t vtable) {
     list.vtable = reinterpret_cast<void*>(vtable);
-    list.count = 0;
-    list.free = nullptr;
-    list.tail = nullptr;
-    list.head = nullptr;
-    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(list.blocks));
-    list.blocks = nullptr;
+    list.RemoveAll();
 }
 
 double Threshold() { return *reinterpret_cast<const volatile double*>(0x0073F0A8); }
@@ -125,7 +110,7 @@ float Half() { return *reinterpret_cast<const volatile float*>(0x0073B86C); }
 
 bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, AIPath* path, int retry, int maxCells) {
     auto* self = reinterpret_cast<std::uint8_t*>(this);
-    List chain;
+    PathCellList chain;
     RegionListConstruct(&chain, nullptr, 0x80);
     if (!(SpiralGuard() & 1)) {
         At<std::uint32_t>(Spiral(), 4) = 0xBF800000;   // radius -1
@@ -148,32 +133,32 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
     // 8x8 block), then the target.
     int curX = fromX, curY = fromY;
     int bestX = fromX, bestY = fromY;
-    List waypoints{reinterpret_cast<void*>(kWaypointListVtable), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    WaypointList waypoints{reinterpret_cast<void*>(kWaypointListVtable), nullptr, nullptr, 0, nullptr, nullptr, 10};
     std::uint8_t** cellRows = At<std::uint8_t**>(self, kRegionCells + sizeClass * 16);
-    auto* region = static_cast<RegionNode*>(chain.head);
+    RegionNode* region = chain.head;
     RegionNode* previous = region;
     for (RegionNode* node = region; node;) {
         RegionNode* owner = previous;
         previous = node;
         RegionNode* next = node->next;
-        std::uint8_t cell = cellRows[node->y][node->x];
-        int px = (cell & 0xF) + node->x * 8;
-        int py = (cell >> 4) + node->y * 8;
+        std::uint8_t cell = cellRows[node->data.y][node->data.x];
+        int px = (cell & 0xF) + node->data.x * 8;
+        int py = (cell >> 4) + node->data.y * 8;
         WaypointNode* w = WaypointNewNode(&waypoints, nullptr, waypoints.tail, nullptr);
-        w->x = px;
-        w->y = py;
-        w->region = owner;
-        if (waypoints.tail) static_cast<WaypointNode*>(waypoints.tail)->next = w;
+        w->data.x = px;
+        w->data.y = py;
+        w->data.region = owner;
+        if (waypoints.tail) waypoints.tail->next = w;
         else waypoints.head = w;
         waypoints.tail = w;
         node = next;
     }
     {
         WaypointNode* w = WaypointNewNode(&waypoints, nullptr, waypoints.tail, nullptr);
-        w->x = toX;
-        w->y = toY;
-        w->region = previous;
-        if (waypoints.tail) static_cast<WaypointNode*>(waypoints.tail)->next = w;
+        w->data.x = toX;
+        w->data.y = toY;
+        w->data.region = previous;
+        if (waypoints.tail) waypoints.tail->next = w;
         else waypoints.head = w;
         waypoints.tail = w;
     }
@@ -187,29 +172,29 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
     int legs = 0;
     WaypointNode* failedAt = nullptr;
     bool failed = false;
-    for (auto* w = static_cast<WaypointNode*>(waypoints.head); w;) {
+    for (WaypointNode* w = waypoints.head; w;) {
         WaypointNode* next = w->next;
-        if (!(w->x == curX && w->y == curY)) {
+        if (!(w->data.x == curX && w->data.y == curY)) {
             bool exact;
-            result = legs == 0 ? SearchBegin(search, nullptr, unit, curX, curY, w->x, w->y)
-                               : SearchContinue(search, nullptr, curX, curY, w->x, w->y, reachedLast ? 0 : 1);
+            result = legs == 0 ? SearchBegin(search, nullptr, unit, curX, curY, w->data.x, w->data.y)
+                               : SearchContinue(search, nullptr, curX, curY, w->data.x, w->data.y, reachedLast ? 0 : 1);
             ++legs;
             if (!result) {
                 failed = true;
                 failedAt = w;
                 break;
             }
-            if (SearchReached(search, nullptr, w->x, w->y)) {
+            if (SearchReached(search, nullptr, w->data.x, w->data.y)) {
                 exact = true;
-                bestX = w->x;
-                bestY = w->y;
+                bestX = w->data.x;
+                bestY = w->data.y;
             } else {
                 // The nearest cell around the waypoint the search did reach.
                 exact = false;
                 bool found = false;
                 for (int k = 0; k < count; ++k) {
-                    int x = offsets[k * 2] + w->x;
-                    int y = offsets[k * 2 + 1] + w->y;
+                    int x = offsets[k * 2] + w->data.x;
+                    int y = offsets[k * 2 + 1] + w->data.y;
                     if (SearchCost(search, nullptr, x, y) < kUnreachable) {
                         bestX = x;
                         bestY = y;
@@ -273,9 +258,9 @@ bool CAIMap::PlanLongPath(CUnit* unit, int fromX, int fromY, int toX, int toY, A
             bool retried = false;
             if (static_cast<char>(retry)) {
                 // Exclude the failing waypoint's region and plan again.
-                RegionNode* bad = failedAt->region;
-                int x = bad->x;
-                int y = bad->y;
+                RegionNode* bad = failedAt->data.region;
+                int x = bad->data.x;
+                int y = bad->data.y;
                 auto* excluded = reinterpret_cast<std::uint8_t*>(path) + 0x70;
                 int size = At<int>(excluded, 8);
                 ExcludedSetSize(excluded, nullptr, size + 1, -1);

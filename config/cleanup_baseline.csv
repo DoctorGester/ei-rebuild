@@ -6,7 +6,6 @@ src/game/ai_footprint_shapes.cpp,0,0,0,2,3,0,0,0,0
 src/game/ai_join.cpp,0,0,0,0,1,0,0,0,0
 src/game/ai_line_step.cpp,0,0,0,2,6,0,0,0,0
 src/game/ai_map.cpp,0,0,0,0,0,0,0,1,0
-src/game/ai_map.h,0,0,0,0,0,0,0,0,1
 src/game/ai_map_construct.cpp,23,0,0,0,5,0,0,0,0
 src/game/ai_motion.cpp,0,3,4,0,0,0,0,0,0
 src/game/ai_motion.h,0,0,0,0,0,0,0,1,0
@@ -14,7 +13,7 @@ src/game/ai_movement.cpp,0,4,0,0,0,0,0,2,0
 src/game/ai_path.cpp,0,0,4,0,0,0,0,4,0
 src/game/ai_path_save.cpp,0,2,0,0,0,0,0,0,0
 src/game/ai_path_stand.cpp,0,0,1,2,0,0,0,2,0
-src/game/ai_plan.cpp,8,0,0,0,2,0,0,2,1
+src/game/ai_plan.cpp,8,0,0,0,2,0,0,2,0
 src/game/ai_refresh.cpp,14,0,1,2,6,0,0,0,0
 src/game/ai_region_reach.cpp,72,0,0,0,1,0,0,12,0
 src/game/ai_shape_cache.cpp,0,1,0,2,0,0,0,0,0

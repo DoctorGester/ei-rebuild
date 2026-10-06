@@ -15,7 +15,6 @@
 
 __declspec(naked) int CRegionMap::RegionAt(int, int, int) EI_ORIGINAL(0x005B0600)
 __declspec(naked) bool CRegionMap::Reaches(int, int, int, int, void*) EI_ORIGINAL(0x005B07C0)
-void PathCellList::RemoveAll() { CellListRemoveAllOriginal((void*)this); }
 
 namespace {
 // 005BD200: appends a copy of `cell` to the list.
@@ -72,24 +71,7 @@ constexpr float kDiagonal = 0.707f;     // 0073FDAC
 constexpr float kInset = 0.49f;         // 0073FDA8
 } // namespace
 
-PathCellList::Node* PathCellList::NewNode(Node* prev, Node* next) {
-    if (!free) {
-        auto* block = mfc::PlexCreate(reinterpret_cast<mfc::CPlex*&>(blocks), blockSize, sizeof(Node));
-        // Chain the block's nodes into the free list, last first.
-        Node* node = reinterpret_cast<Node*>(reinterpret_cast<char*>(block) + 4) + (blockSize - 1);
-        for (int i = blockSize - 1; i >= 0; --i, --node) {
-            node->next = free;
-            free = node;
-        }
-    }
-    Node* node = free;
-    free = node->next;
-    node->prev = prev;
-    node->next = next;
-    ++count;
-    ConstructPathCells(&node->data, 1);
-    return node;
-}
+// 005B1B70: CList<PathCell>::NewNode.
 EI_REPLACE_METHOD(0x005B1B70, PathCellList::NewNode);
 
 bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float minDistance) {
