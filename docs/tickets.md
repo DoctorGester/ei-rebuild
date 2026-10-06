@@ -14,7 +14,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
-- A-U done 2026-10-05 (40 functions). A-U2 done (40). A-U3 (taken 2026-10-06).
+- A-U done 2026-10-05 (40 functions). A-U2 done (40). A-U3 done (20). A-U4 (taken 2026-10-07).
 - U2 done (00535850 ClientPlaceOnPath, 0052FCC0 / 0052FDF0 in follow-up for a crash).
 
 ## World, AI and server, 0x00540000-0x005E0000 (docs/notes/world.md, ai.md, unit_ai.md)
@@ -26,14 +26,14 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- A-I (cut off by the usage limit; 12 functions merged). A-I2 done 2026-10-05 (36 functions). A-I3 done (27). A-I4 cut off (12 merged). A-I5 cut off (4 merged). A-I6 done (29). A-I7 done (21). A-I8 (taken 2026-10-06; first fix ui_camp_deals' campputon) (next: hero screen 006159E0 / 00617820 / 00615850, camp deals 00611220 / 00611760, main menu destructor 00633260).
+- A-I (cut off by the usage limit; 12 functions merged). A-I2 done 2026-10-05 (36 functions). A-I3 done (27). A-I4 cut off (12 merged). A-I5 cut off (4 merged). A-I6 done (29). A-I7 done (21). A-I8 done (21). A-I9 (taken 2026-10-07) (next: hero screen 006159E0 / 00617820 / 00615850, camp deals 00611220 / 00611760, main menu destructor 00633260).
 
 
 - I11 Next interface functions (ui.md, battle screen section); 0063EF60 / 0063E020 need modifier keys held during a click (harness step).
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- A-H done 2026-10-05 (38 functions). A-H2 done 2026-10-05 (41 functions; next candidates at the end of items_spells.md). A-H3 done (44 addresses). A-H4 cut off (nothing committed). A-H5 cut off (6 merged). A-H6 done (21). A-H7 done (27). A-H8 done (30). A-H9 (taken 2026-10-06; first fix spells_hero: 'Parameter of type float expected' in vanilla, no wolf damaged in Rebirth) (effects: 0x5B, Moshka 0067CEF0, Tornado, 0066E7D0; client handlers 00667EC0 / 00669A30 / 00669490 / 00669FA0). Was: ( effects.md next candidates; spells_hero passes now but shows no CEffectMissile / ShowVisibility wrapper calls, find out why) (candidates at the end of items_spells.md's Party section; 0064A7A0). (candidates at the end of items_spells.md "Area ticket A-H").
+- A-H done 2026-10-05 (38 functions). A-H2 done 2026-10-05 (41 functions; next candidates at the end of items_spells.md). A-H3 done (44 addresses). A-H4 cut off (nothing committed). A-H5 cut off (6 merged). A-H6 done (21). A-H7 done (27). A-H8 done (30). A-H9 cut off (11 merged: bow arrows). A-H10 (taken 2026-10-07). Was ( first fix spells_hero: 'Parameter of type float expected' in vanilla, no wolf damaged in Rebirth) (effects: 0x5B, Moshka 0067CEF0, Tornado, 0066E7D0; client handlers 00667EC0 / 00669A30 / 00669490 / 00669FA0). Was: ( effects.md next candidates; spells_hero passes now but shows no CEffectMissile / ShowVisibility wrapper calls, find out why) (candidates at the end of items_spells.md's Party section; 0064A7A0). (candidates at the end of items_spells.md "Area ticket A-H").
 
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
