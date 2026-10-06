@@ -7,6 +7,7 @@
 // change: combat (heroes hit), combat_more.
 #include "verify.h"
 
+#include "../../src/game/map_object_shadow.h"
 #include "../../src/game/maths.h"
 #include "../../src/game/unit_client_models.h"
 
@@ -53,6 +54,18 @@ static bool __fastcall LoadFaceTextureVerify(CUnitClientSpecific* self) {
     return result;
 }
 EI_VERIFY(0x00538DB0, LoadFaceTextureVerify, 0, s_unusedLoadFace);
+
+// - HideWounds (0051C920): ours only; no wounds texture or material afterwards. Reached by
+//   RefreshWounds (00537360) for a unit without wounds (combat, combat_more).
+namespace {
+void* s_unusedHideWounds;
+} // namespace
+
+static void __fastcall HideWoundsVerify(CObject3DClientSpecific* self) {
+    self->HideWounds();
+    ei::verify::Check("CObject3DClientSpecific::HideWounds", true, !self->woundsTexture && !self->woundsMaterial, "");
+}
+EI_VERIFY(0x0051C920, HideWoundsVerify, 0, s_unusedHideWounds);
 
 // - WeaponPoint (00535770): output. The original into a scratch vector (seeded with `out`), ours
 //   into `out`; result and the three floats bitwise (copies). Reached by the original EffectPoint

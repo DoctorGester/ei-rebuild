@@ -192,6 +192,25 @@ void CObject3D::UpdatePartBounds() {
 }
 EI_REPLACE_METHOD(0x00518100, CObject3D::UpdatePartBounds);
 
+// --- Parts by name prefix -----------------------------------------------------------------------
+
+void CObject3D::CollectPartsByPrefix(const char* prefix, AlignedPtrArray* out) {
+    // The original asks each part for its name twice; parts return the same string both times.
+    auto startsWith = [prefix](FigurePart* part) { return std::strstr(part->GetName(), prefix) == part->GetName(); };
+    for (int i = 0; i < parts.size; ++i) {
+        auto* part = static_cast<FigurePart*>(parts.data[i]);
+        if (!startsWith(part)) continue;
+        int index = out->size;
+        out->SetSize(index + 1, -1);   // 00519D70
+        out->data[index] = part;
+    }
+    for (int i = 0; i < pendingParts.size; ++i) {
+        auto* part = static_cast<FigurePart*>(pendingParts.data[i]);
+        if (startsWith(part)) out->SetAtGrow(out->size, part);   // inlined by the original
+    }
+}
+EI_REPLACE_METHOD(0x00516B50, CObject3D::CollectPartsByPrefix);
+
 // --- Loading single parts ---------------------------------------------------------------------
 
 namespace {
