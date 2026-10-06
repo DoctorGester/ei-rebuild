@@ -272,6 +272,22 @@ public:
     // with fromHeroScreen_), list rows), the new hero (10: back, create, the arrows, defaults,
     // voice rows) and its statistics page (11: back, next, take the equipment back).
     void OnLButtonDown(int flags, int x, int y);
+    // 00618A10 (input slot 9, RET 0xC; ui_hero_screen_click.cpp). After the container's handler,
+    // unless a child used the key: Enter ends a renaming (FinishRename), else continues (mode 9),
+    // creates the hero (10) or goes on to the next page (11); Esc ends a renaming without keeping
+    // it (the list redrawn, 006167C0), else goes back to the main menu (9, as region 0), to the
+    // hero list (10) or to the new hero (11, as region 0); PgUp / PgDn / Up / Down move the hero
+    // selection by 10 / 1 (mode 9) or the voice by 11 / 1 (mode 10, the voice played). A key used
+    // is marked (other modes leave the paging keys unused).
+    void OnKeyDown(int key, int repeat, int flags);
+    // Enter while renaming: the hero's name becomes the text before its " | " plus " | " and the
+    // typed text (trimmed; nothing added when empty); the heroes' transfer sent (00662AC0 with
+    // 007C82A0); the edit window put away and the hero shown again.
+    void FinishRename();
+    // The rename edit window put away (its surface hidden, disabled, editing off).
+    void CloseRenameEdit();
+    // Back from the statistics page to the new hero (mode 10).
+    void BackToNewHero();
 
     // Called through the vtable, as the original does.
     char* Hero();                       // slot 51 (+0xCC)
