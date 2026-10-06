@@ -10,6 +10,7 @@
 // walking to their places), 3 phrases, 4 rewards.
 
 #include "console.h"
+#include "maths.h"
 #include "object_tables.h"
 #include "ui.h"
 #include "ui_camp.h"
@@ -38,6 +39,29 @@ struct BriefingMover {
 };
 static_assert(offsetof(BriefingMover, person) == 0x24);
 static_assert(offsetof(BriefingMover, time) == 0x2C);
+
+// A person taking part in the dialogue (CBriefingScreen +0x294, an STLport vector of 12-byte
+// entries): the client unit, its name as the dialogue's commands give it, and a flag.
+struct BriefingSpeaker {
+    CUnit* unit;
+    mfc::CString name;               // +0x04
+    bool unknown_08;
+    std::uint8_t unknown_09[3];
+};
+static_assert(sizeof(BriefingSpeaker) == 0xC);
+
+// An item shown in the dialogue ("#show <name>" for what is not a unit, 00605DE0): a node of the
+// STLport list at CBriefingScreen +0x278 (0x18 bytes, node pool 0079B22C). The meshes are the
+// window's scene objects; the item's texture (+0x280) is one of its referenced objects.
+struct BriefingShownItem {
+    BriefingShownItem* next;
+    BriefingShownItem* prev;
+    mfc::CString name;               // +0x08
+    CUiMesh* item;                   // +0x0C
+    CEngineObject* back;             // +0x10
+    CEngineObject* frame;            // +0x14
+};
+static_assert(sizeof(BriefingShownItem) == 0x18);
 
 // The local player's name (its zone): 00578A90 copy-constructs it into raw storage, destroyed at
 // the end of the scope.
@@ -85,6 +109,12 @@ public:
     // 00603010 (slot 30, RET 4). `unit` left the party: no longer the leader, taken out of party_
     // (by id; the rest moved down).
     void OnUnitLeft(CUnit* unit);
+    // 00602C90 (slot 29, RET 4). `unit` joined the party: it goes into party_ after the members
+    // whose unit records (the local player's, LocalPlayerData +0x30) come before its record, or
+    // last without one. The first record's unit becomes the leader: the client world controls it,
+    // the camera follows it, and the first "b.<zone>..." variable equal to 1 with three parts
+    // starts its topic (the third part) at once (briefingStarted_; 006064E0 with 1, 1).
+    void OnUnitJoined(CUnit* unit);
     // 00608C70 (slot 31, RET 4; the argument is not read). The game is lost: the game-over sound
     // and the box "game_over" / "game_over_msg" (result 0x20000) on top.
     void OnGameOver(int unused);
@@ -145,6 +175,40 @@ public:
     // (lowercased; "constr..." topics share "briefing constr"), empty without one.
     mfc::CString* TopicTitle(mfc::CString* out, const char* topic);
 
+    // 00607720 (ui_briefing.cpp). personTexts_ gets the "pers <name>" texts (PersonTextMap::Load).
+    void LoadPersonTexts();
+
+    // The dialogue (ui_briefing_dialogue.cpp).
+    // 00608210. The phrases start: the voice still playing stops, the music fades out; without a
+    // text "briefing <topic_>" back to state 0. Otherwise the server hears dialogue event 3, the
+    // camera position is kept (savedCamera_) with a point one unit along its rotation's z axis
+    // (lookAt_), the dialogue text and the text window are emptied, state 3, firstPhrase_, and the
+    // first phrase (00604C50 with 0).
+    void StartPhrases();
+    // 00607A60 (RET 0xC). `unit` (a client unit) plays a dialogue animation: talking 3 for a third
+    // speaker, else a random one of 1, 6, 7, 8 for a human ("unhuma") and 1 for others; listening
+    // a random one of 2, 0xA, 0xC, 0xD for a human and 2 for others (skill animations, 00518FC0).
+    // Its server unit's controller drops its action first (00555840) and calls 006023F0 when the
+    // animation has finished.
+    void PlaySpeakerAnimation(CUnit* unit, bool talking, bool third);
+    // 00607BB0 (RET 0x10). The camera views `unit`: from its eyes (its place, or its position, plus
+    // its facing times the prototype's viewDistance, at viewHeight) around the facing turned by
+    // `angle`, `distance` away and `height` above; without a unit the middle of the first two
+    // places, looked at across them. Sent to the server as message 0x0F (camera position, point).
+    void ViewSpeaker(CUnit* unit, float angle, float distance, float height);
+    // 00607EC0 (RET 4). Camera preset `preset` of a phrase ("#camera n"; 1-12, others nothing):
+    // views of both (1, 5, 9: ViewSpeaker without a unit, at 3, 2.7 or 2.4 times the distance
+    // between the first two places), of the leader (2, 6, 10), the person (3, 7, 11) or the third
+    // speaker (4, 8, 12) from various angles; the other speakers are first sunk to height -100
+    // (00578760) in 2, 3, 6, 7 and 12.
+    void ViewPreset(int preset);
+    // 006062C0 (RET 0xC). "#hide <name>": a dialogue person `name` leaves the dialogue (the server
+    // hears event 2; its blink stops; its server unit gets flag 0x40000000 back, height 0, its
+    // action dropped) and the speakers' list; the third speaker walks to thirdPlace_ (006089D0
+    // with `immediate` and `time`) and is forgotten. A name that is no unit removes the shown item
+    // of that name (its meshes and texture).
+    void HideSpeaker(const char* name, int immediate, int time);
+
     int exit_;                      // +0x164 the exit a "leave_zone" answer leaves through
     bool exitPending_;               // +0x168 Create sets it (Update checks the leader's exit)
     std::uint8_t unknown_169[3];
@@ -155,10 +219,21 @@ public:
     bool briefingStarted_;           // +0x18C a dialogue started by itself (602C90)
     std::uint8_t unknown_18D[3];
     UiDwordArray party_;             // +0x190 the party's units (CArray, SetSize 005EBDB0)
-    CUnit* leader_;                  // +0x1A4 the unit the camera follows
-    std::uint8_t unknown_1A8[0x240 - 0x1A8];
+    CUnit* leader_;                  // +0x1A4 the unit the camera follows (the hero speaker)
+    CUnit* person_;                  // +0x1A8 the person the dialogue is with
+    CUnit* third_;                   // +0x1AC a third speaker, or null
+    // +0x1B0 the speakers' places and +0x1D4 their facings: [0] person_, [1] leader_, [2] third_.
+    Vector3 places_[3];
+    Vector3 directions_[3];
+    Vector3 savedCamera_;            // +0x1F8 the camera position when the phrases started
+    Vector3 lookAt_;                 // +0x204 position + the camera rotation's z axis then
+    Vector3 thirdPlace_;             // +0x210 where the third speaker goes when hidden (006062C0)
+    Vector3 thirdDirection_;         // +0x21C
+    std::uint8_t unknown_228[0x240 - 0x228];
     BriefingMover* movers_;          // +0x240 the people walking to their places (list header)
-    std::uint8_t unknown_244[0x24C - 0x244];
+    bool firstPhrase_;               // +0x244 set when the phrases start (the first one lasts a second longer)
+    std::uint8_t unknown_245[3];
+    mfc::CString dialogueText_;      // +0x248 the dialogue's text so far (shown whole when skipped)
     float phraseTime_;               // +0x24C time left of a phrase without a voice
     int voice_;                      // +0x250 the phrase's voice (sound id), -1 none
     CUnit* rewardUnit_;              // +0x254
@@ -168,12 +243,17 @@ public:
     int topicTop_;                   // +0x264 first topic row shown
     float savedEdgeFade_;            // +0x268 the map edge fade (0079BD34) Create replaced
     PersonTextMap personTexts_;      // +0x26C "pers" texts by text key (map<int, CString>)
-    std::uint8_t unknown_270[0x27D - 0x270];
+    std::uint8_t unknown_270[0x278 - 0x270];
+    BriefingShownItem* shown_;       // +0x278 the items shown (list header)
+    std::uint8_t unknown_27C;
     bool noWalk_;                    // +0x27D the zone's map record +0x44: the leader does not walk
     bool unknown_27E;                // +0x27E
     std::uint8_t unknown_27F;
     CUiWindow* chat_;                // +0x280 a network client's chat window (608D20), else null
-    std::uint8_t unknown_284[0x2A0 - 0x284];
+    std::uint8_t unknown_284[0x294 - 0x284];
+    BriefingSpeaker* speakers_;      // +0x294 the people in the dialogue (vector begin, end, capacity)
+    BriefingSpeaker* speakersEnd_;   // +0x298
+    BriefingSpeaker* speakersCapacity_;   // +0x29C
     int chatActive_;                 // +0x2A0 the chat window takes the input
 };
 static_assert(offsetof(CBriefingScreen, exit_) == 0x164);
@@ -183,12 +263,22 @@ static_assert(offsetof(CBriefingScreen, topic_) == 0x184);
 static_assert(offsetof(CBriefingScreen, hoveredTopic_) == 0x188);
 static_assert(offsetof(CBriefingScreen, party_) == 0x190);
 static_assert(offsetof(CBriefingScreen, leader_) == 0x1A4);
+static_assert(offsetof(CBriefingScreen, person_) == 0x1A8);
+static_assert(offsetof(CBriefingScreen, places_) == 0x1B0);
+static_assert(offsetof(CBriefingScreen, directions_) == 0x1D4);
+static_assert(offsetof(CBriefingScreen, savedCamera_) == 0x1F8);
+static_assert(offsetof(CBriefingScreen, lookAt_) == 0x204);
 static_assert(offsetof(CBriefingScreen, movers_) == 0x240);
+static_assert(offsetof(CBriefingScreen, firstPhrase_) == 0x244);
+static_assert(offsetof(CBriefingScreen, dialogueText_) == 0x248);
 static_assert(offsetof(CBriefingScreen, phraseTime_) == 0x24C);
 static_assert(offsetof(CBriefingScreen, text_) == 0x25C);
 static_assert(offsetof(CBriefingScreen, topicTop_) == 0x264);
 static_assert(offsetof(CBriefingScreen, personTexts_) == 0x26C);
 static_assert(offsetof(CBriefingScreen, noWalk_) == 0x27D);
 static_assert(offsetof(CBriefingScreen, chat_) == 0x280);
+static_assert(offsetof(CBriefingScreen, thirdPlace_) == 0x210);
+static_assert(offsetof(CBriefingScreen, shown_) == 0x278);
+static_assert(offsetof(CBriefingScreen, speakers_) == 0x294);
 static_assert(offsetof(CBriefingScreen, chatActive_) == 0x2A0);
 static_assert(sizeof(CBriefingScreen) == 0x2A4);

@@ -14,6 +14,8 @@ namespace mfc { class CString; }
 namespace ui_gdi { struct GameDC; }
 struct ItemObjectCache;
 struct tagRECT;
+struct Vector3;
+struct PersonTextNode;
 
 __declspec(naked) inline void __fastcall BrainResetAll(void*) EI_ORIGINAL(0x005D4F70)
 __declspec(naked) inline void __fastcall Screen8Member1D8(void*) EI_ORIGINAL(0x005DB340)
@@ -346,6 +348,36 @@ __declspec(naked) inline void __fastcall BriefingOpenTopicsOriginal(void* /*scre
 __declspec(naked) inline void __fastcall BriefingDrawTopicsOriginal(void* /*screen*/) EI_ORIGINAL(0x006071E0)
 __declspec(naked) inline void __fastcall BriefingFindTopicsOriginal(void* /*screen*/, void*, int /*personId*/)
     EI_ORIGINAL(0x00607360)
+// A-I11. 0066F840 (CPlayerServer, RET 8): message 0x19, a dialogue event (byte `what`: 3 the phrases start, 2 a
+// person leaves the dialogue) and a dword (a unit id, or 0). 006B4E10 (on the music system [007AF760], ECX not read):
+// the sound manager's stream fades out (006BAFA0).
+__declspec(naked) inline void __fastcall PlayerSendDialogueEventOriginal(void* /*server*/, void*, int /*what*/, int /*value*/)
+    EI_ORIGINAL(0x0066F840)
+__declspec(naked) inline void __fastcall MusicFadeOutOriginal(void* /*music*/) EI_ORIGINAL(0x006B4E10)
+// 004DEFA0 (the text manager; RET 8): the section names matching `pattern` ("pers *") into a CStringArray. 00609E70
+// (a PersonTextMap; RET 0xC): insert with a hint (an STLport map<int, CString> node, a {key, CString} pair); the
+// node's iterator is written to `result`, which is returned.
+__declspec(naked) inline void __fastcall TextsFindKeysOriginal(void* /*texts*/, void*, void* /*out CStringArray*/,
+                                                               const char* /*pattern*/) EI_ORIGINAL(0x004DEFA0)
+__declspec(naked) inline PersonTextNode** __fastcall PersonMapInsertHintOriginal(void* /*map*/, void*, PersonTextNode** /*result*/,
+                                                                                 PersonTextNode* /*hint*/, const void* /*pair*/)
+    EI_ORIGINAL(0x00609E70)
+// 00578760 (the client glue 007AFEA6, not read; RET 8): the server unit with id `id` is moved to height `z` (its
+// sector map entry updated, part 2 marked) unless it is there already. 006089D0 (the briefing screen; RET 0x28): `unit`
+// walks to a place (x, y, z) and turns to a direction (x, y, z); `waited` (byte) makes the dialogue wait for it,
+// `immediate` (byte) places it at once instead, `time` the walk's time argument.
+__declspec(naked) inline void __fastcall GameSetUnitHeightOriginal(void* /*glue*/, void*, int /*id*/, float /*z*/)
+    EI_ORIGINAL(0x00578760)
+__declspec(naked) inline void __fastcall BriefingMovePersonOriginal(void* /*screen*/, void*, void* /*unit*/, float, float, float,
+                                                                    float, float, float, int /*waited*/, int /*immediate*/,
+                                                                    int /*time*/) EI_ORIGINAL(0x006089D0)
+// 00607BB0 (rewritten as CBriefingScreen::ViewSpeaker; through its address so the wrapper runs; RET 0x10).
+__declspec(naked) inline void __fastcall BriefingViewSpeakerOriginal(void* /*screen*/, void*, void* /*unit*/, float /*angle*/,
+                                                                     float /*distance*/, float /*height*/) EI_ORIGINAL(0x00607BB0)
+// 0066EDA0 (rewritten as CPlayerServer::SendPosition0F; RET 0xC): message 0x0F, a camera position `at`, the point it
+// looks at and a flag byte.
+__declspec(naked) inline void __fastcall PlayerSendViewOriginal(void* /*server*/, void*, const Vector3* /*at*/,
+                                                                const Vector3* /*point*/, int /*flag*/) EI_ORIGINAL(0x0066EDA0)
 // 00578C40: the client glue (007AFEA4, not read) copies the local player's variables whose names start with `prefix`
 // into `out` (a NamedFloatTable; emptied when there is no player; RET 8).
 __declspec(naked) inline void __fastcall GameCopyVariablesOriginal(void* /*glue*/, void*, const char* /*prefix*/,

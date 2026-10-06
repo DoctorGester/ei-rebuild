@@ -357,6 +357,25 @@ their places +0x1B0.. and directions +0x1D4..), 00602C90 (slot 29), 00607720, th
 Original quirks kept: the mouse move's exit check names the zone of exit_ (+0x164), not of the exit under the mouse; the key handler builds
 the objectives window inline and calls its setup even when the allocation failed.
 
+A-I11 (`ui_briefing_dialogue.cpp`; `verify_ui_briefing_dialogue.cpp`, `player_out_mark.h`): 00608210 `StartPhrases` (ours only: state 0, or
+savedCamera_ / lookAt_ against the camera), 00607A60 `PlaySpeakerAnimation` (ours only: the controller's +0x978 callback 006023F0), 00607BB0
+`ViewSpeaker` (side by side on the bytes of message 0x0F, the stream put back between runs). Fields: speakers +0x1A8 / +0x1AC, places_
++0x1B0 / directions_ +0x1D4 ([0] person, [1] leader, [2] third), +0x244 firstPhrase_, +0x248 dialogueText_; WorldPlayer::server (+0x20),
+UnitController::actionDone (+0x978), the prototype's viewDistance / viewHeight (+0x28 / +0x2C). Forwarders: 0066F840, 006B4E10, 0066EDA0
+(originals_ui.h), 00555840 / 00555700 (originals_units.h; script_exec's member now calls it). ui_base_dialogue waits 4 s after the topic.
+player_messages.h cannot be included next to ui_briefing.h (three MfcArray templates), hence the forwarder and the helper file.
+Then 00607EC0 `ViewPreset` ("#camera n": side by side like ViewSpeaker) and 006062C0 `HideSpeaker` ("#hide": ours only, the person
+gone from speakers_ / third_). Fields: speakers_ +0x294 (12-byte BriefingSpeaker), shown_ +0x278 (BriefingShownItem list), thirdPlace_ /
+thirdDirection_ +0x210 / +0x21C. Forwarders 00578760 (unit height), 006089D0 (a person walks to a place, RET 0x28), 00607BB0. The list
+erase (00609A80) and vector erase (0060B490 / 0060AC00) are inlined; HideSpeaker's search of the party (result unused) is left out.
+Not hooked: 006023F0 (the speakers' animation-done callback, `PlaySpeakerAnimation(unit, 0, 0)` for the speaker whose unit it is) is no
+function in Ghidra or function_sizes.inc.
+Then 00602C90 `OnUnitJoined` (slot 29; ours only: the unit once more in party_; the leader's "b.<zone>" topic starts at once) and
+00607720 `LoadPersonTexts` (ours only: the map stays ordered) = the new `PersonTextMap::Load` (`ui_person_texts.cpp`), which the battle
+screen's setup now calls instead of its inline copy (forwarders 004DEFA0 / 00609E70 moved to originals_ui.h). OnUnitJoined's unused
+server-world lookup after the insert is left out.
+Next: 006064E0 / 00604C50 / 00608450, Create and Update.
+
 ## 6. Battle screen: update, selection, orders, pending actions (00635250-0064BE80)
 
 Files: `ui_battle_setup.cpp` (Create, Update), `ui_battle_update.cpp`, `ui_battle_hover.cpp`, `ui_battle_commands.cpp`,

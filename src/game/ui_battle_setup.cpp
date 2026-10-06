@@ -117,54 +117,6 @@ struct PartyArray {
 };
 __declspec(naked) void PartyArray::SetSize(int, int) EI_ORIGINAL(0x005EBDB0)
 
-// The text manager (007AF788) as the "pers" table reads it.
-struct TextTable {
-    void FindKeys(CStringArray* out, const char* pattern);   // 004DEFA0
-    int Find(const char* key);                               // 004DEFC0
-    BOOL ReadLine(mfc::CString* out, BOOL advance);          // 004DF8D0
-};
-__declspec(naked) void TextTable::FindKeys(CStringArray*, const char*) EI_ORIGINAL(0x004DEFA0)
-int TextTable::Find(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
-BOOL TextTable::ReadLine(mfc::CString* a0, BOOL a1) { return (BOOL)TextsReadLineOriginal((void*)this, nullptr, a0, (int)a1); }
-TextTable* Texts() { return *reinterpret_cast<TextTable**>(0x007AF788); }
-
-__declspec(naked) int __fastcall TextKey(const char*) EI_ORIGINAL(0x00461360)
-
-// STLport map<int, CString> (+0x1F0): header node first; nodes {colour, parent, left, right,
-// key +0x10, value +0x14}.
-struct PersonNode {
-    int colour;
-    PersonNode* parent;
-    PersonNode* left;
-    PersonNode* right;
-    int key;
-    mfc::CString text;
-};
-struct PersonPair {
-    int key;
-    mfc::CString text;
-};
-struct PersonMap {
-    PersonNode* header_;
-    // 00609E70: insert with a hint; writes the node's iterator to `result` and returns it.
-    PersonNode** InsertHint(PersonNode** result, PersonNode* hint, const PersonPair* value);
-
-    // lower_bound(key).
-    PersonNode* LowerBound(int key) const {
-        PersonNode* y = header_;
-        for (PersonNode* x = header_->parent; x;) {
-            if (!(x->key < key)) {
-                y = x;
-                x = x->left;
-            } else {
-                x = x->right;
-            }
-        }
-        return y;
-    }
-};
-__declspec(naked) PersonNode** PersonMap::InsertHint(PersonNode**, PersonNode*, const PersonPair*) EI_ORIGINAL(0x00609E70)
-
 // Interface manager fields the panels are built from (set by the options and saved games).
 std::uint8_t UiByte(CInterface3D* ui, int offset) { return reinterpret_cast<const std::uint8_t*>(ui)[offset]; }
 int UiInt(CInterface3D* ui, int offset) {
@@ -379,28 +331,7 @@ void CBattleScreenSetup::Create() {
     unknown_1FC = 0;
 
     // The "pers <name>" texts: one line per person, by the person's text key.
-    TextTable* texts = Texts();
-    CStringArray keys;
-    mfc::CString line;
-    texts->FindKeys(&keys, reinterpret_cast<const char*>(0x00793504));   // "pers *"
-    for (int i = 0; i < keys.GetSize(); ++i) {
-        if (!texts->Find(keys[i])) continue;
-        texts->ReadLine(&line, 1);
-        int key;
-        {
-            mfc::CString name = console::Ops(keys[i]).Mid(5);
-            key = TextKey(name);
-        }
-        PersonMap* map = reinterpret_cast<PersonMap*>(&personTexts_);
-        PersonNode* node = map->LowerBound(key);
-        if (node == map->header_ || key < node->key) {
-            mfc::CString empty;
-            PersonPair pair{key, empty};
-            PersonNode* inserted;
-            node = *map->InsertHint(&inserted, node, &pair);
-        }
-        node->text = line;
-    }
+    personTexts_.Load();
     unknown_164 = 0;
     if (IsMultiplayerClient()) {
         using SlotFn = void(__thiscall*)(CUiWindow*, int);

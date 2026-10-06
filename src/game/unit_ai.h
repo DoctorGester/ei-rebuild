@@ -60,7 +60,10 @@ struct UnitController {
     std::uint16_t protection[8];    // +0x8E4 what an attack's damage words are measured against (00522AE0)
     std::uint8_t unknown_8F4[4];
     float moveFactors[4];           // +0x8F8 (CUnitServer::moveFactors)
-    std::uint8_t unknown_908[0x980 - 0x908];
+    std::uint8_t unknown_908[0x978 - 0x908];
+    // +0x978 called with the unit when its current action (an animation) has finished, or null.
+    void(__fastcall* actionDone)(CUnit* unit);
+    std::uint8_t unknown_97C[4];
     std::uint8_t brain[0x190];      // +0x980 the AIBrain (Brain())
 
     AIBrain* Brain();
@@ -102,6 +105,7 @@ static_assert(offsetof(UnitController, nextCommand) == 0x1B4);
 static_assert(offsetof(UnitController, nextTarget) == 0x1BC);
 static_assert(offsetof(UnitController, stats) == 0x1E0);
 static_assert(offsetof(UnitController, protection) == 0x8E4);
+static_assert(offsetof(UnitController, actionDone) == 0x978);
 static_assert(offsetof(UnitController, brain) == 0x980);
 
 // An order as the controller's order checks take it (0x1C bytes, built on the stack).
