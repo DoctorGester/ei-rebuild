@@ -784,6 +784,16 @@ public:
     // up to under 75), 13 the height up (points_ <= 99; height = points_ * 0.01). True when it
     // changed something.
     bool StepPoint(int region);
+    // 006242E0 (RET 0x10; ui_stats_rows.cpp). A row on surface 0: the text of "perk <label>" (when
+    // the texts have it, else `label` itself) on the left, `value` ("%d", or "%d/%d" with a
+    // maximum >= 0) on the right.
+    void DrawRow(RECT* rect, const char* label, int value, int maximum);
+    // 00624590 (RET 0xC). A body part's row: "     " plus the text of "hl_<name>" on the left, its
+    // armour ("%.1f") on the right.
+    void DrawPart(RECT* rect, const char* name, int part);
+    // The armour shown for body part `part`: per damage type the three layers' absorption summed
+    // (stored as float), the largest of the first six types (from 0).
+    float PartArmour(int part);
 
     std::uint8_t unknown_148[4];
     CUiWindow* owner_;               // +0x14C
