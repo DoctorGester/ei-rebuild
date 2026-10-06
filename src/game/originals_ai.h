@@ -13,6 +13,7 @@ class CEngineObject;
 class CSectorMap;
 class CUnit;
 struct AIPath;
+struct DeltaField;
 struct PathCellList;
 struct Vector3;
 
@@ -104,3 +105,7 @@ __declspec(naked) inline std::uintptr_t __fastcall ControllerAddHostileMaskOrigi
 // 005CC9D0 (rewritten as AICallArray::Update), through its address so its wrapper sees UpdateMemory's calls (RET 8).
 __declspec(naked) inline void __fastcall AiCallsUpdateOriginal(void* /*calls*/, void*, CUnit* /*unit*/, void* /*memory*/)
     EI_ORIGINAL(0x005CC9D0)
+// An AI path's network state (AIPath, ai_map.h): 005C7DB0 writes it into the delta field, 005C7FC0 reads it (both RET 4,
+// EAX not a result).
+__declspec(naked) inline void __fastcall PathWriteOriginal(void* /*path*/, void*, DeltaField* /*field*/) EI_ORIGINAL(0x005C7DB0)
+__declspec(naked) inline void __fastcall PathReadOriginal(void* /*path*/, void*, DeltaField* /*field*/) EI_ORIGINAL(0x005C7FC0)

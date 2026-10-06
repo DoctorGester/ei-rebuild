@@ -28,7 +28,7 @@ DeltaState* StateOf(std::uint8_t* object) { return reinterpret_cast<DeltaState*>
 // The unit's equipment ids (11 words: 4, the weapon, 6) [0052EC10 (out)]; the path's writer
 // [005C7DB0 on the controller's path (field)].
 __declspec(naked) void __fastcall EquipmentIds(void*, void*, std::uint32_t*) EI_ORIGINAL(0x0052EC10)
-__declspec(naked) void __fastcall WritePath(void*, void*, DeltaField*) EI_ORIGINAL(0x005C7DB0)
+// (005C7DB0: PathWriteOriginal, originals_ai.h.)
 
 constexpr int kSlotClassId = 0x30 / 4;         // controller: ()
 constexpr int kSlotRefreshItems = 0x74 / 4;    // controller of class 0x3E: ()
@@ -116,7 +116,7 @@ void __fastcall UnitWriteNetState(std::uint8_t* unit) {
     }
     if (DeltaField* field = state->BeginField(10)) {
         void* path = ei::VCall<void*>(At<void*>(unit, 0x240), kSlotPath);
-        WritePath(path, nullptr, field);
+        PathWriteOriginal(path, nullptr, field);
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(11)) {
@@ -228,7 +228,7 @@ namespace {
 // field reader's CString [0047E310 (out)], CString operator= [00700AA9] and destructor [00700970].
 __declspec(naked) void __fastcall UnitReleaseAllItems(void*) EI_ORIGINAL(0x005315B0)
 __declspec(naked) void __fastcall UnitMoveSpeeds(void*, void*, float*, float*) EI_ORIGINAL(0x0052F920)
-__declspec(naked) void __fastcall PathRead(void*, void*, DeltaField*) EI_ORIGINAL(0x005C7FC0)
+// (005C7FC0: PathReadOriginal, originals_ai.h.)
 __declspec(naked) void __fastcall PathSetOwner(void*, void*, int) EI_ORIGINAL(0x005C7C90)
 void __fastcall PlayerRemoveUnit(void* a0, void*, void* a2) { PlayerRemoveUnitOriginal(a0, nullptr, a2); }
 void __fastcall PlayerAddUnit(void* a0, void*, void* a2) { PlayerAddUnitOriginal(a0, nullptr, a2); }
@@ -365,7 +365,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* unit, void*, int first) 
     }
     if (DeltaField* field = state->BeginField(10)) {
         void* path = ei::VCall<void*>(At<void*>(unit, 0x240), kSlotPath);
-        PathRead(path, nullptr, field);
+        PathReadOriginal(path, nullptr, field);
         if (At<int>(unit, 0x260) == 1) PathShiftTime(path, nullptr, -1);
         void* path2 = ei::VCall<void*>(At<void*>(unit, 0x240), kSlotPath);
         PathSetOwner(path2, nullptr, At<int>(unit, 0xC));

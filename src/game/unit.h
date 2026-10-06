@@ -522,7 +522,9 @@ public:
     const char* prototypeName;      // +0x0A4 e.g. "unhuma"
     std::uint8_t unknown_0A8[0xCC - 0xA8];
     float animationCC;              // +0x0CC an animation time
-    std::uint8_t unknown_0D0[0x124 - 0xD0];
+    std::uint8_t unknown_0D0[0xF4 - 0xD0];
+    float modelHeight[3];           // +0x0F4 (0, the model record's height, 0); set by the client's 00667EC0
+    std::uint8_t unknown_100[0x124 - 0x100];
     // The figure parts' bounding box as CObject3D keeps it (map_object_figures.h, 00518310).
     std::uint32_t boundsFlags;      // +0x124 bits 1 and 2: the bounds are valid
     float center[3];                // +0x128 relative to the position
@@ -598,6 +600,7 @@ public:
     float levels4C8[5];             // +0x4C8 any at most 2 (or NaN) asks for a party refresh (0066E430)
 };
 static_assert(offsetof(CUnit, prototypeName) == 0xA4);
+static_assert(offsetof(CUnit, modelHeight) == 0xF4);
 static_assert(offsetof(CUnit, orientation) == 0x34);
 static_assert(offsetof(CUnit, boundsFlags) == 0x124);
 static_assert(offsetof(CUnit, center) == 0x128);
@@ -684,6 +687,13 @@ struct UnitParams {
     // unit_vision.cpp (A-U3). 005271E0 (RET 4): the sight range at `daylight` (0 night .. 1 day):
     // valuesB0[0] x ((1 - daylight) + valuesB0[1] x daylight x 0.01). ST0, unrounded.
     double VisionRange(float daylight);
+
+    // unit_params_protection.cpp (A-U4). 005270E0 (RET 0xC): the seven protection values the unit
+    // panel shows, into `out`: for text-key units (`keyed`) each body slot whose kind is above 1
+    // adds its protection times its type's weight (0073E0FC), the sums are divided by the weights'
+    // total (0 when none) and the packed vitals' protection added; others get the packed
+    // protection times the difficulty factor (007C54A0).
+    void ProtectionBlock(const struct UnitVitalsPacked* vitals, float* out, std::uint8_t keyed);
 };
 static_assert(offsetof(UnitParams, attackRate) == 0x0E);
 static_assert(offsetof(UnitParams, combat) == 0x18);
@@ -801,6 +811,12 @@ struct UnitStats {
     // the FPU runs above 24-bit precision under Rebirth, see CItemWeapon::RollDamage).
     // 00523CD0. 25 / unknown_20.
     double Period20();
+    // unit_stats_io.cpp (A-U4). 005287A0 (RET 4): pendingExperience 0, then the block read raw,
+    // as long as the stream's format version knew it (below 0x45: 0x6F8 bytes, below 0x50: 0x6FC,
+    // below 0x63: 0x700, else 0x704). Returns the stream's result.
+    int LoadFrom(UnitStream* stream);
+    // 00528800 (RET 4). The whole block (0x704 bytes) written raw.
+    void SaveTo(UnitStream* stream);
     // 00525DF0. Attribute byte `index` (+0x6C8) as a float.
     float AttributeBase(int index);
     // 00525E10. Attribute `index` (0..2) with the bonus of the stat it depends on (stat - 25).

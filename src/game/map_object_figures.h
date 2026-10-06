@@ -293,6 +293,9 @@ public:
     FigurePart* FindPartByPrefix(const char* prefix);
     // 005169A0. The first part (parts, then pending parts) named exactly `partName`, or null.
     FigurePart* FindPart(const char* partName);
+    // 00516B50 (object3d_figure_setup.cpp, A-U4; RET 8). Every part (parts, then pending parts)
+    // whose name starts with `prefix` (strstr at the name's start) appended to `out`.
+    void CollectPartsByPrefix(const char* prefix, AlignedPtrArray* out);
     // 005167E0. Takes `part` out of the parts (it forgets its owner, 0059F3D0) or else out of the
     // pending parts, tells the animation state (+0x98, 0050D350) and releases it. The side half
     // (+0x94, slot 15) hears of it first, found or not. Returns 1 when it was there, else 0.
@@ -348,6 +351,12 @@ public:
     // CStringArray `partNames` is loaded by LoadPart (with the cached model; failures logged).
     // Without a figure manager: FatalError. Returns 1.
     int LoadParts(const char* model, const void* partList, std::uint32_t arg);
+    // 00518100 (plain RET; the world's 00566030 when a unit becomes the controlled one). With the
+    // figure loaded (flags_ 0x80): each part's world transform is updated from the object's
+    // (part slot 15) and its world box grows the bounds (0059FDF0); the centre (+0x128) is the
+    // box centre relative to the position, below / above the box minus the centre, the radius
+    // the length of `below`; bounds flags 2 and 1 set.
+    void UpdatePartBounds();
     // 00516DA0 (RET 0xC). Builds the figure of `model` (+0xA4) for the part names `partList` (a
     // CStringArray): the animation state is rescaled and given the model; with no names and an
     // animation state the names are the state's parts (0050D920) and the figure the cache's whole

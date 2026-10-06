@@ -7,6 +7,8 @@
 
 #include "ai_map.h"
 #include "core_maths.h"
+#include "core_transform.h"
+#include "figure_mesh.h"
 #include "world.h"
 
 #include "lib/crt.h"
@@ -30,6 +32,7 @@ constexpr float kHeroHalfWidth = 0.5f;
 constexpr float kHalf = 0.5f;                    // 0073B86C
 constexpr std::uint32_t kBoundsSphere = 1;       // boundsFlags: radius valid
 constexpr std::uint32_t kBoundsBox = 2;          // boundsFlags: box valid
+constexpr std::uint32_t kFlagFigureLoadedBits = 0x80;   // flags_: the figure is loaded
 
 // FootprintPart::flags set here.
 constexpr std::uint32_t kBoxLoaded = 4;
@@ -157,6 +160,56 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
 }
 
 EI_REPLACE_METHOD(0x005179E0, CObject3D::SetUpAnimatedFigure);
+
+// --- Bounds of the placed parts -----------------------------------------------------------------
+
+void CObject3D::UpdatePartBounds() {
+    if (!(flags_ & kFlagFigureLoadedBits)) return;
+    float highX = -FLT_MAX, highY = -FLT_MAX, highZ = -FLT_MAX;
+    float lowX = FLT_MAX, lowY = FLT_MAX, lowZ = FLT_MAX;
+    for (int i = 0; i < parts.size; ++i) {
+        // A part is a figure mesh (figure_mesh.h) on a CTransformObject.
+        static_cast<CTransformObject*>(parts.data[i])
+            ->UpdateWorld(orientation, *reinterpret_cast<const Vector3*>(position));
+        static_cast<const CFigureMesh*>(parts.data[i])->ExtendWorldBox(&highX, &highY, &highZ, &lowX, &lowY, &lowZ);
+    }
+    // The x sum stays on the FPU stack; the y and z sums are stored first.
+    float centreX = StoreFloat((highX + lowX) * kHalf);
+    float centreY = StoreFloat(StoreFloat(highY + lowY) * kHalf);
+    float centreZ = StoreFloat(StoreFloat(highZ + lowZ) * kHalf);
+    above[0] = highX - centreX;
+    above[1] = highY - centreY;
+    above[2] = highZ - centreZ;
+    below[0] = lowX - centreX;
+    below[1] = lowY - centreY;
+    below[2] = lowZ - centreZ;
+    boundsFlags |= kBoundsBox;
+    boundsFlags |= kBoundsSphere;
+    radius = std::sqrt((below[2] * below[2] + below[1] * below[1]) + below[0] * below[0]);
+    center[0] = centreX - position[0];
+    center[1] = centreY - position[1];
+    center[2] = centreZ - position[2];
+}
+EI_REPLACE_METHOD(0x00518100, CObject3D::UpdatePartBounds);
+
+// --- Parts by name prefix -----------------------------------------------------------------------
+
+void CObject3D::CollectPartsByPrefix(const char* prefix, AlignedPtrArray* out) {
+    // The original asks each part for its name twice; parts return the same string both times.
+    auto startsWith = [prefix](FigurePart* part) { return std::strstr(part->GetName(), prefix) == part->GetName(); };
+    for (int i = 0; i < parts.size; ++i) {
+        auto* part = static_cast<FigurePart*>(parts.data[i]);
+        if (!startsWith(part)) continue;
+        int index = out->size;
+        out->SetSize(index + 1, -1);   // 00519D70
+        out->data[index] = part;
+    }
+    for (int i = 0; i < pendingParts.size; ++i) {
+        auto* part = static_cast<FigurePart*>(pendingParts.data[i]);
+        if (startsWith(part)) out->SetAtGrow(out->size, part);   // inlined by the original
+    }
+}
+EI_REPLACE_METHOD(0x00516B50, CObject3D::CollectPartsByPrefix);
 
 // --- Loading single parts ---------------------------------------------------------------------
 

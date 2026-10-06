@@ -293,6 +293,14 @@ A-U4 (2026-10-07):
 | 005316F0 | CUnit::CollectItems (items and their spells into two lists; armour spell refresh 005528F0) | unit_item_lists.cpp | output (scratch lists) |
 | 0052EB70 | CUnit::PackPrototypeStats (slot 34: fresh vitals / stats from the prototype, packed to +0x17C / +0x330) | unit_prototype_stats.cpp | differential (both packed blocks) |
 | 00516DA0 | CObject3D::MakeFigure (figure from the cache: whole for an animated object without names, slot 4; else from the piece names, slot 3; then LoadParts, bounds, flags_ 0x80) | object3d_figure_setup.cpp | ours only (result 1, name, flag 0x80 rule) |
+| 00518100 | CObject3D::UpdatePartBounds (parts' world transforms, world box via 0059FDF0; radius from `below`) | object3d_figure_setup.cpp | original, bounds put back, ours (CheckNear) |
+| 00536EA0, 005370F0 | CUnitClientSpecific::WoundLevels (per part 0-3 by durability ratio; heroes' armour with ArmorRecord +0xB4 = 0 hides), ComposeWoundsTexture ("<model><part>w<level>.mmp" layers, cache "mo<id>w") | unit_client_wounds.cpp | output (scratch levels) / ours only |
+| 0051AD20, 0051AC30, 0051C970 | CObject3DClientSpecific::ExtraScale (slot 18: +0xF0..+0xF8), CObject3DServer's (1, 1, 1), RegisterPartMaterials (drawn parts with the world's slot 33 material manager, 0068EAF0) | object3d_specific_slots.cpp | pure / pure / ours only |
+| 0051C920, 00516B50 | CObject3DClientSpecific::HideWounds (+0xD8 texture, +0xDC material released), CObject3D::CollectPartsByPrefix (RemoveArmourModel only) | unit_client_wounds.cpp, object3d_figure_setup.cpp | ours only / output (scratch array) |
+| 005270E0 | UnitParams::ProtectionBlock (panel protection: text-key units weight worn slots by 0073E0FC and add the packed vitals; others packed x difficulty 007C54A0) | unit_params_protection.cpp | output (CheckNear) |
+| 005287A0, 00528800 | UnitStats::LoadFrom (size by format version 0x45 / 0x50 / 0x63; pending experience 0 first), SaveTo | unit_stats_io.cpp | ours only / capture streams compared |
+| 00533AD0, 00535770 | CUnitClientSpecific::ConstructClient (factory 0042D700), WeaponPoint (node by WeaponBaseFigure or "baserh3", its +0x74) | unit_client_lifetime.cpp, unit_client_wounds.cpp | original on a raw copy, bytes compared (speech header aside) / output |
+| 00533EA0, 00538DB0 | CUnitClientSpecific::DestructClientBody (sources, face, speech nodes and header, list +0x58, base vtable 0073EDBC), LoadFaceTexture ("<model>mouth[_NN]" kind 0x3D, dropped unless loaded) | unit_client_lifetime.cpp, unit_client_wounds.cpp | ours only |
 | 005190C0, 00519380, 0051A010, 0051A190 | CObject3D::RandomAnimation (variant bits, chance +0x1C narrowing, rand()), RandomAnimationOfKind; the candidate list's SetAtGrow / SetSize copies (registered with AlignedPtrArray's members) | object3d_animations.cpp | rand state saved: original vs ours (entry, generator after) / ours only |
 | 00517240, 00517110, 00519A10 | CObject3D::LoadPart (one part object, piece box, BASE / CROWN / EMPTY flags), LoadParts (model name + parts by name), AlignedPtrArray::Add | object3d_figure_setup.cpp | ours only (part listed, flag 4, pivot = position / result 1, name / index, size) |
 Inlined: 00519FC0 (zero part boxes), 0069FB60 (list AddTail pair), STLport vector<int>::resize (004FE0C0). Ghidra calls
@@ -301,3 +309,9 @@ originals_units.h (0050D7C0, 0050D320, 0050C990, 0050D0E0, 005AA5F0, 005AC010, 0
 Kept: LoadPart returns null for a part the figure has no piece of without releasing the new part object (leak).
 Skipped: 0050E9B0 (CMapObject slot 34) packs vitals the builder never writes when the prototype exists (005136D0 returns
 before touching them without a stats block): uninitialised stack in the original, cannot be compared.
+Lesson (005179E0 check): the animation state's parts appear during the call (0050D320 gives it the model), so the
+wrapper's count taken before the call was 0 and every call reported a mismatch; it now counts the boxes made.
+A-U4 skipped: levers (0052B1F0 constructor, 0052B650 / 0052B560 net state; no scenario has a lever), 00529B80 (class 0x3010,
+not on zone1), 0051C3D0 / 0051C250 / 0051B050 / 0051B160 / 0051C9F0 (client half's material sets and colour stack: renderer
+data), 00539E70 / 0053EBC0 (database destructors), STL / MFC instantiations (005335E0 hash_map operator[], 00539440 CList
+Serialize, 00512060 CArray SetAtGrow, 0051E5D0 vector insert).

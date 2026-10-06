@@ -330,6 +330,10 @@ __declspec(naked) inline void __fastcall HeroScreenDrawVoicesOriginal(void* /*sc
 __declspec(naked) inline void __fastcall TradePanelBuildListsOriginal(void* /*panel*/) EI_ORIGINAL(0x00625880)
 __declspec(naked) inline void __fastcall TradePanelDrawListsOriginal(void* /*panel*/) EI_ORIGINAL(0x006261A0)
 __declspec(naked) inline void __fastcall TradePanelClampScrollOriginal(void* /*panel*/) EI_ORIGINAL(0x00626D70)
+// 005F8070 (rewritten as CInterface3D::OnStringEvent; Rebirth's NewStringEvents patches it, so callers go through its
+// address): a script string event on the interface (007C7D50; RET 4, no result).
+__declspec(naked) inline void __fastcall InterfaceStringEventOriginal(void* /*interface*/, void*, const char* /*event*/)
+    EI_ORIGINAL(0x005F8070)
 // A-I10. The briefing / base screen (CBriefingScreen, ui_briefing.h; thiscall on the window): 006064E0 starts dialogue topic_
 // (RET 8: a flag, a second flag); 00604C50 the next phrase (RET 4: `skip`, the phrase's voice stopped); 00608450 the rewards
 // taken (plain RET); 00608B60 (rewritten as OpenTopics; through its address so the wrapper runs) a person's topics (RET 4);
