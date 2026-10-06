@@ -82,6 +82,25 @@ static void __fastcall UnitLeftVerify(CBriefingScreen* self, void*, CUnit* unit)
     ei::verify::Check("CBriefingScreen::OnUnitLeft", expected, PartyState::Take(self), "unit %d, party %d -> %d",
                       unit->id_, start.size, expected.size);
 }
+// OnUnitJoined: ours only (the client world's control, the camera, maybe a dialogue start): the
+// unit is in the party once more than before (when the local player has records). Reached when
+// the party is created on the base (zone_base_bz1g, ui_base_dialogue).
+static void __fastcall UnitJoinedVerify(CBriefingScreen* self, void*, CUnit* unit) {
+    auto count = [&] {
+        int n = 0;
+        for (int i = 0; i < self->party_.size_; ++i) n += reinterpret_cast<CUnit*>(self->party_.data_[i]) == unit;
+        return n;
+    };
+    int before = count();
+    int size = self->party_.size_;
+    self->OnUnitJoined(unit);
+    int after = count();
+    bool ok = self->party_.size_ == size ? after == before : (self->party_.size_ >= size + 1 && after == before + 1);
+    ei::verify::Check("CBriefingScreen::OnUnitJoined", true, ok, "unit %d: party %d -> %d", unit->id_, size,
+                      self->party_.size_);
+}
+EI_VERIFY(0x00602C90, UnitJoinedVerify, 0, s_unused);
+
 // 00603010: PUSH EBX; PUSH ESI; MOV ESI,ECX; MOV ECX,[ESP+0xC] (1 + 1 + 2 + 4 bytes).
 EI_VERIFY(0x00603010, UnitLeftVerify, 8, s_unitLeft);
 
@@ -115,6 +134,31 @@ static void __fastcall SaveStateVerify(CBriefingScreen* self, void*) {
     ei::verify::Check("CBriefingScreen::SaveState", before + 4, after, "position %u -> %u", before, after);
 }
 EI_VERIFY(0x00602490, SaveStateVerify, 0, s_unused);
+
+// LoadPersonTexts (00607720): ours only (map insertions); the tree's keys stay in strictly rising
+// order and the node count does not go down. Reached by the screen's Create (zone_base_bz1g).
+namespace {
+int CountInOrder(const PersonTextNode* node, const PersonTextNode** last, bool* ordered) {
+    if (!node) return 0;
+    int n = CountInOrder(node->left, last, ordered);
+    if (*last && !((*last)->key < node->key)) *ordered = false;
+    *last = node;
+    return n + 1 + CountInOrder(node->right, last, ordered);
+}
+} // namespace
+
+static void __fastcall PersonTextsVerify(CBriefingScreen* self, void*) {
+    const PersonTextNode* last = nullptr;
+    bool ordered = true;
+    int before = CountInOrder(self->personTexts_.header->parent, &last, &ordered);
+    self->LoadPersonTexts();
+    last = nullptr;
+    ordered = true;
+    int after = CountInOrder(self->personTexts_.header->parent, &last, &ordered);
+    ei::verify::Check("CBriefingScreen::LoadPersonTexts", true, ordered && after >= before, "%d -> %d texts", before,
+                      after);
+}
+EI_VERIFY(0x00607720, PersonTextsVerify, 0, s_unused);
 
 // --- Input and the topic list (src/game/ui_briefing_input.cpp) ---------------------------------
 // Ours only (they open topics, start dialogues, walk the leader): the dialogue state stays a valid

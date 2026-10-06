@@ -5,12 +5,14 @@
 
 #include "camera.h"
 #include "core_streams.h"
+#include "object_tables.h"
 #include "unit.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
 #include "originals_engine.h"
+#include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_world.h"
 
@@ -43,6 +45,21 @@ constexpr int kShowChatSlot = 36;
 __declspec(naked) void __fastcall ChatWindowShowAt(CUiWindow* /*chat*/) EI_ORIGINAL(0x006091C0)
 
 void* VariableGlue() { return reinterpret_cast<void*>(0x007AFEA4); }
+
+// The local player's unit records as the party order follows them (LocalPlayerData).
+struct LocalPartyRecords {
+    std::uint8_t unknown_00[0x30];
+    PartyUnitRecord* records;        // +0x30 0x784 bytes each, the unit's id at +0x1C
+    int count;                       // +0x34
+};
+LocalPartyRecords* LocalRecords() { return reinterpret_cast<LocalPartyRecords*>(LocalPlayerData()); }
+int RecordUnitId(const PartyUnitRecord& record) { return static_cast<int>(record.unknown_01C); }
+
+CMapDatabase* MapDatabase() { return reinterpret_cast<CMapDatabase*>(0x0079BF00); }
+void* ClientWorld() { return reinterpret_cast<void*>(0x007AF5B8); }
+const char* ZoneTopicFormat() { return reinterpret_cast<const char*>(0x0079338C); }   // "b.%s"
+constexpr std::uint32_t kOneBits = 0x3F800000;   // 1.0f
+constexpr int kTopicNameParts = 3;
 
 } // namespace
 
@@ -139,6 +156,64 @@ void CBriefingScreen::OnMessageResult(std::uint32_t result) {
     }
 }
 
+// --- 00602C90: slot 29 --------------------------------------------------------------------------
+
+void CBriefingScreen::OnUnitJoined(CUnit* unit) {
+    LocalPartyRecords* player = LocalRecords();
+    int count = player->count;
+    if (count == 0) return;
+    int place = 0;
+    int record = 0;
+    for (; record < count; ++record) {
+        int id = RecordUnitId(player->records[record]);
+        if (unit->id_ == id) break;
+        if (place < party_.size_ && reinterpret_cast<CUnit*>(party_.data_[place])->id_ == id) ++place;
+    }
+    if (record < count) {
+        // CArray::InsertAt(place, unit) inlined (the slot is zeroed, 0060AEC0, then written); the
+        // original then looks the unit up in the server world without using the result.
+        int size = party_.size_;
+        if (place >= size) {
+            PartyArraySetSizeOriginal(&party_, nullptr, place + 1, -1);
+        } else {
+            PartyArraySetSizeOriginal(&party_, nullptr, size + 1, -1);
+            std::memmove(&party_.data_[place + 1], &party_.data_[place], (size - place) * sizeof(party_.data_[0]));
+        }
+        party_.data_[place] = reinterpret_cast<std::uintptr_t>(unit);
+    } else {
+        // 0060AD50: SetAtGrow(size, unit).
+        int size = party_.size_;
+        PartyArraySetSizeOriginal(&party_, nullptr, size + 1, -1);
+        party_.data_[size] = reinterpret_cast<std::uintptr_t>(unit);
+    }
+    if (unit->id_ != RecordUnitId(player->records[0])) return;
+
+    leader_ = unit;
+    ClientWorldControlUnitOriginal(ClientWorld(), nullptr, unit);
+    CameraSetTargetOriginal(camera::TheCamera(), nullptr, unit);
+    MapRecord* zone;
+    {
+        BriefingPlayerName name;
+        zone = MapDatabase()->FindMap(name);
+    }
+    mfc::CString prefix;
+    prefix.Format(ZoneTopicFormat(), zone->name);
+    BriefingVariables variables(prefix);
+    console::CStringArray parts;
+    for (NamedFloatTable::Node* node = variables.First(); node; node = variables.Next(node)) {
+        std::uint32_t bits;
+        std::memcpy(&bits, &node->value, 4);
+        if (bits != kOneBits) continue;
+        StringSplit(node->key, &parts, '.');
+        if (parts.size_ != kTopicNameParts) continue;
+        topic_ = parts[2];
+        briefingStarted_ = true;
+        BriefingStartDialogueOriginal(this, nullptr, 1, 1);
+        break;
+    }
+}
+EI_REPLACE_METHOD(0x00602C90, CBriefingScreen::OnUnitJoined);
+
 // --- 00603010: slot 30 --------------------------------------------------------------------------
 
 void CBriefingScreen::OnUnitLeft(CUnit* unit) {
@@ -188,3 +263,8 @@ void CBriefingScreen::SaveState() {
 }
 EI_REPLACE_METHOD(0x00602490, CBriefingScreen::SaveState);
 EI_REPLACE_METHOD(0x00606F40, CBriefingScreen::OnMessageResult);
+
+// --- 00607720 -----------------------------------------------------------------------------------
+
+void CBriefingScreen::LoadPersonTexts() { personTexts_.Load(); }
+EI_REPLACE_METHOD(0x00607720, CBriefingScreen::LoadPersonTexts);

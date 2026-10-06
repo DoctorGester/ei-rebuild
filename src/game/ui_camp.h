@@ -35,6 +35,10 @@ struct PersonTextMap {
     // find(key) as the original inlines it (ui_battle_mouse.cpp): the lower bound of `key`, or
     // the header when that is the header or holds a greater key.
     const PersonTextNode* Find(int key) const;
+    // The "pers <name>" texts read in (ui_person_texts.cpp): every text section "pers <name>"
+    // gives its first line to the key of <name> (inserted, or replaced). The battle screen's setup
+    // does it inline; the briefing screen in 00607720.
+    void Load();
 };
 static_assert(offsetof(PersonTextNode, text) == 0x14);
 

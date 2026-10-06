@@ -109,6 +109,12 @@ public:
     // 00603010 (slot 30, RET 4). `unit` left the party: no longer the leader, taken out of party_
     // (by id; the rest moved down).
     void OnUnitLeft(CUnit* unit);
+    // 00602C90 (slot 29, RET 4). `unit` joined the party: it goes into party_ after the members
+    // whose unit records (the local player's, LocalPlayerData +0x30) come before its record, or
+    // last without one. The first record's unit becomes the leader: the client world controls it,
+    // the camera follows it, and the first "b.<zone>..." variable equal to 1 with three parts
+    // starts its topic (the third part) at once (briefingStarted_; 006064E0 with 1, 1).
+    void OnUnitJoined(CUnit* unit);
     // 00608C70 (slot 31, RET 4; the argument is not read). The game is lost: the game-over sound
     // and the box "game_over" / "game_over_msg" (result 0x20000) on top.
     void OnGameOver(int unused);
@@ -168,6 +174,9 @@ public:
     // `out` (constructed here, returned): the first line of the text "briefing <topic>"
     // (lowercased; "constr..." topics share "briefing constr"), empty without one.
     mfc::CString* TopicTitle(mfc::CString* out, const char* topic);
+
+    // 00607720 (ui_briefing.cpp). personTexts_ gets the "pers <name>" texts (PersonTextMap::Load).
+    void LoadPersonTexts();
 
     // The dialogue (ui_briefing_dialogue.cpp).
     // 00608210. The phrases start: the voice still playing stops, the music fades out; without a

@@ -370,7 +370,11 @@ thirdDirection_ +0x210 / +0x21C. Forwarders 00578760 (unit height), 006089D0 (a 
 erase (00609A80) and vector erase (0060B490 / 0060AC00) are inlined; HideSpeaker's search of the party (result unused) is left out.
 Not hooked: 006023F0 (the speakers' animation-done callback, `PlaySpeakerAnimation(unit, 0, 0)` for the speaker whose unit it is) is no
 function in Ghidra or function_sizes.inc.
-Next: 00602C90 (slot 29), 00607720, then 006064E0 / 00604C50 / 00608450, Create and Update.
+Then 00602C90 `OnUnitJoined` (slot 29; ours only: the unit once more in party_; the leader's "b.<zone>" topic starts at once) and
+00607720 `LoadPersonTexts` (ours only: the map stays ordered) = the new `PersonTextMap::Load` (`ui_person_texts.cpp`), which the battle
+screen's setup now calls instead of its inline copy (forwarders 004DEFA0 / 00609E70 moved to originals_ui.h). OnUnitJoined's unused
+server-world lookup after the insert is left out.
+Next: 006064E0 / 00604C50 / 00608450, Create and Update.
 
 ## 6. Battle screen: update, selection, orders, pending actions (00635250-0064BE80)
 
