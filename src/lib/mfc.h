@@ -423,6 +423,31 @@ struct CMap {
 static_assert(sizeof(CMap<int, int>) == 0x1C);
 static_assert(sizeof(CMapAssoc<std::uint64_t, std::uint32_t>) == 0x14);
 
+// CStringArray (afxcoll, 0x14 bytes): CArray's layout over CStrings. Its members are MFC's own
+// code, reached through their addresses. No constructor, so it can sit in layouts:
+// Construct / Destruct are the constructor and destructor (console::CStringArray is the local
+// version that calls them).
+struct CStringArray {
+    void* vtable;       // written by Construct
+    CString* data;      // +0x04
+    int size;           // +0x08
+    int maxSize;        // +0x0C
+    int growBy;         // +0x10
+
+    void Construct();                                   // 006FE925
+    void Destruct();                                    // 006FE958
+    void SetSize(int newSize, int newGrowBy = -1);      // 006FE9B8
+    void SetAtGrow(int index, const CString& value);    // 006FEBFA
+    void SetAtGrow(int index, const char* text);        // 006FEBCE
+    void RemoveAt(int index, int count = 1);            // 006FED3C
+    void Copy(const CStringArray& source);              // 006FEB61
+
+    int GetSize() const { return size; }
+    CString& operator[](int index) { return data[index]; }
+    const CString& operator[](int index) const { return data[index]; }
+};
+static_assert(sizeof(CStringArray) == 0x14);
+
 // CTypedPtrList<CPtrList, T*>: a CPtrList (the non-template list of void*, same layout) with typed
 // elements. The game inlines its operations; they are CList<T*>'s (a new node's data is zeroed,
 // nothing destroyed).

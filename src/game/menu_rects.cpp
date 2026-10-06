@@ -3,6 +3,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "originals_engine.h"
 
@@ -47,12 +48,7 @@ __declspec(naked) void __fastcall IntArraySetSize(void*, void*, int, int) EI_ORI
 // 00480080. FatalErrorOriginal(message); returns what the original returns to the caller.
 
 // An aligned array of ints (data, size, capacity, growBy); the block pointer is kept at data[-1].
-struct IntArray {
-    int* data;
-    int size;
-    int capacity;
-    int growBy;
-};
+using IntArray = lib::AlignedArray<int>;
 
 using SetRectFn = int(__stdcall*)(void*, int, int, int, int);
 SetRectFn ImportSetRect() { return *reinterpret_cast<SetRectFn const*>(0x0073B478); }

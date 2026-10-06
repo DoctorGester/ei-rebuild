@@ -22,14 +22,6 @@ void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
 // CArray<record*> (the party's records handed to the client world).
 void* RecordArrayVtable() { return reinterpret_cast<void*>(0x0073FAA4); }
 
-struct RecordArray {
-    void* vtable;
-    std::uint8_t** data;
-    int size;
-    int capacity;
-    int growBy;
-};
-
 constexpr int kModeList = 9;
 constexpr int kModeNewHero = 10;
 constexpr float kDefaultAttribute = 25.0f;
@@ -52,7 +44,7 @@ CEngineObject* FirstOf(CEngineObject* const* data, int count) { return count > 0
 } // namespace
 
 void CMpHeroScreen::ChooseFigure(const char* prototype) {
-    RecordArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
+    RecordPtrArray records = {RecordArrayVtable(), nullptr, 0, 0, 0};
     auto* player = reinterpret_cast<CParty*>(LocalPlayerData());
     // The attributes and height to keep (copied as dwords).
     float strength = kDefaultAttribute;

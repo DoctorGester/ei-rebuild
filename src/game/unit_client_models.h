@@ -79,14 +79,7 @@ struct SkinLayer {
 };
 static_assert(sizeof(SkinLayer) == 0xC);
 
-struct SkinLayerArray {
-    void* vtable;
-    SkinLayer* data;
-    int size;
-    int capacity;
-    int growBy;
-};
-static_assert(sizeof(SkinLayerArray) == 0x14);
+using SkinLayerArray = mfc::CArray<SkinLayer>;
 
 // What the texture manager composes a skin from (00693180): the layers as bytes in 32-byte
 // aligned storage, the layer texture names, and a flag (0x100 detailed, 0x80 simple).

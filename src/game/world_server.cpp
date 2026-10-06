@@ -254,7 +254,7 @@ void CWorldServer::RemoveObject(unsigned id) {
     for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node))
         ei::VCall<void>(node->value, kSlotForget, object);
     // The missiles it shot are dropped; those aimed at it lose their target.
-    for (auto* node = projectiles_.list.head; node;) {
+    for (auto* node = projectiles_.head; node;) {
         auto* current = node;
         node = node->next;
         if (!ProjectileForget(current->data, nullptr, object)) ProjectileRemoveAt(&projectiles_, nullptr, current);

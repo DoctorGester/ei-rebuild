@@ -37,7 +37,7 @@ constexpr int kFileRead = 13;   // CFile
 constexpr int kFileWrite = 14;
 
 // MFC CStringArray (library).
-void __fastcall StringArrayAppend(StringArray* a0, void*, const StringArray* a2) { StringArrayCopyOriginal((void*)a0, nullptr, (const void*)a2); }
+void __fastcall StringArrayAppend(mfc::CStringArray* a0, void*, const mfc::CStringArray* a2) { StringArrayCopyOriginal((void*)a0, nullptr, (const void*)a2); }
 // MFC CArray helpers (library): SetSize of the 12-byte array, zeroing 8-byte elements.
 void __fastcall AreasSetSize(PlainArray* a0, void*, int a2, int a3) { Array12SetSizeOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __stdcall ConstructTargets(void* /*first*/, int /*count*/) EI_ORIGINAL(0x0046F110)
@@ -430,13 +430,13 @@ TrapSpec* __fastcall TrapSpecConstruct(TrapSpec* self) {
     self->diplomacy = -1;
     new (&self->spell) mfc::CString();
     self->areas.data = nullptr;
-    self->areas.grow = 0;
-    self->areas.max = 0;
+    self->areas.growBy = 0;
+    self->areas.maxSize = 0;
     self->areas.size = 0;
     SetVtable(&self->areas, kAreasVtable);
     self->targets.data = nullptr;
-    self->targets.grow = 0;
-    self->targets.max = 0;
+    self->targets.growBy = 0;
+    self->targets.maxSize = 0;
     self->targets.size = 0;
     SetVtable(&self->targets, kTargetsVtable);
     self->interval = 15;
@@ -502,23 +502,23 @@ void SizeTargets(PlainArray& a, int n) {
             gamecrt::operator_delete(a.data);
             a.data = nullptr;
         }
-        a.max = 0;
+        a.maxSize = 0;
         a.size = 0;
     } else if (!a.data) {
         a.data = static_cast<std::uint8_t*>(gamecrt::operator_new(static_cast<std::size_t>(n) * 8));
         std::memset(a.data, 0, static_cast<std::size_t>(n) * 8);
-        a.max = n;
+        a.maxSize = n;
         a.size = n;
-    } else if (n <= a.max) {
+    } else if (n <= a.maxSize) {
         if (n > a.size) ConstructTargets(a.data + a.size * 8, n - a.size);
         a.size = n;
     } else {
-        int grow = a.grow;
+        int grow = a.growBy;
         if (grow == 0) {
             grow = a.size / 8;
             grow = grow < 4 ? 4 : grow > 0x400 ? 0x400 : grow;
         }
-        int capacity = a.max + grow;
+        int capacity = a.maxSize + grow;
         if (n >= capacity) capacity = n;
         auto* data = static_cast<std::uint8_t*>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * 8));
         std::memcpy(data, a.data, static_cast<std::size_t>(a.size) * 8);
@@ -526,7 +526,7 @@ void SizeTargets(PlainArray& a, int n) {
         gamecrt::operator_delete(a.data);
         a.data = data;
         a.size = n;
-        a.max = capacity;
+        a.maxSize = capacity;
     }
 }
 } // namespace
@@ -645,13 +645,13 @@ EI_REPLACE(0x0046A4B0, QuaternionRotate);
 // ---- 0046E5E0: the zone's diplomacy table --------------------------------------------------------
 
 namespace {
-void __fastcall StringArraySetAtGrow(StringArray* a0, void*, int a2, const char* a3) { StringArraySetAtGrowTextOriginal((void*)a0, nullptr, a2, a3); }
+void __fastcall StringArraySetAtGrow(mfc::CStringArray* a0, void*, int a2, const char* a3) { StringArraySetAtGrowTextOriginal((void*)a0, nullptr, a2, a3); }
 } // namespace
 
 // The diplomacy of the zone's 32 players (0x1014 bytes; made by the zone loader 00481660): every
 // pair 1 but a player with itself (0), and the player names "Player-<i>". Returns this.
 std::int32_t* __fastcall DiplomacyConstruct(std::int32_t* self) {
-    auto* names = reinterpret_cast<StringArray*>(self + 0x400);
+    auto* names = reinterpret_cast<mfc::CStringArray*>(self + 0x400);
     StringArrayConstruct(names);
     for (int i = 0; i < 0x400; ++i) self[i] = 1;
     for (int i = 0; i < 32; ++i) self[i * 33] = 0;

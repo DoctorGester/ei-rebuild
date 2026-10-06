@@ -30,12 +30,6 @@ __declspec(naked) void Str::MakeLower() EI_ORIGINAL(0x00700EFE)
 void Str::TrimLeft(char a0) { CStringTrimLeftCharOriginal((void*)this, nullptr, a0); }
 void Str::TrimRight(char a0) { CStringTrimRightCharOriginal((void*)this, nullptr, a0); }
 
-CStringArray::CStringArray() { StringArrayConstruct(this); }
-CStringArray::~CStringArray() { StringArrayDestruct(this); }
-void CStringArray::SetSize(int count, int growBy) { StringArraySetSize(this, nullptr, count, growBy); }
-void CStringArray::SetAtGrow(int a2, const mfc::CString& a3) { StringArraySetAtGrowStringOriginal((void*)this, nullptr, a2, (const mfc::CString*)&a3); }
-void CStringArray::SetAtGrow(int a2, const char* a3) { StringArraySetAtGrowTextOriginal((void*)this, nullptr, a2, a3); }
-__declspec(naked) void CStringArray::RemoveAt(int, int) EI_ORIGINAL(0x006FED3C)
 
 __declspec(naked) CStdioFile::CStdioFile() EI_ORIGINAL(0x00701B79)
 __declspec(naked) CStdioFile::~CStdioFile() EI_ORIGINAL(0x00701C6D)

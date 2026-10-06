@@ -221,11 +221,7 @@ constexpr const char* kNoFigureManager = "CObject3D::LoadFigures.\n No valid fig
 constexpr const char* kCantCreatePart = "CObject3D::LoadFigures.\n Can't create object \"%s\" with bodypart \"%s\".\n";
 
 // An MFC CStringArray as 00517110 reads it.
-struct PartNameArray {
-    void* vtable;
-    const char** names;             // +0x04
-    int count;                      // +0x08
-};
+using PartNameArray = mfc::CStringArray;
 
 // 00519A10 (AlignedPtrArray::Add, below), through its address so its wrapper runs.
 __declspec(naked) int __fastcall AddAt(AlignedPtrArray*, void*, void*) EI_ORIGINAL(0x00519A10)
@@ -303,8 +299,8 @@ int CObject3D::LoadParts(const char* model, const void* partList, std::uint32_t 
     *reinterpret_cast<mfc::CString*>(&name) = model;
     if (!manager) return FatalErrorOriginal(kNoFigureManager);
     const auto* names = static_cast<const PartNameArray*>(partList);
-    for (int i = 0; i < names->count; ++i) {
-        if (!Object3DLoadPartOriginal(this, nullptr, names->names[i], cached, arg)) DebugMessageOriginal(kCantCreatePart, model, names->names[i]);
+    for (int i = 0; i < names->size; ++i) {
+        if (!Object3DLoadPartOriginal(this, nullptr, static_cast<const char*>((*names)[i]), cached, arg)) DebugMessageOriginal(kCantCreatePart, model, static_cast<const char*>((*names)[i]));
     }
     return 1;
 }
@@ -327,11 +323,11 @@ struct PieceNames {
 
 PieceNames MakePieceNames(const PartNameArray* names) {
     PieceNames out{};
-    int count = names->count;
+    int count = names->size;
     if (count > 0) {
         out.begin = static_cast<stlp::string*>(stlp::allocate(static_cast<std::size_t>(count) * sizeof(stlp::string)));
         for (int i = 0; i < count; ++i) {
-            const char* text = names->names[i];
+            const char* text = static_cast<const char*>((*names)[i]);
             new (&out.begin[i]) stlp::string(text, text + std::strlen(text));
         }
         out.end = out.begin + count;
@@ -363,7 +359,7 @@ int CObject3D::MakeFigure(const char* model, void* partList, std::uint32_t arg) 
         AnimationStateSetModelOriginal(animation, nullptr, model);
     }
     auto* names = static_cast<const PartNameArray*>(partList);
-    if (names->count == 0 && animation) {
+    if (names->size == 0 && animation) {
         AnimationStatePartNamesOriginal(animation, nullptr, partList);
         stlp::string key(model, model + std::strlen(model));
         CFigureInstance* made = FigureCacheOf(this)->BuildWholeFigure(

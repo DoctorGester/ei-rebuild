@@ -4,6 +4,7 @@
 #include "map_object_shadow.h"
 #include "object.h"
 
+#include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 
@@ -65,12 +66,7 @@ __declspec(naked) void __fastcall SetDeviceTexture(void*, void*, CEngineObject*)
 __declspec(naked) void __fastcall ReleaseTemporary(void*) EI_ORIGINAL(0x00457720)
 
 // The light list being collected: aligned storage of light pointers.
-struct LightList {
-    CEngineObject** data;
-    int size;
-    int capacity;
-    int growBy;
-};
+using LightList = lib::AlignedArray<CEngineObject*>;
 
 // A set of parts the object is drawn in (this + 0x20 / + 0x24): a material, then groups of parts.
 struct PartGroup {

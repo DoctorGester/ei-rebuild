@@ -150,7 +150,7 @@ public:
 private:
     void Split() { reader_->Split(&words_, 1); }
     const char* Word(int i) const { return words_[i]; }
-    int Count() const { return words_.size_; }
+    int Count() const { return words_.size; }
     char* Map() { return reinterpret_cast<char*>(db_->maps.data) + map_ * map::kSize; }
     char* Exit() { return Body(Map() + map::kExits).data + exit_ * exit::kSize; }
 

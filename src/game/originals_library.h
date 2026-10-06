@@ -67,13 +67,17 @@ __declspec(naked) inline int __cdecl IsLeadByte(int) EI_ORIGINAL(0x006E9A6C)
 __declspec(naked) inline double __cdecl Hypot(double /*x*/, double /*y*/) EI_ORIGINAL(0x006FD026)
 __declspec(naked) inline mfc::CString __stdcall PlusChar(const mfc::CString&, char) EI_ORIGINAL(0x006FD56E)
 __declspec(naked) inline void __cdecl GameDelete(void*) EI_ORIGINAL(0x007005D8)
-// MFC CStringArray constructor (006FE925; also console::CStringArray). Returns `this`.
-__declspec(naked) inline void* __fastcall StringArrayConstruct(void* /*array*/) EI_ORIGINAL(0x006FE925)
+// MFC CStringArray constructor (006FE925, mfc::CStringArray::Construct). Returns `this`.
+inline void* __fastcall StringArrayConstruct(void* array) {
+    static_cast<mfc::CStringArray*>(array)->Construct();
+    return array;
+}
 // 006FE958 (destructor, plain RET) and 006FE9B8 (SetSize(count, growBy), RET 8; -1 keeps the grow step):
 // neither returns a result.
-__declspec(naked) inline void __fastcall StringArrayDestruct(void* /*array*/) EI_ORIGINAL(0x006FE958)
-__declspec(naked) inline void __fastcall StringArraySetSize(void* /*array*/, void*, int /*count*/, int /*growBy*/)
-    EI_ORIGINAL(0x006FE9B8)
+inline void __fastcall StringArrayDestruct(void* array) { static_cast<mfc::CStringArray*>(array)->Destruct(); }
+inline void __fastcall StringArraySetSize(void* array, void*, int count, int growBy) {
+    static_cast<mfc::CStringArray*>(array)->SetSize(count, growBy);
+}
 // 004DBE40 (rewritten as text::Split, text_split.cpp): splits the text at a separator into a CStringArray (ECX
 // text, EDX array, RET 4 for the character).
 __declspec(naked) inline void __fastcall StringSplit(const char* /*text*/, void* /*array*/, char /*separator*/)
@@ -155,11 +159,12 @@ __declspec(naked) inline void __stdcall EhVectorDestructorIterator(void* /*array
                                                                    void* /*destructor*/) EI_ORIGINAL(0x006E859F)
 // MFC CStringArray::SetAtGrow(index, const char*) 006FEBCE / (index, const CString&) 006FEBFA (both RET 8, EAX not a
 // result). CString::operator=(const CString&) 00700AA9 (RET 4, returns this). src/lib/mfc.cpp keeps its member.
-__declspec(naked) inline void __fastcall StringArraySetAtGrowTextOriginal(void* /*array*/, void*, int /*index*/,
-                                                                          const char* /*text*/) EI_ORIGINAL(0x006FEBCE)
-__declspec(naked) inline void __fastcall StringArraySetAtGrowStringOriginal(void* /*array*/, void*, int /*index*/,
-                                                                            const mfc::CString* /*value*/)
-    EI_ORIGINAL(0x006FEBFA)
+inline void __fastcall StringArraySetAtGrowTextOriginal(void* array, void*, int index, const char* text) {
+    static_cast<mfc::CStringArray*>(array)->SetAtGrow(index, text);
+}
+inline void __fastcall StringArraySetAtGrowStringOriginal(void* array, void*, int index, const mfc::CString* value) {
+    static_cast<mfc::CStringArray*>(array)->SetAtGrow(index, *value);
+}
 __declspec(naked) inline void* __fastcall CStringAssignOriginal(void* /*destination*/, void*, const void* /*source*/)
     EI_ORIGINAL(0x00700AA9)
 // MFC CString::operator=(const char*) 00700AF9 (RET 4, returns this); CString::Find(char) 00700E91 (RET 4, index or
@@ -271,8 +276,9 @@ __declspec(naked) inline void** __fastcall ListEndIteratorOriginal(void* /*list*
 __declspec(naked) inline void __fastcall CStringTrimRightCharOriginal(void* /*string*/, void*, char /*c*/)
     EI_ORIGINAL(0x006FE0DD)
 __declspec(naked) inline void __stdcall CStringElementsConstruct(void* /*first*/, int /*count*/) EI_ORIGINAL(0x006FE268)
-__declspec(naked) inline void __fastcall StringArrayCopyOriginal(void* /*array*/, void*, const void* /*source*/)
-    EI_ORIGINAL(0x006FEB61)
+inline void __fastcall StringArrayCopyOriginal(void* array, void*, const void* source) {
+    static_cast<mfc::CStringArray*>(array)->Copy(*static_cast<const mfc::CStringArray*>(source));
+}
 // The 0x4xxxxx hash tables (STLport hash_map instantiations): 00405620 erase(node, table) (RET 8), 00406640 / 00406D10 /
 // 004070B0 resize(hint) (RET 4), 00406E80 clear (plain RET), 00406590 deallocate(pointers, count) (ECX, EDX, plain RET).
 __declspec(naked) inline void __fastcall ObjectsEraseOriginal(void* /*map*/, void*, void* /*node*/, const void* /*table*/)

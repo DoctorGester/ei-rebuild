@@ -95,21 +95,12 @@ void FpuCopy(void* dst, const void* src) {
 }
 
 // An MFC CList of units, as the brain keeps them (CObList layout: vtable, head, tail, count, ...).
-struct UnitListNode {
-    UnitListNode* next;
-    UnitListNode* prev;
-    CUnit* unit;
-};
-struct UnitList {
-    void* vtable;
-    UnitListNode* head;
-    UnitListNode* tail;
-    int count;
-};
+using UnitList = mfc::CTypedPtrList<CUnit>;
+using UnitListNode = UnitList::Node;
 
 bool ListContains(const UnitList* list, const CUnit* unit) {
     for (const UnitListNode* node = list->head; node; node = node->next)
-        if (node->unit == unit) return true;
+        if (node->data == unit) return true;
     return false;
 }
 
@@ -440,7 +431,7 @@ void CUnitServer::WitnessMurder(void* witnesses, CUnit* victim, CUnit* murderer)
     if (!node) return;
     std::uint32_t bit = 1u << (static_cast<std::uint32_t>(side) & 31);
     do {
-        CUnit* other = node->unit;
+        CUnit* other = node->data;
         node = node->next;
         if (!(diplomacy->allied_[other->side] & bit)) continue;
         other->flags_ |= 0x2000000;
@@ -450,11 +441,11 @@ void CUnitServer::WitnessMurder(void* witnesses, CUnit* victim, CUnit* murderer)
         if (!ListContains(watched, victim)) continue;
         if (!ListContains(watched, murderer)) {
             UnitListNode* added = UnitListNewNode(watched, nullptr, watched->tail, nullptr);
-            if (murderer != added->unit) {
-                if (added->unit) added->unit->Release();
-                added->unit = nullptr;
+            if (murderer != added->data) {
+                if (added->data) added->data->Release();
+                added->data = nullptr;
                 if (murderer) ++murderer->refCount_;
-                added->unit = murderer;
+                added->data = murderer;
             }
             if (watched->tail) watched->tail->next = added;
             else watched->head = added;
@@ -485,7 +476,7 @@ void CUnitServer::PropagateHostility() {
     int side = unit->side;
     UnitListNode* node = reinterpret_cast<UnitList*>(brain + kBrainNearby)->head;
     while (node) {
-        CUnit* other = node->unit;
+        CUnit* other = node->data;
         node = node->next;
         if (!(diplomacy->allied_[side] & (1u << (static_cast<std::uint32_t>(other->side) & 31)))) continue;
         CUnit* self = unit;

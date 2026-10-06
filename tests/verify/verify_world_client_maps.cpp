@@ -339,14 +339,14 @@ static void __fastcall ClearMapsVerify(CWorldClient* client, void*) {
 EI_VERIFY(0x00564E70, ClearMapsVerify, 0, s_unused);
 
 // 00566F70: ours only. No listing is lost, and +0xB8 grows by at most one per record.
-static void __fastcall CreatePartyUnitsVerify(CWorldClient* client, void*, const PartyRecordArray* party, char allArmour) {
+static void __fastcall CreatePartyUnitsVerify(CWorldClient* client, void*, const RecordPtrArray* party, char allArmour) {
     auto size = [client] {
         SectorListNode* head = ListHead(client, 0xB8);
         int n = 0;
         for (SectorListNode* node = head->next; node != head; node = node->next) ++n;
         return n;
     };
-    int count = party->count;
+    int count = party->size;
     std::vector<int> before;
     for (int i = 0; i < count; ++i)
         before.push_back(CountIdInList(client, 0xB8, At<int>(party->data[i], 0x1C)));

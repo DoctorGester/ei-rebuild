@@ -547,10 +547,10 @@ CItem* CItemManager::CreateItem(const char* name) {
         AsText(text).TrimSpaceRight();
     }
     StringSplit(text, &parts, '.');
-    for (int i = 0; i < parts.size_; ++i) parts.data_[i].MakeLower();
+    for (int i = 0; i < parts.size; ++i) parts.data[i].MakeLower();
 
     // "spell container[spell text]": a scroll holding that spell.
-    if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(parts.data_[0])),
+    if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(parts.data[0])),
                         reinterpret_cast<const unsigned char*>(kSpellContainer)) == 0) {
         const char* spellText = extra;
         CSpell* spell = CallCreateSpellFromText(ei::VCall<void*>(context, kContextSlotSpellManager), nullptr, spellText);
@@ -565,7 +565,7 @@ CItem* CItemManager::CreateItem(const char* name) {
     }
 
     // "prototype[.material]".
-    const char* prototypeName = parts.data_[0];
+    const char* prototypeName = parts.data[0];
     char* prototype = FindWeaponNamed(kWeaponTable, nullptr, prototypeName);
     if (!prototype) prototype = FindArmorNamed(kArmorTable, nullptr, prototypeName);
     if (!prototype) prototype = FindQuickNamed(kQuickTable, nullptr, prototypeName);
@@ -574,13 +574,13 @@ CItem* CItemManager::CreateItem(const char* name) {
     if (!prototype) {
         // Rebirth's FixCreateItem (context hook at 006ACBBD) logs instead of the fatal error.
         if (!ei::rebirth::Enabled(ei::rebirth::Patch::FixCreateItem))
-            game::FatalError(kNoPrototype, static_cast<const char*>(parts.data_[0]));
+            game::FatalError(kNoPrototype, static_cast<const char*>(parts.data[0]));
         return nullptr;
     }
     constructor->SetManager(reinterpret_cast<CEngineObject*>(this));
     constructor->BeginCreateItem(ei::VCall<int>(prototype, 0), -1);
     char* material = nullptr;
-    if (parts.size_ > 1) material = FindMaterialNamed(kMaterialTable, nullptr, parts.data_[1]);
+    if (parts.size > 1) material = FindMaterialNamed(kMaterialTable, nullptr, parts.data[1]);
     constructor->SetPrototype(prototype);
     constructor->SetMaterial(material);
     // The bracket part: a spell for most prototypes, a number (+0x30, the count) for materials.
@@ -601,10 +601,10 @@ CItem* CItemManager::CreateItem(const char* name) {
     }
     constructor->SetManager(nullptr);
     if (item->GetClassId() == kClassLoot && *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(item) + 0x4C) == kLootKindTable &&
-        parts.size_ > 1) {
+        parts.size > 1) {
         int which = *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(item) + 0x50);
         *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(item) + 0x54) =
-            LootTableIndex(which, parts.data_[1], &name);
+            LootTableIndex(which, parts.data[1], &name);
     }
     return item;
 }

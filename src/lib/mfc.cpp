@@ -38,6 +38,14 @@ __declspec(naked) CFileFind::CFileFind() EI_ORIGINAL(0x006E6370)
 __declspec(naked) CFileFind::~CFileFind() EI_ORIGINAL(0x006E63AD)
 __declspec(naked) BOOL CFileFind::FindFile(const char*, unsigned long) EI_ORIGINAL(0x006E6433)
 
+__declspec(naked) void CStringArray::Construct() EI_ORIGINAL(0x006FE925)
+__declspec(naked) void CStringArray::Destruct() EI_ORIGINAL(0x006FE958)
+__declspec(naked) void CStringArray::SetSize(int, int) EI_ORIGINAL(0x006FE9B8)
+__declspec(naked) void CStringArray::SetAtGrow(int, const CString&) EI_ORIGINAL(0x006FEBFA)
+__declspec(naked) void CStringArray::SetAtGrow(int, const char*) EI_ORIGINAL(0x006FEBCE)
+__declspec(naked) void CStringArray::RemoveAt(int, int) EI_ORIGINAL(0x006FED3C)
+__declspec(naked) void CStringArray::Copy(const CStringArray&) EI_ORIGINAL(0x006FEB61)
+
 __declspec(naked) CPlex* __stdcall PlexCreate(CPlex*&, unsigned, unsigned) EI_ORIGINAL(0x006FE8EF)
 __declspec(naked) void __fastcall PlexFreeDataChain(CPlex*) EI_ORIGINAL(0x006FE90F)
 

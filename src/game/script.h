@@ -156,21 +156,7 @@ struct ScriptToken {
 static_assert(sizeof(ScriptToken) == 8);
 
 // CList<ScriptToken, ScriptToken&> (vtable 0073D424, 0x1C bytes). A POSITION is a node pointer.
-struct ScriptTokenList {
-    struct Node {
-        Node* next;
-        Node* prev;
-        ScriptToken data;
-    };
-    void* vtable;
-    Node* head;
-    Node* tail;
-    int count;
-    Node* free;
-    mfc::CPlex* blocks;
-    int blockSize;
-};
-static_assert(sizeof(ScriptTokenList) == 0x1C);
+using ScriptTokenList = mfc::CList<ScriptToken>;
 
 // The parser's current position in the token list (null at the end).
 using ScriptPos = ScriptTokenList::Node*;

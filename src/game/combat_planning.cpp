@@ -160,28 +160,10 @@ struct LocalUnitMotion {
 };
 
 // A CArray<Vector3> (vtable 0073C120) of the spots a use order may go to.
-struct SpotArray {
-    void* vtable;
-    float (*data)[3];
-    int size;
-    int capacity;
-    int growBy;
-};
+using SpotArray = mfc::CArray<float[3]>;
 
 // A CPtrList on the stack (vtable 0073D454, blocks of 10).
-struct UnitPtrList {
-    void* vtable;
-    struct Node {
-        Node* next;
-        Node* prev;
-        CEngineObject* data;
-    }* head;
-    Node* tail;
-    int count;
-    Node* free;
-    void* blocks;
-    int blockSize;
-};
+using UnitPtrList = mfc::CTypedPtrList<CEngineObject>;
 
 void PathMessage(CUnit* unit, const void* motion, const float* point, int kind, int flag, float limit) {
     if (unit->player) PlayerPathMessage(At<void*>(unit->player, 0x20), nullptr, unit, motion, point, kind, flag, limit);

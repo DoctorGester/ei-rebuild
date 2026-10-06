@@ -34,9 +34,6 @@ T* DeleteAfter(T* object, unsigned flags) {
 }
 
 mfc::CString& AsString(char*& data) { return *reinterpret_cast<mfc::CString*>(&data); }
-console::CStringArray& AsStringArray(EffectStringArray& array) {
-    return *reinterpret_cast<console::CStringArray*>(&array);
-}
 
 } // namespace
 
@@ -122,7 +119,7 @@ std::uintptr_t CEffectSoundSeq::Vtable() { return static_cast<std::uintptr_t>(0x
 CEffectSoundSeq* CEffectSoundSeq::Construct() {
     ConstructEffect();
     new (&name_) mfc::CString;
-    new (&names_) console::CStringArray;
+    names_.Construct();
     SetVtable(this, Vtable());
     sound_ = -1;
     Reset();
@@ -134,7 +131,7 @@ void CEffectSoundSeq::Destruct() {
     SetVtable(this, Vtable());
     Reset();
     Reset();   // again through slot 18
-    AsStringArray(names_).~CStringArray();
+    names_.Destruct();
     AsString(name_).~CString();
     DestructEffect();
 }

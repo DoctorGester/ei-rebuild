@@ -118,10 +118,10 @@ static void __fastcall SetSizeVerify(ParticleSpriteArray* self, void*, int count
     int oldSize = self->size;
     std::vector<ParticleSprite> old(self->data, self->data + (self->data ? oldSize : 0));
     self->ParticleSpriteArray::SetSize(count, growBy);
-    bool ok = self->size == count && self->max >= count && (count == 0) == (self->data == nullptr);
+    bool ok = self->size == count && self->maxSize >= count && (count == 0) == (self->data == nullptr);
     int kept = oldSize < count ? oldSize : count;
     if (ok && kept > 0) ok = std::memcmp(old.data(), self->data, static_cast<std::size_t>(kept) * sizeof(ParticleSprite)) == 0;
     for (int i = kept; ok && i < count; ++i) ok = self->data[i].color == 0 && self->data[i].frame == 0;
-    ei::verify::Check("ParticleSpriteArray::SetSize", true, ok, "%d -> %d (max %d)", oldSize, count, self->max);
+    ei::verify::Check("ParticleSpriteArray::SetSize", true, ok, "%d -> %d (max %d)", oldSize, count, self->maxSize);
 }
 EI_VERIFY(0x00497D50, SetSizeVerify, 0, s_unusedSetSize);

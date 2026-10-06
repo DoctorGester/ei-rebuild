@@ -8,6 +8,7 @@
 // round the same way whatever the FPU's precision. Constants are read from the exe's memory.
 #include "ui_mesh_build.h"
 
+#include "lib/containers.h"
 #include "ei/hook.h"
 
 #include <cstdint>
@@ -34,21 +35,15 @@ constexpr std::uintptr_t kLayoutY = 0x0074015C;     // 1 / 400
 constexpr std::uintptr_t kThreeQuarters = 0x0073C524;
 constexpr std::uintptr_t kView = 0x00740158;        // 0.48157 (the interface camera's half view)
 
-// The aligned arrays inside the sprite (thiscall; not rewritten here).
-struct BlockArray {      // 0x40-byte elements (+0x1D0)
-    void SetSize(int size, int growBy);   // 0044F960
+// The aligned arrays inside the sprite: 0x40-byte colour blocks (+0x1D0; SetSize 0044F960), the
+// two dword arrays (+0x138, +0x148; 005A6E70) and the 16-bit indices (+0x200; SetSize 0044FA90,
+// SetAtGrow 00452FC0). All are lib::AlignedArray instantiations (aligned_arrays.cpp).
+struct ColourBlock {
+    float values[16];
 };
-__declspec(naked) void BlockArray::SetSize(int, int) EI_ORIGINAL(0x0044F960)
-struct DwordArray {      // +0x138, +0x148
-    void SetSize(int size, int growBy);   // 005A6E70
-};
-__declspec(naked) void DwordArray::SetSize(int, int) EI_ORIGINAL(0x005A6E70)
-struct IndexArray {      // 16-bit indices (+0x200)
-    void SetSize(int size, int growBy);   // 0044FA90
-    void SetAtGrow(int index, int value); // 00452FC0
-};
-__declspec(naked) void IndexArray::SetSize(int, int) EI_ORIGINAL(0x0044FA90)
-__declspec(naked) void IndexArray::SetAtGrow(int, int) EI_ORIGINAL(0x00452FC0)
+using BlockArray = lib::AlignedArray<ColourBlock>;
+using DwordArray = lib::AlignedArray<std::uint32_t>;
+using IndexArray = lib::AlignedArray<std::uint16_t>;
 
 template <typename T>
 T* At(CUiMesh* mesh, int offset) {
@@ -84,7 +79,7 @@ void AppendBySize(IndexArray* indices, CUiMesh* mesh, int value) {
     indices->SetSize(at + 1, -1);
     mesh->indices_[at] = static_cast<std::uint16_t>(value);
 }
-void AppendByGrow(IndexArray* indices, CUiMesh* mesh, int value) { indices->SetAtGrow(mesh->indexCount_, value); }
+void AppendByGrow(IndexArray* indices, CUiMesh* mesh, int value) { indices->SetAtGrow(mesh->indexCount_, static_cast<std::uint16_t>(value)); }
 
 // Half a texel towards the texture's inside on every coordinate, then the arrays to the renderer.
 void NudgeAndCommit(CUiMesh* mesh) {

@@ -280,19 +280,19 @@ void ConsoleWindow::OnChar(int key, int, int) {
     case 9:
         return;
     case 13: {   // Enter
-        bool repeated = ei::rebirth::Enabled(ei::rebirth::Patch::ImproveConsole) && commands_.size_ != 0 &&
-                        std::strcmp(input_, commands_.data_[0]) == 0;
+        bool repeated = ei::rebirth::Enabled(ei::rebirth::Patch::ImproveConsole) && commands_.size != 0 &&
+                        std::strcmp(input_, commands_.data[0]) == 0;
         if (!repeated) {
             InsertString(&commands_, nullptr, 0, &input_, 1);
-            if (commands_.size_ > kHistoryDepth) commands_.RemoveAt(commands_.size_ - 1, 1);
+            if (commands_.size > kHistoryDepth) commands_.RemoveAt(commands_.size - 1, 1);
         }
         commandIndex_ = -1;
         input_.Empty();
         caret_ = 0;
         anchor_ = 0;
         At(this)->CallDrawInput();
-        AddTextAt(this, nullptr, (mfc::CString(GameText(kPromptText)) + commands_.data_[0]) + GameText(kNewLine));
-        ExecuteAt(commands_.data_[0]);
+        AddTextAt(this, nullptr, (mfc::CString(GameText(kPromptText)) + commands_.data[0]) + GameText(kNewLine));
+        ExecuteAt(commands_.data[0]);
         return;
     }
     case 27:   // Escape

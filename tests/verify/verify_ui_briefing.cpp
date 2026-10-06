@@ -191,7 +191,7 @@ static void __fastcall MouseMoveVerify(void* input, void*, int buttons, int x, i
     bool ok = true;
     if (self->state_ == 1 && !self->chatActive_) {
         int h = self->hoveredTopic_;
-        ok = h == -1 || (h >= self->topicTop_ && h < self->topicTop_ + 5 && h < self->topics_.size_);
+        ok = h == -1 || (h >= self->topicTop_ && h < self->topicTop_ + 5 && h < self->topics_.size);
     }
     ei::verify::Check("CBriefingScreen::OnMouseMove", true, ok, "hovered %d, top %d", self->hoveredTopic_,
                       self->topicTop_);
@@ -224,7 +224,7 @@ void* s_topicTitle;
 
 std::string TopicsText(const CBriefingScreen* self) {
     std::string text;
-    for (int i = 0; i < self->topics_.size_; ++i) {
+    for (int i = 0; i < self->topics_.size; ++i) {
         text += static_cast<const char*>(self->topics_[i]);
         text += '|';
     }
@@ -260,7 +260,7 @@ EI_VERIFY(0x006078C0, TopicTitleVerify, 7, s_topicTitle);
 static void __fastcall OpenTopicsVerify(CBriefingScreen* self, void*, CEngineObject* person) {
     self->OpenTopics(person);
     bool ok;
-    int count = self->topics_.size_;
+    int count = self->topics_.size;
     if (count <= 0) {
         ok = self->state_ == 0;
     } else {
@@ -274,9 +274,9 @@ EI_VERIFY(0x00608B60, OpenTopicsVerify, 0, s_unused);
 static void __fastcall DrawTopicsVerify(CBriefingScreen* self, void*) {
     int top = self->topicTop_;
     int hovered = self->hoveredTopic_;
-    int count = self->topics_.size_;
+    int count = self->topics_.size;
     self->DrawTopics();
-    bool ok = top == self->topicTop_ && hovered == self->hoveredTopic_ && count == self->topics_.size_;
+    bool ok = top == self->topicTop_ && hovered == self->hoveredTopic_ && count == self->topics_.size;
     ei::verify::Check("CBriefingScreen::DrawTopics", true, ok, "top %d, hovered %d", top, hovered);
 }
 EI_VERIFY(0x006071E0, DrawTopicsVerify, 0, s_unused);

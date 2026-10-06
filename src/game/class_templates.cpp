@@ -114,27 +114,27 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
     char alloc = 0;   // the allocator argument (an empty object passed by address)
 
     ListWeapons(items, nullptr, &names);
-    for (int i = 0; i < names.size_; ++i) {
-        void* record = FindWeapon(kWeapons, nullptr, names.data_[i]);
+    for (int i = 0; i < names.size; ++i) {
+        void* record = FindWeapon(kWeapons, nullptr, names.data[i]);
         if (record && Allowed(t, record, 0x64)) AddWeapon(AllList(t), nullptr, record);
     }
     ListArmors(items, nullptr, &names);
-    for (int i = 0; i < names.size_; ++i) {
-        void* record = FindArmor(kArmors, nullptr, names.data_[i]);
+    for (int i = 0; i < names.size; ++i) {
+        void* record = FindArmor(kArmors, nullptr, names.data[i]);
         if (record && Allowed(t, record, 0x64)) AddArmor(AllList(t), nullptr, record);
     }
     ListQuickItems(items, nullptr, &names);
-    for (int i = 0; i < names.size_; ++i) {
+    for (int i = 0; i < names.size; ++i) {
         RawString key;
-        StringFromChars(&key, nullptr, names.data_[i], &alloc);
+        StringFromChars(&key, nullptr, names.data[i], &alloc);
         void* record = *QuickItemAt(kQuickItemMap, nullptr, &key);
         StlStringDestroy(&key);
         if (record && Allowed(t, record, 0x64)) AddQuickItem(AllList(t), nullptr, record);
     }
     ListFourthKind(items, nullptr, &names);
-    for (int i = 0; i < names.size_; ++i) {
+    for (int i = 0; i < names.size; ++i) {
         RawString key;
-        StringFromChars(&key, nullptr, names.data_[i], &alloc);
+        StringFromChars(&key, nullptr, names.data[i], &alloc);
         void* record = *FourthKindAt(kFourthKindMap, nullptr, &key);
         StlStringDestroy(&key);
         if (record && Allowed(t, record, 0x4C)) AddFourthKind(AllList(t), nullptr, record, 0x14, 0x32);
@@ -142,8 +142,8 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
 
     // Spells and modifiers: the name's code is the key; allowed ones go to both lists.
     ListSpells(spells, nullptr, &names);
-    for (int i = 0; i < names.size_; ++i) {
-        const char* code = SpellCode(names.data_[i]);
+    for (int i = 0; i < names.size; ++i) {
+        const char* code = SpellCode(names.data[i]);
         RawString key;
         StringInitWithAllocator(&key, nullptr, &alloc);
         StringAssignSpan(&key, nullptr, code, code + std::strlen(code));
@@ -155,8 +155,8 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
         }
     }
     ListModifiers(spells, nullptr, &names);
-    for (int i = 0; i < names.size_; ++i) {
-        const char* code = ModifierCode(names.data_[i]);
+    for (int i = 0; i < names.size; ++i) {
+        const char* code = ModifierCode(names.data[i]);
         // operator[] inlined: an empty string assigned the code, a (key, null) pair built from it,
         // find_or_insert, the pair and the string destroyed.
         RawString key{};

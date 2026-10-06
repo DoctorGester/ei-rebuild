@@ -24,7 +24,7 @@ __declspec(naked) void __fastcall MoveSequence(void*, void*, int /*sound*/, cons
 __declspec(naked) void __fastcall StopSequence(void*, void*, int /*sound*/) EI_ORIGINAL(0x006BA7C0)
 // 006B9950 / 006B9A30: starts / moves an ambient sound (a list of names); 006B9AA0 stops it and
 // returns the handle to keep (-1).
-__declspec(naked) int __fastcall PlayAmbient(void*, void*, EffectStringArray* /*names*/, const Vector3* /*position*/, std::uint32_t /*volume*/, std::uint32_t /*radius*/, int, int) EI_ORIGINAL(0x006B9950)
+__declspec(naked) int __fastcall PlayAmbient(void*, void*, mfc::CStringArray* /*names*/, const Vector3* /*position*/, std::uint32_t /*volume*/, std::uint32_t /*radius*/, int, int) EI_ORIGINAL(0x006B9950)
 __declspec(naked) void __fastcall MoveAmbient(void*, void*, int /*sound*/, const Vector3* /*position*/, std::uint32_t /*volume*/, std::uint32_t /*radius*/, int, int) EI_ORIGINAL(0x006B9A30)
 __declspec(naked) int __fastcall StopAmbient(void*, void*, int /*sound*/) EI_ORIGINAL(0x006B9AA0)
 
@@ -214,7 +214,7 @@ void CEffectSoundSeq::Pack(DeltaField* field) {
     WriteString(field, nullptr, name_);
     int count = names_.size;
     WriteDelta(field, nullptr, &count, 4);
-    for (int i = 0; i < names_.size; ++i) WriteString(field, nullptr, names_.data[i]);
+    for (int i = 0; i < names_.size; ++i) WriteString(field, nullptr, names_[i]);
     WriteFloat16(field, nullptr, Bits(volume_));
     WriteFloat16(field, nullptr, Bits(radius_));
     WriteFloat16x3(field, nullptr, &velocity_);
@@ -240,7 +240,7 @@ void CEffectSoundSeq::SaveState(void* stream) {
     int count = names_.size;
     Write(stream, &count, 4);
     for (int i = 0; i < names_.size; ++i) {
-        const char* name = names_.data[i];
+        const char* name = names_[i];
         Write(stream, name, static_cast<std::uint32_t>(std::strlen(name) + 1));
     }
     WriteCopy(stream, &volume_);
@@ -282,7 +282,7 @@ int CEffectAmbientSound::Unpack(int update, DeltaField* field) {
     for (int i = 0; i < static_cast<int>(countSlot & 0xFF); ++i) {
         alignas(4) unsigned char raw[sizeof(mfc::CString)];
         auto* text = static_cast<mfc::CString*>(FieldReadString(field, nullptr, raw));
-        *reinterpret_cast<mfc::CString*>(&names_.data[i]) = *text;
+        names_[i] = *text;
         text->~CString();
     }
     ReadFloat16(field, nullptr, &volume_);
@@ -300,7 +300,7 @@ void CEffectAmbientSound::Pack(DeltaField* field) {
     WritePosition(field, nullptr, &position);
     std::uint8_t count = static_cast<std::uint8_t>(names_.size);
     WriteDelta(field, nullptr, &count, 1);
-    for (int i = 0; i < names_.size; ++i) WriteString(field, nullptr, names_.data[i]);
+    for (int i = 0; i < names_.size; ++i) WriteString(field, nullptr, names_[i]);
     WriteFloat16(field, nullptr, Bits(volume_));
     WriteFloat16(field, nullptr, Bits(radius_));
     int value = unknown_168;
@@ -323,7 +323,7 @@ void CEffectAmbientSound::SaveState(void* stream) {
     int count = names_.size;
     Write(stream, &count, 4);
     for (int i = 0; i < names_.size; ++i) {
-        const char* name = names_.data[i];
+        const char* name = names_[i];
         Write(stream, name, static_cast<std::uint32_t>(std::strlen(name) + 1));
     }
     WriteCopy(stream, &volume_);

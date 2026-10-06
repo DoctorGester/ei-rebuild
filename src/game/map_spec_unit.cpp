@@ -26,13 +26,7 @@ struct Waypoint {
 static_assert(sizeof(Waypoint) == 0x14);
 
 template <typename T>
-struct Array {                   // MFC CArray (0x14 bytes)
-    void* vtable;
-    T* data;
-    int size;
-    int max;
-    int grow;
-};
+using Array = mfc::CArray<T>;
 
 // A patrol (0x20 bytes): where it starts and its waypoints (CArray, vtable 0073C3A0).
 struct Patrol {
@@ -67,7 +61,7 @@ struct UnitSpec {
     Behaviour behaviour[5];      // +0x090
     mfc::CString prototype;      // +0x20C ("none")
     std::uint8_t stats[0xAC];    // +0x210
-    StringArray lists[5];        // +0x2BC ... +0x30C (chunks BBBB0005 ... BBBB0009)
+    mfc::CStringArray lists[5];   // +0x2BC ... +0x30C (chunks BBBB0005 ... BBBB0009)
     std::uint32_t unknown_320;   // +0x320
 };
 static_assert(offsetof(UnitSpec, behaviour) == 0x90);
@@ -157,8 +151,8 @@ void StartChild(TargetChunk& child, std::uintptr_t vtable, Chunk* parent) {
 // 0045D5B0. Returns this.
 Behaviour* __fastcall BehaviourConstruct(Behaviour* self) {
     self->patrols.data = nullptr;
-    self->patrols.grow = 0;
-    self->patrols.max = 0;
+    self->patrols.growBy = 0;
+    self->patrols.maxSize = 0;
     self->patrols.size = 0;
     SetVtable(&self->patrols, kPatrolsVtable);
     self->type = 3;
@@ -201,24 +195,24 @@ void __fastcall PatrolsCopy(Array<Patrol>* self, void*, const Array<Patrol>* fro
             gamecrt::operator_delete(self->data);
             self->data = nullptr;
         }
-        self->max = 0;
+        self->maxSize = 0;
         self->size = 0;
     } else if (!self->data) {
         self->data = static_cast<Patrol*>(gamecrt::operator_new(static_cast<std::size_t>(n) * sizeof(Patrol)));
         ConstructPatrols(self->data, n);
-        self->max = n;
+        self->maxSize = n;
         self->size = n;
-    } else if (n <= self->max) {
+    } else if (n <= self->maxSize) {
         if (self->size < n) ConstructPatrols(self->data + self->size, n - self->size);
         else if (self->size > n) DestructPatrols(self->data + n, self->size - n);
         self->size = n;
     } else {
-        int grow = self->grow;
+        int grow = self->growBy;
         if (grow == 0) {
             grow = self->size / 8;
             grow = grow < 4 ? 4 : grow > 0x400 ? 0x400 : grow;
         }
-        int capacity = self->max + grow;
+        int capacity = self->maxSize + grow;
         if (n >= capacity) capacity = n;
         auto* data = static_cast<Patrol*>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * sizeof(Patrol)));
         std::memcpy(data, self->data, static_cast<std::size_t>(self->size) * sizeof(Patrol));
@@ -226,7 +220,7 @@ void __fastcall PatrolsCopy(Array<Patrol>* self, void*, const Array<Patrol>* fro
         gamecrt::operator_delete(self->data);
         self->data = data;
         self->size = n;
-        self->max = capacity;
+        self->maxSize = capacity;
     }
     for (int i = 0; i < from->size; ++i) {
         alignas(4) std::uint8_t raw[sizeof(Patrol)];
@@ -386,7 +380,7 @@ UnitSpec* __fastcall UnitSpecConstruct(UnitSpec* self) {
     ObjectSpecConstruct(&self->object);
     VectorConstruct(self->behaviour, sizeof(Behaviour), 5, kBehaviourConstruct, kBehaviourDestruct);
     new (&self->prototype) mfc::CString();
-    for (StringArray& list : self->lists) StringArrayConstruct(&list);
+    for (mfc::CStringArray& list : self->lists) list.Construct();
     self->unknown_320 = 0;
     SetVtable(self, kUnitVtable);
     self->object.base.kind = 5;
@@ -421,7 +415,7 @@ EI_REPLACE(0x0046C120, UnitSpecDelete);
 // 0046C2F0: the destructor of the block at +0x210 (the five string lists; reached only when an
 // exception unwinds the constructor).
 void __fastcall UnitStatsDestruct(std::uint8_t* self) {
-    for (int i = 4; i >= 0; --i) StringArrayDestruct(reinterpret_cast<StringArray*>(self + 0xAC + i * 0x14));
+    for (int i = 4; i >= 0; --i) StringArrayDestruct(reinterpret_cast<mfc::CStringArray*>(self + 0xAC + i * 0x14));
 }
 EI_REPLACE(0x0046C2F0, UnitStatsDestruct);
 
@@ -527,23 +521,23 @@ void __fastcall WaypointsRead(Array<Waypoint>* a, void* stream) {
             gamecrt::operator_delete(a->data);
             a->data = nullptr;
         }
-        a->max = 0;
+        a->maxSize = 0;
         a->size = 0;
     } else if (!a->data) {
         a->data = static_cast<Waypoint*>(gamecrt::operator_new(static_cast<std::size_t>(n) * sizeof(Waypoint)));
         ConstructWaypoints(a->data, n);
-        a->max = n;
+        a->maxSize = n;
         a->size = n;
-    } else if (n <= a->max) {
+    } else if (n <= a->maxSize) {
         if (n > a->size) ConstructWaypoints(a->data + a->size, n - a->size);
         a->size = n;
     } else {
-        int grow = a->grow;
+        int grow = a->growBy;
         if (grow == 0) {
             grow = a->size / 8;
             grow = grow < 4 ? 4 : grow > 0x400 ? 0x400 : grow;
         }
-        int capacity = a->max + grow;
+        int capacity = a->maxSize + grow;
         if (n >= capacity) capacity = n;
         auto* data = static_cast<Waypoint*>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * sizeof(Waypoint)));
         std::memcpy(data, a->data, static_cast<std::size_t>(a->size) * sizeof(Waypoint));
@@ -551,7 +545,7 @@ void __fastcall WaypointsRead(Array<Waypoint>* a, void* stream) {
         gamecrt::operator_delete(a->data);
         a->size = n;
         a->data = data;
-        a->max = capacity;
+        a->maxSize = capacity;
     }
     for (int i = 0; i < a->size; ++i) StreamRead(stream, &a->data[i], sizeof(Waypoint));
 }
