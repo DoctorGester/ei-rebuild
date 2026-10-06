@@ -778,7 +778,7 @@ static int __fastcall LoadSampleVerify(CSoundManager* self, void*, SoundSlot* sl
         bool named = n == length && std::memcmp(slotName, name, n) == 0;
         bool cached = false;
         for (const WaveNode* node = self->cacheList.head; node && !cached; node = node->next) {
-            const char* s = text(node->record.name, &n);
+            const char* s = text(node->data.name, &n);
             cached = n == length && std::memcmp(s, name, n) == 0;
         }
         ok = slot->playing == 1 && slot->handle == self->nextHandle - 1 && named && (cached || compressed != 0) &&

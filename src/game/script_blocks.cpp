@@ -54,7 +54,7 @@ constexpr std::uintptr_t kPartsVtable = 0x0073D328;     // CArray<ScriptAreaPart
 ScriptDecl* AppendBlock(ScriptList* list, std::uint32_t idBits) {
     mfc::CArray<SSCCmd> empty{reinterpret_cast<void*>(kCommandsVtable), nullptr, 0, 0, 0};
     ScriptListNode* node = NewBlockNode(list, nullptr, list->tail, nullptr);
-    auto* block = reinterpret_cast<ScriptDecl*>(node->Data());
+    auto* block = reinterpret_cast<ScriptDecl*>(node->data.bytes);
     CommandsCopy(&block->commands, nullptr, &empty);
     if (list->tail) list->tail->next = node;
     else list->head = node;
@@ -114,7 +114,7 @@ ScriptObjectRef* __fastcall ScriptNewTempObject(CScript* script, void*) {
     node->prev = tail;
     node->next = nullptr;
     ++list.count;
-    auto* ref = reinterpret_cast<ScriptObjectRef*>(node->Data());
+    auto* ref = reinterpret_cast<ScriptObjectRef*>(node->data.bytes);
     ConstructRefs(ref, 1);
     if (ref->object) ref->object->Release();
     ref->object = nullptr;

@@ -1329,15 +1329,15 @@ bool SameText(const char* a, const char* b) {
 }
 
 // A list of entry pointers on the game's heap (the original keeps STLport lists of copies).
-struct EntryList {
+struct EntryPicks {
     const ZoneEntry** items = nullptr;
     int count = 0;
-    explicit EntryList(int capacity) {
+    explicit EntryPicks(int capacity) {
         items = static_cast<const ZoneEntry**>(gamecrt::operator_new(static_cast<std::size_t>(capacity > 0 ? capacity : 1) * 4));
     }
-    ~EntryList() { gamecrt::operator_delete(items); }
-    EntryList(const EntryList&) = delete;
-    EntryList& operator=(const EntryList&) = delete;
+    ~EntryPicks() { gamecrt::operator_delete(items); }
+    EntryPicks(const EntryPicks&) = delete;
+    EntryPicks& operator=(const EntryPicks&) = delete;
     void RemoveAt(int i) {
         for (int k = i + 1; k < count; ++k) items[k - 1] = items[k];
         --count;
@@ -1350,8 +1350,8 @@ void __stdcall PickZones(void* outArg, int id, const char* exclude) {
     auto* out = static_cast<OutStrings*>(outArg);
     ZoneTable& table = *reinterpret_cast<ZoneTable*>(0x007AFDE0);
     int total = static_cast<int>(table.finish - table.start);
-    EntryList pending(total);
-    EntryList group(total);
+    EntryPicks pending(total);
+    EntryPicks group(total);
     for (ZoneEntry* e = table.start; e != table.finish; ++e)
         if (e->id == id) pending.items[pending.count++] = e;
     while (pending.count) {
@@ -2194,7 +2194,7 @@ void DestroyPartyEntry(std::uint8_t* entry) {
 
 } // namespace
 
-void SavedPartyList::Reload() {
+void SavedParties::Reload() {
     auto* self = reinterpret_cast<std::uint8_t*>(this);
     // Empty the list (+4: an STLport vector of 0x74-byte entries).
     auto*& start = *reinterpret_cast<std::uint8_t**>(self + 4);
@@ -2288,7 +2288,7 @@ EI_REPLACE_METHOD(0x0057C700, GameFlow::ProcessRequest);
 EI_REPLACE_METHOD(0x0057ABA0, GameFlow::LoadGame);
 EI_REPLACE_METHOD(0x0057EB10, GameFlow::AfterServerStart);
 EI_REPLACE_METHOD(0x005800C0, GameFlow::UpdateFromServer);
-EI_REPLACE_METHOD(0x00662FB0, SavedPartyList::Reload);
+EI_REPLACE_METHOD(0x00662FB0, SavedParties::Reload);
 EI_REBIRTH_IMPLEMENTS(0x00662FB0, ei::rebirth::Patch::PersistentGlobalVars);
 EI_REBIRTH_IMPLEMENTS(0x005800C0, ei::rebirth::Patch::PersistentGlobalVars);
 EI_REBIRTH_IMPLEMENTS(0x0057EB10, ei::rebirth::Patch::PersistentGlobalVars);

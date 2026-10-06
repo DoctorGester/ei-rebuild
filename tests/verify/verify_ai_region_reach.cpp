@@ -388,9 +388,9 @@ NearbyFn s_originalNearby;
 std::vector<int> Records(const BlockCostList* list) {
     std::vector<int> out;
     for (const BlockCostList::Node* n = list->head; n; n = n->next) {
-        out.push_back(n->x);
-        out.push_back(n->y);
-        out.push_back(n->cost);
+        out.push_back(n->data.x);
+        out.push_back(n->data.y);
+        out.push_back(n->data.cost);
     }
     return out;
 }

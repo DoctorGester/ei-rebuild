@@ -74,26 +74,11 @@ std::uint8_t** MarkRows(void* marks) { return At<std::uint8_t**>(marks, 4); }
 // 005B1C70 (RET 8): ConstructElements of the {x, y, cost} records (zero-fills `count`).
 __declspec(naked) void __stdcall ConstructBlockCosts(void*, int) EI_ORIGINAL(0x005B1C70)
 
-// The list's inlined AddTail (MFC 4.2 NewNode with the plex carved into the free list).
-BlockCostList::Node* AppendBlockCost(BlockCostList* list) {
-    using Node = BlockCostList::Node;
-    if (!list->free) {
-        mfc::CPlex*& blocks = reinterpret_cast<mfc::CPlex*&>(list->blocks);
-        mfc::CPlex* block = mfc::PlexCreate(blocks, list->blockSize, sizeof(Node));
-        Node* node = reinterpret_cast<Node*>(block + 1) + (list->blockSize - 1);
-        for (int i = list->blockSize - 1; i >= 0; --i, --node) {
-            node->next = list->free;
-            list->free = node;
-        }
-    }
-    Node* node = list->free;
-    list->free = node->next;
-    node->prev = list->tail;
-    node->next = nullptr;
-    ++list->count;
-    ConstructBlockCosts(&node->x, 1);
-    return node;
-}
+} // namespace
+
+void BlockCostElements::Construct(BlockCost* elements, int count) { ConstructBlockCosts(elements, count); }
+
+namespace {
 // The region map's constructor helpers: the local search's two member constructors (their counts
 // preset to 1), the CRT's `eh vector constructor iterator` (array, size, count, ctor, dtor).
 __declspec(naked) void __fastcall ConstructSearchPart1(void*) EI_ORIGINAL(0x005B1470)
@@ -347,10 +332,10 @@ void CRegionMap::NearbyBlocks(int sizeClass, bool flag, int x, int y, BlockCostL
             std::uint8_t cell = cellRows[yy][xx];
             int cost = SearchCost(search, nullptr, (cell & 0xF) + xx * 8, (cell >> 4) + yy * 8);
             if (cost >= kUnreached) continue;
-            BlockCostList::Node* node = AppendBlockCost(out);
-            node->x = xx;
-            node->y = yy;
-            node->cost = cost;
+            BlockCostList::Node* node = out->NewNode(out->tail, nullptr);
+            node->data.x = xx;
+            node->data.y = yy;
+            node->data.cost = cost;
             if (out->tail) out->tail->next = node;
             else out->head = node;
             out->tail = node;
@@ -489,7 +474,7 @@ int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
     int distinct = 0;
     std::uint16_t** rows = At<std::uint16_t**>(this, (sizeClass + 0x22) * 16);
     for (BlockCostList::Node* n = blocks.head; n; n = n->next) {
-        std::uint16_t region = rows[n->y][n->x];
+        std::uint16_t region = rows[n->data.y][n->data.x];
         int i = 0;
         while (i < distinct && regions[i] != region) ++i;
         if (i < distinct) {
@@ -508,11 +493,7 @@ int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
         }
     // The block list's inlined destructor.
     blocks.vtable = reinterpret_cast<void*>(0x0073FCFC);
-    blocks.count = 0;
-    blocks.free = nullptr;
-    blocks.tail = nullptr;
-    blocks.head = nullptr;
-    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(blocks.blocks));
+    blocks.RemoveAll();
     return region;
 }
 

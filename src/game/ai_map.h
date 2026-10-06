@@ -100,6 +100,19 @@ struct VisibilityGrid {
 static_assert(sizeof(VisibilityGrid) == 0x18);
 
 // The region map at CAIMap + 0x22F8: connected areas per size class.
+// A block a search reaches: {block x, block y, cost}.
+struct BlockCost {
+    int x, y, cost;
+};
+// CList<BlockCost>'s ConstructElements is the instantiation's own (005B1C70, zero-fill).
+struct BlockCostElements {
+    static void Construct(BlockCost* elements, int count);   // ai_region_reach.cpp
+    static void Destruct(BlockCost*, int) {}
+};
+// The CList of reached blocks (0x1C bytes, nodes 0x14; vtable 0073FCFC).
+using BlockCostList = mfc::CList<BlockCost, BlockCostElements>;
+static_assert(sizeof(BlockCostList::Node) == 0x14);
+
 struct CRegionMap {
     // 005B0600. Region of cell (x, y) for a size class, in AX (the rest of EAX is returned as the
     // original leaves it).
@@ -144,25 +157,9 @@ struct CRegionMap {
     // 005B0370 (RET 0x14; ai_region_reach.cpp). The 3x3 blocks around cell (x, y) whose
     // representative cell the local search reaches from it, as {block x, block y, cost} appended
     // to `out` (a CList, emptied first). `flag` goes to +0x114 for the search.
-    void NearbyBlocks(int sizeClass, bool flag, int x, int y, struct BlockCostList* out);
+    void NearbyBlocks(int sizeClass, bool flag, int x, int y, BlockCostList* out);
 };
 
-// A CList of {block x, block y, cost} (0x1C bytes, nodes 0x14).
-struct BlockCostList {
-    struct Node {
-        Node* next;
-        Node* prev;
-        int x, y, cost;
-    };
-    void* vtable;
-    Node* head;
-    Node* tail;
-    int count;
-    Node* free;
-    void* blocks;
-    int blockSize;
-};
-static_assert(sizeof(BlockCostList) == 0x1C);
 
 // Per size class tables of the cost of a height step between neighbouring cells, indexed from the
 // middle (negative steps down, positive up). Layout provisional.

@@ -71,7 +71,7 @@ ScriptList& ListAt(CScript* script, std::size_t offset) { return Field<ScriptLis
 // and its blocks freed.
 template <typename Destroy>
 void RemoveAll(ScriptList& list, Destroy destroy) {
-    for (ScriptListNode* node = list.head; node; node = node->next) destroy(node->Data());
+    for (ScriptListNode* node = list.head; node; node = node->next) destroy(node->data.bytes);
     list.count = 0;
     list.free = nullptr;
     list.tail = nullptr;
@@ -115,13 +115,13 @@ void __fastcall ScriptReset(CScript* script) {
         TempGroupsRemoveTail(&groups, nullptr, element);
         GroupDestruct(element);
     }
-    GroupSetSize(groups.tail->Data(), nullptr, 0, -1);
+    GroupSetSize(groups.tail->data.bytes, nullptr, 0, -1);
     ScriptList& objects = ListAt(script, 0x1CC);
     while (objects.count > 1) {
         TempObjectsRemoveTail(&objects, nullptr, element);
         RefReset(element);
     }
-    RefAssign(objects.tail->Data(), nullptr, nullptr);
+    RefAssign(objects.tail->data.bytes, nullptr, nullptr);
 
     // Point lights (+0x04 data, +0x08 count; 0x20-byte slots): objects released, slots zeroed.
     for (int i = 0; i < Field<int>(script, 0x08); ++i) {

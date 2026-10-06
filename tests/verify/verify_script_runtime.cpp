@@ -85,10 +85,10 @@ void __fastcall ResetVerify(CScript* script) {
     const ScriptList& groups = Field<ScriptList>(script, 0x1B0);
     const ScriptList& objects = Field<ScriptList>(script, 0x1CC);
     require(groups.count == 1 && groups.head == groups.tail &&
-                EmptyArray(*reinterpret_cast<const ScriptGroup*>(groups.tail->Data())),
+                EmptyArray(*reinterpret_cast<const ScriptGroup*>(groups.tail->data.bytes)),
             "temporary groups");
     require(objects.count == 1 && objects.head == objects.tail &&
-                reinterpret_cast<const ScriptObjectRef*>(objects.tail->Data())->object == nullptr,
+                reinterpret_cast<const ScriptObjectRef*>(objects.tail->data.bytes)->object == nullptr,
             "temporary objects");
     const char* lights = Field<char*>(script, 0x04);
     for (int i = 0; i < Field<int>(script, 0x08) * 0x20; ++i) require(lights[i] == 0, "point lights");

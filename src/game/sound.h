@@ -142,17 +142,11 @@ struct WaveRecord {
     std::int32_t uses;          // +0x18 voices playing it (CacheEntry's +0x20 is this field of the node)
 };
 static_assert(sizeof(WaveRecord) == 0x1C);
-struct WaveNode {
-    WaveNode* next;
-    WaveNode* prev;
-    WaveRecord record;          // +0x08
-};
+// CList<WaveRecord> (0x1C bytes). Its NewNode / FreeNode stay the instantiation's (006BD4F0 /
+// 006BD560, sound_manager.cpp), which copy and destroy the record themselves.
+using WaveList = mfc::CList<WaveRecord, mfc::RawElements<WaveRecord>>;
+using WaveNode = WaveList::Node;
 static_assert(sizeof(WaveNode) == 0x24);
-struct WaveList {
-    std::uint32_t unknown0;
-    WaveNode* head;             // +0x04 (CSoundManager + 0x858)
-    WaveNode* tail;             // +0x08 (CSoundManager + 0x85C)
-};
 // An archive the waves are read from: vtable slot 5 loads a file [name, size out] (null when
 // missing), slot 6 frees what slot 5 returned.
 struct WaveSourceNode {
@@ -200,7 +194,6 @@ struct CSoundManager {
     SoundSequence sequences[8];         // +0x5F0
     std::int32_t cacheBytes;            // +0x850 bytes held by the wave cache
     WaveList cacheList;                 // +0x854 the cached waves, most recently used first
-    std::uint8_t unknown860[0x10];
     std::uint8_t cache[0x14];           // +0x870 hash_map<string, cached wave> (006BBDF0)
     DeferredMap deferred;               // +0x884
     std::int32_t enabled;               // +0x898

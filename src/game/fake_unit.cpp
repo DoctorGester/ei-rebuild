@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
+#include "lib/mfc.h"
 #include "originals_engine.h"
 #include "originals_units.h"
 #include "originals_library.h"
@@ -24,14 +25,8 @@ void SetVtable(void* object, std::uintptr_t vtable) { std::memcpy(object, &vtabl
 
 constexpr std::uintptr_t kFakeUnitVtable = 0x0073BFE8;
 
-// An MFC CArray as laid out in game.exe.
-struct Array {
-    void* vtable;
-    std::uint8_t* data;
-    int size;
-    int maxSize;
-    int growBy;
-};
+// The unit's four CArrays seen as bytes (their element sizes are in kArrays).
+using Array = mfc::CArray<std::uint8_t>;
 
 struct ArrayInfo {
     std::size_t offset;

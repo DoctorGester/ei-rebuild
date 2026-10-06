@@ -995,7 +995,7 @@ struct GameFlow {
 
 // The saved multiplayer parties: +0 the folder (CString), +4 an STLport vector of 0x74-byte entries
 // (the party records and the file name).
-struct SavedPartyList {
+struct SavedParties {
     // 00662FB0 (world_game.cpp). Rebuilds the list from the folder's "*.mp" files: each is read
     // into party records (00662DD0); a loaded one has its variables emptied and, with records +0x34
     // == 1, is appended. Rebirth's PersistentGlobalVars keeps the "gvar." variables.
