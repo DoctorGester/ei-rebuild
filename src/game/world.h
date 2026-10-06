@@ -838,7 +838,9 @@ public:
     int listACount_;                      // +0x0D4
     std::uint8_t unknown_0D8[0xE0 - 0xD8];
     std::uint8_t** listB_;                // +0x0E0
-    std::uint8_t unknown_0E4[0x180 - 0xE4];
+    std::uint8_t unknown_0E4[0x120 - 0xE4];
+    SectorGrid objectGrid_;               // +0x120 the objects by sector (slot 41 moves them)
+    std::uint8_t unknown_138[0x180 - 0x138];
     Terrain* terrain_;                    // +0x180
     char* zoneName_;                      // +0x184 CString
     std::uint8_t unknown_188[0x1CC - 0x188];
@@ -853,6 +855,7 @@ public:
     int unknown7A8_;                      // +0x7A8
 };
 static_assert(offsetof(CWorldClient, exits_) == 0x90);
+static_assert(offsetof(CWorldClient, objectGrid_) == 0x120);
 static_assert(offsetof(CWorldClient, terrain_) == 0x180);
 static_assert(offsetof(CWorldClient, platforms_) == 0x1D4);
 static_assert(offsetof(CWorldClient, session_) == 0x20C);
@@ -1073,6 +1076,9 @@ CWorldServer* WorldServer();   // 007AFF60
 // 0079BE5C: the time speed setting (the options' value; a negative speed asks for it).
 inline int TimeSpeedSetting() { return *reinterpret_cast<const int*>(0x0079BE5C); }
 CWorldClient* WorldClient();   // 007AF5B8
+// 007AF63C: the id the next object only the client makes gets (client figures such as a bow
+// shot's arrow); each use counts it down.
+inline int& NextClientObjectId() { return *reinterpret_cast<int*>(0x007AF63C); }
 
 // 00589CA0 (thiscall on a shared-object entry, RET 4; world_save.cpp). Reads an entry of the
 // shared-object list: id, player, value, then object ids resolved by the item manager (007AFFB4);

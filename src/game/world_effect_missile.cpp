@@ -1,9 +1,16 @@
-// Missiles: CEffectMissile (the homing base) and CEffectArrow (a spell missile carrying a particle
-// source, a light and a sound). See world_effect.h and docs/notes/effects.md ("Missiles").
+// Missiles: CEffectMissile (the homing base), CEffectArrow (a spell missile carrying a particle
+// source, a light and a sound) and CEffectArrowFigure (a bow shot drawn as a figure). See
+// world_effect.h and docs/notes/effects.md ("Missiles").
 #include "world_effect.h"
 
+#include "base_manager.h"
+#include "camera.h"
+#include "console.h"
+#include "game_strings.h"
 #include "map_object.h"
+#include "map_object_figures.h"
 #include "originals_engine.h"
+#include "originals_units.h"
 #include "originals_world.h"
 #include "unit.h"
 #include "world.h"
@@ -273,6 +280,179 @@ CEffectArrow* CEffectArrow::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
+
+// --- CEffectArrowFigure --------------------------------------------------------------------------
+
+namespace {
+constexpr int kClassFigureObject = 0x38;   // the object manager's class of the drawn arrow
+}
+
+std::uintptr_t CEffectArrowFigure::Vtable() { return static_cast<std::uintptr_t>(0x007437B8); }
+
+void CEffectArrowFigure::Reset() {
+    ResetBase();
+    arrived_ = 0;
+    targetId_ = -1;
+    fromCaster_ = 0;
+    if (figure_ != nullptr) WorldClient()->RemoveObject(figure_->id_);
+    hit_ = DamageInfo{};
+    hit_.multiplier = 1.0f;
+    if (figure_ != nullptr) {
+        figure_->Release();
+        figure_ = nullptr;
+    }
+    casterId_ = -1;
+}
+
+int CEffectArrowFigure::Tick() {
+    fromCaster_ = 0;
+    Steer();
+    localPosition_.x = localPosition_.x + velocity_.x;
+    localPosition_.y = localPosition_.y + velocity_.y;
+    localPosition_.z = localPosition_.z + velocity_.z;
+    if (!static_cast<CWorld*>(ManagerContext())->IsServer()) MoveFigure();
+    CWorld* world = WorldOf(this);
+    if (arrived_ != 0 && world->IsServer()) {
+        // The caster is looked up before the target is tested, as the original does.
+        CEngineObject* target = world->ObjectWithId(targetId_);
+        CEngineObject* caster = WorldFindUnit(world, nullptr, casterId_);
+        if (target != nullptr) ObjectSlots(target)->ReceiveHit(&hit_, caster, caster);
+    }
+    return arrived_ == 0 ? 1 : 0;
+}
+
+void CEffectArrowFigure::MoveFigure() {
+    if (figure_ == nullptr) return;
+    WorldClient()->objectGrid_.Move(figure_, &localPosition_.x);
+    static_cast<CTransformObject*>(figure_)->RollTowards(velocity_);
+}
+
+void CEffectArrowFigure::Start(int update) {
+    if (update != 0) {
+        MoveFigure();
+        return;
+    }
+    mfc::CString model(game::ArrowFigureModelText());
+    mfc::CString texture(game::ArrowFigureTextureText());
+    int id = NextClientObjectId()--;
+    CEngineObject* object = camera::ObjectManager()->CreateObject(kClassFigureObject, id);
+    if (object != figure_) {
+        CountedRefResetOriginal(&figure_);
+        if (object != nullptr) ++object->refCount_;
+        figure_ = object;
+    }
+    // No null test (the original has none either). The figure the object holds is read before the
+    // figure is made, as the original does.
+    auto* figure = static_cast<CObject3D*>(figure_);
+    CEngineObject* attached = figure->attached;
+    std::memcpy(figure->position, &localPosition_, sizeof(figure->position));
+    console::CStringArray parts;
+    Object3DMakeFigureOriginal(figure, nullptr, model, &parts, 1);
+    FigureLoadTexturesOriginal(attached);
+    Object3DSetAnimationsOriginal(figure, nullptr, model, 0);
+    Object3DRestartAnimationOriginal(figure);
+    FigureSwapTextureOriginal(attached, nullptr, texture, game::EmptyText());
+    WorldClient()->AddObject(figure_);
+}
+
+int CEffectArrowFigure::Unpack(int update, DeltaField* field) {
+    fromCaster_ = 0;
+    field->ReadDelta(&targetId_, 4);
+    field->ReadDelta(&casterId_, 4);
+    Vector3 position;
+    field->ReadPosition(&position);
+    field->ReadFloat16x3(&velocity_.x);
+    field->ReadDelta(&fromCaster_, 1);
+    if (!SnapshotReadToEnd()) return 0;
+    if (fromCaster_ != 0) {
+        auto* caster = static_cast<CUnit*>(WorldFindUnit(ObjectWorld(this), nullptr, casterId_));
+        if (caster != nullptr) {
+            Vector3 point;
+            position = *caster->EffectPoint(&point);
+        }
+    }
+    localPosition_ = position;
+    Start(update);
+    return 1;
+}
+
+void CEffectArrowFigure::Pack(DeltaField* field) {
+    Steer();
+    Vector3 position = localPosition_;
+    int value = targetId_;
+    field->WriteDelta(&value, 4);
+    value = casterId_;
+    field->WriteDelta(&value, 4);
+    field->WritePosition(&position);
+    field->WriteFloat16x3(&velocity_.x);
+    field->WriteDelta(&fromCaster_, 1);
+}
+
+void CEffectArrowFigure::LoadState(void* stream) {
+    auto* s = static_cast<CStream*>(stream);
+    s->Read(&localPosition_, 12);
+    s->Read(&targetId_, 4);
+    s->Read(&casterId_, 4);
+    s->Read(&velocity_, 12);
+    s->Read(&arrived_, 4);
+    CountedRefLoadOriginal(&figure_, nullptr, s, ManagerContext());
+    s->Read(&hit_, sizeof(hit_));
+    s->Read(&fromCaster_, 1);
+}
+
+void CEffectArrowFigure::SaveState(void* stream) {
+    auto* s = static_cast<CStream*>(stream);
+    std::uint32_t copy;
+    s->Write(&localPosition_, 12);
+    std::memcpy(&copy, &targetId_, 4);
+    s->Write(&copy, 4);
+    std::memcpy(&copy, &casterId_, 4);
+    s->Write(&copy, 4);
+    s->Write(&velocity_, 12);
+    std::memcpy(&copy, &arrived_, 4);
+    s->Write(&copy, 4);
+    CountedRefSaveOriginal(&figure_, nullptr, s);
+    s->Write(&hit_, sizeof(hit_));
+    std::uint8_t flag = fromCaster_;
+    s->Write(&flag, 1);
+}
+
+// The constructor builds the base (the original under CTransformObject's vtable, ours under the
+// effect base's: both are overwritten), no figure, then Reset.
+CEffectArrowFigure* CEffectArrowFigure::Construct() {
+    ConstructEffect();
+    figure_ = nullptr;
+    SetVtable(this, Vtable());
+    Reset();
+    return this;
+}
+
+void CEffectArrowFigure::Destruct() {
+    SetVtable(this, Vtable());
+    Reset();
+    Reset();   // again through slot 18
+    if (figure_ != nullptr) figure_->Release();
+    figure_ = nullptr;
+    DestructEffect();
+}
+
+CEffectArrowFigure* CEffectArrowFigure::DeletingDestruct(unsigned flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+
+EI_REPLACE_METHOD(0x0067BB90, CEffectArrowFigure::Construct);
+EI_REPLACE_METHOD(0x0067BCD0, CEffectArrowFigure::Destruct);
+EI_REPLACE_METHOD(0x0067BCB0, CEffectArrowFigure::DeletingDestruct);
+EI_REPLACE_METHOD(0x0067BAA0, CEffectArrowFigure::Reset);
+EI_REPLACE_METHOD(0x0067BE20, CEffectArrowFigure::Tick);
+EI_REPLACE_METHOD(0x0067BEF0, CEffectArrowFigure::MoveFigure);
+EI_REPLACE_METHOD(0x0067BF20, CEffectArrowFigure::Start);
+EI_REPLACE_METHOD(0x0067C080, CEffectArrowFigure::Unpack);
+EI_REPLACE_METHOD(0x0067C170, CEffectArrowFigure::Pack);
+EI_REPLACE_METHOD(0x0067C200, CEffectArrowFigure::LoadState);
+EI_REPLACE_METHOD(0x0067C290, CEffectArrowFigure::SaveState);
 
 EI_REPLACE_METHOD(0x0067AE30, CEffectArrow::Construct);
 EI_REPLACE_METHOD(0x0067B1C0, CEffectArrow::Destruct);

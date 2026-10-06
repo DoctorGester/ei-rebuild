@@ -1089,6 +1089,11 @@ std::string HudState(const std::string& argument) {
                 Log("harness: hudstate: spell slot %u item %p, prototype %d, flags %08X", s, item,
                     spell ? spell->prototypeIndex_ : -1, spell ? spell->targetFlags_ : 0);
             }
+            // Its weapons (their kind: 5 bow, 6 crossbow) and the one in use.
+            for (unsigned w = 0; w < 4; ++w)
+                if (CEngineObject* weapon = unit->GetWeapon(w))
+                    Log("harness: hudstate: weapon slot %u item %p kind %d%s", w, weapon,
+                        static_cast<CItemWeapon*>(weapon)->GetType(), unit->activeWeapon == w ? " (in use)" : "");
         }
     }
     if (!argument.empty()) {

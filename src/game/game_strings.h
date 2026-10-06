@@ -17,4 +17,9 @@ inline const char* CantFindTextureFormatText() { return reinterpret_cast<const c
 // 007846F0: "none" (a prototype's weapon name that gives no weapon).
 inline const char* NoneText() { return reinterpret_cast<const char*>(0x007846F0); }
 
+// The bow shot's figure (CEffectArrowFigure): model 0079543C "efar1", texture 00795434 "arrow01",
+// and the class name 00795420 "CEffectArrowFigure".
+inline const char* ArrowFigureModelText() { return reinterpret_cast<const char*>(0x0079543C); }
+inline const char* ArrowFigureTextureText() { return reinterpret_cast<const char*>(0x00795434); }
+
 } // namespace game
