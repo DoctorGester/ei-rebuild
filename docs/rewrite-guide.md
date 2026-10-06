@@ -162,6 +162,10 @@ Every replacement gets a verify wrapper in `tests/verify/`, registered with
   0), then check the resulting state is consistent, ideally using the original's own read-only
   lookups (see `GetFileVerify`).
 
+- Never copy a game stream (or any `__declspec(novtable)` class) by value in a wrapper: the copy
+  leaves the vtable pointer unwritten. Use `RawCopy` (tests/verify/fake_stream.h) or memcpy. Two
+  wrappers broke this way (false mismatches in C4, a crash in X16).
+
 ## Notes
 
 Record in `docs/notes/<area>.md`:

@@ -110,6 +110,13 @@ handler table (00667230), +0x34 received stream, +0x5C requests, +0x85 send-part
 camera anchor as 0x40), 00667810 SendToServer, 00667970 DispatchMessages, 00667A30 ReceiveMessages (slot 21, one packet per
 call): ours only (`verify_player_client.cpp`). The login's two 64-byte text buffers are sent with uninitialised bytes after
 the texts in the original; ours zeroes them. Error formats via 00664B70 (PlayerMessageErrorOriginal, originals_gameplay.h).
+Client handlers: 00667D80 ReadText (side by side, stream restored), 00669850 0x81 set variable (ours; the variable
+reads back as sent), 00669960 0x82 delete variable, 00669EB0 0x08 zone change (GameFlow::RequestZoneChange), 00669F40
+0x0D jingle (CMusicSystem::PlayJingle): ours only, result 1 and the stream moved. The quest-variable notifications
+005F7FC0 / 00565380 moved to originals_world.h (shared with world_briefing.cpp).
+00669010 0x02 zone (player cleared, client world 00567AB0, Rebirth-patched, through its address), 006690F0 / 006691C0
+0x03 / 0x05 world blocks (00567A60 / 00567950), 00669290 0x0A item removed (00665870, then the quest log 005F7F30 with an
+empty CPtrList, vtable 0073BE80): ours only (result, stream moved). 00665870 moved to originals_gameplay.h.
 SendItems calls SendObject14 directly (the original goes through slot 22 of 00743280, which is it). PartyRecords
 moved to party_record_lookup.h (unit.h declares a second one).
 
@@ -144,3 +151,20 @@ installed, and runs that copy as the original (`stolenBytes` 0). Constructors al
   screenshot), 00458270 (startup movies; the harness empties the list), 0045E310 (DirectX version probe), 00458570 (hash_map registration): mapped, not rewritten.
 - Players: the rest of the player classes (packet dispatchers, compression and sending, party records with CString / CArray / hash_map members, the client's handlers; mostly multiplayer); next candidates 0066E130
   and 0066F310; 0066D730 (message 0x12) writes one uninitialised stack byte and cannot be reproduced exactly; STLport instantiations 006632B0-00664D00.
+
+A-H8 later: 00669350 0x17 (00665550, quest log refresh), 0066A480 / 0066A5A0 0x15 / 0x18 experience numbers (amount *
+0073E128 ^ (unit +0x33E - 25) through a float, FISTP; std::pow for _CIpow, so a value on a .5 edge may round apart):
+ours only. SendTimedChanged's 310 central mismatches were a wrapper artifact: CEffect::SendDelta leaves flags_ bit 1
+set, so the original's second run packed the effects again against the snapshots ours had just updated; the wrapper
+now saves and restores the changed effects' four state streams (0066E020 back on).
+
+X16 (2026-10-06): that save/restore crashed most scenarios (C0000005 in RewindAndEmpty under BeginWriteBVerify). The
+saved stream headers were RawCopy'd into a local, then copied into a std::vector by push_back: CMemoryStream is
+__declspec(novtable), so its implicit copy constructor copies the members but not the vtable pointer (a fresh
+vector slot holds 0), and RawCopy then wrote that null vptr back into the real effects' four streams. The original's
+re-run then reached BeginWriteBVerify (IsMemoryField false, so ours only) and RewindAndEmpty's virtual Seek called
+through vtable 0. Rule: never copy a game stream (or any novtable class) by value; RawCopy / memcpy only. The wrapper
+no longer touches the delta fields: ours runs, the player's stream is restored, the original runs with flags_ bit 1
+cleared on every listed object (so it writes the messages from the fields ours packed, without packing again), the
+flags are put back, the streams compared; skipped when ours grew the stream or a packed effect is listed twice.
+SendObjectsChanged's wrapper was not involved (0050EA70 clears bit 1 itself); both are hooked again.

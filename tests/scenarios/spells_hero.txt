@@ -20,7 +20,7 @@ console @GodMode(0,1)
 console @GSSetVar(0,"hx",GetX(GetLeader()))
 console @GSSetVar(0,"hy",GetY(GetLeader()))
 console @GiveUnitSpell(GetLeader(),"vision_fog")
-console @GiveUnitSpell(GetLeader(),"arrow")
+console @GiveUnitSpell(GetLeader(),"arrow{e2}")
 wait 500
 
 click 400 560
@@ -35,17 +35,24 @@ console @BlockUnit(GetObjectByName("HeroWolf1"),1)
 console @BlockUnit(GetObjectByName("HeroWolf2"),1)
 wait 500
 
+# The column may hold a spell the hero already knows (the run of 2026-10-06 cast a healing-like
+# spell: three attached particles, a sound and a light, and no arrow), so every button of a
+# three-spell column is used, each on a wolf; the arrow must then hurt one of them.
+console @GSSetVar(0,"w1",HP(GetObjectByName("HeroWolf1")))
+console @GSSetVar(0,"w2",HP(GetObjectByName("HeroWolf2")))
 check Not(IsUnitBlocked(GetLeader()))
+click 780 410
+wait 200
+clickunit HeroWolf1
+wait 1000
 click 780 450
 wait 200
 clickunit HeroWolf1
 wait 1000
-console @GSSetVar(0,"w2",HP(GetObjectByName("HeroWolf2")))
-check Not(IsUnitBlocked(GetLeader()))
 click 780 490
 wait 200
 clickunit HeroWolf2
-waitfor 15 IsLess(HP(GetObjectByName("HeroWolf2")),GSGetVar(0,"w2"))
+waitfor 15 Or(IsLess(HP(GetObjectByName("HeroWolf1")),GSGetVar(0,"w1")),IsLess(HP(GetObjectByName("HeroWolf2")),GSGetVar(0,"w2")))
 wait 1000
 check IsAlive(GetLeader())
 report

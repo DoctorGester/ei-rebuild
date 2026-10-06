@@ -10,6 +10,7 @@
 // count at +4, released through 0040A3A0) kept in the brain's mode list; the brain holds a counted
 // pointer to the mode in charge.
 
+#include "ai_map.h"
 #include "core_refcount.h"
 #include "engine_object.h"
 #include "maths.h"
@@ -21,6 +22,7 @@
 #include <cstdint>
 
 struct AIBrain;
+struct AIOrder;
 
 // The stream the save-game code passes to Load/Save (vtable slot 1 Read, slot 2 Write); +8 is the
 // version of the file being read.
@@ -53,6 +55,15 @@ struct UnitController {
     int nextCommand;                // +0x1B4 the queued command
     std::uint8_t unknown_1B8[4];
     CEngineObject* nextTarget;      // +0x1BC
+    std::uint8_t unknown_1C0[0x1E0 - 0x1C0];
+    UnitStats stats;                // +0x1E0
+    std::uint16_t protection[8];    // +0x8E4 what an attack's damage words are measured against (00522AE0)
+    std::uint8_t unknown_8F4[4];
+    float moveFactors[4];           // +0x8F8 (CUnitServer::moveFactors)
+    std::uint8_t unknown_908[0x980 - 0x908];
+    std::uint8_t brain[0x190];      // +0x980 the AIBrain (Brain())
+
+    AIBrain* Brain();
 
     // 00552CF0 (RET 4; unit_ai_brain.cpp). The unit's CUnit::AddHostileMask (its EAX returned).
     std::uintptr_t AddHostileMask(std::uint32_t mask);
@@ -68,6 +79,8 @@ struct UnitController {
     void Attack(CEngineObject* target, int how, int unknown, int flags);
     // 0054C8B0. Whether the player's order check accepts `order` (see AttackTarget).
     bool CheckOrder(const void* order);
+    // 0054C960 (RET 8). The same check with the unit moved to `point` meanwhile (only AL).
+    bool CheckOrderAt(const AIOrder* order, const Vector3* point);
     void CastAt(int spell, const Vector3* point, int run);  // 00554D00
     void TurnTo(const Vector3* point, int time, int unused, float limit);   // 00554830
     void UseOnPoint(CEngineObject* object, int a, int b);   // 00555570
@@ -87,6 +100,27 @@ static_assert(offsetof(UnitController, command) == 0x190);
 static_assert(offsetof(UnitController, commandTarget) == 0x198);
 static_assert(offsetof(UnitController, nextCommand) == 0x1B4);
 static_assert(offsetof(UnitController, nextTarget) == 0x1BC);
+static_assert(offsetof(UnitController, stats) == 0x1E0);
+static_assert(offsetof(UnitController, protection) == 0x8E4);
+static_assert(offsetof(UnitController, brain) == 0x980);
+
+// An order as the controller's order checks take it (0x1C bytes, built on the stack).
+struct AIOrder {
+    // 00545F40. Kind 9 (none): the object released and cleared, the flag cleared.
+    void Clear();
+    // 005CF720 (RET 4). Clear, then an attack (3, 6) on `object` (referenced).
+    void MakeAttack(CEngineObject* object);
+    // 005CF780 (RET 8). Clear, then a cast (5) of `spell` at `object` (referenced).
+    void MakeCast(int spell, CEngineObject* object);
+
+    int kind;                       // +0x00
+    int what;                       // +0x04 6 for an attack, the spell for a cast
+    CEngineObject* object;          // +0x08 counted
+    float point[3];                 // +0x0C left uninitialised by the AI's orders
+    std::uint8_t flag;              // +0x18
+    std::uint8_t unknown_19[3];
+};
+static_assert(sizeof(AIOrder) == 0x1C);
 
 // One remembered look direction of the current move (0x10 bytes).
 struct AILook {
@@ -213,6 +247,23 @@ void __fastcall EnterIdle(AIMode* self, void*, AIBrain* brain);
 // 005D0A50. Slot 6 (Enter) of CorpseWatcher, Player and the abstract base 0073D22C: drop the
 // action and target.
 void __fastcall ClearAction(AIMode* self, void*, AIBrain* brain);
+// 005D0A90 (unit_ai_mode_lifetime.cpp). Slot 5 (Execute) of the abstract base 0073D15C: the idle
+// remark (1 in 1001), then LookAround(0).
+void __fastcall LookAroundExecute(AIMode* self, void*, AIBrain* brain);
+// 005D1210 / 005D2920. Slot 8 (GetType) of Patrol (1) and Fear (7).
+int __fastcall PatrolType(AIMode* self);
+int __fastcall FearType(AIMode* self);
+// The root vtable a mode's destructor leaves (CRefObject's, 0073BB68).
+inline void* const kRootVtable = reinterpret_cast<void*>(0x0073BB68);
+inline void* const kPatrolVtable = reinterpret_cast<void*>(0x0073FF40);
+inline void* const kPatrolPointsVtable = reinterpret_cast<void*>(0x0073FF74);
+inline void* const kPatrolPointsBaseVtable = reinterpret_cast<void*>(0x0073FF80);
+inline void* const kPlayerVtable = reinterpret_cast<void*>(0x0073F0F8);
+inline void* const kActionBaseVtable = reinterpret_cast<void*>(0x0073D22C);
+// 005D8850 / 005D6D10 (unit_ai_mode_lifetime.cpp). The abstract bases' constructors: the vtable
+// 0073D15C / 0073D22C only; return the mode.
+AIMode* __fastcall ConstructModeBase(AIMode* mode);
+AIMode* __fastcall ConstructActionBase(AIMode* mode);
 } // namespace aimode
 
 // Guard (vtable 0073D128, 0x20 bytes): stay near a point.
@@ -240,6 +291,21 @@ struct PatrolPoint {
 };
 static_assert(sizeof(PatrolPoint) == 0x20);
 
+// CArray<PatrolPoint> (PatrolMode + 8, vtables 0073FF74 / 0073FF80; unit_ai_mode_lifetime.cpp).
+struct PatrolPointArray {
+    // 005D8CF0. The base vtable, every point's looks freed, then the buffer (pointer and count kept).
+    void Destruct();
+    // 005D8CD0 (RET 4). Destruct, then operator delete when `flags` bit 0 is set; returns this.
+    PatrolPointArray* DeletingDestruct(int flags);
+
+    void* vtable;
+    PatrolPoint* data;              // +0x04
+    int size;                       // +0x08
+    int max;                        // +0x0C
+    int growBy;                     // +0x10
+};
+static_assert(sizeof(PatrolPointArray) == 0x14);
+
 // Patrol (vtable 0073FF40, 0x20 bytes): walk a list of points.
 struct PatrolMode : AIMode {
     // 005D16B0 (slot 4). 50; without points: FatalError "Unit %i has no patrol points, switching to
@@ -254,6 +320,13 @@ struct PatrolMode : AIMode {
     // 005D12B0 (unit_ai_looks.cpp). Appends a point with no looks at ((n + 0.5) / 2, z 0) for
     // n = 2x rounded to nearest (so 0..0.5 above `position`, not the middle of its half-cell).
     void AppendPoint(const Vector3* position);
+    // unit_ai_mode_lifetime.cpp. 005D0F60: the vtables, no points, index 0 (+4 untouched); returns
+    // this. 005D1240: frees every point's looks and the points (the array keeps its pointer and
+    // count), the root vtable last. 005D1220 (slot 0, RET 4): the destructor, then operator
+    // delete when `flags` bit 0 is set; returns this.
+    PatrolMode* Construct();
+    void Destruct();
+    PatrolMode* DeletingDestruct(int flags);
 
     void* pointsVtable;             // +0x08 CArray (vtable 0073FF74 / 0073FF80)
     PatrolPoint* points;            // +0x0C
@@ -346,6 +419,10 @@ struct FearMode : AIMode {
     // 005D2850 (unit_ai_brain.cpp; after operator new). The vtable, distance from 0073FF00, 3, an
     // unset point (x = -1313), +0x24 = 0 and `flag`; +4 and +0x14..+0x20 are left alone. Returns this.
     FearMode* Construct(std::uint8_t flag);
+    // unit_ai_mode_lifetime.cpp. 005D2950: the root vtable. 005D2930 (slot 0, RET 4): that, then
+    // operator delete when `flags` bit 0 is set; returns this.
+    void Destruct();
+    FearMode* DeletingDestruct(int flags);
     // 005D3650 (slot 6). Busy; drops action and target.
     void Enter(AIBrain* brain);
     // 005D3680 (slot 7). Clears busy.
@@ -367,6 +444,10 @@ static_assert(offsetof(FearMode, flag) == 0x28);
 // Player (vtables 0073F0C4 / 0073F0F8, 0x24 bytes): the party's units.
 struct PlayerMode : AIMode {
     enum { kStateFollow = 0, kStateCommand = 1, kStateMoveTo = 2 };
+
+    // 005D3760 (unit_ai_mode_lifetime.cpp). Vtable 0073F0F8, no target or leader, point 0, state 0,
+    // not running (+4 and the padding untouched); returns this.
+    PlayerMode* Construct();
 
     // 005D4A90 (slot 5). State 0: follow the leader (unless the leader is moving itself) and fight
     // (005D4170); state 1: wait for the commanded action to end; state 2: walk to `point` (staying
@@ -485,6 +566,107 @@ struct AIReportArray {
     int growBy;                     // +0x10
 };
 static_assert(sizeof(AIReportArray) == 0x14);
+
+// One way the unit can attack or help (0x28 bytes): a weapon (part -1) or a spell.
+struct AIAttackOption {
+    int kind;                       // +0x00 0..3 attacks (2, 3 hit an area), 4..6 helping spells, 7 healing
+    int part;                       // +0x04 -1 a weapon, else the spell
+    float range;                    // +0x08
+    int maxCount;                   // +0x0C cap on the group-size bonus
+    float radius;                   // +0x10 area of kinds 2 and 3
+    int effect;                     // +0x14 effect type (kinds 4..6), strength (kind 3)
+    std::uint16_t damage[8];        // +0x18 measured against the target's protection (00522AE0)
+};
+static_assert(sizeof(AIAttackOption) == 0x28);
+
+// CArray<AIAttackOption> (0x14 bytes).
+struct AIAttackOptions {
+    void* vtable;
+    AIAttackOption* data;           // +0x04
+    int size;                       // +0x08
+    int max;                        // +0x0C
+    int growBy;                     // +0x10
+};
+static_assert(sizeof(AIAttackOptions) == 0x14);
+
+using AIObjectList = mfc::CTypedPtrList<CEngineObject>;
+
+// The brain's attention (+0xA4, 0x2C bytes): the unit's attack options and choosing a target
+// (unit_ai_targets.cpp; the methods are __thiscall on the attention, the brain passed).
+struct AIAttention {
+    // 005D0030 (RET 0x18). The best {part, object} to attack or help into `partAndObject`: the
+    // current attack scored first, then (without `alliesOnly`) every weapon against every
+    // candidate and every spell against the unit and its allies in sight; the best that scores
+    // above the current one and passes IsUsable, the order check (with `alliesOnly`, for targets
+    // not near the path) and CanReach wins; a rejected one seen once is reported (20).
+    void Choose(AIBrain* brain, int* partAndObject, AIObjectList* candidates, const Vector3* from, bool alliesOnly,
+                int reachArg);
+    // 005CF7F0 (RET 8). False when the part has no option or an area option (kinds 2, 3) would
+    // also hit an ally near the target or the unit itself; true without an object.
+    bool IsUsable(AIBrain* brain, const int* partAndObject);
+    // 005CF9A0 (RET 0x1C; `this` unused). How good `option` is against `candidate` (`group` the
+    // others it would hit or help): by kind, minus 25 per unit of distance beyond the range (x10
+    // outside kinds 0..4) when it reached `threshold`, minus twice the hits needed for attacks.
+    // -1e30 when it cannot apply. Returned unrounded (ST0).
+    double Score(const Vector3* from, CUnit* self, AIObjectList* group, CEngineObject* current, CUnit* candidate,
+                 float threshold, const AIAttackOption* option);
+    // 005CF3C0 (RET 0xC; not rewritten). Whether the unit can get at the target (a path search).
+    bool CanReach(AIBrain* brain, const int* partAndObject, int arg);
+
+    // The option of `part`: the weapons first, then the spells; null when there is none.
+    const AIAttackOption* FindOption(int part) const;
+
+    AIAttackOptions weapons;        // +0x00
+    AIAttackOptions spells;         // +0x14
+    float healWeight;               // +0x28 kind 7's score when the target is badly hurt
+};
+static_assert(sizeof(AIAttention) == 0x2C);
+
+// The AI's eye (the world server's +0x2838, 007B2798; only the leading part): the unit being
+// updated's position, eye and facing (unit_ai_sight.cpp; __thiscall on the viewer, the memory
+// passed as the brain's +0xD0).
+struct AIViewer {
+    // 005CAA00 (RET 8; UpdateMemory each brain tick). The viewer moves to the owner's unit, the
+    // nearby units are listed again when due (Refresh), units in the visible list it no longer
+    // sees are dropped ("lost from sight": an enemy notices 1000 / -2; a corpse is listed as one
+    // first, an allied one noticing 800 / -3), then new ones are looked for (See).
+    void Update(UnitController* owner, AIBrain* brain);
+    // 005CA1D0 (RET 8). Every 8..11 updates (random): the units of the sector cells within the
+    // larger of the unit's two sight ranges become the nearby list (+0xF4, counted).
+    void Refresh(CUnit* self, AIBrain* brain);
+    // 005CA5A0 (RET 8). Nearby units not yet visible (corpses not yet listed) that the unit sees:
+    // within sight range, inside the view cone and the line of sight; or with peripheral vision;
+    // or sensed alive. Players' units see everything; others only enemies.
+    void See(CUnit* self, AIBrain* brain);
+    // 005CA410 (RET 4). Raises the eye by the AI map's ground level of its cell and the unit's
+    // height parts and sets the facing from the unit's orientation (once per update).
+    void Prepare(CUnit* self);
+
+    CAIMap* map;                    // +0x00
+    int unknown_04;
+    Vector3 eye;                    // +0x08
+    Vector3 facing;                 // +0x14
+    int cellX;                      // +0x20 AI map cell of the eye
+    int cellY;                      // +0x24
+    std::uint8_t ready;             // +0x28 Prepare has run
+    std::uint8_t unknown_29[3];
+};
+static_assert(offsetof(AIViewer, facing) == 0x14);
+static_assert(offsetof(AIViewer, ready) == 0x28);
+
+// 005D9E10 (__stdcall, RET 8; unit_ai_mode_lifetime.cpp). ConstructElements of `count` attack
+// options: zero bytes.
+void __stdcall ZeroAttackOptions(AIAttackOption* first, int count);
+// 005D9830 (__stdcall, RET 4). CList::GetNext of the AI's pointer lists: the address of the node's
+// data slot (node + 8); `position` (a node) moves on to the next.
+void* __stdcall ListGetNext(void** position);
+
+// 005CFE20 (__fastcall, unit_ai_targets.cpp). The squared 2D distance, unrounded (ST0).
+double __fastcall AIDistance2(const Vector3* a, const Vector3* b);
+
+// 005CD500 (thiscall on a counted object list, RET 4; unit_ai_memory.cpp). Appends `object`
+// holding a reference; returns the node.
+AIObjectList::Node* __fastcall AddCountedTail(AIObjectList* list, void* edx, CEngineObject* object);
 
 // The brain (controller + 0x980, 0x190 bytes; the controller's voice object follows at +0xB10).
 struct AIBrain {
@@ -616,6 +798,31 @@ struct AIBrain {
     void CurrentAttack(int* partAndObject);
     void ChooseTarget(int* partAndObject, void* candidates, const Vector3* from, int a, int b); // 005D0030 on +0xA4
     void CollectEnemies(CUnit* self, void* list);                       // 005CB260 on +0xD0
+
+    // unit_ai_memory.cpp (thiscall on the memory +0xD0 in the original; the modes call them
+    // through their addresses).
+    // 005CB260 (RET 8). `out` emptied, then the visible units hostile to the unit (its
+    // IsHostileTo), alive and not reported, in visible-list order (no references taken).
+    void FindEnemies(CUnit* self, AIObjectList* out);
+    // 005CB480 (RET 0x10). The same with the visible unit's own IsHostileTo(self); one at or beyond
+    // `radius` of `point` (3D; all of them for a radius <= 0) only when it has an aggression mode
+    // (not a fixed one without an enemy) whose enemy is none, not a unit, or a unit of a side the
+    // unit's side is allied with, and its brain sees an enemy.
+    void FindEnemiesNear(CUnit* self, AIObjectList* out, const Vector3* point, float radius);
+    // 005CB670 (RET 4). The nearest (3D) visible unit hostile to the unit and alive, or null.
+    CUnit* NearestEnemy(CUnit* self);
+    // 005CBC80 (RET 8). Forces `object` into sight when it is not visible and attacks the unit or
+    // stands at or beyond one of the two sight ranges: a corpse joins +0x12C (and the corpses
+    // when allied), a living unit the visible list's head (both counted); each logged.
+    void ForceSee(CUnit* self, CEngineObject* object);
+    // 005CBE90 (RET 8; the server's OnDamaged). Logs and adds `corpse` to +0x12C (and to the
+    // corpses when its side is allied with the unit's), both counted.
+    void SeeCorpse(CUnit* self, CEngineObject* corpse);
+    // 005CB850 (RET 8; each server tick). The unit's exposure to the living hostile units nearby
+    // (+0xF4) into `out` (5 floats, CUnit + 0x4C8): per kind the smallest distance / range ratio,
+    // at most 3 (a zero range counts 3). [0] sight (scaled by the line of sight between the eyes,
+    // only within range), [4], [1], [2] three other ranges; [3] stays 3.
+    void MeasureExposure(UnitController* self, float* out);
     bool IsReported(CEngineObject* object);                             // 005CC560 on +0x164
     void Perceive(UnitController* owner);       // 005CB700 through its address (UpdateMemory)
     // 005CB700 (thiscall on +0xD0; unit_ai_brain.cpp). Ages the reports (one tick off each; an
@@ -660,13 +867,14 @@ struct AIBrain {
     mfc::CTypedPtrList<AIMode> modes;   // +0x070 (elements are counted references)
     AIMode* current;                // +0x08C
     std::uint8_t alarmRecords[0x14];    // +0x090 CArray of 0x4C-byte alarm records (data at +0x94)
-    std::uint8_t attention[0xD0 - 0xA4]; // +0x0A4 (005CF220, 005CFE40, 005D0030)
-    std::uint8_t memory[0x10];      // +0x0D0 perception memory (005CB700 ...); continues below
+    AIAttention attention;          // +0x0A4
+    std::uint8_t memory[8];         // +0x0D0 perception memory (005CB700 ...); continues below
+    SpiralCache sightCells;         // +0x0D8 the cells around the unit it looks for units in (005CA1D0)
     float noticedX;                 // +0x0E0
     float noticedY;                 // +0x0E4
     int noticedLevel;               // +0x0E8
     int noticedKind;                // +0x0EC
-    int unknown_0F0;
+    int nearbyCountdown;            // +0x0F0 updates until the nearby units are listed again (005CA1D0)
     mfc::CTypedPtrList<CEngineObject> unknown_0F4;  // +0x0F4 (elements are counted references)
     mfc::CTypedPtrList<CEngineObject> visible;  // +0x110 units in sight
     mfc::CTypedPtrList<CEngineObject> unknown_12C;  // +0x12C (elements are counted references)
@@ -695,6 +903,9 @@ static_assert(offsetof(AIBrain, corpses) == 0x148);
 static_assert(offsetof(AIBrain, reports) == 0x164);
 static_assert(offsetof(AIBrain, seesEnemy) == 0x18C);
 static_assert(sizeof(AIBrain) == 0x190);
+static_assert(offsetof(AIBrain, attention) == 0xA4);
+
+inline AIBrain* UnitController::Brain() { return reinterpret_cast<AIBrain*>(brain); }
 
 // The mode constructors the script's UM* commands call after operator new (script_unit_modes.cpp;
 // __thiscall, each returns the mode). 004BA1C0 Guard (point, radius, wander: GuardMode::Set),

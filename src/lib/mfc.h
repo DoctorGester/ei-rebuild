@@ -83,6 +83,9 @@ struct CPlex {
 CPlex* __stdcall PlexCreate(CPlex*& head, unsigned count, unsigned elementSize);   // 006FE8EF
 void __fastcall PlexFreeDataChain(CPlex* head);                                    // 006FE90F
 
+// The game's CPtrList vtable (lists the code builds on the stack use blocks of 10).
+inline void* PtrListVtable() { return reinterpret_cast<void*>(0x0073D454); }
+
 // CTypedPtrList<CPtrList, T*> (0x1C bytes). The game inlines these operations; this mirrors MFC 4.2.
 template <typename T>
 struct CTypedPtrList {

@@ -207,3 +207,9 @@ the server drops a blocked unit's orders, casts included (0066FFF0), so only the
 (point lights) ran; every newgame scenario shows those 3 CastSpell. The scenario now waits for the intro
 script's block, lifts it and waits for the arrow to hurt the second wolf. ui_battle_spells blocks the hero the
 same way (it only checks that UseOnUnit is reached).
+Second central run (A-H8): the hero's two casts reached the server (CastSpell 5) but made three unit-attached
+particles, a sound and a light and no CEffectArrow / ShowVisibility, which looks like a healing-type spell rather than
+the two given ones: the column probably holds a spell the hero already had, shifting the buttons. The scenario now
+gives "arrow{e2}" (damage, as spells.txt), uses all three buttons of a three-spell column and waits for either wolf to
+lose hit points. Note: CSpellEffect::Update calls Start / UpdateMissile directly, so their wrappers never count, and the
+factory constructs effects directly (constructor wrappers stay at 0); Tick / Pack / Unpack go through the vtables.

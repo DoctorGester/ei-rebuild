@@ -114,7 +114,7 @@ through `game::FatalError` (EI_ORIGINAL). Forwarders are in `unit_ai.h`, `unit_a
 
 ## Skipped and why
 
-- Large float / path code: 005D0030 target choice (2.6 KB), 005D2960 / 005D30A0 Fear Evaluate / Execute, 005D4170 Player combat, 005D6630 /
+- Large float / path code: 005D2960 / 005D30A0 Fear Evaluate / Execute, 005D4170 Player combat, 005D6630 /
   005D6D20 alarm assembly. 005D4860 StaysWithParty walks the player's unit hash map through iterator helpers (00455830 / 00455890 / 004558B0) with an
   unclear frame.
 - Allocation-heavy bookkeeping, rare: 005D1930 / 005D1A40 Patrol Load / Save (Ghidra garbles the frames), 005D0F90 / 005D2880 clones,
@@ -135,3 +135,37 @@ through `game::FatalError` (EI_ORIGINAL). Forwarders are in `unit_ai.h`, `unit_a
   a model taken before. Scenario `unit_ai` (UMPatrolAddPoint; every Guard / Patrol / Sentry move). Kept: AppendPoint rounds
   2x to nearest, so its point is (n + 0.5) / 2, 0..0.5 above the asked one, not its half-cell's middle. The patrol point
   array's SetSize 004C9970 moved to `originals_ai.h` (also used by script_exec.cpp).
+- `unit_ai_targets.cpp`: 005D0030 AIAttention::Choose (the target choice), 005CF9A0 Score, 005CF7F0 IsUsable, 005CFE20
+  AIDistance2, AIOrder 00545F40 Clear / 005CF720 MakeAttack / 005CF780 MakeCast. The attention at brain + 0xA4 is now a struct
+  (two CArrays of 0x28-byte AIAttackOption: weapons, spells; +0x28 the heal weight); UnitController gained `stats` (+0x1E0),
+  `protection` (+0x8E4) and `brain` (+0x980). Verify: Score / IsUsable / AIDistance2 pure against the original; Choose
+  differential (original first, the reports it added or raised put back, ours; pair and reports compared); the orders ours
+  only. Forwarders: 00522AE0 ExcessDamage (originals_ai.h), 0054C960 CheckOrderAt, 005CF3C0 CanReach (unit_ai.cpp).
+  Choose keeps its scored candidates in a local vector instead of the original's CList (heap traffic differs, not the result).
+  Kept: Score's group bonus counts the group minus one for kinds 1 and 4..7, the whole group for 2 and 3; kind 3 multiplies
+  by (effect / 4) / 2; the weapons are only scored when `alliesOnly` is off; the order checked for a target off the path
+  has an uninitialised point (ours zero).
+- `unit_ai_memory.cpp`: 005CB260 FindEnemies, 005CB480 FindEnemiesNear, 005CB670 NearestEnemy, 005CBC80 ForceSee ("is forced to
+  see unit"), 005CD500 AddCountedTail. Verify: the two list queries output (the original into an empty scratch list, element
+  sequences compared), NearestEnemy pure, ForceSee and AddCountedTail ours only (list deltas). Kept: FindEnemiesNear asks the
+  visible unit's IsHostileTo(self) where the others ask the unit's; ForceSee's "sight" test compares the observer's ranges as
+  the original does (forced when at or beyond either of them, or when the object attacks the unit).
+- Also in `unit_ai_memory.cpp`: 005CB850 MeasureExposure (each server tick: five exposure ratios into CUnit + 0x4C8; output
+  verify against the original, CheckNear) and 005CBE90 SeeCorpse (OnDamaged; ours only). `CMapObjectVirtuals` slot 48 is now
+  `EyePoint` (map_object.h); LineOfSight is called through its address (`LineOfSightOriginal`, originals_ai.h).
+- `unit_ai_sight.cpp` (the leftover 005CAA00): the AI's eye `AIViewer` (world server + 0x2838; map, eye, facing, cell, ready):
+  005CAA00 Update, 005CA1D0 Refresh (nearby list every 8..11 ticks from the sector cells of the memory's spiral cache, brain + 0xD8
+  `sightCells`; brain + 0xF0 is `nearbyCountdown`), 005CA5A0 See (sight range x line of sight inside the cone `stats.unknown_044`,
+  peripheral `stats.unknown_048`, sense life), 005CA410 Prepare (eye height, facing from the orientation). Each calls the next
+  through its address. Verify: Prepare output on a copy; the others ours only (countdown / list consistency, no repeats, no dead
+  unit left visible). Kept: Update lists an allied corpse in +0x12C twice (the inlined AddTail, then 005CD500); See skips a dead
+  hostile unit unless the unit sees all; "using sense life " is printed without a line end before the "sees unit" line.
+  `CAIMap::SectorMap()` (ai_map.h) replaces ai_path.cpp's offset helper.
+- `unit_ai_mode_lifetime.cpp`: 005D3760 PlayerMode::Construct, 005D0F60 PatrolMode::Construct, 005D1240 / 005D1220 Patrol
+  destructor / deleting destructor, 005D2950 / 005D2930 Fear's, 005D1210 / 005D2920 GetType (1, 7), 005D0A90 the abstract base's
+  Execute (remark, LookAround). Verify: constructors output on a copy (the fields they write), GetType pure, the rest ours only.
+  Kept: Patrol's destructor leaves the point array's pointer and count behind (freed).
+- Also there: 005D8850 / 005D6D10 the abstract bases' constructors (vtables 0073D15C / 0073D22C), 005D8CF0 / 005D8CD0 the
+  patrol point array's destructors (`PatrolPointArray`), 005D9E10 ZeroAttackOptions (ConstructElements), 005D9830 ListGetNext
+  (CList::GetNext). Verify (`verify_unit_ai_templates.cpp`): constructors and GetNext against the original on copies, the rest
+  ours only.
