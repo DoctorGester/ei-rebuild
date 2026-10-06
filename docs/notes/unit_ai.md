@@ -71,6 +71,7 @@ them. "Ours only" means a consistency check on the state afterwards.
 | 005D5B40, 005D7F80 | AIBrain::PlanLooks, FindStandPoint (`unit_ai_moves.cpp`) | differential: the original on a copy (PlanLooks: an empty look array; FindStandPoint: a scratch point) from the same random state, ours after the state is put back; looks / point within 4 ULPs, cooldown, result and random state compared |
 | 005D6F90 | AIBrain::UpdateFollow | ours only: a dead or missing leader ends the action, else the timer counts on or restarts at 0 / 6 |
 | 005D37E0 | PlayerMode::PathClear | original, then ours: results compared, the unit back at its position (ui_order_move, movement) |
+| 005CC9D0, 00558D00, 00552CF0 | AICallArray::Update (heard calls, each tick), AICallRecord::Destruct, UnitController::AddHostileMask (`unit_ai_brain.cpp`) | ours only against a model taken before (calls left in order one count lower; the first run-out call without a mask becomes the noticed point at 900 / -3 when the level was lower); UpdateMemory calls Update through its address; the inline notice calls CopyPoint2 through its address so the UpdateMemory check still counts it |
 | Load / Save of Guard, Sentry, Suspection, Fear (Save only: Follow, Aggression, Player) | slots 11 / 12 | load: original reads the real stream into a copy (bytes recorded), ours from the recording, all bytes consumed; save: both into capture streams, bytes and write sizes compared |
 
 X12 (2026-10-05), the two A-W failures, back on (out of `tests/verify/disabled.txt`):
