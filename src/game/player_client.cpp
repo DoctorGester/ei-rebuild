@@ -13,6 +13,14 @@
 #include "sound.h"
 #include "unit.h"
 #include "world.h"
+#include "base_manager.h"
+#include "effects.h"
+#include "item.h"
+#include "resource_manager.h"
+#include "originals_ai.h"
+#include "originals_effects.h"
+#include "originals_ui.h"
+#include "unit_client_models.h"
 
 #include "ei/hook.h"
 
@@ -341,3 +349,191 @@ EI_REPLACE_METHOD(0x00667680, CPlayerClient::Pump);
 EI_REPLACE_METHOD(0x00667810, CPlayerClient::SendToServer);
 EI_REPLACE_METHOD(0x00667970, CPlayerClient::DispatchMessages);
 EI_REPLACE_METHOD(0x00667A30, CPlayerClient::ReceiveMessages);
+
+// --- A-H10: items, party, path markers, string events, recording ---------------------------------
+
+namespace {
+
+constexpr int kClassScratchUnit = 0x32;            // the object manager's class of the scratch unit
+constexpr int kKindNoPath = 3;               // OnPathMarker: no path to read
+constexpr int kPathParticles = 0x2039;
+constexpr int kMarkerParticles = 0x203A;     // 0x203B with the flag
+constexpr std::uint32_t kMarkerSpeedA = 0x3F000000u;   // 0074317C (0.5)
+constexpr std::uint32_t kMarkerSpeedB = 0x501502F9u;   // float bits (1e10)
+constexpr std::uint8_t kRequestRecording = 2;
+
+// 0079BE70: path markers are shown (written by 006524A0).
+bool MarkersShown() { return *reinterpret_cast<const int*>(0x0079BE70) != 0; }
+const char* TextPartyReceived() { return reinterpret_cast<const char*>(0x00794DF8); }   // "party received on client"
+
+// 005652E0 (plain RET): the client world gives its objects the party's variables.
+__declspec(naked) void __fastcall ClientApplyVariables(void* /*world*/) EI_ORIGINAL(0x005652E0)
+// 0052EA40 (RET 8): a unit's motion speeds (float bits; only this handler calls it).
+__declspec(naked) void __fastcall UnitSetMotionSpeeds(void* /*unit*/, void*, std::uint32_t, std::uint32_t)
+    EI_ORIGINAL(0x0052EA40)
+// 00535240 (RET 8): the unit's client controller keeps the two marker sources (+0x24, +0x28; the
+// old ones stopped and released, the new ones referenced).
+__declspec(naked) void __fastcall ControllerSetMarkers(void* /*controller*/, void*, void* /*path*/, void* /*marker*/)
+    EI_ORIGINAL(0x00535240)
+
+// The STLport table's inlined destructor: every node deleted (004616A0), the buckets cleared, the
+// count zeroed, then the bucket vector destroyed (00609F50).
+void DestroyTable(PartyVariableMap* table) {
+    table->ClearWith([table](PartyVariableMap::Node* node) { FloatTableDeleteNodeOriginal(table, nullptr, node); });
+    BucketVectorDestroyOriginal(table->BucketVector());
+}
+
+} // namespace
+
+int CPlayerClient::OnItemsReceived() {
+    mfc::CTypedPtrList<CEngineObject> items{EmptyListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kListBlockSize};
+    int& money = Owner()->Party()->Money();
+    int before = money;
+    in_.Read(&money, 4);
+    std::uint8_t flag = 0;   // the original passes this byte with three bytes of the stack slot above it
+    in_.Read(&flag, 1);
+    int result = 1;
+    for (;;) {
+        int id;
+        in_.Read(&id, 4);
+        if (id == -1) break;
+        if (!in_.ok_) {
+            result = 0;
+            break;
+        }
+        auto* manager = static_cast<CBaseManager*>(WorldClient()->itemManager_);
+        if (CEngineObject* item = manager->FindObject(static_cast<unsigned>(id))) items.AddHead(item);
+    }
+    if (result != 0) {
+        PlayerGiveItemsOriginal(Owner(), nullptr, &items, flag);
+        QuestLogRefresh(QuestLog(), nullptr, &items, money - before, flag);
+    }
+    items.RemoveAll();   // the list's inlined destructor
+    return result;
+}
+
+int CPlayerClient::OnParty() {
+    CParty* party = Owner()->Party();
+    PartyVariableMap saved;
+    FloatTableCopyConstructOriginal(&saved, nullptr, &party->variables_);
+    {
+        MemoryStream block;
+        in_.ReadSized(block.Get());
+        block.Get()->CMemoryStream::Seek(0);
+        if (in_.ok_) {
+            party->LoadParty(block.Get(), 1);
+            mfc::CTypedPtrList<void>& recharging = Owner()->objects_;
+            recharging.RemoveAll();
+            ObjectListIterator walk{nullptr, nullptr};
+            for (CEngineObject* object = walk.First(party->ItemManager()); object != nullptr; object = walk.Next()) {
+                auto* item = static_cast<CItem*>(object);
+                if (item->chargeMax_ > item->charge_)
+                    recharging.AddTail(reinterpret_cast<void*>(static_cast<std::intptr_t>(item->id_)));
+            }
+            if (walk.manager != nullptr) --walk.manager->refCount_;   // the iterator's inlined destructor
+        }
+        if (IsMultiplayerClient()) {
+            // A multiplayer client keeps its variables (the table's three functor bytes included).
+            PartyVariableMap* variables = &party->variables_;
+            FloatTableClearOriginal(variables);
+            std::memcpy(variables->Functors(), saved.Functors(), 3);
+            FloatTableCopyFromOriginal(variables, nullptr, &saved);
+        }
+        ClientApplyVariables(WorldClient());
+        void* log = OstreamPutString(GameCout(), nullptr, TextPartyReceived());
+        log = OstreamPutChar(log, nullptr, '\n');
+        OstreamManipulate(log, nullptr, FlushManipulator());
+        Flow()->ReturnLocalParty();
+    }
+    DestroyTable(&saved);
+    return 1;
+}
+
+int CPlayerClient::OnPartyUpdate() {
+    MemoryStream block;
+    in_.ReadSized(block.Get());
+    block.Get()->CMemoryStream::Seek(0);
+    if (in_.ok_) Owner()->Party()->LoadParty(block.Get(), 0);
+    return 1;
+}
+
+int CPlayerClient::OnPathMarker() {
+    alignas(4) unsigned char fieldBytes[sizeof(DeltaField)];
+    auto* field = reinterpret_cast<DeltaField*>(fieldBytes);
+    field->Construct();
+    CEngineObject* pathSource = nullptr;
+    int kind;
+    in_.Read(&kind, 4);
+    int flag;
+    in_.Read(&flag, 4);
+    Vector3 at{0.0f, 0.0f, 0.0f};
+    in_.Read(&at.x, 4);
+    in_.Read(&at.y, 4);
+    int unitId;
+    in_.Read(&unitId, 4);
+    float value;
+    in_.Read(&value, 4);
+    if (kind != kKindNoPath) {
+        CEngineObject* walker = camera::ObjectManager()->CreateObject(kClassScratchUnit, -1);
+        ++walker->refCount_;
+        // The controller's slot 16 (00533DF0 for the client's): its path.
+        AIPath* path = static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(walker)->controller)->MotionPath();
+        DeltaField* writing = field->BeginWriteB(0);
+        PathWriteOriginal(path, nullptr, writing);
+        writing->EndField();
+        DeltaField* reading = field->BeginReadB(0, &in_);
+        PathReadOriginal(path, nullptr, reading);
+        reading->EndField();
+        if (MarkersShown()) {
+            UnitSetMotionSpeeds(walker, nullptr, kMarkerSpeedA, kMarkerSpeedB);
+            auto* source = static_cast<CParticleSource*>(
+                ParticleCreateSourceOriginal(ParticleManagerObject(), nullptr, kPathParticles));
+            pathSource = reinterpret_cast<CEngineObject*>(source);
+            source->Attach(walker);
+            source->unknown_11C = value;
+            if (kind == 0) source->alpha = 1.0f;
+            else if (kind == 1) source->alpha = 0.0f;
+            else if (kind == 2) source->alpha = 2.0f;
+            pathSource->Slot6();   // one tick
+            source->Attach(nullptr);
+        }
+        walker->Release();
+    }
+    if (MarkersShown()) {
+        auto* marker = static_cast<CParticleSource*>(ParticleCreateSourceOriginal(
+            ParticleManagerObject(), nullptr, flag != 0 ? kMarkerParticles + 1 : kMarkerParticles));
+        marker->position = at;
+        auto* owner = reinterpret_cast<CEngineObject*>(player_);
+        CEngineObject* unit = WorldFindUnit(owner->ManagerContext(), nullptr, unitId);
+        if (unit != nullptr) ControllerSetMarkers(static_cast<CUnit*>(unit)->controller, nullptr, pathSource, marker);
+    }
+    field->Destruct();
+    return 1;
+}
+
+int CPlayerClient::OnStringEvent() {
+    TextBuffer text;
+    ReadText(text.bytes);
+    InterfaceStringEventOriginal(QuestLog(), nullptr, *text.Get());
+    return 1;
+}
+
+void CPlayerClient::StartRecording(const char* path) {
+    netlink::NetLink* link = Owner()->link_;
+    if (link == nullptr) return;
+    WriteByte(&out_, kRequestRecording);
+    link->OpenRecording(path);
+}
+
+void CPlayerClient::StopRecording() {
+    netlink::NetLink* link = Owner()->link_;
+    if (link != nullptr) link->CloseRecording();
+}
+
+EI_REPLACE_METHOD(0x00669490, CPlayerClient::OnItemsReceived);
+EI_REPLACE_METHOD(0x00669A30, CPlayerClient::OnParty);
+EI_REPLACE_METHOD(0x00669C90, CPlayerClient::OnPartyUpdate);
+EI_REPLACE_METHOD(0x00669FA0, CPlayerClient::OnPathMarker);
+EI_REPLACE_METHOD(0x00667E60, CPlayerClient::OnStringEvent);
+EI_REPLACE_METHOD(0x00669710, CPlayerClient::StartRecording);
+EI_REPLACE_METHOD(0x00669750, CPlayerClient::StopRecording);

@@ -138,7 +138,44 @@ int __fastcall ExperienceVerify(CPlayerClient* self) {
     return CheckHandler("CPlayerClient::OnExperience", self, [&] { return self->OnExperience(); });
 }
 
+// A-H10 (ours only: they load the party, give items, make particle sources, record).
+int __fastcall ItemsReceivedVerify(CPlayerClient* self) {
+    return CheckBlock("CPlayerClient::OnItemsReceived", self, [&] { return self->OnItemsReceived(); });
+}
+int __fastcall PartyVerify(CPlayerClient* self) {
+    return CheckHandler("CPlayerClient::OnParty", self, [&] { return self->OnParty(); });
+}
+int __fastcall PartyUpdateVerify(CPlayerClient* self) {
+    return CheckHandler("CPlayerClient::OnPartyUpdate", self, [&] { return self->OnPartyUpdate(); });
+}
+int __fastcall PathMarkerVerify(CPlayerClient* self) {
+    return CheckHandler("CPlayerClient::OnPathMarker", self, [&] { return self->OnPathMarker(); });
+}
+int __fastcall StringEventVerify(CPlayerClient* self) {
+    return CheckHandler("CPlayerClient::OnStringEvent", self, [&] { return self->OnStringEvent(); });
+}
+// With a link one request byte is queued.
+void __fastcall StartRecordingVerify(CPlayerClient* self, void*, const char* path) {
+    bool linked = self->Owner()->link_ != nullptr;
+    std::uint32_t size = self->out_.size_;
+    self->StartRecording(path);
+    ei::verify::Check("CPlayerClient::StartRecording", true, self->out_.size_ == size + (linked ? 1u : 0u),
+                      "client %p", self);
+}
+void __fastcall StopRecordingVerify(CPlayerClient* self) {
+    self->StopRecording();
+    ei::verify::Check("CPlayerClient::StopRecording", true, true, "client %p", self);
+}
+
 } // namespace
+
+EI_VERIFY(0x00669490, ItemsReceivedVerify, 0, s_unused);
+EI_VERIFY(0x00669A30, PartyVerify, 0, s_unused);
+EI_VERIFY(0x00669C90, PartyUpdateVerify, 0, s_unused);
+EI_VERIFY(0x00669FA0, PathMarkerVerify, 0, s_unused);
+EI_VERIFY(0x00667E60, StringEventVerify, 0, s_unused);
+EI_VERIFY(0x00669710, StartRecordingVerify, 0, s_unused);
+EI_VERIFY(0x00669750, StopRecordingVerify, 0, s_unused);
 
 EI_VERIFY(0x00669350, QuestItemsVerify, 0, s_unused);
 EI_VERIFY(0x0066A480, ExperienceAllVerify, 0, s_unused);

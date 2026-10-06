@@ -314,3 +314,7 @@ __declspec(naked) inline void __fastcall HeroScreenDrawVoicesOriginal(void* /*sc
 __declspec(naked) inline void __fastcall TradePanelBuildListsOriginal(void* /*panel*/) EI_ORIGINAL(0x00625880)
 __declspec(naked) inline void __fastcall TradePanelDrawListsOriginal(void* /*panel*/) EI_ORIGINAL(0x006261A0)
 __declspec(naked) inline void __fastcall TradePanelClampScrollOriginal(void* /*panel*/) EI_ORIGINAL(0x00626D70)
+// 005F8070 (rewritten as CInterface3D::OnStringEvent; Rebirth's NewStringEvents patches it, so callers go through its
+// address): a script string event on the interface (007C7D50; RET 4, no result).
+__declspec(naked) inline void __fastcall InterfaceStringEventOriginal(void* /*interface*/, void*, const char* /*event*/)
+    EI_ORIGINAL(0x005F8070)
