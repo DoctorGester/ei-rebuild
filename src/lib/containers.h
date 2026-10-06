@@ -87,6 +87,28 @@ struct AlignedArray {
         capacity = newCapacity;
     }
 
+    // The renderer's work buffers inline a SetSize that does not keep the contents: no 0 branch,
+    // and growing past the capacity frees the old block without copying it.
+    void SetSizeDiscard(int count) {
+        if (!data) {
+            data = Allocate(count);
+            capacity = count;
+            size = count;
+            return;
+        }
+        if (count <= capacity) {
+            size = count;
+            return;
+        }
+        int newCapacity = GrowStep() + capacity;
+        if (count >= newCapacity) newCapacity = count;
+        T* fresh = Allocate(newCapacity);
+        Free(data);
+        data = fresh;
+        size = count;
+        capacity = newCapacity;
+    }
+
     void SetAtGrow(int index, const T& value) {
         if (index >= size) SetSize(index + 1);
         data[index] = value;

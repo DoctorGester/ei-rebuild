@@ -11,6 +11,7 @@
 #include "clip.h"
 
 #include "ei/hook.h"
+#include "device_buffers.h"
 #include "render/render.h"
 #include "originals_core.h"
 #include "originals_library.h"
@@ -65,98 +66,29 @@ struct Textures {
 
 // --- The buffers ---------------------------------------------------------------------------------
 
-struct AlignedArray {         // the engine's aligned array: data (32-byte aligned), size, capacity, growth
-    char* data;
-    int size;
-    int capacity;
-    int growBy;
-};
+using devicebuffers::ProjectedVertex;
+using devicebuffers::Vertices;
+using devicebuffers::ClipIndices;
+using devicebuffers::Projected;
+using devicebuffers::CornerOutcodes;
+using devicebuffers::Outcodes;
 
-AlignedArray& Vertices() { return *reinterpret_cast<AlignedArray*>(0x007AEE00); }        // TL vertices
-AlignedArray& ClipIndices() { return *reinterpret_cast<AlignedArray*>(0x007AEDE0); }     // words
-AlignedArray& Projected() { return *reinterpret_cast<AlignedArray*>(0x007AEE10); }       // x, y, z, rhw
-AlignedArray& CornerOutcodes() { return *reinterpret_cast<AlignedArray*>(0x007AEE20); }  // a byte per corner
-AlignedArray& Outcodes() { return *reinterpret_cast<AlignedArray*>(0x007AEE30); }        // a byte per vertex
-
-char* __fastcall Alloc16(int a0) { return AllocAligned16(a0); }
-char* __fastcall AllocBytes(int a0) { return AllocAligned32Original(a0); }
 // SetSize keeping the contents (thiscall: size, growth or -1): TL vertices 004EC790, words 0044FA90.
-__declspec(naked) void __fastcall VerticesSetSize(AlignedArray*, void*, int, int) EI_ORIGINAL(0x004EC790)
-__declspec(naked) void __fastcall WordsSetSize(AlignedArray*, void*, int, int) EI_ORIGINAL(0x0044FA90)
+__declspec(naked) void __fastcall VerticesSetSize(lib::AlignedArray<TLVertex>*, void*, int, int) EI_ORIGINAL(0x004EC790)
+__declspec(naked) void __fastcall WordsSetSize(lib::AlignedArray<std::uint16_t>*, void*, int, int) EI_ORIGINAL(0x0044FA90)
 // The device (thiscall): the screen bounds of projected vertices (004E8900, the array and 0) or of
 // clipped TL vertices (004E86B0, the array and their outcodes); a vertex buffer for n vertices
 // (004E7820, always null) and its draw (004E7E00: indices, count); the draws with one (004EB550) or
 // two textures (004EB370): primitive, FVF, vertices, count, indices, count, flags.
-__declspec(naked) void __fastcall BoundsOfProjected(char*, void*, AlignedArray*, int) EI_ORIGINAL(0x004E8900)
-__declspec(naked) void __fastcall BoundsOfVertices(char*, void*, AlignedArray*, char*) EI_ORIGINAL(0x004E86B0)
+__declspec(naked) void __fastcall BoundsOfProjected(char*, void*, lib::AlignedArray<ProjectedVertex>*, int) EI_ORIGINAL(0x004E8900)
+__declspec(naked) void __fastcall BoundsOfVertices(char*, void*, lib::AlignedArray<TLVertex>*, std::uint8_t*) EI_ORIGINAL(0x004E86B0)
 void __fastcall DrawVertexBuffer(char* a0, void*, std::uint16_t* a2, int a3) { DeviceDrawVertexBufferOriginal((void*)a0, nullptr, (const void*)a2, a3); }
 __declspec(naked) int __fastcall DrawPrimitive(char*, void*, int, int, void*, int, std::uint16_t*, int, int)
     EI_ORIGINAL(0x004EB550)
 __declspec(naked) int __fastcall DrawPrimitive2(char*, void*, void*, void*, int, int, void*, int, std::uint16_t*, int,
                                                 int) EI_ORIGINAL(0x004EB370)
 
-int GrowthStep(const AlignedArray& a) {
-    if (a.growBy != 0) return a.growBy;
-    int step = a.size / 8;
-    if (step < 4) return 4;
-    if (step > 0x400) return 0x400;
-    return step;
-}
-
-// SetSize without keeping the contents (a new block holds the larger of `size` and capacity +
-// growth step).
-void Resize(AlignedArray& a, int size, char* (__fastcall* alloc)(int)) {
-    if (!a.data) {
-        a.data = alloc(size);
-        a.capacity = size;
-        a.size = size;
-        return;
-    }
-    if (size <= a.capacity) {
-        a.size = size;
-        return;
-    }
-    int grown = GrowthStep(a) + a.capacity;
-    int capacity = size < grown ? grown : size;
-    char* data = alloc(capacity);
-    GameDelete(reinterpret_cast<void**>(a.data)[-1]);
-    a.data = data;
-    a.size = size;
-    a.capacity = capacity;
-}
-
-// SetSize keeping the contents; 0 frees the block.
-void SetSize(AlignedArray& a, int size, int elementSize, char* (__fastcall* alloc)(int)) {
-    if (size == 0) {
-        if (a.data) {
-            GameDelete(reinterpret_cast<void**>(a.data)[-1]);
-            a.data = nullptr;
-        }
-        a.capacity = 0;
-        a.size = 0;
-        return;
-    }
-    if (!a.data) {
-        a.data = alloc(size);
-        a.capacity = size;
-        a.size = size;
-        return;
-    }
-    if (size <= a.capacity) {
-        a.size = size;
-        return;
-    }
-    int grown = GrowthStep(a) + a.capacity;
-    int capacity = size < grown ? grown : size;
-    char* data = alloc(capacity);
-    std::memcpy(data, a.data, static_cast<std::size_t>(a.size) * elementSize);
-    GameDelete(reinterpret_cast<void**>(a.data)[-1]);
-    a.data = data;
-    a.size = size;
-    a.capacity = capacity;
-}
-
-TLVertex* VertexData() { return reinterpret_cast<TLVertex*>(Vertices().data); }
+TLVertex* VertexData() { return Vertices().data; }
 
 template <typename R, typename... Args>
 R ThisCall(void* object, int slot, Args... args) {
@@ -204,11 +136,11 @@ void OverrideColours(char* device, const MeshArgs& a) {
 // and the texture coordinate, moved by the offsets unless both compare equal to 0.
 void FillCorners(const MeshArgs& a) {
     TLVertex* v = VertexData();
-    const char* projected = Projected().data;
+    const ProjectedVertex* projected = Projected().data;
     bool moved = !(ZeroOrNaN(a.uOffset) && ZeroOrNaN(a.vOffset));
     for (int i = 0; i < a.cornerCount; ++i, ++v) {
         const MeshCorner& c = a.corners[i];
-        std::memcpy(&v->x, projected + c.position * 16, 16);
+        std::memcpy(&v->x, &projected[c.position], 16);
         v->color = a.colours[c.colour];
         v->specular = a.speculars[c.colour];
         if (moved) {
@@ -239,7 +171,7 @@ void Submit(char* device, const Textures* textures, std::uint16_t* indices, int 
 
 void DrawOnScreen(char* device, void* transform, const MeshArgs& a, const Textures* textures) {
     if (a.flags & 1) BoundsOfProjected(device, nullptr, &Projected(), 0);
-    Resize(Vertices(), a.cornerCount, &AllocVerticesOriginal);
+    Vertices().SetSizeDiscard(a.cornerCount);
     FillCorners(a);
     if (At<int>(device, 0x158)) ThisCall<void>(transform, 35, static_cast<void*>(Vertices().data), a.cornerCount);
     Submit(device, textures, a.indices, a.indexCount);
@@ -250,10 +182,10 @@ void DrawOnScreen(char* device, void* transform, const MeshArgs& a, const Textur
 // vertices are projected (slot 34).
 void DrawClipped(char* device, void* transform, const MeshArgs& a, const Textures* textures) {
     int capacity = a.cornerCount * 10;
-    Resize(Vertices(), capacity, &AllocVerticesOriginal);
-    SetSize(ClipIndices(), a.indexCount * 10, 2, &AllocWords);
+    Vertices().SetSizeDiscard(capacity);
+    ClipIndices().SetSize(a.indexCount * 10);
     FillCorners(a);
-    SetSize(CornerOutcodes(), capacity, 1, &AllocBytes);
+    CornerOutcodes().SetSize(capacity);
     for (int i = 0; i < a.cornerCount; ++i) CornerOutcodes().data[i] = Outcodes().data[a.corners[i].position];
 
     int vertexCount = a.cornerCount;
@@ -266,7 +198,7 @@ void DrawClipped(char* device, void* transform, const MeshArgs& a, const Texture
     ThisCall<void>(transform, 34, static_cast<void*>(Vertices().data), Vertices().size);
     if (At<int>(device, 0x158)) ThisCall<void>(transform, 35, static_cast<void*>(Vertices().data), Vertices().size);
     if (a.flags & 1) BoundsOfVertices(device, nullptr, &Vertices(), CornerOutcodes().data);
-    Submit(device, textures, reinterpret_cast<std::uint16_t*>(ClipIndices().data), ClipIndices().size);
+    Submit(device, textures, ClipIndices().data, ClipIndices().size);
 }
 
 void HandOver(char* device, const MeshArgs& a) {
@@ -297,10 +229,10 @@ void HandOver(char* device, const MeshArgs& a) {
 // Returns the transform's verdict: 2 nothing on screen, 1 clipped, 0 on screen (drawn: 1).
 int DrawMesh(char* device, const MeshArgs& a, const Textures* textures) {
     void* transform = At<void*>(At<char*>(device, 0xAC), 0xC);
-    Resize(Projected(), a.blocks * 4, &Alloc16);
+    Projected().SetSizeDiscard(a.blocks * 4);
     int visibility;
     if (a.flags & 2) {
-        Resize(Outcodes(), a.blocks * 4, &AllocBytes);
+        Outcodes().SetSizeDiscard(a.blocks * 4);
         visibility = ThisCall<int>(transform, 9, StackTop(device, 0x24), a.positions,
                                    static_cast<void*>(Projected().data), static_cast<void*>(Outcodes().data), a.blocks);
     } else {

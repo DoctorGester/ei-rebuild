@@ -14,28 +14,10 @@
 
 #include "terrain.h"
 
+#include "lib/containers.h"
+#include "lib/mfc.h"
+
 namespace terrain {
-
-// MFC CArray storage as the terrain code inlines it (no vtable): data, size, capacity, growth.
-template <typename T>
-struct InlineArray {
-    T* data;
-    int size;
-    int capacity;
-    int growBy;
-};
-static_assert(sizeof(InlineArray<int>) == 0x10);
-
-// An MFC CByteArray (or another CObject-derived array): vtable, data, size, capacity, growth.
-template <typename T>
-struct MfcObArray {
-    void* vtable;
-    T* data;
-    int size;
-    int capacity;
-    int growBy;
-};
-static_assert(sizeof(MfcObArray<int>) == 0x14);
 
 // One entry per lit vertex: the point lights that reach it (pooled 16-byte nodes, 006CAC10).
 struct LightRef {
@@ -93,6 +75,30 @@ static_assert(sizeof(SectorBox) == 0x38);
 
 struct TerrainFields;
 
+// A vertex position of a sector layer (x, y, z).
+struct SectorPosition {
+    float xyz[3];
+};
+static_assert(sizeof(SectorPosition) == 12);
+
+// The construct / destroy helpers of the sector's CArray instantiations (mfc::CArray's Elements
+// policy): the records (006C4F10 zeroes, 006C4EE0 releases their lights), the per-page tile flag
+// CByteArrays (006C4F90 / 006C4F60) and the per-page tile lists (006C5050 / 006C5010).
+struct RecordElements {
+    static void Construct(SectorVertex* records, int count);
+    static void Destruct(SectorVertex* records, int count);
+};
+using FlagArray = mfc::CArray<std::uint8_t>;      // CByteArray
+struct FlagArrayElements {
+    static void Construct(FlagArray* arrays, int count);
+    static void Destruct(FlagArray* arrays, int count);
+};
+using TileList = lib::AlignedArray<TileVertex>;
+struct TileListElements {
+    static void Construct(TileList* lists, int count);
+    static void Destruct(TileList* lists, int count);
+};
+
 // 0x394 bytes, constructed by 006BF5F0.
 struct SectorData {
     std::uint8_t unknown_000;
@@ -111,17 +117,17 @@ struct SectorData {
     int quarterMode[4];                 // +0x144
     float minZ;                         // +0x154
     float maxZ;                         // +0x158
-    MfcObArray<std::uint8_t> waterMaterials;   // +0x15C
+    mfc::CArray<std::uint8_t> waterMaterials;  // +0x15C
     int unknown_170, unknown_174, unknown_178;
-    MfcObArray<float> vertices;         // +0x17C (x, y, z) per vertex; capacity counts vertices
-    MfcObArray<SectorVertex> records;   // +0x190
-    InlineArray<int> tileTextures;      // +0x1A4 per tile, ground then water tiles
+    mfc::CArray<SectorPosition> vertices;      // +0x17C
+    mfc::CArray<SectorVertex, RecordElements> records;   // +0x190
+    lib::AlignedArray<int> tileTextures;      // +0x1A4 per tile, ground then water tiles
     std::uint8_t tileRotation[0x100];   // +0x1B4
-    InlineArray<int> waterTiles;        // +0x2B4 water material per tile, -1 none
-    MfcObArray<MfcObArray<std::uint8_t>> tileFlags[4];  // +0x2C4 per quarter, per page
-    MfcObArray<InlineArray<TileVertex>> tiles[4];       // +0x314 per quarter, per page (9 per tile)
-    InlineArray<AnimatedTile> animated; // +0x364
-    InlineArray<int> classCounts;       // +0x374 16 texture classes
+    lib::AlignedArray<int> waterTiles;        // +0x2B4 water material per tile, -1 none
+    mfc::CArray<FlagArray, FlagArrayElements> tileFlags[4];  // +0x2C4 per quarter, per page
+    mfc::CArray<TileList, TileListElements> tiles[4];        // +0x314 per quarter, per page (9 per tile)
+    lib::AlignedArray<AnimatedTile> animated;  // +0x364
+    lib::AlignedArray<int> classCounts;       // +0x374 16 texture classes
     int lastUsed;                       // +0x384 owner frame of the last use
     int unknown_388;
     std::uint8_t unknown_38C;
@@ -195,7 +201,7 @@ struct TerrainFields {
     float* uvTablesLast[4];             // +0x1D8 the same for the last two pages
     VertexTiles* vertexTiles;           // +0x1E8
     std::uint8_t unknown_1EC[0xAEC - 0x1EC];
-    MfcObArray<float>* waterLevels;     // +0xAEC per sector, per material
+    mfc::CArray<float>* waterLevels;    // +0xAEC per sector, per material
 
     // 006C53C0. The 18 floats (9 u, then 9 v) of texture `index` of `page` under `rotation`.
     const float* TileUv(int rotation, int index, int page);

@@ -16,6 +16,9 @@
 #include "ei/x87.h"
 #include "originals_library.h"
 #include "originals_render.h"
+#include "device_buffers.h"
+#include "lib/containers.h"
+#include "lib/mfc.h"
 
 #include <cstdint>
 #include <cstring>
@@ -50,54 +53,35 @@ struct Sprite {               // 8 bytes
     std::uint32_t color;      // ARGB
     const float* uv;          // the texture rectangle: u0, v0, u1, v1
 };
-struct PointArray {           // an aligned array (data, size, ...)
-    const SpritePoint* data;
-    int size;
-};
-struct SpriteArray {          // an MFC-style array (vtable, data, size, ...)
-    void* vtable;
-    const Sprite* data;
-    int size;
-};
+using PointArray = lib::AlignedArray<SpritePoint>;
+using SpriteArray = mfc::CArray<Sprite>;
 
 // --- The statics ---------------------------------------------------------------------------------
 
-struct AlignedArray {         // the engine's aligned array: data (32-byte aligned), size, capacity, growth
-    char* data;
-    int size;
-    int capacity;
-    int growBy;
-};
-struct MfcArray {             // CByteArray / CWordArray
-    void* vtable;
-    void* data;
-    int size;
-    int capacity;
-    int growBy;
-};
-
-AlignedArray& Unused() { return *reinterpret_cast<AlignedArray*>(0x007AEFA0); }      // 16 bytes each; sized only
-AlignedArray& Corners() { return *reinterpret_cast<AlignedArray*>(0x007AEF90); }     // TL vertices, 4 per sprite
-MfcArray& Outcodes() { return *reinterpret_cast<MfcArray*>(0x007AEF78); }            // a byte per corner
-MfcArray& Indices() { return *reinterpret_cast<MfcArray*>(0x007AEF60); }             // words
+// Engine aligned arrays (lib::AlignedArray) and a CByteArray / CWordArray (mfc::CArray layout; their
+// SetSize is MFC's afxcoll code, called through its address).
+using devicebuffers::ProjectedVertex;
+lib::AlignedArray<ProjectedVertex>& Unused() { return *reinterpret_cast<lib::AlignedArray<ProjectedVertex>*>(0x007AEFA0); }  // sized only
+lib::AlignedArray<TLVertex>& Corners() { return *reinterpret_cast<lib::AlignedArray<TLVertex>*>(0x007AEF90); }     // 4 per sprite
+mfc::CArray<std::uint8_t>& Outcodes() { return *reinterpret_cast<mfc::CArray<std::uint8_t>*>(0x007AEF78); }      // a byte per corner
+mfc::CArray<std::uint16_t>& Indices() { return *reinterpret_cast<mfc::CArray<std::uint16_t>*>(0x007AEF60); }
 std::uint8_t& Guards() { return *reinterpret_cast<std::uint8_t*>(0x007AEFB0); }
-AlignedArray& CornersCopy() { return *reinterpret_cast<AlignedArray*>(0x007AEFE8); } // the records point here
-AlignedArray& Records() { return *reinterpret_cast<AlignedArray*>(0x007AEFD8); }     // SpriteSortRecord
-AlignedArray& Order() { return *reinterpret_cast<AlignedArray*>(0x007AEFC8); }       // record pointers
-AlignedArray& Spare() { return *reinterpret_cast<AlignedArray*>(0x007AEFB8); }       // record pointers
+lib::AlignedArray<TLVertex>& CornersCopy() { return *reinterpret_cast<lib::AlignedArray<TLVertex>*>(0x007AEFE8); } // the records point here
+lib::AlignedArray<SpriteSortRecord>& Records() { return *reinterpret_cast<lib::AlignedArray<SpriteSortRecord>*>(0x007AEFD8); }
+lib::AlignedArray<SpriteSortRecord*>& Order() { return *reinterpret_cast<lib::AlignedArray<SpriteSortRecord*>*>(0x007AEFC8); }
+lib::AlignedArray<SpriteSortRecord*>& Spare() { return *reinterpret_cast<lib::AlignedArray<SpriteSortRecord*>*>(0x007AEFB8); }
 std::uint8_t& SortGuards() { return *reinterpret_cast<std::uint8_t*>(0x007AEFF8); }
 
-char* __fastcall Alloc16(int a0) { return AllocAligned16(a0); }
-__declspec(naked) void __fastcall ByteArrayConstruct(MfcArray*) EI_ORIGINAL(0x006FF5EA)
-__declspec(naked) void __fastcall WordArrayConstruct(MfcArray*) EI_ORIGINAL(0x006FEE9A)
-inline void __fastcall ByteArraySetSize(MfcArray* a, void*, int n, int g) { ByteArraySetSizeOriginal(a, nullptr, n, g); }
-inline void __fastcall WordArraySetSize(MfcArray* a, void*, int n, int g) { WordArraySetSizeOriginal(a, nullptr, n, g); }
+__declspec(naked) void __fastcall ByteArrayConstruct(mfc::CArray<std::uint8_t>*) EI_ORIGINAL(0x006FF5EA)
+__declspec(naked) void __fastcall WordArrayConstruct(mfc::CArray<std::uint16_t>*) EI_ORIGINAL(0x006FEE9A)
+inline void __fastcall ByteArraySetSize(mfc::CArray<std::uint8_t>* a, void*, int n, int g) { ByteArraySetSizeOriginal(a, nullptr, n, g); }
+inline void __fastcall WordArraySetSize(mfc::CArray<std::uint16_t>* a, void*, int n, int g) { WordArraySetSizeOriginal(a, nullptr, n, g); }
 // The aligned arrays' SetSize instantiations (thiscall: size, growth or -1): 32-byte elements keeping
 // the contents (00504F70) or not (00505080), 16-byte (00505150) and 4-byte (00505270) elements.
-__declspec(naked) void __fastcall SetSize32(AlignedArray*, void*, int, int) EI_ORIGINAL(0x00504F70)
-__declspec(naked) void __fastcall SetSize32Discarding(AlignedArray*, void*, int, int) EI_ORIGINAL(0x00505080)
-__declspec(naked) void __fastcall SetSize16(AlignedArray*, void*, int, int) EI_ORIGINAL(0x00505150)
-__declspec(naked) void __fastcall SetSize4(AlignedArray*, void*, int, int) EI_ORIGINAL(0x00505270)
+__declspec(naked) void __fastcall SetSize32(lib::AlignedArray<TLVertex>*, void*, int, int) EI_ORIGINAL(0x00504F70)
+__declspec(naked) void __fastcall SetSize32Discarding(lib::AlignedArray<TLVertex>*, void*, int, int) EI_ORIGINAL(0x00505080)
+__declspec(naked) void __fastcall SetSize16(lib::AlignedArray<SpriteSortRecord>*, void*, int, int) EI_ORIGINAL(0x00505150)
+__declspec(naked) void __fastcall SetSize4(lib::AlignedArray<SpriteSortRecord*>*, void*, int, int) EI_ORIGINAL(0x00505270)
 // Through the hooked addresses (ours in the release build, the verify wrappers in the verify build).
 __declspec(naked) int __fastcall ClipTriangle(TLVertex*, const std::uint8_t*, std::uint16_t*, int*, int*, float,
                                               float) EI_ORIGINAL(0x0042D910)
@@ -114,12 +98,12 @@ void(__cdecl* AtExit(std::uintptr_t address))() { return reinterpret_cast<void(_
 void EnsureStatics() {
     if (!(Guards() & 1)) {
         Guards() |= 1;
-        Unused() = AlignedArray{};
+        Unused() = lib::AlignedArray<ProjectedVertex>{};
         GameAtExit(AtExit(0x00503A20));
     }
     if (!(Guards() & 2)) {
         Guards() |= 2;
-        Corners() = AlignedArray{};
+        Corners() = lib::AlignedArray<TLVertex>{};
         GameAtExit(AtExit(0x00503A00));
     }
     if (!(Guards() & 4)) {
@@ -134,58 +118,23 @@ void EnsureStatics() {
     }
 }
 
-// The sort's statics, constructed (zeroed) on the first batch.
+// One of the sort's statics, constructed (zeroed) on the first batch.
+template <typename T>
+void EnsureSortStatic(std::uint8_t bit, lib::AlignedArray<T>& array, std::uintptr_t onExit) {
+    if (SortGuards() & bit) return;
+    SortGuards() |= bit;
+    array = lib::AlignedArray<T>{};
+    GameAtExit(AtExit(onExit));
+}
 void EnsureSortStatics() {
-    struct Static {
-        std::uint8_t bit;
-        AlignedArray& (*array)();
-        std::uintptr_t onExit;
-    };
-    static const Static kStatics[] = {
-        {1, &CornersCopy, 0x005039C0}, {2, &Records, 0x005039A0}, {4, &Order, 0x00503980}, {8, &Spare, 0x00503960},
-    };
-    for (const Static& s : kStatics) {
-        if (SortGuards() & s.bit) continue;
-        SortGuards() |= s.bit;
-        s.array() = AlignedArray{};
-        GameAtExit(AtExit(s.onExit));
-    }
+    EnsureSortStatic(1, CornersCopy(), 0x005039C0);
+    EnsureSortStatic(2, Records(), 0x005039A0);
+    EnsureSortStatic(4, Order(), 0x00503980);
+    EnsureSortStatic(8, Spare(), 0x00503960);
 }
 
-// The growth step of the aligned arrays: growBy, else size / 8 (rounded towards zero) in 4..1024.
-int GrowthStep(const AlignedArray& a) {
-    if (a.growBy != 0) return a.growBy;
-    int step = a.size / 8;
-    if (step < 4) return 4;
-    if (step > 0x400) return 0x400;
-    return step;
-}
-
-// SetSize without keeping the contents, inlined by the original: a new block holds the larger of
-// `size` and capacity + growth step.
-void Resize(AlignedArray& a, int size, char* (__fastcall* alloc)(int)) {
-    if (!a.data) {
-        a.data = alloc(size);
-        a.capacity = size;
-        a.size = size;
-        return;
-    }
-    if (size <= a.capacity) {
-        a.size = size;
-        return;
-    }
-    int grown = GrowthStep(a) + a.capacity;
-    int capacity = size < grown ? grown : size;
-    char* data = alloc(capacity);
-    GameDelete(reinterpret_cast<void**>(a.data)[-1]);
-    a.data = data;
-    a.size = size;
-    a.capacity = capacity;
-}
-
-TLVertex* CornerData() { return reinterpret_cast<TLVertex*>(Corners().data); }
-std::uint16_t* IndexData() { return static_cast<std::uint16_t*>(Indices().data); }
-
+TLVertex* CornerData() { return Corners().data; }
+std::uint16_t* IndexData() { return Indices().data; }
 // --- Device calls --------------------------------------------------------------------------------
 
 void* Device(char* renderer) { return At<void*>(At<char*>(renderer, 0x20), 0x54); }
@@ -264,25 +213,25 @@ int SortBackToFront() {
     EnsureSortStatics();
     SetSize32(&CornersCopy(), nullptr, Corners().size, -1);
     std::memcpy(CornersCopy().data, Corners().data, static_cast<std::size_t>(Corners().size) * sizeof(TLVertex));
-    const auto* outcodes = static_cast<const std::uint32_t*>(Outcodes().data);   // four bytes per sprite
-    TLVertex* corners = reinterpret_cast<TLVertex*>(CornersCopy().data);
+    const auto* outcodes = reinterpret_cast<const std::uint32_t*>(Outcodes().data);   // four bytes per sprite
+    TLVertex* corners = CornersCopy().data;
     int sprites = CornersCopy().size / 4;
     SetSize16(&Records(), nullptr, sprites, -1);
     SetSize4(&Order(), nullptr, sprites, -1);
     int kept = 0;
     for (int i = 0; i < sprites; ++i, corners += 4) {
-        SpriteSortRecord* record = reinterpret_cast<SpriteSortRecord*>(Records().data) + kept;
+        SpriteSortRecord* record = Records().data + kept;
         std::memcpy(&record->key, &corners->z, 4);       // written for dropped sprites too
         if (record->key < 0) continue;
         record->corners = corners;
         record->outcodes = outcodes[i];
-        reinterpret_cast<SpriteSortRecord**>(Order().data)[kept] = record;
+        Order().data[kept] = record;
         ++kept;
     }
     SetSize4(&Spare(), nullptr, kept, -1);
 
-    auto* sorted = reinterpret_cast<SpriteSortRecord**>(Order().data);
-    auto* other = reinterpret_cast<SpriteSortRecord**>(Spare().data);
+    auto* sorted = Order().data;
+    auto* other = Spare().data;
     if (kept > 0x80) {
         RadixPassAt(0, sorted, other, kept, 1);
         RadixPassAt(8, other, sorted, kept, 0);
@@ -303,7 +252,7 @@ int SortBackToFront() {
 
     SetSize32Discarding(&Corners(), nullptr, kept * 4, -1);
     TLVertex* out = CornerData();
-    auto* codes = static_cast<std::uint32_t*>(Outcodes().data);
+    auto* codes = reinterpret_cast<std::uint32_t*>(Outcodes().data);
     for (int i = 0; i < kept; ++i) {
         std::memcpy(out + i * 4, sorted[i]->corners, 4 * sizeof(TLVertex));
         codes[i] = sorted[i]->outcodes;
@@ -366,7 +315,7 @@ bool DrawClipped(char* renderer, int sprites, ScreenSize& screen) {
     float xMax = RoundToFloat(x87::FromUnsigned(screen.width));
     float yMax = RoundToFloat(x87::FromUnsigned(screen.height));
     TLVertex* vertices = CornerData();
-    const auto* outcodes = static_cast<const std::uint8_t*>(Outcodes().data);
+    const auto* outcodes = Outcodes().data;
     std::uint16_t* tri = IndexData();
     int vertexCount = sprites * 4;
     int indexCount = 0;
@@ -481,8 +430,8 @@ int __fastcall DrawSprites(char* renderer, void*, char additive, const void* poi
     char* pipeline = At<char*>(renderer, 8);
     void* transform = At<void*>(pipeline, 0xC);
     EnsureStatics();
-    Resize(Unused(), 0x200, &Alloc16);
-    Resize(Corners(), 0x2000, &AllocVertices);
+    Unused().SetSizeDiscard(0x200);
+    Corners().SetSizeDiscard(0x2000);
     ByteArraySetSize(&Outcodes(), nullptr, 0x800, -1);
     WordArraySetSize(&Indices(), nullptr, 0x3000, -1);
     std::uint32_t view[16];
@@ -505,7 +454,7 @@ int __fastcall DrawSprites(char* renderer, void*, char additive, const void* poi
     ScreenSize screen;
     while (remaining > 0) {
         int count = FillCorners(sprite, remaining);
-        Resize(Corners(), count * 4, &AllocVertices);
+        Corners().SetSizeDiscard(count * 4);
         // 0: all corners on screen, 1: some off screen, else nothing to draw.
         int visibility = ThisCall<int>(transform, 24, static_cast<const void*>(view), static_cast<const void*>(point),
                                        static_cast<void*>(Corners().data), Outcodes().data, count);

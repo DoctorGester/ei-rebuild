@@ -58,9 +58,9 @@ src/game/core_transform.h,0,0,0,0,1,0,0,0,0
 src/game/core_transform_math.cpp,0,0,8,1,1,0,0,0,0
 src/game/deleting_destructors_400.cpp,0,0,0,0,33,0,0,0,0
 src/game/device_draw.cpp,17,0,0,0,0,0,0,0,0
-src/game/device_mesh.cpp,10,0,1,0,0,0,0,0,1
+src/game/device_mesh.cpp,10,0,1,0,0,0,0,0,0
 src/game/device_present.cpp,8,0,0,0,0,0,0,0,0
-src/game/device_shadow.cpp,6,0,1,0,0,0,0,0,1
+src/game/device_shadow.cpp,6,0,1,0,0,0,0,0,0
 src/game/device_states.cpp,12,0,0,0,0,0,0,0,0
 src/game/dx_surface.cpp,0,2,0,0,0,0,0,0,0
 src/game/effects.cpp,0,0,2,0,1,0,0,0,0
@@ -178,8 +178,8 @@ src/game/registry.h,0,0,0,0,0,0,0,0,1
 src/game/renderer_init.cpp,68,0,2,0,0,0,0,1,0
 src/game/renderer_lines.cpp,14,0,0,0,0,0,0,0,0
 src/game/renderer_rect.cpp,26,0,0,0,0,0,0,0,0
-src/game/renderer_sprites.cpp,20,0,0,0,4,0,0,0,4
-src/game/renderer_strip.cpp,17,0,2,0,5,0,0,0,1
+src/game/renderer_sprites.cpp,20,0,0,0,0,0,0,0,0
+src/game/renderer_strip.cpp,17,0,2,0,0,0,0,0,0
 src/game/renderer_triangles.cpp,9,0,0,0,0,0,0,0,0
 src/game/resource.cpp,0,0,0,0,4,0,2,0,0
 src/game/resource.h,0,0,0,0,0,0,2,0,0
@@ -225,9 +225,7 @@ src/game/spell_effect_start.cpp,35,5,0,0,0,0,0,1,0
 src/game/spell_effect_update.cpp,23,7,0,0,6,0,0,2,0
 src/game/spell_text.cpp,0,1,0,0,0,0,0,0,0
 src/game/string_map.cpp,32,8,0,0,1,0,0,0,0
-src/game/terrain_draw.cpp,0,0,0,0,0,0,0,0,2
 src/game/terrain_sector.cpp,0,0,0,1,0,0,0,1,0
-src/game/terrain_sector.h,0,0,0,0,0,0,0,0,2
 src/game/text_reader.cpp,0,1,0,0,0,0,0,0,0
 src/game/texture.cpp,0,2,0,0,0,0,0,0,0
 src/game/texture_mmp.cpp,0,3,0,0,0,0,0,0,0

@@ -326,7 +326,7 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
         if (s->quarterMode[quarter] == 2) continue;   // outside the view
         const auto& lists = s->tiles[quarter];
         if (!lists.data || page >= lists.size) continue;
-        const terrain::InlineArray<TileVertex>& list = lists.data[page];
+        const terrain::TileList& list = lists.data[page];
         int tiles = list.size / 9;
         if (tiles <= 0 || !list.data) continue;
         const std::uint8_t* edges = nullptr;
@@ -343,7 +343,7 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
                     ok = false;
                     break;
                 }
-                const float* position = s->vertices.data + index * 3;
+                const float* position = s->vertices.data[index].xyz;
                 const auto* record = reinterpret_cast<const std::uint8_t*>(e.vertex);
                 TerrainVertex v{};
                 v.x = position[0];

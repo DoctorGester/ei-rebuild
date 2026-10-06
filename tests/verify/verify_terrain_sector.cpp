@@ -59,17 +59,17 @@ void Report(const char* name, bool ok, const char* what, const SectorData* s) {
     ei::verify::Report(name, ok, ok ? "" : detail);
 }
 
-MfcObArray<float>* WaterRow(const SectorData* s) {
+mfc::CArray<float>* WaterRow(const SectorData* s) {
     if (!s->hasWater) return nullptr;
     return &s->owner->waterLevels[s->owner->sectorsX * s->sy + s->sx];
 }
 
-std::vector<float> RowCopy(const MfcObArray<float>* row) {
+std::vector<float> RowCopy(const mfc::CArray<float>* row) {
     if (!row || !row->data) return {};
     return std::vector<float>(row->data, row->data + row->size);
 }
 
-void RowRestore(MfcObArray<float>* row, const std::vector<float>& v) {
+void RowRestore(mfc::CArray<float>* row, const std::vector<float>& v) {
     if (row && row->data && !v.empty()) std::memcpy(row->data, v.data(), v.size() * 4);
 }
 
@@ -77,7 +77,7 @@ void RowRestore(MfcObArray<float>* row, const std::vector<float>& v) {
 long long EntryKey(const SectorData* s, const TileVertex* p) {
     for (int q = 0; q < 4; ++q)
         for (int k = 0; k < s->tiles[q].size; ++k) {
-            const InlineArray<TileVertex>& t = s->tiles[q].data[k];
+            const lib::AlignedArray<TileVertex>& t = s->tiles[q].data[k];
             if (t.data && p >= t.data && p < t.data + t.size) return (q * 1000LL + k) * 100000LL + (p - t.data);
         }
     return -1;
@@ -120,13 +120,13 @@ const char* CompareBuild(const SectorData* a, const SectorData* b, bool lists) {
     for (int q = 0; q < 4; ++q) {
         if (a->tileFlags[q].size != b->tileFlags[q].size || a->tiles[q].size != b->tiles[q].size) return "page count";
         for (int k = 0; k < a->tileFlags[q].size; ++k) {
-            const MfcObArray<std::uint8_t>& fa = a->tileFlags[q].data[k];
-            const MfcObArray<std::uint8_t>& fb = b->tileFlags[q].data[k];
+            const mfc::CArray<std::uint8_t>& fa = a->tileFlags[q].data[k];
+            const mfc::CArray<std::uint8_t>& fb = b->tileFlags[q].data[k];
             if (fa.size != fb.size || (fa.size && std::memcmp(fa.data, fb.data, fa.size))) return "tile flags";
         }
         for (int k = 0; k < a->tiles[q].size; ++k) {
-            const InlineArray<TileVertex>& ta = a->tiles[q].data[k];
-            const InlineArray<TileVertex>& tb = b->tiles[q].data[k];
+            const lib::AlignedArray<TileVertex>& ta = a->tiles[q].data[k];
+            const lib::AlignedArray<TileVertex>& tb = b->tiles[q].data[k];
             if (ta.size != tb.size) return "tile list size";
             for (int i = 0; i < ta.size; ++i) {
                 if (ta.data[i].vertex - a->records.data != tb.data[i].vertex - b->records.data) return "tile vertex";
@@ -158,11 +158,11 @@ static void __fastcall BuildVerify(SectorData* s, void*) {
     auto* scratch = static_cast<SectorData*>(gamecrt::operator_new(sizeof(SectorData)));
     std::memcpy(scratch, s, sizeof(SectorData));
     // The vertex array's size and capacity count (x, y, z) vertices of 12 bytes.
-    scratch->vertices.data = CopyBlock(s->vertices.data, s->vertices.size, s->vertices.capacity, 12);
-    scratch->waterMaterials.data = CopyBlock(s->waterMaterials.data, s->waterMaterials.size, s->waterMaterials.capacity, 1);
+    scratch->vertices.data = CopyBlock(s->vertices.data, s->vertices.size, s->vertices.maxSize, 12);
+    scratch->waterMaterials.data = CopyBlock(s->waterMaterials.data, s->waterMaterials.size, s->waterMaterials.maxSize, 1);
     scratch->records.data = nullptr;
-    scratch->records.size = scratch->records.capacity = 0;
-    for (InlineArray<int>* a : {&scratch->tileTextures, &scratch->classCounts}) {
+    scratch->records.size = scratch->records.maxSize = 0;
+    for (lib::AlignedArray<int>* a : {&scratch->tileTextures, &scratch->classCounts}) {
         a->data = nullptr;
         a->size = a->capacity = 0;
     }
@@ -170,12 +170,12 @@ static void __fastcall BuildVerify(SectorData* s, void*) {
     scratch->animated.size = scratch->animated.capacity = 0;
     for (int q = 0; q < 4; ++q) {
         scratch->tileFlags[q].data = nullptr;
-        scratch->tileFlags[q].size = scratch->tileFlags[q].capacity = 0;
+        scratch->tileFlags[q].size = scratch->tileFlags[q].maxSize = 0;
         scratch->tiles[q].data = nullptr;
-        scratch->tiles[q].size = scratch->tiles[q].capacity = 0;
+        scratch->tiles[q].size = scratch->tiles[q].maxSize = 0;
     }
 
-    MfcObArray<float>* row = WaterRow(s);
+    mfc::CArray<float>* row = WaterRow(s);
     std::vector<float> rowBefore = RowCopy(row);
     std::vector<std::uint8_t> rngBefore(sizeof(IsaacRandom));
     std::memcpy(rngBefore.data(), &Rng(), sizeof(IsaacRandom));
@@ -231,20 +231,20 @@ static int __fastcall LoadVerify(SectorData* s, void*, void* archive, int sx, in
     auto* scratch = static_cast<SectorData*>(gamecrt::operator_new(sizeof(SectorData)));
     std::memcpy(scratch, s, sizeof(SectorData));
     scratch->records.data = nullptr;
-    scratch->records.size = scratch->records.capacity = 0;
-    for (InlineArray<int>* a : {&scratch->tileTextures, &scratch->classCounts, &scratch->waterTiles}) {
+    scratch->records.size = scratch->records.maxSize = 0;
+    for (lib::AlignedArray<int>* a : {&scratch->tileTextures, &scratch->classCounts, &scratch->waterTiles}) {
         a->data = nullptr;
         a->size = a->capacity = 0;
     }
     scratch->animated.data = nullptr;
     scratch->animated.size = scratch->animated.capacity = 0;
     scratch->vertices.data = nullptr;
-    scratch->vertices.size = scratch->vertices.capacity = 0;
+    scratch->vertices.size = scratch->vertices.maxSize = 0;
     for (int q = 0; q < 4; ++q) {
         scratch->tileFlags[q].data = nullptr;
-        scratch->tileFlags[q].size = scratch->tileFlags[q].capacity = 0;
+        scratch->tileFlags[q].size = scratch->tileFlags[q].maxSize = 0;
         scratch->tiles[q].data = nullptr;
-        scratch->tiles[q].size = scratch->tiles[q].capacity = 0;
+        scratch->tiles[q].size = scratch->tiles[q].maxSize = 0;
     }
     int expected = s_load(scratch, nullptr, archive, sx, sy, pages, perPage, prefix, owner);
     using CloseFileFn = bool(__thiscall*)(void*, void*);
@@ -271,16 +271,16 @@ EI_VERIFY(0x006C13A0, LoadVerify, 6, s_load);
 // original, record, restore, ours, compare.
 static void(__fastcall* s_applyWater)(SectorData*, void*);
 static void __fastcall ApplyWaterVerify(SectorData* s, void*) {
-    MfcObArray<float>* row = &s->owner->waterLevels[s->owner->sectorsX * s->sy + s->sx];
+    mfc::CArray<float>* row = &s->owner->waterLevels[s->owner->sectorsX * s->sy + s->sx];
     std::vector<float> rowBefore = RowCopy(row);
     std::vector<std::uint8_t> recBefore(reinterpret_cast<std::uint8_t*>(s->records.data),
                                         reinterpret_cast<std::uint8_t*>(s->records.data + s->records.size));
-    std::vector<float> vBefore(s->vertices.data, s->vertices.data + s->vertices.size * 3);
+    std::vector<float> vBefore(s->vertices.data->xyz, s->vertices.data->xyz + s->vertices.size * 3);
     s_applyWater(s, nullptr);
     std::vector<float> rowOriginal = RowCopy(row);
     std::vector<std::uint8_t> recOriginal(reinterpret_cast<std::uint8_t*>(s->records.data),
                                           reinterpret_cast<std::uint8_t*>(s->records.data + s->records.size));
-    std::vector<float> vOriginal(s->vertices.data, s->vertices.data + s->vertices.size * 3);
+    std::vector<float> vOriginal(s->vertices.data->xyz, s->vertices.data->xyz + s->vertices.size * 3);
     RowRestore(row, rowBefore);
     std::memcpy(s->records.data, recBefore.data(), recBefore.size());
     std::memcpy(s->vertices.data, vBefore.data(), vBefore.size() * 4);
