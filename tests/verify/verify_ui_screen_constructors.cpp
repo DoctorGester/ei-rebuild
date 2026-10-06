@@ -64,3 +64,14 @@ static CHudPortraits* __fastcall PortraitsVerify(CHudPortraits* self, void*, CIn
     return r;
 }
 EI_VERIFY(0x0063FE70, PortraitsVerify, 0, s_portraits);
+
+// 0063FF70: ours only (a destructor body). Afterwards the window base holds no arrays (005FE930
+// ran). Reached when the battle screen closes (ui_camp: the camp and the global map replace it).
+static void(__fastcall* s_portraitsDestroy)(CHudPortraits*);
+static void __fastcall PortraitsDestroyVerify(CHudPortraits* self) {
+    int slots = static_cast<int>(self->slotsEnd_ - self->slots_);
+    self->DestroyBody();
+    bool ok = !self->sceneObjects_.data_ && !self->surfaces_.data_ && !self->regions_.data_ && !self->models_.data_;
+    ei::verify::Check("CHudPortraits::DestroyBody", true, ok, "slots %d", slots);
+}
+EI_VERIFY(0x0063FF70, PortraitsDestroyVerify, 0, s_portraitsDestroy);

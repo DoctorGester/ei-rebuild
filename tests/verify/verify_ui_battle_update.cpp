@@ -231,3 +231,17 @@ static void __fastcall RefreshSelectionVerify(CBattleScreenSetup* self) {
                       dead ? 1 : 0, panels ? 1 : 0, panelUnit, first, cleared ? 1 : 0);
 }
 EI_VERIFY(0x00637DC0, RefreshSelectionVerify, 0, s_refreshSelection);
+
+// 006381E0, pure, side by side: the original's AL against ours. Every frame of the battle screen
+// (CBattleScreenSetup::Update compares the client's party ids through its address).
+using PartyIds = CBattleScreenSetup::PartyIds;
+static bool(__fastcall* s_partyIdsEqual)(const PartyIds*, void*, const PartyIds*);
+static bool __fastcall PartyIdsEqualVerify(const PartyIds* self, void*, const PartyIds* other) {
+    bool expected = s_partyIdsEqual(self, nullptr, other);
+    bool actual = self->Equals(*other);
+    ei::verify::Check("PartyIds::Equals", expected, actual, "sizes %d / %d",
+                      static_cast<int>(self->withUnit.end - self->withUnit.begin),
+                      static_cast<int>(other->withUnit.end - other->withUnit.begin));
+    return expected;
+}
+EI_VERIFY(0x006381E0, PartyIdsEqualVerify, 5, s_partyIdsEqual);

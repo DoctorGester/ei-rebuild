@@ -12,6 +12,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "core_maths.h"
 #include "originals_ui.h"
 #include "originals_engine.h"
 #include "originals_library.h"
@@ -443,9 +444,8 @@ EI_REPLACE(0x00625430, TradeResetRecords);
 // --- 00626F10: the record from the hero ---------------------------------------------------------
 
 namespace {
-// 00626FA0 (__fastcall, not rewritten): the hero's statistics back from record recordIndex_ (the
-// hit points kept in proportion).
-__declspec(naked) void __fastcall RestoreRecord(CTradePanel*) EI_ORIGINAL(0x00626FA0)
+// 00626FA0 by its address (Settle calls it so that its verify wrapper runs).
+__declspec(naked) void __fastcall RestoreRecordAt(CTradePanel*) EI_ORIGINAL(0x00626FA0)
 
 UnitStats* PartyMemberStats(int index) {
     CParty* party = reinterpret_cast<CParty*>(TradePlayerData(reinterpret_cast<void*>(0x007AFEA5)));
@@ -471,6 +471,35 @@ void __fastcall TradeSnapshotRecord(CTradePanel* self) { self->SnapshotRecord();
 } // namespace
 EI_REPLACE(0x00626F10, TradeSnapshotRecord);
 
+// --- 00626FA0: the hero's statistics back from the record ---------------------------------------
+
+void CTradePanel::RestoreRecord() {
+    if (recordIndex_ < 0) return;
+    TradeRecord& record = records_.begin[recordIndex_];
+    UnitStats* stats = PartyMemberStats(recordIndex_);
+    // The hit point maximum and the hit points the slots allow, before (both stored as float).
+    const float oldMaximum = StoreFloat(static_cast<float>(stats->HitPointCurve()));
+    const float oldHitPoints = StoreFloat(static_cast<float>(stats->Reduce(oldMaximum)));
+    for (int i = 0; i < 6; ++i) stats->skills[i] = record.schools[i];
+    stats->attributes[0] = record.science;
+    for (int i = 0; i < 36; ++i) stats->skillLevels[i] = record.perks[i];
+    // Copied as dwords, as the original does.
+    std::memcpy(&stats->experience, &record.experience, sizeof(float));
+    std::memcpy(&stats->pendingExperience, &record.pendingExperience, sizeof(float));
+    std::memcpy(&stats->spentExperience, &record.spentExperience, sizeof(float));
+    record.bought = 0;
+    const float newMaximum = StoreFloat(static_cast<float>(stats->HitPointCurve()));
+    // Only when both maxima are above 1 (a NaN does nothing): the slots are healed by what keeps
+    // the hit points in the old proportion to the new maximum.
+    if (!(oldMaximum > 1.0f) || !(newMaximum > 1.0f)) return;
+    const double hitPoints = stats->Reduce(newMaximum);
+    stats->HealSlots(newMaximum, StoreFloat(static_cast<float>(oldHitPoints / oldMaximum * newMaximum - hitPoints)));
+}
+namespace {
+void __fastcall TradeRestoreRecord(CTradePanel* self) { self->RestoreRecord(); }
+} // namespace
+EI_REPLACE(0x00626FA0, TradeRestoreRecord);
+
 // --- 006255A0 / 00625860: settling and choosing the hero --------------------------------------------
 
 void CTradePanel::Settle(int keep, int all) {
@@ -483,7 +512,7 @@ void CTradePanel::Settle(int keep, int all) {
             if (keepIt)
                 FillRecord(this);
             else
-                RestoreRecord(this);
+                RestoreRecordAt(this);
         }
         recordIndex_ = saved;
         return;
@@ -492,7 +521,7 @@ void CTradePanel::Settle(int keep, int all) {
     if (keepIt)
         FillRecord(this);
     else
-        RestoreRecord(this);
+        RestoreRecordAt(this);
     TradePanelBuildListsOriginal(this);
 }
 namespace {

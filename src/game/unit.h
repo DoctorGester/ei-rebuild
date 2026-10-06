@@ -169,7 +169,7 @@ class CMapObject;    // map_object.h
 class CUnitController : public CEngineObject {
 public:
     virtual void Slot13();
-    virtual void Slot14();
+    virtual void RestartAnimation(float time);  // 14: client 005352B0 (the animations the unit names at +0x254 / +0x255 from frame `time`)
     virtual void Slot15();
     virtual AIPath* Path();                 // 16: server +0x3C (00546090), client +0x38 (00533DF0)
     virtual void Slot17();

@@ -191,7 +191,7 @@ public:
     float position_[6];         // +0x15C scroll position of each tab, in slots
     float pending_;             // +0x174 scroll still to apply, in slots
     float velocity_;            // +0x178
-    int unknown_17C;            // +0x17C -1
+    int selected_;              // +0x17C -1; the hero screen's figure strips (vtable 00741BF4): the chosen figure
     int top_;                   // +0x180 y of the strip: 500 (bottom) or 0 (top)
     float scale_;               // +0x184
     int count_;                 // +0x188 visible list size after the last rebuild
@@ -320,6 +320,26 @@ public:
     // cleared, its weapons given, the equipment sent, the chosen weapon shown); the turn reset and
     // the list redrawn.
     void ShowHero(int index);
+    // 00616E20 (RET 4; ui_hero_screen.cpp). The preview cleared; the local player (given a "Hero" of
+    // "Human Hero" when it has no record) hands its first record to the client world (00566F70
+    // with `flag`); the preview becomes the client unit with that record's id, its prototype
+    // index stored; when there is one: skill animation 0x21 (if any) set to start at a random
+    // frame (timeGetTime at 15 frames a second minus random % 51), the figure shows no weapon,
+    // refreshed, its animation restarted at the current frame - 1, the record's statistics set
+    // and the controller's slot 31 called.
+    void MakePreview(int flag);
+    // 00616AC0 (slot 52, RET 4; ui_hero_figure.cpp). The new hero takes figure (unit prototype)
+    // `prototype`: the local player's first record handed to the client world and its strength,
+    // dexterity and intelligence and height kept (25, 25, 25, 0.7 without one); the party cleared
+    // and given a "Hero" of that prototype with its starting equipment (006625B0); the attributes
+    // (base and current) reset to 25 and the height to 0.7 on the hero list (mode 9), else the kept
+    // ones; each figure strip selects the prototype when it lists it (-1 otherwise); the
+    // equipment panels show the first weapon, quick item and spell; the preview, the statistics
+    // panel's and the trade panel's hero rebuilt; text_ = prototype; the voice list of the strip
+    // that lists it (voiceLists_[1] for names_, else [0]) from row 0, its first file the hero's
+    // voice (text 6); the voice scroll bar's range and position 0; on the new hero page the
+    // voices drawn.
+    void ChooseFigure(const char* prototype);
     // 00616560. The voices' surface (2): the "lmp_voices" title and eleven rows from voiceTop_,
     // the selection frame (scene object 2) on the chosen one.
     void DrawVoices();
@@ -389,7 +409,7 @@ public:
     void* statsPanel_;          // +0x1B0 (CHeroStatsPanel; 006232D0 sets its hero)
     void* weaponPanel_;         // +0x1B4 shows the weapon and the armour
     void* spellPanel_;          // +0x1B8
-    std::uint8_t unknown_1BC[0x1C4 - 0x1BC];
+    CUiItemStrip* figureStrips_[2]; // +0x1BC the figures of defaults_ (voices voiceLists_[0]), +0x1C0 of names_ (voiceLists_[1])
     void* tradePanel_;          // +0x1C4 (CTradePanel; 006255A0)
     void** defaults_;           // +0x1C8 STLport vector<CString>; its first entry goes to slot 52 for a new hero
     void** defaultsEnd_;        // +0x1CC
