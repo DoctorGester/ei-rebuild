@@ -1,3 +1,2 @@
 # Rewritten functions that are NOT hooked (the original runs), one hex address per line, with the
 # reason. For rewrites found broken in game until they are fixed; keep this list short.
-004849F0 CParticleSource::Attach: "Attach origin" differs 573 of 861; A-S4 fixing (2026-10-06)

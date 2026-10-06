@@ -24,6 +24,10 @@
 // Like the streams, the class is __declspec(novtable): the game's constructors (or InitView) store
 // the vtables, and C++ never does. Copies are byte copies, the vtable included, as they were when
 // this was a plain struct (the verify wrappers copy buffers).
+namespace net {
+struct StringRep;
+}
+
 class __declspec(novtable) GameBuffer {
 public:
     GameBuffer() {}
@@ -68,6 +72,15 @@ public:
     void DestructGrowing();
     // 004DA5C0 (RET 4). Moves the contents to a new block of size * 2 + 0x40 bytes.
     void Grow(std::uint32_t size);
+    // game_buffer_strings.cpp (A-S4). Length-prefixed strings: the length * 2 in one byte, or
+    // length * 2 + 1 in four bytes from 0x80 on.
+    // 004DA200 (RET 8, AL). Reads one into the STLport string `s` (assign): false with error bit 3
+    // when it is longer than `maxLength` (> 0). The bytes are read in place (slot 0 first when they
+    // run past `end`), then slot 2.
+    bool ReadString(net::StringRep* s, int maxLength);
+    // 004DA380 (RET 4). Writes `s`: in place when it fits before `end` (flags bit 0), else
+    // through slot 4.
+    void WriteString(const net::StringRep* s);
     // 004DA170 (RET 8). A read of `size` bytes past `high`: error bit 3 set, `to` zeroed, then what
     // is left before `high` (through slot 3 when that crosses `end`); the cursor ends at `high`.
     // Returns the bytes read.

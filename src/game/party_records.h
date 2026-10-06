@@ -57,3 +57,10 @@ bool __fastcall PartyMapLoad(const void* map, void* edx, int unused1, int unused
 // 004A8800 (__thiscall). Copies `source` into the party stored under the key (operator[] 004A91B0
 // creates it when missing). True.
 bool __fastcall PartyMapStore(void* map, void* edx, const int* key, const void* source);
+
+// 004BAEC0 (__fastcall: ECX player, EDX name; script_runtime_helpers.cpp). The party a script's
+// "owner::name" text refers to: `name` loses its "owner::" prefix; an owner (empty without "::")
+// equal to the manager's current name (007AA5A0 +0x34, PartyRecordList::text10) gives the
+// player's own party (+0x70), any other the records' party of that owner (PartyRecordsFind).
+// Null without a player.
+void* __fastcall PartyForScript(void* player, mfc::CString* name);

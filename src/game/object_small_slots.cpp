@@ -78,9 +78,11 @@ int CMapObject::CompanionQuery(int first, int second, int) {
 }
 EI_REPLACE_METHOD(0x0050E460, CMapObject::CompanionQuery);
 
+// 005391B0 reads armourIds[3..6] (+0xAC..+0xB8), the slots after the three dressed ones, not
+// weaponIds (+0xBC): the name is provisional. Found when zone bz1g's units mismatched.
 int CUnitClientSpecific::HasWeaponModels() {
-    for (std::uint32_t id : weaponIds)
-        if (id != kNoModel) return 1;
+    for (int slot = 3; slot < 7; ++slot)
+        if (armourIds[slot] != kNoModel) return 1;
     return 0;
 }
 EI_REPLACE_METHOD(0x005391B0, CUnitClientSpecific::HasWeaponModels);
