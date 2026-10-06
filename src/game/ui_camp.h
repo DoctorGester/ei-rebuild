@@ -521,6 +521,18 @@ public:
     // (kind 3: the perk's record name without its level digits, plus "0"; held ones with their
     // level); the hero's statistics with it.
     void HoverInfo(int x, int y, ItemHoverInfo* info);
+    // 00625430 (ui_trade_panel.cpp). The records emptied, then one per party member filled from
+    // it (SnapshotRecord through its address; recordIndex_ is left at the last).
+    void ResetRecords();
+    // 00626F10 (__fastcall). Record recordIndex_ (when >= 0) from the party member's statistics:
+    // science, the six schools, 36 perk levels, the experience values; bought cleared.
+    void SnapshotRecord();
+    // 006255A0 (RET 8; both flags read as bytes). With `all`, every bought record is kept
+    // (SnapshotRecord, with `keep`) or undone (00626FA0 puts the hero's statistics back), then
+    // recordIndex_ is put back; otherwise only the current record when bought, then BuildLists.
+    void Settle(int keep, int all);
+    // 00625860 (RET 4). Shows party member `index`: scroll positions 0, then BuildLists.
+    void SelectHero(int index);
     // 00625530 (ui_hero_screen.cpp). The experience the shown hero can spend, from its record:
     // pending plus earned minus spent, truncated.
     int Experience() const;
