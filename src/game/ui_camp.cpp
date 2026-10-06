@@ -41,7 +41,7 @@ struct CampPanel {
 void CampPanel::ShowHelp(int topic) { InfoPanelShowHelpOriginal(this, nullptr, topic); }
 __declspec(naked) void CampPanel::ShowStats(int) EI_ORIGINAL(0x006233C0)
 __declspec(naked) void CampPanel::SelectTrade(int) EI_ORIGINAL(0x00625860)
-__declspec(naked) int CampPanel::SettleTrade(char, char) EI_ORIGINAL(0x006255A0)
+int CampPanel::SettleTrade(char a, char all) { return TradePanelSettleOriginal(this, nullptr, a, all); }
 void CampPanel::AddItem(void* item) { ItemStripScrollToItemOriginal(this, nullptr, item); }
 CampPanel* Panel(void* window) { return static_cast<CampPanel*>(window); }
 
@@ -52,8 +52,10 @@ struct CampItems {
     // 005EE1B0: moves `item` from `from` to `to`; returns the item now held.
     void* Move(void* item, void* to, void* from, int a, int b, int c);
 };
-__declspec(naked) void* CampItems::ReturnAll(void*, void*) EI_ORIGINAL(0x005EE2C0)
-__declspec(naked) void* CampItems::Move(void*, void*, void*, int, int, int) EI_ORIGINAL(0x005EE1B0)
+void* CampItems::ReturnAll(void* owner, void* list) { return ItemScreenReturnAllOriginal(this, nullptr, owner, list); }
+void* CampItems::Move(void* item, void* to, void* from, int a, int b, int c) {
+    return ItemScreenMoveItemOriginal(this, nullptr, static_cast<CItem*>(item), to, from, a, b, c);
+}
 
 // 00578B20 (on 007AFEA5): the client leaves the interface screen for the world.
 struct LocalClient {
@@ -244,12 +246,14 @@ struct CampKinds {
     bool IsKindOne(const std::uint8_t* item);          // 005EE110
     bool IsBlueprint(const std::uint8_t* item);        // 005EE130
 };
-__declspec(naked) bool CampKinds::IsSpellContainer(const std::uint8_t*) EI_ORIGINAL(0x005EE0B0)
+bool CampKinds::IsSpellContainer(const std::uint8_t* item) {
+    return static_cast<std::uint8_t>(ItemKindIsSpellContainerOriginal(item)) != 0;
+}
 bool CampKinds::IsSpell(const std::uint8_t* a0) { return ItemKindIsSpellOriginal((const void*)a0); }
 bool CampKinds::IsModifier(const std::uint8_t* a0) { return ItemKindIsModifierOriginal((const void*)a0); }
 bool CampKinds::IsPart(const std::uint8_t* a0) { return ItemKindIsPartOriginal((const void*)a0); }
 __declspec(naked) bool CampKinds::IsKindOne(const std::uint8_t*) EI_ORIGINAL(0x005EE110)
-__declspec(naked) bool CampKinds::IsBlueprint(const std::uint8_t*) EI_ORIGINAL(0x005EE130)
+bool CampKinds::IsBlueprint(const std::uint8_t* item) { return ItemKindIsBuildableOriginal(item); }
 
 // 0068B7C0 (thiscall on the spell): the spell has a cast-flag modifier.
 __declspec(naked) bool __fastcall SpellHasCastFlag(const std::uint8_t*) EI_ORIGINAL(0x0068B7C0)

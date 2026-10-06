@@ -110,3 +110,17 @@ __declspec(naked) inline void __fastcall PlayerPathMessageOriginal(void* /*sink*
     EI_ORIGINAL(0x0066D490)
 __declspec(naked) inline int __fastcall StateObjectsAddedOriginal(void* /*state*/, void*, const void* /*objects*/)
     EI_ORIGINAL(0x0066D7F0)
+
+// A-I7. A class template's stock lists (+0x11C all, +0x1D4 spells and modifiers; thiscall on the list, RET 4): each
+// appends the record to its vector unless already there (no result): 00699080 armour, 006990E0 weapon, 00699140 quick
+// item, 006991A0 spell, 00699200 modifier.
+__declspec(naked) inline void __fastcall StockAddArmorOriginal(void* /*list*/, void*, void* /*record*/) EI_ORIGINAL(0x00699080)
+__declspec(naked) inline void __fastcall StockAddWeaponOriginal(void* /*list*/, void*, void* /*record*/) EI_ORIGINAL(0x006990E0)
+__declspec(naked) inline void __fastcall StockAddQuickItemOriginal(void* /*list*/, void*, void* /*record*/)
+    EI_ORIGINAL(0x00699140)
+__declspec(naked) inline void __fastcall StockAddSpellOriginal(void* /*list*/, void*, void* /*record*/) EI_ORIGINAL(0x006991A0)
+__declspec(naked) inline void __fastcall StockAddModifierOriginal(void* /*list*/, void*, void* /*record*/)
+    EI_ORIGINAL(0x00699200)
+// 00613920: the spell prototype named `name` (thiscall on the spell table 007C8510, RET 4), or null.
+__declspec(naked) inline char* __fastcall SpellPrototypeByNameOriginal(void* /*table*/, void*, const char* /*name*/)
+    EI_ORIGINAL(0x00613920)

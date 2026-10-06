@@ -43,6 +43,7 @@ static_assert(offsetof(PersonTextNode, text) == 0x14);
 inline int BoxSelectThreshold() { return *reinterpret_cast<const int*>(0x0079BDB0); }
 
 struct ItemHoverInfo;
+struct ClassTemplate;
 struct PartyUnitRecord;
 
 // Slot 51 (+0xCC) of the camp and the multiplayer hero screen: the record of the hero shown.
@@ -665,6 +666,24 @@ public:
     // "camp_spell_trade", "camp_spell_constr", "camp_item_trade", "camp_item_constr",
     // "camp_repair"; none for other pages.
     const char* HelpTopic();
+    // 00611220 (ui_camp_deals.cpp; the first action button). The buy sound, then by page: 0 (with the
+    // item constructor offered and shown) every weapon and armour of the hero repaired; 1 the trade
+    // settled (SettleTrade(1, 0); the money is left alone); 2 / 4 the spell / item constructor buys
+    // what was put in its third list (each item repaired, its record added to the template's stock
+    // lists, or for loot of kind 0 dropped) and the lists go back (the first to the constructor's
+    // strip, the second to the player); 3 / 5 the made spell / item replaces what is in the results
+    // (or, while deconstructing_, DeconstructSpell / DeconstructItem); 6 the repairs' items repaired
+    // and given back. Then the money goes down by cost_.
+    void DoAction();
+    // 00611760 (the second action button). The cancel sound, then by page: 1 the trade settled with
+    // (0, 0); 2 / 4 the constructor's lists given back (the second to the strip, the third to the
+    // player); 3 / 5 every result moved back (made items to the constructor, the rest to the player);
+    // 6 the repairs' items given back.
+    void UndoAction();
+    // 00612500 (returns AL 1). The spell container in the results taken apart: a copy kept in
+    // spellMade_ while the original leaves the list; a "Prototype" item for its spell and a "Rune"
+    // item per modifier go into the results; the copy released.
+    bool DeconstructSpell();
 
     std::uint8_t unknown_148[0x164 - 0x148];
     CUiWindow* descPanel_;           // +0x164 the description panel (vtable 007404DC)
@@ -674,7 +693,9 @@ public:
     bool fromHeroScreen_;            // +0x194 opened from the multiplayer hero screen (closes with a pending value)
     bool spellConstructor_;          // +0x195 the spell constructor's pages are offered
     bool itemConstructor_;           // +0x196 the item constructor's pages are offered
-    std::uint8_t unknown_197[0x1A0 - 0x197];
+    std::uint8_t unknown_197;
+    ClassTemplate* constructor_;     // +0x198 the constructor's class template ("constr.current"), or null
+    std::uint8_t unknown_19C[4];
     std::uint8_t** heroes_;          // +0x1A0 the party's heroes (data of an array)
     std::uint8_t unknown_1A4[0x1B0 - 0x1A4];
     int hero_;                       // +0x1B0 the hero shown

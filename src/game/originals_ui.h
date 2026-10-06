@@ -272,3 +272,17 @@ __declspec(naked) inline void __fastcall HeroScreenDrawListOriginal(void* /*scre
 __declspec(naked) inline void __fastcall GameTakeUnitRecordsOriginal(void* /*glue*/, void*, void* /*records*/)
     EI_ORIGINAL(0x005789E0)
 __declspec(naked) inline void __fastcall MpHeroesSaveOriginal(void* /*heroes*/) EI_ORIGINAL(0x006632B0)
+// The camp's item helpers (rewritten in ui_screens.cpp / ui_item_screen.cpp; called through their address so the wrappers
+// run). 005EE0B0 / 005EE130: the item is a spell container (all of EAX) / can be taken apart (AL) (free functions, RET 4;
+// ECX not read). 005EE2C0: CItemScreen::ReturnAll(to, from) (RET 8, the last item moved). 005EE1B0: MoveItem(item, to,
+// from, limit, merge, turning) (RET 0x18, what `to` now holds).
+__declspec(naked) inline int __stdcall ItemKindIsSpellContainerOriginal(const void* /*item*/) EI_ORIGINAL(0x005EE0B0)
+__declspec(naked) inline bool __stdcall ItemKindIsBuildableOriginal(const void* /*item*/) EI_ORIGINAL(0x005EE130)
+__declspec(naked) inline CItem* __fastcall ItemScreenReturnAllOriginal(void* /*screen*/, void*, void* /*to*/, void* /*from*/)
+    EI_ORIGINAL(0x005EE2C0)
+__declspec(naked) inline CItem* __fastcall ItemScreenMoveItemOriginal(void* /*screen*/, void*, CItem* /*item*/, void* /*to*/,
+                                                                      void* /*from*/, int /*limit*/, int /*merge*/,
+                                                                      int /*turning*/) EI_ORIGINAL(0x005EE1B0)
+// 006255A0: the trade panel settles its deal (thiscall, RET 8: two flags read as bytes; EAX a result).
+__declspec(naked) inline int __fastcall TradePanelSettleOriginal(void* /*panel*/, void*, int /*a*/, int /*all*/)
+    EI_ORIGINAL(0x006255A0)
