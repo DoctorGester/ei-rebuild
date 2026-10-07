@@ -216,7 +216,6 @@ void COptionsWindow::Build() {
     SetSpritePlain(highlight);
 
     // Regions 2-12: the option groups, each with its button sprite, tooltip and title.
-    auto* groupNames = reinterpret_cast<console::CStringArray*>(groupNames_);
     mfc::CString text;
     for (int k = 0, top = 156; k < kOptionGroups; ++k, top += 24) {
         CUiRegion* region = AddRect(this, 100, top, 250, top + 24);
@@ -230,7 +229,7 @@ void COptionsWindow::Build() {
             mfc::CString key = prefix + OptionGroupName(k);
             Texts()->GetString(key, &text);
         }
-        groupNames->SetAtGrow(groupNames->GetSize(), text);
+        groupNames_.SetAtGrow(groupNames_.GetSize(), text);
     }
 
     Frame(this, 2.0f, 95.0f, 95.0f, 705.0f, 505.0f);
@@ -326,10 +325,10 @@ COptionsWindow* NewOptionsWindow(CInterface3D* ui) {
     auto* w = static_cast<COptionsWindow*>(memory);
     ConstructContainerAt(w, nullptr, ui);
     char allocator[2];
-    ConstructBindingList(reinterpret_cast<std::uint8_t*>(w) + 0x36C, nullptr, &allocator[0]);
+    ConstructBindingList(&w->bindings_, nullptr, &allocator[0]);
     ConstructSettingList(&w->settings_, nullptr, &allocator[1]);
     w->sliding_ = false;
-    new (w->groupNames_) console::CStringArray();
+    w->groupNames_.Construct();
     SetVtables(w, kOptionsVtable, kOptionsInputVtable);
     return w;
 }
