@@ -33,7 +33,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- A-H .. A-H13 done. A-H14 taken (sound.md next candidates; CPlayer 00664BF0..00665D20, save screen, message handlers).
+- A-H .. A-H13 done. A-H14 done (54 + 16 library; merged, regressions in X23) (sound.md next candidates; CPlayer 00664BF0..00665D20, save screen, message handlers).
 
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
@@ -42,6 +42,8 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 
 ## Verify checks
+
+- X23 (taken) A-H14 merge regressions (main 9d61b1d): magic_traps both (game did not exit 5 s after quit), script_fx both, ui_saveload / ui_saveload_delete both, rebirth_flags rebirth (crash E06D7363), render_scene vanilla (crash C0000005 in DDraw), render_movie_present rebirth (hang). Mismatches: CSaveLoadWindow::DeleteSave 2/2, SaveEntry::AllodTitle 34/34, SaveEntry::ZoneTitle 82/82.
 
 - X22 flaky: render_present (vanilla) crashed once under 16 parallel runs, null call inside DDRAW.dll from render::CopyFrameTo <- DevicePresentVerify <- ShowLoadingMovie (2026-10-07, after A-S7). Passed 3/3 alone. Watch; if it recurs, guard CopyFrameTo against a lost surface.
 
