@@ -14,7 +14,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
-- A-U done 2026-10-05 (40 functions). A-U2 done (40). A-U3 done (20). A-U4 done (28). A-U5 done (39 + 5 dead). A-U6 taken. Next: 0054BBC0, levers 0052B1F0.., 00551E10-00552180, 00545580.
+- A-U done 2026-10-05 (40 functions). A-U2 done (40). A-U3 done (20). A-U4 done (28). A-U5 done (39 + 5 dead). A-U6 done (105; head 7b5aa11, merge pending; next: CUnitServer ctor 00545580, AIBrain ctor 00545990, 005457E0, 00545CB0, 00545110). Next: 0054BBC0, levers 0052B1F0.., 00551E10-00552180, 00545580.
 - U2 done (00535850 ClientPlaceOnPath, 0052FCC0 / 0052FDF0 in follow-up for a crash).
 
 ## World, AI and server, 0x00540000-0x005E0000 (docs/notes/world.md, ai.md, unit_ai.md)
