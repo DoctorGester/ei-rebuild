@@ -16,6 +16,9 @@ struct WorldPlayer;
 __declspec(naked) inline void __fastcall PartyCopyFrom(void* /*party*/, void*, const void* /*from*/)
     EI_ORIGINAL(0x00661300)
 __declspec(naked) inline void __fastcall PartyResetItems(void* /*party*/) EI_ORIGINAL(0x00661FB0)
+// 004A91B0 (library, RET 4): the party manager's hash_map<int, CParty>::operator[] (a new key gets a
+// default party).
+__declspec(naked) inline void* __fastcall PartyMapAtOriginal(void* /*map*/, void*, const int* /*key*/) EI_ORIGINAL(0x004A91B0)
 __declspec(naked) inline void __fastcall PlayerListRelease(CEngineObject*, void*, WorldPlayer*)
     EI_ORIGINAL(0x0066C1D0)
 __declspec(naked) inline void __fastcall PlayerSendPair(void*, void*, int, float) EI_ORIGINAL(0x0066F2C0)

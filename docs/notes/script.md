@@ -505,3 +505,22 @@ A-S7 / A-S8 (below) finished the link figures, the sky and the pipeline projecti
 - Not kept: the header map's value destructor 004F4E70 zeroes the freed node's 0x50 value bytes (freed memory only).
 - Library (config/library.csv, A-S8): the mesh maps' and the loader's STLport members 004F4CD0-004F6850 and
   004FAE40-004FC6A0, among them the cache's equal_range 004FB5E0, insert_equal 004FBD80 (004FC4F0 was listed).
+
+## A-S9: party manager archive, 004A90F0-004AFAC0 classified
+
+| Address | Name (file) | Verify |
+|---|---|---|
+| 004A8560, 004A8310 | `PartyManager::Save`, `Load` (`party_manager.cpp`, `party_manager.h`: the manager 007AA5A0 as a struct: parties hash_map<int, CParty> +0x00, entries +0x14, field +0x20, records +0x24, templates +0x38) | Save against the original (scratch stream first, ISAAC state put back, appended bytes compared); Load ours only (block consumed, templates class 1..5 referenced, records referenced). Save: every new game's autosave; Load: `world_load` (load savea), `ui_saveload` |
+| 004ACEC0, 004AD0C0, 004ACDC0, 004AD2C0 | `ChunkArchive::SerializeParties`, `SerializePartyEntries`, `SerializeClassTemplates`, `IntField` | only called by Save / Load (directly): covered by Save's comparison |
+| 004A64B0 | `NamedPartyRecords::Serialize` | same |
+
+- The archive on the stack: `ChunkArchive::ConstructLocal` / `DestructLocal` (chunk_archive.cpp; the containers' library
+  constructors / destructors 004A94A0, 004639D0, 00463AA0, 004A9650, 004A8B70, 004A96A0 forwarded there).
+- Forwarders: 006617F0 `CParty::ArchiveParty` (party.h; SaveParty into a stream field / LoadParty with the archive's
+  version), library resizes 004ADAA0 / 004AD700 / 004AD8D0 / 004AE3A0 and clear 004AD050 (party_manager.cpp); 004A91B0
+  moved to originals_gameplay.h (`PartyMapAtOriginal`, party_records.cpp uses it).
+- Counted pointers are released through `CRefCounted` (`delete` = slot 0 with 1); the map's party is `PartyInPlace`
+  storage (CParty is abstract in C++).
+- Library (config/library.csv, A-S9): 30 of the 34 in 004A90F0-004AFAC0 (vector / hash_map members of the party
+  manager's containers, counted-pointer copies, the entries' compiler-made assignment / destructor, and the weapon /
+  armor table lookups 004AB720 / 004AB820, classified like 00613820).

@@ -10,6 +10,8 @@
 #include <cstddef>
 #include <cstdint>
 
+class ChunkArchive;
+
 struct PartyRecord {
     void* vtable;
     std::int16_t refCount;      // +0x04 counted pointers (the dword is cleared before construction)
@@ -25,6 +27,10 @@ struct NamedPartyRecords {
     stlp::vector<PartyRecord*> records;
     mfc::CString text0C;        // +0x0C
     mfc::CString text10;        // +0x10
+
+    // 004A64B0 (RET 4; party_manager.cpp). Chunk 1: the records as object references (field 1 per
+    // chunk 1; loading releases the old ones first); then the strings as fields 2 and 3.
+    void Serialize(ChunkArchive* ar);
 };
 static_assert(sizeof(NamedPartyRecords) == 0x14);
 

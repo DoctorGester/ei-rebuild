@@ -18,6 +18,9 @@
 #include <cstdint>
 
 class CRefObject;
+struct ClassTemplateVector;
+struct PartyInPlace;
+struct PartyManagerEntry;
 namespace mfc {
 class CString;
 }
@@ -112,6 +115,25 @@ public:
     void SerializeAcks(int id, void* records, void* unused);        // 006DB430 (0x1C4-byte records)
     void SerializeAcks2(int id, void* records, void* unused);       // 006DB680 (0x5C-byte records)
     void SerializeAcks3(int id, void* records, void* unused);       // 006DB8D0 (0x38-byte records)
+
+    // The party manager's chunks (party_manager.cpp, A-S9). The third argument is unused but
+    // popped (RET 0xC). Loading empties the container first and takes one record per chunk 1.
+    // 004ACEC0. hash_map<int, CParty>: per party a chunk 1 (field 1: the key) and a chunk 2
+    // (CParty::ArchiveParty); loading inserts each key (operator[]).
+    void SerializeParties(int id, stlp::hash_map<int, PartyInPlace, stlp::IntHash>* parties, void* unused);
+    // 004AD0C0. vector<PartyManagerEntry>: per entry a chunk 1 with string fields 1 and 2 and a
+    // chunk 3 holding one chunk 1 (field 1) per id.
+    void SerializePartyEntries(int id, stlp::vector<PartyManagerEntry>* entries, void* unused);
+    // 004ACDC0. The class templates (counted pointers) as object references (field 1 per chunk 1).
+    void SerializeClassTemplates(int id, ClassTemplateVector* templates, void* unused);
+    // 004AD2C0 (RET 8). Field(id, value, 4).
+    void IntField(int id, int* value);
+
+    // An archive built and destroyed inline on a function's stack, as 004A8310 / 004A8560 do
+    // (0053A7B0 is the out-of-line constructor): two empty memory streams, the containers'
+    // constructors (004A94A0, 004639D0, 00463AA0), version 1; the destructors in reverse order.
+    void ConstructLocal();
+    void DestructLocal();
 
     CMemoryStream indexStream_;    // +0x00 chunk 0
     CMemoryStream dataStream_;     // +0x28 the chunk data (chunk 2 while loading the records)
