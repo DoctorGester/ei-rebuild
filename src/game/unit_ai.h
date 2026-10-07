@@ -417,6 +417,24 @@ struct FearMode : AIMode {
     // operator delete when `flags` bit 0 is set; returns this.
     void Destruct();
     FearMode* DeletingDestruct(int flags);
+    // 005D2960 (slot 4; unit_ai_fear.cpp). Remembers a seen object (notice 1000 / -2; `distance`
+    // grows to 1.5 times its distance) and calms `spread` towards 3. 15000 when a ranged unit (size
+    // class below 6, no spell in slot 0, not slowed, load factor above 0.6) has its nearest enemy
+    // within [Logic] RangedAttackDist (RangedRunDist while aggressive) and is walking on command or
+    // finds a way back 5 from it (a random point within 3, path search, the order check from the
+    // path's end, which must lie within 1; then kept in `fleePoint`, z 1). 3000 while it sees an
+    // enemy; 350 in shelter (a kind 3 occluder at the unit, a small or non-0 size class unit, or at
+    // the last shelter). With `flag` the nearest player unit in sight inside `distance` is noticed.
+    // Then noticedLevel / 6 when it is above 50 and the mode is in charge or the noticed point is
+    // within `distance`; else `distance` moves a 31st back to the default and -1000.
+    int Evaluate(AIBrain* brain);
+    // 005D30A0 (slot 5; unit_ai_fear.cpp). Runs from the nearest enemy (calling allies to it), else
+    // stays in shelter, else from the noticed point (forgotten unless `flag` and above 500): within
+    // `distance`, and not walking on command, to `fleePoint` when one is pending, else 5 away plus
+    // a random offset of at most `spread` (which first drops to 2.5 x `distance`), when a path is
+    // found (action 1); `spread` doubles. Without an action: attack the best target in sight
+    // (allies only, 005D0030), else stand and look away from the point.
+    void Execute(AIBrain* brain);
     // 005D3650 (slot 6). Busy; drops action and target.
     void Enter(AIBrain* brain);
     // 005D3680 (slot 7). Clears busy.
@@ -425,15 +443,18 @@ struct FearMode : AIMode {
     void Load(AIStream* stream);
     void Save(AIStream* stream);
 
-    float distance;                 // +0x08 (10)
-    float unknown_0C;               // +0x0C (3)
-    Vector3 unknown_10;             // +0x10 (x = -1313: unset)
-    Vector3 unknown_1C;             // +0x1C
+    float distance;                 // +0x08 how near danger counts (10, FearDefaultDistance)
+    float spread;                   // +0x0C random spread of a flight point (3)
+    Vector3 shelter;                // +0x10 the last place with a kind 3 occluder (x = -1313: unset)
+    Vector3 fleePoint;              // +0x1C a checked flight point (z 1.0 while pending, else 0)
     std::uint8_t flag;              // +0x28
     std::uint8_t unknown_29[3];
 };
 static_assert(sizeof(FearMode) == 0x2C);
 static_assert(offsetof(FearMode, flag) == 0x28);
+static_assert(offsetof(FearMode, fleePoint) == 0x1C);
+// 0073FF00: a new Fear mode's distance, which `distance` returns to.
+inline float FearDefaultDistance() { return *reinterpret_cast<const float*>(0x0073FF00); }
 
 // Player (vtables 0073F0C4 / 0073F0F8, 0x24 bytes): the party's units.
 struct PlayerMode : AIMode {
@@ -824,6 +845,10 @@ struct AIBrain {
     // {part, object}: action 3 {-1, target}, action 4 {spell, target}, the object only when it is a
     // unit; otherwise only the object is cleared.
     void CurrentAttack(int* partAndObject);
+    // 005CF170 (thiscall on +0xA4 with the brain, RET 8; unit_ai_fear.cpp). Takes up {part, object}
+    // unless there is no object or it is the current attack: part -1 AttackTarget, else cast it
+    // (action 4 when the spell cannot be cast now; target and actionTime = the spell).
+    void ApplyAttack(const int* partAndObject);
     void ChooseTarget(int* partAndObject, void* candidates, const Vector3* from, int a, int b); // 005D0030 on +0xA4
     void CollectEnemies(CUnit* self, void* list);                       // 005CB260 on +0xD0
 

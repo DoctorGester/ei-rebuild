@@ -560,21 +560,21 @@ EI_REPLACE_METHOD(0x005D3680, FearMode::Leave);
 
 void FearMode::Load(AIStream* stream) {
     ReadField(stream, &distance);
-    ReadField(stream, &unknown_0C);
-    ReadField(stream, &unknown_10);
+    ReadField(stream, &spread);
+    ReadField(stream, &shelter);
     if (stream->version >= 0x53) {
         ReadField(stream, &flag);
-        if (stream->version >= 0x70) ReadField(stream, &unknown_1C);
+        if (stream->version >= 0x70) ReadField(stream, &fleePoint);
     }
 }
 EI_REPLACE_METHOD(0x005D3690, FearMode::Load);
 
 void FearMode::Save(AIStream* stream) {
     WriteCopy(stream, distance);
-    WriteCopy(stream, unknown_0C);
-    stream->Write(&unknown_10, sizeof(Vector3));
+    WriteCopy(stream, spread);
+    stream->Write(&shelter, sizeof(Vector3));
     WriteCopy(stream, flag);
-    stream->Write(&unknown_1C, sizeof(Vector3));
+    stream->Write(&fleePoint, sizeof(Vector3));
 }
 EI_REPLACE_METHOD(0x005D36F0, FearMode::Save);
 

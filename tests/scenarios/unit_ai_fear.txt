@@ -1,0 +1,25 @@
+# Fear mode (src/game/unit_ai_fear.cpp): a wolf with only a Fear mode (flag 1) next to a hostile
+# wolf runs from it (FearMode::Evaluate 3000 while it sees an enemy, FearMode::Execute, ApplyAttack
+# when it fights back). Every zone1 unit with the standard Guard / Sentry set evaluates Fear too.
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GSSetVar(0,"hx",GetX(GetLeader()))
+console @GSSetVar(0,"hy",GetY(GetLeader()))
+console @AddUnitToServer("AiAfraid","WolfTutor","AiAfraid",Add(GSGetVar(0,"hx"),3),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("AiAfraid"))
+console @UMClear(GetObjectByName("AiAfraid"))
+console @UMFear(GetObjectByName("AiAfraid"),1)
+console @AddUnitToServer("AiFoe","WolfTutor","AiFoe",Add(GSGetVar(0,"hx"),5),GSGetVar(0,"hy"),0)
+waitfor 10 IsAlive(GetObjectByName("AiFoe"))
+console @SetPlayer(GetObjectByName("AiFoe"),6)
+console @UMClear(GetObjectByName("AiFoe"))
+console @UMAggression(GetObjectByName("AiFoe"))
+wait 4000
+check IsAlive(GetLeader())
+report
+quit
