@@ -742,6 +742,13 @@ public:
     void ResetSlot();
     // 005460A0. Virtual slot 39: the taming stage.
     int TameStage();
+    // A-U7. 005460E0. Virtual slot 0: DestructBody (through its address), freed with flag 1;
+    // returns this.
+    CUnitServer* DeleteServer(unsigned flags);
+    // 005460C0 / 005460D0. Slots 11 / 12: "CUnitServer" (the exe's string 0078FCC4), class id 0x3E.
+    const char* ServerClassName();
+    int ServerClassId();
+    void CallDestructBody();
 
     // Not rewritten (forwarders):
     // 00550A80 (combat_steps.cpp). The death (or fall) animation for a blow from `direction`
