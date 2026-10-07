@@ -153,3 +153,7 @@ __declspec(naked) inline void __fastcall PlayerCollectPartyOriginal(void* /*mode
     EI_ORIGINAL(0x005D4600)
 __declspec(naked) inline void __fastcall PlayerAddPartyTargetsOriginal(void* /*mode*/, void*, AIBrain*, void* /*list*/)
     EI_ORIGINAL(0x005D3F50)
+// 005CD3A0 (thiscall on a grid's cells, VisibilityGrid + 8; RET 8): the cell block reallocated to
+// width x height (not cleared) unless it already has that size.
+__declspec(naked) inline void __fastcall GridCellsResizeOriginal(void* /*cells*/, void*, int /*width*/, int /*height*/)
+    EI_ORIGINAL(0x005CD3A0)

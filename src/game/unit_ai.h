@@ -572,11 +572,22 @@ struct AICallRecord {
 
     // 00558D00 (unit_ai_brain.cpp). The element destructor: frees the text (CString::~CString).
     void Destruct();
+    // The element assignment of the array's Add (unit_ai_brain.cpp): the point, kind and +0x10,
+    // then the text (CString::operator=).
+    AICallRecord& operator=(const AICallRecord& other);
 };
 static_assert(sizeof(AICallRecord) == 0x18);
 
-// CArray<AICallRecord> (brain + 0x178). Its SetSize stays the instantiation's (005CDD60).
-using AICallArray = mfc::CArray<AICallRecord, mfc::RawElements<AICallRecord>>;
+// The calls' ConstructElements (00558D60: zeroed, each text the empty CString) and
+// DestructElements (00558D00 each); unit_ai_brain.cpp.
+struct AICallElements {
+    static void Construct(AICallRecord* calls, int count);
+    static void Destruct(AICallRecord* calls, int count);
+};
+
+// CArray<AICallRecord> (brain + 0x178). SetSize 005CDD60 and Add 005CD880 are registered on the
+// template (unit_ai_brain.cpp; callers reach SetSize through CallsSetSizeAt, its address).
+using AICallArray = mfc::CArray<AICallRecord, AICallElements>;
 
 // A unit's alarm / assembly record: the map spec's behaviour record (0x4C bytes, map_spec.h; read
 // and written by 0045D610 / 0045D760). CArray at brain + 0x90: elements built by 00558E10 (zeroed,
@@ -720,6 +731,12 @@ struct AIViewer {
     std::uint8_t unknown_29[3];
 };
 static_assert(offsetof(AIViewer, facing) == 0x14);
+
+// 005CD210 (fastcall, RET 4; unit_ai_sight.cpp; the show-visibility effect's tick 0067C840). The
+// cells `seer` sees as `observer` would be seen, into `grid` (cleared to one cell first): within
+// sight (the two units' sight values, at least 0) inside the cone, up to the observer's mode
+// height; within hearing all around; within the peripheral range in the front half.
+void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, VisibilityGrid* grid);
 static_assert(offsetof(AIViewer, ready) == 0x28);
 
 // 005D9E10 (__stdcall, RET 8; unit_ai_mode_lifetime.cpp). ConstructElements of `count` attack

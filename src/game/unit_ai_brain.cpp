@@ -18,6 +18,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <new>
 
 namespace {
 constexpr float kNearPointCleared = 100000.0f;
@@ -396,6 +397,25 @@ EI_REPLACE(0x005CC020, ForgetHook);
 
 
 void AICallRecord::Destruct() { reinterpret_cast<mfc::CString*>(&text)->~CString(); }
+
+AICallRecord& AICallRecord::operator=(const AICallRecord& other) {
+    std::memcpy(this, &other, offsetof(AICallRecord, text));
+    *reinterpret_cast<mfc::CString*>(&text) = *reinterpret_cast<const mfc::CString*>(&other.text);
+    return *this;
+}
+
+void AICallElements::Construct(AICallRecord* calls, int count) {
+    std::memset(static_cast<void*>(calls), 0, sizeof(AICallRecord) * static_cast<unsigned>(count));
+    for (int i = 0; i < count; ++i) new (&calls[i].text) mfc::CString();
+}
+
+void AICallElements::Destruct(AICallRecord* calls, int count) {
+    for (int i = 0; i < count; ++i) calls[i].Destruct();
+}
+
+// 005CDD60 (RET 8): SetSize. 005CD880 (RET 4): Add, returning the new index.
+EI_REPLACE_METHOD(0x005CDD60, AICallArray::SetSize);
+EI_REPLACE_METHOD(0x005CD880, AICallArray::Add);
 EI_REPLACE_METHOD(0x00558D00, AICallRecord::Destruct);
 
 std::uintptr_t UnitController::AddHostileMask(std::uint32_t mask) { return unit->AddHostileMask(mask); }

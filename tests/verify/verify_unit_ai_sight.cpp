@@ -5,9 +5,11 @@
 
 #include "../../src/game/map_object.h"
 #include "../../src/game/unit_ai.h"
+#include "../../src/lib/crt.h"
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <set>
 
 namespace {
@@ -83,3 +85,21 @@ static void __fastcall UpdateVerify(AIViewer* self, void*, UnitController* owner
     ei::verify::Check("AIViewer::Update", true, ok, "unit %p, %d visible", unit, brain->visible.count);
 }
 EI_VERIFY(0x005CAA00, UpdateVerify, 0, s_unused);
+
+// 005CD210 MarkSightCells: PUSH EBP; MOV EBP,ESP; SUB ESP,0x30 (6 bytes). Output: the original
+// marks a scratch grid (no cells yet), ours the real one; origin, size and every cell compared.
+// Reached by the show-visibility effect's tick (0067C840).
+static void(__fastcall* s_markSightCells)(CUnit*, CUnit*, VisibilityGrid*);
+static void __fastcall MarkSightCellsVerify(CUnit* seer, CUnit* observer, VisibilityGrid* grid) {
+    VisibilityGrid theirs{};
+    s_markSightCells(seer, observer, &theirs);
+    MarkSightCells(seer, observer, grid);
+    bool same = theirs.originX == grid->originX && theirs.originY == grid->originY && theirs.width == grid->width &&
+                theirs.height == grid->height &&
+                std::memcmp(theirs.data, grid->data, static_cast<std::size_t>(grid->width * grid->height)) == 0;
+    ei::verify::Check("MarkSightCells", true, same, "seer %p: %dx%d at (%d, %d), theirs %dx%d at (%d, %d)", seer, grid->width,
+                      grid->height, grid->originX, grid->originY, theirs.width, theirs.height, theirs.originX, theirs.originY);
+    gamecrt::operator_delete(theirs.data);
+    gamecrt::operator_delete(theirs.rows);
+}
+EI_VERIFY(0x005CD210, MarkSightCellsVerify, 6, s_markSightCells);
