@@ -11,6 +11,7 @@
 
 class CEngineObject;
 class IsaacRandom;
+class CMappedResource;
 struct DeltaField;
 struct ParticleElement;
 
@@ -96,3 +97,6 @@ __declspec(naked) inline void** __fastcall QuickItemMapAtOriginal(void* /*map*/,
 
 // C3l. 00581790: NamedFloatTable constructor (plain RET, returns `this`).
 __declspec(naked) inline void* __fastcall NamedTableConstructOriginal(void* /*table*/) EI_ORIGINAL(0x00581790)
+// 006714A0: CMappedResource's destructor body at its original address. Rebirth patches it (it then runs Rebirth's
+// version); in the vanilla launch the address leads to CMappedResource::Destroy.
+__declspec(naked) inline void __fastcall MappedResourceDestroyOriginal(CMappedResource*) EI_ORIGINAL(0x006714A0)

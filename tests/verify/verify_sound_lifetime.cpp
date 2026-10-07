@@ -173,3 +173,34 @@ EI_VERIFY(0x006B4490, MusicDeletingVerify, 0, s_unused);
 EI_VERIFY(0x006B4690, MusicResetVerify, 0, s_unused);
 EI_VERIFY(0x006B4E10, MusicFadeOutVerify, 0, s_unused);
 EI_VERIFY(0x006B4E20, MusicFadeInVerify, 0, s_unused);
+
+// A-H15: the sound manager's constructor / destructor body (startup / exit) and the stream reset
+// 006BA9C0 (Reset 006B73E0 at startup and every zone load, the stream close 006BAC90): ours only.
+void __fastcall SoundResetStream(void* stream);
+namespace {
+CSoundManager* __fastcall SoundConstructVerify(CSoundManager* self) {
+    CSoundManager* result = self->Construct();
+    bool ok = result == self && *reinterpret_cast<std::uintptr_t*>(self) == CSoundManager::kVtableAddress &&
+              self->waveSources.count == 0 && self->cacheList.count == 0 && self->cacheList.blockSize == 10 &&
+              self->markers.data == nullptr && self->musicFader.volume == 100;
+    ei::verify::Check("CSoundManager::Construct", true, ok, "manager %p", self);
+    return result;
+}
+void __fastcall SoundDestructVerify(CSoundManager* self) {
+    self->DestructBody();
+    bool ok = *reinterpret_cast<std::uintptr_t*>(self) == CEngineObject::kVtableAddress && self->cacheList.head == nullptr &&
+              self->waveSources.head == nullptr;
+    ei::verify::Check("CSoundManager::DestructBody", true, ok, "manager %p", self);
+}
+void __fastcall SoundResetStreamVerify(void* stream) {
+    SoundResetStream(stream);
+    auto* m = reinterpret_cast<CSoundManager*>(static_cast<char*>(stream) - offsetof(CSoundManager, streamState));
+    bool ok = m->streamState == 0 && m->streamSample == nullptr && m->switchMode == 4 && m->streamPosition == -1 &&
+              m->musicFader.volume == 100 && m->musicFader.level == 127 && m->musicFader.mode == 0 &&
+              m->streamName.GetLength() == 0 && m->nextName.GetLength() == 0;
+    ei::verify::Check("CSoundManager::ResetStream", true, ok, "manager %p level %d", m, m->musicFader.level);
+}
+} // namespace
+EI_VERIFY(0x006B6040, SoundConstructVerify, 0, s_unused);
+EI_VERIFY(0x006B65D0, SoundDestructVerify, 0, s_unused);
+EI_VERIFY(0x006BA9C0, SoundResetStreamVerify, 0, s_unused);
