@@ -142,8 +142,10 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
 
 - CArray Serialize / SetSize instantiations (library).
 - 0050F170 (fade mode from a float, slot 47): small, next candidate.
-- 0050E9B0 (slot 34) and 0050F080 (stats refresh): depend on the UnitStats builders (00522C50 /
-  005136D0).
+- 0050E9B0 (slot 34): packs a stack UnitVitals the builder leaves unwritten when the prototype exists (garbage in the
+  original; cannot be reproduced). 0050F080 is rewritten (A-U5, map_object_vitals.cpp: CMapObject::ClearProtectionBases,
+  verified ours vs original on the protection pairs; reached by every unit spawn through 0058EF20).
+- Dead (A-U5 sweep, config/dead_code.csv): 0050BFA0, 0051FCD0, 005476A0 (PlayIdle's body after 0052E9D0), 0054A0A0, 0054B950.
 - 0050C230 (bone hierarchy update, recursive), 005179E0 / 00516DA0 (animated figures), 0051C3D0
   (wounds texture): drawing, stateful.
 - CObject3DServer stubs, the perks database, 00500000-0050E000 apart from tracks / cages.

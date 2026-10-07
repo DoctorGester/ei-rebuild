@@ -122,6 +122,9 @@ public:
     // 0050E970. Virtual slot 32 (statistics changed): a CMapObjectServer companion packs its
     // vitals (00522C50) into +0x17C. Returns 1, or 0 for another companion.
     int PackVitals();
+    // map_object_vitals.cpp (A-U5). 0050F080 (the server's unit setup, 0058EF20): a CMapObjectServer
+    // companion (class 0x39) gets the base of each protection (vitals +0x20, 7 pairs) zeroed.
+    void ClearProtectionBases();
 
     // 0050FA10 / 0050FA20 / 0050E430. Bits 16 (invisible: set by the client for effect 0x0F),
     // 18 (stunned: effect 0x19) and 17 of flags_. 0050FA10 and 0050E430 are virtual slots 21 / 29.

@@ -122,6 +122,12 @@ struct AnimationDatabase {
 static_assert(offsetof(AnimationDatabase, start) == 0x20);
 static_assert(offsetof(AnimationDatabase, animations) == 0x2C);
 
+class CBaseManager;   // base_manager.h
+// 00512F60 (combat_order_setters.cpp; __thiscall on the manager, RET 8). The animation `name`
+// (case-insensitive) in the database "<figure>.adb" of `manager` (the world's map object manager),
+// or null; a missing database is reported to the debug log.
+FigureAnimation* __fastcall FindFigureAnimation(CBaseManager* manager, void*, const mfc::CString& figure, const char* name);
+
 // The side-specific half of a 3D object (CObject3D + 0x94): CObject3DClientSpecific (class id
 // 0x37, vtable 0073DE90; map_object_shadow.h) on the client, CObject3DServer (0x38, 0073DFBC,
 // stubs) on the server. Only the slots the rewritten code calls are named; the classes

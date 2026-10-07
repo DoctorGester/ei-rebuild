@@ -33,8 +33,90 @@ struct UnitAction {
     void Reset();
     UnitAction* CallAssign(const UnitAction* from);
     void CallReset();
+    // The inlined counted-reference assignment of the target (the order setters): the old one
+    // released, the new one referenced; nothing when it is the same.
+    void Retarget(CEngineObject* object) {
+        if (object == target) return;
+        if (target) target->Release();
+        target = nullptr;
+        ++object->refCount_;
+        target = object;
+    }
 };
 static_assert(sizeof(UnitAction) == 0x24);
+
+// One step of an animation list (0xC bytes; built by 0054F970 / 00550100 / 00550620). 00550A60
+// constructs a blank one: animation 0xFF, +1 0xFF, +2 0, duration -1, +8 0. It never sets byte 3,
+// so the original's steps carry a stack byte there; ours carry 0.
+struct AnimationStep {
+    std::uint8_t animation;     // +0x00 index of the unit's animation entry (0xFF: a pause)
+    std::uint8_t unknown_01;    // +0x01 0xFF
+    std::uint8_t unknown_02;    // +0x02 0
+    std::uint8_t unknown_03;    // +0x03 not initialised by the original
+    int duration;               // +0x04 game ticks
+    int unknown_08;             // +0x08
+};
+static_assert(sizeof(AnimationStep) == 0xC);
+
+// An animation list: an MFC CArray of AnimationStep (vtable 0073F01C over the base 0073EF2C;
+// 00557B80 is its SetSize) and a dword after it.
+struct AnimationSteps {
+    void* vtable;
+    AnimationStep* steps;   // +0x04
+    int count;              // +0x08
+    int capacity;           // +0x0C
+    int growBy;             // +0x10
+    int extra;              // +0x14 copied along with the steps
+
+    // combat_step_lists.cpp (A-U5). New steps are blank (00550A60's values: 0xFF, 0xFF, 0,
+    // duration -1, +8 0; byte 3 is the original's stack byte, ours 0); the list grows by
+    // 00557B80 (SetSize).
+    // 00544CE0 (RET 8). Appends a step of animation `animation` (low byte) lasting `duration`.
+    void AddStep(int animation, int duration);
+    // 00544D50 (RET 4). The last step becomes the open-ended emote `emote` (low byte into +1;
+    // duration -1); a blank step is appended first when the list is empty or its last step
+    // already carries an emote (+1 not 0xFF).
+    void AddEmote(int emote);
+    // 00544DD0 (RET 4). Every step's +8 becomes `value`.
+    void SetStepFlags(int value);
+    // 00544E40. The sum of the durations; -1 when one is negative (open-ended).
+    int Duration() const;
+    // 00544E70 (RET 4). The same steps as `other` (count, then each step's bytes 0..2, duration
+    // and +8). Callers test AL.
+    bool SameAs(const AnimationSteps* other) const;
+    // 00544EF0 / 00544F60 (RET 4). Load: the count (into the argument's stack slot: a failed read
+    // leaves the stream pointer as the count), SetSize, each step (12 bytes), extra. Save: the
+    // same fields.
+    void Load(UnitStream* stream);
+    void Save(UnitStream* stream);
+};
+static_assert(sizeof(AnimationSteps) == 0x18);
+
+// The plan of an order (0x44 bytes; CUnitServer + 0xC4 holds the current one): its animation, when
+// it starts and ends, and what it aims at. 0054CA40 fills it.
+struct OrderPlan {
+    AnimationSteps animation;   // +0x00
+    int startTime;              // +0x18 game time
+    int endTime;                // +0x1C startTime + the animation's duration
+    int targetId;               // +0x20 -1: none
+    float rangeSq;              // +0x24 squared distance the target may move away
+    std::uint8_t isCast;        // +0x28
+    std::uint8_t unknown_29[3];
+    int unknown_2C;             // +0x2C 1
+    std::uint8_t notSkill;      // +0x30 order source != 6
+    std::uint8_t unknown_31[3];
+    int castKind;               // +0x34 8; for a cast: 1 (spell kind 0x28), 0 (0x29) or the
+                                //       spell prototype's +0x14
+    float direction[3];         // +0x38 from the unit to the target
+};
+static_assert(offsetof(OrderPlan, startTime) == 0x18);
+static_assert(offsetof(OrderPlan, direction) == 0x38);
+
+// 00544FD0 (combat_step_lists.cpp, A-U5). The plan emptied: the steps freed (operator delete;
+// count and capacity 0), extra / targetId -1, the times 0, unknown_2C 1, rangeSq 1e38, isCast /
+// notSkill 0, castKind 8.
+void __fastcall OrderPlanReset(OrderPlan* plan);
+static_assert(sizeof(OrderPlan) == 0x44);
 
 // A movement mode and whether it was mode 3 (CUnitServer + 0x168 / + 0x170, 8 bytes each).
 struct MoveModeState {
@@ -274,6 +356,77 @@ public:
     void OrderCast(std::uint32_t source, CEngineObject* target, int run);
     // 00555200. Unless the current order is of kind 11: the queued order becomes kind 11 (stop).
     void StopQueued();
+
+    // combat_order_setters.cpp (A-U5): the other setters, as the AI, scripts and the player's
+    // commands call them.
+    // 0054A5A0. Would the unit fit its cell in movement mode `mode` (3 counts as 2)? True at once
+    // for the current mode (+0x168); else the unit's mode (+0x264) becomes `mode` for the test (the
+    // unit off the sector map, its size class updated) and is put back. Callers test AL.
+    bool FitsMoveMode(int mode);
+    // 00555270. The unit's wanted movement style (+0x268: 0 lie, 1 crawl, 2 walk, 3 run). When it
+    // fits (FitsMoveMode), a party unit hears message 9, unless running and out of breath (stats
+    // 005241C0). Other than walking and running the current order's +0x20 (run) is cleared.
+    void SetMoveStyle(int style);
+    // 005552E0. The weapon slot the unit wants (CUnit +0x270).
+    void SetWantedWeapon(int slot);
+    // 005553B0 / 00555480 / 00555570 / 00555630. A skill or use order (kind 6) on `target`:
+    // stealing (source 1; a living other object), taming (2; a living unit of another player, not
+    // a hero), use (0, +0x1C = `spot`; any object) and searching a body (0x18A95; a dead object
+    // other than the unit). +0x20 = `run`; dropped when the planner (0054E600, shouting 6 / 5 /
+    // 5 / 4) refuses.
+    void OrderSteal(CEngineObject* target, int run);
+    void OrderTame(CEngineObject* target, int run);
+    void OrderUse(CEngineObject* target, int spot, int run);
+    void OrderSearchBody(CEngineObject* target, int run);
+    // 0054C760 (RET 4). Is `target` (a body to search) taken: with flags_ bit 0x20000000, when the
+    // world does not share it with this unit's id (005949D0); else when a living unit of the
+    // brain's nearby list (+0xF4) is searching it (kind 6, source 0x18A95) in state 5 or with
+    // +0x18E set. Callers test AL.
+    bool TargetBusy(CEngineObject* target);
+    // 00555700. Plays the unit's animation `name` (from its figure's animation database) as the
+    // queued order: kind 8 for keys with bit 31, else 7; +0x1C = the entry's index dword.
+    void PlayAnimation(const char* name);
+    // 00555840. Drops everything: state 6, the size class updated, the effect object removed, the
+    // plan reset, the unit standing still, both orders reset and the queued one emptied (kind 0).
+    void StopAction();
+    // 005567A0 / 005567E0. Virtual slots 36 / 37 (CUnit::AcceptsTarget asks for the animation bits
+    // 0x10 / 0x20 by them): does the unit wear an armour piece in slots 3..6 / in the first three
+    // (body, trousers, helmet; CUnit +0x48C..+0x498 / +0x480..+0x488)? 0/1.
+    BOOL HasOtherArmour();
+    BOOL HasMainArmour();
+
+    // combat_stat_slots.cpp (A-U5): the statistics slots.
+    // 005533B0. Virtual slot 19: the vitals recomputed (with `withHitPoints` their hit points
+    // first, UnitStats::RecomputeHitPoints) in the server companion's block; a pending attack
+    // time is rescaled by the old / new attack rate (CombatStats +0x30), rounded; the unit's part 0
+    // changed. Returns 1.
+    BOOL RefreshVitals(char withHitPoints);
+    // 00553450. protection[1..7] from the body (PackBodyProtection) and protection[0], the defence:
+    // a party unit with a weapon its weapon skill bonus (00526C70), others their defence; times 1
+    // for a party unit, else the difficulty's factor (007C54B8); truncated.
+    void UpdateProtection();
+    // 00553500. Virtual slot 22: the statistics repacked from the parameters (+0x330), the hit
+    // flags (stats +0x6F8) cleared, the protection updated, part 4 changed; motionChanged set when
+    // the movement speeds (CUnit +0x340) changed.
+    void RepackStats();
+    // 00553560. Virtual slot 26 (RET 4): the armour piece the unit wears in the slot of armour
+    // prototype `key >> 16` (its type) added to the layers. Returns false (AL).
+    bool AddArmourLayerOf(std::uint32_t key);
+    // 005535C0 / 005535E0. Virtual slots 27 (RET 4, the argument unread; returns true) / 28: the
+    // armour layers rebuilt / the outer layers cleared (returns UnitStats::ClearOuterLayers's 0).
+    bool RebuildArmourLayers(int unused);
+    int ClearOuterArmourLayers();
+    // 005535F0. Virtual slot 29: the armour spells and the AI's attack options (005CEED0) rebuilt.
+    // Returns 1.
+    BOOL RefreshEquipment();
+    // 00552CD0. Virtual slot 38: the claims dropped (claimedHostile) and the calls heard with a
+    // hostility mask (brain +0x178, 005CCBF0).
+    void ForgetClaims();
+    // 00553360 (RET 4). Copies the statistics (0x704 bytes) to `out`.
+    void CopyStats(UnitStats* out);
+    // 00553380 (RET 4). Experience gained (UnitStats::GainExperience), then RefreshVitals(0)
+    // (slot 19; only CUnitServer's vtable has it), whose 1 it returns.
+    BOOL AddExperience(float amount);
 
     // The same functions called through the game's addresses (EI_ORIGINAL), so that the verify
     // build's wrappers see the calls between the rewrites.
@@ -520,9 +673,35 @@ public:
     // 0054E600 (PlanOrderRoute).
     bool PlanOrder(UnitAction* order, int arg);
 
-    // Not rewritten (forwarders):
-    // 00552D00. `claimant` claims the players in `mask` are enemies of this unit.
+    // combat_object_slots.cpp (A-U5).
+    // 00552D00 (RET 8). `claimant` claims the players in `mask` are enemies of this unit: they join
+    // claimedHostile and the AI memory hears a call of kind 0x1E carrying the mask, with the text
+    // "Unit <claimant id> claims that player <n> are enemies! " for each player n in the mask.
     void ClaimHostility(CUnit* claimant, std::uint32_t mask);
+    // 00553610. Virtual slot 25 (RET 4): takes up the weapon in `slot` (-1, none, when the slot is
+    // empty or the weapon's condition rounds to 0 or less) as the active and wanted weapon (part 6
+    // changed); a party unit's AI options are rebuilt, the armour spells refreshed. 1 when the
+    // weapon was taken up.
+    BOOL TakeUpWeapon(int slot);
+    // 00552670. Virtual slot 42 (RET 4): `object` is being deleted: orders aimed at it end (the
+    // current one reset, then Idle when the queued one is empty; a queued one is emptied unless an
+    // animation), a plan aimed at it ends (EndOrder(0)), the brain forgets it (005D58D0) and the
+    // leader followed is dropped when it is that object.
+    void OnObjectDeleted(CEngineObject* object);
+    // 00553260. Virtual slot 44: a living unit is set up again where it stands: off the sector
+    // map, its figure (005179E0), size classes and size class; when it cannot leave its cell it
+    // moves to a free cell near it (005BA9D0), or with none it takes a default hit (TakeHit; a
+    // unit that cannot stand dies); then back on the sector map.
+    void Resettle();
+    // 00546450. Virtual slot 2 (Create): ResetController, then the brain takes this controller as
+    // its owner (005D5080). Returns 1.
+    int CreateServer();
+    // 00546080. Virtual slot 5: ResetController (a tail jump).
+    void ResetSlot();
+    // 005460A0. Virtual slot 39: the taming stage.
+    int TameStage();
+
+    // Not rewritten (forwarders):
     // 00550A80 (combat_steps.cpp). The death (or fall) animation for a blow from `direction`
     // (HitDirection's bits): `dying` adds the death bits, `fall` (lying down) stops the steps with
     // +8 = 2 and may pick a side at random. Only the low bytes of `dying` and `fall` count.
@@ -532,26 +711,41 @@ public:
     CUnit* unit;                    // +0x01C
     std::uint8_t unknown_020;       // +0x020 cleared on death
     std::uint8_t unknown_021;       // +0x021 cleared on death
-    std::uint8_t unknown_022[0x108 - 0x22];
+    std::uint8_t unknown_022[0xC4 - 0x22];
+    OrderPlan currentPlan;          // +0x0C4 the plan of the current order (0054CA40 fills it)
     DamageInfo pendingHit;          // +0x108 the hit of the attack in progress
     std::uint8_t keepHitDirection;  // +0x144 while set, OnDamaged leaves hitDirection alone
-    std::uint8_t unknown_145[0x160 - 0x145];
+    std::uint8_t unknown_145;
+    std::uint8_t motionChanged;     // +0x146 set when the movement speeds or mode changed (cleared by PathTo)
+    std::uint8_t unknown_147[0x160 - 0x147];
     std::uint32_t hitDirection;     // +0x160 HitDirection of the last hit that did not kill
     int state;                      // +0x164 0 idle, 5 casting, ...
     MoveModeState moveMode;         // +0x168
     MoveModeState moveMode2;        // +0x170
     std::uint8_t unknown_178[0x17C - 0x178];
     CEngineObject* effectObject;    // +0x17C (referenced) removed from the world on death
-    std::uint8_t unknown_180[0x190 - 0x180];
+    std::uint8_t unknown_180[0x184 - 0x180];
+    int nextAttackTime;             // +0x184 world tick of the next attack
+    std::uint8_t unknown_188[0x18E - 0x188];
+    std::uint8_t unknown_18E;       // +0x18E TargetBusy counts a search under way when set (or in state 5)
+    std::uint8_t unknown_18F;
     UnitAction action;              // +0x190
     UnitAction action2;             // +0x1B4
-    std::uint8_t unknown_1D8[0x1E0 - 0x1D8];
+    std::uint8_t followsLeader;     // +0x1D8 the chase follows `followedLeader`'s target (combat_tick.cpp)
+    std::uint8_t unknown_1D9[3];
+    CEngineObject* followedLeader;  // +0x1DC (referenced) the party unit whose attack this one joins
     UnitStats stats;                // +0x1E0 (0x704 bytes; its +0x6F8 dword gets bit 0x10 on a hit)
-    std::uint8_t unknown_8E4[0x8F8 - 0x8E4];
+    std::int16_t protection[8];     // +0x8E4 [0] the defence value (00553450), [1..7] the body's protection
+                                    //        per damage type (UnitStats::PackBodyProtection)
+    float unknown_8F4;              // +0x8F4
     float moveFactors[4];           // +0x8F8
-    std::uint8_t unknown_908[0x914 - 0x908];
+    int tameStage;                  // +0x908 0..3 (TryTame)
+    std::uint8_t unknown_90C[0x914 - 0x90C];
     int speedClass;                 // +0x914
-    std::uint8_t unknown_918[0x97C - 0x918];
+    std::uint8_t unknown_918[0x938 - 0x918];
+    int unknown_938;                // +0x938 cleared when an order starts and by the move style /
+                                    //        wanted weapon setters
+    std::uint8_t unknown_93C[0x97C - 0x93C];
     std::uint32_t claimedHostile;   // +0x97C players the unit has claimed as enemies
     // +0x980 the AI brain (AIBrain in unit_ai.h, 0x190 bytes); combat_actions.cpp reads its
     // +0x38 (claim radius), +0xD0 (perception memory), +0xF4 (CList of nearby units, head at
@@ -565,6 +759,14 @@ public:
 };
 static_assert(offsetof(CUnitServer, unit) == 0x1C);
 static_assert(offsetof(CUnitServer, pendingHit) == 0x108);
+static_assert(offsetof(CUnitServer, currentPlan) == 0xC4);
+static_assert(offsetof(CUnitServer, unknown_938) == 0x938);
+static_assert(offsetof(CUnitServer, motionChanged) == 0x146);
+static_assert(offsetof(CUnitServer, nextAttackTime) == 0x184);
+static_assert(offsetof(CUnitServer, unknown_18E) == 0x18E);
+static_assert(offsetof(CUnitServer, tameStage) == 0x908);
+static_assert(offsetof(CUnitServer, protection) == 0x8E4);
+static_assert(offsetof(CUnitServer, followedLeader) == 0x1DC);
 static_assert(offsetof(CUnitServer, moveMode) == 0x168);
 static_assert(offsetof(CUnitServer, moveMode2) == 0x170);
 static_assert(offsetof(CUnitServer, action) == 0x190);

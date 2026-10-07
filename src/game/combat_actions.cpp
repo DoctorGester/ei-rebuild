@@ -211,7 +211,6 @@ __declspec(naked) void __fastcall ControllerPlayAnimation(CUnitServer*, void*, A
     EI_ORIGINAL(0x00548DE0)
 // 00545F40. UnitAction: kind 9, target released, flag18 cleared (+0x1C/+0x20 left alone).
 
-__declspec(naked) void CUnitServer::ClaimHostility(CUnit*, std::uint32_t) EI_ORIGINAL(0x00552D00)
 __declspec(naked) void CUnitServer::CallBuildDeathAnimation(void*, std::uint32_t, int, int) EI_ORIGINAL(0x00550A80)
 
 // Calls between the rewritten functions go through the game's addresses (which jump to the

@@ -117,6 +117,8 @@ console @HideObject(GetObjectByName("ZxWolf"),1) HideObject(GetObjectByName("ZxW
 console @MoveToPoint(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),6),GSGetVar(0,"zu.y"))
 waitfor 15 IsLess(DistanceUnitPoint(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),6),GSGetVar(0,"zu.y")),1.5)
 console @RotateTo(GetObjectByName("ZxWolf"),GSGetVar(0,"zu.x"),Add(GSGetVar(0,"zu.y"),5)) Stand(GetObjectByName("ZxWolf")) Run(GetObjectByName("ZxWolf")) Walk(GetObjectByName("ZxWolf")) Rest(GetObjectByName("ZxWolf"))
+# PlayAnimation of a name the figure lacks: CUnitServer::PlayAnimation and FindFigureAnimation (00555700, 00512F60) leave the order alone.
+console @PlayAnimation(GetObjectByName("ZxWolf"),"zxnone")
 console @MoveToObject(GetObjectByName("ZxWolf"),GetLeader()) Follow(GetObjectByName("ZxWolf"),GetLeader()) Idle(GetObjectByName("ZxWolf"))
 console @Guard(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y"),4) Sentry(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y")) Idle(GetObjectByName("ZxWolf"))
 console @UMClear(GetObjectByName("ZxWolf")) UMSentry(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y")) UMGuard(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y"),4) UMGuardEx(GetObjectByName("ZxWolf"),Add(GSGetVar(0,"zu.x"),3),GSGetVar(0,"zu.y"),4,8) UMFollow(GetObjectByName("ZxWolf"),GetLeader())

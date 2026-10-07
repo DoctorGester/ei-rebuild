@@ -12,6 +12,7 @@ class CAIMap;
 class CEngineObject;
 class CSectorMap;
 class CUnit;
+struct AIAttention;
 struct AIPath;
 struct DeltaField;
 struct Vector3;
@@ -21,6 +22,16 @@ __declspec(naked) inline void __fastcall FinishDraw(char*, void*, void* /*render
 __declspec(naked) inline void __fastcall AlarmReset(void*) EI_ORIGINAL(0x005AEA40)
 __declspec(naked) inline void __fastcall PathToMotionOrder(void*, void*, void* /*out*/) EI_ORIGINAL(0x005B22C0)
 __declspec(naked) inline void __fastcall PathClear(void*) EI_ORIGINAL(0x005B23A0)
+// 005CCBF0 (fastcall on the brain's calls heard, brain + 0x178, an AICallArray): drops the calls that carry a hostility
+// mask (+0x10), destroying each (00558D00). Plain RET.
+__declspec(naked) inline void __fastcall CallsDropClaims(void* /*calls*/) EI_ORIGINAL(0x005CCBF0)
+// 005CBBC0 (thiscall on the brain's memory, brain + 0xD0; RET 0xC): the memory's calls (+0xA8) hear a call of `kind`
+// carrying the hostility `mask` and `text` (its point left as the stack had it).
+__declspec(naked) inline void __fastcall MemoryAddCall(void* /*memory*/, void*, std::uint32_t /*mask*/, int /*kind*/,
+                                                     const char* /*text*/) EI_ORIGINAL(0x005CBBC0)
+// 005CEED0 (thiscall on the brain's attention, RET 4): rebuilds the unit's attack options (its weapon or natural
+// attack, its spells) and the attention's longest range (+0x28).
+__declspec(naked) inline void __fastcall AttentionRebuild(AIAttention*, void*, CUnit*) EI_ORIGINAL(0x005CEED0)
 // 00546100: AIPath's destructor body (the points freed, both cell lists emptied; plain RET).
 __declspec(naked) inline void __fastcall AIPathDestructOriginal(AIPath*) EI_ORIGINAL(0x00546100)
 __declspec(naked) inline bool __fastcall PlanPath(CAIMap*, void*, CUnit*, int, int, int, int, AIPath*, int, int)
