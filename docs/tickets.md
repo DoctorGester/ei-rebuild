@@ -54,7 +54,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Cleanup (docs/cleanup-plan.md)
 
-- D3/D3b/D3c done 2026-10-07: per-file containers 155 -> 6. D3d (taken): the last 6 (scene_loader ArrayBody/VtArray family) and the inlined SetSize in ui_window, map_spec, party_lifetime, unit_skins CopyRecords (docs/notes/core.md, "Shared containers").
+- D3/D3b/D3c done 2026-10-07: per-file containers 155 -> 6. D3d (done 2026-10-07, 6 -> 0): the last 6 (scene_loader ArrayBody/VtArray family) and the inlined SetSize in ui_window, map_spec, party_lifetime, unit_skins CopyRecords (docs/notes/core.md, "Shared containers").
 
 - C2 Phase 1 for the engine base and core networking (0x00400000-0x00440000, fully ported): one
   real declaration per class, members instead of At<>/offsets, virtual calls instead of VCall,

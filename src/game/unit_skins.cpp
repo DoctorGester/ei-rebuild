@@ -7,6 +7,7 @@
 // docs/notes/world.md.
 #include "console.h"
 
+#include "../lib/containers.h"
 #include "../lib/crt.h"
 #include "../lib/mfc.h"
 #include "../lib/stlp.h"
@@ -65,7 +66,6 @@ __declspec(naked) void __fastcall RecordListDestroy(void*) EI_ORIGINAL(0x0056F59
 // The texture set's byte array: constructor [0056FCC0], destructor [0051E5B0], allocation [004ECB50].
 __declspec(naked) void __fastcall BytesConstruct(void*) EI_ORIGINAL(0x0056FCC0)
 __declspec(naked) void __fastcall BytesDestroy(void*) EI_ORIGINAL(0x0051E5B0)
-char* __fastcall AllocBytes(int a0) { return AllocAligned32Original(a0); }
 // CStringArray SetSize [006FE9B8], SetAtGrow of a CString [006FEBFA] and of a C string [006FEBCE].
 void __fastcall NamesSetAtGrowString(console::CStringArray* a0, void*, int a2, const mfc::CString* a3) { StringArraySetAtGrowStringOriginal((void*)a0, nullptr, a2, a3); }
 void __fastcall NamesSetAtGrowText(console::CStringArray* a0, void*, int a2, const char* a3) { StringArraySetAtGrowTextOriginal((void*)a0, nullptr, a2, a3); }
@@ -109,10 +109,7 @@ R ThisCall(void* object, int slot, Args... args) {
 // The set handed to the texture cache (0x28 bytes): the texture records as raw bytes (an aligned
 // array), the texture file names, the composite's size.
 struct TextureSet {
-    char* bytes;
-    int byteCount;
-    int capacity;
-    int growBy;
+    lib::AlignedArray<char> bytes;
     console::CStringArray names;
     int size;
 };
@@ -127,35 +124,8 @@ using RecordList = stlp::vector<TextureRecord>;
 // The texture records copied into the set's byte array (SetSize inlined: kept contents, 0 frees).
 void CopyRecords(TextureSet& set, const RecordList& list) {
     int size = static_cast<int>(list.size()) * static_cast<int>(sizeof(TextureRecord));
-    if (size == 0) {
-        if (set.bytes) {
-            gamecrt::operator_delete(reinterpret_cast<void**>(set.bytes)[-1]);
-            set.bytes = nullptr;
-        }
-        set.capacity = 0;
-        set.byteCount = 0;
-    } else if (!set.bytes) {
-        set.bytes = AllocBytes(size);
-        set.capacity = size;
-        set.byteCount = size;
-    } else if (size <= set.capacity) {
-        set.byteCount = size;
-    } else {
-        int step = set.growBy;
-        if (step == 0) {
-            step = set.byteCount / 8;
-            if (step < 4) step = 4;
-            else if (step > 0x400) step = 0x400;
-        }
-        int capacity = size < step + set.capacity ? step + set.capacity : size;
-        char* bytes = AllocBytes(capacity);
-        std::memcpy(bytes, set.bytes, static_cast<std::size_t>(set.byteCount));
-        gamecrt::operator_delete(reinterpret_cast<void**>(set.bytes)[-1]);
-        set.bytes = bytes;
-        set.byteCount = size;
-        set.capacity = capacity;
-    }
-    std::memcpy(set.bytes, list.begin(), static_cast<std::size_t>(size));
+    set.bytes.SetSize(size);
+    std::memcpy(set.bytes.data, list.begin(), static_cast<std::size_t>(size));
 }
 
 // The original's inlined strcpy / strcat: the bytes up to and including the terminator.

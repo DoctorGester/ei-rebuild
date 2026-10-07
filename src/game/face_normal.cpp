@@ -29,8 +29,8 @@ constexpr double kMinimumSquare = 1e-10;
 
 } // namespace
 
-void __fastcall ComputeFaceNormal(MeshFace* face, void*, const ArrayBody* positions) {
-    const auto* points = static_cast<const Point*>(positions->data);
+void __fastcall ComputeFaceNormal(MeshFace* face, void*, const PointBuffer* positions) {
+    const auto* points = reinterpret_cast<const Point*>(positions->data);
     const Point& origin = points[face->vertex[1]];
     const Point& p2 = points[face->vertex[2]];
     const Point& p0 = points[face->vertex[0]];

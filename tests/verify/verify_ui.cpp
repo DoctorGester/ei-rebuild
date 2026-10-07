@@ -241,7 +241,7 @@ static BOOL(__fastcall* s_hitTest)(const CUiRegion*, void*, int, int);
 static BOOL __fastcall HitTestVerify(const CUiRegion* self, void*, int x, int y) {
     BOOL expected = s_hitTest(self, nullptr, x, y);
     ei::verify::Check("CUiRegion::HitTest", expected, self->CUiRegion::HitTest(x, y), "(%d,%d) points %d rect %d",
-                      x, y, self->pointCount_, self->rectOnly_);
+                      x, y, self->points_.size, self->rectOnly_);
     return expected;
 }
 EI_VERIFY(0x005FC8F0, HitTestVerify, 7, s_hitTest);
@@ -258,7 +258,7 @@ EI_VERIFY(0x005FC660, HasActiveTipVerify, 5, s_hasActiveTip);
 // The rest free or allocate the vertex storage: ours only, then the fields are checked.
 static void __fastcall RegionSetRectVerify(CUiRegion* self, void*, int left, int top, int right, int bottom) {
     self->CUiRegion::SetRect(left, top, right, bottom);
-    bool ok = !self->points_ && self->pointCount_ == 0 && self->pointCapacity_ == 0 && self->bounds_.left == left &&
+    bool ok = !self->points_.data && self->points_.size == 0 && self->points_.capacity == 0 && self->bounds_.left == left &&
               self->bounds_.top == top && self->bounds_.right == right && self->bounds_.bottom == bottom &&
               self->enabled_ && self->rectOnly_;
     ei::verify::Check("CUiRegion::SetRect", true, ok, "(%d,%d,%d,%d)", left, top, right, bottom);
@@ -267,7 +267,7 @@ EI_VERIFY(0x005FC9E0, RegionSetRectVerify, 0, s_unused);
 
 static void __fastcall ClearShapeVerify(CUiRegion* self) {
     self->CUiRegion::ClearShape();
-    bool ok = !self->points_ && self->pointCount_ == 0 && self->pointCapacity_ == 0 && !self->enabled_ &&
+    bool ok = !self->points_.data && self->points_.size == 0 && self->points_.capacity == 0 && !self->enabled_ &&
               !self->rectOnly_;
     ei::verify::Check("CUiRegion::ClearShape", true, ok, "");
 }
@@ -276,12 +276,12 @@ EI_VERIFY(0x005FCA40, ClearShapeVerify, 0, s_unused);
 static void __fastcall AddPointVerify(CUiRegion* self, void*, int x, int y) {
     constexpr int kMax = 256;
     UiPoint before[kMax];
-    int count = self->pointCount_, capacity = self->pointCapacity_;
-    bool hasData = self->points_ != nullptr;
+    int count = self->points_.size, capacity = self->points_.capacity;
+    bool hasData = self->points_.data != nullptr;
     RECT bounds = self->bounds_;
     bool enabled = self->enabled_;
-    bool complete = count >= 0 && count <= kMax && (count == 0 || self->points_);
-    if (complete && count) std::memcpy(before, self->points_, count * sizeof(UiPoint));
+    bool complete = count >= 0 && count <= kMax && (count == 0 || self->points_.data);
+    if (complete && count) std::memcpy(before, self->points_.data, count * sizeof(UiPoint));
 
     self->CUiRegion::AddPoint(x, y);
 
@@ -295,11 +295,11 @@ static void __fastcall AddPointVerify(CUiRegion* self, void*, int x, int y) {
         if (x > expected.right) expected.right = x;
         if (y > expected.bottom) expected.bottom = y;
     }
-    int expectedCapacity = ExpectedCapacity(hasData, count, capacity, self->pointGrowBy_);
-    bool ok = self->pointCount_ == count + 1 && self->pointCapacity_ == expectedCapacity && Aligned(self->points_) &&
+    int expectedCapacity = ExpectedCapacity(hasData, count, capacity, self->points_.growBy);
+    bool ok = self->points_.size == count + 1 && self->points_.capacity == expectedCapacity && Aligned(self->points_.data) &&
               std::memcmp(&self->bounds_, &expected, sizeof(RECT)) == 0 &&
-              (count == 0 || std::memcmp(self->points_, before, count * sizeof(UiPoint)) == 0) &&
-              self->points_[count].x == x && self->points_[count].y == y &&
+              (count == 0 || std::memcmp(self->points_.data, before, count * sizeof(UiPoint)) == 0) &&
+              self->points_.data[count].x == x && self->points_.data[count].y == y &&
               self->enabled_ == (enabled || count + 1 > 2);
     ei::verify::Check("CUiRegion::AddPoint", true, ok, "(%d,%d) count %d capacity %d", x, y, count, capacity);
 }
@@ -497,8 +497,8 @@ static CUiRegion* __fastcall AddRegionVerify(CUiWindow* self) {
     CUiRegion* region = self->CUiWindow::AddRegion();
     bool ok = AppendedCorrectly(before, self->regions_, region);
     if (region)
-        ok &= region->interface_ == self->interface_ && !region->points_ && region->pointCount_ == 0 &&
-              region->pointCapacity_ == 0 && region->pointGrowBy_ == 0 && !region->tip_ && !region->enabled_ &&
+        ok &= region->interface_ == self->interface_ && !region->points_.data && region->points_.size == 0 &&
+              region->points_.capacity == 0 && region->points_.growBy == 0 && !region->tip_ && !region->enabled_ &&
               !region->rectOnly_ && region->offsetX_ == 0 && region->offsetY_ == 0;
     ei::verify::Check("CUiWindow::AddRegion", true, ok, "size %d", before.size);
     return region;

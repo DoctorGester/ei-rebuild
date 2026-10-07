@@ -24,6 +24,12 @@ namespace mapspec {
 // An MFC CArray of plain elements (0x14 bytes).
 using PlainArray = mfc::CArray<std::uint8_t>;
 
+// A trap's target record (8 bytes, zero-filled when added: 0046F110).
+struct TargetRecord {
+    std::uint8_t bytes[8];
+};
+using TargetArray = mfc::CArray<TargetRecord>;
+
 // The base record (vtable 0073C5C4, 0x4C bytes).
 struct Spec {
     Chunk chunk;                 // +0x00
@@ -79,7 +85,7 @@ struct TrapSpec {
     mfc::CString spell;          // +0x90
     Vector3 origin;              // +0x94 the position when the zone loaded (00481660)
     PlainArray areas;            // +0xA0 12-byte elements (vtable 0073C68C)
-    PlainArray targets;          // +0xB4 8-byte elements (vtable 0073C680)
+    TargetArray targets;         // +0xB4 8-byte elements (vtable 0073C680)
     std::int32_t interval;       // +0xC8 (15)
     std::uint8_t castOnce;       // +0xCC
     std::uint8_t unknown_CD[3];

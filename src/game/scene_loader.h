@@ -11,6 +11,7 @@
 //   records (0x2C header each, one mesh and one node per record), then the skipped records (same
 //   format, read and dropped), then the helpers (0x3E header each).
 
+#include "../lib/containers.h"
 #include "../lib/mfc.h"
 
 #include <cstddef>
@@ -18,23 +19,51 @@
 
 namespace scene {
 
-// The tail of an MFC CArray (after its vtable): data, size, capacity, grow step (0: an eighth of the
-// size, 4..1024). Arrays of plain records allocated with `new` have a vtable before it; the
-// "aligned" arrays (vertex lists) have none and allocate 32-byte aligned blocks whose raw pointer is
-// stored just before the data.
-struct ArrayBody {
-    void* data;     // +0
-    int size;       // +4
-    int max;        // +8
-    int grow;       // +C
-};
-static_assert(sizeof(ArrayBody) == 0x10);
+// An MFC CArray of records (vtable, data, size, capacity, grow step: 0 is an eighth of the size, 4..1024)
+// seen as bytes: the scene's mesh, node, helper and figure arrays, whose records are reached through
+// byte offsets. Resize them only through a typed instantiation (scene_loader.cpp); SetSize here would
+// move one-byte elements.
+using VtArray = mfc::CArray<char, mfc::RawElements<char>>;
 
-struct VtArray {
-    std::uintptr_t vtable;   // +0
-    ArrayBody body;          // +4
+// A record the scene code only reaches through byte offsets.
+template <std::size_t K>
+struct Rec {
+    std::uint8_t bytes[K];
 };
-static_assert(sizeof(VtArray) == 0x14);
+
+// ConstructElements / DestructElements(elements, count) of an instantiation the original calls out
+// of line (`Unmake` null: nothing is destroyed).
+template <typename T, void(__stdcall* Make)(void*, int), void(__stdcall* Unmake)(void*, int) = nullptr>
+struct OriginalElements {
+    static void Construct(T* elements, int count) { Make(elements, count); }
+    static void Destruct(T* elements, int count) {
+        if constexpr (Unmake != nullptr) Unmake(elements, count);
+    }
+};
+
+// The caller's untyped array resized through the typed instantiation of the same layout.
+template <typename Records>
+Records& Typed(VtArray& a) {
+    static_assert(sizeof(Records) == sizeof(VtArray));
+    return reinterpret_cast<Records&>(a);
+}
+
+// The "aligned" arrays (vertex lists, 32-byte aligned blocks with the raw pointer stored before the
+// data; lib::AlignedArray), per element type. Positions and normals are kept as the bits that were
+// read: the loader copies some of them through the FPU, as the original does.
+struct PointBits {
+    std::uint32_t v[3];
+};
+struct UvBits {
+    std::uint32_t v[2];
+};
+using PointBuffer = lib::AlignedArray<PointBits>;
+using UvBuffer = lib::AlignedArray<UvBits>;
+struct Block64 {
+    std::uint8_t bytes[64];   // a matrix, or four normals / positions in lanes
+};
+using BlockBuffer = lib::AlignedArray<Block64>;
+using DwordBuffer = lib::AlignedArray<std::uint32_t>;
 
 // MFC CMap<DWORD, DWORD, DWORD, DWORD> (0x1C bytes) and its association (0x10 bytes).
 struct MapAssoc {
@@ -82,17 +111,18 @@ struct MeshFace {
     float distance;                // +30 the plane's distance: dot(position[1]'s point, normal)
 };
 static_assert(sizeof(MeshFace) == 0x34);
+using FaceBuffer = lib::AlignedArray<MeshFace>;
 
 // face_normal.cpp (A-S4). 0049AEC0 (__thiscall, RET 4): the face's plane from the points
 // `positions` (an array of 3-float points) holds: the edges from vertex 1 to vertex 2 and to
 // vertex 0 are normalised unless shorter than 1e-5, crossed, the result normalised (a zero
 // length gives the vector at 007A9C98), then the distance.
-void __fastcall ComputeFaceNormal(MeshFace* face, void*, const ArrayBody* positions);
+void __fastcall ComputeFaceNormal(MeshFace* face, void*, const PointBuffer* positions);
 
 // A material group (0x18): its name and the faces it uses.
 struct FaceGroup {
     mfc::CString name;        // +00
-    VtArray faces;            // +04 CDWordArray of face indices
+    mfc::CArray<std::uint32_t> faces;   // +04 CDWordArray of face indices
 };
 static_assert(sizeof(FaceGroup) == 0x18);
 

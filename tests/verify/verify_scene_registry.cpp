@@ -59,13 +59,13 @@ Outcome Capture(int result, char* unit, scene::VtArray* links, int linksFrom, sc
         o.material.push_back(At<std::uint32_t>(meshes + m * scene::mesh::kSize, 0x184));
         o.material.push_back(At<std::uint32_t>(meshes + m * scene::mesh::kSize, 0x188));
     }
-    const auto* pairs = static_cast<const std::uint32_t*>(links->body.data);
-    for (int i = linksFrom; i < links->body.size; ++i) {
+    const auto* pairs = reinterpret_cast<const std::uint32_t*>(links->data);
+    for (int i = linksFrom; i < links->size; ++i) {
         o.links.push_back(pairs[i * 2]);
         o.links.push_back(pairs[i * 2 + 1]);
     }
-    const auto* records = static_cast<const char*>(names->body.data);
-    for (int i = namesFrom; i < names->body.size; ++i) {
+    const auto* records = reinterpret_cast<const char*>(names->data);
+    for (int i = namesFrom; i < names->size; ++i) {
         o.names.emplace_back(At<int>(const_cast<char*>(records), i * 8),
                              static_cast<const char*>(At<mfc::CString>(const_cast<char*>(records), i * 8 + 4)));
     }
@@ -81,12 +81,12 @@ static int(__fastcall* s_registry)(char*, const mfc::CString*, scene::VtArray*, 
 static int __fastcall LoadFigureRegistryVerify(char* unit, const mfc::CString* path, scene::VtArray* links,
                                                scene::VtArray* names) {
     auto saved = TexCoords(unit);
-    int linksSize = links->body.size;
-    int namesSize = names->body.size;
+    int linksSize = links->size;
+    int namesSize = names->size;
     Outcome expected = Capture(s_registry(unit, path, links, names), unit, links, linksSize, names, namesSize);
     RestoreTexCoords(unit, saved);
-    links->body.size = linksSize;
-    names->body.size = namesSize;
+    links->size = linksSize;
+    names->size = namesSize;
     Outcome actual = Capture(scene::LoadFigureRegistry(unit, path, links, names), unit, links, linksSize, names,
                              namesSize);
     ei::verify::Check("LoadFigureRegistry.result", expected.result, actual.result, "");
@@ -111,8 +111,8 @@ namespace {
 // Every mesh's corner table (+0x108, 6 bytes each), pairs (+0x118, 4) and corner indices (+0x128, 2).
 std::vector<std::vector<std::uint8_t>> MeshTables(scene::VtArray* meshes) {
     std::vector<std::vector<std::uint8_t>> out;
-    for (int m = 0; m < meshes->body.size; ++m) {
-        char* mesh = static_cast<char*>(meshes->body.data) + m * scene::mesh::kSize;
+    for (int m = 0; m < meshes->size; ++m) {
+        char* mesh = reinterpret_cast<char*>(meshes->data) + m * scene::mesh::kSize;
         const std::pair<std::size_t, int> arrays[] = {{0x108, 6}, {0x118, 4}, {0x128, 2}};
         for (const auto& [offset, element] : arrays) {
             const auto* data = At<const std::uint8_t*>(mesh, offset);
@@ -132,7 +132,7 @@ static void __fastcall IndexMeshCornersVerify(scene::VtArray* meshes) {
     auto expected = MeshTables(meshes);
     scene::IndexMeshCorners(meshes);
     auto actual = MeshTables(meshes);
-    ei::verify::Check("IndexMeshCorners", true, expected == actual, "meshes %d", meshes->body.size);
+    ei::verify::Check("IndexMeshCorners", true, expected == actual, "meshes %d", meshes->size);
 }
 EI_VERIFY(0x0044CFF0, IndexMeshCornersVerify, 7, s_corners);
 

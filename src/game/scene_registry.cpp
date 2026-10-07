@@ -203,53 +203,15 @@ struct NamedType {
 };
 static_assert(sizeof(NamedType) == 8);
 
-// CArray<NamedType>::SetSize as the original inlines it (elements constructed by 004553F0,
-// destroyed by 00454360; storage from operator new).
-void SetNamedSize(VtArray& a, int size) {
-    ArrayBody& b = a.body;
-    char* data = static_cast<char*>(b.data);
-    if (size == 0) {
-        if (data) {
-            for (int i = 0; i < b.size; ++i) DestroyNamed(data + i * 8, nullptr, 0);
-            gamecrt::operator_delete(data);
-            b.data = nullptr;
-        }
-        b.max = 0;
-        b.size = 0;
-        return;
+// CArray<NamedType> (elements constructed by 004553F0, destroyed one by one by 00454360).
+struct NamedElements {
+    static void Construct(NamedType* elements, int count) { ConstructNamed(elements, count); }
+    static void Destruct(NamedType* elements, int count) {
+        for (int i = 0; i < count; ++i) DestroyNamed(&elements[i], nullptr, 0);
     }
-    if (!data) {
-        data = static_cast<char*>(gamecrt::operator_new(static_cast<std::size_t>(size) * 8));
-        b.data = data;
-        ConstructNamed(data, size);
-        b.max = size;
-        b.size = size;
-        return;
-    }
-    if (size <= b.max) {
-        if (b.size < size) {
-            ConstructNamed(data + b.size * 8, size - b.size);
-        } else if (b.size > size) {
-            for (int i = size; i < b.size; ++i) DestroyNamed(data + i * 8, nullptr, 0);
-        }
-        b.size = size;
-        return;
-    }
-    int grow = b.grow;
-    if (grow == 0) {
-        grow = b.size / 8;
-        if (grow < 4) grow = 4;
-        else if (grow > 0x400) grow = 0x400;
-    }
-    int max = size < grow + b.max ? grow + b.max : size;
-    char* fresh = static_cast<char*>(gamecrt::operator_new(static_cast<std::size_t>(max) * 8));
-    std::memcpy(fresh, data, static_cast<std::size_t>(b.size) * 8);
-    ConstructNamed(fresh + b.size * 8, size - b.size);
-    gamecrt::operator_delete(data);
-    b.data = fresh;
-    b.size = size;
-    b.max = max;
-}
+};
+using NamedArray = mfc::CArray<NamedType, NamedElements>;
+void SetNamedSize(VtArray& a, int size) { Typed<NamedArray>(a).SetSize(size); }
 
 // The registry's values for one material group (the texture section and its mapping) and the
 // group's faces' texture coordinates moved into the mapping, once each.
@@ -297,9 +259,9 @@ void MapGroup(char* unit, Registry& reg, const console::CStringArray& sections, 
         }
     }
 
-    for (int f = 0; f < At<FaceGroup*>(meshes + meshOffset, mesh::kGroups + 4)[group].faces.body.size; ++f) {
+    for (int f = 0; f < At<FaceGroup*>(meshes + meshOffset, mesh::kGroups + 4)[group].faces.size; ++f) {
         const FaceGroup& g = At<FaceGroup*>(meshes + meshOffset, mesh::kGroups + 4)[group];
-        std::uint32_t face = static_cast<const std::uint32_t*>(g.faces.body.data)[f];
+        std::uint32_t face = reinterpret_cast<const std::uint32_t*>(g.faces.data)[f];
         for (int k = 0; k < 3; ++k) {
             char* mesh = At<char*>(unit, kMeshes + 4) + meshOffset;
             std::uint32_t t = At<MeshFace*>(mesh, mesh::kFaces)[face].vertex2[k];
@@ -326,32 +288,32 @@ void RecordMaterial(char* unit, std::size_t meshOffset, const mfc::CString& grou
     At<int>(At<char*>(unit, kMeshes + 4) + meshOffset, kMaterialType) = type;
     At<int>(At<char*>(unit, kMeshes + 4) + meshOffset, kMaterialValue) = value;
 
-    auto* pairs = static_cast<int*>(links->body.data);
-    int count = links->body.size;
+    auto* pairs = reinterpret_cast<int*>(links->data);
+    int count = links->size;
     int i = 0;
     for (; i < count; ++i) {
         if (pairs[i * 2 + 1] == value && pairs[i * 2] == type) break;
     }
     if (i == count) {
         LinksSetSize(links, nullptr, count + 1, -1);
-        pairs = static_cast<int*>(links->body.data);
+        pairs = reinterpret_cast<int*>(links->data);
         pairs[count * 2] = type;
         pairs[count * 2 + 1] = value;
     }
 
     int j = 0;
-    for (; j < names->body.size; ++j) {
-        const NamedType& n = static_cast<const NamedType*>(names->body.data)[j];
+    for (; j < names->size; ++j) {
+        const NamedType& n = reinterpret_cast<const NamedType*>(names->data)[j];
         if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(n.name)),
                             reinterpret_cast<const unsigned char*>(static_cast<const char*>(texture))) == 0 &&
             n.type == textureType) {
             break;
         }
     }
-    if (j == names->body.size) {
-        int old = names->body.size;
+    if (j == names->size) {
+        int old = names->size;
         SetNamedSize(*names, old + 1);
-        NamedType& n = static_cast<NamedType*>(names->body.data)[old];
+        NamedType& n = reinterpret_cast<NamedType*>(names->data)[old];
         n.type = textureType;
         n.name = texture;
     }

@@ -64,9 +64,9 @@ EI_VERIFY(0x005FC690, SetTipTextVerify, 0, s_setTipText);
 static void(__fastcall* s_releaseContents)(CUiRegion*, void*);
 static void __fastcall ReleaseContentsVerify(CUiRegion* self, void*) {
     CUiTooltip* tip = self->tip_;
-    UiPoint* points = self->points_;
+    UiPoint* points = self->points_.data;
     self->CUiRegion::ReleaseContents();
-    ei::verify::Check("CUiRegion::ReleaseContents", true, self->tip_ == tip && self->points_ == points, "tip %p points %p",
+    ei::verify::Check("CUiRegion::ReleaseContents", true, self->tip_ == tip && self->points_.data == points, "tip %p points %p",
                       tip, points);
 }
 EI_VERIFY(0x005FC600, ReleaseContentsVerify, 0, s_releaseContents);

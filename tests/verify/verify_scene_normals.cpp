@@ -33,37 +33,37 @@ struct Recorded {
 void(__fastcall* s_normals)(VtArray*);
 void __fastcall NormalsVerify(VtArray* meshes) {
     s_normals(meshes);
-    std::vector<Recorded> expected(meshes->body.size > 0 ? meshes->body.size : 0);
-    for (int m = 0; m < meshes->body.size; ++m) {
-        char* mesh = static_cast<char*>(meshes->body.data) + m * mesh::kSize;
-        auto& normals = At<ArrayBody>(mesh, 0xF8);
-        auto& blocks = At<ArrayBody>(mesh, 0xB8);
-        auto* n = static_cast<float*>(normals.data);
-        auto* b = static_cast<float*>(blocks.data);
+    std::vector<Recorded> expected(meshes->size > 0 ? meshes->size : 0);
+    for (int m = 0; m < meshes->size; ++m) {
+        char* mesh = reinterpret_cast<char*>(meshes->data) + m * mesh::kSize;
+        auto& normals = At<lib::AlignedArray<std::uint8_t>>(mesh, 0xF8);
+        auto& blocks = At<lib::AlignedArray<std::uint8_t>>(mesh, 0xB8);
+        auto* n = reinterpret_cast<float*>(normals.data);
+        auto* b = reinterpret_cast<float*>(blocks.data);
         expected[m].normals.assign(n, n + normals.size * 3);
         expected[m].blocks.assign(b, b + blocks.size * 16);
     }
     ComputeMeshNormals(meshes);
     bool ok = true;
     int bad = -1;
-    for (int m = 0; ok && m < meshes->body.size; ++m) {
-        char* mesh = static_cast<char*>(meshes->body.data) + m * mesh::kSize;
-        auto& normals = At<ArrayBody>(mesh, 0xF8);
-        auto& blocks = At<ArrayBody>(mesh, 0xB8);
+    for (int m = 0; ok && m < meshes->size; ++m) {
+        char* mesh = reinterpret_cast<char*>(meshes->data) + m * mesh::kSize;
+        auto& normals = At<lib::AlignedArray<std::uint8_t>>(mesh, 0xF8);
+        auto& blocks = At<lib::AlignedArray<std::uint8_t>>(mesh, 0xB8);
         if (static_cast<std::size_t>(normals.size) * 3 != expected[m].normals.size() ||
             static_cast<std::size_t>(blocks.size) * 16 != expected[m].blocks.size()) {
             ok = false;
             bad = m;
             break;
         }
-        const float* n = static_cast<float*>(normals.data);
+        const float* n = reinterpret_cast<float*>(normals.data);
         for (std::size_t i = 0; ok && i < expected[m].normals.size(); ++i)
             if (!ei::verify::NearlyEqual(expected[m].normals[i], n[i], 4, 1e-6f)) ok = false, bad = m;
-        const float* b = static_cast<float*>(blocks.data);
+        const float* b = reinterpret_cast<float*>(blocks.data);
         for (std::size_t i = 0; ok && i < expected[m].blocks.size(); ++i)
             if (!ei::verify::NearlyEqual(expected[m].blocks[i], b[i], 4, 1e-6f)) ok = false, bad = m;
     }
-    ei::verify::Check("ComputeMeshNormals", true, ok, "mesh %d of %d", bad, meshes->body.size);
+    ei::verify::Check("ComputeMeshNormals", true, ok, "mesh %d of %d", bad, meshes->size);
 }
 
 // 0044E3B0: SUB ESP,0x14 (3), PUSH EBX (1), MOV EBX,ECX (2). The original first, then ours over
@@ -72,16 +72,16 @@ void(__fastcall* s_pack)(void*);
 void __fastcall PackVerify(void* unit) {
     s_pack(unit);
     VtArray& meshes = At<VtArray>(unit, 0x544);
-    std::vector<std::vector<std::uint32_t>> expected(meshes.body.size > 0 ? meshes.body.size : 0);
-    for (int m = 0; m < meshes.body.size; ++m) {
-        auto& blocks = At<ArrayBody>(static_cast<char*>(meshes.body.data) + m * mesh::kSize, 0xA8);
-        auto* b = static_cast<std::uint32_t*>(blocks.data);
+    std::vector<std::vector<std::uint32_t>> expected(meshes.size > 0 ? meshes.size : 0);
+    for (int m = 0; m < meshes.size; ++m) {
+        auto& blocks = At<lib::AlignedArray<std::uint8_t>>(reinterpret_cast<char*>(meshes.data) + m * mesh::kSize, 0xA8);
+        auto* b = reinterpret_cast<std::uint32_t*>(blocks.data);
         expected[m].assign(b, b + blocks.size * 16);
     }
     PackMeshPositions(unit);
     bool ok = true;
-    for (int m = 0; ok && m < meshes.body.size; ++m) {
-        auto& blocks = At<ArrayBody>(static_cast<char*>(meshes.body.data) + m * mesh::kSize, 0xA8);
+    for (int m = 0; ok && m < meshes.size; ++m) {
+        auto& blocks = At<lib::AlignedArray<std::uint8_t>>(reinterpret_cast<char*>(meshes.data) + m * mesh::kSize, 0xA8);
         ok = static_cast<std::size_t>(blocks.size) * 16 == expected[m].size() &&
              (expected[m].empty() || std::memcmp(blocks.data, expected[m].data(), expected[m].size() * 4) == 0);
     }

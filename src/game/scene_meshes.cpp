@@ -230,12 +230,12 @@ void BuildPairs(char* mesh) {
 // meshes and freed at the end.
 void __fastcall IndexMeshCorners(VtArray* meshes) {
     RecordArray records{reinterpret_cast<void*>(0x0073C19C), nullptr, 0, 0, 0};
-    for (int m = 0; m < meshes->body.size; ++m) {
+    for (int m = 0; m < meshes->size; ++m) {
         CornerMap corners = NewMap<CornerMap>(0x0073C190);
         IndexMap indices = NewMap<IndexMap>(0x0073C184);
-        BuildCornerTable(static_cast<char*>(meshes->body.data) + m * mesh::kSize, records, corners, indices);
-        IndexFaceCorners(static_cast<char*>(meshes->body.data) + m * mesh::kSize);
-        BuildPairs(static_cast<char*>(meshes->body.data) + m * mesh::kSize);
+        BuildCornerTable(reinterpret_cast<char*>(meshes->data) + m * mesh::kSize, records, corners, indices);
+        IndexFaceCorners(reinterpret_cast<char*>(meshes->data) + m * mesh::kSize);
+        BuildPairs(reinterpret_cast<char*>(meshes->data) + m * mesh::kSize);
         DestroyMap(indices, 0x0073C184);
         corners.vtable = reinterpret_cast<void*>(0x0073C190);
         CornersDestruct(&corners);
