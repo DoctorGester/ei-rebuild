@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 
+class CParty;
 class ChunkArchive;
 
 struct PartyRecord {
@@ -31,6 +32,14 @@ struct NamedPartyRecords {
     // 004A64B0 (RET 4; party_manager.cpp). Chunk 1: the records as object references (field 1 per
     // chunk 1; loading releases the old ones first); then the strings as fields 2 and 3.
     void Serialize(ChunkArchive* ar);
+    // The redeploy (004A8890 / 004A8880; party_manager.cpp), RET 4 each. The record a name picks is
+    // found as PartyRecordsFind does (the unnamed one when no record has the name).
+    // 004A6050. The record named text10 gets a copy of `party` (SaveParty / LoadParty through a
+    // memory stream); then every record's party gets `party`'s variables, zone name and +0x6C.
+    void BeginRedeploy(CParty* party);
+    // 004A6360. `party` gets a copy of the record named text0C, or is cleared (Clear(1, 0)) when
+    // there is none; then text10 = text0C.
+    void EndRedeploy(CParty* party);
 };
 static_assert(sizeof(NamedPartyRecords) == 0x14);
 

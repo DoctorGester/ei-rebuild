@@ -7,6 +7,7 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "originals_gameplay.h"
+#include "originals_library.h"
 #include "party.h"
 
 #include "ei/hook.h"
@@ -24,6 +25,8 @@ __declspec(naked) void __fastcall PartyMapClear(PartyMap* /*map*/) EI_ORIGINAL(0
 __declspec(naked) void __fastcall EntriesResize(stlp::vector<PartyManagerEntry>* /*v*/, void*, unsigned /*n*/) EI_ORIGINAL(0x004ADAA0)
 __declspec(naked) void __fastcall RecordsResize(stlp::vector<PartyRecord*>* /*v*/, void*, unsigned /*n*/) EI_ORIGINAL(0x004AD700)
 __declspec(naked) void __fastcall TemplatesResize(ClassTemplateVector* /*v*/, void*, unsigned /*n*/) EI_ORIGINAL(0x004AD8D0)
+// hash_map<CString, float>::operator= (the party's variables): clear, then copy_from.
+__declspec(naked) void __fastcall FloatTableAssign(PartyVariableMap* /*table*/, void*, const PartyVariableMap* /*source*/) EI_ORIGINAL(0x004A8AD0)
 __declspec(naked) void __fastcall IdsResize(stlp::vector<int>* /*v*/, void*, unsigned /*n*/, const int* /*value*/) EI_ORIGINAL(0x004AE3A0)
 
 // The records and templates are reference-counted objects (root vtable 0073BB68) held by counted
@@ -199,6 +202,45 @@ void NamedPartyRecords::Serialize(ChunkArchive* ar) {
     ar->CStringField(3, &text10);
 }
 EI_REPLACE_METHOD(0x004A64B0, NamedPartyRecords::Serialize);
+
+// ---- Redeploy -------------------------------------------------------------------------------------
+
+namespace {
+
+// `to` becomes a copy of `from` (with variables) through a memory stream, as the original inlines
+// it (CParty::Assign without its Clear).
+void CopyParty(CParty* to, CParty* from) {
+    LocalStream local;
+    from->SaveParty(&local.stream, 1);
+    local.stream.CMemoryStream::Seek(0);
+    to->LoadParty(&local.stream, 1);
+}
+
+CParty* RecordParty(PartyRecord* record) { return reinterpret_cast<CParty*>(record->party); }
+
+} // namespace
+
+void NamedPartyRecords::BeginRedeploy(CParty* party) {
+    if (auto* found = static_cast<CParty*>(PartyRecordsFind(this, nullptr, text10))) CopyParty(found, party);
+    PartyVariableMap variables;
+    FloatTableCopyConstructOriginal(&variables, nullptr, &party->variables_);
+    mfc::CString zone(party->zone_);
+    for (PartyRecord* record : records) {
+        CParty* target = RecordParty(record);
+        FloatTableAssign(&target->variables_, nullptr, &variables);
+        target->zone_ = zone;
+        target->unknown_6C = party->unknown_6C;
+    }
+    variables.Destroy();
+}
+EI_REPLACE_METHOD(0x004A6050, NamedPartyRecords::BeginRedeploy);
+
+void NamedPartyRecords::EndRedeploy(CParty* party) {
+    if (auto* found = static_cast<CParty*>(PartyRecordsFind(this, nullptr, text0C))) CopyParty(party, found);
+    else party->Clear(1, 0);
+    text10 = text0C;
+}
+EI_REPLACE_METHOD(0x004A6360, NamedPartyRecords::EndRedeploy);
 
 // ---- Load and save --------------------------------------------------------------------------------
 
