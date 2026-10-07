@@ -93,6 +93,12 @@ struct AnimationSteps {
 };
 static_assert(sizeof(AnimationSteps) == 0x18);
 
+// combat_save.cpp (A-U7). 005582A0 / 00558420 (__fastcall, plain RET): a step list from / to a
+// save: the count (Load: SetSize to it, growth step kept; a count the stream did not deliver is
+// the original's stack garbage, ours 0), then each step's 12 bytes. `extra` is not part of it.
+void __fastcall LoadStepList(AnimationSteps* steps, UnitStream* stream);
+void __fastcall SaveStepList(const AnimationSteps* steps, UnitStream* stream);
+
 // The plan of an order (0x44 bytes; CUnitServer + 0xC4 holds the current one): its animation, when
 // it starts and ends, and what it aims at. 0054CA40 fills it.
 struct OrderPlan {
@@ -198,6 +204,15 @@ struct ArmourSpell {
     std::uint8_t unknown_9[3];
 };
 static_assert(sizeof(ArmourSpell) == 0xC);
+using ArmourSpellList = mfc::CList<ArmourSpell>;
+
+// combat_save.cpp (A-U7). 00545430 (thiscall on the entry, RET 4): the item's id (-1 without one)
+// and the countdown. 005585F0 (__fastcall, plain RET): the list from a save: `count` new entries
+// appended (no item, countdown 0; the original's `worn` byte is stack garbage, ours 0), then each
+// entry from the head takes its item (the item manager's object of the id read, referenced) and
+// countdown.
+void __fastcall SaveArmourSpell(const ArmourSpell* entry, void*, UnitStream* stream);
+void __fastcall LoadArmourSpells(ArmourSpellList* list, UnitStream* stream);
 
 class CUnitServer : public CEngineObject {
 public:
@@ -763,7 +778,7 @@ public:
     std::uint8_t unknown_90C[0x914 - 0x90C];
     int speedClass;                 // +0x914
     std::uint8_t unknown_918[0x91C - 0x918];
-    mfc::CList<ArmourSpell> armourSpells;   // +0x91C periodic spells of the worn items (vtable 0073F010, blocks of 10)
+    ArmourSpellList armourSpells;   // +0x91C periodic spells of the worn items (vtable 0073F010, blocks of 10)
     int unknown_938;                // +0x938 cleared when an order starts and by the move style /
                                     //        wanted weapon setters
     std::uint8_t unknown_93C[4];

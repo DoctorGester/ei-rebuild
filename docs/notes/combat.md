@@ -132,12 +132,13 @@ around both runs and compared too.
 | 00545580, 00545990 | CUnitServer::Construct, AIBrain::Construct (combat_lifetime.cpp, A-U7) | output: the original into a scratch copy of the raw memory, every byte compared (verify_map_object_lifetime.cpp) |
 | 00545CB0, 005457E0 | AIBrain::DestructMemory (this = brain + 0xD0), AIBrain::Destruct | ours only (vtables, lists empty, no target / seen / modes) |
 | 00545110 | OrderPlan::TakeSteps | output: original on a deep copy of plan and argument, fields and steps compared |
+| 00558420, 00545430 / 005582A0, 005585F0 | SaveStepList, SaveArmourSpell / LoadStepList, LoadArmourSpells (combat_save.cpp; +0x91C is the armour spell list, not "attackers") | saves: both into capture streams / loads: ours through a recorder, step lists round-tripped through the original save (verify_combat_save_lists.cpp; world_load, ui_saveload) |
 
 Not on the Rebirth list except 0054B580 (above); the patched callee 005935C0 is reached through its address.
 
 ## Original bugs and oddities kept on purpose
 
-- A-U7: TakeSteps clears isCast twice; the controller constructor sizes the movement list with SetSize(0) out of line and the idle list inline.
+- A-U7: TakeSteps clears isCast twice; LoadArmourSpells' new entries carry a stack byte in `worn` (ours 0) and its second loop reads an id and countdown for every entry of the list, old ones included; an unread step-list count is stack garbage (ours 0); the controller constructor sizes the movement list with SetSize(0) out of line and the idle list inline.
 
 - A-U5: SetMoveStyle sends message 9 when the style fits (even the current one); OrderTame compares the target's +0x18 (not type_) with 0x32; OrderSearchBody wants a dead target; PlayAnimation reads the entry's index byte as a dword; StopAction always ends with the queued order of kind 0.
 
@@ -163,15 +164,14 @@ Not on the Rebirth list except 0054B580 (above); the patched callee 005935C0 is 
 ## Skipped and why
 
 - 0055E990: Rebirth-patched. 00552F30 (slot 53: calls its own slot 45 through the vtable; CUnitServer declares no vtable). AI forwarders added: 005CEED0 AttentionRebuild, 005CCBF0 CallsDropClaims, 005CBBC0 MemoryAddCall (originals_ai.h).
-- 0054C8B0 / 0054C960: return the FPU status word in AX on one path (callers test AL; always called through the address). 00552780 (shout), 005585F0 / 00545430
-  (attackers list).
+- 0054C8B0 / 0054C960: return the FPU status word in AX on one path (callers test AL; always called through the address). 00552780 (shout).
 - 00536670 / 00535CB0 / 005381B0 (CUnitClientSpecific figure and armour model lists); containers, CArchive lists (00556E10-00558700), world managers other than CreateManagers.
 
 ## A-U7
 
 - Constructor members (now named in `combat.h`): +0x24 `queue`, +0x3C `motion` (AIPath, built by AIPath::Construct 006706A0 = the inlined 00545750 x2 / 00557230 / 005B23A0), +0x148 `savedQueue`, +0x91C `armourSpells` (CList, vtable 0073F010), +0x940 / +0x944 / +0x95C / +0x960 move and idle keys and lists (0x666DEAD, extra -1), +0x978 `actionDone`, +0xB10 `voice` (005AEA50 zeroes it); sizeof 0xB20. The brain's +0xD0 and +0xD8 are both sight caches {0, -1.0}.
 - Reach: every spawn (constructors). 00545CB0 through 00546230 when a unit is deleted (zone changes). 005457E0 only from unwind funclets. 00545110 only for a queued order of kind 10, whose one setter 005557E0 is dead code: no scenario can reach it.
-- 0x5576C0-0x559000: 21 functions are MFC template code (added to config/library.csv). Game code left there: 005582A0 / 00558420 (AnimationSteps load / save on the game stream), 005585F0 (attackers list load), 00558FA0 (a save on the game stream, from 00559E60), 005587A0 (a mode reference's destructor), 00558840 (armour spell element assignment), 00558CA0 / 00558CC0 / 00558CE0 (the memory records' deleting destructors and a reference reset).
+- 0x5576C0-0x559000: 21 functions are MFC template code (added to config/library.csv). Game code left there: 00558FA0 (a save on the game stream, from 00559E60), 005587A0 (a mode reference's destructor), 00558840 (armour spell element assignment), 00558CA0 / 00558CC0 / 00558CE0 (the memory records' deleting destructors and a reference reset).
 
 ## Risks
 
