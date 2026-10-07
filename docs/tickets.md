@@ -51,7 +51,7 @@ Builds and the suite can't run until the PC is rebooted (memory: process-zombie 
 3. Merge A-H15 players/sound: worktree-agent-a4c370962466aabe8, head 61301bf (29 + 11 library).
 4. Merge A-S9 scripts: worktree-agent-a51e508a53d867bc4, head db11956 (20 + 39 library).
 5. Merge A-U7 units: worktree-agent-a598d0f2ff4a3dcaf, head 7e22909 (37 + 45 library; already reconciled with A-U6).
-6. Build, fix and merge the drafts (section "Draft passes"): DR-C1 on branch draft-dr-c1, DR-C2 on its worktree branch, DR-H16 on draft-dr-h16. Each has notes in docs/notes/drafts/.
+6. Build, fix and merge the drafts (section "Draft passes") in this order: DR-C2 (slot names), DR-C3 (after A-U7), DR-C1, DR-C4, DR-C5, DR-H16. Each has notes in docs/notes/drafts/.
 7. Republish the dashboard. Remove worktrees whose branches are merged.
 
 ## Draft passes (no build, 2026-10-07)
@@ -61,7 +61,7 @@ The PC can't build or run the suite until a reboot (process-zombie leak, memory 
 - DR-C2 (drafted, 102 slots named; branch worktree-agent-a08350e7d77d16777, head c05589b; low-confidence names in its notes): name the placeholder virtuals (SlotNN) in map_object.h, unit.h, world.h, map_object_figures.h, party.h (102 of 123) and update their callers.
 - DR-C3 (drafted: all 3 files, 14 VCalls left in net_state for DR-C2's slot names; head 52430cc; its CUnitServer members overlap A-U7's (queue +0x24, savedQueue +0x148, itemSpells/armourSpells +0x91C, voice +0xB10): merge A-U7 first and take its names; branch draft-dr-c3 in worktree agent-a2cd3e0425537b848): cleanup draft of unit_motion_tick.cpp, combat_motion.cpp, net_state.cpp (At<>/Field<> 283, VCall 28+).
 - DR-C5 (taken; branch draft-dr-c5 in worktree agent-abcd1eeb0aab855a0): cleanup draft of ui_hud.cpp, ui_surface_create.cpp, world_client_draw.cpp.
-- DR-C4 (taken; branch draft-dr-c4 in worktree agent-a116a5a6e1c9b6cb7): cleanup draft of world_savefile.cpp, world_save.cpp, item_stock.cpp (VCall 59 between them, plus their At<>/Field<>); then the server message handler table, looking for handlers missing from functions.csv as DR-H16 found on the client side.
+- DR-C4 (drafted: 3 files clean, head 976571a; needs DR-C2 first with signatures CWorld::PlayerList()->CEngineObject* (20), ItemFactory()->CEngineObject* (18), CUnitController::RefreshVitals(char) (19), CParty::ItemConstructor()->CItemConstructor* (16); 13 server handlers missing from functions.csv listed in its notes (0066F890 login, 0066FA90, 00670CE0, 0066FAC0, 006708D0, 00670820, 00670960, 006709D0, 00670810, 00670A40, 00670A90, 0066FB70, 00670B20); branch draft-dr-c4 in worktree agent-a116a5a6e1c9b6cb7): cleanup draft of world_savefile.cpp, world_save.cpp, item_stock.cpp (VCall 59 between them, plus their At<>/Field<>); then the server message handler table, looking for handlers missing from functions.csv as DR-H16 found on the client side.
 - DR-H16 (drafted: 9 functions + wrappers, 23 missing client handlers added to functions.csv; head 3013405; needs function_sizes.inc regenerated with Ghidra running; branch draft-dr-h16 in worktree agent-a3e4cab37d7cedfc9): porting draft, options/keyboard screens 00651940 / 00651350 / 00651600 / 00652200 / 00651D70 / 006524A0, widgets 0065B8B0 / 0065D150 / 0065C610; plus the client message handlers missing from config/functions.csv (objects.md).
 
 ## Verify checks
