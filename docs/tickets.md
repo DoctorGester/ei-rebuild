@@ -43,6 +43,13 @@ Mark a ticket taken by adding the date; remove it when merged.
 - A-S done 2026-10-05 (40 functions in 0x004B0000-0x004C0000). A-S2 (cut off by the usage limit; 20 functions merged). A-S4 done (37; 78 quantiser functions marked dead). A-S5 done (28; 25 library, 5 dead). A-S6 done (24). A-S7 done (33). A-S8 done 2026-10-07 (20; 31 library, 33 dead; next candidates in script.md "Next candidates in this range"). A-S3 done 2026-10-05 (38 functions; leftovers: .mob reader 00481660 / 00481F00, particle attach 004849F0 / 00484C00, colour quantisation 0049BEA0). Was: scripts 0x004C0000-0x00500000 plus the 0x00480000-0x004B0000 leftovers.
 
 
+## Draft passes (no build, 2026-10-07)
+
+The PC can't build or run the suite until a reboot (process-zombie leak, memory notes). These tickets write code on their own branches without building and leave a notes file docs/notes/drafts/<ticket>.md saying what is drafted, what is unverified and where they stopped. A later worker builds, fixes and finishes each one.
+- DR-C1 (taken): cleanup draft of world_client_maps.cpp, world_units.cpp, world_game.cpp (At<>/Field<> 470, VCall 106 between them).
+- DR-C2 (taken): name the placeholder virtuals (SlotNN) in map_object.h, unit.h, world.h, map_object_figures.h, party.h (102 of 123) and update their callers.
+- DR-H16 (taken): porting draft, options/keyboard screens 00651940 / 00651350 / 00651600 / 00652200 / 00651D70 / 006524A0, widgets 0065B8B0 / 0065D150 / 0065C610; plus the client message handlers missing from config/functions.csv (objects.md).
+
 ## Verify checks
 
 
