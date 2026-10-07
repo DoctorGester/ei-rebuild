@@ -8,6 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 
+class CEngineObject;
 class CInterface3D;
 class CItem;
 namespace mfc { class CString; }
@@ -447,3 +448,18 @@ __declspec(naked) inline void* __fastcall ViewInputConstructOriginal(void* /*mem
 __declspec(naked) inline void __fastcall BriefingLoadPersonTextsOriginal(void* /*screen*/) EI_ORIGINAL(0x00607720)
 __declspec(naked) inline int __fastcall GameCanLeaveZoneOriginal(void* /*glue*/, void*, void* /*records*/, int /*exit*/,
                                                                  void* /*second*/) EI_ORIGINAL(0x00578A20)
+
+// A-I15. The client world (007AF5B8, thiscall, RET 4): 00565D00 the unit drawn at a screen point (the point's x, y; EAX
+// the object or null); 00566100 selects `unit` (null: clears the selection; no result).
+__declspec(naked) inline CEngineObject* __fastcall ClientUnitAtOriginal(void* /*world*/, void*, const int* /*point*/)
+    EI_ORIGINAL(0x00565D00)
+__declspec(naked) inline void __fastcall ClientWorldSelectOriginal(void* /*world*/, void*, void* /*unit*/)
+    EI_ORIGINAL(0x00566100)
+// The local view's orders (rewritten as CPlayerClient::SendWalk / SendAttack; through their address so the wrappers
+// run): 0066A7D0 walk (units, point, run; RET 0xC), 0066A880 attack (units, target, how, ctrl; RET 0x10). `units` is an
+// mfc::CArray<CUnit*>. Both return 1.
+__declspec(naked) inline int __fastcall LocalViewSendWalkOriginal(void* /*view*/, void*, const void* /*units*/,
+                                                                 const float* /*to*/, int /*run*/) EI_ORIGINAL(0x0066A7D0)
+__declspec(naked) inline int __fastcall LocalViewSendAttackOriginal(void* /*view*/, void*, const void* /*units*/,
+                                                                   void* /*target*/, int /*how*/, int /*ctrl*/)
+    EI_ORIGINAL(0x0066A880)

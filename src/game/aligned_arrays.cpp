@@ -30,6 +30,7 @@ void __fastcall ShortArraySetSize(Words* a, void*, int n, int growBy) { a->SetSi
 EI_REPLACE(0x0044FA90, ShortArraySetSize);
 void __fastcall DwordArraySetSize(Dwords* a, void*, int n, int growBy) { a->SetSize(n, growBy); }
 EI_REPLACE(0x0044F540, DwordArraySetSize);
+EI_REPLACE(0x005E6810, DwordArraySetSize);   // byte-identical copy (interface)
 void __fastcall DwordArraySetSize2(Dwords* a, void*, int n, int growBy) { a->SetSize(n, growBy); }
 EI_REPLACE(0x004513A0, DwordArraySetSize2);
 void __fastcall DwordArraySetSize3(Dwords* a, void*, int n, int growBy) { a->SetSize(n, growBy); }
@@ -72,6 +73,7 @@ EI_REPLACE(0x0044F410, Vector3ArrayCopy);
 // ---- Allocate(count) (the aligned data pointer) -------------------------------------------------
 std::uint32_t* __fastcall AllocateDwords(int count) { return Dwords::Allocate(count); }
 EI_REPLACE(0x00453A10, AllocateDwords);
+EI_REPLACE(0x00600A80, AllocateDwords);   // byte-identical copy (the interface's UiPtrArray)
 Blob<6>* __fastcall AllocateWords6(int count) { return lib::AlignedArray<Blob<6>>::Allocate(count); }
 EI_REPLACE(0x00452E90, AllocateWords6);
 Blob<8>* __fastcall AllocateQwords(int count) { return Qwords::Allocate(count); }
@@ -94,6 +96,13 @@ void FreeAt(void* self, std::size_t offset) {
 } // namespace
 void __fastcall ArrayFree1(lib::AlignedArray<std::uint8_t>* a) { a->FreeData(); }
 EI_REPLACE(0x0044F1B0, ArrayFree1);
+// Byte-identical copies in the interface (A-I15): the window arrays' frees.
+EI_REPLACE(0x00600330, ArrayFree1);
+EI_REPLACE(0x00600350, ArrayFree1);
+EI_REPLACE(0x00600370, ArrayFree1);
+EI_REPLACE(0x00600390, ArrayFree1);
+EI_REPLACE(0x006003B0, ArrayFree1);
+EI_REPLACE(0x00601B50, ArrayFree1);
 void __fastcall ArrayFree2(lib::AlignedArray<std::uint8_t>* a) { a->FreeData(); }
 EI_REPLACE(0x0044FA70, ArrayFree2);
 void __fastcall ArrayFree3(lib::AlignedArray<std::uint8_t>* a) { a->FreeData(); }

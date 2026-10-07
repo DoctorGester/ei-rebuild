@@ -81,6 +81,7 @@ public:
     T* end() const { return finish_; }
     std::size_t size() const { return static_cast<std::size_t>(finish_ - start_); }
     T& back() const { return finish_[-1]; }
+    T& operator[](std::size_t i) const { return start_[i]; }
 
     void push_back(const T& x) {
         if (finish_ != eos_) {

@@ -1,0 +1,27 @@
+# Interface screen 7 (docs/notes/ui.md, section 4): the debug view asked for as the global map's
+# buttons ask for screens. Its Create (0062A830) adds the picked units' input (005EB8C0) and turns
+# the camera; the clicks reach the input's left / right button handlers (005EB940 / 005EBB40;
+# the party left the world with the request, so no unit is picked), Ctrl its cursor keys
+# (005EBB80 / 005EBBC0) and Space toggles the server's pause flag twice.
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+screen 7
+wait 3000
+click 400 300
+wait 300
+click 200 200
+wait 300
+key ctrl
+wait 300
+key space
+wait 300
+key space
+wait 300
+rclick 400 300
+wait 300
+report
+quit

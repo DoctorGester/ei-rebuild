@@ -64,9 +64,6 @@ constexpr std::uint32_t kLabelColour = 0xA7D7E4;
 const char* NoZone() { return reinterpret_cast<const char*>(0x007846F0); }         // "none"
 const char* ZoneVariablePrefix() { return reinterpret_cast<const char*>(0x007900E8); }   // "z."
 
-// 00565D00: the client world's unit drawn at a screen point (thiscall, RET 4: the point's x, y).
-__declspec(naked) CEngineObject* __fastcall ClientUnitAtAt(void* /*world*/, void*, const int* /*point*/)
-    EI_ORIGINAL(0x00565D00)
 // 006078C0: a topic's title (thiscall on the screen, RET 8: out, the topic's name; returns out).
 __declspec(naked) mfc::CString* __fastcall TopicTitleAt(CBriefingScreen*, void*, mfc::CString* /*out*/,
                                                         const char* /*topic*/) EI_ORIGINAL(0x006078C0)
@@ -114,7 +111,7 @@ void CBriefingScreen::OnLeftDown(int buttons, int x, int y) {
     switch (state_) {
     case 0: {
         int point[2] = {x, y};
-        CEngineObject* object = ClientUnitAtAt(ClientWorld(), nullptr, point);
+        CEngineObject* object = ClientUnitAtOriginal(ClientWorld(), nullptr, point);
         if (IsPerson(object)) {
             if (CanTalk(object)) {
                 interface_->PlaySound(ClickSound(), 0);
@@ -173,7 +170,7 @@ void CBriefingScreen::OnMouseMove(int buttons, int x, int y) {
     if (interface_->rightDown_ || state_ != 0) return;
 
     int point[2] = {x, y};
-    CEngineObject* object = ClientUnitAtAt(ClientWorld(), nullptr, point);
+    CEngineObject* object = ClientUnitAtOriginal(ClientWorld(), nullptr, point);
     if (IsPerson(object)) {
         int id = object->id_;
         if (IsNetworkClientOriginal() && leader_ && leader_->id_ == id) return;
@@ -220,7 +217,7 @@ void CBriefingScreen::OnLeftDouble(int buttons, int x, int y) {
         return;
     }
     int point[2] = {x, y};
-    CEngineObject* object = ClientUnitAtAt(ClientWorld(), nullptr, point);
+    CEngineObject* object = ClientUnitAtOriginal(ClientWorld(), nullptr, point);
     if (IsPerson(object)) {
         for (BriefingMover* mover = movers_->next; mover != movers_; mover = mover->next)
             if (mover->person->id_ == object->id_) return;

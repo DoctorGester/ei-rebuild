@@ -169,3 +169,54 @@ static void __fastcall HeroCreateVerify(CMpHeroScreen* self) {
     ei::verify::Check("CMpHeroScreen::CreateHero", true, ok, "mode %d -> %d", mode, self->mode_);
 }
 EI_VERIFY(0x006186F0, HeroCreateVerify, 0, s_unused);
+// --- 0061A350 / 00617E40 / 00615940: ours only ------------------------------------------------------
+// The record's file name equals the source's after the assignment; a delete with a selection
+// leaves one record fewer, the selection within the list (or -1 for an empty one) and the top row
+// in range; the message box's answer ends in mode 9 (00615D30 by address). ui_hero_delete.
+
+namespace {
+std::uint32_t MpHeroTotal() {
+    return static_cast<std::uint32_t>(static_cast<int>(MpHeroes().end - MpHeroes().begin) / kMpHeroSize);
+}
+} // namespace
+
+static MpHeroRecord* __fastcall HeroAssignVerify(MpHeroRecord* self, void*, const MpHeroRecord* other) {
+    MpHeroRecord* result = self->Assign(other);
+    ei::verify::Check("MpHeroRecord::Assign", true, result == self && std::strcmp(self->file, other->file) == 0, "");
+    return result;
+}
+EI_VERIFY(0x0061A350, HeroAssignVerify, 0, s_unused);
+
+// 00619540 / 00619560 (a hero made by 00617A50 and its temporary): the file name empty after the
+// constructor; the destructor runs alone (ui_hero_delete).
+static MpHeroRecord* __fastcall HeroConstructVerify(MpHeroRecord* self, void*) {
+    MpHeroRecord* result = self->Construct();
+    ei::verify::Check("MpHeroRecord::Construct", true, result == self && self->file.GetLength() == 0, "");
+    return result;
+}
+EI_VERIFY(0x00619540, HeroConstructVerify, 0, s_unused);
+static void __fastcall HeroDestructVerify(MpHeroRecord* self, void*) {
+    self->Destruct();
+    ei::verify::Check("MpHeroRecord::Destruct", true, true, "");
+}
+EI_VERIFY(0x00619560, HeroDestructVerify, 0, s_unused);
+
+static void __fastcall HeroDeleteVerify(CMpHeroScreen* self, void*) {
+    std::uint32_t before = MpHeroTotal();
+    int index = self->heroIndex_;
+    bool selected = index >= 0 && static_cast<std::uint32_t>(index) < before;
+    self->DeleteHero();
+    std::uint32_t after = MpHeroTotal();
+    bool ok = selected ? after + 1 == before && self->heroIndex_ < static_cast<int>(after) && self->heroIndex_ >= -1 &&
+                             self->heroTop_ >= 0
+                       : after == before;
+    ei::verify::Check("CMpHeroScreen::DeleteHero", true, ok, "count %u -> %u index %d -> %d top %d", before, after, index,
+                      self->heroIndex_, self->heroTop_);
+}
+EI_VERIFY(0x00617E40, HeroDeleteVerify, 0, s_unused);
+
+static void __fastcall HeroMessageVerify(CMpHeroScreen* self, void*, int result) {
+    self->OnMessageResult(result);
+    ei::verify::Check("CMpHeroScreen::OnMessageResult", 9, self->mode_, "result %X", result);
+}
+EI_VERIFY(0x00615940, HeroMessageVerify, 0, s_unused);

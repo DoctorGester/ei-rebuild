@@ -352,7 +352,7 @@ void COptionsWindow::Update() {
             } else if (id == kSettingVolumeC) {
                 Global<UiSoundSystem*>(0x007AF784)->SetVolumeC(value);
             } else if (id >= kSettingGammaFirst && id <= kSettingGammaLast) {
-                const OptionSetting* gamma = settings_ + kSettingGammaFirst;
+                const OptionSetting* gamma = settings_.begin() + kSettingGammaFirst;
                 float r = StoreRounded(static_cast<double>(gamma[0].value_) * kGammaScale - 1.0f);
                 float g = StoreRounded(static_cast<double>(gamma[1].value_) * kGammaScale - 1.0f);
                 float b = StoreRounded(static_cast<double>(gamma[2].value_) * kGammaScale - 1.0f);
@@ -397,6 +397,18 @@ EI_REPLACE(0x00650A20, OptionsRedraw);
 EI_REPLACE(0x006508E0, OptionsDialogResult);
 EI_REPLACE(0x00650900, OptionsHelpTopic);
 EI_REPLACE_METHOD(0x00650A30, COptionsWindow::Update);
+
+// --- 0062B180: the destructor body ------------------------------------------------------------------
+
+void COptionsWindow::DestroyOptions() {
+    groupNames_.Destruct();
+    for (OptionSetting& setting : settings_) setting.text_.~CString();
+    settings_.FreeStorage();
+    for (OptionBinding& binding : bindings_) binding.Destroy();
+    bindings_.FreeStorage();
+    DestroyContainerBody(this);   // 00600BA0 by address: its wrapper runs
+}
+EI_REPLACE_METHOD(0x0062B180, COptionsWindow::DestroyOptions);
 
 // --- Scroll bar --------------------------------------------------------------------------------
 

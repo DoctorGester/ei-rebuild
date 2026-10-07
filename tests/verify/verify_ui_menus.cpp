@@ -245,10 +245,10 @@ EI_VERIFY(0x00653DD0, SaveLoadBuildVerify, 0, s_unused);
 // model, 11 more group titles; the key wait and the display flag cleared.
 static void __fastcall OptionsBuildVerify(COptionsWindow* self, void*) {
     WindowCounts before = CountsOf(self);
-    int titles = *reinterpret_cast<const int*>(self->groupNames_ + 8);   // CStringArray size
+    int titles = self->groupNames_.size;
     self->COptionsWindow::Build();
     WindowCounts after = CountsOf(self);
-    int titlesAfter = *reinterpret_cast<const int*>(self->groupNames_ + 8);
+    int titlesAfter = self->groupNames_.size;
     bool ok = after.objects >= before.objects + 2 && after.sceneObjects == before.sceneObjects + 16 &&
               after.surfaces == before.surfaces + 1 && after.regions == before.regions + 27 &&
               after.models == before.models + 1 && titlesAfter == titles + 11 && !self->waitingForKey_ &&

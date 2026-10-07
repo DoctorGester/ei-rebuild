@@ -1,0 +1,34 @@
+# The multiplayer hero screen's delete path (docs/notes/ui.md, section 5): a hero is made (name
+# typed, the default attributes, create 006186F0, the statistics page's next 00617A50 writes
+# <n>.mp into the run's overlay and selects it in the list), then region 7 asks "lmp_deletepers"
+# and Enter answers OK: the screen's slot 27 (00615940) deletes it (00617E40; the records move
+# down with 0061A350). Unconfirmed: that the typed name reaches the name field and that the
+# default attributes add up to the points the create button wants.
+reject Script error
+wait 6000
+clickregion 5
+wait 2000
+clickregion 5
+wait 1500
+key t
+wait 100
+key e
+wait 100
+key s
+wait 100
+key t
+wait 300
+clickregion 4
+wait 500
+clickregion 1
+wait 1500
+clickregion 1
+wait 2000
+clickregion 7
+wait 1000
+key enter
+wait 1500
+key esc
+wait 3000
+report
+quit

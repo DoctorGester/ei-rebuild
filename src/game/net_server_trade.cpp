@@ -77,6 +77,7 @@ RefPtr* __fastcall RefPtrCopyPlain(RefPtr* self, void*, const RefPtr* other) {
 }
 EI_REPLACE(0x004263B0, RefPtrCopyPlain);
 EI_REPLACE(0x00429910, RefPtrCopyPlain);   // byte-identical copy
+EI_REPLACE(0x00609960, RefPtrCopyPlain);   // byte-identical copy (the lobby's player list)
 
 // 0041ACF0: the trade between the two offers (in either order), or null.
 void* ServerSession::FindTrade(void* offer, void* other) {

@@ -256,9 +256,9 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
         }
         interface_->PlaySound(Text(kSoundOk), 0);
         int code = keyOfScan_[pressed->scan_];
-        OptionBinding* other = bindingsBegin_;
-        while (other != bindingsEnd_ && *other->key_ != code) ++other;
-        if (other != bindingsEnd_ && other != nullptr && other != binding) {
+        OptionBinding* other = bindings_.begin();
+        while (other != bindings_.end() && *other->key_ != code) ++other;
+        if (other != bindings_.end() && other != nullptr && other != binding) {
             // Already bound to another action: ask (the box's result goes to OnDialogResult).
             void* memory = gamecrt::operator_new(0x180);
             CUiWindow* box = memory ? ConstructMessageBox(memory, nullptr, interface_, Text(kKeyMapped),
@@ -267,7 +267,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             mfc::CString format;
             mfc::CString message;
             Texts()->GetString(Text(kKeyMappedText), &format);
-            message.Format(format, pressed->name_, other->name_);
+            message.Format(format, pressed->name_, static_cast<const char*>(other->name_));
             // The box's text (+0x168; a null box is written through, as in the original).
             *reinterpret_cast<mfc::CString*>(reinterpret_cast<std::uint8_t*>(box) + 0x168) =
                 static_cast<const char*>(message);

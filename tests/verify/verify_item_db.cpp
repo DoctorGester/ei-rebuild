@@ -139,6 +139,24 @@ static void __fastcall IteratorCopyVerify(TextSourceIterator* self, void*, CText
 }
 EI_VERIFY(0x004E1540, IteratorCopyVerify, 6, s_iteratorCopy);
 
+// The interface's byte-identical copies (A-I15), side by side the same way.
+#define EI_ITERATOR_COPY(addr)                                                                       \
+    static void(__fastcall* s_iteratorCopy_##addr)(TextSourceIterator*, void*, CTextManager::SourceNode**); \
+    static void __fastcall IteratorCopyVerify_##addr(TextSourceIterator* self, void*,                \
+                                                     CTextManager::SourceNode** out) {               \
+        CTextManager::SourceNode* expected = nullptr;                                                \
+        s_iteratorCopy_##addr(self, nullptr, &expected);                                             \
+        self->CopyTo(out);                                                                           \
+        ei::verify::Check("TextSourceIterator::CopyTo@" #addr, expected, *out, "node %p", self->node); \
+    }
+EI_ITERATOR_COPY(005E2470) EI_ITERATOR_COPY(005F97D0) EI_ITERATOR_COPY(00609A30) EI_ITERATOR_COPY(00609A70)
+EI_ITERATOR_COPY(0062C080)
+EI_VERIFY(0x005E2470, IteratorCopyVerify_005E2470, 6, s_iteratorCopy_005E2470);
+EI_VERIFY(0x005F97D0, IteratorCopyVerify_005F97D0, 6, s_iteratorCopy_005F97D0);
+EI_VERIFY(0x00609A30, IteratorCopyVerify_00609A30, 6, s_iteratorCopy_00609A30);
+EI_VERIFY(0x00609A70, IteratorCopyVerify_00609A70, 6, s_iteratorCopy_00609A70);
+EI_VERIFY(0x0062C080, IteratorCopyVerify_0062C080, 6, s_iteratorCopy_0062C080);
+
 // 004E1550 and 004E1590 change the list and the node allocator: only ours runs, then the links
 // are checked.
 namespace {

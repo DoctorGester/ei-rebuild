@@ -415,6 +415,15 @@ public:
     // entry shown, the name given to the hero and the statistics panel, refreshed, mode 11;
     // otherwise the cancel sound.
     void CreateHero();
+    // 00617E40 (ui_hero_screen_click.cpp). The selected hero deleted: its file (folder + the
+    // record's file name) removed, the later records moved down (MpHeroRecord::Assign), the last
+    // destroyed; the selection kept in the list, the list's scroll range (count - 10, else 0 and
+    // the top row 0), the list drawn and the hero shown. Nothing without a selection.
+    void DeleteHero();
+    // 00615940 (slot 27, RET 4). A message box answered: 0x10001 (the "lmp_deletepers" question's
+    // OK) deletes the hero; then the selected hero's record takes the local player's party and
+    // sends the transfer (00662AC0); mode 9 (00615D30).
+    void OnMessageResult(int result);
 
     CUiWindow window;
     std::uint8_t unknown_148[0x164 - 0x148];
@@ -509,6 +518,20 @@ static_assert(sizeof(CMpConnectScreen) == 0x260);
 // The multiplayer heroes (records of 0x74 bytes; +0x30 CString name, +0x70 CString file).
 inline const RecordTable& MpHeroes() { return *reinterpret_cast<const RecordTable*>(0x007C82A4); }
 constexpr int kMpHeroSize = 0x74;
+// A multiplayer hero record: its party (CParty, 0x70 bytes) and file name.
+struct MpHeroRecord {
+    // 0061A350 (RET 4; ui_hero_screen_click.cpp). Assignment: the party (00661300), the file
+    // name. Returns this.
+    MpHeroRecord* Assign(const MpHeroRecord* other);
+    // 00619540. Constructor: the party (00661050), an empty file name. Returns this.
+    MpHeroRecord* Construct();
+    // 00619560. Destructor: the file name, then the party (006611D0).
+    void Destruct();
+
+    std::uint8_t party[0x70];        // +0x00 CParty
+    mfc::CString file;               // +0x70
+};
+static_assert(sizeof(MpHeroRecord) == kMpHeroSize);
 
 // --- In-game escape menu ----------------------------------------------------------------------
 //

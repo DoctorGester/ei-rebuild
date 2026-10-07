@@ -950,9 +950,8 @@ struct OrderUnits {
     int growBy;
 };
 __declspec(naked) void __fastcall OrderUnitsSetSize(OrderUnits*, void*, int, int) EI_ORIGINAL(0x005EBDB0)
-// The local view's orders (thiscall, RET 0xC; units, point, the Ctrl flag): 0066A7D0 move there,
-// 0066A720 the other order (mode non-zero: the modifier flags or Shift).
-__declspec(naked) void __fastcall ViewOrderMove(void*, void*, OrderUnits*, const float*, int) EI_ORIGINAL(0x0066A7D0)
+// The local view's orders (thiscall, RET 0xC; units, point, the Ctrl flag): 0066A7D0 move there
+// (LocalViewSendWalkOriginal), 0066A720 the other order (mode non-zero: the modifier flags or Shift).
 __declspec(naked) void __fastcall ViewOrderMoveAlt(void*, void*, OrderUnits*, const float*, int) EI_ORIGINAL(0x0066A720)
 
 } // namespace
@@ -1002,7 +1001,7 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
         if (static_cast<std::uint8_t>(mode) != 0)
             ViewOrderMoveAlt(view, nullptr, &units, point, ctrl & 0xFF);
         else
-            ViewOrderMove(view, nullptr, &units, point, ctrl & 0xFF);
+            LocalViewSendWalkOriginal(view, nullptr, &units, point, ctrl & 0xFF);
     }
     units.vtable = reinterpret_cast<void*>(0x007402AC);
     if (units.data) gamecrt::operator_delete(units.data);

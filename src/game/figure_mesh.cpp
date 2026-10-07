@@ -668,6 +668,7 @@ void CFigureMesh::RefreshBuffers() {
     buffers_.indexCount = indices_.size;
 }
 EI_REPLACE_METHOD(0x005A6D40, CFigureMesh::RefreshBuffers);
+EI_REPLACE_METHOD(0x005EA150, CFigureMesh::RefreshBuffers);   // byte-identical copy (the interface's meshes)
 
 void CFigureMesh::SetOffsets(const OffsetSpan* offsets) {
     offsets_.SetSize(offsets->count);

@@ -55,9 +55,8 @@ __declspec(naked) void __fastcall ChosenSetAtGrow(UiDwordArray*, void*, int, std
 __declspec(naked) std::uint8_t* __fastcall LocalView(void*) EI_ORIGINAL(0x005699F0)
 __declspec(naked) void __fastcall WorldClearSelection(void*, void*, CUnit*) EI_ORIGINAL(0x00566100)
 __declspec(naked) void __fastcall WorldControlUnit(void*, void*, CUnit*) EI_ORIGINAL(0x00566030)
-// The local view's orders (thiscall): 0066A880 attack (units, target, kind, ctrl; RET 0x10),
-// 0066AB80 a dead unit (units, target, ctrl; RET 0xC).
-__declspec(naked) void __fastcall ViewOrderAttack(void*, void*, OrderUnits*, CUnit*, int, int) EI_ORIGINAL(0x0066A880)
+// The local view's orders (thiscall): 0066A880 attack (units, target, kind, ctrl; RET 0x10;
+// LocalViewSendAttackOriginal), 0066AB80 a dead unit (units, target, ctrl; RET 0xC).
 __declspec(naked) void __fastcall ViewOrderDead(void*, void*, OrderUnits*, CUnit*, int) EI_ORIGINAL(0x0066AB80)
 // 00532D40 (thiscall; rewritten as CUnit::Level): the unit's level.
 __declspec(naked) int __fastcall UnitLevelAt(CUnit*) EI_ORIGINAL(0x00532D40)
@@ -218,7 +217,7 @@ void CBattleScreenSetup::AttackUnit(CUnit* target, int ctrl) {
         int memberLevel = UnitLevelAt(unitAt(i));
         if (targetLevel - memberLevel > 5) reinterpret_cast<SlotEvent>(vtable_[0x80 / 4])(this, unitAt(i)->id_, 10, 0);
     }
-    if (units.size != 0) ViewOrderAttack(LocalView(kWorld), nullptr, &units, target, kind, ctrl & 0xFF);
+    if (units.size != 0) LocalViewSendAttackOriginal(LocalView(kWorld), nullptr, &units, target, kind, ctrl & 0xFF);
     units.vtable = reinterpret_cast<void*>(0x007402AC);
     if (units.data) gamecrt::operator_delete(units.data);
 }

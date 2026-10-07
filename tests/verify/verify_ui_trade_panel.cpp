@@ -358,3 +358,19 @@ static void __fastcall TradeSelectHeroVerify(CTradePanel* self, void*, int index
                       "index %d -> %d", index, self->recordIndex_);
 }
 EI_VERIFY(0x00625860, TradeSelectHeroVerify, 0, s_unused);
+
+// --- 00613CF0 / 0062A7C0: a row's destructors; ours only (the strings are gone afterwards, so only
+// the deleting destructor's result is checked). ui_camp (page 1's lists rebuilt), ui_trade_restore.
+
+static void __fastcall RowDestroyVerify(TradeRow* self, void*) {
+    self->Destroy();
+    ei::verify::Check("TradeRow::Destroy", true, true, "");
+}
+EI_VERIFY(0x00613CF0, RowDestroyVerify, 0, s_unused);
+
+static TradeRow* __fastcall RowDeleteVerify(TradeRow* self, void*, int flags) {
+    TradeRow* result = self->DeleteThis(flags);
+    ei::verify::Check("TradeRow::DeleteThis", true, result == self, "flags %d", flags);
+    return result;
+}
+EI_VERIFY(0x0062A7C0, RowDeleteVerify, 0, s_unused);

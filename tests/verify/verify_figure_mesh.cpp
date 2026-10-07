@@ -300,6 +300,7 @@ EI_VERIFY(0x005A6E70, ResizeVerify, 5, s_resize);
 
 // 005A6D40 (stateful: resizes the colour arrays), ours only: the descriptor matches the arrays.
 void(__fastcall* s_refreshBuffers)(CFigureMesh*, void*);
+void* s_unusedRefresh2;
 void __fastcall RefreshBuffersVerify(CFigureMesh* self, void*) {
     self->RefreshBuffers();
     const MeshBuffers& b = self->buffers_;
@@ -312,6 +313,7 @@ void __fastcall RefreshBuffersVerify(CFigureMesh* self, void*) {
     ei::verify::Check("CFigureMesh::RefreshBuffers", true, ok, "normals %d", self->normals_.size);
 }
 EI_VERIFY(0x005A6D40, RefreshBuffersVerify, 0, s_refreshBuffers);
+EI_VERIFY(0x005EA150, RefreshBuffersVerify, 0, s_unusedRefresh2);
 
 // 005A0B10 (allocates), ours only: the offsets equal the source.
 void(__fastcall* s_setOffsets)(CFigureMesh*, void*, const CFigureMesh::OffsetSpan*);

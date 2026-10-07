@@ -12,6 +12,8 @@
 #include "item_db.h"
 
 #include "lib/containers.h"
+#include "lib/mfc.h"
+#include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -1633,7 +1635,7 @@ struct OptionSetting {
     int value_;                      // +0x04
     CUiScrollbar* bar_;              // +0x08 or null
     UiSpinValue* spin_;              // +0x0C or null
-    std::uint8_t unknown_10[4];
+    mfc::CString text_;              // +0x10
 };
 static_assert(sizeof(OptionSetting) == 0x14);
 
@@ -1711,10 +1713,18 @@ static_assert(sizeof(CObjectivesWindow) == 0x1F0);
 
 // A key binding row of the options window (0x18 bytes, vector at +0x36C; rows_ point at them).
 struct OptionBinding {
+    // Inlined in the options window's destructor body (0062B180): the two strings, then the
+    // vector's storage (its elements' destructor 0062B740 is empty).
+    void Destroy() {
+        unknown_14.~CString();
+        name_.~CString();
+        unknown_04.FreeStorage();
+    }
+
     const int* key_;                 // +0x00 its first int is the bound key code
-    std::uint8_t unknown_04[0x0C];
-    std::uint32_t name_;             // +0x10 passed to "key_already_mapped_msg" (a string)
-    std::uint8_t unknown_14[4];
+    stlp::vector<std::uint32_t> unknown_04;   // +0x04
+    mfc::CString name_;              // +0x10 passed to "key_already_mapped_msg"
+    mfc::CString unknown_14;         // +0x14
 };
 static_assert(sizeof(OptionBinding) == 0x18);
 
@@ -1760,6 +1770,9 @@ public:
     void BuildBindings();
     // 006503C0 (slot 25, the window's Create): builds the window (ui_layouts.cpp).
     void Build();
+    // 0062B180 (the destructor body; slot 0 0062B160 deletes; ui_menus.cpp): the group titles, the
+    // settings' and the bindings' strings and storage, then the container's (00600BA0).
+    void DestroyOptions();
 
     // 00650E40 (input side, RET 0xC; ui_menu_keys.cpp). Keys: Esc cancels, Enter starts a key
     // binding or steps a spin row, Up / Down select rows, PgUp / PgDn switch groups, Left /
@@ -1773,17 +1786,14 @@ public:
     signed char keyOfScan_[0x200];   // +0x164 the key code bound to each scan code
     int selectedRow_;                // +0x364
     int group_;                      // +0x368 the option group shown
-    struct OptionBinding* bindingsBegin_;   // +0x36C STLport vector of the key binding rows
-    struct OptionBinding* bindingsEnd_;     // +0x370
-    std::uint8_t unknown_374[0x378 - 0x374];
-    struct OptionSetting* settings_; // +0x378 26 settings
-    std::uint8_t unknown_37C[0x384 - 0x37C];
+    stlp::vector<OptionBinding> bindings_;  // +0x36C the key binding rows
+    stlp::vector<OptionSetting> settings_;  // +0x378 26 settings
     OptionRow rows_[14];             // +0x384
     bool waitingForKey_;             // +0x3F4 a key binding row waits for the new key
     bool sliding_;                   // +0x3F5
     std::uint8_t unknown_3F6[2];
     float slide_;                    // +0x3F8
-    std::uint8_t groupNames_[0x14];  // +0x3FC CStringArray: the option groups' titles
+    mfc::CStringArray groupNames_;   // +0x3FC the option groups' titles
     bool displayModeChanged_;        // +0x410 a display mode setting (7-9) changed
     std::uint8_t unknown_411[3];
     int unknown_414;                 // +0x414 cleared by Build; OnKeyDown keeps the UiKeyName* of
@@ -1792,7 +1802,8 @@ public:
 static_assert(offsetof(COptionsWindow, settings_) == 0x378);
 static_assert(offsetof(COptionsWindow, displayModeChanged_) == 0x410);
 static_assert(offsetof(COptionsWindow, selectedRow_) == 0x364);
-static_assert(offsetof(COptionsWindow, bindingsEnd_) == 0x370);
+static_assert(offsetof(COptionsWindow, bindings_) == 0x36C);
+static_assert(offsetof(COptionsWindow, groupNames_) == 0x3FC);
 static_assert(offsetof(COptionsWindow, rows_) == 0x384);
 static_assert(offsetof(COptionsWindow, waitingForKey_) == 0x3F4);
 static_assert(offsetof(COptionsWindow, slide_) == 0x3F8);
