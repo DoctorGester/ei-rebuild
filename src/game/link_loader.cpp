@@ -42,7 +42,8 @@ struct CacheValue {
 // 004FAB00 (RET 4): the figure's own archive set, found or opened (.mod / .bon / .anm), or null.
 __declspec(naked) LinkFigureSet* __fastcall FindFigureSet(CLinkFigureLoader*, void*, const stlp::string* /*name*/)
     EI_ORIGINAL(0x004FAB00)
-// 004F2C00 (RET 0x14, returns this): the mesh constructor (loader, name, coefficients; no reference).
+// 004F2C00 (RET 0x14, returns this): the mesh constructor (loader, name, coefficients; no reference);
+// rewritten (CLinkMesh::Construct), called through its address so its check sees these calls.
 __declspec(naked) CLinkMesh* __fastcall MeshConstruct(void* /*memory*/, void*, CLinkFigureLoader*, const stlp::string*,
                                                       float, float, float) EI_ORIGINAL(0x004F2C00)
 // 004F9E50 (RET 0x18): morphs the loaded part `name` of `mesh` again from its record.

@@ -110,6 +110,7 @@ static_assert(sizeof(LinkFigureSet) == 0x20);
 // from the figure's own archive set when there is one (004FAB00), else from the open archives
 // as "<figure><part>.fig". link_loader.cpp (A-S7). The game's code stores the vtable (novtable).
 class CLinkMesh;
+class CTextureDevice;
 class ITransformPipeline;
 struct VertexPacket;
 
@@ -162,7 +163,7 @@ public:
     ITransformPipeline* pipeline_;    // +0x08 the renderer's (+0x24) +0xAC -> +0xC
     LinkArchiveNode* archives_;       // +0x0C list sentinel
     stlp::hash_map<stlp::string, LinkFigureSet*, stlp::StringHash> figureSets_;   // +0x10 by figure name
-    void* renderer_;                  // +0x24 counted; meshes take their pipeline from its +0xAC
+    CTextureDevice* renderer_;        // +0x24 the device object, counted; meshes take their pipeline from it
     stlp::map<stlp::string, CLinkMesh*> cache_;   // +0x28 a multimap of counted references
 };
 static_assert(offsetof(CLinkFigureLoader, pipeline_) == 0x08);

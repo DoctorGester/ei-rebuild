@@ -12,6 +12,15 @@ struct PixelFormat {
 static_assert(sizeof(PixelFormat) == 32);
 
 struct CDXSurface;
+class ITransformPipeline;
+
+// The device object's 3DfpFPU.dll object (+0xAC); the link figure loaders and meshes take their
+// transform pipeline from it (004F68C0, 004F2C00).
+struct DeviceTransformLibrary {
+    std::uint8_t unknown_00[0x0C];
+    ITransformPipeline* pipeline;   // +0x0C
+};
+static_assert(offsetof(DeviceTransformLibrary, pipeline) == 0x0C);
 
 // Owns the Direct3D texture formats; held by CTextureManager. Name provisional; not rewritten yet.
 // The same object is the renderer's device object (the global at 007AF080): its DirectDraw
@@ -35,6 +44,8 @@ public:
     void* converter_;           // +0x4C 2DintMMX's graphics processor (pixel conversions)
     std::uint8_t unknown_50[4];
     void* d3dDevice_;           // +0x54 IDirect3DDevice7*
+    std::uint8_t unknown_58[0xAC - 0x58];
+    DeviceTransformLibrary* transform_;   // +0xAC
 };
 static_assert(offsetof(CTextureDevice, ddraw_) == 0x0C);
 static_assert(offsetof(CTextureDevice, converter_) == 0x4C);
@@ -43,6 +54,7 @@ static_assert(offsetof(CTextureDevice, renderTarget_) == 0x18);
 static_assert(offsetof(CTextureDevice, flags_) == 0x20);
 static_assert(offsetof(CTextureDevice, screen_) == 0x24);
 static_assert(offsetof(CTextureDevice, d3dDevice_) == 0x54);
+static_assert(offsetof(CTextureDevice, transform_) == 0xAC);
 
 // A DirectDraw surface wrapper (004EFA60 constructs it from a DDSURFACEDESC2, 004EF7B0 for an
 // off-screen surface of the screen's format; 0x20 bytes): vtable (slot 0 the deleting destructor),

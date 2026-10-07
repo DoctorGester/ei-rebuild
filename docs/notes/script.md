@@ -469,3 +469,18 @@ destructor 004F6BD0, 004F9E50 (a part morphed again, Remorph), 004F2650 / 004F29
 - Not ported: 004D9680 (CSky constructor, 00500A00 with 0x3D), 004D96E0 (the sky draw: matrix stack, device slots 0x2C /
   0x38; renderer), 004D9E60 / 004D9E70 (release an engine-object holder) and 004D9EB0 (AlignedArray FreeData): only
   called from EH unwind funclets. 004D9880 / 004D9AA0 / 004D9B80 were already ported (matrix_math.cpp).
+
+## A-S8: link mesh life cycle, loader destructor, sky holder
+
+| Address | Name (file) | Verify |
+|---|---|---|
+| 004F2C00, 004F2E40, 004F2D40, 004F2E00, 004F2E20 | `CLinkMesh::Construct`, `Destruct`, `DestructBase`, `DeletingDestructBase`, slot 0 `DeleteThis` (`link_figure.cpp`) | Construct against the original on a scratch mesh (vtable, name, coefficients, empty arrays / maps, loader, pipeline); the rest ours only (root vtable 0073C368 afterwards, `this`). `newgame`, `models`; 004F2D40 / 004F2E00 only from EH unwinding (base vtable 0073D7CC) |
+
+- `CLinkMesh::headers_` / `ranges_` are now `stlp::map<stlp::string, LinkPartHeader / LinkPartRanges>` (`LinkHeaderMap`,
+  `LinkRangeMap`; LinkStringMap / LinkMapNode gone, the 004F5C90 find forwarder replaced by `map::find`). stlp::map got
+  `Construct` / `Clear` / `Destroy` / `EraseSubtree` (the owner-built header node, clear(), _M_erase).
+- `CTextureDevice` (texture.h) got `transform_` +0xAC (`DeviceTransformLibrary`, pipeline +0x0C); the loader's
+  `renderer_` is that device object.
+- Not kept: the header map's value destructor 004F4E70 zeroes the freed node's 0x50 value bytes (freed memory only).
+- Library (config/library.csv, A-S8): the mesh maps' and the loader's STLport members 004F4CD0-004F6850 and
+  004FAE40-004FC6A0, among them the cache's equal_range 004FB5E0, insert_equal 004FBD80 (004FC4F0 was listed).

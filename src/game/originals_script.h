@@ -80,27 +80,18 @@ __declspec(naked) inline void __fastcall ScriptDropInstancesAndRunsOriginal(CScr
 
 // The link figures' STLport map<string, ...> members (link_figure.h; library instantiations):
 // 004F4B90 the part headers' operator[] (RET 4, EAX = the value, a zeroed 0x50-byte header when new),
-// 004F4CE0 the part ranges' operator[] (RET 4, EAX = the value), 004F5C90 the part ranges' find
-// (RET 8, *out = the node or the header, EAX = out).
-struct LinkStringMap;
+// 004F4CE0 the part ranges' operator[] (RET 4, EAX = the value).
 struct LinkPartHeader;
 struct LinkPartRanges;
-namespace stlp {
-class string;
-}
-__declspec(naked) inline LinkPartHeader* __fastcall LinkHeaderMapAtOriginal(LinkStringMap* /*map*/, void*,
-                                                                            const stlp::string* /*key*/)
+__declspec(naked) inline LinkPartHeader* __fastcall LinkHeaderMapAtOriginal(stlp::map<stlp::string, LinkPartHeader>* /*map*/,
+                                                                            void*, const stlp::string* /*key*/)
     EI_ORIGINAL(0x004F4B90)
-__declspec(naked) inline LinkPartRanges* __fastcall LinkRangeMapAtOriginal(LinkStringMap* /*map*/, void*,
-                                                                           const stlp::string* /*key*/)
+__declspec(naked) inline LinkPartRanges* __fastcall LinkRangeMapAtOriginal(stlp::map<stlp::string, LinkPartRanges>* /*map*/,
+                                                                           void*, const stlp::string* /*key*/)
     EI_ORIGINAL(0x004F4CE0)
-__declspec(naked) inline void** __fastcall LinkRangeMapFindOriginal(LinkStringMap* /*map*/, void*, void** /*out*/,
-                                                                    const stlp::string* /*key*/)
-    EI_ORIGINAL(0x004F5C90)
-// 004F4E40: the part ranges' erase(iterator) (RET 4; the node goes back to the node pool).
-struct LinkMapNode;
-__declspec(naked) inline void __fastcall LinkRangeMapEraseOriginal(LinkStringMap* /*map*/, void*, LinkMapNode* /*node*/)
-    EI_ORIGINAL(0x004F4E40)
+// 004F4E40: the part ranges' erase(iterator) (RET 4; the node, a LinkRangeMap::Node, goes back to the node pool).
+__declspec(naked) inline void __fastcall LinkRangeMapEraseOriginal(stlp::map<stlp::string, LinkPartRanges>* /*map*/, void*,
+                                                                   void* /*node*/) EI_ORIGINAL(0x004F4E40)
 
 // A-S7. 004D8EB0: STLport vector<char>::resize(n, value) (RET 8, EAX not a result): cut, or filled with *value
 // (0042D4E0 grows it). Used by the .mob script decoder and CWorldServer::LoadZoneScripts.
