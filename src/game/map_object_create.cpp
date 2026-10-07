@@ -35,7 +35,7 @@ DeltaState* NetState(void* object) {
 __declspec(naked) int __fastcall MapObjectCreate(void*) EI_ORIGINAL(0x0050E770)
 // 0050FA30. CArray<DeltaField>::SetSize (growBy -1 keeps the step). Both functions below inline it;
 // the inlined copies do exactly what it does.
-__declspec(naked) void __fastcall NetFieldsSetSize(DeltaState*, void*, int, int) EI_ORIGINAL(0x0050FA30)
+inline void NetFieldsSetSize(DeltaState* state, void*, int size, int growBy) { NetFieldsSetSizeOriginal(state, nullptr, size, growBy); }
 } // namespace
 
 // --- CMapObject's Create / Destroy (A-U) ---------------------------------------------------------

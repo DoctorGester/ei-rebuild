@@ -1,0 +1,47 @@
+# Levers (src/game/lever_object.cpp, unit_lever.cpp; A-U6). zone1's only lever is the gate "VGate"
+# (model stga1, id 1889, two states, no lock; zone1.mob record 0xBBAC0000): the zone
+# loader builds it (Construct 0052B1F0, Create 0052B370) and sets it up (SetUp 0052B3F0); every tick
+# runs its update (0052B490, the client animating a move) and network state (0052B560 / 0052B650).
+# The script switches it both ways (SetState 0052B7A0), disables and enables it (EnableLever,
+# 0052BAD0) and gives it a lock (SetScience, 0052BB20); the escape menu's Save writes it (0052BE40)
+# and loading the save rebuilds it (destructors 0052B300 / 0052B320, Load 0052BDD0).
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+check IsEqual(GetObjectID(GetObject(1889)),1889)
+
+# Over 20 ticks to the other state, then back with the model's default duration.
+console @GSSetVar(0,"lv",GetLeverState(GetObject(1889)))
+console @SwitchLeverStateEx(GetObject(1889),Sub(1,GSGetVar(0,"lv")),20)
+waitfor 10 Not(IsEqual(GetLeverState(GetObject(1889)),GSGetVar(0,"lv")))
+wait 3000
+console @EnableLever(GetObject(1889),0)
+wait 500
+console @EnableLever(GetObject(1889),1)
+console @SetScience(GetObject(1889),3,1,1,0,0,0)
+console @SwitchLeverState(GetObject(1889),GSGetVar(0,"lv"))
+waitfor 10 IsEqual(GetLeverState(GetObject(1889)),GSGetVar(0,"lv"))
+wait 2000
+
+# Escape menu, Save (as magic_traps.txt): OK (region 0) saves into save1.
+key esc
+wait 1000
+click 395 120
+wait 1500
+clickregion 0
+waitline 10 Saved save1
+# A wolf that is not in save1 tells when the load has replaced the world.
+console @AddUnitToServer("LeverMarker","WolfTutor","LeverMarker",Add(GetX(GetLeader()),8),GetY(GetLeader()),0)
+waitfor 5 IsAlive(GetObjectByName("LeverMarker"))
+
+load save1
+waitfor 15 Mul(Not(IsAlive(GetObjectByName("LeverMarker"))),IsGreater(HP(GetLeader()),0))
+check IsEqual(GetObjectID(GetObject(1889)),1889)
+check IsEqual(GetLeverState(GetObject(1889)),GSGetVar(0,"lv"))
+report
+quit

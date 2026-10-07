@@ -19,8 +19,6 @@ constexpr float kPercent = 0.01f;       // 0073D09C
 constexpr float kNoSkill = 0.0f;        // 0073B858
 constexpr float kOne = 1.0f;            // 0073B84C, 0073E9C4
 
-void* ClientWorldObject() { return reinterpret_cast<void*>(0x007AF5B8); }
-
 } // namespace
 
 // 00526860 (__stdcall, RET 4). The skill bonus byte of the weapon prototype `itemId >> 16`: +0x7B

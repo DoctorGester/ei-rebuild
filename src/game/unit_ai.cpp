@@ -109,10 +109,7 @@ void AIMode::Leave(AIBrain* brain) { Virtuals()->Leave(brain); }
 int AIMode::GetType() { return Virtuals()->GetType(); }
 void AIMode::OnObjectDeleted(CEngineObject* object) { Virtuals()->OnObjectDeleted(object); }
 
-void AIRef::Reset() { CountedRefResetOriginal((void*)this); }
-void AIRef::Assign(CEngineObject* a0) { CountedRefAssignOriginal((void*)this, nullptr, (void*)a0); }
-void AIRef::Load(AIStream* a0, void* a1) { CountedRefLoadOriginal((void*)this, nullptr, (void*)a0, a1); }
-void AIRef::Save(AIStream* a0) { CountedRefSaveOriginal((void*)this, nullptr, (void*)a0); }
+// AIRef (0052B030, 0052A8F0, 0050E220, 0050E290): counted_ref.cpp.
 
 __declspec(naked) void UnitController::MoveTo(const Vector3*, int, int, float) EI_ORIGINAL(0x00554740)
 __declspec(naked) bool UnitController::CanCast(int) EI_ORIGINAL(0x0054B820)
