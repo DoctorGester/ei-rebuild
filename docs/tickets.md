@@ -19,14 +19,14 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## World, AI and server, 0x00540000-0x005E0000 (docs/notes/world.md, ai.md, unit_ai.md)
 
-- A-W done 2026-10-05 (33 functions; leftovers listed in unit_ai.md / world.md). A-W2 cut off (4 merged). A-W3 cut off (nothing committed). A-W4 done (36). A-W5 done (39): 0x005A0000-0x005E0000 (paths, world client) plus A-W's leftovers. A-W6 taken (next candidates in world.md, ai.md, unit_ai.md).
+- A-W done 2026-10-05 (33 functions; leftovers listed in unit_ai.md / world.md). A-W2 cut off (4 merged). A-W3 cut off (nothing committed). A-W4 done (36). A-W5 done (39): 0x005A0000-0x005E0000 (paths, world client) plus A-W's leftovers. A-W6 done (24; head 78ddf43, merge after X23; next: 005CF3C0, brain Load/Save 005D8310/005D8860, 00563710).
 
 ## App and startup, 0x00440000-0x00480000
 
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- A-I (cut off by the usage limit; 12 functions merged). A-I2 done 2026-10-05 (36 functions). A-I3 done (27). A-I4 cut off (12 merged). A-I5 cut off (4 merged). A-I6 done (29). A-I7 done (21). A-I8 done (21). A-I9 done (12; Mid/Right fixed). A-I10 done (15; ui_base_dialogue reaches the dialogue). A-I11 done (9). A-I12 done (3). A-I13 done. A-I14 (taken 2026-10-07) (briefing Create, Update 00604130) (006064E0, 00604C50, 00608450, briefing Create / Update) (next: hero screen 006159E0 / 00617820 / 00615850, camp deals 00611220 / 00611760, main menu destructor 00633260).
+- A-I (cut off by the usage limit; 12 functions merged). A-I2 done 2026-10-05 (36 functions). A-I3 done (27). A-I4 cut off (12 merged). A-I5 cut off (4 merged). A-I6 done (29). A-I7 done (21). A-I8 done (21). A-I9 done (12; Mid/Right fixed). A-I10 done (15; ui_base_dialogue reaches the dialogue). A-I11 done (9). A-I12 done (3). A-I13 done. A-I14 (taken 2026-10-07) (briefing Create, Update 00604130) (006064E0, 00604C50, 00608450, briefing Create / Update) (next: hero screen 006159E0 / 00617820 / 00615850, camp deals 00611220 / 00611760, main menu destructor 00633260). A-I14 done (14). A-I15 taken (screen 7 Create 0062A830, escape menu dtor 0062B180, hero-screen voice/figure helpers, template plumbing 00609000-0060C000).
 
 
 - I11 Next interface functions (ui.md, battle screen section); 0063EF60 / 0063E020 need modifier keys held during a click (harness step).
