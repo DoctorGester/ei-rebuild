@@ -17,47 +17,7 @@
 
 namespace mapspec {
 
-// The effect records' base (vtable 0073C728, 0x54 bytes).
-struct EffectSpec {
-    Spec base;                   // +0x00
-    void* effect;                // +0x4C the effect the world object runs
-    std::uint8_t visible;        // +0x50 (1)
-    std::uint8_t unknown_51[3];
-};
-static_assert(sizeof(EffectSpec) == 0x54);
-
-struct ParticleSpec {            // 0073C758
-    EffectSpec effect;
-    std::int32_t type;           // +0x54 (0: none made)
-    float scale;                 // +0x58 (1)
-};
-static_assert(sizeof(ParticleSpec) == 0x5C);
-
-struct LightSpec {               // 0073C788
-    EffectSpec effect;
-    Vector3 colour;              // +0x54 (1, 1, 1)
-    std::uint8_t shadows;        // +0x60 (1)
-    std::uint8_t unknown_61[3];
-    float radius;                // +0x64 (10)
-};
-static_assert(sizeof(LightSpec) == 0x68);
-
-struct SoundSpec {               // 0073C7B8
-    EffectSpec effect;
-    mfc::CStringArray sounds;     // +0x54 (none made without any)
-    std::int32_t unknown_68;     // +0x68 (10)
-    std::int32_t unknown_6C;     // +0x6C (15)
-    std::int32_t unknown_70;     // +0x70 (1)
-    std::int32_t unknown_74;     // +0x74 (1500)
-    std::int32_t unknown_78;     // +0x78 (3000)
-    std::int32_t unknown_7C;     // +0x7C
-    std::int32_t unknown_80;     // +0x80
-    std::uint8_t unknown_84;     // +0x84
-    std::uint8_t unknown_85;     // +0x85
-    std::uint8_t unknown_86[2];
-};
-static_assert(offsetof(SoundSpec, unknown_68) == 0x68);
-static_assert(sizeof(SoundSpec) == 0x88);
+// EffectSpec, ParticleSpec, LightSpec and SoundSpec: map_spec.h.
 
 // Rewritten in map_spec.cpp.
 Spec* __fastcall SpecConstruct(Spec* self);

@@ -245,6 +245,7 @@ constexpr int kSetStunned = 46;           // 0xB8 (CUnit::SetFlag1000000 for uni
 
 struct Vector3;
 struct DamageInfo;   // spell.h
+struct UnitStats;    // unit.h
 
 // The map objects' virtual slots past CEngineObject's, as callers reach them through the vtable
 // (CMapObject 0073DAA0, CUnit 0073EA8C, ...). The rewritten slot bodies stay plain members of the
@@ -269,7 +270,9 @@ public:
     virtual void Slot26() = 0;
     virtual void Slot27() = 0;
     virtual void Slot28() = 0;
-    virtual void Slot29() = 0;
+    // 29 (0x74): 0050E430 flags_ bit 17 (Flag20000, 0 / 1 in EAX), units 004467E0 always true. The
+    // world server creates such objects only with its +0x11D set, the others with +0x11E (005927C0).
+    virtual bool IsDynamicSlot() = 0;
     // 30 (0x78): the scale becomes the base scale (+0x1AC; 0050E440, units 00532AA0). Returns the z
     // component's bits.
     virtual std::uint32_t ApplyBaseScale() = 0;
@@ -277,12 +280,17 @@ public:
     // objects ignore it, 0050E460).
     virtual void ReceiveHit(DamageInfo* hit, CEngineObject* attacker, CEngineObject* caster) = 0;
     virtual void Slot32() = 0;
-    virtual void Slot33() = 0;
+    // 33 (0x84, mapslot::kScaleEffectChanged): units 0052EB30 hand the argument to their
+    // controller's slot 19.
+    virtual void ScaleEffectSlot(int scaleEffect) = 0;
     // 34 (0x88): the prototype by name (units 0052EB70: their statistics; 0050E9B0 for others).
     virtual void TakePrototype(const char* prototype) = 0;
-    virtual void Slot35() = 0;
+    // 35 (0x8C): units 00530A20, a CUnitServer controller (class 0x3E) copies the statistics
+    // (00552F40, CUnitServer::SetStats).
+    virtual void SetStatsSlot(const UnitStats* stats) = 0;
     virtual void Slot36() = 0;
-    virtual void Slot37() = 0;
+    // 37 (0x94): units 00530A50, the controller's slot 23 (CUnitServer 00552FB0 UpdateSizeClasses).
+    virtual void UpdateSizeClassesSlot() = 0;
     virtual void Slot38() = 0;
     virtual void Slot39() = 0;
     virtual void Slot40() = 0;
@@ -349,3 +357,13 @@ inline CMapObject*& CompanionOwner(CEngineObject* companion) {
 // the map object's Create (0050E770), the object at +0x238 released and cleared, 5 network fields
 // (the DeltaState at +0x1C4, SetSize 0050FA30 inlined), then DeltaState::Reset. Returns 1.
 int __fastcall TorchCreate(CMapObject* torch);
+
+// The torch (flame) map object (class id 0x3A, vtable 0073E834, 0x23C bytes): a map object with its
+// counted state object (a CTorchObjectSpec, server_specific_manager.h; the world server's
+// CreateObject 005927C0 sets its light, flame and sound through slots 16-18).
+class CTorchObject : public CMapObject {
+public:
+    CEngineObject* spec;            // +0x238
+};
+static_assert(offsetof(CTorchObject, spec) == 0x238);
+static_assert(sizeof(CTorchObject) == 0x23C);

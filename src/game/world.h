@@ -145,13 +145,14 @@ public:
     virtual CEngineObject* FigureManager();  // 15: the figure manager (+0x3C)
     virtual void Slot16();
     virtual void Slot17();
-    virtual void Slot18();
+    virtual CEngineObject* ItemManager();     // 18: the item manager (itemManager_, +0x54)
     virtual CEngineObject* MapObjectManager();   // 19: 0055EB70, the map object manager (+0x40)
     virtual void Slot20();
     virtual void Slot21();
     virtual CSpellManager* SpellManager();   // 22: 0055EBA0 (+0x4C)
     virtual class CFigureCache* FigureCache();   // 23: the figure cache (+0x5C; map_object_figures.h)
-    virtual void Slot24();
+    // 24: the server's 00594CE0 (CWorldServer::CopyItem, a plain member): a new item like `item`.
+    virtual CEngineObject* CopyItemSlot(CEngineObject* item);
     virtual void Slot25();
     virtual int IsServer();               // 26: 1 for the server (0058A380), 0 for the client (0055EB30)
     virtual void Slot27();                // 27: the terrain height (CWorldServer::GridHeight 00594220)
@@ -533,7 +534,14 @@ public:
     std::uint8_t loaded_;                 // +0x100 0 while LoadSave runs
     std::uint8_t unknown_101[0x104 - 0x101];
     ObjectIdMap updateMap_;               // +0x104
-    std::uint8_t unknown_11C[0x120 - 0x11C];
+    std::uint8_t unknown_11C;
+    // +0x11D / +0x11E (LoadMap, world_map.cpp: LoadedFresh / KeepsState): CreateObject (005927C0)
+    // makes objects answering map object slot 29 (IsDynamicSlot), sounds, lights and particle
+    // sources only with loadedFresh_ set, the other map objects only with keepsState_ set; a refused
+    // object is released.
+    std::uint8_t loadedFresh_;            // +0x11D the zone is not loaded from a save
+    std::uint8_t keepsState_;             // +0x11E
+    std::uint8_t unknown_11F;
     char* zoneName_;                      // +0x120 CString: the zone's map database name
     mfc::CStringArray mobFiles_;           // +0x124 .mob files loaded in this zone (LoadMobFile)
     int gameResult_;                      // +0x138 0 while the game runs
@@ -574,6 +582,8 @@ static_assert(offsetof(CWorldServer, countdowns_) == 0x70);
 static_assert(offsetof(CWorldServer, unknown84_) == 0x84);
 static_assert(offsetof(CWorldServer, loaded_) == 0x100);
 static_assert(offsetof(CWorldServer, zoneName_) == 0x120);
+static_assert(offsetof(CWorldServer, loadedFresh_) == 0x11D);
+static_assert(offsetof(CWorldServer, keepsState_) == 0x11E);
 static_assert(offsetof(CWorldServer, unknown13C_) == 0x13C);
 static_assert(offsetof(CWorldServer, aiMap_) == 0x170);
 static_assert(offsetof(CWorldServer, diplomacy_) == 0x12C64);
