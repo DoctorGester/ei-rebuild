@@ -11,10 +11,6 @@
 
 namespace figure {
 
-namespace {
-__declspec(naked) void __fastcall FigureDestructBody(void*) EI_ORIGINAL(0x0059F030)
-} // namespace
-
 // 00453450 / 00453460: CFigure's class name and class id; 004547F0 / 00454800: CFakeFigure's;
 // 004547A0: a slot that answers 1.
 const char* __fastcall FigureClassName(void*) { return reinterpret_cast<const char*>(0x00784714); }
@@ -30,7 +26,7 @@ EI_REPLACE(0x004547A0, FakeFigureAnswerOne);
 
 // 00453470: CFigure's scalar deleting destructor (its body 0059F030).
 void* __fastcall FigureDelete(void* self, void*, unsigned flags) {
-    FigureDestructBody(self);
+    FigureDestructBodyOriginal(self);
     if (flags & 1) gamecrt::operator_delete(self);
     return self;
 }

@@ -460,3 +460,14 @@ current runs), CSkyObject 004D9110-004D9EB0, CServerSpecificManager 004D6900-004
   mesh (FatalError's result returned). Ours returns null instead of FatalError's EAX (0 when it comes back).
 - Not ported: 004F6A20 slot 1 (4 bytes, not hookable), 004FAAA0 slot 2 / 004F4B50 (memory estimate; no caller seen), the
   destructor 004F6BD0, 004FAB00.
+| 004D9360, 004D9DE0 | `CSkyObject::Light`, `CSky::Light` (`sky_object.cpp`, `sky_object.h`) | Light against the original when the haze needs no recomputing (colours compared), else ours only (a distance per vertex). CSky ours only. Every zone with a sky |
+| 004D9110, 004D92B0, 004D9290, 004D9270, 004D9280 | `CSkyObject` Construct, Destruct, DeletingDestruct, slots 11 / 12 | names / ids against the original; the rest ours only (vtable, empty arrays) |
+| 004D9E80, 004D9E90, 004D9EA0 | `lib::AlignedArray<T>::Construct` (new template member) | ours only: zero fields, this |
+
+- 0059F030 (CFigure's destructor body) is now `FigureDestructBodyOriginal` in originals_core.h (figure_slots.cpp uses it).
+- Sky facts: haze is recomputed only when the vertex count changes (0 for vertex z < 1, else sqrt(-normal z));
+  diffuse = ambient * 255 (alpha 0xFF; 0 for hazeless vertices, which get no specular); specular = haze * 255 alpha and
+  light * max(0, n . dir)^2 * 150, all truncated. The fourth float of each colour and the third colour are not read.
+- Not ported: 004D9680 (CSky constructor, 00500A00 with 0x3D), 004D96E0 (the sky draw: matrix stack, device slots 0x2C /
+  0x38; renderer), 004D9E60 / 004D9E70 (release an engine-object holder) and 004D9EB0 (AlignedArray FreeData): only
+  called from EH unwind funclets. 004D9880 / 004D9AA0 / 004D9B80 were already ported (matrix_math.cpp).

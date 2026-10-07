@@ -148,7 +148,16 @@ struct AlignedArray {
         std::memcpy(static_cast<void*>(data), source.data, static_cast<std::size_t>(source.size) * sizeof(T));
     }
 
-    // The destructors (0044F1B0, ...): the block freed, the fields left as they were.
+    // The constructors (004D9E80, 004D9E90, 004D9EA0, ...): every field zero; returns this.
+    AlignedArray* Construct() {
+        data = nullptr;
+        growBy = 0;
+        capacity = 0;
+        size = 0;
+        return this;
+    }
+
+    // The destructors (0044F1B0, 004D9EB0, ...): the block freed, the fields left as they were.
     void FreeData() {
         if (data) Free(data);
     }
