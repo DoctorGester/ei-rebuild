@@ -98,6 +98,10 @@ static void __fastcall RepackStatsVerify(CUnitServer* self) {
     rest.at = self->protection;
     rest.size = sizeof(self->protection);
     std::uint8_t savedFlag = self->motionChanged;
+    // Pack rewrites the unit's mode speeds and motionChanged is set when they change, so the original
+    // must see the speeds from before ours ran.
+    std::uint8_t savedSpeeds[sizeof(self->unit->modeSpeeds)];
+    std::memcpy(savedSpeeds, self->unit->modeSpeeds, sizeof(savedSpeeds));
     stats.Save();
     rest.Save();
     self->RepackStats();
@@ -105,6 +109,7 @@ static void __fastcall RepackStatsVerify(CUnitServer* self) {
     stats.KeepOurs();
     rest.KeepOurs();
     self->motionChanged = savedFlag;
+    std::memcpy(self->unit->modeSpeeds, savedSpeeds, sizeof(savedSpeeds));
     s_repackStats(self);
     int diff = stats.Difference();
     int restDiff = rest.Difference();
