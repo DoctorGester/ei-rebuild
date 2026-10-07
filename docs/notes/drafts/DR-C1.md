@@ -125,17 +125,14 @@ First pass:
 - Everywhere: slot 4 -> CEngineObject::Release(), slot 12 -> GetClassId(), object slot 29 ->
   ObjectSlots()->IsDynamicSlot(), client slot 19 -> MapObjectManager() (Pick).
 
-Left (where to continue):
-- The CWorldClient members behind ListAt/MfcListAt/GridAt/IdMap (+0xB4 heroes list, +0xB8 objects,
-  +0xBC kept MFC list, +0xD8 id map + its max id at +0xEC, +0xF0 screen list, +0xF4 HitVector,
-  +0x100 pick cursor, +0x150 second grid, +0x1F0 pending MFC list, +0x7BC records list, +0x6EC).
-  CAUTION: world.h's CWorldClient declares listA_ (+0xD0, count +0xD4) and listB_ (+0xE0); listB_
-  falls inside the id map at +0xD8 (0x14 bytes): check what +0xE0 really is before adding members.
-- VCalls left: object +0x94 slot 22/24 (CollectWindows), controller slot 43 (0xAC, session join),
-  +0x34 slot 5, slot 0 deleting destructors and slot 3 Destroy in Teardown, session_ release (it is
-  a std::uint8_t*), Setup's slots 2 (CreateSelf) / 13 (AttachWorld, 0x34) and the client's slot 22
-  (0x58, the player list; but CWorld names 22 SpellManager: check, 0x58 / 4 = 22).
-- Raw addresses: 0x007AF068 (the device) in Pick and the rest of the file's literals.
+(The first pass's "left" list is done by the second pass above.)
+
+Files touched outside the three .cpp files (all need the build to confirm): world.h, terrain.h,
+unit.h, map_object_figures.h, object_tables.h, world_data.h, new game_flow_data.h,
+world_client.cpp (PartBox, platform loops), world_client_view.cpp (MatrixDevice from world.h),
+tests/verify/verify_world.cpp, tests/verify/verify_world_client_maps.cpp. Compile risks to watch:
+world.h now includes base_manager.h and core_refcount.h (name clashes in files including both);
+Terrain is now polymorphic (derives CEngineObject); unit.h includes object_tables.h.
 
 ## world_game.cpp (partly done, uncompiled)
 
