@@ -124,6 +124,7 @@ EI_REPLACE(0x0041FFE0, RefPtrNull);
 EI_REPLACE(0x00438A90, RefPtrNull);
 EI_REPLACE(0x00438F50, RefPtrNull);
 EI_REPLACE(0x00478FB0, RefPtrNull);
+EI_REPLACE(0x005FC1C0, RefPtrNull);
 
 // A holder of a raw pointer taken without a reference (ECX the holder, EDX the object), returning
 // the holder (the original also zeroes a dead stack slot). 16 copies.

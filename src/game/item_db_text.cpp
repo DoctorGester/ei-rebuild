@@ -297,3 +297,9 @@ EI_REPLACE(0x004E1590, TextSourcesInsert);
 
 void TextSourceIterator::CopyTo(CTextManager::SourceNode** out) { *out = node; }
 EI_REPLACE_METHOD(0x004E1540, TextSourceIterator::CopyTo);
+// Byte-identical copies (other list iterators' copy in the interface; A-I15).
+EI_REPLACE_METHOD(0x005E2470, TextSourceIterator::CopyTo);
+EI_REPLACE_METHOD(0x005F97D0, TextSourceIterator::CopyTo);
+EI_REPLACE_METHOD(0x00609A30, TextSourceIterator::CopyTo);
+EI_REPLACE_METHOD(0x00609A70, TextSourceIterator::CopyTo);
+EI_REPLACE_METHOD(0x0062C080, TextSourceIterator::CopyTo);

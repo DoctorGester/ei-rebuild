@@ -21,6 +21,8 @@ int __fastcall Vector3ArrayAdd(Vectors* a, void*, Blob<12> value);
 void __fastcall DwordArraySetAtGrowRef(Dwords* a, void*, int index, const std::uint32_t* value);
 void __fastcall Vector3ArrayCopy(Vectors* a, void*, const Vectors* other);
 Blob<12>* __fastcall AllocateVectors(int count);
+std::uint32_t* __fastcall AllocateDwords(int count);
+void __fastcall ArrayFree1(lib::AlignedArray<std::uint8_t>* a);
 } // namespace aligned
 
 namespace {
@@ -65,9 +67,30 @@ std::uint8_t* __fastcall AllocVerify(int count) {
     ei::verify::Check("AllocateVectors", true, (reinterpret_cast<std::uintptr_t>(p) & 0x1F) == 0 && p > block && p - block <= 0x23, "");
     return p;
 }
+// The interface's copies (A-I15; every window's arrays): the allocation is 32-byte aligned with
+// its block before it; the free leaves the array's fields as they were.
+std::uint32_t* __fastcall AllocDwordsVerify(int count) {
+    auto* p = reinterpret_cast<std::uint8_t*>(AllocateDwords(count));
+    auto* block = static_cast<std::uint8_t*>(reinterpret_cast<void**>(p)[-1]);
+    ei::verify::Check("AllocateDwords", true, (reinterpret_cast<std::uintptr_t>(p) & 0x1F) == 0 && p > block && p - block <= 0x23, "");
+    return reinterpret_cast<std::uint32_t*>(p);
+}
+void __fastcall FreeVerify(lib::AlignedArray<std::uint8_t>* a) {
+    lib::AlignedArray<std::uint8_t> before = *a;
+    ArrayFree1(a);
+    ei::verify::Check("ArrayFree1", true, std::memcmp(&before, a, sizeof(before)) == 0, "");
+}
 } // namespace
 
+EI_VERIFY(0x00600A80, AllocDwordsVerify, 0, s_unused);
+EI_VERIFY(0x00600330, FreeVerify, 0, s_unused);
+EI_VERIFY(0x00600350, FreeVerify, 0, s_unused);
+EI_VERIFY(0x00600370, FreeVerify, 0, s_unused);
+EI_VERIFY(0x00600390, FreeVerify, 0, s_unused);
+EI_VERIFY(0x006003B0, FreeVerify, 0, s_unused);
+EI_VERIFY(0x00601B50, FreeVerify, 0, s_unused);
 EI_VERIFY(0x0044F540, SetSize4Verify, 0, s_unused);
+EI_VERIFY(0x005E6810, SetSize4Verify, 0, s_unused);
 EI_VERIFY(0x0044F1D0, SetSize12Verify, 0, s_unused);
 EI_VERIFY(0x0044F2E0, Add12Verify, 0, s_unused);
 EI_VERIFY(0x00452C40, SetAtGrowVerify, 0, s_unused);

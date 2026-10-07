@@ -134,6 +134,7 @@ static void __fastcall SaveStateVerify(CBriefingScreen* self, void*) {
     ei::verify::Check("CBriefingScreen::SaveState", before + 4, after, "position %u -> %u", before, after);
 }
 EI_VERIFY(0x00602490, SaveStateVerify, 0, s_unused);
+EI_VERIFY(0x0062D330, SaveStateVerify, 0, s_unused);   // the global map's copy
 
 // LoadPersonTexts (00607720): ours only (map insertions); the tree's keys stay in strictly rising
 // order and the node count does not go down. Reached by the screen's Create (zone_base_bz1g).

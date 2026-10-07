@@ -258,6 +258,8 @@ void CBriefingScreen::SaveState() {
     SaveGameStream()->Write(&zero, 4);
 }
 EI_REPLACE_METHOD(0x00602490, CBriefingScreen::SaveState);
+// 0062D330: the global map's slot 40, byte-identical (one zero dword).
+EI_REPLACE_METHOD(0x0062D330, CBriefingScreen::SaveState);
 EI_REPLACE_METHOD(0x00606F40, CBriefingScreen::OnMessageResult);
 
 // --- 00607720 -----------------------------------------------------------------------------------

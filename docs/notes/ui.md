@@ -104,6 +104,13 @@ through the null array; removing by index does not check it (past the end the or
 skips the move). Not rewritten: STLport / MFC template code (005F3000-005F4990, 005F9810-005FC010, 0060A320-0060BD70, 00613400-00613DF0,
 00619420-0061B220, 0062A390, ...).
 
+Byte-identical copies (A-I15; external call targets equal): registered with their anchors and wrapped like them: iterator copies
+005E2470, 005F97D0, 00609A30, 00609A70, 0062C080 (`TextSourceIterator::CopyTo`), 005E6810 (`DwordArraySetSize`), 00600A80
+(`AllocateDwords`), 00600330-006003B0 / 00601B50 (`ArrayFree1`), 005ED7A0 (`RefObjectDestructBase`), 005FC1C0 (`RefPtrNull`), 00609960
+(`RefPtrCopyPlain`), 0062D330 (the global map's slot 40 = `CBriefingScreen::SaveState`), 005EA150 (`CFigureMesh::RefreshBuffers`). 70 STLport /
+MFC / CRT twins (code addresses masked) in 005E0000-00640000 went to config/library.csv ("A-I15 sweep"). Left: twins under 5 bytes, the
+30-byte scalar deleting destructors (each calls its own destructor) and the CString-member destructors 005FBE30 / 006062B0 / 0060F460.
+
 ### Window stack, screen construction, window base methods (all ours only unless noted)
 
 | Address | Name | Notes |
