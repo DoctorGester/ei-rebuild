@@ -25,6 +25,8 @@
 struct AIBrain;
 struct AIOrder;
 
+using AIObjectList = mfc::CTypedPtrList<CEngineObject>;
+
 // The stream the save-game code passes to Load/Save (vtable slot 1 Read, slot 2 Write); +8 is the
 // version of the file being read.
 class AIStream {
@@ -505,9 +507,25 @@ struct PlayerMode : AIMode {
     // own Player mode stops following first. A walk in progress (action 1) is dropped (state 0).
     void SetLeader(AIBrain* brain, CEngineObject* leader);
 
-    // Not rewritten (forwarders).
-    void UpdateCombat(AIBrain* brain);                      // 005D4170
-    bool StaysWithParty(AIBrain* brain, bool moving);       // 005D4860
+    // unit_ai_player.cpp.
+    // 005D4170 (RET 4). Only for units whose +0x438 is 1: the mode's target when it can be reached
+    // from here (attacked at once); else the best target (005D0030, no allies) among the enemies
+    // near `point` (within [Logic] SwarmRadius in state 2, anywhere otherwise, the point then
+    // zeroed) that are no farther than 1.1 x their own sight or hearing, plus what the party is
+    // fighting. When there is one, the party's other followers that are not attacking or casting
+    // stop (unless the player controls the unit directly), the unit attacks it unless it already
+    // does, and the mode's target is dropped.
+    void UpdateCombat(AIBrain* brain);
+    // 005D3F50 (RET 8). Adds to `targets` (once each) the units that party members within [Logic]
+    // PlayerCallForHelp are attacking (action 3), unless they belong to the same player.
+    void AddPartyTargets(AIBrain* brain, AIObjectList* targets);
+    // 005D4600 (RET 8). `party` emptied, then the unit, the chain of leaders above it (Player
+    // mode's leader, or the followed unit), and repeatedly every unit of its player whose leader is
+    // listed (the player's units in hash order, up to the first null one).
+    void CollectParty(AIBrain* brain, AIObjectList* party);
+    // 005D4860 (RET 8; only AL). False when a unit of the player whose (first) Player mode follows
+    // this unit is farther than [Logic] FollowMaxDist x (2 while `moving`, else 1.4) + 1 (3D).
+    bool StaysWithParty(AIBrain* brain, bool moving);
     // 005D37E0 (unit_ai_moves.cpp). Can the unit get from `from` to `to`: false when they are within
     // 0.1 (2D), else a path search with the unit moved to `from` for it (range twice the distance).
     bool PathClear(AIBrain* brain, const Vector3* from, const Vector3* to);
@@ -621,7 +639,6 @@ static_assert(sizeof(AIAttackOption) == 0x28);
 using AIAttackOptions = mfc::CArray<AIAttackOption>;
 static_assert(sizeof(AIAttackOptions) == 0x14);
 
-using AIObjectList = mfc::CTypedPtrList<CEngineObject>;
 
 // The brain's attention (+0xA4, 0x2C bytes): the unit's attack options and choosing a target
 // (unit_ai_targets.cpp; the methods are __thiscall on the attention, the brain passed).

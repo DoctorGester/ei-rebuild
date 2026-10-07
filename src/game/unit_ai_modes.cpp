@@ -580,8 +580,6 @@ EI_REPLACE_METHOD(0x005D36F0, FearMode::Save);
 
 // --- Player --------------------------------------------------------------------------------------
 
-__declspec(naked) void PlayerMode::UpdateCombat(AIBrain*) EI_ORIGINAL(0x005D4170)
-__declspec(naked) bool PlayerMode::StaysWithParty(AIBrain*, bool) EI_ORIGINAL(0x005D4860)
 __declspec(naked) void UnitController::Shout(int) EI_ORIGINAL(0x00552780)
 
 void PlayerMode::Execute(AIBrain* brain) {
@@ -599,13 +597,13 @@ void PlayerMode::Execute(AIBrain* brain) {
         }
         int action = brain->action;
         if (action == AIBrain::kActionAttack && !target) {
-            UpdateCombat(brain);
+            PlayerUpdateCombatOriginal(this, nullptr, brain);
             return;
         }
         if (action != AIBrain::kActionNone && (!leader || action != AIBrain::kActionFollow)) return;
         CEngineObject* who = leader;
         if (!who) {
-            UpdateCombat(brain);
+            PlayerUpdateCombatOriginal(this, nullptr, brain);
             return;
         }
         if (!direct) {
@@ -617,7 +615,7 @@ void PlayerMode::Execute(AIBrain* brain) {
             }
         }
         if (!leader) {
-            UpdateCombat(brain);
+            PlayerUpdateCombatOriginal(this, nullptr, brain);
             return;
         }
         // While the leader itself carries out a command (its Player mode in state 1), only follow.
@@ -627,11 +625,11 @@ void PlayerMode::Execute(AIBrain* brain) {
             node = node->next;
             if (mode->GetType() == kModePlayer) {
                 if (mode && static_cast<PlayerMode*>(mode)->state == kStateCommand) return;
-                UpdateCombat(brain);
+                PlayerUpdateCombatOriginal(this, nullptr, brain);
                 return;
             }
         }
-        UpdateCombat(brain);
+        PlayerUpdateCombatOriginal(this, nullptr, brain);
         return;
     }
     case kStateCommand:
@@ -646,13 +644,13 @@ void PlayerMode::Execute(AIBrain* brain) {
                 state = kStateFollow;
                 ReleaseRef(brain->target);
                 brain->action = AIBrain::kActionNone;
-            } else if (!direct && !StaysWithParty(brain, true)) {
+            } else if (!direct && !PlayerStaysWithPartyOriginal(this, nullptr, brain, true)) {
                 brain->owner->Shout(0x21);
                 std::memset(&point.z, 0, 4);
                 ReleaseRef(brain->target);
                 brain->action = AIBrain::kActionNone;
             }
-        } else if (direct || StaysWithParty(brain, false)) {
+        } else if (direct || PlayerStaysWithPartyOriginal(this, nullptr, brain, false)) {
             std::memcpy(&point.z, &kOneBits, 4);
             Vector3 to;
             std::memcpy(&to.x, &point.x, 4);
@@ -661,7 +659,7 @@ void PlayerMode::Execute(AIBrain* brain) {
             brain->action = AIBrain::kActionWalk;
             brain->owner->MoveTo(&to, 0, 0, kMoveTime);
         }
-        if (state == kStateMoveTo) UpdateCombat(brain);
+        if (state == kStateMoveTo) PlayerUpdateCombatOriginal(this, nullptr, brain);
         return;
     }
     default:
@@ -711,7 +709,7 @@ EI_REPLACE_METHOD(0x005D39E0, PlayerMode::CommandWalk);
 void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3* to, int unknown, int runArg, const Vector3* offset) {
     state = kStateMoveTo;
     PrepareWalk(this, brain, to, runArg, offset);
-    if (!DirectControl(brain) && !StaysWithParty(brain, true)) {
+    if (!DirectControl(brain) && !PlayerStaysWithPartyOriginal(this, nullptr, brain, true)) {
         std::memset(&point.z, 0, 4);
         brain->owner->TurnTo(&point, unknown, 0, kMoveTime);
         return;
