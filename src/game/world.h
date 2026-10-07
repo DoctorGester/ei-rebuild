@@ -24,6 +24,9 @@ class CBaseManager;
 struct CSoundManager;   // sound.h
 class CSectorMap;   // sector_map.h
 class CSpellManager;   // spell.h
+class CLinkFigureLoader;   // model.h
+class CTexture;   // texture.h
+class CTextureManager;   // texture.h
 class Terrain;
 struct Float4;   // chunk_stream.h: four floats passed by value
 
@@ -117,6 +120,20 @@ static_assert(offsetof(ZoneExit, target) == 0x28);
 // new records are constructed).
 using ZoneExitArray = mfc::CArray<ZoneExit>;
 
+// The client's digit sprites (+0x1B4, 8 bytes; constructor 005E1710): the "numbers" texture
+// (counted) and an STLport list (its sentinel).
+struct ClientNumbers {
+    CTexture* texture;
+    void* list;
+};
+static_assert(sizeof(ClientNumbers) == 8);
+
+// A light colour of the client's tables (CWorldClient + 0x22C ...): r, g, b and 1.
+struct LightColour {
+    float r, g, b, a;
+};
+static_assert(sizeof(LightColour) == 0x10);
+
 // Members both world classes share (base class, 0055E000-0055FFFF).
 class CWorld : public CEngineObject {
 public:
@@ -152,7 +169,7 @@ public:
     // setting 0079BE5C) times 1/15, keeping the time of day (slot 31). The server's 0058EEE0 as above.
     virtual void SetTimeSpeed(float speed);
     virtual void* MaterialManager();      // 33: the material manager (0051C970 registers part materials)
-    virtual void Slot34();
+    virtual CTextureManager* TextureManager();   // 34: the client's 00561990 (+0x18C)
     virtual void Slot35();
     virtual void Slot36();
     virtual void Slot37();
@@ -171,7 +188,7 @@ public:
     float secondsPerTick_;                // +0x20
     std::uint8_t unknown24_[12];          // +0x24 wind direction (three floats); saved and loaded as they are
     std::uint32_t unknown30_;             // +0x30 wind strength (float bits, 0..1); saved and loaded
-    void* unknown34_;                     // +0x34 (slot 23 returns it)
+    CLinkFigureLoader* figureLoader_;     // +0x34 counted (the client's from SetUpGraphics; slot 23 returns it)
     CEngineObject* players_;              // +0x38 player list (vtable slot 20 returns it)
     CEngineObject* manager3C_;            // +0x3C (slot 15)
     CEngineObject* manager40_;            // +0x40 map objects by id (slot 19; its slot 23 creates one)
@@ -807,6 +824,18 @@ public:
     // platforms, flag 0x200, the cursor (+0x7D0), a reference on every player, room for 400 screen
     // entries (+0xF4), and both sector grids at 4 x 4. Returns 1.
     int Setup();
+    // 00563930 (RET 4; world_client_setup.cpp). Reads the light colours from config\<file> (an
+    // .ini, LightsGipat.ini): each key of [sunlight], [ambient] and [sky] names its hour in
+    // characters 4..5 ("hour07") and holds "r, g, b" (0..255, scaled by 1/255, alpha 1); the hours
+    // between two keys in file order are filled by linear steps from the earlier key (the first
+    // from hour 0). Hours are not range-checked. Returns 1.
+    int LoadLights(const char* file);
+    // 00563710 (RET 4; world_client_setup.cpp; once at startup, 00456440, with the renderer).
+    // The texture manager gets `device` (006913A0); the platforms and sky (00562F70); the digit
+    // sprites (+0x1B4) with the "numbers" texture (kind 6; flag 0x40000); a new figure loader for
+    // the figures resource (the CString 0079BC94) in +0x34 (counted, the old one released); then
+    // the unit database counts the sound files of +0x1CC.
+    void SetUpGraphics(void* device);
 
     std::uint8_t unknown_068[0x90 - 0x68];
     ZoneExit* exits_;                     // +0x090
@@ -821,13 +850,23 @@ public:
     std::uint8_t unknown_138[0x180 - 0x138];
     Terrain* terrain_;                    // +0x180
     char* zoneName_;                      // +0x184 CString
-    std::uint8_t unknown_188[0x1CC - 0x188];
+    std::uint8_t unknown_188[4];
+    CTextureManager* textureManager_;     // +0x18C (slot 34)
+    std::uint8_t unknown_190[0x1B4 - 0x190];
+    ClientNumbers* numbers_;              // +0x1B4 owned
+    std::uint8_t unknown_1B8[0x1CC - 0x1B8];
     CSoundManager* sounds_;               // +0x1CC the sound manager (owned; the client controller's hit sounds)
     std::uint8_t unknown_1D0[4];
     PlatformSet platforms_;               // +0x1D4
     std::uint8_t unknown_1F8[0x20C - 0x1F8];
     std::uint8_t* session_;               // +0x20C local session; its +0x20 is the local view
-    std::uint8_t unknown_210[0x6E0 - 0x210];
+    std::uint8_t unknown_210[0x22C - 0x210];
+    // +0x22C / +0x3AC / +0x52C the light colours by hour (0..23; r, g, b, 1) from the lights table's
+    // [sunlight], [ambient] and [sky] sections (LoadLights).
+    LightColour sunlight_[24];
+    LightColour ambient_[24];
+    LightColour sky_[24];
+    std::uint8_t unknown_6AC[0x6E0 - 0x6AC];
     int unknown6E0_;                      // +0x6E0
     std::uint8_t unknown_6E4[0x7A8 - 0x6E4];
     int unknown7A8_;                      // +0x7A8
@@ -837,6 +876,10 @@ static_assert(offsetof(CWorldClient, objectGrid_) == 0x120);
 static_assert(offsetof(CWorldClient, terrain_) == 0x180);
 static_assert(offsetof(CWorldClient, platforms_) == 0x1D4);
 static_assert(offsetof(CWorldClient, session_) == 0x20C);
+static_assert(offsetof(CWorldClient, textureManager_) == 0x18C);
+static_assert(offsetof(CWorldClient, numbers_) == 0x1B4);
+static_assert(offsetof(CWorldClient, sunlight_) == 0x22C);
+static_assert(offsetof(CWorldClient, sky_) == 0x52C);
 static_assert(offsetof(CWorldClient, unknown7A8_) == 0x7A8);
 
 // 00560E10. out = rows * v for the three rows of a 4x4 matrix (row stride 16 bytes). Returns out.

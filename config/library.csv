@@ -2742,6 +2742,8 @@ address,name,library,signature,notes
 005C58F0,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073FE1C (GetRuntimeClass 007005E3, Serialize 005C5670 identified); touches no other vtable; callees library only"
 005C5910,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073FE1C (GetRuntimeClass 007005E3, Serialize 005C5670 identified); touches no other vtable; callees library only"
 005C86B0,"CArray<TYPE,ARG_TYPE>::SetSize",MFC,,inventory sweep: MFC SetSize; loose-family member of 00557B80 (reviewed)
+005CDA40,"mfc::CArray<AICallRecord>::RemoveAt(index, count)",MFC,,"A-W7: template instantiation (element destructors 00558D00, then memmove)"
+005CDB00,mfc::CList<T>::AddHead (0x30-byte elements),MFC,,"A-W7: template instantiation (NewNode inlined, element copied)"
 005CDBA0,"CList<TYPE,ARG_TYPE>::~CList",MFC,,"inventory sweep: vtable store, RemoveAll inlined, CPlex::FreeDataChain; loose-family member of 00405130 (reviewed)"
 005D6C80,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073D4B4 (GetRuntimeClass 007005E3, Serialize 004C9B10 identified); touches no other vtable; callees library only"
 005D8B40,"CArray<TYPE,ARG_TYPE> constructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073D4B4 (GetRuntimeClass 007005E3, Serialize 004C9B10 identified); touches no other vtable; callees library only"

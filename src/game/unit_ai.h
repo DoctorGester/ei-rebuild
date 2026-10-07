@@ -468,6 +468,11 @@ struct PlayerMode : AIMode {
     // 005D3D90. Cast spell `spell` at `point`.
     void CommandCastAt(AIBrain* brain, int spell, const Vector3* point, int unused);
 
+    // 005D3DE0 (RET 8). Follow `leader` (counted): none when it is the unit itself. When the chain
+    // of leaders from `leader` (each unit's first Player mode) comes back to this unit, this unit's
+    // own Player mode stops following first. A walk in progress (action 1) is dropped (state 0).
+    void SetLeader(AIBrain* brain, CEngineObject* leader);
+
     // Not rewritten (forwarders).
     void UpdateCombat(AIBrain* brain);                      // 005D4170
     bool StaysWithParty(AIBrain* brain, bool moving);       // 005D4860

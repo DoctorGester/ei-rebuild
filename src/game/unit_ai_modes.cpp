@@ -776,6 +776,54 @@ void PlayerMode::CommandCastAt(AIBrain* brain, int spell, const Vector3* at, int
 }
 EI_REPLACE_METHOD(0x005D3D90, PlayerMode::CommandCastAt);
 
+namespace {
+// The first Player mode (type 6) in the brain of `unit`'s controller, or null.
+PlayerMode* PlayerModeOf(CUnit* unit) {
+    AIBrain* brain = reinterpret_cast<UnitController*>(unit->controller)->Brain();
+    for (auto* node = brain->modes.head; node; node = node->next)
+        if (node->data->Virtuals()->GetType() == kModePlayer) return static_cast<PlayerMode*>(node->data);
+    return nullptr;
+}
+} // namespace
+
+void PlayerMode::SetLeader(AIBrain* brain, CEngineObject* newLeader) {
+    CUnit* self = brain->owner->unit;
+    if (newLeader == self) {
+        if (leader) {
+            reinterpret_cast<AIRef*>(&leader)->Reset();
+            leader = nullptr;
+        }
+        return;
+    }
+    // Following a unit that (through its leaders) follows this one: this unit stops following.
+    if (newLeader) {
+        auto* unit = static_cast<CUnit*>(newLeader);
+        for (;;) {
+            PlayerMode* mode = PlayerModeOf(unit);
+            auto* next = mode ? static_cast<CUnit*>(mode->leader) : nullptr;
+            if (!next) break;
+            if (next == self) {
+                AIBrain* own = reinterpret_cast<UnitController*>(next->controller)->Brain();
+                if (PlayerMode* ownMode = PlayerModeOf(next)) ownMode->SetLeader(own, nullptr);
+                break;
+            }
+            unit = next;
+        }
+    }
+    if (brain->action == AIBrain::kActionWalk) {
+        state = kStateFollow;
+        ReleaseRef(brain->target);
+        brain->action = AIBrain::kActionNone;
+    }
+    if (newLeader != leader) {
+        if (leader) leader->Release();
+        leader = nullptr;
+        if (newLeader) ++newLeader->refCount_;
+        leader = newLeader;
+    }
+}
+EI_REPLACE_METHOD(0x005D3DE0, PlayerMode::SetLeader);
+
 void PlayerMode::OnObjectDeleted(CEngineObject* object) {
     if (target == object && target) ReleaseRef(target);
     if (leader == object && leader) ReleaseRef(leader);

@@ -510,20 +510,6 @@ void WriteCopy(AIStream* stream, const T& value) {
     stream->Write(&copy, sizeof(T));
 }
 
-// The mode types a save names (GetType of each mode).
-enum ModeType {
-    kModeGuard = 0,
-    kModePatrol = 1,
-    kModeSentry = 2,
-    kModeSuspection = 3,
-    kModeAggression = 4,
-    kModeCorpseWatcher = 5,
-    kModePlayer = 6,
-    kModeFear = 7,
-    kModeTamed = 8,
-    kModeFollow = 10,
-};
-
 // A new mode of `type` as Load constructs it before reading its data (the abstract bases'
 // constructors are overwritten by the vtables; the fields Load reads stay uninitialised). Null for
 // an unknown type (9, or above 10). The original writes +4 before testing the allocation.
