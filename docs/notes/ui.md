@@ -167,6 +167,8 @@ Rebirth-patched), 005F7B40, the sprite draw 005E6D90 (the sprite shape builders 
 
 | Address | Name | Verify |
 |---|---|---|
+| 005E1710, 005E17E0, 005E1870 | `CFlyingHitPoints::Construct` / `Destruct` / `Add` (`ui_flying_hit_points.cpp`; the world client's list of {target, amount, flags, start time}; flag 8 starts 0.5 s later) | ours only: empty list; one entry more with the arguments. Every zone; Add on hits |
+| 005E2990, 005E29E0 | `CChatOverlay::Update` (slot 24: lines older than 20 s erased) / `Redraw` (slot 22: lines at (10, 10 + 16 row), then 005FECC0) (`ui_chat_overlay.cpp`) | ours only: no line older than 21 s; line count kept. Multiplayer chat only |
 | 005EB090, 005EAD00, 005EAD50, 005EB580, 005EB540 | `CCameraInput::OnKeyUp` (slot 11), `OnRightDown` / `OnRightUp` (5 / 6: turning with the cursor held), `OnDeactivate` (1), `OnWheel` (12, returns 1) (the battle camera's input side, `ui_camera_keys.h`, `ui_camera_input.cpp`) | side by side: the input object, camera bytes +4..+0x1E0, the drag motion and the cursor's held byte, floats within 4 ULPs (ui_hud: keys, wheel and right click on the view; ui_screens: the escape menu deactivates it) |
 | 005F57C0 | `CInterface3D::Update` (every frame) | ours only: the mouse copy (+0x68 / +0x6C from 007C7C50) |
 | 005FDFA0 | `CUiSurface::DrawWrappedText` | side by side: line count and the surface's pixels through GDI (rule below) |

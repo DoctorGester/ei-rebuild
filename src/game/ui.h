@@ -1917,7 +1917,7 @@ struct ChatLine {
 
     mfc::CString text;          // +0x00
     mfc::CString name;          // +0x04
-    int unknown_08;
+    std::uint32_t time;         // +0x08 timeGetTime when it was added
     CUiSurface* surface;        // +0x0C
 };
 static_assert(sizeof(ChatLine) == 0x10);
@@ -1929,6 +1929,11 @@ public:
     // 005E28E0 (ui_window_delete.cpp). The destructor body: the typed line, every chat line
     // (destroyed, node freed), the list's sentinel, then the window's.
     void DestroyBody();
+    // 005E2990 (slot 24). Lines older than 20 s (timeGetTime) are erased.
+    void Update();
+    // 005E29E0 (slot 22). Each line's surface placed at (10, 10 + 16 * row) and blitted, then the
+    // window's own redraw (005FECC0).
+    void Redraw();
 
     stlp::list<ChatLine> lines_;     // +0x148
     std::uint8_t unknown_14C;        // +0x14C 0
