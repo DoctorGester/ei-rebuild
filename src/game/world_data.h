@@ -67,4 +67,28 @@ inline const char* NoWaveNameText() { return reinterpret_cast<const char*>(0x007
 inline float CampfireHeight() { return ExeFloat(std::uintptr_t(0x0073C538)); }   // 0.7
 inline float TorchLightScale() { return ExeFloat(std::uintptr_t(0x0073BAAC)); }  // the flame's radius factor (10)
 
+// ---- The client world's Setup (00561E50) --------------------------------------------------------
+
+// The game's folders (CStrings): the data folder and the text resources' folder.
+inline const void* DataPathString() { return reinterpret_cast<const void*>(std::uintptr_t(0x007AF460)); }
+inline const void* TextPathString() { return reinterpret_cast<const void*>(std::uintptr_t(0x007AF45C)); }
+inline const char* TexturesFolderText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078FFE4)); }   // "textures\"
+inline const char* LightsTableText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078FFD4)); }      // "LightsGipat.ini"
+inline const char* GipathText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078FFCC)); }           // "gipath"
+inline const char* TextsFileText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078FFC0)); }        // "texts.res"
+inline const char* TextsLmpFileText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078FFB0)); }     // "textsLmp.res"
+inline const char* CursorFileText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078FF9C)); }       // "wincurs\Df0000.cur"
+// The shadow setting (0 off, 2 blurred; map_object_shadow.cpp's ShadowMode): above 0 the client
+// sets its flag 0x200.
+inline int ShadowSetting() { return *reinterpret_cast<const volatile int*>(std::uintptr_t(0x0079BD0C)); }
+
+// Vtables Setup stores while it inlines the constructors.
+constexpr std::uintptr_t kClientTextsVtable = std::uintptr_t(0x0073F6F0);
+constexpr std::uintptr_t kTerrainVtable = std::uintptr_t(0x0073F6A8);
+constexpr std::uintptr_t kClientManager19CVtable = std::uintptr_t(0x0073F644);
+constexpr std::uintptr_t kClientHandleVtable = std::uintptr_t(0x0073F628);
+constexpr std::uintptr_t kClientListVtable = std::uintptr_t(0x0073F61C);   // the list manager's CList
+constexpr std::uintptr_t kClientListManagerVtable = std::uintptr_t(0x0073F5B8);
+constexpr std::uintptr_t kClientArrayManagerVtable = std::uintptr_t(0x0073F554);
+
 } // namespace worlddata

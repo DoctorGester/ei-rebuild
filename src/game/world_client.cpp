@@ -2,6 +2,7 @@
 #include "world.h"
 
 #include "core_maths.h"
+#include "map_object_figures.h"
 #include "terrain.h"
 
 #include "lib/crt.h"
@@ -59,8 +60,8 @@ float CWorldClient::ClampedGroundHeight(float x, float y) {
 }
 
 float PlatformSet::SurfaceHeight(const Vector3* point, float height) {
-    for (PlatformNode* node = head; node; node = node->next) {
-        const Platform& p = node->platform;
+    for (PlatformNode* node = list.head; node; node = node->next) {
+        const Platform& p = node->data;
         float dx = point->x - p.x;
         float dy = point->y - p.y;
         // Every test is "skip when below or unordered" (FCOM + TEST AH,1), so NaN skips.
@@ -81,8 +82,8 @@ float PlatformSet::SurfaceHeight(const Vector3* point, float height) {
 }
 
 bool PlatformSet::Contains(float x, float y) {
-    for (PlatformNode* node = head; node; node = node->next) {
-        const Platform& p = node->platform;
+    for (PlatformNode* node = list.head; node; node = node->next) {
+        const Platform& p = node->data;
         float dx = x - p.x;
         float dy = y - p.y;
         if (!(p.radius * p.radius >= dx * dx + dy * dy)) continue;
@@ -134,9 +135,9 @@ CEngineObject* CWorldClient::NearestVisibleUnit(CEngineObject* unit) {
     return nearest;
 }
 
-void* CWorldClient::ListItem(int index) {
-    if (index < listACount_) return listA_[index] + 0x188;
-    return listB_[index - listACount_] + 0x188;
+FootprintPart* CObject3D::PartBox(int index) {
+    void* part = index < parts.size ? parts.data[index] : pendingParts.data[index - parts.size];
+    return reinterpret_cast<FootprintPart*>(&static_cast<FigurePart*>(part)->boxFlags);
 }
 
 std::uint8_t* CWorldClient::LocalView() {
@@ -383,7 +384,7 @@ EI_REPLACE_METHOD(0x00560F00, PlatformSet::SurfaceHeight);
 EI_REPLACE_METHOD(0x00561050, PlatformSet::Contains);
 EI_REPLACE_METHOD(0x00560E10, MatrixRows::Transform);
 EI_REPLACE_METHOD(0x005640A0, CWorldClient::NearestVisibleUnit);
-EI_REPLACE_METHOD(0x00564AF0, CWorldClient::ListItem);
+EI_REPLACE_METHOD(0x00564AF0, CObject3D::PartBox);
 EI_REPLACE_METHOD(0x005699F0, CWorldClient::LocalView);
 EI_REPLACE_METHOD(0x00566EC0, CWorldClient::IsLocalViewMode2);
 EI_REPLACE_METHOD(0x00566EF0, CWorldClient::IsLocalPlayerIdle);

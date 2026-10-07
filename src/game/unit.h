@@ -198,6 +198,14 @@ public:
     virtual void HostileMaskChanged();      // 38: server 00552CD0 (the brain), base empty (00533CA0)
     virtual int TamingStage();              // 39: server 005460A0 (+0x908, the taming stage), base 0 (00533CB0)
     virtual void AdvanceTime(float time);   // 40: client 00535B30
+    // 41: client 00535B20: the unit placed on its path at its +0x34 time (00535850 with (+0x34, 0)).
+    virtual void PlaceOnPath();
+    // 42: server 00552670: `object` is going away (its targets, the brain and +0x1DC forget it);
+    // base and client empty (00533CE0, RET 4).
+    virtual void ObjectDeleted(CEngineObject* object);
+    // 43: client 005344A0: the fade-in starts (+0x78 and every part's alpha 0); base empty
+    // (00533CF0). The client world's AddObject calls it for units joining a session.
+    virtual void StartFadeIn();
 };
 
 class CUnit : public CEngineObject {

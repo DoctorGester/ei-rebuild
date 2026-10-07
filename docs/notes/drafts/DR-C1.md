@@ -57,11 +57,61 @@ Behaviour risks to check when building / running:
 - PrototypeNamePair (local, 0x10 bytes) replaces the 16-byte buffer for the name map pair.
 - `UnitSet18` forwarder now declared with `const char*` (same dword).
 
-## world_client_maps.cpp (partly done, uncompiled)
+## world_client_maps.cpp (done, uncompiled)
 
-Counted by grep after this pass: 129 At<> (was 160), 21 VCall (was 39).
+Now: 0 At<>, 0 VCall, 0 raw addresses outside the EI_ORIGINAL / EI_REPLACE lines.
 
-Converted:
+Second pass (the rest of the file):
+- CWorldClient members (world.h, static_asserts on each): countedA0_ (+0xA0, MFC CArray of counted
+  pointers; SetSize 00570000 forwarded), heroes_ / objects_ (+0xB4 / +0xB8), dynamicObjects_
+  (+0xBC, mfc::CList), dynamicNodes_ (+0xD8, PendingMap) and dynamicMaxId_ (+0xEC), screenEntries_
+  (+0xF0, stlp::list<ScreenEntry>), hits_ (+0xF4, ScreenHits) and hitCursor_ (+0x100), the range
+  fields +0x138..+0x14C, secondGrid_ (+0x150), manager188_ / manager190_ / manager19C_, listManager_,
+  arrayManager_, owned1A8_ / owned1AC_ / owned1B0_, list1B8_ / list1BC_ / list1C0_, unknown1C4_,
+  handle_ (RefPtr +0x1C8), texts_ (+0x1D0), texturePath_ (+0x224), unknown84_, unknown6DC_,
+  unknown6E4_, sessionJoins_ (+0x6EC), ribbons_ (+0x6F4), list7BC_, cursor_ (+0x7D0); Session()
+  views session_ as a WorldSession (+0x20 localView, +0x100 gameKind). Evidence: AddObject's
+  disassembly (005647E0: +0xBC CList head/tail/count at +0xC0/+0xC4, the id map at +0xD8), Setup's
+  decompilation (00561E50) for the owned objects and their sizes.
+- THE OVERLAP: world.h's listA_ (+0xD0), listACount_ (+0xD4) and listB_ (+0xE0) were not client
+  members: 00564AF0 (CWorldClient::ListItem) is called on a platform OBJECT (AddObject: ECX = the
+  object) and reads CObject3D::parts (+0xD0 data, +0xD4 size) and pendingParts (+0xE0). Moved to
+  `FootprintPart* CObject3D::PartBox(int)` (map_object_figures.h, defined in world_client.cpp,
+  same registration; verify_world.cpp's wrapper renamed). The three client members are gone.
+- THE "PENDING" MFC LIST +0x1F0 is the platform set's face list: PlatformSet (+0x1D4) is an engine
+  object (vtable at +0) followed by an mfc::CList<Platform> at +0x1C (00573000 carves 0x54-byte
+  nodes; AddFace is AddHead). RemoveObject's +0x1F0 walk drops the object's platform faces
+  (Platform +0 is the id; Platform::id / z named). PlatformSet now has `list` instead of `head`;
+  world_client.cpp's SurfaceHeight / Contains and verify_world_client_maps.cpp updated.
+- Slots: CObject3DSpecific 22 HitsDirtyRect / 24 HitsPartRect (map_object_figures.h; client
+  0051C130 / 0051C160 read from vtable 0073DE90), CUnitController 41 PlaceOnPath (client 00535B20),
+  42 ObjectDeleted (server 00552670, base 00533CE0), 43 StartFadeIn (client 005344A0, base 00533CF0)
+  (unit.h; client vtable 0073ECD8, server 0073EF38). These five are NEW names in DR-C2's headers.
+  CLinkFigureLoader::ClearCache (slot 5) for ClearMaps' +0x34 call; CBaseManager::Init (slot 13)
+  for the managers' "attach world"; CBaseManager::FreeSpares (00404410) for ManagerFreeRecords;
+  slot 22 of the world is SpellManager() (the vtable 0073F41C + 0x58 is 0055EBA0, +0x4C), walked
+  with ObjectListIterator (the notes called it the player list).
+- Deleting destructors: `delete static_cast<CEngineObject*>(p)` (slot 0 with 1, as the VCall did).
+  Slot 3 / slot 2 on the embedded platform set and ribbons through `Engine()` views (no vtable is
+  declared on those structs, so the calls cannot be devirtualised).
+- Terrain (terrain.h) now derives from CEngineObject and declares the members Setup's inlined
+  constructor initialises (sizeof 0xAFC asserted). New world.h types: OpaqueRecord<N>, ScreenEntry,
+  ScreenHits, RadiusMarker, WorldSession, ClientRibbons, ClientTexts, ClientListManager,
+  ClientArrayManager, ClientManager19C, MatrixDevice (moved from world_client_view.cpp, which now
+  uses it) with TheMatrixDevice() (007AF068). world.h now includes base_manager.h and
+  core_refcount.h. world_data.h: Setup's strings, folders, the shadow setting and vtables.
+- camera::TheCamera()->SetTarget(nullptr) replaces the 0040D3B0 forwarder on 0079B2A8.
+
+Behaviour risks (world_client_maps.cpp):
+- AddObject now calls CObject3D::PartBox and PlatformSet::AddBox directly (they were reached
+  through their hooked addresses: the verify wrappers no longer see these calls).
+- Setup writes the handle's refs / flags as three stores (the original: one dword store).
+- ClearMaps / Teardown call CBaseManager::FreeSpares, CRefObject::Shutdown / Release and
+  RefPtr::Share by name (rewritten ones; before, their addresses).
+- UNVERIFIED: owned1B0_ and owned1A8_ are engine objects (only slot 0 / slot 2 are called);
+  the +0xA0 array's elements are engine objects (00570000 calls their slot 4).
+
+First pass:
 - CreatePartyUnits (00566F70) fully: PartyUnitRecord fields (texts[2] model, [4] skin, [5]
   prototype, [6] second prototype, [0] script name, unknown_01C id, unknown_724 scale, the four
   item lists), the name map pair (NamePair::second is now UnitPrototypeRecord*), the prototype

@@ -146,9 +146,13 @@ public:
     virtual int DrawParts(void* context, int* dirty);
     virtual int DrawPartsShadow(void* context);
     virtual void Slot21();
-    virtual void Slot22();
+    // 22: client 0051C130: whether the screen point (x, y) is in the object's dirtyRect (when its
+    // flags_ has 0x20; PtInRect). The client's PickAt asks it.
+    virtual int HitsDirtyRect(const long* point);
     virtual void Slot23();
-    virtual void Slot24();
+    // 24: client 0051C160: whether the point is in the rectangle (+0x94 + 0x20) of one of the
+    // object's parts with flag 0x40 (the object's flags_ 0x20 first). PickAt2 asks it.
+    virtual int HitsPartRect(const long* point);
     virtual void Slot25(int);                       // 25: client 0051C9D0 (empty)
     virtual void SetLit(int lit);                   // 26: client 0051C9E0 (0051C9F0): the object's light is on / off
 
@@ -360,6 +364,9 @@ public:
     int MakeFigure(const char* model, void* partList, std::uint32_t arg);
     // 00517990. The index of the part name (+0x114) equal to `partName` (_mbscmp), or -1.
     int FindPartIndex(const char* partName);
+    // 00564AF0 (world_client.cpp; the client's AddObject walks a platform object's boxes with it).
+    // The box (FigurePart +0x188) of part `index` of the parts followed by the pending parts.
+    FootprintPart* PartBox(int index);
 
     // object3d_lifetime.cpp (A-U).
     // 00515F70. Virtual slot 2 (Create; another name so it is no override): position 0, the
