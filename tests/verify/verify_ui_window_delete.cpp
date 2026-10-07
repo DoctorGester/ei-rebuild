@@ -100,6 +100,19 @@ static void __fastcall BattleScreenSetupDestroyVerify(CBattleScreenSetup* self) 
 }
 EI_VERIFY(0x005F6130, BattleScreenSetupDestroyVerify, 0, s_unused);
 
+static void __fastcall BriefingDestroyVerify(CBriefingScreen* self) {
+    self->DestroyBody();
+    ei::verify::Check("CBriefingScreen::DestroyBody", true,
+                      BaseEmpty(self) && !self->children_.data && self->personTextCount_ == 0, "");
+}
+EI_VERIFY(0x005F6BA0, BriefingDestroyVerify, 0, s_unused);
+
+static void __fastcall ConnectScreenDestroyVerify(CMpConnectScreen* self) {
+    self->DestroyBody();
+    ei::verify::Check("CMpConnectScreen::DestroyBody", true, BaseEmpty(self) && !self->children_.data, "");
+}
+EI_VERIFY(0x00618570, ConnectScreenDestroyVerify, 0, s_unused);
+
 static void __fastcall HelpWindowDestroyVerify(CHelpWindow* self) {
     self->DestroyBody();
     ei::verify::Check("CHelpWindow::DestroyBody", true, BaseEmpty(self) && !self->children_.data, "");

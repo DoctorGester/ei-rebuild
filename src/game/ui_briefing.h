@@ -317,6 +317,11 @@ public:
     // Removes the shown items' meshes (and the item texture) from the scene and empties shown_
     // (inlined in 00608450 and 00604C50).
     void ClearShownItems();
+    // 005F6BA0 (ui_window_delete.cpp). The destructor body: the speakers (names, storage), the
+    // people ids' storage, the shown items (names, nodes, sentinel), the "pers" texts (erased,
+    // header), the dialogue text, the movers (nodes, sentinel), the party array (vtable 007402AC,
+    // storage), the topic and the topics, then the container's.
+    void DestroyBody();
 
     // 00604C50 (RET 4; ui_briefing_phrases.cpp). The next phrase of the current text: its lines up
     // to the next "#phrase <speaker> [voice]" are carried out ("#nolips", "#show", "#hide",
@@ -363,7 +368,8 @@ public:
     int topicTop_;                   // +0x264 first topic row shown
     float savedEdgeFade_;            // +0x268 the map edge fade (0079BD34) Create replaced
     PersonTextMap personTexts_;      // +0x26C "pers" texts by text key (map<int, CString>)
-    std::uint8_t unknown_270[0x278 - 0x270];
+    std::uint32_t personTextCount_;  // +0x270 the map's node count
+    std::uint8_t unknown_274[4];
     BriefingShownItem* shown_;       // +0x278 the items shown (list header)
     bool immediate_;                 // +0x27C the dialogue's people are placed at once (006064E0's first argument)
     bool noWalk_;                    // +0x27D the zone's map record +0x44: the leader does not walk

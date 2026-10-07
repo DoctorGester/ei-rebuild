@@ -23,10 +23,6 @@
 namespace {
 
 // Destructor bodies not rewritten yet.
-// 005F6BA0: the briefing / base screen (007405AC).
-__declspec(naked) void __fastcall BriefingDestroyAt(CBriefingScreen*) EI_ORIGINAL(0x005F6BA0)
-// 00618570: the multiplayer connection screen (00741CD0).
-__declspec(naked) void __fastcall ConnectScreenDestroyAt(CMpConnectScreen*) EI_ORIGINAL(0x00618570)
 // 00440D40: the master server link's destructor (net_socket_driver.cpp).
 __declspec(naked) void __fastcall MasterLinkDestructAt(void* /*link*/) EI_ORIGINAL(0x00440D40)
 // 005FAFA0 (RET 4): the "pers" texts tree's _M_erase(node) (library code).
@@ -45,6 +41,20 @@ void* ObjectiveExitsVtable() { return reinterpret_cast<void*>(0x00741264); }   /
 template <typename T>
 void FreeVectorStorage(T* begin, T* capacity) {
     stlp::deallocate(begin, static_cast<std::size_t>(capacity - begin) * sizeof(T));
+}
+
+// A "pers" texts map destroyed as the screens' destructors inline it: with nodes, every node
+// erased (005FAFA0) and the header reset, the count 0; then the header freed.
+void DestroyPersonTexts(PersonTextMap& map, std::uint32_t& count) {
+    PersonTextNode* header = map.header;
+    if (count != 0) {
+        PersonTextsEraseAt(&map, nullptr, header->parent);
+        header->left = header;
+        header->parent = nullptr;
+        header->right = header;
+        count = 0;
+    }
+    stlp::deallocate(map.header, sizeof(PersonTextNode));
 }
 
 // An STLport list emptied and its sentinel freed (the destructor's inlined clear).
@@ -138,15 +148,7 @@ EI_REPLACE_METHOD(0x005E28E0, CChatOverlay::DestroyBody);
 void CBattleScreenSetup::DestroyBody() {
     FreeVectorStorage(partyWithout_.begin, partyWithout_.capacity);
     FreeVectorStorage(partyWithUnit_.begin, partyWithUnit_.capacity);
-    PersonTextNode* header = personTexts_.header;
-    if (personTextCount_ != 0) {
-        PersonTextsEraseAt(&personTexts_, nullptr, header->parent);
-        header->left = header;
-        header->parent = nullptr;
-        header->right = header;
-        personTextCount_ = 0;
-    }
-    stlp::deallocate(personTexts_.header, sizeof(PersonTextNode));
+    DestroyPersonTexts(personTexts_, personTextCount_);
     heroes_.vtable = DwordArrayVtable();
     heroes_.FreeData();
     Party().vtable = PartyArrayVtable();
@@ -154,6 +156,53 @@ void CBattleScreenSetup::DestroyBody() {
     DestroyContainer();
 }
 EI_REPLACE_METHOD(0x005F6130, CBattleScreenSetup::DestroyBody);
+
+static_assert(sizeof(BriefingMover) == 0x30);
+
+void CBriefingScreen::DestroyBody() {
+    for (BriefingSpeaker* speaker = speakers_; speaker != speakersEnd_; ++speaker) speaker->name.~CString();
+    FreeVectorStorage(speakers_, speakersCapacity_);
+    people_.FreeStorage();
+    // The shown items' list (node 0x18 bytes: next, prev, then the item record).
+    for (BriefingShownItem* node = shown_->next; node != shown_;) {
+        BriefingShownItem* next = node->next;
+        node->name.~CString();
+        stlp::deallocate(node, sizeof(BriefingShownItem));
+        node = next;
+    }
+    shown_->next = shown_;
+    shown_->prev = shown_;
+    stlp::deallocate(shown_, sizeof(BriefingShownItem));
+    DestroyPersonTexts(personTexts_, personTextCount_);
+    dialogueText_.~CString();
+    for (BriefingMover* node = movers_->next; node != movers_;) {
+        BriefingMover* next = node->next;
+        stlp::deallocate(node, sizeof(BriefingMover));
+        node = next;
+    }
+    movers_->next = movers_;
+    movers_->prev = movers_;
+    stlp::deallocate(movers_, sizeof(BriefingMover));
+    party_.vtable = PartyArrayVtable();
+    party_.FreeData();
+    topic_.~CString();
+    topics_.Destruct();
+    DestroyContainer();
+}
+EI_REPLACE_METHOD(0x005F6BA0, CBriefingScreen::DestroyBody);
+
+void CMpConnectScreen::DestroyBody() {
+    StringArrayDestruct(moreStrings_);
+    StringArrayDestruct(strings_);
+    CStringDestroy(&text_);
+    for (MpAddressEntry* entry = entries_; entry != entriesEnd_; ++entry) {
+        entry->address.~CString();
+        entry->name.~CString();
+    }
+    FreeVectorStorage(entries_, entriesCapacity_);
+    DestroyContainer();
+}
+EI_REPLACE_METHOD(0x00618570, CMpConnectScreen::DestroyBody);
 
 void CHelpWindow::DestroyBody() {
     DestroyList(listB_, [](std::uint32_t*) {});
@@ -301,7 +350,7 @@ EI_REPLACE(0x005F6900, GlobalMapDelete);
 
 // 005F6B80: the briefing / base screen (007405AC).
 CBriefingScreen* __fastcall BriefingDelete(CBriefingScreen* self, void*, unsigned flags) {
-    BriefingDestroyAt(self);
+    self->DestroyBody();
     return FreeIfAsked(self, flags);
 }
 EI_REPLACE(0x005F6B80, BriefingDelete);
@@ -364,7 +413,7 @@ EI_REPLACE(0x0060E5E0, SpellMakerDelete);
 
 // 00618550: the multiplayer connection screen (00741CD0).
 CMpConnectScreen* __fastcall ConnectScreenDelete(CMpConnectScreen* self, void*, unsigned flags) {
-    ConnectScreenDestroyAt(self);
+    self->DestroyBody();
     return FreeIfAsked(self, flags);
 }
 EI_REPLACE(0x00618550, ConnectScreenDelete);

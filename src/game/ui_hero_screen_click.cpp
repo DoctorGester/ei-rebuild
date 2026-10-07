@@ -521,9 +521,9 @@ CMpConnectScreen* BuildConnectScreen(CInterface3D* ui) {
     auto* screen = static_cast<CMpConnectScreen*>(gamecrt::operator_new(sizeof(CMpConnectScreen)));
     if (!screen) return nullptr;
     ConstructContainerAt(screen, nullptr, ui);
-    screen->unknown_168 = 0;
-    screen->unknown_16C = 0;
-    screen->unknown_170 = 0;
+    screen->entries_ = nullptr;
+    screen->entriesEnd_ = nullptr;
+    screen->entriesCapacity_ = nullptr;
     for (int& v : screen->unknown_178) v = 0;
     screen->text_ = EmptyCStringData();
     StringArrayConstruct(screen->strings_);

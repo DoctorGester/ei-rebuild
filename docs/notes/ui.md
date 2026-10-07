@@ -120,7 +120,7 @@ forwarding strip (frees `list_`; the plain strip's 0060E280 frees nothing of its
 00633750 `CMessageBox`, 0061E460 `CMasterRequestBox` (00741DD8: message box + master server link at +0x180), 005E28E0 / 005E2670
 `CChatOverlay` / `ChatLine` (007400DC, the in-game chat made by CInterface3D::Create), 005F6130 `CBattleScreenSetup`, 005F8970
 `CHelpWindow` (00740E28), 00603B90 `CObjectivesWindow` (does not free the exit distances map +0x178: kept), 006070C0
-`CSaveLoadWindow`. Still forwarded: 005F6BA0 (briefing), 00618570 (connection screen). 0062EDA0 is 00499E30's code. The HUD
+`CSaveLoadWindow`. 005F6BA0 `CBriefingScreen`, 00618570 `CMpConnectScreen` (`MpAddressEntry` 0x34 bytes). 0062EDA0 is 00499E30's code. The HUD
 panels' input thunks 0064BCF0-0064BD80 (HUD range) are not done. CString / pair / vector / CGdiObject deleting destructors went to
 library.csv. Reached by every scenario that closes a screen or ends the game.
 
