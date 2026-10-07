@@ -6,8 +6,8 @@
 #include "../../src/game/scene_loader.h"
 
 // 0049AEC0: SUB ESP,0x18; MOV EAX,[ECX+4] (6 bytes).
-static void (__fastcall* s_faceNormal)(scene::MeshFace*, void*, const scene::ArrayBody*);
-static void __fastcall FaceNormalVerify(scene::MeshFace* face, void*, const scene::ArrayBody* positions) {
+static void (__fastcall* s_faceNormal)(scene::MeshFace*, void*, const scene::PointBuffer*);
+static void __fastcall FaceNormalVerify(scene::MeshFace* face, void*, const scene::PointBuffer* positions) {
     scene::MeshFace expected = *face;
     s_faceNormal(&expected, nullptr, positions);
     scene::ComputeFaceNormal(face, nullptr, positions);

@@ -31,20 +31,20 @@ struct Corner {
 
 void __fastcall WeldVerify(void* unit, VtArray* nodes) {
     VtArray& meshes = At<VtArray>(unit, 0x544);
-    std::vector<std::vector<Corner>> before(meshes.body.size > 0 ? meshes.body.size : 0);
-    for (int m = 0; m < meshes.body.size; ++m) {
-        char* mesh = static_cast<char*>(meshes.body.data) + m * mesh::kSize;
-        auto& positions = At<ArrayBody>(mesh, mesh::kPositions);
-        auto& coords = At<ArrayBody>(mesh, mesh::kTexCoords);
-        auto& faces = At<ArrayBody>(mesh, mesh::kFaces);
+    std::vector<std::vector<Corner>> before(meshes.size > 0 ? meshes.size : 0);
+    for (int m = 0; m < meshes.size; ++m) {
+        char* mesh = reinterpret_cast<char*>(meshes.data) + m * mesh::kSize;
+        auto& positions = At<lib::AlignedArray<std::uint8_t>>(mesh, mesh::kPositions);
+        auto& coords = At<lib::AlignedArray<std::uint8_t>>(mesh, mesh::kTexCoords);
+        auto& faces = At<lib::AlignedArray<std::uint8_t>>(mesh, mesh::kFaces);
         for (int f = 0; f < faces.size; ++f) {
-            const MeshFace& face = static_cast<MeshFace*>(faces.data)[f];
+            const MeshFace& face = reinterpret_cast<MeshFace*>(faces.data)[f];
             for (int c = 0; c < 3; ++c) {
                 Corner corner{};
                 if (static_cast<int>(face.vertex[c]) < positions.size)
-                    std::memcpy(corner.p, static_cast<char*>(positions.data) + face.vertex[c] * 12, 12);
+                    std::memcpy(corner.p, reinterpret_cast<char*>(positions.data) + face.vertex[c] * 12, 12);
                 if (static_cast<int>(face.vertex2[c]) < coords.size)
-                    std::memcpy(corner.uv, static_cast<char*>(coords.data) + face.vertex2[c] * 8, 8);
+                    std::memcpy(corner.uv, reinterpret_cast<char*>(coords.data) + face.vertex2[c] * 8, 8);
                 before[m].push_back(corner);
             }
         }
@@ -53,21 +53,21 @@ void __fastcall WeldVerify(void* unit, VtArray* nodes) {
     double weld;
     std::memcpy(&weld, reinterpret_cast<const void*>(0x0073B860), sizeof(weld));
     bool ok = true;
-    for (int m = 0; ok && m < meshes.body.size; ++m) {
-        char* mesh = static_cast<char*>(meshes.body.data) + m * mesh::kSize;
-        auto& positions = At<ArrayBody>(mesh, mesh::kPositions);
-        auto& coords = At<ArrayBody>(mesh, mesh::kTexCoords);
-        auto& faces = At<ArrayBody>(mesh, mesh::kFaces);
+    for (int m = 0; ok && m < meshes.size; ++m) {
+        char* mesh = reinterpret_cast<char*>(meshes.data) + m * mesh::kSize;
+        auto& positions = At<lib::AlignedArray<std::uint8_t>>(mesh, mesh::kPositions);
+        auto& coords = At<lib::AlignedArray<std::uint8_t>>(mesh, mesh::kTexCoords);
+        auto& faces = At<lib::AlignedArray<std::uint8_t>>(mesh, mesh::kFaces);
         for (int f = 0; ok && f < faces.size; ++f) {
-            const MeshFace& face = static_cast<MeshFace*>(faces.data)[f];
+            const MeshFace& face = reinterpret_cast<MeshFace*>(faces.data)[f];
             for (int c = 0; ok && c < 3; ++c) {
                 const Corner& old = before[m][static_cast<std::size_t>(f * 3 + c)];
                 if (static_cast<int>(face.vertex[c]) >= positions.size || static_cast<int>(face.vertex2[c]) >= coords.size) {
                     ok = false;
                     break;
                 }
-                const float* p = reinterpret_cast<float*>(static_cast<char*>(positions.data) + face.vertex[c] * 12);
-                const float* uv = reinterpret_cast<float*>(static_cast<char*>(coords.data) + face.vertex2[c] * 8);
+                const float* p = reinterpret_cast<float*>(reinterpret_cast<char*>(positions.data) + face.vertex[c] * 12);
+                const float* uv = reinterpret_cast<float*>(reinterpret_cast<char*>(coords.data) + face.vertex2[c] * 8);
                 double dp = std::sqrt(double(p[0] - old.p[0]) * (p[0] - old.p[0]) + double(p[1] - old.p[1]) * (p[1] - old.p[1]) +
                                       double(p[2] - old.p[2]) * (p[2] - old.p[2]));
                 double duv = std::hypot(double(uv[0] - old.uv[0]), double(uv[1] - old.uv[1]));
@@ -75,7 +75,7 @@ void __fastcall WeldVerify(void* unit, VtArray* nodes) {
             }
         }
     }
-    ei::verify::Check("WeldMeshVertices", true, ok, "%d meshes", meshes.body.size);
+    ei::verify::Check("WeldMeshVertices", true, ok, "%d meshes", meshes.size);
 }
 } // namespace
 

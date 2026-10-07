@@ -21,14 +21,14 @@ using namespace scene;
 int __fastcall SkeletonVerify(VtArray* meshes, VtArray* nodes, int frames, void* skin) {
     int result = BuildSkeleton(meshes, nodes, frames, skin);
     bool ok = true;
-    if (result == 1 && meshes->body.size > 0) {
-        for (int j = 0; ok && j < nodes->body.size; ++j) {
-            char* node = static_cast<char*>(nodes->body.data) + j * node::kSize;
+    if (result == 1 && meshes->size > 0) {
+        for (int j = 0; ok && j < nodes->size; ++j) {
+            char* node = reinterpret_cast<char*>(nodes->data) + j * node::kSize;
             auto& records = *reinterpret_cast<VtArray*>(node + 0xF8);
-            ok = records.body.size == static_cast<std::int16_t>(frames) &&
-                 (records.body.size == 0 ||
-                  (std::memcmp(static_cast<char*>(records.body.data) + 0xC, node + 0x70, 12) == 0 &&
-                   std::memcmp(static_cast<char*>(records.body.data) + 0x18, node + 0x7C, 16) == 0));
+            ok = records.size == static_cast<std::int16_t>(frames) &&
+                 (records.size == 0 ||
+                  (std::memcmp(reinterpret_cast<char*>(records.data) + 0xC, node + 0x70, 12) == 0 &&
+                   std::memcmp(reinterpret_cast<char*>(records.data) + 0x18, node + 0x7C, 16) == 0));
         }
     }
     ei::verify::Check("BuildSkeleton", true, ok, "result %d", result);

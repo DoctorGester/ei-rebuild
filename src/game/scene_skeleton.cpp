@@ -65,41 +65,9 @@ bool SameAsZero(const Vector3& v) {
     return same(v.x, zero.x) && same(v.y, zero.y) && same(v.z, zero.z);
 }
 
-// The frame array's SetSize as inlined (MFC, new storage, elements constructed, never destroyed).
-void SetSizeFrames(VtArray& array, int n) {
-    ArrayBody& a = array.body;
-    if (n == 0) {
-        if (a.data) {
-            gamecrt::operator_delete(a.data);
-            a.data = nullptr;
-        }
-        a.max = 0;
-        a.size = 0;
-    } else if (!a.data) {
-        a.data = gamecrt::operator_new(static_cast<std::size_t>(n) * 40);
-        ConstructFrameRecords(a.data, n);
-        a.max = n;
-        a.size = n;
-    } else if (n <= a.max) {
-        if (a.size < n) ConstructFrameRecords(static_cast<char*>(a.data) + a.size * 40, n - a.size);
-        a.size = n;
-    } else {
-        int grow = a.grow;
-        if (grow == 0) {
-            grow = a.size / 8;
-            if (grow < 4) grow = 4;
-            else if (grow > 0x400) grow = 0x400;
-        }
-        int capacity = n < a.max + grow ? a.max + grow : n;
-        void* data = gamecrt::operator_new(static_cast<std::size_t>(capacity) * 40);
-        std::memcpy(data, a.data, static_cast<std::size_t>(a.size) * 40);
-        ConstructFrameRecords(static_cast<char*>(data) + a.size * 40, n - a.size);
-        gamecrt::operator_delete(a.data);
-        a.data = data;
-        a.size = n;
-        a.max = capacity;
-    }
-}
+// The frame array (MFC CArray of 40-byte records; elements constructed by 00453730, never destroyed).
+using FrameArray = mfc::CArray<Rec<40>, OriginalElements<Rec<40>, ConstructFrameRecords>>;
+void SetSizeFrames(VtArray& array, int n) { Typed<FrameArray>(array).SetSize(n); }
 
 } // namespace
 
@@ -122,9 +90,9 @@ EI_REPLACE(0x00449240, BuildRootBone);
 // 004491C0: every child's rest pivot and rotation copied, recursively.
 void __fastcall CopyRestPose(char* node) {
     VtArray& children = At<VtArray>(node, kNodeChildren);
-    for (int i = 0; i < children.body.size; ++i) {
-        CopyRest(static_cast<char**>(children.body.data)[i]);
-        CopyRestPoseAt(static_cast<char**>(children.body.data)[i]);
+    for (int i = 0; i < children.size; ++i) {
+        CopyRest(reinterpret_cast<char**>(children.data)[i]);
+        CopyRestPoseAt(reinterpret_cast<char**>(children.data)[i]);
     }
 }
 EI_REPLACE(0x004491C0, CopyRestPose);
@@ -134,26 +102,26 @@ EI_REPLACE(0x004491C0, CopyRestPose);
 // from it down. Without a root the original reads and writes the element before the array; kept.
 int __fastcall FindRootNode(VtArray* nodes) {
     int root = -1;
-    for (int i = 0; i < nodes->body.size; ++i) {
-        char* parent = static_cast<char*>(nodes->body.data) + i * node::kSize;
+    for (int i = 0; i < nodes->size; ++i) {
+        char* parent = reinterpret_cast<char*>(nodes->data) + i * node::kSize;
         if (reinterpret_cast<const int*>(At<char*>(parent, node::kParent))[-2] == 0) root = i;   // CString length
-        for (int j = 0; j < nodes->body.size; ++j) {
-            char* base = static_cast<char*>(nodes->body.data);
+        for (int j = 0; j < nodes->size; ++j) {
+            char* base = reinterpret_cast<char*>(nodes->data);
             char* child = base + j * node::kSize;
             if (gamecrt::mbscmp(At<const unsigned char*>(child, node::kParent), At<const unsigned char*>(base + i * node::kSize, node::kName)) != 0)
                 continue;
             VtArray& children = At<VtArray>(base + i * node::kSize, kNodeChildren);
-            int n = children.body.size;
+            int n = children.size;
             ChildrenSetSize(&children, nullptr, n + 1, -1);
-            static_cast<char**>(children.body.data)[n] = child;
+            reinterpret_cast<char**>(children.data)[n] = child;
         }
     }
-    char* rootNode = static_cast<char*>(nodes->body.data) + root * static_cast<int>(node::kSize);
+    char* rootNode = reinterpret_cast<char*>(nodes->data) + root * static_cast<int>(node::kSize);
     CopyRest(rootNode);
     VtArray& children = At<VtArray>(rootNode, kNodeChildren);
-    for (int i = 0; i < children.body.size; ++i) {
-        CopyRest(static_cast<char**>(children.body.data)[i]);
-        CopyRestPoseAt(static_cast<char**>(children.body.data)[i]);
+    for (int i = 0; i < children.size; ++i) {
+        CopyRest(reinterpret_cast<char**>(children.data)[i]);
+        CopyRestPoseAt(reinterpret_cast<char**>(children.data)[i]);
     }
     return root;
 }
@@ -163,8 +131,8 @@ EI_REPLACE(0x00449030, FindRootNode);
 // `frames` (its low word counts), `skin`. 1, or 0 without a root node; a first rotation key not
 // at frame 0 is a fatal error (FatalErrorOriginal's result is returned if it comes back).
 int __fastcall BuildSkeleton(VtArray* meshes, VtArray* nodes, int frames, void* skin) {
-    for (int i = 0; i < nodes->body.size; ++i) {
-        char* node = static_cast<char*>(nodes->body.data) + i * node::kSize;
+    for (int i = 0; i < nodes->size; ++i) {
+        char* node = reinterpret_cast<char*>(nodes->data) + i * node::kSize;
         const char* rotationKey = At<char*>(node, node::kRotKeys + 4);
         if (At<std::uint16_t>(rotationKey, 0) != 0)
             return FatalErrorOriginal(reinterpret_cast<const char*>(0x007843AC));   // "ResolveNodesAMF. ..."
@@ -185,11 +153,11 @@ int __fastcall BuildSkeleton(VtArray* meshes, VtArray* nodes, int frames, void* 
         return 0;
     }
 
-    for (int m = 0; m < meshes->body.size; ++m) {
-        char* mesh = static_cast<char*>(meshes->body.data) + m * mesh::kSize;
+    for (int m = 0; m < meshes->size; ++m) {
+        char* mesh = reinterpret_cast<char*>(meshes->data) + m * mesh::kSize;
         char* node = nullptr;
-        for (int j = 0; j < nodes->body.size; ++j) {
-            char* candidate = static_cast<char*>(nodes->body.data) + j * node::kSize;
+        for (int j = 0; j < nodes->size; ++j) {
+            char* candidate = reinterpret_cast<char*>(nodes->data) + j * node::kSize;
             const char* meshName = ei::VCall<const char*>(mesh, 7);
             if (gamecrt::mbscmp(At<const unsigned char*>(candidate, node::kName),
                                 reinterpret_cast<const unsigned char*>(meshName)) == 0) {
@@ -206,10 +174,10 @@ int __fastcall BuildSkeleton(VtArray* meshes, VtArray* nodes, int frames, void* 
         float m00 = 1.0f - (zz + yy), m01 = xy - zw, m02 = xz + yw;
         float m10 = xy + zw, m11 = 1.0f - (zz + xx), m12 = yz - xw;
         float m20 = xz - yw, m21 = yz + xw, m22 = 1.0f - (yy + xx);
-        ArrayBody& positions = At<ArrayBody>(mesh, mesh::kPositions);
+        PointBuffer& positions = At<PointBuffer>(mesh, mesh::kPositions);
         const Vector3& pivot = At<Vector3>(node, kNodePivot);
         for (int i = 0; i < positions.size; ++i) {
-            Vector3& p = static_cast<Vector3*>(positions.data)[i];
+            Vector3& p = reinterpret_cast<Vector3&>(positions.data[i]);
             p.x = p.x - pivot.x;
             p.y = p.y - pivot.y;
             p.z = p.z - pivot.z;
@@ -223,15 +191,15 @@ int __fastcall BuildSkeleton(VtArray* meshes, VtArray* nodes, int frames, void* 
         q.z = -q.z;
     }
 
-    BuildRootBoneAt(skin, static_cast<char*>(nodes->body.data) + root * node::kSize, frames);
+    BuildRootBoneAt(skin, reinterpret_cast<char*>(nodes->data) + root * node::kSize, frames);
 
     // Repeated once per mesh, as the original does.
-    for (int m = 0; m < meshes->body.size; ++m) {
-        for (int j = 0; j < nodes->body.size; ++j) {
-            char* node = static_cast<char*>(nodes->body.data) + j * node::kSize;
+    for (int m = 0; m < meshes->size; ++m) {
+        for (int j = 0; j < nodes->size; ++j) {
+            char* node = reinterpret_cast<char*>(nodes->data) + j * node::kSize;
             VtArray& records = At<VtArray>(node, kNodeFrames);
             SetSizeFrames(records, static_cast<std::int16_t>(frames));
-            char* first = static_cast<char*>(records.body.data);
+            char* first = reinterpret_cast<char*>(records.data);
             At<Vector3>(first, 0xC) = At<Vector3>(node, kNodePivot);
             At<Quaternion>(first, 0x18) = At<Quaternion>(node, kNodeRotation);
             At<std::uint32_t>(node, 0x10) = 0;

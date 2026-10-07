@@ -229,7 +229,7 @@ Views with their own `Mid(int)` (console::Str, ...) still call 006FD9B4. config/
 ## Shared containers
 
 The game's container templates are declared once in `src/lib` and reused by every port (rewrite guide, "Clean code";
-`tools/check_cleanup.py` counts the per-file `struct ...Array/...List` layouts that are left and may only go down; 6
+`tools/check_cleanup.py` counts the per-file `struct ...Array/...List` layouts that are left and may only go down; none
 remain).
 
 - `mfc::CArray<T, Elements>` (`src/lib/mfc.h`, 0x14 bytes: vtable, data, size, maxSize, growBy). MFC 4.2's SetSize /
@@ -294,12 +294,22 @@ SavedParties, EntryPicks). The glow's static arrays (lightning_draw) use the tem
 Behaviour notes: AlignedPtrArray's SetAtGrow(-1) faults like the original's (both write through the null array);
 AILookArray's Copy assigns element by element where 005D8B60 memcpys (same bytes).
 
-Left (6): scene_loader's untyped `ArrayBody` / `VtArray` family (PointArray, TexCoordArray, IndexArray, GroupArray,
-NodeArray; ~200 uses in scene_* / face_normal / map_database and six verify files). Next step: type each array
-(points, (u, v), FileFace, FaceGroup, rot / pos / morph keys, normals) as `AlignedArray<T>` / `CArray<T, Elements>` with
-the construct / destruct forwarders as Elements policies, which also replaces the element-size-generic
-`SetSizeInline` / `SetSizeAligned`. Hand-inlined SetSize copies remain in ui_window.cpp (region points), map_spec,
-party_lifetime and unit_skins (`CopyRecords`, an `AlignedArray<char>::SetSize`).
+Scene loader (D3d): `scene::VtArray` is `CArray<char, RawElements<char>>`, an untyped view of the caller's record
+arrays (meshes, nodes, helpers, figures, bone links); they are resized only through `Typed<...>`, the CArray of the
+same layout with its records and the original's ConstructElements / DestructElements as the `OriginalElements<T, Make,
+Unmake>` policy (scene_loader.h; plain ones use PlainElements: the file records, the node's rotation / position keys
+and normals). The vertex arrays are `lib::AlignedArray` (`PointBuffer`, `UvBuffer`, `FaceBuffer`, `BlockBuffer`,
+`DwordBuffer`; elements kept as bits where the loader copies through the FPU); their SetAtGrow / Add / Copy / SetSize /
+destructors are the template (the originals 00452AF0, 0044FBB0, 0044F410, 0044F1D0, 0044F1B0 are hooked to the same).
+Still forwarded: the IndexArray (`CArray<uint32_t>`, 0073C800) SetAtGrow / Add / destructor 004773F0 / 00476640 /
+00476780, the mesh groups' SetSize 00474DB0, the skipped records' constructors / SetSize / destructors, and the
+owners `SceneNodes` / `TextureLinks` / `TextureNames` (RAII wrappers over VtArray). The inlined SetSize copies in
+scene_skeleton (frames, 00453730), scene_registry (named types, 004553F0 / 00454360), scene_normals and scene_weld are
+the templates too. Also on the templates now: `CUiRegion::points_` (`AlignedArray<UiPoint>`), the trap's targets
+(`CArray<TargetRecord>`) and unit_skins' texture set bytes (`AlignedArray<char>`). Left: map_database.cpp keeps its own
+`ArrayBody` + generic `SetSize` (allods, maps, zone exits; untyped, not counted by the checker); the trap's areas
+array (`PlainArray`, 12-byte records) still forwards to its out-of-line SetSize 0046EAD0. party_lifetime was already
+on the templates (D3c).
 
 ## Open items
 

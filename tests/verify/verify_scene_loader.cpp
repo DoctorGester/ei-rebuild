@@ -84,10 +84,11 @@ __declspec(naked) void __stdcall DestructNodes(void*, int) EI_ORIGINAL(0x0047710
 __declspec(naked) void __fastcall SetSizeHelpers(VtArray*, void*, int, int) EI_ORIGINAL(0x00453550)
 
 void FreeArray(VtArray& a, void(__stdcall* destruct)(void*, int)) {
-    if (!a.body.data) return;
-    destruct(a.body.data, a.body.size);
-    gamecrt::operator_delete(a.body.data);
-    a.body = {};
+    if (!a.data) return;
+    destruct(a.data, a.size);
+    gamecrt::operator_delete(a.data);
+    a.data = nullptr;
+    a.size = a.maxSize = a.growBy = 0;
 }
 
 // --- Deep comparison -----------------------------------------------------------------------------------
@@ -126,6 +127,14 @@ void CompareString(Diff& d, const char* what, int index, const void* a, const vo
     const char* y = *At<const char*>(b, 0);
     if (std::strcmp(x, y) != 0) d.Fail("%s %d: \"%.40s\" vs \"%.40s\"", what, index, x, y);
 }
+
+// The layout of an array without its vtable (the aligned arrays; an MFC array's tail at +4).
+struct ArrayBody {
+    void* data;
+    int size;
+    int max;
+    int grow;
+};
 
 // An array body: size, capacity, grow step, then the first `compared` bytes of each element.
 void CompareBody(Diff& d, const char* what, int index, const ArrayBody& a, const ArrayBody& b, std::size_t elementSize,
@@ -200,12 +209,12 @@ void CompareHelper(Diff& d, int i, const void* a, const void* b) {
 
 void CompareArray(Diff& d, const char* what, const VtArray& a, const VtArray& b, std::size_t elementSize,
                   void (*compare)(Diff&, int, const void*, const void*)) {
-    CompareBody(d, what, 0, a.body, b.body, elementSize, 0);
-    for (int i = 0; i < a.body.size && !d.failed; ++i)
-        compare(d, i, At(a.body.data, i * elementSize), At(b.body.data, i * elementSize));
+    CompareBody(d, what, 0, BodyAt(&a, 4), BodyAt(&b, 4), elementSize, 0);
+    for (int i = 0; i < a.size && !d.failed; ++i)
+        compare(d, i, At(a.data, i * elementSize), At(b.data, i * elementSize));
 }
 
-bool Empty(const VtArray* a) { return !a->body.data && a->body.size == 0; }
+bool Empty(const VtArray* a) { return !a->data && a->size == 0; }
 
 // --- The wrapper -------------------------------------------------------------------------------------------
 
@@ -220,8 +229,8 @@ mfc::BOOL __fastcall LoadVerify(SceneInfo* self, void*, void* file, VtArray* mes
     VtArray meshCopy = *meshes, helperCopy = *helpers, nodeCopy = *nodes;
     mfc::BOOL actual = self->Load(&recorder, meshes, helpers, nodes);
     if (!comparable) {
-        ei::verify::Check("SceneInfo::Load (ours only)", true, meshes->body.size == nodes->body.size, "%d meshes, %d nodes",
-                          meshes->body.size, nodes->body.size);
+        ei::verify::Check("SceneInfo::Load (ours only)", true, meshes->size == nodes->size, "%d meshes, %d nodes",
+                          meshes->size, nodes->size);
         return actual;
     }
 
@@ -238,7 +247,7 @@ mfc::BOOL __fastcall LoadVerify(SceneInfo* self, void*, void* file, VtArray* mes
     if (!d.failed) CompareArray(d, "nodes", nodeCopy, *nodes, node::kSize, &CompareNode);
     if (!d.failed) CompareArray(d, "helpers", helperCopy, *helpers, helper::kSize, &CompareHelper);
     ei::verify::Check("SceneInfo::Load", true, !d.failed, "%s (%u reads, %d meshes, %d helpers)", d.where, unsigned(ops.size()),
-                      meshes->body.size, helpers->body.size);
+                      meshes->size, helpers->size);
 
     FreeArray(meshCopy, &DestructMeshes);
     FreeArray(nodeCopy, &DestructNodes);
@@ -258,11 +267,11 @@ mfc::BOOL __stdcall LoadFakeUnitSceneVerify(const char* fileName, const char* re
         const VtArray& meshes = *At<VtArray>(u, 0x544);
         const VtArray& figures = *At<VtArray>(u, 0x530);
         const VtArray& boneLinks = *At<VtArray>(u, 0x558);
-        if (figures.body.size != meshes.body.size || boneLinks.body.size != figures.body.size)
-            d.Fail("%d meshes, %d figures, %d bone link arrays", meshes.body.size, figures.body.size, boneLinks.body.size);
-        for (int i = 0; i < figures.body.size && !d.failed; ++i) {
-            const char* figureName = *At<const char*>(figures.body.data, i * 0x220 + 0x120);
-            const char* meshName = *At<const char*>(meshes.body.data, i * mesh::kSize + mesh::kName);
+        if (figures.size != meshes.size || boneLinks.size != figures.size)
+            d.Fail("%d meshes, %d figures, %d bone link arrays", meshes.size, figures.size, boneLinks.size);
+        for (int i = 0; i < figures.size && !d.failed; ++i) {
+            const char* figureName = *At<const char*>(figures.data, i * 0x220 + 0x120);
+            const char* meshName = *At<const char*>(meshes.data, i * mesh::kSize + mesh::kName);
             if (std::strcmp(figureName, meshName) != 0) d.Fail("figure %d \"%.40s\", mesh \"%.40s\"", i, figureName, meshName);
         }
         const std::uint32_t expected[3] = {0, 0, 0x44FA0000};
