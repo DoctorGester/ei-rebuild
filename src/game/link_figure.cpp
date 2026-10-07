@@ -57,6 +57,27 @@ void SetW(VertexPacket& packet) {
     for (int k = 3; k >= 0; --k) std::memcpy(&packet.block[3][k], &kOne, 4);
 }
 
+// One vertex packet from its FIG8 record at *cursor (3 blocks of 8 versions, 0x180 bytes; moved
+// past it), morphed by s, t, u; w = 1.
+void MorphFig8Packet(VertexPacket& packet, const char** cursor, float s, float t, float u) {
+    for (int b = 0; b < 3; ++b) {
+        const float* versions = reinterpret_cast<const float*>(*cursor);
+        for (int k = 0; k < 4; ++k) packet.block[b][k] = Morph8(versions + k, s, t, u);
+        *cursor += 0x80;
+    }
+    SetW(packet);
+}
+
+// The same for the older records (3 blocks of 6 versions, 0x120 bytes).
+void MorphOldPacket(VertexPacket& packet, const char** cursor, float s, float t, float u) {
+    for (int b = 0; b < 3; ++b) {
+        const float* versions = reinterpret_cast<const float*>(*cursor);
+        for (int k = 0; k < 4; ++k) packet.block[b][k] = Morph6(versions + k, s, t, u);
+        *cursor += 0x60;
+    }
+    SetW(packet);
+}
+
 } // namespace
 
 // ---- CLinkMesh ------------------------------------------------------------------------------------
@@ -160,15 +181,13 @@ void CLinkFigureLoader::LoadFigPart(CLinkMesh* mesh, const stlp::string* name, c
     VertexPacket* packets = AllocatePackets(count);
     for (int i = 0; i < count; ++i) {
         VertexPacket& packet = packets[i];
+        if (fig.magic == kFig8Magic) {
+            MorphFig8Packet(packet, cursor, s, t, u);
+            continue;
+        }
         for (int b = 0; b < 3; ++b) {
-            if (fig.magic == kFig8Magic) {
-                const float* versions = reinterpret_cast<const float*>(*cursor);
-                for (int k = 0; k < 4; ++k) packet.block[b][k] = Morph8(versions + k, s, t, u);
-                *cursor += 0x80;
-            } else {
-                std::memcpy(packet.block[b], *cursor, 0x10);
-                *cursor += 0x10;
-            }
+            std::memcpy(packet.block[b], *cursor, 0x10);
+            *cursor += 0x10;
         }
         SetW(packet);
     }
@@ -198,15 +217,7 @@ void CLinkFigureLoader::LoadOldPart(CLinkMesh* mesh, const stlp::string* name, c
     int count = Read<int>(cursor);
 
     VertexPacket* packets = AllocatePackets(count);
-    for (int i = 0; i < count; ++i) {
-        VertexPacket& packet = packets[i];
-        for (int b = 0; b < 3; ++b) {
-            const float* versions = reinterpret_cast<const float*>(*cursor);
-            for (int k = 0; k < 4; ++k) packet.block[b][k] = Morph6(versions + k, s, t, u);
-            *cursor += 0x60;
-        }
-        SetW(packet);
-    }
+    for (int i = 0; i < count; ++i) MorphOldPacket(packets[i], cursor, s, t, u);
     if (count) pipeline_->FitBounds(&header->bounds, packets, count);
 
     // Each array is a count and its elements; a block of 0x34-byte records between the texture
@@ -236,6 +247,59 @@ void CLinkFigureLoader::LoadOldPart(CLinkMesh* mesh, const stlp::string* name, c
     if (packets) lib::AlignedArray<VertexPacket>::Free(packets);
 }
 EI_REPLACE_METHOD(0x004F87D0, CLinkFigureLoader::LoadOldPart);
+
+// ---- Morphing a loaded part again -----------------------------------------------------------------
+
+namespace {
+// 004F3800 (CLinkMesh::SetPartVertices, below), called through its address so its check sees these calls.
+__declspec(naked) bool __fastcall SetPartVerticesAt(CLinkMesh*, void*, const stlp::string*, const VertexPacket*, unsigned)
+    EI_ORIGINAL(0x004F3800)
+} // namespace
+
+void CLinkFigureLoader::RemorphFigPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s,
+                                       float t, float u) {
+    LinkPartHeader* header = LinkHeaderMapAtOriginal(&mesh->headers_, nullptr, name);
+    FigHeader fig;
+    std::memcpy(&fig, *cursor, sizeof(fig));
+    *cursor += 0x168;   // the header, two dwords and the FIG8 bounds (a plain FIG is read as FIG8 too)
+    int count = fig.vertexCount;
+    VertexPacket* packets = AllocatePackets(count);
+    for (int i = 0; i < count; ++i) MorphFig8Packet(packets[i], cursor, s, t, u);
+    if (count) pipeline_->FitBounds(&header->bounds, packets, count);
+    SetPartVerticesAt(mesh, nullptr, name, packets, static_cast<unsigned>(count));
+    if (packets) lib::AlignedArray<VertexPacket>::Free(packets);
+}
+EI_REPLACE_METHOD(0x004F9FD0, CLinkFigureLoader::RemorphFigPart);
+
+void CLinkFigureLoader::RemorphOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s,
+                                       float t, float u) {
+    LinkPartHeader* header = LinkHeaderMapAtOriginal(&mesh->headers_, nullptr, name);
+    *cursor += 0xF8;   // two dwords and the morphed bounds
+    int count = Read<int>(cursor);
+    VertexPacket* packets = AllocatePackets(count);
+    for (int i = 0; i < count; ++i) MorphOldPacket(packets[i], cursor, s, t, u);
+    if (count) pipeline_->FitBounds(&header->bounds, packets, count);
+    SetPartVerticesAt(mesh, nullptr, name, packets, static_cast<unsigned>(count));
+    if (packets) lib::AlignedArray<VertexPacket>::Free(packets);
+}
+EI_REPLACE_METHOD(0x004FA670, CLinkFigureLoader::RemorphOldPart);
+
+int CLinkMesh::MemoryBytes() const {
+    const int parts = static_cast<int>(ranges_.size());
+    const int inner = texCoords_.size + 8 * (vertices_.size + normals_.size) + 6 * parts;
+    return 2 * (indices_.size + 3 * corners_.size + 2 * (words_.size + 0x2C + 2 * inner));
+}
+EI_REPLACE_METHOD(0x004F4B50, CLinkMesh::MemoryBytes);
+
+bool CLinkMesh::SetPartVertices(const stlp::string* name, const VertexPacket* vertices, unsigned count) {
+    const LinkRangeMap::Node* node = ranges_.find(*name);
+    if (node == ranges_.end()) return false;
+    const LinkPartRanges& r = node->second;
+    unsigned n = static_cast<unsigned>(r.vertices.count) < count ? static_cast<unsigned>(r.vertices.count) : count;
+    std::memcpy(vertices_.data + r.vertices.start, vertices, static_cast<std::size_t>(n) * sizeof(VertexPacket));
+    return true;
+}
+EI_REPLACE_METHOD(0x004F3800, CLinkMesh::SetPartVertices);
 
 // ---- CLinkMesh's slots ----------------------------------------------------------------------------
 

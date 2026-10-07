@@ -203,3 +203,14 @@ static void* __fastcall LoaderDeleteThisVerify(CLinkFigureLoader* self, void*, u
     return result;
 }
 EI_VERIFY(0x004F6A30, LoaderDeleteThisVerify, 0, s_loaderDeleteThis);
+
+// 004FAAA0 slot 2 (pure): PUSH EBX; MOV EBX,ECX; PUSH ESI; PUSH EDI (5 bytes). Against the original;
+// no scenario is known to reach it.
+static int (__fastcall* s_cacheBytes)(CLinkFigureLoader*);
+static int __fastcall CacheBytesVerify(CLinkFigureLoader* self) {
+    const int expected = s_cacheBytes(self);
+    const int actual = self->CLinkFigureLoader::CacheBytes();
+    ei::verify::Check("CLinkFigureLoader::CacheBytes", expected, actual, "%d");
+    return actual;
+}
+EI_VERIFY(0x004FAAA0, CacheBytesVerify, 5, s_cacheBytes);

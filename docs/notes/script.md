@@ -478,7 +478,11 @@ destructor 004F6BD0, 004F9E50 (a part morphed again, Remorph), 004F2650 / 004F29
 
 | 004FAB00 | `CLinkFigureLoader::FindFigureSet` (`link_loader.cpp`) | cached: against the original; new: ours only (stored under the name, or no entry for null). `newgame`, `models` |
 | 004F6BD0, 004F6A30 | `CLinkFigureLoader::Destruct`, slot 0 `DeleteThis` | ours only (root vtable, `this`). Reached when the client world goes (`world_load`, exit) |
+| 004F9E50, 004F9FD0, 004FA670, 004F3800 | `RemorphPart`, `RemorphFigPart`, `RemorphOldPart`, `CLinkMesh::SetPartVertices` | the three record ones against the original (run first, outputs kept, old vertices / bounds put back, then ours; vertices and bounds NearlyEqual, cursor exact); RemorphPart ours only. `models`, `ui_hero_screen` |
+| 004F4B50, 004FAAA0 | `CLinkMesh::MemoryBytes`, loader slot 2 `CacheBytes` | against the original; no scenario known to reach them |
 
+- Kept: RemorphFigPart reads every record as FIG8 (a plain FIG part is skipped 0x168 bytes and morphed from 8 versions).
+  LoadFigPart / LoadOldPart now share the packet morphs (`MorphFig8Packet`, `MorphOldPacket`) with them.
 - The figure model forwarders 005A9A50 / 005A9C90 / 005A9EB0 are now shared in originals_world.h.
 - `CLinkMesh::headers_` / `ranges_` are now `stlp::map<stlp::string, LinkPartHeader / LinkPartRanges>` (`LinkHeaderMap`,
   `LinkRangeMap`; LinkStringMap / LinkMapNode gone, the 004F5C90 find forwarder replaced by `map::find`). stlp::map got

@@ -107,6 +107,14 @@ public:
     // object of the base alone exists).
     CLinkMesh* DeletingDestructBase(unsigned flags);
 
+    // 004F4B50 (A-S8). An estimate of the mesh's bytes: 2 * (indices + 3 * corners + 2 * (words + 0x2C
+    // + 2 * (texture coordinates + 8 * (vertices + normals) + 6 * parts))), from the element counts.
+    int MemoryBytes() const;
+
+    // 004F3800 (RET 0xC, AL; A-S8). Overwrites part `name`'s first min(its count, count) vertex
+    // packets (unsigned) with `vertices`; false when there is no such part.
+    bool SetPartVertices(const stlp::string* name, const VertexPacket* vertices, unsigned count);
+
     // 004F2F90 (RET 0xC). Sets the morph coefficients.
     void SetMorph(float s, float t, float u);
     // 004F7370 (RET 4, returns out; link_loader.cpp). Constructs a copy of the name in `out`.

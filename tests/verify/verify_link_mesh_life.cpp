@@ -96,3 +96,14 @@ static CLinkMesh* __fastcall DeletingDestructBaseVerify(CLinkMesh* self, void*, 
     return result;
 }
 EI_VERIFY(0x004F2E00, DeletingDestructBaseVerify, 0, s_deletingBase);
+
+// 004F4B50 (pure): MOV EDX,[ECX+0x50] (3), MOV EAX,[ECX+0x40] (3). Against the original. Its only
+// caller is the loader's slot 2 (004FAAA0), which no scenario is known to reach.
+static int(__fastcall* s_memoryBytes)(const CLinkMesh*);
+static int __fastcall MemoryBytesVerify(const CLinkMesh* self) {
+    const int expected = s_memoryBytes(self);
+    const int actual = self->MemoryBytes();
+    ei::verify::Check("CLinkMesh::MemoryBytes", expected, actual, "%d");
+    return actual;
+}
+EI_VERIFY(0x004F4B50, MemoryBytesVerify, 6, s_memoryBytes);

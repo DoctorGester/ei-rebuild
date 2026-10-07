@@ -49,9 +49,14 @@ __declspec(naked) LinkFigureSet* __fastcall FindFigureSetAt(CLinkFigureLoader*, 
 // rewritten (CLinkMesh::Construct), called through its address so its check sees these calls.
 __declspec(naked) CLinkMesh* __fastcall MeshConstruct(void* /*memory*/, void*, CLinkFigureLoader*, const stlp::string*,
                                                       float, float, float) EI_ORIGINAL(0x004F2C00)
-// 004F9E50 (RET 0x18): morphs the loaded part `name` of `mesh` again from its record.
-__declspec(naked) void __fastcall RemorphPart(CLinkFigureLoader*, void*, CLinkMesh*, LinkFigureSet*,
-                                              const stlp::string* /*name*/, float, float, float) EI_ORIGINAL(0x004F9E50)
+// 004F9E50 (RET 0x18, AL; CLinkFigureLoader::RemorphPart) and the record morphs 004F9FD0 / 004FA670
+// (RET 0x18), called through their addresses so their checks see these calls.
+__declspec(naked) bool __fastcall RemorphPartAt(CLinkFigureLoader*, void*, CLinkMesh*, LinkFigureSet*,
+                                                const stlp::string* /*name*/, float, float, float) EI_ORIGINAL(0x004F9E50)
+__declspec(naked) void __fastcall RemorphFigPartAt(CLinkFigureLoader*, void*, CLinkMesh*, const stlp::string*,
+                                                   const char**, float, float, float) EI_ORIGINAL(0x004F9FD0)
+__declspec(naked) void __fastcall RemorphOldPartAt(CLinkFigureLoader*, void*, CLinkMesh*, const stlp::string*,
+                                                   const char**, float, float, float) EI_ORIGINAL(0x004FA670)
 // 004FBD80 (RET 8): multimap insert_equal; the node copies the value (one more reference).
 __declspec(naked) void __fastcall CacheInsertEqual(Cache*, void*, Cache::Node** /*result*/, const CacheValue*)
     EI_ORIGINAL(0x004FBD80)
@@ -136,6 +141,12 @@ void EraseNodes(Cache::Node* node) {
 
 int CLinkFigureLoader::CacheSize() { return static_cast<int>(cache_.size()); }
 
+int CLinkFigureLoader::CacheBytes() {
+    int bytes = 0;
+    for (Cache::Node* n = cache_.begin(); n != cache_.end(); n = Cache::Next(n)) bytes += n->second->MemoryBytes();
+    return bytes;
+}
+
 CLinkMesh* CLinkFigureLoader::LoadFigure(const stlp::string* name, const stlp::vector<stlp::string>* parts, float s,
                                          float t, float u, bool fresh) {
     CLinkMesh* mesh = fresh ? nullptr : FindCached(cache_, name, s, t, u);
@@ -202,7 +213,7 @@ CLinkMesh* CLinkFigureLoader::Remorph(CLinkMesh* mesh, float s, float t, float u
         set = FindFigureSetAt(this, nullptr, &meshName);
     }
     for (stlp::string* part = names.begin(); part != names.end(); ++part)
-        RemorphPart(this, nullptr, mesh, set, part, s, t, u);
+        RemorphPartAt(this, nullptr, mesh, set, part, s, t, u);
     names.clear();
     names.FreeStorage();
     return mesh;
@@ -345,6 +356,30 @@ void* CLinkFigureLoader::DeleteThis(unsigned flags) {
 }
 
 EI_REPLACE_METHOD(0x004F6BD0, CLinkFigureLoader::Destruct);
+bool CLinkFigureLoader::RemorphPart(CLinkMesh* mesh, LinkFigureSet* set, const stlp::string* name, float s, float t,
+                                    float u) {
+    const char* data;
+    if (set) {
+        data = static_cast<const char*>(set->model->GetFile(name->data(), nullptr));
+    } else {
+        stlp::string file;
+        mesh->CopyName(&file);
+        file.Append(name->data(), name->data() + name->size());
+        file.Append(".fig", ".fig" + 4);
+        data = FindInArchives(archives_, file.data());
+    }
+    if (!data) return false;
+    std::uint32_t tag;
+    std::memcpy(&tag, data, 4);
+    const char* cursor = data;
+    if ((tag & 0xFFFFFF) == kFigTag)
+        RemorphFigPartAt(this, nullptr, mesh, name, &cursor, s, t, u);
+    else
+        RemorphOldPartAt(this, nullptr, mesh, name, &cursor, s, t, u);
+    return true;
+}
+
+EI_REPLACE_METHOD(0x004F9E50, CLinkFigureLoader::RemorphPart);
 EI_REPLACE_METHOD(0x004F77C0, CLinkFigureLoader::LoadLinkFile);
 EI_REPLACE_METHOD(0x004FAB00, CLinkFigureLoader::FindFigureSet);
 EI_REPLACE_METHOD(0x004F7B10, CLinkFigureLoader::MakeFigure);
@@ -362,6 +397,7 @@ CLinkMesh* __fastcall LoadLinkHook(CLinkFigureLoader* self, void*, const stlp::s
     return self->CLinkFigureLoader::LoadLink(name, s, t, u, fresh);
 }
 void __fastcall ClearCacheHook(CLinkFigureLoader* self) { self->CLinkFigureLoader::ClearCache(); }
+int __fastcall CacheBytesHook(CLinkFigureLoader* self) { return self->CLinkFigureLoader::CacheBytes(); }
 void* __fastcall LoaderDeleteThisHook(CLinkFigureLoader* self, void*, unsigned flags) {
     return self->CLinkFigureLoader::DeleteThis(flags);
 }
@@ -372,5 +408,6 @@ CLinkMesh* __fastcall RemorphHook(CLinkFigureLoader* self, void*, CLinkMesh* mes
 EI_REPLACE(0x004F7150, LoadFigureHook);
 EI_REPLACE(0x004F7080, LoadLinkHook);
 EI_REPLACE(0x004F7020, ClearCacheHook);
+EI_REPLACE(0x004FAAA0, CacheBytesHook);
 EI_REPLACE(0x004F6A30, LoaderDeleteThisHook);
 EI_REPLACE(0x004F75E0, RemorphHook);

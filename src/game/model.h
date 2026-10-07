@@ -119,7 +119,7 @@ public:
     // 0: 004F6A30 (RET 4, returns this; A-S8). Destruct; freed when flags bit 0 is set.
     virtual void* DeleteThis(unsigned flags);
     virtual int CacheSize();                    // 1: 004F6A20 (cache_'s count)
-    virtual int CacheBytes();                   // 2: 004FAAA0 (each cached mesh's 004F4B50 summed)
+    virtual int CacheBytes();                   // 2: 004FAAA0 (each cached mesh's MemoryBytes summed; A-S8)
     // 3: 004F7150 (RET 0x18). Figure `name` with the parts `parts`: unless `fresh`, the first cached
     // mesh of that name with close coefficients, given the parts it lacks; otherwise a new one
     // (MakeFigure). No reference is added for the caller.
@@ -163,6 +163,14 @@ public:
     // archive has "<name>.mod") a new set (005A9A50) stored under the name and loaded from the first
     // archives with "<name>.mod" / ".bon" / ".anm" (005A9EB0); null without a .mod.
     LinkFigureSet* FindFigureSet(const stlp::string* name);
+    // 004F9E50 (RET 0x18, AL; A-S8). Part `name` of `mesh` morphed again by s, t, u from its record
+    // (the figure set's model, else "<mesh name><name>.fig" in the archives): false without one.
+    bool RemorphPart(CLinkMesh* mesh, LinkFigureSet* set, const stlp::string* name, float s, float t, float u);
+    // 004F9FD0 / 004FA670 (RET 0x18; link_figure.cpp). The record at *cursor (moved past the
+    // vertices) morphed into the part's vertex packets (CLinkMesh::SetPartVertices) and its header's
+    // bounds refitted. The FIG one reads every record as FIG8 (header, bounds and vertices).
+    void RemorphFigPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);
+    void RemorphOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);
     // 004F6BD0 (A-S8). Each archive closed (slot 3) and deleted, the archive list emptied, each
     // figure set destroyed (005A9C90) and freed, the device object released (the field cleared
     // first), the cache emptied (ClearCache's walk), then the containers' storage; the counted
