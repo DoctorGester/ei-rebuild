@@ -95,3 +95,17 @@ static void __fastcall ChooseVerify(AIAttention* self, void*, AIBrain* brain, in
                       theirs[1], partAndObject[0], partAndObject[1], static_cast<int>(afterTheirs.size()), reports.size);
 }
 EI_VERIFY(0x005D0030, ChooseVerify, 6, s_choose);
+
+// 005CF3C0 CanReach: PUSH -1; PUSH 0x728068 (7 bytes). Differential: the original, then ours; AL
+// compared. Both run the path search and lift the target off the sector map and back (no lasting
+// state but the target's place in its sector list). Reached through Choose (above) for the target
+// it picks: unit_ai (aggression), combat.
+static bool(__fastcall* s_canReach)(AIAttention*, void*, AIBrain*, const int*, int);
+static bool __fastcall CanReachVerify(AIAttention* self, void*, AIBrain* brain, const int* partAndObject, int fromHere) {
+    bool expected = s_canReach(self, nullptr, brain, partAndObject, fromHere);
+    bool actual = self->CanReach(brain, partAndObject, fromHere);
+    ei::verify::Check("AIAttention::CanReach", expected, actual, "brain %p part %d object %08X here %d", brain, partAndObject[0],
+                      partAndObject[1], fromHere & 0xFF);
+    return expected;
+}
+EI_VERIFY(0x005CF3C0, CanReachVerify, 7, s_canReach);

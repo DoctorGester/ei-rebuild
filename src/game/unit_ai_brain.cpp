@@ -1,9 +1,11 @@
-// The unit AI brain's mode list and state resets (005CB0F0, 005D4DF0-005D6140).
+// The unit AI brain's mode list and state resets (005CB0F0, 005D4DF0-005D6140), and its save-game
+// Load / Save (005D8310 / 005D8860).
 #include "unit_ai.h"
 
 #include "combat.h"
 #include "console.h"
 #include "core_refcount.h"
+#include "logic_settings.h"
 #include "object_diplomacy.h"
 #include "originals_ai.h"
 #include "originals_library.h"
@@ -20,8 +22,8 @@
 namespace {
 constexpr float kNearPointCleared = 100000.0f;
 
-// 0073FED8: the initial +0x38 (10.0).
-float InitialUnknown38() { return *reinterpret_cast<const float*>(0x0073FED8); }
+// 0073FED8: the initial call radius (10.0).
+float InitialCallRadius() { return *reinterpret_cast<const float*>(0x0073FED8); }
 // 0073FF00: a new fear mode's distance (copied as a dword).
 std::uint32_t FearDistanceBits() { return *reinterpret_cast<const std::uint32_t*>(0x0073FF00); }
 // The CPtrList the sector map fills (vtable 0073D454, blocks of 10).
@@ -64,8 +66,6 @@ Mode* NewMode(void* vtable) {
 // with RefPtr::Share (which may hand out a clone).
 RefPtr* AsRefPtr(AIMode** element) { return reinterpret_cast<RefPtr*>(element); }
 
-// 005D9840: CArray::SetSize of the brain's 0x4C-byte alarm records (+0x90; thiscall, RET 8).
-__declspec(naked) void __fastcall AlarmRecordsSetSize(void* /*array*/, void*, int, int) EI_ORIGINAL(0x005D9840)
 
 // The inlined CList RemoveAll of the mode list, each element released first.
 void ReleaseAllModes(mfc::CTypedPtrList<AIMode>& modes) {
@@ -183,8 +183,8 @@ void AIBrain::Init() {
     unknown_36 = 0;
     actionTime = kNoTime;
     seesEnemy = 0;
-    AlarmRecordsSetSize(alarmRecords, nullptr, 0, -1);
-    unknown_38 = InitialUnknown38();
+    AlarmRecordsSetSizeOriginal(&alarmRecords, nullptr, 0, -1);
+    callRadius = InitialCallRadius();
     position = Vector3{0.0f, 0.0f, 0.0f};
     alertMode = 0;
     unknown_37 = 0;
@@ -303,7 +303,7 @@ void AIBrain::CallAllies(const Vector3* point) {
     units.vtable = kPtrListVtable;
     units.blockSize = 10;
     CUnit* self = owner->unit;
-    SectorMapFindUnitsInRadius(WorldServer()->Sectors(), nullptr, PositionOf(self), &units, unknown_38);
+    SectorMapFindUnitsInRadius(WorldServer()->Sectors(), nullptr, PositionOf(self), &units, callRadius);
     for (auto* node = units.head; node;) {
         auto* other = static_cast<CUnit*>(node->data);
         node = node->next;
@@ -499,3 +499,180 @@ bool __fastcall ReportsContains(AIReportArray* reports, void*, CEngineObject* ob
     return false;
 }
 EI_REPLACE(0x005CC560, ReportsContains);
+
+// --- Save games -----------------------------------------------------------------------------------
+
+namespace {
+// The original's Save functions copy each scalar into a stack slot before writing it.
+template <typename T>
+void WriteCopy(AIStream* stream, const T& value) {
+    T copy = value;
+    stream->Write(&copy, sizeof(T));
+}
+
+// A new mode of `type` as Load constructs it before reading its data (the abstract bases'
+// constructors are overwritten by the vtables; the fields Load reads stay uninitialised). Null for
+// an unknown type (9, or above 10). The original writes +4 before testing the allocation.
+AIMode* NewModeOfType(int type) {
+    switch (type) {
+    case kModeGuard: {
+        auto* mode = NewMode<GuardMode>(aimode::kGuardVtable);
+        mode->failures = 0;
+        return mode;
+    }
+    case kModePatrol: {
+        auto* mode = NewMode<PatrolMode>(aimode::kPatrolVtable);
+        mode->Construct();
+        return mode;
+    }
+    case kModeSentry:
+        return NewMode<SentryMode>(aimode::kSentryVtable);
+    case kModeSuspection:
+        return NewMode<SuspectionMode>(aimode::kSuspectionVtable);
+    case kModeAggression: {
+        auto* mode = NewMode<AggressionMode>(aimode::kAggressionVtable);
+        mode->enemy = nullptr;
+        mode->chosen = nullptr;
+        mode->enemyPart = -1;
+        mode->fixed = 0;
+        return mode;
+    }
+    case kModeCorpseWatcher:
+        return NewMode<CorpseWatcherMode>(aimode::kCorpseWatcherVtable);
+    case kModePlayer: {
+        auto* mode = NewMode<PlayerMode>(aimode::kPlayerVtable);
+        mode->Construct();
+        return mode;
+    }
+    case kModeFear: {
+        auto* mode = NewMode<FearMode>(aimode::kFearVtable);
+        mode->Construct(0);
+        return mode;
+    }
+    case kModeTamed: {
+        auto* mode = NewMode<PlayerMode>(aimode::kPlayerVtable);
+        mode->Construct();
+        mode->vtable = aimode::kTamedVtable;
+        return mode;
+    }
+    case kModeFollow: {
+        auto* mode = NewMode<FollowMode>(aimode::kFollowVtable);
+        mode->leader = nullptr;
+        return mode;
+    }
+    default:
+        return nullptr;
+    }
+}
+
+void AssignCurrent(AIMode*& current, AIMode* mode) {
+    reinterpret_cast<RefPtr*>(&current)->Assign(mode ? mode->Virtuals() : nullptr);
+}
+} // namespace
+
+void AIBrain::Load(AIStream* stream) {
+    ReleaseAllModes(modes);
+    AssignCurrent(current, nullptr);
+    unknown_44 = kNearPointCleared;
+    decay = 1.0f;
+    unknown_48 = kNearPointCleared;
+    int value;
+    stream->Read(&value, 4);
+    action = value;
+    stream->Read(&actionPoint, 12);
+    LooksLoadOriginal(&looks, stream);
+    stream->Read(&actionTime, 4);
+    reinterpret_cast<AIRef*>(&target)->Load(stream, WorldServer());
+    reinterpret_cast<AIRef*>(&seen)->Load(stream, WorldServer());
+    stream->Read(&callRadius, 4);
+    stream->Read(&unknown_44, 4);
+    stream->Read(&unknown_48, 4);
+    stream->Read(&decay, 4);
+    stream->Read(&previousPosition, 12);
+    stream->Read(&position, 12);
+    stream->Read(&alertMode, 4);
+    int count;
+    int currentIndex;
+    stream->Read(&count, 4);
+    stream->Read(&currentIndex, 4);
+    AssignCurrent(current, nullptr);
+    for (int i = 0; i < count; ++i) {
+        int type;
+        stream->Read(&type, 4);
+        AIMode* mode = NewModeOfType(type);
+        if (!mode) return;      // an unknown type leaves Load at once (the switch's default)
+        mode->Virtuals()->Load(stream);
+        // The inlined AddTail: a node holding the mode (RefPtr::ShareAssign).
+        auto* node = modes.NewNode(modes.tail, nullptr);
+        AsRefPtr(&node->data)->ShareAssign(mode->Virtuals());
+        if (modes.tail) modes.tail->next = node;
+        else modes.head = node;
+        modes.tail = node;
+        if (i == currentIndex) AssignCurrent(current, modes.tail->data);
+    }
+    MemoryLoadOriginal(memory, nullptr, stream);
+    stream->Read(&alerted, 1);
+    stream->Read(&alarm, 1);
+    stream->Read(&count, 4);
+    AlarmRecordsSetSizeOriginal(&alarmRecords, nullptr, count, -1);
+    for (int i = 0; i < alarmRecords.size; ++i) AlarmRecordReadOriginal(&alarmRecords.data[i], nullptr, stream);
+    stream->Read(&alarmCountdown, 4);
+    // A radius saved as the default one becomes the configured one (equal, or NaN: FCOMP's C3).
+    LogicSettings& settings = GameLogicSettings();
+    if (!(callRadius < settings.callForHelpRadiusDefault) && !(callRadius > settings.callForHelpRadiusDefault))
+        std::memcpy(&callRadius, &settings.callForHelpRadius, 4);
+    stream->Read(&unknown_37, 1);
+    if (stream->version < 0x4B) return;
+    attention.healWeight = 0.0f;
+    AttackOptionsLoadOriginal(&attention.weapons, stream);
+    if (stream->version >= 0x5A) {
+        AttackOptionsLoadOriginal(&attention.spells, stream);
+        stream->Read(&attention.healWeight, 4);
+    }
+    if (stream->version < 0x71) return;
+    stream->Read(&unknown_36, 1);
+}
+EI_REPLACE_METHOD(0x005D8310, AIBrain::Load);
+
+void AIBrain::Save(AIStream* stream) {
+    WriteCopy(stream, action);
+    stream->Write(&actionPoint, 12);
+    LooksSaveOriginal(&looks, stream);
+    WriteCopy(stream, actionTime);
+    reinterpret_cast<AIRef*>(&target)->Save(stream);
+    reinterpret_cast<AIRef*>(&seen)->Save(stream);
+    WriteCopy(stream, callRadius);
+    WriteCopy(stream, unknown_44);
+    WriteCopy(stream, unknown_48);
+    WriteCopy(stream, decay);
+    stream->Write(&previousPosition, 12);
+    stream->Write(&position, 12);
+    stream->Write(&alertMode, 4);
+    WriteCopy(stream, modes.count);
+    int currentIndex = -1;
+    int index = 0;
+    for (auto* node = modes.head; node; node = node->next, ++index)
+        if (node->data == current) currentIndex = index;
+    WriteCopy(stream, currentIndex);
+    for (auto* node = modes.head; node;) {
+        auto* next = node->next;
+        AIModeVirtuals* mode = node->data->Virtuals();
+        WriteCopy(stream, mode->GetType());
+        mode->Save(stream);
+        node = next;
+    }
+    MemorySaveOriginal(memory, nullptr, stream);
+    WriteCopy(stream, alerted);
+    WriteCopy(stream, alarm);
+    WriteCopy(stream, alarmRecords.size);
+    for (int i = 0; i < alarmRecords.size; ++i) AlarmRecordWriteOriginal(&alarmRecords.data[i], nullptr, stream);
+    WriteCopy(stream, alarmCountdown);
+    WriteCopy(stream, unknown_37);
+    WriteCopy(stream, attention.weapons.size);
+    for (int i = 0; i < attention.weapons.size; ++i) AttackOptionSaveOriginal(&attention.weapons.data[i], nullptr, stream);
+    WriteCopy(stream, attention.spells.size);
+    for (int i = 0; i < attention.spells.size; ++i) AttackOptionSaveOriginal(&attention.spells.data[i], nullptr, stream);
+    WriteCopy(stream, attention.healWeight);
+    WriteCopy(stream, unknown_36);
+}
+EI_REPLACE_METHOD(0x005D8860, AIBrain::Save);

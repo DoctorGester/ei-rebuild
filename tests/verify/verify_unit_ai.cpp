@@ -513,6 +513,18 @@ static void __fastcall PlayerObjectDeletedVerify(PlayerMode* self, void*, CEngin
 }
 EI_VERIFY(0x005D37A0, PlayerObjectDeletedVerify, 0, s_unused);
 
+// 005D3DE0 SetLeader: changes references, so ours only: the leader is the one asked (none for the
+// unit itself) and a walk in progress was dropped. Reached by party units' leader changes
+// (CreatePartyUnits / zone entry: every new game; ui_battle_commands).
+static void __fastcall PlayerSetLeaderVerify(PlayerMode* self, void*, AIBrain* brain, CEngineObject* leader) {
+    self->SetLeader(brain, leader);
+    bool isSelf = leader == brain->owner->unit;
+    bool ok = isSelf ? self->leader == nullptr : (self->leader == leader && brain->action != AIBrain::kActionWalk);
+    ei::verify::Check("PlayerMode::SetLeader", true, ok, "mode %p leader %p (asked %p) action %d", self, self->leader, leader,
+                      brain->action);
+}
+EI_VERIFY(0x005D3DE0, PlayerSetLeaderVerify, 0, s_unused);
+
 // 005D4DB0: PUSH ESI; MOV ESI,[ESP+8] (5 bytes).
 static void(__fastcall* s_playerSave)(PlayerMode*, void*, AIStream*);
 static void __fastcall PlayerSaveVerify(PlayerMode* self, void*, AIStream* stream) {
