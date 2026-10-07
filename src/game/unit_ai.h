@@ -256,12 +256,6 @@ void __fastcall LookAroundExecute(AIMode* self, void*, AIBrain* brain);
 // 005D1210 / 005D2920. Slot 8 (GetType) of Patrol (1) and Fear (7).
 int __fastcall PatrolType(AIMode* self);
 int __fastcall FearType(AIMode* self);
-// combat_player_modes.cpp (A-U7). Slot 4 (Evaluate) of Player (00552090: 10) and Tamed (00552140:
-// 100000000, always in charge); slot 8 (GetType) of Player (005520A0: 6) and Tamed (00552150: 8).
-int __fastcall PlayerPriority(AIMode* self, void*, AIBrain* brain);
-int __fastcall TamedPriority(AIMode* self, void*, AIBrain* brain);
-int __fastcall PlayerType(AIMode* self);
-int __fastcall TamedType(AIMode* self);
 // The root vtable a mode's destructor leaves (CRefObject's, 0073BB68).
 inline void* const kRootVtable = reinterpret_cast<void*>(0x0073BB68);
 inline void* const kPatrolVtable = reinterpret_cast<void*>(0x0073FF40);
@@ -270,6 +264,12 @@ inline void* const kPatrolPointsBaseVtable = reinterpret_cast<void*>(0x0073FF80)
 inline void* const kPlayerVtable = reinterpret_cast<void*>(0x0073F0F8);
 // Tamed (type 8): a Player mode (PlayerMode::Construct) given this vtable (00552150: GetType 8).
 inline void* const kTamedVtable = reinterpret_cast<void*>(0x0073F0C4);
+// 00552090 / 00552140 (slot 4, RET 4): the player mode claims 10, the tamed one 100000000.
+// 005520A0 / 00552150 (slot 8): their types 6 and 8 (unit_ai_player_mode_slots.cpp).
+int __fastcall PlayerPriority(AIMode* self, void*, AIBrain* brain);
+int __fastcall TamedPriority(AIMode* self, void*, AIBrain* brain);
+int __fastcall PlayerType(AIMode* self);
+int __fastcall TamedType(AIMode* self);
 inline void* const kActionBaseVtable = reinterpret_cast<void*>(0x0073D22C);
 // 005D8850 / 005D6D10 (unit_ai_mode_lifetime.cpp). The abstract bases' constructors: the vtable
 // 0073D15C / 0073D22C only; return the mode.
@@ -482,22 +482,19 @@ struct PlayerMode : AIMode {
     // 005D3760 (unit_ai_mode_lifetime.cpp). Vtable 0073F0F8, no target or leader, point 0, state 0,
     // not running (+4 and the padding untouched); returns this.
     PlayerMode* Construct();
-    // combat_player_modes.cpp (A-U7). The Player and Tamed modes' other lifetime slots; the Tamed
-    // versions are separate copies that end with the Tamed vtable.
-    // 005520D0 / 00552180. The destructor body: both references released, the root vtable.
-    void Destruct();
-    void DestructTamed();
-    // 005520B0 / 00552160 (slot 0, RET 4). Destruct, freed with flag 1; returns this.
-    PlayerMode* DeletingDestruct(int flags);
-    PlayerMode* DeletingDestructTamed(int flags);
-    // 00552000 / 00551EC0 (slot 2, OnShutdown). The mode destroyed and built again in place
-    // (Construct; Tamed: its vtable after); EAX is this.
-    PlayerMode* Restart();
-    PlayerMode* RestartTamed();
-    // 00551F50 / 00551E10 (slot 3, Clone). A new mode (0x24 bytes) with this one's target and
-    // leader (counted), point, state and run flag, no references; null when the allocation fails.
-    PlayerMode* Clone();
+    // unit_ai_player_mode_slots.cpp (A-U6). The tamed vtable 0073F0C4 is the player's with its own
+    // slots 0, 2, 3, 4 and 8. Slot 3 (Clone) 00551F50 / 00551E10: a new mode (refs 0, written
+    // before the allocation is tested) holding the same target and leader (one more reference
+    // each) with the same point, state and run. Slot 2 (OnShutdown) 00552000 / 00551EC0: Destruct,
+    // then Construct in place (the tamed one puts its vtable back); returns this.
+    // Destruct 005520D0 / 00552180 (identical): releases the leader, then the target, root vtable.
+    // Slot 0 005520B0 / 00552160 (RET 4): Destruct, operator delete when `flags` bit 0 is set.
+    PlayerMode* ClonePlayer();
     PlayerMode* CloneTamed();
+    PlayerMode* ResetPlayer();
+    PlayerMode* ResetTamed();
+    void Destruct();
+    PlayerMode* DeletingDestruct(int flags);
 
     // 005D4A90 (slot 5). State 0: follow the leader (unless the leader is moving itself) and fight
     // (005D4170); state 1: wait for the commanded action to end; state 2: walk to `point` (staying

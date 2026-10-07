@@ -28,6 +28,9 @@ struct UnitAction {
     std::uint8_t unknown_20;
     std::uint8_t unknown_21[3];
 
+    // 00545F70 (combat_server_slots.cpp): kind 9, no target, flag18 0; the rest untouched. Returns
+    // this.
+    UnitAction* Construct();
     // combat_tick.cpp. 0054B320: copies `from` (the target referenced); returns this.
     UnitAction* Assign(const UnitAction* from);
     // 0054B230: kind 9, target released, flag18 / +0x1C / +0x20 cleared.
@@ -56,6 +59,9 @@ struct AnimationStep {
     std::uint8_t unknown_03;    // +0x03 not initialised by the original
     int duration;               // +0x04 game ticks
     int unknown_08;             // +0x08
+
+    // 00550A60 (combat_server_slots.cpp): the blank step above. Returns this.
+    AnimationStep* Construct();
 };
 static_assert(sizeof(AnimationStep) == 0xC);
 
@@ -130,6 +136,14 @@ static_assert(offsetof(OrderPlan, direction) == 0x38);
 // notSkill 0, castKind 8.
 void __fastcall OrderPlanReset(OrderPlan* plan);
 static_assert(sizeof(OrderPlan) == 0x44);
+
+class CWorldServer;   // world.h
+// 0054BBC0 (combat_spell_sight.cpp; ECX world, EDX spell, RET 0x10; from 0058E850). Whether the spell
+// may hit: spells whose prototype has needsSight need a line of sight of at least 0.1 from `from`
+// (z = the caster's ground + BaseSpeed 00530370, a height) to the target (z = its ground + ModeSpeed
+// 005302F0), or to `at` one unit above the water surface when there is no target. Returns AL.
+bool __fastcall SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3* from,
+                                    CUnit* target, const Vector3* at);
 
 // A movement mode and whether it was mode 3 (CUnitServer + 0x168 / + 0x170, 8 bytes each).
 struct MoveModeState {
@@ -310,6 +324,15 @@ public:
     // members destroyed, the referenced objects released, the arrays freed, then the base
     // controller (vtable 0073EDBC) and the engine object base.
     void DestructBody();
+    // combat_server_slots.cpp (A-U6). 005460E0 (slot 0, RET 4): DestructBody, then operator delete
+    // when `flags` bit 0 is set; returns this. 00546090 (slot 16): the motion. 005460B0 (slot 17):
+    // nothing. 00552F30 (slot 53): slot 45 (UpdateMoveFactors; CUnitServer is the only class with
+    // this vtable).
+    CUnitServer* DeletingDestruct(int flags);
+    AIPath* MotionSlot();
+    void EmptySlot17();
+    void UpdateMoveFactorsSlot53();
+    AIPath* MotionPath() { return &motion; }
     // unit_create.cpp. 00552F40. Takes `stats` (0x704 bytes) as the unit's statistics: marks
     // the unit's part 4 changed, refills the body slots between two calls of slot 19 and sets
     // the server companion's hit points and mana to their maxima. Returns the companion (EAX).
@@ -742,13 +765,6 @@ public:
     void ResetSlot();
     // 005460A0. Virtual slot 39: the taming stage.
     int TameStage();
-    // A-U7. 005460E0. Virtual slot 0: DestructBody (through its address), freed with flag 1;
-    // returns this.
-    CUnitServer* DeleteServer(unsigned flags);
-    // 005460C0 / 005460D0. Slots 11 / 12: "CUnitServer" (the exe's string 0078FCC4), class id 0x3E.
-    const char* ServerClassName();
-    int ServerClassId();
-    void CallDestructBody();
 
     // Not rewritten (forwarders):
     // 00550A80 (combat_steps.cpp). The death (or fall) animation for a blow from `direction`
@@ -853,3 +869,7 @@ static_assert(offsetof(CUnitServer, idleAnimation) == 0x960);
 static_assert(offsetof(CUnitServer, actionDone) == 0x978);
 static_assert(offsetof(CUnitServer, voice) == 0xB10);
 static_assert(sizeof(CUnitServer) == 0xB20);
+
+// 005460C0 / 005460D0 (slots 11 / 12; combat_server_slots.cpp): "CUnitServer" (0078FCC4) and 0x3E.
+const char* __fastcall UnitServerClassName(CUnitServer* self);
+int __fastcall UnitServerClassId(CUnitServer* self);

@@ -51,10 +51,12 @@ struct SpellRecord {
     std::uint8_t unknown_00[0x14];
     int school;                         // +0x14
     float mana;                         // +0x18
-    std::uint8_t unknown_1C[0x44 - 0x1C];
+    std::uint8_t unknown_1C[0x40 - 0x1C];
+    int needsSight;                     // +0x40 needs a line of sight to its target (0054BBC0)
     int skill;                          // +0x44 the school skill it needs
     std::uint8_t unknown_48[0x84 - 0x48];
 };
+static_assert(offsetof(SpellRecord, needsSight) == 0x40);
 static_assert(offsetof(SpellRecord, skill) == 0x44);
 static_assert(sizeof(SpellRecord) == 0x84);
 

@@ -13,7 +13,6 @@
 #include "world.h"
 
 #include "ei/hook.h"
-#include "lib/crt.h"
 #include "lib/mfc.h"
 
 #include <bit>
@@ -115,22 +114,3 @@ EI_REPLACE_METHOD(0x00546080, CUnitServer::ResetSlot);
 
 int CUnitServer::TameStage() { return tameStage; }
 EI_REPLACE_METHOD(0x005460A0, CUnitServer::TameStage);
-
-// --- A-U7: the remaining small slots --------------------------------------------------------------
-
-// 00546230 (map_object_lifetime.cpp) through its address, so that the verify build's wrapper sees it.
-__declspec(naked) void CUnitServer::CallDestructBody() EI_ORIGINAL(0x00546230)
-
-CUnitServer* CUnitServer::DeleteServer(unsigned flags) {
-    CallDestructBody();
-    if (flags & 1) gamecrt::operator_delete(this);
-    return this;
-}
-EI_REPLACE_METHOD(0x005460E0, CUnitServer::DeleteServer);
-
-const char* CUnitServer::ServerClassName() { return reinterpret_cast<const char*>(0x0078FCC4); }
-EI_REPLACE_METHOD(0x005460C0, CUnitServer::ServerClassName);
-
-int CUnitServer::ServerClassId() { return kClassUnitServer; }
-EI_REPLACE_METHOD(0x005460D0, CUnitServer::ServerClassId);
-

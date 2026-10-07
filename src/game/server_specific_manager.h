@@ -12,6 +12,8 @@
 #include <cstddef>
 #include <cstdint>
 
+class CStream;   // core_streams.h
+
 class CServerSpecificManager : public CBaseManager {
 public:
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073D4F4);
@@ -38,8 +40,7 @@ class CTorchObjectSpec : public CEngineObject {
 public:
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073D558);
 
-    // Slots 2 / 3 are 0052C610 / 0052C680 (not ported; called through the vtable): Create clears
-    // +0x1C / +0x20 and the name, sets the values and both colours from 007AF2D0, returns 1.
+    // Slots 2 / 3: CreateSpec / DestroySpec below (torch_spec.cpp).
     // 11: 004D6B60 "CTorchObjectSpec" (0078DAE8). 12: 004D6B70 (0x42).
     const char* GetClassName() override;
     int GetClassId() override;
@@ -48,6 +49,20 @@ public:
     // deleting destructor (returns this).
     void Destruct();
     CTorchObjectSpec* DeletingDestruct(unsigned flags);
+
+    // torch_spec.cpp (A-U6). Slots 2 / 3 (0052C610 / 0052C680; other names so they are no
+    // overrides): Create clears +0x1C / +0x20 and the name, values 1, 10, 1, 1, 1, 1, both colours
+    // the global 007AF2D0, returns 1; Destroy clears +0x1C and the name. Slots 9 / 10 (0052C490 /
+    // 0052C500, RET 4): +0x20, the name (004E5840; written with its terminator), +0x28, +0x2C, the
+    // four values +0x30 and both colours. Slots 16-18 (RET 0xC / 0xC / 4): set +0x20, the first
+    // colour and +0x28; the second colour, +0x2C and the four values; the name.
+    int CreateSpec();
+    void DestroySpec();
+    void LoadSpec(CStream* stream);
+    void SaveSpec(CStream* stream);
+    void SetLight(std::uint32_t kind, const float* colour, float value);
+    void SetFlame(const float* colour, float value, const float* values);
+    void SetName(const char* name);
 
     std::uint32_t unknown_1C;   // +0x1C 0 when constructed
     std::uint32_t unknown_20;   // +0x20

@@ -93,31 +93,3 @@ static int __fastcall TameStageVerify(CUnitServer* self) {
     return expected;
 }
 EI_VERIFY(0x005460A0, TameStageVerify, 6, s_tameStage);
-
-// A-U7. 005460C0 / 005460D0: MOV EAX,imm32 (5 bytes); EAX compared. Every class-id check on a
-// server unit (any scenario with units).
-static const char*(__fastcall* s_serverClassName)(CUnitServer*);
-static const char* __fastcall ServerClassNameVerify(CUnitServer* self) {
-    const char* expected = s_serverClassName(self);
-    ei::verify::Check("CUnitServer::ServerClassName", expected, self->ServerClassName(), "%p");
-    return expected;
-}
-EI_VERIFY(0x005460C0, ServerClassNameVerify, 5, s_serverClassName);
-
-static int(__fastcall* s_serverClassId)(CUnitServer*);
-static int __fastcall ServerClassIdVerify(CUnitServer* self) {
-    int expected = s_serverClassId(self);
-    ei::verify::Check("CUnitServer::ServerClassId", expected, self->ServerClassId(), "%d");
-    return expected;
-}
-EI_VERIFY(0x005460D0, ServerClassIdVerify, 5, s_serverClassId);
-
-// 005460E0 (slot 0; a unit deleted: zone changes, world_load). Ours only; the memory may be gone
-// afterwards: the result is this.
-static void* s_unusedDeleteServer;
-static CUnitServer* __fastcall DeleteServerVerify(CUnitServer* self, void*, unsigned flags) {
-    CUnitServer* result = self->DeleteServer(flags);
-    ei::verify::Check("CUnitServer::DeleteServer", true, result == self, "");
-    return result;
-}
-EI_VERIFY(0x005460E0, DeleteServerVerify, 0, s_unusedDeleteServer);

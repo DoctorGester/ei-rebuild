@@ -1,43 +1,40 @@
-// Whether a spell the server world casts can reach its target (0054BBC0; A-U7). See combat.h and
-// docs/notes/combat.md.
+// 0054BBC0: the spell line-of-sight test the world's spell casting (0058E850) asks per target.
 #include "combat.h"
 
+#include "ai_map.h"
 #include "core_maths.h"
-#include "originals_ai.h"
-#include "spell.h"
+#include "item_db.h"
 #include "world.h"
 
 #include "ei/hook.h"
-#include "ei/x87.h"
+#include "originals_ai.h"
 
 #include <bit>
 
 namespace {
-constexpr float kAboveSurface = 1.0f;                               // 0073EF24
-constexpr float kMinVisibility = std::bit_cast<float>(0x3DCCCCCDu); // 0073EEC0 (0.1)
-constexpr int kNeedsSight = 0x40;                                   // spell prototype +0x40
+constexpr float kAboveSurface = std::bit_cast<float>(0x3F800000u);   // 0073EF24 (1.0)
+constexpr float kMinSight = std::bit_cast<float>(0x3DCCCCCDu);       // 0073EEC0 (0.1)
 } // namespace
 
-bool __fastcall SpellLineOfSight(CWorldServer* world, CSpell* spell, CUnit* fromUnit, const Vector3* from,
-                                 CUnit* toUnit, const Vector3* to) {
-    const char* prototype = spell->GetPrototype();
-    if (*reinterpret_cast<const int*>(prototype + kNeedsSight) == 0) return true;
-    Vector3 target;
-    if (!toUnit) {
-        target = *to;
-        target.z = static_cast<float>(world->SurfaceHeightAt(target.x, target.y) + kAboveSurface);
+bool __fastcall SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3* from,
+                                    CUnit* target, const Vector3* at) {
+    const auto* record = reinterpret_cast<const itemdb::SpellRecord*>(spell->GetPrototype());
+    if (!record->needsSight) return true;
+    Vector3 to;
+    if (!target) {
+        to = *at;
+        to.z = StoreFloat(static_cast<float>(world->SurfaceHeightAt(to.x, to.y) + kAboveSurface));
     } else {
-        target = Vector3{toUnit->positionX, toUnit->positionY, toUnit->positionZ};
-        float ground = StoreFloat(static_cast<float>(toUnit->GroundHeight(target.x, target.y)));
-        target.z = static_cast<float>(toUnit->ModeSpeed() + ground);
+        to = {target->positionX, target->positionY, target->positionZ};
+        float ground = StoreFloat(static_cast<float>(target->GroundHeight(to.x, to.y)));
+        to.z = StoreFloat(static_cast<float>(target->ModeSpeed() + ground));
     }
-    Vector3 source = *from;
-    if (fromUnit) {
-        float ground = StoreFloat(static_cast<float>(fromUnit->GroundHeight(source.x, source.y)));
-        source.z = static_cast<float>(fromUnit->BaseSpeed() + ground);
+    Vector3 eye = *from;
+    if (caster) {
+        float ground = StoreFloat(static_cast<float>(caster->GroundHeight(eye.x, eye.y)));
+        eye.z = StoreFloat(static_cast<float>(caster->BaseSpeed() + ground));
     }
-    // FCOMP; TEST AH,1: below 0.1 or NaN fails.
-    double visibility = LineOfSightOriginal(world->AIMap(), nullptr, &source, &target);
-    return !x87::IsNaN(static_cast<float>(visibility)) && visibility >= kMinVisibility;
+    // The original compares the unrounded ST0 result (TEST AH,1: below or unordered fails).
+    return LineOfSightOriginal(world->AIMap(), nullptr, &eye, &to) >= kMinSight;
 }
-EI_REPLACE(0x0054BBC0, SpellLineOfSight);
+EI_REPLACE(0x0054BBC0, SpellHasLineOfSight);
