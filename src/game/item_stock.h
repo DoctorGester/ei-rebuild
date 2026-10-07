@@ -71,6 +71,12 @@ struct ItemStock {
     float baseLevels[8];            // +0x78 8 floats, set with +0x98 (00699410)
     float scrollLevels[8];          // +0x98 the spell level per school for the scrolls (0069AC20)
 
+    // 004A66C0 (RET 4; class_template_stock.cpp). Constructor body: `context`, class index 0, the
+    // six vectors empty, both maps empty with NextPrime(100) buckets (their functor bytes left as
+    // they are; the original copies an uninitialised stack byte). Returns this. +0x78..+0xB7 are
+    // not written.
+    ItemStock* Construct(void* context);
+
     // 00699410 (RET 8). +0x78 and +0x98 each set from 8 floats (004A6DC0).
     void SetLevels(const float* base, const float* scroll);
 

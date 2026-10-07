@@ -43,7 +43,55 @@ void HandOverAndFree(StockList* list, CParty* party) {
     stlp::deallocate(head, sizeof(StockListNode));
 }
 
+// The stock's two maps (0x14 bytes each, raw in ItemStock) as an STLport hash_map: only the bucket
+// array and the count are set up here, so the element types do not matter.
+using StockMapView = stlp::hash_map<stlp::string, void*, stlp::StringHash>;
+static_assert(sizeof(StockMapView) == sizeof(ItemStock::spellMap));
+
+// A map's constructor as 004A66C0 inlines it: the bucket vector and the count proxy cleared, then
+// _M_initialize_buckets(100) (004A9FC0 / 004AA270).
+void MapConstruct(std::uint8_t* map) { reinterpret_cast<StockMapView*>(map)->InitBuckets(100); }
+
+template <typename V>
+void VectorConstruct(V* v) {
+    v->start = nullptr;
+    v->finish = nullptr;
+    v->eos = nullptr;
+}
+
 } // namespace
+
+ItemStock* ItemStock::Construct(void* owner) {
+    context = owner;
+    classIndex = 0;
+    VectorConstruct(&armors);
+    VectorConstruct(&weapons);
+    VectorConstruct(&quickItems);
+    VectorConstruct(&materials);
+    VectorConstruct(&spells);
+    VectorConstruct(&modifiers);
+    MapConstruct(spellMap);
+    MapConstruct(modifierMap);
+    return this;
+}
+EI_REPLACE_METHOD(0x004A66C0, ItemStock::Construct);
+
+ClassTemplate* ClassTemplate::Construct() {
+    vtable = reinterpret_cast<void*>(kBaseVtableAddress);
+    ItemsParty(this)->Construct();
+    SpellsParty(this)->Construct();
+    allowed.Construct(ItemsParty(this));
+    magic.Construct(SpellsParty(this));
+    vtable = reinterpret_cast<void*>(kVtableAddress);
+    ItemsParty(this)->Create();
+    SpellsParty(this)->Create();
+    type = -1;
+    flag0C = 0;
+    flag0D = 0;
+    flag38 = 1;
+    return this;
+}
+EI_REPLACE_METHOD(0x004A6580, ClassTemplate::Construct);
 
 void __fastcall ClassTemplateSetLevels(ClassTemplate* t, void*, const float* base, const float* scroll) {
     t->allowed.SetLevels(base, scroll);

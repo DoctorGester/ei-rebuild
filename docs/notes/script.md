@@ -433,10 +433,6 @@ array offsets and element sizes.
 ### Next candidates in this range
 
 A-S7 / A-S8 (below) finished the link figures, the sky and the pipeline projections. Left in 0x00480000-0x00500000:
-- classify 004A90F0-004AFAC0 (34 functions; world.md calls the range STLport instantiations, but 004ACDC0 / 004ACEC0 /
-  004AD0C0 call the tagged stream helpers 004098D0 / 00409A60 / 00409980: per-type Serialize templates, game code);
-- party records: 004A8310 / 004A8560 (load / save), 004A6050 / 004A6360 (copy through a memory stream), 004A66C0 /
-  004A6580 (ItemStock / ClassTemplate constructors);
 - the D3D state-block manager 004FCA60 / 004FD2A0 / 004FD9D0 / 004FCE90, rain / snow draws 004E4240 / 004E4C80, the fog
   object 004E1EB0-004E24E0, the CLinkMesh draw slots 7-14 004F3870-004F4850 and the device functions 004E5E50-004EFEA0
   (renderer tickets);
@@ -514,6 +510,8 @@ A-S7 / A-S8 (below) finished the link figures, the sky and the pipeline projecti
 | 004ACEC0, 004AD0C0, 004ACDC0, 004AD2C0 | `ChunkArchive::SerializeParties`, `SerializePartyEntries`, `SerializeClassTemplates`, `IntField` | only called by Save / Load (directly): covered by Save's comparison |
 | 004A64B0 | `NamedPartyRecords::Serialize` | same |
 | 004A6050, 004A6360 | `NamedPartyRecords::BeginRedeploy`, `EndRedeploy` (the record a name picks found with `PartyRecordsFind`; the copy is SaveParty / LoadParty through a stream; Begin spreads the variables (004A8AD0 operator=), zone and +0x6C to every record; End clears the party (Clear(1, 0)) when no record matches, then text10 = text0C) | ours only: zones / +0x6C / variable counts equal; End: zone and +0x50 of the record (or cleared), text10 == text0C. End: every save (SaveGame's PartyStore); both: the script's RedeployParty (zone_* scenarios) |
+
+| 004A6580, 004A66C0 | `ClassTemplate::Construct`, `ItemStock::Construct` (`class_template_stock.cpp`; `ClassTemplate::flag38` +0x38 named, 004A88E0 uses it; the stock maps' buckets through a `hash_map<string, void*>` view, `InitBuckets(100)`) | ours only: vtable, class -1, flags, both parties created, both stocks empty with 193-bucket maps. Every new game (004A7630), loading templates (factory 00457850, `world_load`); 004A66C0 only from 004A6580 |
 
 - The archive on the stack: `ChunkArchive::ConstructLocal` / `DestructLocal` (chunk_archive.cpp; the containers' library
   constructors / destructors 004A94A0, 004639D0, 00463AA0, 004A9650, 004A8B70, 004A96A0 forwarded there).

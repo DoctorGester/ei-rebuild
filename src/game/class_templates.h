@@ -11,6 +11,15 @@
 #include <cstdint>
 
 struct ClassTemplate {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073D0C4);
+    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073BB68);   // the counted root
+
+    // 004A6580 (class_template_stock.cpp). Constructor body (+4 is left to the caller): the base
+    // vtable, the two parties (CParty::Construct), the stocks (ItemStock::Construct on the items /
+    // spells party; the first one inlined in the original), the vtable, both parties created (slot
+    // 2), class -1, both flags 0, flag38 1. Returns this.
+    ClassTemplate* Construct();
+
     void* vtable;                   // 0073D0C4 (base 0073BB68)
     std::int16_t refCount;          // +0x04 counted pointers (the dword is cleared before construction)
     std::int16_t unknown_06;
@@ -19,7 +28,9 @@ struct ClassTemplate {
     std::uint8_t flag0D;            // +0x0D
     std::uint8_t unknown_0E[2];
     std::uint32_t weights[9];       // +0x10..+0x30 floats (bit patterns)
-    std::uint8_t unknown_34[0x3C - 0x34];
+    std::uint8_t unknown_34[4];
+    std::uint8_t flag38;            // +0x38 set by the constructor and by a quest completion (004A88E0)
+    std::uint8_t unknown_39[3];
     std::uint8_t items[0x70];       // +0x3C party object (00661050); slot 18: its item manager (+0x1C)
     std::uint8_t spells[0x70];      // +0xAC party object; slot 22: its spell manager (+0x24)
     ItemStock allowed;              // +0x11C everything the class may use (vectors at +0x08 armors,
@@ -29,6 +40,7 @@ struct ClassTemplate {
 };
 static_assert(sizeof(ClassTemplate) == 0x28C);
 static_assert(offsetof(ClassTemplate, weights) == 0x10);
+static_assert(offsetof(ClassTemplate, flag38) == 0x38);
 static_assert(offsetof(ClassTemplate, allowed) == 0x11C);
 static_assert(offsetof(ClassTemplate, magic) == 0x1D4);
 static_assert(sizeof(ItemStock) == 0xB8);
