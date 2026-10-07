@@ -588,8 +588,12 @@ struct AIAttention {
     // -1e30 when it cannot apply. Returned unrounded (ST0).
     double Score(const Vector3* from, CUnit* self, AIObjectList* group, CEngineObject* current, CUnit* candidate,
                  float threshold, const AIAttackOption* option);
-    // 005CF3C0 (RET 0xC; not rewritten). Whether the unit can get at the target (a path search).
-    bool CanReach(AIBrain* brain, const int* partAndObject, int arg);
+    // 005CF3C0 (RET 0xC; only AL). Whether the unit may attack / cast at the target: false for a
+    // spell aimed at no object against a large unit of size class 0; else the order is checked
+    // (0054C960) from the unit's place when `fromHere` (low byte) is set or the target is the
+    // unit itself, otherwise from the end of a path search to the target (range ScaledValue of the
+    // distance, the target lifted off the sector map meanwhile), or the unit's place without one.
+    bool CanReach(AIBrain* brain, const int* partAndObject, int fromHere);
 
     // The option of `part`: the weapons first, then the spells; null when there is none.
     const AIAttackOption* FindOption(int part) const;

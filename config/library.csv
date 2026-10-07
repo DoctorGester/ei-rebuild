@@ -2378,12 +2378,14 @@ address,name,library,signature,notes
 00581E70,"stlp::hashtable<V,K,HF,ExK,EqK,A>::hashtable(n,hf,eql,a)",STLport,,inventory sweep: default 100 buckets rounded up through the STLport prime list; loose-family member of 004639D0 (reviewed)
 00581F40,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 004A5950 (reviewed)"
 00582120,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+00582140,"stlp::vector<T>::~vector (0x84-byte elements: two vectors at +0x48 / +0x54, three CStrings)",STLport,,A-W7: compiler-generated element destructors and the pool free
 005822D0,"stlp::hashtable<V,K,HF,ExK,EqK,A>::hashtable(n,hf,eql,a)",STLport,,inventory sweep: default 100 buckets rounded up through the STLport prime list; loose-family member of 004639D0 (reviewed)
 005823A0,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 004A5950 (reviewed)"
 00582480,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 005824A0,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 2 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 00582580,"stlp::hashtable<V,K,HF,ExK,EqK,A>::hashtable(n,hf,eql,a)",STLport,,inventory sweep: default 100 buckets rounded up through the STLport prime list; loose-family member of 004639D0 (reviewed)
 00582650,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 004A5950 (reviewed)"
+00582730,stlp::vector<T>::~vector (0x34-byte elements),STLport,,A-W7: compiler-generated element destructors and the pool free
 005828C0,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 2 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 005829B0,"stlp::hashtable<V,K,HF,ExK,EqK,A>::hashtable(n,hf,eql,a)",STLport,,inventory sweep: default 100 buckets rounded up through the STLport prime list; loose-family member of 004639D0 (reviewed)
 00582A80,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
@@ -2396,6 +2398,7 @@ address,name,library,signature,notes
 00583040,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 00583180,"stlp::hashtable<V,K,HF,ExK,EqK,A>::hashtable(n,hf,eql,a)",STLport,,inventory sweep: default 100 buckets rounded up through the STLport prime list; loose-family member of 004639D0 (reviewed)
 00583250,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 004A5950 (reviewed)"
+00583330,"stlp::vector<T>::~vector (0x7C-byte elements: a vector at +0x70, two CStringArrays, three CStrings)",STLport,,A-W7: compiler-generated element destructors and the pool free
 00583490,"stlp::hashtable<V,K,HF,ExK,EqK,A>::hashtable(n,hf,eql,a)",STLport,,inventory sweep: default 100 buckets rounded up through the STLport prime list; loose-family member of 004639D0 (reviewed)
 00583560,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 004A5950 (reviewed)"
 00583640,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
@@ -2676,6 +2679,7 @@ address,name,library,signature,notes
 005B1870,"CList<T>::Serialize",MFC,,"instantiation over 0xC-byte elements (same code as 005BDF40)"
 005B19A0,"CList<TYPE,ARG_TYPE>::~CList",MFC,,"inventory sweep: vtable store, RemoveAll inlined, CPlex::FreeDataChain; loose-family member of 00405130 (reviewed)"
 005B1A00,"CList<T>::Serialize",MFC,,"instantiation over 8-byte elements"
+005BCCB0,"stlp::_Ht_iterator::_Ht_iterator (shape cache: zero, zero, -1)",STLport,,"A-W7: shape cache hash_map<float, shape> (007C2F78) helper"
 005BCCD0,"stlp::hashtable<V,K,HF,ExK,EqK,A>::hashtable(n,hf,eql,a)",STLport,,inventory sweep: default 100 buckets rounded up through the STLport prime list; loose-family member of 004639D0 (reviewed)
 005BCDA0,"stlp::hashtable<V,K,HF,ExK,EqK,A>::find",STLport,,"inventory sweep: key % bucket count, walk the chain; loose-family member of 00405560 (reviewed)"
 005BCE60,"stlp::hashtable<V,K,HF,ExK,EqK,A>::erase(const_iterator)",STLport,,"inventory sweep: unlinks the node from its bucket, node back to the free list; loose-family member of 00405620 (reviewed)"
@@ -2694,9 +2698,12 @@ address,name,library,signature,notes
 005BDF40,"CList<T>::Serialize",MFC,,"instantiation over 0xC-byte elements (CArchive count, then each element written / read whole)"
 005BE090,"stlp::hash_map<Handle,RefPtr>::operator[]",STLport,,"instantiation of find_or_insert for the reference-counted object cache (rewritten caller 005BD7F0, ai_shape_cache.cpp)"
 005BE1B0,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_new_node",STLport,,inventory sweep: 16-byte node from the free list 0079B228; loose-family member of 00407420 (reviewed)
+005BE320,"stlp::hashtable<V,K,HF,ExK,EqK,A>::find (shape cache, float key)",STLport,,"A-W7: shape cache hash_map<float, shape> (007C2F78) helper"
+005BE450,"stlp::_Ht_iterator::_Ht_iterator(node, table) (shape cache)",STLport,,"A-W7: shape cache hash_map<float, shape> (007C2F78) helper"
 005BE470,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,,"inventory sweep: n*sizeof(T) back to the node-pool free list, operator delete above 128 bytes; loose-family member of 00411B30 (reviewed)"
 005BE4D0,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00408060 (reviewed)"
 005BE660,stlp::vector<T>::_M_allocate_and_copy,STLport,,"inventory sweep: node-pool allocate n, copy [first,last); loose-family member of 004081F0 (reviewed)"
+005BE730,"stlp::hashtable<V,K,HF,ExK,EqK,A>::find_or_insert (shape cache, float key)",STLport,,"A-W7: shape cache hash_map<float, shape> (007C2F78) helper"
 005BE820,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00408060 (reviewed)"
 005BE9B0,stlp::vector<T>::_M_allocate_and_copy,STLport,,"inventory sweep: node-pool allocate n, copy [first,last); loose-family member of 004081F0 (reviewed)"
 005BEA80,"stlp::hashtable<V,K,HF,ExK,EqK,A>::resize",STLport,,inventory sweep: next size from the STLport prime list 0073B914..0073B980; rehashes the bucket chains; loose-family member of 00406640 (reviewed)

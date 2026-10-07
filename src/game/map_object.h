@@ -302,7 +302,7 @@ public:
     virtual void Slot57() = 0;
     virtual void Slot58() = 0;
     virtual void Slot59() = 0;
-    virtual void Slot60() = 0;
+    virtual float Radius() = 0;                         // 60 (0xF0): units' +0x328 (004468A0), ST0
     // 61 (0xF4): units (00446830) keep `name` in their CString +0x238 (the script name).
     virtual void SetScriptName(const char* name) = 0;
 };

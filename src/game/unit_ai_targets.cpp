@@ -1,12 +1,16 @@
 // The unit AI's target choice: scoring an attack option against a unit (005CF9A0), whether an
 // option may be used (005CF7F0), choosing the best target (005D0030), and the orders it checks
-// (00545F40, 005CF720, 005CF780).
+// (00545F40, 005CF720, 005CF780), and whether the unit can get at a target (005CF3C0).
 #include "unit_ai.h"
 
+#include "ai_map.h"
+#include "ai_scoped_path.h"
 #include "map_object.h"
 #include "object_diplomacy.h"
 #include "originals_ai.h"
+#include "spell.h"
 #include "unit_db.h"
+#include "world.h"
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
@@ -30,6 +34,7 @@ constexpr float kHalf = 0.5f;                   // 0073B86C
 constexpr float kAllyNear2 = 49.0f;             // 0073FF28: allies within 7 of an area target
 constexpr float kPathNear = 30.0f;              // 0073FEFC
 constexpr int kNoHitsKnown = 20;
+constexpr std::uint32_t kSpellNoTarget = 0x20000000;   // CSpell::targetFlags_: aimed at no object
 constexpr int kRejectedReport = 0x14;
 const float kNoScore = std::bit_cast<float>(0xF149F2CAu);    // 0073FF2C: -1e30
 const float kFloorScore = std::bit_cast<float>(0xE0AD78ECu); // 0073FF30 and the starting best: -1e20
@@ -112,6 +117,60 @@ void AIOrder::MakeCast(int spell, CEngineObject* target) {
     what = spell;
 }
 EI_REPLACE_METHOD(0x005CF780, AIOrder::MakeCast);
+
+// 005CF3C0
+bool AIAttention::CanReach(AIBrain* brain, const int* partAndObject, int fromHere) {
+    ScopedPath local;
+    CUnit* self = brain->owner->unit;
+    auto* target = reinterpret_cast<CUnit*>(partAndObject[1]);
+    int part = partAndObject[0];
+    // A spell aimed at no object cannot be cast on a large unit of size class 0.
+    if (part >= 0) {
+        auto* spell = static_cast<CSpell*>(self->GetSpellObject(part));
+        if (spell && (spell->targetFlags_ & kSpellNoTarget) && target->sizeClass == 0 &&
+            PrototypeSize(target) >= kHalf)
+            return false;
+    }
+
+    // Where the order is checked from: the unit's place, or the end of a path towards the target.
+    Vector3 point;
+    if (self == target || static_cast<char>(fromHere) != 0) {
+        point = *PositionOf(self);
+    } else {
+        double dz = static_cast<double>(self->positionZ) - target->positionZ;
+        double dy = static_cast<double>(self->positionY) - target->positionY;
+        double dx = static_cast<double>(self->positionX) - target->positionX;
+        float distance = RoundToFloat(std::sqrt(dx * dx + dy * dy + dz * dz));
+        float range = RoundToFloat(self->ScaledValue(distance));
+        float targetRadius = RoundToFloat(MapObject(target)->Radius());
+        float minDistance = RoundToFloat(static_cast<double>(MapObject(self)->Radius()) + targetRadius);
+        CWorldServer* server = WorldServer();
+        // The target is lifted off the sector map so it does not block its own cell.
+        SectorMapRemove(server->Sectors(), nullptr, target);
+        if (server->AIMap()->FindPath(self, PositionOf(target), &local.path, range, minDistance)) {
+            float scale = RoundToFloat(kOne * kHalf);
+            point.x = RoundToFloat(scale * local.path.targetX);
+            point.y = RoundToFloat(scale * local.path.targetY);
+            point.z = 0.0f;
+        } else {
+            point = *PositionOf(self);
+        }
+        SectorMapAdd(server->Sectors(), nullptr, target);
+    }
+
+    AIOrder order;
+    order.object = nullptr;
+    order.Clear();
+    if (part < 0) {
+        order.MakeAttack(target);
+    } else {
+        order.MakeCast(part, target);
+    }
+    bool allowed = brain->owner->CheckOrderAt(&order, &point);
+    reinterpret_cast<AIRef*>(&order.object)->Reset();
+    return allowed;
+}
+EI_REPLACE_METHOD(0x005CF3C0, AIAttention::CanReach);
 
 const AIAttackOption* AIAttention::FindOption(int part) const {
     for (int i = 0; i < weapons.size; ++i)
