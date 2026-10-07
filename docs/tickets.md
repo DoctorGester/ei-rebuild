@@ -43,12 +43,23 @@ Mark a ticket taken by adding the date; remove it when merged.
 - A-S done 2026-10-05 (40 functions in 0x004B0000-0x004C0000). A-S2 (cut off by the usage limit; 20 functions merged). A-S4 done (37; 78 quantiser functions marked dead). A-S5 done (28; 25 library, 5 dead). A-S6 done (24). A-S7 done (33). A-S8 done 2026-10-07 (20; 31 library, 33 dead; next candidates in script.md "Next candidates in this range"). A-S3 done 2026-10-05 (38 functions; leftovers: .mob reader 00481660 / 00481F00, particle attach 004849F0 / 00484C00, colour quantisation 0049BEA0). Was: scripts 0x004C0000-0x00500000 plus the 0x00480000-0x004B0000 leftovers.
 
 
+## Pending work (2026-10-07, waiting for a reboot)
+
+Builds and the suite can't run until the PC is rebooted (memory: process-zombie leak). After the reboot, in this order, running the suite after each step (16 jobs again once the memory is back):
+1. Recheck main as it is: A-U6 (merged as 73d3d8b) was not fully tested. 3 Rebirth render scenarios failed on memory even at --jobs 1.
+2. Merge A-I16 interface: branch worktree-agent-a7ce999abb7f598a8, head 2078944 (125 functions + 26 library).
+3. Merge A-H15 players/sound: worktree-agent-a4c370962466aabe8, head 61301bf (29 + 11 library).
+4. Merge A-S9 scripts: worktree-agent-a51e508a53d867bc4, head db11956 (20 + 39 library).
+5. Merge A-U7 units: worktree-agent-a598d0f2ff4a3dcaf, head 7e22909 (37 + 45 library; already reconciled with A-U6).
+6. Build, fix and merge the drafts (section "Draft passes"): DR-C1 on branch draft-dr-c1, DR-C2 on its worktree branch, DR-H16 on draft-dr-h16. Each has notes in docs/notes/drafts/.
+7. Republish the dashboard. Remove worktrees whose branches are merged.
+
 ## Draft passes (no build, 2026-10-07)
 
 The PC can't build or run the suite until a reboot (process-zombie leak, memory notes). These tickets write code on their own branches without building and leave a notes file docs/notes/drafts/<ticket>.md saying what is drafted, what is unverified and where they stopped. A later worker builds, fixes and finishes each one.
-- DR-C1 (taken): cleanup draft of world_client_maps.cpp, world_units.cpp, world_game.cpp (At<>/Field<> 470, VCall 106 between them).
-- DR-C2 (taken): name the placeholder virtuals (SlotNN) in map_object.h, unit.h, world.h, map_object_figures.h, party.h (102 of 123) and update their callers.
-- DR-H16 (taken): porting draft, options/keyboard screens 00651940 / 00651350 / 00651600 / 00652200 / 00651D70 / 006524A0, widgets 0065B8B0 / 0065D150 / 0065C610; plus the client message handlers missing from config/functions.csv (objects.md).
+- DR-C1 (taken; branch draft-dr-c1 in worktree agent-a9b8a6df2bce6075b): cleanup draft of world_client_maps.cpp, world_units.cpp, world_game.cpp (At<>/Field<> 470, VCall 106 between them).
+- DR-C2 (taken; branch worktree-agent-a08350e7d77d16777): name the placeholder virtuals (SlotNN) in map_object.h, unit.h, world.h, map_object_figures.h, party.h (102 of 123) and update their callers.
+- DR-H16 (taken; branch draft-dr-h16 in worktree agent-a3e4cab37d7cedfc9): porting draft, options/keyboard screens 00651940 / 00651350 / 00651600 / 00652200 / 00651D70 / 006524A0, widgets 0065B8B0 / 0065D150 / 0065C610; plus the client message handlers missing from config/functions.csv (objects.md).
 
 ## Verify checks
 
