@@ -67,6 +67,38 @@ public:
 };
 static_assert(offsetof(CTransformPipeline, stacks_) == 0x14);
 
+struct tagRECT;
+
+// The scene renderer (the global at 007AF060, vtable 0073D93C, 26 slots; 00500960 returns it).
+// Only the slots rewritten code calls are named. The game's code stores the vtable (novtable).
+class __declspec(novtable) CSceneRenderer {
+public:
+    virtual void Unknown0();
+    virtual void Unknown1();
+    virtual void Unknown2();
+    virtual void Unknown3();
+    virtual void Unknown4();
+    virtual void Unknown5();
+    virtual void Unknown6();
+    virtual void Unknown7();
+    virtual void Unknown8();
+    virtual void Unknown9();
+    virtual void Unknown10();
+    // 11: 00501AF0 (RET 8, EAX 1). Binds `texture` (a texture object, or null) to stage `stage`.
+    virtual int SetTexture(int stage, void* texture);
+    virtual void Unknown12();
+    virtual void Unknown13();
+    // 14: 00501D00 (RET 0x18). Draws `figure` through its drawer (+0x94, 005A7640) unless it is
+    // hidden (flags +8 bit 0x80); `alpha` reaches the mesh draw, `screen` (or null) gets the
+    // rectangle drawn. The second and third arguments are not read there.
+    virtual int DrawFigure(void* figure, const void* unknownA, const void* unknownB, int unknownC, int alpha,
+                           tagRECT* screen);
+
+    std::uint8_t unknown_04[4];
+    CTransformPipeline* pipeline_;   // +0x08
+};
+static_assert(offsetof(CSceneRenderer, pipeline_) == 0x08);
+
 // 004F1370. Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by
 // the half extents, y flipped. Returns out.
 Matrix4* __stdcall ViewportMatrix(Matrix4* out, const int* rect);

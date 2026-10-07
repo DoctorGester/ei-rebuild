@@ -480,6 +480,7 @@ destructor 004F6BD0, 004F9E50 (a part morphed again, Remorph), 004F2650 / 004F29
 | 004F6BD0, 004F6A30 | `CLinkFigureLoader::Destruct`, slot 0 `DeleteThis` | ours only (root vtable, `this`). Reached when the client world goes (`world_load`, exit) |
 | 004F9E50, 004F9FD0, 004FA670, 004F3800 | `RemorphPart`, `RemorphFigPart`, `RemorphOldPart`, `CLinkMesh::SetPartVertices` | the three record ones against the original (run first, outputs kept, old vertices / bounds put back, then ours; vertices and bounds NearlyEqual, cursor exact); RemorphPart ours only. `models`, `ui_hero_screen` |
 | 004F4B50, 004FAAA0 | `CLinkMesh::MemoryBytes`, loader slot 2 `CacheBytes` | against the original; no scenario known to reach them |
+| 004D9680, 004D96E0 | `CSky::Construct`, `CSky::Draw` (`sky_object.cpp`; `CSceneRenderer` in model.h names the renderer's slots 11 `SetTexture` / 14 `DrawFigure`; `CSkyObject::matrix_` +0x54) | ours only: fields after construction; after a draw the object at the eye lowered by 16, that translation in its matrix, stacks 1 / 2 as deep as before. `newgame`, `render_scene` |
 
 - Kept: RemorphFigPart reads every record as FIG8 (a plain FIG part is skipped 0x168 bytes and morphed from 8 versions).
   LoadFigPart / LoadOldPart now share the packet morphs (`MorphFig8Packet`, `MorphOldPacket`) with them.

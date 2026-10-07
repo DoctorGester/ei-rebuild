@@ -8,6 +8,7 @@
 
 #include "core_transform.h"
 #include "figure_mesh.h"   // VertexPacket
+#include "model.h"         // Matrix4, CSceneRenderer
 
 #include "lib/containers.h"
 #include "lib/mfc.h"
@@ -46,7 +47,8 @@ public:
     // normal . direction)^2 * 150. Components truncated (_ftol); `unused` is not read.
     void Light(const float* direction, SkyColour ambient, SkyColour light, SkyColour unused);
 
-    std::uint8_t unknown_54[0x98 - 0x54];
+    Matrix4 matrix_;                              // +0x54 world matrix (CSky::Draw builds it)
+    std::uint8_t unknown_94[4];
     std::uint32_t unknown_98;                     // +0x98 0 when constructed
     std::uint8_t unknown_9C[0x120 - 0x9C];
     mfc::CString name_;                           // +0x120 (CFigure's slot 7)
@@ -64,6 +66,7 @@ public:
     lib::AlignedArray<std::uint32_t> unknown_210;   // +0x210
     lib::AlignedArray<float> distances_;            // +0x220 haze per vertex
 };
+static_assert(offsetof(CSkyObject, matrix_) == 0x54);
 static_assert(offsetof(CSkyObject, unknown_98) == 0x98);
 static_assert(offsetof(CSkyObject, name_) == 0x120);
 static_assert(offsetof(CSkyObject, diffuse_) == 0x138);
@@ -74,11 +77,24 @@ static_assert(offsetof(CSkyObject, unknown_1F0) == 0x1F0);
 static_assert(offsetof(CSkyObject, distances_) == 0x220);
 static_assert(sizeof(CSkyObject) == 0x230);
 
-// The world view's sky (constructor 004D9680; draw 004D96E0, not ported: matrices and device
-// slots). Only what Light reads.
+class CSceneRenderer;
+
+// The world view's sky (A-S8: constructor 004D9680, draw 004D96E0).
 struct CSky {
+    // 004D9680 (returns this). No object yet; the texture holder loads "sky00" (kind 0x3D); turning.
+    CSky* Construct();
+    // 004D96E0 (RET 8). Unless there is no object: it is placed at the eye lowered by 16, turned
+    // about +z by the world time / 3000 when `turns` is set, its world matrix built from both and
+    // pushed onto the pipeline's stacks 2 and 1; then the texture bound to stage 0 and the object
+    // drawn (renderer slot 14 with alpha 0xFF), and both stacks popped (when not empty).
+    void Draw(CSceneRenderer* renderer, const Vector3* eye);
+
     CSkyObject* object;   // +0x00 null until the zone's sky is loaded
+    std::uint32_t unknown_04;   // +0x04 0 when constructed
+    void* texture;        // +0x08 texture holder
+    int turns;            // +0x0C 1 when constructed
 
     // 004D9DE0 (RET 0x34). object->Light(...) when there is an object.
     void Light(const float* direction, SkyColour ambient, SkyColour light, SkyColour unused);
 };
+static_assert(offsetof(CSky, texture) == 0x08 && offsetof(CSky, turns) == 0x0C);
