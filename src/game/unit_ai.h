@@ -810,6 +810,19 @@ struct AIBrain {
     // 005D4F70. The state of a new controller's brain: Reset's work plus owner, alert and alarm
     // state, alarm records, positions.
     void Init();
+    // combat_lifetime.cpp (A-U7). 00545990. The constructor (CUnitServer's, on +0x980): empty
+    // containers with their vtables, the move order cleared (00545B20), both sight caches
+    // {0, -1}, then Init. Returns this.
+    AIBrain* Construct();
+    // 005457E0 (reached only from the unwind funclets of the controller's constructor and
+    // destructor). Init, the memory destroyed (as 00545CB0), then the attention arrays, alarm
+    // records, the mode in charge, the mode list, target / seen and the looks.
+    void Destruct();
+    // 00545CB0 (thiscall on +0xD0; 00546230 calls it). The perception memory destroyed: calls,
+    // reports, then the four object lists (references released, blocks freed).
+    void DestructMemory();
+    // The action point and its looks as one move order (00545B20 clears them).
+    AIMoveOrder* MoveOrder() { return reinterpret_cast<AIMoveOrder*>(&actionPoint); }
     // 005CB0F0 (thiscall on +0xD0). Empties the perception memory: its four object lists, the noticed
     // point, the report arrays.
     void ResetMemory();

@@ -10,7 +10,10 @@
 #include "../../src/game/map_object.h"
 #include "../../src/game/map_object_figures.h"
 #include "../../src/game/unit.h"
+#include "../../src/game/unit_ai.h"
+#include "../../src/lib/crt.h"
 
+#include <cstddef>
 #include <cstring>
 
 namespace {
@@ -133,3 +136,89 @@ static void __fastcall DestructUnitServerVerify(CUnitServer* self) {
     ei::verify::Check("CUnitServer::DestructBody", true, ok, "");
 }
 EI_VERIFY(0x00546230, DestructUnitServerVerify, 0, s_unused);
+
+// --- A-U7 (combat_lifetime.cpp) ------------------------------------------------------------------
+// Scenarios: every unit spawn (newgame, unit_create, combat*) builds a controller (00545580) and its
+// brain (00545990); a unit deleted with its controller (zone changes: zone_gz2g_traps, world_load)
+// runs 00546230 and with it the memory destructor 00545CB0. 005457E0 is reached only from unwind
+// funclets (an exception inside the controller's constructor or destructor). 00545110 is called only
+// for a queued order of kind 10 (StartQueuedOrder), whose one setter 005557E0 is dead code: no
+// scenario reaches it.
+
+// 00545580: PUSH -1; PUSH 0x720633 (7 bytes). Allocates nothing; the whole 0xB20 bytes compared.
+static CUnitServer*(__fastcall* s_constructUnitServer)(void*);
+static CUnitServer* __fastcall ConstructUnitServerVerify(CUnitServer* self) {
+    return SameConstruction<sizeof(CUnitServer)>("CUnitServer::Construct", self, s_constructUnitServer,
+                                                 &CUnitServer::Construct);
+}
+EI_VERIFY(0x00545580, ConstructUnitServerVerify, 7, s_constructUnitServer);
+
+// 00545990: PUSH -1; PUSH 0x7207C9 (7 bytes). The 0x190 bytes compared.
+static AIBrain*(__fastcall* s_constructBrain)(void*);
+static AIBrain* __fastcall ConstructBrainVerify(AIBrain* self) {
+    return SameConstruction<sizeof(AIBrain)>("AIBrain::Construct", self, s_constructBrain, &AIBrain::Construct);
+}
+EI_VERIFY(0x00545990, ConstructBrainVerify, 7, s_constructBrain);
+
+namespace {
+bool ObjectListDestroyed(const mfc::CTypedPtrList<CEngineObject>& list) {
+    return list.vtable == reinterpret_cast<void*>(0x0073E730) && !list.head && !list.tail && list.count == 0 &&
+           !list.free && !list.blocks;
+}
+} // namespace
+
+// 00545CB0 (this = brain + 0xD0). Ours only: the destructors' vtables and the four lists emptied.
+static void __fastcall DestructMemoryVerify(std::uint8_t* memory) {
+    auto* brain = reinterpret_cast<AIBrain*>(memory - offsetof(AIBrain, memory));
+    brain->DestructMemory();
+    bool ok = brain->calls.vtable == reinterpret_cast<void*>(0x0073F064) &&
+              brain->reports.vtable == reinterpret_cast<void*>(0x0073F058) &&
+              ObjectListDestroyed(brain->unknown_0F4) && ObjectListDestroyed(brain->visible) &&
+              ObjectListDestroyed(brain->unknown_12C) && ObjectListDestroyed(brain->corpses);
+    ei::verify::Check("AIBrain::DestructMemory", true, ok, "");
+}
+EI_VERIFY(0x00545CB0, DestructMemoryVerify, 0, s_unused);
+
+// 005457E0. Ours only: no modes, target or seen object, the looks' base vtable.
+static void __fastcall DestructBrainVerify(AIBrain* self) {
+    self->Destruct();
+    bool ok = !self->modes.head && self->modes.count == 0 && !self->target && !self->seen &&
+              self->looks.vtable == reinterpret_cast<void*>(kLookArrayBaseVtable);
+    ei::verify::Check("AIBrain::Destruct", true, ok, "");
+}
+EI_VERIFY(0x005457E0, DestructBrainVerify, 0, s_unused);
+
+namespace {
+// A copy of `count` steps in a block of the game's heap (null for none), for the original to free.
+AnimationStep* CopySteps(const AnimationStep* steps, int count) {
+    if (!steps) return nullptr;
+    int n = count > 0 ? count : 1;
+    auto* copy = static_cast<AnimationStep*>(gamecrt::operator_new(static_cast<unsigned>(n) * sizeof(AnimationStep)));
+    if (count > 0) std::memcpy(copy, steps, static_cast<std::size_t>(count) * sizeof(AnimationStep));
+    return copy;
+}
+} // namespace
+
+// 00545110: MOV EAX,FS:[0]; PUSH -1 (8 bytes). Output: the original on a copy of the plan (its
+// steps duplicated) with a duplicate of the argument (it frees both), ours on the plan; every field
+// but the steps pointer, and the copied steps, compared.
+static void(__fastcall* s_takeSteps)(OrderPlan*, void*, AnimationSteps, int, int);
+static void __fastcall TakeStepsVerify(OrderPlan* self, void*, AnimationSteps steps, int start, int duration) {
+    OrderPlan scratch;
+    std::memcpy(&scratch, self, sizeof(scratch));
+    scratch.animation.steps = CopySteps(self->animation.steps, self->animation.capacity);
+    AnimationSteps argument;
+    std::memcpy(&argument, &steps, sizeof(argument));
+    argument.steps = CopySteps(steps.steps, steps.count);
+    s_takeSteps(&scratch, nullptr, argument, start, duration);
+    self->TakeSteps(steps, start, duration);
+    AnimationStep* expectedSteps = scratch.animation.steps;
+    scratch.animation.steps = self->animation.steps;
+    bool ok = std::memcmp(&scratch, self, sizeof(scratch)) == 0 &&
+              (self->animation.count == 0 ||
+               std::memcmp(expectedSteps, self->animation.steps,
+                           static_cast<std::size_t>(self->animation.count) * sizeof(AnimationStep)) == 0);
+    if (expectedSteps) gamecrt::operator_delete(expectedSteps);
+    ei::verify::Check("OrderPlan::TakeSteps", true, ok, "steps %d start %d duration %d", steps.count, start, duration);
+}
+EI_VERIFY(0x00545110, TakeStepsVerify, 8, s_takeSteps);

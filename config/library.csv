@@ -2071,23 +2071,44 @@ address,name,library,signature,notes
 005573F0,"CArray<TYPE,ARG_TYPE> constructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073D460 (GetRuntimeClass 007005E3, Serialize 004C9B10 identified); touches no other vtable; callees library only"
 00557410,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F040 (GetRuntimeClass 007005E3, Serialize 00557430 identified); touches no other vtable; callees library only"
 00557430,"CArray<TYPE,ARG_TYPE>::Serialize",MFC,,inventory sweep: CArchive::WriteCount/ReadCount + inlined SetSize + SerializeElements (CArchive::Read/Write); loose-family member of 00474F50 (reviewed)
+005576C0,"CList<RefPtr>::Serialize (CArchive count, CPlex nodes)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00557890,"CArray<T> destructor (0x4C-byte elements with an inner array; DestructElements inlined; vtable 0073F034)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
 00557960,"CArray<TYPE,ARG_TYPE>::Serialize",MFC,,inventory sweep: CArchive::WriteCount/ReadCount + inlined SetSize + SerializeElements (CArchive::Read/Write); loose-family member of 0045FCB0 (reviewed)
 00557B60,"CArray<TYPE,ARG_TYPE> constructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073EF2C (GetRuntimeClass 007005E3, Serialize 00557E90 identified); touches no other vtable; callees library only"
 00557B80,"CArray<TYPE,ARG_TYPE>::SetSize",MFC,,inventory sweep: MFC SetSize; loose-family member of 00557B80 (reviewed)
+00557CC0,"CArray<AnimationStep>::Add (SetSize inlined; ConstructElements 00558AB0)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00557E20,"CArray<AnimationStep>::RemoveAt (memmove of the tail)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
 00557E70,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073EF2C (GetRuntimeClass 007005E3, Serialize 00557E90 identified); touches no other vtable; callees library only"
 00557E90,"CArray<TYPE,ARG_TYPE>::Serialize",MFC,,inventory sweep: CArchive::WriteCount/ReadCount + inlined SetSize + SerializeElements (CArchive::Read/Write); loose-family member of 0044F650 (reviewed)
 00558020,"CList<TYPE,ARG_TYPE>/CMap<...>::RemoveAll",MFC,,"inventory sweep: destroys CString elements, CPlex::FreeDataChain; loose-family member of 004CE0C0 (reviewed)"
+00558070,"CList<ArmourSpell>::~CList (vtable 0073F010; RemoveAll inlined, CPlex::FreeDataChain)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00558100,"CList<ArmourSpell>::Serialize (CArchive count, 0xC-byte records)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
 00558470,"CList<TYPE,ARG_TYPE>::~CList",MFC,,"inventory sweep: vtable store, RemoveAll inlined, CPlex::FreeDataChain; loose-family member of 00405130 (reviewed)"
 005584D0,"CList<TYPE,ARG_TYPE>/CMap<...>::Serialize",MFC,,inventory sweep: CArchive::ReadCount loop with CPlex::Create node blocks (NewNode inlined); loose-family member of 00405190 (reviewed)
 00558700,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F058 (GetRuntimeClass 007005E3, Serialize 00556E10 identified); touches no other vtable; callees library only"
 00558720,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F064 (GetRuntimeClass 007005E3, Serialize 00557050 identified); touches no other vtable; callees library only"
 00558740,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F07C (GetRuntimeClass 007005E3, Serialize 00557270 identified); touches no other vtable; callees library only"
 00558760,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F040 (GetRuntimeClass 007005E3, Serialize 00557430 identified); touches no other vtable; callees library only"
+00558780,"CList scalar deleting destructor (destructor 005575F0)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+005587E0,"CArray scalar deleting destructor (destructor 00557890)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
 00558800,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073EF2C (GetRuntimeClass 007005E3, Serialize 00557E90 identified); touches no other vtable; callees library only"
+00558820,"CList scalar deleting destructor (destructor 00558070)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
 00558880,"CList/CMap<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F12C (GetRuntimeClass 007005E3, Serialize 005584D0 identified); touches no other vtable; callees library only"
 005588A0,stlp/MFC container template instantiation (unreviewed family),MFC,,inventory sweep: loose family of 2 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
+005588F0,"DestructElements (0046C290 per element)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00558920,"CArray<AnimationStep>::GetAt (by value)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00558950,"CArray<AnimationStep>::SetAtGrow (SetSize inlined)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00558AB0,"ConstructElements<AnimationStep> (zeroed, then the blank step 00550A60 inlined)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00558B10,"CList<ArmourSpell>::NewNode (20-byte nodes)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00558B80,"CList<ArmourSpell>::FreeNode (RemoveAll when the count reaches 0)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
 00558C00,stlp/MFC container template instantiation (unreviewed family),MFC,,inventory sweep: loose family of 2 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 00558C50,stlp/MFC container template instantiation (unreviewed family),MFC,,inventory sweep: loose family of 15 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
+00558D10,"ConstructElements (8-byte elements, first dword 0)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00558D60,"ConstructElements (24-byte elements, +0x14 the empty CString)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00558DB0,"ConstructElements (8-byte elements, zero fill)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00558DE0,"DestructElements (AI mode references, 005587A0 per element)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00558E10,"ConstructElements (0x4C-byte elements, constructor 0045D5B0 each)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00558EA0,"ConstructElements (12-byte elements, first two dwords 0)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
 00558EF0,ConstructElements<RefPtr>,MFC,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 005593D0,unit appearance cache build,STLport,,library-like by agreement (combat.md): a cache built almost entirely from STLport hash_map instantiations; thin logic
 00559B30,unit entry destructor (implicit; CString vector),compiler,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
