@@ -43,7 +43,6 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Verify checks
 
-- X21 0066F4C0 CPlayerServer::OnLeaderDied (A-H13, in disabled.txt): in vanilla hero_death the player stream grew 10 bytes; the check expects 1 (0x09) or 9 (0x09 + 0x0B). Find what the extra byte is (ours or the check).
 
 
 - X17 (done 2026-10-07, branch worktree-agent-a480cc2226016ece2) Four rewrites in tests/verify/disabled.txt: A-S5's ground decal builder 004D7BD0 ClipPlane / 004D85F0 AddTriangle / 004D8490 AddTerrainTriangle (mismatch e.g. "vertices 0 -> 3 / 3, indices 0 -> 3 / 3", 0.03-6% of calls) and A-H11's 00649AF0 CHudTopPanel::Build (its check fails every call: "page 0 shown 0 regions 4 sprites 6").
