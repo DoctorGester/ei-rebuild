@@ -21,6 +21,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <new>
 
 namespace {
 
@@ -614,6 +615,19 @@ MpHeroRecord* MpHeroRecord::Assign(const MpHeroRecord* other) {
 }
 EI_REPLACE_METHOD(0x0061A350, MpHeroRecord::Assign);
 
+MpHeroRecord* MpHeroRecord::Construct() {
+    PartyRecordsConstructOriginal(party);   // 00661050 by address: its wrapper runs
+    new (&file) mfc::CString();
+    return this;
+}
+EI_REPLACE_METHOD(0x00619540, MpHeroRecord::Construct);
+
+void MpHeroRecord::Destruct() {
+    file.~CString();
+    PartyRecordsDestructOriginal(party);   // 006611D0 by address: its wrapper runs
+}
+EI_REPLACE_METHOD(0x00619560, MpHeroRecord::Destruct);
+
 namespace {
 // The heroes' folder (007C82A0, a CString; the records follow it) and the records as a vector.
 const mfc::CString& MpHeroesFolder() { return *reinterpret_cast<const mfc::CString*>(0x007C82A0); }
@@ -633,9 +647,7 @@ void CMpHeroScreen::DeleteHero() {
     gameapi::DeleteFileA(path);
     MpHeroRecord* at = MpHeroesBegin() + heroIndex_;
     for (MpHeroRecord* next = at + 1; next < MpHeroesEnd(); ++at, ++next) at->Assign(next);
-    MpHeroRecord* last = --MpHeroesEnd();
-    last->file.~CString();
-    PartyRecordsDestructOriginal(last->party);   // 006611D0 by address: its wrapper runs
+    (--MpHeroesEnd())->Destruct();   // inlined in the original
     std::uint32_t count = MpHeroCount();
     if (static_cast<std::uint32_t>(heroIndex_) >= count) heroIndex_ = static_cast<int>(count) - 1;
     auto* bar = static_cast<CUiScrollbar*>(heroScroll_);

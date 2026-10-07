@@ -125,6 +125,22 @@ std::uint32_t PriceColour(int price, int experience) { return price > experience
 
 } // namespace
 
+// --- 00613CF0 / 0062A7C0: a row destroyed ------------------------------------------------------
+
+void TradeRow::Destroy() {
+    CStringDestroy(&nextKey);
+    CStringDestroy(&key);
+    CStringDestroy(&name);
+}
+EI_REPLACE_METHOD(0x00613CF0, TradeRow::Destroy);
+
+TradeRow* TradeRow::DeleteThis(int flags) {
+    Destroy();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x0062A7C0, TradeRow::DeleteThis);
+
 // --- 00625880 -----------------------------------------------------------------------------------
 
 void CTradePanel::BuildLists() {

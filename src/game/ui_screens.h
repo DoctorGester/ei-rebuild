@@ -523,6 +523,10 @@ struct MpHeroRecord {
     // 0061A350 (RET 4; ui_hero_screen_click.cpp). Assignment: the party (00661300), the file
     // name. Returns this.
     MpHeroRecord* Assign(const MpHeroRecord* other);
+    // 00619540. Constructor: the party (00661050), an empty file name. Returns this.
+    MpHeroRecord* Construct();
+    // 00619560. Destructor: the file name, then the party (006611D0).
+    void Destruct();
 
     std::uint8_t party[0x70];        // +0x00 CParty
     mfc::CString file;               // +0x70

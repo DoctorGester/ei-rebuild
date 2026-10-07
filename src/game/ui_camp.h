@@ -501,6 +501,11 @@ void __fastcall TradePanelDestroy(CUiWindow* self);
 
 // A row of the panel's lists (0x18 bytes, STLport vectors at +0x15C .. +0x180).
 struct TradeRow {
+    // 00613CF0 (ui_trade_panel.cpp). Destructor: nextKey, key, name.
+    void Destroy();
+    // 0062A7C0 (RET 4). Destroy, then operator delete when bit 0 of `flags` is set. Returns this.
+    TradeRow* DeleteThis(int flags);
+
     char* name;                      // +0x00 CString shown text
     char* key;                       // +0x04 CString the perk's record name (perk rows)
     char* nextKey;                   // +0x08 CString the next level's record name (held perks below 3)

@@ -2885,9 +2885,11 @@ address,name,library,signature,notes
 00601B70,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00428C50 (reviewed)"
 00601E30,stlp::uninitialized_copy<T*>,STLport,,A-I15 sweep: identical instruction stream to 0042B6C0 (code addresses masked)
 00601E50,stlp::uninitialized_fill_n<T*>,STLport,,A-I15 sweep: identical instruction stream to 0042B6E0 (code addresses masked)
+00609980,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
 00609A40,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 10 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 00609A80,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 27 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 00609AC0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 00421500 (reviewed)
+00609B00,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
 00609C10,"stlp::hashtable<V,K,HF,ExK,EqK,A>::hashtable(n,hf,eql,a)",STLport,,inventory sweep: bucket count from the STLport prime list 0073B914; buckets from the node pool; loose-family member of 00405820 (reviewed)
 00609D70,"stlp::vector<T>::erase(first,last)",STLport,,A-I15 sweep: identical instruction stream to 00421ED0 (code addresses masked)
 00609E00,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
@@ -2898,57 +2900,111 @@ address,name,library,signature,notes
 00609EE0,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 4 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 00609F50,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 00609F90,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 5 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
+0060A010,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
 0060A100,stlp::_STLP_alloc_proxy<T>::_STLP_alloc_proxy,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0060A120,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00426F00 (reviewed)"
 0060A320,"stlp::_Rb_tree<K,V,KoV,C,A>::insert_unique(iterator,const value_type&)",STLport,,inventory sweep: hinted insert: leftmost/rightmost/neighbour checks then _M_insert; loose-family member of 0043BBC0 (reviewed)
 0060A5C0,stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection),STLport,,A-I15 sweep: identical instruction stream to 0043BF00 (code addresses masked)
 0060A620,stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection),STLport,,A-I15 sweep: identical instruction stream to 00439AA0 (code addresses masked)
+0060A660,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
 0060A870,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 00741264 (GetRuntimeClass 007005E3, Serialize 0060A890 identified); touches no other vtable; callees library only"
 0060A890,"CArray<TYPE,ARG_TYPE>::Serialize",MFC,,inventory sweep: CArchive::WriteCount/ReadCount + inlined SetSize + SerializeElements (CArchive::Read/Write); loose-family member of 00475310 (reviewed)
 0060AA80,"stlp::_Construct<RefPtr> (copy, a reference added)",STLport,,A-I15 sweep: identical instruction stream to 00429060 (code addresses masked)
 0060AAA0,stlp::copy_backward<RefPtr*>,STLport,,A-I15 sweep: identical instruction stream to 00429DB0 (code addresses masked)
+0060AB00,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0060AB60,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
 0060ABC0,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 00741264 (GetRuntimeClass 007005E3, Serialize 0060A890 identified); touches no other vtable; callees library only"
 0060AC20,"stlp::hashtable<pair<const string,T>,...>::find_or_insert",STLport,,"inventory sweep: string key, EH frame; resize, hash, compare, insert; loose-family member of 004297A0 (reviewed)"
 0060AD50,"CArray<TYPE,ARG_TYPE>::SetAtGrow",MFC,,inventory sweep: SetSize(n+1) inlined then stores the element; loose-family member of 00460500 (reviewed)
 0060AEC0,ConstructElements<float>,MFC,,A-I15 sweep: identical instruction stream to 004CC870 (code addresses masked)
 0060AEE0,"stlp::_Rb_tree<K,V,KoV,C,A>::_M_insert",STLport,,"inventory sweep: creates the node, links it left/right, updates leftmost/rightmost, rebalances; loose-family member of 0043E140 (reviewed)"
 0060B0A0,"stlp::_Rb_tree<K,V,KoV,C,A>::insert_unique(const value_type&)",STLport,,"inventory sweep: descend from the root, then _M_insert; loose-family member of 0043E3A0 (reviewed)"
+0060B1E0,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0060B2F0,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0060B330,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0060B440,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0060B490,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0060B500,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
 0060B5F0,stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection),STLport,,A-I15 sweep: identical instruction stream to 0043C3A0 (code addresses masked)
 0060B600,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_new_node",STLport,,"inventory sweep: node from the node-pool free list (inlined refill), value constructed in place; loose-family member of 0042A650 (reviewed)"
 0060B720,stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection),STLport,,A-I15 sweep: identical instruction stream to 0043FDF0 (code addresses masked)
 0060B740,"stlp::hashtable<V,K,HF,ExK,EqK,A>::resize",STLport,,inventory sweep: next size from the STLport prime list 0073B914..0073B980; rehashes the bucket chains; loose-family member of 0042AFD0 (reviewed)
+0060B8A0,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0060B910,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0060B990,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0060BAD0,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
 0060BB10,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0060BB30,"stlp::_Vector_base<T>::_Vector_base(size_t,const allocator&)",STLport,,inventory sweep: allocates n elements from the node pool (inlined _S_chunk_alloc refill); loose-family member of 00407740 (reviewed)
 0060BD40,stlp::uninitialized_copy<RefPtr*>,STLport,,A-I15 sweep: identical instruction stream to 0042AF80 (code addresses masked)
 0060BD70,stlp::uninitialized_fill_n<RefPtr*>,STLport,,A-I15 sweep: identical instruction stream to 0042B630 (code addresses masked)
+0060BDA0,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0060BE40,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0060BEE0,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0060BF20,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0060C070,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0060C0B0,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0060C1F0,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0060C2B0,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0060C330,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0060C390,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0060C510,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0060C670,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0060C6A0,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
 006133E0,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 00613400,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 2 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 006134F0,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+00613510,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
 00613580,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 00424AF0 (reviewed)
 006135F0,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,,"inventory sweep: n*sizeof(T) back to the node-pool free list, operator delete above 128 bytes; loose-family member of 0040ACE0 (reviewed)"
 00613630,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 4 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 00613670,"CArray<TYPE,ARG_TYPE> constructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 00741BC0 (GetRuntimeClass 007005E3, Serialize 00613690 identified); touches no other vtable; callees library only"
 00613690,"CArray<TYPE,ARG_TYPE>::Serialize",MFC,,inventory sweep: CArchive::WriteCount/ReadCount + inlined SetSize + SerializeElements (CArchive::Read/Write); loose-family member of 004511F0 (reviewed)
+00613820,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+00613920,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
 00613A10,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 00741BC0 (GetRuntimeClass 007005E3, Serialize 00613690 identified); touches no other vtable; callees library only"
 00613A30,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 00741BC0 (GetRuntimeClass 007005E3, Serialize 00613690 identified); touches no other vtable; callees library only"
+00613A50,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
 00613B70,"stlp::hashtable<pair<const string,T>,...>::find_or_insert",STLport,,inventory sweep: resize(n+1); __stl_hash_string (h*5+c); string compare; _M_new_node; loose-family member of 004ACAB0 (reviewed)
 00613C20,"stlp::hashtable<pair<const string,T>,...>::find_or_insert",STLport,,inventory sweep: resize(n+1); __stl_hash_string (h*5+c); string compare; _M_new_node; loose-family member of 004ACAB0 (reviewed)
+00619420,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
 006194F0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 00421500 (reviewed)
 006195B0,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 6 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 00619600,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 00619630,"stlp::_Rb_tree<K,V,KoV,C,A>::_Rb_tree",STLport,,"inventory sweep: header node from the free list 0079B22C, empty tree; loose-family member of 004393C0 (reviewed)"
 00619710,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,,"inventory sweep: n*sizeof(T) back to the node-pool free list, operator delete above 128 bytes; loose-family member of 004251B0 (reviewed)"
 00619750,stlp::_STLP_alloc_proxy<T>::_STLP_alloc_proxy,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+00619770,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+00619920,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+00619B90,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+00619DB0,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
 00619E10,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00428C50 (reviewed)"
 00619FB0,"stlp::hashtable<pair<const string,T>,...>::find_or_insert",STLport,,"inventory sweep: string key, EH frame; resize, hash, compare, insert; loose-family member of 004297A0 (reviewed)"
 0061A0E0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 0040C720 (reviewed)
+0061A120,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0061A240,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0061A300,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
 0061A380,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_new_node",STLport,,"inventory sweep: node from the node-pool free list (inlined refill), value constructed in place; loose-family member of 0042A650 (reviewed)"
+0061A4A0,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0061A520,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0061A610,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
 0061A650,"stlp::hashtable<V,K,HF,ExK,EqK,A>::resize",STLport,,inventory sweep: next size from the STLport prime list 0073B914..0073B980; rehashes the bucket chains; loose-family member of 0042AFD0 (reviewed)
 0061A7B0,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0061A7D0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0061A820,"stlp::_Vector_base<T>::_Vector_base(size_t,const allocator&)",STLport,,inventory sweep: allocates n elements from the node pool (inlined _S_chunk_alloc refill); loose-family member of 00407740 (reviewed)
+0061AA40,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0061AB00,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0061ABC0,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0061AC80,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0061AD40,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0061AE20,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0061AED0,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
 0061AF00,stlp::uninitialized_copy<T*>,STLport,,A-I15 sweep: identical instruction stream to 0042B6C0 (code addresses masked)
 0061AF20,stlp::uninitialized_fill_n<T*>,STLport,,A-I15 sweep: identical instruction stream to 0042B6E0 (code addresses masked)
+0061AF40,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0061AFC0,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0061B050,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0061B0A0,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0061B160,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
 0061E960,"stlp::hashtable<V,K,HF,ExK,EqK,A>::hashtable(n,hf,eql,a)",STLport,,inventory sweep: bucket count from the STLport prime list 0073B914; buckets from the node pool; loose-family member of 00405820 (reviewed)
 0061EB60,stlp::_STLP_alloc_proxy<T>::_STLP_alloc_proxy,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0061EB80,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,,"inventory sweep: n*sizeof(T) back to the node-pool free list, operator delete above 128 bytes; loose-family member of 004251B0 (reviewed)"

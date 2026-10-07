@@ -187,6 +187,20 @@ static MpHeroRecord* __fastcall HeroAssignVerify(MpHeroRecord* self, void*, cons
 }
 EI_VERIFY(0x0061A350, HeroAssignVerify, 0, s_unused);
 
+// 00619540 / 00619560 (a hero made by 00617A50 and its temporary): the file name empty after the
+// constructor; the destructor runs alone (ui_hero_delete).
+static MpHeroRecord* __fastcall HeroConstructVerify(MpHeroRecord* self, void*) {
+    MpHeroRecord* result = self->Construct();
+    ei::verify::Check("MpHeroRecord::Construct", true, result == self && self->file.GetLength() == 0, "");
+    return result;
+}
+EI_VERIFY(0x00619540, HeroConstructVerify, 0, s_unused);
+static void __fastcall HeroDestructVerify(MpHeroRecord* self, void*) {
+    self->Destruct();
+    ei::verify::Check("MpHeroRecord::Destruct", true, true, "");
+}
+EI_VERIFY(0x00619560, HeroDestructVerify, 0, s_unused);
+
 static void __fastcall HeroDeleteVerify(CMpHeroScreen* self, void*) {
     std::uint32_t before = MpHeroTotal();
     int index = self->heroIndex_;
