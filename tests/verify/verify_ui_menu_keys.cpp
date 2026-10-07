@@ -129,7 +129,7 @@ static void __fastcall OptionsKeyDownVerify(void* input, void*, int key, int rep
     if (key == 0x26 || key == 0x28) {
         int dir = key == 0x26 ? -1 : 1;
         for (int i = row + dir; i >= 0 && i < 14; i += dir) {
-            if (w->rows_[i].binding_ || w->rows_[i].spin_) {
+            if (w->rows_[i].binding_ || w->rows_[i].setting_) {
                 target = i;
                 break;
             }
