@@ -132,6 +132,7 @@ around both runs and compared too.
 | 00545580, 00545990 | CUnitServer::Construct, AIBrain::Construct (combat_lifetime.cpp, A-U7) | output: the original into a scratch copy of the raw memory, every byte compared (verify_map_object_lifetime.cpp) |
 | 00545CB0, 005457E0 | AIBrain::DestructMemory (this = brain + 0xD0), AIBrain::Destruct | ours only (vtables, lists empty, no target / seen / modes) |
 | 00546100 | AIPath::Destruct (combat_lifetime.cpp; from CPlayerServer::OnUseOrder) | ours only (lists empty, vtables) |
+| 0055F8E0 | CWorld::DestroyManagers (base slot 3; world_managers.cpp): spell objects get slot 5 (CEngineObject::Slot5 renamed ClearState), managers deleted whatever their counts | ours only: every manager slot empty (zone changes, loading) |
 | 00545110 | OrderPlan::TakeSteps | output: original on a deep copy of plan and argument, fields and steps compared |
 | 00558420, 00545430 / 005582A0, 005585F0 | SaveStepList, SaveArmourSpell / LoadStepList, LoadArmourSpells (combat_save.cpp; +0x91C is the armour spell list, not "attackers") | saves: both into capture streams / loads: ours through a recorder, step lists round-tripped through the original save (verify_combat_save_lists.cpp; world_load, ui_saveload) |
 | 0054BBC0 | SpellLineOfSight (combat_spell_sight.cpp; __fastcall world, spell, then 4 stack args; the server world's cast 0058E850) | pure (AL compared; spells_cast, spells_hero) |

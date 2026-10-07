@@ -183,6 +183,12 @@ public:
 
     // 0055FCB0 (world_time.cpp). Stores the wind direction (+0x24) and strength (+0x30).
     void SetWind(const Vector3* direction, float strength);
+    // 0055F8E0 (world_managers.cpp, A-U7). Slot 3 (Destroy) of the base vtable 0073F18C, also
+    // called by the client 00563290 and the server 0058B020: every object of the spell manager
+    // (slot 22) gets its slot 5 (ClearState), then the managers are deleted whatever their counts
+    // (+0x38, +0x40, +0x3C, +0x44, +0x58, +0x54, +0x50, +0x4C, +0x48; +0x34 only at its last
+    // reference) and the shared pointers +0x5C / +0x60 dropped.
+    void DestroyManagers();
 
     float timeBase_;                     // +0x1C
     float secondsPerTick_;                // +0x20
