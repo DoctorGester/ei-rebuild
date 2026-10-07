@@ -117,6 +117,26 @@ private:
     NamedFloatTable table_;
 };
 
+class CRefObject;
+
+// A network client's chat window on the base screen (constructor 00608D20, 0x170 bytes, vtables
+// 00741478 / 00741444): a surface along the bottom, the held messages and the status texts
+// ("lmp_status_zone" .. "lmp_exch_they_offer").
+class CChatWindow : public CUiWindow {
+public:
+    // 00608ED0 (ui_window_delete.cpp). The destructor body: the texts, each held message released,
+    // the vector's storage, then the window's.
+    void DestroyBody();
+
+    std::uint8_t unknown_148[4];
+    int unknown_14C;                          // +0x14C 0
+    stlp::vector<CRefObject*> messages_;      // +0x150
+    mfc::CStringArray texts_;                 // +0x15C
+};
+static_assert(offsetof(CChatWindow, messages_) == 0x150);
+static_assert(offsetof(CChatWindow, texts_) == 0x15C);
+static_assert(sizeof(CChatWindow) == 0x170);
+
 class CBriefingScreen : public CUiContainer {
 public:
     // Main vtable slots (ui_briefing.cpp).

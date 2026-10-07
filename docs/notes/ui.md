@@ -111,6 +111,17 @@ Byte-identical copies (A-I15; external call targets equal): registered with thei
 MFC / CRT twins (code addresses masked) in 005E0000-00640000 went to config/library.csv ("A-I15 sweep"). Left: twins under 5 bytes, the
 30-byte scalar deleting destructors (each calls its own destructor) and the CString-member destructors 005FBE30 / 006062B0 / 0060F460.
 
+**Deleting destructors** (A-I16, `ui_window_delete.cpp`; `verify_ui_window_delete.cpp`, ours only: the result is the object, after a
+body the window base holds nothing). Slot 0 of every window in 005E0000-00640000 (50; body, then operator delete on flags bit 0,
+returns this) and the input sides' slot 0 (37 thunks `SUB ECX,0x94; JMP` to it; ours return the window). Bodies that only jump to
+005FE930 / 00600BA0 (14) are registered as those; bodies ported: 005EACF0 / 00602BA0 (input side: base vtable 007401D0), 005EE380
+`CItemInfoPanel::DestroyBody`, 00608ED0 `CChatWindow` (00741478, the base screen's chat window, constructor 00608D20), 0060E2B0 the
+forwarding strip (frees `list_`; the plain strip's 0060E280 frees nothing of its own: kept), 0060E600 `CSpellMakerPage`, 0061E3E0 =
+00633750 `CMessageBox`, 0061E460 `CMasterRequestBox` (00741DD8: message box + master server link at +0x180). Still forwarded: 005E28E0
+(message lines window 007400DC), 005F6130, 005F6BA0, 005F8970, 00603B90, 006070C0, 00618570. 0062EDA0 is 00499E30's code. The HUD
+panels' input thunks 0064BCF0-0064BD80 (HUD range) are not done. CString / pair / vector / CGdiObject deleting destructors went to
+library.csv. Reached by every scenario that closes a screen or ends the game.
+
 ### Window stack, screen construction, window base methods (all ours only unless noted)
 
 | Address | Name | Notes |

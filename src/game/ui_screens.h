@@ -196,6 +196,11 @@ public:
     BOOL OnWheel(int keys, short delta, int x, int y);   // 006210F0
     void OnLButtonDownForward(int flags, int x, int y);  // 006212A0 (the forwarding subclass)
 
+    // 0060E2B0 (ui_window_delete.cpp). The forwarding strip's destructor body (vtable 0074197C):
+    // the visible list's storage, then the window's. The plain strip's (0060E280) frees nothing of
+    // its own.
+    void DestroyForwarding();
+
     // Settles the pending scroll on release (inlined twice by the original).
     void SettleScroll();
     // Not rewritten: virtual slots 25 and 26 called through the vtable.

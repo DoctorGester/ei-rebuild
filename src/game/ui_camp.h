@@ -1034,6 +1034,9 @@ static_assert(offsetof(CConstructorPage, pulse_) == 0x154);
 // The spell maker's cost texts ("infoitem_35", "infoitem_36"): a CStringArray at +0x158.
 class CSpellMakerPage : public CConstructorPage {
 public:
+    // 0060E600 (ui_window_delete.cpp). The destructor body: the texts, then the window's.
+    void DestroyBody();
+
     void* textsVtable_;              // +0x158
     const char** texts_;             // +0x15C CString data
     int textCount_;                  // +0x160

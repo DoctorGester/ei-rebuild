@@ -1848,6 +1848,9 @@ public:
     void OnKeyDown(int key, int repeat, int flags);
     // The OK answer's edit text into editText_ (the caller's buffer).
     void CopyEditText();
+    // 0061E3E0 (and the difficulty question's 00633750, the same code; ui_window_delete.cpp). The
+    // destructor body: the text and title strings, then the container's.
+    void DestroyBody();
 
     const char* title_;              // +0x164 CString (text of the title key)
     const char* text_;               // +0x168 CString (text of the text key)
@@ -1860,6 +1863,20 @@ public:
 static_assert(offsetof(CMessageBox, title_) == 0x164);
 static_assert(offsetof(CMessageBox, edit_) == 0x178);
 static_assert(sizeof(CMessageBox) == 0x180);
+
+// A message box waiting on a master server request (constructor 0061E2F0 from the lobby's
+// 0061D0D0; vtables 00741DD8 / 00741DA4): the box with OK only, a master server link and a
+// sprite. Names provisional.
+class CMasterRequestBox : public CMessageBox {
+public:
+    // 0061E460 (ui_window_delete.cpp). The destructor body: the link (00440D40), then the box's.
+    void DestroyBody();
+
+    std::uint8_t link_[0x40];        // +0x180 net::MasterLink (net_socket_driver.cpp)
+    CUiMesh* sprite_;                // +0x1C0
+};
+static_assert(offsetof(CMasterRequestBox, link_) == 0x180);
+static_assert(offsetof(CMasterRequestBox, sprite_) == 0x1C0);
 
 // The new game's difficulty question (vtables 0074225C / 00742228, 0x184 bytes; the main menu's
 // region 0): a message box ("option_difficulty", OK and cancel) with two check boxes. Its button

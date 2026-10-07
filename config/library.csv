@@ -3858,3 +3858,14 @@ address,name,library,signature,notes
 0070AC94,AfxMessageBox,MFC,"int(LPCTSTR,UINT,UINT)",
 0070BB04,CDC::FillSolidRect,MFC,,
 0070BBE5,CFont::CreatePointFont,MFC,,
+005E1560,CString scalar deleting destructor,MFC,,"A-I16: CString::~CString (through the jump 005E0BF0), then operator delete when flags bit 0; returns this"
+005FBCB0,CString scalar deleting destructor,MFC,,"A-I16: same as 005E1560 (jump 005F9680)"
+0060ABE0,CString scalar deleting destructor,MFC,,"A-I16: same as 005E1560 (jump 005FBE20); the briefing's shown-item list clear calls it with 0 (ui_briefing_start.cpp)"
+005FBE30,"stlp::pair<const K, CString>::~pair",STLport,,"A-I16: ADD ECX,4; JMP CString::~CString: the map value's destructor (005FAFA0 _M_erase, unwind funclets)"
+006062B0,"stlp::pair<const K, CString>::~pair",STLport,,"A-I16: same as 005FBE30 (the briefing's maps, unwind funclets)"
+005FBCD0,"stlp::pair<const K, CString> scalar deleting destructor",STLport,,"A-I16: 005FBE30, then operator delete when flags bit 0"
+0060AC00,"stlp::pair<const K, CString> scalar deleting destructor",STLport,,"A-I16: 006062B0, then operator delete when flags bit 0 (00605DE0, 006062C0, 00608450 call it with 0)"
+005FBCF0,stlp::_Vector_base<T> scalar deleting destructor,STLport,,"A-I16: 005F32D0, then operator delete when flags bit 0"
+005FBD10,stlp::_Vector_base<T> scalar deleting destructor,STLport,,"A-I16: 005F3310, then operator delete when flags bit 0"
+005FDDC0,CGdiObject scalar deleting destructor,MFC,,"A-I16: 005FDDE0, then operator delete when flags bit 0 (vtable 007463C8, a CPen or CFont of the interface)"
+005FDDE0,CGdiObject::~CGdiObject,MFC,,"A-I16: vtable 007463D4, DeleteObject 0070A0CC (the interface's pens and fonts)"

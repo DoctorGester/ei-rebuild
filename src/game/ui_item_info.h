@@ -223,6 +223,9 @@ public:
     // the item texts "infoitem_0" .. "_44" and the skill texts "infoskill_0" .. "_24" from the text
     // table, and an empty item list (its slot 2).
     void Build(int x, int y);
+    // 005EE380 (ui_window_delete.cpp). The destructor body: its vtables, the skill and item text
+    // arrays, the item list (00661050 class's 006611D0), then the window's.
+    void DestroyBody();
 
     // The described item (005EE720 inlined): the list's first entry, or null.
     CItem* Item() const { return itemCount_ ? items_[0] : nullptr; }
@@ -237,7 +240,8 @@ public:
     int y_;                          // +0x1C4
     void* itemTextsVtable_;          // +0x1C8 CStringArray "infoitem_0" .. "infoitem_44"
     mfc::CString* itemTexts_;        // +0x1CC
-    std::uint8_t unknown_1D0[0x1E0 - 0x1D0];
+    std::uint8_t unknown_1D0[0x1DC - 0x1D0];
+    void* skillTextsVtable_;         // +0x1DC CStringArray "infoskill_0" .. "_24"
     mfc::CString* skillTexts_;       // +0x1E0 data of the CStringArray at +0x1DC ("infoskill_0" .. "_24")
     std::uint8_t unknown_1E4[0x1F0 - 0x1E4];
 };
