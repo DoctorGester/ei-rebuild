@@ -45,10 +45,13 @@ static_assert(sizeof(MapExit) == 0x3C);
 // One map/zone entry (0x5C bytes): +0 name, +4 allod name, +8 and +0xC other names.
 struct MapRecord {
     char* name;   // CString
-    char* allod;  // +0x04 CString
-    std::uint8_t unknown_8[0x28 - 8];
-    int kind;               // +0x28 0 game, 1 edge, 2 brief
-    std::uint8_t unknown_2C[0x34 - 0x2C];
+    char* allod;  // +0x04 CString (SaveGame keeps the visited zones of the current one's)
+    char* mob;    // +0x08 CString: the .mob file without extension
+    char* map;    // +0x0C CString: the .mpr map without extension ("" = none)
+    std::uint8_t unknown_10[0x28 - 0x10];
+    int kind;               // +0x28 0 game, 1 edge, 2 brief (2: the zone has a script folder, 00596350)
+    int setting2C;          // +0x2C CWorldServer::SetUnknownDC when the zone starts
+    int setting30;          // +0x30 CWorldServer::SetUnknownE0
     bool restricted;        // +0x34 "#restrict x y radius": the camera stays in that circle
     std::uint8_t unknown_35[3];
     float restrictX;        // +0x38
@@ -59,6 +62,8 @@ struct MapRecord {
     mfc::CArray<MapExit> exits;   // +0x48
 };
 static_assert(offsetof(MapRecord, kind) == 0x28);
+static_assert(offsetof(MapRecord, map) == 0x0C);
+static_assert(offsetof(MapRecord, setting30) == 0x30);
 static_assert(offsetof(MapRecord, exits) == 0x48);
 static_assert(offsetof(MapRecord, restricted) == 0x34);
 static_assert(offsetof(MapRecord, cage) == 0x44);

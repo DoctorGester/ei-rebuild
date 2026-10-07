@@ -49,8 +49,14 @@ struct ObjectIdMap {
 };
 static_assert(sizeof(ObjectIdMap) == 0x18);
 
+struct PartyRecords;   // unit.h
+
 // A player (one per human or AI side). Fields named only as far as used here.
 struct WorldPlayer {
+    // The party records (unit.h) its fields from +0x70 form: mercs / mercCount are their records,
+    // variables their variables (+0x54), +0xD8 their zone.
+    PartyRecords* Party() { return reinterpret_cast<PartyRecords*>(&unknown_040[0x70 - 0x40]); }
+
     std::uint8_t unknown_000[0x20];
     CPlayerServer* server;               // +0x020 the player's connection (player_messages.h), or null
 
@@ -1230,7 +1236,20 @@ struct GameFlow {
     // "q." variables, then the server's variables applied in stamp order (007AFED0 / 007AFED4),
     // and the multiplayer flag variable. Rebirth's PersistentGlobalVars keeps the "gvar." ones.
     void UpdateFromServer();
+
+    // The party records of a request (PartyRecords, unit.h; RequestPartyZone5 / 6 copy one in).
+    PartyRecords* RequestParty() { return reinterpret_cast<PartyRecords*>(requestParty_); }
+
+    int state_;                           // +0x00 the pending request (1..6; ProcessRequest runs it)
+    char* requestTarget_;                 // +0x04 CString: the request's zone or save name
+    std::uint8_t requestParty_[0x70];     // +0x08 PartyRecords: RequestParty()
+    int requestArg_;                      // +0x78 the entrance (4) or the load flag (2)
+    char* zone7C_;                        // +0x7C CString: the multiplayer zone (SwitchMultiplayerZone)
+    char flag80_;                         // +0x80 set by SwitchMultiplayerZone, cleared by the game's start
 };
+static_assert(offsetof(GameFlow, requestTarget_) == 0x04);
+static_assert(offsetof(GameFlow, requestArg_) == 0x78);
+static_assert(offsetof(GameFlow, flag80_) == 0x80);
 
 // The saved multiplayer parties: +0 the folder (CString), +4 an STLport vector of 0x74-byte entries
 // (the party records and the file name).

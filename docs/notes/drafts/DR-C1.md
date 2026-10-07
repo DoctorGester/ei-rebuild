@@ -137,6 +137,43 @@ Left (where to continue):
   (0x58, the player list; but CWorld names 22 SpellManager: check, 0x58 / 4 = 22).
 - Raw addresses: 0x007AF068 (the device) in Pick and the rest of the file's literals.
 
-## world_game.cpp
+## world_game.cpp (partly done, uncompiled)
 
-Not started.
+Counted by grep after this pass: 80 At<> (was 155), 3 VCall (unchanged), raw addresses down to
+the three inside the two `__asm` blocks (was 70), byte arithmetic 3 (was 5).
+
+Converted:
+- Every `constexpr std::uintptr_t kX = 0x...` string / float / vtable constant moved to the new
+  src/game/game_flow_data.h (namespace flowdata, `using namespace flowdata;` at the top of the
+  file); the names are unchanged. kNetLogStream added for StartServer's 0079B91C store.
+- Zone records: MapRecord (object_tables.h) gains mob (+0x08), map (+0x0C), setting2C, setting30;
+  ZoneRecords() / ZoneRecordCount() read GameMapDatabase()->maps; FindZone() forwards to
+  0045E850 (as before) typed. RecordName / RecordAllod / RecordMob / RecordMap view the CString
+  fields as mfc::CString (the original copies them as CStrings, sharing the buffer).
+  SaveGame, CopyVisitedZones, RestoreZone, EnterZone, StartNetworkZone, StartZone, LoadGame use them.
+- The party record builder: PartyRecords (unit.h) gains variables (+0x54, NamedFloatTable),
+  zone (+0x68), entrance (+0x6C), sizeof 0x70 asserted (unit.h now includes object_tables.h).
+  LocalRecords holds a PartyRecords. EnterZone / LeaveZone keep their `std::uint8_t*` signature
+  (verify_world_game.cpp declares it) and view it as PartyRecords; EnterZoneAt / LeaveZoneAt
+  forwarders typed. WorldPlayer::Party() (world.h) is the player's PartyRecords at +0x70.
+- GameFlow (world.h) members: state_ (+0), requestTarget_ (+4 CString), requestParty_ (+8,
+  PartyRecords bytes; RequestParty()), requestArg_ (+0x78), zone7C_ (+0x7C), flag80_ (+0x80).
+- MapExit::deploy for RestoreZone's catch-up point (exit +4..+0x10).
+
+Left (where to continue in world_game.cpp):
+- The network sessions by offset: ClientSession() / ServerSession() (0079B5D8 / 0079B5DC) are
+  std::uint8_t* with +4 flags, +0x25A0 host record, +0x25C8, +0x25E0, +0x25EC peer, +0x25F4 zone,
+  +0x25F8 briefing list, +0x25FC variable list, +0x2600 request record (+8 count, +0x24, +0x28
+  kind), +0x261C game type: check net_classes.h's net::ClientSession / ServerSession for these
+  members first (the network cleanup already named many).
+- The server world's player list (007AFF98, +0x2C count), LocalView() + 0x1C players (use
+  LocalViewData::player), WorldPlayer +0x20 / +0x100 / +0xC4 (variables) and the server
+  connection fields (+0x114C .. +0x1160) in SwitchMultiplayerZone.
+- The global party 007C82B0 (a PartyRecords: +0x30 records, +0x34 count, +0x54 variables, +0x68
+  zone) in BeginMultiplayerGame / AfterServerStart.
+- The variable list nodes in UpdateFromServer (+8 record: +0xC name, +0x18 bits, +0x1C stamp) and
+  the saved parties' entries in SavedParties::Reload (0x74-byte entries: a PartyRecords + a
+  CString at +0x70).
+- The three VCalls (session release slot 0 with 1, ...), the `__asm` _ftol / 24.0 helpers (out
+  of scope), the accessor functions with literal addresses (GameMode, Campaign, ...; not counted
+  as they end in `)`, but they belong in game_flow_data.h).
