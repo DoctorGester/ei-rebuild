@@ -225,7 +225,7 @@ EI_REPLACE_METHOD(0x005D0F00, GuardMode::Save);
 void PatrolMode::AddPoint(const Vector3* a0) { PatrolAddPointOriginal((void*)this, nullptr, (const void*)a0); }
 
 int PatrolMode::Evaluate(AIBrain* brain) {
-    if (pointCount != 0) return kPriority;
+    if (points.size != 0) return kPriority;
     // 00791DEC: "Unit %i has no patrol points, switching to guard" (passed by address, as the original).
     game::FatalError(reinterpret_cast<const char*>(0x00791DEC), brain->owner->unit->id_);
     AddPoint(reinterpret_cast<const Vector3*>(&brain->owner->unit->positionX));
@@ -236,9 +236,9 @@ EI_REPLACE_METHOD(0x005D16B0, PatrolMode::Evaluate);
 void PatrolMode::Execute(AIBrain* brain) {
     MaybeRemark(brain, kRemarkIdle);
     brain->LookAround(0);
-    if (pointCount == 0 || brain->action != AIBrain::kActionNone) return;
-    if (++current >= pointCount) current = 0;
-    PatrolPoint* next = points + current;
+    if (points.size == 0 || brain->action != AIBrain::kActionNone) return;
+    if (++current >= points.size) current = 0;
+    PatrolPoint* next = points.data + current;
     AIMoveOrder order;
     std::memcpy(&order.point, &next->position, sizeof(Vector3));
     ConstructOrder(&order);
@@ -259,8 +259,8 @@ void PatrolMode::Execute(AIBrain* brain) {
 EI_REPLACE_METHOD(0x005D1700, PatrolMode::Execute);
 
 PatrolPoint* PatrolMode::LastPoint() {
-    if (pointCount == 0) return nullptr;
-    return points + (pointCount - 1);
+    if (points.size == 0) return nullptr;
+    return points.data + (points.size - 1);
 }
 EI_REPLACE_METHOD(0x005D1690, PatrolMode::LastPoint);
 
@@ -560,28 +560,26 @@ EI_REPLACE_METHOD(0x005D3680, FearMode::Leave);
 
 void FearMode::Load(AIStream* stream) {
     ReadField(stream, &distance);
-    ReadField(stream, &unknown_0C);
-    ReadField(stream, &unknown_10);
+    ReadField(stream, &spread);
+    ReadField(stream, &shelter);
     if (stream->version >= 0x53) {
         ReadField(stream, &flag);
-        if (stream->version >= 0x70) ReadField(stream, &unknown_1C);
+        if (stream->version >= 0x70) ReadField(stream, &fleePoint);
     }
 }
 EI_REPLACE_METHOD(0x005D3690, FearMode::Load);
 
 void FearMode::Save(AIStream* stream) {
     WriteCopy(stream, distance);
-    WriteCopy(stream, unknown_0C);
-    stream->Write(&unknown_10, sizeof(Vector3));
+    WriteCopy(stream, spread);
+    stream->Write(&shelter, sizeof(Vector3));
     WriteCopy(stream, flag);
-    stream->Write(&unknown_1C, sizeof(Vector3));
+    stream->Write(&fleePoint, sizeof(Vector3));
 }
 EI_REPLACE_METHOD(0x005D36F0, FearMode::Save);
 
 // --- Player --------------------------------------------------------------------------------------
 
-__declspec(naked) void PlayerMode::UpdateCombat(AIBrain*) EI_ORIGINAL(0x005D4170)
-__declspec(naked) bool PlayerMode::StaysWithParty(AIBrain*, bool) EI_ORIGINAL(0x005D4860)
 __declspec(naked) void UnitController::Shout(int) EI_ORIGINAL(0x00552780)
 
 void PlayerMode::Execute(AIBrain* brain) {
@@ -599,13 +597,13 @@ void PlayerMode::Execute(AIBrain* brain) {
         }
         int action = brain->action;
         if (action == AIBrain::kActionAttack && !target) {
-            UpdateCombat(brain);
+            PlayerUpdateCombatOriginal(this, nullptr, brain);
             return;
         }
         if (action != AIBrain::kActionNone && (!leader || action != AIBrain::kActionFollow)) return;
         CEngineObject* who = leader;
         if (!who) {
-            UpdateCombat(brain);
+            PlayerUpdateCombatOriginal(this, nullptr, brain);
             return;
         }
         if (!direct) {
@@ -617,7 +615,7 @@ void PlayerMode::Execute(AIBrain* brain) {
             }
         }
         if (!leader) {
-            UpdateCombat(brain);
+            PlayerUpdateCombatOriginal(this, nullptr, brain);
             return;
         }
         // While the leader itself carries out a command (its Player mode in state 1), only follow.
@@ -627,11 +625,11 @@ void PlayerMode::Execute(AIBrain* brain) {
             node = node->next;
             if (mode->GetType() == kModePlayer) {
                 if (mode && static_cast<PlayerMode*>(mode)->state == kStateCommand) return;
-                UpdateCombat(brain);
+                PlayerUpdateCombatOriginal(this, nullptr, brain);
                 return;
             }
         }
-        UpdateCombat(brain);
+        PlayerUpdateCombatOriginal(this, nullptr, brain);
         return;
     }
     case kStateCommand:
@@ -646,13 +644,13 @@ void PlayerMode::Execute(AIBrain* brain) {
                 state = kStateFollow;
                 ReleaseRef(brain->target);
                 brain->action = AIBrain::kActionNone;
-            } else if (!direct && !StaysWithParty(brain, true)) {
+            } else if (!direct && !PlayerStaysWithPartyOriginal(this, nullptr, brain, true)) {
                 brain->owner->Shout(0x21);
                 std::memset(&point.z, 0, 4);
                 ReleaseRef(brain->target);
                 brain->action = AIBrain::kActionNone;
             }
-        } else if (direct || StaysWithParty(brain, false)) {
+        } else if (direct || PlayerStaysWithPartyOriginal(this, nullptr, brain, false)) {
             std::memcpy(&point.z, &kOneBits, 4);
             Vector3 to;
             std::memcpy(&to.x, &point.x, 4);
@@ -661,7 +659,7 @@ void PlayerMode::Execute(AIBrain* brain) {
             brain->action = AIBrain::kActionWalk;
             brain->owner->MoveTo(&to, 0, 0, kMoveTime);
         }
-        if (state == kStateMoveTo) UpdateCombat(brain);
+        if (state == kStateMoveTo) PlayerUpdateCombatOriginal(this, nullptr, brain);
         return;
     }
     default:
@@ -711,7 +709,7 @@ EI_REPLACE_METHOD(0x005D39E0, PlayerMode::CommandWalk);
 void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3* to, int unknown, int runArg, const Vector3* offset) {
     state = kStateMoveTo;
     PrepareWalk(this, brain, to, runArg, offset);
-    if (!DirectControl(brain) && !StaysWithParty(brain, true)) {
+    if (!DirectControl(brain) && !PlayerStaysWithPartyOriginal(this, nullptr, brain, true)) {
         std::memset(&point.z, 0, 4);
         brain->owner->TurnTo(&point, unknown, 0, kMoveTime);
         return;

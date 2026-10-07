@@ -24,6 +24,47 @@ namespace mapspec {
 // An MFC CArray of plain elements (0x14 bytes).
 using PlainArray = mfc::CArray<std::uint8_t>;
 
+// A unit record's behaviour (alarm) records (map_spec_unit.cpp; the brain applies one, 005D6630).
+// A waypoint (0x14 bytes).
+struct Waypoint {
+    Vector3 position;            // +0x00
+    float wait;                  // +0x0C
+    std::int16_t unknown_10;     // +0x10
+    std::uint16_t unknown_12;    // +0x12
+};
+static_assert(sizeof(Waypoint) == 0x14);
+
+// A patrol (0x20 bytes): where it starts and its waypoints (CArray, vtable 0073C3A0).
+struct Patrol {
+    Vector3 position;
+    mfc::CArray<Waypoint> waypoints;   // +0x0C
+};
+static_assert(sizeof(Patrol) == 0x20);
+
+// A unit's behaviour record (0x4C bytes; constructor 0045D5B0, destructor 0046C290).
+struct Behaviour {
+    std::int32_t type;           // +0x00 (3) 1 guard, 2 patrol, 3 sentry, 4 party, 5 guard at the alarm point
+    mfc::CArray<Patrol> patrols;       // +0x04 (vtable 0073C37C)
+    Vector3 guard;               // +0x18 the unit's position when saved
+    std::uint32_t loop;          // +0x24 (1) a patrol loops; 0: its points are walked back too
+    std::uint32_t flags;         // +0x28 bit 3: the unit is always updated (the brain's +0x37)
+    float guardRadius;           // +0x2C (10)
+    float unknown_30;            // +0x30 (-1)
+    std::uint32_t alarmKind;     // +0x34 the alarm raised when the countdown ends (low byte)
+    std::uint32_t unknown_38;    // +0x38
+    std::uint32_t callRadius;    // +0x3C float bits (from 0073C378)
+    std::uint32_t alertMode;     // +0x40
+    std::uint32_t alarmDelay;    // +0x44 (75) the alarm countdown (at least 1)
+    std::uint32_t alarm;         // +0x48 the reaction modes 0..3 (4 while reading: unset)
+};
+static_assert(offsetof(Behaviour, guard) == 0x18);
+static_assert(sizeof(Behaviour) == 0x4C);
+// map_spec_unit.cpp. 0045D5B0: the constructor (no patrols, type 3, loop, radius 10, delay 75; returns
+// this); 0046C290: the destructor body; 0046E680 (RET 4): the patrols become a copy of `from`.
+Behaviour* __fastcall BehaviourConstruct(Behaviour* self);
+void __fastcall BehaviourDestruct(Behaviour* self);
+void __fastcall PatrolsCopy(mfc::CArray<Patrol>* self, void* edx, const mfc::CArray<Patrol>* from);
+
 // A trap's target record (8 bytes, zero-filled when added: 0046F110).
 struct TargetRecord {
     std::uint8_t bytes[8];

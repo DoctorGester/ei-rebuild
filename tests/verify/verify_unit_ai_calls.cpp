@@ -13,6 +13,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <string>
 #include <vector>
 
 namespace {
@@ -67,3 +68,28 @@ static std::uintptr_t __fastcall AddHostileMaskVerify(UnitController* self, void
     return result;
 }
 EI_VERIFY(0x00552CF0, AddHostileMaskVerify, 0, s_unusedMask);
+
+// 005CDD60 AICallArray::SetSize and 005CD880 Add: ours only. SetSize leaves the size asked for
+// within the capacity; Add appends a record equal to the argument (read before the call).
+static void* s_unusedCallsSetSize;
+static void __fastcall CallsSetSizeVerify(AICallArray* self, void*, int size, int growBy) {
+    self->SetSize(size, growBy);
+    bool ok = self->size == size && self->maxSize >= size && (size == 0) == (self->data == nullptr);
+    ei::verify::Check("AICallArray::SetSize", true, ok, "array %p size %d", self, size);
+}
+EI_VERIFY(0x005CDD60, CallsSetSizeVerify, 0, s_unusedCallsSetSize);
+
+static void* s_unusedCallsAdd;
+static int __fastcall CallsAddVerify(AICallArray* self, void*, const AICallRecord* record) {
+    AICallRecord copy;
+    std::memcpy(&copy, record, offsetof(AICallRecord, text));
+    std::string text = record->text ? record->text : "";
+    int before = self->size;
+    int index = self->Add(*record);
+    const AICallRecord& added = self->data[index];
+    bool ok = index == before && self->size == before + 1 &&
+              std::memcmp(&added, &copy, offsetof(AICallRecord, text)) == 0 && text == (added.text ? added.text : "");
+    ei::verify::Check("AICallArray::Add", true, ok, "array %p index %d", self, index);
+    return index;
+}
+EI_VERIFY(0x005CD880, CallsAddVerify, 0, s_unusedCallsAdd);

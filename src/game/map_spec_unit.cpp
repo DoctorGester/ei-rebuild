@@ -16,43 +16,9 @@
 
 namespace mapspec {
 
-// A waypoint (0x14 bytes).
-struct Waypoint {
-    Vector3 position;            // +0x00
-    float wait;                  // +0x0C
-    std::int16_t unknown_10;     // +0x10
-    std::uint16_t unknown_12;    // +0x12
-};
-static_assert(sizeof(Waypoint) == 0x14);
-
 template <typename T>
 using Array = mfc::CArray<T>;
 
-// A patrol (0x20 bytes): where it starts and its waypoints (CArray, vtable 0073C3A0).
-struct Patrol {
-    Vector3 position;
-    Array<Waypoint> waypoints;   // +0x0C
-};
-static_assert(sizeof(Patrol) == 0x20);
-
-// A unit's behaviour record (0x4C bytes; constructor 0045D5B0, destructor 0046C290).
-struct Behaviour {
-    std::int32_t type;           // +0x00 (3)
-    Array<Patrol> patrols;       // +0x04 (vtable 0073C37C)
-    Vector3 guard;               // +0x18 the unit's position when saved
-    std::uint32_t unknown_24;    // +0x24 (1)
-    std::uint32_t flags;         // +0x28 bit 3
-    float unknown_2C;            // +0x2C (10)
-    float unknown_30;            // +0x30 (-1)
-    std::uint32_t unknown_34;    // +0x34
-    std::uint32_t unknown_38;    // +0x38
-    std::uint32_t unknown_3C;    // +0x3C float (from 0073C378)
-    std::uint32_t unknown_40;    // +0x40
-    std::uint32_t unknown_44;    // +0x44 (75)
-    std::uint32_t alarm;         // +0x48 0..2 (4 while reading: unset)
-};
-static_assert(offsetof(Behaviour, guard) == 0x18);
-static_assert(sizeof(Behaviour) == 0x4C);
 
 // A unit record (vtable 0073C6E0, 0x324 bytes).
 struct UnitSpec {
@@ -156,15 +122,15 @@ Behaviour* __fastcall BehaviourConstruct(Behaviour* self) {
     self->patrols.size = 0;
     SetVtable(&self->patrols, kPatrolsVtable);
     self->type = 3;
-    self->unknown_24 = 1;
+    self->loop = 1;
     self->flags = 0;
-    self->unknown_2C = 10.0f;
+    self->guardRadius = 10.0f;
     self->unknown_30 = -1.0f;
-    self->unknown_34 = 0;
+    self->alarmKind = 0;
     self->unknown_38 = 0;
-    self->unknown_40 = 0;
-    self->unknown_3C = *reinterpret_cast<const std::uint32_t*>(0x0073C378);
-    self->unknown_44 = 75;
+    self->alertMode = 0;
+    self->callRadius = *reinterpret_cast<const std::uint32_t*>(0x0073C378);
+    self->alarmDelay = 75;
     self->alarm = 0;
     return self;
 }
@@ -285,11 +251,11 @@ void __fastcall BehaviourChunkOnChunk(TargetChunk* self) {
     case 0xBBBC0001:
         if (c.ReadByte() != 0 && static_cast<std::int32_t>(b->alarm) > 0) b->alarm = 0;
         break;
-    case 0xBBBC0002: b->unknown_24 = c.ReadByte(); break;
+    case 0xBBBC0002: b->loop = c.ReadByte(); break;
     case 0xBBBC0003: b->type = c.ReadInt(); break;
-    case 0xBBBC0004: b->unknown_2C = c.ReadFloat(); break;
+    case 0xBBBC0004: b->guardRadius = c.ReadFloat(); break;
     case 0xBBBC0005: ReadVector(c, b->guard); break;
-    case 0xBBBC0006: b->unknown_34 = c.ReadByte(); break;
+    case 0xBBBC0006: b->alarmKind = c.ReadByte(); break;
     case 0xBBBC0007: b->unknown_38 = c.ReadByte(); break;
     case 0xBBBC0008:
         if (c.ReadByte() != 0 && static_cast<std::int32_t>(b->alarm) > 1) b->alarm = 1;
@@ -298,10 +264,10 @@ void __fastcall BehaviourChunkOnChunk(TargetChunk* self) {
         if (c.ReadByte() != 0 && static_cast<std::int32_t>(b->alarm) > 2) b->alarm = 2;
         break;
     case 0xBBBC000A: b->unknown_30 = c.ReadFloat(); break;
-    case 0xBBBC000B: b->unknown_40 = c.ReadByte(); break;
+    case 0xBBBC000B: b->alertMode = c.ReadByte(); break;
     case 0xBBBC000C: {
         float f = c.ReadFloat();
-        std::memcpy(&b->unknown_3C, &f, 4);
+        std::memcpy(&b->callRadius, &f, 4);
         break;
     }
     case 0xBBBC000D:
@@ -331,17 +297,17 @@ void __fastcall BehaviourWrite(TargetChunk* self) {
     Chunk& c = self->chunk;
     auto* b = static_cast<Behaviour*>(self->target);
     c.BeginWrite(0xBBBC0000);
-    c.WriteByte(0xBBBC000B, static_cast<std::uint8_t>(b->unknown_40));
-    c.WriteFloat(0xBBBC000C, b->unknown_3C);
-    c.WriteByte(0xBBBC0002, static_cast<std::uint8_t>(b->unknown_24));
+    c.WriteByte(0xBBBC000B, static_cast<std::uint8_t>(b->alertMode));
+    c.WriteFloat(0xBBBC000C, b->callRadius);
+    c.WriteByte(0xBBBC0002, static_cast<std::uint8_t>(b->loop));
     c.WriteByte(0xBBBC000E, static_cast<std::uint8_t>(b->alarm));
     c.WriteByte(0xBBBC000D, static_cast<std::uint8_t>((b->flags >> 3) & 1));
     c.WriteInt(0xBBBC0003, b->type);
-    c.WriteFloat(0xBBBC0004, Bits(b->unknown_2C));
+    c.WriteFloat(0xBBBC0004, Bits(b->guardRadius));
     c.WriteFloat(0xBBBC000A, Bits(b->unknown_30));
     WriteVector(c, 0xBBBC0005, b->guard);
     c.WriteByte(0xBBBC0007, static_cast<std::uint8_t>(b->unknown_38));
-    c.WriteByte(0xBBBC0006, static_cast<std::uint8_t>(b->unknown_34));
+    c.WriteByte(0xBBBC0006, static_cast<std::uint8_t>(b->alarmKind));
     TargetChunk patrolChunk;
     patrolChunk.chunk.Construct(nullptr);
     SetVtable(&patrolChunk, kPatrolChunkVtable);
@@ -572,14 +538,14 @@ void __fastcall BehaviourRead(Behaviour* self, void*, void* stream) {
         WaypointsReadAt(&p->waypoints, stream);
     }
     StreamRead(stream, &self->guard, 12);
-    StreamRead(stream, &self->unknown_24, 4);
+    StreamRead(stream, &self->loop, 4);
     StreamRead(stream, &self->flags, 4);
-    StreamRead(stream, &self->unknown_2C, 4);
-    StreamRead(stream, &self->unknown_34, 4);
+    StreamRead(stream, &self->guardRadius, 4);
+    StreamRead(stream, &self->alarmKind, 4);
     StreamRead(stream, &self->unknown_38, 4);
-    StreamRead(stream, &self->unknown_3C, 4);
-    StreamRead(stream, &self->unknown_40, 4);
-    StreamRead(stream, &self->unknown_44, 4);
+    StreamRead(stream, &self->callRadius, 4);
+    StreamRead(stream, &self->alertMode, 4);
+    StreamRead(stream, &self->alarmDelay, 4);
     if (*reinterpret_cast<int*>(static_cast<std::uint8_t*>(stream) + 8) >= 0x53) {
         StreamRead(stream, &self->alarm, 4);
         return;
@@ -609,8 +575,8 @@ void __fastcall BehaviourStreamWrite(Behaviour* self, void*, void* stream) {
         std::memcpy(&value, reinterpret_cast<std::uint8_t*>(self) + offset, 4);
         StreamWrite(stream, &value, 4);
     }
-    StreamWrite(stream, &self->unknown_40, 4);
-    value = self->unknown_44;
+    StreamWrite(stream, &self->alertMode, 4);
+    value = self->alarmDelay;
     StreamWrite(stream, &value, 4);
     StreamWrite(stream, &self->alarm, 4);
 }

@@ -13,6 +13,7 @@
 #include "ai_map.h"
 #include "core_refcount.h"
 #include "engine_object.h"
+#include "map_spec.h"
 #include "maths.h"
 #include "unit.h"
 
@@ -23,6 +24,8 @@
 
 struct AIBrain;
 struct AIOrder;
+
+using AIObjectList = mfc::CTypedPtrList<CEngineObject>;
 
 // The stream the save-game code passes to Load/Save (vtable slot 1 Read, slot 2 Write); +8 is the
 // version of the file being read.
@@ -288,13 +291,27 @@ static_assert(sizeof(GuardMode) == 0x20);
 
 // One patrol point (0x20 bytes): position and a CArray of 0x10-byte look/wait entries.
 struct PatrolPoint {
+    // The element assignment of the point array's Add / SetAtGrow (unit_ai_looks.cpp): the
+    // position, then the looks' SetSize to the source's count and each look copied.
+    PatrolPoint& operator=(const PatrolPoint& other);
+
     Vector3 position;               // +0x00
     AILookArray looks;              // +0x0C
 };
 static_assert(sizeof(PatrolPoint) == 0x20);
 
+// The point array's ConstructElements (004CDE30: zeroed, each look array given vtable 0073D4B4) and
+// DestructElements (004C9AF0 on each: the look array's base vtable, its data freed);
+// unit_ai_looks.cpp.
+struct PatrolPointElements {
+    static void Construct(PatrolPoint* points, int count);
+    static void Destruct(PatrolPoint* points, int count);
+};
+
 // CArray<PatrolPoint> (PatrolMode + 8, vtables 0073FF74 / 0073FF80; unit_ai_mode_lifetime.cpp).
-using PatrolPointArray = mfc::CArray<PatrolPoint>;
+// Add 005D93B0 and SetAtGrow 005D9F30 are registered on the template (unit_ai_looks.cpp); its
+// SetSize stays 004C9970 (PatrolPointArraySetSizeOriginal).
+using PatrolPointArray = mfc::CArray<PatrolPoint, PatrolPointElements>;
 // 005D8CF0. The base vtable, every point's looks freed, then the buffer (pointer and count kept).
 void __fastcall PatrolPointsDestruct(PatrolPointArray* points);
 // 005D8CD0 (RET 4). Destruct, then operator delete when `flags` bit 0 is set; returns `points`.
@@ -322,11 +339,7 @@ struct PatrolMode : AIMode {
     void Destruct();
     PatrolMode* DeletingDestruct(int flags);
 
-    void* pointsVtable;             // +0x08 CArray (vtable 0073FF74 / 0073FF80)
-    PatrolPoint* points;            // +0x0C
-    int pointCount;                 // +0x10
-    int pointMax;                   // +0x14
-    int pointGrowBy;                // +0x18
+    PatrolPointArray points;        // +0x08 (vtables 0073FF74 / 0073FF80)
     int current;                    // +0x1C
 };
 static_assert(sizeof(PatrolMode) == 0x20);
@@ -417,6 +430,24 @@ struct FearMode : AIMode {
     // operator delete when `flags` bit 0 is set; returns this.
     void Destruct();
     FearMode* DeletingDestruct(int flags);
+    // 005D2960 (slot 4; unit_ai_fear.cpp). Remembers a seen object (notice 1000 / -2; `distance`
+    // grows to 1.5 times its distance) and calms `spread` towards 3. 15000 when a ranged unit (size
+    // class below 6, no spell in slot 0, not slowed, load factor above 0.6) has its nearest enemy
+    // within [Logic] RangedAttackDist (RangedRunDist while aggressive) and is walking on command or
+    // finds a way back 5 from it (a random point within 3, path search, the order check from the
+    // path's end, which must lie within 1; then kept in `fleePoint`, z 1). 3000 while it sees an
+    // enemy; 350 in shelter (a kind 3 occluder at the unit, a small or non-0 size class unit, or at
+    // the last shelter). With `flag` the nearest player unit in sight inside `distance` is noticed.
+    // Then noticedLevel / 6 when it is above 50 and the mode is in charge or the noticed point is
+    // within `distance`; else `distance` moves a 31st back to the default and -1000.
+    int Evaluate(AIBrain* brain);
+    // 005D30A0 (slot 5; unit_ai_fear.cpp). Runs from the nearest enemy (calling allies to it), else
+    // stays in shelter, else from the noticed point (forgotten unless `flag` and above 500): within
+    // `distance`, and not walking on command, to `fleePoint` when one is pending, else 5 away plus
+    // a random offset of at most `spread` (which first drops to 2.5 x `distance`), when a path is
+    // found (action 1); `spread` doubles. Without an action: attack the best target in sight
+    // (allies only, 005D0030), else stand and look away from the point.
+    void Execute(AIBrain* brain);
     // 005D3650 (slot 6). Busy; drops action and target.
     void Enter(AIBrain* brain);
     // 005D3680 (slot 7). Clears busy.
@@ -425,15 +456,18 @@ struct FearMode : AIMode {
     void Load(AIStream* stream);
     void Save(AIStream* stream);
 
-    float distance;                 // +0x08 (10)
-    float unknown_0C;               // +0x0C (3)
-    Vector3 unknown_10;             // +0x10 (x = -1313: unset)
-    Vector3 unknown_1C;             // +0x1C
+    float distance;                 // +0x08 how near danger counts (10, FearDefaultDistance)
+    float spread;                   // +0x0C random spread of a flight point (3)
+    Vector3 shelter;                // +0x10 the last place with a kind 3 occluder (x = -1313: unset)
+    Vector3 fleePoint;              // +0x1C a checked flight point (z 1.0 while pending, else 0)
     std::uint8_t flag;              // +0x28
     std::uint8_t unknown_29[3];
 };
 static_assert(sizeof(FearMode) == 0x2C);
 static_assert(offsetof(FearMode, flag) == 0x28);
+static_assert(offsetof(FearMode, fleePoint) == 0x1C);
+// 0073FF00: a new Fear mode's distance, which `distance` returns to.
+inline float FearDefaultDistance() { return *reinterpret_cast<const float*>(0x0073FF00); }
 
 // Player (vtables 0073F0C4 / 0073F0F8, 0x24 bytes): the party's units.
 struct PlayerMode : AIMode {
@@ -473,9 +507,25 @@ struct PlayerMode : AIMode {
     // own Player mode stops following first. A walk in progress (action 1) is dropped (state 0).
     void SetLeader(AIBrain* brain, CEngineObject* leader);
 
-    // Not rewritten (forwarders).
-    void UpdateCombat(AIBrain* brain);                      // 005D4170
-    bool StaysWithParty(AIBrain* brain, bool moving);       // 005D4860
+    // unit_ai_player.cpp.
+    // 005D4170 (RET 4). Only for units whose +0x438 is 1: the mode's target when it can be reached
+    // from here (attacked at once); else the best target (005D0030, no allies) among the enemies
+    // near `point` (within [Logic] SwarmRadius in state 2, anywhere otherwise, the point then
+    // zeroed) that are no farther than 1.1 x their own sight or hearing, plus what the party is
+    // fighting. When there is one, the party's other followers that are not attacking or casting
+    // stop (unless the player controls the unit directly), the unit attacks it unless it already
+    // does, and the mode's target is dropped.
+    void UpdateCombat(AIBrain* brain);
+    // 005D3F50 (RET 8). Adds to `targets` (once each) the units that party members within [Logic]
+    // PlayerCallForHelp are attacking (action 3), unless they belong to the same player.
+    void AddPartyTargets(AIBrain* brain, AIObjectList* targets);
+    // 005D4600 (RET 8). `party` emptied, then the unit, the chain of leaders above it (Player
+    // mode's leader, or the followed unit), and repeatedly every unit of its player whose leader is
+    // listed (the player's units in hash order, up to the first null one).
+    void CollectParty(AIBrain* brain, AIObjectList* party);
+    // 005D4860 (RET 8; only AL). False when a unit of the player whose (first) Player mode follows
+    // this unit is farther than [Logic] FollowMaxDist x (2 while `moving`, else 1.4) + 1 (3D).
+    bool StaysWithParty(AIBrain* brain, bool moving);
     // 005D37E0 (unit_ai_moves.cpp). Can the unit get from `from` to `to`: false when they are within
     // 0.1 (2D), else a path search with the unit moved to `from` for it (range twice the distance).
     bool PathClear(AIBrain* brain, const Vector3* from, const Vector3* to);
@@ -522,18 +572,33 @@ struct AICallRecord {
 
     // 00558D00 (unit_ai_brain.cpp). The element destructor: frees the text (CString::~CString).
     void Destruct();
+    // The element assignment of the array's Add (unit_ai_brain.cpp): the point, kind and +0x10,
+    // then the text (CString::operator=).
+    AICallRecord& operator=(const AICallRecord& other);
 };
 static_assert(sizeof(AICallRecord) == 0x18);
 
-// CArray<AICallRecord> (brain + 0x178). Its SetSize stays the instantiation's (005CDD60).
-using AICallArray = mfc::CArray<AICallRecord, mfc::RawElements<AICallRecord>>;
-
-// A unit's alarm / assembly record (0x4C bytes; the map spec's behaviour record, map_spec_unit.cpp:
-// read and written by 0045D610 / 0045D760). CArray at brain + 0x90; its SetSize is 005D9840.
-struct AIAlarmRecord {
-    std::uint8_t unknown_00[0x4C];
+// The calls' ConstructElements (00558D60: zeroed, each text the empty CString) and
+// DestructElements (00558D00 each); unit_ai_brain.cpp.
+struct AICallElements {
+    static void Construct(AICallRecord* calls, int count);
+    static void Destruct(AICallRecord* calls, int count);
 };
-using AIAlarmRecordArray = mfc::CArray<AIAlarmRecord, mfc::RawElements<AIAlarmRecord>>;
+
+// CArray<AICallRecord> (brain + 0x178). SetSize 005CDD60 and Add 005CD880 are registered on the
+// template (unit_ai_brain.cpp; callers reach SetSize through CallsSetSizeAt, its address).
+using AICallArray = mfc::CArray<AICallRecord, AICallElements>;
+
+// A unit's alarm / assembly record: the map spec's behaviour record (0x4C bytes, map_spec.h; read
+// and written by 0045D610 / 0045D760). CArray at brain + 0x90: elements built by 00558E10 (zeroed,
+// then 0045D5B0 each) and destroyed by 0046C290; its SetSize 005D9840 is registered on the template
+// (unit_ai_alarm.cpp).
+using AIAlarmRecord = mapspec::Behaviour;
+struct AIAlarmRecordElements {
+    static void Construct(AIAlarmRecord* records, int count);
+    static void Destruct(AIAlarmRecord* records, int count);
+};
+using AIAlarmRecordArray = mfc::CArray<AIAlarmRecord, AIAlarmRecordElements>;
 void __fastcall CallsSetSizeAt(AICallArray* calls, void*, int size, int growBy);   // 005CDD60
 // 005CC9D0 (RET 8; unit_ai_brain.cpp; each tick, from UpdateMemory). Counts every call down;
 // one that runs out is dropped after it is heard: with a hostility mask (+0x10) the unit's
@@ -585,7 +650,6 @@ static_assert(sizeof(AIAttackOption) == 0x28);
 using AIAttackOptions = mfc::CArray<AIAttackOption>;
 static_assert(sizeof(AIAttackOptions) == 0x14);
 
-using AIObjectList = mfc::CTypedPtrList<CEngineObject>;
 
 // The brain's attention (+0xA4, 0x2C bytes): the unit's attack options and choosing a target
 // (unit_ai_targets.cpp; the methods are __thiscall on the attention, the brain passed).
@@ -667,6 +731,12 @@ struct AIViewer {
     std::uint8_t unknown_29[3];
 };
 static_assert(offsetof(AIViewer, facing) == 0x14);
+
+// 005CD210 (fastcall, RET 4; unit_ai_sight.cpp; the show-visibility effect's tick 0067C840). The
+// cells `seer` sees as `observer` would be seen, into `grid` (cleared to one cell first): within
+// sight (the two units' sight values, at least 0) inside the cone, up to the observer's mode
+// height; within hearing all around; within the peripheral range in the front half.
+void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, VisibilityGrid* grid);
 static_assert(offsetof(AIViewer, ready) == 0x28);
 
 // 005D9E10 (__stdcall, RET 8; unit_ai_mode_lifetime.cpp). ConstructElements of `count` attack
@@ -768,6 +838,19 @@ struct AIBrain {
     void AddCorpseWatcherMode();                    // 005D6440
     void AddFearMode(std::uint8_t flag);            // 005D6480 (distance from 0073FF00, 3, unset point)
     void AddSentryMode(const Vector3* point);       // 005D65B0
+    // unit_ai_alarm.cpp. 005D6630 (RET 8). The modes of behaviour `record`: the list emptied, the
+    // call radius (the default one becomes [Logic] CallForHelpRadius) and alert mode taken; type 1
+    // guards the record's point, 5 the point of world alarm `slot`, 3 a sentry there, 2 patrols
+    // (each patrol's start on its half-cell's middle, its waypoints as looks from there; without
+    // `loop` the points are walked back too), 4 the party's Player mode. Except for types 0 and 4
+    // the reaction (`alarm`) adds Aggression (0) or Revenge (1) with Suspection, CorpseWatcher and
+    // Fear(0); 2 CorpseWatcher and Fear(0); 3 CorpseWatcher and Fear(1). Then the alarm (kind,
+    // `slot`, countdown at least 1, not alerted), no action or target, the attack options rebuilt,
+    // and with flag bit 3 the unit joins the world's update map.
+    void ApplyBehaviour(const AIAlarmRecord* record, int slot);
+    // 005D6D20 (RET 8; the .mob loader 00481660). The records copied into `alarmRecords`, then the
+    // first applied (slot 0).
+    void SetAlarmRecords(const AIAlarmRecord* records, int count);
 
     // 005D7520. Action 2 (move) after arrival: run the queued looks, each turning then waiting.
     void UpdateMove();
@@ -824,6 +907,10 @@ struct AIBrain {
     // {part, object}: action 3 {-1, target}, action 4 {spell, target}, the object only when it is a
     // unit; otherwise only the object is cleared.
     void CurrentAttack(int* partAndObject);
+    // 005CF170 (thiscall on +0xA4 with the brain, RET 8; unit_ai_fear.cpp). Takes up {part, object}
+    // unless there is no object or it is the current attack: part -1 AttackTarget, else cast it
+    // (action 4 when the spell cannot be cast now; target and actionTime = the spell).
+    void ApplyAttack(const int* partAndObject);
     void ChooseTarget(int* partAndObject, void* candidates, const Vector3* from, int a, int b); // 005D0030 on +0xA4
     void CollectEnemies(CUnit* self, void* list);                       // 005CB260 on +0xD0
 
@@ -880,8 +967,8 @@ struct AIBrain {
     CEngineObject* seen;            // +0x030
     std::uint8_t alerted;           // +0x034
     std::int8_t alarm;              // +0x035 alarm kind raised when the countdown ends
-    std::int8_t unknown_36;
-    std::uint8_t unknown_37;
+    std::int8_t unknown_36;         // +0x036 the world alarm slot of the applied record (ApplyBehaviour)
+    std::uint8_t unknown_37;        // +0x037 always updated (the record's flag bit 3)
     float callRadius;               // +0x038 allies within it hear a call for help (10.0 from 0073FED8 at Init)
     int alertMode;                  // +0x03C
     int alarmCountdown;             // +0x040

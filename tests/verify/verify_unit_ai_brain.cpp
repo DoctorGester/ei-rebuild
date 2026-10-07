@@ -135,7 +135,7 @@ bool StandardSet(AIBrain* brain, int first, const Vector3* point) {
     }
     auto* fear = static_cast<FearMode*>(node->data);
     auto* aggression = static_cast<AggressionMode*>(node->prev->prev->data);
-    return fear->flag == 0 && fear->unknown_0C == 3.0f && fear->unknown_10.x == -1313.0f && aggression->enemy == nullptr &&
+    return fear->flag == 0 && fear->spread == 3.0f && fear->shelter.x == -1313.0f && aggression->enemy == nullptr &&
            aggression->enemyPart == -1 && brain->current == nullptr && brain->target == nullptr &&
            brain->action == AIBrain::kActionNone;
 }

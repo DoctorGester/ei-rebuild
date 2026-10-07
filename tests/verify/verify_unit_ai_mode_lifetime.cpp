@@ -62,9 +62,9 @@ static PatrolMode* __fastcall PatrolConstructVerify(PatrolMode* self) {
     std::memcpy(&theirs, self, sizeof(theirs));
     PatrolMode* expected = s_patrolConstruct(&theirs);
     PatrolMode* actual = self->Construct();
-    bool same = expected == &theirs && actual == self && theirs.vtable == self->vtable && theirs.pointsVtable == self->pointsVtable &&
-                theirs.points == self->points && theirs.pointCount == self->pointCount && theirs.pointMax == self->pointMax &&
-                theirs.pointGrowBy == self->pointGrowBy && theirs.current == self->current;
+    bool same = expected == &theirs && actual == self && theirs.vtable == self->vtable && theirs.points.vtable == self->points.vtable &&
+                theirs.points.data == self->points.data && theirs.points.size == self->points.size && theirs.points.maxSize == self->points.maxSize &&
+                theirs.points.growBy == self->points.growBy && theirs.current == self->current;
     ei::verify::Check("PatrolMode::Construct", true, same, "mode %p", self);
     return actual;
 }

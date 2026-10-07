@@ -12,14 +12,20 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "ei/x87.h"
 
 #include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 namespace {
 constexpr float kOne = 1.0f;                    // 0073FE80 / 0073B84C
+constexpr float kZero = 0.0f;                   // 0073B858
+constexpr float kNoCone = -1.0f;                // pushed as 0xBF800000: every direction
+constexpr float kNoLineOfSight = -1000.0f;      // pushed as 0xC47A0000: below -100, no line-of-sight test
+constexpr int kNoGridOrigin = 0x7FFFFFFF;
 constexpr float kHalf = 0.5f;                   // 0073B86C
 constexpr float kNonPlayerReach = 1.05f;        // 0073FEAC: units without a player keep sight a little longer
 constexpr float kEyeHeightFactor = 1.8f;        // 0073EBD0
@@ -41,6 +47,9 @@ float RoundToFloat(double v) {
     volatile float r = static_cast<float>(v);
     return r;
 }
+
+// FCOMP 0; TEST AH,0x40: zero or unordered.
+bool ZeroOrUnordered(double v) { return x87::IsNaN(static_cast<float>(v)) || v == 0.0; }
 
 console::GameOStream& PutLong(console::GameOStream& os, long value) {
     return *static_cast<console::GameOStream*>(OstreamPutLongOriginal(&os, nullptr, value));
@@ -249,3 +258,31 @@ void __fastcall UpdateHook(AIViewer* self, void*, UnitController* owner, std::ui
     self->Update(owner, BrainOfMemory(memory));
 }
 EI_REPLACE(0x005CAA00, UpdateHook);
+
+void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, VisibilityGrid* grid) {
+    Vector3 axis;
+    seer->orientation.AxisY(&axis);
+    Vector3 look{-axis.x, -axis.y, -axis.z};
+    Vector3 eye;
+    static_cast<CMapObjectVirtuals*>(static_cast<CEngineObject*>(seer))->EyePoint(&eye);
+    grid->originX = kNoGridOrigin;
+    grid->originY = kNoGridOrigin;
+    GridCellsResizeOriginal(&grid->data, nullptr, 1, 1);
+    std::memset(grid->data, 0, static_cast<std::size_t>(grid->height * grid->width));
+
+    UnitController* mine = ControllerOf(seer);
+    UnitController* theirs = ControllerOf(observer);
+    float cone = mine->stats.unknown_044;
+    float sight = RoundToFloat(static_cast<double>(theirs->moveFactors[2]) * mine->moveFactors[3] *
+                               theirs->stats.valuesE0[0].current * mine->stats.valuesB0[0].current);
+    // The larger of 0 and the sight (NaN kept).
+    float radius = (kZero < sight || x87::IsNaN(sight)) ? sight : kZero;
+    float height = RoundToFloat(observer->ModeSpeed());
+    CAIMap* map = WorldServer()->AIMap();
+    map->MarkVisibleCells(&eye, radius, &look, cone, height, grid);
+    double hearing = static_cast<double>(mine->stats.valuesB0[2].current) * theirs->stats.valuesE0[2].current;
+    if (!ZeroOrUnordered(hearing)) map->MarkVisibleCells(&eye, RoundToFloat(hearing), &look, kNoCone, kNoLineOfSight, grid);
+    float peripheral = mine->stats.unknown_048;
+    if (!ZeroOrUnordered(peripheral)) map->MarkVisibleCells(&eye, peripheral, &look, kZero, kNoLineOfSight, grid);
+}
+EI_REPLACE(0x005CD210, MarkSightCells);

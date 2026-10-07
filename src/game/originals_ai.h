@@ -141,3 +141,19 @@ __declspec(naked) inline void __fastcall AlarmRecordReadOriginal(void* /*record*
 __declspec(naked) inline void __fastcall AlarmRecordWriteOriginal(const void* /*record*/, void*, void* /*stream*/)
     EI_ORIGINAL(0x0045D760)
 __declspec(naked) inline void __fastcall AlarmRecordsSetSizeOriginal(void* /*array*/, void*, int, int) EI_ORIGINAL(0x005D9840)
+
+// The Player mode's fighting and party code (rewritten in unit_ai_player.cpp), called through their
+// addresses so the verify wrappers see the calls (all thiscall on the mode; RET 4 / 8 / 8 / 8).
+// 005D4860 sets only AL.
+struct AIBrain;
+__declspec(naked) inline void __fastcall PlayerUpdateCombatOriginal(void* /*mode*/, void*, AIBrain*) EI_ORIGINAL(0x005D4170)
+__declspec(naked) inline bool __fastcall PlayerStaysWithPartyOriginal(void* /*mode*/, void*, AIBrain*, bool /*moving*/)
+    EI_ORIGINAL(0x005D4860)
+__declspec(naked) inline void __fastcall PlayerCollectPartyOriginal(void* /*mode*/, void*, AIBrain*, void* /*list*/)
+    EI_ORIGINAL(0x005D4600)
+__declspec(naked) inline void __fastcall PlayerAddPartyTargetsOriginal(void* /*mode*/, void*, AIBrain*, void* /*list*/)
+    EI_ORIGINAL(0x005D3F50)
+// 005CD3A0 (thiscall on a grid's cells, VisibilityGrid + 8; RET 8): the cell block reallocated to
+// width x height (not cleared) unless it already has that size.
+__declspec(naked) inline void __fastcall GridCellsResizeOriginal(void* /*cells*/, void*, int /*width*/, int /*height*/)
+    EI_ORIGINAL(0x005CD3A0)
