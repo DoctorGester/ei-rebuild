@@ -437,6 +437,9 @@ A-S7 / A-S8 (below) finished the link figures, the sky and the pipeline projecti
   object 004E1EB0-004E24E0, the CLinkMesh draw slots 7-14 004F3870-004F4850 and the device functions 004E5E50-004EFEA0
   (renderer tickets);
 - 004DDCB0-004DE8B0 (`CSysInfo`, static initialiser: standalone build).
+- After A-S9: particle element manager pieces 00497FE0 (manager clear, from 005627C0), 00498480 / 00498630; the keyframe
+  track / static initialiser block 0049F810-0049F890; 004A39C0 (from 004A38F0 / 004A3B70 / 0051E840); 0049F4B0
+  (recursive CFileFind for the ISAAC seed); 004BD310 / 004BDE40 (skipped, see above).
 
 ## A-S7: .mob decoder, link strings, sky, server-specific manager, link loader
 
@@ -515,6 +518,7 @@ A-S7 / A-S8 (below) finished the link figures, the sky and the pipeline projecti
 | 004A5AF0, 004A6C40 | `PartyRecord::Serialize`, `ClassTemplate::Serialize` (slot 1 of each, run by the archive's Close / Open; `party_manager.cpp`; SaveLists 0069BAC0 forwarded as `ItemStock::SaveLists`) | ours only: a save grows the current chunk, a loaded template has class 1..5. Every save / `world_load` |
 | 004A6A90, 004A6A70 | `ClassTemplate::Destruct`, `DeletingDestruct` (`class_template_stock.cpp`; `ItemStock::Destruct` is the inlined stock destructor: maps 004A9010 / 004A8E60 forwarded, vector storage freed) | DeletingDestruct ours only: the template was unreferenced, the base vtable back without bit 0. New game (templates rebuilt), loads |
 | 004A4AF0 | `CStream::ReplaceTagged` (`core_stream_chunks.cpp`; no caller in game.exe: Rebirth's EI_Plugin.asi calls it through a thiscall thunk) | memory streams: against the original (scratch output, source / replacement positions put back, appended bytes compared); else ours only. Rebirth runs only |
+| 004800E0 | `app::FatalErrorCode` (`app.cpp`, beside FatalError; "%s (0x%.8X) %s" with DirectXErrorText; not Rebirth-patched, so it always exits) | ours only (result 0 if it returns); reached only by a DirectX failure |
 
 - The archive on the stack: `ChunkArchive::ConstructLocal` / `DestructLocal` (chunk_archive.cpp; the containers' library
   constructors / destructors 004A94A0, 004639D0, 00463AA0, 004A9650, 004A8B70, 004A96A0 forwarded there).
