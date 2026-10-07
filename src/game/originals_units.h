@@ -324,3 +324,9 @@ struct LockKey;   // unit.h
 // through its address): thiscall on the key, RET 4, BOOL.
 __declspec(naked) inline int __fastcall LockOpensOriginal(const LockKey* /*key*/, void*, const LockKey* /*lock*/)
     EI_ORIGINAL(0x00522A80)
+class CTorchObjectSpec;   // server_specific_manager.h
+struct DeltaField;        // net_delta.h
+// 0052C390 (thiscall on the torch's spec, RET 4): reads the torch's network field 4 into the spec and
+// applies it through the spec's slots 16, 17, 18, 13 and 15.
+__declspec(naked) inline void __fastcall TorchSpecReadNetOriginal(CTorchObjectSpec* /*spec*/, void*, DeltaField* /*field*/)
+    EI_ORIGINAL(0x0052C390)
