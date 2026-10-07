@@ -13,6 +13,8 @@
 #include "../../src/game/ai_map.h"
 #include "../../src/game/core_streams.h"
 #include "../../src/game/map_object.h"
+#include "../../src/game/party.h"
+#include "../../src/lib/crt.h"
 #include "../../src/game/player_messages.h"
 #include "../../src/game/unit_ai.h"
 #include "../../src/game/world.h"
@@ -103,8 +105,128 @@ void __fastcall MakeUseVerify(AIOrder* self, void*, CEngineObject* object, int w
               (!object || object->refCount_ == references + (same ? 0 : 1));
     ei::verify::Check("AIOrder::MakeUse", true, ok, "order %p", self);
 }
+
+// --- A-H14 ----------------------------------------------------------------------------------------
+// The client's other messages (ours only; they read the received stream, so they cannot run twice):
+// result 0 or 1 and, where the payload has a fixed shape, the stream moved past it (when the read did
+// not run out). Scenarios: every new game sends 0x05 (OnJoined); ui_battle_commands' ground clicks
+// 0x30 (OnWalk) and its attack clicks 0x31 (OnAttack); the `zone` harness step and the zone
+// scenarios run LeaveToZone (0066F310) directly. 0x02 / 0x03 / 0x06 / 0x07 / 0x08 / 0x09 / 0x3A / 0x50
+// are not known to be reached.
+// FormationOffsets (0066FD70; OnWalk / OnGoTo): side by side, the original into a scratch array
+// (SUB ESP,0x1C; PUSH EBX; PUSH ESI; MOV ESI,ECX: 7 bytes), offsets within a few ULPs.
+std::int32_t PeekInt(const CMemoryStream& in, std::uint32_t at) {
+    std::int32_t v = 0;
+    if (at + 4 <= in.size_) std::memcpy(&v, in.data_ + at, 4);
+    return v;
+}
+using HandlerFn = int(CPlayerServer::*)();
+int RunHandler(const char* name, CPlayerServer* self, HandlerFn handler, int fixedBytes, int perUnit) {
+    CMemoryStream& in = Received();
+    std::uint32_t before = in.position_;
+    std::int32_t count = perUnit ? PeekInt(in, before) : 0;
+    int result = (self->*handler)();
+    bool ok = result == 0 || result == 1;
+    if (fixedBytes >= 0 && in.ok_ != 0) {
+        std::uint32_t expected = before + static_cast<std::uint32_t>(fixedBytes) +
+                                 (perUnit ? 4u * static_cast<std::uint32_t>((count > 0 ? count : 0) + 1) : 0u);
+        ok = ok && in.position_ == expected;
+    }
+    ei::verify::Check(name, true, ok, "server %p: result %d moved %u", self, result, in.position_ - before);
+    return result;
+}
+int __fastcall RefreshPartyVerify(CPlayerServer* self) {
+    return RunHandler("CPlayerServer::OnRefreshParty", self, &CPlayerServer::OnRefreshParty, 0, 0);
+}
+int __fastcall TakeExitVerify(CPlayerServer* self) {
+    return RunHandler("CPlayerServer::OnTakeExit", self, &CPlayerServer::OnTakeExit, 4, 0);
+}
+int __fastcall JoinedVerify(CPlayerServer* self) {
+    int state = self->state_;
+    int result = RunHandler("CPlayerServer::OnJoined", self, &CPlayerServer::OnJoined, 0, 0);
+    bool ok = result == (state == 2 ? 1 : 0) &&
+              (result == 0 || (self->state_ == 1 && (self->Owner()->unknown_130 & 0x10) != 0));
+    ei::verify::Check("CPlayerServer::OnJoined state", true, ok, "state %d -> %d", state, self->state_);
+    return result;
+}
+int __fastcall LeaveToZoneMessageVerify(CPlayerServer* self) {
+    return RunHandler("CPlayerServer::OnLeaveToZone", self, &CPlayerServer::OnLeaveToZone, -1, 0);
+}
+int __fastcall BriefingDoneVerify(CPlayerServer* self) {
+    return RunHandler("CPlayerServer::OnBriefingDone", self, &CPlayerServer::OnBriefingDone, -1, 0);
+}
+int __fastcall NewPartyVerify(CPlayerServer* self) {
+    return RunHandler("CPlayerServer::OnNewParty", self, &CPlayerServer::OnNewParty, -1, 0);
+}
+int __fastcall ResumeVerify(CPlayerServer* self) {
+    int state = self->state_;
+    int result = RunHandler("CPlayerServer::OnResume", self, &CPlayerServer::OnResume, 0, 0);
+    bool ok = result == (state == 4 ? 1 : 0) && (result == 0 || (self->state_ == 1 && self->flag70_ == 1));
+    ei::verify::Check("CPlayerServer::OnResume state", true, ok, "state %d -> %d", state, self->state_);
+    return result;
+}
+int __fastcall WalkVerify(CPlayerServer* self) {
+    return RunHandler("CPlayerServer::OnWalk", self, &CPlayerServer::OnWalk, 16, 1);
+}
+int __fastcall GoToVerify(CPlayerServer* self) {
+    return RunHandler("CPlayerServer::OnGoTo", self, &CPlayerServer::OnGoTo, 16, 1);
+}
+int __fastcall AttackVerify(CPlayerServer* self) {
+    return RunHandler("CPlayerServer::OnAttack", self, &CPlayerServer::OnAttack, 12, 1);
+}
+int __fastcall PartyUpdateVerify(CPlayerServer* self) {
+    return RunHandler("CPlayerServer::OnPartyUpdate", self, &CPlayerServer::OnPartyUpdate, -1, 0);
+}
+
+// 0066F310: ours only. A joined player that leaves is in state 3 with the party's zone and
+// entrance set, message 0x08 written and flushed; otherwise (not joined, or the leader gone in a
+// single-player campaign) nothing changes but the leader's death.
+void __fastcall LeaveToZoneVerify(CPlayerServer* self, void*, const char* zone, int entrance) {
+    int state = self->state_;
+    self->LeaveToZone(zone, entrance);
+    bool ok = true;
+    if (self->state_ == 3 && state == 1) {
+        CParty* party = self->Owner()->Party();
+        ok = std::strcmp(party->zone_, zone) == 0 && static_cast<int>(party->unknown_6C) == entrance;
+    } else {
+        ok = self->state_ == state;
+    }
+    ei::verify::Check("CPlayerServer::LeaveToZone", true, ok, "%s %d: state %d -> %d", zone, entrance, state,
+                      self->state_);
+}
+
+void(__fastcall* s_formation)(const mfc::CArray<CUnit*>*, mfc::CArray<Vector3>*);
+void __fastcall FormationVerify(const mfc::CArray<CUnit*>* units, mfc::CArray<Vector3>* offsets) {
+    mfc::CArray<Vector3> scratch{offsets->vtable, nullptr, 0, 0, 0};
+    s_formation(units, &scratch);
+    FormationOffsets(units, offsets);
+    bool sized = scratch.size == offsets->size;
+    ei::verify::Check("FormationOffsets", true, sized, "%d units: %d vs %d offsets", units->size, scratch.size,
+                      offsets->size);
+    for (int i = 0; sized && i < scratch.size; ++i) {
+        const Vector3& a = scratch.data[i];
+        const Vector3& b = offsets->data[i];
+        ei::verify::CheckNear("FormationOffsets x", a.x, b.x, "unit %d of %d", i, units->size);
+        ei::verify::CheckNear("FormationOffsets y", a.y, b.y, "unit %d of %d", i, units->size);
+        ei::verify::Check("FormationOffsets z", a.z, b.z, "unit %d of %d", i, units->size);
+    }
+    if (scratch.data) gamecrt::operator_delete(scratch.data);
+}
 } // namespace
 
+EI_VERIFY(0x0066FAA0, RefreshPartyVerify, 0, s_unused);
+EI_VERIFY(0x00670C20, TakeExitVerify, 0, s_unused);
+EI_VERIFY(0x00670DA0, JoinedVerify, 0, s_unused);
+EI_VERIFY(0x00670E00, LeaveToZoneMessageVerify, 0, s_unused);
+EI_VERIFY(0x00670EB0, BriefingDoneVerify, 0, s_unused);
+EI_VERIFY(0x00670F50, NewPartyVerify, 0, s_unused);
+EI_VERIFY(0x00671060, ResumeVerify, 0, s_unused);
+EI_VERIFY(0x0066FFF0, WalkVerify, 0, s_unused);
+EI_VERIFY(0x0066FBD0, GoToVerify, 0, s_unused);
+EI_VERIFY(0x00670190, AttackVerify, 0, s_unused);
+EI_VERIFY(0x00670B60, PartyUpdateVerify, 0, s_unused);
+EI_VERIFY(0x0066F310, LeaveToZoneVerify, 0, s_unused);
+EI_VERIFY(0x0066FD70, FormationVerify, 7, s_formation);
 EI_VERIFY(0x0066F4C0, LeaderDiedVerify, 0, s_unused);
 EI_VERIFY(0x00670310, UseOrderVerify, 0, s_unused);
 EI_VERIFY(0x00670670, DistanceVerify, 7, s_distance);
