@@ -137,24 +137,31 @@ static_assert(sizeof(LightColour) == 0x10);
 // Members both world classes share (base class, 0055E000-0055FFFF).
 class CWorld : public CEngineObject {
 public:
-    // Virtual slots after CEngineObject's 13 (server vtable 0073F928, client 0073F41C). Slots 26,
-    // 29 and 30 are called by name; 13-25, 27 and 28 hold their places (the managers' getters, 24
-    // the server's CopyItem; rewritten slots stay plain members, rewrite guide rule 4).
-    virtual void Slot13();
-    virtual void Slot14();
+    // Virtual slots after CEngineObject's 13 (server vtable 0073F928, client 0073F41C). Slots
+    // 13-24 are the manager context's getters (CParty has the same slots). Slots declared
+    // `void Name()` keep their place in the order only (their return types are not declared; give
+    // them their signature when calling them); rewritten slots stay plain members, rewrite guide
+    // rule 4. Names and evidence: docs/notes/drafts/DR-C2.md. Some names avoid free helpers of
+    // the same name (World, ItemManager, LightManager, ...) that the members' bodies call.
+    virtual void ThisWorld();             // 13: 0055EB40 returns this
+    virtual void TimedObjectManager();    // 14: 0055EB90 (+0x48)
     virtual CEngineObject* FigureManager();  // 15: the figure manager (+0x3C)
-    virtual void Slot16();
-    virtual void Slot17();
-    virtual void Slot18();
+    virtual void ItemConstructor();       // 16: 0055EBB0 (+0x58)
+    virtual void SpellConstructor();      // 17: 0055EBC0 (+0x50)
+    virtual void ItemFactory();           // 18: 004BA000 (+0x54, itemManager_)
     virtual CEngineObject* MapObjectManager();   // 19: 0055EB70, the map object manager (+0x40)
-    virtual void Slot20();
-    virtual void Slot21();
+    virtual void PlayerList();            // 20: 0055EB50 (+0x38)
+    // 21: 0055EB80 (+0x44): the side-specific halves' manager (the client's is a
+    // CClientSpecificManager, 0042D690; it makes the class 0x45 objects of CFakeUnit's figures).
+    virtual void SpecificManager();
     virtual CSpellManager* SpellManager();   // 22: 0055EBA0 (+0x4C)
     virtual class CFigureCache* FigureCache();   // 23: the figure cache (+0x5C; map_object_figures.h)
-    virtual void Slot24();
-    virtual void Slot25();
+    // 24: a copy of an item (client 0055E940 as CParty::CopyItem; server 00594CE0, CWorldServer::
+    // CopyItem). Not called CopyItem here: CWorldServer's plain member of that name would hide it.
+    virtual void DuplicateItem();
+    virtual void TexturePath();           // 25: client 00561890 (the CString +0x224, "textures\"), server 0
     virtual int IsServer();               // 26: 1 for the server (0058A380), 0 for the client (0055EB30)
-    virtual void Slot27();                // 27: the terrain height (CWorldServer::GridHeight 00594220)
+    virtual void GridHeightAt();          // 27: the terrain height, (x, y) server CWorldServer::GridHeight 00594220, client 00563F70
     // 28: the server's AI map height (0058A390), client 00564070; in ST0 (RET 8).
     virtual double RawSurfaceHeightAt(float x, float y);
     // 29 / 30: the ground height and the height of the water surface at (x, y), in ST0 (server
@@ -170,11 +177,11 @@ public:
     virtual void SetTimeSpeed(float speed);
     virtual void* MaterialManager();      // 33: the material manager (0051C970 registers part materials)
     virtual CTextureManager* TextureManager();   // 34: the client's 00561990 (+0x18C)
-    virtual void Slot35();
-    virtual void Slot36();
-    virtual void Slot37();
-    virtual void Slot38();
-    virtual void Slot39();
+    virtual void ClientLightManager();    // 35: client 005619A0 (+0x190, a CLightManager), server 0
+    virtual void ClientParticleManager(); // 36: client 005619B0 (+0x19C, a CParticleManager), server 0
+    virtual void ClientManager194();      // 37: client 005619C0 (+0x194), server 0. Not identified
+    virtual void ClientManager198();      // 38: client 005619D0 (+0x198), server 0. Not identified
+    virtual void Unused39();              // 39: 0055EC40 returns 0 in both
     // 40: the world object with this id, or null (server 00593AA0 FindObject, client 0055FAE0).
     virtual CEngineObject* ObjectWithId(int id);
     // 41: `object` moves to `position` (sector map, network state; net_state.cpp and
