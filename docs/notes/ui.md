@@ -117,8 +117,10 @@ returns this) and the input sides' slot 0 (37 thunks `SUB ECX,0x94; JMP` to it; 
 005FE930 / 00600BA0 (14) are registered as those; bodies ported: 005EACF0 / 00602BA0 (input side: base vtable 007401D0), 005EE380
 `CItemInfoPanel::DestroyBody`, 00608ED0 `CChatWindow` (00741478, the base screen's chat window, constructor 00608D20), 0060E2B0 the
 forwarding strip (frees `list_`; the plain strip's 0060E280 frees nothing of its own: kept), 0060E600 `CSpellMakerPage`, 0061E3E0 =
-00633750 `CMessageBox`, 0061E460 `CMasterRequestBox` (00741DD8: message box + master server link at +0x180). Still forwarded: 005E28E0
-(message lines window 007400DC), 005F6130, 005F6BA0, 005F8970, 00603B90, 006070C0, 00618570. 0062EDA0 is 00499E30's code. The HUD
+00633750 `CMessageBox`, 0061E460 `CMasterRequestBox` (00741DD8: message box + master server link at +0x180), 005E28E0 / 005E2670
+`CChatOverlay` / `ChatLine` (007400DC, the in-game chat made by CInterface3D::Create), 005F6130 `CBattleScreenSetup`, 005F8970
+`CHelpWindow` (00740E28), 00603B90 `CObjectivesWindow` (does not free the exit distances map +0x178: kept), 006070C0
+`CSaveLoadWindow`. Still forwarded: 005F6BA0 (briefing), 00618570 (connection screen). 0062EDA0 is 00499E30's code. The HUD
 panels' input thunks 0064BCF0-0064BD80 (HUD range) are not done. CString / pair / vector / CGdiObject deleting destructors went to
 library.csv. Reached by every scenario that closes a screen or ends the game.
 

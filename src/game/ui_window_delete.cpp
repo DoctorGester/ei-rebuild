@@ -23,28 +23,36 @@
 namespace {
 
 // Destructor bodies not rewritten yet.
-// 005E28E0: the message lines window (vtable 007400DC, made by CInterface3D::Create 005F4990).
-__declspec(naked) void __fastcall MessageLinesDestroyAt(CUiWindow*) EI_ORIGINAL(0x005E28E0)
-// 005F6130: the in-game screen (00740764).
-__declspec(naked) void __fastcall BattleScreenSetupDestroyAt(CBattleScreenSetup*) EI_ORIGINAL(0x005F6130)
 // 005F6BA0: the briefing / base screen (007405AC).
 __declspec(naked) void __fastcall BriefingDestroyAt(CBriefingScreen*) EI_ORIGINAL(0x005F6BA0)
-// 005F8970: the help window (00740E28).
-__declspec(naked) void __fastcall HelpWindowDestroyAt(CUiWindow*) EI_ORIGINAL(0x005F8970)
-// 00603B90: the objectives window (007411BC).
-__declspec(naked) void __fastcall ObjectivesDestroyAt(CObjectivesWindow*) EI_ORIGINAL(0x00603B90)
-// 006070C0: the save / load window (00741388).
-__declspec(naked) void __fastcall SaveLoadDestroyAt(CSaveLoadWindow*) EI_ORIGINAL(0x006070C0)
 // 00618570: the multiplayer connection screen (00741CD0).
 __declspec(naked) void __fastcall ConnectScreenDestroyAt(CMpConnectScreen*) EI_ORIGINAL(0x00618570)
 // 00440D40: the master server link's destructor (net_socket_driver.cpp).
 __declspec(naked) void __fastcall MasterLinkDestructAt(void* /*link*/) EI_ORIGINAL(0x00440D40)
+// 005FAFA0 (RET 4): the "pers" texts tree's _M_erase(node) (library code).
+__declspec(naked) void __fastcall PersonTextsEraseAt(PersonTextMap*, void*, PersonTextNode*) EI_ORIGINAL(0x005FAFA0)
 
 // The vtables the bodies write.
 void** InputSideBaseVtable() { return reinterpret_cast<void**>(0x007401D0); }
 void** ItemInfoPanelVtable() { return reinterpret_cast<void**>(0x007404DC); }
 void** ItemInfoPanelInputVtable() { return reinterpret_cast<void**>(0x007404A8); }
-void* ItemArrayVtable() { return reinterpret_cast<void*>(0x00741BC0); }   // CArray<char*>
+void* ItemArrayVtable() { return reinterpret_cast<void*>(0x00741BC0); }        // CArray<char*>
+void* PartyArrayVtable() { return reinterpret_cast<void*>(0x007402AC); }       // the battle screen's party
+void* DwordArrayVtable() { return reinterpret_cast<void*>(0x0073C3D0); }       // CDWordArray
+void* ObjectiveExitsVtable() { return reinterpret_cast<void*>(0x00741264); }   // CArray<ObjectiveExit>
+
+// An STLport vector's storage back to the node pool (its elements already destroyed).
+template <typename T>
+void FreeVectorStorage(T* begin, T* capacity) {
+    stlp::deallocate(begin, static_cast<std::size_t>(capacity - begin) * sizeof(T));
+}
+
+// An STLport list emptied and its sentinel freed (the destructor's inlined clear).
+template <typename T, typename F>
+void DestroyList(stlp::list<T>& list, F destroy) {
+    list.ClearWith(destroy);
+    stlp::deallocate(list.head, sizeof(typename stlp::list<T>::Node));
+}
 
 // The deleting destructors' common tail.
 template <typename T>
@@ -109,6 +117,83 @@ void CMasterRequestBox::DestroyBody() {
 }
 EI_REPLACE_METHOD(0x0061E460, CMasterRequestBox::DestroyBody);
 
+void ChatLine::Destroy() {
+    if (CUiSurface* shown = surface) {
+        shown->ReleaseContents();
+        gamecrt::operator_delete(shown);
+    }
+    surface = nullptr;
+    name.~CString();
+    text.~CString();
+}
+EI_REPLACE_METHOD(0x005E2670, ChatLine::Destroy);
+
+void CChatOverlay::DestroyBody() {
+    typed_.~CString();
+    DestroyList(lines_, [](ChatLine* line) { line->Destroy(); });
+    DestroyBase();
+}
+EI_REPLACE_METHOD(0x005E28E0, CChatOverlay::DestroyBody);
+
+void CBattleScreenSetup::DestroyBody() {
+    FreeVectorStorage(partyWithout_.begin, partyWithout_.capacity);
+    FreeVectorStorage(partyWithUnit_.begin, partyWithUnit_.capacity);
+    PersonTextNode* header = personTexts_.header;
+    if (personTextCount_ != 0) {
+        PersonTextsEraseAt(&personTexts_, nullptr, header->parent);
+        header->left = header;
+        header->parent = nullptr;
+        header->right = header;
+        personTextCount_ = 0;
+    }
+    stlp::deallocate(personTexts_.header, sizeof(PersonTextNode));
+    heroes_.vtable = DwordArrayVtable();
+    heroes_.FreeData();
+    Party().vtable = PartyArrayVtable();
+    Party().FreeData();
+    DestroyContainer();
+}
+EI_REPLACE_METHOD(0x005F6130, CBattleScreenSetup::DestroyBody);
+
+void CHelpWindow::DestroyBody() {
+    DestroyList(listB_, [](std::uint32_t*) {});
+    DestroyList(listA_, [](std::uint32_t*) {});
+    lines_.Destruct();
+    title_.~CString();
+    text_.~CString();
+    DestroyContainer();
+}
+EI_REPLACE_METHOD(0x005F8970, CHelpWindow::DestroyBody);
+
+void CObjectivesWindow::DestroyBody() {
+    StringArrayDestruct(objectiveTexts_);
+    FreeVectorStorage(questPlacesBegin_, questPlacesCapacity_);
+    StringArrayDestruct(quests_);
+    exitsVtable_ = ObjectiveExitsVtable();
+    if (exits_) gamecrt::operator_delete(exits_);
+    CStringDestroy(&shownZone_);
+    CStringDestroy(&zoneName_);
+    for (char** zone = zonesBegin_; zone != zonesEnd_; ++zone) CStringDestroy(zone);
+    FreeVectorStorage(zonesBegin_, zonesCapacity_);
+    DestroyContainer();
+}
+EI_REPLACE_METHOD(0x00603B90, CObjectivesWindow::DestroyBody);
+
+void CSaveLoadWindow::DestroyBody() {
+    CStringDestroy(&name_);
+    for (SaveEntry* entry = entriesBegin_; entry != entriesEnd_; ++entry) {
+        entry->stringArrays_[1].Destruct();
+        entry->stringArrays_[0].Destruct();
+        CStringDestroy(&entry->zone_);
+        CStringDestroy(&entry->map_);
+        CStringDestroy(&entry->folder_);
+        CStringDestroy(&entry->title_);
+    }
+    FreeVectorStorage(entriesBegin_, entriesCapacity_);
+    DestroyContainer();
+}
+EI_REPLACE_METHOD(0x006070C0, CSaveLoadWindow::DestroyBody);
+
 // Bodies that only jump to the window's destructor body (005FE930): the item screens' icon window
 // (00740444), the description panel's base, the camp's panels (item strip, hero equipment and
 // quick strip, stats column, constructor pages, repair grid), the figure strips, the game clock and
@@ -168,12 +253,12 @@ UiInputSide* __fastcall InputSideDelete(UiInputSide* self, void*, unsigned flags
 EI_REPLACE(0x005EACD0, InputSideDelete);
 EI_REPLACE(0x00602B80, InputSideDelete);
 
-// 005E28C0: the message lines window (007400DC).
-CUiWindow* __fastcall MessageLinesDelete(CUiWindow* self, void*, unsigned flags) {
-    MessageLinesDestroyAt(self);
+// 005E28C0: the chat overlay (007400DC).
+CChatOverlay* __fastcall ChatOverlayDelete(CChatOverlay* self, void*, unsigned flags) {
+    self->DestroyBody();
     return FreeIfAsked(self, flags);
 }
-EI_REPLACE(0x005E28C0, MessageLinesDelete);
+EI_REPLACE(0x005E28C0, ChatOverlayDelete);
 
 // 005EE420: the description panel (007404DC).
 CItemInfoPanel* __fastcall ItemInfoPanelDelete(CItemInfoPanel* self, void*, unsigned flags) {
@@ -184,7 +269,7 @@ EI_REPLACE(0x005EE420, ItemInfoPanelDelete);
 
 // 005F5FC0: the in-game screen (00740764).
 CBattleScreenSetup* __fastcall BattleScreenSetupDelete(CBattleScreenSetup* self, void*, unsigned flags) {
-    BattleScreenSetupDestroyAt(self);
+    self->DestroyBody();
     return FreeIfAsked(self, flags);
 }
 EI_REPLACE(0x005F5FC0, BattleScreenSetupDelete);
@@ -229,22 +314,22 @@ void* __fastcall Screen8Delete(void* self, void*, unsigned flags) {
 EI_REPLACE(0x005F6E20, Screen8Delete);
 
 // 005F8950: the help window (00740E28).
-CUiWindow* __fastcall HelpWindowDelete(CUiWindow* self, void*, unsigned flags) {
-    HelpWindowDestroyAt(self);
+CHelpWindow* __fastcall HelpWindowDelete(CHelpWindow* self, void*, unsigned flags) {
+    self->DestroyBody();
     return FreeIfAsked(self, flags);
 }
 EI_REPLACE(0x005F8950, HelpWindowDelete);
 
 // 00603B70: the objectives window (007411BC).
 CObjectivesWindow* __fastcall ObjectivesDelete(CObjectivesWindow* self, void*, unsigned flags) {
-    ObjectivesDestroyAt(self);
+    self->DestroyBody();
     return FreeIfAsked(self, flags);
 }
 EI_REPLACE(0x00603B70, ObjectivesDelete);
 
 // 006070A0: the save / load window (00741388).
 CSaveLoadWindow* __fastcall SaveLoadDelete(CSaveLoadWindow* self, void*, unsigned flags) {
-    SaveLoadDestroyAt(self);
+    self->DestroyBody();
     return FreeIfAsked(self, flags);
 }
 EI_REPLACE(0x006070A0, SaveLoadDelete);
@@ -360,10 +445,10 @@ EI_REPLACE(0x0063FF50, HudPortraitsDelete);
 
 // --- The input sides' slot 0 (SUB ECX,0x94; JMP to the window's) -------------------------------
 
-void* __fastcall MessageLinesInputDelete(void* input, void*, unsigned flags) {
-    return MessageLinesDelete(WindowFromInput<CUiWindow>(input), nullptr, flags);
+void* __fastcall ChatOverlayInputDelete(void* input, void*, unsigned flags) {
+    return ChatOverlayDelete(WindowFromInput<CChatOverlay>(input), nullptr, flags);
 }
-EI_REPLACE(0x005E3C80, MessageLinesInputDelete);
+EI_REPLACE(0x005E3C80, ChatOverlayInputDelete);
 void* __fastcall UiWindowInputDelete(void* input, void*, unsigned flags) {
     return UiWindowDelete(WindowFromInput<CUiWindow>(input), nullptr, flags);
 }
@@ -418,7 +503,7 @@ void* __fastcall Screen8InputDelete(void* input, void*, unsigned flags) {
 }
 EI_REPLACE(0x005FC0F0, Screen8InputDelete);
 void* __fastcall HelpWindowInputDelete(void* input, void*, unsigned flags) {
-    return HelpWindowDelete(WindowFromInput<CUiWindow>(input), nullptr, flags);
+    return HelpWindowDelete(WindowFromInput<CHelpWindow>(input), nullptr, flags);
 }
 EI_REPLACE(0x005FC0D0, HelpWindowInputDelete);
 void* __fastcall ObjectivesInputDelete(void* input, void*, unsigned flags) {

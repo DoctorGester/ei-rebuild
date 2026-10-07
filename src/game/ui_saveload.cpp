@@ -189,8 +189,8 @@ struct LocalEntry {
         e.folder_ = empty;
         e.map_ = empty;
         e.zone_ = empty;
-        StringArrayConstruct(e.stringArrays_);
-        StringArrayConstruct(e.stringArrays_ + 0x14);
+        StringArrayConstruct(&e.stringArrays_[0]);
+        StringArrayConstruct(&e.stringArrays_[1]);
     }
     explicit LocalEntry(const SaveEntry& from) { EntryCopy(&e, nullptr, &from); }
     ~LocalEntry() { EntryDestruct(&e); }

@@ -3,7 +3,7 @@
 // returns the object (input sides: the window, 0x94 before the side); after a body the window base
 // holds nothing. Scenarios: every scenario closes windows (the main menu at a new game, ui_screens /
 // ui_camp / ui_hero_screen / ui_saveload / ui_options close their screens and panels; the battle
-// HUD's panels and the message lines window go at exit).
+// HUD's panels and the chat overlay go at exit).
 #include "verify.h"
 
 #include "../../src/game/ui.h"
@@ -80,6 +80,45 @@ static void __fastcall MasterRequestBoxDestroyVerify(CMasterRequestBox* self) {
 }
 EI_VERIFY(0x0061E460, MasterRequestBoxDestroyVerify, 0, s_unused);
 
+static void __fastcall ChatLineDestroyVerify(ChatLine* self) {
+    self->Destroy();
+    ei::verify::Check("ChatLine::Destroy", true, self->surface == nullptr, "");
+}
+EI_VERIFY(0x005E2670, ChatLineDestroyVerify, 0, s_unused);
+
+static void __fastcall ChatOverlayDestroyVerify(CChatOverlay* self) {
+    self->DestroyBody();
+    ei::verify::Check("CChatOverlay::DestroyBody", true, BaseEmpty(self), "");
+}
+EI_VERIFY(0x005E28E0, ChatOverlayDestroyVerify, 0, s_unused);
+
+// The containers below: the base empty and no children left.
+static void __fastcall BattleScreenSetupDestroyVerify(CBattleScreenSetup* self) {
+    self->DestroyBody();
+    ei::verify::Check("CBattleScreenSetup::DestroyBody", true,
+                      BaseEmpty(self) && !self->children_.data && self->personTextCount_ == 0, "");
+}
+EI_VERIFY(0x005F6130, BattleScreenSetupDestroyVerify, 0, s_unused);
+
+static void __fastcall HelpWindowDestroyVerify(CHelpWindow* self) {
+    self->DestroyBody();
+    ei::verify::Check("CHelpWindow::DestroyBody", true, BaseEmpty(self) && !self->children_.data, "");
+}
+EI_VERIFY(0x005F8970, HelpWindowDestroyVerify, 0, s_unused);
+
+static void __fastcall ObjectivesDestroyVerify(CObjectivesWindow* self) {
+    self->DestroyBody();
+    ei::verify::Check("CObjectivesWindow::DestroyBody", true,
+                      BaseEmpty(self) && !self->children_.data && self->exitsVtable_ == reinterpret_cast<void*>(0x00741264), "");
+}
+EI_VERIFY(0x00603B90, ObjectivesDestroyVerify, 0, s_unused);
+
+static void __fastcall SaveLoadDestroyVerify(CSaveLoadWindow* self) {
+    self->DestroyBody();
+    ei::verify::Check("CSaveLoadWindow::DestroyBody", true, BaseEmpty(self) && !self->children_.data, "");
+}
+EI_VERIFY(0x006070C0, SaveLoadDestroyVerify, 0, s_unused);
+
 // --- Deleting destructors -----------------------------------------------------------------------------
 
 #define EI_DELETE_VERIFY(Type, Fn)                                                       \
@@ -92,7 +131,7 @@ EI_VERIFY(0x0061E460, MasterRequestBoxDestroyVerify, 0, s_unused);
 
 EI_DELETE_VERIFY(CUiWindow, UiWindowDelete)
 EI_DELETE_VERIFY(CUiContainer, UiContainerDelete)
-EI_DELETE_VERIFY(CUiWindow, MessageLinesDelete)
+EI_DELETE_VERIFY(CChatOverlay, ChatOverlayDelete)
 EI_DELETE_VERIFY(CItemInfoPanel, ItemInfoPanelDelete)
 EI_DELETE_VERIFY(CBattleScreenSetup, BattleScreenSetupDelete)
 EI_DELETE_VERIFY(CItemScreen, ItemScreenDelete)
@@ -101,7 +140,7 @@ EI_DELETE_VERIFY(CItemScreen, Screen9Delete)
 EI_DELETE_VERIFY(CGlobalMap, GlobalMapDelete)
 EI_DELETE_VERIFY(CBriefingScreen, BriefingDelete)
 EI_DELETE_VERIFY(void, Screen8Delete)
-EI_DELETE_VERIFY(CUiWindow, HelpWindowDelete)
+EI_DELETE_VERIFY(CHelpWindow, HelpWindowDelete)
 EI_DELETE_VERIFY(CObjectivesWindow, ObjectivesDelete)
 EI_DELETE_VERIFY(CSaveLoadWindow, SaveLoadDelete)
 EI_DELETE_VERIFY(CChatWindow, ChatWindowDelete)
@@ -147,7 +186,7 @@ EI_VERIFY(0x005F5F60, UiContainerDeleteVerify, 0, s_unused);
 EI_VERIFY(0x00603CD0, UiContainerDeleteVerify, 0, s_unused);
 EI_VERIFY(0x005EACD0, InputSideDeleteVerify, 0, s_unused);
 EI_VERIFY(0x00602B80, InputSideDeleteVerify, 0, s_unused);
-EI_VERIFY(0x005E28C0, MessageLinesDeleteVerify, 0, s_unused);
+EI_VERIFY(0x005E28C0, ChatOverlayDeleteVerify, 0, s_unused);
 EI_VERIFY(0x005EE420, ItemInfoPanelDeleteVerify, 0, s_unused);
 EI_VERIFY(0x005F5FC0, BattleScreenSetupDeleteVerify, 0, s_unused);
 EI_VERIFY(0x005F6450, ItemScreenDeleteVerify, 0, s_unused);
@@ -188,7 +227,7 @@ EI_VERIFY(0x0063FF50, HudPortraitsDeleteVerify, 0, s_unused);
         return result;                                                                   \
     }
 
-EI_INPUT_DELETE_VERIFY(MessageLinesInputDelete)
+EI_INPUT_DELETE_VERIFY(ChatOverlayInputDelete)
 EI_INPUT_DELETE_VERIFY(UiWindowInputDelete)
 EI_INPUT_DELETE_VERIFY(UiContainerInputDelete)
 EI_INPUT_DELETE_VERIFY(ItemInfoPanelInputDelete)
@@ -212,7 +251,7 @@ EI_INPUT_DELETE_VERIFY(OptionsWindowInputDelete)
 EI_INPUT_DELETE_VERIFY(HeroScreenInputDelete)
 EI_INPUT_DELETE_VERIFY(MessageBoxInputDelete)
 
-EI_VERIFY(0x005E3C80, MessageLinesInputDeleteVerify, 0, s_unused);
+EI_VERIFY(0x005E3C80, ChatOverlayInputDeleteVerify, 0, s_unused);
 EI_VERIFY(0x00600AC0, UiWindowInputDeleteVerify, 0, s_unused);
 EI_VERIFY(0x005F45F0, UiWindowInputDeleteVerify, 0, s_unused);
 EI_VERIFY(0x00613D50, UiWindowInputDeleteVerify, 0, s_unused);
