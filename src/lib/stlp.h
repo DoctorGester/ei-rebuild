@@ -43,6 +43,12 @@ public:
     bool operator==(const string& o) const {
         return size() == o.size() && std::memcmp(start_, o.start_, size()) == 0;
     }
+    // operator< (00445780): the common length's bytes, unsigned, then the shorter one first.
+    bool operator<(const string& o) const {
+        std::size_t n = size() < o.size() ? size() : o.size();
+        int c = std::memcmp(start_, o.start_, n);
+        return c != 0 ? c < 0 : size() < o.size();
+    }
 
     // __stl_hash_string over the characters, which are signed in this build.
     std::uint32_t Hash() const {
@@ -207,6 +213,43 @@ public:
     Node* find(const K& key) const {
         Node* n = lower_bound(key);
         return n == header_ || key < n->first ? header_ : n;
+    }
+    // upper_bound: the first node whose key is greater than `key`, or end(). With lower_bound, the
+    // equal range of a multimap (e.g. 004FB5E0).
+    Node* upper_bound(const K& key) const {
+        Node* result = header_;
+        for (Node* n = header_->parent; n;) {
+            if (key < n->first) {
+                result = n;
+                n = n->left;
+            } else {
+                n = n->right;
+            }
+        }
+        return result;
+    }
+    // clear()'s end, once the nodes are freed by the owner's code: the header links to itself, no
+    // root, no elements.
+    void ResetToEmpty() {
+        header_->left = header_;
+        header_->parent = nullptr;
+        header_->right = header_;
+        count_ = 0;
+    }
+    // The first node in key order (end() when empty) and the in-order successor (0043DBE0).
+    Node* begin() const { return header_->left; }
+    static Node* Next(Node* n) {
+        if (n->right) {
+            n = n->right;
+            while (n->left) n = n->left;
+            return n;
+        }
+        Node* up = n->parent;
+        while (n == up->right) {
+            n = up;
+            up = up->parent;
+        }
+        return n->right != up ? up : n;
     }
 
 private:

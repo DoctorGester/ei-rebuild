@@ -1,0 +1,84 @@
+#pragma once
+
+// The sky dome (A-S7): CSkyObject (004D9110-004D9360, vtable 0073D5B8, 0x230 bytes, figure class
+// 0x44's constructor in the figure factory 005AA8E0) is a figure part mesh (CFigure base, 0x1C0
+// bytes, vtable 0073C224) with seven aligned arrays, and CSky (004D9680-004D9DE0), the world view's
+// holder that lights and draws it. sky_object.cpp. Names from GetClassName ("CSkyObject"); the
+// rest provisional.
+
+#include "core_transform.h"
+#include "figure_mesh.h"   // VertexPacket
+
+#include "lib/containers.h"
+#include "lib/mfc.h"
+
+#include <cstddef>
+#include <cstdint>
+
+// A light colour as the sky gets it (by value): red, green, blue (0..1) and a fourth value.
+struct SkyColour {
+    float r, g, b, a;
+};
+static_assert(sizeof(SkyColour) == 16);
+
+class CSkyObject : public CTransformObject {
+public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073D5B8);
+    static constexpr std::uintptr_t kFigureVtableAddress = std::uintptr_t(0x0073C224);
+
+    // 11: 004D9270 "CSkyObject" (0078DB14). 12: 004D9280 (0x20).
+    const char* GetClassName() override;
+    int GetClassId() override;
+
+    // 004D9110. The constructor body: the figure's (its transform base, names, arrays, vtable
+    // 0073C224, its Create 0059F210), the sky's arrays empty, vtable 0073D5B8, its Create
+    // (slot 2, 005A6C70). Returns this.
+    CSkyObject* Construct();
+    // 004D92B0. The destructor body: the sky's arrays freed (last first), then the figure's
+    // (0059F030). 004D9290: slot 0's scalar deleting destructor (returns this).
+    void Destruct();
+    CSkyObject* DeletingDestruct(unsigned flags);
+
+    // 004D9360 (RET 0x34). Lights the vertices. Each vertex's haze (distances_) is recomputed
+    // when the vertex count changed: 0 below the horizon (vertex z < 1), else sqrt(-normal z).
+    // A vertex without haze gets `ambient` as its diffuse colour (alpha 0) and no specular; the
+    // others get it with alpha 0xFF and a specular of alpha haze * 255 and `light` * max(0,
+    // normal . direction)^2 * 150. Components truncated (_ftol); `unused` is not read.
+    void Light(const float* direction, SkyColour ambient, SkyColour light, SkyColour unused);
+
+    std::uint8_t unknown_54[0x98 - 0x54];
+    std::uint32_t unknown_98;                     // +0x98 0 when constructed
+    std::uint8_t unknown_9C[0x120 - 0x9C];
+    mfc::CString name_;                           // +0x120 (CFigure's slot 7)
+    mfc::CString unknown_124;                     // +0x124
+    lib::AlignedArray<std::uint32_t> unknown_128;   // +0x128
+    lib::AlignedArray<std::uint32_t> diffuse_;      // +0x138 a colour per vertex
+    lib::AlignedArray<std::uint32_t> specular_;     // +0x148 a colour per vertex
+    std::uint8_t unknown_158[0x188 - 0x158];
+    std::uint8_t unknown_188[0x38];                 // +0x188 cleared when constructed
+    lib::AlignedArray<VertexPacket> vertices_;      // +0x1C0 four vertices per packet (x, y, z, w rows)
+    lib::AlignedArray<VertexPacket> normals_;       // +0x1D0
+    lib::AlignedArray<std::uint32_t> unknown_1E0;   // +0x1E0
+    lib::AlignedArray<std::uint32_t> unknown_1F0;   // +0x1F0
+    lib::AlignedArray<std::uint32_t> unknown_200;   // +0x200
+    lib::AlignedArray<std::uint32_t> unknown_210;   // +0x210
+    lib::AlignedArray<float> distances_;            // +0x220 haze per vertex
+};
+static_assert(offsetof(CSkyObject, unknown_98) == 0x98);
+static_assert(offsetof(CSkyObject, name_) == 0x120);
+static_assert(offsetof(CSkyObject, diffuse_) == 0x138);
+static_assert(offsetof(CSkyObject, specular_) == 0x148);
+static_assert(offsetof(CSkyObject, unknown_188) == 0x188);
+static_assert(offsetof(CSkyObject, vertices_) == 0x1C0);
+static_assert(offsetof(CSkyObject, unknown_1F0) == 0x1F0);
+static_assert(offsetof(CSkyObject, distances_) == 0x220);
+static_assert(sizeof(CSkyObject) == 0x230);
+
+// The world view's sky (constructor 004D9680; draw 004D96E0, not ported: matrices and device
+// slots). Only what Light reads.
+struct CSky {
+    CSkyObject* object;   // +0x00 null until the zone's sky is loaded
+
+    // 004D9DE0 (RET 0x34). object->Light(...) when there is an object.
+    void Light(const float* direction, SkyColour ambient, SkyColour light, SkyColour unused);
+};

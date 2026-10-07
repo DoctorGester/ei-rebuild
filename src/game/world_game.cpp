@@ -7,6 +7,7 @@
 
 #include "core_maths.h"
 #include "core_streams.h"
+#include "mob_script_decoder.h"
 #include "net_link.h"
 #include "object.h"
 #include "object_tables.h"
@@ -1004,24 +1005,13 @@ constexpr std::uint32_t kScriptEncoded = 0xACCEECCB;     // in it: the script te
 constexpr std::uint32_t kScriptPlain = 0xACCEECCA;       // in it: the script text as is
 constexpr int kSlotStreamWrite = 2;
 
-// A pair of STLport vector<char> (0x18 bytes): the decoded text, then the encoded bytes.
-// 00598940 constructs an empty vector (allocator by pointer); 0042D2C0 / 00598D80 free them;
-// 004D8EB0 (RET 8) resizes one, filling with *value; 004D8E10 (RET 4) decodes `in` into `out`
-// and the CString.
-struct CharVector {
-    char* begin;
-    char* end;
-    char* capacity;
-};
-struct ScriptDecoder {
-    CharVector out;
-    CharVector in;
-};
+// The decoder (mob_script_decoder.h): 00598940 constructs an empty vector<char> (allocator by
+// pointer); 0042D2C0 / 00598D80 free them; 004D8E10 (RET 4) decodes `input` into `text` and the
+// CString, called through its address so its verify wrapper sees the zone's scripts.
+using CharVector = stlp::vector<char>;
 __declspec(naked) void __fastcall CharVectorConstruct(CharVector*, void*, const char* /*allocator*/) EI_ORIGINAL(0x00598940)
 __declspec(naked) void __fastcall DecodedFree(CharVector*, void*) EI_ORIGINAL(0x0042D2C0)
 __declspec(naked) void __fastcall EncodedFree(CharVector*, void*) EI_ORIGINAL(0x00598D80)
-__declspec(naked) void __fastcall CharVectorResize(CharVector*, void*, unsigned, const char*) EI_ORIGINAL(0x004D8EB0)
-void __fastcall ScriptDecode(ScriptDecoder* a0, void*, mfc::CString* a2) { TextDecodeOriginal((void*)a0, nullptr, (void*)a2); }
 // 004BE6E0 / 004D23A0 (RET 8). A script command queue: reset, add a line.
 int __fastcall QueueAdd(void* a0, void*, const mfc::CString* a2, int a3) { return ScriptLoadLine(a0, nullptr, a2, a3); }
 
@@ -1052,10 +1042,10 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
     mfc::CString script;
     LocalMemoryStream scripts;
     LocalMemoryStream text;
-    ScriptDecoder decoder;
+    MobScriptDecoder decoder;
     char allocator = 0;
-    CharVectorConstruct(&decoder.out, nullptr, &allocator);
-    CharVectorConstruct(&decoder.in, nullptr, &allocator);
+    CharVectorConstruct(&decoder.text, nullptr, &allocator);
+    CharVectorConstruct(&decoder.input, nullptr, &allocator);
     {
         alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
         mfc::CString* path = MapPathInto(this, nullptr, storage, mob);
@@ -1067,9 +1057,9 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
         const std::uint8_t* data = text.s.data_;
         std::uint32_t size = text.s.size_;
         char zero = 0;
-        CharVectorResize(&decoder.in, nullptr, size, &zero);
-        std::memmove(decoder.in.begin, data, size);
-        ScriptDecode(&decoder, nullptr, &script);
+        CharVectorResizeOriginal(&decoder.input, nullptr, size, &zero);
+        std::memmove(decoder.input.begin(), data, size);
+        TextDecodeOriginal(&decoder, nullptr, &script);
     } else if (StreamReadChunk(&scripts.s, nullptr, kScriptPlain, &text.s)) {
         text.s.Seek(text.s.size_);
         char zero = 0;
@@ -1078,8 +1068,8 @@ void CWorldServer::LoadZoneScripts(const char* mob) {
     }
     QueueReset(commandsA_, nullptr);
     QueueAdd(commandsA_, nullptr, &script, 1);
-    EncodedFree(&decoder.in, nullptr);
-    DecodedFree(&decoder.out, nullptr);
+    EncodedFree(&decoder.input, nullptr);
+    DecodedFree(&decoder.text, nullptr);
 }
 
 // ---- SwitchMultiplayerZone ------------------------------------------------------------------------

@@ -432,10 +432,40 @@ array offsets and element sizes.
 
 ### Next candidates in this range
 
-Loader slots and members 004F77C0 (load a .lnk), 004F7B10 / 004F7D20 / 004F7150 / 004F7080 / 004F75E0 / 004F7480 /
-004F7370 (cache multimap +0x28 of meshes by name and morph; strings and refcounts with EH paths), the mesh constructor /
-destructors 004F2C00 / 004F2E40 / 004F2D40 / deleting 004F2E00 / 004F2E20, the length-prefixed string reader 004DB9C0
-(keeps the old string for length 0), 004F2650 / 004F29F0, 004F9E50-004FAB00 (004FAB00 finds an archive), the STLport
-map members around 004F4CD0-004F5F00 (classify as library); rain / snow draws 004E4240 / 004E4C80 (build vertices then
-draw through the device: coordinate with the renderer), the fog object's slots 004E2290-004E24E0 (never reached in the
-current runs), CSkyObject 004D9110-004D9EB0, CServerSpecificManager 004D6900-004D6BA0, the .mob decoder 004D8E10.
+The loader, sky, server-specific manager and .mob decoder are done (A-S7, below). Left: the mesh constructor /
+destructors 004F2C00 / 004F2E40 / 004F2D40 / deleting 004F2E00 / 004F2E20, the loader's FindFigureSet 004FAB00 and
+destructor 004F6BD0, 004F9E50 (a part morphed again, Remorph), 004F2650 / 004F29F0, the STLport map members around
+004F4CD0-004F5F00 and 004FB5E0 / 004FBD80 / 004FC4F0 (classify as library); rain / snow draws 004E4240 / 004E4C80
+(renderer), the fog object's slots 004E2290-004E24E0 (never reached in the current runs), the sky draw 004D96E0.
+
+## A-S7: .mob decoder, link strings, sky, server-specific manager, link loader
+
+| Address | Name (file) | Verify |
+|---|---|---|
+| 004D8E10 | `MobScriptDecoder::Decode` (`mob_script_decoder.cpp`; resize through 004D8EB0, `CharVectorResizeOriginal` in originals_script.h; world_game.cpp's decoder is now this struct) | original on a scratch decoder (same input) into a scratch CString: text bytes, string. `zone_gz2g_traps`, `world_load` |
+| 004DB9C0 | `ReadLinkString` (`link_loader.cpp`; the static buffer 007AA8D0 is only this function's, so ours copies straight from the record) | original on a string copy and cursor: text, cursor. `newgame` |
+| 004D6900, 004D6960, 004D6940, 004D6920, 004D6930, 004D6970 | `CServerSpecificManager` (`server_specific_manager.cpp`): Construct, Destruct, DeletingDestruct, slots 11 / 12, slot 14 `NewObject` (0x46-0x49 through their constructors, 0x4B `CTorchObjectSpec` inline + Create through the vtable) | names / ids against the original; the rest ours only (vtable, lastId -1; new objects fresh, the torch spec's vtable / name / Create values; null for unknown types). `newgame` |
+| 004D6BA0, 004D6B80, 004D6B60, 004D6B70, 004D6B50 | `CTorchObjectSpec` Destruct, DeletingDestruct, slots 11 / 12 / 6 | slots against the original, the rest ours only. Slots 13-15 (004D6B20/30/40) are a bare RET: not hookable. Create / Destroy 0052C610 / 0052C680 are not ported |
+| 004F7370 | `CLinkMesh::CopyName` (`link_loader.cpp`) | original into a scratch string |
+| 004F7150, 004F7080, 004F7020, 004F75E0 | `CLinkFigureLoader` slots 3 `LoadFigure`, 4 `LoadLink`, 5 `ClearCache`, 6 `Remorph` (model.h now declares the loader's 7 virtual slots, `figureSets_` +0x10, `renderer_` +0x24, the cache `stlp::map<string, CLinkMesh*>` +0x28; stlp::map got upper_bound / begin / Next / ResetToEmpty, stlp::string operator<) | ours only: the mesh has the name and is cached, at most one added (one for `fresh`); Remorph: null / same-named / itself with the new coefficients; ClearCache: empty. `newgame`, `models`, `ui_hero_screen` |
+| 004F77C0, 004F7B10, 004F7480, 004F7D20 | `LoadLinkFile`, `MakeFigure`, `LoadPartInto`, `LoadArchivePart` | ours only: a new mesh with the coefficients, cached once with one reference; a part reported loaded is a part |
+
+- Forwarders (link_loader.cpp): 004FAB00 FindFigureSet (hash_map of LinkFigureSet, 005A9A50 / 005A9EB0), 004F2C00 the mesh
+  constructor, 004F9E50 a part morphed again, 004FBD80 the cache's insert_equal (004F7B10 inlines the descent and calls
+  _M_insert 004FC4F0; same position). The rewritten 004F7F00 / 004F87D0 / 004DB9C0 / 004F77C0 / 004F7B10 / 004F7D20 are
+  called through their addresses so their checks stay reached.
+- Kept: an empty part name in a .lnk keeps the previous one (004DB9C0 leaves the string); a missing link file leaks the new
+  mesh (FatalError's result returned). Ours returns null instead of FatalError's EAX (0 when it comes back).
+- Not ported: 004F6A20 slot 1 (4 bytes, not hookable), 004FAAA0 slot 2 / 004F4B50 (memory estimate; no caller seen), the
+  destructor 004F6BD0, 004FAB00.
+| 004D9360, 004D9DE0 | `CSkyObject::Light`, `CSky::Light` (`sky_object.cpp`, `sky_object.h`) | Light against the original when the haze needs no recomputing (colours compared), else ours only (a distance per vertex). CSky ours only. Every zone with a sky |
+| 004D9110, 004D92B0, 004D9290, 004D9270, 004D9280 | `CSkyObject` Construct, Destruct, DeletingDestruct, slots 11 / 12 | names / ids against the original; the rest ours only (vtable, empty arrays) |
+| 004D9E80, 004D9E90, 004D9EA0 | `lib::AlignedArray<T>::Construct` (new template member) | ours only: zero fields, this |
+
+- 0059F030 (CFigure's destructor body) is now `FigureDestructBodyOriginal` in originals_core.h (figure_slots.cpp uses it).
+- Sky facts: haze is recomputed only when the vertex count changes (0 for vertex z < 1, else sqrt(-normal z));
+  diffuse = ambient * 255 (alpha 0xFF; 0 for hazeless vertices, which get no specular); specular = haze * 255 alpha and
+  light * max(0, n . dir)^2 * 150, all truncated. The fourth float of each colour and the third colour are not read.
+- Not ported: 004D9680 (CSky constructor, 00500A00 with 0x3D), 004D96E0 (the sky draw: matrix stack, device slots 0x2C /
+  0x38; renderer), 004D9E60 / 004D9E70 (release an engine-object holder) and 004D9EB0 (AlignedArray FreeData): only
+  called from EH unwind funclets. 004D9880 / 004D9AA0 / 004D9B80 were already ported (matrix_math.cpp).

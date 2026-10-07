@@ -1,0 +1,28 @@
+// Check for mob_script_decoder.cpp. Scenarios: zone_gz2g_traps (zone2.mob's scripts are coded,
+// CWorldServer::LoadZoneScripts), world_load; any encoded chunk string (Chunk::ReadEncodedString).
+#include "verify.h"
+
+#include "../../src/game/mob_script_decoder.h"
+
+#include <cstring>
+
+// 004D8E10: PUSH ECX; PUSH ESI; MOV ESI,ECX; LEA EAX,[ESP+7] (8 bytes). The original runs on a
+// scratch decoder (an empty text vector, the same input bytes, which it only reads) into a scratch
+// CString, then ours; the decoded bytes and the strings compared.
+static void (__fastcall* s_decode)(MobScriptDecoder*, void*, mfc::CString*);
+static void __fastcall DecodeVerify(MobScriptDecoder* decoder, void*, mfc::CString* out) {
+    MobScriptDecoder scratch;
+    scratch.input.Start() = decoder->input.begin();
+    scratch.input.Finish() = decoder->input.end();
+    scratch.input.EndOfStorage() = decoder->input.end();
+    mfc::CString expected;
+    s_decode(&scratch, nullptr, &expected);
+    decoder->Decode(out);
+    const std::size_t size = scratch.text.size();
+    ei::verify::Check("MobScriptDecoder text", true,
+                      size == decoder->text.size() && std::memcmp(scratch.text.begin(), decoder->text.begin(), size) == 0,
+                      "%u bytes", static_cast<unsigned>(size));
+    ei::verify::Check("MobScriptDecoder string", 0, std::strcmp(expected, *out), "%d");
+    scratch.text.FreeStorage();
+}
+EI_VERIFY(0x004D8E10, DecodeVerify, 8, s_decode);

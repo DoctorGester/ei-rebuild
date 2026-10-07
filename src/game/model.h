@@ -83,23 +83,54 @@ struct IndexTriangle {
 static_assert(sizeof(IndexTriangle) == 6);
 using TriangleIndexArray = lib::AlignedArray<IndexTriangle>;
 
+class CMappedResource;
+
 // A node of CLinkFigureLoader's archive list (std::list<pair<string, CMMIOResource*>>).
 struct LinkArchiveNode {
     LinkArchiveNode* next;
     LinkArchiveNode* prev;
-    stlp::string name;      // +0x08
-    void* resource;         // +0x14 CMMIOResource
+    stlp::string name;           // +0x08
+    CMappedResource* resource;   // +0x14 a CMMIOResource
 };
 static_assert(sizeof(LinkArchiveNode) == 0x18);
 
-// Loads .lnk link files and the figures they name (vtable 0073D808; created at startup with
-// figures.res and menus.res). Only the archive list is known.
+// A figure's own archive set (0x20 bytes, constructor 005A9A50): the .mod archive first, opened
+// with the .bon / .anm ones by 005A9EB0. Found or made by 004FAB00 (FindFigureSet).
+struct LinkFigureSet {
+    CMappedResource* model;   // +0x00 the .mod archive
+    std::uint8_t unknown_04[0x1C];
+};
+static_assert(sizeof(LinkFigureSet) == 0x20);
+
+// Loads .lnk link files and the figures they name (vtable 0073D808, 7 slots; created at startup with
+// figures.res and menus.res by 004F68C0, a Rebirth-patched function). A figure is a CLinkMesh of
+// parts morphed by three coefficients (s, t, u); the loader keeps every mesh it made in a
+// multimap by name (a counted reference each) and hands out a cached one whose coefficients are
+// within 1e-5 (squared distance, the double at 0073B860) unless asked for a fresh one. Parts come
+// from the figure's own archive set when there is one (004FAB00), else from the open archives
+// as "<figure><part>.fig". link_loader.cpp (A-S7). The game's code stores the vtable (novtable).
 class CLinkMesh;
 class ITransformPipeline;
 struct VertexPacket;
 
-class CLinkFigureLoader {
+class __declspec(novtable) CLinkFigureLoader {
 public:
+    virtual void* DeleteThis(unsigned flags);   // 0: 004F6A30 (destructor body 004F6BD0)
+    virtual int CacheSize();                    // 1: 004F6A20 (cache_'s count)
+    virtual int CacheBytes();                   // 2: 004FAAA0 (each cached mesh's 004F4B50 summed)
+    // 3: 004F7150 (RET 0x18). Figure `name` with the parts `parts`: unless `fresh`, the first cached
+    // mesh of that name with close coefficients, given the parts it lacks; otherwise a new one
+    // (MakeFigure). No reference is added for the caller.
+    virtual CLinkMesh* LoadFigure(const stlp::string* name, const stlp::vector<stlp::string>* parts, float s, float t,
+                                  float u, bool fresh);
+    // 4: 004F7080 (RET 0x14). The same for a .lnk figure: a cached one, or LoadLinkFile.
+    virtual CLinkMesh* LoadLink(const stlp::string* name, float s, float t, float u, bool fresh);
+    virtual void ClearCache();                  // 5: 004F7020
+    // 6: 004F75E0 (RET 0x10). `mesh` with new coefficients: a mesh others also hold (more than
+    // two references) is looked up again through slot 4 by its name; otherwise its parts are
+    // morphed in place (SetMorph, then 004F9E50 per part). Null stays null.
+    virtual CLinkMesh* Remorph(CLinkMesh* mesh, float s, float t, float u);
+
     // 004F6D30. Opens `path` as a memory-mapped archive and appends it to the list, unless an
     // archive of that exact name is already open. Returns 1 on success or when already open.
     int AddArchive(const stlp::string* path);
@@ -110,13 +141,35 @@ public:
     // 004F87D0 (RET 0x18). The same for the older record without a FIG header (6 morph corners).
     void LoadOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);
 
-    void* vtable_;                    // +0x00
+    // link_loader.cpp (A-S7):
+    // 004F77C0 (RET 0x10). A new mesh from .lnk file `name` (from the figure set, else the
+    // archives' "<name>.lnk"): a count, then per part its name and a second, unused name
+    // (ReadLinkString; an empty name keeps the previous one); each part loaded from the figure
+    // set or the archives. Cached (one reference). No link file: FatalError("Can't find link
+    // file ..."), whose result (0) is returned and the new mesh leaked.
+    CLinkMesh* LoadLinkFile(const stlp::string* name, float s, float t, float u);
+    // 004F7B10 (RET 0x14). A new mesh `name` with the parts `parts`, loaded as LoadLinkFile does
+    // (a part missing from the figure set is skipped); cached.
+    CLinkMesh* MakeFigure(const stlp::string* name, const stlp::vector<stlp::string>* parts, float s, float t, float u);
+    // 004F7480 (RET 8, AL). Part `name` of `mesh` (its own coefficients) unless it has it: from its
+    // figure set (false when the set lacks it) or the archives (LoadArchivePart's result).
+    bool LoadPartInto(CLinkMesh* mesh, const stlp::string* name);
+    // 004F7D20 (RET 0x14, EAX 1 / 0). Part `name` of `mesh` from the first open archive that has
+    // "<mesh name><name>.fig".
+    int LoadArchivePart(CLinkMesh* mesh, const stlp::string* name, float s, float t, float u);
+
     int refCount_;                    // +0x04
     ITransformPipeline* pipeline_;    // +0x08 the renderer's (+0x24) +0xAC -> +0xC
     LinkArchiveNode* archives_;       // +0x0C list sentinel
+    stlp::hash_map<stlp::string, LinkFigureSet*, stlp::StringHash> figureSets_;   // +0x10 by figure name
+    void* renderer_;                  // +0x24 counted; meshes take their pipeline from its +0xAC
+    stlp::map<stlp::string, CLinkMesh*> cache_;   // +0x28 a multimap of counted references
 };
 static_assert(offsetof(CLinkFigureLoader, pipeline_) == 0x08);
 static_assert(offsetof(CLinkFigureLoader, archives_) == 0x0C);
+static_assert(offsetof(CLinkFigureLoader, figureSets_) == 0x10);
+static_assert(offsetof(CLinkFigureLoader, cache_) == 0x28);
+static_assert(sizeof(CLinkFigureLoader) == 0x34);
 
 // ---- Databases (006D0000-006E0000) -----------------------------------------------------------------
 

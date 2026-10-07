@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <windows.h>
 #include "lib/mfc.h"
+#include "lib/stlp.h"
 
 class CEngineObject;
 class CScript;
@@ -100,3 +101,8 @@ __declspec(naked) inline void** __fastcall LinkRangeMapFindOriginal(LinkStringMa
 struct LinkMapNode;
 __declspec(naked) inline void __fastcall LinkRangeMapEraseOriginal(LinkStringMap* /*map*/, void*, LinkMapNode* /*node*/)
     EI_ORIGINAL(0x004F4E40)
+
+// A-S7. 004D8EB0: STLport vector<char>::resize(n, value) (RET 8, EAX not a result): cut, or filled with *value
+// (0042D4E0 grows it). Used by the .mob script decoder and CWorldServer::LoadZoneScripts.
+__declspec(naked) inline void __fastcall CharVectorResizeOriginal(stlp::vector<char>* /*v*/, void*, unsigned /*n*/,
+                                                                  const char* /*value*/) EI_ORIGINAL(0x004D8EB0)
