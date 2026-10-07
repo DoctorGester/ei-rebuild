@@ -8,8 +8,11 @@
 #include "spell.h"
 #include "unit.h"
 
+#include "lib/mfc.h"
+
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 constexpr int kClassUnitServer = 0x3E;
 
@@ -195,6 +198,28 @@ static_assert(offsetof(CombatStats, naturalWeapon) == 0xAC);
 static_assert(sizeof(CombatStats) == 0x110);
 
 class CItem;
+
+// An entry of the armour spell list (CUnitServer + 0x91C, nodes of 0x14 bytes; combat_update.cpp's
+// SpellElement is the same record): the item (referenced), its countdown and a "still worn" byte.
+struct UnitItemSpell {
+    CEngineObject* item;            // +0x00 (referenced)
+    int countdown;                  // +0x04
+    std::uint8_t worn;              // +0x08
+    std::uint8_t unknown_09[3];
+};
+static_assert(sizeof(UnitItemSpell) == 0xC);
+// The list instantiation's element policy: 00558EA0 zero-fills new elements (NewNode 00558B10),
+// 00552B80 releases the item of a destroyed one (the pointer is left as it is).
+struct UnitItemSpellElements {
+    static void Construct(UnitItemSpell* elements, int count) {
+        std::memset(static_cast<void*>(elements), 0, static_cast<std::size_t>(count) * sizeof(UnitItemSpell));
+    }
+    static void Destruct(UnitItemSpell* elements, int count) {
+        for (int i = 0; i < count; ++i)
+            if (elements[i].item) elements[i].item->Release();
+    }
+};
+using UnitItemSpellList = mfc::CList<UnitItemSpell, UnitItemSpellElements>;
 
 class CUnitServer : public CEngineObject {
 public:
@@ -734,23 +759,29 @@ public:
     CUnit* unit;                    // +0x01C
     std::uint8_t unknown_020;       // +0x020 cleared on death
     std::uint8_t unknown_021;       // +0x021 cleared on death
-    std::uint8_t unknown_022[0x3C - 0x22];   // +0x24 the animation queue (AnimationSteps)
+    std::uint8_t unknown_022[2];
+    AnimationSteps queue;           // +0x024 the animation queue (its extra: the time it started, -1 unset)
     std::uint8_t motion_[0xC4 - 0x3C];       // +0x3C the motion (AIPath, ai_map.h): MotionPath()
     OrderPlan currentPlan;          // +0x0C4 the plan of the current order (0054CA40 fills it)
     DamageInfo pendingHit;          // +0x108 the hit of the attack in progress
     std::uint8_t keepHitDirection;  // +0x144 while set, OnDamaged leaves hitDirection alone
-    std::uint8_t unknown_145;
+    std::uint8_t stoodBlocked;      // +0x145 the unit stood still because its path search failed
+                                    //        (the path's `failed`, +0xA9, when it stopped)
     std::uint8_t motionChanged;     // +0x146 set when the movement speeds or mode changed (cleared by PathTo)
-    std::uint8_t unknown_147[0x160 - 0x147];
+    std::uint8_t movingAnimation;   // +0x147 the movement animation is in the queue (cleared when no
+                                    //        path is found)
+    AnimationSteps savedQueue;      // +0x148 the queue a hit reaction saved (00547100)
     std::uint32_t hitDirection;     // +0x160 HitDirection of the last hit that did not kill
     int state;                      // +0x164 0 idle, 5 casting, ...
     MoveModeState moveMode;         // +0x168
     MoveModeState moveMode2;        // +0x170
-    std::uint8_t unknown_178[0x17C - 0x178];
+    int sneakWait;                  // +0x178 updates mode 3 was kept without a cheap cell (UpdateSneak)
     CEngineObject* effectObject;    // +0x17C (referenced) removed from the world on death
-    std::uint8_t unknown_180[0x184 - 0x180];
+    int actingCheckTime;            // +0x180 world tick + 10 when acting starts (StartAction), -1 reset
     int nextAttackTime;             // +0x184 world tick of the next attack
-    std::uint8_t unknown_188[0x18E - 0x188];
+    int unknown_188;                // +0x188 saved and loaded
+    std::uint8_t unknown_18C;       // +0x18C saved and loaded
+    std::uint8_t unknown_18D;       // +0x18D
     std::uint8_t unknown_18E;       // +0x18E TargetBusy counts a search under way when set (or in state 5)
     std::uint8_t unknown_18F;
     UnitAction action;              // +0x190
@@ -764,12 +795,20 @@ public:
     float unknown_8F4;              // +0x8F4
     float moveFactors[4];           // +0x8F8
     int tameStage;                  // +0x908 0..3 (TryTame)
-    std::uint8_t unknown_90C[0x914 - 0x90C];
+    int ownSide;                    // +0x90C the unit's own side while tamed (TryTame)
+    int tamerSide;                  // +0x910 the tamer's side (TryTame)
     int speedClass;                 // +0x914
-    std::uint8_t unknown_918[0x938 - 0x918];
+    void* unknown_918;              // +0x918 cleared by the reset and Load
+    UnitItemSpellList itemSpells;   // +0x91C the armour spell list (RefreshItemSpells)
     int unknown_938;                // +0x938 cleared when an order starts and by the move style /
                                     //        wanted weapon setters
-    std::uint8_t unknown_93C[0x97C - 0x93C];
+    int waitFrame;                  // +0x93C a frame number; the movement tick waits for a party member
+                                    //        it blocks while the frame is below this + 2
+    std::uint32_t moveKey;          // +0x940 the key moveSteps were built for
+    AnimationSteps moveSteps;       // +0x944 the movement animation (NextAnimation)
+    std::uint32_t idleKey;          // +0x95C the key idleSteps were built for
+    AnimationSteps idleSteps;       // +0x960 the idle animation (IdleAnimation; its extra +0x974: start time)
+    int unknown_978;                // +0x978 cleared by the reset
     std::uint32_t claimedHostile;   // +0x97C players the unit has claimed as enemies
     // +0x980 the AI brain (AIBrain in unit_ai.h, 0x190 bytes); combat_actions.cpp reads its
     // +0x38 (claim radius), +0xD0 (perception memory), +0xF4 (CList of nearby units, head at
@@ -805,6 +844,26 @@ static_assert(offsetof(CUnitServer, hitDirection) == 0x160);
 static_assert(offsetof(CUnitServer, effectObject) == 0x17C);
 static_assert(offsetof(CUnitServer, claimedHostile) == 0x97C);
 static_assert(offsetof(CUnitServer, brain) == 0x980);
+static_assert(offsetof(CUnitServer, queue) == 0x24);
+static_assert(offsetof(CUnitServer, stoodBlocked) == 0x145);
+static_assert(offsetof(CUnitServer, movingAnimation) == 0x147);
+static_assert(offsetof(CUnitServer, savedQueue) == 0x148);
+static_assert(offsetof(CUnitServer, sneakWait) == 0x178);
+static_assert(offsetof(CUnitServer, actingCheckTime) == 0x180);
+static_assert(offsetof(CUnitServer, unknown_188) == 0x188);
+static_assert(offsetof(CUnitServer, unknown_18C) == 0x18C);
+static_assert(offsetof(CUnitServer, followsLeader) == 0x1D8);
+static_assert(offsetof(CUnitServer, unknown_8F4) == 0x8F4);
+static_assert(offsetof(CUnitServer, ownSide) == 0x90C);
+static_assert(offsetof(CUnitServer, tamerSide) == 0x910);
+static_assert(offsetof(CUnitServer, unknown_918) == 0x918);
+static_assert(offsetof(CUnitServer, itemSpells) == 0x91C);
+static_assert(offsetof(CUnitServer, waitFrame) == 0x93C);
+static_assert(offsetof(CUnitServer, moveKey) == 0x940);
+static_assert(offsetof(CUnitServer, moveSteps) == 0x944);
+static_assert(offsetof(CUnitServer, idleKey) == 0x95C);
+static_assert(offsetof(CUnitServer, idleSteps) == 0x960);
+static_assert(offsetof(CUnitServer, unknown_978) == 0x978);
 
 // 005460C0 / 005460D0 (slots 11 / 12; combat_server_slots.cpp): "CUnitServer" (0078FCC4) and 0x3E.
 const char* __fastcall UnitServerClassName(CUnitServer* self);

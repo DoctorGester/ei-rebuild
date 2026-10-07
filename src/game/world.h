@@ -79,7 +79,11 @@ static_assert(offsetof(WorldPlayer, lastScreen) == 0x104);
 struct LocalViewData {
     std::uint8_t unknown_00[0x1C];
     WorldPlayer* player;                 // +0x1C
+    std::uint8_t unknown_20[0x84 - 0x20];
+    std::uint8_t unknown_84;             // +0x84 set: a unit's network owner becomes the local player
+                                         //       whatever its id (UnitReadNetState)
 };
+static_assert(offsetof(LocalViewData, unknown_84) == 0x84);
 static_assert(offsetof(WorldPlayer, dirty) == 0x130);
 
 // Walks the world's player list. The list object is reference counted (+4) while an iterator holds
@@ -546,7 +550,11 @@ public:
     CAIMap* AIMap() { return reinterpret_cast<CAIMap*>(aiMap_); }
     float gridHeightScale_;               // +0x290
     CSectorMap* Sectors() { return reinterpret_cast<CSectorMap*>(sectorMap_); }
-    std::uint8_t sectorMap_[0x280C - 0x294]; // +0x294 CSectorMap (sector_map.h; size unknown)
+    std::uint8_t sectorMap_[0x2804 - 0x294]; // +0x294 CSectorMap (sector_map.h; size unknown)
+    // +0x2804 a world tick: an idle unit standing in a kind-3 occluder replans while its motion order
+    // started before it (the movement tick 00547890). Part of the sector map or not: unknown.
+    int occluderReplanTime_;
+    std::uint8_t unknown_2808[0x280C - 0x2808];
     std::uint8_t** gridRows_;             // +0x280C rows of 9-byte cells, height (u16) at +4
     int gridWidth_;                       // +0x2810
     int gridHeight_;                      // +0x2814
@@ -587,6 +595,7 @@ static_assert(offsetof(CWorldServer, exits_) == 0xF0);
 static_assert(offsetof(CWorldServer, gameResult_) == 0x138);
 static_assert(offsetof(CWorldServer, unknown160_) == 0x160);
 static_assert(offsetof(CWorldServer, sectorMap_) == 0x294);
+static_assert(offsetof(CWorldServer, occluderReplanTime_) == 0x2804);
 static_assert(offsetof(CWorldServer, timeWheel_) == 0x2838);
 static_assert(offsetof(CWorldServer, commandsA_) == 0x12874);
 static_assert(offsetof(CWorldServer, commandsB_) == 0x12A6C);

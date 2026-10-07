@@ -4,14 +4,19 @@
 // the sector map; a blocked step either waits (the blocker is a party member leading, or the unit
 // already waits for it), yields to a slower unit, or replans the path. See docs/notes/combat.md
 // ("Movement tick") and docs/notes/ai.md ("How a unit moves").
+#include "ai_map.h"
+#include "ai_motion.h"
 #include "combat.h"
 #include "combat_plan.h"
+#include "map_object.h"
+#include "map_object_figures.h"
+#include "player_messages.h"
 #include "unit.h"
+#include "world.h"
 
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "originals_ai.h"
 #include "originals_core.h"
 #include "originals_engine.h"
@@ -21,11 +26,6 @@
 #include <cstring>
 
 namespace {
-
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
-}
 
 // --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
 
@@ -190,13 +190,15 @@ __declspec(naked) float __fastcall TimeAsFloat(const int* /*time*/) {
 
 // --- Accessors -----------------------------------------------------------------------------------
 
-CUnit* UnitOf(CUnitServer* c) { return At<CUnit*>(c, 0x1C); }
-AnimationSteps* Queue(CUnitServer* c) { return &At<AnimationSteps>(c, 0x24); }
-int& QueueStart(CUnitServer* c) { return At<int>(c, 0x38); }
-void* MotionOrder(CUnitServer* c) { return &At<char>(c, 0x3C); }
-void* SectorsOf(void* world) { return &At<char>(world, 0x294); }
-void* AiMapOf(void* world) { return &At<char>(world, 0x170); }
-int WorldTime(void* world) { return At<int>(world, 0x64); }
+CUnit* UnitOf(CUnitServer* c) { return c->unit; }
+AnimationSteps* Queue(CUnitServer* c) { return &c->queue; }
+int& QueueStart(CUnitServer* c) { return c->queue.extra; }
+AIPath* MotionOrder(CUnitServer* c) { return c->MotionPath(); }
+// The world server (ManagerContextOf) and an object's world (ObjectWorld).
+CWorldServer* ServerOf(CUnitServer* c) { return static_cast<CWorldServer*>(ManagerContextOf(c)); }
+int WorldTime(void* world) { return static_cast<CWorld*>(world)->tick_; }
+CPlayer* PlayerOf(CUnit* unit) { return reinterpret_cast<CPlayer*>(unit->player); }
+CUnitServer* ServerControllerOf(CUnit* unit) { return static_cast<CUnitServer*>(unit->controller); }
 int CurrentFrame() { return *reinterpret_cast<const int*>(0x007AFFC4); }
 int GameMode() { return *reinterpret_cast<const int*>(0x007C2CC4); }
 
@@ -206,29 +208,30 @@ constexpr int kStateCasting = 5;
 constexpr int kBlockedReplan = 1;
 constexpr int kBlockedWait = 2;
 
-// The counted "waiting for" link (+0x1D8 flag, +0x1DC unit).
+// The counted "waiting for" link (followsLeader +0x1D8, followedLeader +0x1DC: the fields the
+// chase uses for the leader it follows).
 void SetWaitingFor(CUnitServer* c, CEngineObject* blocker) {
-    At<std::uint8_t>(c, 0x1D8) = 1;
-    CEngineObject* old = At<CEngineObject*>(c, 0x1DC);
-    At<CEngineObject*>(c, 0x1DC) = blocker;
+    c->followsLeader = 1;
+    CEngineObject* old = c->followedLeader;
+    c->followedLeader = blocker;
     ++blocker->refCount_;
     if (old) old->Release();
 }
-void ClearWaitingFor(void* controller) {
-    At<std::uint8_t>(controller, 0x1D8) = 0;
-    CEngineObject* old = At<CEngineObject*>(controller, 0x1DC);
-    At<CEngineObject*>(controller, 0x1DC) = nullptr;
+void ClearWaitingFor(CUnitServer* controller) {
+    controller->followsLeader = 0;
+    CEngineObject* old = controller->followedLeader;
+    controller->followedLeader = nullptr;
     if (old) old->Release();
 }
 
 // The unit is on the map as an obstacle (+0x278) or not: re-registered when that changes.
 void SetObstacle(CUnitServer* c, int obstacle) {
-    void* world = ManagerContextOf(c);
+    CWorldServer* world = ServerOf(c);
     CUnit* unit = UnitOf(c);
-    if (At<int>(unit, 0x278) == obstacle) return;
-    SectorMapRemove(AsSectorMap(SectorsOf(world)), nullptr, unit);
-    At<int>(UnitOf(c), 0x278) = obstacle;
-    SectorMapAdd(AsSectorMap(SectorsOf(world)), nullptr, UnitOf(c));
+    if (static_cast<int>(unit->unknown_278) == obstacle) return;
+    SectorMapRemove(world->Sectors(), nullptr, unit);
+    UnitOf(c)->unknown_278 = static_cast<std::uint32_t>(obstacle);
+    SectorMapAdd(world->Sectors(), nullptr, UnitOf(c));
     UnitMarkChanged(UnitOf(c), nullptr, 7);
 }
 
@@ -241,7 +244,7 @@ void QueueNextAnimation(CUnitServer* c) {
     if (QueueStart(c) == -1) QueueStart(c) = WorldTime(ObjectWorld(c));
     RestartQueueA(c);
     CtlShowCurrentStep(c);
-    At<std::uint8_t>(c, 0x147) = 1;
+    c->movingAnimation = 1;
 }
 
 // A unit hit while turning on the spot: the death (or hit) animation of the last blow is played when
@@ -249,13 +252,13 @@ void QueueNextAnimation(CUnitServer* c) {
 void HitWhileTurning(CUnitServer* c) {
     AnimationSteps steps;
     StepsConstruct(&steps);
-    if (At<int>(c, 0x168) != 0 || At<int>(c, 0x164) != 0) {
-        DeathAnimation(c, nullptr, &steps, At<std::uint32_t>(c, 0x160), 0, 0);
+    if (c->moveMode.mode != 0 || c->state != 0) {
+        DeathAnimation(c, nullptr, &steps, c->hitDirection, 0, 0);
         if (CanPlayFor(c, nullptr, StepsDuration(&steps))) {
-            At<std::uint8_t>(c, 0x144) = 1;
-            StepsCopyB(&At<AnimationSteps>(c, 0x148), nullptr, Queue(c));
+            c->keepHitDirection = 1;
+            StepsCopyB(&c->savedQueue, nullptr, Queue(c));
             PlaySteps(c, nullptr, &steps);
-            At<std::uint8_t>(c, 0x21) = 1;
+            c->unknown_021 = 1;
         }
     }
     StepsDestroy(&steps);
@@ -267,10 +270,10 @@ void HitWhileTurning(CUnitServer* c) {
 void HitWhileMoving(CUnitServer* c) {
     if (Queue(c)->count > 0) {
         std::uint32_t key = (static_cast<std::uint32_t>(Queue(c)->count) & 0xFFFFFF00u) |
-                            *reinterpret_cast<const std::uint8_t*>(Queue(c)->steps);
-        char* entry = UnitAnimationEntry(UnitOf(c), nullptr, key);
-        if (entry && (At<std::uint32_t>(entry, 0x14) & 0x3C0000) == 0x200000) {
-            std::uint32_t ends = At<std::uint32_t>(entry, 0x20) + static_cast<std::uint32_t>(QueueStart(c));
+                            Queue(c)->steps[0].animation;
+        const auto* entry = reinterpret_cast<const FigureAnimation*>(UnitAnimationEntry(UnitOf(c), nullptr, key));
+        if (entry && (entry->key & 0x3C0000) == 0x200000) {
+            std::uint32_t ends = entry->frameCount + static_cast<std::uint32_t>(QueueStart(c));
             if (ends > static_cast<std::uint32_t>(WorldTime(ObjectWorld(c)))) return;
         }
     }
@@ -279,7 +282,7 @@ void HitWhileMoving(CUnitServer* c) {
     AnimationSteps fall;
     StepsConstruct(&fall);
     CtlBuildMoveSteps(c, nullptr, &current, 0);
-    DeathAnimation(c, nullptr, &fall, At<std::uint32_t>(c, 0x160), 0, 1);
+    DeathAnimation(c, nullptr, &fall, c->hitDirection, 0, 1);
     for (int i = 0; i < current.count; ++i) {
         AnimationStep step;
         StepsGetAt(&current, nullptr, &step, i);
@@ -309,28 +312,28 @@ void HitWhileMoving(CUnitServer* c) {
 // lifted while replanning.
 int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason) {
     CUnit* self = UnitOf(c);
-    void* selfPlayer = At<void*>(self, 0x24C);
-    if (selfPlayer && At<void*>(blocker, 0x24C) == selfPlayer &&
-        BrainLeader(&At<char>(At<void*>(blocker, 0x240), 0x980)) == self && CurrentFrame() < At<int>(c, 0x93C) + 2) {
+    char* selfPlayer = self->player;
+    if (selfPlayer && blocker->player == selfPlayer &&
+        BrainLeader(ServerControllerOf(blocker)->brain) == self && CurrentFrame() < c->waitFrame + 2) {
         return kBlockedWait;   // a party member following this unit
     }
-    if (At<std::uint8_t>(c, 0x1D8) && At<CUnit*>(c, 0x1DC) == blocker) return kBlockedWait;
+    if (c->followsLeader && c->followedLeader == blocker) return kBlockedWait;
 
-    void* other = At<void*>(blocker, 0x240);
+    CUnitServer* other = ServerControllerOf(blocker);
     auto isAction = [](int kind) { return kind == 3 || kind == 4 || kind == 5; };
-    bool sameAttack = At<int>(blocker, 0x250) == At<int>(self, 0x250) && isAction(At<int>(c, 0x190)) &&
-                      isAction(At<int>(other, 0x190)) && At<int>(other, 0x198) == At<int>(c, 0x198) &&
-                      At<int>(blocker, 0x324) == At<int>(self, 0x324) && At<int>(other, 0x164) != kStateCasting;
+    bool sameAttack = blocker->side == self->side && isAction(c->action.kind) &&
+                      isAction(other->action.kind) && other->action.target == c->action.target &&
+                      blocker->sizeClass == self->sizeClass && other->state != kStateCasting;
     if (sameAttack) {
-        CEngineObject* target = At<CEngineObject*>(c, 0x198);
-        sameAttack = FartherThan(&At<float>(target, 0x1C), &At<float>(self, 0x1C), reinterpret_cast<const float*>(kQueueWaitLimit));
+        auto* target = static_cast<CMapObject*>(c->action.target);
+        sameAttack = FartherThan(&target->positionX, &self->positionX, reinterpret_cast<const float*>(kQueueWaitLimit));
     }
     if (sameAttack) {
         // Both go for the same target: wait behind the other unless the waiting would go round in a
         // circle back to this unit, which breaks the circle and replans.
-        void* link = other;
-        while (At<std::uint8_t>(link, 0x1D8)) {
-            CUnit* waitsFor = At<CUnit*>(link, 0x1DC);
+        CUnitServer* link = other;
+        while (link->followsLeader) {
+            auto* waitsFor = static_cast<CUnit*>(link->followedLeader);
             if (!waitsFor) break;
             if (waitsFor == self) {
                 ClearWaitingFor(other);
@@ -338,7 +341,7 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
                 *liftBlocker = true;
                 return kBlockedReplan;
             }
-            link = At<void*>(waitsFor, 0x240);
+            link = ServerControllerOf(waitsFor);
         }
         SetWaitingFor(c, blocker);
         return kBlockedWait;
@@ -352,111 +355,108 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
     return -1;   // stays where it is
 }
 
-// The motion is over: a turn-only order (+0xA8) stops facing its way; otherwise the path continues
-// or, at its end, the unit stops facing its way.
-void MotionOver(CUnitServer* c, void* world) {
+// The motion is over: a path with no cells left (`reached`, +0xA8) stops facing its way; otherwise
+// the path continues or, at its end, the unit stops facing its way.
+void MotionOver(CUnitServer* c, CWorldServer* world) {
     CUnit* unit = UnitOf(c);
-    if (At<std::uint8_t>(c, 0xA8)) {
-        std::uint8_t wasFlag = At<std::uint8_t>(c, 0xA9) == 1;
+    if (MotionOrder(c)->reached) {
+        std::uint8_t wasFlag = MotionOrder(c)->failed == 1;
         PathClear(MotionOrder(c));
         int time = WorldTime(ObjectWorld(c));
         float axis[3], back[3];
-        QuaternionAxisY(&At<char>(UnitOf(c), 0x34), nullptr, axis);
+        QuaternionAxisY(&UnitOf(c)->orientation, nullptr, axis);
         float* facing = Negate(back, axis);
-        if (PathStart(MotionOrder(c), nullptr, &At<float>(UnitOf(c), 0x1C), facing, time)) UnitPathSpeeds(UnitOf(c));
+        if (PathStart(MotionOrder(c), nullptr, &UnitOf(c)->positionX, facing, time)) UnitPathSpeeds(UnitOf(c));
         CtlSetStanding(c, nullptr, 0);
         CtlSetState(c, nullptr, 6);
-        At<std::uint8_t>(c, 0x145) = wasFlag;
+        c->stoodBlocked = wasFlag;
         return;
     }
-    if (!MapContinuePath(AiMapOf(world), nullptr, unit, MotionOrder(c))) {
+    if (!MapContinuePath(world->AIMap(), nullptr, unit, MotionOrder(c))) {
         PathClear(MotionOrder(c));
         int time = WorldTime(ObjectWorld(c));
         float axis[3], back[3];
-        QuaternionAxisY(&At<char>(UnitOf(c), 0x34), nullptr, axis);
+        QuaternionAxisY(&UnitOf(c)->orientation, nullptr, axis);
         float* facing = Negate(back, axis);
-        if (PathStart(MotionOrder(c), nullptr, &At<float>(UnitOf(c), 0x1C), facing, time)) UnitPathSpeeds(UnitOf(c));
+        if (PathStart(MotionOrder(c), nullptr, &UnitOf(c)->positionX, facing, time)) UnitPathSpeeds(UnitOf(c));
         CtlSetStanding(c, nullptr, 0);
         CtlSetState(c, nullptr, 6);
-        At<std::uint8_t>(c, 0x145) = 0;
+        c->stoodBlocked = 0;
         return;
     }
     UnitPathSpeeds(UnitOf(c));
-    int state = At<int>(c, 0x164);
+    int state = c->state;
     if (state >= 0 && (state <= 1 || state == 2)) return;
     PlaySteps(c, nullptr, CtlIdleAnimation(c));
 }
 
-// Replans the path to the order's target (+0x9C within +0xA4), with the units around the blocked
-// step lifted when `liftBlocker`.
-void Replan(CUnitServer* c, void* world, bool liftBlocker, const float* position) {
+// Replans the path to the order's goal (+0x9C; its z, +0xA4, holds the range PathTo asked for), with
+// the units around the blocked step lifted when `liftBlocker`.
+void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const float* position) {
     if (liftBlocker) {
-        SectorMapRemove(AsSectorMap(SectorsOf(world)), nullptr, UnitOf(c));
-        MapLiftAround(AiMapOf(world), nullptr, position, 1);
-        SectorMapAdd(AsSectorMap(SectorsOf(world)), nullptr, UnitOf(c));
+        SectorMapRemove(world->Sectors(), nullptr, UnitOf(c));
+        MapLiftAround(world->AIMap(), nullptr, position, 1);
+        SectorMapAdd(world->Sectors(), nullptr, UnitOf(c));
     }
-    // The pending step list (+0x78: a CList whose head is +0x7C) emptied, as RemoveAll inlined.
-    At<int>(c, 0x84) = 0;
-    At<int>(c, 0x88) = 0;
-    At<int>(c, 0x80) = 0;
-    At<int>(c, 0x7C) = 0;
-    mfc::PlexFreeDataChain(At<mfc::CPlex*>(c, 0x8C));
-    At<int>(c, 0x8C) = 0;
+    // The path's remaining cells (AIPath::cells, +0x78) emptied, as RemoveAll inlined.
+    MotionOrder(c)->cells.RemoveAll();
 
-    float range = At<float>(c, 0xA4);
-    std::uint32_t saved = At<std::uint32_t>(UnitOf(c), 0x43C);
-    void* context = ManagerContextOf(c);
-    At<std::uint8_t>(MotionOrder(c), 0x6E) = At<void*>(UnitOf(c), 0x24C) ? 0 : 1;
-    std::uint32_t current = At<std::uint32_t>(UnitOf(c), 0x43C);
-    At<std::uint32_t>(UnitOf(c), 0x43C) = saved;
-    bool found = MapFindPath(AiMapOf(context), nullptr, UnitOf(c), &At<char>(c, 0x9C), MotionOrder(c), range, 0.0f);
-    At<std::uint32_t>(UnitOf(c), 0x43C) = current;
+    float range = MotionOrder(c)->goal.z;
+    std::uint32_t saved = UnitOf(c)->unknown_43C;
+    CWorldServer* context = ServerOf(c);
+    MotionOrder(c)->flag6E = UnitOf(c)->player ? 0 : 1;
+    std::uint32_t current = UnitOf(c)->unknown_43C;
+    UnitOf(c)->unknown_43C = saved;
+    bool found = MapFindPath(context->AIMap(), nullptr, UnitOf(c), &MotionOrder(c)->goal, MotionOrder(c), range, 0.0f);
+    UnitOf(c)->unknown_43C = current;
     if (liftBlocker) {
-        SectorMapRemove(AsSectorMap(SectorsOf(world)), nullptr, UnitOf(c));
-        MapLiftAround(AiMapOf(world), nullptr, position, 0);
-        SectorMapAdd(AsSectorMap(SectorsOf(world)), nullptr, UnitOf(c));
+        SectorMapRemove(world->Sectors(), nullptr, UnitOf(c));
+        MapLiftAround(world->AIMap(), nullptr, position, 0);
+        SectorMapAdd(world->Sectors(), nullptr, UnitOf(c));
     }
     if (found) {
         UnitPathSpeeds(UnitOf(c));
-        int state = At<int>(c, 0x164);
+        int state = c->state;
         if (state >= 0 && (state <= 1 || state == 2)) return;
         PlaySteps(c, nullptr, CtlIdleAnimation(c));
         return;
     }
-    std::uint8_t wasFlag = At<std::uint8_t>(c, 0xA9) == 1;
+    std::uint8_t wasFlag = MotionOrder(c)->failed == 1;
     CtlStandStill(c);
     CtlSetState(c, nullptr, 6);
-    At<std::uint8_t>(c, 0x145) = wasFlag;
+    c->stoodBlocked = wasFlag;
 }
 
-// Running units of a player tire: the server stats' +0x14 (stamina) drains by +0x18 per tick; out of
-// breath they stop running (message 0x1D). Then the tick's end (00548520).
+// Running units of a player tire: the server object's mana (vitals +0x14) is their breath and drains
+// by the maximum (+0x18) times a factor per tick; out of breath they stop running (message 0x1D).
+// Then the tick's end (00548520).
 void Exhaustion(CUnitServer* c) {
     CUnit* unit = UnitOf(c);
-    if (At<int>(unit, 0x278) == 0) return;
-    if (At<int>(c, 0x168) != 2 || At<int>(c, 0x170) != 2) return;
-    void* player = At<void*>(unit, 0x24C);
-    if (At<std::uint8_t>(c, 0x16D) && player && At<std::uint8_t>(player, 0x108) == 0 && GameMode() != 3) {
-        float* stamina = &At<float>(At<char*>(unit, 0x170) + 0x20, 0x14);
-        const float* rate = stamina + 1;
+    if (unit->unknown_278 == 0) return;
+    if (c->moveMode.mode != 2 || c->moveMode2.mode != 2) return;
+    CPlayer* player = PlayerOf(unit);
+    if (c->moveMode.wasMode3 && player && player->unknown_108 == 0 && GameMode() != 3) {
+        UnitVitals& vitals = static_cast<CMapObjectServer*>(unit->companion)->vitals;
+        float* stamina = &vitals.mana;
+        const float* rate = &vitals.maxMana;
         float value;
         std::memcpy(&value, stamina, 4);
         if (!(value < 0.0f) && !(value > 0.0f)) {   // compares equal to 0 (NaN too)
-            At<std::uint8_t>(c, 0x175) = 0;
-            int mode = (At<std::uint8_t>(c, 0x175) & 1) ? 3 : At<int>(c, 0x170);
-            if (mode != At<int>(unit, 0x268)) {
-                At<int>(unit, 0x268) = mode;
+            c->moveMode2.wasMode3 = 0;
+            int mode = (c->moveMode2.wasMode3 & 1) ? 3 : c->moveMode2.mode;
+            if (mode != unit->moveMode2) {
+                unit->moveMode2 = mode;
                 UnitMarkChanged(UnitOf(c), nullptr, 6);
             }
         } else {
             if (Drain(stamina, rate)) {
-                if (At<void*>(UnitOf(c), 0x24C))
-                    PartyMessage(At<void*>(At<void*>(UnitOf(c), 0x24C), 0x20), nullptr, UnitOf(c), 0x1D);
-                At<std::uint32_t>(stamina, 0) = 0;
-                At<std::uint8_t>(c, 0x175) = 0;
-                int mode = (At<std::uint8_t>(c, 0x175) & 1) ? 3 : At<int>(c, 0x170);
-                if (mode != At<int>(UnitOf(c), 0x268)) {
-                    At<int>(UnitOf(c), 0x268) = mode;
+                if (UnitOf(c)->player)
+                    PartyMessage(PlayerOf(UnitOf(c))->connection_, nullptr, UnitOf(c), 0x1D);
+                std::memset(stamina, 0, 4);
+                c->moveMode2.wasMode3 = 0;
+                int mode = (c->moveMode2.wasMode3 & 1) ? 3 : c->moveMode2.mode;
+                if (mode != UnitOf(c)->moveMode2) {
+                    UnitOf(c)->moveMode2 = mode;
                     UnitMarkChanged(UnitOf(c), nullptr, 6);
                 }
             }
@@ -473,23 +473,23 @@ void Exhaustion(CUnitServer* c) {
 // cases, so a unit that reached no cell, or a cell outside the map, decides on whatever the stack
 // held there.
 void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
-    void* world = ManagerContextOf(c);
+    CWorldServer* world = ServerOf(c);
     float position[3];
-    std::memcpy(position, &At<float>(UnitOf(c), 0x1C), 12);
+    std::memcpy(position, &UnitOf(c)->positionX, 12);
     ToHalfCells(position);
     int time = WorldTime(world);
     bool turning = false;
     float direction[3];
     float speed;
     int cellX, cellY;
-    bool going = MotionSample(&At<char>(UnitOf(c), 0x27C), nullptr, world, MotionOrder(c), TimeAsFloat(&time), &turning,
+    bool going = MotionSample(UnitOf(c)->Motion(), nullptr, world, MotionOrder(c), TimeAsFloat(&time), &turning,
                               position, direction, &speed, &cellX, &cellY);
     bool motionOver = !going;
     FromHalfCells(position);
 
-    if (!turning && At<std::uint8_t>(c, 0x147) == 0) QueueNextAnimation(c);
+    if (!turning && c->movingAnimation == 0) QueueNextAnimation(c);
 
-    if (At<int>(c, 0x160) != -1) {
+    if (c->hitDirection != 0xFFFFFFFFu) {
         if (turning) {
             HitWhileTurning(c);
             return;
@@ -505,11 +505,11 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
     if (cellX < 0) {
         canStand = true;
     } else {
-        void* sectors = SectorsOf(world);
-        SectorMapRemove(AsSectorMap(sectors), nullptr, UnitOf(c));
-        canStand = MapCanStand(AiMapOf(world), nullptr, UnitOf(c), cellX, cellY, &blocked);
+        CSectorMap* sectors = world->Sectors();
+        SectorMapRemove(sectors, nullptr, UnitOf(c));
+        canStand = MapCanStand(world->AIMap(), nullptr, UnitOf(c), cellX, cellY, &blocked);
         if (!canStand) {
-            CUnit* blocker = MapBlockingUnit(AiMapOf(world), nullptr, UnitOf(c), position);
+            CUnit* blocker = MapBlockingUnit(world->AIMap(), nullptr, UnitOf(c), position);
             if (!blocker) {
                 canStand = true;
             } else {
@@ -517,27 +517,27 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
                 if (outcome != -1) blocked = outcome;
             }
         }
-        SectorMapAdd(AsSectorMap(sectors), nullptr, UnitOf(c));
+        SectorMapAdd(sectors, nullptr, UnitOf(c));
     }
 
-    // An idle unit standing in a kind-3 occluder (while +0x4C is below the world's +0x2804 and
-    // moveMode2's flag4 is clear) replans.
+    // An idle unit standing in a kind-3 occluder (while its motion order started (+0x4C) before
+    // the world's +0x2804 and moveMode2's flag4 is clear) replans.
     bool replan = false;
-    if (At<int>(c, 0x164) == kStateIdle && MapOccluderAt(AiMapOf(world), nullptr, position) &&
-        At<int>(c, 0x4C) < At<int>(world, 0x2804) && At<std::uint8_t>(c, 0x174) == 0) {
+    if (c->state == kStateIdle && MapOccluderAt(world->AIMap(), nullptr, position) &&
+        OrderOf(MotionOrder(c))->startTime < world->occluderReplanTime_ && c->moveMode2.flag4 == 0) {
         blocked = kBlockedReplan;
         replan = true;
     }
-    if (!replan && canStand && SectorMove(SectorsOf(world), nullptr, UnitOf(c), position)) {
-        SetObstacle(c, At<int>(c, 0x164) == kStateIdle ? 1 : 0);
+    if (!replan && canStand && SectorMove(world->Sectors(), nullptr, UnitOf(c), position)) {
+        SetObstacle(c, c->state == kStateIdle ? 1 : 0);
         FaceDirection(UnitOf(c), nullptr, direction);
         if (motionOver) MotionOver(c, world);
     } else if (blocked == kBlockedReplan) {
         Replan(c, world, liftBlocker, position);
     } else if (blocked == kBlockedWait) {
-        if (At<int>(c, 0x240) == 2) At<std::uint8_t>(c, 0x21) = 1;
-        else At<std::uint8_t>(c, 0x20) = 1;
-        if (At<int>(UnitOf(c), 0x278) != 0) SetObstacle(c, 0);
+        if (c->stats.unknown_060 == 2) c->unknown_021 = 1;   // +0x240: the stats' +0x60
+        else c->unknown_020 = 1;
+        if (UnitOf(c)->unknown_278 != 0) SetObstacle(c, 0);
     }
     Exhaustion(c);
 }
