@@ -58,7 +58,8 @@ Builds and the suite can't run until the PC is rebooted (memory: process-zombie 
 
 The PC can't build or run the suite until a reboot (process-zombie leak, memory notes). These tickets write code on their own branches without building and leave a notes file docs/notes/drafts/<ticket>.md saying what is drafted, what is unverified and where they stopped. A later worker builds, fixes and finishes each one.
 - DR-C1 (taken; branch draft-dr-c1 in worktree agent-a9b8a6df2bce6075b): cleanup draft of world_client_maps.cpp, world_units.cpp, world_game.cpp (At<>/Field<> 470, VCall 106 between them).
-- DR-C2 (taken; branch worktree-agent-a08350e7d77d16777): name the placeholder virtuals (SlotNN) in map_object.h, unit.h, world.h, map_object_figures.h, party.h (102 of 123) and update their callers.
+- DR-C2 (drafted, 102 slots named; branch worktree-agent-a08350e7d77d16777, head c05589b; low-confidence names in its notes): name the placeholder virtuals (SlotNN) in map_object.h, unit.h, world.h, map_object_figures.h, party.h (102 of 123) and update their callers.
+- DR-C3 (taken; branch draft-dr-c3 in worktree agent-a2cd3e0425537b848): cleanup draft of unit_motion_tick.cpp, combat_motion.cpp, net_state.cpp (At<>/Field<> 283, VCall 28+).
 - DR-H16 (taken; branch draft-dr-h16 in worktree agent-a3e4cab37d7cedfc9): porting draft, options/keyboard screens 00651940 / 00651350 / 00651600 / 00652200 / 00651D70 / 006524A0, widgets 0065B8B0 / 0065D150 / 0065C610; plus the client message handlers missing from config/functions.csv (objects.md).
 
 ## Verify checks
