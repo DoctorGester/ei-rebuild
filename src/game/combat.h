@@ -118,6 +118,14 @@ static_assert(offsetof(OrderPlan, direction) == 0x38);
 void __fastcall OrderPlanReset(OrderPlan* plan);
 static_assert(sizeof(OrderPlan) == 0x44);
 
+class CWorldServer;   // world.h
+// 0054BBC0 (combat_spell_sight.cpp; ECX world, EDX spell, RET 0x10; from 0058E850). Whether the spell
+// may hit: spells whose prototype has needsSight need a line of sight of at least 0.1 from `from`
+// (z = the caster's ground + BaseSpeed 00530370, a height) to the target (z = its ground + ModeSpeed
+// 005302F0), or to `at` one unit above the water surface when there is no target. Returns AL.
+bool __fastcall SpellHasLineOfSight(CWorldServer* world, CSpell* spell, CUnit* caster, const Vector3* from,
+                                    CUnit* target, const Vector3* at);
+
 // A movement mode and whether it was mode 3 (CUnitServer + 0x168 / + 0x170, 8 bytes each).
 struct MoveModeState {
     int mode;                   // +0x00 0..2 (3 is stored as 2 with `wasMode3`)
