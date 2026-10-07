@@ -6,6 +6,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "lib/crt.h"
 #include "lib/mfc.h"
 
 #include <cstring>
@@ -169,6 +170,56 @@ bool CAIMap::StandsOnCheapCell(CUnit* unit) {
 EI_REPLACE_METHOD(0x005BA5A0, CAIMap::StandsOnCheapCell);
 
 __declspec(naked) void VisibilityGrid::Include(int, int, int) EI_ORIGINAL(0x005C8D40)
+
+namespace {
+// 005B14C0: the byte grid's block and row table for its width and height.
+void AllocateGrid(VisibilityGrid* grid) {
+    grid->data = static_cast<std::uint8_t*>(gamecrt::operator_new(grid->width * grid->height));
+    grid->rows = static_cast<std::uint8_t**>(gamecrt::operator_new(grid->height * sizeof(std::uint8_t*)));
+    for (int i = 0; i < grid->height; ++i) grid->rows[i] = grid->data + i * grid->width;
+}
+// A square grid of `size`: reallocated when the size differs, then cleared.
+void ResizeCleared(VisibilityGrid* grid, int size) {
+    if (grid->width != size || grid->height != size) {
+        gamecrt::operator_delete(grid->data);
+        gamecrt::operator_delete(grid->rows);
+        grid->width = size;
+        grid->height = size;
+        AllocateGrid(grid);
+    }
+    std::memset(grid->data, 0, static_cast<std::size_t>(grid->width * grid->height));
+}
+} // namespace
+
+void VisibilityGrid::Grow(int x, int y, int n) {
+    int x0 = x - n, x1 = x + n, y0 = y - n, y1 = y + n;
+    if (originX == 0x7FFFFFFF) {
+        int size = (y1 - y0 > x1 - x0 ? y1 - y0 : x1 - x0) + 1;
+        ResizeCleared(this, size);
+        originX = x0;
+        originY = y0;
+        return;
+    }
+    bool grow = x0 < originX || y0 < originY || x1 > originX + width - 1 || y1 > originY + height - 1;
+    if (x0 >= originX) x0 = originX;
+    if (x1 <= originX + width - 1) x1 = originX + width - 1;
+    if (y0 >= originY) y0 = originY;
+    if (y1 <= originY + height - 1) y1 = originY + height - 1;
+    if (!grow) return;
+    int size = (y1 - y0 > x1 - x0 ? y1 - y0 : x1 - x0) + 1;
+    // 005CD410: a copy of the old marks (block and row table), moved into the cleared grid.
+    VisibilityGrid old = *this;
+    AllocateGrid(&old);
+    std::memcpy(old.data, data, static_cast<std::size_t>(old.width * old.height));
+    ResizeCleared(this, size);
+    for (int row = 0; row < old.height; ++row)
+        for (int col = 0; col < old.width; ++col)
+            rows[row - y0 + originY][col - x0 + originX] = old.rows[row][col];
+    originX = x0;
+    originY = y0;
+    gamecrt::operator_delete(old.data);
+    gamecrt::operator_delete(old.rows);
+}
 
 void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* look, float cosLimit,
                               float targetHeight, VisibilityGrid* grid) {

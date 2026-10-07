@@ -358,6 +358,19 @@ void CAIMap::LimitSteepCells(int x0, int x1, int y0, int y1) {
         }
 }
 
+void CAIMap::ClearUnmarkedArea(int level, int dx, int dy, int x0, int x1, int y0, int y1) {
+    if (-dx > x0) x0 = -dx;
+    if (-dy > y0) y0 = -dy;
+    if (width - dx - 1 < x1) x1 = width - dx - 1;
+    if (height - dy - 1 < y1) y1 = height - dy - 1;
+    // The shift count is the low 5 bits of level * 4, as SHL does it.
+    std::uint32_t keep = ~(0xFu << ((level * 4) & 31));
+    for (int y = y0; y <= y1; ++y)
+        for (int x = x0; x <= x1; ++x)
+            if (marks.rows[y + dy][x + dx] == 0) cells[y][x].passable &= keep;
+}
+
 EI_REPLACE_METHOD(0x005B8FA0, CAIMap::RefreshArea);
+EI_REPLACE_METHOD(0x005B89F0, CAIMap::ClearUnmarkedArea);
 EI_REPLACE_METHOD(0x005B8BA0, CAIMap::CellMark);
 EI_REPLACE_METHOD(0x005B8710, CAIMap::LimitSteepCells);

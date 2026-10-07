@@ -116,35 +116,7 @@ void Fit(BlockGrid& grid, int width, int height, void (__fastcall* allocate)(voi
 __declspec(naked) bool __fastcall CellSuitsBlock(CRegionMap*, void*, int, int, int, int, int) EI_ORIGINAL(0x005AF7B0)
 // 005C2CF0 with its AL result: false when the search could not be set up.
 __declspec(naked) bool __fastcall SearchSetupOk(void*, void*, int, int, int, int, int, int, int) EI_ORIGINAL(0x005C2CF0)
-// The region map's two block searches (+0 from the start, +0x4C from the target): a search over
-// the blocks of one size class. Its block records (24 bytes, rows at +4) keep a cost
-// (0x7FFFFFFF unvisited) and a link; +0x18 chains the touched records, +0x1C eight open
-// buckets, +0x3C the best open record, +0x49 the active flag; +0x10 points back at the map and +0x14 at the
-// class's edge grid.
-struct BlockRecord {
-    int cost;
-    BlockRecord* next;
-    int unknown_08;
-    int unknown_0C;
-    int unknown_10;
-    std::uint8_t unknown_14;
-    std::uint8_t pad[3];
-};
-static_assert(sizeof(BlockRecord) == 24);
-struct BlockSearch {
-    std::uint32_t unknown_00;
-    BlockRecord** rows;
-    std::uint8_t unknown_08[8];
-    std::uint8_t* map;
-    void* edges;
-    BlockRecord* touched;
-    BlockRecord* open[8];
-    BlockRecord* best;         // +0x3C the best open record (x, y as shorts at +0xC / +0xE)
-    std::uint8_t unknown_40[9];
-    bool active;
-    std::uint8_t unknown_4A[2];
-};
-static_assert(sizeof(BlockSearch) == 0x4C);
+// The region map's two block searches: BlockSearch (ai_map.h).
 
 // 005B0AF0 (RET 0x14, AL): seeds a search (size class, which side, the search, cell x, y).
 // 005AF5F0 (RET 4, AL): joins the two searches into the region chain list.
@@ -173,20 +145,20 @@ void ResetChain(BlockRecord* record) {
         BlockRecord* next = record->next;
         record->cost = 0x7FFFFFFF;
         record->next = nullptr;
-        record->unknown_08 = 0;
-        record->unknown_10 = 0;
-        record->unknown_14 = 0;
+        record->prev = nullptr;
+        record->backDirection = 0;
+        record->settled = false;
         record = next;
     }
 }
 void PrepareSearch(BlockSearch& search, int sizeClass) {
-    search.edges = search.map + sizeClass * 16 + 0x11C;
+    search.edges = &search.map->edges[sizeClass];
     for (BlockRecord*& bucket : search.open) bucket = nullptr;
     search.active = true;
     search.best = nullptr;
 }
 void Exclude(BlockSearch& search, int x, int y) {
-    BlockRecord* record = &search.rows[y][x];
+    BlockRecord* record = &search.records.rows[y][x];
     if (record->cost < 0x7FFFFFFF) return;
     record->cost = -1;
     record->next = search.touched;
@@ -398,16 +370,16 @@ bool CRegionMap::LoadBlocks(void* stream) {
     read(&height, 4);
     if (width <= 0 || height <= 0 || width > 0x100 || height > 0x100) return false;
     for (int c = 0; c < 8; ++c) {
-        BlockGrid& edges = At<BlockGrid>(this, 0x11C + c * 16);
-        BlockGrid& cells = At<BlockGrid>(this, 0x19C + c * 16);
-        BlockGrid& regions = At<BlockGrid>(this, 0x21C + c * 16);
-        Fit(edges, width, height, &AllocateEdges);
-        Fit(cells, width, height, &AllocateCells);
-        Fit(regions, width, height, &AllocateRegions);
+        BlockGrid& edgeGrid = At<BlockGrid>(this, 0x11C + c * 16);
+        BlockGrid& cellGrid = At<BlockGrid>(this, 0x19C + c * 16);
+        BlockGrid& regionGrid = At<BlockGrid>(this, 0x21C + c * 16);
+        Fit(edgeGrid, width, height, &AllocateEdges);
+        Fit(cellGrid, width, height, &AllocateCells);
+        Fit(regionGrid, width, height, &AllocateRegions);
         for (int y = 0; y < At<int>(this, kBlocksHigh); ++y) {
-            read(edges.rows[y], width * 16);
-            read(cells.rows[y], width);
-            read(regions.rows[y], width * 2);
+            read(edgeGrid.rows[y], width * 16);
+            read(cellGrid.rows[y], width);
+            read(regionGrid.rows[y], width * 2);
         }
     }
     RebuildTable(this, nullptr, this, 0);
@@ -444,8 +416,6 @@ void CRegionMap::PickRepresentatives(CAIMap* map, int bx, int by) {
 }
 
 bool CRegionMap::FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, void* chain, void* excluded) {
-    BlockSearch& forward = At<BlockSearch>(this, 0);
-    BlockSearch& backward = At<BlockSearch>(this, 0x4C);
     PrepareSearch(forward, sizeClass);
     PrepareSearch(backward, sizeClass);
     // The excluded blocks (CArray<{x, y}>: data +4, size +8) are marked visited in both.
@@ -469,18 +439,18 @@ int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
     reinterpret_cast<NearbyFn>(0x005B0370)(this, nullptr, sizeClass, false, x, y, &blocks);
     // Count the blocks per region, in first-seen order (the original keeps a CList of {region,
     // count}; at most nine entries).
-    std::uint16_t regions[9];
+    std::uint16_t seen[9];
     int counts[9];
     int distinct = 0;
     std::uint16_t** rows = At<std::uint16_t**>(this, (sizeClass + 0x22) * 16);
     for (BlockCostList::Node* n = blocks.head; n; n = n->next) {
         std::uint16_t region = rows[n->data.y][n->data.x];
         int i = 0;
-        while (i < distinct && regions[i] != region) ++i;
+        while (i < distinct && seen[i] != region) ++i;
         if (i < distinct) {
             ++counts[i];
         } else if (distinct < 9) {
-            regions[distinct] = region;
+            seen[distinct] = region;
             counts[distinct++] = 1;
         }
     }
@@ -489,7 +459,7 @@ int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
     for (int i = 0; i < distinct; ++i)
         if (counts[i] > best) {
             best = counts[i];
-            region = regions[i];
+            region = seen[i];
         }
     // The block list's inlined destructor.
     blocks.vtable = reinterpret_cast<void*>(0x0073FCFC);
@@ -498,11 +468,9 @@ int CRegionMap::DominantRegion(int sizeClass, int x, int y) {
 }
 
 bool CRegionMap::JoinBlockSearches(PathCellList* chain) {
-    BlockSearch& forward = At<BlockSearch>(this, 0);
-    BlockSearch& backward = At<BlockSearch>(this, 0x4C);
     auto meets = [](BlockSearch& other, int x, int y) {
-        const BlockRecord& r = other.rows[y][x];
-        return r.unknown_14 != 0 && r.cost < 0x7FFFFFFF;
+        const BlockRecord& r = other.records.rows[y][x];
+        return r.settled && r.cost < 0x7FFFFFFF;
     };
     bool ok = true;
     int x = 0, y = 0;
@@ -514,16 +482,16 @@ bool CRegionMap::JoinBlockSearches(PathCellList* chain) {
             ok = false;
             break;
         }
-        x = *reinterpret_cast<std::int16_t*>(reinterpret_cast<std::uint8_t*>(best) + 0xC);
-        y = *reinterpret_cast<std::int16_t*>(reinterpret_cast<std::uint8_t*>(best) + 0xE);
+        x = best->x;
+        y = best->y;
         if (meets(backward, x, y)) break;
         best = backward.best;
         if (!best || best->cost == 0x7FFFFFFF) {
             ok = false;
             break;
         }
-        x = *reinterpret_cast<std::int16_t*>(reinterpret_cast<std::uint8_t*>(best) + 0xC);
-        y = *reinterpret_cast<std::int16_t*>(reinterpret_cast<std::uint8_t*>(best) + 0xE);
+        x = best->x;
+        y = best->y;
         if (meets(forward, x, y)) break;
     }
     PathCellList scratch{reinterpret_cast<void*>(0x0073EDB0), nullptr, nullptr, 0, nullptr, nullptr, 0x80};
@@ -548,8 +516,8 @@ void __fastcall BlockSearchPathTo(void* searchIn, void*, int x, int y, PathCellL
     path->head = nullptr;
     mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(path->blocks));
     path->blocks = nullptr;
-    int columns = *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(&search) + 8);
-    int rows = *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(&search) + 0xC);
+    int columns = search.records.width;
+    int rows = search.records.height;
     if (x < 0 || x >= columns || y < 0 || y >= rows) return;
     // The original builds each cell's second dword (flags) from a stack slot it never writes;
     // ours writes 0.
@@ -558,7 +526,7 @@ void __fastcall BlockSearchPathTo(void* searchIn, void*, int x, int y, PathCellL
         return c;
     };
     // Walk back along the stored directions (+0x10: 1..8; 0 ends), each cell added at the head.
-    while (int dir = search.rows[y][x].unknown_10) {
+    while (int dir = search.records.rows[y][x].backDirection) {
         PathCellList::Node* node = path->NewNode(nullptr, path->head);
         node->data = cellAt(x, y);
         if (path->head) path->head->prev = node;
@@ -603,9 +571,9 @@ void CRegionMap::MeasureBlockEdges(void*, int bx, int by) {
     const int* dy = reinterpret_cast<const int*>(0x00791130);
     void* search = reinterpret_cast<std::uint8_t*>(this) + 0x98;
     for (int c = 0; c < 8; ++c) {
-        std::uint8_t** cells = At<std::uint8_t**>(this, 0x1A0 + c * 16);
-        std::int16_t** edges = At<std::int16_t**>(this, 0x120 + c * 16);
-        std::uint8_t own = cells[by][bx];
+        std::uint8_t** cellRows = cells[c].rows;
+        std::int16_t** edgeRows = edges[c].rows;
+        std::uint8_t own = cellRows[by][bx];
         At<std::uint8_t>(this, 0x114) = 0;
         SearchSetup(search, nullptr, c, bx * 8 - 8, by * 8 - 8, bx * 8 + 16, by * 8 + 16, (own & 0xF) + bx * 8,
                     (own >> 4) + by * 8);
@@ -616,7 +584,7 @@ void CRegionMap::MeasureBlockEdges(void*, int bx, int by) {
             int nx = bx + dx[dir], ny = by + dy[dir];
             std::int16_t value = -1;
             if (nx >= 0 && ny >= 0 && nx < At<int>(this, kBlocksWide) && ny < At<int>(this, kBlocksHigh)) {
-                std::uint8_t other = cells[ny][nx];
+                std::uint8_t other = cellRows[ny][nx];
                 int cost = SearchCost(search, nullptr, (other & 0xF) + nx * 8, (other >> 4) + ny * 8);
                 if (cost < kUnreached) {
                     cost /= 128;
@@ -624,7 +592,7 @@ void CRegionMap::MeasureBlockEdges(void*, int bx, int by) {
                     value = static_cast<std::int16_t>(cost);
                 }
             }
-            edges[by][bx * 8 + dir] = value;
+            edgeRows[by][bx * 8 + dir] = value;
         }
         SearchReset(search, nullptr);
     }
@@ -637,16 +605,16 @@ void CRegionMap::Attach(CAIMap* map) {
         Fit(At<BlockGrid>(this, 0x11C + c * 16), width, height, &AllocateEdges);
         Fit(At<BlockGrid>(this, 0x19C + c * 16), width, height, &AllocateCells);
         // The region grid's allocation is inlined here: u16 per block, rows of `width`.
-        BlockGrid& regions = At<BlockGrid>(this, 0x21C + c * 16);
-        if (regions.width == width && regions.height == height) continue;
-        GameDelete(regions.data);
-        GameDelete(regions.rows);
-        regions.width = width;
-        regions.height = height;
+        BlockGrid& grid = At<BlockGrid>(this, 0x21C + c * 16);
+        if (grid.width == width && grid.height == height) continue;
+        GameDelete(grid.data);
+        GameDelete(grid.rows);
+        grid.width = width;
+        grid.height = height;
         auto* data = static_cast<std::uint8_t*>(gamecrt::operator_new(static_cast<std::size_t>(height * width * 2)));
-        regions.data = data;
-        regions.rows = static_cast<void**>(gamecrt::operator_new(static_cast<std::size_t>(regions.height * 4)));
-        for (int y = 0; y < regions.height; ++y) regions.rows[y] = data + regions.width * y * 2;
+        grid.data = data;
+        grid.rows = static_cast<void**>(gamecrt::operator_new(static_cast<std::size_t>(grid.height * 4)));
+        for (int y = 0; y < grid.height; ++y) grid.rows[y] = data + grid.width * y * 2;
     }
     RebuildTable(this, nullptr, this, 0);
     RebuildTable(reinterpret_cast<std::uint8_t*>(this) + 0x4C, nullptr, this, 1);
@@ -723,8 +691,8 @@ void CRegionMap::FloodRegionFrom(int sizeClass, void* frontierIn, void* nextIn, 
     auto* next = static_cast<PointArray*>(nextIn);
     const int* dx = reinterpret_cast<const int*>(0x0079110C);
     const int* dy = reinterpret_cast<const int*>(0x00791130);
-    std::int16_t** edges = At<std::int16_t**>(this, 0x120 + sizeClass * 16);
-    std::uint16_t** regions = At<std::uint16_t**>(this, 0x220 + sizeClass * 16);
+    std::int16_t** edgeRows = edges[sizeClass].rows;
+    std::uint16_t** regionRows = regions[sizeClass].rows;
     for (;;) {
         // The inlined RemoveAll of the next frontier.
         if (next->data) {
@@ -738,9 +706,9 @@ void CRegionMap::FloodRegionFrom(int sizeClass, void* frontierIn, void* nextIn, 
         for (int i = 0; i < frontier->size; ++i) {
             int bx = frontier->data[i].x, by = frontier->data[i].y;
             for (int dir = 0; dir < 8; ++dir) {
-                if (edges[by][bx * 8 + dir] < 0) continue;
+                if (edgeRows[by][bx * 8 + dir] < 0) continue;
                 int nx = bx + dx[dir], ny = by + dy[dir];
-                std::uint16_t& region = regions[ny][nx];
+                std::uint16_t& region = regionRows[ny][nx];
                 if (region != 0) continue;
                 region = static_cast<std::uint16_t>(label);
                 int n = next->size;
