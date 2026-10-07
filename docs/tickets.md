@@ -33,7 +33,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- A-H .. A-H13 done. A-H14 queued (sound.md next candidates; CPlayer 00664BF0..00665D20, save screen, message handlers).
+- A-H .. A-H13 done. A-H14 taken (sound.md next candidates; CPlayer 00664BF0..00665D20, save screen, message handlers).
 
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
