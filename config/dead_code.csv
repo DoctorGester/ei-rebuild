@@ -610,3 +610,8 @@ address,size,name,evidence
 004D5EC0,16,FUN_004d5ec0,"referenced only from dead code 004D41C0 (A-S5)"
 004D65B0,40,FUN_004d65b0,"referenced only from dead code 004D4E80 (A-S5)"
 006BBA00,57,FUN_006bba00,"no references (A-H13 sweep: no call, jump or stored address; two registry string reads at +0xCC of a sound object)"
+0050BFA0,66,FUN_0050bfa0,"no references (A-U5 sweep: no call, jump or stored address in the exe or Rebirth's binaries; Ghidra lists none)"
+0051FCD0,114,FUN_0051fcd0,"no references (A-U5 sweep: no call, jump or stored address in the exe or Rebirth's binaries; Ghidra lists none)"
+005476A0,474,FUN_005476a0,"no references (A-U5 sweep: no call, jump or stored address; its body is 0052E9D0 then PlayIdle 005474B0's, instruction for instruction)"
+0054A0A0,168,FUN_0054a0a0,"no references (A-U5 sweep: no call, jump or stored address in the exe or Rebirth's binaries; Ghidra lists none)"
+0054B950,103,FUN_0054b950,"no references (A-U5 sweep: no call, jump or stored address in the exe or Rebirth's binaries; Ghidra lists none)"
