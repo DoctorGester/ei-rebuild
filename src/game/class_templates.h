@@ -7,6 +7,8 @@
 
 #include "item_stock.h"
 
+class ChunkArchive;
+
 #include <cstddef>
 #include <cstdint>
 
@@ -19,6 +21,17 @@ struct ClassTemplate {
     // spells party; the first one inlined in the original), the vtable, both parties created (slot
     // 2), class -1, both flags 0, flag38 1. Returns this.
     ClassTemplate* Construct();
+    // 004A6A90 (class_template_stock.cpp). Destructor body: the vtable, both parties destroyed (slot
+    // 3), the stocks' maps and vectors freed (the magic stock first, each stock's context cleared),
+    // both parties' destructor bodies (spells first), the base vtable.
+    void Destruct();
+    // 004A6A70 (slot 0, RET 4). Destruct, then operator delete when bit 0 of `flags` is set.
+    ClassTemplate* DeletingDestruct(unsigned flags);
+    // 004A6C40 (slot 1 Serialize, RET 4; party_manager.cpp). Fields 1 class (4 bytes), 2 / 3 the
+    // flags (1 byte each), 4 the weights and the 4 bytes after them (0x28), stream field 5 (both
+    // parties without variables, then both stocks' lists: SaveLists 0069BAC0 / LoadLists
+    // 0069B5B0), field 6 flag38 (1 byte).
+    void Serialize(ChunkArchive* ar);
 
     void* vtable;                   // 0073D0C4 (base 0073BB68)
     std::int16_t refCount;          // +0x04 counted pointers (the dword is cleared before construction)
@@ -40,6 +53,7 @@ struct ClassTemplate {
 };
 static_assert(sizeof(ClassTemplate) == 0x28C);
 static_assert(offsetof(ClassTemplate, weights) == 0x10);
+static_assert(offsetof(ClassTemplate, unknown_34) == 0x34);
 static_assert(offsetof(ClassTemplate, flag38) == 0x38);
 static_assert(offsetof(ClassTemplate, allowed) == 0x11C);
 static_assert(offsetof(ClassTemplate, magic) == 0x1D4);

@@ -153,6 +153,12 @@ struct ItemStock {
     // lower-cased (0069D290, kept even when unknown) and the three ints), then spells (+0x38) and
     // modifiers (+0x44) by name as read (maps 007C851C / 007C853C).
     void LoadLists(void* stream);
+    // 0069BAC0 (RET 4; not rewritten). Writes what LoadLists reads.
+    void SaveLists(void* stream);
+    // The destructor as the class template's (004A6A90) inlines it: context cleared, the modifier
+    // and spell maps destroyed (their own instantiations, 004A9010 / 004A8E60), each vector's storage
+    // freed from the last to the first.
+    void Destruct();
 };
 static_assert(offsetof(ItemStock, materials) == 0x2C);
 static_assert(offsetof(ItemStock, spellMap) == 0x50);

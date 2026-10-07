@@ -2,6 +2,7 @@
 // maps allocate). Reached by every new game (004A7630 builds the templates) and by loading a save
 // with templates (the archive's factory 00457850; world_load). ItemStock::Construct (004A66C0) has
 // no other caller than the template's constructor, which calls it directly: covered here.
+// DeletingDestruct (004A6A70) runs when the templates are rebuilt or replaced by a load.
 #include "verify.h"
 
 #include "../../src/game/class_templates.h"
@@ -41,6 +42,17 @@ ClassTemplate* __fastcall ConstructVerify(ClassTemplate* self) {
     return self;
 }
 
+// 004A6A70 (slot 0): ours only. A template is destroyed when its last reference goes; without
+// bit 0 the base vtable is back afterwards.
+ClassTemplate* __fastcall DeletingDestructVerify(ClassTemplate* self, void*, unsigned flags) {
+    bool unreferenced = self->refCount == 0;
+    self->DeletingDestruct(flags);
+    bool ok = unreferenced && ((flags & 1) || self->vtable == reinterpret_cast<void*>(ClassTemplate::kBaseVtableAddress));
+    ei::verify::Check("ClassTemplate::DeletingDestruct", true, ok, "flags %u", flags);
+    return self;
+}
+
 } // namespace
 
 EI_VERIFY(0x004A6580, ConstructVerify, 0, s_unused);
+EI_VERIFY(0x004A6A70, DeletingDestructVerify, 0, s_unused);

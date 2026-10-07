@@ -12,6 +12,7 @@
 // and directly, so the Save comparison covers them.
 #include "verify.h"
 
+#include "../../src/game/chunk_archive.h"
 #include "../../src/game/core_streams.h"
 #include "../../src/game/party.h"
 #include "../../src/game/party_manager.h"
@@ -98,8 +99,30 @@ void __fastcall EndRedeployVerify(NamedPartyRecords* self, void*, CParty* party)
     ei::verify::Check("NamedPartyRecords::EndRedeploy", true, ok, "record found: %d", found != nullptr);
 }
 
+// The archive's current chunk size (what a save appends to).
+std::int32_t ChunkSize(ChunkArchive* ar) { return ar->Current()->size; }
+
+// 004A5AF0 / 004A6C40 (slot 1, run by the archive's Close / Open for each saved / loaded object):
+// ours only. Saving appends to the current chunk; a loaded template has a class 1..5.
+void __fastcall RecordSerializeVerify(PartyRecord* self, void*, ChunkArchive* ar) {
+    std::int32_t before = ChunkSize(ar);
+    self->Serialize(ar);
+    bool ok = ar->loading_ ? self->name.GetLength() >= 0 : ChunkSize(ar) > before;
+    ei::verify::Check("PartyRecord::Serialize", true, ok, "loading %d, chunk %d -> %d", ar->loading_, before, ChunkSize(ar));
+}
+
+void __fastcall TemplateSerializeVerify(ClassTemplate* self, void*, ChunkArchive* ar) {
+    std::int32_t before = ChunkSize(ar);
+    self->Serialize(ar);
+    bool ok = ar->loading_ ? self->type >= 1 && self->type <= 5 : ChunkSize(ar) > before;
+    ei::verify::Check("ClassTemplate::Serialize", true, ok, "loading %d, class %d, chunk %d -> %d", ar->loading_, self->type,
+                      before, ChunkSize(ar));
+}
+
 } // namespace
 
+EI_VERIFY(0x004A5AF0, RecordSerializeVerify, 0, s_unused);
+EI_VERIFY(0x004A6C40, TemplateSerializeVerify, 0, s_unused);
 EI_VERIFY(0x004A6050, BeginRedeployVerify, 0, s_unused);
 EI_VERIFY(0x004A6360, EndRedeployVerify, 0, s_unused);
 EI_VERIFY(0x004A8560, SaveVerify, 7, s_save);

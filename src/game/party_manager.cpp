@@ -66,6 +66,7 @@ struct LocalArchive {
 } // namespace
 
 __declspec(naked) void CParty::ArchiveParty(ChunkArchive*) EI_ORIGINAL(0x006617F0)
+__declspec(naked) void ItemStock::SaveLists(void*) EI_ORIGINAL(0x0069BAC0)
 
 void PartyManagerEntry::Destruct() {
     ids.FreeStorage();
@@ -202,6 +203,49 @@ void NamedPartyRecords::Serialize(ChunkArchive* ar) {
     ar->CStringField(3, &text10);
 }
 EI_REPLACE_METHOD(0x004A64B0, NamedPartyRecords::Serialize);
+
+// ---- The archived objects (slot 1 Serialize) ---------------------------------------------------------
+
+void PartyRecord::Serialize(ChunkArchive* ar) {
+    LocalStream local;
+    ar->CStringField(1, &name);
+    CParty* p = reinterpret_cast<CParty*>(party);
+    if (!ar->loading_) {
+        p->SaveParty(&local.stream, 1);
+        ar->StreamField(2, &local.stream);
+    } else {
+        ar->StreamField(2, &local.stream);
+        local.stream.version_ = static_cast<std::uint32_t>(ar->version_);
+        p->LoadParty(&local.stream, 1);
+    }
+}
+EI_REPLACE_METHOD(0x004A5AF0, PartyRecord::Serialize);
+
+void ClassTemplate::Serialize(ChunkArchive* ar) {
+    ar->Field(1, &type, 4);
+    ar->Field(2, &flag0C, 1);
+    ar->Field(3, &flag0D, 1);
+    ar->Field(4, weights, sizeof(weights) + sizeof(unknown_34));
+    LocalStream local;
+    auto* itemsParty = reinterpret_cast<CParty*>(items);
+    auto* spellsParty = reinterpret_cast<CParty*>(spells);
+    if (!ar->loading_) {
+        itemsParty->SaveParty(&local.stream, 0);
+        spellsParty->SaveParty(&local.stream, 0);
+        allowed.SaveLists(&local.stream);
+        magic.SaveLists(&local.stream);
+        ar->StreamField(5, &local.stream);
+    } else {
+        ar->StreamField(5, &local.stream);
+        local.stream.version_ = static_cast<std::uint32_t>(ar->version_);
+        itemsParty->LoadParty(&local.stream, 0);
+        spellsParty->LoadParty(&local.stream, 0);
+        allowed.LoadLists(&local.stream);
+        magic.LoadLists(&local.stream);
+    }
+    ar->Field(6, &flag38, 1);
+}
+EI_REPLACE_METHOD(0x004A6C40, ClassTemplate::Serialize);
 
 // ---- Redeploy -------------------------------------------------------------------------------------
 

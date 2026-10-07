@@ -19,6 +19,10 @@ struct PartyRecord {
     std::int16_t unknown_06;
     char party[0x70];           // +0x08 the party (constructor 00661050)
     mfc::CString name;          // +0x78 "" for the unnamed record
+
+    // 004A5AF0 (virtual slot 1 Serialize, RET 4; party_manager.cpp). The name as string field 1,
+    // the party (SaveParty / LoadParty with variables) as stream field 2.
+    void Serialize(ChunkArchive* ar);
 };
 static_assert(sizeof(PartyRecord) == 0x7C);
 static_assert(offsetof(PartyRecord, name) == 0x78);
