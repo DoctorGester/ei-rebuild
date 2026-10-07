@@ -222,3 +222,14 @@ static void __fastcall TakeStepsVerify(OrderPlan* self, void*, AnimationSteps st
     ei::verify::Check("OrderPlan::TakeSteps", true, ok, "steps %d start %d duration %d", steps.count, start, duration);
 }
 EI_VERIFY(0x00545110, TakeStepsVerify, 8, s_takeSteps);
+
+// 00546100 (CPlayerServer::OnUseOrder's path, ui_battle_commands). Ours only: no points, both cell
+// lists empty, their vtables.
+static void __fastcall DestructPathVerify(AIPath* self) {
+    self->Destruct();
+    bool ok = self->pointsVtable == reinterpret_cast<void*>(AIPath::kPointsVtable) && !self->cells.head &&
+              self->cells.count == 0 && !self->cells.blocks && !self->steps.head && self->steps.count == 0 &&
+              !self->steps.blocks && self->cells.vtable == PathCellListVtable();
+    ei::verify::Check("AIPath::Destruct", true, ok, "");
+}
+EI_VERIFY(0x00546100, DestructPathVerify, 0, s_unused);

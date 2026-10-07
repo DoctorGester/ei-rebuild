@@ -128,6 +128,18 @@ CUnitServer* CUnitServer::Construct() {
 }
 EI_REPLACE_METHOD(0x00545580, CUnitServer::Construct);
 
+// --- AIPath -------------------------------------------------------------------------------------
+
+void AIPath::Destruct() {
+    pointsVtable = reinterpret_cast<void*>(kPointsVtable);
+    if (points) gamecrt::operator_delete(points);
+    cells.vtable = PathCellListVtable();
+    cells.RemoveAll();
+    steps.vtable = PathCellListVtable();
+    steps.RemoveAll();
+}
+EI_REPLACE_METHOD(0x00546100, AIPath::Destruct);
+
 // --- OrderPlan ----------------------------------------------------------------------------------
 
 void OrderPlan::TakeSteps(AnimationSteps steps, int start, int duration) {

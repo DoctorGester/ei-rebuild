@@ -131,6 +131,7 @@ around both runs and compared too.
 | 00552D00, 00553610 (25), 00552670 (42), 00553260 (44) | ClaimHostility, TakeUpWeapon, OnObjectDeleted, Resettle (combat_object_slots.cpp, A-U5) | ours only (one more call of kind 0x1E; weapon slot or -1; no order or leader on the object; back on the sector map) |
 | 00545580, 00545990 | CUnitServer::Construct, AIBrain::Construct (combat_lifetime.cpp, A-U7) | output: the original into a scratch copy of the raw memory, every byte compared (verify_map_object_lifetime.cpp) |
 | 00545CB0, 005457E0 | AIBrain::DestructMemory (this = brain + 0xD0), AIBrain::Destruct | ours only (vtables, lists empty, no target / seen / modes) |
+| 00546100 | AIPath::Destruct (combat_lifetime.cpp; from CPlayerServer::OnUseOrder) | ours only (lists empty, vtables) |
 | 00545110 | OrderPlan::TakeSteps | output: original on a deep copy of plan and argument, fields and steps compared |
 | 00558420, 00545430 / 005582A0, 005585F0 | SaveStepList, SaveArmourSpell / LoadStepList, LoadArmourSpells (combat_save.cpp; +0x91C is the armour spell list, not "attackers") | saves: both into capture streams / loads: ours through a recorder, step lists round-tripped through the original save (verify_combat_save_lists.cpp; world_load, ui_saveload) |
 | 0054BBC0 | SpellLineOfSight (combat_spell_sight.cpp; __fastcall world, spell, then 4 stack args; the server world's cast 0058E850) | pure (AL compared; spells_cast, spells_hero) |
@@ -173,6 +174,7 @@ Not on the Rebirth list except 0054B580 (above); the patched callee 005935C0 is 
 
 - Constructor members (now named in `combat.h`): +0x24 `queue`, +0x3C `motion` (AIPath, built by AIPath::Construct 006706A0 = the inlined 00545750 x2 / 00557230 / 005B23A0), +0x148 `savedQueue`, +0x91C `armourSpells` (CList, vtable 0073F010), +0x940 / +0x944 / +0x95C / +0x960 move and idle keys and lists (0x666DEAD, extra -1), +0x978 `actionDone`, +0xB10 `voice` (005AEA50 zeroes it); sizeof 0xB20. The brain's +0xD0 and +0xD8 are both sight caches {0, -1.0}.
 - Reach: every spawn (constructors). 00545CB0 through 00546230 when a unit is deleted (zone changes). 005457E0 only from unwind funclets. 00545110 only for a queued order of kind 10, whose one setter 005557E0 is dead code: no scenario can reach it.
+- Library (config/library.csv): 11 more container functions in 0x545000-0x557000 (the AnimationSteps copies 0054B260 / 005483C0 / 00556870 / 00556950, list constructors / destructors). EH-only helpers left unported: 005461E0 / 00545FD0 (an order's target release), 00546200, 00556AA0, 00545B80.
 - 0x5576C0-0x559000: 21 functions are MFC template code (added to config/library.csv). Game code left there: 00558FA0 (a save on the game stream, from 00559E60), 005587A0 (a mode reference's destructor), 00558840 (armour spell element assignment), 00558CA0 / 00558CC0 / 00558CE0 (the memory records' deleting destructors and a reference reset).
 
 ## Risks
