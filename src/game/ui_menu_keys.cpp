@@ -95,7 +95,7 @@ void CSaveLoadWindow::OnKeyDown(int key, int repeat, int flags) {
     int step = 0;
     switch (key) {
     case kKeyEnter:
-        Confirm();
+        CallConfirm();
         inputHandled_ = true;
         break;
     case kKeyEsc:
