@@ -203,3 +203,29 @@ through `game::FatalError` (EI_ORIGINAL). Forwarders are in `unit_ai.h`, `unit_a
   destructors), shape cache helpers 005BCCB0 / 005BE320 / 005BE450 / 005BE730.
 - Next: 005D2960 / 005D30A0 Fear Evaluate / Execute, 005D6630 / 005D6D20 alarm assembly, 005D4170 Player combat,
   005D4600, 005D4860, 005D9F30, 005D93B0, 005CD880, 005CD210; client 00566360 / 0056C750 / 0056D150.
+
+## A-W8 (2026-10-07)
+
+- `unit_ai_fear.cpp`: 005D2960 / 005D30A0 FearMode Evaluate / Execute, 005CF170 AIBrain::ApplyAttack (Fear's fight-back).
+  Fear's fields are now `distance`, `spread`, `shelter`, `fleePoint` (z 1 while a checked flight point is pending).
+  Verify: Evaluate differential (mode, noticed fields and the random generator put back between the runs; result,
+  floats within ULPs, noticed fields, random state compared); Execute and ApplyAttack ours only. Scenario `unit_ai_fear`
+  (new); every zone1 Guard / Sentry unit evaluates Fear. Kept: with `flag` and no player unit in sight the noticed point
+  would be an unset local (ours zero; only matters for a distance above 1e15).
+- `unit_ai_alarm.cpp`: 005D6630 ApplyBehaviour (a behaviour record as modes), 005D6D20 SetAlarmRecords (the .mob loader),
+  005D9840 the records' SetSize on the template. The map spec's Waypoint / Patrol / Behaviour moved to `map_spec.h`
+  (fields named: loop, guardRadius, alarmKind, callRadius, alertMode, alarmDelay); `AIAlarmRecord` is that record.
+  `PatrolMode` now holds a `PatrolPointArray points`; its Add 005D93B0 / SetAtGrow 005D9F30 are registered on the template
+  (`unit_ai_looks.cpp`, PatrolPoint::operator=, PatrolPointElements). Verify ours only (mode types in order, patrol point
+  count, alarm state; element counts). Reached at every zone load and when an alarm is heard.
+- `unit_ai_player.cpp`: 005D4170 UpdateCombat, 005D3F50 AddPartyTargets, 005D4600 CollectParty, 005D4860 StaysWithParty.
+  Execute / CommandGoTo call them through their addresses (`originals_ai.h`) so the wrappers count. Verify:
+  StaysWithParty pure (AL), CollectParty / AddPartyTargets output into scratch lists (sequences compared), UpdateCombat
+  ours only. Kept: StaysWithParty reads a party unit's missing Player mode at address 0x0C in the original (a crash; ours
+  skips it); UpdateCombat attacks the chosen target with the weapon even when the choice was a spell.
+- `unit_ai_sight.cpp`: 005CD210 MarkSightCells (the show-visibility effect), output differential on a scratch grid.
+  `unit_ai_brain.cpp`: the heard calls' SetSize 005CDD60 / Add 005CD880 on the template (AICallElements,
+  AICallRecord::operator=); ours only.
+- Next: client 00566360 (day-time lights: the LoadLights tables interpolated by hour, sun direction, fog colour), 0056C750
+  (shadow / decal pass over the object list; Ghidra garbles its frame), 0056D150 (a ground decal near a light, STLport
+  temporaries), then the largest unported functions of 0x540000-0x5E0000 (config/functions.csv).
