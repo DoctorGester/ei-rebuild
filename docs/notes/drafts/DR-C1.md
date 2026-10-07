@@ -57,6 +57,36 @@ Behaviour risks to check when building / running:
 - PrototypeNamePair (local, 0x10 bytes) replaces the 16-byte buffer for the name map pair.
 - `UnitSet18` forwarder now declared with `const char*` (same dword).
 
-## world_client_maps.cpp, world_game.cpp
+## world_client_maps.cpp (partly done, uncompiled)
+
+Counted by grep after this pass: 129 At<> (was 160), 21 VCall (was 39).
+
+Converted:
+- CreatePartyUnits (00566F70) fully: PartyUnitRecord fields (texts[2] model, [4] skin, [5]
+  prototype, [6] second prototype, [0] script name, unknown_01C id, unknown_724 scale, the four
+  item lists), the name map pair (NamePair::second is now UnitPrototypeRecord*), the prototype
+  index from unitdb::Prototypes() (RecordTable, unit.h; kPrototypeSize 0x120) into
+  CEngineObject::unknown_18, the figure as CObject3D::attached (+0x94), base scale through
+  CUnit::MapObject()->baseScale, the part names / "hr" / "hr.%.2d" from world_data.h, "none"
+  from game::NoneText(). Slots: client 19 MapObjectManager(), manager 23
+  CBaseManager::CreateObject, unit 35 SetStatsSlot, 30 ApplyBaseScale, 61 SetScriptName,
+  controller 25 ShowWeapon, 29 UpdateHeroTextures (NEW name in unit.h CUnitController, client
+  00536100 read in Ghidra), 30 RefreshModel.
+- Everywhere: slot 4 -> CEngineObject::Release(), slot 12 -> GetClassId(), object slot 29 ->
+  ObjectSlots()->IsDynamicSlot(), client slot 19 -> MapObjectManager() (Pick).
+
+Left (where to continue):
+- The CWorldClient members behind ListAt/MfcListAt/GridAt/IdMap (+0xB4 heroes list, +0xB8 objects,
+  +0xBC kept MFC list, +0xD8 id map + its max id at +0xEC, +0xF0 screen list, +0xF4 HitVector,
+  +0x100 pick cursor, +0x150 second grid, +0x1F0 pending MFC list, +0x7BC records list, +0x6EC).
+  CAUTION: world.h's CWorldClient declares listA_ (+0xD0, count +0xD4) and listB_ (+0xE0); listB_
+  falls inside the id map at +0xD8 (0x14 bytes): check what +0xE0 really is before adding members.
+- VCalls left: object +0x94 slot 22/24 (CollectWindows), controller slot 43 (0xAC, session join),
+  +0x34 slot 5, slot 0 deleting destructors and slot 3 Destroy in Teardown, session_ release (it is
+  a std::uint8_t*), Setup's slots 2 (CreateSelf) / 13 (AttachWorld, 0x34) and the client's slot 22
+  (0x58, the player list; but CWorld names 22 SpellManager: check, 0x58 / 4 = 22).
+- Raw addresses: 0x007AF068 (the device) in Pick and the rest of the file's literals.
+
+## world_game.cpp
 
 Not started.

@@ -184,7 +184,9 @@ public:
     virtual bool ArmourPutOn(std::uint32_t itemId);     // 26: client 005381B0 (WearArmourModel)
     virtual bool ArmourTakenOff(std::uint32_t slot);    // 27: client 005385A0 (RemoveArmourModel)
     virtual void Slot28();
-    virtual void Slot29();
+    // 29: client 00536100: for a hero (type 0x32), the two textures of its figure (+0x94's +0x20 /
+    // +0x24) are reloaded when 00536670 names other ones (after its items changed); returns 1.
+    virtual int UpdateHeroTextures();
     virtual void RefreshModel();            // 30: after a weapon change
     virtual void Slot31();
     virtual void Slot32();

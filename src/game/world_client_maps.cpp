@@ -7,9 +7,15 @@
 // instantiations), the window hit collectors, the radius marker, the pending-map lookup and the
 // bounds-checked record accessors.
 #include "world.h"
+#include "world_data.h"
 
 #include "base_manager.h"
 #include "console.h"
+#include "game_strings.h"
+#include "map_object.h"
+#include "map_object_figures.h"
+#include "unit.h"
+#include "unit_db.h"
 #include "object_tables.h"
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -75,7 +81,7 @@ void HoldRef(CEngineObject* object) {
     if (object) ++object->refCount_;
 }
 void DropRef(CEngineObject* object) {
-    if (object) ei::VCall<void>(object, kSlotRelease);
+    if (object) object->Release();
 }
 
 template <typename Ops>
@@ -289,10 +295,7 @@ __declspec(naked) void __fastcall InsertionSort(std::uint8_t*, std::uint8_t*, co
 __declspec(naked) void __fastcall UnguardedInsertionSort(std::uint8_t*, std::uint8_t*, void*, const float*, void*)
     EI_ORIGINAL(0x00576D40)
 
-constexpr int kSlotKeepInMaps = 0x74 / 4;    // object: () -> AL
-constexpr int kSlotClassId = 0x30 / 4;       // object: ()
 constexpr int kSlotSessionJoin = 0xAC / 4;   // unit +0x240: ()
-constexpr int kSlotObjects = 0x4C / 4;       // client: () -> the object manager
 constexpr int kSlotReset = 0x14 / 4;         // client +0x34: ()
 constexpr int kClassPlatform54 = 0x54;
 constexpr int kClassPlatform5D = 0x5D;
@@ -318,12 +321,12 @@ int CWorldClient::AddObject(CEngineObject* object) {
     for (SectorListNode* node = objects.head->next; node != objects.head; node = node->next) {
         if (node->data->id_ == object->id_) {
             ++object->refCount_;
-            ei::VCall<void>(object, kSlotRelease);
+            object->Release();
             return 1;
         }
     }
     const PendingMap::Node* entry = IdMap(this).Find(static_cast<std::uint32_t>(object->id_));
-    if (!entry && ei::VCall<bool>(object, kSlotKeepInMaps)) {
+    if (!entry && ObjectSlots(object)->IsDynamicSlot()) {
         MfcList& kept = MfcListAt(this, 0xBC);
         MfcNode* node = MfcNewNode(&kept, nullptr, kept.tail, nullptr);
         node->data = object;
@@ -336,8 +339,8 @@ int CWorldClient::AddObject(CEngineObject* object) {
         int key = object->id_;
         *IdMapAt(&IdMap(this), nullptr, &key) = tail;
     }
-    int kind = ei::VCall<int>(object, kSlotClassId);
-    if (kind == kClassPlatform54 || ei::VCall<int>(object, kSlotClassId) == kClassPlatform5D) {
+    int kind = object->GetClassId();
+    if (kind == kClassPlatform54 || object->GetClassId() == kClassPlatform5D) {
         for (int i = 0; i < At<int>(object, 0xD4); ++i) {
             if ((*ObjectItem(object, nullptr, i) >> 10) & 1) {
                 int id = object->id_;
@@ -346,7 +349,7 @@ int CWorldClient::AddObject(CEngineObject* object) {
             }
         }
     }
-    if (ei::VCall<int>(object, kSlotClassId) == world::kClassUnit && At<int>(session_, 0x100) == 1 &&
+    if (object->GetClassId() == world::kClassUnit && At<int>(session_, 0x100) == 1 &&
         At<int>(object, 0x24C) == 0 && At<int>(this, 0x6EC) >= 1)
         ei::VCall<void>(At<void*>(object, 0x240), kSlotSessionJoin);
 
@@ -431,12 +434,12 @@ void CWorldClient::RemoveObject(int id) {
     }
     SectorListNode* ignored;
     PlainOps::Erase(&objects, nullptr, &ignored, node);
-    ei::VCall<void>(object, kSlotRelease);
+    object->Release();
 }
 
 bool __fastcall ReleaseIfIdentified(void*, void*, CEngineObject* object) {
     if (object->id_ > 0) {
-        ei::VCall<void>(object, kSlotRelease);
+        object->Release();
         return true;
     }
     return false;
@@ -504,7 +507,7 @@ CEngineObject* Pick(CWorldClient* client, const long* point,
                                                   CBaseManager*)) {
     HitVector& hits = At<HitVector>(client, 0xF4);
     hits.finish = hits.start;   // erase(begin, end): __copy of nothing
-    CBaseManager* manager = ei::VCall<CBaseManager*>(client, kSlotObjects);
+    CBaseManager* manager = static_cast<CBaseManager*>(client->MapObjectManager());
     PlainList& screen = At<PlainList>(client, 0xF0);
     void* functor;
     collect(&functor, nullptr, reinterpret_cast<std::uint8_t*>(screen.head->next),
@@ -515,7 +518,7 @@ CEngineObject* Pick(CWorldClient* client, const long* point,
     // inlined in the original (the same steps as the out-of-line loop).
     std::uint8_t* device = *reinterpret_cast<std::uint8_t**>(0x007AF068);
     const float* plane = At<float*>(device, 0x5C) + (At<int>(device, 0x60) - 1) * 16;
-    void* objects = ei::VCall<void*>(client, kSlotObjects);
+    void* objects = client->MapObjectManager();
     std::uint8_t* first = hits.start;
     std::uint8_t* last = hits.finish;
     if (first != last) {
@@ -546,13 +549,14 @@ CEngineObject* CWorldClient::PickAt2(const long* point) { return Pick(this, poin
 
 namespace {
 
-// The prototypes' name map (007AF364, hash_map<string, record*>): find or insert a {name, 0} pair
-// [00514880], returning the stored pair; the prototype table's lookup by name [00514930].
+// The prototypes' name map (worlddata::PrototypeNameMap, hash_map<string, record*>): find or insert
+// a {name, 0} pair [00514880], returning the stored pair; the prototype table's lookup by name
+// [00514930].
 struct NamePair {
     stlp::string first;
-    int second;
+    UnitPrototypeRecord* second;
 };
-std::uint8_t* __fastcall NameMapFindOrInsert(void* a0, void*, const NamePair* a2) { return (std::uint8_t*)NameMapInsertOriginal(a0, nullptr, (const void*)a2); }
+NamePair* __fastcall NameMapFindOrInsert(void* a0, void*, const NamePair* a2) { return (NamePair*)NameMapInsertOriginal(a0, nullptr, (const void*)a2); }
 __declspec(naked) std::uint8_t* __fastcall FindPrototypeByName(void*, void*, const char*) EI_ORIGINAL(0x00514930)
 // CUnit: the second prototype by name [005308D0], the figure made from a model and its part names
 // [00516DA0], 00518840 / 00518860 after it, 0050EA40, the position [00517700], the items
@@ -577,15 +581,6 @@ void __fastcall FigureSwapTexture(void* a0, void*, const char* a2, const char* a
 }
 __declspec(naked) int __fastcall ArmourType(void*) EI_ORIGINAL(0x006A39E0)
 
-constexpr int kSlotCreate = 0x5C / 4;        // object manager: (type, id) -> object
-constexpr int kSlotSetStats = 0x8C / 4;      // unit: (stats block)
-constexpr int kSlotRefresh = 0x78 / 4;       // unit and its controller: ()
-constexpr int kSlotSetPlayer = 0xF4 / 4;     // unit: (player)
-constexpr int kSlotEquipped = 0x64 / 4;      // controller: (0)
-constexpr int kSlotItemsChanged = 0x74 / 4;  // controller: ()
-
-const char* GameString(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
-
 bool SameText(const char* a, const char* b) {   // the inlined strcmp(a, b) == 0
     for (;; ++a, ++b) {
         if (*a != *b) return false;
@@ -593,74 +588,71 @@ bool SameText(const char* a, const char* b) {   // the inlined strcmp(a, b) == 0
     }
 }
 
-// The figure's part names: "hd", "bd", "hp", "hr" (the hair: "hr.%.2d" with the prototype's
-// number, or left out at -1), "lh1".."rl3".
-constexpr std::uintptr_t kPartNames[] = {0x0078AD74, 0x0078AD38, 0x007900E4, 0x0078FB38, 0x007900E0, 0x0078AD70,
-                                         0x007900DC, 0x007900D8, 0x0078AD6C, 0x0078F95C, 0x007900D4, 0x0078AD68,
-                                         0x0078B008, 0x007900D0, 0x0078AD64, 0x0078B004};
-constexpr std::uintptr_t kHair = 0x0078FB38;        // "hr"
-constexpr std::uintptr_t kHairFormat = 0x0078FB0C;  // "hr.%.2d"
-constexpr std::uintptr_t kNone = 0x007846F0;        // "none"
-
 } // namespace
 
+// The figure's part names (worlddata::HeroPartText): "hd", "bd", "hp", "hr" (the hair: "hr.%.2d"
+// with the prototype's number, or left out at -1), "lh1".."rl3".
 void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour) {
     mfc::CString hair;
     for (int i = 0; i < party->size; ++i) {
-        std::uint8_t* record = party->data[i];
+        auto* record = reinterpret_cast<PartyUnitRecord*>(party->data[i]);
         console::CStringArray parts;
-        for (std::uintptr_t name : kPartNames) {
-            if (SameText(GameString(name), GameString(kHair))) {
-                std::uint8_t* stored;
+        for (int n = 0; n < worlddata::kHeroPartCount; ++n) {
+            const char* name = worlddata::HeroPartText(n);
+            if (SameText(name, worlddata::HairPartText())) {
+                NamePair* stored;
                 {
-                    stlp::string key(At<const char*>(record, 0x14));
-                    NamePair pair{key, 0};
-                    stored = NameMapFindOrInsert(reinterpret_cast<void*>(0x007AF364), nullptr, &pair);
+                    stlp::string key(static_cast<const char*>(record->texts[5]));
+                    NamePair pair{key, nullptr};
+                    stored = NameMapFindOrInsert(worlddata::PrototypeNameMap(), nullptr, &pair);
                 }
-                int number = At<int>(At<void*>(stored, 0xC), 0x10);
+                int number = stored->second->hair;
                 if (number != -1) {
-                    hair.Format(GameString(kHairFormat), number);
+                    hair.Format(worlddata::HairFormat(), number);
                     parts.SetAtGrow(parts.GetSize(), hair);
                 }
             } else {
-                parts.SetAtGrow(parts.GetSize(), GameString(name));
+                parts.SetAtGrow(parts.GetSize(), name);
             }
         }
-        void* manager = ei::VCall<void*>(this, kSlotObjects);
-        CEngineObject* unit = ei::VCall<CEngineObject*>(manager, kSlotCreate, kTypeHero, At<int>(record, 0x1C));
+        auto* manager = static_cast<CBaseManager*>(MapObjectManager());
+        auto* unit = static_cast<CUnit*>(manager->CreateObject(kTypeHero, static_cast<int>(record->unknown_01C)));
         if (!unit) return;   // (the original leaves the loop: the same as returning here)
-        std::uint8_t* prototype =
-            FindPrototypeByName(reinterpret_cast<void*>(0x007AF358), nullptr, At<const char*>(record, 0x14));
-        At<int>(unit, 0x18) =
-            prototype ? static_cast<int>(prototype - *reinterpret_cast<std::uint8_t**>(0x007AF358)) / 0x120 : -1;
-        UnitSetPrototype2(unit, nullptr, At<const char*>(record, 0x18));
+        std::uint8_t* prototype = FindPrototypeByName(const_cast<RecordTable*>(&unitdb::Prototypes()), nullptr,
+                                                      record->texts[5]);
+        unit->unknown_18 = static_cast<std::uint32_t>(
+            prototype ? static_cast<int>(prototype - reinterpret_cast<std::uint8_t*>(unitdb::Prototypes().begin)) /
+                            unitdb::kPrototypeSize
+                      : -1);
+        UnitSetPrototype2(unit, nullptr, record->texts[6]);
         unit->flags_ |= 0x4000000;
-        if (!UnitMakeFigure(unit, nullptr, At<const char*>(record, 8), &parts, 1)) return;
-        void* figure = At<void*>(unit, 0x94);
+        if (!UnitMakeFigure(unit, nullptr, record->texts[2], &parts, 1)) return;
+        CEngineObject* figure = unit->Object3D()->attached;
         Figure51C970(figure);
-        Unit518840(unit, nullptr, At<const char*>(record, 8), 0);
+        Unit518840(unit, nullptr, record->texts[2], 0);
         Unit518860(unit);
-        const char* skin = At<const char*>(record, 0x10);
-        FigureSwapTexture(figure, nullptr, GameString(kNone), SameText(skin, GameString(kNone)) ? nullptr : skin);
+        const char* skin = record->texts[4];
+        FigureSwapTexture(figure, nullptr, game::NoneText(), SameText(skin, game::NoneText()) ? nullptr : skin);
         Unit50EA40(unit);
-        ei::VCall<void>(unit, kSlotSetStats, record + 0x20);
-        UnitSetPosition(unit, nullptr, &At<float>(record, 0x724));
-        std::memcpy(&At<float>(unit, 0x1AC), &At<float>(record, 0x724), 12);
-        ei::VCall<void>(unit, kSlotRefresh);
+        CMapObjectVirtuals* slots = ObjectSlots(unit);
+        slots->SetStatsSlot(reinterpret_cast<const UnitStats*>(record->stats));
+        UnitSetPosition(unit, nullptr, &record->unknown_724);
+        std::memcpy(unit->MapObject()->baseScale, &record->unknown_724, 12);
+        slots->ApplyBaseScale();
         UnitReleaseAllItems(unit);
-        for (int j = 0; j < At<int>(record, 0x734); ++j)
-            UnitAddWeapon(unit, nullptr, At<void**>(record, 0x730)[j]);
-        void* controller = At<void*>(unit, 0x240);
-        if (At<int>(record, 0x734) != 0) ei::VCall<void>(controller, kSlotEquipped, 0);
-        for (int j = 0; j < At<int>(record, 0x754); ++j) {
-            void* armour = At<void**>(record, 0x750)[j];
+        for (int j = 0; j < static_cast<int>(record->weaponCount); ++j)
+            UnitAddWeapon(unit, nullptr, record->weapons[j]);
+        CUnitController* controller = unit->Controller();
+        if (record->weaponCount != 0) controller->ShowWeapon(0);
+        for (int j = 0; j < static_cast<int>(record->armorCount); ++j) {
+            CEngineObject* armour = record->armor[j];
             if (allArmour || ArmourType(armour) != 0) UnitEquipArmour(unit, nullptr, armour);
         }
-        for (int j = 0; j < At<int>(record, 0x744); ++j)
-            UnitAddQuickItem(unit, nullptr, At<void**>(record, 0x740)[j]);
-        ei::VCall<void>(At<void*>(unit, 0x240), kSlotItemsChanged);
-        ei::VCall<void>(At<void*>(unit, 0x240), kSlotRefresh);
-        ei::VCall<void>(unit, kSlotSetPlayer, At<void*>(record, 0));
+        for (int j = 0; j < static_cast<int>(record->quickItemCount); ++j)
+            UnitAddQuickItem(unit, nullptr, record->quickItems[j]);
+        unit->Controller()->UpdateHeroTextures();
+        unit->Controller()->RefreshModel();
+        slots->SetScriptName(record->texts[0]);
         AddObject(unit);
     }
 }
