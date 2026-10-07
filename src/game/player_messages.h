@@ -164,6 +164,14 @@ public:
     // 00670190, 0x31: unit ids, two flags, an object id; each unit's Player mode attacks it.
     int OnAttack();
     int OnPartyUpdate();       // 00670B60, 0x50: a sized block loaded into the party (no variables)
+    // 0066F0C0. Message 0x83: the party saved without its variables as a sized block.
+    void SendPartyUpdate();
+    // 0066F450 (from the player state tick 0058B750). A joined, deployed player's party is sent
+    // again: "Resending party of player <id>" to the log, the records synced (00590C70), SendParty,
+    // then 00591070.
+    void ResendParty();
+    // 0066F840 (RET 8; the briefing screen). Message 0x19: a byte and a dword.
+    void SendPair19(std::uint8_t a, std::uint32_t b);
 
     CPlayer* Owner() const { return reinterpret_cast<CPlayer*>(player_); }
 

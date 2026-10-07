@@ -212,8 +212,38 @@ void __fastcall FormationVerify(const mfc::CArray<CUnit*>* units, mfc::CArray<Ve
     }
     if (scratch.data) gamecrt::operator_delete(scratch.data);
 }
+
+// 0066F0C0 (before a zone change, 00590A40), 0066F450 (the player state tick), 0066F840 (the
+// briefing screen's answers; ui_base_dialogue): ours only, the messages appended.
+void __fastcall PartyUpdateSendVerify(CPlayerServer* self) {
+    std::uint32_t before = self->out_.position_;
+    self->SendPartyUpdate();
+    bool ok = self->out_.position_ > before + 1 && self->out_.data_[before] == 0x83;
+    ei::verify::Check("CPlayerServer::SendPartyUpdate", true, ok, "grew %u", self->out_.position_ - before);
+}
+void __fastcall ResendPartyVerify(CPlayerServer* self) {
+    std::uint32_t before = self->out_.position_;
+    bool sends = self->state_ == 1 && self->flag70_ != 0;
+    self->ResendParty();
+    ei::verify::Check("CPlayerServer::ResendParty", true, sends || self->out_.position_ == before, "state %d flag %d",
+                      self->state_, self->flag70_);
+}
+void __fastcall Pair19Verify(CPlayerServer* self, void*, std::uint8_t a, std::uint32_t b) {
+    std::uint32_t before = self->out_.position_;
+    self->SendPair19(a, b);
+    bool ok = self->out_.position_ == before + 6;
+    if (ok) {
+        std::uint32_t written = 0;
+        std::memcpy(&written, self->out_.data_ + before + 2, 4);
+        ok = self->out_.data_[before] == 0x19 && self->out_.data_[before + 1] == a && written == b;
+    }
+    ei::verify::Check("CPlayerServer::SendPair19", true, ok, "%u %u", a, b);
+}
 } // namespace
 
+EI_VERIFY(0x0066F0C0, PartyUpdateSendVerify, 0, s_unused);
+EI_VERIFY(0x0066F450, ResendPartyVerify, 0, s_unused);
+EI_VERIFY(0x0066F840, Pair19Verify, 0, s_unused);
 EI_VERIFY(0x0066FAA0, RefreshPartyVerify, 0, s_unused);
 EI_VERIFY(0x00670C20, TakeExitVerify, 0, s_unused);
 EI_VERIFY(0x00670DA0, JoinedVerify, 0, s_unused);

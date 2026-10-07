@@ -1092,7 +1092,6 @@ __declspec(naked) void __fastcall ServerCommand(void*, void*, int, const char*) 
 __declspec(naked) void __fastcall HandleClose(void*, void*) EI_ORIGINAL(0x00413270)
 // 00590C70 / 00591070 (RET 4). CWorldServer: sync a player's party records / after the copy.
 __declspec(naked) void __fastcall SyncPartyRecordsAt(void*, void*, WorldPlayer*) EI_ORIGINAL(0x00590C70)
-__declspec(naked) void __fastcall AfterPartyCopy(void*, void*, WorldPlayer*) EI_ORIGINAL(0x00591070)
 __declspec(naked) int __fastcall ViewRequestZoneAt(void*, void*, const char*, int) EI_ORIGINAL(0x0066B1B0)
 
 constexpr int kServerDropClient = 9;
@@ -1149,7 +1148,7 @@ void GameFlow::SwitchMultiplayerZone() {
     if (player && At<char>(At<void*>(player, 0x20), 0x70)) {
         SyncPartyRecordsAt(reinterpret_cast<void*>(0x007AFF60), nullptr, player);
         PartyCopyFrom(records.bytes, nullptr, reinterpret_cast<std::uint8_t*>(player) + 0x70);
-        AfterPartyCopy(reinterpret_cast<void*>(0x007AFF60), nullptr, player);
+        WorldAfterPartyCopyOriginal(reinterpret_cast<void*>(0x007AFF60), nullptr, player);
     } else {
         PartyCopyFrom(records.bytes, nullptr, GlobalParty());
     }

@@ -19,6 +19,7 @@
 #include "world.h"
 
 #include "lib/mfc.h"
+#include "originals_library.h"
 
 #include "ei/hook.h"
 
@@ -543,3 +544,44 @@ EI_REPLACE_METHOD(0x0066FFF0, CPlayerServer::OnWalk);
 EI_REPLACE_METHOD(0x0066FBD0, CPlayerServer::OnGoTo);
 EI_REPLACE_METHOD(0x00670190, CPlayerServer::OnAttack);
 EI_REPLACE_METHOD(0x00670B60, CPlayerServer::OnPartyUpdate);
+
+// --- A-H14: party resends, message 0x19 ------------------------------------------------------------
+
+namespace {
+constexpr std::uint8_t kMessagePartyUpdate = 0x83;
+constexpr std::uint8_t kMessage19 = 0x19;
+const char* const kResendingParty = "Resending party of player ";   // 00794F34
+void* GameCout() { return reinterpret_cast<void*>(std::uintptr_t(0x007C56B0)); }
+void* FlushManipulator() { return reinterpret_cast<void*>(std::uintptr_t(0x00435000)); }
+} // namespace
+
+void CPlayerServer::SendPartyUpdate() {
+    LocalStream block;
+    Owner()->Party()->SaveParty(block.Get(), 0);
+    std::uint8_t type = kMessagePartyUpdate;
+    out_.Write(&type, 1);
+    out_.WriteSized(block.Get());
+}
+EI_REPLACE_METHOD(0x0066F0C0, CPlayerServer::SendPartyUpdate);
+
+void CPlayerServer::ResendParty() {
+    if (state_ != 1 || !flag70_) return;
+    CPlayer* player = Owner();
+    void* log = OstreamPutString(GameCout(), nullptr, kResendingParty);
+    log = OstreamPutLongOriginal(log, nullptr, player->playerId_);
+    log = OstreamPutChar(log, nullptr, '\n');
+    OstreamManipulate(log, nullptr, FlushManipulator());
+    auto* worldPlayer = reinterpret_cast<WorldPlayer*>(player);
+    WorldServer()->SyncPartyRecords(worldPlayer);
+    SendParty();
+    WorldAfterPartyCopyOriginal(WorldServer(), nullptr, worldPlayer);
+}
+EI_REPLACE_METHOD(0x0066F450, CPlayerServer::ResendParty);
+
+void CPlayerServer::SendPair19(std::uint8_t a, std::uint32_t b) {
+    std::uint8_t type = kMessage19;
+    out_.Write(&type, 1);
+    out_.Write(&a, 1);
+    out_.Write(&b, 4);
+}
+EI_REPLACE_METHOD(0x0066F840, CPlayerServer::SendPair19);
