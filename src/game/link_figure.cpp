@@ -2,12 +2,15 @@
 #include "link_figure.h"
 
 #include "originals_script.h"
+#include "texture.h"   // CTextureDevice
 
 #include "ei/hook.h"
+#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 
 #include <cstring>
+#include <new>
 
 namespace {
 
@@ -54,17 +57,95 @@ void SetW(VertexPacket& packet) {
     for (int k = 3; k >= 0; --k) std::memcpy(&packet.block[3][k], &kOne, 4);
 }
 
+// One vertex packet from its FIG8 record at *cursor (3 blocks of 8 versions, 0x180 bytes; moved
+// past it), morphed by s, t, u; w = 1.
+void MorphFig8Packet(VertexPacket& packet, const char** cursor, float s, float t, float u) {
+    for (int b = 0; b < 3; ++b) {
+        const float* versions = reinterpret_cast<const float*>(*cursor);
+        for (int k = 0; k < 4; ++k) packet.block[b][k] = Morph8(versions + k, s, t, u);
+        *cursor += 0x80;
+    }
+    SetW(packet);
+}
+
+// The same for the older records (3 blocks of 6 versions, 0x120 bytes).
+void MorphOldPacket(VertexPacket& packet, const char** cursor, float s, float t, float u) {
+    for (int b = 0; b < 3; ++b) {
+        const float* versions = reinterpret_cast<const float*>(*cursor);
+        for (int k = 0; k < 4; ++k) packet.block[b][k] = Morph6(versions + k, s, t, u);
+        *cursor += 0x60;
+    }
+    SetW(packet);
+}
+
 } // namespace
 
 // ---- CLinkMesh ------------------------------------------------------------------------------------
+
+CLinkMesh* CLinkMesh::Construct(CLinkFigureLoader* loader, const stlp::string* name, float s, float t, float u) {
+    refCount_ = 0;
+    ei::SetVtable(this, kRootVtableAddress);
+    new (&name_) stlp::string(*name);
+    headers_.Construct();
+    ei::SetVtable(this, kBaseVtableAddress);
+    morph_[0] = s;
+    morph_[1] = t;
+    morph_[2] = u;
+    vertices_.Construct();
+    normals_.Construct();
+    texCoords_.Construct();
+    corners_.Construct();
+    words_.Construct();
+    indices_.Construct();
+    ranges_.Construct();
+    ei::SetVtable(this, kVtableAddress);
+    loader_ = loader;
+    pipeline_ = loader->renderer_->pipeline_->transform_;
+    return this;
+}
+EI_REPLACE_METHOD(0x004F2C00, CLinkMesh::Construct);
+
+void CLinkMesh::Destruct() {
+    ei::SetVtable(this, kVtableAddress);
+    ranges_.Destroy();
+    indices_.FreeData();
+    words_.FreeData();
+    corners_.FreeData();
+    texCoords_.FreeData();
+    normals_.FreeData();
+    vertices_.FreeData();
+    DestructBase();
+}
+EI_REPLACE_METHOD(0x004F2E40, CLinkMesh::Destruct);
+
+void CLinkMesh::DestructBase() {
+    ei::SetVtable(this, kBaseVtableAddress);
+    headers_.Destroy();
+    name_.~string();
+    ei::SetVtable(this, kRootVtableAddress);
+}
+EI_REPLACE_METHOD(0x004F2D40, CLinkMesh::DestructBase);
+
+CLinkMesh* CLinkMesh::DeletingDestructBase(unsigned flags) {
+    DestructBase();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x004F2E00, CLinkMesh::DeletingDestructBase);
+
+void* CLinkMesh::DeleteThis(unsigned flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+void* __fastcall LinkMeshDeleteThis(CLinkMesh* self, void*, unsigned flags) { return self->CLinkMesh::DeleteThis(flags); }
+EI_REPLACE(0x004F2E20, LinkMeshDeleteThis);
 
 bool CLinkMesh::AddPart(const stlp::string* name, const VertexPacket* vertices, int vertexCount,
                         const NormalPacket* normals, int normalCount, const TexCoord* texCoords, int texCoordCount,
                         const MeshCorner* corners, int cornerCount, const std::uint32_t* words, int wordCount,
                         const std::uint16_t* indices, int indexCount) {
-    void* found;
-    LinkRangeMapFindOriginal(&ranges_, nullptr, &found, name);
-    if (found != ranges_.header) return false;
+    if (ranges_.find(*name) != ranges_.end()) return false;
 
     LinkPartRanges ranges{};
     ranges.vertices = {Append(vertices_, vertices, vertexCount), vertexCount};
@@ -100,15 +181,13 @@ void CLinkFigureLoader::LoadFigPart(CLinkMesh* mesh, const stlp::string* name, c
     VertexPacket* packets = AllocatePackets(count);
     for (int i = 0; i < count; ++i) {
         VertexPacket& packet = packets[i];
+        if (fig.magic == kFig8Magic) {
+            MorphFig8Packet(packet, cursor, s, t, u);
+            continue;
+        }
         for (int b = 0; b < 3; ++b) {
-            if (fig.magic == kFig8Magic) {
-                const float* versions = reinterpret_cast<const float*>(*cursor);
-                for (int k = 0; k < 4; ++k) packet.block[b][k] = Morph8(versions + k, s, t, u);
-                *cursor += 0x80;
-            } else {
-                std::memcpy(packet.block[b], *cursor, 0x10);
-                *cursor += 0x10;
-            }
+            std::memcpy(packet.block[b], *cursor, 0x10);
+            *cursor += 0x10;
         }
         SetW(packet);
     }
@@ -138,15 +217,7 @@ void CLinkFigureLoader::LoadOldPart(CLinkMesh* mesh, const stlp::string* name, c
     int count = Read<int>(cursor);
 
     VertexPacket* packets = AllocatePackets(count);
-    for (int i = 0; i < count; ++i) {
-        VertexPacket& packet = packets[i];
-        for (int b = 0; b < 3; ++b) {
-            const float* versions = reinterpret_cast<const float*>(*cursor);
-            for (int k = 0; k < 4; ++k) packet.block[b][k] = Morph6(versions + k, s, t, u);
-            *cursor += 0x60;
-        }
-        SetW(packet);
-    }
+    for (int i = 0; i < count; ++i) MorphOldPacket(packets[i], cursor, s, t, u);
     if (count) pipeline_->FitBounds(&header->bounds, packets, count);
 
     // Each array is a count and its elements; a block of 0x34-byte records between the texture
@@ -177,6 +248,59 @@ void CLinkFigureLoader::LoadOldPart(CLinkMesh* mesh, const stlp::string* name, c
 }
 EI_REPLACE_METHOD(0x004F87D0, CLinkFigureLoader::LoadOldPart);
 
+// ---- Morphing a loaded part again -----------------------------------------------------------------
+
+namespace {
+// 004F3800 (CLinkMesh::SetPartVertices, below), called through its address so its check sees these calls.
+__declspec(naked) bool __fastcall SetPartVerticesAt(CLinkMesh*, void*, const stlp::string*, const VertexPacket*, unsigned)
+    EI_ORIGINAL(0x004F3800)
+} // namespace
+
+void CLinkFigureLoader::RemorphFigPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s,
+                                       float t, float u) {
+    LinkPartHeader* header = LinkHeaderMapAtOriginal(&mesh->headers_, nullptr, name);
+    FigHeader fig;
+    std::memcpy(&fig, *cursor, sizeof(fig));
+    *cursor += 0x168;   // the header, two dwords and the FIG8 bounds (a plain FIG is read as FIG8 too)
+    int count = fig.vertexCount;
+    VertexPacket* packets = AllocatePackets(count);
+    for (int i = 0; i < count; ++i) MorphFig8Packet(packets[i], cursor, s, t, u);
+    if (count) pipeline_->FitBounds(&header->bounds, packets, count);
+    SetPartVerticesAt(mesh, nullptr, name, packets, static_cast<unsigned>(count));
+    if (packets) lib::AlignedArray<VertexPacket>::Free(packets);
+}
+EI_REPLACE_METHOD(0x004F9FD0, CLinkFigureLoader::RemorphFigPart);
+
+void CLinkFigureLoader::RemorphOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s,
+                                       float t, float u) {
+    LinkPartHeader* header = LinkHeaderMapAtOriginal(&mesh->headers_, nullptr, name);
+    *cursor += 0xF8;   // two dwords and the morphed bounds
+    int count = Read<int>(cursor);
+    VertexPacket* packets = AllocatePackets(count);
+    for (int i = 0; i < count; ++i) MorphOldPacket(packets[i], cursor, s, t, u);
+    if (count) pipeline_->FitBounds(&header->bounds, packets, count);
+    SetPartVerticesAt(mesh, nullptr, name, packets, static_cast<unsigned>(count));
+    if (packets) lib::AlignedArray<VertexPacket>::Free(packets);
+}
+EI_REPLACE_METHOD(0x004FA670, CLinkFigureLoader::RemorphOldPart);
+
+int CLinkMesh::MemoryBytes() const {
+    const int parts = static_cast<int>(ranges_.size());
+    const int inner = texCoords_.size + 8 * (vertices_.size + normals_.size) + 6 * parts;
+    return 2 * (indices_.size + 3 * corners_.size + 2 * (words_.size + 0x2C + 2 * inner));
+}
+EI_REPLACE_METHOD(0x004F4B50, CLinkMesh::MemoryBytes);
+
+bool CLinkMesh::SetPartVertices(const stlp::string* name, const VertexPacket* vertices, unsigned count) {
+    const LinkRangeMap::Node* node = ranges_.find(*name);
+    if (node == ranges_.end()) return false;
+    const LinkPartRanges& r = node->second;
+    unsigned n = static_cast<unsigned>(r.vertices.count) < count ? static_cast<unsigned>(r.vertices.count) : count;
+    std::memcpy(vertices_.data + r.vertices.start, vertices, static_cast<std::size_t>(n) * sizeof(VertexPacket));
+    return true;
+}
+EI_REPLACE_METHOD(0x004F3800, CLinkMesh::SetPartVertices);
+
 // ---- CLinkMesh's slots ----------------------------------------------------------------------------
 
 namespace {
@@ -184,13 +308,6 @@ namespace {
 // 004F7480 (thiscall on the loader, RET 8, AL): loads part `name` into `mesh` unless it has it.
 __declspec(naked) bool __fastcall LoaderLoadPart(CLinkFigureLoader* /*loader*/, void*, CLinkMesh* /*mesh*/,
                                                  const stlp::string* /*name*/) EI_ORIGINAL(0x004F7480)
-
-// The node of part `name` in the ranges map, or the header.
-LinkMapNode* FindRanges(LinkStringMap* map, const stlp::string* name) {
-    void* found;
-    LinkRangeMapFindOriginal(map, nullptr, &found, name);
-    return static_cast<LinkMapNode*>(found);
-}
 
 // Moves the elements after [start, start + count) down over them and shortens the array (the
 // capacity and block stay).
@@ -209,22 +326,6 @@ constexpr int kNoRect = 2000000000;
 
 } // namespace
 
-LinkMapNode* LinkMapNode::Next() {
-    LinkMapNode* node = this;
-    if (node->right) {
-        node = node->right;
-        while (node->left) node = node->left;
-        return node;
-    }
-    LinkMapNode* up = node->parent;
-    while (node == up->right) {
-        node = up;
-        up = up->parent;
-    }
-    if (node->right != up) node = up;
-    return node;
-}
-
 void CLinkMesh::SetMorph(float s, float t, float u) {
     morph_[0] = s;
     morph_[1] = t;
@@ -234,8 +335,8 @@ EI_REPLACE_METHOD(0x004F2F90, CLinkMesh::SetMorph);
 
 void CLinkMesh::UpdateScreenRect() {
     gameapi::SetRect(&screenRect_, kNoRect, kNoRect, -kNoRect, -kNoRect);
-    for (LinkMapNode* node = headers_.header->left; node != headers_.header; node = node->Next()) {
-        const RECT& part = node->Value<LinkPartHeader>().screen;
+    for (LinkHeaderMap::Node* node = headers_.begin(); node != headers_.end(); node = LinkHeaderMap::Next(node)) {
+        const RECT& part = node->second.screen;
         if (gameapi::IsRectEmpty(&part)) continue;
         if (part.left < screenRect_.left) screenRect_.left = part.left;
         if (screenRect_.right < part.right) screenRect_.right = part.right;
@@ -246,12 +347,13 @@ void CLinkMesh::UpdateScreenRect() {
 void __fastcall LinkMeshUpdateScreenRect(CLinkMesh* self) { self->CLinkMesh::UpdateScreenRect(); }
 EI_REPLACE(0x004F45E0, LinkMeshUpdateScreenRect);
 
-bool CLinkMesh::HasPart(const stlp::string* name) { return FindRanges(&ranges_, name) != ranges_.header; }
+bool CLinkMesh::HasPart(const stlp::string* name) { return ranges_.find(*name) != ranges_.end(); }
 bool __fastcall LinkMeshHasPart(CLinkMesh* self, void*, const stlp::string* name) { return self->CLinkMesh::HasPart(name); }
 EI_REPLACE(0x004F3040, LinkMeshHasPart);
 
 void CLinkMesh::CollectPartNames(stlp::vector<stlp::string>* out) {
-    for (LinkMapNode* node = ranges_.header->left; node != ranges_.header; node = node->Next()) out->push_back(node->key);
+    for (LinkRangeMap::Node* node = ranges_.begin(); node != ranges_.end(); node = LinkRangeMap::Next(node))
+        out->push_back(node->first);
 }
 void __fastcall LinkMeshCollectPartNames(CLinkMesh* self, void*, stlp::vector<stlp::string>* out) {
     self->CLinkMesh::CollectPartNames(out);
@@ -263,9 +365,9 @@ bool __fastcall LinkMeshLoadPart(CLinkMesh* self, void*, const stlp::string* nam
 EI_REPLACE(0x004F30D0, LinkMeshLoadPart);
 
 bool CLinkMesh::RemovePart(const stlp::string* name) {
-    LinkMapNode* node = FindRanges(&ranges_, name);
-    if (node == ranges_.header) return false;
-    LinkPartRanges removed = node->Value<LinkPartRanges>();
+    LinkRangeMap::Node* node = ranges_.find(*name);
+    if (node == ranges_.end()) return false;
+    LinkPartRanges removed = node->second;
     LinkRangeMapEraseOriginal(&ranges_, nullptr, node);
 
     CloseGap(vertices_.data, vertices_.size, removed.vertices.start, removed.vertices.count, sizeof(VertexPacket));
@@ -275,8 +377,8 @@ bool CLinkMesh::RemovePart(const stlp::string* name) {
     CloseGap(words_.data, words_.size, removed.words.start, removed.words.count, 4);
     CloseGap(indices_.data, indices_.size, removed.indices.start, removed.indices.count, 2);
 
-    for (LinkMapNode* n = ranges_.header->left; n != ranges_.header; n = n->Next()) {
-        LinkPartRanges& r = n->Value<LinkPartRanges>();
+    for (LinkRangeMap::Node* n = ranges_.begin(); n != ranges_.end(); n = LinkRangeMap::Next(n)) {
+        LinkPartRanges& r = n->second;
         if (!(static_cast<std::uint32_t>(r.indices.start) > static_cast<std::uint32_t>(removed.indices.start))) continue;
         r.vertices.start -= removed.vertices.start;
         r.normals.start -= removed.normals.start;
@@ -292,9 +394,9 @@ EI_REPLACE(0x004F3530, LinkMeshRemovePart);
 
 bool CLinkMesh::GetPartData(const stlp::string* name, VertexPacket** vertices, MeshCorner** corners,
                             std::uint16_t** indices, int* vertexCount, int* indexCount) {
-    LinkMapNode* node = FindRanges(&ranges_, name);
-    if (node == ranges_.header) return false;
-    const LinkPartRanges& r = node->Value<LinkPartRanges>();
+    const LinkRangeMap::Node* node = ranges_.find(*name);
+    if (node == ranges_.end()) return false;
+    const LinkPartRanges& r = node->second;
     *vertices = vertices_.data + r.vertices.start;
     *corners = reinterpret_cast<MeshCorner*>(corners_.data + r.corners.start);
     *indices = indices_.data + r.indices.start;

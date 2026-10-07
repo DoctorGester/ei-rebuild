@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <cstring>
 #include "originals_library.h"
+#include "originals_world.h"
 
 namespace {
 
@@ -35,8 +36,6 @@ __declspec(naked) void __fastcall MapFind(void*, void*, Iterator*, const RawStri
 __declspec(naked) char* __fastcall MapIndex(void*, void*, const RawString*) EI_ORIGINAL(0x004FBBD0)
 // STLport string copy constructor (RET 4) and two destructor instantiations.
 void __fastcall StringCopy(RawString* a0, void*, const RawString* a2) { StringCopyConstructOriginal((void*)a0, nullptr, (const void*)a2); }
-// 005A9A50: the model's constructor; returns this.
-__declspec(naked) void* __fastcall ConstructModel(void*) EI_ORIGINAL(0x005A9A50)
 
 // The model's animation map (+0xC): find (RET 8) and operator[] (RET 4); 006721D0 the
 // animation's constructor (0x6C bytes, returns this).
@@ -91,7 +90,7 @@ void* __fastcall FindFigureModel(char* manager, void*, const void* nameIn) {
     if (!mesh) return nullptr;
 
     void* model = gamecrt::operator_new(0x20);
-    if (model) model = ConstructModel(model);
+    if (model) model = FigureModelConstructOriginal(model);
     *static_cast<void**>(ModelSlot(map, name, &StringRepDestroy)) = model;
     void** parts = *static_cast<void***>(ModelSlot(map, name, &StlStringDestroy));
     ei::VCall<void>(parts[0], kSlotLoad, mesh);

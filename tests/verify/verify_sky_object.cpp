@@ -114,3 +114,34 @@ static AlignedWords* __fastcall ArrayConstructVerify(AlignedWords* self) {
 EI_VERIFY(0x004D9E80, ArrayConstructVerify, 0, s_construct80);
 EI_VERIFY(0x004D9E90, ArrayConstructVerify, 0, s_construct90);
 EI_VERIFY(0x004D9EA0, ArrayConstructVerify, 0, s_constructA0);
+
+// 004D9680 (A-S8, ours only): no object, turning, a texture holder loaded.
+static CSky* (__fastcall* s_skyConstruct)(CSky*);
+static CSky* __fastcall SkyConstructVerify(CSky* self) {
+    CSky* result = self->Construct();
+    ei::verify::Check("CSky::Construct", true,
+                      result == self && !self->object && self->unknown_04 == 0 && self->turns == 1 && self->texture,
+                      "%p", self->texture);
+    return result;
+}
+EI_VERIFY(0x004D9680, SkyConstructVerify, 0, s_skyConstruct);
+
+// 004D96E0 (A-S8, ours only: it draws): the object at the eye lowered by 16 with that translation in
+// its matrix, and the pipeline's stacks 1 and 2 as deep as before. Every frame with a sky (newgame,
+// render_scene).
+static void (__fastcall* s_skyDraw)(CSky*, void*, CSceneRenderer*, const Vector3*);
+static void __fastcall SkyDrawVerify(CSky* self, void*, CSceneRenderer* renderer, const Vector3* eye) {
+    const int depth1 = renderer->pipeline_->stacks_[1].count;
+    const int depth2 = renderer->pipeline_->stacks_[2].count;
+    self->Draw(renderer, eye);
+    if (!self->object) return;
+    const CSkyObject* o = self->object;
+    volatile float rounded = eye->z - 16.0f;   // stored as a float, as the original does
+    const float z = rounded;
+    const bool ok = o->localPosition_.x == eye->x && o->localPosition_.y == eye->y && o->localPosition_.z == z &&
+                    o->matrix_.m[3] == eye->x && o->matrix_.m[7] == eye->y && o->matrix_.m[11] == z &&
+                    o->matrix_.m[15] == 1.0f && renderer->pipeline_->stacks_[1].count == depth1 &&
+                    renderer->pipeline_->stacks_[2].count == depth2;
+    ei::verify::Check("CSky::Draw", true, ok, "depths %d %d", depth1, depth2);
+}
+EI_VERIFY(0x004D96E0, SkyDrawVerify, 0, s_skyDraw);

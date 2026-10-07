@@ -47,8 +47,10 @@ static_assert(sizeof(MatrixStack) == 8);
 // `out` may be one of the inputs as in the original.
 void __fastcall MatrixMultiply(float* out, void*, const float* a, const float* b);
 
-// The transform pipeline of the 3D library (the object behind GetTLPipeline). Only the matrix
-// stacks are known.
+class ITransformPipeline;   // link_figure.h
+
+// The transform pipeline of the 3D library (the scene renderer's +8, the device object's +0xAC).
+// Only the matrix stacks and the transform object are known.
 class CTransformPipeline {
 public:
     // Stack 2 holds the matrix ClipTest projects with.
@@ -61,11 +63,62 @@ public:
     // 004D9B80 (matrix_math.cpp, RET 8). Pushes `m` onto stack `index`: an empty stack gets `m`
     // itself, otherwise the new top is the old top times `m` (no capacity check).
     void PushMatrix(const float* m, int index);
+    // 004F2650 (RET 0x14, A-S8). Projects `blocks` blocks of four positions: `bounds` (null: assumed
+    // crossing) classified by ClipTest; on screen (0): the transform object's Project with the top of
+    // stack 1, result 0; crossing (1): its ProjectClipped with the top of stack 2, its result;
+    // anything else: 2, nothing projected.
+    int ProjectBlocks(const void* positions, void* projected, void* outcodes, int blocks, const ClipBounds* bounds);
+    // 004F29F0 (RET 0x14, A-S8). The same for terrain vertices (slots 18 / 19), both with stack 2.
+    int ProjectTerrain(const void* vertices, void* projected, void* outcodes, int count, const ClipBounds* bounds);
+    // The top of stack `index` (matrices[count - 1], as the original computes it even when empty).
+    const Matrix4* Top(int index) const { return stacks_[index].matrices + (stacks_[index].count - 1); }
 
-    std::uint8_t unknown_00[0x14];
+    std::uint8_t unknown_00[0x0C];
+    ITransformPipeline* transform_;   // +0x0C 3DfpFPU.dll's transform object (projects and clips vertices)
+    std::uint8_t unknown_10[4];
     MatrixStack stacks_[11];    // +0x14 (models.md: stacks 0-2, 5-10 are in use)
 };
-static_assert(offsetof(CTransformPipeline, stacks_) == 0x14);
+static_assert(offsetof(CTransformPipeline, stacks_) == 0x14 && offsetof(CTransformPipeline, transform_) == 0x0C);
+
+struct tagRECT;
+
+// The scene renderer (the global at 007AF060, vtable 0073D93C, 26 slots; 00500960 returns it).
+// Only the slots rewritten code calls are named. The game's code stores the vtable (novtable).
+class __declspec(novtable) CSceneRenderer {
+public:
+    // 0: 00501AB0. Sets the device's fog colour render state (D3DRENDERSTATE_FOGCOLOR) to `colour`.
+    virtual void SetFogColourState(std::uint32_t colour);
+    virtual void Unknown1();
+    virtual void Unknown2();
+    virtual void Unknown3();
+    virtual void Unknown4();
+    virtual void Unknown5();
+    virtual void Unknown6();
+    virtual void Unknown7();
+    virtual void Unknown8();
+    virtual void Unknown9();
+    virtual void Unknown10();
+    // 11: 00501AF0 (RET 8, EAX 1). Binds `texture` (a texture object, or null) to stage `stage`.
+    virtual int SetTexture(int stage, void* texture);
+    virtual void Unknown12();
+    virtual void Unknown13();
+    // 14: 00501D00 (RET 0x18). Draws `figure` through its drawer (+0x94, 005A7640) unless it is
+    // hidden (flags +8 bit 0x80); `alpha` reaches the mesh draw, `screen` (or null) gets the
+    // rectangle drawn. The second and third arguments are not read there.
+    virtual int DrawFigure(void* figure, const void* unknownA, const void* unknownB, int unknownC, int alpha,
+                           tagRECT* screen);
+
+    // 004BA120 (RET 0xC; scene_renderer.cpp, A-S8). The fog (and clear) colour from components in
+    // 0..1: each times 255 as a float, rounded to the nearest integer (FISTP); A = 0xFF, packed as
+    // ((r | 0xFFFFFF00) << 8 | g) << 8 | b; stored at +0x14 and set through slot 0.
+    void SetFogColour(float r, float g, float b);
+
+    std::uint8_t unknown_04[4];
+    CTransformPipeline* pipeline_;   // +0x08
+    std::uint8_t unknown_0C[8];
+    std::uint32_t fogColour_;        // +0x14 also the colour the frame is cleared with
+};
+static_assert(offsetof(CSceneRenderer, pipeline_) == 0x08 && offsetof(CSceneRenderer, fogColour_) == 0x14);
 
 // 004F1370. Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by
 // the half extents, y flipped. Returns out.
@@ -110,14 +163,16 @@ static_assert(sizeof(LinkFigureSet) == 0x20);
 // from the figure's own archive set when there is one (004FAB00), else from the open archives
 // as "<figure><part>.fig". link_loader.cpp (A-S7). The game's code stores the vtable (novtable).
 class CLinkMesh;
+class CTextureDevice;
 class ITransformPipeline;
 struct VertexPacket;
 
 class __declspec(novtable) CLinkFigureLoader {
 public:
-    virtual void* DeleteThis(unsigned flags);   // 0: 004F6A30 (destructor body 004F6BD0)
+    // 0: 004F6A30 (RET 4, returns this; A-S8). Destruct; freed when flags bit 0 is set.
+    virtual void* DeleteThis(unsigned flags);
     virtual int CacheSize();                    // 1: 004F6A20 (cache_'s count)
-    virtual int CacheBytes();                   // 2: 004FAAA0 (each cached mesh's 004F4B50 summed)
+    virtual int CacheBytes();                   // 2: 004FAAA0 (each cached mesh's MemoryBytes summed; A-S8)
     // 3: 004F7150 (RET 0x18). Figure `name` with the parts `parts`: unless `fresh`, the first cached
     // mesh of that name with close coefficients, given the parts it lacks; otherwise a new one
     // (MakeFigure). No reference is added for the caller.
@@ -157,12 +212,31 @@ public:
     // 004F7D20 (RET 0x14, EAX 1 / 0). Part `name` of `mesh` from the first open archive that has
     // "<mesh name><name>.fig".
     int LoadArchivePart(CLinkMesh* mesh, const stlp::string* name, float s, float t, float u);
+    // 004FAB00 (RET 4; A-S8). Figure `name`'s own archive set: the cached one, else (when an open
+    // archive has "<name>.mod") a new set (005A9A50) stored under the name and loaded from the first
+    // archives with "<name>.mod" / ".bon" / ".anm" (005A9EB0); null without a .mod.
+    LinkFigureSet* FindFigureSet(const stlp::string* name);
+    // 004F9E50 (RET 0x18, AL; A-S8). Part `name` of `mesh` morphed again by s, t, u from its record
+    // (the figure set's model, else "<mesh name><name>.fig" in the archives): false without one.
+    bool RemorphPart(CLinkMesh* mesh, LinkFigureSet* set, const stlp::string* name, float s, float t, float u);
+    // 004F9FD0 / 004FA670 (RET 0x18; link_figure.cpp). The record at *cursor (moved past the
+    // vertices) morphed into the part's vertex packets (CLinkMesh::SetPartVertices) and its header's
+    // bounds refitted. The FIG one reads every record as FIG8 (header, bounds and vertices).
+    void RemorphFigPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);
+    void RemorphOldPart(CLinkMesh* mesh, const stlp::string* name, const char** cursor, float s, float t, float u);
+    // 004F6BD0 (A-S8). Each archive closed (slot 3) and deleted, the archive list emptied, each
+    // figure set destroyed (005A9C90) and freed, the device object released (the field cleared
+    // first), the cache emptied (ClearCache's walk), then the containers' storage; the counted
+    // root's vtable (0073C368) left.
+    void Destruct();
+
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073D808);
 
     int refCount_;                    // +0x04
     ITransformPipeline* pipeline_;    // +0x08 the renderer's (+0x24) +0xAC -> +0xC
     LinkArchiveNode* archives_;       // +0x0C list sentinel
     stlp::hash_map<stlp::string, LinkFigureSet*, stlp::StringHash> figureSets_;   // +0x10 by figure name
-    void* renderer_;                  // +0x24 counted; meshes take their pipeline from its +0xAC
+    CTextureDevice* renderer_;        // +0x24 the device object, counted; meshes take their pipeline from it
     stlp::map<stlp::string, CLinkMesh*> cache_;   // +0x28 a multimap of counted references
 };
 static_assert(offsetof(CLinkFigureLoader, pipeline_) == 0x08);

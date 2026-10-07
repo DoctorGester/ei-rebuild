@@ -45,9 +45,7 @@ struct Sizes {
 };
 
 bool HasPart(CLinkMesh* mesh, const stlp::string* name) {
-    void* found;
-    LinkRangeMapFindOriginal(&mesh->ranges_, nullptr, &found, name);
-    return found != mesh->ranges_.header;
+    return mesh->ranges_.find(*name) != mesh->ranges_.end();
 }
 
 bool Near(float expected, float actual) { return ei::verify::NearlyEqual<float>(expected, actual, 8, 1e-5f); }

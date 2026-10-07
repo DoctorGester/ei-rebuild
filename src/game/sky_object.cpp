@@ -2,6 +2,7 @@
 #include "sky_object.h"
 
 #include "originals_core.h"
+#include "originals_render.h"   // LoadTextureOriginal, TextureEnsureLoadedOriginal
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -114,6 +115,62 @@ void CSkyObject::Light(const float* direction, SkyColour ambient, SkyColour ligh
 void CSky::Light(const float* direction, SkyColour ambient, SkyColour light, SkyColour unused) {
     if (object) object->Light(direction, ambient, light, unused);
 }
+
+namespace {
+constexpr int kSkyTextureKind = 0x3D;
+const char* const kSkyTextureName = reinterpret_cast<const char*>(std::uintptr_t(0x0078DB20));   // "sky00"
+constexpr float kSkyDrop = 16.0f;                // 0073CA98: the dome sits this far below the eye
+constexpr float kSkyTurnRate = 1.0f / 3000.0f;   // 0073D61C: radians per world tick
+// Two 16-byte statics the draw passes to renderer slot 14 (not read there).
+const void* const kSkyDrawA = reinterpret_cast<const void*>(std::uintptr_t(0x007AA890));
+const void* const kSkyDrawB = reinterpret_cast<const void*>(std::uintptr_t(0x007AA8A0));
+
+// 00578B40 (the client glue, not read): the world time in ticks, whole ticks plus the fraction of
+// the current one (ST0).
+__declspec(naked) double __fastcall ClientWorldTime(void* /*glue*/) EI_ORIGINAL(0x00578B40)
+} // namespace
+
+CSky* CSky::Construct() {
+    object = nullptr;
+    unknown_04 = 0;
+    texture = nullptr;
+    turns = 1;
+    LoadTextureOriginal(&texture, nullptr, kSkyTextureKind, kSkyTextureName);
+    return this;
+}
+EI_REPLACE_METHOD(0x004D9680, CSky::Construct);
+
+void CSky::Draw(CSceneRenderer* renderer, const Vector3* eye) {
+    if (!object) return;
+    const float x = eye->x, y = eye->y, z = eye->z - kSkyDrop;
+    if (turns) {
+        const Vector3 up{0.0f, 0.0f, 1.0f};
+        Quaternion turn;
+        object->localRotation_ = *turn.SetAxisAngle(up, static_cast<float>(ClientWorldTime(nullptr) * kSkyTurnRate));
+    }
+    object->localPosition_ = Vector3{x, y, z};
+    float* m = object->matrix_.m;
+    object->localRotation_.ToMatrix(m);
+    m[3] = object->localPosition_.x;
+    m[7] = object->localPosition_.y;
+    m[11] = object->localPosition_.z;
+    m[12] = 0.0f;
+    m[13] = 0.0f;
+    m[14] = 0.0f;
+    m[15] = 1.0f;
+    CTransformPipeline* pipeline = renderer->pipeline_;
+    pipeline->PushMatrix(m, CTransformPipeline::kClipStack);
+    pipeline->PushMatrix(m, 1);
+    TextureEnsureLoadedOriginal(&texture);
+    renderer->SetTexture(0, texture);
+    renderer->DrawFigure(object, kSkyDrawA, kSkyDrawB, 0, 0xFF, nullptr);
+    const int stacks[2] = {CTransformPipeline::kClipStack, 1};
+    for (int stack : stacks) {
+        int& count = pipeline->stacks_[stack].count;
+        if (count != 0) --count;
+    }
+}
+EI_REPLACE_METHOD(0x004D96E0, CSky::Draw);
 
 namespace {
 const char* __fastcall ClassNameHook(CSkyObject* self) { return self->CSkyObject::GetClassName(); }

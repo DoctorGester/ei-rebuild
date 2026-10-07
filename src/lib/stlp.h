@@ -237,6 +237,40 @@ public:
         header_->right = header_;
         count_ = 0;
     }
+    // The owner's constructor (e.g. 004F4F30 / 004F51B0 + 004F5190): a header node from the node
+    // pool, red, no root, its left / right linked to itself; no elements.
+    void Construct() {
+        header_ = static_cast<Node*>(allocate(sizeof(Node)));
+        header_->color = 0;
+        header_->parent = nullptr;
+        header_->left = header_;
+        header_->right = header_;
+        count_ = 0;
+    }
+    // clear() (e.g. 004F50E0): every node destroyed (EraseSubtree) and the tree emptied; nothing
+    // happens when there are no elements.
+    void Clear() {
+        if (count_ == 0) return;
+        EraseSubtree(header_->parent);
+        ResetToEmpty();
+    }
+    // The destructor: Clear, then the header node back to the pool (e.g. 004F53B0 / 004F5360).
+    void Destroy() {
+        Clear();
+        deallocate(header_, sizeof(Node));
+    }
+    // _M_erase (e.g. 004F53F0): the right subtrees recursively, the left spine iteratively; each
+    // node's key and value destroyed and the node returned to the pool.
+    static void EraseSubtree(Node* n) {
+        while (n) {
+            EraseSubtree(n->right);
+            Node* left = n->left;
+            n->first.~K();
+            n->second.~V();
+            deallocate(n, sizeof(Node));
+            n = left;
+        }
+    }
     // The first node in key order (end() when empty) and the in-order successor (0043DBE0).
     Node* begin() const { return header_->left; }
     static Node* Next(Node* n) {

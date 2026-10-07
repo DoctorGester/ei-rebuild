@@ -16,7 +16,8 @@
 #include <cstddef>
 #include <cstdint>
 
-// The transform pipeline of 3DfpFPU.dll (GetTLPipeline), as far as the loaders call it.
+// The transform object of 3DfpFPU.dll (GetTLPipeline; CTransformPipeline::transform_), as far as
+// rewritten code calls it.
 class ITransformPipeline {
 public:
     // Slots 0-6 are not called from this code.
@@ -29,6 +30,24 @@ public:
     virtual void Unknown6();
     // 7: fits `bounds` around `count` vertex packets.
     virtual void FitBounds(ClipBounds* bounds, const VertexPacket* vertices, int count);
+    virtual void Unknown8();
+    // 9: projects `blocks` blocks of four positions with `matrix` into `projected`, writing their
+    // clip outcodes; the result is the caller's (on screen / crossing / outside).
+    virtual int ProjectClipped(const Matrix4* matrix, const void* positions, void* projected, void* outcodes,
+                               int blocks);
+    virtual void Unknown10();
+    virtual void Unknown11();
+    virtual void Unknown12();
+    virtual void Unknown13();
+    // 14: the same without clipping (every block on screen).
+    virtual void Project(const Matrix4* matrix, const void* positions, void* projected, int blocks);
+    virtual void Unknown15();
+    virtual void Unknown16();
+    virtual void Unknown17();
+    // 18 / 19: the same for the terrain's vertices (006BFC80).
+    virtual int ProjectTerrainClipped(const Matrix4* matrix, const void* vertices, void* projected, void* outcodes,
+                                      int count);
+    virtual void ProjectTerrain(const Matrix4* matrix, const void* vertices, void* projected, int count);
 };
 
 // A part's header in the mesh's map +0x14 (map<string, LinkPartHeader>; 0x50 bytes, zeroed when
@@ -59,34 +78,11 @@ struct LinkPartRanges {
 };
 static_assert(sizeof(LinkPartRanges) == 0x30);
 
-// A node of an STLport map<string, T>: the tree links, the key, the value at +0x1C. The header
-// node has the same links: parent = root, left = leftmost, right = rightmost.
-struct LinkMapNode {
-    int color;              // +0x00
-    LinkMapNode* parent;    // +0x04
-    LinkMapNode* left;      // +0x08
-    LinkMapNode* right;     // +0x0C
-    stlp::string key;       // +0x10
-
-    // The in-order successor (STLport's _Rb_tree_base_iterator::_M_increment, 0043DBE0).
-    LinkMapNode* Next();
-    template <typename V>
-    V& Value() {
-        return *reinterpret_cast<V*>(this + 1);
-    }
-};
-static_assert(sizeof(LinkMapNode) == 0x1C);
-
-// An STLport map<string, T> as the mesh holds it: the tree header node, the element count and the
-// (empty) comparison object. Its members are STLport instantiations (config/library.csv) reached
-// through their addresses.
-struct LinkStringMap {
-    LinkMapNode* header;       // +0x00
-    std::uint32_t count;       // +0x04
-    std::uint8_t compare;      // +0x08
-    std::uint8_t unknown_09[3];
-};
-static_assert(sizeof(LinkStringMap) == 0x0C);
+// The mesh's part maps (STLport map<string, T>; their insert / erase are library instantiations
+// reached through their addresses, originals_script.h).
+using LinkHeaderMap = stlp::map<stlp::string, LinkPartHeader>;   // nodes 0x6C bytes
+using LinkRangeMap = stlp::map<stlp::string, LinkPartRanges>;    // nodes 0x4C bytes
+static_assert(sizeof(LinkHeaderMap) == 0x0C && sizeof(LinkHeaderMap::Node) == 0x6C && sizeof(LinkRangeMap::Node) == 0x4C);
 
 // A figure's mesh (vtable 0073D790; base 0073D7CC; constructor 004F2C00, destructor 004F2E40).
 // The parts' elements are concatenated in the arrays; 0xB0 bytes. The game's constructor stores the
@@ -94,7 +90,8 @@ static_assert(sizeof(LinkStringMap) == 0x0C);
 // the renderer.
 class __declspec(novtable) CLinkMesh {
 public:
-    virtual void* DeleteThis(unsigned flags);   // 0: 004F2E20 (deleting destructor)
+    // 0: 004F2E20 (RET 4, returns this). Destruct; freed when flags bit 0 is set.
+    virtual void* DeleteThis(unsigned flags);
     // 1: 004F45E0. screenRect_ = the union of the parts' non-empty screen rectangles (inverted
     // +-2000000000 when there is none).
     virtual void UpdateScreenRect();
@@ -113,6 +110,30 @@ public:
     virtual bool GetPartData(const stlp::string* name, VertexPacket** vertices, MeshCorner** corners,
                              std::uint16_t** indices, int* vertexCount, int* indexCount);
 
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073D790);
+    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073D7CC);   // the part-header base
+    static constexpr std::uintptr_t kRootVtableAddress = std::uintptr_t(0x0073C368);   // the counted root (one slot)
+
+    // 004F2C00 (RET 0x14, returns this). No references; the name copied, both maps and the arrays
+    // empty, the coefficients stored, the pipeline taken from the loader's renderer (+0xAC -> +0xC).
+    CLinkMesh* Construct(CLinkFigureLoader* loader, const stlp::string* name, float s, float t, float u);
+    // 004F2E40. The ranges map, the arrays (indices first), then DestructBase's part.
+    void Destruct();
+    // 004F2D40 (the base's destructor; reached only from EH unwinding). The headers map and the
+    // name; the root vtable left.
+    void DestructBase();
+    // 004F2E00 (RET 4, returns this): the base's deleting destructor (vtable 0073D7CC slot 0; no
+    // object of the base alone exists).
+    CLinkMesh* DeletingDestructBase(unsigned flags);
+
+    // 004F4B50 (A-S8). An estimate of the mesh's bytes: 2 * (indices + 3 * corners + 2 * (words + 0x2C
+    // + 2 * (texture coordinates + 8 * (vertices + normals) + 6 * parts))), from the element counts.
+    int MemoryBytes() const;
+
+    // 004F3800 (RET 0xC, AL; A-S8). Overwrites part `name`'s first min(its count, count) vertex
+    // packets (unsigned) with `vertices`; false when there is no such part.
+    bool SetPartVertices(const stlp::string* name, const VertexPacket* vertices, unsigned count);
+
     // 004F2F90 (RET 0xC). Sets the morph coefficients.
     void SetMorph(float s, float t, float u);
     // 004F7370 (RET 4, returns out; link_loader.cpp). Constructs a copy of the name in `out`.
@@ -127,7 +148,7 @@ public:
 
     int refCount_;                    // +0x04
     stlp::string name_;               // +0x08
-    LinkStringMap headers_;           // +0x14 map<string, LinkPartHeader>
+    LinkHeaderMap headers_;           // +0x14
     RECT screenRect_;                 // +0x20
     float morph_[3];                  // +0x30 the coefficients the figure was loaded with
     lib::AlignedArray<VertexPacket> vertices_;   // +0x3C
@@ -136,7 +157,7 @@ public:
     TriangleIndexArray corners_;            // +0x6C 6-byte triangle corners (MeshCorner)
     lib::AlignedArray<std::uint32_t> words_;     // +0x7C
     lib::AlignedArray<std::uint16_t> indices_;   // +0x8C
-    LinkStringMap ranges_;            // +0x9C map<string, LinkPartRanges>
+    LinkRangeMap ranges_;             // +0x9C
     CLinkFigureLoader* loader_;       // +0xA8
     ITransformPipeline* pipeline_;    // +0xAC
 };

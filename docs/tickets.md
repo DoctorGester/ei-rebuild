@@ -19,7 +19,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## World, AI and server, 0x00540000-0x005E0000 (docs/notes/world.md, ai.md, unit_ai.md)
 
-- A-W done 2026-10-05 (33 functions; leftovers listed in unit_ai.md / world.md). A-W2 cut off (4 merged). A-W3 cut off (nothing committed). A-W4 done (36). A-W5 done (39): 0x005A0000-0x005E0000 (paths, world client) plus A-W's leftovers. A-W6 done (24). A-W7 taken ( next: 005CF3C0, brain Load/Save 005D8310/005D8860, 00563710).
+- A-W done 2026-10-05 (33 functions; leftovers listed in unit_ai.md / world.md). A-W2 cut off (4 merged). A-W3 cut off (nothing committed). A-W4 done (36). A-W5 done (39): 0x005A0000-0x005E0000 (paths, world client) plus A-W's leftovers. A-W6 done (24). A-W7 done (11 + 9 library). A-W8 taken (Fear 005D2960/005D30A0, alarms 005D6630/005D6D20, player combat 005D4170, client 00566360/0056C750/0056D150).
 
 ## App and startup, 0x00440000-0x00480000
 
@@ -38,7 +38,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
-- A-S done 2026-10-05 (40 functions in 0x004B0000-0x004C0000). A-S2 (cut off by the usage limit; 20 functions merged). A-S4 done (37; 78 quantiser functions marked dead). A-S5 done (28; 25 library, 5 dead). A-S6 done (24). A-S7 done (33). A-S8 taken ( next: mesh ctor/dtors 004F2C00.., FindFigureSet 004FAB00, loader dtor 004F6BD0, 004F9E50, sky holder 004D9680/004D96E0) (loader cache and slots 004F77C0..004F7480, string reader 004DB9C0, CSkyObject, CServerSpecificManager, .mob decoder 004D8E10). A-S3 done 2026-10-05 (38 functions; leftovers: .mob reader 00481660 / 00481F00, particle attach 004849F0 / 00484C00, colour quantisation 0049BEA0). Was: scripts 0x004C0000-0x00500000 plus the 0x00480000-0x004B0000 leftovers.
+- A-S done 2026-10-05 (40 functions in 0x004B0000-0x004C0000). A-S2 (cut off by the usage limit; 20 functions merged). A-S4 done (37; 78 quantiser functions marked dead). A-S5 done (28; 25 library, 5 dead). A-S6 done (24). A-S7 done (33). A-S8 done 2026-10-07 (20; 31 library, 33 dead; next candidates in script.md "Next candidates in this range"). A-S3 done 2026-10-05 (38 functions; leftovers: .mob reader 00481660 / 00481F00, particle attach 004849F0 / 00484C00, colour quantisation 0049BEA0). Was: scripts 0x004C0000-0x00500000 plus the 0x00480000-0x004B0000 leftovers.
 
 
 ## Verify checks

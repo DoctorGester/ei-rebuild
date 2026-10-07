@@ -432,11 +432,15 @@ array offsets and element sizes.
 
 ### Next candidates in this range
 
-The loader, sky, server-specific manager and .mob decoder are done (A-S7, below). Left: the mesh constructor /
-destructors 004F2C00 / 004F2E40 / 004F2D40 / deleting 004F2E00 / 004F2E20, the loader's FindFigureSet 004FAB00 and
-destructor 004F6BD0, 004F9E50 (a part morphed again, Remorph), 004F2650 / 004F29F0, the STLport map members around
-004F4CD0-004F5F00 and 004FB5E0 / 004FBD80 / 004FC4F0 (classify as library); rain / snow draws 004E4240 / 004E4C80
-(renderer), the fog object's slots 004E2290-004E24E0 (never reached in the current runs), the sky draw 004D96E0.
+A-S7 / A-S8 (below) finished the link figures, the sky and the pipeline projections. Left in 0x00480000-0x00500000:
+- classify 004A90F0-004AFAC0 (34 functions; world.md calls the range STLport instantiations, but 004ACDC0 / 004ACEC0 /
+  004AD0C0 call the tagged stream helpers 004098D0 / 00409A60 / 00409980: per-type Serialize templates, game code);
+- party records: 004A8310 / 004A8560 (load / save), 004A6050 / 004A6360 (copy through a memory stream), 004A66C0 /
+  004A6580 (ItemStock / ClassTemplate constructors);
+- the D3D state-block manager 004FCA60 / 004FD2A0 / 004FD9D0 / 004FCE90, rain / snow draws 004E4240 / 004E4C80, the fog
+  object 004E1EB0-004E24E0, the CLinkMesh draw slots 7-14 004F3870-004F4850 and the device functions 004E5E50-004EFEA0
+  (renderer tickets);
+- 004DDCB0-004DE8B0 (`CSysInfo`, static initialiser: standalone build).
 
 ## A-S7: .mob decoder, link strings, sky, server-specific manager, link loader
 
@@ -469,3 +473,35 @@ destructor 004F6BD0, 004F9E50 (a part morphed again, Remorph), 004F2650 / 004F29
 - Not ported: 004D9680 (CSky constructor, 00500A00 with 0x3D), 004D96E0 (the sky draw: matrix stack, device slots 0x2C /
   0x38; renderer), 004D9E60 / 004D9E70 (release an engine-object holder) and 004D9EB0 (AlignedArray FreeData): only
   called from EH unwind funclets. 004D9880 / 004D9AA0 / 004D9B80 were already ported (matrix_math.cpp).
+
+## A-S8: link mesh life cycle, loader destructor, sky holder
+
+| Address | Name (file) | Verify |
+|---|---|---|
+| 004F2C00, 004F2E40, 004F2D40, 004F2E00, 004F2E20 | `CLinkMesh::Construct`, `Destruct`, `DestructBase`, `DeletingDestructBase`, slot 0 `DeleteThis` (`link_figure.cpp`) | Construct against the original on a scratch mesh (vtable, name, coefficients, empty arrays / maps, loader, pipeline); the rest ours only (root vtable 0073C368 afterwards, `this`). `newgame`, `models`; 004F2D40 / 004F2E00 only from EH unwinding (base vtable 0073D7CC) |
+
+| 004FAB00 | `CLinkFigureLoader::FindFigureSet` (`link_loader.cpp`) | cached: against the original; new: ours only (stored under the name, or no entry for null). `newgame`, `models` |
+| 004F6BD0, 004F6A30 | `CLinkFigureLoader::Destruct`, slot 0 `DeleteThis` | ours only (root vtable, `this`). Reached when the client world goes (`world_load`, exit) |
+| 004F9E50, 004F9FD0, 004FA670, 004F3800 | `RemorphPart`, `RemorphFigPart`, `RemorphOldPart`, `CLinkMesh::SetPartVertices` | the three record ones against the original (run first, outputs kept, old vertices / bounds put back, then ours; vertices and bounds NearlyEqual, cursor exact); RemorphPart ours only. `models`, `ui_hero_screen` |
+| 004F4B50, 004FAAA0 | `CLinkMesh::MemoryBytes`, loader slot 2 `CacheBytes` | against the original; no scenario known to reach them |
+| 004D9680, 004D96E0 | `CSky::Construct`, `CSky::Draw` (`sky_object.cpp`; `CSceneRenderer` in model.h names the renderer's slots 11 `SetTexture` / 14 `DrawFigure`; `CSkyObject::matrix_` +0x54) | ours only: fields after construction; after a draw the object at the eye lowered by 16, that translation in its matrix, stacks 1 / 2 as deep as before. `newgame`, `render_scene` |
+| 00480B80 | `DirectXErrorText` (`dx_errors.cpp`; the comparison tree as a sorted table of 149 codes, texts copied from the exe) | against the original by content; reached only by a DirectX failure report |
+| 004BA120 | `CSceneRenderer::SetFogColour` (`scene_renderer.cpp`; slot 0 `SetFogColourState` 00501AB0, `fogColour_` +0x14) | original first, then ours: the packed colour. `script_exec` (SetBackGroundColor) |
+| 004F2650, 004F29F0 | `CTransformPipeline::ProjectBlocks`, `ProjectTerrain` (`model.cpp`; `ITransformPipeline` slots 9 / 14 / 18 / 19 named) | ours only: 0 for bounds on screen, 2 for bounds outside. Flat geometry draw (shadows, `newgame`), terrain (every frame) |
+
+- `CTransformPipeline` (model.h) got `transform_` +0x0C (3DfpFPU's object, `ITransformPipeline`); the device object's
+  +0xAC is that pipeline (`CTextureDevice::pipeline_`; the A-S8 `DeviceTransformLibrary` merged into it).
+- Dead (config/dead_code.csv, A-S8): 33 functions 004A1E60-004A47D0 (the 3DS loader's STL sort / merge helpers) whose
+  only callers (rel32, rel8, Jcc; no dword in the exe or Rebirth's binaries) are dead, e.g. 004A29B0 <- 004A1E80, 004A3CA0
+  <- 004A3620 (from its catch funclet). A scan of 0x00480000-0x00500000 found no other such chains.
+- Kept: RemorphFigPart reads every record as FIG8 (a plain FIG part is skipped 0x168 bytes and morphed from 8 versions).
+  LoadFigPart / LoadOldPart now share the packet morphs (`MorphFig8Packet`, `MorphOldPacket`) with them.
+- The figure model forwarders 005A9A50 / 005A9C90 / 005A9EB0 are now shared in originals_world.h.
+- `CLinkMesh::headers_` / `ranges_` are now `stlp::map<stlp::string, LinkPartHeader / LinkPartRanges>` (`LinkHeaderMap`,
+  `LinkRangeMap`; LinkStringMap / LinkMapNode gone, the 004F5C90 find forwarder replaced by `map::find`). stlp::map got
+  `Construct` / `Clear` / `Destroy` / `EraseSubtree` (the owner-built header node, clear(), _M_erase).
+- `CTextureDevice` (texture.h) got `transform_` +0xAC (`DeviceTransformLibrary`, pipeline +0x0C); the loader's
+  `renderer_` is that device object.
+- Not kept: the header map's value destructor 004F4E70 zeroes the freed node's 0x50 value bytes (freed memory only).
+- Library (config/library.csv, A-S8): the mesh maps' and the loader's STLport members 004F4CD0-004F6850 and
+  004FAE40-004FC6A0, among them the cache's equal_range 004FB5E0, insert_equal 004FBD80 (004FC4F0 was listed).

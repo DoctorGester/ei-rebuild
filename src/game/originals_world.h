@@ -28,6 +28,13 @@ __declspec(naked) inline CUnit* __fastcall WorldUnitAtPointOriginal(void* /*worl
 __declspec(naked) inline void __fastcall ClientSetPlayer(void*, void*, int) EI_ORIGINAL(0x00566CE0)
 __declspec(naked) inline float* __fastcall HoverPickSurface(void*, void*, float*, int, int) EI_ORIGINAL(0x0056C350)
 __declspec(naked) inline void __fastcall CountedRelease(void*, void*, int) EI_ORIGINAL(0x00575510)
+// The figure models (LinkFigureSet, 0x20 bytes): 005A9A50 the constructor (returns this), 005A9C90 the destructor,
+// 005A9EB0 (RET 0xC) loads the .mod / .bon / .anm parts (+0 / +4 / +8, slot 2) from the files' data that are not null.
+__declspec(naked) inline void* __fastcall FigureModelConstructOriginal(void* /*model*/) EI_ORIGINAL(0x005A9A50)
+__declspec(naked) inline void __fastcall FigureModelDestructOriginal(void* /*model*/) EI_ORIGINAL(0x005A9C90)
+__declspec(naked) inline void __fastcall FigureModelLoadOriginal(void* /*model*/, void*, const void* /*mod*/,
+                                                                 const void* /*bon*/, const void* /*anm*/)
+    EI_ORIGINAL(0x005A9EB0)
 __declspec(naked) inline void __fastcall MenuFrame578910(void*) EI_ORIGINAL(0x00578910)
 __declspec(naked) inline double __fastcall HoverPlayerVariable(void*, void*, const char*) EI_ORIGINAL(0x00578B50)
 // 005927C0 (RET 4): the server makes (or updates) the world object of a .mob record. Patched by Rebirth.

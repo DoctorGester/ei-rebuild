@@ -3,6 +3,7 @@
 #include "model.h"
 
 #include "core_maths.h"
+#include "link_figure.h"   // ITransformPipeline
 #include "resource.h"
 
 #include "ei/hook.h"
@@ -110,6 +111,30 @@ int CTransformPipeline::ClipTest(const ClipBounds* b) const {
 }
 #pragma float_control(pop)
 EI_REPLACE_METHOD(0x004F16A0, CTransformPipeline::ClipTest);
+
+int CTransformPipeline::ProjectBlocks(const void* positions, void* projected, void* outcodes, int blocks,
+                                      const ClipBounds* bounds) {
+    const int where = bounds ? ClipTest(bounds) : 1;
+    if (where == 0) {
+        transform_->Project(Top(1), positions, projected, blocks);
+        return 0;
+    }
+    if (where == 1) return transform_->ProjectClipped(Top(kClipStack), positions, projected, outcodes, blocks);
+    return 2;
+}
+EI_REPLACE_METHOD(0x004F2650, CTransformPipeline::ProjectBlocks);
+
+int CTransformPipeline::ProjectTerrain(const void* vertices, void* projected, void* outcodes, int count,
+                                       const ClipBounds* bounds) {
+    const int where = bounds ? ClipTest(bounds) : 1;
+    if (where == 0) {
+        transform_->ProjectTerrain(Top(kClipStack), vertices, projected, count);
+        return 0;
+    }
+    if (where == 1) return transform_->ProjectTerrainClipped(Top(kClipStack), vertices, projected, outcodes, count);
+    return 2;
+}
+EI_REPLACE_METHOD(0x004F29F0, CTransformPipeline::ProjectTerrain);
 
 #undef EI_CLIP_CODE
 

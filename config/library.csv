@@ -1722,53 +1722,84 @@ address,name,library,signature,notes
 004F08D0,stlp node create (0x14-byte node with a string),STLport,,"A-S5: same code as 004E15C0 (another instantiation)"
 004F09E0,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 2 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 004F4B90,"stlp::map<string,V>::operator[]",STLport,,A-S6: lower_bound then insert of a zeroed 0x50-byte value (the link mesh part headers); EAX = the value
+004F4CD0,"stlp value-initialise (0x50-byte POD)",STLport,,A-S8: zeroes a link mesh part header (the map's T())
 004F4CE0,"stlp::map<string,V>::operator[]",STLport,,A-S6: lower_bound then insert of a zeroed 0x30-byte value (the link mesh part ranges); EAX = the value
 004F4E40,"stlp::map<K,V>::erase(iterator)",STLport,,A-S6: passes the iterator on to 004F5090 (link mesh part ranges)
+004F4E60,"stlp::_Rb_tree iterator copy",STLport,,A-S8: copies one pointer (RET 4)
+004F4E70,"stlp::pair<const string,T>::~pair",STLport,,A-S8: link mesh part headers: zeroes the 0x50-byte value then frees the key's storage
 004F4EC0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 0040C720 (reviewed)
+004F4F00,"stlp::map<K,V>::insert(iterator,const value_type&)",STLport,,A-S8: passes on to insert_unique 004F5440 (part headers)
 004F4F30,"stlp::_Rb_tree<K,V,KoV,C,A>::_Rb_tree",STLport,,"inventory sweep: header node from the free list 0079B22C, empty tree; loose-family member of 004393C0 (reviewed)"
+004F5010,"stlp::_Rb_tree header deallocate",STLport,,A-S8: header node (0x6C) back to the free list 0079B258
+004F5040,"stlp::_Rb_tree iterator copy",STLport,,A-S8: copies one pointer (RET 4)
+004F5050,"stlp::map<K,V>::insert(iterator,const value_type&)",STLport,,A-S8: passes on to insert_unique 004F5910 (part ranges)
+004F5080,"stlp::_Rb_tree<K,V,KoV,C,A>::begin",STLport,,A-S8: header's left (RET 4)
 004F5090,"stlp::_Rb_tree<K,V,KoV,C,A>::erase(iterator)",STLport,,A-S6: rebalance (0043D830) then the node destroyed and returned to the node pool; count - 1
+004F50E0,"stlp::_Rb_tree<K,V,KoV,C,A>::clear",STLport,,A-S8: link mesh part ranges (_M_erase 004F58C0; nodes 0x4C)
+004F5140,"stlp::_Rb_tree header deallocate",STLport,,A-S8: header node (0x4C) back to the free list 0079B248
+004F5190,"stlp::_Rb_tree<K,V,KoV,C,A>::_M_empty_initialize",STLport,,A-S8: header red, no root, left / right itself
+004F51B0,"stlp::_Rb_tree<K,V,KoV,C,A>::_Rb_tree",STLport,,A-S8: header node from the free list 0079B248 (inlined refill); link mesh part ranges
 004F5360,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 3 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 004F53B0,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 4 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 004F53F0,"stlp::_Rb_tree<K,V,KoV,C,A>::_M_erase",STLport,,"inventory sweep: recursive right subtree, iterative left; nodes back to the free list 0079B22C; loose-family member of 0043BB70 (reviewed)"
 004F5440,"stlp::_Rb_tree<K,V,KoV,C,A>::insert_unique(iterator,const value_type&)",STLport,,inventory sweep: hinted insert: leftmost/rightmost/neighbour checks then _M_insert; loose-family member of 00445360 (reviewed)
+004F5700,"stlp::_Rb_tree<K,V,KoV,C,A>::begin",STLport,,A-S8: header's left (RET 4)
 004F5710,"stlp::_Rb_tree<K,V,KoV,C,A>::find",STLport,,inventory sweep: walks left/right with the key compare; loose-family member of 004456E0 (reviewed)
 004F58C0,"stlp::_Rb_tree<K,V,KoV,C,A>::_M_erase",STLport,,"inventory sweep: recursive right subtree, iterative left; nodes back to the free list 0079B22C; loose-family member of 0043BB70 (reviewed)"
 004F5910,"stlp::_Rb_tree<K,V,KoV,C,A>::insert_unique(iterator,const value_type&)",STLport,,inventory sweep: hinted insert: leftmost/rightmost/neighbour checks then _M_insert; loose-family member of 00445360 (reviewed)
 004F5BD0,"stlp::_Rb_tree<K,V,KoV,C,A>::lower_bound",STLport,,inventory sweep: walks left/right with the key compare; loose-family member of 00445620 (reviewed)
 004F5C90,"stlp::_Rb_tree<K,V,KoV,C,A>::lower_bound",STLport,,inventory sweep: walks left/right with the key compare; loose-family member of 00445620 (reviewed)
 004F5D50,"stlp::_Rb_tree<K,V,KoV,C,A>::find",STLport,,inventory sweep: walks left/right with the key compare; loose-family member of 004456E0 (reviewed)
+004F5DF0,"stlp::string::string(const string&)",STLport,,A-S8: node-pool copy with the length_error path
+004F5F00,"stlp::_Rb_tree<K,V,KoV,C,A>::destroy_node",STLport,,A-S8: value destructor 004F4E70 then the node to the free list 0079B258
 004F5F30,"stlp::_Rb_tree<K,V,KoV,C,A>::_M_insert",STLport,,"inventory sweep: creates the node, links it left/right, updates leftmost/rightmost, rebalances; loose-family member of 00445870 (reviewed)"
 004F60C0,"stlp::_Rb_tree<K,V,KoV,C,A>::insert_unique(const value_type&)",STLport,,"inventory sweep: descend from the root, then _M_insert; loose-family member of 00445A00 (reviewed)"
 004F6270,"stlp::_Rb_tree<K,V,KoV,C,A>::_M_insert",STLport,,"inventory sweep: creates the node, links it left/right, updates leftmost/rightmost, rebalances; loose-family member of 00445870 (reviewed)"
 004F6400,"stlp::_Rb_tree<K,V,KoV,C,A>::insert_unique(const value_type&)",STLport,,"inventory sweep: descend from the root, then _M_insert; loose-family member of 00445A00 (reviewed)"
 004F65F0,stlp node create (0x1C-byte node with a string),STLport,,"A-S5: node allocator free list 0079B258; called from the STLport container code 004F5440 / 004F5F30 / 004F60C0 (library)"
 004F6710,stlp node create (0x14-byte node with a string),STLport,,"A-S5: node allocator free list 0079B248; called from the STLport container code 004F5910 / 004F6270 / 004F6400 (library)"
+004F6830,"stlp::pair<iterator,bool>::pair",STLport,,A-S8: RET 8
+004F6850,"stlp::pair<iterator,bool>::pair",STLport,,A-S8: RET 8
 004F6A50,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 004A5950 (reviewed)"
 004F6B30,"stlp::_Rb_tree<K,V,KoV,C,A>::clear",STLport,,inventory sweep: _M_erase(root) then resets the header; loose-family member of 00433710 (reviewed)
 004FAE00,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 27 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
+004FAE40,"stlp::list<T>::~list",STLport,,A-S8: link loader archive list (string pairs); nodes and sentinel to the free list 0079B22C
 004FAF10,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 0040C720 (reviewed)
 004FAF60,"stlp::hashtable<V,K,HF,ExK,EqK,A>::hashtable(n,hf,eql,a)",STLport,,inventory sweep: bucket count from the STLport prime list 0073B914; buckets from the node pool; loose-family member of 00405820 (reviewed)
 004FB090,"stlp::hashtable<V,K,HF,ExK,EqK,A>::begin",STLport,,inventory sweep: first non-empty bucket; loose-family member of 00404C30 (reviewed)
 004FB0F0,"stlp::hashtable<pair<const string,T>,...>::find",STLport,,"inventory sweep: __stl_hash_string (h*5+c), walk the chain; loose-family member of 004FB0F0 (reviewed)"
+004FB170,"stlp::string::string(const string&)",STLport,,A-S8: node-pool copy with the length_error path
 004FB290,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+004FB2E0,"stlp::list<T>::insert(iterator)",STLport,,A-S8: a default value (string reserved for 8 bytes) before the position (archive list; model.cpp forwards it)
+004FB3B0,"stlp::list iterator copy",STLport,,A-S8: copies one pointer (RET 4)
 004FB3C0,stlp::list<T>::list,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+004FB570,"stlp::list iterator --",STLport,,A-S8: node = node->prev
+004FB580,"stlp::_Rb_tree<K,V,KoV,C,A>::clear",STLport,,A-S8: link loader cache (multimap<string, counted CLinkMesh*>); value destructor 004F7A80 releases the mesh
+004FB5E0,"stlp::_Rb_tree<K,V,KoV,C,A>::equal_range",STLport,,A-S8: link loader cache (lower_bound then upper_bound with the string compare 00445810)
 004FB6A0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 0040C720 (reviewed)
 004FB6F0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004FB730,stlp::list<T>::insert,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004FB760,"stlp::_Rb_tree<K,V,KoV,C,A>::_Rb_tree",STLport,,"inventory sweep: header node from the free list 0079B22C, empty tree; loose-family member of 004393C0 (reviewed)"
+004FB840,"stlp list sentinel deallocate",STLport,,A-S8: sentinel back to the free list 0079B230
 004FB860,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,,"inventory sweep: n*sizeof(T) back to the node-pool free list, operator delete above 128 bytes; loose-family member of 00411B30 (reviewed)"
 004FB8B0,stlp node create (0x14-byte node with a string),STLport,,"A-S5: same code as 004E15C0; called from 004FB730 (library)"
 004FB9D0,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,,"inventory sweep: n*sizeof(T) back to the node-pool free list, operator delete above 128 bytes; loose-family member of 004251B0 (reviewed)"
 004FBA10,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 5 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 004FBA40,stlp::vector<T>::_M_fill_insert,STLport,,inventory sweep: insert n copies at pos; calls _M_insert_overflow when capacity is short; loose-family member of 00406810 (reviewed)
+004FBB80,"stlp::_Ht_iterator::_M_skip_to_next",STLport,,A-S8: link loader figure sets (string hash, next non-empty bucket)
 004FBBD0,"stlp::hashtable<pair<const string,T>,...>::find_or_insert",STLport,,inventory sweep: resize(n+1); __stl_hash_string (h*5+c); string compare; _M_new_node; loose-family member of 004ACAB0 (reviewed)
 004FBC80,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain (CString values), nodes back to the pool; loose-family member of 00461540 (reviewed)"
+004FBCF0,"stlp::list<T>::clear",STLport,,A-S8: link loader archive list
 004FBD30,"stlp::_Rb_tree<K,V,KoV,C,A>::_M_erase",STLport,,"inventory sweep: recursive right subtree, iterative left; nodes back to the free list 0079B22C; loose-family member of 0043BB70 (reviewed)"
+004FBD80,"stlp::_Rb_tree<K,V,KoV,C,A>::insert_equal",STLport,,A-S8: link loader cache (descent, then _M_insert 004FC4F0)
 004FBF60,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_new_node",STLport,,"inventory sweep: node from the node-pool free list (inlined refill), value constructed in place; loose-family member of 0042A650 (reviewed)"
 004FC080,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,,"inventory sweep: n*sizeof(T) back to the node-pool free list, operator delete above 128 bytes; loose-family member of 00411B30 (reviewed)"
 004FC0C0,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00408060 (reviewed)"
 004FC250,stlp::vector<T>::_M_allocate_and_copy,STLport,,"inventory sweep: node-pool allocate n, copy [first,last); loose-family member of 004081F0 (reviewed)"
+004FC320,"stlp::hashtable<V,K,HF,ExK,EqK,A>::resize",STLport,,A-S8: link loader figure sets (next prime 00408A50, buckets rehashed)
+004FC3CF,"stlp::hashtable<V,K,HF,ExK,EqK,A>::resize (rehash loop)",STLport,,A-S8: the second chunk of 004FC320
 004FC4F0,"stlp::_Rb_tree<K,V,KoV,C,A>::_M_insert",STLport,,"inventory sweep: creates the node, links it left/right, updates leftmost/rightmost, rebalances; loose-family member of 00445870 (reviewed)"
+004FC6A0,"stlp::pair<const string,T> deleting destructor",STLport,,A-S8: 004F7A80 then operator delete
 004FC6C0,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004FC6E0,stlp node create (0x20-byte node with a string),STLport,,"A-S5: node allocator free list 0079B230; called from 004FBD80 and 004FC4F0 (library)"
 004FC7F0,"stlp::_Vector_base<T>::_Vector_base(size_t,const allocator&)",STLport,,inventory sweep: allocates n elements from the node pool (inlined _S_chunk_alloc refill); loose-family member of 00407740 (reviewed)
