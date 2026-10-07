@@ -789,3 +789,29 @@ static int __fastcall LoadSampleVerify(CSoundManager* self, void*, SoundSlot* sl
     return result;
 }
 EI_VERIFY(0x006B89F0, LoadSampleVerify, 0, s_unusedLoadSample);
+
+// A-H14. 006B71C0 StopAll: ours only (loading a game, leaving a zone, the main menu, movies).
+// Afterwards no voice plays, handles restart at 0, no deferred sound is left.
+using StopAllFn = void(__fastcall*)(CSoundManager*, void*, bool);
+static StopAllFn s_unusedStopAll;
+static void __fastcall StopAllVerify(CSoundManager* self, void*, bool stopStream) {
+    self->CSoundManager::StopAll(stopStream);
+    bool ok = self->nextHandle == 0 && self->deferred.count == 0;
+    if (self->slots != nullptr)
+        for (int i = 0; i < 15; ++i)
+            if (self->slots[i].playing != 0) ok = false;
+    ei::verify::Check("CSoundManager::StopAll", true, ok, "stopStream %d", stopStream ? 1 : 0);
+}
+EI_VERIFY(0x006B71C0, StopAllVerify, 0, s_unusedStopAll);
+
+// 006B96E0 WaveLength: pure (AIL_WAV_info), side by side. MOV ECX,[ESP+4]; SUB ESP,0x2C (7 bytes).
+// Every wave LoadSample loads.
+using WaveLengthFn = double(__fastcall*)(CSoundManager*, void*, const void*, int);
+static WaveLengthFn s_waveLength;
+static double __fastcall WaveLengthVerify(CSoundManager* self, void*, const void* data, int size) {
+    double expected = s_waveLength(self, nullptr, data, size);
+    double actual = self->CSoundManager::WaveLength(data, size);
+    ei::verify::CheckNear("CSoundManager::WaveLength", expected, actual, "size %d", size);
+    return expected;
+}
+EI_VERIFY(0x006B96E0, WaveLengthVerify, 7, s_waveLength);
