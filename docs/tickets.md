@@ -14,7 +14,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
-- A-U done 2026-10-05 (40 functions). A-U2 done (40). A-U3 done (20). A-U4 done (28). A-U5 queued.
+- A-U done 2026-10-05 (40 functions). A-U2 done (40). A-U3 done (20). A-U4 done (28). A-U5 taken.
 - U2 done (00535850 ClientPlaceOnPath, 0052FCC0 / 0052FDF0 in follow-up for a crash).
 
 ## World, AI and server, 0x00540000-0x005E0000 (docs/notes/world.md, ai.md, unit_ai.md)
