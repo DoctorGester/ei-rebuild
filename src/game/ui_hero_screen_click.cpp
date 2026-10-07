@@ -570,7 +570,7 @@ void CMpHeroScreen::RefreshHero() {
         reinterpret_cast<CObject3D*>(previewModel_)->SetFigureScale(&hero->unknown_724);
         auto* unit = reinterpret_cast<CUnit*>(previewModel_);
         unit->SetFromStats(reinterpret_cast<UnitStats*>(reinterpret_cast<PartyUnitRecord*>(Hero())->stats));
-        static_cast<CUnitController*>(unit->controller)->Slot31();
+        static_cast<CUnitController*>(unit->controller)->RefreshWounds();
     }
     StatsPanelDrawStatsOriginal(statsPanel_);
 }

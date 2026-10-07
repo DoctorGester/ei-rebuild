@@ -15,7 +15,7 @@ public:
         unknown_04 = 0;
         version = real->version;
     }
-    void Slot0() override {}
+    void DeletingDestructor() override {}
     int Read(void*, unsigned) override { return 0; }
     void Write(const void* buffer, unsigned size) override {
         auto* p = static_cast<const unsigned char*>(buffer);
