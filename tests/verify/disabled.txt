@@ -3,3 +3,5 @@
 004D8490 DecalBuilder::AddTerrainTriangle: 12 of 37M calls still differ (whole extra triangles, or a corner >0.05 off); X18 (2026-10-07): no port bug found, first 4 mismatches now logged in full
 004D85F0 DecalBuilder::AddTriangle: the same rare clip-edge case as 004D8490 (2 of 75M); X18
 004D7BD0 DecalBuilder::ClipPlane: the same rare clip-edge case (1 of 95M); X18
+00563710 CWorldClient::SetUpGraphics (A-W7): suspect for step-0 hangs/crashes after the A-W7 merge (X25)
+00563930 CWorldClient::LoadLights (A-W7): same (X25)
