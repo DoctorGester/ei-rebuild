@@ -5,6 +5,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "originals_library.h"
@@ -16,6 +17,7 @@
 #include "console.h"
 #include "unit.h"
 #include "map_object_figures.h"
+#include "world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -603,3 +605,65 @@ namespace {
 void __fastcall MpHeroCreate(CMpHeroScreen* self) { self->CreateHero(); }
 } // namespace
 EI_REPLACE(0x006186F0, MpHeroCreate);
+// --- 0061A350 / 00617E40 / 00615940: a hero deleted, the message box's answer ------------------------
+
+MpHeroRecord* MpHeroRecord::Assign(const MpHeroRecord* other) {
+    PartyCopyFrom(party, nullptr, other->party);   // 00661300 by address: its wrapper runs
+    file = other->file;
+    return this;
+}
+EI_REPLACE_METHOD(0x0061A350, MpHeroRecord::Assign);
+
+namespace {
+// The heroes' folder (007C82A0, a CString; the records follow it) and the records as a vector.
+const mfc::CString& MpHeroesFolder() { return *reinterpret_cast<const mfc::CString*>(0x007C82A0); }
+MpHeroRecord*& MpHeroesBegin() { return *reinterpret_cast<MpHeroRecord**>(0x007C82A4); }
+MpHeroRecord*& MpHeroesEnd() { return *reinterpret_cast<MpHeroRecord**>(0x007C82A8); }
+// The count as the original computes it: a signed division, compared unsigned.
+std::uint32_t MpHeroCount() { return static_cast<std::uint32_t>(static_cast<int>(MpHeroesEnd() - MpHeroesBegin())); }
+constexpr std::uint32_t kListRows = 10;
+constexpr int kAnswerOk = 0x10001;
+// 00617E40 (rewritten as DeleteHero below) through its address so its wrapper runs.
+__declspec(naked) void __fastcall DeleteHeroAt(CMpHeroScreen*) EI_ORIGINAL(0x00617E40)
+} // namespace
+
+void CMpHeroScreen::DeleteHero() {
+    if (heroIndex_ < 0 || static_cast<std::uint32_t>(heroIndex_) >= MpHeroCount()) return;
+    mfc::CString path = MpHeroesFolder() + MpHeroesBegin()[heroIndex_].file;
+    gameapi::DeleteFileA(path);
+    MpHeroRecord* at = MpHeroesBegin() + heroIndex_;
+    for (MpHeroRecord* next = at + 1; next < MpHeroesEnd(); ++at, ++next) at->Assign(next);
+    MpHeroRecord* last = --MpHeroesEnd();
+    last->file.~CString();
+    PartyRecordsDestructOriginal(last->party);   // 006611D0 by address: its wrapper runs
+    std::uint32_t count = MpHeroCount();
+    if (static_cast<std::uint32_t>(heroIndex_) >= count) heroIndex_ = static_cast<int>(count) - 1;
+    auto* bar = static_cast<CUiScrollbar*>(heroScroll_);
+    if (MpHeroCount() > kListRows) {
+        int position;
+        ScrollbarTakePositionOriginal(bar, nullptr, &position);
+        ScrollbarSetRangeOriginal(bar, nullptr, static_cast<int>(MpHeroCount() - kListRows));
+        bar->CallSetPosition(position);
+        ScrollbarTakePositionOriginal(bar, nullptr, &heroTop_);
+    } else {
+        ScrollbarSetRangeOriginal(bar, nullptr, 0);
+        heroTop_ = 0;
+    }
+    CallDrawHeroList();
+    CallShowHero(heroIndex_);
+}
+namespace {
+void __fastcall MpHeroDelete(CMpHeroScreen* self) { self->DeleteHero(); }
+} // namespace
+EI_REPLACE(0x00617E40, MpHeroDelete);
+
+void CMpHeroScreen::OnMessageResult(int result) {
+    if (result == kAnswerOk) DeleteHeroAt(this);
+    if (heroIndex_ >= 0 && static_cast<std::uint32_t>(heroIndex_) < MpHeroCount()) {
+        MpHeroRecord* hero = MpHeroesBegin() + heroIndex_;
+        PartyCopyFrom(hero->party, nullptr, LocalPlayerData());
+        PartySendTransferOriginal(MpHeroesBegin()[heroIndex_].party, nullptr, HeroesTransfer());
+    }
+    SetMode(this, nullptr, kModeList);
+}
+EI_REPLACE_METHOD(0x00615940, CMpHeroScreen::OnMessageResult);
