@@ -1945,6 +1945,9 @@ address,name,library,signature,notes
 005396E0,"CArray<TYPE,ARG_TYPE>::Serialize",MFC,,inventory sweep: CArchive::WriteCount/ReadCount + inlined SetSize + SerializeElements (CArchive::Read/Write); loose-family member of 0044F650 (reviewed)
 00539890,"CList<TYPE,ARG_TYPE>::~CList",MFC,,"inventory sweep: vtable store, RemoveAll inlined, CPlex::FreeDataChain; loose-family member of 00405130 (reviewed)"
 005398F0,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073EEA0 (GetRuntimeClass 007005E3, Serialize 005396E0 identified); touches no other vtable; callees library only"
+0053AD70,"stlp::vector<T>::~vector (0x120-byte prototype records)",STLport,,A-U7 review: STLport template instantiation (unit database containers), not game logic
+0053AF60,"stlp::vector<T>::~vector (0x60-byte records)",STLport,,A-U7 review: STLport template instantiation (unit database containers), not game logic
+0053B130,"stlp::vector<T>::~vector (0x168-byte model records)",STLport,,A-U7 review: STLport template instantiation (unit database containers), not game logic
 0053B440,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0053B460,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 00424AF0 (reviewed)
 0053B4B0,"stlp::hashtable<V,K,HF,ExK,EqK,A>::hashtable(n,hf,eql,a)",STLport,,inventory sweep: bucket count from the STLport prime list 0073B914; buckets from the node pool; loose-family member of 00405820 (reviewed)
@@ -2000,7 +2003,10 @@ address,name,library,signature,notes
 0053DDF0,"stlp::hashtable<V,K,HF,ExK,EqK,A>::resize",STLport,,inventory sweep: next size from the STLport prime list 0073B914..0073B980; rehashes the bucket chains; loose-family member of 0042AFD0 (reviewed)
 0053E050,"stlp::hashtable<V,K,HF,ExK,EqK,A>::resize",STLport,,inventory sweep: next size from the STLport prime list 0073B914..0073B980; rehashes the bucket chains; loose-family member of 0042AFD0 (reviewed)
 0053E2A0,stlp::vector<T>::resize,STLport,void __thiscall(size_t),"X2 review: vector<0x120-byte record>::resize(n): default element built on the stack; erase tail (n < size) or _M_fill_insert 0053F530 at end"
+0053E520,"stlp::vector<T>::resize (0x60-byte unit database records)",STLport,,A-U7 review: STLport template instantiation (unit database containers), not game logic
+0053E730,"stlp::vector<T>::resize (0x168-byte unit database model records; the default record built inline)",STLport,,A-U7 review: STLport template instantiation (unit database containers), not game logic
 0053E990,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+0053E9B0,"stlp::vector<T>::resize (0x44-byte unit database records)",STLport,,A-U7 review: STLport template instantiation (unit database containers), not game logic
 0053EBA0,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0053F0C0,"stlp::_Vector_base<T>::_Vector_base(size_t,const allocator&)",STLport,,inventory sweep: allocates n elements from the node pool (inlined _S_chunk_alloc refill); loose-family member of 00407740 (reviewed)
 0053F2D0,"stlp::_Vector_base<T>::_Vector_base(size_t,const allocator&)",STLport,,inventory sweep: allocates n elements from the node pool (inlined _S_chunk_alloc refill); loose-family member of 00407740 (reviewed)
