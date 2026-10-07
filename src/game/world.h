@@ -664,6 +664,24 @@ struct UnitSet {
     void Write(void* stream);
 };
 
+// The head of a unit set entry (and of the 0x24-byte look records): a 16-bit key, two dword
+// vectors, a byte and a dword.
+struct UnitSetEntryHead {
+    // 00558FA0 (RET 4; world_unit_set.cpp, A-U7). Writes the key (2 bytes), each vector's count and
+    // dwords (the data written even when empty), the byte and the dword through `stream`'s slot 2.
+    void Write(void* stream);
+
+    std::int16_t key;                     // +0x00
+    std::uint8_t unknown_02[2];
+    stlp::vector<int> first;              // +0x04
+    stlp::vector<int> second;             // +0x10
+    std::uint8_t flag;                    // +0x1C
+    std::uint8_t unknown_1D[3];
+    std::uint32_t value;                  // +0x20
+};
+static_assert(offsetof(UnitSetEntryHead, second) == 0x10);
+static_assert(offsetof(UnitSetEntryHead, value) == 0x20);
+
 // 0055A190 (ECX stream, EDX first list, RET 4; called by the client's zone load 00567AB0). Reads
 // the zone's two unit look lists from `stream` (slot 1 reads bytes): a count, then per 0x3C-byte
 // record a 16-bit key, two counted dword arrays (+4, +0x10), a byte (+0x1C), four dwords (+0x20 ..

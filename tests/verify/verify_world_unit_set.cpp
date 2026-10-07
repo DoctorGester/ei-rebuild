@@ -42,6 +42,22 @@ static void __fastcall WriteVerify(UnitSet* set, void*, void* stream) {
 }
 EI_VERIFY(0x00559E60, WriteVerify, 5, s_write);
 
+// 00558FA0 (A-U7): PUSH ECX; PUSH ESI; MOV ESI,ECX; PUSH EDI (5 bytes). Both into recording
+// streams, bytes compared; then the original's bytes go to the real stream. Reached through
+// UnitSet::Write (SendZone: zone changes, zone_gz2g_traps).
+using WriteHeadFn = void(__fastcall*)(UnitSetEntryHead*, void*, void*);
+static WriteHeadFn s_writeHead;
+static void __fastcall WriteHeadVerify(UnitSetEntryHead* head, void*, void* stream) {
+    RecordingStream theirs;
+    s_writeHead(head, nullptr, &theirs);
+    RecordingStream mine;
+    head->Write(&mine);
+    ei::verify::Check("UnitSetEntryHead::Write", true, theirs.bytes == mine.bytes, "%zu vs %zu bytes",
+                      theirs.bytes.size(), mine.bytes.size());
+    s_writeHead(head, nullptr, stream);
+}
+EI_VERIFY(0x00558FA0, WriteHeadVerify, 5, s_writeHead);
+
 // ---- 0055A190: ours reads from the real stream through a recorder; the original reads the same
 // bytes from a replay into scratch vectors; the lists are compared. ------------------------------
 
