@@ -179,3 +179,7 @@ through `game::FatalError` (EI_ORIGINAL). Forwarders are in `unit_ai.h`, `unit_a
   and the attack spells (kinds 1..4), `spells` the helping ones (5..7). Verify: Build differential (original on a copy with
   copied arrays; lists and healWeight compared), InitOption output, SpellKind / Weight pure, the rest ours only. Scenarios:
   `unit_ai`, `units`, `spells_cast` (any AI unit created). 00522B20 (largest damage) stays a forwarder (units area).
+- Also there: 005CE860 / 005CE920 AIAttackOption Load / Save and 005D9B80 LoadAttackOptions (the array: count, SetSize, each
+  option through its address). Verify: Save differential through a recording AIStream; the loads ours only. Scenarios:
+  `ui_saveload` (a save and a load with AI units). Next candidates: 005D9D40 (a RefPtr assign), the brain's Load / Save
+  005D8310 / 005D8860, 005CF3C0 CanReach (an AIPath local), 005D3DE0 (follow leader; its mode type 6 layout unknown).

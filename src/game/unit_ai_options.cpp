@@ -10,6 +10,7 @@
 #include "ei/hook.h"
 
 #include <bit>
+#include <initializer_list>
 
 namespace {
 constexpr int kNaturalSpellsOnly = 0x10;    // natural weapon type of units that only cast
@@ -62,6 +63,38 @@ double AIAttackOption::Weight() const {
     default:
         return 0.0;
     }
+}
+
+void AIAttackOption::Load(AIStream* stream) {
+    if (stream->version < 0x5A) {
+        stream->Read(&part, 4);
+        std::uint32_t dropped;
+        stream->Read(&dropped, 4);
+        stream->Read(damage, sizeof(damage));
+        kind = part >= 0 ? 1 : 0;
+        range = 1.0f;
+        maxCount = 0;
+        radius = 0.0f;
+        effect = 0;
+        return;
+    }
+    stream->Read(&kind, 4);
+    stream->Read(&part, 4);
+    stream->Read(&range, 4);
+    stream->Read(&maxCount, 4);
+    stream->Read(&radius, 4);
+    stream->Read(&effect, 4);
+    stream->Read(damage, sizeof(damage));
+}
+
+void AIAttackOption::Save(AIStream* stream) {
+    // The fields after the first go through a stack copy, as the original writes them.
+    stream->Write(&kind, 4);
+    for (std::uint32_t value : {std::bit_cast<std::uint32_t>(part), std::bit_cast<std::uint32_t>(range),
+                                std::bit_cast<std::uint32_t>(maxCount), std::bit_cast<std::uint32_t>(radius),
+                                std::bit_cast<std::uint32_t>(effect)})
+        stream->Write(&value, 4);
+    stream->Write(damage, sizeof(damage));
 }
 
 void AIAttention::InitOption(AIAttackOption* option, int kind, int part, float range, int maxCount, float radius,
@@ -173,6 +206,20 @@ void AIAttention::Build(CUnit* unit) {
 }
 
 namespace {
+__declspec(naked) void __fastcall OptionLoadAt(AIAttackOption*, void*, AIStream*) EI_ORIGINAL(0x005CE860)
+} // namespace
+
+// 005D9B80 (fastcall, plain RET): the count, the array sized to it (SetSize inlined), then each
+// option (005CE860, through its address).
+void __fastcall LoadAttackOptions(AIAttackOptions* options, AIStream* stream) {
+    int count;
+    stream->Read(&count, 4);
+    options->SetSize(count, -1);
+    for (int i = 0; i < options->size; ++i) OptionLoadAt(&options->data[i], nullptr, stream);
+}
+EI_REPLACE(0x005D9B80, LoadAttackOptions);
+
+namespace {
 // 005CE9B0 (thiscall on the option, ST0).
 double __fastcall OptionWeight(const AIAttackOption* option) { return option->Weight(); }
 } // namespace
@@ -184,3 +231,5 @@ EI_REPLACE_METHOD(0x005CEBD0, AIAttention::AddSpellOption);
 EI_REPLACE_METHOD(0x005CEDC0, AIAttention::SpellKind);
 EI_REPLACE(0x005CE9B0, OptionWeight);
 EI_REPLACE_METHOD(0x005D9250, AIAttackOptions::SetSize);
+EI_REPLACE_METHOD(0x005CE860, AIAttackOption::Load);
+EI_REPLACE_METHOD(0x005CE920, AIAttackOption::Save);

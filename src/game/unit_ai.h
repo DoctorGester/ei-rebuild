@@ -546,6 +546,11 @@ struct AIAttackOption {
     // 005CE9B0 (ST0; unit_ai_options.cpp). How much the option counts: kind 0 its largest damage,
     // 1..3 that * 1.3, 4..6 1, 7 10, other kinds 0.
     double Weight() const;
+    // 005CE860 / 005CE920 (RET 4; unit_ai_options.cpp). The option from / to a save. Before
+    // version 0x5A only the part, a dropped dword and the damage were saved: the kind becomes
+    // part >= 0, the range 1, the rest 0.
+    void Load(AIStream* stream);
+    void Save(AIStream* stream);
 
     int kind;                       // +0x00 0..3 attacks (2, 3 hit an area), 4..6 helping spells, 7 healing
     int part;                       // +0x04 -1 a weapon, else the spell
