@@ -29,9 +29,9 @@ PATTERNS = {
 }
 # Patterns not counted under these directories.
 EXEMPT = {'per-file container struct': 'src/lib/'}
-# A literal address directly inside EI_ORIGINAL(...)/EI_REPLACE(...)/EI_VERIFY(...) is how hooks are
+# A literal address directly inside EI_ORIGINAL(...)/EI_REPLACE(...)/EI_VERIFY(...)/UI_INPUT_HANDLER(...) is how hooks are
 # written and is not counted; the lookahead above skips "0x...)" and the prefix test below the rest.
-REGISTRATION = re.compile(r'EI_(?:ORIGINAL|REPLACE|REPLACE_METHOD|VERIFY|REBIRTH_IMPLEMENTS)\s*\(\s*$')
+REGISTRATION = re.compile(r'(?:EI_(?:ORIGINAL|REPLACE|REPLACE_METHOD|VERIFY|REBIRTH_IMPLEMENTS)|UI_(?:INPUT|WHEEL)_HANDLER)\s*\(\s*$')
 
 
 def strip_comments(text):
