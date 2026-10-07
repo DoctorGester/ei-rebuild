@@ -476,6 +476,10 @@ destructor 004F6BD0, 004F9E50 (a part morphed again, Remorph), 004F2650 / 004F29
 |---|---|---|
 | 004F2C00, 004F2E40, 004F2D40, 004F2E00, 004F2E20 | `CLinkMesh::Construct`, `Destruct`, `DestructBase`, `DeletingDestructBase`, slot 0 `DeleteThis` (`link_figure.cpp`) | Construct against the original on a scratch mesh (vtable, name, coefficients, empty arrays / maps, loader, pipeline); the rest ours only (root vtable 0073C368 afterwards, `this`). `newgame`, `models`; 004F2D40 / 004F2E00 only from EH unwinding (base vtable 0073D7CC) |
 
+| 004FAB00 | `CLinkFigureLoader::FindFigureSet` (`link_loader.cpp`) | cached: against the original; new: ours only (stored under the name, or no entry for null). `newgame`, `models` |
+| 004F6BD0, 004F6A30 | `CLinkFigureLoader::Destruct`, slot 0 `DeleteThis` | ours only (root vtable, `this`). Reached when the client world goes (`world_load`, exit) |
+
+- The figure model forwarders 005A9A50 / 005A9C90 / 005A9EB0 are now shared in originals_world.h.
 - `CLinkMesh::headers_` / `ranges_` are now `stlp::map<stlp::string, LinkPartHeader / LinkPartRanges>` (`LinkHeaderMap`,
   `LinkRangeMap`; LinkStringMap / LinkMapNode gone, the 004F5C90 find forwarder replaced by `map::find`). stlp::map got
   `Construct` / `Clear` / `Destroy` / `EraseSubtree` (the owner-built header node, clear(), _M_erase).

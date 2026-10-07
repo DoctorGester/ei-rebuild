@@ -164,3 +164,42 @@ static int __fastcall LoadArchivePartVerify(CLinkFigureLoader* self, void*, CLin
     return loaded;
 }
 EI_VERIFY(0x004F7D20, LoadArchivePartVerify, 0, s_loadArchivePart);
+
+// 004FAB00 (A-S8): PUSH -1; PUSH imm32 (7 bytes). A cached set: the original's lookup and ours agree.
+// A new one (ours only): a non-null set is stored under the name; null leaves no entry.
+static LinkFigureSet* (__fastcall* s_findFigureSet)(CLinkFigureLoader*, void*, const stlp::string*);
+static LinkFigureSet* __fastcall FindFigureSetVerify(CLinkFigureLoader* self, void*, const stlp::string* name) {
+    if (self->figureSets_.Find(*name)) {
+        LinkFigureSet* expected = s_findFigureSet(self, nullptr, name);
+        LinkFigureSet* actual = self->FindFigureSet(name);
+        ei::verify::Check("CLinkFigureLoader::FindFigureSet", expected, actual, "%p");
+        return actual;
+    }
+    const std::size_t before = self->figureSets_.Size();
+    LinkFigureSet* actual = self->FindFigureSet(name);
+    auto* node = self->figureSets_.Find(*name);
+    const bool ok = actual ? node && node->value == actual && self->figureSets_.Size() == before + 1
+                           : !node && self->figureSets_.Size() == before;
+    ei::verify::Check("CLinkFigureLoader::FindFigureSet (new)", true, ok, "%s", name->data());
+    return actual;
+}
+EI_VERIFY(0x004FAB00, FindFigureSetVerify, 7, s_findFigureSet);
+
+// 004F6BD0 / 004F6A30 (A-S8, ours only): the counted root's vtable afterwards; DeleteThis returns
+// this. Reached when the client world is destroyed (world_load's load, leaving to the menu, exit).
+static void (__fastcall* s_loaderDestruct)(CLinkFigureLoader*);
+static void __fastcall LoaderDestructVerify(CLinkFigureLoader* self) {
+    self->Destruct();
+    std::uintptr_t vtable;
+    std::memcpy(&vtable, self, sizeof(vtable));
+    ei::verify::Check("CLinkFigureLoader::Destruct", CLinkMesh::kRootVtableAddress, vtable, "%08X");
+}
+EI_VERIFY(0x004F6BD0, LoaderDestructVerify, 0, s_loaderDestruct);
+
+static void* (__fastcall* s_loaderDeleteThis)(CLinkFigureLoader*, void*, unsigned);
+static void* __fastcall LoaderDeleteThisVerify(CLinkFigureLoader* self, void*, unsigned flags) {
+    void* result = self->CLinkFigureLoader::DeleteThis(flags);
+    ei::verify::Check("CLinkFigureLoader::DeleteThis", static_cast<void*>(self), result, "%p");
+    return result;
+}
+EI_VERIFY(0x004F6A30, LoaderDeleteThisVerify, 0, s_loaderDeleteThis);

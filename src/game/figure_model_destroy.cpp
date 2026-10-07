@@ -7,6 +7,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "originals_library.h"
+#include "originals_world.h"
 
 #include <cstdint>
 
@@ -37,7 +38,6 @@ void __fastcall DeallocatePointers(void* a0, int a1) { BucketsDeallocateOriginal
 // The figure manager's helpers: the model destructor (through its original address), 00674F40
 // (the base's clean-up), 005AE5D0 (RET 4) the pair destructor, 004FC080 (ECX node, EDX count)
 // the node allocator's deallocate, 00674DF0 the base destructor.
-__declspec(naked) void __fastcall DestroyModelAt(void*) EI_ORIGINAL(0x005A9C90)
 __declspec(naked) void __fastcall ManagerCleanUp(void*) EI_ORIGINAL(0x00674F40)
 __declspec(naked) void __fastcall DestroyNamePair(void*, void*, int) EI_ORIGINAL(0x005AE5D0)
 __declspec(naked) void __fastcall NodeFree(void*, int) EI_ORIGINAL(0x004FC080)
@@ -114,7 +114,7 @@ void __fastcall DestroyFigureManager(char* manager) {
         }
     while (node) {
         if (void* model = node->value) {
-            DestroyModelAt(model);
+            FigureModelDestructOriginal(model);
             GameDelete(model);
         }
         if (node->next) {

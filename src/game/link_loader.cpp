@@ -2,9 +2,12 @@
 // link_figure.h and CLinkFigureLoader in model.h.
 #include "link_figure.h"
 
-#include "resource.h"   // CMappedResource
+#include "originals_render.h"  // SurfaceHolderReleaseOriginal
+#include "originals_world.h"   // FigureModelConstructOriginal, FigureModelLoadOriginal, FigureModelDestructOriginal
+#include "resource.h"          // CMappedResource
 
 #include "ei/hook.h"
+#include "ei/vcall.h"
 #include "lib/crt.h"
 
 #include <cstdint>
@@ -39,8 +42,8 @@ struct CacheValue {
     CLinkMesh* mesh;
 };
 
-// 004FAB00 (RET 4): the figure's own archive set, found or opened (.mod / .bon / .anm), or null.
-__declspec(naked) LinkFigureSet* __fastcall FindFigureSet(CLinkFigureLoader*, void*, const stlp::string* /*name*/)
+// 004FAB00 (RET 4; CLinkFigureLoader::FindFigureSet), called through its address so its check sees these calls.
+__declspec(naked) LinkFigureSet* __fastcall FindFigureSetAt(CLinkFigureLoader*, void*, const stlp::string* /*name*/)
     EI_ORIGINAL(0x004FAB00)
 // 004F2C00 (RET 0x14, returns this): the mesh constructor (loader, name, coefficients; no reference);
 // rewritten (CLinkMesh::Construct), called through its address so its check sees these calls.
@@ -141,7 +144,7 @@ CLinkMesh* CLinkFigureLoader::LoadFigure(const stlp::string* name, const stlp::v
     {
         stlp::string meshName;
         mesh->CopyName(&meshName);
-        set = FindFigureSet(this, nullptr, &meshName);
+        set = FindFigureSetAt(this, nullptr, &meshName);
     }
     for (const stlp::string* part = parts->begin(); part != parts->end(); ++part) {
         if (mesh->HasPart(part)) continue;
@@ -172,7 +175,7 @@ bool CLinkFigureLoader::LoadPartInto(CLinkMesh* mesh, const stlp::string* name) 
     {
         stlp::string meshName;
         mesh->CopyName(&meshName);
-        set = FindFigureSet(this, nullptr, &meshName);
+        set = FindFigureSetAt(this, nullptr, &meshName);
     }
     const float s = mesh->morph_[0], t = mesh->morph_[1], u = mesh->morph_[2];
     if (!set) return LoadArchivePartAt(this, nullptr, mesh, name, s, t, u) != 0;
@@ -196,7 +199,7 @@ CLinkMesh* CLinkFigureLoader::Remorph(CLinkMesh* mesh, float s, float t, float u
     {
         stlp::string meshName;
         mesh->CopyName(&meshName);
-        set = FindFigureSet(this, nullptr, &meshName);
+        set = FindFigureSetAt(this, nullptr, &meshName);
     }
     for (stlp::string* part = names.begin(); part != names.end(); ++part)
         RemorphPart(this, nullptr, mesh, set, part, s, t, u);
@@ -208,7 +211,7 @@ CLinkMesh* CLinkFigureLoader::Remorph(CLinkMesh* mesh, float s, float t, float u
 CLinkMesh* CLinkFigureLoader::LoadLinkFile(const stlp::string* name, float s, float t, float u) {
     void* memory = gamecrt::operator_new(sizeof(CLinkMesh));
     CLinkMesh* mesh = memory ? MeshConstruct(memory, nullptr, this, name, s, t, u) : nullptr;
-    LinkFigureSet* set = FindFigureSet(this, nullptr, name);
+    LinkFigureSet* set = FindFigureSetAt(this, nullptr, name);
     const char* data;
     if (set) {
         data = static_cast<const char*>(set->model->GetFile(name->data(), nullptr));
@@ -245,7 +248,7 @@ CLinkMesh* CLinkFigureLoader::MakeFigure(const stlp::string* name, const stlp::v
                                          float t, float u) {
     void* memory = gamecrt::operator_new(sizeof(CLinkMesh));
     CLinkMesh* mesh = memory ? MeshConstruct(memory, nullptr, this, name, s, t, u) : nullptr;
-    LinkFigureSet* set = FindFigureSet(this, nullptr, name);
+    LinkFigureSet* set = FindFigureSetAt(this, nullptr, name);
     for (const stlp::string* part = parts->begin(); part != parts->end(); ++part) {
         if (!set) {
             LoadArchivePartAt(this, nullptr, mesh, part, s, t, u);
@@ -271,7 +274,79 @@ int CLinkFigureLoader::LoadArchivePart(CLinkMesh* mesh, const stlp::string* name
     return 1;
 }
 
+LinkFigureSet* CLinkFigureLoader::FindFigureSet(const stlp::string* name) {
+    if (auto* found = figureSets_.Find(*name)) return found->value;
+    // "<name>" plus each suffix in a 512-byte buffer, as the original builds them (strcpy / strcat,
+    // no length check).
+    char path[512];
+    const char* files[3];
+    const char* const suffixes[3] = {".mod", ".bon", ".anm"};
+    const std::size_t length = std::strlen(name->data());
+    for (int i = 0; i < 3; ++i) {
+        std::memcpy(path, name->data(), length);
+        std::memcpy(path + length, suffixes[i], 5);
+        files[i] = FindInArchives(archives_, path);
+    }
+    if (!files[0]) return nullptr;
+    void* memory = gamecrt::operator_new(sizeof(LinkFigureSet));
+    auto* set = static_cast<LinkFigureSet*>(memory ? FigureModelConstructOriginal(memory) : nullptr);
+    figureSets_[*name] = set;
+    // The original indexes the map a second time (resize for one more element included).
+    FigureModelLoadOriginal(figureSets_[*name], nullptr, files[0], files[1], files[2]);
+    auto* found = figureSets_.Find(*name);
+    return found ? found->value : nullptr;
+}
+
+namespace {
+// The archive list's clear (004FBCF0): each node's name freed and the node returned to the pool,
+// the sentinel linked to itself.
+void ClearArchives(LinkArchiveNode* head) {
+    for (LinkArchiveNode* n = head->next; n != head;) {
+        LinkArchiveNode* next = n->next;
+        n->name.~string();
+        stlp::deallocate(n, sizeof(LinkArchiveNode));
+        n = next;
+    }
+    head->next = head;
+    head->prev = head;
+}
+} // namespace
+
+void CLinkFigureLoader::Destruct() {
+    ei::SetVtable(this, kVtableAddress);
+    for (LinkArchiveNode* n = archives_->next; n != archives_; n = n->next) {
+        n->resource->CloseResource();
+        if (n->resource) delete n->resource;
+    }
+    ClearArchives(archives_);
+    for (auto* node = figureSets_.First(); node; node = figureSets_.After(node)) {
+        if (LinkFigureSet* set = node->value) {
+            FigureModelDestructOriginal(set);
+            gamecrt::operator_delete(set);
+        }
+    }
+    if (CTextureDevice* device = renderer_) {
+        renderer_ = nullptr;
+        SurfaceHolderReleaseOriginal(device);
+    }
+    CLinkFigureLoader::ClearCache();
+    stlp::deallocate(cache_.end(), sizeof(Cache::Node));
+    // The original releases renderer_ here once more; it is null by now.
+    figureSets_.Destroy();
+    ClearArchives(archives_);
+    stlp::deallocate(archives_, sizeof(LinkArchiveNode));
+    ei::SetVtable(this, CLinkMesh::kRootVtableAddress);
+}
+
+void* CLinkFigureLoader::DeleteThis(unsigned flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+
+EI_REPLACE_METHOD(0x004F6BD0, CLinkFigureLoader::Destruct);
 EI_REPLACE_METHOD(0x004F77C0, CLinkFigureLoader::LoadLinkFile);
+EI_REPLACE_METHOD(0x004FAB00, CLinkFigureLoader::FindFigureSet);
 EI_REPLACE_METHOD(0x004F7B10, CLinkFigureLoader::MakeFigure);
 EI_REPLACE_METHOD(0x004F7480, CLinkFigureLoader::LoadPartInto);
 EI_REPLACE_METHOD(0x004F7D20, CLinkFigureLoader::LoadArchivePart);
@@ -287,6 +362,9 @@ CLinkMesh* __fastcall LoadLinkHook(CLinkFigureLoader* self, void*, const stlp::s
     return self->CLinkFigureLoader::LoadLink(name, s, t, u, fresh);
 }
 void __fastcall ClearCacheHook(CLinkFigureLoader* self) { self->CLinkFigureLoader::ClearCache(); }
+void* __fastcall LoaderDeleteThisHook(CLinkFigureLoader* self, void*, unsigned flags) {
+    return self->CLinkFigureLoader::DeleteThis(flags);
+}
 CLinkMesh* __fastcall RemorphHook(CLinkFigureLoader* self, void*, CLinkMesh* mesh, float s, float t, float u) {
     return self->CLinkFigureLoader::Remorph(mesh, s, t, u);
 }
@@ -294,4 +372,5 @@ CLinkMesh* __fastcall RemorphHook(CLinkFigureLoader* self, void*, CLinkMesh* mes
 EI_REPLACE(0x004F7150, LoadFigureHook);
 EI_REPLACE(0x004F7080, LoadLinkHook);
 EI_REPLACE(0x004F7020, ClearCacheHook);
+EI_REPLACE(0x004F6A30, LoaderDeleteThisHook);
 EI_REPLACE(0x004F75E0, RemorphHook);

@@ -116,7 +116,8 @@ struct VertexPacket;
 
 class __declspec(novtable) CLinkFigureLoader {
 public:
-    virtual void* DeleteThis(unsigned flags);   // 0: 004F6A30 (destructor body 004F6BD0)
+    // 0: 004F6A30 (RET 4, returns this; A-S8). Destruct; freed when flags bit 0 is set.
+    virtual void* DeleteThis(unsigned flags);
     virtual int CacheSize();                    // 1: 004F6A20 (cache_'s count)
     virtual int CacheBytes();                   // 2: 004FAAA0 (each cached mesh's 004F4B50 summed)
     // 3: 004F7150 (RET 0x18). Figure `name` with the parts `parts`: unless `fresh`, the first cached
@@ -158,6 +159,17 @@ public:
     // 004F7D20 (RET 0x14, EAX 1 / 0). Part `name` of `mesh` from the first open archive that has
     // "<mesh name><name>.fig".
     int LoadArchivePart(CLinkMesh* mesh, const stlp::string* name, float s, float t, float u);
+    // 004FAB00 (RET 4; A-S8). Figure `name`'s own archive set: the cached one, else (when an open
+    // archive has "<name>.mod") a new set (005A9A50) stored under the name and loaded from the first
+    // archives with "<name>.mod" / ".bon" / ".anm" (005A9EB0); null without a .mod.
+    LinkFigureSet* FindFigureSet(const stlp::string* name);
+    // 004F6BD0 (A-S8). Each archive closed (slot 3) and deleted, the archive list emptied, each
+    // figure set destroyed (005A9C90) and freed, the device object released (the field cleared
+    // first), the cache emptied (ClearCache's walk), then the containers' storage; the counted
+    // root's vtable (0073C368) left.
+    void Destruct();
+
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073D808);
 
     int refCount_;                    // +0x04
     ITransformPipeline* pipeline_;    // +0x08 the renderer's (+0x24) +0xAC -> +0xC

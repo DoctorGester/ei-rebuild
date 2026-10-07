@@ -1770,7 +1770,7 @@ address,name,library,signature,notes
 004FB0F0,"stlp::hashtable<pair<const string,T>,...>::find",STLport,,"inventory sweep: __stl_hash_string (h*5+c), walk the chain; loose-family member of 004FB0F0 (reviewed)"
 004FB170,"stlp::string::string(const string&)",STLport,,A-S8: node-pool copy with the length_error path
 004FB290,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
-004FB2E0,"stlp::list<T>::list",STLport,,A-S8: sentinel holding an empty value (archive list)
+004FB2E0,"stlp::list<T>::insert(iterator)",STLport,,A-S8: a default value (string reserved for 8 bytes) before the position (archive list; model.cpp forwards it)
 004FB3B0,"stlp::list iterator copy",STLport,,A-S8: copies one pointer (RET 4)
 004FB3C0,stlp::list<T>::list,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004FB570,"stlp::list iterator --",STLport,,A-S8: node = node->prev
