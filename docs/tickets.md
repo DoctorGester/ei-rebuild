@@ -44,9 +44,8 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Verify checks
 
-- X25 after the A-W7 merge (fd469cb), at 6 jobs: 18 failures, step-0 hangs (ui_camp, ui_battle_*, ui_base_dialogue, trader_stock, render_terrain) and E06D7363 crashes in render_*; ui_quick_items rebirth C0000005. Startup set-up 00563710 / 00563930 disabled: still 15+ failures at 6 jobs (session still locked), so they are probably not the cause. Next: run the suite at 2-4 jobs, or with the screen unlocked, before bisecting. Next: rerun; if still failing, disable the rest of A-W7's hooks (fd469cb diff) and bisect.
 
-- X24 note: with the Windows session locked, 16 parallel runs give random D3D11 texture failures, C++ exceptions (E06D7363) and step-0 hangs; 6 at once is clean (132 runs ALL PASS at 7b1ec35). Use --jobs 6 while locked.
+- X24 note: with the Windows session locked, 16 parallel runs give random D3D11 texture failures, C++ exceptions (E06D7363) and step-0 hangs; 6 at once is clean (132 runs ALL PASS at 7b1ec35). Use --jobs 6 while locked; after hours locked even 6 fails (crashes, step-0 hangs), 3 is clean (X25, A-W7 was not the cause).
 
 - X23 (done 2026-10-07: title keys "zone "/"allod ", DeleteSave check via the game import, harness quit only from WinMain's loop; rebirth_flags / render_scene / render_movie_present crashes not traced to A-H14, re-run) A-H14 merge regressions (main 9d61b1d): magic_traps both (game did not exit 5 s after quit), script_fx both, ui_saveload / ui_saveload_delete both, rebirth_flags rebirth (crash E06D7363), render_scene vanilla (crash C0000005 in DDraw), render_movie_present rebirth (hang). Mismatches: CSaveLoadWindow::DeleteSave 2/2, SaveEntry::AllodTitle 34/34, SaveEntry::ZoneTitle 82/82.
 
