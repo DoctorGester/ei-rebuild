@@ -1097,6 +1097,35 @@ CWorldServer* WorldServer();   // 007AFF60
 // 0079BE5C: the time speed setting (the options' value; a negative speed asks for it).
 inline int TimeSpeedSetting() { return *reinterpret_cast<const int*>(0x0079BE5C); }
 CWorldClient* WorldClient();   // 007AF5B8
+
+// The client's per-frame draw lists (world_client_view.cpp files the visible objects in them,
+// world_client_draw.cpp sorts, draws and empties them): STLport vectors of object pointers, the
+// globals 007AF508 + 0x10 * list, in this order. The deferred unit list follows at 007AF5B4 (an
+// STLport list of counted object pointers; nodes of 12 bytes).
+struct FrameObjectList {
+    CEngineObject** begin;
+    CEngineObject** end;
+    CEngineObject** capacity;
+};
+enum class FrameList {
+    TouchedModels,   // 007AF508 models to keep loaded (by last use)
+    Shadow52,        // 007AF518
+    ShadowUnits,     // 007AF528
+    Shadow5D,        // 007AF538
+    ShadowOther,     // 007AF548
+    Shadow54,        // 007AF558
+    Visible52,       // 007AF568
+    VisibleUnits,    // 007AF578
+    Visible5D,       // 007AF588
+    VisibleOther,    // 007AF598
+    Visible54,       // 007AF5A8
+};
+inline FrameObjectList& FrameObjects(FrameList list) {
+    return *reinterpret_cast<FrameObjectList*>(std::uintptr_t(0x007AF508) + 0x10u * static_cast<std::uintptr_t>(list));
+}
+inline stlp::list<CEngineObject*>* FrameDeferredUnits() {
+    return reinterpret_cast<stlp::list<CEngineObject*>*>(std::uintptr_t(0x007AF5B4));
+}
 // 007AF63C: the id the next object only the client makes gets (client figures such as a bow
 // shot's arrow); each use counts it down.
 inline int& NextClientObjectId() { return *reinterpret_cast<int*>(0x007AF63C); }

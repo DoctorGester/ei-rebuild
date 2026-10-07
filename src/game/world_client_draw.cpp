@@ -2,17 +2,27 @@
 // LandscapeDrawRadius and ObjectsDrawRadius behind their flags. See world.h and
 // docs/notes/world.md.
 //
-// Both talk to Direct3D 7 through the renderer (007AF080: +0x54 the IDirect3DDevice7, +0x08 the
-// last state block result) and to the render device's matrix stacks (007AF068), exactly as the
-// original: the same calls in the same order. Callees are reached through their original
-// addresses (rewritten ones included, so the verify build's wrappers see the calls).
+// Both talk to Direct3D 7 through the renderer (RenderDeviceObject(), 007AF080: d3dDevice_ the
+// IDirect3DDevice7, lastLoadResult_ the last state block result) and to the scene pipeline's matrix
+// stacks (ScenePipeline(), 007AF068), exactly as the original: the same calls in the same order.
+// Callees are reached through their original addresses (rewritten ones included, so the verify
+// build's wrappers see the calls).
+//
+// DR-C5 draft: the CWorldClient members used here are DR-C1's names (draft-dr-c1's world.h) plus
+// camera_ (+0x210), which neither declares yet (docs/notes/drafts/DR-C5.md).
 #include "world.h"
 
+#include "camera.h"
+#include "map_object.h"
+#include "model.h"
+#include "terrain.h"
+#include "texture.h"
 #include "ei/hook.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
 #include "lib/gameapi.h"
+#include "lib/stlp.h"
 #include "render/render.h"
 #include "originals_core.h"
 #include "originals_library.h"
@@ -29,73 +39,67 @@
 
 namespace {
 
-template <typename T>
-__forceinline T& Field(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
-}
-
-void* const kContext = reinterpret_cast<void*>(0x007AF060);   // the scene context (00500960 returns it)
-char* Renderer() { return *reinterpret_cast<char**>(0x007AF080); }
-char* Device() { return *reinterpret_cast<char**>(0x007AF068); }
-
-// IDirect3DDevice7 (renderer +0x54): SetRenderState (slot 20), ApplyStateBlock (slot 39; its
-// HRESULT goes to the renderer's +0x08).
-void SetRenderState(char* renderer, int state, std::uint32_t value) {
-    void* d3d = Field<void*>(renderer, 0x54);
+// IDirect3DDevice7 (the renderer's d3dDevice_): SetRenderState (slot 20), ApplyStateBlock (slot
+// 39; its HRESULT goes to the renderer's lastLoadResult_, +0x08).
+constexpr int kD3DSetRenderState = 20;
+constexpr int kD3DApplyStateBlock = 39;
+void SetRenderState(CTextureDevice* renderer, int state, std::uint32_t value) {
+    void* d3d = renderer->d3dDevice_;
     using Fn = long(__stdcall*)(void*, int, std::uint32_t);
-    reinterpret_cast<Fn>((*static_cast<void***>(d3d))[0x50 / 4])(d3d, state, value);
+    reinterpret_cast<Fn>((*static_cast<void***>(d3d))[kD3DSetRenderState])(d3d, state, value);
     render::state::Render(static_cast<std::uint32_t>(state), value);
 }
-void ApplyStateBlock(char* renderer, std::uintptr_t handleAddress) {
-    void* d3d = Field<void*>(renderer, 0x54);
+// The renderer's state block handles: 007AEDD0 the scene's, 007AEDD8 the alpha passes', 007AEDDC
+// the terrain's.
+const std::uint32_t& StateBlockScene() { return *reinterpret_cast<const std::uint32_t*>(0x007AEDD0); }
+const std::uint32_t& StateBlockAlpha() { return *reinterpret_cast<const std::uint32_t*>(0x007AEDD8); }
+const std::uint32_t& StateBlockTerrain() { return *reinterpret_cast<const std::uint32_t*>(0x007AEDDC); }
+void ApplyStateBlock(CTextureDevice* renderer, const std::uint32_t& handle) {
+    void* d3d = renderer->d3dDevice_;
     using Fn = long(__stdcall*)(void*, std::uint32_t);
-    Field<long>(renderer, 8) = reinterpret_cast<Fn>((*static_cast<void***>(d3d))[0x9C / 4])(
-        d3d, *reinterpret_cast<const std::uint32_t*>(handleAddress));
-    render::state::Block(*reinterpret_cast<const std::uint32_t*>(handleAddress));
+    renderer->lastLoadResult_ = reinterpret_cast<Fn>((*static_cast<void***>(d3d))[kD3DApplyStateBlock])(d3d, handle);
+    render::state::Block(handle);
 }
-constexpr std::uintptr_t kStateBlockScene = 0x007AEDD0;
-constexpr std::uintptr_t kStateBlockAlpha = 0x007AEDD8;
-constexpr std::uintptr_t kStateBlockTerrain = 0x007AEDDC;
 
 // 004E7840 / 004E7A40: the renderer flushes its two batched vertex buffers.
-void __fastcall RendererFlushA(char* a0) { DeviceFlushBatchAOriginal((void*)a0); }
-void __fastcall RendererFlushB(char* a0) { DeviceFlushBatchBOriginal((void*)a0); }
-void Flush(char* renderer) {
-    RendererFlushA(renderer);
-    RendererFlushB(renderer);
+void Flush(CTextureDevice* renderer) {
+    DeviceFlushBatchAOriginal(renderer);
+    DeviceFlushBatchBOriginal(renderer);
 }
 
-// The render device's matrix stacks (pointer, depth): +0x1C/+0x20 and +0x24/+0x28 pushed by
-// 004D9B80 (types 1 and 2), +0x3C/+0x40, and the view stack +0x5C/+0x60.
-void __fastcall PushSceneMatrix(char* a0, void*, const float* a2, int a3) { PushSceneMatrixOriginal((void*)a0, nullptr, a2, a3); }
-inline void __fastcall MultiplyMatrix(float* out, void*, const float* a, const float* b) { MatrixMultiplyOriginal(out, nullptr, a, b); }
-// 004F0EF0: the view matrix of the camera 0079B2A8 into `out`.
-__declspec(naked) void __fastcall DeviceViewMatrix(char*, void*, float*, const void*) EI_ORIGINAL(0x004F0EF0)
+// The pipeline's matrix stacks: 1 and 2 pushed by 004D9B80 (PushSceneMatrixOriginal), 5 the world
+// draw's, 9 the views.
+constexpr int kStackScene1 = 1;    // +0x1C
+constexpr int kStackScene2 = 2;    // +0x24
+constexpr int kStackWorld = 5;     // +0x3C
+constexpr int kStackView = 9;      // +0x5C
+// 004F0EF0: the view matrix of the camera (0079B2A8) into `out`.
+__declspec(naked) void __fastcall DeviceViewMatrix(CTransformPipeline*, void*, float*, const void*) EI_ORIGINAL(0x004F0EF0)
 
-// Pushes `matrix` on the stack at `stackOffset` (its depth follows), as the original inlines it.
-void PushMatrix(char* device, int stackOffset, const float* matrix) {
-    int& depth = Field<int>(device, stackOffset + 4);
-    float* stack = Field<float*>(device, stackOffset);
+// Pushes `matrix` on `stack`, as the original inlines it.
+void PushMatrix(MatrixStack& stack, const float* matrix) {
+    int& depth = stack.count;
+    Matrix4* matrices = stack.matrices;
     if (depth == 0) {
         depth = 1;
-        std::memcpy(stack, matrix, 0x40);
+        std::memcpy(matrices, matrix, sizeof(Matrix4));
     } else {
         int d = ++depth;
-        MultiplyMatrix(stack + (d - 1) * 16, nullptr, stack + (d - 2) * 16, matrix);
+        MatrixMultiplyOriginal(matrices[d - 1].m, nullptr, matrices[d - 2].m, matrix);
     }
 }
-void PopMatrix(char* device, int depthOffset) {
-    int& depth = Field<int>(device, depthOffset);
+void PopMatrix(MatrixStack& stack) {
+    int& depth = stack.count;
     if (depth) --depth;
 }
 
 // Render's callees.
 __declspec(naked) void __fastcall ClientBeginFrame(CWorldClient*) EI_ORIGINAL(0x00566360)
 __declspec(naked) void __fastcall SkyDraw(void*, void*, void*, const void*) EI_ORIGINAL(0x004D96E0)
-__declspec(naked) void __fastcall CameraFrame(void*, void*, void*) EI_ORIGINAL(0x0040E810)
-__declspec(naked) void __fastcall TerrainSetView(void*, void*, float, float, float) EI_ORIGINAL(0x006CA260)
-__declspec(naked) void __fastcall TerrainDrawFirst(void*, void*, void*) EI_ORIGINAL(0x006C6230)
-__declspec(naked) void __fastcall TerrainDrawSecond(void*, void*, void*) EI_ORIGINAL(0x006C6330)
+__declspec(naked) void __fastcall CameraFrame(CCamera*, void*, void*) EI_ORIGINAL(0x0040E810)
+__declspec(naked) void __fastcall TerrainSetView(Terrain*, void*, float, float, float) EI_ORIGINAL(0x006CA260)
+__declspec(naked) void __fastcall TerrainDrawFirst(Terrain*, void*, void*) EI_ORIGINAL(0x006C6230)
+__declspec(naked) void __fastcall TerrainDrawSecond(Terrain*, void*, void*) EI_ORIGINAL(0x006C6330)
 __declspec(naked) int __fastcall DrawPassAt(CWorldClient*) EI_ORIGINAL(0x0056AFE0)
 __declspec(naked) void __fastcall EffectsDraw(void*, void*, void*) EI_ORIGINAL(0x004E2700)
 __declspec(naked) void __fastcall ParticlesDraw(void*, void*, void*) EI_ORIGINAL(0x00498940)
@@ -103,7 +107,9 @@ __declspec(naked) void __fastcall LightningDraw(void*, void*, void*) EI_ORIGINAL
 __declspec(naked) void __fastcall RibbonsDraw(void*, void*, void*) EI_ORIGINAL(0x004E5680)
 __declspec(naked) void __fastcall ClientDrawOverlays(CWorldClient*) EI_ORIGINAL(0x00569D60)
 __declspec(naked) void __fastcall HitPointsDraw(void*, void*, void*) EI_ORIGINAL(0x005E18E0)
-constexpr int kSlotParticles = 0x90 / 4;   // CWorldClient: the particle manager
+// CWorld slot 36 (+0x90): the client's particle manager (+0x19C). DR-C2 names it
+// ClientParticleManager (declared void there); switch the VCall to it once DR-C2 is merged.
+constexpr int kSlotParticles = 36;
 
 // A starter setting (HKCU\Software\Gipat.Ru\EI_Starter\Settings, a DWORD, 100 when absent) as
 // addon turns it into the float it patches in: (float)(unsigned)value, read once (addon reads its
@@ -128,9 +134,8 @@ float LandscapeDrawRadius() {
 }
 
 // DrawPass's callees.
-void __fastcall DeferredClear(void* a0) { CountedListClearOriginal(a0); }
-__declspec(naked) void __fastcall VectorClear(void*) EI_ORIGINAL(0x0056E870)
-__declspec(naked) float* __fastcall CameraPosition(void*) EI_ORIGINAL(0x0040FB20)
+__declspec(naked) void __fastcall VectorClear(FrameObjectList*) EI_ORIGINAL(0x0056E870)
+__declspec(naked) float* __fastcall CameraPosition(CCamera*) EI_ORIGINAL(0x0040FB20)
 __declspec(naked) void __fastcall SoundListener(void*, void*, float) EI_ORIGINAL(0x0067CEF0)
 __declspec(naked) int __fastcall CollectVisibleAt(CWorldClient*, void*, void*, const float*, float, std::uint32_t, int, int)
     EI_ORIGINAL(0x0056A990)
@@ -146,47 +151,32 @@ __declspec(naked) void __fastcall QueueSelected(CEngineObject*, void*) EI_ORIGIN
 __declspec(naked) void __fastcall LightEffectDraw(void*) EI_ORIGINAL(0x006CEDE0)
 __declspec(naked) void __fastcall QuaternionAxisZ(const void*, void*, float*) EI_ORIGINAL(0x0040D6B0)
 __declspec(naked) void __fastcall QuaternionAxisX(const void*, void*, float*) EI_ORIGINAL(0x0040D940)
-void __fastcall MarkerBegin(void* a0, void*, int a2, int a3) { DeviceSetTextureOriginal(a0, nullptr, a2, (void*)a3); }
-void* __fastcall ObjectFindPart(CEngineObject* a0, void*, const char* a2) { return (void*)ObjectFindPartOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall MarkerDraw(void*, void*, const float*, float, const float*, const float*)
     EI_ORIGINAL(0x00503A40)
 __declspec(naked) void __fastcall ListErase(void*, void*, void**, void*) EI_ORIGINAL(0x00512030)
 __declspec(naked) CEngineObject** __fastcall VectorCopyBack(CEngineObject**, CEngineObject**, CEngineObject**)
     EI_ORIGINAL(0x00571E30)
-__declspec(naked) void __fastcall VectorErase(void*, void*, CEngineObject**, CEngineObject**) EI_ORIGINAL(0x0056F5E0)
-
-// The frame's draw lists (STLport vectors of object pointers) and the deferred unit list.
-struct ObjectVector {
-    CEngineObject** begin;
-    CEngineObject** end;
-    CEngineObject** capacity;
-};
-ObjectVector& List(std::uintptr_t address) { return *reinterpret_cast<ObjectVector*>(address); }
-constexpr std::uintptr_t kTouchedModels = 0x007AF508;
-constexpr std::uintptr_t kShadow52 = 0x007AF518;
-constexpr std::uintptr_t kShadowUnits = 0x007AF528;
-constexpr std::uintptr_t kShadow5D = 0x007AF538;
-constexpr std::uintptr_t kShadowOther = 0x007AF548;
-constexpr std::uintptr_t kShadow54 = 0x007AF558;
-constexpr std::uintptr_t kVisible52 = 0x007AF568;
-constexpr std::uintptr_t kVisibleUnits = 0x007AF578;
-constexpr std::uintptr_t kVisible5D = 0x007AF588;
-constexpr std::uintptr_t kVisibleOther = 0x007AF598;
-constexpr std::uintptr_t kVisible54 = 0x007AF5A8;
-void* const kDeferred = reinterpret_cast<void*>(0x007AF5B4);
-
-struct ListNode {
-    ListNode* next;
-    ListNode* prev;
-};
-ListNode* Head(const void* list) { return *static_cast<ListNode* const*>(list); }
+__declspec(naked) void __fastcall VectorErase(FrameObjectList*, void*, CEngineObject**, CEngineObject**) EI_ORIGINAL(0x0056F5E0)
 
 // The object margin around the camera when collecting what to draw (0073BAB0, 100.0).
+float ObjectsDrawMargin() { return *reinterpret_cast<const float*>(0x0073BAB0); }
 float ObjectsDrawRadius() {
     static const float setting = StarterDrawRadius("ObjectsDrawRadius");
-    return ei::rebirth::Enabled(ei::rebirth::Patch::ObjectsDrawRadius) ? setting
-                                                                         : *reinterpret_cast<const float*>(0x0073BAB0);
+    return ei::rebirth::Enabled(ei::rebirth::Patch::ObjectsDrawRadius) ? setting : ObjectsDrawMargin();
 }
+// 0073B84C: 1.0, the map edge's margin.
+float MapEdgeMargin() { return *reinterpret_cast<const float*>(0x0073B84C); }
+// 0073F750: the length of the shadows' projection along the camera's Z axis.
+float ShadowLength() { return *reinterpret_cast<const float*>(0x0073F750); }
+// The light effect settings (0079BD50, 0079BD4C, 0079BD54: the three lists +0x1B8 / +0x1BC /
+// +0x1C0) and the game mode (0079BE64; 1 single player).
+int LightEffectsSetting(std::uintptr_t address) { return *reinterpret_cast<const int*>(address); }
+int LightEffects1B8() { return LightEffectsSetting(std::uintptr_t(0x0079BD50)); }
+int LightEffects1BC() { return LightEffectsSetting(std::uintptr_t(0x0079BD4C)); }
+int LightEffects1C0() { return LightEffectsSetting(std::uintptr_t(0x0079BD54)); }
+int GameMode() { return *reinterpret_cast<const int*>(0x0079BE64); }
+// 007900E4: the part a selection marker sits on.
+const char* MarkerPartName() { return reinterpret_cast<const char*>(0x007900E4); }
 
 // FLD a; FADD/FSUB b; FSTP: the result rounded to float.
 float AddRounded(float a, float b) {
@@ -265,8 +255,8 @@ int Log2(int n) {
 }
 
 // Sorts one draw list with UnitOrderLess (the comparator gets the renderer).
-void SortByModel(std::uintptr_t address, char* renderer) {
-    ObjectVector& v = List(address);
+void SortByModel(FrameList list, CTextureDevice* renderer) {
+    FrameObjectList& v = FrameObjects(list);
     CEngineObject** first = v.begin;
     CEngineObject** last = v.end;
     if (first == last) return;
@@ -275,36 +265,47 @@ void SortByModel(std::uintptr_t address, char* renderer) {
 }
 
 // Calls virtual slot `slot` (one argument, the scene context) of every object of a draw list.
-void DrawEach(std::uintptr_t address, int slot) {
-    CEngineObject** end = List(address).end;
-    for (CEngineObject** p = List(address).begin; p != end; ++p) ei::VCall<void>(*p, slot, kContext);
+// Slots 22-24 of the drawn objects are placeholders in map_object.h (CMapObjectVirtuals; DR-C2
+// names 23 DrawCollectDirty); switch these VCalls once the draw slots are named.
+void DrawEach(FrameList list, int slot) {
+    CEngineObject** end = FrameObjects(list).end;
+    for (CEngineObject** p = FrameObjects(list).begin; p != end; ++p) ei::VCall<void>(*p, slot, SceneContext());
 }
-constexpr int kSlotDraw = 0x58 / 4;         // 005783C0
-constexpr int kSlotDrawUnit = 0x5C / 4;     // 005783A0
-constexpr int kSlotDrawShadow = 0x60 / 4;   // 005783B0
+constexpr int kSlotDraw = 22;         // +0x58, 005783C0
+constexpr int kSlotDrawUnit = 23;     // +0x5C, 005783A0
+constexpr int kSlotDrawShadow = 24;   // +0x60, 005783B0
+// The attached side object's slots 25 / 26 (+0x64 / +0x68) with 0: a deselected object's marker
+// goes away. Placeholders as above.
+constexpr int kSlotSide25 = 25;
+constexpr int kSlotSide26 = 26;
 
 // Empties the deferred unit list: each node's counted pointer released, the node freed with
 // `fastFree` (0056FB40) or 0056F700.
 void EmptyDeferred(bool fastFree) {
-    ListNode* head = Head(kDeferred);
-    ListNode* node = head->next;
+    using Node = stlp::list<CEngineObject*>::Node;
+    stlp::list<CEngineObject*>* deferred = FrameDeferredUnits();
+    Node* head = deferred->head;
+    Node* node = head->next;
     while (node != head) {
-        ListNode* current = node;
+        Node* current = node;
         node = node->next;
-        CountedRelease(reinterpret_cast<char*>(current) + 8, nullptr, 0);
+        CountedRelease(&current->data, nullptr, 0);
         if (fastFree) NodeFree12Fast(current, 1);
-        else NodeFree12(kDeferred, nullptr, current, 1);
-        head = Head(kDeferred);
+        else NodeFree12(deferred, nullptr, current, 1);
+        head = deferred->head;
     }
     head->next = head;
-    Head(kDeferred)->prev = Head(kDeferred);
+    deferred->head->prev = deferred->head;
 }
 
-// Calls 006CEDE0 on the value of every node of an effect list (this + 0x1B8 / 0x1BC / 0x1C0).
-void DrawLightEffects(void* list) {
-    ListNode* head = Head(list);
-    for (ListNode* node = head->next; node != head; node = node->next) LightEffectDraw(reinterpret_cast<char*>(node) + 8);
+// Calls 006CEDE0 on the value of every node of an effect list (+0x1B8 / +0x1BC / +0x1C0).
+template <typename T>
+void DrawLightEffects(stlp::list<T>& list) {
+    typename stlp::list<T>::Node* head = list.head;
+    for (typename stlp::list<T>::Node* node = head->next; node != head; node = node->next) LightEffectDraw(&node->data);
 }
+template <typename T>
+bool ListEmpty(const stlp::list<T>& list) { return list.head->next == list.head; }
 
 } // namespace
 
@@ -313,103 +314,99 @@ void DrawLightEffects(void* list) {
 int CWorldClient::Render() {
     // The new renderer (src/render) tells the world's meshes from the interface's by this.
     render::BeginWorld();
-    char* renderer = Renderer();
-    char* device = Device();
+    CTextureDevice* renderer = RenderDeviceObject();
+    CTransformPipeline* device = ScenePipeline();
     ClientBeginFrame(this);
     Flush(renderer);
     float view[16];
-    DeviceViewMatrix(device, nullptr, view, reinterpret_cast<const void*>(0x0079B2A8));
-    PopMatrix(device, 0x60);
-    PushMatrix(device, 0x5C, view);
-    const float* top = Field<float*>(device, 0x5C) + (Field<int>(device, 0x60) - 1) * 16;
-    PushSceneMatrix(device, nullptr, top, 2);
-    PushSceneMatrix(device, nullptr, top, 1);
-    PushMatrix(device, 0x3C, Field<float*>(device, 0x5C) + (Field<int>(device, 0x60) - 1) * 16);
+    DeviceViewMatrix(device, nullptr, view, camera::TheCamera());
+    PopMatrix(device->stacks_[kStackView]);
+    PushMatrix(device->stacks_[kStackView], view);
+    const float* top = device->Top(kStackView)->m;
+    PushSceneMatrixOriginal(device, nullptr, top, kStackScene2);
+    PushSceneMatrixOriginal(device, nullptr, top, kStackScene1);
+    PushMatrix(device->stacks_[kStackWorld], device->Top(kStackView)->m);
 
     std::uint32_t flags = flags_;
-    void* sky = Field<void*>(this, 0x1AC);
+    void* sky = owned1AC_;
     if ((flags & 0x1000) && sky) {
         SetRenderState(renderer, 15, 0);
-        ApplyStateBlock(renderer, kStateBlockScene);
+        ApplyStateBlock(renderer, StateBlockScene());
         SetRenderState(renderer, 14, 0);
         SetRenderState(renderer, 22, 1);
         SetRenderState(renderer, 29, 1);
-        Field<int>(renderer, 0x158) = 0;
-        SkyDraw(Field<void*>(this, 0x1AC), nullptr, kContext, Field<char*>(this, 0x210) + 0x1C);
+        renderer->unknown_158 = 0;
+        SkyDraw(owned1AC_, nullptr, SceneContext(), &camera_->localPosition_);
         Flush(renderer);
-        Field<int>(renderer, 0x158) = 1;
+        renderer->unknown_158 = 1;
         SetRenderState(renderer, 22, 2);
         SetRenderState(renderer, 29, 0);
         SetRenderState(renderer, 14, 1);
     }
     NetworkTimers();
-    if ((flags_ & 0x100) && Field<void*>(this, 0x180)) {
+    if ((flags_ & 0x100) && terrain_) {
         char frame[12];
-        char* camera = Field<char*>(this, 0x210);
-        CameraFrame(camera, nullptr, frame);
-        camera = Field<char*>(this, 0x210);
-        TerrainSetView(Field<void*>(this, 0x180), nullptr, Field<float>(camera, 0x1C), Field<float>(camera, 0x20),
-                       LandscapeDrawRadius());
-        ApplyStateBlock(renderer, kStateBlockTerrain);
-        TerrainDrawFirst(Field<void*>(this, 0x180), nullptr, kContext);
+        CameraFrame(camera_, nullptr, frame);
+        CCamera* camera = camera_;
+        TerrainSetView(terrain_, nullptr, camera->localPosition_.x, camera->localPosition_.y, LandscapeDrawRadius());
+        ApplyStateBlock(renderer, StateBlockTerrain());
+        TerrainDrawFirst(terrain_, nullptr, SceneContext());
         Flush(renderer);
     }
     DrawPassAt(this);
     NetworkTimers();
-    if ((flags_ & 0x100) && Field<void*>(this, 0x180)) {
+    if ((flags_ & 0x100) && terrain_) {
         char frame[12];
-        char* camera = Field<char*>(this, 0x210);
-        CameraFrame(camera, nullptr, frame);
-        camera = Field<char*>(this, 0x210);
-        TerrainSetView(Field<void*>(this, 0x180), nullptr, Field<float>(camera, 0x1C), Field<float>(camera, 0x20),
-                       LandscapeDrawRadius());
+        CameraFrame(camera_, nullptr, frame);
+        CCamera* camera = camera_;
+        TerrainSetView(terrain_, nullptr, camera->localPosition_.x, camera->localPosition_.y, LandscapeDrawRadius());
         Flush(renderer);
         SetRenderState(renderer, 15, 0);
-        ApplyStateBlock(renderer, kStateBlockScene);
-        TerrainDrawSecond(Field<void*>(this, 0x180), nullptr, kContext);
+        ApplyStateBlock(renderer, StateBlockScene());
+        TerrainDrawSecond(terrain_, nullptr, SceneContext());
         Flush(renderer);
     }
     NetworkTimers();
     if (flags_ & 0x400) {
         Flush(renderer);
-        ApplyStateBlock(renderer, kStateBlockAlpha);
-        SetRenderState(Renderer(), 27, 1);
-        SetRenderState(Renderer(), 15, 0);
-        SetRenderState(Renderer(), 19, 5);
-        SetRenderState(Renderer(), 20, 6);
+        ApplyStateBlock(renderer, StateBlockAlpha());
+        SetRenderState(RenderDeviceObject(), 27, 1);
+        SetRenderState(RenderDeviceObject(), 15, 0);
+        SetRenderState(RenderDeviceObject(), 19, 5);
+        SetRenderState(RenderDeviceObject(), 20, 6);
         SetRenderState(renderer, 14, 0);
-        EffectsDraw(Field<void*>(this, 0x1A4), nullptr, kContext);
+        EffectsDraw(arrayManager_, nullptr, SceneContext());
         Flush(renderer);
-        SetRenderState(Renderer(), 19, 5);
-        SetRenderState(Renderer(), 20, 6);
+        SetRenderState(RenderDeviceObject(), 19, 5);
+        SetRenderState(RenderDeviceObject(), 20, 6);
         SetRenderState(renderer, 14, 0);
         void* particles = ei::VCall<void*>(this, kSlotParticles);
-        ParticlesDraw(particles, nullptr, kContext);
+        ParticlesDraw(particles, nullptr, SceneContext());
         Flush(renderer);
-        SetRenderState(Renderer(), 19, 5);
-        SetRenderState(Renderer(), 20, 6);
-        LightningDraw(Field<void*>(this, 0x1A0), nullptr, kContext);
+        SetRenderState(RenderDeviceObject(), 19, 5);
+        SetRenderState(RenderDeviceObject(), 20, 6);
+        LightningDraw(listManager_, nullptr, SceneContext());
         Flush(renderer);
-        SetRenderState(Renderer(), 19, 5);
-        SetRenderState(Renderer(), 20, 6);
-        RibbonsDraw(reinterpret_cast<char*>(this) + 0x6F4, nullptr, kContext);
+        SetRenderState(RenderDeviceObject(), 19, 5);
+        SetRenderState(RenderDeviceObject(), 20, 6);
+        RibbonsDraw(&ribbons_, nullptr, SceneContext());
         Flush(renderer);
         SetRenderState(renderer, 14, 1);
     }
-    ApplyStateBlock(renderer, kStateBlockScene);
+    ApplyStateBlock(renderer, StateBlockScene());
     NetworkTimers();
     ClientDrawOverlays(this);
-    PopMatrix(device, 0x40);
-    PopMatrix(device, 0x28);
-    PopMatrix(device, 0x20);
+    PopMatrix(device->stacks_[kStackWorld]);
+    PopMatrix(device->stacks_[kStackScene2]);
+    PopMatrix(device->stacks_[kStackScene1]);
     if (flags_ & 0x2000) {
         SetRenderState(renderer, 7, 0);
-        ApplyStateBlock(renderer, kStateBlockAlpha);
-        Field<int>(renderer, 0x158) = 0;
-        HitPointsDraw(Field<void*>(this, 0x1B4), nullptr, kContext);
-        Field<int>(renderer, 0x158) = 1;
+        ApplyStateBlock(renderer, StateBlockAlpha());
+        renderer->unknown_158 = 0;
+        HitPointsDraw(numbers_, nullptr, SceneContext());
+        renderer->unknown_158 = 1;
         Flush(renderer);
-        SetRenderState(renderer, 7, Field<std::uint32_t>(renderer, 0x60));
+        SetRenderState(renderer, 7, renderer->zEnable_);
     }
     render::EndWorld();
     return 1;
@@ -420,60 +417,61 @@ EI_REBIRTH_IMPLEMENTS(0x00569E40, ei::rebirth::Patch::LandscapeDrawRadius);
 // ---- DrawPass (0056AFE0) ------------------------------------------------------------------------
 
 int CWorldClient::DrawPass() {
-    void* terrain = Field<void*>(this, 0x180);
-    if (!terrain || !Field<void*>(terrain, 0x100)) return 0;
-    char* renderer = Renderer();
-    char* device = Device();
+    Terrain* terrain = terrain_;
+    if (!terrain || !terrain->unknown_100) return 0;
+    CTextureDevice* renderer = RenderDeviceObject();
+    CTransformPipeline* device = ScenePipeline();
     std::uint32_t now = gameapi::timeGetTime();
-    const float* view = Field<float*>(device, 0x5C) + (Field<int>(device, 0x60) - 1) * 16;
-    DeferredClear(kDeferred);
-    static const std::uintptr_t kCleared[] = {kVisible54, kVisibleOther, kVisible5D, kVisibleUnits, kVisible52, kShadow54,
-                                              kShadowOther, kShadow5D, kShadowUnits, kShadow52, kTouchedModels};
-    for (std::uintptr_t list : kCleared) VectorClear(reinterpret_cast<void*>(list));
+    const float* view = device->Top(kStackView)->m;
+    CountedListClearOriginal(FrameDeferredUnits());
+    static const FrameList kCleared[] = {FrameList::Visible54,   FrameList::VisibleOther, FrameList::Visible5D,
+                                         FrameList::VisibleUnits, FrameList::Visible52,   FrameList::Shadow54,
+                                         FrameList::ShadowOther, FrameList::Shadow5D,     FrameList::ShadowUnits,
+                                         FrameList::Shadow52,    FrameList::TouchedModels};
+    for (FrameList list : kCleared) VectorClear(&FrameObjects(list));
     float animTime = AnimationTime();
-    const float* position = CameraPosition(Field<void*>(this, 0x210));
-    if (void* listener = Field<void*>(this, 0x1B0)) SoundListener(listener, nullptr, animTime);
+    const float* position = CameraPosition(camera_);
+    if (void* listener = owned1B0_) SoundListener(listener, nullptr, animTime);
 
     // The sectors around the camera: the position widened by the margin, clamped to the map
     // (size - 0073B84C) and to 0, in 16-unit sectors.
     const float margin = ObjectsDrawRadius();
-    const float edge = *reinterpret_cast<const float*>(0x0073B84C);
-    terrain = Field<void*>(this, 0x180);
-    float yHi = SelectLess(AddRounded(position[1], margin), SubRounded(Field<float>(terrain, 0x110), edge));
-    float xMax = SubRounded(Field<float>(Field<void*>(this, 0x180), 0x10C), edge);
+    const float edge = MapEdgeMargin();
+    terrain = terrain_;
+    float yHi = SelectLess(AddRounded(position[1], margin), SubRounded(terrain->height, edge));
+    float xMax = SubRounded(terrain_->width, edge);
     float xHi = SelectLess(AddRounded(position[0], margin), xMax);
-    float yMax = SubRounded(Field<float>(Field<void*>(this, 0x180), 0x110), edge);
+    float yMax = SubRounded(terrain_->height, edge);
     float yLo = ClampToZero(Reload(SelectLess(SubRounded(position[1], margin), yMax)));
-    float xMax2 = SubRounded(Field<float>(Field<void*>(this, 0x180), 0x10C), edge);
+    float xMax2 = SubRounded(terrain_->width, edge);
     float xLo = ClampToZero(Reload(SelectLess(SubRounded(position[0], margin), xMax2)));
     std::uint32_t sx0 = static_cast<std::uint32_t>(Ftol(xLo)) >> 4;
-    Field<std::uint32_t>(this, 0x138) = sx0;
-    Field<std::uint32_t>(this, 0x148) = sx0;
+    rangeFirstX_ = sx0;
+    rangeX_ = sx0;
     std::uint32_t sy0 = static_cast<std::uint32_t>(Ftol(yLo)) >> 4;
-    Field<std::uint32_t>(this, 0x13C) = sy0;
-    Field<std::uint32_t>(this, 0x14C) = sy0;
-    Field<std::uint32_t>(this, 0x140) = static_cast<std::uint32_t>(Ftol(xHi)) >> 4;
-    Field<std::uint32_t>(this, 0x144) = static_cast<std::uint32_t>(Ftol(yHi)) >> 4;
+    rangeFirstY_ = sy0;
+    rangeY_ = sy0;
+    rangeLastX_ = static_cast<std::uint32_t>(Ftol(xHi)) >> 4;
+    rangeLastY_ = static_cast<std::uint32_t>(Ftol(yHi)) >> 4;
 
     int touched = 0;
-    char** rows = Field<char**>(this, 0x124);
-    void* sector = rows[sy0] + sx0 * 4;
+    SectorList* sector = &objectGrid_.rows_[sy0][sx0];
     while (sector) {
         touched += CollectVisibleAt(this, nullptr, sector, view, animTime, now, 0, 0);
-        std::uint32_t x = ++Field<std::uint32_t>(this, 0x148);
-        if (x > Field<std::uint32_t>(this, 0x140)) {
-            Field<std::uint32_t>(this, 0x148) = Field<std::uint32_t>(this, 0x138);
-            std::uint32_t y = ++Field<std::uint32_t>(this, 0x14C);
-            if (y > Field<std::uint32_t>(this, 0x144)) break;
+        std::uint32_t x = ++rangeX_;
+        if (x > rangeLastX_) {
+            rangeX_ = rangeFirstX_;
+            std::uint32_t y = ++rangeY_;
+            if (y > rangeLastY_) break;
         }
-        sector = Field<char**>(this, 0x124)[Field<std::uint32_t>(this, 0x14C)] + Field<std::uint32_t>(this, 0x148) * 4;
+        sector = &objectGrid_.rows_[rangeY_][rangeX_];
     }
-    touched += CollectVisibleAt(this, nullptr, kDeferred, view, animTime, now, 1, 0);
+    touched += CollectVisibleAt(this, nullptr, FrameDeferredUnits(), view, animTime, now, 1, 0);
     EmptyDeferred(false);
-    touched += CollectVisibleAt(this, nullptr, reinterpret_cast<char*>(this) + 0xB4, view, animTime, now, 1, 1);
+    touched += CollectVisibleAt(this, nullptr, &heroes_, view, animTime, now, 1, 1);
 
     // Models in view stay loaded: the most recently used max(10, n / 8) lose flag 0x400.
-    ObjectVector& models = List(kTouchedModels);
+    FrameObjectList& models = FrameObjects(FrameList::TouchedModels);
     if (models.begin != models.end) {
         CEngineObject** first = models.begin;
         CEngineObject** last = models.end;
@@ -487,17 +485,19 @@ int CWorldClient::DrawPass() {
         }
     }
 
+    // The frame's window rectangles (an STLport list of 32-byte nodes).
+    stlp::list<ScreenEntry>& queued = screenEntries_;
     if (flags_ & 0xC0) {
-        ApplyStateBlock(renderer, kStateBlockAlpha);
-        void* queued = reinterpret_cast<char*>(this) + 0xF0;   // an STLport list of 32-byte nodes
-        ListNode* node = Head(queued)->next;
-        while (node != Head(queued)) {
-            ListNode* current = node;
+        ApplyStateBlock(renderer, StateBlockAlpha());
+        using Node = stlp::list<ScreenEntry>::Node;
+        Node* node = queued.head->next;
+        while (node != queued.head) {
+            Node* current = node;
             node = node->next;
-            NodeFree32(queued, nullptr, current, 1);
+            NodeFree32(&queued, nullptr, current, 1);
         }
-        Head(queued)->next = Head(queued);
-        Head(queued)->prev = Head(queued);
+        queued.head->next = queued.head;
+        queued.head->prev = queued.head;
         Flush(renderer);
         SetRenderState(renderer, 19, 5);
         SetRenderState(renderer, 20, 6);
@@ -505,115 +505,114 @@ int CWorldClient::DrawPass() {
         SetRenderState(renderer, 15, 1);
         Flush(renderer);
     }
-    void* queued = reinterpret_cast<char*>(this) + 0xF0;
     if (flags_ & 0x40) {
-        SortByModel(kVisible54, renderer);
-        SortByModel(kVisibleOther, renderer);
-        SortByModel(kVisible5D, renderer);
-        SortByModel(kVisible52, renderer);
+        SortByModel(FrameList::Visible54, renderer);
+        SortByModel(FrameList::VisibleOther, renderer);
+        SortByModel(FrameList::Visible5D, renderer);
+        SortByModel(FrameList::Visible52, renderer);
         SetRenderState(renderer, 24, 0xC8);
-        DrawEach(kVisibleOther, kSlotDraw);
-        DrawEach(kVisible5D, kSlotDrawUnit);
-        CEngineObject** end = List(kVisible5D).end;
-        for (CEngineObject** p = List(kVisible5D).begin; p != end; ++p) QueueSelected(*p, queued);
+        DrawEach(FrameList::VisibleOther, kSlotDraw);
+        DrawEach(FrameList::Visible5D, kSlotDrawUnit);
+        CEngineObject** end = FrameObjects(FrameList::Visible5D).end;
+        for (CEngineObject** p = FrameObjects(FrameList::Visible5D).begin; p != end; ++p) QueueSelected(*p, &queued);
         Flush(renderer);
-        DrawEach(kVisible54, kSlotDraw);
-        DrawEach(kVisible52, kSlotDraw);
+        DrawEach(FrameList::Visible54, kSlotDraw);
+        DrawEach(FrameList::Visible52, kSlotDraw);
         Flush(renderer);
     }
-    if ((flags_ & 0x80) && List(kVisibleUnits).begin != List(kVisibleUnits).end) {
-        SortByModel(kVisibleUnits, renderer);
+    if ((flags_ & 0x80) && FrameObjects(FrameList::VisibleUnits).begin != FrameObjects(FrameList::VisibleUnits).end) {
+        SortByModel(FrameList::VisibleUnits, renderer);
         SetRenderState(renderer, 24, 10);
-        ApplyStateBlock(renderer, kStateBlockAlpha);
-        DrawEach(kVisibleUnits, kSlotDrawUnit);
-        CEngineObject** end = List(kVisibleUnits).end;
-        for (CEngineObject** p = List(kVisibleUnits).begin; p != end; ++p) QueueSelected(*p, queued);
+        ApplyStateBlock(renderer, StateBlockAlpha());
+        DrawEach(FrameList::VisibleUnits, kSlotDrawUnit);
+        CEngineObject** end = FrameObjects(FrameList::VisibleUnits).end;
+        for (CEngineObject** p = FrameObjects(FrameList::VisibleUnits).begin; p != end; ++p) QueueSelected(*p, &queued);
         Flush(renderer);
     }
 
     // Light effects (three lists of the client, each behind its setting).
-    char* effects = reinterpret_cast<char*>(this) + 0x1B8;
-    if (Head(effects)->next != Head(effects) || Head(effects + 4)->next != Head(effects + 4) ||
-        Head(effects + 8)->next != Head(effects + 8)) {
-        ApplyStateBlock(renderer, kStateBlockAlpha);
+    if (!ListEmpty(list1B8_) || !ListEmpty(list1BC_) || !ListEmpty(list1C0_)) {
+        ApplyStateBlock(renderer, StateBlockAlpha());
         SetRenderState(renderer, 15, 0);
         SetRenderState(renderer, 14, 0);
-        if (*reinterpret_cast<const int*>(0x0079BD50)) DrawLightEffects(effects);
-        if (*reinterpret_cast<const int*>(0x0079BD4C)) DrawLightEffects(effects + 4);
-        if (*reinterpret_cast<const int*>(0x0079BD54)) DrawLightEffects(effects + 8);
+        if (LightEffects1B8()) DrawLightEffects(list1B8_);
+        if (LightEffects1BC()) DrawLightEffects(list1BC_);
+        if (LightEffects1C0()) DrawLightEffects(list1C0_);
         SetRenderState(renderer, 14, 1);
     }
 
-    // Shadows: projected along the sun (0079B2DC's Z axis scaled by 0073F750).
+    // Shadows: projected along the camera's Z axis (its rotation, 0079B2DC) scaled by 0073F750.
     if (flags_ & 0x200) {
-        SortByModel(kShadow54, renderer);
-        SortByModel(kShadowOther, renderer);
-        SortByModel(kShadow5D, renderer);
-        SortByModel(kShadow52, renderer);
+        SortByModel(FrameList::Shadow54, renderer);
+        SortByModel(FrameList::ShadowOther, renderer);
+        SortByModel(FrameList::Shadow5D, renderer);
+        SortByModel(FrameList::Shadow52, renderer);
         float matrix[16] = {};
         matrix[15] = 1.0f;
         matrix[10] = 1.0f;
         matrix[5] = 1.0f;
         matrix[0] = 1.0f;
         float sun[3];
-        QuaternionAxisZ(reinterpret_cast<const void*>(0x0079B2DC), nullptr, sun);
-        const float scale = *reinterpret_cast<const float*>(0x0073F750);
+        QuaternionAxisZ(&camera::TheCamera()->localRotation_, nullptr, sun);
+        const float scale = ShadowLength();
         volatile float product = sun[0] * scale;
         matrix[3] = product;
         product = sun[1] * scale;
         matrix[7] = product;
         product = sun[2] * scale;
         matrix[11] = product;
-        PushSceneMatrix(device, nullptr, matrix, 2);
-        PushSceneMatrix(device, nullptr, matrix, 1);
-        ApplyStateBlock(renderer, kStateBlockAlpha);
+        PushSceneMatrixOriginal(device, nullptr, matrix, kStackScene2);
+        PushSceneMatrixOriginal(device, nullptr, matrix, kStackScene1);
+        ApplyStateBlock(renderer, StateBlockAlpha());
         SetRenderState(renderer, 15, 0);
         SetRenderState(renderer, 14, 0);
-        DrawEach(kShadow5D, kSlotDrawShadow);
-        DrawEach(kShadowOther, kSlotDrawShadow);
-        DrawEach(kShadow54, kSlotDrawShadow);
-        DrawEach(kShadow52, kSlotDrawShadow);
-        DrawEach(kShadowUnits, kSlotDrawShadow);
+        DrawEach(FrameList::Shadow5D, kSlotDrawShadow);
+        DrawEach(FrameList::ShadowOther, kSlotDrawShadow);
+        DrawEach(FrameList::Shadow54, kSlotDrawShadow);
+        DrawEach(FrameList::Shadow52, kSlotDrawShadow);
+        DrawEach(FrameList::ShadowUnits, kSlotDrawShadow);
         Flush(renderer);
         SetRenderState(renderer, 14, 1);
-        PopMatrix(device, 0x28);
-        PopMatrix(device, 0x20);
+        PopMatrix(device->stacks_[kStackScene2]);
+        PopMatrix(device->stacks_[kStackScene1]);
     }
 
     // Selection markers (list +0x7BC of object ids) in single-player mode 1 with units drawn: a
     // marker at each living object (at its named part when it has one); dead ones leave the list.
-    void* selected = reinterpret_cast<char*>(this) + 0x7BC;
-    if (Head(selected)->next != Head(selected) && *reinterpret_cast<const int*>(0x0079BE64) == 1 && (flags_ & 0x80)) {
+    stlp::list<void*>& selected = list7BC_;
+    if (!ListEmpty(selected) && GameMode() == 1 && (flags_ & 0x80)) {
         SetRenderState(renderer, 15, 0);
-        MarkerBegin(kContext, nullptr, 0, 0);
-        void* manager = Field<void*>(this, 0x40);
-        ListNode* head = Head(selected);
-        for (ListNode* node = head->next; node != head;) {
-            ListNode* next = node->next;
-            CEngineObject* object = ManagerFindObject(manager, nullptr, Field<int>(node, 8));
+        DeviceSetTextureOriginal(SceneContext(), nullptr, 0, nullptr);
+        CEngineObject* manager = manager40_;
+        using Node = stlp::list<void*>::Node;
+        Node* head = selected.head;
+        for (Node* node = head->next; node != head;) {
+            Node* next = node->next;
+            int id = static_cast<int>(reinterpret_cast<std::intptr_t>(node->data));
+            auto* object = static_cast<CMapObject*>(ManagerFindObject(manager, nullptr, id));
             if (object) {
-                if (ei::VCall<int>(object, 0xDC / 4) == 0) {
+                if (ObjectSlots(object)->IsDead() == 0) {
                     float point[3];
-                    std::memcpy(point, &Field<float>(object, 0x1C), sizeof(point));
-                    if (void* part = ObjectFindPart(object, nullptr, reinterpret_cast<const char*>(0x007900E4))) {
+                    std::memcpy(point, &object->positionX, sizeof(point));
+                    if (void* part = ObjectFindPartOriginal(object, nullptr, MarkerPartName())) {
                         float scratch[3];
                         const float* at = ObjectPartPositionOriginal(object, nullptr, scratch, part);
                         std::memcpy(point, at, sizeof(point));
-                        point[2] = Reload(Field<float>(object, 0x24));
+                        point[2] = Reload(object->positionZ);
                     }
-                    void* orientation = reinterpret_cast<char*>(object) + 0x34;
+                    const void* orientation = object->orientation;
                     float axisY[3], axisX[3];
                     QuaternionAxisY(orientation, nullptr, axisY);
                     QuaternionAxisX(orientation, nullptr, axisX);
-                    MarkerDraw(kContext, nullptr, point, 0.5f, axisX, axisY);
+                    MarkerDraw(SceneContext(), nullptr, point, 0.5f, axisX, axisY);
                 } else {
                     if (object->flags_ & 0x10) {
                         object->flags_ &= ~0x110u;
-                        ei::VCall<void>(Field<void*>(object, 0x94), 0x64 / 4, 0);
-                        ei::VCall<void>(Field<void*>(object, 0x94), 0x68 / 4, 0);
+                        ei::VCall<void>(object->attached, kSlotSide25, 0);
+                        ei::VCall<void>(object->attached, kSlotSide26, 0);
                     }
                     void* unused;
-                    ListErase(selected, nullptr, &unused, node);
+                    ListErase(&selected, nullptr, &unused, node);
                 }
             }
             node = next;
@@ -621,16 +620,21 @@ int CWorldClient::DrawPass() {
     }
 
     EmptyDeferred(true);
-    static const std::uintptr_t kCopied[] = {kVisible54, kVisibleOther, kVisible5D, kVisibleUnits, kVisible52,
-                                             kShadow54, kShadowOther};
-    for (std::uintptr_t address : kCopied) {
-        ObjectVector& v = List(address);
+    static const FrameList kCopied[] = {FrameList::Visible54,    FrameList::VisibleOther, FrameList::Visible5D,
+                                        FrameList::VisibleUnits, FrameList::Visible52,    FrameList::Shadow54,
+                                        FrameList::ShadowOther};
+    for (FrameList list : kCopied) {
+        FrameObjectList& v = FrameObjects(list);
         v.end = VectorCopyBack(v.end, v.end, v.begin);
     }
-    VectorErase(reinterpret_cast<void*>(kShadow5D), nullptr, List(kShadow5D).begin, List(kShadow5D).end);
-    VectorErase(reinterpret_cast<void*>(kShadowUnits), nullptr, List(kShadowUnits).begin, List(kShadowUnits).end);
-    List(kShadow52).end = VectorCopyBack(List(kShadow52).end, List(kShadow52).end, List(kShadow52).begin);
-    VectorErase(reinterpret_cast<void*>(kTouchedModels), nullptr, List(kTouchedModels).begin, List(kTouchedModels).end);
+    FrameObjectList& shadow5D = FrameObjects(FrameList::Shadow5D);
+    VectorErase(&shadow5D, nullptr, shadow5D.begin, shadow5D.end);
+    FrameObjectList& shadowUnits = FrameObjects(FrameList::ShadowUnits);
+    VectorErase(&shadowUnits, nullptr, shadowUnits.begin, shadowUnits.end);
+    FrameObjectList& shadow52 = FrameObjects(FrameList::Shadow52);
+    shadow52.end = VectorCopyBack(shadow52.end, shadow52.end, shadow52.begin);
+    FrameObjectList& touchedModels = FrameObjects(FrameList::TouchedModels);
+    VectorErase(&touchedModels, nullptr, touchedModels.begin, touchedModels.end);
     return 1;
 }
 EI_REPLACE_METHOD(0x0056AFE0, CWorldClient::DrawPass);

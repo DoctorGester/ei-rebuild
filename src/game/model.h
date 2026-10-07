@@ -80,6 +80,10 @@ public:
 };
 static_assert(offsetof(CTransformPipeline, stacks_) == 0x14 && offsetof(CTransformPipeline, transform_) == 0x0C);
 
+// The scene's pipeline (the global pointer at 007AF068; world_client_view.cpp calls it the render
+// device): stacks 1 and 2 take the scene matrices (004D9B80), 5 the world draw's, 9 the views.
+inline CTransformPipeline* ScenePipeline() { return *reinterpret_cast<CTransformPipeline* const*>(0x007AF068); }
+
 struct tagRECT;
 
 // The scene renderer (the global at 007AF060, vtable 0073D93C, 26 slots; 00500960 returns it).

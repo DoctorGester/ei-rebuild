@@ -30,7 +30,9 @@ public:
     // 006C8930. Ground height at (x, y), and water depth above it (0 when dry).
     void GroundAndWaterDepth(float x, float y, float* ground, float* depth);
 
-    std::uint8_t unknown_000[0x10C];
+    std::uint8_t unknown_000[0x100];
+    void* unknown_100;              // +0x100 CWorldClient::DrawPass draws nothing while it is null
+    std::uint8_t unknown_104[0x10C - 0x104];
     float width;                    // +0x10C last valid vertex column
     float height;                   // +0x110 last valid vertex row
 };

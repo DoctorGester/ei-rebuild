@@ -186,7 +186,11 @@ public:
     float positionZ;                // +0x024
     std::uint8_t unknown_028[0x34 - 0x28];
     float orientation[4];           // +0x034 a quaternion
-    std::uint8_t unknown_044[0xA4 - 0x44];
+    std::uint8_t unknown_044[0x94 - 0x44];
+    // +0x094 the attached side object (type 0x46, taken by the 3D object's slot 19 00516D50: the
+    // figure / CObject3D side half; object3d_specific_slots.cpp, the screen pickers' slots 22 / 24).
+    CEngineObject* attached;
+    std::uint8_t unknown_098[0xA4 - 0x98];
     char* name;                     // +0x0A4 CString (the prototype name for units)
     std::uint8_t unknown_0A8[0xC4 - 0xA8];
     float scale[3];                 // +0x0C4
@@ -218,6 +222,7 @@ public:
 };
 static_assert(offsetof(CMapObject, positionX) == 0x1C);
 static_assert(offsetof(CMapObject, orientation) == 0x34);
+static_assert(offsetof(CMapObject, attached) == 0x94);
 static_assert(offsetof(CMapObject, name) == 0xA4);
 static_assert(offsetof(CMapObject, extent) == 0x144);
 static_assert(offsetof(CMapObject, scale) == 0xC4);
