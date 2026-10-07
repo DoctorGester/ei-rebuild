@@ -292,7 +292,7 @@ Functions of 0x00480000-0x004B0000 and 0x004D8000-0x00500000 that belong to othe
 - Skipped: 004D5880 (ReadTextFile: MFC TRY / CATCH around CStdioFile, whose constructor throws the game's CFileException;
   our code cannot catch the game's C++ exceptions), 004BA120 (the display object's background colour: needs a declared
   display class with its slot 0).
-- Not ported (yet): 004A4AF0 (replaces a tagged block; no callers found), 004A8310 / 004A8560 (party load / save: tagged
+- Not ported (yet; A-S9 did these): 004A4AF0 (replaces a tagged block; no callers found), 004A8310 / 004A8560 (party load / save: tagged
   stream helpers 00409AE0.. and STLport tables), 004A66C0 / 004A6580 (ItemStock / ClassTemplate constructors: STLport members).
 - Clouds: SetRamp's alpha is trunc(255 - pow(width / 255, max(0, i - start)) * 255) >> 4 with the CRT pow; a last-bit pow
   difference can only matter on an exact multiple of 16 (SetRamp's wrapper would show it). Draw's blend is
@@ -514,6 +514,7 @@ A-S7 / A-S8 (below) finished the link figures, the sky and the pipeline projecti
 | 004A6580, 004A66C0 | `ClassTemplate::Construct`, `ItemStock::Construct` (`class_template_stock.cpp`; `ClassTemplate::flag38` +0x38 named, 004A88E0 uses it; the stock maps' buckets through a `hash_map<string, void*>` view, `InitBuckets(100)`) | ours only: vtable, class -1, flags, both parties created, both stocks empty with 193-bucket maps. Every new game (004A7630), loading templates (factory 00457850, `world_load`); 004A66C0 only from 004A6580 |
 | 004A5AF0, 004A6C40 | `PartyRecord::Serialize`, `ClassTemplate::Serialize` (slot 1 of each, run by the archive's Close / Open; `party_manager.cpp`; SaveLists 0069BAC0 forwarded as `ItemStock::SaveLists`) | ours only: a save grows the current chunk, a loaded template has class 1..5. Every save / `world_load` |
 | 004A6A90, 004A6A70 | `ClassTemplate::Destruct`, `DeletingDestruct` (`class_template_stock.cpp`; `ItemStock::Destruct` is the inlined stock destructor: maps 004A9010 / 004A8E60 forwarded, vector storage freed) | DeletingDestruct ours only: the template was unreferenced, the base vtable back without bit 0. New game (templates rebuilt), loads |
+| 004A4AF0 | `CStream::ReplaceTagged` (`core_stream_chunks.cpp`; no caller in game.exe: Rebirth's EI_Plugin.asi calls it through a thiscall thunk) | memory streams: against the original (scratch output, source / replacement positions put back, appended bytes compared); else ours only. Rebirth runs only |
 
 - The archive on the stack: `ChunkArchive::ConstructLocal` / `DestructLocal` (chunk_archive.cpp; the containers' library
   constructors / destructors 004A94A0, 004639D0, 00463AA0, 004A9650, 004A8B70, 004A96A0 forwarded there).
@@ -522,6 +523,10 @@ A-S7 / A-S8 (below) finished the link figures, the sky and the pipeline projecti
   moved to originals_gameplay.h (`PartyMapAtOriginal`, party_records.cpp uses it).
 - Counted pointers are released through `CRefCounted` (`delete` = slot 0 with 1); the map's party is `PartyInPlace`
   storage (CParty is abstract in C++).
+- Library (A-S9, also): 004A5A30 / 004A6840 (EH-only destructors), counted-pointer helpers 004A5D50 / 004A5D70 / 004A7EA0
+  / 004A8300, 004A8930 (string copy), 004A8A50 (variables' table copy), 004A8AD0 (its operator=).
+- Left in 0x004A4800-0x004B0000: the party manager's static constructor 004A5870 (runs before the hooks) and its exit
+  destructor 004A5700 (standalone build).
 - Library (config/library.csv, A-S9): 30 of the 34 in 004A90F0-004AFAC0 (vector / hash_map members of the party
   manager's containers, counted-pointer copies, the entries' compiler-made assignment / destructor, and the weapon /
   armor table lookups 004AB720 / 004AB820, classified like 00613820).

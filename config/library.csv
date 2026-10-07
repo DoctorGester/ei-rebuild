@@ -1249,8 +1249,16 @@ address,name,library,signature,notes
 004A2FF0,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,,"inventory sweep: n*sizeof(T) back to the node-pool free list, operator delete above 128 bytes; loose-family member of 004251B0 (reviewed)"
 004A3030,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 5 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 004A5950,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 004A5950 (reviewed)"
+004A5A30,NamedPartyRecords destructor (compiler-generated),STLport,,"A-S9: EH unwinding only: the two CStrings, each record released (0040A3A0), the vector storage"
+004A5D50,counted_ptr<T>::counted_ptr(const counted_ptr&),STLport,,"A-S9: copy, count +1 (PartyRecord)"
+004A5D70,counted_ptr<T>::~counted_ptr,STLport,,"A-S9: release: count -1, slot 0 with 1 at zero (PartyRecord)"
 004A6280,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 3 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
+004A6840,ItemStock destructor (compiler-generated),STLport,,A-S9: EH unwinding only; the template destructor 004A6A90 inlines its own copy
 004A6990,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 004A5950 (reviewed)"
+004A7EA0,counted_ptr<T>::~counted_ptr,STLport,,"A-S9: release: count -1, slot 0 with 1 at zero (ClassTemplate)"
+004A8300,counted_ptr<T> add-reference,STLport,,"A-S9: count +1 (0055763D, 004A826E)"
+004A8930,stlp::string::string(const string&),STLport,,A-S9: node-pool copy with the length_error path (stlp.h names it)
+004A8A50,"stlp::hash_map<CString,float>::hash_map(const hash_map&)",STLport,,A-S9: the party variables' table (FloatTableCopyConstructOriginal)
 004A8AD0,"stlp::hash_map<CString,float>::operator=",STLport,,"A-S9: the party variables' table: clear, functors, _M_copy_from 004AA950"
 004A8B70,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 00408F90 (reviewed)"
 004A8C60,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 00421500 (reviewed)
