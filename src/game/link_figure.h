@@ -157,3 +157,9 @@ static_assert(sizeof(CLinkMesh) == 0xB0);
 // The record of a part in a resource archive (as the loaders read it; `cursor` moves past it):
 // 004F7F00 the FIG / FIG8 record, 004F87D0 the older one without a header.
 // Both are members of CLinkFigureLoader (model.h): LoadFigPart, LoadOldPart.
+
+// link_loader.cpp (A-S7). 004DB9C0 (__fastcall: ECX out, EDX cursor): a length-prefixed string of a
+// .lnk file (a four-byte length, then the characters) at *cursor; `out` gets the characters up to
+// the first zero byte (copied through a static buffer, 007AA8D0) and keeps its old text for
+// length 0. The cursor moves past the record.
+void __fastcall ReadLinkString(stlp::string* out, const char** cursor);

@@ -439,3 +439,10 @@ destructors 004F2C00 / 004F2E40 / 004F2D40 / deleting 004F2E00 / 004F2E20, the l
 map members around 004F4CD0-004F5F00 (classify as library); rain / snow draws 004E4240 / 004E4C80 (build vertices then
 draw through the device: coordinate with the renderer), the fog object's slots 004E2290-004E24E0 (never reached in the
 current runs), CSkyObject 004D9110-004D9EB0, CServerSpecificManager 004D6900-004D6BA0, the .mob decoder 004D8E10.
+
+## A-S7: .mob decoder, link strings, sky, server-specific manager, link loader
+
+| Address | Name (file) | Verify |
+|---|---|---|
+| 004D8E10 | `MobScriptDecoder::Decode` (`mob_script_decoder.cpp`; resize through 004D8EB0, `CharVectorResizeOriginal` in originals_script.h; world_game.cpp's decoder is now this struct) | original on a scratch decoder (same input) into a scratch CString: text bytes, string. `zone_gz2g_traps`, `world_load` |
+| 004DB9C0 | `ReadLinkString` (`link_loader.cpp`; the static buffer 007AA8D0 is only this function's, so ours copies straight from the record) | original on a string copy and cursor: text, cursor. `newgame` |
