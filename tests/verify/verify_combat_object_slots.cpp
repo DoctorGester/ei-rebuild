@@ -65,3 +65,31 @@ static void __fastcall ResettleVerify(CUnitServer* self) {
                       "unit %d: sector cell %d, %d", UnitId(self), self->unit->sectorCellX, self->unit->sectorCellY);
 }
 EI_VERIFY(0x00553260, ResettleVerify, 0, s_unusedResettle);
+
+// 00546450. Ours only (resets the controller). Returns 1, no orders.
+static void* s_unusedCreateServer;
+static int __fastcall CreateServerVerify(CUnitServer* self) {
+    int result = self->CreateServer();
+    ei::verify::Check("CUnitServer::CreateServer", true, result == 1 && !self->action.target && !self->action2.target,
+                      "result %d", result);
+    return result;
+}
+EI_VERIFY(0x00546450, CreateServerVerify, 0, s_unusedCreateServer);
+
+// 00546080. Ours only (ResetController's own wrapper is not involved: ours calls it directly).
+static void* s_unusedResetSlot;
+static void __fastcall ResetSlotVerify(CUnitServer* self) {
+    self->ResetSlot();
+    ei::verify::Check("CUnitServer::ResetSlot", true, !self->action.target && !self->action2.target, "unit %d",
+                      UnitId(self));
+}
+EI_VERIFY(0x00546080, ResetSlotVerify, 0, s_unusedResetSlot);
+
+// 005460A0: MOV EAX,[ECX+0x908] (6 bytes).
+static int(__fastcall* s_tameStage)(CUnitServer*);
+static int __fastcall TameStageVerify(CUnitServer* self) {
+    int expected = s_tameStage(self);
+    ei::verify::Check("CUnitServer::TameStage", expected, self->TameStage(), "unit %d", UnitId(self));
+    return expected;
+}
+EI_VERIFY(0x005460A0, TameStageVerify, 6, s_tameStage);

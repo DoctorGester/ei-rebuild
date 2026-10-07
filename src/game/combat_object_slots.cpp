@@ -101,3 +101,16 @@ void CUnitServer::Resettle() {
     WorldServer()->AIMap()->SectorMap()->Add(unit);
 }
 EI_REPLACE_METHOD(0x00553260, CUnitServer::Resettle);
+
+int CUnitServer::CreateServer() {
+    ResetController();
+    BrainOf(this)->SetOwner(reinterpret_cast<UnitController*>(this));
+    return 1;
+}
+EI_REPLACE_METHOD(0x00546450, CUnitServer::CreateServer);
+
+void CUnitServer::ResetSlot() { ResetController(); }
+EI_REPLACE_METHOD(0x00546080, CUnitServer::ResetSlot);
+
+int CUnitServer::TameStage() { return tameStage; }
+EI_REPLACE_METHOD(0x005460A0, CUnitServer::TameStage);

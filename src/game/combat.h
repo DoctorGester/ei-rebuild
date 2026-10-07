@@ -693,6 +693,13 @@ public:
     // moves to a free cell near it (005BA9D0), or with none it takes a default hit (TakeHit; a
     // unit that cannot stand dies); then back on the sector map.
     void Resettle();
+    // 00546450. Virtual slot 2 (Create): ResetController, then the brain takes this controller as
+    // its owner (005D5080). Returns 1.
+    int CreateServer();
+    // 00546080. Virtual slot 5: ResetController (a tail jump).
+    void ResetSlot();
+    // 005460A0. Virtual slot 39: the taming stage.
+    int TameStage();
 
     // Not rewritten (forwarders):
     // 00550A80 (combat_steps.cpp). The death (or fall) animation for a blow from `direction`
@@ -732,7 +739,8 @@ public:
                                     //        per damage type (UnitStats::PackBodyProtection)
     float unknown_8F4;              // +0x8F4
     float moveFactors[4];           // +0x8F8
-    std::uint8_t unknown_908[0x914 - 0x908];
+    int tameStage;                  // +0x908 0..3 (TryTame)
+    std::uint8_t unknown_90C[0x914 - 0x90C];
     int speedClass;                 // +0x914
     std::uint8_t unknown_918[0x938 - 0x918];
     int unknown_938;                // +0x938 cleared when an order starts and by the move style /
@@ -756,6 +764,7 @@ static_assert(offsetof(CUnitServer, unknown_938) == 0x938);
 static_assert(offsetof(CUnitServer, motionChanged) == 0x146);
 static_assert(offsetof(CUnitServer, nextAttackTime) == 0x184);
 static_assert(offsetof(CUnitServer, unknown_18E) == 0x18E);
+static_assert(offsetof(CUnitServer, tameStage) == 0x908);
 static_assert(offsetof(CUnitServer, protection) == 0x8E4);
 static_assert(offsetof(CUnitServer, followedLeader) == 0x1DC);
 static_assert(offsetof(CUnitServer, moveMode) == 0x168);
