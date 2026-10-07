@@ -1076,6 +1076,8 @@ int __stdcall LoadMission(void* file);
 // false on a bad header or checksum.
 void __fastcall SaveFileWrite(void* file, unsigned magic, int version, void* data);
 bool __fastcall SaveFileRead(void* out, unsigned magic, int minimum, int maximum, void* file);
+// 00790264: the newest save version stored uncompressed (SaveFileRead reads those as they are).
+inline int SaveLastUncompressedVersion() { return *reinterpret_cast<const int*>(0x00790264); }
 
 // world_briefing.cpp. 0057FC90 (RET 8): the mercenary who speaks `briefing` (the second word of
 // the first "#show" line of section "briefing <name>" that is not "Hero"), or "", constructed
