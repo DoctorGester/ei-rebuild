@@ -55,6 +55,9 @@ public:
     // list emptied twice (RemoveAll, then CList's destructor), the arrays' storage freed, then
     // the map object's destructor body (0050E660).
     void DestructBody();
+    // 00529F70 (slot 0, RET 4; trap_object.cpp). DestructBody, then operator delete when `flags`
+    // bit 0 is set; returns this.
+    MagicTrap* DeletingDestruct(int flags);
     // 0052B070 (virtual slot 10, RET 4). The map object part (0050F900), the spell's id (-1:
     // none), the circles (count, then 12 bytes each), the units inside (count, then each id
     // through 0050E290), the points (count, then 8 bytes each), the period, countdown, +0x28C and
