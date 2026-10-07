@@ -133,12 +133,14 @@ around both runs and compared too.
 | 00545CB0, 005457E0 | AIBrain::DestructMemory (this = brain + 0xD0), AIBrain::Destruct | ours only (vtables, lists empty, no target / seen / modes) |
 | 00545110 | OrderPlan::TakeSteps | output: original on a deep copy of plan and argument, fields and steps compared |
 | 00558420, 00545430 / 005582A0, 005585F0 | SaveStepList, SaveArmourSpell / LoadStepList, LoadArmourSpells (combat_save.cpp; +0x91C is the armour spell list, not "attackers") | saves: both into capture streams / loads: ours through a recorder, step lists round-tripped through the original save (verify_combat_save_lists.cpp; world_load, ui_saveload) |
+| 0054BBC0 | SpellLineOfSight (combat_spell_sight.cpp; __fastcall world, spell, then 4 stack args; the server world's cast 0058E850) | pure (AL compared; spells_cast, spells_hero) |
+| 00552090 / 00552140, 005520A0 / 00552150, 005520D0 / 00552180, 005520B0 / 00552160, 00552000 / 00551EC0, 00551F50 / 00551E10 | Player / Tamed mode slots: priority (10 / 100000000), type (6 / 8), Destruct, DeletingDestruct, Restart (slot 2 OnShutdown: destroyed and built again), Clone (slot 3) (combat_player_modes.cpp) | priority and type pure; the rest ours only (verify_combat_player_modes.cpp). Tamed versions need taming (no scenario) |
 
 Not on the Rebirth list except 0054B580 (above); the patched callee 005935C0 is reached through its address.
 
 ## Original bugs and oddities kept on purpose
 
-- A-U7: TakeSteps clears isCast twice; LoadArmourSpells' new entries carry a stack byte in `worn` (ours 0) and its second loop reads an id and countdown for every entry of the list, old ones included; an unread step-list count is stack garbage (ours 0); the controller constructor sizes the movement list with SetSize(0) out of line and the idle list inline.
+- A-U7: the mode Clones write the new mode's +4 before testing the allocation (ours test first); TakeSteps clears isCast twice; LoadArmourSpells' new entries carry a stack byte in `worn` (ours 0) and its second loop reads an id and countdown for every entry of the list, old ones included; an unread step-list count is stack garbage (ours 0); the controller constructor sizes the movement list with SetSize(0) out of line and the idle list inline.
 
 - A-U5: SetMoveStyle sends message 9 when the style fits (even the current one); OrderTame compares the target's +0x18 (not type_) with 0x32; OrderSearchBody wants a dead target; PlayAnimation reads the entry's index byte as a dword; StopAction always ends with the queued order of kind 0.
 

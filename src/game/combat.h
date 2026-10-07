@@ -206,6 +206,16 @@ struct ArmourSpell {
 static_assert(sizeof(ArmourSpell) == 0xC);
 using ArmourSpellList = mfc::CList<ArmourSpell>;
 
+class CWorldServer;
+class CSpell;
+// combat_spell_sight.cpp (A-U7). 0054BBC0 (__fastcall, RET 0x10; the server world's spell cast
+// 0058E850): can `spell` go from `from` to `to`? True when its prototype's +0x40 is 0; else the
+// line of sight on the world's AI map must be at least 0.1 (NaN fails). A unit at an end lifts it
+// to the unit's position at its ground height plus BaseSpeed (from, the eye height) or ModeSpeed
+// (to); a bare target point is put 1 above the world's surface height (slot 30). Callers test AL.
+bool __fastcall SpellLineOfSight(CWorldServer* world, CSpell* spell, CUnit* fromUnit, const Vector3* from,
+                                 CUnit* toUnit, const Vector3* to);
+
 // combat_save.cpp (A-U7). 00545430 (thiscall on the entry, RET 4): the item's id (-1 without one)
 // and the countdown. 005585F0 (__fastcall, plain RET): the list from a save: `count` new entries
 // appended (no item, countdown 0; the original's `worn` byte is stack garbage, ours 0), then each
