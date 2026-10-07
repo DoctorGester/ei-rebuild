@@ -432,11 +432,15 @@ array offsets and element sizes.
 
 ### Next candidates in this range
 
-The loader, sky, server-specific manager and .mob decoder are done (A-S7, below). Left: the mesh constructor /
-destructors 004F2C00 / 004F2E40 / 004F2D40 / deleting 004F2E00 / 004F2E20, the loader's FindFigureSet 004FAB00 and
-destructor 004F6BD0, 004F9E50 (a part morphed again, Remorph), 004F2650 / 004F29F0, the STLport map members around
-004F4CD0-004F5F00 and 004FB5E0 / 004FBD80 / 004FC4F0 (classify as library); rain / snow draws 004E4240 / 004E4C80
-(renderer), the fog object's slots 004E2290-004E24E0 (never reached in the current runs), the sky draw 004D96E0.
+A-S7 / A-S8 (below) finished the link figures, the sky and the pipeline projections. Left in 0x00480000-0x00500000:
+- classify 004A90F0-004AFAC0 (34 functions; world.md calls the range STLport instantiations, but 004ACDC0 / 004ACEC0 /
+  004AD0C0 call the tagged stream helpers 004098D0 / 00409A60 / 00409980: per-type Serialize templates, game code);
+- party records: 004A8310 / 004A8560 (load / save), 004A6050 / 004A6360 (copy through a memory stream), 004A66C0 /
+  004A6580 (ItemStock / ClassTemplate constructors);
+- the D3D state-block manager 004FCA60 / 004FD2A0 / 004FD9D0 / 004FCE90, rain / snow draws 004E4240 / 004E4C80, the fog
+  object 004E1EB0-004E24E0, the CLinkMesh draw slots 7-14 004F3870-004F4850 and the device functions 004E5E50-004EFEA0
+  (renderer tickets);
+- 004DDCB0-004DE8B0 (`CSysInfo`, static initialiser: standalone build).
 
 ## A-S7: .mob decoder, link strings, sky, server-specific manager, link loader
 
