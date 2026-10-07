@@ -353,6 +353,9 @@ __declspec(naked) inline void __fastcall Array12SetSizeOriginal(void* /*array*/,
     EI_ORIGINAL(0x0046EAD0)
 __declspec(naked) inline void __fastcall EffectArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x0050FE70)
+// 0050FA30: CArray<DeltaField>::SetSize(size, growBy) on a DeltaState (net_delta.h; growBy -1 keeps the step).
+__declspec(naked) inline void __fastcall NetFieldsSetSizeOriginal(void* /*state*/, void*, int /*size*/, int /*growBy*/)
+    EI_ORIGINAL(0x0050FA30)
 __declspec(naked) inline void* __fastcall SpriteArrayConstructOriginal(void* /*array*/) EI_ORIGINAL(0x00468D60)
 __declspec(naked) inline void* __fastcall PointArrayConstructOriginal(void* /*array*/) EI_ORIGINAL(0x00557230)
 // 00514880: hash_map<string, ...>::insert(pair) (RET 4: pair; EAX = node + 4, the stored pair). 005197B0: map find(key) writing

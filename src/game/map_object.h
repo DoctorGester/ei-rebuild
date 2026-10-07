@@ -192,7 +192,8 @@ public:
     float scale[3];                 // +0x0C4
     std::uint8_t unknown_0D0[0x128 - 0xD0];
     float pointOffset[3];           // +0x128 (GroundPoint)
-    std::uint8_t unknown_134[0x144 - 0x134];
+    float radius;                   // +0x134 (CObject3D::radius)
+    std::uint8_t unknown_138[0x144 - 0x138];
     float extent[3];                // +0x144 half the bounding box (units: box maximum - centre)
     std::uint8_t unknown_150[0x170 - 0x150];
     CEngineObject* companion;       // +0x170 CMapObjectServer / CMapObjectClientSpecific
@@ -227,6 +228,10 @@ static_assert(offsetof(CMapObject, baseScale) == 0x1AC);
 static_assert(offsetof(CMapObject, changeStamp) == 0x1C0);
 static_assert(offsetof(CMapObject, changedParts) == 0x1DC);
 static_assert(sizeof(CMapObject) == 0x238);   // CUnit's fields start at +0x238
+// net_state.cpp. 0050EAF0 / 0050EC30 (slots 50 / 49): the map object's network state writer and reader
+// (fields 0-3; the reader's result says whether every field's snapshot was consumed).
+void __fastcall MapObjectWriteNetState(std::uint8_t* object);
+std::uint32_t __fastcall MapObjectReadNetState(std::uint8_t* object, void*, int first);
 
 // Map object vtable slots called by the rewritten code (byte offset / 4).
 namespace mapslot {

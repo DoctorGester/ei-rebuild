@@ -313,3 +313,14 @@ __declspec(naked) inline int __fastcall TextureManagerComposeOriginal(void* /*ma
 // searches, appended to the CStringArray `out` (emptied first). No result.
 __declspec(naked) inline void __fastcall SoundSystemListFilesOriginal(void* /*sounds*/, void*, void* /*out*/,
                                                                       const char* /*pattern*/) EI_ORIGINAL(0x006B7110)
+
+struct LeverRecord;   // lever.h
+// 0052CA40 (thiscall on the lever table 0079C1A0, RET 4): the record of model `name` (its map's
+// operator[], STLport library code: an unknown name adds a null record).
+__declspec(naked) inline const LeverRecord* __fastcall LeverRecordOriginal(void* /*table*/, void*, const char* /*name*/)
+    EI_ORIGINAL(0x0052CA40)
+struct LockKey;   // unit.h
+// 00522A80 LockKey::Opens (unit_stats.cpp; Rebirth's FixLeversActivate patches it, so callers go
+// through its address): thiscall on the key, RET 4, BOOL.
+__declspec(naked) inline int __fastcall LockOpensOriginal(const LockKey* /*key*/, void*, const LockKey* /*lock*/)
+    EI_ORIGINAL(0x00522A80)

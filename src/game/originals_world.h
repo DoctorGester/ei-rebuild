@@ -111,3 +111,13 @@ __declspec(naked) inline void __fastcall ZoneExitsSetSizeOriginal(void* /*exits*
 // step after a player's party records were synced and the party sent (the world in ECX).
 __declspec(naked) inline void __fastcall WorldAfterPartyCopyOriginal(void* /*world*/, void*, WorldPlayer* /*player*/)
     EI_ORIGINAL(0x00591070)
+
+// The client world (007AF5B8; thiscall, RET 4, results not used by the callers so far):
+// 005651A0 refreshes a drawn object (dropped from a pending list; units and levers with flagged
+// parts re-add their part lights, 00560820); 0056D7E0 queues an object by id (a list and a hash
+// map; nothing when it is queued already).
+__declspec(naked) inline void __fastcall ClientRefreshObjectOriginal(void* /*world*/, void*, CEngineObject* /*object*/)
+    EI_ORIGINAL(0x005651A0)
+__declspec(naked) inline void __fastcall ClientQueueObjectOriginal(void* /*world*/, void*, CEngineObject* /*object*/)
+    EI_ORIGINAL(0x0056D7E0)
+inline void* ClientWorldObject() { return reinterpret_cast<void*>(0x007AF5B8); }

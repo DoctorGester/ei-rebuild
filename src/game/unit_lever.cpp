@@ -46,7 +46,7 @@ constexpr int kSlotWorldActive = 0x68 / 4;   // world: () -> non-zero when the m
 
 } // namespace
 
-void Lever::SetState(int state, float duration) {
+void Lever::SetState(int wanted, float duration) {
     // FCOMP + TEST AH,1: a negative (or NaN) duration takes the model's default.
     if (x87::IsNaN(duration) || duration < 0.0f) {
         RawString key;
@@ -58,7 +58,7 @@ void Lever::SetState(int state, float duration) {
     }
     int& current = At<int>(this, 0x238);
     int states = At<int>(this, 0x23C);
-    if (state < 0) {
+    if (wanted < 0) {
         if (At<int>(this, 0x240) != 0) {
             current = (current + 1) % states;
         } else {
@@ -66,7 +66,7 @@ void Lever::SetState(int state, float duration) {
             current = next < states - 1 ? next : states - 1;
         }
     } else {
-        int chosen = state < states - 1 ? state : states - 1;
+        int chosen = wanted < states - 1 ? wanted : states - 1;
         current = chosen <= 0 ? 0 : chosen;
     }
 
@@ -74,8 +74,8 @@ void Lever::SetState(int state, float duration) {
     if (!ei::VCall<int>(world, kSlotWorldActive)) return;
     mfc::CTypedPtrList<void> around{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};   // CPtrList on the stack
     void* sectors = world + 0x294;
-    float radius = At<float>(this, 0x134) + 0.5f;
-    SectorMapFindUnitsInRadius(sectors, nullptr, &At<float>(this, 0x1C), &around, radius);
+    float reach = At<float>(this, 0x134) + 0.5f;
+    SectorMapFindUnitsInRadius(sectors, nullptr, &At<float>(this, 0x1C), &around, reach);
     for (auto* node = around.head; node;) {
         auto* next = node->next;
         SectorMapRemove(AsSectorMap(sectors), nullptr, AsEngineObject(node->data));
@@ -127,19 +127,6 @@ EI_REPLACE_METHOD(0x0052B7A0, Lever::SetState);
 
 namespace {
 
-// A model's record in the lever table (0079C1A0: 0x2C bytes, read from Levers.ldb by 00463030,
-// whose field ids are given): the spot offsets are in the lever's own frame (along its facing's
-// X and Y axes).
-struct LeverRecord {
-    void* name;                 // +0x00 CString (field 0)
-    float spots[2][2];          // +0x04 (field 1) {along, across}
-    std::uint32_t spotCount;    // +0x14 (2)
-    float farScale;             // +0x18 (3) the spots' distance factor at +0xCC = 1
-    std::uint32_t duration;     // +0x1C (4) a state change's default ticks (SetState)
-    void* texts[3];             // +0x20 CStrings (5-7)
-};
-static_assert(sizeof(LeverRecord) == 0x2C);
-
 // The lever table's record by model name [0052CB40, thiscall on the table: operator[] of its map
 // at +0xC, so an unknown name gets a null record]; the spots' SetAtGrow [0052CC50 (index, value)].
 __declspec(naked) const LeverRecord* __fastcall LeverRecordByName(void* /*table*/, void*, const char*)
@@ -160,7 +147,7 @@ void Lever::UseSpots(LeverSpots* out, float userRadius) {
     out->size = 0;
     const LeverRecord* record = LeverRecordByName(kLeverTable, nullptr, At<const char*>(this, 0xA4));
     if (!record || record->spotCount == 0) return;
-    const Quaternion& orientation = At<Quaternion>(this, 0x34);
+    const Quaternion& facing = At<Quaternion>(this, 0x34);
     // The count is read again each time; a count above 2 reads on into the record (sic).
     for (std::uint32_t i = 0; i < record->spotCount; ++i) {
         const float* spot = &record->spots[0][0] + 2 * i;
@@ -176,11 +163,11 @@ void Lever::UseSpots(LeverSpots* out, float userRadius) {
         float phase = At<float>(this, 0xCC);
         float distance = ((1.0f - phase) + phase * record->farScale) * length + userRadius;
         Vector3 axis;
-        orientation.AxisX(&axis);
+        facing.AxisX(&axis);
         at.x = axis.x * along * distance + at.x;
         at.y = axis.y * along * distance + at.y;
         at.z = axis.z * along * distance + at.z;
-        orientation.AxisY(&axis);
+        facing.AxisY(&axis);
         at.x = axis.x * across * distance + at.x;
         at.y = axis.y * across * distance + at.y;
         at.z = axis.z * across * distance + at.z;
