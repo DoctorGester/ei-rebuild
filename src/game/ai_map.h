@@ -91,6 +91,8 @@ struct VisibilityGrid {
     // 005C8D40 (forwarder). Grows the grid to cover (x - n .. x + n, y - n .. y + n); the first
     // call (x = 0x7FFFFFFF) sizes and clears it.
     void Include(int x, int y, int n);
+    // The rewrite of 005C8D40 (ai_movement.cpp); Include stays the forwarder to its address.
+    void Grow(int x, int y, int n);
 
     int originX, originY;       // cell of data[0]; 0x7FFFFFFF before the first Include
     std::uint8_t* data;         // +0x08 width * height
@@ -99,7 +101,6 @@ struct VisibilityGrid {
 };
 static_assert(sizeof(VisibilityGrid) == 0x18);
 
-// The region map at CAIMap + 0x22F8: connected areas per size class.
 // A cell of a path (CList element, 8 bytes). Layout provisional.
 struct PathCell {
     std::int16_t x, y;
@@ -149,52 +150,7 @@ struct BlockCostElements {
 using BlockCostList = mfc::CList<BlockCost, BlockCostElements>;
 static_assert(sizeof(BlockCostList::Node) == 0x14);
 
-struct CRegionMap {
-    // 005B0600. Region of cell (x, y) for a size class, in AX (the rest of EAX is returned as the
-    // original leaves it).
-    int RegionAt(int sizeClass, int x, int y);
-    // The rewrite of 005B0600 (ai_region_reach.cpp): the region most of the reachable 3x3 blocks
-    // around the cell belong to (the first seen on a tie; 0 when none); EAX's upper half is 0.
-    int DominantRegion(int sizeClass, int x, int y);
-    // 005B07C0. Can cell (x, y) reach `region`? Caches the answers in `marks` (1 yes, 2 no).
-    bool Reaches(int sizeClass, int x, int y, int region, void* marks);
-    // The rewrite of 005B07C0 (ai_region_reach.cpp); Reaches stays the forwarder to its address.
-    bool ReachesRegion(int sizeClass, int x, int y, int region, void* marks);
-    // 005B0050 (ai_region_reach.cpp). Numbers the connected areas of blocks of every size class.
-    void LabelRegions();
-    // 005B0F70 (ai_region_reach.cpp). The per-direction block edge words: -1 out of the map, and
-    // each edge between two blocks the smaller of its two directions, for every size class.
-    void ClampEdgeCosts();
-    // 005B1180 (RET 4, AL; ai_region_reach.cpp). Reads the block grids of every size class from
-    // the AI graph stream (width and height 1..256 first); returns the stream's state byte (+5).
-    bool LoadBlocks(void* stream);
-    // 005AF900 (RET 0xC; ai_region_reach.cpp). Per size class the representative cell of block
-    // (bx, by): (3, 3) unless a passable cell in rings from the middle is better (005AF7B0).
-    void PickRepresentatives(class CAIMap* map, int bx, int by);
-    // 005B0D90 (RET 0x1C, AL; ai_region_reach.cpp). The chain of regions from (fromX, fromY) to
-    // (toX, toY) into `chain` (a CList), avoiding the blocks in `excluded` (CArray<{x, y}>).
-    bool FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, void* chain, void* excluded);
-    // 005AF5F0 (RET 4, AL; ai_region_reach.cpp). Expands the two block searches until they meet and
-    // joins their paths into `chain`; false when one runs out.
-    bool JoinBlockSearches(PathCellList* chain);
-    // 005AFAE0 (RET 0xC; ai_region_reach.cpp). Per size class the block (bx, by)'s edge words:
-    // the local search cost to each neighbour's representative cell / 128. The first argument is
-    // not read.
-    void MeasureBlockEdges(void* unused, int bx, int by);
-    // 005B0C00 (RET 4; ai_region_reach.cpp). Sizes the block grids for the map (8x8-cell blocks),
-    // sets up the local search and rebuilds the derived tables.
-    void Attach(class CAIMap* map);
-    // 005AF7B0 (RET 0x14, AL; ai_region_reach.cpp). Whether cell (xx, yy) of block (bx, by) can
-    // reach both side edges or both end edges of the block for a size class.
-    bool CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy);
-    // 005AFF10 (RET 0x10; ai_region_reach.cpp). Floods `label` over the blocks connected through open
-    // edges, breadth first from `frontier` (CArray<{x, y}>), `next` holding the following ring.
-    void FloodRegionFrom(int sizeClass, void* frontier, void* next, int label);
-    // 005B0370 (RET 0x14; ai_region_reach.cpp). The 3x3 blocks around cell (x, y) whose
-    // representative cell the local search reaches from it, as {block x, block y, cost} appended
-    // to `out` (a CList, emptied first). `flag` goes to +0x114 for the search.
-    void NearbyBlocks(int sizeClass, bool flag, int x, int y, BlockCostList* out);
-};
+struct CRegionMap;
 
 
 // Per size class tables of the cost of a height step between neighbouring cells, indexed from the
@@ -375,6 +331,134 @@ static_assert(offsetof(LocalSearch, settledList) == 0x3C);
 static_assert(offsetof(LocalSearch, costs) == 0x60);
 static_assert(offsetof(LocalSearch, backward) == 0x7C);
 static_assert(sizeof(LocalSearch) == 0x80);
+
+// The direction steps 1..8 of the block searches and paths (00791108 / 0079112C; index 0 unused):
+// 1 = (0, -1), then clockwise towards -x as in PathCell::Step.
+inline const int* DirectionDx() { return reinterpret_cast<const int*>(0x00791108); }
+inline const int* DirectionDy() { return reinterpret_cast<const int*>(0x0079112C); }
+
+// A block of a block search (24 bytes): open records wait in sorted doubly linked buckets; a
+// settled one moves to the search's `touched` chain (through `next`).
+struct BlockRecord {
+    int cost;                   // 0x7FFFFFFF unreached, -1 excluded
+    BlockRecord* next;
+    BlockRecord* prev;          // +0x08
+    std::int16_t x, y;          // +0x0C block coordinates
+    int backDirection;          // +0x10 1..8: the way back to the block it was reached from; 0 none
+    bool settled;               // +0x14
+    std::uint8_t unknown_15[3];
+};
+static_assert(sizeof(BlockRecord) == 24);
+
+// Dijkstra over the blocks of one size class (CRegionMap + 0 from the start, + 0x4C from the
+// target; 0x4C bytes): open records in eight buckets by x & 7, each sorted by cost. Methods in
+// ai_block_search.cpp.
+struct BlockSearch {
+    // 005AED60 (RET 8). Attaches to the region map: one record per block, all unreached.
+    void Attach(CRegionMap* regionMap, bool fromTarget);
+    // 005AEE30 (RET 4). Moves `record` to its place in its bucket (a bucket head stays).
+    void Requeue(BlockRecord* record);
+    // 005AEEC0 (RET 8). Relaxes the neighbour of `best` in `direction` (1..8) through the open edge,
+    // its back direction `back`.
+    void Relax(int direction, int back);
+    // 005AEFF0. `best` = the cheapest bucket head (null when every bucket is empty).
+    void PickBest();
+    // 005AF0C0. Settles `best`, relaxes its eight neighbours, picks the next best.
+    void Expand();
+
+    SearchGrid<BlockRecord> records;    // +0x00
+    CRegionMap* map;                    // +0x10
+    SearchGrid<std::int16_t>* edges;    // +0x14 the size class's edge words (8 per block)
+    BlockRecord* touched;               // +0x18 settled and excluded records
+    BlockRecord* open[8];               // +0x1C
+    BlockRecord* best;                  // +0x3C
+    int bestCost;                       // +0x40 cost of the record being expanded
+    std::uint8_t unknown_44[4];
+    bool fromTarget;                    // +0x48
+    bool active;                        // +0x49
+    std::uint8_t unknown_4A[2];
+};
+static_assert(offsetof(BlockSearch, map) == 0x10);
+static_assert(offsetof(BlockSearch, open) == 0x1C);
+static_assert(offsetof(BlockSearch, bestCost) == 0x40);
+static_assert(sizeof(BlockSearch) == 0x4C);
+
+// The region map at CAIMap + 0x22F8 (0x29C bytes): connected areas of 8x8-cell blocks per size class.
+struct CRegionMap {
+    // 005B0600. Region of cell (x, y) for a size class, in AX (the rest of EAX is returned as the
+    // original leaves it).
+    int RegionAt(int sizeClass, int x, int y);
+    // The rewrite of 005B0600 (ai_region_reach.cpp): the region most of the reachable 3x3 blocks
+    // around the cell belong to (the first seen on a tie; 0 when none); EAX's upper half is 0.
+    int DominantRegion(int sizeClass, int x, int y);
+    // 005B07C0. Can cell (x, y) reach `region`? Caches the answers in `marks` (1 yes, 2 no).
+    bool Reaches(int sizeClass, int x, int y, int region, void* marks);
+    // The rewrite of 005B07C0 (ai_region_reach.cpp); Reaches stays the forwarder to its address.
+    bool ReachesRegion(int sizeClass, int x, int y, int region, void* marks);
+    // 005B0050 (ai_region_reach.cpp). Numbers the connected areas of blocks of every size class.
+    void LabelRegions();
+    // 005B0F70 (ai_region_reach.cpp). The per-direction block edge words: -1 out of the map, and
+    // each edge between two blocks the smaller of its two directions, for every size class.
+    void ClampEdgeCosts();
+    // 005B1180 (RET 4, AL; ai_region_reach.cpp). Reads the block grids of every size class from
+    // the AI graph stream (width and height 1..256 first); returns the stream's state byte (+5).
+    bool LoadBlocks(void* stream);
+    // 005AF900 (RET 0xC; ai_region_reach.cpp). Per size class the representative cell of block
+    // (bx, by): (3, 3) unless a passable cell in rings from the middle is better (005AF7B0).
+    void PickRepresentatives(class CAIMap* map, int bx, int by);
+    // 005B0D90 (RET 0x1C, AL; ai_region_reach.cpp). The chain of regions from (fromX, fromY) to
+    // (toX, toY) into `chain` (a CList), avoiding the blocks in `excluded` (CArray<{x, y}>).
+    bool FindRegionChain(int sizeClass, int fromX, int fromY, int toX, int toY, void* chain, void* excluded);
+    // 005AF5F0 (RET 4, AL; ai_region_reach.cpp). Expands the two block searches until they meet and
+    // joins their paths into `chain`; false when one runs out.
+    bool JoinBlockSearches(PathCellList* chain);
+    // 005AFAE0 (RET 0xC; ai_region_reach.cpp). Per size class the block (bx, by)'s edge words:
+    // the local search cost to each neighbour's representative cell / 128. The first argument is
+    // not read.
+    void MeasureBlockEdges(void* unused, int bx, int by);
+    // 005B0C00 (RET 4; ai_region_reach.cpp). Sizes the block grids for the map (8x8-cell blocks),
+    // sets up the local search and rebuilds the derived tables.
+    void Attach(class CAIMap* map);
+    // 005AF7B0 (RET 0x14, AL; ai_region_reach.cpp). Whether cell (xx, yy) of block (bx, by) can
+    // reach both side edges or both end edges of the block for a size class.
+    bool CellSuitsBlockAt(int sizeClass, int bx, int by, int xx, int yy);
+    // 005AFF10 (RET 0x10; ai_region_reach.cpp). Floods `label` over the blocks connected through open
+    // edges, breadth first from `frontier` (CArray<{x, y}>), `next` holding the following ring.
+    void FloodRegionFrom(int sizeClass, void* frontier, void* next, int label);
+    // 005B0370 (RET 0x14; ai_region_reach.cpp). The 3x3 blocks around cell (x, y) whose
+    // representative cell the local search reaches from it, as {block x, block y, cost} appended
+    // to `out` (a CList, emptied first). `flag` goes to +0x114 for the search.
+    void NearbyBlocks(int sizeClass, bool flag, int x, int y, BlockCostList* out);
+
+    // 005AFC70 (RET 0x14; ai_block_search.cpp). Re-measures blocks [x0, x1) x [y0, y1) (clamped to
+    // the grid): representative cells, then edges, row by row (reporting progress), then the
+    // edge clamp, the two block searches and the regions. The first argument is the AI map.
+    void UpdateBlocks(CAIMap* map, int x0, int x1, int y0, int y1);
+    // 005AFEE0 (RET 0x14). UpdateBlocks (through its address).
+    void UpdateBlocksFor(CAIMap* map, int x0, int x1, int y0, int y1);
+    // 005AFEC0 (ai_block_search.cpp). Re-attaches both block searches.
+    void AttachSearches();
+    // 005B0AF0 (RET 0x14, AL; ai_block_search.cpp). Seeds `search` with the blocks around cell
+    // (x, y) its representative cells are reached from (NearbyBlocks), cost / 128; true when one
+    // was lowered.
+    bool SeedSearch(int sizeClass, bool flag, BlockSearch* search, int x, int y);
+
+    // A progress report (stdcall, 0..1) during UpdateBlocks; cleared by it.
+    using ProgressFn = void(__stdcall*)(float);
+
+    BlockSearch forward;                        // +0x000
+    BlockSearch backward;                       // +0x04C
+    LocalSearch local;                          // +0x098
+    ProgressFn progress;                        // +0x118
+    SearchGrid<std::int16_t> edges[8];          // +0x11C per size class: 8 edge words per block
+    SearchGrid<std::uint8_t> cells[8];          // +0x19C representative cell (x | y << 4)
+    SearchGrid<std::uint16_t> regions[8];       // +0x21C region per block
+};
+static_assert(offsetof(CRegionMap, local) == 0x98);
+static_assert(offsetof(CRegionMap, progress) == 0x118);
+static_assert(offsetof(CRegionMap, edges) == 0x11C);
+static_assert(offsetof(CRegionMap, regions) == 0x21C);
+static_assert(sizeof(CRegionMap) == 0x29C);
 
 // The path smoother's trellis (005C46C0): per path cell nine states, one per direction the unit
 // leaves the cell in (index direction - 1; index 8 unused), each the cheapest cost so far and its
@@ -622,8 +706,12 @@ public:
     // can climb becomes impassable, one beyond the larger classes keeps only class 0; either way
     // nibbles 5-6 of one neighbour and nibble 7 of 13 cells around it are cleared.
     void LimitSteepCells(int x0, int x1, int y0, int y1);
+    // 005B89F0 (RET 0x1C; ai_refresh.cpp). A level's special area {dx, dy}: in [x0, x1] x [y0, y1]
+    // (kept so that (x + dx, y + dy) is on the map) each cell whose mark at (x + dx, y + dy) is 0
+    // loses the level's passability nibble.
+    void ClearUnmarkedArea(int level, int dx, int dy, int x0, int x1, int y0, int y1);
 
-    CRegionMap* Regions() { return reinterpret_cast<CRegionMap*>(regions); }
+    CRegionMap* Regions() { return &regionMap; }
 
     // Refresh the rectangle now, or add it to the dirty rectangle while batching.
     void QueueRefresh(int minX, int maxX, int minY, int maxY);
@@ -659,7 +747,7 @@ public:
     std::uint8_t unitLayerSmall[0x12A4 - 0x27C];    // +0x27C unit occupancy (005B36B0 / 005B3890)
     std::uint8_t unitLayerLarge[0x22CC - 0x12A4];   // +0x12A4
     PathSmoother smoother;                          // +0x22CC
-    std::uint8_t regions[0x2594 - 0x22F8];          // +0x22F8 region map (005B0600)
+    CRegionMap regionMap;                           // +0x22F8
     LocalSearch forwardSearch;                      // +0x2594
     LocalSearch backwardSearch;                     // +0x2614
     int lastFootprintOwner;             // +0x2694 set by StampFootprint
@@ -682,7 +770,7 @@ static_assert(offsetof(CAIMap, footprint) == 0x14C);
 static_assert(offsetof(CAIMap, bridges) == 0x1A0);
 static_assert(offsetof(CAIMap, waterDepth) == 0x1F8);
 static_assert(offsetof(CAIMap, unitLayerLarge) == 0x12A4);
-static_assert(offsetof(CAIMap, regions) == 0x22F8);
+static_assert(offsetof(CAIMap, regionMap) == 0x22F8);
 static_assert(offsetof(CAIMap, smoother) == 0x22CC);
 static_assert(offsetof(CAIMap, forwardSearch) == 0x2594);
 static_assert(offsetof(CAIMap, backwardSearch) == 0x2614);

@@ -491,6 +491,7 @@ struct AIRef {
     CEngineObject* object;
 };
 
+class CSpell;
 namespace console {
 class GameOStream;
 }
@@ -542,6 +543,15 @@ void __fastcall ReportsRemoveAtAt(AIReportArray* reports, void*, int index, int 
 
 // One way the unit can attack or help (0x28 bytes): a weapon (part -1) or a spell.
 struct AIAttackOption {
+    // 005CE9B0 (ST0; unit_ai_options.cpp). How much the option counts: kind 0 its largest damage,
+    // 1..3 that * 1.3, 4..6 1, 7 10, other kinds 0.
+    double Weight() const;
+    // 005CE860 / 005CE920 (RET 4; unit_ai_options.cpp). The option from / to a save. Before
+    // version 0x5A only the part, a dropped dword and the damage were saved: the kind becomes
+    // part >= 0, the range 1, the rest 0.
+    void Load(AIStream* stream);
+    void Save(AIStream* stream);
+
     int kind;                       // +0x00 0..3 attacks (2, 3 hit an area), 4..6 helping spells, 7 healing
     int part;                       // +0x04 -1 a weapon, else the spell
     float range;                    // +0x08
@@ -552,14 +562,9 @@ struct AIAttackOption {
 };
 static_assert(sizeof(AIAttackOption) == 0x28);
 
-// CArray<AIAttackOption> (0x14 bytes).
-struct AIAttackOptions {
-    void* vtable;
-    AIAttackOption* data;           // +0x04
-    int size;                       // +0x08
-    int max;                        // +0x0C
-    int growBy;                     // +0x10
-};
+// CArray<AIAttackOption> (0x14 bytes; zero-filled elements). Its SetSize 005D9250 is registered on
+// the template (unit_ai_options.cpp).
+using AIAttackOptions = mfc::CArray<AIAttackOption>;
 static_assert(sizeof(AIAttackOptions) == 0x14);
 
 using AIObjectList = mfc::CTypedPtrList<CEngineObject>;
@@ -589,9 +594,24 @@ struct AIAttention {
     // The option of `part`: the weapons first, then the spells; null when there is none.
     const AIAttackOption* FindOption(int part) const;
 
+    // unit_ai_options.cpp:
+    // 005CEED0 (RET 4). Lists the unit's options: its weapon (unless its natural weapon is 0x10,
+    // "spells only") and attack spells (kinds 1..4) into `weapons`, helping spells (5..7) into
+    // `spells`; a unit whose id is a text key gets only the weapon. Then `healWeight` is the
+    // largest Weight of the `weapons` options.
+    void Build(CUnit* unit);
+    // 005CEA30 (RET 0x1C; `this` unused). Fills `option`'s leading fields.
+    void InitOption(AIAttackOption* option, int kind, int part, float range, int maxCount, float radius, int effect);
+    // 005CEA60 / 005CEBD0 (RET 0x18). Appends an option to `weapons` / `spells`; returns its damage.
+    std::uint16_t* AddWeaponOption(int kind, int part, float range, int maxCount, float radius, int effect);
+    std::uint16_t* AddSpellOption(int kind, int part, float range, int maxCount, float radius, int effect);
+    // 005CEDC0 (RET 4; `this` unused). The option kind of a spell by its type (high word of +0x18):
+    // 1..7, 8 for none; 0 (EAX = the null pointer) without a spell.
+    int SpellKind(const CSpell* spell);
+
     AIAttackOptions weapons;        // +0x00
     AIAttackOptions spells;         // +0x14
-    float healWeight;               // +0x28 kind 7's score when the target is badly hurt
+    float healWeight;               // +0x28 the largest Weight of the weapons (Build); kind 7 scores with it
 };
 static_assert(sizeof(AIAttention) == 0x2C);
 

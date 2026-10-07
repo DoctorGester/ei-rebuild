@@ -97,6 +97,10 @@ the resulting state.
 | 005C22A0, 005C21A0, 005C2420, 005C24F0, 005C2B10, 005C2C90, 005C2CF0, 005C2A30, 005C33F0, 005C3530, 005C1EA0, 005C25D0, 005B9580 | LocalSearch PlaceWindow, SetUnit, Begin, BeginForClass, BeginInRect(For, ForClass), CommitDirections, Save / RestoreLevels, Attach, Recenter; CAIMap::CostContextFor | ai_local_search.cpp | in place as above (CommitDirections / levels with the map bytes under the window); Attach ours only (fresh grid); SaveLevels' first (allocating) call ours only; CostContextFor output |
 | 005BD200, 005BD2A0, 005C5DA0, 005C5E60, 005C6000, 005C5CC0 | PathCellList AddHead, AddTail, AppendList, Reversed, RemoveRepeats; PathCell::Step | ai_path_cells.cpp | ours only against a model of the list taken before (cells as 8-byte records, links checked); Reversed and Step: the original on scratch outputs |
 | 005C46C0, 005C45D0, 005C44D0, 005C4C20 | PathSmoother Smooth, Advance, Relax; SmoothPool::SetSize | ai_path_smooth.cpp | Smooth: the original on a copy of the path, result and cells' x, y compared; Advance: pool and states after the original (pool put back) and ours; Relax: the original on a scratch state; SetSize ours only |
+| 005AED60, 005AEE30, 005AEEC0, 005AEFF0, 005AF0C0, 005B0AF0, 005AFEC0 | BlockSearch Attach, Requeue, Relax, PickBest, Expand; CRegionMap SeedSearch, AttachSearches | ai_block_search.cpp | PickBest pure; the rest ours only (buckets sorted and linked, relaxed cost against a model, records reset) |
+| 005AFC70, 005AFEE0 | CRegionMap::UpdateBlocks, UpdateBlocksFor (thunk) | ai_block_search.cpp | ours only (steps called through their addresses, verified on their own) |
+| 005B89F0 | CAIMap::ClearUnmarkedArea | ai_refresh.cpp | differential on the cell words |
+| 005C8D40 | VisibilityGrid::Grow (Include stays the forwarder) | ai_movement.cpp | ours only: covers the square, keeps exactly the old marks |
 | 005C0930, 005C0BD0, 005C0DF0, 005C1010, 005C11D0 | CSectorMap: UnitsAt, FindUnitsInRadius, Add, Remove, Move | sector_map.cpp | UnitsAt pure; others in `verified.txt` |
 
 ## Original bugs and oddities kept on purpose
@@ -127,8 +131,9 @@ the resulting state.
 
 - Run only by the static initialiser 005C42A0 (before the hooks): the smoothing tables 005C42B0 and its helpers 005C3690, 005C3840, 005C3A00,
   005C3E10, 005C4050, 005C4F30, 005C5930, 005C5AB0, 005C5A80.
-- Large, stateful, left as forwarders (next candidates): 005B89F0 (area application) and 005AFEE0 (region update) called by
-  RefreshArea, 005BD200 AddPathCell, 005C8D40 VisibilityGrid::Include, 005BCCB0 and the shape cache helpers (005BE320, 005BE450, 005BE730 ...).
+- Shape cache helpers 005BCCB0, 005BE320, 005BE450, 005BE730 (STLport hash_map instantiations) left as forwarders.
+- CRegionMap now has its members (ai_map.h: the two BlockSearch, the local search, `progress`, the per class grids);
+  older code in ai_region_reach.cpp still reads some of them through At<>.
 - 005B43C0 CAIMap::Load (Rebirth-patched). 005BF8F0 / 005BF5F0 (spiral table constructor) run from the static initializer 005BF8E0, before the hooks are installed. 005C6E30 (waypoint constructor) is inlined. 005A0000-005AF000
   (AI helpers of other systems: voice, groups) and 005C8xxx / 005C9xxx above 005C8D40 (time wheel, containers) are not movement code.
 
