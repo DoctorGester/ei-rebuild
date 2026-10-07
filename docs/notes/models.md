@@ -13,7 +13,7 @@ sprites in `spells` / `spells_cast`). Names are provisional.
 
 004F0B90 loads `3DfpFPU.dll` / `GetTLPipeline` (once, from 00500540); 004F68C0 (Rebirth-patched) is the `CLinkFigureLoader` constructor (vtable 0073D808; opens `figures.res` and `menus.res` through 004F6D30);
 004F77C0 loads a `.lnk` file and each part's figure (004F7F00 "FIG8" with 8 morph components and other "FIG", 004F87D0 the rest; meshes through 004F4B90 / 004F30F0), reached only through the loader's vtable (slots
-4, 5, 7: 004F7150, 004F7080, 004F75E0); 004F16A0 frustum classification of a part's bounds (callers all over the renderer); 004F1330 (Rebirth-patched), 004F1370, 004F13F0, 004F0E80, 004F1440 / 004F15C0 matrix
+3, 4, 6 counted from 0: 004F7150, 004F7080, 004F75E0; link_loader.cpp, A-S7); 004F16A0 frustum classification of a part's bounds (callers all over the renderer); 004F1330 (Rebirth-patched), 004F1370, 004F13F0, 004F0E80, 004F1440 / 004F15C0 matrix
 builders; 004F57B0 triangle index buffer resize; 004F93A0 `ClipBounds::SetBox` (called by the figure manager for every part it loads); 004FA000-00500000 STLport instantiations, the D3D state-block manager
 (004FCA60, 004FD2A0, 004FD9D0) and the effect manager.
 
