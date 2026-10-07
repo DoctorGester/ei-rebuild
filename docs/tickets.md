@@ -35,7 +35,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- A-H .. A-H13 done. A-H15 done (35 + 12 library; next: options / keyboard screens 00651940, 00651350, 00651600, 00652200, 00651D70, 006524A0; widgets 0065B8B0, 0065D150, 0065C610; party 006625B0, 00662AC0; the client handlers missing from functions.csv, objects.md). A-H14 done (54 + 16 library; merged, regressions in X23) (sound.md next candidates; CPlayer 00664BF0..00665D20, save screen, message handlers).
+- A-H .. A-H13 done. A-H15 done (29 + 11 library; next: options / keyboard screens 00651940, 00651350, 00651600, 00652200, 00651D70, 006524A0; widgets 0065B8B0, 0065D150, 0065C610; party 006625B0, 00662AC0; the client handlers missing from functions.csv, objects.md). A-H14 done (54 + 16 library; merged, regressions in X23) (sound.md next candidates; CPlayer 00664BF0..00665D20, save screen, message handlers).
 
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
