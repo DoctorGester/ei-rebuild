@@ -169,3 +169,13 @@ through `game::FatalError` (EI_ORIGINAL). Forwarders are in `unit_ai.h`, `unit_a
   patrol point array's destructors (`PatrolPointArray`), 005D9E10 ZeroAttackOptions (ConstructElements), 005D9830 ListGetNext
   (CList::GetNext). Verify (`verify_unit_ai_templates.cpp`): constructors and GetNext against the original on copies, the rest
   ours only.
+
+## A-W6 (2026-10-07)
+
+- `unit_ai_options.cpp`: 005CEED0 AIAttention::Build (the option lists, run when a unit's controller is set up, 005535F0 /
+  00553610, and by 005D6630), 005CEA30 InitOption, 005CEA60 / 005CEBD0 AddWeaponOption / AddSpellOption, 005CEDC0 SpellKind
+  (spell type -> kind table), 005CE9B0 AIAttackOption::Weight, 005D9250 (CArray<AIAttackOption>::SetSize, registered on the
+  template; `AIAttackOptions` is now that alias). Build calls the helpers through their addresses. `weapons` holds the weapon
+  and the attack spells (kinds 1..4), `spells` the helping ones (5..7). Verify: Build differential (original on a copy with
+  copied arrays; lists and healWeight compared), InitOption output, SpellKind / Weight pure, the rest ours only. Scenarios:
+  `unit_ai`, `units`, `spells_cast` (any AI unit created). 00522B20 (largest damage) stays a forwarder (units area).
