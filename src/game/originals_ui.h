@@ -89,7 +89,8 @@ __declspec(naked) inline void __fastcall UiMeshCellsOriginal(void* /*mesh*/, voi
 __declspec(naked) inline void __fastcall CursorShowOriginal(void* /*cursor*/, void*, int /*show*/) EI_ORIGINAL(0x005E5270)
 __declspec(naked) inline void __fastcall CursorLockOriginal(void* /*cursor*/) EI_ORIGINAL(0x005E65F0)
 __declspec(naked) inline void __fastcall CursorUnlockOriginal(void* /*cursor*/) EI_ORIGINAL(0x005E6610)
-// 006B71C0: the loading screen's step (thiscall on [007AF784], RET 4).
+// 006B71C0: CSoundManager::StopAll(stopStream) (thiscall on the sound manager [007AF784], RET 4;
+// rewritten in sound_manager.cpp; the name is historical).
 __declspec(naked) inline void __fastcall LoadingStepOriginal(void* /*loading*/, void*, int /*step*/) EI_ORIGINAL(0x006B71C0)
 // 005E6630 (rewritten as CursorSaveBackground, ui_cursor_frame.cpp; called through its address so the wrapper
 // runs): the cursor saves the screen under its drawn rectangle into its background surface, from the primary

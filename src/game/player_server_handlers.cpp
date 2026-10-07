@@ -11,6 +11,7 @@
 #include "originals_ai.h"
 #include "originals_world.h"
 #include "party.h"
+#include "party_records.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_create.h"
@@ -18,6 +19,7 @@
 #include "world.h"
 
 #include "lib/mfc.h"
+#include "originals_library.h"
 
 #include "ei/hook.h"
 
@@ -273,3 +275,313 @@ EI_REPLACE_METHOD(0x00670730, AIPath::TargetPoint);
 EI_REPLACE_METHOD(0x00670760, AIOrder::MakeUse);
 EI_REPLACE_METHOD(0x006707D0, AIOrder::AimPoint);
 EI_REPLACE_METHOD(0x00670310, CPlayerServer::OnUseOrder);
+
+// --- A-H14: zone changes, joining, party blocks, the walk / attack orders -----------------------------
+
+namespace {
+
+// The campaign mode (007C2CC4; 1 and 3 end the game when the leader is gone) and the game mode
+// (007B0098; 1 single player, 2 multiplayer).
+int CampaignMode() { return *reinterpret_cast<const volatile int*>(std::uintptr_t(0x007C2CC4)); }
+int GameMode() { return *reinterpret_cast<const volatile int*>(std::uintptr_t(0x007B0098)); }
+// The party manager (007AA5A0) and its next object id for a new party's record (00794E3C).
+void* PartyManager() { return reinterpret_cast<void*>(std::uintptr_t(0x007AA5A0)); }
+int& NextRecordObjectId() { return *reinterpret_cast<int*>(std::uintptr_t(0x00794E3C)); }
+
+constexpr std::uint8_t kMessageZone = 0x08;
+constexpr std::uint32_t kLoneHeroRecordId = 0x3B9AF5CE;   // 999999950
+constexpr std::uint32_t kJoinedFlag = 0x10;               // CPlayer +0x130
+constexpr std::uintptr_t kPointArrayVtable = std::uintptr_t(0x0073C120);
+using PointArray = mfc::CArray<Vector3>;
+
+float Rounded(double v) {
+    volatile float f = static_cast<float>(v);
+    return f;
+}
+
+// The unit list of the walk / attack orders: a count, then that many ids (missing units and units
+// flagged 0x800000 are left out).
+void ReadUnits(CMemoryStream& in, UnitArray* units) {
+    int count = 0;
+    in.Read(&count, 4);
+    for (int i = 0; i < count; ++i) {
+        int id = 0;
+        in.Read(&id, 4);
+        CUnit* unit = FindUnit(id);
+        if (unit && !(unit->flags_ & kFlagBlocked)) units->SetAtGrow(units->size, unit);
+    }
+}
+// The arrays' inlined destructors: the vtable back, the storage freed.
+template <typename T>
+void FreeArray(mfc::CArray<T>* array, std::uintptr_t vtable) {
+    array->vtable = reinterpret_cast<void*>(vtable);
+    if (array->data) gamecrt::operator_delete(array->data);
+}
+
+using MoveCommand = void (PlayerMode::*)(AIBrain*, const Vector3*, int, int, const Vector3*);
+int MoveUnits(MoveCommand command) {
+    CMemoryStream& in = ReceivedMessages();
+    UnitArray units{reinterpret_cast<void*>(kUnitArrayVtable), nullptr, 0, 0, 0};
+    PointArray offsets{reinterpret_cast<void*>(kPointArrayVtable), nullptr, 0, 0, 0};
+    ReadUnits(in, &units);
+    int run = 0;
+    Vector3 to{};
+    in.Read(&run, 4);
+    in.Read(&to, sizeof(to));
+    FormationOffsets(&units, &offsets);
+    for (int i = 0; i < units.size; ++i) {
+        AIBrain* brain = ControllerOf(units[i])->Brain();
+        if (AIMode* mode = brain->FindPlayerMode())
+            (static_cast<PlayerMode*>(mode)->*command)(brain, &to, units.size > 1, run != 0, &offsets.data[i]);
+    }
+    FreeArray(&offsets, kPointArrayVtable);
+    FreeArray(&units, kUnitArrayVtable);
+    return 1;
+}
+
+// A memory stream on the stack, as the original builds and destroys it inline.
+struct LocalStream {
+    alignas(4) unsigned char bytes[sizeof(CMemoryStream)];
+    LocalStream() { Get()->Construct(); }
+    ~LocalStream() { Get()->Destruct(); }
+    CMemoryStream* Get() { return reinterpret_cast<CMemoryStream*>(bytes); }
+};
+// A party on the stack (constructor 00661050, destructor body 006611D0).
+struct LocalParty {
+    alignas(4) unsigned char bytes[sizeof(CParty)];
+    LocalParty() { Get()->Construct(); }
+    ~LocalParty() { Get()->DestructBody(); }
+    CParty* Get() { return reinterpret_cast<CParty*>(bytes); }
+};
+
+} // namespace
+
+void __fastcall FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<Vector3>* offsets) {
+    int count = units->size;
+    if (count < 1) return;
+    if (count == 1) {
+        offsets->SetSize(1, -1);
+        offsets->data[0] = Vector3{0.0f, 0.0f, 0.0f};
+        return;
+    }
+    float sumX = 0.0f;
+    float sumY = 0.0f;
+    for (int i = 0; i < count; ++i) {
+        const Vector3* at = PositionOf(units->data[i]);
+        sumX = Rounded(static_cast<double>(sumX) + at->x);
+        sumY = Rounded(static_cast<double>(sumY) + at->y);
+    }
+    float n = static_cast<float>(count);
+    float centreX = Rounded(static_cast<double>(sumX) / n);
+    float centreY = Rounded(static_cast<double>(sumY) / n);
+    offsets->SetSize(count, -1);
+    for (int i = 0; i < units->size; ++i) {
+        const Vector3* at = PositionOf(units->data[i]);
+        float dx = Rounded(static_cast<double>(at->x) - centreX);
+        float dy = Rounded(static_cast<double>(at->y) - centreY);
+        double length = std::sqrt(static_cast<double>(dx) * dx + static_cast<double>(dy) * dy);
+        if (length > 0.0) {   // the original skips zero and NaN (FCOM; TEST AH,0x40)
+            double inverse = 1.0 / length;
+            dx = Rounded(dx * inverse);
+            dy = Rounded(dy * inverse);
+        }
+        offsets->data[i] = Vector3{dx, dy, 0.0f};
+    }
+}
+EI_REPLACE(0x0066FD70, FormationOffsets);
+
+void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
+    if (state_ != 1) return;
+    CPlayer* player = Owner();
+    CParty* party = player->Party();
+    int campaign = CampaignMode();
+    if (campaign == 1 || campaign == 3) {
+        CUnit* leader = FindUnit(static_cast<int>(party->members_.data[0].unknown_01C));
+        if (leader == nullptr || ObjectSlots(leader)->IsDead() != 0) {
+            reinterpret_cast<CPlayerConnection*>(this)->LeaderDied();
+            if (!IsMultiplayerClient()) return;
+        }
+    }
+    auto* worldPlayer = reinterpret_cast<WorldPlayer*>(player);
+    if (flag70_) {
+        WorldServer()->CollectParty(worldPlayer, nullptr);
+        flag70_ = 0;
+    }
+    state_ = 3;
+    party->unknown_6C = static_cast<std::uint32_t>(entrance);
+    party->zone_ = zone;
+    int mode = GameMode();
+    if (mode == 1) {
+        PartyManagerBeginRedeploy(PartyManager(), nullptr, party);
+    } else if (mode == 2) {
+        if (party->members_.size == 1) party->members_.data[0].unknown_01C = kLoneHeroRecordId;
+        SendParty();
+    }
+    std::uint8_t type = kMessageZone;
+    out_.Write(&type, 1);
+    out_.Write(zone, static_cast<std::uint32_t>(std::strlen(zone) + 1));
+    out_.Write(&entrance, 4);
+    Flush();
+}
+EI_REPLACE_METHOD(0x0066F310, CPlayerServer::LeaveToZone);
+
+int CPlayerServer::OnRefreshParty() {
+    Owner()->ForgetKnownObjects();
+    SendParty();
+    return 1;
+}
+
+int CPlayerServer::OnTakeExit() {
+    mfc::CString zone;
+    int exit = 0;
+    int entrance = 0;
+    ReceivedMessages().Read(&exit, 4);
+    if (!WorldServer()->GetZoneExit(exit, &zone, &entrance)) return 0;
+    LeaveToZone(zone, entrance);
+    return 1;
+}
+
+int CPlayerServer::OnJoined() {
+    if (state_ != 2) return 0;
+    state_ = 1;
+    CPlayer* player = Owner();
+    player->sessionKind100_ = static_cast<CWorldServer*>(player->ManagerContext())->unknown12D64_;
+    WorldServer()->Redeploy(reinterpret_cast<WorldPlayer*>(player), &placements_, 1);
+    player->unknown_130 |= kJoinedFlag;
+    return 1;
+}
+
+int CPlayerServer::OnLeaveToZone() {
+    mfc::CString zone;
+    {
+        alignas(mfc::CString) unsigned char text[sizeof(mfc::CString)];
+        mfc::CString* read = ReceivedMessages().ReadString(text);
+        zone = *read;
+        read->~CString();
+    }
+    int entrance = 0;
+    ReceivedMessages().Read(&entrance, 4);
+    LeaveToZone(zone, entrance);
+    return 1;
+}
+
+int CPlayerServer::OnBriefingDone() {
+    mfc::CString name;
+    {
+        alignas(mfc::CString) unsigned char text[sizeof(mfc::CString)];
+        mfc::CString* read = ReceivedMessages().ReadString(text);
+        name = *read;
+        read->~CString();
+    }
+    WorldServer()->CompleteBriefing(Owner()->playerId_, name);
+    return 1;
+}
+
+int CPlayerServer::OnNewParty() {
+    LocalParty local;
+    CParty* party = local.Get();
+    party->LoadParty(&ReceivedMessages(), 1);
+    if (party->members_.size != 1) return 0;
+    int* key = reinterpret_cast<int*>(&Owner()->unknownFC_);
+    PartyNextId(key);
+    int& next = NextRecordObjectId();
+    while (WorldServer()->FindObject(static_cast<unsigned>(next)) != nullptr) ++next;
+    party->members_.data[0].unknown_01C = static_cast<std::uint32_t>(next);
+    ++next;
+    PartyMapStore(PartyManager(), nullptr, key, party);
+    return 1;
+}
+
+int CPlayerServer::OnResume() {
+    if (state_ != 4) return 0;
+    state_ = 1;
+    if (!flag70_) {
+        WorldServer()->Redeploy(reinterpret_cast<WorldPlayer*>(Owner()), nullptr, 1);
+        flag70_ = 1;
+    }
+    return 1;
+}
+
+int CPlayerServer::OnWalk() { return MoveUnits(&PlayerMode::CommandWalk); }
+int CPlayerServer::OnGoTo() { return MoveUnits(&PlayerMode::CommandGoTo); }
+
+int CPlayerServer::OnAttack() {
+    CMemoryStream& in = ReceivedMessages();
+    UnitArray units{reinterpret_cast<void*>(kUnitArrayVtable), nullptr, 0, 0, 0};
+    ReadUnits(in, &units);
+    int unknown = 0, how = 0, objectId = 0;
+    in.Read(&unknown, 4);
+    in.Read(&how, 4);
+    in.Read(&objectId, 4);
+    if (CEngineObject* object = WorldServer()->FindObject(static_cast<unsigned>(objectId))) {
+        for (int i = 0; i < units.size; ++i) {
+            AIBrain* brain = ControllerOf(units[i])->Brain();
+            if (AIMode* mode = brain->FindPlayerMode())
+                static_cast<PlayerMode*>(mode)->CommandAttack(brain, object, how, unknown != 0);
+        }
+    }
+    FreeArray(&units, kUnitArrayVtable);
+    return 1;
+}
+
+int CPlayerServer::OnPartyUpdate() {
+    LocalStream block;
+    CMemoryStream& in = ReceivedMessages();
+    in.ReadSized(block.Get());
+    block.Get()->CMemoryStream::Seek(0);
+    if (in.ok_) Owner()->Party()->LoadParty(block.Get(), 0);
+    return 1;
+}
+
+EI_REPLACE_METHOD(0x0066FAA0, CPlayerServer::OnRefreshParty);
+EI_REPLACE_METHOD(0x00670C20, CPlayerServer::OnTakeExit);
+EI_REPLACE_METHOD(0x00670DA0, CPlayerServer::OnJoined);
+EI_REPLACE_METHOD(0x00670E00, CPlayerServer::OnLeaveToZone);
+EI_REPLACE_METHOD(0x00670EB0, CPlayerServer::OnBriefingDone);
+EI_REPLACE_METHOD(0x00670F50, CPlayerServer::OnNewParty);
+EI_REPLACE_METHOD(0x00671060, CPlayerServer::OnResume);
+EI_REPLACE_METHOD(0x0066FFF0, CPlayerServer::OnWalk);
+EI_REPLACE_METHOD(0x0066FBD0, CPlayerServer::OnGoTo);
+EI_REPLACE_METHOD(0x00670190, CPlayerServer::OnAttack);
+EI_REPLACE_METHOD(0x00670B60, CPlayerServer::OnPartyUpdate);
+
+// --- A-H14: party resends, message 0x19 ------------------------------------------------------------
+
+namespace {
+constexpr std::uint8_t kMessagePartyUpdate = 0x83;
+constexpr std::uint8_t kMessage19 = 0x19;
+const char* const kResendingParty = "Resending party of player ";   // 00794F34
+void* GameCout() { return reinterpret_cast<void*>(std::uintptr_t(0x007C56B0)); }
+void* FlushManipulator() { return reinterpret_cast<void*>(std::uintptr_t(0x00435000)); }
+} // namespace
+
+void CPlayerServer::SendPartyUpdate() {
+    LocalStream block;
+    Owner()->Party()->SaveParty(block.Get(), 0);
+    std::uint8_t type = kMessagePartyUpdate;
+    out_.Write(&type, 1);
+    out_.WriteSized(block.Get());
+}
+EI_REPLACE_METHOD(0x0066F0C0, CPlayerServer::SendPartyUpdate);
+
+void CPlayerServer::ResendParty() {
+    if (state_ != 1 || !flag70_) return;
+    CPlayer* player = Owner();
+    void* log = OstreamPutString(GameCout(), nullptr, kResendingParty);
+    log = OstreamPutLongOriginal(log, nullptr, player->playerId_);
+    log = OstreamPutChar(log, nullptr, '\n');
+    OstreamManipulate(log, nullptr, FlushManipulator());
+    auto* worldPlayer = reinterpret_cast<WorldPlayer*>(player);
+    WorldServer()->SyncPartyRecords(worldPlayer);
+    SendParty();
+    WorldAfterPartyCopyOriginal(WorldServer(), nullptr, worldPlayer);
+}
+EI_REPLACE_METHOD(0x0066F450, CPlayerServer::ResendParty);
+
+void CPlayerServer::SendPair19(std::uint8_t a, std::uint32_t b) {
+    std::uint8_t type = kMessage19;
+    out_.Write(&type, 1);
+    out_.Write(&a, 1);
+    out_.Write(&b, 4);
+}
+EI_REPLACE_METHOD(0x0066F840, CPlayerServer::SendPair19);

@@ -2949,14 +2949,30 @@ address,name,library,signature,notes
 00652760,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,,"inventory sweep: n*sizeof(T) back to the node-pool free list, operator delete above 128 bytes; loose-family member of 00406590 (reviewed)"
 006527A0,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00428C50 (reviewed)"
 00652E10,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408BE0 (data addresses masked; every call goes to the same callee or to library code)
+00653100,"compiler-generated copy constructor (0x14-byte record: four dwords and a CString)",compiler,,"A-H14 review of the save screen 00653000-00658000: four dwords copied, the CString copy-constructed; no game logic"
 00653130,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 00653150,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408C20 (data addresses masked; every call goes to the same callee or to library code)
 006531A0,stlp::uninitialized_copy<T*>,STLport,,A-H11 sweep: same instructions as 0042B6C0 (data addresses masked; every call goes to the same callee or to library code)
 006531C0,stlp::uninitialized_fill_n<T*>,STLport,,A-H11 sweep: same instructions as 0042B6E0 (data addresses masked; every call goes to the same callee or to library code)
+006531E0,"stlp::uninitialized_copy (0x18-byte record with a vector and two CStrings)",STLport,,"A-H14 review of the save screen 00653000-00658000: template instantiation, copy-constructs a range"
 00653370,stlp::_STLP_alloc_proxy<T>::_STLP_alloc_proxy,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+00653390,"stlp::uninitialized_fill_n (0x18-byte record with a vector and two CStrings)",STLport,,"A-H14 review of the save screen 00653000-00658000: template instantiation, copy-constructs n copies"
+00653520,"stlp::uninitialized_copy (0x14-byte record with a CString)",STLport,,"A-H14 review of the save screen 00653000-00658000: template instantiation, copy-constructs a range"
+006535D0,"stlp::uninitialized_fill_n (0x14-byte record with a CString)",STLport,,"A-H14 review of the save screen 00653000-00658000: template instantiation, copy-constructs n copies"
 00653680,stlp::uninitialized_copy<T*>,STLport,,A-H11 sweep: same instructions as 0042B6C0 (data addresses masked; every call goes to the same callee or to library code)
 006536A0,stlp::allocator<T>::allocate,STLport,,inventory sweep: n*sizeof(T) from the node pool or operator new above 128 bytes; loose-family member of 004B0E20 (reviewed)
 00653820,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408C20 (data addresses masked; every call goes to the same callee or to library code)
+006538E0,"SaveEntry::operator= (compiler-generated)",compiler,,"A-H14 review of the save screen 00653000-00658000: CStrings assigned, dwords copied, CStringArray::Copy twice, the broken flag; returns this"
+00656640,"SaveEntry copy constructor (compiler-generated)",compiler,,"A-H14 review of the save screen 00653000-00658000: empty CStrings and CStringArrays, then the members assigned as in 006538E0"
+00656720,"SaveEntry destructor (compiler-generated)",compiler,,"A-H14 review of the save screen 00653000-00658000: the two CStringArrays and four CStrings destroyed in reverse order"
+006578F0,"stlp::vector<SaveEntry>::erase(first, last)",STLport,,"A-H14 review of the save screen 00653000-00658000: template instantiation (assign down, destroy the tail)"
+006579C0,"stlp::vector<SaveEntry>::_M_insert_overflow",STLport,,"A-H14 review of the save screen 00653000-00658000: template instantiation"
+00657C60,"stlp::_Construct<SaveEntry> (placement copy construction)",STLport,,"A-H14 review of the save screen 00653000-00658000: null test, then the copy constructor inlined"
+00657D50,"stlp::copy_backward<SaveEntry*>",STLport,,"A-H14 review of the save screen 00653000-00658000: template instantiation (SaveEntry::operator= inlined)"
+00657DF0,"stlp::__introsort_loop<SaveEntry*>",STLport,,"A-H14 review of the save screen 00653000-00658000: template instantiation of the list sort"
+00657F10,"stlp::__final_insertion_sort<SaveEntry*>",STLport,,"A-H14 review of the save screen 00653000-00658000: template instantiation of the list sort"
+00657F90,"stlp::__median<SaveEntry> (the introsort pivot)",STLport,,"A-H14 review of the save screen 00653000-00658000: template instantiation; median of three with the comparison 00658020"
+00658020,"the list sort's comparison object (saved time < value)",compiler,,"A-H14 review of the save screen 00653000-00658000: one compare of SaveEntry +0x08; the sort predicate"
 0065A500,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 5 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 0065A840,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),A-H11 sweep: same instructions as 00411530 (data addresses masked; every call goes to the same callee or to library code)
 0065A850,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),A-H11 sweep: same instructions as 00411530 (data addresses masked; every call goes to the same callee or to library code)

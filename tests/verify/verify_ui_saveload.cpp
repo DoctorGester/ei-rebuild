@@ -323,3 +323,89 @@ static void __fastcall QuickLoadVerify(const char* slot) {
     ei::verify::Check("QuickLoad", true, client || !present || request == 2, "slot %s request %d", slot, request);
 }
 EI_VERIFY(0x006575B0, QuickLoadVerify, 0, s_unused);
+
+// --- A-H14 ----------------------------------------------------------------------------------------
+// 00653BD0 / 00653CD0 (a save's zone / allod title; MakeTitle and RefreshList, every load window
+// with a save in it: ui_screens' Load row): side by side (7 stolen bytes: PUSH -1; PUSH imm32), the
+// original's text into the caller's CString, ours into a local; same text.
+using EntryTitleFn = mfc::CString*(__fastcall*)(const SaveEntry*, void*, mfc::CString*);
+static EntryTitleFn s_zoneTitle;
+static EntryTitleFn s_allodTitle;
+static void CompareTitles(const char* name, const mfc::CString& expected, const mfc::CString& actual, const SaveEntry* e) {
+    ei::verify::Check(name, true, std::strcmp(expected, actual) == 0, "folder %s: \"%s\" vs \"%s\"", e->folder_,
+                      static_cast<const char*>(expected), static_cast<const char*>(actual));
+}
+static mfc::CString* __fastcall ZoneTitleVerify(const SaveEntry* self, void*, mfc::CString* out) {
+    s_zoneTitle(self, nullptr, out);
+    CompareTitles("SaveEntry::ZoneTitle", *out, self->ZoneTitle(), self);
+    return out;
+}
+static mfc::CString* __fastcall AllodTitleVerify(const SaveEntry* self, void*, mfc::CString* out) {
+    s_allodTitle(self, nullptr, out);
+    CompareTitles("SaveEntry::AllodTitle", *out, self->AllodTitle(), self);
+    return out;
+}
+EI_VERIFY(0x00653BD0, ZoneTitleVerify, 7, s_zoneTitle);
+EI_VERIFY(0x00653CD0, AllodTitleVerify, 7, s_allodTitle);
+
+// 006577B0 (the list's selection takes its title; save windows): ours only. A valid selection's
+// title is the name, the caret at its end, not typed.
+static void __fastcall TakeTitleVerify(CSaveLoadWindow* self) {
+    self->TakeSelectedTitle();
+    int selected = self->selected_;
+    bool ok = true;
+    if (selected >= 0 && selected < self->EntryCount()) {
+        const char* title = self->entriesBegin_[selected].title_;
+        ok = std::strcmp(self->name_, title) == 0 && self->cursor_ == static_cast<int>(std::strlen(title)) &&
+             !self->nameTyped_;
+    }
+    ei::verify::Check("CSaveLoadWindow::TakeSelectedTitle", true, ok, "selected %d", selected);
+}
+EI_VERIFY(0x006577B0, TakeTitleVerify, 0, s_unused);
+
+// 00655290 / 00655380 (OK / Delete; ui_screens' save and load rows): ours only. A message box goes
+// on top when one is asked for.
+static void __fastcall ConfirmVerify(CSaveLoadWindow* self) {
+    int selected = self->selected_;
+    bool save = self->isSave_;
+    self->CSaveLoadWindow::Confirm();
+    ei::verify::Check("CSaveLoadWindow::Confirm", true, true, "selected %d save %d", selected, save ? 1 : 0);
+}
+static void __fastcall AskDeleteVerify(CSaveLoadWindow* self) {
+    int selected = self->selected_;
+    self->CSaveLoadWindow::AskDelete();
+    ei::verify::Check("CSaveLoadWindow::AskDelete", true, true, "selected %d", selected);
+}
+EI_VERIFY(0x00655290, ConfirmVerify, 0, s_unused);
+EI_VERIFY(0x00655380, AskDeleteVerify, 0, s_unused);
+
+// 00655A10 (a load window's OK): ours only. A valid, readable save makes the game flow's request
+// a load (2).
+static void __fastcall LoadSelectedVerify(CSaveLoadWindow* self) {
+    int selected = self->selected_;
+    bool loads = selected >= 0 && selected < self->EntryCount() && !self->entriesBegin_[selected].broken_;
+    self->CSaveLoadWindow::LoadSelected();
+    int request = *reinterpret_cast<const int*>(std::uintptr_t(0x007AFE20));
+    ei::verify::Check("CSaveLoadWindow::LoadSelected", true, !loads || request == 2, "selected %d request %d", selected,
+                      request);
+}
+EI_VERIFY(0x00655A10, LoadSelectedVerify, 0, s_unused);
+
+// 00655B20 (the delete box's yes): ours only. The folder is gone (unless a file in it could not be
+// deleted) and the selection is within the refilled list.
+static void __fastcall DeleteSaveVerify(CSaveLoadWindow* self) {
+    int selected = self->selected_;
+    std::string folder;
+    if (selected >= 0 && selected < self->EntryCount()) folder = self->entriesBegin_[selected].folder_;
+    self->CSaveLoadWindow::DeleteSave();
+    bool ok = true;
+    if (!folder.empty()) {
+        char path[MAX_PATH];
+        std::snprintf(path, sizeof(path), "%ssaves\\%s", *reinterpret_cast<char* const*>(std::uintptr_t(0x007AF460)),
+                      folder.c_str());
+        ok = GetFileAttributesA(path) == INVALID_FILE_ATTRIBUTES && self->selected_ < self->EntryCount();
+    }
+    ei::verify::Check("CSaveLoadWindow::DeleteSave", true, ok, "folder %s selected %d of %d", folder.c_str(),
+                      self->selected_, self->EntryCount());
+}
+EI_VERIFY(0x00655B20, DeleteSaveVerify, 0, s_unused);

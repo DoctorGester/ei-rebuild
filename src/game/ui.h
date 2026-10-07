@@ -1493,6 +1493,11 @@ struct SaveEntry {
     // "save_auto_enter" / "save_auto_exit" for the folders "saveq", "savea" / "saveb", otherwise
     // the zone's name (00653BD0).
     void MakeTitle(int unused);
+    // A-H14 (ui_saveload.cpp). 00653BD0 (RET 4): the zone's name, text "zone" + zone_ (its first
+    // line), else the text "save_camp". 00653CD0 (RET 4, from RefreshList 006567A0): the allod's
+    // name, text "allod" + map_, else "Unknown".
+    mfc::CString ZoneTitle() const;
+    mfc::CString AllodTitle() const;
 
     char* title_;                    // +0x00 CString shown in the list
     char* folder_;                   // +0x04 CString folder name under saves\ ("saveq" quick save,
@@ -1532,10 +1537,26 @@ public:
     void CloseDialog();                                // 00654430 (slot 26)
     void OnDialogResult(int result);                   // 00654450 (slot 27)
 
+    // A-H14 (ui_saveload.cpp).
+    // 00655290. OK: nothing without a selection; a save window plays "ok" and saves into the new
+    // save (row 0) or asks "overwrite" (message box 0x20000); a load window loads (LoadSelected).
+    void Confirm();
+    // 00655380. Delete: with a selection that is not a save window's new save, plays "delete" and
+    // asks "delete" (message box 0x10000).
+    void AskDelete();
+    // 00655B20. Deletes every file of the selected save's folder and the folder, refills the list,
+    // keeps the selection in it, takes its title, redraws the list and the picture.
+    void DeleteSave();
+    // 00655A10. A selected save that is not broken: "notify_loading" shown, 00578920(1), "ok"
+    // played, the game flow asked to load its folder (flag 0).
+    void LoadSelected();
+    // Through the original addresses (the verify build's wrappers run there).
+    void CallConfirm();
+    void CallAskDelete();
+    void CallDeleteSave();
+    void CallLoadSelected();
+
     // Not rewritten.
-    void Confirm();          // 00655290 OK: asks before overwriting, or loads
-    void AskDelete();        // 00655380
-    void DeleteSave();       // 00655B20 deletes the selected save's folder
     void RefreshList();      // 006567A0 (Rebirth-patched)
 
     // ui_saveload.cpp. The window's two picture textures (256x256, 5:6:5): objects_[1] shows the
@@ -1561,7 +1582,7 @@ public:
     void Build();
 
     int EntryCount() const { return static_cast<int>(entriesEnd_ - entriesBegin_); }
-    // The selected save's title becomes the name being edited.
+    // 006577B0 (ui_menus.cpp). The selected save's title becomes the name being edited.
     void TakeSelectedTitle();
 
     // ui_menu_keys.cpp.

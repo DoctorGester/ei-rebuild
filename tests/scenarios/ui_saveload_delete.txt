@@ -1,0 +1,44 @@
+# The save / load window's Delete and a load from it (A-H14; docs/notes/items_spells.md, "Save
+# screen pieces"): after the new game's autosave (savea) a save into a new folder (save1, Confirm on
+# the new save's row), then in the Load window the first row is selected, Delete asks (AskDelete),
+# Enter answers yes (DeleteSave: the folder's files and the folder go, the list is refilled), the
+# remaining save is selected and OK loads it (Confirm -> LoadSelected). The rows' titles come from
+# the zone / allod texts (ZoneTitle, AllodTitle). Rectangles from menus.reg; rows are regions 3...
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitline 15 Saved savea
+waitfor 15 IsGreater(HP(GetLeader()),0)
+wait 1000
+
+# Escape menu, Save: OK (region 0) on the new save's row saves into save1.
+key esc
+wait 1000
+click 395 120
+wait 1500
+clickregion 0
+waitline 15 Saved save1
+wait 1500
+
+# Escape menu, Load: the first row, Delete, Enter on the box.
+key esc
+wait 1000
+click 395 187
+wait 1500
+clickregion 3
+wait 500
+clickregion 2
+wait 1000
+key enter
+wait 1500
+# The remaining save: select it and load it.
+clickregion 3
+wait 500
+clickregion 0
+wait 8000
+waitfor 20 IsGreater(HP(GetLeader()),0)
+check IsAlive(GetLeader())
+report
+quit

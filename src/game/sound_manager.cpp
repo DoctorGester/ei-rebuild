@@ -939,6 +939,78 @@ void CSoundManager::StopStream(int mode) {
 }
 EI_REPLACE_METHOD(0x006BB240, CSoundManager::StopStream);
 
+// --- Stopping everything, wave lengths (A-H14) -------------------------------------------------------
+
+void DeferredMap::Clear() {
+    std::uint32_t n = static_cast<std::uint32_t>(bucketsEnd - buckets);
+    for (std::uint32_t i = 0; i < n; ++i) {
+        for (DeferredNode* node = buckets[i]; node != nullptr;) {
+            DeferredNode* next = node->next;
+            stlp::deallocate(node, sizeof(DeferredNode));
+            node = next;
+        }
+        buckets[i] = nullptr;
+    }
+    count = 0;
+}
+
+// 006B71C0. Loading a game, leaving a zone, the main menu: every voice and deferred sound goes.
+void CSoundManager::StopAll(bool stopStream) {
+    if (slots != nullptr)
+        for (int i = 0; i < 15; ++i)
+            if (slots[i].playing != 0) EndSlot(&slots[i]);
+    nextHandle = 0;
+    DeferredIter it;
+    DeferredBegin(&deferred, nullptr, &it);
+    while (it.node != nullptr) {
+        DeferredSound* rec = it.node->value;
+        if (rec != nullptr) {
+            FreeStringStorage(rec);
+            gamecrt::operator_delete(rec);
+        }
+        DeferredNode* next = it.node->next;
+        if (next == nullptr) next = DeferredNextBucket(&it);
+        it.node = next;
+    }
+    deferred.Clear();
+    if (stopStream) StopStream(4);
+}
+EI_REPLACE_METHOD(0x006B71C0, CSoundManager::StopAll);
+
+namespace {
+// AILSOUNDINFO, filled by AIL_WAV_info.
+struct WavInfo {
+    std::int32_t format;        // 0x11: IMA ADPCM
+    const void* data;
+    std::uint32_t dataLength;
+    std::uint32_t rate;
+    std::int32_t bits;
+    std::int32_t channels;
+    std::uint32_t samples;
+    std::uint32_t blockSize;
+    const void* initial;
+};
+static_assert(sizeof(WavInfo) == 0x24);
+using WavInfoFn = void(__stdcall*)(const void*, WavInfo*);
+WavInfoFn AilWavInfo() { return *reinterpret_cast<WavInfoFn*>(0x0073B754); }
+constexpr std::int32_t kImaAdpcm = 0x11;
+} // namespace
+
+double CSoundManager::WaveLength(const void* data, int /*size*/) {
+    WavInfo info;
+    AilWavInfo()(data, &info);
+    std::uint32_t samples;
+    if (info.format == kImaAdpcm) {
+        samples = info.samples;
+    } else {
+        std::uint32_t bitsPerFrame = static_cast<std::uint32_t>(info.bits * info.channels);
+        if (bitsPerFrame == 0) return 0.0;
+        samples = (info.dataLength << 3) / bitsPerFrame;
+    }
+    return static_cast<double>(static_cast<std::int32_t>(samples)) / static_cast<std::int32_t>(info.rate);
+}
+EI_REPLACE_METHOD(0x006B96E0, CSoundManager::WaveLength);
+
 // --- The volume envelope ----------------------------------------------------------------------------
 
 // 006B5E80. Sets the time at which a fade is cancelled; 0 cancels it now.
@@ -1156,11 +1228,8 @@ __declspec(naked) void* __fastcall PairConstruct(void*, void*, const void*, Wave
 __declspec(naked) WaveNode* __fastcall ListNewNode(WaveList*, void*, WaveNode*, WaveNode*) EI_ORIGINAL(0x006BD4F0)
 __declspec(naked) void __fastcall RecordCopy(WaveRecord*, void*, const WaveRecord*) EI_ORIGINAL(0x006BD1B0)
 __declspec(naked) void __fastcall ListFreeNode(WaveList*, void*, WaveNode*) EI_ORIGINAL(0x006BD560)
-// 006B96E0 [thiscall]: a wave's length in seconds (AIL_WAV_info), in ST0.
-__declspec(naked) double __fastcall WaveLength(CSoundManager*, void*, const void*, int) EI_ORIGINAL(0x006B96E0)
 
 // Miles.
-using WavInfoFn = void(__stdcall*)(const void*, void*);
 using NamedFileFn = int(__stdcall*)(void*, const char*, const void*, int, int);
 using SampleFileFn = int(__stdcall*)(void*, const void*, int);
 using MemAllocFn = void*(__stdcall*)(int);
@@ -1175,15 +1244,6 @@ void* DecompressCallback() { return reinterpret_cast<void*>(0x006B89B0); }
 const char* Mp3Suffix() { return reinterpret_cast<const char*>(0x007967CC); }   // ".mp3"
 constexpr std::uint32_t kCacheBudget = 0x800000;   // bytes kept unless a wave is still in use
 constexpr std::uint32_t kCacheKeep = 60000;        // ms a wave stays cached after its last use
-
-// An archive's file load (slot 5) and free (slot 6).
-void* SourceLoad(void* source, const char* name, int* size) {
-    return reinterpret_cast<void*(__fastcall*)(void*, void*, const char*, int*)>((*static_cast<void***>(source))[5])(
-        source, nullptr, name, size);
-}
-void SourceFree(void* source, void* data) {
-    reinterpret_cast<void(__fastcall*)(void*, void*, void*)>((*static_cast<void***>(source))[6])(source, nullptr, data);
-}
 
 void Unlink(WaveList& list, WaveNode* node) {
     if (node == list.head) list.head = node->next;
@@ -1234,7 +1294,7 @@ void UseCached(CSoundManager* m, SoundSlot* slot, const std::uint32_t* key, cons
     record.uses = record.uses + 1;
     PushFront(m->cacheList, &record);
     CacheSet(m, key, m->cacheList.head);
-    slot->length = static_cast<float>(WaveLength(m, nullptr, record.data, record.size));
+    slot->length = static_cast<float>(m->WaveLength(record.data, record.size));
     AilSetNamedSampleFile()(slot->sample, name, record.data, record.size, 0);
     StlStringDestroy(record.name);
 }
@@ -1278,26 +1338,27 @@ int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, 
     if (it.node != nullptr) {
         if (compressed == 0) UseCached(this, slot, key, name, it);
     } else {
-        void* source = nullptr;
+        CMappedResource* source = nullptr;
         void* data = nullptr;
-        int size = 0;
-        for (WaveSourceNode* n = waveSources;;) {
+        std::uint32_t fileSize = 0;
+        for (auto* n = waveSources.head;;) {
             if (n == nullptr) {
                 StringRepDestroy(key);
                 return 0;
             }
-            WaveSourceNode* current = n;
+            auto* current = n;
             n = n->next;
-            source = current->source;
-            data = SourceLoad(source, name, &size);
+            source = current->data;
+            data = source->GetFile(name, &fileSize);
             if (data != nullptr) break;
         }
+        int size = static_cast<int>(fileSize);
         std::uint32_t now = gameapi::GetTickCount();
         if (compressed != 0) {
             void* decoded = nullptr;
             int decodedSize = 0;
             int ok = AilDecompressAsi()(data, size, Mp3Suffix(), &decoded, &decodedSize, DecompressCallback());
-            SourceFree(source, data);
+            source->CloseFile(data);
             if (ok == 0) {
                 StringRepDestroy(key);
                 return 0;
@@ -1318,7 +1379,7 @@ int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, 
             void* memory = AilMemAllocLock()(size);
             record.data = memory;
             std::memcpy(memory, data, static_cast<std::size_t>(size));
-            SourceFree(source, data);
+            source->CloseFile(data);
             PushFront(cacheList, &record);
             CacheSet(this, key, cacheList.head);
             AilSetNamedSampleFile()(slot->sample, name, memory, size, 0);
@@ -1328,7 +1389,7 @@ int CSoundManager::LoadSample(SoundSlot* slot, int /*index*/, const char* name, 
             CacheSet(this, key, cacheList.tail);
             AilSetSampleFile()(slot->sample, data, size);
         }
-        slot->length = static_cast<float>(WaveLength(this, nullptr, record.data, record.size));
+        slot->length = static_cast<float>(WaveLength(record.data, record.size));
         StlStringDestroy(record.name);
     }
     StringAssignTagged(slot->name, nullptr, reinterpret_cast<const char*>(key[0]), reinterpret_cast<const char*>(key[1]), 0);
@@ -1342,5 +1403,4 @@ EI_REPLACE_METHOD(0x006B89F0, CSoundManager::LoadSample);
 
 // --- Forwarders -------------------------------------------------------------------------------------
 
-__declspec(naked) mfc::CString CSoundManager::CurrentStreamName() EI_ORIGINAL(0x006BAEA0)
 __declspec(naked) void CSoundManager::StreamNotify(int) EI_ORIGINAL(0x006BBAC0)

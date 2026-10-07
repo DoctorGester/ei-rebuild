@@ -13,6 +13,7 @@ class CItem;
 class CUnit;
 class CWorldServer;
 struct ObjectIdMap;
+struct WorldPlayer;
 
 // 0047B670 (plain RET): an object id map with its highest id (the world's, the player's known objects): every
 // object released (slot 4) until a null one, the nodes freed, count and highest id 0.
@@ -106,3 +107,7 @@ __declspec(naked) inline const char* __fastcall GameExitZoneOriginal(void* /*glu
 // D3b. 00573080: CArray<ZoneExit>::SetSize(size, growBy) (RET 8, no result; -1 keeps growBy, new records constructed).
 __declspec(naked) inline void __fastcall ZoneExitsSetSizeOriginal(void* /*exits*/, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x00573080)
+// 00591070 (RET 4; A-H14, shared by world_game.cpp and player_server_handlers.cpp): CWorldServer's
+// step after a player's party records were synced and the party sent (the world in ECX).
+__declspec(naked) inline void __fastcall WorldAfterPartyCopyOriginal(void* /*world*/, void*, WorldPlayer* /*player*/)
+    EI_ORIGINAL(0x00591070)

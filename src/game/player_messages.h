@@ -137,6 +137,42 @@ public:
     // brain's Player mode then runs CommandUse(object, kind, value, flag != 0). Returns 1.
     int OnUseOrder();
 
+    // player_server_handlers.cpp (A-H14): the rest of the client's messages. Each returns 1, or 0
+    // to refuse (the dispatcher's fatal error).
+    // 0066F310 (RET 8). The player leaves for zone `zone`, entrance `entrance` (joined players,
+    // state 1, only): in campaign modes 1 and 3 a dead or missing leader runs slot 20 (the
+    // leader's death) and, outside a network game, nothing more; the party is collected when
+    // deployed (flag70_); state 3; the party's zone and entrance set; single player hands the
+    // party to the party manager (004A8890), multiplayer sends it (a lone hero's record gets id
+    // 999999950); then message 0x08 (the zone with its zero, the entrance) and a flush.
+    void LeaveToZone(const char* zone, int entrance);
+    int OnRefreshParty();      // 0066FAA0, 0x02: ForgetKnownObjects, SendParty
+    int OnTakeExit();          // 00670C20, 0x03: exit index -> GetZoneExit -> LeaveToZone (0 when none)
+    int OnJoined();            // 00670DA0, 0x05: state 2 -> 1, the session kind, Redeploy with the placements, +0x130 bit 4
+    int OnLeaveToZone();       // 00670E00, 0x06: zone text, entrance -> LeaveToZone
+    int OnBriefingDone();      // 00670EB0, 0x07: briefing name -> CompleteBriefing(player id)
+    // 00670F50, 0x08: a party (LoadParty with variables); one of a single record gets a fresh party
+    // id (PartyNextId into the player's +0xFC), its record the next free object id from 00794E3C,
+    // and is stored in the party manager's map. 0 for any other record count.
+    int OnNewParty();
+    int OnResume();            // 00671060, 0x09: state 4 -> 1; Redeploy (no placements) unless deployed
+    // 0066FFF0 / 0066FBD0, 0x30 / 0x3A: unit ids (missing or blocked ones left out), a run flag and
+    // a point; each unit's Player mode walks / goes (CommandWalk / CommandGoTo) to the point plus
+    // its formation offset (FormationOffsets).
+    int OnWalk();
+    int OnGoTo();
+    // 00670190, 0x31: unit ids, two flags, an object id; each unit's Player mode attacks it.
+    int OnAttack();
+    int OnPartyUpdate();       // 00670B60, 0x50: a sized block loaded into the party (no variables)
+    // 0066F0C0. Message 0x83: the party saved without its variables as a sized block.
+    void SendPartyUpdate();
+    // 0066F450 (from the player state tick 0058B750). A joined, deployed player's party is sent
+    // again: "Resending party of player <id>" to the log, the records synced (00590C70), SendParty,
+    // then 00591070.
+    void ResendParty();
+    // 0066F840 (RET 8; the briefing screen). Message 0x19: a byte and a dword.
+    void SendPair19(std::uint8_t a, std::uint32_t b);
+
     CPlayer* Owner() const { return reinterpret_cast<CPlayer*>(player_); }
 
     void* vtable_;
@@ -184,6 +220,10 @@ static_assert(offsetof(CPlayerServer, placements_) == 0x74);
 
 // 00670670 (__fastcall). |a - b| squared, unrounded in ST0 (the use order's nearest-unit test).
 double __fastcall UseOrderDistanceSquared(const Vector3* a, const Vector3* b);
+// 0066FD70 (__fastcall; A-H14). The walk orders' formation: one unit gets (0, 0, 0); several get
+// the unit vector (x, y, 0) from the units' 2D centroid to each (unnormalised when it is zero).
+// `offsets` (CArray<Vector3>, vtable 0073C120) is sized to the units; nothing without units.
+void __fastcall FormationOffsets(const mfc::CArray<CUnit*>* units, mfc::CArray<Vector3>* offsets);
 
 // A world player's connection to its client (CPlayer::connection_): CPlayerServer (vtable 00743280)
 // or CPlayerClient (00743180). Neither class derives from this declaration (their slot bodies are

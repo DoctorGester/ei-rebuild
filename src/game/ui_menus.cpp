@@ -72,9 +72,6 @@ __declspec(naked) void __fastcall UiContainerMouseDown(void*, void*, int, int, i
 __declspec(naked) void __fastcall UiContainerDoubleClick(void*, void*, int, int, int) EI_ORIGINAL(0x00601570)
 __declspec(naked) bool UiSpinValue::GetValue(int*) EI_ORIGINAL(0x0065BEB0)
 __declspec(naked) void UiSpinValue::SetValue(int) EI_ORIGINAL(0x0065BEE0)
-__declspec(naked) void CSaveLoadWindow::Confirm() EI_ORIGINAL(0x00655290)
-__declspec(naked) void CSaveLoadWindow::AskDelete() EI_ORIGINAL(0x00655380)
-__declspec(naked) void CSaveLoadWindow::DeleteSave() EI_ORIGINAL(0x00655B20)
 __declspec(naked) void CSaveLoadWindow::RefreshList() EI_ORIGINAL(0x006567A0)
 __declspec(naked) void COptionsWindow::RefreshRows() EI_ORIGINAL(0x00651350)
 __declspec(naked) void COptionsWindow::ShowGroup(int) EI_ORIGINAL(0x00651D70)
@@ -90,20 +87,21 @@ void CSaveLoadWindow::TakeSelectedTitle() {
     *reinterpret_cast<mfc::CString*>(&name_) = *reinterpret_cast<mfc::CString*>(&entriesBegin_[selected].title_);
     cursor_ = reinterpret_cast<const int*>(name_)[-2];   // CString length
 }
+EI_REPLACE_METHOD(0x006577B0, CSaveLoadWindow::TakeSelectedTitle);
 
 void CSaveLoadWindow::OnMouseDown(int buttons, int x, int y) {
     if (sliding_) return;
     int region = RegionAt(x, y);
     switch (region) {
     case 0:
-        Confirm();
+        CallConfirm();
         break;
     case 1:
         interface_->PlaySound(kSoundCancel, 0);
         interface_->SetPendingValue(kCloseSaveLoad);
         break;
     case 2:
-        AskDelete();
+        CallAskDelete();
         break;
     default:
         if (region >= 3) {
@@ -133,7 +131,7 @@ void CSaveLoadWindow::OnDoubleClick(int buttons, int x, int y) {
                 selected_ = static_cast<int>(index);
                 TakeSelectedTitle();
             }
-            Confirm();
+            CallConfirm();
         }
     }
     UiContainerDoubleClick(InputSide(), nullptr, buttons, x, y);
@@ -180,7 +178,7 @@ void CSaveLoadWindow::CloseDialog() {
 
 void CSaveLoadWindow::OnDialogResult(int result) {
     if (result == kResultDelete)
-        DeleteSave();
+        CallDeleteSave();
     else if (result == kResultOverwrite)
         CallSaveGame();
     else if (result == kResultLoad)

@@ -20,6 +20,7 @@
 #include "console.h"
 #include "dx_surface.h"
 #include "item_db_text.h"
+#include "text_reader.h"
 #include "net_link.h"
 #include "object_tables.h"
 #include "world.h"
@@ -254,6 +255,10 @@ void* EntryVector(CSaveLoadWindow* w) { return &w->entriesBegin_; }
 __declspec(naked) void CSaveLoadWindow::CallSaveGame() EI_ORIGINAL(0x00655550)
 __declspec(naked) void CSaveLoadWindow::CallShowPicture() EI_ORIGINAL(0x00656E10)
 __declspec(naked) void CSaveLoadWindow::CallFillEntries() EI_ORIGINAL(0x00655D40)
+__declspec(naked) void CSaveLoadWindow::CallConfirm() EI_ORIGINAL(0x00655290)
+__declspec(naked) void CSaveLoadWindow::CallAskDelete() EI_ORIGINAL(0x00655380)
+__declspec(naked) void CSaveLoadWindow::CallDeleteSave() EI_ORIGINAL(0x00655B20)
+__declspec(naked) void CSaveLoadWindow::CallLoadSelected() EI_ORIGINAL(0x00655A10)
 
 // --- Game-owned memory ---------------------------------------------------------------------------
 
@@ -658,3 +663,104 @@ void __fastcall QuickLoad(const char* slot) {
     Flow()->RequestLoad(slot, 0);
 }
 EI_REPLACE(0x006575B0, QuickLoad);
+
+// --- Entry titles, OK / Delete / load / delete (A-H14) ----------------------------------------------
+
+namespace {
+const mfc::CString& View(char* const& field) { return *reinterpret_cast<const mfc::CString*>(&field); }
+
+// The first line of the text `prefix` + `suffix`, or empty when there is none.
+mfc::CString FirstLineOf(const char* prefix, const mfc::CString& suffix) {
+    mfc::CString line;
+    CTextManager* texts = Texts();
+    BOOL found = TextOpen(texts, nullptr, mfc::CString(prefix) + suffix);
+    if (found) TextReadLine(texts, nullptr, &line, 1);
+    return line;
+}
+
+constexpr const char* kSoundOk = "buttons\\messbox\\ok.wav";            // 00793A88
+constexpr const char* kSoundDelete = "buttons\\save\\delete.wav";       // 00794994
+constexpr int kMessageBoxBytes = 0x180;
+constexpr int kAskOverwrite = 0x20000, kAskDelete = 0x10000;            // the boxes' results (high word)
+constexpr std::uintptr_t kFolderFormat = std::uintptr_t(0x00794A08);    // "%ssaves\\%s"
+constexpr const char* kEveryFile = "\\*.*";                             // 0078B054
+
+// A message box `name` / `text` on top of the interface (a failed allocation pushes null, as the
+// original does).
+void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
+    void* memory = gamecrt::operator_new(kMessageBoxBytes);
+    CUiWindow* box = memory != nullptr ? ConstructMessageBox(memory, nullptr, ui, name, text, result, 3, 1) : nullptr;
+    ActivateWindow(ui, nullptr, box, 1, 1);
+}
+} // namespace
+
+mfc::CString SaveEntry::ZoneTitle() const {
+    mfc::CString title = FirstLineOf("zone", View(zone_));
+    if (title.GetLength() == 0) Texts()->GetString("save_camp", &title);
+    return title;
+}
+EI_REPLACE_METHOD(0x00653BD0, SaveEntry::ZoneTitle);
+
+mfc::CString SaveEntry::AllodTitle() const {
+    mfc::CString title = FirstLineOf("allod", View(map_));
+    if (title.GetLength() == 0) title = "Unknown";
+    return title;
+}
+EI_REPLACE_METHOD(0x00653CD0, SaveEntry::AllodTitle);
+
+void CSaveLoadWindow::Confirm() {
+    if (selected_ < 0) return;
+    if (!isSave_) {
+        CallLoadSelected();
+        return;
+    }
+    interface_->PlaySound(kSoundOk, 0);
+    if (selected_ == 0) {
+        CallSaveGame();
+        return;
+    }
+    Ask(interface_, "overwrite", "overwrite_msg", kAskOverwrite);
+}
+EI_REPLACE_METHOD(0x00655290, CSaveLoadWindow::Confirm);
+
+void CSaveLoadWindow::AskDelete() {
+    if (selected_ < 0 || (isSave_ && selected_ == 0)) return;
+    interface_->PlaySound(kSoundDelete, 0);
+    Ask(interface_, "delete", "delete_msg", kAskDelete);
+}
+EI_REPLACE_METHOD(0x00655380, CSaveLoadWindow::AskDelete);
+
+void CSaveLoadWindow::LoadSelected() {
+    int selected = selected_;
+    if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
+    if (entriesBegin_[selected].broken_) return;
+    mfc::CString notice;
+    Texts()->GetString(Text(kNotifyLoading), &notice);
+    ShowStatusText(kInterface, nullptr, notice);
+    MenuSetOriginal(1);
+    interface_->PlaySound(kSoundOk, 0);
+    Flow()->RequestLoad(entriesBegin_[selected_].folder_, 0);
+}
+EI_REPLACE_METHOD(0x00655A10, CSaveLoadWindow::LoadSelected);
+
+void CSaveLoadWindow::DeleteSave() {
+    int selected = selected_;
+    if (selected < 0 || static_cast<unsigned>(selected) >= static_cast<unsigned>(EntryCount())) return;
+    mfc::CString folder;
+    folder.Format(Text(kFolderFormat), GameFolder(), entriesBegin_[selected].folder_);
+    mfc::CFileFind find;
+    BOOL more = find.FindFile(folder + kEveryFile, 0);
+    while (more) {
+        more = Ops(find).Next();
+        gameapi::DeleteFileA(Ops(find).FilePath());
+    }
+    Ops(find).Close();
+    gameapi::RemoveDirectoryA(folder);
+    CallFillEntries();
+    int count = EntryCount();
+    if (static_cast<unsigned>(selected_) >= static_cast<unsigned>(count)) selected_ = count - 1;
+    TakeSelectedTitle();
+    RefreshList();
+    CallShowPicture();
+}
+EI_REPLACE_METHOD(0x00655B20, CSaveLoadWindow::DeleteSave);

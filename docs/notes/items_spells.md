@@ -453,9 +453,17 @@ null test.
 | 00655050 | CSaveLoadWindow::OnChar (input side, RET 0xC) | ours only: name grew at the caret, kept or restarted |
 | 006570E0 | QuickSave (`__fastcall` slot, DL frame step) | ours only: info.sav header and shot.sav read back; newgame's savea |
 | 006575B0 | QuickLoad (`__fastcall` slot) | ours only: the flow's request is 2 when the folder exists |
+| 00653BD0, 00653CD0 | SaveEntry::ZoneTitle / AllodTitle (RET 4: the texts' "zone" + zone / "allod" + map, else "save_camp" / "Unknown") | side by side (7 bytes) |
+| 006577B0 | CSaveLoadWindow::TakeSelectedTitle (ui_menus.cpp) | ours only: name = title, caret at its end |
+| 00655290, 00655380, 00655A10, 00655B20 | Confirm (OK), AskDelete, LoadSelected, DeleteSave | ours only: load request 2; deleted folder gone, selection in the list |
 
 Shared forwarders: 006EAF20 `_access` (gamecrt::access), 00578D00 (ServerFlagOriginal), 00458010 (FrameStepOriginal, originals_ui.h), 005F8340
-(InterfaceTextExtentOriginal). Not rewritten: 00653BD0 (the zone title). Kept: QuickSave uses the surface even when its allocation failed.
+(InterfaceTextExtentOriginal). Kept: QuickSave uses the surface even when its allocation failed; Confirm / AskDelete push the message box
+unchecked (null when the allocation failed). The window and the key handler call Confirm / AskDelete / DeleteSave / LoadSelected through
+their addresses (Call*) so the wrappers run. Scenarios: ui_saveload (Confirm into the new save, titles), ui_saveload_delete (Delete, Enter,
+load). Library (A-H14): SaveEntry's copy / assignment / destructor and its vector's STLport helpers 006578F0..00658020, the 0x14 / 0x18
+record helpers 00653100..006535D0. Left: RefreshList 006567A0 (Rebirth-patched), 006537E0 / 00653800 (deleting destructors, bodies
+006518A0 / 00651CE0 in the options range), 00654490 (`return 0`, vtable 0074142C), the tutorial window 00658030..
 
 ## What is left in 0x00640000-0x006C0000
 

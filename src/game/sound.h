@@ -8,6 +8,8 @@
 #include "engine_object.h"
 
 #include "../lib/mfc.h"
+#include "registry.h"
+#include "resource_stream.h"
 
 // BOOL results are full 0/1 ints in EAX.
 
@@ -131,6 +133,7 @@ struct DeferredMap {
     std::int32_t count;         // +0x10 (CSoundManager + 0x894)
 
     DeferredNode* Find(std::int32_t key) const;  // the inlined bucket walk (006BC440)
+    void Clear();                                // the inlined clear(): nodes freed, buckets kept
 };
 static_assert(sizeof(DeferredMap) == 0x14);
 
@@ -149,22 +152,21 @@ static_assert(sizeof(WaveRecord) == 0x1C);
 using WaveList = mfc::CList<WaveRecord, mfc::RawElements<WaveRecord>>;
 using WaveNode = WaveList::Node;
 static_assert(sizeof(WaveNode) == 0x24);
-// An archive the waves are read from: vtable slot 5 loads a file [name, size out] (null when
-// missing), slot 6 frees what slot 5 returned.
-struct WaveSourceNode {
-    WaveSourceNode* next;
-    std::uint32_t unknown4;
-    void* source;               // +0x08
-};
-
 // CSoundManager (0x8C0 bytes, vtable 007440F0, class id 0xE). Only the fields used by the
 // rewritten code are named.
-struct CSoundManager {
-    std::uint8_t base[0x1C];            // +0x000 CEngineObject
+struct CSoundManager : CEngineObject {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x007440F0);
+
     void* waveDriver;                   // +0x01C HDIGDRIVER
-    std::uint8_t unknown020[0xC8];
-    struct WaveSourceNode* waveSources; // +0x0E8 list of the archives LoadSample looks in
-    std::uint8_t unknown0EC[0x14];
+    std::uint32_t unknown020;
+    CResourceStream streamReader;       // +0x024 reads the music stream's files (StreamRead)
+    mfc::CString soundPath;             // +0x058 the sound folder, ending in a backslash (SetPath)
+    CFileRegistry soundRegistry;        // +0x05C opened by SetPath
+    CMappedResource archive074;         // +0x074
+    CFileRegistry registry0CC;          // +0x0CC
+    // +0x0E4 the archives LoadSample looks in (CTypedPtrList, vtable 00744130), filled by
+    // AddWaveSource.
+    mfc::CTypedPtrList<CMappedResource> waveSources;
     // The MP3 music stream (+0x100, filled by 006BB3A0 on the stream thread 006BB910).
     volatile std::int32_t streamState;  // +0x100 0 idle, 1 playing, 2 switching to nextName
     void* streamSample;                 // +0x104 HSAMPLE
@@ -184,7 +186,9 @@ struct CSoundManager {
     std::uint8_t unknown170[0x18];
     std::uint8_t nameLock[0x18];        // +0x188 CRITICAL_SECTION guarding streamName
     std::int32_t switchMode;            // +0x1A0 how nextName was requested (RequestStream mode)
-    std::uint8_t unknown1A4[0xC];
+    std::int32_t streamFileSize;        // +0x1A4 bytes of the open stream file (StreamRead)
+    std::int32_t streamReadPosition;    // +0x1A8
+    std::uint32_t unknown1AC;
     std::uint8_t streamLock[0x18];      // +0x1B0 CRITICAL_SECTION guarding the stream and musicFader
     std::uint8_t unknown1C8[0x84];
     SoundSlot* slots;                   // +0x24C 15 voices
@@ -237,14 +241,46 @@ struct CSoundManager {
     int RequestStream(const char* name, int mode);                                       // 006BB020
     void StopStream(int mode);                                                            // 006BB240
 
+    // A-H14 (sound_manager.cpp).
+    // 006B71C0 (RET 4). Every voice ended (its cached wave released), handles restart at 0, the
+    // deferred sounds deleted; with `stopStream` the stream stops too (StopStream(4)).
+    void StopAll(bool stopStream);
+    // 006B96E0 (RET 8; `this` and `size` unused). A wave's length in seconds (AIL_WAV_info): the
+    // IMA ADPCM sample count, else data bytes * 8 / (bits * channels), divided by the rate. 0 when
+    // bits * channels is 0. In ST0.
+    double WaveLength(const void* data, int size);
+
+    // A-H14 (sound_manager_lifetime.cpp).
+    // 006B6D70 (slot 2, the engine object's Create; named so, rule 4): Reset, then 1.
+    int CreateBody();
+    // 006B62B0 (slot 0, RET 4). The destructor body 006B65D0, then operator delete when bit 0 of
+    // `flags` is set. Returns this.
+    CSoundManager* DeletingDestruct(unsigned flags);
+    // 006B7060. Every wave source removed from the list and deleted (slot 0).
+    void ClearWaveSources();
+    // 006B7AB0 (RET 4). Opens the archive `path` and appends it to the wave sources. 1 (also when
+    // sound is off), 0 when it cannot be opened (the archive is deleted again).
+    int AddWaveSource(const char* path);
+    // 006B8960 (RET 0xC). The first wave source holding `name`: its data (GetFile, size into
+    // *size), the source into *source when not null. Null when none has it.
+    void* LoadWaveFile(const char* name, std::uint32_t* size, CMappedResource** source);
+    // 006BAE20 (RET 8). The sound folder (a backslash appended when missing) and the sound
+    // registry opened. 1 when sound is off; else whether the registry opened.
+    int SetPath(const char* folder, const char* registryPath);
+
     // Shared pieces of the original's inlined code.
     int FlatVolume(int level, int heightFade, int speech) const;
     void ApplyVolumePan(SoundSlot* slot) const;
     void EndSlot(SoundSlot* slot);
     SoundSlot* SlotForHandle(int handle) const;
 
+    // 006BAEA0 (A-H14, sound_manager_lifetime.cpp). The playing stream's name under the name lock,
+    // empty unless the stream plays or switches.
+    mfc::CString CurrentStreamName();
+
     // Not rewritten.
-    mfc::CString CurrentStreamName();                                                     // 006BAEA0
+    void DestructBody();                                                                  // 006B65D0
+    void Reset();                                                                         // 006B73E0 (Miles)
     void StreamNotify(int mode);                                                          // 006BBAC0 (empty)
     int Play3D(const char* name, int priority, const float* position, float nearDist, float farDist, int loop,
                int speech);                                                               // 006B8600
@@ -265,7 +301,10 @@ static_assert(offsetof(CSoundManager, slots) == 0x24C);
 static_assert(offsetof(CSoundManager, emitters) == 0x26C);
 static_assert(offsetof(CSoundManager, sequences) == 0x5F0);
 static_assert(offsetof(CSoundManager, cache) == 0x870);
-static_assert(offsetof(CSoundManager, waveSources) == 0xE8);
+static_assert(offsetof(CSoundManager, streamReader) == 0x24 && offsetof(CSoundManager, soundPath) == 0x58);
+static_assert(offsetof(CSoundManager, archive074) == 0x74 && offsetof(CSoundManager, registry0CC) == 0xCC);
+static_assert(offsetof(CSoundManager, waveSources) == 0xE4);
+static_assert(offsetof(CSoundManager, streamReadPosition) == 0x1A8);
 static_assert(offsetof(CSoundManager, cacheList) == 0x854);
 static_assert(offsetof(CSoundManager, deferred) == 0x884);
 static_assert(offsetof(CSoundManager, enabled) == 0x898);
@@ -342,6 +381,14 @@ static_assert(offsetof(CMusicSystem, calmDue) == 0x54);
 static_assert(sizeof(CMusicSystem) == 0x58);
 // 006B4470 / 006B4480 (slots 11, 12): "CMusicSystem" (007967F4), class id 0xE.
 const char* __fastcall MusicSystemClassName(CMusicSystem* self);
+// 006B6290 / 006B62A0 (slots 11, 12): "CSoundManager" (007968C0), class id 0xE.
+const char* __fastcall SoundManagerClassName(CSoundManager* self);
+int __fastcall SoundManagerClassId(CSoundManager* self);
+// 006BA950. The music stream file's read callback (__stdcall, handed to the ASI decoder by the
+// stream fill 006BB3A0; stream thread): seeks to `offset` unless it is negative, then reads up to
+// `size` bytes, cut at the end of the file. Returns the byte count (0 when the read fails); the
+// read position advances by it.
+int __stdcall SoundStreamRead(CSoundManager* manager, void* buffer, int size, int offset);
 int __fastcall MusicSystemClassId(CMusicSystem* self);
 
 namespace sound {
