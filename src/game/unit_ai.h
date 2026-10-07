@@ -13,6 +13,7 @@
 #include "ai_map.h"
 #include "core_refcount.h"
 #include "engine_object.h"
+#include "map_spec.h"
 #include "maths.h"
 #include "unit.h"
 
@@ -288,13 +289,27 @@ static_assert(sizeof(GuardMode) == 0x20);
 
 // One patrol point (0x20 bytes): position and a CArray of 0x10-byte look/wait entries.
 struct PatrolPoint {
+    // The element assignment of the point array's Add / SetAtGrow (unit_ai_looks.cpp): the
+    // position, then the looks' SetSize to the source's count and each look copied.
+    PatrolPoint& operator=(const PatrolPoint& other);
+
     Vector3 position;               // +0x00
     AILookArray looks;              // +0x0C
 };
 static_assert(sizeof(PatrolPoint) == 0x20);
 
+// The point array's ConstructElements (004CDE30: zeroed, each look array given vtable 0073D4B4) and
+// DestructElements (004C9AF0 on each: the look array's base vtable, its data freed);
+// unit_ai_looks.cpp.
+struct PatrolPointElements {
+    static void Construct(PatrolPoint* points, int count);
+    static void Destruct(PatrolPoint* points, int count);
+};
+
 // CArray<PatrolPoint> (PatrolMode + 8, vtables 0073FF74 / 0073FF80; unit_ai_mode_lifetime.cpp).
-using PatrolPointArray = mfc::CArray<PatrolPoint>;
+// Add 005D93B0 and SetAtGrow 005D9F30 are registered on the template (unit_ai_looks.cpp); its
+// SetSize stays 004C9970 (PatrolPointArraySetSizeOriginal).
+using PatrolPointArray = mfc::CArray<PatrolPoint, PatrolPointElements>;
 // 005D8CF0. The base vtable, every point's looks freed, then the buffer (pointer and count kept).
 void __fastcall PatrolPointsDestruct(PatrolPointArray* points);
 // 005D8CD0 (RET 4). Destruct, then operator delete when `flags` bit 0 is set; returns `points`.
@@ -322,11 +337,7 @@ struct PatrolMode : AIMode {
     void Destruct();
     PatrolMode* DeletingDestruct(int flags);
 
-    void* pointsVtable;             // +0x08 CArray (vtable 0073FF74 / 0073FF80)
-    PatrolPoint* points;            // +0x0C
-    int pointCount;                 // +0x10
-    int pointMax;                   // +0x14
-    int pointGrowBy;                // +0x18
+    PatrolPointArray points;        // +0x08 (vtables 0073FF74 / 0073FF80)
     int current;                    // +0x1C
 };
 static_assert(sizeof(PatrolMode) == 0x20);
@@ -549,12 +560,16 @@ static_assert(sizeof(AICallRecord) == 0x18);
 // CArray<AICallRecord> (brain + 0x178). Its SetSize stays the instantiation's (005CDD60).
 using AICallArray = mfc::CArray<AICallRecord, mfc::RawElements<AICallRecord>>;
 
-// A unit's alarm / assembly record (0x4C bytes; the map spec's behaviour record, map_spec_unit.cpp:
-// read and written by 0045D610 / 0045D760). CArray at brain + 0x90; its SetSize is 005D9840.
-struct AIAlarmRecord {
-    std::uint8_t unknown_00[0x4C];
+// A unit's alarm / assembly record: the map spec's behaviour record (0x4C bytes, map_spec.h; read
+// and written by 0045D610 / 0045D760). CArray at brain + 0x90: elements built by 00558E10 (zeroed,
+// then 0045D5B0 each) and destroyed by 0046C290; its SetSize 005D9840 is registered on the template
+// (unit_ai_alarm.cpp).
+using AIAlarmRecord = mapspec::Behaviour;
+struct AIAlarmRecordElements {
+    static void Construct(AIAlarmRecord* records, int count);
+    static void Destruct(AIAlarmRecord* records, int count);
 };
-using AIAlarmRecordArray = mfc::CArray<AIAlarmRecord, mfc::RawElements<AIAlarmRecord>>;
+using AIAlarmRecordArray = mfc::CArray<AIAlarmRecord, AIAlarmRecordElements>;
 void __fastcall CallsSetSizeAt(AICallArray* calls, void*, int size, int growBy);   // 005CDD60
 // 005CC9D0 (RET 8; unit_ai_brain.cpp; each tick, from UpdateMemory). Counts every call down;
 // one that runs out is dropped after it is heard: with a hostility mask (+0x10) the unit's
@@ -789,6 +804,19 @@ struct AIBrain {
     void AddCorpseWatcherMode();                    // 005D6440
     void AddFearMode(std::uint8_t flag);            // 005D6480 (distance from 0073FF00, 3, unset point)
     void AddSentryMode(const Vector3* point);       // 005D65B0
+    // unit_ai_alarm.cpp. 005D6630 (RET 8). The modes of behaviour `record`: the list emptied, the
+    // call radius (the default one becomes [Logic] CallForHelpRadius) and alert mode taken; type 1
+    // guards the record's point, 5 the point of world alarm `slot`, 3 a sentry there, 2 patrols
+    // (each patrol's start on its half-cell's middle, its waypoints as looks from there; without
+    // `loop` the points are walked back too), 4 the party's Player mode. Except for types 0 and 4
+    // the reaction (`alarm`) adds Aggression (0) or Revenge (1) with Suspection, CorpseWatcher and
+    // Fear(0); 2 CorpseWatcher and Fear(0); 3 CorpseWatcher and Fear(1). Then the alarm (kind,
+    // `slot`, countdown at least 1, not alerted), no action or target, the attack options rebuilt,
+    // and with flag bit 3 the unit joins the world's update map.
+    void ApplyBehaviour(const AIAlarmRecord* record, int slot);
+    // 005D6D20 (RET 8; the .mob loader 00481660). The records copied into `alarmRecords`, then the
+    // first applied (slot 0).
+    void SetAlarmRecords(const AIAlarmRecord* records, int count);
 
     // 005D7520. Action 2 (move) after arrival: run the queued looks, each turning then waiting.
     void UpdateMove();
@@ -905,8 +933,8 @@ struct AIBrain {
     CEngineObject* seen;            // +0x030
     std::uint8_t alerted;           // +0x034
     std::int8_t alarm;              // +0x035 alarm kind raised when the countdown ends
-    std::int8_t unknown_36;
-    std::uint8_t unknown_37;
+    std::int8_t unknown_36;         // +0x036 the world alarm slot of the applied record (ApplyBehaviour)
+    std::uint8_t unknown_37;        // +0x037 always updated (the record's flag bit 3)
     float callRadius;               // +0x038 allies within it hear a call for help (10.0 from 0073FED8 at Init)
     int alertMode;                  // +0x03C
     int alarmCountdown;             // +0x040

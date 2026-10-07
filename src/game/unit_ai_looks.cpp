@@ -70,11 +70,37 @@ void PatrolMode::AppendPoint(const Vector3* position) {
     long iy = std::lrint(StoreFloat(kOne / cell * position->y));
     float x = StoreFloat((static_cast<float>(ix) + kHalf) * cell);
     float y = StoreFloat((static_cast<float>(iy) + kHalf) * cell);
-    int index = pointCount;
-    PatrolPointArraySetSizeOriginal(&pointsVtable, nullptr, index + 1, -1);
+    int index = points.size;
+    PatrolPointArraySetSizeOriginal(&points, nullptr, index + 1, -1);
     PatrolPoint& added = points[index];
     added.position = Vector3{x, y, 0.0f};
     // The original copies an empty temporary look array into the new point.
     LooksSetSizeAt(&added.looks, nullptr, 0, -1);
 }
 EI_REPLACE_METHOD(0x005D12B0, PatrolMode::AppendPoint);
+
+// --- The patrol point array (CArray<PatrolPoint>) ---------------------------------------------------
+
+void PatrolPointElements::Construct(PatrolPoint* points, int count) {
+    std::memset(static_cast<void*>(points), 0, sizeof(PatrolPoint) * static_cast<unsigned>(count));
+    for (int i = 0; i < count; ++i) points[i].looks.vtable = reinterpret_cast<void*>(kLookArrayVtable);
+}
+
+void PatrolPointElements::Destruct(PatrolPoint* points, int count) {
+    for (int i = 0; i < count; ++i) {
+        AILookArray& looks = points[i].looks;
+        looks.vtable = reinterpret_cast<void*>(kLookArrayBaseVtable);
+        if (looks.data) gamecrt::operator_delete(looks.data);
+    }
+}
+
+PatrolPoint& PatrolPoint::operator=(const PatrolPoint& other) {
+    std::memcpy(&position, &other.position, sizeof(Vector3));
+    looks.Copy(other.looks);
+    return *this;
+}
+
+// 005D93B0 (RET 4): Add, returning the new index. 005D9F30 (RET 8): SetAtGrow (a new point at
+// `index` grows the array to index + 1 first).
+EI_REPLACE_METHOD(0x005D93B0, PatrolPointArray::Add);
+EI_REPLACE_METHOD(0x005D9F30, PatrolPointArray::SetAtGrow);

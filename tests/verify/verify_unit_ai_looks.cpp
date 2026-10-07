@@ -90,12 +90,12 @@ EI_VERIFY(0x00545B20, ClearMoveVerify, 0, s_unused);
 // earlier ones unchanged, the new one at (n + 0.5) / 2 (2x - 0.5 whole) 0..0.5 above
 // the asked point in x and y (n is 2x rounded to nearest), z 0, no looks.
 static void __fastcall AppendPointVerify(PatrolMode* self, void*, const Vector3* position) {
-    int count = self->pointCount;
+    int count = self->points.size;
     std::vector<Vector3> before;
     for (int i = 0; i < count; ++i) before.push_back(self->points[i].position);
     Vector3 asked = *position;
     self->AppendPoint(position);
-    bool ok = self->pointCount == count + 1;
+    bool ok = self->points.size == count + 1;
     for (int i = 0; ok && i < count; ++i) ok = std::memcmp(&before[i], &self->points[i].position, sizeof(Vector3)) == 0;
     if (ok) {
         const PatrolPoint& added = self->points[count];
@@ -105,7 +105,7 @@ static void __fastcall AppendPointVerify(PatrolMode* self, void*, const Vector3*
         };
         ok = onGrid(added.position.x, asked.x) && onGrid(added.position.y, asked.y) && added.position.z == 0.0f && added.looks.size == 0;
     }
-    ei::verify::Check("PatrolMode::AppendPoint", true, ok, "mode %p: %d points (was %d), asked (%f, %f)", self, self->pointCount, count,
+    ei::verify::Check("PatrolMode::AppendPoint", true, ok, "mode %p: %d points (was %d), asked (%f, %f)", self, self->points.size, count,
                       asked.x, asked.y);
 }
 EI_VERIFY(0x005D12B0, AppendPointVerify, 0, s_unused);

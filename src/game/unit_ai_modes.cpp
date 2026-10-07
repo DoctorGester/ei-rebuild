@@ -225,7 +225,7 @@ EI_REPLACE_METHOD(0x005D0F00, GuardMode::Save);
 void PatrolMode::AddPoint(const Vector3* a0) { PatrolAddPointOriginal((void*)this, nullptr, (const void*)a0); }
 
 int PatrolMode::Evaluate(AIBrain* brain) {
-    if (pointCount != 0) return kPriority;
+    if (points.size != 0) return kPriority;
     // 00791DEC: "Unit %i has no patrol points, switching to guard" (passed by address, as the original).
     game::FatalError(reinterpret_cast<const char*>(0x00791DEC), brain->owner->unit->id_);
     AddPoint(reinterpret_cast<const Vector3*>(&brain->owner->unit->positionX));
@@ -236,9 +236,9 @@ EI_REPLACE_METHOD(0x005D16B0, PatrolMode::Evaluate);
 void PatrolMode::Execute(AIBrain* brain) {
     MaybeRemark(brain, kRemarkIdle);
     brain->LookAround(0);
-    if (pointCount == 0 || brain->action != AIBrain::kActionNone) return;
-    if (++current >= pointCount) current = 0;
-    PatrolPoint* next = points + current;
+    if (points.size == 0 || brain->action != AIBrain::kActionNone) return;
+    if (++current >= points.size) current = 0;
+    PatrolPoint* next = points.data + current;
     AIMoveOrder order;
     std::memcpy(&order.point, &next->position, sizeof(Vector3));
     ConstructOrder(&order);
@@ -259,8 +259,8 @@ void PatrolMode::Execute(AIBrain* brain) {
 EI_REPLACE_METHOD(0x005D1700, PatrolMode::Execute);
 
 PatrolPoint* PatrolMode::LastPoint() {
-    if (pointCount == 0) return nullptr;
-    return points + (pointCount - 1);
+    if (points.size == 0) return nullptr;
+    return points.data + (points.size - 1);
 }
 EI_REPLACE_METHOD(0x005D1690, PatrolMode::LastPoint);
 

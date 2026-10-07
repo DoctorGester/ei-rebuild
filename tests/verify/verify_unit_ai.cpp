@@ -330,14 +330,14 @@ EI_VERIFY(0x005D0F00, GuardSaveVerify, 6, s_guardSave);
 // ours only (it adds a point): -1000 and one point afterwards.
 static int(__fastcall* s_patrolEvaluate)(PatrolMode*, void*, AIBrain*);
 static int __fastcall PatrolEvaluateVerify(PatrolMode* self, void*, AIBrain* brain) {
-    if (self->pointCount == 0) {
+    if (self->points.size == 0) {
         int result = self->Evaluate(brain);
-        ei::verify::Check("PatrolMode::Evaluate", true, result == -1000 && self->pointCount == 1, "mode %p points %d", self,
-                          self->pointCount);
+        ei::verify::Check("PatrolMode::Evaluate", true, result == -1000 && self->points.size == 1, "mode %p points %d", self,
+                          self->points.size);
         return result;
     }
     int expected = s_patrolEvaluate(self, nullptr, brain);
-    ei::verify::Check("PatrolMode::Evaluate", expected, self->Evaluate(brain), "mode %p points %d", self, self->pointCount);
+    ei::verify::Check("PatrolMode::Evaluate", expected, self->Evaluate(brain), "mode %p points %d", self, self->points.size);
     return expected;
 }
 EI_VERIFY(0x005D16B0, PatrolEvaluateVerify, 6, s_patrolEvaluate);
@@ -346,7 +346,7 @@ EI_VERIFY(0x005D16B0, PatrolEvaluateVerify, 6, s_patrolEvaluate);
 static PatrolPoint*(__fastcall* s_lastPoint)(PatrolMode*);
 static PatrolPoint* __fastcall LastPointVerify(PatrolMode* self) {
     PatrolPoint* expected = s_lastPoint(self);
-    ei::verify::Check("PatrolMode::LastPoint", expected, self->LastPoint(), "mode %p points %d", self, self->pointCount);
+    ei::verify::Check("PatrolMode::LastPoint", expected, self->LastPoint(), "mode %p points %d", self, self->points.size);
     return expected;
 }
 EI_VERIFY(0x005D1690, LastPointVerify, 5, s_lastPoint);
@@ -556,14 +556,14 @@ EI_VERIFY(0x005D0BE0, GuardExecuteVerify, 0, s_unused);
 static void __fastcall PatrolExecuteVerify(PatrolMode* self, void*, AIBrain* brain) {
     int before = brain->action;
     self->Execute(brain);
-    bool ok = MoveStartedOrIdle(brain, before) && (self->pointCount == 0 || (self->current >= 0 && self->current < self->pointCount));
-    if (ok && before == AIBrain::kActionNone && self->pointCount != 0) {
+    bool ok = MoveStartedOrIdle(brain, before) && (self->points.size == 0 || (self->current >= 0 && self->current < self->points.size));
+    if (ok && before == AIBrain::kActionNone && self->points.size != 0) {
         // The move goes to the current point.
         ok = brain->action == AIBrain::kActionMove &&
              std::memcmp(&brain->actionPoint, &self->points[self->current].position, sizeof(Vector3)) == 0;
     }
     ei::verify::Check("PatrolMode::Execute", true, ok, "mode %p action %d -> %d point %d of %d", self, before, brain->action,
-                      self->current, self->pointCount);
+                      self->current, self->points.size);
 }
 EI_VERIFY(0x005D1700, PatrolExecuteVerify, 0, s_unused);
 

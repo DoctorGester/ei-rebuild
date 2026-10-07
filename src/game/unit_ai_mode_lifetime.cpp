@@ -42,11 +42,11 @@ PlayerMode* PlayerMode::Construct() {
 EI_REPLACE_METHOD(0x005D3760, PlayerMode::Construct);
 
 PatrolMode* PatrolMode::Construct() {
-    points = nullptr;
-    pointGrowBy = 0;
-    pointMax = 0;
-    pointCount = 0;
-    pointsVtable = aimode::kPatrolPointsVtable;
+    points.data = nullptr;
+    points.growBy = 0;
+    points.maxSize = 0;
+    points.size = 0;
+    points.vtable = aimode::kPatrolPointsVtable;
     vtable = aimode::kPatrolVtable;
     current = 0;
     return this;
@@ -55,15 +55,15 @@ EI_REPLACE_METHOD(0x005D0F60, PatrolMode::Construct);
 
 void PatrolMode::Destruct() {
     vtable = aimode::kPatrolVtable;
-    pointsVtable = aimode::kPatrolPointsBaseVtable;
-    if (points) {
+    points.vtable = aimode::kPatrolPointsBaseVtable;
+    if (points.data) {
         // The elements' destructors: each look array's base destructor.
-        for (int i = 0; i < pointCount; ++i) {
+        for (int i = 0; i < points.size; ++i) {
             AILookArray& looks = points[i].looks;
             looks.vtable = reinterpret_cast<void*>(kLookArrayBaseVtable);
             if (looks.data) gamecrt::operator_delete(looks.data);
         }
-        gamecrt::operator_delete(points);
+        gamecrt::operator_delete(points.data);
     }
     vtable = aimode::kRootVtable;
 }
