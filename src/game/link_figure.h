@@ -115,6 +115,8 @@ public:
 
     // 004F2F90 (RET 0xC). Sets the morph coefficients.
     void SetMorph(float s, float t, float u);
+    // 004F7370 (RET 4, returns out; link_loader.cpp). Constructs a copy of the name in `out`.
+    stlp::string* CopyName(stlp::string* out) const;
 
     // 004F30F0 (RET 0x34, AL). Appends a part: false when `name` is already a part; otherwise each
     // array grows by its count and gets the elements, and the part's ranges are recorded; true.

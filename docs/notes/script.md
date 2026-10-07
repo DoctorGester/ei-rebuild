@@ -448,3 +448,15 @@ current runs), CSkyObject 004D9110-004D9EB0, CServerSpecificManager 004D6900-004
 | 004DB9C0 | `ReadLinkString` (`link_loader.cpp`; the static buffer 007AA8D0 is only this function's, so ours copies straight from the record) | original on a string copy and cursor: text, cursor. `newgame` |
 | 004D6900, 004D6960, 004D6940, 004D6920, 004D6930, 004D6970 | `CServerSpecificManager` (`server_specific_manager.cpp`): Construct, Destruct, DeletingDestruct, slots 11 / 12, slot 14 `NewObject` (0x46-0x49 through their constructors, 0x4B `CTorchObjectSpec` inline + Create through the vtable) | names / ids against the original; the rest ours only (vtable, lastId -1; new objects fresh, the torch spec's vtable / name / Create values; null for unknown types). `newgame` |
 | 004D6BA0, 004D6B80, 004D6B60, 004D6B70, 004D6B50 | `CTorchObjectSpec` Destruct, DeletingDestruct, slots 11 / 12 / 6 | slots against the original, the rest ours only. Slots 13-15 (004D6B20/30/40) are a bare RET: not hookable. Create / Destroy 0052C610 / 0052C680 are not ported |
+| 004F7370 | `CLinkMesh::CopyName` (`link_loader.cpp`) | original into a scratch string |
+| 004F7150, 004F7080, 004F7020, 004F75E0 | `CLinkFigureLoader` slots 3 `LoadFigure`, 4 `LoadLink`, 5 `ClearCache`, 6 `Remorph` (model.h now declares the loader's 7 virtual slots, `figureSets_` +0x10, `renderer_` +0x24, the cache `stlp::map<string, CLinkMesh*>` +0x28; stlp::map got upper_bound / begin / Next / ResetToEmpty, stlp::string operator<) | ours only: the mesh has the name and is cached, at most one added (one for `fresh`); Remorph: null / same-named / itself with the new coefficients; ClearCache: empty. `newgame`, `models`, `ui_hero_screen` |
+| 004F77C0, 004F7B10, 004F7480, 004F7D20 | `LoadLinkFile`, `MakeFigure`, `LoadPartInto`, `LoadArchivePart` | ours only: a new mesh with the coefficients, cached once with one reference; a part reported loaded is a part |
+
+- Forwarders (link_loader.cpp): 004FAB00 FindFigureSet (hash_map of LinkFigureSet, 005A9A50 / 005A9EB0), 004F2C00 the mesh
+  constructor, 004F9E50 a part morphed again, 004FBD80 the cache's insert_equal (004F7B10 inlines the descent and calls
+  _M_insert 004FC4F0; same position). The rewritten 004F7F00 / 004F87D0 / 004DB9C0 / 004F77C0 / 004F7B10 / 004F7D20 are
+  called through their addresses so their checks stay reached.
+- Kept: an empty part name in a .lnk keeps the previous one (004DB9C0 leaves the string); a missing link file leaks the new
+  mesh (FatalError's result returned). Ours returns null instead of FatalError's EAX (0 when it comes back).
+- Not ported: 004F6A20 slot 1 (4 bytes, not hookable), 004FAAA0 slot 2 / 004F4B50 (memory estimate; no caller seen), the
+  destructor 004F6BD0, 004FAB00.
