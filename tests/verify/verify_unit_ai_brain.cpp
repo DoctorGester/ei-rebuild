@@ -101,7 +101,7 @@ static void __fastcall InitVerify(AIBrain* self) {
     self->Init();
     bool ok = ModesCleared(self) && MemoryEmpty(self) && self->owner == nullptr && self->target == nullptr &&
               self->seen == nullptr && self->alarmCountdown == 1 && self->actionTime == AIBrain::kNoTime &&
-              self->unknown_38 == 10.0f && self->alertMode == 0 && self->looks.size == 0;
+              self->callRadius == 10.0f && self->alertMode == 0 && self->looks.size == 0;
     ei::verify::Check("AIBrain::Init", true, ok, "brain %p", self);
 }
 EI_VERIFY(0x005D4F70, InitVerify, 0, s_unused);
@@ -209,7 +209,7 @@ static void __fastcall CallAlliesVerify(AIBrain* self, void*, const Vector3* poi
     units.vtable = reinterpret_cast<void*>(0x0073D454);
     units.blockSize = 10;
     CUnit* unit = self->owner->unit;
-    SectorMapFindUnitsInRadius(WorldServer()->Sectors(), nullptr, &unit->positionX, &units, self->unknown_38);
+    SectorMapFindUnitsInRadius(WorldServer()->Sectors(), nullptr, &unit->positionX, &units, self->callRadius);
     self->CallAllies(point);
     int allies = 0;
     bool ok = true;

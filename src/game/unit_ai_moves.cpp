@@ -3,6 +3,7 @@
 #include "unit_ai.h"
 
 #include "ai_map.h"
+#include "ai_scoped_path.h"
 #include "combat.h"
 #include "core_maths.h"
 #include "map_object.h"
@@ -68,44 +69,6 @@ int WorldTick() { return *reinterpret_cast<const int*>(0x007AFFC4); }
 CAIMap* AIMap() { return WorldServer()->AIMap(); }
 Vector3* PositionOf(CUnit* unit) { return reinterpret_cast<Vector3*>(&unit->positionX); }
 UnitController* ControllerOf(CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller); }
-
-// A path on the stack as the brain builds one for a test search: both cell lists (blocks of 0x80;
-// 00545750 / 0054EAC0 + 00556D10), the point array (00557230), then Clear (005B23A0); freed in
-// reverse (00557250, 00539890 or the vtable and 00556D40).
-class ScopedPath {
-public:
-    ScopedPath() {
-        InitList(path.steps);
-        InitList(path.cells);
-        path.pointsVtable = reinterpret_cast<void*>(0x0073F07C);
-        path.points = nullptr;
-        path.pointCount = 0;
-        path.pointMax = 0;
-        path.pointGrowBy = 0;
-        path.Clear();
-    }
-    ~ScopedPath() {
-        path.pointsVtable = reinterpret_cast<void*>(0x0073F07C);
-        if (path.points) gamecrt::operator_delete(path.points);
-        FreeList(path.cells);
-        FreeList(path.steps);
-    }
-    ScopedPath(const ScopedPath&) = delete;
-    ScopedPath& operator=(const ScopedPath&) = delete;
-
-    AIPath path;
-
-private:
-    static void InitList(PathCellList& list) {
-        list = {};
-        list.vtable = reinterpret_cast<void*>(0x0073EDB0);
-        list.blockSize = 0x80;
-    }
-    static void FreeList(PathCellList& list) {
-        list.vtable = reinterpret_cast<void*>(0x0073EDB0);
-        list.RemoveAll();
-    }
-};
 
 // The CPtrList the sector map fills (vtable 0073D454, blocks of 10).
 void InitUnitList(mfc::CTypedPtrList<CEngineObject>& list) {

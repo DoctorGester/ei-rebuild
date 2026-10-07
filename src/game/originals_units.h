@@ -133,6 +133,10 @@ __declspec(naked) inline void __fastcall CountedRefLoadOriginal(void* /*ref*/, v
     EI_ORIGINAL(0x0050E220)
 __declspec(naked) inline void __fastcall CountedRefSaveOriginal(void* /*ref*/, void*, void* /*stream*/)
     EI_ORIGINAL(0x0050E290)
+// 0052AF20 (fastcall: ECX the list, EDX the stream; RET 4): reads a count, then appends that many counted references to
+// the CList of objects, each loaded with 0050E220 in `context`. EAX is not a result.
+__declspec(naked) inline void __fastcall CountedListLoadOriginal(void* /*list*/, void* /*stream*/, void* /*context*/)
+    EI_ORIGINAL(0x0052AF20)
 // 0050EA40: runs the object's virtual slot 50 between a begin / end pair on the member at +0x1C4, then clears bit 1 of
 // the flags at +8 (plain RET, EAX not a result). 005179E0: sets up the object's animated figure for a model name (RET 4;
 // EAX not a result). 0050D450: applies the pending animation change of a figure state once (flag at +0x74; plain RET).

@@ -966,7 +966,7 @@ void* __stdcall CStringConcat(void* a0, const void* a1, const char* a2) { return
 void __fastcall CStringAssign(void* a0, void*, const void* a2) { CStringAssignOriginal(a0, nullptr, a2); }
 inline void __fastcall CStringAssignText(void* s, void*, const char* t) { CStringAssignTextOriginal(s, nullptr, t); }
 // The lights table loader [00563930 (file name)], the text resources [004DEDB0 on +0x1D0 (path)].
-__declspec(naked) void __fastcall LoadLights(void*, void*, const char*) EI_ORIGINAL(0x00563930)
+__declspec(naked) int __fastcall LoadLightsAt(void*, void*, const char*) EI_ORIGINAL(0x00563930)
 __declspec(naked) void __fastcall LoadTexts(void*, void*, const char*) EI_ORIGINAL(0x004DEDB0)
 // Constructors (thiscall; some take a block size or count).
 __declspec(naked) void* __fastcall Construct6B6040(void*) EI_ORIGINAL(0x006B6040)
@@ -1054,7 +1054,7 @@ int CWorldClient::Setup() {
     CStringConcat(&path, kDataPath, reinterpret_cast<const char*>(0x0078FFE4));   // "textures\"
     CStringAssign(&At<std::uint8_t>(this, 0x224), nullptr, &path);
     CStringDestroy(&path);
-    LoadLights(this, nullptr, reinterpret_cast<const char*>(0x0078FFD4));          // "LightsGipat.ini"
+    LoadLightsAt(this, nullptr, reinterpret_cast<const char*>(0x0078FFD4));          // "LightsGipat.ini"
     At<int>(this, 0x6DC) = 0;
     At<CEngineObject*>(this, 0x1CC) = MakeCounted(0x8C0, Construct6B6040);
 

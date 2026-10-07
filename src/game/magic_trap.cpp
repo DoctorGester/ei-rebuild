@@ -275,7 +275,6 @@ void __fastcall MapObjectSave(void* a0, void*, UnitStream* a2) { MapObjectSaveOr
 // stream, RET 4; MFC template code with the reference's Load 0050E220]; CBaseManager::FindObject
 // [00403F40, rewritten in base_manager.cpp].
 void __fastcall CountedRefSave(CEngineObject** a0, void*, UnitStream* a2) { CountedRefSaveOriginal((void*)a0, nullptr, (void*)a2); }
-__declspec(naked) void __fastcall VictimListLoad(VictimList*, UnitStream*, void* /*context*/) EI_ORIGINAL(0x0052AF20)
 
 constexpr std::uintptr_t kTrapVtable = 0x0073E63C;
 constexpr std::uintptr_t kCirclesVtable = 0x0073C68C;        // while constructed
@@ -394,7 +393,7 @@ void MagicTrap::LoadTrap(UnitStream* stream) {
     stream->Read(&value, 4);
     CirclesSetSize(&area, nullptr, value, -1);
     for (int i = 0; i < area.count; ++i) stream->Read(&area.circles[i], sizeof(TrapCircle));
-    VictimListLoad(&At<VictimList>(this, 0x268), stream, ManagerContextOf(this));
+    CountedListLoadOriginal(&At<VictimList>(this, 0x268), stream, ManagerContextOf(this));
     stream->Read(&value, 4);
     PointsSetSize(&points, nullptr, value, -1);
     for (int i = 0; i < points.count; ++i) stream->Read(&points.points[2 * i], 2 * sizeof(float));

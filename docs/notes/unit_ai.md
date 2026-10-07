@@ -183,3 +183,23 @@ through `game::FatalError` (EI_ORIGINAL). Forwarders are in `unit_ai.h`, `unit_a
   option through its address). Verify: Save differential through a recording AIStream; the loads ours only. Scenarios:
   `ui_saveload` (a save and a load with AI units). Next candidates: 005D9D40 (a RefPtr assign), the brain's Load / Save
   005D8310 / 005D8860, 005CF3C0 CanReach (an AIPath local), 005D3DE0 (follow leader; its mode type 6 layout unknown).
+
+## A-W7 (2026-10-07)
+
+- `unit_ai_targets.cpp`: 005CF3C0 CanReach (spell aimed at no object vs a large size-class-0 unit: no; else the order check
+  from the unit, or from the end of a path search to the target with the target lifted off the sector map). The stack path is
+  `ScopedPath` (`ai_scoped_path.h`, shared with unit_ai_moves.cpp). Verify: differential (AL). Scenarios: `unit_ai`, `combat`.
+  Map object slot 60 is now `Radius()` (map_object.h).
+- `unit_ai_brain.cpp`: 005D8310 / 005D8860 brain Load / Save (`unit_ai.h` has the order). Load creates modes by type
+  (Player is type 6, vtable 0073F0F8; Tamed type 8, 0073F0C4); an unknown type leaves Load at once (kept). A call radius
+  (+0x38, now `callRadius`) equal to [Logic] CallForHelpRadiusDefault becomes CallForHelpRadius (NaN too). `alarmRecords` is
+  now `AIAlarmRecordArray`. `unit_ai_save.cpp`: 005CC1E0 / 005CC350 memory load / save, 005D9010 / 005D91B0 looks load / save.
+  `core_refcount.cpp`: 005D9D40 `RefPtr::ShareAssign`. Helpers go through their addresses (`originals_ai.h`; 0052AF20 moved to
+  `originals_units.h`). Verify (`verify_unit_ai_save.cpp`): saves differential through recording streams; loads and
+  ShareAssign ours only (list / count consistency). Scenario: `world_load` (autosave, then load savea).
+- `unit_ai_modes.cpp`: 005D3DE0 PlayerMode::SetLeader (a leader chain back to the unit makes the unit's own Player mode stop
+  following first). Verify ours only. Reached by CreateUnits (every new game).
+- Library: 005CDA40 (CArray<AICallRecord>::RemoveAt), 005CDB00 (CList AddHead), 00582140 / 00582730 / 00583330 (vector
+  destructors), shape cache helpers 005BCCB0 / 005BE320 / 005BE450 / 005BE730.
+- Next: 005D2960 / 005D30A0 Fear Evaluate / Execute, 005D6630 / 005D6D20 alarm assembly, 005D4170 Player combat,
+  005D4600, 005D4860, 005D9F30, 005D93B0, 005CD880, 005CD210; client 00566360 / 0056C750 / 0056D150.

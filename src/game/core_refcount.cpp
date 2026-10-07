@@ -53,3 +53,12 @@ void RefPtr::Destroy() {
     ReleaseObject(ptr);   // reloaded: the shutdown may have changed it
 }
 EI_REPLACE_METHOD(0x00413270, RefPtr::Destroy);
+
+RefPtr* RefPtr::ShareAssign(CRefObject* object) {
+    if (object != ptr) {
+        Destroy();
+        Share(object);
+    }
+    return this;
+}
+EI_REPLACE_METHOD(0x005D9D40, RefPtr::ShareAssign);

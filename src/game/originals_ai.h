@@ -121,3 +121,23 @@ __declspec(naked) inline void __fastcall AiCallsUpdateOriginal(void* /*calls*/, 
 // EAX not a result).
 __declspec(naked) inline void __fastcall PathWriteOriginal(void* /*path*/, void*, DeltaField* /*field*/) EI_ORIGINAL(0x005C7DB0)
 __declspec(naked) inline void __fastcall PathReadOriginal(void* /*path*/, void*, DeltaField* /*field*/) EI_ORIGINAL(0x005C7FC0)
+
+// The brain's save-game helpers, called through their addresses so the verify wrappers see the calls
+// (unit_ai_brain.cpp, unit_ai_save.cpp). 005D9010 / 005D91B0: looks load / save (fastcall: ECX the
+// looks, EDX the stream; plain RET). 005CC1E0 / 005CC350: the perception memory's load / save
+// (thiscall on brain + 0xD0, RET 4). 005CE920: an attack option's Save; 005D9B80: an attack option
+// array's load (fastcall, plain RET). 0045D610 / 0045D760: an alarm record's read / write (map
+// spec behaviour record; thiscall, RET 4). 005D9840: the alarm records' SetSize (RET 8). None
+// returns a result.
+__declspec(naked) inline void __fastcall LooksLoadOriginal(void* /*looks*/, void* /*stream*/) EI_ORIGINAL(0x005D9010)
+__declspec(naked) inline void __fastcall LooksSaveOriginal(const void* /*looks*/, void* /*stream*/) EI_ORIGINAL(0x005D91B0)
+__declspec(naked) inline void __fastcall MemoryLoadOriginal(void* /*memory*/, void*, void* /*stream*/) EI_ORIGINAL(0x005CC1E0)
+__declspec(naked) inline void __fastcall MemorySaveOriginal(void* /*memory*/, void*, void* /*stream*/) EI_ORIGINAL(0x005CC350)
+__declspec(naked) inline void __fastcall AttackOptionSaveOriginal(const void* /*option*/, void*, void* /*stream*/)
+    EI_ORIGINAL(0x005CE920)
+__declspec(naked) inline void __fastcall AttackOptionsLoadOriginal(void* /*options*/, void* /*stream*/) EI_ORIGINAL(0x005D9B80)
+__declspec(naked) inline void __fastcall AlarmRecordReadOriginal(void* /*record*/, void*, void* /*stream*/)
+    EI_ORIGINAL(0x0045D610)
+__declspec(naked) inline void __fastcall AlarmRecordWriteOriginal(const void* /*record*/, void*, void* /*stream*/)
+    EI_ORIGINAL(0x0045D760)
+__declspec(naked) inline void __fastcall AlarmRecordsSetSizeOriginal(void* /*array*/, void*, int, int) EI_ORIGINAL(0x005D9840)

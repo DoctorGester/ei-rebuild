@@ -120,7 +120,6 @@ __declspec(naked) void UnitController::Cast(int, CEngineObject*, int) EI_ORIGINA
 __declspec(naked) void UnitController::Attack(CEngineObject*, int, int, int) EI_ORIGINAL(0x00554B30)
 bool UnitController::CheckOrder(const void* a0) { return UnitCheckOrderOriginal((void*)this, nullptr, a0); }
 __declspec(naked) bool UnitController::CheckOrderAt(const AIOrder*, const Vector3*) EI_ORIGINAL(0x0054C960)
-__declspec(naked) bool AIAttention::CanReach(AIBrain*, const int*, int) EI_ORIGINAL(0x005CF3C0)
 __declspec(naked) void UnitController::CastAt(int, const Vector3*, int) EI_ORIGINAL(0x00554D00)
 __declspec(naked) void UnitController::TurnTo(const Vector3*, int, int, float) EI_ORIGINAL(0x00554830)
 __declspec(naked) void UnitController::UseOnPoint(CEngineObject*, int, int) EI_ORIGINAL(0x00555570)

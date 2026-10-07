@@ -52,5 +52,8 @@ struct RefPtr {
     // 00413270. The owner's release: a still-shared object is detached and shut down first. The
     // pointer itself is left as it was.
     void Destroy();
+    // 005D9D40 (RET 4; the AI mode list's element assignment). Unless it already points at
+    // `object`: Destroy, then Share(object). Returns this.
+    RefPtr* ShareAssign(CRefObject* object);
 };
 static_assert(sizeof(RefPtr) == 4);
