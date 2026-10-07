@@ -84,8 +84,36 @@ Unverified / risks: the same bool caveat (`failed` read into a byte and compared
 
 ## net_state.cpp (baseline: At 86, VCall 28)
 
-Not started yet.
+Converted: At<> 86 -> 0, VCall 28 -> 14. The exported signatures (`std::uint8_t*` objects) are
+unchanged; the bodies view the object as CMapObject / CUnit.
+- Named now: GetClassId (slot 12, 2x), the controller's Path (16, 3x), ShowWeapon (25, 3x: the
+  old kSlotSetSpeedMode is the weapon slot), RestartAnimation (14; the time passed as a float, not
+  its bits), PlayerChanged (18, 2x), CWorld::MoveObject (41), CStream::Position / Size (5 / 4) of
+  the read snapshot, and the unit's slot 55 as `ObjectSlots(unit)->IsDead()` (the old name was
+  kSlotIsRemote; map_object.h documents 55 as IsDead, units' +0x274).
+- Left as VCall (14), all on slots that are placeholders in this branch or past the declared
+  interface: map object 58 (AppearanceChanged; DR-C2: RefreshWounds) and 51 (SetHeading, takes the
+  position's z bits; DR-C2: PlaceOnGround); companion 13 (EffectsChanged, 2x) and 16 (Hit, past
+  CMapObjectCompanion's 15); controller 29 (2x; DR-C2 RefreshEquipment), 31 (2x; RefreshWounds),
+  32 / 33 (SetArmourModels / SetWeaponModels), 41 (MotionChanged), 46 (StatChanged), 47 (Wound),
+  past CUnitController's 40. After DR-C2 merges, declare their signatures and convert them.
+- Members: field 0 packedVitals / PackedVitals()->hitPoints, 1 scale, 2 flags_ / positionX /
+  orientation (the heading slot gets positionZ's bits), 3 effects / effectCount / MapEffect fields
+  (type, power, ticksLeft (2 bytes), ending) and the effect CArray at &effectsVtable; unit 4
+  Params() (+0x330; +0x437 is Params()->flags), body parts (+0x378 + k * 0x1C is
+  bodyParts[k].durability / maxDurability), 6 moveMode / moveMode2 / activeWeapon / unknown_270,
+  7 unknown_278 / dead / unknown_260 / unknown_25C, 8 unknown_254..258, 9 scriptName (new), 10 the
+  unit's Motion() (segment, speedScale, baseTurnRate: the same fields CUnit::RefreshMotion uses),
+  11 relationsA / relationsB / side / player (the players' +0xC is CEngineObject::id_ of CPlayer;
+  the local view is LocalViewData, +0x84 new), 12 levels4C8, 13 unknown_438.
+
+Unverified: field 7's `unknown_278` is uint32 (written through a cast from the sign-extended bit);
+the reads of a CPlayer through LocalViewData::player (declared WorldPlayer*) reinterpret it.
 
 ## Where I stopped
 
-See the per-file sections.
+All three files are drafted (nothing built). Next for the finishing worker: build both
+configurations, fix compile errors (likely spots: includes added to the three files —
+ai_map.h, ai_motion.h, map_object(_figures).h, player_messages.h, unit_ai.h, world.h — and the
+CUnitServer layout edit in combat.h), run check_cleanup and `--update`, then the scenarios. After
+DR-C2 merges, convert net_state.cpp's remaining 14 VCalls.
