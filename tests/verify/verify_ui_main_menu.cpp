@@ -43,12 +43,12 @@ static void(__fastcall* s_setRectFrom)(CUiRegion*, void*, RECT);
 static void __fastcall SetRectFromVerify(CUiRegion* self, void*, RECT rect) {
     CUiRegion scratch;
     std::memcpy(&scratch, self, sizeof(CUiRegion));
-    scratch.points_ = nullptr;
+    scratch.points_.data = nullptr;
     s_setRectFrom(&scratch, nullptr, rect);
     self->CUiRegion::SetRectFrom(rect);
     bool ok = std::memcmp(&scratch.bounds_, &self->bounds_, sizeof(RECT)) == 0 && scratch.enabled_ == self->enabled_ &&
-              scratch.rectOnly_ == self->rectOnly_ && self->points_ == nullptr &&
-              scratch.pointCount_ == self->pointCount_ && scratch.pointCapacity_ == self->pointCapacity_;
+              scratch.rectOnly_ == self->rectOnly_ && self->points_.data == nullptr &&
+              scratch.points_.size == self->points_.size && scratch.points_.capacity == self->points_.capacity;
     ei::verify::Check("CUiRegion::SetRectFrom", true, ok, "(%d,%d,%d,%d) -> (%d,%d,%d,%d)", rect.left, rect.top,
                       rect.right, rect.bottom, self->bounds_.left, self->bounds_.top, self->bounds_.right,
                       self->bounds_.bottom);

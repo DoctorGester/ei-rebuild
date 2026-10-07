@@ -60,6 +60,6 @@ EI_REPLACE_METHOD(0x005FC690, CUiRegion::SetTipText);
 
 void CUiRegion::ReleaseContents() {
     if (tip_) tip_->Delete();
-    if (points_) FreeAligned(points_);
+    points_.FreeData();
 }
 EI_REPLACE_METHOD(0x005FC600, CUiRegion::ReleaseContents);

@@ -18,21 +18,6 @@ int Mul(int a, int b) {
     return static_cast<int>(static_cast<std::uint32_t>(a) * static_cast<std::uint32_t>(b));
 }
 
-// Growth step of the interface arrays when none is set: size / 8 clamped to [4, 1024].
-int DefaultGrowth(int size) {
-    int grow = size / 8;
-    if (grow < 4) return 4;
-    if (grow > 0x400) return 0x400;
-    return grow;
-}
-
-// The capacity a full array grows to when it must hold `newSize` elements.
-int GrownCapacity(int size, int capacity, int growBy, int newSize) {
-    int grow = growBy != 0 ? growBy : DefaultGrowth(size);
-    int newCapacity = grow + capacity;
-    return newSize < newCapacity ? newCapacity : newSize;
-}
-
 // Virtual slot 19 of a window (called with the new enabled state).
 void CallSlot19(CUiWindow* window, int value) {
     using Fn = void(__thiscall*)(CUiWindow*, int);
@@ -81,7 +66,7 @@ BOOL CUiRegion::HitTest(int x, int y) const {
     if (rectOnly_) return 1;
     // Convex polygon: the point must not lie on the outer side of any edge a -> b. The products
     // wrap like the original's 32-bit IMULs.
-    int count = pointCount_;
+    int count = points_.size;
     for (int i = 0; i < count;) {
         const UiPoint& a = points_[i];
         ++i;
@@ -102,12 +87,7 @@ BOOL CUiRegion::HasActiveTip() const {
 EI_REPLACE_METHOD(0x005FC660, CUiRegion::HasActiveTip);
 
 void CUiRegion::SetRect(int left, int top, int right, int bottom) {
-    if (points_) {
-        FreeAligned(points_);
-        points_ = nullptr;
-    }
-    pointCapacity_ = 0;
-    pointCount_ = 0;
+    points_.RemoveAll();
     bounds_.left = left;
     bounds_.right = right;
     bounds_.top = top;
@@ -118,19 +98,14 @@ void CUiRegion::SetRect(int left, int top, int right, int bottom) {
 EI_REPLACE_METHOD(0x005FC9E0, CUiRegion::SetRect);
 
 void CUiRegion::ClearShape() {
-    if (points_) {
-        FreeAligned(points_);
-        points_ = nullptr;
-    }
-    pointCapacity_ = 0;
-    pointCount_ = 0;
+    points_.RemoveAll();
     enabled_ = false;
     rectOnly_ = false;
 }
 EI_REPLACE_METHOD(0x005FCA40, CUiRegion::ClearShape);
 
 void CUiRegion::AddPoint(int x, int y) {
-    if (pointCount_ == 0) {
+    if (points_.size == 0) {
         bounds_.left = x;
         bounds_.top = y;
         bounds_.right = x;
@@ -141,34 +116,12 @@ void CUiRegion::AddPoint(int x, int y) {
         if (x > bounds_.right) bounds_.right = x;
         if (y > bounds_.bottom) bounds_.bottom = y;
     }
-    // The vertex array grows like UiPtrArray, with 8-byte elements (allocated by 004F65B0).
-    int index = pointCount_;
-    int newCount = index + 1;
-    if (newCount == 0) {
-        if (points_) {
-            FreeAligned(points_);
-            points_ = nullptr;
-        }
-        pointCapacity_ = 0;
-        pointCount_ = 0;
-    } else if (!points_) {
-        points_ = static_cast<UiPoint*>(AllocAligned(static_cast<std::size_t>(newCount) * 8));
-        pointCapacity_ = newCount;
-        pointCount_ = newCount;
-    } else if (newCount <= pointCapacity_) {
-        pointCount_ = newCount;
-    } else {
-        int newCapacity = GrownCapacity(index, pointCapacity_, pointGrowBy_, newCount);
-        auto* points = static_cast<UiPoint*>(AllocAligned(static_cast<std::size_t>(newCapacity) * 8));
-        std::memcpy(points, points_, static_cast<std::size_t>(pointCount_) * 8);
-        FreeAligned(points_);
-        points_ = points;
-        pointCount_ = newCount;
-        pointCapacity_ = newCapacity;
-    }
+    // The vertex array is a lib::AlignedArray of 8-byte points (allocated by 004F65B0).
+    int index = points_.size;
+    points_.SetSize(index + 1);
     points_[index].x = x;
     points_[index].y = y;
-    if (pointCount_ > 2) enabled_ = true;
+    if (points_.size > 2) enabled_ = true;
 }
 EI_REPLACE_METHOD(0x005FCA70, CUiRegion::AddPoint);
 
@@ -368,10 +321,7 @@ CUiRegion* CUiWindow::AddRegion() {
     if (region) {
         // The bounds are left uninitialised, as in the original.
         region->interface_ = interface_;
-        region->points_ = nullptr;
-        region->pointGrowBy_ = 0;
-        region->pointCapacity_ = 0;
-        region->pointCount_ = 0;
+        region->points_ = {};
         region->tip_ = nullptr;
         region->enabled_ = false;
         region->rectOnly_ = false;

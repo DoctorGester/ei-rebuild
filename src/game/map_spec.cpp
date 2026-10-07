@@ -40,7 +40,6 @@ constexpr int kFileWrite = 14;
 void __fastcall StringArrayAppend(mfc::CStringArray* a0, void*, const mfc::CStringArray* a2) { StringArrayCopyOriginal((void*)a0, nullptr, (const void*)a2); }
 // MFC CArray helpers (library): SetSize of the 12-byte array, zeroing 8-byte elements.
 void __fastcall AreasSetSize(PlainArray* a0, void*, int a2, int a3) { Array12SetSizeOriginal((void*)a0, nullptr, a2, a3); }
-__declspec(naked) void __stdcall ConstructTargets(void* /*first*/, int /*count*/) EI_ORIGINAL(0x0046F110)
 
 // The objects manager (0x7AF5F8) look-up by id; the world server (007AFF60): an object removed
 // by id, an object made from a record; the editor's selection (007B00D0) and object lists
@@ -488,48 +487,11 @@ void __fastcall TrapSpecSave(TrapSpec* self) {
     count = static_cast<std::uint32_t>(self->targets.size);
     c.WriteHeader(0xBBAB0004, static_cast<int>(count * 8 + 4));
     FileWrite(c, &count, 4);
-    for (std::uint32_t i = 0; i < count; ++i) FileWrite(c, self->targets.data + i * 8, 8);
+    for (std::uint32_t i = 0; i < count; ++i) FileWrite(c, &self->targets.data[i], 8);
     ObjectSpecWriteFields(&self->object);
     c.EndWrite();
 }
 EI_REPLACE(0x0046B680, TrapSpecSave);
-
-namespace {
-// The targets array's SetSize(n, -1), as inlined (8-byte elements, zeroed when added).
-void SizeTargets(PlainArray& a, int n) {
-    if (n == 0) {
-        if (a.data) {
-            gamecrt::operator_delete(a.data);
-            a.data = nullptr;
-        }
-        a.maxSize = 0;
-        a.size = 0;
-    } else if (!a.data) {
-        a.data = static_cast<std::uint8_t*>(gamecrt::operator_new(static_cast<std::size_t>(n) * 8));
-        std::memset(a.data, 0, static_cast<std::size_t>(n) * 8);
-        a.maxSize = n;
-        a.size = n;
-    } else if (n <= a.maxSize) {
-        if (n > a.size) ConstructTargets(a.data + a.size * 8, n - a.size);
-        a.size = n;
-    } else {
-        int grow = a.growBy;
-        if (grow == 0) {
-            grow = a.size / 8;
-            grow = grow < 4 ? 4 : grow > 0x400 ? 0x400 : grow;
-        }
-        int capacity = a.maxSize + grow;
-        if (n >= capacity) capacity = n;
-        auto* data = static_cast<std::uint8_t*>(gamecrt::operator_new(static_cast<std::size_t>(capacity) * 8));
-        std::memcpy(data, a.data, static_cast<std::size_t>(a.size) * 8);
-        ConstructTargets(data + a.size * 8, n - a.size);
-        gamecrt::operator_delete(a.data);
-        a.data = data;
-        a.size = n;
-        a.maxSize = capacity;
-    }
-}
-} // namespace
 
 // 0046B7D0 (slot 0).
 void __fastcall TrapSpecOnChunk(TrapSpec* self) {
@@ -548,9 +510,9 @@ void __fastcall TrapSpecOnChunk(TrapSpec* self) {
     }
     case 0xBBAB0004: {
         int n = c.ReadInt();
-        SizeTargets(self->targets, n);
+        self->targets.SetSize(n, -1);
         for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(n); ++i) {
-            FileRead(c, self->targets.data + i * 8, 8);
+            FileRead(c, &self->targets.data[i], 8);
             c.Advance(8);
         }
         break;

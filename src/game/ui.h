@@ -293,10 +293,7 @@ public:
     void SetRectFrom(RECT rect);
 
     CInterface3D* interface_;        // +0x00
-    UiPoint* points_;                // +0x04 polygon vertices (aligned storage)
-    int pointCount_;                 // +0x08
-    int pointCapacity_;              // +0x0C
-    int pointGrowBy_;                // +0x10
+    lib::AlignedArray<UiPoint> points_;   // +0x04 polygon vertices (aligned storage; 8-byte allocator 004F65B0)
     RECT bounds_;                    // +0x14
     bool rectOnly_;                  // +0x24
     bool enabled_;                   // +0x25
