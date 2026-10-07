@@ -57,7 +57,30 @@ Unverified / risks:
 
 ## combat_motion.cpp (baseline: At 88, VCall 7, byte arithmetic 9)
 
-Not started yet.
+Converted: At<> 88 -> 0, VCall 7 -> 0, byte arithmetic 9 -> 0 (the local At template and ei/vcall.h
+are gone).
+- VCalls: six releases (slot 4) are `CEngineObject::Release()`; the controller's slot 25 (0x64 / 4)
+  in ResyncWithUnit is `CUnit::Controller()->ShowWeapon(unknown_270)`.
+- kWorldServer / kAIMap / kSectorMap became `WorldServer()`, `WorldServer()->AIMap()`,
+  `->Sectors()` (world_server.cpp's accessor of 007AFF60); Random() is `IsaacRandom::Global()`.
+- The local PartyNode / PartyMap / FirstNode / NextNode walk is `CPlayer::units_` (+0x40) with
+  `stlp::hash_map::First()` / `After()`: the same bucket walk (After starts at key % buckets + 1).
+- LocalMotionOrder is now `{ MotionOrder header; PathCellList steps; }` (0x3C, static_asserted);
+  the destructor writes `PathCellListVtable()` and calls the same RemoveAll forwarder.
+- ResetController's spell list emptying is `itemSpells.RemoveAll()` (the element policy releases
+  each item, then the stores in the original's order); AlarmReset gets the new `voice` member
+  (+0xB10; CUnitServer is now 0xB20 bytes, static_asserted, as server_specific_manager.h says).
+- The hero's "stamina" (+0x238) is `stats.loadFactor` (UnitStats +0x58: below 007C5448 / 007C5440
+  the movement animation gets the limp bits 0x800000 / 0x400000).
+- The player's +0x20 is `CPlayer::connection_`, +0x100 `sessionKind100_`, +0x108 `unknown_108`;
+  the group at the connection's +0x510C is `CPlayerServer::partyUnits_`.
+- ReportPath: the brain's +4 is `AIBrain::action` (unit_ai.h, now included), the path's +0x58 /
+  +0x5C / +0x60 are `targetX`, `targetY`, `goal`.
+- Left: HalfCell / HeroWalkLimit / HeroRunLimit and two `0x0073....` constants read through
+  accessors (not counted), forwarders as they were.
+
+Unverified / risks: the same bool caveat (`failed` read into a byte and compared with 1 in PathTo);
+`WorldServer()` is an out-of-line call where the constants were (no side effects).
 
 ## net_state.cpp (baseline: At 86, VCall 28)
 

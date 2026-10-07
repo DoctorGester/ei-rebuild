@@ -814,7 +814,9 @@ public:
     // +0x38 (claim radius), +0xD0 (perception memory), +0xF4 (CList of nearby units, head at
     // +0xF8) and +0x110 (CList of units the unit watches).
     std::uint8_t brain[0x190];
-    // +0xB10 the voice (005AEA60 Say). Further fields not needed.
+    // +0xB10 the voice (005AEA60 Say, 005AEA40 its reset; 0x10 bytes: the controller is 0xB20,
+    // server_specific_manager.h).
+    std::uint8_t voice[0x10];
 
     // +0x174 (moveMode2.flag4) is also read by the hit code: while it is set the unit cannot be
     // backstabbed (0054F580 on the target's controller, 00553DF0 on the defender).
@@ -864,6 +866,8 @@ static_assert(offsetof(CUnitServer, moveSteps) == 0x944);
 static_assert(offsetof(CUnitServer, idleKey) == 0x95C);
 static_assert(offsetof(CUnitServer, idleSteps) == 0x960);
 static_assert(offsetof(CUnitServer, unknown_978) == 0x978);
+static_assert(offsetof(CUnitServer, voice) == 0xB10);
+static_assert(sizeof(CUnitServer) == 0xB20);
 
 // 005460C0 / 005460D0 (slots 11 / 12; combat_server_slots.cpp): "CUnitServer" (0078FCC4) and 0x3E.
 const char* __fastcall UnitServerClassName(CUnitServer* self);
