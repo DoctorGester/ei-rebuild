@@ -84,6 +84,11 @@ struct AnimationSteps {
     // 00544E70 (RET 4). The same steps as `other` (count, then each step's bytes 0..2, duration
     // and +8). Callers test AL.
     bool SameAs(const AnimationSteps* other) const;
+    // 00544EF0 / 00544F60 (RET 4). Load: the count (into the argument's stack slot: a failed read
+    // leaves the stream pointer as the count), SetSize, each step (12 bytes), extra. Save: the
+    // same fields.
+    void Load(UnitStream* stream);
+    void Save(UnitStream* stream);
 };
 static_assert(sizeof(AnimationSteps) == 0x18);
 
@@ -106,6 +111,11 @@ struct OrderPlan {
 };
 static_assert(offsetof(OrderPlan, startTime) == 0x18);
 static_assert(offsetof(OrderPlan, direction) == 0x38);
+
+// 00544FD0 (combat_step_lists.cpp, A-U5). The plan emptied: the steps freed (operator delete;
+// count and capacity 0), extra / targetId -1, the times 0, unknown_2C 1, rangeSq 1e38, isCast /
+// notSkill 0, castKind 8.
+void __fastcall OrderPlanReset(OrderPlan* plan);
 static_assert(sizeof(OrderPlan) == 0x44);
 
 // A movement mode and whether it was mode 3 (CUnitServer + 0x168 / + 0x170, 8 bytes each).

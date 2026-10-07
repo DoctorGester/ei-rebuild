@@ -5,9 +5,14 @@
 #include "originals_library.h"
 
 #include "ei/hook.h"
+#include "lib/crt.h"
+
+#include <bit>
+#include <cstdint>
 
 namespace {
 constexpr std::uint8_t kNone = 0xFF;    // AnimationStep::animation / unknown_01: none (a pause)
+constexpr std::uint32_t kNoRange = 0x7E967699u;   // 1e38: OrderPlan::rangeSq of no plan
 
 // Appends a blank step (00550A60's values) and returns it.
 AnimationStep& AppendBlank(AnimationSteps* list) {
@@ -67,3 +72,42 @@ bool AnimationSteps::SameAs(const AnimationSteps* other) const {
     return true;
 }
 EI_REPLACE_METHOD(0x00544E70, AnimationSteps::SameAs);
+
+void AnimationSteps::Load(UnitStream* stream) {
+    // The original reads the count over its stream argument on the stack.
+    int newCount = static_cast<int>(reinterpret_cast<std::uintptr_t>(stream));
+    stream->Read(&newCount, sizeof(newCount));
+    StepsSetSize(this, nullptr, newCount, -1);
+    for (int i = 0; i < count; ++i) stream->Read(&steps[i], sizeof(AnimationStep));
+    stream->Read(&extra, sizeof(extra));
+}
+EI_REPLACE_METHOD(0x00544EF0, AnimationSteps::Load);
+
+void AnimationSteps::Save(UnitStream* stream) {
+    int written = count;
+    stream->Write(&written, sizeof(written));
+    for (int i = 0; i < count; ++i) stream->Write(&steps[i], sizeof(AnimationStep));
+    int last = extra;
+    stream->Write(&last, sizeof(last));
+}
+EI_REPLACE_METHOD(0x00544F60, AnimationSteps::Save);
+
+void __fastcall OrderPlanReset(OrderPlan* plan) {
+    AnimationSteps& list = plan->animation;
+    if (list.steps) {
+        gamecrt::operator_delete(list.steps);
+        list.steps = nullptr;
+    }
+    list.capacity = 0;
+    list.count = 0;
+    list.extra = -1;
+    plan->targetId = -1;
+    plan->endTime = 0;
+    plan->startTime = 0;
+    plan->unknown_2C = 1;
+    plan->rangeSq = std::bit_cast<float>(kNoRange);
+    plan->isCast = 0;
+    plan->notSkill = 0;
+    plan->castKind = 8;
+}
+EI_REPLACE(0x00544FD0, OrderPlanReset);

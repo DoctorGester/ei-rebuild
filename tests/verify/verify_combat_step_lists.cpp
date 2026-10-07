@@ -2,6 +2,7 @@
 // original on the real list, then compare (count, capacity, growth, extra and the steps without
 // byte 3, which the original leaves as a stack byte); the readers are compared directly.
 #include "combat_verify_util.h"
+#include "unit_capture_stream.h"
 
 using combatverify::CopySteps;
 using combatverify::FreeSteps;
@@ -68,3 +69,35 @@ static bool __fastcall SameAsVerify(const AnimationSteps* self, void*, const Ani
     return expected;
 }
 EI_VERIFY(0x00544E70, SameAsVerify, 5, s_sameAs);
+
+// 00544F60: PUSH ECX; PUSH ESI; MOV ESI,ECX; PUSH EDI (5 bytes). Both into capture streams,
+// compared; the original's bytes go on to the real stream.
+static void(__fastcall* s_saveSteps)(AnimationSteps*, void*, UnitStream*);
+static void __fastcall SaveStepsVerify(AnimationSteps* self, void*, UnitStream* stream) {
+    unitverify::CaptureStream expected(stream);
+    unitverify::CaptureStream actual(stream);
+    s_saveSteps(self, nullptr, &expected);
+    self->Save(&actual);
+    ei::verify::Check("AnimationSteps::Save", -1, expected.FirstDifference(actual), "%d steps", self->count);
+    expected.Forward(stream);
+}
+EI_VERIFY(0x00544F60, SaveStepsVerify, 5, s_saveSteps);
+
+// 00544EF0. Ours only (reads the stream). The list holds the count it read.
+static void* s_unusedLoadSteps;
+static void __fastcall LoadStepsVerify(AnimationSteps* self, void*, UnitStream* stream) {
+    self->Load(stream);
+    ei::verify::Check("AnimationSteps::Load", true, self->count >= 0 && (self->count == 0 || self->steps),
+                      "%d steps", self->count);
+}
+EI_VERIFY(0x00544EF0, LoadStepsVerify, 0, s_unusedLoadSteps);
+
+// 00544FD0. Ours only (frees the steps). The plan is empty with its reset values.
+static void* s_unusedPlanReset;
+static void __fastcall PlanResetVerify(OrderPlan* plan) {
+    OrderPlanReset(plan);
+    bool ok = !plan->animation.steps && plan->animation.count == 0 && plan->animation.extra == -1 &&
+              plan->targetId == -1 && plan->castKind == 8 && plan->unknown_2C == 1;
+    ei::verify::Check("OrderPlanReset", true, ok, "count %d target %d", plan->animation.count, plan->targetId);
+}
+EI_VERIFY(0x00544FD0, PlanResetVerify, 0, s_unusedPlanReset);
