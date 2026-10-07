@@ -1493,9 +1493,9 @@ struct SaveEntry {
     // "save_auto_enter" / "save_auto_exit" for the folders "saveq", "savea" / "saveb", otherwise
     // the zone's name (00653BD0).
     void MakeTitle(int unused);
-    // A-H14 (ui_saveload.cpp). 00653BD0 (RET 4): the zone's name, text "zone" + zone_ (its first
+    // A-H14 (ui_saveload.cpp). 00653BD0 (RET 4): the zone's name, text "zone " + zone_ (its first
     // line), else the text "save_camp". 00653CD0 (RET 4, from RefreshList 006567A0): the allod's
-    // name, text "allod" + map_, else "Unknown".
+    // name, text "allod " + map_, else "Unknown".
     mfc::CString ZoneTitle() const;
     mfc::CString AllodTitle() const;
 

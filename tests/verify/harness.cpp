@@ -217,6 +217,8 @@ char g_reportPath[MAX_PATH];
 // Whether the PeekMessageA call running the steps is one that hands input to the game (see
 // PeekMessageHook): "key", mouse and region steps wait for one.
 bool g_inputLoop = false;
+// Whether that call is WinMain's own loop (the first two kInputLoopReturns): "quit" waits for one.
+bool g_winMainLoop = false;
 
 std::vector<std::string> g_console;          // every console line so far
 std::size_t g_expectFrom = 0;                // first line "expect" looks at
@@ -1293,6 +1295,14 @@ void RunSteps() {
             --g_next;   // posted from the next main loop pass instead (see PeekMessageHook)
             return;
         }
+        // "quit" posts WM_QUIT (PostQuitMessage) on this thread: only WinMain's loop ends the game on
+        // it. The interface's message drain (00458220, run when a window is activated, e.g. as the
+        // battle screen comes back after a load) dispatches every message and drops WM_QUIT, which
+        // left magic_traps running after its quit (ticket X23).
+        if (!g_winMainLoop && s.verb == "quit") {
+            --g_next;
+            return;
+        }
         Log("harness: %s %s", s.verb.c_str(), s.argument.c_str());
         if (s.verb == "wait") {
             g_waitUntil = Now() + std::strtoul(s.argument.c_str(), nullptr, 10);
@@ -1580,6 +1590,11 @@ bool IsInputLoop(const void* returnAddress) {
     return false;
 }
 
+bool IsWinMainLoop(const void* returnAddress) {
+    auto r = reinterpret_cast<std::uintptr_t>(returnAddress);
+    return r == kInputLoopReturns[0] || r == kInputLoopReturns[1];
+}
+
 BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remove) {
     SetMainThread();
     TraceFpu("in the message loop");
@@ -1587,6 +1602,7 @@ BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remov
     if (g_running && !g_inStep) {
         g_inStep = true;   // console commands can pump messages themselves
         g_inputLoop = IsInputLoop(_ReturnAddress());
+        g_winMainLoop = IsWinMainLoop(_ReturnAddress());
         RunSteps();
         g_inStep = false;
     }

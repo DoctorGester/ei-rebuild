@@ -43,7 +43,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Verify checks
 
-- X23 (taken) A-H14 merge regressions (main 9d61b1d): magic_traps both (game did not exit 5 s after quit), script_fx both, ui_saveload / ui_saveload_delete both, rebirth_flags rebirth (crash E06D7363), render_scene vanilla (crash C0000005 in DDraw), render_movie_present rebirth (hang). Mismatches: CSaveLoadWindow::DeleteSave 2/2, SaveEntry::AllodTitle 34/34, SaveEntry::ZoneTitle 82/82.
+- X23 (done 2026-10-07: title keys "zone "/"allod ", DeleteSave check via the game import, harness quit only from WinMain's loop; rebirth_flags / render_scene / render_movie_present crashes not traced to A-H14, re-run) A-H14 merge regressions (main 9d61b1d): magic_traps both (game did not exit 5 s after quit), script_fx both, ui_saveload / ui_saveload_delete both, rebirth_flags rebirth (crash E06D7363), render_scene vanilla (crash C0000005 in DDraw), render_movie_present rebirth (hang). Mismatches: CSaveLoadWindow::DeleteSave 2/2, SaveEntry::AllodTitle 34/34, SaveEntry::ZoneTitle 82/82.
 
 - X22 flaky: render_present (vanilla) crashed once under 16 parallel runs, null call inside DDRAW.dll from render::CopyFrameTo <- DevicePresentVerify <- ShowLoadingMovie (2026-10-07, after A-S7). Passed 3/3 alone. Watch; if it recurs, guard CopyFrameTo against a lost surface.
 

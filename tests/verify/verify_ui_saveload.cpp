@@ -16,6 +16,7 @@
 #include "../../src/game/dx_surface.h"
 #include "../../src/game/ui.h"
 #include "../../src/game/world.h"
+#include "../../src/lib/gameapi.h"
 #include "../../src/lib/mfc.h"
 #include "../../src/render/render.h"
 
@@ -391,7 +392,9 @@ static void __fastcall LoadSelectedVerify(CSaveLoadWindow* self) {
 }
 EI_VERIFY(0x00655A10, LoadSelectedVerify, 0, s_unused);
 
-// 00655B20 (the delete box's yes): ours only. The folder is gone (unless a file in it could not be
+// 00655B20 (the delete box's yes): ours only. The folder is looked up through the game's import
+// (redirected to harness_saves in harness runs; the DLL's own GetFileAttributesA sees the install).
+// The folder is gone (unless a file in it could not be
 // deleted) and the selection is within the refilled list.
 static void __fastcall DeleteSaveVerify(CSaveLoadWindow* self) {
     int selected = self->selected_;
@@ -403,7 +406,7 @@ static void __fastcall DeleteSaveVerify(CSaveLoadWindow* self) {
         char path[MAX_PATH];
         std::snprintf(path, sizeof(path), "%ssaves\\%s", *reinterpret_cast<char* const*>(std::uintptr_t(0x007AF460)),
                       folder.c_str());
-        ok = GetFileAttributesA(path) == INVALID_FILE_ATTRIBUTES && self->selected_ < self->EntryCount();
+        ok = gameapi::GetFileAttributesA(path) == INVALID_FILE_ATTRIBUTES && self->selected_ < self->EntryCount();
     }
     ei::verify::Check("CSaveLoadWindow::DeleteSave", true, ok, "folder %s selected %d of %d", folder.c_str(),
                       self->selected_, self->EntryCount());
