@@ -197,6 +197,10 @@ Code (layouts, vtable slots and per-function comments are in `unit.h`, `unit_db.
 | 00533EA0, 00538DB0 | CUnitClientSpecific::DestructClientBody (sources, face, speech nodes and header, list +0x58, base vtable 0073EDBC), LoadFaceTexture ("<model>mouth[_NN]" kind 0x3D, dropped unless loaded) | unit_client_lifetime.cpp, unit_client_wounds.cpp | ours only |
 | 005190C0, 00519380, 0051A010, 0051A190 | CObject3D::RandomAnimation (variant bits, chance +0x1C narrowing, rand()), RandomAnimationOfKind; the candidate list's SetAtGrow / SetSize copies (registered with AlignedPtrArray's members) | object3d_animations.cpp | rand state saved: original vs ours (entry, generator after) / ours only |
 | 00517240, 00517110, 00519A10 | CObject3D::LoadPart (one part object, piece box, BASE / CROWN / EMPTY flags), LoadParts (model name + parts by name), AlignedPtrArray::Add | object3d_figure_setup.cpp | ours only (part listed, flag 4, pivot = position / result 1, name / index, size) |
+| 0052B1F0-0052BE40 (22) | Lever: Construct, DestructBody / DeletingDestruct, Create (2), Update (6), Load / Save (9 / 10), net state write / read (50 / 49), SetUp (zone record), Enable, SetLock, slots 29 / 38-43 / 60, class name / id (A-U6) | lever_object.cpp, lever.h | SetUp / Enable / SetLock stateful (bytes restored, original, compared); Save capture streams; readers pure; rest ours only |
+| 0052BEE0-0052C2C0 (13), 0052C490-0052C680 (7) | CTorchObject (class 0x57, spec at +0x238): lifetime, Destroy, Update, Load / Save, AttachTorchObject, net state; CTorchObjectSpec Create / Destroy / Load / Save / setters 16-18 (A-U6) | torch_object.cpp, torch_spec.cpp | Save capture streams; spec setters stateful; constants pure; rest ours only |
+| 005296E0-00529A10 (20), 0052B030 / 0052B050 / 0052A8F0 / 0050E220 / 0050E290 | CTree / CBuilding / CStone / CStuffObject (PlainMapObject<vtable>) lifetimes and class slots; AIRef Reset / Assign / Load / Save (A-U6) | map_object_kinds.cpp, counted_ref.cpp | names / ids pure; AIRef::Save capture streams; rest ours only |
+| 00529A80-00529DA0 (14), 00529F50 / 00529F60 / 00529F70, 00522AD0 | CTrapObject (placed trap, class 0x55; armed by 0058ECE0 when a trap item is used, sets off "Mushroom" particles through a world script), the magic trap's class slots and deleting destructor, LockKey::AcceptedByTrap (A-U6) | trap_object.cpp | Arm / Disarm stateful; Save capture streams; constants pure; rest ours only |
 
 Other callees stay forwarders (`originals_units.h`); only 006AC970 `CreateItem` (called through its address by GiveStartingEquipment) and FatalError 00480080 are Rebirth-patched.
 
@@ -239,12 +243,14 @@ Other callees stay forwarders (`originals_units.h`); only 006AC970 `CreateItem` 
   queue entry has three padding bytes of stack garbage (ours zero); `StopSpeech` frees nodes through `stlp::deallocate` where the original pushes them on the 32-byte free list (0079B230).
   `CObject3D::LoadPart` returns null for a part the figure has no piece of without releasing the new part object (leak).
 
+- A-U6: CTrapObject's +0x238 is saved and loaded but never initialised; a trap's 0x100000 flag changes nothing but is cleared when nobody is near; the torch's Load, Save, AttachTorchObject (type_ read first) and network writer use the spec without a null test; the lever's ApplyKey disables the lever it has just switched.
+
 ## Skipped and why
 
 - 0052EA40 (SetMotionSpeeds with given speeds): only the multiplayer client calls it (00669FA0).
 - 0050E9B0 (CMapObject slot 34) packs vitals the builder never writes when the prototype exists (005136D0 returns before touching them without a stats block): uninitialised stack, cannot be compared.
-- Candidates: 00522AE0 / 00522B20 (results depend on leftover register halves), record destructors 0053EBC0 / 00539E70 (database destructors), levers (0052B1F0 constructor, 0052B650 / 0052B560 net state; no
-  scenario has a lever), 00529B80 (class 0x3010's update: a script CreateParticleSource; not on zone1).
+- Candidates: 00522AE0 / 00522B20 (results depend on leftover register halves), record destructors 0053EBC0 / 00539E70 (database destructors), 0052C390 (torch spec net read: calls the spec's
+  slots 13-18 through the vtable, which a client spec may override), 0052CA40 / 0052CB40 / 0052CC50 (STLport / CArray instantiations).
 - Not unit logic: 00500000-0050E000 (`map_objects.md`), figure loading and bounds (005179E0 and 00516DA0 are rewritten), map object effect visuals (00510B80, 005112A0, 005114D0, 00511A00), the client half's
   material sets and colour stack (0051C3D0, 0051C250, 0051B050, 0051B160, 0051C9F0: renderer data), 0051FF40 (writes "perks.pdb", no references: dead), unit database STLport / MFC code (library: 0053F530,
   0053FCC0, 0053F950, 00520FA0, 00521220, 0053E2A0, 00521C70, 0051F790, 005225E0, 00522480, 00522010, 00522160, 005222F0, 0052C740; 005335E0 hash_map operator[], 00539440 CList Serialize, 00512060 CArray
@@ -269,3 +275,5 @@ Other callees stay forwarders (`originals_units.h`); only 006AC970 `CreateItem` 
   would silently override (check_thunks catches it when hooked). The serialisers' verify relies on loading being repeatable (fields found by id, archive left as it was); `ComposeSkin` and `WearArmourModel`
   build CString / STLport temporaries in the original's order.
 - Shared forwarders for this range are in `originals_units.h`; only 006AC970 `CreateItem` (called through its address by GiveStartingEquipment) and FatalError 00480080 are Rebirth-patched.
+
+- A-U6: levers.txt switches zone1's gate "VGate" (id 1889, the only lever on zone1; found by parsing the .mob records 0xBBAC0000) and saves / loads it. Not reached by any scenario: the lever's key slots 38-42 (science on a lever), the torch (no torch on zone1 known), the placed trap (use a trap item), the player mode's tamed slots (taming). The map object classes keep their old offset users (unit_lever.cpp still uses At<>; convert when touched).

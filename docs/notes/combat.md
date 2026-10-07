@@ -129,6 +129,9 @@ around both runs and compared too.
 | 00544CE0, 00544D50, 00544DD0, 00544E40, 00544E70 | AnimationSteps::AddStep / AddEmote / SetStepFlags / Duration / SameAs (combat_step_lists.cpp, A-U5) | writers: ours on a deep copy, original on the list, compared without byte 3; readers pure |
 | 00544F60, 00544EF0, 00544FD0 | AnimationSteps::Save / Load, OrderPlanReset | Save: both into capture streams, compared; Load / reset ours only |
 | 00552D00, 00553610 (25), 00552670 (42), 00553260 (44) | ClaimHostility, TakeUpWeapon, OnObjectDeleted, Resettle (combat_object_slots.cpp, A-U5) | ours only (one more call of kind 0x1E; weapon slot or -1; no order or leader on the object; back on the sector map) |
+| 0054BBC0 | SpellHasLineOfSight (ECX world, EDX spell; prototype +0x40 needsSight; from 0058E850's multi-target loop) (combat_spell_sight.cpp, A-U6) | pure |
+| 00551E10-00552180 (12) | Player / tamed AI mode slots: Clone, Reset (OnShutdown), Destruct, DeletingDestruct, priorities 10 / 100000000, types 6 / 8 (unit_ai_player_mode_slots.cpp, A-U6) | constants pure; rest ours only |
+| 005460C0, 005460D0, 005460E0, 00546090 (16), 005460B0 (17), 00552F30 (53), 00545F70, 00550A60 | CUnitServer class name / id, DeletingDestruct, MotionSlot, empty slot, slot 53 (UpdateMoveFactors), UnitAction / AnimationStep constructors (combat_server_slots.cpp, A-U6) | name / id / step pure; rest ours only |
 
 Not on the Rebirth list except 0054B580 (above); the patched callee 005935C0 is reached through its address.
 
@@ -157,7 +160,7 @@ Not on the Rebirth list except 0054B580 (above); the patched callee 005935C0 is 
 
 ## Skipped and why
 
-- 0055E990: Rebirth-patched. 00552F30 (slot 53: calls its own slot 45 through the vtable; CUnitServer declares no vtable). AI forwarders added: 005CEED0 AttentionRebuild, 005CCBF0 CallsDropClaims, 005CBBC0 MemoryAddCall (originals_ai.h).
+- 0055E990: Rebirth-patched. AI forwarders added: 005CEED0 AttentionRebuild, 005CCBF0 CallsDropClaims, 005CBBC0 MemoryAddCall (originals_ai.h).
 - 0054C8B0 / 0054C960: return the FPU status word in AX on one path (callers test AL; always called through the address). 00552780 (shout), 005585F0 / 00545430
   (attackers list).
 - 00536670 / 00535CB0 / 005381B0 (CUnitClientSpecific figure and armour model lists); containers, CArchive lists (00556E10-00558700), world managers other than CreateManagers.
@@ -172,3 +175,4 @@ Not on the Rebirth list except 0054B580 (above); the patched callee 005935C0 is 
 - Scenario hazards: spawn units come from database.res without every variant run (GoblinF1 may beat the starting hero; the archer "Human Gipath Brigand A1" may walk up instead of shooting; a wrong prototype name fails
   `waitfor IsAlive`). An order given ~50 ms after AddUnitToServer / SetPlayer is sometimes dropped (about 1 run in 30 with 16 games in parallel): scenarios wait 1 s after the spawn, give the order, wait 1 s and give
   it again (`hp0` is read before the first order).
+- A-U6: the CUnitServer constructor 00545580 (from 004D6A6F) is not ported: it needs CUnitServer members for +0x24 (queue), +0x148, +0x91C (armour spell list), +0x940..+0x974 (movement / idle records) instead of byte arrays, and forwarders for 00557B60, 00556850 (x2), 00545F40, 00557B80, 00545990 (AIBrain constructor, 385 bytes) and 005AEA50 (voice); +0x3C is AIPath::Construct (006706A0 inlined) and the end is ResetController. Only reached from EH unwind funclets (dead in practice): 00545B80, 00545FD0, 005461E0, 00546200; 0054B220 is called only by the rewritten 0054A900.
