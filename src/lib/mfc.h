@@ -89,6 +89,8 @@ void __fastcall PlexFreeDataChain(CPlex* head);                                 
 
 // The game's CPtrList vtable (lists the code builds on the stack use blocks of 10).
 inline void* PtrListVtable() { return reinterpret_cast<void*>(0x0073D454); }
+// The game's CDWordArray / CArray<int> vtable (lists of ids built on the stack).
+inline void* DWordArrayVtable() { return reinterpret_cast<void*>(0x0073C3D0); }
 
 // ---- Collection templates (AFXTEMPL.H) ------------------------------------------------------------
 //

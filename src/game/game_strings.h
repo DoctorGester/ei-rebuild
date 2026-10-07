@@ -30,4 +30,9 @@ inline const char* MoshkaTextureText() { return reinterpret_cast<const char*>(0x
 // 0079548C: the tornado's looping sound "nature\tornado\circle.wav" (CEffectTornado).
 inline const char* TornadoSoundText() { return reinterpret_cast<const char*>(0x0079548C); }
 
+// 0073F920: "gtime" (a player's game-time variable; CWorldServer::UpdatePlayerTimes).
+inline const char* GTimeText() { return reinterpret_cast<const char*>(0x0073F920); }
+// 00790BB8: "CWorldServer::LoadSave(): Can't load map..." (LoadSave's FatalError).
+inline const char* CantLoadSaveMapText() { return reinterpret_cast<const char*>(0x00790BB8); }
+
 } // namespace game

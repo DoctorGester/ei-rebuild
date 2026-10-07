@@ -117,6 +117,19 @@ static_assert(offsetof(CItem, charge_) == 0x28);
 static_assert(offsetof(CItem, spell_) == 0x44);
 static_assert(sizeof(CItem) == 0x4C);
 
+// The record an item's link (CItem::unknown_1C) points at as the world server makes it (0xC
+// bytes, vtable 0073FA88): a counted value with a 16-bit count and the dword the world's save keeps
+// per item (world_save.cpp, world_units.cpp, world_quests.cpp).
+struct CItemLink {
+    static constexpr std::uintptr_t kVtableAddress = 0x0073FA88;
+
+    void* vtable;
+    std::int16_t references;        // +0x04
+    std::uint16_t unknown_06;
+    std::uint32_t value;            // +0x08
+};
+static_assert(sizeof(CItemLink) == 0xC);
+
 // vtable 00743DFC, GetClassId 0x11.
 class CItemWeapon : public CItem {
 public:
