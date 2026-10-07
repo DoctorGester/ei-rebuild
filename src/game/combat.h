@@ -27,6 +27,9 @@ struct UnitAction {
     std::uint8_t unknown_20;
     std::uint8_t unknown_21[3];
 
+    // 00545F70 (combat_server_slots.cpp): kind 9, no target, flag18 0; the rest untouched. Returns
+    // this.
+    UnitAction* Construct();
     // combat_tick.cpp. 0054B320: copies `from` (the target referenced); returns this.
     UnitAction* Assign(const UnitAction* from);
     // 0054B230: kind 9, target released, flag18 / +0x1C / +0x20 cleared.
@@ -55,6 +58,9 @@ struct AnimationStep {
     std::uint8_t unknown_03;    // +0x03 not initialised by the original
     int duration;               // +0x04 game ticks
     int unknown_08;             // +0x08
+
+    // 00550A60 (combat_server_slots.cpp): the blank step above. Returns this.
+    AnimationStep* Construct();
 };
 static_assert(sizeof(AnimationStep) == 0xC);
 
@@ -276,6 +282,15 @@ public:
     // members destroyed, the referenced objects released, the arrays freed, then the base
     // controller (vtable 0073EDBC) and the engine object base.
     void DestructBody();
+    // combat_server_slots.cpp (A-U6). 005460E0 (slot 0, RET 4): DestructBody, then operator delete
+    // when `flags` bit 0 is set; returns this. 00546090 (slot 16): the motion. 005460B0 (slot 17):
+    // nothing. 00552F30 (slot 53): slot 45 (UpdateMoveFactors; CUnitServer is the only class with
+    // this vtable).
+    CUnitServer* DeletingDestruct(int flags);
+    AIPath* MotionSlot();
+    void EmptySlot17();
+    void UpdateMoveFactorsSlot53();
+    AIPath* MotionPath() { return reinterpret_cast<AIPath*>(motion_); }
     // unit_create.cpp. 00552F40. Takes `stats` (0x704 bytes) as the unit's statistics: marks
     // the unit's part 4 changed, refills the body slots between two calls of slot 19 and sets
     // the server companion's hit points and mana to their maxima. Returns the companion (EAX).
@@ -719,7 +734,8 @@ public:
     CUnit* unit;                    // +0x01C
     std::uint8_t unknown_020;       // +0x020 cleared on death
     std::uint8_t unknown_021;       // +0x021 cleared on death
-    std::uint8_t unknown_022[0xC4 - 0x22];
+    std::uint8_t unknown_022[0x3C - 0x22];   // +0x24 the animation queue (AnimationSteps)
+    std::uint8_t motion_[0xC4 - 0x3C];       // +0x3C the motion (AIPath, ai_map.h): MotionPath()
     OrderPlan currentPlan;          // +0x0C4 the plan of the current order (0054CA40 fills it)
     DamageInfo pendingHit;          // +0x108 the hit of the attack in progress
     std::uint8_t keepHitDirection;  // +0x144 while set, OnDamaged leaves hitDirection alone
@@ -789,3 +805,7 @@ static_assert(offsetof(CUnitServer, hitDirection) == 0x160);
 static_assert(offsetof(CUnitServer, effectObject) == 0x17C);
 static_assert(offsetof(CUnitServer, claimedHostile) == 0x97C);
 static_assert(offsetof(CUnitServer, brain) == 0x980);
+
+// 005460C0 / 005460D0 (slots 11 / 12; combat_server_slots.cpp): "CUnitServer" (0078FCC4) and 0x3E.
+const char* __fastcall UnitServerClassName(CUnitServer* self);
+int __fastcall UnitServerClassId(CUnitServer* self);
