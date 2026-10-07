@@ -35,4 +35,18 @@ inline const char* GTimeText() { return reinterpret_cast<const char*>(0x0073F920
 // 00790BB8: "CWorldServer::LoadSave(): Can't load map..." (LoadSave's FatalError).
 inline const char* CantLoadSaveMapText() { return reinterpret_cast<const char*>(0x00790BB8); }
 
+// The trader stock's prototype names (item_stock.cpp): 0079391C "wand" (skipped), 007938C4
+// "material", 00796370 "instruction weapon", 0079635C "instruction armor", 0079638C "instruction
+// quick item", 00796384 "scroll" (no instruction), 00793924 "prototype", 007963A4 "rune", 007938A0
+// "spell container".
+inline const char* WandText() { return reinterpret_cast<const char*>(0x0079391C); }
+inline const char* MaterialText() { return reinterpret_cast<const char*>(0x007938C4); }
+inline const char* InstructionWeaponText() { return reinterpret_cast<const char*>(0x00796370); }
+inline const char* InstructionArmorText() { return reinterpret_cast<const char*>(0x0079635C); }
+inline const char* InstructionQuickItemText() { return reinterpret_cast<const char*>(0x0079638C); }
+inline const char* ScrollText() { return reinterpret_cast<const char*>(0x00796384); }
+inline const char* PrototypeText() { return reinterpret_cast<const char*>(0x00793924); }
+inline const char* RuneText() { return reinterpret_cast<const char*>(0x007963A4); }
+inline const char* SpellContainerText() { return reinterpret_cast<const char*>(0x007938A0); }
+
 } // namespace game
