@@ -695,14 +695,14 @@ void Ask(CInterface3D* ui, const char* name, const char* text, int result) {
 } // namespace
 
 mfc::CString SaveEntry::ZoneTitle() const {
-    mfc::CString title = FirstLineOf("zone", View(zone_));
+    mfc::CString title = FirstLineOf("zone ", View(zone_));   // 007941F8: the key has a space
     if (title.GetLength() == 0) Texts()->GetString("save_camp", &title);
     return title;
 }
 EI_REPLACE_METHOD(0x00653BD0, SaveEntry::ZoneTitle);
 
 mfc::CString SaveEntry::AllodTitle() const {
-    mfc::CString title = FirstLineOf("allod", View(map_));
+    mfc::CString title = FirstLineOf("allod ", View(map_));  // 00794200: the key has a space
     if (title.GetLength() == 0) title = "Unknown";
     return title;
 }

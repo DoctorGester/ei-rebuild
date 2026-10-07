@@ -453,9 +453,9 @@ null test.
 | 00655050 | CSaveLoadWindow::OnChar (input side, RET 0xC) | ours only: name grew at the caret, kept or restarted |
 | 006570E0 | QuickSave (`__fastcall` slot, DL frame step) | ours only: info.sav header and shot.sav read back; newgame's savea |
 | 006575B0 | QuickLoad (`__fastcall` slot) | ours only: the flow's request is 2 when the folder exists |
-| 00653BD0, 00653CD0 | SaveEntry::ZoneTitle / AllodTitle (RET 4: the texts' "zone" + zone / "allod" + map, else "save_camp" / "Unknown") | side by side (7 bytes) |
+| 00653BD0, 00653CD0 | SaveEntry::ZoneTitle / AllodTitle (RET 4: the texts' "zone " + zone / "allod " + map, with a space (007941F8 / 00794200; X23: without it every title was the fallback), else "save_camp" / "Unknown") | side by side (7 bytes) |
 | 006577B0 | CSaveLoadWindow::TakeSelectedTitle (ui_menus.cpp) | ours only: name = title, caret at its end |
-| 00655290, 00655380, 00655A10, 00655B20 | Confirm (OK), AskDelete, LoadSelected, DeleteSave | ours only: load request 2; deleted folder gone, selection in the list |
+| 00655290, 00655380, 00655A10, 00655B20 | Confirm (OK), AskDelete, LoadSelected, DeleteSave | ours only: load request 2; deleted folder gone (looked up through the game's GetFileAttributesA import, which harness runs redirect to harness_saves; X23), selection in the list |
 
 Shared forwarders: 006EAF20 `_access` (gamecrt::access), 00578D00 (ServerFlagOriginal), 00458010 (FrameStepOriginal, originals_ui.h), 005F8340
 (InterfaceTextExtentOriginal). Kept: QuickSave uses the surface even when its allocation failed; Confirm / AskDelete push the message box
