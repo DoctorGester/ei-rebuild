@@ -122,6 +122,8 @@ around both runs and compared too.
 | 0055EE40 | World::CreateManagers | ours only: returns 1, every manager slot set |
 | 0054A5A0, 00555270, 005552E0, 005553B0, 00555480, 00555570, 00555630, 00555700, 00555840, 00512F60 | FitsMoveMode, SetMoveStyle, SetWantedWeapon, OrderSteal / Tame / Use / SearchBody, PlayAnimation, StopAction, FindFigureAnimation (combat_order_setters.cpp, A-U5) | ours only (mode restored; order queued / dropped / untouched; StopAction: state 6, orders 9 / 0, empty plan) |
 | 005567A0, 005567E0 | HasOtherArmour / HasMainArmour (slots 36 / 37) | pure |
+| 005533B0 (19), 00553450, 00553500 (22), 00553560 (26), 005535C0 (27), 005535E0 (28), 00553360 | RefreshVitals, UpdateProtection, RepackStats, AddArmourLayerOf, RebuildArmourLayers, ClearOuterArmourLayers, CopyStats (combat_stat_slots.cpp, A-U5) | stateful: ours, bytes (vitals / stats / protection) restored, original, compared; CopyStats output |
+| 005535F0 (29), 00552CD0 (38), 00553380 | RefreshEquipment, ForgetClaims, AddExperience | ours only (returns 1; no claims or masked calls left) |
 
 Not on the Rebirth list except 0054B580 (above); the patched callee 005935C0 is reached through its address.
 
@@ -150,8 +152,8 @@ Not on the Rebirth list except 0054B580 (above); the patched callee 005935C0 is 
 
 ## Skipped and why
 
-- 0055E990: Rebirth-patched. 00552D00 `ClaimHostility` (CString formatting), 00552670 (slot 42), 00553260 (slot 44, placement after a move, kills a unit that cannot stand), 005533B0 / 00553450 / 00553500 (stat
-  refreshes through the UnitStats builders), 00553610 (slot 25 weapon switch): stateful with UnitStats builders not yet rewritten.
+- 0055E990: Rebirth-patched. 00552D00 `ClaimHostility` (CString formatting), 00552670 (slot 42), 00553260 (slot 44, placement after a move, kills a unit that cannot stand), 00553610 (slot 25 weapon switch).
+  00552F30 (slot 53: calls its own slot 45 through the vtable; CUnitServer declares no vtable). AI forwarders added: 005CEED0 AttentionRebuild, 005CCBF0 CallsDropClaims (originals_ai.h).
 - 0054C8B0 / 0054C960: return the FPU status word in AX on one path (callers test AL; always called through the address). 0054C760, 00552780 (shout), 00544EF0 / 00544F60 (plan load / save), 005585F0 / 00545430
   (attackers list).
 - 00536670 / 00535CB0 / 005381B0 (CUnitClientSpecific figure and armour model lists); containers, CArchive lists (00556E10-00558700), world managers other than CreateManagers.

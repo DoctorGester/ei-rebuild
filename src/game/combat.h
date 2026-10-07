@@ -363,6 +363,39 @@ public:
     BOOL HasOtherArmour();
     BOOL HasMainArmour();
 
+    // combat_stat_slots.cpp (A-U5): the statistics slots.
+    // 005533B0. Virtual slot 19: the vitals recomputed (with `withHitPoints` their hit points
+    // first, UnitStats::RecomputeHitPoints) in the server companion's block; a pending attack
+    // time is rescaled by the old / new attack rate (CombatStats +0x30), rounded; the unit's part 0
+    // changed. Returns 1.
+    BOOL RefreshVitals(char withHitPoints);
+    // 00553450. protection[1..7] from the body (PackBodyProtection) and protection[0], the defence:
+    // a party unit with a weapon its weapon skill bonus (00526C70), others their defence; times 1
+    // for a party unit, else the difficulty's factor (007C54B8); truncated.
+    void UpdateProtection();
+    // 00553500. Virtual slot 22: the statistics repacked from the parameters (+0x330), the hit
+    // flags (stats +0x6F8) cleared, the protection updated, part 4 changed; motionChanged set when
+    // the movement speeds (CUnit +0x340) changed.
+    void RepackStats();
+    // 00553560. Virtual slot 26 (RET 4): the armour piece the unit wears in the slot of armour
+    // prototype `key >> 16` (its type) added to the layers. Returns false (AL).
+    bool AddArmourLayerOf(std::uint32_t key);
+    // 005535C0 / 005535E0. Virtual slots 27 (RET 4, the argument unread; returns true) / 28: the
+    // armour layers rebuilt / the outer layers cleared (returns UnitStats::ClearOuterLayers's 0).
+    bool RebuildArmourLayers(int unused);
+    int ClearOuterArmourLayers();
+    // 005535F0. Virtual slot 29: the armour spells and the AI's attack options (005CEED0) rebuilt.
+    // Returns 1.
+    BOOL RefreshEquipment();
+    // 00552CD0. Virtual slot 38: the claims dropped (claimedHostile) and the calls heard with a
+    // hostility mask (brain +0x178, 005CCBF0).
+    void ForgetClaims();
+    // 00553360 (RET 4). Copies the statistics (0x704 bytes) to `out`.
+    void CopyStats(UnitStats* out);
+    // 00553380 (RET 4). Experience gained (UnitStats::GainExperience), then RefreshVitals(0)
+    // (slot 19; only CUnitServer's vtable has it), whose 1 it returns.
+    BOOL AddExperience(float amount);
+
     // The same functions called through the game's addresses (EI_ORIGINAL), so that the verify
     // build's wrappers see the calls between the rewrites.
     void CallDeliverAttack(CEngineObject* target, DamageInfo* hit);
@@ -624,19 +657,25 @@ public:
     OrderPlan currentPlan;          // +0x0C4 the plan of the current order (0054CA40 fills it)
     DamageInfo pendingHit;          // +0x108 the hit of the attack in progress
     std::uint8_t keepHitDirection;  // +0x144 while set, OnDamaged leaves hitDirection alone
-    std::uint8_t unknown_145[0x160 - 0x145];
+    std::uint8_t unknown_145;
+    std::uint8_t motionChanged;     // +0x146 set when the movement speeds or mode changed (cleared by PathTo)
+    std::uint8_t unknown_147[0x160 - 0x147];
     std::uint32_t hitDirection;     // +0x160 HitDirection of the last hit that did not kill
     int state;                      // +0x164 0 idle, 5 casting, ...
     MoveModeState moveMode;         // +0x168
     MoveModeState moveMode2;        // +0x170
     std::uint8_t unknown_178[0x17C - 0x178];
     CEngineObject* effectObject;    // +0x17C (referenced) removed from the world on death
-    std::uint8_t unknown_180[0x190 - 0x180];
+    std::uint8_t unknown_180[0x184 - 0x180];
+    int nextAttackTime;             // +0x184 world tick of the next attack
+    std::uint8_t unknown_188[0x190 - 0x188];
     UnitAction action;              // +0x190
     UnitAction action2;             // +0x1B4
     std::uint8_t unknown_1D8[0x1E0 - 0x1D8];
     UnitStats stats;                // +0x1E0 (0x704 bytes; its +0x6F8 dword gets bit 0x10 on a hit)
-    std::uint8_t unknown_8E4[0x8F8 - 0x8E4];
+    std::int16_t protection[8];     // +0x8E4 [0] the defence value (00553450), [1..7] the body's protection
+                                    //        per damage type (UnitStats::PackBodyProtection)
+    float unknown_8F4;              // +0x8F4
     float moveFactors[4];           // +0x8F8
     std::uint8_t unknown_908[0x914 - 0x908];
     int speedClass;                 // +0x914
@@ -659,6 +698,9 @@ static_assert(offsetof(CUnitServer, unit) == 0x1C);
 static_assert(offsetof(CUnitServer, pendingHit) == 0x108);
 static_assert(offsetof(CUnitServer, currentPlan) == 0xC4);
 static_assert(offsetof(CUnitServer, unknown_938) == 0x938);
+static_assert(offsetof(CUnitServer, motionChanged) == 0x146);
+static_assert(offsetof(CUnitServer, nextAttackTime) == 0x184);
+static_assert(offsetof(CUnitServer, protection) == 0x8E4);
 static_assert(offsetof(CUnitServer, moveMode) == 0x168);
 static_assert(offsetof(CUnitServer, moveMode2) == 0x170);
 static_assert(offsetof(CUnitServer, action) == 0x190);
