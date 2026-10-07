@@ -14,7 +14,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
-- A-U done 2026-10-05 (40 functions). A-U2 done (40). A-U3 done (20). A-U4 done (28). A-U5 taken.
+- A-U done 2026-10-05 (40 functions). A-U2 done (40). A-U3 done (20). A-U4 done (28). A-U5 done (39 + 5 dead; head 5595328, merge after X23). Next: 0054BBC0, levers 0052B1F0.., 00551E10-00552180, 00545580.
 - U2 done (00535850 ClientPlaceOnPath, 0052FCC0 / 0052FDF0 in follow-up for a crash).
 
 ## World, AI and server, 0x00540000-0x005E0000 (docs/notes/world.md, ai.md, unit_ai.md)
@@ -38,7 +38,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
-- A-S done 2026-10-05 (40 functions in 0x004B0000-0x004C0000). A-S2 (cut off by the usage limit; 20 functions merged). A-S4 done (37; 78 quantiser functions marked dead). A-S5 done (28; 25 library, 5 dead). A-S6 done (24). A-S7 done (33; next: mesh ctor/dtors 004F2C00.., FindFigureSet 004FAB00, loader dtor 004F6BD0, 004F9E50, sky holder 004D9680/004D96E0) (loader cache and slots 004F77C0..004F7480, string reader 004DB9C0, CSkyObject, CServerSpecificManager, .mob decoder 004D8E10). A-S3 done 2026-10-05 (38 functions; leftovers: .mob reader 00481660 / 00481F00, particle attach 004849F0 / 00484C00, colour quantisation 0049BEA0). Was: scripts 0x004C0000-0x00500000 plus the 0x00480000-0x004B0000 leftovers.
+- A-S done 2026-10-05 (40 functions in 0x004B0000-0x004C0000). A-S2 (cut off by the usage limit; 20 functions merged). A-S4 done (37; 78 quantiser functions marked dead). A-S5 done (28; 25 library, 5 dead). A-S6 done (24). A-S7 done (33). A-S8 taken ( next: mesh ctor/dtors 004F2C00.., FindFigureSet 004FAB00, loader dtor 004F6BD0, 004F9E50, sky holder 004D9680/004D96E0) (loader cache and slots 004F77C0..004F7480, string reader 004DB9C0, CSkyObject, CServerSpecificManager, .mob decoder 004D8E10). A-S3 done 2026-10-05 (38 functions; leftovers: .mob reader 00481660 / 00481F00, particle attach 004849F0 / 00484C00, colour quantisation 0049BEA0). Was: scripts 0x004C0000-0x00500000 plus the 0x00480000-0x004B0000 leftovers.
 
 
 ## Verify checks
