@@ -15,6 +15,7 @@
 #include "originals_world.h"
 #include "originals_units.h"
 #include "console.h"
+#include "item.h"
 #include "unit.h"
 #include "map_object_figures.h"
 #include "world.h"
@@ -650,6 +651,12 @@ void CMpHeroScreen::DeleteHero() {
     (--MpHeroesEnd())->Destruct();   // inlined in the original
     std::uint32_t count = MpHeroCount();
     if (static_cast<std::uint32_t>(heroIndex_) >= count) heroIndex_ = static_cast<int>(count) - 1;
+    RefreshHeroScroll();
+    CallDrawHeroList();
+    CallShowHero(heroIndex_);
+}
+
+void CMpHeroScreen::RefreshHeroScroll() {
     auto* bar = static_cast<CUiScrollbar*>(heroScroll_);
     if (MpHeroCount() > kListRows) {
         int position;
@@ -661,8 +668,6 @@ void CMpHeroScreen::DeleteHero() {
         ScrollbarSetRangeOriginal(bar, nullptr, 0);
         heroTop_ = 0;
     }
-    CallDrawHeroList();
-    CallShowHero(heroIndex_);
 }
 namespace {
 void __fastcall MpHeroDelete(CMpHeroScreen* self) { self->DeleteHero(); }
@@ -679,3 +684,89 @@ void CMpHeroScreen::OnMessageResult(int result) {
     SetMode(this, nullptr, kModeList);
 }
 EI_REPLACE_METHOD(0x00615940, CMpHeroScreen::OnMessageResult);
+
+// --- 00617A50: the new hero added to the list ----------------------------------------------------
+
+namespace {
+MpHeroRecord*& MpHeroesCapacity() { return *reinterpret_cast<MpHeroRecord**>(0x007C82AC); }
+const char* HeroFilePattern() { return GameText(0x00793A80); }   // "%s*.mp"
+const char* HeroFileFormat() { return GameText(0x00793A78); }    // "%d.mp"
+
+// A record built in place for the vector's insert (constructed and destroyed by hand, as the
+// original does with its stack copy).
+union BlankHeroRecord {
+    BlankHeroRecord() {}
+    ~BlankHeroRecord() {}
+    MpHeroRecord record;
+};
+
+// The highest number among the titles of the files matching `pattern` (atoi; 0 without any).
+int HighestFileNumber(const char* pattern) {
+    int highest = 0;
+    mfc::CFileFind find;
+    if (find.FindFile(pattern, 0)) {
+        int more;
+        do {
+            more = CFileFindNext(&find);
+            if (!CFileFindIsDotsOriginal(&find)) {
+                mfc::CString title;
+                CFileFindTitle(&find, nullptr, &title);
+                int number = GameAtoi(title);
+                if (!(highest > number)) highest = number;
+            }
+        } while (more);
+    }
+    CFileFindCloseOriginal(&find);
+    return highest;
+}
+} // namespace
+
+void CMpHeroScreen::AddNewHero() {
+    window.interface_->PlaySound(GameText(0x00793A88), 0);   // "buttons\messbox\ok.wav"
+    auto* hero = reinterpret_cast<PartyUnitRecord*>(Hero());
+    // Only the chosen equipment stays (each list walked from its end; the count read once).
+    for (int i = static_cast<int>(hero->weaponCount) - 1; i >= 0; --i)
+        if (static_cast<void*>(hero->weapons[i]) != weapon_)
+            RecordRemoveQuickEntryOriginal(hero, nullptr, hero->weapons[i]);
+    for (int i = static_cast<int>(hero->quickItemCount) - 1; i >= 0; --i)
+        if (static_cast<void*>(hero->quickItems[i]) != armor_)
+            RecordRemoveBeltEntryOriginal(hero, nullptr, hero->quickItems[i]);
+    for (int i = static_cast<int>(hero->spellCount) - 1; i >= 0; --i)
+        if (static_cast<void*>(hero->spells[i]) != spellContainer_)
+            RecordRemoveSpellEntryOriginal(hero, nullptr, hero->spells[i]);
+    hero->weaponIndex = static_cast<int>(hero->weaponCount) > 0 ? 0 : 0xFFFFFFFFu;
+    if (static_cast<int>(hero->spellCount) > 0) {
+        auto* container = static_cast<CItem*>(hero->spells[0]);
+        auto* spell = static_cast<char*>(container->spell_);
+        if (spell && !HeroCanUseSpell(hero->stats, spell)) {
+            PartyAddItemOriginal(LocalPlayerData(), nullptr, container, 0, 1);
+            RecordRemoveSpellEntryOriginal(hero, nullptr, container);
+        }
+    }
+
+    if (MpHeroesEnd() == MpHeroesCapacity()) {
+        BlankHeroRecord blank;
+        blank.record.Construct();
+        PartyEntriesInsertOverflowOriginal(&MpHeroesBegin(), nullptr, MpHeroesEnd(), &blank.record, 1);
+        blank.record.Destruct();
+    } else {
+        if (MpHeroesEnd()) MpHeroesEnd()->Construct();
+        ++MpHeroesEnd();
+    }
+    heroIndex_ = static_cast<int>(MpHeroesEnd() - MpHeroesBegin()) - 1;
+    MpHeroRecord* record = MpHeroesBegin() + heroIndex_;
+
+    mfc::CString pattern;
+    pattern.Format(HeroFilePattern(), static_cast<const char*>(MpHeroesFolder()));
+    int highest = HighestFileNumber(pattern);
+    record->file.Format(HeroFileFormat(), highest + 1);
+    PartyCopyFrom(record->party, nullptr, LocalPlayerData());
+    PartySendTransferOriginal(record->party, nullptr, HeroesTransfer());
+    RefreshHeroScroll();
+    CallDrawHeroList();
+    SetMode(this, nullptr, kModeList);
+}
+namespace {
+void __fastcall MpHeroAddNew(CMpHeroScreen* self) { self->AddNewHero(); }
+} // namespace
+EI_REPLACE(0x00617A50, MpHeroAddNew);

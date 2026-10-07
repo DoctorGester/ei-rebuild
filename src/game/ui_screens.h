@@ -429,6 +429,17 @@ public:
     // OK) deletes the hero; then the selected hero's record takes the local player's party and
     // sends the transfer (00662AC0); mode 9 (00615D30).
     void OnMessageResult(int result);
+    // 00617A50 (ui_hero_screen_click.cpp). Region 1 / Enter of the statistics page: the new hero
+    // keeps only the chosen weapon, quick item and spell container (the others removed from its
+    // lists; the shown weapon 0, or -1 without one), and a spell container whose spell the hero
+    // cannot use (HeroCanUseSpell) goes back to the local player's items; a new hero record is
+    // appended (the vector's own growth through 00619920 when full) and selected, its file named
+    // "<the highest number among the folder's *.mp titles + 1>.mp", given the local party and
+    // saved (00662AC0); the list's scroll range, the list drawn, mode 9.
+    void AddNewHero();
+    // The hero list's scroll bar after the count changed (DeleteHero and AddNewHero inline it):
+    // range count - 10 keeping the position, or 0 with the top row 0.
+    void RefreshHeroScroll();
 
     CUiWindow window;
     std::uint8_t unknown_148[0x164 - 0x148];

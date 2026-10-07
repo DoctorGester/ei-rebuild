@@ -261,7 +261,7 @@ global map (regions 0 / 1 turn it, Esc opens the escape menu over it). Construct
 ("constrN" answers, 006064E0 -> 00578560(N) -> screen 5) or `screen 5 <N>` provides; setting "i.onspellconstr" / "i.onitemconstr" without one
 crashes the original too (00621377 in `RebuildList` reads 0x44: the lists are at `+0x1C8 + 0x40` / `+0x1B4 + 0x40`, the record's +0xAC / +0x3C,
 which stay 0). Not reached by a scenario: the constructor pages' Builds (006270A0, 006280C0, 00628CC0, 006279E0), CanMakeSpell / CanMakeItem,
-probably CanEquip, hero creation (00617A50).
+probably CanEquip. Hero creation 00617A50 is reached by ui_hero_delete (unconfirmed).
 
 | Address | Name | Verify |
 |---|---|---|
@@ -293,6 +293,7 @@ probably CanEquip, hero creation (00617A50).
 | 00633260, 00615800, 00634500, 00634560 | `CMpHeroScreen::Destroy` (the destructor body: not the main menu's, the hero screen's vtable 0074214C slot 0 00633240 calls it), `MpVoiceEntry::Destroy`, `ReleaseCachedObjects` (the model / texture caches, in key order; `ui_hero_screen.cpp`) | ours only: caches empty and arrays freed; the walk visits `count` nodes. ui_hero_screen (Esc to the main menu) |
 | 00619540, 00619560, 00613CF0, 0062A7C0 | `MpHeroRecord::Construct` / `Destruct` (`ui_hero_screen_click.cpp`), `TradeRow::Destroy` / `DeleteThis` (`ui_trade_panel.cpp`) | ours only: empty file name; result this. ui_hero_delete; ui_camp, ui_trade_restore |
 | 00617E40, 00615940, 0061A350 | `CMpHeroScreen::DeleteHero` (file folder + record name deleted, records moved down, the last destroyed, selection and list range kept), `OnMessageResult` (slot 27: 0x10001 deletes; the selected record takes the local party and sends the transfer; mode 9), `MpHeroRecord::Assign` (`ui_hero_screen_click.cpp`) | ours only: one record fewer, index / top in range; mode 9; the file name copied. Scenario ui_hero_delete (makes a hero first; unconfirmed) |
+| 00617A50 | `CMpHeroScreen::AddNewHero` (statistics page's next: only the chosen equipment kept, an unusable spell container back to the player, a record appended (00619920 when full) and selected, file "<highest *.mp title + 1>.mp", party copied and saved; scroll range shared with DeleteHero as `RefreshHeroScroll`) | ours only: one record more, selected, ".mp" name, at most one entry per list, mode 9. ui_hero_delete |
 | 006167C0, 00616560, 00616910 | `CMpHeroScreen::DrawHeroList` (ten rows from heroTop_, a hero record is a CParty whose first member's text 0 is the name), `DrawVoices` (eleven rows, frame at 97.5, offset + 00741C94), `ShowHero` (RET 4; the preview 00616E20 is `MakePreview`, below) (`ui_hero_screen.cpp`; callers use `Call*`) | ours only: the selection frame shown iff the selection is among the rows; ShowHero's index and turn. ui_hero_screen |
 | 00624790, 00624A60 | `CHeroStatsPanel::OnLButtonDown` (input 2: page 10's -/+ buttons, regions 6-13 via `StepPoint`, a hold starts at -0.5 s with the capture; else regions 0 / 1 the owner's previous / next hero), `Update` (24: the held button repeats after 0.25 s; the hold ends when it cannot step) (`ui_stats_buttons.cpp`; +0x174 / +0x178 now `heldRegion_` / `holdTime_`) | ours only: the hold state left (CheckNear on the time). ui_hero_stats (its -/+ coordinates come from ShowStats' page-10 layout, unconfirmed); ui_camp reaches the arrows |
 | 006242E0, 00624590 | `CHeroStatsPanel::DrawRow` (RET 0x10: "perk <label>" text or the label, "%d" / "%d/%d"), `DrawPart` (RET 0xC: "     " + "hl_<name>", the armour "%.1f" = the largest of the first six damage types' three-layer sums, a NaN keeps the old maximum) (`ui_stats_rows.cpp`) | ours only: page / points kept; the armour recomputed a second way (CheckNear). ui_camp, ui_describe, ui_hero_screen |
@@ -354,8 +355,8 @@ the last record reads the next record's name through null), `DrawLists` leaves t
 each record unwritten.
 
 Not rewritten: 00612CF0 (camp slot 39, a debug fill; no caller but the vtable) (the trade grid draw 00627390 is in `ui_trade_grid_draw.cpp`, renderer.md),
-0062CF70, 00617A50 (creates the hero:
-.mp files, records array 007C82A0..007C82AC); the exchange window (0062C250, 0062C9C0) and the lobby screens (0061C430, 0061C700, 0061D470, 0061E2F0 ...) need a network session, no scenario.
+0062CF70, 006091C0 (the chat window's player list; its RefPtr assignment 00609D40 is done, net_server_trade.cpp);
+the exchange window (0062C250, 0062C9C0) and the lobby screens (0061C430, 0061C700, 0061D470, 0061E2F0 ...) need a network session, no scenario.
 
 ### Briefing / base screen (`ui_briefing*.cpp`, `ui_briefing.h`, `ui_person_texts.cpp`; `verify_ui_briefing*.cpp`)
 

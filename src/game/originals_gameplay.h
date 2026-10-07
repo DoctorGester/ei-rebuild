@@ -35,6 +35,12 @@ __declspec(naked) inline void __fastcall PlayerGiveItemsOriginal(void* /*player*
 // two flags are read as bytes; EAX is the item, or null).
 __declspec(naked) inline void __fastcall PartyResetOriginal(void* /*party*/, void*, int /*a*/, int /*b*/)
     EI_ORIGINAL(0x00661700)
+// 00619920: the insert overflow of a vector of party file entries (0x74 bytes: the records and a CString file name;
+// the multiplayer heroes 007C82A4, the world's party list): `count` copies of `value` at `position` in a new block
+// (RET 0xC, no result).
+__declspec(naked) inline void __fastcall PartyEntriesInsertOverflowOriginal(void* /*vector*/, void*, void* /*position*/,
+                                                                            const void* /*value*/, unsigned /*count*/)
+    EI_ORIGINAL(0x00619920)
 // 00662AC0: a party (the multiplayer heroes' records too) sends its map transfer `transfer` (RET 4, no result).
 __declspec(naked) inline void __fastcall PartySendTransferOriginal(void* /*party*/, void*, int /*transfer*/) EI_ORIGINAL(0x00662AC0)
 __declspec(naked) inline void* __fastcall PartyAddItemOriginal(void* /*party*/, void*, void* /*item*/, int /*a*/,
