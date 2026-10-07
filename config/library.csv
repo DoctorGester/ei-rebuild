@@ -3111,6 +3111,8 @@ address,name,library,signature,notes
 0064F880,"stlp pair<string, T>::pair(const string&, const T&)",STLport,,A-H11 sweep: same instructions as 005729D0 (data addresses masked; every call goes to the same callee or to library code)
 0064F9E0,stlp::uninitialized_copy<pair*>,STLport,,A-H11 sweep: same instructions as 0042B3C0 (data addresses masked; every call goes to the same callee or to library code)
 0064FA10,stlp::uninitialized_fill_n<pair*>,STLport,,A-H11 sweep: same instructions as 0042B3F0 (data addresses masked; every call goes to the same callee or to library code)
+006518A0,"compiler-generated destructor (0x18-byte record with a vector and two CStrings)",compiler,,"A-H15: the two CStrings (+0x14, +0x10), then the vector's block back to the node pool 0079B224 (above 0x80 bytes operator delete); reached from 006537E0 and the unwind funclet 0072EBF8"
+00651CE0,"compiler-generated destructor (0x14-byte record with a CString)",compiler,,"A-H15: the CString at +0x10 (a tail jump to CString::~CString); reached from 00653800"
 00652740,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 00652760,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,,"inventory sweep: n*sizeof(T) back to the node-pool free list, operator delete above 128 bytes; loose-family member of 00406590 (reviewed)"
 006527A0,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00428C50 (reviewed)"
@@ -3127,6 +3129,8 @@ address,name,library,signature,notes
 006535D0,"stlp::uninitialized_fill_n (0x14-byte record with a CString)",STLport,,"A-H14 review of the save screen 00653000-00658000: template instantiation, copy-constructs n copies"
 00653680,stlp::uninitialized_copy<T*>,STLport,,A-H11 sweep: same instructions as 0042B6C0 (data addresses masked; every call goes to the same callee or to library code)
 006536A0,stlp::allocator<T>::allocate,STLport,,inventory sweep: n*sizeof(T) from the node pool or operator new above 128 bytes; loose-family member of 004B0E20 (reviewed)
+006537E0,"compiler-generated deleting destructor (0x18-byte record)",compiler,,"A-H15: 006518A0, then operator delete with flag bit 0; the save screen's key list rebuild 00651600 runs it with flag 0 on each element it drops (STLport _Destroy)"
+00653800,"compiler-generated deleting destructor (0x14-byte record)",compiler,,"A-H15: 00651CE0, then operator delete with flag bit 0 (STLport _Destroy on the 0x14-byte records)"
 00653820,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408C20 (data addresses masked; every call goes to the same callee or to library code)
 006538E0,"SaveEntry::operator= (compiler-generated)",compiler,,"A-H14 review of the save screen 00653000-00658000: CStrings assigned, dwords copied, CStringArray::Copy twice, the broken flag; returns this"
 00656640,"SaveEntry copy constructor (compiler-generated)",compiler,,"A-H14 review of the save screen 00653000-00658000: empty CStrings and CStringArrays, then the members assigned as in 006538E0"
