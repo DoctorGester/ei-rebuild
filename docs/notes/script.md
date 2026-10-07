@@ -482,7 +482,13 @@ destructor 004F6BD0, 004F9E50 (a part morphed again, Remorph), 004F2650 / 004F29
 | 004F4B50, 004FAAA0 | `CLinkMesh::MemoryBytes`, loader slot 2 `CacheBytes` | against the original; no scenario known to reach them |
 | 004D9680, 004D96E0 | `CSky::Construct`, `CSky::Draw` (`sky_object.cpp`; `CSceneRenderer` in model.h names the renderer's slots 11 `SetTexture` / 14 `DrawFigure`; `CSkyObject::matrix_` +0x54) | ours only: fields after construction; after a draw the object at the eye lowered by 16, that translation in its matrix, stacks 1 / 2 as deep as before. `newgame`, `render_scene` |
 | 00480B80 | `DirectXErrorText` (`dx_errors.cpp`; the comparison tree as a sorted table of 149 codes, texts copied from the exe) | against the original by content; reached only by a DirectX failure report |
+| 004BA120 | `CSceneRenderer::SetFogColour` (`scene_renderer.cpp`; slot 0 `SetFogColourState` 00501AB0, `fogColour_` +0x14) | original first, then ours: the packed colour. `script_exec` (SetBackGroundColor) |
 
+- `CTransformPipeline` (model.h) got `transform_` +0x0C (3DfpFPU's object, `ITransformPipeline`); the device object's
+  +0xAC is that pipeline (`CTextureDevice::pipeline_`; the A-S8 `DeviceTransformLibrary` merged into it).
+- Dead (config/dead_code.csv, A-S8): 33 functions 004A1E60-004A47D0 (the 3DS loader's STL sort / merge helpers) whose
+  only callers (rel32, rel8, Jcc; no dword in the exe or Rebirth's binaries) are dead, e.g. 004A29B0 <- 004A1E80, 004A3CA0
+  <- 004A3620 (from its catch funclet). A scan of 0x00480000-0x00500000 found no other such chains.
 - Kept: RemorphFigPart reads every record as FIG8 (a plain FIG part is skipped 0x168 bytes and morphed from 8 versions).
   LoadFigPart / LoadOldPart now share the packet morphs (`MorphFig8Packet`, `MorphOldPacket`) with them.
 - The figure model forwarders 005A9A50 / 005A9C90 / 005A9EB0 are now shared in originals_world.h.

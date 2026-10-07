@@ -2,7 +2,7 @@
 #include "link_figure.h"
 
 #include "originals_script.h"
-#include "texture.h"   // CTextureDevice, DeviceTransformLibrary
+#include "texture.h"   // CTextureDevice
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -100,7 +100,7 @@ CLinkMesh* CLinkMesh::Construct(CLinkFigureLoader* loader, const stlp::string* n
     ranges_.Construct();
     ei::SetVtable(this, kVtableAddress);
     loader_ = loader;
-    pipeline_ = loader->renderer_->transform_->pipeline;
+    pipeline_ = loader->renderer_->pipeline_->transform_;
     return this;
 }
 EI_REPLACE_METHOD(0x004F2C00, CLinkMesh::Construct);

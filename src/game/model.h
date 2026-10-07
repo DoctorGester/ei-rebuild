@@ -47,8 +47,10 @@ static_assert(sizeof(MatrixStack) == 8);
 // `out` may be one of the inputs as in the original.
 void __fastcall MatrixMultiply(float* out, void*, const float* a, const float* b);
 
-// The transform pipeline of the 3D library (the object behind GetTLPipeline). Only the matrix
-// stacks are known.
+class ITransformPipeline;   // link_figure.h
+
+// The transform pipeline of the 3D library (the scene renderer's +8, the device object's +0xAC).
+// Only the matrix stacks and the transform object are known.
 class CTransformPipeline {
 public:
     // Stack 2 holds the matrix ClipTest projects with.
@@ -62,10 +64,12 @@ public:
     // itself, otherwise the new top is the old top times `m` (no capacity check).
     void PushMatrix(const float* m, int index);
 
-    std::uint8_t unknown_00[0x14];
+    std::uint8_t unknown_00[0x0C];
+    ITransformPipeline* transform_;   // +0x0C 3DfpFPU.dll's transform object (projects and clips vertices)
+    std::uint8_t unknown_10[4];
     MatrixStack stacks_[11];    // +0x14 (models.md: stacks 0-2, 5-10 are in use)
 };
-static_assert(offsetof(CTransformPipeline, stacks_) == 0x14);
+static_assert(offsetof(CTransformPipeline, stacks_) == 0x14 && offsetof(CTransformPipeline, transform_) == 0x0C);
 
 struct tagRECT;
 
@@ -73,7 +77,8 @@ struct tagRECT;
 // Only the slots rewritten code calls are named. The game's code stores the vtable (novtable).
 class __declspec(novtable) CSceneRenderer {
 public:
-    virtual void Unknown0();
+    // 0: 00501AB0. Sets the device's fog colour render state (D3DRENDERSTATE_FOGCOLOR) to `colour`.
+    virtual void SetFogColourState(std::uint32_t colour);
     virtual void Unknown1();
     virtual void Unknown2();
     virtual void Unknown3();
@@ -94,10 +99,17 @@ public:
     virtual int DrawFigure(void* figure, const void* unknownA, const void* unknownB, int unknownC, int alpha,
                            tagRECT* screen);
 
+    // 004BA120 (RET 0xC; scene_renderer.cpp, A-S8). The fog (and clear) colour from components in
+    // 0..1: each times 255 as a float, rounded to the nearest integer (FISTP); A = 0xFF, packed as
+    // ((r | 0xFFFFFF00) << 8 | g) << 8 | b; stored at +0x14 and set through slot 0.
+    void SetFogColour(float r, float g, float b);
+
     std::uint8_t unknown_04[4];
     CTransformPipeline* pipeline_;   // +0x08
+    std::uint8_t unknown_0C[8];
+    std::uint32_t fogColour_;        // +0x14 also the colour the frame is cleared with
 };
-static_assert(offsetof(CSceneRenderer, pipeline_) == 0x08);
+static_assert(offsetof(CSceneRenderer, pipeline_) == 0x08 && offsetof(CSceneRenderer, fogColour_) == 0x14);
 
 // 004F1370. Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by
 // the half extents, y flipped. Returns out.
