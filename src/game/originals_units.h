@@ -43,7 +43,8 @@ __declspec(naked) inline double __fastcall UnitSize(CUnit*) EI_ORIGINAL(0x005305
 __declspec(naked) inline void* __fastcall UnitPrototypeOf(const void* /*unit*/) EI_ORIGINAL(0x00530930)
 __declspec(naked) inline void __fastcall UnitUpdateSizeClass(CUnit*) EI_ORIGINAL(0x00530570)
 // 00555840 (the unit's server controller, CUnit + 0x240; plain RET): the controller drops its action and orders (state 6,
-// commands 9). 00555700 (RET 4): it plays `animation` (a FigureAnimation of the unit, 00518FC0) as its action.
+// commands 9). 00555700 (RET 4): it plays the animation named by its argument (callers pass a FigureAnimation, whose
+// name comes first, or a name) as its action. Both rewritten (CUnitServer::StopAction / PlayAnimation).
 __declspec(naked) inline void __fastcall ControllerStopActionOriginal(void* /*controller*/) EI_ORIGINAL(0x00555840)
 __declspec(naked) inline void __fastcall ControllerPlayAnimationOriginal(void* /*controller*/, void*, const void* /*animation*/)
     EI_ORIGINAL(0x00555700)

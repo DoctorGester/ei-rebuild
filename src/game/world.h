@@ -129,7 +129,7 @@ public:
     virtual void Slot16();
     virtual void Slot17();
     virtual void Slot18();
-    virtual void Slot19();
+    virtual CEngineObject* MapObjectManager();   // 19: 0055EB70, the map object manager (+0x40)
     virtual void Slot20();
     virtual void Slot21();
     virtual CSpellManager* SpellManager();   // 22: 0055EBA0 (+0x4C)

@@ -120,10 +120,14 @@ around both runs and compared too.
 | 00551AE0, 00552280 | TryTame, UndoTaming | ours only: stage 1..3 / 0 |
 | 00547890 | UpdateMotion | ours only: controller keeps its unit, "waiting for" link set with a unit or clear, obstacle flag 0 or 1 |
 | 0055EE40 | World::CreateManagers | ours only: returns 1, every manager slot set |
+| 0054A5A0, 00555270, 005552E0, 005553B0, 00555480, 00555570, 00555630, 00555700, 00555840, 00512F60 | FitsMoveMode, SetMoveStyle, SetWantedWeapon, OrderSteal / Tame / Use / SearchBody, PlayAnimation, StopAction, FindFigureAnimation (combat_order_setters.cpp, A-U5) | ours only (mode restored; order queued / dropped / untouched; StopAction: state 6, orders 9 / 0, empty plan) |
+| 005567A0, 005567E0 | HasOtherArmour / HasMainArmour (slots 36 / 37) | pure |
 
 Not on the Rebirth list except 0054B580 (above); the patched callee 005935C0 is reached through its address.
 
 ## Original bugs and oddities kept on purpose
+
+- A-U5: SetMoveStyle sends message 9 when the style fits (even the current one); OrderTame compares the target's +0x18 (not type_) with 0x32; OrderSearchBody wants a dead target; PlayAnimation reads the entry's index byte as a dword; StopAction always ends with the queued order of kind 0.
 
 - Hit: melee reach floor for two party units is 0x3E4CCCCE (0.20000002); GetAttackParams keeps the damage type when the natural attack has no non-zero weight; BuildAttackHit's weapon branch rolls with `rand()`, the rest
   with ISAAC; TakeHit logs " skill=" with the resolved +0x20 (always +-FLT_MAX by then); ResolveHit penalises every called-shot location except the body (1) by 10 (including 6 and invalid); CanCast compares mana only for
@@ -149,7 +153,7 @@ Not on the Rebirth list except 0054B580 (above); the patched callee 005935C0 is 
 - 0055E990: Rebirth-patched. 00552D00 `ClaimHostility` (CString formatting), 00552670 (slot 42), 00553260 (slot 44, placement after a move, kills a unit that cannot stand), 005533B0 / 00553450 / 00553500 (stat
   refreshes through the UnitStats builders), 00553610 (slot 25 weapon switch): stateful with UnitStats builders not yet rewritten.
 - 0054C8B0 / 0054C960: return the FPU status word in AX on one path (callers test AL; always called through the address). 0054C760, 00552780 (shout), 00544EF0 / 00544F60 (plan load / save), 005585F0 / 00545430
-  (attackers list), 00555270-00555840 (other order setters: use, pick up, kinds 7 / 8 / 10; next candidates, same patterns).
+  (attackers list).
 - 00536670 / 00535CB0 / 005381B0 (CUnitClientSpecific figure and armour model lists); containers, CArchive lists (00556E10-00558700), world managers other than CreateManagers.
 
 ## Risks
