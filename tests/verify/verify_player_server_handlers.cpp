@@ -1,6 +1,6 @@
 // Checks for player_server_handlers.cpp.
 // - OnLeaderDied (0066F4C0; scenario hero_death: the hero killed in single player): ours only. Single
-//   player: the stream grew by 1, or 9 with the 0x0B message. A network game (no scenario): flag70_ is
+//   player: the stream grew by 1, or 10 with the 0x0B message (0x0B, id, 0xFF = 9 bytes, after the 0x09). A network game (no scenario): flag70_ is
 //   1 and lastPosition_.z -1313 after.
 // - OnUseOrder (00670310; ui_battle_commands: the clicks on the dead wolves send 0x36 with the one
 //   selected hero, so only the one-unit path runs): ours only, result 1 and the stream moved past the
@@ -35,7 +35,7 @@ void __fastcall LeaderDiedVerify(CPlayerServer* self) {
         ei::verify::Check("CPlayerServer::OnLeaderDied", true, self->flag70_ == 1 && self->lastPosition_.z == -1313.0f,
                           "server %p: flag %d", self, self->flag70_);
     } else {
-        bool ok = grown == 1 || (grown == 9 && self->out_.data_[before + 1] == kMessageObject0B);
+        bool ok = grown == 1 || (grown == 10 && self->out_.data_[before + 1] == kMessageObject0B);
         ei::verify::Check("CPlayerServer::OnLeaderDied", true, ok, "server %p: grew %u", self, grown);
     }
 }
