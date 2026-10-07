@@ -63,6 +63,15 @@ public:
     // 004D9B80 (matrix_math.cpp, RET 8). Pushes `m` onto stack `index`: an empty stack gets `m`
     // itself, otherwise the new top is the old top times `m` (no capacity check).
     void PushMatrix(const float* m, int index);
+    // 004F2650 (RET 0x14, A-S8). Projects `blocks` blocks of four positions: `bounds` (null: assumed
+    // crossing) classified by ClipTest; on screen (0): the transform object's Project with the top of
+    // stack 1, result 0; crossing (1): its ProjectClipped with the top of stack 2, its result;
+    // anything else: 2, nothing projected.
+    int ProjectBlocks(const void* positions, void* projected, void* outcodes, int blocks, const ClipBounds* bounds);
+    // 004F29F0 (RET 0x14, A-S8). The same for terrain vertices (slots 18 / 19), both with stack 2.
+    int ProjectTerrain(const void* vertices, void* projected, void* outcodes, int count, const ClipBounds* bounds);
+    // The top of stack `index` (matrices[count - 1], as the original computes it even when empty).
+    const Matrix4* Top(int index) const { return stacks_[index].matrices + (stacks_[index].count - 1); }
 
     std::uint8_t unknown_00[0x0C];
     ITransformPipeline* transform_;   // +0x0C 3DfpFPU.dll's transform object (projects and clips vertices)

@@ -483,6 +483,7 @@ destructor 004F6BD0, 004F9E50 (a part morphed again, Remorph), 004F2650 / 004F29
 | 004D9680, 004D96E0 | `CSky::Construct`, `CSky::Draw` (`sky_object.cpp`; `CSceneRenderer` in model.h names the renderer's slots 11 `SetTexture` / 14 `DrawFigure`; `CSkyObject::matrix_` +0x54) | ours only: fields after construction; after a draw the object at the eye lowered by 16, that translation in its matrix, stacks 1 / 2 as deep as before. `newgame`, `render_scene` |
 | 00480B80 | `DirectXErrorText` (`dx_errors.cpp`; the comparison tree as a sorted table of 149 codes, texts copied from the exe) | against the original by content; reached only by a DirectX failure report |
 | 004BA120 | `CSceneRenderer::SetFogColour` (`scene_renderer.cpp`; slot 0 `SetFogColourState` 00501AB0, `fogColour_` +0x14) | original first, then ours: the packed colour. `script_exec` (SetBackGroundColor) |
+| 004F2650, 004F29F0 | `CTransformPipeline::ProjectBlocks`, `ProjectTerrain` (`model.cpp`; `ITransformPipeline` slots 9 / 14 / 18 / 19 named) | ours only: 0 for bounds on screen, 2 for bounds outside. Flat geometry draw (shadows, `newgame`), terrain (every frame) |
 
 - `CTransformPipeline` (model.h) got `transform_` +0x0C (3DfpFPU's object, `ITransformPipeline`); the device object's
   +0xAC is that pipeline (`CTextureDevice::pipeline_`; the A-S8 `DeviceTransformLibrary` merged into it).

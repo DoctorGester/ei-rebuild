@@ -16,7 +16,8 @@
 #include <cstddef>
 #include <cstdint>
 
-// The transform pipeline of 3DfpFPU.dll (GetTLPipeline), as far as the loaders call it.
+// The transform object of 3DfpFPU.dll (GetTLPipeline; CTransformPipeline::transform_), as far as
+// rewritten code calls it.
 class ITransformPipeline {
 public:
     // Slots 0-6 are not called from this code.
@@ -29,6 +30,24 @@ public:
     virtual void Unknown6();
     // 7: fits `bounds` around `count` vertex packets.
     virtual void FitBounds(ClipBounds* bounds, const VertexPacket* vertices, int count);
+    virtual void Unknown8();
+    // 9: projects `blocks` blocks of four positions with `matrix` into `projected`, writing their
+    // clip outcodes; the result is the caller's (on screen / crossing / outside).
+    virtual int ProjectClipped(const Matrix4* matrix, const void* positions, void* projected, void* outcodes,
+                               int blocks);
+    virtual void Unknown10();
+    virtual void Unknown11();
+    virtual void Unknown12();
+    virtual void Unknown13();
+    // 14: the same without clipping (every block on screen).
+    virtual void Project(const Matrix4* matrix, const void* positions, void* projected, int blocks);
+    virtual void Unknown15();
+    virtual void Unknown16();
+    virtual void Unknown17();
+    // 18 / 19: the same for the terrain's vertices (006BFC80).
+    virtual int ProjectTerrainClipped(const Matrix4* matrix, const void* vertices, void* projected, void* outcodes,
+                                      int count);
+    virtual void ProjectTerrain(const Matrix4* matrix, const void* vertices, void* projected, int count);
 };
 
 // A part's header in the mesh's map +0x14 (map<string, LinkPartHeader>; 0x50 bytes, zeroed when

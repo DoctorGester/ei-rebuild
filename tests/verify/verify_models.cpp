@@ -116,6 +116,36 @@ static int __fastcall ClipTestVerify(const CTransformPipeline* self, void*, cons
 }
 EI_VERIFY(0x004F16A0, ClipTestVerify, 6, s_clipTest);
 
+// 004F2650 / 004F29F0 (A-S8, ours only: the transform object writes the outputs and may count
+// vertices): 0 for bounds on screen, 2 for bounds outside (ClipTest's verdict, read first).
+// 004F2650: the flat geometry draw 004EA4A0 (shadows; newgame); 004F29F0: the terrain draw 006BFC80
+// (every frame).
+namespace {
+void CheckProjection(const char* name, const CTransformPipeline* self, const ClipBounds* bounds, int result) {
+    const int where = bounds ? self->ClipTest(bounds) : 1;
+    const bool ok = where == 0 ? result == 0 : where == 1 ? true : result == 2;
+    ei::verify::Check(name, true, ok, "verdict %d result %d", where, result);
+}
+} // namespace
+
+static int(__fastcall* s_projectBlocks)(CTransformPipeline*, void*, const void*, void*, void*, int, const ClipBounds*);
+static int __fastcall ProjectBlocksVerify(CTransformPipeline* self, void*, const void* positions, void* projected,
+                                          void* outcodes, int blocks, const ClipBounds* bounds) {
+    const int result = self->ProjectBlocks(positions, projected, outcodes, blocks, bounds);
+    CheckProjection("CTransformPipeline::ProjectBlocks", self, bounds, result);
+    return result;
+}
+EI_VERIFY(0x004F2650, ProjectBlocksVerify, 0, s_projectBlocks);
+
+static int(__fastcall* s_projectTerrain)(CTransformPipeline*, void*, const void*, void*, void*, int, const ClipBounds*);
+static int __fastcall ProjectTerrainVerify(CTransformPipeline* self, void*, const void* vertices, void* projected,
+                                           void* outcodes, int count, const ClipBounds* bounds) {
+    const int result = self->ProjectTerrain(vertices, projected, outcodes, count, bounds);
+    CheckProjection("CTransformPipeline::ProjectTerrain", self, bounds, result);
+    return result;
+}
+EI_VERIFY(0x004F29F0, ProjectTerrainVerify, 0, s_projectTerrain);
+
 // 004F93A0: MOV EDX,[ESP+4]; PUSH ESI (5 bytes). Original on a scratch copy, ours on the real one.
 static std::uint32_t(__fastcall* s_setBox)(ClipBounds*, void*, const float*, const float*);
 static std::uint32_t __fastcall SetBoxVerify(ClipBounds* self, void*, const float* min, const float* max) {
