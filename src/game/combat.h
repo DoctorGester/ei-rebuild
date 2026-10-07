@@ -67,6 +67,23 @@ struct AnimationSteps {
     int capacity;           // +0x0C
     int growBy;             // +0x10
     int extra;              // +0x14 copied along with the steps
+
+    // combat_step_lists.cpp (A-U5). New steps are blank (00550A60's values: 0xFF, 0xFF, 0,
+    // duration -1, +8 0; byte 3 is the original's stack byte, ours 0); the list grows by
+    // 00557B80 (SetSize).
+    // 00544CE0 (RET 8). Appends a step of animation `animation` (low byte) lasting `duration`.
+    void AddStep(int animation, int duration);
+    // 00544D50 (RET 4). The last step becomes the open-ended emote `emote` (low byte into +1;
+    // duration -1); a blank step is appended first when the list is empty or its last step
+    // already carries an emote (+1 not 0xFF).
+    void AddEmote(int emote);
+    // 00544DD0 (RET 4). Every step's +8 becomes `value`.
+    void SetStepFlags(int value);
+    // 00544E40. The sum of the durations; -1 when one is negative (open-ended).
+    int Duration() const;
+    // 00544E70 (RET 4). The same steps as `other` (count, then each step's bytes 0..2, duration
+    // and +8). Callers test AL.
+    bool SameAs(const AnimationSteps* other) const;
 };
 static_assert(sizeof(AnimationSteps) == 0x18);
 
@@ -351,6 +368,11 @@ public:
     void OrderTame(CEngineObject* target, int run);
     void OrderUse(CEngineObject* target, int spot, int run);
     void OrderSearchBody(CEngineObject* target, int run);
+    // 0054C760 (RET 4). Is `target` (a body to search) taken: with flags_ bit 0x20000000, when the
+    // world does not share it with this unit's id (005949D0); else when a living unit of the
+    // brain's nearby list (+0xF4) is searching it (kind 6, source 0x18A95) in state 5 or with
+    // +0x18E set. Callers test AL.
+    bool TargetBusy(CEngineObject* target);
     // 00555700. Plays the unit's animation `name` (from its figure's animation database) as the
     // queued order: kind 8 for keys with bit 31, else 7; +0x1C = the entry's index dword.
     void PlayAnimation(const char* name);
@@ -687,7 +709,9 @@ public:
     CEngineObject* effectObject;    // +0x17C (referenced) removed from the world on death
     std::uint8_t unknown_180[0x184 - 0x180];
     int nextAttackTime;             // +0x184 world tick of the next attack
-    std::uint8_t unknown_188[0x190 - 0x188];
+    std::uint8_t unknown_188[0x18E - 0x188];
+    std::uint8_t unknown_18E;       // +0x18E TargetBusy counts a search under way when set (or in state 5)
+    std::uint8_t unknown_18F;
     UnitAction action;              // +0x190
     UnitAction action2;             // +0x1B4
     std::uint8_t followsLeader;     // +0x1D8 the chase follows `followedLeader`'s target (combat_tick.cpp)
@@ -721,6 +745,7 @@ static_assert(offsetof(CUnitServer, currentPlan) == 0xC4);
 static_assert(offsetof(CUnitServer, unknown_938) == 0x938);
 static_assert(offsetof(CUnitServer, motionChanged) == 0x146);
 static_assert(offsetof(CUnitServer, nextAttackTime) == 0x184);
+static_assert(offsetof(CUnitServer, unknown_18E) == 0x18E);
 static_assert(offsetof(CUnitServer, protection) == 0x8E4);
 static_assert(offsetof(CUnitServer, followedLeader) == 0x1DC);
 static_assert(offsetof(CUnitServer, moveMode) == 0x168);

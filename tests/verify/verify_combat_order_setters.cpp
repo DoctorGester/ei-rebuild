@@ -109,6 +109,16 @@ static void __fastcall OrderSearchBodyVerify(CUnitServer* self, void*, CEngineOb
 }
 EI_VERIFY(0x00555630, OrderSearchBodyVerify, 0, s_unusedOrderSearchBody);
 
+// 0054C760: PUSH EBX; MOV EBX,[ESP+8]; PUSH ESI; PUSH EDI (7 bytes). Reads only: compared.
+static bool(__fastcall* s_targetBusy)(CUnitServer*, void*, CEngineObject*);
+static bool __fastcall TargetBusyVerify(CUnitServer* self, void*, CEngineObject* target) {
+    bool expected = s_targetBusy(self, nullptr, target);
+    ei::verify::Check("CUnitServer::TargetBusy", expected, self->TargetBusy(target), "unit %d target %d", UnitId(self),
+                      target->id_);
+    return expected;
+}
+EI_VERIFY(0x0054C760, TargetBusyVerify, 7, s_targetBusy);
+
 // 00555700. Ours only (resets the queued order). It is an animation (7) or emote (8) order
 // without a target, or (no such animation) untouched.
 static void* s_unusedPlayAnimation;

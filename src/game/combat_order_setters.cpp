@@ -11,6 +11,7 @@
 #include "originals_units.h"
 #include "player_messages.h"
 #include "sector_map.h"
+#include "unit_ai.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -44,6 +45,8 @@ constexpr int kShoutUse = 5;
 constexpr int kShoutSearchBody = 4;
 
 constexpr std::uint32_t kEmoteKeyBit = 0x80000000u;   // FigureAnimation::key: an emote (kind 8)
+constexpr std::uint32_t kFlagShared = 0x20000000u;    // CEngineObject::flags_: on the world's shared list
+constexpr int kStateActing = 5;                       // CUnitServer::state
 
 CPlayerServer* PlayerConnection(CUnit* unit) { return reinterpret_cast<WorldPlayer*>(unit->player)->server; }
 
@@ -120,6 +123,22 @@ void CUnitServer::OrderSearchBody(CEngineObject* target, int run) {
     QueueUse(this, target, kSourceSearchBody, 0, run, kShoutSearchBody);
 }
 EI_REPLACE_METHOD(0x00555630, CUnitServer::OrderSearchBody);
+
+bool CUnitServer::TargetBusy(CEngineObject* target) {
+    if (target->flags_ & kFlagShared) return !WorldServer()->IsObjectShared(target->id_, unit->id_);
+    auto* ai = reinterpret_cast<AIBrain*>(brain);
+    for (auto* node = ai->unknown_0F4.head; node; node = node->next) {
+        auto* other = static_cast<CUnit*>(node->data);
+        if (!other || ObjectSlots(other)->IsDead() != 0) continue;
+        auto* controller = reinterpret_cast<CUnitServer*>(other->controller);
+        const UnitAction& order = controller->action;
+        if (order.kind == kOrderUse && order.source == kSourceSearchBody && order.target == target &&
+            (controller->state == kStateActing || controller->unknown_18E))
+            return true;
+    }
+    return false;
+}
+EI_REPLACE_METHOD(0x0054C760, CUnitServer::TargetBusy);
 
 void CUnitServer::PlayAnimation(const char* name) {
     const FigureAnimation* entry;
