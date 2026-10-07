@@ -641,9 +641,28 @@ public:
     // 0054E600 (PlanOrderRoute).
     bool PlanOrder(UnitAction* order, int arg);
 
-    // Not rewritten (forwarders):
-    // 00552D00. `claimant` claims the players in `mask` are enemies of this unit.
+    // combat_object_slots.cpp (A-U5).
+    // 00552D00 (RET 8). `claimant` claims the players in `mask` are enemies of this unit: they join
+    // claimedHostile and the AI memory hears a call of kind 0x1E carrying the mask, with the text
+    // "Unit <claimant id> claims that player <n> are enemies! " for each player n in the mask.
     void ClaimHostility(CUnit* claimant, std::uint32_t mask);
+    // 00553610. Virtual slot 25 (RET 4): takes up the weapon in `slot` (-1, none, when the slot is
+    // empty or the weapon's condition rounds to 0 or less) as the active and wanted weapon (part 6
+    // changed); a party unit's AI options are rebuilt, the armour spells refreshed. 1 when the
+    // weapon was taken up.
+    BOOL TakeUpWeapon(int slot);
+    // 00552670. Virtual slot 42 (RET 4): `object` is being deleted: orders aimed at it end (the
+    // current one reset, then Idle when the queued one is empty; a queued one is emptied unless an
+    // animation), a plan aimed at it ends (EndOrder(0)), the brain forgets it (005D58D0) and the
+    // leader followed is dropped when it is that object.
+    void OnObjectDeleted(CEngineObject* object);
+    // 00553260. Virtual slot 44: a living unit is set up again where it stands: off the sector
+    // map, its figure (005179E0), size classes and size class; when it cannot leave its cell it
+    // moves to a free cell near it (005BA9D0), or with none it takes a default hit (TakeHit; a
+    // unit that cannot stand dies); then back on the sector map.
+    void Resettle();
+
+    // Not rewritten (forwarders):
     // 00550A80 (combat_steps.cpp). The death (or fall) animation for a blow from `direction`
     // (HitDirection's bits): `dying` adds the death bits, `fall` (lying down) stops the steps with
     // +8 = 2 and may pick a side at random. Only the low bytes of `dying` and `fall` count.
@@ -671,7 +690,9 @@ public:
     std::uint8_t unknown_188[0x190 - 0x188];
     UnitAction action;              // +0x190
     UnitAction action2;             // +0x1B4
-    std::uint8_t unknown_1D8[0x1E0 - 0x1D8];
+    std::uint8_t followsLeader;     // +0x1D8 the chase follows `followedLeader`'s target (combat_tick.cpp)
+    std::uint8_t unknown_1D9[3];
+    CEngineObject* followedLeader;  // +0x1DC (referenced) the party unit whose attack this one joins
     UnitStats stats;                // +0x1E0 (0x704 bytes; its +0x6F8 dword gets bit 0x10 on a hit)
     std::int16_t protection[8];     // +0x8E4 [0] the defence value (00553450), [1..7] the body's protection
                                     //        per damage type (UnitStats::PackBodyProtection)
@@ -701,6 +722,7 @@ static_assert(offsetof(CUnitServer, unknown_938) == 0x938);
 static_assert(offsetof(CUnitServer, motionChanged) == 0x146);
 static_assert(offsetof(CUnitServer, nextAttackTime) == 0x184);
 static_assert(offsetof(CUnitServer, protection) == 0x8E4);
+static_assert(offsetof(CUnitServer, followedLeader) == 0x1DC);
 static_assert(offsetof(CUnitServer, moveMode) == 0x168);
 static_assert(offsetof(CUnitServer, moveMode2) == 0x170);
 static_assert(offsetof(CUnitServer, action) == 0x190);
