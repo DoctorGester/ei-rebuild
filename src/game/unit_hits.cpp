@@ -260,9 +260,9 @@ EI_REPLACE_METHOD(0x00524FE0, UnitVitals::TakeHit);
 BOOL CUnit::IsBehind(const CEngineObject* target) {
     if (!player) return 0;
     const char* t = reinterpret_cast<const char*>(target);
-    volatile float dx = Field<float>(t, 0x1C) - positionX;
-    volatile float dy = Field<float>(t, 0x20) - positionY;
-    volatile float dz = Field<float>(t, 0x24) - positionZ;
+    volatile float dx = Field<float>(t, 0x1C) - position.x;
+    volatile float dy = Field<float>(t, 0x20) - position.y;
+    volatile float dz = Field<float>(t, 0x24) - position.z;
     double length = x87::fsqrt(dz * dz + dy * dy + dx * dx);
     if (length > kZero) {
         dx = static_cast<float>(dx / length);

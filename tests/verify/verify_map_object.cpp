@@ -213,8 +213,8 @@ static int __fastcall ClientUpdateVerify(CMapObjectClientSpecific* self) {
     if (lightShown && bad < 0) {
         const float* now = reinterpret_cast<const float*>(reinterpret_cast<char*>(light) + 0x1C);
         bool unchanged = std::memcmp(now, lightBefore, sizeof(lightBefore)) == 0;
-        volatile float z = 2.0f + owner->positionZ;
-        bool followed = Bits(now[0]) == Bits(owner->positionX) && Bits(now[1]) == Bits(owner->positionY) &&
+        volatile float z = 2.0f + owner->position.z;
+        bool followed = Bits(now[0]) == Bits(owner->position.x) && Bits(now[1]) == Bits(owner->position.y) &&
                         Bits(now[2]) == Bits(z);
         if (!unchanged && !followed) bad = 0x300;
     }
@@ -394,13 +394,13 @@ __declspec(naked) static void __fastcall OriginalPlaceOnGround(CMapObject*, void
 // Ours, z saved and restored, the original; z compared bit for bit.
 static void* s_unusedPlaceOnGround;
 static void __fastcall PlaceOnGroundVerify(CMapObject* self, void*, float offset) {
-    float before = self->positionZ;
+    float before = self->position.z;
     self->PlaceOnGround(offset);
-    float actual = self->positionZ;
-    self->positionZ = before;
+    float actual = self->position.z;
+    self->position.z = before;
     OriginalPlaceOnGround(self, nullptr, offset);
-    ei::verify::Check("CMapObject::PlaceOnGround", Bits(self->positionZ), Bits(actual), "object %d offset %g: %g vs %g",
-                      self->id_, offset, self->positionZ, actual);
+    ei::verify::Check("CMapObject::PlaceOnGround", Bits(self->position.z), Bits(actual), "object %d offset %g: %g vs %g",
+                      self->id_, offset, self->position.z, actual);
 }
 EI_VERIFY(0x0050F020, PlaceOnGroundVerify, 0, s_unusedPlaceOnGround);
 

@@ -48,7 +48,7 @@ void CUnit::AdvanceUnitTime(float time) {
     volatile float daylight = static_cast<float>(WorldDayTimeOriginal(ClientWorldObject()));
     volatile float range = static_cast<float>(UnitParamsVisionRangeOriginal(Params(), nullptr, daylight));
     if (moveMode == 0) range = range * kOne;
-    ClientWorldMarkSightOriginal(ClientWorldObject(), nullptr, &positionX, range);
+    ClientWorldMarkSightOriginal(ClientWorldObject(), nullptr, &position.x, range);
 }
 EI_REPLACE_METHOD(0x0052FC40, CUnit::AdvanceUnitTime);
 

@@ -60,7 +60,7 @@ void __fastcall ClientPlaceOnPath(std::uint8_t* controller, void*, float time, f
     CUnit* unit = self->unit;
     if (unit->flags_ & 0x4000000) return;
     float toCells = 1.0f / (kCellScale * kHalf);
-    float position[3] = {unit->positionX, unit->positionY, unit->positionZ};
+    float position[3] = {unit->position.x, unit->position.y, unit->position.z};
     position[0] = toCells * position[0];
     position[1] = toCells * position[1];
     Vector3 direction;

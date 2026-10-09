@@ -328,7 +328,7 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
                       blocker->sizeClass == self->sizeClass && other->state != kStateCasting;
     if (sameAttack) {
         auto* target = static_cast<CMapObject*>(c->action.target);
-        sameAttack = FartherThan(&target->positionX, &self->positionX, reinterpret_cast<const float*>(kQueueWaitLimit));
+        sameAttack = FartherThan(&target->position.x, &self->position.x, reinterpret_cast<const float*>(kQueueWaitLimit));
     }
     if (sameAttack) {
         // Both go for the same target: wait behind the other unless the waiting would go round in a
@@ -368,7 +368,7 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         Vector3 axis, back;
         QuaternionAxisY(&UnitOf(c)->orientation, nullptr, &axis);
         Vector3* facing = Negate(&back, &axis);
-        if (PathStart(MotionPathOf(c), nullptr, &UnitOf(c)->positionX, &facing->x, time)) UnitPathSpeeds(UnitOf(c));
+        if (PathStart(MotionPathOf(c), nullptr, &UnitOf(c)->position.x, &facing->x, time)) UnitPathSpeeds(UnitOf(c));
         CtlSetStanding(c, nullptr, 0);
         CtlSetState(c, nullptr, 6);
         c->stoodBlocked = wasFlag;
@@ -380,7 +380,7 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         Vector3 axis, back;
         QuaternionAxisY(&UnitOf(c)->orientation, nullptr, &axis);
         Vector3* facing = Negate(&back, &axis);
-        if (PathStart(MotionPathOf(c), nullptr, &UnitOf(c)->positionX, &facing->x, time)) UnitPathSpeeds(UnitOf(c));
+        if (PathStart(MotionPathOf(c), nullptr, &UnitOf(c)->position.x, &facing->x, time)) UnitPathSpeeds(UnitOf(c));
         CtlSetStanding(c, nullptr, 0);
         CtlSetState(c, nullptr, 6);
         c->stoodBlocked = 0;
@@ -477,7 +477,7 @@ void Exhaustion(CUnitServer* c) {
 void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
     CWorldServer* world = ServerOf(c);
     Vector3 position;
-    std::memcpy(&position, &UnitOf(c)->positionX, 12);
+    std::memcpy(&position, &UnitOf(c)->position.x, 12);
     ToHalfCells(&position.x);
     int time = WorldTime(world);
     bool turning = false;

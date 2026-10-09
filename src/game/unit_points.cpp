@@ -34,7 +34,7 @@ const char* const kNoEntry = reinterpret_cast<const char*>(0x0078F918);   // "Ca
 
 // The unit's virtual slot 55 (IsDead: +0x274).
 bool IsDead(CUnit* unit) { return ObjectSlots(unit)->IsDead() != 0; }
-void CopyPosition(float* out, const CUnit* unit) { std::memcpy(out, &unit->positionX, 12); }
+void CopyPosition(float* out, const CUnit* unit) { std::memcpy(out, &unit->position.x, 12); }
 
 } // namespace
 
@@ -52,7 +52,7 @@ float* __fastcall UnitPredictPosition(std::uint8_t* object, void*, float* out, i
     auto* order = reinterpret_cast<MotionOrder*>(path);
     if (order->kind == kOrderPath && !(unit->flags_ & 0x8000000)) {
         float toCells = 1.0f / (kCellScale * kHalf);
-        float position[3] = {unit->positionX, unit->positionY, unit->positionZ};
+        float position[3] = {unit->position.x, unit->position.y, unit->position.z};
         position[0] = toCells * position[0];
         position[1] = toCells * position[1];
         bool turning;
@@ -112,15 +112,15 @@ float* __fastcall UnitActionPoint(std::uint8_t* object, void*, float* out) {
     // The world's slot 26 (IsServer); the server's AI map.
     auto* world = static_cast<CWorldServer*>(ObjectWorld(unit));
     if (world->IsServer()) {
-        float point[3] = {offset.x + unit->positionX, offset.y + unit->positionY, offset.z + unit->positionZ};
+        float point[3] = {offset.x + unit->position.x, offset.y + unit->position.y, offset.z + unit->position.z};
         if (!IsPassableForClass(world->AIMap(), nullptr, 3, point)) {
             CopyPosition(out, unit);
             return out;
         }
     }
-    out[0] = offset.x + unit->positionX;
-    out[1] = offset.y + unit->positionY;
-    out[2] = offset.z + unit->positionZ;
+    out[0] = offset.x + unit->position.x;
+    out[1] = offset.y + unit->position.y;
+    out[2] = offset.z + unit->position.z;
     return out;
 }
 

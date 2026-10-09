@@ -71,8 +71,8 @@ int CUnitClientSpecific::FootstepSound(int terrain, mfc::CString* out) {
     const UnitModelRecord* model = ModelOf(prototype);
     if (!model || model->SoundCounts()[terrain] == 0) return 0;
     CWorldClient* world = WorldClient();
-    float x = unit->positionX;
-    float y = unit->positionY;
+    float x = unit->position.x;
+    float y = unit->position.y;
     volatile float ground = world->ClampedGroundHeight(x, y);   // stored as a float
     Vector3 at{x, y, 0.0f};
     float surface = world->platforms_.SurfaceHeight(&at, world->ClampedGroundHeight(x, y));   // its slot 27
@@ -188,7 +188,7 @@ void Shake(CUnit* unit) {
     const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
     float strength = prototype->shake;
     if (strength > 0.0f)
-        camera::TheCamera()->Shake(reinterpret_cast<const Vector3*>(&unit->positionX), kShakeDuration, strength,
+        camera::TheCamera()->Shake(&unit->position, kShakeDuration, strength,
                                    kShakeDecay);
 }
 
@@ -203,7 +203,7 @@ void CUnitClientSpecific::PlayStepSounds() {
     const CFigureAnimationState* state = unit->Object3D()->animation;
     const FigureAnimation* current = state->current;
     float now = state->time;
-    Vector3 position{unit->positionX, unit->positionY, unit->positionZ};
+    Vector3 position{unit->position.x, unit->position.y, unit->position.z};
     int priority = 0;
     mfc::CString sound;
     if (lastAnimation != current) {
@@ -267,7 +267,7 @@ void CUnitClientSpecific::PlayStepSounds() {
         if (prototype) {
             float strength = prototype->shake;
             if (strength > 0.0f)
-                camera::TheCamera()->Shake(reinterpret_cast<const Vector3*>(&unit->positionX), kShakeDuration, strength,
+                camera::TheCamera()->Shake(&unit->position, kShakeDuration, strength,
                                    kShakeDecay);
         }
         const auto* model = reinterpret_cast<const UnitModelRecord*>(unit->GetPrototypeModel());

@@ -60,13 +60,13 @@ int CTrapObject::UpdateTrap() {
     if (!static_cast<CWorld*>(ManagerContext())->IsServer()) return 0;
     mfc::CTypedPtrList<CEngineObject> units{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, kBlockSize};
     auto* world = static_cast<CWorldServer*>(ManagerContext());
-    world->Sectors()->FindUnitsInRadius(reinterpret_cast<const Vector3*>(&positionX), &units, kTriggerRadius);
+    world->Sectors()->FindUnitsInRadius(&position, &units, kTriggerRadius);
     if ((flags_ & kArmedFresh) && units.count == 0) {
         flags_ &= ~kArmedFresh;
     } else if (units.count != 0) {
         mfc::CString line;
-        float x = positionX;
-        float y = positionY;
+        float x = position.x;
+        float y = position.y;
         double z = world->RawSurfaceHeightAt(x, y);
         line.Format(kTrapScript, static_cast<double>(x), static_cast<double>(y), z);
         ScriptLoadLine(MissionScript(), nullptr, &line, 1);

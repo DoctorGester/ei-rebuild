@@ -65,8 +65,8 @@ inline void __fastcall PtrRemoveAll(PtrList* l) { PtrListRemoveAllOriginal(l); }
 bool StaysInside(MagicTrap* trap, CEngineObject* unit) {
     int count = trap->area.count;
     const TrapCircle* circle = trap->area.circles;
-    float x = AsMapObject(unit)->positionX;
-    float y = AsMapObject(unit)->positionY;
+    float x = AsMapObject(unit)->position.x;
+    float y = AsMapObject(unit)->position.y;
     for (int i = 0; i < count; ++i, ++circle) {
         float dx = x - circle->x;
         float dy = y - circle->y;
@@ -161,8 +161,8 @@ constexpr float kFar = 1e30f;                        // 0073E73C, a squared dist
 void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CEngineObject>* units) {
     using UnitList = mfc::CTypedPtrList<CEngineObject>;
     if (units->count == 0 || !spell) return;
-    const float* position = &positionX;
-    float from[3] = {position[0], position[1], position[2]};
+    const float* origin = &position.x;
+    float from[3] = {origin[0], origin[1], origin[2]};
     auto* world = static_cast<CWorld*>(ObjectWorld(this));
     // The world's slot 28: the height at (x, y), in ST0.
     from[2] = static_cast<float>(world->RawSurfaceHeightAt(from[0], from[1]) + from[2]);
@@ -178,9 +178,9 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CEngineObject>* units) {
             CEngineObject* closest = nullptr;
             for (UnitList::Node* node = units->head; node; node = node->next) {
                 CEngineObject* unit = node->data;
-                float dx = AsMapObject(unit)->positionX - position[0];
-                float dy = AsMapObject(unit)->positionY - position[1];
-                float dz = AsMapObject(unit)->positionZ - position[2];
+                float dx = AsMapObject(unit)->position.x - origin[0];
+                float dy = AsMapObject(unit)->position.y - origin[1];
+                float dz = AsMapObject(unit)->position.z - origin[2];
                 // FCOMP; TEST AH,1: taken when below, or NaN.
                 if (!(dz * dz + dy * dy + dx * dx >= kFar)) closest = unit;
             }
@@ -191,7 +191,7 @@ void MagicTrap::CastAtUnits(mfc::CTypedPtrList<CEngineObject>* units) {
         for (UnitList::Node* node = units->head; node;) {
             UnitList::Node* next = node->next;
             CEngineObject* unit = node->data;
-            WorldCastSpell(WorldServer(), nullptr, spell, nullptr, from, unit, &AsMapObject(unit)->positionX, 0);
+            WorldCastSpell(WorldServer(), nullptr, spell, nullptr, from, unit, &AsMapObject(unit)->position.x, 0);
             node = next;
         }
     }
@@ -235,7 +235,7 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
     spell = made;
     if (made) ++made->refCount_;
     if (old) old->Release();
-    std::memcpy(&positionX, &record->position, sizeof(record->position));   // copied as dwords
+    std::memcpy(&position.x, &record->position, sizeof(record->position));   // copied as dwords
 
     // The loop bounds are read again on every pass, as in the original.
     CirclesSetSize(&area, nullptr, record->area.count, -1);
