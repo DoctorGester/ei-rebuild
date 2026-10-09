@@ -9,6 +9,7 @@
 #include <cstdint>
 
 class CAIMap;
+struct CRegionMap;
 class CEngineObject;
 class CSectorMap;
 class CUnit;
@@ -20,6 +21,10 @@ struct Vector3;
 __declspec(naked) inline void __fastcall AnimateOriginal(char*, void*, std::uint32_t) EI_ORIGINAL(0x005A7160)
 __declspec(naked) inline void __fastcall FinishDraw(char*, void*, void* /*renderer*/) EI_ORIGINAL(0x005A7290)
 __declspec(naked) inline void __fastcall AlarmReset(void*) EI_ORIGINAL(0x005AEA40)
+// 005B0370 (RET 0x14): CRegionMap::NearbyBlocks through its original address (the list is a
+// BlockCostList, ai_map.h).
+__declspec(naked) inline void __fastcall NearbyBlocksOriginal(CRegionMap*, void*, int /*sizeClass*/, bool /*flag*/,
+                                                            int /*x*/, int /*y*/, void* /*out*/) EI_ORIGINAL(0x005B0370)
 __declspec(naked) inline void __fastcall PathToMotionOrder(void*, void*, void* /*out*/) EI_ORIGINAL(0x005B22C0)
 __declspec(naked) inline void __fastcall PathClear(void*) EI_ORIGINAL(0x005B23A0)
 // 005CCBF0 (fastcall on the brain's calls heard, brain + 0x178, an AICallArray): drops the calls that carry a hostility

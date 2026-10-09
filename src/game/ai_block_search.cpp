@@ -6,6 +6,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "originals_ai.h"
 
 namespace {
 constexpr int kUnreached = 0x7FFFFFFF;
@@ -16,7 +17,6 @@ __declspec(naked) void __fastcall PickRepresentativesAt(CRegionMap*, void*, CAIM
 __declspec(naked) void __fastcall MeasureBlockEdgesAt(CRegionMap*, void*, void*, int, int) EI_ORIGINAL(0x005AFAE0)
 __declspec(naked) void __fastcall ClampEdgeCostsAt(CRegionMap*) EI_ORIGINAL(0x005B0F70)
 __declspec(naked) void __fastcall LabelRegionsAt(CRegionMap*) EI_ORIGINAL(0x005B0050)
-__declspec(naked) void __fastcall NearbyBlocksAt(CRegionMap*, void*, int, bool, int, int, BlockCostList*) EI_ORIGINAL(0x005B0370)
 // 005AFC70 through its address (for the 005AFEE0 thunk).
 __declspec(naked) void __fastcall UpdateBlocksAt(CRegionMap*, void*, CAIMap*, int, int, int, int) EI_ORIGINAL(0x005AFC70)
 
@@ -122,7 +122,7 @@ void BlockSearch::Expand() {
 bool CRegionMap::SeedSearch(int sizeClass, bool flag, BlockSearch* search, int x, int y) {
     bool seeded = false;
     BlockCostList blocks{reinterpret_cast<void*>(0x0073FCFC), nullptr, nullptr, 0, nullptr, nullptr, 10};
-    NearbyBlocksAt(this, nullptr, sizeClass, flag, x, y, &blocks);
+    NearbyBlocksOriginal(this, nullptr, sizeClass, flag, x, y, &blocks);
     for (BlockCostList::Node* node = blocks.head; node; node = node->next) {
         int cost = node->data.cost / 128;
         BlockRecord* record = &search->records.rows[node->data.y][node->data.x];

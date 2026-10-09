@@ -148,6 +148,7 @@ struct BlockCostElements {
 };
 // The CList of reached blocks (0x1C bytes, nodes 0x14; vtable 0073FCFC).
 using BlockCostList = mfc::CList<BlockCost, BlockCostElements>;
+inline void* BlockCostListVtable() { return reinterpret_cast<void*>(0x0073FCFC); }
 static_assert(sizeof(BlockCostList::Node) == 0x14);
 
 struct CRegionMap;
@@ -394,10 +395,11 @@ struct CRegionMap {
     // The rewrite of 005B0600 (ai_region_reach.cpp): the region most of the reachable 3x3 blocks
     // around the cell belong to (the first seen on a tie; 0 when none); EAX's upper half is 0.
     int DominantRegion(int sizeClass, int x, int y);
-    // 005B07C0. Can cell (x, y) reach `region`? Caches the answers in `marks` (1 yes, 2 no).
-    bool Reaches(int sizeClass, int x, int y, int region, void* marks);
+    // 005B07C0. Can cell (x, y) reach `region`? Caches the answers in `marks` (the AI map's,
+    // CAIMap::marks: 1 yes, 2 no).
+    bool Reaches(int sizeClass, int x, int y, int region, SearchGrid<std::int8_t>* marks);
     // The rewrite of 005B07C0 (ai_region_reach.cpp); Reaches stays the forwarder to its address.
-    bool ReachesRegion(int sizeClass, int x, int y, int region, void* marks);
+    bool ReachesRegion(int sizeClass, int x, int y, int region, SearchGrid<std::int8_t>* marks);
     // 005B0050 (ai_region_reach.cpp). Numbers the connected areas of blocks of every size class.
     void LabelRegions();
     // 005B0F70 (ai_region_reach.cpp). The per-direction block edge words: -1 out of the map, and
@@ -405,7 +407,7 @@ struct CRegionMap {
     void ClampEdgeCosts();
     // 005B1180 (RET 4, AL; ai_region_reach.cpp). Reads the block grids of every size class from
     // the AI graph stream (width and height 1..256 first); returns the stream's state byte (+5).
-    bool LoadBlocks(void* stream);
+    bool LoadBlocks(CStream* stream);
     // 005AF900 (RET 0xC; ai_region_reach.cpp). Per size class the representative cell of block
     // (bx, by): (3, 3) unless a passable cell in rings from the middle is better (005AF7B0).
     void PickRepresentatives(class CAIMap* map, int bx, int by);
@@ -462,6 +464,18 @@ static_assert(offsetof(CRegionMap, progress) == 0x118);
 static_assert(offsetof(CRegionMap, edges) == 0x11C);
 static_assert(offsetof(CRegionMap, regions) == 0x21C);
 static_assert(sizeof(CRegionMap) == 0x29C);
+
+// The region map's constructor (005AF3D0, ai_region_reach.cpp) hands these to the CRT's `eh
+// vector constructor iterator` for its three grid arrays: the grids' constructors 005AF580 /
+// 005AF590 / 005AF5A0 and destructors 00598440 / 00598460 / 00598480 (edges, cells, regions); and
+// stores the vtable of the local search's row array (CArray<AIMapCell*>, 0073FA04).
+constexpr std::uintptr_t kEdgeGridConstructor = std::uintptr_t(0x005AF580);
+constexpr std::uintptr_t kEdgeGridDestructor = std::uintptr_t(0x00598440);
+constexpr std::uintptr_t kCellGridConstructor = std::uintptr_t(0x005AF590);
+constexpr std::uintptr_t kCellGridDestructor = std::uintptr_t(0x00598460);
+constexpr std::uintptr_t kRegionGridConstructor = std::uintptr_t(0x005AF5A0);
+constexpr std::uintptr_t kRegionGridDestructor = std::uintptr_t(0x00598480);
+constexpr std::uintptr_t kCellRowArrayVtable = std::uintptr_t(0x0073FA04);
 
 // The path smoother's trellis (005C46C0): per path cell nine states, one per direction the unit
 // leaves the cell in (index direction - 1; index 8 unused), each the cheapest cost so far and its

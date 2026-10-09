@@ -12,7 +12,7 @@
 #include <vector>
 
 namespace {
-using ReachesFn = bool(__fastcall*)(CRegionMap*, void*, int, int, int, int, void*);
+using ReachesFn = bool(__fastcall*)(CRegionMap*, void*, int, int, int, int, SearchGrid<std::int8_t>*);
 ReachesFn s_original;
 
 struct Window {
@@ -50,7 +50,8 @@ void Restore(void* marks, const Window& w, const std::vector<std::uint8_t>& in) 
 } // namespace
 
 // 005B07C0.
-static bool __fastcall ReachesVerify(CRegionMap* self, void*, int sizeClass, int x, int y, int region, void* marks) {
+static bool __fastcall ReachesVerify(CRegionMap* self, void*, int sizeClass, int x, int y, int region,
+                                       SearchGrid<std::int8_t>* marks) {
     Window w = WindowOf(self, x, y);
     std::vector<std::uint8_t> before, expected, actual;
     Save(marks, w, before);
@@ -137,7 +138,7 @@ void* s_unusedLoad;
 
 // 005B1180: reads a stream, so ours only. After a load every grid of every class has the size
 // of the first (the map's block size, 1..256).
-static bool __fastcall LoadBlocksVerify(CRegionMap* self, void*, void* stream) {
+static bool __fastcall LoadBlocksVerify(CRegionMap* self, void*, CStream* stream) {
     bool result = self->LoadBlocks(stream);
     auto* base = reinterpret_cast<std::uint8_t*>(self);
     int width = *reinterpret_cast<int*>(base + 0x124), height = *reinterpret_cast<int*>(base + 0x128);

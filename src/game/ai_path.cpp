@@ -14,7 +14,7 @@
 // --- Forwarders to original code not rewritten yet -----------------------------------------------
 
 __declspec(naked) int CRegionMap::RegionAt(int, int, int) EI_ORIGINAL(0x005B0600)
-__declspec(naked) bool CRegionMap::Reaches(int, int, int, int, void*) EI_ORIGINAL(0x005B07C0)
+__declspec(naked) bool CRegionMap::Reaches(int, int, int, int, SearchGrid<std::int8_t>*) EI_ORIGINAL(0x005B07C0)
 
 namespace {
 // 005BD200: appends a copy of `cell` to the list.
@@ -149,7 +149,7 @@ bool CAIMap::SnapTarget(CUnit* unit, Vector3* target, bool sameRegion, float min
                 std::uint8_t mark = markRows[cy][cx];
                 if (mark != 1) {
                     if (mark == 2) continue;
-                    if (!Regions()->Reaches(sizeClass, cx, cy, region, reinterpret_cast<char*>(this) + 0x26B8)) continue;
+                    if (!Regions()->Reaches(sizeClass, cx, cy, region, &marks)) continue;
                 }
             }
             if (r != 0) {
