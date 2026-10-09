@@ -58,7 +58,8 @@ public:
     int RequestZone(const char* zone, int entrance);
     // 0066B2C0. Only the state 3 part (0x05 joined); nothing otherwise.
     void Rejoin();
-    // 0066B280 (RET 4). 0x04 and `value`; state 3.
+    // 0066B280 (RET 4). 0x04 and `value`; state 3. The original returns what the stream's Write
+    // leaves in EAX (its one caller, 00578B00, passes it on unused); ours returns the position.
     int SendLeave04(int value);
     // 0066B300. 0x09 (resume).
     int SendResume();
