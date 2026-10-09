@@ -238,6 +238,10 @@ player +0x1C, the state +0x20, the send stream +0x48; returns 1 unless noted):
 | 0x3B | 0066FB70 | 96 | a unit id and a byte: CUnit::SetUnknown438 (0052E9B0) with the signed byte |
 | 0x40 | 00670B20 | 51 | 8 bytes into this +0x38 / +0x3C |
 
+A-H23 rewrote 0x01, 0x04, 0x10, 0x32-0x35, 0x38, 0x39, 0x3B, 0x40 (player_server_orders.cpp; wrappers ours only in
+verify_player_server_orders.cpp: result 1 and bytes consumed, 0x04's state 2 and message 0x07, 0x40's position). 0x37
+(00670810, 3 bytes) is too short to hook. 0x10's leader test failing returns before the world's SetUnknown6C (kept).
+
 ## Original behaviour kept on purpose
 
 - CDiplomacy: SetRelation with a relation outside 0..2 leaves the table alone but still clears the bit in the units' hostile masks
