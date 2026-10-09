@@ -139,8 +139,8 @@ EI_REPLACE_METHOD(0x00683FF0, CSpellConstructor::Construct);
 
 CSpellManager* CSpellManager::Construct() {
     CResourceManager::Construct();
-    objects_.InitBuckets(100);
-    unknown_D0 = 0;
+    sequences_.InitBuckets(100);
+    maxSequenceKey_ = 0;
     ei::SetVtable(this, kVtableAddress);
     return this;
 }

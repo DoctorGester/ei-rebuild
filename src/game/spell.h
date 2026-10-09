@@ -299,17 +299,43 @@ public:
 
     CSpell* Spell() { return reinterpret_cast<CSpell*>(spell_); }
 
+    // spell_manager.cpp. 0068BA80: the base fields, an empty modifier list (its sentinel
+    // allocated), an empty code string with room for 8 bytes, the spell (CSpell::Construct inlined),
+    // an empty name, then Reset inlined. Returns this. 0068BC50: the destructor body (the list
+    // emptied, the spell's slot 3, the name, the spell's destructor, the string, the list's
+    // sentinel, the base). 0068BC30: slot 0.
+    CSpellContainer* Construct();
+    void Destruct();
+    CSpellContainer* DeletingDestruct(unsigned flags);
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743AC8);
+
     char* prototype_;               // +0x1C spell prototype record
     SpellModifierNode* modifiers_;  // +0x20 list sentinel
     char* codes_;                   // +0x24 STLport string: modifier index + 1 per modifier
     char* codesEnd_;                // +0x28
     char* codesCapacity_;           // +0x2C
     std::uint8_t spell_[0x5C];      // +0x30 the CSpell (vtable 00743A94)
-    const char* name_;              // +0x8C
+    mfc::CString name_;             // +0x8C (always empty)
 };
 static_assert(offsetof(CSpellContainer, modifiers_) == 0x20);
 static_assert(offsetof(CSpellContainer, spell_) == 0x30);
 static_assert(sizeof(CSpellContainer) == 0x90);
+// 0068BC10 / 0068BC20 (slots 11 / 12, spell_manager.cpp): "CSpellContainer", class id 0x1A.
+const char* __fastcall SpellContainerClassName(CSpellContainer*);
+int __fastcall SpellContainerClassId(CSpellContainer*);
+
+// The spell manager's "sequences" (+0xBC, keyed by the high half of a packed spell id): containers
+// keyed by the low half, and the largest low half asked for. Nothing in the game fills them, so
+// only CreateSpellObject with an id whose low half is not 0 reaches them (and then fails).
+struct SpellSequence {
+    // 006886F0 (spell_manager.cpp). The destructor body: every container released (the walk stops
+    // at the first entry without one), then the table freed.
+    void Destruct();
+
+    stlp::hash_map<std::uint32_t, CSpellContainer*, stlp::IntHash> containers;
+    std::uint32_t maxLow;
+};
+static_assert(sizeof(SpellSequence) == 0x18);
 
 // The spell manager (GetClassName "CSpellManager", vtable 00743A14, 0xD4 bytes). Only what the
 // construction code uses; the context (context_, +0xAC) gives the spell constructor (its slot 17).
@@ -324,8 +350,27 @@ public:
     // 00688EB0. A new CSpellContainer (manager slot 23 with class 0x3003, key -1).
     CSpellContainer* NewContainer();
 
-    // 00688EC0 (not rewritten). A new CSpell (class 0x3002) with packed id `id` (-1: none).
+    // spell_manager.cpp.
+    // 00688EC0. A new CSpell (slot 23, class 0x3002, key -1). For an id other than -1 the spell
+    // takes it as its packed id: low half 0 initialises it from prototype (id >> 16) (null when out
+    // of range); otherwise the sequence of the high half gives the container of the low half to
+    // copy the spell from (FatalError without a sequence; a new entry has no container and faults).
     CSpell* CreateSpellObject(int id);
+    // Forwarder to the game's entry (so its verify wrapper sees the call).
+    CSpell* CallCreateSpellObject(int id);
+    // 2: 00688B30. CBaseManager::Create, as 0/1.
+    int Create() override;
+    // 3: 00688B40. Releases the containers of every sequence (each walk stops at the first entry
+    // without one), deletes the sequences (their tables' bucket arrays leak), empties the map, then
+    // CResourceManager::Destroy.
+    void Destroy() override;
+    // 14: 00688CD0. A new CSpell (0x3002) or CSpellContainer (0x3003), constructed; else null.
+    CEngineObject* NewObject(int type) override;
+    // 00688990. The destructor body: the sequences destroyed (00688990's 006886F0 per sequence)
+    // and deleted, the map emptied and freed, CResourceManager::Destroy and Destruct.
+    // 00688970: slot 0.
+    void Destruct();
+    CSpellManager* DeletingDestruct(unsigned flags);
 
     // 00689310. Builds a spell from `prototype` and up to 8 modifier records of `modifiers` (an
     // STLport list<char*>, passed as a pointer to its sentinel pointer) through the context's
@@ -339,11 +384,14 @@ public:
     // error's result.
     CSpell* CreateSpellFromText(const char* text);
 
-    // +0xBC: values are heap objects the destructor (00688990) deletes; the key type is not known.
-    stlp::hash_map<std::uint32_t, void*, stlp::IntHash> objects_;
-    std::uint32_t unknown_D0;
+    // +0xBC: sequences by the high half of a packed id (keys with low half 0).
+    stlp::hash_map<std::uint32_t, SpellSequence*, stlp::IntHash> sequences_;
+    std::uint32_t maxSequenceKey_;   // +0xD0 the largest key asked for
 };
-static_assert(offsetof(CSpellManager, objects_) == 0xBC);
+static_assert(offsetof(CSpellManager, sequences_) == 0xBC);
+// 00688950 / 00688960 (slots 11 / 12): "CSpellManager", class id 0x33.
+const char* __fastcall SpellManagerClassName(CSpellManager*);
+int __fastcall SpellManagerClassId(CSpellManager*);
 static_assert(sizeof(CSpellManager) == 0xD4);
 
 // The spell constructor (GetClassName "CSpellConstructor", vtable 007439C8, 0x24 bytes).
@@ -406,19 +454,45 @@ public:
     // `scale` into litColors_.
     void SetLitColors(const float* source, float scale);
 
+    // light.cpp (A-H23). 0068CED0: the base fields, identity rotations, everything from +0x94 to
+    // +0xFC zero but +0xE4 / +0xE8 1.0, the range sqrt(FLT_MAX) with its square and inverse.
+    // Returns this. 0068CFE0: the destructor body (CTransformObject's vtable, then the base's).
+    // 0068CFC0: slot 0.
+    CLight* Construct();
+    void Destruct();
+    CLight* DeletingDestruct(unsigned flags);
+    // 0068D010 (RET 8). A point light (kind 1) of `color` at `position` (also kept at +0xC8);
+    // flags_ bit 3 (changed). Returns 1.
+    BOOL SetPoint(const Vector3* color, const Vector3* position);
+    // 0068D0A0 (RET 8). A directional light (kind 3) of `color` along `direction`, which the light
+    // also tilts towards (CTransformObject::TiltTowards); flags_ bit 3. Returns 1.
+    BOOL SetDirectional(const Vector3* color, const Vector3* direction);
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743AFC);
+
+    // The first 0x54 bytes are a CTransformObject (core_transform.h; its destructor's vtable is
+    // stored), not declared as the base here yet.
     Vector3 position_;              // +0x1C
     Vector3 localPosition_;         // +0x28 the position in the space of the mesh being lit (005A7A70)
-    std::uint8_t unknown_34[0x98 - 0x34];
+    Quaternion localRotation_;      // +0x34 identity
+    Quaternion worldRotation_;      // +0x44 identity
+    std::uint8_t unknown_54[0x94 - 0x54];
+    int kind_;                      // +0x94 1 point, 3 directional
     float color_[3];                // +0x98 r, g, b
-    std::uint8_t unknown_A4[0xD4 - 0xA4];
+    std::uint8_t unknown_A4[0xC8 - 0xA4];
+    Vector3 pointPosition_;         // +0xC8 SetPoint's position
     Vector3 direction_;             // +0xD4 a directional light's (the sun's) direction
     float range_;                   // +0xE0
-    std::uint8_t unknown_E4[0x100 - 0xE4];
+    float unknown_E4;               // +0xE4 1.0 from the constructor
+    float unknown_E8;               // +0xE8 1.0 from the constructor
+    std::uint8_t unknown_EC[0xFC - 0xEC];
+    std::uint32_t unknown_FC;
     float rangeSquared_;            // +0x100
     float inverseRangeSquared_;     // +0x104
     Vector3 localDirection_;        // +0x108 direction_ in the space of the mesh being lit (005A7A70)
     float litColors_[2][4];         // +0x114
 };
+static_assert(offsetof(CLight, kind_) == 0x94 && offsetof(CLight, pointPosition_) == 0xC8 &&
+              offsetof(CLight, unknown_FC) == 0xFC && sizeof(CLight) == 0x134);
 static_assert(offsetof(CLight, color_) == 0x98);
 static_assert(offsetof(CLight, rangeSquared_) == 0x100);
 static_assert(offsetof(CLight, litColors_) == 0x114);
@@ -426,15 +500,45 @@ static_assert(offsetof(CLight, range_) == 0xE0);
 static_assert(offsetof(CLight, localPosition_) == 0x28 && offsetof(CLight, direction_) == 0xD4 &&
               offsetof(CLight, localDirection_) == 0x108);
 
-// The light factory (the global pointer at 007AF748): CreateObject (slot 23) makes lights by
-// class (0x2E: the renderer's default light, 00500B70). Its +0xD4 list holds the ids of the lights
-// held on (00511FB0 erases from it).
+// 0068CFF0 / 0068D000 (slots 2 / 3, light.cpp): Create returns 1; Destroy clears flags_ bit 5.
+// 0068CFA0 / 0068CFB0 (slots 11 / 12): "CLight", class id 10.
+int __fastcall LightCreate(CLight*);
+void __fastcall LightDestroy(CLight*);
+const char* __fastcall LightClassName(CLight*);
+int __fastcall LightClassId(CLight*);
+
+// The light factory (GetClassName "CLightManager", class id 0x29, vtable 00743B50, 0xD8 bytes; the
+// global pointer at 007AF748): CreateObject (slot 23) makes lights by class (0x2E: the renderer's
+// default light, 00500B70; 0x31: point lights). Its +0xD4 list holds the ids of the lights held on
+// (00511FB0 erases from it). light.cpp (A-H23).
 class CLightFactory : public CBaseManager {
 public:
-    std::uint8_t unknown_B0[0xD4 - 0xB0];
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743B50);
+
+    // 0068D850. CBaseManager's constructor body, +0xB0..+0xC0 and +0xCC 0, an empty list, +0xD0 1.
+    // Returns this. 0068D990: the destructor body (the list freed, +0xCC 0, +0xC0 released, then
+    // CBaseManager's). 0068D970: slot 0.
+    CLightFactory* Construct();
+    void Destruct();
+    CLightFactory* DeletingDestruct(unsigned flags);
+    // 14: 0068DA40. A new CLight (0x134 bytes) of type 0x2E or 0x31 (its type_); other types are
+    // logged and give null.
+    CEngineObject* NewObject(int type) override;
+    // 23: 0068DAD0. CBaseManager::CreateObject, then flags_ bit 7 cleared (no null check).
+    CEngineObject* CreateObject(int type, int id) override;
+
+    std::uint32_t unknown_B0[4];    // +0xB0
+    CEngineObject* held_;           // +0xC0 released by the destructor
+    std::uint32_t unknown_C4[2];
+    std::uint32_t unknown_CC;       // +0xCC
+    std::uint32_t unknown_D0;       // +0xD0 1
     stlp::list<int> litIds_;        // +0xD4
 };
-static_assert(offsetof(CLightFactory, litIds_) == 0xD4);
+static_assert(offsetof(CLightFactory, held_) == 0xC0 && offsetof(CLightFactory, litIds_) == 0xD4 &&
+              sizeof(CLightFactory) == 0xD8);
+// 0068D950 / 0068D960 (slots 11 / 12): "CLightManager", class id 0x29.
+const char* __fastcall LightManagerClassName(CLightFactory*);
+int __fastcall LightManagerClassId(CLightFactory*);
 inline CLightFactory* TheLightFactory() { return *reinterpret_cast<CLightFactory* const*>(0x007AF748); }
 
 // 006893F0. The code (+0x04) of the spell prototype whose name matches (_mbsicmp); 0 if none.
