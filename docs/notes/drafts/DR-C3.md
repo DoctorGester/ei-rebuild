@@ -1,6 +1,7 @@
 # DR-C3: cleanup draft of unit_motion_tick.cpp, combat_motion.cpp, net_state.cpp
 
-Branch draft-dr-c3. Written without building (draft pass): nothing here has been compiled or run.
+Branch draft-dr-c3. Drafted without building; finished (merged with main after A-U7, builds `verify` and
+`release` clean, all build checks at 0, baseline updated). Not run yet: the scenarios below are next.
 The finishing worker builds `verify` and `release`, runs check_cleanup (then `--update`), and the
 scenarios that reach the three files (movement tick / combat motion: any fight or walk scenario;
 net_state: a client scenario, the network state of map objects and units).
@@ -117,3 +118,25 @@ configurations, fix compile errors (likely spots: includes added to the three fi
 ai_map.h, ai_motion.h, map_object(_figures).h, player_messages.h, unit_ai.h, world.h — and the
 CUnitServer layout edit in combat.h), run check_cleanup and `--update`, then the scenarios. After
 DR-C2 merges, convert net_state.cpp's remaining 14 VCalls.
+
+## Finished (builds)
+
+- Merged main (A-U7). CUnitServer keeps main's names and types where both named a member: `queue`,
+  `motion` (AIPath, `MotionPath()` returns it), `savedQueue`, `armourSpells` (`ArmourSpell` /
+  `ArmourSpellList`, plain element policy; the draft's UnitItemSpell / UnitItemSpellElements are
+  gone), `moveAnimationKey` / `moveAnimation`, `idleKey` / `idleAnimation`, `actionDone` (+0x978)
+  and `voice` (int32[4]). From this draft only: stoodBlocked, movingAnimation, sneakWait,
+  actingCheckTime, unknown_188 / 18C / 18D, ownSide, tamerSide, unknown_918 (void*), waitFrame.
+- ResetController releases each armour spell's item itself, then `armourSpells.RemoveAll()` (same
+  calls and stores in the same order as the original's walk).
+- Compile fixes: unit_motion_tick.cpp's local `MotionOrder()` clashed with ai_motion.h's struct
+  (now `MotionPathOf()`); CUnit::AttachCompanion's parameter hid the new `companion` member
+  (renamed `attached`).
+- Bool caveat settled: the three reads of AIPath::failed that the original compares with 1
+  (MotionOver, Replan, PathTo) read the byte (`reinterpret_cast<const std::uint8_t&>`), so a value
+  other than 0 / 1 behaves as in the original. Float points checked: RestartAnimation's float
+  argument is the same 4 bytes the old code pushed as bits; the heading slot still gets
+  positionZ's bits.
+- Cleanup baseline: unit_motion_tick.cpp At 109 -> 0, byte arithmetic 1 -> 0; combat_motion.cpp
+  gone from the baseline (all 0); net_state.cpp At 86 -> 0, VCall 28 -> 14 (the 14 wait for
+  DR-C2's slot names).
