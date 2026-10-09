@@ -209,7 +209,7 @@ static void __fastcall CallAlliesVerify(AIBrain* self, void*, const Vector3* poi
     units.vtable = reinterpret_cast<void*>(0x0073D454);
     units.blockSize = 10;
     CUnit* unit = self->owner->unit;
-    SectorMapFindUnitsInRadius(WorldServer()->Sectors(), nullptr, &unit->positionX, &units, self->callRadius);
+    SectorMapFindUnitsInRadius(WorldServer()->Sectors(), nullptr, &unit->position.x, &units, self->callRadius);
     self->CallAllies(point);
     int allies = 0;
     bool ok = true;

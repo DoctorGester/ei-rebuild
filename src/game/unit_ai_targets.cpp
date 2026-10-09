@@ -41,7 +41,7 @@ const float kFloorScore = std::bit_cast<float>(0xE0AD78ECu); // 0073FF30 and the
 
 CMapObjectVirtuals* MapObject(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object); }
 UnitController* ControllerOf(const CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller); }
-const Vector3* PositionOf(const CUnit* unit) { return reinterpret_cast<const Vector3*>(&unit->positionX); }
+const Vector3* PositionOf(const CUnit* unit) { return &unit->position; }
 
 // The prototype's +0x24 (compared with 0.5: units below it count as small).
 float PrototypeSize(CUnit* unit) {
@@ -131,9 +131,9 @@ bool AIAttention::CanReach(AIBrain* brain, const int* partAndObject, int fromHer
     if (self == target || static_cast<char>(fromHere) != 0) {
         point = *PositionOf(self);
     } else {
-        double dz = static_cast<double>(self->positionZ) - target->positionZ;
-        double dy = static_cast<double>(self->positionY) - target->positionY;
-        double dx = static_cast<double>(self->positionX) - target->positionX;
+        double dz = static_cast<double>(self->position.z) - target->position.z;
+        double dy = static_cast<double>(self->position.y) - target->position.y;
+        double dx = static_cast<double>(self->position.x) - target->position.x;
         float distance = RoundToFloat(std::sqrt(dx * dx + dy * dy + dz * dz));
         float range = RoundToFloat(self->ScaledValue(distance));
         float targetRadius = RoundToFloat(MapObject(target)->Radius());
@@ -185,15 +185,15 @@ bool AIAttention::IsUsable(AIBrain* brain, const int* partAndObject) {
     Vector3 at = *PositionOf(target);
     for (auto* node = brain->unknown_0F4.head; node; node = node->next) {
         auto* other = static_cast<CUnit*>(node->data);
-        double dy = static_cast<double>(at.y) - other->positionY;
-        double dx = static_cast<double>(at.x) - other->positionX;
+        double dy = static_cast<double>(at.y) - other->position.y;
+        double dx = static_cast<double>(at.x) - other->position.x;
         if (!(dx * dx + dy * dy >= kAllyNear2) && Allied(other->side, self->side)) {
             if (other->sizeClass != 0) return false;
             if (!(PrototypeSize(other) >= kHalf)) return false;
         }
     }
-    double dy = static_cast<double>(self->positionY) - at.y;
-    double dx = static_cast<double>(self->positionX) - at.x;
+    double dy = static_cast<double>(self->position.y) - at.y;
+    double dx = static_cast<double>(self->position.x) - at.x;
     double radius = option->radius;
     return !(radius * radius >= dx * dx + dy * dy);
 }
@@ -267,8 +267,8 @@ double AIAttention::Score(const Vector3* from, CUnit* self, AIObjectList* group,
         reach = option->range;
         scale = 10.0f;
     }
-    double dy = static_cast<double>(candidate->positionY) - from->y;
-    double dx = static_cast<double>(candidate->positionX) - from->x;
+    double dy = static_cast<double>(candidate->position.y) - from->y;
+    double dx = static_cast<double>(candidate->position.x) - from->x;
     float beyond = RoundToFloat(std::sqrt(dx * dx + dy * dy) - reach);
     float penalty = !(kZero >= beyond) ? beyond : kZero;
     double result = static_cast<double>(score) - static_cast<double>(penalty) * kDistanceWeight * scale;

@@ -67,7 +67,7 @@ float FollowFar() { return *reinterpret_cast<const float*>(0x007C5408); }
 IsaacRandom* GameRandom() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 int WorldTick() { return *reinterpret_cast<const int*>(0x007AFFC4); }
 CAIMap* AIMap() { return WorldServer()->AIMap(); }
-Vector3* PositionOf(CUnit* unit) { return reinterpret_cast<Vector3*>(&unit->positionX); }
+Vector3* PositionOf(CUnit* unit) { return &unit->position; }
 UnitController* ControllerOf(CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller); }
 
 // The CPtrList the sector map fills (vtable 0073D454, blocks of 10).
@@ -173,9 +173,9 @@ bool AIBrain::FindStandPoint(const Vector3* point, float radius, Vector3* out) {
     bool result = true;
     {
         ScopedPath local;
-        double ux = self->positionX - out->x;
-        double uy = self->positionY - out->y;
-        double uz = self->positionZ - out->z;
+        double ux = self->position.x - out->x;
+        double uy = self->position.y - out->y;
+        double uz = self->position.z - out->z;
         float distance = StoreFloat(static_cast<float>(std::sqrt(ux * ux + uy * uy + uz * uz)));
         float range = StoreFloat(distance * kRangePerDistance + kRangeBase);
         bool found = map->FindPath(self, out, &local.path, range, 0.0f);
@@ -204,8 +204,8 @@ void AIBrain::UpdateFollow() {
     CUnit* self = owner->unit;
     float nearSq = StoreFloat(FollowNear() * FollowNear());
     auto* leader = static_cast<CUnit*>(target);
-    Vector3 toLeader{StoreFloat(leader->positionX - self->positionX), StoreFloat(leader->positionY - self->positionY),
-                     StoreFloat(leader->positionZ - self->positionZ)};
+    Vector3 toLeader{StoreFloat(leader->position.x - self->position.x), StoreFloat(leader->position.y - self->position.y),
+                     StoreFloat(leader->position.z - self->position.z)};
     int now = WorldTick();
     float distance = StoreFloat(static_cast<float>(
         std::sqrt(static_cast<double>(toLeader.z) * toLeader.z + toLeader.y * toLeader.y + toLeader.x * toLeader.x)));
@@ -220,8 +220,8 @@ void AIBrain::UpdateFollow() {
         }
         Vector3 goal;
         if (!owner->GetMovePoint(&goal)) goal = *PositionOf(self);
-        double gx = goal.x - leader->positionX;
-        double gy = goal.y - leader->positionY;
+        double gx = goal.x - leader->position.x;
+        double gy = goal.y - leader->position.y;
         if (gx * gx + gy * gy > farSq) {
             owner->MoveTo(PositionOf(leader), 0, 0, walkTime);
             followTimer = 0;
@@ -234,8 +234,8 @@ void AIBrain::UpdateFollow() {
     owner->GetMovePoint(&goal);
     Vector3 soon;
     ObjectSlots(leader)->PositionAt(&soon, now + kLeaderAhead);
-    double sx = self->positionX - soon.x;
-    double sy = self->positionY - soon.y;
+    double sx = self->position.x - soon.x;
+    double sy = self->position.y - soon.y;
     double soonSq = sx * sx + sy * sy;
     if (soonSq >= static_cast<double>(distance) * distance || soonSq >= nearSq) {
         // Not coming closer: walk to that point unless already going near it.
@@ -254,8 +254,8 @@ void AIBrain::UpdateFollow() {
     for (int ahead = kLeaderFirstStep;; ) {
         Vector3 later;
         ObjectSlots(leader)->PositionAt(&later, now + ahead);
-        double lx = self->positionX - later.x;
-        double ly = self->positionY - later.y;
+        double lx = self->position.x - later.x;
+        double ly = self->position.y - later.y;
         double laterSq = lx * lx + ly * ly;
         if (laterSq > best) return;
         if (!(laterSq >= kOnTheWaySq)) break;
@@ -265,8 +265,8 @@ void AIBrain::UpdateFollow() {
 
     Vector3 passing;
     ObjectSlots(leader)->PositionAt(&passing, now + kLeaderSide);
-    double along = passing.y - leader->positionY;
-    float across = StoreFloat(static_cast<float>(passing.x - leader->positionX));
+    double along = passing.y - leader->position.y;
+    float across = StoreFloat(static_cast<float>(passing.x - leader->position.x));
     Vector3 side{StoreFloat(static_cast<float>(-along)), across, 0.0f};
     double lengthSq = static_cast<double>(side.y) * side.y + along * along;
     if (!(lengthSq > 0.0)) return;
@@ -274,9 +274,9 @@ void AIBrain::UpdateFollow() {
     side.x = StoreFloat(static_cast<float>(scale * -along));
     side.y = StoreFloat(static_cast<float>(scale * side.y));
     side.z = StoreFloat(static_cast<float>(side.z * scale));
-    double ux = self->positionX - leader->positionX;
-    double uy = self->positionY - leader->positionY;
-    double uz = self->positionZ - leader->positionZ;
+    double ux = self->position.x - leader->position.x;
+    double uy = self->position.y - leader->position.y;
+    double uz = self->position.z - leader->position.z;
     if (!(side.z * uz + uy * side.y + ux * side.x >= 0.0)) {
         side.x = -side.x;
         side.y = -side.y;

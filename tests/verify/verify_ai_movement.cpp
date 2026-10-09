@@ -58,8 +58,8 @@ static bool(__fastcall* s_cheapCell)(CAIMap*, void*, CUnit*);
 static bool __fastcall CheapCellVerify(CAIMap* self, void*, CUnit* unit) {
     bool expected = s_cheapCell(self, nullptr, unit);
     bool actual = self->StandsOnCheapCell(unit);
-    ei::verify::Check("CAIMap::StandsOnCheapCell", expected, actual, "(%g,%g) class %d", unit->positionX,
-                      unit->positionY, unit->sizeClass);
+    ei::verify::Check("CAIMap::StandsOnCheapCell", expected, actual, "(%g,%g) class %d", unit->position.x,
+                      unit->position.y, unit->sizeClass);
     return actual;
 }
 EI_VERIFY(0x005BA5A0, CheapCellVerify, 6, s_cheapCell);

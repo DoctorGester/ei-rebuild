@@ -34,7 +34,7 @@ float Round(double v) {
 
 UnitController* ControllerOf(const CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller); }
 AIBrain* BrainOf(const CUnit* unit) { return ControllerOf(unit)->Brain(); }
-const Vector3* PositionOf(const CUnit* unit) { return reinterpret_cast<const Vector3*>(&unit->positionX); }
+const Vector3* PositionOf(const CUnit* unit) { return &unit->position; }
 CMapObjectVirtuals* MapObject(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object); }
 CPlayer* PlayerOf(const CUnit* unit) { return reinterpret_cast<CPlayer*>(unit->player); }
 
@@ -123,8 +123,8 @@ void PlayerMode::UpdateCombat(AIBrain* brain) {
         float hearing = control->stats.valuesB0[2].current;
         float reach = (sight < hearing || x87::IsNaN(sight) || x87::IsNaN(hearing)) ? hearing : sight;
         double limit = static_cast<double>(reach) * kReachScale;
-        double dy = static_cast<double>(other->positionY) - unit->positionY;
-        double dx = static_cast<double>(other->positionX) - unit->positionX;
+        double dy = static_cast<double>(other->position.y) - unit->position.y;
+        double dx = static_cast<double>(other->position.x) - unit->position.x;
         if (limit * limit < dx * dx + dy * dy) candidates.RemoveAt(node);
         node = next;
     }
@@ -245,9 +245,9 @@ bool PlayerMode::StaysWithParty(AIBrain* brain, bool moving) {
         }
         // The original reads the leader of a unit without a Player mode at address 0x0C (a crash).
         if (!mode || mode->leader != unit) continue;
-        double dx = static_cast<double>(member->positionX) - unit->positionX;
-        double dy = static_cast<double>(member->positionY) - unit->positionY;
-        double dz = static_cast<double>(member->positionZ) - unit->positionZ;
+        double dx = static_cast<double>(member->position.x) - unit->position.x;
+        double dy = static_cast<double>(member->position.y) - unit->position.y;
+        double dz = static_cast<double>(member->position.z) - unit->position.z;
         double limit = static_cast<double>(GameLogicSettings().followMaxDist) * slack + kOne;
         if (!(limit * limit >= dz * dz + dy * dy + dx * dx)) return false;
     }

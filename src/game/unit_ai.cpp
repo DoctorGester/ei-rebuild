@@ -178,7 +178,7 @@ void AIBrain::Think() {
     // An alarm counting down since the brain became alerted.
     if (alerted && alarmCountdown > 0) {
         if (--alarmCountdown == 0 && alarm != 0) {
-            reinterpret_cast<AIWorld*>(kWorld)->RaiseAlarm(alarm, reinterpret_cast<Vector3*>(&owner->unit->positionX), 0);
+            reinterpret_cast<AIWorld*>(kWorld)->RaiseAlarm(alarm, &owner->unit->position, 0);
             owner->Say(kVoiceAlarm);
         }
     }
@@ -429,8 +429,8 @@ void AIBrain::UpdateMove() {
     if (o->command == 1 || o->nextCommand == 1 || o->command == 2 || o->nextCommand == 2) return;
     if (o->inCombat) {
         CUnit* unit = o->unit;
-        double dy = actionPoint.y - unit->positionY;     // kept on the FPU stack
-        double dx = actionPoint.x - unit->positionX;
+        double dy = actionPoint.y - unit->position.y;     // kept on the FPU stack
+        double dx = actionPoint.x - unit->position.x;
         // TEST AH,0x41; JNZ: continue below when <= or unordered.
         if (dx * dx + dy * dy > kArrivedDistanceSq) {
             if (target) reinterpret_cast<AIRef*>(&target)->Reset();
@@ -630,7 +630,7 @@ void AIBrain::SetSeen(CEngineObject* object) {
         }
         if (!allied) CallAllies(reinterpret_cast<const Vector3*>(reinterpret_cast<char*>(object) + 0x1C));
     } else {
-        CallAllies(reinterpret_cast<const Vector3*>(&owner->unit->positionX));
+        CallAllies(&owner->unit->position);
     }
     if (!alerted && alertMode == 1) alerted = 1;
     if (object && object->GetClassId() == kClassUnit) Remember(owner->unit, object);

@@ -48,7 +48,7 @@ AIBrain* BrainOf(CUnit* unit) {
     return reinterpret_cast<AIBrain*>(static_cast<CUnitServer*>(unit->controller)->brain);
 }
 
-const Vector3* PositionOf(CUnit* unit) { return reinterpret_cast<const Vector3*>(&unit->positionX); }
+const Vector3* PositionOf(CUnit* unit) { return &unit->position; }
 
 // A new mode with the counted-object header cleared (the original writes +4 before testing the
 // allocation) and its vtable installed.
@@ -312,9 +312,9 @@ void AIBrain::CallAllies(const Vector3* point) {
         mfc::CString message;
         AIBrain* ally = BrainOf(other);
         if (console::FilterMask() & 1) {
-            double dz = self->positionZ - other->positionZ;
-            double dy = self->positionY - other->positionY;
-            double dx = self->positionX - other->positionX;
+            double dz = self->position.z - other->position.z;
+            double dy = self->position.y - other->position.y;
+            double dx = self->position.x - other->position.x;
             message.Format("Unit %i call for help unit %i from %fm distance", self->id_, other->id_,
                            std::sqrt(dx * dx + dy * dy + dz * dz));
         }

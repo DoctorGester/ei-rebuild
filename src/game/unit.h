@@ -550,9 +550,15 @@ public:
     // 00518D30. An animation time factor (1 for no animation).
     double AnimationFactor(float time);
 
-    float positionX;                // +0x01C
-    float positionY;                // +0x020
-    float positionZ;                // +0x024
+#pragma warning(push)
+#pragma warning(disable : 4201)   // V3 transition: the old names until every use is position.x / y / z
+    union {
+        Vector3 position;           // +0x01C
+        struct {
+            float positionX, positionY, positionZ;
+        };
+    };
+#pragma warning(pop)
     std::uint8_t unknown_028[0x34 - 0x28];
     Quaternion orientation;         // +0x034
     std::uint8_t unknown_044[0xA4 - 0x44];
@@ -643,6 +649,7 @@ public:
 static_assert(offsetof(CUnit, prototypeName) == 0xA4);
 static_assert(offsetof(CUnit, build) == 0xC8);
 static_assert(offsetof(CUnit, modelHeight) == 0xF4);
+static_assert(offsetof(CUnit, position) == 0x1C);
 static_assert(offsetof(CUnit, orientation) == 0x34);
 static_assert(offsetof(CUnit, boundsFlags) == 0x124);
 static_assert(offsetof(CUnit, center) == 0x128);

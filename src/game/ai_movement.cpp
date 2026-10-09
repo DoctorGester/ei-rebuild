@@ -63,15 +63,15 @@ CUnit* CAIMap::BlockingUnitAt(CUnit* unit, const Vector3* position) {
         node = node->next;
         if (other == unit) continue;
         double reach = static_cast<double>(other->standingHeight) + unitHeight;
-        double dy = static_cast<double>(position->y) - other->positionY;
-        double dx = static_cast<double>(position->x) - other->positionX;
+        double dy = static_cast<double>(position->y) - other->position.y;
+        double dx = static_cast<double>(position->x) - other->position.x;
         if (dx * dx + dy * dy >= reach * reach) continue;
         if (ei::VCall<int>(other, 0xDC / 4) != 0) continue;
 
-        int unitX = CellOf(unit->positionX);
-        int unitY = CellOf(unit->positionY);
-        int otherX = CellOf(other->positionX);
-        int otherY = CellOf(other->positionY);
+        int unitX = CellOf(unit->position.x);
+        int unitY = CellOf(unit->position.y);
+        int otherX = CellOf(other->position.x);
+        int otherY = CellOf(other->position.y);
         float otherHeight = other->standingHeight;
         ShapeHandle handle;
         ShapeHandleInit(&handle, nullptr);
@@ -154,8 +154,8 @@ bool CAIMap::StandsOnCheapCell(CUnit* unit) {
     PassCostContext context;
     CostContext(unit->sizeClass, &context);
     // The original also asks the unit for its movement speeds (0052F920) and ignores them.
-    int x = CellOf(unit->positionX);
-    int y = CellOf(unit->positionY);
+    int x = CellOf(unit->position.x);
+    int y = CellOf(unit->position.y);
     if (x < 0 || y < 0 || x >= width || y >= height) return false;
     if (HasKind3Occluder(x, y)) {
         int sizeClass = unit->sizeClass;
