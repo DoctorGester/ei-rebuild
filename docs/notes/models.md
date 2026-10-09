@@ -204,6 +204,12 @@ prototype name (0x2A..0x2D); each record: name, hash_map<int kind, vector<Speech
 were declared for Say (51) / StopSpeech (52). The original picks through a temporary vector of pointers; ours counts and
 indexes (same draws, no allocation).
 
+Next in the range (136 functions, 52 KB left): ambience 006CB390; decal triangles 006CCF20 (floats, X17's decal
+functions are disabled in verify); shadow 006CEDE0; vertex lighting 006C31C0 / 006C36B0 / 006C3A00; animated tiles and
+water waves 006C3E80 (ISAAC draws); map setup 006C5AA0; acks record serialisers 006E3780 / 006E3FD0 / 006E3DC0 (startup,
+through the Rebirth-patched loader); CDib 006D5BF0. The records' compiler-generated members (006DE370, 006DC390, ...)
+need only the record declarations in a standalone build.
+
 ## Resources and the sound file reader (00671280-00675B40)
 
 Code: `resource_stream.h/.cpp`; earlier resource work (CMappedResource, CMMIOResource methods, CResourceManager slots 16-22,
