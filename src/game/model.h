@@ -333,6 +333,33 @@ struct PrintRecord2 {
 static_assert(offsetof(PrintRecord2, name) == 0x04);
 static_assert(sizeof(PrintRecord2) == 0x34);
 
+// What chunks 2 and 3 of both record types hold: a print's alpha and its life and lifetime in
+// ticks (the client world's +0x7A8 picks chunk 3).
+struct PrintLook {
+    float alpha;
+    int life;
+    int lifetime;
+};
+inline const PrintLook& LookOf(const PrintRecord& r, bool second) {
+    return *reinterpret_cast<const PrintLook*>(second ? r.values3 : r.values2);
+}
+inline const PrintLook& LookOf(const PrintRecord2& r, bool second) {
+    return *reinterpret_cast<const PrintLook*>(second ? r.values3 : r.values2);
+}
+
+// prints.db (007C89C8, loaded at startup by 006D0630), indexed by the ground's surface class
+// (TerrainFields::SurfaceClass): chunk 1 blood and bloody footprints, chunk 2 footprints, chunk 3
+// scorch marks; each table is followed by a hash_map by name (not used here).
+struct PrintsDatabase {
+    stlp::vector<PrintRecord> blood;          // +0x00
+    std::uint8_t bloodByName[0x14];           // +0x0C
+    stlp::vector<PrintRecord2> footprints;    // +0x20
+    std::uint8_t footprintsByName[0x14];      // +0x2C
+    stlp::vector<PrintRecord> scorch;         // +0x40
+};
+static_assert(offsetof(PrintsDatabase, footprints) == 0x20 && offsetof(PrintsDatabase, scorch) == 0x40);
+inline const PrintsDatabase& ThePrintsDatabase() { return *reinterpret_cast<const PrintsDatabase*>(0x007C89C8); }
+
 // ---- Water level changes (006D4400) ---------------------------------------------------------------
 
 // A gradual change of one water level (script SetWaterLevel(index, level, time)): `value` moves

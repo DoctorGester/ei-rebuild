@@ -13,6 +13,7 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "engine_object.h"
+#include "ground_print.h"
 #include "player_source.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
@@ -891,26 +892,6 @@ struct OpaqueRecord {
     std::uint8_t bytes[N];
 };
 
-// The client's effect records (the lists +0x1B8, +0x1BC, +0x1C0): objects (their vtable at +0)
-// whose slot 0 runs them one tick; the client's Segment erases those that return 0.
-class ClientEffect {
-public:
-    virtual int Run();   // 0
-};
-// The records of +0x1BC / +0x1C0 (0x94 and 0x8C bytes; element destructors 00575560 / 00575580).
-template <std::size_t N>
-struct ClientEffectRecord : ClientEffect {
-    std::uint8_t unknown_04[N - 4];
-};
-// The records of +0x1B8 (element destructor 0056D080): lights at a point, coloured by Segment
-// with a grey level from the units near them (size unknown; the fields Segment uses).
-struct ClientLightEffect : ClientEffect {
-    std::uint8_t unknown_04[4];
-    float x, y;                           // +0x08
-    std::uint8_t unknown_10[0x54 - 0x10];
-    std::uint32_t colour;                 // +0x54 0xFF grey grey grey
-};
-static_assert(offsetof(ClientLightEffect, colour) == 0x54);
 
 // The client's +0x1A8 (0x58 bytes, vtable 00744098, constructor 006B4350; its names start as
 // "none"). Segment clears +0x44 on its 90th tick (earlier once the party fights, 007AFC9C 2).
@@ -1074,6 +1055,20 @@ public:
     int DrawPass();
     // 00563F70, vtable slot 27. Ground height with the position clamped into the map.
     float ClampedGroundHeight(float x, float y);
+    // A-X5 (ground_print.cpp). 0056CE90 (RET 0x18): a blood print at (x, y) when the setting is on
+    // and prints.db's blood entry for the ground there has an alpha and a life (`tile`: the texture
+    // quarter and, in the high half, the kind; `fresh` 1 for a hit, 0 for a death), coloured by
+    // this frame's sunlight.
+    void AddBloodPrint(float x, float y, float halfSize, float fullSize, std::uint32_t tile, int fresh);
+    // 0056D150 (RET 0x24): a footprint. A blood print reached (its half width plus the footprint's
+    // mean half size; not a fresh one) gives its kind; with a kind the blood entry, else the
+    // footprint entry, gives alpha and life. Returns the blood print's kind, else -1 (also when
+    // footprints are off).
+    int AddFootprint(float x, float y, float halfWidth, float halfLength, float angle, std::uint32_t tile, float scale,
+                     int visible, int bloodKind);
+    // 0056D4C0 (RET 0x18): a scorch mark of `alpha` (made when it is positive and the scorch entry
+    // has a life).
+    void AddScorchMark(float x, float y, float halfWidth, float halfLength, float angle, float alpha);
     // 006CBC00 (RET 4; terrain_ambience.cpp). The ambient sounds' time of day into `out`: "day"
     // from 6 to 18 o'clock, "morning" before 6 and "evening" after 18 within 2..22, else "night".
     // Returns out.
@@ -1278,11 +1273,11 @@ public:
     struct CSky* skyDome_;                // +0x1AC the sky (owned; destructor body 005636A0; sky_object.h)
     CEngineObject* owned1B0_;             // +0x1B0 owned
     ClientNumbers* numbers_;              // +0x1B4 owned
-    // +0x1B8 / +0x1BC / +0x1C0 lists of records (element destructors 0056D080, 00575560, 00575580;
-    // nodes of 0x9C and 0x94 bytes for the last two).
-    stlp::list<ClientLightEffect> list1B8_;
-    stlp::list<ClientEffectRecord<0x94>> list1BC_;
-    stlp::list<ClientEffectRecord<0x8C>> list1C0_;
+    // +0x1B8 / +0x1BC / +0x1C0 the ground prints (ground_print.h; element destructors 0056D080,
+    // 00575560, 00575580). Segment ticks them (slot 0) and colours the blood prints by the light.
+    stlp::list<BloodPrint> bloodPrints_;
+    stlp::list<Footprint> footprints_;
+    stlp::list<GroundPrint> scorchMarks_;
     int unknown1C4_;                      // +0x1C4 0 after Setup
     RefPtr handle_;                       // +0x1C8 (vtable 0073F628)
     CSoundManager* sounds_;               // +0x1CC the sound manager (owned; the client controller's hit sounds)
@@ -1337,7 +1332,7 @@ static_assert(offsetof(CWorldClient, secondGrid_) == 0x150);
 static_assert(offsetof(CWorldClient, manager188_) == 0x188);
 static_assert(offsetof(CWorldClient, manager19C_) == 0x19C);
 static_assert(offsetof(CWorldClient, owned1B0_) == 0x1B0);
-static_assert(offsetof(CWorldClient, list1B8_) == 0x1B8);
+static_assert(offsetof(CWorldClient, bloodPrints_) == 0x1B8 && offsetof(CWorldClient, scorchMarks_) == 0x1C0);
 static_assert(offsetof(CWorldClient, handle_) == 0x1C8);
 static_assert(offsetof(CWorldClient, sounds_) == 0x1CC);
 static_assert(offsetof(CWorldClient, texts_) == 0x1D0);

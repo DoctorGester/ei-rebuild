@@ -255,18 +255,32 @@ over none); MoveLight of an unregistered light writes its area to address 4 (our
 MoveLight / AddLight do nothing (no Release) before a map is loaded. 006D5BF0 (CDib .mmp reader) is dead: only called from
 dead 006D6800 (config/dead_code.csv).
 
-Next (A-X4 cut off): the print effects (footprints, blood, scorch decals; client world lists +0x1B8..+0x1C0): vtables
-0073F754 {006CFA20, 006CFB40, 006CFAC0}, 0073F760 {006CECD0, 006CFE60, 006CFE10}, 0073F76C / 0073F778 {006CECD0 Tick,
-006CF4F0 Load, 006CF370 Save}; ctor 006CF660 (RET 0x28, rand() draws), dtor 006CF960, Draw 006CEDE0 (+5 visible, +4 built:
-quad of 64-byte SoA packets at the height from the world's slot 27 and 00560F00, 0056C750(normal (0, 0, -1), centre z + 1,
-0, quad, +0x5C, +0x6C, +0x7C, 1, 1), uv rotated by +0x40 (the unrolled loop's 4th pair rounds the u part, the others the v
-part), packet z + 0.01; then alpha byte FISTP(+0x4C * 255) into +0x54, 004EB1D0(0, +0x20), DeviceDrawFlat(+0x5C data, +0x6C
-data, +0x60, +0x7C data, +0x80, +0x54, lit << 24, 0, 1)), 006CFBA0 / 006CFEA0 from 0056D150 / 0056D4C0. Tick: life
-(short) - 1, half sizes + growth, alpha = (1 - max(t, 0)) * +0x50 with t = (lifetime - life) / lifetime, returns life.
-Layout: +8 x, +0xC y, +0x10 / +0x14 half size, +0x18 growth, +0x1C life, +0x20 stlp::string texture, +0x2C counted
-texture, +0x30..+0x3C uv offset / scale, +0x40 / +0x44 uv and quad angles, +0x48 lit byte (006CB020), +0x4C / +0x50 alpha,
-+0x54 colour, +0x58 lifetime, +0x5C / +0x6C / +0x7C aligned arrays. Also 006C7A80, 006C7750. The acks records'
-compiler-generated members (006DE370, 006DC390, ...) need only the record declarations in a standalone build.
+Ground prints (A-X5; ground_print.h / .cpp, wrappers in verify_ground_print.cpp): `GroundPrint` (scorch marks, 0x8C,
+vtable 0073F76C; list copies get 0073F778), `Footprint` (0x94, 0073F760), `BloodPrint` (0x9C, 0073F754) in the client lists
++0x1B8 blood, +0x1BC footprints, +0x1C0 scorch (world.h `bloodPrints_` / `footprints_` / `scorchMarks_`). prints.db
+(`PrintsDatabase`, model.h, 007C89C8): chunk 1 blood and bloody footprints, 2 footprints, 3 scorch; chunks 2 / 3 of a record
+are {alpha, life, lifetime} (`PrintLook`), the client's +0x7A8 picks the second.
+
+| Address | Name | V |
+|---|---|---|
+| 006CECD0 / 006CFA20 | `GroundPrint::Tick` / `BloodPrint::Tick` (raw copies) | S |
+| 006CF370 / 006CFE10 / 006CFAC0 | `Save` of the three (capture streams) | S |
+| 006CF4F0 / 006CFE60 / 006CFB40 | `Load` (ours from the stream, recorded; the original on a copy from the recording) | S |
+| 006CFEA0 / 006CFBA0 / 006CF660 | `ConstructScorch`, `Footprint::Construct`, `BloodPrint::Construct` (random state restored) | S |
+| 006CEDE0 | `GroundPrint::Draw` (alpha byte and geometry consistency only; the original would draw twice) | O |
+| 006CF960 | `GroundPrint::Destruct` (only from the constructors' unwinding) | O |
+| 0056CE90 / 0056D150 / 0056D4C0 | `CWorldClient::AddBloodPrint` / `AddFootprint` / `AddScorchMark` (the original's node taken out again; records compared) | S |
+
+Facts: Draw's uv loop is unrolled four times in the original: the fourth vertex rounds its u part to a float, the others
+their v part (kept). Blood: spin = 30 / life degrees per tick, spreads min(life / 2, 45) ticks (rebuilt each tick), angle a
+random multiple of 0.001 below 2 pi; footprints take the kind of a death's blood print they step into (fresh hits' are
+skipped) and return it. 0056C750 is forwarded as `ClientProjectDecalOriginal` (originals_world.h; map_object_shadow.cpp
+adapts its call). Kept: Load does not restore alpha_ (the next tick does). Risks: Draw's corners use FCOS / FSIN through
+x87::fcos / fsin and plain double maths (CheckNear-level differences possible); the footprint's blood test compares
+`limit >= d2` (NaN positions would differ).
+
+Next: 0056C750 (the decal projector; Ghidra garbles its frame), 006C7A80, 006C7750. The acks records' compiler-generated
+members (006DE370, 006DC390, ...) need only the record declarations in a standalone build.
 
 ## Resources and the sound file reader (00671280-00675B40)
 

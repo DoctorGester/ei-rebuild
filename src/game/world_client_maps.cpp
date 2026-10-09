@@ -937,15 +937,15 @@ void CWorldClient::Teardown() {
     DeleteOwned(owned1B0_);
     Teardown563190(this);
     CountedArraySetSize(&countedA0_, nullptr, 0, -1);
-    EmptyList(list1B8_, [](stlp::list<ClientLightEffect>::Node* node) {
+    EmptyList(bloodPrints_, [](stlp::list<BloodPrint>::Node* node) {
         Element1B8Destroy(&node->data);
         Node1B8Free(node, 1);
     });
-    EmptyList(list1BC_, [](stlp::list<ClientEffectRecord<0x94>>::Node* node) {
+    EmptyList(footprints_, [](stlp::list<Footprint>::Node* node) {
         Element1BCDestroy(&node->data, nullptr, 0);
         if (node) stlp::deallocate(node, sizeof(*node));
     });
-    EmptyList(list1C0_, [](stlp::list<ClientEffectRecord<0x8C>>::Node* node) {
+    EmptyList(scorchMarks_, [](stlp::list<GroundPrint>::Node* node) {
         Element1C0Destroy(&node->data, nullptr, 0);
         if (node) stlp::deallocate(node, sizeof(*node));
     });

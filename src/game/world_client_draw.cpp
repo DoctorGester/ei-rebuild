@@ -519,13 +519,13 @@ int CWorldClient::DrawPass() {
     }
 
     // Light effects (three lists of the client, each behind its setting).
-    if (!ListEmpty(list1B8_) || !ListEmpty(list1BC_) || !ListEmpty(list1C0_)) {
+    if (!ListEmpty(bloodPrints_) || !ListEmpty(footprints_) || !ListEmpty(scorchMarks_)) {
         ApplyStateBlock(renderer, StateBlockAlpha());
         SetRenderState(renderer, 15, 0);
         SetRenderState(renderer, 14, 0);
-        if (LightEffects1B8()) DrawLightEffects(list1B8_);
-        if (LightEffects1BC()) DrawLightEffects(list1BC_);
-        if (LightEffects1C0()) DrawLightEffects(list1C0_);
+        if (LightEffects1B8()) DrawLightEffects(bloodPrints_);
+        if (LightEffects1BC()) DrawLightEffects(footprints_);
+        if (LightEffects1C0()) DrawLightEffects(scorchMarks_);
         SetRenderState(renderer, 14, 1);
     }
 
