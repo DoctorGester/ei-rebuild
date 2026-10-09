@@ -157,6 +157,10 @@ public:
     // window's slot 33 hears of it; at 1 (or NaN) a name of three or more '.' parts keeps its
     // third part in savedText_ (the current quest).
     void OnQuestVariable(const char* name, float value);
+    // 005F75B0 (RET 4; the save / load window while it saves or loads). `text` drawn in green
+    // (005FDE20: rect (0, 0)-(800, 40), format 2) on a cleared surface over (0, 280)-(800, 320)
+    // (+0x64), one frame shown (00458010 with 1, 1), the surface freed.
+    void ShowStatusText(const char* text);
 
     // Mouse messages from the input dispatcher (00457970; ui_interface_input.cpp; RET 0xC, the
     // wheel RET 0x10): each goes to the input side that took the mouse (+0x0C), else to the top
@@ -221,7 +225,8 @@ public:
     CUiSurface* secondBackdrop_;     // +0x58
     void* block5C_;                  // +0x5C freed by the shutdown with operator delete (writer not identified)
     std::uint8_t serverFlag_;        // +0x60 the server flag kept for the first window (PushWindow)
-    std::uint8_t unknown_61[0x68 - 0x61];
+    std::uint8_t unknown_61[0x64 - 0x61];
+    CUiSurface* statusSurface_;      // +0x64 only while ShowStatusText runs
     int mouseX_;                     // +0x68 mouse position in screen coordinates
     int mouseY_;                     // +0x6C
     // +0x70..+0x78 the three interface fonts (Create 005F4990: CFont point sizes 75, then
@@ -288,6 +293,7 @@ static_assert(offsetof(CInterface3D, rightDown_) == 0x80);
 static_assert(offsetof(CInterface3D, unknown_8C) == 0x8C);
 static_assert(offsetof(CInterface3D, fastGame_) == 0x94);
 static_assert(offsetof(CInterface3D, fpsSurface_) == 0x20 && offsetof(CInterface3D, queuedWindow_) == 0x40);
+static_assert(offsetof(CInterface3D, statusSurface_) == 0x64);
 static_assert(offsetof(CInterface3D, block5C_) == 0x5C && offsetof(CInterface3D, fonts_) == 0x70);
 static_assert(offsetof(CInterface3D, messages_) == 0x84 && offsetof(CInterface3D, helpTopics_) == 0x98);
 
@@ -445,6 +451,10 @@ public:
     // of `colour` (a GDI solid brush) around `rect` (layout coordinates, scaled to the screen through
     // 005F7CA0) or, for an empty rect, around the whole surface.
     void FrameRect(const RECT* rect, COLORREF colour);
+    // 005FE370 (RET 4) / 005FE2F0 (ui_surface_frame.cpp). With a surface (its DC held): the whole
+    // surface filled with `colour` / with background_ (CDC::FillSolidRect).
+    void Fill(COLORREF colour);
+    void Clear();
 
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00740F28);
     static constexpr std::uint32_t kFromPicture = 1;   // flags_: made by 005FCF80 from an .mmp picture
@@ -459,7 +469,7 @@ public:
     std::uint8_t* kept_;             // +0x1C the contents kept in memory while swapped out
     std::uint32_t keptSize_;         // +0x20
     RECT rect_;                      // +0x24 screen coordinates
-    int unknown_34;                  // +0x34 cleared by the constructors
+    COLORREF background_;            // +0x34 the colour Clear fills with (0 from the constructors)
 };
 static_assert(offsetof(CUiSurface, interface_) == 0x04);
 static_assert(offsetof(CUiSurface, rect_) == 0x24);
@@ -469,7 +479,7 @@ static_assert(offsetof(CUiSurface, width_) == 0x14);
 static_assert(offsetof(CUiSurface, height_) == 0x18);
 static_assert(offsetof(CUiSurface, kept_) == 0x1C);
 static_assert(offsetof(CUiSurface, keptSize_) == 0x20);
-static_assert(offsetof(CUiSurface, unknown_34) == 0x34);
+static_assert(offsetof(CUiSurface, background_) == 0x34);
 static_assert(sizeof(CUiSurface) == 0x38);
 
 // The memory totals the window surfaces keep (005FD7A0, 005FCC00, 005FD120): the bytes of the

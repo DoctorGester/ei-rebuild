@@ -220,6 +220,12 @@ window slot 33; at 1 the name's third '.' part becomes savedText_, the current q
 screen with sounds, every zone with quest variables. Not done: the top-window forwarders for multiplayer messages
 005F7F30 / 005F7F60 / 005F7F80 / 005F7FA0 / 005F82A0 / 005F82D0 / 005F8310 (slots 28-32, 36, 37), 005F86D0 (bottom
 window slot 40), 005F82F0 (chat).
+`ShowStatusText` 005F75B0 (+0x64 the status surface while shown; ours only: freed after). `CUiSurface::Fill` 005FE370 /
+`Clear` 005FE2F0 (`ui_surface_frame.cpp`, +0x34 is `background_`; ours only: DC and holder kept). Library (A-I18 review):
+005F3000 / 005F3170 (map<string,T>::operator[]), 005F4390 / 005F44A0 / 005F9C70 / 0062C0C0 (node creation), 005FAEA0
+(help topics map find), 005F60B0 / 005F6AD0 / 005F8FC0 / 005F9570 / 0062B480 / 00634090 (unwind-only destructors).
+005F46A0 is CInterface3D's constructor (a static initialiser, before the hooks; not ported). 00636203 is a Ghidra
+split of the rewritten 006361B0 (OnUnitJoined), not a function.
 
 Next in 005E0000-00640000 after A-I18 (not Rebirth-patched, single player first): 00612CF0 (the camp's slot 39, a
 debug fill of the constructors; no scenario). Multiplayer / lobby last: 005E2A30 / 005E3230 / 005E3550 / 005E3CE0 / 005E26F0 (chat), 00608D20-006097E0 (the

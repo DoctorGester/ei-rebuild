@@ -15,9 +15,14 @@ namespace {
 constexpr int kInterfacePriority = 1000;
 constexpr int kFullVolume = 100;
 constexpr int kNoSound = -1;
+constexpr int kLayoutWidth = 800;
 // The frame rate's surface: (730, 10)-(800, 28), format 5.
 constexpr int kFpsLeft = 730, kFpsTop = 10, kFpsRight = 800, kFpsBottom = 28, kFpsFormat = 5;
 constexpr int kQuestPart = 2;   // "q.<zone>.<quest>": the quest's name
+// The status line: a surface over (0, 280)-(800, 320), the text in green in its top 40 pixels.
+constexpr int kStatusTop = 280, kStatusBottom = 320, kStatusFormat = 5;
+constexpr int kStatusTextFormat = 2, kStatusTextHeight = 40;
+constexpr std::uint32_t kStatusColour = 0xFF00;
 } // namespace
 
 int CInterface3D::PlaySound(const char* name, int loop) {
@@ -74,3 +79,23 @@ void CInterface3D::OnQuestVariable(const char* name, float value) {
     if (parts.GetSize() > kQuestPart) savedText_ = parts[kQuestPart];
 }
 EI_REPLACE_METHOD(0x005F7FC0, CInterface3D::OnQuestVariable);
+
+void CInterface3D::ShowStatusText(const char* text) {
+    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
+    statusSurface_ = memory ? static_cast<CUiSurface*>(memory)->Construct(this, 0, kStatusTop, kLayoutWidth, kStatusBottom,
+                                                                         kStatusFormat, 1)
+                            : nullptr;
+    if (!statusSurface_) return;
+    SurfaceGetDC(statusSurface_);
+    SurfaceClearOriginal(statusSurface_);
+    RECT rect = {0, 0, kLayoutWidth, kStatusTextHeight};
+    SurfaceDrawText(statusSurface_, nullptr, text, &rect, kStatusTextFormat, kStatusColour, 1, 1);   // Rebirth-patched
+    SurfaceReleaseDC(statusSurface_);
+    FrameStepOriginal(1, 1);
+    if (statusSurface_) {
+        statusSurface_->ReleaseContents();
+        gamecrt::operator_delete(statusSurface_);
+    }
+    statusSurface_ = nullptr;
+}
+EI_REPLACE_METHOD(0x005F75B0, CInterface3D::ShowStatusText);

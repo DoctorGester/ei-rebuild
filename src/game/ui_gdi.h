@@ -31,6 +31,7 @@ struct GameDC {
     }
 
     void FillSolidRect(int x, int y, int cx, int cy, COLORREF colour);   // 0070BB04
+    void FillSolidRect(const RECT* rect, COLORREF colour);               // 0070BADA
     int SetBkMode(int mode);                                             // 007090C2
     void* SelectPen(void* pen);                                          // 00708F5A SelectObject(CPen*)
     POINT MoveTo(int x, int y);                                          // 00709613

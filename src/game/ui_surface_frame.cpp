@@ -1,5 +1,6 @@
 // A frame drawn on an interface surface (CUiSurface::FrameRect 005FDCB0; the tooltips' 0065E880
-// draws their border with it). See docs/notes/ui.md, section 3.
+// draws their border with it) and the surface filled (Clear 005FE2F0, Fill 005FE370). See
+// docs/notes/ui.md, section 3.
 #include "ui.h"
 #include "ui_gdi.h"
 
@@ -27,3 +28,17 @@ namespace {
 void __fastcall SurfaceFrameRect(CUiSurface* self, void*, const RECT* rect, COLORREF colour) { self->FrameRect(rect, colour); }
 } // namespace
 EI_REPLACE(0x005FDCB0, SurfaceFrameRect);
+
+__declspec(naked) void ui_gdi::GameDC::FillSolidRect(const RECT*, COLORREF) EI_ORIGINAL(0x0070BADA)
+
+void CUiSurface::Fill(COLORREF colour) {
+    if (!holder_) return;
+    auto* dc = static_cast<ui_gdi::GameDC*>(CdcFromHandleOriginal(dc_));
+    RECT whole = rect_;
+    gameapi::OffsetRect(&whole, -whole.left, -whole.top);
+    dc->FillSolidRect(&whole, colour);
+}
+EI_REPLACE_METHOD(0x005FE370, CUiSurface::Fill);
+
+void CUiSurface::Clear() { Fill(background_); }
+EI_REPLACE_METHOD(0x005FE2F0, CUiSurface::Clear);

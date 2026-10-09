@@ -85,3 +85,11 @@ static void __fastcall OnQuestVariableVerify(CInterface3D* self, void*, const ch
                       value, before, after);
 }
 EI_VERIFY(0x005F7FC0, OnQuestVariableVerify, 0, s_unused);
+
+// The status line's surface exists only while it is shown. The save / load window's saves and
+// loads (ui_saveload, ui_saveload_delete), the hero screen and the layouts' notices.
+static void __fastcall ShowStatusTextVerify(CInterface3D* self, void*, const char* text) {
+    self->CInterface3D::ShowStatusText(text);
+    ei::verify::Check("CInterface3D::ShowStatusText", true, self->statusSurface_ == nullptr, "text %s", text ? text : "");
+}
+EI_VERIFY(0x005F75B0, ShowStatusTextVerify, 0, s_unused);
