@@ -30,10 +30,16 @@ class NetLink;  // net_link.h
 // 32-byte boundary (0047B940), size, capacity, grow-by.
 using PlayerObjectArray = lib::AlignedArray<CEngineObject*>;
 
-// A unit placement (0x28 bytes; built by 004CEE20, not read by the rewritten code).
+// A unit placement (0x28 bytes; built by 004CEE20): the unit's id, position, rotation and two
+// values (CWorldServer::StoreParty stores the unit's +0x268 / +0x26C, CreateUnits restores them).
 struct UnitPlacement {
-    std::uint8_t bytes[0x28];
+    int id;
+    std::uint32_t position[3];      // +0x04 (float bits)
+    std::uint32_t rotation[4];      // +0x10
+    std::uint32_t value20;          // +0x20
+    std::uint32_t value24;          // +0x24
 };
+static_assert(sizeof(UnitPlacement) == 0x28);
 
 class CPlayerServer {
 public:

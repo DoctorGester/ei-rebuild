@@ -61,7 +61,8 @@ struct WorldPlayer {
 
     int id;                              // +0x024 player number (0 = the local player)
     ObjectIdMap objects;                 // +0x028 its objects by id (the briefing screen walks it)
-    std::uint8_t unknown_040[0x70 - 0x40];
+    ObjectIdMap units;                   // +0x040 its units by id (CPlayer::units_ / maxUnitId_)
+    std::uint8_t unknown_058[0x70 - 0x58];
     // +0x070 the player's party (a CParty, party.h, 0x70 bytes to +0xE0: Party()); mercs,
     // mercCount and variables below are its members_ and variables_ seen from here. Loaded and
     // saved by 006618C0 / 00661C10 (world_save.cpp).
@@ -96,6 +97,7 @@ static_assert(offsetof(WorldPlayer, mercs) == 0xA0);
 static_assert(offsetof(WorldPlayer, variables) == 0xC4);
 static_assert(offsetof(WorldPlayer, items) == 0xE0);
 static_assert(offsetof(WorldPlayer, objects) == 0x28);
+static_assert(offsetof(WorldPlayer, units) == 0x40);
 static_assert(offsetof(WorldPlayer, lastScreen) == 0x104);
 
 // What CWorldClient::LocalView (005699F0) returns: the local view, +0x1C its player.
@@ -179,7 +181,7 @@ public:
     virtual void SpellConstructor();      // 17: 0055EBC0 (+0x50)
     virtual CEngineObject* ItemFactory(); // 18: 004BA000 (+0x54, itemManager_)
     virtual CEngineObject* MapObjectManager();   // 19: 0055EB70, the map object manager (+0x40)
-    virtual CEngineObject* PlayerList();  // 20: 0055EB50 (+0x38, players_)
+    virtual CBaseManager* PlayerList();   // 20: 0055EB50 (+0x38, players_)
     // 21: 0055EB80 (+0x44): the side-specific halves' manager (the client's is a
     // CClientSpecificManager, 0042D690; it makes the class 0x45 objects of CFakeUnit's figures).
     virtual void SpecificManager();
@@ -1393,6 +1395,7 @@ struct GameFlow {
 static_assert(offsetof(GameFlow, requestTarget_) == 0x04);
 static_assert(offsetof(GameFlow, requestArg_) == 0x78);
 static_assert(offsetof(GameFlow, flag80_) == 0x80);
+inline GameFlow* TheGameFlow() { return reinterpret_cast<GameFlow*>(std::uintptr_t(0x007AFE20)); }
 
 struct SavedPartyEntry;   // world_game.cpp: the party records (0x70 bytes) and the file name
 

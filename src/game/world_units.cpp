@@ -12,6 +12,7 @@
 #include "item.h"
 #include "map_object.h"
 #include "map_spec.h"
+#include "player_messages.h"
 #include "server_specific_manager.h"
 #include "torch.h"
 #include "unit.h"
@@ -47,15 +48,8 @@ constexpr int kKindSinglePlayer = 1;
 constexpr int kKindNoRangeTest = 3;
 constexpr int kGameResultLost = 2;
 
-// The placement of one unit (0x28 bytes): id, position, rotation, two values.
-struct Placement {
-    int id;
-    std::uint32_t position[3];
-    std::uint32_t rotation[4];
-    std::uint32_t value20;    // +0x20
-    std::uint32_t value24;    // +0x24
-};
-static_assert(sizeof(Placement) == 0x28);
+// The placement of one unit (player_messages.h).
+using Placement = UnitPlacement;
 using PlacementArray = mfc::CArray<Placement>;
 
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
