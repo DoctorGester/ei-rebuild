@@ -50,7 +50,7 @@ The four porting batches (A-I16, A-H15, A-S9, A-U7) are merged (2026-10-09, 140 
 
 ## Draft passes (no build, 2026-10-07)
 
-The PC can't build or run the suite until a reboot (process-zombie leak, memory notes). These tickets write code on their own branches without building and leave a notes file docs/notes/drafts/<ticket>.md saying what is drafted, what is unverified and where they stopped. A later worker builds, fixes and finishes each one.
+Drafts written without building (2026-10-07), each on its own branch with a notes file docs/notes/drafts/<ticket>.md saying what is drafted, what is unverified and where it stopped; a later worker builds, fixes and merges it.
 - DR-C1 (finishing 2026-10-09; drafted: world_units.cpp and world_client_maps.cpp clean, world_game.cpp half (At<> 155 -> 80; stopped at the network sessions +0x25A0..+0x261C); head 86931a0, branch draft-dr-c1 in worktree agent-a9b8a6df2bce6075b). Overlaps DR-C2: both named CMapObject slot 29, CWorld 18/24, CUnitController 29 and 41-43; reconcile when merging (DR-C2 first, then take its names): world_units.cpp done, world_client_maps.cpp partly, head 064e0d0; part 2 taken for the rest; branch draft-dr-c1 in worktree agent-a9b8a6df2bce6075b). Overlaps DR-C2: both named CMapObject slot 29 (IsDynamicSlot vs IsSynchronised), CWorld 18/24 and CUnitController 29; reconcile when merging (DR-C2 first, then take its names): cleanup draft of world_client_maps.cpp, world_units.cpp, world_game.cpp (At<>/Field<> 470, VCall 106 between them).
 - DR-C2 merged 2026-10-09 (102 slots named; 16 placeholders left elsewhere).
 - DR-C3 merged 2026-10-09 (net_state.cpp's last 14 VCalls can now use DR-C2's names).
@@ -61,7 +61,6 @@ The PC can't build or run the suite until a reboot (process-zombie leak, memory 
 ## Verify checks
 
 
-- X24 note: with the Windows session locked, 16 parallel runs give random D3D11 texture failures, C++ exceptions (E06D7363) and step-0 hangs; 6 at once is clean (132 runs ALL PASS at 7b1ec35). Use --jobs 6 while locked; after hours locked even 6 fails (crashes, step-0 hangs), 3 is clean (X25, A-W7 was not the cause).
 
 - X23 (done 2026-10-07: title keys "zone "/"allod ", DeleteSave check via the game import, harness quit only from WinMain's loop; rebirth_flags / render_scene / render_movie_present crashes not traced to A-H14, re-run) A-H14 merge regressions (main 9d61b1d): magic_traps both (game did not exit 5 s after quit), script_fx both, ui_saveload / ui_saveload_delete both, rebirth_flags rebirth (crash E06D7363), render_scene vanilla (crash C0000005 in DDraw), render_movie_present rebirth (hang). Mismatches: CSaveLoadWindow::DeleteSave 2/2, SaveEntry::AllodTitle 34/34, SaveEntry::ZoneTitle 82/82.
 
