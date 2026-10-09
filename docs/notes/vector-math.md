@@ -217,6 +217,9 @@ colour / stat names and const tables skipped; vecmath.h exempt. Seeded at 507 (3
   files), CMapObject::positionX/Y/Z (403 uses in 69 files; most 2D distances use them, so most unit_ai_* / combat_*
   2D sums wait for that field), link_figure.h morph_ (morph coefficients, not a point), figure_mesh.h block[4][4]
   (indexed [i][j]), quaternion axis forms (unit_ai_sight Prepare, combat_actions), particles.
+- Callees retyped: Negate 00402200 and QuaternionAxisY 0040F560 (originals_core.h), the local AxisX 0040D940 forwarders
+  (unit_points, world_client_draw) take Vector3* / Quaternion*. Still `float*`: PathStart 005C7B00 (declared in
+  combat_motion and unit_motion_tick), MotionSample, MarkerDraw, the AI map lookups. Matrix x point not started.
 
 ## 7. Risks
 
