@@ -53,7 +53,5 @@ hook and verify wrapper.
 - Other layouts of these streams: `UnitStream` (`unit.h`), the `SaveStream` structs in `ui_battle_setup.cpp` / `ui_global_map.cpp`, the unit_ai stream,
   `verify_magic_trap`'s wrapper, the remaining per-file `Text(0x...)` helpers, `TweenArray` (`model_db.cpp`, reads and writes through `ScriptStream`),
   `hash_tables_400` / `atexit_400` raw views of the registry.
-- Duplicate forwarders seen: 00411850 (`ui_battle_update.cpp` `UnitListConstruct`), 006E6653 (`ui_saveload.cpp`, `world_game.cpp`), 0070133F
-  (`texture_compose.cpp`, `ui_saveload.cpp`), 00700AA9 / 00700970 (`net_*.cpp`), `CIacos` (`core_transform_math.cpp`, `quaternion.cpp`), `CIpow`
-  (`ui_hud_map.cpp`, `ui_item_info.cpp` inline asm), `NodeFreeList` (4 files; `stlp::SmallNodeFreeList` is the same address); 007AF738 is the
-  terrain here but `LightManager()` elsewhere. (006FDA6D is `Right(nCount)`, 006FD9B4 `Mid(nFirst)`: core.md "MFC CString: Mid and Right".)
+- Duplicate forwarders: `config/forwarder_duplicates.txt` and docs/originals-report.md. 007AF738 is the terrain in this layer
+  but `LightManager()` elsewhere.

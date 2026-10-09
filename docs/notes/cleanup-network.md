@@ -50,5 +50,5 @@ qualified member).
 - Forwarders to the STLport list / vector / string instantiations the handlers call (library layer) and the timed-entry list nodes ({delay, object}) use raw
   node offsets; the MFC `CFile` slots (FileStream, `world_savefile.cpp`) and its `CStream` VCalls on `void*` streams (world subsystem); GameBuffer's own slot
   bodies (the view's Seek / destructors in `net_coder.cpp`) are free functions; the growing buffer's forwarders (004DA7F0 ...) are declared per file.
-- `net_state.cpp` (unit / map object offsets: units ticket); `StringRep` (raw STLport string layout) vs `stlp::string`; `hash_tables_400.cpp`'s own view
+- `StringRep` (raw STLport string layout) vs `stlp::string`; `hash_tables_400.cpp`'s own view
   of the type registry (004368F0); the world object the pump reads players from (+0x28) and the manager 0079B5DC.

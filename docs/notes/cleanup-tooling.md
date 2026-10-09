@@ -21,13 +21,7 @@ by hand before handing work back.
 | `gen_originals.py` | `docs/originals-report.md` (generated; do not read it whole: grep the address). `--check` exits 1 when it is stale |
 | `find_dead_code.py` | rewrites `config/dead_code.csv` from scratch (drops hand-added rows; refuses arguments) |
 
-`check_returns.py` follows the code after each direct `CALL rel32` of a void-declared function with capstone (both ways at conditional
-jumps) until EAX is written, a call or RET; reading EAX / AX / AL / AH first flags the site; a path reaching RET (or a tail `JMP`)
-hands EAX to the caller's callers, followed up to three levels. A write of AL / AX counts as a full write (`MOV AL,..; PUSH EAX` bool
-arguments, `FNSTSW AX; SHL EAX,n`), and `XOR/SUB/SBB EAX,EAX`, `OR EAX,-1`, `AND EAX,0` are writes. Not seen: calls through vtable slots and
-other indirect calls (the crash it was written for, `UnitActionPoint` slot 53, is invisible to it); `--address 005FFA90` checks an address
-whatever its declaration. Replacement hits fail the build unless listed in `tools/check_returns_allow.txt`; forwarder hits are warnings
-(`-v` lists them; our code ignores the value but the check fails once such a function is replaced with the void declaration).
+How `check_returns.py` follows EAX, what it cannot see (vtable and other indirect calls) and its allow list are in its docstring.
 
 ## `progress.py` cleanup artefacts
 
