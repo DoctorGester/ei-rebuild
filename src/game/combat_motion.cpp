@@ -4,17 +4,22 @@
 //
 // Animation lists cached on the controller: +0x944 the movement animation (key +0x940), +0x960
 // the idle animation (key +0x95C; its start time +0x974).
+#include "ai_map.h"
+#include "ai_motion.h"
 #include "combat.h"
 #include "combat_internal.h"
 #include "combat_plan.h"
 
 #include "item.h"
+#include "map_object_figures.h"
+#include "player_messages.h"
 #include "random.h"
+#include "unit_ai.h"
+#include "world.h"
 
 #include "lib/crt.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "originals_ai.h"
 #include "originals_core.h"
 #include "originals_engine.h"
@@ -29,11 +34,6 @@
 #include <cstring>
 
 namespace {
-
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
-}
 
 constexpr int kStateIdle = 0;
 constexpr int kStateTurning = 2;
@@ -54,7 +54,7 @@ constexpr std::uint32_t kFarBits = 0x49742400u;                 // 1e6
 constexpr int kMessageModeBlocked = 0x0D;
 constexpr int kMessageCannotDo = 0x0E;
 constexpr int kMessagePartial = 0x01;
-constexpr int kSlotRelease = 4;
+constexpr int kBrainModeSilent = 6;   // AIBrain::action: no path reports
 
 // --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
 
@@ -121,25 +121,32 @@ inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p)
 void* __fastcall ListNewNode(void* a0, void*, void* a2, void* a3) { return PtrListNewNode52CEF0Original(a0, nullptr, a2, a3); }
 void __fastcall ListFreeNode(void* a0, void*, void* a2) { UnitListFreeNodeOriginal(a0, nullptr, a2); }
 
-void* const kWorldServer = reinterpret_cast<void*>(0x007AFF60);
-void* const kAIMap = reinterpret_cast<void*>(0x007B00D0);        // the world server + 0x170
-void* const kSectorMap = reinterpret_cast<void*>(0x007B01F4);    // the world server + 0x294
+// The world server (007AFF60), its AI map (+0x170 = 007B00D0) and sector map (+0x294 = 007B01F4).
+CAIMap* ServerAIMap() { return WorldServer()->AIMap(); }
+CSectorMap* ServerSectors() { return WorldServer()->Sectors(); }
 float HalfCell() { return *reinterpret_cast<const float*>(0x0073EEE4) * *reinterpret_cast<const float*>(0x0073B86C); }
 float HeroWalkLimit() { return *reinterpret_cast<const float*>(0x007C5448); }
 float HeroRunLimit() { return *reinterpret_cast<const float*>(0x007C5440); }
 
-AnimationSteps& Queue(CUnitServer* self) { return At<AnimationSteps>(self, 0x24); }
-int& QueueTime(CUnitServer* self) { return Queue(self).extra; }
-OrderPlan& Plan(CUnitServer* self) { return At<OrderPlan>(self, 0xC4); }
-void* Motion(CUnitServer* self) { return reinterpret_cast<char*>(self) + 0x3C; }
-AnimationSteps& MoveSteps(CUnitServer* self) { return At<AnimationSteps>(self, 0x944); }
-AnimationSteps& IdleSteps(CUnitServer* self) { return At<AnimationSteps>(self, 0x960); }
-std::uint32_t& MoveKey(CUnitServer* self) { return At<std::uint32_t>(self, 0x940); }
-std::uint32_t& IdleKey(CUnitServer* self) { return At<std::uint32_t>(self, 0x95C); }
-int& IdleTime(CUnitServer* self) { return At<int>(self, 0x974); }   // IdleSteps(self).extra
+AnimationSteps& Queue(CUnitServer* self) { return self->queue; }
+int& QueueTime(CUnitServer* self) { return self->queue.extra; }
+OrderPlan& Plan(CUnitServer* self) { return self->currentPlan; }
+AIPath* Motion(CUnitServer* self) { return self->MotionPath(); }
+AnimationSteps& MoveSteps(CUnitServer* self) { return self->moveAnimation; }
+AnimationSteps& IdleSteps(CUnitServer* self) { return self->idleAnimation; }
+std::uint32_t& MoveKey(CUnitServer* self) { return self->moveAnimationKey; }
+std::uint32_t& IdleKey(CUnitServer* self) { return self->idleKey; }
+int& IdleTime(CUnitServer* self) { return self->idleAnimation.extra; }   // +0x974
+
+// The world time (CWorld::tick_) of an object's world (ObjectWorld) or manager context.
+int TickOf(void* world) { return static_cast<CWorld*>(world)->tick_; }
+CWorldServer* ContextOf(CUnitServer* self) { return static_cast<CWorldServer*>(ManagerContextOf(self)); }
+CPlayer* PlayerOf(CUnit* unit) { return reinterpret_cast<CPlayer*>(unit->player); }
+// The unit's server object (CUnit + 0x170) and its vitals.
+UnitVitals& ServerVitals(CUnit* unit) { return static_cast<CMapObjectServer*>(unit->companion)->vitals; }
 
 void StartQueueIfUnset(CUnitServer* self) {
-    if (QueueTime(self) == -1) QueueTime(self) = At<int>(ObjectWorld(self), 0x64);
+    if (QueueTime(self) == -1) QueueTime(self) = TickOf(ObjectWorld(self));
 }
 
 // The first step of the queue shown on the unit (00546C10 inlined).
@@ -153,19 +160,19 @@ void ShowHead(CUnitServer* self) {
 
 void DropEffectObject(CUnitServer* self) {
     if (!self->effectObject) return;
-    WorldRemoveTimed(kWorldServer, nullptr, self->effectObject->id_);
+    WorldRemoveTimed(WorldServer(), nullptr, self->effectObject->id_);
     CEngineObject* effect = self->effectObject;
     self->effectObject = nullptr;
-    if (effect) ei::VCall<void>(effect, kSlotRelease);
+    if (effect) effect->Release();
 }
 
 // The unit stops where it is, facing its direction (the motion restarted with the reversed Y
 // axis of its rotation), then stands (0) and takes state 6: the sequence 0054A150 inlines twice.
 void FaceAndStop(CUnitServer* self) {
     PathClear(Motion(self));
-    int now = At<int>(ObjectWorld(self), 0x64);
+    int now = TickOf(ObjectWorld(self));
     float axis[3];
-    QuaternionAxisY(&At<float>(self->unit, 0x34), nullptr, axis);
+    QuaternionAxisY(&self->unit->orientation, nullptr, axis);
     float back[3];
     const float* direction = Negate(back, axis);
     if (PathStart(Motion(self), nullptr, &self->unit->positionX, direction, now)) UnitPathSpeeds(self->unit);
@@ -209,8 +216,9 @@ void FillIdle(CUnitServer* self, AnimationSteps* steps) {
         AddEmote(steps, kEmoteStand);
         return;
     }
-    char* entry = UnitFindAnimation(self->unit, nullptr, WeaponAndModeBits(self) | kKeyIdle, 1);
-    if (entry) AddEmote(steps, At<std::uint8_t>(entry, 0x10));
+    const auto* entry = reinterpret_cast<const FigureAnimation*>(
+        UnitFindAnimation(self->unit, nullptr, WeaponAndModeBits(self) | kKeyIdle, 1));
+    if (entry) AddEmote(steps, entry->index);
 }
 
 // The idle key of the unit now (weapon and movement bits).
@@ -219,54 +227,28 @@ std::uint32_t IdleKeyNow(CUnitServer* self) { return WeaponAndModeBits(self); }
 // A motion order on the stack (0x3C bytes): the order header (MotionOrder, 0x20 bytes) and its
 // step list (a CList of path cells, vtable 0073EDB0, blocks of 0x80), as 005B22C0
 // (AIPath::ToMotionOrder) fills it. The header is zeroed (the original leaves it uninitialised).
-void* const kCellListVtable = reinterpret_cast<void*>(0x0073EDB0);
 struct LocalMotionOrder {
-    alignas(4) std::uint8_t bytes[0x3C];
+    MotionOrder header;     // +0x00
+    PathCellList steps;     // +0x20
     LocalMotionOrder() {
-        std::memset(bytes, 0, 0x20);
-        CellListConstruct(bytes + 0x20, nullptr, 0x80);
+        std::memset(&header, 0, sizeof(header));
+        CellListConstruct(&steps, nullptr, 0x80);
     }
     ~LocalMotionOrder() {
-        *reinterpret_cast<void**>(bytes + 0x20) = kCellListVtable;
-        CellListRemoveAll(bytes + 0x20);
+        steps.vtable = PathCellListVtable();
+        CellListRemoveAll(&steps);
     }
     LocalMotionOrder(const LocalMotionOrder&) = delete;
     LocalMotionOrder& operator=(const LocalMotionOrder&) = delete;
 };
+static_assert(sizeof(LocalMotionOrder) == 0x3C);
 
 // A CList<CUnit*> as the controller fills them (vtable, head, tail, count, free list, blocks).
 using UnitList = mfc::CTypedPtrList<CEngineObject>;
 
-// A player's party: an STLport hash_map<id, unit> at player + 0x40 (00455830 begin, 004558B0 the
-// next bucket's head).
-struct PartyNode {
-    PartyNode* next;
-    std::uint32_t key;
-    CUnit* unit;
-};
-struct PartyMap {
-    std::uint32_t functors;
-    PartyNode** buckets;
-    PartyNode** finish;
-};
-std::uint32_t BucketCount(const PartyMap* map) {
-    return static_cast<std::uint32_t>(static_cast<int>(reinterpret_cast<std::uintptr_t>(map->finish) -
-                                                       reinterpret_cast<std::uintptr_t>(map->buckets)) >> 2);
-}
-PartyNode* FirstNode(const PartyMap* map) {
-    for (std::uint32_t i = 0; i < BucketCount(map); ++i)
-        if (map->buckets[i]) return map->buckets[i];
-    return nullptr;
-}
-PartyNode* NextNode(const PartyMap* map, const PartyNode* node) {
-    if (node->next) return node->next;
-    std::uint32_t bucket = node->key % BucketCount(map);
-    for (;;) {
-        ++bucket;
-        if (BucketCount(map) <= bucket) return nullptr;
-        if (PartyNode* head = map->buckets[bucket]) return head;
-    }
-}
+// A player's party: CPlayer::units_ (+0x40), walked as 00455830 (begin) and 004558B0 (the next
+// bucket's head) do: stlp::hash_map::First / After.
+using PartyMap = CPlayer::ObjectMap;
 
 } // namespace
 
@@ -274,7 +256,7 @@ PartyNode* NextNode(const PartyMap* map, const PartyNode* node) {
 
 bool CUnitServer::CanReactFor(int ticks) {
     if (action.kind == kOrderAttack && state == kStateTurning &&
-        At<int>(ObjectWorld(this), 0x64) + ticks > At<int>(this, 0x184))
+        TickOf(ObjectWorld(this)) + ticks > nextAttackTime)
         return false;
     return true;
 }
@@ -297,19 +279,18 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     CtlPopFinishedSteps(self);
     ShowHead(self);
     PathClear(Motion(self));
-    int now = At<int>(ObjectWorld(self), 0x64);
+    int now = TickOf(ObjectWorld(self));
     float axis[3];
-    QuaternionAxisY(&At<float>(self->unit, 0x34), nullptr, axis);
+    QuaternionAxisY(&self->unit->orientation, nullptr, axis);
     float back[3] = {-axis[0], -axis[1], -axis[2]};
     if (PathStart(Motion(self), nullptr, &self->unit->positionX, back, now)) UnitPathSpeeds(self->unit);
-    // Standing 0 (005467B0 inlined).
-    void* world = ManagerContextOf(self);
-    int& standing = At<int>(self->unit, 0x278);
-    if (standing != 0) {
-        void* sectors = static_cast<char*>(world) + 0x294;
-        SectorMapRemove(AsSectorMap(sectors), nullptr, self->unit);
-        At<int>(self->unit, 0x278) = 0;
-        SectorMapAdd(AsSectorMap(sectors), nullptr, self->unit);
+    // Standing 0 (005467B0 inlined; CUnit +0x278).
+    CWorldServer* world = ContextOf(self);
+    if (self->unit->unknown_278 != 0) {
+        CSectorMap* sectors = world->Sectors();
+        SectorMapRemove(sectors, nullptr, self->unit);
+        self->unit->unknown_278 = 0;
+        SectorMapAdd(sectors, nullptr, self->unit);
         UnitMarkChanged(self->unit, nullptr, 7);
     }
     // The list was taken by value: it is destroyed here.
@@ -387,13 +368,13 @@ void CUnitServer::BuildMoveSteps(AnimationSteps* steps, char once) {
     } else {
         key |= kKeyMoveLoop;
         if (self->type_ == kUnitTypeHero) {
-            float stamina = At<float>(this, 0x238);
+            float stamina = stats.loadFactor;   // +0x238
             if (!(stamina > HeroWalkLimit())) key |= 0x800000;
             else if (!(stamina > HeroRunLimit())) key |= 0x400000;
         }
     }
-    if (char* entry = UnitFindAnimation(self, nullptr, key, 1)) {
-        std::uint8_t index = At<std::uint8_t>(entry, 0x10);
+    if (const auto* entry = reinterpret_cast<const FigureAnimation*>(UnitFindAnimation(self, nullptr, key, 1))) {
+        std::uint8_t index = entry->index;
         if (!once) {
             AddEmote(steps, index);
         } else {
@@ -422,7 +403,7 @@ AnimationSteps* CUnitServer::NextAnimation() {
     } else {
         key |= 0x140000;
         if (self->type_ == kUnitTypeHero) {
-            float stamina = At<float>(this, 0x238);
+            float stamina = stats.loadFactor;   // +0x238
             if (!(stamina > HeroWalkLimit())) key |= 0x800000;
             else if (!(stamina > HeroRunLimit())) key |= 0x400000;
         }
@@ -479,22 +460,22 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
         CtlPlaySteps(this, nullptr, &IdleSteps(this));
     }
     state = kStateActing;
-    At<int>(this, 0x180) = At<int>(ManagerContextOf(this), 0x64) + 10;
+    actingCheckTime = TickOf(ManagerContextOf(this)) + 10;
     if (plan.targetId == -1) {
-        int now = At<int>(ObjectWorld(this), 0x64);
+        int now = TickOf(ObjectWorld(this));
         PathTurn(Motion(this), nullptr, now, unit, plan.direction, plan.endTime, plan.startTime);
     } else {
         int until = follow ? plan.endTime : 0;
-        int now = At<int>(ObjectWorld(this), 0x64);
+        int now = TickOf(ObjectWorld(this));
         PathFollow(Motion(this), nullptr, now, unit, plan.targetId, until, plan.startTime);
     }
     UnitPathSpeeds(unit);
-    void* world = ManagerContextOf(this);
-    if (At<int>(unit, 0x278) == 0) return;
-    void* sectors = static_cast<char*>(world) + 0x294;
-    SectorMapRemove(AsSectorMap(sectors), nullptr, unit);
-    At<int>(unit, 0x278) = 0;
-    SectorMapAdd(AsSectorMap(sectors), nullptr, unit);
+    CWorldServer* world = ContextOf(this);
+    if (unit->unknown_278 == 0) return;
+    CSectorMap* sectors = world->Sectors();
+    SectorMapRemove(sectors, nullptr, unit);
+    unit->unknown_278 = 0;
+    SectorMapAdd(sectors, nullptr, unit);
     UnitMarkChanged(unit, nullptr, 7);
 }
 EI_REPLACE_METHOD(0x005494D0, CUnitServer::StartAction);
@@ -502,13 +483,13 @@ EI_REPLACE_METHOD(0x005494D0, CUnitServer::StartAction);
 // --- Movement modes -----------------------------------------------------------------------------
 
 void CUnitServer::UpdateSneak() {
-    void* world = ManagerContextOf(this);
+    CWorldServer* world = ContextOf(this);
     int running = StatsMovementState(&stats, nullptr, 1);
     if (running != 0 && moveMode2.wasMode3 != 0) {
         // Out of breath: back from the second mode's mode 3, with a remark.
         std::uint32_t code = running == 1 ? 0x15 : 0x14;
         if ((code <= 0x29 || code == 0x30) && code != 0xFFFFFFFFu && unit->player)
-            PlayerMessage(At<void*>(unit->player, 0x20), nullptr, unit, static_cast<int>(code));
+            PlayerMessage(PlayerOf(unit)->connection_, nullptr, unit, static_cast<int>(code));
         if (action.unknown_20 != 0) action.unknown_20 = 0;
         moveMode2.wasMode3 = 0;
         int mode = moveMode2.mode;
@@ -518,11 +499,11 @@ void CUnitServer::UpdateSneak() {
         }
     }
     if (moveMode.wasMode3 != 0) {
-        if (moveMode2.wasMode3 != 0 && MapCheapCell(static_cast<char*>(world) + 0x170, nullptr, unit) && running == 0) {
-            At<int>(this, 0x178) = 0;
+        if (moveMode2.wasMode3 != 0 && MapCheapCell(world->AIMap(), nullptr, unit) && running == 0) {
+            sneakWait = 0;
             return;
         }
-        int& waited = At<int>(this, 0x178);
+        int& waited = sneakWait;
         ++waited;
         if (waited <= 5 && moveMode2.wasMode3 != 0) return;
         moveMode.wasMode3 = 0;
@@ -532,15 +513,15 @@ void CUnitServer::UpdateSneak() {
             UnitMarkChanged(unit, nullptr, 6);
         }
         UnitUpdateSizeClass(unit);
-        At<std::uint8_t>(this, 0x146) = 1;
+        motionChanged = 1;
         return;
     }
-    int allowed = unit->player ? At<std::uint8_t>(unit->player, 0x108) : 1;
+    int allowed = unit->player ? PlayerOf(unit)->unknown_108 : 1;
     if (moveMode.mode != kModeRun || moveMode2.wasMode3 == 0) return;
-    if (allowed == 0 && !(At<float>(ServerStatsOf(unit), 0x14) > 0.0f)) return;
-    if (!MapCheapCell(static_cast<char*>(world) + 0x170, nullptr, unit)) return;
+    if (allowed == 0 && !(ServerVitals(unit).mana > 0.0f)) return;   // the breath (vitals +0x14)
+    if (!MapCheapCell(world->AIMap(), nullptr, unit)) return;
     if (running != 0) return;
-    At<int>(this, 0x178) = 0;
+    sneakWait = 0;
     moveMode.wasMode3 = 1;
     int mode = UnitModeOf(moveMode);
     if (mode != unit->moveMode) {
@@ -548,7 +529,7 @@ void CUnitServer::UpdateSneak() {
         UnitMarkChanged(unit, nullptr, 6);
     }
     UnitUpdateSizeClass(unit);
-    At<std::uint8_t>(this, 0x146) = 1;
+    motionChanged = 1;
 }
 EI_REPLACE_METHOD(0x00548520, CUnitServer::UpdateSneak);
 
@@ -556,17 +537,18 @@ bool CUnitServer::ChangeMoveMode() {
     if (moveMode.mode == moveMode2.mode && moveMode.flag4 == moveMode2.flag4) return false;
     bool modeChanged = moveMode.mode != moveMode2.mode;
     MoveModeState saved = moveMode;
-    SectorMapRemove(AsSectorMap(kSectorMap), nullptr, unit);
-    bool passableBefore = MapCellPassable(kAIMap, nullptr, unit);
+    SectorMapRemove(ServerSectors(), nullptr, unit);
+    bool passableBefore = MapCellPassable(ServerAIMap(), nullptr, unit);
     bool sameMode = moveMode.mode == moveMode2.mode;
     moveMode = moveMode2;
     unit->moveMode = UnitModeOf(moveMode);
     UnitUpdateSizeClass(unit);
     bool placed;
-    if (!sameMode && !(passableBefore ? MapCellPassable(kAIMap, nullptr, unit) : MapCanLeaveCell(kAIMap, nullptr, unit)))
+    if (!sameMode &&
+        !(passableBefore ? MapCellPassable(ServerAIMap(), nullptr, unit) : MapCanLeaveCell(ServerAIMap(), nullptr, unit)))
         placed = false;
     else
-        placed = SectorMapAdd(AsSectorMap(kSectorMap), nullptr, unit);
+        placed = SectorMapAdd(ServerSectors(), nullptr, unit);
     UnitMarkChanged(unit, nullptr, 6);
     if (!placed) {
         // The new mode does not fit here: back to the old one, and the party is told.
@@ -576,9 +558,9 @@ bool CUnitServer::ChangeMoveMode() {
         if (moveMode.mode != 2) moveMode2.wasMode3 = 0;
         unit->moveMode2 = UnitModeOf(moveMode2);
         UnitUpdateSizeClass(unit);
-        SectorMapAdd(AsSectorMap(kSectorMap), nullptr, unit);
+        SectorMapAdd(ServerSectors(), nullptr, unit);
         CUnit* self = unit;
-        if (self->player) PlayerMessage(At<void*>(self->player, 0x20), nullptr, self, kMessageModeBlocked);
+        if (self->player) PlayerMessage(PlayerOf(self)->connection_, nullptr, self, kMessageModeBlocked);
         return false;
     }
     if (state == kStateIdle) {
@@ -619,32 +601,33 @@ EI_REPLACE_METHOD(0x0054A150, CUnitServer::ChangeMoveMode);
 bool CUnitServer::PathTo(const float* point, float range) {
     ManagerContextOf(this);
     CtlUpdateSneak(this);
-    At<std::uint8_t>(this, 0x146) = 0;
-    At<std::uint8_t>(this, 0x145) = 0;
+    motionChanged = 0;
+    stoodBlocked = 0;
     PathClear(Motion(this));
-    std::uint32_t keep = At<std::uint32_t>(unit, 0x43C);
-    void* world = ManagerContextOf(this);
-    At<std::uint8_t>(this, 0xAA) = unit->player ? 0 : 1;   // the path's +0x6E
-    std::uint32_t before = At<std::uint32_t>(unit, 0x43C);
-    At<std::uint32_t>(unit, 0x43C) = keep;
-    bool found = MapFindPath(static_cast<char*>(world) + 0x170, nullptr, unit, point, Motion(this), range, 0.0f);
-    At<std::uint32_t>(unit, 0x43C) = before;
+    std::uint32_t keep = unit->unknown_43C;
+    CWorldServer* world = ContextOf(this);
+    Motion(this)->flag6E = unit->player ? 0 : 1;   // +0xAA
+    std::uint32_t before = unit->unknown_43C;
+    unit->unknown_43C = keep;
+    bool found = MapFindPath(world->AIMap(), nullptr, unit, point, Motion(this), range, 0.0f);
+    unit->unknown_43C = before;
     if (!found) {
-        std::uint8_t blocked = At<std::uint8_t>(this, 0xA9);
-        At<std::uint8_t>(this, 0x147) = 0;
+        // +0xA9, read as a byte: the original compares it with 1.
+        std::uint8_t blocked = reinterpret_cast<const std::uint8_t&>(Motion(this)->failed);
+        movingAnimation = 0;
         CtlStandStill(this);
         CtlSetState(this, nullptr, kStateChasing);
-        At<std::uint8_t>(this, 0x145) = blocked == 1 ? 1 : 0;
+        stoodBlocked = blocked == 1 ? 1 : 0;
         return false;
     }
-    At<float>(this, 0xA4) = range;
-    At<int>(this, 0x178) = 0;
+    Motion(this)->goal.z = range;   // +0xA4: the range (Replan reads it back)
+    sneakWait = 0;
     UnitPathSpeeds(unit);
     if (state < 0 || (state > 1 && state != kStateTurning)) CtlPlaySteps(this, nullptr, CtlIdleAnimation(this));
     state = kStateIdle;
     UnitUpdateSizeClass(unit);
     DropEffectObject(this);
-    if (At<std::uint8_t>(this, 0x147) != 0) {
+    if (movingAnimation != 0) {
         // Moving already: the movement animation goes on unless it is the same one-step loop.
         AnimationSteps* next = CtlNextAnimation(this);
         AnimationSteps moving;
@@ -674,8 +657,8 @@ EI_REPLACE_METHOD(0x00548700, CUnitServer::PathTo);
 
 void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
     auto* list = static_cast<UnitList*>(listIn);
-    void* world = ManagerContextOf(this);
-    char* player = unit->player;
+    CWorldServer* world = ContextOf(this);
+    CPlayer* player = PlayerOf(unit);
     // RemoveAll.
     for (UnitList::Node* node = list->head; node; node = node->next) {
     }
@@ -685,22 +668,22 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
     list->head = nullptr;
     PlexFreeDataChain(list->blocks);
     list->blocks = nullptr;
-    if (!player || At<int>(player, 0x100) != 1) return;
+    if (!player || player->sessionKind100_ != 1) return;
     // Away from the point: the units near it that are not in the player's group (+0x510C of its
     // messages object) are lifted off the sector map and stay in the list.
     float dx = point[0] - unit->positionX;
     float dy = point[1] - unit->positionY;
     float dz = point[2] - unit->positionZ;
     if ((dz * dz + dy * dy) + dx * dx > *reinterpret_cast<const float*>(0x0073CA98)) {
-        void* sectors = static_cast<char*>(world) + 0x294;
+        CSectorMap* sectors = world->Sectors();
         SectorMapFindUnitsInRadius(sectors, nullptr, point, list, 4.0f);
-        void* group = At<char*>(player, 0x20) + 0x510C;
+        void* group = &reinterpret_cast<CPlayerServer*>(player->connection_)->partyUnits_;
         for (UnitList::Node* node = list->head; node;) {
             UnitList::Node* current = node;
             node = node->next;
             CEngineObject* other = current->data;
             if (GroupContains(group, nullptr, other) == 0) {
-                SectorMapRemove(AsSectorMap(sectors), nullptr, other);
+                SectorMapRemove(sectors, nullptr, other);
                 continue;
             }
             if (current == list->head) list->head = current->next;
@@ -711,9 +694,9 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
         }
     }
     // The party members moving (when `moving`) or following this unit are lifted and listed too.
-    const auto* party = reinterpret_cast<const PartyMap*>(player + 0x40);
-    for (PartyNode* node = FirstNode(party); node; node = NextNode(party, node)) {
-        CUnit* member = node->unit;
+    const PartyMap* party = &player->units_;
+    for (PartyMap::Node* node = party->First(); node; node = party->After(node)) {
+        auto* member = static_cast<CUnit*>(node->value);
         if (!member) break;
         if (member == unit) continue;
         auto* controller = reinterpret_cast<CUnitServer*>(member->controller);
@@ -725,43 +708,44 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
         if (list->tail) list->tail->next = added;
         else list->head = added;
         list->tail = added;
-        SectorMapRemove(AsSectorMap(kSectorMap), nullptr, member);
+        SectorMapRemove(ServerSectors(), nullptr, member);
     }
 }
 EI_REPLACE_METHOD(0x005468D0, CUnitServer::LiftNearby);
 
-void CUnitServer::ReportPath(void* path, char partial) {
-    if (At<int>(brain, 4) == 6) return;
+void CUnitServer::ReportPath(void* pathIn, char partial) {
+    if (reinterpret_cast<AIBrain*>(brain)->action == kBrainModeSilent) return;
+    auto* path = static_cast<AIPath*>(pathIn);
     CUnit* self = unit;
-    const float* goal = &At<float>(path, 0x60);
+    const float* goal = &path->goal.x;
     // The path as a motion order for the message. The original leaves its header uninitialised
     // when the path is not partial (the message does not read it for kind 3).
     LocalMotionOrder end;
     int message;
     if (!partial) {
-        if (self->player) PlayerPathMessage(At<void*>(self->player, 0x20), nullptr, self, end.bytes, goal, 3, 1, kFarBits);
+        if (self->player) PlayerPathMessage(PlayerOf(self)->connection_, nullptr, self, &end, goal, 3, 1, kFarBits);
         if (BrainLeader(brain)) return;
         self = unit;
         if (!self->player) return;
         message = kMessageCannotDo;
     } else {
-        PathToMotionOrder(path, nullptr, end.bytes);
+        PathToMotionOrder(path, nullptr, &end);
         float dy = self->positionY - goal[1];
         float dx = self->positionX - goal[0];
         float reached = dx * dx + dy * dy;
         float half = HalfCell();
-        float ey = half * At<float>(path, 0x5C) - goal[1];
-        float ex = half * At<float>(path, 0x58) - goal[0];
+        float ey = half * path->targetY - goal[1];
+        float ex = half * path->targetX - goal[0];
         float left = ex * ex + ey * ey;
         bool far = reached * *reinterpret_cast<const float*>(0x0073F0B8) > left;   // unordered: not far
         if (self->player)
-            PlayerPathMessage(At<void*>(self->player, 0x20), nullptr, self, end.bytes, goal, 0, far ? 0 : 1, kFarBits);
+            PlayerPathMessage(PlayerOf(self)->connection_, nullptr, self, &end, goal, 0, far ? 0 : 1, kFarBits);
         if (BrainLeader(brain)) return;
         self = unit;
         if (!self->player) return;
         message = far ? kMessagePartial : kMessageCannotDo;
     }
-    PlayerMessage(At<void*>(self->player, 0x20), nullptr, self, message);
+    PlayerMessage(PlayerOf(self)->connection_, nullptr, self, message);
 }
 EI_REPLACE_METHOD(0x0054EB30, CUnitServer::ReportPath);
 
@@ -772,7 +756,7 @@ namespace {
 void __fastcall ReferenceRelease(CEngineObject** a0) { CountedRefResetOriginal((void*)a0); }
 void __fastcall ReferenceSet(CEngineObject** a0, void*, CEngineObject* a2) { CountedRefAssignOriginal((void*)a0, nullptr, (void*)a2); }
 bool __fastcall QueueHolds(AnimationSteps* a0, void*, const AnimationSteps* a2) { return StepsQueueHoldsOriginal((void*)a0, nullptr, (const void*)a2); }
-IsaacRandom& Random() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom& Random() { return IsaacRandom::Global(); }   // 007A9D40
 
 // A movement record from the unit's mode: mode 3 is mode 2 with `wasMode3`.
 void RecordFromMode(MoveModeState* record, int mode) {
@@ -787,7 +771,7 @@ void RecordFromMode(MoveModeState* record, int mode) {
 
 void CUnitServer::ResyncWithUnit() {
     action.kind = kOrderNone;
-    if (action.target) ei::VCall<void>(action.target, kSlotRelease);
+    if (action.target) action.target->Release();
     action.target = nullptr;
     action.flag18 = 0;
     action.unknown_1C = 0;
@@ -805,9 +789,9 @@ void CUnitServer::ResyncWithUnit() {
     RecordFromMode(&moveMode, unit->moveMode);
     RecordFromMode(&moveMode2, unit->moveMode2);
     PathClear(Motion(this));
-    int now = At<int>(ObjectWorld(this), 0x64);
+    int now = TickOf(ObjectWorld(this));
     float axis[3];
-    QuaternionAxisY(&At<float>(unit, 0x34), nullptr, axis);
+    QuaternionAxisY(&unit->orientation, nullptr, axis);
     float back[3];
     const float* direction = Negate(back, axis);
     if (PathStart(Motion(this), nullptr, &unit->positionX, direction, now)) UnitPathSpeeds(unit);
@@ -816,7 +800,7 @@ void CUnitServer::ResyncWithUnit() {
     UnitUpdateSizeClass(unit);
     unit->unknown_270 = 0;
     if (unit->unknown_270 != static_cast<int>(unit->activeWeapon))
-        ei::VCall<void>(unit->controller, 0x64 / 4, unit->unknown_270);
+        unit->Controller()->ShowWeapon(static_cast<std::uint32_t>(unit->unknown_270));   // slot 25
     if (state == kStateTurning) return;
     std::uint32_t key = CtlWeaponTypeMask(this) | CtlMoveModeMask(this, nullptr, &moveMode);
     if (IdleKey(this) == key) {
@@ -828,7 +812,7 @@ void CUnitServer::ResyncWithUnit() {
     if (!QueueHolds(&Queue(this), nullptr, &IdleSteps(this))) {
         // The idle animation starts at a random phase (up to 50 ticks back) on an empty queue.
         if (Queue(this).count == 0 && QueueTime(this) == -1)
-            IdleTime(this) = At<int>(ObjectWorld(this), 0x64) - static_cast<int>(Random().Next() % 0x33);
+            IdleTime(this) = TickOf(ObjectWorld(this)) - static_cast<int>(Random().Next() % 0x33);
         StepsCopyB(&Queue(this), nullptr, &IdleSteps(this));
         StepsCopyB(&Queue(this), nullptr, &IdleSteps(this));
         StartQueueIfUnset(this);
@@ -844,7 +828,7 @@ EI_REPLACE_METHOD(0x00554450, CUnitServer::ResyncWithUnit);
 
 void CUnitServer::ResetController() {
     auto releaseRef = [](CEngineObject*& ref) {   // 0052B030
-        if (ref) ei::VCall<void>(ref, kSlotRelease);
+        if (ref) ref->Release();
         ref = nullptr;
     };
     action.kind = kOrderNone;
@@ -874,15 +858,15 @@ void CUnitServer::ResetController() {
     plan.notSkill = 0;
     plan.castKind = 8;
     std::memset(&pendingHit, 0, 0x3C);
-    At<float>(this, 0x130) = 1.0f;
-    StepsSetSize(&At<AnimationSteps>(this, 0x148), nullptr, 0, -1);
-    At<int>(this, 0x15C) = -1;
+    pendingHit.multiplier = 1.0f;   // +0x130
+    StepsSetSize(&savedQueue, nullptr, 0, -1);
+    savedQueue.extra = -1;
     state = kStateChasing;
     hitDirection = 0xFFFFFFFFu;
     keepHitDirection = 0;
-    At<std::uint8_t>(this, 0x145) = 0;
-    At<std::uint8_t>(this, 0x146) = 0;
-    At<std::uint8_t>(this, 0x147) = 0;
+    stoodBlocked = 0;
+    motionChanged = 0;
+    movingAnimation = 0;
     moveMode.mode = 2;
     moveMode.flag4 = 0;
     moveMode.wasMode3 = 0;
@@ -891,59 +875,45 @@ void CUnitServer::ResetController() {
     moveMode2.wasMode3 = 0;
     CEngineObject* effect = effectObject;
     effectObject = nullptr;
-    if (effect) ei::VCall<void>(effect, kSlotRelease);
-    At<int>(this, 0x180) = -1;
+    if (effect) effect->Release();
+    actingCheckTime = -1;
     action.kind = 0;
     action2.kind = kOrderNone;
-    At<int>(this, 0x184) = 0;
-    At<int>(this, 0x188) = 0;
-    At<std::uint8_t>(this, 0x18C) = 0;
-    At<std::uint8_t>(this, 0x18D) = 0;
-    At<std::uint8_t>(this, 0x1D8) = 0;
-    CEngineObject*& waitingFor = At<CEngineObject*>(this, 0x1DC);
-    CEngineObject* waited = waitingFor;
-    waitingFor = nullptr;
-    if (waited) ei::VCall<void>(waited, kSlotRelease);
-    At<std::uint8_t>(this, 0x18E) = 0;
+    nextAttackTime = 0;
+    unknown_188 = 0;
+    unknown_18C = 0;
+    unknown_18D = 0;
+    followsLeader = 0;
+    CEngineObject* waited = followedLeader;
+    followedLeader = nullptr;
+    if (waited) waited->Release();
+    unknown_18E = 0;
     BrainResetAll(brain);
-    AlarmReset(reinterpret_cast<char*>(this) + 0xB10);
-    At<void*>(this, 0x918) = nullptr;
+    AlarmReset(voice);
+    unknown_918 = nullptr;
     moveFactors[0] = 1.0f;
     moveFactors[2] = 1.0f;
     moveFactors[3] = 1.0f;
     moveFactors[1] = 1.0f;
     StatsReset(&stats);
-    At<int>(this, 0x908) = 0;
-    At<int>(this, 0x90C) = -1;
-    At<int>(this, 0x910) = -1;
+    tameStage = 0;
+    ownSide = -1;
+    tamerSide = -1;
     speedClass = 0xF;
     claimedHostile = 0;
-    At<float>(this, 0x8F4) = 0.0f;
+    unknown_8F4 = 0.0f;
     MoveKey(this) = 0x666DEAD;
     StepsSetSize(&MoveSteps(this), nullptr, 0, -1);
     MoveSteps(this).extra = -1;
     IdleKey(this) = 0x666DEAD;
     StepsSetSize(&IdleSteps(this), nullptr, 0, -1);
     IdleSteps(this).extra = -1;
-    At<int>(this, 0x938) = 0;
-    // The armour spell list (+0x920, a CList of {item ref, countdown, ?}) emptied: each element's
-    // reference released (00552B80), then RemoveAll.
-    struct SpellNode {
-        SpellNode* next;
-        SpellNode* prev;
-        CEngineObject* item;
-        int countdown;
-        int unknown_10;
-    };
-    for (auto* node = At<SpellNode*>(this, 0x920); node; node = node->next) {
-        if (node->item) ei::VCall<void>(node->item, kSlotRelease);
-    }
-    At<int>(this, 0x928) = 0;
-    At<int>(this, 0x92C) = 0;
-    At<int>(this, 0x924) = 0;
-    At<int>(this, 0x920) = 0;
-    PlexFreeDataChain(At<void*>(this, 0x930));
-    At<int>(this, 0x930) = 0;
-    At<int>(this, 0x978) = 0;
+    unknown_938 = 0;
+    // The armour spell list (+0x91C) emptied: each element's item released (00552B80, the
+    // instantiation's DestructElements), then count, free list, tail, head and blocks cleared.
+    for (auto* node = armourSpells.head; node; node = node->next)
+        if (node->data.item) node->data.item->Release();
+    armourSpells.RemoveAll();
+    actionDone = nullptr;
 }
 EI_REPLACE_METHOD(0x00546480, CUnitServer::ResetController);

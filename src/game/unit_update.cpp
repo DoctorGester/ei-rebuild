@@ -99,14 +99,14 @@ std::uintptr_t CUnit::LoadUnitFigures() {
 }
 EI_REPLACE_METHOD(0x0052E910, CUnit::LoadUnitFigures);
 
-std::uintptr_t CUnit::AttachCompanion(CEngineObject* companion) {
-    if (!companion || companion->type_ != kControllerType) return CallAttachCompanion(this, nullptr, companion);
+std::uintptr_t CUnit::AttachCompanion(CEngineObject* attached) {
+    if (!attached || attached->type_ != kControllerType) return CallAttachCompanion(this, nullptr, attached);
     if (controller) {
         *reinterpret_cast<CUnit**>(reinterpret_cast<char*>(controller) + 0x1C) = nullptr;
         controller->Release();
     }
-    controller = companion;
-    *reinterpret_cast<CUnit**>(reinterpret_cast<char*>(companion) + 0x1C) = this;
+    controller = attached;
+    *reinterpret_cast<CUnit**>(reinterpret_cast<char*>(attached) + 0x1C) = this;
     return static_cast<std::uintptr_t>(++controller->refCount_);
 }
 EI_REPLACE_METHOD(0x0052E870, CUnit::AttachCompanion);

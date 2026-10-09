@@ -337,7 +337,7 @@ public:
     // 0052E870. Slot 19: a companion of type 0x48 becomes the controller (the old one is
     // detached and released; returns the new reference count); others go to the map object's
     // 0050E890.
-    std::uintptr_t AttachCompanion(CEngineObject* companion);
+    std::uintptr_t AttachCompanion(CEngineObject* attached);
     // 0052EB50. Slot 32 (statistics changed): the map object's 0050E970 (packs the server
     // object's vitals into +0x17C), then the controller's slot 22. Returns 1.
     int StatsChanged();
@@ -539,8 +539,10 @@ public:
     float unknown_158;              // +0x158 part of the AI's eye height (005CA410)
     std::uint8_t unknown_15C[4];
     FootprintPart* partBoxes;       // +0x160 per figure part (the index 00517990 finds by name)
-    std::uint8_t unknown_164[0x178 - 0x164];
-    float animationSpeed;           // +0x178 the animation's speed factor (the client's 00535850)
+    std::uint8_t unknown_164[0x170 - 0x164];
+    CEngineObject* companion;       // +0x170 CMapObjectServer (server) / CMapObjectClientSpecific (client)
+    std::uint8_t unknown_174[0x178 - 0x174];
+    float animationSpeed;          // +0x178 the animation's speed factor (the client's 00535850)
     std::uint8_t unknown_17C[0x17E - 0x17C];
     std::int16_t hitPoints;         // +0x17E
     std::int16_t maxHitPoints;      // +0x180
@@ -556,8 +558,9 @@ public:
     int changeStamp;                // +0x1C0 world + 0x68 when last changed
     std::uint8_t unknown_1C4[0x1DC - 0x1C4];
     std::uint16_t changedParts;     // +0x1DC bit per part changed (MarkChanged)
-    std::uint8_t unknown_1DE[0x23C - 0x1DE];
-    int prototype23C;               // +0x23C a second prototype index (-1 none)
+    std::uint8_t unknown_1DE[0x238 - 0x1DE];
+    char* scriptName;               // +0x238 CString (virtual slot 61 sets it; network field 9)
+    int prototype23C;              // +0x23C a second prototype index (-1 none)
     CEngineObject* controller;      // +0x240 (the script code calls it the perception object)
     std::uint32_t relationsA;       // +0x244 \ a unit regards side s as hostile when both have
     std::uint32_t relationsB;       // +0x248 / bit s set
@@ -633,6 +636,14 @@ static_assert(offsetof(CUnit, carried) == 0x4A0);
 static_assert(offsetof(CUnit, resistances) == 0x4B0);
 static_assert(offsetof(CUnit, dead) == 0x274);
 static_assert(offsetof(CUnit, heightOffset) == 0x320);
+static_assert(offsetof(CUnit, companion) == 0x170);
+static_assert(offsetof(CUnit, scriptName) == 0x238);
+static_assert(offsetof(CUnit, unknown_254) == 0x254);
+static_assert(offsetof(CUnit, unknown_278) == 0x278);
+static_assert(offsetof(CUnit, motion) == 0x27C);
+static_assert(offsetof(CUnit, unknown_330) == 0x330);
+static_assert(offsetof(CUnit, unknown_43C) == 0x43C);
+static_assert(offsetof(CUnit, levels4C8) == 0x4C8);
 static_assert(sizeof(CUnit) == 0x4DC);    // operator new(0x4DC) in 00512730
 
 constexpr std::uint32_t kInSectorMap = 0x8000;    // CEngineObject::flags_
