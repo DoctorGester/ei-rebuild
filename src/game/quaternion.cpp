@@ -54,12 +54,14 @@ bool LessOrUnordered(double a, double b) { return !(a >= b); }
 // / 2) / |axis|, the factor rounded to float.
 void FromAngle(Quaternion* q, const Vector3& axis, float angle) {
     double half = D(angle) * D(EI_HALF_F);
+    // The squared length stays unrounded (LengthSquaredXYZ would round it: the same at 24 bits).
     double ax = axis.x, ay = axis.y, az = axis.z;
     float factor = Store(x87::fsin(half) / x87::fsqrt(ax * ax + ay * ay + az * az));
     q->w = Store(x87::fcos(half));
-    q->x = Store(D(factor) * D(axis.x));
-    q->y = Store(D(factor) * D(axis.y));
-    q->z = Store(D(factor) * D(axis.z));
+    Vector3 v = factor * axis;
+    q->x = v.x;
+    q->y = v.y;
+    q->z = v.z;
 }
 
 } // namespace
@@ -79,12 +81,11 @@ Quaternion* Quaternion::SetAxisAngle(const Vector3& axis, float angle) {
 EI_REPLACE_METHOD(0x0049E800, Quaternion::SetAxisAngle);
 
 // 0049E870. *this = conj(r) * *this; r is copied first (its x negated on the FPU, y and z through
-// float temporaries), and every component of *this is read before the first store.
+// float temporaries: the same values, negation is exact), and every component of *this is read
+// before the first store.
 void Quaternion::PreMultiplyConjugate(const Quaternion& r) {
-    double cw = r.w;
-    double cx = -D(r.x);
-    double cy = Store(-D(r.y));
-    double cz = Store(-D(r.z));
+    Quaternion c = Conjugate(r);
+    double cw = c.w, cx = c.x, cy = c.y, cz = c.z;
     double qw = w, qx = x, qy = y, qz = z;
     float nx = Store(((cy * qz - cz * qy) + cx * qw) + cw * qx);
     float ny = Store(((cz * qx - cx * qz) + cw * qy) + cy * qw);
@@ -100,10 +101,8 @@ EI_REPLACE_METHOD(0x0049E870, Quaternion::PreMultiplyConjugate);
 // 0049E950. out = conj(b) * a (b copied first, its vector part negated through float
 // temporaries); a is read completely before out is written.
 Quaternion* __fastcall MultiplyByConjugate(Quaternion* out, const Quaternion& a, const Quaternion& b) {
-    double cw = b.w;
-    double cx = Store(-D(b.x));
-    double cy = Store(-D(b.y));
-    double cz = Store(-D(b.z));
+    Quaternion c = Conjugate(b);
+    double cw = c.w, cx = c.x, cy = c.y, cz = c.z;
     double aw = a.w, ax = a.x, ay = a.y, az = a.z;
     double nz = ((cx * ay - cy * ax) + cz * aw) + cw * az;
     double ny = ((cz * ax - cx * az) + cw * ay) + cy * aw;

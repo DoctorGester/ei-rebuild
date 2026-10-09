@@ -1,26 +1,23 @@
-# Vector maths (ticket V1: catalog and proposed API)
+# Vector maths (catalog of the original's orders; src/lib/vecmath.h; V3 migration plan)
 
-Research only (2026-10-09). Counts are regex counts over src/game and src/render (comments
-stripped); treat them as +-10%. "Site" = one source line.
+V1 (research) and V2 (src/lib/vecmath.h, 2026-10-09). Counts are regex counts over src/game and src/render (comments
+stripped) at V1; treat them as +-10%. "Site" = one source line.
 
 ## 1. What decides the result
 
-- IEEE `+` and `*` are commutative and exact to swap, so `x*x + y*y` == `y*y + x*x` bit for bit.
-  Only the **grouping** of sums decides the rounding. A 2-term sum has one result whatever the
-  order; a 3-term sum has exactly three: `(x+y)+z`, `(z+y)+x`, `(z+x)+y` (named here by the pair
-  added first: XYZ, ZYX, ZXY; YXZ == XYZ, YZX == ZYX, XZY == ZXY).
-- The game's main thread runs the x87 at 24-bit precision (rule 7). Every FADD/FMUL/FDIV/FSQRT
-  then rounds to a float significand, so "kept in ST0" and "stored to a float" give the same bits
-  except for the extended exponent range (overflow / denormals only). Consequences:
-  - float arithmetic with the right grouping reproduces the original on the main thread, and also
-    in the SSE2 standalone build (single precision rounds per operation the same way);
-  - the existing `D(x)` / `double` style (82 files under `float_control(precise)`) only differs from
-    float maths on 53-bit threads and in the future SSE2 build, where it would NOT round per op;
-  - FSIN / FCOS / FPATAN / the CRT acos ignore the precision control (64-bit results): where the
-    original stores their result to a float, the rounding store is required (X3).
+- IEEE `+` and `*` are commutative and exact to swap, so `x*x + y*y` == `y*y + x*x` bit for bit. Only the **grouping** of
+  sums decides the rounding. A 2-term sum has one result whatever the order; a 3-term sum has exactly three: `(x+y)+z`,
+  `(z+y)+x`, `(z+x)+y` (named by the pair added first: XYZ, ZYX, ZXY; YXZ == XYZ, YZX == ZYX, XZY == ZXY).
+- The game's main thread runs the x87 at 24-bit precision (rule 7). Every FADD/FMUL/FDIV/FSQRT then rounds to a float
+  significand, so "kept in ST0" and "stored to a float" give the same bits except for the extended exponent range
+  (overflow / denormals only). So float arithmetic with the right grouping reproduces the original on the main thread, and
+  also in the SSE2 standalone build; the existing `D(x)` / `double` style (82 files under `float_control(precise)`) only
+  differs from float maths on 53-bit threads and in the SSE2 build, where it would NOT round per op. FSIN / FCOS / FPATAN /
+  the CRT acos ignore the precision control (64-bit results): where the original stores their result to a float, the
+  rounding store is required (X3).
 - So the helpers only have to fix the grouping, and round after transcendentals.
 
-## 2. Catalog of hand-written patterns
+## 2. Catalog of hand-written patterns (at V1)
 
 | pattern | sites | files | example sites |
 |---|---|---|---|
@@ -38,7 +35,7 @@ stripped); treat them as +-10%. "Site" = one source line.
 | quaternion rotated axis (`w*w - (..) + 2zz`) | 33 lines | 16 | core_maths.cpp:83-103 (AxisX/Y/Z), core_transform_math.cpp:62-88, combat_update.cpp:522 |
 | rotate vector by quaternion | 6 | 6 | map_spec.cpp:591 (0046A4B0), unit_figure_queries.cpp:53, core_transform.cpp:62, view_matrices.cpp:72 |
 | matrix x point / normal | 21 | 6 | figure_mesh.cpp:600, model.cpp:32-35, world_client.cpp:87 (00560E10), world_client_maps.cpp:786-798, world_client_view.cpp:194 |
-| matrix x matrix | 2 impl + callers | | matrix_math.cpp (004D9880, 004D9B80); 3 local `MultiplyMatrix` wrappers of the original |
+| matrix x matrix | 2 impl + callers | | matrix_math.cpp (004D9880, 004D9B80) |
 | lerp `(b-a)*t + a` | ~20 | 7 | figure.cpp:13, figure_mesh.cpp:100-289, link_figure.cpp:36, clip.cpp (0042E4D0) |
 | lerp `(1-t)*a + t*b` | 2 | | unit_client_path.cpp:102, quaternion.cpp:149 (Slerp linear branch) |
 | atan2 (FPATAN) | 40 | 13 | ai_motion.cpp:134, combat_sight.cpp:403, core_transform_math.cpp:289 |
@@ -47,15 +44,15 @@ stripped); treat them as +-10%. "Site" = one source line.
 | `float a[3]` | 193 | 76 | 71 class members with `// +0x` (map_object_figures.h 17, sound.h 7, world.h 5); ~106 locals |
 | `float a[4]` (quaternion / homogeneous) | 31 | 20 | map_object.h:188 orientation, map_object_animation.h:29, ui_camp.h:460 turn_ |
 | `float a[16]` / `[4][4]` | 29 | 17 | ui.h:1224 placement_, figure_mesh.h:19, renderer_init.cpp:157; render_mesh.cpp 6 |
-| `float a[12]` (3 rows of 4) | 3 | 3 | world.h:1237 MatrixRows, camera.h:99 CubicCurve3, figure_part_draw.cpp:530 |
+| `float a[12]` (3 rows of 4) | 3 | 3 | world.h MatrixRows, camera.h:99 CubicCurve3, figure_part_draw.cpp:530 |
 | `float a[2]` | 12 | 10 | renderer_strip.cpp, unit_ai_sight.cpp |
 | rounding-store helpers (`Store`, `StoreFloat`, `RoundToFloat`, `Round`, `F`) | 53 definitions, 2481 calls | 102 | particle_callbacks.cpp 935 calls |
 | local `D(float)` helpers | 23 | | |
 | naked `Fpatan` / `CIacos` / `CIasin` copies | 8 / 5 | | ai_motion, ai_path, camera, combat_sight, core_transform_math, map_object_shadow, ui_hud_map, world_party |
 
-Orders in source were written from the disassembly by the porting workers; VC6's inliner and
-scheduler produced them, so they do not follow from the original source (two functions next to
-each other differ: unit_ai_memory.cpp NearestEnemy is ZXY, ForceSee is ZYX).
+Orders in source were written from the disassembly by the porting workers; VC6's inliner and scheduler produced them, so
+they do not follow from the original source (two neighbouring functions differ: unit_ai_memory.cpp NearestEnemy is ZXY,
+ForceSee is ZYX).
 
 ## 3. Orders checked against the disassembly
 
@@ -66,30 +63,25 @@ each other differ: unit_ai_memory.cpp NearestEnemy is ZXY, ForceSee is ZYX).
 | 004489D0 Cross | z, y, x components computed on the stack, then 3 FSTPs x, y, z (aliasing safe); each `a*b - c*d` |
 | 005CB670 NearestEnemy | dx, dy, dz kept in ST (not stored); `(dz^2 + dx^2) + dy^2` (ZXY); stored only when kept as best |
 | 005C7B00 AIPath::Start | `y^2 + x^2`, FSQRT, x / len and y / len (FDIV each), FPATAN; angle unrounded until FSTP |
-| 0059FDF0 ExtendWorldBox | inline length `(x^2+y^2)+z^2` (Length inlined); point x row-vector matrix: `((z*m8 + y*m4) + x*m0) + m12`, translation last, one FSTP per coordinate; the 8 corners unrolled |
+| 0059FDF0 ExtendWorldBox | inline length `(x^2+y^2)+z^2`; point x row-vector matrix: `((z*m8 + y*m4) + x*m0) + m12`, translation last, one FSTP per coordinate; the 8 corners unrolled |
 | 005064C0 SetMorph | Vector3 temporaries: every operator result (`b - a`, `* s`, `+ a`) FSTP'd per component; calls 00401DE0 / 00448A10 / 0040CDC0 out of line |
 
-The ported out-of-line helpers (section 4) were each verified against their original when
-written; their orders are recorded there.
+## 4. Types and hooked helpers
 
-## 4. Existing types and helpers
+Types (src/lib/vecmath.h; same layouts as before, sizes asserted; aggregates, no constructors, so naked forwarders and
+`{x, y, z}` initialisation keep working; global namespace): `Vector2` (x, y), `Vector3` (x, y, z), `Vector4` (x, y, z, w),
+`Quaternion` (w, x, y, z: w first), `Matrix4` (float m[16], row-major), `MatrixRows` (float m[12]: 3 rows of a 4x4,
+stride 16, `Transform` 00560E10). The hooked members are declared in the structs, their bodies stay in src/game; maths.h
+includes vecmath.h; the free out-of-line originals keep their declarations in maths.h / object_maths.h / core_maths.h.
+Also: `CubicSegment` / `CubicCurve3` (core_maths.h / camera.h, float c[4] / c[12]). Vertex structs with a position:
+`DecalVertex`, render `Vertex`, `GlobalMapPlace` have a `Vector3` position; clip.h TLVertex, renderer_lines.h,
+effects.h, lightning.h LightningPoint do not yet.
 
-| type | where | layout | notes |
-|---|---|---|---|
-| `Vector3` | maths.h | x, y, z (12) | aggregate; out-of-line members below |
-| `Quaternion` | maths.h | w, x, y, z (16) | w first |
-| `Vector2` | object_maths.h | x, y (8) | used only by SubtractVectors2 |
-| `Vector4` | object_maths.h | x, y, z, w (16) | `FromPoint` 004679D0 |
-| `Matrix4` | model.h | float m[16] (64) | row-major; also a different local `Matrix4` in world_client_view.cpp (anonymous namespace, method only) |
-| `MatrixRows` | world.h | float m[12] | 3 rows of a 4x4 (stride 16), `Transform` 00560E10 |
-| `CubicSegment` / `CubicCurve3` | core_maths.h / camera.h | float c[4] / c[12] | |
-| `render::detail::Matrix` | render/render_internal.h | float m[16] | same layout as Matrix4 |
-| `Float4` | chunk_stream.h | uint32 bits[4] | 16 bytes by value, kept as bits (quaternion/colour passed through) |
-| vertex structs with a position | ground_decal.h DecalVertex (x,y,z,u,v), render_internal.h Vertex, clip.h TLVertex, renderer_lines.h, effects.h:353, lightning.h LightningPoint (x,y,z,w) | position first | keep; position could become a `Vector3` member |
-| place with a position | ui_camp.h GlobalMapPlace (+0x04 x,y,z) | | position -> `Vector3` |
-| local duplicates | Vec3 (script_exec.cpp, ui_hero_preview.cpp), UiVec3 (ui_hud.cpp), V3 (figure_mesh.cpp, map_object_cage.cpp), Point (face_normal.cpp, scene_normals.cpp, scene_weld.cpp), Quat (ui_hero_preview.cpp), Quaternion4 (ui_item_view.cpp), 11 anonymous `{x,y,z}` in particle_callbacks.cpp | | all fold into Vector3 / Quaternion |
+Two matrix conventions are in use: CTransformObject::WorldMatrix and the figure code use row vectors (`v * M`,
+translation m[12..14], D3D); the transform pipeline, clip codes, decals and view code use column vectors (`M * v`,
+translation m[3], m[7], m[11]; render_internal.h says so).
 
-Hooked out-of-line originals (none is on the Rebirth-patched list); all stay hooked:
+Hooked out-of-line originals (none is Rebirth-patched; all stay hooked):
 
 | address | function | order / notes |
 |---|---|---|
@@ -118,109 +110,103 @@ Hooked out-of-line originals (none is on the Rebirth-patched list); all stay hoo
 | 0040E3D0 / 0040E440 | CubicSegment SetBSpline / Evaluate | |
 | 0049AEC0, 0044DCF0 | ComputeFaceNormal, ComputeMeshNormals | |
 
-Two matrix conventions are in use: CTransformObject::WorldMatrix and the figure code use row
-vectors (`v * M`, translation m[12..14], D3D); the transform pipeline, clip codes, decals and view
-code use column vectors (`M * v`, translation m[3], m[7], m[11]; render_internal.h says so).
+## 5. vecmath.h helpers (V2)
 
-## 5. Proposed API: src/lib/vecmath.h
+All `__forceinline`, by value:
 
-Types (layouts unchanged, `static_assert` sizes; aggregates, no constructors, so naked forwarders
-and `{x, y, z}` initialisation keep working):
+| helper | evaluation |
+|---|---|
+| `+ - * /`, unary `-`, `+= -= *= /=` (Vector2, Vector3) | one operation per component (`/ s` divides, no reciprocal) |
+| `Dot2D`, `LengthSquared2D`, `Length2D`, `DistanceSquared2D`, `Distance2D` | `x*x' + y*y'` |
+| `DistanceSquaredXY(Vector3, Vector3)` | `dx*dx + dy*dy` |
+| `Cross(a, b)` | `(y*z' - z*y', z*x' - x*z', x*y' - y*x')` |
+| `Lerp(a, b, t)` (float, Vector3), `LerpWeighted(a, b, t)` (float) | `(b - a) * t + a`, `(1 - t) * a + t * b` |
+| `DotXYZ / DotZYX / DotZXY`, `vecmath::Dot<Sum3>` | the named grouping of the three products |
+| `LengthSquared<Sum3>`, `Length<Sum3>` (+ `...XYZ / ZYX / ZXY`) | grouped sum of squares; FSQRT (`x87::fsqrt`) |
+| `DistanceSquared<Sum3>`, `Distance<Sum3>` (+ named) | of `a - b` |
+| `Normalised<Sum3>`, `NormalisedReciprocal<Sum3>` | `v / len`, `v * (1 / len)` |
+| `TransformRow<Sum3>`, `TransformRowNormal<Sum3>` | `v * M`: grouped `x*m[i], y*m[4+i], z*m[8+i]`, then `+ m[12+i]` |
+| `TransformColumn<Sum3>`, `TransformColumnNormal<Sum3>` (Matrix4 or MatrixRows) | `M * v`: grouped `m[4i]*x, m[4i+1]*y, m[4i+2]*z`, then `+ m[4i+3]` |
+| `Conjugate(q)` | `(w, -x, -y, -z)` |
+| `RoundToFloat(double)` | volatile float store (replaces the local Store / StoreFloat / Round copies) |
+| `Atan2(y, x)` | `x87::fpatan` (include/ei/x87.h), unrounded double |
+| `Acos(c)`, `Asin(s)` | the game's CRT `acos` 006E7334 / `asin` 006E83D4 (`gamecrt::`, src/lib/crt.h): the C entries of the bodies behind _CIacos 006E7320 / _CIasin 006E83C0; unrounded double |
 
-```cpp
-struct Vector2 { float x, y; };
-struct Vector3 { float x, y, z; /* + the hooked members of section 4, declared here */ };
-struct Vector4 { float x, y, z, w; };
-struct Quaternion { float w, x, y, z; /* + hooked members */ };
-struct Matrix4 { float m[16]; };          // row-major
-struct MatrixRows { float m[12]; };       // world.h's 3-row form, moved
-```
+Decisions (V1 open questions, settled for V2): no default order: every 3-term helper names its grouping (`enum class Sum3
+{ XYZ, ZYX, ZXY }`; commutative re-spellings get no names); code on 53-bit threads stays as written (no `double` helpers);
+quaternion products and AxisX/Y/Z stay written out at each site (only `Conjugate` is a helper); one `Matrix4` with
+`TransformRow` / `TransformColumn`, no `Matrix4 operator*` for game code (MatrixMultiply 004D9880 has per-element orders;
+src/render, not compared bit for bit, may add a plain product). The generic dot is `vecmath::Dot<Sum3>`: a global template
+named `Dot` would make `&Dot` (the hooked 00401E00 in `EI_REPLACE`) ambiguous. Atan2 is not `std::atan2`: that becomes
+FPATAN only under /fp:fast; inlined into a `float_control(precise)` function it calls the modern CRT's `_CIatan2` (the same
+holds for `std::sqrt`, hence `x87::fsqrt`).
 
-Types stay in the global namespace (1613 uses of Vector3); maths.h, object_maths.h and model.h
-include vecmath.h and keep only their hooked declarations. Every helper is `__forceinline`, takes
-and returns by value, and computes in `float`.
+**/fp:fast regroups; the helpers are compiled precise.** Measured with cl 14.43 /O2 /arch:IA32: a fast-compiled inline
+`(z*z' + y*y') + x*x'` followed by the caller's `* 2.0f + 1.0f` became `(2x*x' + 1) + 2(z*z' + y*y')`-style code (the `* 2`
+turned into an add and was distributed); `v * (1 / len)` was rewritten too. Plain uses (`Dot` alone, `* 3`, `* s`, `-
+x*x'`) kept their grouping, so the hazard depends on the caller's expression. vecmath.h therefore defines its arithmetic
+helpers between `#pragma float_control(precise, on, push)` and `pop` (the one file check_cleanup exempts from that pattern).
+The precise body survives inlining into /fp:fast callers (grouping kept), at the cost of rounding each helper's float
+result to memory (an FSTP / FLD pair). On the 24-bit main thread that store changes nothing; on a 53-bit thread a helper is
+plain float maths, not the original's unrounded register value. **Migration rule:** a helper may replace written-out maths
+when the original stores the result to a float (or the result is a single operation per component); a sum the original
+keeps unrounded in ST0 and uses further stays written out unless the function is known to run on the main thread only.
 
-| helper | evaluation (fixed) | variants |
-|---|---|---|
-| `a + b`, `a - b`, `-a`, `a * s`, `s * a`, `a / s`, `+= -= *= /=` | per component, x, y, z; each component rounded once | none needed (single ops); `/ s` divides each (no reciprocal) |
-| `Dot(a, b)` | `(x*x' + y*y') + z*z'` | `DotZYX` (00401E00, majority), `DotZXY` |
-| `LengthSquared(v)`, `Length(v)` | `(x^2 + y^2) + z^2`, `std::sqrt` | `...ZYX`, `...ZXY` |
-| `DistanceSquared(a, b)`, `Distance(a, b)` | `LengthSquared(a - b)` | `...ZYX`, `...ZXY` |
-| `Dot(Vector2)`, `LengthSquared(Vector2)`, `Distance2D(a, b)`, `DistanceSquared2D` | `x*x' + y*y'` | none (2 terms) |
-| `DistanceSquaredXY(Vector3, Vector3)` | 2D part of 3D positions | none |
-| `Cross(a, b)` | `(y*z' - z*y', z*x' - x*z', x*y' - y*x')` | none (products commute) |
-| `Normalised(v)` | `v / Length(v)` | `NormalisedReciprocal(v)` = `v * (1 / Length(v))`; both take the length variant as a template argument |
-| `Lerp(a, b, t)` (float, Vector3) | `(b - a) * t + a` | `LerpWeighted(a, b, t)` = `(1 - t) * a + t * b` |
-| `TransformRow(m, p)` / `TransformRowNormal` | `v * M`: `((x*m0 + y*m4) + z*m8) + m12` | sum order as template argument |
-| `TransformColumn(m, p)` / `...Normal` | `M * v`: `((m0*x + m1*y) + m2*z) + m3` | sum order as template argument |
-| `Mul(Quaternion a, Quaternion b)` | Hamilton a*b in 004018A0's order | `Conjugate(q)`; other product orders: open question 3 |
-| `AxisX(q)`, `AxisY(q)`, `AxisZ(q)` | the orders of 0040D940 / 0040F560 / 0040D6B0 | value-returning; inline expansions that differ stay explicit or get a named variant |
-| `Rotate(q, v)` | `(k*v + 2w(u x v)) + 2(u.v)u`, `k = w^2 - u.u` | dot order as template argument (0046A4B0 uses ZXY) |
-| `RoundToFloat(double)` | volatile float store | replaces the 53 local Store / StoreFloat / Round copies |
-| `Atan2(y, x)`, `Acos(c)`, `Asin(s)` | FPATAN / _CIacos results, unrounded (double) | forward to x87.h until the x87-helper ticket replaces them; callers round with `RoundToFloat` where the original stores |
-| `ClampUnit` | 004022D0 | |
+**Self-test** (tests/verify/verify_vecmath.cpp, verify build, at DLL load at 24-bit precision, "vecmath self-test" in the
+log): every grouped helper in /fp:fast contexts (alone, `* 2 + 1`, two groupings in one expression, transforms with
+translation, normalising, distances, lerps) against a reference that rounds each operation separately, on 24 inputs per
+helper chosen so that XYZ, ZYX and ZXY give three different results. Standalone: 2088 checks, 0 mismatches; with the precise
+pragmas removed it reports 116 mismatches (Dot / LengthSquared / DistanceSquared `* 2`, NormalisedReciprocal, LerpWeighted
+`* 2`).
 
-The sum order is one small enum shared by the 3-term helpers, so a variant is a name, never an
-argument order: `enum class Sum3 { XYZ, ZYX, ZXY };` with `Dot<Sum3::ZYX>(a, b)` and the aliases
-`DotZYX`, `LengthSquaredZYX`, ... Commutative re-spellings (YXZ, YZX, XZY) are documented as equal
-and get no names. No `Matrix4 operator*`: game code calls `MatrixMultiply` (004D9880, per-element
-orders); src/render (not compared bit for bit) may add a plain product there.
-
-Out-of-line originals: all of section 4 stay hooked with their bodies; once vecmath exists their
-bodies may be written with the helpers when the order matches (Dot = `DotZYX`, Length = `Length`,
-CrossProduct = `Cross`, ScaleVector = `v * s`), keeping the all-loads-before-stores aliasing.
-Rewritten callers use the inline helper instead of calling Dot / Length / CrossProduct (same bits).
+**Done in V2**: folded into the vecmath types (layouts unchanged, offsets asserted): world_client_view.cpp's method-only
+Matrix4 (now `MatrixMultiplyOriginal` calls), render::detail::Matrix, the render `Vertex` / `DecalVertex` / `GlobalMapPlace`
+positions, chunk_stream.h's `Float4` (Quaternion; still copied with memcpy), Point (face_normal, scene_normals, scene_weld),
+Vec3 (script_exec, ui_hero_preview), UiVec3 (ui_hud), V3 (figure_mesh, map_object_cage), Quat (ui_hero_preview),
+Quaternion4 (ui_item_view). The two method-view forwarders of 0049E800 became one `QuaternionSetAxisAngleOriginal`
+(originals_render.h). Local helpers whose names vecmath uses were renamed, maths unchanged: particle_tick `LengthXYZ` ->
+`LengthDouble`, ui_hero_preview `Dot` / `Cross` -> `DotUnrounded` / `CrossStored`, figure_mesh `Lerp` -> `LerpStored`.
+First migration batch (core_maths.cpp, object_maths.cpp, quaternion.cpp, matrix_math.cpp, maths.cpp): AddVectors,
+NegateVector, ScaleVector, AddInPlace, CrossProduct, SubtractVectors, SubtractVectors2, DivideInPlace on the operators /
+Cross; PreMultiplyConjugate and MultiplyByConjugate take `Conjugate`; SetAngleAxis / SetAxisAngle scale the axis with
+`factor * axis`; matrix_math.cpp and AxisX round through RoundToFloat. Kept written out: Dot 00401E00, Length 00401E20 and
+the squared axis lengths of FromAxisAngle / SetAngleAxis / SetAxisAngle (unrounded sums: a version using LengthSquaredXYZ
+there differed at 53 and 64 bits, which is where the migration rule comes from), the quaternion products and AxisX/Y/Z,
+MatrixMultiply's per-element orders, Slerp. Checked with a scratch harness (old and new bodies, 20k random inputs with
+aliased outputs, at 24, 53 and 64 bits): identical bits; the verify wrappers (verify_core_maths, verify_object,
+verify_quaternion, verify_maths, the matrix wrappers) cover them in game.
 
 ## 6. Migration order (V3, each batch through the full suite)
 
-1. Core: maths.cpp, core_maths.cpp, object_maths.cpp, quaternion.cpp, matrix_math.cpp,
-   core_transform*.cpp on the helpers; fold the local duplicates (Vec3, UiVec3, V3, Point, Quat,
-   Quaternion4, world_client_view's Matrix4, render::detail::Matrix).
-2. Fields: the 71 `float [3]` class members, the 3 quaternion `float [4]` members and the
-   `float [16]` members become Vector3 / Quaternion / Matrix4 (layout-identical, asserts kept).
-3. 2D distances and dots (no order risk): unit_ai_*, combat_*, ai_*, world_client, sector_map,
-   magic_trap, world_sync, script_addon / script_eval `Distance`.
-4. 3D length / distance / normalise: camera*, lightning*, effects*, map_object_*, unit_hits,
-   world_effect_*, ui_briefing_*.
-5. Quaternions: camera*, core_transform*, view_matrices, ui_hero_preview, ui_hud_portraits,
-   ui_item_view, ui_global_map, unit_figure_queries, map_spec, scene_bone_frames.
+V3 first adds a check_cleanup column for unrolled vector maths (the x*x + y*y forms and float[3] / [16] members). Not folded
+yet: particle_callbacks.cpp's `float x, y, z` locals (particles batch), TLVertex, LightningPoint, the `float [3]` / `[16]`
+class members (batch 2).
+1. Core: done in V2 (above), except core_transform*.cpp.
+2. Fields: the 71 `float [3]` class members, the 3 quaternion `float [4]` members and the `float [16]` members become
+   Vector3 / Quaternion / Matrix4 (layout-identical, asserts kept).
+3. 2D distances and dots (no order risk): unit_ai_*, combat_*, ai_*, world_client, sector_map, magic_trap, world_sync,
+   script_addon / script_eval `Distance`.
+4. 3D length / distance / normalise: camera*, lightning*, effects*, map_object_*, unit_hits, world_effect_*, ui_briefing_*.
+5. Quaternions: camera*, core_transform*, view_matrices, ui_hero_preview, ui_hud_portraits, ui_item_view, ui_global_map,
+   unit_figure_queries, map_spec, scene_bone_frames.
 6. Matrix x point: model.cpp, figure_mesh.cpp, world_client*.cpp, ground_decal.cpp.
-7. Particles last: particle_callbacks.cpp (27 sums, 935 rounding stores, 63 sin/cos),
-   particle_emitters / create / tick.
-src/render can switch at any time (frame-capture checks, no bitwise compare).
+7. Particles last: particle_callbacks.cpp (27 sums, 935 rounding stores, 63 sin/cos), particle_emitters / create / tick.
+src/render can switch at any time (frame-capture checks, no bitwise compare). Out-of-line originals keep their hooks; their
+bodies may use the helpers when the order matches (keeping the all-loads-before-stores aliasing); rewritten callers use the
+inline helper instead of calling Dot / Length / CrossProduct (same bits).
 
 ## 7. Risks
 
-- **/fp:fast reassociation.** The grouping is only kept if MSVC does not reassociate; /fp:fast
-  allows it (it already distributed a `* 1/6` in CubicSegment, now under `precise`). V2 should add
-  a verify self-test with inputs where the three groupings give different bits, checking each
-  helper, and inspect the release disassembly of one migrated site per batch.
-- **Precise files.** 82 files use `float_control(precise)`; an inline helper takes the float
-  semantics of the point where vecmath.h is included (normally fast). Equal on the 24-bit main
-  thread; different on 53-bit threads. Migrating a precise file moves its maths from `double` to
-  `float`: same bits at 24 bits, which is what the bitwise wrappers see.
-- **53-bit threads.** Code running off the main thread (verify log "FPU precision ...") is where
-  float helpers and the original's register values can differ; leave such functions explicit
-  until checked.
-- **Transcendentals.** FPATAN / FSIN / FCOS / acos results are 64-bit regardless of precision;
-  dropping a `RoundToFloat` the original performs flips results (X3). Keep every such store.
-- **Exponent range.** x87 intermediates do not overflow / underflow at float limits; float helpers
-  do. Only matters for huge or denormal inputs (none expected).
-- **Exact checks.** Wrappers using bitwise `Check` must keep passing; no CheckNear widening. A
-  migration that changes a grouping is a bug, so each batch changes no grouping, only spelling.
-- **Aliasing.** Out-of-line originals load all inputs before storing (out may alias an input);
-  value-returning helpers keep that, in-place loops (`v = v * s` per component) do too.
-
-## 8. Open questions
-
-1. Default order: the ticket fixes the default as XYZ, but ZYX is the majority (55 sums, 51 dots,
-   and 00401E00). Keep XYZ as the default and use the `...ZYX` names at most sites?
-2. Do any migrated functions run on 53-bit threads (sound streaming, network)? If so, should
-   vecmath offer `double` accumulation for them, or should they stay explicit?
-3. Quaternion products: each component's two scalar-part terms come in either order and the w
-   component in one of three groupings (up to 24 spellings; about 16 sites, few alike). Add
-   `Mul<order mask>` or leave the products explicit?
-4. Matrix conventions: one `Matrix4` with `TransformRow` / `TransformColumn`, or two types
-   (row-vector world matrices vs column-vector pipeline matrices)?
-5. Vertex structs (DecalVertex, Vertex, TLVertex, LightningPoint): give them a `Vector3 position`
-   member or leave them as plain fields?
+- **/fp:fast reassociation** (above): inspect the release disassembly of one migrated site per batch.
+- **Precise files.** 82 files use `float_control(precise)`; migrating one moves its maths from `double` to `float`: same bits
+  at 24 bits, which is what the bitwise wrappers see; different on 53-bit threads.
+- **53-bit threads.** Code running off the main thread (verify log "FPU precision ...") is where float helpers and the
+  original's register values can differ; leave such functions explicit until checked.
+- **Transcendentals.** FPATAN / FSIN / FCOS / acos results are 64-bit regardless of precision; dropping a `RoundToFloat` the
+  original performs flips results (X3). Keep every such store.
+- **Exponent range.** x87 intermediates do not overflow / underflow at float limits; float helpers do (huge or denormal
+  inputs only).
+- **Exact checks.** Wrappers using bitwise `Check` must keep passing; no CheckNear widening. A migration that changes a
+  grouping is a bug: each batch changes spelling only.
+- **Aliasing.** Out-of-line originals load all inputs before storing (out may alias an input); value-returning helpers keep
+  that, in-place loops (`v = v * s` per component) do too.

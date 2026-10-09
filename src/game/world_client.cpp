@@ -102,8 +102,8 @@ CEngineObject* CWorldClient::NearestVisibleUnit(CEngineObject* unit) {
     auto* self = static_cast<CUnit*>(unit);
     float best = 1e38f;
     CEngineObject* nearest = nullptr;
-    for (int i = 0; i < view->array50D8_.size; ++i) {
-        CEngineObject* found = WorldFindUnit(this, nullptr, view->array50D8_[i]);
+    for (int i = 0; i < view->partyUnitIds_.size; ++i) {
+        CEngineObject* found = WorldFindUnit(this, nullptr, view->partyUnitIds_[i]);
         if (!found || found->GetClassId() != world::kClassUnit) continue;
         if (ObjectSlots(found)->IsDead() != 0) continue;
         auto* other = static_cast<CUnit*>(found);
@@ -259,7 +259,7 @@ int CWorldClient::Segment() {
     if (terrain_) terrain_->RunTick();
     if (owned1A8_) owned1A8_->RunTick();
     if (sounds_) SoundTick(sounds_);
-    if (!unknown6C_) {
+    if (!paused_) {
         if (arrayManager_) arrayManager_->RunTick();
     }
     if (shared5C_.ptr) static_cast<CWorldHandle*>(shared5C_.ptr)->Pump();
@@ -267,7 +267,7 @@ int CWorldClient::Segment() {
     if (void* p = unknown60_) SessionPump(p, nullptr, net::GameClient());
     if (WorldSession* session = Session()) {
         CPlayerConnection* view = session->localView;
-        if (!unknown6C_) SessionUpdate(session);
+        if (!paused_) SessionUpdate(session);
         if (view->Receive() == 0) {
             // The connection is gone. Rebirth's DisableExitOnCrashReport (5 NOPs at 00564330)
             // keeps the session: only the error is reported.
@@ -278,7 +278,7 @@ int CWorldClient::Segment() {
         }
         view->RunTick();
     }
-    if (!unknown6C_) {
+    if (!paused_) {
         ++tick_;
         // The objects (list +0xBC) whose update returns 0 leave the pending map (+0xD8) and list.
         for (auto* node = dynamicObjects_.head; node;) {
@@ -309,13 +309,13 @@ int CWorldClient::Segment() {
             }
         }
     }
-    if (manager19C_) HudTick(manager19C_, nullptr, static_cast<char>(unknown6C_));
-    if (!unknown6C_) {
+    if (manager19C_) HudTick(manager19C_, nullptr, static_cast<char>(paused_));
+    if (!paused_) {
         // Three lists of effects (std::list, sentinel head): finished ones (slot 0 returns 0) go.
         RunEffects(list1B8_, EffectListErase0);
         RunEffects(list1BC_, EffectListErase1);
         RunEffects(list1C0_, EffectListErase2);
-        if (!unknown6C_ && worlddata::LightLevelsSetting() != 0) {
+        if (!paused_ && worlddata::LightLevelsSetting() != 0) {
             unknown1C4_ -= worlddata::WorldUpdatePeriod();
             if (unknown1C4_ <= 0) {
                 unknown1C4_ = worlddata::LightLevelsPeriod();

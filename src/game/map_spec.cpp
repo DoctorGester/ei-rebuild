@@ -240,8 +240,8 @@ void __fastcall ObjectSpecWriteFields(ObjectSpec* self) {
     c.WriteString(0xB008, self->unknown_74);
     c.WriteString(0xB00F, self->base.comment);
     WriteVector(c, 0xB009, self->base.position);
-    Float4 rotation;
-    std::memcpy(rotation.bits, &self->base.rotation, 16);
+    Quaternion rotation;
+    std::memcpy(&rotation, &self->base.rotation, 16);
     c.WriteQuaternion(0xB00A, rotation);
     c.WriteByte(0xB013, self->shadow);
     c.WriteByte(0xB014, self->visible);

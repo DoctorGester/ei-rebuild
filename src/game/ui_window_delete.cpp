@@ -113,6 +113,13 @@ void CSpellMakerPage::DestroyBody() {
 }
 EI_REPLACE_METHOD(0x0060E600, CSpellMakerPage::DestroyBody);
 
+void CHeroStatsPanel::DestroyBody() {
+    StringArrayDestruct(&textsVtable_);
+    CStringDestroy(&title_);
+    DestroyBase();
+}
+EI_REPLACE_METHOD(0x0060E360, CHeroStatsPanel::DestroyBody);
+
 void CMessageBox::DestroyBody() {
     CStringDestroy(&text_);
     CStringDestroy(&title_);
@@ -276,7 +283,6 @@ EI_REPLACE(0x0060E240, UiWindowDelete);   // 00741B58
 EI_REPLACE(0x0060E260, UiWindowDelete);   // the item strip (00741A1C)
 EI_REPLACE(0x0060E2E0, UiWindowDelete);   // the hero equipment (007418E0)
 EI_REPLACE(0x0060E310, UiWindowDelete);   // the quick item strip (00741844)
-EI_REPLACE(0x0060E340, UiWindowDelete);   // the stats column (00741ABC)
 EI_REPLACE(0x0060E5B0, UiWindowDelete);   // the constructors' first pages (0074170C)
 EI_REPLACE(0x0060E650, UiWindowDelete);   // the item maker (007415D4)
 EI_REPLACE(0x0060E680, UiWindowDelete);   // the repair grid (00741538)
@@ -397,6 +403,13 @@ CUiItemStrip* __fastcall ForwardingStripDelete(CUiItemStrip* self, void*, unsign
 }
 EI_REPLACE(0x0060E290, ForwardingStripDelete);
 
+// 0060E340: the statistics column (00741ABC).
+CHeroStatsPanel* __fastcall StatsPanelDelete(CHeroStatsPanel* self, void*, unsigned flags) {
+    self->DestroyBody();
+    return FreeIfAsked(self, flags);
+}
+EI_REPLACE(0x0060E340, StatsPanelDelete);
+
 // 0060E3C0: the trade panel (007417A8).
 CUiWindow* __fastcall TradePanelDelete(CUiWindow* self, void*, unsigned flags) {
     TradePanelDestroy(self);
@@ -509,7 +522,10 @@ EI_REPLACE(0x00613D70, UiWindowInputDelete);
 EI_REPLACE(0x00613D80, UiWindowInputDelete);
 EI_REPLACE(0x00613D90, UiWindowInputDelete);
 EI_REPLACE(0x00613DA0, UiWindowInputDelete);
-EI_REPLACE(0x00613DD0, UiWindowInputDelete);
+void* __fastcall StatsPanelInputDelete(void* input, void*, unsigned flags) {
+    return StatsPanelDelete(WindowFromInput<CHeroStatsPanel>(input), nullptr, flags);
+}
+EI_REPLACE(0x00613DD0, StatsPanelInputDelete);
 EI_REPLACE(0x00613DE0, UiWindowInputDelete);
 EI_REPLACE(0x0061B210, UiWindowInputDelete);
 void* __fastcall UiContainerInputDelete(void* input, void*, unsigned flags) {

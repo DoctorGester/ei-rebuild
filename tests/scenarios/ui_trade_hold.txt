@@ -1,0 +1,30 @@
+# The trade panel's held school row (00626C50 / 00626C30; docs/notes/ui.md, section 5): the camp's
+# page 1 (region 5) shows the trade panel; its first school row is (215, 135)-(385, 150). The
+# button pressed there buys a level and holds the row (-0.5 s); every frame from 0.25 s on buys
+# another while the experience lasts; the release ends the hold. GiveUnitExp is Rebirth's, so the
+# purchases happen in the Rebirth run only (vanilla: the press buys nothing, the release still
+# runs).
+reject Script error
+wait 6000
+console thingamabob
+
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+rebirth console @GiveUnitExp(GetLeader(),50000)
+wait 300
+
+screen 5
+wait 2500
+clickregion 5
+wait 500
+ldown 300 142
+wait 1500
+lup 300 142
+wait 300
+key esc
+wait 2000
+waitfor 10 IsGreater(HP(GetLeader()),0)
+report
+quit

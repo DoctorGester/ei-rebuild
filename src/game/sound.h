@@ -158,8 +158,8 @@ static_assert(sizeof(WaveNode) == 0x24);
 struct CSoundManager : CEngineObject {
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x007440F0);
 
-    void* waveDriver;                   // +0x01C HDIGDRIVER
-    std::uint32_t unknown020;
+    void* waveDriver;                   // +0x01C HDIGDRIVER (Open)
+    void* midiDriver;                   // +0x020 HMDIDRIVER (closed by Close; not opened here)
     CResourceStream streamReader;       // +0x024 reads the music stream's files (StreamRead)
     mfc::CString soundPath;             // +0x058 the sound folder, ending in a backslash (SetPath)
     CFileRegistry soundRegistry;        // +0x05C opened by SetPath
@@ -198,9 +198,12 @@ struct CSoundManager : CEngineObject {
     std::int32_t streamReadPosition;    // +0x1A8
     std::uint32_t unknown1AC;
     std::uint8_t streamLock[0x18];      // +0x1B0 CRITICAL_SECTION guarding the stream and musicFader
-    std::uint32_t unknown1C8;
+    mfc::CWinThread* streamThread;      // +0x1C8 006BB910's thread (Open), when the MP3 stream opened
     // The MIDI sequence (+0x1CC; 006BBA00-006BBDF0).
-    std::uint8_t unknown1CC[0x10];
+    std::int32_t midiState;             // +0x1CC
+    void* midiData1D0;                  // +0x1D0 Miles memory (AIL_mem_alloc_lock)
+    void* midiData1D4;                  // +0x1D4 Miles memory
+    void* midiSequence;                 // +0x1D8 HSEQUENCE
     mfc::CString midiName;              // +0x1DC
     mfc::CString midiNextName;          // +0x1E0
     lib::AlignedArray<std::int32_t> midiArray1E4;   // +0x1E4
@@ -209,8 +212,9 @@ struct CSoundManager : CEngineObject {
     SoundFader midiFader;               // +0x20C
     std::uint8_t unknown228[4];
     std::uint8_t midiLock[0x18];        // +0x22C CRITICAL_SECTION
-    std::uint8_t unknown244[8];
-    SoundSlot* slots;                   // +0x24C 15 voices
+    mfc::CWinThread* midiThread;        // +0x244 006BBCB0's thread
+    volatile std::int32_t threadsQuit;  // +0x248 set by Close; both threads end on it
+    SoundSlot* slots;                   // +0x24C 15 voices (an operator new[] block: the count before them)
     float listener[3];                  // +0x250 listener position (z: camera height)
     float listenerAxis[3];              // +0x25C listener direction, unit length in x/y
     std::int32_t nextHandle;            // +0x268
@@ -315,9 +319,35 @@ struct CSoundManager : CEngineObject {
     // position, the music fader at volume 100 with no fade.
     void ResetStream();
 
+    // 006B7D10 (A-H17, sound_manager.cpp; Play2D / Play3D). The first free voice; else the voice
+    // with the lowest priority (the first of equals) when `priority` is above it: a looping sound
+    // there goes to the deferred map (its state, Miles sample position and handle) and the voice
+    // is ended. -1 when no voice can be had.
+    int AllocateVoice(int priority);
+
+    // A-H18 (sound_manager_lifetime.cpp).
+    // 006B6A30 (RET 0x14; startup 00456440). Close (slot 3), then Miles on the DirectSound device
+    // `deviceIndex` (DirectSoundEnumerateA's order; the default device when out of range or
+    // negative; the wave mapper when the sound option is 2), 16-bit stereo at `rate` (at most
+    // 44100), reverb when `useReverb`; the MP3 stream and its thread, 15 voices with their Miles
+    // samples, `enabled` 1. 0 when the driver cannot be opened (Miles' error to the debug log).
+    // `bits` is not read.
+    int Open(void* window, int useReverb, int deviceIndex, unsigned rate, int bits);
+    // 006B6D80 (slot 3, the engine object's Destroy; DestructBody). The stream and MIDI threads
+    // told to quit and waited for, every voice ended and its sample released, the voices freed,
+    // the deferred sounds deleted, the wave cache freed, the MIDI sequence, memory and both
+    // drivers closed, the wave sources deleted, the stream file, archive and sound registry
+    // closed, then Reset.
+    void Close();
+    // 006B73E0 (Construct, CreateBody, Close; EI_Plugin calls it from 006B6272). Every field
+    // Open / Close manage zeroed: no drivers, threads or voices, the stream reset, emitters and
+    // sequences free, volumes 100, no sound folder, sound off.
+    void Reset();
+    // StopAll's and Close's loop (sound_manager.cpp): every deferred record deleted, the map
+    // emptied.
+    void DeleteDeferred();
+
     // Not rewritten.
-    void Close();                                                                         // 006B6D80 (Miles)
-    void Reset();                                                                         // 006B73E0 (Miles)
     void StreamNotify(int mode);                                                          // 006BBAC0 (empty)
     int Play3D(const char* name, int priority, const float* position, float nearDist, float farDist, int loop,
                int speech);                                                               // 006B8600
@@ -343,7 +373,7 @@ static_assert(offsetof(CSoundManager, archive074) == 0x74 && offsetof(CSoundMana
 static_assert(offsetof(CSoundManager, waveSources) == 0xE4);
 static_assert(offsetof(CSoundManager, streamReadPosition) == 0x1A8);
 static_assert(offsetof(CSoundManager, unknown11C) == 0x11C && offsetof(CSoundManager, unknown140) == 0x140);
-static_assert(offsetof(CSoundManager, markers2) == 0x178 && offsetof(CSoundManager, unknown1C8) == 0x1C8);
+static_assert(offsetof(CSoundManager, markers2) == 0x178 && offsetof(CSoundManager, streamThread) == 0x1C8);
 static_assert(offsetof(CSoundManager, midiName) == 0x1DC && offsetof(CSoundManager, midiArray1F4) == 0x1F4);
 static_assert(offsetof(CSoundManager, midiFader) == 0x20C && offsetof(CSoundManager, midiLock) == 0x22C);
 static_assert(offsetof(CSoundManager, cacheList) == 0x854);

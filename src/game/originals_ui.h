@@ -495,3 +495,42 @@ __declspec(naked) inline int __fastcall LocalViewSendWalkOriginal(void* /*view*/
 __declspec(naked) inline int __fastcall LocalViewSendAttackOriginal(void* /*view*/, void*, const void* /*units*/,
                                                                    void* /*target*/, int /*how*/, int /*ctrl*/)
     EI_ORIGINAL(0x0066A880)
+// The interface's shutdown (005F4F90) calls: 00444BD0 (thiscall) the debug information panel
+// (0079B930, string_map.cpp) frees its surface and font; 00462DF0 writes config\keyboard.ini
+// (key_bindings.cpp).
+__declspec(naked) inline void __fastcall DebugPanelReleaseOriginal(void* /*panel*/) EI_ORIGINAL(0x00444BD0)
+// 00444C10 (thiscall, RET 4): the debug information panel's rectangle (string_map.cpp).
+__declspec(naked) inline void __fastcall DebugPanelSetRectOriginal(void* /*panel*/, void*, const tagRECT* /*rect*/)
+    EI_ORIGINAL(0x00444C10)
+__declspec(naked) inline void __cdecl SaveKeyBindingsOriginal() EI_ORIGINAL(0x00462DF0)
+// 005AC1A0 (thiscall on the model manager, UiModelManager(), RET 4): a new object `name` (a figure; null: an interface
+// sprite, CUiMesh), or null.
+__declspec(naked) inline CEngineObject* __fastcall ModelManagerNewObjectOriginal(void* /*manager*/, void*,
+                                                                                 const char* /*name*/)
+    EI_ORIGINAL(0x005AC1A0)
+// 005A37C0 (thiscall, plain RET): a figure hands its quads (+0x1C0, count +0x1C4) to the renderer's buffer +0x188.
+__declspec(naked) inline void __fastcall FigureUploadQuadsOriginal(void* /*figure*/) EI_ORIGINAL(0x005A37C0)
+// 005E2A30 (thiscall on the chat overlay, CInterface3D +0x1C; RET 8): a chat line (`text` from player `number`) added.
+__declspec(naked) inline void __fastcall ChatOverlayAddLineOriginal(void* /*chat*/, void*, const char* /*text*/,
+                                                                   std::uint32_t /*number*/) EI_ORIGINAL(0x005E2A30)
+// The console window (console::ConsoleWindow, thiscall; rewritten in console_window.cpp / ui_console_window.cpp, called
+// through their address so the wrappers run): 005E3E90 SetRect(rect) (RET 4), 005E4800 DrawLines (plain RET).
+__declspec(naked) inline void __fastcall ConsoleSetRectOriginal(void* /*console*/, void*, const int* /*rect*/)
+    EI_ORIGINAL(0x005E3E90)
+__declspec(naked) inline void __fastcall ConsoleDrawLinesOriginal(void* /*console*/) EI_ORIGINAL(0x005E4800)
+// 005E3700 (thiscall on the chat overlay, plain RET; Rebirth-patched): the typed line drawn on its surface (hidden while
+// the chat is closed), the caret clamped to it.
+__declspec(naked) inline void __fastcall ChatOverlayDrawTypedOriginal(void* /*chat*/) EI_ORIGINAL(0x005E3700)
+// 00578B20 (on the client glue 007AFEA5, ECX not read): the client leaves the interface screen for the world (message 5).
+__declspec(naked) inline void __fastcall GlueBackToWorldOriginal(void* /*glue*/) EI_ORIGINAL(0x00578B20)
+// 00661FE0 (thiscall on a CParty, plain RET): every item released (its slot 4), the item array's storage freed.
+__declspec(naked) inline void __fastcall PartyReleaseItemsOriginal(void* /*party*/) EI_ORIGINAL(0x00661FE0)
+// The game client's trade offer (ClientSession, thiscall on GameClient(); rewritten in net_client_*.cpp, called through
+// their address so the wrappers run): 0041E0A0 records the trade with `party` (RET 4), 0041E180 takes the acceptance
+// back, 0041E3E0 drops the offer, 0041DA50 publishes our offer (plain RET each).
+__declspec(naked) inline void __fastcall ClientRecordTradeOriginal(void* /*client*/, void*, const void* /*party*/)
+    EI_ORIGINAL(0x0041E0A0)
+__declspec(naked) inline void __fastcall ClientCommitPartyOriginal(void* /*client*/) EI_ORIGINAL(0x0041E180)
+__declspec(naked) inline void __fastcall ClientDropPartyOriginal(void* /*client*/) EI_ORIGINAL(0x0041E3E0)
+__declspec(naked) inline void __fastcall ClientPublishPartyOriginal(void* /*client*/) EI_ORIGINAL(0x0041DA50)
+

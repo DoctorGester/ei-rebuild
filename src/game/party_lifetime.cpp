@@ -109,6 +109,9 @@ void PartyUnitRecordElements::Destruct(PartyUnitRecord* records, int count) {
 
 // 00663FA0: CArray<PartyUnitRecord>::SetSize.
 EI_REPLACE_METHOD(0x00663FA0, PartyMemberArray::SetSize);
+// 006641D0 (A-H17): CArray<PartyUnitRecord>::Serialize, slot 2 of the array's vtable 00742FF4; no
+// code calls it (the parties go through CStream, party_save.cpp).
+EI_REPLACE_METHOD(0x006641D0, PartyMemberArray::Serialize);
 
 // --- The managers and constructors a party makes ------------------------------------------------
 

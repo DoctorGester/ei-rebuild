@@ -4,6 +4,7 @@
 // jump to game.exe). Types are forward declared; include the class headers where members are used.
 
 #include "ei/hook.h"
+#include "lib/vecmath.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -30,6 +31,11 @@ __declspec(naked) inline char* __fastcall AllocAligned32Original(int /*count*/) 
 // 004D9880: 4x4 matrix product out = a * b (ECX = out, RET 8, no result).
 __declspec(naked) inline void __fastcall MatrixMultiplyOriginal(float* /*out*/, void*, const float* /*a*/,
                                                                 const float* /*b*/) EI_ORIGINAL(0x004D9880)
+// 0049E800 (rewritten as Quaternion::SetAxisAngle, quaternion.cpp; called through its address so the wrapper
+// runs): the rotation by `angle` about `axis` (thiscall, RET 8, returns the quaternion).
+__declspec(naked) inline Quaternion* __fastcall QuaternionSetAxisAngleOriginal(Quaternion* /*q*/, void*,
+                                                                              const Vector3* /*axis*/, float /*angle*/)
+    EI_ORIGINAL(0x0049E800)
 // C3i. 004D9AA0: quaternion (ECX) into a 4x4 matrix `out` (RET 4, no result).
 __declspec(naked) inline void __fastcall QuaternionToMatrixOriginal(const void* /*quaternion*/, void*, float* /*out*/)
     EI_ORIGINAL(0x004D9AA0)

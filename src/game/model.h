@@ -16,11 +16,7 @@
 
 // ---- 3D library (004F0000-00500000) ---------------------------------------------------------------
 
-// Row-major 4x4 matrix of the transform library.
-struct Matrix4 {
-    float m[16];
-};
-static_assert(sizeof(Matrix4) == 64);
+// Matrix4 (row-major 4x4, the transform library's) is in src/lib/vecmath.h.
 
 // Bounding volume of a figure part, tested against the view frustum. 0x2C bytes.
 struct ClipBounds {
@@ -106,7 +102,9 @@ public:
     virtual void Unknown10();
     // 11: 00501AF0 (RET 8, EAX 1). Binds `texture` (a texture object, or null) to stage `stage`.
     virtual int SetTexture(int stage, void* texture);
-    virtual void Unknown12();
+    // 12: 00501BB0 (RET 0x10; renderer_triangles.cpp). Draws pre-transformed vertices (D3DTLVERTEX,
+    // FVF 0x1C4) as an indexed triangle list with the current state. Returns 1.
+    virtual int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices, unsigned indexCount);
     virtual void Unknown13();
     // 14: 00501D00 (RET 0x18). Draws `figure` through its drawer (+0x94, 005A7640) unless it is
     // hidden (flags +8 bit 0x80); `alpha` reaches the mesh draw, `screen` (or null) gets the

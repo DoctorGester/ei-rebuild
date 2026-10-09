@@ -6,6 +6,7 @@
 #include "verify.h"
 
 #include "../../src/game/item.h"
+#include "../../src/game/object_tables.h"
 #include "../../src/game/party.h"
 #include "../../src/game/unit.h"
 #include "../../src/game/unit_create.h"
@@ -13,6 +14,7 @@
 
 #include <cstddef>
 #include <cstring>
+#include <vector>
 
 namespace {
 void* s_unused;
@@ -182,3 +184,35 @@ static void __fastcall RemoveRange663A70Verify(AlignedPtrArray* self, void*, int
 }
 EI_VERIFY(0x00663F60, RemoveRange663F60Verify, 6, s_removeRange663F60);
 EI_VERIFY(0x00663A70, RemoveRange663A70Verify, 6, s_removeRange663A70);
+
+// A-H17. 006629D0 (the single-player login: every newgame; vanilla zone1 is not an edge zone, so
+// the loop runs only when a party logs in on one). Ours only (it sets variables): afterwards every
+// kind-0 exit target's "z.<name>" is 1 when it was 0 before, else unchanged.
+void __fastcall OpenEdgeExitsVerify(CParty* self) {
+    auto& variables = reinterpret_cast<NamedFloatTable&>(self->variables_);
+    MapRecord* zone = GameMapDatabase()->FindMap(self->zone_);
+    struct Before {
+        mfc::CString name;
+        float value;
+    };
+    std::vector<Before> before;
+    if (zone != nullptr && zone->kind == 1) {
+        for (int i = 0; i < zone->exits.size; ++i) {
+            MapRecord* target = GameMapDatabase()->FindMap(zone->exits[i].target);
+            if (target == nullptr || target->kind != 0) continue;
+            mfc::CString name;
+            name.Format("z.%s", target->name);
+            before.push_back({name, variables.Get(name)});
+        }
+    }
+    self->OpenEdgeExits();
+    bool ok = true;
+    for (const Before& entry : before) {
+        float now = variables.Get(entry.name);
+        bool wasSet = entry.value < 0.0f || entry.value > 0.0f;
+        if (wasSet ? now != entry.value : now != 1.0f) ok = false;
+    }
+    ei::verify::Check("CParty::OpenEdgeExits", true, ok, "party %p zone %s: %d targets", self, static_cast<const char*>(self->zone_),
+                      static_cast<int>(before.size()));
+}
+EI_VERIFY(0x006629D0, OpenEdgeExitsVerify, 0, s_unused);

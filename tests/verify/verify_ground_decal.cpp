@@ -30,7 +30,8 @@ namespace {
 bool Near(float a, float b) { return ei::verify::NearlyEqual<float>(a, b, 4, 1e-6f); }
 
 bool NearVertex(const DecalVertex& a, const DecalVertex& b) {
-    return Near(a.x, b.x) && Near(a.y, b.y) && Near(a.z, b.z) && Near(a.u, b.u) && Near(a.v, b.v);
+    return Near(a.position.x, b.position.x) && Near(a.position.y, b.position.y) && Near(a.position.z, b.position.z) &&
+           Near(a.u, b.u) && Near(a.v, b.v);
 }
 
 // The appended vertices: u, v and the plane distance are sums of products of world coordinates
@@ -42,7 +43,8 @@ bool NearClipped(float a, float b) {
     return Near(a, b) || std::fabs(a - b) <= 1e-3f + 1e-5f * std::fabs(a);
 }
 bool NearClippedVertex(const DecalVertex& a, const DecalVertex& b) {
-    return NearClipped(a.x, b.x) && NearClipped(a.y, b.y) && NearClipped(a.z, b.z) && NearClipped(a.u, b.u) &&
+    return NearClipped(a.position.x, b.position.x) && NearClipped(a.position.y, b.position.y) &&
+           NearClipped(a.position.z, b.position.z) && NearClipped(a.u, b.u) &&
            NearClipped(a.v, b.v);
 }
 
@@ -141,7 +143,9 @@ bool CompareAppend(const char* name, DecalBuilder* self, DecalVertex* tri, Origi
         for (std::size_t i = 0; sameCounts && i < expected.vertices.size(); ++i) {
             const DecalVertex& a = expected.vertices[i];
             const DecalVertex& b = actual.vertices[i];
-            for (float d : {a.x - b.x, a.y - b.y, a.z - b.z, a.u - b.u, a.v - b.v}) close = close && std::fabs(d) <= 0.05f;
+            for (float d : {a.position.x - b.position.x, a.position.y - b.position.y, a.position.z - b.position.z,
+                            a.u - b.u, a.v - b.v})
+                close = close && std::fabs(d) <= 0.05f;
         }
         if ((sameCounts && close) || (!sameCounts && edge)) {
             ei::Log("verify %s: tolerated clip-edge difference (vertices %d -> %d / %d)", name, vertexCount,
@@ -210,7 +214,8 @@ void LogVertices(const char* which, const Appended& r, int vertexStart) {
     ei::Log("  %s: %d vertices, %d indices", which, static_cast<int>(r.vertices.size()), static_cast<int>(r.indices.size()));
     for (std::size_t i = 0; i < r.vertices.size(); ++i) {
         const DecalVertex& v = r.vertices[i];
-        ei::Log("    v%d: %.9g %.9g %.9g  uv %.9g %.9g", vertexStart + static_cast<int>(i), v.x, v.y, v.z, v.u, v.v);
+        ei::Log("    v%d: %.9g %.9g %.9g  uv %.9g %.9g", vertexStart + static_cast<int>(i), v.position.x, v.position.y,
+                v.position.z, v.u, v.v);
     }
     for (std::size_t i = 0; i + 2 < r.indices.size(); i += 3)
         ei::Log("    tri %d %d %d", r.indices[i], r.indices[i + 1], r.indices[i + 2]);

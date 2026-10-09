@@ -5,6 +5,7 @@
 // `double` here; every store the original makes to a float goes through Store(). Constants it
 // multiplies at run time are read from the exe (rule 9: Rebirth may patch data).
 #include "terrain_sector.h"
+#include "model.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -557,4 +558,117 @@ EI_REPLACE_METHOD(0x006C53C0, TerrainFields::TileUv);
 EI_REPLACE_METHOD(0x006C8D40, TerrainFields::SurfaceClass);
 EI_REPLACE_METHOD(0x006C8930, Terrain::GroundAndWaterDepth);
 
+// ---------------------------------------------------------------------------------------------
+// Construction and projection (A-H18)
+
+namespace {
+
+// The projection buffers every sector shares (allocated by the first constructor): positions in,
+// projected positions and outcodes out (16-byte vertices; the input's fourth float is not written).
+struct ProjectionVertex {
+    float xyzw[4];
+};
+static_assert(sizeof(ProjectionVertex) == 16);
+using ProjectionBuffer = lib::AlignedArray<ProjectionVertex>;
+ProjectionBuffer& ProjectionInput() { return *reinterpret_cast<ProjectionBuffer*>(std::uintptr_t(0x007C88F8)); }
+ProjectionBuffer& ProjectionOutput() { return *reinterpret_cast<ProjectionBuffer*>(std::uintptr_t(0x007C88E8)); }
+FlagArray& ProjectionOutcodes() { return *reinterpret_cast<FlagArray*>(std::uintptr_t(0x007C88D0)); }
+constexpr int kProjectionVertices = 0x330;
+
+// The vtables of the sector's CArray instantiations.
+constexpr std::uintptr_t kByteArrayVtable = std::uintptr_t(0x00746560);
+constexpr std::uintptr_t kPositionArrayVtable = std::uintptr_t(0x0073C120);
+constexpr std::uintptr_t kRecordArrayVtable = std::uintptr_t(0x00744184);
+constexpr std::uintptr_t kFlagArrayArrayVtable = std::uintptr_t(0x007441A8);
+constexpr std::uintptr_t kTileListArrayVtable = std::uintptr_t(0x007441B4);
+
+constexpr int kCulled = 2;
+constexpr int kCrossing = 1;
+constexpr int kQuarterCells = 16;
+constexpr int kRow = 33;
+
+// A quarter's box is a ClipBounds followed by three unused dwords.
+static_assert(offsetof(SectorBox, low) == offsetof(ClipBounds, boxMin) &&
+              offsetof(SectorBox, high) == offsetof(ClipBounds, boxMax) &&
+              offsetof(SectorBox, centre) == offsetof(ClipBounds, center));
+const ClipBounds* BoundsOf(const SectorBox& box) { return reinterpret_cast<const ClipBounds*>(&box); }
+
+} // namespace
+
+SectorData* SectorData::Construct() {
+    box = SectorBox{};
+    for (SectorBox& quarter : quarters) quarter = SectorBox{};
+    waterMaterials.Construct(kByteArrayVtable);
+    vertices.Construct(kPositionArrayVtable);
+    records.Construct(kRecordArrayVtable);
+    tileTextures.Construct();
+    waterTiles.Construct();
+    for (auto& flags : tileFlags) flags.Construct(kFlagArrayArrayVtable);
+    for (auto& lists : tiles) lists.Construct(kTileListArrayVtable);
+    animated.Construct();
+    classCounts.Construct();
+    unknown_170 = 0;
+    sx = -1;
+    sy = -1;
+    unknown_178 = 0;
+    unknown_174 = 0;
+    hasWater = 0;
+    hasWaterTiles = 0;
+    data = nullptr;
+    owner = nullptr;
+    pages = -1;
+    perPage = -1;
+    built = 0;
+    lastUsed = 0;
+    unknown_388 = 0;
+    unknown_060 = kCulled;
+    unknown_38C = 0;
+    unknown_390 = 0;
+    unknown_000 = 0;
+    ProjectionInput().SetSize(kProjectionVertices);
+    ProjectionOutput().SetSize(kProjectionVertices);
+    ByteArraySetSizeOriginal(&ProjectionOutcodes(), nullptr, ProjectionInput().size, -1);
+    return this;
+}
+EI_REPLACE_METHOD(0x006BF5F0, SectorData::Construct);
+
+int SectorData::Project(CTransformPipeline* pipeline) {
+    const int columnStep = unknown_170 >= 1 ? 2 : 1;
+    const int rowStep = unknown_170 >= 2 ? 2 : 1;
+    for (int q = 0; q < 4; ++q) {
+        if (quarterMode[q] == kCulled) continue;
+        const int corner = ((q / 2) * kRow + q % 2) * kQuarterCells;
+        const int layers = hasWater != 0 ? 2 : 1;
+        ProjectionVertex* in = ProjectionInput().data;
+        for (int layer = 0; layer < layers; ++layer)
+            for (int row = 0; row <= kQuarterCells; row += rowStep)
+                for (int column = 0; column <= kQuarterCells; column += columnStep) {
+                    const SectorPosition& p = vertices.data[layer * kVertices + corner + row * kRow + column];
+                    std::memcpy(in->xyzw, p.xyz, sizeof(p.xyz));
+                    ++in;
+                }
+        const int count = static_cast<int>(in - ProjectionInput().data);
+        const int mode = pipeline->ProjectTerrain(ProjectionInput().data, ProjectionOutput().data, ProjectionOutcodes().data,
+                                                  count, BoundsOf(quarters[q]));
+        quarterMode[q] = mode;
+        if (mode == -1 || mode == kCulled) {
+            quarterMode[q] = kCulled;
+            continue;
+        }
+        const ProjectionVertex* out = ProjectionOutput().data;
+        const std::uint8_t* outcode = ProjectionOutcodes().data;
+        for (int layer = 0; layer < layers; ++layer)
+            for (int row = 0; row <= kQuarterCells; row += rowStep)
+                for (int column = 0; column <= kQuarterCells; column += columnStep) {
+                    SectorVertex& record = records.data[layer * kVertices + corner + row * kRow + column];
+                    std::memcpy(record.projected, out->xyzw, sizeof(record.projected));
+                    record.outcode = mode == kCrossing ? *outcode++ : 0;
+                    ++out;
+                }
+    }
+    return unknown_060;
+}
+EI_REPLACE_METHOD(0x006BFC80, SectorData::Project);
+
 } // namespace terrain
+

@@ -222,7 +222,9 @@ struct ItemStock {
     // lower-cased (0069D290, kept even when unknown) and the three ints), then spells (+0x38) and
     // modifiers (+0x44) by name as read (maps 007C851C / 007C853C).
     void LoadLists(void* stream);
-    // 0069BAC0 (RET 4; not rewritten). Writes what LoadLists reads.
+    // 0069BAC0 (RET 4; A-H17; from the class template serializer 004A6C40 when saving). Writes
+    // what LoadLists reads: the armor, weapon and quick item counts and names (each text with its
+    // zero), the material entries (name, the three ints), the spells' and modifiers' codes.
     void SaveLists(void* stream);
     // The destructor as the class template's (004A6A90) inlines it: context cleared, the modifier
     // and spell maps destroyed (their own instantiations, 004A9010 / 004A8E60), each vector's storage

@@ -49,7 +49,11 @@ struct FigurePart : CEngineObject {
     FigurePartAnimator* animator;   // +0x050 counted; made on first use (Animator())
     std::uint8_t unknown_054[0x74 - 0x54];
     float pivot[3];                 // +0x074 copied to the object's part box (FootprintPart::pivot)
-    std::uint8_t unknown_080[0x158 - 0x80];
+    std::uint8_t unknown_080[0x94 - 0x80];
+    // +0x094 the part's own mesh (a CLinkMesh, link_figure.h) when flags_ 0x40 is set; its screen
+    // rectangle (+0x20) is where the part was last drawn (the flying hit points, 005E18E0).
+    class CLinkMesh* mesh;
+    std::uint8_t unknown_098[0x158 - 0x98];
     std::uint32_t piece158;         // +0x158 from the piece record's +0x20 (00517240)
     std::uint32_t piece15C;         // +0x15C from its +0x1C
     std::uint8_t unknown_160[0x188 - 0x160];
@@ -69,6 +73,7 @@ static_assert(offsetof(FigurePart, offset) == 0x18C);
 static_assert(offsetof(FigurePart, boxMin) == 0x19C);
 static_assert(offsetof(FigurePart, boxMax) == 0x1A8);
 static_assert(offsetof(FigurePart, piece158) == 0x158);
+static_assert(offsetof(FigurePart, mesh) == 0x94);
 static_assert(offsetof(FigurePart, boxFlags) == 0x188);
 static_assert(offsetof(FigurePart, boxPivot) == 0x1B4);
 

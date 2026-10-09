@@ -8,21 +8,21 @@
 #include "render.h"
 #include "sokol_gfx.h"
 
+#include "lib/vecmath.h"
+
 #include <cstdint>
 #include <vector>
 
 namespace render::detail {
 
-// A 4x4 matrix as the game's transform pipeline keeps it: row-major, out = M * (x, y, z, 1), the
-// rows giving clip x, y, z and w (Direct3D clip space: -w <= x, y <= w, 0 <= z <= w).
-struct Matrix {
-    float m[16];
-};
+// The game's transform pipeline matrices are Matrix4 (src/lib/vecmath.h): row-major, out =
+// M * (x, y, z, 1), the rows giving clip x, y, z and w (Direct3D clip space: -w <= x, y <= w,
+// 0 <= z <= w).
 
 // A vertex of the new renderer: world (terrain) or model (meshes) position, the game's lit colours,
 // texture coordinates.
 struct Vertex {
-    float x, y, z;
+    Vector3 position;
     std::uint32_t colour;     // D3DCOLOR (bytes B, G, R, A)
     std::uint32_t specular;   // D3DCOLOR; its alpha is the fog factor (255 no fog)
     float u, v;
@@ -107,7 +107,7 @@ struct Command {
 };
 
 struct Frame {
-    std::vector<Matrix> matrices;
+    std::vector<Matrix4> matrices;
     std::vector<Vertex> terrainVertices;
     std::vector<std::uint32_t> terrainIndices;
     std::vector<TerrainBatch> terrainBatches;

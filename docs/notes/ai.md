@@ -52,9 +52,8 @@ searches per leg) -> `BuildCellsTo` (005B9A20).
 
 ## Rewritten
 
-"Pure" = original and ours on the same input, result compared. "Differential" = original first, state
-kept (and put back where the original wrote it), then ours, compared. "Ours only" = consistency check on
-the resulting state.
+Pure = same input, result compared; differential = original first, state kept (and put back), then ours,
+compared; ours only = consistency check.
 
 | Address | Name | File | Verify |
 |---|---|---|---|
@@ -132,8 +131,7 @@ the resulting state.
 - Run only by the static initialiser 005C42A0 (before the hooks): the smoothing tables 005C42B0 and its helpers 005C3690, 005C3840, 005C3A00,
   005C3E10, 005C4050, 005C4F30, 005C5930, 005C5AB0, 005C5A80.
 - Shape cache helpers 005BCCB0, 005BE320, 005BE450, 005BE730 (STLport hash_map instantiations) are in config/library.csv (A-W7).
-- CRegionMap now has its members (ai_map.h: the two BlockSearch, the local search, `progress`, the per class grids);
-  older code in ai_region_reach.cpp still reads some of them through At<>.
+- CRegionMap has its members (ai_map.h: the two BlockSearch, the local search, `progress`, the per class grids).
 - 005B43C0 CAIMap::Load (Rebirth-patched). 005BF8F0 / 005BF5F0 (spiral table constructor) run from the static initializer 005BF8E0, before the hooks are installed. 005C6E30 (waypoint constructor) is inlined. 005A0000-005AF000
   (AI helpers of other systems: voice, groups) and 005C8xxx / 005C9xxx above 005C8D40 (time wheel, containers) are not movement code.
 

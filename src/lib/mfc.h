@@ -126,6 +126,20 @@ struct RawElements {
 };
 
 // CArray<T, ARG> (0x14 bytes): vtable, data, size, allocated size, growth step.
+// MFC 4.2 CArchive, only what the CArray serialisers use: +0x14 the mode (bit 0: loading).
+class CArchive {
+public:
+    bool IsLoading() const { return (mode_ & 1) != 0; }
+    unsigned Read(void* buffer, unsigned bytes);          // 00708832
+    void Write(const void* buffer, unsigned bytes);       // 00708941
+    unsigned long ReadCount();                            // 00708B3D
+    void WriteCount(unsigned long count);                 // 00708B0F
+
+private:
+    std::uint8_t unknown_00[0x14];
+    unsigned mode_;                 // +0x14
+};
+
 template <typename T, typename Elements = PlainElements<T>>
 struct CArray {
     void* vtable;
@@ -137,6 +151,16 @@ struct CArray {
     T& operator[](int index) { return data[index]; }
     const T& operator[](int index) const { return data[index]; }
     int GetSize() const { return size; }
+
+    // The constructor body: the instantiation's vtable, empty (e.g. CByteArray's 006FF5EA).
+    CArray* Construct(std::uintptr_t vtableAddress) {
+        vtable = reinterpret_cast<void*>(vtableAddress);
+        data = nullptr;
+        growBy = 0;
+        maxSize = 0;
+        size = 0;
+        return this;
+    }
 
     // SetSize(newSize, growBy): 0 frees the storage; growing past maxSize reallocates to
     // max(newSize, maxSize + step), copying the old elements with memcpy and constructing only the
@@ -176,6 +200,17 @@ struct CArray {
     }
 
     void RemoveAll() { SetSize(0, -1); }
+
+    // Serialize (slot 2 of each instantiation's CObject vtable; CObject::Serialize is empty): the
+    // count (ReadCount then SetSize when loading), then the elements as raw bytes (MFC's default
+    // SerializeElements).
+    void Serialize(CArchive* ar) {
+        if (!ar->IsLoading()) ar->WriteCount(static_cast<unsigned long>(size));
+        else SetSize(static_cast<int>(ar->ReadCount()), -1);
+        unsigned bytes = static_cast<unsigned>(size) * static_cast<unsigned>(sizeof(T));
+        if (!ar->IsLoading()) ar->Write(data, bytes);
+        else ar->Read(data, bytes);
+    }
 
     void SetAtGrow(int index, const T& value) {
         if (index >= size) SetSize(index + 1, -1);
@@ -457,6 +492,12 @@ static_assert(sizeof(CStringArray) == 0x14);
 // nothing destroyed).
 template <typename T>
 using CTypedPtrList = CList<T*>;
+
+// CWinThread (AfxBeginThread's result, 007022A0); only m_hThread is named.
+struct CWinThread {
+    std::uint8_t unknown00[0x28];
+    void* thread;   // +0x28 m_hThread
+};
 
 CString __stdcall operator+(const CString& a, const char* b);   // 00700C05
 CString __stdcall operator+(const char* a, const CString& b);   // 00700C79

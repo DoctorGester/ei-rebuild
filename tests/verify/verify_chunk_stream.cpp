@@ -391,8 +391,8 @@ void __fastcall WriteBlobVerify(Chunk* self, void*, std::uint32_t id, const void
     RunRecorded("Chunk::WriteBlob", self, [&] { self->WriteBlob(id, data, size); },
                 [&](Chunk* c) { s_writeBlob(c, nullptr, id, data, size); });
 }
-void(__fastcall* s_writeQuaternion)(Chunk*, void*, std::uint32_t, Float4);
-void __fastcall WriteQuaternionVerify(Chunk* self, void*, std::uint32_t id, Float4 value) {
+void(__fastcall* s_writeQuaternion)(Chunk*, void*, std::uint32_t, Quaternion);
+void __fastcall WriteQuaternionVerify(Chunk* self, void*, std::uint32_t id, Quaternion value) {
     RunRecorded("Chunk::WriteQuaternion", self, [&] { self->WriteQuaternion(id, value); },
                 [&](Chunk* c) { s_writeQuaternion(c, nullptr, id, value); });
 }

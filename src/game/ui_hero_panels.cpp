@@ -385,7 +385,7 @@ void BuildCellGrid(CUiWindow* window) {
 void CHeroEquipPanel::Build(bool body) {
     body_ = body;
     rect_ = RECT{0, 0, 800, body ? 500 : 100};
-    unknown_148 = 0;
+    mode_ = 0;
     for (int x = 0; x < 800; x += 100) AddRect(this, RECT{x, 0, x + 100, 100});
     // Two hidden highlight frames.
     for (int i = 0; i < 2; ++i) {
@@ -469,9 +469,9 @@ EI_REPLACE(0x00622DB0, StatsBuild);
 // --- 006270A0: the trade grid's Build ----------------------------------------------------------------
 
 void CTradeGrid::Build(void* bought, void* sold, char spells, char flag) {
-    bought_ = bought;
+    bought_ = static_cast<UiItemList*>(bought);
     rect_ = RECT{200, 100, 600, 500};
-    sold_ = sold;
+    sold_ = static_cast<UiItemList*>(sold);
     buyKind_ = spells ? 0 : 4;
     sellKind_ = spells ? 1 : 5;
     flag_ = flag;
@@ -483,12 +483,56 @@ void CTradeGrid::Build(void* bought, void* sold, char spells, char flag) {
 }
 EI_REPLACE_METHOD(0x006270A0, CTradeGrid::Build);
 
+// --- 00627920 / 00628060: the item under the mouse (slot 25) -----------------------------------------
+
+namespace {
+constexpr int kGridCellsPerList = 8;
+constexpr int kGridCells = 16;
+constexpr int kTopicTraderBuy = 0x1C, kTopicTraderSell = 0x1D;   // flag_ set
+constexpr int kTopicItemBuy = 0x0B, kTopicItemSell = 0x0C;       // the item constructor's kinds
+constexpr int kTopicSpellBuy = 0x11, kTopicSpellSell = 0x12;     // the spell constructor's
+constexpr int kTopicRepair = 0x19;
+} // namespace
+
+CItem* CTradeGrid::ItemAt(int x, int y, int* topic) {
+    *topic = 0;
+    if (!enabled_) return nullptr;
+    int region = RegionAt(x, y);
+    if (region >= 0 && region < kGridCellsPerList) {
+        *topic = flag_ ? kTopicTraderBuy : buyKind_ ? kTopicItemBuy : kTopicSpellBuy;
+        if (region < bought_->size) return bought_->data[region];
+        return nullptr;
+    }
+    if (region < kGridCellsPerList || region >= kGridCells) return nullptr;
+    // The sold list's topic also follows buyKind_.
+    *topic = flag_ ? kTopicTraderSell : buyKind_ ? kTopicItemSell : kTopicSpellSell;
+    if (region - kGridCellsPerList < sold_->size) return sold_->data[region - kGridCellsPerList];
+    return nullptr;
+}
+namespace {
+CItem* __fastcall TradeGridItemAt(CTradeGrid* self, void*, int x, int y, int* topic) { return self->ItemAt(x, y, topic); }
+} // namespace
+EI_REPLACE(0x00627920, TradeGridItemAt);
+
+CItem* CRepairGrid::ItemAt(int x, int y, int* topic) {
+    *topic = 0;
+    if (!enabled_) return nullptr;
+    int region = RegionAt(x, y);
+    if (region < 0 || region >= kGridCells) return nullptr;
+    *topic = kTopicRepair;
+    return region < items_->size ? items_->data[region] : nullptr;
+}
+namespace {
+CItem* __fastcall RepairGridItemAt(CRepairGrid* self, void*, int x, int y, int* topic) { return self->ItemAt(x, y, topic); }
+} // namespace
+EI_REPLACE(0x00628060, RepairGridItemAt);
+
 // --- 006279E0: the repair grid's Build ---------------------------------------------------------------
 
 void CRepairGrid::Build(void* items) {
     rect_ = RECT{200, 100, 600, 500};
-    unknown_148 = 8;
-    items_ = items;
+    mode_ = 8;
+    items_ = static_cast<UiItemList*>(items);
     LoadTexture(GameText(0x00793ED4), 3, 0);   // repair1
     LoadTexture(GameText(0x00793ECC), 3, 0);   // repair2
     LoadTexture(GameText(0x00793EC4), 3, 0);   // repair3
@@ -502,7 +546,7 @@ EI_REPLACE_METHOD(0x006279E0, CRepairGrid::Build);
 void CHeroQuickStrip::Build(bool top) {
     y_ = top ? 0 : 500;
     rect_ = RECT{0, y_, 800, y_ + 100};
-    unknown_148 = 0;
+    mode_ = 0;
     for (int x = 0; x < 800; x += 100) AddRect(this, RECT{x, y_, x + 100, y_ + 100});
     CUiMesh* frame = AddSprite(0);
     Builder(frame)->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
@@ -547,7 +591,7 @@ void AddMakerPictures(CConstructorPage* page) {
 
 void CConstructorPage::BuildSpellMaker(void* slots) {
     rect_ = RECT{200, 100, 600, 500};
-    kind_ = 6;
+    mode_ = 6;
     slots_ = slots;
     LoadTexture(GameText(0x00793F0C), 3, 0);   // constrspell1
     LoadTexture(GameText(0x00793EFC), 3, 0);   // constrspell2
@@ -576,7 +620,7 @@ EI_REPLACE_METHOD(0x006280C0, CConstructorPage::BuildSpellMaker);
 
 void CConstructorPage::BuildItemMaker(void* slots) {
     rect_ = RECT{200, 100, 600, 500};
-    kind_ = 7;
+    mode_ = 7;
     slots_ = slots;
     LoadTexture(GameText(0x00793F4C), 3, 0);   // constritem1
     LoadTexture(GameText(0x00793F40), 3, 0);   // constritem2

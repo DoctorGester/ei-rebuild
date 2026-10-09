@@ -23,9 +23,10 @@
 
 namespace mfc { class CString; }
 namespace console { class ConsoleWindow; }
+namespace ui_gdi { struct GameFont; }
 
 class CUiWindow;
-class CUiRootWindow;
+class CChatOverlay;
 struct UiInputSide;
 class CUiMesh;
 struct CDXSurface;
@@ -135,9 +136,48 @@ public:
 
     // 005F86F0 (not rewritten). Shows the help text of the active window's topic (its slot 41).
     void ShowHelp(int flag);
-    // 005F7E60 (not rewritten). Plays an interface sound (`name`, e.g. "buttons\battle\click.wav");
-    // the interface object itself is not used. Returns what the sound system returns.
-    int PlaySound(const char* name, int flag);
+    // 005F7E60 (RET 8; ui_interface_glue.cpp). Plays an interface sound (`name`, e.g.
+    // "buttons\battle\click.wav") without position: priority 1000, volume 100, `loop` passed on
+    // (sound::CSoundManager::Play2D). The interface object is not used. Returns Play2D's handle.
+    int PlaySound(const char* name, int loop);
+    // 005F7E90 (RET 4). Stops sound `handle` unless it is -1 (the interface is not used).
+    void StopSound(int handle);
+    // 005F7EB0 / 005F7ED0 / 005F7EF0 (RET 4). The console window's AddText / SetRect / SetHistory,
+    // when there is one.
+    void ConsoleAddText(const char* text);
+    void SetConsoleRect(const int* rect);
+    void SetConsoleHistory(int lines);
+    // 005F7F10 (RET 4). The debug information panel's rectangle (00444C10; the interface is not
+    // used).
+    void SetDebugInfoRect(const RECT* rect);
+    // 005F5700 (RET 4; the console's "fps"). With `on` (low byte) a surface for the frame rate at
+    // (730, 10)-(800, 28) unless there is one; without, the surface freed.
+    void ShowFps(int on);
+    // 005F7FC0 (RET 8; the client and the script tell it of a quest variable change). The top
+    // window's slot 33 hears of it; at 1 (or NaN) a name of three or more '.' parts keeps its
+    // third part in savedText_ (the current quest).
+    void OnQuestVariable(const char* name, float value);
+    // News for the top window (ui_interface_glue.cpp; nothing without a window): 005F7F30 (RET 0xC)
+    // items picked up (slot 28), 005F7F60 / 005F7F80 (RET 4) a unit joined / left the party (slots
+    // 29 / 30; the client's UnitChanged 00667BA0 picks one by the unit's +0x24C), 005F7FA0 the game
+    // is lost (slot 31 with 0), 005F82A0 (RET 8) a unit speaks (slot 32 with no extra), 005F82D0
+    // (RET 4) the players changed (slot 36), 005F8310 (RET 0xC) an exchange between players ended
+    // (slot 37). 005F86D0: the bottom window saves its state (slot 40; the save game 0057B3B0).
+    void OnItemsPicked(void* items, int money, int crippled);
+    void OnUnitJoined(void* unit);
+    void OnUnitLeft(void* unit);
+    void OnGameLost();
+    void OnUnitSpeech(int id, unsigned event);
+    void OnPlayersChanged(int added);
+    void OnExchangeDone(void* partyB, void* partyA, void* partyC);
+    void SaveWindowState();
+    // 005F82F0 (RET 8). A chat line (`text` from player `number`) for the root window's chat
+    // (005E2A30 on +0x1C).
+    void OnChatLine(const char* text, std::uint32_t number);
+    // 005F75B0 (RET 4; the save / load window while it saves or loads). `text` drawn in green
+    // (005FDE20: rect (0, 0)-(800, 40), format 2) on a cleared surface over (0, 280)-(800, 320)
+    // (+0x64), one frame shown (00458010 with 1, 1), the surface freed.
+    void ShowStatusText(const char* text);
 
     // Mouse messages from the input dispatcher (00457970; ui_interface_input.cpp; RET 0xC, the
     // wheel RET 0x10): each goes to the input side that took the mouse (+0x0C), else to the top
@@ -181,8 +221,9 @@ public:
     std::uint8_t unknown_10[0x14 - 0x10];
     console::ConsoleWindow* console_;   // +0x14 the console window (shown while its +0x7A is set)
     CScreenFade* fade_;              // +0x18
-    CUiRootWindow* root_;            // +0x1C updated after the top window every frame
-    std::uint8_t unknown_20[0x30 - 0x20];
+    CChatOverlay* root_;             // +0x1C the chat overlay; updated after the top window every frame
+    CUiSurface* fpsSurface_;         // +0x20 the frame rate's surface while shown (ShowFps)
+    std::uint8_t unknown_24[0x30 - 0x24];
     // +0x30 the windows draw, redraw their surfaces and update their tooltips only while this is
     // set (the containers' slots 20, 22 and 23).
     bool drawing_;
@@ -190,7 +231,7 @@ public:
     CUiWindow** stackBegin_;         // +0x34 stack of active windows (STLport vector)
     CUiWindow** stackEnd_;           // +0x38
     CUiWindow** stackCapacity_;      // +0x3C
-    std::uint8_t unknown_40[0x44 - 0x40];
+    CUiWindow* queuedWindow_;        // +0x40 activated by the next frame update (005F57C0)
     bool closeAll_;                  // +0x44 every window is closed (005F5AB0)
     std::uint8_t unknown_45[0x48 - 0x45];
     std::uint32_t pendingValue_;     // +0x48
@@ -199,12 +240,15 @@ public:
     int backdropMode_;               // +0x50 the backdrop is drawn in modes 2, 3 and 4 (PushWindow sets 3 / 1)
     CUiSurface* backdrop_;           // +0x54
     CUiSurface* secondBackdrop_;     // +0x58
-    std::uint8_t unknown_5C[0x60 - 0x5C];
+    void* block5C_;                  // +0x5C freed by the shutdown with operator delete (writer not identified)
     std::uint8_t serverFlag_;        // +0x60 the server flag kept for the first window (PushWindow)
-    std::uint8_t unknown_61[0x68 - 0x61];
+    std::uint8_t unknown_61[0x64 - 0x61];
+    CUiSurface* statusSurface_;      // +0x64 only while ShowStatusText runs
     int mouseX_;                     // +0x68 mouse position in screen coordinates
     int mouseY_;                     // +0x6C
-    std::uint8_t unknown_70[0x7C - 0x70];
+    // +0x70..+0x78 the three interface fonts (Create 005F4990: CFont point sizes 75, then
+    // scaled with the screen height); text drawing selects font n from here.
+    ui_gdi::GameFont* fonts_[3];
     // Set by the key-down handler (005F78C0) from the scan codes, cleared by the key-up one
     // (005F7BE0) from the virtual keys and when the windows change.
     bool ctrlDown_;                  // +0x7C
@@ -214,17 +258,34 @@ public:
     // spell or quick item clicked twice is used at once.
     bool doubleClick_;               // +0x7F
     bool rightDown_;                 // +0x80 the right button is held
-    std::uint8_t unknown_81[0x89 - 0x81];
+    std::uint8_t unknown_81[0x84 - 0x81];
+    stlp::list<mfc::CString> messages_;   // +0x84 queued message texts (ShowMessage takes the first)
+    std::uint8_t unknown_88;
     // +0x89..+0x97: the state saved with a game (LoadState), cleared by ResetSavedState.
     std::uint8_t unknown_89[3];
     int unknown_8C;
     int unknown_90;
     int fastGame_;                   // +0x94 the fast game speed (the clock's +0x154)
-    // +0x98 the help topics seen (OpenHelp), each with the page the help window was closed on.
+    // +0x98 help topics seen: topic name -> times (or the page the help window was closed on; see ui_help_window.cpp) (config\tutorial.ini, "name count" lines; read
+    // by Create 005F4990, written by Shutdown, counted by OpenHelp 005F86F0).
     stlp::map<mfc::CString, int> helpTopics_;
-    char* messageText_;              // +0xA4 CString: the message window's text (ShowMessage)
+    mfc::CString messageText_;       // +0xA4 the message window's text (ShowMessage)
     int messageFlag_;                // +0xA8 (ShowMessage clears it; the message window's page, set when it closes)
-    char* savedText_;                // +0xAC CString saved with the game (from version 0x5F)
+    mfc::CString savedText_;         // +0xAC the current quest (OnQuestVariable); saved from version 0x5F
+
+    // 005F8C50. Clears the modifier, double-click and right-button flags (+0x7C..+0x80) and
+    // deactivates the top window's input side (input slot 1), if any (ui_interface_shutdown.cpp).
+    void ResetInput();
+    // 005F4F90 (the main loop's exit, 00456440). Closes every window (as CloseAll, without its
+    // trailing deactivation), ResetInput, pumps the messages, clears the screen flag; writes the
+    // help topics to config\tutorial.ini ("%s %d\n" each); then frees the frame rate surface (+0x20), the queued window
+    // (+0x40, not cleared), both backdrops, +0x5C, the debug panel's surface and font (00444BD0),
+    // the root window, the console window; saves the key bindings (00462DF0); frees the three fonts
+    // and the fade (+0x18, not cleared).
+    void Shutdown();
+    // 005F4790 (the destructor of the global interface 007C7D50, run at exit): the two CStrings,
+    // the help topic map, the message list, the window stack's storage.
+    void DestroyBody();
 
     // 005F85C0 (RET 4; ui_interface_save.cpp). Writes what LoadState reads: +0x89..+0x8B, +0x8C,
     // +0x90, +0x94, an empty obsolete list (count 0), the message text with its zero, +0xA8 and
@@ -248,7 +309,10 @@ static_assert(offsetof(CInterface3D, closeAll_) == 0x44);
 static_assert(offsetof(CInterface3D, rightDown_) == 0x80);
 static_assert(offsetof(CInterface3D, unknown_8C) == 0x8C);
 static_assert(offsetof(CInterface3D, fastGame_) == 0x94);
-static_assert(offsetof(CInterface3D, helpTopics_) == 0x98);
+static_assert(offsetof(CInterface3D, fpsSurface_) == 0x20 && offsetof(CInterface3D, queuedWindow_) == 0x40);
+static_assert(offsetof(CInterface3D, statusSurface_) == 0x64);
+static_assert(offsetof(CInterface3D, block5C_) == 0x5C && offsetof(CInterface3D, fonts_) == 0x70);
+static_assert(offsetof(CInterface3D, messages_) == 0x84 && offsetof(CInterface3D, helpTopics_) == 0x98);
 
 // The interface's growable pointer arrays: engine aligned arrays of pointers (lib::AlignedArray).
 // The original has one out-of-line SetSize per array (006003D0, 006004E0, 00600730, 00600840,
@@ -404,6 +468,10 @@ public:
     // of `colour` (a GDI solid brush) around `rect` (layout coordinates, scaled to the screen through
     // 005F7CA0) or, for an empty rect, around the whole surface.
     void FrameRect(const RECT* rect, COLORREF colour);
+    // 005FE370 (RET 4) / 005FE2F0 (ui_surface_frame.cpp). With a surface (its DC held): the whole
+    // surface filled with `colour` / with background_ (CDC::FillSolidRect).
+    void Fill(COLORREF colour);
+    void Clear();
 
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00740F28);
     static constexpr std::uint32_t kFromPicture = 1;   // flags_: made by 005FCF80 from an .mmp picture
@@ -418,7 +486,7 @@ public:
     std::uint8_t* kept_;             // +0x1C the contents kept in memory while swapped out
     std::uint32_t keptSize_;         // +0x20
     RECT rect_;                      // +0x24 screen coordinates
-    int unknown_34;                  // +0x34 cleared by the constructors
+    COLORREF background_;            // +0x34 the colour Clear fills with (0 from the constructors)
 };
 static_assert(offsetof(CUiSurface, interface_) == 0x04);
 static_assert(offsetof(CUiSurface, rect_) == 0x24);
@@ -428,7 +496,7 @@ static_assert(offsetof(CUiSurface, width_) == 0x14);
 static_assert(offsetof(CUiSurface, height_) == 0x18);
 static_assert(offsetof(CUiSurface, kept_) == 0x1C);
 static_assert(offsetof(CUiSurface, keptSize_) == 0x20);
-static_assert(offsetof(CUiSurface, unknown_34) == 0x34);
+static_assert(offsetof(CUiSurface, background_) == 0x34);
 static_assert(sizeof(CUiSurface) == 0x38);
 
 // The memory totals the window surfaces keep (005FD7A0, 005FCC00, 005FD120): the bytes of the
@@ -465,8 +533,13 @@ public:
     // 005FC2F0 (RET 4). Draws the object in `pass` (a UiDrawPass) in white at the interface's
     // animation clock (timeGetTime / 67), with object flag 0x800 set while it draws.
     void Draw(UiDrawPass* pass);
-    // 005FC1F0 (not rewritten). Loads the model (`name`, its layout and label parts).
-    void Load(const char* name, const char* layout, const char* labels);
+    // 005FC1F0 (RET 0xC). A new map object (class 0x33, id 0x88CA6C00) of the client world's map
+    // object manager, referenced, flag 0x4000000, at (0, 0, 3), with the figure of model `name`
+    // (all parts, 00516DA0), its textures (0051C970 on +0x94), animations (00518840 / 00518860)
+    // and texture `from` swapped for `to` (0051C250; e.g. "escMenu00" / "escMenu00labels").
+    void Load(const char* name, const char* from, const char* to);
+    // The same through its address (ui_layouts.cpp), so the wrapper runs.
+    void CallLoad(const char* name, const char* from, const char* to);
     // 005FC4F0 (RET 4) shows or hides all its parts (part flag 0x80), 005FC4C0 (RET 8) one part by
     // name.
     void ShowAllParts(int show);
@@ -594,6 +667,44 @@ public:
         interface_->mouseCapture_ = nullptr;
         return true;
     }
+    // Slot 33 (+0x84): a quest variable changed (CInterface3D::OnQuestVariable).
+    void OnQuestVariable(const char* name, float value) {
+        using Fn = void(__thiscall*)(CUiWindow*, const char*, float);
+        reinterpret_cast<Fn>(vtable_[33])(this, name, value);
+    }
+    // The interface's news slots (CInterface3D::OnItemsPicked .. SaveWindowState; the battle
+    // screen's implementations are in ui_camp.h): 28 items picked up, 29 / 30 a unit joined / left,
+    // 31 the game ended, 32 a unit speaks, 36 the players changed, 37 an exchange ended, 40 the
+    // window's part of a save game.
+    void VirtualItemsPicked(void* items, int money, int crippled) {
+        using Fn = void(__thiscall*)(CUiWindow*, void*, int, int);
+        reinterpret_cast<Fn>(vtable_[28])(this, items, money, crippled);
+    }
+    void VirtualUnitJoined(void* unit) {
+        using Fn = void(__thiscall*)(CUiWindow*, void*);
+        reinterpret_cast<Fn>(vtable_[29])(this, unit);
+    }
+    void VirtualUnitLeft(void* unit) {
+        using Fn = void(__thiscall*)(CUiWindow*, void*);
+        reinterpret_cast<Fn>(vtable_[30])(this, unit);
+    }
+    void VirtualGameOver(int won) {
+        using Fn = void(__thiscall*)(CUiWindow*, int);
+        reinterpret_cast<Fn>(vtable_[31])(this, won);
+    }
+    void VirtualSpeech(int id, unsigned event, char* extra) {
+        using Fn = void(__thiscall*)(CUiWindow*, int, unsigned, char*);
+        reinterpret_cast<Fn>(vtable_[32])(this, id, event, extra);
+    }
+    void VirtualPlayersChanged(int added) {
+        using Fn = void(__thiscall*)(CUiWindow*, int);
+        reinterpret_cast<Fn>(vtable_[36])(this, added);
+    }
+    void VirtualExchangeDone(void* partyB, void* partyA, void* partyC) {
+        using Fn = void(__thiscall*)(CUiWindow*, void*, void*, void*);
+        reinterpret_cast<Fn>(vtable_[37])(this, partyB, partyA, partyC);
+    }
+    void VirtualSaveState() { CallVirtual(40); }
     // Slot 26 (+0x68): the window is closed (taken off the screen, before it is deleted).
     void CloseWindow() {
         using Fn = void(__thiscall*)(CUiWindow*);
@@ -697,14 +808,54 @@ static_assert(offsetof(CUiWindow, objects_) == 0xF8);
 static_assert(offsetof(CUiWindow, regions_) == 0x128);
 static_assert(offsetof(CUiWindow, models_) == 0x138);
 
-// The interface's root window (CInterface3D +0x1C): updated after the top window every frame; in a
-// multiplayer client it holds the chat line, which takes the keys while it is open.
+// The panels of the item screens (camp, multiplayer hero screen, exchange): the description panel,
+// hero equipment, quick strip, trade and repair grids, constructor pages and the blank panel
+// (vtables 00741B58 / 00741B24, constructor 0060E210). Their input sides share the left-button
+// handler 005EE310; slot 25 (VirtualItemAt) gives the item or help topic under the mouse.
+class CUiItemPanel : public CUiWindow {
+public:
+    // 005EE310 (input slot 2, RET 0xC; ui_item_panel_input.cpp). The item under (x, y) goes to the
+    // owner's slot 42 with mode_ (the camp's MoveItem); without one, a help topic the panel named
+    // goes to the owner's slot 44 (the camp: the strip tabs for it). The event is not marked used.
+    void OnLeftDown(int buttons, int x, int y);
+
+    // The owner's slots the panels call (the camp 0074091C, the hero screen 0074214C).
+    // Slot 42 (+0xA8): take `item` with the panel's action mode.
+    void OwnerTakeItem(void* item) {
+        using Fn = void(__thiscall*)(CUiWindow*, void*, int);
+        reinterpret_cast<Fn>(owner_->vtable_[42])(owner_, item, mode_);
+    }
+    // Slot 44 (+0xB0): help topic `topic` clicked.
+    void OwnerTopicClicked(int topic) {
+        using Fn = void(__thiscall*)(CUiWindow*, int, int);
+        reinterpret_cast<Fn>(owner_->vtable_[44])(owner_, topic, mode_);
+    }
+
+    int mode_;                       // +0x148 the action mode handed to the owner (ItemCell::mode)
+    CUiWindow* owner_;               // +0x14C the item screen
+};
+static_assert(offsetof(CUiItemPanel, mode_) == 0x148);
+static_assert(offsetof(CUiItemPanel, owner_) == 0x14C);
+
 // Set when a screen is activated (005F71C0 / 005F7350), cleared when every window is closed; the
 // main loop runs its frames only while it is set (00784750; app_frame.cpp's Running).
 inline bool& InterfaceHasScreen() { return *reinterpret_cast<bool*>(0x00784750); }
 
+// The client world (CWorldClient, world.h).
+inline class CWorldClient* UiClientWorld() { return reinterpret_cast<class CWorldClient*>(0x007AF5B8); }
+// The client glue object the interface asks for units (007AFEA5; its methods do not read it).
+inline void* UiClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
+// Option 17 of the options window (0079BE74): the numbers flying up from units hit are shown.
+inline int& ShowHitNumbersOption() { return *reinterpret_cast<int*>(0x0079BE74); }
+// The debug information panel (string_map.cpp; the console's "debuginfo" rectangle).
+inline void* DebugInfoPanel() { return reinterpret_cast<void*>(0x0079B930); }
+// The game's data path (CString 007AF460; 00578DB0 returns its address).
+inline const mfc::CString& GameDataPath() { return *reinterpret_cast<const mfc::CString*>(0x007AF460); }
+
 // The texture manager (CTextureManager, texture.h) the windows load their textures from.
 inline void* UiTextureManager() { return *reinterpret_cast<void* const*>(0x007AF744); }
+// The model manager (007AF5F4) the windows take their sprites and item models from.
+inline void* UiModelManager() { return *reinterpret_cast<void* const*>(0x007AF5F4); }
 
 // The in-game key bindings (config\keyboard.ini, read by 00462C10): the action of each scan code
 // (0x200 entries, the WM_KEYDOWN flags & 0x1FF).
@@ -712,13 +863,6 @@ inline const signed char* KeyActions() { return reinterpret_cast<const signed ch
 // The same table for writing (the options window's OK stores its copy there).
 inline signed char* KeyActionTable() { return reinterpret_cast<signed char*>(0x0079BF70); }
 constexpr int kKeyActionCount = 0x200;
-
-class CUiRootWindow : public CUiWindow {
-public:
-    std::uint8_t unknown_148[4];
-    bool chatOpen_;                  // +0x14C
-};
-static_assert(offsetof(CUiRootWindow, chatOpen_) == 0x14C);
 
 // 005F2EA0 / 005F2EE0. Bounds-checked records of the spell and spell-modifier databases, as the
 // spell book reads them (stride 0x84 and 0x24; see item_db.h).
@@ -1904,6 +2048,22 @@ public:
     // its title ("quest " text, else the quest's name) and its state mark (scene objects 16-20:
     // state 2 one frame, 3 the other, else hidden); the selected row gets the cursor (object 2).
     void DrawQuestList();
+    // ui_objectives_input.cpp (A-H17).
+    // 0064E330 (input slot 2, RET 0xC). The base input's press, then by region: 0 OK ("tutorial
+    // ok" sound; with two buttons the time to the nearest exit passes (00578700) and the zone is
+    // requested at that exit (RequestZone); else the pending value 0), 1 cancel (with two
+    // buttons: the cancel sound and the pending value 0), 2 / 3 the previous / next listed zone
+    // (wrapping; only when zones are listed and there are two or more), 4-8 a quest row
+    // (+0x1C0 the first shown; selected, drawn, shown), from 9 an exit (with two buttons and its
+    // flag: the "enter" sound and SelectExit, else the cancel sound).
+    void OnLButtonDown(int buttons, int x, int y);
+    // 0064EA80 (RET 4; ShowQuest calls it through its address). The places of quest `name` into
+    // +0x1CC (emptied first): a multiplayer client takes them from the quest database's record
+    // (its float pairs), otherwise from map.txt's "#quest <name>" entry (the second line after
+    // it, its words as x y pairs).
+    void LoadQuestPlaces(const char* name);
+    // The quest places (+0x1CC) as the STLport vector they are.
+    stlp::vector<UiPointF>& QuestPlaces() { return reinterpret_cast<stlp::vector<UiPointF>&>(questPlacesBegin_); }
     // Not rewritten.
     void SelectExit(int index);      // 0064E990
     void RefreshQuests();            // 0064E8B0
@@ -2213,20 +2373,49 @@ struct ChatLine {
     // then the two strings.
     void Destroy();
 
-    mfc::CString text;          // +0x00
-    mfc::CString name;          // +0x04
+    mfc::CString text;          // +0x00 (AddLine leaves it empty)
+    mfc::CString name;          // +0x04 the line's text without its colour codes
     std::uint32_t time;         // +0x08 timeGetTime when it was added
     CUiSurface* surface;        // +0x0C
 };
 static_assert(sizeof(ChatLine) == 0x10);
 
 // The in-game chat overlay (vtables 007400DC / 007400A8; made by CInterface3D::Create 005F4990,
-// constructor 005E26F0; its drawing and input 005E2A30 / 005E3230 / 005E3700 are not rewritten).
+// constructor 005E26F0): the interface's root window (CInterface3D +0x1C), updated after the top
+// window every frame; in a multiplayer client it holds the chat line, which takes the keys while
+// it is open.
 class CChatOverlay : public CUiWindow {
 public:
     // 005E28E0 (ui_window_delete.cpp). The destructor body: the typed line, every chat line
     // (destroyed, node freed), the list's sentinel, then the window's.
     void DestroyBody();
+    // 005E26F0 (RET 4; ui_chat_overlay.cpp). Constructor: the window base, an empty line list
+    // (its sentinel from the node pool), an empty typed line, the vtables 007400DC / 007400A8, the
+    // typed line's surface over (10, 573)-(790, 590) (format 4), closed, the caret at 0, then the
+    // typed line drawn (005E3700, Rebirth-patched). Returns this.
+    CChatOverlay* Construct(CInterface3D* ui);
+    // 005E2A30 (RET 8; ui_chat_overlay.cpp; CInterface3D::OnChatLine). Adds a chat line from
+    // player `number` (unused): the text is broken into lines narrower than 780 pixels (font 1;
+    // at spaces, a word wider than a line on its own), "^<digit>" switching the colour (a missing
+    // digit is taken as 7); the oldest lines are erased so that at most 12 remain; each new line
+    // gets the time and a surface (its width + 3 by 17, format 5) with its pieces drawn in their
+    // colours (the digit's bits 0 / 1 / 2 give blue / green / red, white to start).
+    void AddLine(const char* text, std::uint32_t number);
+    // 005E36C0 (RET 4). Opens (`open`, a byte: the typed line emptied, the caret at 0) or closes the
+    // chat line, then draws it (005E3700).
+    void SetOpen(bool open);
+    // 005E3930. Every line destroyed and its node returned to the pool; the list left empty.
+    void ClearLines();
+    // Input side (ui_chat_overlay.cpp; nothing while the chat is closed). 005E3230 (slot 9, RET
+    // 0xC): every key is marked used; Backspace / Delete remove the character before / at the
+    // caret, Home / End / Left / Right move it (unclamped; the draw clamps it), Enter sends a
+    // non-empty line as a chat message (a network client: SayMessage kept 60 s, 0041D1A0) and,
+    // like Esc, closes the chat; then the line is drawn. 005E3550 (slot 10, RET 0xC): a character
+    // other than 8, 9, 13 and 27 is inserted at the caret unless Ctrl is down, the line is 200
+    // characters or more, or the new line would be 780 pixels wide or more (font 1, 005F8340);
+    // then the line is drawn. The character is not marked used.
+    void OnKeyDown(int key, int repeat, int flags);
+    void OnChar(int key, int repeat, int flags);
     // 005E2990 (slot 24). Lines older than 20 s (timeGetTime) are erased.
     void Update();
     // 005E29E0 (slot 22). Each line's surface placed at (10, 10 + 16 * row) and blitted, then the
@@ -2234,11 +2423,13 @@ public:
     void Redraw();
 
     stlp::list<ChatLine> lines_;     // +0x148
-    std::uint8_t unknown_14C;        // +0x14C 0
+    bool chatOpen_;                  // +0x14C a multiplayer client's chat line is open (it takes the keys)
     std::uint8_t unknown_14D[3];
     mfc::CString typed_;             // +0x150
+    int caret_;                      // +0x154 in the typed line (characters)
 };
 static_assert(offsetof(CChatOverlay, lines_) == 0x148);
+static_assert(offsetof(CChatOverlay, caret_) == 0x154);
 static_assert(offsetof(CChatOverlay, typed_) == 0x150);
 
 // The new game's difficulty question (vtables 0074225C / 00742228, 0x184 bytes; the main menu's

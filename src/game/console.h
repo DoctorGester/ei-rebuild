@@ -9,6 +9,8 @@
 #include <cstddef>
 #include <cstdint>
 
+namespace ui_gdi { struct GameFont; }
+
 namespace console {
 
 // A string constant of game.exe, passed by its original address (Rebirth may patch the data).
@@ -21,6 +23,7 @@ inline int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(s
 struct Str : mfc::CString {
     mfc::CString Mid(int first) const;              // 006FD9B4 (006FDA6D is Right, mfc::CString::Right)
     mfc::CString Mid(int first, int count) const;   // 006FD9D7
+    int Find(const char* sub, int start) const;     // 006FDBE7 (-1 when absent)
     void AppendChar(char c);                        // 00700D73 operator+=(TCHAR)
     void AppendText(const char* text);              // 00700D4C operator+=(LPCTSTR)
     void AssignChar(char c);                        // 006FD559 operator=(TCHAR)
@@ -147,6 +150,12 @@ inline bool& CheatEnabled() { return *reinterpret_cast<bool*>(0x007C7B64); }
 // the surface is redrawn by 005E4800.
 class ConsoleWindow {
 public:
+    // 005E3CE0 (RET 4; console_window_create.cpp; CInterface3D::Create makes it). The members
+    // constructed, `screen` kept, no surface, no command shown (-1), caret, selection, scroll and
+    // the flags cleared; a 9-point "Courier New" font (dropped when it cannot be made); the
+    // rectangle (0, 0)-(800, 150) and a 256-line history (older lines dropped); the lines drawn.
+    // Returns this.
+    ConsoleWindow* Construct(int* screen);
     void SetRect(const int* rect);   // 005E3E90 (800x600 coordinates)
     void SetHistory(int lines);      // 005E3F90
     void AddText(const char* text);  // 005E4090 (continues the last line; '\n' starts a new one)
@@ -157,10 +166,13 @@ public:
     void OnKeyUp(int key, int repeat, int flags);     // 005E47E0 VK_SHIFT / VK_CONTROL clear shift_ / ctrl_
     void DrawLines();                          // 005E4800 the lines above the input line
     void DrawInput();                          // 005E4A10 the input line, selection and caret
+    // 005E3DF0 (ui_interface_shutdown.cpp; the interface's shutdown deletes the window with it).
+    // Frees the surface and the font, then the members (lines, input text, command history).
+    void DestroyBody();
 
     int* screen_;                    // +0x00 the 3D interface; [0] width, [1] height in pixels
     void* surface_;                  // +0x04 CUiSurface while shown
-    void* font_;                     // +0x08 CFont (selected into the surface's CDC)
+    ui_gdi::GameFont* font_;         // +0x08 CFont (selected into the surface's CDC)
     CStringArray commands_;          // +0x0C commands entered (input history)
     int commandIndex_;               // +0x20 the one shown by up/down (-1 or size: none)
     mfc::CString input_;             // +0x24 the line being typed

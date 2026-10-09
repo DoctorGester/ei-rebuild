@@ -8,6 +8,7 @@
 #include "scene_loader.h"
 
 #include "../lib/crt.h"
+#include "lib/vecmath.h"
 #include "ei/hook.h"
 
 #include <cmath>
@@ -22,22 +23,18 @@ T& At(const void* base, std::size_t offset) {
     return *reinterpret_cast<T*>(static_cast<char*>(const_cast<void*>(base)) + offset);
 }
 
-struct Point {
-    float x, y, z;
-};
-
 // Mesh members used here (see scene_loader.h for the rest).
 constexpr std::size_t kNormalBlocks = 0xB8;   // aligned array of 64-byte blocks
 constexpr std::size_t kNormals = 0xF8;        // aligned array of points
 constexpr std::size_t kFaceNormal = 0x24;     // in MeshFace: 3 floats
 
-__declspec(naked) void __fastcall PointsSetAtGrow(PointBuffer*, void*, int, Point) EI_ORIGINAL(0x00452AF0)
+__declspec(naked) void __fastcall PointsSetAtGrow(PointBuffer*, void*, int, Vector3) EI_ORIGINAL(0x00452AF0)
 __declspec(naked) void __fastcall DwordsSetAtGrow(DwordBuffer*, void*, int, std::uint32_t) EI_ORIGINAL(0x004538D0)
 // 0049AEC0: the face's normal from the mesh's positions (stored at face +0x24).
 __declspec(naked) void __fastcall FaceNormal(MeshFace*, void*, const PointBuffer* /*positions*/) EI_ORIGINAL(0x0049AEC0)
 
-Point GamePoint(std::uintptr_t address) {
-    Point p;
+Vector3 GamePoint(std::uintptr_t address) {
+    Vector3 p;
     std::memcpy(&p, reinterpret_cast<const void*>(address), sizeof(p));
     return p;
 }
@@ -68,16 +65,16 @@ void __fastcall ComputeMeshNormals(VtArray* meshes) {
                 if (face.vertex[0] == key || face.vertex[1] == key || face.vertex[2] == key)
                     DwordsSetAtGrow(&facesOfVertex, nullptr, facesOfVertex.size, static_cast<std::uint32_t>(f));
             }
-            Point sum = GamePoint(0x0079B9B0);
+            Vector3 sum = GamePoint(0x0079B9B0);
             const std::uint32_t* list = facesOfVertex.data;
             for (int i = 0; i < facesOfVertex.size; ++i) {
-                const Point& n = At<Point>(&faces.data[list[i]], kFaceNormal);
+                const Vector3& n = At<Vector3>(&faces.data[list[i]], kFaceNormal);
                 sum.x += n.x;
                 sum.y += n.y;
                 sum.z += n.z;
             }
             float length = std::sqrt(sum.x * sum.x + sum.y * sum.y + sum.z * sum.z);
-            Point normal;
+            Vector3 normal;
             if (!(length > weld)) {   // within the weld distance of zero, or NaN
                 normal = GamePoint(0x0079B9B0);
             } else {
@@ -111,14 +108,14 @@ void __fastcall ComputeMeshNormals(VtArray* meshes) {
         }
         for (int j = 0; j < normals.size; ++j) {
             float* block = reinterpret_cast<float*>(blocks.data) + (j / 4) * 16 + (j & 3);
-            const Point& n = reinterpret_cast<Point*>(normals.data)[j];
+            const Vector3& n = reinterpret_cast<Vector3*>(normals.data)[j];
             std::memcpy(&block[0], &n.x, 4);
             std::memcpy(&block[4], &n.y, 4);
             std::memcpy(&block[8], &n.z, 4);
         }
         count = normals.size;
         if (count & 3) {
-            Point last = reinterpret_cast<Point*>(normals.data)[count - 1];
+            Vector3 last = reinterpret_cast<Vector3*>(normals.data)[count - 1];
             float* block = reinterpret_cast<float*>(blocks.data) + (count / 4) * 16;
             for (int lane = count & 3; lane < 4; ++lane) {
                 block[lane] = last.x;
@@ -191,7 +188,7 @@ void __fastcall ComputeMeshBounds(char* mesh) {
     std::memcpy(&minY, &highest, 4);
     std::memcpy(&minZ, &highest, 4);
     for (int i = 0; i < positions.size; ++i) {
-        const Point& p = reinterpret_cast<Point*>(positions.data)[i];
+        const Vector3& p = reinterpret_cast<Vector3*>(positions.data)[i];
         maxX = SelectBelow(p.x, maxX);
         minX = SelectBelow(minX, p.x);
         maxY = SelectBelow(p.y, maxY);
@@ -199,9 +196,9 @@ void __fastcall ComputeMeshBounds(char* mesh) {
         maxZ = SelectBelow(p.z, maxZ);
         minZ = SelectBelow(minZ, p.z);
     }
-    Point& low = At<Point>(mesh, 0x168);
-    Point& high = At<Point>(mesh, 0x174);
-    Point& centre = At<Point>(mesh, 0x15C);
+    Vector3& low = At<Vector3>(mesh, 0x168);
+    Vector3& high = At<Vector3>(mesh, 0x174);
+    Vector3& centre = At<Vector3>(mesh, 0x15C);
     low = {minX, minY, minZ};
     high = {maxX, maxY, maxZ};
     const float half = GameFloat(0x0073B86C);

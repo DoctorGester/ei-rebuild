@@ -39,12 +39,6 @@ constexpr int kRejectedReport = 0x14;
 const float kNoScore = std::bit_cast<float>(0xF149F2CAu);    // 0073FF2C: -1e30
 const float kFloorScore = std::bit_cast<float>(0xE0AD78ECu); // 0073FF30 and the starting best: -1e20
 
-// Rounds an FPU value to float as the original's FSTP into a float temporary does.
-float RoundToFloat(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
-
 CMapObjectVirtuals* MapObject(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object); }
 UnitController* ControllerOf(const CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller); }
 const Vector3* PositionOf(const CUnit* unit) { return reinterpret_cast<const Vector3*>(&unit->positionX); }

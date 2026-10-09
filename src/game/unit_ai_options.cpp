@@ -40,10 +40,6 @@ __declspec(naked) void __fastcall OptionsSetSizeAt(AIAttackOptions*, void*, int,
 
 int SpellType(const CSpell* spell) { return static_cast<int>(spell->unknown_18 >> 16); }
 
-float RoundToFloat(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
 } // namespace
 
 double AIAttackOption::Weight() const {

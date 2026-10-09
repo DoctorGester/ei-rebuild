@@ -2,7 +2,7 @@
 // the per-handle controls, ambient emitters, 3D sound sequences, the per-frame tick and the music
 // stream requests (006B5CD0-006BB240), and Play2D / Play3D (006B8250 / 006B8600). The Miles calls
 // go through game.exe's import table; the wave loader with its cache (006B89F0) too. The voice
-// allocation (006B7D10) and the stream / MIDI threads stay original.
+// allocation (006B7D10, A-H17 below) and the stream / MIDI threads stay original.
 //
 // Floating point follows the original's x87 code: `double` for values the original keeps on the
 // FPU stack, Store where it stores to a float. Compiled with precise semantics so that the
@@ -960,6 +960,13 @@ void CSoundManager::StopAll(bool stopStream) {
         for (int i = 0; i < 15; ++i)
             if (slots[i].playing != 0) EndSlot(&slots[i]);
     nextHandle = 0;
+    DeleteDeferred();
+    if (stopStream) StopStream(4);
+}
+EI_REPLACE_METHOD(0x006B71C0, CSoundManager::StopAll);
+
+// StopAll's loop (Close's is the same with the map's clear() out of line, 006BD100).
+void CSoundManager::DeleteDeferred() {
     DeferredIter it;
     DeferredBegin(&deferred, nullptr, &it);
     while (it.node != nullptr) {
@@ -973,9 +980,7 @@ void CSoundManager::StopAll(bool stopStream) {
         it.node = next;
     }
     deferred.Clear();
-    if (stopStream) StopStream(4);
 }
-EI_REPLACE_METHOD(0x006B71C0, CSoundManager::StopAll);
 
 namespace {
 // AILSOUNDINFO, filled by AIL_WAV_info.
@@ -1075,12 +1080,58 @@ void SoundFader::Update() {
 }
 EI_REPLACE_METHOD(0x006B5EE0, SoundFader::Update);
 
+// --- 006B7D10 (A-H17): a voice for a new sound -----------------------------------------------------
+
+namespace {
+using SamplePositionFn = std::int32_t(__stdcall*)(void*);
+SamplePositionFn AilSamplePosition() { return *reinterpret_cast<SamplePositionFn*>(0x0073B770); }
+constexpr int kVoiceCount = 15;
+constexpr int kNoVoice = -1;
+} // namespace
+
+int CSoundManager::AllocateVoice(int priority) {
+    int lowest = 0x7FFFFFFF;
+    int index = 0;
+    for (int i = 0; i < kVoiceCount; ++i) {
+        if (slots[i].playing == 0) return i;
+        if (slots[i].priority < lowest) {
+            lowest = slots[i].priority;
+            index = i;
+        }
+    }
+    if (priority <= lowest) return kNoVoice;
+    SoundSlot* slot = &slots[index];
+    if (slot->looping != 0) {
+        // The stolen looping sound waits in the deferred map with its state and sample position.
+        auto* rec = static_cast<DeferredSound*>(gamecrt::operator_new(sizeof(DeferredSound)));
+        if (rec) stlp::string::Reserve(*reinterpret_cast<stlp::string*>(rec->name), 8);
+        reinterpret_cast<stlp::string*>(rec->name)->AssignFrom(*reinterpret_cast<const stlp::string*>(slot->name));
+        rec->volume = slot->volume;
+        rec->baseVolume = slot->baseVolume;
+        rec->pan = slot->pan;
+        rec->priority = slot->priority;
+        rec->speech = slot->speech;
+        std::memcpy(&rec->length, &slot->length, 4);
+        rec->flat = slot->flat;
+        rec->heightFade = slot->heightFade;
+        std::memcpy(rec->position, slot->position, sizeof(rec->position));
+        std::memcpy(&rec->nearDistance, &slot->nearDistance, 4);
+        std::memcpy(&rec->farDistance, &slot->farDistance, 4);
+        rec->handle = slot->handle;
+        rec->samplePosition = AilSamplePosition()(slot->sample);
+        std::int32_t key = rec->handle;
+        reinterpret_cast<DeferredSound**>(DeferredIndex(&deferred, nullptr, &key))[1] = rec;
+    }
+    if (slot->playing != 0) EndSlot(slot);
+    return index;
+}
+EI_REPLACE_METHOD(0x006B7D10, CSoundManager::AllocateVoice);
+
 // --- 006B8250 / 006B8600: Play2D, Play3D ---------------------------------------------------------
 
 namespace {
-// 006B7D10 (not rewritten): a free voice for `priority`, stealing a lower one (deferring a looping
-// sound); -1 when none can be had.
-__declspec(naked) int __fastcall AllocateVoice(CSoundManager*, void*, int /*priority*/) EI_ORIGINAL(0x006B7D10)
+// 006B7D10 (rewritten as CSoundManager::AllocateVoice) through its address so its wrapper runs.
+__declspec(naked) int __fastcall AllocateVoiceAt(CSoundManager*, void*, int /*priority*/) EI_ORIGINAL(0x006B7D10)
 using SampleUintFn = void(__stdcall*)(void*, std::uint32_t);
 SampleUintFn AilSetSampleMsPosition() { return *reinterpret_cast<SampleUintFn*>(0x0073B768); }
 
@@ -1143,7 +1194,7 @@ int StartLoaded(CSoundManager* m, SoundSlot* slot, int loop) {
 int CSoundManager::Play2D(const char* name, int priority, int volume, int pan, int loop, int heightFade, int speech,
                           int compressed) {
     if (enabled == 0) return -1;
-    int index = AllocateVoice(this, nullptr, priority);
+    int index = AllocateVoiceAt(this, nullptr, priority);
     if (index == -1) {
         if (loop == 0) return -1;
         return DeferLooping(this, name, priority, volume, pan, heightFade, speech);
@@ -1171,7 +1222,7 @@ EI_REPLACE_METHOD(0x006B8250, CSoundManager::Play2D);
 int CSoundManager::Play3D(const char* name, int priority, const float* position, float nearDist, float farDist, int loop,
                           int speech) {
     if (enabled == 0) return -1;
-    int index = AllocateVoice(this, nullptr, priority);
+    int index = AllocateVoiceAt(this, nullptr, priority);
     if (index == -1) {
         if (loop == 0) return -1;
         auto* rec = static_cast<DeferredSound*>(gamecrt::operator_new(sizeof(DeferredSound)));

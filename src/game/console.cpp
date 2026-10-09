@@ -21,6 +21,7 @@ namespace console {
 
 __declspec(naked) mfc::CString Str::Mid(int) const EI_ORIGINAL(0x006FD9B4)
 __declspec(naked) mfc::CString Str::Mid(int, int) const EI_ORIGINAL(0x006FD9D7)
+__declspec(naked) int Str::Find(const char*, int) const EI_ORIGINAL(0x006FDBE7)
 void Str::AppendChar(char a0) { CStringAppendCharOriginal((void*)this, nullptr, a0); }
 void Str::AppendText(const char* a0) { CStringAppendTextOriginal((void*)this, nullptr, a0); }
 __declspec(naked) void Str::AssignChar(char) EI_ORIGINAL(0x006FD559)

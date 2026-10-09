@@ -30,8 +30,11 @@ PATTERNS = {
     # file). Some matches are grids or managers named *Map; those go when they are renamed.
     'per-file vector/map/set struct': re.compile(r'(?<!template )\bstruct\s+\w*(?:Vector|Map|Set)\b(?=\s*[:{])'),
 }
-# Patterns not counted under these directories.
-EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set struct': 'src/lib/'}
+# Patterns not counted under these directories (or files). src/lib/vecmath.h compiles its inline
+# helpers with precise semantics on purpose: /fp:fast regrouped their sums with the caller's
+# expression (docs/notes/vector-math.md, tests/verify/verify_vecmath.cpp).
+EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set struct': 'src/lib/',
+          'float_control pragma': 'src/lib/vecmath.h'}
 # A literal address directly inside EI_ORIGINAL(...)/EI_REPLACE(...)/EI_VERIFY(...)/UI_INPUT_HANDLER(...) is how hooks are
 # written and is not counted; the lookahead above skips "0x...)" and the prefix test below the rest.
 REGISTRATION = re.compile(r'(?:EI_(?:ORIGINAL|REPLACE|REPLACE_METHOD|VERIFY|REBIRTH_IMPLEMENTS)|UI_(?:INPUT|WHEEL)_HANDLER)\s*\(\s*$')

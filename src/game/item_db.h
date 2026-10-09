@@ -14,6 +14,8 @@
 #include <cstddef>
 #include <cstdint>
 
+class CStream;
+
 // BOOL: 0/1 in the whole of EAX, callers test all 32 bits.
 using BOOL = int;
 
@@ -248,6 +250,40 @@ inline const RecordTable& Loot() { return *reinterpret_cast<const RecordTable*>(
 inline const RecordTable& QuestItems() { return *reinterpret_cast<const RecordTable*>(0x007C8778); }
 inline const RecordTable& Spells() { return *reinterpret_cast<const RecordTable*>(0x007C8510); }
 inline const RecordTable& SpellModifiers() { return *reinterpret_cast<const RecordTable*>(0x007C8530); }
+
+// A table of the item database (0x20 bytes from 007C86D8: materials, weapons, armors, quick items,
+// loot, quest items) as its load (006A67A0, Rebirth-patched) fills it: the STLport vector of
+// records and the name index (+0x0C, hash_map<string, record*>; records with the same name: the
+// last one). item_db_load.cpp (A-H17).
+struct IndexedRecordTable {
+    // 006A6E50 / 006A7110 / 006A73B0 (RET 8). The quick items (0x8C bytes) / loot (0x7C) / quest
+    // items (0x78) of chunk `field` read from `source` through an archive built on the stack (Open
+    // for loading, the vector's chunk serialiser 006A7C20 / 006A7D20 / 006A7E10, Close), then every
+    // record filed in the index under its name (+0x04).
+    void LoadQuickItems(CStream* source, int field);
+    void LoadLoot(CStream* source, int field);
+    void LoadQuestItems(CStream* source, int field);
+
+    RecordTable records;            // +0x00 begin, end
+    char* capacityEnd;              // +0x08
+    std::uint8_t index[0x14];       // +0x0C
+};
+static_assert(sizeof(IndexedRecordTable) == 0x20);
+
+// The item database (007C86D8; constructed by 0057E3D0, destroyed at exit through 006A6560).
+struct ItemDatabase {
+    // 006A6570 (item_db_load.cpp, A-H18). The tables from the last to the first: the name index
+    // emptied and its buckets freed, every record destroyed, the record storage freed.
+    void DestructBody();
+
+    IndexedRecordTable materials;   // +0x00 kMaterialSize records
+    IndexedRecordTable weapons;     // +0x20 kWeaponSize
+    IndexedRecordTable armors;      // +0x40 kArmorSize
+    IndexedRecordTable quickItems;  // +0x60 kQuickItemSize
+    IndexedRecordTable loot;        // +0x80 kLootSize (Loot())
+    IndexedRecordTable questItems;  // +0xA0 kQuestItemSize (QuestItems())
+};
+static_assert(sizeof(ItemDatabase) == 0xC0);
 
 // Field offsets that the rewritten functions read. Names provisional, from how callers use them.
 namespace field {

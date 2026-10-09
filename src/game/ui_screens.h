@@ -18,6 +18,7 @@
 
 #include "bink_video.h"
 #include "ui.h"
+#include "ui_item_info.h"
 
 #include "lib/stlp.h"
 
@@ -621,14 +622,25 @@ public:
     // 0065F1C0 (RET 8). Starts the text at `speed` (0: still), from below the surface when
     // `fromBelow`; the start time is the game time.
     void Start(float speed, char fromBelow);
+    // 0065F020 (ui_scrolling_surface.cpp, A-H17). Renders the RichEdit's text into the surface:
+    // the DC held, the surface cleared, the background colour (+0x34) set (EM_SETBKGNDCOLOR), the
+    // whole text formatted (EM_FORMATRANGE) into the surface's size in twips shifted by the scroll
+    // offsets (+0x40, +0x44; 1000 twips more below). The first time the text fits (the returned
+    // character index reaches +0x4C) the offset is kept in +0x50; once the offset has moved 1000
+    // twips plus the height past it, the speed and +0x50 become 0. The DC is released.
+    void RenderText();
 
-    std::uint8_t unknown_38[4];
+    HWND richEdit_;             // +0x38 the RichEdit control holding the text
     float startTime_;           // +0x3C
-    std::uint8_t unknown_40[4];
-    int offset_;                // +0x44
+    int offsetX_;               // +0x40 twips
+    int offset_;                // +0x44 twips scrolled
     float speed_;               // +0x48 0 once the text has scrolled through
-    std::uint8_t unknown_4C[0x58 - 0x4C];
+    int textLength_;            // +0x4C characters (set when the text is loaded)
+    int endOffset_;             // +0x50 offset_ when the end of the text came into view (0: not yet)
+    std::uint8_t unknown_54[0x58 - 0x54];
 };
+static_assert(offsetof(CUiScrollingSurface, richEdit_) == 0x38);
+static_assert(offsetof(CUiScrollingSurface, endOffset_) == 0x50);
 static_assert(offsetof(CUiScrollingSurface, speed_) == 0x48);
 static_assert(sizeof(CUiScrollingSurface) == 0x58);
 
@@ -739,10 +751,44 @@ static_assert(sizeof(CMainMenu) == 0x17C);
 
 // --- Exchange window ------------------------------------------------------------------------
 //
-// Trading between two players (xch_* texts; Create 0062C250 is its virtual slot 25).
-class CExchangeScreen {
+// Trading between two players (screen 9: vtables 00740D18 / 00740CE4, 0x1B8 bytes, constructor
+// 005F6F30; xch_* texts; Create 0062C250 is its virtual slot 25). Multiplayer only.
+class CParty;
+class CTradeGrid;
+class CExchangeScreen : public CItemScreen {
 public:
     void OnKeyDown(int key, int repeat, int flags);   // 0062D090
+    // 0062D210 (slot 37, RET 0xC; ui_exchange.cpp; CInterface3D::OnExchangeDone). The exchange
+    // went through: the local party's items are released (00661FE0), every item of `partyC`, then
+    // of `partyB`, returned into it (ReturnAll), its money set to partyB's - partyA's + partyC's,
+    // and the client goes back to the world (00578B20).
+    void OnExchangeDone(CParty* partyB, CParty* partyA, CParty* partyC);
+    // 0062C8F0 (slot 26). The screen closes: the description panel describes nothing and the
+    // scratch party is deleted (its slot 0).
+    void Close();
+    // 0062C920 (slot 27, RET 4). A message box's answer: nothing.
+    void OnMessageResult(int result);
+    // 0062C930 (slot 24). The children's update; then, when the client's offer (+0x260C) is gone
+    // or detached, our offer's items go back to the local party and the client returns to the
+    // world; else a changed money field (its changed_ cleared) becomes our offer's money (atoi)
+    // and the offer is published (0041DA50).
+    void Update();
+    // 0062CF70 (input slot 2, RET 0xC). The container's handler, then by region: 0 accept (the buy
+    // sound and the trade recorded with the local party, 0041E0A0, when our offer is live and not
+    // accepted and its money is within the local party's; else the cancel sound), 1 take the
+    // acceptance back (cancel sound and 0041E180, when it is accepted), 2 leave (the transit
+    // sound and 0041E3E0). The event is not marked used.
+    void OnLButtonDown(int buttons, int x, int y);
 
-    CUiWindow window;
+    CParty* scratch_;                // +0x190 a party of the screen's own (made by Create, deleted by Close)
+    CParty* partnerOffer_;           // +0x194 the client's parties_[1]
+    CParty* ownOffer_;               // +0x198 the client's parties_[0]
+    CUiItemStrip* strip_;            // +0x19C the local party's items (forwarding strip, mode 1)
+    CUiItemStrip* figures_;          // +0x1A0 the players (figure strip)
+    CTradeGrid* grid_;               // +0x1A4 the two offers (mode 5)
+    CUiEditField* moneyField_;       // +0x1A8 the money offered
+    MpStringVector names_;           // +0x1AC CStrings: the figure strip's names
 };
+static_assert(offsetof(CExchangeScreen, scratch_) == 0x190);
+static_assert(offsetof(CExchangeScreen, names_) == 0x1AC);
+static_assert(sizeof(CExchangeScreen) == 0x1B8);

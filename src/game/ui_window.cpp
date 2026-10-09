@@ -382,9 +382,10 @@ EI_REPLACE_METHOD(0x005FFF40, CUiWindow::ClearModels);
 // --- 005FF460: ReplaceSceneObject ------------------------------------------------------------------
 
 namespace {
-// 005AC1A0 (thiscall on the model manager 007AF5F4): a new object by name, or null.
-__declspec(naked) std::uint8_t* __fastcall NewModelObject(void*, void*, const char*) EI_ORIGINAL(0x005AC1A0)
-void* ModelManager() { return *reinterpret_cast<void* const*>(0x007AF5F4); }
+// 005AC1A0: a new object of the model manager by name, or null.
+std::uint8_t* NewModelObject(const char* name) {
+    return reinterpret_cast<std::uint8_t*>(ModelManagerNewObjectOriginal(UiModelManager(), nullptr, name));
+}
 // 0059F3D0 (thiscall on the object): attaches it to the window.
 void __fastcall AttachToWindow(std::uint8_t* a0, void*, CUiWindow* a2) { FigurePartSetOwnerOriginal((void*)a0, nullptr, (void*)a2); }
 // 005E70B0 (thiscall): the sprite's scale (+0x23C) in ST0; 005E7060 sets it.
@@ -405,7 +406,7 @@ void CopyFloat(void* to, const void* from) {
 CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* name) {
     for (int i = 0; i < sceneObjects_.size; ++i) {
         if (sceneObjects_.data[i] != object) continue;
-        std::uint8_t* made = NewModelObject(ModelManager(), nullptr, name);
+        std::uint8_t* made = NewModelObject(name);
         if (!made) return nullptr;
         int references;
         std::memcpy(&references, made + 4, 4);
@@ -445,7 +446,7 @@ EI_REPLACE_METHOD(0x005FF460, CUiWindow::ReplaceSceneObject);
 // --- 005FF3C0: AddSprite ---------------------------------------------------------------------------
 
 CUiMesh* CUiWindow::AddSprite(const char* name) {
-    auto* object = reinterpret_cast<CEngineObject*>(NewModelObject(ModelManager(), nullptr, name));
+    auto* object = reinterpret_cast<CEngineObject*>(NewModelObject(name));
     if (!object) return nullptr;
     bool listed = false;
     for (int i = 0; i < sceneObjects_.size && !listed; ++i) listed = sceneObjects_.data[i] == object;

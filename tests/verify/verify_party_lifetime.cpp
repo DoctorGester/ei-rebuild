@@ -235,6 +235,16 @@ void __fastcall PartyClearVerify(CParty* self, void*, int clearVariables, int ke
     ei::verify::Check("CParty::Clear", true, ok, "party %p (%d, %d)", self, clearVariables, keepSpells);
 }
 
+// A-H17. 006641D0 (no caller: slot 2 of the records' CArray vtable). Ours only (it moves the
+// archive): storing keeps the size.
+void __fastcall MemberSerializeVerify(PartyMemberArray* self, void*, mfc::CArchive* ar) {
+    bool loading = ar->IsLoading();
+    int size = self->size;
+    self->Serialize(ar);
+    ei::verify::Check("PartyMemberArray::Serialize", true, loading || self->size == size, "array %p: %d -> %d", self,
+                      size, self->size);
+}
+
 } // namespace
 
 EI_VERIFY(0x0065F5F0, ConstructVerify, 7, s_construct);
@@ -242,6 +252,7 @@ EI_VERIFY(0x00664880, ConstructRecordsVerify, 6, s_constructRecords);
 EI_VERIFY(0x0065F740, DestructVerify, 0, s_unused);
 EI_VERIFY(0x0065F860, ClearItemsVerify, 0, s_unused);
 EI_VERIFY(0x00663FA0, MemberSetSizeVerify, 0, s_unused);
+EI_VERIFY(0x006641D0, MemberSerializeVerify, 0, s_unused);
 EI_VERIFY(0x00663960, ListSetSizeVerify, 0, s_unused);
 EI_VERIFY(0x00663AD0, ListSetSizeVerify, 0, s_unused);
 EI_VERIFY(0x00663C00, ListSetSizeVerify, 0, s_unused);

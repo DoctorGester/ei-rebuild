@@ -44,8 +44,8 @@ constexpr std::uintptr_t kCantOpenObjects = 0x00790B74; // "CWorldServer::LoadMa
 std::uint8_t& LoadingMobFile() { return *reinterpret_cast<std::uint8_t*>(0x007C554C); }
 
 // The default orientation of new units (16 bytes at 007C2DE0), passed by value.
-Float4 DefaultRotation() {
-    Float4 value;
+Quaternion DefaultRotation() {
+    Quaternion value;
     std::memcpy(&value, reinterpret_cast<const void*>(0x007C2DE0), sizeof(value));
     return value;
 }
@@ -63,7 +63,7 @@ constexpr int kSlotFileClose = 19;    // MFC CFile slot 19 (+0x4C): Close
 // 0058EF20 (RET 0x20). Creates the units described by `records` (pointers to 0x784-byte unit
 // records) around `position` with `rotation`; ids come from the records (+0x1C).
 __declspec(naked) void __fastcall ServerCreateUnits(CWorldServer*, void*, int /*zero*/, RecordPtrArray* /*records*/,
-                                                    const Vector3* /*position*/, Float4 /*rotation*/,
+                                                    const Vector3* /*position*/, Quaternion /*rotation*/,
                                                     int /*placements*/) EI_ORIGINAL(0x0058EF20)
 // 005935C0 (RET 4). RemoveObjectFromServer. Patched by Rebirth: always the original address.
 // 00595BA0 (RET 8). The full path of a map file: `name` as is when it has a drive, else under the

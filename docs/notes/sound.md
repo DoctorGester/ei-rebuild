@@ -80,7 +80,9 @@ scratch copy of the object, ours on the real one.
 | 006B6D70, 006B62B0, 006B7060, 006B7AB0, 006B8960, 006BAE20, 006BA950 | `CreateBody` (slot 2: Reset, 1), `DeletingDestruct`, `ClearWaveSources`, `AddWaveSource`, `LoadWaveFile`, `SetPath`, `SoundStreamRead` (the stream file's read callback, stream thread) | ours only (`verify_sound_lifetime.cpp`); startup 00456440 calls SetPath and AddWaveSource |
 | 006B71C0, 006B96E0 | `StopAll(stopStream)` (originals_ui.h's `LoadingStepOriginal` is this), `WaveLength` | StopAll ours only (no voice plays, handle 0, no deferred); WaveLength side by side (7 bytes) |
 | 006B4E30, 006B4F70 / 006B4F90 / 006B5080 / 006B5170 / 006B51F0 / 006B5270, 006B5350 | `SetZoneMode`, `Stop` / `PlayBriefing` / `PlayConstructor` / `PlayCredits` / `PlayMainMenu` / `PlayJingle`, `UpdateMusic` (slot 6) | ours only; resulting state (returns 1, inCombat follows the fight state) |
+| 006B7D10 | `AllocateVoice` (A-H17, sound_manager.cpp; Play2D / Play3D call it through its address): first free voice, else steals the lowest priority below `priority` (a looping sound deferred with its sample position) | ours only: -1 only when all voices play at >= priority; the voice is free; a stolen loop's handle is deferred |
 | 006B6040, 006B65D0, 006BA9C0 | `Construct`, `DestructBody`, `ResetStream` (A-H15, sound_manager_lifetime.cpp; 006BA9C0 runs on the manager's +0x100, a `__fastcall` shim) | ours only (vtables, empty lists, fader volume 100 / level 127, switch mode 4) |
+| 006B6A30, 006B6D80, 006B73E0 | `Open` (RET 0x14: window, reverb, DirectSound device index, rate, unused), `Close` (slot 3), `Reset` (A-H18, sound_manager_lifetime.cpp). +0x1C8 / +0x244 the stream / MIDI threads (`mfc::CWinThread`), +0x248 their quit flag. The sound option 0079BCC0 = 2 opens the wave mapper. Close frees each cached wave's own name where the original's RemoveHead (006BC6F0) copies it out and frees the copy (node-pool order only) | ours only: Open 1 with 15 free voices and a driver, or 0 in the reset state; Close / Reset the reset state (every scenario: startup, exit) |
 
 Non-obvious: Play2D/Play3D with no voice (AllocateVoice -1) return -1 for a one-shot and make a
 deferred record (0x48 bytes) for a looping sound; a NaN camera height keeps the full level (the
@@ -111,16 +113,18 @@ goes through a naked helper. Miles is called through game.exe's import table (00
 - `PlayJingle` and the calm music busy-wait (Sleep(0)) on the main thread until the stream thread
   takes the request; an empty theme list (`combat` with 0 names) divides by zero.
 - `FadeOutStream`/`FadeInStream`/`SetMusicVolume` change the music fader without the stream lock.
+- `Open` keeps the GUID pointers DirectSoundEnumerateA's callback saw after the enumeration returned.
 
 ## Not rewritten
 
-- Miles/DirectSound side: Open / Close / Reset (006B6A30, 006B6D80, 006B73E0), stream open / close /
-  fill (006BAAC0, 006BAC90, 006BB3A0 Rebirth-patched), stream and MIDI thread loops (006BB910,
-  006BBCB0), MIDI (006BBB80, 006BBC70), AllocateVoice 006B7D10.
+- Miles/DirectSound side: stream open / close / fill (006BAAC0, 006BAC90, 006BB3A0 Rebirth-patched), stream
+  and MIDI thread loops (006BB910, 006BBCB0), MIDI (006BBB80, 006BBC70), the DirectSoundEnumerateA callback
+  006B68A0 (Open passes it).
 - Library (A-H13, config/library.csv): the CArray<MusicTheme> members 006B56C0-006B5BC0 and MusicTheme's operator= /
   destructor 006B4D40 / 006B4D90; the cache list and wave cache members 006BBDF0-006BE240; unwind-only destructors 006B62D0 /
   006B6350 / 006BE300 and the name array element constructors 006B63D0 / 006B63F0. 006BBA00 is dead (no references).
-- Live game code left in 006B4000-006C0000 (next candidates): the terrain sector's 006BF4A0..006BFC80 (`models.md`).
+- Live game code left in 006B4000-006C0000: terrain sector pieces around 006BF4A0 (`models.md`; Construct 006BF5F0 and Project
+  006BFC80 are done).
 - A-H15 layout: +0x168 / +0x178 and the MIDI part's +0x1E4 / +0x1F4 are 32-byte aligned arrays (`lib::AlignedArray`;
   `markers` is the first); the MIDI part (+0x1CC) has two CStrings (+0x1DC / +0x1E0), a fader (+0x20C) and a lock (+0x22C).
   The constructor's hash maps get zero functor bytes where the original copies three uninitialised stack bytes (unused).

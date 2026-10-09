@@ -17,6 +17,8 @@
 #include "lib/containers.h"
 #include "lib/mfc.h"
 
+class CTransformPipeline;
+
 namespace terrain {
 
 // One entry per lit vertex: the point lights that reach it (pooled 16-byte nodes, 006CAC10).
@@ -30,7 +32,9 @@ struct LightRef {
 #pragma pack(push, 1)
 // Per-vertex record, 0x54 bytes (odd offsets: the original packs it).
 struct SectorVertex {
-    std::uint8_t unknown_00[0x19];      // colours, written by the lighting stage (006C31C0)
+    float projected[4];                 // +0x00 screen position (Project 006BFC80)
+    std::uint8_t outcode;               // +0x10 clip flags when the quarter crosses the view, else 0
+    std::uint8_t unknown_11[8];         // colours, written by the lighting stage (006C31C0)
     float position[3];                  // +0x19 water layer: the vertex position
     std::uint16_t waterMaterial;        // +0x25 water layer: material index, 0xFFFF none
     float depth;                        // +0x27 ground layer: water z - ground z
@@ -146,6 +150,19 @@ struct SectorData {
 
     // 006C3DD0. Builds what `wanted` asks for (2 geometry, 4 lighting); returns wanted & built.
     std::uint32_t Ensure(std::uint32_t wanted, TerrainFields* owner);
+
+    // 006BF5F0. The constructor body: everything empty or zero, sector (-1, -1), pages and
+    // perPage -1, +0x60 2; the shared projection buffers (positions, projected, outcodes) sized for
+    // 0x330 vertices. Returns this.
+    SectorData* Construct();
+
+    // 006BFC80 (RET 4; the draw pass 006C6460). Projects the vertices of every quarter that is not
+    // culled (quarterMode != 2), at the level of detail unknown_170 (from 1 every second column,
+    // from 2 every second row too), ground then water, with `pipeline` (004F29F0) against the
+    // quarter's box: the quarter's
+    // mode becomes the result (2 for -1 or 2), and for 0 / 1 each of those records gets its
+    // projected position (with 1 its outcode, else 0). Returns +0x60.
+    int Project(CTransformPipeline* pipeline);
 
     // Not rewritten (forwarders).
     void Clear();                       // 006C3C80

@@ -26,11 +26,6 @@ UnitController* ControllerOf(const CUnit* unit) { return reinterpret_cast<UnitCo
 bool IsDead(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object)->IsDead() != 0; }
 bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
 
-float RoundToFloat(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
-
 // (a - b) squared in 3D, summed as the original: z, then x, then y.
 double Distance2(const CUnit* a, const float* b) {
     double dx = static_cast<double>(a->positionX) - b[0];

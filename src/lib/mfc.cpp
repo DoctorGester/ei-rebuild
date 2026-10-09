@@ -48,6 +48,11 @@ __declspec(naked) void CStringArray::SetAtGrow(int, const char*) EI_ORIGINAL(0x0
 __declspec(naked) void CStringArray::RemoveAt(int, int) EI_ORIGINAL(0x006FED3C)
 __declspec(naked) void CStringArray::Copy(const CStringArray&) EI_ORIGINAL(0x006FEB61)
 
+__declspec(naked) unsigned CArchive::Read(void*, unsigned) EI_ORIGINAL(0x00708832)
+__declspec(naked) void CArchive::Write(const void*, unsigned) EI_ORIGINAL(0x00708941)
+__declspec(naked) unsigned long CArchive::ReadCount() EI_ORIGINAL(0x00708B3D)
+__declspec(naked) void CArchive::WriteCount(unsigned long) EI_ORIGINAL(0x00708B0F)
+
 __declspec(naked) CPlex* __stdcall PlexCreate(CPlex*&, unsigned, unsigned) EI_ORIGINAL(0x006FE8EF)
 __declspec(naked) void __fastcall PlexFreeDataChain(CPlex*) EI_ORIGINAL(0x006FE90F)
 

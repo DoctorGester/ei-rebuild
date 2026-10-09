@@ -53,15 +53,6 @@ long ComCall(void* object, int slot, Args... args) {
 
 CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
-struct Vec3 {
-    float x, y, z;
-};
-struct Quat {
-    float w, x, y, z;
-    Quat* FromAxisAngle(const Vec3* axis, float angle);   // 0049E800 (RET 8)
-};
-__declspec(naked) Quat* Quat::FromAxisAngle(const Vec3*, float) EI_ORIGINAL(0x0049E800)
-
 // The device's state around a frame part (thiscall, not rewritten): 004E7840 and 004E7A40.
 struct DeviceAt {
     void Flush();     // 004E7840
@@ -72,15 +63,15 @@ void DeviceAt::Restore() { DeviceFlushBatchBOriginal((void*)this); }
 
 // The game's vector helpers as the original calls them (00401E00 dot, unrounded; 00448A10 /
 // 00410770 scale; 004489D0 cross; 0040CDC0 sum; results stored as float).
-double Dot(const Vec3& a, const Vec3& b) { return (D(a.z) * D(b.z) + D(a.y) * D(b.y)) + D(a.x) * D(b.x); }
-Vec3 Scale(const Vec3& v, float s) { return {Store(D(s) * D(v.x)), Store(D(s) * D(v.y)), Store(D(s) * D(v.z))}; }
-Vec3 Cross(const Vec3& a, const Vec3& b) {
+double DotUnrounded(const Vector3& a, const Vector3& b) { return (D(a.z) * D(b.z) + D(a.y) * D(b.y)) + D(a.x) * D(b.x); }
+Vector3 Scale(const Vector3& v, float s) { return {Store(D(s) * D(v.x)), Store(D(s) * D(v.y)), Store(D(s) * D(v.z))}; }
+Vector3 CrossStored(const Vector3& a, const Vector3& b) {
     float z = Store(D(a.x) * D(b.y) - D(a.y) * D(b.x));
     float y = Store(D(a.z) * D(b.x) - D(b.z) * D(a.x));
     float x = Store(D(a.y) * D(b.z) - D(a.z) * D(b.y));
     return {x, y, z};
 }
-Vec3 Sum(const Vec3& a, const Vec3& b) {
+Vector3 Sum(const Vector3& a, const Vector3& b) {
     float z = Store(D(a.z) + D(b.z));
     float y = Store(D(a.y) + D(b.y));
     float x = Store(D(a.x) + D(b.x));
@@ -88,8 +79,8 @@ Vec3 Sum(const Vec3& a, const Vec3& b) {
 }
 
 // The products the original inlines (q * r), with the two orders of the w sum it uses.
-Quat Product(const Quat& q, const Quat& r, bool second) {
-    Quat out;
+Quaternion Product(const Quaternion& q, const Quaternion& r, bool second) {
+    Quaternion out;
     out.z = Store(((D(q.x) * D(r.y) - D(q.y) * D(r.x)) + D(q.w) * D(r.z)) + D(q.z) * D(r.w));
     out.y = Store(((D(q.z) * D(r.x) - D(q.x) * D(r.z)) + D(q.y) * D(r.w)) + D(q.w) * D(r.y));
     out.x = Store(((D(q.y) * D(r.z) - D(q.z) * D(r.y)) + D(q.x) * D(r.w)) + D(q.w) * D(r.x));
@@ -185,15 +176,15 @@ void CUiWindow::DrawHeroPreview(void* pass, std::uint8_t* model, float turn, flo
 
     // The turn about y, applied to the origin (the game's rotation of a vector by a quaternion:
     // 2 (v.u) v + (w^2 - v.v) u + 2 w (v x u), with u = 0).
-    Vec3 up = {0.0f, 1.0f, 0.0f};
-    Quat q;
-    q.FromAxisAngle(&up, turn);
-    Vec3 v = {q.x, q.y, q.z};
-    Vec3 origin = {0.0f, 0.0f, 0.0f};
+    Vector3 up = {0.0f, 1.0f, 0.0f};
+    Quaternion q;
+    QuaternionSetAxisAngleOriginal(&q, nullptr, &up, turn);
+    Vector3 v = {q.x, q.y, q.z};
+    Vector3 origin = {0.0f, 0.0f, 0.0f};
     float ww = Store(D(q.w) * D(q.w));
-    Vec3 along = Scale(v, Store(Dot(v, origin) + Dot(v, origin)));
-    Vec3 across = Scale(Cross(v, origin), Store(D(q.w) + D(q.w)));
-    Vec3 rotated = Sum(Sum(Scale(origin, Store(D(ww) - Dot(v, v))), across), along);
+    Vector3 along = Scale(v, Store(DotUnrounded(v, origin) + DotUnrounded(v, origin)));
+    Vector3 across = Scale(CrossStored(v, origin), Store(D(q.w) + D(q.w)));
+    Vector3 rotated = Sum(Sum(Scale(origin, Store(D(ww) - DotUnrounded(v, v))), across), along);
     // Placed by the depth: x from depth * c - 1, y and z fixed offsets.
     double dx = ((D(depth) * D(GameFloat(0x0074015C)) - D(GameFloat(0x0073B84C))) * D(GameFloat(0x007402C4))) *
                 D(GameFloat(0x0073BA98));
@@ -205,13 +196,16 @@ void CUiWindow::DrawHeroPreview(void* pass, std::uint8_t* model, float turn, flo
     Set(model, 0x20, py);
     Set(model, 0x24, pz);
     // The orientation: the turn, then a fixed tilt about x, and in the wide layout a turn about -z.
-    Vec3 xAxis = {1.0f, 0.0f, 0.0f};
-    Quat tilt;
-    q = Product(q, *tilt.FromAxisAngle(&xAxis, GameFloat(0x007C7D24)), false);
+    Vector3 xAxis = {1.0f, 0.0f, 0.0f};
+    Quaternion tilt;
+    q = Product(q, *QuaternionSetAxisAngleOriginal(&tilt, nullptr, &xAxis, GameFloat(0x007C7D24)), false);
     if (D(depth) > D(GameFloat(0x00740160))) {
-        Vec3 zAxis = {0.0f, 0.0f, -1.0f};
-        Quat side;
-        q = Product(q, *side.FromAxisAngle(&zAxis, Store(D(GameFloat(0x007C7D24)) * D(GameFloat(0x0073CD18)))), true);
+        Vector3 zAxis = {0.0f, 0.0f, -1.0f};
+        Quaternion side;
+        q = Product(q,
+                    *QuaternionSetAxisAngleOriginal(&side, nullptr, &zAxis,
+                                                    Store(D(GameFloat(0x007C7D24)) * D(GameFloat(0x0073CD18)))),
+                    true);
     }
     std::memcpy(model + 0x34, &q, 16);
 

@@ -220,3 +220,27 @@ BOOL CParty::RemoveMember(int key) {
     return 0;
 }
 EI_REPLACE_METHOD(0x006620F0, CParty::RemoveMember);
+
+// --- A-H17 -----------------------------------------------------------------------------------
+
+namespace {
+const char* ZoneVariableFormat() { return reinterpret_cast<const char*>(0x00794148); }   // "z.%s"
+constexpr int kZoneKindGame = 0;
+constexpr int kZoneKindEdge = 1;
+constexpr float kOpened = 1.0f;
+} // namespace
+
+void CParty::OpenEdgeExits() {
+    mfc::CString variable;
+    MapRecord* zone = GameMapDatabase()->FindMap(zone_);
+    if (zone == nullptr || zone->kind != kZoneKindEdge) return;
+    auto& variables = reinterpret_cast<NamedFloatTable&>(variables_);
+    for (int i = 0; i < zone->exits.size; ++i) {
+        MapRecord* target = GameMapDatabase()->FindMap(zone->exits[i].target);
+        if (target == nullptr || target->kind != kZoneKindGame) continue;
+        variable.Format(ZoneVariableFormat(), target->name);
+        float value = variables.Get(variable);
+        if (!(value < 0.0f) && !(value > 0.0f)) variables.Set(variable, kOpened);   // FCOMP; TEST AH,40h
+    }
+}
+EI_REPLACE_METHOD(0x006629D0, CParty::OpenEdgeExits);

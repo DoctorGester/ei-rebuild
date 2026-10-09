@@ -25,6 +25,9 @@ int __cdecl mbscmp(const unsigned char* a, const unsigned char* b) {
     return MbscmpOriginal(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));
 }
 
+__declspec(naked) double __cdecl acos(double) EI_ORIGINAL(0x006E7334)
+__declspec(naked) double __cdecl asin(double) EI_ORIGINAL(0x006E83D4)
+
 __declspec(naked) int __cdecl open(const char*, int, ...) EI_ORIGINAL(0x006EB35C)
 __declspec(naked) long __cdecl lseek(int, long, int) EI_ORIGINAL(0x006EB284)
 __declspec(naked) int __cdecl read(int, void*, unsigned) EI_ORIGINAL(0x006EB046)
