@@ -13,6 +13,7 @@
 #include "lib/stlp.h"
 #include "unit_client_models.h"
 
+class ChunkArchive;
 class CUnit;
 
 namespace acks {
@@ -36,8 +37,14 @@ static_assert(sizeof(AckRecordHead) == 0x20);
 
 // Table 0 (0x1C4 bytes): per unit prototype name.
 struct UnitAcks {
+    // 006E3780 (RET 4; acks_db.cpp). The name (field 1), then each list as chunk 10.. (see the
+    // order there): chunk {1: speech} per element, the speech's fields 1 sound, 2 chance, 3 text,
+    // 4 name (and 10 the environment flags). Loading empties each list first and sizes it to the
+    // number of speech chunks.
+    void Serialize(ChunkArchive* ar);
+
     AckRecordHead head;                                     // +0x000
-    std::uint8_t unknown_020[0x1AC - 0x20];                 // the speech lists the map points into
+    SpeechList lists[33];                                   // +0x020 the speech lists the map points into
     stlp::vector<EnvironmentSpeech> environmentSpeeches;    // +0x1AC kind 0x29
     SpeechList namedSpeeches;                               // +0x1B8 by SpeechRecord::name (006D8A40)
 };
@@ -45,15 +52,21 @@ static_assert(sizeof(UnitAcks) == 0x1C4);
 
 // Table 1 (0x5C bytes): per unit model name (the fallback of kinds 0x2E..0x32).
 struct ModelAcks {
+    // 006E3FD0 (RET 4). The name, then the lists as chunks 10..14.
+    void Serialize(ChunkArchive* ar);
+
     AckRecordHead head;
-    std::uint8_t unknown_020[0x5C - 0x20];
+    SpeechList lists[5];            // +0x20
 };
 static_assert(sizeof(ModelAcks) == 0x5C);
 
 // Table 2 (0x38 bytes): per unit prototype name, kinds 0x2A..0x2D.
 struct ExtraAcks {
+    // 006E3DC0 (RET 4). The name, then the lists as chunks 10 and 11.
+    void Serialize(ChunkArchive* ar);
+
     AckRecordHead head;
-    std::uint8_t unknown_020[0x38 - 0x20];
+    SpeechList lists[2];            // +0x20
 };
 static_assert(sizeof(ExtraAcks) == 0x38);
 
@@ -75,6 +88,14 @@ struct AckDatabase {
     AckTable<ExtraAcks> extras;     // +0x40
 };
 inline AckDatabase& Database() { return *reinterpret_cast<AckDatabase*>(0x007C8A60); }
+
+// The archive's helpers for the records (acks_db.cpp; thiscall on the archive): 006E4F40 a speech
+// as chunk `id` (RET 8), 006E42F0 / 006E4410 a speech list / environment speech list as chunk `id`
+// (RET 0xC; the last argument, the archive again, is unused).
+void __fastcall SpeechField(ChunkArchive* ar, void*, int id, SpeechRecord* speech);
+void __fastcall SpeechListField(ChunkArchive* ar, void*, int id, SpeechList* list, ChunkArchive*);
+void __fastcall EnvironmentSpeechListField(ChunkArchive* ar, void*, int id, stlp::vector<EnvironmentSpeech>* list,
+                                           ChunkArchive*);
 
 // 006D8780 (thiscall on the list, RET 4): a random speech among those whose chance is at least
 // `roll` (the game's rand()); null, without drawing, when there is none.

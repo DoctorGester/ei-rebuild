@@ -34,7 +34,8 @@ __declspec(naked) void __fastcall DestroyAck3(void*, void*) EI_ORIGINAL(0x006DCA
 __declspec(naked) void __fastcall ResizeAcks(void*, void*, unsigned) EI_ORIGINAL(0x006DB9C0)
 __declspec(naked) void __fastcall ResizeAcks2(void*, void*, unsigned) EI_ORIGINAL(0x006DBBD0)
 __declspec(naked) void __fastcall ResizeAcks3(void*, void*, unsigned) EI_ORIGINAL(0x006DBE20)
-// acks.db record Serialize functions (outside this range, not rewritten), called directly.
+// acks.db record Serialize functions (acks_db.cpp), called through their addresses so that their
+// verify wrappers run.
 __declspec(naked) void __fastcall SerializeAck(void*, void*, ChunkArchive*) EI_ORIGINAL(0x006E3780)
 __declspec(naked) void __fastcall SerializeAck2(void*, void*, ChunkArchive*) EI_ORIGINAL(0x006E3FD0)
 __declspec(naked) void __fastcall SerializeAck3(void*, void*, ChunkArchive*) EI_ORIGINAL(0x006E3DC0)
