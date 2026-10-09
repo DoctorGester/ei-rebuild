@@ -196,54 +196,32 @@ sentinel, Enter with a failed allocation writes through null, Left / Right leave
 Harness key names `grave`, `backspace`, `delete`, `home`, `end`, `pgup`, `pgdn`, `enterchar` (Enter plus its WM_CHAR, which
 the console needs); scenario `console.txt`.
 
-Library (A-I18): 005F3000 / 005F3170, 005F4390 / 005F44A0 / 005F9C70 / 0062C0C0, 005FAEA0, unwind-only destructors 005F60B0 /
-005F6AD0 / 005F8FC0 / 005F9570 / 0062B480 / 00634090 / 0062B350 / 005E67F0, 005FBD30 / 005FBD80 / 005FBDD0, 005FBF50 / 005FBFB0
-/ 005FC010. 00636203 is a Ghidra split of 006361B0, not a function.
+00636203 is a Ghidra split of 006361B0, not a function.
 
-**A-I20** (all O; none reached by a scenario unless noted):
-- 00612CF0 `CCampPages::DebugFill` (`ui_camp_debug.cpp`; camp slot 39, only the vtable refers to it): the item / spell
-  database name lists (006AD2F0, 006AD380, 006AD410, 006AD260, 00689570, 00689610) are now shared in originals_gameplay.h.
-- `CChatWindow` (`ui_chat_window.cpp`, multiplayer base screen): 00608D20 `Construct`, 00608F90 `AddPortrait`, 006091C0
-  `ShowPlayers`, 006095A0 `Update` (slot 24), 006097E0 / 00609900 input 2 / 4. The players vector (+0x150) holds counted
-  `PlayerMessage`s; the front insert is the original's inlined `insert(begin(), x)` (copy up, assign back), overflow through
-  0060A120. Kept: the binding is not null-checked on a click; the sex letter carries over between players.
-- 005E2860 / 005E2880 `UiInputSide::LeftDoubleAsDown` / `RightDoubleAsDown` (`ui_input_defaults.cpp`; slot 7 / 8 of most
-  input sides: the press handler with the same arguments; reached by `dblclick` on a window that keeps them).
-- Exchange (`ui_exchange.cpp`): 0062C250 `Create`, 0062C9C0 `Draw` (children constructed inline: description panel,
-  forwarding strip, figure strip, trade grid; scratch party not null-checked, as the original); 005F2E00
-  `CItemIconWindow::PlaceBars` (`ui_item_screen.cpp`). Edit field forwarders 0065C010 / 0065C1A0 / 0065C290 shared in
-  originals_ui.h (ui_layouts / ui_hero_screen_click use them; one duplicate fewer).
+Small and multiplayer-only functions (O unless marked; no scenario unless named):
 
-**A-I21** (`ui_connect_screen.cpp`, `ui_screens.h`; all O, multiplayer only: no scenario opens the connection screen,
-which needs a hero on the multiplayer hero screen and Continue):
-- `CMpConnectScreen`: 0061C430 `Update` (slot 24), 0061C2E0 `OnBoxResult` (slot 27), 0061C700 / 0061CA30 / 0061CAD0 input 2 /
-  7 / 9, 0061CC00 `SelectAndScroll`, 0061CCE0 `Connect`, 0061CF50 `EditAddress`, 0061D0D0 `MasterRequest`, 0061D1C0
-  `SaveAddressBook`, 0061D470 `RebuildList`. Slots 26 (0061C2D0, `RET`) and 41 (0061C420, returns 0) are too short to hook.
-  Create 0061B2C0 and the list draw 0061D780 stay (Rebirth-patched; the draw is called by address). Layout and regions in
-  ui_screens.h. The helpers call each other through their addresses (wrappers run).
-- `CMasterRequestBox` 0061E2F0 `Construct`, 0061E4E0 `Update`; `net::MasterLink` moved to net_classes.h.
-- The list's `vector<MpAddressEntry>` members: 0061E5A0 push default, 0061E660 insert default, 0061EA90 erase, 0061EE80 /
-  0061E8F0 / 0061E8A0 the entry's copy, assignment, destructor. Forwarded (library): std::sort's 0061EF60 / 0061F6F0 /
-  0061FB00, `_M_insert_overflow` 0061EC40; 0057E970 (the game flow joins a server, not rewritten).
-- Differences: the original's default entry temporaries leave players, ping, game type, foreign, state and password as
-  stack bytes; ours zero them. All but the new game row's password flag are overwritten by RebuildList; that flag (read only
-  by the list draw) is 0 in ours.
-- Kept: an empty list in SelectAndScroll selects -1 and reads the entry before the list; the join password answer
-  (0x50001) does not check the selection; Connect joins a password server at once with no password and again from the box;
-  RebuildList sets the scroll bar's position again and then scrollTop_ 0; the master box steps its link up to three
-  times a frame.
-- Small ones (`verify_ui_small_slots.cpp`): 005FD760 `CUiSurface::Freeze` (O; hero screen, menus), 0060E210
-  `CUiItemPanel::ConstructBlank` (O; camp), 005EACB0 `CCameraInput::Construct` (O; every newgame), 005E7010
-  `CUiMesh::GetPlacement` (S, CheckNear; global map, portraits), 005E6B90 `CScreenFade::Start` (O), 00638A10
-  `CBattleScreenSetup::OnDeactivate` (O; a window over the battle screen), 0060FA80 `CCampPages::HeroRecord` (S, slot 64),
-  005ED710 / 005ED780 `ItemTurn::Clone` / `DeletingDestruct` (O), 005EA850 the base input side's deleting destructor (O).
-  Left in the range (not Rebirth-patched): STLport-like list / vector plumbing (005E38F0-005E3B60, 005F6080, 005FAF30,
-  00632490 / 006324E0 twin assignments of a 0x18-byte record with two CStrings), screen 9's slot 42 0062D100, the static
-  initialiser 005F46A0, functions under 32 bytes.
+| Address | Name (file) |
+|---|---|
+| 005FD760, 0060E210, 005EACB0, 005E7010 (S, CheckNear), 005E6B90, 00638A10, 0060FA80 (S, slot 64), 005ED710 / 005ED780, 005EA850 | `CUiSurface::Freeze` (hero screen, menus), `CUiItemPanel::ConstructBlank` (camp), `CCameraInput::Construct` (newgame), `CUiMesh::GetPlacement` (global map, portraits), `CScreenFade::Start`, `CBattleScreenSetup::OnDeactivate`, `CCampPages::HeroRecord`, `ItemTurn::Clone` / `DeletingDestruct`, the base input side's deleting destructor (`verify_ui_small_slots.cpp`) |
+| 005E2860 / 005E2880 | `UiInputSide::LeftDoubleAsDown` / `RightDoubleAsDown` (`ui_input_defaults.cpp`; slot 7 / 8 of most input sides; `dblclick`) |
+| 00612CF0 | `CCampPages::DebugFill` (`ui_camp_debug.cpp`; slot 39, only the vtable refers to it; the database name lists 006AD2F0 .. 00689610 shared in originals_gameplay.h) |
+| 00608D20, 00608F90, 006091C0, 006095A0, 006097E0 / 00609900 | `CChatWindow` (base screen, `ui_chat_window.cpp`): `Construct`, `AddPortrait`, `ShowPlayers`, `Update` (24), input 2 / 4; players vector +0x150 of counted `PlayerMessage`s, front insert = the inlined `insert(begin(), x)`, overflow 0060A120 |
+| 0062C250, 0062C9C0, 005F2E00 | exchange `Create`, `Draw` (children constructed inline; `ui_exchange.cpp`), `CItemIconWindow::PlaceBars` |
+| 0061C430, 0061C2E0, 0061C700 / 0061CA30 / 0061CAD0, 0061CC00, 0061CCE0, 0061CF50, 0061D0D0, 0061D1C0, 0061D470 | `CMpConnectScreen` (`ui_connect_screen.cpp`, layout in ui_screens.h): `Update` (24), `OnBoxResult` (27), input 2 / 7 / 9, `SelectAndScroll`, `Connect`, `EditAddress`, `MasterRequest`, `SaveAddressBook`, `RebuildList` (helpers call each other by address). Slots 26 0061C2D0 / 41 0061C420 too short to hook |
+| 0061E2F0, 0061E4E0; 0061E5A0, 0061E660, 0061EA90, 0061EE80 / 0061E8F0 / 0061E8A0 | `CMasterRequestBox` `Construct`, `Update` (`net::MasterLink` in net_classes.h); the address list's `vector<MpAddressEntry>` push / insert default, erase, entry copy / assignment / destructor |
+
+Kept: the chat window's binding is not null-checked on a click, its sex letter carries over between players; an empty
+connection list in SelectAndScroll selects -1 and reads the entry before the list; the join password answer (0x50001) does
+not check the selection; Connect joins a password server at once with no password and again from the box; RebuildList sets
+the scroll bar's position again and then scrollTop_ 0; the master box steps its link up to three times a frame; exchange
+Draw does not null-check its scratch party. Difference: the original's default address entries leave players, ping, game
+type, foreign, state and password as stack bytes, ours zero them (only the new game row's password flag survives
+RebuildList; ours 0). Forwarded: 0057E970 (the game flow joins a server).
 
 **Next in 005E0000-00640000:** the largest Rebirth-patched ones (vanilla only): 0060C870 (camp Create), 00613EA0 (hero
-screen Create), 0063A560 (battle keys); the connection screen's Create 0061B2C0 and list draw 0061D780. The address list's
-std::sort and vector plumbing (0061EC40-006200D0) are in library.csv (A-I21).
+screen Create), 0063A560 (battle keys); the connection screen's Create 0061B2C0 and list draw 0061D780 (called by address).
+Left otherwise: list / vector plumbing 005E38F0-005E3B60, 005F6080, 005FAF30, the twin assignments 00632490 / 006324E0 (a
+0x18-byte record with two CStrings), screen 9's slot 42 0062D100, the static initialiser 005F46A0, functions under 32 bytes.
 
 ## 4. Main menu, dialogs, escape menu, credits
 
@@ -401,8 +379,8 @@ check and faults on a null AddItem result; BuildLists pushes copies of a row who
 empty, SnapshotRecord leaves +0x2B and +0x39..+0x3B unwritten; a held purchase does not mark the record bought nor reset the hold
 time; the trade grid's sold-list topic follows buyKind_ too; `PlayVoice` and `MakePreview` hand records over through 005789C0.
 
-Not rewritten: 00612CF0 (section 3, "Next"); the exchange window's Create / Draw and the lobby screens. The trade grid draw
-00627390 is in `ui_trade_grid_draw.cpp` (renderer.md).
+The trade grid draw 00627390 is in `ui_trade_grid_draw.cpp` (renderer.md); exchange Create / Draw and the connection
+screen are in section 3.
 
 ### Briefing / base screen (`ui_briefing*.cpp`, `ui_briefing.h`, `ui_person_texts.cpp`)
 
@@ -593,7 +571,7 @@ with 1; `CUiScrollbar::Update` adds `FrameTime() * speed * 16` (negated for "up"
 both). `CUiScrollText` (constructor 0065CC00; the battle message log and the quest log; `textRect_` +0x18C, `lines_` +0x1B0,
 `align_` +0x1C4) tokenises every text added through 0065CF30 / 0065CFE0 / 0065CC77 into format tokens (0x14 bytes, vtable
 00742F28: runs of "\n", BEL 'C' r g b, BEL 'F' digit) and word tokens (0x10 bytes, 00742F20: CString and width from 005F8340) in
-the CArray at +0x19C (next token 0065D970, not rewritten; ours calls 0065E010 SetSize for both cases).
+the CArray at +0x19C (next token 0065D970; ours calls 0065E010 SetSize for both cases).
 
 **Options data**: rows are {OptionBinding*, OptionSetting*}; OptionSetting::definition_ points into 00787430 (26 x 0x18: id,
 name, kind, maximum, group, row), OptionBinding::action_ into 00787080 (59 x 0x10); 14 rows, 11 groups. `CUiSpin : CUiWindow`
@@ -624,9 +602,9 @@ Shared forwarders: 006EAF20 `_access`, 00578D00 (ServerFlagOriginal), 00458010 (
 (InterfaceTextExtentOriginal). Library: SaveEntry's copy / assignment / destructor and its vector helpers 006578F0..00658020, the
 0x14 / 0x18 record helpers 00653100..006535D0, the save list sort 00658030-00658C90, 0065A770, 006537E0 / 00653800 / 006518A0 /
 00651CE0 (key records' destructors), the quest list sort 0064F310 .. 006500B0 (its comparison inlines 0064F550, a quest's order,
-game code). Not rewritten: RefreshList 006567A0 (Rebirth-patched), 00654490 (3 bytes, too short), the tooltip's constructor
-0065E320, the objectives window's 0064E5A0 (keys), 0064E8B0, 0064E990, 0064E760 (A-H19 did the other controls' constructors,
-0064F550 and 0065C930: items_spells.md).
+game code). Not rewritten: RefreshList 006567A0 (Rebirth-patched), 00654490 (3 bytes, too short), the objectives window's
+0064E8B0, 0064E990, 0064E760 (its keys 0064E5A0 and CommitBinding 00652000 were done in A-H21; the controls are in
+items_spells.md, "Interface controls").
 
 Cleanup leftovers (DR-C5): ui.h has `GameDeviceLock()` (007AEE78) while about twenty files keep a local `DeviceLock()`;
 `kUnitPtrArrayVtable` (007402AC) is still spelled out in ui_battle_commands.cpp, ui_camp.cpp, ui_create_screen.cpp,
