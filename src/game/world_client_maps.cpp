@@ -938,8 +938,6 @@ void CWorldClient::Teardown() {
 
 // ---- Set up (00561E50) ---------------------------------------------------------------------------
 
-int __fastcall WorldCreateManagers(std::uint8_t* world);   // 0055EE40 (world_create.cpp)
-
 namespace {
 
 // MFC: operator+(const CString&, LPCTSTR) [00700C05, __stdcall, the result constructed in `out`],
@@ -1020,7 +1018,7 @@ void GridToFour(SectorGrid& grid, void (__fastcall* resize)(SectorGrid*, void*, 
 } // namespace
 
 int CWorldClient::Setup() {
-    WorldCreateManagers(reinterpret_cast<std::uint8_t*>(this));
+    WorldCreateManagers(this);
     void* path;
     CStringConcat(&path, worlddata::DataPathString(), worlddata::TexturesFolderText());
     CStringAssign(&texturePath_, nullptr, &path);

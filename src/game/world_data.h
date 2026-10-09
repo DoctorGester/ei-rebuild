@@ -91,4 +91,21 @@ constexpr std::uintptr_t kClientListVtable = std::uintptr_t(0x0073F61C);   // th
 constexpr std::uintptr_t kClientListManagerVtable = std::uintptr_t(0x0073F5B8);
 constexpr std::uintptr_t kClientArrayManagerVtable = std::uintptr_t(0x0073F554);
 
+// ---- WorldCreateManagers (0055EE40) -----------------------------------------------------------
+
+// The game's folders (CStrings 007AF460 data, 007AF45C text resources, 007AF458 the base folder)
+// and the configured paths they are set from (the CStrings 0079BC90 / 0079BC94 / 0079BC98; their
+// text pointers).
+inline void* DataFolderString() { return reinterpret_cast<void*>(std::uintptr_t(0x007AF460)); }
+inline void* TextFolderString() { return reinterpret_cast<void*>(std::uintptr_t(0x007AF45C)); }
+inline void* BaseFolderString() { return reinterpret_cast<void*>(std::uintptr_t(0x007AF458)); }
+inline const char* ConfiguredDataPath() { return *reinterpret_cast<const char* const*>(std::uintptr_t(0x0079BC90)); }
+inline const char* ConfiguredTextPath() { return *reinterpret_cast<const char* const*>(std::uintptr_t(0x0079BC94)); }
+inline const char* ConfiguredBasePath() { return *reinterpret_cast<const char* const*>(std::uintptr_t(0x0079BC98)); }
+// The vtables WorldCreateManagers stores after the base manager's constructor: the player list
+// (+0x38) and the timed objects (+0x48); and the counted helper's (+0x5C).
+constexpr std::uintptr_t kPlayerListVtable = std::uintptr_t(0x0073F328);
+constexpr std::uintptr_t kTimedObjectsVtable = std::uintptr_t(0x0073F2C4);
+constexpr std::uintptr_t kSharedHelperVtable = std::uintptr_t(0x0073F240);
+
 } // namespace worlddata

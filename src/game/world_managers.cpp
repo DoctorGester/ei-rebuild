@@ -34,7 +34,7 @@ void CWorld::DestroyManagers() {
         if (objects.manager) --objects.manager->refCount_;
     }
     DeleteManager(players_);
-    DropShared(reinterpret_cast<RefPtr*>(unknown_5C));
+    DropShared(&shared5C_);
     DropShared(reinterpret_cast<RefPtr*>(&unknown60_));
     DeleteManager(manager40_);
     DeleteManager(manager3C_);

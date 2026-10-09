@@ -240,10 +240,25 @@ public:
     CEngineObject* manager50_;            // +0x50 (slot 17)
     CEngineObject* itemManager_;          // +0x54 items (slot 18)
     CEngineObject* manager58_;            // +0x58 (slot 16)
-    std::uint8_t unknown_5C[4];
+    // +0x5C a counted helper (0xC bytes, vtable 0073F240) WorldCreateManagers shares in.
+    RefPtr shared5C_;
     void* unknown60_;                     // +0x60 replaced by 0055F410 when the game ends
     int tick_;                            // +0x64 game time in ticks
+    int updateCount_;                     // +0x068 world updates run (the server's Update)
+    // +0x06C the server's Update skips the players and the tick while it is set; the client's
+    // Segment skips its own ticks (paused).
+    std::uint8_t unknown6C_;
+    std::uint8_t unknown_06D[0x70 - 0x6D];
+    std::uint8_t countdowns_[0x84 - 0x70]; // +0x070 countdown list (006D43E0 sets it up, 006D44E0 ticks it; a CArray)
 };
+static_assert(offsetof(CWorld, shared5C_) == 0x5C);
+// 0055EE40 (world_create.cpp; slot 2 of the base vtable 0073F18C, called by both worlds' Setup).
+// The world's folders from the configured paths, the clock and wind cleared, the managers made,
+// counted and attached (slot 13 with the world, or slot 2), the counted helper at +0x5C, the
+// ISAAC generator seeded and the countdowns (+0x70) set up. Returns 1.
+int __fastcall WorldCreateManagers(CWorld* world);
+static_assert(offsetof(CWorld, updateCount_) == 0x68);
+static_assert(offsetof(CWorld, unknown6C_) == 0x6C);
 static_assert(offsetof(CWorld, unknown24_) == 0x24);
 static_assert(offsetof(CWorld, manager40_) == 0x40);
 static_assert(offsetof(CWorld, itemManager_) == 0x54);
@@ -584,10 +599,6 @@ public:
     // zone's units) and, for a new game, where it starts. 0 when the player state refused it.
     int SendZone(WorldPlayer* player);
 
-    int updateCount_;                     // +0x068 world updates run (Update)
-    std::uint8_t unknown6C_;              // +0x6C
-    std::uint8_t unknown_06D[0x70 - 0x6D];
-    std::uint8_t countdowns_[0x84 - 0x70]; // +0x070 countdown list (006D44E0 ticks it; a CArray)
     std::uint32_t unknown84_;             // +0x084 the day-time value (0058CCD0)
     std::uint32_t unknown88_;             // +0x088
     WorldAlarm alarms_[5];                // +0x08C
@@ -1065,7 +1076,6 @@ public:
     // The local session (+0x20C) as the maps read it.
     WorldSession* Session() const { return reinterpret_cast<WorldSession*>(session_); }
 
-    std::uint8_t unknown_068[0x84 - 0x68];
     int unknown84_;                       // +0x084 -100000 after Setup
     std::uint8_t unknown_088[0x90 - 0x88];
     ZoneExit* exits_;                     // +0x090
