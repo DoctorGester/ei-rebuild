@@ -24,11 +24,6 @@ UnitVitals& VitalsOf(CUnit* unit) { return static_cast<CMapObjectServer*>(unit->
 
 AIBrain* BrainOf(CUnitServer* self) { return reinterpret_cast<AIBrain*>(self->brain); }
 
-// The original stores the scaled time to a float (FSTP) before rounding it (FISTP).
-float RoundToFloat(double value) {
-    volatile float stored = static_cast<float>(value);
-    return stored;
-}
 } // namespace
 
 BOOL CUnitServer::RefreshVitals(char withHitPoints) {

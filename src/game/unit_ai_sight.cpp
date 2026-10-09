@@ -43,11 +43,6 @@ UnitController* ControllerOf(const CUnit* unit) { return reinterpret_cast<UnitCo
 bool IsDead(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object)->IsDead() != 0; }
 bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u << (other & 31))) != 0; }
 
-float RoundToFloat(double v) {
-    volatile float r = static_cast<float>(v);
-    return r;
-}
-
 // FCOMP 0; TEST AH,0x40: zero or unordered.
 bool ZeroOrUnordered(double v) { return x87::IsNaN(static_cast<float>(v)) || v == 0.0; }
 

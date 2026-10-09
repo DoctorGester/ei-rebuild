@@ -28,6 +28,11 @@ int __cdecl sprintf(char* buffer, const char* format, ...);        // 006E8715
 int __cdecl mbsicmp(const unsigned char* a, const unsigned char* b); // 006E8767 _mbsicmp
 int __cdecl mbscmp(const unsigned char* a, const unsigned char* b);  // 006E848B _mbscmp
 
+// acos / asin: the C entries of the bodies behind _CIacos 006E7320 / _CIasin 006E83C0 (same code
+// from the FLD of the argument on; the result is left unrounded in ST0).
+double __cdecl acos(double c);                                // 006E7334
+double __cdecl asin(double s);                                // 006E83D4
+
 // Low-level I/O on CRT file descriptors.
 int __cdecl open(const char* path, int flags, ...);           // 006EB35C
 long __cdecl lseek(int fd, long offset, int origin);          // 006EB284

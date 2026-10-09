@@ -1232,11 +1232,7 @@ static_assert(offsetof(CWorldClient, sunlight_) == 0x22C);
 static_assert(offsetof(CWorldClient, sky_) == 0x52C);
 static_assert(offsetof(CWorldClient, unknown7A8_) == 0x7A8);
 
-// 00560E10. out = rows * v for the three rows of a 4x4 matrix (row stride 16 bytes). Returns out.
-struct MatrixRows {
-    float m[12];
-    Vector3* Transform(Vector3* out, const Vector3* v) const;
-};
+// MatrixRows (the first three rows of a 4x4 matrix; Transform 00560E10) is in src/lib/vecmath.h.
 
 // Sorting predicates passed to STLport sort (operator() of empty or small functors).
 // 00573A60. Orders objects (by id at +4 of each entry) by distance along a view plane; dead and

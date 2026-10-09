@@ -16,11 +16,7 @@
 
 // ---- 3D library (004F0000-00500000) ---------------------------------------------------------------
 
-// Row-major 4x4 matrix of the transform library.
-struct Matrix4 {
-    float m[16];
-};
-static_assert(sizeof(Matrix4) == 64);
+// Matrix4 (row-major 4x4, the transform library's) is in src/lib/vecmath.h.
 
 // Bounding volume of a figure part, tested against the view frustum. 0x2C bytes.
 struct ClipBounds {
