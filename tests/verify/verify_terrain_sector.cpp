@@ -337,3 +337,60 @@ static void __fastcall GroundDepthVerify(Terrain* self, void*, float x, float y,
 }
 // 006c8930 PUSH EBX; MOV EBX,[ESP+0x8] (5 bytes)
 EI_VERIFY(0x006C8930, GroundDepthVerify, 5, s_groundDepth);
+
+// A-H18. 006BF5F0 SectorData::Construct (every sector the cache 006C8140 creates; every scenario):
+// ours on the real sector, then the original on a copy of the bytes it started from; all 0x394
+// bytes compared (the fields neither writes keep the same leftovers). The shared projection
+// buffers are sized by ours first; the original then only sets their sizes again.
+static SectorData*(__fastcall* s_construct)(SectorData*);
+static SectorData* __fastcall ConstructVerify(SectorData* s) {
+    alignas(SectorData) static std::uint8_t scratch[sizeof(SectorData)];
+    std::memcpy(scratch, s, sizeof(SectorData));
+    SectorData* result = s->Construct();
+    s_construct(reinterpret_cast<SectorData*>(scratch));
+    bool ok = result == s && std::memcmp(scratch, s, sizeof(SectorData)) == 0;
+    ei::verify::Report("SectorData::Construct", ok,
+                       ok ? "" : DiffDword("sector", s, scratch, 0, sizeof(SectorData)));
+    return result;
+}
+// 006bf5f0 PUSH -1; PUSH 0x736f12 (7 bytes)
+EI_VERIFY(0x006BF5F0, ConstructVerify, 7, s_construct);
+
+// 006BFC80 SectorData::Project (the terrain pass 006C6460, every frame): the quarter modes and the
+// records' projected positions and outcodes saved, the original run, its results kept, the saved
+// state restored, ours run; modes and every record's first 0x11 bytes compared. The caller does
+// not read the result.
+static int(__fastcall* s_project)(SectorData*, void*, CTransformPipeline*);
+static int __fastcall ProjectVerify(SectorData* s, void*, CTransformPipeline* pipeline) {
+    constexpr std::size_t kPrefix = offsetof(SectorVertex, outcode) + 1;
+    static std::vector<std::uint8_t> saved, expected;
+    const int n = s->records.size;
+    saved.resize(n * kPrefix);
+    expected.resize(n * kPrefix);
+    int modes[4];
+    std::memcpy(modes, s->quarterMode, sizeof(modes));
+    for (int i = 0; i < n; ++i) std::memcpy(&saved[i * kPrefix], &s->records.data[i], kPrefix);
+    int result = s_project(s, nullptr, pipeline);
+    int expectedModes[4];
+    std::memcpy(expectedModes, s->quarterMode, sizeof(expectedModes));
+    for (int i = 0; i < n; ++i) {
+        std::memcpy(&expected[i * kPrefix], &s->records.data[i], kPrefix);
+        std::memcpy(&s->records.data[i], &saved[i * kPrefix], kPrefix);
+    }
+    std::memcpy(s->quarterMode, modes, sizeof(modes));
+    s->Project(pipeline);
+    bool ok = std::memcmp(expectedModes, s->quarterMode, sizeof(modes)) == 0;
+    int bad = -1;
+    for (int i = 0; ok && i < n; ++i)
+        if (std::memcmp(&expected[i * kPrefix], &s->records.data[i], kPrefix) != 0) {
+            bad = i;
+            ok = false;
+        }
+    char what[96];
+    std::snprintf(what, sizeof(what), "modes %d %d %d %d, record %d", s->quarterMode[0], s->quarterMode[1],
+                  s->quarterMode[2], s->quarterMode[3], bad);
+    Report("SectorData::Project", ok, what, s);
+    return result;
+}
+// 006bfc80 PUSH EBP; MOV EBP,ESP; SUB ESP,0x34 (6 bytes)
+EI_VERIFY(0x006BFC80, ProjectVerify, 6, s_project);

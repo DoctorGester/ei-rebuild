@@ -152,6 +152,16 @@ struct CArray {
     const T& operator[](int index) const { return data[index]; }
     int GetSize() const { return size; }
 
+    // The constructor body: the instantiation's vtable, empty (e.g. CByteArray's 006FF5EA).
+    CArray* Construct(std::uintptr_t vtableAddress) {
+        vtable = reinterpret_cast<void*>(vtableAddress);
+        data = nullptr;
+        growBy = 0;
+        maxSize = 0;
+        size = 0;
+        return this;
+    }
+
     // SetSize(newSize, growBy): 0 frees the storage; growing past maxSize reallocates to
     // max(newSize, maxSize + step), copying the old elements with memcpy and constructing only the
     // new ones; the old storage is freed without destroying anything. growBy -1 keeps the step.
