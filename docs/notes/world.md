@@ -165,9 +165,8 @@ at the depth limit (00577FC0 / 00577730, 00577E90 / 005782F0), insertion sort of
 00574390 by model (`UnitOrderLess`), 00573D50 / 00573F10 by model use. The original's recursive call lands on our verify
 wrapper, so every recursion level is checked. **Rare Rebirth crash** (`docs/open-questions.md`): `UnitOrderLess`'s last test
 is "less or unordered", so an object with a NaN view depth (+0x30) makes `Less(x, x)` true and STLport's unguarded partition
-walks off the vector; the rewrite behaves exactly like the original, crash included. The verify logs "not orderable" and
-"view stack depth" to `ei_hook.log`, tests NaN on the bits and sends reversed / NaN ranges to the original alone. Where the
-NaN depths come from is open.
+walks off the vector; the rewrite behaves exactly like the original, crash included (the verify logs "not orderable" and
+sends NaN ranges to the original alone). Where the NaN depths come from is open.
 
 **Client maps**: `AddObject` 005647E0 (an already listed id is only referenced and released; the grid listing is removed
 before it is appended), `RemoveObject` 00564BE0, `ClearMaps` 00564E70, `CreatePartyUnits` 00566F70 (per record the figure's
@@ -195,8 +194,7 @@ the old cell (counted copy), stores the position, push_backs a counted copy into
 - Slot 19 (005A2490 / 005A4CF0) picks slot 20 (FIG data: "FIG" + version byte) or 21 (older format) by the first dword. FIG8
   morphs trilinearly by the figure's three coefficients (s, t, u): `lerp(lerp(lerp(v0,v1,s), lerp(v2,v3,s), t),
   lerp(lerp(v4,v5,s), lerp(v6,v7,s), t), u)`; the old format has 6 corners and every array preceded by its count.
-- Float checking: every loader rounds differently per component (VC6 register allocation); patterns were taken from a symbolic
-  x87 trace and checked against the original in an emulator at 24 / 53 bits.
+- Every loader rounds differently per component (VC6 register allocation; patterns from a symbolic x87 trace).
 - No scenario of its own: figure meshes load whenever a unit or object is created on the client; the old-format loaders and
   `MorphFigureBounds6` run only for figures without a FIG header (possibly none in the data).
 
@@ -253,13 +251,9 @@ vtable 0073D0C4).
 | Client frame | 0056A990 CollectVisible, 0056BF30 PickGround / 0056C350 PickSurface, sorts 005740D0 / 00574390 / 00573D50 / 00573F10, 00569E40 Render / 0056AFE0 DrawPass, 005641F0 Segment, 00595080 SelectLoadingMovie (FixProgressNames) | ours only; picks and sorts compared (ranges with a null element, no model or NaN depth go to the original alone) |
 | Client maps | 00570860 / 00570BB0 SectorGrid::Move / Move2 (compared on the first 256 calls then every 32nd), 00571D50 MarkWithinRadius, 00571800 / 005718B0 CollectWindowsAt / At2, 0056FC60 PendingMapLookup, 0056E400 / 0056E440 RecordAt50 / AtB4, 005647E0 AddObject, 00564BE0 RemoveObject, 00564E70 ClearMaps, 005726B0 ReleaseIfIdentified, 00565790 / 005659D0 PickAt / PickAt2, 00566F70 CreatePartyUnits, 0056DAF0 ObjectsInRange, 00563290 Teardown, 00561E50 Setup, 00560650 AddFace / 00560820 AddBox (8 ULPs), 00559E60 UnitSet::Write, 0055A190 ReadUnitLooks | compared; AddObject .. Setup ours only |
 | Startup, client set-up | 005CE0F0 LogicSettings::Load (007C53F8, `logic_settings.h`: [Logic], [RPG], [LMP], [Scenario], [DifficultyLevels]), 005DAEA0 SetUpCursors / 005DAE70 ResetCursors (`cursor_setup.cpp`), 00563710 SetUpGraphics (texture device, platforms, "numbers" digits +0x1B4, figure loader +0x34, sound counts), 00563930 LoadLights (tables `sunlight_` / `ambient_` / `sky_` at +0x22C / +0x3AC / +0x52C) | Load / LoadLights compared; rest ours only; every start |
-| Client lighting (A-W9) | 00566360 UpdateLighting (Render, zone load, message 0x71: fog start, sun direction / colour, ambient, sky colour by hour; caves (`cave_` +0x6E0) hour 0 and a fixed sun; the terrain's sun 006C8ED0 once per hour), 00567680 UpdateExitMarkers (exit particle sources red when "z.<zone>" is 1) (`world_client_lights.cpp`) | D: original first (terrain hidden: its sun call is not idempotent), state put back, ours; colours / direction CheckNear, fog colour bytes within 1; markers bitwise |
+| Client lighting | 00566360 UpdateLighting (Render, zone load, message 0x71: fog start, sun direction / colour, ambient, sky colour by hour; caves (`cave_` +0x6E0) hour 0 and a fixed sun; the terrain's sun 006C8ED0 once per hour), 00567680 UpdateExitMarkers (exit particle sources red when "z.<zone>" is 1) (`world_client_lights.cpp`) | D: original first (terrain hidden: its sun call is not idempotent), state put back, ours; colours / direction CheckNear, fog colour bytes within 1; markers bitwise |
 | Figure meshes | 005A18E0 LoadBounds, 005A2500 LoadFig, 005A5C70 LoadFigShared, 005A3800 LoadOld, 005A4D60 LoadOldShared, 005AAE60 / 005AB9A0 MorphFigureBounds / 6, 0059FDF0 ExtendWorldBox, 005A4B30 / 005A4BF0 MirrorX / Y (ours, the original undoes it, ours again), 005A6E70 Resize, 005A6D40 RefreshBuffers, 005A0B10 SetOffsets, 005A0CD0 DrawOffset, 0059F0F0 CopyFrom, 0059F510 SetPose, 0059F710 / 0059F8F0 SaveToFile / LoadFromFile, 005ACE80 LoadMenuRects | on copies (colour arrays by shape only: the loaders size them without writing); the last ones ours only |
 | Party records, templates | 004A5BD0 Reset, 004A5E90 Add, 004A5FA0 Remove, 004A5E10 Find, 004A7630 ClassTemplatesBuild, 004A7080 ClassTemplateFill, 004A74F0, 004A88E0, 004A8910, 004A88A0, 004A88C0, 004A8890, 004A8880, 004A8790, 004A8800 | above |
-
-Other verify notes: `AddCounted` checks that the original finds the item and changes nothing; `UpdateMultiplayerVariable`: ours,
-then the original must leave "z.MPGame1" as ours set it; `GuardPlayers`: ours, then the original with the same key must restore
-every guarded dword, then ours again.
 
 ## Original bugs and oddities kept
 
@@ -305,8 +299,9 @@ pragma (DR-C4): release code is fild elapsed, fmul secondsPerTick_, fadd offset,
 - Rebirth-patched and not rewritten: 00567AB0 (client world load), 0057F560, 005809D0, 005812F0, 005813A0 (the `Maps` /
   `ResOverride` path hooks), 00595480 `NewZone`, 00595BA0 (map path).
 - Large and not rewritten (next candidates): 00567500 (the exits' ZoneExit particle sources), 005677F0 (whether a group's units all stand in the same zone exit), 005683D0 (skins "%sskin%2d.mmp"),
-  00562F70 (platform / sky loading), 0056C750 (platform triangles into the device's slot 26: renderer work), 0056D150
-  (footprints).
+  00562F70 (platform / sky loading), 0056C750 (shadow / decal pass over the object list, platform triangles into the
+  device's slot 26: renderer work; Ghidra garbles its frame), 0056D150 (footprints: a ground decal near a light, STLport
+  temporaries); then the largest unported functions of 0x540000-0x5E0000 (config/functions.csv).
 - Lifetime code: the CWorldServer constructor 00589ED0 (a static initialiser before the hooks), destructor 0058AAD0, Create
   0058AE10, command queue / AI map destructors 0058A140 / 0058A450, the database tables' destructors called by the reload
   0057DEE0 (0057D030, 0057D1D0, ...), the coder classes 00580DD0-00580EE0 (vtables 0073F8C8 / 0073F8A4, used by 005809D0;
@@ -314,28 +309,22 @@ pragma (DR-C4): release code is fild elapsed, fmul secondsPerTick_, fadd offset,
   (compiler-generated member construction; the destructor calls our `Teardown`).
 - Static initialisers (before the hooks): 0057F480, 005809A0, 00581070.
 
-## Cleanup left and unverified points (C7, C8, drafts DR-C1, DR-C3, DR-C4, DR-C5)
+## Cleanup left and unverified points
 
-- C7 made world_create.cpp, world_client.cpp, world_quests.cpp (GameFtol's `__asm` and its pragma left) and
-  ai_region_reach.cpp clean. C8 did the same for script_exec_run, script_eval, script_addon_commands, script_exec (its
-  callees are call-only `...Calls` facades), world_sync, world_client_view, world_rules, world_party. C8 added
-  CMapObjectCompanion slot 17 IsDead, CMapObjectVirtuals slot 40 KeyId, world_effect.h CTimedObjectVirtuals (18-20),
-  CObject3D viewPosition / worldMatrix, touchTime, Terrain::heightRange, WeaponRecord bonuses / damageTypes. Script
-  "danger" is CPlayerServer::refreshPending_; GetAIClass reads CUnit::sizeClass; GameTime's fraction is tickFraction_.
-- world_game.cpp: `At<int>(World(), 0x5C)` (CWorld::shared5C_): on the server the pending connection source world_update.cpp
-  steps (its slot 6 is the lobby's TakeNew, the remaining VCall in AcceptNewPlayers) and hands to 0058DAF0; ClientSetPlayer
-  (00566CE0, originals_world.h, declared with an int) passes it to 004782E0 as a link. Needs a class and the forwarder
-  retyped (app.cpp shares it). Also left: the two `__asm` helpers (_ftol, 24.0), `TextOpsAt`, and the accessors with literal
-  addresses (GameMode, Campaign, ...) that belong in game_flow_data.h.
-- C10 (2026-10-09) made world_map.cpp and world_update.cpp clean (world_update keeps its float_control pragma):
-  CWorldServer sentObjects_ (+0x12D88, also world_server.cpp) and zoneHeader_ (+0x12E00, a CMemoryStream built by
-  0041DD70 in the constructor 00589ED0; called through a CStream* so the slot dispatch stays), MainScript() (the CScript at
-  +0x12874: globals_ holds the "Heroes" group); WorldPlayer link (+0x1C) and Connection() (CPlayerConnection's slots on
-  +0x20); Projectile slot 0 DeletingDestructor and the 16-bit referenceCount view; ObjectPtrListVtable() (0073F530, also
-  world_zone.cpp); LoadMap takes a CStream*; world_data.h names the Update strings, WakeMargin / HearingScale and the flush
-  manipulator. The hand-inlined list RemoveAll copies call mfc::CList::RemoveAll (elements destroyed first, as before).
-  world_client_draw.cpp keeps six x87 `__asm` helpers; world_client_view.cpp keeps its own draw-queue view
-  (DrawQueues at 007AF508, a local DeferredUnits()) that could use world.h `FrameObjects` / `FrameDeferredUnits`.
+- Declarations found in cleanup (C7, C8, C10): CMapObjectCompanion slot 17 IsDead, CMapObjectVirtuals slot 40 KeyId,
+  world_effect.h CTimedObjectVirtuals (18-20), Terrain::heightRange, WeaponRecord bonuses / damageTypes; script "danger" is
+  CPlayerServer::refreshPending_, GetAIClass reads CUnit::sizeClass, GameTime's fraction is tickFraction_; CWorldServer
+  sentObjects_ (+0x12D88) and zoneHeader_ (+0x12E00, a CMemoryStream built by 0041DD70 in 00589ED0, called through a
+  CStream* so the slot dispatch stays), MainScript() (the CScript at +0x12874; globals_ holds "Heroes"); WorldPlayer link
+  (+0x1C) / Connection() (+0x20); Projectile slot 0 DeletingDestructor and its 16-bit reference count; ObjectPtrListVtable()
+  0073F530. script_exec's callees are call-only `...Calls` facades.
+- Left: world_game.cpp's `At<int>(World(), 0x5C)` (CWorld::shared5C_: on the server the pending connection source
+  world_update.cpp steps (slot 6 the lobby's TakeNew, the last VCall in AcceptNewPlayers) and hands to 0058DAF0;
+  ClientSetPlayer 00566CE0, declared with an int, passes it to 004782E0 as a link): needs a class and the forwarder retyped
+  (app.cpp shares it); its two `__asm` helpers (_ftol, 24.0), `TextOpsAt`, the literal-address accessors (GameMode,
+  Campaign, ...) that belong in game_flow_data.h; world_quests' GameFtol `__asm`; world_client_draw.cpp's six x87 `__asm`
+  helpers; world_client_view.cpp's own draw-queue view (007AF508, a local DeferredUnits()) that could use world.h
+  `FrameObjects` / `FrameDeferredUnits`.
 - 00564AF0 (`CObject3D::PartBox`, once "CWorldClient::ListItem") runs on a platform object (AddObject passes the object in
   ECX; it reads CObject3D::parts +0xD0 / +0xD4 and pendingParts +0xE0), not on the client. The client's +0x1F0 list is the
   platform set's face list (PlatformSet +0x1D4: an engine object, then an mfc::CList<Platform> at +0x1C; 00573000 carves
