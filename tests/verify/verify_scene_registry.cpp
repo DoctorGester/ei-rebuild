@@ -2,6 +2,7 @@
 // corner tables (scene_meshes.cpp) and the skeleton's bones (scene_bones.cpp).
 #include "verify.h"
 
+#include "../../src/game/figure.h"
 #include "../../src/game/scene_loader.h"
 
 #include <cstdint>
@@ -138,31 +139,20 @@ EI_VERIFY(0x0044CFF0, IndexMeshCornersVerify, 7, s_corners);
 
 // --- 004492F0 ------------------------------------------------------------------------------------
 
-namespace scene {
-void __fastcall BuildBone(char* skeleton, char* bone, const char* node, int frames);
-}
-
-// 004492F0 adds the bone to the skeleton and builds its children (new bones): ours only. Checked
+// 004492F0 adds the bone to the skin and builds its children (new bones): ours only. Checked
 // after the whole subtree: the name, the frame count, every array's size against the node's
 // counts, and the children's parent links.
 static void* s_bone;
-static void __fastcall BuildBoneVerify(char* skeleton, char* bone, const char* node, int frames) {
-    scene::BuildBone(skeleton, bone, node, frames);
-    char* n = const_cast<char*>(node);
-    auto count = [](char* p, std::size_t sizeOffset) { return At<int>(p, sizeOffset); };
-    int morphKeys = count(n, scene::node::kMorphKeys + 8);
-    bool ok = std::strcmp(At<mfc::CString>(bone, 4), At<mfc::CString>(n, scene::node::kName)) == 0 &&
-              At<int>(bone, 0x40) == static_cast<short>(frames) &&
-              count(bone, 0x58 + 4) == count(n, scene::node::kRotKeys + 8) &&
-              count(bone, 0x44 + 4) == count(n, scene::node::kPosKeys + 8) &&
-              count(bone, 0x6C + 8) == count(n, scene::node::kNormals + 8) &&
-              count(bone, 0x84 + 8) == (morphKeys ? count(n, scene::node::kPosKeys + 8) : 0) &&
-              count(bone, 0x20 + 4) == count(n, 0x114);
-    for (int i = 0; ok && i < count(bone, 0x24); ++i) {
-        ok = At<char*>(At<char**>(bone, 0x20)[i], 0x1C) == bone;
-    }
-    ei::verify::Check("BuildBone", true, ok, "node %s keys %d/%d morph %d children %d",
-                      static_cast<const char*>(At<mfc::CString>(n, scene::node::kName)), count(n, scene::node::kPosKeys + 8),
-                      count(n, scene::node::kRotKeys + 8), morphKeys, count(n, 0x114));
+static void __fastcall BuildBoneVerify(scene::SceneSkin* skin, CAnimationNode* bone, const scene::SceneNode* node, int frames) {
+    scene::BuildBone(skin, bone, node, frames);
+    int morphKeys = node->morphKeys.size;
+    bool ok = std::strcmp(bone->name_, node->name) == 0 && bone->frameCount_ == static_cast<short>(frames) &&
+              bone->translationKeys_.size == node->rotationKeys.size &&
+              bone->rotationKeys_.size == node->positionKeys.size && bone->normals_.size == node->normals.size &&
+              bone->morphFrames_.size == (morphKeys ? node->positionKeys.size : 0) &&
+              bone->children_.size == node->children.size;
+    for (int i = 0; ok && i < bone->children_.size; ++i) ok = bone->children_.data[i]->parent_ == bone;
+    ei::verify::Check("BuildBone", true, ok, "node %s keys %d/%d morph %d children %d", static_cast<const char*>(node->name),
+                      node->positionKeys.size, node->rotationKeys.size, morphKeys, node->children.size);
 }
 EI_VERIFY(0x004492F0, BuildBoneVerify, 0, s_bone);

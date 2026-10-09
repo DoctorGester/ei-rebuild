@@ -18,6 +18,8 @@
 #include <cstddef>
 #include <cstdint>
 
+class CAnimationNode;   // figure.h
+
 namespace scene {
 
 // An MFC CArray of records (vtable, data, size, capacity, grow step: 0 is an eighth of the size, 4..1024)
@@ -148,6 +150,79 @@ constexpr std::size_t kPosKeys = 0xBC;     // CArray of 0x18 records: u16 frame,
 constexpr std::size_t kMorphKeys = 0xD0;   // CArray of 0x14 records: u16 frame, aligned point array at +4
 constexpr std::size_t kNormals = 0xE4;     // CArray of 12-byte records (version 0x1468FCCA only)
 } // namespace node
+
+// The node's key records (the loader fills them; the frame is read as a signed short).
+struct NodeRotationKey {        // 0x14: the frame, (+4 kept), a vector
+    std::int16_t frame;
+    std::uint16_t unknown_02;
+    std::uint32_t unknown_04;
+    Vector3 value;              // +0x08 (a pivot: the skeleton's translation keys)
+};
+static_assert(sizeof(NodeRotationKey) == 0x14);
+struct NodePositionKey {        // 0x18: the frame, an angle and an axis (a rotation)
+    std::int16_t frame;
+    std::uint16_t unknown_02;
+    std::uint32_t unknown_04;
+    float angle;                // +0x08
+    Vector3 axis;               // +0x0C
+};
+static_assert(sizeof(NodePositionKey) == 0x18);
+struct NodeMorphKey {           // 0x14: the frame and the mesh's points at it
+    std::int16_t frame;
+    std::uint16_t unknown_02;
+    lib::AlignedArray<Vector3> points;   // +0x04
+};
+static_assert(sizeof(NodeMorphKey) == 0x14);
+
+// A node as the bones read it (the node:: offsets above; scene_skeleton.cpp names the rest).
+struct SceneNode {
+    std::uint32_t unknown_000;
+    mfc::CString name;                  // +0x004
+    mfc::CString parent;                // +0x008
+    std::uint8_t unknown_00C[0x54 - 0x0C];
+    Vector3 offset;                     // +0x054 the pivot (must be 0, 0, 0: BuildBone)
+    Vector3 axis;                       // +0x060 the first position key's axis
+    float angle;                        // +0x06C its angle
+    Vector3 pivot;                      // +0x070 the first rotation key's vector
+    Quaternion rotation;                // +0x07C
+    Vector3 restPivot;                  // +0x08C
+    Quaternion restRotation;            // +0x098
+    mfc::CArray<NodeRotationKey, mfc::RawElements<NodeRotationKey>> rotationKeys;   // +0x0A8
+    mfc::CArray<NodePositionKey, mfc::RawElements<NodePositionKey>> positionKeys;   // +0x0BC
+    mfc::CArray<NodeMorphKey, mfc::RawElements<NodeMorphKey>> morphKeys;            // +0x0D0
+    mfc::CArray<Vector3, mfc::RawElements<Vector3>> normals;                        // +0x0E4
+    VtArray frames;                     // +0x0F8 40-byte records
+    mfc::CArray<SceneNode*, mfc::RawElements<SceneNode*>> children;                 // +0x10C
+};
+static_assert(offsetof(SceneNode, name) == node::kName);
+static_assert(offsetof(SceneNode, offset) == node::kOffset);
+static_assert(offsetof(SceneNode, restPivot) == 0x8C);
+static_assert(offsetof(SceneNode, restRotation) == 0x98);
+static_assert(offsetof(SceneNode, rotationKeys) == node::kRotKeys);
+static_assert(offsetof(SceneNode, positionKeys) == node::kPosKeys);
+static_assert(offsetof(SceneNode, morphKeys) == node::kMorphKeys);
+static_assert(offsetof(SceneNode, normals) == node::kNormals);
+static_assert(offsetof(SceneNode, children) == 0x10C);
+static_assert(sizeof(SceneNode) == node::kSize);
+
+// The fake unit's skin the bones are built into (BuildSkeleton's last argument): its bone list and
+// root bone. Extent unknown.
+struct SceneSkin {
+    std::uint32_t unknown_00;
+    lib::AlignedArray<CAnimationNode*> bones;   // +0x04 every bone, in build order (SetAtGrow 00452C40)
+    CAnimationNode* root;                       // +0x14
+};
+static_assert(offsetof(SceneSkin, bones) == 0x04);
+static_assert(offsetof(SceneSkin, root) == 0x14);
+
+// 004492F0 (scene_bones.cpp; __fastcall, RET 8). Adds `bone` to the skin's list and builds it (and
+// its children) from `node`; the low word of `frames` is the animation's frame count.
+void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode* node, int frames);
+
+// 0079B9B0: the exe's zero vector (the scene code copies it).
+inline const Vector3& ZeroVector() { return *reinterpret_cast<const Vector3*>(std::uintptr_t(0x0079B9B0)); }
+// 0078441C: "node %s have NONULL pivot (x=%g, y=%g, z=%g)" (BuildBone's fatal error).
+inline const char* NonNullPivotText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078441C)); }
 
 // Helper (element of the caller's +0x56C array, 0x9C bytes).
 namespace helper {
