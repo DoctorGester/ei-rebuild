@@ -100,6 +100,7 @@ compared; ours only = consistency check.
 | 005AFC70, 005AFEE0 | CRegionMap::UpdateBlocks, UpdateBlocksFor (thunk) | ai_block_search.cpp | ours only (steps called through their addresses, verified on their own) |
 | 005B89F0 | CAIMap::ClearUnmarkedArea | ai_refresh.cpp | differential on the cell words |
 | 005C8D40 | VisibilityGrid::Grow (Include stays the forwarder) | ai_movement.cpp | ours only: covers the square, keeps exactly the old marks |
+| 005C9530, 005C97B0, 005CAE30, 005CAFA0 | AIEventTable (CWorldServer + 0x2838, unit_ai.h): Advance (the time wheel's tick), ForgetUnit (a dead unit's events), Load / Save; AIEvent records from the pool CList 007C43A8 and the free list 007C53F0 (A-W10) | ai_events.cpp | Save compared byte for byte on recording streams; the rest ours only (wheel slots emptied / consistent, no event of the dead unit left) |
 | 005C0930, 005C0BD0, 005C0DF0, 005C1010, 005C11D0 | CSectorMap: UnitsAt, FindUnitsInRadius, Add, Remove, Move | sector_map.cpp | UnitsAt pure; others in `verified.txt` |
 | 005C7DB0, 005C7FC0 | AIPath::WriteState / ReadState (order and steps on a delta field) | ai_path_state.cpp | differential on field / reader copies (the read into a scratch path) |
 
@@ -129,6 +130,7 @@ compared; ours only = consistency check.
 
 ## Skipped and why
 
+- 005C9310 (the event table's add, Rebirth-patched: ResOverride). 005D7970 (the fear order's operator=: only the original 005D30A0 calls it; our Fear inlines it).
 - Run only by the static initialiser 005C42A0 (before the hooks): the smoothing tables 005C42B0 and its helpers 005C3690, 005C3840, 005C3A00,
   005C3E10, 005C4050, 005C4F30, 005C5930, 005C5AB0, 005C5A80.
 - Shape cache helpers 005BCCB0, 005BE320, 005BE450, 005BE730 (STLport hash_map instantiations) are in config/library.csv (A-W7).

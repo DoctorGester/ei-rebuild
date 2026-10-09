@@ -4199,3 +4199,20 @@ address,name,library,signature,notes
 006E5BA0,stlp::uninitialized_fill_n<T*>,STLport,,"A-X1 review: STLport / MFC instantiation for the acks.db containers (vector<AckRecord 0x1C4 / 0x5C / 0x38> and their 0x28 / 0x2C sub-record vectors, hash_maps), not game logic"
 006E5CE0,stlp::uninitialized_copy<T*>,STLport,,"A-X1 review: STLport / MFC instantiation for the acks.db containers (vector<AckRecord 0x1C4 / 0x5C / 0x38> and their 0x28 / 0x2C sub-record vectors, hash_maps), not game logic"
 006E5E30,stlp::uninitialized_fill_n<T*>,STLport,,"A-X1 review: STLport / MFC instantiation for the acks.db containers (vector<AckRecord 0x1C4 / 0x5C / 0x38> and their 0x28 / 0x2C sub-record vectors, hash_maps), not game logic"
+00599640,"CList<TYPE,ARG_TYPE>::Serialize",MFC,,A-W10 sweep: MFC collection vtable 0073F9F8 (GetRuntimeClass 007005E3); callees library only
+0059B2C0,"CList<TYPE,ARG_TYPE>::Serialize",MFC,,A-W10 sweep: MFC collection vtable 0073FAB0 (GetRuntimeClass 007005E3); callees library only
+005CDC00,"CList<TYPE,ARG_TYPE>::Serialize",MFC,,A-W10 sweep: MFC collection vtable 0073FEB4 (GetRuntimeClass 007005E3); callees library only
+005D9A40,"CList<TYPE,ARG_TYPE>::Serialize",MFC,,A-W10 sweep: MFC collection vtable 0073FF34 (GetRuntimeClass 007005E3); callees library only
+0059B450,"CList<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,A-W10 sweep: MFC collection vtable 0073F9F8 (GetRuntimeClass 007005E3); callees library only
+0059B560,"CList<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,A-W10 sweep: MFC collection vtable 0073FAB0 (GetRuntimeClass 007005E3); callees library only
+005CDD40,"CList<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,A-W10 sweep: MFC collection vtable 0073FEB4 (GetRuntimeClass 007005E3); callees library only
+005D9D20,"CList<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,A-W10 sweep: MFC collection vtable 0073FF34 (GetRuntimeClass 007005E3); callees library only
+0059E390,"ConstructElements<TYPE> (8-byte records)",MFC,,A-W10 sweep: MFC collection vtable 0073FAB0 (GetRuntimeClass 007005E3); callees library only
+005CDF80,"ConstructElements<TYPE> (0x30-byte records)",MFC,,A-W10 sweep: MFC collection vtable 0073FEB4 (GetRuntimeClass 007005E3); callees library only
+005DA2B0,"ConstructElements<TYPE> (12-byte records: -1, 0)",MFC,,A-W10 sweep: MFC collection vtable 0073FF34 (GetRuntimeClass 007005E3); callees library only
+005C1620,"CArray<TYPE,ARG_TYPE>::Add (4-byte elements)",MFC,,A-W10 sweep: MFC CArray instantiation (operator new / delete and ConstructElements only)
+005C1780,"CArray<TYPE,ARG_TYPE>::Add (4-byte elements)",MFC,,A-W10 sweep: MFC CArray instantiation (operator new / delete and ConstructElements only)
+005C8400,"CArray<TYPE,ARG_TYPE>::Add (12-byte elements, ConstructElements 005338D0)",MFC,,A-W10 sweep: MFC CArray instantiation (operator new / delete and ConstructElements only)
+005C8560,"CArray<TYPE,ARG_TYPE>::SetSize (motion points, ConstructElements 005338A0)",MFC,,A-W10 sweep: MFC CArray instantiation (operator new / delete and ConstructElements only)
+005C87F0,"CArray<TYPE,ARG_TYPE>::SetSize (12-byte elements, ConstructElements 005338D0)",MFC,,A-W10 sweep: MFC CArray instantiation (operator new / delete and ConstructElements only)
+005C8950,"CArray<TYPE,ARG_TYPE>::SetSize (step speeds, no construction)",MFC,,A-W10 sweep: MFC CArray instantiation (operator new / delete and ConstructElements only)

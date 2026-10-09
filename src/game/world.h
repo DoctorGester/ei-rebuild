@@ -681,7 +681,7 @@ public:
     int gridWidth_;                       // +0x2810
     int gridHeight_;                      // +0x2814
     std::uint8_t unknown_2818[0x2838 - 0x2818];
-    std::uint8_t timeWheel_[0x12874 - 0x2838]; // +0x2838 time wheel (005C9530; size unknown)
+    std::uint8_t timeWheel_[0x12874 - 0x2838]; // +0x2838 the AI events (AIEventTable, unit_ai.h: time wheel, grid)
     std::uint8_t commandsA_[0x12A6C - 0x12874]; // +0x12874 script command queue (004BF000)
     // commandsA_ is the zone's CScript (script.h, 0x1F8 bytes): its globals_ hold the "Heroes" group.
     CScript* MainScript() { return reinterpret_cast<CScript*>(commandsA_); }
@@ -772,6 +772,10 @@ struct PlatformSet {
     float SurfaceHeight(const Vector3* point, float height);
     // 00561050. Whether (x, y) lies on some platform (with a 0.1 margin).
     bool Contains(float x, float y);
+    // 00561150 (RET 0x10; the particles' ground plane, CParticleSource::TickGroundPlane, through
+    // 007AF78C). The highest platform surface above 0 at (x, y) (with a 0.5 margin): *height its
+    // z and *normal its normal; 0 and (0, 0, 1) when there is none.
+    void SurfacePlane(float x, float y, Vector3* normal, float* height);
     // 00560650 (RET 0x14; world_client_maps.cpp). Adds the face with corner `a`, edges to `b` and
     // `c` and `normal` when normal.z >= 0.8: origin a, unit axes (b - a) / |b - a| and (c - a) /
     // |c - a|, the two lengths, the normal; *out = the new record (its id, centre and radius are the
@@ -1087,6 +1091,29 @@ public:
     BOOL FindExitAt(const float* point, int* index);
     // 005674C0. Centre of exit `index`'s rectangle.
     float* ExitCentre(float* out, int index);   // returns out
+    // 00567500 (the client world load 00567AB0). One ZoneExit particle source (0x2038) per exit
+    // that leads somewhere, in +0xA0 at the exit's index (others null; the old markers released):
+    // at the rectangle's centre, half extents and the angle's cos / sin at +0x118..+0x124, ticked
+    // 20 times; then UpdateExitMarkers.
+    void CreateExitMarkers();
+    // 005677F0 (RET 0xC; the client glue 00578A20). Whether the party can leave through `exit`:
+    // every living unit of `records` (unit id at +0x1C) stands in an exit (FindExitAt) and that
+    // exit is `exit`. Those that do are listed in `inExit` (emptied first). 0 when no unit lives.
+    BOOL PartyInExit(const RecordPtrArray* records, int exit, RecordPtrArray* inExit);
+    // 00566C20. Makes the bird (+0x1B0, a CEffectMoshka) when there is none, resets it (slot 18)
+    // and has it follow the unit of the local party's first record.
+    void SummonBird();
+    // 00565380 (RET 8; the server's quest variable message through 00580840). A quest variable
+    // "q.<quest>.<name>" changed to `value`: every filed object whose name (+0x1A8) is <name> (the
+    // text after the second dot) gets the visibility level `value` (0050F170); a value of 2 (or
+    // NaN) with a <name> without a dot summons the bird (as SummonBird).
+    void OnQuestVariable(const char* name, float value);
+    // 005654F0 (RET 8; `this` not read). The party variable of an object's name (CMapObject +0x1A8):
+    // "q.<local player's name>.<name>", constructed in `out`; returns `out`.
+    mfc::CString* ObjectVariableName(mfc::CString* out, const char* name);
+    // 005652E0 (the client's party variables arrived). Every filed object with a name gets the
+    // visibility level of its variable (ObjectVariableName) in the local session's variables.
+    void ApplyObjectVariables();
     // 0056D9F0. Flags describing the current environment for `unit`: unit state (+0x268), island
     // (gipat/ingos/suslanger), night (0x100) or day (0x80), and two world settings.
     std::uint32_t EnvironmentFlags(CEngineObject* unit);
@@ -1116,6 +1143,24 @@ public:
     // reference), the sector grid +0x120 (removed first, then appended) and, for heroes with a
     // text-key id, the list +0xB4. Returns 1.
     int AddObject(CEngineObject* object);
+    // 005651A0 (RET 4; a platform object moved: 0052B490, the client's 00668840). When an object
+    // with `object`'s id is filed (+0xB8): its platform faces are removed and, for classes 0x54 /
+    // 0x5D, its platform items added again where it now stands (as AddObject). EAX is not read.
+    void RefreshPlatforms(CEngineObject* object);
+    // 0056D7E0 (RET 4). Files `object` in the synchronised list +0xBC and the id map +0xD8 (as
+    // AddObject does) unless its id is there already. AL: 1 when added (the upper bytes of EAX
+    // are not a result; the callers do not read it).
+    bool QueueSynchronised(CEngineObject* object);
+    // 0056D7A0 (the options' display mode change). Every filed object whose kind has no shadows
+    // (0051E200 false) drops its shadow (0051E280).
+    void DropShadows();
+    // 00566100 (RET 4; the battle screen and the interface's selection). Takes `object` out of the
+    // selection list +0x7BC, its highlight off (flags 0x110 cleared, side half slots 25 / 26 with
+    // 0) when it was on; with null every listed object's highlight goes off and the list empties.
+    void Deselect(CEngineObject* object);
+    // 005630B0 (00567A60). One more reference on every item (slot 18's manager) and, when the item
+    // factory exists (tested again, not the spell manager), on every spell (slot 22's).
+    void ReferenceItemsAndSpells();
     // 00564BE0 (RET 4). Takes the object `id` out of the maps: the MFC list +0x1F0 entries for it,
     // its +0xBC node and +0xD8 entry, then (when it is in +0xB8) the +0xB4 entries of a hero with
     // a text-key id (and 00538EA0 on its +0x240 in a session of kind 3), its grid cell and +0xB8;
@@ -1131,6 +1176,11 @@ public:
     // matrix); the first entry whose object still exists wins (+0x100 is left on it). Null if none.
     CEngineObject* PickAt(const long* point);
     CEngineObject* PickAt2(const long* point);
+    // 00565E40 (RET 4; the battle screen's clicks and hover). The unit at screen point `point`:
+    // from PickAt2's object on, the first unit among the sorted hits (the cursor +0x100 moves past
+    // the others and those whose object is gone); failing that the same from PickAt's. Null if
+    // none.
+    CEngineObject* UnitAt(const long* point);
     // 00566F70 (RET 8). Creates the party's heroes from their records (+0x14 prototype, +0x18
     // second prototype, +0x1C id, +8 model, +0x10 skin, +0x20 stats, +0x724 position, +0x730 /
     // +0x740 / +0x750 weapons, quick items and armour as pointer arrays with their counts after):
@@ -1183,6 +1233,11 @@ public:
     // the figures resource (the CString 0079BC94) in +0x34 (counted, the old one released); then
     // the unit database counts the sound files of +0x1CC.
     void SetUpGraphics(void* device);
+    // 00562F70 (world_client_setup.cpp; SetUpGraphics). Once (+0x1AC null): a new CSky; the figure
+    // manager makes a CSkyObject (class 0x44, id -666) named "nask0" that loads "nask0sky.fig"
+    // from the figure resources and becomes the sky's object (flag 0x10), with a material of type
+    // 0x12. Without the file the object is referenced and released again.
+    void LoadSky();
 
     // The local session (+0x20C) as the maps read it.
     WorldSession* Session() const { return reinterpret_cast<WorldSession*>(session_); }

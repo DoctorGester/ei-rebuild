@@ -41,6 +41,8 @@ public:
     CString Mid(int first) const;                 // 006FD9B4 Mid(nFirst) (RET 8: result slot, first)
     int FindOneOf(const char* set) const;         // 00700ECC
     int ReverseFind(char ch) const;               // 006FDBB7 (RET 4; -1 when absent)
+    int Find(const char* sub) const;              // 006FDBD9 Find(LPCTSTR) (RET 4; -1 when absent)
+    int Find(const char* sub, int start) const;   // 006FDBE7 Find(LPCTSTR, nStart) (RET 8)
 
     operator const char*() const { return data_; }
 

@@ -1,10 +1,12 @@
 // Differential checks for the world server, world client and world glue code (src/game/world*.cpp).
 #include "verify.h"
 
+#include "../../src/game/effects.h"
 #include "../../src/game/map_object_figures.h"
 #include "../../src/game/script.h"
 #include "../../src/game/world.h"
 #include "../../src/lib/crt.h"
+#include "ei/x87.h"
 
 #include <cstring>
 #include <new>
@@ -302,6 +304,27 @@ static bool __fastcall OnPlatformVerify(PlatformSet* self, void*, float x, float
 }
 EI_VERIFY(0x00561050, OnPlatformVerify, 6, s_onPlatform);
 
+// 00561150: SUB ESP,0xC; PUSH EBX; MOV EBX,[ESP+0x1C] (8 bytes). Writes only its outputs: the
+// original into scratch, ours into the caller's; height and normal compared within a few ULPs (a
+// surface whose z ties with the best so far may rarely pick the other normal, rule 7). Reached by
+// the ground dust particles (0x203A / 0x203B, CParticleSource::TickGroundPlane calls through the
+// address): footsteps and landings on zone1.
+static void(__fastcall* s_surfacePlane)(PlatformSet*, void*, float, float, Vector3*, float*);
+static void __fastcall SurfacePlaneVerify(PlatformSet* self, void*, float x, float y, Vector3* normal, float* height) {
+    Vector3 expectedNormal;
+    float expectedHeight;
+    s_surfacePlane(self, nullptr, x, y, &expectedNormal, &expectedHeight);
+    self->SurfacePlane(x, y, normal, height);
+    const bool same = ei::verify::NearlyEqual(expectedHeight, *height, 4, 1e-6f) &&
+                      ei::verify::NearlyEqual(expectedNormal.x, normal->x, 4, 1e-6f) &&
+                      ei::verify::NearlyEqual(expectedNormal.y, normal->y, 4, 1e-6f) &&
+                      ei::verify::NearlyEqual(expectedNormal.z, normal->z, 4, 1e-6f);
+    ei::verify::Check("PlatformSet::SurfacePlane", true, same, "(%g %g): %g (%g %g %g) vs %g (%g %g %g)", x, y,
+                      expectedHeight, expectedNormal.x, expectedNormal.y, expectedNormal.z, *height, normal->x, normal->y,
+                      normal->z);
+}
+EI_VERIFY(0x00561150, SurfacePlaneVerify, 8, s_surfacePlane);
+
 // 00560E10: MOV EAX,[ESP+8]; FLD [ECX+0x28] (7 bytes). Output only: ours into a scratch vector first.
 static Vector3*(__fastcall* s_transform)(const MatrixRows*, void*, Vector3*, const Vector3*);
 static Vector3* __fastcall TransformVerify(const MatrixRows* self, void*, Vector3* out, const Vector3* v) {
@@ -370,6 +393,97 @@ static BOOL __fastcall FindExitVerify(CWorldClient* self, void*, const float* po
     return expected;
 }
 EI_VERIFY(0x00567440, FindExitVerify, 5, s_findExit);
+
+// 00567500 CreateExitMarkers: ours only (it makes particle sources; running the original too would
+// leave a second set in the particle manager). Reached by every zone load (the client world load
+// 00567AB0: `newgame`, `zone_gz2g_traps`). Checks: one entry per exit, null exactly for the exits
+// whose target is "none" (any case), the others ZoneExit sources (0x2038) at the exit's centre with
+// its half extents.
+static void __fastcall CreateExitMarkersVerify(CWorldClient* self) {
+    self->CreateExitMarkers();
+    bool ok = self->countedA0_.GetSize() == self->exitCount_;
+    for (int i = 0; ok && i < self->exitCount_; ++i) {
+        const ZoneExit& exit = self->exits_[i];
+        const bool none = gamecrt::stricmp(exit.target, "none") == 0;
+        auto* source = reinterpret_cast<CParticleSource*>(self->countedA0_[i]);
+        if (none || !source) {
+            ok = none && !source;
+            continue;
+        }
+        ok = source->type_ == 0x2038 && source->refCount_ >= 2 &&
+             ei::verify::NearlyEqual(source->position.x, (exit.x2 + exit.x1) * 0.5f, 4, 1e-6f) &&
+             ei::verify::NearlyEqual(source->position.y, (exit.y2 + exit.y1) * 0.5f, 4, 1e-6f) &&
+             ei::verify::NearlyEqual(source->alpha, (exit.x2 - exit.x1) * 0.5f, 4, 1e-6f) &&
+             ei::verify::NearlyEqual(source->unknown_11C, (exit.y2 - exit.y1) * 0.5f, 4, 1e-6f);
+    }
+    ei::verify::Check("CWorldClient::CreateExitMarkers", true, ok, "%d exits, %d markers", self->exitCount_,
+                      self->countedA0_.GetSize());
+}
+EI_VERIFY(0x00567500, CreateExitMarkersVerify, 0, s_unused);
+
+// 005677F0 PartyInExit: SUB ESP,0x14; PUSH EBP; PUSH ESI; MOV ESI,[ESP+0x28] (9 bytes).
+// Differential: the original fills a scratch array (same vtable, empty), ours the caller's; the
+// result and the listed records are compared. Reached when the party walks into an exit
+// (00578A20 from the battle screen's update and the base dialogue's exit; `zone_base_bz1g`).
+static BOOL(__fastcall* s_partyInExit)(CWorldClient*, void*, const RecordPtrArray*, int, RecordPtrArray*);
+static BOOL __fastcall PartyInExitVerify(CWorldClient* self, void*, const RecordPtrArray* records, int exit,
+                                         RecordPtrArray* inExit) {
+    RecordPtrArray scratch{inExit->vtable, nullptr, 0, 0, 0};
+    BOOL expected = s_partyInExit(self, nullptr, records, exit, &scratch);
+    BOOL actual = self->PartyInExit(records, exit, inExit);
+    bool same = expected == actual && scratch.size == inExit->size;
+    for (int i = 0; same && i < scratch.size; ++i) same = scratch[i] == (*inExit)[i];
+    ei::verify::Check("CWorldClient::PartyInExit", true, same, "exit %d: %d/%d, %d/%d listed", exit, expected, actual,
+                      scratch.size, inExit->size);
+    scratch.SetSize(0);
+    return actual;
+}
+EI_VERIFY(0x005677F0, PartyInExitVerify, 9, s_partyInExit);
+
+// 00565380 OnQuestVariable / 00566C20 SummonBird: ours only (they make the bird and tell objects
+// their visibility). Reached by `ui_quest_notice` ("q.zxzone.zxq" set to 1 and 2: the bird is
+// summoned at 2; "q.zxzone.zxs.1" keeps a dot). Checked: the bird exists afterwards when it had to
+// be summoned.
+static void __fastcall OnQuestVariableVerify(CWorldClient* self, void*, const char* variable, float value) {
+    self->OnQuestVariable(variable, value);
+    const char* second = std::strchr(variable, '.');
+    second = second ? std::strchr(second + 1, '.') : nullptr;
+    const char* name = second ? second + 1 : variable;
+    const bool summoned = (value == 2.0f || x87::IsNaN(value)) && !std::strchr(name, '.');
+    ei::verify::Check("CWorldClient::OnQuestVariable", true, !summoned || self->owned1B0_ != nullptr, "%s = %g",
+                      variable, value);
+}
+EI_VERIFY(0x00565380, OnQuestVariableVerify, 0, s_unused);
+
+// 005654F0 ObjectVariableName: PUSH -1; PUSH 0x722677 (7 bytes). The original builds its string in
+// scratch storage, ours in the caller's; the texts are compared, the scratch destroyed. Reached by
+// the client's new objects with a name (CPlayerClient::OnNewObject through its address, every zone
+// load).
+static mfc::CString*(__fastcall* s_objectVariableName)(CWorldClient*, void*, mfc::CString*, const char*);
+static mfc::CString* __fastcall ObjectVariableNameVerify(CWorldClient* self, void*, mfc::CString* out, const char* name) {
+    alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
+    auto* theirs = s_objectVariableName(self, nullptr, reinterpret_cast<mfc::CString*>(storage), name);
+    mfc::CString* ours = self->ObjectVariableName(out, name);
+    ei::verify::Check("CWorldClient::ObjectVariableName", true, ours == out && std::strcmp(*theirs, *ours) == 0,
+                      "%s: %s vs %s", name, static_cast<const char*>(*theirs), static_cast<const char*>(*ours));
+    theirs->~CString();
+    return ours;
+}
+EI_VERIFY(0x005654F0, ObjectVariableNameVerify, 7, s_objectVariableName);
+
+// 005652E0 ApplyObjectVariables: ours only (it sets the objects' visibility; reached when the
+// party's variables arrive, CPlayerClient's update through its address). Nothing is compared.
+static void __fastcall ApplyObjectVariablesVerify(CWorldClient* self) {
+    self->ApplyObjectVariables();
+    ei::verify::Check("CWorldClient::ApplyObjectVariables", true, true, "");
+}
+EI_VERIFY(0x005652E0, ApplyObjectVariablesVerify, 0, s_unused);
+
+static void __fastcall SummonBirdVerify(CWorldClient* self) {
+    self->SummonBird();
+    ei::verify::Check("CWorldClient::SummonBird", true, self->owned1B0_ != nullptr, "");
+}
+EI_VERIFY(0x00566C20, SummonBirdVerify, 0, s_unused);
 
 // 005674C0: MOV EAX,[ESP+8]; MOV ECX,[ECX+0x90] (10 bytes). Output only.
 static float*(__fastcall* s_exitCentre)(CWorldClient*, void*, float*, int);

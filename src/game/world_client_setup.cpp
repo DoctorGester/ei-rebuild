@@ -3,6 +3,9 @@
 #include "world.h"
 
 #include "model.h"
+#include "game_strings.h"
+#include "originals_render.h"
+#include "sky_object.h"
 #include "originals_ui.h"
 #include "texture.h"
 #include "unit_db.h"
@@ -36,11 +39,11 @@ const char* FiguresResource() { return *reinterpret_cast<const char* const*>(0x0
 void* Renderer() { return *reinterpret_cast<void* const*>(0x007AF080); }
 UnitDatabase* Units() { return reinterpret_cast<UnitDatabase*>(0x007AF358); }
 
-// Not rewritten: the texture manager's device (006913A0, RET 4), the platforms and sky
-// (00562F70, plain RET), the digit sprites' constructor (005E1710, returns this) and the figure
-// loader's (004F68C0, RET 8, returns this; Rebirth-patched).
+// Not rewritten: the texture manager's device (006913A0, RET 4), the digit sprites' constructor
+// (005E1710, returns this) and the figure loader's (004F68C0, RET 8, returns this; Rebirth-patched).
+// The sky (LoadSky, 00562F70) is called through its address so that its verify wrapper runs.
 __declspec(naked) void __fastcall TextureManagerSetDevice(CTextureManager*, void*, void* /*device*/) EI_ORIGINAL(0x006913A0)
-__declspec(naked) void __fastcall LoadPlatformsAndSky(CWorldClient*) EI_ORIGINAL(0x00562F70)
+__declspec(naked) void __fastcall LoadSkyAt(CWorldClient*) EI_ORIGINAL(0x00562F70)
 __declspec(naked) ClientNumbers* __fastcall ConstructNumbers(ClientNumbers*) EI_ORIGINAL(0x005E1710)
 __declspec(naked) CLinkFigureLoader* __fastcall ConstructFigureLoader(CLinkFigureLoader*, void*, void* /*renderer*/,
                                                                       const stlp::string* /*resource*/)
@@ -105,7 +108,7 @@ EI_REPLACE_METHOD(0x00563930, CWorldClient::LoadLights);
 
 void CWorldClient::SetUpGraphics(void* device) {
     TextureManagerSetDevice(TextureManager(), nullptr, device);
-    LoadPlatformsAndSky(this);
+    LoadSkyAt(this);
     auto* numbers = static_cast<ClientNumbers*>(gamecrt::operator_new(sizeof(ClientNumbers)));
     numbers_ = numbers ? ConstructNumbers(numbers) : nullptr;
     auto* texture = static_cast<CTexture*>(TextureNamedOriginal(TextureManager(), nullptr, kNumbersKind, NumbersName()));
@@ -127,3 +130,46 @@ void CWorldClient::SetUpGraphics(void* device) {
     Units()->CountSoundFiles(sounds_);
 }
 EI_REPLACE_METHOD(0x00563710, CWorldClient::SetUpGraphics);
+
+// ---- The sky (00562F70) --------------------------------------------------------------------------
+
+namespace {
+constexpr int kSkyFigureClass = 0x44;
+constexpr int kSkyObjectId = -666;
+constexpr int kSkyMaterialType = 0x12;
+constexpr std::uint32_t kSkyObjectFlag = 0x10;
+const char* SkyPartName() { return reinterpret_cast<const char*>(0x00790054); }     // "nask0"
+const char* SkyFigureFile() { return reinterpret_cast<const char*>(0x00790044); }   // "nask0sky.fig"
+
+// A counted slot gets `object` (referenced), the old one is released.
+template <typename T>
+void AssignCounted(T*& slot, T* object) {
+    T* old = slot;
+    slot = object;
+    if (object) ++object->refCount_;
+    if (old) old->Release();
+}
+} // namespace
+
+void CWorldClient::LoadSky() {
+    if (skyDome_) return;
+    auto* sky = static_cast<CSky*>(gamecrt::operator_new(sizeof(CSky)));
+    skyDome_ = sky ? sky->Construct() : nullptr;
+    auto* figures = static_cast<CBaseManager*>(FigureManager());
+    auto* object = static_cast<CSkyObject*>(figures->CreateObject(kSkyFigureClass, kSkyObjectId));
+    if (!object) return;
+    object->name_ = SkyPartName();
+    object->unknown_124 = game::EmptyText();
+    char* data = static_cast<char*>(figures->GetFile(SkyFigureFile(), nullptr));
+    if (!data) {
+        ++object->refCount_;
+        object->Release();
+        return;
+    }
+    object->LoadFromMemory(&data, 0.0f, 0.0f, 0.0f);
+    object->flags_ |= kSkyObjectFlag;
+    AssignCounted(skyDome_->object, object);
+    auto* material = reinterpret_cast<CEngineObject*>(MaterialCreateOriginal(MaterialManager(), nullptr, kSkyMaterialType));
+    AssignCounted(skyDome_->material, material);
+}
+EI_REPLACE_METHOD(0x00562F70, CWorldClient::LoadSky);

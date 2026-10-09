@@ -324,6 +324,82 @@ static void __fastcall RemoveObjectVerify(CWorldClient* client, void*, int id) {
 }
 EI_VERIFY(0x00564BE0, RemoveObjectVerify, 0, s_unused);
 
+// 005651A0 RefreshPlatforms: ours only (it edits the platform list; reached by moving levers, the
+// rewritten 0052B490 calls it through its address: `levers`). Checked: the list's links and count
+// agree, and an object of another class than 0x54 / 0x5D has no faces left when it is filed (an
+// unfiled one leaves the count as it was).
+static void __fastcall RefreshPlatformsVerify(CWorldClient* client, void*, CEngineObject* object) {
+    const int id = object->id_;
+    const int listed = CountIdInList(client, 0xB8, id);
+    const int before = client->platforms_.list.count;
+    client->RefreshPlatforms(object);
+    int nodes = 0, faces = 0;
+    for (PlatformNode* node = client->platforms_.list.head; node; node = node->next) {
+        ++nodes;
+        if (node->data.id == id) ++faces;
+    }
+    const int kind = object->GetClassId();
+    bool ok = nodes == client->platforms_.list.count;
+    if (!listed) ok = ok && nodes == before;
+    else if (kind != 0x54 && kind != 0x5D) ok = ok && faces == 0;
+    ei::verify::Check("CWorldClient::RefreshPlatforms", true, ok, "object %d class %#x listed %d: %d faces, %d -> %d", id,
+                      kind, listed, faces, before, nodes);
+}
+EI_VERIFY(0x005651A0, RefreshPlatformsVerify, 0, s_unused);
+
+// 0056D7E0 QueueSynchronised: ours only (it edits the list and the id map; reached by a lever's
+// network state, 0052B650 through its address: `levers`). Checked: the id maps to a node holding
+// the object afterwards, and the result is whether it was absent before.
+static bool __fastcall QueueSynchronisedVerify(CWorldClient* client, void*, CEngineObject* object) {
+    const auto key = static_cast<std::uint32_t>(object->id_);
+    const bool absent = client->dynamicNodes_.Find(key) == nullptr;
+    const bool result = client->QueueSynchronised(object);
+    const PendingMap::Node* entry = client->dynamicNodes_.Find(key);
+    const bool ok = result == absent && entry && (!absent || static_cast<mfc::CList<CEngineObject*>::Node*>(entry->value)->data == object);
+    ei::verify::Check("CWorldClient::QueueSynchronised", true, ok, "object %d: absent %d, result %d", object->id_, absent,
+                      result);
+    return result;
+}
+EI_VERIFY(0x0056D7E0, QueueSynchronisedVerify, 0, s_unused);
+
+// 0056D7A0 DropShadows: ours only (reached by the options' display mode change, 006524A0; no
+// scenario changes it). Nothing is compared: it only calls 0051E200 / 0051E280 per filed object.
+static void __fastcall DropShadowsVerify(CWorldClient* client) {
+    client->DropShadows();
+    ei::verify::Check("CWorldClient::DropShadows", true, true, "");
+}
+EI_VERIFY(0x0056D7A0, DropShadowsVerify, 0, s_unused);
+
+// 00566100 Deselect: ours only (it edits the selection list and the objects' lights; reached by
+// the battle screen's selection changes: `ui_battle_commands`). Checked: afterwards the list is
+// empty (null), or the object's id is listed once less than before (the first entry erased).
+static void __fastcall DeselectVerify(CWorldClient* client, void*, CEngineObject* object) {
+    stlp::list<void*>& selected = client->list7BC_;
+    const auto id = reinterpret_cast<void*>(static_cast<std::intptr_t>(object ? object->id_ : 0));
+    auto count = [&] {
+        int n = 0;
+        for (auto* node = selected.head->next; node != selected.head; node = node->next) n += node->data == id;
+        return n;
+    };
+    const int before = object ? count() : 0;
+    client->Deselect(object);
+    const int after = object ? count() : 0;
+    const bool ok = object ? after == (before > 0 ? before - 1 : 0) : selected.head->next == selected.head;
+    ei::verify::Check("CWorldClient::Deselect", true, ok, "object %d: %d -> %d", object ? object->id_ : -1, before, after);
+}
+EI_VERIFY(0x00566100, DeselectVerify, 0, s_unused);
+
+// 005630B0 ReferenceItemsAndSpells: ours only (it adds references; reached by 00567A60). Checked:
+// the item factory's own count is as before (the walk's hold on it was dropped).
+static void __fastcall ReferenceItemsAndSpellsVerify(CWorldClient* client) {
+    CEngineObject* items = client->ItemFactory();
+    const int before = items ? items->refCount_ : 0;
+    client->ReferenceItemsAndSpells();
+    const int after = items ? items->refCount_ : 0;
+    ei::verify::Check("CWorldClient::ReferenceItemsAndSpells", before, after, "item factory count");
+}
+EI_VERIFY(0x005630B0, ReferenceItemsAndSpellsVerify, 0, s_unused);
+
 // 00564E70: ours only. The grids, +0xB4, +0x7BC, the MFC lists and the id map are empty; what is
 // left in +0xB8 has no positive id.
 static void __fastcall ClearMapsVerify(CWorldClient* client, void*) {
@@ -402,6 +478,24 @@ static CEngineObject* __fastcall PickAt2Verify(CWorldClient* client, void*, cons
     return PickChecked("CWorldClient::PickAt2", s_pick2, true, client, point);
 }
 EI_VERIFY(0x005659D0, PickAt2Verify, 5, s_pick2);
+
+// 00565E40 UnitAt: PUSH EBX; PUSH EBP; MOV EBP,[ESP+0xC] (6 bytes). The original runs first (its
+// picks rebuild the hits from the frame's screen entries, so ours sees the same); the unit and,
+// when there is one, the cursor's position are compared. Reached by the battle screen's hover and
+// clicks (`clickunit`, ui_battle_commands).
+static PickFn s_unitAt;
+static CEngineObject* __fastcall UnitAtVerify(CWorldClient* client, void*, const long* point) {
+    long pt[2] = {point[0], point[1]};
+    CEngineObject* theirs = s_unitAt(client, nullptr, pt);
+    std::ptrdiff_t theirsCursor = client->hitCursor_ - client->hits_.start;
+    CEngineObject* mine = client->UnitAt(pt);
+    std::ptrdiff_t mineCursor = client->hitCursor_ - client->hits_.start;
+    bool ok = theirs == mine && (!mine || theirsCursor == mineCursor);
+    ei::verify::Check("CWorldClient::UnitAt", true, ok, "(%ld, %ld): %p vs %p, cursor %td vs %td", pt[0], pt[1],
+                      static_cast<void*>(theirs), static_cast<void*>(mine), theirsCursor, mineCursor);
+    return mine;
+}
+EI_VERIFY(0x00565E40, UnitAtVerify, 6, s_unitAt);
 
 // ---- Platforms: the original on the real set, ours on a scratch set; the records compared --------
 

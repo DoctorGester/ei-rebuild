@@ -7,6 +7,7 @@
 #include "originals_core.h"
 #include "originals_ui.h"
 #include "originals_units.h"
+#include "originals_render.h"
 
 #include <cstring>
 #include <initializer_list>
@@ -477,9 +478,8 @@ EI_REPLACE_METHOD(0x005FF3C0, CUiWindow::AddSprite);
 
 namespace {
 // 0040CB20: the engine object's base constructor (thiscall).
-// The material manager (007AF740, thiscall): 0068E970 makes a material (RET 4), 0068EAF0
-// registers it (RET 8).
-__declspec(naked) std::uint8_t* __fastcall NewMaterial(void*, void*, int) EI_ORIGINAL(0x0068E970)
+// The material manager (007AF740, thiscall): 0068E970 makes a material (RET 4,
+// MaterialCreateOriginal), 0068EAF0 registers it (RET 8).
 __declspec(naked) void __fastcall RegisterMaterial(void*, void*, std::uint8_t*, int) EI_ORIGINAL(0x0068EAF0)
 
 void SetDword(void* p, int offset, std::uint32_t value) { std::memcpy(static_cast<std::uint8_t*>(p) + offset, &value, 4); }
@@ -523,11 +523,11 @@ CUiWindow* CUiWindow::Construct(CInterface3D* ui) {
     SetDword(self, 0x20, 0);
     SetDword(self, 0x24, 0);
     void* materials = *reinterpret_cast<void* const*>(0x007AF740);
-    std::uint8_t* white = NewMaterial(materials, nullptr, 0x16);
+    std::uint8_t* white = MaterialCreateOriginal(materials, nullptr, 0x16);
     SetDword(self, 0xF0, reinterpret_cast<std::uintptr_t>(white));
     RegisterMaterial(materials, nullptr, white, 0x16);
     PrepareMaterial(*reinterpret_cast<std::uint8_t**>(self + 0xF0), 0x3F800000);
-    std::uint8_t* black = NewMaterial(materials, nullptr, 0x16);
+    std::uint8_t* black = MaterialCreateOriginal(materials, nullptr, 0x16);
     SetDword(self, 0xEC, reinterpret_cast<std::uintptr_t>(black));
     RegisterMaterial(materials, nullptr, black, 0x16);
     PrepareMaterial(*reinterpret_cast<std::uint8_t**>(self + 0xEC), 0);

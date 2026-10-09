@@ -370,6 +370,51 @@ int CWorldClient::AddObject(CEngineObject* object) {
     return 1;
 }
 
+void CWorldClient::RefreshPlatforms(CEngineObject* object) {
+    const int id = object->id_;
+    PlainList& objects = objects_;
+    SectorListNode* filed = objects.head->next;
+    while (filed != objects.head && filed->data->id_ != id) filed = filed->next;
+    if (filed == objects.head) return;
+    PlatformList& platforms = platforms_.list;
+    for (PlatformNode* node = platforms.head; node;) {
+        PlatformNode* next = node->next;
+        if (node->data.id == id) platforms.RemoveAt(node);   // the original's inlined RemoveAt
+        node = next;
+    }
+    if (object->GetClassId() != kClassPlatform54 && object->GetClassId() != kClassPlatform5D) return;
+    CMapObject* mapObject = MapObjectOf(object);
+    CObject3D* figure = mapObject->Object3D();
+    for (int i = 0; i < figure->parts.size; ++i) {
+        if (!((figure->PartBox(i)->flags >> 10) & 1)) continue;
+        platforms_.AddBox(object->id_, figure->PartBox(i), &mapObject->position, &mapObject->orientation);
+    }
+}
+
+bool CWorldClient::QueueSynchronised(CEngineObject* object) {
+    if (dynamicNodes_.Find(static_cast<std::uint32_t>(object->id_))) return false;
+    DynamicList& kept = dynamicObjects_;
+    DynamicNode* node = DynamicNewNode(&kept, nullptr, kept.tail, nullptr);
+    node->data = object;
+    if (kept.tail)
+        kept.tail->next = node;
+    else
+        kept.head = node;
+    kept.tail = node;
+    DynamicNode* tail = kept.tail;
+    int key = object->id_;
+    *IdMapAt(&dynamicNodes_, nullptr, &key) = tail;
+    return true;
+}
+
+void CWorldClient::DropShadows() {
+    PlainList& objects = objects_;
+    for (SectorListNode* node = objects.head->next; node != objects.head; node = node->next) {
+        CObject3DSpecific* half = MapObjectOf(node->data)->Object3D()->Specific();   // the client half
+        if (!ShadowsShownOriginal(half)) ShadowClearOriginal(half);
+    }
+}
+
 void CWorldClient::RemoveObject(int id) {
     // The object's platform faces.
     PlatformList& platforms = platforms_.list;
@@ -534,6 +579,28 @@ CEngineObject* Pick(CWorldClient* client, const long* point,
 
 CEngineObject* CWorldClient::PickAt(const long* point) { return Pick(this, point, CollectWindowsAt); }
 CEngineObject* CWorldClient::PickAt2(const long* point) { return Pick(this, point, CollectWindowsAt2); }
+
+namespace {
+// From a picked object on: the first unit of the sorted hits. The cursor moves past entries whose
+// object is gone or is not a unit; null at the end.
+CEngineObject* FirstUnitHit(CWorldClient* client, CEngineObject* object) {
+    while (object->GetClassId() != world::kClassUnit) {
+        do {
+            if (++client->hitCursor_ == client->hits_.finish) return nullptr;
+            object = static_cast<CBaseManager*>(client->manager40_)->FindObject(client->hitCursor_->objectId);
+        } while (!object);
+    }
+    return object;
+}
+} // namespace
+
+CEngineObject* CWorldClient::UnitAt(const long* point) {
+    if (CEngineObject* picked = PickAt2(point)) {
+        if (CEngineObject* unit = FirstUnitHit(this, picked)) return unit;
+    }
+    CEngineObject* picked = PickAt(point);
+    return picked ? FirstUnitHit(this, picked) : nullptr;
+}
 
 // ---- The party's units (00566F70) ----------------------------------------------------------------
 
@@ -922,6 +989,41 @@ void CWorldClient::Teardown() {
     DropAndDelete(texts_);
 }
 
+// ---- The selection (00566100) --------------------------------------------------------------------
+
+namespace {
+// The selection highlight off: flags 0x10 and 0x100 cleared, the side half's slots 25 (empty) and
+// 26 with 0 (its light goes off).
+void Unhighlight(CEngineObject* object) {
+    object->flags_ &= ~0x110u;
+    auto* half = static_cast<CObject3DSpecific*>(MapObjectOf(object)->attached);
+    half->Unused25(0);
+    half = static_cast<CObject3DSpecific*>(MapObjectOf(object)->attached);
+    half->SetLit(0);
+}
+} // namespace
+
+void CWorldClient::Deselect(CEngineObject* object) {
+    stlp::list<void*>& selected = list7BC_;
+    using Node = stlp::list<void*>::Node;
+    auto* objects = static_cast<CBaseManager*>(manager40_);
+    if (!object) {
+        for (Node* node = selected.head->next; node != selected.head; node = node->next) {
+            CEngineObject* found = objects->FindObject(static_cast<unsigned>(reinterpret_cast<std::uintptr_t>(node->data)));
+            if (found && (found->flags_ & 0x10)) Unhighlight(found);
+        }
+        EmptyList(selected, [](Node* node) { Node7BCFree(node, 1); });
+        return;
+    }
+    const auto id = reinterpret_cast<void*>(static_cast<std::intptr_t>(object->id_));
+    Node* node = selected.head->next;
+    while (node != selected.head && node->data != id) node = node->next;   // 00571960 find
+    if (node == selected.head) return;
+    void* unused;
+    IdListEraseOriginal(&selected, nullptr, &unused, node);
+    if (object->flags_ & 0x10) Unhighlight(object);
+}
+
 // ---- Set up (00561E50) ---------------------------------------------------------------------------
 
 namespace {
@@ -998,6 +1100,20 @@ void GridToFour(SectorGrid& grid, void (__fastcall* resize)(SectorGrid*, void*, 
         grid.unknown08_ = 4;
         grid.unknown0C_ = 4;
         allocate(&grid);
+    }
+}
+
+// A reference on every object of `manager` (the original keeps the walk's iterator on the heap).
+void ReferenceEveryObject(CBaseManager* manager) {
+    auto* walk = reinterpret_cast<ObjectListIterator*>(New(sizeof(ObjectListIterator)));
+    if (walk) walk->manager = nullptr;
+    for (CEngineObject* object = walk->First(manager); object; object = walk->Next()) ++object->refCount_;
+    if (walk) {
+        if (CBaseManager* held = walk->manager) {
+            --held->refCount_;
+            walk->manager = nullptr;
+        }
+        gamecrt::operator_delete(walk);
     }
 }
 
@@ -1156,18 +1272,7 @@ int CWorldClient::Setup() {
     CStringDestroy(&path);
 
     // A reference on every object of the manager of slot 22 (the original's iterator is on the heap).
-    if (SpellManager()) {
-        auto* walk = reinterpret_cast<ObjectListIterator*>(New(sizeof(ObjectListIterator)));
-        if (walk) walk->manager = nullptr;
-        for (CEngineObject* object = walk->First(SpellManager()); object; object = walk->Next()) ++object->refCount_;
-        if (walk) {
-            if (CBaseManager* held = walk->manager) {
-                --held->refCount_;
-                walk->manager = nullptr;
-            }
-            gamecrt::operator_delete(walk);
-        }
-    }
+    if (SpellManager()) ReferenceEveryObject(SpellManager());
 
     // Room for 400 screen entries (reserve).
     ScreenHits& entries = hits_;
@@ -1195,18 +1300,32 @@ int CWorldClient::Setup() {
     return 1;
 }
 
+// ---- References for a zone load (005630B0) -------------------------------------------------------
+
+void CWorldClient::ReferenceItemsAndSpells() {
+    if (ItemFactory()) ReferenceEveryObject(static_cast<CBaseManager*>(ItemFactory()));
+    // The original tests the item factory again before walking the spells.
+    if (ItemFactory()) ReferenceEveryObject(SpellManager());
+}
+
 EI_REPLACE_METHOD(0x00561E50, CWorldClient::Setup);
 EI_REPLACE_METHOD(0x00560650, PlatformSet::AddFace);
 EI_REPLACE_METHOD(0x00560820, PlatformSet::AddBox);
 EI_REPLACE_METHOD(0x00563290, CWorldClient::Teardown);
+EI_REPLACE_METHOD(0x00566100, CWorldClient::Deselect);
+EI_REPLACE_METHOD(0x005630B0, CWorldClient::ReferenceItemsAndSpells);
 EI_REPLACE_METHOD(0x0056DAF0, CWorldClient::ObjectsInRange);
 EI_REPLACE_METHOD(0x00566F70, CWorldClient::CreatePartyUnits);
 EI_REPLACE_METHOD(0x005647E0, CWorldClient::AddObject);
+EI_REPLACE_METHOD(0x005651A0, CWorldClient::RefreshPlatforms);
+EI_REPLACE_METHOD(0x0056D7E0, CWorldClient::QueueSynchronised);
+EI_REPLACE_METHOD(0x0056D7A0, CWorldClient::DropShadows);
 EI_REPLACE_METHOD(0x00564BE0, CWorldClient::RemoveObject);
 EI_REPLACE_METHOD(0x00564E70, CWorldClient::ClearMaps);
 EI_REPLACE(0x005726B0, ReleaseIfIdentified);
 EI_REPLACE_METHOD(0x00565790, CWorldClient::PickAt);
 EI_REPLACE_METHOD(0x005659D0, CWorldClient::PickAt2);
+EI_REPLACE_METHOD(0x00565E40, CWorldClient::UnitAt);
 EI_REPLACE_METHOD(0x00570860, SectorGrid::Move);
 EI_REPLACE_METHOD(0x00570BB0, SectorGrid::Move2);
 EI_REPLACE(0x00571D50, MarkWithinRadius);

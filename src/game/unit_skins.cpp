@@ -24,6 +24,13 @@
 #include <cstring>
 #include <new>
 #include "originals_render.h"
+#include "originals_world.h"
+
+// 005683D0 (__fastcall: CL `body`, EDX the dressed unit record; RET 4 the record list). Defined below;
+// DressUnit calls it through its address so that its verify wrapper sees the calls.
+void __fastcall UnitTextureRecords(char body, const void* record, void* list);
+__declspec(naked) void __fastcall UnitTextureRecordsAt(char /*body*/, const void* /*record*/, void* /*list*/)
+    EI_ORIGINAL(0x005683D0)
 
 namespace {
 
@@ -91,9 +98,8 @@ std::uintptr_t ByteSpan(stlp::vector<T>& list) {
 __declspec(naked) void __fastcall WeaponTextureName(mfc::CString*, const char*, const char*) EI_ORIGINAL(0x006A0BF0)
 __declspec(naked) const char* __fastcall WeaponRecord(const RecordTable*, void*, std::uint32_t) EI_ORIGINAL(0x0056E440)
 __declspec(naked) const char* __fastcall MaterialRecord(const RecordTable*, void*, std::uint32_t) EI_ORIGINAL(0x0056E400)
-// The 12-byte record list of a unit's textures [005683D0: flag in CL, the unit record, out list],
-// its constructor [0056F570, allocator] and destructor [0056F590].
-__declspec(naked) void __fastcall TextureRecords(char /*body*/, const DressedUnitRecord*, void*) EI_ORIGINAL(0x005683D0)
+// The 12-byte record list of a unit's textures (filled by UnitTextureRecords, 005683D0): its
+// constructor [0056F570, allocator] and destructor [0056F590].
 __declspec(naked) void __fastcall RecordListConstruct(void*, void*, const void*) EI_ORIGINAL(0x0056F570)
 __declspec(naked) void __fastcall RecordListDestroy(void*) EI_ORIGINAL(0x0056F590)
 // The texture set's byte array: constructor [0056FCC0], destructor [0051E5B0], allocation [004ECB50].
@@ -143,10 +149,14 @@ struct TextureSet {
 };
 static_assert(sizeof(TextureSet) == 0x28 && offsetof(TextureSet, size) == 0x24);
 
-// The vector 005683D0 fills: 12-byte texture records, copied as bytes.
+// The vector 005683D0 fills: 12-byte texture records (copied into the set as bytes): a kind (0x32
+// the body, 0x3005 an armour piece, 0x3004 a weapon), the item id and the item record's type.
 struct TextureRecord {
-    std::uint8_t bytes[12];
+    std::uint32_t kind;
+    std::uint32_t id;
+    std::uint32_t itemType;   // the item record's type (+0x0C)
 };
+static_assert(sizeof(TextureRecord) == 12);
 using RecordList = stlp::vector<TextureRecord>;
 
 // The texture records copied into the set's byte array (SetSize inlined: kept contents, 0 frees).
@@ -236,7 +246,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
     const std::uint32_t* items = record->items.Start();
     if (ByteSpan(record->items) & ~std::uintptr_t{3}) {
         mfc::CString built;
-        TextureRecords(1, record, &list);
+        UnitTextureRecordsAt(1, record, &list);
         CopyRecords(set, list);
         mfc::CString skin;
         StringArraySetSize(&set.names, nullptr, 0, -1);
@@ -259,7 +269,7 @@ void DressUnit(CWorldClient* self, DressedUnitRecord* record) {
         }
         Compose(self, built, set, name, 0x100, 1);
 
-        TextureRecords(0, record, &list);
+        UnitTextureRecordsAt(0, record, &list);
         CopyRecords(set, list);
         StringArraySetSize(&set.names, nullptr, 0, -1);
         if (items[0] != kNone) AddItem(set, model, items[0]);
@@ -360,3 +370,52 @@ void __fastcall BuildUnitSkins(CWorldClient* self, void*, const void* othersVect
     for (FiguredUnitRecord* r = others->Start(); r != others->Finish(); ++r) FigureUnit(self, r);
 }
 EI_REPLACE(0x00568800, BuildUnitSkins);
+
+// The list is emptied; nothing more for a unit without items. The body list has eight records:
+// [0] the body (0x32, the prototype), [1..6] the armour pieces of items[1..6] (0x3005, the
+// armour's type), [7] empty (0, -1, -1). The head list two: [0] the helmet row items[0] (0x3005)
+// and [1] the shown extra weapon (0x3004, the weapon's type) when its index is within the list.
+// items[1..6] are read whatever the item list's size; an id past its table reads through a null
+// record as the original does (it faults).
+void __fastcall UnitTextureRecords(char body, const void* recordPointer, void* listPointer) {
+    constexpr std::uint32_t kBody = 0x32, kArmourPiece = 0x3005, kWeapon = 0x3004;
+    auto* record = static_cast<const DressedUnitRecord*>(recordPointer);
+    auto* list = static_cast<RecordList*>(listPointer);
+    list->clear();   // 0056F2F0 erase(begin, end)
+    auto& items = const_cast<IdList&>(record->items);
+    if ((ByteSpan(items) & ~std::uintptr_t{3}) == 0) return;
+    const TextureRecord empty = {0, kNone, kNone};
+    const std::uint32_t* ids = items.Start();
+    if (body) {
+        TextureRecordsResizeOriginal(list, nullptr, 8, &empty);
+        TextureRecord* out = list->Start();
+        out[0].id = record->prototype;
+        out[0].kind = kBody;
+        out[0].itemType = kNone;
+        for (int i = 1; i < 7; ++i) {
+            if (ids[i] == kNone) continue;
+            out[i].id = ids[i];
+            out[i].kind = kArmourPiece;
+            out[i].itemType = static_cast<std::uint32_t>(Armour(ids[i] >> 16)->type);
+        }
+        return;
+    }
+    TextureRecordsResizeOriginal(list, nullptr, 2, &empty);
+    TextureRecord* out = list->Start();
+    if (ids[0] != kNone) {
+        out[0].id = ids[0];
+        out[0].kind = kArmourPiece;
+        out[0].itemType = static_cast<std::uint32_t>(Armour(ids[0] >> 16)->type);
+    }
+    auto& extra = const_cast<IdList&>(record->extraWeapons);
+    const auto count = static_cast<std::uint32_t>(ByteSpan(extra) >> 2);
+    const auto index = static_cast<std::uint32_t>(static_cast<int>(record->extraWeapon));
+    if (index >= count) return;
+    const std::uint32_t weapon = extra.Start()[index];
+    if (weapon == kNone) return;
+    out[1].id = weapon;
+    out[1].kind = kWeapon;
+    out[1].itemType = static_cast<std::uint32_t>(
+        reinterpret_cast<const itemdb::WeaponRecord*>(itemdb::Weapons().At(weapon >> 16, itemdb::kWeaponSize))->type);
+}
+EI_REPLACE(0x005683D0, UnitTextureRecords);

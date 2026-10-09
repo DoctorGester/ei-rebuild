@@ -757,7 +757,7 @@ struct AIViewer {
     void Noise(UnitController* source, float loudness, int kind, const Vector3* at);
 
     CAIMap* map;                    // +0x00
-    int unknown_04;
+    int tick;                       // +0x04 the world's event table: its tick (AIEventTable::Advance)
     Vector3 eye;                    // +0x08
     Vector3 facing;                 // +0x14
     int cellX;                      // +0x20 AI map cell of the eye
@@ -773,6 +773,62 @@ static_assert(offsetof(AIViewer, facing) == 0x14);
 // height; within hearing all around; within the peripheral range in the front half.
 void __fastcall MarkSightCells(CUnit* seer, CUnit* observer, VisibilityGrid* grid);
 static_assert(offsetof(AIViewer, ready) == 0x28);
+
+// An AI event (0x30 bytes): filed in its map cell's list for its side and in the time wheel's slot
+// of the tick it expires. Records come from the pool CList at 007C43A8 (AIEventPool) and go back to
+// the free list at 007C53F0 (chained through `next`).
+struct AIEvent {
+    float x, y;                     // +0x00 where; its cell is (x / 8, y / 8) rounded
+    std::uint32_t unknown_08[2];    // +0x08 (saved)
+    int expiry;                     // +0x10 the tick it goes; wheel slot (expiry - 1) & 0x3FF
+    std::uint32_t unknown_14[2];    // +0x14 (saved)
+    int sourceId;                   // +0x1C the unit that made it
+    int side;                       // +0x20 its low 4 bits: the side list it is filed in
+    AIEvent* next;                  // +0x24 the cell's list for the side; the free list's link
+    AIEvent* prev;                  // +0x28 null for the cell's first
+    AIEvent* nextInSlot;            // +0x2C the wheel slot's list
+};
+static_assert(sizeof(AIEvent) == 0x30);
+
+// A map cell of the event grid: the newest event of each side (lists through AIEvent::next).
+struct AIEventCell {
+    AIEvent* bySide[16];
+};
+
+class CUnitServer;   // combat.h
+class CStream;       // core_streams.h
+
+// The world's AI events (CWorldServer + 0x2838; its viewer part makes the noises): a time wheel of
+// 1024 ticks x 16 sides and a grid of 8 x 8 cells (rows of width cells). Its tick is the viewer's
+// `tick` (Advance sets it).
+struct AIEventTable : AIViewer {
+    // 005C9530 (RET 4; world_tick.cpp's Tick). The wheel moves to `tick`: every event of that
+    // tick's 16 slots leaves its cell list and goes to the free list; the slots empty. A first
+    // event whose cell is outside the grid faults (the original reads a null cell).
+    void Advance(int tick);
+    // 005C97B0 (RET 4; CUnitServer::OnDamaged on a death). Every event made by `controller`'s unit
+    // in the wheel column of its side (unit side & 15) is dropped as Advance drops them.
+    void ForgetUnit(CUnitServer* controller);
+    // 005CAE30 / 005CAFA0 (RET 4; the save). Load: while a byte 1 precedes, an event (its fields
+    // as Save writes them) filed in its cell and wheel slot, or freed when outside the grid. Save:
+    // each cell's events by side (byte 1, x / y, +0x08, expiry, +0x14, source, side), then byte 0.
+    void Load(CStream* stream);
+    void Save(CStream* stream);
+
+    // The cell of `event`, or null outside the grid.
+    AIEventCell* CellOf(const AIEvent* event) const;
+    // Takes `event` out of column `side` of its cell list and puts it on the free list.
+    void Free(AIEvent* event, int side);
+
+    AIEvent* slots[0x400][16];      // +0x02C by tick & 0x3FF, then side
+    std::uint32_t unknown_1002C;
+    AIEventCell** rows;             // +0x10030 the grid rows (each `width` cells)
+    int width;                      // +0x10034
+    int height;                     // +0x10038
+};
+static_assert(offsetof(AIEventTable, slots) == 0x2C);
+static_assert(offsetof(AIEventTable, rows) == 0x10030);
+static_assert(sizeof(AIEventTable) == 0x1003C);
 
 // 005D9E10 (__stdcall, RET 8; unit_ai_mode_lifetime.cpp). ConstructElements of `count` attack
 // options: zero bytes.

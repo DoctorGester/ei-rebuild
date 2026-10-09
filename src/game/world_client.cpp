@@ -10,6 +10,12 @@
 #include "player_client.h"
 #include "terrain.h"
 #include "spell.h"
+#include "effects.h"
+#include "game_strings.h"
+#include "object_tables.h"
+#include "party.h"
+#include "player_messages.h"
+#include "world_effect.h"
 #include "unit.h"
 
 #include "lib/crt.h"
@@ -22,8 +28,11 @@
 #include "originals_library.h"
 #include "originals_gameplay.h"
 #include "originals_ui.h"
+#include "originals_effects.h"
 
+#include <cmath>
 #include <cstring>
+#include <new>
 
 __declspec(naked) BOOL CWorld::IsNight() EI_ORIGINAL(0x0055FC10)
 
@@ -82,6 +91,27 @@ bool PlatformSet::Contains(float x, float y) {
         return true;
     }
     return false;
+}
+
+void PlatformSet::SurfacePlane(float x, float y, Vector3* normal, float* height) {
+    *height = 0.0f;
+    *normal = {0.0f, 0.0f, 1.0f};
+    for (PlatformNode* node = list.head; node; node = node->next) {
+        const Platform& p = node->data;
+        if (!(p.radius * p.radius >= DistanceSquared2D(Vector2{x, y}, Vector2{p.x, p.y}))) continue;
+        float a = x - p.origin[0];
+        float b = y - p.origin[1];
+        float c = -p.origin[2];
+        c = c - (p.normal[1] * b + p.normal[2] * c + p.normal[0] * a) / p.normal[2];
+        float u = StoreFloat(p.axisU[1] * b + p.axisU[2] * c + p.axisU[0] * a);
+        float v = StoreFloat(p.axisV[1] * b + p.axisV[2] * c + p.axisV[0] * a);
+        if (!(u >= -0.5f) || !(v >= -0.5f)) continue;
+        if (!(p.sizeU + 0.5f >= u) || !(p.sizeV + 0.5f >= v)) continue;
+        float z = p.axisV[2] * v + p.axisU[2] * u + p.origin[2];
+        if (!(z > *height)) continue;   // FCOM + TEST AH,0x41: lower, equal or NaN keeps the old one
+        *height = z;
+        *normal = {p.normal[0], p.normal[1], p.normal[2]};
+    }
 }
 
 // x is summed ZYX, y and z ZXY; every component is computed before the stores (out may be v).
@@ -152,6 +182,126 @@ BOOL CWorldClient::FindExitAt(const float* point, int* index) {
         return 1;
     }
     return 0;
+}
+
+namespace {
+
+constexpr int kExitParticles = 0x2038;   // "ZoneExit" (particle_emitters.cpp EmitZoneExit)
+constexpr int kExitWarmUpTicks = 20;
+constexpr float kOneHalf = 0.5f;          // 0073B86C
+const char* DotText() { return reinterpret_cast<const char*>(0x00783D78); }   // "."
+const char* QuestPrefixText() { return reinterpret_cast<const char*>(0x00783D7C); }   // "q."
+
+// 0056F1A0 (library: counted pointer assignment, ECX the slot): references `object`, then
+// releases the slot's old one.
+void AssignCounted(CEngineObject** slot, CEngineObject* object) {
+    CEngineObject* old = *slot;
+    *slot = object;
+    if (object) ++object->refCount_;
+    if (old) old->Release();
+}
+
+} // namespace
+
+void CWorldClient::CreateExitMarkers() {
+    // The counted array's inlined RemoveAll (00573220 releases each element).
+    if (countedA0_.data) {
+        for (int i = 0; i < countedA0_.size; ++i) {
+            if (countedA0_[i]) countedA0_[i]->Release();
+        }
+    }
+    countedA0_.SetSize(0);
+    countedA0_.SetSize(exitCount_);
+    for (int i = 0; i < exitCount_; ++i) {
+        if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(exits_[i].target),
+                             reinterpret_cast<const unsigned char*>(game::NoneText())) == 0) {
+            continue;
+        }
+        auto* source = static_cast<CParticleSource*>(
+            ParticleCreateSourceOriginal(ParticleManagerObject(), nullptr, kExitParticles));
+        auto* marker = reinterpret_cast<CEngineObject*>(source);
+        AssignCounted(&countedA0_[i], marker);
+        const ZoneExit& exit = exits_[i];
+        source->position = {(exit.x2 + exit.x1) * kOneHalf, (exit.y2 + exit.y1) * kOneHalf, 0.0f};
+        source->alpha = (exit.x2 - exit.x1) * kOneHalf;   // half extents, read by EmitZoneExit
+        source->unknown_11C = (exit.y2 - exit.y1) * kOneHalf;
+        source->unknown_120 = static_cast<float>(std::cos(static_cast<double>(exit.angle)));
+        source->unknown_124 = static_cast<float>(std::sin(static_cast<double>(exit.angle)));
+        for (int tick = 0; tick < kExitWarmUpTicks; ++tick) marker->RunTick();
+    }
+    UpdateExitMarkers();
+}
+
+BOOL CWorldClient::PartyInExit(const RecordPtrArray* records, int exit, RecordPtrArray* inExit) {
+    BOOL result = 1;
+    int living = 0;
+    inExit->SetSize(0);
+    for (int i = 0; i < records->size; ++i) {
+        std::uint8_t* record = (*records)[i];
+        CEngineObject* found =
+            WorldFindUnit(this, nullptr, static_cast<int>(reinterpret_cast<PartyUnitRecord*>(record)->unknown_01C));
+        if (!found || ObjectSlots(found)->IsDead() != 0) continue;
+        ++living;
+        int index = 0;
+        if (!FindExitAt(&static_cast<CUnit*>(found)->position.x, &index) || index != exit) {
+            result = 0;
+            continue;
+        }
+        const int last = inExit->size;
+        inExit->SetSize(last + 1);
+        (*inExit)[last] = record;
+    }
+    return living != 0 ? result : 0;
+}
+
+// ---- The bird and quest variables ----------------------------------------------------------------
+
+void CWorldClient::SummonBird() {
+    if (!owned1B0_) {
+        auto* memory = static_cast<CEffectMoshka*>(gamecrt::operator_new(sizeof(CEffectMoshka)));
+        owned1B0_ = memory ? memory->Construct() : nullptr;
+    }
+    TimedSlots(owned1B0_)->Reset();
+    auto* leader = reinterpret_cast<CPlayer*>(session_)->Party()->members_.data;
+    static_cast<CEffectMoshka*>(owned1B0_)->Follow(static_cast<int>(leader->unknown_01C));
+}
+
+void CWorldClient::OnQuestVariable(const char* variable, float value) {
+    const char* dot = DotText();
+    mfc::CString name(variable);
+    const int length = name.GetLength();
+    const int second = name.Find(dot, name.Find(dot) + 1);
+    name = name.Right(length - second - 1);
+    for (SectorListNode* node = objects_.First(); node != objects_.End(); node = node->next) {
+        auto* object = static_cast<CMapObject*>(node->data);
+        if (GameMbscmp(name, object->name2) == 0) object->SetVisibilityLevel(value);
+    }
+    // FCOMP + TEST AH,0x40: equal or unordered.
+    if ((value == 2.0f || x87::IsNaN(value)) && name.Find(dot) < 0) SummonBird();
+}
+
+mfc::CString* CWorldClient::ObjectVariableName(mfc::CString* out, const char* name) {
+    alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
+    mfc::CString* player = LocalPlayerName(reinterpret_cast<mfc::CString*>(storage));
+    new (out) mfc::CString(QuestPrefixText());
+    *out += *player;
+    *out += DotText();
+    *out += name;
+    player->~CString();
+    return out;
+}
+
+void CWorldClient::ApplyObjectVariables() {
+    auto* variables = reinterpret_cast<NamedFloatTable*>(reinterpret_cast<WorldPlayer*>(session_)->variables);
+    for (SectorListNode* node = objects_.First(); node != objects_.End(); node = node->next) {
+        auto* object = static_cast<CMapObject*>(node->data);
+        const char* name = object->name2;
+        if (!name || !*name) continue;
+        alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
+        mfc::CString* variable = ObjectVariableName(reinterpret_cast<mfc::CString*>(storage), name);
+        object->SetVisibilityLevel(variables->Get(*variable));
+        variable->~CString();
+    }
 }
 
 float* CWorldClient::ExitCentre(float* out, int index) {
@@ -357,6 +507,7 @@ EI_REBIRTH_IMPLEMENTS(0x005641F0, ei::rebirth::Patch::DisableExitOnCrashReport);
 EI_REPLACE_METHOD(0x00563F70, CWorldClient::ClampedGroundHeight);
 EI_REPLACE_METHOD(0x00560F00, PlatformSet::SurfaceHeight);
 EI_REPLACE_METHOD(0x00561050, PlatformSet::Contains);
+EI_REPLACE_METHOD(0x00561150, PlatformSet::SurfacePlane);
 EI_REPLACE_METHOD(0x00560E10, MatrixRows::Transform);
 EI_REPLACE_METHOD(0x005640A0, CWorldClient::NearestVisibleUnit);
 EI_REPLACE_METHOD(0x00564AF0, CObject3D::PartBox);
@@ -366,3 +517,9 @@ EI_REPLACE_METHOD(0x00566EF0, CWorldClient::IsLocalPlayerIdle);
 EI_REPLACE_METHOD(0x00567440, CWorldClient::FindExitAt);
 EI_REPLACE_METHOD(0x005674C0, CWorldClient::ExitCentre);
 EI_REPLACE_METHOD(0x0056D9F0, CWorldClient::EnvironmentFlags);
+EI_REPLACE_METHOD(0x00567500, CWorldClient::CreateExitMarkers);
+EI_REPLACE_METHOD(0x005677F0, CWorldClient::PartyInExit);
+EI_REPLACE_METHOD(0x00566C20, CWorldClient::SummonBird);
+EI_REPLACE_METHOD(0x00565380, CWorldClient::OnQuestVariable);
+EI_REPLACE_METHOD(0x005654F0, CWorldClient::ObjectVariableName);
+EI_REPLACE_METHOD(0x005652E0, CWorldClient::ApplyObjectVariables);

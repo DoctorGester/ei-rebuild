@@ -3,6 +3,7 @@
 // reaches them.
 #include "verify.h"
 
+#include "../../src/game/sky_object.h"   // before windows.h (GetClassName)
 #include "../../src/game/model.h"
 #include "../../src/game/texture.h"
 #include "../../src/game/world.h"
@@ -46,3 +47,21 @@ static void __fastcall SetUpGraphicsVerify(CWorldClient* self, void*, void* devi
                       self->figureLoader_);
 }
 EI_VERIFY(0x00563710, SetUpGraphicsVerify, 0, s_unused);
+
+// 00562F70 LoadSky: makes objects, so ours only (every start, from SetUpGraphics). Checked: the sky
+// exists; when it got its object, that is a class 0x44 figure named "nask0" with flag 0x10, and
+// the sky has a material.
+static void __fastcall LoadSkyVerify(CWorldClient* self) {
+    const bool had = self->skyDome_ != nullptr;
+    self->LoadSky();
+    CSky* sky = self->skyDome_;
+    bool ok = sky != nullptr;
+    if (ok && !had && sky->object) {
+        CSkyObject* object = sky->object;
+        ok = object->GetClassId() == 0x44 && std::strcmp(object->name_, "nask0") == 0 && (object->flags_ & 0x10) &&
+             sky->material != nullptr;
+    }
+    ei::verify::Check("CWorldClient::LoadSky", true, ok, "sky %p object %p", static_cast<void*>(sky),
+                      sky ? static_cast<void*>(sky->object) : nullptr);
+}
+EI_VERIFY(0x00562F70, LoadSkyVerify, 0, s_unused);
