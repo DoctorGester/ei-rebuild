@@ -140,3 +140,15 @@ DR-C2 merges, convert net_state.cpp's remaining 14 VCalls.
 - Cleanup baseline: unit_motion_tick.cpp At 109 -> 0, byte arithmetic 1 -> 0; combat_motion.cpp
   gone from the baseline (all 0); net_state.cpp At 86 -> 0, VCall 28 -> 14 (the 14 wait for
   DR-C2's slot names).
+
+## net_state.cpp: the last 14 VCalls (cleanup ticket)
+
+All 14 are now named virtual calls (VCall 14 -> 0; the `ei/vcall.h` include is gone): map object
+58 `RefreshWounds()` and 51 `PlaceOnGround(float offset)` (passes positionZ itself, same 4 bytes);
+companion 13 `EffectsChanged(int first)` (2x), 16 `Hit(int damage, int kind)`; controller 29
+`RefreshEquipment()` (2x), 31 `RefreshWounds()` (2x), 32 / 33 `SetArmourModels` / `SetWeaponModels`
+`(const uint32_t* ids, uint32_t count)`, 41 `MotionChanged()`, 46 `StatChanged(uint32_t stat, float
+change, uint8_t flags)` (RET 0xC; the byte is the unit's Params()->flags), 47 `Wound(float lost)`.
+Signatures from the disassembly of the base / client implementations (RET n and the argument reads).
+CUnitController now declares 41..47 (42 ObjectDeleted, 43 RestartFadeIn, 44 Resettle, 45
+UpdateMoveFactors are place-holders by their existing names; not called here).

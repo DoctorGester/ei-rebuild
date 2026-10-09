@@ -12,7 +12,6 @@
 #include "world.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_ai.h"
 #include "originals_engine.h"
@@ -38,8 +37,6 @@ CPlayer* AsPlayer(void* player) { return static_cast<CPlayer*>(player); }
 __declspec(naked) void __fastcall EquipmentIds(void*, void*, std::uint32_t*) EI_ORIGINAL(0x0052EC10)
 // (005C7DB0: PathWriteOriginal, originals_ai.h.)
 
-// Virtual slots not yet declared by name (DR-C2 names the placeholders; see the notes).
-constexpr int kSlotRefreshItems = 0x74 / 4;    // controller of class 0x3E: () (29, RefreshEquipment)
 constexpr int kClassServerController = 0x3E;
 
 void PutByte(DeltaField* field, std::uint8_t value) { field->WriteDelta(&value, 1); }
@@ -93,7 +90,7 @@ void __fastcall UnitWriteNetState(std::uint8_t* object) {
         for (int i = 5; i < 11; ++i) PutWord(field, ids[i]);
         field->EndField();
         if (unit->controller->GetClassId() == kClassServerController)
-            ei::VCall<int>(unit->controller, kSlotRefreshItems);
+            unit->Controller()->RefreshEquipment();
     }
     if (DeltaField* field = state->BeginField(6)) {
         field->WriteDelta(&unit->moveMode, 4);
@@ -156,11 +153,8 @@ namespace {
 __declspec(naked) void __fastcall SetPosition(void*, void*, const float*) EI_ORIGINAL(0x00517700)
 void __fastcall EffectsSetSize(void* a0, void*, int a2, int a3) { EffectArraySetSizeOriginal(a0, nullptr, a2, a3); }
 
-// Map object slots still placeholders here (DR-C2 names them: 58 RefreshWounds, 51 PlaceOnGround;
-// the companion's 13 EffectsChanged).
-constexpr int kSlotAppearanceChanged = 0xE8 / 4;   // object: ()
-constexpr int kSlotSetHeading = 0xCC / 4;          // object: (+0x24, the position's z)
-constexpr int kSlotEffectsChanged = 0x34 / 4;      // companion (+0x170): (first)
+// A companion (+0x170) as its virtual interface.
+CMapObjectCompanion* CompanionOf(CEngineObject* companion) { return static_cast<CMapObjectCompanion*>(companion); }
 
 // Whether the stream read against (007A9794) is consumed: slot 5 (position) == slot 4 (size).
 std::uint32_t SnapshotConsumed() {
@@ -181,7 +175,7 @@ std::uint32_t __fastcall MapObjectReadNetState(std::uint8_t* object, void*, int 
         field->ReadDelta(self->packedVitals, 0x18);   // 00523710
         complete = SnapshotConsumed();
         field->EndField();
-        if (before != self->PackedVitals()->hitPoints || first == 1) ei::VCall<void>(object, kSlotAppearanceChanged);
+        if (before != self->PackedVitals()->hitPoints || first == 1) ObjectSlots(self)->RefreshWounds();
     }
     if (DeltaField* field = state->BeginField(1)) {
         float position[3];
@@ -202,9 +196,7 @@ std::uint32_t __fastcall MapObjectReadNetState(std::uint8_t* object, void*, int 
         field->ReadDelta(self->orientation, 0x10);
         CWorld* world = WorldOf(object);
         world->MoveObject(self, position);
-        std::uint32_t z;
-        std::memcpy(&z, &self->positionZ, 4);
-        ei::VCall<void>(object, kSlotSetHeading, z);
+        ObjectSlots(self)->PlaceOnGround(self->positionZ);
         complete &= SnapshotConsumed();
         field->EndField();
     }
@@ -223,7 +215,7 @@ std::uint32_t __fastcall MapObjectReadNetState(std::uint8_t* object, void*, int 
         field->ReadRaw(&effect->ending, 1);
     }
     if (self->GetClassId() != world::kClassUnit)
-        ei::VCall<void>(self->companion, kSlotEffectsChanged, first == 0 ? 1 : 0);
+        CompanionOf(self->companion)->EffectsChanged(first == 0 ? 1 : 0);
     complete &= SnapshotConsumed();
     field->EndField();
     return complete;
@@ -245,16 +237,6 @@ void __fastcall PlayerAddUnit(void* a0, void*, void* a2) { PlayerAddUnitOriginal
 __declspec(naked) std::uint8_t* __fastcall LocalView(void*) EI_ORIGINAL(0x005699F0)
 void __fastcall CStringAssign(void* a0, void*, const void* a2) { CStringAssignOriginal(a0, nullptr, a2); }
 
-// Controller slots past CUnitController's declared ones, or still placeholders there (DR-C2 names
-// 29 RefreshEquipment, 31 RefreshWounds, 32 SetArmourModels, 33 SetWeaponModels).
-constexpr int kSlotStatChanged = 0xB8 / 4;       // controller: (stat, change, flags)
-constexpr int kSlotStatsChanged = 0x7C / 4;      // controller: ()
-constexpr int kSlotHit = 0x40 / 4;               // companion: (damage, kind)
-constexpr int kSlotWound = 0xBC / 4;             // controller: (fraction lost)
-constexpr int kSlotMotionChanged = 0xA4 / 4;     // controller: ()
-constexpr int kSlotSetItems = 0x80 / 4;          // controller: (ids, 7)
-constexpr int kSlotSetEquipment = 0x84 / 4;      // controller: (ids, 4)
-constexpr int kSlotItemsChanged = 0x74 / 4;      // controller: ()
 constexpr float kStatEpsilon = 1e-4f;            // 0073CD44
 
 // A body part's condition as current / maximum (signed 16-bit over unsigned 16-bit), as a float.
@@ -292,15 +274,12 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
                 if (Exceeds(now - before[k])) any = true;
                 float change = before[k] - now;
                 if (Exceeds(change)) {
-                    std::uint32_t changeBits;
-                    std::memcpy(&changeBits, &change, 4);
-                    ei::VCall<void>(unit->controller, kSlotStatChanged, k, changeBits,
-                                    static_cast<std::uint32_t>(unit->Params()->flags));
+                    unit->Controller()->StatChanged(k, change, unit->Params()->flags);
                 }
             }
-            if (any) ei::VCall<void>(unit->controller, kSlotStatsChanged);
+            if (any) unit->Controller()->RefreshWounds();
         } else if (first == 0) {
-            ei::VCall<void>(unit->controller, kSlotStatsChanged);
+            unit->Controller()->RefreshWounds();
         }
         float maxHp = static_cast<float>(unit->maxHitPoints);
         float hpNow = static_cast<float>(unit->hitPoints) / maxHp;
@@ -313,11 +292,9 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
             if (flags & 4) kind |= 4;
             float lost = hpBefore - hpNow;
             int damage = static_cast<int>(static_cast<std::int64_t>(lost * maxHp));   // _ftol
-            ei::VCall<void>(unit->companion, kSlotHit, damage, kind);
+            CompanionOf(unit->companion)->Hit(damage, kind);
             if (kind & 4) {
-                std::uint32_t lostBits;
-                std::memcpy(&lostBits, &lost, 4);
-                ei::VCall<void>(unit->controller, kSlotWound, lostBits);
+                unit->Controller()->Wound(lost);
             }
         }
         complete &= SnapshotConsumed();
@@ -385,7 +362,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
         motion->baseTurnRate = run;
         MotionBuild(motion, nullptr, path2);
         UnitMarkChanged(unit, nullptr, 10);
-        ei::VCall<void>(unit->controller, kSlotMotionChanged);
+        unit->Controller()->MotionChanged();
         complete &= SnapshotConsumed();
         field->EndField();
     }
@@ -428,16 +405,16 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(3)) {
-        ei::VCall<void>(unit->companion, kSlotEffectsChanged, first == 0 ? 1 : 0);
+        CompanionOf(unit->companion)->EffectsChanged(first == 0 ? 1 : 0);
         field->EndField();
     }
     if (changed) {
         if (gotItems) {
-            ei::VCall<void>(unit->controller, kSlotSetItems, ids7, 7);
-            ei::VCall<void>(unit->controller, kSlotSetEquipment, ids4, 4);
+            unit->Controller()->SetArmourModels(ids7, 7);
+            unit->Controller()->SetWeaponModels(ids4, 4);
         }
         unit->Controller()->ShowWeapon(unit->activeWeapon);   // slot 25
-        ei::VCall<void>(unit->controller, kSlotItemsChanged);
+        unit->Controller()->RefreshEquipment();
     }
     return complete;
 }
