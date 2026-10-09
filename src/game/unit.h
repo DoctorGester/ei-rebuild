@@ -177,7 +177,7 @@ public:
     virtual AIPath* Path();                 // 16: server +0x3C (00546090), client +0x38 (00533DF0)
     virtual void Unused17();                // 17: empty (server 005460B0, client 00534130)
     virtual void PlayerChanged(void* player);   // 18: client 00534140, base empty (00533BC0)
-    virtual void RefreshVitals();           // 19: (char withHitPoints) server 005533B0
+    virtual int RefreshVitals(char withHitPoints);  // 19: server 005533B0 (1), client 00533BD0 (0)
     virtual void TakeHit();                 // 20: server 00553F40 (map_object.h CUnitServerVirtuals)
     virtual void Heal();                    // 21: (float amount) server 005543B0
     virtual void RepackStats();             // 22: server 00553500

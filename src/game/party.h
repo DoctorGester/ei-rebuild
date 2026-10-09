@@ -67,7 +67,7 @@ public:
     virtual void ThisWorld();                  // 13: 0065F4B0 (null)
     virtual void TimedObjectManager();         // 14: 0065F530 (null)
     virtual void FigureManager();              // 15: 0065F4C0 (null)
-    virtual void ItemConstructor();            // 16: 0065F540 (itemConstructor_)
+    virtual CItemConstructor* ItemConstructor();   // 16: 0065F540 (itemConstructor_)
     virtual void SpellConstructor();           // 17: 0065F550 (spellConstructor_)
     virtual CResourceManager* ItemManager();   // 18: itemManager_
     virtual void MapObjectManager();           // 19: 0065F4D0 (null)

@@ -245,6 +245,7 @@ constexpr int kSetStunned = 46;           // 0xB8 (CUnit::SetFlag1000000 for uni
 
 struct Vector3;
 struct DamageInfo;   // spell.h
+struct LockKey;      // unit.h
 
 // The map objects' virtual slots past CEngineObject's, as callers reach them through the vtable
 // (CMapObject 0073DAA0, CUnit 0073EA8C, ...). The rewritten slot bodies stay plain members of the
@@ -287,11 +288,12 @@ public:
     virtual void SetStats() = 0;           // 35: (stats) 0050E480 empty; units 00530A20 SetServerStats
     virtual void SetServerData() = 0;      // 36: 0050F050
     virtual void UpdateSizeClasses() = 0;  // 37: 0050E490 empty; units 00530A50
-    virtual void IsUsable() = 0;           // 38: 0 (0050F0C0); traps 1, levers NeedsKey 0052BB00
-    virtual void IsDirectUseBlocked() = 0; // 39: 0 (0050F0D0); levers +0x260 (0052B2D0). Best guess
+    virtual int IsUsable() = 0;            // 38: 0 (0050F0C0); traps 1, levers NeedsKey 0052BB00
+    virtual int IsDirectUseBlocked() = 0;  // 39: 0 (0050F0D0); levers +0x260 (0052B2D0). Best guess
     virtual void KeyId() = 0;              // 40: -123 (0050F0E0); levers 0052BBC0
     virtual void ApplyScience() = 0;       // 41: 0050F0F0; traps Disarm, levers ApplyKey
-    virtual void AcceptsKey() = 0;         // 42: (key) 0 (0050F110); levers KeyOpens, traps KeyFits
+    // 42 (0xA8): whether `key` fits: 0 (0050F110, RET 4); levers KeyOpens, traps KeyFits.
+    virtual int AcceptsKey(const LockKey* key) = 0;
     virtual void KeepsMapFlag() = 0;       // 43: AL 1 (004467B0); levers +0x261 (0052B2C0). Best guess
     virtual void UseSpots() = 0;           // 44: 0050F120 FreeArray (none); levers 0052BBE0
     virtual void AddEffect() = 0;          // 45: 0050F1E0
@@ -334,7 +336,7 @@ public:
     virtual void Path() = 0;               // 16
     virtual void Unused17() = 0;           // 17: empty
     virtual void PlayerChanged() = 0;      // 18
-    virtual void RefreshVitals() = 0;      // 19: 005533B0
+    virtual int RefreshVitals(char withHitPoints) = 0;   // 19: 005533B0 (1), client 00533BD0 (0)
     // 20 (0x50): 00553F40 CUnitServer::TakeHit(hit, attacker, source); either unit may be null.
     virtual int TakeHitSlot(DamageInfo* hit, CEngineObject* attacker, CEngineObject* source) = 0;
 };

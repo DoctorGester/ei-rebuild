@@ -8,7 +8,7 @@ disassembled, existing names in src and docs/notes. Confidence: H high (named fu
 body in several classes), M medium (one class shows the meaning, others are stubs), L low (best
 guess, see the note).
 
-Not built (memory-short machine, per the ticket): the build and checks still need a run.
+Built after merging main (see Status).
 
 Name clashes avoided: CWorld's slots must not take the names of free helpers that CWorldServer /
 CWorldClient member bodies call unqualified (`World()`, `ItemManager()` in world_party.cpp /
@@ -168,5 +168,22 @@ Callers changed: none.
 
 ## Status
 
-All 102 placeholders in the five headers renamed; the two callers updated. Not built. Next: build
-`verify` and `release`, run check_cleanup (counts only go down).
+All 102 placeholders in the five headers renamed; the two callers updated. Merged main (A-I16,
+A-H15, A-S9, A-U6, A-U7, A-W7, A-W8): one conflict, verify_map_object_save.cpp, whose ReadRecorder
+main moved to tests/verify/unit_capture_stream.h (its slot 0 renamed there to DeletingDestructor).
+
+Real signatures set (checked against the slot bodies in Ghidra; no caller converted yet):
+- CWorld 18 `CEngineObject* ItemFactory()` (004BA000 returns +0x54), 20 `CEngineObject*
+  PlayerList()` (0055EB50 returns +0x38).
+- CParty 16 `CItemConstructor* ItemConstructor()` (0065F540 returns +0x20).
+- CUnitController / CUnitServerVirtuals 19 `int RefreshVitals(char withHitPoints)` (server 005533B0
+  RET 4 returns 1, client 00533BD0 returns 0). CUnitServer derives from CEngineObject, so its plain
+  RefreshVitals member does not override it.
+- CMapObjectVirtuals 38 `int IsUsable()`, 39 `int IsDirectUseBlocked()` (all bodies set full EAX:
+  0050F0C0 / 0050F0D0 0, traps 1, levers 0052BB00 SETNZ, 0052B2D0 MOVZX byte), 42 `int
+  AcceptsKey(const LockKey* key)` (0050F110 RET 4; levers KeyOpens, traps KeyFits take a LockKey).
+
+Builds: `build.cmd verify` and `release` with no errors or warnings, all build checks 0,
+check_stolen / check_x87 / check_signatures 0. check_cleanup --update: placeholder virtuals now 16
+(none left in these five headers; the rest are in engine_object.h, map_spec.h, resource.h,
+ui_camp.h, unit_ai.h).
