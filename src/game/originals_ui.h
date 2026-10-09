@@ -491,3 +491,8 @@ __declspec(naked) inline int __fastcall LocalViewSendWalkOriginal(void* /*view*/
 __declspec(naked) inline int __fastcall LocalViewSendAttackOriginal(void* /*view*/, void*, const void* /*units*/,
                                                                    void* /*target*/, int /*how*/, int /*ctrl*/)
     EI_ORIGINAL(0x0066A880)
+// The interface's shutdown (005F4F90) calls: 00444BD0 (thiscall) the debug information panel
+// (0079B930, string_map.cpp) frees its surface and font; 00462DF0 writes config\keyboard.ini
+// (key_bindings.cpp).
+__declspec(naked) inline void __fastcall DebugPanelReleaseOriginal(void* /*panel*/) EI_ORIGINAL(0x00444BD0)
+__declspec(naked) inline void __cdecl SaveKeyBindingsOriginal() EI_ORIGINAL(0x00462DF0)

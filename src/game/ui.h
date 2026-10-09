@@ -23,6 +23,7 @@
 
 namespace mfc { class CString; }
 namespace console { class ConsoleWindow; }
+namespace ui_gdi { struct GameFont; }
 
 class CUiWindow;
 class CUiRootWindow;
@@ -182,7 +183,8 @@ public:
     console::ConsoleWindow* console_;   // +0x14 the console window (shown while its +0x7A is set)
     CScreenFade* fade_;              // +0x18
     CUiRootWindow* root_;            // +0x1C updated after the top window every frame
-    std::uint8_t unknown_20[0x30 - 0x20];
+    CUiSurface* surface20_;          // +0x20 a surface the shutdown frees (writer not identified)
+    std::uint8_t unknown_24[0x30 - 0x24];
     // +0x30 the windows draw, redraw their surfaces and update their tooltips only while this is
     // set (the containers' slots 20, 22 and 23).
     bool drawing_;
@@ -190,7 +192,7 @@ public:
     CUiWindow** stackBegin_;         // +0x34 stack of active windows (STLport vector)
     CUiWindow** stackEnd_;           // +0x38
     CUiWindow** stackCapacity_;      // +0x3C
-    std::uint8_t unknown_40[0x44 - 0x40];
+    CUiWindow* queuedWindow_;        // +0x40 activated by the next frame update (005F57C0)
     bool closeAll_;                  // +0x44 every window is closed (005F5AB0)
     std::uint8_t unknown_45[0x48 - 0x45];
     std::uint32_t pendingValue_;     // +0x48
@@ -199,12 +201,14 @@ public:
     int backdropMode_;               // +0x50 the backdrop is drawn in modes 2, 3 and 4 (PushWindow sets 3 / 1)
     CUiSurface* backdrop_;           // +0x54
     CUiSurface* secondBackdrop_;     // +0x58
-    std::uint8_t unknown_5C[0x60 - 0x5C];
+    void* block5C_;                  // +0x5C freed by the shutdown with operator delete (writer not identified)
     std::uint8_t serverFlag_;        // +0x60 the server flag kept for the first window (PushWindow)
     std::uint8_t unknown_61[0x68 - 0x61];
     int mouseX_;                     // +0x68 mouse position in screen coordinates
     int mouseY_;                     // +0x6C
-    std::uint8_t unknown_70[0x7C - 0x70];
+    // +0x70..+0x78 the three interface fonts (Create 005F4990: CFont point sizes 75, then
+    // scaled with the screen height); text drawing selects font n from here.
+    ui_gdi::GameFont* fonts_[3];
     // Set by the key-down handler (005F78C0) from the scan codes, cleared by the key-up one
     // (005F7BE0) from the virtual keys and when the windows change.
     bool ctrlDown_;                  // +0x7C
@@ -214,16 +218,34 @@ public:
     // spell or quick item clicked twice is used at once.
     bool doubleClick_;               // +0x7F
     bool rightDown_;                 // +0x80 the right button is held
-    std::uint8_t unknown_81[0x89 - 0x81];
+    std::uint8_t unknown_81[0x84 - 0x81];
+    stlp::list<mfc::CString> messages_;   // +0x84 queued message texts (ShowMessage takes the first)
+    std::uint8_t unknown_88;
     // +0x89..+0x97: the state saved with a game (LoadState), cleared by ResetSavedState.
     std::uint8_t unknown_89[3];
     int unknown_8C;
     int unknown_90;
     int fastGame_;                   // +0x94 the fast game speed (the clock's +0x154)
-    std::uint8_t unknown_98[0xA4 - 0x98];
-    char* messageText_;              // +0xA4 CString: the message window's text (ShowMessage)
+    // +0x98 help topics seen: topic name -> times (config\tutorial.ini, "name count" lines; read
+    // by Create 005F4990, written by Shutdown, counted by OpenHelp 005F86F0).
+    stlp::map<mfc::CString, int> helpTopics_;
+    mfc::CString messageText_;       // +0xA4 the message window's text (ShowMessage)
     int messageFlag_;                // +0xA8 (ShowMessage clears it)
-    char* savedText_;                // +0xAC CString saved with the game (from version 0x5F)
+    mfc::CString savedText_;         // +0xAC saved with the game (from version 0x5F)
+
+    // 005F8C50. Clears the modifier, double-click and right-button flags (+0x7C..+0x80) and
+    // deactivates the top window's input side (input slot 1), if any (ui_interface_shutdown.cpp).
+    void ResetInput();
+    // 005F4F90 (the main loop's exit, 00456440). Closes every window (as CloseAll, without its
+    // trailing deactivation), ResetInput, pumps the messages, clears the screen flag; writes the
+    // help topics to config\tutorial.ini ("%s %d\n" each); then frees +0x20, the queued window
+    // (+0x40, not cleared), both backdrops, +0x5C, the debug panel's surface and font (00444BD0),
+    // the root window, the console window; saves the key bindings (00462DF0); frees the three fonts
+    // and the fade (+0x18, not cleared).
+    void Shutdown();
+    // 005F4790 (the destructor of the global interface 007C7D50, run at exit): the two CStrings,
+    // the help topic map, the message list, the window stack's storage.
+    void DestroyBody();
 
     // 005F85C0 (RET 4; ui_interface_save.cpp). Writes what LoadState reads: +0x89..+0x8B, +0x8C,
     // +0x90, +0x94, an empty obsolete list (count 0), the message text with its zero, +0xA8 and
@@ -247,6 +269,9 @@ static_assert(offsetof(CInterface3D, closeAll_) == 0x44);
 static_assert(offsetof(CInterface3D, rightDown_) == 0x80);
 static_assert(offsetof(CInterface3D, unknown_8C) == 0x8C);
 static_assert(offsetof(CInterface3D, fastGame_) == 0x94);
+static_assert(offsetof(CInterface3D, surface20_) == 0x20 && offsetof(CInterface3D, queuedWindow_) == 0x40);
+static_assert(offsetof(CInterface3D, block5C_) == 0x5C && offsetof(CInterface3D, fonts_) == 0x70);
+static_assert(offsetof(CInterface3D, messages_) == 0x84 && offsetof(CInterface3D, helpTopics_) == 0x98);
 
 // The interface's growable pointer arrays: engine aligned arrays of pointers (lib::AlignedArray).
 // The original has one out-of-line SetSize per array (006003D0, 006004E0, 00600730, 00600840,
@@ -700,6 +725,11 @@ static_assert(offsetof(CUiWindow, models_) == 0x138);
 // Set when a screen is activated (005F71C0 / 005F7350), cleared when every window is closed; the
 // main loop runs its frames only while it is set (00784750; app_frame.cpp's Running).
 inline bool& InterfaceHasScreen() { return *reinterpret_cast<bool*>(0x00784750); }
+
+// The debug information panel (string_map.cpp; the console's "debuginfo" rectangle).
+inline void* DebugInfoPanel() { return reinterpret_cast<void*>(0x0079B930); }
+// The game's data path (CString 007AF460; 00578DB0 returns its address).
+inline const mfc::CString& GameDataPath() { return *reinterpret_cast<const mfc::CString*>(0x007AF460); }
 
 // The texture manager (CTextureManager, texture.h) the windows load their textures from.
 inline void* UiTextureManager() { return *reinterpret_cast<void* const*>(0x007AF744); }

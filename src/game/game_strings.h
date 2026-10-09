@@ -62,4 +62,9 @@ inline const char* PrototypeText() { return reinterpret_cast<const char*>(0x0079
 inline const char* RuneText() { return reinterpret_cast<const char*>(0x007963A4); }
 inline const char* SpellContainerText() { return reinterpret_cast<const char*>(0x007938A0); }
 
+// The interface's help topics file (CInterface3D, Create 005F4990 / Shutdown 005F4F90): 00792FF0
+// "config\tutorial.ini" (after the data path), 00793044 "%s %d\n" (a topic and its count).
+inline const char* TutorialIniText() { return reinterpret_cast<const char*>(0x00792FF0); }
+inline const char* TutorialLineFormat() { return reinterpret_cast<const char*>(0x00793044); }
+
 } // namespace game

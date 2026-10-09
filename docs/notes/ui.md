@@ -194,6 +194,15 @@ ours only (the DC field unchanged). CDC::FromHandle 00708D79 is `CdcFromHandleOr
 005F85C0 (`ui_interface_save.cpp`, LoadState's counterpart; side by side through a recorder on the stream's Write;
 every save).
 
+A-I18: the interface's end (`ui_interface_shutdown.cpp`; `verify_ui_interface_shutdown.cpp`, ours only):
+`CInterface3D::ResetInput` 005F8C50 (flags +0x7C..+0x80, the top's input slot 1; every scenario), `Shutdown` 005F4F90
+(the main loop's exit: windows closed, config\tutorial.ini written from `helpTopics_`, surfaces, root, console, fonts and
+fade freed; the wrapper reads the file back; every scenario that quits), `DestroyBody` 005F4790 (the global's atexit
+destructor: CStrings, help map, message list, stack storage; the wrapper finds the freed nodes on the pool's free
+lists), `ConsoleWindow::DestroyBody` 005E3DF0. Kept: Shutdown deletes the queued window (+0x40) and the fade (+0x18)
+without clearing them. `CInterface3D` now declares +0x20, +0x40, +0x5C, the fonts +0x70, `messages_` +0x84 (stlp::list
+of CString), `helpTopics_` +0x98 (stlp::map<CString, int>) and the CStrings +0xA4 / +0xAC as `mfc::CString`.
+
 Next in 005E0000-00640000 after A-I17 (not Rebirth-patched, single player first): 005F4F90 (the interface's shutdown:
 closes the windows, writes config\tutorial.ini from the help map +0x98, frees the surfaces), 005F4790 (a destructor
 body: the help map, the +0x84 list, the window stack's storage), 005FC1F0 (`CUiModel::Load`), 00626C50, 0062B350,

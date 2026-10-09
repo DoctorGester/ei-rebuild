@@ -77,6 +77,17 @@ struct GameBrush {
 };
 static_assert(sizeof(GameBrush) == 8);
 
+// MFC CFont (CGdiObject: vtable 0073BFB4, m_hObject), allocated with new by the interface
+// (CInterface3D +0x70..+0x78) and the console window (+0x08).
+struct GameFont {
+    // Slot 1: CObject's virtual (scalar deleting) destructor; 1 frees the memory.
+    void Delete() { CallSlot<void*>(this, 1, 1); }
+
+    void** vtable_;
+    HGDIOBJ handle_;
+};
+static_assert(sizeof(GameFont) == 8);
+
 // The DC of an interface surface (CUiSurface; also the console window's surface).
 struct SurfaceDC {
     GameDC* GetDC() { return SurfaceGetDC(this); }      // 005FDC00 (null when the surface has no DirectDraw surface)
