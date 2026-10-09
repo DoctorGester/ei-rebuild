@@ -127,6 +127,9 @@ __declspec(naked) inline void __fastcall ClientRefreshObjectOriginal(void* /*wor
     EI_ORIGINAL(0x005651A0)
 __declspec(naked) inline void __fastcall ClientQueueObjectOriginal(void* /*world*/, void*, CEngineObject* /*object*/)
     EI_ORIGINAL(0x0056D7E0)
+// A-X4. 006C5620: the landscape's Reset (Terrain::Reset, rewritten), called through its address by the
+// client world's Setup and by the landscape's Create / Destroy so that its verify wrapper runs.
+__declspec(naked) inline void __fastcall LandscapeResetOriginal(void* /*terrain*/) EI_ORIGINAL(0x006C5620)
 inline void* ClientWorldObject() { return reinterpret_cast<void*>(0x007AF5B8); }
 // The local player's client glue object (007AFEA5; its thiscall methods 00578xxx do not read it).
 inline void* ClientGlueObject() { return reinterpret_cast<void*>(0x007AFEA5); }

@@ -948,7 +948,6 @@ __declspec(naked) void __fastcall Construct570EA0(void*, void*, int) EI_ORIGINAL
 __declspec(naked) void __fastcall Construct571050(void*) EI_ORIGINAL(0x00571050)
 __declspec(naked) void __fastcall Construct570DE0(void*) EI_ORIGINAL(0x00570DE0)
 __declspec(naked) void __fastcall Construct5711C0(void*) EI_ORIGINAL(0x005711C0)
-__declspec(naked) void __fastcall Construct6C5620(void*) EI_ORIGINAL(0x006C5620)
 __declspec(naked) void* __fastcall Construct42D690(void*) EI_ORIGINAL(0x0042D690)
 __declspec(naked) void* __fastcall Construct691140(void*) EI_ORIGINAL(0x00691140)
 __declspec(naked) void* __fastcall Construct68E3F0(void*) EI_ORIGINAL(0x0068E3F0)
@@ -1035,11 +1034,11 @@ int CWorldClient::Setup() {
     auto* terrain = reinterpret_cast<Terrain*>(New(sizeof(Terrain)));
     if (terrain) {
         TransformObjectBase(terrain);
-        terrain->unknownD8 = 0;
-        terrain->unknownE4 = 0;
-        terrain->unknownE0 = 0;
-        terrain->unknownDC = 0;
-        Construct570E10(terrain->partE8);
+        terrain->pageTextures.data = nullptr;
+        terrain->pageTextures.growBy = 0;
+        terrain->pageTextures.capacity = 0;
+        terrain->pageTextures.size = 0;
+        Construct570E10(&terrain->pageMaterials);
         terrain->textF8 = camera::EmptyStringData();
         terrain->textFC = camera::EmptyStringData();
         Construct570E40(terrain->part12C);
@@ -1048,14 +1047,14 @@ int CWorldClient::Setup() {
         Construct6721D0(terrain->part15C);
         Construct570E70(terrain->part1E8);
         Construct570EA0(&terrain->sectorCache, nullptr, 10);
-        Construct571050(terrain->part25C);
+        Construct571050(&terrain->lights);
         Construct570DE0(&terrain->wavePhases);
         Construct56FD30(&terrain->visibleColumnFirst);
         Construct56FD30(&terrain->visibleColumnLast);
         terrain->textAE0 = camera::EmptyStringData();
         Construct5711C0(terrain->partAE8);
         ei::SetVtable(terrain, worlddata::kTerrainVtable);
-        Construct6C5620(terrain);
+        LandscapeResetOriginal(terrain);
     }
     terrain_ = terrain;
     ++terrain->refCount_;

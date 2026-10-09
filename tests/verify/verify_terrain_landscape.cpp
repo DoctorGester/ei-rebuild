@@ -1,9 +1,12 @@
 // Verify wrappers for the landscape object's members and its aligned arrays (terrain_landscape.cpp).
 #include "verify.h"
 
+#include "combat_verify_util.h"
+
 #include "../../src/game/terrain.h"
 #include "../../src/game/terrain_sector.h"
 
+#include <cmath>
 #include <cstdint>
 #include <cstring>
 
@@ -157,5 +160,151 @@ void __fastcall SetAtGrowDE90Verify(Words* self, void*, int index, std::uint32_t
     CompareSetAtGrow("AlignedArray<uint32>::SetAtGrow (006CDE90)", s_setAtGrowDE90, self, index, value);
 }
 EI_VERIFY(0x006CDE90, SetAtGrowDE90Verify, 5, s_setAtGrowDE90);
+
+// ---- Landscape Create / Destroy / Reset and the waves ----------------------------------------------
+// Reached at every zone load: the client world's Setup constructs the landscape (Reset through its
+// address) and calls Create; leaving a zone runs Destroy; Create and Destroy call Reset and the
+// wave phases through their addresses. The zone load (00567AB0) sets the wave strength.
+
+// A raw copy of the landscape in a static buffer, one per wrapper (Reset's original runs SetWaveStrength's
+// wrapper on its copy; the originals below only write fields).
+template <int Buffer>
+Terrain* RawCopy(const Terrain* self) {
+    alignas(Terrain) static unsigned char bytes[sizeof(Terrain)];
+    std::memcpy(bytes, static_cast<const void*>(self), sizeof(Terrain));
+    return reinterpret_cast<Terrain*>(bytes);
+}
+
+mfc::CString& AsString(const char*& text) { return reinterpret_cast<mfc::CString&>(text); }
+
+// 006C5620: SUB ESP,0xC; PUSH EBX; PUSH ESI (5 bytes). The original on a raw copy whose arrays are
+// empty and whose two texts are the empty string (so it frees and overwrites nothing of ours); ours
+// on the landscape. The whole object compared except the two text pointers (their texts compared).
+void(__fastcall* s_reset)(Terrain*, void*);
+
+void __fastcall ResetVerify(Terrain* self, void*) {
+    Terrain* scratch = RawCopy<0>(self);
+    const char* empty = *reinterpret_cast<const char* const*>(0x00796E48);   // afxEmptyString
+    scratch->pageTextures.data = nullptr;
+    scratch->pageMaterials.data = nullptr;
+    scratch->visibleColumnFirst.data = nullptr;
+    scratch->visibleColumnLast.data = nullptr;
+    scratch->textF8 = empty;
+    scratch->textAE0 = empty;
+    s_reset(scratch, nullptr);
+    self->Reset();
+    bool texts = std::strcmp(scratch->textF8, self->textF8) == 0 && std::strcmp(scratch->textAE0, self->textAE0) == 0;
+    AsString(scratch->textF8).~CString();
+    AsString(scratch->textAE0).~CString();
+    scratch->textF8 = self->textF8;
+    scratch->textAE0 = self->textAE0;
+    int differs = -1;
+    const auto* a = reinterpret_cast<const unsigned char*>(scratch);
+    const auto* b = reinterpret_cast<const unsigned char*>(self);
+    for (int i = 0; i < static_cast<int>(sizeof(Terrain)) && differs < 0; ++i)
+        if (a[i] != b[i]) differs = i;
+    ei::verify::Check("Terrain::Reset", -1, differs, "first differing byte (texts %d)", texts);
+    ei::verify::Check("Terrain::Reset texts", true, texts, "\"%s\"", self->textF8);
+}
+EI_VERIFY(0x006C5620, ResetVerify, 5, s_reset);
+
+// 006C57E0: SUB ESP,0xC; PUSH EBX; MOV EBX,ECX (6 bytes). The original on a raw copy with its own
+// phase block, rand()'s state saved before and restored for ours; the phases, the array header and
+// the state after both runs compared.
+void(__fastcall* s_wavePhases)(Terrain*, void*);
+
+// The first index where two float arrays differ by more than a few ULPs, or -1.
+int FirstFar(const float* expected, const float* actual, int count) {
+    for (int i = 0; i < count; ++i) {
+        float scale = std::fabs(expected[i]) > 1.0f ? std::fabs(expected[i]) : 1.0f;
+        if (!(std::fabs(expected[i] - actual[i]) <= scale * 1e-6f)) return i;
+    }
+    return -1;
+}
+
+void __fastcall WavePhasesVerify(Terrain* self, void*) {
+    Terrain* scratch = RawCopy<1>(self);
+    scratch->wavePhases = CopyArray(self->wavePhases);
+    combatverify::RandomState before, afterOriginal, afterOurs;
+    before.Save();
+    s_wavePhases(scratch, nullptr);
+    afterOriginal.Save();
+    before.Restore();
+    self->BuildWavePhases();
+    afterOurs.Save();
+    ei::verify::Check("Terrain::BuildWavePhases rand", true, afterOriginal.SameAs(afterOurs), "state after");
+    bool header = scratch->wavePhases.size == self->wavePhases.size &&
+                  scratch->wavePhases.capacity == self->wavePhases.capacity;
+    ei::verify::Check("Terrain::BuildWavePhases", true, header, "size %d/%d", scratch->wavePhases.size,
+                      self->wavePhases.size);
+    int bad = header ? FirstFar(scratch->wavePhases.data, self->wavePhases.data, self->wavePhases.size) : -1;
+    if (bad >= 0)
+        ei::verify::CheckNear("Terrain::BuildWavePhases", scratch->wavePhases[bad], self->wavePhases[bad], "phase %d", bad);
+    FreeCopy(scratch->wavePhases);
+}
+EI_VERIFY(0x006C57E0, WavePhasesVerify, 6, s_wavePhases);
+
+// The wave fields after SetWaveStrength / SetWaves.
+void CompareWaves(const char* name, const Terrain* expected, const Terrain* actual, float strength) {
+    const float e[] = {expected->waveDirection.x, expected->waveDirection.y, expected->waveDirection.z,
+                       expected->waveHeight, expected->waveGlow, expected->wavePhase, expected->waveSpeed};
+    const float a[] = {actual->waveDirection.x, actual->waveDirection.y, actual->waveDirection.z,
+                       actual->waveHeight, actual->waveGlow, actual->wavePhase, actual->waveSpeed};
+    int bad = FirstFar(e, a, 7);
+    if (bad >= 0) ei::verify::CheckNear(name, e[bad], a[bad], "strength %g field %d", strength, bad);
+}
+
+// 006C7D70 / 006C7EB0: PUSH EBP; MOV EBP,ESP; SUB ESP,8 (6 bytes). They only write the wave
+// fields: the original on a raw copy, ours on the landscape.
+void(__fastcall* s_waveStrength)(Terrain*, void*, float);
+
+void __fastcall WaveStrengthVerify(Terrain* self, void*, float strength) {
+    Terrain* scratch = RawCopy<2>(self);
+    s_waveStrength(scratch, nullptr, strength);
+    self->SetWaveStrength(strength);
+    CompareWaves("Terrain::SetWaveStrength", scratch, self, strength);
+}
+EI_VERIFY(0x006C7D70, WaveStrengthVerify, 6, s_waveStrength);
+
+void(__fastcall* s_waves)(Terrain*, void*, const Vector3*, float);
+
+void __fastcall WavesVerify(Terrain* self, void*, const Vector3* direction, float strength) {
+    Vector3 copy = *direction;   // the original's copy writes our direction when it is the landscape's
+    Terrain* scratch = RawCopy<3>(self);
+    s_waves(scratch, nullptr, &copy, strength);
+    self->SetWaves(direction, strength);
+    CompareWaves("Terrain::SetWaves", scratch, self, strength);
+}
+EI_VERIFY(0x006C7EB0, WavesVerify, 6, s_waves);
+
+// 006C5430 / 006C54D0: ours only (they allocate and free; Reset and the wave phases are compared
+// above). Create: the result, the sine table against sin(i * pi / 256), the frame and rotation.
+// Destroy: the light table, the cache list and the map size emptied.
+int(__fastcall* s_create)(Terrain*, void*);
+
+int __fastcall CreateVerify(Terrain* self, void*) {
+    int result = self->Terrain::Create();
+    ei::verify::Check("Terrain::Create", 1, result, "result");
+    float expected[512];
+    for (int i = 0; i < 512; ++i) expected[i] = static_cast<float>(std::sin(i * 3.141592653589793 / 256));
+    int bad = FirstFar(expected, self->sine, 512);
+    if (bad >= 0) ei::verify::CheckNear("Terrain::Create sine", expected[bad], self->sine[bad], "entry %d", bad);
+    ei::verify::Check("Terrain::Create", true,
+                      self->frame == 1 && self->localRotation_.w == 1.0f && self->wavePhases.size == 33 * 33,
+                      "frame %d", self->frame);
+    return result;
+}
+EI_VERIFY(0x006C5430, CreateVerify, 0, s_create);
+
+void(__fastcall* s_destroy)(Terrain*, void*);
+
+void __fastcall DestroyVerify(Terrain* self, void*) {
+    self->Terrain::Destroy();
+    ei::verify::Check("Terrain::Destroy", true,
+                      self->lights.Size() == 0 && self->lights.First() == nullptr && self->maxLightId == 0 &&
+                          self->sectorCache.count == 0 && self->sectorCache.head == nullptr && self->sectorsX == -1,
+                      "lights %u cache %d", static_cast<unsigned>(self->lights.Size()), self->sectorCache.count);
+}
+EI_VERIFY(0x006C54D0, DestroyVerify, 0, s_destroy);
 
 } // namespace
