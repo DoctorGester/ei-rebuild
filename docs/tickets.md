@@ -43,6 +43,7 @@ The four porting batches (A-I16, A-H15, A-S9, A-U7) are merged (2026-10-09, 140 
 
 - C6 done 2026-10-09 (combat.md "C6 cleanup"). C7 done 2026-10-09.
 - C8 merged 2026-10-09 (8 script / world files).
+- C9 (taken 2026-10-09): renderer_init, map_object_lifetime, figure_part_draw, string_map, map_object_shadow, world_map, world_update, scene_bones, unit_update.
 
 ## Vector math (planned 2026-10-09)
 
