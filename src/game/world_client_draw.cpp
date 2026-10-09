@@ -143,9 +143,7 @@ __declspec(naked) void __fastcall IntroSortByModelUseAt(CEngineObject**, CEngine
 __declspec(naked) void __fastcall FinalSortByModelUseAt(CEngineObject**, CEngineObject**, void*) EI_ORIGINAL(0x00573F10)
 __declspec(naked) void __fastcall QueueSelected(CEngineObject*, void*) EI_ORIGINAL(0x0056A370)
 __declspec(naked) void __fastcall LightEffectDraw(void*) EI_ORIGINAL(0x006CEDE0)
-__declspec(naked) void __fastcall QuaternionAxisZ(const void*, void*, float*) EI_ORIGINAL(0x0040D6B0)
-__declspec(naked) void __fastcall QuaternionAxisX(const Quaternion*, void*, Vector3*) EI_ORIGINAL(0x0040D940)
-__declspec(naked) void __fastcall MarkerDraw(void*, void*, const float*, float, const float*, const float*)
+__declspec(naked) void __fastcall MarkerDraw(void*, void*, const Vector3*, float, const Vector3*, const Vector3*)
     EI_ORIGINAL(0x00503A40)
 __declspec(naked) void __fastcall ListErase(void*, void*, void**, void*) EI_ORIGINAL(0x00512030)
 __declspec(naked) CEngineObject** __fastcall VectorCopyBack(CEngineObject**, CEngineObject**, CEngineObject**)
@@ -543,14 +541,14 @@ int CWorldClient::DrawPass() {
         matrix.m[10] = 1.0f;
         matrix.m[5] = 1.0f;
         matrix.m[0] = 1.0f;
-        float sun[3];
-        QuaternionAxisZ(&camera::TheCamera()->localRotation_, nullptr, sun);
+        Vector3 sun;
+        QuaternionAxisZ(&camera::TheCamera()->localRotation_, nullptr, &sun);
         const float scale = ShadowLength();
-        volatile float product = sun[0] * scale;
+        volatile float product = sun.x * scale;
         matrix.m[3] = product;
-        product = sun[1] * scale;
+        product = sun.y * scale;
         matrix.m[7] = product;
-        product = sun[2] * scale;
+        product = sun.z * scale;
         matrix.m[11] = product;
         PushSceneMatrixOriginal(device, nullptr, matrix.m, kStackScene2);
         PushSceneMatrixOriginal(device, nullptr, matrix.m, kStackScene1);
@@ -583,19 +581,19 @@ int CWorldClient::DrawPass() {
             auto* object = static_cast<CMapObject*>(ManagerFindObject(manager, nullptr, id));
             if (object) {
                 if (ObjectSlots(object)->IsDead() == 0) {
-                    float point[3];
-                    std::memcpy(point, &object->position.x, sizeof(point));
+                    Vector3 point;
+                    std::memcpy(&point, &object->position, sizeof(point));
                     if (void* part = ObjectFindPartOriginal(object, nullptr, MarkerPartName())) {
-                        float scratch[3];
-                        const float* at = ObjectPartPositionOriginal(object, nullptr, scratch, part);
-                        std::memcpy(point, at, sizeof(point));
-                        point[2] = Reload(object->position.z);
+                        Vector3 scratch;
+                        const float* at = ObjectPartPositionOriginal(object, nullptr, &scratch.x, part);
+                        std::memcpy(&point, at, sizeof(point));
+                        point.z = Reload(object->position.z);
                     }
                     const Quaternion* orientation = &object->orientation;
                     Vector3 axisY, axisX;
                     QuaternionAxisY(orientation, nullptr, &axisY);
                     QuaternionAxisX(orientation, nullptr, &axisX);
-                    MarkerDraw(SceneContext(), nullptr, point, 0.5f, &axisX.x, &axisY.x);
+                    MarkerDraw(SceneContext(), nullptr, &point, 0.5f, &axisX, &axisY);
                 } else {
                     if (object->flags_ & 0x10) {
                         object->flags_ &= ~0x110u;

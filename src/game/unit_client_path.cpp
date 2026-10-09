@@ -60,21 +60,21 @@ void __fastcall ClientPlaceOnPath(std::uint8_t* controller, void*, float time, f
     CUnit* unit = self->unit;
     if (unit->flags_ & 0x4000000) return;
     float toCells = 1.0f / (kCellScale * kHalf);
-    float position[3] = {unit->position.x, unit->position.y, unit->position.z};
-    position[0] = toCells * position[0];
-    position[1] = toCells * position[1];
+    Vector3 position = {unit->position.x, unit->position.y, unit->position.z};
+    position.x = toCells * position.x;
+    position.y = toCells * position.y;
     Vector3 direction;
     float speed;
     int cellX, cellY;
     bool turning;
     void* world = ObjectWorld(controller);
-    MotionSample(unit->motion, nullptr, world, self->motionOrder, time, &turning, position, &direction.x, &speed, &cellX,
+    MotionSample(unit->motion, nullptr, world, self->motionOrder, time, &turning, &position, &direction, &speed, &cellX,
                  &cellY);
     float toWorld = kCellScale * kHalf;
-    position[0] = toWorld * position[0];
-    position[1] = toWorld * position[1];
-    position[2] = static_cast<float>(UnitGroundHeight(unit, nullptr, position[0], position[1]) + unit->heightOffset);
-    static_cast<CWorld*>(ObjectWorld(controller))->MoveObject(unit, position);   // the world's slot 41
+    position.x = toWorld * position.x;
+    position.y = toWorld * position.y;
+    position.z = static_cast<float>(UnitGroundHeight(unit, nullptr, position.x, position.y) + unit->heightOffset);
+    static_cast<CWorld*>(ObjectWorld(controller))->MoveObject(unit, &position.x);   // the world's slot 41
     if (self->snapHeading) {
         self->snapHeading = 0;
         UnitTurnTowards(unit, nullptr, &direction.x, 0);

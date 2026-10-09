@@ -64,8 +64,13 @@ __declspec(naked) inline void __fastcall ListAppend(void* /*cells*/, void*, cons
 __declspec(naked) inline void* __fastcall ListReversed(const void* /*cells*/, void*, void* /*out*/)
     EI_ORIGINAL(0x005C5E60)
 __declspec(naked) inline void __fastcall MotionBuild(void*, void*, void* /*order*/) EI_ORIGINAL(0x005C67D0)
-__declspec(naked) inline bool __fastcall MotionSample(void* /*motion*/, void*, void* /*world*/, void* /*order*/, float /*time*/, bool* /*turning*/, float* /*position*/, float* /*direction*/, float* /*speed*/, int* /*cellX*/, int* /*cellY*/)
+__declspec(naked) inline bool __fastcall MotionSample(void* /*motion*/, void*, void* /*world*/, void* /*order*/, float /*time*/, bool* /*turning*/, Vector3* /*position*/, Vector3* /*direction*/, float* /*speed*/, int* /*cellX*/, int* /*cellY*/)
     EI_ORIGINAL(0x005C7430)
+// 005C7B00 (rewritten as AIPath::Start, ai_motion.cpp; RET 0xC, AL): the path started at `position`
+// facing `direction` at `time`.
+__declspec(naked) inline bool __fastcall AIPathStartOriginal(AIPath*, void*, const Vector3* /*position*/,
+                                                             const Vector3* /*direction*/, int /*time*/)
+    EI_ORIGINAL(0x005C7B00)
 __declspec(naked) inline void __fastcall PathShiftTime(void*, void*, int) EI_ORIGINAL(0x005C7CB0)
 
 // C3i. 005C35F0: CLocalSearch reset (plain RET, EAX not a result; the old `(void*, void*)` forms passed a dummy EDX).

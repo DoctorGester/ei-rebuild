@@ -23,7 +23,6 @@ namespace {
 // turning, position (half-cells), direction, speed, cell x, cell y]; the animation entry of an
 // animation index [00518F80 (index)]; the orientation's axes [0040D940 X, 0040F560 Y (out)]; the AI
 // map's passability for a size class [005BA790 (class, point)]; the debug message [0044C470].
-__declspec(naked) Vector3* __fastcall AxisX(const Quaternion*, void*, Vector3*) EI_ORIGINAL(0x0040D940)
 Vector3* __fastcall AxisY(const Quaternion* q, void*, Vector3* out) { return QuaternionAxisY(q, nullptr, out); }
 __declspec(naked) bool __fastcall IsPassableForClass(void*, void*, int, const float*) EI_ORIGINAL(0x005BA790)
 
@@ -52,19 +51,19 @@ float* __fastcall UnitPredictPosition(std::uint8_t* object, void*, float* out, i
     auto* order = reinterpret_cast<MotionOrder*>(path);
     if (order->kind == kOrderPath && !(unit->flags_ & 0x8000000)) {
         float toCells = 1.0f / (kCellScale * kHalf);
-        float position[3] = {unit->position.x, unit->position.y, unit->position.z};
-        position[0] = toCells * position[0];
-        position[1] = toCells * position[1];
+        Vector3 position = {unit->position.x, unit->position.y, unit->position.z};
+        position.x = toCells * position.x;
+        position.y = toCells * position.y;
         bool turning;
         Vector3 direction;
         float speed;
         int cellX, cellY;
-        MotionSample(unit->motion, nullptr, ObjectWorld(unit), order, static_cast<float>(time), &turning, position,
-                     &direction.x, &speed, &cellX, &cellY);
+        MotionSample(unit->motion, nullptr, ObjectWorld(unit), order, static_cast<float>(time), &turning, &position,
+                     &direction, &speed, &cellX, &cellY);
         float toWorld = kCellScale * kHalf;
-        out[0] = toWorld * position[0];
-        out[1] = toWorld * position[1];
-        std::memcpy(&out[2], &position[2], 4);
+        out[0] = toWorld * position.x;
+        out[1] = toWorld * position.y;
+        std::memcpy(&out[2], &position.z, 4);
         return out;
     }
     CopyPosition(out, unit);
@@ -100,11 +99,11 @@ float* __fastcall UnitActionPoint(std::uint8_t* object, void*, float* out) {
             float reach = unit->above.y;
             offset = -axis * reach;
         } else if (side == 0xC00000) {
-            AxisX(&unit->orientation, nullptr, &axis);
+            QuaternionAxisX(&unit->orientation, nullptr, &axis);
             float reach = unit->above.x;
             offset = axis * reach;
         } else if (side == 0x1000000) {
-            AxisX(&unit->orientation, nullptr, &axis);
+            QuaternionAxisX(&unit->orientation, nullptr, &axis);
             float reach = unit->above.x;
             offset = -axis * reach;
         }

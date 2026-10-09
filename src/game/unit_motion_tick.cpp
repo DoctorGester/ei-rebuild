@@ -64,8 +64,6 @@ __declspec(naked) bool __fastcall MapOccluderAt(void*, void*, const float*) EI_O
 __declspec(naked) bool __fastcall MapContinuePath(void*, void*, CUnit*, void* /*path*/) EI_ORIGINAL(0x005BB900)
 __declspec(naked) void __fastcall MapLiftAround(void*, void*, const float*, int) EI_ORIGINAL(0x005B7EF0)
 // The motion order (+0x3C, an AIPath): 005B23A0 Clear, 005C7B00 Start (ai_motion.cpp).
-__declspec(naked) bool __fastcall PathStart(void*, void*, const float* /*position*/, const float* /*direction*/, int /*time*/)
-    EI_ORIGINAL(0x005C7B00)
 // 0040F560 Quaternion::AxisY, 00402200 NegateVector (core_maths.cpp).
 // 005D5E90 the AI brain's leader (unit_ai.cpp); 0066D6E0 a party message.
 __declspec(naked) CUnit* __fastcall BrainLeader(void*) EI_ORIGINAL(0x005D5E90)
@@ -368,7 +366,7 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         Vector3 axis, back;
         QuaternionAxisY(&UnitOf(c)->orientation, nullptr, &axis);
         Vector3* facing = Negate(&back, &axis);
-        if (PathStart(MotionPathOf(c), nullptr, &UnitOf(c)->position.x, &facing->x, time)) UnitPathSpeeds(UnitOf(c));
+        if (AIPathStartOriginal(MotionPathOf(c), nullptr, &UnitOf(c)->position, facing, time)) UnitPathSpeeds(UnitOf(c));
         CtlSetStanding(c, nullptr, 0);
         CtlSetState(c, nullptr, 6);
         c->stoodBlocked = wasFlag;
@@ -380,7 +378,7 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         Vector3 axis, back;
         QuaternionAxisY(&UnitOf(c)->orientation, nullptr, &axis);
         Vector3* facing = Negate(&back, &axis);
-        if (PathStart(MotionPathOf(c), nullptr, &UnitOf(c)->position.x, &facing->x, time)) UnitPathSpeeds(UnitOf(c));
+        if (AIPathStartOriginal(MotionPathOf(c), nullptr, &UnitOf(c)->position, facing, time)) UnitPathSpeeds(UnitOf(c));
         CtlSetStanding(c, nullptr, 0);
         CtlSetState(c, nullptr, 6);
         c->stoodBlocked = 0;
@@ -485,7 +483,7 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
     float speed;
     int cellX, cellY;
     bool going = MotionSample(UnitOf(c)->Motion(), nullptr, world, MotionPathOf(c), TimeAsFloat(&time), &turning,
-                              &position.x, &direction.x, &speed, &cellX, &cellY);
+                              &position, &direction, &speed, &cellX, &cellY);
     bool motionOver = !going;
     FromHalfCells(&position.x);
 

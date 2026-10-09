@@ -139,7 +139,6 @@ void __fastcall StepsAddStepTick(AnimationSteps* a0, void*, int a2, int a3) { St
 inline void __fastcall PtrListRemoveAll(void* l) { PtrListRemoveAllOriginal(l); }
 // Motion (+0x3C): 005B1DE0 turn to a point, 005B23A0 stop, 005C7B00 place along a direction.
 __declspec(naked) void __fastcall MotionTurn(void*, void*, int, CUnit*, const float*, int) EI_ORIGINAL(0x005B1DE0)
-__declspec(naked) bool __fastcall MotionPlace(void*, void*, const float*, const Vector3*, int) EI_ORIGINAL(0x005C7B00)
 // CUnit: 0052E9D0 path speeds, 00530570 size class, 00530A60 IsBehind (unit_hits.cpp),
 // 0052FBC0 ScaledValue (unit.cpp; ST0).
 __declspec(naked) BOOL __fastcall UnitIsBehind(CUnit*, void*, CEngineObject*) EI_ORIGINAL(0x00530A60)
@@ -921,7 +920,7 @@ void CUnitServer::ApproachTarget() {
     aiMap->refreshUnits = savedFlag;
     if (LessOrUnordered(static_cast<double>(reach) * reach, fx * fx + fy * fy)) {
         // The way leads elsewhere: stop, face along, and chase from here.
-        void* path = &motion;
+        AIPath* path = &motion;
         PathClear(path);
         int time = WorldTick(this);
         Vector3 axis;
@@ -930,7 +929,7 @@ void CUnitServer::ApproachTarget() {
         back.x = -axis.x;
         back.y = -axis.y;
         back.z = -axis.z;
-        if (MotionPlace(path, nullptr, &unit->position.x, &back, time)) UnitPathSpeeds(unit);
+        if (AIPathStartOriginal(path, nullptr, &unit->position, &back, time)) UnitPathSpeeds(unit);
         CtlSetStanding(this, nullptr, 0);
         state = kStateChasing;
         UnitUpdateSizeClass(unit);

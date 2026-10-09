@@ -99,8 +99,6 @@ __declspec(naked) void __fastcall ParticleAttach(CEngineObject*, void*, int) EI_
 // The sector map (world + 0x294): 005C1010 Remove, 005C0DF0 Add.
 // The motion (+0x3C, an AIPath; ai_motion.cpp): 005C7CB0 ShiftTime, 005B23A0 Clear, 005C7B00
 // Start, and 005C7430 UnitMotion::Sample on CUnit + 0x27C.
-__declspec(naked) bool __fastcall PathStart(void*, void*, const float* /*position*/, const float* /*direction*/,
-                                            int /*time*/) EI_ORIGINAL(0x005C7B00)
 // The controller's functions rewritten elsewhere, through their game addresses: 0054B390
 // UpdateOrders (combat_tick.cpp), 00547890 the movement tick (unit_motion_tick.cpp), 00552E00
 // PropagateHostility, 00549EC0 FinishAction, 00552C60 UseItemCharge (combat_actions.cpp),
@@ -517,8 +515,8 @@ void CUnitServer::StandStill() {
     float b = (qw * qw - (qx * qx + qz * qz + yy)) + (yy + yy);
     float c = qz * qy + qw * qx;
     c = c + c;
-    float direction[3] = {-a, -b, -c};
-    if (PathStart(Motion(this), nullptr, &unit->position.x, direction, now)) UnitPathSpeeds(unit);
+    Vector3 direction = {-a, -b, -c};
+    if (AIPathStartOriginal(MotionPath(), nullptr, &unit->position, &direction, now)) UnitPathSpeeds(unit);
     SetStandingFlag(this, 0);
 }
 EI_REPLACE_METHOD(0x00547280, CUnitServer::StandStill);
@@ -623,14 +621,14 @@ void CUnitServer::TickAction() {
     if (now < plan.endTime) {
         // Still acting: the unit stays where its motion puts it, facing its direction.
         void* context = ManagerContextOf(this);
-        float position[3] = {unit->position.x, unit->position.y, unit->position.z};
+        Vector3 position = {unit->position.x, unit->position.y, unit->position.z};
         Vector3 direction;
         float speed;
         int cellX;
         int cellY;
         bool turning;
         MotionSample(unit->motion, nullptr, context, Motion(this),
-                     static_cast<float>(TickOf(context)), &turning, position, &direction.x, &speed, &cellX, &cellY);
+                     static_cast<float>(TickOf(context)), &turning, &position, &direction, &speed, &cellX, &cellY);
         SetStandingFlag(this, state == kStateIdle ? 1 : 0);
         UnitTurnUpTowards(unit, nullptr, &direction.x, 0);
         return;
@@ -656,8 +654,8 @@ void CUnitServer::TickAction() {
     int time = TickOf(ObjectWorld(this));
     Vector3 axis;
     QuaternionAxisY(&unit->orientation, nullptr, &axis);
-    float backwards[3] = {-axis.x, -axis.y, -axis.z};
-    if (PathStart(Motion(this), nullptr, &unit->position.x, backwards, time)) UnitPathSpeeds(unit);
+    Vector3 backwards = -axis;
+    if (AIPathStartOriginal(MotionPath(), nullptr, &unit->position, &backwards, time)) UnitPathSpeeds(unit);
     CtlSetStanding(this, nullptr, 0);
 }
 EI_REPLACE_METHOD(0x00549160, CUnitServer::TickAction);

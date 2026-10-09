@@ -251,7 +251,7 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
         float speed;
         int cellX;
         int cellY;
-        MotionSample(&simulated.motion, nullptr, nullptr, motionOrder, time, &turning, &position.x, &direction.x, &speed, &cellX,
+        MotionSample(&simulated.motion, nullptr, nullptr, motionOrder, time, &turning, &position, &direction, &speed, &cellX,
                      &cellY);
         if (position.x == previous[0] && position.y == previous[1] && position.z == previous[2]) break;
         std::memcpy(previous, &position, sizeof(previous));
