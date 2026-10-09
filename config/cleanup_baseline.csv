@@ -84,7 +84,7 @@ src/game/key_bindings.cpp,0,0,0,0,1,0,0,0,0
 src/game/lightning.cpp,0,0,0,1,0,0,0,1,0
 src/game/lightning_draw.cpp,0,7,0,0,0,0,0,0,0
 src/game/lightning_start.cpp,0,3,0,0,4,0,0,0,0
-src/game/magic_trap.cpp,55,5,0,0,7,0,0,0,0
+src/game/magic_trap.cpp,0,0,0,0,6,0,0,0,0
 src/game/map_database.cpp,0,0,1,0,27,0,0,0,0
 src/game/map_object.cpp,0,10,0,1,0,0,0,5,0
 src/game/map_object.h,0,0,0,0,0,0,0,1,0
