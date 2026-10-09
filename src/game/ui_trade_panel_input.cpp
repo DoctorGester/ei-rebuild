@@ -1,5 +1,6 @@
-// The trade panel's scroll clamp (00626D70) and its left button (00626920): scrolling the perk
-// lists and buying school levels, science and perks with experience. See docs/notes/ui.md,
+// The trade panel's scroll clamp (00626D70), its left button (00626920) and its update (00626C50):
+// scrolling the perk lists and buying school levels, science and perks with experience, a school
+// or science level again every quarter second while the button stays down. See docs/notes/ui.md,
 // section 5.
 #include "ui_camp.h"
 
@@ -26,6 +27,7 @@ constexpr int kFirstLearnable = 11;
 constexpr int kFirstHeld = 34;
 constexpr int kMaxLevel = 100;
 constexpr float kFirstHold = -0.5f;
+constexpr float kHoldRepeat = 0.25f;   // 0073C3B0
 
 CUiMesh* Arrow(CUiWindow* window, int index) { return reinterpret_cast<CUiMesh*>(window->sceneObjects_.data[index]); }
 
@@ -111,3 +113,53 @@ void __fastcall TradeLButtonDown(void* input, void*, int buttons, int x, int y) 
 }
 } // namespace
 EI_REPLACE(0x00626920, TradeLButtonDown);
+
+// --- 00626C30: the left button released (input slot 3) ---------------------------------------------
+
+void CTradePanel::OnLButtonUp(int, int, int) {
+    interface_->mouseCapture_ = nullptr;
+    heldRegion_ = -1;
+    holdTime_ = 0.0f;
+}
+namespace {
+// The original leaves 0 in EAX.
+int __fastcall TradeLButtonUp(void* input, void*, int buttons, int x, int y) {
+    WindowFromInput<CTradePanel>(input)->OnLButtonUp(buttons, x, y);
+    return 0;
+}
+} // namespace
+EI_REPLACE(0x00626C30, TradeLButtonUp);
+
+// --- 00626C50: the held school / science button (slot 24) -------------------------------------------
+
+void CTradePanel::UpdateHeld() {
+    if (heldRegion_ < 0) return;
+    // The comparison uses the unrounded sum; the field keeps it rounded.
+    double held = WindowFrameTimeOriginal(this) + holdTime_;
+    holdTime_ = static_cast<float>(held);
+    if (!(held >= kHoldRepeat)) return;
+    int region = heldRegion_;
+    using HeroFn = PartyUnitRecord*(__thiscall*)(CUiWindow*);
+    PartyUnitRecord* hero = reinterpret_cast<HeroFn>(owner_->vtable_[51])(owner_);
+    auto* stats = reinterpret_cast<UnitStats*>(hero->stats);
+    const TradeRow* row;
+    std::uint8_t* level;
+    if (region >= kFirstSchool && region < kScience) {
+        row = &schools_.begin[region - kFirstSchool];
+        level = &stats->skills[region - kFirstSchool];
+    } else if (region == kScience) {
+        row = &science_.begin[0];
+        level = &stats->attributes[0];
+    } else {
+        return;
+    }
+    if (row->level < kMaxLevel && row->price <= experience_) {
+        ++*level;
+        stats->spentExperience = static_cast<float>(static_cast<double>(row->price) + stats->spentExperience);
+        TradePanelBuildListsOriginal(this);
+        return;
+    }
+    interface_->mouseCapture_ = nullptr;
+    heldRegion_ = -1;
+}
+EI_REPLACE_METHOD(0x00626C50, CTradePanel::UpdateHeld);

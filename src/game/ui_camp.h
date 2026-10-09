@@ -623,6 +623,15 @@ public:
     // captured), 11-33 a learnable perk, 34 up (and below 0) the next level of a held perk; the
     // spent experience grows by the price, the record is marked bought and the lists rebuilt.
     void OnLButtonDown(int buttons, int x, int y);
+    // 00626C30 (input slot 3, RET 0xC; EAX 0). Releases the mouse unconditionally and ends a
+    // hold (heldRegion_ -1, holdTime_ 0).
+    void OnLButtonUp(int buttons, int x, int y);
+    // 00626C50 (slot 24, ui_trade_panel_input.cpp). While a school or science row is held
+    // (heldRegion_ >= 0) the hold time grows by the frame time; from 0.25 s on, every frame buys
+    // the row's next level again while its level is below 100 and the experience covers the price
+    // (the record is not marked bought), else the mouse is released and the hold ends. The hold
+    // time is not reset after a purchase.
+    void UpdateHeld();
     // The record of the hero shown (recordIndex_).
     const TradeRecord& Record() const { return records_.begin[recordIndex_]; }
 
@@ -950,6 +959,9 @@ static_assert(sizeof(CHeroEquipPanel) == 0x158);
 
 // --- Camp trade grid ----------------------------------------------------------------------------
 //
+// The item lists the grids show: a party's or trader's items (CParty +0x40, an engine aligned array).
+using UiItemList = lib::AlignedArray<CItem*>;
+//
 // The 4 x 4 grid of item cells on the constructors' first pages (vtables 0074170C / 007416D8,
 // 0x164 bytes; ui_hero_panels.cpp).
 class CTradeGrid : public CUiWindow {
@@ -958,10 +970,15 @@ public:
     // quarter), their frames, a region per cell, and the surface. `spells` chooses the price kinds
     // (0/1 for the spell constructor, 4/5 for the item one).
     void Build(void* bought, void* sold, char spells, char flag);
+    // 00627920 (slot 25, RET 0xC; ui_hero_panels.cpp). The item under (x, y) with its help topic:
+    // regions 0-7 the bought list (topic 0x1C with flag_, else 0x0B for the item constructor,
+    // 0x11 for the spell one), 8-15 the sold list (0x1D / 0x0C / 0x12); null elsewhere, past a
+    // list's end or while disabled (topic 0 when off the cells or disabled).
+    CItem* ItemAt(int x, int y, int* topic);
 
     std::uint8_t unknown_148[0x150 - 0x148];
-    void* bought_;                   // +0x150 an item list (+0x40 of a 00661050 list)
-    void* sold_;                     // +0x154
+    UiItemList* bought_;             // +0x150 an item list (+0x40 of a 00661050 list)
+    UiItemList* sold_;               // +0x154
     int buyKind_;                    // +0x158
     int sellKind_;                   // +0x15C
     char flag_;                      // +0x160
@@ -981,10 +998,13 @@ public:
     // count when more than one and its repair price (owner slot 54, kind 8) on the surface; the
     // window's sprites and models; the depth buffer cleared to 1 again. Returns 1.
     BOOL Draw(int pass);
+    // 00628060 (slot 25, RET 0xC; ui_hero_panels.cpp). The item in cell region (x, y) (topic 0x19
+    // on the 16 cells), null past the list's end, elsewhere or while disabled (topic 0).
+    CItem* ItemAt(int x, int y, int* topic);
 
     int unknown_148;                 // +0x148 8 (the cells' mode)
     CUiWindow* owner_;               // +0x14C the camp
-    void* items_;                    // +0x150
+    UiItemList* items_;              // +0x150
 };
 static_assert(offsetof(CRepairGrid, items_) == 0x150);
 static_assert(sizeof(CRepairGrid) == 0x154);

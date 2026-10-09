@@ -160,8 +160,7 @@ before the call and must be left exactly on those the dispatcher skipped; a hand
 ## 3. Interface base: frame update, text layout, console window, cursor (005E0000-00610000)
 
 Files: `ui_interface_frame.cpp`, `ui_text.cpp`, `ui_console_window.cpp`, `ui_cursor*.cpp`, `ui_gdi.h` (the game's MFC CDC /
-CPen as the interface uses them); wrappers `verify_ui_base.cpp`. Not rewritten in this range: 005E18E0
-`CFlyingHitPoints::Draw` (float-heavy vertex building; cannot be compared without faking the clock and the device),
+CPen as the interface uses them); wrappers `verify_ui_base.cpp`. Not rewritten in this range:
 005E2A30 / 005E3230 / 005E3700 (chat window; multiplayer only, 005E3700 Rebirth-patched), 005F8340 (text extent,
 Rebirth-patched), 005F7B40.
 
@@ -194,11 +193,48 @@ ours only (the DC field unchanged). CDC::FromHandle 00708D79 is `CdcFromHandleOr
 005F85C0 (`ui_interface_save.cpp`, LoadState's counterpart; side by side through a recorder on the stream's Write;
 every save).
 
-Next in 005E0000-00640000 after A-I17 (not Rebirth-patched, single player first): 005F4F90 (the interface's shutdown:
-closes the windows, writes config\tutorial.ini from the help map +0x98, frees the surfaces), 005F4790 (a destructor
-body: the help map, the +0x84 list, the window stack's storage), 005FC1F0 (`CUiModel::Load`), 00626C50, 0062B350,
-005E18E0 (`CFlyingHitPoints::Draw`, 2.9 KB float), 00612CF0 (the camp's slot 39, a debug fill of the constructors; no
-scenario). Multiplayer / lobby last: 005E2A30 / 005E3230 / 005E3550 / 005E3CE0 / 005E26F0 (chat), 00608D20-006097E0 (the
+A-I18: the interface's end (`ui_interface_shutdown.cpp`; `verify_ui_interface_shutdown.cpp`, ours only):
+`CInterface3D::ResetInput` 005F8C50 (flags +0x7C..+0x80, the top's input slot 1; every scenario), `Shutdown` 005F4F90
+(the main loop's exit: windows closed, config\tutorial.ini written from `helpTopics_`, surfaces, root, console, fonts and
+fade freed; the wrapper reads the file back; every scenario that quits), `DestroyBody` 005F4790 (the global's atexit
+destructor: CStrings, help map, message list, stack storage; the wrapper finds the freed nodes on the pool's free
+lists), `ConsoleWindow::DestroyBody` 005E3DF0. Kept: Shutdown deletes the queued window (+0x40) and the fade (+0x18)
+without clearing them. `CInterface3D` now declares +0x20, +0x40, +0x5C, the fonts +0x70, `messages_` +0x84 (stlp::list
+of CString), `helpTopics_` +0x98 (stlp::map<CString, int>) and the CStrings +0xA4 / +0xAC as `mfc::CString`.
+`CUiModel::Load` 005FC1F0 (`ui_model.cpp`; a map object of class 0x33 / id 0x88CA6C00 from the client world's map
+object manager, the figure steps through their addresses; ui_layouts.cpp calls it as `CallLoad`; ours only: referenced,
+flag 0x4000000, at (0, 0, 3), parts; ui_screens / ui_options / ui_saveload). The trade panel's left-up 00626C30 and
+held-row update 00626C50 (slot 24; `ui_trade_panel_input.cpp`; ours only: hold ended / waiting / one level bought for
+the row's price; scenario `ui_trade_hold` with the new harness steps `ldown` / `lup`, the purchases only in the Rebirth
+run (GiveUnitExp)). Kept: a held purchase does not mark the record bought and does not reset the hold time. Library:
+0062B350 (vector destructor) and 005E67F0 (RefPtr destructor) are reached only from unwind funclets.
+`CFlyingHitPoints::Draw` 005E18E0 (`ui_flying_hit_points.cpp`; renderer slot 12 is now `CSceneRenderer::DrawTriangles`,
+`FigurePart::mesh` +0x94): side by side with the game's timeGetTime import held at one value, the original on a copy of
+the list with a stand-in renderer recording slots 11 / 12, ours likewise, its calls replayed on the real renderer;
+draws, entries left and the result compared. Every zone; numbers need hits with option 17 (0079BE74) on. The
+original leaves the render target size unset without a primary surface (ours 0).
+`ui_interface_glue.cpp` (`verify_ui_interface_glue.cpp`, ours only): `PlaySound` 005F7E60 (Play2D, priority 1000, volume
+100), `StopSound` 005F7E90, `ConsoleAddText` / `SetConsoleRect` / `SetConsoleHistory` 005F7EB0 / 005F7ED0 / 005F7EF0,
+`SetDebugInfoRect` 005F7F10, `ShowFps` 005F5700 (+0x20 is the frame rate surface), `OnQuestVariable` 005F7FC0 (top
+window slot 33; at 1 the name's third '.' part becomes savedText_, the current quest). Scenarios: console, every
+screen with sounds, every zone with quest variables. Not done: the top-window forwarders for multiplayer messages
+005F7F30 / 005F7F60 / 005F7F80 / 005F7FA0 / 005F82A0 / 005F82D0 / 005F8310 (slots 28-32, 36, 37), 005F86D0 (bottom
+window slot 40), 005F82F0 (chat).
+`ShowStatusText` 005F75B0 (+0x64 the status surface while shown; ours only: freed after). `CUiSurface::Fill` 005FE370 /
+`Clear` 005FE2F0 (`ui_surface_frame.cpp`, +0x34 is `background_`; ours only: DC and holder kept). Library (A-I18 review):
+005F3000 / 005F3170 (map<string,T>::operator[]), 005F4390 / 005F44A0 / 005F9C70 / 0062C0C0 (node creation), 005FAEA0
+(help topics map find), 005F60B0 / 005F6AD0 / 005F8FC0 / 005F9570 / 0062B480 / 00634090 (unwind-only destructors).
+005F46A0 is CInterface3D's constructor (a static initialiser, before the hooks; not ported). 00636203 is a Ghidra
+split of the rewritten 006361B0 (OnUnitJoined), not a function.
+`CTradeGrid::ItemAt` 00627920 / `CRepairGrid::ItemAt` 00628060 (`ui_hero_panels.cpp`; the grids' lists are typed
+`UiItemList` = `lib::AlignedArray<CItem*>` now; side by side in `verify_ui_equip_panels.cpp`; the camp's hover over the
+constructor and repair pages). Kept: the trade grid's sold-list topic follows buyKind_ too. Library: 005FBD30 / 005FBD80 /
+005FBDD0 (record destructors), 005FBF50 / 005FBFB0 / 005FC010 (ConstructElements).
+
+Next in 005E0000-00640000 after A-I18 (not Rebirth-patched, single player first): 005EE310 (an item panel input
+handler shared by four vtables: slot 25's item to the owner's slots 42 / 44), 005EBFB0 (the item view's texture),
+0060E360 (a window's destructor body), 0062D210 (vtable 00740DAC), 00612CF0 (the camp's slot 39, a debug fill of the
+constructors; no scenario). Multiplayer / lobby last: 005E2A30 / 005E3230 / 005E3550 / 005E3CE0 / 005E26F0 (chat), 00608D20-006097E0 (the
 base screen's chat window), 0062C250 / 0062C9C0 (exchange), 0061B2C0-00620300 (connection screens). 005E67F0 is only
 an unwind helper.
 

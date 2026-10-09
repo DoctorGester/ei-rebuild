@@ -36,3 +36,23 @@ static void __fastcall SurfaceFrameRectVerify(CUiSurface* self, void*, const REC
     ei::verify::Check("CUiSurface::FrameRect", true, self->dc_ == dc, "colour %08lX", colour);
 }
 EI_VERIFY(0x005FDCB0, SurfaceFrameRectVerify, 0, s_unused);
+
+// 005FE370 / 005FE2F0 (CUiSurface::Fill / Clear, A-I18): ours only (GDI); the DC and the surface
+// are left as they were. Clear: every text surface redrawn (the console, tooltips, the save / load
+// status line, the battle screen's texts); Fill: the tooltips (0065E880).
+static void __fastcall SurfaceFillVerify(CUiSurface* self, void*, COLORREF colour) {
+    HDC dc = self->dc_;
+    CDXSurface* holder = self->holder_;
+    self->Fill(colour);
+    ei::verify::Check("CUiSurface::Fill", true, self->dc_ == dc && self->holder_ == holder, "colour %08lX", colour);
+}
+EI_VERIFY(0x005FE370, SurfaceFillVerify, 0, s_unused);
+
+static void __fastcall SurfaceClearVerify(CUiSurface* self, void*) {
+    HDC dc = self->dc_;
+    CDXSurface* holder = self->holder_;
+    self->Clear();
+    ei::verify::Check("CUiSurface::Clear", true, self->dc_ == dc && self->holder_ == holder, "colour %08lX",
+                      self->background_);
+}
+EI_VERIFY(0x005FE2F0, SurfaceClearVerify, 0, s_unused);

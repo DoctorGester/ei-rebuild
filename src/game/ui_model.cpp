@@ -2,13 +2,17 @@
 // object is a CObject3D (map_object_figures.h). See docs/notes/ui.md, section 2.
 #include "ui.h"
 
+#include "base_manager.h"
+#include "console.h"
 #include "map_object_figures.h"
+#include "world.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "originals_ui.h"
+#include "originals_units.h"
 
 namespace {
 
@@ -47,6 +51,11 @@ float InterfaceClock() {
     constexpr float kRate = 0x1.e9131ap-7f;   // 0.0149253728 (00740EFC)
     return static_cast<float>(x87::FromUnsigned(gameapi::timeGetTime()) * static_cast<double>(kRate));
 }
+
+// The preview's map object: class 0x33 under a fixed id; flag 0x4000000 on it.
+constexpr int kPreviewClass = 0x33;
+constexpr int kPreviewId = static_cast<int>(0x88CA6C00u);
+constexpr std::uint32_t kPreviewObject = 0x4000000;
 
 // Bit 0x800 of the object's flags is set while a preview draws it.
 constexpr std::uint32_t kPreviewDraw = 0x800;
@@ -103,3 +112,23 @@ void CUiModel::Draw(UiDrawPass* pass) {
     pass->SetColour(saved);
 }
 EI_REPLACE_METHOD(0x005FC2F0, CUiModel::Draw);
+
+// 005FC1F0 (RET 0xC). The figure's steps go through their addresses (rewritten, with wrappers).
+void CUiModel::Load(const char* name, const char* from, const char* to) {
+    auto* manager = static_cast<CBaseManager*>(UiClientWorld()->MapObjectManager());
+    auto* object = static_cast<CObject3D*>(manager->CreateObject(kPreviewClass, kPreviewId));
+    object_ = reinterpret_cast<CTransformObject*>(object);
+    ++object->refCount_;
+    object->flags_ |= kPreviewObject;
+    object->position[0] = 0.0f;
+    object->position[1] = 0.0f;
+    object->position[2] = 3.0f;
+    CEngineObject* specific = object->attached;
+    console::CStringArray parts;
+    Object3DMakeFigureOriginal(object, nullptr, name, &parts, 1);
+    FigureLoadTexturesOriginal(specific);
+    Object3DSetAnimationsOriginal(object, nullptr, name, 0);
+    Object3DRestartAnimationOriginal(object);
+    FigureSwapTextureOriginal(specific, nullptr, from, to);
+}
+EI_REPLACE_METHOD(0x005FC1F0, CUiModel::Load);

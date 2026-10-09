@@ -21,6 +21,9 @@
 //                             interface screen is designed for (scaled to the window's client size)
 //   dblclick <x> <y>, rdblclick <x> <y>
 //                             a left / right double click there (down, up, WM_xBUTTONDBLCLK, up)
+//   ldown <x> <y>, lup <x> <y>
+//                             only the left button's press or release there (a button held over
+//                             frames, e.g. the camp trade panel's repeated school purchase)
 //   wheel <x> <y> <delta>    turn the mouse wheel by <delta> (120 a notch; negative: towards the
 //                             user) with the mouse at (x, y) in the 800x600 layout
 //   clickregion <n>, rclickregion <n>, moveregion <n>
@@ -901,6 +904,10 @@ void PostMouse(const std::string& verb, int x, int y) {
         PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
         PostMessageA(GameWindow(), WM_LBUTTONDBLCLK, MK_LBUTTON, at);
         PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
+    } else if (verb == "ldown") {
+        PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, at);
+    } else if (verb == "lup") {
+        PostMessageA(GameWindow(), WM_LBUTTONUP, 0, at);
     } else if (verb == "rdblclick") {
         PostMessageA(GameWindow(), WM_RBUTTONDOWN, MK_RBUTTON, at);
         PostMessageA(GameWindow(), WM_RBUTTONUP, 0, at);
@@ -1147,7 +1154,7 @@ std::string CampPutOn(const std::string& argument) {
 // The steps that post input messages to the game window.
 bool IsInputStep(const std::string& verb) {
     return verb == "key" || verb == "click" || verb == "rclick" || verb == "move" || verb == "wheel" ||
-           verb == "dblclick" || verb == "rdblclick" ||
+           verb == "dblclick" || verb == "rdblclick" || verb == "ldown" || verb == "lup" ||
            verb == "clickregion" || verb == "rclickregion" || verb == "moveregion" || verb == "clickunit";
 }
 
@@ -1318,7 +1325,7 @@ void RunSteps() {
         } else if (s.verb == "key") {
             PostKey(s.argument);
         } else if (s.verb == "click" || s.verb == "rclick" || s.verb == "move" || s.verb == "dblclick" ||
-                   s.verb == "rdblclick") {
+                   s.verb == "rdblclick" || s.verb == "ldown" || s.verb == "lup") {
             int x = 0, y = 0;
             if (sscanf_s(s.argument.c_str(), "%d %d", &x, &y) == 2) PostMouse(s.verb, x, y);
             else Log("harness: %s needs <x> <y>", s.verb.c_str());

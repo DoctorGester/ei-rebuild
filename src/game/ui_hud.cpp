@@ -93,7 +93,6 @@ constexpr std::uint32_t kTintOff = 0x3F000000;   // 0.5f
 
 // --- Forwarders --------------------------------------------------------------------------------
 
-__declspec(naked) int CInterface3D::PlaySound(const char*, int) EI_ORIGINAL(0x005F7E60)
 void UiRenderer::FlushBatchA() { DeviceFlushBatchAOriginal((void*)this); }
 void UiRenderer::FlushBatchB() { DeviceFlushBatchBOriginal((void*)this); }
 __declspec(naked) void CHudWeaponBar::Highlight(int, int) EI_ORIGINAL(0x0063C050)

@@ -100,7 +100,7 @@ void Begin(CUiSurface* self, CInterface3D* ui, int format) {
     self->holder_ = nullptr;
     self->flags_ = static_cast<std::uint32_t>(format);
     self->vtable_ = reinterpret_cast<void*>(CUiSurface::kVtableAddress);
-    self->unknown_34 = 0;
+    self->background_ = 0;
     self->interface_ = ui;
 }
 
@@ -140,7 +140,7 @@ char* __fastcall UiSurfaceFromPicture(char* raw, void*, void* ui, mfc::CString n
     CUiSurface* self = AsSurface(raw);
     self->holder_ = nullptr;
     self->vtable_ = reinterpret_cast<void*>(CUiSurface::kVtableAddress);
-    self->unknown_34 = 0;
+    self->background_ = 0;
     self->interface_ = static_cast<CInterface3D*>(ui);
     CBaseManager* manager = static_cast<CBaseManager*>(UiTextureManager());
     void* picture;

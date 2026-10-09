@@ -469,9 +469,9 @@ EI_REPLACE(0x00622DB0, StatsBuild);
 // --- 006270A0: the trade grid's Build ----------------------------------------------------------------
 
 void CTradeGrid::Build(void* bought, void* sold, char spells, char flag) {
-    bought_ = bought;
+    bought_ = static_cast<UiItemList*>(bought);
     rect_ = RECT{200, 100, 600, 500};
-    sold_ = sold;
+    sold_ = static_cast<UiItemList*>(sold);
     buyKind_ = spells ? 0 : 4;
     sellKind_ = spells ? 1 : 5;
     flag_ = flag;
@@ -483,12 +483,56 @@ void CTradeGrid::Build(void* bought, void* sold, char spells, char flag) {
 }
 EI_REPLACE_METHOD(0x006270A0, CTradeGrid::Build);
 
+// --- 00627920 / 00628060: the item under the mouse (slot 25) -----------------------------------------
+
+namespace {
+constexpr int kGridCellsPerList = 8;
+constexpr int kGridCells = 16;
+constexpr int kTopicTraderBuy = 0x1C, kTopicTraderSell = 0x1D;   // flag_ set
+constexpr int kTopicItemBuy = 0x0B, kTopicItemSell = 0x0C;       // the item constructor's kinds
+constexpr int kTopicSpellBuy = 0x11, kTopicSpellSell = 0x12;     // the spell constructor's
+constexpr int kTopicRepair = 0x19;
+} // namespace
+
+CItem* CTradeGrid::ItemAt(int x, int y, int* topic) {
+    *topic = 0;
+    if (!enabled_) return nullptr;
+    int region = RegionAt(x, y);
+    if (region >= 0 && region < kGridCellsPerList) {
+        *topic = flag_ ? kTopicTraderBuy : buyKind_ ? kTopicItemBuy : kTopicSpellBuy;
+        if (region < bought_->size) return bought_->data[region];
+        return nullptr;
+    }
+    if (region < kGridCellsPerList || region >= kGridCells) return nullptr;
+    // The sold list's topic also follows buyKind_.
+    *topic = flag_ ? kTopicTraderSell : buyKind_ ? kTopicItemSell : kTopicSpellSell;
+    if (region - kGridCellsPerList < sold_->size) return sold_->data[region - kGridCellsPerList];
+    return nullptr;
+}
+namespace {
+CItem* __fastcall TradeGridItemAt(CTradeGrid* self, void*, int x, int y, int* topic) { return self->ItemAt(x, y, topic); }
+} // namespace
+EI_REPLACE(0x00627920, TradeGridItemAt);
+
+CItem* CRepairGrid::ItemAt(int x, int y, int* topic) {
+    *topic = 0;
+    if (!enabled_) return nullptr;
+    int region = RegionAt(x, y);
+    if (region < 0 || region >= kGridCells) return nullptr;
+    *topic = kTopicRepair;
+    return region < items_->size ? items_->data[region] : nullptr;
+}
+namespace {
+CItem* __fastcall RepairGridItemAt(CRepairGrid* self, void*, int x, int y, int* topic) { return self->ItemAt(x, y, topic); }
+} // namespace
+EI_REPLACE(0x00628060, RepairGridItemAt);
+
 // --- 006279E0: the repair grid's Build ---------------------------------------------------------------
 
 void CRepairGrid::Build(void* items) {
     rect_ = RECT{200, 100, 600, 500};
     unknown_148 = 8;
-    items_ = items;
+    items_ = static_cast<UiItemList*>(items);
     LoadTexture(GameText(0x00793ED4), 3, 0);   // repair1
     LoadTexture(GameText(0x00793ECC), 3, 0);   // repair2
     LoadTexture(GameText(0x00793EC4), 3, 0);   // repair3
