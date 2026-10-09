@@ -65,7 +65,7 @@ PickState Snapshot(CBattleScreen* screen) {
                 {screen->quickItems_->selected_, screen->spellColumn_->selected_, screen->actionColumn_->selected_},
                 {}};
     for (CUiMesh* sprite : Sprites(screen))
-        s.sprites.push_back(SpriteState{sprite->colour_, {Bits(sprite->scaleX_), Bits(sprite->scaleY_), Bits(sprite->scaleZ_)}});
+        s.sprites.push_back(SpriteState{sprite->colour_, {Bits(sprite->ScaleX()), Bits(sprite->ScaleY()), Bits(sprite->ScaleZ())}});
     return s;
 }
 
@@ -79,9 +79,9 @@ void Restore(CBattleScreen* screen, const PickState& s) {
     std::vector<CUiMesh*> sprites = Sprites(screen);
     for (std::size_t i = 0; i < sprites.size() && i < s.sprites.size(); ++i) {
         sprites[i]->colour_ = s.sprites[i].colour;
-        SetBits(sprites[i]->scaleX_, s.sprites[i].scale[0]);
-        SetBits(sprites[i]->scaleY_, s.sprites[i].scale[1]);
-        SetBits(sprites[i]->scaleZ_, s.sprites[i].scale[2]);
+        SetBits(sprites[i]->ScaleX(), s.sprites[i].scale[0]);
+        SetBits(sprites[i]->ScaleY(), s.sprites[i].scale[1]);
+        SetBits(sprites[i]->ScaleZ(), s.sprites[i].scale[2]);
     }
 }
 

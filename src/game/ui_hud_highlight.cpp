@@ -56,9 +56,9 @@ void ClearButtons(CUiWindow* column, int count, int* selected) {
 
 void CUiMesh::SetScale(float scale) {
     std::uint32_t bits = std::bit_cast<std::uint32_t>(scale);
-    std::memcpy(&scaleX_, &bits, sizeof(bits));
-    std::memcpy(&scaleY_, &bits, sizeof(bits));
-    std::memcpy(&scaleZ_, &bits, sizeof(bits));
+    std::memcpy(&ScaleX(), &bits, sizeof(bits));
+    std::memcpy(&ScaleY(), &bits, sizeof(bits));
+    std::memcpy(&ScaleZ(), &bits, sizeof(bits));
 }
 EI_REPLACE_METHOD(0x005E7060, CUiMesh::SetScale);
 

@@ -27,6 +27,7 @@ class CUiWindow;
 class CUiRootWindow;
 struct UiInputSide;
 class CUiMesh;
+class CSceneRenderer;   // model.h
 
 // The interface manager (CInterface3D; created by 005F4990, which reads the screen size from the
 // render target). Only the members used by the rewritten code; the object is created by original
@@ -1082,12 +1083,19 @@ public:
     // 005E7060 (RET 4; ui_hud_highlight.cpp). The three scale fields = `scale` (copied as bits;
     // EAX is left holding them, callers do not read it).
     void SetScale(float scale);
+    // 005E6D90 (RET 4; ui_mesh_draw.cpp). Draws the sprite in `renderer`'s pass when visible;
+    // returns 1.
+    int Draw(CSceneRenderer* renderer);
 
     std::uint8_t unknown_000[0x08];
     std::uint32_t flags_;            // +0x08 engine object flags (0x100: drawn in the plain colour +0xD4)
-    std::uint8_t unknown_00C[0x34 - 0x0C];
+    std::uint8_t unknown_00C[0x1C - 0x0C];
+    Vector3 position_;               // +0x1C (Place)
+    std::uint8_t unknown_028[0x34 - 0x28];
     Quaternion orientation_;         // +0x34 (the HUD's face models turn with it)
-    std::uint8_t unknown_044[0xCC - 0x44];
+    std::uint8_t unknown_044[0x54 - 0x44];
+    float placement_[16];            // +0x54 row-major 4x4: orientation and position (Draw writes it)
+    std::uint8_t unknown_094[0xCC - 0x94];
     float uOffset_;                  // +0xCC added to the texture coordinates (a frame of the
     float vOffset_;                  // +0xD0 sprite sheet: the HUD buttons' states, the bars' colours)
     std::uint32_t plainColour_;      // +0xD4 ARGB (the global map's layers and its pick render)
@@ -1108,20 +1116,18 @@ public:
     int visible_;                    // +0x220
     float tint_[3];                  // +0x224 colour factors (the HUD: 1 selected, 0.5 not)
     std::uint8_t unknown_230[0x23C - 0x230];
-    // The scale 005E7060 sets (the same value in all three; the diagonal of a matrix of rows of
-    // five floats, the rest unknown).
-    float scaleX_;                   // +0x23C
-    std::uint8_t unknown_240[0x250 - 0x240];
-    float scaleY_;                   // +0x250
-    std::uint8_t unknown_254[0x264 - 0x254];
-    float scaleZ_;                   // +0x264
-    std::uint8_t unknown_268[0x27C - 0x268];
+    // A row-major 4x4 matrix applied after the placement (Draw); its diagonal elements 0, 5 and 10
+    // are the scale 005E7060 sets (the same value in all three).
+    float scaleMatrix_[16];          // +0x23C
+    float& ScaleX() { return scaleMatrix_[0]; }
+    float& ScaleY() { return scaleMatrix_[5]; }
+    float& ScaleZ() { return scaleMatrix_[10]; }
     CEngineObject* material_;        // +0x27C the window's black material (CUiWindow +0xEC)
     CEngineObject* texture_;         // +0x280 one of the window's referenced objects (+0xF8)
 };
 static_assert(offsetof(CUiMesh, colour_) == 0xD8);
-static_assert(offsetof(CUiMesh, scaleX_) == 0x23C);
-static_assert(offsetof(CUiMesh, scaleZ_) == 0x264);
+static_assert(offsetof(CUiMesh, scaleMatrix_) == 0x23C && offsetof(CUiMesh, material_) == 0x27C);
+static_assert(offsetof(CUiMesh, position_) == 0x1C && offsetof(CUiMesh, placement_) == 0x54);
 static_assert(offsetof(CUiMesh, quads_) == 0x1C0);
 static_assert(offsetof(CUiMesh, vertices_) == 0x1E0);
 static_assert(offsetof(CUiMesh, indices_) == 0x200);

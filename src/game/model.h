@@ -94,7 +94,8 @@ public:
     virtual void Unknown4();
     virtual void Unknown5();
     virtual void Unknown6();
-    virtual void Unknown7();
+    // 7: 00501CC0 (RET 4). Sets the colour the next draws are tinted with (kept at +0x18).
+    virtual void SetColour(std::uint32_t colour);
     virtual void Unknown8();
     virtual void Unknown9();
     virtual void Unknown10();
@@ -104,8 +105,9 @@ public:
     virtual void Unknown13();
     // 14: 00501D00 (RET 0x18). Draws `figure` through its drawer (+0x94, 005A7640) unless it is
     // hidden (flags +8 bit 0x80); `alpha` reaches the mesh draw, `screen` (or null) gets the
-    // rectangle drawn. The second and third arguments are not read there.
-    virtual int DrawFigure(void* figure, const void* unknownA, const void* unknownB, int unknownC, int alpha,
+    // rectangle drawn, `material` (null, or an interface sprite's material) is passed on. The second
+    // and third arguments are not read there.
+    virtual int DrawFigure(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
                            tagRECT* screen);
 
     // 004BA120 (RET 0xC; scene_renderer.cpp, A-S8). The fog (and clear) colour from components in
@@ -117,8 +119,10 @@ public:
     CTransformPipeline* pipeline_;   // +0x08
     std::uint8_t unknown_0C[8];
     std::uint32_t fogColour_;        // +0x14 also the colour the frame is cleared with
+    std::uint32_t colour_;           // +0x18 the draw colour (slot 7)
 };
-static_assert(offsetof(CSceneRenderer, pipeline_) == 0x08 && offsetof(CSceneRenderer, fogColour_) == 0x14);
+static_assert(offsetof(CSceneRenderer, pipeline_) == 0x08 && offsetof(CSceneRenderer, fogColour_) == 0x14 &&
+              offsetof(CSceneRenderer, colour_) == 0x18);
 
 // 004F1370. Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by
 // the half extents, y flipped. Returns out.

@@ -121,7 +121,7 @@ forwarding strip (frees `list_`; the plain strip's 0060E280 frees nothing of its
 `CChatOverlay` / `ChatLine` (007400DC, the in-game chat made by CInterface3D::Create), 005F6130 `CBattleScreenSetup`, 005F8970
 `CHelpWindow` (00740E28), 00603B90 `CObjectivesWindow` (does not free the exit distances map +0x178: kept), 006070C0
 `CSaveLoadWindow`. 005F6BA0 `CBriefingScreen`, 00618570 `CMpConnectScreen` (`MpAddressEntry` 0x34 bytes). 0062EDA0 is 00499E30's code. The HUD
-panels' input thunks 0064BCF0-0064BD80 (HUD range) are not done. CString / pair / vector / CGdiObject deleting destructors went to
+panels' input thunks 0064BCF0-0064BD80 are registered too (A-I17; clock and movement panel on `UiWindowInputDelete`). CString / pair / vector / CGdiObject deleting destructors went to
 library.csv. Reached by every scenario that closes a screen or ends the game.
 
 ### Window stack, screen construction, window base methods (all ours only unless noted)
@@ -163,7 +163,14 @@ Files: `ui_interface_frame.cpp`, `ui_text.cpp`, `ui_console_window.cpp`, `ui_cur
 CPen as the interface uses them); wrappers `verify_ui_base.cpp`. Not rewritten in this range: 005E18E0
 `CFlyingHitPoints::Draw` (float-heavy vertex building; cannot be compared without faking the clock and the device),
 005E2A30 / 005E3230 / 005E3700 (chat window; multiplayer only, 005E3700 Rebirth-patched), 005F8340 (text extent,
-Rebirth-patched), 005F7B40, the sprite draw 005E6D90 (the sprite shape builders 005E8450 / 005E8C60 / 005E91F0 are done: section 9).
+Rebirth-patched), 005F7B40.
+
+A-I17: `CUiMesh::Draw` 005E6D90 (`ui_mesh_draw.cpp`; the placement +0x54 from orientation and position, pushed with
+the scale matrix +0x23C on stacks 2 and 1, the tint through renderer slot 7 `SetColour`, DrawFigure with the material;
+verify ours only: result 1, stack depths and renderer colour back, placement recomputed with 004D9AA0; every scenario) and
+the cursor's `CCursor::Init` 005E60B0 / `AddShape` 005E63F0 (`ui_cursor_setup.cpp`; ours only: fields, size globals,
+holders of the cursor size and twice it; one entry appended; every scenario at start). Init does not free the
+surface memory when 004EF7B0 throws (the original's unwind does).
 
 | Address | Name | Verify |
 |---|---|---|
@@ -625,7 +632,7 @@ unchecked on the material line); `DescribeCarriedSpell` without an item or spell
 `DescribeBlueprint` for a kind outside 0-2 uses an uninitialised record (unreachable); `DrawItem` writes the new turning state's count
 before checking the allocation; `Ring` writes two vertex records before the array when count is 0.
 
-Not rewritten: 005E6D90 (sprite draw) and the STLport algorithm instantiations (0060BF20 / 0060C070 / 0060C0B0, 0060C390 / 0060C510, 0060A660).
+Not rewritten: the STLport algorithm instantiations (0060BF20 / 0060C070 / 0060C0B0, 0060C390 / 0060C510, 0060A660).
 
 ## 10. Harness steps and scenario lessons for the interface
 

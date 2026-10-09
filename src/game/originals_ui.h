@@ -215,6 +215,11 @@ __declspec(naked) inline void __fastcall WindowShowSurfacesOriginal(void* /*wind
 // A-I6. 005E67B0: the cursor (007C7BD8) is held in place while the right button turns the view (thiscall, RET 4: a
 // byte into +0x90 under its lock when the cursor exists; no result).
 __declspec(naked) inline void __fastcall CursorSetHeldOriginal(void* /*cursor*/, void*, char /*held*/) EI_ORIGINAL(0x005E67B0)
+// 005E4EB0 (rewritten as CursorImage::Construct; through its address so the wrapper runs): a cursor image on
+// `memory` from the picture file `name` (thiscall, RET 0x10: name, hot spot x, y, flag; returns `memory`).
+__declspec(naked) inline struct CursorImage* __fastcall CursorImageConstructOriginal(void* /*memory*/, void*, const char* /*name*/,
+                                                                                    int /*hotX*/, int /*hotY*/, int /*flag*/)
+    EI_ORIGINAL(0x005E4EB0)
 // 006570E0: saves the game under `name` (ECX; DL the autosave flag; plain RET, no result).
 __declspec(naked) inline void __fastcall AutoSaveOriginal(const char* /*name*/, int /*flag*/) EI_ORIGINAL(0x006570E0)
 // 0040D3B0 (rewritten as CCamera::SetTarget; through its address so the wrapper runs): the camera follows `target`

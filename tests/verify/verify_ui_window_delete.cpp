@@ -301,3 +301,23 @@ EI_VERIFY(0x0062B770, OptionsWindowInputDeleteVerify, 0, s_unused);
 EI_VERIFY(0x006345F0, HeroScreenInputDeleteVerify, 0, s_unused);
 EI_VERIFY(0x006345E0, MessageBoxInputDeleteVerify, 0, s_unused);
 EI_VERIFY(0x00634FD0, MessageBoxInputDeleteVerify, 0, s_unused);
+
+// The battle HUD panels' input sides (every game scenario at exit).
+EI_INPUT_DELETE_VERIFY(HudWeaponBarInputDelete)
+EI_INPUT_DELETE_VERIFY(HudQuickItemsInputDelete)
+EI_INPUT_DELETE_VERIFY(HudSpellColumnInputDelete)
+EI_INPUT_DELETE_VERIFY(HudActionColumnInputDelete)
+EI_INPUT_DELETE_VERIFY(HudPortraitsInputDelete)
+EI_INPUT_DELETE_VERIFY(HudUnitPanelInputDelete)
+EI_INPUT_DELETE_VERIFY(HudMapInputDelete)
+EI_INPUT_DELETE_VERIFY(HudTopPanelInputDelete)
+EI_VERIFY(0x0064BCF0, HudWeaponBarInputDeleteVerify, 0, s_unused);
+EI_VERIFY(0x0064BD00, HudQuickItemsInputDeleteVerify, 0, s_unused);
+EI_VERIFY(0x0064BD10, HudSpellColumnInputDeleteVerify, 0, s_unused);
+EI_VERIFY(0x0064BD20, HudActionColumnInputDeleteVerify, 0, s_unused);
+EI_VERIFY(0x0064BD30, HudPortraitsInputDeleteVerify, 0, s_unused);
+EI_VERIFY(0x0064BD40, HudUnitPanelInputDeleteVerify, 0, s_unused);
+EI_VERIFY(0x0064BD50, HudMapInputDeleteVerify, 0, s_unused);
+EI_VERIFY(0x0064BD60, UiWindowInputDeleteVerify, 0, s_unused);
+EI_VERIFY(0x0064BD70, UiWindowInputDeleteVerify, 0, s_unused);
+EI_VERIFY(0x0064BD80, HudTopPanelInputDeleteVerify, 0, s_unused);
