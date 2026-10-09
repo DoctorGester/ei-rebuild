@@ -1,4 +1,4 @@
-// Checks for ui_objectives_input.cpp (A-H17). Scenario: ui_objectives (TAB with the quest q0g held,
+// Checks for ui_objectives_input.cpp (A-H17; the keys A-H21). Scenario: ui_objectives (TAB with the quest q0g held,
 // then clicks on the window's regions).
 // - 0064EA80 FillQuestPlaces: original first (the places it leaves are kept), then ours (which
 //   empties the vector first), the points compared bit for bit. Both open and close map.txt in the
@@ -40,8 +40,18 @@ void __fastcall LButtonDownVerify(void* input, void*, int buttons, int x, int y)
     ei::verify::Check("CObjectivesWindow::OnLButtonDown", true, ok, "(%d, %d): zone %d of %d, quest %d of %d", x, y,
                       self->zoneIndex_, zones, self->selectedQuest_, quests);
 }
+// 0064E5A0 (A-H21): ours only (sounds, the pending value, zone requests): Enter, Esc and the four
+// list keys mark the key used; the list keys move the selection (RefreshQuests may clamp it).
+void __fastcall KeyDownVerify(void* input, void*, int key, int repeat, int flags) {
+    auto* self = WindowFromInput<CObjectivesWindow>(input);
+    self->OnKeyDown(key, repeat, flags);
+    bool used = key == 0x0D || key == 0x1B || key == 0x21 || key == 0x22 || key == 0x26 || key == 0x28;
+    ei::verify::Check("CObjectivesWindow::OnKeyDown", true, !used || self->inputHandled_, "key %d: quest %d", key,
+                      self->selectedQuest_);
+}
 } // namespace
 
 // 0064EA80: MOV EAX,FS:[0] (6).
 EI_VERIFY(0x0064EA80, FillQuestPlacesVerify, 6, s_fillQuestPlaces);
 EI_VERIFY(0x0064E330, LButtonDownVerify, 0, s_unused);
+EI_VERIFY(0x0064E5A0, KeyDownVerify, 0, s_unused);

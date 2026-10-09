@@ -3213,6 +3213,7 @@ address,name,library,signature,notes
 0064B720,"ConstructElements (12-byte elements, zero fill)",MFC,,A-H11 sweep: same instructions as 0046F0E0 (data addresses masked; every call goes to the same callee or to library code)
 0064ECB0,stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection),STLport,,A-H11 sweep: same instructions as 00439DD0 (data addresses masked; every call goes to the same callee or to library code)
 0064ECF0,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00426B10 (reviewed)"
+0064F160,mfc::CArray<T>::SetAtGrow (0x1C-byte ObjectiveExit),MFC,,"A-H21: SetSize(index + 1) inlined (new block zeroed, growth max(4, min(size/8, 1024)) or growBy, memcpy of the old elements), then the 7-dword element copied in; the objectives window's ShowZone 0064CC10 is its one caller"
 0064F310,"stlp::__introsort_loop<CString*>",STLport,,"A-H17 review: the objectives window's quest sort (0064D05C; CString* by the quest order of 0064F550, inlined as quest database lookups 004CE110 / 0064EE90)"
 0064F400,"stlp::__median<CString>",STLport,,"A-H17 review: the objectives window's quest sort (0064D05C; CString* by the quest order of 0064F550, inlined as quest database lookups 004CE110 / 0064EE90)"
 0064F650,"stlp::__unguarded_partition<CString*>",STLport,,"A-H17 review: the objectives window's quest sort (0064D05C; CString* by the quest order of 0064F550, inlined as quest database lookups 004CE110 / 0064EE90)"
