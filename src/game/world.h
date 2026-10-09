@@ -144,21 +144,30 @@ static_assert(sizeof(PlayerIterator) == 8);
 
 // A zone exit as the world server keeps it (0x3C bytes); the client keeps the same records.
 struct ZoneExit {
-    std::uint8_t unknown_00[0x14];
+    std::uint32_t unknown_00[5];          // +0x00 (saved as five dwords)
     float x1, y1, x2, y2;                 // +0x14 rectangle
     float angle;                          // +0x24 rotation about the rectangle's centre (radians)
     char* target;                         // +0x28 CString: target zone ("" = none)
     int entrance;                         // +0x2C entrance number in the target zone
-    std::uint8_t unknown_30[0x3C - 0x30];
+    int unknown_30;                       // +0x30
+    std::uint8_t unknown_34;              // +0x34 saved from version 0x68
+    std::uint8_t unknown_35[3];
+    int unknown_38;                       // +0x38 saved from version 0x68
 
     // 004E59F0 (exit_area.cpp). Whether (x, y) lies inside the exit area (rotated by `angle` about
     // the rectangle's centre when it is not 0).
     bool Contains(float x, float y) const;
+    // 004E5750 / 004E58A0 (exit_area.cpp, RET 4). From / to a stream (core_streams.h): +0x00..+0x20
+    // as dwords, the target with its terminator, +0x2C, +0x30, then +0x34 (a byte), +0x38 and the
+    // angle; Read takes the last three only from version 0x68 on (else 0).
+    void Read(class CStream* stream);
+    void Write(class CStream* stream) const;
     // 004608B0. Scalar deleting destructor (flags & 1: free the record too); returns this.
     ZoneExit* DeletingDestructor(unsigned flags);
 };
 static_assert(sizeof(ZoneExit) == 0x3C);
 static_assert(offsetof(ZoneExit, target) == 0x28);
+static_assert(offsetof(ZoneExit, unknown_38) == 0x38);
 
 // MFC CArray<ZoneExit> (CWorldServer + 0xEC; the map database's zone records hold one at +0x48).
 // Its SetSize is the instantiation's own: ZoneExitsSetSizeOriginal (00573080, originals_world.h;

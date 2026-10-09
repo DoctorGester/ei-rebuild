@@ -57,6 +57,8 @@ public:
     // 00461190. Reads bytes up to a zero or a failed read into a CString constructed at `out`;
     // returns `out`.
     mfc::CString* ReadString(void* out);
+    // 004E5840 (RET 4; exit_area.cpp). ReadString into a temporary, assigned to `out`.
+    void ReadInto(mfc::CString* out);
 
     // 004A51C0 (RET 4). Reads a block WriteSized wrote (a two-byte size word, two more bytes when
     // its bit 0 is set; the size is the word / 2) into `to`: `to` cleared (slot 6), sought to 0,
