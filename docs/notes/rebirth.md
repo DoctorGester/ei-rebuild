@@ -46,8 +46,7 @@ NOPs, data and import slots. Before writing addon compares the bytes with its ow
 
 ## The patches
 
-*Implemented* = reproduced behind its flag (how it is verified: see "Implemented patches and how they are verified"); where it lives is in
-the CSV. *Disabled here* = addon logs it as disabled in this install.
+*Implemented* = reproduced behind its flag (details: "Implemented patches: exact details"); where it lives is in the CSV. *Disabled here* = addon logs it as disabled in this install.
 
 ### Bug fixes (10 applied, single player; all implemented)
 
@@ -154,8 +153,7 @@ static CRT (`_cinit(0)`: only FNCLEX; every FLDCW is a save / restore inside a C
 handlers save only integer registers and flags; game.exe's own `_control87` calls (006C3A00, 006C8990, 006C9560) change the rounding mode
 only and restore the whole word; mss32.dll calls `_controlfp` only at its own load (before Direct3D sets 24 bits). Other threads (Miles'
 timer / mixer, the game's stream and MIDI threads, EI_Plugin's) start at 027F: game code running there (the sound manager's callbacks)
-computes at 53 bits in both installs. The old conclusion "under Rebirth the FPU runs higher" (from a `CItemWeapon::RollDamage` mismatch) is
-not confirmed; `/fp:fast` reassociation in the rewrite is the likelier cause. Every verify wrapper checks the control word when it reports:
+computes at 53 bits in both installs (Rebirth does not raise the precision). Every verify wrapper checks the control word when it reports:
 a function seen at 53 or 64 bits is logged once ("FPU precision ... in <function> on the main / another thread; stack: ...", at most 30
 lines) and listed in `harness_report.txt`. Returning ST0 results as `double` stays right either way.
 
@@ -188,28 +186,15 @@ A rewrite declares the patches it reproduces: `EI_REPLACE_METHOD(0x00522A80, Loc
   occasional smoke run for a new addon / EI_Plugin version (`rebirth_flags.txt` runs the flagged functions). Functions Rebirth patches that
   our rewrite does not reproduce stay skipped.
 
-### Implemented patches and how they are verified
+### Implemented patches: exact details
 
-Patched behaviour reproduced exactly: `FixLeversActivate` returns key level + 1 for a level-0 lock (addon's INC EAX); `IsOffensive` returns
-only AL; the repair clamp stores the exact 1.0 / 0.0 and lets NaN through; `AddEffect`'s duplicate test uses addon's float / double
-comparisons (the +0x0C difference rounded to float, its absolute value against the double 0.001) and steps past the record moved into a
-removed one's place. Not reproduced: addon's log lines and the `FSTP ST(0)` its AddEffect wrapper executes on an empty FPU stack. The new
-rewrites are also verified with every flag off in the vanilla runs that reach them.
-
-| Patch | Verify |
-|---|---|
-| FixLeversActivate, FixSpellSelfCasting #0 | existing pure wrapper (7 / 6 stolen bytes) compares with the patched original in Rebirth |
-| FixPlaingBattleMusicFromAntimagic, FixRepairPrice | pure wrapper (10 / 6 stolen bytes), vanilla and Rebirth |
-| FixMoveObject, AllowScriptArgsInLoops | ours only (object position and sector lists; parse result) |
-| FixProgressNames | wrapper (7 stolen bytes) compares the movie names as text |
-| FixSpellEffectsOverflow #0 / #1 | #0 ours only (no unit sent to sleep is still in the update map); #1 the original runs first (in Rebirth addon's), its effect list and fields are set aside and undone, ours runs, lists, count, changed parts, flags and stamp compared (5 stolen bytes) |
-| FixRemoveMapObject, FixCreateItem, FixAddMapObject, AllowScriptsInMainMenu | ours only, state checks (id in no id map; created item has its class; returned id in the object maps; campaign mode and +0x160) |
-| DisableExitOnCrashReport | FatalError none (message box and exit); Segment ours only |
-| FixSpellSelfCasting #1, NewStringEvents, AutoExec | ours only, state checks |
-| ImproveConsole | side by side on input, caret, anchor and history index (8 stolen bytes); Enter ours only |
-| AddNewConsoleCommands, PersistentGlobalVars | Execute's existing checks, Draw a plain replacement; PersistentGlobalVars plain replacements (multiplayer paths) |
-| AddNewScriptCommands | the existing side-by-side wrappers of CalcParameters / CalcFloat / CalcObject / the parser compare with addon's patched originals in Rebirth (signatures and names as text, string arguments by content; a CalcGroup wrapper with 7 stolen bytes); vanilla launches run them without wrappers |
-| ObjectsDrawRadius, LandscapeDrawRadius | ours only: the frame's lists and the deferred list are empty and the device's matrix stacks as before |
+Reproduced exactly: `FixLeversActivate` returns key level + 1 for a level-0 lock (addon's INC EAX); `IsOffensive` returns only AL; the
+repair clamp stores the exact 1.0 / 0.0 and lets NaN through; `AddEffect`'s duplicate test uses addon's float / double comparisons (the
++0x0C difference rounded to float, its absolute value against the double 0.001) and steps past the record moved into a removed one's
+place. Not reproduced: addon's log lines and the `FSTP ST(0)` its AddEffect wrapper executes on an empty FPU stack. Side-by-side against
+the patched original in Rebirth: FixLeversActivate, FixSpellSelfCasting #0, FixPlaingBattleMusicFromAntimagic, FixRepairPrice,
+FixProgressNames, FixSpellEffectsOverflow #1, ImproveConsole, AddNewScriptCommands (through the existing evaluator / parser wrappers;
+CalcGroup's has 7 stolen bytes); the rest ours only with state checks.
 
 ### Remaining work
 
