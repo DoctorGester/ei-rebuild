@@ -287,15 +287,21 @@ using NodeArray = mfc::CArray<SceneNode, mfc::RawElements<SceneNode>>;
 using MeshArray = mfc::CArray<SceneMesh, mfc::RawElements<SceneMesh>>;
 
 // The fake unit's skin the bones are built into (BuildSkeleton's last argument): its bone list and
-// root bone. Extent unknown.
+// root bone and its clock.
 struct SceneSkin {
+    // 00508990 (skin_rewind.cpp, A-U9). The root rewinds the skeleton (CAnimationNode::Rewind, its
+    // body inlined) and the clock goes to 0.
+    void Rewind();
+
     std::uint32_t unknown_00;
     lib::AlignedArray<CAnimationNode*> bones;   // +0x04 every bone, in build order (SetAtGrow 00452C40)
     CAnimationNode* root;                       // +0x14
+    // +0x18 the clock (the unused 00508A30 stores its float argument here as a double, then zeroes it).
+    std::uint32_t clock[2];
 };
 static_assert(offsetof(SceneSkin, bones) == 0x04);
 static_assert(offsetof(SceneSkin, root) == 0x14);
-static_assert(sizeof(SceneSkin) == 0x18);
+static_assert(sizeof(SceneSkin) == 0x20);
 
 // 004492F0 (scene_bones.cpp; __fastcall, RET 8). Adds `bone` to the skin's list and builds it (and
 // its children) from `node`; the low word of `frames` is the animation's frame count.
@@ -358,7 +364,7 @@ static_assert(sizeof(SceneHelper) == helper::kSize);
 struct FakeUnitScene {
     std::uint8_t object3D_[0x4E0];      // the CObject3D part: Object3D()
     SceneSkin skin;                     // +0x4E0
-    std::uint8_t unknown_4F8[0x530 - 0x4F8];
+    std::uint8_t unknown_500[0x530 - 0x500];
     VtArray figures;                    // +0x530 CFigureMesh records (0x220, constructed by 00453240)
     VtArray meshes;                     // +0x544 SceneMesh records
     VtArray boneLinks;                  // +0x558 per figure a CArray of NodeFrame records (0x14 each)

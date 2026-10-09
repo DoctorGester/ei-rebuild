@@ -6,25 +6,15 @@
 
 #include "figure_mesh.h"          // CFigureMesh
 #include "map_object_animation.h" // AnimationTrack
+#include "bone_pose.h"
 
 #include "ei/hook.h"
 #include "lib/vecmath.h"
 
 namespace {
 
-// `v` turned by the unit quaternion `q`: (w^2 - u.u) v + 2w (u x v) + 2 (u.v) u, each term rounded
-// as the original's vector helpers store it, summed in that order.
-Vector3 Rotate(const Quaternion& q, const Vector3& v) {
-    Vector3 u = {q.x, q.y, q.z};
-    float w = q.w;
-    Vector3 along = u * (DotZYX(u, v) * 2.0f);
-    Vector3 turn = Cross(u, v) * (w + w);
-    float ww = w * w;
-    Vector3 scaled = v * (ww - DotZYX(u, u));
-    return (scaled + turn) + along;
-}
-
-// parent * pose with the original's sums (its w subtracts the vector parts' dot, z + x first).
+// The pose's rotation `t` times the parent's `r` (Hamilton order) with the original's sums (its w
+// subtracts the vector parts' dot, z + x first).
 Quaternion Combine(const Quaternion& r, const Quaternion& t) {
     Vector3 tv = {t.x, t.y, t.z};
     Vector3 rv = {r.x, r.y, r.z};
@@ -40,7 +30,7 @@ Quaternion Combine(const Quaternion& r, const Quaternion& t) {
 
 void FigureBone::Place(const Vector3* origin) {
     if (parent) {
-        position = Rotate(parent->rotation, offset) + parent->position;
+        position = TurnByQuaternion(parent->rotation, offset) + parent->position;
         rotation = Combine(parent->rotation, pose->rotation);
     } else if (pose) {
         if (pose->animation) {
