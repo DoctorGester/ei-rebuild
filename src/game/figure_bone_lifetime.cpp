@@ -52,9 +52,10 @@ FigureBone* FigureBone::Construct() {
 EI_REPLACE_METHOD(0x0050AF40, FigureBone::Construct);
 
 int FigureBone::CreateBone() {
-    name = "";
-    name2 = "";
-    name3 = "";
+    // The original assigns "none" (007846F0) to all three names, not an empty string.
+    name = "none";
+    name2 = "none";
+    name3 = "none";
     parent = nullptr;
     children.RemoveAll();
     mesh = nullptr;

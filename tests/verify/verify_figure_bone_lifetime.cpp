@@ -13,7 +13,8 @@ namespace {
 bool IsBlank(const FigureBone* bone) {
     const Quaternion& rest = *reinterpret_cast<const Quaternion*>(std::uintptr_t(0x007AF100));
     const Vector3& restPosition = *reinterpret_cast<const Vector3*>(std::uintptr_t(0x007AF110));
-    return !bone->parent && bone->children.count == 0 && !bone->children.head && !bone->children.blocks &&
+    return std::strcmp(bone->name, "none") == 0 && std::strcmp(bone->name2, "none") == 0 &&
+           std::strcmp(bone->name3, "none") == 0 && !bone->parent && bone->children.count == 0 && !bone->children.head && !bone->children.blocks &&
            !bone->mesh && !bone->pose && !bone->animator && !bone->counted54 && !bone->counted58 &&
            std::memcmp(&bone->position, &restPosition, sizeof(Vector3)) == 0 &&
            std::memcmp(&bone->rotation, &rest, sizeof(Quaternion)) == 0 && bone->matrices.size == 0 &&
@@ -35,14 +36,30 @@ static FigureBone* __fastcall ConstructVerify(FigureBone* bone, void*) {
     FigureBone* result = bone->Construct();
     const auto* a = reinterpret_cast<const unsigned char*>(copy);
     const auto* b = reinterpret_cast<const unsigned char*>(bone);
+    // Compared as bytes except: the three CStrings (+0x1C..+0x27; separate runs hold separate string
+    // blocks, so their text is compared), the offset the original leaves unwritten, and the matrix
+    // block pointer (each run allocates its own).
+    constexpr std::size_t kNames = offsetof(FigureBone, name), kAfterNames = offsetof(FigureBone, parent);
     constexpr std::size_t kOffset = offsetof(FigureBone, offset), kMorph = offsetof(FigureBone, morphS);
     constexpr std::size_t kBlock = offsetof(FigureBone, matrices), kAfterBlock = kBlock + sizeof(void*);
-    bool ok = expected == copy && result == bone && std::memcmp(a, b, kOffset) == 0 &&
+    bool sameNames = std::strcmp(copy->name, bone->name) == 0 && std::strcmp(copy->name2, bone->name2) == 0 &&
+                     std::strcmp(copy->name3, bone->name3) == 0;
+    bool ok = expected == copy && result == bone && sameNames && std::memcmp(a, b, kNames) == 0 &&
+              std::memcmp(a + kAfterNames, b + kAfterNames, kOffset - kAfterNames) == 0 &&
               std::memcmp(a + kMorph, b + kMorph, kBlock - kMorph) == 0 &&
               std::memcmp(a + kAfterBlock, b + kAfterBlock, sizeof(FigureBone) - kAfterBlock) == 0 &&
               (copy->matrices.data != nullptr) == (bone->matrices.data != nullptr);
+    int differs = -1;
+    for (std::size_t i = 0; i < sizeof(FigureBone) && differs < 0; ++i)
+        if (a[i] != b[i] && !(i >= kNames && i < kAfterNames) && !(i >= kOffset && i < kMorph) &&
+            !(i >= kBlock && i < kAfterBlock))
+            differs = static_cast<int>(i);
     if (copy->matrices.data) lib::AlignedArray<Matrix4>::Free(copy->matrices.data);
-    ei::verify::Check("FigureBone::Construct", true, ok, "bone %p", static_cast<void*>(bone));
+    copy->name.~CString();
+    copy->name2.~CString();
+    copy->name3.~CString();
+    ei::verify::Check("FigureBone::Construct", true, ok, "bone %p: names %s, first byte difference at +0x%X", static_cast<void*>(bone),
+                      sameNames ? "same" : "differ", differs);
     return result;
 }
 EI_VERIFY(0x0050AF40, ConstructVerify, 7, s_construct);
