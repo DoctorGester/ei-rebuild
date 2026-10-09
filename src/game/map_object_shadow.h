@@ -8,10 +8,13 @@
 #include "engine_object.h"
 #include "maths.h"
 
+#include "lib/stlp.h"
+
 #include <cstddef>
 #include <cstdint>
 
 class CObject3D;
+class CTexture;      // texture.h
 struct FigurePart;   // map_object_figures.h
 
 // The draw call's context: the scene (+0x08: its matrix stack) and the device (+0x0C).
@@ -77,6 +80,14 @@ public:
     // unit_client_wounds.cpp (A-U4). 0051C920: the wounds texture (+0xD8) and its material (+0xDC)
     // are taken off and released (the material deleted at its last reference).
     void HideWounds();
+    // 0051C3D0 (RET 4; unit_client_wounds.cpp, A-U10). Shows the wounds texture `name` (kind 6): 0
+    // without a first part set (+0x20). The texture is found (00692D30) or made (00691D00) on first
+    // use (none: FatalError with the object's class name and id). Unless its .mmp extra block
+    // (006928C0) is nonempty and equal to the texture's, the texture is reloaded (loaded flag 8
+    // cleared, 006922A0); a failed load drops the texture and the material and returns 0. Without
+    // a material, a new one (blended 5 / 6, the renderer helper's preset 4) gets two stages: the
+    // first part set's texture, then the wounds texture. Returns 1.
+    int ShowWounds(const char* name);
     // object3d_specific_slots.cpp (A-U4). 0051AD20: virtual slot 18 (GetScale; the class declares no
     // virtuals, so the member is registered as it is): x, y, z = figureScale. 0051C970: each drawn part (the cursor +0x48 walks them
     // from 0, up to the first null) registers its material with the world's material manager
@@ -108,7 +119,7 @@ public:
     std::uint32_t sphere;           // +0x90 the shadow's bounding sphere (the scene object's slot
     Vector3 sphereCentre;           // +0x94  7), its centre relative to the object
     std::uint8_t unknown_A0[0xD8 - 0xA0];
-    CEngineObject* woundsTexture;   // +0xD8 the wounds texture (counted; 0051C3D0 loads it)
+    CTexture* woundsTexture;        // +0xD8 the wounds texture (counted; 0051C3D0 loads it)
     struct WoundsMaterial* woundsMaterial;  // +0xDC the material drawing it (counted; slot 0 deletes)
     std::uint8_t unknown_E0[0xE8 - 0xE0];
     float pulseClock;               // +0xE8 frames counted by the invisible / stunned pulses
@@ -125,9 +136,42 @@ static_assert(offsetof(CObject3DClientSpecific, sphere) == 0x90);
 static_assert(offsetof(CObject3DClientSpecific, pulseClock) == 0xE8);
 static_assert(offsetof(CObject3DClientSpecific, woundsTexture) == 0xD8);
 
-// The material that draws a wounds texture (0x24 bytes, vtable 0073DF68; 0051C3D0 makes it).
-// Only the counted-object part: slot 0 is the deleting destructor.
+// A texture stage of a material (0x14 bytes): copied by 0051E970 / 0051E430 (the texture gains a
+// reference), destroyed by releasing the texture (0051E3D0) and freeing the name.
+struct MaterialStage {
+    explicit MaterialStage(CEngineObject* stageTexture) : name("", ""), texture(stageTexture) {
+        if (texture) ++texture->refCount_;
+    }
+    MaterialStage(const MaterialStage& other) : unknown_00(other.unknown_00), name(other.name), texture(other.texture) {
+        if (texture) ++texture->refCount_;
+    }
+    MaterialStage& operator=(const MaterialStage&) = delete;
+    ~MaterialStage() {
+        if (texture) texture->Release();
+    }
+
+    int unknown_00 = 0;             // +0x00
+    stlp::string name;              // +0x04 (empty for the wounds stages)
+    CEngineObject* texture;         // +0x10 counted
+};
+static_assert(sizeof(MaterialStage) == 0x14);
+
+// A preset of the renderer's helper (CRenderHelper slot 5; counted, slot 0 deletes).
+class CRenderPreset;   // model.h
+
+// The material that draws a wounds texture (0x24 bytes, vtable 0073DF68 over the counted root
+// 0073C368; 0051C3D0 makes it, slot 0 0051C710 deletes it).
 struct WoundsMaterial {
+    static constexpr std::uintptr_t kRootVtableAddress = std::uintptr_t(0x0073C368);
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DF68);
+
     virtual void DeletingDestructor(unsigned flags);   // 0
     int refCount;                   // +0x04
+    std::uint8_t blend;             // +0x08 1
+    int sourceBlend;                // +0x0C 5 (D3DBLEND_SRCALPHA)
+    int destBlend;                  // +0x10 6 (D3DBLEND_INVSRCALPHA)
+    CRenderPreset* preset;          // +0x14 counted (the renderer helper's preset 4)
+    stlp::vector<MaterialStage> stages;   // +0x18
 };
+static_assert(offsetof(WoundsMaterial, preset) == 0x14 && offsetof(WoundsMaterial, stages) == 0x18 &&
+              sizeof(WoundsMaterial) == 0x24);

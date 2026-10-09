@@ -219,6 +219,10 @@ __declspec(naked) inline void* __fastcall ManagerFindNamedOriginal(void* /*manag
 __declspec(naked) inline void* __fastcall TextureNamedOriginal(void* /*manager*/, void*, int /*kind*/, const char* /*name*/)
     EI_ORIGINAL(0x00691D00)
 __declspec(naked) inline int __fastcall TextureLoadOriginal(void* /*manager*/, void*, void* /*texture*/) EI_ORIGINAL(0x006922A0)
+// 00692D30 (RET 8): the registered texture of `kind` named `name` (a byte compare), else the cached one (00691BF0);
+// null when neither has it.
+__declspec(naked) inline void* __fastcall TextureFindOriginal(void* /*manager*/, void*, int /*kind*/, const char* /*name*/)
+    EI_ORIGINAL(0x00692D30)
 __declspec(naked) inline int __fastcall TextureLoadFromOriginal(void* /*manager*/, void*, void* /*texture*/,
                                                                 const char* /*directory*/) EI_ORIGINAL(0x006926F0)
 __declspec(naked) inline std::uint8_t* __fastcall NewManagedTextureOriginal(void* /*manager*/, void*, int /*width*/,

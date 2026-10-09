@@ -116,6 +116,7 @@ is snapshotted and restored, the original runs, bytes and EAX compared.
 | 00506710, 005068C0 | CAnimationNode Construct (cursors -1, identity rotations, +0x9C / +0xAC / position_ from 007AF0E0 / 007AF0F0) / DestructBody (the mesh only loses a reference; children destroyed and deleted) (animation_node_lifetime.cpp) | ctor: original into a raw copy, bytes compared except the unwritten pose / rest positions and morph; dtor ours only |
 | 00503F40, 005040A0, 00504860 | CSceneRenderer BeginScene / EndScene / DrawTexture (slots 4 / 5 / 21; renderer_scene.cpp): frame statistics +0x34..+0x58, device counters +0x16C..+0x178, debug panel "FPS" / "num verts" / "num trias" | ours only (Direct3D calls) |
 | 00504F70, 00505080, 00505150, 00505270, 00504E50, 0050DD40 | AlignedArray copies registered on the template (TLVertex SetSize / SetSizeDiscardStep, SpriteSortRecord, its pointers, the index Add, the bones' Matrix4 SetSizeDiscardStep) | ours only (verify_aligned_array_copies.cpp) |
+| 0051C3D0 | CObject3DClientSpecific::ShowWounds (unit_client_wounds.cpp): the wounds texture (kind 6) found / made, reloaded unless its .mmp extra block is unchanged; the material (WoundsMaterial: blend 5 / 6, helper preset 4, stages: part set texture, wounds texture) | ours only (texture held, last stage draws it; 0: dropped or no part set) |
 
 Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEffect::Tick`, 00524FE0
 (hit onto the statistics block); sound system (global 007AF784) 006B8600 / 006B7C10 / 006B7CB0 /
@@ -163,8 +164,8 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
   original; cannot be reproduced). 0050F080 is rewritten (A-U5, map_object_vitals.cpp: CMapObject::ClearProtectionBases,
   verified ours vs original on the protection pairs; reached by every unit spawn through 0058EF20).
 - Dead (A-U5 sweep, config/dead_code.csv): 0050BFA0, 0051FCD0, 005476A0 (PlayIdle's body after 0052E9D0), 0054A0A0, 0054B950.
-- 0050C230 (bone hierarchy update, recursive), 005179E0 / 00516DA0 (animated figures), 0051C3D0
-  (wounds texture): drawing, stateful.
+- 0050C230 (bone hierarchy update, recursive), 005179E0 / 00516DA0 (animated figures): drawing, stateful (since
+  rewritten).
 - CObject3DServer stubs, the perks database, 00500000-0050E000 apart from tracks / cages.
 - Trivial bodies too short for the 5-byte jump (`MOV AL,1; RET`, `RET`, `XOR EAX,EAX; RET`, FLD
   constant; RET).

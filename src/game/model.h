@@ -85,11 +85,25 @@ class CTextureDevice;
 class CLight;   // spell.h
 class CTexture;   // texture.h
 
-// The renderer's counted helper object (0x118 bytes, constructor 004FCA60 with the Direct3D device
-// and a flag). Only its count is known; slot 0 is the deleting destructor.
+// The renderer's counted helper object (0x118 bytes, vtable 0073D840, constructor 004FCA60 with the
+// Direct3D device and a flag). Slot 0 is the deleting destructor.
+// A render state preset the helper keeps (counted; slot 0 is the deleting destructor).
+class __declspec(novtable) CRenderPreset {
+public:
+    virtual void* DeleteThis(unsigned flags);   // 0
+
+    int refs_;   // +0x04
+};
+
 class __declspec(novtable) CRenderHelper {
 public:
     virtual void* DeleteThis(unsigned flags);   // 0
+    virtual void Unknown1();                    // 1: 004FD2A0
+    virtual void Unknown2();                    // 2: 004FDB00
+    virtual void Unknown3();                    // 3: 004FD9D0
+    virtual void Unknown4();                    // 4: 004FDB50
+    // 5: 004FDBA0 (RET 4). Preset `index` of the nine at +0x10C, or null beyond them.
+    virtual CRenderPreset* Preset(unsigned index);
 
     int refs_;   // +0x04
     std::uint8_t unknown_08[0x118 - 0x08];
