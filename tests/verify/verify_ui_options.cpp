@@ -106,6 +106,52 @@ static void __fastcall ApplyVerify(COptionsWindow* self, void*) {
 }
 EI_VERIFY(0x006524A0, ApplyVerify, 0, s_unused);
 
+// 00652000 (ours only: rebuilds the rows' key vectors and texts): afterwards the key table binds
+// the pressed key to the selected row's action; when the key belonged to another row, the
+// selected row holds just the pressed key, its old keys are unbound, its text is the key's name,
+// and the first row of the key's old action lost the key. Scenario: ui_options_bind (a free key,
+// then one bound to another action, confirmed in the message box).
+static void __fastcall CommitBindingVerify(COptionsWindow* self, void*) {
+    const UiKeyName* pressed = self->pressedKey_;
+    OptionBinding* binding = pressed ? self->rows_[self->selectedRow_].binding_ : nullptr;
+    if (!binding) {
+        self->COptionsWindow::CommitBinding();
+        return;
+    }
+    OptionBinding* other = nullptr;
+    for (OptionBinding* b = self->bindings_.begin(); b != self->bindings_.end() && !other; ++b)
+        if (b->action_->id_ == self->keyOfScan_[pressed->scan_]) other = b;
+    const UiKeyName* oldKeys[8] = {};
+    int oldCount = 0;
+    for (const UiKeyName* key : binding->keys_)
+        if (oldCount < 8) oldKeys[oldCount++] = key;
+    int otherHad = 0;
+    if (other)
+        for (const UiKeyName* key : other->keys_) otherHad += key == pressed;
+
+    self->COptionsWindow::CommitBinding();
+
+    bool ok = self->keyOfScan_[pressed->scan_] == static_cast<signed char>(binding->action_->id_);
+    if (binding != other) {
+        // The text: the name with trailing spaces and bars trimmed.
+        std::size_t length = std::strlen(pressed->name_);
+        while (length > 0 && (pressed->name_[length - 1] == ' ' || pressed->name_[length - 1] == '|')) --length;
+        ok = ok && binding->keys_.size() == 1 && binding->keys_[0] == pressed &&
+             static_cast<std::size_t>(binding->keysText_.GetLength()) == length &&
+             std::strncmp(binding->keysText_, pressed->name_, length) == 0;
+        for (int i = 0; i < oldCount; ++i)
+            if (oldKeys[i] != pressed && oldKeys[i]->scan_ != pressed->scan_) ok = ok && self->keyOfScan_[oldKeys[i]->scan_] == 0;
+        if (other && otherHad > 0) {
+            int has = 0;
+            for (const UiKeyName* key : other->keys_) has += key == pressed;
+            ok = ok && has == otherHad - 1;
+        }
+    }
+    ei::verify::Check("COptionsWindow::CommitBinding", true, ok, "key %s action %d other %d old %d", pressed->name_,
+                      binding->action_->id_, other ? other->action_->id_ : -1, oldCount);
+}
+EI_VERIFY(0x00652000, CommitBindingVerify, 0, s_unused);
+
 // --- 00652200: side by side ------------------------------------------------------------------------
 
 // 00652200: PUSH EBX; MOV EBX,ECX; PUSH ESI; PUSH EDI (5 bytes). The original first (it sets the

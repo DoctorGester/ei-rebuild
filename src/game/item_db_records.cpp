@@ -52,6 +52,13 @@ void WeaponRecord::CopyOwn(const WeaponRecord* source) {
     CopyBytes(this, source, offsetof(WeaponRecord, value8C), sizeof(WeaponRecord));
 }
 
+WeaponRecord* WeaponRecord::AssignWeapon(const WeaponRecord* source) {
+    Assign(source);
+    CopyOwn(source);
+    return this;
+}
+EI_REPLACE_METHOD(0x006A8FB0, WeaponRecord::AssignWeapon);
+
 void ArmorRecord::CopyOwn(const ArmorRecord* source) {
     CopyBytes(this, source, offsetof(ArmorRecord, category), 0xB4);
 }

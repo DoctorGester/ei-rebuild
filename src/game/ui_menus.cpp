@@ -70,7 +70,7 @@ __declspec(naked) BOOL CUiContainer::DrawContainer(int) EI_ORIGINAL(0x00600EF0)
 __declspec(naked) void __fastcall UiContainerMouseDown(void*, void*, int, int, int) EI_ORIGINAL(0x00601110)
 __declspec(naked) void __fastcall UiContainerDoubleClick(void*, void*, int, int, int) EI_ORIGINAL(0x00601570)
 __declspec(naked) void CSaveLoadWindow::RefreshList() EI_ORIGINAL(0x006567A0)
-__declspec(naked) void COptionsWindow::CommitBinding() EI_ORIGINAL(0x00652000)
+__declspec(naked) void COptionsWindow::CallCommitBinding() EI_ORIGINAL(0x00652000)
 
 // --- Save/load window --------------------------------------------------------------------------
 
@@ -295,7 +295,7 @@ void COptionsWindow::Redraw() {
 }
 
 void COptionsWindow::OnDialogResult(int result) {
-    if (result == 0x10001) CommitBinding();
+    if (result == 0x10001) CallCommitBinding();
     CallRefreshRows();
 }
 

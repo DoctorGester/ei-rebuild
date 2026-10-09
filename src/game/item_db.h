@@ -146,6 +146,9 @@ struct WeaponRecord : ItemRecordHead {
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744068);
     // Its own fields copied: +0x6C..+0x83 and +0x8C..+0xB4 (+0x84..+0x8B are not).
     void CopyOwn(const WeaponRecord* source);
+    // 006A8FB0 (RET 4; item_db_records.cpp): the weapon record's operator= (STLport's vector
+    // inserts): the head's copy inlined, then the same bytes as CopyOwn. Returns this.
+    WeaponRecord* AssignWeapon(const WeaponRecord* source);
 
     std::uint8_t unknown_70[0x7B - 0x70];
     std::uint8_t skillBonus[2];         // +0x7B the wielder's weapon skill bonus (skill 0 / 1)

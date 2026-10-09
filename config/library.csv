@@ -3232,6 +3232,8 @@ address,name,library,signature,notes
 00652740,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 00652760,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,,"inventory sweep: n*sizeof(T) back to the node-pool free list, operator delete above 128 bytes; loose-family member of 00406590 (reviewed)"
 006527A0,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00428C50 (reviewed)"
+00652930,stlp::vector<T>::_M_insert_overflow,STLport,,"A-H21: the options window's binding rows (0x18): new length size+max(size,n); node-pool allocate; uninitialized_copy 006531E0 / fill 00653390 (one copy by 00652FF0); old rows destroyed, block back to the pool"
+00652BF0,stlp::vector<T>::_M_insert_overflow,STLport,,"A-H21: the options window's settings (0x14: four dwords and a CString): new length size+max(size,n); node-pool allocate; uninitialized_copy 00653520 / fill 006535D0; old strings destroyed, block back to the pool"
 00652E10,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408BE0 (data addresses masked; every call goes to the same callee or to library code)
 00653100,"compiler-generated copy constructor (0x14-byte record: four dwords and a CString)",compiler,,"A-H14 review of the save screen 00653000-00658000: four dwords copied, the CString copy-constructed; no game logic"
 00653130,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)

@@ -236,11 +236,11 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             return;
         }
         const UiKeyName* pressed = nullptr;
-        unknown_414 = 0;
+        pressedKey_ = nullptr;
         for (const UiKeyName* k = KeyNamesBegin(); k < KeyNamesEnd(); ++k) {
             if (k->scan_ == scan) {
                 pressed = k;
-                unknown_414 = static_cast<int>(reinterpret_cast<std::uintptr_t>(k));
+                pressedKey_ = k;
                 break;
             }
         }
@@ -274,7 +274,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             ActivateWindow(interface_, nullptr, box, 1, 1);
             return;
         }
-        CommitBinding();
+        CallCommitBinding();
         CallRefreshRows();
         return;
     }

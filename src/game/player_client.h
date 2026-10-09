@@ -164,6 +164,18 @@ public:
     void StartRecording(const char* path);
     void StopRecording();
 
+    // A-H21 (player_client.cpp).
+    // 00666D10. Constructor body: CEngineObject's fields, the connection's vtable (007431E0) and no
+    // player, the members constructed (the streams with the queue's vtable 0073C960), then the
+    // client's vtable and Clear inlined. Returns this.
+    CPlayerClient* Construct();
+    // 00666FD0. Destructor body: the client's vtable, Clear inlined, both id arrays freed, the
+    // coders' outputs ended, the streams and the handler table freed, the connection's vtable and no
+    // player, then CEngineObject's (00455930).
+    void DestructBody();
+    // 00666FB0 (slot 0, RET 4). DestructBody, then operator delete when bit 0 of `flags` is set.
+    CPlayerClient* DeletingDestruct(unsigned flags);
+
     CPlayer* Owner() const { return reinterpret_cast<CPlayer*>(player_); }
 
     void* vtable_;
@@ -192,3 +204,10 @@ static_assert(offsetof(CPlayerClient, in_) == 0x34);
 static_assert(offsetof(CPlayerClient, out_) == 0x5C);
 static_assert(offsetof(CPlayerClient, sendParty_) == 0x85);
 static_assert(offsetof(CPlayerClient, decompressor_) == 0x28B0);
+
+// 00666EC0 / 00666F70 (RET 4) and 00666F90 / 00666FA0 (player_client.cpp, A-H21): CPlayerConnection's
+// own destructor body and deleting destructor; CPlayerClient's class name and id.
+void __fastcall ConnectionDestructBody(CPlayerConnection* self);
+CPlayerConnection* __fastcall ConnectionDeletingDestruct(CPlayerConnection* self, void*, unsigned flags);
+const char* __fastcall PlayerClientClassName(CPlayerClient*);
+int __fastcall PlayerClientClassId(CPlayerClient*);

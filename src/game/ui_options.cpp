@@ -327,6 +327,54 @@ void COptionsWindow::BuildBindings() {
 }
 EI_REPLACE_METHOD(0x00651600, COptionsWindow::BuildBindings);
 
+// --- 00652000 ------------------------------------------------------------------------------------
+
+namespace {
+// The keys' names, each followed by "  |  ", the last separator trimmed (as BuildBindings).
+void RebuildKeysText(OptionBinding& binding) {
+    binding.keysText_.Empty();
+    for (std::size_t k = 0; k < binding.keys_.size(); ++k) {
+        binding.keysText_ += binding.keys_[k]->name_;
+        binding.keysText_ += TextKeySeparator();
+    }
+    binding.keysText_.TrimRight(TextKeyTrim());
+}
+} // namespace
+
+void COptionsWindow::CommitBinding() {
+    if (!pressedKey_) return;
+    OptionBinding* binding = rows_[selectedRow_].binding_;
+    if (!binding) return;
+    // The first binding row of the action the key is bound to now (none for 0 when no action has
+    // that id).
+    const int boundAction = keyOfScan_[pressedKey_->scan_];
+    OptionBinding* other = nullptr;
+    for (OptionBinding* b = bindings_.begin(); b != bindings_.end(); ++b) {
+        if (b->action_->id_ == boundAction) {
+            other = b;
+            break;
+        }
+    }
+    if (binding != other) {
+        if (binding->keys_.size() != 0) {
+            for (const UiKeyName* key : binding->keys_) keyOfScan_[key->scan_] = 0;
+            binding->keys_.Finish() = binding->keys_.Start();   // erase(begin, end): 00653150 copies nothing
+        }
+        binding->keys_.push_back(pressedKey_);   // 006527A0 on overflow
+        RebuildKeysText(*binding);
+        if (other) {
+            for (const UiKeyName** key = other->keys_.begin(); key != other->keys_.end(); ++key) {
+                if (*key != pressedKey_) continue;
+                other->keys_.erase(key);
+                RebuildKeysText(*other);
+                break;
+            }
+        }
+    }
+    keyOfScan_[pressedKey_->scan_] = static_cast<signed char>(binding->action_->id_);
+}
+EI_REPLACE_METHOD(0x00652000, COptionsWindow::CommitBinding);
+
 // --- 00652200 ------------------------------------------------------------------------------------
 
 void COptionsWindow::LoadSettings() {
