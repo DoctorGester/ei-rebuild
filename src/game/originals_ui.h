@@ -11,6 +11,7 @@
 class CEngineObject;
 class CInterface3D;
 class CItem;
+class CUiSurface;
 namespace mfc { class CString; }
 namespace ui_gdi { struct GameDC; }
 struct ItemObjectCache;
@@ -171,6 +172,12 @@ __declspec(naked) inline void __fastcall ContainerAddInputOriginal(void* /*conta
 // 0062AC90 (rewritten as CUiRegion::SetRectFrom): the region's SetRect from a RECT passed by value (RET 0x10).
 __declspec(naked) inline void __fastcall RegionSetRectFromOriginal(class CUiRegion*, void*, int /*left*/, int /*top*/,
                                                                    int /*right*/, int /*bottom*/) EI_ORIGINAL(0x0062AC90)
+// 005FCDD0: CUiSurface constructor in `memory` over the layout rectangle `rect` with format `format` (thiscall, RET 0xC,
+// returns `memory`; string_map.cpp and ui_console_window.cpp still have their own forwarders).
+__declspec(naked) inline CUiSurface* __fastcall SurfaceConstructOnRectOriginal(void* /*memory*/, void*,
+                                                                                    CInterface3D* /*ui*/,
+                                                                                    const tagRECT* /*rect*/,
+                                                                                    int /*format*/) EI_ORIGINAL(0x005FCDD0)
 // 005FE2F0: CUiSurface fills its DC's surface with black (ECX, plain RET).
 __declspec(naked) inline void __fastcall SurfaceClearOriginal(void* /*surface*/) EI_ORIGINAL(0x005FE2F0)
 // The client glue objects (007AFEA4 / 007AFEA5 / 007AFEA6, thiscall; the object is not read): 00578DC0 the game's

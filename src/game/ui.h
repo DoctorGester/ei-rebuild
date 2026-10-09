@@ -1820,14 +1820,16 @@ static_assert(offsetof(CUiScrollText, align_) == 0x1C4);
 // OptionSetting read as a separate UiSpin.
 class CUiSpin : public CUiWindow {
 public:
-    // 0065BCD0 (RET 0x18, not rewritten). Constructor: the window over the layout rectangle
-    // `rect` (by value; also kept at +0x164), a surface of it, the first text `text` (null: the
-    // exe's empty text), value 0 (0065BEE0). Returns this.
+    // 0065BCD0 (RET 0x18; ui_spin.cpp, A-H19). Constructor: the window over the layout rectangle
+    // `rect` (by value; also kept at +0x164), a surface of it (format 5; null when the allocation
+    // fails), the first text `text` (null: the exe's empty text), not changed, value 0 (SetValue).
+    // Returns this.
     CUiSpin* Construct(CInterface3D* ui, RECT rect, const char* text);
-    // 0065BE70 (RET 4, not rewritten). Appends a text (null: the empty text).
+    // 0065BE70 (RET 4; ui_spin.cpp). Appends a text (null: the empty text).
     void AddText(const char* text);
-    // 0065BEB0 / 0065BEE0 (not rewritten). The value, and whether it changed since the last call
-    // (the flag is cleared); SetValue steps through the texts.
+    // 0065BEB0 / 0065BEE0 (RET 4; ui_spin.cpp). The value, and whether it changed since the last
+    // call (the flag is cleared). SetValue: `value` (0 when not below the text count; a negative
+    // one is kept), its text drawn on the cleared surface (format 1, colour 0xA7D7E4), changed.
     bool GetValue(int* value);
     void SetValue(int value);
 

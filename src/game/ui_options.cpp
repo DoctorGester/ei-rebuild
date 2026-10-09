@@ -22,9 +22,6 @@
 
 // --- Forwarders --------------------------------------------------------------------------------
 
-__declspec(naked) CUiSpin* CUiSpin::Construct(CInterface3D*, RECT, const char*) EI_ORIGINAL(0x0065BCD0)
-__declspec(naked) void CUiSpin::AddText(const char*) EI_ORIGINAL(0x0065BE70)
-
 __declspec(naked) void COptionsWindow::CallRefreshRows() EI_ORIGINAL(0x00651350)
 __declspec(naked) void COptionsWindow::CallShowGroup(int) EI_ORIGINAL(0x00651D70)
 __declspec(naked) void COptionsWindow::CallApply() EI_ORIGINAL(0x006524A0)
