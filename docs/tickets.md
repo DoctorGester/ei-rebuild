@@ -48,6 +48,9 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 The four porting batches (A-I16, A-H15, A-S9, A-U7) are merged (2026-10-09, 140 runs pass). Left: build, fix and merge the drafts below all six drafts are merged (2026-10-09). Then republish the dashboard and remove merged worktrees.
 
+- C6 (taken 2026-10-09): cleanup of combat_tick.cpp, combat_update.cpp, combat.cpp, magic_trap.cpp, then the next combat/unit files by count (offsets, VCall, byte arithmetic, raw addresses).
+- C7 (taken 2026-10-09): cleanup of world_quests.cpp, world_client.cpp, world_create.cpp, ai_region_reach.cpp, then the next world/AI files by count.
+
 ## Draft passes (no build, 2026-10-07)
 
 Drafts written without building (2026-10-07), each on its own branch with a notes file docs/notes/drafts/<ticket>.md saying what is drafted, what is unverified and where it stopped; a later worker builds, fixes and merges it.
