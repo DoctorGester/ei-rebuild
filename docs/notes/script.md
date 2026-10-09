@@ -141,6 +141,15 @@ size; object ids go through `FindObject` and `Assign` 004B24D0, group members th
   referenced, 0073D1C4), 004BA610 `SuspectionMode` (0073D1F8), 004BA710 / 004BA830 `AggressionMode` (0073D260; the second
   with `fixed` = UMRevenge), 004BA920 `CorpseWatcherMode` (0073D294), 004BA1A0 `AILook` (UMPatrolLook). None sets the count
   (+4): the commands write 0 there after operator new.
+- Their own slots (A-S10, same file; `verify_script_unit_mode_slots.cpp`): Clone (slot 3) 004BA250 / 004BA3B0 / 004BA4A0 /
+  004BA630 / 004BA730 / 004BA930, Reset (slot 2, OnShutdown: references dropped, constructor values back, EAX untouched)
+  004BA2D0 / 004BA3F0 / 004BA510 / 004BA6B0 / 004BA7C0 / 004BA950, deleting destructors 004BA300 / 004BA340 / 004BA420 /
+  004BA590 / 004BA680 / 004BA6E0 / 004BA8A0 / 004BA990 and bodies (004BA5B0 / 004BA8C0 release the leader / enemy; the rest
+  only store the root vtable 0073BB68), GetType 004BA410 / 004BA580 / 004BA6D0 / 004BA860 / 004BA980, Aggression
+  OnObjectDeleted 004BA870. Kept: a clone stores its count before testing operator new's result; Aggression's clone copies
+  `chosen` without a reference. Not hookable (3 bytes): 004BA220 / 004BA230 (RET 4), 004BA240 (MOV AL,1), 004BA2B0 / 004BA2C0
+  / 004BA970 (RET 4), 004BA2F0 (Guard type 0), 004BA620 (MOV AL,0). The accessors 004B9F20-004BA080 and 004BA9C0 are called
+  only from the rewritten runtime 004B6760 (not ported).
 - Text manager line reader (`text_reader.cpp` on `CTextManager`; 54 callers of Open in the interface, the map loader's
   FindLine / Split, the item texts): the cursor (+0x20) walks the current text (+0x24, +0x28 bytes); every end test is the
   signed `(p - text) < length`; characters are MBCS. Open 004DEFC0 asks each archive (slot 5, GetFile(key, &length)) in list
