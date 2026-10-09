@@ -2,6 +2,7 @@
 // the caches' trimming (005F2F20 / 005F2F90), the base Create (005EDD80) and the icon window's
 // frame (005F2A90, its slot 18). See ui_item_info.h and docs/notes/ui.md ("Item descriptions").
 #include "ui_item_info.h"
+#include "core_streams.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -330,6 +331,32 @@ CItem* AddItemAt(CParty* list, CItem* item, int keepCount, int merge) {
 void RemoveItemAt(CParty* list, CItem* item, int all) { PartyRemoveItemOriginal(list, nullptr, item, all); }
 void* TurnVtable() { return reinterpret_cast<void*>(0x007403F8); }
 } // namespace
+
+// --- 005ED710 / 005ED780: the turning state's Clone and deleting destructor -----------------------
+
+ItemTurn* ItemTurn::Clone() const {
+    auto* copy = static_cast<ItemTurn*>(gamecrt::operator_new(sizeof(ItemTurn)));
+    // The original writes the count before checking the allocation.
+    reinterpret_cast<volatile int*>(copy)[1] = 0;
+    if (!copy) return nullptr;
+    copy->angle = angle;
+    copy->speed = speed;
+    copy->flag = flag;
+    copy->glow = glow;
+    copy->vtable = TurnVtable();
+    return copy;
+}
+namespace {
+ItemTurn* __fastcall ItemTurnClone(const ItemTurn* self) { return self->Clone(); }
+} // namespace
+EI_REPLACE(0x005ED710, ItemTurnClone);
+
+ItemTurn* ItemTurn::DeletingDestruct(unsigned flags) {
+    RefObjectDestructBase(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x005ED780, ItemTurn::DeletingDestruct);
 
 CItem* CItemScreen::MoveItem(CItem* item, CParty* to, CParty* from, int limit, int merge, int turning) {
     int whole = static_cast<std::uint8_t>(merge) != 0 && interface_->shiftDown_ != 0;

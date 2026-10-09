@@ -81,6 +81,15 @@ void __fastcall InputSideDestroy(UiInputSide* side) { side->vtable_ = InputSideB
 EI_REPLACE(0x005EACF0, InputSideDestroy);
 EI_REPLACE(0x00602BA0, InputSideDestroy);
 
+// 005EA850 (RET 4): the base input side's own deleting destructor (slot 0 of 007401D0): its
+// vtable stored, freed with bit 0 of `flags`; returns the side.
+UiInputSide* __fastcall InputSideBaseDelete(UiInputSide* side, void*, unsigned flags) {
+    side->vtable_ = InputSideBaseVtable();
+    if (flags & 1) gamecrt::operator_delete(side);
+    return side;
+}
+EI_REPLACE(0x005EA850, InputSideBaseDelete);
+
 void CItemInfoPanel::DestroyBody() {
     vtable_ = ItemInfoPanelVtable();
     inputVtable_ = ItemInfoPanelInputVtable();

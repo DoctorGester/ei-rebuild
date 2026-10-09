@@ -322,6 +322,17 @@ EI_REPLACE_METHOD(0x006002C0, CUiWindow::ShowSurfaces);
 
 void CUiSurface::CallSwapContents(int restore) { SurfaceSwapContentsOriginal(this, nullptr, restore); }
 
+void CUiSurface::Freeze(int frozen, int restore) {
+    if (frozen) {
+        flags_ |= kShown;
+        if (kept_) CallSwapContents(1);
+        return;
+    }
+    flags_ &= ~kShown;
+    if (restore) CallSwapContents(0);
+}
+EI_REPLACE_METHOD(0x005FD760, CUiSurface::Freeze);
+
 CUiRegion* CUiWindow::AddRegion() {
     auto* region = static_cast<CUiRegion*>(gamecrt::operator_new(sizeof(CUiRegion)));
     if (region) {

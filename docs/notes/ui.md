@@ -232,6 +232,14 @@ which needs a hero on the multiplayer hero screen and Continue):
   (0x50001) does not check the selection; Connect joins a password server at once with no password and again from the box;
   RebuildList sets the scroll bar's position again and then scrollTop_ 0; the master box steps its link up to three
   times a frame.
+- Small ones (`verify_ui_small_slots.cpp`): 005FD760 `CUiSurface::Freeze` (O; hero screen, menus), 0060E210
+  `CUiItemPanel::ConstructBlank` (O; camp), 005EACB0 `CCameraInput::Construct` (O; every newgame), 005E7010
+  `CUiMesh::GetPlacement` (S, CheckNear; global map, portraits), 005E6B90 `CScreenFade::Start` (O), 00638A10
+  `CBattleScreenSetup::OnDeactivate` (O; a window over the battle screen), 0060FA80 `CCampPages::HeroRecord` (S, slot 64),
+  005ED710 / 005ED780 `ItemTurn::Clone` / `DeletingDestruct` (O), 005EA850 the base input side's deleting destructor (O).
+  Left in the range (not Rebirth-patched): STLport-like list / vector plumbing (005E38F0-005E3B60, 005F6080, 005FAF30,
+  00632490 / 006324E0 twin assignments of a 0x18-byte record with two CStrings), screen 9's slot 42 0062D100, the static
+  initialiser 005F46A0, functions under 32 bytes.
 
 **Next in 005E0000-00640000:** the largest Rebirth-patched ones (vanilla only): 0060C870 (camp Create), 00613EA0 (hero
 screen Create), 0063A560 (battle keys); the connection screen's Create 0061B2C0 and list draw 0061D780. The address list's

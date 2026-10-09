@@ -49,6 +49,17 @@ void LetCursorGo() {
 
 } // namespace
 
+CCameraInput* CCameraInput::Construct(CInterface3D* ui) {
+    interface_ = ui;
+    vtable_ = Vtable();
+    turning_ = false;
+    y_ = 0.0f;
+    x_ = 0.0f;
+    z_ = 0.0f;
+    return this;
+}
+EI_REPLACE_METHOD(0x005EACB0, CCameraInput::Construct);
+
 void CCameraInput::OnKeyUp(int, int, int flags) {
     switch (KeyActions()[flags & kScanCodeMask]) {
     case 5:
