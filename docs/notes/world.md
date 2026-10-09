@@ -296,3 +296,26 @@ exactly on a radius may rarely differ.
   `config/library.csv` (compiler-generated member construction; the destructor calls our `Teardown`).
 - Static initialisers (before the hooks): 0057F480, 005809A0, 00581070.
 - `LoadMobFile` is not reached by a scenario (zone1's scripts use no AddMob).
+
+## C7 cleanup (2026-10-09)
+
+world_create.cpp, world_client.cpp, world_quests.cpp and ai_region_reach.cpp have no At<>/Field<>,
+VCall, byte arithmetic or raw addresses left (world_quests keeps GameFtol's `__asm` and its
+float_control pragma). Behaviour unchanged; what moved or got a type:
+- CWorld: +0x5C is `RefPtr shared5C_`, +0x68 / +0x6C / +0x70 (updateCount_, unknown6C_, countdowns_)
+  moved up from CWorldServer (the client uses them too); WorldCreateManagers takes a CWorld* and
+  is declared in world.h; IsNight (0055FC10) is a CWorld forwarder. Slots 14 / 20 / 35 return
+  CBaseManager*.
+- CEngineObject slot 6 is `RunTick()` (was the placeholder Slot6()); CMapObjectVirtuals slot 25 is
+  AdvanceTime(float).
+- CWorldClient: ticksRun_ (+0x6EC, was sessionJoins_: Segment counts it), tickFraction_ (+0x6F0),
+  owned1A8_ is a ClientObject1A8, the effect lists hold ClientEffect records (slot 0 Run), the
+  +0x5C / +0x1C8 helpers are CWorldHandle (slot 5 Pump). WorldSession::localView is the
+  CPlayerConnection (LocalClient() for the CPlayerClient view); CPlayerClient::array50D8_ holds
+  unit ids. Segment's light grey levels walk CLight objects (0068D730 is CLight::GetIntensityAt;
+  the old comments called them units).
+- WorldPlayer::units (+0x40); BriefingRecord's lists 4 / 5 (availableZones, completeZones);
+  UnitPlacement (player_messages.h) has its fields and is world_units' Placement too.
+- CRegionMap::Reaches / ReachesRegion take the AI map's SearchGrid<int8_t> marks, LoadBlocks a
+  CStream; NearbyBlocksOriginal (005B0370) is shared in originals_ai.h.
+- Globals named in world_data.h (quests, Segment, WorldCreateManagers sections) and ai_map.h.
