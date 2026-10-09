@@ -455,6 +455,30 @@ static void __fastcall OnQuestVariableVerify(CWorldClient* self, void*, const ch
 }
 EI_VERIFY(0x00565380, OnQuestVariableVerify, 0, s_unused);
 
+// 005654F0 ObjectVariableName: PUSH -1; PUSH 0x722677 (7 bytes). The original builds its string in
+// scratch storage, ours in the caller's; the texts are compared, the scratch destroyed. Reached by
+// the client's new objects with a name (CPlayerClient::OnNewObject through its address, every zone
+// load).
+static mfc::CString*(__fastcall* s_objectVariableName)(CWorldClient*, void*, mfc::CString*, const char*);
+static mfc::CString* __fastcall ObjectVariableNameVerify(CWorldClient* self, void*, mfc::CString* out, const char* name) {
+    alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
+    auto* theirs = s_objectVariableName(self, nullptr, reinterpret_cast<mfc::CString*>(storage), name);
+    mfc::CString* ours = self->ObjectVariableName(out, name);
+    ei::verify::Check("CWorldClient::ObjectVariableName", true, ours == out && std::strcmp(*theirs, *ours) == 0,
+                      "%s: %s vs %s", name, static_cast<const char*>(*theirs), static_cast<const char*>(*ours));
+    theirs->~CString();
+    return ours;
+}
+EI_VERIFY(0x005654F0, ObjectVariableNameVerify, 7, s_objectVariableName);
+
+// 005652E0 ApplyObjectVariables: ours only (it sets the objects' visibility; reached when the
+// party's variables arrive, CPlayerClient's update through its address). Nothing is compared.
+static void __fastcall ApplyObjectVariablesVerify(CWorldClient* self) {
+    self->ApplyObjectVariables();
+    ei::verify::Check("CWorldClient::ApplyObjectVariables", true, true, "");
+}
+EI_VERIFY(0x005652E0, ApplyObjectVariablesVerify, 0, s_unused);
+
 static void __fastcall SummonBirdVerify(CWorldClient* self) {
     self->SummonBird();
     ei::verify::Check("CWorldClient::SummonBird", true, self->owned1B0_ != nullptr, "");

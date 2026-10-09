@@ -389,6 +389,17 @@ static void __fastcall DeselectVerify(CWorldClient* client, void*, CEngineObject
 }
 EI_VERIFY(0x00566100, DeselectVerify, 0, s_unused);
 
+// 005630B0 ReferenceItemsAndSpells: ours only (it adds references; reached by 00567A60). Checked:
+// the item factory's own count is as before (the walk's hold on it was dropped).
+static void __fastcall ReferenceItemsAndSpellsVerify(CWorldClient* client) {
+    CEngineObject* items = client->ItemFactory();
+    const int before = items ? items->refCount_ : 0;
+    client->ReferenceItemsAndSpells();
+    const int after = items ? items->refCount_ : 0;
+    ei::verify::Check("CWorldClient::ReferenceItemsAndSpells", before, after, "item factory count");
+}
+EI_VERIFY(0x005630B0, ReferenceItemsAndSpellsVerify, 0, s_unused);
+
 // 00564E70: ours only. The grids, +0xB4, +0x7BC, the MFC lists and the id map are empty; what is
 // left in +0xB8 has no positive id.
 static void __fastcall ClearMapsVerify(CWorldClient* client, void*) {

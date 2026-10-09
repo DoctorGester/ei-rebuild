@@ -1104,6 +1104,12 @@ public:
     // text after the second dot) gets the visibility level `value` (0050F170); a value of 2 (or
     // NaN) with a <name> without a dot summons the bird (as SummonBird).
     void OnQuestVariable(const char* name, float value);
+    // 005654F0 (RET 8; `this` not read). The party variable of an object's name (CMapObject +0x1A8):
+    // "q.<local player's name>.<name>", constructed in `out`; returns `out`.
+    mfc::CString* ObjectVariableName(mfc::CString* out, const char* name);
+    // 005652E0 (the client's party variables arrived). Every filed object with a name gets the
+    // visibility level of its variable (ObjectVariableName) in the local session's variables.
+    void ApplyObjectVariables();
     // 0056D9F0. Flags describing the current environment for `unit`: unit state (+0x268), island
     // (gipat/ingos/suslanger), night (0x100) or day (0x80), and two world settings.
     std::uint32_t EnvironmentFlags(CEngineObject* unit);
@@ -1148,6 +1154,9 @@ public:
     // selection list +0x7BC, its highlight off (flags 0x110 cleared, side half slots 25 / 26 with
     // 0) when it was on; with null every listed object's highlight goes off and the list empties.
     void Deselect(CEngineObject* object);
+    // 005630B0 (00567A60). One more reference on every item (slot 18's manager) and, when the item
+    // factory exists (tested again, not the spell manager), on every spell (slot 22's).
+    void ReferenceItemsAndSpells();
     // 00564BE0 (RET 4). Takes the object `id` out of the maps: the MFC list +0x1F0 entries for it,
     // its +0xBC node and +0xD8 entry, then (when it is in +0xB8) the +0xB4 entries of a hero with
     // a text-key id (and 00538EA0 on its +0x240 in a session of kind 3), its grid cell and +0xB8;

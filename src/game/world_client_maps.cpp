@@ -1103,6 +1103,20 @@ void GridToFour(SectorGrid& grid, void (__fastcall* resize)(SectorGrid*, void*, 
     }
 }
 
+// A reference on every object of `manager` (the original keeps the walk's iterator on the heap).
+void ReferenceEveryObject(CBaseManager* manager) {
+    auto* walk = reinterpret_cast<ObjectListIterator*>(New(sizeof(ObjectListIterator)));
+    if (walk) walk->manager = nullptr;
+    for (CEngineObject* object = walk->First(manager); object; object = walk->Next()) ++object->refCount_;
+    if (walk) {
+        if (CBaseManager* held = walk->manager) {
+            --held->refCount_;
+            walk->manager = nullptr;
+        }
+        gamecrt::operator_delete(walk);
+    }
+}
+
 } // namespace
 
 int CWorldClient::Setup() {
@@ -1258,18 +1272,7 @@ int CWorldClient::Setup() {
     CStringDestroy(&path);
 
     // A reference on every object of the manager of slot 22 (the original's iterator is on the heap).
-    if (SpellManager()) {
-        auto* walk = reinterpret_cast<ObjectListIterator*>(New(sizeof(ObjectListIterator)));
-        if (walk) walk->manager = nullptr;
-        for (CEngineObject* object = walk->First(SpellManager()); object; object = walk->Next()) ++object->refCount_;
-        if (walk) {
-            if (CBaseManager* held = walk->manager) {
-                --held->refCount_;
-                walk->manager = nullptr;
-            }
-            gamecrt::operator_delete(walk);
-        }
-    }
+    if (SpellManager()) ReferenceEveryObject(SpellManager());
 
     // Room for 400 screen entries (reserve).
     ScreenHits& entries = hits_;
@@ -1297,11 +1300,20 @@ int CWorldClient::Setup() {
     return 1;
 }
 
+// ---- References for a zone load (005630B0) -------------------------------------------------------
+
+void CWorldClient::ReferenceItemsAndSpells() {
+    if (ItemFactory()) ReferenceEveryObject(static_cast<CBaseManager*>(ItemFactory()));
+    // The original tests the item factory again before walking the spells.
+    if (ItemFactory()) ReferenceEveryObject(SpellManager());
+}
+
 EI_REPLACE_METHOD(0x00561E50, CWorldClient::Setup);
 EI_REPLACE_METHOD(0x00560650, PlatformSet::AddFace);
 EI_REPLACE_METHOD(0x00560820, PlatformSet::AddBox);
 EI_REPLACE_METHOD(0x00563290, CWorldClient::Teardown);
 EI_REPLACE_METHOD(0x00566100, CWorldClient::Deselect);
+EI_REPLACE_METHOD(0x005630B0, CWorldClient::ReferenceItemsAndSpells);
 EI_REPLACE_METHOD(0x0056DAF0, CWorldClient::ObjectsInRange);
 EI_REPLACE_METHOD(0x00566F70, CWorldClient::CreatePartyUnits);
 EI_REPLACE_METHOD(0x005647E0, CWorldClient::AddObject);

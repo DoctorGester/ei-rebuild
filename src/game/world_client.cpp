@@ -12,6 +12,7 @@
 #include "spell.h"
 #include "effects.h"
 #include "game_strings.h"
+#include "object_tables.h"
 #include "party.h"
 #include "player_messages.h"
 #include "world_effect.h"
@@ -31,6 +32,7 @@
 
 #include <cmath>
 #include <cstring>
+#include <new>
 
 __declspec(naked) BOOL CWorld::IsNight() EI_ORIGINAL(0x0055FC10)
 
@@ -188,6 +190,7 @@ constexpr int kExitParticles = 0x2038;   // "ZoneExit" (particle_emitters.cpp Em
 constexpr int kExitWarmUpTicks = 20;
 constexpr float kOneHalf = 0.5f;          // 0073B86C
 const char* DotText() { return reinterpret_cast<const char*>(0x00783D78); }   // "."
+const char* QuestPrefixText() { return reinterpret_cast<const char*>(0x00783D7C); }   // "q."
 
 // 0056F1A0 (library: counted pointer assignment, ECX the slot): references `object`, then
 // releases the slot's old one.
@@ -275,6 +278,30 @@ void CWorldClient::OnQuestVariable(const char* variable, float value) {
     }
     // FCOMP + TEST AH,0x40: equal or unordered.
     if ((value == 2.0f || x87::IsNaN(value)) && name.Find(dot) < 0) SummonBird();
+}
+
+mfc::CString* CWorldClient::ObjectVariableName(mfc::CString* out, const char* name) {
+    alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
+    mfc::CString* player = LocalPlayerName(reinterpret_cast<mfc::CString*>(storage));
+    new (out) mfc::CString(QuestPrefixText());
+    *out += *player;
+    *out += DotText();
+    *out += name;
+    player->~CString();
+    return out;
+}
+
+void CWorldClient::ApplyObjectVariables() {
+    auto* variables = reinterpret_cast<NamedFloatTable*>(reinterpret_cast<WorldPlayer*>(session_)->variables);
+    for (SectorListNode* node = objects_.First(); node != objects_.End(); node = node->next) {
+        auto* object = static_cast<CMapObject*>(node->data);
+        const char* name = object->name2;
+        if (!name || !*name) continue;
+        alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
+        mfc::CString* variable = ObjectVariableName(reinterpret_cast<mfc::CString*>(storage), name);
+        object->SetVisibilityLevel(variables->Get(*variable));
+        variable->~CString();
+    }
 }
 
 float* CWorldClient::ExitCentre(float* out, int index) {
@@ -494,3 +521,5 @@ EI_REPLACE_METHOD(0x00567500, CWorldClient::CreateExitMarkers);
 EI_REPLACE_METHOD(0x005677F0, CWorldClient::PartyInExit);
 EI_REPLACE_METHOD(0x00566C20, CWorldClient::SummonBird);
 EI_REPLACE_METHOD(0x00565380, CWorldClient::OnQuestVariable);
+EI_REPLACE_METHOD(0x005654F0, CWorldClient::ObjectVariableName);
+EI_REPLACE_METHOD(0x005652E0, CWorldClient::ApplyObjectVariables);
