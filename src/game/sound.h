@@ -315,6 +315,12 @@ struct CSoundManager : CEngineObject {
     // position, the music fader at volume 100 with no fade.
     void ResetStream();
 
+    // 006B7D10 (A-H17, sound_manager.cpp; Play2D / Play3D). The first free voice; else the voice
+    // with the lowest priority (the first of equals) when `priority` is above it: a looping sound
+    // there goes to the deferred map (its state, Miles sample position and handle) and the voice
+    // is ended. -1 when no voice can be had.
+    int AllocateVoice(int priority);
+
     // Not rewritten.
     void Close();                                                                         // 006B6D80 (Miles)
     void Reset();                                                                         // 006B73E0 (Miles)

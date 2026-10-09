@@ -22,6 +22,7 @@ Each needs a real implementation, or the caller must be rewritten first.
 | `Terrain::SectorAt` 006C8140, `Terrain::GroundAndWaterDepth` 006C8930 | `src/game/terrain.cpp` | rewrite |
 | `ConstructMappedResource` 00671280, `ConstructMmioResource` 006721D0 | `src/game/resource_manager.cpp` | real constructors |
 | `stlp` node allocator 00405950 / 00404D70 | `src/lib/stlp.cpp` | own pool or `std::allocator` (see below) |
+| A-H17: hash_set<int> 0066B400 / 0066B490 / 0066BA70, item name indexes 00613B70 / 006A7870 / 0069E2A0 (`originals_library.h`); `mfc::CArchive` 00708832 / 00708941 / 00708B3D / 00708B0F (`src/lib/mfc.cpp`); item vector serialisers 006A7C20 / 006A7D20 / 006A7E10 (`item_db_load.cpp`); travel time 00578700 (`ui_objectives_input.cpp`) | as listed | STL containers / rewrite |
 | `gamecrt::*` (operator new/delete, tolower, toupper, strnicmp, stricmp, strncpy, isalpha, sprintf, rand, open/lseek/read/write/close) | `src/lib/crt.*` | modern CRT, after confirming identical results (see below) |
 | `game::FatalError` 00480080, `game::DebugLog` 0044C470 | `src/lib/crt.*` | rewrite |
 | `mfc::CString` members and `operator+`, `CString::Format` | `src/lib/mfc.*` | own `CString` (MFC is not installed) |

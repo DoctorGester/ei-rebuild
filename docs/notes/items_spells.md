@@ -483,6 +483,13 @@ records' compiler-generated destructors, run by STLport's _Destroy from 00651600
 | 0069BAC0 | `ItemStock::SaveLists` (item_stock.cpp): counts and names (texts with their zero) of armors, weapons, quick items, materials (+ 3 ints), spells, modifiers (the code's first 4 bytes through a CString; the original adds an uninitialised stack byte after a 4-letter code) | original first, then ours on the restored memory stream, bytes compared (saving with class templates: ui_saveload). party_manager.cpp now calls it through its address |
 | 006A6E50, 006A7110, 006A73B0 | `itemdb::IndexedRecordTable::LoadQuickItems / LoadLoot / LoadQuestItems` (item_db_load.cpp): a stack archive (ConstructLocal, Open, the vector serialisers 006A7C20 / 006A7D20 / 006A7E10 forwarded, Close), then each record filed under its name (find_or_insert 00613B70 / 006A7870 / 0069E2A0, originals_library.h) | ours only: every record's name finds a record of that name (startup, every scenario; Rebirth's patched 006A67A0 calls them by address) |
 
+| 006B7D10 | `CSoundManager::AllocateVoice` (sound.md) | ours only (sound) |
+
+Next (after A-H17): sound Open / Close / Reset 006B6A30 / 006B6D80 / 006B73E0 (sound.md has the layout read for them; Close
+needs the deferred and cache map forwarders shared between sound_manager.cpp and sound_manager_lifetime.cpp first), the
+terrain sector's 006BFC80 / 006BF5F0 (models.md), 006A6570 (item database destructor), the item vector serialisers 006A7C20 /
+006A7D20 / 006A7E10 (like model_db.cpp's SerializeArray), 0064F550 (a quest's order), 0066F890 (server login), 00661FB0 / 00661FE0.
+
 0069EF50 (and 0069E3F0) are `vector<T*>::_M_range_insert` / `insert` (library.csv). 006A6570 (the item database's static destructor at exit:
 six tables' indexes, records and storage, ~23 library and record-destructor calls) is left for later.
 
@@ -523,4 +530,4 @@ texture manager's 6 KB is the renderer's; 00646C25 is a tail of 006462A0 that Gh
 | 6AE000-6B4000 | quest database | 17 | 3235 | 923 | 006AE3A0, 006AE740, 006AE220, 006AE0F0 |
 | 6B4000-6C0000 | sound (Miles), misc | 70 | 15007 | 1442 | 006BB3A0, 006B6D80, 006BFC80, 006B7D10 |
 
-Next candidates (after A-H16, which did the party files, 006625B0, the help window and the quest records): 00668C50 (client, 951 bytes), sound 006B6D80 / 006B7D10 / 006B6A30 / 006B73E0, 006BFC80 / 006BF5F0, trader stock 0069BAC0 / 0069EF50, item database 006A6E50 / 006A6570 / 006A73B0 / 006A7110, objectives 0064E330 / 0064EA80 / 0064F650 / 0064FEA0, party 006641D0 / 0065F2D0 / 0065F020 / 006629D0, 0066F890; 00661FB0 / 00661FE0 (party item resets; no scenario is known to reach them).
+Next candidates: see "A-H17" above.
