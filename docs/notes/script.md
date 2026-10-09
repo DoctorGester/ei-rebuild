@@ -352,12 +352,16 @@ work), `CSysInfo` 004DDCB0-004DE8B0 (static initialiser table 00783310: standalo
 
 ### Next candidates in this range
 
-- Renderer tickets: the D3D state-block manager 004FCA60 / 004FD2A0 / 004FD9D0 / 004FCE90, rain / snow draws 004E4240 /
-  004E4C80, the fog object 004E1EB0-004E24E0, the CLinkMesh draw slots 7-14 004F3870-004F4850, the device functions
-  004E5E50-004EFEA0; the TL library loader and matrices 004F0B90-004F15C0 (004F1330 Rebirth).
-- A-S10 did the particle manager (particles.md), the ISAAC seed 0049F660 / 0049F4B0 (core.md) and 004DC390. Classified:
-  0049F820 / 0049F840 / 0049F870 are static initialisers (before the hooks); 0049F890 (keyframe track) is reached only from
-  00448720, which only calls itself (dead; inside 00447F50's Ghidra body); 004A39C0 is STLport deque::_M_reallocate_map.
-  Left: the effect manager and STLport members 004FC320-004FF4C0; 004BD310 / 004BDE40 (skipped, above).
+- Renderer tickets: the D3D state-block manager 004FCA60-004FDFE0 (its hash_map of state vectors; the STLport members
+  004FE0C0-004FF4C0 are now library rows), rain / snow draws 004E4240 / 004E4C80 and buffers 004E3C20, the fog draw
+  004E1EB0-004E2290, the CLinkMesh draw slots 7-14 004F3870-004F4850, the device functions 004E5E50-004EFEA0; the TL
+  library loader and matrices 004F0B90-004F15C0 (004F1330 Rebirth); the debug line lists 0049B140 / 0049B780.
+- A-S10 did the particle manager (particles.md), the ISAAC seed 0049F660 / 0049F4B0 (core.md), 004DC390, the unit modes'
+  slots, GameError, CRainSnow Clear / Start, the zone exit's stream form, CVisibilityFog's slots. Classified: 0049F820 /
+  0049F840 / 0049F870 / 004E3B20 / 004E3AD0 are static initialisers (before the hooks; 004E3980 is only theirs); 0049F890
+  (keyframe track) is reached only from 00448720, which only calls itself (dead); STLport / MFC rows for the party
+  manager's containers 004B0A90-004B1590, the script CArrays 004B5ED0 / 004BD120 / 004BDB80 / 004BE250-004BE430, 004A39C0.
+  Only reachable from rewritten callers (left unported): 004824B0 / 00483D40 (LoadMobFile's record map), 004B3200 (from
+  0066E2E0), the accessors 004B9F20-004BA080 / 004BA9C0 (from 004B6760). Left: 004BD310 / 004BDE40 (skipped, above).
 - Standalone build: `CSysInfo`, the party manager's static constructor 004A5870 and exit destructor 004A5700, CTorchObjectSpec
   Create / Destroy 0052C610 / 0052C680 (not ported; slots 13-15 004D6B20/30/40 are a bare RET).
