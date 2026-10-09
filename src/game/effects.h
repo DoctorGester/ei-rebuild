@@ -399,16 +399,27 @@ int __fastcall BindParticleTexture(void* renderer, void*, int stage, void** hold
 // stored just below; __fastcall.
 ParticleElement* __fastcall AllocateElements(int count);
 
-// The world's rain/snow layer. Only the fields the fade uses.
+// The world's rain/snow layer (CWorldClient + 0x6F4; world.h declares it as ClientRibbons, an engine
+// object whose slot 3 is the thunk 005617B0 -> 004E3B80). Only the fields its rewritten members use.
 class CRainSnow {
 public:
     void UpdateFade(float now);                     // 004E40B0
     void FinishFade();                              // 004E4050
     void SetWind(const Vector3& direction, float strength);    // 004E41F0
+    // 004E3B80 (slot 3 through 005617B0). The rain loop stopped, the texture released, wind, mode,
+    // fade and world cleared, density 64.
+    void Clear();
+    // 004E3FC0 (RET 8; the weather messages 00669798). The texture "RainSnow" (kind 6) made sure of;
+    // a running loop stopped unless `newMode` is 0; rain starts the looping "nature\rain\circle.wav";
+    // the fade towards `newMode` starts now (the world's tick) over `duration` (0: at the next step).
+    void Start(int newMode, float duration);
 
-    std::uint8_t unknown_000[0x24];
+    std::uint8_t unknown_000[0x1C];
+    CEngineObject* texture;         // +0x01C counted texture ("RainSnow")
+    class CWorld* world;            // +0x020 the client world (set after construction)
     int sound;                      // +0x024 rain loop handle in the sound manager (0: none)
-    std::uint8_t unknown_028[0xA8 - 0x28];
+    std::uint8_t unknown_028[0xA4 - 0x28];
+    int unknown_0A4;                // +0x0A4 zeroed by Clear
     Vector3 wind;                   // +0x0A8
     int mode;                       // +0x0B4 0 off, 1 rain, 2 snow
     int targetMode;                 // +0x0B8
@@ -416,6 +427,8 @@ public:
     float fadeStart;                // +0x0C0 world time
     float fadeDuration;             // +0x0C4 0: no fade running
 };
+static_assert(offsetof(CRainSnow, texture) == 0x1C);
+static_assert(offsetof(CRainSnow, unknown_0A4) == 0xA4);
 static_assert(offsetof(CRainSnow, wind) == 0xA8);
 static_assert(sizeof(CRainSnow) == 0xC8);
 

@@ -293,6 +293,37 @@ static void __fastcall SetWindVerify(CRainSnow* self, void*, const Vector3& dire
 }
 EI_VERIFY(0x004E41F0, SetWindVerify, 7, s_setWind);
 
+// 004E3B80 (A-S10, the weather's slot 3 on world teardown: every scenario's exit / zone change):
+// the original on a copy without sound and texture (so it makes no sound or release calls), ours
+// on the real object; every byte compared except the two it drops, which ours must have dropped.
+// SUB ESP,0xC; PUSH ESI; MOV ESI,ECX (6 bytes).
+static void(__fastcall* s_rainClear)(CRainSnow*);
+static void __fastcall RainClearVerify(CRainSnow* self) {
+    RainCopy expected;
+    std::memcpy(expected.bytes, self, sizeof(expected.bytes));
+    expected.get()->sound = 0;
+    expected.get()->texture = nullptr;
+    s_rainClear(expected.get());
+    self->CRainSnow::Clear();
+    ei::verify::Check("CRainSnow::Clear", true,
+                      std::memcmp(expected.bytes, self, sizeof(expected.bytes)) == 0 && self->sound == 0 &&
+                          self->texture == nullptr,
+                      "density %d", self->density);
+}
+EI_VERIFY(0x004E3B80, RainClearVerify, 6, s_rainClear);
+
+// 004E3FC0 (A-S10, weather started by the server's weather messages): ours only (it loads the
+// texture and starts the rain loop); the target, the duration's bits, the start time and the mode.
+static void* s_unusedRainStart;
+static void __fastcall RainStartVerify(CRainSnow* self, void*, int newMode, float duration) {
+    int oldMode = self->mode;
+    self->CRainSnow::Start(newMode, duration);
+    bool ok = self->targetMode == newMode && Bits(self->fadeDuration) == Bits(duration) &&
+              self->mode == (oldMode == 0 ? newMode : oldMode) && self->texture != nullptr;
+    ei::verify::Check("CRainSnow::Start", true, ok, "mode %d -> %d, sound %d", oldMode, newMode, self->sound);
+}
+EI_VERIFY(0x004E3FC0, RainStartVerify, 0, s_unusedRainStart);
+
 // --- Visibility fog -----------------------------------------------------------------------------
 
 namespace {
