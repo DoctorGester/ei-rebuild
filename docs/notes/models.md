@@ -162,11 +162,53 @@ perPage * pages (not 16) before falling back to 15; Load picks a vertex's water 
 found. Lesson: Ghidra's listing of 006C1C00 drops the FNSTSW AX at 006C1F48 (a plain minimum select on the comparison
 status); check the raw bytes when a listing's addresses skip.
 
-Skipped: the other draw functions (R); 006C68B0 and 006D0630 / 006D7620 (Rebirth-patched); 006C8140 `SectorAt` (stateful
-cache, next candidate with invariant checks), vertex lighting (chop rounding), point light registration 006CAC10 (global
+Skipped: the other draw functions (R); 006C68B0 and 006D0630 / 006D7620 (Rebirth-patched); vertex lighting (chop rounding), point light registration 006CAC10 (global
 node pool), 006C3E80 animated tiles; dead code 006C8990, 006C9560, 006C5EA0, 006C5F50, 006C84E0, 006C4790 / 006C4A40 /
 006C4C90; STLport / MFC instantiations (006B01F0-006B4230, 006BDDD0-006BE300, 006CD540-006CEA10). Risk: the animated-tile path
 draws from the game's random generator (a mistake would shift later draws).
+
+## Game code left in 0x006C0000-0x00740000 (A-X1, 2026-10-09)
+
+All of it lies in 006C1390-006E5E30 (beyond is the CRT / MFC). Groups (R = Rebirth-patched, forwarded):
+- **Landscape / sectors** 006C1390-006CCF20 (~29 KB): vertex lighting 006C31C0 / 006C36B0 / 006C3A00 (chop rounding) and
+  shadow test 006C92C0; animated tiles 006C3E80; light countdown 006C8ED0; ambience 006CB390 / 006CBC00 / 006CBCD0; map
+  loading 006C68B0 (R), 006C5AA0, 006C7750 / 006C7940 / 006C7A80 / 006C7D70 / 006C7EB0, 006C5430-006C57E0 (client setup
+  from 00561E50 / 00562B80); draw passes 006C6230 / 006C6330 / 006C6460 / 006C66E0 / 006C67E0 / 006C42A0 / 006C4310;
+  `SectorAt` cache 006C8140; point lights 006CA5D0-006CAC10, 006CB020; water level 006CC7F0; decal triangles 006CCF20;
+  sector parts (Clear 006C3C80, CArray element pairs 006C4EE0-006C5230).
+- **Aligned-array instantiations** 006CD5A0-006CE9A0 (lib::AlignedArray SetSize / allocate copies, ~2.8 KB) and the
+  shadow / print effects 006CECD0 / 006CEDE0, prints 006CF370-006CFEA0 (~3.3 KB).
+- **prints.db / acks.db** 006D00E0-006E5140: the databases' constructors / destructors, the records' compiler-generated
+  members (constructors, copies, destructors, operator=), the acks lookups 006D8430 / 006D8780 / 006D88E0 / 006D8A40 /
+  006D9A30 / 006D9CE0 / 006D9F80 (unit acknowledgement sounds, from 006366F0), the acks record serialisers 006E3780 /
+  006E3DC0 / 006E3FD0 / 006E42F0 / 006E4410 / 006E46C0 / 006E4F40; loaders 006D0630 / 006D7620 (R). 98 STLport / MFC
+  instantiations of these containers moved to config/library.csv ("A-X1 review").
+- **CDib** 006D49E0-006D6FC0 (~4 KB; BMP overrides and movie screenshots).
+- Dead (config/dead_code.csv): 006C98F0 (reached only from the unreferenced chunk 006CA170), 006D5480, 006D6800.
+
+Ported (A-X1; V as above):
+
+| Address | Name | V |
+|---|---|---|
+| 006CA260 | `Terrain::SetVisibleSectors` (terrain_landscape.cpp; the original on a raw copy with its own array blocks) | S |
+| 006C8140 | `Terrain::SectorAt` (LRU cache `mfc::CList<SectorData*>` +0x1FC, grid +0x1F8, frame +0x218; checks: the sector returned and, every 64th call, the cache's links, grid entries and frame order) | O |
+| 006CD5C0, 006CE890 / 006CDD50, 006CDE90 | `lib::AlignedArray<uint32>::SetSize` / `SetAtGrow` copies | S |
+| 006D9A30 / 006D9CE0 / 006D9F80 | `acks::AckTable<UnitAcks / ModelAcks / ExtraAcks>::Find` (acks_db.cpp; index operator[], adds a null entry for a missing name) | P |
+| 006D8780 / 006D88E0 | `acks::PickSpeech` / `PickEnvironmentSpeech` (rand() and ISAAC state restored between the runs and compared) | S |
+| 006D8430 / 006D8A40 | `acks::SayAck` / `SayNamedAck` (call the five above through their addresses so their wrappers run) | O |
+
+acks.db (acks_db.h): database 007C8A60 = three tables {vector of records, hash_map<string, record*>}: 0x1C4-byte records by
+prototype name (kinds up to 0x29; 0x29 = the environment speeches +0x1AC, 0x2C bytes, flags +0x28 matched against
+`CWorldClient::EnvironmentFlags`), 0x5C by model name (0x2E..0x32, fallback through the prototype's model), 0x38 by
+prototype name (0x2A..0x2D); each record: name, hash_map<int kind, vector<SpeechRecord>*>. `CUnitController` slots 48-52
+were declared for Say (51) / StopSpeech (52). The original picks through a temporary vector of pointers; ours counts and
+indexes (same draws, no allocation).
+
+Next in the range (136 functions, 52 KB left): ambience 006CB390; decal triangles 006CCF20 (floats, X17's decal
+functions are disabled in verify); shadow 006CEDE0; vertex lighting 006C31C0 / 006C36B0 / 006C3A00; animated tiles and
+water waves 006C3E80 (ISAAC draws); map setup 006C5AA0; acks record serialisers 006E3780 / 006E3FD0 / 006E3DC0 (startup,
+through the Rebirth-patched loader); CDib 006D5BF0. The records' compiler-generated members (006DE370, 006DC390, ...)
+need only the record declarations in a standalone build.
 
 ## Resources and the sound file reader (00671280-00675B40)
 

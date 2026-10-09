@@ -173,6 +173,7 @@ static_assert(sizeof(UnitBodyPart) == 0x1C);
 
 struct AIPath;       // ai_map.h
 struct UnitMotion;   // ai_motion.h
+struct SpeechRecord; // unit_client_models.h
 class CObject3D;     // map_object_figures.h
 class CMapObject;    // map_object.h
 class CUnit;
@@ -240,6 +241,11 @@ public:
     // 49: server 00553220 (UpdateSpellBlockFlag, combat.h), base empty (00533D50); CUnit's slot 28
     // (EffectsChanged, 00532AB0) tail-jumps here.
     virtual std::uintptr_t EffectsChanged();
+    virtual void GetAttackParams(struct AttackParams* out);   // 50: server 00555A00, client 00538960 (base: _purecall)
+    // 51: client 00537D80 (unit_client_speech.cpp): queue `speech` (an acks.db record) as `kind`;
+    // base empty (00533D60).
+    virtual void Say(const SpeechRecord* speech, int kind);
+    virtual void StopSpeech();              // 52: client 00538040, base empty (00533D70)
 
     CUnit* unit_;   // +0x1C the unit it controls (CUnit::AttachCompanion sets and clears it)
 };
