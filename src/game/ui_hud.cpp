@@ -531,10 +531,6 @@ UI_WHEEL_HANDLER(0x0064A2F0, CHudTopPanel, OnWheel);
 
 namespace {
 
-struct UiVec3 {
-    float x, y, z;
-};
-
 constexpr std::uint32_t kFlagSelected = 0x10;
 constexpr int kQuickSlots = 8;
 constexpr std::uint32_t kSpriteOpaque = 0xFF000000u;
@@ -544,20 +540,20 @@ constexpr std::uint32_t kScaleOne = 0x3F800000;     // 1.0
 constexpr int kOrderEventFollow = 7;                // the speech event of a follow order
 
 // A unit's position (CUnit positionX..Z), copied as the original copies it (three dwords).
-UiVec3 PositionOf(const CUnit* unit) {
-    UiVec3 v;
+Vector3 PositionOf(const CUnit* unit) {
+    Vector3 v;
     std::memcpy(&v, &unit->positionX, sizeof(v));
     return v;
 }
 
 // The battle screen's own commands (thiscall; the flag argument is the interface's +0x7F byte).
-__declspec(naked) void __fastcall ScreenOrderAt(CBattleScreen*, void*, UiVec3, int, char) EI_ORIGINAL(0x00636F10)
+__declspec(naked) void __fastcall ScreenOrderAt(CBattleScreen*, void*, Vector3, int, char) EI_ORIGINAL(0x00636F10)
 __declspec(naked) void __fastcall ScreenOrderUnit(CBattleScreen*, void*, CUnit*, char) EI_ORIGINAL(0x00637190)
 __declspec(naked) void __fastcall ScreenOrderDead(CBattleScreen*, void*, CUnit*, char) EI_ORIGINAL(0x006373A0)
 void ScreenCastOn(CBattleScreen* screen, void*, CUnit* target, char quick, int ctrl) {
     BattleUseOnUnitOriginal(screen, nullptr, target, quick, ctrl);
 }
-void ScreenCastAt(CBattleScreen* screen, void*, UiVec3 at, CUnit* unit, int quick) {
+void ScreenCastAt(CBattleScreen* screen, void*, Vector3 at, CUnit* unit, int quick) {
     BattleUseAtPointOriginal(screen, nullptr, at.x, at.y, at.z, unit, static_cast<char>(quick));
 }
 __declspec(naked) void __fastcall ScreenToggleMember(CBattleScreen*, void*, int) EI_ORIGINAL(0x006379E0)
@@ -612,7 +608,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     auto pick = [x, y]() {
         float out[3];
         float* p = HoverPickSurface(WorldClient(), nullptr, out, x, y);
-        return UiVec3{p[0], p[1], p[2]};
+        return Vector3{p[0], p[1], p[2]};
     };
     auto unitPosition = [](CUnit* u) { return PositionOf(u); };
     auto objectAt = [x, y]() {
@@ -732,7 +728,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             }
         }
         {
-            UiVec3 at = pick();
+            Vector3 at = pick();
             ScreenOrderAt(this, nullptr, at, 0, ctrl());
             // "Terrain Coords x y z" on the console: each float through the inline operator<<
             // (x_floatused set, printed as a double), then '\n' and flush.
@@ -750,7 +746,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         return;
     case 2:   // a spell on a point
     case 4: {
-        UiVec3 at = (unit && !unitDead(unit)) ? unitPosition(unit) : pick();
+        Vector3 at = (unit && !unitDead(unit)) ? unitPosition(unit) : pick();
         if (ZeroOrNaN(at.x) && ZeroOrNaN(at.y)) return;
         if (!first) return;
         ScreenCastAt(this, nullptr, at, living, pendingAction_ == 4 ? 1 : 0);

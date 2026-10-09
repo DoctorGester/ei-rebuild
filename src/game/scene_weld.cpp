@@ -6,6 +6,7 @@
 #include "scene_loader.h"
 
 #include "../lib/crt.h"
+#include "lib/vecmath.h"
 #include "ei/hook.h"
 #include "originals_library.h"
 
@@ -21,15 +22,10 @@ T& At(const void* base, std::size_t offset) {
     return *reinterpret_cast<T*>(static_cast<char*>(const_cast<void*>(base)) + offset);
 }
 
-struct Point {
-    float x, y, z;
-};
-static_assert(sizeof(Point) == 12);
-
 // The aligned arrays' instantiations used here: points (Add 0044F2E0), texture coordinates (Add
 // 0044FBB0) go through their original addresses (the Add copies take the element as separate
 // arguments).
-__declspec(naked) int __fastcall PointsAdd(PointBuffer*, void*, Point) EI_ORIGINAL(0x0044F2E0)
+__declspec(naked) int __fastcall PointsAdd(PointBuffer*, void*, Vector3) EI_ORIGINAL(0x0044F2E0)
 __declspec(naked) int __fastcall CoordsAdd(UvBuffer*, void*, float, float) EI_ORIGINAL(0x0044FBB0)
 
 double WeldDistance() {
@@ -59,10 +55,10 @@ void __fastcall WeldMeshVertices(void* unit, VtArray* nodes) {
         pointMap.SetSize(0);
         pointMap.SetSize(positions.size);
         for (int i = 0; i < positions.size; ++i) {
-            const Point& p = reinterpret_cast<Point*>(positions.data)[i];
+            const Vector3& p = reinterpret_cast<Vector3*>(positions.data)[i];
             int index = 0;
             for (; index < points.size; ++index) {
-                const Point& q = reinterpret_cast<Point*>(points.data)[index];
+                const Vector3& q = reinterpret_cast<Vector3*>(points.data)[index];
                 float dx = q.x - p.x, dy = q.y - p.y, dz = q.z - p.z;
                 double length = std::sqrt(static_cast<double>(dx) * dx + static_cast<double>(dy) * dy +
                                           static_cast<double>(dz) * dz);
@@ -75,7 +71,7 @@ void __fastcall WeldMeshVertices(void* unit, VtArray* nodes) {
             pointMap.data[i] = static_cast<std::uint32_t>(index);
         }
         positions.SetSize(points.size);
-        std::memcpy(positions.data, points.data, static_cast<std::size_t>(points.size) * sizeof(Point));
+        std::memcpy(positions.data, points.data, static_cast<std::size_t>(points.size) * sizeof(Vector3));
 
         // The node's morph keys (0x14 each, an aligned point array at +4) move to the merged list.
         char* node = reinterpret_cast<char*>(nodes->data) + m * node::kSize;
@@ -83,10 +79,10 @@ void __fastcall WeldMeshVertices(void* unit, VtArray* nodes) {
         for (int k = 0; k < morph.size; ++k) {
             PointBuffer& keyPoints = At<PointBuffer>(reinterpret_cast<char*>(morph.data) + k * 0x14, 4);
             int count = points.size;
-            Point* moved = count ? reinterpret_cast<Point*>(PointBuffer::Allocate(count)) : nullptr;
-            for (int i = 0; i < keyPoints.size; ++i) moved[pointMap.data[i]] = reinterpret_cast<Point*>(keyPoints.data)[i];
+            Vector3* moved = count ? reinterpret_cast<Vector3*>(PointBuffer::Allocate(count)) : nullptr;
+            for (int i = 0; i < keyPoints.size; ++i) moved[pointMap.data[i]] = reinterpret_cast<Vector3*>(keyPoints.data)[i];
             keyPoints.SetSize(count);
-            std::memcpy(keyPoints.data, moved, static_cast<std::size_t>(count) * sizeof(Point));
+            std::memcpy(keyPoints.data, moved, static_cast<std::size_t>(count) * sizeof(Vector3));
             if (moved) lib::FreeAligned32(moved);
         }
 

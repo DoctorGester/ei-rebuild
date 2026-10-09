@@ -19,6 +19,7 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "originals_engine.h"
+#include "originals_render.h"
 #include "originals_ui.h"
 
 #include <cstdint>
@@ -255,34 +256,27 @@ void Turn(ItemTurn* turn, float dt, bool hovered) {
     }
 }
 
-// 0049E800 (thiscall on the result, RET 8): the rotation by `angle` about `axis` (normalised).
-struct Quaternion4 {
-    float w, x, y, z;
-    Quaternion4* FromAxisAngle(const float* axis, float angle);
-};
-__declspec(naked) Quaternion4* Quaternion4::FromAxisAngle(const float*, float) EI_ORIGINAL(0x0049E800)
-
 // The rotation about `axis` by pi (the float at 007402C0).
-Quaternion4 HalfTurn(float ax, float ay, float az) {
-    const float axis[3] = {ax, ay, az};
-    Quaternion4 q;
+Quaternion HalfTurn(float ax, float ay, float az) {
+    const Vector3 axis = {ax, ay, az};
+    Quaternion q;
     float pi;
     std::memcpy(&pi, reinterpret_cast<const void*>(0x007402C0), 4);
-    q.FromAxisAngle(axis, pi);
+    QuaternionSetAxisAngleOriginal(&q, nullptr, &axis, pi);
     return q;
 }
 
 // The two products the original inlines (a * b), each with its own order of the w sum.
-Quaternion4 ProductA(const Quaternion4& a, const Quaternion4& b) {   // weapons
-    Quaternion4 r;
+Quaternion ProductA(const Quaternion& a, const Quaternion& b) {   // weapons
+    Quaternion r;
     r.w = Store(D(a.w) * D(b.w) - ((D(a.y) * D(b.y) + D(a.x) * D(b.x)) + D(b.z) * D(a.z)));
     r.x = Store(((D(b.y) * D(a.z) - D(a.y) * D(b.z)) + D(a.w) * D(b.x)) + D(a.x) * D(b.w));
     r.y = Store(((D(a.x) * D(b.z) - D(b.x) * D(a.z)) + D(a.w) * D(b.y)) + D(a.y) * D(b.w));
     r.z = Store(((D(a.y) * D(b.x) - D(a.x) * D(b.y)) + D(b.w) * D(a.z)) + D(a.w) * D(b.z));
     return r;
 }
-Quaternion4 ProductB(const Quaternion4& a, const Quaternion4& b) {   // other items
-    Quaternion4 r;
+Quaternion ProductB(const Quaternion& a, const Quaternion& b) {   // other items
+    Quaternion r;
     r.w = Store(D(a.w) * D(b.w) - ((D(b.z) * D(a.z) + D(b.y) * D(a.y)) + D(b.x) * D(a.x)));
     r.x = Store(((D(b.y) * D(a.z) - D(b.z) * D(a.y)) + D(a.w) * D(b.x)) + D(b.w) * D(a.x));
     r.y = Store(((D(b.z) * D(a.x) - D(b.x) * D(a.z)) + D(a.w) * D(b.y)) + D(b.w) * D(a.y));
@@ -290,7 +284,7 @@ Quaternion4 ProductB(const Quaternion4& a, const Quaternion4& b) {   // other it
     return r;
 }
 
-void SetOrientation(std::uint8_t* model, const Quaternion4& q) { std::memcpy(model + 0x34, &q, sizeof(q)); }
+void SetOrientation(std::uint8_t* model, const Quaternion& q) { std::memcpy(model + 0x34, &q, sizeof(q)); }
 
 // Spell records, scrolls and spell containers lie flat (turned about z); kinds by +0x10, +0x4C, +0x50.
 bool LiesFlat(CItem* item) {
@@ -402,20 +396,20 @@ void CItemScreen::DrawItem(int pass, ItemCell* cell) {
             SetOrientation(model, HalfTurn(0.0f, 0.0f, 1.0f));
         } else if (kind == 0x3004) {
             // Weapons turn about (1, 1, 0) after a half turn about x.
-            Quaternion4 a = HalfTurn(1.0f, 0.0f, 0.0f);
-            const float axis[3] = {1.0f, 1.0f, 0.0f};
-            Quaternion4 b;
-            b.FromAxisAngle(axis, turn->angle);
+            Quaternion a = HalfTurn(1.0f, 0.0f, 0.0f);
+            const Vector3 axis = {1.0f, 1.0f, 0.0f};
+            Quaternion b;
+            QuaternionSetAxisAngleOriginal(&b, nullptr, &axis, turn->angle);
             SetOrientation(model, ProductA(a, b));
         } else if (Get<int>(itemBytes, 0x10) == 0x3007 && Get<int>(itemBytes, 0x4C) == 2 &&
                    (Get<int>(itemBytes, 0x50) == 0 || Get<int>(itemBytes, 0x50) == 1 || Get<int>(itemBytes, 0x50) == 2)) {
             SetOrientation(model, HalfTurn(1.0f, 0.0f, 0.0f));   // blueprints lie still
         } else {
             // Others turn about y after a half turn about x.
-            Quaternion4 a = HalfTurn(1.0f, 0.0f, 0.0f);
-            const float axis[3] = {0.0f, 1.0f, 0.0f};
-            Quaternion4 b;
-            b.FromAxisAngle(axis, turn->angle);
+            Quaternion a = HalfTurn(1.0f, 0.0f, 0.0f);
+            const Vector3 axis = {0.0f, 1.0f, 0.0f};
+            Quaternion b;
+            QuaternionSetAxisAngleOriginal(&b, nullptr, &axis, turn->angle);
             SetOrientation(model, ProductB(a, b));
         }
 
@@ -534,7 +528,7 @@ __declspec(naked) char** __fastcall UnitPrototypeAt(void*, void*, const stlp::st
 __declspec(naked) char** __fastcall FigurePrototypeAt(void*, void*, const stlp::string*) EI_ORIGINAL(0x0053C780)
 
 // 00506C70 (__fastcall, RET 4): out = a * b.
-__declspec(naked) Quaternion4* __fastcall QuaternionProduct(Quaternion4*, const Quaternion4*, const Quaternion4*)
+__declspec(naked) Quaternion* __fastcall QuaternionProduct(Quaternion*, const Quaternion*, const Quaternion*)
     EI_ORIGINAL(0x00506C70)
 
 const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
@@ -592,11 +586,11 @@ void CItemScreen::DrawHeroFace(int pass, HeroFaceCell* cell) {
     Set(model, 0x228, 1.0f);
     Set(model, 0x22C, 1.0f);
     // A half turn about x, then tilted about -x by (y - 300) / 1000.
-    Quaternion4 turn = HalfTurn(1.0f, 0.0f, 0.0f);
-    const float axis[3] = {-1.0f, 0.0f, 0.0f};
-    Quaternion4 tilt;
-    tilt.FromAxisAngle(axis, Store((D(cell->y) - D(GameFloat(0x0073FA98))) * D(GameFloat(0x0074040C))));
-    Quaternion4 orientation;
+    Quaternion turn = HalfTurn(1.0f, 0.0f, 0.0f);
+    const Vector3 axis = {-1.0f, 0.0f, 0.0f};
+    Quaternion tilt;
+    QuaternionSetAxisAngleOriginal(&tilt, nullptr, &axis, Store((D(cell->y) - D(GameFloat(0x0073FA98))) * D(GameFloat(0x0074040C))));
+    Quaternion orientation;
     SetOrientation(model, *QuaternionProduct(&orientation, &tilt, &turn));
 
     // The frame behind the face (texture 2 of the screen), drawn once and removed, then the face.

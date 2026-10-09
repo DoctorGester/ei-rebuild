@@ -43,27 +43,24 @@ inline float F(double v) { return StoreFloat(static_cast<float>(v)); }
 
 // Inline Vector3 arithmetic of the original: every component of every operation is rounded to a
 // float (each result goes through a Vector3 temporary).
-struct V3 {
-    float x, y, z;
-};
-V3 Load(const float* p) { return {p[0], p[1], p[2]}; }
-V3 Sub(const V3& a, const V3& b) { return {F(a.x - b.x), F(a.y - b.y), F(a.z - b.z)}; }
-V3 Add(const V3& a, const V3& b) { return {F(a.x + b.x), F(a.y + b.y), F(a.z + b.z)}; }
-V3 Scale(const V3& a, float s) { return {F(a.x * s), F(a.y * s), F(a.z * s)}; }
+Vector3 Load(const float* p) { return {p[0], p[1], p[2]}; }
+Vector3 Sub(const Vector3& a, const Vector3& b) { return {F(a.x - b.x), F(a.y - b.y), F(a.z - b.z)}; }
+Vector3 Add(const Vector3& a, const Vector3& b) { return {F(a.x + b.x), F(a.y + b.y), F(a.z + b.z)}; }
+Vector3 Scale(const Vector3& a, float s) { return {F(a.x * s), F(a.y * s), F(a.z * s)}; }
 // a + (b - a) * s, written (b - a) * s + a as the original evaluates it.
-V3 Lerp(const V3& a, const V3& b, float s) { return Add(Scale(Sub(b, a), s), a); }
+Vector3 LerpStored(const Vector3& a, const Vector3& b, float s) { return Add(Scale(Sub(b, a), s), a); }
 
 // One morphed vector from 8 corner versions (`v` points at 8 Vector3s):
 //   lerp(lerp(lerp(v0, v1, s), lerp(v2, v3, s), t), lerp(lerp(v4, v5, s), lerp(v6, v7, s), t), u)
 // `keepZ`: the original keeps the z component of the upper blend unrounded on the FPU for the
 // final difference (centre and box minimum; FST then FSUB), while the box maximum goes through
 // the out-of-line Vector3 helpers and rounds it.
-V3 MorphVector(const float* v, float s, float t, float u, bool keepZ) {
-    V3 lower = Lerp(Lerp(Load(v), Load(v + 3), s), Lerp(Load(v + 6), Load(v + 9), s), t);
-    V3 a = Lerp(Load(v + 12), Load(v + 15), s);
-    V3 b = Lerp(Load(v + 18), Load(v + 21), s);
-    V3 step = Scale(Sub(b, a), t);
-    V3 diff;
+Vector3 MorphVector(const float* v, float s, float t, float u, bool keepZ) {
+    Vector3 lower = LerpStored(LerpStored(Load(v), Load(v + 3), s), LerpStored(Load(v + 6), Load(v + 9), s), t);
+    Vector3 a = LerpStored(Load(v + 12), Load(v + 15), s);
+    Vector3 b = LerpStored(Load(v + 18), Load(v + 21), s);
+    Vector3 step = Scale(Sub(b, a), t);
+    Vector3 diff;
     if (keepZ) {
         diff = {F(F(step.x + a.x) - lower.x), F(F(step.y + a.y) - lower.y), F((static_cast<double>(step.z) + a.z) - lower.z)};
     } else {
@@ -75,11 +72,11 @@ V3 MorphVector(const float* v, float s, float t, float u, bool keepZ) {
 // The older 6-corner layout (non-FIG files), as for the bones (figure.h, BoneMorphBox):
 //   lerp(lerp(lerp(c0, c1, s), c2, t), lerp(lerp(c3, c4, s), c5, t), u)
 // with the same unrounded upper z when `keepZ`.
-V3 MorphVector6(const float* c, float s, float t, float u, bool keepZ) {
-    V3 lower = Lerp(Lerp(Load(c), Load(c + 3), s), Load(c + 6), t);
-    V3 a = Lerp(Load(c + 9), Load(c + 12), s);
-    V3 step = Scale(Sub(Load(c + 15), a), t);
-    V3 diff;
+Vector3 MorphVector6(const float* c, float s, float t, float u, bool keepZ) {
+    Vector3 lower = LerpStored(LerpStored(Load(c), Load(c + 3), s), Load(c + 6), t);
+    Vector3 a = LerpStored(Load(c + 9), Load(c + 12), s);
+    Vector3 step = Scale(Sub(Load(c + 15), a), t);
+    Vector3 diff;
     if (keepZ) {
         diff = {F(F(step.x + a.x) - lower.x), F(F(step.y + a.y) - lower.y), F((static_cast<double>(step.z) + a.z) - lower.z)};
     } else {
@@ -159,15 +156,15 @@ float MorphScalar(const float* r, float s, float t, float u, bool storeLower) {
 void CFigureMesh::LoadBounds(char** cursor, float s, float t, float u, std::uint32_t magic) {
     if (magic == kFig8Magic) {
         const float* p = reinterpret_cast<const float*>(*cursor);
-        V3 c = MorphVector(p, s, t, u, true);
+        Vector3 c = MorphVector(p, s, t, u, true);
         center_ = {c.x, c.y, c.z};
         *cursor += 0x60;
         p = reinterpret_cast<const float*>(*cursor);
-        V3 mn = MorphVector(p, s, t, u, true);
+        Vector3 mn = MorphVector(p, s, t, u, true);
         boxMin_ = {mn.x, mn.y, mn.z};
         *cursor += 0x60;
         p = reinterpret_cast<const float*>(*cursor);
-        V3 mx = MorphVector(p, s, t, u, false);
+        Vector3 mx = MorphVector(p, s, t, u, false);
         boxMax_ = {mx.x, mx.y, mx.z};
         *cursor += 0x60;
         radius_ = MorphScalar(reinterpret_cast<const float*>(*cursor), s, t, u, true);
@@ -199,9 +196,9 @@ EI_REPLACE_METHOD(0x005A18E0, CFigureMesh::LoadBounds);
 void __stdcall MorphFigureBounds(ClipBounds* out, const float* data, float s, float t, float u, std::uint32_t magic) {
     Vector3 boxMin, boxMax;
     if (magic == kFig8Magic) {
-        V3 c = MorphVector(data, s, t, u, true);
-        V3 mn = MorphVector(data + 0x18, s, t, u, true);
-        V3 mx = MorphVector(data + 0x30, s, t, u, false);
+        Vector3 c = MorphVector(data, s, t, u, true);
+        Vector3 mn = MorphVector(data + 0x18, s, t, u, true);
+        Vector3 mx = MorphVector(data + 0x30, s, t, u, false);
         float radius = MorphScalar(data + 0x48, s, t, u, false);
         out->flags |= 1;
         out->center[0] = c.x;
@@ -222,9 +219,9 @@ void __stdcall MorphFigureBounds(ClipBounds* out, const float* data, float s, fl
 EI_REPLACE(0x005AAE60, MorphFigureBounds);
 
 void __stdcall MorphFigureBounds6(ClipBounds* out, const float* data, float s, float t, float u) {
-    V3 c = MorphVector6(data, s, t, u, true);
-    V3 mn = MorphVector6(data + 0x12, s, t, u, false);
-    V3 mx = MorphVector6(data + 0x24, s, t, u, false);
+    Vector3 c = MorphVector6(data, s, t, u, true);
+    Vector3 mn = MorphVector6(data + 0x12, s, t, u, false);
+    Vector3 mx = MorphVector6(data + 0x24, s, t, u, false);
     float radius = MorphScalar6(data + 0x36, s, t, u);
     out->center[0] = c.x;
     out->center[1] = c.y;

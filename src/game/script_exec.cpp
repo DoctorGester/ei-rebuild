@@ -39,10 +39,6 @@ T& Field(void* object, std::size_t offset) {
     return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
 }
 
-struct Vec3 {
-    float x, y, z;
-};
-
 // ---- x87 helpers --------------------------------------------------------------------------------
 
 // The game's _ftol (006E853C): truncating conversion, low 32 bits of the 64-bit result.
@@ -135,11 +131,11 @@ void* __cdecl Renderer() { return DisplayObject(); }
 struct World {
     void* GetPlayer(int index);                                          // 00594180
     float GridHeight(float x, float y);                                  // 00594220
-    void InvokeAlarm(int type, const Vec3* point, int raise);            // 00593FC0
-    void AddUnit(int key, const char* prototype, const char* name, const Vec3* point);   // 005910A0
+    void InvokeAlarm(int type, const Vector3* point, int raise);            // 00593FC0
+    void AddUnit(int key, const char* prototype, const char* name, const Vector3* point);   // 005910A0
     void RemoveObject(int id);                                           // 005935C0 (Rebirth patches it)
     void RecalcMercBriefings();                                          // 00591800
-    void SetWind(const Vec3* direction, float strength);                 // 0058EE20
+    void SetWind(const Vector3* direction, float strength);                 // 0058EE20
     void SetTimeSpeed(float speed);                                      // 0058EEE0
     void SetTime(float time);                                            // 0058EEA0
     void SetWaterLevel(int a, float level, int b);                       // 00593FA0
@@ -149,15 +145,15 @@ struct World {
     void CollectParty(void* player, void* list);                         // 00590A40
     void Redeploy(void* player, void* list, int flag);                   // 00590700
     void AwardKill(void* player, int id);                                // 005911C0
-    void CastSpell(void* spell, int a, const Vec3* from, CEngineObject* target, const void* to, int b);  // 0058E850
+    void CastSpell(void* spell, int a, const Vector3* from, CEngineObject* target, const void* to, int b);  // 0058E850
 };
 void* World::GetPlayer(int id) { return ::WorldGetPlayer(this, nullptr, id); }
 __declspec(naked) float World::GridHeight(float, float) EI_ORIGINAL(0x00594220)
-__declspec(naked) void World::InvokeAlarm(int, const Vec3*, int) EI_ORIGINAL(0x00593FC0)
-__declspec(naked) void World::AddUnit(int, const char*, const char*, const Vec3*) EI_ORIGINAL(0x005910A0)
+__declspec(naked) void World::InvokeAlarm(int, const Vector3*, int) EI_ORIGINAL(0x00593FC0)
+__declspec(naked) void World::AddUnit(int, const char*, const char*, const Vector3*) EI_ORIGINAL(0x005910A0)
 void World::RemoveObject(int id) { WorldRemoveObject(this, nullptr, id); }
 __declspec(naked) void World::RecalcMercBriefings() EI_ORIGINAL(0x00591800)
-__declspec(naked) void World::SetWind(const Vec3*, float) EI_ORIGINAL(0x0058EE20)
+__declspec(naked) void World::SetWind(const Vector3*, float) EI_ORIGINAL(0x0058EE20)
 void World::SetTimeSpeed(float a0) { WorldSetTimeSpeedOriginal((void*)this, nullptr, std::bit_cast<std::uint32_t>(a0)); }
 void World::SetTime(float a0) { WorldSetTimeOriginal((void*)this, nullptr, std::bit_cast<std::uint32_t>(a0)); }
 __declspec(naked) void World::SetWaterLevel(int, float, int) EI_ORIGINAL(0x00593FA0)
@@ -167,62 +163,62 @@ __declspec(naked) void* World::FindSpell(const char*) EI_ORIGINAL(0x00594BC0)
 __declspec(naked) void World::CollectParty(void*, void*) EI_ORIGINAL(0x00590A40)
 __declspec(naked) void World::Redeploy(void*, void*, int) EI_ORIGINAL(0x00590700)
 __declspec(naked) void World::AwardKill(void*, int) EI_ORIGINAL(0x005911C0)
-__declspec(naked) void World::CastSpell(void*, int, const Vec3*, CEngineObject*, const void*, int) EI_ORIGINAL(0x0058E850)
+__declspec(naked) void World::CastSpell(void*, int, const Vector3*, CEngineObject*, const void*, int) EI_ORIGINAL(0x0058E850)
 World* TheWorld() { return reinterpret_cast<World*>(0x007AFF60); }
 
 // The AI map (007B00D0); its sector map is at +0x124.
 struct AIMap {
-    void Move(CEngineObject* object, const Vec3* point);                 // 004BA0E0
-    void FindUnitsInRadius(const Vec3* point, void* list, float radius); // 004BA100
+    void Move(CEngineObject* object, const Vector3* point);                 // 004BA0E0
+    void FindUnitsInRadius(const Vector3* point, void* list, float radius); // 004BA100
     void Remove(CEngineObject* object);                                  // 004BA0C0
     void Add(CEngineObject* object);                                     // 004BA0A0
     bool CanLeaveCell(CEngineObject* object);                            // 005BA830
-    bool FindFreeCellNear(CEngineObject* object, const Vec3* from, Vec3* out);   // 005BA9D0
+    bool FindFreeCellNear(CEngineObject* object, const Vector3* from, Vector3* out);   // 005BA9D0
     char SetUpdates(int on);                                            // 004BA090 (byte +2)
 };
-__declspec(naked) void AIMap::Move(CEngineObject*, const Vec3*) EI_ORIGINAL(0x004BA0E0)
-__declspec(naked) void AIMap::FindUnitsInRadius(const Vec3*, void*, float) EI_ORIGINAL(0x004BA100)
+__declspec(naked) void AIMap::Move(CEngineObject*, const Vector3*) EI_ORIGINAL(0x004BA0E0)
+__declspec(naked) void AIMap::FindUnitsInRadius(const Vector3*, void*, float) EI_ORIGINAL(0x004BA100)
 __declspec(naked) void AIMap::Remove(CEngineObject*) EI_ORIGINAL(0x004BA0C0)
 __declspec(naked) void AIMap::Add(CEngineObject*) EI_ORIGINAL(0x004BA0A0)
 __declspec(naked) bool AIMap::CanLeaveCell(CEngineObject*) EI_ORIGINAL(0x005BA830)
-__declspec(naked) bool AIMap::FindFreeCellNear(CEngineObject*, const Vec3*, Vec3*) EI_ORIGINAL(0x005BA9D0)
+__declspec(naked) bool AIMap::FindFreeCellNear(CEngineObject*, const Vector3*, Vector3*) EI_ORIGINAL(0x005BA9D0)
 __declspec(naked) char AIMap::SetUpdates(int) EI_ORIGINAL(0x004BA090)
 AIMap* TheAIMap() { return reinterpret_cast<AIMap*>(0x007B00D0); }
 
 // A unit's AI brain (the unit's +0x240 object, +0x980).
 struct Brain {
-    void Walk(const Vec3* point, int a, int b);          // 005D7AE0
-    void TurnTowards(const Vec3* direction, int a);      // 005D7B30
+    void Walk(const Vector3* point, int a, int b);          // 005D7AE0
+    void TurnTowards(const Vector3* direction, int a);      // 005D7B30
     void Follow(CEngineObject* leader);                  // 005D7E40
     void AttackTarget(CEngineObject* target);            // 005D7B50
-    void CastAt(int a, const Vec3* point, int b);        // 005D7DA0
+    void CastAt(int a, const Vector3* point, int b);        // 005D7DA0
     void ResetTarget();                                  // 005D7C30
     void ClearModes();                                   // 005D4DF0
     void StopAction();                                   // 005D7790
-    void Guard(const Vec3* point, float radius);         // 005D6230
-    void Sentry(const Vec3* point);                      // 005D64E0
+    void Guard(const Vector3* point, float radius);         // 005D6230
+    void Sentry(const Vector3* point);                      // 005D64E0
     void AddMode(void* mode);                            // 005D5F60
     void* FindPatrolMode();                              // 005D5E30
     void RemoveMode(int type);                           // 005D6140
 };
-__declspec(naked) void Brain::Walk(const Vec3*, int, int) EI_ORIGINAL(0x005D7AE0)
-__declspec(naked) void Brain::TurnTowards(const Vec3*, int) EI_ORIGINAL(0x005D7B30)
+__declspec(naked) void Brain::Walk(const Vector3*, int, int) EI_ORIGINAL(0x005D7AE0)
+__declspec(naked) void Brain::TurnTowards(const Vector3*, int) EI_ORIGINAL(0x005D7B30)
 __declspec(naked) void Brain::Follow(CEngineObject*) EI_ORIGINAL(0x005D7E40)
 __declspec(naked) void Brain::AttackTarget(CEngineObject*) EI_ORIGINAL(0x005D7B50)
-__declspec(naked) void Brain::CastAt(int, const Vec3*, int) EI_ORIGINAL(0x005D7DA0)
+__declspec(naked) void Brain::CastAt(int, const Vector3*, int) EI_ORIGINAL(0x005D7DA0)
 __declspec(naked) void Brain::ResetTarget() EI_ORIGINAL(0x005D7C30)
 void Brain::ClearModes() { BrainClearModesOriginal((void*)this); }
 __declspec(naked) void Brain::StopAction() EI_ORIGINAL(0x005D7790)
-__declspec(naked) void Brain::Guard(const Vec3*, float) EI_ORIGINAL(0x005D6230)
-__declspec(naked) void Brain::Sentry(const Vec3*) EI_ORIGINAL(0x005D64E0)
+__declspec(naked) void Brain::Guard(const Vector3*, float) EI_ORIGINAL(0x005D6230)
+__declspec(naked) void Brain::Sentry(const Vector3*) EI_ORIGINAL(0x005D64E0)
 void Brain::AddMode(void* a0) { BrainAddModeOriginal((void*)this, nullptr, a0); }
 __declspec(naked) void* Brain::FindPatrolMode() EI_ORIGINAL(0x005D5E30)
 void Brain::RemoveMode(int a0) { BrainRemoveModeOriginal((void*)this, nullptr, a0); }
 
 // Unit modes (the brain's behaviour list). Each is allocated by the command and constructed here.
 struct Mode {
-    Mode* Sentry(const Vec3* point);                     // 004BA360 (0x14 bytes)
-    Mode* Guard(const Vec3* point, float r1, float r2);  // 004BA1C0 (0x20)
+    Mode* Sentry(const Vector3* point);                     // 004BA360 (0x14 bytes)
+    Mode* Guard(const Vector3* point, float r1, float r2);  // 004BA1C0 (0x20)
     Mode* Follow(CEngineObject* leader);                 // 004BA450 (0x0C)
     Mode* Patrol();                                      // 005D0F60 (0x20)
     Mode* Player();                                      // 005D3760 (0x24)
@@ -232,8 +228,8 @@ struct Mode {
     Mode* Suspicion();                                   // 004BA610 (0x18)
     Mode* CorpseWatcher();                               // 004BA920 (0x08)
 };
-__declspec(naked) Mode* Mode::Sentry(const Vec3*) EI_ORIGINAL(0x004BA360)
-__declspec(naked) Mode* Mode::Guard(const Vec3*, float, float) EI_ORIGINAL(0x004BA1C0)
+__declspec(naked) Mode* Mode::Sentry(const Vector3*) EI_ORIGINAL(0x004BA360)
+__declspec(naked) Mode* Mode::Guard(const Vector3*, float, float) EI_ORIGINAL(0x004BA1C0)
 __declspec(naked) Mode* Mode::Follow(CEngineObject*) EI_ORIGINAL(0x004BA450)
 __declspec(naked) Mode* Mode::Patrol() EI_ORIGINAL(0x005D0F60)
 Mode* Mode::Player() { return (Mode*)ModePlayerConstructOriginal((void*)this); }
@@ -252,10 +248,10 @@ Mode* NewMode(std::size_t size) {
 }
 
 struct PatrolMode {
-    void AddPoint(const Vec3* point);                    // 005D12B0
+    void AddPoint(const Vector3* point);                    // 005D12B0
     void* LastPoint();                                   // 005D1690
 };
-void PatrolMode::AddPoint(const Vec3* a0) { PatrolAddPointOriginal((void*)this, nullptr, (const void*)a0); }
+void PatrolMode::AddPoint(const Vector3* a0) { PatrolAddPointOriginal((void*)this, nullptr, (const void*)a0); }
 __declspec(naked) void* PatrolMode::LastPoint() EI_ORIGINAL(0x005D1690)
 
 // Patrol point (16 bytes: point and a flag) and the arrays the patrol commands touch.
@@ -513,7 +509,7 @@ __declspec(naked) void __fastcall ResetDamageInfo(void*) EI_ORIGINAL(0x00522B40)
 
 void* UnitState(CEngineObject* unit) { return Field<void*>(unit, 0x240); }
 Brain* BrainOf(void* state) { return reinterpret_cast<Brain*>(static_cast<char*>(state) + 0x980); }
-Vec3* Position(CEngineObject* object) { return &Field<Vec3>(object, 0x1C); }
+Vector3* Position(CEngineObject* object) { return &Field<Vector3>(object, 0x1C); }
 PlayerState* StateOf(void* player) { return Field<PlayerState*>(player, 0x20); }
 
 CEngineObject* Arg(const SSCCmd* cmd, int i) { return cmd->objectArgs.data[i]->object; }
@@ -595,7 +591,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     AIMap* map = TheAIMap();
     if (fast) {
         map->SetUpdates(0);
-        Vec3 point = {f[0], f[1], f[2]};
+        Vector3 point = {f[0], f[1], f[2]};
         map->Move(object, &point);
         if (object->GetClassId() == kClassUnit) static_cast<UnitServer*>(UnitState(object))->Reposition();
         map->SetUpdates(1);
@@ -603,7 +599,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
         return;
     }
     float oldZ = Position(object)->z;
-    Vec3 point = {f[0], f[1], f[2]};
+    Vector3 point = {f[0], f[1], f[2]};
     map->Move(object, &point);
     if (object->GetClassId() == kClassUnit) {
         static_cast<UnitServer*>(UnitState(object))->Reposition();
@@ -620,7 +616,7 @@ void SetCP(const SSCCmd* cmd, bool fast) {
     while (pos) map->Remove(*GetNext<CEngineObject*>(&pos));
     pos = reinterpret_cast<ListNode*>(units.head);
     while (pos) {
-        Vec3 free;
+        Vector3 free;
         CEngineObject* unit = *GetNext<CEngineObject*>(&pos);
         if (!map->CanLeaveCell(unit)) {
             free = *Position(unit);
@@ -723,12 +719,12 @@ void CastSpell(const SSCCmd* cmd, bool atUnit) {
     if (spell) ++Field<int>(spell, 4);
     if (spell) {
         const float* f = cmd->floatArgs.data;
-        Vec3 from = {f[0], f[1], 0.0f};
+        Vector3 from = {f[0], f[1], 0.0f};
         if (atUnit) {
             CEngineObject* target = Arg(cmd, 0);
             if (target) TheWorld()->CastSpell(spell, 0, &from, target, Position(target), 0);
         } else {
-            Vec3 to = {f[2], f[3], 0.0f};
+            Vector3 to = {f[2], f[3], 0.0f};
             TheWorld()->CastSpell(spell, 0, &from, nullptr, &to, 0);
         }
     }
@@ -975,12 +971,12 @@ BOOL ScriptRun::Execute(CScript* script) {
             break;
         }
         case 0x43: {   // InvokeAlarm(type, x, y)
-            Vec3 point = {f[1], f[2], 0.0f};
+            Vector3 point = {f[1], f[2], 0.0f};
             TheWorld()->InvokeAlarm(Ftol(f[0]), &point, 1);
             break;
         }
         case 0x88: {   // AddUnitToServer(name, prototype, ..., x, y, z)
-            Vec3 point = {f[0], f[1], f[2]};
+            Vector3 point = {f[0], f[1], f[2]};
             TheWorld()->AddUnit(TextKeyFromName(Text(cmd, 0)), Text(cmd, 1), Text(cmd, 2), &point);
             break;
         }
@@ -994,7 +990,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             TheWorld()->RecalcMercBriefings();
             break;
         case 0x1E: {   // SetWind(x, y, z, strength)
-            Vec3 direction = {f[0], f[1], f[2]};
+            Vector3 direction = {f[0], f[1], f[2]};
             TheWorld()->SetWind(&direction, f[3]);
             break;
         }
@@ -1211,15 +1207,15 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x02: {   // MoveToPoint(unit, x, y)
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            Vec3 point = {f[0], f[1], 0.0f};
+            Vector3 point = {f[0], f[1], 0.0f};
             BrainOf(state)->Walk(&point, 0, 0);
             break;
         }
         case 0x03: {   // RotateTo(unit, x, y)
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            const Vec3* at = Position(Field<CEngineObject*>(state, 0x1C));
-            Vec3 direction = {f[0] - at->x, f[1] - at->y, -at->z};
+            const Vector3* at = Position(Field<CEngineObject*>(state, 0x1C));
+            Vector3 direction = {f[0] - at->x, f[1] - at->y, -at->z};
             BrainOf(state)->TurnTowards(&direction, 0);
             break;
         }
@@ -1227,7 +1223,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             void* state = UnitStateArg(cmd);
             CEngineObject* target = Arg(cmd, 1);
             if (!state || !target) break;
-            Vec3 point = {Position(target)->x, Position(target)->y, 0.0f};
+            Vector3 point = {Position(target)->x, Position(target)->y, 0.0f};
             BrainOf(state)->Walk(&point, 0, 0);
             break;
         }
@@ -1254,7 +1250,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             float x = f[0];
             float y = f[1];
             float z = TheWorld()->GridHeight(x, y);
-            Vec3 point = {x, y, z};
+            Vector3 point = {x, y, z};
             BrainOf(state)->CastAt(0, &point, 0);
             break;
         }
@@ -1274,14 +1270,14 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x33: {   // Guard(unit, x, y, radius)
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            Vec3 point = {f[0], f[1], 0.0f};
+            Vector3 point = {f[0], f[1], 0.0f};
             BrainOf(state)->Guard(&point, f[2]);
             break;
         }
         case 0x94: {   // Sentry(unit, x, y)
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            Vec3 point = {f[0], f[1], 0.0f};
+            Vector3 point = {f[0], f[1], 0.0f};
             BrainOf(state)->Sentry(&point);
             break;
         }
@@ -1316,7 +1312,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x25: {   // UMSentry(unit, x, y)
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            Vec3 point = {f[0], f[1], 0.0f};
+            Vector3 point = {f[0], f[1], 0.0f};
             Mode* mode = NewMode(0x14);
             BrainOf(state)->AddMode(mode ? mode->Sentry(&point) : nullptr);
             break;
@@ -1325,7 +1321,7 @@ BOOL ScriptRun::Execute(CScript* script) {
         case 0x27: {   // UMGuardEx(unit, x, y, radius, radius2)
             void* state = UnitStateArg(cmd);
             if (!state) break;
-            Vec3 point = {f[0], f[1], 0.0f};
+            Vector3 point = {f[0], f[1], 0.0f};
             float radius = f[2];
             float radius2;
             if (cmd->id == 0x26) std::memcpy(&radius2, "\x00\x00\x80\xBF", 4);   // -1.0f
@@ -1361,7 +1357,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             if (!state) break;
             auto* patrol = static_cast<PatrolMode*>(BrainOf(state)->FindPatrolMode());
             if (!patrol) break;
-            Vec3 point = {f[0], f[1], 0.0f};
+            Vector3 point = {f[0], f[1], 0.0f};
             patrol->AddPoint(&point);
             break;
         }
