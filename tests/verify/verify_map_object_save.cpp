@@ -19,30 +19,10 @@
 
 namespace {
 using unitverify::CaptureStream;
+using unitverify::ReadRecorder;
 
 void* s_unusedLoad;
 void* s_unusedLoadServer;
-
-// Forwards every call to the real stream and records the bytes read.
-class ReadRecorder : public UnitStream {
-public:
-    explicit ReadRecorder(UnitStream* real) : real_(real) {
-        unknown_04 = real->unknown_04;
-        version = real->version;
-    }
-    void DeletingDestructor() override { real_->DeletingDestructor(); }
-    int Read(void* buffer, unsigned size) override {
-        int result = real_->Read(buffer, size);
-        auto* p = static_cast<const unsigned char*>(buffer);
-        bytes.insert(bytes.end(), p, p + size);
-        return result;
-    }
-    void Write(const void* buffer, unsigned size) override { real_->Write(buffer, size); }
-    std::vector<unsigned char> bytes;
-
-private:
-    UnitStream* real_;
-};
 
 CStream* AsStream(UnitStream* stream) { return reinterpret_cast<CStream*>(stream); }
 } // namespace

@@ -24,6 +24,7 @@ class CParty;
 class CResourceManager;
 class CSpellConstructor;
 class CSpellManager;
+class ChunkArchive;
 class CStream;   // core_streams.h
 struct PartyUnitRecord;   // unit.h
 
@@ -142,6 +143,9 @@ public:
     // count and records, the variables (with `saveVariables`), then +0x50 xor an ISAAC key and
     // the key.
     void SaveParty(CStream* stream, int saveVariables);
+    // 006617F0 (RET 4; not rewritten). The party in an archive: a memory stream holding SaveParty's
+    // output (with variables) as stream field 1, read back with the archive's version.
+    void ArchiveParty(ChunkArchive* ar);
     // 00661300 (RET 4). operator=: Clear(1, 0), then `source` saved into a memory stream and
     // loaded back into this party (variables included). Returns this.
     CParty* Assign(CParty* source);

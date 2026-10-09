@@ -3,6 +3,11 @@
 // runs, and both must have written the same bytes (skipped when ours had to grow the buffer). The
 // unit fields the setters keep are written twice with the same value; a potion's count, which the
 // item orders lower, is put back before the original runs.
+// A-H15: the use orders (0x36) and SendLeave04 / SendResume side by side the same way (the state
+// SendLeave04 sets is put back before the original runs); the zone requests side by side while the
+// client is not between zones, otherwise (they return and send the party, whose save draws an ISAAC
+// key) ours only: state 2, the stream grown, its last bytes the request; SendPartyUpdate ours only
+// (0x50 and a sized block appended).
 // Scenarios: ui_battle_commands (walk, attack, spells and quick items on units and points through
 // the battle screen's clicks), ui_hud (weapon slot, movement mode, the +0x438 flag); every
 // battle-screen ground click sends 0x30.
@@ -26,7 +31,7 @@ struct Header {
 };
 
 template <typename Ours, typename Original>
-int CompareSend(const char* name, CPlayerClient* self, Ours ours, Original original) {
+int CompareSend(const char* name, CPlayerClient* self, Ours ours, Original original, bool compareResult = true) {
     Header before(self->out_);
     int actual = ours();
     Header after(self->out_);
@@ -36,7 +41,7 @@ int CompareSend(const char* name, CPlayerClient* self, Ours ours, Original origi
     int expected = original();
     bool same = std::memcmp(&self->out_, after.bytes, sizeof(BitStream)) == 0 &&
                 (written.empty() || std::memcmp(self->out_.data_, written.data(), written.size()) == 0) &&
-                expected == actual;
+                (!compareResult || expected == actual);
     ei::verify::Check(name, true, same, "client %p: size %u vs %u", self, self->out_.size_, after.Get().size_);
     return expected;
 }
@@ -122,8 +127,101 @@ int __fastcall Flag10Verify(CPlayerClient* self, void*, std::uint8_t value) {
                        [&] { return s_flag10(self, nullptr, value); });
 }
 
+int(__fastcall* s_useOrder)(CPlayerClient*, void*, CUnit*, CEngineObject*, int, int, int);
+int(__fastcall* s_useDead)(CPlayerClient*, void*, const Units*, CEngineObject*, int);
+int(__fastcall* s_takeExit)(CPlayerClient*, void*, int);
+int(__fastcall* s_requestZone)(CPlayerClient*, void*, const char*, int);
+int(__fastcall* s_leave04)(CPlayerClient*, void*, int);
+int(__fastcall* s_resume)(CPlayerClient*, void*);
+void* s_unused;
+
+int __fastcall UseOrderVerify(CPlayerClient* self, void*, CUnit* unit, CEngineObject* target, int kind, int value, int flag) {
+    return CompareSend("CPlayerClient::SendUseOrder", self,
+                       [&] { return self->SendUseOrder(unit, target, kind, value, flag); },
+                       [&] { return s_useOrder(self, nullptr, unit, target, kind, value, flag); });
+}
+int __fastcall UseDeadVerify(CPlayerClient* self, void*, const Units* units, CEngineObject* target, int flag) {
+    return CompareSend("CPlayerClient::SendUseDead", self, [&] { return self->SendUseDead(units, target, flag); },
+                       [&] { return s_useDead(self, nullptr, units, target, flag); });
+}
+int __fastcall Leave04Verify(CPlayerClient* self, void*, int value) {
+    int state = self->state_;
+    int after = state;
+    int result = CompareSend("CPlayerClient::SendLeave04", self,
+                             [&] { int r = self->SendLeave04(value); after = self->state_; self->state_ = state; return r; },
+                             [&] { return s_leave04(self, nullptr, value); },
+                             false);   // 0066B280 returns whatever the stream's Write leaves in EAX
+    ei::verify::Check("CPlayerClient::SendLeave04 state", self->state_, after, "client %p", self);
+    return result;
+}
+int __fastcall ResumeVerify(CPlayerClient* self, void*) {
+    return CompareSend("CPlayerClient::SendResume", self, [&] { return self->SendResume(); },
+                       [&] { return s_resume(self, nullptr); });
+}
+
+// Between zones (state 3) ours only: the party goes out first (an ISAAC draw), so the original
+// cannot run again. Checks state 2, the stream grown by more than the request, and its tail.
+bool EndsWith(const CPlayerClient* self, std::uint32_t before, const std::vector<std::uint8_t>& tail) {
+    const BitStream& out = self->out_;
+    if (out.size_ < before + tail.size() + 2) return false;
+    return std::memcmp(out.data_ + out.size_ - tail.size(), tail.data(), tail.size()) == 0;
+}
+std::vector<std::uint8_t> Request(std::uint8_t type, const void* payload, std::size_t size, const void* more = nullptr,
+                                  std::size_t moreSize = 0) {
+    std::vector<std::uint8_t> bytes{type};
+    bytes.insert(bytes.end(), static_cast<const std::uint8_t*>(payload), static_cast<const std::uint8_t*>(payload) + size);
+    if (more) bytes.insert(bytes.end(), static_cast<const std::uint8_t*>(more), static_cast<const std::uint8_t*>(more) + moreSize);
+    return bytes;
+}
+
+int __fastcall TakeExitVerify(CPlayerClient* self, void*, int exit) {
+    if (self->state_ != 3)
+        return CompareSend("CPlayerClient::TakeExit", self, [&] { return self->TakeExit(exit); },
+                           [&] { return s_takeExit(self, nullptr, exit); });
+    std::uint32_t before = self->out_.size_;
+    int result = self->TakeExit(exit);
+    bool ok = self->state_ == 2 && EndsWith(self, before, Request(0x03, &exit, 4));
+    ei::verify::Check("CPlayerClient::TakeExit (state 3)", true, ok, "client %p state %d size %u", self, self->state_,
+                      self->out_.size_);
+    return result;
+}
+int __fastcall RequestZoneVerify(CPlayerClient* self, void*, const char* zone, int entrance) {
+    if (self->state_ != 3)
+        return CompareSend("CPlayerClient::RequestZone", self, [&] { return self->RequestZone(zone, entrance); },
+                           [&] { return s_requestZone(self, nullptr, zone, entrance); });
+    std::uint32_t before = self->out_.size_;
+    int result = self->RequestZone(zone, entrance);
+    bool ok = self->state_ == 2 && EndsWith(self, before, Request(0x06, zone, std::strlen(zone) + 1, &entrance, 4));
+    ei::verify::Check("CPlayerClient::RequestZone (state 3)", true, ok, "client %p state %d zone %s", self,
+                      self->state_, zone);
+    return result;
+}
+void __fastcall RejoinVerify(CPlayerClient* self, void*) {
+    int state = self->state_;
+    std::uint32_t before = self->out_.size_;
+    self->Rejoin();
+    bool ok = state == 3 ? self->state_ == 2 && EndsWith(self, before, {0x05}) : self->out_.size_ == before;
+    ei::verify::Check("CPlayerClient::Rejoin", true, ok, "client %p state %d -> %d", self, state, self->state_);
+}
+int __fastcall PartyUpdateVerify(CPlayerClient* self, void*) {
+    std::uint32_t before = self->out_.size_;
+    int result = self->SendPartyUpdate();
+    bool ok = result == 1 && self->out_.size_ > before + 3 && self->out_.data_[before] == 0x50;
+    ei::verify::Check("CPlayerClient::SendPartyUpdate", true, ok, "client %p size %u -> %u", self, before,
+                      self->out_.size_);
+    return result;
+}
+
 } // namespace
 
+EI_VERIFY(0x0066AA20, UseOrderVerify, 7, s_useOrder);
+EI_VERIFY(0x0066AB80, UseDeadVerify, 6, s_useDead);
+EI_VERIFY(0x0066B280, Leave04Verify, 5, s_leave04);
+EI_VERIFY(0x0066B300, ResumeVerify, 7, s_resume);
+EI_VERIFY(0x0066B140, TakeExitVerify, 8, s_takeExit);
+EI_VERIFY(0x0066B1B0, RequestZoneVerify, 5, s_requestZone);
+EI_VERIFY(0x0066B2C0, RejoinVerify, 0, s_unused);
+EI_VERIFY(0x0066B080, PartyUpdateVerify, 0, s_unused);
 EI_VERIFY(0x0066A7D0, WalkVerify, 5, s_walk);
 EI_VERIFY(0x0066A720, GoToVerify, 5, s_goTo);
 EI_VERIFY(0x0066A880, AttackVerify, 5, s_attack);

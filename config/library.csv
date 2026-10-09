@@ -1249,8 +1249,17 @@ address,name,library,signature,notes
 004A2FF0,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,,"inventory sweep: n*sizeof(T) back to the node-pool free list, operator delete above 128 bytes; loose-family member of 004251B0 (reviewed)"
 004A3030,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 5 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 004A5950,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 004A5950 (reviewed)"
+004A5A30,NamedPartyRecords destructor (compiler-generated),STLport,,"A-S9: EH unwinding only: the two CStrings, each record released (0040A3A0), the vector storage"
+004A5D50,counted_ptr<T>::counted_ptr(const counted_ptr&),STLport,,"A-S9: copy, count +1 (PartyRecord)"
+004A5D70,counted_ptr<T>::~counted_ptr,STLport,,"A-S9: release: count -1, slot 0 with 1 at zero (PartyRecord)"
 004A6280,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 3 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
+004A6840,ItemStock destructor (compiler-generated),STLport,,A-S9: EH unwinding only; the template destructor 004A6A90 inlines its own copy
 004A6990,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 004A5950 (reviewed)"
+004A7EA0,counted_ptr<T>::~counted_ptr,STLport,,"A-S9: release: count -1, slot 0 with 1 at zero (ClassTemplate)"
+004A8300,counted_ptr<T> add-reference,STLport,,"A-S9: count +1 (0055763D, 004A826E)"
+004A8930,stlp::string::string(const string&),STLport,,A-S9: node-pool copy with the length_error path (stlp.h names it)
+004A8A50,"stlp::hash_map<CString,float>::hash_map(const hash_map&)",STLport,,A-S9: the party variables' table (FloatTableCopyConstructOriginal)
+004A8AD0,"stlp::hash_map<CString,float>::operator=",STLport,,"A-S9: the party variables' table: clear, functors, _M_copy_from 004AA950"
 004A8B70,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 00408F90 (reviewed)"
 004A8C60,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 00421500 (reviewed)
 004A8CB0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 00421500 (reviewed)
@@ -1260,7 +1269,12 @@ address,name,library,signature,notes
 004A8E60,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 004A5950 (reviewed)"
 004A8F40,"stlp::hashtable<V,K,HF,ExK,EqK,A>::hashtable(n,hf,eql,a)",STLport,,inventory sweep: default 100 buckets rounded up through the STLport prime list; loose-family member of 004639D0 (reviewed)
 004A9010,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 004A5950 (reviewed)"
+004A90F0,stlp::vector<counted_ptr<T>>::~vector,STLport,,"A-S9: releases each pointer, frees the storage (EH unwinding of 004A8310 / 004A8560)"
+004A91B0,"stlp::hash_map<int,CParty>::operator[]",STLport,,"A-S9: the party manager's parties by key (resize 004AC940, _M_new_node 004AB980)"
+004A92B0,stlp::vector<T>::~vector (0x14-byte party manager entries),STLport,,A-S9: two CStrings and a vector<int> per element (EH unwinding)
 004A93D0,stlp::list<T>::clear,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+004A9460,stlp::_Destroy (CParty),STLport,,A-S9: the hash node value's destructor body 006611D0
+004A9480,"stlp::hashtable<V,K,HF,ExK,EqK,A>::hash_funct",STLport,,A-S9: copies the functor byte
 004A94A0,stlp::list<T>::list,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004A9650,stlp::list<T>::clear,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004A96A0,stlp::list<T>::clear,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
@@ -1274,8 +1288,10 @@ address,name,library,signature,notes
 004A9830,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004A9870,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004A98C0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+004A9910,"stlp::vector<counted_ptr<T>>::erase(first,last)",STLport,,A-S9: PartyRecord pointers (release 004A5D70)
 004A99A0,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004A99C0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+004A9A00,"stlp::vector<counted_ptr<T>>::erase(first,last)",STLport,,A-S9: ClassTemplate pointers (release 004A7EA0)
 004A9A90,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004A9AD0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004A9C80,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 00424AF0 (reviewed)
@@ -1303,6 +1319,7 @@ address,name,library,signature,notes
 004AA8D0,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,,"inventory sweep: n*sizeof(T) back to the node-pool free list, operator delete above 128 bytes; loose-family member of 00411B30 (reviewed)"
 004AA910,stlp::_STLP_alloc_proxy<T>::_STLP_alloc_proxy,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004AA930,stlp::_STLP_alloc_proxy<T>::_STLP_alloc_proxy,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+004AA950,"stlp::hashtable<pair<const CString,float>,...>::_M_copy_from",STLport,,"A-S9: the party variables' table (FloatTableCopyFromOriginal); bucket vector resized, each chain copied (004615B0)"
 004AAB20,stlp::vector<T>::reserve,STLport,,inventory sweep: returns if capacity suffices; else allocate_and_copy and free the old block to the node pool; loose-family member of 0040AF00 (reviewed)
 004AAD70,stlp::vector<T>::_M_fill_insert,STLport,,inventory sweep: insert n copies at pos; calls _M_insert_overflow when capacity is short; loose-family member of 00406810 (reviewed)
 004AAEB0,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain (CString values), nodes back to the pool; loose-family member of 00461540 (reviewed)"
@@ -1311,9 +1328,16 @@ address,name,library,signature,notes
 004AB2B0,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain (CString values), nodes back to the pool; loose-family member of 00461540 (reviewed)"
 004AB320,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00426F00 (reviewed)"
 004AB520,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00426F00 (reviewed)"
+004AB720,"stlp::hash_map<string,T*>::operator[](const char*) (weapon table 007C86F8 +0xC)",STLport,,"A-S9: temporary string and pair, find_or_insert 004ACAB0; same kind as 00613820"
+004AB820,"stlp::hash_map<string,T*>::operator[](const char*) (armor table 007C8718 +0xC)",STLport,,"A-S9: temporary string and pair, find_or_insert 004ACB60; same kind as 00613820"
+004AB910,stlp::copy(counted_ptr<T>),STLport,,"A-S9: counted assignment, returns the destination end"
+004AB960,counted_ptr<PartyRecord> scalar deleting destructor,STLport,,"A-S9: release 004A5D70, then delete on flag bit 0"
+004AB980,"stlp::hashtable<pair<const int,CParty>,...>::_M_new_node",STLport,,"A-S9: 0x78-byte nodes from the pool chunk list 0079B25C, value copy-constructed (006613C0)"
+004ABA70,"stlp::hashtable<pair<const int,CParty>,...>::_M_delete_node",STLport,,"A-S9: value destroyed, node back to 0079B25C"
 004ABAA0,"stlp::hashtable<pair<const string,T>,...>::find_or_insert",STLport,,"inventory sweep: string key, EH frame; resize, hash, compare, insert; loose-family member of 004297A0 (reviewed)"
 004ABBD0,"stlp::hashtable<pair<const string,T>,...>::find_or_insert",STLport,,"inventory sweep: string key, EH frame; resize, hash, compare, insert; loose-family member of 004297A0 (reviewed)"
 004ABD00,"stlp::hashtable<pair<const string,T>,...>::find_or_insert",STLport,,"inventory sweep: string key, EH frame; resize, hash, compare, insert; loose-family member of 004297A0 (reviewed)"
+004ABE30,counted_ptr<T>::counted_ptr(const counted_ptr&),STLport,,"A-S9: copy, count +1"
 004ABE50,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 0040C720 (reviewed)
 004ABE90,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 0040C720 (reviewed)
 004ABED0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 0040C720 (reviewed)
@@ -1335,19 +1359,31 @@ address,name,library,signature,notes
 004ACB60,"stlp::hashtable<pair<const string,T>,...>::find_or_insert",STLport,,inventory sweep: resize(n+1); __stl_hash_string (h*5+c); string compare; _M_new_node; loose-family member of 004ACAB0 (reviewed)
 004ACC10,"stlp::hashtable<pair<const string,T>,...>::find_or_insert",STLport,,inventory sweep: resize(n+1); __stl_hash_string (h*5+c); string compare; _M_new_node; loose-family member of 004ACAB0 (reviewed)
 004AD050,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain (CString values), nodes back to the pool; loose-family member of 00461540 (reviewed)"
+004AD2E0,stlp::list<T>::iterator::iterator,STLport,,A-S9: stores the node pointer
+004AD2F0,stlp::copy(counted_ptr<T>),STLport,,A-S9: counted assignment forward
+004AD340,stlp::copy(counted_ptr<T>),STLport,,A-S9: counted assignment forward (ClassTemplate)
+004AD390,stlp::copy (0x14-byte party manager entries),STLport,,"A-S9: element-wise assignment (CStrings, vector<int>::operator=)"
+004AD500,party manager entry operator= (compiler-generated),STLport,,A-S9: two CStrings and vector<int>::operator= inlined
+004AD620,stlp hash node value scalar deleting destructor (CParty),STLport,,"A-S9: 004A9460, then delete on flag bit 0"
+004AD640,stlp container destructor (vector + list sentinel),STLport,,"A-S9: list nodes and sentinel back to the pool, then the vector storage"
 004AD6C0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 0040C720 (reviewed)
 004AD700,stlp::vector<T>::resize,STLport,,inventory sweep: destroys the tail (RefPtr release) or fills; RefPtr elements; loose-family member of 004200C0 (reviewed)
+004AD8B0,counted_ptr<T>::counted_ptr(const counted_ptr&),STLport,,"A-S9: copy, count +1"
 004AD8D0,stlp::vector<T>::resize,STLport,,inventory sweep: destroys the tail (RefPtr release) or fills; RefPtr elements; loose-family member of 004200C0 (reviewed)
 004ADA80,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+004ADAA0,stlp::vector<T>::resize (0x14-byte party manager entries),STLport,,A-S9: erase the tail or _M_fill_insert 004AF5D0 with an empty entry
 004ADBE0,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_new_node",STLport,,"inventory sweep: node from the node-pool free list (inlined refill), value constructed in place; loose-family member of 0042A650 (reviewed)"
 004ADD00,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_new_node",STLport,,"inventory sweep: node from the node-pool free list (inlined refill), value constructed in place; loose-family member of 0042A650 (reviewed)"
 004ADE20,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_new_node",STLport,,"inventory sweep: node from the node-pool free list (inlined refill), value constructed in place; loose-family member of 0042A650 (reviewed)"
 004ADF40,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_new_node",STLport,,"inventory sweep: node from the node-pool free list (inlined refill), value constructed in place; loose-family member of 0042A650 (reviewed)"
 004AE060,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_new_node",STLport,,"inventory sweep: node from the node-pool free list (inlined refill), value constructed in place; loose-family member of 0042A650 (reviewed)"
 004AE180,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_new_node",STLport,,"inventory sweep: node from the node-pool free list (inlined refill), value constructed in place; loose-family member of 0042A650 (reviewed)"
+004AE2D0,party manager entry destructor (compiler-generated),STLport,,"A-S9: vector<int> storage, two CStrings"
+004AE3A0,"stlp::vector<int>::resize(n, x)",STLport,,A-S9: truncate or fill-insert at the end
 004AE500,"stlp::hashtable<V,K,HF,ExK,EqK,A>::begin",STLport,,inventory sweep: first non-empty bucket; loose-family member of 00404C30 (reviewed)
 004AE560,"stlp::_Vector_base<T>::_Vector_base(size_t,const allocator&)",STLport,,inventory sweep: allocates n elements from the node pool (inlined _S_chunk_alloc refill); loose-family member of 00407740 (reviewed)
 004AE780,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+004AE7C0,trivial destructor (empty),STLport,,A-S9: RET only
 004AE7D0,stlp::_STLP_alloc_proxy<T>::_STLP_alloc_proxy,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004AE7F0,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,,"inventory sweep: n*sizeof(T) back to the node-pool free list, operator delete above 128 bytes; loose-family member of 004251B0 (reviewed)"
 004AE830,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00408060 (reviewed)"
@@ -1364,6 +1400,9 @@ address,name,library,signature,notes
 004AF2B0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004AF300,"stlp::hashtable<V,K,HF,ExK,EqK,A>::resize",STLport,,inventory sweep: next size from the STLport prime list 0073B914..0073B980; rehashes the bucket chains; loose-family member of 0042AFD0 (reviewed)
 004AF460,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+004AF5D0,stlp::vector<T>::_M_fill_insert (0x14-byte party manager entries),STLport,,A-S9: in place or through _M_insert_overflow 004B0F80
+004AF850,stlp::vector<int>::operator=,STLport,,A-S9: reallocate (004B0E20) or copy in place
+004AFAC0,stlp::copy<int>,STLport,,A-S9: dword copy forward
 004AFAE0,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004AFB00,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004AFB20,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
@@ -1865,6 +1904,7 @@ address,name,library,signature,notes
 00511FF0,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073DC48 (GetRuntimeClass 007005E3, Serialize 00511C30 identified); touches no other vtable; callees library only"
 00512010,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073DC3C (GetRuntimeClass 007005E3, Serialize 00511E20 identified); touches no other vtable; callees library only"
 00512030,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 10 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
+00512060,"CArray<TYPE,ARG_TYPE>::SetAtGrow",MFC,,A-U7 review (named library in units.md by A-U5): template instantiation, not game logic
 005121B0,"CArray<TYPE,ARG_TYPE>::SetSize",MFC,,inventory sweep: MFC SetSize (DestructElements loop); loose-family member of 0045DAE0 (reviewed)
 00512330,"CArray<TYPE,ARG_TYPE>::SetSize",MFC,,inventory sweep: MFC SetSize (non-trivial elements: ConstructElements helper); loose-family member of 00450F20 (reviewed)
 005146C0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 0040C720 (reviewed)
@@ -1891,6 +1931,7 @@ address,name,library,signature,notes
 00519D50,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073DE40 (GetRuntimeClass 007005E3, Serialize 00519B50 identified); touches no other vtable; callees library only"
 0051E400,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0051E520,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 00424AF0 (reviewed)
+0051E5D0,"stlp::vector<T>::insert",STLport,,A-U7 review (named library in units.md by A-U5): template instantiation, not game logic
 0051F790,stlp::vector<CString>::_M_insert_overflow,STLport,,"X2 review: grows to size+max(size,n) via the node allocator pool 0079B224 (<=0x80 bytes) or operator new; copies, inserts n copies, destroys and frees the old block; also declared in src/game/ui_objectives.cpp as an original-address call"
 00520710,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 00424AF0 (reviewed)
 00520760,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 4 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
@@ -1902,8 +1943,11 @@ address,name,library,signature,notes
 00521220,stlp::vector<T>::_M_fill_insert,STLport,,"X2 review: same shape for the 0x44-byte record; capacity-short path calls _M_insert_overflow 005218E0"
 00521610,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 00521C70,stlp::copy (0x18-byte records),STLport,"T* __fastcall(const T* first,const T* last,T* result)","X2 review: loop of (last-first)/0x18 element assignments (2 CString assigns, a dword, vector<CString> assign); returns the end of the destination"
+00522010,"stlp::vector<CString>::operator=",STLport,,A-U7 review (named library in units.md by A-U5): template instantiation, not game logic
 00522160,stlp::uninitialized_copy (0x18-byte records),STLport,,"U7 review: copy-constructs [first,last) into result (2 CString copies, a dword, vector<CString> copy via 00522740); returns the end of the destination"
 005222F0,stlp::uninitialized_fill_n (0x18-byte records),STLport,,"U7 review: copy-constructs n copies of one record (same element copy as 00522160); returns the end"
+00522480,"stlp uninitialized_copy (0x44-byte unit database records)",STLport,,A-U7 review (named library in units.md by A-U5): template instantiation, not game logic
+005225E0,"stlp uninitialized_fill_n (0x44-byte unit database records: CString members copy-constructed)",STLport,,A-U7 review (named library in units.md by A-U5): template instantiation, not game logic
 005227D0,stlp::allocator<T>::allocate,STLport,,inventory sweep: n*sizeof(T) from the node pool or operator new above 128 bytes; loose-family member of 004B0E20 (reviewed)
 0052C740,"CList<TYPE,ARG_TYPE>::Serialize",MFC,void __thiscall(CArchive&),"U7 review: the magic trap victim list (vtable 0073E730, counted references): WriteCount and the raw pointer of each element, or ReadCount, then per element a raw pointer read and AddTail (NewNode inlined); the same shape as 00405190. Only the vtable refers to it; loading a nonzero count would dereference stale pointers"
 0052CA10,stlp/MFC container template instantiation (unreviewed family),MFC,,inventory sweep: loose family of 15 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
@@ -1926,6 +1970,7 @@ address,name,library,signature,notes
 00533580,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073EBB4 (GetRuntimeClass 007005E3, Serialize 00533030 identified); touches no other vtable; callees library only"
 005335A0,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073EB84 (GetRuntimeClass 007005E3, Serialize 005331E0 identified); touches no other vtable; callees library only"
 005335C0,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073EBD4 (GetRuntimeClass 007005E3, Serialize 00533390 identified); touches no other vtable; callees library only"
+005335E0,"stlp::hash_map<string, T>::operator[]",STLport,,A-U7 review (named library in units.md by A-U5): template instantiation, not game logic
 00533740,"CArray<TYPE,ARG_TYPE>::SetSize",MFC,,"inventory sweep: MFC SetSize: nGrowBy update, delete/new[] buffer, ConstructElements/DestructElements, grow by max(4,min(1024,n/8)); loose-family member of 00453790 (reviewed)"
 00539220,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 25 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 005392C0,stlp::list<T>::insert,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
@@ -1933,11 +1978,15 @@ address,name,library,signature,notes
 00539330,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 5 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 005393B0,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 3 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 00539400,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 4 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
+00539440,"CList<TYPE,ARG_TYPE>::Serialize",MFC,,A-U7 review (named library in units.md by A-U5): template instantiation, not game logic
 00539580,"CArray<TYPE,ARG_TYPE>::SetSize",MFC,,inventory sweep: MFC SetSize (non-trivial elements: ConstructElements helper); loose-family member of 00450F20 (reviewed)
 005396C0,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073EEA0 (GetRuntimeClass 007005E3, Serialize 005396E0 identified); touches no other vtable; callees library only"
 005396E0,"CArray<TYPE,ARG_TYPE>::Serialize",MFC,,inventory sweep: CArchive::WriteCount/ReadCount + inlined SetSize + SerializeElements (CArchive::Read/Write); loose-family member of 0044F650 (reviewed)
 00539890,"CList<TYPE,ARG_TYPE>::~CList",MFC,,"inventory sweep: vtable store, RemoveAll inlined, CPlex::FreeDataChain; loose-family member of 00405130 (reviewed)"
 005398F0,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073EEA0 (GetRuntimeClass 007005E3, Serialize 005396E0 identified); touches no other vtable; callees library only"
+0053AD70,"stlp::vector<T>::~vector (0x120-byte prototype records)",STLport,,A-U7 review: STLport template instantiation (unit database containers), not game logic
+0053AF60,"stlp::vector<T>::~vector (0x60-byte records)",STLport,,A-U7 review: STLport template instantiation (unit database containers), not game logic
+0053B130,"stlp::vector<T>::~vector (0x168-byte model records)",STLport,,A-U7 review: STLport template instantiation (unit database containers), not game logic
 0053B440,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0053B460,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 00424AF0 (reviewed)
 0053B4B0,"stlp::hashtable<V,K,HF,ExK,EqK,A>::hashtable(n,hf,eql,a)",STLport,,inventory sweep: bucket count from the STLport prime list 0073B914; buckets from the node pool; loose-family member of 00405820 (reviewed)
@@ -1993,7 +2042,10 @@ address,name,library,signature,notes
 0053DDF0,"stlp::hashtable<V,K,HF,ExK,EqK,A>::resize",STLport,,inventory sweep: next size from the STLport prime list 0073B914..0073B980; rehashes the bucket chains; loose-family member of 0042AFD0 (reviewed)
 0053E050,"stlp::hashtable<V,K,HF,ExK,EqK,A>::resize",STLport,,inventory sweep: next size from the STLport prime list 0073B914..0073B980; rehashes the bucket chains; loose-family member of 0042AFD0 (reviewed)
 0053E2A0,stlp::vector<T>::resize,STLport,void __thiscall(size_t),"X2 review: vector<0x120-byte record>::resize(n): default element built on the stack; erase tail (n < size) or _M_fill_insert 0053F530 at end"
+0053E520,"stlp::vector<T>::resize (0x60-byte unit database records)",STLport,,A-U7 review: STLport template instantiation (unit database containers), not game logic
+0053E730,"stlp::vector<T>::resize (0x168-byte unit database model records; the default record built inline)",STLport,,A-U7 review: STLport template instantiation (unit database containers), not game logic
 0053E990,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+0053E9B0,"stlp::vector<T>::resize (0x44-byte unit database records)",STLport,,A-U7 review: STLport template instantiation (unit database containers), not game logic
 0053EBA0,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0053F0C0,"stlp::_Vector_base<T>::_Vector_base(size_t,const allocator&)",STLport,,inventory sweep: allocates n elements from the node pool (inlined _S_chunk_alloc refill); loose-family member of 00407740 (reviewed)
 0053F2D0,"stlp::_Vector_base<T>::_Vector_base(size_t,const allocator&)",STLport,,inventory sweep: allocates n elements from the node pool (inlined _S_chunk_alloc refill); loose-family member of 00407740 (reviewed)
@@ -2042,7 +2094,9 @@ address,name,library,signature,notes
 005448F0,stlp __copy (records with a CString),STLport,,compiler-generated for a game record type (unit prototypes 0x120 bytes and records with CStrings; combat.md)
 00544930,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 3 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 005450F0,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073EF2C (GetRuntimeClass 007005E3, Serialize 00557E90 identified); touches no other vtable; callees library only"
+00545750,"CList<PathCell> constructor (vtable 0073EDB0, blocks of 0x80)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
 00545780,"CList<TYPE,ARG_TYPE>::~CList",MFC,,"inventory sweep: vtable store, RemoveAll inlined, CPlex::FreeDataChain; loose-family member of 00405130 (reviewed)"
+00545BA0,"CArray<Behaviour> destructor (vtable 0073F034; DestructElements inlined)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
 00545C70,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F040 (GetRuntimeClass 007005E3, Serialize 00557430 identified); touches no other vtable; callees library only"
 00545EA0,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F058 (GetRuntimeClass 007005E3, Serialize 00556E10 identified); touches no other vtable; callees library only"
 00545F20,"CArray<TYPE,ARG_TYPE> constructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F070 (GetRuntimeClass 007005E3, Serialize 00557050 identified); touches no other vtable; callees library only"
@@ -2050,15 +2104,23 @@ address,name,library,signature,notes
 00546060,"CArray<TYPE,ARG_TYPE> constructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F01C (GetRuntimeClass 007005E3, Serialize 00557E90 identified); touches no other vtable; callees library only"
 005461C0,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073EF2C (GetRuntimeClass 007005E3, Serialize 00557E90 identified); touches no other vtable; callees library only"
 00546210,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073EF2C (GetRuntimeClass 007005E3, Serialize 00557E90 identified); touches no other vtable; callees library only"
+005483C0,"CArray<AnimationStep> assignment (Copy with SetSize inlined, then extra)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+0054B260,"CArray<AnimationStep> copy constructor (SetSize inlined, steps and extra copied)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
 00556810,"CArray<TYPE,ARG_TYPE> constructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073EB90 (GetRuntimeClass 007005E3, Serialize 00533030 identified); touches no other vtable; callees library only"
 00556830,"CArray<TYPE,ARG_TYPE> constructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F140 (GetRuntimeClass 007005E3, Serialize 00556E10 identified); touches no other vtable; callees library only"
 00556850,"CArray<TYPE,ARG_TYPE> constructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F01C (GetRuntimeClass 007005E3, Serialize 00557E90 identified); touches no other vtable; callees library only"
+00556870,"CArray<AnimationStep> copy constructor (steps only)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00556950,"CArray<AnimationStep>::Copy (SetSize inlined)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
 00556AB0,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F140 (GetRuntimeClass 007005E3, Serialize 00556E10 identified); touches no other vtable; callees library only"
 00556AD0,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F058 (GetRuntimeClass 007005E3, Serialize 00556E10 identified); touches no other vtable; callees library only"
 00556B50,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F070 (GetRuntimeClass 007005E3, Serialize 00557050 identified); touches no other vtable; callees library only"
 00556B70,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F064 (GetRuntimeClass 007005E3, Serialize 00557050 identified); touches no other vtable; callees library only"
+00556BE0,"CArray scalar deleting destructor (destructor 00545BA0)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
 00556C00,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F01C (GetRuntimeClass 007005E3, Serialize 00557E90 identified); touches no other vtable; callees library only"
 00556C20,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073EF2C (GetRuntimeClass 007005E3, Serialize 00557E90 identified); touches no other vtable; callees library only"
+00556C80,"CList constructor with a block size (vtable 0073E730)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00556CB0,"CList<counted reference>::RemoveAll (elements released)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00556D10,"CList constructor with a block size (vtable 0073EDB0)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
 00556D40,stlp/MFC container template instantiation (unreviewed family),MFC,,inventory sweep: loose family of 15 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 00556D70,"CArray<TYPE,ARG_TYPE> constructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073EBA8 (GetRuntimeClass 007005E3, Serialize 00532E70 identified); touches no other vtable; callees library only"
 00556D90,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F058 (GetRuntimeClass 007005E3, Serialize 00556E10 identified); touches no other vtable; callees library only"
@@ -2071,23 +2133,45 @@ address,name,library,signature,notes
 005573F0,"CArray<TYPE,ARG_TYPE> constructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073D460 (GetRuntimeClass 007005E3, Serialize 004C9B10 identified); touches no other vtable; callees library only"
 00557410,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F040 (GetRuntimeClass 007005E3, Serialize 00557430 identified); touches no other vtable; callees library only"
 00557430,"CArray<TYPE,ARG_TYPE>::Serialize",MFC,,inventory sweep: CArchive::WriteCount/ReadCount + inlined SetSize + SerializeElements (CArchive::Read/Write); loose-family member of 00474F50 (reviewed)
+005575F0,"CList<RefPtr> destructor (vtable 0073F028; RefPtr destructor inlined)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+005576C0,"CList<RefPtr>::Serialize (CArchive count, CPlex nodes)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00557890,"CArray<T> destructor (0x4C-byte elements with an inner array; DestructElements inlined; vtable 0073F034)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
 00557960,"CArray<TYPE,ARG_TYPE>::Serialize",MFC,,inventory sweep: CArchive::WriteCount/ReadCount + inlined SetSize + SerializeElements (CArchive::Read/Write); loose-family member of 0045FCB0 (reviewed)
 00557B60,"CArray<TYPE,ARG_TYPE> constructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073EF2C (GetRuntimeClass 007005E3, Serialize 00557E90 identified); touches no other vtable; callees library only"
 00557B80,"CArray<TYPE,ARG_TYPE>::SetSize",MFC,,inventory sweep: MFC SetSize; loose-family member of 00557B80 (reviewed)
+00557CC0,"CArray<AnimationStep>::Add (SetSize inlined; ConstructElements 00558AB0)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00557E20,"CArray<AnimationStep>::RemoveAt (memmove of the tail)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
 00557E70,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073EF2C (GetRuntimeClass 007005E3, Serialize 00557E90 identified); touches no other vtable; callees library only"
 00557E90,"CArray<TYPE,ARG_TYPE>::Serialize",MFC,,inventory sweep: CArchive::WriteCount/ReadCount + inlined SetSize + SerializeElements (CArchive::Read/Write); loose-family member of 0044F650 (reviewed)
 00558020,"CList<TYPE,ARG_TYPE>/CMap<...>::RemoveAll",MFC,,"inventory sweep: destroys CString elements, CPlex::FreeDataChain; loose-family member of 004CE0C0 (reviewed)"
+00558070,"CList<ArmourSpell>::~CList (vtable 0073F010; RemoveAll inlined, CPlex::FreeDataChain)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00558100,"CList<ArmourSpell>::Serialize (CArchive count, 0xC-byte records)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
 00558470,"CList<TYPE,ARG_TYPE>::~CList",MFC,,"inventory sweep: vtable store, RemoveAll inlined, CPlex::FreeDataChain; loose-family member of 00405130 (reviewed)"
 005584D0,"CList<TYPE,ARG_TYPE>/CMap<...>::Serialize",MFC,,inventory sweep: CArchive::ReadCount loop with CPlex::Create node blocks (NewNode inlined); loose-family member of 00405190 (reviewed)
 00558700,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F058 (GetRuntimeClass 007005E3, Serialize 00556E10 identified); touches no other vtable; callees library only"
 00558720,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F064 (GetRuntimeClass 007005E3, Serialize 00557050 identified); touches no other vtable; callees library only"
 00558740,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F07C (GetRuntimeClass 007005E3, Serialize 00557270 identified); touches no other vtable; callees library only"
 00558760,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F040 (GetRuntimeClass 007005E3, Serialize 00557430 identified); touches no other vtable; callees library only"
+00558780,"CList scalar deleting destructor (destructor 005575F0)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+005587E0,"CArray scalar deleting destructor (destructor 00557890)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
 00558800,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073EF2C (GetRuntimeClass 007005E3, Serialize 00557E90 identified); touches no other vtable; callees library only"
+00558820,"CList scalar deleting destructor (destructor 00558070)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
 00558880,"CList/CMap<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 0073F12C (GetRuntimeClass 007005E3, Serialize 005584D0 identified); touches no other vtable; callees library only"
 005588A0,stlp/MFC container template instantiation (unreviewed family),MFC,,inventory sweep: loose family of 2 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
+005588F0,"DestructElements (0046C290 per element)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00558920,"CArray<AnimationStep>::GetAt (by value)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00558950,"CArray<AnimationStep>::SetAtGrow (SetSize inlined)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00558AB0,"ConstructElements<AnimationStep> (zeroed, then the blank step 00550A60 inlined)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00558B10,"CList<ArmourSpell>::NewNode (20-byte nodes)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00558B80,"CList<ArmourSpell>::FreeNode (RemoveAll when the count reaches 0)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
 00558C00,stlp/MFC container template instantiation (unreviewed family),MFC,,inventory sweep: loose family of 2 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 00558C50,stlp/MFC container template instantiation (unreviewed family),MFC,,inventory sweep: loose family of 15 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
+00558D10,"ConstructElements (8-byte elements, first dword 0)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00558D60,"ConstructElements (24-byte elements, +0x14 the empty CString)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00558DB0,"ConstructElements (8-byte elements, zero fill)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00558DE0,"DestructElements (AI mode references, 005587A0 per element)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00558E10,"ConstructElements (0x4C-byte elements, constructor 0045D5B0 each)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
+00558EA0,"ConstructElements (12-byte elements, first two dwords 0)",MFC,,A-U7 review: MFC template instantiation (container plumbing), not game logic
 00558EF0,ConstructElements<RefPtr>,MFC,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 005593D0,unit appearance cache build,STLport,,library-like by agreement (combat.md): a cache built almost entirely from STLport hash_map instantiations; thin logic
 00559B30,unit entry destructor (implicit; CString vector),compiler,,unit set review (world.md, the unit set): STLport / compiler instantiation for the unit set and look records, not game logic
@@ -3111,6 +3195,8 @@ address,name,library,signature,notes
 0064F880,"stlp pair<string, T>::pair(const string&, const T&)",STLport,,A-H11 sweep: same instructions as 005729D0 (data addresses masked; every call goes to the same callee or to library code)
 0064F9E0,stlp::uninitialized_copy<pair*>,STLport,,A-H11 sweep: same instructions as 0042B3C0 (data addresses masked; every call goes to the same callee or to library code)
 0064FA10,stlp::uninitialized_fill_n<pair*>,STLport,,A-H11 sweep: same instructions as 0042B3F0 (data addresses masked; every call goes to the same callee or to library code)
+006518A0,"compiler-generated destructor (0x18-byte record with a vector and two CStrings)",compiler,,"A-H15: the two CStrings (+0x14, +0x10), then the vector's block back to the node pool 0079B224 (above 0x80 bytes operator delete); reached from 006537E0 and the unwind funclet 0072EBF8"
+00651CE0,"compiler-generated destructor (0x14-byte record with a CString)",compiler,,"A-H15: the CString at +0x10 (a tail jump to CString::~CString); reached from 00653800"
 00652740,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 00652760,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,,"inventory sweep: n*sizeof(T) back to the node-pool free list, operator delete above 128 bytes; loose-family member of 00406590 (reviewed)"
 006527A0,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00428C50 (reviewed)"
@@ -3127,6 +3213,8 @@ address,name,library,signature,notes
 006535D0,"stlp::uninitialized_fill_n (0x14-byte record with a CString)",STLport,,"A-H14 review of the save screen 00653000-00658000: template instantiation, copy-constructs n copies"
 00653680,stlp::uninitialized_copy<T*>,STLport,,A-H11 sweep: same instructions as 0042B6C0 (data addresses masked; every call goes to the same callee or to library code)
 006536A0,stlp::allocator<T>::allocate,STLport,,inventory sweep: n*sizeof(T) from the node pool or operator new above 128 bytes; loose-family member of 004B0E20 (reviewed)
+006537E0,"compiler-generated deleting destructor (0x18-byte record)",compiler,,"A-H15: 006518A0, then operator delete with flag bit 0; the save screen's key list rebuild 00651600 runs it with flag 0 on each element it drops (STLport _Destroy)"
+00653800,"compiler-generated deleting destructor (0x14-byte record)",compiler,,"A-H15: 00651CE0, then operator delete with flag bit 0 (STLport _Destroy on the 0x14-byte records)"
 00653820,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408C20 (data addresses masked; every call goes to the same callee or to library code)
 006538E0,"SaveEntry::operator= (compiler-generated)",compiler,,"A-H14 review of the save screen 00653000-00658000: CStrings assigned, dwords copied, CStringArray::Copy twice, the broken flag; returns this"
 00656640,"SaveEntry copy constructor (compiler-generated)",compiler,,"A-H14 review of the save screen 00653000-00658000: empty CStrings and CStringArrays, then the members assigned as in 006538E0"
@@ -3185,15 +3273,22 @@ address,name,library,signature,notes
 00666A60,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 00666A80,"stlp::_Vector_base<T>::_Vector_base(size_t,const allocator&)",STLport,,inventory sweep: allocates n elements from the node pool (inlined _S_chunk_alloc refill); loose-family member of 00407740 (reviewed)
 00668B70,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 00408F90 (reviewed)"
+0066A280,DeltaField destructor (unwind only),compiler,,"A-H15: the four memory streams' destructor bodies, last first (DeltaField::Destruct); reached only from the unwind funclets 00730BD0 / 00730EB0"
 0066B320,"stlp::hashtable<V,K,HF,ExK,EqK,A>::hashtable(n,hf,eql,a)",STLport,,inventory sweep: default 100 buckets rounded up through the STLport prime list; loose-family member of 004639D0 (reviewed)
+0066B320,"stlp::hashtable<V,K,HF,ExK,EqK,A>::hashtable(n,hf,eql,a)",STLport,,"A-H15: bucket count from the STLport prime list 0073B914 (00408A50), 100 buckets; reserve 0066B570, fill 0066B7C0"
+0066B400,"stlp::hashtable<V,K,HF,ExK,EqK,A>::insert_unique_noresize",STLport,,"A-H15: resize(n+1) 0066B900, key % bucket count, _M_new_node 0066BAD0; returns pair<iterator,bool>"
 0066B490,"stlp::hashtable<V,K,HF,ExK,EqK,A>::find",STLport,,"inventory sweep: key % bucket count, walk the chain; loose-family member of 00405560 (reviewed)"
+0066B490,"stlp::hashtable<V,K,HF,ExK,EqK,A>::find",STLport,,"A-H15: key % bucket count, walk the chain; returns the iterator"
 0066B4D0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+0066B4D0,stlp::_Vector_base<T>::~_Vector_base,STLport,,"A-H15: the bucket vector back to the node pool 0079B224 (above 0x80 bytes operator delete)"
+0066B510,"stlp::pair<iterator,bool>::pair",STLport,,A-H15: copies the iterator and the flag byte
 0066B530,stlp::_STLP_alloc_proxy<T>::_STLP_alloc_proxy,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0066B550,aligned buffer destructor,compiler,,A-H11 sweep: same instructions as 00570DF0 (data addresses masked; every call goes to the same callee or to library code)
 0066B570,stlp::vector<T>::reserve,STLport,,inventory sweep: returns if capacity suffices; else allocate_and_copy and free the old block to the node pool; loose-family member of 0040AF00 (reviewed)
 0066B7C0,stlp::vector<T>::_M_fill_insert,STLport,,inventory sweep: insert n copies at pos; calls _M_insert_overflow when capacity is short; loose-family member of 00406810 (reviewed)
 0066B900,"stlp::hashtable<V,K,HF,ExK,EqK,A>::resize",STLport,,inventory sweep: next size from the STLport prime list 0073B914..0073B980; rehashes the bucket chains; loose-family member of 00406640 (reviewed)
 0066BA70,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,inventory sweep: trivially destructible values: nodes back to the free list 0079B228; loose-family member of 004067B0 (reviewed)
+0066BAD0,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_new_node",STLport,,"A-H15: 8-byte node from the free list 0079B224 (refilled through 00406B70), key stored at +4"
 0066BB50,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0066BB70,"stlp::_Vector_base<T>::_Vector_base(size_t,const allocator&)",STLport,,inventory sweep: allocates n elements from the node pool (inlined _S_chunk_alloc refill); loose-family member of 00407740 (reviewed)
 0066BD90,"CList<TYPE,ARG_TYPE>::NewNode",MFC,,"inventory sweep: free list empty: CPlex::Create(m_pBlocks, m_nBlockSize, 12) and chain the new nodes; loose-family member of 004069A0 (reviewed)"
@@ -3898,3 +3993,29 @@ address,name,library,signature,notes
 0070AC94,AfxMessageBox,MFC,"int(LPCTSTR,UINT,UINT)",
 0070BB04,CDC::FillSolidRect,MFC,,
 0070BBE5,CFont::CreatePointFont,MFC,,
+005E1560,CString scalar deleting destructor,MFC,,"A-I16: CString::~CString (through the jump 005E0BF0), then operator delete when flags bit 0; returns this"
+005FBCB0,CString scalar deleting destructor,MFC,,"A-I16: same as 005E1560 (jump 005F9680)"
+0060ABE0,CString scalar deleting destructor,MFC,,"A-I16: same as 005E1560 (jump 005FBE20); the briefing's shown-item list clear calls it with 0 (ui_briefing_start.cpp)"
+005FBE30,"stlp::pair<const K, CString>::~pair",STLport,,"A-I16: ADD ECX,4; JMP CString::~CString: the map value's destructor (005FAFA0 _M_erase, unwind funclets)"
+006062B0,"stlp::pair<const K, CString>::~pair",STLport,,"A-I16: same as 005FBE30 (the briefing's maps, unwind funclets)"
+005FBCD0,"stlp::pair<const K, CString> scalar deleting destructor",STLport,,"A-I16: 005FBE30, then operator delete when flags bit 0"
+0060AC00,"stlp::pair<const K, CString> scalar deleting destructor",STLport,,"A-I16: 006062B0, then operator delete when flags bit 0 (00605DE0, 006062C0, 00608450 call it with 0)"
+005FBCF0,stlp::_Vector_base<T> scalar deleting destructor,STLport,,"A-I16: 005F32D0, then operator delete when flags bit 0"
+005FBD10,stlp::_Vector_base<T> scalar deleting destructor,STLport,,"A-I16: 005F3310, then operator delete when flags bit 0"
+005FDDC0,CGdiObject scalar deleting destructor,MFC,,"A-I16: 005FDDE0, then operator delete when flags bit 0 (vtable 007463C8, a CPen or CFont of the interface)"
+005FDDE0,CGdiObject::~CGdiObject,MFC,,"A-I16: vtable 007463D4, DeleteObject 0070A0CC (the interface's pens and fonts)"
+00629E60,stlp::vector<TradeRow>::_M_insert_overflow,STLport,,"A-I16: grows to size + max(size, n) rows (0x18 bytes) from the node pool, copies, fills n, destroys and frees the old block (ui_trade_panel.cpp forwards it)"
+0062A0B0,stlp::vector<TradeRecord>::_M_insert_overflow,STLport,,"A-I16: the same for the 0x3C-byte trade records (POD copies)"
+0062A290,stlp::copy_backward<TradeRow>,STLport,,"A-I16: CString assignments and the three plain fields, back to front"
+0062A310,TradeRow copy constructor,STLport,,"A-I16: compiler-generated element copy of vector<TradeRow> (three CStrings, price, level, flag); returns this"
+0062A4D0,stlp::copy<TradeRow>,STLport,,"A-I16: element assignment loop, front to back"
+0062A580,stlp::uninitialized_copy<TradeRow>,STLport,,"A-I16: copy-constructs the range into raw storage (null destination skipped)"
+0062A670,stlp::uninitialized_fill_n<TradeRow>,STLport,,"A-I16: n copies of a row into raw storage"
+0062A760,stlp::uninitialized_copy<TradeRecord>,STLport,,"A-I16: 0x3C-byte POD copies (null destination skipped)"
+0062A790,stlp::uninitialized_fill_n<TradeRecord>,STLport,,"A-I16: n 0x3C-byte POD copies"
+005E0550,stlp pointer iterator operator-(n),STLport,,"A-I16: *out = *this - n (thiscall, RET 8)"
+005E0B20,"stlp::map<CString, V>::operator[]",STLport,,"A-I16: lower_bound (005E11A0), then insert of (key, 0) when absent (_mbscmp compare); returns the value's address (node + 0x14)"
+005E0C90,"stlp::_Rb_tree<CString,...>::lower_bound",STLport,,"A-I16: descend from the root with _mbscmp (twin of 005E11A0 for another instantiation)"
+005E11A0,"stlp::_Rb_tree<CString,...>::lower_bound",STLport,,"A-I16: descend from the root with _mbscmp; the header when every key is less"
+005E0D20,"stlp::pair<const CString, V>::pair(const CString&, const V&)",STLport,,"A-I16: CString copy, then the value; returns this"
+005E0DB0,stlp::_Ht_iterator<string key>::_M_skip_to_next,STLport,,"A-I16: rehashes the node's key (h = h * 5 + c) and walks to the next non-empty bucket, or 0"

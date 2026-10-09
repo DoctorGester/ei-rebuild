@@ -9,6 +9,7 @@
 
 namespace net {
 RefPtr* __fastcall RefPtrCopyPlain(RefPtr* self, void*, const RefPtr* other);
+RefPtr* __fastcall RefPtrAssignCounted(RefPtr* self, void*, const RefPtr* other);
 void __fastcall ServerOnObjectRemoved(ServerSession* self, Message* message);
 void __fastcall ServerOnTradeOffer(ServerSession* self, PartyMessage* message);
 void __fastcall ServerOnTradeUpdate(ServerSession* self, PartyMessage* message);
@@ -30,6 +31,18 @@ void* __fastcall FindTradeVerify(net::ServerSession* self, void*, void* offer, v
 RefPtr* __fastcall CopyPlainVerify(RefPtr* self, void*, const RefPtr* other) {
     RefPtr* result = net::RefPtrCopyPlain(self, nullptr, other);
     ei::verify::Check("RefPtrCopyPlain", true, result == self && self->ptr == other->ptr, "");
+    return result;
+}
+
+// 00609D40: ours only (it changes reference counts); the holder points at the other's object,
+// which gained a reference (unless it is the old one).
+RefPtr* __fastcall AssignCountedVerify(RefPtr* self, void*, const RefPtr* other) {
+    CRefObject* object = other->ptr;
+    CRefObject* old = self->ptr;
+    int refs = object ? object->refs_ : 0;
+    RefPtr* result = net::RefPtrAssignCounted(self, nullptr, other);
+    bool ok = result == self && self->ptr == object && (!object || object == old || object->refs_ == refs + 1);
+    ei::verify::Check("RefPtrAssignCounted", true, ok, "");
     return result;
 }
 
@@ -55,6 +68,7 @@ EI_VERIFY(0x0041ACF0, FindTradeVerify, 9, s_findTrade);
 EI_VERIFY(0x004263B0, CopyPlainVerify, 0, s_unused);
 EI_VERIFY(0x00429910, CopyPlainVerify, 0, s_unused);
 EI_VERIFY(0x00609960, CopyPlainVerify, 0, s_unused);
+EI_VERIFY(0x00609D40, AssignCountedVerify, 0, s_unused);
 EI_VERIFY(0x0041B720, ObjectRemovedVerify, 0, s_unused);
 EI_VERIFY(0x0041B7A0, TradeOfferVerify, 0, s_unused);
 EI_VERIFY(0x0041B970, TradeUpdateVerify, 0, s_unused);

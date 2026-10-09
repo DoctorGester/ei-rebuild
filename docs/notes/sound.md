@@ -80,6 +80,7 @@ scratch copy of the object, ours on the real one.
 | 006B6D70, 006B62B0, 006B7060, 006B7AB0, 006B8960, 006BAE20, 006BA950 | `CreateBody` (slot 2: Reset, 1), `DeletingDestruct`, `ClearWaveSources`, `AddWaveSource`, `LoadWaveFile`, `SetPath`, `SoundStreamRead` (the stream file's read callback, stream thread) | ours only (`verify_sound_lifetime.cpp`); startup 00456440 calls SetPath and AddWaveSource |
 | 006B71C0, 006B96E0 | `StopAll(stopStream)` (originals_ui.h's `LoadingStepOriginal` is this), `WaveLength` | StopAll ours only (no voice plays, handle 0, no deferred); WaveLength side by side (7 bytes) |
 | 006B4E30, 006B4F70 / 006B4F90 / 006B5080 / 006B5170 / 006B51F0 / 006B5270, 006B5350 | `SetZoneMode`, `Stop` / `PlayBriefing` / `PlayConstructor` / `PlayCredits` / `PlayMainMenu` / `PlayJingle`, `UpdateMusic` (slot 6) | ours only; resulting state (returns 1, inCombat follows the fight state) |
+| 006B6040, 006B65D0, 006BA9C0 | `Construct`, `DestructBody`, `ResetStream` (A-H15, sound_manager_lifetime.cpp; 006BA9C0 runs on the manager's +0x100, a `__fastcall` shim) | ours only (vtables, empty lists, fader volume 100 / level 127, switch mode 4) |
 
 Non-obvious: Play2D/Play3D with no voice (AllocateVoice -1) return -1 for a one-shot and make a
 deferred record (0x48 bytes) for a looping sound; a NaN camera height keeps the full level (the
@@ -119,10 +120,13 @@ goes through a naked helper. Miles is called through game.exe's import table (00
 - Library (A-H13, config/library.csv): the CArray<MusicTheme> members 006B56C0-006B5BC0 and MusicTheme's operator= /
   destructor 006B4D40 / 006B4D90; the cache list and wave cache members 006BBDF0-006BE240; unwind-only destructors 006B62D0 /
   006B6350 / 006BE300 and the name array element constructors 006B63D0 / 006B63F0. 006BBA00 is dead (no references).
-- Live game code left in 006B4000-006C0000 (next candidates): constructor / destructor 006B6040 / 006B65D0 (sub-objects:
-  CResourceStream +0x24, CFileRegistry +0x5C / +0xCC, CMappedResource +0x74 (its destructor 006714A0 is Rebirth-patched), the
-  MIDI sequence +0x1CC, the two STLport hash maps), the stream state reset 006BA9C0 (`this` = manager + 0x100); the terrain
-  sector's 006BF4A0..006BFC80 (`models.md`). CSoundManager now derives from CEngineObject; +0xE4 is a
+- Live game code left in 006B4000-006C0000 (next candidates): the terrain sector's 006BF4A0..006BFC80 (`models.md`).
+- A-H15 layout: +0x168 / +0x178 and the MIDI part's +0x1E4 / +0x1F4 are 32-byte aligned arrays (`lib::AlignedArray`;
+  `markers` is the first); the MIDI part (+0x1CC) has two CStrings (+0x1DC / +0x1E0), a fader (+0x20C) and a lock (+0x22C).
+  The constructor's hash maps get zero functor bytes where the original copies three uninitialised stack bytes (unused).
+  The hash map members (006BBF90 / 006BC2B0 / 006BCE00 / 006BD100 / 006BC4D0 / 006BC510), DestructElements 006BE210 and
+  the element constructors / destructors 006B63D0..006B6400 stay original (library); 006714A0 runs through its address
+  (`MappedResourceDestroyOriginal`, originals_engine.h). CSoundManager now derives from CEngineObject; +0xE4 is a
   `CTypedPtrList<CMappedResource>` (the wave sources).
 - Ambient sounds 006C68B0 (Rebirth-patched) and 006CB390 (terrain material ambience, 2 KB): good next
   candidates together with the terrain owner.

@@ -853,7 +853,7 @@ int CSoundManager::RequestStream(const char* name, int mode) {
         at = 0x7FFFFFFF;
         break;
     case 3: {
-        int n = markerCount;
+        int n = markers.size;
         if (n == 0) {
             m = 1;
             at = 0x7FFFFFFF;
