@@ -43,14 +43,16 @@ The four porting batches (A-I16, A-H15, A-S9, A-U7) are merged (2026-10-09, 140 
 
 - C6 done 2026-10-09 (combat.md "C6 cleanup"). C7 done 2026-10-09.
 - C8 merged 2026-10-09 (8 script / world files).
-- C9 part 1 done 2026-10-09 (renderer_init, map_object_lifetime, figure_part_draw, string_map clean; map_object_shadow mostly); re-merging with V3. C10 taken: world_map, world_update, scene_bones, unit_update.
+- C9 part 1 merged 2026-10-09 (renderer_init, map_object_lifetime, figure_part_draw, string_map clean; map_object_shadow mostly). C10 taken: world_map, world_update, scene_bones, unit_update.
+
+- X27 (low): CPlayerClient::SendLeave04 state check mismatched once (1 of 44) in an effects_bow Rebirth run that also timed out; effects_bow passes alone. Watch.
 
 ## Vector math (planned 2026-10-09)
 
 Vector and matrix maths is mostly written out by hand: x*x + y*y (+ z*z) forms in 25 files, 164 sqrt calls, 235 raw float[3] / [4] / [9] / [16] arrays, and four separate 3-float structs (maths.h Vector3, ground_decal.h, render/render_internal.h, ui_camp.h) plus chunk_stream.h's Float4. Goal: one set of types and named operations, used everywhere, without changing results.
 Constraints: the original is MSVC6 x87 code that inlined this maths, so the order of operations decides the rounding. Every helper is __forceinline and evaluates in a fixed, documented order (x, y, z left to right); where the original uses another order, the helper is a named variant, never a silent reorder. Side-by-side checks that compare floats exactly must still pass; CheckNear tolerances are not widened to make a migration pass. The x87 __asm helpers are a separate ticket.
 - V1 done 2026-10-09, V2 done 2026-10-09 (vector-math.md).
-- V3 part 1 done 2026-10-09 (507 -> 411; matrix x point, PathStart / MotionSample / MarkerDraw float* callees and CMapObject positionX/Y/Z left). Was V3: a check_cleanup column for unrolled vector maths (the x*x + y*y forms and float[3] / [16] members), then migrations by area in batches, each through the full suite.
+- V3 part 2 taken 2026-10-09 (matrix x point, PathStart / MotionSample / MarkerDraw shared declarations with Vector3*, then CMapObject positionX/Y/Z as a Vector3). V3 part 1 done 2026-10-09 (507 -> 411; matrix x point, PathStart / MotionSample / MarkerDraw float* callees and CMapObject positionX/Y/Z left). Was V3: a check_cleanup column for unrolled vector maths (the x*x + y*y forms and float[3] / [16] members), then migrations by area in batches, each through the full suite.
 
 ## Draft passes (no build, 2026-10-07)
 
