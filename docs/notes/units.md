@@ -292,13 +292,9 @@ original, compared: unit 0x4DC, stats 0x704, vitals 0x58); C capture streams; ou
 
 ## Risks and lessons
 
-- Recompute and Regenerate run for every unit (Regenerate every world update, Recompute after every 15th and after hits and
-  heals): a mistake shows at once; both are verified side by side. Constructors compare every byte with the original on a
-  copy; destructors, the factory, the slot-style functions and the order / hit paths are consistency checks only. Under
-  64-bit FPU precision `TotalItemWeight`'s double accumulator rounds differently. SkillPrice may show a rare off-by-one at a
-  truncation edge (rule 7).
-- Verify lesson (005179E0): the animation state's parts appear during the call (0050D320 gives it the model), so a count
-  taken before the call is 0; the wrapper counts the boxes made.
+- Destructors, the factory, the slot-style functions and the order / hit paths are consistency checks only. Under 64-bit FPU
+  precision `TotalItemWeight`'s double accumulator rounds differently; SkillPrice may show a rare off-by-one at a truncation
+  edge (rule 7). 005179E0: the animation state's parts appear during the call (0050D320 gives it the model).
 - Not reached by every scenario: TakeRandomItem (stealing), TorchCreate, UseSpots (no lever on zone1), AttributeWithItems,
   ClientGetAttackParams, SkillPrice, packed WeaponSkillBonus (party unit holding a weapon), RemoveArmourModel (Rebirth's
   GiveUnitArmor refuses text-key units), FireAtOccupants (only traps with a period above 0), DestroyNpcTable /
