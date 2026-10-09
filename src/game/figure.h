@@ -2,6 +2,10 @@
 
 #include "maths.h"
 
+#include "lib/containers.h"
+#include "lib/mfc.h"
+
+#include <cstddef>
 #include <cstdint>
 
 // Six corner positions of a bone, from a .bon file. A figure's proportions are set by three morph
@@ -14,16 +18,90 @@ struct BoneMorphBox {
 };
 static_assert(sizeof(BoneMorphBox) == 0x48);
 
-// An animated node of a figure (one bone). Name and layout provisional; only the morph fields are known.
+// A rotation key of an animation node (40 bytes): frames [frame, next), the rotation (made from
+// the axis and angle by the skeleton code, scene_bone_frames.cpp) and the scene's axis-angle
+// (BuildBone, scene_bones.cpp, copies them from the node's position keys).
+struct AnimationRotationKey {
+    int frame;
+    int next;
+    Quaternion rotation;   // +0x08
+    Vector3 axis;          // +0x18
+    float angle;           // +0x24
+};
+static_assert(sizeof(AnimationRotationKey) == 40);
+
+// A translation key of an animation node (32 bytes): frames, the position, the step to the next
+// key's position (the last key keeps the zero vector it started with).
+struct AnimationTranslationKey {
+    int frame;
+    int next;
+    Vector3 position;      // +0x08
+    Vector3 step;          // +0x14
+};
+static_assert(sizeof(AnimationTranslationKey) == 32);
+
+// A morph frame of an animation node (24 bytes): frames and the morphed points.
+struct AnimationMorphFrame {
+    int frame;
+    int next;
+    lib::AlignedArray<Vector3> points;   // +0x08
+};
+static_assert(sizeof(AnimationMorphFrame) == 0x18);
+// The morph frames' CArray instantiation constructs (00452E20) and destroys (00452DF0) them out of
+// line (scene_bones.cpp).
+struct AnimationMorphFrameElements {
+    static void Construct(AnimationMorphFrame* frames, int count);
+    static void Destruct(AnimationMorphFrame* frames, int count);
+};
+
+// An animated node of a figure (one bone; 0x128 bytes, constructor 00506710, destructor body
+// 005068C0). The fake units' skeletons build them from scene nodes (BuildBone 004492F0,
+// scene_bones.cpp). Names and layout provisional.
 class CAnimationNode {
 public:
     // 005064C0. Stores the morph coefficients and computes the bone position from `box`.
     void SetMorph(const BoneMorphBox* box, float s, float t, float u);
 
-    std::uint8_t unknown_000[0x110];
-    Vector3 position_;      // +0x110
+    std::uint32_t unknown_000;
+    mfc::CString name_;                                  // +0x004
+    mfc::CString unknown_008;                            // +0x008
+    mfc::CString unknown_00C;                            // +0x00C
+    std::uint32_t unknown_010[3];
+    CAnimationNode* parent_;                             // +0x01C
+    lib::AlignedArray<CAnimationNode*> children_;        // +0x020
+    std::uint32_t unknown_030[4];
+    int frameCount_;                                     // +0x040 the animation's frames (a short)
+    lib::AlignedArray<AnimationRotationKey> rotationKeys_;   // +0x044
+    int unknown_054;                                     // +0x054 -1 after construction
+    lib::AlignedArray<AnimationTranslationKey> translationKeys_;   // +0x058
+    int unknown_068;                                     // +0x068 -1
+    mfc::CArray<Vector3> normals_;                       // +0x06C (vtable 0073C120; zeroed when added)
+    int unknown_080;                                     // +0x080 -1
+    mfc::CArray<AnimationMorphFrame, AnimationMorphFrameElements> morphFrames_;   // +0x084 (vtable 0073D9BC)
+    int unknown_098;                                     // +0x098 -1
+    std::uint8_t unknown_09C[0xD4 - 0x9C];
+    lib::AlignedArray<Vector3> pointsB_;                 // +0x0D4 one per morph point, zeroed
+    Quaternion restRotation_;                            // +0x0E4 the node's rest rotation
+    Vector3 restPosition_;                               // +0x0F4 the node's rest pivot
+    lib::AlignedArray<Vector3> pointsA_;                 // +0x100 one per morph point, zeroed
+    // +0x110 the bone position (SetMorph); the skeleton code keeps the rest position in the
+    // parent's frame here (scene_bone_frames.cpp).
+    Vector3 position_;
     float morphS_;          // +0x11C
     float morphT_;          // +0x120
     float morphU_;          // +0x124
 };
+static_assert(offsetof(CAnimationNode, name_) == 0x04);
+static_assert(offsetof(CAnimationNode, parent_) == 0x1C);
+static_assert(offsetof(CAnimationNode, children_) == 0x20);
+static_assert(offsetof(CAnimationNode, frameCount_) == 0x40);
+static_assert(offsetof(CAnimationNode, rotationKeys_) == 0x44);
+static_assert(offsetof(CAnimationNode, translationKeys_) == 0x58);
+static_assert(offsetof(CAnimationNode, normals_) == 0x6C);
+static_assert(offsetof(CAnimationNode, morphFrames_) == 0x84);
+static_assert(offsetof(CAnimationNode, pointsB_) == 0xD4);
+static_assert(offsetof(CAnimationNode, restRotation_) == 0xE4);
+static_assert(offsetof(CAnimationNode, restPosition_) == 0xF4);
+static_assert(offsetof(CAnimationNode, pointsA_) == 0x100);
+static_assert(offsetof(CAnimationNode, position_) == 0x110);
 static_assert(sizeof(CAnimationNode) == 0x128);

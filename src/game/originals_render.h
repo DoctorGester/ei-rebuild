@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <cstdint>
 
+class CAnimationNode;   // figure.h
 
 __declspec(naked) inline char* __fastcall AllocVertices(int) EI_ORIGINAL(0x004E5710)
 __declspec(naked) inline void* __fastcall LockVertexBuffer(char*, void*, int) EI_ORIGINAL(0x004E7820)
@@ -18,7 +19,7 @@ __declspec(naked) inline char* __fastcall AllocVerticesOriginal(int) EI_ORIGINAL
 __declspec(naked) inline void __cdecl ReportError(long, const char*) EI_ORIGINAL(0x004F0B00)
 __declspec(naked) inline void __fastcall LoadTextureOriginal(void** /*holder*/, void*, int /*kind*/, const char* /*name*/)
     EI_ORIGINAL(0x00500A00)
-__declspec(naked) inline char* __fastcall ConstructBone(void*) EI_ORIGINAL(0x00506710)
+__declspec(naked) inline CAnimationNode* __fastcall ConstructBone(void*) EI_ORIGINAL(0x00506710)
 
 // 00500960: the display / renderer object (the global at 007AF060; plain RET, no arguments).
 // 00468F70: 16-byte aligned scratch allocation of `count` 16-byte records (ECX, plain RET).

@@ -7,7 +7,7 @@ merging duplicate `EI_ORIGINAL` forwarders into one declaration per function (cl
 - **317** of those functions are forwarded from more than one file; they are listed below (822 sites).
 - 9 more are forwarded several times inside a single file (not listed).
 - Of the 317: 230 already rewritten, 72 library code, 15 not yet ported.
-- Signatures: 30 identical in every file, 46 the same apart from the helper name, 241 differ in return or parameter types or in the calling convention (these need a decision before merging).
+- Signatures: 32 identical in every file, 46 the same apart from the helper name, 239 differ in return or parameter types or in the calling convention (these need a decision before merging).
 
 Files with the most shared forwarders: `src/game/originals_library.h` (37), `src/game/ui_camp.cpp` (27), `src/game/script_exec.cpp` (25), `src/game/world_game.cpp` (21), `src/lib/mfc.cpp` (17), `src/game/script_load.cpp` (17), `src/game/originals_ui.h` (16), `src/game/ui_battle_update.cpp` (16), `src/game/world_quests.cpp` (14), `src/game/world_units.cpp` (14), `src/game/combat_update.cpp` (12), `src/game/item_stock.cpp` (12), `src/game/combat_actions.cpp` (11), `src/game/unit_create_stats.cpp` (11), `src/game/originals_gameplay.h` (11).
 
@@ -33,12 +33,12 @@ Rewritten as `CBaseManager::ConstructBase` (src/game/base_manager.cpp).
 ### 0x00404920: 2 files, 2 sites, signatures differ
 Rewritten as `ObjectListIterator::First` (src/game/base_manager.cpp).
 - `src/game/script_exec.cpp:527`: `CEngineObject* ObjectIterator::First(CBaseManager*)`
-- `src/game/world_server.cpp:91`: `WorldPlayer* PlayerIterator::First(CEngineObject*)`
+- `src/game/world_server.cpp:86`: `WorldPlayer* PlayerIterator::First(CEngineObject*)`
 
 ### 0x00404960: 2 files, 2 sites, signatures differ
 Rewritten as `ObjectListIterator::Next` (src/game/base_manager.cpp).
 - `src/game/script_exec.cpp:528`: `CEngineObject* ObjectIterator::Next()`
-- `src/game/world_server.cpp:92`: `WorldPlayer* PlayerIterator::Next()`
+- `src/game/world_server.cpp:87`: `WorldPlayer* PlayerIterator::Next()`
 
 ### 0x00405350: 2 files, 2 sites, signatures differ
 Rewritten as `hash400::PositionsRemoveKey` (src/game/hash_tables_400.cpp).
@@ -75,10 +75,10 @@ Rewritten as `ChunkArchive::CountChunks` (src/game/chunk_archive.cpp).
 - `src/game/app_device_list.cpp:35`: `int __fastcall ArchiveCount(void*, void*, int)`
 - `src/game/unit_db.cpp:29`: `int __fastcall ArchiveCount(ChunkArchive*, void*, int /*id*/)`
 
-### 0x0040CDC0: 2 files, 2 sites, signatures differ
+### 0x0040CDC0: 2 files, 2 sites, identical
 Rewritten as `AddVectors` (src/game/core_maths.cpp).
 - `src/game/figure_mesh_file.cpp:105`: `Vector3* __fastcall VectorAdd(Vector3*, const Vector3*, const Vector3*)`
-- `src/game/scene_bones.cpp:97`: `float* __fastcall VectorAdd(float*, const float*, const float*)`
+- `src/game/scene_bones.cpp:46`: `Vector3* __fastcall VectorAdd(Vector3*, const Vector3*, const Vector3*)`
 
 ### 0x004113A0: 2 files, 2 sites, signatures differ
 Rewritten as `CCamera::Shake` (src/game/camera.cpp).
@@ -123,17 +123,17 @@ Rewritten as `ServerEntryBase::ConstructBase` (src/game/net_lobby.cpp).
 ### 0x00448A10: 2 files, 2 sites, signatures differ
 Rewritten as `ScaleVector` (src/game/object_maths.cpp).
 - `src/game/figure_mesh_file.cpp:103`: `Vector3* __fastcall VectorScaleCopy(Vector3*, const Vector3*, float)`
-- `src/game/scene_bones.cpp:96`: `float* __fastcall VectorScale(float*, const float*, std::uint32_t /*t*/)`
+- `src/game/scene_bones.cpp:45`: `Vector3* __fastcall VectorScale(Vector3*, const Vector3*, std::uint32_t /*t*/)`
 
-### 0x004492F0: 2 files, 2 sites, signatures differ
+### 0x004492F0: 2 files, 2 sites, identical
 Rewritten as `BuildBone` (src/game/scene_bones.cpp).
-- `src/game/scene_bones.cpp:100`: `void __fastcall BuildBoneAt(char*, char*, const char*, int)`
-- `src/game/scene_skeleton.cpp:55`: `void __fastcall BuildBoneAt(void*, char*, const char*, int)`
+- `src/game/scene_bones.cpp:48`: `void __fastcall BuildBoneAt(SceneSkin*, CAnimationNode*, const SceneNode*, int)`
+- `src/game/scene_skeleton.cpp:42`: `void __fastcall BuildBoneAt(SceneSkin*, CAnimationNode*, const SceneNode*, int)`
 
 ### 0x0044FA90: 2 files, 2 sites, signatures differ
 Rewritten as `ShortArraySetSize` (src/game/aligned_arrays.cpp).
 - `src/game/device_mesh.cpp:78`: `void __fastcall WordsSetSize(lib::AlignedArray<std::uint16_t>*, void*, int, int)`
-- `src/game/scene_meshes.cpp:81`: `void __fastcall WordsSetSize(WordArray*, void*, int, int)`
+- `src/game/scene_meshes.cpp:68`: `void __fastcall WordsSetSize(WordArray*, void*, int, int)`
 
 ### 0x004513A0: 2 files, 2 sites, signatures differ
 Rewritten as `DwordArraySetSize2` (src/game/aligned_arrays.cpp).
@@ -143,11 +143,11 @@ Rewritten as `DwordArraySetSize2` (src/game/aligned_arrays.cpp).
 ### 0x00452FC0: 2 files, 2 sites, signatures differ
 Rewritten as `ShortArraySetAtGrow` (src/game/aligned_arrays.cpp).
 - `src/game/renderer_strip.cpp:47`: `void __fastcall IndicesSetAtGrow(lib::AlignedArray<std::uint16_t>*, void*, int /*index*/, int /*value*/)`
-- `src/game/scene_meshes.cpp:82`: `void __fastcall WordsSetAtGrow(WordArray*, void*, int, int)`
+- `src/game/scene_meshes.cpp:69`: `void __fastcall WordsSetAtGrow(WordArray*, void*, int, int)`
 
 ### 0x004538D0: 2 files, 2 sites, signatures differ
 Rewritten as `DwordArraySetAtGrow` (src/game/aligned_arrays.cpp).
-- `src/game/scene_normals.cpp:32`: `void __fastcall DwordsSetAtGrow(DwordBuffer*, void*, int, std::uint32_t)`
+- `src/game/scene_normals.cpp:22`: `void __fastcall DwordsSetAtGrow(DwordBuffer*, void*, int, std::uint32_t)`
 - `src/game/world_tick.cpp:240`: `void __fastcall IdArraySetAtGrow(IdArray*, void*, int, unsigned)`
 
 ### 0x00455660: 2 files, 2 sites, signatures differ
@@ -206,7 +206,7 @@ Rewritten as `ScriptObjectRef::Reset` (src/game/script_group.cpp).
 - `src/game/script_load.cpp:56`: `void __fastcall RefReset(ScriptObjectRef*)`
 - `src/game/script_reset.cpp:54`: `void __fastcall RefReset(void*)`
 - `src/game/script_vars_append.cpp:32`: `void __fastcall RefReset(ScriptObjectRef*)`
-- `src/game/world_update.cpp:79`: `void __fastcall RefReset(ScriptObjectRef*, void*)`
+- `src/game/world_update.cpp:62`: `void __fastcall RefReset(ScriptObjectRef*, void*)`
 
 ### 0x004B24D0: 2 files, 2 sites, signatures differ
 Rewritten as `ScriptObjectRef::Assign` (src/game/script_group.cpp).
@@ -264,7 +264,7 @@ Rewritten as `ScriptRefDestroy` (src/game/script_destroy.cpp).
 - `src/game/script_copy.cpp:151`: `void __fastcall RefDestroy(void*, void*, int)`
 - `src/game/script_load.cpp:86`: `void __fastcall RefDestroy(void*, void*, int)`
 - `src/game/script_vars_append.cpp:34`: `void __fastcall RefDestroy(void*, void*, int)`
-- `src/game/world_update.cpp:77`: `void* __fastcall RefDestruct(ScriptObjectRef*, void*, unsigned /*flags*/)`
+- `src/game/world_update.cpp:60`: `void* __fastcall RefDestruct(ScriptObjectRef*, void*, unsigned /*flags*/)`
 
 ### 0x004CE210: 2 files, 2 sites, identical
 Rewritten as `ScriptGroupDestroy` (src/game/script_destroy.cpp).
@@ -318,7 +318,7 @@ Rewritten as `DeviceDrawIndexed` (src/game/device_draw.cpp).
 
 ### 0x004EF7B0: 2 files, 2 sites, signatures differ
 Rewritten as `DXSurfaceConstruct` (src/game/dx_surface.cpp).
-- `src/game/originals_render.h:46`: `char* __fastcall DXSurfaceConstructOriginal(void* /*memory*/, void*, void* /*device*/, int /*width*/, int /*height*/)`
+- `src/game/originals_render.h:47`: `char* __fastcall DXSurfaceConstructOriginal(void* /*memory*/, void*, void* /*device*/, int /*width*/, int /*height*/)`
 - `src/game/ui_surface_pixels.cpp:282`: `SurfaceHolder* __fastcall ConstructHolder(void*, void*, void*, int, int)`
 
 ### 0x004F16A0: 5 files, 5 sites, signatures differ
@@ -371,7 +371,7 @@ Rewritten as `CObject3D::SetFigureScale` (src/game/map_object_figures.cpp).
 - `src/game/map_spec_unit.cpp:67`: `void __fastcall ObjectSetScale(void*, void*, const float*)`
 - `src/game/net_state.cpp:153`: `void __fastcall SetPosition(void*, void*, const float*)`
 - `src/game/unit_create_stats.cpp:157`: `std::uintptr_t __fastcall SetFigureScaleAt(CEngineObject*, void*, const float*)`
-- `src/game/unit_update.cpp:45`: `std::uintptr_t __fastcall CallSetFigureScale(CUnit*, void*, const float*)`
+- `src/game/unit_update.cpp:34`: `std::uintptr_t __fastcall CallSetFigureScale(CUnit*, void*, const Vector3*)`
 - `src/game/world_client_maps.cpp:561`: `void __fastcall UnitSetPosition(void*, void*, const float*)`
 - `src/game/world_units.cpp:411`: `void __fastcall ObjectSetMovement(CEngineObject*, void*, const void*)`
 
@@ -399,7 +399,7 @@ Rewritten as `UnitStats::AddScaledExperience` (src/game/unit_vitals.cpp).
 ### 0x00523E80: 2 files, 2 sites, signatures differ
 Rewritten as `UnitStats::HitPointCurve` (src/game/unit_vitals.cpp).
 - `src/game/ui_hero_panels.cpp:56`: `double __fastcall HitPoints(const std::uint8_t*)`
-- `src/game/unit_update.cpp:58`: `double __fastcall CallHitPointCurve(UnitStats*)`
+- `src/game/unit_update.cpp:47`: `double __fastcall CallHitPointCurve(UnitStats*)`
 
 ### 0x00523F50: 3 files, 3 sites, signatures differ
 Rewritten as `UnitStats::ManaCurve` (src/game/unit_vitals.cpp).
@@ -704,7 +704,7 @@ Rewritten as `GameFlow::CloseSessions` (src/game/world_game.cpp).
 Rewritten as `CWorldServer::WakeUnitsAround` (src/game/world_tick.cpp).
 - `src/game/spell_effect_internal.h:130`: `void __fastcall WorldWakeUnits(void* /*world*/, void*, const Vector3*, float /*radius*/)`
 - `src/game/world_game.cpp:323`: `void __fastcall WakeUnitsAroundAt(CWorldServer*, void*, const float*, std::uint32_t /*radius*/)`
-- `src/game/world_update.cpp:54`: `void __fastcall WakeUnitsAroundAt(CWorldServer*, void*, const void* /*position*/, float /*radius*/)`
+- `src/game/world_update.cpp:37`: `void __fastcall WakeUnitsAroundAt(CWorldServer*, void*, const void* /*position*/, float /*radius*/)`
 
 ### 0x0058DC90: 2 files, 2 sites, signatures differ
 Rewritten as `CWorldServer::SetGameResult` (src/game/world_tick.cpp).
@@ -727,7 +727,7 @@ Rewritten as `CWorldServer::CastSpell` (src/game/world_spells.cpp).
 ### 0x0058EF20: 2 files, 2 sites, signatures differ
 Rewritten as `CWorldServer::CreateUnits` (src/game/world_units.cpp).
 - `src/game/world_party.cpp:87`: `void __fastcall CreateUnitsAt(CWorldServer*, void*, WorldPlayer*, RecordArray*, const Vector3*, Quaternion, void*)`
-- `src/game/world_zone.cpp:67`: `void __fastcall ServerCreateUnits(CWorldServer*, void*, int /*zero*/, RecordPtrArray* /*records*/, const Vector3* /*position*/, Quaternion /*rotation*/, int /*placements*/)`
+- `src/game/world_zone.cpp:66`: `void __fastcall ServerCreateUnits(CWorldServer*, void*, int /*zero*/, RecordPtrArray* /*records*/, const Vector3* /*position*/, Quaternion /*rotation*/, int /*placements*/)`
 
 ### 0x005911C0: 4 files, 4 sites, signatures differ
 Rewritten as `CWorldServer::AwardExperience` (src/game/world_quests.cpp).
@@ -773,7 +773,7 @@ Rewritten as `CWorldServer::LoadMobFile` (src/game/world_zone.cpp).
 ### 0x00596030: 2 files, 2 sites, same signature, names differ
 Rewritten as `CWorldServer::LoadMapObjects` (src/game/world_zone.cpp).
 - `src/game/script_addon_commands.cpp:39`: `int __fastcall WorldLoadMapObjects(CWorldServer*, void*, const char*, int)`
-- `src/game/world_map.cpp:38`: `int __fastcall LoadMapObjectsAt(CWorldServer*, void*, const char*, int)`
+- `src/game/world_map.cpp:40`: `int __fastcall LoadMapObjectsAt(CWorldServer*, void*, const char*, int)`
 
 ### 0x005AA5F0: 5 files, 5 sites, signatures differ
 Rewritten as `FindFigureModel` (src/game/figure_models.cpp).
@@ -797,7 +797,7 @@ Rewritten as `CUnitLayer::Remove` (src/game/ai_unit_layer.cpp).
 Rewritten as `CAIMap::BeginRefresh` (src/game/ai_footprint.cpp).
 - `src/game/map_spec.cpp:48`: `void __fastcall SelectionLock(void*)`
 - `src/game/unit_lever.cpp:37`: `void __fastcall MapBeginRefresh(void*)`
-- `src/game/world_map.cpp:22`: `void __fastcall AIMapBeginRefresh(void*, void*)`
+- `src/game/world_map.cpp:24`: `void __fastcall AIMapBeginRefresh(void*, void*)`
 - `src/game/world_save.cpp:138`: `void __fastcall AIMapBeginRefresh(void*, void*)`
 
 ### 0x005B8B80: 3 files, 3 sites, signatures differ
@@ -1053,7 +1053,7 @@ Rewritten as `CPlayer::IsLeader` (src/game/player.cpp).
 ### 0x00665DE0: 2 files, 2 sites, signatures differ
 Rewritten as `CPlayer::Tick` (src/game/player_messages.cpp).
 - `src/game/world_client.cpp:195`: `void __fastcall SessionUpdate(WorldSession*)`
-- `src/game/world_update.cpp:63`: `void __fastcall PlayerUpdate(WorldPlayer*, void*)`
+- `src/game/world_update.cpp:46`: `void __fastcall PlayerUpdate(WorldPlayer*, void*)`
 
 ### 0x0066D6E0: 4 files, 4 sites, signatures differ
 Rewritten as `CPlayerServer::SendObject0B` (src/game/player_messages.cpp).
@@ -1175,21 +1175,21 @@ Rewritten as `ComposeTexture` (src/game/texture_compose.cpp).
 Rewritten as `CFileRegistry::Construct` (src/game/registry.cpp).
 - `src/game/menu_rects.cpp:42`: `void __fastcall RegConstruct(void*, void*)`
 - `src/game/quest_database.cpp:101`: `CFileRegistry* Registry::Construct()`
-- `src/game/scene_loader.cpp:687`: `void __fastcall ConstructRegistry(void*)`
-- `src/game/scene_registry.cpp:65`: `CFileRegistry* Registry::Construct()`
+- `src/game/scene_loader.cpp:626`: `void __fastcall ConstructRegistry(void*)`
+- `src/game/scene_registry.cpp:56`: `CFileRegistry* Registry::Construct()`
 - `src/game/sound_music.cpp:79`: `CFileRegistry* Registry::Construct()`
 
 ### 0x00694540: 5 files, 5 sites, signatures differ
 Rewritten as `CFileRegistry::Destroy` (src/game/registry.cpp).
 - `src/game/menu_rects.cpp:44`: `void __fastcall RegDestruct(void*, void*)`
 - `src/game/quest_database.cpp:102`: `void Registry::Destroy()`
-- `src/game/scene_loader.cpp:688`: `void __fastcall DestroyRegistry(void*)`
-- `src/game/scene_registry.cpp:66`: `void Registry::Destroy()`
+- `src/game/scene_loader.cpp:627`: `void __fastcall DestroyRegistry(void*)`
+- `src/game/scene_registry.cpp:57`: `void Registry::Destroy()`
 - `src/game/sound_music.cpp:80`: `void Registry::Destroy()`
 
 ### 0x006945A0: 2 files, 2 sites, identical
 Rewritten as `CFileRegistry::Open` (src/game/registry.cpp).
-- `src/game/scene_registry.cpp:67`: `mfc::BOOL Registry::Open(const char*)`
+- `src/game/scene_registry.cpp:58`: `mfc::BOOL Registry::Open(const char*)`
 - `src/game/sound_music.cpp:81`: `mfc::BOOL Registry::Open(const char*)`
 
 ### 0x00694610: 2 files, 2 sites, signatures differ
@@ -1199,13 +1199,13 @@ Rewritten as `CFileRegistry::Attach` (src/game/registry.cpp).
 
 ### 0x00694880: 2 files, 2 sites, identical
 Rewritten as `CFileRegistry::GetSectionNames` (src/game/registry.cpp).
-- `src/game/scene_registry.cpp:68`: `mfc::BOOL Registry::GetSectionNames(console::CStringArray*)`
+- `src/game/scene_registry.cpp:59`: `mfc::BOOL Registry::GetSectionNames(console::CStringArray*)`
 - `src/game/sound_music.cpp:82`: `mfc::BOOL Registry::GetSectionNames(console::CStringArray*)`
 
 ### 0x00694D20: 3 files, 3 sites, identical
 Rewritten as `CFileRegistry::GetString` (src/game/registry.cpp).
 - `src/game/quest_database.cpp:106`: `mfc::CString Registry::GetString(const char*, const char*, StringArg)`
-- `src/game/scene_registry.cpp:70`: `mfc::CString Registry::GetString(const char*, const char*, StringArg)`
+- `src/game/scene_registry.cpp:61`: `mfc::CString Registry::GetString(const char*, const char*, StringArg)`
 - `src/game/sound_music.cpp:83`: `mfc::CString Registry::GetString(const char*, const char*, StringArg)`
 
 ### 0x006958E0: 2 files, 2 sites, identical
@@ -1318,8 +1318,8 @@ Rewritten as `Terrain::HeightAt` (src/game/terrain.cpp).
 ### 0x006D43E0: 3 files, 3 sites, signatures differ
 Rewritten as `TweenArray::RemoveAll` (src/game/model_db.cpp).
 - `src/game/world_create.cpp:38`: `void __fastcall Setup70(void*)`
-- `src/game/world_map.cpp:155`: `void __fastcall CountdownsClear(void*, void*)`
-- `src/game/world_zone.cpp:81`: `void __fastcall CountdownsClear(void*, void*)`
+- `src/game/world_map.cpp:147`: `void __fastcall CountdownsClear(void*, void*)`
+- `src/game/world_zone.cpp:80`: `void __fastcall CountdownsClear(void*, void*)`
 
 ## Library code (72)
 
@@ -1540,7 +1540,7 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 
 ### 0x006FDBD9: 4 files, 4 sites, signatures differ
 - `src/game/originals_library.h:183`: `int __fastcall CStringFindTextOriginal(const void* /*string*/, void*, const char* /*text*/)`
-- `src/game/scene_loader.cpp:621`: `int Text::Find(const char*) const`
+- `src/game/scene_loader.cpp:606`: `int Text::Find(const char*) const`
 - `src/game/script_parse.cpp:36`: `int StringOps::Find(const char*) const`
 - `src/game/world_game.cpp:1894`: `int TextOpsAt::Find(const char*) const`
 
@@ -1694,7 +1694,7 @@ Declare once (src/game/originals.h), include everywhere, replace by the port lat
 - `src/game/spell_cast.cpp:46`: `char* __fastcall FindModifierByCode(void*, void*, const char*)`
 
 ### 0x0068EAF0: 2 files, 2 sites, signatures differ
-- `src/game/originals_render.h:88`: `int __fastcall MaterialRegisterOriginal(void* /*manager*/, void*, void* /*record*/, std::uint32_t /*key*/)`
+- `src/game/originals_render.h:89`: `int __fastcall MaterialRegisterOriginal(void* /*manager*/, void*, void* /*record*/, std::uint32_t /*key*/)`
 - `src/game/ui_window.cpp:483`: `void __fastcall RegisterMaterial(void*, void*, std::uint8_t*, int)`
 
 ### 0x0069D290: 2 files, 2 sites, identical

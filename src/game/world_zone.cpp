@@ -51,7 +51,6 @@ Quaternion DefaultRotation() {
 }
 
 constexpr std::uintptr_t kPtrArrayVtable = 0x0073FAA4;      // CArray of record pointers
-constexpr std::uintptr_t kObjectListVtable = 0x0073F530;    // CTypedPtrList<CEngineObject*>
 constexpr std::uintptr_t kMapObjectFileVtable = 0x0073FAD4; // the .mob root chunk (inline constructor)
 
 constexpr int kSlotStreamWrite = 2;   // stream slot 2: Write(data, size)
@@ -207,7 +206,7 @@ int CWorldServer::LoadMobFile(const char* file) {
 void CWorldServer::ClearMapObjects() {
     // The objects are collected first (an MFC list, block size 10), then removed one by one.
     mfc::CTypedPtrList<CEngineObject> pending;
-    pending.vtable = reinterpret_cast<void*>(kObjectListVtable);
+    pending.vtable = ObjectPtrListVtable();
     pending.head = nullptr;
     pending.tail = nullptr;
     pending.count = 0;
@@ -235,7 +234,7 @@ void CWorldServer::ClearMapObjects() {
 
     CountdownsClear(countdowns_, nullptr);
 
-    pending.vtable = reinterpret_cast<void*>(kObjectListVtable);
+    pending.vtable = ObjectPtrListVtable();
     pending.RemoveAll();   // 00570470 (the list destructor's body)
 }
 

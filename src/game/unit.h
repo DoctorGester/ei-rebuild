@@ -176,6 +176,7 @@ struct UnitMotion;   // ai_motion.h
 struct SpeechRecord; // unit_client_models.h
 class CObject3D;     // map_object_figures.h
 class CMapObject;    // map_object.h
+class CUnit;
 
 // The unit's controller (CUnit + 0x240) as the unit code calls it: CUnitServer (class id 0x3E,
 // vtable 0073EF38, combat.h) on the server, CUnitClientSpecific (0x3D, 0073ECD8,
@@ -193,12 +194,14 @@ public:
     virtual AIPath* Path();                 // 16: server +0x3C (00546090), client +0x38 (00533DF0)
     virtual void Unused17();                // 17: empty (server 005460B0, client 00534130)
     virtual void PlayerChanged(void* player);   // 18: client 00534140, base empty (00533BC0)
-    virtual int RefreshVitals(char withHitPoints);  // 19: server 005533B0 (1), client 00533BD0 (0)
+    // 19: server 005533B0 (1), client 00533BD0 (0); both read the low byte. CUnit's slot 33
+    // (ScaleEffectChanged, 0052EB30) passes its whole dword argument on.
+    virtual int RefreshVitals(int withHitPoints);
     virtual void TakeHit();                 // 20: server 00553F40 (map_object.h CUnitServerVirtuals)
     virtual void Heal();                    // 21: (float amount) server 005543B0
     virtual void RepackStats();             // 22: server 00553500
-    virtual void UpdateSizeClasses();       // 23: server 00552FB0
-    virtual void Level();                   // 24: server 00556760, client 00539160
+    virtual std::uintptr_t UpdateSizeClasses();   // 23: server 00552FB0 (CUnit 00530A50 passes EAX on)
+    virtual int Level();                    // 24: server 00556760, client 00539160
     virtual void ShowWeapon(std::uint32_t index);   // 25: the weapon the figure holds (-1 none)
     virtual bool ArmourPutOn(std::uint32_t itemId);     // 26: client 005381B0 (WearArmourModel)
     virtual bool ArmourTakenOff(std::uint32_t slot);    // 27: client 005385A0 (RemoveArmourModel)
@@ -227,21 +230,26 @@ public:
     // 43: client 005344A0 (unit_client_models.h): the fade-in starts again (+0x78 and every part's
     // alpha 0); base empty (00533CF0). The client world's AddObject calls it for units joining a session.
     virtual void RestartFadeIn();
-    virtual void Resettle();                // 44: server 00553260 (combat.h)
+    virtual std::uintptr_t Resettle();      // 44: server 00553260 (combat.h; CUnit 00532A80 passes EAX on)
     virtual void UpdateMoveFactors();       // 45: server 005536B0 (combat.h)
     // 46: a body part's condition changed by `change` (a fraction of its maximum) for stat `stat`
     // (0..5); `flags` is the unit's Params()->flags byte (bit 3 skips it). Client 00537500 (RET 0xC,
     // text and a particle effect), base empty (00533D20).
     virtual void StatChanged(std::uint32_t stat, float change, std::uint8_t flags);
     virtual void Wound(float lost);         // 47: the hit took `lost` (a fraction of the hit points) with the wound flag; client 00537C00 (RET 4, the argument is not read), base empty (00533D30)
-    virtual void DeathEffect();             // 48: client 005373D0, base empty (00533D40)
-    virtual void UpdateSpellBlockFlag();    // 49: server 00553220
-    virtual void GetAttackParams(struct AttackParams* out);   // 50: server 00555A00, client 00538960 (base pure)
+    virtual void Died();                    // 48: client 005373D0 (death: the light goes out, blood), base empty (00533D40)
+    // 49: server 00553220 (UpdateSpellBlockFlag, combat.h), base empty (00533D50); CUnit's slot 28
+    // (EffectsChanged, 00532AB0) tail-jumps here.
+    virtual std::uintptr_t EffectsChanged();
+    virtual void GetAttackParams(struct AttackParams* out);   // 50: server 00555A00, client 00538960 (base: _purecall)
     // 51: client 00537D80 (unit_client_speech.cpp): queue `speech` (an acks.db record) as `kind`;
     // base empty (00533D60).
     virtual void Say(const SpeechRecord* speech, int kind);
     virtual void StopSpeech();              // 52: client 00538040, base empty (00533D70)
+
+    CUnit* unit_;   // +0x1C the unit it controls (CUnit::AttachCompanion sets and clears it)
 };
+static_assert(offsetof(CUnitController, unit_) == 0x1C);
 
 class CUnit : public CEngineObject {
 public:

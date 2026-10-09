@@ -10,34 +10,35 @@
 #include <cstring>
 
 namespace scene {
-int __fastcall BuildSkeleton(VtArray* meshes, VtArray* nodes, int frames, void* skin);
-void __fastcall BuildRootBone(char* skin, const char* node, int frames);
+int __fastcall BuildSkeleton(VtArray* meshes, VtArray* nodes, int frames, SceneSkin* skin);
+void __fastcall BuildRootBone(SceneSkin* skin, const SceneNode* node, int frames);
 }
 
 namespace {
 void* s_unused;
 using namespace scene;
 
-int __fastcall SkeletonVerify(VtArray* meshes, VtArray* nodes, int frames, void* skin) {
+int __fastcall SkeletonVerify(VtArray* meshes, VtArray* nodes, int frames, SceneSkin* skin) {
     int result = BuildSkeleton(meshes, nodes, frames, skin);
     bool ok = true;
     if (result == 1 && meshes->size > 0) {
-        for (int j = 0; ok && j < nodes->size; ++j) {
-            char* node = reinterpret_cast<char*>(nodes->data) + j * node::kSize;
-            auto& records = *reinterpret_cast<VtArray*>(node + 0xF8);
-            ok = records.size == static_cast<std::int16_t>(frames) &&
-                 (records.size == 0 ||
-                  (std::memcmp(reinterpret_cast<char*>(records.data) + 0xC, node + 0x70, 12) == 0 &&
-                   std::memcmp(reinterpret_cast<char*>(records.data) + 0x18, node + 0x7C, 16) == 0));
+        NodeArray& typed = Typed<NodeArray>(*nodes);
+        for (int j = 0; ok && j < typed.size; ++j) {
+            const SceneNode& node = typed.data[j];
+            const auto* records = reinterpret_cast<const NodeFrame*>(node.frames.data);
+            ok = node.frames.size == static_cast<std::int16_t>(frames) &&
+                 (node.frames.size == 0 ||
+                  (std::memcmp(&records[0].pivot, &node.pivot, sizeof(Vector3)) == 0 &&
+                   std::memcmp(&records[0].rotation, &node.rotation, sizeof(Quaternion)) == 0));
         }
     }
     ei::verify::Check("BuildSkeleton", true, ok, "result %d", result);
     return result;
 }
 
-void __fastcall RootBoneVerify(char* skin, const char* node, int frames) {
+void __fastcall RootBoneVerify(SceneSkin* skin, const SceneNode* node, int frames) {
     BuildRootBone(skin, node, frames);
-    ei::verify::Check("BuildRootBone", true, *reinterpret_cast<char**>(skin + 0x14) != nullptr, "");
+    ei::verify::Check("BuildRootBone", true, skin->root != nullptr, "");
 }
 } // namespace
 

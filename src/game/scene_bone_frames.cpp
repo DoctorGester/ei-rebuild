@@ -3,6 +3,7 @@
 // keys of frame `frame` become relative to its parent's, its rest offset and rotation too (frame 0
 // only), and each rotation key is turned into an axis-angle step from the previous frame. Plain
 // float maths (rule 7). Names provisional; see docs/notes/objects.md ("Sixth round").
+#include "figure.h"
 #include "maths.h"
 
 #include "ei/hook.h"
@@ -16,27 +17,9 @@ Quaternion* __fastcall MultiplyByConjugate(Quaternion* out, const Quaternion& a,
 namespace scene {
 namespace {
 
-template <typename T>
-T& At(const void* base, std::size_t offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(const_cast<void*>(base)) + offset);
-}
-
-// Bone members (0x128 bytes; see scene_bones.cpp).
-constexpr std::size_t kChildren = 0x20;       // aligned array of bone pointers (data, size)
-constexpr std::size_t kRotationKeys = 0x44;   // aligned array of RotationKey
-constexpr std::size_t kTranslations = 0x58;   // aligned array of 32-byte keys, the vector at +8
-constexpr std::size_t kRestRotation = 0xE4;   // Quaternion
-constexpr std::size_t kRestPosition = 0xF4;   // Vector3
-constexpr std::size_t kParentOffset = 0x110;  // Vector3: the rest position in the parent's frame
-
-struct RotationKey {   // 40 bytes
-    std::uint32_t frame;
-    std::uint32_t next;
-    Quaternion rotation;   // +0x08
-    Vector3 axis;          // +0x18
-    float angle;           // +0x24
-};
-static_assert(sizeof(RotationKey) == 40);
+// The bones are CAnimationNodes (figure.h): rotation keys, translation keys, the rest rotation and
+// position, and position_ (the rest position in the parent's frame).
+using RotationKey = AnimationRotationKey;
 
 float GameFloat(std::uintptr_t address) {
     float f;
@@ -67,12 +50,12 @@ float ToAxisAngle(const Quaternion& q, Vector3* axis) {
     return static_cast<float>(angle);
 }
 
-RotationKey* Keys(char* bone) { return At<RotationKey*>(bone, kRotationKeys); }
+RotationKey* Keys(CAnimationNode* bone) { return bone->rotationKeys_.data; }
 
 } // namespace
 
-void __fastcall MakeFrameRelative(char* parent, char* bone, int frame) {
-    for (int i = 0; i < At<int>(bone, kChildren + 4); ++i) MakeFrameRelative(bone, At<char**>(bone, kChildren)[i], frame);
+void __fastcall MakeFrameRelative(CAnimationNode* parent, CAnimationNode* bone, int frame) {
+    for (int i = 0; i < bone->children_.size; ++i) MakeFrameRelative(bone, bone->children_.data[i], frame);
 
     RotationKey& key = Keys(bone)[frame];
     if (!parent) {
@@ -81,11 +64,11 @@ void __fastcall MakeFrameRelative(char* parent, char* bone, int frame) {
         if (frame == 0) {
             // The rest offset in the parent's frame (the parent's rotation as a matrix, -2 from
             // 0073C168) and the rest rotation relative to the parent's.
-            const Vector3& from = At<Vector3>(bone, kRestPosition);
-            const Vector3& origin = At<Vector3>(parent, kRestPosition);
+            const Vector3& from = bone->restPosition_;
+            const Vector3& origin = parent->restPosition_;
             Vector3 d{from.x - origin.x, from.y - origin.y, from.z - origin.z};
-            At<Vector3>(bone, kParentOffset) = d;
-            const Quaternion& p = At<Quaternion>(parent, kRestRotation);
+            bone->position_ = d;
+            const Quaternion& p = parent->restRotation_;
             const float k = GameFloat(0x0073C168);
             const float one = GameFloat(0x0073B84C);
             float a = p.x * k, b = p.y * k, c = p.z * k;
@@ -95,22 +78,22 @@ void __fastcall MakeFrameRelative(char* parent, char* bone, int frame) {
             float m00 = one - (zz + yy), m01 = xy - zw, m02 = xz + yw;
             float m10 = xy + zw, m11 = one - (zz + xx), m12 = yz - xw;
             float m20 = xz - yw, m21 = yz + xw, m22 = one - (xx + yy);
-            Vector3& offset = At<Vector3>(bone, kParentOffset);
+            Vector3& offset = bone->position_;
             Vector3 dd = offset;
             offset.x = (m02 * dd.z + m00 * dd.x) + m01 * dd.y;
             offset.y = (m12 * dd.z + m10 * dd.x) + m11 * dd.y;
             offset.z = (m22 * dd.z + m20 * dd.x) + m21 * dd.y;
 
-            Vector3& rest = At<Vector3>(bone, kRestPosition);
+            Vector3& rest = bone->restPosition_;
             rest.x = rest.x - origin.x;
             rest.y = rest.y - origin.y;
             rest.z = rest.z - origin.z;
-            Quaternion own = At<Quaternion>(bone, kRestRotation);
-            Quaternion theirs = At<Quaternion>(parent, kRestRotation);
-            MultiplyByConjugate(&At<Quaternion>(bone, kRestRotation), own, theirs);
+            Quaternion own = bone->restRotation_;
+            Quaternion theirs = parent->restRotation_;
+            MultiplyByConjugate(&bone->restRotation_, own, theirs);
         }
-        Vector3& t = At<Vector3>(At<char*>(bone, kTranslations) + frame * 32, 8);
-        const Vector3& pt = At<Vector3>(At<char*>(parent, kTranslations) + frame * 32, 8);
+        Vector3& t = bone->translationKeys_.data[frame].position;
+        const Vector3& pt = parent->translationKeys_.data[frame].position;
         t.x = t.x - pt.x;
         t.y = t.y - pt.y;
         t.z = t.z - pt.z;

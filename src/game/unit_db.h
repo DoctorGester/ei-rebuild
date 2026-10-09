@@ -50,7 +50,7 @@ struct UnitPrototypeRecord {
     std::uint8_t unknown_38[0x10];  // not serialised
     float hitPoints;                // +0x48 9
     float mana;                     // +0x4C 10
-    std::uint32_t unknown_50;       // 0x29
+    std::uint32_t level;            // +0x50 0x29 (CUnit::Level of a unit without a text key)
     std::uint32_t unknown_54;       // 0x2B
     float protectionScale;          // +0x58 11
     std::uint32_t unknown_5C;       // 12 (-> statistics +0x8C)
