@@ -111,7 +111,7 @@ public:
     struct WoundsMaterial* woundsMaterial;  // +0xDC the material drawing it (counted; slot 0 deletes)
     std::uint8_t unknown_E0[0xE8 - 0xE0];
     float pulseClock;               // +0xE8 frames counted by the invisible / stunned pulses
-    std::uint8_t unknown_EC[4];
+    std::uint32_t touchTime;        // +0xEC the frame time the model was last kept loaded (CollectVisible)
     float figureScale[3];           // +0xF0 the figure's extra scale (slot 18, ExtraScale)
 };
 static_assert(offsetof(CObject3DClientSpecific, object) == 0x1C);

@@ -3,11 +3,14 @@
 #include "world.h"
 
 #include "core_maths.h"
+#include "map_object.h"
+#include "map_object_figures.h"
+#include "map_object_shadow.h"
 #include "object_tables.h"
 #include "stl_sort.h"
+#include "terrain.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 
 #include <cmath>
 #include <cstring>
@@ -20,18 +23,10 @@
 
 namespace {
 
-constexpr int kSlotAnimate = 25;          // units: advance the animation to a game time (RET 4)
-constexpr int kSlotSurfaceHeight = 29;    // CWorldClient: height with platforms (005618E0)
-constexpr int kClassUnit = 0x50;
 constexpr int kTypeHero = 0x32;           // CEngineObject::type_ of heroes
 constexpr std::uint32_t kFlagVisible = 0x20;
 constexpr std::uint32_t kFlagTouchModel = 0x200;
 constexpr std::uint32_t kFlagAlwaysDrawn = 0x400000;
-
-template <typename T>
-__forceinline T& Field(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
-}
 
 } // namespace
 
@@ -42,62 +37,51 @@ namespace {
 
 MatrixDevice* Device() { return TheMatrixDevice(); }
 
-// A 4x4 float matrix (16 floats).
-struct Matrix4 {
-    // 004D9880. this = a * b (RET 8).
-    void Multiply(const float* a, const float* b);
-};
-void Matrix4::Multiply(const float* a, const float* b) { MatrixMultiplyOriginal(reinterpret_cast<float*>(this), nullptr, a, b); }
+// 004D9880. out = a * b (4x4 float matrices; RET 8).
+void MatrixMultiply(float* out, const float* a, const float* b) { MatrixMultiplyOriginal(out, nullptr, a, b); }
 
-// The quaternion at +0x34 of a map object.
-struct Orientation {
-    // 004D9AA0. Writes the rotation into the 4x4 matrix `out` (RET 4).
-    void ToMatrix(float* out);
-};
-void Orientation::ToMatrix(float* a0) { QuaternionToMatrixOriginal((void*)this, nullptr, a0); }
-
-// The object's model (+0x94; CObject3DClientSpecific range).
-struct ObjectModel {
-    // 0051E300. Whether the model's shadow volume is in view (shadow settings 0079BD0C..).
-    bool ShadowInView();
-};
-__declspec(naked) bool ObjectModel::ShadowInView() EI_ORIGINAL(0x0051E300)
-
-// The object's +0x98 (figure animation state).
-struct FigureState {
-    // 0050D450. Applies a pending animation change once (clears its +0x74 flag).
-    void ApplyPending();
-};
-void FigureState::ApplyPending() { FigureApplyPendingOriginal((void*)this); }
+// 0051E300. Whether the model's shadow volume is in view (shadow settings 0079BD0C..).
+__declspec(naked) bool __fastcall ShadowInView(CObject3DClientSpecific*) EI_ORIGINAL(0x0051E300)
 
 // Terrain::HeightAt (006C8680) declared double: the original adds the unrounded ST0.
-struct TerrainHeight {
-    double HeightAt(float x, float y, int layer);
+__declspec(naked) double __fastcall TerrainHeightAt(Terrain*, void*, float, float, int) EI_ORIGINAL(0x006C8680)
+
+// The frame's draw lists: STLport vector<CEngineObject*> globals 0x10 apart (0056AFE0 clears them).
+using ObjectVector = stlp::vector<CEngineObject*>;
+struct DrawQueue {
+    ObjectVector objects;
+    std::uint32_t allocator;
 };
-__declspec(naked) double TerrainHeight::HeightAt(float, float, int) EI_ORIGINAL(0x006C8680)
+static_assert(sizeof(DrawQueue) == 0x10);
+struct DrawQueues {
+    DrawQueue touchedModels;   // 007AF508 models to keep loaded (by last use)
+    DrawQueue shadow52;        // 007AF518
+    DrawQueue shadowUnits;     // 007AF528
+    DrawQueue shadow5D;        // 007AF538
+    DrawQueue shadowOther;     // 007AF548
+    DrawQueue shadow54;        // 007AF558
+    DrawQueue visible52;       // 007AF568
+    DrawQueue visibleUnits;    // 007AF578
+    DrawQueue visible5D;       // 007AF588
+    DrawQueue visibleOther;    // 007AF598
+    DrawQueue visible54;       // 007AF5A8
+};
+DrawQueues& Frame() { return *reinterpret_cast<DrawQueues*>(0x007AF508); }
 
-// STLport vector<CEngineObject*> (the frame's draw lists are globals).
-struct ObjectVector {
-    CEngineObject** begin;
-    CEngineObject** end;
-    CEngineObject** capacity;
+// 00571B00. _M_insert_overflow: grows the storage and inserts n copies of *value at pos.
+__declspec(naked) void __fastcall InsertOverflow(ObjectVector*, void*, CEngineObject**, CEngineObject* const*, int)
+    EI_ORIGINAL(0x00571B00)
 
-    // 00571B00. _M_insert_overflow: grows the storage and inserts n copies of *value at pos.
-    void InsertOverflow(CEngineObject** pos, CEngineObject* const* value, int n);
-
-    // 0056E840 (also inlined by the original): push_back.
-    void PushBack(CEngineObject* const& value) {
-        if (end != capacity) {
-            if (end) *end = value;
-            ++end;
-        } else {
-            InsertOverflow(end, &value, 1);
-        }
+// 0056E840 (also inlined by the original): push_back.
+void PushBack(DrawQueue& queue, CEngineObject* const& value) {
+    ObjectVector& v = queue.objects;
+    if (v.Finish() != v.EndOfStorage()) {
+        if (v.Finish()) *v.Finish() = value;
+        ++v.Finish();
+    } else {
+        InsertOverflow(&v, nullptr, v.Finish(), &value, 1);
     }
-};
-__declspec(naked) void ObjectVector::InsertOverflow(CEngineObject**, CEngineObject* const*, int) EI_ORIGINAL(0x00571B00)
-
-ObjectVector& DrawList(std::uintptr_t address) { return *reinterpret_cast<ObjectVector*>(address); }
+}
 
 // STLport list<counted pointer>.
 using ObjectList = stlp::list<CEngineObject*>;
@@ -107,34 +91,27 @@ using ObjectListNode = ObjectList::Node;
 ObjectListNode** ObjectListInsert(ObjectList* list, ObjectListNode** result, ObjectListNode* pos, CEngineObject* const& value) {
     return reinterpret_cast<ObjectListNode**>(ListInsert56E8A0Original(list, nullptr, reinterpret_cast<void**>(result), pos, &value));
 }
-
-// The frame's lists (0056AFE0 clears them before collecting).
-constexpr std::uintptr_t kTouchedModels = 0x007AF508;   // models to keep loaded (by last use)
-constexpr std::uintptr_t kShadow52 = 0x007AF518;
-constexpr std::uintptr_t kShadowUnits = 0x007AF528;
-constexpr std::uintptr_t kShadow5D = 0x007AF538;
-constexpr std::uintptr_t kShadowOther = 0x007AF548;
-constexpr std::uintptr_t kShadow54 = 0x007AF558;
-constexpr std::uintptr_t kVisible52 = 0x007AF568;
-constexpr std::uintptr_t kVisibleUnits = 0x007AF578;
-constexpr std::uintptr_t kVisible5D = 0x007AF588;
-constexpr std::uintptr_t kVisibleOther = 0x007AF598;
-constexpr std::uintptr_t kVisible54 = 0x007AF5A8;
 ObjectList* DeferredUnits() { return reinterpret_cast<ObjectList*>(0x007AF5B4); }
 
 const std::uint32_t& g_multiplayerView = *reinterpret_cast<const std::uint32_t*>(0x0079BE6C);
 const std::uint32_t& g_modelTouchDelay = *reinterpret_cast<const std::uint32_t*>(0x0079BD24);
+// 007AFDB0: the point PickGround / PickSurface return without a view matrix.
+const float* NoPickPoint() { return reinterpret_cast<const float*>(0x007AFDB0); }
 
-// Pushes the object's matrix (at +0x54) on the device's object stack, as the original inlines it.
+// Pushes the object's matrix on the device's object stack, as the original inlines it.
 void PushObjectMatrix(MatrixDevice* device, float* matrix) {
     if (device->objectDepth == 0) {
         device->objectDepth = 1;
         std::memcpy(device->objectStack, matrix, 0x40);
     } else {
         int depth = ++device->objectDepth;
-        reinterpret_cast<Matrix4*>(device->objectStack + (depth - 1) * 16)
-            ->Multiply(device->objectStack + (depth - 2) * 16, matrix);
+        MatrixMultiply(device->objectStack + (depth - 1) * 16, device->objectStack + (depth - 2) * 16, matrix);
     }
+}
+
+CObject3D* Object3D(CEngineObject* object) { return static_cast<CObject3D*>(object); }
+CObject3DClientSpecific* ModelOf(CEngineObject* object) {
+    return static_cast<CObject3DClientSpecific*>(Object3D(object)->attached);
 }
 
 } // namespace
@@ -145,21 +122,21 @@ int CWorldClient::CollectVisible(void* list, const float* view, float animTime, 
                                  char withScripted) {
     MatrixDevice* device = Device();
     int touched = 0;
-    // Only a multiplayer spectator view (session +0x100 == 1) leaves units it cannot see out.
+    // Only a multiplayer spectator view (session kind 1) leaves units it cannot see out.
     bool drawAllUnits = true;
-    if (g_multiplayerView != 0 && Field<int>(session_, 0x100) == 1) drawAllUnits = false;
+    if (g_multiplayerView != 0 && Session()->gameKind == 1) drawAllUnits = false;
 
     ObjectListNode* node = static_cast<ObjectList*>(list)->head->next;
     if (node == static_cast<ObjectList*>(list)->head) return 0;
     do {
         CEngineObject* object = node->data;
-        if (object && Field<void*>(object, 0x94)) {
+        if (object && Object3D(object)->attached) {
             bool process = true;
-            if (object->GetClassId() == kClassUnit) {
+            if (object->GetClassId() == world::kClassUnit) {
                 if (object->type_ == kTypeHero && (IsTextKey(object->id_) & 0xFF) && !withScripted) {
                     process = false;
                 } else if (animateUnits) {
-                    ei::VCall<void>(object, kSlotAnimate, animTime);
+                    ObjectSlots(object)->AdvanceTime(animTime);
                     if (!drawAllUnits && !(object->flags_ & kFlagAlwaysDrawn)) process = false;
                 } else {
                     // First pass: units wait on the deferred list (which holds a reference).
@@ -173,68 +150,71 @@ int CWorldClient::CollectVisible(void* list, const float* view, float animTime, 
             }
             if (process) {
                 // Object -> world matrix: the rotation with the position as the last column.
-                float* matrix = &Field<float>(object, 0x54);
-                reinterpret_cast<Orientation*>(&Field<float>(object, 0x34))->ToMatrix(matrix);
-                Field<std::uint32_t>(object, 0x60) = Field<std::uint32_t>(object, 0x1C);
-                Field<std::uint32_t>(object, 0x70) = Field<std::uint32_t>(object, 0x20);
-                Field<std::uint32_t>(object, 0x80) = Field<std::uint32_t>(object, 0x24);
-                Field<std::uint32_t>(object, 0x8C) = 0;
-                Field<std::uint32_t>(object, 0x88) = 0;
-                Field<std::uint32_t>(object, 0x84) = 0;
-                Field<std::uint32_t>(object, 0x90) = 0x3F800000;   // 1.0f
+                CObject3D* o3d = Object3D(object);
+                float* matrix = o3d->worldMatrix;
+                QuaternionToMatrixOriginal(&o3d->orientation, nullptr, matrix);
+                std::memcpy(&matrix[3], &o3d->position[0], 4);
+                std::memcpy(&matrix[7], &o3d->position[1], 4);
+                std::memcpy(&matrix[11], &o3d->position[2], 4);
+                const std::uint32_t zero = 0;
+                const std::uint32_t one = 0x3F800000;   // 1.0f
+                std::memcpy(&matrix[14], &zero, 4);
+                std::memcpy(&matrix[13], &zero, 4);
+                std::memcpy(&matrix[12], &zero, 4);
+                std::memcpy(&matrix[15], &one, 4);
                 PushObjectMatrix(device, matrix);
-                int where = Device()->Classify(&Field<std::uint8_t>(object, 0x124));
+                int where = Device()->Classify(&o3d->boundsFlags);
                 if (device->objectDepth != 0) --device->objectDepth;
 
                 CEngineObject* const& entry = object;
+                DrawQueues& frame = Frame();
                 if (where != 2) {
                     object->flags_ |= kFlagVisible;
-                    // View-space position (+0x28): each row summed as (a + b) + c, then rounded.
-                    const float* p = &Field<float>(object, 0x1C);
+                    // View-space position: each row summed as (a + b) + c, then rounded.
+                    const float* p = o3d->position;
                     float z = StoreFloat((view[8] * p[0] + view[9] * p[1]) + view[10] * p[2]);
                     float y = StoreFloat((view[4] * p[0] + view[5] * p[1]) + view[6] * p[2]);
                     float x = StoreFloat((view[1] * p[1] + view[2] * p[2]) + view[0] * p[0]);
-                    Field<float>(object, 0x28) = x;
-                    Field<float>(object, 0x2C) = y;
-                    Field<float>(object, 0x30) = z;
+                    o3d->viewPosition[0] = x;
+                    o3d->viewPosition[1] = y;
+                    o3d->viewPosition[2] = z;
                     switch (object->GetClassId()) {
                     case 0x50:
-                        DrawList(kVisibleUnits).PushBack(entry);
-                        DrawList(kShadowUnits).PushBack(entry);
+                        PushBack(frame.visibleUnits, entry);
+                        PushBack(frame.shadowUnits, entry);
                         break;
                     case 0x52:
-                        DrawList(kVisible52).PushBack(entry);
-                        DrawList(kShadow52).PushBack(entry);
+                        PushBack(frame.visible52, entry);
+                        PushBack(frame.shadow52, entry);
                         break;
                     case 0x54:
-                        DrawList(kVisible54).PushBack(entry);
-                        DrawList(kShadow54).PushBack(entry);
+                        PushBack(frame.visible54, entry);
+                        PushBack(frame.shadow54, entry);
                         break;
                     case 0x5D:
-                        DrawList(kVisible5D).PushBack(entry);
-                        DrawList(kShadow5D).PushBack(entry);
+                        PushBack(frame.visible5D, entry);
+                        PushBack(frame.shadow5D, entry);
                         break;
                     default:
-                        DrawList(kVisibleOther).PushBack(entry);
-                        DrawList(kShadowOther).PushBack(entry);
+                        PushBack(frame.visibleOther, entry);
+                        PushBack(frame.shadowOther, entry);
                         break;
                     }
-                    if ((object->flags_ & kFlagTouchModel) &&
-                        now - Field<std::uint32_t>(Field<void*>(object, 0x94), 0xEC) > g_modelTouchDelay) {
-                        DrawList(kTouchedModels).PushBack(entry);
+                    if ((object->flags_ & kFlagTouchModel) && now - ModelOf(object)->touchTime > g_modelTouchDelay) {
+                        PushBack(frame.touchedModels, entry);
                         ++touched;
                     }
                 } else {
                     object->flags_ &= ~kFlagVisible;
                     // Out of view: still listed for shadows when its shadow volume is in view.
-                    if (static_cast<ObjectModel*>(Field<void*>(object, 0x94))->ShadowInView()) {
-                        if (Field<void*>(object, 0x98)) static_cast<FigureState*>(Field<void*>(object, 0x98))->ApplyPending();
+                    if (ShadowInView(ModelOf(object))) {
+                        if (o3d->animation) FigureApplyPendingOriginal(o3d->animation);
                         switch (object->GetClassId()) {
-                        case 0x50: DrawList(kShadowUnits).PushBack(entry); break;
-                        case 0x52: DrawList(kShadow52).PushBack(entry); break;
-                        case 0x54: DrawList(kShadow54).PushBack(entry); break;
-                        case 0x5D: DrawList(kShadow5D).PushBack(entry); break;
-                        default: DrawList(kShadowOther).PushBack(entry); break;
+                        case 0x50: PushBack(frame.shadowUnits, entry); break;
+                        case 0x52: PushBack(frame.shadow52, entry); break;
+                        case 0x54: PushBack(frame.shadow54, entry); break;
+                        case 0x5D: PushBack(frame.shadow5D, entry); break;
+                        default: PushBack(frame.shadowOther, entry); break;
                         }
                     }
                 }
@@ -257,7 +237,7 @@ template <typename Height>
 float* PickPoint(CWorldClient* world, float* out, int screenX, int screenY, Height height) {
     MatrixDevice* device = Device();
     if (device->viewDepth == 0) {
-        std::memcpy(out, reinterpret_cast<const void*>(0x007AFDB0), 12);
+        std::memcpy(out, NoPickPoint(), 12);
         return out;
     }
     // Push the current view matrix on the picking stack (multiplied onto its top).
@@ -267,8 +247,7 @@ float* PickPoint(CWorldClient* world, float* out, int screenX, int screenY, Heig
         std::memcpy(device->pickStack, top, 0x40);
     } else {
         int depth = ++device->pickDepth;
-        reinterpret_cast<Matrix4*>(device->pickStack + (depth - 1) * 16)
-            ->Multiply(device->pickStack + (depth - 2) * 16, top);
+        MatrixMultiply(device->pickStack + (depth - 1) * 16, device->pickStack + (depth - 2) * 16, top);
     }
     MatrixDevice* current = Device();
     const float* m = current->pickStack + (current->pickDepth - 1) * 16;
@@ -291,7 +270,7 @@ float* PickPoint(CWorldClient* world, float* out, int screenX, int screenY, Heig
             -((((m[4] * m[15] - m[12] * m[7]) * sx + (m[3] * m[12] - m[0] * m[15]) * sy) + (m[0] * m[7] - m[3] * m[4])) / det)));
 
         // Start halfway up the terrain's height range.
-        float half = StoreFloat(Field<float>(world->terrain_, 0x114) * 0.5f);
+        float half = StoreFloat(world->terrain_->heightRange * 0.5f);
         float x = NonNegative(StoreFloat(a * half + b));
         float y = NonNegative(StoreFloat(c * half + d));
         pz = StoreFloat(static_cast<float>((height(x, y) + half) * 0.5f));
@@ -338,13 +317,13 @@ float* PickPoint(CWorldClient* world, float* out, int screenX, int screenY, Heig
 
 float* CWorldClient::PickGround(float* out, int x, int y) {
     return PickPoint(this, out, x, y, [this](float px, float py) {
-        return reinterpret_cast<TerrainHeight*>(terrain_)->HeightAt(px, py, 0);
+        return TerrainHeightAt(terrain_, nullptr, px, py, 0);
     });
 }
 
 float* CWorldClient::PickSurface(float* out, int x, int y) {
     return PickPoint(this, out, x, y, [this](float px, float py) {
-        return ei::VCall<double>(this, kSlotSurfaceHeight, px, py);
+        return GroundHeightAt(px, py);
     });
 }
 
@@ -390,7 +369,7 @@ void __fastcall FinalSortByModelUse(CEngineObject** first, CEngineObject** last,
 }
 
 BOOL ModelUseLess::Less(CEngineObject* a, CEngineObject* b) {
-    return Field<std::uint32_t>(Field<void*>(b, 0x94), 0xEC) < Field<std::uint32_t>(Field<void*>(a, 0x94), 0xEC);
+    return ModelOf(b)->touchTime < ModelOf(a)->touchTime;
 }
 
 EI_REPLACE_METHOD(0x0056A990, CWorldClient::CollectVisible);
