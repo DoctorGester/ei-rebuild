@@ -302,7 +302,7 @@ public:
     virtual Vector3* EyePoint(Vector3* out) = 0;        // 48 (0xC0): where the object sees from; returns `out`
     virtual void ReadNetState() = 0;       // 49: 0050EC30 (units 0052EF90)
     virtual void WriteNetState() = 0;      // 50: 0050EAF0 (units 0052EC70)
-    virtual void PlaceOnGround() = 0;      // 51: 0050F020 (units 0052F740)
+    virtual void PlaceOnGround(float offset) = 0;   // 51 (RET 4): 0050F020 (units 0052F740) sets +0x24 to the ground height at (+0x1C, +0x20) plus `offset`
     // 52 (0xD0): where the object is at world time `time` (units: along their path; other objects
     // ignore the time, GetPosition). Returns `out`.
     virtual Vector3* PositionAt(Vector3* out, int time) = 0;
@@ -321,9 +321,12 @@ public:
 // A map object's companion (CMapObjectServer / CMapObjectClientSpecific) as the base class calls it.
 class CMapObjectCompanion : public CEngineObject {
 public:
-    virtual void EffectsChanged();   // 13: client 005117D0, server 005106D0 (empty, RET 4)
+    virtual void EffectsChanged(int first);   // 13: client 005117D0, server 005106D0 (empty, RET 4)
     virtual void Unused14();         // 14: empty in both (client 005104B0, server 00515810)
     virtual int Query(int first, int second);   // 15: 005104C0 in both (0)
+    // 16: a hit of `damage` with the hit-kind bits `kind` (1, 2, 4). Server 005106F0 (empty, RET 8);
+    // client 005117F0: for a living, visible-flag (0x400000) object, 0056CE40 with the object's id.
+    virtual void Hit(int damage, int kind);
 };
 
 // A unit's server half (CUnit::controller, +0x240: CUnitServer, class 0x3E) as callers reach it
