@@ -190,6 +190,14 @@ struct CSpellEffect {
     void ReleaseSound();
     void ReleaseLight();
 
+    // spell_effect_save.cpp (RET 4). 0067E960: the position, caster and target ids, the target
+    // point, the state, the spell (its slot 10), the packed id, the visual / sound / light ids (-1
+    // for none), the timer, the flags and the position again. 0067E7D0 reads them back in the world
+    // of LoadingProjectileWorld (world.h), finding the three objects in its timed object manager,
+    // and stamps the footprint (UpdateFootprint(type, 1)).
+    void Load(CStream* stream);
+    void Save(CStream* stream);
+
     std::uint8_t unknown_00[0x08];
     char* world;                // +0x08 the world server; its sector map is at +0x170 + 0x124
     std::uint32_t flags;        // +0x0C bit 0: the caster gets no credit for the hit

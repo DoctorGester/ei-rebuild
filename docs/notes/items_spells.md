@@ -261,6 +261,11 @@ along the direction (normal built with length 2, distance compared with 1).
 | 006835B0, 00683600, 00683730, 0067F870, 0067E6D0, 00681BB0, 00682650 | HitUnit, HitUnitsInRadius, HitUnitsAlong, CSpellEffect::Start, Update, UpdateMissile (2.6 KB), UpdateLasting (3.8 KB) | O (states, parameters +0x4C..+0x60 unchanged) |
 | 0067EF40, 0067EFC0, 0067F170, 0067F260, 0067F410, 0067F580, 0067F660, 0067F7C0, 0067EE00, 0067EE40, 0067EE80 | SetVisual, UpdateFootprint (stamped flag follows `stamp` for 6, 7, 8, 0x27), CreateArrow (class 0x4E), CreateParticle (0x4A / 0x5A), CreateLightning (0x4D, with a target), CreateSound, CreateSoundSequence (class 99, max(count, 1) names), CreatePointLight (0x4B, flags 0x840), ReleaseVisual / Sound / Light | O |
 
+0067E7D0 / 0067E960 `CSpellEffect::Load` / `Save` (spell_effect_save; Save S into capture streams, Load O: the original Save
+writes back what ours read; no scenario saves during a cast). Load takes the world from 007C84EC, the three objects from its
+timed object manager, and stamps the footprint; the packed id and object ids are read through stack slots holding the stream
+and `this` (kept).
+
 Every sequence with more than one FP operation before a store is a naked helper in `spell_effect_internal.h`. Rebirth-patched
 callee: 005C11D0 (CSectorMap::Move, the teleport).
 
@@ -272,7 +277,7 @@ normal with a z of 0 * k. Fireworks, clairvoyance and possession keep a unit lis
 at the end. Risk: scenario wolves are placed 5 to 13 units from the hero without checking terrain (blocked ground fails the
 `IsAlive` waitfor). Not rewritten: 0067AC70 (missile target), 0067C640 (CEffectShowVisibility ids), 00688510 (buff record
 constructor), 005B2A00 / 005B2760 (footprint builders), 005C98C0 (AI noise), 005CBBE0, 00554450; 0067F360 (no callers),
-0067E510 / 0067E5D0 (constructor / destructor), 0067E7D0 / 0067E960 (save / load).
+0067E510 / 0067E5D0 (constructor / destructor).
 
 ## Quest database (006AE8E0, quest_database.cpp, quest_records.cpp)
 
