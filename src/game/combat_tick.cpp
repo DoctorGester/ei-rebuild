@@ -6,14 +6,19 @@
 #include "combat_plan.h"
 
 #include "item.h"
+#include "item_db.h"
+#include "map_object.h"
 #include "maths.h"
+#include "player_messages.h"
 #include "random.h"
+#include "unit_ai.h"
+#include "unit_db.h"
+#include "world.h"
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_ai.h"
 #include "originals_engine.h"
@@ -82,20 +87,7 @@ constexpr int kMessageStopped = 0x1B;
 constexpr int kShoutTargetLost = 0x0B;
 constexpr int kShoutCannotDo = 0x0E;
 
-// Virtual slots.
-constexpr int kSlotPositionAt = 0xD0 / 4;   // Vector3* (Vector3* out, int time)
-constexpr int kSlotAimPoint = 0xD4 / 4;     // Vector3* (Vector3* out)
-constexpr int kSlotIsMoving = 0xD8 / 4;     // int ()
-constexpr int kSlotIsDead = 0xDC / 4;       // int ()
-constexpr int kSlotSpeed = 0xEC / 4;        // ST0 ()
-constexpr int kControllerWeaponSwitch = 0x64 / 4;   // CUnitServer slot 25 (weapon slot)
-
 constexpr int kPartMoveModes = 6;           // MarkChanged part of the movement modes
-
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
-}
 
 bool LessOrUnordered(double a, double b) { return !(a >= b); }
 bool ZeroOrUnordered(double a) { return !(a < 0.0 || a > 0.0); }
@@ -103,11 +95,16 @@ bool IsUnit(CEngineObject* object) { return object && object->GetClassId() == kC
 bool IsCastKind(int kind) { return kind == kOrderCast || kind == kOrderCastAt; }
 bool IsActionKind(int kind) { return kind == kOrderAttack || kind == kOrderCast || kind == kOrderCastAt || kind == kOrderSkill; }
 
-IsaacRandom& Random() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
-std::uint8_t& PathFlag() { return *reinterpret_cast<std::uint8_t*>(0x007B00D2); }   // cleared around path searches
-inline int& CurrentFrame() { return *reinterpret_cast<int*>(0x007AFFC4); }
-void* const kSectorMap = reinterpret_cast<void*>(0x007B01F4);
-void* const kWorldServer = reinterpret_cast<void*>(0x007AFF60);
+// The map objects' virtual slots (map_object.h). Slot 54 is 1 while a unit moves (+0x278).
+CMapObjectVirtuals* Slots(CEngineObject* object) { return ObjectSlots(object); }
+bool IsDead(CEngineObject* object) { return Slots(object)->IsDead() != 0; }
+int IsMoving(CEngineObject* object) { return Slots(object)->IsLargeUnit(); }
+// The world time of an object's world (00455950).
+int WorldTick(const void* object) { return static_cast<CWorld*>(ObjectWorld(object))->tick_; }
+// The prototype's height offset (UnitPrototypeRecord +0x24).
+float PrototypeHeight(CUnit* unit) { return std::bit_cast<float>(reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype())->unknown_24); }
+// The messages of a unit's player (CPlayer::connection_).
+void* PlayerMessages(char* player) { return reinterpret_cast<CPlayer*>(player)->connection_; }
 
 CItemWeapon* ActiveWeapon(CUnit* unit) { return static_cast<CItemWeapon*>(unit->GetWeapon(unit->activeWeapon)); }
 } // namespace
@@ -177,7 +174,7 @@ __declspec(naked) void UnitAction::CallReset() EI_ORIGINAL(0x0054B230)
 
 namespace {
 void TellParty(CUnit* unit, int message) {
-    if (unit->player) TickMessage(*reinterpret_cast<void**>(unit->player + 0x20), nullptr, unit, message);
+    if (unit->player) TickMessage(PlayerMessages(unit->player), nullptr, unit, message);
 }
 
 // 00545F40 (UnitAction::Clear) followed by the +0x1C / +0x20 reset, as callers inline it.
@@ -189,7 +186,6 @@ void ClearAction(UnitAction* order) {
 
 // A CPtrList on the stack (vtable 0073D454), as 005468D0 fills it.
 using UnitPtrList = mfc::CTypedPtrList<CEngineObject>;
-void* const kPtrListVtable = reinterpret_cast<void*>(0x0073D454);
 } // namespace
 
 // --- Small helpers -----------------------------------------------------------------------------
@@ -255,10 +251,10 @@ namespace {
 bool CanStillDo(CUnitServer* self, UnitAction* order) {
     if (order->kind == kOrderAttack || order->kind == kOrderSkill) {
         CEngineObject* target = order->target;
-        if (IsUnit(target) && ei::VCall<int>(target, kSlotIsDead) == 0) {
+        if (IsUnit(target) && !IsDead(target)) {
             auto* other = static_cast<CUnit*>(target);
             if (other->sizeClass == 0 && !(order->kind == kOrderAttack && self->HasRangedWeapon())) {
-                double height = static_cast<double>(At<float>(other->GetPrototype(), 0x24)) + other->positionZ;
+                double height = static_cast<double>(PrototypeHeight(other)) + other->positionZ;
                 if (!LessOrUnordered(height, kHeightLimit)) return false;
             }
         }
@@ -296,7 +292,7 @@ void CUnitServer::TakeQueuedOrder() {
         }
     }
     CallSyncMoveModes();
-    At<int>(this, 0x93C) = CurrentFrame();
+    waitFrame = WorldServer()->tick_;
 }
 EI_REPLACE_METHOD(0x0054A6E0, CUnitServer::TakeQueuedOrder);
 
@@ -312,17 +308,17 @@ void LeaveMoveMode(CUnitServer* self) {
         if (!(IsActionKind(kind) && TickCheckOrder(self, nullptr, order))) self->CallSetUnitMoveMode2(kModeRun);
     }
     self->CallSyncMoveModes();
-    At<int>(self, 0x93C) = CurrentFrame();
+    self->waitFrame = WorldServer()->tick_;
 }
 
 // Stand: the idle animation (restarted at a random phase when nothing plays) and the motion
 // updates. Not while turning (state 2).
 void StandIdle(CUnitServer* self) {
     AnimationSteps* idle = CtlIdleAnimation(self);
-    if (!QueueHolds(&At<char>(self, 0x24), nullptr, idle)) {
-        if (At<int>(self, 0x2C) == 0 && At<int>(self, 0x38) == -1) {
-            int now = At<int>(ObjectWorld(self), 0x64);
-            idle->extra = now - static_cast<int>(Random().Next() % 0x33);
+    if (!QueueHolds(&self->queue, nullptr, idle)) {
+        if (self->queue.count == 0 && self->queue.extra == -1) {
+            int now = WorldTick(self);
+            idle->extra = now - static_cast<int>(IsaacRandom::Global().Next() % 0x33);
         }
         TickPlayIdle(self, nullptr, idle);
     }
@@ -338,12 +334,12 @@ void TakeOver(CUnitServer* self) {
 
 void InitPtrList(UnitPtrList* list) {
     std::memset(list, 0, sizeof(*list));
-    list->vtable = kPtrListVtable;
+    list->vtable = mfc::PtrListVtable();
     list->blockSize = 10;
 }
 
 void DestroyPtrList(UnitPtrList* list) {
-    list->vtable = kPtrListVtable;
+    list->vtable = mfc::PtrListVtable();
     PtrListRemoveAll(list);
 }
 } // namespace
@@ -352,7 +348,7 @@ bool CUnitServer::StartMove() {
     void* world = ManagerContext();
     UnitPtrList lifted;
     InitPtrList(&lifted);
-    At<std::uint8_t>(this, 0x18C) = 0;
+    unknown_18C = 0;
     TakeOver(this);
     LeaveMoveMode(this);
     if (TickFollowPath(this)) {
@@ -375,13 +371,13 @@ bool CUnitServer::StartMove() {
     }
     // Plan the way with the units near the goal lifted off the sector map.
     CtlLiftNearby(this, nullptr, &lifted, action.point, action.source != 0);
-    void* map = static_cast<char*>(ManagerContext()) + 0x170;
-    At<std::uint32_t>(unit, 0x43C) = MapCellFlag80(map, nullptr, &unit->positionX);
+    CAIMap* map = static_cast<CWorldServer*>(ManagerContext())->AIMap();
+    unit->unknown_43C = MapCellFlag80(map, nullptr, &unit->positionX);
     bool found = TickPathTo(this, nullptr, action.point, std::bit_cast<std::uint32_t>(action.point[2]));
     for (UnitPtrList::Node* node = lifted.head; node;) {
         UnitPtrList::Node* current = node;
         node = node->next;
-        SectorMapAdd(AsSectorMap(static_cast<char*>(world) + 0x294), nullptr, current->data);
+        SectorMapAdd(static_cast<CWorldServer*>(world)->Sectors(), nullptr, current->data);
     }
     bool arrived = false;
     if (action.unknown_1C) {
@@ -393,13 +389,13 @@ bool CUnitServer::StartMove() {
             close = LessOrUnordered(dx * dx + dy * dy, kLong);
         }
         if (close) arrived = true;
-        else CtlReportPath(this, nullptr, &At<char>(this, 0x3C), found);
+        else CtlReportPath(this, nullptr, &motion, found);
     }
     if (!arrived && found) {
         DestroyPtrList(&lifted);
         return true;
     }
-    At<std::uint8_t>(this, 0x18C) = 1;
+    unknown_18C = 1;
     action.CallReset();
     if (action2.kind == kOrderEmpty) CallIdle();
     CallStartQueuedOrder();
@@ -429,8 +425,8 @@ bool CUnitServer::StartQueuedOrder() {
         TakeOver(this);
         LeaveMoveMode(this);
         int time = action.unknown_1C;
-        void* world = ManagerContext();
-        MotionTurn(&At<char>(this, 0x3C), nullptr, At<int>(world, 0x64), unit, action.point, time);
+        int now = static_cast<CWorld*>(ManagerContext())->tick_;
+        MotionTurn(&motion, nullptr, now, unit, action.point, time);
         UnitPathSpeeds(unit);
         TickMotion5474B0(this);
         CtlSetState(this, nullptr, 1);
@@ -441,10 +437,10 @@ bool CUnitServer::StartQueuedOrder() {
     case kOrderCast:
     case kOrderCastAt:
     case kOrderSkill:
-        At<std::uint8_t>(this, 0x18C) = 0;
+        unknown_18C = 0;
         TakeOver(this);
         LeaveMoveMode(this);
-        At<std::uint8_t>(this, 0x145) = 0;
+        stoodBlocked = 0;
         CallExecuteOrder();
         return true;
 
@@ -488,10 +484,10 @@ bool CUnitServer::StartQueuedOrder() {
         steps.vtable = kAnimationStepsVtable;
         int duration;
         TickOrderSteps(this, nullptr, &steps, &duration, kOrderSkill, 0);
-        int now = At<int>(ObjectWorld(this), 0x64);
+        int now = WorldTick(this);
         AnimationSteps copy;
         StepsCopy(&copy, nullptr, &steps);
-        PlanTake(reinterpret_cast<OrderPlan*>(&At<char>(this, 0xC4)), nullptr, copy, now, duration);
+        PlanTake(&currentPlan, nullptr, copy, now, duration);
         TickStartAction(this, nullptr, 1, 0);
         StepsDestroy(&steps);
         return true;
@@ -522,7 +518,7 @@ EI_REPLACE_METHOD(0x0054A900, CUnitServer::StartQueuedOrder);
 
 void CUnitServer::UpdateOrders() {
     if (CallStartQueuedOrder()) {
-        At<int>(this, 0x938) = 0;
+        unknown_938 = 0;
         return;
     }
     CallSyncMoveModes();
@@ -531,8 +527,8 @@ void CUnitServer::UpdateOrders() {
     case kOrderMove:
     case kOrderTurn:
         if (state != kStateChasing) return;
-        if (At<std::uint8_t>(this, 0x145)) {
-            At<std::uint8_t>(this, 0x18C) = 1;
+        if (stoodBlocked) {
+            unknown_18C = 1;
             if (!BrainLeader(brain) && unit->player) TellParty(unit, kMessageCannotDo);
         }
         if (action.kind != kOrderNone && action2.kind != kOrderAnimation && action2.kind != kOrderEmote)
@@ -559,18 +555,18 @@ void CUnitServer::ContinueAction() {
     CEngineObject* target = action.target;
     bool seen = true;
     char* player = unit->player;
-    if (player && IsUnit(target) && !MemoryIsEnemy(&brain[0xD0], nullptr, unit, target))
-        seen = PartySees(*reinterpret_cast<void**>(player + 0x20), nullptr, target);
+    if (player && IsUnit(target) && !MemoryIsEnemy(Brain()->memory, nullptr, unit, target))
+        seen = PartySees(PlayerMessages(player), nullptr, target);
 
     bool cast = IsCastKind(action.kind);
     bool carryOn = false;
     if (!(cast && (unit->flags_ & kFlagNoCasting))) {
         if (!action.target) {
             if (cast) {
-                void* spell = SpellOfSource(action.source);
-                carryOn = spell && (At<std::uint32_t>(spell, 0x3C) & kSpellNoTarget);
+                auto* spell = static_cast<CSpell*>(SpellOfSource(action.source));
+                carryOn = spell && (spell->targetFlags_ & kSpellNoTarget);
             }
-        } else if (ei::VCall<int>(action.target, kSlotIsDead) == 0) {
+        } else if (!IsDead(action.target)) {
             carryOn = true;
         } else if (action.kind == kOrderSkill && (action.source == kSkillOnTarget || action.source == 0)) {
             carryOn = true;   // talk to or study the dead
@@ -578,21 +574,21 @@ void CUnitServer::ContinueAction() {
     }
     bool failed = false;
     if (carryOn) {
-        if (At<std::uint8_t>(this, 0x145)) {
+        if (stoodBlocked) {
             failed = true;
         } else if (seen) {
             CallExecuteOrder();
             return;
         }
-    } else if (At<std::uint8_t>(this, 0x145)) {
+    } else if (stoodBlocked) {
         failed = true;
     }
     if (failed) {
-        At<std::uint8_t>(this, 0x18C) = 1;
+        unknown_18C = 1;
         TellParty(unit, action.kind == kOrderAttack ? kMessageTargetLost : kMessageCannotDo);
     }
     if (!seen) {
-        At<std::uint8_t>(this, 0x18C) = 1;
+        unknown_18C = 1;
         TellParty(unit, kMessageUnseen);
     }
     action.kind = kOrderEmpty;
@@ -612,13 +608,13 @@ namespace {
 // The unit's attack interval: the weapon prototype's +0x6C (or stats +0x8C truncated) scaled by
 // 15 / stats +0x30 (unscaled when that is 0 or NaN), rounded.
 int AttackInterval(CUnitServer* self, CItemWeapon* weapon) {
-    volatile float factor = At<float>(self, 0x210);
+    volatile float factor = self->Combat().unknown_30;
     if (!ZeroOrUnordered(factor)) factor = kFifteen / factor;
     int base;
     if (weapon) {
-        base = At<int>(weapon->GetPrototype(), 0x6C);
+        base = static_cast<int>(reinterpret_cast<const itemdb::ItemRecordHead*>(weapon->GetPrototype())->category);
     } else {
-        double value = At<float>(self, 0x26C);
+        double value = self->Combat().unknown_8C;
         // _ftol (006E853C), as the original truncates it.
         int truncated;
         __asm {
@@ -643,25 +639,25 @@ void SetModeInline(CUnit* unit, int mode) {
 bool OutOfReachUp(CUnitServer* self, const UnitAction* order) {
     if (order->kind != kOrderAttack && order->kind != kOrderSkill) return false;
     CEngineObject* target = order->target;
-    if (!IsUnit(target) || ei::VCall<int>(target, kSlotIsDead) != 0) return false;
+    if (!IsUnit(target) || IsDead(target)) return false;
     auto* other = static_cast<CUnit*>(target);
     if (other->sizeClass != 0) return false;
     if (order->kind == kOrderAttack && self->HasRangedWeapon()) return false;
-    double height = static_cast<double>(At<float>(other->GetPrototype(), 0x24)) + other->positionZ;
+    double height = static_cast<double>(PrototypeHeight(other)) + other->positionZ;
     return !LessOrUnordered(height, kHeightLimit);
 }
 } // namespace
 
 void CUnitServer::ExecuteOrder() {
-    int now = At<int>(ObjectWorld(this), 0x64);
-    At<std::uint8_t>(this, 0x18E) = 0;
-    if (At<int>(this, 0x184) > now && action.kind == kOrderAttack) {
+    int now = WorldTick(this);
+    unknown_18E = 0;
+    if (nextAttackTime > now && action.kind == kOrderAttack) {
         CallApproachTarget();
         return;
     }
     if (unit->unknown_270 != static_cast<int>(unit->activeWeapon))
-        ei::VCall<void>(unit->controller, kControllerWeaponSwitch, unit->unknown_270);
-    auto* plan = reinterpret_cast<OrderPlan*>(&At<char>(this, 0xC4));
+        ServerSlots(unit->controller)->TakeUpWeapon(unit->unknown_270);
+    OrderPlan* plan = &currentPlan;
     if (!CallPlanAction(&action, plan)) {
         CallApproachTarget();
         return;
@@ -684,7 +680,7 @@ void CUnitServer::ExecuteOrder() {
         }
         CallSyncMoveModes();
         if (TickFollowPath(this)) {
-            At<std::uint8_t>(this, 0x18E) = 1;
+            unknown_18E = 1;
             return;
         }
     }
@@ -696,7 +692,7 @@ void CUnitServer::ExecuteOrder() {
         }
     }
     if (!clear && !stop) {
-        int& nextAttack = At<int>(this, 0x184);
+        int& nextAttack = nextAttackTime;
         if (nextAttack > plan->startTime) {
             if (action.kind == kOrderAttack) {
                 CallApproachTarget();
@@ -738,7 +734,7 @@ void CUnitServer::ExecuteOrder() {
             return;
         }
     }
-    if (stop) At<std::uint8_t>(this, 0x18C) = 1;
+    if (stop) unknown_18C = 1;
     ClearAction(&action);
     if (action2.kind == kOrderEmpty) CallIdle();
 }
@@ -753,8 +749,8 @@ double HalfScale() { return static_cast<double>(kOne) * kHalf; }
 } // namespace
 
 void CUnitServer::ApproachTarget() {
-    int now = At<int>(ObjectWorld(this), 0x64);
-    At<int>(unit, 0x43C) = 1;
+    int now = WorldTick(this);
+    unit->unknown_43C = 1;
     CEngineObject* target = action.target;
 
     if (action.flag18 || !target) {
@@ -762,15 +758,15 @@ void CUnitServer::ApproachTarget() {
         float goal[3];
         std::memcpy(goal, action.point, sizeof(goal));
         if (state == kStateIdle) {
-            double dy = static_cast<double>(goal[1]) - At<float>(this, 0xA0);
-            double dx = static_cast<double>(goal[0]) - At<float>(this, 0x9C);
+            double dy = static_cast<double>(goal[1]) - motion.goal.y;
+            double dx = static_cast<double>(goal[0]) - motion.goal.x;
             if (!(dx * dx + dy * dy > kNearPoint)) return;
         }
         if (TickPathTo(this, nullptr, goal, kFarBits)) {
             double h = HalfScale();
             Vector3 heading;
-            heading.x = static_cast<float>(h * At<float>(this, 0x94));
-            heading.y = static_cast<float>(h * At<float>(this, 0x98));
+            heading.x = static_cast<float>(h * motion.targetX);
+            heading.y = static_cast<float>(h * motion.targetY);
             heading.z = 0.0f;
             double dx = static_cast<double>(heading.x) - goal[0];
             double dy = static_cast<double>(heading.y) - goal[1];
@@ -787,14 +783,14 @@ void CUnitServer::ApproachTarget() {
         ControllerShout(this, nullptr, action.kind == kOrderAttack ? kShoutTargetLost : kShoutCannotDo);
         action.CallReset();
         if (action2.kind == kOrderEmpty) CallIdle();
-        At<std::uint8_t>(this, 0x18C) = 1;
+        unknown_18C = 1;
         return;
     }
 
     volatile float reach = static_cast<float>(CtlActionDistance(this, nullptr, &action));
     Vector3 aim;
-    ei::VCall<float*>(target, kSlotAimPoint, &aim);
-    if (!ei::VCall<int>(target, kSlotIsMoving)) {
+    Slots(target)->AimPoint(&aim);
+    if (!IsMoving(target)) {
         double dy = static_cast<double>(aim.y) - unit->positionY;
         double dx = static_cast<double>(aim.x) - unit->positionX;
         if (!LessOrUnordered(static_cast<double>(reach) * reach, dx * dx + dy * dy) &&
@@ -804,17 +800,17 @@ void CUnitServer::ApproachTarget() {
             return;
         }
     }
-    if (ei::VCall<int>(target, kSlotIsMoving)) {
-        int lead = At<int>(this, 0x184) - now + kAttackLead;
+    if (IsMoving(target)) {
+        int lead = nextAttackTime - now + kAttackLead;
         if (lead > 0) {
             // A moving target that comes into reach before the next attack: wait for it.
             Vector3 scratch;
-            const float* p = ei::VCall<float*>(target, kSlotPositionAt, &scratch, lead + now);
+            const float* p = &Slots(target)->PositionAt(&scratch, lead + now)->x;
             Vector3 offset;
             offset.x = p[0] - unit->positionX;
             offset.y = p[1] - unit->positionY;
             offset.z = p[2] - unit->positionZ;
-            double closing = ei::VCall<double>(unit, kSlotSpeed) * (static_cast<double>(kOne) * kHalf);
+            double closing = Slots(unit)->MoveSpeed() * (static_cast<double>(kOne) * kHalf);
             if (closing > kZero) {
                 double distance = x87::fsqrt(static_cast<double>(offset.x) * offset.x +
                                              static_cast<double>(offset.y) * offset.y +
@@ -827,36 +823,35 @@ void CUnitServer::ApproachTarget() {
             }
         }
     }
-    if (!(state == kStateChasing || state == kStateTurning) && At<int>(this, 0x188) - now >= kAttackLead) return;
+    if (!(state == kStateChasing || state == kStateTurning) && unknown_188 - now >= kAttackLead) return;
 
     // Chase: the target, or the unit the party leader is attacking it with.
     CEngineObject* chased = target;
-    if (At<std::uint8_t>(this, 0x1D8)) {
-        CEngineObject* leader = At<CEngineObject*>(this, 0x1DC);
+    if (followsLeader) {
+        CEngineObject* leader = followedLeader;
         auto* theirs = reinterpret_cast<CUnitServer*>(static_cast<CUnit*>(leader)->controller);
         if (theirs->action.target == target &&
             (theirs->action.kind == kOrderAttack || theirs->action.kind == kOrderCast || theirs->action.kind == kOrderCastAt) &&
             theirs->state != kStateCasting) {
             chased = leader;
         } else {
-            At<std::uint8_t>(this, 0x1D8) = 0;
-            CEngineObject*& slot = At<CEngineObject*>(this, 0x1DC);
-            CEngineObject* old = slot;
-            slot = nullptr;
+            followsLeader = 0;
+            CEngineObject* old = followedLeader;
+            followedLeader = nullptr;
             if (old) old->Release();
         }
     }
     Vector3 scratch;
-    const float* where = ei::VCall<float*>(chased, kSlotAimPoint, &scratch);
+    const float* where = &Slots(chased)->AimPoint(&scratch)->x;
     Vector3 offset;
     offset.x = where[0] - unit->positionX;
     offset.y = where[1] - unit->positionY;
     offset.z = where[2] - unit->positionZ;
     double sum = static_cast<double>(offset.x) * offset.x + static_cast<double>(offset.z) * offset.z;
     volatile float distance = static_cast<float>(x87::fsqrt(sum + static_cast<double>(offset.y) * offset.y));
-    volatile float mySpeed = static_cast<float>(ei::VCall<double>(unit, kSlotSpeed));
+    volatile float mySpeed = static_cast<float>(Slots(unit)->MoveSpeed());
     double closing;
-    if (ei::VCall<int>(chased, kSlotIsMoving)) {
+    if (IsMoving(chased)) {
         // The chased unit's speed along the line between them adds to ours.
         auto* other = static_cast<CUnit*>(chased);
         volatile float vx = other->positionX - unit->positionX;
@@ -873,10 +868,10 @@ void CUnitServer::ApproachTarget() {
             vz = static_cast<float>(vz / length);
         }
         Vector3 axis;
-        reinterpret_cast<const Quaternion*>(&At<float>(other, 0x34))->AxisY(&axis);
+        other->orientation.AxisY(&axis);
         double dot = static_cast<double>(axis.z) * vz + static_cast<double>(axis.y) * vy;
         volatile float along = static_cast<float>(dot + static_cast<double>(axis.x) * vx);
-        closing = ei::VCall<double>(other, kSlotSpeed) * along + mySpeed;
+        closing = Slots(other)->MoveSpeed() * along + mySpeed;
     } else {
         closing = mySpeed;
     }
@@ -889,28 +884,29 @@ void CUnitServer::ApproachTarget() {
     if (ticks > kChaseMaxTicks) ticks = kChaseMaxTicks;
     else if (ticks < kChaseMinTicks) ticks = kChaseMinTicks;
     int when = ticks + now;
-    const float* future = ei::VCall<float*>(chased, kSlotPositionAt, &scratch, when);
+    const float* future = &Slots(chased)->PositionAt(&scratch, when)->x;
     float goal[3];
     std::memcpy(goal, future, sizeof(goal));
 
     if (state == kStateIdle) {
         double close = (static_cast<double>(distance) + kOne) * kPointOne;
-        double dy = static_cast<double>(goal[1]) - At<float>(this, 0xA0);
-        double dx = static_cast<double>(goal[0]) - At<float>(this, 0x9C);
+        double dy = static_cast<double>(goal[1]) - motion.goal.y;
+        double dx = static_cast<double>(goal[0]) - motion.goal.x;
         if (close * close > dx * dx + dy * dy) {
-            // Still heading close enough to it: only the patience changes.
-            At<float>(this, 0xA4) = static_cast<float>(UnitScaledValue(unit, nullptr, distance) + kFive);
+            // Still heading close enough to it: only the patience (the path goal's z) changes.
+            motion.goal.z = static_cast<float>(UnitScaledValue(unit, nullptr, distance) + kFive);
             return;
         }
     }
     volatile float patience = static_cast<float>(UnitScaledValue(unit, nullptr, distance) + kFive);
-    std::uint8_t savedFlag = PathFlag();
-    PathFlag() = 0;
+    CAIMap* aiMap = WorldServer()->AIMap();
+    bool savedFlag = aiMap->refreshUnits;
+    aiMap->refreshUnits = false;
     double ay = static_cast<double>(unit->positionY) - goal[1];
     double ax = static_cast<double>(unit->positionX) - goal[0];
     if (!(ax * ax + ay * ay > kPointOne)) return;   // (sic: the path flag stays cleared)
 
-    SectorMapRemove(AsSectorMap(kSectorMap), nullptr, chased);
+    SectorMapRemove(WorldServer()->Sectors(), nullptr, chased);
     volatile float far = static_cast<float>(static_cast<double>(goal[1]) * kShort);
     double nearX = static_cast<double>(goal[0]) * kShort;
     volatile float unitY = static_cast<float>(static_cast<double>(unit->positionY) * kLong);
@@ -919,21 +915,21 @@ void CUnitServer::ApproachTarget() {
     point[1] = static_cast<float>(static_cast<double>(unitY) + far);
     point[2] = goal[2];
     if (!TickPathTo(this, nullptr, point, std::bit_cast<std::uint32_t>(static_cast<float>(patience))))
-        At<std::uint8_t>(this, 0x145) = 1;
-    SectorMapAdd(AsSectorMap(kSectorMap), nullptr, chased);
+        stoodBlocked = 1;
+    SectorMapAdd(WorldServer()->Sectors(), nullptr, chased);
 
     double h = HalfScale();
-    volatile float headX = static_cast<float>(h * At<float>(this, 0x94));
-    double fy = static_cast<double>(goal[1]) - h * At<float>(this, 0x98);
+    volatile float headX = static_cast<float>(h * motion.targetX);
+    double fy = static_cast<double>(goal[1]) - h * motion.targetY;
     double fx = static_cast<double>(goal[0]) - headX;
-    PathFlag() = savedFlag;
+    aiMap->refreshUnits = savedFlag;
     if (LessOrUnordered(static_cast<double>(reach) * reach, fx * fx + fy * fy)) {
         // The way leads elsewhere: stop, face along, and chase from here.
         void* path = &motion;
         PathClear(path);
-        int time = At<int>(ObjectWorld(this), 0x64);
+        int time = WorldTick(this);
         Vector3 axis;
-        reinterpret_cast<const Quaternion*>(&At<float>(unit, 0x34))->AxisY(&axis);
+        unit->orientation.AxisY(&axis);
         Vector3 back;
         back.x = -axis.x;
         back.y = -axis.y;
@@ -943,13 +939,13 @@ void CUnitServer::ApproachTarget() {
         state = kStateChasing;
         UnitUpdateSizeClass(unit);
         if (effectObject) {
-            WorldRemoveTimed(kWorldServer, nullptr, effectObject->id_);
+            WorldRemoveTimed(WorldServer(), nullptr, effectObject->id_);
             CEngineObject* old = effectObject;
             effectObject = nullptr;
             if (old) old->Release();
         }
-        At<std::uint8_t>(this, 0x145) = 1;
+        stoodBlocked = 1;
     }
-    At<int>(this, 0x188) = when;
+    unknown_188 = when;
 }
 EI_REPLACE_METHOD(0x0054D140, CUnitServer::ApproachTarget);

@@ -10,12 +10,19 @@
 #include "combat_internal.h"
 #include "combat_plan.h"
 
+#include "base_manager.h"
+#include "item.h"
+#include "map_object.h"
+#include "player_messages.h"
 #include "random.h"
+#include "unit_ai.h"
+#include "unit_db.h"
+#include "world.h"
+#include "world_effect.h"
 
 #include "lib/crt.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "originals_ai.h"
 #include "originals_engine.h"
 #include "originals_library.h"
@@ -29,11 +36,6 @@
 #include <cstring>
 
 namespace {
-
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
-}
 
 // The controller's state (+0x164). combat_tick.cpp names 6 "chasing" (the state an order leaves
 // the unit in when it ends: ready for the next one).
@@ -61,13 +63,6 @@ constexpr float kNoRange = std::bit_cast<float>(0x7E967699u);   // 1e38: OrderPl
 constexpr int kBoredTicks = 500;                      // updates before a bored remark may come
 constexpr std::uint32_t kBoredChance = 0x3E9;         // one in 1001
 constexpr int kRemarkBored = 0x29;
-
-// Virtual slots.
-constexpr int kSlotRelease = 4;
-constexpr int kSlotPositionAt = 0xD0 / 4;   // Vector3* (Vector3* out, int time)
-constexpr int kSlotIsDead = 0xDC / 4;       // int ()
-constexpr int kSlotWeaponSwitch = 0x64 / 4; // controller slot 25 (weapon slot)
-constexpr int kSlotPlayerUnitDied = 0x50 / 4; // the player's message object, slot 20
 
 // --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
 
@@ -136,11 +131,12 @@ AnimationSteps* __fastcall StepsConstruct(AnimationSteps* a0) { return (Animatio
 inline void __fastcall StepsDestroy(AnimationSteps* s) { AnimationStepsDestroyOriginal(s); }
 __declspec(naked) void __fastcall StepsRemoveAt(AnimationSteps*, void*, int, int) EI_ORIGINAL(0x00557E20)
 
-IsaacRandom& Random() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
-int CurrentFrame() { return *reinterpret_cast<const int*>(0x007AFFC4); }
-void* const kWorldServer = reinterpret_cast<void*>(0x007AFF60);
-void* const kAIEvents = reinterpret_cast<void*>(0x007B2798);   // the world server + 0x2838
-int WorldTime(const void* object) { return At<int>(ManagerContextOf(object), 0x64); }
+// 0073C548: how much faster a dead body sinks every update.
+float SinkAcceleration() { return *reinterpret_cast<const float*>(0x0073C548); }
+int TickOf(void* world) { return static_cast<CWorld*>(world)->tick_; }
+int WorldTime(const void* object) { return TickOf(ManagerContextOf(object)); }
+// The connection of a unit's player (CPlayer::connection_; a CPlayerServer on the server).
+CPlayerConnection* ConnectionOf(char* player) { return reinterpret_cast<CPlayer*>(player)->connection_; }
 
 AnimationSteps& Queue(CUnitServer* self) { return self->queue; }
 AnimationSteps& SavedQueue(CUnitServer* self) { return self->savedQueue; }
@@ -151,41 +147,40 @@ void* Motion(CUnitServer* self) { return &self->motion; }
 
 // A queue that has no start time yet starts now.
 void StartQueueIfUnset(CUnitServer* self) {
-    if (QueueTime(self) == -1) QueueTime(self) = At<int>(ObjectWorld(self), 0x64);
+    if (QueueTime(self) == -1) QueueTime(self) = TickOf(ObjectWorld(self));
 }
 
 // The effect object (+0x17C, referenced) leaves the world.
 void DropEffectObject(CUnitServer* self) {
     if (!self->effectObject) return;
-    WorldRemoveTimed(kWorldServer, nullptr, self->effectObject->id_);
+    WorldRemoveTimed(WorldServer(), nullptr, self->effectObject->id_);
     CEngineObject* effect = self->effectObject;
     self->effectObject = nullptr;
-    if (effect) ei::VCall<void>(effect, kSlotRelease);
+    if (effect) effect->Release();
 }
 
 // The weapon slot the unit wants (+0x270) taken up when it differs from the active one.
 void SwitchWeaponIfWanted(CUnit* unit) {
     if (unit->unknown_270 != static_cast<int>(unit->activeWeapon))
-        ei::VCall<void>(unit->controller, kSlotWeaponSwitch, unit->unknown_270);
+        ServerSlots(unit->controller)->TakeUpWeapon(unit->unknown_270);
 }
 
 // The unit's standing flag (CUnit + 0x278) changed, re-registered on the sector map.
 void SetStandingFlag(CUnitServer* self, int standing) {
     void* world = ManagerContextOf(self);
     CUnit* unit = self->unit;
-    int& flag = At<int>(unit, 0x278);
-    if (flag == standing) return;
-    void* sectors = static_cast<char*>(world) + 0x294;
-    SectorMapRemove(AsSectorMap(sectors), nullptr, unit);
-    At<int>(self->unit, 0x278) = standing;
-    SectorMapAdd(AsSectorMap(sectors), nullptr, self->unit);
+    if (static_cast<int>(unit->unknown_278) == standing) return;
+    CSectorMap* sectors = static_cast<CWorldServer*>(world)->Sectors();
+    SectorMapRemove(sectors, nullptr, unit);
+    self->unit->unknown_278 = static_cast<std::uint32_t>(standing);
+    SectorMapAdd(sectors, nullptr, self->unit);
     UnitMarkChanged(self->unit, nullptr, 7);
 }
 
 // A UnitAction emptied as the original inlines it: kind 9, the target released, flags cleared.
 void EmptyAction(UnitAction* order) {
     order->kind = kOrderNone;
-    if (order->target) ei::VCall<void>(order->target, kSlotRelease);
+    if (order->target) order->target->Release();
     order->target = nullptr;
     order->flag18 = 0;
     order->unknown_1C = 0;
@@ -255,32 +250,32 @@ int CUnitServer::UpdateServer() {
             UnitMarkChanged(unit, nullptr, 4);
         }
         // The AI events learn where the unit is every (speedClass + 1) updates.
-        if ((static_cast<std::uint32_t>(CurrentFrame()) & static_cast<std::uint32_t>(speedClass)) == 0) {
-            void*& presence = At<void*>(this, 0x918);
+        if ((static_cast<std::uint32_t>(WorldServer()->tick_) & static_cast<std::uint32_t>(speedClass)) == 0) {
+            AIEventPresence*& presence = unknown_918;
             if (presence) {
-                At<float>(presence, 8) = unit->positionX;
-                At<float>(presence, 0xC) = unit->positionY;
+                presence->x = unit->positionX;
+                presence->y = unit->positionY;
             }
-            presence = EventsPresence(kAIEvents, nullptr, &unit->positionX, this);
+            presence = static_cast<AIEventPresence*>(EventsPresence(WorldServer()->timeWheel_, nullptr, &unit->positionX, this));
         }
         CtlTickItemSpells(this);
         if (unit->player != nullptr) {   // 005301A0
             // A party unit: its perception memory, and now and then a bored remark.
-            MemoryUpdate(reinterpret_cast<char*>(this) + 0xA50, nullptr, this, reinterpret_cast<char*>(unit) + 0x4C8);
+            MemoryUpdate(Brain()->memory, nullptr, this, unit->levels4C8);
             UnitMarkChanged(unit, nullptr, 0xC);
-            int& bored = At<int>(this, 0x938);
+            int& bored = unknown_938;
             ++bored;
-            if (bored > kBoredTicks && Random().Next() % kBoredChance == 0) {
+            if (bored > kBoredTicks && IsaacRandom::Global().Next() % kBoredChance == 0) {
                 char* player = unit->player;
-                if (!player || At<int>(At<char*>(player, 0x20), 0x5120) != 0) {
+                if (!player || reinterpret_cast<CPlayerServer*>(ConnectionOf(player))->refreshPending_ != 0) {
                     bored = 0;
                 } else {
-                    PlayerMessage(At<void*>(player, 0x20), nullptr, unit, kRemarkBored);
+                    PlayerMessage(ConnectionOf(player), nullptr, unit, kRemarkBored);
                     bored = 400;
                 }
             }
         }
-        AlarmStep(reinterpret_cast<char*>(this) + 0xB10, nullptr, this);
+        AlarmStep(voice, nullptr, this);
         BrainThink(brain);
         unit->flags_ &= ~kFlagSeen8000;
         CtlPropagateHostility(this);
@@ -301,24 +296,24 @@ int CUnitServer::UpdateServer() {
     // over, the death is reported and the orders are dropped.
     void* world = ManagerContextOf(this);
     if (self->positionZ > 0.0f) {
-        float& sinking = At<float>(this, 0x8F4);
-        sinking += *reinterpret_cast<const float*>(0x0073C548);
+        float& sinking = unknown_8F4;
+        sinking += SinkAcceleration();
         self->positionZ = self->positionZ - sinking;
         float z = unit->positionZ;
         unit->positionZ = !(z <= 0.0f) ? z : 0.0f;   // FCOMP 0, z: z kept above 0 and when NaN
         UnitMarkChanged(unit, nullptr, 2);
     }
-    std::uint8_t& reported = At<std::uint8_t>(this, 0x18D);
+    std::uint8_t& reported = unknown_18D;
     if (reported == 0 && Queue(this).count == 0) {
         reported = 1;
         WorldUnitDied(world, nullptr, unit);
         char* player = unit->player;
         UnitSetPlayer(unit, nullptr, nullptr);
         if (player && PlayerHasUnit(player, nullptr, unit) != 0) {
-            ei::VCall<void>(At<void*>(player, 0x20), kSlotPlayerUnitDied);
+            ConnectionOf(player)->LeaderDied();
         } else {
             BrainReset(brain);
-            AlarmReset(reinterpret_cast<char*>(this) + 0xB10);
+            AlarmReset(voice);
         }
         EmptyAction(&action);
         EmptyAction(&action2);
@@ -358,8 +353,8 @@ void CUnitServer::UpdateState() {
     switch (state) {
     case kStateIdle:
         SwitchWeaponIfWanted(unit);
-        if (At<std::uint8_t>(this, 0x146) == 0 ||
-            TickPathTo(this, nullptr, &At<float>(this, 0x9C), At<std::uint32_t>(this, 0xA4))) {
+        if (motionChanged == 0 ||
+            TickPathTo(this, nullptr, &motion.goal.x, std::bit_cast<std::uint32_t>(motion.goal.z))) {
             CtlMovementTick(this);
         }
         break;
@@ -378,7 +373,7 @@ void CUnitServer::UpdateState() {
             UnitUpdateSizeClass(unit);
             DropEffectObject(this);
             using Callback = void(__fastcall*)(CUnit*);
-            if (auto callback = At<Callback>(this, 0x978)) {
+            if (auto callback = reinterpret_cast<Callback>(actionDone)) {
                 callback(unit);
                 CtlUpdateOrders(this);
             }
@@ -503,7 +498,7 @@ void CUnitServer::SetState(int newState) {
         DropEffectObject(this);
         return;
     }
-    At<int>(this, 0x180) = WorldTime(this) + 10;
+    actingCheckTime = WorldTime(this) + 10;
 }
 EI_REPLACE_METHOD(0x00547090, CUnitServer::SetState);
 
@@ -512,15 +507,15 @@ EI_REPLACE_METHOD(0x005467B0, CUnitServer::SetStanding);
 
 void CUnitServer::StandStill() {
     PathClear(Motion(this));
-    int now = At<int>(ObjectWorld(this), 0x64);
+    int now = TickOf(ObjectWorld(this));
     // The unit's forward direction (its rotation's Y axis, inlined), reversed.
-    const float* q = &At<float>(unit, 0x34);
-    float x = q[0], y = q[1], z = q[2], w = q[3];
-    float a = y * z - x * w;
+    const Quaternion& q = unit->orientation;
+    float qw = q.w, qx = q.x, qy = q.y, qz = q.z;
+    float a = qx * qy - qw * qz;
     a = a + a;
-    float zz = z * z;
-    float b = (x * x - (y * y + w * w + zz)) + (zz + zz);
-    float c = w * z + x * y;
+    float yy = qy * qy;
+    float b = (qw * qw - (qx * qx + qz * qz + yy)) + (yy + yy);
+    float c = qz * qy + qw * qx;
     c = c + c;
     float direction[3] = {-a, -b, -c};
     if (PathStart(Motion(this), nullptr, &unit->positionX, direction, now)) UnitPathSpeeds(unit);
@@ -536,7 +531,7 @@ void CUnitServer::PlayHitReaction() {
     CtlDeathAnimation(this, nullptr, &reaction.steps, hitDirection, 0, 0);
     int duration = TotalDuration(reaction.steps);
     if (action.kind == kOrderAttack && state == kStateTurning &&
-        At<int>(ObjectWorld(this), 0x64) + duration > At<int>(this, 0x184))
+        TickOf(ObjectWorld(this)) + duration > nextAttackTime)
         return;
     keepHitDirection = 1;
     StepsAppend(&SavedQueue(this), nullptr, &Queue(this));
@@ -597,8 +592,8 @@ EI_REPLACE_METHOD(0x00549690, CUnitServer::EndOrder);
 
 void CUnitServer::TickAction() {
     void* world = ManagerContextOf(this);
-    int now = At<int>(world, 0x64);
-    if (now == At<int>(this, 0x180)) UnitUpdateSizeClass(unit);
+    int now = TickOf(world);
+    if (now == actingCheckTime) UnitUpdateSizeClass(unit);
     OrderPlan& plan = Plan(this);
     if (now == plan.startTime) {
         // The action starts: its animation replaces the queue, and a cast shows its effect.
@@ -608,19 +603,21 @@ void CUnitServer::TickAction() {
         StartQueueIfUnset(this);
         CtlPopFinishedSteps(this);
         CtlShowCurrentStep(this);
-        if (plan.isCast != 0 && At<int>(UnitPrototypeModel(unit), 0x114) != 0) {
-            void* objects = *reinterpret_cast<void**>(0x007AFFA8);
-            auto* effect = ei::VCall<CEngineObject*>(objects, 0x5C / 4, kCastEffectKind, -1);
+        if (plan.isCast != 0 && reinterpret_cast<const UnitModelRecord*>(UnitPrototypeModel(unit))->unknown_114 != 0) {
+            // The world's timed object manager (+0x48) creates the effect.
+            auto* objects = static_cast<CBaseManager*>(WorldServer()->manager48_);
+            CEngineObject* effect = objects->CreateObject(kCastEffectKind, -1);
             static constexpr int kEffects[8] = {0x2027, 0x2028, 0x2029, 0x202B, 0x202A, 0x202D, 0x202E, 0x202C};
             int kind = plan.castKind;
-            At<int>(effect, 0x158) = (kind >= 0 && kind <= 7) ? kEffects[kind] : 0x200B;
-            At<float>(effect, 0x15C) = 1.0f;
+            auto* particle = reinterpret_cast<CEffectParticle*>(effect);
+            particle->type_ = (kind >= 0 && kind <= 7) ? kEffects[kind] : 0x200B;
+            particle->size_ = 1.0f;
             ParticleAttach(effect, nullptr, unit->id_);
             WorldAddTimed(world, nullptr, effect);
             CEngineObject* old = effectObject;
             effectObject = effect;
             if (effect) ++effect->refCount_;
-            if (old) ei::VCall<void>(old, kSlotRelease);
+            if (old) old->Release();
         }
     }
     if (now < plan.endTime) {
@@ -632,8 +629,8 @@ void CUnitServer::TickAction() {
         int cellX;
         int cellY;
         bool turning;
-        MotionSample(reinterpret_cast<char*>(unit) + 0x27C, nullptr, context, Motion(this),
-                     static_cast<float>(At<int>(context, 0x64)), &turning, position, direction, &speed, &cellX, &cellY);
+        MotionSample(unit->motion, nullptr, context, Motion(this),
+                     static_cast<float>(TickOf(context)), &turning, position, direction, &speed, &cellX, &cellY);
         SetStandingFlag(this, state == kStateIdle ? 1 : 0);
         UnitTurnUpTowards(unit, nullptr, direction, 0);
         return;
@@ -656,9 +653,9 @@ void CUnitServer::TickAction() {
         DropEffectObject(this);
     }
     PathClear(Motion(this));
-    int time = At<int>(ObjectWorld(this), 0x64);
+    int time = TickOf(ObjectWorld(this));
     float axis[3];
-    QuaternionAxisY(&At<float>(unit, 0x34), nullptr, axis);
+    QuaternionAxisY(&unit->orientation, nullptr, axis);
     float backwards[3] = {-axis[0], -axis[1], -axis[2]};
     if (PathStart(Motion(this), nullptr, &unit->positionX, backwards, time)) UnitPathSpeeds(unit);
     CtlSetStanding(this, nullptr, 0);
@@ -677,16 +674,16 @@ bool CUnitServer::ActionInReach() {
     if (cast && (unit->flags_ & kFlagNoCasting)) return false;
     if (!target) {
         if (!cast) return false;
-        auto* spell = static_cast<char*>(CtlSpellOfSource(this, nullptr, action.source));
+        auto* spell = static_cast<CSpell*>(CtlSpellOfSource(this, nullptr, action.source));
         if (!spell) return false;
-        if ((At<std::uint32_t>(spell, 0x3C) & kSpellNoTarget) == 0) return false;
+        if ((spell->targetFlags_ & kSpellNoTarget) == 0) return false;
         // Original bug kept: with no target this reads the target's vtable (null).
-    } else if (ei::VCall<int>(target, kSlotIsDead) != 0) {
+    } else if (ObjectSlots(target)->IsDead() != 0) {
         if (kind != kOrderSkill) return false;
         if (action.source != kSkillOnTarget && action.source != 0) return false;
     }
-    float where[3];
-    const float* at = ei::VCall<const float*>(target, kSlotPositionAt, where, Plan(this).endTime);
+    Vector3 where;
+    const float* at = &ObjectSlots(target)->PositionAt(&where, Plan(this).endTime)->x;
     float dx = at[0] - unit->positionX;
     float dy = at[1] - unit->positionY;
     float distanceSq = dx * dx + dy * dy;
@@ -699,33 +696,27 @@ EI_REPLACE_METHOD(0x00549D40, CUnitServer::ActionInReach);
 void CUnitServer::TickItemSpells() {
     void* world = ManagerContextOf(this);
     bool healed = false;
-    struct Node {
-        Node* next;
-        void* unknown_4;
-        CItem* item;
-        int countdown;
-    };
-    for (auto* node = At<Node*>(this, 0x920); node;) {
-        Node* current = node;
+    for (ArmourSpellList::Node* node = armourSpells.head; node;) {
+        ArmourSpell* current = &node->data;
         node = node->next;
         if (current->countdown > 0) {
             --current->countdown;
             continue;
         }
-        CItem* item = current->item;
+        auto* item = static_cast<CItem*>(current->item);
         if (!item) continue;
-        char* spell = At<char*>(item, 0x44);
-        float cost = At<float>(spell, 0x40);
-        if (cost >= At<float>(item, 0x28)) continue;   // FCOMPP: C0 when the charge is above the cost (or NaN)
-        if ((At<std::uint32_t>(spell, 0x18) & 0xFFFF0000u) == 0x180000) {
+        auto* spell = static_cast<CSpell*>(item->spell_);
+        float cost = std::bit_cast<float>(spell->unknown_40);
+        if (cost >= item->charge_) continue;   // FCOMPP: C0 when the charge is above the cost (or NaN)
+        if ((spell->unknown_18 & 0xFFFF0000u) == 0x180000) {
             // A healing spell: only one a tick, and only when the unit is hurt.
             if (healed || unit->hitPoints == unit->maxHitPoints) continue;
             healed = true;
         }
-        CtlUseItemCharge(this, nullptr, item, At<float>(spell, 0x40));
+        CtlUseItemCharge(this, nullptr, item, std::bit_cast<float>(spell->unknown_40));
         CUnit* self = unit;
         WorldCastSpell(world, nullptr, spell, self, &self->positionX, self, &self->positionX, 1);
-        int countdown = At<int>(spell, 0x20) - 3;
+        int countdown = static_cast<int>(spell->unknown_20) - 3;
         current->countdown = countdown;
         if (countdown <= 0) current->countdown = 8;
     }
@@ -734,23 +725,9 @@ EI_REPLACE_METHOD(0x00552B90, CUnitServer::TickItemSpells);
 
 namespace {
 // The lists RefreshItemSpells uses: two CPtrLists the unit fills with its items (vtables 0073BE80
-// and 0073F12C, blocks of 10; 005316F0) and the armour spell list (+0x91C, nodes of 0x14 bytes:
-// next, prev, the item (referenced), the countdown, a "still worn" byte).
+// and 0073F12C, blocks of 10; 005316F0) and the armour spell list (+0x91C, ArmourSpellList).
 using ItemList = mfc::CTypedPtrList<CEngineObject>;
-struct SpellEntry {
-    SpellEntry* next;
-    SpellEntry* prev;
-    CEngineObject* item;
-    int countdown;
-    std::uint8_t worn;
-    std::uint8_t unknown_11[3];
-};
-struct SpellElement {   // the element of a SpellEntry (from +8)
-    CEngineObject* item;
-    int countdown;
-    std::uint8_t worn;
-    std::uint8_t unknown_9[3];
-};
+using SpellEntry = ArmourSpellList::Node;
 constexpr int kClassWeapon = 0x11;
 constexpr std::uint32_t kSpellPeriodic = 0x20000;   // spell +0x3C
 // 005316F0 CUnit: its items into two lists; 005318B0 CUnit::GetWeapon; the list instantiations
@@ -762,10 +739,10 @@ __declspec(naked) CEngineObject* __fastcall UnitWeapon(CUnit*, void*, std::uint3
 __declspec(naked) void __fastcall ItemListFreeNode(ItemList*, void*, ItemList::Node*) EI_ORIGINAL(0x00558C00)
 void __fastcall ItemListBDestroy(ItemList* a0) { ItemListRemoveAllOriginal((void*)a0); }
 inline void __fastcall ItemListADestroy(ItemList* a0) { PtrListRemoveAllNodesOriginal((void*)a0); }
-__declspec(naked) SpellEntry* __fastcall SpellNewNode(void*, void*, SpellEntry* /*prev*/, SpellEntry* /*next*/)
+__declspec(naked) SpellEntry* __fastcall SpellNewNode(ArmourSpellList*, void*, SpellEntry* /*prev*/, SpellEntry* /*next*/)
     EI_ORIGINAL(0x00558B10)
-__declspec(naked) void __fastcall SpellFreeNode(void*, void*, SpellEntry*) EI_ORIGINAL(0x00558B80)
-__declspec(naked) SpellElement* __fastcall SpellElementAssign(SpellElement*, void*, const SpellElement*) EI_ORIGINAL(0x00558840)
+__declspec(naked) void __fastcall SpellFreeNode(ArmourSpellList*, void*, SpellEntry*) EI_ORIGINAL(0x00558B80)
+__declspec(naked) ArmourSpell* __fastcall SpellElementAssign(ArmourSpell*, void*, const ArmourSpell*) EI_ORIGINAL(0x00558840)
 __declspec(naked) void __fastcall ReferenceAssign(CEngineObject**, void*, CEngineObject*) EI_ORIGINAL(0x00429B50)
 } // namespace
 
@@ -785,43 +762,43 @@ void CUnitServer::RefreshItemSpells() {
         else current->next->prev = current->prev;
         ItemListFreeNode(&items, nullptr, current);
     }
-    void* list = reinterpret_cast<char*>(this) + 0x91C;
-    SpellEntry*& head = At<SpellEntry*>(this, 0x920);
-    SpellEntry*& tail = At<SpellEntry*>(this, 0x924);
-    for (SpellEntry* entry = head; entry; entry = entry->next) entry->worn = 0;
+    ArmourSpellList* list = &armourSpells;
+    SpellEntry*& head = armourSpells.head;
+    SpellEntry*& tail = armourSpells.tail;
+    for (SpellEntry* entry = head; entry; entry = entry->next) entry->data.worn = 0;
     // Each item with a periodic spell keeps its entry or gets a new one. A missing item reuses the
     // previous item's spell (as the original does).
-    char* spell = nullptr;
+    CSpell* spell = nullptr;
     for (ItemList::Node* node = items.head; node;) {
         CEngineObject* item = node->data;
         node = node->next;
-        if (item) spell = At<char*>(item, 0x44);
-        if (!spell || (At<std::uint32_t>(spell, 0x3C) & kSpellPeriodic) == 0) continue;
+        if (item) spell = static_cast<CSpell*>(static_cast<CItem*>(item)->spell_);
+        if (!spell || (spell->targetFlags_ & kSpellPeriodic) == 0) continue;
         SpellEntry* found = nullptr;
         for (SpellEntry* entry = head; entry; entry = entry->next) {
-            if (entry->worn == 0 && entry->item == item) {
+            if (entry->data.worn == 0 && entry->data.item == item) {
                 found = entry;
                 break;
             }
         }
         if (found) {
-            found->worn = 1;
+            found->data.worn = 1;
             continue;
         }
-        SpellElement blank{};
+        ArmourSpell blank{};
         SpellEntry* added = SpellNewNode(list, nullptr, tail, nullptr);
-        SpellElementAssign(reinterpret_cast<SpellElement*>(&added->item), nullptr, &blank);
+        SpellElementAssign(&added->data, nullptr, &blank);
         if (tail) tail->next = added;
         else head = added;
         tail = added;
-        ReferenceAssign(&added->item, nullptr, item);
-        added->worn = 1;
+        ReferenceAssign(&added->data.item, nullptr, item);
+        added->data.worn = 1;
     }
     // Entries of items no longer worn go.
     for (SpellEntry* entry = head; entry;) {
         SpellEntry* current = entry;
         entry = entry->next;
-        if (current->worn != 0) continue;
+        if (current->data.worn != 0) continue;
         if (current == head) head = current->next;
         else current->prev->next = current->next;
         if (current == tail) tail = current->prev;

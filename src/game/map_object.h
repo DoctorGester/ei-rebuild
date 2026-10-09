@@ -250,6 +250,7 @@ constexpr int kSetStunned = 46;           // 0xB8 (CUnit::SetFlag1000000 for uni
 
 struct Vector3;
 struct DamageInfo;   // spell.h
+struct AttackParams; // combat.h
 struct UnitStats;    // unit.h
 struct LockKey;      // unit.h
 
@@ -311,7 +312,9 @@ public:
     // 42 (0xA8): whether `key` fits: 0 (0050F110, RET 4); levers KeyOpens, traps KeyFits.
     virtual int AcceptsKey(const LockKey* key) = 0;
     virtual void KeepsMapFlag() = 0;       // 43: AL 1 (004467B0); levers +0x261 (0052B2C0). Best guess
-    virtual void UseSpots() = 0;           // 44: 0050F120 FreeArray (none); levers 0052BBE0
+    // 44 (0xB0, RET 8): the spots a user of radius `userRadius` may use the object from, into the
+    // CArray<Vector3> `out`: 0050F120 FreeArray (none); levers 0052BBE0 UseSpots.
+    virtual void UseSpots(void* out, float userRadius) = 0;
     virtual void AddEffect() = 0;          // 45: 0050F1E0
     virtual void SetStunned() = 0;         // 46: 0050E4A0; units 0052F7F0 SetFlag1000000
     virtual int SetVisibilityMode(int mode) = 0;    // 47 (0xBC): 004467C0 hands it to the companion
@@ -328,7 +331,9 @@ public:
     virtual void ForgetObject() = 0;       // 56: (object) empty; units: the controller's slot 42
     virtual void UpdateMoveFactors() = 0;  // 57: empty; units: the controller's slot 53
     virtual void RefreshWounds() = 0;      // 58: 0; units: the controller's slot 31
-    virtual void MoveSpeed() = 0;          // 59: ST0 0 (0050E540); units: forward speed (004468B0)
+    // 59 (0xEC): the speed the object moves at, in ST0 unrounded: 0 (0050E540); units their forward
+    // speed (004468B0).
+    virtual double MoveSpeed() = 0;
     virtual float Radius() = 0;                         // 60 (0xF0): units' +0x328 (004468A0), ST0
     // 61 (0xF4): units (00446830) keep `name` in their CString +0x238 (the script name).
     virtual void SetScriptName(const char* name) = 0;
@@ -358,6 +363,37 @@ public:
     virtual int RefreshVitals(char withHitPoints) = 0;   // 19: 005533B0 (1), client 00533BD0 (0)
     // 20 (0x50): 00553F40 CUnitServer::TakeHit(hit, attacker, source); either unit may be null.
     virtual int TakeHitSlot(DamageInfo* hit, CEngineObject* attacker, CEngineObject* source) = 0;
+    virtual int Heal(float amount) = 0;     // 21: 005543B0 (1)
+    virtual void RepackStats() = 0;        // 22: 00553500
+    virtual void UpdateSizeClasses() = 0;  // 23: 00552FB0
+    virtual int Level() = 0;               // 24: 00556760
+    // 25 (0x64, RET 4): 00553610 CUnitServer::TakeUpWeapon(slot); 1 when the weapon was taken up.
+    virtual int TakeUpWeapon(int slot) = 0;
+    virtual bool AddArmourLayerOf(std::uint32_t key) = 0;    // 26: 00553560
+    virtual bool RebuildArmourLayers(int unused) = 0;        // 27: 005535C0
+    virtual int ClearOuterArmourLayers() = 0;                // 28: 005535E0
+    virtual int RefreshEquipment() = 0;                      // 29: 005535F0
+    virtual void RefreshModel() = 0;                         // 30: base 00533C40
+    virtual void RefreshWounds() = 0;                        // 31: base 00533C50
+    virtual void SetArmourModels(const std::uint32_t* ids, std::uint32_t count) = 0;  // 32: base 00533C60
+    virtual void SetWeaponModels(const std::uint32_t* ids, std::uint32_t count) = 0;  // 33: base 00533C70
+    virtual bool WeaponAdded(std::uint32_t itemId) = 0;      // 34: base 00533C80
+    virtual void RemoveWeaponModel() = 0;                    // 35: base 00533C90
+    virtual int HasOtherArmour() = 0;                        // 36: 005567A0
+    virtual int HasMainArmour() = 0;                         // 37: 005567E0
+    virtual void ForgetClaims() = 0;                         // 38: 00552CD0
+    virtual int TameStage() = 0;                             // 39: 005460A0
+    virtual void AdvanceTime(float time) = 0;                // 40: base 00533CC0
+    virtual void MotionChanged() = 0;                        // 41: base 00533CD0
+    virtual void OnObjectDeleted(CEngineObject* object) = 0; // 42: 00552670
+    virtual void RestartFadeIn() = 0;                        // 43: base 00533CF0
+    virtual void Resettle() = 0;                             // 44: 00553260
+    virtual void UpdateMoveFactors() = 0;                    // 45: 005536B0
+    virtual void StatChanged(std::uint32_t stat, float change, std::uint8_t flags) = 0;   // 46: base 00533D20 (RET 0xC)
+    virtual void Wound(float lost) = 0;                      // 47: base 00533D30 (RET 4)
+    virtual void Unused48() = 0;                             // 48: base 00533D40 (empty)
+    virtual void UpdateSpellBlockFlag() = 0;                 // 49: 00553220
+    virtual void GetAttackParams(AttackParams* out) = 0;     // 50 (0xC8): 00555A00
 };
 inline CUnitServerVirtuals* ServerSlots(CEngineObject* controller) { return static_cast<CUnitServerVirtuals*>(controller); }
 

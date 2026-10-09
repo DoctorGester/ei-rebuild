@@ -175,7 +175,7 @@ public:
     // rule 4. Names and evidence: docs/notes/drafts/DR-C2.md. Some names avoid free helpers of
     // the same name (World, ItemManager, LightManager, ...) that the members' bodies call.
     virtual void ThisWorld();             // 13: 0055EB40 returns this
-    virtual CBaseManager* TimedObjectManager();   // 14: 0055EB90 (+0x48; the client's Segment ticks its objects)
+    virtual CBaseManager* TimedObjectManager();   // 14: 0055EB90 (+0x48, manager48_; the client's Segment ticks its objects)
     virtual CEngineObject* FigureManager();  // 15: the figure manager (+0x3C)
     virtual void ItemConstructor();       // 16: 0055EBB0 (+0x58)
     virtual void SpellConstructor();      // 17: 0055EBC0 (+0x50)

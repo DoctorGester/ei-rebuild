@@ -3,12 +3,13 @@
 
 #include <cstdint>
 
-void __fastcall BuildUnitSkins(char* self, void*, const void* othersVector, const void* dressedVector);
+class CWorldClient;
+void __fastcall BuildUnitSkins(CWorldClient* self, void*, const void* othersVector, const void* dressedVector);
 
 // 00568800 builds textures and figures (texture cache, figure maker): ours only. Checked: the two
 // record vectors are left as they were.
 static void* s_skins;
-static void __fastcall BuildUnitSkinsVerify(char* self, void*, const void* othersVector, const void* dressedVector) {
+static void __fastcall BuildUnitSkinsVerify(CWorldClient* self, void*, const void* othersVector, const void* dressedVector) {
     const auto* others = static_cast<const char* const*>(othersVector);
     const auto* dressed = static_cast<const char* const*>(dressedVector);
     const char* before[4] = {others[0], others[1], dressed[0], dressed[1]};

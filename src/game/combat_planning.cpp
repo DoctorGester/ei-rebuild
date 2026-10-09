@@ -10,11 +10,15 @@
 #include "combat_plan.h"
 
 #include "ai_motion.h"
+#include "item.h"
+#include "item_db.h"
+#include "map_object.h"
+#include "player_messages.h"
+#include "world.h"
 
 #include "lib/crt.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "originals_ai.h"
 #include "originals_engine.h"
 #include "originals_library.h"
@@ -26,11 +30,6 @@
 #include <cstring>
 
 namespace {
-
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
-}
 
 constexpr int kOrderAttack = 3;
 constexpr int kOrderCastAt = 4;
@@ -44,10 +43,10 @@ constexpr std::uint32_t kNoZBits = 0xBF800000u;   // -1.0: an order point withou
 constexpr int kNoSpot = 0x7FFFFFFF;
 constexpr int kShoutTargetLost = 0x0B;
 constexpr int kShoutCannotDo = 0x0E;
-constexpr int kSlotAimPoint = 0xD4 / 4;           // Vector3* (Vector3* out)
-constexpr int kSlotEyePoint = 0xC0 / 4;           // Vector3* (Vector3* out)
-constexpr int kSlotUseSpots = 0xB0 / 4;           // (CArray<Vector3>* out, float size)
-constexpr int kSlotSize = 0xF0 / 4;               // ST0 ()
+
+// The map objects' virtual slots (map_object.h): 53 AimPoint, 48 EyePoint, 44 UseSpots, 60 Radius.
+CMapObjectVirtuals* Slots(CEngineObject* object) { return ObjectSlots(object); }
+void AimPointInto(CEngineObject* object, float* out) { Slots(object)->AimPoint(reinterpret_cast<Vector3*>(out)); }
 
 // --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
 
@@ -95,43 +94,52 @@ __declspec(naked) void __fastcall MotionCurvesConstruct(void*) EI_ORIGINAL(0x005
 __declspec(naked) void __fastcall MotionSpeedsDestroy(void*) EI_ORIGINAL(0x004CB050)
 inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p); }
 
-std::uint8_t& PathFlag() { return *reinterpret_cast<std::uint8_t*>(0x007B00D2); }   // cleared around path searches
-void* const kSectorMap = reinterpret_cast<void*>(0x007B01F4);
+// The server's AI map's refreshUnits (007B00D2), cleared around path searches, and its sector
+// map (007B01F4).
+bool& PathFlag() { return WorldServer()->AIMap()->refreshUnits; }
+CSectorMap* ServerSectors() { return WorldServer()->Sectors(); }
+CAIMap* MapOf(void* world) { return static_cast<CWorldServer*>(world)->AIMap(); }
 float HalfCell() { return *reinterpret_cast<const float*>(0x0073EEE4) * *reinterpret_cast<const float*>(0x0073B86C); }
 
 // An AIPath on the stack: its lists and point array constructed, the order cleared.
 struct LocalPath {
-    alignas(4) std::uint8_t bytes[0x88];
+    alignas(4) std::uint8_t bytes[sizeof(AIPath)];
+    AIPath* Path() { return reinterpret_cast<AIPath*>(bytes); }
+    const AIPath* Path() const { return reinterpret_cast<const AIPath*>(bytes); }
     LocalPath() {
-        CellListConstruct(bytes + 0x20);
-        CellListConstruct(bytes + 0x3C);
-        PointArrayConstruct(bytes + 0x70);
+        CellListConstruct(&Path()->steps);
+        CellListConstruct(&Path()->cells);
+        PointArrayConstruct(&Path()->pointsVtable);
         PathClear(bytes);
     }
     ~LocalPath() {
-        PointArrayDestroy(bytes + 0x70);
-        CellListDestroy(bytes + 0x3C);
-        CellListDestroy(bytes + 0x20);
+        PointArrayDestroy(&Path()->pointsVtable);
+        CellListDestroy(&Path()->cells);
+        CellListDestroy(&Path()->steps);
     }
     LocalPath(const LocalPath&) = delete;
     LocalPath& operator=(const LocalPath&) = delete;
-    float TargetX() const { return *reinterpret_cast<const float*>(bytes + 0x58); }
-    float TargetY() const { return *reinterpret_cast<const float*>(bytes + 0x5C); }
-    int Cost() const { return *reinterpret_cast<const int*>(bytes + 0x84); }
+    float TargetX() const { return Path()->targetX; }
+    float TargetY() const { return Path()->targetY; }
+    int Cost() const { return Path()->smoothing; }
 };
+static_assert(sizeof(AIPath) == 0x88);
 
 // A motion order on the stack (the order and its step list), as 005B22C0 fills it. The order
 // part is zeroed (the original leaves it uninitialised until it is filled).
 struct LocalMotionOrder {
-    alignas(4) std::uint8_t bytes[0x3C];
+    MotionOrder order;
+    alignas(4) std::uint8_t steps[sizeof(PathCellList)];
     LocalMotionOrder() {
-        std::memset(bytes, 0, 0x20);
-        CellListConstruct(bytes + 0x20);
+        std::memset(&order, 0, sizeof(order));
+        CellListConstruct(steps);
     }
-    ~LocalMotionOrder() { CellListDestroy(bytes + 0x20); }
+    ~LocalMotionOrder() { CellListDestroy(steps); }
     LocalMotionOrder(const LocalMotionOrder&) = delete;
     LocalMotionOrder& operator=(const LocalMotionOrder&) = delete;
+    void* bytes() { return this; }
 };
+static_assert(sizeof(LocalMotionOrder) == 0x3C);
 
 // A UnitMotion on the stack, cleared, with the speed scale 0073EF20, no turning limit (1e10) and
 // no segment.
@@ -165,8 +173,11 @@ using SpotArray = mfc::CArray<float[3]>;
 // A CPtrList on the stack (vtable 0073D454, blocks of 10).
 using UnitPtrList = mfc::CTypedPtrList<CEngineObject>;
 
+// The messages of a unit's player (CPlayer::connection_).
+void* PlayerConnection(char* player) { return reinterpret_cast<CPlayer*>(player)->connection_; }
+
 void PathMessage(CUnit* unit, const void* motion, const float* point, int kind, int flag, float limit) {
-    if (unit->player) PlayerPathMessage(At<void*>(unit->player, 0x20), nullptr, unit, motion, point, kind, flag, limit);
+    if (unit->player) PlayerPathMessage(PlayerConnection(unit->player), nullptr, unit, motion, point, kind, flag, limit);
 }
 
 } // namespace
@@ -178,15 +189,15 @@ bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
     order->point[2] = std::bit_cast<float>(kNoZBits);
     if (order->kind != kOrderSkill || !order->target || order->source != 0) return true;
     SpotArray spots{reinterpret_cast<void*>(0x0073C120), nullptr, 0, 0, 0};
-    float size = static_cast<float>(ei::VCall<double>(unit, kSlotSize));
-    ei::VCall<void>(order->target, kSlotUseSpots, &spots, size);
+    float size = static_cast<float>(Slots(unit)->Radius());
+    Slots(order->target)->UseSpots(&spots, size);
     bool result = true;
     if (spots.size > 0) {
         LocalPath path;
         int best = kNoSpot;
         float spot[3];
         float bestSpot[3] = {0.0f, 0.0f, 0.0f};
-        void* map = static_cast<char*>(world) + 0x170;
+        CAIMap* map = MapOf(world);
         for (int i = 0; i < spots.size; ++i) {
             std::memcpy(spot, spots.data[i], sizeof(spot));
             PathClear(path.bytes);
@@ -218,7 +229,8 @@ EI_REPLACE_METHOD(0x0054DF50, CUnitServer::FindUseSpot);
 // --- The time along a path until an action is possible -----------------------------------------
 
 double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) {
-    if (At<int>(motionOrder, 0) != kMotionPath) return 0.0f;
+    const auto* pathOrder = static_cast<const MotionOrder*>(motionOrder);
+    if (pathOrder->kind != kMotionPath) return 0.0f;
     ObjectWorld(this);
     LocalUnitMotion simulated;
     MotionBuild(&simulated.motion, nullptr, motionOrder);
@@ -229,10 +241,10 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
     double distance = CtlActionDistance(this, nullptr, order);
     float reachSq = static_cast<float>(distance * distance);
     if (!order->target) std::memcpy(aim, order->point, sizeof(aim));
-    else ei::VCall<void>(order->target, kSlotAimPoint, aim);
+    else AimPointInto(order->target, aim);
     float t = 0.0f;
     for (;;) {
-        float time = static_cast<float>(At<int>(motionOrder, 0x10)) + t;
+        float time = static_cast<float>(pathOrder->startTime) + t;
         bool turning;
         float position[3];
         float direction[3];
@@ -255,8 +267,8 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
         // In reach: done unless a line of sight is needed and missing from here.
         if (!canSee) break;
         if (sight.unit) {
-            float eye[3];
-            const float* at = ei::VCall<const float*>(sight.unit, kSlotEyePoint, eye);
+            Vector3 eye;
+            const float* at = &Slots(sight.unit)->EyePoint(&eye)->x;
             std::memcpy(sight.point, at, sizeof(sight.point));
             sight.unit = nullptr;
         }
@@ -265,7 +277,7 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
         if (!(sy * sy + sx * sx >= sight.minDistanceSq)) break;   // C0: closer (or unordered)
         float from[3] = {position[0], position[1], position[2]};
         from[2] = static_cast<float>(UnitGroundHeight(unit, nullptr, position[0], position[1]) + sight.eyeHeight);
-        double visible = MapLineOfSight(static_cast<char*>(ManagerContextOf(this)) + 0x170, nullptr, from, sight.point);
+        double visible = MapLineOfSight(MapOf(ManagerContextOf(this)), nullptr, from, sight.point);
         if (!(visible < *reinterpret_cast<const float*>(0x0073EEC0))) break;
         t += 5.0f;
     }
@@ -282,18 +294,18 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
     LocalMotionOrder route;
     float point[3];
     if (!order->target) std::memcpy(point, order->point, sizeof(point));
-    else ei::VCall<void>(order->target, kSlotAimPoint, point);
+    else AimPointInto(order->target, point);
     bool ok;
-    if (!CtlFindUseSpot(this, nullptr, order, route.bytes)) {
-        PathMessage(unit, route.bytes, point, 3, 1, kFar);
+    if (!CtlFindUseSpot(this, nullptr, order, route.bytes())) {
+        PathMessage(unit, route.bytes(), point, 3, 1, kFar);
         ok = false;
     } else {
         if (!player) return true;
         if (CtlCanReachTarget(this, nullptr, order) && CtlCanPlanAction(this, nullptr, order)) {
             // The action can be done from here.
-            PathMessage(unit, route.bytes, point, 3, 0, kFar);
+            PathMessage(unit, route.bytes(), point, 3, 0, kFar);
             if ((shout <= 0x29 || shout == 0x30) && shout != 0xFFFFFFFFu && unit->player)
-                PlayerMessage(At<void*>(unit->player, 0x20), nullptr, unit, static_cast<int>(shout));
+                PlayerMessage(PlayerConnection(unit->player), nullptr, unit, static_cast<int>(shout));
             return true;
         }
         int kind = order->kind == kOrderAttack ? 2 : 1;
@@ -304,16 +316,16 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             if (source & kQuickItemSource) {
                 CItem* carrier = CtlSpellCarrier(this, nullptr, source);
                 if (!carrier) skip = true;
-                else spell = At<void*>(carrier, 0x44);
+                else spell = carrier->spell_;
             } else {
                 spell = UnitSpellObject(unit, nullptr, source);
             }
-            if (!skip && spell && At<int>(SpellPrototype(spell), 0x10) == 0) kind = 2;
+            if (!skip && spell && reinterpret_cast<const itemdb::SpellRecord*>(SpellPrototype(spell))->unknown_10 == 0) kind = 2;
         }
         // Where the unit would stand at the end of its way, and whether it could act from there.
         auto actsFromDestination = [&]() {
             float destination[3];
-            const float* at = MotionDestination(route.bytes, nullptr, destination);
+            const float* at = MotionDestination(route.bytes(), nullptr, destination);
             if (!CtlCanReachTarget(this, nullptr, order)) return false;
             float x = unit->positionX, y = unit->positionY, z = unit->positionZ;
             unit->positionX = at[0];
@@ -328,30 +340,30 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
         if (order->flag18 == 0) {
             LocalPath path;
             CEngineObject* target = order->target;
-            std::uint8_t savedFlag = 0;
+            bool savedFlag = false;
             if (target) {
                 savedFlag = PathFlag();
-                PathFlag() = 0;
-                SectorMapRemove(AsSectorMap(kSectorMap), nullptr, target);
+                PathFlag() = false;
+                SectorMapRemove(ServerSectors(), nullptr, target);
             }
             void* world = ManagerContextOf(this);
-            path.bytes[0x6E] = unit->player == nullptr ? 1 : 0;
-            std::uint32_t saved43C = At<std::uint32_t>(unit, 0x43C);
-            At<std::uint32_t>(unit, 0x43C) = 1;
-            bool found = MapFindPath(static_cast<char*>(world) + 0x170, nullptr, unit, point, path.bytes, kFar, 0.0f);
-            At<std::uint32_t>(unit, 0x43C) = saved43C;
+            path.Path()->flag6E = unit->player == nullptr;
+            std::uint32_t saved43C = unit->unknown_43C;
+            unit->unknown_43C = 1;
+            bool found = MapFindPath(MapOf(world), nullptr, unit, point, path.bytes, kFar, 0.0f);
+            unit->unknown_43C = saved43C;
             if (!found) PathStandStill(path.bytes, nullptr, unit);
             if (target) {
-                SectorMapAdd(AsSectorMap(kSectorMap), nullptr, target);
+                SectorMapAdd(ServerSectors(), nullptr, target);
                 PathFlag() = savedFlag;
             }
-            PathToMotionOrder(path.bytes, nullptr, route.bytes);
+            PathToMotionOrder(path.bytes, nullptr, route.bytes());
             ok = actsFromDestination();
-            if (ok) best = static_cast<float>(CtlTimeUntilAction(this, nullptr, order, route.bytes));
+            if (ok) best = static_cast<float>(CtlTimeUntilAction(this, nullptr, order, route.bytes()));
         } else {
             ok = actsFromDestination();
         }
-        PathMessage(unit, route.bytes, point, kind, ok ? 0 : 1, best);
+        PathMessage(unit, route.bytes(), point, kind, ok ? 0 : 1, best);
         if (ok) {
             CtlShout(this, nullptr, shout);
             return true;
@@ -367,37 +379,37 @@ EI_REPLACE_METHOD(0x0054E600, CUnitServer::PlanOrderRoute);
 void CUnitServer::PlanMove(const float* point, int moving, int run, float range) {
     void* world = ManagerContextOf(this);
     LocalPath path;
-    UnitPtrList lifted{reinterpret_cast<void*>(0x0073D454), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    UnitPtrList lifted{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
     CtlLiftNearby(this, nullptr, &lifted, point, moving);
     int mode = unit->moveMode;
-    void* sectors = static_cast<char*>(world) + 0x294;
-    void* map = static_cast<char*>(world) + 0x170;
+    CSectorMap* sectors = static_cast<CWorldServer*>(world)->Sectors();
+    CAIMap* map = MapOf(world);
     bool running = static_cast<std::uint8_t>(run) != 0;
     if (running && mode != 2 && mode != 3) {
         // A runner plans as walking (mode 2) when it may leave its cell that way.
-        SectorMapRemove(AsSectorMap(sectors), nullptr, unit);
+        SectorMapRemove(sectors, nullptr, unit);
         unit->moveMode = 2;
         UnitUpdateSizeClass(unit);
         if (!MapCanLeaveCell(map, nullptr, unit)) unit->moveMode = mode;
-        SectorMapAdd(AsSectorMap(sectors), nullptr, unit);
+        SectorMapAdd(sectors, nullptr, unit);
     }
     std::uint32_t flag = MapCellFlag80(map, nullptr, &unit->positionX);
     void* world2 = ManagerContextOf(this);
-    path.bytes[0x6E] = unit->player == nullptr ? 1 : 0;
-    std::uint32_t saved43C = At<std::uint32_t>(unit, 0x43C);
-    At<std::uint32_t>(unit, 0x43C) = flag & 0xFF;
-    bool found = MapFindPath(static_cast<char*>(world2) + 0x170, nullptr, unit, point, path.bytes, range, 0.0f);
-    At<std::uint32_t>(unit, 0x43C) = saved43C;
+    path.Path()->flag6E = unit->player == nullptr;
+    std::uint32_t saved43C = unit->unknown_43C;
+    unit->unknown_43C = flag & 0xFF;
+    bool found = MapFindPath(MapOf(world2), nullptr, unit, point, path.bytes, range, 0.0f);
+    unit->unknown_43C = saved43C;
     if (running) {
-        SectorMapRemove(AsSectorMap(sectors), nullptr, unit);
+        SectorMapRemove(sectors, nullptr, unit);
         unit->moveMode = mode;
         UnitUpdateSizeClass(unit);
-        SectorMapAdd(AsSectorMap(sectors), nullptr, unit);
+        SectorMapAdd(sectors, nullptr, unit);
     }
     for (UnitPtrList::Node* node = lifted.head; node;) {
         UnitPtrList::Node* current = node;
         node = node->next;
-        SectorMapAdd(AsSectorMap(sectors), nullptr, current->data);
+        SectorMapAdd(sectors, nullptr, current->data);
     }
     CtlReportPath(this, nullptr, path.bytes, found ? 1 : 0);
     // The list's RemoveAll (inlined).

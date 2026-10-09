@@ -4,11 +4,14 @@
 // failed attempt (or one on a creature with a player) undoes the taming when it was the tamer's
 // side doing it, and counts as an attack. See docs/notes/combat.md ("Fourth round").
 #include "combat.h"
+#include "map_object.h"
+#include "unit_ai.h"
+#include "world.h"
 
 #include "lib/crt.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
+#include "ei/vcall.h"   // SetVtable
 #include "originals_engine.h"
 
 #include <cstdint>
@@ -18,16 +21,8 @@
 
 namespace {
 
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
-}
-
 constexpr int kOrderNone = 9;
-constexpr int kSlotRelease = 4;
-constexpr int kSlotTameLevel = 0x9C / 4;   // the controller's virtual slot 39 (int)
 constexpr int kStatTaming = 2;
-constexpr int kModeTamed = 8;              // the brain mode removed when the taming is undone
 
 // Forwarders (thiscall as __fastcall with the unused EDX).
 // 00525E90 UnitStats: a skill's value (combat_actions.cpp uses it too).
@@ -51,49 +46,44 @@ inline void __fastcall PlexFreeDataChain(void* p) { PlexFreeDataChainOriginal(p)
 // This file's functions through their game addresses.
 __declspec(naked) void __fastcall CtlUndoTaming(CUnitServer*) EI_ORIGINAL(0x00552280)
 
-int& Stage(CUnitServer* self) { return At<int>(self, 0x908); }
+int& Stage(CUnitServer* self) { return self->tameStage; }
 
 // The side that tamed the unit (-1 when not tamed) is the attacker's: the taming is undone.
 void UndoIfTamedBy(CUnitServer* self, CUnit* tamer) {
-    int side = Stage(self) == 0 ? -1 : At<int>(self, 0x910);
+    int side = Stage(self) == 0 ? -1 : self->tamerSide;
     if (side == tamer->side) CtlUndoTaming(self);
 }
 
 // An empty reference list of the brain (CList of one reference per node): each released, then
 // RemoveAll. `release` picks how the original releases the element.
 template <bool kViaRelease>
-void ClearReferenceList(CUnitServer* self, int head) {
-    struct Node {
-        Node* next;
-        Node* prev;
-        CEngineObject* item;
-    };
-    for (Node* node = At<Node*>(self, head); node; node = node->next) {
+void ClearReferenceList(mfc::CTypedPtrList<CEngineObject>& list) {
+    for (auto* node = list.head; node; node = node->next) {
         if (kViaRelease) {
-            ReferenceRelease(&node->item);
+            ReferenceRelease(&node->data);
         } else {
-            if (node->item) ei::VCall<void>(node->item, kSlotRelease);
-            node->item = nullptr;
+            if (node->data) node->data->Release();
+            node->data = nullptr;
         }
     }
-    At<int>(self, head + 8) = 0;    // count
-    At<int>(self, head + 0xC) = 0;  // free list
-    At<int>(self, head + 4) = 0;    // tail
-    At<int>(self, head) = 0;        // head
-    PlexFreeDataChain(At<void*>(self, head + 0x10));
-    At<int>(self, head + 0x10) = 0;
+    list.count = 0;
+    list.free = nullptr;
+    list.tail = nullptr;
+    list.head = nullptr;
+    PlexFreeDataChain(list.blocks);
+    list.blocks = nullptr;
 }
 
 } // namespace
 
 BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
     float bonus = static_cast<float>(StatsSkillValue(&stats, nullptr, kStatTaming, unit));
-    int level = ei::VCall<int>(this, kSlotTameLevel);
+    int level = ServerSlots(this)->TameStage();   // slot 39
     float limit = static_cast<float>(level * 10) + bonus;
     if (unit->player || limit >= roll) {   // FCOMP: C0 (limit below the roll, or unordered) succeeds
         // A unit with a player cannot be tamed; a roll not above the limit fails. Either way an attack.
         UndoIfTamedBy(this, tamer);
-        DiplomacyOnAttack(static_cast<char*>(ManagerContextOf(this)) + 0x12C64, nullptr, tamer, unit, 10);
+        DiplomacyOnAttack(static_cast<CWorldServer*>(ManagerContextOf(this))->diplomacy_, nullptr, tamer, unit, 10);
         return 0;
     }
     char* tamerPlayer = tamer->player;
@@ -103,7 +93,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         Stage(this) = 1;
         break;
     case 1:
-        At<int>(this, 0x90C) = unit->side;
+        ownSide = unit->side;
         UnitSetSide(unit, nullptr, tamer->side);
         Stage(this) = 2;
         break;
@@ -112,22 +102,23 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         PlayerTakeUnit(tamerPlayer);
         UnitSetSide(unit, nullptr, tamer->side);
         UnitSetPlayer(unit, nullptr, tamerPlayer);
-        auto* mode = static_cast<std::uint8_t*>(gamecrt::operator_new(0x24));
-        At<int>(mode, 4) = 0;   // written before the test, as the original does
+        auto* mode = static_cast<AIMode*>(gamecrt::operator_new(0x24));
+        mode->refs = 0;   // written before the test, as the original does (one dword)
+        mode->unknown_06 = 0;
         if (mode) {
             ModePlayerConstruct(mode);
-            At<void*>(mode, 0) = reinterpret_cast<void*>(0x0073F0C4);
+            ei::SetVtable(mode, std::uintptr_t(0x0073F0C4));   // the player mode's vtable
         }
         BrainAddMode(brain, nullptr, mode);
-        ClearReferenceList<false>(this, 0xAB0);
-        ClearReferenceList<true>(this, 0xACC);
+        ClearReferenceList<false>(Brain()->unknown_12C);
+        ClearReferenceList<true>(Brain()->corpses);
         Stage(this) = 3;
         break;
     }
     default:
         break;
     }
-    At<int>(this, 0x910) = tamer->side;
+    tamerSide = tamer->side;
     BrainStopAction(brain);
     if (action.kind != 0 && action2.kind != 7 && action2.kind != 8) {
         action2.kind = kOrderNone;
@@ -148,10 +139,10 @@ EI_REPLACE_METHOD(0x00551AE0, CUnitServer::TryTame);
 
 void CUnitServer::UndoTaming() {
     if (Stage(this) == 0) return;
-    BrainRemoveMode(brain, nullptr, kModeTamed);
+    BrainRemoveMode(brain, nullptr, kModeTamed);   // unit_ai.h: the tamed mode (8)
     UnitSetPlayer(unit, nullptr, nullptr);
     UnitSetRelationsB(unit, nullptr, 0xFFFFFFFFu);
-    if (Stage(this) > 1) UnitSetSide(unit, nullptr, At<int>(this, 0x90C));
+    if (Stage(this) > 1) UnitSetSide(unit, nullptr, ownSide);
     Stage(this) = 0;
 }
 EI_REPLACE_METHOD(0x00552280, CUnitServer::UndoTaming);

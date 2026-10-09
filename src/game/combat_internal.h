@@ -13,7 +13,10 @@ struct GameOstream {
     GameOstream* Apply(void* manipulator);  // 00434FE0: manipulator(*this)
 
     // The logs set the dword at +4 to 1 before each floating point number.
-    void SetField4() { *reinterpret_cast<int*>(reinterpret_cast<char*>(this) + 4) = 1; }
+    void SetField4() { field4 = 1; }
+
+    void* vtable;       // +0x00 (the ostream's virtual base pointer)
+    int field4;         // +0x04
 };
 
 // The game's log stream (global 007AF3E8) and the manipulator that ends a line (00435000).
@@ -21,10 +24,8 @@ inline GameOstream* GameLog() { return *reinterpret_cast<GameOstream**>(0x007AF3
 inline void* const kLogEndLine = reinterpret_cast<void*>(0x00435000);
 
 // The unit's server object (CUnit + 0x170, a CMapObjectServer) and the stats block at its +0x20.
-inline CEngineObject* ServerObjectOf(CUnit* unit) {
-    return *reinterpret_cast<CEngineObject**>(reinterpret_cast<char*>(unit) + 0x170);
-}
-inline void* ServerStatsOf(CUnit* unit) { return reinterpret_cast<char*>(ServerObjectOf(unit)) + 0x20; }
+inline CEngineObject* ServerObjectOf(CUnit* unit) { return unit->companion; }
+inline void* ServerStatsOf(CUnit* unit) { return &static_cast<CMapObjectServer*>(ServerObjectOf(unit))->vitals; }
 
 // Forwarders defined in combat_actions.cpp (__fastcall with the unused EDX for __thiscall).
 // 0058E850. CWorldServer: casts `spell` from `caster` at `from` on `target` at `at`.

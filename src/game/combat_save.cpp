@@ -2,19 +2,21 @@
 // docs/notes/combat.md ("Third round").
 #include "combat.h"
 
+#include "map_object.h"
+#include "object.h"
+#include "world.h"
+
 #include "ei/hook.h"
-#include "ei/vcall.h"
 
 #include <cstdint>
+#include <cstring>
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_units.h"
 
 namespace {
 // Fields of CUnitServer that combat.h leaves unnamed (offsets from the controller).
-constexpr int kMotion = 0x3C;           // motion object (005B2430 / 005B2570)
-constexpr int kPlan = 0xC4;             // the plan of the current order (00544EF0 / 00544F60)
-constexpr int kVoice = 0xB10;
+
 
 constexpr int kVersionPlanDirection = 0x48;   // plan +0x38 and the orders' +0x18 byte
 constexpr int kVersionFixedMaximum = 0x50;    // older saves take stats +0x6FC from the server object
@@ -27,15 +29,8 @@ constexpr int kVersionPendingHit = 0x69;
 constexpr int kVersion93C = 0x73;
 constexpr int kSavedConstant = 2;             // written after +0x180, read back and dropped
 
-constexpr int kContextEffectManager = 0x38 / 4;     // ManagerContext() slot 14
-inline void*& UnitManager() { return *reinterpret_cast<void**>(0x007AFFA0); }
-void* const kUnitListContext = reinterpret_cast<void*>(0x007AFF60);   // passed to 0050E220
-
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
-}
-void* Address(void* object, int offset) { return static_cast<char*>(object) + offset; }
+// The map objects' manager (007AFFA0, the world server's +0x40).
+void* UnitManager() { return WorldObjectManager(); }
 
 template <typename T>
 void WriteCopy(UnitStream* stream, T value) {
@@ -82,7 +77,7 @@ CEngineObject* ReadObject(UnitStream* stream, void* manager) {
 void LoadOrder(UnitStream* stream, UnitAction* order) {
     stream->Read(&order->kind, 4);
     stream->Read(&order->source, 4);
-    CountedRefLoad(&order->target, nullptr, stream, kUnitListContext);
+    CountedRefLoad(&order->target, nullptr, stream, WorldServer());
     stream->Read(order->point, 0xC);
     stream->Read(&order->unknown_1C, 4);
     stream->Read(&order->unknown_20, 1);
@@ -100,36 +95,36 @@ void SaveOrder(UnitStream* stream, UnitAction* order) {
 }
 
 // The plan object's fields after its list (plan + 0x18 ..).
-void LoadPlanFields(UnitStream* stream, void* plan) {
-    stream->Read(Address(plan, 0x18), 4);
-    stream->Read(Address(plan, 0x1C), 4);
-    stream->Read(Address(plan, 0x20), 4);
-    stream->Read(Address(plan, 0x2C), 4);
-    stream->Read(Address(plan, 0x24), 4);
-    stream->Read(Address(plan, 0x28), 1);
-    stream->Read(Address(plan, 0x30), 1);
-    stream->Read(Address(plan, 0x34), 4);
-    if (stream->version >= kVersionPlanDirection) stream->Read(Address(plan, 0x38), 0xC);
+void LoadPlanFields(UnitStream* stream, OrderPlan* plan) {
+    stream->Read(&plan->startTime, 4);
+    stream->Read(&plan->endTime, 4);
+    stream->Read(&plan->targetId, 4);
+    stream->Read(&plan->unknown_2C, 4);
+    stream->Read(&plan->rangeSq, 4);
+    stream->Read(&plan->isCast, 1);
+    stream->Read(&plan->notSkill, 1);
+    stream->Read(&plan->castKind, 4);
+    if (stream->version >= kVersionPlanDirection) stream->Read(plan->direction, 0xC);
 }
 
-void SavePlanFields(UnitStream* stream, void* plan) {
-    WriteCopy(stream, At<int>(plan, 0x18));
-    WriteCopy(stream, At<int>(plan, 0x1C));
-    WriteCopy(stream, At<int>(plan, 0x20));
-    stream->Write(Address(plan, 0x2C), 4);
-    WriteCopy(stream, At<int>(plan, 0x24));
-    WriteCopy(stream, At<std::uint8_t>(plan, 0x28));
-    WriteCopy(stream, At<std::uint8_t>(plan, 0x30));
-    stream->Write(Address(plan, 0x34), 4);
-    stream->Write(Address(plan, 0x38), 0xC);
+void SavePlanFields(UnitStream* stream, OrderPlan* plan) {
+    WriteCopy(stream, plan->startTime);
+    WriteCopy(stream, plan->endTime);
+    WriteCopy(stream, plan->targetId);
+    stream->Write(&plan->unknown_2C, 4);
+    stream->Write(&plan->rangeSq, 4);   // the float's bits
+    WriteCopy(stream, plan->isCast);
+    WriteCopy(stream, plan->notSkill);
+    stream->Write(&plan->castKind, 4);
+    stream->Write(plan->direction, 0xC);
 }
 } // namespace
 
 // --- Step lists and the armour spell list (A-U7) ----------------------------------------------------
 
 namespace {
-// The item manager (007AFFB4), which resolves the armour spells' item ids.
-void* ItemManager() { return *reinterpret_cast<void**>(0x007AFFB4); }
+// The item manager (007AFFB4, the world server's +0x54), which resolves the armour spells' item ids.
+void* ItemManager() { return WorldServer()->itemManager_; }
 } // namespace
 
 void __fastcall LoadStepList(AnimationSteps* steps, UnitStream* stream) {
@@ -184,61 +179,67 @@ __declspec(naked) void __fastcall CallLoadArmourSpells(ArmourSpellList*, UnitStr
 } // namespace
 
 void CUnitServer::LoadServer(UnitStream* stream) {
-    At<int>(this, 0x918) = 0;
+    unknown_918 = nullptr;
     stream->Read(&unknown_020, 1);
     stream->Read(&unknown_021, 1);
     CallLoadStepList(&queue, stream);
     stream->Read(&queue.extra, 4);
-    MotionLoad(Address(this, kMotion), nullptr, stream);
-    PlanLoad(Address(this, kPlan), nullptr, stream);
-    LoadPlanFields(stream, Address(this, kPlan));
+    MotionLoad(&motion, nullptr, stream);
+    PlanLoad(&currentPlan, nullptr, stream);
+    LoadPlanFields(stream, &currentPlan);
     stream->Read(&keepHitDirection, 1);
-    for (int offset = 0x145; offset <= 0x147; ++offset) stream->Read(Address(this, offset), 1);
+    stream->Read(&stoodBlocked, 1);
+    stream->Read(&motionChanged, 1);
+    stream->Read(&movingAnimation, 1);
     CallLoadStepList(&savedQueue, stream);
     stream->Read(&savedQueue.extra, 4);
     stream->Read(&hitDirection, 4);
     stream->Read(&state, 4);
     stream->Read(&moveMode, 8);
     stream->Read(&moveMode2, 8);
-    stream->Read(Address(this, 0x184), 4);
-    stream->Read(Address(this, 0x188), 4);
-    stream->Read(Address(this, 0x178), 4);
+    stream->Read(&nextAttackTime, 4);
+    stream->Read(&unknown_188, 4);
+    stream->Read(&sneakWait, 4);
     LoadOrder(stream, &action);
     LoadOrder(stream, &action2);
     UnitStatsLoadOriginal(&stats, nullptr, stream);
     if (stream->version < kVersionFixedMaximum)
-        At<int>(this, 0x8DC) = At<int>(At<void*>(unit, 0x170), 0x2C);
+        std::memcpy(&stats.fixedMaxHitPoints, &static_cast<CMapObjectServer*>(unit->companion)->vitals.maxHitPoints, 4);
     for (int i = 0; i < 4; ++i) stream->Read(&moveFactors[i], 4);
-    for (int offset = 0x908; offset <= 0x914; offset += 4) stream->Read(Address(this, offset), 4);
+    stream->Read(&tameStage, 4);
+    stream->Read(&ownSide, 4);
+    stream->Read(&tamerSide, 4);
+    stream->Read(&speedClass, 4);
     stream->Read(&claimedHostile, 4);
     BrainLoad(brain, nullptr, stream);
-    VoiceLoad(Address(this, kVoice), nullptr, stream);
-    stream->Read(Address(this, 0x18C), 1);
-    stream->Read(Address(this, 0x18D), 1);
-    stream->Read(Address(this, 0x8F4), 4);
+    VoiceLoad(voice, nullptr, stream);
+    stream->Read(&unknown_18C, 1);
+    stream->Read(&unknown_18D, 1);
+    stream->Read(&unknown_8F4, 4);
 
-    void* effects = ei::VCall<void*>(ManagerContext(), kContextEffectManager);
+    // The context's (the world's) slot 14: the timed objects.
+    void* effects = static_cast<CWorld*>(ManagerContext())->TimedObjectManager();
     AssignCounted(effectObject, ReadObject(stream, effects));
     CallLoadArmourSpells(&armourSpells, stream);
-    stream->Read(Address(this, 0x1D8), 1);
+    stream->Read(&followsLeader, 1);
     void* units = UnitManager();
-    AssignCounted(At<CEngineObject*>(this, 0x1DC), ReadObject(stream, units));
+    AssignCounted(followedLeader, ReadObject(stream, units));
 
     if (stream->version < kVersion180) return;
-    stream->Read(Address(this, 0x180), 4);
+    stream->Read(&actingCheckTime, 4);
     if (stream->version < kVersionUnused) return;
     int unused;
     stream->Read(&unused, 4);
     if (stream->version < kVersion18E) return;
-    stream->Read(Address(this, 0x18E), 1);
+    stream->Read(&unknown_18E, 1);
     if (stream->version < kVersion8E4) return;
-    stream->Read(Address(this, 0x8E4), 0x10);
+    stream->Read(protection, 0x10);
     if (stream->version < kVersion938) return;
-    stream->Read(Address(this, 0x938), 4);
+    stream->Read(&unknown_938, 4);
     if (stream->version < kVersionPendingHit) return;
     stream->Read(&pendingHit, 0x3C);
     if (stream->version < kVersion93C) return;
-    WriteCopy(stream, At<int>(this, 0x93C));    // sic: written, not read
+    WriteCopy(stream, waitFrame);    // sic: written, not read
 }
 EI_REPLACE_METHOD(0x00555D10, CUnitServer::LoadServer);
 
@@ -247,33 +248,36 @@ void CUnitServer::SaveServer(UnitStream* stream) {
     WriteCopy(stream, unknown_021);
     SaveStepList(&queue, stream);
     WriteCopy(stream, queue.extra);
-    MotionSave(Address(this, kMotion), nullptr, stream);
-    PlanSave(Address(this, kPlan), nullptr, stream);
-    SavePlanFields(stream, Address(this, kPlan));
-    for (int offset = 0x144; offset <= 0x147; ++offset) WriteCopy(stream, At<std::uint8_t>(this, offset));
+    MotionSave(&motion, nullptr, stream);
+    PlanSave(&currentPlan, nullptr, stream);
+    SavePlanFields(stream, &currentPlan);
+    WriteCopy(stream, keepHitDirection);
+    WriteCopy(stream, stoodBlocked);
+    WriteCopy(stream, motionChanged);
+    WriteCopy(stream, movingAnimation);
     SaveStepList(&savedQueue, stream);
     WriteCopy(stream, savedQueue.extra);
     WriteCopy(stream, hitDirection);
     stream->Write(&state, 4);
     stream->Write(&moveMode, 8);
     stream->Write(&moveMode2, 8);
-    WriteCopy(stream, At<int>(this, 0x184));
-    WriteCopy(stream, At<int>(this, 0x188));
-    WriteCopy(stream, At<int>(this, 0x178));
+    WriteCopy(stream, nextAttackTime);
+    WriteCopy(stream, unknown_188);
+    WriteCopy(stream, sneakWait);
     SaveOrder(stream, &action);
     SaveOrder(stream, &action2);
     UnitStatsSaveOriginal(&stats, nullptr, stream);
     for (int i = 0; i < 4; ++i) WriteCopy(stream, moveFactors[i]);
-    stream->Write(Address(this, 0x908), 4);
-    WriteCopy(stream, At<int>(this, 0x90C));
-    WriteCopy(stream, At<int>(this, 0x910));
+    stream->Write(&tameStage, 4);
+    WriteCopy(stream, ownSide);
+    WriteCopy(stream, tamerSide);
     WriteCopy(stream, speedClass);
     WriteCopy(stream, claimedHostile);
     BrainSave(brain, nullptr, stream);
-    VoiceSave(Address(this, kVoice), nullptr, stream);
-    WriteCopy(stream, At<std::uint8_t>(this, 0x18C));
-    WriteCopy(stream, At<std::uint8_t>(this, 0x18D));
-    WriteCopy(stream, At<int>(this, 0x8F4));
+    VoiceSave(voice, nullptr, stream);
+    WriteCopy(stream, unknown_18C);
+    WriteCopy(stream, unknown_18D);
+    stream->Write(&unknown_8F4, 4);   // the float's bits
     WriteCopy(stream, IdOrNone(effectObject));
     WriteCopy(stream, armourSpells.count);
     for (auto* node = armourSpells.head; node;) {
@@ -281,14 +285,14 @@ void CUnitServer::SaveServer(UnitStream* stream) {
         node = node->next;
         SaveArmourSpell(&current->data, nullptr, stream);
     }
-    WriteCopy(stream, At<std::uint8_t>(this, 0x1D8));
-    WriteCopy(stream, IdOrNone(At<CEngineObject*>(this, 0x1DC)));
-    WriteCopy(stream, At<int>(this, 0x180));
+    WriteCopy(stream, followsLeader);
+    WriteCopy(stream, IdOrNone(followedLeader));
+    WriteCopy(stream, actingCheckTime);
     WriteCopy(stream, kSavedConstant);
-    WriteCopy(stream, At<std::uint8_t>(this, 0x18E));
-    stream->Write(Address(this, 0x8E4), 0x10);
-    WriteCopy(stream, At<int>(this, 0x938));
+    WriteCopy(stream, unknown_18E);
+    stream->Write(protection, 0x10);
+    WriteCopy(stream, unknown_938);
     stream->Write(&pendingHit, 0x3C);
-    WriteCopy(stream, At<int>(this, 0x93C));
+    WriteCopy(stream, waitFrame);
 }
 EI_REPLACE_METHOD(0x005561C0, CUnitServer::SaveServer);

@@ -208,6 +208,15 @@ static_assert(offsetof(CombatStats, naturalWeapon) == 0xAC);
 static_assert(sizeof(CombatStats) == 0x110);
 
 class CItem;
+struct AIBrain;   // unit_ai.h
+
+// The AI events' record of a unit's presence (005C9770 returns it; CUnitServer + 0x918). Only the
+// fields the controller's update writes.
+struct AIEventPresence {
+    std::uint8_t unknown_00[8];
+    float x;                    // +0x08 where the unit was when the record was last refreshed
+    float y;                    // +0x0C
+};
 
 // An entry of the armour spell list (CUnitServer + 0x91C; 005528F0 builds it): the item (a counted
 // reference), its countdown and whether it is still worn.
@@ -815,7 +824,8 @@ public:
     int ownSide;                    // +0x90C the unit's own side while tamed (TryTame)
     int tamerSide;                  // +0x910 the tamer's side (TryTame)
     int speedClass;                 // +0x914
-    void* unknown_918;              // +0x918 cleared by the reset and Load
+    AIEventPresence* unknown_918;   // +0x918 the unit's presence record with the AI events (UpdateServer);
+                                    //        cleared by the reset and Load
     ArmourSpellList armourSpells;   // +0x91C periodic spells of the worn items (vtable 0073F010, blocks of 10)
     int unknown_938;                // +0x938 cleared when an order starts and by the move style /
                                     //        wanted weapon setters
@@ -832,6 +842,8 @@ public:
     // +0xF8) and +0x110 (CList of units the unit watches).
     std::uint8_t brain[0x190];
     std::int32_t voice[4];          // +0xB10 the voice / alarm (005AEA50 zeroes it, 005AEA60 Say)
+
+    AIBrain* Brain() { return reinterpret_cast<AIBrain*>(brain); }
 
     // combat_lifetime.cpp. 00545580. The constructor: the base controller (vtable 0073EDBC) and
     // the members (empty lists, orders of kind 9, the AI brain 00545990, the voice), then this
