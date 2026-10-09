@@ -53,7 +53,9 @@ struct FigurePart : CEngineObject {
     // +0x094 the part's own mesh (a CLinkMesh, link_figure.h) when flags_ 0x40 is set; its screen
     // rectangle (+0x20) is where the part was last drawn (the flying hit points, 005E18E0).
     class CLinkMesh* mesh;
-    std::uint8_t unknown_098[0x158 - 0x98];
+    std::uint8_t unknown_098[0x128 - 0x98];
+    lib::AlignedArray<Vector3> offsets;    // +0x128 per-vertex offsets (CFigureMesh::offsets_)
+    std::uint8_t unknown_138[0x158 - 0x138];
     std::uint32_t piece158;         // +0x158 from the piece record's +0x20 (00517240)
     std::uint32_t piece15C;         // +0x15C from its +0x1C
     std::uint8_t unknown_160[0x188 - 0x160];

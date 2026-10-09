@@ -52,7 +52,9 @@ public:
     CTransformPipeline* pipeline_;   // +0xAC the scene renderer's pipeline (model.h)
     std::uint8_t unknown_B0[0x158 - 0xB0];
     int unknown_158;            // +0x158 cleared around the sky and hit point draws (00569E40), else 1
+    RECT drawnRect_;            // +0x15C the screen rectangle of the last mesh draw (004E9010 / 004E9A50)
 };
+static_assert(offsetof(CTextureDevice, drawnRect_) == 0x15C);
 static_assert(offsetof(CTextureDevice, zEnable_) == 0x60);
 static_assert(offsetof(CTextureDevice, unknown_158) == 0x158);
 
@@ -66,6 +68,14 @@ static_assert(offsetof(CTextureDevice, flags_) == 0x20);
 static_assert(offsetof(CTextureDevice, screen_) == 0x24);
 static_assert(offsetof(CTextureDevice, d3dDevice_) == 0x54);
 static_assert(offsetof(CTextureDevice, pipeline_) == 0xAC);
+
+// A Direct3D driver of the device list (the STLport list at 007AEE64, filled by 004EE4A0; 004EE5D0
+// returns the first hardware one, 004EE6D0 the one with an index). Only what the renderer reads.
+struct DirectDrawDriver {
+    std::uint8_t unknown_00[0x10];
+    GUID* guid;                 // +0x10 for DirectDrawCreateEx
+};
+static_assert(offsetof(DirectDrawDriver, guid) == 0x10);
 
 // A DirectDraw surface wrapper (004EFA60 constructs it from a DDSURFACEDESC2, 004EF7B0 for an
 // off-screen surface of the screen's format; 0x20 bytes): vtable (slot 0 the deleting destructor),

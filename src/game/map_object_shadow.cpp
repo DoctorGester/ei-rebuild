@@ -2,7 +2,12 @@
 // ("Shadows").
 #include "map_object_shadow.h"
 
+#include "link_figure.h"        // CLinkMesh
+#include "map_object.h"         // ObjectSlots
 #include "map_object_figures.h"
+#include "spell.h"              // CLight
+#include "unit.h"               // CUnit
+#include "unit_client_models.h" // CUnitClientSpecific
 #include "maths.h"
 #include "object.h"
 #include "texture.h"
@@ -37,7 +42,6 @@ int ShadowSwitch(int classId) {
     return *reinterpret_cast<const int*>(0x0079BD18);
 }
 const float* DefaultLight() { return reinterpret_cast<const float*>(0x007AF230); }   // three floats
-CBaseManager* LightList() { return *reinterpret_cast<CBaseManager**>(0x007AF748); }
 void* TextureManager() { return *reinterpret_cast<void**>(0x007AF744); }
 void* RenderDevice() { return *reinterpret_cast<void**>(0x007AF080); }
 void* LightManager() { return *reinterpret_cast<void**>(0x007AF738); }
@@ -238,24 +242,24 @@ int* PixelAt(int index) { return static_cast<int*>(Pixels().data) + 2 * index; }
 // --- Lights -----------------------------------------------------------------------------------
 
 // The light's brightness: 0.1 blue + 0.6 green + 0.3 red, unrounded.
-double Brightness(const CEngineObject* light) {
-    double blue = static_cast<double>(At<float>(const_cast<CEngineObject*>(light), 0xA0)) * kBlue;
-    double green = static_cast<double>(At<float>(const_cast<CEngineObject*>(light), 0x9C)) * kGreen;
-    double red = static_cast<double>(At<float>(const_cast<CEngineObject*>(light), 0x98)) * kRed;
+double Brightness(const CLight* light) {
+    double blue = static_cast<double>(light->color_[2]) * kBlue;
+    double green = static_cast<double>(light->color_[1]) * kGreen;
+    double red = static_cast<double>(light->color_[0]) * kRed;
     return (blue + green) + red;
 }
 
 // A point light's share: from the light towards the object, scaled by its brightness and its
 // falloff over the squared distance. False when the object is out of its range.
-bool PointLightShare(const CObject3D* object, CEngineObject* light, float* out) {
+bool PointLightShare(const CObject3D* object, CLight* light, float* out) {
     const float* at = &object->position.x;
-    const float* from = &At<float>(light, 0x1C);
+    const float* from = &light->position_.x;
     double dx = static_cast<double>(at[0]) - from[0];
     double dy = static_cast<double>(at[1]) - from[1];
     double dz = static_cast<double>(at[2]) - from[2];
     float distanceSquared = static_cast<float>((dz * dz + dy * dy) + dx * dx);
-    if (distanceSquared >= At<float>(light, 0x100)) return false;   // NaN counts as in range
-    double falloff = kOne - static_cast<double>(At<float>(light, 0x104)) * distanceSquared;
+    if (distanceSquared >= light->rangeSquared_) return false;   // NaN counts as in range
+    double falloff = kOne - static_cast<double>(light->inverseRangeSquared_) * distanceSquared;
     float intensity = static_cast<float>(Brightness(light) * falloff);
     float towards[3] = {static_cast<float>(static_cast<double>(at[0]) - from[0]),
                         static_cast<float>(static_cast<double>(at[1]) - from[1]),
@@ -276,12 +280,12 @@ bool PointLightShare(const CObject3D* object, CEngineObject* light, float* out) 
     return true;
 }
 
-// A directional light's share: its direction (+0xD4) times its brightness.
-void DirectionalShare(CEngineObject* light, float* out) {
+// A directional light's share: its direction times its brightness.
+void DirectionalShare(CLight* light, float* out) {
     double brightness = Brightness(light);
-    out[2] = static_cast<float>(brightness * At<float>(light, 0xDC));
-    out[1] = static_cast<float>(brightness * At<float>(light, 0xD8));
-    out[0] = static_cast<float>(brightness * At<float>(light, 0xD4));
+    out[2] = static_cast<float>(brightness * light->direction_.z);
+    out[1] = static_cast<float>(brightness * light->direction_.y);
+    out[0] = static_cast<float>(brightness * light->direction_.x);
 }
 
 // The normalised direction of `sum`, tilted down to at least 20 degrees below the horizontal.
@@ -368,7 +372,8 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
     float sum[3];
     std::memcpy(sum, DefaultLight(), sizeof(sum));
     ObjectListIterator lights{nullptr, nullptr};
-    for (CEngineObject* light = lights.First(LightList()); light; light = lights.Next()) {
+    for (auto* light = static_cast<CLight*>(lights.First(TheLightFactory())); light;
+         light = static_cast<CLight*>(lights.Next())) {
         if (light->flags_ & kLightOff || light->flags_ & kLightRemoved) continue;
         float share[3];
         if (light->type_ == kTypePointLight) {
@@ -393,14 +398,13 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
     Quaternion turn{1.0f, 0.0f, 0.0f, 0.0f};
     LightRotation(scene, nullptr, direction, &turn);
     CObject3D* object = self->object;
-    auto* orientation = &At<Quaternion>(object, 0x34);
-    PreMultiplyAt(orientation, nullptr, &turn);
+    PreMultiplyAt(&object->orientation, nullptr, &turn);
     BuildMatrix(object);
     turn.x = -turn.x;
     turn.y = -turn.y;
     turn.z = -turn.z;
-    PreMultiplyAt(&At<Quaternion>(self->object, 0x34), nullptr, &turn);
-    std::memcpy(view, &At<float>(self->object, 0x54), sizeof(view));
+    PreMultiplyAt(&self->object->orientation, nullptr, &turn);
+    std::memcpy(view, self->object->worldMatrix, sizeof(view));
     std::memcpy(&self->bounds[0], &kFloatMax, 4);
     std::memcpy(&self->bounds[2], &kFloatLowest, 4);
     std::memcpy(&self->bounds[1], &kFloatMax, 4);
@@ -419,10 +423,10 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
         std::memcpy(view, &At<float>(PartAt(self->object, i), 0x54), sizeof(view));
         PushMatrix(scene, view);
         if (CEngineObject* figure = self->object->figure) {
-            const char* name = ei::VCall<const char*>(PartAt(self->object, i), 7);
+            const char* name = PartAt(self->object, i)->GetName();
             stlp::string key(name);
-            count += ei::VCall<int>(figure, 13, &key, reinterpret_cast<char*>(PartAt(self->object, i)) + 0x128,
-                                    TopMatrix(scene), PointAt(count), self->bounds);
+            count += reinterpret_cast<CLinkMesh*>(figure)->ProjectPart(&key, &PartAt(self->object, i)->offsets,
+                                                                       TopMatrix(scene), PointAt(count), self->bounds);
         } else {
             count += ProjectPart(PartAt(self->object, i), nullptr, scene, TopMatrix(scene), PointAt(count), self->bounds);
         }
@@ -474,12 +478,12 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
     for (int i = 0; i < self->object->parts.size; ++i) {
         FigurePart* part = PartAt(self->object, i);
         if (PartTooFar(part)) continue;
-        keyedParts |= (At<std::uint32_t>(part, 0x188) >> 10) & 1;
+        keyedParts |= (part->boxFlags >> 10) & 1;
         if (part->flags_ & kPartHidden) continue;
         if (CEngineObject* figure = self->object->figure) {
-            const char* name = ei::VCall<const char*>(PartAt(self->object, i), 7);
+            const char* name = PartAt(self->object, i)->GetName();
             stlp::string key(name);
-            count += ei::VCall<int>(figure, 14, &key, PixelAt(count), &target);
+            count += reinterpret_cast<CLinkMesh*>(figure)->RasterisePart(&key, PixelAt(count), &target);
         } else {
             count += RasterisePart(part, nullptr, device, PixelAt(count), &target);
         }
@@ -566,7 +570,9 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
     float px = static_cast<float>((f(0x58) * f(0x12C) + f(0x5C) * f(0x130)) + f(0x54) * f(0x128));
     float point[3] = {static_cast<float>(static_cast<double>(px) + at[0]),
                       static_cast<float>(static_cast<double>(py) + at[1]), static_cast<float>(pz + at[2])};
-    ProjectShadow(ShadowProjector(), nullptr, direction, point, At<std::uint32_t>(self->object, 0x134), &Quads(),
+    std::uint32_t radiusBits;
+    std::memcpy(&radiusBits, &self->object->radius, 4);
+    ProjectShadow(ShadowProjector(), nullptr, direction, point, radiusBits, &Quads(),
                   &self->vertices, &self->indices, &self->texCoords, 0, keyedParts == 0);
 
     if (self->vertexCount != 0) {
@@ -588,14 +594,14 @@ int CObject3DClientSpecific::DrawShadow(ShadowDrawContext* context) {
     if (ShadowMode() <= 0) return 1;
     if (!ShadowSwitch(object->GetClassId())) return 1;
     if (object->flags_ & kObjectHidden) return 1;
-    if (ei::VCall<bool>(object, 0x54 / 4)) return 1;   // invisible
+    if (ObjectSlots(object)->InvisibleSlot()) return 1;   // invisible
 
     if (!texture) {
         AssignTexture(&texture, CreateShadowTexture(TextureManager()));
         if (!texture) return game::FatalError(reinterpret_cast<const char*>(0x0078F5B8));
         char name[0x100];
         gamecrt::sprintf(name, reinterpret_cast<const char*>(0x0078F5B0), object->id_);   // "SR%d"
-        At<mfc::CString>(texture, 0x1C) = name;
+        *reinterpret_cast<mfc::CString*>(&static_cast<CTexture*>(texture)->name_) = name;
         flags_ |= kFlagRefresh;
     }
     std::uint32_t objectFlags = object->flags_;
@@ -607,8 +613,8 @@ int CObject3DClientSpecific::DrawShadow(ShadowDrawContext* context) {
     if (vertexCount == 0) return 1;
     std::uint32_t colour = kDefaultColour;
     if (object->GetClassId() == kClassUnitObject) {
-        CEngineObject* controller = At<CEngineObject*>(object, 0x240);
-        float alpha = static_cast<float>(static_cast<double>(At<float>(controller, 0x78)) * kAlphaScale);
+        auto* half = static_cast<CUnitClientSpecific*>(reinterpret_cast<CUnit*>(object)->controller);
+        float alpha = static_cast<float>(static_cast<double>(half->fadeIn) * kAlphaScale);
         colour = (static_cast<std::uint32_t>(x87::fistp(alpha)) << 24) | 0xFFFFFF;
     }
     SetTexture(TextureStages(), nullptr, 0, texture);

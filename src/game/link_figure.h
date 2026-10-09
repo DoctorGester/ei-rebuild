@@ -16,17 +16,35 @@
 #include <cstddef>
 #include <cstdint>
 
+class CLight;        // spell.h
+
+// The drawer of a figure mesh (CFigureMesh::drawer_; its draws 005A7A70 / 005A7640, 005A7160
+// advances its animation, 005A7290 finishes a draw). Only what the draws use.
+struct FigureMeshDrawer {
+    std::uint8_t unknown_00[8];
+    std::uint32_t flags_;       // +0x08 gets the bits of 00790C0C when the mesh is animated
+    std::uint8_t unknown_0C[0x1C - 0x0C];
+    CFigureMesh* mesh_;         // +0x1C the mesh it draws
+    RECT screen_;               // +0x20 where the mesh was last drawn
+};
+static_assert(offsetof(FigureMeshDrawer, mesh_) == 0x1C && offsetof(FigureMeshDrawer, screen_) == 0x20);
+
+struct CDXSurface;   // texture.h
+
 // The transform object of 3DfpFPU.dll (GetTLPipeline; CTransformPipeline::transform_), as far as
 // rewritten code calls it.
 class ITransformPipeline {
 public:
-    // Slots 0-6 are not called from this code.
     virtual void Unknown0();
-    virtual void Unknown1();
-    virtual void Unknown2();
+    // 1: the viewport's size in pixels (the renderer's creation, 00500B70).
+    virtual void SetViewportSize(float width, float height);
+    // 2: the sun for the next LightMesh (its localDirection_; 005A7A70).
+    virtual void AddSun(CLight* sun);
     virtual void Unknown3();
-    virtual void Unknown4();
-    virtual void Unknown5();
+    // 4: the projection matrix, transposed (00500B70 passes a copy).
+    virtual void SetProjection(float* transposed);
+    // 5: the depth range (00500B70: the options' fog start and far clip distances).
+    virtual void SetDepthRange(float first, float second);
     virtual void Unknown6();
     // 7: fits `bounds` around `count` vertex packets.
     virtual void FitBounds(ClipBounds* bounds, const VertexPacket* vertices, int count);
@@ -48,6 +66,31 @@ public:
     virtual int ProjectTerrainClipped(const Matrix4* matrix, const void* vertices, void* projected, void* outcodes,
                                       int count);
     virtual void ProjectTerrain(const Matrix4* matrix, const void* vertices, void* projected, int count);
+    virtual void Unknown20();
+    virtual void Unknown21();
+    virtual void Unknown22();
+    virtual void Unknown23();
+    virtual void Unknown24();
+    virtual void Unknown25();
+    virtual void Unknown26();
+    virtual void Unknown27();
+    virtual void Unknown28();
+    virtual void Unknown29();
+    virtual void Unknown30();
+    virtual void Unknown31();
+    virtual void Unknown32();
+    virtual void Unknown33();
+    virtual void Unknown34();
+    virtual void Unknown35();
+    virtual void Unknown36();
+    virtual void Unknown37();
+    virtual void Unknown38();
+    virtual void Unknown39();
+    // 40: lights a figure mesh (005A7A70): its vertex packets and normals, the colours written (one
+    // per normal), its words, the lights (their localPosition_, colours set for the material) and
+    // the material's light vector.
+    virtual void LightMesh(const void* vertices, const void* normals, std::uint32_t* colours, const void* words,
+                           int wordCount, CLight** lights, int lightCount, const std::uint32_t* vector);
 };
 
 // A part's header in the mesh's map +0x14 (map<string, LinkPartHeader>; 0x50 bytes, zeroed when
@@ -109,6 +152,32 @@ public:
     // and index counts; false (nothing written) when there is no such part.
     virtual bool GetPartData(const stlp::string* name, VertexPacket** vertices, MeshCorner** corners,
                              std::uint16_t** indices, int* vertexCount, int* indexCount);
+    // 7-12: a figure mesh's part `name` drawn through this figure (CObject3D::figure; 005A7A70):
+    // 7 fills a flat part's colours and speculars, 8 lights it, 9-12 draw it (with the mesh's
+    // per-vertex offsets: 9 / 11; with two textures' surfaces: 11 / 12). The draws return 2 when
+    // nothing was drawn. `u`, `v` are the mesh's +0xCC / +0xD0.
+    virtual void FlatColours(const stlp::string* name, std::uint32_t colour, std::uint32_t specular,
+                             lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars);
+    virtual void LightPart(const stlp::string* name, const FigureLights* lights, FigureMaterial* material, int alpha,
+                           lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars);
+    virtual int DrawPartMoved(const stlp::string* name, int flags, lib::AlignedArray<std::uint32_t>* colours,
+                              lib::AlignedArray<std::uint32_t>* speculars, lib::AlignedArray<Vector3>* offsets,
+                              std::uint32_t u, std::uint32_t v);
+    virtual int DrawPart(const stlp::string* name, int flags, lib::AlignedArray<std::uint32_t>* colours,
+                         lib::AlignedArray<std::uint32_t>* speculars, std::uint32_t u, std::uint32_t v);
+    virtual int DrawPartMovedTextured(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
+                                      lib::AlignedArray<std::uint32_t>* colours,
+                                      lib::AlignedArray<std::uint32_t>* speculars,
+                                      lib::AlignedArray<Vector3>* offsets, std::uint32_t u, std::uint32_t v);
+    virtual int DrawPartTextured(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
+                                 lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars,
+                                 std::uint32_t u, std::uint32_t v);
+    // 13 / 14: the shadow of part `name` (0051CE60): its points projected with `matrix` (the
+    // part's per-vertex offsets added) into `points`, growing `bounds`; then its projected points
+    // `pixels` rasterised into the shadow target. Both return the point count.
+    virtual int ProjectPart(const stlp::string* name, lib::AlignedArray<Vector3>* offsets, const float* matrix,
+                            float* points, float* bounds);
+    virtual int RasterisePart(const stlp::string* name, int* pixels, void* target);
 
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073D790);
     static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073D7CC);   // the part-header base

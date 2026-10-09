@@ -1,14 +1,21 @@
-// The draw of one figure part (005A7A70, thiscall on the part's scene node, RET 0x1C): the node's
-// mesh (+0x1C, a CFigureMesh) is clip-tested against the view; animated meshes (type 13..16) are
-// advanced to the current time; the mesh's colours are filled (flat meshes, flag 0x100) or lit
-// once (flag 0x10 marks them lit): the lights are moved into the mesh's space through the inverse
-// of the model matrix, the transform object (or the owner's figure) computes the colours, the
-// "crown" mesh is pulled halfway to its average colour when 0079BD28 is set; then the mesh is
-// drawn through the device (004E9010 / 004E9A50, with the per-vertex offsets added into a copy
-// when there are any) or, when the mesh's owner (+0x98) has a figure (+0xF0), through that
-// figure's own slots; the screen rectangle goes to the node (+0x20) and to `rect`. See
+// The draw of one figure part (005A7A70, thiscall on the part's drawer, RET 0x1C): the drawer's
+// mesh (FigureMeshDrawer::mesh_, a CFigureMesh) is clip-tested against the view; animated meshes
+// (type 13..16) are advanced to the current time; the mesh's colours are filled (flat meshes, flag
+// 0x100) or lit once (flag 0x10 marks them lit): the lights are moved into the mesh's space through
+// the inverse of the model matrix, the transform object (or the owner's figure) computes the
+// colours, the "crown" mesh is pulled halfway to its average colour when 0079BD28 is set; then the
+// mesh is drawn through the device (004E9010 / 004E9A50, with the per-vertex offsets added into a
+// copy when there are any) or, when the mesh's owner has a figure (CObject3D::figure), through
+// that figure's own slots; the screen rectangle goes to the drawer and to `rect`. See
 // docs/notes/models.md ("Figure parts").
 #include "ei/hook.h"
+#include "figure_mesh.h"          // CFigureMesh, FigureMeshDrawer, FigureMaterial, FigureLights
+#include "link_figure.h"          // CLinkMesh, ITransformPipeline
+#include "map_object_figures.h"   // CObject3D
+#include "model.h"                // CTransformPipeline, CSceneRenderer
+#include "spell.h"                // CLight
+#include "texture.h"              // CTextureDevice, CTexture
+#include "world_data.h"           // SceneSun
 #include "lib/containers.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -21,16 +28,6 @@
 
 namespace {
 
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
-}
-
-struct LightSpan {            // {data, count}: light objects
-    char** data;
-    int count;
-};
-
 // A block of four vertex positions (x[4], y[4], z[4], w[4]; 64 bytes).
 struct PositionBlock {
     float v[16];
@@ -42,22 +39,28 @@ struct RawString {
     char* finish;
     char* eos;
 };
+const stlp::string* AsString(const RawString* s) { return reinterpret_cast<const stlp::string*>(s); }
 
 // The positions with the offsets added (007C2E48, a lib::AlignedArray; a function-local static,
 // guard 007C2E58 bit 1, freed at exit by 005A8AE0).
 lib::AlignedArray<PositionBlock>& MovedPositions() { return *reinterpret_cast<lib::AlignedArray<PositionBlock>*>(0x007C2E48); }
 std::uint8_t& Guard() { return *reinterpret_cast<std::uint8_t*>(0x007C2E58); }
+// The ambient level the lights' colours are set with (0079BE9C, float bits), the "crown" option
+// (0079BD28), the flags an animated mesh's drawer gets (00790C0C) and the renderer (007AF060).
+std::uint32_t AmbientBits() { return *reinterpret_cast<const std::uint32_t*>(0x0079BE9C); }
+int CrownOption() { return *reinterpret_cast<const int*>(0x0079BD28); }
+std::uint32_t AnimatedDrawerFlags() { return *reinterpret_cast<const std::uint32_t*>(0x00790C0C); }
 
 // --- Forwarders ----------------------------------------------------------------------------------
 
 // 004F16A0 CTransformPipeline::ClipTest (model.cpp): 2 = outside the view, 1 = crossing it.
-__declspec(naked) int __fastcall ClipTest(void* /*pipeline*/, void*, const void* /*bounds*/) EI_ORIGINAL(0x004F16A0)
-// 005A7160: the node's animation at a time (float bits). 005A7290: after the draw (the renderer).
-// 0068D280: a light's colours for a material and the ambient level (float bits).
-__declspec(naked) void __fastcall LightForMaterial(char*, void*, char* /*material*/, std::uint32_t /*ambient*/)
+__declspec(naked) int __fastcall ClipTest(CTransformPipeline*, void*, const ClipBounds*) EI_ORIGINAL(0x004F16A0)
+// 005A7160: the drawer's animation at a time (float bits). 005A7290: after the draw (the renderer).
+// 0068D280 (CLight::SetLitColors): a light's colours for a material and the ambient level (float bits).
+__declspec(naked) void __fastcall LightForMaterial(CLight*, void*, FigureMaterial* /*material*/, std::uint32_t /*ambient*/)
     EI_ORIGINAL(0x0068D280)
 // The device's mesh draws (device_mesh.cpp).
-__declspec(naked) int __fastcall DrawMesh2(char*, void*, std::uint32_t, std::uint32_t, const void*, int, std::uint32_t,
+__declspec(naked) int __fastcall DrawMesh2(CTextureDevice*, void*, CDXSurface*, CDXSurface*, const void*, int, std::uint32_t,
                                            int, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t,
                                            std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t,
                                            std::uint32_t, std::uint32_t, std::uint32_t, int, int) EI_ORIGINAL(0x004E9A50)
@@ -66,28 +69,14 @@ __declspec(naked) int __fastcall DrawMesh2(char*, void*, std::uint32_t, std::uin
 // tag), destructors 00425040 and 0040C770 (two instantiations).
 void __fastcall StringEndOfStorage(char** a0, void*, const void* a2, const void* a3) { StringEndOfStorageOriginal((void*)a0, nullptr, a2, a3); }
 inline void __fastcall StringInitRange(RawString* a0, void*, const char* a2, const char* a3, const void* a4) { StringInitRangeOriginal((void*)a0, nullptr, a2, a3, a4); }
-// 005197B0: map<string, piece>::find on a figure's piece map (figure + 0x14): the node to *out.
-void __fastcall FindPiece(void* a0, void*, char** a2, const RawString* a3) { StringMapFindOriginal(a0, nullptr, (void**)a2, (const void*)a3); }
-
-template <typename R, typename... Args>
-R ThisCall(void* object, int slot, Args... args) {
-    void* fn = (*static_cast<void***>(object))[slot];
-    return reinterpret_cast<R(__fastcall*)(void*, void*, Args...)>(fn)(object, nullptr, args...);
+// 005197B0: map<string, LinkPartHeader>::find on a figure's part headers: the node to *out.
+void __fastcall FindPiece(LinkHeaderMap* a0, void*, LinkHeaderMap::Node** a2, const RawString* a3) {
+    StringMapFindOriginal(a0, nullptr, reinterpret_cast<void**>(a2), a3);
 }
 
-// The mesh's name (virtual slot 7).
-const char* MeshName(char* mesh) { return ThisCall<const char*>(mesh, 7); }
-
-// The figure's slots used here (virtual, thiscall, all with the mesh's name first).
-constexpr int kFigureFlatColours = 7;
-constexpr int kFigureLight = 8;
-constexpr int kFigureDrawMoved = 9;
-constexpr int kFigureDraw = 10;
-constexpr int kFigureDrawMovedTextured = 11;
-constexpr int kFigureDrawTextured = 12;
-// The transform object's slots: 2 adds the sun, 40 lights the mesh.
-constexpr int kTransformAddSun = 2;
-constexpr int kTransformLight = 40;
+// The mesh's name: its slot 7, CEngineObject::GetName (the mesh is an engine object; CFigureMesh
+// keeps its vtable as a plain field).
+const char* MeshName(CFigureMesh* mesh) { return reinterpret_cast<CEngineObject*>(mesh)->GetName(); }
 
 // --- x87 sequences (transcribed) -----------------------------------------------------------------
 
@@ -473,9 +462,9 @@ __declspec(naked) void __fastcall TickTime(float* /*out*/) {
 
 // --- Arrays --------------------------------------------------------------------------------------
 
-// The colour arrays (the figure mesh's lib::AlignedArray<uint32_t> at +0x138 / +0x148) are sized
-// with the inlined SetSize that drops the contents (SetSizeDiscard; allocator 00406B50), the moved
-// positions with the one that keeps them (SetSize; allocator 00452E70).
+// The colour arrays (CFigureMesh::colorsA_ / colorsB_) are sized with the inlined SetSize that
+// drops the contents (SetSizeDiscard; allocator 00406B50), the moved positions with the one that
+// keeps them (SetSize; allocator 00452E70).
 using ColourArray = lib::AlignedArray<std::uint32_t>;
 
 void Fill(ColourArray& a, std::uint32_t value) {
@@ -485,72 +474,74 @@ void Fill(ColourArray& a, std::uint32_t value) {
 // --- The part --------------------------------------------------------------------------------------
 
 struct Part {
-    char* node;               // this
-    char* device;
-    const LightSpan* lights;
-    char* material;           // +8 flag 0x10: keep the speculars, draw flag 8; +0x50 a vector
+    FigureMeshDrawer* node;   // this
+    CTextureDevice* device;
+    const FigureLights* lights;
+    FigureMaterial* material;
     int alpha;
     RECT* rect;
-    char* textureA;
-    char* textureB;
-    void* figure;             // the mesh owner's figure (+0x98 -> +0xF0), or null
+    CTexture* textureA;
+    CTexture* textureB;
+    CLinkMesh* figure;        // the mesh owner's figure (CObject3D::figure), or null
     int drawFlags;            // 1 rectangle wanted, 2 crossing the view, 8 material flag 0x10
 
-    char* Mesh() const { return At<char*>(node, 0x1C); }
-    ColourArray& Colours() const { return At<ColourArray>(Mesh(), 0x138); }
-    ColourArray& Speculars() const { return At<ColourArray>(Mesh(), 0x148); }
+    CFigureMesh* Mesh() const { return node->mesh_; }
+    ColourArray& Colours() const { return Mesh()->colorsA_; }
+    ColourArray& Speculars() const { return Mesh()->colorsB_; }
     bool Textured() const { return textureA && textureB; }
 };
 
 // An allocator argument for the string members: they read (at most) a byte through it.
 const void* Allocator(Part& part) { return reinterpret_cast<char*>(&part.material) + 3; }
 
-// Flat meshes (flag 0x100): the figure fills the colours (slot 7), else every colour is the
-// mesh's +0xD4 and every specular its +0xD8 (both arrays sized 4 * +0xA8 first).
+// A pointer passed to the device's draws as a dword.
+std::uint32_t Word(const void* p) { return static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(p)); }
+
+// Flat meshes (flag 0x100): the figure fills the colours (its FlatColours), else every colour is
+// the mesh's flat colour and every specular its flat specular (both arrays sized 4 * normals first).
 void FlatColours(Part& part) {
     if (part.figure) {
         const char* name = MeshName(part.Mesh());
         RawString s;
         StringInitWithAllocator(&s, nullptr, Allocator(part));
         StringAssignSpan(&s, nullptr, name, name + std::strlen(name));
-        char* mesh = part.Mesh();
-        ThisCall<void>(part.figure, kFigureFlatColours, &s, At<std::uint32_t>(mesh, 0xD4), At<std::uint32_t>(mesh, 0xD8),
-                       &part.Colours(), &part.Speculars());
+        CFigureMesh* mesh = part.Mesh();
+        part.figure->FlatColours(AsString(&s), mesh->flatColour_, mesh->flatSpecular_, &part.Colours(),
+                                 &part.Speculars());
         StringBufferFree(&s);
         return;
     }
-    part.Colours().SetSizeDiscard(At<int>(part.Mesh(), 0xA8) * 4);
-    part.Speculars().SetSizeDiscard(At<int>(part.Mesh(), 0xA8) * 4);
-    Fill(part.Colours(), At<std::uint32_t>(part.Mesh(), 0xD4));
-    Fill(part.Speculars(), At<std::uint32_t>(part.Mesh(), 0xD8));
+    part.Colours().SetSizeDiscard(part.Mesh()->buffers_.normalCount * 4);
+    part.Speculars().SetSizeDiscard(part.Mesh()->buffers_.normalCount * 4);
+    Fill(part.Colours(), part.Mesh()->flatColour_);
+    Fill(part.Speculars(), part.Mesh()->flatSpecular_);
 }
 
 // The inverse model matrix of the last call, used when the matrix is singular (the original then
 // reads stack slots it did not write, which usually hold the previous part's inverse).
 float g_lastInverse[12];
 
-// Lighting (once, flag 0x10): the lights and the sun (007AF07C) into the mesh's space, their
-// colours for the material, then the figure (slot 8) or the transform object (slot 40) lights the
-// mesh; the crown blend; the speculars become the alpha unless the material keeps them.
+// Lighting (once, flag 0x10): the lights and the sun (SceneSun) into the mesh's space, their
+// colours for the material, then the figure (LightPart) or the transform object (LightMesh) lights
+// the mesh; the crown blend; the speculars become the alpha unless the material keeps them.
 void Light(Part& part) {
-    char* pipeline = At<char*>(part.device, 0xAC);
-    void* transform = At<void*>(pipeline, 0xC);
-    const float* model = reinterpret_cast<const float*>(At<char*>(pipeline, 0x2C) + (At<int>(pipeline, 0x30) - 1) * 64);
-    InvertModelMatrix(model, g_lastInverse);
-    std::uint32_t ambient = *reinterpret_cast<const std::uint32_t*>(0x0079BE9C);
+    CTransformPipeline* pipeline = part.device->pipeline_;
+    ITransformPipeline* transform = pipeline->transform_;
+    InvertModelMatrix(pipeline->Top(3)->m, g_lastInverse);
+    std::uint32_t ambient = AmbientBits();
     for (int i = 0; i < part.lights->count; ++i) {
-        char* light = part.lights->data[i];
+        CLight* light = part.lights->data[i];
         float moved[3];
-        TransformPoint(g_lastInverse, &At<float>(light, 0x1C), moved);
-        std::memcpy(light + 0x28, moved, sizeof(moved));
+        TransformPoint(g_lastInverse, &light->position_.x, moved);
+        std::memcpy(&light->localPosition_, moved, sizeof(moved));
         LightForMaterial(light, nullptr, part.material, ambient);
     }
-    if (char* sun = *reinterpret_cast<char**>(0x007AF07C)) {
+    if (CLight* sun = worlddata::SceneSun()) {
         float moved[3];
-        TransformSun(g_lastInverse, &At<float>(sun, 0xD4), moved);
-        std::memcpy(sun + 0x108, moved, sizeof(moved));
+        TransformSun(g_lastInverse, &sun->direction_.x, moved);
+        std::memcpy(&sun->localDirection_, moved, sizeof(moved));
         LightForMaterial(sun, nullptr, part.material, ambient);
-        ThisCall<void>(transform, kTransformAddSun, sun);
+        transform->AddSun(sun);
     }
 
     if (part.figure) {
@@ -558,34 +549,32 @@ void Light(Part& part) {
         RawString s;
         StringInitWithAllocator(&s, nullptr, Allocator(part));
         StringAssignSpan(&s, nullptr, name, name + std::strlen(name));
-        ThisCall<void>(part.figure, kFigureLight, &s, part.lights, part.material, part.alpha, &part.Colours(),
-                       &part.Speculars());
+        part.figure->LightPart(AsString(&s), part.lights, part.material, part.alpha, &part.Colours(), &part.Speculars());
         StringRepDestroy(&s);
     } else {
         std::uint32_t vector[3];
-        std::memcpy(vector, part.material + 0x50, sizeof(vector));
-        char* mesh = part.Mesh();
-        ThisCall<void>(transform, kTransformLight, At<void*>(mesh, 0x9C), At<void*>(mesh, 0xA4),
-                       static_cast<void*>(part.Colours().data), At<void*>(mesh, 0xBC), At<int>(mesh, 0xC0),
-                       static_cast<void*>(part.lights->data), part.lights->count, static_cast<void*>(vector));
+        std::memcpy(vector, part.material->lightVector_, sizeof(vector));
+        CFigureMesh* mesh = part.Mesh();
+        transform->LightMesh(mesh->buffers_.vertices, mesh->buffers_.normals, part.Colours().data, mesh->buffers_.words,
+                             mesh->buffers_.wordCount, part.lights->data, part.lights->count, vector);
     }
 
-    if (*reinterpret_cast<const int*>(0x0079BD28) != 0 && gamecrt::stricmp(MeshName(part.Mesh()), "crown") == 0) {
-        CrownBlend(reinterpret_cast<std::uint32_t*>(part.Colours().data), part.Colours().size);
+    if (CrownOption() != 0 && gamecrt::stricmp(MeshName(part.Mesh()), "crown") == 0) {
+        CrownBlend(part.Colours().data, part.Colours().size);
     }
-    if (!(At<std::uint8_t>(part.material, 8) & 0x10)) {
+    if (!(part.material->flags_ & 0x10)) {
         Fill(part.Speculars(), (static_cast<std::uint32_t>(part.alpha) & 0xFF) << 24);
     }
-    At<std::uint32_t>(part.Mesh(), 8) |= 0x10;
+    part.Mesh()->flags_ |= 0x10;
 }
 
-// The positions with the per-vertex offsets (+0x128, +0x12C of them) added, in 007C2E48.
-const void* MovedPositionsOf(char* mesh) {
+// The positions with the per-vertex offsets (CFigureMesh::offsets_) added, in 007C2E48.
+const void* MovedPositionsOf(CFigureMesh* mesh) {
     lib::AlignedArray<PositionBlock>& moved = MovedPositions();
-    moved.SetSize(At<int>(mesh, 0xA0));
-    std::memcpy(moved.data, At<void*>(mesh, 0x9C), static_cast<std::size_t>(At<int>(mesh, 0xA0)) * 64);
-    for (int i = 0; i < At<int>(mesh, 0x12C); ++i) {
-        const float* offset = reinterpret_cast<const float*>(At<char*>(mesh, 0x128)) + i * 3;
+    moved.SetSize(mesh->buffers_.vertexCount);
+    std::memcpy(moved.data, mesh->buffers_.vertices, static_cast<std::size_t>(mesh->buffers_.vertexCount) * 64);
+    for (int i = 0; i < mesh->offsets_.size; ++i) {
+        const float* offset = &mesh->offsets_.data[i].x;
         float* x = moved.data[i >> 2].v + (i & 3);
         AddOffset(&offset[0], &x[0]);
         AddOffset(&offset[1], &x[4]);
@@ -596,40 +585,42 @@ const void* MovedPositionsOf(char* mesh) {
 
 // The mesh through the device. The drawn flag (0x40) is only set when a rectangle was asked for.
 void DrawThroughDevice(Part& part) {
-    char* mesh = part.Mesh();
-    const void* positions = At<void*>(mesh, 0x9C);
-    int blocks = At<int>(mesh, 0xA0);
-    if (At<int>(mesh, 0x12C) != 0) positions = MovedPositionsOf(mesh);
+    CFigureMesh* mesh = part.Mesh();
+    const void* positions = mesh->buffers_.vertices;
+    int blocks = mesh->buffers_.vertexCount;
+    if (mesh->offsets_.size != 0) positions = MovedPositionsOf(mesh);
     mesh = part.Mesh();
-    auto field = [mesh](int offset) { return At<std::uint32_t>(mesh, offset); };
+    const MeshBuffers& b = mesh->buffers_;
     int result;
     if (part.Textured()) {
-        result = DrawMesh2(part.device, nullptr, At<std::uint32_t>(part.textureA, 0x5C), At<std::uint32_t>(part.textureB, 0x5C),
-                           positions, blocks, field(0xA4), static_cast<int>(field(0xA8)), field(0x138), field(0x148),
-                           field(0xAC), field(0xB0), field(0xB4), field(0xB8), field(0xBC), field(0xC0), field(0xC4),
-                           field(0xC8), field(0xCC), field(0xD0), part.alpha, part.drawFlags);
+        result = DrawMesh2(part.device, nullptr, part.textureA->surface_, part.textureB->surface_, positions, blocks,
+                           Word(b.normals), b.normalCount, Word(mesh->colorsA_.data), Word(mesh->colorsB_.data),
+                           Word(b.texCoords), b.texCoordCount, Word(b.corners), b.cornerCount, Word(b.words),
+                           b.wordCount, Word(b.indices), b.indexCount, mesh->unknown_0CC, mesh->unknown_0D0, part.alpha,
+                           part.drawFlags);
     } else {
-        result = DrawMesh(part.device, nullptr, positions, blocks, field(0xA4), static_cast<int>(field(0xA8)), field(0x138),
-                          field(0x148), field(0xAC), field(0xB0), field(0xB4), field(0xB8), field(0xBC), field(0xC0),
-                          field(0xC4), field(0xC8), field(0xCC), field(0xD0), part.alpha, part.drawFlags);
+        result = DrawMesh(reinterpret_cast<char*>(part.device), nullptr, positions, blocks, Word(b.normals),
+                          b.normalCount, Word(mesh->colorsA_.data), Word(mesh->colorsB_.data), Word(b.texCoords),
+                          b.texCoordCount, Word(b.corners), b.cornerCount, Word(b.words), b.wordCount, Word(b.indices),
+                          b.indexCount, mesh->unknown_0CC, mesh->unknown_0D0, part.alpha, part.drawFlags);
     }
     if (!part.rect) return;
-    RECT* own = &At<RECT>(part.node, 0x20);
+    RECT* own = &part.node->screen_;
     if (result == 2) {
         gameapi::SetRectEmpty(own);
         gameapi::SetRectEmpty(part.rect);
         return;
     }
-    gameapi::CopyRect(own, &At<RECT>(part.device, 0x15C));
+    gameapi::CopyRect(own, &part.device->drawnRect_);
     *part.rect = *own;
-    At<std::uint32_t>(part.Mesh(), 8) |= 0x40;
+    part.Mesh()->flags_ |= 0x40;
 }
 
-// The mesh through the owner's figure: slot 11 / 9 with the offsets (+0x128), 12 / 10 without,
-// the textured ones first; the rectangle from the figure's piece of that name (+0x5C).
+// The mesh through the owner's figure: DrawPartMoved(Textured) with the offsets, DrawPart(Textured)
+// without; the rectangle from the figure's part header of that name.
 void DrawThroughFigure(Part& part) {
-    char* mesh = part.Mesh();
-    bool moved = At<int>(mesh, 0x12C) != 0;
+    CFigureMesh* mesh = part.Mesh();
+    bool moved = mesh->offsets_.size != 0;
     const char* name = MeshName(mesh);
     RawString s;
     if (moved || part.Textured()) {
@@ -643,22 +634,22 @@ void DrawThroughFigure(Part& part) {
         StringAssignSpan(&s, nullptr, name, name + std::strlen(name));
     }
     mesh = part.Mesh();
-    std::uint32_t u = At<std::uint32_t>(mesh, 0xCC);
-    std::uint32_t v = At<std::uint32_t>(mesh, 0xD0);
-    void* colours = &part.Colours();
-    void* speculars = &part.Speculars();
-    void* offsets = mesh + 0x128;
+    std::uint32_t u = mesh->unknown_0CC;
+    std::uint32_t v = mesh->unknown_0D0;
+    ColourArray* colours = &part.Colours();
+    ColourArray* speculars = &part.Speculars();
+    lib::AlignedArray<Vector3>* offsets = &mesh->offsets_;
     int result;
     if (moved && part.Textured()) {
-        result = ThisCall<int>(part.figure, kFigureDrawMovedTextured, &s, part.drawFlags, At<std::uint32_t>(part.textureA, 0x5C),
-                               At<std::uint32_t>(part.textureB, 0x5C), colours, speculars, offsets, u, v);
+        result = part.figure->DrawPartMovedTextured(AsString(&s), part.drawFlags, part.textureA->surface_,
+                                                    part.textureB->surface_, colours, speculars, offsets, u, v);
     } else if (moved) {
-        result = ThisCall<int>(part.figure, kFigureDrawMoved, &s, part.drawFlags, colours, speculars, offsets, u, v);
+        result = part.figure->DrawPartMoved(AsString(&s), part.drawFlags, colours, speculars, offsets, u, v);
     } else if (part.Textured()) {
-        result = ThisCall<int>(part.figure, kFigureDrawTextured, &s, part.drawFlags, At<std::uint32_t>(part.textureA, 0x5C),
-                               At<std::uint32_t>(part.textureB, 0x5C), colours, speculars, u, v);
+        result = part.figure->DrawPartTextured(AsString(&s), part.drawFlags, part.textureA->surface_,
+                                               part.textureB->surface_, colours, speculars, u, v);
     } else {
-        result = ThisCall<int>(part.figure, kFigureDraw, &s, part.drawFlags, colours, speculars, u, v);
+        result = part.figure->DrawPart(AsString(&s), part.drawFlags, colours, speculars, u, v);
     }
     StringBufferFree(&s);
 
@@ -670,49 +661,52 @@ void DrawThroughFigure(Part& part) {
         int zero = 0;
         StringEndOfStorage(&key.eos, nullptr, Allocator(part), &zero);
         StringAssignSpan(&key, nullptr, pieceName, pieceName + std::strlen(pieceName));
-        char* node = nullptr;
-        FindPiece(static_cast<char*>(part.figure) + 0x14, nullptr, &node, &key);
-        RECT* own = &At<RECT>(part.node, 0x20);
-        gameapi::CopyRect(own, &At<RECT>(node, 0x5C));
+        LinkHeaderMap::Node* node = nullptr;
+        FindPiece(&part.figure->headers_, nullptr, &node, &key);
+        RECT* own = &part.node->screen_;
+        gameapi::CopyRect(own, &node->second.screen);
         StringBufferFree(&key);
         *part.rect = *own;
     }
-    if (result != 2) At<std::uint32_t>(part.Mesh(), 8) |= 0x40;
+    if (result != 2) part.Mesh()->flags_ |= 0x40;
 }
+
+// 005A8AE0: frees the moved positions at exit (registered by its game address, as the original does).
+constexpr std::uintptr_t kFreeMovedPositions = std::uintptr_t(0x005A8AE0);
 
 } // namespace
 
-// 005A7A70 (thiscall on the part's node, RET 0x1C). `lights` {data, count} of light objects,
-// `material` the drawing context (+8 flags, +0x50 a vector), `alpha` the low byte for the
-// speculars, `rect` (optional) receives the screen rectangle, the textures (+0x5C) select the
-// two-texture draw. Returns 1.
-int __fastcall DrawFigurePart(char* node, void*, char* device, const void* lights, char* material, int alpha,
-                              RECT* rect, char* textureA, char* textureB) {
-    char* mesh = At<char*>(node, 0x1C);
-    At<std::uint32_t>(mesh, 8) &= ~0x40u;
-    if (At<std::uint32_t>(At<char*>(node, 0x1C), 8) & 0x80) return 1;
-    void* owner = At<void*>(At<char*>(node, 0x1C), 0x98);
-    Part part{node, device, static_cast<const LightSpan*>(lights), material, alpha, rect, textureA, textureB,
-              owner ? At<void*>(owner, 0xF0) : nullptr, 0};
+// 005A7A70 (thiscall on the part's drawer, RET 0x1C). `lights` the light objects, `material` the
+// drawing context (flags, light vector), `alpha` the low byte for the speculars, `rect` (optional)
+// receives the screen rectangle, the textures (their surfaces) select the two-texture draw.
+// Returns 1.
+int __fastcall DrawFigurePart(FigureMeshDrawer* node, void*, CTextureDevice* device, const FigureLights* lights,
+                              FigureMaterial* material, int alpha, RECT* rect, CTexture* textureA, CTexture* textureB) {
+    CFigureMesh* mesh = node->mesh_;
+    mesh->flags_ &= ~0x40u;
+    if (node->mesh_->flags_ & 0x80) return 1;
+    CObject3D* owner = node->mesh_->owner_;
+    Part part{node, device, lights, material, alpha, rect, textureA, textureB,
+              owner ? reinterpret_cast<CLinkMesh*>(owner->figure) : nullptr, 0};
     if (!(Guard() & 1)) {
         Guard() |= 1;
         MovedPositions() = lib::AlignedArray<PositionBlock>{};
-        GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x005A8AE0));
+        GameAtExit(reinterpret_cast<void(__cdecl*)()>(kFreeMovedPositions));
     }
 
-    int visibility = ClipTest(At<void*>(device, 0xAC), nullptr, part.Mesh() + 0x188);
+    int visibility = ClipTest(device->pipeline_, nullptr, &part.Mesh()->bounds_);
     if (visibility == 2) return 1;
-    int type = At<int>(part.Mesh(), 0x15C);
+    int type = static_cast<int>(part.Mesh()->unknown_15C);
     if (type >= 13 && type <= 16) {
         float time;
         TickTime(&time);
-        At<std::uint32_t>(node, 8) |= *reinterpret_cast<const std::uint32_t*>(0x00790C0C);
+        node->flags_ |= AnimatedDrawerFlags();
         std::uint32_t bits;
         std::memcpy(&bits, &time, 4);
-        AnimateOriginal(node, nullptr, bits);
+        AnimateOriginal(reinterpret_cast<char*>(node), nullptr, bits);
     }
 
-    std::uint32_t meshFlags = At<std::uint32_t>(part.Mesh(), 8);
+    std::uint32_t meshFlags = part.Mesh()->flags_;
     if (meshFlags & 0x100) {
         FlatColours(part);
     } else if (!(meshFlags & 0x10)) {
@@ -721,13 +715,13 @@ int __fastcall DrawFigurePart(char* node, void*, char* device, const void* light
 
     if (visibility == 1) part.drawFlags = 2;
     if (rect) part.drawFlags |= 1;
-    if (At<std::uint8_t>(material, 8) & 0x10) part.drawFlags |= 8;
+    if (material->flags_ & 0x10) part.drawFlags |= 8;
     if (part.figure) {
         DrawThroughFigure(part);
     } else {
         DrawThroughDevice(part);
     }
-    FinishDraw(node, nullptr, reinterpret_cast<void*>(0x007AF060));
+    FinishDraw(reinterpret_cast<char*>(node), nullptr, SceneContext());
     return 1;
 }
 EI_REPLACE(0x005A7A70, DrawFigurePart);

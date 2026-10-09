@@ -53,6 +53,29 @@ struct MeshBuffers {
 };
 static_assert(sizeof(MeshBuffers) == 0x30);
 
+class CObject3D;   // map_object_figures.h
+class CFigureMesh;
+
+struct FigureMeshDrawer;   // link_figure.h
+
+// The material a figure part is drawn with (005A7A70's fourth argument): its flags, the colours the
+// lights scale (CLight::SetLitColors, +0x20 / +0x40) and the vector the transform object lights with.
+struct FigureMaterial {
+    std::uint8_t unknown_00[8];
+    std::uint8_t flags_;            // +0x08 0x10: the speculars are kept (draw flag 8)
+    std::uint8_t unknown_09[0x50 - 0x09];
+    std::uint32_t lightVector_[3];  // +0x50 (moved as dwords)
+};
+static_assert(offsetof(FigureMaterial, flags_) == 0x08 && offsetof(FigureMaterial, lightVector_) == 0x50);
+
+class CLight;   // spell.h
+
+// The lights a figure part is lit with ({data, count}; 005A7A70's third argument).
+struct FigureLights {
+    CLight** data;
+    int count;
+};
+
 // The figure mesh of class 0x42 (0x220 bytes, vtable 0073C1C4); 0x43 (0073FC48) and 0x44 derive
 // from it and share its loaders. Class 0x41 (0x1E0 bytes, vtable 0073FBF0) has the same layout up
 // to +0x1E0 and its own loaders. No virtuals are declared: the vtable is a plain field.
@@ -117,14 +140,20 @@ public:
     std::uint32_t flags_;               // +0x008 0x20: loaded
     std::uint8_t unknown_00C[0x1C - 0x0C];
     Vector3 position_;                  // +0x01C (CTransformObject)
-    std::uint8_t unknown_028[0x9C - 0x28];
+    std::uint8_t unknown_028[0x94 - 0x28];
+    FigureMeshDrawer* drawer_;          // +0x094 (00501D00 draws through it)
+    CObject3D* owner_;                  // +0x098 the object whose figure (+0xF0) may draw the mesh
     MeshBuffers buffers_;               // +0x09C
-    std::uint8_t unknown_0CC[0x128 - 0xCC];
+    std::uint32_t unknown_0CC;          // +0x0CC passed to the draws after the buffers, with +0xD0
+    std::uint32_t unknown_0D0;          // +0x0D0
+    std::uint32_t flatColour_;          // +0x0D4 every colour of a flat mesh (flags_ 0x100)
+    std::uint32_t flatSpecular_;        // +0x0D8 every specular of a flat mesh
+    std::uint8_t unknown_0DC[0x128 - 0xDC];
     lib::AlignedArray<Vector3> offsets_;     // +0x128 per-vertex offsets added when drawing (005A0B10 / 005A0CD0)
     lib::AlignedArray<std::uint32_t> colorsA_;   // +0x138 one per normal (lit colours)
     lib::AlignedArray<std::uint32_t> colorsB_;   // +0x148 one per normal
     std::uint32_t unknown_158;          // +0x158 from the file header
-    std::uint32_t unknown_15C;          // +0x15C from the file header
+    std::uint32_t unknown_15C;          // +0x15C from the file header; the mesh type (13..16: animated, 005A7A70)
     Vector3 center_;                    // +0x160
     Vector3 boxMin_;                    // +0x16C
     Vector3 boxMax_;                    // +0x178
@@ -141,6 +170,8 @@ public:
 };
 static_assert(offsetof(CFigureMesh, flags_) == 0x08);
 static_assert(offsetof(CFigureMesh, buffers_) == 0x9C);
+static_assert(offsetof(CFigureMesh, drawer_) == 0x94 && offsetof(CFigureMesh, owner_) == 0x98);
+static_assert(offsetof(CFigureMesh, unknown_0CC) == 0xCC && offsetof(CFigureMesh, flatSpecular_) == 0xD8);
 static_assert(offsetof(CFigureMesh, colorsA_) == 0x138);
 static_assert(offsetof(CFigureMesh, unknown_158) == 0x158);
 static_assert(offsetof(CFigureMesh, center_) == 0x160);

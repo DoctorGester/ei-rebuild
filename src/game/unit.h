@@ -616,7 +616,7 @@ public:
     std::uint8_t motion[0xA4];      // +0x27C the unit's UnitMotion (ai_motion.h): Motion()
     float heightOffset;             // +0x320 height above the water surface (PlaceOnGround)
     int sizeClass;                  // +0x324 selects the 4-bit passability field in each AI map cell
-    std::uint8_t unknown_328[4];
+    float unknown_328;              // +0x328 0.75 after Reset
     float standingHeight;           // +0x32C; deeper water or higher ground than (2 - height) * 16 blocks it
     std::uint8_t unknown_330[0x33E - 0x330];
     std::uint8_t attackRate;        // +0x33E (25 / value: see UnitParamsPeriod)

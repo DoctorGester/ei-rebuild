@@ -193,3 +193,20 @@ a call to the Rebirth-patched 006714A0). Kept: `CResourceStream::Seek` treats "f
 "from the start", "from the end" of an archive entry uses +0x2C, which OpenFile never sets; OpenFile leaks the `_findfirst`
 handle; `ListFiles` copies a name into a 1 KB buffer without a length check. Dead code: 00674310, 00674910, 006748F0,
 006745C0, 00674670. Skipped: STLport instantiations (006713C0-00674070, 00675560-00675690).
+
+## C9 cleanup (2026-10-09)
+
+Offsets, VCall and byte arithmetic removed (behaviour unchanged) from renderer_init, map_object_lifetime, figure_part_draw,
+string_map and (partly) map_object_shadow. Facts found: the renderer's settings argument is the options object
+(`options::GameOptions`, now with the video fields +0x2C..+0x78, FarClipDistance +0x1E4, FogDayStartDistance +0x264);
+`CSceneRenderer` +4 flags, +0x24 a counted `CRenderHelper` (0x118), +0x50 the creation time; the transform object's slots 1
+SetViewportSize, 4 SetProjection, 5 SetDepthRange, 2 AddSun, 40 LightMesh; the figure at CObject3D +0xF0 is a `CLinkMesh`
+whose slots 7-12 draw a mesh part and 13 / 14 project / rasterise its shadow; 005A7A70's `this` is a `FigureMeshDrawer`
+(+0x1C the CFigureMesh, +0x20 its screen rect); CFigureMesh +0x94 drawer, +0x98 owner, +0xD4 / +0xD8 flat colour /
+specular; CLight +0x28 / +0x108 the position / direction in the lit mesh's space, +0xD4 the direction; the light factory
+(*007AF748) is `CLightFactory` (spell.h) with its lit-id list. FigurePart (map_object_figures.h) and CFigureMesh describe
+the same objects (both have the bounds at +0x188 and +0x158 / +0x15C); not merged. The debug panel (0079B930) is a
+file-local `CDebugPanel` in string_map.cpp. Left in map_object_shadow.cpp: BuildMatrix's raw part matrix (+0x34 / +0x54,
+which FigurePart's layout contradicts), the scene's matrix stack (+0x64) and object (+0xC, slot 7), the material's colour
+key (+0x60), the device's blur slots 11 / 12 and the world's slot 34; the __asm / float_control blocks everywhere. Not
+started: world_map, world_update, scene_bones, unit_update.
