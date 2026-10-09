@@ -140,8 +140,10 @@ public:
     std::uint8_t unknown_004[4];
     std::uint32_t flags_;               // +0x008 0x20: loaded
     std::uint8_t unknown_00C[0x1C - 0x0C];
-    Vector3 position_;                  // +0x01C (CTransformObject)
-    std::uint8_t unknown_028[0x94 - 0x28];
+    Vector3 position_;                  // +0x01C (CTransformObject: local position)
+    std::uint8_t unknown_028[0x34 - 0x28];
+    Quaternion rotation_;               // +0x034 (CTransformObject: local rotation; a bone places it, 0050C230)
+    std::uint8_t unknown_044[0x94 - 0x44];
     FigureMeshDrawer* drawer_;          // +0x094 (00501D00 draws through it)
     CObject3D* owner_;                  // +0x098 the object whose figure (+0xF0) may draw the mesh
     MeshBuffers buffers_;               // +0x09C
@@ -171,7 +173,7 @@ public:
     lib::AlignedArray<std::uint16_t> indices_;    // +0x200
     lib::AlignedArray<TexCoord> texCoords_;       // +0x210
 };
-static_assert(offsetof(CFigureMesh, flags_) == 0x08);
+static_assert(offsetof(CFigureMesh, flags_) == 0x08 && offsetof(CFigureMesh, rotation_) == 0x34);
 static_assert(offsetof(CFigureMesh, buffers_) == 0x9C);
 static_assert(offsetof(CFigureMesh, drawer_) == 0x94 && offsetof(CFigureMesh, owner_) == 0x98);
 static_assert(offsetof(CFigureMesh, unknown_0CC) == 0xCC && offsetof(CFigureMesh, flatSpecular_) == 0xD8);
