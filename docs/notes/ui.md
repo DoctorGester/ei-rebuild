@@ -184,7 +184,10 @@ height * [00740150], the fade's alpha step `(ms as qword) * rate + alpha` stored
 fade ends; renderer slot 19 `DrawRectangle` with ZENABLE off; render states mirrored to render::state); ours only
 (result 1, no close-all pending, alpha in range); every scenario. `CUiMesh::CreateSprite` 005E6C60 (slot 2: the
 figure's Create 005A6C70, identity scale matrix, tint 1, the identity orientation 007C7CD8, z 10, colours
-0xFF000000, visible) and `CUiWindow::ClearObjects` 005FF1E0 (only the base screen's chat window 006091C0 calls it).
+0xFF000000, visible) and `CUiWindow::ClearObjects` 005FF1E0 (only the base screen's chat window 006091C0 calls it). The sprite's
+array sizes `CUiMesh::SetQuadCount` 005EA210 (then z 0, w 1 in every block), `SetVertexCount` 005EA600 (+2 zeroed),
+`SetIndexCount` 005EA4C0, `SetUvCount` 005EA380 are `lib::AlignedArray<T>::SetSize` on typed views (`Quads()`,
+`Vertices()`, `Indices()`, `Texels()`); ours only (size, capacity, kept prefix, the element fields).
 
 | Address | Name | Verify |
 |---|---|---|

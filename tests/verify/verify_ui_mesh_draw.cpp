@@ -10,6 +10,7 @@
 #include "../../src/game/ui.h"
 
 #include <cstring>
+#include <vector>
 
 namespace {
 void* s_unused;
@@ -59,3 +60,52 @@ static int __fastcall SpriteCreateVerify(CUiMesh* self) {
     return result;
 }
 EI_VERIFY(0x005E6C60, SpriteCreateVerify, 0, s_unused);
+
+// 005EA210 / 005EA600 / 005EA4C0 / 005EA380 (the arrays' sizes): ours only (they allocate): the
+// size is `count` within the capacity, the elements before the old size kept (compared with a copy),
+// the quads' z 0 and w 1, the vertices' +2 zero. Every scenario (the sprite builders, the minimap).
+namespace {
+template <typename T, typename Extra>
+void CheckSetSize(const char* name, lib::AlignedArray<T>& array, int count, void (CUiMesh::*set)(int), CUiMesh* self,
+                  Extra extra) {
+    std::vector<T> before(array.data, array.data + (count < array.size ? count : array.size));
+    (self->*set)(count);
+    bool ok = array.size == count && array.capacity >= count && (count == 0 ? !array.data : array.data != nullptr);
+    if (ok && !before.empty()) ok = std::memcmp(before.data(), array.data, before.size() * sizeof(T)) == 0 || !extra.keeps;
+    for (int i = 0; ok && i < count; ++i) ok = extra(array.data[i]);
+    ei::verify::Check(name, true, ok, "count %d size %d capacity %d", count, array.size, array.capacity);
+}
+struct NoExtra {
+    bool keeps = true;
+    template <typename T> bool operator()(const T&) const { return true; }
+};
+struct QuadExtra {
+    bool keeps = false;   // z / w are rewritten in every block
+    bool operator()(const UiQuadBlock& q) const {
+        for (int k = 0; k < 4; ++k)
+            if (q.z[k] != 0.0f || q.w[k] != 1.0f) return false;
+        return true;
+    }
+};
+struct VertexExtra {
+    bool keeps = false;
+    bool operator()(const UiMeshVertex& v) const { return v.unknown_2 == 0; }
+};
+} // namespace
+
+static void __fastcall QuadCountVerify(CUiMesh* self, void*, int count) {
+    CheckSetSize("CUiMesh::SetQuadCount", self->Quads(), count, &CUiMesh::SetQuadCount, self, QuadExtra{});
+}
+EI_VERIFY(0x005EA210, QuadCountVerify, 0, s_unused);
+static void __fastcall VertexCountVerify(CUiMesh* self, void*, int count) {
+    CheckSetSize("CUiMesh::SetVertexCount", self->Vertices(), count, &CUiMesh::SetVertexCount, self, VertexExtra{});
+}
+EI_VERIFY(0x005EA600, VertexCountVerify, 0, s_unused);
+static void __fastcall IndexCountVerify(CUiMesh* self, void*, int count) {
+    CheckSetSize("CUiMesh::SetIndexCount", self->Indices(), count, &CUiMesh::SetIndexCount, self, NoExtra{});
+}
+EI_VERIFY(0x005EA4C0, IndexCountVerify, 0, s_unused);
+static void __fastcall UvCountVerify(CUiMesh* self, void*, int count) {
+    CheckSetSize("CUiMesh::SetUvCount", self->Texels(), count, &CUiMesh::SetUvCount, self, NoExtra{});
+}
+EI_VERIFY(0x005EA380, UvCountVerify, 0, s_unused);

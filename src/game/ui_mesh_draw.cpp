@@ -108,3 +108,27 @@ int CUiMesh::CreateSprite() {
     return 1;
 }
 EI_REPLACE_METHOD(0x005E6C60, CUiMesh::CreateSprite);
+
+// --- The arrays' sizes (005EA210, 005EA600, 005EA4C0, 005EA380) ---------------------------------
+
+void CUiMesh::SetQuadCount(int count) {
+    Quads().SetSize(count);
+    for (int i = 0; i < count; ++i)
+        for (int k = 0; k < 4; ++k) {
+            quads_[i].z[k] = 0.0f;
+            quads_[i].w[k] = 1.0f;
+        }
+}
+EI_REPLACE_METHOD(0x005EA210, CUiMesh::SetQuadCount);
+
+void CUiMesh::SetVertexCount(int count) {
+    Vertices().SetSize(count);
+    for (int i = 0; i < count; ++i) vertices_[i].unknown_2 = 0;
+}
+EI_REPLACE_METHOD(0x005EA600, CUiMesh::SetVertexCount);
+
+void CUiMesh::SetIndexCount(int count) { Indices().SetSize(count); }
+EI_REPLACE_METHOD(0x005EA4C0, CUiMesh::SetIndexCount);
+
+void CUiMesh::SetUvCount(int count) { Texels().SetSize(count); }
+EI_REPLACE_METHOD(0x005EA380, CUiMesh::SetUvCount);

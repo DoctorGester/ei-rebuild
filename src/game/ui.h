@@ -1098,7 +1098,12 @@ static_assert(offsetof(CHudPortraits, slots_) == 0x158);
 struct UiQuadBlock {
     float x[4];
     float y[4];
-    std::uint8_t unknown_20[0x20];
+    float z[4];                      // 0 when the array grows (SetQuadCount)
+    float w[4];                      // 1
+};
+// A texture coordinate pair of a sprite's vertex.
+struct UiTexel {
+    float u, v;
 };
 static_assert(sizeof(UiQuadBlock) == 0x40);
 struct UiMeshVertex {
@@ -1109,13 +1114,20 @@ struct UiMeshVertex {
 static_assert(sizeof(UiMeshVertex) == 6);
 class CUiMesh {
 public:
-    // Not rewritten: array sizes (005EA210 quads, 005EA600 vertices, 005EA4C0 indices) and
-    // Commit (005EA150), which hands the arrays to the renderer fields (+0x9C..+0xC8) and
-    // returns the index count.
+    // The array sizes (RET 4; ui_mesh_draw.cpp): each is the aligned array's SetSize(count); the
+    // quads (005EA210) then get z 0 and w 1 in every block, the vertices (005EA600) +2 zero in
+    // every entry; the indices (005EA4C0) and texture coordinates (005EA380, 8 bytes each) nothing.
     void SetQuadCount(int count);
     void SetVertexCount(int count);
     void SetIndexCount(int count);
-    void SetUvCount(int count);      // 005EA380 texture coordinates (8 bytes each)
+    void SetUvCount(int count);
+    // The four arrays as the engine's aligned arrays (the fields below are their data and size).
+    lib::AlignedArray<UiQuadBlock>& Quads() { return *reinterpret_cast<lib::AlignedArray<UiQuadBlock>*>(&quads_); }
+    lib::AlignedArray<UiMeshVertex>& Vertices() { return *reinterpret_cast<lib::AlignedArray<UiMeshVertex>*>(&vertices_); }
+    lib::AlignedArray<std::uint16_t>& Indices() { return *reinterpret_cast<lib::AlignedArray<std::uint16_t>*>(&indices_); }
+    lib::AlignedArray<UiTexel>& Texels() { return *reinterpret_cast<lib::AlignedArray<UiTexel>*>(&uvs_); }
+    // Not rewritten: Commit (005EA150), which hands the arrays to the renderer fields
+    // (+0x9C..+0xC8) and returns the index count.
     int Commit();
     // 005E6FA0 (Rebirth-patched, not rewritten). Puts the sprite at layout point (x, y) at
     // `depth` in front of the interface camera (sets the local position +0x1C).
@@ -1154,16 +1166,22 @@ public:
     std::uint8_t unknown_0DC[0x1C0 - 0xDC];
     UiQuadBlock* quads_;             // +0x1C0
     int quadCount_;                  // +0x1C4
-    std::uint8_t unknown_1C8[0x1E0 - 0x1C8];
+    int quadCapacity_;               // +0x1C8
+    int quadGrowBy_;                 // +0x1CC
+    std::uint8_t unknown_1D0[0x1E0 - 0x1D0];
     UiMeshVertex* vertices_;         // +0x1E0
     int vertexCount_;                // +0x1E4
-    std::uint8_t unknown_1E8[0x200 - 0x1E8];
+    int vertexCapacity_;             // +0x1E8
+    int vertexGrowBy_;               // +0x1EC
+    std::uint8_t unknown_1F0[0x200 - 0x1F0];
     std::uint16_t* indices_;         // +0x200
     int indexCount_;                 // +0x204
-    std::uint8_t unknown_208[0x210 - 0x208];
+    int indexCapacity_;              // +0x208
+    int indexGrowBy_;                // +0x20C
     float* uvs_;                     // +0x210 u, v per vertex
     int uvCount_;                    // +0x214
-    std::uint8_t unknown_218[0x220 - 0x218];
+    int uvCapacity_;                 // +0x218
+    int uvGrowBy_;                   // +0x21C
     int visible_;                    // +0x220
     float tint_[3];                  // +0x224 colour factors (the HUD: 1 selected, 0.5 not)
     float unknown_230[3];            // +0x230 zero (Create)
@@ -1182,7 +1200,9 @@ static_assert(offsetof(CUiMesh, position_) == 0x1C && offsetof(CUiMesh, placemen
 static_assert(offsetof(CUiMesh, quads_) == 0x1C0);
 static_assert(offsetof(CUiMesh, vertices_) == 0x1E0);
 static_assert(offsetof(CUiMesh, indices_) == 0x200);
-static_assert(offsetof(CUiMesh, uvs_) == 0x210);
+static_assert(offsetof(CUiMesh, uvs_) == 0x210 && offsetof(CUiMesh, uvGrowBy_) == 0x21C);
+static_assert(offsetof(CUiMesh, quadGrowBy_) == 0x1CC && offsetof(CUiMesh, vertexGrowBy_) == 0x1EC &&
+              offsetof(CUiMesh, indexGrowBy_) == 0x20C);
 static_assert(offsetof(CUiMesh, visible_) == 0x220);
 static_assert(offsetof(CUiMesh, uOffset_) == 0xCC);
 static_assert(offsetof(CUiMesh, tint_) == 0x224);
