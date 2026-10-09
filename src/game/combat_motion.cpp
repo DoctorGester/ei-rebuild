@@ -612,7 +612,8 @@ bool CUnitServer::PathTo(const float* point, float range) {
     bool found = MapFindPath(world->AIMap(), nullptr, unit, point, Motion(this), range, 0.0f);
     unit->unknown_43C = before;
     if (!found) {
-        std::uint8_t blocked = Motion(this)->failed;   // +0xA9
+        // +0xA9, read as a byte: the original compares it with 1.
+        std::uint8_t blocked = reinterpret_cast<const std::uint8_t&>(Motion(this)->failed);
         movingAnimation = 0;
         CtlStandStill(this);
         CtlSetState(this, nullptr, kStateChasing);

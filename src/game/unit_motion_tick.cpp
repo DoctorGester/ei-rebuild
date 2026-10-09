@@ -194,6 +194,8 @@ CUnit* UnitOf(CUnitServer* c) { return c->unit; }
 AnimationSteps* Queue(CUnitServer* c) { return &c->queue; }
 int& QueueStart(CUnitServer* c) { return c->queue.extra; }
 AIPath* MotionPathOf(CUnitServer* c) { return c->MotionPath(); }
+// The path's `failed` byte as the original reads it: compared with 1, so read as a byte, not a bool.
+std::uint8_t FailedByte(CUnitServer* c) { return reinterpret_cast<const std::uint8_t&>(c->MotionPath()->failed); }
 // The world server (ManagerContextOf) and an object's world (ObjectWorld).
 CWorldServer* ServerOf(CUnitServer* c) { return static_cast<CWorldServer*>(ManagerContextOf(c)); }
 int WorldTime(void* world) { return static_cast<CWorld*>(world)->tick_; }
@@ -360,7 +362,7 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
 void MotionOver(CUnitServer* c, CWorldServer* world) {
     CUnit* unit = UnitOf(c);
     if (MotionPathOf(c)->reached) {
-        std::uint8_t wasFlag = MotionPathOf(c)->failed == 1;
+        std::uint8_t wasFlag = FailedByte(c) == 1;
         PathClear(MotionPathOf(c));
         int time = WorldTime(ObjectWorld(c));
         float axis[3], back[3];
@@ -421,7 +423,7 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const float* 
         PlaySteps(c, nullptr, CtlIdleAnimation(c));
         return;
     }
-    std::uint8_t wasFlag = MotionPathOf(c)->failed == 1;
+    std::uint8_t wasFlag = FailedByte(c) == 1;
     CtlStandStill(c);
     CtlSetState(c, nullptr, 6);
     c->stoodBlocked = wasFlag;
