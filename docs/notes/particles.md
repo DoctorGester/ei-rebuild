@@ -55,15 +55,6 @@ Only the `RET 4` / `RET 8` no-op stubs 00485530, 00492FB0, 00493DD0, 00494A00, 0
 factory / destructor are verified ours only; the Stun wrapper asks the carrier's slot 55 once more before running
 the callback.
 
-## How the callbacks were checked offline
-
-Besides the verify build, every callback was run against the original in a lab (not in the repo): a 32-bit exe linked
-at 0x10000 maps game.exe's sections at 0x400000 in a static arena, stubs the heap, texture load, FatalError, SurfaceHeight,
-the attachment helpers, a fake unit carrier (vtable slots 12, 52, 55, 60; orientation, +0x134 / +0x264) and the terrain
-vtable, installs the repo's verify wrappers over the original code and runs the original Tick on every type
-0x2000-0x2052 (with and without a carrier, three seeds, 90 ticks) at 24- and 53-bit precision control: 104 functions,
-4.8 million calls, no mismatch.
-
 ## Floating point
 
 All files use `float_control(precise, on)`, `double` for FPU-stack values and a volatile `Store` for every FSTP to a float;
@@ -88,8 +79,9 @@ the unordered case the same way. Remaining differences only at 64-bit precision 
 - `Tick`'s emission count, element calls and particle-list surgery are checked only by list consistency (its floats by
   the replay); `Draw`'s comparison does not see the return value of the real draw.
 - The Modifier effect needs a carrier: the scenario's script source only hits the no-carrier path.
-- Paths the lab could not reach with its fake carrier (real figures and platforms, a stun that ends, units without
-  parts) are checked only in game.
+- Every callback was also run against the original offline (a lab exe mapping game.exe's sections, fake carrier, all types
+  0x2000-0x2052 at 24 / 53 bits; not in the repo): no mismatch. Paths a fake carrier cannot reach (real figures and
+  platforms, a stun that ends, units without parts) are checked only in game.
 - 64-bit precision control is not reproduced (the game runs at 24 bits).
 - Not rewritten: 00498480 / 00498630 (script.md "Next candidates"), 0049F660 ISAAC seeding (reads a random file from C:\
   through the recursive CFileFind 0049F4B0), the dead 3DS readers. The procedural texture class 0049A090 / 0049A220 is the

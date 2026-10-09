@@ -29,8 +29,8 @@ out-of-line CEffect constructor).
 
 Sound sequences: the first name (when not empty) and the others go into a stack CStringArray handed to
 CSoundManager::AddSequence with a chooser for their count; an update moves the sequence through SetSoundPosition with
-the sequence id. The chooser takes the number of sounds started so far in EDX, which `SoundSequence::PlayNext`
-(sound_manager.cpp) now passes (it once left EDX undefined, so a first-named sequence could skip it).
+the sequence id. The chooser takes the number of sounds started so far in EDX (`SoundSequence::PlayNext`, sound_manager.cpp,
+passes it).
 
 The factory constructs the ambient sound, class 0x5B, Moshka (100) and Tornado (0x65) through their constructor addresses.
 
@@ -38,9 +38,7 @@ CEffectShowVisibility (0x5E, vtable 0074381C, 0x170): +0x14C observer, +0x150 se
 0x17 with caster and target), +0x154 counted fog object (client: made by the fog manager *007AF75C, 004E28D0), +0x158
 FogGrid (cells / rows allocated by the constructor). The server's Tick follows the seer, recomputes the grid (005CD210)
 and marks the effect changed; Pack / Unpack send the grid through a stack memory stream (FogGrid Write / Read 005C8CC0 /
-005C8BF0); Start reveals it in the fog (`CVisibilityFog::Reveal`). Reset does not reset the base. Verify: SetUnits side
-by side; Pack, Save, Load as the other effects; constructor against the original with the two grid blocks compared by
-shape; the rest ours only. Not rewritten: 0067C5D0 (FogGrid free), 0067C450 / 0067C460 (class name / id). Script casts
+005C8BF0); Start reveals it in the fog (`CVisibilityFog::Reveal`). Reset does not reset the base. Not rewritten: 0067C5D0 (FogGrid free), 0067C450 / 0067C460 (class name / id). Script casts
 have no caster, so only `spells_hero.txt` reaches it (see below).
 
 CEffectArrowFigure (0x5B, vtable 007437B8, 0x19C): +0x158 the figure object (class 0x38 from the object manager with the
@@ -49,8 +47,7 @@ original reads the object's +0x94 figure before making it), +0x15C the shooter, 
 (0054F450) copies in (multiplier 1 after Reset). Tick: on the server, once arrived, the target's slot 31
 (CMapObjectVirtuals::ReceiveHit) gets (hit, shooter, shooter); the shooter is looked up before the target is tested. Slot
 24 moves the figure in the client's object grid (CWorldClient +0x120) and rolls it along the velocity. The factory
-constructs it directly. Verify: Pack / Save against the original, constructor on seeded scratch, the rest ours only
-(Load: the figure reference is resolved against the world). Scenario `effects_bow` (the bow is selected on the weapon
+constructs it directly. Scenario `effects_bow` (the bow is selected on the weapon
 bar only in vanilla: Rebirth's layout moves the bar). Forwarders 00516DA0, 00518840, 00518860, 0051C970, 0051C250 live in
 originals_units.h (world_client_maps.cpp uses them).
 
@@ -63,8 +60,7 @@ time, +0x15C timer, +0x160 circle angle, +0x164 perch height, +0x168 state (0 pe
 leader for 100, 2 flying to the perch at +0x1C for 150, then Reset). Update (0067CEF0, from the draw pass with the
 animation time) steps at most 5 frames, keeps the bird 0.5 above the surface (slot 28, platforms), moves it at
 sqrt(sqrt(distance)) * 0.03 + 0.3 per frame (sector grid Move, RollTowards) and advances its animation. FindPerch
-(0067CD90) draws ISAAC angles until the AI map's line of sight is above 0.5. Verify: FindPerch ours / generator restored /
-original (CheckNear); Unpack both; constructor on seeded scratch; the rest ours only. Kept: an unknown state leaves
+(0067CD90) draws ISAAC angles until the AI map's line of sight is above 0.5. Kept: an unknown state leaves
 Update's target unset (never happens: Follow sets 0). Not rewritten: 0067CAB0 / 0067CAC0, 0067D650 / 0067D660 (3-byte
 Pack / Start stubs). 007C8430 (pi/2, set at startup) is a constant here.
 
@@ -76,8 +72,7 @@ weather 0058CCD0's helper 0058CEA9) aims at a random speed 0.096..0.216 per tick
 moves it (source and sound follow), stops the source for the last 110 ticks, and on the server every 8th tick above 20
 hands each player-owned unit within 5 (CSectorMap::FindUnitsInRadius) a hit of 5 (weight 1 on type 6) through its
 controller's slot 20 (CUnitServerVirtuals::TakeHitSlot, map_object.h). Start catches a new source up by at most 29
-ticks. Verify: Launch ours / object and ISAAC restored / original; Pack, Save, Load against the original; constructor on
-seeded scratch; the rest ours only. Not rewritten: 0067D7C0 / 0067D7D0 (class name / id), 0067E0D0 (counted-pointer
+ticks. Not rewritten: 0067D7C0 / 0067D7D0 (class name / id), 0067E0D0 (counted-pointer
 release, unwind only). No scenario starts weather with a tornado yet.
 
 ## Scenario notes (spells_hero)
@@ -93,5 +88,4 @@ release, unwind only). No scenario starts weather with a tornado yet.
 
 ## Next candidates
 
-The Moshka and the tornado need a followed object / tornado weather that no scenario provides (the CPlayerServer sync
-0066D100..0066F080 once listed here is rewritten: player_sync.cpp).
+The Moshka and the tornado need a followed object / tornado weather that no scenario provides.
