@@ -269,9 +269,6 @@ void Terrain::SetSun(CLight* light, const Vector4* colour) {
     }
 }
 
-// 006CB390: the ambient sounds (not rewritten yet).
-__declspec(naked) void Terrain::PlayAmbience() EI_ORIGINAL(0x006CB390)
-
 int Terrain::RunTick() {
     if (lightCountdown > 0 && --lightCountdown == 0) {
         lightCountdown = lightInterval;

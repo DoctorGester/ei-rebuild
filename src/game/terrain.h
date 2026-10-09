@@ -65,8 +65,15 @@ public:
     // to 0.01), then with a light interval the lit cached sectors get relight countdowns spread
     // over it (sorted; 0 drops the lighting at once), without one every sector's lighting is dropped.
     void SetSun(CLight* sun, const Vector4* ambient);
-    // 006CB390. The ambient sounds around the camera (flag 8).
+    // 006CB390 (terrain_ambience.cpp). The ambient sounds around the listener (flag 8): the 3x3
+    // sectors around it (loaded when needed) each vote a sound class from their texture class
+    // counts and get a weight from their distance; up to three classes with weight go on. Each may
+    // start a one-shot (ambient\<set>\<class>\<time of day>\<n>.wav) at a random spot of a random
+    // sector of its class, and keeps a looping circle.wav at its volume and pan (the loop already
+    // playing for that class is reused); the loops of classes no longer heard stop.
     void PlayAmbience();
+    // 006CBCD0 (from 00578940). Clears flag 8 and stops the three loops.
+    void StopAmbience();
 
     std::uint8_t unknown_01C[0x94 - 0x1C];   // the rest of the CTransformObject base
     std::uint32_t landscapeFlags;   // +0x094 terrain::TerrainFields::flags
@@ -121,8 +128,9 @@ public:
     int visibleRowFirst;            // +0xAA4 SetVisibleSectors
     lib::AlignedArray<int> visibleColumnFirst;   // +0xAA8 0056FD30, per visible row
     lib::AlignedArray<int> visibleColumnLast;    // +0xAB8 0056FD30
-    std::uint8_t unknown_AC8[0xAE0 - 0xAC8];
-    const char* textAE0;            // +0xAE0 CString
+    int ambientSounds[3];           // +0xAC8 the looping circle sounds (handles, -1 none)
+    int ambientClasses[3];          // +0xAD4 their sound classes, -1 none
+    const char* textAE0;            // +0xAE0 CString: the ambient sound set (ambient\<set>\...)
     std::uint8_t unknown_AE4[4];
     std::uint8_t partAE8[0x14];     // +0xAE8 005711C0
 };
