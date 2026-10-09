@@ -4,6 +4,7 @@
 // finds, in the index, a record of that name (the last of equal names).
 #include "verify.h"
 
+#include "../../src/game/chunk_archive.h"
 #include "../../src/game/core_streams.h"
 #include "../../src/game/item_db.h"
 #include "../../src/game/originals_library.h"
@@ -50,3 +51,49 @@ void __fastcall LoadQuestItemsVerify(itemdb::IndexedRecordTable* self, void*, CS
 EI_VERIFY(0x006A6E50, LoadQuickItemsVerify, 0, s_unused);
 EI_VERIFY(0x006A7110, LoadLootVerify, 0, s_unused);
 EI_VERIFY(0x006A73B0, LoadQuestItemsVerify, 0, s_unused);
+
+// A-H18: the vector serialisers 006A7C20 / 006A7D20 / 006A7E10 (the loads above call them through
+// their addresses; every scenario): ours only. When loading, the record count afterwards must equal
+// the number of record chunks, counted first with the archive's own calls (EnterChunk / CountChunks /
+// LeaveChunk leave it as it was).
+namespace {
+template <void (ChunkArchive::*Fn)(int, void*, void*)>
+void SerializeItemsVerify(const char* name, ChunkArchive* ar, int id, void* records, void* unused, int size) {
+    int expected = -1;
+    if (ar->loading_ && ar->EnterChunk(id)) {
+        expected = ar->CountChunks(1);
+        ar->LeaveChunk();
+    }
+    (ar->*Fn)(id, records, unused);
+    if (expected >= 0) {
+        const auto& table = static_cast<itemdb::IndexedRecordTable*>(records)->records;
+        int actual = static_cast<int>(table.end - table.begin) / size;
+        ei::verify::Check(name, expected, actual, "chunk %d: %d records vs %d", id, expected, actual);
+    }
+}
+void __fastcall SerializeQuickItemsVerify(ChunkArchive* ar, void*, int id, void* records, void* unused) {
+    SerializeItemsVerify<&ChunkArchive::SerializeQuickItems>("ChunkArchive::SerializeQuickItems", ar, id, records, unused,
+                                                             itemdb::kQuickItemSize);
+}
+void __fastcall SerializeLootVerify(ChunkArchive* ar, void*, int id, void* records, void* unused) {
+    SerializeItemsVerify<&ChunkArchive::SerializeLoot>("ChunkArchive::SerializeLoot", ar, id, records, unused,
+                                                       itemdb::kLootSize);
+}
+void __fastcall SerializeQuestItemsVerify(ChunkArchive* ar, void*, int id, void* records, void* unused) {
+    SerializeItemsVerify<&ChunkArchive::SerializeQuestItems>("ChunkArchive::SerializeQuestItems", ar, id, records, unused,
+                                                             itemdb::kQuestItemSize);
+}
+} // namespace
+EI_VERIFY(0x006A7C20, SerializeQuickItemsVerify, 0, s_unused);
+EI_VERIFY(0x006A7D20, SerializeLootVerify, 0, s_unused);
+EI_VERIFY(0x006A7E10, SerializeQuestItemsVerify, 0, s_unused);
+
+// A-H18: the database's destructor 006A6570 (exit, through atexit 006A6560; every scenario that
+// lets the game exit): ours only; it must return (the tables are not used afterwards).
+namespace {
+void __fastcall ItemDatabaseDestructVerify(itemdb::ItemDatabase* self) {
+    self->DestructBody();
+    ei::verify::Check("ItemDatabase::DestructBody", true, true, "database %p", self);
+}
+} // namespace
+EI_VERIFY(0x006A6570, ItemDatabaseDestructVerify, 0, s_unused);

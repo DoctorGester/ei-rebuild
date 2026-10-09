@@ -484,14 +484,15 @@ records' compiler-generated destructors, run by STLport's _Destroy from 00651600
 | 006A6E50, 006A7110, 006A73B0 | `itemdb::IndexedRecordTable::LoadQuickItems / LoadLoot / LoadQuestItems` (item_db_load.cpp): a stack archive (ConstructLocal, Open, the vector serialisers 006A7C20 / 006A7D20 / 006A7E10 forwarded, Close), then each record filed under its name (find_or_insert 00613B70 / 006A7870 / 0069E2A0, originals_library.h) | ours only: every record's name finds a record of that name (startup, every scenario; Rebirth's patched 006A67A0 calls them by address) |
 
 | 006B7D10 | `CSoundManager::AllocateVoice` (sound.md) | ours only (sound) |
+| 006A7C20, 006A7D20, 006A7E10 | `ChunkArchive::SerializeQuickItems / SerializeLoot / SerializeQuestItems` (item_db_load.cpp, A-H18; the loads call them by address): quest_records.cpp's pattern with the records' destructors, the vectors' resize and the records' Serialize forwarded | ours only: records loaded = record chunks (every scenario) |
+| 006A6570 | `itemdb::ItemDatabase::DestructBody` (007C86D8, A-H18): six tables last to first (index clear + buckets, or the materials' index destructor 006A6C20; record destructor bodies 006A88F0..006A8BD0; storage through stlp::deallocate) | ours only (exit) |
 
 Next (after A-H17): sound Open / Close / Reset 006B6A30 / 006B6D80 / 006B73E0 (sound.md has the layout read for them; Close
 needs the deferred and cache map forwarders shared between sound_manager.cpp and sound_manager_lifetime.cpp first), the
 terrain sector's 006BFC80 / 006BF5F0 (models.md), 006A6570 (item database destructor), the item vector serialisers 006A7C20 /
 006A7D20 / 006A7E10 (like model_db.cpp's SerializeArray), 0064F550 (a quest's order), 0066F890 (server login), 00661FB0 / 00661FE0.
 
-0069EF50 (and 0069E3F0) are `vector<T*>::_M_range_insert` / `insert` (library.csv). 006A6570 (the item database's static destructor at exit:
-six tables' indexes, records and storage, ~23 library and record-destructor calls) is left for later.
+0069EF50 (and 0069E3F0) are `vector<T*>::_M_range_insert` / `insert` (library.csv).
 
 0064F650 / 0064FEA0 (and 0064F310, 0064F400, 0064F9A0, 0064FA40, 0064FBD0, 0064FC10, 0064FC90, 0064FE40, 006500B0) are the quest list sort's STLport
 instantiations (library.csv); their comparison inlines 0064F550 (a quest's order through the quest database, game code, not rewritten).
