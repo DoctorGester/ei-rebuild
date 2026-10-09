@@ -11,13 +11,13 @@
 
 #include "camera.h"
 #include "map_object.h"
+#include "map_object_figures.h"
 #include "model.h"
 #include "terrain.h"
 #include "texture.h"
 #include "ei/hook.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
-#include "ei/vcall.h"
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
 #include "render/render.h"
@@ -104,9 +104,6 @@ __declspec(naked) void __fastcall LightningDraw(void*, void*, void*) EI_ORIGINAL
 __declspec(naked) void __fastcall RibbonsDraw(void*, void*, void*) EI_ORIGINAL(0x004E5680)
 __declspec(naked) void __fastcall ClientDrawOverlays(CWorldClient*) EI_ORIGINAL(0x00569D60)
 __declspec(naked) void __fastcall HitPointsDraw(void*, void*, void*) EI_ORIGINAL(0x005E18E0)
-// CWorld slot 36 (+0x90): the client's particle manager (+0x19C). DR-C2 names it
-// ClientParticleManager (declared void there); switch the VCall to it once DR-C2 is merged.
-constexpr int kSlotParticles = 36;
 
 // A starter setting (HKCU\Software\Gipat.Ru\EI_Starter\Settings, a DWORD, 100 when absent) as
 // addon turns it into the float it patches in: (float)(unsigned)value, read once (addon reads its
@@ -261,20 +258,17 @@ void SortByModel(FrameList list, CTextureDevice* renderer) {
     FinalSortByModelAt(first, last, renderer);
 }
 
-// Calls virtual slot `slot` (one argument, the scene context) of every object of a draw list.
-// Slots 22-24 of the drawn objects are placeholders in map_object.h (CMapObjectVirtuals; DR-C2
-// names 23 DrawCollectDirty); switch these VCalls once the draw slots are named.
-void DrawEach(FrameList list, int slot) {
+// Calls `draw` on every object of a draw list (in list order).
+template <typename Draw>
+void DrawEach(FrameList list, Draw draw) {
     CEngineObject** end = FrameObjects(list).end();
-    for (CEngineObject** p = FrameObjects(list).begin(); p != end; ++p) ei::VCall<void>(*p, slot, SceneContext());
+    for (CEngineObject** p = FrameObjects(list).begin(); p != end; ++p) draw(ObjectSlots(*p));
 }
-constexpr int kSlotDraw = 22;         // +0x58, 005783C0
-constexpr int kSlotDrawUnit = 23;     // +0x5C, 005783A0
-constexpr int kSlotDrawShadow = 24;   // +0x60, 005783B0
-// The attached side object's slots 25 / 26 (+0x64 / +0x68) with 0: a deselected object's marker
-// goes away. Placeholders as above.
-constexpr int kSlotSide25 = 25;
-constexpr int kSlotSide26 = 26;
+// The drawn objects' slots 22 / 23 / 24 (+0x58 / +0x5C / +0x60; 005783C0, 005783A0, 005783B0 in
+// the old notes) with the scene context; their results are ignored.
+constexpr auto kDraw = [](CMapObjectVirtuals* object) { object->DrawFigure(SceneContext()); };
+constexpr auto kDrawUnit = [](CMapObjectVirtuals* object) { object->DrawCollectDirty(SceneContext()); };
+constexpr auto kDrawShadow = [](CMapObjectVirtuals* object) { object->DrawFigureShadow(SceneContext()); };
 
 // Empties the deferred unit list: each node's counted pointer released, the node freed with
 // `fastFree` (0056FB40) or 0056F700.
@@ -377,7 +371,7 @@ int CWorldClient::Render() {
         SetRenderState(RenderDeviceObject(), 19, 5);
         SetRenderState(RenderDeviceObject(), 20, 6);
         SetRenderState(renderer, 14, 0);
-        void* particles = ei::VCall<void*>(this, kSlotParticles);
+        ClientManager19C* particles = ClientParticleManager();
         ParticlesDraw(particles, nullptr, SceneContext());
         Flush(renderer);
         SetRenderState(RenderDeviceObject(), 19, 5);
@@ -508,20 +502,20 @@ int CWorldClient::DrawPass() {
         SortByModel(FrameList::Visible5D, renderer);
         SortByModel(FrameList::Visible52, renderer);
         SetRenderState(renderer, 24, 0xC8);
-        DrawEach(FrameList::VisibleOther, kSlotDraw);
-        DrawEach(FrameList::Visible5D, kSlotDrawUnit);
+        DrawEach(FrameList::VisibleOther, kDraw);
+        DrawEach(FrameList::Visible5D, kDrawUnit);
         CEngineObject** end = FrameObjects(FrameList::Visible5D).end();
         for (CEngineObject** p = FrameObjects(FrameList::Visible5D).begin(); p != end; ++p) QueueSelected(*p, &queued);
         Flush(renderer);
-        DrawEach(FrameList::Visible54, kSlotDraw);
-        DrawEach(FrameList::Visible52, kSlotDraw);
+        DrawEach(FrameList::Visible54, kDraw);
+        DrawEach(FrameList::Visible52, kDraw);
         Flush(renderer);
     }
     if ((flags_ & 0x80) && FrameObjects(FrameList::VisibleUnits).begin() != FrameObjects(FrameList::VisibleUnits).end()) {
         SortByModel(FrameList::VisibleUnits, renderer);
         SetRenderState(renderer, 24, 10);
         ApplyStateBlock(renderer, StateBlockAlpha());
-        DrawEach(FrameList::VisibleUnits, kSlotDrawUnit);
+        DrawEach(FrameList::VisibleUnits, kDrawUnit);
         CEngineObject** end = FrameObjects(FrameList::VisibleUnits).end();
         for (CEngineObject** p = FrameObjects(FrameList::VisibleUnits).begin(); p != end; ++p) QueueSelected(*p, &queued);
         Flush(renderer);
@@ -563,11 +557,11 @@ int CWorldClient::DrawPass() {
         ApplyStateBlock(renderer, StateBlockAlpha());
         SetRenderState(renderer, 15, 0);
         SetRenderState(renderer, 14, 0);
-        DrawEach(FrameList::Shadow5D, kSlotDrawShadow);
-        DrawEach(FrameList::ShadowOther, kSlotDrawShadow);
-        DrawEach(FrameList::Shadow54, kSlotDrawShadow);
-        DrawEach(FrameList::Shadow52, kSlotDrawShadow);
-        DrawEach(FrameList::ShadowUnits, kSlotDrawShadow);
+        DrawEach(FrameList::Shadow5D, kDrawShadow);
+        DrawEach(FrameList::ShadowOther, kDrawShadow);
+        DrawEach(FrameList::Shadow54, kDrawShadow);
+        DrawEach(FrameList::Shadow52, kDrawShadow);
+        DrawEach(FrameList::ShadowUnits, kDrawShadow);
         Flush(renderer);
         SetRenderState(renderer, 14, 1);
         PopMatrix(device->stacks_[kStackScene2]);
@@ -605,8 +599,9 @@ int CWorldClient::DrawPass() {
                 } else {
                     if (object->flags_ & 0x10) {
                         object->flags_ &= ~0x110u;
-                        ei::VCall<void>(object->attached, kSlotSide25, 0);
-                        ei::VCall<void>(object->attached, kSlotSide26, 0);
+                        // The side half's slots 25 (empty) and 26 with 0: the marker light goes off.
+                        static_cast<CObject3DSpecific*>(object->attached)->Unused25(0);
+                        static_cast<CObject3DSpecific*>(object->attached)->SetLit(0);
                     }
                     void* unused;
                     ListErase(&selected, nullptr, &unused, node);

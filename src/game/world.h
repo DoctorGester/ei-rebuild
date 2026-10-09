@@ -31,6 +31,7 @@ class CTexture;   // texture.h
 class CTextureManager;   // texture.h
 class Terrain;
 class CCamera;   // camera.h
+struct ClientManager19C;
 struct FootprintPart;   // ai_map.h: a figure part's box (FigurePart +0x188)
 class CWorldServer;
 struct Float4;   // chunk_stream.h: four floats passed by value
@@ -206,7 +207,7 @@ public:
     virtual void* MaterialManager();      // 33: the material manager (0051C970 registers part materials)
     virtual CTextureManager* TextureManager();   // 34: the client's 00561990 (+0x18C)
     virtual void ClientLightManager();    // 35: client 005619A0 (+0x190, a CLightManager), server 0
-    virtual void ClientParticleManager(); // 36: client 005619B0 (+0x19C, a CParticleManager), server 0
+    virtual ClientManager19C* ClientParticleManager();   // 36: client 005619B0 (+0x19C, a CParticleManager), server 0
     virtual void ClientManager194();      // 37: client 005619C0 (+0x194), server 0. Not identified
     virtual void ClientManager198();      // 38: client 005619D0 (+0x198), server 0. Not identified
     virtual void Unused39();              // 39: 0055EC40 returns 0 in both
