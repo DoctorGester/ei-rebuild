@@ -2256,8 +2256,27 @@ public:
     // the caret. (Not named DrawText: windows.h makes that a macro.)
     void DrawContents();
     mfc::CString& Text() { return *reinterpret_cast<mfc::CString*>(&text_); }
+    // 0065C010 (RET 0x14; ui_edit_field.cpp, A-H19). Constructor: the window, an empty text,
+    // vtables 00742DF4 / 00742DC0, every character class, font 1, at most 50 characters, colours
+    // 0xFFFFFF / 0xFF, no surfaces, then a surface (format 5) over `rect` (kept in area_; null when
+    // the allocation fails), the text drawn, focused. caret_, editing_ and changed_ are left as
+    // they are. Returns this.
+    CUiEditField* Construct(CInterface3D* ui, RECT rect);
+    // 0065C930 (input side slot 10, RET 0xC; ui_edit_field.cpp, A-H19). While focused and
+    // without Ctrl held, a character other than Backspace, Tab, Enter and Esc whose class (digit 1,
+    // letter or space 2, '.' or ':' 8, other 4) is allowed: the first one starts editing from an
+    // empty text; it is inserted at the caret when the text is shorter than maxLength_ and the new
+    // text is narrower than area_ in font_ (005F8340), then the text is drawn and the key used.
+    void OnChar(int key, int repeat, int flags);
 
-    std::uint8_t unknown_148[0x170 - 0x148];
+    RECT area_;                      // +0x148 the surface's layout rectangle
+    std::uint32_t charClasses_;      // +0x158 classes OnChar takes (1 digits, 2 letters / space, 4 others, 8 '.' ':')
+    std::uint8_t mode15C_;           // +0x15C 0 from the constructor; DrawContents offsets the text box when set
+    std::uint8_t unknown_15D[3];
+    int font_;                       // +0x160 interface font
+    int maxLength_;                  // +0x164
+    COLORREF colour_;                // +0x168 the text's colour
+    COLORREF unknown_16C;            // +0x16C 0xFF from the constructor
     const char* text_;               // +0x170 CString: the text typed
     int caret_;                      // +0x174 caret position in text_
     bool editing_;                   // +0x178 an edit key was pressed (the first one sets it)
