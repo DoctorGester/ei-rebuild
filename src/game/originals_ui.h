@@ -485,12 +485,21 @@ __declspec(naked) inline void* __fastcall ObjectivesConstructOriginal(void* /*me
     EI_ORIGINAL(0x0063B5D0)
 __declspec(naked) inline void __fastcall ObjectivesSetupOriginal(void* /*window*/, void*, const char* /*zone*/, void* /*distances*/,
                                                                  int /*twoButtons*/, int /*listZones*/) EI_ORIGINAL(0x0064BE40)
+// A-H20. The scrolling text's tokeniser 0065D4B0 (RET 4: a CString*), its layout 0065DAA0 (plain RET) and line
+// drawing 0065D150 (RET 4: the scroll position), all rewritten in ui_scroll_text.cpp; its other members call them
+// through these so their verify wrappers run.
+__declspec(naked) inline void __fastcall ScrollTextTokenizeOriginal(void* /*text*/, void*, const void* /*CString*/)
+    EI_ORIGINAL(0x0065D4B0)
+__declspec(naked) inline void __fastcall ScrollTextLayoutOriginal(void* /*text*/) EI_ORIGINAL(0x0065DAA0)
+__declspec(naked) inline void __fastcall ScrollTextDrawLinesOriginal(void* /*text*/, void*, int /*scroll*/)
+    EI_ORIGINAL(0x0065D150)
 // A-I13. 0065CC00: the scrolling text's constructor (CUiScrollText; RET 0x1C, returns this): the interface, a string
-// (the exe's empty text), the layout rectangle by value (left, top, right, bottom) and the lines' height. 005EACB0: the
+// (the exe's empty text), the layout rectangle by value (left, top, right, bottom) and the sprites' depth (A-H20: the
+// scroll bar's depth, not a line height). 005EACB0: the
 // battle view's camera and pick input side (0x2C bytes, vtable 00740208; RET 4, returns this).
 __declspec(naked) inline void* __fastcall ScrollTextConstructOriginal(void* /*memory*/, void*, CInterface3D*, const char* /*text*/,
                                                                       int /*left*/, int /*top*/, int /*right*/, int /*bottom*/,
-                                                                      float /*lineHeight*/) EI_ORIGINAL(0x0065CC00)
+                                                                      float /*depth*/) EI_ORIGINAL(0x0065CC00)
 __declspec(naked) inline void* __fastcall ViewInputConstructOriginal(void* /*memory*/, void*, CInterface3D*) EI_ORIGINAL(0x005EACB0)
 // 00607720 (rewritten as CBriefingScreen::LoadPersonTexts; through its address so the wrapper runs; plain RET).
 // 00578A20 (the client glue 007AFEA5, not read; RET 0xC): whether exit `exit` can be taken now by the party whose unit

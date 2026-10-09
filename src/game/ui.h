@@ -1718,6 +1718,15 @@ public:
     // 26 at either end), the four sprites and the three regions (up arrow, down arrow, the rest);
     // then the position set again through slot 25 (one below first, so it counts as a change).
     void SetRect(const RECT* rect);
+    // 0065AFE0 (RET 4; ui_scroll_text.cpp, A-H20). The maximum (negative: 0), moved_ set, the four
+    // sprites shown only for a maximum above 0; then the position set again through slot 25 (one
+    // below first, so it counts as a change).
+    void SetMaximum(int maximum);
+    // 0065B720 (ui_scroll_text.cpp). The maximum position.
+    int Maximum() const;
+    // 0065AFC0 (and the slider's 0065BCB0; ui_control_delete.cpp, A-H20). Destructor body: the
+    // scroll bar's vtables, then the window's (005FE930).
+    void DestroyBody();
 
     int maxPosition_;                // +0x148
     float speed_;                    // +0x14C lines per second while an arrow is held (/16)
@@ -1766,6 +1775,15 @@ namespace mfc { class CString; }
 // The pieces of a scrolling text (CUiScrollText below): a format change (0x14 bytes, vtable
 // 00742F28, type 1) or a word (0x10 bytes, vtable 00742F20 over the base 00742F24, type 2).
 struct UiTextToken {
+    // Slot 0: the deleting destructor (with 1: the memory is freed; 0065D8C0 format, 0065D8F0 word).
+    void Delete() {
+        using Fn = void(__thiscall*)(UiTextToken*, int);
+        reinterpret_cast<Fn>(static_cast<void**>(vtable_)[0])(this, 1);
+    }
+    // 0065D8E0 / 0065D960 (ui_scroll_text.cpp): the destructor body of a format token and of the
+    // base: the base vtable 00742F24 back.
+    void DestroyBase();
+
     void* vtable_;
     int type_;                       // +0x04 1 format, 2 word
 };
@@ -1778,6 +1796,9 @@ struct UiFormatToken : UiTextToken {
 };
 static_assert(sizeof(UiFormatToken) == 0x14);
 struct UiWordToken : UiTextToken {
+    // 0065D910 (ui_scroll_text.cpp): the destructor body: the text released, the base vtable back.
+    void DestroyWord();
+
     char* text_;                     // +0x08 CString
     int width_;                      // +0x0C its width in the token's font (005F8340)
 };
@@ -1795,6 +1816,36 @@ struct UiTextLine {
 // battle screen's message log and the objectives window's quest log.
 class CUiScrollText : public CUiScrollbar {
 public:
+    // 0065CC00 (RET 0x1C; ui_scroll_text.cpp, A-H20). Constructor: a scroll bar over `rect` (by
+    // value) at `depth` (maximum 0, 20 lines per second), the two arrays, a surface over the
+    // rectangle (format 5; null when the allocation fails), laid out as SetRect without the
+    // virtual call, then `text` tokenised and laid out, position 0 (slot 25, then the plain bar's
+    // SetPosition), justified (align_ 2). Returns this.
+    CUiScrollText* Construct(CInterface3D* ui, const char* text, RECT rect, float depth);
+    // 0065CE20 (ui_scroll_text.cpp). Destructor body: the tokens deleted (slot 0), the lines
+    // freed, both arrays' storage freed, then the scroll bar's (its vtables and the window's).
+    void DestroyBody();
+    // 0065CF30 (RET 4; ui_scroll_text.cpp). Appends `text`: scrolled to the end first, then kept
+    // that far from the end (the position plus the growth of the maximum).
+    void AddText(const char* text);
+    // 0065CFE0 (RET 4; ui_scroll_text.cpp). Replaces the text (Clear, the new tokens laid out) and
+    // scrolls to the top.
+    void SetText(const char* text);
+    // 0065D0A0 (slot 26, RET 4; ui_scroll_text.cpp). The scroll bar's SetRect (0065B490), then the
+    // surface moved to the rectangle's corner and the text laid out over it (PlaceText).
+    void SetRect(const RECT* rect);
+    // 0065D120 (slot 20, RET 4; ui_scroll_text.cpp). Draws the lines again when the position
+    // moved, then the window's base drawing; returns its result (1).
+    BOOL Draw(int pass);
+    // 0065D450 (ui_scroll_text.cpp). Every token deleted and the token array emptied (the lines
+    // stay until the next layout).
+    void Clear();
+    // 0065DAA0 (ui_scroll_text.cpp). Breaks the tokens into lines (UiTextLine, 8 bytes each) no
+    // wider than the text: a word adds its width and a third of the line's height (the height of
+    // the font in effect at the line's start); a word reaching the width starts the next line
+    // (unless it is the line's first), a newline format token ends the line and sets the next
+    // lines' font. Then the scroll bar's maximum: the lines' heights less the text's height.
+    void Layout();
     // 0065D4B0 (RET 4; ui_scroll_text.cpp). Appends the tokens of `text`: words (with their
     // widths), and before each run of newline, BEL C<rgb> and BEL F<digit> tokens one format
     // token.
@@ -1816,6 +1867,12 @@ public:
     UiTokenArray tokens_;            // +0x19C
     mfc::CArray<UiTextLine*> lines_; // +0x1B0 the laid out lines
     int align_;                      // +0x1C4 1: left aligned (else justified)
+
+private:
+    // The surface moved to the rectangle's corner, the text's rectangle (14 pixels narrower for
+    // the bar) and the layout: the tail of SetRect, inlined in the constructor.
+    void PlaceText(const RECT& rect);
+    void DeleteTokens();
 };
 static_assert(offsetof(CUiScrollText, textRect_) == 0x18C);
 static_assert(offsetof(CUiScrollText, tokens_) == 0x19C);
@@ -1839,6 +1896,9 @@ public:
     // one is kept), its text drawn on the cleared surface (format 1, colour 0xA7D7E4), changed.
     bool GetValue(int* value);
     void SetValue(int value);
+    // 0065BE10 (ui_control_delete.cpp, A-H20). Destructor body: the spin's vtables, the texts
+    // (006FE958), then the window's.
+    void DestroyBody();
 
     mfc::CStringArray texts_;        // +0x148
     int value_;                      // +0x15C
@@ -2269,6 +2329,9 @@ public:
     // the allocation fails), the text drawn, focused. caret_, editing_ and changed_ are left as
     // they are. Returns this.
     CUiEditField* Construct(CInterface3D* ui, RECT rect);
+    // 0065C140 (ui_control_delete.cpp, A-H20). Destructor body: the field's vtables, the text
+    // released, then the window's.
+    void DestroyBody();
     // 0065C930 (input side slot 10, RET 0xC; ui_edit_field.cpp, A-H19). While focused and
     // without Ctrl held, a character other than Backspace, Tab, Enter and Esc whose class (digit 1,
     // letter or space 2, '.' or ':' 8, other 4) is allowed: the first one starts editing from an
