@@ -12,36 +12,17 @@
 #include "originals_library.h"
 
 #include <cstring>
-#include "originals_engine.h"
 
 namespace {
 
-// Stream slots: 1 Read, 2 Write, 3 Seek, 4 Size, 5 Tell.
-constexpr int kSlotRead = 1;
-constexpr int kSlotWrite = 2;
-constexpr int kSlotSeek = 3;
-constexpr int kSlotSize = 4;
-constexpr int kSlotTell = 5;
 constexpr int kVersionChecksum = 0x6B;    // above: a checksum of the uncompressed data
 constexpr int kVersionFlag = 0x71;        // above: a byte saying whether the data is compressed
-constexpr std::uintptr_t kBufferViewBase = 0x0073CA48;   // the view's vtable after its destructor
-// The lowest version that is compressed at all (a game global).
-int CompressedSince() { return *reinterpret_cast<const int*>(0x00790264); }
 
-std::uint8_t* StreamData(void* stream) { return *reinterpret_cast<std::uint8_t**>(static_cast<std::uint8_t*>(stream) + 0x18); }
-int& StreamVersion(void* stream) { return *reinterpret_cast<int*>(static_cast<std::uint8_t*>(stream) + 8); }
+// The stream's format version, compared signed as the original does.
+int VersionOf(const CStream* stream) { return static_cast<int>(stream->version_); }
 
-// 004A5340 (RET 8) / 004A52D0 (RET 0xC, AL). The file header: write (magic, version) / check.
-void __fastcall HeaderWrite(void* a0, void*, unsigned a2, int a3) { StreamWriteHeaderOriginal(a0, nullptr, a2, (unsigned)a3); }
-bool __fastcall HeaderRead(void* a0, void*, unsigned a2, int a3, int a4) { return StreamReadHeaderOriginal(a0, nullptr, a2, a3, a4); }
-// The growing buffer: constructor, destructor, Seek (grows to the position).
-inline void __fastcall BufferSeek(GameBuffer* a0, void*, int a2) { GameBufferGrowOriginal((void*)a0, nullptr, (std::uint32_t)a2); }
-// The coder.
-__declspec(naked) void __fastcall CoderConstruct(CoderState*, void*) EI_ORIGINAL(0x0042FCA0)
-__declspec(naked) void __fastcall CoderCompress(CoderState*, void*, GameBuffer*, GameBuffer*) EI_ORIGINAL(0x00430450)
-__declspec(naked) void __fastcall CoderDecompress(CoderState*, void*, GameBuffer*, GameBuffer*) EI_ORIGINAL(0x00430960)
-// 0041D930. BufferCursor::End (the coder's inlined destructor).
-__declspec(naked) void __fastcall CursorEnd(BufferCursor*, void*) EI_ORIGINAL(0x0041D930)
+// The growing buffer's Seek when it has to grow (004DA5C0).
+inline void BufferSeek(GameBuffer* buffer, int at) { GameBufferGrowOriginal(buffer, nullptr, static_cast<std::uint32_t>(at)); }
 
 // The buffer's high-water mark brought up to its cursor (inlined everywhere).
 void UpdateHigh(GameBuffer& b) {
@@ -55,7 +36,7 @@ std::int32_t Length(GameBuffer& b) {
 void SeekTo(GameBuffer& b, std::int32_t at) {
     UpdateHigh(b);
     b.cur = b.begin + at;
-    if (b.cur > b.end) BufferSeek(&b, nullptr, at);
+    if (b.cur > b.end) BufferSeek(&b, at);
 }
 
 std::uint32_t Checksum(const std::uint8_t* data, std::int32_t size) {
@@ -69,11 +50,11 @@ std::uint32_t Checksum(const std::uint8_t* data, std::int32_t size) {
     return h;
 }
 
-// A coder on the stack whose cursor is ended on the way out.
+// A coder on the stack (0042FCA0) whose cursor is ended on the way out (0041D930, inlined).
 struct LocalCoder {
     CoderState state;
-    LocalCoder() { CoderConstruct(&state, nullptr); }
-    ~LocalCoder() { CursorEnd(&state.out, nullptr); }
+    LocalCoder() { state.Construct(); }
+    ~LocalCoder() { state.out.End(); }
     LocalCoder(const LocalCoder&) = delete;
     LocalCoder& operator=(const LocalCoder&) = delete;
 };
@@ -88,90 +69,96 @@ struct LocalBuffer {
 
 } // namespace
 
-void __fastcall SaveFileWrite(void* file, unsigned magic, int version, void* data) {
+void __fastcall SaveFileWrite(void* fileStream, unsigned magic, int version, void* dataStream) {
+    auto* file = static_cast<CStream*>(fileStream);
+    auto* data = static_cast<CMemoryStream*>(dataStream);
     LocalCoder coder;
     // A view over the data (vtable 0073CA64, flags 2).
-    std::uint8_t* begin = StreamData(data);
-    std::uint8_t* last = begin + ei::VCall<int>(data, kSlotSize);
+    std::uint8_t* begin = data->data_;
+    std::uint8_t* last = begin + data->Size();
     GameBuffer view;
     view.InitView(begin, last);
     {
         LocalBuffer packed;
         std::uint8_t compressed = 1;
-        CoderCompress(&coder.state, nullptr, &view, &packed.b);
-        HeaderWrite(file, nullptr, magic, version);
+        coder.state.Compress(&view, &packed.b);
+        file->WriteHeader(magic, static_cast<std::uint32_t>(version));
         if (version > kVersionChecksum) {
-            std::uint32_t sum = Checksum(StreamData(data), ei::VCall<int>(data, kSlotSize));
-            ei::VCall<void>(file, kSlotWrite, &sum, 4u);
+            std::uint32_t sum = Checksum(data->data_, static_cast<std::int32_t>(data->Size()));
+            file->Write(&sum, 4u);
         }
         // Decompressed again; the packed data is used only when it gives the input back.
         LocalBuffer check;
         UpdateHigh(packed.b);
         packed.b.cur = packed.b.begin;
-        if (packed.b.begin > packed.b.end) BufferSeek(&packed.b, nullptr, 0);
+        if (packed.b.begin > packed.b.end) BufferSeek(&packed.b, 0);
         {
             LocalCoder decoder;
-            CoderDecompress(&decoder.state, nullptr, &packed.b, &check.b);
+            decoder.state.Decompress(&packed.b, &check.b);
             UpdateHigh(check.b);
-            std::int32_t size = ei::VCall<int>(data, kSlotSize);
+            std::int32_t size = static_cast<std::int32_t>(data->Size());
             bool same = check.b.base - reinterpret_cast<std::intptr_t>(check.b.begin) +
                                 reinterpret_cast<std::intptr_t>(check.b.high) == size;
             if (same) {
-                std::uint8_t* original = StreamData(data);
-                same = std::memcmp(original, check.b.begin, static_cast<std::size_t>(ei::VCall<int>(data, kSlotSize))) == 0;
+                std::uint8_t* original = data->data_;
+                same = std::memcmp(original, check.b.begin, static_cast<std::size_t>(data->Size())) == 0;
             }
             if (same) {
-                ei::VCall<void>(file, kSlotWrite, &compressed, 1u);
+                file->Write(&compressed, 1u);
                 std::int32_t length = Length(packed.b);
-                ei::VCall<void>(file, kSlotWrite, packed.b.begin, static_cast<unsigned>(length));
+                file->Write(packed.b.begin, static_cast<std::uint32_t>(length));
             } else {
                 compressed = 0;
-                ei::VCall<void>(file, kSlotWrite, &compressed, 1u);
-                std::uint8_t* raw = StreamData(data);
-                ei::VCall<void>(file, kSlotWrite, raw, static_cast<unsigned>(ei::VCall<int>(data, kSlotSize)));
+                file->Write(&compressed, 1u);
+                std::uint8_t* raw = data->data_;
+                file->Write(raw, data->Size());
             }
         }   // the decoder's cursor ends here, then `check` and `packed` go
     }
-    ei::SetVtable(&view, kBufferViewBase);
+    ei::SetVtable(&view, kBufferViewBaseVtable);
 }
 
-bool __fastcall SaveFileRead(void* out, unsigned magic, int minimum, int maximum, void* file) {
-    if (!HeaderRead(file, nullptr, magic, minimum, maximum)) return false;
-    if (StreamVersion(file) <= CompressedSince()) {
-        int start = ei::VCall<int>(file, kSlotTell);
-        int size = ei::VCall<int>(file, kSlotSize) - start;
-        reinterpret_cast<CMemoryStream*>(out)->Resize(size);
-        ei::VCall<void>(file, kSlotRead, StreamData(out), static_cast<unsigned>(size));
-        ei::VCall<void>(out, kSlotSeek, 0);
+bool __fastcall SaveFileRead(void* outStream, unsigned magic, int minimum, int maximum, void* fileStream) {
+    auto* out = static_cast<CMemoryStream*>(outStream);
+    auto* file = static_cast<CStream*>(fileStream);
+    // Passed on in the same order: ReadHeader takes (newest, oldest), so `minimum` is really the
+    // newest version accepted (LoadMission passes 00790260, then 00790268).
+    if (!file->ReadHeader(magic, minimum, maximum)) return false;
+    if (VersionOf(file) <= SaveLastUncompressedVersion()) {
+        int start = static_cast<int>(file->Position());
+        int size = static_cast<int>(file->Size()) - start;
+        out->Resize(static_cast<std::uint32_t>(size));
+        file->Read(out->data_, static_cast<std::uint32_t>(size));
+        out->Seek(0);
     } else {
         std::uint8_t compressed = 1;
         LocalCoder coder;
         LocalBuffer packed;
         LocalBuffer plain;
         std::uint32_t stored = 0;
-        if (StreamVersion(file) > kVersionChecksum) ei::VCall<void>(file, kSlotRead, &stored, 4u);
-        if (StreamVersion(file) > kVersionFlag) ei::VCall<void>(file, kSlotRead, &compressed, 1u);
-        int start = ei::VCall<int>(file, kSlotTell);
-        int size = ei::VCall<int>(file, kSlotSize) - start;
+        if (VersionOf(file) > kVersionChecksum) file->Read(&stored, 4u);
+        if (VersionOf(file) > kVersionFlag) file->Read(&compressed, 1u);
+        int start = static_cast<int>(file->Position());
+        int size = static_cast<int>(file->Size()) - start;
         if (compressed) {
             SeekTo(packed.b, size);
-            ei::VCall<void>(file, kSlotRead, packed.b.begin, static_cast<unsigned>(size));
+            file->Read(packed.b.begin, static_cast<std::uint32_t>(size));
             UpdateHigh(packed.b);
             packed.b.cur = packed.b.begin;
-            if (packed.b.begin > packed.b.end) BufferSeek(&packed.b, nullptr, 0);
-            CoderDecompress(&coder.state, nullptr, &packed.b, &plain.b);
-            if (StreamVersion(file) > kVersionChecksum && Checksum(plain.b.begin, Length(plain.b)) != stored)
+            if (packed.b.begin > packed.b.end) BufferSeek(&packed.b, 0);
+            coder.state.Decompress(&packed.b, &plain.b);
+            if (VersionOf(file) > kVersionChecksum && Checksum(plain.b.begin, Length(plain.b)) != stored)
                 return false;   // the buffers and the coder's cursor go on the way out
         } else {
             SeekTo(plain.b, size);
-            ei::VCall<void>(file, kSlotRead, plain.b.begin, static_cast<unsigned>(size));
+            file->Read(plain.b.begin, static_cast<std::uint32_t>(size));
         }
-        reinterpret_cast<CMemoryStream*>(out)->Resize(Length(plain.b));
-        ei::VCall<void>(out, kSlotSeek, 0);
-        ei::VCall<void>(out, kSlotWrite, plain.b.begin, static_cast<unsigned>(Length(plain.b)));
-        ei::VCall<void>(out, kSlotSeek, 0);
+        out->Resize(static_cast<std::uint32_t>(Length(plain.b)));
+        out->Seek(0);
+        out->Write(plain.b.begin, static_cast<std::uint32_t>(Length(plain.b)));
+        out->Seek(0);
     }
-    StreamVersion(out) = StreamVersion(file);
+    out->version_ = file->version_;
     return true;
 }
 

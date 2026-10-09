@@ -3,9 +3,20 @@
 // brings the players' "gtime" up to date before a save. See world.h and docs/notes/world.md.
 #include "world.h"
 
+#include "ai_map.h"
+#include "base_manager.h"
 #include "core_streams.h"
+#include "game_strings.h"
+#include "item.h"
+#include "map_object.h"
+#include "net_delta.h"
+#include "net_messages.h"
 #include "net_session.h"
 #include "object.h"
+#include "script.h"
+#include "unit.h"
+#include "unit_ai.h"
+#include "unit_db.h"
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -26,21 +37,14 @@
 
 namespace {
 
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
-}
-
 // ---- Constants --------------------------------------------------------------------------------
 
 // kMemoryStreamVtable (0073BD90) and kStreamVtable (0073BDB0, its CStream base): core_streams.h.
+// The CArray<int> vtable is mfc::DWordArrayVtable, the script group's scriptvtable::kRefs (set
+// after 004C2030), the item link record's CItemLink::Vtable() (item.h).
 constexpr std::uint32_t kStreamLimit = 2000000000;            // CStream +0x08 as constructed
-constexpr std::uintptr_t kIdArrayVtable = 0x0073C3D0;         // CArray<int>
-constexpr std::uintptr_t kScriptGroupVtable = 0x0073D110;     // ScriptGroup (set after 004C2030)
-constexpr std::uintptr_t kObjectRecordVtable = 0x0073FA88;    // the 12-byte record at object +0x1C
-constexpr std::uintptr_t kGTimeName = 0x0073F920;             // "gtime"
-constexpr std::uintptr_t kCantLoadMap = 0x00790BB8;           // "CWorldServer::LoadSave(): Can't load map..."
 constexpr int kTextKeyIdMin = 100000000;                      // ids above this are scripted (text-key) units
+constexpr int kMissileSize = 0xA8;                            // operator new size of a Projectile
 
 // Save format versions (WorldStream::version_) at which fields were added.
 constexpr int kVersionTimeSpeedFloat = 0x4C;   // the time speed is a float (an int before)
@@ -52,12 +56,6 @@ constexpr int kVersionPlayerGroup = 0x46;      // before: a script group that is
 constexpr int kVersionMobFiles = 0x60;
 constexpr int kVersionSharedObjects = 0x6E;
 constexpr int kVersionMapObjectName = 0x59;
-
-// Vtable slots.
-constexpr int kSlotSetTime = 31;           // 0058EEA0
-constexpr int kSlotSetTimeSpeed = 32;      // 0058EEE0
-constexpr int kSlotCreateObject = 23;      // manager +0x40: create an object of a type with an id
-constexpr int kSlotSetSecondName = 34;     // map object slot 34 (+0x88)
 
 // Progress screen stages LoadSave shows (005DA400).
 constexpr int kProgressStart = 0;
@@ -73,53 +71,22 @@ constexpr int kSharedObjectNodeSize = 0x28;
 // MFC CArray<int> (vtable 0073C3D0; SetSize 0059C660, DwordArraySetSizeOriginal).
 using IdArray = mfc::CArray<int>;
 
-// The 12-byte record an object keeps at +0x1C (vtable 0073FA88, 16-bit count at +4), restored for
-// the item manager's objects.
-struct ObjectRecord {
-    void* vtable;
-    std::int16_t refs;
-    std::uint16_t unknown_06;
-    std::uint32_t value;   // +0x08
-};
-static_assert(sizeof(ObjectRecord) == 0xC);
-
-// MFC CArray of object pointers (vtable 0073FAC8): constructor 005985C0, destructor 0059A100
-// (releases the objects through slot 4, frees the data).
+// MFC CArray of object pointers (SharedObject::objects, world.h).
 using ObjectPtrArray = mfc::CArray<CEngineObject*>;
 
-// An element of the shared-object list (+0x12E60, 0x20 bytes): object id, player, a third dword
-// and an array of objects.
-struct SharedObject {
-    int objectId;
-    int player;
-    std::uint32_t unknown_08;
-    ObjectPtrArray objects;     // +0x0C
-
-    void CopyFrom(const SharedObject* from);  // 0059B510 (RET 4)
-    void Load(WorldStream* stream);           // 00589CA0 (RET 4)
-};
-static_assert(sizeof(SharedObject) == 0x20);
-
-// MFC CList<SharedObject> at +0x12E60 (its NewNode 0059CA60 constructs the element).
-using SharedObjectList = mfc::CList<SharedObject>;
+// The shared-object list is CWorldServer::sharedObjects_ (+0x12E60, world.h).
 using SharedObjectNode = SharedObjectList::Node;
 static_assert(sizeof(SharedObjectNode) == kSharedObjectNodeSize);
 
-SharedObjectList& SharedObjects(CWorldServer* world) { return At<SharedObjectList>(world, 0x12E60); }
-
-// A player's MFC list of plain dwords (+0x114, AddTail 0059CC60) and of objects (+0xE0, AddTail
-// 004C98F0); only head and the node layout are read here.
+// A player's MFC list of plain dwords (WorldPlayer::ids, AddTail 0059CC60) and of objects
+// (WorldPlayer::items, AddTail 004C98F0); only head and the node layout are read here.
 using DwordList = mfc::CList<std::uint32_t>;
 using ObjectList = mfc::CTypedPtrList<CEngineObject>;
 
-// Player fields saved with the world.
-constexpr int kPlayerState = 0x20;          // CPlayerServer*
-constexpr int kPlayerRecords = 0x70;        // the party records (006618C0 / 00661C10)
-constexpr int kPlayerObjects = 0xE0;        // ObjectList
-constexpr int kPlayerFC = 0xFC;
-constexpr int kPlayer100 = 0x100;
-constexpr int kPlayer108 = 0x108;           // a byte
-constexpr int kPlayerIds = 0x114;           // DwordList
+// The item link record of an item of the item manager (CItem::unknown_1C).
+CItemLink* LinkOf(CEngineObject* item) {
+    return reinterpret_cast<CItemLink*>(static_cast<std::uintptr_t>(static_cast<CItem*>(item)->unknown_1C));
+}
 
 // The memory stream locals of LoadSave / SaveWorld are built in place.
 void InitMemoryStream(CMemoryStream* stream) {
@@ -267,9 +234,6 @@ __declspec(naked) void SharedObject::Load(WorldStream*) EI_ORIGINAL(0x00589CA0)
 
 namespace {
 
-void* AIMap(CWorldServer* world) { return world->aiMap_; }
-std::uint8_t& AIMapUpdates(CWorldServer* world) { return world->aiMap_[2]; }   // +0x172
-void* SectorMap(CWorldServer* world) { return world->sectorMap_; }
 
 // Reads a string and assigns it to `target` (the temporary is destroyed at once).
 void ReadStringInto(WorldStream* stream, mfc::CString& target) {
@@ -290,23 +254,21 @@ T ReadValue(WorldStream* stream) {
 
 // ---- UpdatePlayerTimes ------------------------------------------------------------------------
 
-// The sum keeps the original's order ((elapsed * secondsPerTick + offset) + gtime): no
-// reassociation.
-#pragma float_control(precise, on, push)
+// The sum in the original's order ((elapsed * secondsPerTick + offset) + gtime); plain C++ maths
+// (rewrite guide rule 7), compared with CheckNear.
 void CWorldServer::UpdatePlayerTimes(float offset) {
-    const char* name = reinterpret_cast<const char*>(kGTimeName);
+    const char* name = game::GTimeText();
     int now = tick_;
     PlayerIterator it;
-    for (WorldPlayer* player = it.First(ei::VCall<CEngineObject*>(this, 20)); player; player = it.Next()) {
+    for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
         int elapsed = static_cast<int>(static_cast<unsigned>(now) - static_cast<unsigned>(player->lastTick));
         player->lastTick = now;
         if (elapsed < 0) elapsed = 0;
         double current = VariableGet(player->variables, nullptr, name);
         float value = static_cast<float>(static_cast<double>(elapsed) * secondsPerTick_ + offset + current);
-        PlayerStateSetVariable(At<void*>(player, kPlayerState), nullptr, name, value);
+        PlayerStateSetVariable(player->server, nullptr, name, value);
     }
 }
-#pragma float_control(pop)
 
 // ---- LoadSavedMapObjects ----------------------------------------------------------------------
 
@@ -315,10 +277,11 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
         int id = ReadValue<int>(stream);
         if (id == -1) return;
         CEngineObject* object = ManagerFindObject(manager40_, nullptr, id);
+        auto* mapObject = static_cast<CMapObject*>(object);
         if (stream->version_ >= kVersionMapObjectName) {
             mfc::CString name;
             ReadStringInto(stream, name);
-            ei::VCall<void>(object, kSlotSetSecondName, static_cast<const char*>(name));
+            ObjectSlots(object)->TakePrototype(static_cast<const char*>(name));
         }
         MapObjectBeginLoad(object, nullptr);
         object->Load(stream);
@@ -328,39 +291,35 @@ void CWorldServer::LoadSavedMapObjects(WorldStream* stream) {
         ++object->refCount_;
         UnitMarkChanged(object, nullptr, -1);
         if (object->type_ != 0x3B) {
-            MapObjectSetupFigure(object, nullptr, At<const char*>(object, 0xA4));
-            SectorMapAdd(AsSectorMap(SectorMap(this)), nullptr, object);
+            MapObjectSetupFigure(object, nullptr, mapObject->name);
+            SectorMapAdd(Sectors(), nullptr, object);
         }
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
         if (object->GetClassId() != world::kClassUnit)
             otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
-        if (*At<const char*>(object, 0x1A8) != '\0')
+        if (*mapObject->name2 != '\0')
             namedObjects_.Set(static_cast<unsigned>(object->id_), object);
 
         if (object->GetClassId() == world::kClassUnit) {
-            // The unit's six dwords at +0x4B0 come from its prototype's model record.
-            char* prototypes = *reinterpret_cast<char**>(0x007AF358);
-            char* prototypesEnd = *reinterpret_cast<char**>(0x007AF35C);
-            unsigned index = static_cast<unsigned>(At<int>(object, 0x18));
-            unsigned count = static_cast<unsigned>((prototypesEnd - prototypes) / 0x120);
-            char* prototype = index < count ? prototypes + index * 0x120 : nullptr;
-            char* models = *reinterpret_cast<char**>(0x007AF398);
-            char* modelsEnd = *reinterpret_cast<char**>(0x007AF39C);
-            unsigned model = At<unsigned>(prototype, 8);
-            unsigned modelCount = static_cast<unsigned>((modelsEnd - models) / 0x168);
-            char* record = model < modelCount ? models + model * 0x168 : nullptr;
-            std::memcpy(&At<std::uint8_t>(object, 0x4B0), record + 0x2C, 24);
+            // The unit's six dwords at +0x4B0 come from its prototype's model record (+0x2C). A
+            // prototype or model out of range is read through null, as in the original.
+            auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(
+                unitdb::Prototypes().At(object->unknown_18, unitdb::kPrototypeSize));
+            auto* model = reinterpret_cast<const UnitModelRecord*>(
+                unitdb::Models().At(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
+            std::memcpy(static_cast<CUnit*>(object)->resistances, model->unknown_2C, 24);
         }
 
         // Every part is marked changed when any change was saved (the original tests the part's
         // bit 1 << i itself, never `changed & bit`).
-        int parts = At<int>(object, 0x1CC);
+        int parts = mapObject->NetState()->fieldCount_;
         for (int i = 0; i < parts; ++i)
             if (changed != 0 && (1u << (i & 31)) != 0) UnitMarkChanged(object, nullptr, i);
 
-        if (object->GetClassId() == world::kClassUnit && At<std::uint8_t>(At<void*>(object, 0x240), 0x9B7) == 0)
-            continue;   // a unit whose controller does not ask for updates
+        if (object->GetClassId() == world::kClassUnit &&
+            reinterpret_cast<UnitController*>(static_cast<CUnit*>(object)->controller)->Brain()->unknown_37 == 0)
+            continue;   // a unit whose controller does not ask for updates (its brain's +0x37)
         AddToUpdateMap(object);
     }
 }
@@ -373,7 +332,7 @@ namespace {
 // cell nearby when they are scripted units (text-key ids), otherwise removed.
 void RelocateStrandedUnits(CWorldServer* world) {
     IdArray stranded;
-    stranded.vtable = reinterpret_cast<void*>(kIdArrayVtable);
+    stranded.vtable = mfc::DWordArrayVtable();
     stranded.data = nullptr;
     stranded.growBy = 0;
     stranded.maxSize = 0;
@@ -381,7 +340,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
     for (auto* node = world->objects_.map.First(); node; node = world->objects_.map.After(node)) {
         CEngineObject* object = node->value;
         if (object->GetClassId() != world::kClassUnit) continue;
-        if (AIMapCanLeaveCell(AIMap(world), nullptr, object)) continue;
+        if (AIMapCanLeaveCell(world->AIMap(), nullptr, object)) continue;
         int id = object->id_;
         int index = stranded.size;
         DwordArraySetSizeOriginal(&stranded, nullptr, index + 1, -1);
@@ -390,21 +349,21 @@ void RelocateStrandedUnits(CWorldServer* world) {
     for (int i = 0; i < stranded.size; ++i) {
         CEngineObject* unit = WorldFindUnit(world, nullptr, stranded.data[i]);
         if (unit && unit->id_ > kTextKeyIdMin) {
-            SectorMapRemove(AsSectorMap(SectorMap(world)), nullptr, unit);
-            Vector3& position = At<Vector3>(unit, 0x1C);
+            SectorMapRemove(world->Sectors(), nullptr, unit);
+            float* position = &static_cast<CUnit*>(unit)->positionX;   // x, y, z
             Vector3 from;
             Vector3 to;
-            std::memcpy(&from, &position, sizeof(Vector3));
-            std::memcpy(&to, &position, sizeof(Vector3));
-            AIMapFindFreeCellNear(AIMap(world), nullptr, unit, &from, &to);
-            std::memcpy(&position, &to, sizeof(Vector3));
-            SectorMapAdd(AsSectorMap(SectorMap(world)), nullptr, unit);
-            ControllerReposition(At<void*>(unit, 0x240), nullptr);
+            std::memcpy(&from, position, sizeof(Vector3));
+            std::memcpy(&to, position, sizeof(Vector3));
+            AIMapFindFreeCellNear(world->AIMap(), nullptr, unit, &from, &to);
+            std::memcpy(position, &to, sizeof(Vector3));
+            SectorMapAdd(world->Sectors(), nullptr, unit);
+            ControllerReposition(static_cast<CUnit*>(unit)->controller, nullptr);
         } else {
             WorldRemoveObject(world, nullptr, stranded.data[i]);
         }
     }
-    stranded.vtable = reinterpret_cast<void*>(kIdArrayVtable);
+    stranded.vtable = mfc::DWordArrayVtable();
     if (stranded.data) gamecrt::operator_delete(stranded.data);
 }
 
@@ -413,24 +372,24 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
     // The original keeps this iterator on the heap.
     auto* it = static_cast<PlayerIterator*>(gamecrt::operator_new(sizeof(PlayerIterator)));
     if (it) it->list = nullptr;
-    for (WorldPlayer* player = it->First(ei::VCall<CEngineObject*>(world, 20)); player; player = it->Next()) {
-        void* state = At<void*>(player, kPlayerState);
-        stream->Read(&At<std::uint8_t>(player, kPlayerFC), 4);
-        PlayerRecordsLoad(&At<std::uint8_t>(player, kPlayerRecords), nullptr, stream, 1);
+    for (WorldPlayer* player = it->First(world->PlayerList()); player; player = it->Next()) {
+        CPlayerServer* state = player->server;
+        stream->Read(&player->unknownFC, 4);
+        PlayerRecordsLoad(player->party, nullptr, stream, 1);
         player->lastTick = world->tick_;
-        stream->Read(&At<std::uint8_t>(player, kPlayer100), 4);
-        CEngineObject* items = ei::VCall<CEngineObject*>(world, 18);
+        stream->Read(&player->unknown100, 4);
+        CEngineObject* items = world->ItemFactory();
         for (;;) {
             int id = ReadValue<int>(stream);
             if (id == -1) break;
             CEngineObject* object = ManagerFindObject(items, nullptr, id);
             if (!object) continue;
-            PtrListAddTailOriginal(&At<ObjectList>(player, kPlayerObjects), nullptr, object);
+            PtrListAddTailOriginal(&player->items, nullptr, object);
             ++object->refCount_;
         }
-        stream->Read(&At<std::uint8_t>(player, kPlayer108), 1);
+        stream->Read(&player->unknown108, 1);
         if (stream->version_ >= kVersionPlayerLists) {
-            auto& ids = At<DwordList>(player, kPlayerIds);
+            DwordList& ids = player->ids;
             int count = ReadValue<int>(stream);
             for (int i = 0; i < count; ++i) DwordListAddTail(&ids, nullptr, 0);
             for (auto* node = ids.head; node;) {
@@ -441,11 +400,11 @@ void LoadPlayers(CWorldServer* world, WorldStream* stream) {
         }
         if (stream->version_ < kVersionPlayerByte) ReadValue<std::uint8_t>(stream);
         if (stream->version_ < kVersionPlayerGroup) {
-            alignas(4) std::uint8_t group[0x14];
-            ScriptGroupConstruct(group, nullptr);
-            *reinterpret_cast<void**>(group) = reinterpret_cast<void*>(kScriptGroupVtable);
-            ScriptGroupLoad(group, nullptr, stream);
-            ScriptGroupDestruct(group, nullptr);
+            ScriptGroup group;
+            ScriptGroupConstruct(&group, nullptr);
+            group.vtable = scriptvtable::kRefs;
+            ScriptGroupLoad(&group, nullptr, stream);
+            ScriptGroupDestruct(&group, nullptr);
         }
         PlayerStateRefresh(state, nullptr);
         PlayerStateSetFlag70(state, nullptr, 1);
@@ -470,9 +429,9 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
 
     gameResult_ = 0;
     unknown160_ = 0;
-    if (ei::VCall<CEngineObject*>(this, 20)) {
+    if (PlayerList()) {
         PlayerIterator it;
-        for (WorldPlayer* player = it.First(ei::VCall<CEngineObject*>(this, 20)); player; player = it.Next()) {
+        for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
             gameResult_ = 1;
             unknown160_ = 1;
             PlayerClear(player, nullptr);
@@ -480,7 +439,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
     }
     AIMapBeginRefresh(AIMap(), nullptr);
     loaded_ = 0;
-    AIMapUpdates(this) = 0;
+    AIMap()->refreshUnits = false;   // +0x172
 
     ReadStringInto(stream, mobName);
     ReadStringInto(stream, mapName);
@@ -491,7 +450,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
     ShowLoadProgress(kProgressStart);
     {
         PlayerIterator it;
-        for (WorldPlayer* player = it.First(ei::VCall<CEngineObject*>(this, 20)); player; player = it.Next())
+        for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next())
             player->dirty = 0xFFFFFFFFu;
     }
 
@@ -519,7 +478,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
         MemoryStreamApplyDiff(&graph.stream, nullptr, &savedGraph.stream, stream);
         ShowLoadProgress(kProgressZone);
         if (!LoadMapAt(this, nullptr, mapName, mobName, &graph.stream, 1)) {
-            result = game::FatalError(reinterpret_cast<const char*>(kCantLoadMap));
+            result = game::FatalError(game::CantLoadSaveMapText());
         } else {
             // The map objects' identities: id, type and +0x18 (created by the manager at +0x40).
             for (;;) {
@@ -527,8 +486,8 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 if (id == -1) break;
                 int type = ReadValue<int>(stream);
                 std::uint32_t value18 = ReadValue<std::uint32_t>(stream);
-                void* object = ei::VCall<void*>(manager40_, kSlotCreateObject, type, id);
-                At<std::uint32_t>(object, 0x18) = value18;
+                CEngineObject* object = static_cast<CBaseManager*>(manager40_)->CreateObject(type, id);   // slot 23
+                object->unknown_18 = value18;
             }
             manager48_->Load(stream);
             manager4C_->Load(stream);
@@ -552,12 +511,12 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
 
             // Missiles: a byte 1 before each one, 0 at the end. They find the world through
             // the global at 007C84EC while they load.
-            *reinterpret_cast<CWorldServer**>(0x007C84EC) = this;
+            LoadingProjectileWorld() = this;
             for (;;) {
                 std::uint8_t more = ReadValue<std::uint8_t>(stream);
                 if (!more) break;
-                void* memory = gamecrt::operator_new(0xA8);
-                At<std::uint32_t>(memory, 4) = 0;   // written before the null test
+                void* memory = gamecrt::operator_new(kMissileSize);
+                static_cast<Projectile*>(memory)->references = 0;   // written before the null test
                 Projectile* missile = memory ? ProjectileConstruct(memory, nullptr) : nullptr;
                 ProjectileLoad(missile, nullptr, stream);
                 auto& list = projectiles_;
@@ -588,7 +547,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                 counted_.head = node;
             }
 
-            if (ei::VCall<CEngineObject*>(this, 20)) LoadPlayers(this, stream);
+            if (PlayerList()) LoadPlayers(this, stream);
             stream->Read(&unknown6C_, 1);
 
             // The item manager's object records.
@@ -598,26 +557,28 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                     stream->Read(&id, 4);
                     if (id == -1) break;
                     std::uint32_t value = ReadValue<std::uint32_t>(stream);
-                    CEngineObject* object = ManagerFindObject(ei::VCall<CEngineObject*>(this, 18), nullptr, id);
+                    CEngineObject* object = ManagerFindObject(ItemFactory(), nullptr, id);
                     if (!object) continue;
-                    auto* record = static_cast<ObjectRecord*>(gamecrt::operator_new(sizeof(ObjectRecord)));
-                    At<std::uint32_t>(record, 4) = 0;   // written before the null test
-                    if (record) record->vtable = reinterpret_cast<void*>(kObjectRecordVtable);
+                    auto* record = static_cast<CItemLink*>(gamecrt::operator_new(sizeof(CItemLink)));
+                    // The count's whole dword is cleared, before the null test.
+                    record->references = 0;
+                    record->unknown_06 = 0;
+                    if (record) record->vtable = CItemLink::Vtable();
                     record->value = value;
-                    void* old = At<void*>(object, 0x1C);
-                    At<void*>(object, 0x1C) = record;
-                    if (record) ++record->refs;
+                    CItemLink* old = LinkOf(object);
+                    static_cast<CItem*>(object)->unknown_1C = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(record));
+                    if (record) ++record->references;
                     if (old) RefRelease(old, nullptr);
                 }
             }
 
             ShowLoadProgress(kProgressDone);
             *reinterpret_cast<mfc::CString*>(&zoneName_) = zoneName;
-            ei::VCall<void>(this, kSlotSetTimeSpeed, speed);
-            ei::VCall<void>(this, kSlotSetTime, time);
+            SetTimeSpeed(speed);   // slot 32 (virtual)
+            SetTime(time);   // slot 31 (virtual)
             loaded_ = 1;
             AIMapEndRefresh(AIMap(), nullptr);
-            AIMapUpdates(this) = 1;
+            AIMap()->refreshUnits = true;
 
             RelocateStrandedUnits(this);
 
@@ -634,7 +595,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             }
 
             if (stream->version_ >= kVersionSharedObjects) {
-                SharedObjectList& shared = SharedObjects(this);
+                SharedObjectList& shared = sharedObjects_;
                 int count = ReadValue<int>(stream);
                 for (int i = 0; i < count; ++i) {
                     // The element is copied from a local whose first three dwords the original
@@ -677,18 +638,18 @@ void SavePlayers(CWorldServer* world, WorldStream* stream) {
     // The original keeps this iterator on the heap.
     auto* it = static_cast<PlayerIterator*>(gamecrt::operator_new(sizeof(PlayerIterator)));
     if (it) it->list = nullptr;
-    for (WorldPlayer* player = it->First(ei::VCall<CEngineObject*>(world, 20)); player; player = it->Next()) {
-        stream->Write(&At<std::uint8_t>(player, kPlayerFC), 4);
-        PlayerRecordsSave(&At<std::uint8_t>(player, kPlayerRecords), nullptr, stream, 1);
-        stream->Write(&At<std::uint8_t>(player, kPlayer100), 4);
-        for (auto* node = At<ObjectList>(player, kPlayerObjects).head; node;) {
+    for (WorldPlayer* player = it->First(world->PlayerList()); player; player = it->Next()) {
+        stream->Write(&player->unknownFC, 4);
+        PlayerRecordsSave(player->party, nullptr, stream, 1);
+        stream->Write(&player->unknown100, 4);
+        for (auto* node = player->items.head; node;) {
             auto* next = node->next;
             WriteCopy(stream, node->data->id_);
             node = next;
         }
         WriteCopy(stream, -1);
-        WriteCopy(stream, At<std::uint8_t>(player, kPlayer108));
-        auto& ids = At<DwordList>(player, kPlayerIds);
+        WriteCopy(stream, player->unknown108);
+        DwordList& ids = player->ids;
         WriteCopy(stream, ids.count);
         for (auto* node = ids.head; node;) {
             auto* next = node->next;
@@ -753,7 +714,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     stream->Write(&unknown12D64_, 4);
 
     LoadAIGraph(this, nullptr, mapName_, mobName_, &base);
-    AILayerSave(&At<std::uint8_t>(this, 0x2468), nullptr, &current);
+    AILayerSave(aiLayer_, nullptr, &current);
     StreamWriteDiff(stream, nullptr, &base, &current);
 
     // The map objects' identities (the walk stops at the first empty entry).
@@ -761,7 +722,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
         CEngineObject* object = node->value;
         WriteCopy(stream, object->id_);
         WriteCopy(stream, object->type_);
-        WriteCopy(stream, At<std::uint32_t>(object, 0x18));
+        WriteCopy(stream, object->unknown_18);
     }
     WriteCopy(stream, -1);
     manager48_->Save(stream);
@@ -799,15 +760,15 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     }
     WriteCopy(stream, -1);
 
-    if (ei::VCall<CEngineObject*>(this, 20)) SavePlayers(this, stream);
+    if (PlayerList()) SavePlayers(this, stream);
     WriteCopy(stream, unknown6C_);
 
     // The item manager's object records.
     {
         PlayerIterator it;
-        for (auto* item = reinterpret_cast<CEngineObject*>(it.First(ei::VCall<CEngineObject*>(this, 18))); item;
+        for (auto* item = reinterpret_cast<CEngineObject*>(it.First(ItemFactory())); item;
              item = reinterpret_cast<CEngineObject*>(it.Next())) {
-            auto* record = At<ObjectRecord*>(item, 0x1C);
+            CItemLink* record = LinkOf(item);
             if (!record) continue;
             WriteCopy(stream, item->id_);
             WriteCopy(stream, record->value);
@@ -818,7 +779,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     WriteCopy(stream, mobFiles_.size);
     for (int i = 0; i < mobFiles_.size; ++i) WriteString(stream, mobFiles_.data[i]);
 
-    SharedObjectList& shared = SharedObjects(this);
+    SharedObjectList& shared = sharedObjects_;
     WriteCopy(stream, shared.count);
     for (SharedObjectNode* node = shared.head; node;) {
         SharedObjectNode* next = node->next;
@@ -842,8 +803,6 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
 
 namespace {
 
-// 0041A2E0 (RET 4). The game server session's player record with +0x2C == id, or null.
-__declspec(naked) std::uint8_t* __fastcall SessionFindPlayer(void*, void*, int) EI_ORIGINAL(0x0041A2E0)
 // 0059B8F0 (RET 4). CArray<CRefPtr>::Copy.
 __declspec(naked) void __fastcall ObjectPtrArrayCopy(ObjectPtrArray*, void*, const ObjectPtrArray*) EI_ORIGINAL(0x0059B8F0)
 // 0059C8C0 (RET 8). CArray<CRefPtr>::SetSize(size, growBy); the same code the original inlines
@@ -851,11 +810,7 @@ __declspec(naked) void __fastcall ObjectPtrArrayCopy(ObjectPtrArray*, void*, con
 __declspec(naked) void __fastcall ObjectPtrArraySetSize(ObjectPtrArray*, void*, int, int) EI_ORIGINAL(0x0059C8C0)
 // 0059C890 (RET 8). Releases `count` counted pointers from `data` (CArray DestructElements).
 void __stdcall CountedRangeRelease(CEngineObject** a0, int a1) { CountedRangeReleaseOriginal(a0, a1); }
-// 00403F40 (RET 4). The item manager's (007AFFB4) object by id, or null.
-
-constexpr std::uintptr_t kObjectPtrArrayVtable = 0x0073FAC8;
-constexpr std::uintptr_t kObjectPtrArrayBaseVtable = 0x0073FABC;   // set by the destructor
-constexpr std::uintptr_t kItemManager = 0x007AFFB4;                 // pointer
+// 00403F40 (RET 4). The item manager's (007AFFB4, WorldItemManager) object by id, or null.
 
 // SetAtGrow(size, object) on a CArray<CRefPtr>: the new slot holds a reference.
 void Append(ObjectPtrArray& array, CEngineObject* object) {
@@ -877,7 +832,7 @@ void __fastcall LoadSharedObject(void* entryArg, void*, WorldStream* stream) {
     int count = ReadValue<int>(stream);
     for (int i = 0; i < count; ++i) {
         int id = ReadValue<int>(stream);
-        CEngineObject* object = ManagerFindObject(*reinterpret_cast<void**>(kItemManager), nullptr, id);
+        CEngineObject* object = ManagerFindObject(WorldItemManager(), nullptr, id);
         if (object) Append(entry->objects, object);   // the original inlines the SetSize
     }
 }
@@ -887,18 +842,18 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
     int player = -1;
     net::ServerSession* session = net::GameServer();
     if (session && !(session->flags7_ & CRefCounted::kDetached))
-        if (std::uint8_t* record = SessionFindPlayer(session, nullptr, id)) player = At<int>(record, 0x30);
+        if (auto* record = static_cast<net::PlayerMessage*>(session->FindPlayer(id))) player = record->serial_;   // 0041A2E0
 
     // AddHead(SharedObject()): the new head copies an empty local (whose first three dwords the
     // original leaves unset; they are overwritten below).
-    SharedObjectList& shared = SharedObjects(this);
-    ObjectPtrArray empty{reinterpret_cast<void*>(kObjectPtrArrayVtable), nullptr, 0, 0, 0};
+    SharedObjectList& shared = sharedObjects_;
+    ObjectPtrArray empty{SharedObject::ObjectsVtable(), nullptr, 0, 0, 0};
     SharedObjectNode* node = SharedObjectsNewNode(&shared, nullptr, nullptr, shared.head);
     ObjectPtrArrayCopy(&node->data.objects, nullptr, &empty);
     if (shared.head) shared.head->prev = node;
     else shared.tail = node;
     shared.head = node;
-    empty.vtable = reinterpret_cast<void*>(kObjectPtrArrayBaseVtable);
+    empty.vtable = SharedObject::ObjectsBaseVtable();
     if (empty.data) {
         CountedRangeRelease(empty.data, empty.size);
         gamecrt::operator_delete(empty.data);
@@ -921,20 +876,17 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
 namespace {
 
 // 00525AF0. UnitStats::RefillSlots (unit_vitals.cpp), on the controller's stats (+0x1E0).
-__declspec(naked) void __fastcall StatsRefillSlots(void*, void*) EI_ORIGINAL(0x00525AF0)
-
-constexpr int kSlotUnitDead = 55;         // unit slot 55 (+0xDC): non-zero when dead
-constexpr int kSlotControllerReset = 19;  // controller slot 19 (+0x4C), called with 0
+__declspec(naked) void __fastcall StatsRefillSlots(UnitStats*, void*) EI_ORIGINAL(0x00525AF0)
 
 } // namespace
 
 void CWorldServer::PrepareSave() {
     for (auto* node = mapObjects_.map.First(); node && node->value; node = mapObjects_.map.After(node)) {
         CEngineObject* unit = node->value;
-        if (unit->GetClassId() != world::kClassUnit || ei::VCall<int>(unit, kSlotUnitDead)) continue;
-        void* controller = At<void*>(unit, 0x240);
-        StatsRefillSlots(static_cast<std::uint8_t*>(controller) + 0x1E0, nullptr);
-        ei::VCall<void>(controller, kSlotControllerReset, 0);
+        if (unit->GetClassId() != world::kClassUnit || ObjectSlots(unit)->IsDead()) continue;   // slot 55
+        CEngineObject* controller = static_cast<CUnit*>(unit)->controller;
+        StatsRefillSlots(&reinterpret_cast<UnitController*>(controller)->stats, nullptr);
+        static_cast<CUnitController*>(controller)->RefreshVitals(0);   // slot 19 (+0x4C)
     }
 }
 
