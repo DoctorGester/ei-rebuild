@@ -123,7 +123,7 @@ static void __fastcall OptionsMouseDownVerify(void* input, void*, int buttons, i
     int region = w->RegionAt(x, y);
     int row = w->selectedRow_;
     bool waiting = w->waitingForKey_;
-    bool hasRow = region >= 13 && (w->RegionRow(region).binding_ || w->RegionRow(region).spin_);
+    bool hasRow = region >= 13 && (w->RegionRow(region).binding_ || w->RegionRow(region).setting_);
     Pending pending = PendingOf(w);
     w->COptionsWindow::OnMouseDown(buttons, x, y);
     bool ok;

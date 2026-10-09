@@ -638,6 +638,9 @@ inline void* UiTextureManager() { return *reinterpret_cast<void* const*>(0x007AF
 // The in-game key bindings (config\keyboard.ini, read by 00462C10): the action of each scan code
 // (0x200 entries, the WM_KEYDOWN flags & 0x1FF).
 inline const signed char* KeyActions() { return reinterpret_cast<const signed char*>(0x0079BF70); }
+// The same table for writing (the options window's OK stores its copy there).
+inline signed char* KeyActionTable() { return reinterpret_cast<signed char*>(0x0079BF70); }
+constexpr int kKeyActionCount = 0x200;
 
 class CUiRootWindow : public CUiWindow {
 public:
@@ -1419,18 +1422,42 @@ public:
     int maxPosition_;                // +0x148
     float speed_;                    // +0x14C lines per second while an arrow is held (/16)
     int position_;                   // +0x150
-    std::uint8_t unknown_154[0x164 - 0x154];
+    // +0x154 the thumb's track (layout coordinates; the options slider 0065B8B0: left + 26 ..
+    // right - 26 over the bottom 10 pixels). DR-H16: named from the slider's SetRect only.
+    RECT track_;
     RECT thumb_;                     // +0x164 layout coordinates
     int grabX_;                      // +0x174 mouse offset from the thumb centre while dragging
     int grabY_;                      // +0x178
-    float unknown_17C;               // +0x17C
+    // +0x17C the sprites' depth: the constructor's first float (0065AEA0 stores its float
+    // arguments at +0x17C and +0x14C, the int at +0x148); the slider's SetRect places its four
+    // sprites at it.
+    float depth_;
     bool moved_;                     // +0x180
     std::uint8_t unknown_181[3];
     int state_;                      // +0x184 0 idle, 1 dragging the thumb, 2 up, 3 down
     float accumulated_;              // +0x188 scrolled amount not yet applied
 };
 static_assert(offsetof(CUiScrollbar, position_) == 0x150);
+static_assert(offsetof(CUiScrollbar, track_) == 0x154);
 static_assert(offsetof(CUiScrollbar, thumb_) == 0x164);
+static_assert(offsetof(CUiScrollbar, depth_) == 0x17C);
+static_assert(sizeof(CUiScrollbar) == 0x18C);
+
+// The options window's horizontal slider (0x18C bytes, vtables 00742CBC / 00742C88): a scroll bar
+// whose slot 26 lays it out along the bottom of its rectangle. Sprites (scene objects): 0 the
+// track, 1 the thumb, 2 the right arrow, 3 the left arrow, all turned a quarter turn about z;
+// regions 0 the left arrow, 1 the right arrow, 2 the track. ui_options.cpp.
+class CUiSlider : public CUiScrollbar {
+public:
+    // 0065BC30 (RET 0x20, not rewritten): CUiScrollbar's constructor (0065AEA0) with the slider's
+    // vtables. Returns this.
+    // (`depth` goes to depth_ +0x17C, `maximum` to +0x148, `speed` to speed_ +0x14C.)
+    CUiSlider* Construct(CInterface3D* ui, RECT rect, float depth, int maximum, float speed);
+    // 0065B8B0 (slot 26, RET 4). Lays the slider out over `rect` (layout coordinates) and sets
+    // the position again (through slot 25, so it counts as moved).
+    void SetRect(const RECT* rect);
+};
+static_assert(sizeof(CUiSlider) == 0x18C);
 static_assert(offsetof(CUiScrollbar, state_) == 0x184);
 static_assert(offsetof(CUiScrollbar, accumulated_) == 0x188);
 
@@ -1457,6 +1484,12 @@ struct UiWordToken : UiTextToken {
 static_assert(sizeof(UiWordToken) == 0x10);
 // MFC CArray of token pointers (SetSize 0065E010, ui_scroll_text.cpp).
 using UiTokenArray = mfc::CArray<UiTextToken*>;
+// A laid out line of a scrolling text (CUiScrollText +0x1B0 holds pointers to them; DR-H16: only
+// the two fields DrawLines reads, the record's size is not known).
+struct UiTextLine {
+    int height_;                     // +0x00 pixels
+    int firstToken_;                 // +0x04 index in the token array
+};
 
 // A scrolling text: a scroll bar subclass (constructor 0065CC00) showing tokenised text; the
 // battle screen's message log and the objectives window's quest log.
@@ -1469,23 +1502,49 @@ public:
     // 0065D970 (RET 0xC; not rewritten). The token of `text` at `pos` (spaces and tabs skipped)
     // into `out`; returns the position after it, or -1 at the end.
     int NextToken(const mfc::CString* text, int pos, mfc::CString* out);
+    // 0065D150 (RET 4; called by 0065D120; ui_scroll_text.cpp, DR-H16). Draws the lines
+    // into surface 0 from `scroll` pixels down: the first line reaching `scroll` and the ones
+    // after it while they fit, word by word in their tokens' fonts and colours (initially font 1,
+    // 0xA7D7E4, or the last format token before the line), words apart by a third of the font's
+    // height, or justified over the text's width (align_ not 1, the line not the last, not ended
+    // by a newline, and of two or more tokens).
+    void DrawLines(int scroll);
 
-    std::uint8_t unknown_18C[0x19C - 0x18C];
+    RECT textRect_;                  // +0x18C the text's rectangle (surface coordinates)
     UiTokenArray tokens_;            // +0x19C
+    mfc::CArray<UiTextLine*> lines_; // +0x1B0 the laid out lines
+    int align_;                      // +0x1C4 1: left aligned (else justified)
 };
+static_assert(offsetof(CUiScrollText, textRect_) == 0x18C);
 static_assert(offsetof(CUiScrollText, tokens_) == 0x19C);
+static_assert(offsetof(CUiScrollText, lines_) == 0x1B0);
+static_assert(offsetof(CUiScrollText, align_) == 0x1C4);
 
-// A spin control of the options window (its +0x0C value object).
-struct UiSpinValue {
-    // 0065BEB0 / 0065BEE0 (not rewritten). Value access.
+// A spin control of the options window (vtables 00742D5C / 00742D28, 0x174 bytes): a window
+// stepping through its texts (the on / off settings). DR-H16: was UiSpinValue, with the rows'
+// OptionSetting read as a separate UiSpin.
+class CUiSpin : public CUiWindow {
+public:
+    // 0065BCD0 (RET 0x18, not rewritten). Constructor: the window over the layout rectangle
+    // `rect` (by value; also kept at +0x164), a surface of it, the first text `text` (null: the
+    // exe's empty text), value 0 (0065BEE0). Returns this.
+    CUiSpin* Construct(CInterface3D* ui, RECT rect, const char* text);
+    // 0065BE70 (RET 4, not rewritten). Appends a text (null: the empty text).
+    void AddText(const char* text);
+    // 0065BEB0 / 0065BEE0 (not rewritten). The value, and whether it changed since the last call
+    // (the flag is cleared); SetValue steps through the texts.
     bool GetValue(int* value);
     void SetValue(int value);
+
+    mfc::CStringArray texts_;        // +0x148
+    int value_;                      // +0x15C
+    bool changed_;                   // +0x160
+    std::uint8_t unknown_161[3];
+    RECT layout_;                    // +0x164 the constructor's rectangle
 };
-struct UiSpin {
-    std::uint8_t unknown_00[0x08];
-    CUiScrollbar* bar_;              // +0x08 or null (the options window's Left / Right move it)
-    UiSpinValue* value_;             // +0x0C
-};
+static_assert(offsetof(CUiSpin, value_) == 0x15C);
+static_assert(offsetof(CUiSpin, layout_) == 0x164);
+static_assert(sizeof(CUiSpin) == 0x174);
 
 // A saved game in the save/load list (0x44 bytes, STLport vector at +0x164). Copy construction
 // 00656640 (and 00657C60), assignment 006538E0, destructor 00656720 (not rewritten). The fields
@@ -1632,13 +1691,38 @@ static_assert(offsetof(CSaveLoadWindow, slide_) == 0x17C);
 static_assert(offsetof(CSaveLoadWindow, cursor_) == 0x190);
 static_assert(sizeof(CSaveLoadWindow) == 0x194);
 
-// A setting of the options window (0x14 bytes, 26 of them at +0x378).
+// A setting's definition (0x18 bytes; the exe's table of 26 at 00787430).
+struct OptionDefinition {
+    int id_;                         // +0x00
+    const char* name_;               // +0x04 "option_" + name is its text key (else the name is shown)
+    int kind_;                       // +0x08 0 a slider, 1 an on / off spin control
+    int maximum_;                    // +0x0C the slider's range
+    int group_;                      // +0x10 the option group (0-10) it is shown in
+    int row_;                        // +0x14 its row there
+};
+static_assert(sizeof(OptionDefinition) == 0x18);
+inline const OptionDefinition* OptionDefinitions() { return reinterpret_cast<const OptionDefinition*>(0x00787430); }
+constexpr int kOptionDefinitionCount = 26;
+
+// A key action's definition (0x10 bytes; the exe's table of 59 at 00787080).
+struct ActionDefinition {
+    int id_;                         // +0x00 the action (the key code in the key table 0079BF70)
+    const char* name_;               // +0x04 "action_" + name is its text key
+    int group_;                      // +0x08
+    int row_;                        // +0x0C
+};
+static_assert(sizeof(ActionDefinition) == 0x10);
+inline const ActionDefinition* ActionDefinitions() { return reinterpret_cast<const ActionDefinition*>(0x00787080); }
+constexpr int kActionDefinitionCount = 59;
+
+// A setting of the options window (0x14 bytes, 26 of them at +0x378; copy constructor 00653100,
+// destructor 00651CE0: the text). The rows of the shown group point at them.
 struct OptionSetting {
-    const int* definition_;          // +0x00 its first int is the setting's id
+    const OptionDefinition* definition_;   // +0x00
     int value_;                      // +0x04
-    CUiScrollbar* bar_;              // +0x08 or null
-    UiSpinValue* spin_;              // +0x0C or null
-    mfc::CString text_;              // +0x10
+    CUiScrollbar* bar_;              // +0x08 a CUiSlider, or null
+    CUiSpin* spin_;                  // +0x0C or null
+    mfc::CString text_;              // +0x10 the shown name
 };
 static_assert(sizeof(OptionSetting) == 0x14);
 
@@ -1718,23 +1802,6 @@ static_assert(offsetof(CObjectivesWindow, exits_) == 0x18C);
 static_assert(offsetof(CObjectivesWindow, bar_) == 0x1BC);
 static_assert(sizeof(CObjectivesWindow) == 0x1F0);
 
-// A key binding row of the options window (0x18 bytes, vector at +0x36C; rows_ point at them).
-struct OptionBinding {
-    // Inlined in the options window's destructor body (0062B180): the two strings, then the
-    // vector's storage (its elements' destructor 0062B740 is empty).
-    void Destroy() {
-        unknown_14.~CString();
-        name_.~CString();
-        unknown_04.FreeStorage();
-    }
-
-    const int* key_;                 // +0x00 its first int is the bound key code
-    stlp::vector<std::uint32_t> unknown_04;   // +0x04
-    mfc::CString name_;              // +0x10 passed to "key_already_mapped_msg"
-    mfc::CString unknown_14;         // +0x14
-};
-static_assert(sizeof(OptionBinding) == 0x18);
-
 // The game's table of key names (0x48 bytes each, 88 of them from 007857B0 to 00787070).
 struct UiKeyName {
     int scan_;                       // +0x00 scan code
@@ -1742,11 +1809,32 @@ struct UiKeyName {
     char name_[0x40];                // +0x08
 };
 static_assert(sizeof(UiKeyName) == 0x48);
+inline const UiKeyName* UiKeyNames() { return reinterpret_cast<const UiKeyName*>(0x007857B0); }
+constexpr int kUiKeyNameCount = 88;
 
-// A row of the options window: a key binding or a spin control.
+// A key binding row of the options window (0x18 bytes, vector at +0x36C; rows_ point at them;
+// copy constructor 00652FF0, destructor 006537E0 with 0).
+struct OptionBinding {
+    // Inlined in the options window's destructor body (0062B180): the two strings, then the
+    // vector's storage (its elements' destructor 0062B740 is empty).
+    void Destroy() {
+        keysText_.~CString();
+        name_.~CString();
+        keys_.FreeStorage();
+    }
+
+    const ActionDefinition* action_; // +0x00
+    // +0x04 the keys bound to the action (BuildBindings keeps at most one).
+    stlp::vector<const UiKeyName*> keys_;
+    mfc::CString name_;              // +0x10 the action's shown name (passed to "key_already_mapped_msg")
+    mfc::CString keysText_;          // +0x14 the keys' names, separated
+};
+static_assert(sizeof(OptionBinding) == 0x18);
+
+// A row of the options window: a key binding or a setting (one of the window's own).
 struct OptionRow {
-    void* binding_;
-    UiSpin* spin_;
+    OptionBinding* binding_;
+    OptionSetting* setting_;
 };
 
 // The options window (vtables 00741FAC / 00741F78, 0x418 bytes). Regions: 0 OK, 1 cancel, 2-12
@@ -1763,18 +1851,43 @@ public:
     // scroll bar or spin control changed (volumes, the display's gamma at once).
     void Update();
 
+    // ui_options.cpp (DR-H16).
+    // 00651350. Draws surface 0: the group titles (the shown one white-tinted, its button sprite
+    // at full tint, the others half), the shown group's title, and each row's name and value (a
+    // binding waiting for its key in red); the highlight sprite (scene object 2) on the selected
+    // row.
+    void RefreshRows();
+    // 00651D70 (RET 4). Shows option group `group` (clamped to 0-10): the rows filled from the
+    // settings' and actions' definitions of the group (each row's region gets the "tip option_" /
+    // "tip action_" text), the shown rows' controls enabled and the others disabled, the first
+    // filled row selected (or row 0), the key wait cleared; RefreshRows.
+    void ShowGroup(int group);
+    // 006524A0. OK: the key table and every setting stored into the game's option globals (the
+    // difficulty only outside a multiplayer client; a changed display mode applied, 0056D7A0).
+    void Apply();
+    // 00651940. The 26 settings made again from their definitions: the shown name ("option_" +
+    // name), and a slider (kind 0) or an on / off spin control (kind 1; the difficulty's texts
+    // "difficulty_hard" / "difficulty_easy") as a child at the definition's row.
+    void BuildSettings();
+    // 00652200. The key table and the settings' values from the game's option globals; each
+    // setting's slider (slot 25) or spin control takes its value.
+    void LoadSettings();
+    // 00651600. The 59 binding rows made again from the action definitions: the shown name
+    // ("action_" + name), and the first key name (table 007857B0) of a scan code bound to the
+    // action, as the keys' text.
+    void BuildBindings();
+    // The same through the original addresses (the verify build's wrappers run there).
+    void CallRefreshRows();
+    void CallShowGroup(int group);
+    void CallApply();
+    void CallBuildSettings();
+    void CallLoadSettings();
+    void CallBuildBindings();
+
     // Not rewritten.
-    void RefreshRows();      // 00651350
-    void ShowGroup(int group);   // 00651D70
     void CommitBinding();    // 00652000
-    void Apply();            // 006524A0 OK: applies and stores the settings
     // Cancel: puts back the volumes and the display settings the window started with.
     static void RestoreSettings();
-    // 00651940 / 00652200 / 00651600 (not rewritten): the settings table (+0x378), their current
-    // values, the key binding rows.
-    void BuildSettings();
-    void LoadSettings();
-    void BuildBindings();
     // 006503C0 (slot 25, the window's Create): builds the window (ui_layouts.cpp).
     void Build();
     // 0062B180 (the destructor body; slot 0 0062B160 deletes; ui_menus.cpp): the group titles, the
@@ -1820,10 +1933,27 @@ static_assert(sizeof(COptionsWindow) == 0x418);
 // 0x17C bytes; text set by 0065C290).
 class CUiEditField : public CUiWindow {
 public:
+    // 0065C610 (input side slot 9, RET 0xC; ui_edit_field.cpp, DR-H16). While focused:
+    // Backspace and Delete remove a character at the caret, Home / End / Left / Right move it
+    // (no clamping here); the first edit key starts editing (Backspace / Delete from an empty
+    // text, the others with the caret at the end). Then the text is drawn again (0065C2E0) and
+    // the key is marked used. Other keys: nothing.
+    void OnKeyDown(int key, int repeat, int flags);
+    // 0065C2E0 (Rebirth-patched, not rewritten; called through its address). Draws the text and
+    // the caret. (Not named DrawText: windows.h makes that a macro.)
+    void DrawContents();
+    mfc::CString& Text() { return *reinterpret_cast<mfc::CString*>(&text_); }
+
     std::uint8_t unknown_148[0x170 - 0x148];
     const char* text_;               // +0x170 CString: the text typed
-    std::uint8_t unknown_174[0x17C - 0x174];
+    int caret_;                      // +0x174 caret position in text_
+    bool editing_;                   // +0x178 an edit key was pressed (the first one sets it)
+    bool focused_;                   // +0x179 keys are taken only while set
+    bool changed_;                   // +0x17A the text changed
+    std::uint8_t unknown_17B;
 };
+static_assert(offsetof(CUiEditField, caret_) == 0x174);
+static_assert(offsetof(CUiEditField, changed_) == 0x17A);
 static_assert(offsetof(CUiEditField, text_) == 0x170);
 static_assert(sizeof(CUiEditField) == 0x17C);
 

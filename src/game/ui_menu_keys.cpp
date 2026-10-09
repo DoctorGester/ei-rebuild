@@ -232,7 +232,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
         inputHandled_ = true;
         if (scan == kScanEsc) {
             waitingForKey_ = false;
-            RefreshRows();
+            CallRefreshRows();
             return;
         }
         const UiKeyName* pressed = nullptr;
@@ -249,15 +249,15 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             return;
         }
         waitingForKey_ = false;
-        void* binding = rows_[selectedRow_].binding_;
+        OptionBinding* binding = rows_[selectedRow_].binding_;
         if (!binding) {
-            RefreshRows();
+            CallRefreshRows();
             return;
         }
         interface_->PlaySound(Text(kSoundOk), 0);
         int code = keyOfScan_[pressed->scan_];
         OptionBinding* other = bindings_.begin();
-        while (other != bindings_.end() && *other->key_ != code) ++other;
+        while (other != bindings_.end() && other->action_->id_ != code) ++other;
         if (other != bindings_.end() && other != nullptr && other != binding) {
             // Already bound to another action: ask (the box's result goes to OnDialogResult).
             void* memory = gamecrt::operator_new(0x180);
@@ -275,7 +275,7 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             return;
         }
         CommitBinding();
-        RefreshRows();
+        CallRefreshRows();
         return;
     }
 
@@ -285,16 +285,16 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
         if (row.binding_) {
             waitingForKey_ = true;
         } else {
-            if (!row.spin_ || !row.spin_->value_) {
+            if (!row.setting_ || !row.setting_->spin_) {
                 inputHandled_ = true;
                 return;
             }
             int value;
-            row.spin_->value_->GetValue(&value);
-            rows_[selectedRow_].spin_->value_->SetValue(value + 1);
+            row.setting_->spin_->GetValue(&value);
+            rows_[selectedRow_].setting_->spin_->SetValue(value + 1);
         }
         interface_->PlaySound(Text(kSoundOk), 0);
-        RefreshRows();
+        CallRefreshRows();
         inputHandled_ = true;
         return;
     }
@@ -306,24 +306,24 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
     case kKeyPageUp:
     case kKeyPageDown:
         interface_->PlaySound(Text(kSoundSelect), 0);
-        ShowGroup(key == kKeyPageUp ? group_ - 1 : group_ + 1);
+        CallShowGroup(key == kKeyPageUp ? group_ - 1 : group_ + 1);
         break;
     case kKeyLeft:
     case kKeyRight: {
         // The row's bar moves one step; the handled flag stays as it is.
-        UiSpin* spin = rows_[selectedRow_].spin_;
-        if (!spin || !spin->bar_) return;
+        OptionSetting* setting = rows_[selectedRow_].setting_;
+        if (!setting || !setting->bar_) return;
         int position;
-        spin->bar_->TakePosition(&position);
-        rows_[selectedRow_].spin_->bar_->CallSetPosition(key == kKeyLeft ? position - 1 : position + 1);
+        setting->bar_->TakePosition(&position);
+        rows_[selectedRow_].setting_->bar_->CallSetPosition(key == kKeyLeft ? position - 1 : position + 1);
         return;
     }
     case kKeyUp:
         interface_->PlaySound(Text(kSoundSelect), 0);
         for (int i = selectedRow_ - 1; i >= 0; --i) {
-            if (rows_[i].binding_ || rows_[i].spin_) {
+            if (rows_[i].binding_ || rows_[i].setting_) {
                 selectedRow_ = i;
-                RefreshRows();
+                CallRefreshRows();
                 break;
             }
         }
@@ -331,9 +331,9 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
     case kKeyDown:
         interface_->PlaySound(Text(kSoundSelect), 0);
         for (int i = selectedRow_ + 1; i < kOptionRows; ++i) {
-            if (rows_[i].binding_ || rows_[i].spin_) {
+            if (rows_[i].binding_ || rows_[i].setting_) {
                 selectedRow_ = i;
-                RefreshRows();
+                CallRefreshRows();
                 break;
             }
         }

@@ -70,13 +70,10 @@ __declspec(naked) void CUiSurface::Freeze(int, int) EI_ORIGINAL(0x005FD760)
 __declspec(naked) BOOL CUiContainer::DrawContainer(int) EI_ORIGINAL(0x00600EF0)
 __declspec(naked) void __fastcall UiContainerMouseDown(void*, void*, int, int, int) EI_ORIGINAL(0x00601110)
 __declspec(naked) void __fastcall UiContainerDoubleClick(void*, void*, int, int, int) EI_ORIGINAL(0x00601570)
-__declspec(naked) bool UiSpinValue::GetValue(int*) EI_ORIGINAL(0x0065BEB0)
-__declspec(naked) void UiSpinValue::SetValue(int) EI_ORIGINAL(0x0065BEE0)
+__declspec(naked) bool CUiSpin::GetValue(int*) EI_ORIGINAL(0x0065BEB0)
+__declspec(naked) void CUiSpin::SetValue(int) EI_ORIGINAL(0x0065BEE0)
 __declspec(naked) void CSaveLoadWindow::RefreshList() EI_ORIGINAL(0x006567A0)
-__declspec(naked) void COptionsWindow::RefreshRows() EI_ORIGINAL(0x00651350)
-__declspec(naked) void COptionsWindow::ShowGroup(int) EI_ORIGINAL(0x00651D70)
 __declspec(naked) void COptionsWindow::CommitBinding() EI_ORIGINAL(0x00652000)
-__declspec(naked) void COptionsWindow::Apply() EI_ORIGINAL(0x006524A0)
 
 // --- Save/load window --------------------------------------------------------------------------
 
@@ -231,7 +228,7 @@ void COptionsWindow::OnMouseDown(int buttons, int x, int y) {
     if (region == 0 || region == 1) {
         const char* sound;
         if (region == 0) {
-            Apply();
+            CallApply();
             sound = kSoundOk;
         } else {
             RestoreSettings();
@@ -243,15 +240,15 @@ void COptionsWindow::OnMouseDown(int buttons, int x, int y) {
         if (region >= 2 && region < 13) {
             interface_->PlaySound(kSoundSelect, 0);
             waitingForKey_ = false;
-            ShowGroup(region - 2);
+            CallShowGroup(region - 2);
         }
         if (region >= 13) {
             OptionRow& row = RegionRow(region);
-            if (row.binding_ || row.spin_) {
+            if (row.binding_ || row.setting_) {
                 interface_->PlaySound(kSoundSelect, 0);
                 selectedRow_ = region - 13;
                 waitingForKey_ = false;
-                RefreshRows();
+                CallRefreshRows();
             }
         }
     }
@@ -267,13 +264,13 @@ void COptionsWindow::OnDoubleClick(int buttons, int x, int y) {
             interface_->PlaySound(kSoundSelect, 0);
             selectedRow_ = region - 13;
             waitingForKey_ = true;
-            RefreshRows();
-        } else if (row.spin_ && row.spin_->value_) {
+            CallRefreshRows();
+        } else if (row.setting_ && row.setting_->spin_) {
             int value;
-            row.spin_->value_->GetValue(&value);
-            RegionRow(region).spin_->value_->SetValue(value + 1);
+            row.setting_->spin_->GetValue(&value);
+            RegionRow(region).setting_->spin_->SetValue(value + 1);
             interface_->PlaySound(kSoundOk, 0);
-            RefreshRows();
+            CallRefreshRows();
         }
     }
     UiContainerDoubleClick(InputSide(), nullptr, buttons, x, y);
@@ -302,7 +299,7 @@ void COptionsWindow::Redraw() {
 
 void COptionsWindow::OnDialogResult(int result) {
     if (result == 0x10001) CommitBinding();
-    RefreshRows();
+    CallRefreshRows();
 }
 
 const char* COptionsWindow::HelpTopic() {
@@ -344,7 +341,7 @@ void COptionsWindow::Update() {
         int value;
         if (settings_[i].bar_ && settings_[i].bar_->TakePosition(&value)) {
             settings_[i].value_ = value;
-            unsigned id = static_cast<unsigned>(*settings_[i].definition_);
+            unsigned id = static_cast<unsigned>(settings_[i].definition_->id_);
             if (id == kSettingVolumeA) {
                 Global<UiSoundSystem*>(0x007AF784)->SetVolumeA(value);
             } else if (id == kSettingVolumeB) {
@@ -363,7 +360,7 @@ void COptionsWindow::Update() {
         }
         if (settings_[i].spin_ && settings_[i].spin_->GetValue(&value)) {
             settings_[i].value_ = value;
-            int id = *settings_[i].definition_;
+            int id = settings_[i].definition_->id_;
             if (id >= 7) {
                 if (id <= 9)
                     displayModeChanged_ = true;
