@@ -206,6 +206,13 @@ Ported (V as above; terrain lighting is in the terrain table):
 | 006D9A30 / 006D9CE0 / 006D9F80 | `acks::AckTable<UnitAcks / ModelAcks / ExtraAcks>::Find` (acks_db.cpp; index operator[], adds a null entry for a missing name) | P |
 | 006D8780 / 006D88E0 | `acks::PickSpeech` / `PickEnvironmentSpeech` (rand() and ISAAC state restored between the runs and compared) | S |
 | 006D8430 / 006D8A40 | `acks::SayAck` / `SayNamedAck` (call the five above through their addresses so their wrappers run) | O |
+| 006CB1E0 | `Terrain::RunTick` (slot 6; terrain_animation.cpp) | O |
+| 006C8ED0 | `Terrain::SetSun` (ray steps; relight countdowns of the lit cached sectors, sorted through the game's qsort) | S |
+| 006C3E80 | `SectorData::Animate` (animated tiles, water waves; ISAAC restored between the runs) | S |
+| 006C3C80, 006C3D70, 006C3E30, 006C3E50 | `SectorData::Clear` (O), `ResetFields`, `ScheduleRelight`, `RelightTick` | S |
+| 006CB390, 006CBCD0 | `Terrain::PlayAmbience` / `StopAmbience` (terrain_ambience.cpp; sounds, ISAAC, sector loads) | O |
+| 006CBC00 | `CWorldClient::AmbienceTimeOfDay` (CString out) | S |
+| 006CCF20 | `Terrain::AddDecalTriangles` (terrain_decal.cpp; triangles through the unhooked original 004D8490, X17 / X18; appended data compared) | S |
 
 acks.db (acks_db.h): database 007C8A60 = three tables {vector of records, hash_map<string, record*>}: 0x1C4-byte records by
 prototype name (kinds up to 0x29; 0x29 = the environment speeches +0x1AC, 0x2C bytes, flags +0x28 matched against
@@ -214,8 +221,26 @@ prototype name (0x2A..0x2D); each record: name, hash_map<int kind, vector<Speech
 were declared for Say (51) / StopSpeech (52). The original picks through a temporary vector of pointers; ours counts and
 indexes (same draws, no allocation).
 
-Next in the range: ambience 006CB390; decal triangles 006CCF20 (floats, X17's decal functions are disabled in verify);
-shadow 006CEDE0; animated tiles and water waves 006C3E80 (ISAAC draws); map setup 006C5AA0; acks record serialisers 006E3780 / 006E3FD0 / 006E3DC0 (startup,
+Landscape fields (terrain.h / TerrainFields): +0x94 flags (1 waves, 2 animated tiles, 8 ambient sounds); +0x21C / +0x220 light
+interval / countdown; +0x234..+0x248 the sun's ray steps; +0x274..+0x28C waves (direction, height, glow, phase, speed); +0x290
+per-vertex wave phases; +0x2A0 a 512-entry sine table. Kept: SetSun's qsort comparator (006C8E90) reads +0xC / +8 of the array
+slots, i.e. the pointers three and two slots on (past the end for the last ones), so the relight order follows pointer values.
+Animate's sine index uses 256 / pi as a double (the original divides at run time; a .5 edge may rarely differ).
+
+Ambience: sound classes at 007969D0 (16 x 0x18: name, variants, weight, class it counts as, pan limit, chance %; read from
+memory, most have variants -1, so the one-shot index is a draw % 0xFFFFFFFF + 1); loop slots +0xAC8 handles / +0xAD4 classes,
++0xAE0 the sound set. The class votes are sorted by the game's qsort (comparator 006CB360 rewritten as `ByWeight`).
+
+Next in the range (A-X3 cut off): the print effects (footprints, blood, scorch decals; client world lists +0x1B8..+0x1C0):
+vtables 0073F754 / 0073F760 / 0073F76C / 0073F778 (slot 0 Tick 006CECD0, slots 1 / 2 Load 006CF4F0 / Save 006CF370 and the
+006CFA20.. variants), ctor 006CF660 (RET 0x28, rand() draws), dtor 006CF960, Draw 006CEDE0 (quad -> 0056C750 -> DeviceDrawFlat),
+006CED50 texture, 006CF310 place, 006CFBA0 / 006CFEA0 from 0056D150 / 0056D4C0; layout: +8 x, +0xC y, +0x10 / +0x14 half
+size, +0x18 growth, +0x1C life (short), +0x20 stlp::string texture, +0x2C counted texture, +0x30..+0x3C uv offset / scale,
++0x40 / +0x44 uv and quad angles, +0x48 lit byte (006CB020), +0x4C / +0x50 alpha, +0x54 colour, +0x58 lifetime, +0x5C / +0x6C /
++0x7C aligned arrays (positions in 64-byte packets, uv, indices). Landscape setup: Create 006C5430 (slot 2; sine table inline),
+Destroy 006C54D0 (slot 3, STLport hash_map at +0x25C), 006C5620 reset, 006C57E0 wave phases (rand()), 006C7D70 / 006C7EB0
+waves set / get, map setup 006C5AA0 (texture pages; renderer calls); sector record helpers 006C5150 / 006C5230 (LightRef pool
+007C8840 / 007C8844); point lights 006CA5D0-006CAC10; acks record serialisers 006E3780 / 006E3FD0 / 006E3DC0 (startup,
 through the Rebirth-patched loader); CDib 006D5BF0. The records' compiler-generated members (006DE370, 006DC390, ...)
 need only the record declarations in a standalone build.
 

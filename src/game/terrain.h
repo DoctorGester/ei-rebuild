@@ -3,12 +3,16 @@
 #include "engine_object.h"
 
 #include "lib/containers.h"
+#include "lib/vecmath.h"
 #include "lib/mfc.h"
 
 #include <cstddef>
 #include <cstdint>
 
 // Names are provisional: they describe what the code does, not names recovered from the original.
+
+class CLight;
+class DecalBuilder;
 
 namespace terrain {
 struct SectorData;   // terrain_sector.h: the full sector (TerrainSector names a few of its fields)
@@ -51,7 +55,36 @@ public:
     // a square). Each bound is FISTP(coordinate -/+ radius - 0.5) / 32, clamped to the map.
     void SetVisibleSectors(float x, float y, float radius);
 
-    std::uint8_t unknown_01C[0xD8 - 0x1C];   // the rest of the CTransformObject base
+    // 006CB1E0 (slot 6, terrain_animation.cpp). The per-frame update: the light countdown
+    // (006C8ED0 when it runs out), each cached lit sector's relight countdown, the ambient sounds
+    // (flag 8), the wave phase and frame counter, then Animate for each drawn sector of the visible
+    // rows. Returns 1.
+    int RunTick() override;
+
+    // 006C8ED0 (RET 8; terrain_animation.cpp). Takes `sun` and the ambient colour: the ray steps
+    // of the shadow test from the direction towards the sun (components below 0.01 in size pushed
+    // to 0.01), then with a light interval the lit cached sectors get relight countdowns spread
+    // over it (sorted; 0 drops the lighting at once), without one every sector's lighting is dropped.
+    void SetSun(CLight* sun, const Vector4* ambient);
+    // 006CB390 (terrain_ambience.cpp). The ambient sounds around the listener (flag 8): the 3x3
+    // sectors around it (loaded when needed) each vote a sound class from their texture class
+    // counts and get a weight from their distance; up to three classes with weight go on. Each may
+    // start a one-shot (ambient\<set>\<class>\<time of day>\<n>.wav) at a random spot of a random
+    // sector of its class, and keeps a looping circle.wav at its volume and pan (the loop already
+    // playing for that class is reused); the loops of classes no longer heard stop.
+    void PlayAmbience();
+    // 006CBCD0 (from 00578940). Clears flag 8 and stops the three loops.
+    void StopAmbience();
+    // 006CCF20 (RET 8; terrain_decal.cpp, from the shadow projector 0056C750). Slides the decal
+    // quad (`corners` as DecalBuilder::Begin takes them) along the builder's slope until its lowest
+    // point meets the lowest ground vertex of the cells under it (one cell of margin, clamped to
+    // the map), then hands those cells' ground triangles to the builder (Reserve, then two
+    // AddTerrainTriangle per cell, through the original 004D8490).
+    void AddDecalTriangles(DecalBuilder* builder, float* const* corners);
+
+    std::uint8_t unknown_01C[0x94 - 0x1C];   // the rest of the CTransformObject base
+    std::uint32_t landscapeFlags;   // +0x094 terrain::TerrainFields::flags
+    std::uint8_t unknown_098[0xD8 - 0x98];
     int unknownD8;                  // +0x0D8 \ cleared by the constructor
     int unknownDC;                  // +0x0DC |
     int unknownE0;                  // +0x0E0 |
@@ -79,15 +112,32 @@ public:
     SectorCache::Node*** sectorGrid;   // +0x1F8 [sx][sy]: the sector's cache node, or null
     SectorCache sectorCache;        // +0x1FC 00570EA0 (block size 10), most recently used first
     int frame;                      // +0x218 counted by the per-frame update
-    std::uint8_t unknown_21C[0x25C - 0x21C];
-    std::uint8_t part25C[0x34];     // +0x25C 00571050
-    std::uint8_t part290[0x10];     // +0x290 00570DE0 (an aligned array)
-    std::uint8_t unknown_2A0[0xAA4 - 0x2A0];
+    int lightInterval;              // +0x21C frames between sun updates (006C8ED0)
+    int lightCountdown;             // +0x220
+    Vector4 ambient;                // +0x224
+    float sunSlopeX;                // +0x234 z / x of the unit direction towards the sun
+    float sunRunX;                  // +0x238 x / z
+    float sunSlopeY;                // +0x23C z / y
+    float sunRunY;                  // +0x240 y / z
+    int sunStepX;                   // +0x244 FISTP(95 * x)
+    int sunStepY;                   // +0x248
+    std::uint8_t unknown_24C[0x258 - 0x24C];   // the vertex being lit (terrain::TerrainFields)
+    CLight* sun;                    // +0x258
+    std::uint8_t part25C[0x18];     // +0x25C 00571050 (an STLport hash_map and a count)
+    Vector3 waveDirection;          // +0x274 the wave fields: terrain::TerrainFields
+    float waveHeight;               // +0x280
+    float waveGlow;                 // +0x284
+    float wavePhase;                // +0x288
+    float waveSpeed;                // +0x28C
+    lib::AlignedArray<float> wavePhases;   // +0x290 00570DE0
+    float sine[512];                // +0x2A0
+    std::uint8_t unknown_AA0[0xAA4 - 0xAA0];
     int visibleRowFirst;            // +0xAA4 SetVisibleSectors
     lib::AlignedArray<int> visibleColumnFirst;   // +0xAA8 0056FD30, per visible row
     lib::AlignedArray<int> visibleColumnLast;    // +0xAB8 0056FD30
-    std::uint8_t unknown_AC8[0xAE0 - 0xAC8];
-    const char* textAE0;            // +0xAE0 CString
+    int ambientSounds[3];           // +0xAC8 the looping circle sounds (handles, -1 none)
+    int ambientClasses[3];          // +0xAD4 their sound classes, -1 none
+    const char* textAE0;            // +0xAE0 CString: the ambient sound set (ambient\<set>\...)
     std::uint8_t unknown_AE4[4];
     std::uint8_t partAE8[0x14];     // +0xAE8 005711C0
 };
@@ -98,8 +148,10 @@ static_assert(offsetof(Terrain, part12C) == 0x12C);
 static_assert(offsetof(Terrain, sectorGrid) == 0x1F8);
 static_assert(offsetof(Terrain, sectorCache) == 0x1FC);
 static_assert(offsetof(Terrain, frame) == 0x218);
-static_assert(offsetof(Terrain, part25C) == 0x25C);
-static_assert(offsetof(Terrain, part290) == 0x290);
+static_assert(offsetof(Terrain, landscapeFlags) == 0x94);
+static_assert(offsetof(Terrain, ambient) == 0x224 && offsetof(Terrain, sun) == 0x258);
+static_assert(offsetof(Terrain, part25C) == 0x25C && offsetof(Terrain, waveDirection) == 0x274);
+static_assert(offsetof(Terrain, wavePhases) == 0x290 && offsetof(Terrain, sine) == 0x2A0);
 static_assert(offsetof(Terrain, visibleRowFirst) == 0xAA4);
 static_assert(offsetof(Terrain, visibleColumnLast) == 0xAB8);
 static_assert(offsetof(Terrain, textAE0) == 0xAE0);

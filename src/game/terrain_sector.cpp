@@ -106,7 +106,6 @@ bool IsAnimated(const TerrainFields* owner, int texture) {
 
 } // namespace
 
-__declspec(naked) void SectorData::Clear() EI_ORIGINAL(0x006C3C80)
 __declspec(naked) void SectorData::BuildAtOriginal() EI_ORIGINAL(0x006C1C00)
 __declspec(naked) void SectorData::LightAtOriginal(CLight*, TerrainFields*, int, int, int, int, int) EI_ORIGINAL(0x006C3A00)
 
@@ -620,7 +619,7 @@ SectorData* SectorData::Construct() {
     perPage = -1;
     built = 0;
     lastUsed = 0;
-    unknown_388 = 0;
+    relightCountdown = 0;
     unknown_060 = kCulled;
     unknown_38C = 0;
     unknown_390 = 0;

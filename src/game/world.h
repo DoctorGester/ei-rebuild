@@ -1070,6 +1070,10 @@ public:
     int DrawPass();
     // 00563F70, vtable slot 27. Ground height with the position clamped into the map.
     float ClampedGroundHeight(float x, float y);
+    // 006CBC00 (RET 4; terrain_ambience.cpp). The ambient sounds' time of day into `out`: "day"
+    // from 6 to 18 o'clock, "morning" before 6 and "evening" after 18 within 2..22, else "night".
+    // Returns out.
+    mfc::CString* AmbienceTimeOfDay(mfc::CString* out);
     // 005640A0. Nearest living unit of the local player's group that `unit`'s side can see
     // (relation masks +0x244/+0x248 of the candidate); null when none or `unit` is null.
     CEngineObject* NearestVisibleUnit(CEngineObject* unit);

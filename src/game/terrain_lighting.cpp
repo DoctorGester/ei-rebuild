@@ -173,7 +173,7 @@ void SectorData::Light(CLight* sun, TerrainFields* terrain, int skipSun, int x0,
     }
     built |= 4;
     gamecrt::controlfp(control, 0xFFFFFFFF);
-    if (!skipSun) unknown_388 = -1;
+    if (!skipSun) relightCountdown = -1;
 }
 
 EI_REPLACE_METHOD(0x006C3A00, SectorData::Light);
