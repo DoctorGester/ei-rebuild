@@ -231,18 +231,42 @@ Ambience: sound classes at 007969D0 (16 x 0x18: name, variants, weight, class it
 memory, most have variants -1, so the one-shot index is a draw % 0xFFFFFFFF + 1); loop slots +0xAC8 handles / +0xAD4 classes,
 +0xAE0 the sound set. The class votes are sorted by the game's qsort (comparator 006CB360 rewritten as `ByWeight`).
 
-Next in the range (A-X3 cut off): the print effects (footprints, blood, scorch decals; client world lists +0x1B8..+0x1C0):
-vtables 0073F754 / 0073F760 / 0073F76C / 0073F778 (slot 0 Tick 006CECD0, slots 1 / 2 Load 006CF4F0 / Save 006CF370 and the
-006CFA20.. variants), ctor 006CF660 (RET 0x28, rand() draws), dtor 006CF960, Draw 006CEDE0 (quad -> 0056C750 -> DeviceDrawFlat),
-006CED50 texture, 006CF310 place, 006CFBA0 / 006CFEA0 from 0056D150 / 0056D4C0; layout: +8 x, +0xC y, +0x10 / +0x14 half
-size, +0x18 growth, +0x1C life (short), +0x20 stlp::string texture, +0x2C counted texture, +0x30..+0x3C uv offset / scale,
-+0x40 / +0x44 uv and quad angles, +0x48 lit byte (006CB020), +0x4C / +0x50 alpha, +0x54 colour, +0x58 lifetime, +0x5C / +0x6C /
-+0x7C aligned arrays (positions in 64-byte packets, uv, indices). Landscape setup: Create 006C5430 (slot 2; sine table inline),
-Destroy 006C54D0 (slot 3, STLport hash_map at +0x25C), 006C5620 reset, 006C57E0 wave phases (rand()), 006C7D70 / 006C7EB0
-waves set / get, map setup 006C5AA0 (texture pages; renderer calls); sector record helpers 006C5150 / 006C5230 (LightRef pool
-007C8840 / 007C8844); point lights 006CA5D0-006CAC10; acks record serialisers 006E3780 / 006E3FD0 / 006E3DC0 (startup,
-through the Rebirth-patched loader); CDib 006D5BF0. The records' compiler-generated members (006DE370, 006DC390, ...)
-need only the record declarations in a standalone build.
+A-X4 (terrain_landscape.cpp, terrain_lights.cpp, acks_db.cpp; wrappers in verify_terrain_landscape.cpp,
+verify_terrain_lights.cpp, verify_acks_db.cpp):
+
+| Address | Name | V |
+|---|---|---|
+| 006C5430 / 006C54D0 | `Terrain::Create` / `Destroy` (slots 2 / 3; Reset and the wave phases through their addresses) | O |
+| 006C5620 | `Terrain::Reset` (original on a raw copy with empty arrays and texts; all bytes but the two texts) | S |
+| 006C57E0 | `Terrain::BuildWavePhases` (rand() state restored between the runs) | S |
+| 006C7D70 / 006C7EB0 | `Terrain::SetWaveStrength` / `SetWaves` | S |
+| 006C5AA0 | `Terrain::SetupPages` (texture pages from the map loader; `CMaterial`, material.h) | O |
+| 006CAA70, 006BF580, 006BF4A0 | `Terrain::LightAreaOf`, `LightAreaFromBounds`, `SetLightArea` (the last two through the first's side run) | S |
+| 006CA5D0 / 006CA720 / 006CA830 / 006CA9C0 / 006CAB50 | `Terrain::AddLight` / `RemoveLight` / `MoveLight` / `LightSector` / `RelightArea` (areas checked against the original 006CAA70) | O |
+| 006CAC10 | `UpdateVertexLights` (each vertex of the range has the light once or not at all, lists linked) | O |
+| 006C5230, 006C5150, 006C4EE0 | `FreeLightRef`, `SectorVertex::ReleaseLights`, `DestroyRecords` (pool: `LightRefBlock`, terrain_sector.h) | O |
+| 006E3780 / 006E3FD0 / 006E3DC0 | `UnitAcks` / `ModelAcks` / `ExtraAcks::Serialize` (loading: the original into a scratch element made by the original resize; failed-search chunks popped) | S |
+| 006E42F0 / 006E4410 / 006E4F40 | `SpeechListField` / `EnvironmentSpeechListField` / `SpeechField` (archive helpers; reached from the originals' side runs) | S |
+
+Forwarders: 006C7A80 (vertex tile table) and 006C7750 (map free) as Terrain members; 006C5620 shared as
+`LandscapeResetOriginal` (originals_world.h), 0068E970 as `MaterialNewOriginal` (originals_ui.h); 006E4560 / 006E47F0
+(speech list resize). Kept: RemoveLight of an unregistered light loops over an uninitialised area in the original (ours
+over none); MoveLight of an unregistered light writes its area to address 4 (ours to null: both crash); RemoveLight /
+MoveLight / AddLight do nothing (no Release) before a map is loaded. 006D5BF0 (CDib .mmp reader) is dead: only called from
+dead 006D6800 (config/dead_code.csv).
+
+Next (A-X4 cut off): the print effects (footprints, blood, scorch decals; client world lists +0x1B8..+0x1C0): vtables
+0073F754 {006CFA20, 006CFB40, 006CFAC0}, 0073F760 {006CECD0, 006CFE60, 006CFE10}, 0073F76C / 0073F778 {006CECD0 Tick,
+006CF4F0 Load, 006CF370 Save}; ctor 006CF660 (RET 0x28, rand() draws), dtor 006CF960, Draw 006CEDE0 (+5 visible, +4 built:
+quad of 64-byte SoA packets at the height from the world's slot 27 and 00560F00, 0056C750(normal (0, 0, -1), centre z + 1,
+0, quad, +0x5C, +0x6C, +0x7C, 1, 1), uv rotated by +0x40 (the unrolled loop's 4th pair rounds the u part, the others the v
+part), packet z + 0.01; then alpha byte FISTP(+0x4C * 255) into +0x54, 004EB1D0(0, +0x20), DeviceDrawFlat(+0x5C data, +0x6C
+data, +0x60, +0x7C data, +0x80, +0x54, lit << 24, 0, 1)), 006CFBA0 / 006CFEA0 from 0056D150 / 0056D4C0. Tick: life
+(short) - 1, half sizes + growth, alpha = (1 - max(t, 0)) * +0x50 with t = (lifetime - life) / lifetime, returns life.
+Layout: +8 x, +0xC y, +0x10 / +0x14 half size, +0x18 growth, +0x1C life, +0x20 stlp::string texture, +0x2C counted
+texture, +0x30..+0x3C uv offset / scale, +0x40 / +0x44 uv and quad angles, +0x48 lit byte (006CB020), +0x4C / +0x50 alpha,
++0x54 colour, +0x58 lifetime, +0x5C / +0x6C / +0x7C aligned arrays. Also 006C7A80, 006C7750. The acks records'
+compiler-generated members (006DE370, 006DC390, ...) need only the record declarations in a standalone build.
 
 ## Resources and the sound file reader (00671280-00675B40)
 
