@@ -13,6 +13,7 @@
 //
 // Names are provisional. Layouts mirror the original; unknown bytes are unknown_XXX.
 
+#include "base_manager.h"
 #include "maths.h"
 
 #include "lib/containers.h"
@@ -60,24 +61,45 @@ static_assert(sizeof(ParticleElement) == 0x38);
 class CParticleSource;
 class CObject3D;
 
-// The particle manager (a CBaseManager; CParticleSource +0x14 points to it): it owns the sources
-// (the manager's object list at +0x34) and keeps a pool of free particles, an MFC list at +0xB0
-// (taken from the head, returned to the tail).
-struct ParticlePool {
-    Particle* Acquire();                            // 00498870: from the pool, else new (0x64 bytes)
-    void Release(Particle* p);                      // 004987C0: back to the pool's tail
+// The particle manager (vtable 0073F644, 0xE8 bytes; the client world's +0x19C and *007AF754;
+// CParticleSource +0x14 points to it): a CBaseManager whose objects are the sources (objectList_).
+// It keeps a pool of free particles, an MFC list at +0xB0 (taken from the head, returned to the
+// tail), and holds one reference on every source made through CreateSource (`held_`, by id) until
+// the source's tick ends it (TickSources) or nobody else holds it (ReleaseUnheld).
+// particle_manager.cpp; the pool in particle_tick.cpp, DrawAll in particle_draw.cpp.
+class CParticleManager : public CBaseManager {
+public:
+    using HeldMap = stlp::hash_map<int, CParticleSource*, stlp::IntHash>;
+
+    // 2: 00497FC0. unknown_E4 cleared, then CBaseManager::Create; returns 1 / 0.
+    int Create() override;
+    // 3: 00497FE0. Releases the held sources, empties `held_`, deletes the pooled particles, then
+    // CBaseManager::Destroy; unknown_E4 cleared.
+    void Destroy() override;
+
+    Particle* AcquireParticle();                    // 00498870: from the pool, else new (0x64 bytes)
+    void ReleaseParticle(Particle* p);              // 004987C0: back to the pool's tail
     // particle_draw.cpp: draws every source back to front; 0 when a source failed to draw.
     int DrawAll(void* renderer);                    // 00498940
+    // 00498400 (RET 4). A new source of `type` (CreateObject(type, -1)), referenced and held under
+    // its id; with unknown_E4 set, types 0x2001 / 0x2003 / 0x2004 start without emitting.
+    CParticleSource* CreateSource(int type);
+    // 00498480 (RET 4). Every source's tick (slot 6; with `paused` only the ones with flag 8); a
+    // held source whose tick returned 0 is released and leaves `held_`. Returns 0.
+    int TickSources(char paused);
+    // 00498630. Every held source nobody else references (refCount_ 1) is released and leaves
+    // `held_` (the client's zone load).
+    void ReleaseUnheld();
 
-    void* vtable;                                   // +0x000
-    int refCount;                                   // +0x004
-    std::uint8_t unknown_008[0x34 - 0x08];
-    mfc::CTypedPtrList<CParticleSource> sources;    // +0x034 the manager's objects
-    std::uint8_t unknown_050[0xB0 - 0x50];
     mfc::CTypedPtrList<Particle> freeParticles;     // +0x0B0
+    HeldMap held_;                                  // +0x0CC id -> source holding a reference
+    int maxHeldId_;                                 // +0x0E0 highest key of held_
+    int unknown_E4;                                 // +0x0E4 0 after Create; see CreateSource
 };
-static_assert(offsetof(ParticlePool, sources) == 0x34);
-static_assert(offsetof(ParticlePool, freeParticles) == 0xB0);
+static_assert(offsetof(CParticleManager, freeParticles) == 0xB0);
+static_assert(offsetof(CParticleManager, held_) == 0xCC);
+static_assert(offsetof(CParticleManager, maxHeldId_) == 0xE0);
+static_assert(sizeof(CParticleManager) == 0xE8);
 
 // One entry of the draw order (particle_draw.cpp): the source's depth along the camera's view axis.
 struct ParticleDepth {

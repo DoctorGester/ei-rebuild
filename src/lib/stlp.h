@@ -165,6 +165,28 @@ struct list {
     Node* End() const { return head; }
     bool Empty() const { return head->next == head; }
 
+    // For a local list the original builds and drops in one function (e.g. the id lists of
+    // 00498480): the constructor (00404A70: a sentinel from the pool, linked to itself),
+    // push_back (insert(end(), value), 00404A40: one node from the pool) and the destructor
+    // (clear, then the sentinel back to the pool), allocating in the original's order.
+    void Construct() {
+        head = static_cast<Node*>(allocate(sizeof(Node)));
+        head->next = head;
+        head->prev = head;
+    }
+    void PushBack(const T& value) {
+        Node* node = static_cast<Node*>(allocate(sizeof(Node)));
+        new (&node->data) T(value);
+        node->next = head;
+        node->prev = head->prev;
+        head->prev->next = node;
+        head->prev = node;
+    }
+    void Destroy() {
+        ClearWith([](T*) {});
+        deallocate(head, sizeof(Node));
+    }
+
     // clear() as STLport writes it, for an instantiation the original inlines: each element
     // destroyed by `destroy(&data)` (its own destructor), the node returned to the pool, the
     // sentinel linked to itself.

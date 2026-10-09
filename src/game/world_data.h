@@ -90,7 +90,7 @@ inline int ShadowSetting() { return *reinterpret_cast<const volatile int*>(std::
 // Vtables Setup stores while it inlines the constructors.
 constexpr std::uintptr_t kClientTextsVtable = std::uintptr_t(0x0073F6F0);
 constexpr std::uintptr_t kTerrainVtable = std::uintptr_t(0x0073F6A8);
-constexpr std::uintptr_t kClientManager19CVtable = std::uintptr_t(0x0073F644);
+constexpr std::uintptr_t kParticleManagerVtable = std::uintptr_t(0x0073F644);
 constexpr std::uintptr_t kClientHandleVtable = std::uintptr_t(0x0073F628);
 constexpr std::uintptr_t kClientListVtable = std::uintptr_t(0x0073F61C);   // the list manager's CList
 constexpr std::uintptr_t kClientListManagerVtable = std::uintptr_t(0x0073F5B8);

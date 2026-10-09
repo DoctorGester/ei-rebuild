@@ -37,7 +37,7 @@ class CTexture;   // texture.h
 class CTextureManager;   // texture.h
 class Terrain;
 class CCamera;   // camera.h
-struct ClientManager19C;
+class CParticleManager;   // effects.h
 struct FootprintPart;   // ai_map.h: a figure part's box (FigurePart +0x188)
 class CFileRegistry;   // registry.h
 class CWorldServer;
@@ -224,7 +224,7 @@ public:
     virtual CTextureManager* TextureManager();   // 34: the client's 00561990 (+0x18C)
     // 35: client 005619A0 (+0x190, a CLightManager), server 0. The client's Segment walks its objects.
     virtual CBaseManager* ClientLightManager();
-    virtual ClientManager19C* ClientParticleManager();   // 36: client 005619B0 (+0x19C, a CParticleManager), server 0
+    virtual CParticleManager* ClientParticleManager();   // 36: client 005619B0 (+0x19C, a CParticleManager), server 0
     virtual void ClientManager194();      // 37: client 005619C0 (+0x194), server 0. Not identified
     virtual void ClientManager198();      // 38: client 005619D0 (+0x198), server 0. Not identified
     virtual void Unused39();              // 39: 0055EC40 returns 0 in both
@@ -1022,16 +1022,7 @@ struct ClientArrayManager : CBaseManager {
     std::uint8_t list[0x1C];              // +0xB4
 };
 static_assert(sizeof(ClientArrayManager) == 0xD0);
-// +0x19C (0xE8 bytes, vtable 0073F644, constructor tail 004981A0): a CList (0056FD40, 10), a table
-// (005725E0) and a dword.
-struct ClientManager19C : CBaseManager {
-    std::uint8_t list[0x1C];              // +0xB0
-    std::uint8_t table[0x14];             // +0xCC
-    int unknown_E0;                       // +0xE0
-    std::uint8_t unknown_E4[4];
-};
-static_assert(offsetof(ClientManager19C, unknown_E0) == 0xE0);
-static_assert(sizeof(ClientManager19C) == 0xE8);
+// +0x19C: the particle manager, CParticleManager (effects.h).
 
 // The render device (the global pointer at 007AF068): three stacks of 4x4 float matrices.
 struct MatrixDevice {
@@ -1271,7 +1262,7 @@ public:
     CTextureManager* textureManager_;     // +0x18C (slot 34) counted
     CBaseManager* manager190_;            // +0x190 counted (constructor 0068D850)
     std::uint8_t unknown_194[0x19C - 0x194];
-    ClientManager19C* manager19C_;        // +0x19C counted
+    CParticleManager* particleManager_;        // +0x19C counted
     ClientListManager* listManager_;      // +0x1A0 owned
     ClientArrayManager* arrayManager_;    // +0x1A4 owned
     ClientObject1A8* owned1A8_;           // +0x1A8 owned (constructor 006B4350)
@@ -1335,7 +1326,7 @@ static_assert(offsetof(CWorldClient, rangeFirstX_) == 0x138);
 static_assert(offsetof(CWorldClient, rangeY_) == 0x14C);
 static_assert(offsetof(CWorldClient, secondGrid_) == 0x150);
 static_assert(offsetof(CWorldClient, manager188_) == 0x188);
-static_assert(offsetof(CWorldClient, manager19C_) == 0x19C);
+static_assert(offsetof(CWorldClient, particleManager_) == 0x19C);
 static_assert(offsetof(CWorldClient, owned1B0_) == 0x1B0);
 static_assert(offsetof(CWorldClient, list1B8_) == 0x1B8);
 static_assert(offsetof(CWorldClient, handle_) == 0x1C8);

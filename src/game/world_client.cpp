@@ -347,7 +347,7 @@ void __fastcall SessionDisconnect(WorldSession* session) { PlayerDisconnectOrigi
 __declspec(naked) int __fastcall PendingLookup(PendingMap*, void*, const int*, void**) EI_ORIGINAL(0x0056FC60)
 __declspec(naked) void __fastcall PendingListRemoveAt(mfc::CList<CEngineObject*>*, void*, void*) EI_ORIGINAL(0x005704A0)
 __declspec(naked) void __fastcall PendingRemoveKey(PendingMap*, void*, const int*) EI_ORIGINAL(0x00405350)
-__declspec(naked) void __fastcall HudTick(ClientManager19C*, void*, char) EI_ORIGINAL(0x00498480)
+__declspec(naked) int __fastcall ParticlesTickAt(CParticleManager*, void*, char) EI_ORIGINAL(0x00498480)
 __declspec(naked) void __fastcall EffectListErase0(void*, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x00572550)
 __declspec(naked) void __fastcall EffectListErase1(void*, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x00572580)
 __declspec(naked) void __fastcall EffectListErase2(void*, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x005725B0)
@@ -455,7 +455,7 @@ int CWorldClient::Segment() {
             }
         }
     }
-    if (manager19C_) HudTick(manager19C_, nullptr, static_cast<char>(paused_));
+    if (particleManager_) ParticlesTickAt(particleManager_, nullptr, static_cast<char>(paused_));
     if (!paused_) {
         // Three lists of effects (std::list, sentinel head): finished ones (slot 0 returns 0) go.
         RunEffects(list1B8_, EffectListErase0);

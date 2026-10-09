@@ -109,13 +109,13 @@ EI_VERIFY(0x00484AE0, WorldPositionVerify, 6, s_worldPosition);
 
 // 00498940: ours only (it draws): the manager is released again, the order holds the sources in
 // the manager's order before the sort, and no entry is nearer than the one after it.
-using DrawAllFn = int(__fastcall*)(ParticlePool*, void*, void*);
+using DrawAllFn = int(__fastcall*)(CParticleManager*, void*, void*);
 static DrawAllFn s_unusedDrawAll;
-static int __fastcall DrawAllVerify(ParticlePool* self, void*, void* renderer) {
-    int refs = self->refCount;
+static int __fastcall DrawAllVerify(CParticleManager* self, void*, void* renderer) {
+    int refs = self->refCount_;
     int sources = 0;
-    for (auto* node = self->sources.head; node && node->data; node = node->next) ++sources;
-    int result = self->ParticlePool::DrawAll(renderer);
+    for (auto* node = self->objectList_.head; node && node->data; node = node->next) ++sources;
+    int result = self->CParticleManager::DrawAll(renderer);
     const auto& order = *reinterpret_cast<const ParticleDepthArray*>(0x007A9C50);
     int unsorted = -1;
     for (int i = 0; i + 1 < order.size; ++i)
@@ -123,10 +123,10 @@ static int __fastcall DrawAllVerify(ParticlePool* self, void*, void* renderer) {
             unsorted = i;
             break;
         }
-    ei::verify::Check("ParticlePool::DrawAll", true,
-                      self->refCount == refs && order.size == sources && unsorted < 0,
+    ei::verify::Check("CParticleManager::DrawAll", true,
+                      self->refCount_ == refs && order.size == sources && unsorted < 0,
                       "%d sources, %d ordered, out of order at %d, refs %d -> %d", sources, order.size, unsorted, refs,
-                      self->refCount);
+                      self->refCount_);
     return result;
 }
 EI_VERIFY(0x00498940, DrawAllVerify, 0, s_unusedDrawAll);

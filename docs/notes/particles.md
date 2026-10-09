@@ -3,8 +3,8 @@
 Code: `particle_tick.cpp` (Tick, AddParticle, pool), `particle_emitters.cpp` (EmitModifier, EmitLightning and a few
 more), `particle_render.cpp` (Draw), `particle_create.cpp` (`Create` 00485540 as a per-type setup switch, Reset, Clear,
 factory, destructor), `particle_draw.cpp` (draw-all and its depth sort), `particle_callbacks.cpp` (every other per-type
-callback), `effects.cpp` (the callbacks and source setters listed in `effects.md`), `quaternion.cpp`, `random.cpp`;
-layouts in `effects.h` (CParticleSource, Particle, ParticlePool, the render arrays), shared helpers in
+callback), `particle_manager.cpp` (the manager's own members), `effects.cpp` (the callbacks and source setters listed in `effects.md`), `quaternion.cpp`, `random.cpp`;
+layouts in `effects.h` (CParticleSource, Particle, CParticleManager, the render arrays), shared helpers in
 `particle_common.h`. Verify: `tests/verify/verify_particle_*.cpp` with the shared wrappers in `particle_verify.h`
 (`RunBoth` / `RunBothEmit` / `RunBothElement` / `RunBothSetup`: capture source, particle, element array and generator,
 run ours, restore, run the original, compare everything). Scenarios: `particles.txt` (creates every source type it
@@ -44,6 +44,7 @@ fills the element array is also compared against the original on a scratch sourc
 | 00496EB0 | `Tick`: ours on the real source, the original replays on a scratch copy with the same particles as ours left them, a keep-everything update callback, no elements, no emission (wind, motion, basis, bounds compared) | replay |
 | 004976B0 | `Draw`: original first with a stand-in renderer capturing the arrays, then ours; arrays, flag, hidden ticks compared | |
 | 00496A20, 00497D50, 004987C0 / 00498870, 00497EB0, 00497CE0, 004981B0, 00498310, 00498940, 00499200 | `AddParticle`, `ParticleSpriteArray::SetSize`, pool `Release` / `Acquire`, `AllocateElements`, `BindParticleTexture`, `NewParticleSource`, `Destruct`, `DrawAll`, depth-array `SetAtGrow` | ours only (list checks, alignment, sorted order and draw calls through the original sorts) |
+| 00497FC0, 00497FE0, 00498400, 00498480, 00498630 (A-S10) | `CParticleManager` (vtable 0073F644, 0xE8: free particles +0xB0, `held_` hash_map<id, source> +0xCC, its highest id +0xE0, flag +0xE4) slot 2 `Create`, slot 3 `Destroy` (held sources released, pooled particles deleted, then the base's), `CreateSource` (CreateObject(type, -1), one reference held; flag +0xE4 stops 0x2001/3/4), `TickSources` (slot 6 of every source; paused: only flag 8; a held source whose tick returned 0 is released), `ReleaseUnheld` (held sources with refCount 1; the client's zone load) | ours only (held_ keys = ids, counts, the manager's count back) |
 | 00499380, 004994E0, 00499C20, 00499CD0 | introsort, final sort, pop heap, make heap by depth | both on copies, compared |
 | 00484710, 004847E0, 00484AE0, 00485540 | `Clear` (ours only), `Reset` (original on a scratch copy), `WorldPosition`, `CreateForType` (13 KB switch; original first on a scratch source with the element array seeded from ours) | all 0x1F0 bytes and elements compared |
 | 00490130 EmitModifier, 004923B0 EmitLightning, 00495A30, 00492D30, 004957E0 | emitters | both (Modifier / Lightning: first emission against the original on a scratch source) |
@@ -83,6 +84,5 @@ the unordered case the same way. Remaining differences only at 64-bit precision 
   0x2000-0x2052 at 24 / 53 bits; not in the repo): no mismatch. Paths a fake carrier cannot reach (real figures and
   platforms, a stun that ends, units without parts) are checked only in game.
 - 64-bit precision control is not reproduced (the game runs at 24 bits).
-- Not rewritten: 00498480 / 00498630 (script.md "Next candidates"), 0049F660 ISAAC seeding (reads a random file from C:\
-  through the recursive CFileFind 0049F4B0), the dead 3DS readers. The procedural texture class 0049A090 / 0049A220 is the
+- Not rewritten: the dead 3DS readers. The procedural texture class 0049A090 / 0049A220 is the
   global map's clouds (rewritten, script.md); 0049BEA0 and its helpers are dead.

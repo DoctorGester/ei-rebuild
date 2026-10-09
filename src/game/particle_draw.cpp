@@ -206,8 +206,8 @@ EI_REPLACE_METHOD(0x00484AE0, CParticleSource::WorldPosition);
 // sources until the first empty entry), sorts it far to near and draws each source that is not
 // hidden (flag 0x40) and not on a hidden unit, switching to additive blending for sources with
 // +0x150 == 1. Returns 0 as soon as a source fails to draw. The manager is held (+4) meanwhile.
-int ParticlePool::DrawAll(void* renderer) {
-    ++refCount;
+int CParticleManager::DrawAll(void* renderer) {
+    ++refCount_;
     ParticleDepthArray& order = DrawOrder();
     if (order.data) {
         gamecrt::operator_delete(order.data);
@@ -218,8 +218,10 @@ int ParticlePool::DrawAll(void* renderer) {
     Vector3 axis;
     CameraRotation().AxisZ(&axis);
 
-    auto* node = sources.head;
-    CParticleSource* source = node ? node->data : nullptr;
+    // The manager's objects are its sources (CParticleSource is not declared as a CEngineObject).
+    auto sourceOf = [](CEngineObject* object) { return reinterpret_cast<CParticleSource*>(object); };
+    auto* node = objectList_.head;
+    CParticleSource* source = node ? sourceOf(node->data) : nullptr;
     while (source) {
         node = node->next;
         Vector3 scratch;
@@ -228,7 +230,7 @@ int ParticlePool::DrawAll(void* renderer) {
         entry.source = source;
         entry.depth = Store(D(axis.y) * D(p->y) + D(axis.z) * D(p->z) + D(axis.x) * D(p->x));
         order.SetAtGrow(order.size, entry);
-        source = node ? node->data : nullptr;
+        source = node ? sourceOf(node->data) : nullptr;
     }
 
     ParticleDepth* first = order.data;
@@ -258,11 +260,11 @@ int ParticlePool::DrawAll(void* renderer) {
             additive = false;
         }
         if (!DrawSourceAt(s, nullptr, renderer)) {
-            --refCount;
+            --refCount_;
             return 0;
         }
     }
-    --refCount;
+    --refCount_;
     return 1;
 }
-EI_REPLACE_METHOD(0x00498940, ParticlePool::DrawAll);
+EI_REPLACE_METHOD(0x00498940, CParticleManager::DrawAll);
