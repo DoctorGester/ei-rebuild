@@ -11,6 +11,8 @@
 //   records (0x2C header each, one mesh and one node per record), then the skipped records (same
 //   format, read and dropped), then the helpers (0x3E header each).
 
+#include "engine_object.h"
+
 #include "../lib/containers.h"
 #include "../lib/mfc.h"
 #include "../lib/vecmath.h"
@@ -174,12 +176,23 @@ struct NodeMorphKey {           // 0x14: the frame and the mesh's points at it
 };
 static_assert(sizeof(NodeMorphKey) == 0x14);
 
+// A node's frame record (40 bytes; BuildSkeleton puts the pivot and rotation in the first).
+struct NodeFrame {
+    std::uint32_t unknown_00[3];
+    Vector3 pivot;                      // +0x0C
+    Quaternion rotation;                // +0x18
+};
+static_assert(sizeof(NodeFrame) == 40);
+
 // A node as the bones read it (the node:: offsets above; scene_skeleton.cpp names the rest).
 struct SceneNode {
     std::uint32_t unknown_000;
     mfc::CString name;                  // +0x004
     mfc::CString parent;                // +0x008
-    std::uint8_t unknown_00C[0x54 - 0x0C];
+    std::uint32_t unknown_00C;
+    std::uint32_t unknown_010;          // +0x010 cleared by BuildSkeleton
+    std::uint32_t unknown_014;          // +0x014 cleared by BuildSkeleton
+    std::uint8_t unknown_018[0x54 - 0x18];
     Vector3 offset;                     // +0x054 the pivot (must be 0, 0, 0: BuildBone)
     Vector3 axis;                       // +0x060 the first position key's axis
     float angle;                        // +0x06C its angle
@@ -191,7 +204,7 @@ struct SceneNode {
     mfc::CArray<NodePositionKey, mfc::RawElements<NodePositionKey>> positionKeys;   // +0x0BC
     mfc::CArray<NodeMorphKey, mfc::RawElements<NodeMorphKey>> morphKeys;            // +0x0D0
     mfc::CArray<Vector3, mfc::RawElements<Vector3>> normals;                        // +0x0E4
-    VtArray frames;                     // +0x0F8 40-byte records
+    VtArray frames;                     // +0x0F8 NodeFrame records (elements constructed by 00453730)
     mfc::CArray<SceneNode*, mfc::RawElements<SceneNode*>> children;                 // +0x10C
 };
 static_assert(offsetof(SceneNode, name) == node::kName);
@@ -204,6 +217,30 @@ static_assert(offsetof(SceneNode, morphKeys) == node::kMorphKeys);
 static_assert(offsetof(SceneNode, normals) == node::kNormals);
 static_assert(offsetof(SceneNode, children) == 0x10C);
 static_assert(sizeof(SceneNode) == node::kSize);
+
+// A mesh (mesh:: offsets): an engine object whose slot 7 (GetName) gives its name. Only the
+// members the skeleton code uses are declared.
+struct SceneMesh : CEngineObject {
+    std::uint8_t unknown_01C[0x94 - 0x1C];
+    mfc::CString name;                  // +0x094
+    std::uint8_t unknown_098[0xD8 - 0x98];
+    lib::AlignedArray<Vector3> positions;   // +0x0D8 (the loader stores the file's bits)
+    UvBuffer texCoords;                 // +0x0E8
+    std::uint8_t unknown_0F8[0x138 - 0xF8];
+    FaceBuffer faces;                   // +0x138
+    mfc::CArray<FaceGroup> groups;      // +0x148
+    std::uint8_t unknown_15C[mesh::kSize - 0x15C];
+};
+static_assert(offsetof(SceneMesh, name) == mesh::kName);
+static_assert(offsetof(SceneMesh, positions) == mesh::kPositions);
+static_assert(offsetof(SceneMesh, texCoords) == mesh::kTexCoords);
+static_assert(offsetof(SceneMesh, faces) == mesh::kFaces);
+static_assert(offsetof(SceneMesh, groups) == mesh::kGroups);
+static_assert(sizeof(SceneMesh) == mesh::kSize);
+
+// The caller's node and mesh arrays seen with their element types (never resized through these).
+using NodeArray = mfc::CArray<SceneNode, mfc::RawElements<SceneNode>>;
+using MeshArray = mfc::CArray<SceneMesh, mfc::RawElements<SceneMesh>>;
 
 // The fake unit's skin the bones are built into (BuildSkeleton's last argument): its bone list and
 // root bone. Extent unknown.
@@ -218,6 +255,11 @@ static_assert(offsetof(SceneSkin, root) == 0x14);
 // 004492F0 (scene_bones.cpp; __fastcall, RET 8). Adds `bone` to the skin's list and builds it (and
 // its children) from `node`; the low word of `frames` is the animation's frame count.
 void __fastcall BuildBone(SceneSkin* skin, CAnimationNode* bone, const SceneNode* node, int frames);
+
+// 007843AC: "ResolveNodesAMF. ..." (a first rotation key not at frame 0); 007843F0: "Can't find
+// top-level object in hierarchy" (BuildSkeleton's fatal errors).
+inline const char* FirstKeyNotAtZeroText() { return reinterpret_cast<const char*>(std::uintptr_t(0x007843AC)); }
+inline const char* NoRootNodeText() { return reinterpret_cast<const char*>(std::uintptr_t(0x007843F0)); }
 
 // 0079B9B0: the exe's zero vector (the scene code copies it).
 inline const Vector3& ZeroVector() { return *reinterpret_cast<const Vector3*>(std::uintptr_t(0x0079B9B0)); }
