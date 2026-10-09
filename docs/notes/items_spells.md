@@ -502,5 +502,4 @@ texture manager's 6 KB is the renderer's; 00646C25 is a tail of 006462A0 that Gh
 | 6AE000-6B4000 | quest database | 17 | 3235 | 923 | 006AE3A0, 006AE740, 006AE220, 006AE0F0 |
 | 6B4000-6C0000 | sound (Miles), misc | 70 | 15007 | 1442 | 006BB3A0, 006B6D80, 006BFC80, 006B7D10 |
 
-Next candidates: the other server message handlers 0066F890..00671060 (`objects.md`; 0066F4C0 / 00670310 done in A-H13); the party's 006629D0 / 00662AC0 / 00662DD0; 00667EC0, 0067CEF0,
-00661FB0 / 00661FE0 (party item resets; no scenario is known to reach them).
+Next candidates (after A-H16, which did the party files, 006625B0, the help window and the quest records): 00668C50 (client, 951 bytes), sound 006B6D80 / 006B7D10 / 006B6A30 / 006B73E0, 006BFC80 / 006BF5F0, trader stock 0069BAC0 / 0069EF50, item database 006A6E50 / 006A6570 / 006A73B0 / 006A7110, objectives 0064E330 / 0064EA80 / 0064F650 / 0064FEA0, party 006641D0 / 0065F2D0 / 0065F020 / 006629D0, 0066F890; 00661FB0 / 00661FE0 (party item resets; no scenario is known to reach them).
