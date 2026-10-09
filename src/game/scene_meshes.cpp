@@ -19,21 +19,8 @@
 namespace scene {
 namespace {
 
-template <typename T>
-T& At(void* base, std::size_t offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(base) + offset);
-}
-
-// Mesh fields written here.
-constexpr std::size_t kCornerTable = 0x108;   // aligned array of Corner (6 bytes)
-constexpr std::size_t kPairs = 0x118;         // aligned array of dwords (two words)
-constexpr std::size_t kCornerIndices = 0x128; // aligned array of words, three per face
-constexpr std::size_t kFaceCount = mesh::kFaces + 4;
-
-struct Corner {
-    std::uint16_t vertex, position, texture;
-};
-static_assert(sizeof(Corner) == 6);
+// The mesh fields written here: corners, pairs and cornerIndices (SceneMesh, scene_loader.h).
+using Corner = MeshCornerKey;
 
 // The mesh's arrays are engine aligned arrays (lib::AlignedArray): the corner table (6-byte
 // Corners; its inlined SetSize allocates through 00452E90), the corner indices (words) and the
@@ -115,7 +102,7 @@ typename MapT::Assoc* Lookup(MapT& map, KeyT key,
     return assoc;
 }
 
-const MeshFace& FaceAt(char* mesh, int f) { return At<MeshFace*>(mesh, mesh::kFaces)[f]; }
+const MeshFace& FaceAt(SceneMesh* mesh, int f) { return mesh->faces.data[f]; }
 
 // The corner key: ((vertex << 16) | position) << 16 | texture vertex, in 64 bits (the original's
 // __allshl), the indices zero-extended.
@@ -125,8 +112,8 @@ std::uint64_t CornerKey(const MeshFace& face, int k) {
 }
 
 // The index of the corner (vertex, position, texture) in the table, -1 when absent.
-int FindCorner(char* mesh, std::uint32_t vertex, std::uint32_t position, std::uint32_t texture) {
-    const CornerTable& table = At<CornerTable>(mesh, kCornerTable);
+int FindCorner(SceneMesh* mesh, std::uint32_t vertex, std::uint32_t position, std::uint32_t texture) {
+    const CornerTable& table = mesh->corners;
     const Corner* c = table.data;
     for (int i = 0; i < table.size; ++i) {
         if (c[i].vertex == vertex && c[i].position == position && c[i].texture == texture) return i;
@@ -136,8 +123,8 @@ int FindCorner(char* mesh, std::uint32_t vertex, std::uint32_t position, std::ui
 
 // Steps 1-3: the distinct corners, sorted, into the corner table (`indices` maps each corner key
 // to its place before the sort; nothing reads it).
-void BuildCornerTable(char* mesh, RecordArray& records, CornerMap& corners, IndexMap& indices) {
-    for (int f = 0; f < At<int>(mesh, kFaceCount); ++f) {
+void BuildCornerTable(SceneMesh* mesh, RecordArray& records, CornerMap& corners, IndexMap& indices) {
+    for (int f = 0; f < mesh->faces.size; ++f) {
         for (int k = 0; k < 3; ++k) {
             std::uint64_t key = CornerKey(FaceAt(mesh, f), k);
             Lookup(corners, key, &CornersGetAssocAt, &CornersInitHashTable, &CornersNewAssoc)->value = key;
@@ -159,9 +146,9 @@ void BuildCornerTable(char* mesh, RecordArray& records, CornerMap& corners, Inde
     }
     GameQsort(records.data, static_cast<unsigned>(records.size), sizeof(CornerRecord), kCompareRecords);
 
-    At<CornerTable>(mesh, kCornerTable).SetSize(records.size);
+    mesh->corners.SetSize(records.size);
     for (int i = 0; i < records.size; ++i) {
-        Corner* c = At<CornerTable>(mesh, kCornerTable).data + i;
+        Corner* c = mesh->corners.data + i;
         c->vertex = static_cast<std::uint16_t>(records.data[i].vertex);
         c->position = static_cast<std::uint16_t>(records.data[i].position);
         c->texture = static_cast<std::uint16_t>(records.data[i].texture);
@@ -169,13 +156,13 @@ void BuildCornerTable(char* mesh, RecordArray& records, CornerMap& corners, Inde
 }
 
 // Step 4: each face corner's index in the table (-1 when absent), appended to +0x128.
-void IndexFaceCorners(char* mesh) {
-    WordsSetSize(&At<WordArray>(mesh, kCornerIndices), nullptr, 0, -1);
-    for (int f = 0; f < At<int>(mesh, kFaceCount); ++f) {
+void IndexFaceCorners(SceneMesh* mesh) {
+    WordsSetSize(&mesh->cornerIndices, nullptr, 0, -1);
+    for (int f = 0; f < mesh->faces.size; ++f) {
         for (int k = 0; k < 3; ++k) {
             const MeshFace& face = FaceAt(mesh, f);
             int index = FindCorner(mesh, face.vertex[k], face.position[k], face.vertex2[k]);
-            WordArray& out = At<WordArray>(mesh, kCornerIndices);
+            WordArray& out = mesh->cornerIndices;
             WordsSetAtGrow(&out, nullptr, out.size, index);
         }
     }
@@ -183,9 +170,9 @@ void IndexFaceCorners(char* mesh) {
 
 // Step 5: the distinct (vertex, position) pairs, sorted, padded to a multiple of four with copies
 // of the last vertex and following positions, into +0x118.
-void BuildPairs(char* mesh) {
+void BuildPairs(SceneMesh* mesh) {
     PairMap pairs = NewMap<PairMap>(0x0073C178);
-    for (int f = 0; f < At<int>(mesh, kFaceCount); ++f) {
+    for (int f = 0; f < mesh->faces.size; ++f) {
         for (int k = 0; k < 3; ++k) {
             const MeshFace& face = FaceAt(mesh, f);
             std::uint32_t key = (face.vertex[k] << 16) | face.position[k];
@@ -217,7 +204,7 @@ void BuildPairs(char* mesh) {
                                                                (static_cast<std::uint32_t>(position) << 16);
         }
     }
-    DwordArray& out = At<DwordArray>(mesh, kPairs);
+    DwordArray& out = mesh->pairs;
     DwordsSetSize(&out, nullptr, list.size, -1);
     std::memcpy(out.data, list.data, static_cast<std::size_t>(list.size) * 4);
     list.FreeData();
@@ -233,9 +220,9 @@ void __fastcall IndexMeshCorners(VtArray* meshes) {
     for (int m = 0; m < meshes->size; ++m) {
         CornerMap corners = NewMap<CornerMap>(0x0073C190);
         IndexMap indices = NewMap<IndexMap>(0x0073C184);
-        BuildCornerTable(reinterpret_cast<char*>(meshes->data) + m * mesh::kSize, records, corners, indices);
-        IndexFaceCorners(reinterpret_cast<char*>(meshes->data) + m * mesh::kSize);
-        BuildPairs(reinterpret_cast<char*>(meshes->data) + m * mesh::kSize);
+        BuildCornerTable(&Typed<MeshArray>(*meshes).data[m], records, corners, indices);
+        IndexFaceCorners(&Typed<MeshArray>(*meshes).data[m]);
+        BuildPairs(&Typed<MeshArray>(*meshes).data[m]);
         DestroyMap(indices, 0x0073C184);
         corners.vtable = reinterpret_cast<void*>(0x0073C190);
         CornersDestruct(&corners);

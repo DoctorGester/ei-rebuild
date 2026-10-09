@@ -12,8 +12,8 @@
 
 namespace scene {
 void __fastcall ComputeMeshNormals(VtArray* meshes);
-void __fastcall PackMeshPositions(void* unit);
-void __fastcall ComputeMeshBounds(char* mesh);
+void __fastcall PackMeshPositions(FakeUnitScene* unit);
+void __fastcall ComputeMeshBounds(SceneMesh* mesh);
 }
 
 namespace {
@@ -78,7 +78,7 @@ void __fastcall PackVerify(void* unit) {
         auto* b = reinterpret_cast<std::uint32_t*>(blocks.data);
         expected[m].assign(b, b + blocks.size * 16);
     }
-    PackMeshPositions(unit);
+    PackMeshPositions(static_cast<FakeUnitScene*>(unit));
     bool ok = true;
     for (int m = 0; ok && m < meshes.size; ++m) {
         auto& blocks = At<lib::AlignedArray<std::uint8_t>>(reinterpret_cast<char*>(meshes.data) + m * mesh::kSize, 0xA8);
@@ -95,7 +95,7 @@ void(__fastcall* s_bounds)(char*);
 void __fastcall BoundsVerify(char* mesh) {
     std::vector<char> copy(mesh, mesh + mesh::kSize);
     s_bounds(copy.data());
-    ComputeMeshBounds(mesh);
+    ComputeMeshBounds(reinterpret_cast<SceneMesh*>(mesh));
     bool ok = true;
     for (std::size_t o = 0x15C; o < 0x184; o += 4)
         ok = ok && ei::verify::NearlyEqual(At<float>(copy.data(), o), At<float>(mesh, o), 4, 1e-6f);

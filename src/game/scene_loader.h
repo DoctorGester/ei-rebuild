@@ -229,25 +229,41 @@ static_assert(offsetof(SceneNode, normals) == node::kNormals);
 static_assert(offsetof(SceneNode, children) == 0x10C);
 static_assert(sizeof(SceneNode) == node::kSize);
 
+// A distinct face corner of a mesh (6 bytes; 0044CFF0 builds the table): merged vertex, file
+// position and texture vertex.
+struct MeshCornerKey {
+    std::uint16_t vertex, position, texture;
+};
+static_assert(sizeof(MeshCornerKey) == 6);
+
 // A mesh (mesh:: offsets): an engine object whose slot 7 (GetName) gives its name. Only the
 // members the scene code uses are declared.
 struct SceneMesh : CEngineObject {
     std::uint8_t unknown_01C[0x94 - 0x1C];
     mfc::CString name;                  // +0x094
     std::uint8_t unknown_098[0xA8 - 0x98];
-    BlockBuffer matrices;               // +0x0A8 64-byte blocks (the figure's +0x1C0 copy)
-    BlockBuffer matrices2;              // +0x0B8 (the figure's +0x1D0 copy)
+    // +0x0A8 / +0x0B8 the positions and the normals packed four to a 64-byte block (x[4], y[4],
+    // z[4], w[4]; 0044E3B0 / 0044DCF0); the figures copy them (CFigureMesh +0x1C0 / +0x1D0).
+    BlockBuffer positionBlocks;
+    BlockBuffer normalBlocks;
     std::uint8_t unknown_0C8[0xD8 - 0xC8];
     PointBuffer positions;              // +0x0D8 the file's bits
     UvBuffer texCoords;                 // +0x0E8
-    std::uint8_t unknown_0F8[0x138 - 0xF8];
+    PointBuffer normals;                // +0x0F8 one per position (0044DCF0)
+    // +0x108 / +0x118 / +0x128 (0044CFF0): the distinct corners (sorted), the distinct (vertex,
+    // position) word pairs (sorted, padded to a multiple of four) and each face corner's index in
+    // the corner table (three words per face).
+    lib::AlignedArray<MeshCornerKey> corners;
+    DwordBuffer pairs;
+    lib::AlignedArray<std::uint16_t> cornerIndices;
     FaceBuffer faces;                   // +0x138
     mfc::CArray<FaceGroup> groups;      // +0x148
-    // +0x15C the bounds the figure copies (its +0x160): centre, box corners, then a dword.
+    // +0x15C the bounds (0044E8A0; the figure copies them to its +0x160): the centre, the box
+    // corners relative to it and the radius.
     Vector3 center;
     Vector3 boxMin;                     // +0x168
     Vector3 boxMax;                     // +0x174
-    std::uint32_t radius;               // +0x180 (float bits)
+    float radius;                       // +0x180
     std::uint32_t unknown_184[2];       // +0x184 the figure's +0x158 / +0x15C
 };
 static_assert(offsetof(SceneMesh, name) == mesh::kName);
@@ -255,7 +271,10 @@ static_assert(offsetof(SceneMesh, positions) == mesh::kPositions);
 static_assert(offsetof(SceneMesh, texCoords) == mesh::kTexCoords);
 static_assert(offsetof(SceneMesh, faces) == mesh::kFaces);
 static_assert(offsetof(SceneMesh, groups) == mesh::kGroups);
-static_assert(offsetof(SceneMesh, matrices) == 0xA8);
+static_assert(offsetof(SceneMesh, positionBlocks) == 0xA8);
+static_assert(offsetof(SceneMesh, normals) == 0xF8);
+static_assert(offsetof(SceneMesh, corners) == 0x108);
+static_assert(offsetof(SceneMesh, cornerIndices) == 0x128);
 static_assert(offsetof(SceneMesh, center) == 0x15C);
 static_assert(offsetof(SceneMesh, unknown_184) == 0x184);
 static_assert(sizeof(SceneMesh) == mesh::kSize);

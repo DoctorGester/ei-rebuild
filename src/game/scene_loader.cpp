@@ -803,8 +803,8 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     for (int i = 0; i < meshes->size; ++i) {
         CFigureMesh& figure = figureArray.data[i];
         const SceneMesh& mesh = meshArray.data[i];
-        copyBlocks(figure.vertices_, mesh.matrices);
-        copyBlocks(figure.normals_, mesh.matrices2);
+        copyBlocks(figure.vertices_, mesh.positionBlocks);
+        copyBlocks(figure.normals_, mesh.normalBlocks);
         figure.colorsA_.SetSize(figure.normals_.size * 4);
         figure.colorsB_.SetSize(figure.normals_.size * 4);
         std::memcpy(&figure.center_, &mesh.center, sizeof(Vector3));
