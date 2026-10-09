@@ -167,7 +167,9 @@ struct ArmorRecord : ItemRecordHead {
     std::uint32_t absorbOthers[7];      // +0x94 item absorb_[1]
     std::uint8_t unknown_B0[0xB4 - 0xB0];
     std::uint8_t showsWounds;           // +0xB4 0: the piece hides the wounds of the parts it covers (00536EA0)
-    std::uint8_t unknown_B5[kArmorSize - 0xB5];
+    std::uint8_t unknown_B5[3];
+    std::uint32_t layer;                // +0xB8 field::kArmorB8: the lower one's texture goes first (00568800)
+    std::uint8_t unknown_BC[kArmorSize - 0xBC];
 };
 static_assert(offsetof(ArmorRecord, showsWounds) == 0xB4);
 static_assert(offsetof(ArmorRecord, absorbOthers) == 0x94);
