@@ -24,7 +24,8 @@ struct FootprintPart;   // ai_map.h
 // The stream the game's Load / Save slots read and write (the same interface as unit_ai.h's
 // AIStream): slot 1 reads, slot 2 writes; +0x08 is the format version of a stream being loaded.
 struct UnitStream {
-    virtual void Slot0() = 0;
+    // 0: the deleting destructor (CStream 00417400; its flags argument is not declared).
+    virtual void DeletingDestructor() = 0;
     virtual int Read(void* buffer, unsigned size) = 0;          // 1: nonzero when read
     virtual void Write(const void* buffer, unsigned size) = 0;   // 2
 
@@ -163,36 +164,38 @@ class CMapObject;    // map_object.h
 // The unit's controller (CUnit + 0x240) as the unit code calls it: CUnitServer (class id 0x3E,
 // vtable 0073EF38, combat.h) on the server, CUnitClientSpecific (0x3D, 0073ECD8,
 // unit_client_models.h) for party units on the client; their abstract base has vtable 0073EDBC.
-// Only the slots the rewritten unit code calls are named. The controller classes do not derive
-// from this declaration (their rewritten slots are registered by address); CUnit::Controller()
-// reaches it. unit_ai.h's UnitController names fields of the same objects.
+// Slots declared `void Name()` keep their place in the order only (their real arguments are not
+// declared; give them their signature when calling them; docs/notes/drafts/DR-C2.md). The
+// controller classes do not derive from this declaration (their rewritten slots are registered by
+// address); CUnit::Controller() reaches it. unit_ai.h's UnitController names fields of the same
+// objects.
 class CUnitController : public CEngineObject {
 public:
-    virtual void Slot13();
+    virtual void FiguresLoaded();           // 13: client 005344E0, base 00533B90
     virtual void RestartAnimation(float time);  // 14: client 005352B0 (the animations the unit names at +0x254 / +0x255 from frame `time`)
-    virtual void Slot15();
+    virtual void Unused15();                // 15: empty everywhere (base 00533BB0, client 00535580)
     virtual AIPath* Path();                 // 16: server +0x3C (00546090), client +0x38 (00533DF0)
-    virtual void Slot17();
+    virtual void Unused17();                // 17: empty (server 005460B0, client 00534130)
     virtual void PlayerChanged(void* player);   // 18: client 00534140, base empty (00533BC0)
-    virtual void Slot19();
-    virtual void Slot20();
-    virtual void Slot21();
-    virtual void Slot22();
-    virtual void Slot23();
-    virtual void Slot24();
+    virtual int RefreshVitals(char withHitPoints);  // 19: server 005533B0 (1), client 00533BD0 (0)
+    virtual void TakeHit();                 // 20: server 00553F40 (map_object.h CUnitServerVirtuals)
+    virtual void Heal();                    // 21: (float amount) server 005543B0
+    virtual void RepackStats();             // 22: server 00553500
+    virtual void UpdateSizeClasses();       // 23: server 00552FB0
+    virtual void Level();                   // 24: server 00556760, client 00539160
     virtual void ShowWeapon(std::uint32_t index);   // 25: the weapon the figure holds (-1 none)
     virtual bool ArmourPutOn(std::uint32_t itemId);     // 26: client 005381B0 (WearArmourModel)
     virtual bool ArmourTakenOff(std::uint32_t slot);    // 27: client 005385A0 (RemoveArmourModel)
-    virtual void Slot28();
-    virtual void Slot29();
+    virtual void ClearOuterArmourLayers();  // 28: server 005535E0
+    virtual void RefreshEquipment();        // 29: server 005535F0, client 00536100 (RefreshSkins)
     virtual void RefreshModel();            // 30: after a weapon change
-    virtual void Slot31();
-    virtual void Slot32();
-    virtual void Slot33();
+    virtual void RefreshWounds();           // 31: client 00537360, base 0 (00533C50)
+    virtual void SetArmourModels();         // 32: (ids, count) client 00538140
+    virtual void SetWeaponModels();         // 33: (ids, count) client 00538860
     virtual bool WeaponAdded(std::uint32_t itemId);     // 34: client 005388C0 (AddWeaponModel)
-    virtual void Slot35();
-    virtual void Slot36();
-    virtual void Slot37();
+    virtual void RemoveWeaponModel();       // 35: (id) client 00538920
+    virtual void HasOtherArmour();          // 36: server 005567A0 (client 005391B0: weapon models)
+    virtual void HasMainArmour();           // 37: server 005567E0, client 005391E0
     virtual void HostileMaskChanged();      // 38: server 00552CD0 (the brain), base empty (00533CA0)
     virtual int TamingStage();              // 39: server 005460A0 (+0x908, the taming stage), base 0 (00533CB0)
     virtual void AdvanceTime(float time);   // 40: client 00535B30

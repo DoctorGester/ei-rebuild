@@ -61,17 +61,20 @@ public:
     // The base class's vtable, which the constructor stores first.
     static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0074306C);
 
-    virtual void Slot13();
-    virtual void Slot14();
-    virtual void Slot15();
-    virtual void Slot16();
-    virtual void Slot17();
+    // Slots 13-24: the manager context's getters, as CWorld's (world.h); a party has only the item
+    // and spell ones. Slots declared `void Name()` keep their place in the order only (their
+    // return types are not declared; docs/notes/drafts/DR-C2.md).
+    virtual void ThisWorld();                  // 13: 0065F4B0 (null)
+    virtual void TimedObjectManager();         // 14: 0065F530 (null)
+    virtual void FigureManager();              // 15: 0065F4C0 (null)
+    virtual CItemConstructor* ItemConstructor();   // 16: 0065F540 (itemConstructor_)
+    virtual void SpellConstructor();           // 17: 0065F550 (spellConstructor_)
     virtual CResourceManager* ItemManager();   // 18: itemManager_
-    virtual void Slot19();
-    virtual void Slot20();
-    virtual void Slot21();
+    virtual void MapObjectManager();           // 19: 0065F4D0 (null)
+    virtual void PlayerList();                 // 20: 0065F4E0 (null)
+    virtual void SpecificManager();            // 21: 0065F4F0 (null)
     virtual CSpellManager* SpellManager();     // 22: spellManager_
-    virtual void Slot23();
+    virtual void FigureCache();                // 23: 0065F500 (null)
     // 24: 0055E940. A new item made like `item` (the item factory, slot 18) and given its values
     // (its slot 15 with the spell manager, slot 22).
     virtual CItem* CopyItem(CItem* item);

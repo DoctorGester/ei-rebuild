@@ -15,7 +15,7 @@ public:
         unknown_04 = 0;
         version = real->version;
     }
-    void Slot0() override {}
+    void DeletingDestructor() override {}
     int Read(void*, unsigned) override { return 0; }
     void Write(const void* buffer, unsigned size) override {
         auto* p = static_cast<const unsigned char*>(buffer);
@@ -48,7 +48,7 @@ public:
         unknown_04 = real->unknown_04;
         version = real->version;
     }
-    void Slot0() override { real_->Slot0(); }
+    void DeletingDestructor() override { real_->DeletingDestructor(); }
     int Read(void* buffer, unsigned size) override {
         int result = real_->Read(buffer, size);
         auto* p = static_cast<const unsigned char*>(buffer);
