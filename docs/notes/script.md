@@ -234,7 +234,7 @@ gz2g's scripts (zone2.mob chunk 0xACCEECCB, decoded as 004D8E10 does: the first 
 (`ActivateTrap(MTF1..4, 0)`); `zone_gz2g_traps` reaches command 8 (`KillScript() VTriger#0#n( this )`) from a killed instance,
 which is why the Execute observer reads the instance list's head (+0x144), not the tail.
 
-## Rest of 0x00480000-0x00500000 (leftovers outside the script engine, rewritten)
+## Leftovers: the rest of 0x00480000-0x00500000 outside the script engine (rewritten)
 
 V: S against the original (it runs first on scratch / copies, ours on the real object), O ours only.
 

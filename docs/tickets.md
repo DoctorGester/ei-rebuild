@@ -1,6 +1,6 @@
 # Ticket queue
 
-D1 done 2026-10-05 (docs/notes 1.38 -> 0.46 MB). Docs trim done 2026-10-09 (docs/notes 0.82 -> 0.57 MB, drafts deleted, their open points in the area notes). D2 queued: retarget ~150 code comments that cite removed section names ("Nth round", "pass", renderer section numbers) to the file / new section; tools/progress.py misses UI_INPUT_HANDLER / UI_WHEEL_HANDLER registrations.
+D1 done 2026-10-05 (docs/notes 1.38 -> 0.46 MB). Docs trim done 2026-10-09 (docs/notes 0.82 -> 0.57 MB, drafts deleted, their open points in the area notes). D2 queued: retarget ~150 code comments that cite removed section names ("Nth round", "pass", renderer section numbers) to the file / new section; tools/progress.py misses UI_INPUT_HANDLER / UI_WHEEL_HANDLER registrations. Since the docs trim also: items_spells.md "Save screen pieces" / "HUD panel displays" are in ui.md sections 8 / 7, its players section in objects.md "Players"; the A-S7 / A-S8 / A-S9, A-W5..A-W7 and A-U5..A-U7 sections were folded into each file's tables.
 
 From 2026-10-05 (user): workers own one area for about a usage session ("area tickets"), commit every
 3-5 functions with all checks green, and the coordinator merges the branch head periodically and runs
