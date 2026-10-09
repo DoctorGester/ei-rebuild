@@ -815,3 +815,35 @@ static double __fastcall WaveLengthVerify(CSoundManager* self, void*, const void
     return expected;
 }
 EI_VERIFY(0x006B96E0, WaveLengthVerify, 7, s_waveLength);
+
+// A-H17. 006B7D10 (Play2D / Play3D; scenario sound): ours only (it ends and defers voices). -1
+// only when every voice plays at a priority of at least `priority`; else the voice is free, and a
+// stolen looping sound's handle is in the deferred map.
+static void* s_unusedAllocateVoice;
+static int __fastcall AllocateVoiceVerify(CSoundManager* self, void*, int priority) {
+    int lowest = 0x7FFFFFFF;
+    bool anyFree = false;
+    int stolenHandle[15];
+    bool stolenLoop[15];
+    for (int i = 0; i < 15; ++i) {
+        const SoundSlot& s = self->slots[i];
+        if (s.playing == 0) anyFree = true;
+        if (s.priority < lowest) lowest = s.priority;
+        stolenHandle[i] = s.handle;
+        stolenLoop[i] = s.playing != 0 && s.looping != 0;
+    }
+    int index = self->CSoundManager::AllocateVoice(priority);
+    bool ok;
+    if (index == -1) {
+        ok = !anyFree && priority <= lowest;
+    } else {
+        ok = index >= 0 && index < 15 && self->slots[index].playing == 0;
+        if (ok && stolenLoop[index]) {
+            const DeferredNode* node = self->deferred.Find(stolenHandle[index]);
+            ok = node != nullptr && node->value->handle == stolenHandle[index];
+        }
+    }
+    ei::verify::Check("CSoundManager::AllocateVoice", true, ok, "priority %d -> %d", priority, index);
+    return index;
+}
+EI_VERIFY(0x006B7D10, AllocateVoiceVerify, 0, s_unusedAllocateVoice);

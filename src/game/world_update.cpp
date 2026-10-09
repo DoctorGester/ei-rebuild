@@ -137,7 +137,7 @@ int CWorldServer::Update() {
         AcceptPlayers(this, nullptr, unknown60_);
     }
 
-    if (!unknown6C_) {
+    if (!paused_) {
         for (WorldPlayer* player = it.First(ei::VCall<CEngineObject*>(this, kSlotPlayers)); player; player = it.Next())
             PlayerUpdate(player, nullptr);
         TickAt(this, nullptr, 0);

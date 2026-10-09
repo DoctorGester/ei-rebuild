@@ -66,7 +66,8 @@ struct LocalArchive {
 } // namespace
 
 __declspec(naked) void CParty::ArchiveParty(ChunkArchive*) EI_ORIGINAL(0x006617F0)
-__declspec(naked) void ItemStock::SaveLists(void*) EI_ORIGINAL(0x0069BAC0)
+// 0069BAC0 (rewritten as ItemStock::SaveLists) through its address so its wrapper runs.
+__declspec(naked) void __fastcall SaveStockLists(ItemStock*, void*, void* /*stream*/) EI_ORIGINAL(0x0069BAC0)
 
 void PartyManagerEntry::Destruct() {
     ids.FreeStorage();
@@ -232,8 +233,8 @@ void ClassTemplate::Serialize(ChunkArchive* ar) {
     if (!ar->loading_) {
         itemsParty->SaveParty(&local.stream, 0);
         spellsParty->SaveParty(&local.stream, 0);
-        allowed.SaveLists(&local.stream);
-        magic.SaveLists(&local.stream);
+        SaveStockLists(&allowed, nullptr, &local.stream);
+        SaveStockLists(&magic, nullptr, &local.stream);
         ar->StreamField(5, &local.stream);
     } else {
         ar->StreamField(5, &local.stream);

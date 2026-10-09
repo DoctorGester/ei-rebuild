@@ -66,7 +66,7 @@ static_assert(sizeof(SharedHelper) == 0xC);
 } // namespace
 
 int __fastcall WorldCreateManagers(CWorld* world) {
-    world->unknown6C_ = 0;
+    world->paused_ = 0;
     CStringAssign(worlddata::DataFolderString(), nullptr, worlddata::ConfiguredDataPath());
     CStringAssign(worlddata::TextFolderString(), nullptr, worlddata::ConfiguredTextPath());
     CStringAssign(worlddata::BaseFolderString(), nullptr, worlddata::ConfiguredBasePath());

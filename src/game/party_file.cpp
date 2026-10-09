@@ -99,3 +99,14 @@ void SavedParties::SaveAll() {
         begin[i].WriteFile(folder_);
 }
 EI_REPLACE_METHOD(0x006632B0, SavedParties::SaveAll);
+
+void SavedParties::Destruct() {
+    reinterpret_cast<MpHeroRecord*>(outsideGame_)->Destruct();
+    auto* begin = reinterpret_cast<MpHeroRecord*>(entries_);
+    auto* end = reinterpret_cast<MpHeroRecord*>(finish_);
+    for (MpHeroRecord* entry = begin; entry != end; ++entry) entry->Destruct();
+    if (begin != nullptr)
+        stlp::deallocate(begin, static_cast<std::size_t>(reinterpret_cast<MpHeroRecord*>(eos_) - begin) * sizeof(MpHeroRecord));
+    reinterpret_cast<mfc::CString*>(&folder_)->~CString();
+}
+EI_REPLACE_METHOD(0x0065F2D0, SavedParties::Destruct);

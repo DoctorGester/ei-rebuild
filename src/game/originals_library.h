@@ -292,6 +292,22 @@ __declspec(naked) inline void __fastcall SpareCountsResizeOriginal(void* /*map*/
 __declspec(naked) inline void __fastcall HashClearOriginal(void* /*map*/) EI_ORIGINAL(0x00406E80)
 __declspec(naked) inline void __fastcall BucketsDeallocateOriginal(void* /*pointers*/, std::size_t /*count*/)
     EI_ORIGINAL(0x00406590)
+// A-H17. hash_set<int> 007C8370 (the client's party ids, message 0x60), thiscall on the set: 0066B400
+// insert_unique (RET 8: the pair<iterator, bool> written to `out`, returned; resizes first), 0066B490 find (RET 8:
+// the iterator node, table to `out`), 0066BA70 clear (plain RET; nodes to the free list 0079B224).
+__declspec(naked) inline void* __fastcall IntSetInsertOriginal(void* /*set*/, void*, void* /*out*/, const int* /*key*/)
+    EI_ORIGINAL(0x0066B400)
+__declspec(naked) inline void __fastcall IntSetFindOriginal(void* /*set*/, void*, void* /*out*/, const int* /*key*/)
+    EI_ORIGINAL(0x0066B490)
+__declspec(naked) inline void __fastcall IntSetClearOriginal(void* /*set*/) EI_ORIGINAL(0x0066BA70)
+// A-H17. The item database's name indexes (hash_map<string, record*>), find_or_insert(pair) (thiscall, RET 4; EAX the
+// stored pair): 00613B70 quick items, 006A7870 loot, 0069E2A0 quest items.
+__declspec(naked) inline void* __fastcall QuickItemIndexInsertOriginal(void* /*index*/, void*, const void* /*pair*/)
+    EI_ORIGINAL(0x00613B70)
+__declspec(naked) inline void* __fastcall LootIndexInsertOriginal(void* /*index*/, void*, const void* /*pair*/)
+    EI_ORIGINAL(0x006A7870)
+__declspec(naked) inline void* __fastcall QuestItemIndexInsertOriginal(void* /*index*/, void*, const void* /*pair*/)
+    EI_ORIGINAL(0x0069E2A0)
 
 // C3k. 004C96F0: destructor of the pointer list built by 004C96A0 (vtable 0073D454; plain RET, EAX not a result).
 // 004C98C0: constructor of the item pointer list (vtable 0073BE80) with a block size (RET 4, returns `this`).

@@ -548,7 +548,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
             }
 
             if (PlayerList()) LoadPlayers(this, stream);
-            stream->Read(&unknown6C_, 1);
+            stream->Read(&paused_, 1);
 
             // The item manager's object records.
             if (stream->version_ >= kVersionPlayerLists) {
@@ -761,7 +761,7 @@ void CWorldServer::SaveWorld(WorldStream* stream) {
     WriteCopy(stream, -1);
 
     if (PlayerList()) SavePlayers(this, stream);
-    WriteCopy(stream, unknown6C_);
+    WriteCopy(stream, paused_);
 
     // The item manager's object records.
     {

@@ -778,7 +778,7 @@ constexpr HandlerEntry kClientHandlers[] = {
 
 BOOL CPlayerClient::CreateClient() {
     state_ = 0;
-    array50D8_.SetSize(0, -1);
+    partyUnitIds_.SetSize(0, -1);
     in_.Resize(0);
     out_.Resize(0);
     unknown_84 = 0;
@@ -795,13 +795,7 @@ EI_REPLACE_METHOD(0x00667230, CPlayerClient::CreateClient);
 
 void CPlayerClient::Clear() {
     state_ = 0;
-    if (array50D8_.data != nullptr) {
-        // Aligned storage: the block's own pointer is kept just before the data.
-        gamecrt::operator_delete(reinterpret_cast<void**>(array50D8_.data)[-1]);
-        array50D8_.data = nullptr;
-    }
-    array50D8_.capacity = 0;
-    array50D8_.size = 0;
+    partyUnitIds_.RemoveAll();
     in_.Resize(0);
     out_.Resize(0);
     unknown_84 = 0;
@@ -813,3 +807,70 @@ void CPlayerClient::Clear() {
 EI_REPLACE_METHOD(0x006671A0, CoderState::Reset);
 EI_REPLACE_METHOD(0x00667510, CPlayerClient::Clear);
 EI_REPLACE_METHOD(0x00667600, CPlayerClient::Clear);
+
+// --- A-H17: the party state -------------------------------------------------------------------
+
+namespace {
+
+constexpr std::uint32_t kUnitInClientParty = 0x400000;
+constexpr int kSessionKindSingle = 1;
+
+void* PartyIdSet() { return reinterpret_cast<void*>(0x007C8370); }   // hash_set<int>
+// 007AFCA4: read only here (no code writes it); slot 43 runs when it is at least 1.
+int FadeInGate() { return *reinterpret_cast<const int*>(0x007AFCA4); }
+
+// The set's iterator and insert result as the forwarders write them.
+struct IntSetIterator {
+    void* node;
+    void* table;
+};
+struct IntSetInsertResult {
+    IntSetIterator where;
+    std::uint8_t inserted;
+};
+
+int ReadDword(BitStream* in) {
+    int value;
+    in->Read(&value, 4);
+    return value;
+}
+
+} // namespace
+
+int CPlayerClient::OnPartyState() {
+    CPlayer* player = Owner();
+    for (int i = 0; i < partyUnitIds_.size; ++i) {
+        IntSetInsertResult inserted;
+        IntSetInsertOriginal(PartyIdSet(), nullptr, &inserted, &partyUnitIds_.data[i]);
+        CEngineObject* unit = WorldFindUnit(player->ManagerContext(), nullptr, partyUnitIds_.data[i]);
+        if (unit != nullptr) unit->flags_ &= ~kUnitInClientParty;
+    }
+
+    std::uint8_t paused;
+    in_.Read(&paused, 1);
+    static_cast<CWorldClient*>(player->ManagerContext())->paused_ = paused != 0 ? 1 : 0;
+    ReadDword(&in_);   // the server's +0x24, not used
+
+    int count = ReadDword(&in_);
+    partyUnitIds_.SetSizeDiscard(count);
+    for (int i = 0; i < count; ++i) {
+        int id = ReadDword(&in_);
+        partyUnitIds_.data[i] = id;
+        auto* unit = static_cast<CUnit*>(WorldFindUnit(player->ManagerContext(), nullptr, id));
+        if (unit == nullptr) continue;
+        unit->flags_ |= kUnitInClientParty;
+        IntSetIterator found;
+        IntSetFindOriginal(PartyIdSet(), nullptr, &found, &id);
+        if (found.node == nullptr && player->sessionKind100_ == kSessionKindSingle && unit->player == nullptr &&
+            FadeInGate() >= 1)
+            unit->Controller()->RestartFadeIn();
+    }
+    IntSetClearOriginal(PartyIdSet());
+
+    static_cast<CWorldClient*>(player->ManagerContext())->unknown6E4_ = ReadDword(&in_);
+    int others = ReadDword(&in_);
+    otherUnitIds_.SetSize(others);
+    for (int i = 0; i < others; ++i) in_.Read(&otherUnitIds_.data[i], 4);
+    return 1;
+}
+EI_REPLACE_METHOD(0x00668C50, CPlayerClient::OnPartyState);

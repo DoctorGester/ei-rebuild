@@ -178,7 +178,7 @@ void CWorldServer::SetUnknownE4E8(int e4, float e8) {
     MarkPlayersDirty(2);
 }
 
-void CWorldServer::SetUnknown6C(std::uint8_t value) { unknown6C_ = value; }
+void CWorldServer::SetUnknown6C(std::uint8_t value) { paused_ = value; }
 
 BOOL CWorldServer::GetZoneExit(int index, mfc::CString* target, int* entrance) {
     if (index < 0 || index >= exitCount_) return 0;

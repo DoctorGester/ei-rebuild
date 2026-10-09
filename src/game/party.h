@@ -114,6 +114,10 @@ public:
     // 006620F0 (RET 4). Destroys the first record whose key (+0x1C) is `key` and closes the gap;
     // 1 when there was one, else 0.
     BOOL RemoveMember(int key);
+    // 006629D0 (party_members.cpp, A-H17; the single-player login). When the party's zone (+0x68)
+    // is an edge zone (map.txt kind 1), every exit's target zone of kind 0 gets its variable
+    // "z.<name>" set to 1 unless it is already nonzero (0 or NaN is set).
+    void OpenEdgeExits();
 
     // 00661050 (party_lifetime.cpp). Constructor body: CEngineObject's fields, empty record and
     // item arrays, an empty variable map with NextPrime(100) buckets (its functor bytes are the

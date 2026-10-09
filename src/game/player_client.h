@@ -145,6 +145,13 @@ public:
     int OnNewObject();
     // 00667E60 (0x13). A text run as the interface's string event (005F8070).
     int OnStringEvent();
+    // 00668C50 (0x60, A-H17). The party state (CPlayerServer::SendPartyState): the old party units
+    // (+0x50D8) lose unit flag 0x400000 and their ids go into the set 007C8370; the world's pause
+    // flag (byte); a dword (dropped); the new party ids (+0x50D8 resized without keeping its
+    // contents), whose units get the flag and, when new to the party, in a session of kind 1
+    // without an owner (+0x24C) and with 007AFCA4 >= 1, their controller's slot 43 (fade in); the
+    // set emptied; the danger state to the world's +0x6E4; the other players' unit ids (+0x50E8).
+    int OnPartyState();
     // 00667230 (slot 2). Clear's state (the +0x50D8 array through SetSize(0)), then the handler
     // table: 256 entries (grown as an aligned array), zeroed, and the 40 handlers by message type
     // (their game addresses, so the rewritten ones run through their hooks). Returns 1.
@@ -173,11 +180,13 @@ public:
     std::uint8_t unknown_86[2];
     CoderState compressor_;         // +0x88 for the requests sent
     CoderState decompressor_;       // +0x28B0 for the messages received
-    // +0x50D8 the ids of the units the local player sees as its party (message 0x60; the client
-    // world's NearestVisibleUnit; aligned storage, Clear frees it).
-    lib::AlignedArray<int> array50D8_;
+    // +0x50D8 the ids of the party's units (message 0x60; Clear frees it; the HUD's map and the client world's NearestVisibleUnit read them)
+    lib::AlignedArray<int> partyUnitIds_;
+    // +0x50E8 the ids of the other players' units the map shows (message 0x60)
+    lib::AlignedArray<int> otherUnitIds_;
 };
-static_assert(offsetof(CPlayerClient, array50D8_) == 0x50D8);
+static_assert(offsetof(CPlayerClient, partyUnitIds_) == 0x50D8);
+static_assert(offsetof(CPlayerClient, otherUnitIds_) == 0x50E8);
 static_assert(offsetof(CPlayerClient, handlers_) == 0x24);
 static_assert(offsetof(CPlayerClient, in_) == 0x34);
 static_assert(offsetof(CPlayerClient, out_) == 0x5C);

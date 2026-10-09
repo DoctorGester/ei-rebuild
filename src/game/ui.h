@@ -1976,6 +1976,22 @@ public:
     // its title ("quest " text, else the quest's name) and its state mark (scene objects 16-20:
     // state 2 one frame, 3 the other, else hidden); the selected row gets the cursor (object 2).
     void DrawQuestList();
+    // ui_objectives_input.cpp (A-H17).
+    // 0064E330 (input slot 2, RET 0xC). The base input's press, then by region: 0 OK ("tutorial
+    // ok" sound; with two buttons the time to the nearest exit passes (00578700) and the zone is
+    // requested at that exit (RequestZone); else the pending value 0), 1 cancel (with two
+    // buttons: the cancel sound and the pending value 0), 2 / 3 the previous / next listed zone
+    // (wrapping; only when zones are listed and there are two or more), 4-8 a quest row
+    // (+0x1C0 the first shown; selected, drawn, shown), from 9 an exit (with two buttons and its
+    // flag: the "enter" sound and SelectExit, else the cancel sound).
+    void OnLButtonDown(int buttons, int x, int y);
+    // 0064EA80 (RET 4; ShowQuest calls it through its address). The places of quest `name` into
+    // +0x1CC (emptied first): a multiplayer client takes them from the quest database's record
+    // (its float pairs), otherwise from map.txt's "#quest <name>" entry (the second line after
+    // it, its words as x y pairs).
+    void LoadQuestPlaces(const char* name);
+    // The quest places (+0x1CC) as the STLport vector they are.
+    stlp::vector<UiPointF>& QuestPlaces() { return reinterpret_cast<stlp::vector<UiPointF>&>(questPlacesBegin_); }
     // Not rewritten.
     void SelectExit(int index);      // 0064E990
     void RefreshQuests();            // 0064E8B0

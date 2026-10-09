@@ -251,9 +251,10 @@ public:
     void* unknown60_;                     // +0x60 replaced by 0055F410 when the game ends
     int tick_;                            // +0x64 game time in ticks
     int updateCount_;                     // +0x068 world updates run (the server's Update)
-    // +0x06C the server's Update skips the players and the tick while it is set; the client's
-    // Segment skips its own ticks (paused).
-    std::uint8_t unknown6C_;
+    // +0x06C paused: the server's Update skips the players and the tick while it is set; the
+    // client's Segment skips its own ticks, and the client copies the server's flag from message
+    // 0x60 (00566350), telling the HUD.
+    std::uint8_t paused_;
     std::uint8_t unknown_06D[0x70 - 0x6D];
     std::uint8_t countdowns_[0x84 - 0x70]; // +0x070 countdown list (006D43E0 sets it up, 006D44E0 ticks it; a CArray)
 };
@@ -264,7 +265,7 @@ static_assert(offsetof(CWorld, shared5C_) == 0x5C);
 // ISAAC generator seeded and the countdowns (+0x70) set up. Returns 1.
 int __fastcall WorldCreateManagers(CWorld* world);
 static_assert(offsetof(CWorld, updateCount_) == 0x68);
-static_assert(offsetof(CWorld, unknown6C_) == 0x6C);
+static_assert(offsetof(CWorld, paused_) == 0x6C);
 static_assert(offsetof(CWorld, unknown24_) == 0x24);
 static_assert(offsetof(CWorld, manager40_) == 0x40);
 static_assert(offsetof(CWorld, itemManager_) == 0x54);
@@ -1182,7 +1183,7 @@ public:
     std::uint8_t unknown_6AC[0x6DC - 0x6AC];
     int unknown6DC_;                      // +0x6DC 0 after Setup
     int unknown6E0_;                      // +0x6E0
-    int unknown6E4_;                      // +0x6E4 0 after Setup
+    int unknown6E4_;                      // +0x6E4 0 after Setup; the party state's danger (0x60: 2 fighting)
     std::uint8_t unknown_6E8[0x6EC - 0x6E8];
     int ticksRun_;                        // +0x6EC Segment's count; AddObject fades units in (slot 43) when >= 1
     float tickFraction_;                  // +0x6F0 added to the tick for the units' time (network client)
@@ -1408,12 +1409,20 @@ struct SavedParties {
     // 006632B0 (party_file.cpp). With a folder name: the folder created and emptied (0057AAB0),
     // then every entry written into it (MpHeroRecord::WriteFile, 00662AC0).
     void SaveAll();
+    // 0065F2D0 (party_file.cpp, A-H17; the static destructor 0065F2C0 at exit). The party outside a
+    // game (+0x10) as an MpHeroRecord (file name, then the party), every entry, the vector's
+    // storage back to the node allocator, the folder name.
+    void Destruct();
 
     char* folder_;               // +0x00 CString
     SavedPartyEntry* entries_;      // +0x04 vector<SavedPartyEntry>: start, finish, end of storage
     SavedPartyEntry* finish_;       // +0x08
     SavedPartyEntry* eos_;          // +0x0C
+    // +0x10 the party outside a game (CParty, 0x70 bytes; 007C82B0) and a file name: an MpHeroRecord
+    // (ui_screens.h).
+    std::uint8_t outsideGame_[0x74];
 };
+static_assert(offsetof(SavedParties, outsideGame_) == 0x10);
 static_assert(offsetof(SavedParties, entries_) == 0x04);
 static_assert(offsetof(SavedParties, eos_) == 0x0C);
 

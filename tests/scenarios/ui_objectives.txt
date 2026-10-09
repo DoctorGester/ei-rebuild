@@ -1,0 +1,33 @@
+# The objectives window (A-H17, docs/notes/items_spells.md): TAB opens it for zone1 with the quest
+# q0g held ("#quest q0g" is in map.txt), so ShowQuest fills the quest's places (0064EA80, the
+# map.txt branch). Its clicks (0064E330): the first quest row (4), the zone arrows (2 / 3; only
+# one zone is listed, so nothing), cancel (1; one button, so nothing), the first exit (9: the
+# cancel sound, or SelectExit), then OK (0: the pending value 0 closes the window).
+reject Script error
+wait 6000
+console thingamabob
+
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+console @GSSetVar(0,"q.gz1g.q0g",1)
+waitfor 5 IsEqual(GSGetVar(0,"q.gz1g.q0g"),1)
+
+key tab
+wait 1500
+clickregion 4
+wait 300
+clickregion 3
+wait 300
+clickregion 2
+wait 300
+clickregion 1
+wait 300
+clickregion 9
+wait 500
+clickregion 0
+wait 1000
+check IsAlive(GetLeader())
+report
+quit

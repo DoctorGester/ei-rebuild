@@ -296,7 +296,7 @@ int CPlayerServer::SendPartyState() {
 
     int count = partyUnits_.size;
     WriteByte(&out_, kMessagePartyState);
-    WriteByte(&out_, static_cast<CWorldServer*>(player->ManagerContext())->unknown6C_ != 0 ? 1 : 0);
+    WriteByte(&out_, static_cast<CWorldServer*>(player->ManagerContext())->paused_ != 0 ? 1 : 0);
     WriteDword(&out_, unknown24_);
     WriteDword(&out_, static_cast<std::uint32_t>(count));
     std::uint32_t playerBit = 1u << (player->playerId_ & 31);

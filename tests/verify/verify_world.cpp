@@ -36,12 +36,12 @@ struct ServerState {
     std::vector<std::uint32_t> dirty;
 
     static ServerState Take(CWorldServer* server, const std::vector<WorldPlayer*>& players) {
-        ServerState s{server->unknown6C_, server->unknownDC_, server->unknownE0_, server->unknownE4_, server->unknownE8_, {}};
+        ServerState s{server->paused_, server->unknownDC_, server->unknownE0_, server->unknownE4_, server->unknownE8_, {}};
         for (WorldPlayer* p : players) s.dirty.push_back(p->dirty);
         return s;
     }
     void Restore(CWorldServer* server, const std::vector<WorldPlayer*>& players) const {
-        server->unknown6C_ = b6C;
+        server->paused_ = b6C;
         server->unknownDC_ = dc;
         server->unknownE0_ = e0;
         server->unknownE4_ = e4;
