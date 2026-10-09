@@ -1,7 +1,7 @@
 // Checks for the options window's settings and bindings and its slider (ui_options.cpp), the
 // scrolling text's DrawLines (ui_scroll_text.cpp) and the edit field's keys (ui_edit_field.cpp).
 //
-// DR-H16 draft: written without a build; see docs/notes/drafts/DR-H16.md.
+// DR-H16; see docs/notes/drafts/DR-H16.md.
 //
 // Scenarios: ui_hud, ui_main_menu and ui_container_input open the options window (its Build runs
 // BuildSettings, LoadSettings, BuildBindings and ShowGroup(0), which draws the rows; ui_hud also

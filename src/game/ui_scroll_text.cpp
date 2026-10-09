@@ -125,11 +125,11 @@ void CUiScrollText::Tokenize(const mfc::CString* text) {
 }
 EI_REPLACE_METHOD(0x0065D4B0, CUiScrollText::Tokenize);
 
-// --- 0065D150 (DR-H16 draft, not built) -----------------------------------------------------------
+// --- 0065D150 --------------------------------------------------------------------------------------
 
 namespace {
 constexpr int kAlignLeft = 1;
-constexpr std::uintptr_t kTextFontSample = 0x00787BCC;   // the text measured for each font's height
+const char* FontSampleText() { return reinterpret_cast<const char*>(0x00787BCC); }   // "W", measured for each font's height
 constexpr int kMeasuredFonts = 3;
 
 // A word of a line (005FDE20, Rebirth-patched: through its address).
@@ -160,7 +160,7 @@ void CUiScrollText::DrawLines(int scroll) {
     // The fonts' heights (the extent of the sample text in fonts 0-2).
     int heights[kMeasuredFonts];
     for (int font = 0; font < kMeasuredFonts; ++font) {
-        mfc::CString sample(reinterpret_cast<const char*>(kTextFontSample));
+        mfc::CString sample(FontSampleText());
         heights[font] = reinterpret_cast<TextMetricsAt*>(interface_)->TextExtent(sample, font).cy;
     }
 

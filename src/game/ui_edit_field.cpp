@@ -1,7 +1,5 @@
 // The message box's edit field: its key handler (0065C610). See ui.h (CUiEditField) and
 // docs/notes/drafts/DR-H16.md.
-//
-// DR-H16 draft: written without a build.
 #include "ui.h"
 
 #include "ei/hook.h"

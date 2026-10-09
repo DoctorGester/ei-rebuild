@@ -1428,8 +1428,9 @@ public:
     RECT thumb_;                     // +0x164 layout coordinates
     int grabX_;                      // +0x174 mouse offset from the thumb centre while dragging
     int grabY_;                      // +0x178
-    // +0x17C the sprites' depth (the slider's SetRect places its four sprites at it; DR-H16: that
-    // it is the constructor's last float is not checked).
+    // +0x17C the sprites' depth: the constructor's first float (0065AEA0 stores its float
+    // arguments at +0x17C and +0x14C, the int at +0x148); the slider's SetRect places its four
+    // sprites at it.
     float depth_;
     bool moved_;                     // +0x180
     std::uint8_t unknown_181[3];
@@ -1450,7 +1451,8 @@ class CUiSlider : public CUiScrollbar {
 public:
     // 0065BC30 (RET 0x20, not rewritten): CUiScrollbar's constructor (0065AEA0) with the slider's
     // vtables. Returns this.
-    CUiSlider* Construct(CInterface3D* ui, RECT rect, float speed, int maximum, float depth);
+    // (`depth` goes to depth_ +0x17C, `maximum` to +0x148, `speed` to speed_ +0x14C.)
+    CUiSlider* Construct(CInterface3D* ui, RECT rect, float depth, int maximum, float speed);
     // 0065B8B0 (slot 26, RET 4). Lays the slider out over `rect` (layout coordinates) and sets
     // the position again (through slot 25, so it counts as moved).
     void SetRect(const RECT* rect);
@@ -1500,7 +1502,7 @@ public:
     // 0065D970 (RET 0xC; not rewritten). The token of `text` at `pos` (spaces and tabs skipped)
     // into `out`; returns the position after it, or -1 at the end.
     int NextToken(const mfc::CString* text, int pos, mfc::CString* out);
-    // 0065D150 (RET 4; called by 0065D120; ui_scroll_text.cpp, DR-H16 draft). Draws the lines
+    // 0065D150 (RET 4; called by 0065D120; ui_scroll_text.cpp, DR-H16). Draws the lines
     // into surface 0 from `scroll` pixels down: the first line reaching `scroll` and the ones
     // after it while they fit, word by word in their tokens' fonts and colours (initially font 1,
     // 0xA7D7E4, or the last format token before the line), words apart by a third of the font's
@@ -1849,7 +1851,7 @@ public:
     // scroll bar or spin control changed (volumes, the display's gamma at once).
     void Update();
 
-    // ui_options.cpp (DR-H16 draft, not built yet).
+    // ui_options.cpp (DR-H16).
     // 00651350. Draws surface 0: the group titles (the shown one white-tinted, its button sprite
     // at full tint, the others half), the shown group's title, and each row's name and value (a
     // binding waiting for its key in red); the highlight sprite (scene object 2) on the selected
@@ -1931,7 +1933,7 @@ static_assert(sizeof(COptionsWindow) == 0x418);
 // 0x17C bytes; text set by 0065C290).
 class CUiEditField : public CUiWindow {
 public:
-    // 0065C610 (input side slot 9, RET 0xC; ui_edit_field.cpp, DR-H16 draft). While focused:
+    // 0065C610 (input side slot 9, RET 0xC; ui_edit_field.cpp, DR-H16). While focused:
     // Backspace and Delete remove a character at the caret, Home / End / Left / Right move it
     // (no clamping here); the first edit key starts editing (Backspace / Delete from an empty
     // text, the others with the caret at the end). Then the text is drawn again (0065C2E0) and
