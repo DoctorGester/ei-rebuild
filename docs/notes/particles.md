@@ -30,8 +30,8 @@ game.exe for the callbacks.
   arrays 007A9BD0 / 007A9BE0); 00497EB0-00498E80 element allocator and manager pieces (00498400 create source, 13 callers; 00498480 / 00498630
   save / load-ish; 00498940 draw all sources: depth sort through 00499200 / 00499380 / 004994E0 / 00499C20 / 00499CD0, an STLport introsort on a
   `vector<float, source*>` at 007A9C54); 00499DC0-0049B140 global-map helpers (0062Exxx callers) and a procedural-texture class (vtable 007420D4);
-  0049B140-0049E790 the renderer's line list (`renderer_lines.cpp`, see `renderer.md`) and 0049BEA0 (median-cut colour quantisation, once per zone
-  load from 00481660); 0049F810-004A4800 static initialisers, a keyframe track evaluator (0049F890, from 0044875A) and a dead 3DS loader.
+  0049B140-0049E790 the renderer's line list (`renderer_lines.cpp`, see `renderer.md`) and 0049BEA0 (median-cut colour quantisation, reached only by
+  00481660's branch under 0079BCF4, which never runs: dead, script.md); 0049F810-004A4800 static initialisers, a keyframe track evaluator (0049F890, from 0044875A) and a dead 3DS loader.
 
 ## Rewritten
 
@@ -91,7 +91,6 @@ the unordered case the same way. Remaining differences only at 64-bit precision 
 - Paths the lab could not reach with its fake carrier (real figures and platforms, a stun that ends, units without
   parts) are checked only in game.
 - 64-bit precision control is not reproduced (the game runs at 24 bits).
-- Not rewritten: 0049BEA0 colour quantisation (zone load; STLport list / hash_map / vector / introsort instantiations
-  0049BB70, 0049C*, 0049D*, 0049E0D0..: reproducing it exactly needs the game's node allocator and iteration order),
-  00498480 / 00498630, the procedural texture class 0049A090 / 0049A220, 0049F660 ISAAC seeding (reads a random file from
-  C:\ through the recursive CFileFind 0049F4B0), the dead 3DS readers.
+- Not rewritten: 00498480 / 00498630 (script.md "Next candidates"), 0049F660 ISAAC seeding (reads a random file from C:\
+  through the recursive CFileFind 0049F4B0), the dead 3DS readers. The procedural texture class 0049A090 / 0049A220 is the
+  global map's clouds (rewritten, script.md); 0049BEA0 and its helpers are dead.
