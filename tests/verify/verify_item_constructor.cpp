@@ -248,3 +248,18 @@ static CItem* __fastcall CreateItemVerify(CItemManager* self, void*, const char*
     return item;
 }
 EI_VERIFY(0x006AC970, CreateItemVerify, 0, s_createItem);
+
+// 006AD000 creates objects: ours only (A-H20). A made item has the kind asked for, and the
+// constructor is detached again. Scenarios: items, trader_stock, ui_camp (the trader stock and the
+// camp's constructors make items by index), every new game (the hero's starting items).
+static void* s_makeItem;
+static CItem* __fastcall MakeItemVerify(CItemManager* self, void*, int kind, std::uint32_t index, std::uint32_t material,
+                                        int key) {
+    CItem* item = self->CItemManager::MakeItem(kind, index, material, key);
+    CItemConstructor* constructor = static_cast<CManagerContext*>(self->context_)->ItemConstructor();
+    bool ok = (!item || item->type_ == kind) && !constructor->manager_ && !constructor->item_;
+    ei::verify::Check("CItemManager::MakeItem", true, ok, "kind %X index %u material %u -> %p type %X", kind, index,
+                      material, item, item ? item->type_ : 0);
+    return item;
+}
+EI_VERIFY(0x006AD000, MakeItemVerify, 0, s_makeItem);
