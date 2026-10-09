@@ -21,6 +21,8 @@ class CRefObject;
 struct ClassTemplateVector;
 struct PartyInPlace;
 struct PartyManagerEntry;
+struct QuestBriefingRecord;
+struct QuestRecord;
 namespace mfc {
 class CString;
 }
@@ -128,6 +130,12 @@ public:
     void SerializeClassTemplates(int id, ClassTemplateVector* templates, void* unused);
     // 004AD2C0 (RET 8). Field(id, value, 4).
     void IntField(int id, int* value);
+
+    // The quest database's vectors (quest_records.cpp; RET 0xC, the third argument unused): one
+    // chunk 1 per record (its Serialize); loading destroys the records and resizes the vector to
+    // the record chunks first. 006B1F20 the quests, 006B2010 the briefings.
+    void SerializeQuests(int id, stlp::vector<QuestRecord>* quests, void* unused);
+    void SerializeBriefings(int id, stlp::vector<QuestBriefingRecord>* briefings, void* unused);
 
     // An archive built and destroyed inline on a function's stack, as 004A8310 / 004A8560 do
     // (0053A7B0 is the out-of-line constructor): two empty memory streams, the containers'

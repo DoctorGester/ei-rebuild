@@ -21,6 +21,13 @@ struct CStringVector {
 };
 static_assert(sizeof(CStringVector) == 0xC);
 
+// unit_db.cpp. A vector<CString> as chunk `id` holding one field 1 per string, the way the NPC
+// and quest briefing serialisers inline it: loading empties the vector (0052E010; 0052DF40
+// erases the range through 0051F970 instead, with the same result) and resizes it to the count
+// of fields 1; each string is the next occurrence of field 1 (the current chunk's occurrence, set
+// before each).
+void InlineStrings(ChunkArchive* ar, int id, CStringVector* strings);
+
 // A unit prototype (0x120 bytes, table 007AF358). Fields whose meaning is known are named after
 // what the statistics builders (unit_create_stats.cpp) make of them.
 struct UnitPrototypeRecord {

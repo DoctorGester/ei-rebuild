@@ -305,6 +305,8 @@ receive" reads its six lists inline, "reject" two inline and four by 006AE740, "
 Records are raw blocks with the original layouts, containers go through the original members. Risk: no
 unwinding for the raw records if a member throws.
 
+In archives (`quest_records.cpp`, A-H16): `QuestRecord::Serialize` 006AD7D0 (0x38 bytes; places through vector<float> fill insert 006ADC10), `QuestBriefingRecord::Serialize` 006AD900 (0x6C; list 0 through 0052DF40, lists 1-5 inline), the vectors `ChunkArchive::SerializeQuests` / `SerializeBriefings` 006B1F20 / 006B2010 (the database's archive 006AE3A0 is Rebirth-patched). Records: read twice, ours then the original, compared; saving and the vectors ours only (current chunk unchanged). The vectors call the record serialisers through their addresses so those wrappers run. Reached by saving and loading a game (ui_saveload, world_load).
+
 ## Textures: mmp and composed (texture_mmp, texture_compose)
 
 | Address | Name | Verify |
