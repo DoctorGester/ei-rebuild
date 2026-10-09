@@ -77,7 +77,17 @@ buffers are function-local statics (007AF000..007AF05C, 007AEF60..007AEFF8).
 Facts not in the code comments:
 - **Renderer creation**: the helper's flag argument is pushed as EDX with only DL set; the upper bytes are what the game's
   operator new left in EDX, reproduced by capturing EDX after the same allocation. The depth range call takes two arguments
-  (settings +0x264, +0x1E4).
+  (settings +0x264, +0x1E4). The settings argument is `options::GameOptions` (video fields +0x2C..+0x78, FarClipDistance
+  +0x1E4, FogDayStartDistance +0x264); `CSceneRenderer` +4 flags, +0x24 a counted `CRenderHelper` (0x118), +0x50 creation
+  time; transform object slots 1 SetViewportSize, 2 AddSun, 4 SetProjection, 5 SetDepthRange, 40 LightMesh.
+- **Layouts** (C9): the figure at CObject3D +0xF0 is a `CLinkMesh` (slots 7-12 draw a mesh part, 13 / 14 project /
+  rasterise its shadow); 005A7A70's `this` is a `FigureMeshDrawer` (+0x1C the CFigureMesh, +0x20 its screen rect);
+  CFigureMesh +0x94 drawer, +0x98 owner, +0xD4 / +0xD8 flat colour / specular; CLight +0x28 / +0x108 position / direction
+  in the lit mesh's space, +0xD4 the direction; *007AF748 is `CLightFactory` (spell.h). FigurePart (map_object_figures.h)
+  and CFigureMesh describe the same objects (bounds +0x188, +0x158 / +0x15C); not merged. Debug panel 0079B930: file-local
+  `CDebugPanel` in string_map.cpp. Left raw in map_object_shadow.cpp: BuildMatrix's part matrix (+0x34 / +0x54, which
+  FigurePart's layout contradicts), the scene's matrix stack (+0x64) and object (+0xC, slot 7), the material's colour key
+  (+0x60), the device's blur slots 11 / 12, the world's slot 34.
 - **Mesh draws**: callers are figures (005A7A70, 005A7640) and the 3D library's meshes (004F3C60 ...); flag 4 overwrites the
   mesh's own colour and specular arrays with the device's +0x150 colour / alpha << 24; `DeviceDrawFlat` is used by shadows
   (0051CE60), the renderer (00503A40) and 006CEDE0.
@@ -148,6 +158,7 @@ with the vertices they reach (pooled 16-byte LightRef nodes, blocks of 1000 at 0
 | 006BF5F0 | SectorData::Construct (sizes the shared projection buffers 007C88F8 / 007C88E8 / 007C88D0 to 0x330) | S |
 | 006BFC80 | SectorData::Project (RET 4: the pipeline; the pass 006C6460): per quarter not culled, positions at the LOD step through 004F29F0 against the quarter box (a ClipBounds prefix); records +0x00 projected, +0x10 outcode | S |
 | 006BFF40 | DrawSectorPage (`__fastcall` for the thiscall with four stack arguments: context, unused, texture page, unused) | O |
+| 006C3A00 / 006C36B0 / 006C31C0 | SectorData::Light / ShadeSun / LightVertex (terrain_lighting.cpp; chop rounding through the game's `_controlfp` 006EBBB4, `gamecrt::Ftol`; Ensure lights through 006C3A00's address) | S |
 
 Facts: terrain_sector.cpp is compiled with `float_control(precise, on)` (running x / y, heights in flight and bounding box
 intermediates are doubles; constants read from the exe; HeightAt taken unrounded through a double-returning forwarder to
@@ -161,32 +172,32 @@ Kept: Load passes the error message to FatalError as its format string; Build's 
 perPage * pages (not 16) before falling back to 15; Load picks a vertex's water material by lowest priority, Build the first
 found. Lesson: Ghidra's listing of 006C1C00 drops the FNSTSW AX at 006C1F48 (a plain minimum select on the comparison
 status); check the raw bytes when a listing's addresses skip.
+Lighting: owner (`TerrainFields`) +0x94 flags (4 edge fade, 0x10 sun shadows), +0x224 ambient, +0x24C..+0x254 the vertex
+being lit (read by the forwarded shadow test 006C92C0, which loads the sectors the ray crosses), +0x258 the sun; record +0x11
+colour, +0x15 specular, +0x37 lit colour; material +0x14 absorption; 007C8908 the water falloff. Kept: ShadeSun passes an
+uninitialised fourth colour component (ours 0, only copied through by 0068D310); channel FISTPs are or-ed whole into the word.
 
-Skipped: the other draw functions (R); 006C68B0 and 006D0630 / 006D7620 (Rebirth-patched); vertex lighting (chop rounding), point light registration 006CAC10 (global
+Skipped: the other draw functions (R); 006C68B0 and 006D0630 / 006D7620 (Rebirth-patched); point light registration 006CAC10 (global
 node pool), 006C3E80 animated tiles; dead code 006C8990, 006C9560, 006C5EA0, 006C5F50, 006C84E0, 006C4790 / 006C4A40 /
 006C4C90; STLport / MFC instantiations (006B01F0-006B4230, 006BDDD0-006BE300, 006CD540-006CEA10). Risk: the animated-tile path
 draws from the game's random generator (a mistake would shift later draws).
 
-## Game code left in 0x006C0000-0x00740000 (A-X1, 2026-10-09)
+## Game code left in 0x006C0000-0x00740000
 
 All of it lies in 006C1390-006E5E30 (beyond is the CRT / MFC). Groups (R = Rebirth-patched, forwarded):
-- **Landscape / sectors** 006C1390-006CCF20 (~29 KB): vertex lighting 006C31C0 / 006C36B0 / 006C3A00 (chop rounding) and
-  shadow test 006C92C0; animated tiles 006C3E80; light countdown 006C8ED0; ambience 006CB390 / 006CBC00 / 006CBCD0; map
-  loading 006C68B0 (R), 006C5AA0, 006C7750 / 006C7940 / 006C7A80 / 006C7D70 / 006C7EB0, 006C5430-006C57E0 (client setup
-  from 00561E50 / 00562B80); draw passes 006C6230 / 006C6330 / 006C6460 / 006C66E0 / 006C67E0 / 006C42A0 / 006C4310;
-  `SectorAt` cache 006C8140; point lights 006CA5D0-006CAC10, 006CB020; water level 006CC7F0; decal triangles 006CCF20;
-  sector parts (Clear 006C3C80, CArray element pairs 006C4EE0-006C5230).
-- **Aligned-array instantiations** 006CD5A0-006CE9A0 (lib::AlignedArray SetSize / allocate copies, ~2.8 KB) and the
-  shadow / print effects 006CECD0 / 006CEDE0, prints 006CF370-006CFEA0 (~3.3 KB).
-- **prints.db / acks.db** 006D00E0-006E5140: the databases' constructors / destructors, the records' compiler-generated
-  members (constructors, copies, destructors, operator=), the acks lookups 006D8430 / 006D8780 / 006D88E0 / 006D8A40 /
-  006D9A30 / 006D9CE0 / 006D9F80 (unit acknowledgement sounds, from 006366F0), the acks record serialisers 006E3780 /
-  006E3DC0 / 006E3FD0 / 006E42F0 / 006E4410 / 006E46C0 / 006E4F40; loaders 006D0630 / 006D7620 (R). 98 STLport / MFC
-  instantiations of these containers moved to config/library.csv ("A-X1 review").
-- **CDib** 006D49E0-006D6FC0 (~4 KB; BMP overrides and movie screenshots).
+- **Landscape / sectors** 006C1390-006CCF20: shadow test 006C92C0; animated tiles 006C3E80; light countdown 006C8ED0;
+  ambience 006CB390 / 006CBC00 / 006CBCD0; map loading 006C68B0 (R), 006C5AA0, 006C7750 / 006C7940 / 006C7A80 / 006C7D70 /
+  006C7EB0, 006C5430-006C57E0 (client setup from 00561E50 / 00562B80); draw passes 006C6230 / 006C6330 / 006C6460 /
+  006C66E0 / 006C67E0 / 006C42A0 / 006C4310; point lights 006CA5D0-006CAC10, 006CB020; water level 006CC7F0; decal
+  triangles 006CCF20; sector parts (Clear 006C3C80, CArray element pairs 006C4EE0-006C5230).
+- Shadow / print effects 006CECD0 / 006CEDE0, prints 006CF370-006CFEA0.
+- **prints.db / acks.db** 006D00E0-006E5140: database ctors / dtors, the records' compiler-generated members, acks record
+  serialisers 006E3780 / 006E3DC0 / 006E3FD0 / 006E42F0 / 006E4410 / 006E46C0 / 006E4F40; loaders 006D0630 / 006D7620 (R).
+  98 STLport / MFC instantiations are in config/library.csv ("A-X1 review").
+- **CDib** 006D49E0-006D6FC0 (BMP overrides and movie screenshots).
 - Dead (config/dead_code.csv): 006C98F0 (reached only from the unreferenced chunk 006CA170), 006D5480, 006D6800.
 
-Ported (A-X1; V as above):
+Ported (V as above; terrain lighting is in the terrain table):
 
 | Address | Name | V |
 |---|---|---|
@@ -204,9 +215,8 @@ prototype name (0x2A..0x2D); each record: name, hash_map<int kind, vector<Speech
 were declared for Say (51) / StopSpeech (52). The original picks through a temporary vector of pointers; ours counts and
 indexes (same draws, no allocation).
 
-Next in the range (136 functions, 52 KB left): ambience 006CB390; decal triangles 006CCF20 (floats, X17's decal
-functions are disabled in verify); shadow 006CEDE0; vertex lighting 006C31C0 / 006C36B0 / 006C3A00; animated tiles and
-water waves 006C3E80 (ISAAC draws); map setup 006C5AA0; acks record serialisers 006E3780 / 006E3FD0 / 006E3DC0 (startup,
+Next in the range: ambience 006CB390; decal triangles 006CCF20 (floats, X17's decal functions are disabled in verify);
+shadow 006CEDE0; animated tiles and water waves 006C3E80 (ISAAC draws); map setup 006C5AA0; acks record serialisers 006E3780 / 006E3FD0 / 006E3DC0 (startup,
 through the Rebirth-patched loader); CDib 006D5BF0. The records' compiler-generated members (006DE370, 006DC390, ...)
 need only the record declarations in a standalone build.
 
@@ -235,32 +245,3 @@ a call to the Rebirth-patched 006714A0). Kept: `CResourceStream::Seek` treats "f
 "from the start", "from the end" of an archive entry uses +0x2C, which OpenFile never sets; OpenFile leaks the `_findfirst`
 handle; `ListFiles` copies a name into a 1 KB buffer without a length check. Dead code: 00674310, 00674910, 006748F0,
 006745C0, 00674670. Skipped: STLport instantiations (006713C0-00674070, 00675560-00675690).
-
-## C9 cleanup (2026-10-09)
-
-Offsets, VCall and byte arithmetic removed (behaviour unchanged) from renderer_init, map_object_lifetime, figure_part_draw,
-string_map and (partly) map_object_shadow. Facts found: the renderer's settings argument is the options object
-(`options::GameOptions`, now with the video fields +0x2C..+0x78, FarClipDistance +0x1E4, FogDayStartDistance +0x264);
-`CSceneRenderer` +4 flags, +0x24 a counted `CRenderHelper` (0x118), +0x50 the creation time; the transform object's slots 1
-SetViewportSize, 4 SetProjection, 5 SetDepthRange, 2 AddSun, 40 LightMesh; the figure at CObject3D +0xF0 is a `CLinkMesh`
-whose slots 7-12 draw a mesh part and 13 / 14 project / rasterise its shadow; 005A7A70's `this` is a `FigureMeshDrawer`
-(+0x1C the CFigureMesh, +0x20 its screen rect); CFigureMesh +0x94 drawer, +0x98 owner, +0xD4 / +0xD8 flat colour /
-specular; CLight +0x28 / +0x108 the position / direction in the lit mesh's space, +0xD4 the direction; the light factory
-(*007AF748) is `CLightFactory` (spell.h) with its lit-id list. FigurePart (map_object_figures.h) and CFigureMesh describe
-the same objects (both have the bounds at +0x188 and +0x158 / +0x15C); not merged. The debug panel (0079B930) is a
-file-local `CDebugPanel` in string_map.cpp. Left in map_object_shadow.cpp: BuildMatrix's raw part matrix (+0x34 / +0x54,
-which FigurePart's layout contradicts), the scene's matrix stack (+0x64) and object (+0xC, slot 7), the material's colour
-key (+0x60), the device's blur slots 11 / 12 and the world's slot 34; the __asm / float_control blocks everywhere. Not
-started: world_map, world_update, scene_bones, unit_update.
-
-## A-X2 (2026-10-09)
-
-| Address | Name | V |
-|---|---|---|
-| 006C3A00 / 006C36B0 / 006C31C0 | `SectorData::Light` / `ShadeSun` / `LightVertex` (terrain_lighting.cpp; chop rounding through the game's `_controlfp` 006EBBB4, `gamecrt::Ftol` for its `_ftol`s) | S (the vertex pair ours first, original last; Light compares every record) |
-
-Facts: owner (`TerrainFields`) +0x94 flags (4 edge fade, 0x10 sun shadows), +0x224 ambient, +0x24C..+0x254 the vertex being
-lit (read by the shadow test 006C92C0, forwarded: it loads the sectors the ray crosses), +0x258 the sun; record +0x11 colour,
-+0x15 specular, +0x37 lit colour; material +0x14 absorption; 007C8908 the water falloff. Ensure now lights through
-006C3A00's address (so its wrapper runs). Kept: ShadeSun passes an uninitialised fourth colour component (ours 0, only copied
-through by 0068D310); channel FISTPs are or-ed whole into the colour word.
