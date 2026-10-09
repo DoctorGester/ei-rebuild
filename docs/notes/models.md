@@ -231,7 +231,16 @@ Ambience: sound classes at 007969D0 (16 x 0x18: name, variants, weight, class it
 memory, most have variants -1, so the one-shot index is a draw % 0xFFFFFFFF + 1); loop slots +0xAC8 handles / +0xAD4 classes,
 +0xAE0 the sound set. The class votes are sorted by the game's qsort (comparator 006CB360 rewritten as `ByWeight`).
 
-Next in the range: shadow 006CEDE0; map setup 006C5AA0; acks record serialisers 006E3780 / 006E3FD0 / 006E3DC0 (startup,
+Next in the range (A-X3 cut off): the print effects (footprints, blood, scorch decals; client world lists +0x1B8..+0x1C0):
+vtables 0073F754 / 0073F760 / 0073F76C / 0073F778 (slot 0 Tick 006CECD0, slots 1 / 2 Load 006CF4F0 / Save 006CF370 and the
+006CFA20.. variants), ctor 006CF660 (RET 0x28, rand() draws), dtor 006CF960, Draw 006CEDE0 (quad -> 0056C750 -> DeviceDrawFlat),
+006CED50 texture, 006CF310 place, 006CFBA0 / 006CFEA0 from 0056D150 / 0056D4C0; layout: +8 x, +0xC y, +0x10 / +0x14 half
+size, +0x18 growth, +0x1C life (short), +0x20 stlp::string texture, +0x2C counted texture, +0x30..+0x3C uv offset / scale,
++0x40 / +0x44 uv and quad angles, +0x48 lit byte (006CB020), +0x4C / +0x50 alpha, +0x54 colour, +0x58 lifetime, +0x5C / +0x6C /
++0x7C aligned arrays (positions in 64-byte packets, uv, indices). Landscape setup: Create 006C5430 (slot 2; sine table inline),
+Destroy 006C54D0 (slot 3, STLport hash_map at +0x25C), 006C5620 reset, 006C57E0 wave phases (rand()), 006C7D70 / 006C7EB0
+waves set / get, map setup 006C5AA0 (texture pages; renderer calls); sector record helpers 006C5150 / 006C5230 (LightRef pool
+007C8840 / 007C8844); point lights 006CA5D0-006CAC10; acks record serialisers 006E3780 / 006E3FD0 / 006E3DC0 (startup,
 through the Rebirth-patched loader); CDib 006D5BF0. The records' compiler-generated members (006DE370, 006DC390, ...)
 need only the record declarations in a standalone build.
 
