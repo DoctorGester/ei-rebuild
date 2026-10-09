@@ -192,19 +192,41 @@ struct AnimationTrack;       // map_object_animation.h
 // provisional). The animation state's parts list holds them (FigurePart there, which declares the
 // two animator pointers the same way), its +0x20 the root. Only the fields the pose code uses.
 struct FigureBone : CEngineObject {
-    std::uint8_t unknown_1C[0x28 - 0x1C];
+    mfc::CString name;                      // +0x1C the piece's name (0050CC60 links children by it)
+    mfc::CString name2;                     // +0x20
+    mfc::CString name3;                     // +0x24
     FigureBone* parent;                     // +0x28 null for the root
     mfc::CTypedPtrList<FigureBone> children;    // +0x2C
     CFigureMesh* mesh;                      // +0x48 the part the bone places, or null
     AnimationTrack* pose;                   // +0x4C the animator whose values place the bone
     FigurePartAnimator* animator;           // +0x50 the latest animator (0050D4E0 copies it to +0x4C)
-    std::uint8_t unknown_54[0x5C - 0x54];
+    CEngineObject* counted54;               // +0x54 counted (released by DestroyBone)
+    CEngineObject* counted58;               // +0x58 counted
     Vector3 offset;                         // +0x5C the place relative to the parent
     float morphS;                           // +0x68 the figure's morph coefficients (0050D7C0)
     float morphT;                           // +0x6C
     float morphU;                           // +0x70 (also the time factor's t, 0050C230)
     Vector3 position;                       // +0x74 in figure space
     Quaternion rotation;                    // +0x80 in figure space
+    lib::AlignedArray<Matrix4> matrices;    // +0x90 (emptied without freeing; freed by the destructor)
+
+    // figure_bone_lifetime.cpp (A-U9; vtable 0073DA0C, 0xA0 bytes, made by the figure factory
+    // 005AAB57):
+    // 0050AF40. The constructor: engine object fields, empty names and child list (blocks of 10),
+    // the vtable, then CreateBone's reset. Returns this.
+    FigureBone* Construct();
+    // 0050B370 (slot 2, EAX 1). Reset: names "", no parent, the child list emptied (its blocks
+    // freed), mesh, pose, animator and +0x54 / +0x58 forgotten, the default position and rotation
+    // (007AF110 / 007AF100, the animation tracks' defaults), no matrices (the block kept), morph 0.
+    int CreateBone();
+    // 0050B510 (slot 3). Releases the mesh (forgotten first), the animator, +0x54 and +0x58 (the
+    // pose is only forgotten), then CreateBone's reset.
+    void DestroyBone();
+    // 0050B1D0. The destructor body: the vtable, DestroyBone, the matrices' block freed, the list's
+    // and the names' destructors, the engine object's.
+    void DestructBody();
+    // 0050B1B0 (slot 0, RET 4). DestructBody, then operator delete with flags bit 0. Returns this.
+    FigureBone* DeleteBone(unsigned flags);
 
     // 0050C230 (RET 4; figure_bones.cpp, A-U9). Places this bone and, recursively, its children: a
     // child turns its offset by the parent's rotation ((w^2 - u.u) o + 2w (u x o) + 2 (u.o) u, the
@@ -217,6 +239,8 @@ struct FigureBone : CEngineObject {
 static_assert(offsetof(FigureBone, parent) == 0x28 && offsetof(FigureBone, children) == 0x2C);
 static_assert(offsetof(FigureBone, mesh) == 0x48 && offsetof(FigureBone, offset) == 0x5C);
 static_assert(offsetof(FigureBone, position) == 0x74 && offsetof(FigureBone, rotation) == 0x80);
+static_assert(offsetof(FigureBone, counted54) == 0x54 && offsetof(FigureBone, matrices) == 0x90);
+static_assert(sizeof(FigureBone) == 0xA0);
 
 // The figure's animation state (CObject3D + 0x98; 0050D0E0 adds a part, 0050D350 removes one,
 // 0050D3A0 lets go of every part, 0050D7C0 rescales).
