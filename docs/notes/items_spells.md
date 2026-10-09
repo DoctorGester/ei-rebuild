@@ -357,36 +357,14 @@ material is loaded with a null record.
 
 ## What is left in 0x00640000-0x006C0000
 
-Classification: functions.csv kind game, minus library.csv, dead_code.csv and EI_REPLACE. Library additions from this range:
-90 twins of existing entries (STLport copy / fill / list / hashtable helpers, aligned buffer and counted pointer destructors),
-25 quest database container instantiations (006AF4D0..006B3E60), 25 for the item database's record vectors, the portrait slot
+Classification: functions.csv kind game, minus library.csv, dead_code.csv and EI_REPLACE (`python tools/progress.py` for the
+numbers; the per-group byte table of the A-H13 sweep went stale and was dropped). Library additions from this range: 90 twins
+of existing entries (STLport copy / fill / list / hashtable helpers, aligned buffer and counted pointer destructors), 25 quest
+database container instantiations (006AF4D0..006B3E60), 25 for the item database's record vectors, the portrait slot
 vector's four, 32 for the spell database (00684D60..00688470); 0069EF50 / 0069E3F0 (`vector<T*>` range insert / insert);
 006B4000-006C0000 reviewed in A-H13 (sound.md). Game code that stays: the item kinds' operator= (006A8FB0 ...) and serialisers
-from 006A7940 below 006A7C20, the spell serialisers. Remaining by group (R = bytes of Rebirth-patched functions; sizes as of the A-H13
-sweep, 756 functions, 147.4 KB, many since rewritten; 00646C25 is a tail of 006462A0 that Ghidra splits off):
-
-| Range | Group | Functions | Bytes | R bytes | Largest then |
-|---|---|---|---|---|---|
-| 640000-64B000 | HUD battle screen panels | 17 | 15190 | 13275 | 00641F20, 006462A0, 006456E0, 00646C25 |
-| 64B000-64EA80 | HUD helpers, objectives window | 21 | 3216 | 0 | 0064E330, 0064BB50, 0064B9B0, 0064E5A0 |
-| 64EA80-651000 | quest log, map text | 17 | 5132 | 0 | 0064EA80, 0064F650, 0064FEA0, 006500B0 |
-| 651000-653000 | options and keyboard screens | 14 | 6576 | 0 | 00651940, 00651350, 00651600, 00652200 |
-| 653000-65A000 | save / load screen, tutorial | 50 | 18772 | 5945 | 00659420, 006567A0, 006570E0, 00658E10 |
-| 65A000-65F000 | widgets, DirectInput mouse, rich edit | 75 | 13135 | 1494 | 0065B8B0, 0065D150, 0065E580, 0065C2E0 |
-| 65F000-664B00 | party, party records | 48 | 5742 | 0 | 006625B0, 00662AC0, 006641D0, 0065F2D0 |
-| 664B00-666000 | players | 26 | 4446 | 0 | 00664E20, 00664BF0, 00665200, 00665640 |
-| 666000-672000 | client / server player messages | 93 | 14526 | 76 | 0066F4C0, 00670310, 00667230, 0066C9A0 |
-| 672000-67E000 | world effects | 44 | 2360 | 0 | 006776E0, 00677510, 0067B050, 00675560 |
-| 67E000-684000 | spell effects | 13 | 2521 | 0 | 00683B80, 0067E7D0, 00683D40, 0067E960 |
-| 684000-68D000 | spell database, spell manager | 59 | 8505 | 1174 | 00684550, 00684390, 00688990, 00688B40 |
-| 68D000-68F6C0 | lights, materials | 34 | 4977 | 681 | 0068E640, 0068D5A0, 0068DE30, 0068D310 |
-| 68F6C0-693C60 | texture manager (renderer) | 36 | 5996 | 298 | 00690B30, 0068FA10, 00690260, 00690970 |
-| 693C60-699000 | registry, ini | 11 | 860 | 0 | 00694300, 00694020, 00693F60, 00693F10 |
-| 699000-69F000 | trader stock | 28 | 3859 | 0 | 0069BAC0, 0069EF50, 0069C1C0, 0069D6B0 |
-| 69F000-6A6000 | items | 33 | 2419 | 0 | 0069FB60, 006A0AA0, 0069F700, 0069F620 |
-| 6A6000-6AE000 | item database | 50 | 10965 | 1141 | 006A67A0, 006AD900, 006A6E50, 006A6570 |
-| 6AE000-6B4000 | quest database | 17 | 3235 | 923 | 006AE3A0, 006AE740, 006AE220, 006AE0F0 |
-| 6B4000-6C0000 | sound (Miles), misc | 70 | 15007 | 1442 | 006BB3A0, 006B6D80, 006BFC80, 006B7D10 |
+from 006A7940 below 006A7C20, the spell serialisers. 00646C25 is a tail of 006462A0 that Ghidra splits off. Most of what is
+left in 00640000-00660000 is Rebirth-patched (ui.md section 7 lists them).
 
 **Next candidates** (A-H18 did sound Open / Close / Reset, the terrain sectors, the item database destructor and the item
 vector serialisers): 0064F550 (a quest's order, inlined into the quest list sort's comparison), 0066F890 (server login,
