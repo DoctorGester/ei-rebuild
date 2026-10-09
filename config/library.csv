@@ -3227,7 +3227,19 @@ address,name,library,signature,notes
 00657F10,"stlp::__final_insertion_sort<SaveEntry*>",STLport,,"A-H14 review of the save screen 00653000-00658000: template instantiation of the list sort"
 00657F90,"stlp::__median<SaveEntry> (the introsort pivot)",STLport,,"A-H14 review of the save screen 00653000-00658000: template instantiation; median of three with the comparison 00658020"
 00658020,"the list sort's comparison object (saved time < value)",compiler,,"A-H14 review of the save screen 00653000-00658000: one compare of SaveEntry +0x08; the sort predicate"
+00658030,"stlp::__unguarded_partition<SaveEntry*>",STLport,,"A-H16 review: the save list sort's remaining instantiations (SaveEntry 0x44 bytes, comparison 00658020)"
+00658200,"stlp::uninitialized_copy<SaveEntry*>",STLport,,"A-H16 review: the save list sort's remaining instantiations (SaveEntry 0x44 bytes, comparison 00658020)"
+00658370,"stlp::uninitialized_fill_n<SaveEntry*>",STLport,,"A-H16 review: the save list sort's remaining instantiations (SaveEntry 0x44 bytes, comparison 00658020)"
+006584E0,"stlp::__linear_insert<SaveEntry*>",STLport,,"A-H16 review: the save list sort's remaining instantiations (SaveEntry 0x44 bytes, comparison 00658020)"
+006586A0,"stlp::__unguarded_insertion_sort<SaveEntry*>",STLport,,"A-H16 review: the save list sort's remaining instantiations (SaveEntry 0x44 bytes, comparison 00658020)"
+006586E0,"stlp::__unguarded_linear_insert<SaveEntry*>",STLport,,"A-H16 review: the save list sort's remaining instantiations (SaveEntry 0x44 bytes, comparison 00658020)"
+00658850,"stlp::make_heap<SaveEntry*>",STLport,,"A-H16 review: the save list sort's remaining instantiations (SaveEntry 0x44 bytes, comparison 00658020)"
+006588C0,"stlp::__adjust_heap<SaveEntry*>",STLport,,"A-H16 review: the save list sort's remaining instantiations (SaveEntry 0x44 bytes, comparison 00658020)"
+00658AB0,"stlp::__push_heap<SaveEntry*>",STLport,,"A-H16 review: the save list sort's remaining instantiations (SaveEntry 0x44 bytes, comparison 00658020)"
+00658C60,"stlp::__pop_heap_aux<SaveEntry*>",STLport,,"A-H16 review: the save list sort's remaining instantiations (SaveEntry 0x44 bytes, comparison 00658020)"
+00658C90,"stlp::__pop_heap<SaveEntry*>",STLport,,"A-H16 review: the save list sort's remaining instantiations (SaveEntry 0x44 bytes, comparison 00658020)"
 0065A500,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 5 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
+0065A770,"stlp::map<CString,int>::operator[] (the interface's help topics)",STLport,,"A-H16 review: lower_bound 005FAF30, _mbscmp, insert with a hint 005F9810 (RET 4, the value's address)"
 0065A840,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),A-H11 sweep: same instructions as 00411530 (data addresses masked; every call goes to the same callee or to library code)
 0065A850,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),A-H11 sweep: same instructions as 00411530 (data addresses masked; every call goes to the same callee or to library code)
 0065A8E0,stlp::list<T>::insert,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
