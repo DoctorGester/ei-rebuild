@@ -42,6 +42,16 @@ td.r, th.r { text-align: right }
 .chart p { font-size: 12px; color: var(--muted); margin: 0 0 6px }
 svg { width: 100%; height: auto; display: block }
 svg text { fill: var(--muted); font-family: var(--mono); font-size: 10px }
+.plot { position: relative; touch-action: none; user-select: none; cursor: crosshair }
+.plot svg { overflow: visible }
+.tip { position: absolute; pointer-events: none; background: var(--panel); border: 1px solid var(--line); border-radius: 4px;
+  padding: 6px 8px; font-size: 11px; line-height: 1.4; box-shadow: 0 2px 8px rgb(0 0 0 / .12); max-width: 260px; z-index: 5 }
+.tip .t { color: var(--muted); font-family: var(--mono) }
+.tip .row { display: flex; gap: 6px; align-items: baseline }
+.tip .row i { width: 8px; height: 8px; border-radius: 2px; background: var(--c); flex: none }
+.tip .row b { margin-left: auto; padding-left: 8px; font-family: var(--mono); font-weight: 500 }
+.zoombar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-size: 12px; color: var(--muted); margin: -4px 0 10px }
+.zoombar button { font: inherit; color: var(--ink); background: var(--track); border: 1px solid var(--line); border-radius: 4px; padding: 2px 10px; cursor: pointer }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted) }
 .legend span::before { content: ""; display: inline-block; width: 10px; height: 3px; margin-right: 6px; vertical-align: middle; background: var(--c) }
 footer { color: var(--muted); font-size: 12px }
@@ -68,6 +78,7 @@ footer { color: var(--muted); font-size: 12px }
   </section>
   <section>
     <h2>Over time</h2>
+    <div class="zoombar"><span id="zoomtext"></span><button id="zoomreset" hidden>Show all</button></div>
     <div class="charts" id="charts"></div>
   </section>
   <footer>Numbers come from <span class="mono">tools/dashboard_data.py</span>, which reads every sampled commit on main. Drop a <span class="mono">data.json</span> from it on this page to show that file instead. <span id="error"></span></footer>
@@ -83,34 +94,138 @@ function stat(label, value, note, lead) {
   return `<div class="stat${lead ? ' lead' : ''}"><span class="label">${label}</span><span class="value">${value}</span><span class="note">${note}</span></div>`;
 }
 
+// Interactive line charts (own SVG code, no library): hover shows every series' value at the nearest
+// commit; dragging across any chart zooms all charts to that period; double-click or "Show all" resets.
+const view = { x0: null, x1: null };   // shared zoom range (ms), null = everything
+const charts = [];                      // { el, points, series, opts } for redraws
+const W = 520, H = 200, L = 52, R = 12, T = 10, B = 26;
+
 function lineChart(points, series, opts) {
-  const W = 520, H = 200, L = 52, R = 12, T = 10, B = 26;
-  const xs = points.map(p => new Date(p.date).getTime());
-  const x0 = Math.min(...xs), x1 = Math.max(...xs);
-  let ymax = 0; series.forEach(s => points.forEach(p => { const v = s.get(p); if (v != null) ymax = Math.max(ymax, v); }));
-  if (opts.max) ymax = opts.max;
-  const step = niceStep(ymax / 4); ymax = Math.ceil(ymax / step) * step || 1;
-  const X = t => L + (W - L - R) * (x1 === x0 ? 0 : (t - x0) / (x1 - x0));
-  const Y = v => T + (H - T - B) * (1 - v / ymax);
-  let g = '';
-  for (let v = 0; v <= ymax + 1e-9; v += step) {
-    g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="${css('--line')}" stroke-width="1"/>`;
-    g += `<text x="${L - 6}" y="${Y(v) + 3}" text-anchor="end">${opts.unit === '%' ? v + '%' : fmtShort(v)}</text>`;
+  const el = document.createElement('div');
+  el.className = 'chart';
+  el.innerHTML = `<h3>${opts.title}</h3><p>${opts.note}</p><div class="plot"></div>` +
+    (series.length > 1 ? `<div class="legend">${series.map(s => `<span style="--c:${s.color}">${s.name}</span>`).join('')}</div>` : '');
+  const chart = { el, points, series, opts };
+  charts.push(chart);
+  drawChart(chart);
+  attachEvents(chart);
+  return el;
+}
+
+function visiblePoints(points) {
+  const all = points.map(p => ({ p, t: new Date(p.date).getTime() }));
+  if (view.x0 == null) return all;
+  const inside = all.filter(q => q.t >= view.x0 && q.t <= view.x1);
+  return inside.length >= 2 ? inside : all;
+}
+
+function drawChart(chart) {
+  const { el, points, series, opts } = chart;
+  const vis = visiblePoints(points);
+  const x0 = vis[0].t, x1 = vis[vis.length - 1].t;
+  let ymax = 0, ymin = Infinity;
+  series.forEach(s => vis.forEach(q => { const v = s.get(q.p); if (v != null) { ymax = Math.max(ymax, v); ymin = Math.min(ymin, v); } }));
+  if (opts.max && view.x0 == null) ymax = opts.max;
+  let lo = 0;
+  if (view.x0 != null && isFinite(ymin)) {   // zoomed in: fit the visible values
+    const spread = Math.max(ymax - ymin, ymax * 0.02, 1e-6);
+    lo = Math.max(0, ymin - spread * 0.1); ymax = ymax + spread * 0.1;
   }
-  const days = []; const d0 = new Date(x0); d0.setHours(0,0,0,0);
-  for (let d = d0.getTime() + 864e5; d <= x1; d += 864e5) days.push(d);
-  days.forEach(d => { g += `<text x="${X(d)}" y="${H - 8}" text-anchor="middle">${new Date(d).toISOString().slice(5,10)}</text>`; });
+  const step = niceStep((ymax - lo) / 4);
+  lo = Math.floor(lo / step) * step; ymax = Math.ceil(ymax / step) * step || 1;
+  const X = t => L + (W - L - R) * (x1 === x0 ? 0 : (t - x0) / (x1 - x0));
+  const Y = v => T + (H - T - B) * (1 - (v - lo) / (ymax - lo || 1));
+  Object.assign(chart, { vis, X, Y, x0, x1 });
+  let g = '';
+  for (let v = lo; v <= ymax + 1e-9; v += step) {
+    g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="${css('--line')}" stroke-width="1"/>`;
+    g += `<text x="${L - 6}" y="${Y(v) + 3}" text-anchor="end">${opts.unit === '%' ? +v.toFixed(2) + '%' : fmtShort(v)}</text>`;
+  }
+  const span = x1 - x0, dayMs = 864e5;
+  const tickEvery = span > 20 * dayMs ? 7 * dayMs : span > 3 * dayMs ? dayMs : span > dayMs / 2 ? dayMs / 4 : dayMs / 24;
+  for (let d = Math.ceil(x0 / tickEvery) * tickEvery; d <= x1; d += tickEvery) {
+    const label = tickEvery >= dayMs ? new Date(d).toISOString().slice(5, 10) : new Date(d).toISOString().slice(11, 16);
+    g += `<text x="${X(d)}" y="${H - 8}" text-anchor="middle">${label}</text>`;
+  }
   series.forEach(s => {
-    const pts = points.map((p, i) => [X(xs[i]), s.get(p)]).filter(q => q[1] != null).map(q => [q[0], Y(q[1])]);
+    const pts = vis.map(q => [X(q.t), s.get(q.p)]).filter(q => q[1] != null).map(q => [q[0], Y(q[1])]);
     if (!pts.length) return;
     const d = pts.map((q, i) => (i ? 'L' : 'M') + q[0].toFixed(1) + ' ' + q[1].toFixed(1)).join(' ');
-    if (s.area) g += `<path d="${d} L${pts[pts.length-1][0]} ${Y(0)} L${pts[0][0]} ${Y(0)} Z" fill="${s.color}" fill-opacity="0.12" stroke="none"/>`;
+    if (s.area) g += `<path d="${d} L${pts[pts.length - 1][0]} ${Y(lo)} L${pts[0][0]} ${Y(lo)} Z" fill="${s.color}" fill-opacity="0.12" stroke="none"/>`;
     g += `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="2"/>`;
-    const e = pts[pts.length - 1]; g += `<circle cx="${e[0]}" cy="${e[1]}" r="3" fill="${s.color}"/>`;
   });
-  const legend = series.length > 1 ? `<div class="legend">${series.map(s => `<span style="--c:${s.color}">${s.name}</span>`).join('')}</div>` : '';
-  return `<div class="chart"><h3>${opts.title}</h3><p>${opts.note}</p><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opts.title}">${g}</svg>${legend}</div>`;
+  g += `<g class="hover"></g><rect class="sel" y="${T}" height="${H - T - B}" fill="${css('--accent')}" fill-opacity="0.12" width="0"/>`;
+  const plot = el.querySelector('.plot');
+  const tip = plot.querySelector('.tip');
+  plot.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${opts.title}">${g}</svg>`;
+  if (tip) { tip.hidden = true; plot.appendChild(tip); }
 }
+
+function svgX(chart, ev) {   // pointer x in viewBox units
+  const r = chart.el.querySelector('svg').getBoundingClientRect();
+  return (ev.clientX - r.left) * W / r.width;
+}
+function nearest(chart, x) {
+  let best = null, dist = Infinity;
+  chart.vis.forEach(q => { const d = Math.abs(chart.X(q.t) - x); if (d < dist) { dist = d; best = q; } });
+  return best;
+}
+
+function attachEvents(chart) {
+  const plot = chart.el.querySelector('.plot');
+  const tip = document.createElement('div'); tip.className = 'tip'; tip.hidden = true; plot.appendChild(tip);
+  let dragFrom = null;
+  plot.addEventListener('pointerdown', ev => { dragFrom = svgX(chart, ev); plot.setPointerCapture(ev.pointerId); });
+  plot.addEventListener('pointermove', ev => {
+    const x = svgX(chart, ev);
+    if (dragFrom != null) {
+      const sel = plot.querySelector('.sel');
+      const a = Math.max(L, Math.min(dragFrom, x)), b = Math.min(W - R, Math.max(dragFrom, x));
+      sel.setAttribute('x', a); sel.setAttribute('width', Math.max(0, b - a));
+    }
+    const q = nearest(chart, x);
+    if (!q) return;
+    const hx = chart.X(q.t);
+    let marks = `<line x1="${hx}" x2="${hx}" y1="${T}" y2="${H - B}" stroke="${css('--muted')}" stroke-dasharray="3 3"/>`;
+    const rows = chart.series.map(s => {
+      const v = s.get(q.p);
+      if (v == null) return '';
+      marks += `<circle cx="${hx}" cy="${chart.Y(v)}" r="3.5" fill="${s.color}" stroke="${css('--panel')}" stroke-width="1.5"/>`;
+      const shown = chart.opts.unit === '%' ? v.toFixed(2) + '%' : fmt(Math.round(v));
+      return `<div class="row" style="--c:${s.color}"><i></i><span>${s.name}</span><b>${shown}</b></div>`;
+    }).join('');
+    plot.querySelector('.hover').innerHTML = marks;
+    const when = new Date(q.t).toISOString().slice(0, 16).replace('T', ' ');
+    tip.innerHTML = `<div class="t">${when} &middot; ${q.p.commit}</div>${q.p.subject ? `<div>${escapeHtml(q.p.subject)}</div>` : ''}${rows}`;
+    tip.hidden = false;
+    const pr = plot.getBoundingClientRect(), px = (hx / W) * pr.width;
+    tip.style.left = (px > pr.width / 2 ? px - tip.offsetWidth - 12 : px + 12) + 'px';
+    tip.style.top = '0px';
+  });
+  plot.addEventListener('pointerleave', () => { tip.hidden = true; const hv = plot.querySelector('.hover'); if (hv) hv.innerHTML = ''; });
+  plot.addEventListener('pointerup', ev => {
+    if (dragFrom == null) return;
+    const x = svgX(chart, ev), a = Math.min(dragFrom, x), b = Math.max(dragFrom, x);
+    dragFrom = null;
+    plot.querySelector('.sel').setAttribute('width', 0);
+    if (b - a < 6) return;   // a click, not a drag
+    const toT = px => chart.x0 + (chart.x1 - chart.x0) * (px - L) / (W - L - R);
+    setZoom(toT(Math.max(L, a)), toT(Math.min(W - R, b)));
+  });
+  plot.addEventListener('dblclick', () => setZoom(null, null));
+}
+
+function setZoom(x0, x1) {
+  view.x0 = x0; view.x1 = x1;
+  charts.forEach(drawChart);
+  const zoomed = x0 != null;
+  document.getElementById('zoomreset').hidden = !zoomed;
+  document.getElementById('zoomtext').textContent = zoomed
+    ? 'Showing ' + new Date(x0).toISOString().slice(0, 16).replace('T', ' ') + ' to ' + new Date(x1).toISOString().slice(0, 16).replace('T', ' ') + ' UTC.'
+    : 'Hover for values. Drag across a chart to zoom in on a period; double-click to zoom out.';
+}
+function escapeHtml(s) { return s.replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]); }
+
 function niceStep(raw) { if (raw <= 0) return 1; const m = Math.pow(10, Math.floor(Math.log10(raw))); const f = raw / m; return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10) * m; }
 function fmtShort(v) { return v >= 1e6 ? (v / 1e6).toFixed(1) + 'M' : v >= 1e3 ? Math.round(v / 1e3) + 'k' : String(Math.round(v)); }
 
@@ -151,36 +266,41 @@ function render(data) {
   }).join('');
   const accent = css('--accent'), good = css('--good'), muted = css('--muted');
   const areaColors = ['#b5652a', '#3d7a52', '#4a6fa5', '#8a5aa0', '#a5793a', '#3a8a8a', '#a54a5a', '#6a7a3a', '#7a7a7a'];
-  document.getElementById('charts').innerHTML =
+  charts.length = 0; view.x0 = view.x1 = null;
+  const box = document.getElementById('charts'); box.innerHTML = '';
+  [
     lineChart(h, [{ name: 'Ported', color: accent, area: true, get: p => pct(p.ported_bytes, p.bytes) }],
-      { title: 'Game code ported', note: 'Share of game code bytes with a rewrite hooked in.', unit: '%', max: 100 }) +
+      { title: 'Game code ported', note: 'Share of game code bytes with a rewrite hooked in.', unit: '%', max: 100 }),
     lineChart(h, c.areas.map((a, i) => ({ name: a.name, color: areaColors[i % areaColors.length],
       get: p => { const x = (p.areas || []).find(q => q.range === a.range); return x ? pct(x.ported_bytes, x.bytes) : null; } })),
-      { title: 'Ported by area', note: 'Share of each address range.', unit: '%', max: 100 }) +
+      { title: 'Ported by area', note: 'Share of each address range.', unit: '%', max: 100 }),
     lineChart(h, [{ name: 'src/game', color: accent, get: p => p.loc['src/game'] },
                   { name: 'tests/verify', color: good, get: p => p.loc['tests/verify'] },
                   { name: 'src/render', color: '#4a6fa5', get: p => p.loc['src/render'] }],
-      { title: 'Lines of code', note: 'Line counts of the main source trees.' }) +
+      { title: 'Lines of code', note: 'Line counts of the main source trees.' }),
     lineChart(h, [{ name: 'Offset accesses (At<>/Field<>)', color: '#4a6fa5', get: p => p.cleanup.offset_access },
                   { name: 'Raw game addresses', color: accent, get: p => p.cleanup.raw_addresses },
                   { name: 'VCall slot calls', color: good, get: p => p.cleanup.vcall },
                   { name: 'Byte-offset arithmetic', color: muted, get: p => p.cleanup.byte_arithmetic }],
-      { title: 'Cleanup: member access', note: 'Offsets, slot numbers and literal addresses instead of named members, virtuals and globals. Lower is better.' }) +
+      { title: 'Cleanup: member access', note: 'Offsets, slot numbers and literal addresses instead of named members, virtuals and globals. Lower is better.' }),
     lineChart(h, [{ name: 'Forwarder sites', color: accent, get: p => p.cleanup.forwarder_sites },
                   { name: 'Duplicated forwarders', color: good, get: p => p.cleanup.forwarded_from_several_files }],
-      { title: 'Cleanup: forwarders', note: 'Calls into original code; they go as the port completes.' }) +
+      { title: 'Cleanup: forwarders', note: 'Calls into original code; they go as the port completes.' }),
     lineChart(h, [{ name: 'Hand-written vector maths', color: '#8a5aa0', get: p => p.cleanup.vector_maths },
                   { name: 'Placeholder virtuals', color: accent, get: p => p.cleanup.slot_placeholders },
                   { name: 'Per-file containers (all kinds)', color: good, get: p => p.cleanup.container_structs == null && p.cleanup.vector_map_set_structs == null ? null : (p.cleanup.container_structs || 0) + (p.cleanup.vector_map_set_structs || 0) },
                   { name: '*At view structs', color: muted, get: p => p.cleanup.at_views }],
-      { title: 'Cleanup: types', note: 'Vector maths outside vecmath.h, unnamed virtuals and per-file container layouts.' }) +
+      { title: 'Cleanup: types', note: 'Vector maths outside vecmath.h, unnamed virtuals and per-file container layouts.' }),
     lineChart(h, [{ name: '__asm blocks', color: muted, get: p => p.cleanup.asm_blocks },
                   { name: 'float_control pragmas', color: good, get: p => p.cleanup.float_control }],
-      { title: 'Cleanup: x87', note: 'Inline assembly and precision pragmas, mostly kept for bit-exact x87 maths until the standalone build.' }) +
+      { title: 'Cleanup: x87', note: 'Inline assembly and precision pragmas, mostly kept for bit-exact x87 maths until the standalone build.' }),
     lineChart(h, [{ name: 'Verify wrappers', color: good, get: p => p.cleanup.verify_wrappers },
                   { name: 'Scenarios × 10', color: accent, get: p => (p.cleanup.scenarios || 0) * 10 }],
-      { title: 'Test coverage', note: 'Checks comparing rewrites with the original, and in-game scenarios.' });
+      { title: 'Test coverage', note: 'Checks comparing rewrites with the original, and in-game scenarios.' })
+  ].forEach(el => box.appendChild(el));
+  setZoom(null, null);
 }
+document.getElementById('zoomreset').addEventListener('click', () => setZoom(null, null));
 
 function showError(message) { document.getElementById('error').textContent = message; }
 

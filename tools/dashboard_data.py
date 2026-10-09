@@ -9,10 +9,10 @@ commit's own files:
     VCall uses, __asm blocks, float_control pragmas, verify wrappers, scenarios.
 
 usage: python tools/dashboard_data.py [--every N] [--out build/dashboard/data.json] [--no-cache]
-Reads history through `git cat-file --batch`; nothing is checked out. Each commit's numbers are cached
-by commit hash in build/dashboard/cache.json, so a rerun only measures new commits and the working
-tree. The cache is dropped when this script or tools/check_cleanup.py changes (their hash is stored
-with it), since then the numbers would be measured differently.
+Reads history through `git cat-file --batch`; nothing is checked out. A rerun takes the numbers of
+commits it already measured from the previous data.json (history points carry their full commit hash),
+so only new commits and the working tree are measured. The old file is not reused when this script or
+tools/check_cleanup.py changed since it was written (their hash is stored in it as `version`).
 """
 import argparse, csv, hashlib, io, json, os, re, subprocess, sys
 from collections import defaultdict
@@ -194,7 +194,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--every', type=int, default=8, help='sample every Nth first-parent commit')
     ap.add_argument('--out', default=os.path.join(ROOT, 'build', 'dashboard', 'data.json'))
-    ap.add_argument('--no-cache', action='store_true', help='measure every sampled commit again')
+    ap.add_argument('--no-cache', action='store_true', help='measure every sampled commit again instead of reusing the previous data.json')
     args = ap.parse_args()
     log = subprocess.run(['git', 'log', '--first-parent', '--reverse', '--format=%H %cI %s', 'main'], cwd=ROOT,
                          capture_output=True, text=True).stdout.strip().split('\n')
@@ -203,37 +203,39 @@ def main():
     if sample[-1] != commits[-1]:
         sample.append(commits[-1])
     batch = Batch()
-    cache_path = os.path.join(os.path.dirname(args.out), 'cache.json')
     version = metrics_version()
-    cache = {}
-    if not args.no_cache and os.path.exists(cache_path):
+    known, skipped = {}, set()
+    if not args.no_cache and os.path.exists(args.out):
         try:
-            saved = json.load(open(cache_path))
-            if saved.get('version') == version:
-                cache = saved.get('commits', {})
+            previous = json.load(open(args.out))
+            if previous.get('version') == version:
+                known = {p['sha']: p for p in previous.get('history', []) if 'sha' in p}
+                skipped = set(previous.get('skipped', []))
         except (OSError, ValueError):
             pass
-    history, measured = [], 0
+    history, measured, unmeasured = [], 0, []
     for sha, when, subject in sample:
-        if sha in cache:
-            m = cache[sha]
+        if sha in known:
+            m = known[sha]
+        elif sha in skipped:
+            m = None
         else:
             m = measure(Tree(sha, batch))
-            cache[sha] = m   # None too: a commit without the inputs stays skipped
             measured += 1
             if m:
                 print(f'{sha[:7]} {when[:16]} {100 * m["ported_bytes"] / m["bytes"]:.1f}%', file=sys.stderr)
         if m:
-            m = dict(m, commit=sha[:7], date=when, subject=subject[:80])
+            m = dict(m, sha=sha, commit=sha[:7], date=when, subject=subject[:80])
             history.append(m)
-    os.makedirs(os.path.dirname(args.out), exist_ok=True)
-    json.dump({'version': version, 'commits': cache}, open(cache_path, 'w'))
-    print(f'{measured} commits measured, {len(sample) - measured} from the cache', file=sys.stderr)
+        else:
+            unmeasured.append(sha)   # a commit without the inputs (early history): not measured again
+    print(f'{measured} commits measured, {len(sample) - measured} reused from {os.path.basename(args.out)}', file=sys.stderr)
     current = measure(Tree(None, batch))
     current.update(commit='working tree', date=subprocess.run(['git', 'log', '-1', '--format=%cI'], cwd=ROOT,
                    capture_output=True, text=True).stdout.strip(), subject='')
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
-    json.dump({'current': current, 'history': history}, open(args.out, 'w'), indent=1)
+    json.dump({'version': version, 'current': current, 'history': history, 'skipped': unmeasured},
+              open(args.out, 'w'), indent=1)
     print(f'wrote {args.out}: {len(history)} history points', file=sys.stderr)
 
 
