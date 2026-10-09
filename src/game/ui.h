@@ -2373,6 +2373,11 @@ public:
     // 005E28E0 (ui_window_delete.cpp). The destructor body: the typed line, every chat line
     // (destroyed, node freed), the list's sentinel, then the window's.
     void DestroyBody();
+    // 005E26F0 (RET 4; ui_chat_overlay.cpp). Constructor: the window base, an empty line list
+    // (its sentinel from the node pool), an empty typed line, the vtables 007400DC / 007400A8, the
+    // typed line's surface over (10, 573)-(790, 590) (format 4), closed, the caret at 0, then the
+    // typed line drawn (005E3700, Rebirth-patched). Returns this.
+    CChatOverlay* Construct(CInterface3D* ui);
     // 005E2990 (slot 24). Lines older than 20 s (timeGetTime) are erased.
     void Update();
     // 005E29E0 (slot 22). Each line's surface placed at (10, 10 + 16 * row) and blitted, then the
@@ -2383,8 +2388,10 @@ public:
     bool chatOpen_;                  // +0x14C a multiplayer client's chat line is open (it takes the keys)
     std::uint8_t unknown_14D[3];
     mfc::CString typed_;             // +0x150
+    int caret_;                      // +0x154 in the typed line (characters)
 };
 static_assert(offsetof(CChatOverlay, lines_) == 0x148);
+static_assert(offsetof(CChatOverlay, caret_) == 0x154);
 static_assert(offsetof(CChatOverlay, typed_) == 0x150);
 
 // The new game's difficulty question (vtables 0074225C / 00742228, 0x184 bytes; the main menu's

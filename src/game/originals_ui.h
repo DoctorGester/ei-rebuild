@@ -513,3 +513,12 @@ __declspec(naked) inline void __fastcall FigureUploadQuadsOriginal(void* /*figur
 // 005E2A30 (thiscall on the chat overlay, CInterface3D +0x1C; RET 8): a chat line (`text` from player `number`) added.
 __declspec(naked) inline void __fastcall ChatOverlayAddLineOriginal(void* /*chat*/, void*, const char* /*text*/,
                                                                    std::uint32_t /*number*/) EI_ORIGINAL(0x005E2A30)
+// The console window (console::ConsoleWindow, thiscall; rewritten in console_window.cpp / ui_console_window.cpp, called
+// through their address so the wrappers run): 005E3E90 SetRect(rect) (RET 4), 005E4800 DrawLines (plain RET).
+__declspec(naked) inline void __fastcall ConsoleSetRectOriginal(void* /*console*/, void*, const int* /*rect*/)
+    EI_ORIGINAL(0x005E3E90)
+__declspec(naked) inline void __fastcall ConsoleDrawLinesOriginal(void* /*console*/) EI_ORIGINAL(0x005E4800)
+// 005E3700 (thiscall on the chat overlay, plain RET; Rebirth-patched): the typed line drawn on its surface (hidden while
+// the chat is closed), the caret clamped to it.
+__declspec(naked) inline void __fastcall ChatOverlayDrawTypedOriginal(void* /*chat*/) EI_ORIGINAL(0x005E3700)
+

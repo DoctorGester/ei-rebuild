@@ -36,3 +36,16 @@ static void __fastcall ChatRedrawVerify(CChatOverlay* self) {
     ei::verify::Check("CChatOverlay::Redraw", before, LineCount(self), "%d");
 }
 EI_VERIFY(0x005E29E0, ChatRedrawVerify, 0, s_unused);
+
+// 005E26F0: ours only (it allocates): the overlay's vtables, no lines, an empty typed line, closed,
+// the caret at 0 and the typed line's surface. Every scenario (CInterface3D::Create).
+static CChatOverlay* __fastcall ChatConstructVerify(CChatOverlay* self, void*, CInterface3D* ui) {
+    CChatOverlay* result = self->Construct(ui);
+    bool ok = result == self && self->vtable_ == reinterpret_cast<void**>(0x007400DC) &&
+              self->inputVtable_ == reinterpret_cast<void**>(0x007400A8) && self->interface_ == ui &&
+              self->lines_.Empty() && self->typed_.GetLength() == 0 && !self->chatOpen_ && self->caret_ == 0 &&
+              self->surfaces_.size == 1;
+    ei::verify::Check("CChatOverlay::Construct", true, ok, "surfaces %d lines %d", self->surfaces_.size, LineCount(self));
+    return result;
+}
+EI_VERIFY(0x005E26F0, ChatConstructVerify, 0, s_unused);

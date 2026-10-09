@@ -238,7 +238,11 @@ hero equipment, quick strip, trade / repair grids, constructor pages, the blank 
 a stand-in vtable; scenario ui_camp_deals clicks the trade grid). `ItemModel` 005EBFB0 (`ui_item_model.cpp`; the model
 manager's object or a 100 x 100 stand-in sprite, counted; ours only). `CHeroStatsPanel::DestroyBody` 0060E360 (texts,
 title, window): its deleting destructors 0060E340 / 00613DD0 were registered as the plain window's and leaked both
-(fixed). The root window +0x1C is the `CChatOverlay` (CUiRootWindow folded into it; `chatOpen_` +0x14C).
+(fixed). The root window +0x1C is the `CChatOverlay` (CUiRootWindow folded into it; `chatOpen_` +0x14C, `caret_`
++0x154). Constructors made by CInterface3D::Create (every scenario; ours only, fields): `CChatOverlay::Construct`
+005E26F0 (`ui_chat_overlay.cpp`; ends in the Rebirth-patched 005E3700, the typed line's draw, by address) and
+`console::ConsoleWindow::Construct` 005E3CE0 (`console_window_create.cpp`; SetRect / DrawLines by address; kept: a
+failed font allocation still calls CreatePointFont on null).
 
 Next in 005E0000-00640000 (not Rebirth-patched, single player first): 0062D210 (the exchange's slot 37), 00612CF0
 (the camp's slot 39, a debug fill of the constructors; no scenario). Multiplayer / lobby last: 005E2A30 / 005E3230 / 005E3550 / 005E3CE0 / 005E26F0 (chat), 00608D20-006097E0 (the

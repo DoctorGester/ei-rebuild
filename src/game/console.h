@@ -147,6 +147,12 @@ inline bool& CheatEnabled() { return *reinterpret_cast<bool*>(0x007C7B64); }
 // the surface is redrawn by 005E4800.
 class ConsoleWindow {
 public:
+    // 005E3CE0 (RET 4; console_window_create.cpp; CInterface3D::Create makes it). The members
+    // constructed, `screen` kept, no surface, no command shown (-1), caret, selection, scroll and
+    // the flags cleared; a 9-point "Courier New" font (dropped when it cannot be made); the
+    // rectangle (0, 0)-(800, 150) and a 256-line history (older lines dropped); the lines drawn.
+    // Returns this.
+    ConsoleWindow* Construct(int* screen);
     void SetRect(const int* rect);   // 005E3E90 (800x600 coordinates)
     void SetHistory(int lines);      // 005E3F90
     void AddText(const char* text);  // 005E4090 (continues the last line; '\n' starts a new one)
