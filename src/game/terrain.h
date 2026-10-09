@@ -43,7 +43,8 @@ public:
     std::uint8_t partE8[0x10];      // +0x0E8 (constructor 00570E10)
     const char* textF8;             // +0x0F8 CString
     const char* textFC;             // +0x0FC CString
-    std::uint8_t unknown_100[0x10C - 0x100];
+    void* unknown_100;              // +0x100 CWorldClient::DrawPass draws nothing while it is null
+    std::uint8_t unknown_104[0x10C - 0x104];
     float width;                    // +0x10C last valid vertex column
     float height;                   // +0x110 last valid vertex row
     std::uint8_t unknown_114[0x12C - 0x114];

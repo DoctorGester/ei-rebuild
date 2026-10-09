@@ -30,6 +30,8 @@ class CLinkFigureLoader;   // model.h
 class CTexture;   // texture.h
 class CTextureManager;   // texture.h
 class Terrain;
+class CCamera;   // camera.h
+struct ClientManager19C;
 struct FootprintPart;   // ai_map.h: a figure part's box (FigurePart +0x188)
 class CWorldServer;
 struct Float4;   // chunk_stream.h: four floats passed by value
@@ -205,7 +207,7 @@ public:
     virtual void* MaterialManager();      // 33: the material manager (0051C970 registers part materials)
     virtual CTextureManager* TextureManager();   // 34: the client's 00561990 (+0x18C)
     virtual void ClientLightManager();    // 35: client 005619A0 (+0x190, a CLightManager), server 0
-    virtual void ClientParticleManager(); // 36: client 005619B0 (+0x19C, a CParticleManager), server 0
+    virtual ClientManager19C* ClientParticleManager();   // 36: client 005619B0 (+0x19C, a CParticleManager), server 0
     virtual void ClientManager194();      // 37: client 005619C0 (+0x194), server 0. Not identified
     virtual void ClientManager198();      // 38: client 005619D0 (+0x198), server 0. Not identified
     virtual void Unused39();              // 39: 0055EC40 returns 0 in both
@@ -1111,7 +1113,8 @@ public:
     ClientTexts* texts_;                  // +0x1D0 the text resources (counted)
     PlatformSet platforms_;               // +0x1D4
     std::uint8_t* session_;               // +0x20C local session; its +0x20 is the local view
-    std::uint8_t unknown_210[0x224 - 0x210];
+    CCamera* camera_;                     // +0x210 the view camera (DrawPass, Render)
+    std::uint8_t unknown_214[0x224 - 0x214];
     char* texturePath_;                   // +0x224 CString: <data path>textures\ (Setup)
     std::uint8_t unknown_228[0x22C - 0x228];
     // +0x22C / +0x3AC / +0x52C the light colours by hour (0..23; r, g, b, 1) from the lights table's
@@ -1165,6 +1168,7 @@ static_assert(offsetof(CWorldClient, objectGrid_) == 0x120);
 static_assert(offsetof(CWorldClient, terrain_) == 0x180);
 static_assert(offsetof(CWorldClient, platforms_) == 0x1D4);
 static_assert(offsetof(CWorldClient, session_) == 0x20C);
+static_assert(offsetof(CWorldClient, camera_) == 0x210);
 static_assert(offsetof(CWorldClient, textureManager_) == 0x18C);
 static_assert(offsetof(CWorldClient, numbers_) == 0x1B4);
 static_assert(offsetof(CWorldClient, sunlight_) == 0x22C);
@@ -1409,6 +1413,30 @@ CWorldServer* WorldServer();   // 007AFF60
 // 0079BE5C: the time speed setting (the options' value; a negative speed asks for it).
 inline int TimeSpeedSetting() { return *reinterpret_cast<const int*>(0x0079BE5C); }
 CWorldClient* WorldClient();   // 007AF5B8
+
+// The client's per-frame draw lists (world_client_view.cpp files the visible objects in them,
+// world_client_draw.cpp sorts, draws and empties them): STLport vectors of object pointers, the
+// globals 007AF508 + 0x10 * list, in this order. The deferred unit list follows at 007AF5B4 (an
+// STLport list of counted object pointers; nodes of 12 bytes).
+enum class FrameList {
+    TouchedModels,   // 007AF508 models to keep loaded (by last use)
+    Shadow52,        // 007AF518
+    ShadowUnits,     // 007AF528
+    Shadow5D,        // 007AF538
+    ShadowOther,     // 007AF548
+    Shadow54,        // 007AF558
+    Visible52,       // 007AF568
+    VisibleUnits,    // 007AF578
+    Visible5D,       // 007AF588
+    VisibleOther,    // 007AF598
+    Visible54,       // 007AF5A8
+};
+inline stlp::vector<CEngineObject*>& FrameObjects(FrameList list) {
+    return *reinterpret_cast<stlp::vector<CEngineObject*>*>(std::uintptr_t(0x007AF508) + 0x10u * static_cast<std::uintptr_t>(list));
+}
+inline stlp::list<CEngineObject*>* FrameDeferredUnits() {
+    return reinterpret_cast<stlp::list<CEngineObject*>*>(std::uintptr_t(0x007AF5B4));
+}
 // 007AF63C: the id the next object only the client makes gets (client figures such as a bow
 // shot's arrow); each use counts it down.
 inline int& NextClientObjectId() { return *reinterpret_cast<int*>(0x007AF63C); }

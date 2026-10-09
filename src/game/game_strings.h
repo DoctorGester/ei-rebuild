@@ -14,6 +14,19 @@ inline const char* EmptyText() { return reinterpret_cast<const char*>(kEmptyText
 // 00795D74: "Can't find texture format %d.\n" (the texture manager's FatalError, 00691D80).
 inline const char* CantFindTextureFormatText() { return reinterpret_cast<const char*>(0x00795D74); }
 
+// 0078E6C4: "Can't get surface description" (the window surfaces' FatalDirectX, 005FCC00 / 005FD120).
+inline const char* CantGetSurfaceDescriptionText() { return reinterpret_cast<const char*>(0x0078E6C4); }
+// 0078FB4C: ".mmp" (005FCF80's picture file name).
+inline const char* MmpExtensionText() { return reinterpret_cast<const char*>(0x0078FB4C); }
+
+// The battle screen's (ui_hud.cpp): 007935BC "buttons\battle\on_off.wav" (a portrait's unit
+// clicked), 00794418 "Terrain Coords " and 0078DA40 " " (the console line of a click on the
+// ground), 007900E8 "z." (a zone exit's player variable prefix).
+inline const char* SoundOnOffText() { return reinterpret_cast<const char*>(0x007935BC); }
+inline const char* TerrainCoordsText() { return reinterpret_cast<const char*>(0x00794418); }
+inline const char* SpaceText() { return reinterpret_cast<const char*>(0x0078DA40); }
+inline const char* ZoneVariablePrefixText() { return reinterpret_cast<const char*>(0x007900E8); }
+
 // 007846F0: "none" (a prototype's weapon name that gives no weapon).
 inline const char* NoneText() { return reinterpret_cast<const char*>(0x007846F0); }
 

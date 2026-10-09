@@ -10,6 +10,7 @@
 #include "core_transform.h"
 #include "engine_object.h"
 #include "item_db.h"
+#include "unit.h"   // LockKey
 
 #include "lib/containers.h"
 #include "lib/mfc.h"
@@ -27,6 +28,7 @@ class CUiWindow;
 class CUiRootWindow;
 struct UiInputSide;
 class CUiMesh;
+struct CDXSurface;
 
 // The interface manager (CInterface3D; created by 005F4990, which reads the screen size from the
 // render target). Only the members used by the rewritten code; the object is created by original
@@ -356,23 +358,38 @@ public:
     // Calls 005FD7A0 through its address (the wrapper runs).
     void CallSwapContents(int restore);
 
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00740F28);
+    static constexpr std::uint32_t kFromPicture = 1;   // flags_: made by 005FCF80 from an .mmp picture
+
     void* vtable_;
     CInterface3D* interface_;        // +0x04
     std::uint8_t unknown_08[0x0C - 0x08];
-    std::uint32_t flags_;            // +0x0C
-    void* holder_;                   // +0x10 the DirectDraw surface's holder (null while swapped out)
+    std::uint32_t flags_;            // +0x0C (the constructors store the format here, then set kShown)
+    CDXSurface* holder_;             // +0x10 the DirectDraw surface's holder (null while swapped out)
     int width_;                      // +0x14
     int height_;                     // +0x18
     std::uint8_t* kept_;             // +0x1C the contents kept in memory while swapped out
     std::uint32_t keptSize_;         // +0x20
     RECT rect_;                      // +0x24 screen coordinates
-    std::uint8_t unknown_34[0x38 - 0x34];
+    int unknown_34;                  // +0x34 cleared by the constructors
 };
+static_assert(offsetof(CUiSurface, interface_) == 0x04);
 static_assert(offsetof(CUiSurface, rect_) == 0x24);
 static_assert(offsetof(CUiSurface, flags_) == 0x0C);
 static_assert(offsetof(CUiSurface, holder_) == 0x10);
+static_assert(offsetof(CUiSurface, width_) == 0x14);
+static_assert(offsetof(CUiSurface, height_) == 0x18);
 static_assert(offsetof(CUiSurface, kept_) == 0x1C);
+static_assert(offsetof(CUiSurface, keptSize_) == 0x20);
+static_assert(offsetof(CUiSurface, unknown_34) == 0x34);
 static_assert(sizeof(CUiSurface) == 0x38);
+
+// The memory totals the window surfaces keep (005FD7A0, 005FCC00, 005FD120): the bytes of the
+// contents kept in memory while swapped out (007C7E74) and the surfaces' height * pitch (007C7E78).
+inline std::uint32_t& UiSurfaceKeptBytes() { return *reinterpret_cast<std::uint32_t*>(0x007C7E74); }
+inline std::uint32_t& UiSurfaceBytes() { return *reinterpret_cast<std::uint32_t*>(0x007C7E78); }
+// The game's device lock (007AEE78), held around DirectDraw calls on the game's surfaces.
+inline CRITICAL_SECTION* GameDeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
 
 // The draw pass a window's slot 20 is given: slot 7 sets the colour the 3D draws use (+0x18).
 struct UiDrawPass {
@@ -670,10 +687,15 @@ class CItem;
 class CHudQuickItems;
 class CHudSpellColumn;
 class CHudActionColumn;
+class CHudWeaponBar;
+class CHudPortraits;
 
 // An MFC CDWordArray. Its SetSize is the instantiation's (0059C660, not rewritten; `growBy` -1
 // keeps the step), through UiDwordsSetSize (ui_battle_setup.cpp).
 using UiDwordArray = mfc::CArray<std::uint32_t>;
+// The vtable of the game's CArray<CUnit*> (007402AC; SetSize 005EBDB0, PartyArraySetSizeOriginal):
+// the battle screen's party, the order unit lists built on the stack.
+constexpr std::uintptr_t kUnitPtrArrayVtable = std::uintptr_t(0x007402AC);
 void __fastcall UiDwordsSetSize(UiDwordArray* array, void*, int size, int growBy);
 
 // The interface's renderer (CInterface3D +0x08), only as the HUD uses it.
@@ -740,14 +762,39 @@ public:
     int pendingAction_;              // +0x17C what the next click on the view does (SelectUnit)
     int pendingSlot_;                // +0x180 its spell, quick item or action button, or -1
     int pendingItem_;                // +0x184 the player's item id (mode 6), the action (7, 8), or -1
-    std::uint8_t unknown_188[0x198 - 0x188];
+    // +0x188 / +0x18C: a zone exit OrderAt found under the clicked point (the update asks about
+    // leaving while exitPending_ is set). CBattleScreenSetup (ui_camp.h) calls them savedSelection_
+    // and savedFlag_.
+    int pendingExit_;                // +0x188
+    std::uint8_t exitPending_;       // +0x18C
+    // +0x18D the order modifier keys held (key actions 0x11..0x16; CBattleScreenSetup::orderKeys_).
+    std::uint8_t orderKeys_[6];
+    std::uint8_t unknown_193;
+    CHudWeaponBar* weaponBar_;       // +0x194
     CHudQuickItems* quickItems_;     // +0x198
     CHudSpellColumn* spellColumn_;   // +0x19C
     CHudActionColumn* actionColumn_; // +0x1A0
-    std::uint8_t unknown_1A4[0x22C - 0x1A4];
+    CHudPortraits* portraits_;       // +0x1A4
+    std::uint8_t unknown_1A8[0x220 - 0x1A8];
+    // +0x220 the key a player's item gives (its slot 21) when it starts mode 6; SelectUnit hands
+    // it to the target's AcceptsKey (map object slot 42).
+    LockKey itemUseKey_;
     int portraitMode_;               // +0x22C 0: normal; 1, 2: the next portrait click picks a
                                      //        player for a server command (4, 5)
+
+    // Slot 32 (+0x80; 006366F0, CBattleScreenSetup::OnUnitSpeech, RET 0xC): the unit with `id`
+    // speaks about `event`.
+    void VirtualUnitSpeech(int id, unsigned event, char* extra) {
+        using Fn = void(__thiscall*)(CBattleScreen*, int, unsigned, char*);
+        reinterpret_cast<Fn>(vtable_[32])(this, id, event, extra);
+    }
 };
+static_assert(offsetof(CBattleScreen, pendingExit_) == 0x188);
+static_assert(offsetof(CBattleScreen, exitPending_) == 0x18C);
+static_assert(offsetof(CBattleScreen, orderKeys_) == 0x18D);
+static_assert(offsetof(CBattleScreen, weaponBar_) == 0x194);
+static_assert(offsetof(CBattleScreen, portraits_) == 0x1A4);
+static_assert(offsetof(CBattleScreen, itemUseKey_) == 0x220);
 static_assert(offsetof(CBattleScreen, party_) == 0x16C);
 static_assert(offsetof(CBattleScreen, pendingAction_) == 0x17C);
 static_assert(offsetof(CBattleScreen, pendingItem_) == 0x184);

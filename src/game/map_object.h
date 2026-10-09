@@ -186,7 +186,11 @@ public:
     float positionZ;                // +0x024
     std::uint8_t unknown_028[0x34 - 0x28];
     float orientation[4];           // +0x034 a quaternion
-    std::uint8_t unknown_044[0xA4 - 0x44];
+    std::uint8_t unknown_044[0x94 - 0x44];
+    // +0x094 the attached side object (type 0x46, taken by the 3D object's slot 19 00516D50: the
+    // figure / CObject3D side half; object3d_specific_slots.cpp, the screen pickers' slots 22 / 24).
+    CEngineObject* attached;
+    std::uint8_t unknown_098[0xA4 - 0x98];
     char* name;                     // +0x0A4 CString (the prototype name for units)
     std::uint8_t unknown_0A8[0xC4 - 0xA8];
     float scale[3];                 // +0x0C4
@@ -218,6 +222,7 @@ public:
 };
 static_assert(offsetof(CMapObject, positionX) == 0x1C);
 static_assert(offsetof(CMapObject, orientation) == 0x34);
+static_assert(offsetof(CMapObject, attached) == 0x94);
 static_assert(offsetof(CMapObject, name) == 0xA4);
 static_assert(offsetof(CMapObject, extent) == 0x144);
 static_assert(offsetof(CMapObject, scale) == 0xC4);
@@ -266,9 +271,12 @@ public:
     virtual void AttachObject() = 0;       // 19: 0050E890 (units 0052E870 AttachCompanion)
     virtual void CopyFigure() = 0;         // 20: CObject3D 005161E0
     virtual bool InvisibleSlot() = 0;   // 21 (0x54): 0050FA10 IsInvisible
-    virtual void DrawFigure() = 0;         // 22: CObject3D 00516460
-    virtual void DrawCollectDirty() = 0;   // 23: CObject3D 00516420
-    virtual void DrawFigureShadow() = 0;   // 24: CObject3D 00516490
+    // 22 / 23 / 24 (0x58 / 0x5C / 0x60, RET 4): draw the figure / draw it and collect its screen
+    // rectangle / draw its shadow with the scene context (CObject3D 00516460 / 00516420 / 00516490:
+    // the side half's slots 19 / 20; 1 without one).
+    virtual int DrawFigure(void* context) = 0;
+    virtual int DrawCollectDirty(void* context) = 0;
+    virtual int DrawFigureShadow(void* context) = 0;
     virtual void AdvanceTime() = 0;        // 25: (float time) 0050E410 empty; units 0052FC40
     virtual void LoadFigures() = 0;        // 26: CObject3D 00517500 (units 0052E910)
     virtual void RecomputeScale() = 0;     // 27: 0050F2D0 (units 00532A80)

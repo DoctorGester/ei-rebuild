@@ -89,6 +89,9 @@ private:
 
 // 007C55A8: the console's ostream (its streambuf is ConsoleStreambuf 007C5868).
 inline GameOStream& Out() { return *reinterpret_cast<GameOStream*>(0x007C55A8); }
+// 007C5760: another of the console's ostreams (its message filter not identified); the battle
+// screen prints the "Terrain Coords" of a click on the ground to it (00638EF0).
+inline GameOStream& Out7C5760() { return *reinterpret_cast<GameOStream*>(0x007C5760); }
 // `<< '\n' << flush`, how every console message ends.
 void EndLine(GameOStream& os);
 // Out() << text, then EndLine.
