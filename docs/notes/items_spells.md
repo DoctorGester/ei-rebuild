@@ -307,6 +307,7 @@ vectors O. Reached by saving and loading a game (ui_saveload, world_load).
 | 006908E0 | MmpHeader::MipOffset | P |
 | 00693180 | `ComposeTexture` (RET 0x1C) | O |
 | 0068FA10, 00690970, 00690B30, 00690D30 | CTexture::FillSurface (O: result = FilledBytes over the chain), CopyToSurface, ConvertToSurface (8888 to 16 bits), UnpackToSurface (DXT through the converter's slot 10) | S: the original fills, levels read back and overwritten, ours fills, compared (texture_fill) |
+| 00691810 (manager slot 14), 00694300 | CTextureManager::NewObject (texture.cpp; constructor and reset inlined), the extra block's `AlignedArray<uint8_t>::SetSize` (`AlignedBuffer` is that array now) | O (fresh fields) / S on a copy |
 | 00690260 | CTexture::LoadBmp (alpha "a_<file>" beside it; no scenario: no loose .bmp) | O |
 
 ComposeTexture: the cache file `<game folder>textures\<name>.mmp` keeps the request's layer bytes in its extra block (header

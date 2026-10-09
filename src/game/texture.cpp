@@ -5,6 +5,9 @@
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
+#include <cstring>
+#include <new>
+
 namespace {
 // Game-wide paths set at startup. Names provisional.
 const mfc::CString& GameRoot() { return *reinterpret_cast<const mfc::CString*>(0x0079BC90); }
@@ -120,6 +123,38 @@ int CTextureManager::LoadTextureFrom(CTexture* texture, const char* directory) {
     gamecrt::operator_delete(buffer);
     return 1;
 }
+
+CEngineObject* CTextureManager::NewObject(int type) {
+    void* memory = gamecrt::operator_new(sizeof(CTexture));
+    if (!memory) return nullptr;
+    auto* texture = static_cast<CTexture*>(memory);
+    texture->ClearFields();
+    auto* name = new (&texture->name_) mfc::CString;
+    std::memset(&texture->extra_, 0, sizeof(texture->extra_));
+    texture->surface_ = nullptr;
+    ei::SetVtable(texture, CTexture::kVtableAddress);
+    name->Empty();
+    // 004EBE30, the counted surface pointer set to null.
+    CDXSurface* old = texture->surface_;
+    texture->surface_ = nullptr;
+    if (old) old->Release();
+    texture->block_ = nullptr;
+    texture->height_ = 0;
+    texture->width_ = 0;
+    texture->uploadResult_ = 0;
+    std::memset(&texture->format_, 0, sizeof(texture->format_));
+    texture->format_.words[0] = sizeof(PixelFormat);   // DDPIXELFORMAT dwSize
+    texture->unknown_64 = 0;
+    texture->extra_.SetSize(0, -1);
+    texture->type_ = type;
+    return texture;
+}
+CEngineObject* __fastcall TextureNewObjectHook(CTextureManager* self, void*, int type) {
+    return self->CTextureManager::NewObject(type);
+}
+EI_REPLACE(0x00691810, TextureNewObjectHook);
+// The extra block's out-of-line SetSize.
+EI_REPLACE_METHOD(0x00694300, lib::AlignedArray<std::uint8_t>::SetSize);
 
 EI_REPLACE_METHOD(0x006922A0, CTextureManager::LoadTexture);
 EI_REPLACE_METHOD(0x006926F0, CTextureManager::LoadTextureFrom);
