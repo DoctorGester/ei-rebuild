@@ -388,7 +388,7 @@ void CMpHeroScreen::MakePreview(int flag) {
         double now = x87::FromUnsigned(gameapi::timeGetTime()) * 0.0009765625f * 15.0f;
         controller->RestartAnimation(StoreFloat(static_cast<float>(now - 1.0f)));
         unit->SetFromStats(reinterpret_cast<UnitStats*>(player->members_.data->stats));
-        unit->Controller()->Slot31();
+        unit->Controller()->RefreshWounds();
     }
     if (records.data) gamecrt::operator_delete(records.data);
 }

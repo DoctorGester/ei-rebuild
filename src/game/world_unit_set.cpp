@@ -50,6 +50,19 @@ std::uint8_t* Step(Iterator& it, std::uint8_t* (__fastcall* nextBucket)(Iterator
 
 } // namespace
 
+void UnitSetEntryHead::Write(void* stream) {
+    std::int16_t word = key;
+    Put(stream, &word, 2);
+    PutWord(stream, static_cast<std::uint32_t>(first.size()));
+    Put(stream, first.begin(), static_cast<std::uint32_t>(first.size() * sizeof(int)));
+    PutWord(stream, static_cast<std::uint32_t>(second.size()));
+    Put(stream, second.begin(), static_cast<std::uint32_t>(second.size() * sizeof(int)));
+    std::uint8_t byte = flag;
+    Put(stream, &byte, 1);
+    PutWord(stream, value);
+}
+EI_REPLACE_METHOD(0x00558FA0, UnitSetEntryHead::Write);
+
 void UnitSet::Write(void* stream) {
     // The number of unit entries over every node's unit map.
     std::uint32_t count = 0;

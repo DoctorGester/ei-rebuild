@@ -208,7 +208,7 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Float4& rotat
 // `refValueBase`: the record is built through the reference value constructor (00419720) and the
 // vtable stored after it, instead of 0058FBB0.
 CEngineObject* MakeItem(CWorldServer* world, CEngineObject* itemRecord, bool refValueBase) {
-    auto* item = static_cast<CItem*>(world->CopyItemSlot(itemRecord));
+    auto* item = static_cast<CItem*>(world->DuplicateItem(itemRecord));
     auto* memory = static_cast<ItemSourceRef*>(gamecrt::operator_new(sizeof(ItemSourceRef)));
     memory->refs = 0;   // written before the null test
     ItemSourceRef* record = nullptr;
@@ -319,7 +319,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         slots->SetScriptName(record->texts[0]);
         UnitSet780(unit, nullptr, static_cast<std::uint32_t>(record->unknown_780));
         UnitRefreshStats(unit, nullptr);
-        slots->SetStatsSlot(reinterpret_cast<const UnitStats*>(record->stats));
+        slots->SetStats(reinterpret_cast<const UnitStats*>(record->stats));
         UnitAfterStats(unit, nullptr);
 
         // Equipment: weapons, then the controller's slot 25 (ShowWeapon 0), armour
@@ -338,8 +338,8 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         for (int n = 0; n < static_cast<int>(record->spellCount); ++n)
             UnitAddSpell(unit, nullptr, MakeItem(this, record->spells[n], true));
 
-        slots->UpdateSizeClassesSlot();
-        slots->ScaleEffectSlot(0);
+        slots->UpdateSizeClasses();
+        slots->ScaleEffectChanged(0);
         UnitSet18(unit, nullptr, record->texts[6]);
         line.Format(worlddata::AddToHeroesFormat(), unit->id_);
         script += line;
@@ -467,7 +467,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         return static_cast<CMapObject*>(Manager(MapObjectManager())->CreateObject(spec->parentId, spec->base.id));
     };
     auto allowed = [this](CMapObject* object) {
-        return (ObjectSlots(object)->IsDynamicSlot() ? loadedFresh_ : keepsState_) != 0;
+        return (ObjectSlots(object)->IsSynchronised() ? loadedFresh_ : keepsState_) != 0;
     };
     auto refuse = [](CMapObject* object) {
         ++object->refCount_;
@@ -597,7 +597,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         ObjectSetSecondName(object, nullptr, spec->model);
         companionTexts(companion);
         race(object);
-        ObjectSlots(object)->ScaleEffectSlot(0);
+        ObjectSlots(object)->ScaleEffectChanged(0);
         int type = base.kind;
         if (type == 5) {
             auto* unitSpec = reinterpret_cast<UnitSpec*>(message);
@@ -609,7 +609,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             const mfc::CStringArray& worn = unitSpec->lists[1];
             for (int i = 0; i < worn.size; ++i) {
                 const char* name = worn.data[i];
-                UnitWear(object, nullptr, ItemsCreateItem(ItemManager(), nullptr, name));
+                UnitWear(object, nullptr, ItemsCreateItem(ItemFactory(), nullptr, name));
             }
             UnitRecordApply(unitSpec->stats, nullptr, object);
             // The model's six values (UnitModelRecord +0x2C) go to the unit's +0x4B0.
@@ -653,7 +653,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         UnitMarkChanged(object, nullptr, 8);
         if (spec->visible == 0) object->flags_ |= 8;
         ObjectSetName(object, nullptr, spec->texture);
-        ObjectSlots(object)->UpdateSizeClassesSlot();
+        ObjectSlots(object)->UpdateSizeClasses();
         if (object->GetClassId() == world::kClassUnit) ControllerReposition(AsUnit(object)->controller, nullptr);
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);

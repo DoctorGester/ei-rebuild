@@ -88,7 +88,11 @@ static_assert(offsetof(WorldPlayer, lastScreen) == 0x104);
 struct LocalViewData {
     std::uint8_t unknown_00[0x1C];
     WorldPlayer* player;                 // +0x1C
+    std::uint8_t unknown_20[0x84 - 0x20];
+    std::uint8_t unknown_84;             // +0x84 set: a unit's network owner becomes the local player
+                                         //       whatever its id (UnitReadNetState)
 };
+static_assert(offsetof(LocalViewData, unknown_84) == 0x84);
 static_assert(offsetof(WorldPlayer, dirty) == 0x130);
 
 // Walks the world's player list. The list object is reference counted (+4) while an iterator holds
@@ -146,25 +150,31 @@ static_assert(sizeof(LightColour) == 0x10);
 // Members both world classes share (base class, 0055E000-0055FFFF).
 class CWorld : public CEngineObject {
 public:
-    // Virtual slots after CEngineObject's 13 (server vtable 0073F928, client 0073F41C). Slots 26,
-    // 29 and 30 are called by name; 13-25, 27 and 28 hold their places (the managers' getters, 24
-    // the server's CopyItem; rewritten slots stay plain members, rewrite guide rule 4).
-    virtual void Slot13();
-    virtual void Slot14();
+    // Virtual slots after CEngineObject's 13 (server vtable 0073F928, client 0073F41C). Slots
+    // 13-24 are the manager context's getters (CParty has the same slots). Slots declared
+    // `void Name()` keep their place in the order only (their return types are not declared; give
+    // them their signature when calling them); rewritten slots stay plain members, rewrite guide
+    // rule 4. Names and evidence: docs/notes/drafts/DR-C2.md. Some names avoid free helpers of
+    // the same name (World, ItemManager, LightManager, ...) that the members' bodies call.
+    virtual void ThisWorld();             // 13: 0055EB40 returns this
+    virtual void TimedObjectManager();    // 14: 0055EB90 (+0x48)
     virtual CEngineObject* FigureManager();  // 15: the figure manager (+0x3C)
-    virtual void Slot16();
-    virtual void Slot17();
-    virtual CEngineObject* ItemManager();     // 18: the item manager (itemManager_, +0x54)
+    virtual void ItemConstructor();       // 16: 0055EBB0 (+0x58)
+    virtual void SpellConstructor();      // 17: 0055EBC0 (+0x50)
+    virtual CEngineObject* ItemFactory(); // 18: 004BA000 (+0x54, itemManager_)
     virtual CEngineObject* MapObjectManager();   // 19: 0055EB70, the map object manager (+0x40)
-    virtual void Slot20();
-    virtual void Slot21();
+    virtual CEngineObject* PlayerList();  // 20: 0055EB50 (+0x38, players_)
+    // 21: 0055EB80 (+0x44): the side-specific halves' manager (the client's is a
+    // CClientSpecificManager, 0042D690; it makes the class 0x45 objects of CFakeUnit's figures).
+    virtual void SpecificManager();
     virtual CSpellManager* SpellManager();   // 22: 0055EBA0 (+0x4C)
     virtual class CFigureCache* FigureCache();   // 23: the figure cache (+0x5C; map_object_figures.h)
-    // 24: the server's 00594CE0 (CWorldServer::CopyItem, a plain member): a new item like `item`.
-    virtual CEngineObject* CopyItemSlot(CEngineObject* item);
-    virtual void Slot25();
+    // 24: a copy of an item (client 0055E940 as CParty::CopyItem; server 00594CE0, CWorldServer::
+    // CopyItem). Not called CopyItem here: CWorldServer's plain member of that name would hide it.
+    virtual CEngineObject* DuplicateItem(CEngineObject* item);
+    virtual void TexturePath();           // 25: client 00561890 (the CString +0x224, "textures\"), server 0
     virtual int IsServer();               // 26: 1 for the server (0058A380), 0 for the client (0055EB30)
-    virtual void Slot27();                // 27: the terrain height (CWorldServer::GridHeight 00594220)
+    virtual void GridHeightAt();          // 27: the terrain height, (x, y) server CWorldServer::GridHeight 00594220, client 00563F70
     // 28: the server's AI map height (0058A390), client 00564070; in ST0 (RET 8).
     virtual double RawSurfaceHeightAt(float x, float y);
     // 29 / 30: the ground height and the height of the water surface at (x, y), in ST0 (server
@@ -180,11 +190,11 @@ public:
     virtual void SetTimeSpeed(float speed);
     virtual void* MaterialManager();      // 33: the material manager (0051C970 registers part materials)
     virtual CTextureManager* TextureManager();   // 34: the client's 00561990 (+0x18C)
-    virtual void Slot35();
-    virtual void Slot36();
-    virtual void Slot37();
-    virtual void Slot38();
-    virtual void Slot39();
+    virtual void ClientLightManager();    // 35: client 005619A0 (+0x190, a CLightManager), server 0
+    virtual void ClientParticleManager(); // 36: client 005619B0 (+0x19C, a CParticleManager), server 0
+    virtual void ClientManager194();      // 37: client 005619C0 (+0x194), server 0. Not identified
+    virtual void ClientManager198();      // 38: client 005619D0 (+0x198), server 0. Not identified
+    virtual void Unused39();              // 39: 0055EC40 returns 0 in both
     // 40: the world object with this id, or null (server 00593AA0 FindObject, client 0055FAE0).
     virtual CEngineObject* ObjectWithId(int id);
     // 41: `object` moves to `position` (sector map, network state; net_state.cpp and
@@ -193,6 +203,12 @@ public:
 
     // 0055FCB0 (world_time.cpp). Stores the wind direction (+0x24) and strength (+0x30).
     void SetWind(const Vector3* direction, float strength);
+    // 0055F8E0 (world_managers.cpp, A-U7). Slot 3 (Destroy) of the base vtable 0073F18C, also
+    // called by the client 00563290 and the server 0058B020: every object of the spell manager
+    // (slot 22) gets its slot 5 (ClearState), then the managers are deleted whatever their counts
+    // (+0x38, +0x40, +0x3C, +0x44, +0x58, +0x54, +0x50, +0x4C, +0x48; +0x34 only at its last
+    // reference) and the shared pointers +0x5C / +0x60 dropped.
+    void DestroyManagers();
 
     float timeBase_;                     // +0x1C
     float secondsPerTick_;                // +0x20
@@ -545,7 +561,7 @@ public:
     ObjectIdMap updateMap_;               // +0x104
     std::uint8_t unknown_11C;
     // +0x11D / +0x11E (LoadMap, world_map.cpp: LoadedFresh / KeepsState): CreateObject (005927C0)
-    // makes objects answering map object slot 29 (IsDynamicSlot), sounds, lights and particle
+    // makes objects answering map object slot 29 (IsSynchronised), sounds, lights and particle
     // sources only with loadedFresh_ set, the other map objects only with keepsState_ set; a refused
     // object is released.
     std::uint8_t loadedFresh_;            // +0x11D the zone is not loaded from a save
@@ -563,7 +579,11 @@ public:
     CAIMap* AIMap() { return reinterpret_cast<CAIMap*>(aiMap_); }
     float gridHeightScale_;               // +0x290
     CSectorMap* Sectors() { return reinterpret_cast<CSectorMap*>(sectorMap_); }
-    std::uint8_t sectorMap_[0x280C - 0x294]; // +0x294 CSectorMap (sector_map.h; size unknown)
+    std::uint8_t sectorMap_[0x2804 - 0x294]; // +0x294 CSectorMap (sector_map.h; size unknown)
+    // +0x2804 a world tick: an idle unit standing in a kind-3 occluder replans while its motion order
+    // started before it (the movement tick 00547890). Part of the sector map or not: unknown.
+    int occluderReplanTime_;
+    std::uint8_t unknown_2808[0x280C - 0x2808];
     std::uint8_t** gridRows_;             // +0x280C rows of 9-byte cells, height (u16) at +4
     int gridWidth_;                       // +0x2810
     int gridHeight_;                      // +0x2814
@@ -606,6 +626,7 @@ static_assert(offsetof(CWorldServer, exits_) == 0xF0);
 static_assert(offsetof(CWorldServer, gameResult_) == 0x138);
 static_assert(offsetof(CWorldServer, unknown160_) == 0x160);
 static_assert(offsetof(CWorldServer, sectorMap_) == 0x294);
+static_assert(offsetof(CWorldServer, occluderReplanTime_) == 0x2804);
 static_assert(offsetof(CWorldServer, timeWheel_) == 0x2838);
 static_assert(offsetof(CWorldServer, commandsA_) == 0x12874);
 static_assert(offsetof(CWorldServer, commandsB_) == 0x12A6C);
@@ -682,6 +703,24 @@ struct UnitSet {
     // counted dword arrays, a byte and a dword.
     void Write(void* stream);
 };
+
+// The head of a unit set entry (and of the 0x24-byte look records): a 16-bit key, two dword
+// vectors, a byte and a dword.
+struct UnitSetEntryHead {
+    // 00558FA0 (RET 4; world_unit_set.cpp, A-U7). Writes the key (2 bytes), each vector's count and
+    // dwords (the data written even when empty), the byte and the dword through `stream`'s slot 2.
+    void Write(void* stream);
+
+    std::int16_t key;                     // +0x00
+    std::uint8_t unknown_02[2];
+    stlp::vector<int> first;              // +0x04
+    stlp::vector<int> second;             // +0x10
+    std::uint8_t flag;                    // +0x1C
+    std::uint8_t unknown_1D[3];
+    std::uint32_t value;                  // +0x20
+};
+static_assert(offsetof(UnitSetEntryHead, second) == 0x10);
+static_assert(offsetof(UnitSetEntryHead, value) == 0x20);
 
 // 0055A190 (ECX stream, EDX first list, RET 4; called by the client's zone load 00567AB0). Reads
 // the zone's two unit look lists from `stream` (slot 1 reads bytes): a count, then per 0x3C-byte
@@ -989,7 +1028,7 @@ public:
     mfc::CArray<CEngineObject*> countedA0_;
     SectorList heroes_;                   // +0x0B4 heroes with a text-key id (counted)
     SectorList objects_;                  // +0x0B8 every filed object (one reference each)
-    // +0x0BC the objects answering slot 29 (IsDynamicSlot), with their nodes by id in +0x0D8 and
+    // +0x0BC the objects answering slot 29 (IsSynchronised), with their nodes by id in +0x0D8 and
     // the highest id at +0x0EC (Segment drops those whose update returns 0).
     mfc::CList<CEngineObject*> dynamicObjects_;
     PendingMap dynamicNodes_;             // +0x0D8 id -> its node in dynamicObjects_

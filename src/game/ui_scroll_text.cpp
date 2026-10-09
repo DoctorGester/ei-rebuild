@@ -1,11 +1,13 @@
 // A scrolling text's tokeniser (CUiScrollText::Tokenize, 0065D4B0): the message log and the
-// objectives window's quest log hand it each text they add. See ui.h and docs/notes/ui.md.
+// objectives window's quest log hand it each text they add; and its drawing of the laid out lines
+// (DrawLines, 0065D150). See ui.h and docs/notes/ui.md.
 #include "ui.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_ui.h"
 
 #include <cstdint>
 #include <cstring>
@@ -122,3 +124,104 @@ void CUiScrollText::Tokenize(const mfc::CString* text) {
     } while (pos < text->GetLength());
 }
 EI_REPLACE_METHOD(0x0065D4B0, CUiScrollText::Tokenize);
+
+// --- 0065D150 --------------------------------------------------------------------------------------
+
+namespace {
+constexpr int kAlignLeft = 1;
+const char* FontSampleText() { return reinterpret_cast<const char*>(0x00787BCC); }   // "W", measured for each font's height
+constexpr int kMeasuredFonts = 3;
+
+// A word of a line (005FDE20, Rebirth-patched: through its address).
+void DrawWord(CUiSurface* surface, const char* text, RECT* rect, int font, COLORREF colour) {
+    SurfaceDrawText(surface, nullptr, text, rect, font, colour, 0, 1);
+}
+} // namespace
+
+void CUiScrollText::DrawLines(int scroll) {
+    CUiSurface* surface = surfaces_.size > 0 ? surfaces_.data[0] : nullptr;
+    SurfaceGetDC(surface);
+    SurfaceClearOriginal(surface);
+    int lineCount = lines_.size;
+    if (lineCount <= 0) {
+        SurfaceReleaseDC(surface);
+        return;
+    }
+
+    // The first line reaching `scroll`, and how far above the surface its top lies.
+    int above = 0;
+    int line = 0;
+    while (line < lineCount && above < scroll) above += lines_.data[line++]->height_;
+    --line;
+    if (line < 0) line = 0;
+    int offset = 0;
+    if (scroll != 0) offset = above - lines_.data[line]->height_ - scroll;
+
+    // The fonts' heights (the extent of the sample text in fonts 0-2).
+    int heights[kMeasuredFonts];
+    for (int font = 0; font < kMeasuredFonts; ++font) {
+        mfc::CString sample(FontSampleText());
+        heights[font] = reinterpret_cast<TextMetricsAt*>(interface_)->TextExtent(sample, font).cy;
+    }
+
+    // The format in effect at the line: the last format token before it (the first token
+    // itself and token 0 are not looked at), else font 1 in the default colour.
+    COLORREF colour = kDefaultColour;
+    int font = kDefaultFont;
+    int first = lines_.data[line]->firstToken_;
+    if (tokens_.data[first]->type_ != kFormatType) {
+        for (int k = first; k > 0; --k) {
+            if (tokens_.data[k]->type_ == kFormatType) {
+                auto* format = static_cast<UiFormatToken*>(tokens_.data[k]);
+                colour = format->colour_;
+                font = format->font_;
+                break;
+            }
+        }
+    }
+
+    RECT row = textRect_;
+    row.top = offset;
+    int drawn = 0;
+    do {
+        const UiTextLine* record = lines_.data[line];
+        row.bottom = row.top + record->height_;
+        int begin = record->firstToken_;
+        int end = line == lines_.size - 1 ? tokens_.size : lines_.data[line + 1]->firstToken_;
+
+        int wordsWidth = 0;
+        for (int t = begin; t < end; ++t)
+            if (tokens_.data[t]->type_ == kWordType) wordsWidth += static_cast<UiWordToken*>(tokens_.data[t])->width_;
+        // Left aligned (a third of the font's height apart), or justified over the width. The
+        // last token is read before the count is checked, as in the original. (A font above 2
+        // reads past `heights`; the original reads its other stack slots there.)
+        int gap;
+        const UiTextToken* last = align_ != kAlignLeft ? tokens_.data[end - 1] : nullptr;
+        if (align_ == kAlignLeft ||
+            (last->type_ == kFormatType && static_cast<const UiFormatToken*>(last)->newline_) || end - begin < 2 ||
+            end == tokens_.size)
+            gap = heights[font] / 3;
+        else
+            gap = (textRect_.right - textRect_.left - wordsWidth) / (end - begin - 1);
+
+        RECT word = row;
+        for (int t = begin; t < end; ++t) {
+            UiTextToken* token = tokens_.data[t];
+            if (token->type_ == kFormatType) {
+                auto* format = static_cast<UiFormatToken*>(token);
+                colour = format->colour_;
+                font = format->font_;
+            } else if (token->type_ == kWordType) {
+                auto* w = static_cast<UiWordToken*>(token);
+                DrawWord(surface, w->text_, &word, font, colour);
+                word.left += w->width_ + gap;
+            }
+        }
+        int height = lines_.data[line]->height_;
+        row.top += height;
+        drawn += height;
+        ++line;
+    } while (drawn < textRect_.bottom - textRect_.top - offset && line < lines_.size);
+    SurfaceReleaseDC(surface);
+}
+EI_REPLACE_METHOD(0x0065D150, CUiScrollText::DrawLines);

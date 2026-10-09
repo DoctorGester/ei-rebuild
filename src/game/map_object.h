@@ -246,75 +246,81 @@ constexpr int kSetStunned = 46;           // 0xB8 (CUnit::SetFlag1000000 for uni
 struct Vector3;
 struct DamageInfo;   // spell.h
 struct UnitStats;    // unit.h
+struct LockKey;      // unit.h
 
 // The map objects' virtual slots past CEngineObject's, as callers reach them through the vtable
 // (CMapObject 0073DAA0, CUnit 0073EA8C, ...). The rewritten slot bodies stay plain members of the
-// classes; this only declares the dispatch. Unnamed slots are placeholders for the order.
+// classes; this only declares the dispatch. Slots declared `void Name()` keep their place in the
+// order only (their real arguments are not declared; name them properly when calling them).
+// Names and evidence: docs/notes/drafts/DR-C2.md.
 class CMapObjectVirtuals : public CEngineObject {
 public:
-    virtual void Slot13() = 0;
-    virtual void Slot14() = 0;
-    virtual void Slot15() = 0;
-    virtual void Slot16() = 0;
-    virtual void Slot17() = 0;
+    virtual void CopyTransform() = 0;      // 13: CTransformObject 00401490
+    virtual void CombineRotation() = 0;    // 14: CObject3D 00516370 (CombineRotation3D)
+    virtual void UpdateWorld() = 0;        // 15: CTransformObject 0040CC30
+    virtual void SaveTransform() = 0;      // 16: 00516350 (00401510)
+    virtual void LoadTransform() = 0;      // 17: 00516360 (00401540)
     // 18 (0x48): whether the object may play the animation entry (FigureAnimation, map_object_figures.h);
     // 0050E400 for CObject3D / CMapObject, CUnit 00532DA0 (AcceptsTarget: its flags +0x18 for heroes).
     virtual bool AcceptsAnimation(const void* animation) = 0;
-    virtual void Slot19() = 0;
-    virtual void Slot20() = 0;
+    virtual void AttachObject() = 0;       // 19: 0050E890 (units 0052E870 AttachCompanion)
+    virtual void CopyFigure() = 0;         // 20: CObject3D 005161E0
     virtual bool InvisibleSlot() = 0;   // 21 (0x54): 0050FA10 IsInvisible
-    virtual void Slot22() = 0;
-    virtual void Slot23() = 0;
-    virtual void Slot24() = 0;
-    virtual void Slot25() = 0;
-    virtual void Slot26() = 0;
-    virtual void Slot27() = 0;
-    virtual void Slot28() = 0;
-    // 29 (0x74): 0050E430 flags_ bit 17 (Flag20000, 0 / 1 in EAX), units 004467E0 always true. The
-    // world server creates such objects only with its +0x11D set, the others with +0x11E (005927C0).
-    virtual bool IsDynamicSlot() = 0;
+    virtual void DrawFigure() = 0;         // 22: CObject3D 00516460
+    virtual void DrawCollectDirty() = 0;   // 23: CObject3D 00516420
+    virtual void DrawFigureShadow() = 0;   // 24: CObject3D 00516490
+    virtual void AdvanceTime() = 0;        // 25: (float time) 0050E410 empty; units 0052FC40
+    virtual void LoadFigures() = 0;        // 26: CObject3D 00517500 (units 0052E910)
+    virtual void RecomputeScale() = 0;     // 27: 0050F2D0 (units 00532A80)
+    virtual void EffectsChanged() = 0;     // 28: 0050E420 empty; units 00532AB0
+    // 29 (AL): flags_ 0x20000 (0050E430, bit 17 as 0 / 1); units (004467E0), levers, traps,
+    // torches 1. False ones leave the server's map-object maps after the zone loads
+    // (SendFreshObjects). The world server creates such objects only with its +0x11D set, the
+    // others with +0x11E (005927C0).
+    virtual bool IsSynchronised() = 0;
     // 30 (0x78): the scale becomes the base scale (+0x1AC; 0050E440, units 00532AA0). Returns the z
     // component's bits.
     virtual std::uint32_t ApplyBaseScale() = 0;
     // 31 (0x7C): a hit (DamageInfo) from `attacker` (units: to the controller's TakeHit; other
     // objects ignore it, 0050E460).
     virtual void ReceiveHit(DamageInfo* hit, CEngineObject* attacker, CEngineObject* caster) = 0;
-    virtual void Slot32() = 0;
-    // 33 (0x84, mapslot::kScaleEffectChanged): units 0052EB30 hand the argument to their
-    // controller's slot 19.
-    virtual void ScaleEffectSlot(int scaleEffect) = 0;
+    virtual void StatsChanged() = 0;       // 32: 0050E970 PackVitals (units 0052EB50)
+    // 33 (0x84, mapslot::kScaleEffectChanged): 0050E960; units 0052EB30 hand the argument to
+    // their controller's slot 19.
+    virtual void ScaleEffectChanged(int scaleEffect) = 0;
     // 34 (0x88): the prototype by name (units 0052EB70: their statistics; 0050E9B0 for others).
     virtual void TakePrototype(const char* prototype) = 0;
-    // 35 (0x8C): units 00530A20, a CUnitServer controller (class 0x3E) copies the statistics
-    // (00552F40, CUnitServer::SetStats).
-    virtual void SetStatsSlot(const UnitStats* stats) = 0;
-    virtual void Slot36() = 0;
-    // 37 (0x94): units 00530A50, the controller's slot 23 (CUnitServer 00552FB0 UpdateSizeClasses).
-    virtual void UpdateSizeClassesSlot() = 0;
-    virtual void Slot38() = 0;
-    virtual void Slot39() = 0;
-    virtual void Slot40() = 0;
-    virtual void Slot41() = 0;
-    virtual void Slot42() = 0;
-    virtual void Slot43() = 0;
-    virtual void Slot44() = 0;
-    virtual void Slot45() = 0;
-    virtual void Slot46() = 0;
+    // 35 (0x8C): 0050E480 empty; units 00530A20: a CUnitServer controller (class 0x3E) copies the
+    // statistics (00552F40, CUnitServer::SetStats).
+    virtual void SetStats(const UnitStats* stats) = 0;
+    virtual void SetServerData() = 0;      // 36: 0050F050
+    // 37 (0x94): 0050E490 empty; units 00530A50, the controller's slot 23 (CUnitServer 00552FB0).
+    virtual void UpdateSizeClasses() = 0;
+    virtual int IsUsable() = 0;            // 38: 0 (0050F0C0); traps 1, levers NeedsKey 0052BB00
+    virtual int IsDirectUseBlocked() = 0;  // 39: 0 (0050F0D0); levers +0x260 (0052B2D0). Best guess
+    virtual void KeyId() = 0;              // 40: -123 (0050F0E0); levers 0052BBC0
+    virtual void ApplyScience() = 0;       // 41: 0050F0F0; traps Disarm, levers ApplyKey
+    // 42 (0xA8): whether `key` fits: 0 (0050F110, RET 4); levers KeyOpens, traps KeyFits.
+    virtual int AcceptsKey(const LockKey* key) = 0;
+    virtual void KeepsMapFlag() = 0;       // 43: AL 1 (004467B0); levers +0x261 (0052B2C0). Best guess
+    virtual void UseSpots() = 0;           // 44: 0050F120 FreeArray (none); levers 0052BBE0
+    virtual void AddEffect() = 0;          // 45: 0050F1E0
+    virtual void SetStunned() = 0;         // 46: 0050E4A0; units 0052F7F0 SetFlag1000000
     virtual int SetVisibilityMode(int mode) = 0;    // 47 (0xBC): 004467C0 hands it to the companion
     virtual Vector3* EyePoint(Vector3* out) = 0;        // 48 (0xC0): where the object sees from; returns `out`
-    virtual void Slot49() = 0;
-    virtual void Slot50() = 0;
-    virtual void Slot51() = 0;
+    virtual void ReadNetState() = 0;       // 49: 0050EC30 (units 0052EF90)
+    virtual void WriteNetState() = 0;      // 50: 0050EAF0 (units 0052EC70)
+    virtual void PlaceOnGround() = 0;      // 51: 0050F020 (units 0052F740)
     // 52 (0xD0): where the object is at world time `time` (units: along their path; other objects
     // ignore the time, GetPosition). Returns `out`.
     virtual Vector3* PositionAt(Vector3* out, int time) = 0;
     virtual Vector3* AimPoint(Vector3* out) = 0;        // 53 (0xD4)
-    virtual int Slot54() = 0;                           // 54 (0xD8)
+    virtual int IsLargeUnit() = 0;                      // 54 (0xD8): 0; units +0x278 (00446890)
     virtual int IsDead() = 0;                           // 55 (0xDC): non-zero when dead or gone
-    virtual void Slot56() = 0;
-    virtual void Slot57() = 0;
-    virtual void Slot58() = 0;
-    virtual void Slot59() = 0;
+    virtual void ForgetObject() = 0;       // 56: (object) empty; units: the controller's slot 42
+    virtual void UpdateMoveFactors() = 0;  // 57: empty; units: the controller's slot 53
+    virtual void RefreshWounds() = 0;      // 58: 0; units: the controller's slot 31
+    virtual void MoveSpeed() = 0;          // 59: ST0 0 (0050E540); units: forward speed (004468B0)
     virtual float Radius() = 0;                         // 60 (0xF0): units' +0x328 (004468A0), ST0
     // 61 (0xF4): units (00446830) keep `name` in their CString +0x238 (the script name).
     virtual void SetScriptName(const char* name) = 0;
@@ -323,22 +329,22 @@ public:
 // A map object's companion (CMapObjectServer / CMapObjectClientSpecific) as the base class calls it.
 class CMapObjectCompanion : public CEngineObject {
 public:
-    virtual void Slot13();
-    virtual void Slot14();
+    virtual void EffectsChanged();   // 13: client 005117D0, server 005106D0 (empty, RET 4)
+    virtual void Unused14();         // 14: empty in both (client 005104B0, server 00515810)
     virtual int Query(int first, int second);   // 15: 005104C0 in both (0)
 };
 
 // A unit's server half (CUnit::controller, +0x240: CUnitServer, class 0x3E) as callers reach it
-// through its vtable. Only slot 20 is named.
+// through its vtable (the slots as unit.h's CUnitController names them).
 class CUnitServerVirtuals : public CEngineObject {
 public:
-    virtual void Slot13() = 0;
-    virtual void Slot14() = 0;
-    virtual void Slot15() = 0;
-    virtual void Slot16() = 0;
-    virtual void Slot17() = 0;
-    virtual void Slot18() = 0;
-    virtual void Slot19() = 0;
+    virtual void FiguresLoaded() = 0;      // 13
+    virtual void RestartAnimation() = 0;   // 14
+    virtual void Unused15() = 0;           // 15: empty
+    virtual void Path() = 0;               // 16
+    virtual void Unused17() = 0;           // 17: empty
+    virtual void PlayerChanged() = 0;      // 18
+    virtual int RefreshVitals(char withHitPoints) = 0;   // 19: 005533B0 (1), client 00533BD0 (0)
     // 20 (0x50): 00553F40 CUnitServer::TakeHit(hit, attacker, source); either unit may be null.
     virtual int TakeHitSlot(DamageInfo* hit, CEngineObject* attacker, CEngineObject* source) = 0;
 };

@@ -153,8 +153,6 @@ __declspec(naked) void __fastcall RecordsBeginRedeploy(void*, void*, void*) EI_O
 __declspec(naked) void __fastcall RecordsEndRedeploy(void*, void*, void*) EI_ORIGINAL(0x004A6360)
 // The party object: 00661300 CopyFrom(const Party*), 00661700 Reset(int, int).
 inline void __fastcall PartyReset(void* a0, void*, int a2, int a3) { PartyResetOriginal((void*)a0, nullptr, a2, a3); }
-// 004A91B0: hash_map<int, Party>::operator[] (inserts a default party for a new key).
-__declspec(naked) void* __fastcall PartyMapAt(void*, void*, const int*) EI_ORIGINAL(0x004A91B0)
 
 char* Field(void* manager, std::size_t offset) { return static_cast<char*>(manager) + offset; }
 
@@ -219,7 +217,7 @@ EI_REPLACE(0x004A8790, PartyMapLoad);
 
 bool __fastcall PartyMapStore(void* map, void*, const int* key, const void* source) {
     MapNode* node = FindNode(map, *key);
-    void* value = node ? NodeValue(node) : PartyMapAt(map, nullptr, key);
+    void* value = node ? NodeValue(node) : PartyMapAtOriginal(map, nullptr, key);
     PartyCopyFrom(value, nullptr, source);
     return true;
 }

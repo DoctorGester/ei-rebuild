@@ -194,12 +194,12 @@ void** CollectHits(void** out, std::uint8_t* first, std::uint8_t* last, void* hi
 
 void** __fastcall CollectWindowsAt(void** out, void*, std::uint8_t* first, std::uint8_t* last, void* hits, LONG x,
                                    LONG y, CBaseManager* manager) {
-    return CollectHits(out, first, last, hits, x, y, manager, &CObject3DSpecific::HitsDirtyRect);
+    return CollectHits(out, first, last, hits, x, y, manager, &CObject3DSpecific::BoundsContainPoint);
 }
 
 void** __fastcall CollectWindowsAt2(void** out, void*, std::uint8_t* first, std::uint8_t* last, void* hits, LONG x,
                                     LONG y, CBaseManager* manager) {
-    return CollectHits(out, first, last, hits, x, y, manager, &CObject3DSpecific::HitsPartRect);
+    return CollectHits(out, first, last, hits, x, y, manager, &CObject3DSpecific::PartsContainPoint);
 }
 
 // ---- Lookups -------------------------------------------------------------------------------------
@@ -312,7 +312,7 @@ int CWorldClient::AddObject(CEngineObject* object) {
         }
     }
     const PendingMap::Node* entry = dynamicNodes_.Find(static_cast<std::uint32_t>(object->id_));
-    if (!entry && ObjectSlots(object)->IsDynamicSlot()) {
+    if (!entry && ObjectSlots(object)->IsSynchronised()) {
         DynamicList& kept = dynamicObjects_;
         DynamicNode* node = DynamicNewNode(&kept, nullptr, kept.tail, nullptr);
         node->data = object;
@@ -625,7 +625,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         FigureSwapTexture(figure, nullptr, game::NoneText(), SameText(skin, game::NoneText()) ? nullptr : skin);
         Unit50EA40(unit);
         CMapObjectVirtuals* slots = ObjectSlots(unit);
-        slots->SetStatsSlot(reinterpret_cast<const UnitStats*>(record->stats));
+        slots->SetStats(reinterpret_cast<const UnitStats*>(record->stats));
         UnitSetPosition(unit, nullptr, &record->unknown_724);
         std::memcpy(unit->MapObject()->baseScale, &record->unknown_724, 12);
         slots->ApplyBaseScale();
@@ -640,7 +640,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         }
         for (int j = 0; j < static_cast<int>(record->quickItemCount); ++j)
             UnitAddQuickItem(unit, nullptr, record->quickItems[j]);
-        unit->Controller()->UpdateHeroTextures();
+        unit->Controller()->RefreshEquipment();
         unit->Controller()->RefreshModel();
         slots->SetScriptName(record->texts[0]);
         AddObject(unit);

@@ -59,7 +59,7 @@ EI_REPLACE_METHOD(0x005300D0, CUnit::SetPlayer);
 void CUnit::ReleaseUnit() {
     // The map object's slot 5 (0050E760) is empty.
     SetPlayer(nullptr);
-    if (controller) controller->Slot5();
+    if (controller) controller->ClearState();
     ReleaseSlots(quickItems, 4);
     ReleaseSlots(weapons, 4);
     ReleaseSlots(spells, 8);
@@ -75,7 +75,7 @@ void CUnit::ReleaseUnit() {
 EI_REPLACE_METHOD(0x0052E740, CUnit::ReleaseUnit);
 
 void CUnit::DestroyUnit() {
-    Slot5();
+    ClearState();
     reinterpret_cast<CMapObject*>(this)->DestroyMapObject();
     Reset();
 }

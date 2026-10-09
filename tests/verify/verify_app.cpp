@@ -4,6 +4,7 @@
 
 #include "../../src/game/app.h"
 
+#include <cstdarg>
 #include <cstdint>
 
 namespace {
@@ -69,9 +70,21 @@ int __cdecl StartFirstMapVerify() {
     return result;
 }
 
+// 004800E0: ours only, reached only by a DirectX failure (the game then exits). The result is 0
+// when the exit did not happen (an error hook that returns into a game that carries on).
+int __cdecl FatalErrorCodeVerify(long code, const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    int result = app::FatalErrorCodeV(code, format, args);
+    va_end(args);
+    ei::verify::Check("app::FatalErrorCode", 0, result, "%d");
+    return result;
+}
+
 } // namespace
 
 EI_VERIFY(0x00457D40, WindowProcVerify, 0, s_unused);
 EI_VERIFY(0x00457970, DispatchInputVerify, 0, s_unused);
 EI_VERIFY(0x00458220, PumpMessagesVerify, 0, s_unused);
 EI_VERIFY(0x00456140, StartFirstMapVerify, 0, s_unused);
+EI_VERIFY(0x004800E0, FatalErrorCodeVerify, 0, s_unused);

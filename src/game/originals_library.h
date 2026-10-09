@@ -431,6 +431,8 @@ __declspec(naked) inline void __stdcall CountedRangeReleaseOriginal(void* /*firs
 __declspec(naked) inline void* __fastcall CFileFindConstructOriginal(void* /*find*/) EI_ORIGINAL(0x006E6370)
 __declspec(naked) inline void __fastcall CFileFindDestructOriginal(void* /*find*/) EI_ORIGINAL(0x006E63AD)
 __declspec(naked) inline void __fastcall CFileFindCloseOriginal(void* /*find*/) EI_ORIGINAL(0x006E63E9)
+// 006E661A: CFileFind::IsDots (plain RET, EAX 0 / 1).
+__declspec(naked) inline int __fastcall CFileFindIsDotsOriginal(const void* /*find*/) EI_ORIGINAL(0x006E661A)
 __declspec(naked) inline int __fastcall CFileFindFindFileOriginal(void* /*find*/, void*, const char* /*name*/,
                                                                   unsigned long /*flags*/) EI_ORIGINAL(0x006E6433)
 __declspec(naked) inline mfc::CString* __fastcall CFileFindPathOriginal(const void* /*find*/, void*, mfc::CString* /*out*/)
