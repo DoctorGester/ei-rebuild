@@ -439,3 +439,6 @@ int __fastcall DrawRibbon(char* renderer, void*, const int* points, float width,
     return result;
 }
 EI_REPLACE(0x00501D90, DrawRibbon);
+
+// 00504E50 (RET 4): the index array's Add (A-U10), registered on the template; returns the index.
+EI_REPLACE_METHOD(0x00504E50, lib::AlignedArray<std::uint16_t>::Add);

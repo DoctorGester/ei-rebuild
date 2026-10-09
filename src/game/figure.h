@@ -59,6 +59,17 @@ struct AnimationMorphFrameElements {
 // scene_bones.cpp). Names and layout provisional.
 class CAnimationNode {
 public:
+    // animation_node_lifetime.cpp (A-U10).
+    // 00506710. The constructor: empty names and arrays (CArray vtables 0073C120 / 0073D9BC), the
+    // four key cursors -1, identity pose and rest rotations, +0x9C / +0xAC and position_ from the
+    // defaults 007AF0E0 / 007AF0F0. The pose / rest positions and the morph stay unwritten.
+    // Returns this.
+    CAnimationNode* Construct();
+    // 005068C0. The destructor body: the mesh loses a reference (not released) and is forgotten,
+    // each child is destroyed (recursively) and deleted, the child array emptied, +0x00 cleared,
+    // the arrays freed, the names destroyed.
+    void DestructBody();
+
     // 005064C0. Stores the morph coefficients and computes the bone position from `box`.
     void SetMorph(const BoneMorphBox* box, float s, float t, float u);
 
@@ -91,7 +102,8 @@ public:
     int normalCursor_;                                   // +0x080 the same
     mfc::CArray<AnimationMorphFrame, AnimationMorphFrameElements> morphFrames_;   // +0x084 (vtable 0073D9BC)
     int morphCursor_;                                    // +0x098 the same
-    std::uint8_t unknown_09C[0xB8 - 0x9C];
+    Quaternion unknown_09C;                              // +0x09C from 007AF0E0 (constructor)
+    Vector3 unknown_0AC;                                 // +0x0AC from 007AF0F0
     Quaternion poseRotation_;                            // +0x0B8 the node's rotation in the figure
     Vector3 posePosition_;                               // +0x0C8 its position in the figure
     lib::AlignedArray<Vector3> pointsB_;                 // +0x0D4 one per morph point, zeroed
@@ -117,7 +129,7 @@ static_assert(offsetof(CAnimationNode, pointsB_) == 0xD4);
 static_assert(offsetof(CAnimationNode, mesh_) == 0x30 && offsetof(CAnimationNode, clock_) == 0x38);
 static_assert(offsetof(CAnimationNode, rotationCursor_) == 0x54 && offsetof(CAnimationNode, morphCursor_) == 0x98);
 static_assert(offsetof(CAnimationNode, poseRotation_) == 0xB8 && offsetof(CAnimationNode, posePosition_) == 0xC8);
-static_assert(offsetof(CAnimationNode, restRotation_) == 0xE4);
+static_assert(offsetof(CAnimationNode, restRotation_) == 0xE4 && offsetof(CAnimationNode, unknown_0AC) == 0xAC);
 static_assert(offsetof(CAnimationNode, restPosition_) == 0xF4);
 static_assert(offsetof(CAnimationNode, pointsA_) == 0x100);
 static_assert(offsetof(CAnimationNode, position_) == 0x110);

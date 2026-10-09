@@ -113,6 +113,9 @@ is snapshotted and restored, the original runs, bytes and EAX compared.
 | 0050D0E0, 0050D350, 0050D3A0 | AttachMesh (the bone named as the part's slot 7 carries it: referenced, given the bone's position / rotation, old one released), DetachMesh, DetachMeshes | ours only |
 | 0050D3E0, 0050D450, 0050D5A0, 0050D7C0, 0050D920 | PlaceIfChanged / UpdatePose (tracks evaluated at the frame, then the root places the skeleton at owner AnimationFactor(scale.z) * defaultScale: x, y from the factor stored to float, z unrounded), Stop, Rescale (morph to every bone and the state, key frames reloaded, `changed` cleared, root placed), CollectBoneNames | ours only (Place compared by its own wrapper) |
 | 0050DFF0 | AlignedPtrArray::SetSize copy (the tracks' arrays) | ours only |
+| 00506710, 005068C0 | CAnimationNode Construct (cursors -1, identity rotations, +0x9C / +0xAC / position_ from 007AF0E0 / 007AF0F0) / DestructBody (the mesh only loses a reference; children destroyed and deleted) (animation_node_lifetime.cpp) | ctor: original into a raw copy, bytes compared except the unwritten pose / rest positions and morph; dtor ours only |
+| 00503F40, 005040A0, 00504860 | CSceneRenderer BeginScene / EndScene / DrawTexture (slots 4 / 5 / 21; renderer_scene.cpp): frame statistics +0x34..+0x58, device counters +0x16C..+0x178, debug panel "FPS" / "num verts" / "num trias" | ours only (Direct3D calls) |
+| 00504F70, 00505080, 00505150, 00505270, 00504E50, 0050DD40 | AlignedArray copies registered on the template (TLVertex SetSize / SetSizeDiscardStep, SpriteSortRecord, its pointers, the index Add, the bones' Matrix4 SetSizeDiscardStep) | ours only (verify_aligned_array_copies.cpp) |
 
 Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEffect::Tick`, 00524FE0
 (hit onto the statistics block); sound system (global 007AF784) 006B8600 / 006B7C10 / 006B7CB0 /
@@ -154,10 +157,8 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
 - CArray Serialize / SetSize instantiations (library).
 - A-U9: 005015A0 (renderer slot 25: the projection / viewport / axis-swap stacks for a rectangle and a field of view,
   like the creation's FillMatrixStacks) has no caller (no `call [reg+0x64]` on the renderer in game.exe); 00508A30
-  (sets the skin clock, rewinds) is unreferenced. Next here: 00506710 / 005068C0 (CAnimationNode ctor / dtor
-  body), the renderer's 00504860, 00503F40, 005040A0, 00504E50, 00504F70, 00505270; 0050D950 / 0050DA10 (reset / reload
-  the bones' tracks; need AnimationTrack's arrays declared), 0050DD40 (the bones' matrix SetSize, a discarding copy with
-  growBy).
+  (sets the skin clock, rewinds) is unreferenced. Next here: 0050D950 / 0050DA10 (reset / reload the bones'
+  tracks; need AnimationTrack's arrays declared).
 - 0050E9B0 (slot 34): packs a stack UnitVitals the builder leaves unwritten when the prototype exists (garbage in the
   original; cannot be reproduced). 0050F080 is rewritten (A-U5, map_object_vitals.cpp: CMapObject::ClearProtectionBases,
   verified ours vs original on the protection pairs; reached by every unit spawn through 0058EF20).

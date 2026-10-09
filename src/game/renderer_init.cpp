@@ -312,16 +312,16 @@ void __fastcall RendererCreate(CSceneRenderer* renderer, void*, void* window, Ga
     SetTextureStages(renderer, settings, deviceDesc);
     SetRenderStates(renderer, settings);
 
-    renderer->unknown_34 = 0;
+    renderer->frameTime_ = 0;
     renderer->flags_ |= 2;
-    renderer->unknown_38 = 0x80000000;
-    renderer->unknown_3C = 0;
-    renderer->unknown_44 = 0;
-    renderer->unknown_48 = 0;
-    renderer->unknown_40 = 0;
-    renderer->createdTime_ = gameapi::timeGetTime();
-    renderer->unknown_54 = 0;
-    renderer->unknown_58 = 0;
+    renderer->shortestFrame_ = 0x80000000;
+    renderer->longestFrame_ = 0;
+    renderer->totalTime_ = 0;
+    renderer->frameCount_ = 0;
+    renderer->averageFrame_ = 0;
+    renderer->lastFrameStart_ = gameapi::timeGetTime();
+    renderer->windowTime_ = 0;
+    renderer->windowFrames_ = 0;
     AddDefaultLight(renderer);
 
     // The ambient colour (slot 7): grey 50 from three FISTPs of 50.0.

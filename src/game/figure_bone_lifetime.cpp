@@ -108,3 +108,7 @@ FigureBone* FigureBone::DeleteBone(unsigned flags) {
     return this;
 }
 EI_REPLACE_METHOD(0x0050B1B0, FigureBone::DeleteBone);
+
+// 0050DD40 (RET 8): the bones' matrix array's discarding SetSize with a growth step (A-U10),
+// registered on the template.
+EI_REPLACE_METHOD(0x0050DD40, lib::AlignedArray<Matrix4>::SetSizeDiscardStep);

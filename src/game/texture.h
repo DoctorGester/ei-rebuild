@@ -54,8 +54,14 @@ public:
     std::uint8_t unknown_B0[0x158 - 0xB0];
     int unknown_158;            // +0x158 cleared around the sky and hit point draws (00569E40), else 1
     RECT drawnRect_;            // +0x15C the screen rectangle of the last mesh draw (004E9010 / 004E9A50)
+    // +0x16C .. +0x178: the frame's counts, cleared by the renderer's BeginScene (00503F40).
+    int vertexCount_;           // +0x16C vertices drawn
+    int primitiveCount_;        // +0x170 primitives drawn
+    int drawCount_;             // +0x174 draw calls
+    int unknown_178;            // +0x178
 };
-static_assert(offsetof(CTextureDevice, drawnRect_) == 0x15C);
+static_assert(offsetof(CTextureDevice, drawnRect_) == 0x15C && offsetof(CTextureDevice, vertexCount_) == 0x16C);
+static_assert(sizeof(CTextureDevice) == 0x17C);
 static_assert(offsetof(CTextureDevice, zEnable_) == 0x60);
 static_assert(offsetof(CTextureDevice, unknown_158) == 0x158);
 

@@ -472,3 +472,11 @@ int __fastcall DrawSprites(char* renderer, void*, char additive, const void* poi
     return 1;
 }
 EI_REPLACE(0x00502CA0, DrawSprites);
+
+// The sprite buffers' aligned array copies (A-U10), registered on the template (RET 8): SetSize
+// keeping the contents for 32-byte (00504F70), 16-byte (00505150) and 4-byte (00505270) elements,
+// and the discarding one with a growth step for 32-byte elements (00505080).
+EI_REPLACE_METHOD(0x00504F70, lib::AlignedArray<TLVertex>::SetSize);
+EI_REPLACE_METHOD(0x00505080, lib::AlignedArray<TLVertex>::SetSizeDiscardStep);
+EI_REPLACE_METHOD(0x00505150, lib::AlignedArray<SpriteSortRecord>::SetSize);
+EI_REPLACE_METHOD(0x00505270, lib::AlignedArray<SpriteSortRecord*>::SetSize);

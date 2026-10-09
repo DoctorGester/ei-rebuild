@@ -530,6 +530,9 @@ __declspec(naked) inline void __fastcall DebugPanelReleaseOriginal(void* /*panel
 // 00444C10 (thiscall, RET 4): the debug information panel's rectangle (string_map.cpp).
 __declspec(naked) inline void __fastcall DebugPanelSetRectOriginal(void* /*panel*/, void*, const tagRECT* /*rect*/)
     EI_ORIGINAL(0x00444C10)
+// 004447E0 (the panel's slot 0, thiscall, RET 8; string_map.cpp's StringTableSet): panel[key] = value.
+__declspec(naked) inline void __fastcall DebugPanelSetOriginal(void* /*panel*/, void*, const char* /*key*/,
+                                                               const char* /*value*/) EI_ORIGINAL(0x004447E0)
 __declspec(naked) inline void __cdecl SaveKeyBindingsOriginal() EI_ORIGINAL(0x00462DF0)
 // 005AC1A0 (thiscall on the model manager, UiModelManager(), RET 4): a new object `name` (a figure; null: an interface
 // sprite, CUiMesh), or null.
