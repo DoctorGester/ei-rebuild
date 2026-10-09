@@ -1,11 +1,17 @@
 // Constructors and destructors of the map object family: CObject3D, CMapObject, CUnit, their
 // server / client companions and the server-side unit controller. See
 // docs/notes/map_objects.md ("Lifetime").
+#include "ai_map.h"        // AIPath
+#include "ai_motion.h"     // UnitMotion
 #include "combat.h"
 #include "core_streams.h"
+#include "core_transform.h"
 #include "map_object.h"
 #include "map_object_figures.h"
+#include "net_delta.h"     // DeltaState
+#include "spell.h"         // CLightFactory
 #include "unit.h"
+#include "unit_ai.h"       // AIBrain
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -20,64 +26,74 @@
 #include "originals_ai.h"
 
 #include <cstring>
+#include <new>
 
 namespace {
-template <typename T>
-T& At(void* base, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(base) + offset);
-}
-void SetVtable(void* object, std::uintptr_t vtable) { At<std::uintptr_t>(object, 0) = vtable; }
-void SetDword(void* object, int offset, std::uint32_t value) { At<std::uint32_t>(object, offset) = value; }
-// An empty CString (afxEmptyString's data) at `offset`.
-void SetEmptyString(void* object, int offset) { At<char*>(object, offset) = *reinterpret_cast<char**>(0x00796E48); }
+using ei::SetVtable;
 
 // Vtables.
-constexpr std::uintptr_t kEngineObjectVtable = 0x0073B8E0;
-constexpr std::uintptr_t kTransformVtable = 0x0073BA38;
-constexpr std::uintptr_t kObject3DVtable = 0x0073DDD4;
-constexpr std::uintptr_t kPartListVtable = 0x0073DE4C;
-constexpr std::uintptr_t kFrameArrayVtable = 0x0073DE40;
-constexpr std::uintptr_t kMapObjectVtable = 0x0073DAA0;
-constexpr std::uintptr_t kEffectArrayVtable = 0x0073DBA0;
-constexpr std::uintptr_t kRecordArrayVtable = 0x0073DB94;
+constexpr std::uintptr_t kObject3DVtable = std::uintptr_t(0x0073DDD4);
+constexpr std::uintptr_t kPartListVtable = std::uintptr_t(0x0073DE4C);
+constexpr std::uintptr_t kFrameArrayVtable = std::uintptr_t(0x0073DE40);
+constexpr std::uintptr_t kMapObjectVtable = std::uintptr_t(0x0073DAA0);
+constexpr std::uintptr_t kEffectArrayVtable = std::uintptr_t(0x0073DBA0);
+constexpr std::uintptr_t kRecordArrayVtable = std::uintptr_t(0x0073DB94);
 // CMemoryStream's second vtable (the network queue's streams, 0073C960).
-constexpr std::uintptr_t kQueueStreamVtable = 0x0073C960;
-constexpr std::uintptr_t kUnitVtable = 0x0073EA8C;
-constexpr std::uintptr_t kCarriedArrayVtable = 0x0073EB84;
-constexpr std::uintptr_t kCompanionBaseVtable = 0x0073DC54;
-constexpr std::uintptr_t kServerCompanionVtable = 0x0073DD6C;
-constexpr std::uintptr_t kClientCompanionVtable = 0x0073DBEC;
-constexpr std::uintptr_t kParticleArrayVtable = 0x0073DC48;
-constexpr std::uintptr_t kSoundArrayVtable = 0x0073DC3C;
-constexpr std::uintptr_t kUnitServerVtable = 0x0073EF38;
-constexpr std::uintptr_t kControllerVtable = 0x0073EDBC;
-constexpr std::uintptr_t kServerArrayVtable = 0x0073EF2C;
+constexpr std::uintptr_t kQueueStreamVtable = std::uintptr_t(0x0073C960);
+constexpr std::uintptr_t kUnitVtable = std::uintptr_t(0x0073EA8C);
+constexpr std::uintptr_t kCarriedArrayVtable = std::uintptr_t(0x0073EB84);
+// The unit motion's arrays (UnitMotion: points, waypoints, step speeds) while constructed / destroyed.
+constexpr std::uintptr_t kMotionPointsVtable = std::uintptr_t(0x0073EB9C);
+constexpr std::uintptr_t kMotionWaypointsVtable = std::uintptr_t(0x0073EB90);
+constexpr std::uintptr_t kMotionSpeedsVtable = std::uintptr_t(0x0073D490);
+constexpr std::uintptr_t kMotionPointsEndVtable = std::uintptr_t(0x0073EBA8);
+constexpr std::uintptr_t kMotionWaypointsEndVtable = std::uintptr_t(0x0073EBB4);
+constexpr std::uintptr_t kMotionSpeedsEndVtable = std::uintptr_t(0x0073D3E8);
+constexpr std::uintptr_t kCompanionBaseVtable = std::uintptr_t(0x0073DC54);
+constexpr std::uintptr_t kServerCompanionVtable = std::uintptr_t(0x0073DD6C);
+constexpr std::uintptr_t kClientCompanionVtable = std::uintptr_t(0x0073DBEC);
+constexpr std::uintptr_t kParticleArrayVtable = std::uintptr_t(0x0073DC48);
+constexpr std::uintptr_t kSoundArrayVtable = std::uintptr_t(0x0073DC3C);
+constexpr std::uintptr_t kUnitServerVtable = std::uintptr_t(0x0073EF38);
+constexpr std::uintptr_t kControllerVtable = std::uintptr_t(0x0073EDBC);
+constexpr std::uintptr_t kServerArrayVtable = std::uintptr_t(0x0073EF2C);
+constexpr std::uintptr_t kArmourSpellListVtable = std::uintptr_t(0x0073F010);
 
 constexpr std::uint32_t kStreamLimit = 2000000000;   // a memory stream's size limit
 constexpr std::uint32_t kOne = 0x3F800000;
+constexpr std::uint32_t kTenth = 0x3DCCCCCD;          // 0.1
+constexpr std::uint32_t kThreeQuarters = 0x3F400000;  // 0.75
+constexpr std::uint32_t kHalf = 0x3F000000;           // 0.5
+
+// The figures' default scale (007AF1D0, three floats) and the light manager (*007AF738).
+const void* DefaultFigureScale() { return reinterpret_cast<const void*>(0x007AF1D0); }
+void* LightManager() { return *reinterpret_cast<void* const*>(0x007AF738); }
+
+// A float stored as the dword the original moves.
+void SetBits(float& field, std::uint32_t bits) { std::memcpy(&field, &bits, 4); }
 
 // Not rewritten, forwarders:
 // 0040CB00. Quaternion::SetIdentity.
-__declspec(naked) void* __fastcall SetIdentity(void*) EI_ORIGINAL(0x0040CB00)
+__declspec(naked) void* __fastcall SetIdentity(Quaternion*) EI_ORIGINAL(0x0040CB00)
 // 006FE925 / 006FE958 / 006FE9B8. CStringArray constructor, destructor, SetSize.
 // 0047FB70. The network record array and its streams: emptied.
-__declspec(naked) void __fastcall ResetNetRecords(void*) EI_ORIGINAL(0x0047FB70)
+__declspec(naked) void __fastcall ResetNetRecords(DeltaState*) EI_ORIGINAL(0x0047FB70)
 // 00510340. A network record's destructor.
-__declspec(naked) void __fastcall DestroyNetRecord(void*) EI_ORIGINAL(0x00510340)
+__declspec(naked) void __fastcall DestroyNetRecord(DeltaField*) EI_ORIGINAL(0x00510340)
 // 00516080. CObject3D: releases its parts, animation and figure.
 __declspec(naked) void __fastcall ReleaseParts(CObject3D*) EI_ORIGINAL(0x00516080)
-// 004CD080 / 0052E230 / 005C6270. The unit's +0x2A4 array constructor, the +0x2CC constructor
-// (empty) and the AI memory sub-object's constructor.
-__declspec(naked) void __fastcall ConstructUnitArray(void*) EI_ORIGINAL(0x004CD080)
-__declspec(naked) void* __fastcall ConstructUnit2CC(void*) EI_ORIGINAL(0x0052E230)
-__declspec(naked) void __fastcall ConstructUnitMemory(void*) EI_ORIGINAL(0x005C6270)
+// 004CD080 / 0052E230 / 005C6270. The unit motion's step speed array constructor, the constructor
+// of its segment part (+0x50, empty) and the motion's own constructor.
+__declspec(naked) void __fastcall ConstructUnitArray(mfc::CArray<float>*) EI_ORIGINAL(0x004CD080)
+__declspec(naked) void* __fastcall ConstructUnit2CC(float*) EI_ORIGINAL(0x0052E230)
+__declspec(naked) void __fastcall ConstructUnitMemory(UnitMotion*) EI_ORIGINAL(0x005C6270)
 // 0050E840. CMapObject's Destroy (slot 3), called directly.
 __declspec(naked) void __fastcall MapObjectDestroy(void*) EI_ORIGINAL(0x0050E840)
 inline void __fastcall SetParticleCount(void* a0, void*, int a2, int a3) { CompanionParticlesSetSizeOriginal(a0, nullptr, a2, a3); }
 // 006CA720. Light manager: removes a light.
-// 00511FB0. The light list (007AF748 + 0xD4): erases the entries with id *id.
+// 00511FB0. The light list (CLightFactory::litIds_): erases the entries with id *id.
 // 00511B90. A counted reference: assign.
-void __fastcall AssignReference(CEngineObject** a0, void*, CEngineObject* a2) { CountedRefStoreOriginal((void*)a0, nullptr, (void*)a2); }
+void __fastcall AssignReference(CEngineObject** a0, void*, CEngineObject* a2) { CountedRefStoreOriginal(a0, nullptr, a2); }
 // The server unit controller's members (00546230).
 __declspec(naked) void __fastcall ControllerClearOrders(void*) EI_ORIGINAL(0x00546480)
 __declspec(naked) void __fastcall BrainMemoryDestroy(void*) EI_ORIGINAL(0x00545CB0)
@@ -103,61 +119,71 @@ __declspec(naked) void __fastcall DestructMapObjectAt(void*) EI_ORIGINAL(0x0050E
 __declspec(naked) void __fastcall ResetUnitAt(void*) EI_ORIGINAL(0x0052E5B0)
 
 // The engine object fields every constructor here sets (the base constructor inlined).
-void InitEngineObject(void* object) {
-    SetDword(object, 0x04, 0);            // refCount_
-    SetDword(object, 0x0C, 0xFFFFFFFFu);  // id_
-    SetDword(object, 0x18, 0);
-    SetDword(object, 0x10, 0);            // type_
-    SetDword(object, 0x08, 0);            // flags_
-    SetDword(object, 0x14, 0);            // owner_
+void InitEngineObject(CEngineObject* object) {
+    object->refCount_ = 0;
+    object->id_ = -1;
+    object->unknown_18 = 0;
+    object->type_ = 0;
+    object->flags_ = 0;
+    object->owner_ = nullptr;
 }
 
-// A memory stream member (vtable 0073BD90 while it frees its buffer at +0x18, then its base's).
-void DestroyStream(void* stream) {
+// A CString member (some layouts keep it as its data pointer): constructed empty (afxEmptyString's
+// data), or destroyed.
+void ConstructString(void* string) { new (string) mfc::CString(); }
+void DestroyString(void* string) { static_cast<mfc::CString*>(string)->~CString(); }
+
+// A memory stream member (vtable 0073BD90 while it frees its buffer, then its base's).
+void DestroyStream(CMemoryStream* stream) {
     SetVtable(stream, kMemoryStreamVtable);
-    if (void* buffer = At<void*>(stream, 0x18)) gamecrt::operator_delete(buffer);
+    if (stream->data_) gamecrt::operator_delete(stream->data_);
     SetVtable(stream, kStreamVtable);
 }
 
 // A plain CArray member: its vtable, then its data freed.
-void DestroyArray(void* array, std::uintptr_t vtable) {
-    SetVtable(array, vtable);
-    if (void* data = At<void*>(array, 4)) gamecrt::operator_delete(data);
+template <typename Array>
+void DestroyArray(Array& array, std::uintptr_t vtable) {
+    SetVtable(&array, vtable);
+    if (array.data) gamecrt::operator_delete(array.data);
+}
+void DestroyArray(AnimationSteps& array, std::uintptr_t vtable) {
+    SetVtable(&array, vtable);
+    if (array.steps) gamecrt::operator_delete(array.steps);
 }
 } // namespace
 
 // --- CObject3D --------------------------------------------------------------------------------
 
 CObject3D* CObject3D::Construct() {
-    SetVtable(this, kEngineObjectVtable);
+    SetVtable(this, CEngineObject::kVtableAddress);
     InitEngineObject(this);
-    SetIdentity(reinterpret_cast<char*>(this) + 0x34);
-    SetIdentity(reinterpret_cast<char*>(this) + 0x44);
-    SetVtable(this, kTransformVtable);
-    SetEmptyString(this, 0xA4);
+    SetIdentity(&orientation);
+    SetIdentity(&worldOrientation);
+    SetVtable(this, CTransformObject::kVtableAddress);
+    ConstructString(&name);
     // The part list (an MFC CPtrList: head, tail, count, free list, blocks, block size 10).
-    SetDword(this, 0xA8, kPartListVtable);
-    SetDword(this, 0xB4, 0);
-    SetDword(this, 0xB8, 0);
-    SetDword(this, 0xB0, 0);
-    SetDword(this, 0xAC, 0);
-    SetDword(this, 0xBC, 0);
-    SetDword(this, 0xC0, 10);
+    SetVtable(&effectSources, kPartListVtable);
+    effectSources.count = 0;
+    effectSources.free = nullptr;
+    effectSources.tail = nullptr;
+    effectSources.head = nullptr;
+    effectSources.blocks = nullptr;
+    effectSources.blockSize = 10;
     std::memset(&parts, 0, sizeof(parts));
     std::memset(&pendingParts, 0, sizeof(pendingParts));
     figure = nullptr;
-    StringArrayConstruct(reinterpret_cast<char*>(this) + 0x110);
+    StringArrayConstruct(&partNameArrayVtable);
     std::memset(&boundsFlags, 0, 0xE * 4);
-    SetDword(this, 0x15C, kFrameArrayVtable);
-    SetDword(this, 0x160, 0);
-    SetDword(this, 0x16C, 0);
-    SetDword(this, 0x168, 0);
-    SetDword(this, 0x164, 0);
+    partBoxArrayVtable = reinterpret_cast<void*>(kFrameArrayVtable);
+    partBoxes = nullptr;
+    partBoxGrowBy = 0;
+    partBoxCapacity = 0;
+    partBoxCount = 0;
     SetVtable(this, kObject3DVtable);
     attached = nullptr;
     animation = nullptr;
     std::memset(scale, 0, sizeof(scale));
-    std::memcpy(reinterpret_cast<char*>(this) + 0xF4, reinterpret_cast<const void*>(0x007AF1D0), 12);
+    std::memcpy(defaultScale, DefaultFigureScale(), 12);
     return this;
 }
 EI_REPLACE_METHOD(0x00515BD0, CObject3D::Construct);
@@ -165,25 +191,25 @@ EI_REPLACE_METHOD(0x00515BD0, CObject3D::Construct);
 void CObject3D::DestructBody() {
     SetVtable(this, kObject3DVtable);
     ReleaseParts(this);
-    DestroyArray(reinterpret_cast<char*>(this) + 0x15C, kFrameArrayVtable);
-    StringArrayDestruct(reinterpret_cast<char*>(this) + 0x110);
+    partBoxArrayVtable = reinterpret_cast<void*>(kFrameArrayVtable);
+    if (partBoxes) gamecrt::operator_delete(partBoxes);
+    StringArrayDestruct(&partNameArrayVtable);
     if (CEngineObject* current = figure) {
-        if (--current->refCount_ == 0 && current) ei::VCall<void>(current, 0, 1);
+        if (--current->refCount_ == 0 && current) delete current;   // slot 0 with 1
     }
     if (pendingParts.data) gamecrt::operator_delete(pendingParts.data[-1]);
     if (parts.data) gamecrt::operator_delete(parts.data[-1]);
     // The part list: emptied, its blocks freed.
-    void* list = reinterpret_cast<char*>(this) + 0xA8;
-    SetVtable(list, kPartListVtable);
-    auto* blocks = At<mfc::CPlex*>(list, 0x14);
-    SetDword(list, 0xC, 0);
-    SetDword(list, 0x10, 0);
-    SetDword(list, 0x8, 0);
-    SetDword(list, 0x4, 0);
+    SetVtable(&effectSources, kPartListVtable);
+    mfc::CPlex* blocks = effectSources.blocks;
+    effectSources.count = 0;
+    effectSources.free = nullptr;
+    effectSources.tail = nullptr;
+    effectSources.head = nullptr;
     mfc::PlexFreeDataChain(blocks);
-    SetDword(list, 0x14, 0);
-    At<mfc::CString>(this, 0xA4).~CString();
-    SetVtable(this, kTransformVtable);
+    effectSources.blocks = nullptr;
+    DestroyString(&name);
+    SetVtable(this, CTransformObject::kVtableAddress);
     DestructBaseAt(this);
 }
 EI_REPLACE_METHOD(0x00515D70, CObject3D::DestructBody);
@@ -197,50 +223,50 @@ CMapObject* CMapObject::Construct() {
     effectGrowBy = 0;
     effectCapacity = 0;
     effectCount = 0;
-    SetEmptyString(this, 0x1A8);
-    // The network records (+0x1C4, 0xA0 each) and their two memory streams.
-    char* records = reinterpret_cast<char*>(this) + 0x1C4;
+    ConstructString(&name2);
+    // The network records (DeltaField, 0xA0 each) and their two memory streams.
+    DeltaState* records = NetState();
     SetVtable(records, kRecordArrayVtable);
-    SetDword(records, 0x04, 0);
-    SetDword(records, 0x10, 0);
-    SetDword(records, 0x0C, 0);
-    SetDword(records, 0x08, 0);
-    char* stream = records + 0x24;
-    SetDword(stream, 0x08, kStreamLimit);
-    At<std::uint8_t>(stream, 0x05) = 1;
+    records->fields_ = nullptr;
+    records->unknown_10 = 0;
+    records->unknown_C = 0;
+    records->fieldCount_ = 0;
+    CMemoryStream* stream = &records->header_[0];
+    stream->version_ = kStreamLimit;
+    stream->ok_ = 1;
     SetVtable(stream, kMemoryStreamVtable);
-    SetDword(stream, 0x18, 0);
-    reinterpret_cast<CMemoryStream*>(stream)->Reset();
+    stream->data_ = nullptr;
+    stream->Reset();
     SetVtable(stream, kQueueStreamVtable);
-    stream = records + 0x4C;
-    reinterpret_cast<CStream*>(stream)->ConstructBase();
+    stream = &records->header_[1];
+    stream->ConstructBase();
     SetVtable(stream, kMemoryStreamVtable);
-    SetDword(stream, 0x18, 0);
-    reinterpret_cast<CMemoryStream*>(stream)->Reset();
+    stream->data_ = nullptr;
+    stream->Reset();
     SetVtable(stream, kQueueStreamVtable);
     ResetNetRecords(records);
     SetVtable(this, kMapObjectVtable);
     companion = nullptr;
-    ResetPackedVitals(reinterpret_cast<char*>(this) + 0x17C);
+    ResetPackedVitals(PackedVitals());
     sectorCellX = -1;
     sectorCellY = -1;
-    SetDword(this, 0x178, kOne);
+    SetBits(unknown_178, kOne);
     return this;
 }
 EI_REPLACE_METHOD(0x0050E2D0, CMapObject::Construct);
 
 void CMapObject::DestructBody() {
     SetVtable(this, kMapObjectVtable);
-    char* records = reinterpret_cast<char*>(this) + 0x1C4;
-    DestroyStream(records + 0x4C);
-    DestroyStream(records + 0x24);
+    DeltaState* records = NetState();
+    DestroyStream(&records->header_[1]);
+    DestroyStream(&records->header_[0]);
     SetVtable(records, kRecordArrayVtable);
-    if (char* data = At<char*>(records, 4)) {
-        int count = At<int>(records, 8);
-        for (int i = 0; i < count; ++i) DestroyNetRecord(data + 0xA0 * i);
-        gamecrt::operator_delete(At<void*>(records, 4));
+    if (DeltaField* data = records->fields_) {
+        int count = records->fieldCount_;
+        for (int i = 0; i < count; ++i) DestroyNetRecord(data + i);
+        gamecrt::operator_delete(records->fields_);
     }
-    At<mfc::CString>(this, 0x1A8).~CString();
+    DestroyString(&name2);
     effectsVtable = reinterpret_cast<void*>(kEffectArrayVtable);
     if (effects) gamecrt::operator_delete(effects);
     DestructObject3DAt(this);
@@ -251,29 +277,29 @@ EI_REPLACE_METHOD(0x0050E660, CMapObject::DestructBody);
 
 CUnit* CUnit::Construct() {
     ConstructMapObjectAt(this);
-    SetEmptyString(this, 0x238);
-    // The AI memory sub-object (+0x27C): two arrays, then +0x2A4 and +0x2CC.
-    char* memory = reinterpret_cast<char*>(this) + 0x27C;
-    SetDword(memory, 0x04, 0);
-    SetDword(memory, 0x10, 0);
-    SetDword(memory, 0x0C, 0);
-    SetDword(memory, 0x08, 0);
-    SetVtable(memory, 0x0073EB9C);
-    SetDword(memory, 0x18, 0);
-    SetDword(memory, 0x24, 0);
-    SetDword(memory, 0x20, 0);
-    SetDword(memory, 0x1C, 0);
-    SetDword(memory, 0x14, 0x0073EB90);
-    ConstructUnitArray(memory + 0x28);
-    SetVtable(memory + 0x28, 0x0073D490);
-    char* sub = memory + 0x50;
-    ConstructUnit2CC(sub);
-    for (int offset = 0x28; offset <= 0x44; offset += 4) SetDword(sub, offset, 0);
-    SetDword(sub, 0x50, 0xFFFFFFFFu);
-    ConstructUnitMemory(memory);
-    SetDword(memory, 0x3C, 0x3DCCCCCD);   // 0.1
-    SetDword(memory, 0x40, 0x3DCCCCCD);
-    SetDword(this, 0x49C, kCarriedArrayVtable);
+    ConstructString(&scriptName);
+    // The unit's motion (+0x27C): two arrays, then the step speeds and the segment part.
+    UnitMotion* m = Motion();
+    m->points.data = nullptr;
+    m->points.growBy = 0;
+    m->points.maxSize = 0;
+    m->points.size = 0;
+    SetVtable(&m->points, kMotionPointsVtable);
+    m->waypoints.data = nullptr;
+    m->waypoints.growBy = 0;
+    m->waypoints.maxSize = 0;
+    m->waypoints.size = 0;
+    SetVtable(&m->waypoints, kMotionWaypointsVtable);
+    ConstructUnitArray(&m->stepSpeeds);
+    SetVtable(&m->stepSpeeds, kMotionSpeedsVtable);
+    ConstructUnit2CC(&m->fromX);
+    std::memset(&m->curveX, 0, sizeof(m->curveX));
+    std::memset(&m->curveY, 0, sizeof(m->curveY));
+    m->segment = -1;
+    ConstructUnitMemory(m);
+    SetBits(m->speedScale, kTenth);
+    SetBits(m->baseTurnRate, kTenth);
+    unknown_49C = static_cast<std::uint32_t>(kCarriedArrayVtable);
     carried = nullptr;
     carriedGrowBy = 0;
     carriedCapacity = 0;
@@ -287,17 +313,17 @@ CUnit* CUnit::Construct() {
 EI_REPLACE_METHOD(0x0052E110, CUnit::Construct);
 
 void CUnit::Reset() {
-    At<mfc::CString>(this, 0x238).Empty();
+    reinterpret_cast<mfc::CString*>(&scriptName)->Empty();
     prototype23C = -1;
     heightOffset = 0.0f;
     sizeClass = 3;
-    SetDword(this, 0x328, 0x3F400000);   // 0.75
-    SetDword(this, 0x32C, 0x3F000000);   // 0.5
+    SetBits(unknown_328, kThreeQuarters);
+    SetBits(standingHeight, kHalf);
     relationsA = 0;
     relationsB = 0xFFFFFFFFu;
     side = 0;
     if (controller) {
-        At<CUnit*>(controller, 0x1C) = nullptr;
+        static_cast<CUnitServer*>(controller)->unit = nullptr;
         controller->Release();
     }
     unknown_254 = -1;
@@ -312,9 +338,9 @@ void CUnit::Reset() {
     moveMode2 = 2;
     unknown_270 = -1;
     dead = 0;
-    SetDword(this, 0x278, 0);
+    unknown_278 = 0;
     activeWeapon = 0xFFFFFFFFu;
-    ResetParams(reinterpret_cast<char*>(this) + 0x330);
+    ResetParams(Params());
     std::memset(weapons, 0, sizeof(weapons));
     std::memset(quickItems, 0, sizeof(quickItems));
     std::memset(armor, 0, sizeof(armor));
@@ -326,22 +352,26 @@ void CUnit::Reset() {
     carriedCapacity = 0;
     carriedCount = 0;
     unknown_43C = 0;
-    ResetNetRecords(reinterpret_cast<char*>(this) + 0x1C4);
+    ResetNetRecords(MapObject()->NetState());
     unknown_438 = 1;
 }
 EI_REPLACE_METHOD(0x0052E5B0, CUnit::Reset);
 
 void CUnit::DestructBody() {
     SetVtable(this, kUnitVtable);
-    // The vtable's slot 5 (0052E740, the release from the player), called directly.
-    reinterpret_cast<void(__fastcall*)(CUnit*)>(*reinterpret_cast<void**>(kUnitVtable + 0x14))(this);
+    // The vtable's slot 5 (0052E740, the release from the player), called through the vtable's
+    // memory as the original does.
+    using Slot = void(__fastcall*)(CUnit*);
+    reinterpret_cast<const Slot*>(kUnitVtable)[5](this);
     MapObjectDestroy(this);
     ResetUnitAt(this);
-    DestroyArray(reinterpret_cast<char*>(this) + 0x49C, kCarriedArrayVtable);
-    DestroyArray(reinterpret_cast<char*>(this) + 0x2A4, 0x0073D3E8);
-    DestroyArray(reinterpret_cast<char*>(this) + 0x290, 0x0073EBB4);
-    DestroyArray(reinterpret_cast<char*>(this) + 0x27C, 0x0073EBA8);
-    At<mfc::CString>(this, 0x238).~CString();
+    unknown_49C = static_cast<std::uint32_t>(kCarriedArrayVtable);
+    if (carried) gamecrt::operator_delete(carried);
+    UnitMotion* m = Motion();
+    DestroyArray(m->stepSpeeds, kMotionSpeedsEndVtable);
+    DestroyArray(m->waypoints, kMotionWaypointsEndVtable);
+    DestroyArray(m->points, kMotionPointsEndVtable);
+    DestroyString(&scriptName);
     DestructMapObjectAt(this);
 }
 EI_REPLACE_METHOD(0x0052E310, CUnit::DestructBody);
@@ -358,76 +388,75 @@ EI_REPLACE_METHOD(0x0052E2A0, CUnit::DeletingDestructor);
 CMapObjectServer* CMapObjectServer::Construct() {
     InitEngineObject(this);
     SetVtable(this, kCompanionBaseVtable);
-    SetDword(this, 0x1C, 0);
-    SetEmptyString(this, 0x78);
-    SetEmptyString(this, 0x7C);
-    StringArrayConstruct(reinterpret_cast<char*>(this) + 0x80);
+    CompanionOwner(this) = nullptr;
+    ConstructString(&name78);
+    ConstructString(&name7C);
+    StringArrayConstruct(&stringsVtable);
     SetVtable(this, kServerCompanionVtable);
-    SetDword(this, 0x1C, 0);
-    ResetVitals(reinterpret_cast<char*>(this) + 0x20);
+    CompanionOwner(this) = nullptr;
+    ResetVitals(&vitals);
     return this;
 }
 EI_REPLACE_METHOD(0x00515610, CMapObjectServer::Construct);
 
 void CMapObjectServer::DestructBody() {
     SetVtable(this, kServerCompanionVtable);
-    ResetVitals(reinterpret_cast<char*>(this) + 0x20);
-    char* names = reinterpret_cast<char*>(this) + 0x80;
-    StringArraySetSize(names, nullptr, 0, -1);
-    SetDword(this, 0x1C, 0);
-    StringArrayDestruct(names);
-    At<mfc::CString>(this, 0x7C).~CString();
-    At<mfc::CString>(this, 0x78).~CString();
+    ResetVitals(&vitals);
+    StringArraySetSize(&stringsVtable, nullptr, 0, -1);
+    CompanionOwner(this) = nullptr;
+    StringArrayDestruct(&stringsVtable);
+    name7C.~CString();
+    name78.~CString();
     SetVtable(this, kCompanionBaseVtable);
-    SetDword(this, 0x1C, 0);
+    CompanionOwner(this) = nullptr;
     DestructBaseAt(this);
 }
 EI_REPLACE_METHOD(0x00515720, CMapObjectServer::DestructBody);
 
 CMapObjectClientSpecific* CMapObjectClientSpecific::Construct() {
     InitEngineObject(this);
-    SetDword(this, 0x1C, 0);
+    object = nullptr;
     // The effect particles (0x10 each) and looping sounds (0x14 each), MFC CArrays.
-    SetDword(this, 0x28, kParticleArrayVtable);
-    SetDword(this, 0x2C, 0);
-    SetDword(this, 0x38, 0);
-    SetDword(this, 0x34, 0);
-    SetDword(this, 0x30, 0);
-    SetDword(this, 0x3C, kSoundArrayVtable);
-    SetDword(this, 0x40, 0);
-    SetDword(this, 0x4C, 0);
-    SetDword(this, 0x48, 0);
-    SetDword(this, 0x44, 0);
-    SetDword(this, 0x50, 0);   // the light
+    SetVtable(&particles, kParticleArrayVtable);
+    particles.data = nullptr;
+    particles.growBy = 0;
+    particles.maxSize = 0;
+    particles.size = 0;
+    SetVtable(&sounds, kSoundArrayVtable);
+    sounds.data = nullptr;
+    sounds.growBy = 0;
+    sounds.maxSize = 0;
+    sounds.size = 0;
+    light = nullptr;
     SetVtable(this, kClientCompanionVtable);
-    SetDword(this, 0x20, 0);
-    SetDword(this, 0x24, 0);
+    unknown_20 = 0;
+    unknown_24 = 0;
     return this;
 }
 EI_REPLACE_METHOD(0x00510450, CMapObjectClientSpecific::Construct);
 
 void CMapObjectClientSpecific::DestructBody() {
     SetVtable(this, kClientCompanionVtable);
-    SetDword(this, 0x20, 0);
-    SetDword(this, 0x24, 0);
+    unknown_20 = 0;
+    unknown_24 = 0;
     SetParticleCount(&particles, nullptr, 0, -1);
     if (light) {
         light->flags_ &= ~0x200u;
         if (CEngineObject* shown = light; shown && !(shown->flags_ & 0x80) && !(shown->flags_ & 0x200)) {
             shown->flags_ |= 0x80;
-            RemoveLight(*reinterpret_cast<void**>(0x007AF738), nullptr, light);
-            if (CEngineObject* owner = At<CEngineObject*>(this, 0x1C)) {
-                if (CEngineObject* attached = At<CEngineObject*>(owner, 0x94))
-                    ei::VCall<void>(attached, 0x68 / 4, 0);
+            RemoveLight(LightManager(), nullptr, light);
+            if (CUnit* owner = object) {
+                if (CEngineObject* half = owner->Object3D()->attached)
+                    static_cast<CObject3DSpecific*>(half)->SetLit(0);
             }
         }
         int id = light->id_;
-        LightIdsRemoveOriginal(*reinterpret_cast<char**>(0x007AF748) + 0xD4, nullptr, &id);
+        LightIdsRemoveOriginal(&TheLightFactory()->litIds_, nullptr, &id);
         AssignReference(&light, nullptr, nullptr);
     }
-    SetDword(this, 0x1C, 0);
+    object = nullptr;
     if (light) light->Release();
-    DestroyArray(reinterpret_cast<char*>(this) + 0x3C, kSoundArrayVtable);
+    DestroyArray(sounds, kSoundArrayVtable);
     SetVtable(&particles, kParticleArrayVtable);
     if (EffectParticle* data = particles.data) {
         for (int i = 0; i < particles.size; ++i)
@@ -435,7 +464,7 @@ void CMapObjectClientSpecific::DestructBody() {
         gamecrt::operator_delete(particles.data);
     }
     SetVtable(this, kCompanionBaseVtable);
-    SetDword(this, 0x1C, 0);
+    object = nullptr;
     DestructBaseAt(this);
 }
 EI_REPLACE_METHOD(0x00510560, CMapObjectClientSpecific::DestructBody);
@@ -445,36 +474,36 @@ EI_REPLACE_METHOD(0x00510560, CMapObjectClientSpecific::DestructBody);
 void CUnitServer::DestructBody() {
     SetVtable(this, kUnitServerVtable);
     ControllerClearOrders(this);
-    char* brainBase = reinterpret_cast<char*>(this) + 0x980;
-    BrainResetAll(brainBase);
-    BrainMemoryDestroy(brainBase + 0xD0);
-    BrainListDestroy(brainBase + 0xA4 + 0x14);
-    BrainListDestroy(brainBase + 0xA4);
-    BrainList90Destroy(brainBase + 0x90);
-    if (void* object = At<void*>(brainBase, 0x8C)) BrainObject8CDestroy(object);
-    BrainList70Destroy(brainBase + 0x70);
-    BrainArrayDestroy(brainBase + 0x30);
-    BrainArrayDestroy(brainBase + 0x2C);
-    Brain14Destroy(brainBase + 0x14);
-    ControllerListDestroy(reinterpret_cast<char*>(this) + 0x960);
-    ControllerListDestroy(reinterpret_cast<char*>(this) + 0x944);
-    SetDword(this, 0x91C, 0x0073F010);
-    Controller91CDestroy(reinterpret_cast<char*>(this) + 0x91C);
-    if (auto* object = At<CEngineObject*>(this, 0x1DC)) object->Release();
-    if (auto* object = At<CEngineObject*>(this, 0x1BC)) object->Release();
-    SetDword(this, 0x1BC, 0);
-    if (auto* object = At<CEngineObject*>(this, 0x198)) object->Release();
-    SetDword(this, 0x198, 0);
-    if (auto* object = At<CEngineObject*>(this, 0x17C)) object->Release();
-    DestroyArray(reinterpret_cast<char*>(this) + 0x148, kServerArrayVtable);
-    DestroyArray(reinterpret_cast<char*>(this) + 0xC4, kServerArrayVtable);
-    char* paths = reinterpret_cast<char*>(this) + 0x3C;
-    DestroyArray(paths + 0x70, 0x0073F07C);
-    CellListDestroy(paths + 0x3C);
-    CellListDestroy(paths + 0x20);
-    DestroyArray(reinterpret_cast<char*>(this) + 0x24, kServerArrayVtable);
+    AIBrain* b = Brain();
+    BrainResetAll(b);
+    BrainMemoryDestroy(&b->memory);
+    BrainListDestroy(&b->attention.spells);
+    BrainListDestroy(&b->attention.weapons);
+    BrainList90Destroy(&b->alarmRecords);
+    if (AIMode* current = b->current) BrainObject8CDestroy(current);
+    BrainList70Destroy(&b->modes);
+    BrainArrayDestroy(&b->seen);
+    BrainArrayDestroy(&b->target);
+    Brain14Destroy(&b->looks);
+    ControllerListDestroy(&idleAnimation);
+    ControllerListDestroy(&moveAnimation);
+    SetVtable(&armourSpells, kArmourSpellListVtable);
+    Controller91CDestroy(&armourSpells);
+    if (CEngineObject* leader = followedLeader) leader->Release();
+    if (CEngineObject* target = action2.target) target->Release();
+    action2.target = nullptr;
+    if (CEngineObject* target = action.target) target->Release();
+    action.target = nullptr;
+    if (CEngineObject* effect = effectObject) effect->Release();
+    DestroyArray(savedQueue, kServerArrayVtable);
+    DestroyArray(currentPlan.animation, kServerArrayVtable);
+    motion.pointsVtable = reinterpret_cast<void*>(AIPath::kPointsVtable);
+    if (motion.points) gamecrt::operator_delete(motion.points);
+    CellListDestroy(&motion.cells);
+    CellListDestroy(&motion.steps);
+    DestroyArray(queue, kServerArrayVtable);
     SetVtable(this, kControllerVtable);
-    SetDword(this, 0x1C, 0);
+    unit = nullptr;
     DestructBaseAt(this);
 }
 EI_REPLACE_METHOD(0x00546230, CUnitServer::DestructBody);

@@ -94,7 +94,6 @@ src/game/map_object_companion.cpp,0,5,0,1,0,0,0,7,0,0
 src/game/map_object_create.cpp,1,0,0,0,0,0,0,0,0,0
 src/game/map_object_draw.cpp,24,3,0,1,0,0,0,0,0,1
 src/game/map_object_figures.cpp,0,8,0,1,0,0,0,1,0,0
-src/game/map_object_lifetime.cpp,24,2,0,0,19,0,0,30,0,0
 src/game/map_object_shadow.cpp,25,9,1,1,0,0,0,1,0,0
 src/game/map_spec.cpp,1,8,0,0,9,0,0,3,0,0
 src/game/map_spec.h,0,0,0,0,0,0,1,0,0,0
