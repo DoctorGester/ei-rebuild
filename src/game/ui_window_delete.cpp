@@ -600,3 +600,28 @@ void* __fastcall MessageBoxInputDelete(void* input, void*, unsigned flags) {
 }
 EI_REPLACE(0x006345E0, MessageBoxInputDelete);
 EI_REPLACE(0x00634FD0, MessageBoxInputDelete);
+
+// The battle HUD panels' input sides (0064BCF0-0064BD80).
+#define EI_HUD_INPUT_DELETE(Name, Cls, Delete)                         \
+    void* __fastcall Name(void* input, void*, unsigned flags) {         \
+        return Delete(WindowFromInput<Cls>(input), nullptr, flags);     \
+    }
+EI_HUD_INPUT_DELETE(HudWeaponBarInputDelete, CHudWeaponBar, HudWeaponBarDelete)
+EI_HUD_INPUT_DELETE(HudQuickItemsInputDelete, CHudQuickItems, HudQuickItemsDelete)
+EI_HUD_INPUT_DELETE(HudSpellColumnInputDelete, CHudSpellColumn, HudSpellColumnDelete)
+EI_HUD_INPUT_DELETE(HudActionColumnInputDelete, CHudActionColumn, HudActionColumnDelete)
+EI_HUD_INPUT_DELETE(HudPortraitsInputDelete, CHudPortraits, HudPortraitsDelete)
+EI_HUD_INPUT_DELETE(HudUnitPanelInputDelete, CHudUnitPanel, HudUnitPanelDelete)
+EI_HUD_INPUT_DELETE(HudMapInputDelete, CHudMap, HudMapDelete)
+EI_HUD_INPUT_DELETE(HudTopPanelInputDelete, CHudTopPanel, HudTopPanelDelete)
+#undef EI_HUD_INPUT_DELETE
+EI_REPLACE(0x0064BCF0, HudWeaponBarInputDelete);
+EI_REPLACE(0x0064BD00, HudQuickItemsInputDelete);
+EI_REPLACE(0x0064BD10, HudSpellColumnInputDelete);
+EI_REPLACE(0x0064BD20, HudActionColumnInputDelete);
+EI_REPLACE(0x0064BD30, HudPortraitsInputDelete);
+EI_REPLACE(0x0064BD40, HudUnitPanelInputDelete);
+EI_REPLACE(0x0064BD50, HudMapInputDelete);
+EI_REPLACE(0x0064BD60, UiWindowInputDelete);   // the game clock
+EI_REPLACE(0x0064BD70, UiWindowInputDelete);   // the movement panel
+EI_REPLACE(0x0064BD80, HudTopPanelInputDelete);

@@ -238,7 +238,7 @@ void CUiMeshBuilder::Framed(float depth, float scale, float left, float top, flo
     uv[15] = uv[11];
 
     // The frame's eight triangles between the outer (0-3) and inner (4-7) corners.
-    auto* indices = At<IndexArray>(this, 0x200);
+    auto* indices = &Indices();
     indices->SetSize(0, -1);
     static const int kFrame[24] = {0, 4, 2, 4, 6, 2, 2, 6, 3, 6, 7, 3, 3, 7, 1, 7, 5, 1, 1, 5, 0, 5, 4, 0};
     for (int index : kFrame) AppendByGrow(indices, this, index);
@@ -307,7 +307,7 @@ void CUiMeshBuilder::Disc(float depth, float scale, float x, float y, float radi
         uvs_[2 * i + 1] = CircleTexel(i, count, true, uvRadius, v);
     }
     // A fan around point 0.
-    auto* indices = At<IndexArray>(this, 0x200);
+    auto* indices = &Indices();
     indices->SetSize(0, -1);
     for (int i = 1; i < count - 1; ++i) {
         AppendByGrow(indices, this, 0);
@@ -373,7 +373,7 @@ void CUiMeshBuilder::Ring(float depth, float scale, float x, float y, float radi
     uvs_[7] = uvs_[3];
 
     // Two triangles per segment.
-    auto* indices = At<IndexArray>(this, 0x200);
+    auto* indices = &Indices();
     indices->SetSize(0, -1);
     for (int i = 0; i < count; ++i) {
         int base = 4 * i;

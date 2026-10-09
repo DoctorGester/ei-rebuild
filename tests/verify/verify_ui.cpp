@@ -465,6 +465,14 @@ static void __fastcall ClearSceneObjectsVerify(CUiWindow* self) {
 }
 EI_VERIFY(0x005FF7D0, ClearSceneObjectsVerify, 0, s_unused);
 
+// 005FF1E0 (A-I17): the referenced objects' list empty afterwards. Only the base screen's chat
+// window calls it (006091C0; multiplayer chat in a base).
+static void __fastcall ClearObjectsVerify(CUiWindow* self) {
+    self->CUiWindow::ClearObjects();
+    ei::verify::Check("CUiWindow::ClearObjects", true, Empty(self->objects_), "");
+}
+EI_VERIFY(0x005FF1E0, ClearObjectsVerify, 0, s_unused);
+
 static CUiSurface* __fastcall AddSurfaceVerify(CUiWindow* self, void*, CUiSurface* surface) {
     ArraySnapshot before;
     before.Take(self->surfaces_);

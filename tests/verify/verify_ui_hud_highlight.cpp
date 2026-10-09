@@ -21,11 +21,11 @@ struct SpriteState {
     float scale[3];
     std::uint32_t colour;
 };
-SpriteState Read(CUiMesh* m) { return SpriteState{{m->scaleX_, m->scaleY_, m->scaleZ_}, m->colour_}; }
+SpriteState Read(CUiMesh* m) { return SpriteState{{m->ScaleX(), m->ScaleY(), m->ScaleZ()}, m->colour_}; }
 void Write(CUiMesh* m, const SpriteState& s) {
-    m->scaleX_ = s.scale[0];
-    m->scaleY_ = s.scale[1];
-    m->scaleZ_ = s.scale[2];
+    m->ScaleX() = s.scale[0];
+    m->ScaleY() = s.scale[1];
+    m->ScaleZ() = s.scale[2];
     m->colour_ = s.colour;
 }
 

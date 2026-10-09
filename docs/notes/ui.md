@@ -121,7 +121,7 @@ forwarding strip (frees `list_`; the plain strip's 0060E280 frees nothing of its
 `CChatOverlay` / `ChatLine` (007400DC, the in-game chat made by CInterface3D::Create), 005F6130 `CBattleScreenSetup`, 005F8970
 `CHelpWindow` (00740E28), 00603B90 `CObjectivesWindow` (does not free the exit distances map +0x178: kept), 006070C0
 `CSaveLoadWindow`. 005F6BA0 `CBriefingScreen`, 00618570 `CMpConnectScreen` (`MpAddressEntry` 0x34 bytes). 0062EDA0 is 00499E30's code. The HUD
-panels' input thunks 0064BCF0-0064BD80 (HUD range) are not done. CString / pair / vector / CGdiObject deleting destructors went to
+panels' input thunks 0064BCF0-0064BD80 are registered too (A-I17; clock and movement panel on `UiWindowInputDelete`). CString / pair / vector / CGdiObject deleting destructors went to
 library.csv. Reached by every scenario that closes a screen or ends the game.
 
 ### Window stack, screen construction, window base methods (all ours only unless noted)
@@ -163,7 +163,44 @@ Files: `ui_interface_frame.cpp`, `ui_text.cpp`, `ui_console_window.cpp`, `ui_cur
 CPen as the interface uses them); wrappers `verify_ui_base.cpp`. Not rewritten in this range: 005E18E0
 `CFlyingHitPoints::Draw` (float-heavy vertex building; cannot be compared without faking the clock and the device),
 005E2A30 / 005E3230 / 005E3700 (chat window; multiplayer only, 005E3700 Rebirth-patched), 005F8340 (text extent,
-Rebirth-patched), 005F7B40, the sprite draw 005E6D90 (the sprite shape builders 005E8450 / 005E8C60 / 005E91F0 are done: section 9).
+Rebirth-patched), 005F7B40.
+
+A-I17: `CUiMesh::Draw` 005E6D90 (`ui_mesh_draw.cpp`; the placement +0x54 from orientation and position, pushed with
+the scale matrix +0x23C on stacks 2 and 1, the tint through renderer slot 7 `SetColour`, DrawFigure with the material;
+verify ours only: result 1, stack depths and renderer colour back, placement recomputed with 004D9AA0; every scenario) and
+the cursor's `CCursor::Init` 005E60B0 / `AddShape` 005E63F0 (`ui_cursor_setup.cpp`; ours only: fields, size globals,
+holders of the cursor size and twice it; one entry appended; every scenario at start). Init does not free the
+surface memory when 004EF7B0 throws (the original's unwind does). The rest of the cursor object is in the same file: `CursorImage::Destroy`
+005E5160, `CCursor::Construct` 005E51C0 / `DestroyBody` 005E4E00, `ChangeShape` 005E5200 (callers keep `SetShape` through
+the address), `ShowImage` 005E5270, `SetHeld` 005E67B0, `TakeLock` / `ReleaseLock` 005E65F0 / 005E6610 (mode 2 only),
+`Start` 005E6260 (AfxBeginThread 007022A0 of 005E52A0, priority 2, unless mode 1), `Shutdown` 005E62E0, `UpdatePosition`
+005E52E0 (frames every 125 ms; +0x08 is the DirectInput mouse, polled by 0065ECB0; +0x98 the thread). Verify ours only
+(fields, the lock's owner, bounds and the from / rect sizes); every scenario. Kept: Shutdown dereferences a null shape
+entry (AddShape stores one when its allocation fails). 005E67F0 is only called by an unwind funclet (not ported).
+
+A-I17 also: `CInterface3D::Draw` 005F5220 (`ui_interface_draw.cpp`: CloseAllPending, the backdrop +0x54 in modes 2-4,
+the top window's slot 20 with 00500960, the fade +0x18) and `CScreenFade::Draw` 005E69C0 (letterbox bars of
+height * [00740150], the fade's alpha step `(ms as qword) * rate + alpha` stored as float, clamp at 255, below 0 the
+fade ends; renderer slot 19 `DrawRectangle` with ZENABLE off; render states mirrored to render::state); ours only
+(result 1, no close-all pending, alpha in range); every scenario. `CUiMesh::CreateSprite` 005E6C60 (slot 2: the
+figure's Create 005A6C70, identity scale matrix, tint 1, the identity orientation 007C7CD8, z 10, colours
+0xFF000000, visible) and `CUiWindow::ClearObjects` 005FF1E0 (only the base screen's chat window 006091C0 calls it). The sprite's
+array sizes `CUiMesh::SetQuadCount` 005EA210 (then z 0, w 1 in every block), `SetVertexCount` 005EA600 (+2 zeroed),
+`SetIndexCount` 005EA4C0, `SetUvCount` 005EA380 are `lib::AlignedArray<T>::SetSize` on typed views (`Quads()`,
+`Vertices()`, `Indices()`, `Texels()`); ours only (size, capacity, kept prefix, the element fields). `CUiSurface::FrameRect`
+005FDCB0 (`ui_surface_frame.cpp`; the tooltips' border: a CBrush local (`ui_gdi::GameBrush`, Attach 0070A075 /
+DeleteObject 0070A0CC), FrameRect on the held DC around the rect scaled by 005F7CA0 by address, or the whole surface);
+ours only (the DC field unchanged). CDC::FromHandle 00708D79 is `CdcFromHandleOriginal` in originals_ui.h now. `CInterface3D::SaveState`
+005F85C0 (`ui_interface_save.cpp`, LoadState's counterpart; side by side through a recorder on the stream's Write;
+every save).
+
+Next in 005E0000-00640000 after A-I17 (not Rebirth-patched, single player first): 005F4F90 (the interface's shutdown:
+closes the windows, writes config\tutorial.ini from the help map +0x98, frees the surfaces), 005F4790 (a destructor
+body: the help map, the +0x84 list, the window stack's storage), 005FC1F0 (`CUiModel::Load`), 00626C50, 0062B350,
+005E18E0 (`CFlyingHitPoints::Draw`, 2.9 KB float), 00612CF0 (the camp's slot 39, a debug fill of the constructors; no
+scenario). Multiplayer / lobby last: 005E2A30 / 005E3230 / 005E3550 / 005E3CE0 / 005E26F0 (chat), 00608D20-006097E0 (the
+base screen's chat window), 0062C250 / 0062C9C0 (exchange), 0061B2C0-00620300 (connection screens). 005E67F0 is only
+an unwind helper.
 
 | Address | Name | Verify |
 |---|---|---|
@@ -271,6 +308,8 @@ probably CanEquip. Hero creation 00617A50 is reached by ui_hero_delete (unconfir
 |---|---|---|
 | 0062D350, 0062F050 | `CGlobalMap::Create` (slot 25, 6.7 KB), `Update` | ours: marker / sprite / region counts, links point at zones; bob time, w >= 0 after a turn |
 | 00631110, 00631030, 00630F50 | `CGlobalMap::AllodTitle`, `ZoneTitle`, `QuestTitle` (`ui_global_map_places.cpp`) | side by side: the text (scratch string) |
+| 00631CC0 | `GlobalMapZonesSetAtGrow` (A-I17, `ui_global_map.cpp`): `CArray<GlobalMapZone, GlobalMapZoneElements>::SetAtGrow`, the elements' construct / destruct (005FBF50 / 005FBD30) as the policy | ours only: size, the zone's fields and texts, the others' texts, new ones empty (ui_camp, frames_basic) |
+| 00628B50, 006298B0 | `CConstructorPage::SpellMakerItemAt` / `ItemMakerItemAt` (A-I17, slot 25, `ui_constructor_slots.cpp`; the n-th slot item of a kind by region, a help topic) | side by side (ui_camp_deals: pages 3 and 5, the mouse on the first slots) |
 | 00630E00, 00630CC0 | `CGlobalMap::ZonePosition`, `QuestPosition` | side by side when found (CheckNear); the original leaves uninitialised stack in `out` when map.txt has no entry, ours leaves `out` |
 | 00630860, 0062EE90 | `CGlobalMap::SelectZone` (RET 8, flag is a byte), `SetWeather` | side by side: markers' texture, flags, tint, plain colour; display +0x14; weather +4..+0xC |
 | 00630670, 006312C0 | `CGlobalMap::RefreshSelection` (the pick picture: zone markers alone in colours 0xFF181818 + 0x101010 i, flat, through a frame step 00458010(0, 0), copied into the backdrop; the click reads the zone back from the pixel), `FindPaths` (RET 4, recursive way search to `target_`; `arrivals_` = stlp::map<int, float> arrival exit -> shortest "#passtime" sum, insert 006316E0 forwarded; `ui_global_map_paths.cpp`) | RefreshSelection ours only (pick colours, visibility, surfaces, display colour; ui_camp). FindPaths side by side from an empty result map (the original's own recursion passes through the wrapper to the original; the map emptied with 00631710 between runs); not reached by a scenario (zone / link click) |
@@ -473,10 +512,12 @@ How they chain (the code has the details):
 Not exercised by the scenarios: the battle screen's drag (no drag step in the harness), the order's mode 1 and the toggle with
 Shift (the harness cannot hold Shift during a click), the exit flag (no scenario clicks an exit), RefreshSelection with several
 units selected, the attack kinds 0..5 and the level-gap speech, the quest notice's sub-objective path, the mouse move's portrait
-pick branch (a multiplayer server command). Not rewritten: 0063EF60 (`ClickAlternate`) and 0063E020 (the quick item used at once):
-they need the interface's key flag +0x7F during a click, or Ctrl / Alt held during a spell or quick item key; both are
-SetPendingAction plus an immediate 00637500 / 00637750 and `CSpell::IsOffensive` (0068B770, Rebirth-patched: call through its
-address).
+pick branch (a multiplayer server command). A-I17: 0063EF60 `CHudSpellColumn::ClickAlternate` and 0063E020
+`CHudQuickItems::UseNow` (`ui_hud_pick.cpp`): SetPendingAction (1 / 3), then for a spell with data an immediate 00637500 /
+00637750 (quick 0 / 1) on the unit, or for an attack spell (0068B770 by address) on the nearest unit it sees (none: "nomagic",
+dropped), then the click sound and the action dropped. Ours only (early return: state unchanged; else nothing pending, no
+highlight). Reached by `dblclick` on a quick slot / the spell button (the double-click flag +0x7F on the last release):
+ui_quick_items' last steps.
 
 Quirks kept (screens): `OnUnitJoined` appends a unit without a record but marks the portrait at the count of records matched; `OnMessageResult` (0x20001) writes the load window's flags without checking the allocation; the message box's OK copies the edit text into the caller's buffer without a length check; `CMpHeroScreen::OnKeyDown` leaves the paging keys unused outside modes 9 / 10.
 
@@ -540,7 +581,7 @@ Hazards and facts:
 Files: `ui_objectives.cpp`, `ui_layouts.cpp` (Esc menu, save/load and options Build; also section 4), `ui_menus.cpp` (mouse, draw,
 update, scroll bar, tooltip), `ui_menu_keys.cpp`, `ui_scroll_text.cpp`; wrappers `verify_ui_menus.cpp`, `verify_ui_objectives.cpp`,
 `verify_ui_menu_keys.cpp`. Rectangles from `menus.reg`: save/load OK 163..237, Cancel 563..637, Delete 363..437 (all y 526..574),
-list rows 108..370 x 108.. in 24 steps; options OK 213..287, Cancel 513..587, groups 100..250 x 156.. in 24 steps, rows x 250..520.
+list rows 108..370 x 108.. in 24 steps; options OK 213..287 (ui_main_menu clicks it once: Apply 006524A0, `ui_options.cpp`), Cancel 513..587, groups 100..250 x 156.. in 24 steps, rows x 250..520.
 
 | Address | Name | Verify |
 |---|---|---|
@@ -627,7 +668,7 @@ unchecked on the material line); `DescribeCarriedSpell` without an item or spell
 `DescribeBlueprint` for a kind outside 0-2 uses an uninitialised record (unreachable); `DrawItem` writes the new turning state's count
 before checking the allocation; `Ring` writes two vertex records before the array when count is 0.
 
-Not rewritten: 005E6D90 (sprite draw) and the STLport algorithm instantiations (0060BF20 / 0060C070 / 0060C0B0, 0060C390 / 0060C510, 0060A660).
+Not rewritten: the STLport algorithm instantiations (0060BF20 / 0060C070 / 0060C0B0, 0060C390 / 0060C510, 0060A660).
 
 ## 10. Harness steps and scenario lessons for the interface
 

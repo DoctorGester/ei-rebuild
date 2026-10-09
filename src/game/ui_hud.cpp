@@ -4,19 +4,28 @@
 
 #include "random.h"
 
+#include "camera.h"
+#include "console.h"
+#include "game_strings.h"
+#include "map_object.h"
+#include "net_classes.h"
+#include "net_messages.h"
+#include "player_client.h"
+#include "ui_cursor.h"
 #include "ei/hook.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "lib/stlp.h"
 #include "unit.h"
 #include "world.h"
 #include "originals_library.h"
 #include "originals_units.h"
 #include "originals_world.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include "originals_ui.h"
@@ -27,54 +36,21 @@ constexpr const char* kSoundClick = "buttons\\battle\\click.wav";     // 0079446
 constexpr const char* kSoundSling = "buttons\\battle\\sling.wav";     // 00794428
 constexpr const char* kSoundWeapon = "buttons\\battle\\weapon.wav";   // 00794444
 
-// The local view of the world client (CWorldClient::LocalView): sends the player's orders.
-struct UiLocalView {
-    // 0066AE70 (not rewritten). Orders `unit` to use weapon slot `slot`; stores it at +0x270.
-    BOOL SetWeapon(CUnit* unit, int slot);
-    // 0066AED0 (not rewritten). Orders movement mode `mode`; stores it at +0x268.
-    BOOL SetMoveMode(CUnit* unit, int mode);
-};
-__declspec(naked) BOOL UiLocalView::SetWeapon(CUnit*, int) EI_ORIGINAL(0x0066AE70)
-__declspec(naked) BOOL UiLocalView::SetMoveMode(CUnit*, int) EI_ORIGINAL(0x0066AED0)
+// The local view of the world client (CWorldClient::LocalView, a CPlayerClient): sends the
+// player's orders. 0066AE70 / 0066AED0 (CPlayerClient::SetWeapon / SetMoveMode) are called
+// through their addresses, as before the cleanup, so their verify wrappers see the calls.
+__declspec(naked) BOOL __fastcall ViewSetWeapon(CPlayerClient*, void*, CUnit*, int) EI_ORIGINAL(0x0066AE70)
+__declspec(naked) BOOL __fastcall ViewSetMoveMode(CPlayerClient*, void*, CUnit*, int) EI_ORIGINAL(0x0066AED0)
 
-UiLocalView* LocalView() { return reinterpret_cast<UiLocalView*>(WorldClient()->LocalView()); }
+CPlayerClient* LocalView() { return reinterpret_cast<CPlayerClient*>(WorldClient()->LocalView()); }
 
-// The mouse cursor (global at 007C7BD8).
-struct UiCursor {
-    // 005E5200 (not rewritten). Selects cursor shape `shape`; returns the previous one (-1 when
-    // the cursor is not set up).
-    int SetShape(int shape);
-};
-int UiCursor::SetShape(int a2) { return CursorSetShapeOriginal((void*)this, nullptr, a2); }
-UiCursor* Cursor() { return reinterpret_cast<UiCursor*>(0x007C7BD8); }
-
-// A network player record as the multiplayer session lists them.
-struct UiSessionPlayer {
-    std::uint8_t unknown_00[0x2C];
-    int unitId_;                     // +0x2C id of the player's unit
-    int playerId_;                   // +0x30
-};
-// A node of the session's player list (STLport list: next, prev, value).
-struct UiSessionNode {
-    UiSessionNode* next_;
-    UiSessionNode* prev_;
-    UiSessionPlayer* player_;
-};
-// The multiplayer session (global pointer at 0079B5D8).
-struct UiSession {
-    // 0041D260 (not rewritten). Runs a server command (4 and 5 are sent from the portraits).
-    void Command(int kind, const char* argument);
-
-    std::uint8_t unknown_0000[0x25D8];
-    UiSessionNode* players_;         // +0x25D8 list sentinel
-};
-__declspec(naked) void UiSession::Command(int, const char*) EI_ORIGINAL(0x0041D260)
-UiSession* Session() { return *reinterpret_cast<UiSession**>(0x0079B5D8); }
+// The multiplayer session's player records (STLport list of PlayerMessage pointers).
+using SessionPlayerList = stlp::list<net::PlayerMessage*>;
 
 // The panel window whose input side is `input` (handlers get window + 0x94 as `this`).
 template <typename W>
 W* FromInput(void* input) {
-    return reinterpret_cast<W*>(static_cast<std::uint8_t*>(input) - 0x94);
+    return reinterpret_cast<W*>(static_cast<std::uint8_t*>(input) - offsetof(CUiWindow, inputVtable_));
 }
 
 // IDirect3DDevice7::SetRenderState / GetRenderState through the device's vtable.
@@ -88,13 +64,13 @@ long GetRenderState(UiD3DDevice* device, int state, std::uint32_t* value) {
     return reinterpret_cast<Fn>(device->vtable_[21])(device, state, value);
 }
 
-// Scene objects of the panels are tinted through three floats at +0x224 (the original stores
-// the constants as dwords).
+// Scene objects of the panels (sprites, CUiMesh) are tinted through their three tint_ floats (the
+// original stores the constants as dwords).
 void SetTint(CEngineObject* object, std::uint32_t bits) {
-    auto* p = reinterpret_cast<std::uint8_t*>(object) + 0x224;
-    std::memcpy(p, &bits, 4);
-    std::memcpy(p + 4, &bits, 4);
-    std::memcpy(p + 8, &bits, 4);
+    float* tint = reinterpret_cast<CUiMesh*>(object)->tint_;
+    std::memcpy(&tint[0], &bits, 4);
+    std::memcpy(&tint[1], &bits, 4);
+    std::memcpy(&tint[2], &bits, 4);
 }
 constexpr std::uint32_t kTintOn = 0x3F800000;    // 1.0f
 constexpr std::uint32_t kTintOff = 0x3F000000;   // 0.5f
@@ -122,7 +98,7 @@ void UiRenderer::FlushBatchA() { DeviceFlushBatchAOriginal((void*)this); }
 void UiRenderer::FlushBatchB() { DeviceFlushBatchBOriginal((void*)this); }
 __declspec(naked) void CHudWeaponBar::Highlight(int, int) EI_ORIGINAL(0x0063C050)
 __declspec(naked) void CHudQuickItems::ItemTipAt(unsigned, void*) EI_ORIGINAL(0x0063CEE0)
-__declspec(naked) void CHudSpellColumn::ClickAlternate(int) EI_ORIGINAL(0x0063EF60)
+__declspec(naked) void CHudSpellColumn::ClickAlternateAt(int) EI_ORIGINAL(0x0063EF60)
 __declspec(naked) void CHudMovePanel::CallToggleFlag() EI_ORIGINAL(0x00649810)
 __declspec(naked) void CHudMovePanel::ShowMode(int) EI_ORIGINAL(0x00649910)
 __declspec(naked) void CHudTopPanel::CallShowPage() EI_ORIGINAL(0x0064A320)
@@ -149,7 +125,7 @@ void CHudWeaponBar::OnMouseUp(int, int x, int y) {
     selected_ = region;
     interface_->PlaySound(kSoundWeapon, 0);
     // The original does not check for a missing local view here.
-    if (CUnit* unit = unit_) LocalView()->SetWeapon(unit, region);
+    if (CUnit* unit = unit_) ViewSetWeapon(LocalView(), nullptr, unit, region);
 }
 UI_INPUT_HANDLER(0x0063C710, CHudWeaponBar, OnMouseUp);
 
@@ -262,7 +238,7 @@ void CHudSpellColumn::OnMouseUp(int, int x, int y) {
     if (region < 0 || region >= count_) return;
     inputHandled_ = true;
     if (interface_->doubleClick_)
-        ClickAlternate(region);
+        ClickAlternateAt(region);
     else
         ClickAt(region);
 }
@@ -324,20 +300,22 @@ void CHudPortraits::OnMouseDown(int, int x, int y) {
         playerId = slots_[region].playerId_;
     } else {
         int unitId = owner_->party_[region]->id_;
-        UiSessionNode* end = Session()->players_;
-        for (UiSessionNode* node = end->next_; node != end; node = node->next_) {
-            if (node->player_->unitId_ == unitId) {
-                playerId = node->player_->playerId_;
+        // The session's player records: id_ (+0x2C) the player's unit, serial_ (+0x30) its id.
+        auto* end = static_cast<SessionPlayerList::Node*>(net::GameClient()->players_);
+        for (SessionPlayerList::Node* node = end->next; node != end; node = node->next) {
+            if (node->data->id_ == unitId) {
+                playerId = node->data->serial_;
                 break;
             }
         }
     }
     char text[128];
     gamecrt::sprintf(text, "%d", playerId);
+    // 0041D260 (ClientSession::SendCommand, rewritten): the server commands 4 and 5.
     if (mode == 1)
-        Session()->Command(4, text);
+        net::GameClient()->SendCommand(4, text);
     else if (mode == 2)
-        Session()->Command(5, text);
+        net::GameClient()->SendCommand(5, text);
     static_cast<CBattleScreen*>(interface_->GetActiveWindow())->portraitMode_ = 0;
 }
 UI_INPUT_HANDLER(0x00641CE0, CHudPortraits, OnMouseDown);
@@ -362,7 +340,7 @@ void CHudPortraits::OnMouseMove(int, int x, int y) {
         if (region < owner->partyCount_) owner->HoverUnit(owner->party_[region], 0, 0);
         return;
     }
-    if (region >= 0 && region < count_) Cursor()->SetShape(0);
+    if (region >= 0 && region < count_) GameCursor()->SetShape(0);
 }
 UI_INPUT_HANDLER(0x00641EA0, CHudPortraits, OnMouseMove);
 
@@ -466,7 +444,7 @@ void CHudMovePanel::OnMouseUp(int, int x, int y) {
         interface_->PlaySound(kSoundClick, 0);
         for (int i = 0; i < owner_->partyCount_; ++i) {
             CUnit* unit = owner_->party_[i];
-            if (unit->flags_ & 0x10) LocalView()->SetMoveMode(unit, mode);
+            if (unit->flags_ & 0x10) ViewSetMoveMode(LocalView(), nullptr, unit, mode);
         }
     }
     ShowMode(mode);
@@ -499,9 +477,9 @@ void CHudMovePanel::Update() {
     }
     ShowMode(mode);
     flag_ = flag;
-    // Scene object 5 shows the flag through its +0xCC float.
+    // Scene object 5 shows the flag through its texture offset (uOffset_, +0xCC).
     std::uint32_t bits = flag == 0 ? 0x3EAC0000u : flag == 1 ? 0u : 0x3EF60000u;
-    std::memcpy(reinterpret_cast<std::uint8_t*>(sceneObjects_.data[5]) + 0xCC, &bits, 4);
+    std::memcpy(&reinterpret_cast<CUiMesh*>(sceneObjects_.data[5])->uOffset_, &bits, 4);
 }
 EI_REPLACE_METHOD(0x00649550, CHudMovePanel::Update);
 
@@ -557,36 +535,31 @@ struct UiVec3 {
     float x, y, z;
 };
 
-constexpr int kSlotIsDead = 55;             // object slot 55 (+0xDC): non-zero for a dead unit
-constexpr int kSlotCanTarget = 38;          // slot 38 (+0x98)
-constexpr int kSlotSlot39 = 39;             // slot 39 (+0x9C)
-constexpr int kSlotAcceptsSpell = 42;       // slot 42 (+0xA8), with the screen's +0x220
-constexpr int kSlotShowOrder = 32;          // the screen's slot 32 (+0x80): (unit id, 7, 0)
 constexpr std::uint32_t kFlagSelected = 0x10;
-constexpr int kPortraitRecordSize = 0x78;
 constexpr int kQuickSlots = 8;
 constexpr std::uint32_t kSpriteOpaque = 0xFF000000u;
 constexpr std::uint32_t kScaleLarge = 0x3F59999A;   // 0.85: quick slots 4..7
 constexpr std::uint32_t kScaleSmall = 0x3F0CCCCD;   // 0.55: quick slots 0..3
 constexpr std::uint32_t kScaleOne = 0x3F800000;     // 1.0
-const char* const kSoundOnOff = reinterpret_cast<const char*>(0x007935BC);    // "buttons\battle\on_off.wav"
-const char* const kTerrainCoords = reinterpret_cast<const char*>(0x00794418); // "Terrain Coords "
-const char* const kSpace = reinterpret_cast<const char*>(0x0078DA40);         // " "
-void* const kClientWorld = reinterpret_cast<void*>(0x007AF5B8);
-void* const kCamera = reinterpret_cast<void*>(0x0079B2A8);
-void* const kConsoleStream = reinterpret_cast<void*>(0x007C5760);
-void* const kFlushManipulator = reinterpret_cast<void*>(0x00435000);
+constexpr int kOrderEventFollow = 7;                // the speech event of a follow order
 
-template <typename T> T& Field(void* base, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(base) + offset);
+// A unit's position (CUnit positionX..Z), copied as the original copies it (three dwords).
+UiVec3 PositionOf(const CUnit* unit) {
+    UiVec3 v;
+    std::memcpy(&v, &unit->positionX, sizeof(v));
+    return v;
 }
 
 // The battle screen's own commands (thiscall; the flag argument is the interface's +0x7F byte).
 __declspec(naked) void __fastcall ScreenOrderAt(CBattleScreen*, void*, UiVec3, int, char) EI_ORIGINAL(0x00636F10)
 __declspec(naked) void __fastcall ScreenOrderUnit(CBattleScreen*, void*, CUnit*, char) EI_ORIGINAL(0x00637190)
 __declspec(naked) void __fastcall ScreenOrderDead(CBattleScreen*, void*, CUnit*, char) EI_ORIGINAL(0x006373A0)
-__declspec(naked) void __fastcall ScreenCastOn(CBattleScreen*, void*, CUnit*, char, int) EI_ORIGINAL(0x00637500)
-__declspec(naked) void __fastcall ScreenCastAt(CBattleScreen*, void*, UiVec3, CUnit*, int) EI_ORIGINAL(0x00637750)
+void ScreenCastOn(CBattleScreen* screen, void*, CUnit* target, char quick, int ctrl) {
+    BattleUseOnUnitOriginal(screen, nullptr, target, quick, ctrl);
+}
+void ScreenCastAt(CBattleScreen* screen, void*, UiVec3 at, CUnit* unit, int quick) {
+    BattleUseAtPointOriginal(screen, nullptr, at.x, at.y, at.z, unit, static_cast<char>(quick));
+}
 __declspec(naked) void __fastcall ScreenToggleMember(CBattleScreen*, void*, int) EI_ORIGINAL(0x006379E0)
 // The HUD panels: quick items 0063CD20 (slot, 0), spells 0063E750 (index, 0), actions 0063F730
 // (index, 0) and 0063F7A0 (all).
@@ -594,26 +567,34 @@ void __fastcall QuickPanelSet(void* a0, void*, int a2, int a3) { QuickPanelSetOr
 void __fastcall SpellPanelSet(void* a0, void*, int a2, int a3) { SpellPanelSetOriginal(a0, nullptr, a2, a3); }
 void __fastcall ActionPanelSet(void* a0, void*, int a2, int a3) { ActionPanelSetOriginal(a0, nullptr, a2, a3); }
 void __fastcall ActionPanelReset(void* a0) { ActionPanelClearOriginal(a0); }
-// The client world (007AF5B8): the object under a screen point (x, y pair), the ground point
-// under it (CWorldClient::PickSurface, rewritten), the local view.
-__declspec(naked) std::uint8_t* __fastcall ClientView(void*) EI_ORIGINAL(0x005699F0)
-// The local view's orders: 0066AA20 (unit, target, a, b, flag), 0066AFE0 (unit, target).
-__declspec(naked) void __fastcall ViewOrderTarget(void*, void*, CUnit*, CUnit*, int, int, int) EI_ORIGINAL(0x0066AA20)
-__declspec(naked) void __fastcall ViewOrderFollow(void*, void*, CUnit*, CUnit*) EI_ORIGINAL(0x0066AFE0)
-// CCamera::SetTarget (007AB2A8), CUnit::IsHostileTo, CUnit::GetQuickItem, CItem::GetCategory and
-// the sprite's SetScale, through their addresses.
-__declspec(naked) void __fastcall CameraSetTarget(void*, void*, CUnit*) EI_ORIGINAL(0x0040D3B0)
+// The client world (WorldClient(), 007AF5B8): the object under a screen point (x, y pair), the
+// ground point under it (CWorldClient::PickSurface, rewritten), the local view (LocalView()).
+// The local view's orders: 0066AA20 (unit, target, a, b, flag), 0066AFE0 (unit, target;
+// CPlayerClient::SendFollow, through its address).
+__declspec(naked) void __fastcall ViewOrderTarget(CPlayerClient*, void*, CUnit*, CUnit*, int, int, int) EI_ORIGINAL(0x0066AA20)
+__declspec(naked) void __fastcall ViewOrderFollow(CPlayerClient*, void*, CUnit*, CUnit*) EI_ORIGINAL(0x0066AFE0)
+// CUnit::GetQuickItem, CItem::GetCategory and the sprite's SetScale, through their addresses
+// (the camera's SetTarget too: CameraSetTargetOriginal).
 __declspec(naked) void* __fastcall UnitQuickItem(CUnit*, void*, int) EI_ORIGINAL(0x00531920)
 __declspec(naked) int __fastcall ItemCategory(void*) EI_ORIGINAL(0x006A4230)
-void __fastcall SpriteSetScale(void* a0, void*, std::uint32_t a2) { SpriteSetScaleOriginal(a0, nullptr, a2); }
-// The console's ostream (007C5760).
-__declspec(naked) void* __fastcall StreamDouble(void*, void*, double) EI_ORIGINAL(0x006FC7FA)
+void __fastcall SpriteSetScale(CEngineObject* sprite, void*, std::uint32_t scaleBits) {
+    SpriteSetScaleOriginal(sprite, nullptr, scaleBits);
+}
 
 constexpr int kCategoryWand = 8;
-IsaacRandom& UiRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom& UiRandom() { return IsaacRandom::Global(); }
+// 00742760: the factor turning a random dword into the portraits' negative start delay.
+double PortraitDelayScale() { return *reinterpret_cast<const volatile double*>(0x00742760); }
 // A random value times ~-2^-34 * 0.3 (00742760), as the original stores it.
 float PortraitDelay(std::uint32_t random) {
-    return static_cast<float>(x87::FromUnsigned(random) * *reinterpret_cast<const volatile double*>(0x00742760));
+    return static_cast<float>(x87::FromUnsigned(random) * PortraitDelayScale());
+}
+// Portrait `index` nods (wobble kind 1) after a short random delay.
+void NodPortrait(CBattleScreen* screen, int index) {
+    HudPortraitSlot* slots = screen->portraits_->slots_;
+    float delay = PortraitDelay(UiRandom().Next());
+    slots[index].wobbleTime_ = delay;
+    screen->portraits_->slots_[index].wobbleKind_ = 1;
 }
 // fcomp with 0.0 and C3: true for zero (either sign) and for NaN.
 bool ZeroOrNaN(float value) {
@@ -626,47 +607,43 @@ bool ZeroOrNaN(float value) {
 
 void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     auto ctrl = [this] { return static_cast<char>(interface_->doubleClick_); };
-    auto unitDead = [](CUnit* u) { return ei::VCall<int>(u, kSlotIsDead) != 0; };
+    // Slot 55 (+0xDC, IsDead): non-zero for a dead unit.
+    auto unitDead = [](CUnit* u) { return ObjectSlots(u)->IsDead() != 0; };
     auto pick = [x, y]() {
         float out[3];
-        float* p = HoverPickSurface(kClientWorld, nullptr, out, x, y);
+        float* p = HoverPickSurface(WorldClient(), nullptr, out, x, y);
         return UiVec3{p[0], p[1], p[2]};
     };
-    auto unitPosition = [](CUnit* u) { return Field<UiVec3>(u, 0x1C); };
+    auto unitPosition = [](CUnit* u) { return PositionOf(u); };
     auto objectAt = [x, y]() {
         int point[2] = {x, y};
-        return HoverObjectAt(kClientWorld, nullptr, point);
+        return HoverObjectAt(WorldClient(), nullptr, point);
     };
     // The portrait of member `index` flashes after a short random delay.
-    auto flash = [this](int index) {
-        std::uint8_t* records = Field<std::uint8_t*>(Field<void*>(this, 0x1A4), 0x158);
-        float delay = PortraitDelay(UiRandom().Next());
-        Field<float>(records, index * kPortraitRecordSize + 0x3C) = delay;
-        Field<int>(Field<std::uint8_t*>(Field<void*>(this, 0x1A4), 0x158), index * kPortraitRecordSize + 0x38) = 1;
-    };
+    auto flash = [this](int index) { NodPortrait(this, index); };
     // Back to plain selection: the pending action and its item and spell are dropped and the
     // panels' highlights cleared.
     auto resetMode = [this](bool actionLoop) {
-        void* quick = Field<void*>(this, 0x198);
-        Field<int>(this, 0x17C) = 0;
-        Field<int>(this, 0x180) = -1;
-        Field<int>(this, 0x184) = -1;
+        CHudQuickItems* quick = quickItems_;
+        pendingAction_ = 0;
+        pendingSlot_ = -1;
+        pendingItem_ = -1;
         for (int i = 0; i < kQuickSlots; ++i) QuickPanelSet(quick, nullptr, i, 0);
-        Field<int>(quick, 0x150) = -1;
-        void* spells = Field<void*>(this, 0x19C);
-        for (int i = 0; i < Field<int>(spells, 0x14C); ++i) SpellPanelSet(spells, nullptr, i, 0);
-        Field<int>(spells, 0x150) = -1;
-        void* actions = Field<void*>(this, 0x1A0);
+        quick->selected_ = -1;
+        CHudSpellColumn* spells = spellColumn_;
+        for (int i = 0; i < spells->count_; ++i) SpellPanelSet(spells, nullptr, i, 0);
+        spells->selected_ = -1;
+        CHudActionColumn* actions = actionColumn_;
         if (!actionLoop) {
             ActionPanelReset(actions);
             return;
         }
-        for (int i = 0; i < Field<int>(actions, 0x14C); ++i) ActionPanelSet(actions, nullptr, i, 0);
-        Field<int>(actions, 0x150) = -1;
+        for (int i = 0; i < actions->count_; ++i) ActionPanelSet(actions, nullptr, i, 0);
+        actions->selected_ = -1;
     };
     auto order = [this](CUnit* first, CUnit* target, int a, int b) {
         int flag = static_cast<std::uint8_t>(interface_->doubleClick_);
-        ViewOrderTarget(ClientView(kClientWorld), nullptr, first, target, a, b, flag);
+        ViewOrderTarget(LocalView(), nullptr, first, target, a, b, flag);
     };
 
     CUnit* living = (unit && !unitDead(unit)) ? unit : nullptr;
@@ -689,9 +666,9 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         if (count <= 0) return;
         for (int i = 0; i < partyCount_; ++i) {
             if (unit != party_[i]) continue;
-            interface_->PlaySound(kSoundOnOff, 0);
+            interface_->PlaySound(game::SoundOnOffText(), 0);
             if (interface_->doubleClick_) {
-                if (i < partyCount_) CameraSetTarget(kCamera, nullptr, party_[i]);
+                if (i < partyCount_) CameraSetTargetOriginal(camera::TheCamera(), nullptr, party_[i]);
             } else {
                 ScreenToggleMember(this, nullptr, i);
             }
@@ -704,7 +681,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         return;
     }
     bool anyFlag = false;
-    for (int i = 0; i < 6 && !anyFlag; ++i) anyFlag = Field<std::uint8_t>(this, 0x18D + i) != 0;
+    for (int i = 0; i < 6 && !anyFlag; ++i) anyFlag = orderKeys_[i] != 0;
     if (anyFlag) {
         if (unit && !unitDead(unit)) {
             ScreenOrderUnit(this, nullptr, unit, ctrl());
@@ -722,7 +699,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         return;
     }
 
-    switch (Field<int>(this, 0x17C)) {
+    switch (pendingAction_) {
     case 0:   // plain: select, attack or move
         if (unit) {
             if (unitDead(unit)) {
@@ -732,9 +709,9 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             int members = partyCount_;
             for (int i = 0; i < members; ++i) {
                 if (unit != party_[i]) continue;
-                interface_->PlaySound(kSoundOnOff, 0);
+                interface_->PlaySound(game::SoundOnOffText(), 0);
                 if (interface_->doubleClick_) {
-                    if (i < partyCount_) CameraSetTarget(kCamera, nullptr, party_[i]);
+                    if (i < partyCount_) CameraSetTargetOriginal(camera::TheCamera(), nullptr, party_[i]);
                 } else {
                     ScreenToggleMember(this, nullptr, i);
                 }
@@ -748,7 +725,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             return;
         }
         if (CUnit* object = objectAt()) {
-            if (ei::VCall<int>(object, kSlotCanTarget) != 0 && ei::VCall<int>(object, kSlotSlot39) == 0 && selected == 1) {
+            if (ObjectSlots(object)->IsUsable() != 0 && ObjectSlots(object)->IsDirectUseBlocked() == 0 && selected == 1) {
                 order(first, object, 0, -1);
                 flash(firstIndex);
                 return;
@@ -757,17 +734,11 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         {
             UiVec3 at = pick();
             ScreenOrderAt(this, nullptr, at, 0, ctrl());
-            void* stream = OstreamPutString(kConsoleStream, nullptr, kTerrainCoords);
-            Field<int>(stream, 4) = 1;
-            stream = StreamDouble(stream, nullptr, at.x);
-            stream = OstreamPutString(stream, nullptr, kSpace);
-            Field<int>(stream, 4) = 1;
-            stream = StreamDouble(stream, nullptr, at.y);
-            stream = OstreamPutString(stream, nullptr, kSpace);
-            Field<int>(stream, 4) = 1;
-            stream = StreamDouble(stream, nullptr, at.z);
-            stream = OstreamPutChar(stream, nullptr, '\n');
-            OstreamManipulate(stream, nullptr, kFlushManipulator);
+            // "Terrain Coords x y z" on the console: each float through the inline operator<<
+            // (x_floatused set, printed as a double), then '\n' and flush.
+            console::GameOStream& stream = (console::Out7C5760() << game::TerrainCoordsText())
+                                               .PutFloat(at.x) << game::SpaceText();
+            console::EndLine((stream.PutFloat(at.y) << game::SpaceText()).PutFloat(at.z));
         }
         return;
     case 1:   // a spell on a unit
@@ -782,12 +753,12 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         UiVec3 at = (unit && !unitDead(unit)) ? unitPosition(unit) : pick();
         if (ZeroOrNaN(at.x) && ZeroOrNaN(at.y)) return;
         if (!first) return;
-        ScreenCastAt(this, nullptr, at, living, Field<int>(this, 0x17C) == 4 ? 1 : 0);
+        ScreenCastAt(this, nullptr, at, living, pendingAction_ == 4 ? 1 : 0);
         return;
     }
     case 3: {   // a quick item on a unit
         if (!unit || unitDead(unit) || !first) return;
-        void* item = UnitQuickItem(first, nullptr, Field<int>(this, 0x180));
+        void* item = UnitQuickItem(first, nullptr, pendingSlot_);
         if (item && ItemCategory(item) == kCategoryWand && unit != first) return;
         ScreenCastOn(this, nullptr, unit, 1, 0);
         return;
@@ -795,8 +766,8 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     case 5: {   // use an item on an object
         CUnit* target = unit ? unit : objectAt();
         if (!target || !first) return;
-        if (ei::VCall<int>(target, kSlotCanTarget) == 0) return;
-        order(first, target, 0, Field<int>(this, 0x184));
+        if (ObjectSlots(target)->IsUsable() == 0) return;
+        order(first, target, 0, pendingItem_);
         flash(firstIndex);
         resetMode(false);
         return;
@@ -804,9 +775,9 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     case 6: {   // use a spell on an object
         CUnit* target = unit ? unit : objectAt();
         if (!target || !first) return;
-        if (ei::VCall<int>(target, kSlotCanTarget) == 0) return;
-        if (ei::VCall<int>(target, kSlotAcceptsSpell, &Field<std::uint8_t>(this, 0x220)) == 0) return;
-        order(first, target, 0, Field<int>(this, 0x184));
+        if (ObjectSlots(target)->IsUsable() == 0) return;
+        if (ObjectSlots(target)->AcceptsKey(&itemUseKey_) == 0) return;
+        order(first, target, 0, pendingItem_);
         flash(firstIndex);
         resetMode(true);
         return;
@@ -816,36 +787,34 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
         for (int i = 0; i < partyCount_; ++i) {
             CUnit* member = party_[i];
             if (!member || !(member->flags_ & kFlagSelected)) continue;
-            ViewOrderFollow(ClientView(kClientWorld), nullptr, member, unit);
-            ei::VCall<void>(this, kSlotShowOrder, party_[i]->id_, 7, 0);
-            void* portraits = Field<void*>(this, 0x1A4);
-            float delay = PortraitDelay(UiRandom().Next());
-            Field<float>(Field<std::uint8_t*>(portraits, 0x158), i * kPortraitRecordSize + 0x3C) = delay;
-            Field<int>(Field<std::uint8_t*>(portraits, 0x158), i * kPortraitRecordSize + 0x38) = 1;
+            ViewOrderFollow(LocalView(), nullptr, member, unit);
+            VirtualUnitSpeech(party_[i]->id_, kOrderEventFollow, nullptr);
+            NodPortrait(this, i);
         }
-        void* quick = Field<void*>(this, 0x198);
-        Field<int>(this, 0x180) = -1;
-        Field<int>(this, 0x184) = -1;
-        Field<int>(this, 0x17C) = 0;
+        CHudQuickItems* quick = quickItems_;
+        pendingSlot_ = -1;
+        pendingItem_ = -1;
+        pendingAction_ = 0;
         for (int i = 0; i < kQuickSlots; ++i) {
-            int slot = Field<int>(quick, 0x16C + 4 * i);
-            if (slot < 0 || slot >= Field<int>(quick, 0x14C)) continue;
-            void* sprite = Field<void**>(quick, 0x108)[slot];
+            int slot = quick->regionItem_[i];
+            if (slot < 0 || slot >= quick->unknown_14C) continue;
+            CEngineObject* sprite = quick->sceneObjects_.data[slot];
             SpriteSetScale(sprite, nullptr, i < 4 ? kScaleSmall : kScaleLarge);
-            Field<std::uint32_t>(sprite, 0xD8) = kSpriteOpaque;
+            reinterpret_cast<CUiMesh*>(sprite)->colour_ = kSpriteOpaque;
         }
-        Field<int>(quick, 0x150) = -1;
-        static constexpr int kColumns[2] = {0x19C, 0x1A0};   // spells, actions
-        for (int panelOffset : kColumns) {
-            void* panel = Field<void*>(this, panelOffset);
-            for (int i = 0; i < Field<int>(panel, 0x14C); ++i) {
-                void* sprite = Field<void**>(panel, 0x108)[i];
+        quick->selected_ = -1;
+        // The spell and action columns (the same layout: count_, selected_, the sprites).
+        auto unhighlight = [](auto* panel) {
+            for (int i = 0; i < panel->count_; ++i) {
+                CEngineObject* sprite = panel->sceneObjects_.data[i];
                 SpriteSetScale(sprite, nullptr, kScaleOne);
-                Field<std::uint32_t>(sprite, 0xD8) = kSpriteOpaque;
-                Field<int>(panel, 0x150) = i;
+                reinterpret_cast<CUiMesh*>(sprite)->colour_ = kSpriteOpaque;
+                panel->selected_ = i;
             }
-            Field<int>(panel, 0x150) = -1;
-        }
+            panel->selected_ = -1;
+        };
+        unhighlight(spellColumn_);
+        unhighlight(actionColumn_);
         return;
     }
     case 8: {   // an order on an object (a unit outside the party, or the object under the mouse)
@@ -856,7 +825,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
                 if (unit == party_[i]) return;
             order(first, unit, 1, -1);
         } else {
-            if (ei::VCall<int>(target, kSlotCanTarget) == 0) return;
+            if (ObjectSlots(target)->IsUsable() == 0) return;
             order(first, target, 0, -1);
         }
         flash(firstIndex);
@@ -876,8 +845,15 @@ namespace {
 // The quick item panel (thiscall, RET 4, slot): 0063DD70 picks the unit's quick item `slot` (a wand
 // or scroll with a spell starts target mode 3 / 4), 0063E020 uses it at once (key +0x7F).
 __declspec(naked) void __fastcall QuickPanelPick(CHudQuickItems*, void*, int) EI_ORIGINAL(0x0063DD70)
-__declspec(naked) void __fastcall QuickPanelUseNow(CHudQuickItems*, void*, int) EI_ORIGINAL(0x0063E020)
-constexpr int kItemSlotUseTarget = 21;   // item slot 21 (+0x54): 12 bytes into a buffer, returns it
+// Slot 21 (+0x54) of a player's loot item (CItemLoot, type 0x3009): its key (the one map object
+// slot 42 AcceptsKey tests) into `buffer`, returns it. CItem declares only slots 13-15 (item.h),
+// so the slot is reached through the vtable here until the item classes declare 16-21 (16, 19
+// and 20 are known: GetPrice, FigureName, PictureName).
+const LockKey* ItemUseKey(CEngineObject* item, LockKey* buffer) {
+    using Fn = const LockKey*(__thiscall*)(CEngineObject*, LockKey*);
+    constexpr int kSlot = 21;
+    return reinterpret_cast<Fn>((*reinterpret_cast<void***>(item))[kSlot])(item, buffer);
+}
 } // namespace
 
 void CHudQuickItems::OnMouseUp(int, int x, int y) {
@@ -889,45 +865,41 @@ void CHudQuickItems::OnMouseUp(int, int x, int y) {
     inputHandled_ = true;
     if (region < 4 && entries_[entry].own) {
         if (interface_->doubleClick_)
-            QuickPanelUseNow(this, nullptr, region);
+            UseNowAt(region);
         else
             QuickPanelPick(this, nullptr, region);
         return;
     }
     CBattleScreen* screen = owner_;
     auto clearPanels = [screen](int value) {
-        void* quick = Field<void*>(screen, 0x198);
+        CHudQuickItems* quick = screen->quickItems_;
         for (int i = 0; i < kQuickSlots; ++i) QuickPanelSet(quick, nullptr, i, 0);
-        Field<int>(quick, 0x150) = value;
-        void* spells = Field<void*>(screen, 0x19C);
-        for (int i = 0; i < Field<int>(spells, 0x14C); ++i) SpellPanelSet(spells, nullptr, i, 0);
-        Field<int>(spells, 0x150) = value;
-        void* actions = Field<void*>(screen, 0x1A0);
-        for (int i = 0; i < Field<int>(actions, 0x14C); ++i) ActionPanelSet(actions, nullptr, i, 0);
-        Field<int>(actions, 0x150) = value;
+        quick->selected_ = value;
+        CHudSpellColumn* spells = screen->spellColumn_;
+        for (int i = 0; i < spells->count_; ++i) SpellPanelSet(spells, nullptr, i, 0);
+        spells->selected_ = value;
+        CHudActionColumn* actions = screen->actionColumn_;
+        for (int i = 0; i < actions->count_; ++i) ActionPanelSet(actions, nullptr, i, 0);
+        actions->selected_ = value;
     };
     if (selected_ != region) {
         // One of the player's items (top row): "use on an object" (mode 6) with the item's
-        // 12-byte value (slot 21) at the screen's +0x220 and its id at +0x184.
+        // key (slot 21) in the screen's itemUseKey_ and its id in pendingItem_.
         interface_->PlaySound(kSoundClick, 0);
-        std::uint32_t buffer[3];
-        CEngineObject* item = entries_[entry].item;
-        using UseTargetFn = const std::uint32_t*(__thiscall*)(CEngineObject*, std::uint32_t*);
-        const std::uint32_t* value =
-            reinterpret_cast<UseTargetFn>((*reinterpret_cast<void***>(item))[kItemSlotUseTarget])(item, buffer);
-        std::memcpy(&Field<std::uint8_t>(screen, 0x220), value, 12);
-        Field<int>(screen, 0x184) = entries_[entry].id;
-        Field<int>(screen, 0x180) = region;
-        Field<int>(screen, 0x17C) = 6;
+        LockKey buffer;
+        screen->itemUseKey_ = *ItemUseKey(entries_[entry].item, &buffer);
+        screen->pendingItem_ = entries_[entry].id;
+        screen->pendingSlot_ = region;
+        screen->pendingAction_ = 6;
         clearPanels(-1);
-        QuickPanelSet(Field<void*>(screen, 0x198), nullptr, region, 1);
+        QuickPanelSet(screen->quickItems_, nullptr, region, 1);
         return;
     }
     // The highlighted one again: back to plain selection.
     interface_->PlaySound(kSoundClick, 0);
-    Field<int>(screen, 0x180) = -1;
-    Field<int>(screen, 0x17C) = 0;
-    Field<int>(screen, 0x184) = -1;
+    screen->pendingSlot_ = -1;
+    screen->pendingAction_ = 0;
+    screen->pendingItem_ = -1;
     clearPanels(-1);
 }
 UI_INPUT_HANDLER(0x0063DB20, CHudQuickItems, OnMouseUp);
@@ -936,23 +908,19 @@ UI_INPUT_HANDLER(0x0063DB20, CHudQuickItems, OnMouseUp);
 
 namespace {
 
-void* const kPlayerGlue = reinterpret_cast<void*>(0x007AFEA5);
-// The local player glue (007AFEA5, thiscall): 00578A00 the zone exit at a point (RET 8; jumps to
-// the client world's 00567440), 00578A40 an exit's zone name (RET 4).
+// The local player glue (ClientGlueObject(), 007AFEA5, thiscall): 00578A00 the zone exit at a
+// point (RET 8; jumps to the client world's 00567440), 00578A40 an exit's zone name (RET 4;
+// GameExitZoneOriginal).
 __declspec(naked) int __fastcall GlueExitAt(void*, void*, const float*, int*) EI_ORIGINAL(0x00578A00)
-__declspec(naked) const char* __fastcall GlueExitZone(void*, void*, int) EI_ORIGINAL(0x00578A40)
-// The CArray<CUnit*> the order takes (vtable 007402AC; SetSize 005EBDB0, RET 8).
-struct OrderUnits {
-    void* vtable;
-    CUnit** data;
-    int size;
-    int capacity;
-    int growBy;
-};
-__declspec(naked) void __fastcall OrderUnitsSetSize(OrderUnits*, void*, int, int) EI_ORIGINAL(0x005EBDB0)
+// The CArray<CUnit*> the order takes (vtable kUnitPtrArrayVtable; SetSize 005EBDB0,
+// PartyArraySetSizeOriginal).
+using OrderUnits = mfc::CArray<CUnit*>;
 // The local view's orders (thiscall, RET 0xC; units, point, the Ctrl flag): 0066A7D0 move there
-// (LocalViewSendWalkOriginal), 0066A720 the other order (mode non-zero: the modifier flags or Shift).
-__declspec(naked) void __fastcall ViewOrderMoveAlt(void*, void*, OrderUnits*, const float*, int) EI_ORIGINAL(0x0066A720)
+// (LocalViewSendWalkOriginal), 0066A720 the other order (mode non-zero: the modifier flags or Shift;
+// CPlayerClient::SendGoTo, through its address).
+__declspec(naked) void __fastcall ViewOrderMoveAlt(CPlayerClient*, void*, OrderUnits*, const float*, int) EI_ORIGINAL(0x0066A720)
+// 0073B84C: the constant 1.0f the zone variable is compared with.
+float GameOne() { return *reinterpret_cast<const volatile float*>(0x0073B84C); }
 
 } // namespace
 
@@ -967,43 +935,42 @@ void CBattleScreen::OrderAt(float x, float y, float z, int mode, int ctrl) {
 
     // A point on a zone exit that is open ("z.<zone>" not 1; "none" is no zone): remembered for
     // the update to ask about leaving (+0x18C, +0x188 the exit).
-    Field<std::uint8_t>(this, 0x18C) = 0;
+    exitPending_ = 0;
     int exit;
-    if (GlueExitAt(kPlayerGlue, nullptr, point, &exit) && selected > 0) {
-        mfc::CString name(GlueExitZone(kPlayerGlue, nullptr, exit));
+    void* glue = ClientGlueObject();
+    if (GlueExitAt(glue, nullptr, point, &exit) && selected > 0) {
+        mfc::CString name(GameExitZoneOriginal(glue, nullptr, exit));
         if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(name)),
-                             reinterpret_cast<const unsigned char*>(0x007846F0)) != 0) {   // "none"
-            name = mfc::CString(reinterpret_cast<const char*>(0x007900E8)) + name;     // "z."
-            double value = HoverPlayerVariable(kPlayerGlue, nullptr, name);
-            const float one = *reinterpret_cast<const volatile float*>(0x0073B84C);
+                             reinterpret_cast<const unsigned char*>(game::NoneText())) != 0) {
+            name = mfc::CString(game::ZoneVariablePrefixText()) + name;   // "z."
+            double value = HoverPlayerVariable(glue, nullptr, name);
+            const float one = GameOne();
             // FCOMP; TEST AH,0x40; JNZ: equal or NaN skips.
             if (!x87::IsNaN(static_cast<float>(value)) && value != one) {
-                Field<std::uint8_t>(this, 0x18C) = 1;
-                Field<int>(this, 0x188) = exit;
+                exitPending_ = 1;
+                pendingExit_ = exit;
             }
         }
     }
 
     // The selected members go; each one's portrait nods after a short random delay.
-    OrderUnits units{reinterpret_cast<void*>(0x007402AC), nullptr, 0, 0, 0};
+    OrderUnits units{reinterpret_cast<void*>(kUnitPtrArrayVtable), nullptr, 0, 0, 0};
     for (int i = 0; i < partyCount_; ++i) {
         CUnit* member = party_[i];
         if (!member || !(member->flags_ & kFlagSelected)) continue;
         int n = units.size;
-        OrderUnitsSetSize(&units, nullptr, n + 1, -1);
+        PartyArraySetSizeOriginal(&units, nullptr, n + 1, -1);
         units.data[n] = member;
-        std::uint8_t* records = Field<std::uint8_t*>(Field<void*>(this, 0x1A4), 0x158);
-        Field<float>(records, i * kPortraitRecordSize + 0x3C) = PortraitDelay(UiRandom().Next());
-        Field<int>(Field<std::uint8_t*>(Field<void*>(this, 0x1A4), 0x158), i * kPortraitRecordSize + 0x38) = 1;
+        NodPortrait(this, i);
     }
     if (units.size != 0) {
-        std::uint8_t* view = ClientView(kClientWorld);
+        CPlayerClient* view = LocalView();
         if (static_cast<std::uint8_t>(mode) != 0)
             ViewOrderMoveAlt(view, nullptr, &units, point, ctrl & 0xFF);
         else
             LocalViewSendWalkOriginal(view, nullptr, &units, point, ctrl & 0xFF);
     }
-    units.vtable = reinterpret_cast<void*>(0x007402AC);
-    if (units.data) gamecrt::operator_delete(units.data);
+    units.vtable = reinterpret_cast<void*>(kUnitPtrArrayVtable);
+    units.FreeData();
 }
 EI_REPLACE_METHOD(0x00636F10, CBattleScreen::OrderAt);

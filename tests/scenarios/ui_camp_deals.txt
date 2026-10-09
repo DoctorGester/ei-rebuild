@@ -32,11 +32,21 @@ wait 500
 clickregion 1
 wait 500
 # The other pages for their draws (an unoffered one shows the current page again): region 7 page 3
-# (the spell maker 006284A0), 9 page 5 (the item maker 00628F80), 10 page 6.
+# (the spell maker 006284A0), 9 page 5 (the item maker 00628F80), 10 page 6. The mouse rests on
+# each maker's first two slots (250, 300) / (350, 300): the camp's draw asks the page for the item
+# there (slot 25: 00628B50 / 006298B0).
 clickregion 7
 wait 500
+move 250 300
+wait 300
+move 350 300
+wait 300
 clickregion 9
 wait 500
+move 250 300
+wait 300
+move 350 300
+wait 300
 clickregion 10
 wait 500
 key esc

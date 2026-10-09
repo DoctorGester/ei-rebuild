@@ -28,7 +28,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- A-I (cut off by the usage limit; 12 functions merged). A-I2 done 2026-10-05 (36 functions). A-I3 done (27). A-I4 cut off (12 merged). A-I5 cut off (4 merged). A-I6 done (29). A-I7 done (21). A-I8 done (21). A-I9 done (12; Mid/Right fixed). A-I10 done (15; ui_base_dialogue reaches the dialogue). A-I11 done (9). A-I12 done (3). A-I13 done. A-I14 (taken 2026-10-07) (briefing Create, Update 00604130) (006064E0, 00604C50, 00608450, briefing Create / Update) (next: hero screen 006159E0 / 00617820 / 00615850, camp deals 00611220 / 00611760, main menu destructor 00633260). A-I14 done (14). A-I15 done (47 + 126 library). A-I16 done (125 + 26 library). A-I17 taken ( HUD input thunks 0064BCF0.., sprite draw 005E6D90, cursor loading 005E60B0/005E63F0).
+- A-I (cut off by the usage limit; 12 functions merged). A-I2 done 2026-10-05 (36 functions). A-I3 done (27). A-I4 cut off (12 merged). A-I5 cut off (4 merged). A-I6 done (29). A-I7 done (21). A-I8 done (21). A-I9 done (12; Mid/Right fixed). A-I10 done (15; ui_base_dialogue reaches the dialogue). A-I11 done (9). A-I12 done (3). A-I13 done. A-I14 (taken 2026-10-07) (briefing Create, Update 00604130) (006064E0, 00604C50, 00608450, briefing Create / Update) (next: hero screen 006159E0 / 00617820 / 00615850, camp deals 00611220 / 00611760, main menu destructor 00633260). A-I14 done (14). A-I15 done (47 + 126 library). A-I16 done (125 + 26 library). A-I17 done 2026-10-09 (39 functions). A-I18 taken (ui.md section 3, "Next in 005E0000-00640000 after A-I17").
 - A-I (cut off by the usage limit; 12 functions merged). A-I2 done 2026-10-05 (36 functions). A-I3 done (27). A-I4 cut off (12 merged). A-I5 cut off (4 merged). A-I6 done (29). A-I7 done (21). A-I8 done (21). A-I9 done (12; Mid/Right fixed). A-I10 done (15; ui_base_dialogue reaches the dialogue). A-I11 done (9). A-I12 done (3). A-I13 done. A-I14 (taken 2026-10-07) (briefing Create, Update 00604130) (006064E0, 00604C50, 00608450, briefing Create / Update) (next: hero screen 006159E0 / 00617820 / 00615850, camp deals 00611220 / 00611760, main menu destructor 00633260). A-I14 done (14). A-I15 done (47 + 126 library). A-I16 done (125 + 26 library; next: HUD input thunks 0064BCF0-0064BD80, sprite draw 005E6D90, cursor loading 005E60B0 / 005E63F0, HUD column clicks 0063DB20 / 0063E020 / 0063EF60, 00631CC0, 006298B0 / 00628B50, lobby last).
 
 
@@ -46,7 +46,10 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Pending work
 
-The four porting batches (A-I16, A-H15, A-S9, A-U7) are merged (2026-10-09, 140 runs pass). Left: build, fix and merge the drafts below only DR-C5 is left (the rest and net_state.cpp's last VCalls are merged). Then republish the dashboard and remove merged worktrees.
+The four porting batches (A-I16, A-H15, A-S9, A-U7) are merged (2026-10-09, 140 runs pass). Left: build, fix and merge the drafts below all six drafts are merged (2026-10-09). Then republish the dashboard and remove merged worktrees.
+
+- C6 (taken 2026-10-09): cleanup of combat_tick.cpp, combat_update.cpp, combat.cpp, magic_trap.cpp, then the next combat/unit files by count (offsets, VCall, byte arithmetic, raw addresses).
+- C7 (taken 2026-10-09): cleanup of world_quests.cpp, world_client.cpp, world_create.cpp, ai_region_reach.cpp, then the next world/AI files by count.
 
 ## Draft passes (no build, 2026-10-07)
 
@@ -54,7 +57,7 @@ Drafts written without building (2026-10-07), each on its own branch with a note
 - DR-C1 merged 2026-10-09 (world_units.cpp, world_client_maps.cpp clean; world_game.cpp left: World()+0x5C pending connection source (needs a class; app.cpp shares the forwarder), the __asm helpers, TextOpsAt).
 - DR-C2 merged 2026-10-09 (102 slots named; 16 placeholders left elsewhere).
 - DR-C3 merged 2026-10-09 (net_state.cpp's last 14 VCalls can now use DR-C2's names).
-- DR-C5 (finishing 2026-10-09; drafted: ui_surface_create.cpp clean, ui_hud.cpp 6 VCalls left (map object slots 38/39/42 need DR-C2's names with int returns), world_client_draw.cpp 4 VCalls left; head 38582dd; written against DR-C1's CWorldClient names, needs `CCamera* camera_` at CWorldClient +0x210 after DR-C1 (notes); branch draft-dr-c5 in worktree agent-abcd1eeb0aab855a0): cleanup draft of ui_hud.cpp, ui_surface_create.cpp, world_client_draw.cpp.
+- DR-C5 merged 2026-10-09 (ui_surface_create.cpp, ui_hud.cpp clean; world_client_draw.cpp left with its 6 x87 __asm helpers).
 - DR-C4 merged 2026-10-09 (3 files clean; 13 server handlers in functions.csv). Open: 007C8778 QuestItems vs loot table name; stlp::SmallNodeFreeList and camera.h NodeFreeList are the same address.
 - DR-H16 merged 2026-10-09. Apply 006524A0 and the edit field 0065C610 have no scenario. function_sizes.inc needs a real regeneration once the Ghidra database is whole (it reports cut-short bodies, e.g. 0040D710 555 -> 60).
 

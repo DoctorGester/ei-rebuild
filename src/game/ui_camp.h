@@ -320,6 +320,17 @@ struct GlobalMapZone {
     char* title;                     // +0x0C CString
 };
 static_assert(sizeof(GlobalMapZone) == 0x10);
+// The zone array's ConstructElements (005FBF50: zero-filled, the two CStrings empty) and
+// DestructElements (005FBD30 per zone: title, then name), and the element assignment
+// CArray::SetAtGrow (00631CC0) does (ui_global_map.cpp).
+struct GlobalMapZoneElements {
+    static void Construct(GlobalMapZone* zones, int count);
+    static void Destruct(GlobalMapZone* zones, int count);
+};
+using GlobalMapZoneArray = mfc::CArray<GlobalMapZone, GlobalMapZoneElements>;
+// 00631CC0 (thiscall, RET 8). zones[index] = zone, growing the array (and constructing the new
+// zones) when `index` is past its end; the strings are assigned as CStrings.
+void __fastcall GlobalMapZonesSetAtGrow(GlobalMapZoneArray* zones, void*, int index, const GlobalMapZone* zone);
 
 // A quest place or a link (an "edge" zone) on the map (0x18 bytes, CArrays at +0x1A0 / +0x1B4).
 struct GlobalMapPlace {
@@ -433,7 +444,7 @@ public:
     float bobTime_;                  // +0x178 seconds, for the arrow's bobbing and the layers' frames
     char* allodTitle_;               // +0x17C CString
     float position_[3];              // +0x180 the current zone on the map model
-    mfc::CArray<GlobalMapZone> zones_;  // +0x18C
+    GlobalMapZoneArray zones_;          // +0x18C
     mfc::CArray<GlobalMapPlace> links_; // +0x1A0
     mfc::CArray<GlobalMapPlace> quests_;   // +0x1B4
     // The way search (006312C0) from the current zone to `target_`: the zones on the way so far,
@@ -1028,6 +1039,15 @@ public:
     // container, the pulsing highlight on the blueprint and part slots (no part), the grid cells
     // the part has room for beyond the materials, or the container slot (none left). Returns 1.
     BOOL DrawItemMaker(int pass);
+    // 00628B50 (slot 25 of the spell maker, RET 0xC; ui_constructor_slots.cpp). The slot item under
+    // (x, y) and its help topic (0 off the regions or while disabled): region 0 the first spell
+    // container (0x13), 1 the first spell (0x14), 2-9 modifier region - 2 (0x15), 10 / 11 the cost
+    // lines (0x1A / 0x1B, no item); null when there is none.
+    CItem* SpellMakerItemAt(int x, int y, int* topic);
+    // 006298B0 (slot 25 of the item maker, RET 0xC). The same: region 0 the first item that can be
+    // taken apart (0xD), 1 the first part (0xE), 2 the first spell container (0x10), from 3 material
+    // region - 3 (0xF).
+    CItem* ItemMakerItemAt(int x, int y, int* topic);
 
     int kind_;                       // +0x148 6 spell maker, 7 item maker (the cells' mode)
     CUiWindow* owner_;               // +0x14C the camp

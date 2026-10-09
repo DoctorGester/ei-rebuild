@@ -13,6 +13,7 @@
 #include <cstdint>
 #include <unordered_map>
 #include "originals_engine.h"
+#include "originals_ui.h"
 
 namespace {
 
@@ -34,8 +35,7 @@ constexpr unsigned long kLockWait = 1;                       // DDLOCK_WAIT
 constexpr long kWasStillDrawing = static_cast<long>(0x8876021C);   // DDERR_WASSTILLDRAWING
 
 // 004800E0 (cdecl): a DirectX error report; nonzero to go on.
-// 00708D79: MFC's CDC::FromHandle (static, stdcall).
-__declspec(naked) void* __stdcall CdcFromHandle(HDC) EI_ORIGINAL(0x00708D79)
+void* CdcFromHandle(HDC dc) { return CdcFromHandleOriginal(dc); }
 
 // The memory DCs given out, with the bitmap each had selected before ours.
 std::unordered_map<HDC, HGDIOBJ> g_memoryDcs;

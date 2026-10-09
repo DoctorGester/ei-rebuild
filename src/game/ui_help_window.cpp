@@ -121,7 +121,7 @@ void CHelpWindow::Finish() {
     if (!message_)
         *HelpTopicsAtOriginal(&interface_->helpTopics_, nullptr, &text_) = page_;
     else
-        interface_->messagePage_ = page_;
+        interface_->messageFlag_ = page_;
     interface_->SetPendingValue(0);
 }
 
