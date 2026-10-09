@@ -37,7 +37,6 @@ void* LeverRecordMap() { return reinterpret_cast<void*>(0x0079C1AC); }
 __declspec(naked) void __fastcall MapBeginRefresh(void*) EI_ORIGINAL(0x005B8B30)
 __declspec(naked) void __fastcall MapEndRefresh(void*) EI_ORIGINAL(0x005B8B80)
 __declspec(naked) bool __fastcall MapCanLeaveCell(void*, void*, void*) EI_ORIGINAL(0x005BA830)
-__declspec(naked) bool __fastcall MapFindFreeCellNear(void*, void*, void*, const float*, float*) EI_ORIGINAL(0x005BA9D0)
 void __fastcall FigureAnimate(void* a0, void*, const char* a2) { ObjectSetupFigureOriginal(a0, nullptr, a2); }
 void __fastcall ControllerResync(void* a0) { ControllerRepositionOriginal(a0); }
 
@@ -75,7 +74,7 @@ void Lever::SetState(int wanted, float duration) {
     mfc::CTypedPtrList<void> around{mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};   // CPtrList on the stack
     CSectorMap* sectors = world->Sectors();
     float reach = radius + 0.5f;
-    SectorMapFindUnitsInRadius(sectors, nullptr, &positionX, &around, reach);
+    SectorMapFindUnitsInRadius(sectors, nullptr, &position.x, &around, reach);
     for (auto* node = around.head; node;) {
         auto* next = node->next;
         SectorMapRemove(sectors, nullptr, AsEngineObject(node->data));
@@ -87,20 +86,20 @@ void Lever::SetState(int wanted, float duration) {
     SectorMapRemove(sectors, nullptr, AsEngineObject(this));
 
     states = stateCount;
-    float position = states > 1 ? static_cast<float>(static_cast<double>(state) / (states - 1)) : 0.0f;
+    float travel = states > 1 ? static_cast<float>(static_cast<double>(state) / (states - 1)) : 0.0f;
     // FCOMP + TEST AH,0x41: timed only for a duration above zero.
     if (!x87::IsNaN(duration) && duration > 0.0f) {
-        to = position;
+        to = travel;
         std::memcpy(&from, &scale.y, sizeof(from));   // copied as a dword
         endTick = (static_cast<float>(world->tick_) + duration) + 1.0f;
         rate = 1.0f / duration;
     } else {
-        to = position;
-        from = position;
+        to = travel;
+        from = travel;
         endTick = 0.0f;
         rate = 0.0f;
     }
-    scale.y = position;   // the shown position
+    scale.y = travel;   // the shown position
     FigureAnimate(this, nullptr, name);
     UnitMarkChanged(this, nullptr, 5);
     SectorMapAdd(sectors, nullptr, AsEngineObject(this));
@@ -111,10 +110,10 @@ void Lever::SetState(int wanted, float duration) {
         auto* next = node->next;
         void* unit = node->data;
         if (!MapCanLeaveCell(map, nullptr, unit)) {
-            float* at = &AsMapObject(unit)->positionX;
-            float free[3] = {at[0], at[1], at[2]};
-            MapFindFreeCellNear(map, nullptr, unit, at, free);
-            std::memcpy(at, free, sizeof(free));
+            Vector3* at = &AsMapObject(unit)->position;
+            Vector3 free = {at->x, at->y, at->z};
+            FindFreeCellNearOriginal(map, nullptr, AsEngineObject(unit), at, &free);
+            std::memcpy(at, &free, sizeof(free));
             ControllerResync(static_cast<CUnit*>(AsEngineObject(unit))->controller);
         }
         SectorMapAdd(sectors, nullptr, AsEngineObject(unit));
@@ -151,7 +150,7 @@ void Lever::UseSpots(LeverSpots* out, float userRadius) {
     // The count is read again each time; a count above 2 reads on into the record (sic).
     for (std::uint32_t i = 0; i < record->spotCount; ++i) {
         const float* spot = &record->spots[0][0] + 2 * i;
-        Vector3 at{positionX, positionY, positionZ};
+        Vector3 at{position.x, position.y, position.z};
         float along = spot[0];
         float across = spot[1];
         float length = std::sqrt(across * across + along * along);

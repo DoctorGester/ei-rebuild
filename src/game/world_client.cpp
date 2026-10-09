@@ -84,13 +84,9 @@ bool PlatformSet::Contains(float x, float y) {
     return false;
 }
 
+// x is summed ZYX, y and z ZXY; every component is computed before the stores (out may be v).
 Vector3* MatrixRows::Transform(Vector3* out, const Vector3* v) const {
-    float z = m[10] * v->z + m[8] * v->x + m[9] * v->y;
-    float y = m[6] * v->z + m[4] * v->x + m[5] * v->y;
-    float x = m[2] * v->z + m[1] * v->y + v->x * m[0];
-    out->x = x;
-    out->y = y;
-    out->z = z;
+    *out = TransformColumnNormal<Sum3::ZYX, Sum3::ZXY>(*this, *v);
     return out;
 }
 
@@ -109,8 +105,8 @@ CEngineObject* CWorldClient::NearestVisibleUnit(CEngineObject* unit) {
         auto* other = static_cast<CUnit*>(found);
         std::uint32_t side = 1u << (self->side & 31);
         if ((other->relationsA & (side & other->relationsB)) == 0) continue;
-        float dy = other->positionY - self->positionY;
-        float dx = other->positionX - self->positionX;
+        float dy = other->position.y - self->position.y;
+        float dx = other->position.x - self->position.x;
         float distance = dx * dx + dy * dy;
         if (!(distance >= best)) {
             best = StoreFloat(distance);

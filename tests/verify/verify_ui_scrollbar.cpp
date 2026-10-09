@@ -1,5 +1,5 @@
 // Checks for ui_scrollbar.cpp (A-H19). Scenarios: the objectives window (ui_objectives,
-// ui_objectives_sort: its quest list and log bars), the save / load window (ui_saveload) and the
+// its quest list and log bars), the save / load window (ui_saveload) and the
 // options window's sliders (ui_options) construct and lay out bars.
 // - CUiScrollbar::Construct (0065AEA0), CUiSlider::Construct (0065BC30): ours only (they allocate):
 //   the fields, four sprites, three regions, the vtables, the position 0.
@@ -115,3 +115,80 @@ static int __fastcall NextTokenVerify(CUiScrollText* self, void*, const mfc::CSt
     return actual;
 }
 EI_VERIFY(0x0065D970, NextTokenVerify, 6, s_nextToken);
+
+// --- A-H20 -----------------------------------------------------------------------------------------
+// - CUiSlider::SetPosition (0065B730): side by side as the scroll bar's (the options sliders,
+//   ui_options).
+// - The thumb drags (0065B1A0 / 0065B810) and the wheel (0065B430): side by side; the original
+//   first, the position state (and the handled flag, the accumulated amount) put back, then ours.
+//   No scenario drags a thumb or turns the wheel over a bar.
+
+static void(__fastcall* s_sliderSetPosition)(CUiSlider*, void*, int);
+static void __fastcall SliderSetPositionVerify(CUiSlider* self, void*, int position) {
+    ScrollPosition before = Take(self);
+    s_sliderSetPosition(self, nullptr, position);
+    ScrollPosition expected = Take(self);
+    Put(self, before);
+    self->CUiSlider::SetPosition(position);
+    ScrollPosition actual = Take(self);
+    ei::verify::Check("CUiSlider::SetPosition", true, Same(expected, actual), "%d (max %d): %d / %d, thumb left %d / %d",
+                      position, self->maxPosition_, expected.position, actual.position, expected.thumb.left,
+                      actual.thumb.left);
+}
+// PUSH ECX; MOV EAX,[ESP+8] (5 bytes).
+EI_VERIFY(0x0065B730, SliderSetPositionVerify, 5, s_sliderSetPosition);
+
+namespace {
+CUiScrollbar* BarOf(void* input) { return reinterpret_cast<CUiScrollbar*>(static_cast<char*>(input) - 0x94); }
+
+template <typename Original, typename Ours>
+void DragVerify(const char* name, void* input, int buttons, int x, int y, Original original, Ours ours) {
+    CUiScrollbar* self = BarOf(input);
+    ScrollPosition before = Take(self);
+    bool handled = self->inputHandled_;
+    original(input, nullptr, buttons, x, y);
+    ScrollPosition expected = Take(self);
+    bool expectedHandled = self->inputHandled_;
+    Put(self, before);
+    self->inputHandled_ = handled;
+    ours(self);
+    ScrollPosition actual = Take(self);
+    ei::verify::Check(name, true, Same(expected, actual) && expectedHandled == self->inputHandled_,
+                      "(%d,%d) state %d: %d / %d", x, y, self->state_, expected.position, actual.position);
+}
+} // namespace
+
+// PUSH ECX; PUSH ESI; MOV ESI,ECX; CMP [ESI+0xF0],1 (11 bytes).
+static void(__fastcall* s_scrollbarMouseMove)(void*, void*, int, int, int);
+static void __fastcall ScrollbarMouseMoveVerify(void* input, void*, int buttons, int x, int y) {
+    DragVerify("CUiScrollbar::OnMouseMove", input, buttons, x, y, s_scrollbarMouseMove,
+               [&](CUiScrollbar* self) { self->CUiScrollbar::OnMouseMove(buttons, x, y); });
+}
+EI_VERIFY(0x0065B1A0, ScrollbarMouseMoveVerify, 11, s_scrollbarMouseMove);
+
+static void(__fastcall* s_sliderMouseMove)(void*, void*, int, int, int);
+static void __fastcall SliderMouseMoveVerify(void* input, void*, int buttons, int x, int y) {
+    DragVerify("CUiSlider::OnMouseMove", input, buttons, x, y, s_sliderMouseMove,
+               [&](CUiScrollbar* self) { static_cast<CUiSlider*>(self)->CUiSlider::OnMouseMove(buttons, x, y); });
+}
+EI_VERIFY(0x0065B810, SliderMouseMoveVerify, 11, s_sliderMouseMove);
+
+// MOV EAX,[ESP+0x10]; PUSH ESI (5 bytes).
+static int(__fastcall* s_scrollbarWheel)(void*, void*, int, int, int, int);
+static int __fastcall ScrollbarWheelVerify(void* input, void*, int flags, int delta, int x, int y) {
+    CUiScrollbar* self = BarOf(input);
+    float accumulated = self->accumulated_;
+    bool handled = self->inputHandled_;
+    int expected = s_scrollbarWheel(input, nullptr, flags, delta, x, y);
+    float expectedAccumulated = self->accumulated_;
+    bool expectedHandled = self->inputHandled_;
+    self->accumulated_ = accumulated;
+    self->inputHandled_ = handled;
+    int actual = self->CUiScrollbar::OnWheel(flags, delta, x, y);
+    ei::verify::CheckNear("CUiScrollbar::OnWheel", expectedAccumulated, self->accumulated_, "delta %d at (%d,%d)", delta,
+                          x, y);
+    ei::verify::Check("CUiScrollbar::OnWheel handled", expectedHandled && expected == 1, self->inputHandled_ && actual == 1,
+                      "delta %d", delta);
+    return actual;
+}
+EI_VERIFY(0x0065B430, ScrollbarWheelVerify, 5, s_scrollbarWheel);

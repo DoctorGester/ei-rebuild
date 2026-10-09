@@ -36,7 +36,18 @@ void Pop(MatrixStack& stack) {
     if (stack.count != 0) --stack.count;
 }
 
+// Place's layout scale (00740158, 0.48157), the half width / height (00740160, 400; 0073FA98, 300)
+// and 1 (0073B84C), read from the exe.
+float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+
 } // namespace
+
+void CUiMesh::GetPlacement(float* x, float* y, float* depth) const {
+    *x = (position_.x / position_.z / GameFloat(0x00740158) + GameFloat(0x0073B84C)) * GameFloat(0x00740160);
+    *y = position_.y / position_.z / GameFloat(0x00740158) * GameFloat(0x00740160) + GameFloat(0x0073FA98);
+    std::memcpy(depth, &position_.z, sizeof(float));
+}
+EI_REPLACE_METHOD(0x005E7010, CUiMesh::GetPlacement);
 
 // 005E6D90 (RET 4). Nothing unless visible. Binds the texture to stage 0 (failure is fatal), builds
 // the placement from the orientation and position, pushes it on the view and world stacks, then

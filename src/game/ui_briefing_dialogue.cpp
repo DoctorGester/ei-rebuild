@@ -136,7 +136,7 @@ void CBriefingScreen::ViewSpeaker(CUnit* unit, float angle, float distance, floa
         x = static_cast<double>(places_[kLeaderPlace].y) - places_[kPersonPlace].y;
         y = static_cast<double>(places_[kPersonPlace].x) - places_[kLeaderPlace].x;
     } else {
-        Vector3 place{unit->positionX, unit->positionY, unit->positionZ};
+        Vector3 place{unit->position.x, unit->position.y, unit->position.z};
         Vector3 axis;
         unit->orientation.AxisY(&axis);
         Vector3 facing{-axis.x, -axis.y, -axis.z};

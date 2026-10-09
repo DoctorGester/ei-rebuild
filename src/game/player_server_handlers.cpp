@@ -57,7 +57,7 @@ using UnitArray = mfc::CArray<CUnit*>;
 
 CUnit* FindUnit(int id) { return static_cast<CUnit*>(WorldFindUnit(WorldServer(), nullptr, id)); }
 UnitController* ControllerOf(CUnit* unit) { return reinterpret_cast<UnitController*>(unit->controller); }
-const Vector3* PositionOf(const CUnit* unit) { return reinterpret_cast<const Vector3*>(&unit->positionX); }
+const Vector3* PositionOf(const CUnit* unit) { return &unit->position; }
 
 // Appends `object` to `list` with a counted reference (the inlined AddTail of the brain's lists:
 // 0052CDB0's new node holds a null reference, then the assignment counts the object).

@@ -609,4 +609,43 @@ CItem* CItemManager::CreateItem(const char* name) {
     return item;
 }
 EI_REPLACE_METHOD(0x006AC970, CItemManager::CreateItem);
+
+// --- The item manager's MakeItem (006AD000, A-H20) -------------------------------------------------
+
+CItem* CItemManager::MakeItem(int kind, std::uint32_t index, std::uint32_t material, int key) {
+    CItemConstructor* constructor = static_cast<CManagerContext*>(context_)->ItemConstructor();
+    if (static_cast<std::int16_t>(index) == -1) index = 0;
+    constructor->SetManager(this);
+    constructor->BeginCreateItem(kind, key);
+    char* prototype = nullptr;
+    char* materialRecord = nullptr;
+    switch (kind) {
+    case kItemWeapon:
+        prototype = Weapons().At(index, kWeaponSize);
+        materialRecord = Materials().At(material, kMaterialSize);
+        break;
+    case kItemArmor:
+        prototype = Armors().At(index, kArmorSize);
+        materialRecord = Materials().At(material, kMaterialSize);
+        break;
+    case kItemQuick:
+    case kItemSpell:
+        prototype = QuickItems().At(index, kQuickItemSize);
+        break;
+    case kItemQuest:
+        prototype = QuestItems().At(index, kQuestItemSize);
+        break;
+    case kItemLoot:
+        prototype = Loot().At(index, kLootSize);
+        break;
+    default:
+        break;
+    }
+    constructor->SetPrototype(prototype);
+    constructor->SetMaterial(materialRecord);
+    CItem* item = constructor->EndCreateItem();
+    constructor->SetManager(nullptr);
+    return item;
+}
+EI_REPLACE_METHOD(0x006AD000, CItemManager::MakeItem);
 EI_REBIRTH_IMPLEMENTS(0x006AC970, ei::rebirth::Patch::FixCreateItem);

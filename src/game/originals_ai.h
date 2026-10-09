@@ -64,8 +64,13 @@ __declspec(naked) inline void __fastcall ListAppend(void* /*cells*/, void*, cons
 __declspec(naked) inline void* __fastcall ListReversed(const void* /*cells*/, void*, void* /*out*/)
     EI_ORIGINAL(0x005C5E60)
 __declspec(naked) inline void __fastcall MotionBuild(void*, void*, void* /*order*/) EI_ORIGINAL(0x005C67D0)
-__declspec(naked) inline bool __fastcall MotionSample(void* /*motion*/, void*, void* /*world*/, void* /*order*/, float /*time*/, bool* /*turning*/, float* /*position*/, float* /*direction*/, float* /*speed*/, int* /*cellX*/, int* /*cellY*/)
+__declspec(naked) inline bool __fastcall MotionSample(void* /*motion*/, void*, void* /*world*/, void* /*order*/, float /*time*/, bool* /*turning*/, Vector3* /*position*/, Vector3* /*direction*/, float* /*speed*/, int* /*cellX*/, int* /*cellY*/)
     EI_ORIGINAL(0x005C7430)
+// 005C7B00 (rewritten as AIPath::Start, ai_motion.cpp; RET 0xC, AL): the path started at `position`
+// facing `direction` at `time`.
+__declspec(naked) inline bool __fastcall AIPathStartOriginal(AIPath*, void*, const Vector3* /*position*/,
+                                                             const Vector3* /*direction*/, int /*time*/)
+    EI_ORIGINAL(0x005C7B00)
 __declspec(naked) inline void __fastcall PathShiftTime(void*, void*, int) EI_ORIGINAL(0x005C7CB0)
 
 // C3i. 005C35F0: CLocalSearch reset (plain RET, EAX not a result; the old `(void*, void*)` forms passed a dummy EDX).
@@ -81,6 +86,23 @@ __declspec(naked) inline void __fastcall BrainRemoveModeOriginal(void* /*brain*/
 // matching protection word (negative differences count 0). Only the low 16 bits are meaningful.
 __declspec(naked) inline std::uint32_t __fastcall ExcessDamageOriginal(const std::uint16_t* /*damage*/, void*,
                                                                       const std::uint16_t* /*protection*/) EI_ORIGINAL(0x00522AE0)
+// CAIMap lookups at a world position, through their addresses (rewritten in ai_map.cpp / ai_movement.cpp /
+// ai_water_patch.cpp; `map` is the CAIMap). 005BA790 IsPassableForClass (RET 8, AL), 005BA9D0 FindFreeCellNear
+// (RET 0xC, AL), 005BBC70 CellFlag80At (RET 4, AL), 005BBDB0 HasKind3OccluderAt (RET 4, AL), 005B7BB0
+// BlockingUnitAt (RET 8), 005B7EF0 StampWaterPatch (RET 8).
+__declspec(naked) inline bool __fastcall IsPassableForClassOriginal(void* /*map*/, void*, int /*sizeClass*/,
+                                                                    const Vector3* /*position*/) EI_ORIGINAL(0x005BA790)
+__declspec(naked) inline bool __fastcall FindFreeCellNearOriginal(void* /*map*/, void*, CEngineObject* /*unit*/,
+                                                                  const Vector3* /*from*/, Vector3* /*target*/)
+    EI_ORIGINAL(0x005BA9D0)
+__declspec(naked) inline bool __fastcall CellFlag80AtOriginal(void* /*map*/, void*, const Vector3* /*position*/)
+    EI_ORIGINAL(0x005BBC70)
+__declspec(naked) inline bool __fastcall HasKind3OccluderAtOriginal(void* /*map*/, void*, const Vector3* /*position*/)
+    EI_ORIGINAL(0x005BBDB0)
+__declspec(naked) inline CUnit* __fastcall BlockingUnitAtOriginal(void* /*map*/, void*, CUnit* /*unit*/,
+                                                                  const Vector3* /*position*/) EI_ORIGINAL(0x005B7BB0)
+__declspec(naked) inline void __fastcall StampWaterPatchOriginal(void* /*map*/, void*, const Vector3* /*position*/,
+                                                                 int /*add*/) EI_ORIGINAL(0x005B7EF0)
 // 005BC3E0 (CAIMap::LineOfSight, ai_map.cpp) through its address, its ST0 taken unrounded (RET 8).
 __declspec(naked) inline double __fastcall LineOfSightOriginal(CAIMap*, void*, const Vector3* /*from*/, const Vector3* /*to*/)
     EI_ORIGINAL(0x005BC3E0)

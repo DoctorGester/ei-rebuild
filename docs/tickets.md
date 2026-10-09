@@ -25,7 +25,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- A-I .. A-I18 done (A-I, A-I4, A-I5 cut off). A-I19 cut off, merged 2026-10-09. A-I20 done (camp debug fill, base screen player list, double-click defaults, exchange window). A-I21 taken (connection screen CMpConnectScreen 0061C2D0-0061D470, master request box 0061E2F0-0061E8F0; ui.md "Next") (item panels, chat overlay, console window, exchange slots, top-window news); left: ui.md section 3 "Next" (00612CF0; multiplayer: the base screen's chat window 00608D20-006097E0, exchange 0062C250 / 0062C9C0, connection screens 0061B2C0-00620300).
+- A-I .. A-I18 done (A-I, A-I4, A-I5 cut off). A-I19 cut off, merged 2026-10-09. A-I20 done (camp debug fill, base screen player list, double-click defaults, exchange window). A-I21 done (connection screen, master request box, small slots; next: Rebirth-patched vanilla-only 0060C870 / 00613EA0 / 0063A560 / 0061B2C0 / 0061D780; 0062D100, 00632490 / 006324E0). Was A-I21 (connection screen CMpConnectScreen 0061C2D0-0061D470, master request box 0061E2F0-0061E8F0; ui.md "Next") (item panels, chat overlay, console window, exchange slots, top-window news); left: ui.md section 3 "Next" (00612CF0; multiplayer: the base screen's chat window 00608D20-006097E0, exchange 0062C250 / 0062C9C0, connection screens 0061B2C0-00620300).
 
 - I11 Next interface functions (ui.md, battle screen section); 0063EF60 / 0063E020 need modifier keys held during a click (harness step).
 
@@ -43,14 +43,22 @@ The four porting batches (A-I16, A-H15, A-S9, A-U7) are merged (2026-10-09, 140 
 
 - C6 done 2026-10-09 (combat.md "C6 cleanup"). C7 done 2026-10-09.
 - C8 merged 2026-10-09 (8 script / world files).
-- C9 part 1 done 2026-10-09 (renderer_init, map_object_lifetime, figure_part_draw, string_map clean; map_object_shadow mostly); re-merging with V3. C10 done 2026-10-09 (world_map, world_update, scene_bones, unit_update, then scene_skeleton, scene_bone_frames, scene_loader, scene_normals, scene_meshes, scene_weld, scene_registry; world.md, objects.md, units.md "C10").
+- C9 part 1 merged 2026-10-09 (renderer_init, map_object_lifetime, figure_part_draw, string_map clean; map_object_shadow mostly). C10 merged 2026-10-09 (world_map, world_update, scene_bones, unit_update, then scene_skeleton, scene_bone_frames, scene_loader, scene_normals, scene_meshes, scene_weld, scene_registry; world.md, objects.md, units.md "C10").
+
+- X27 (low): CPlayerClient::SendLeave04 state check mismatched once (1 of 44) in an effects_bow Rebirth run that also timed out; effects_bow passes alone. Watch.
+
+- R-next (parked until porting is finished, user 2026-10-09): renderer device removal (no DirectDraw / D3D7 device in the switch-over, own swap chain, renderer.md section 9), then native UI drawing window by window.
+
+## Game code in the CRT / MFC range, 0x006C0000-0x00740000
+
+- A-X1 (taken 2026-10-09): the largest unported game functions in 0x006C0000-0x00740000 (11% ported, 250 functions, 92 KB left).
 
 ## Vector math (planned 2026-10-09)
 
 Vector and matrix maths is mostly written out by hand: x*x + y*y (+ z*z) forms in 25 files, 164 sqrt calls, 235 raw float[3] / [4] / [9] / [16] arrays, and four separate 3-float structs (maths.h Vector3, ground_decal.h, render/render_internal.h, ui_camp.h) plus chunk_stream.h's Float4. Goal: one set of types and named operations, used everywhere, without changing results.
 Constraints: the original is MSVC6 x87 code that inlined this maths, so the order of operations decides the rounding. Every helper is __forceinline and evaluates in a fixed, documented order (x, y, z left to right); where the original uses another order, the helper is a named variant, never a silent reorder. Side-by-side checks that compare floats exactly must still pass; CheckNear tolerances are not widened to make a migration pass. The x87 __asm helpers are a separate ticket.
 - V1 done 2026-10-09, V2 done 2026-10-09 (vector-math.md).
-- V3 part 1 done 2026-10-09 (507 -> 411; matrix x point, PathStart / MotionSample / MarkerDraw float* callees and CMapObject positionX/Y/Z left). Was V3: a check_cleanup column for unrolled vector maths (the x*x + y*y forms and float[3] / [16] members), then migrations by area in batches, each through the full suite.
+- V3 part 2 taken 2026-10-09 (matrix x point, PathStart / MotionSample / MarkerDraw shared declarations with Vector3*, then CMapObject positionX/Y/Z as a Vector3). V3 part 1 done 2026-10-09 (507 -> 411; matrix x point, PathStart / MotionSample / MarkerDraw float* callees and CMapObject positionX/Y/Z left). Was V3: a check_cleanup column for unrolled vector maths (the x*x + y*y forms and float[3] / [16] members), then migrations by area in batches, each through the full suite.
 
 ## Draft passes (no build, 2026-10-07)
 

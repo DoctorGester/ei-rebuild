@@ -20,8 +20,8 @@ bool FreshTip(const CUiRegion* region, int flag, int extra, bool emptyText) {
     if (!tip) return true;   // allocation failure: null, as in the original
     bool ok = reinterpret_cast<std::uintptr_t>(tip->vtable_) == kTooltipVtable && tip->region_ == region &&
               tip->state_ == 0 && tip->unknown_17C == 0;
-    if (tip->lineCount_ > 0) ok = ok && tip->flag_ == flag && tip->extra_ == extra;
-    if (emptyText) ok = ok && tip->lineCount_ == 0;
+    if (tip->lines_.size > 0) ok = ok && tip->flag_ == flag && tip->extra_ == extra;
+    if (emptyText) ok = ok && tip->lines_.size == 0;
     return ok;
 }
 
@@ -34,7 +34,7 @@ static void __fastcall SetTipVerify(CUiRegion* self, void*, int id, int flag, in
     bool ok = id == 0 ? FreshTip(self, 1, 0, true) : FreshTip(self, flag, extra, false);
     const CUiTooltip* tip = self->tip_;
     ei::verify::Check("CUiRegion::SetTip", true, ok, "id %d (%d, %d): tip %p lines %d args %d %d", id, flag, extra, tip,
-                      tip ? tip->lineCount_ : -1, tip ? tip->flag_ : 0, tip ? tip->extra_ : 0);
+                      tip ? tip->lines_.size : -1, tip ? tip->flag_ : 0, tip ? tip->extra_ : 0);
 }
 EI_VERIFY(0x005FC730, SetTipVerify, 0, s_setTip);
 
@@ -45,7 +45,7 @@ static void __fastcall SetTipStringVerify(CUiRegion* self, void*, const char* te
     bool ok = FreshTip(self, flag, extra, !text || !*text);
     const CUiTooltip* tip = self->tip_;
     ei::verify::Check("CUiRegion::SetTipString", true, ok, "\"%.40s\" (%d, %d): tip %p lines %d args %d %d",
-                      text ? text : "(null)", flag, extra, tip, tip ? tip->lineCount_ : -1, tip ? tip->flag_ : 0,
+                      text ? text : "(null)", flag, extra, tip, tip ? tip->lines_.size : -1, tip ? tip->flag_ : 0,
                       tip ? tip->extra_ : 0);
 }
 EI_VERIFY(0x005FC6B0, SetTipStringVerify, 0, s_setTipString);

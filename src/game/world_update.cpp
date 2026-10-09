@@ -84,7 +84,7 @@ void WakeAroundUnits(CWorldServer* world, WorldPlayer* player) {
         float minimum = controller->stats.valuesB0[2].current;
         float range = !(perception >= minimum) ? minimum : perception;   // the branch-free select
         float radius = static_cast<float>(static_cast<double>(range) * worlddata::HearingScale() + worlddata::WakeMargin());
-        WakeUnitsAroundAt(world, nullptr, &unit->positionX, radius);
+        WakeUnitsAroundAt(world, nullptr, &unit->position, radius);
     }
 }
 

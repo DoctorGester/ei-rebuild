@@ -111,6 +111,9 @@ public:
     // 00638AD0 (input side slot 7, RET 0xC; ui_battle_input.cpp; `this` the window). A double
     // click: as the button-down (00638A40) with the container's double-click handler (00601570).
     void OnLeftDouble(int buttons, int x, int y);
+    // 00638A10 (input slot 1; ui_battle_input.cpp). The screen loses the top: the order keys and
+    // the press / box flags (+0x1C0, +0x1C1) cleared, then the container's slot 1.
+    void OnDeactivate();
     // 0063B6D0 (input side slot 11, RET 0xC; ui_battle_input.cpp). A key released: unless a
     // portrait click picks a player, the container's key-up handler (006019A0), then the order
     // key of the key's action (0x11..0x16 of the key table, by `flags & 0x1FF`) is released.
@@ -673,6 +676,9 @@ public:
     // camp does not offer falls back to the current page. Page 7 gives the constructors' unused
     // items back, puts the constructed items into the strips and leaves the camp.
     void ShowPage(int page);
+    // 0060FA80 (virtual slot 64; ui_camp_stats.cpp). The local player's record of the hero shown
+    // (LocalPlayerData +0x30, 0x784 bytes each; not checked).
+    PartyUnitRecord* HeroRecord();
     // 006100E0 (virtual slot 43). Whether `item` may go where the strip with action `mode` puts
     // it on the current page: weapons and armour on the equipment page, spells the party can cast,
     // the parts and spells each constructor accepts (skill and mana of the best hero, at most
@@ -818,7 +824,7 @@ public:
     std::uint8_t unknown_19C[4];
     std::uint8_t** heroes_;          // +0x1A0 the party's heroes (data of an array)
     std::uint8_t unknown_1A4[0x1B0 - 0x1A4];
-    int hero_;                       // +0x1B0 the hero shown
+    int hero_;                       // +0x1B0 the hero shown (HeroRecord)
     // Item lists (0x70 bytes each, 00661050): the constructors' parts and what they made.
     void* itemParts_[3];             // +0x1B4 (the constructor's +0x3C), +0x1B8, +0x1BC
     void* itemResults_;              // +0x1C0

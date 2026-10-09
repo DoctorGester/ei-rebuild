@@ -470,10 +470,10 @@ static int __fastcall AddFaceVerify(PlatformSet* set, void*, const float* a, con
 EI_VERIFY(0x00560650, AddFaceVerify, 7, s_addFace);
 
 // 00560820: SUB ESP,0x13C (6 bytes).
-using AddBoxFn = void(__fastcall*)(PlatformSet*, void*, int, const FootprintPart*, const float*, const float*);
+using AddBoxFn = void(__fastcall*)(PlatformSet*, void*, int, const FootprintPart*, const Vector3*, const Quaternion*);
 static AddBoxFn s_addBox;
-static void __fastcall AddBoxVerify(PlatformSet* set, void*, int id, const FootprintPart* item, const float* position,
-                                    const float* rotation) {
+static void __fastcall AddBoxVerify(PlatformSet* set, void*, int id, const FootprintPart* item, const Vector3* position,
+                                    const Quaternion* rotation) {
     PlatformNode* last = set->list.head;
     s_addBox(set, nullptr, id, item, position, rotation);
     std::vector<const Platform*> theirs = RecordsAfter(set, last);

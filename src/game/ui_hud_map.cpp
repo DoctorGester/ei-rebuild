@@ -307,8 +307,8 @@ void CHudMap::BuildMarkers() {
             out.Hide();
             continue;
         }
-        double mapX = out.MapX(unit->positionX);
-        float mapY = out.MapY(unit->positionY);
+        double mapX = out.MapX(unit->position.x);
+        float mapY = out.MapY(unit->position.y);
         float x = Store(mapX * out.Zoom());
         double zoomedY = D(mapY) * out.Zoom();   // the original stores it but squares the register
         float y = Store(zoomedY);
@@ -335,7 +335,7 @@ void CHudMap::BuildMarkers() {
         out.BeginQuad();
         auto* object = reinterpret_cast<CUnit*>(markers->FindObject(node->id));
         float x, y;
-        if (object && out.Place(object->positionX, object->positionY, &x, &y)) {
+        if (object && out.Place(object->position.x, object->position.y, &x, &y)) {
             out.PutSquare(x, y);
             out.Show(kFrameMarked);
         } else {
@@ -367,7 +367,7 @@ void CHudMap::BuildMarkers() {
             out.BeginQuad();
             auto* unit = reinterpret_cast<CUnit*>(objects->FindObject(view->PlayerUnitIds()[i]));
             float x, y;
-            if (unit && out.Place(unit->positionX, unit->positionY, &x, &y)) {
+            if (unit && out.Place(unit->position.x, unit->position.y, &x, &y)) {
                 out.PutDiamond(x, y);
                 out.Show(kFrameParty);
             } else {

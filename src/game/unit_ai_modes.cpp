@@ -176,7 +176,7 @@ void GuardMode::Execute(AIBrain* brain) {
             DestroyLooks(&order);
             return;
         }
-        if (!brain->FindStandPoint(reinterpret_cast<const Vector3*>(&brain->owner->unit->positionX), radius, &order.point)) {
+        if (!brain->FindStandPoint(&brain->owner->unit->position, radius, &order.point)) {
             LooksDestroyAt(&order.looks);
             return;
         }
@@ -228,7 +228,7 @@ int PatrolMode::Evaluate(AIBrain* brain) {
     if (points.size != 0) return kPriority;
     // 00791DEC: "Unit %i has no patrol points, switching to guard" (passed by address, as the original).
     game::FatalError(reinterpret_cast<const char*>(0x00791DEC), brain->owner->unit->id_);
-    AddPoint(reinterpret_cast<const Vector3*>(&brain->owner->unit->positionX));
+    AddPoint(&brain->owner->unit->position);
     return kNoPriority;
 }
 EI_REPLACE_METHOD(0x005D16B0, PatrolMode::Evaluate);
@@ -357,7 +357,7 @@ void SuspectionMode::Execute(AIBrain* brain) {
         // TEST AH,0x41: jump to a new move only when the distance is greater.
         if (!(dx * dx + dy * dy > kArrivedSq)) {
             // Still going to this point: near it, the interest fades.
-            const float* unit = &brain->owner->unit->positionX;
+            const float* unit = &brain->owner->unit->position.x;
             double ux = unit[0] - point.x;
             double uy = unit[1] - point.y;
             double uz = unit[2] - point.z;
@@ -452,7 +452,7 @@ int AggressionMode::Evaluate(AIBrain* brain) {
     }
     CUnit* self = brain->owner->unit;
     brain->CollectEnemies(self, reinterpret_cast<void*>(kCandidates));
-    brain->ChooseTarget(&enemyPart, reinterpret_cast<void*>(kCandidates), reinterpret_cast<const Vector3*>(&self->positionX), 0, 0);
+    brain->ChooseTarget(&enemyPart, reinterpret_cast<void*>(kCandidates), &self->position, 0, 0);
     CEngineObject* best = chosen;
     if (best != enemy) {
         if (enemy) enemy->Release();

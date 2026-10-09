@@ -183,3 +183,10 @@ void CHeroStatsPanel::SetHero(int heroIndex, const char* title) {
     StatsPanelDrawStatsOriginal(this);
 }
 EI_REPLACE_METHOD(0x006232D0, CHeroStatsPanel::SetHero);
+
+// --- 0060FA80: the camp's hero record (slot 64) ----------------------------------------------------
+
+PartyUnitRecord* CCampPages::HeroRecord() {
+    return &reinterpret_cast<PartyRecords*>(LocalPlayerData())->records[hero_];
+}
+EI_REPLACE_METHOD(0x0060FA80, CCampPages::HeroRecord);

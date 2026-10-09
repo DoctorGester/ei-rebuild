@@ -124,14 +124,14 @@ std::uintptr_t CUnit::UpdateSizeClasses() { return Controller()->UpdateSizeClass
 EI_REPLACE_METHOD(0x00530A50, CUnit::UpdateSizeClasses);
 
 float* CUnit::StandPoint(float* out) {
-    float x = positionX;
-    float y = positionY;
+    float x = position.x;
+    float y = position.y;
     volatile float lift = static_cast<float>(ModeSpeed());   // the original inlines it
     CWorld* world = WorldOf(this);
     double height;
     if (movementKind == kMovesOnWater) {
         if (controller->GetClassId() == kClassUnitServer) {
-            height = world->SurfaceHeightAt(x, y) + positionZ;
+            height = world->SurfaceHeightAt(x, y) + position.z;
         } else {
             height = world->SurfaceHeightAt(x, y) + heightOffset;
         }
@@ -146,18 +146,18 @@ float* CUnit::StandPoint(float* out) {
 EI_REPLACE_METHOD(0x005303A0, CUnit::StandPoint);
 
 void CUnit::PlaceUnitOnGround(float offset) {
-    float x = positionX;
-    float y = positionY;
+    float x = position.x;
+    float y = position.y;
     heightOffset = offset;
     CWorld* world = WorldOf(this);
     if (movementKind == kMovesOnWater) {
         if (controller->GetClassId() == kClassUnitServer) {
-            positionZ = static_cast<float>(world->SurfaceHeightAt(x, y) + positionZ);
+            position.z = static_cast<float>(world->SurfaceHeightAt(x, y) + position.z);
         } else {
-            positionZ = static_cast<float>(world->SurfaceHeightAt(x, y) + heightOffset);
+            position.z = static_cast<float>(world->SurfaceHeightAt(x, y) + heightOffset);
         }
     } else {
-        positionZ = static_cast<float>(world->GroundHeightAt(x, y));
+        position.z = static_cast<float>(world->GroundHeightAt(x, y));
     }
 }
 EI_REPLACE_METHOD(0x0052F740, CUnit::PlaceUnitOnGround);

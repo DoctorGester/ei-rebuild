@@ -777,7 +777,7 @@ struct PlatformSet {
     // `position` with the rotation quaternion `rotation` (w, x, y, z): the box's corners and the six
     // face normals rotated, and every face that points up added with the id, the centre
     // R (pivot + offset) + position and the radius.
-    void AddBox(int id, const FootprintPart* item, const float* position, const float* rotation);
+    void AddBox(int id, const FootprintPart* item, const Vector3* position, const Quaternion* rotation);
 
     // The set as the engine object it starts with (its vtable is not declared here).
     CEngineObject* Engine() { return reinterpret_cast<CEngineObject*>(this); }
@@ -1073,12 +1073,12 @@ public:
     // world_client_view.cpp
     // 0056A990 (RET 0x18). Walks one object list (a map sector's, the deferred unit list at
     // 007AF5B4 or +0xB4), tests each object with a model against the view frustum and files it in
-    // the frame's draw lists (world_client_view.cpp). `view` is the camera matrix (rows of 4 floats),
+    // the frame's draw lists (world_client_view.cpp). `view` is the camera matrix (M * v),
     // `animTime` the game time handed to units' slot 25, `now` the timeGetTime() of the frame.
     // With `animateUnits` 0 units are only queued on the deferred list; otherwise they are animated
     // (slot 25) and filed like other objects. `withScripted` lets heroes with a text-key id
     // through. Returns how many objects were queued for the model-touch list (007AF508).
-    int CollectVisible(void* list, const float* view, float animTime, std::uint32_t now, char animateUnits,
+    int CollectVisible(void* list, const Matrix4* view, float animTime, std::uint32_t now, char animateUnits,
                        char withScripted);
     // 0056BF30 (RET 0xC). The ground point under screen pixel (x, y): inverts the current view
     // matrix and iterates on the terrain height (Terrain::HeightAt). Returns out (x, y, z).

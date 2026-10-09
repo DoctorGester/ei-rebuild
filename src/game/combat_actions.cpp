@@ -332,7 +332,7 @@ void CUnitServer::TriggerWeaponSpell(CEngineObject* target) {
     CUnit* self = unit;
     Vector3 point;
     const void* at = ei::VCall<const Vector3*>(target, kUnitSlotAimPoint, &point);
-    WorldCastSpell(WorldServer(), nullptr, spell, self, &self->positionX, target, at, 0);
+    WorldCastSpell(WorldServer(), nullptr, spell, self, &self->position.x, target, at, 0);
 }
 EI_REPLACE_METHOD(0x0054F850, CUnitServer::TriggerWeaponSpell);
 
@@ -349,7 +349,7 @@ void CUnitServer::TriggerItemSpells(char onHit) {
         if (!fires) continue;
         CallUseItemCharge(item, cost);
         CUnit* self = unit;
-        WorldCastSpell(WorldServer(), nullptr, spell, self, &self->positionX, self, &self->positionX, 0);
+        WorldCastSpell(WorldServer(), nullptr, spell, self, &self->position.x, self, &self->position.x, 0);
     }
 }
 EI_REPLACE_METHOD(0x0054F8E0, CUnitServer::TriggerItemSpells);
@@ -384,9 +384,9 @@ std::uint32_t CUnitServer::HitDirection(CUnit* attacker, int hitKind) {
     if (!attacker) return 0;
     if (hitKind) return 0;
     const CUnit* self = unit;
-    float dx = attacker->positionX - self->positionX;
-    float dy = attacker->positionY - self->positionY;
-    float dz = attacker->positionZ - self->positionZ;
+    float dx = attacker->position.x - self->position.x;
+    float dy = attacker->position.y - self->position.y;
+    float dz = attacker->position.z - self->position.z;
     const auto* rotation = reinterpret_cast<const Quaternion*>(reinterpret_cast<const char*>(self) + 0x34);
     Vector3 axisY;
     rotation->AxisY(&axisY);
@@ -467,8 +467,8 @@ void CUnitServer::PropagateHostility() {
         node = node->next;
         if (!(diplomacy->allied_[side] & (1u << (static_cast<std::uint32_t>(other->side) & 31)))) continue;
         CUnit* self = unit;
-        double dx = static_cast<double>(other->positionX) - self->positionX;
-        double dy = static_cast<double>(other->positionY) - self->positionY;
+        double dx = static_cast<double>(other->position.x) - self->position.x;
+        double dy = static_cast<double>(other->position.y) - self->position.y;
         float distance = static_cast<float>(dy * dy + dx * dx);
         float squaredRadius = *limit;
         if (!(std::bit_cast<std::int32_t>(distance) < std::bit_cast<std::int32_t>(squaredRadius))) continue;

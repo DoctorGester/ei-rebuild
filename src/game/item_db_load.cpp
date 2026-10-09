@@ -77,6 +77,16 @@ __declspec(naked) void __fastcall QuestItemsResize(void*, void*, unsigned) EI_OR
 __declspec(naked) void __fastcall QuickItemSerialize(void*, void*, ChunkArchive*) EI_ORIGINAL(0x0069F940)
 __declspec(naked) void __fastcall LootSerialize(void*, void*, ChunkArchive*) EI_ORIGINAL(0x0069F9C0)
 __declspec(naked) void __fastcall QuestItemSerialize(void*, void*, ChunkArchive*) EI_ORIGINAL(0x0069FA90)
+// A-H20: materials, weapons and armor (the destructors are compiler-generated, library.csv).
+__declspec(naked) void __fastcall MaterialDestroy(void*) EI_ORIGINAL(0x006A88F0)
+__declspec(naked) void __fastcall WeaponDestroy(void*) EI_ORIGINAL(0x006A8950)
+__declspec(naked) void __fastcall ArmorDestroy(void*) EI_ORIGINAL(0x006A89D0)
+__declspec(naked) void __fastcall MaterialsResize(void*, void*, unsigned) EI_ORIGINAL(0x006A7F00)
+__declspec(naked) void __fastcall WeaponsResize(void*, void*, unsigned) EI_ORIGINAL(0x006A8110)
+__declspec(naked) void __fastcall ArmorsResize(void*, void*, unsigned) EI_ORIGINAL(0x006A8290)
+__declspec(naked) void __fastcall MaterialSerialize(void*, void*, ChunkArchive*) EI_ORIGINAL(0x0069F620)
+__declspec(naked) void __fastcall WeaponSerialize(void*, void*, ChunkArchive*) EI_ORIGINAL(0x0069F800)
+__declspec(naked) void __fastcall ArmorSerialize(void*, void*, ChunkArchive*) EI_ORIGINAL(0x0069F8C0)
 
 // The body of the three instantiations: chunk `id` holding one chunk 1 per record; loading
 // destroys the old records (erase(begin, end): the tail copy is empty) and resizes to the number
@@ -124,6 +134,22 @@ EI_REPLACE_METHOD(0x006A7C20, ChunkArchive::SerializeQuickItems);
 EI_REPLACE_METHOD(0x006A7D20, ChunkArchive::SerializeLoot);
 EI_REPLACE_METHOD(0x006A7E10, ChunkArchive::SerializeQuestItems);
 
+void ChunkArchive::SerializeMaterials(int id, void* records, void*) {
+    SerializeItemRecords(this, id, static_cast<itemdb::IndexedRecordTable*>(records), itemdb::kMaterialSize,
+                         MaterialDestroy, MaterialsResize, MaterialSerialize);
+}
+void ChunkArchive::SerializeWeapons(int id, void* records, void*) {
+    SerializeItemRecords(this, id, static_cast<itemdb::IndexedRecordTable*>(records), itemdb::kWeaponSize,
+                         WeaponDestroy, WeaponsResize, WeaponSerialize);
+}
+void ChunkArchive::SerializeArmors(int id, void* records, void*) {
+    SerializeItemRecords(this, id, static_cast<itemdb::IndexedRecordTable*>(records), itemdb::kArmorSize,
+                         ArmorDestroy, ArmorsResize, ArmorSerialize);
+}
+EI_REPLACE_METHOD(0x006A7940, ChunkArchive::SerializeMaterials);
+EI_REPLACE_METHOD(0x006A7A30, ChunkArchive::SerializeWeapons);
+EI_REPLACE_METHOD(0x006A7B30, ChunkArchive::SerializeArmors);
+
 EI_REPLACE_METHOD(0x006A6E50, itemdb::IndexedRecordTable::LoadQuickItems);
 EI_REPLACE_METHOD(0x006A7110, itemdb::IndexedRecordTable::LoadLoot);
 EI_REPLACE_METHOD(0x006A73B0, itemdb::IndexedRecordTable::LoadQuestItems);
@@ -148,9 +174,7 @@ __declspec(naked) void __fastcall QuickItemBucketsDestroy(void*) EI_ORIGINAL(0x0
 __declspec(naked) void __fastcall LootBucketsDestroy(void*) EI_ORIGINAL(0x005843A0)
 __declspec(naked) void __fastcall QuestItemBucketsDestroy(void*) EI_ORIGINAL(0x00584450)
 __declspec(naked) void __fastcall MaterialIndexDestroy(void*) EI_ORIGINAL(0x006A6C20)
-__declspec(naked) void __fastcall MaterialDestroy(void*) EI_ORIGINAL(0x006A88F0)
-__declspec(naked) void __fastcall WeaponDestroy(void*) EI_ORIGINAL(0x006A8950)
-__declspec(naked) void __fastcall ArmorDestroy(void*) EI_ORIGINAL(0x006A89D0)
+// (The records' destructors are declared with the vector serialisers above.)
 
 constexpr int kBucketsOffset = 4;   // the index's bucket vector
 

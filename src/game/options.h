@@ -61,7 +61,33 @@ public:
     // are written as booleans, the light colours as 0..255, "Joystick" always as 0, and
     // "Difficulty Level" from +0x254.
     void SaveToRegistry(const char* path);
+
+    // The fields the renderer's creation (00500B70) reads; the registry value names in comments.
+    std::uint8_t unknown_00[0x2C];   // the subkey names and paths (field::kKeyGeneral ..)
+    int driverIndex_;                // +0x2C the Direct3D driver (-1: the first hardware one)
+    int resolutionX_;                // +0x30 VideoResolution
+    int resolutionY_;                // +0x34
+    int colourDepth_;                // +0x38 VideoColorDepthInBits
+    int zBufferDepth_;               // +0x3C VideoZBufferDepthInBits
+    int refreshRate_;                // +0x40 VideoRefreshRate
+    int fullScreen_;                 // +0x44 FullScreen
+    std::uint8_t unknown_48[0x60 - 0x48];
+    int dithering_;                  // +0x60 Dithering
+    int specular_;                   // +0x64 Specular
+    int antialiasing_;               // +0x68 Antialiasing
+    int textureQuality_;             // +0x6C TextureQuality
+    int mipmapping_;                 // +0x70 Mipmapping (cleared when the driver has no mipmaps)
+    int filtering_;                  // +0x74 Filtering: 0 point, 1 / 2 linear
+    int perspectiveCorrection_;      // +0x78 PerspectiveCorrection
+    std::uint8_t unknown_7C[0x1E4 - 0x7C];
+    float farClipDistance_;          // +0x1E4 FarClipDistance
+    std::uint8_t unknown_1E8[0x264 - 0x1E8];
+    float fogDayStartDistance_;      // +0x264 FogDayStartDistance
 };
+static_assert(offsetof(GameOptions, driverIndex_) == 0x2C && offsetof(GameOptions, resolutionX_) == field::kResolutionX &&
+              offsetof(GameOptions, fullScreen_) == 0x44 && offsetof(GameOptions, dithering_) == 0x60 &&
+              offsetof(GameOptions, perspectiveCorrection_) == 0x78 && offsetof(GameOptions, farClipDistance_) == 0x1E4 &&
+              offsetof(GameOptions, fogDayStartDistance_) == 0x264);
 
 inline GameOptions* TheOptions() { return reinterpret_cast<GameOptions*>(0x0079BC70); }
 

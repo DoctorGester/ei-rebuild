@@ -66,7 +66,6 @@ T Global(std::uintptr_t address) {
 // --- Forwarders --------------------------------------------------------------------------------
 
 __declspec(naked) void CInterface3D::ShowHelp(int) EI_ORIGINAL(0x005F86F0)
-__declspec(naked) void CUiSurface::Freeze(int, int) EI_ORIGINAL(0x005FD760)
 __declspec(naked) BOOL CUiContainer::DrawContainer(int) EI_ORIGINAL(0x00600EF0)
 __declspec(naked) void __fastcall UiContainerMouseDown(void*, void*, int, int, int) EI_ORIGINAL(0x00601110)
 __declspec(naked) void __fastcall UiContainerDoubleClick(void*, void*, int, int, int) EI_ORIGINAL(0x00601570)

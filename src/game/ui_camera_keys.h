@@ -14,6 +14,10 @@ class CInterface3D;
 // cleared by the key-up); the right button turns the view while held.
 class CCameraInput {
 public:
+    static void** Vtable() { return reinterpret_cast<void**>(std::uintptr_t(0x00740208)); }
+    // 005EACB0 (RET 4; ui_camera_input.cpp). Constructor: vtable 00740208, the interface, not
+    // turning, the axes 0 (handled_ and the press points left). Returns this.
+    CCameraInput* Construct(CInterface3D* ui);
     // 005EADD0 (slot 9, RET 0xC; ui_camera_keys.cpp).
     void OnKeyDown(int key, int repeat, int flags);
     // 005EB090 (slot 11, RET 0xC; ui_camera_input.cpp). A direction key released (actions 5-10 of

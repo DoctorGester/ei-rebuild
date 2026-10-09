@@ -145,7 +145,7 @@ int CMapObjectClientSpecific::Update() {
             if (handle != -1 &&
                 (SoundIsPlaying(soundSystem, nullptr, handle) || SoundIsQueued(soundSystem, nullptr, handle)))
                 continue;
-            EndSound(this) = PlaySound3D(SoundSystem(), nullptr, kEndSoundName, 0, &OwnerOf(this)->positionX,
+            EndSound(this) = PlaySound3D(SoundSystem(), nullptr, kEndSoundName, 0, &OwnerOf(this)->position.x,
                                          kEndSoundNear, kEndSoundFar, 0, 0);
         }
     }
@@ -164,9 +164,9 @@ int CMapObjectClientSpecific::Update() {
                 name.Format(kStenchSoundFormat, variant);
                 sound->timer = kStenchPeriod;
             }
-            PlaySound3D(SoundSystem(), nullptr, name, 0, &OwnerOf(this)->positionX, kStenchNear, kStenchFar, 0, 0);
+            PlaySound3D(SoundSystem(), nullptr, name, 0, &OwnerOf(this)->position.x, kStenchNear, kStenchFar, 0, 0);
         } else if (sound->kind == kSoundFeebleMind && sound->handle != -1) {
-            MoveSound(SoundSystem(), nullptr, sound->handle, &OwnerOf(this)->positionX);
+            MoveSound(SoundSystem(), nullptr, sound->handle, &OwnerOf(this)->position.x);
         }
     }
 
@@ -177,20 +177,20 @@ int CMapObjectClientSpecific::Update() {
         std::memcpy(lightPosition, PositionOf(lamp), sizeof(lightPosition));
         float lightZ = lightPosition[2] - kLightHeight;   // FSTP to the copy
         CMapObject* owner = OwnerOf(this);
-        double dx = static_cast<double>(lightPosition[0]) - owner->positionX;
-        double dy = static_cast<double>(lightPosition[1]) - owner->positionY;
-        double dz = static_cast<double>(lightZ) - owner->positionZ;
+        double dx = static_cast<double>(lightPosition[0]) - owner->position.x;
+        double dy = static_cast<double>(lightPosition[1]) - owner->position.y;
+        double dz = static_cast<double>(lightZ) - owner->position.z;
         double distance2 = (dz * dz + dy * dy) + dx * dx;
         if (distance2 < 0.0 || distance2 > 0.0) {   // FCOMP 0: C3 (equal or unordered) skips
             float direction[3];
-            direction[0] = owner->positionX - lightPosition[0];
-            direction[1] = owner->positionY - lightPosition[1];
-            direction[2] = owner->positionZ - lightZ;
+            direction[0] = owner->position.x - lightPosition[0];
+            direction[1] = owner->position.y - lightPosition[1];
+            direction[2] = owner->position.z - lightZ;
             AimLight(LightManager(), nullptr, lamp, direction);
             owner = OwnerOf(this);
             float* position = PositionOf(Light(this));
-            std::memcpy(position, &owner->positionX, 2 * sizeof(float));
-            position[2] = static_cast<float>(static_cast<double>(kLightHeight) + owner->positionZ);
+            std::memcpy(position, &owner->position.x, 2 * sizeof(float));
+            position[2] = static_cast<float>(static_cast<double>(kLightHeight) + owner->position.z);
         }
     }
     return 1;

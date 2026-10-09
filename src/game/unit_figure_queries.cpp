@@ -103,7 +103,7 @@ EI_REPLACE_METHOD(0x005304A0, CUnit::BodyExtent);
 double CUnit::GroundHeight(float x, float y) {
     auto* world = static_cast<CWorld*>(World());
     if (movementKind != kMovesOnWater) return world->GroundHeightAt(x, y);
-    if (controller->GetClassId() == kClassUnitServer) return world->SurfaceHeightAt(x, y) + positionZ;
+    if (controller->GetClassId() == kClassUnitServer) return world->SurfaceHeightAt(x, y) + position.z;
     return world->SurfaceHeightAt(x, y) + heightOffset;
 }
 EI_REPLACE_METHOD(0x00530280, CUnit::GroundHeight);
@@ -124,16 +124,16 @@ Vector3* CUnit::EffectPoint(Vector3* out) {
                 return out;
             }
         } else if (!static_cast<CUnitClientSpecific*>(controller)->WeaponPoint(&local)) {
-            out->x = positionX + center.x;
-            out->y = positionY + center.y;
-            out->z = positionZ + center.z;
+            out->x = position.x + center.x;
+            out->y = position.y + center.y;
+            out->z = position.z + center.z;
             return out;
         }
     }
     Vector3 turned = Rotate(orientation, local);
-    out->x = turned.x + positionX;
-    out->y = turned.y + positionY;
-    out->z = turned.z + positionZ;
+    out->x = turned.x + position.x;
+    out->y = turned.y + position.y;
+    out->z = turned.z + position.z;
     return out;
 }
 EI_REPLACE_METHOD(0x00532860, CUnit::EffectPoint);

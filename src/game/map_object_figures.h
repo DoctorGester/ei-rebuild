@@ -53,7 +53,9 @@ struct FigurePart : CEngineObject {
     // +0x094 the part's own mesh (a CLinkMesh, link_figure.h) when flags_ 0x40 is set; its screen
     // rectangle (+0x20) is where the part was last drawn (the flying hit points, 005E18E0).
     class CLinkMesh* mesh;
-    std::uint8_t unknown_098[0x158 - 0x98];
+    std::uint8_t unknown_098[0x128 - 0x98];
+    lib::AlignedArray<Vector3> offsets;    // +0x128 per-vertex offsets (CFigureMesh::offsets_)
+    std::uint8_t unknown_138[0x158 - 0x138];
     std::uint32_t piece158;         // +0x158 from the piece record's +0x20 (00517240)
     std::uint32_t piece15C;         // +0x15C from its +0x1C
     std::uint8_t unknown_160[0x188 - 0x160];
@@ -426,10 +428,10 @@ public:
     const CTransformObject* Transform() const { return reinterpret_cast<const CTransformObject*>(this); }
 
     Vector3 position;               // +0x01C
-    float viewPosition[3];          // +0x028 the position in view space (CWorldClient::CollectVisible)
+    Vector3 viewPosition;           // +0x028 the position in view space (CWorldClient::CollectVisible)
     Quaternion orientation;         // +0x034
     Quaternion worldOrientation;    // +0x044 the parent's rotation times the orientation (slot 14)
-    float worldMatrix[16];          // +0x054 object -> world: the rotation, the position as column 3
+    Matrix4 worldMatrix;            // +0x054 object -> world: the rotation, the position as column 3
     CEngineObject* attached;        // +0x094 the object slot 19 accepts (type 0x46)
     CFigureAnimationState* animation;   // +0x098 the figure's animation state
     std::uint32_t unknown_09C;      // +0x09C cleared by Create3D / Destroy3D

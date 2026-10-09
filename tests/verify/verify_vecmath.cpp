@@ -117,6 +117,17 @@ template <Sum3 O>
 __declspec(noinline) Vector3 ColumnOf(const Matrix4& m, const Vector3& v, bool point) {
     return point ? TransformColumn<O>(m, v) * 2.0f : TransformColumnNormal<O>(m, v) * 2.0f;
 }
+// One grouping per component (ZYX, XYZ, ZXY), and the homogeneous w.
+__declspec(noinline) Vector3 MixedRowOf(const Matrix4& m, const Vector3& v, bool point) {
+    return point ? TransformRow<Sum3::ZYX, Sum3::XYZ, Sum3::ZXY>(m, v) * 2.0f
+                 : TransformRowNormal<Sum3::ZYX, Sum3::XYZ, Sum3::ZXY>(m, v) * 2.0f;
+}
+__declspec(noinline) Vector3 MixedColumnOf(const Matrix4& m, const Vector3& v, bool point) {
+    return point ? TransformColumn<Sum3::ZYX, Sum3::XYZ, Sum3::ZXY>(m, v) * 2.0f
+                 : TransformColumnNormal<Sum3::ZYX, Sum3::XYZ, Sum3::ZXY>(m, v) * 2.0f;
+}
+template <Sum3 O>
+__declspec(noinline) float ColumnWOf(const Matrix4& m, const Vector3& v) { return TransformColumnW<O>(m, v) * 2.0f + 1.0f; }
 __declspec(noinline) Vector3 CrossOf(const Vector3& a, const Vector3& b) { return Cross(a, b) * 2.0f; }
 __declspec(noinline) Vector3 LerpOf(const Vector3& a, const Vector3& b, float t) { return Lerp(a, b, t); }
 __declspec(noinline) float LerpWeightedOf(float a, float b, float t) { return LerpWeighted(a, b, t) * 2.0f; }
@@ -269,6 +280,18 @@ void TestTransforms(Inputs& in) {
             for (int o = 0; o < 3; ++o) {
                 Compare(p ? "TransformRow * 2" : "TransformRowNormal * 2", o, rr[o] * 2.0f, row[o], v, row4);
                 Compare(p ? "TransformColumn * 2" : "TransformColumnNormal * 2", o, rc[o] * 2.0f, column[o], v, row4);
+            }
+            // Per-component groupings: x ZYX, y XYZ, z ZXY.
+            Compare(p ? "TransformRow<ZYX, XYZ, ZXY> * 2" : "TransformRowNormal<ZYX, XYZ, ZXY> * 2", -1,
+                    Vector3{rr[1].x, rr[0].y, rr[2].z} * 2.0f, MixedRowOf(m, v, p), v, row4);
+            Compare(p ? "TransformColumn<ZYX, XYZ, ZXY> * 2" : "TransformColumnNormal<ZYX, XYZ, ZXY> * 2", -1,
+                    Vector3{rc[1].x, rc[0].y, rc[2].z} * 2.0f, MixedColumnOf(m, v, p), v, row4);
+            if (p) {
+                float w[3] = {ColumnWOf<Sum3::XYZ>(m, v), ColumnWOf<Sum3::ZYX>(m, v), ColumnWOf<Sum3::ZXY>(m, v)};
+                for (int o = 0; o < 3; ++o) {
+                    float s = RefSum(kOrders[o], R(m.m[12] * v.x), R(m.m[13] * v.y), R(m.m[14] * v.z));
+                    Compare("TransformColumnW * 2 + 1", o, R(R(R(s + m.m[15]) * 2.0f) + 1.0f), w[o], v, row4);
+                }
             }
         }
         if (found < kInputs) Unseparated(point ? "transforms" : "normal transforms", found);

@@ -468,9 +468,9 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     order.target = target;
     ++target->refCount_;
 
-    float x = unit->positionX;
-    float y = unit->positionY;
-    float z = unit->positionZ;
+    float x = unit->position.x;
+    float y = unit->position.y;
+    float z = unit->position.z;
     Vector3 aim;
     ei::VCall<float*>(target, kSlotAimPoint, &aim);
     double dz = static_cast<double>(z) - aim.z;

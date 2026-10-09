@@ -56,7 +56,7 @@ int Compare(const char* a, const char* b) {
     return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
 }
 
-Vector3 Position(const CUnit* unit) { return Vector3{unit->positionX, unit->positionY, unit->positionZ}; }
+Vector3 Position(const CUnit* unit) { return Vector3{unit->position.x, unit->position.y, unit->position.z}; }
 
 Vector3 Facing(const CUnit* unit) {
     Vector3 axis;

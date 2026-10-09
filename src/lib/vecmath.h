@@ -212,37 +212,45 @@ template <Sum3 O>
 __forceinline Vector3 NormalisedReciprocal(const Vector3& v) { return v * (1.0f / Length<O>(v)); }
 
 // Row vector times matrix (v * M): component i is the grouped sum of x * m[i], y * m[4 + i],
-// z * m[8 + i], then + m[12 + i] for a point.
-template <Sum3 O>
+// z * m[8 + i], then + m[12 + i] for a point. The transforms take one grouping per component
+// (OX, OY, OZ; each defaults to the one before) where the original sums the rows differently.
+template <Sum3 OX, Sum3 OY = OX, Sum3 OZ = OY>
 __forceinline Vector3 TransformRowNormal(const Matrix4& m, const Vector3& v) {
     const float* c = m.m;
-    return {SumOfProducts<O>(v.x, v.y, v.z, c[0], c[4], c[8]), SumOfProducts<O>(v.x, v.y, v.z, c[1], c[5], c[9]),
-            SumOfProducts<O>(v.x, v.y, v.z, c[2], c[6], c[10])};
+    return {SumOfProducts<OX>(v.x, v.y, v.z, c[0], c[4], c[8]), SumOfProducts<OY>(v.x, v.y, v.z, c[1], c[5], c[9]),
+            SumOfProducts<OZ>(v.x, v.y, v.z, c[2], c[6], c[10])};
 }
 
-template <Sum3 O>
+template <Sum3 OX, Sum3 OY = OX, Sum3 OZ = OY>
 __forceinline Vector3 TransformRow(const Matrix4& m, const Vector3& v) {
     const float* c = m.m;
-    return {SumOfProducts<O>(v.x, v.y, v.z, c[0], c[4], c[8]) + c[12],
-            SumOfProducts<O>(v.x, v.y, v.z, c[1], c[5], c[9]) + c[13],
-            SumOfProducts<O>(v.x, v.y, v.z, c[2], c[6], c[10]) + c[14]};
+    return {SumOfProducts<OX>(v.x, v.y, v.z, c[0], c[4], c[8]) + c[12],
+            SumOfProducts<OY>(v.x, v.y, v.z, c[1], c[5], c[9]) + c[13],
+            SumOfProducts<OZ>(v.x, v.y, v.z, c[2], c[6], c[10]) + c[14]};
 }
 
 // Matrix times column vector (M * v): component i is the grouped sum of m[4i] * x, m[4i + 1] * y,
 // m[4i + 2] * z, then + m[4i + 3] for a point. Takes Matrix4 or MatrixRows.
-template <Sum3 O, typename M>
+template <Sum3 OX, Sum3 OY = OX, Sum3 OZ = OY, typename M>
 __forceinline Vector3 TransformColumnNormal(const M& m, const Vector3& v) {
     const float* r = m.m;
-    return {SumOfProducts<O>(r[0], r[1], r[2], v.x, v.y, v.z), SumOfProducts<O>(r[4], r[5], r[6], v.x, v.y, v.z),
-            SumOfProducts<O>(r[8], r[9], r[10], v.x, v.y, v.z)};
+    return {SumOfProducts<OX>(r[0], r[1], r[2], v.x, v.y, v.z), SumOfProducts<OY>(r[4], r[5], r[6], v.x, v.y, v.z),
+            SumOfProducts<OZ>(r[8], r[9], r[10], v.x, v.y, v.z)};
 }
 
-template <Sum3 O, typename M>
+template <Sum3 OX, Sum3 OY = OX, Sum3 OZ = OY, typename M>
 __forceinline Vector3 TransformColumn(const M& m, const Vector3& v) {
     const float* r = m.m;
-    return {SumOfProducts<O>(r[0], r[1], r[2], v.x, v.y, v.z) + r[3],
-            SumOfProducts<O>(r[4], r[5], r[6], v.x, v.y, v.z) + r[7],
-            SumOfProducts<O>(r[8], r[9], r[10], v.x, v.y, v.z) + r[11]};
+    return {SumOfProducts<OX>(r[0], r[1], r[2], v.x, v.y, v.z) + r[3],
+            SumOfProducts<OY>(r[4], r[5], r[6], v.x, v.y, v.z) + r[7],
+            SumOfProducts<OZ>(r[8], r[9], r[10], v.x, v.y, v.z) + r[11]};
+}
+
+// The homogeneous w of M * (v, 1): the grouped sum of m[12] * x, m[13] * y, m[14] * z, + m[15].
+template <Sum3 O>
+__forceinline float TransformColumnW(const Matrix4& m, const Vector3& v) {
+    const float* r = m.m;
+    return SumOfProducts<O>(r[12], r[13], r[14], v.x, v.y, v.z) + r[15];
 }
 
 } // namespace vecmath
@@ -255,6 +263,7 @@ using vecmath::Normalised;
 using vecmath::NormalisedReciprocal;
 using vecmath::TransformColumn;
 using vecmath::TransformColumnNormal;
+using vecmath::TransformColumnW;
 using vecmath::TransformRow;
 using vecmath::TransformRowNormal;
 

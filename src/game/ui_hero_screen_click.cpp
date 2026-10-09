@@ -515,19 +515,18 @@ EI_REPLACE(0x00619150, MpHeroPlayVoice);
 namespace {
 const char* SoundOk() { return GameText(0x00793A88); }   // "buttons\messbox\ok.wav"
 void* MpHeroesObject() { return reinterpret_cast<void*>(0x007C82A0); }
-char* EmptyCStringData() { return *reinterpret_cast<char**>(0x00796E48); }
 
 CMpConnectScreen* BuildConnectScreen(CInterface3D* ui) {
     auto* screen = static_cast<CMpConnectScreen*>(gamecrt::operator_new(sizeof(CMpConnectScreen)));
     if (!screen) return nullptr;
     ConstructContainerAt(screen, nullptr, ui);
-    screen->entries_ = nullptr;
-    screen->entriesEnd_ = nullptr;
-    screen->entriesCapacity_ = nullptr;
-    for (int& v : screen->unknown_178) v = 0;
-    screen->text_ = EmptyCStringData();
-    StringArrayConstruct(screen->strings_);
-    StringArrayConstruct(screen->moreStrings_);
+    screen->entries_.Start() = nullptr;
+    screen->entries_.Finish() = nullptr;
+    screen->entries_.EndOfStorage() = nullptr;
+    screen->selectedAddress_ = net::NetAddress{};
+    new (&screen->hostPassword_) mfc::CString();
+    StringArrayConstruct(&screen->allodNames_);
+    StringArrayConstruct(&screen->texts_);
     screen->vtable_ = CMpConnectScreen::Vtable();
     screen->inputVtable_ = CMpConnectScreen::InputVtable();
     return screen;

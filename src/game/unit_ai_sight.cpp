@@ -59,7 +59,7 @@ console::GameOStream& LogPair(CUnit* self, const char* text, CEngineObject* othe
 // address so its verify wrapper counts it (UpdateMemory's check relies on that).
 void NoticeAt(AIBrain* brain, CUnit* at, int level, int kind) {
     float copy[2];
-    const float* point = CopyPoint2Original(copy, &at->positionX);
+    const float* point = CopyPoint2Original(copy, &at->position.x);
     brain->noticedX = point[0];
     brain->noticedLevel = level;
     brain->noticedY = point[1];
@@ -181,9 +181,9 @@ void AIViewer::See(CUnit* self, AIBrain* brain) {
         if (alive) {
             brain->visible.AddHead(other);
             ++other->refCount_;
-            double dx = static_cast<double>(self->positionX) - other->positionX;
-            double dy = static_cast<double>(self->positionY) - other->positionY;
-            double dz = static_cast<double>(self->positionZ) - other->positionZ;
+            double dx = static_cast<double>(self->position.x) - other->position.x;
+            double dy = static_cast<double>(self->position.y) - other->position.y;
+            double dz = static_cast<double>(self->position.z) - other->position.z;
             console::GameOStream& os = LogPair(self, " sees unit ", other) << " from ";
             (void)os;
             console::EndLine(AiLog()->PutFloat(std::sqrt(dz * dz + dy * dy + dx * dx)) << "m distance");
@@ -200,7 +200,7 @@ void AIViewer::Update(UnitController* owner, AIBrain* brain) {
     float reachFactor = hasPlayer ? kOne : kNonPlayerReach;
     if (!self) return;
     ready = 0;
-    eye = *reinterpret_cast<const Vector3*>(&self->positionX);
+    eye = *&self->position;
     float scale = RoundToFloat(kOne / (static_cast<double>(kOne) * kHalf));
     cellX = static_cast<int>(std::lrint(RoundToFloat(scale * static_cast<double>(eye.x) - kHalf)));
     cellY = static_cast<int>(std::lrint(RoundToFloat(scale * static_cast<double>(eye.y) - kHalf)));
@@ -210,9 +210,9 @@ void AIViewer::Update(UnitController* owner, AIBrain* brain) {
         auto* current = node;
         node = node->next;
         auto* other = static_cast<CUnit*>(current->data);
-        Vector3 d{RoundToFloat(static_cast<double>(other->positionX) - self->positionX),
-                  RoundToFloat(static_cast<double>(other->positionY) - self->positionY),
-                  RoundToFloat(static_cast<double>(other->positionZ) - self->positionZ)};
+        Vector3 d{RoundToFloat(static_cast<double>(other->position.x) - self->position.x),
+                  RoundToFloat(static_cast<double>(other->position.y) - self->position.y),
+                  RoundToFloat(static_cast<double>(other->position.z) - self->position.z)};
         float distance = LengthZYX(d);
         if (IsDead(other)) {
             if (Allied(self->side, other->side)) {

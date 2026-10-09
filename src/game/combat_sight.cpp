@@ -7,6 +7,7 @@
 #include "item.h"
 #include "maths.h"
 #include "spell.h"
+#include "world.h"
 
 #include "lib/crt.h"
 
@@ -15,6 +16,7 @@
 #include "ei/x87.h"
 #include "originals_engine.h"
 #include "originals_library.h"
+#include "originals_ai.h"
 #include "originals_units.h"
 
 #include <bit>
@@ -154,7 +156,6 @@ inline double __fastcall UnitGroundHeight(CUnit* a0, void*, float a2, float a3) 
 // CUnitServer::ActionDistance, 005BC3E0 CAIMap::LineOfSight.
 __declspec(naked) double __fastcall UnitEyeHeight(CUnit*) EI_ORIGINAL(0x00530370)
 __declspec(naked) double __fastcall UnitModeHeight(CUnit*) EI_ORIGINAL(0x005302F0)
-__declspec(naked) double __fastcall MapLineOfSight(void*, void*, const Vector3*, const Vector3*) EI_ORIGINAL(0x005BC3E0)
 
 } // namespace
 
@@ -215,8 +216,8 @@ bool OutOfSightRange(CUnitServer* self, const float* point) {
     float chosen = std::bit_cast<float>(chosenBits);
     double reach = static_cast<double>(chosen) * kRangeSlack;
     CUnit* unit = self->unit;
-    double dy = static_cast<double>(unit->positionY) - point[1];
-    double dx = static_cast<double>(unit->positionX) - point[0];
+    double dy = static_cast<double>(unit->position.y) - point[1];
+    double dx = static_cast<double>(unit->position.x) - point[0];
     return LessOrUnordered(reach * reach, dx * dx + dy * dy);
 }
 
@@ -225,9 +226,9 @@ bool OutOfSightRange(CUnitServer* self, const float* point) {
 // and less than 0.3 to the side.
 bool SomeoneInTheWay(CUnitServer* self, const UnitAction* order, const float* point, int time) {
     CUnit* unit = self->unit;
-    volatile float dx = point[0] - unit->positionX;
-    volatile float dy = point[1] - unit->positionY;
-    volatile float dz = point[2] - unit->positionZ;
+    volatile float dx = point[0] - unit->position.x;
+    volatile float dy = point[1] - unit->position.y;
+    volatile float dz = point[2] - unit->position.z;
     double lengthSq = static_cast<double>(dz) * dz + static_cast<double>(dy) * dy;
     lengthSq = lengthSq + static_cast<double>(dx) * dx;
     volatile float ux = static_cast<float>(dx / lengthSq);
@@ -251,9 +252,9 @@ bool SomeoneInTheWay(CUnitServer* self, const UnitAction* order, const float* po
         if (ei::VCall<int>(other, kSlotIsDead) != 0) continue;
         Vector3 scratch;
         const float* p = ei::VCall<float*>(other, kSlotPositionAt, &scratch, time);
-        double a = static_cast<double>(p[0]) - unit->positionX;
-        double b = static_cast<double>(p[1]) - unit->positionY;
-        double c = static_cast<double>(p[2]) - unit->positionZ;
+        double a = static_cast<double>(p[0]) - unit->position.x;
+        double b = static_cast<double>(p[1]) - unit->position.y;
+        double c = static_cast<double>(p[2]) - unit->position.z;
         volatile float along = static_cast<float>(c * uz + b * uy + a * ux);
         volatile float across = static_cast<float>(c * vz + b * vy + a * vx);
         if (Greater(along, kPointOne) && along < kPointNine && Greater(across, kMinusPointThree) &&
@@ -296,17 +297,17 @@ bool CUnitServer::CanActFrom(const UnitAction* order, const float* point, int ti
         sight.unit = nullptr;
         // (The original then asks a remaining sight.unit for slot 48; it is always null here.)
     }
-    double ey = static_cast<double>(sight.point.y) - unit->positionY;
-    double ex = static_cast<double>(sight.point.x) - unit->positionX;
+    double ey = static_cast<double>(sight.point.y) - unit->position.y;
+    double ex = static_cast<double>(sight.point.x) - unit->position.x;
     if (LessOrUnordered(ex * ex + ey * ey, sight.minDistanceSq)) return true;
 
     Vector3 eye;
-    eye.x = unit->positionX;
-    eye.y = unit->positionY;
-    eye.z = unit->positionZ;
+    eye.x = unit->position.x;
+    eye.y = unit->position.y;
+    eye.z = unit->position.z;
     eye.z = static_cast<float>(UnitGroundHeight(unit, nullptr, eye.x, eye.y) + sight.eyeHeight);
-    void* map = static_cast<char*>(ManagerContext()) + 0x170;
-    double visibility = MapLineOfSight(map, nullptr, &eye, &sight.point);
+    CAIMap* map = static_cast<CWorldServer*>(ManagerContext())->AIMap();
+    double visibility = LineOfSightOriginal(map, nullptr, &eye, &sight.point);
     return !LessOrUnordered(visibility, kPointOne);
 }
 EI_REPLACE_METHOD(0x0054C2F0, CUnitServer::CanActFrom);
@@ -352,14 +353,14 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     AnimationSteps steps;
     InitSteps(&steps);
     Vector3 origin;
-    std::memcpy(&origin, &unit->positionX, sizeof(origin));
+    std::memcpy(&origin, &unit->position.x, sizeof(origin));
     int now = At<int>(ObjectWorld(this), 0x64);
     void* spell = nullptr;
 
     if (order->flag18) {
         double distance = CtlActionDistance(this, nullptr, order);
-        double dy = static_cast<double>(order->point.y) - unit->positionY;
-        double dx = static_cast<double>(order->point.x) - unit->positionX;
+        double dy = static_cast<double>(order->point.y) - unit->position.y;
+        double dx = static_cast<double>(order->point.x) - unit->position.x;
         if (LessOrUnordered(distance * distance, dx * dx + dy * dy)) {
             DestroySteps(&steps);
             return false;

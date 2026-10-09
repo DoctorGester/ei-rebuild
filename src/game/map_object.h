@@ -182,9 +182,7 @@ public:
     std::uintptr_t MarkChanged(int part);
     int HasEffect(std::uint32_t type);
 
-    float positionX;                // +0x01C
-    float positionY;                // +0x020
-    float positionZ;                // +0x024
+    Vector3 position;               // +0x01C
     std::uint8_t unknown_028[0x34 - 0x28];
     Quaternion orientation;         // +0x034 a quaternion
     std::uint8_t unknown_044[0x94 - 0x44];
@@ -221,7 +219,7 @@ public:
     std::uint16_t changedParts;     // +0x1DC bit per part changed (MarkChanged)
     std::uint8_t unknown_1DE[0x238 - 0x1DE];   // two memory streams at +0x1E8 and +0x210
 };
-static_assert(offsetof(CMapObject, positionX) == 0x1C);
+static_assert(offsetof(CMapObject, position) == 0x1C);
 static_assert(offsetof(CMapObject, orientation) == 0x34);
 static_assert(offsetof(CMapObject, attached) == 0x94);
 static_assert(offsetof(CMapObject, name) == 0xA4);

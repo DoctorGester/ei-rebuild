@@ -19,6 +19,7 @@
 #include "bink_video.h"
 #include "ui.h"
 #include "ui_item_info.h"
+#include "net_classes.h"
 
 #include "lib/stlp.h"
 
@@ -508,42 +509,184 @@ struct UnitSoundSet {
 };
 static_assert(offsetof(UnitSoundSet, entries) == 0x1AC);
 
-// The multiplayer connection screen (0x260 bytes, vtables 00741CD0 / 00741C9C; configddrbook.ini),
-// as the hero screen's Continue builds it inline. Only what that construction writes.
-// An entry of the connection screen's address list (0x34 bytes; config\addrbook.ini).
+// --- Multiplayer connection screen (0061B2C0-0061E8F0; ui_connect_screen.cpp) ----------------
+//
+// The servers found (config\addrbook.ini keeps the ones asked directly): a list of 15 rows with a
+// scroll bar, row 0 the entry that hosts a new game (its name, player count slider, game type
+// tabs, password and "unlisted" switch). Regions (Create 0061B2C0, Rebirth-patched): 0 connect /
+// host, 1 back, 2 ask the master server, 3 add / forget an address, 4 the unlisted switch, 5 the
+// password, 6-9 the sort columns, 10-13 the game type tabs, 14 and up the list rows. Sprites
+// (scene objects): 4 the unlisted switch, 5 the password's, 6-9 the game type tabs (uOffset_ 0.09
+// selected). The list is drawn by 0061D780 (Rebirth-patched, called by address). Multiplayer only.
+
+// An entry of the connection screen's list (0x34 bytes; a vector<MpAddressEntry> at +0x168).
 struct MpAddressEntry {
-    mfc::CString name;             // +0x00
-    mfc::CString address;          // +0x04
-    std::uint8_t unknown_08[0x34 - 0x08];
+    // 0061EE80 (RET 4). Copy constructor; returns this.
+    MpAddressEntry* CopyConstruct(const MpAddressEntry* other);
+    // 0061E8F0 (RET 4). Assignment (every field; the padding is not copied); returns this.
+    MpAddressEntry* AssignFrom(const MpAddressEntry& other);
+    // 0061E8A0. Destructor: the description, then the name.
+    void Destroy();
+
+    mfc::CString name;             // +0x00 the server's name
+    mfc::CString description;      // +0x04 the current map's title
+    int players;                   // +0x08
+    int maxPlayers;                // +0x0C
+    int ping;                      // +0x10 milliseconds (9999: none)
+    net::NetAddress address;       // +0x14
+    int gameType;                  // +0x24 0..3 (4: the new game entry)
+    bool foreign;                  // +0x28 the server answered with another protocol
+    int state;                     // +0x2C net::ServerEntryBase::State (1: asked directly, forgettable)
+    bool password;                 // +0x30 joining needs a password
 };
+static_assert(offsetof(MpAddressEntry, address) == 0x14);
+static_assert(offsetof(MpAddressEntry, gameType) == 0x24);
+static_assert(offsetof(MpAddressEntry, state) == 0x2C);
+static_assert(offsetof(MpAddressEntry, password) == 0x30);
 static_assert(sizeof(MpAddressEntry) == 0x34);
+using MpAddressList = stlp::vector<MpAddressEntry>;
+
+// The vector's own instantiation members (ui_connect_screen.cpp; thiscall on the vector).
+// 0061E5A0: a default entry (empty texts, address 0, the rest left) appended. 0061E660 (RET 4):
+// one inserted before `pos` (the tail moved up by assignment); returns it. 0061EA90 (RET 8):
+// [first, last) erased (the tail assigned down, the rest destroyed); returns `first`.
+void __fastcall MpAddressesPushDefault(MpAddressList* list);
+MpAddressEntry* __fastcall MpAddressesInsertDefault(MpAddressList* list, void*, MpAddressEntry* pos);
+MpAddressEntry* __fastcall MpAddressesErase(MpAddressList* list, void*, MpAddressEntry* first, MpAddressEntry* last);
 
 class CMpConnectScreen : public CUiContainer {
 public:
     static void** Vtable() { return reinterpret_cast<void**>(std::uintptr_t(0x00741CD0)); }
     static void** InputVtable() { return reinterpret_cast<void**>(std::uintptr_t(0x00741C9C)); }
 
-    // 00618570 (ui_window_delete.cpp). The destructor body: the two text arrays, the text, the
-    // address entries (names, storage), then the container's.
-    void DestroyBody();
+    // The message box results (slot 27): the kinds the screen opens boxes with, ORed with 1 (OK)
+    // or 2 (cancel) when they come back.
+    enum BoxKind : std::uint32_t {
+        kBoxNotice = 0x10000,         // a message (refusal, wrong protocol)
+        kBoxAddress = 0x20000,        // an address to ask
+        kBoxPassword = 0x30000,       // the new game's password
+        kBoxMaster = 0x40000,         // the master server request (CMasterRequestBox)
+        kBoxJoinPassword = 0x50000,   // the password of the server joined
+    };
+    static constexpr int kRows = 15;
 
-    std::uint8_t unknown_164[4];
-    MpAddressEntry* entries_;      // +0x168 STLport vector of the address book's entries
-    MpAddressEntry* entriesEnd_;   // +0x16C
-    MpAddressEntry* entriesCapacity_;   // +0x170
-    std::uint8_t unknown_174[4];
-    int unknown_178[4];            // +0x178..+0x184 0
-    std::uint8_t unknown_188[0x224 - 0x188];
-    char* text_;                   // +0x224 CString (empty)
-    std::uint8_t strings_[0x14];   // +0x228 CStringArray
-    std::uint8_t unknown_23C[4];
-    std::uint8_t moreStrings_[0x14];   // +0x240 CStringArray
-    std::uint8_t unknown_254[0x260 - 0x254];
+    // 00618570 (ui_window_delete.cpp). The destructor body: the two text arrays, the password,
+    // the entries (texts, storage), then the container's.
+    void DestroyBody();
+    // 0061C430 (slot 24). Surface 1 ("connecting") shown while the client asks a host (join
+    // state 1); when it stops asking, a refusal box ("lmp_server_full",
+    // "..._you_are_banned", "..._wrong_password", else "..._cannot_connect"; text key + "_msg")
+    // and nothing else this frame. Otherwise the children, and every 0.5 s the client asks the
+    // selected address on each refresh (none for row 0), refreshes, and the list is rebuilt and
+    // drawn; then the scroll bar, the player slider (maxPlayers_ = its position + 1) and a changed
+    // name redraw the list.
+    void Update();
+    // Slot 26 (0061C2D0) does nothing and slot 41 (0061C420) returns 0: too short to hook.
+    // 0061C2E0 (slot 27, RET 4). A box answered: an address (0x20001) is parsed (port 8888 unless
+    // given) and asked when known, the address book written, the list drawn; the master request
+    // ending (0x40002) draws the list; the new game's password (0x30001 / 0x30002) is kept and its
+    // switch shows whether there is one; a join password (0x50001) joins the selected server with
+    // it and sets the client's game type from the row.
+    void OnBoxResult(std::uint32_t result);
+    // 0061C700 (input slot 2, RET 0xC). By region (above): 0 Connect, 1 back (the cancel sound,
+    // the address book written, the network sessions dropped, the screen closed with 0x1000001), 2
+    // MasterRequest, 3 EditAddress, 4 the unlisted switch, 5 the password (none: a box for one;
+    // else it is dropped), 6-9 the sort column (a second click reverses it; the list rebuilt), 10-13
+    // the game type (only with row 0 selected; not drawn again), 14 and up a row (the select
+    // sound, it and its address selected); then the container's handler.
+    void OnLButtonDown(int buttons, int x, int y);
+    // 0061CA30 (input slot 7, RET 0xC). A row double-clicked is selected (no sound, no drawing) and
+    // Connect follows; then the container's handler.
+    void OnLButtonDouble(int buttons, int x, int y);
+    // 0061CAD0 (input slot 9, RET 0xC). The container's handler first; then Enter connects, Esc
+    // leaves (as region 1 without the address book), Up / Down / PgUp / PgDn move the selection by
+    // 1 / 15 with the select sound (SelectAndScroll); those keys are marked used.
+    void OnKeyDown(int key, int repeat, int flags);
+    // 0061CC00. The selection clamped to the list (an empty list gives -1 and reads the entry
+    // before it, as the original), its address kept, the list scrolled to show it (the bar's
+    // slot 25, then its position read back) and drawn.
+    void SelectAndScroll();
+    // 0061CCE0. The OK sound; row 0 hosts (GameFlow::StartServer: the name typed or the default
+    // 00783D6C, the player slider + 1, gameType_, hostPassword_, unlisted_, the client's queries'
+    // extra word) after the address book is written; another row joins: a foreign server gets the
+    // "lmp_wrong_protocol" box; otherwise the address book is written, a password server opens
+    // the password box, the server is joined at once with no password (0057E970) and the
+    // client's game type set from the row.
+    void Connect();
+    // 0061CF50. On a valid selection: an entry asked directly is forgotten (and the address book
+    // written); another opens the address box (texts_[19]) with the row's address (empty for row 0).
+    void EditAddress();
+    // 0061D0D0. The master server request: the master address (the text at 0079BED8, port 28004)
+    // in a CMasterRequestBox (texts_[20]) with the client's queries' extra word.
+    void MasterRequest();
+    // 0061D1C0. Writes the client's queries to config\addrbook.ini (a chunk archive, chunk 1).
+    void SaveAddressBook();
+    // 0061D470. The list again: the client's servers (ServerAt) in order, sorted by sortKey_
+    // (std::sort, 0061EF60 / 0061F6F0 / 0061FB00), the new game entry inserted first; the
+    // selection follows its address (row 0 and address 0 when gone); the scroll bar's range is the
+    // rows past 15 and its position set again; scrollTop_ 0.
+    void RebuildList();
+
+    float refreshTimer_;           // +0x164 seconds since the last refresh (0.5 s period)
+    MpAddressList entries_;        // +0x168
+    int selected_;                 // +0x174 row
+    net::NetAddress selectedAddress_;   // +0x178 the selected row's address (0: row 0)
+    int scrollTop_;                // +0x188 the first row shown
+    CUiScrollbar* scroll_;         // +0x18C
+    CUiSlider* playersSlider_;     // +0x190 the new game's maximum players - 1
+    CUiEditField* nameEdit_;       // +0x194 the new game's name
+    int maxPlayers_;               // +0x198 the slider's position + 1 (6 from Create)
+    int gameType_;                 // +0x19C the new game's type tab 0..3
+    char boxText_[0x80];           // +0x1A0 the edit boxes' text (an address, a password)
+    bool unlisted_;                // +0x220 the new game is not announced (1 from Create)
+    std::uint8_t unknown_221[3];
+    mfc::CString hostPassword_;    // +0x224 the new game's password
+    mfc::CStringArray allodNames_; // +0x228 "lmp_allod_name %d" texts (the game type tabs)
+    bool joining_;                 // +0x23C the client was asking a host last frame
+    std::uint8_t unknown_23D[3];
+    mfc::CStringArray texts_;      // +0x240 "lmp_connection %d" texts (22)
+    int unknown_254;               // +0x254 0 from Create
+    int sortKey_;                  // +0x258 0 none; 1..8 the column pairs (odd ascending)
+    std::uint8_t unknown_25C[4];   // +0x25C (byte 0 from Create)
 };
-static_assert(offsetof(CMpConnectScreen, unknown_178) == 0x178);
-static_assert(offsetof(CMpConnectScreen, text_) == 0x224);
-static_assert(offsetof(CMpConnectScreen, moreStrings_) == 0x240);
+static_assert(offsetof(CMpConnectScreen, refreshTimer_) == 0x164);
+static_assert(offsetof(CMpConnectScreen, selected_) == 0x174);
+static_assert(offsetof(CMpConnectScreen, selectedAddress_) == 0x178);
+static_assert(offsetof(CMpConnectScreen, scroll_) == 0x18C);
+static_assert(offsetof(CMpConnectScreen, gameType_) == 0x19C);
+static_assert(offsetof(CMpConnectScreen, boxText_) == 0x1A0);
+static_assert(offsetof(CMpConnectScreen, unlisted_) == 0x220);
+static_assert(offsetof(CMpConnectScreen, hostPassword_) == 0x224);
+static_assert(offsetof(CMpConnectScreen, joining_) == 0x23C);
+static_assert(offsetof(CMpConnectScreen, texts_) == 0x240);
+static_assert(offsetof(CMpConnectScreen, sortKey_) == 0x258);
 static_assert(sizeof(CMpConnectScreen) == 0x260);
+
+// A message box waiting on a master server request (0x1C4 bytes, vtables 00741DD8 / 00741DA4;
+// opened by the connection screen's MasterRequest): the box with one cancel button, the link to
+// the master server and a progress bar sprite. Its result is kBoxMaster (| 2 when done).
+class CMasterRequestBox : public CMessageBox {
+public:
+    static void** Vtable() { return reinterpret_cast<void**>(std::uintptr_t(0x00741DD8)); }
+    static void** InputVtable() { return reinterpret_cast<void**>(std::uintptr_t(0x00741DA4)); }
+    // 0061E2F0 (RET 0x18). Constructor: the box (flags 2: one cancel button; format 1), the link
+    // connecting to `address`, vtables, the bar (a plain sprite, colour 0xFFA06800), and `extra`
+    // written to the link's outgoing buffer. Returns this.
+    CMasterRequestBox* Construct(CInterface3D* ui, const char* titleKey, const char* textKey, std::uint32_t result,
+                                 const net::NetAddress* address, std::uint32_t extra);
+    // 0061E460 (ui_window_delete.cpp). The destructor body: the link (00440D40), then the box's.
+    void DestroyBody();
+    // 0061E4E0 (slot 24). The bar's right edge at 225 + 355 * the received share (0041D9A0); the
+    // link steps: done (3) hands the reply to the client's server list (0041D600); the box closes
+    // (0x40002) when the link is done or, stepping again, closed (up to three steps a frame).
+    void Update();
+
+    net::MasterLink link_;           // +0x180
+    CUiMesh* bar_;                   // +0x1C0
+};
+static_assert(offsetof(CMasterRequestBox, link_) == 0x180);
+static_assert(offsetof(CMasterRequestBox, bar_) == 0x1C0);
+static_assert(sizeof(CMasterRequestBox) == 0x1C4);
 
 // The multiplayer heroes (records of 0x74 bytes; +0x30 CString name, +0x70 CString file).
 inline const RecordTable& MpHeroes() { return *reinterpret_cast<const RecordTable*>(0x007C82A4); }

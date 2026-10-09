@@ -19,7 +19,7 @@ bool SameLook(const AILook& a, const AILook& b) {
            ei::verify::NearlyEqual(a.wait, b.wait, 4, 1e-6f) && a.stopFirst == b.stopFirst;
 }
 
-const Vector3* PositionOf(CUnit* unit) { return reinterpret_cast<const Vector3*>(&unit->positionX); }
+const Vector3* PositionOf(CUnit* unit) { return &unit->position; }
 } // namespace
 
 // 005D5B40 PlanLooks: SUB ESP,0x64; PUSH EBX; PUSH EBP; PUSH ESI (6 bytes). Differential: the

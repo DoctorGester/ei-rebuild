@@ -4,14 +4,12 @@
 // 004447D0 returns the panel. The map's algorithms and the MFC CFont members are library code. The
 // constructor (00444740) runs from a static initialiser before the hooks are installed and is not
 // rewritten. See docs/notes/app.md.
-//   +0x10 the interface, +0x14 the panel surface (0x38 bytes), +0x18 the font (CFont),
-//   +0x1C the rectangle on screen, +0x2C the rectangle asked for (+0x34 / +0x38 its corner),
-//   +0x3C shown, +0x40 the tick of the last drawing.
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
+#include "ui.h"        // CInterface3D, CUiSurface
+#include "ui_gdi.h"    // GameDC, GameFont
 
 #include <cstdint>
 #include <cstring>
@@ -23,45 +21,56 @@ namespace strmap {
 
 namespace {
 
-struct StringRep {               // STLport basic_string
-    char* start;
-    char* finish;
-    char* eos;
-};
-struct Node {                    // _Rb_tree node (0x28 bytes)
-    std::uint32_t color;
-    Node* parent;
-    Node* left;
-    Node* right;
-    StringRep key;               // +0x10
-    StringRep value;             // +0x1C
-};
+using StringMap = stlp::map<stlp::string, stlp::string>;
+using Node = StringMap::Node;   // 0x28 bytes
 static_assert(sizeof(Node) == 0x28);
-struct Tree {                    // the map at +4 of the table
-    Node* header;
-    std::uint32_t count;
+
+// The panel (0079B930).
+class CDebugPanel {
+public:
+    void* vtable_;
+    StringMap entries_;          // +0x04 key -> value
+    CInterface3D* ui_;           // +0x10
+    CUiSurface* surface_;        // +0x14 the panel surface (0x38 bytes), while shown
+    ui_gdi::GameFont* font_;     // +0x18 (MFC CFont)
+    RECT shown_;                 // +0x1C the rectangle on screen
+    RECT asked_;                 // +0x2C the rectangle asked for
+    std::uint8_t visible_;       // +0x3C
+    std::uint8_t unknown_3D[3];
+    DWORD lastDraw_;             // +0x40 the tick of the last drawing
 };
+static_assert(offsetof(CDebugPanel, entries_) == 0x04 && offsetof(CDebugPanel, ui_) == 0x10 &&
+              offsetof(CDebugPanel, font_) == 0x18 && offsetof(CDebugPanel, shown_) == 0x1C &&
+              offsetof(CDebugPanel, asked_) == 0x2C && offsetof(CDebugPanel, visible_) == 0x3C &&
+              offsetof(CDebugPanel, lastDraw_) == 0x40);
 
 // STLport (library).
-__declspec(naked) Node** __fastcall LowerBound(Tree*, void*, Node** /*out*/, const StringRep*) EI_ORIGINAL(0x004456E0)
-__declspec(naked) Node** __fastcall Find(Tree*, void*, Node** /*out*/, const StringRep*) EI_ORIGINAL(0x00445620)
-__declspec(naked) bool __fastcall Less(const StringRep* /*a*/, const StringRep* /*b*/) EI_ORIGINAL(0x00445780)
-inline void __fastcall StringReserve(StringRep* a0, void*, const void* a2, std::size_t a3) { StringReserveOriginal((void*)a0, nullptr, a2, a3); }
-__declspec(naked) void* __fastcall PairConstruct(void* /*pair*/, void*, const StringRep*, const StringRep*) EI_ORIGINAL(0x00445170)
-__declspec(naked) Node** __fastcall InsertHint(Tree*, void*, Node** /*out*/, Node* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x004450B0)
+__declspec(naked) Node** __fastcall LowerBound(StringMap*, void*, Node** /*out*/, const stlp::string*) EI_ORIGINAL(0x004456E0)
+__declspec(naked) Node** __fastcall Find(StringMap*, void*, Node** /*out*/, const stlp::string*) EI_ORIGINAL(0x00445620)
+__declspec(naked) bool __fastcall Less(const stlp::string* /*a*/, const stlp::string* /*b*/) EI_ORIGINAL(0x00445780)
+inline void __fastcall StringReserve(stlp::string* a0, void*, const void* a2, std::size_t a3) { StringReserveOriginal(a0, nullptr, a2, a3); }
+__declspec(naked) void* __fastcall PairConstruct(void* /*pair*/, void*, const stlp::string*, const stlp::string*) EI_ORIGINAL(0x00445170)
+__declspec(naked) Node** __fastcall InsertHint(StringMap*, void*, Node** /*out*/, Node* /*hint*/, const void* /*pair*/) EI_ORIGINAL(0x004450B0)
 __declspec(naked) void __fastcall PairDestruct(void*) EI_ORIGINAL(0x00445040)
-void __fastcall StringErase(StringRep* a0, void*, char* a2, char* a3) { StringEraseOriginal((void*)a0, nullptr, a2, a3); }
-void __fastcall StringAppend(StringRep* a0, void*, const char* a2, const char* a3, int a4) { StringAppendRangeOriginal((void*)a0, nullptr, a2, a3, (const void*)a4); }
-__declspec(naked) void __fastcall Erase(Tree*, void*, Node* /*position*/) EI_ORIGINAL(0x00445010)
-__declspec(naked) void __fastcall EraseSubtree(Tree*, void*, Node*) EI_ORIGINAL(0x00445310)
+void __fastcall StringErase(stlp::string* a0, void*, const char* a2, const char* a3) {
+    StringEraseOriginal(a0, nullptr, const_cast<char*>(a2), const_cast<char*>(a3));
+}
+void __fastcall StringAppend(stlp::string* a0, void*, const char* a2, const char* a3, int a4) { StringAppendRangeOriginal(a0, nullptr, a2, a3, (const void*)a4); }
+__declspec(naked) void __fastcall Erase(StringMap*, void*, Node* /*position*/) EI_ORIGINAL(0x00445010)
+__declspec(naked) void __fastcall EraseSubtree(StringMap*, void*, Node*) EI_ORIGINAL(0x00445310)
 __declspec(naked) void __fastcall PairDelete(void*, void*, unsigned) EI_ORIGINAL(0x004457F0)
 __declspec(naked) void __fastcall NodeFree(Node*, std::size_t) EI_ORIGINAL(0x004452D0)
 
-Tree& TreeOf(void* self) { return *reinterpret_cast<Tree*>(static_cast<std::uint8_t*>(self) + 4); }
+CDebugPanel* Panel(void* self) { return static_cast<CDebugPanel*>(self); }
 
-void ReleaseString(StringRep& s) {
-    if (s.start) stlp::deallocate(s.start, static_cast<std::size_t>(s.eos - s.start));
-}
+// The node allocator's free list of 0x28-byte nodes (0079B234), which the destructor pushes to inline.
+void*& NodeFreeList() { return *reinterpret_cast<void**>(0x0079B234); }
+
+// A key string the functions below construct and release explicitly (when the original does).
+struct KeyString {
+    alignas(stlp::string) std::uint8_t storage[sizeof(stlp::string)];
+    stlp::string* Make(const char* text) { return new (storage) stlp::string(text, text + std::strlen(text)); }
+};
 
 } // namespace
 
@@ -72,70 +81,69 @@ EI_REPLACE(0x004447D0, StringTable);
 // 004447E0 (slot 0): table[key] = value (a missing key is inserted at its lower bound with an
 // empty value first).
 void __fastcall StringTableSet(void* self, void*, const char* key, const char* value) {
-    StringRep k{};
-    new (&k) stlp::string(key, key + std::strlen(key));
-    Tree& tree = TreeOf(self);
+    KeyString keyStorage;
+    stlp::string* k = keyStorage.Make(key);
+    StringMap& map = Panel(self)->entries_;
     Node* it;
-    LowerBound(&tree, nullptr, &it, &k);
-    if (it == tree.header || Less(&k, &it->key)) {
-        StringRep empty;
+    LowerBound(&map, nullptr, &it, k);
+    if (it == map.end() || Less(k, &it->first)) {
+        KeyString emptyStorage;
+        auto* empty = reinterpret_cast<stlp::string*>(emptyStorage.storage);
         char alloc;
-        StringReserve(&empty, nullptr, &alloc, 8);
-        *empty.start = 0;
-        alignas(4) std::uint8_t pair[sizeof(StringRep) * 2];
-        PairConstruct(pair, nullptr, &k, &empty);
+        StringReserve(empty, nullptr, &alloc, 8);
+        *const_cast<char*>(empty->data()) = 0;
+        alignas(4) std::uint8_t pair[sizeof(stlp::string) * 2];
+        PairConstruct(pair, nullptr, k, empty);
         Node* inserted;
-        InsertHint(&tree, nullptr, &inserted, it, pair);
+        InsertHint(&map, nullptr, &inserted, it, pair);
         it = inserted;
         PairDestruct(pair);
-        StlStringDestroy(&empty);
+        StlStringDestroy(empty);
     }
-    StringRep& s = it->value;
+    stlp::string& s = it->second;
     std::size_t length = std::strlen(value);
-    std::size_t size = static_cast<std::size_t>(s.finish - s.start);
+    std::size_t size = s.size();
+    char* start = const_cast<char*>(s.data());
     if (length <= size) {
-        std::memcpy(s.start, value, length);
-        StringErase(&s, nullptr, s.start + length, s.finish);
+        std::memcpy(start, value, length);
+        StringErase(&s, nullptr, start + length, start + size);
     } else {
-        std::memcpy(s.start, value, size);
+        std::memcpy(start, value, size);
         StringAppend(&s, nullptr, value + size, value + length, 0);
     }
-    ReleaseString(k);
+    k->~string();
 }
 EI_REPLACE(0x004447E0, StringTableSet);
 
 // 004449A0 (slot 1): removes `key`.
 void __fastcall StringTableRemove(void* self, void*, const char* key) {
-    StringRep k{};
-    new (&k) stlp::string(key, key + std::strlen(key));
-    Tree& tree = TreeOf(self);
+    KeyString keyStorage;
+    stlp::string* k = keyStorage.Make(key);
+    StringMap& map = Panel(self)->entries_;
     Node* it;
-    Find(&tree, nullptr, &it, &k);
-    ReleaseString(k);
-    if (it != tree.header) Erase(&tree, nullptr, it);
+    Find(&map, nullptr, &it, k);
+    k->~string();
+    if (it != map.end()) Erase(&map, nullptr, it);
 }
 EI_REPLACE(0x004449A0, StringTableRemove);
 
 // 00444690: the table's destructor (at exit): every node destroyed and freed, then the header.
 void __fastcall StringTableDestruct(void* self) {
-    Tree& tree = TreeOf(self);
-    if (tree.count) {
-        Node* node = tree.header->parent;
+    StringMap& map = Panel(self)->entries_;
+    if (map.size()) {
+        Node* node = map.end()->parent;
         while (node) {
-            EraseSubtree(&tree, nullptr, node->right);
+            EraseSubtree(&map, nullptr, node->right);
             Node* left = node->left;
-            PairDelete(&node->key, nullptr, 0);
+            PairDelete(&node->first, nullptr, 0);
             NodeFree(node, 1);
             node = left;
         }
-        tree.header->left = tree.header;
-        tree.header->parent = nullptr;
-        tree.header->right = tree.header;
-        tree.count = 0;
+        map.ResetToEmpty();
     }
-    if (Node* header = tree.header) {
-        *reinterpret_cast<void**>(header) = *reinterpret_cast<void**>(0x0079B234);
-        *reinterpret_cast<void**>(0x0079B234) = header;
+    if (Node* header = map.end()) {
+        *reinterpret_cast<void**>(header) = NodeFreeList();
+        NodeFreeList() = header;
     }
 }
 EI_REPLACE(0x00444690, StringTableDestruct);
@@ -144,46 +152,43 @@ EI_REPLACE(0x00444690, StringTableDestruct);
 
 namespace {
 
-template <typename T>
-T& At(void* base, std::size_t offset) { return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(base) + offset); }
-
-// The font (MFC CFont, library), the interface's panel rectangles, the panel surface and its DC
-// (an MFC CDC: slots 10 SelectObject(CFont*), 12 SetTextColor, 26 DrawText), the red-black tree's
+// The interface's panel rectangle (005F7DA0, patched by Rebirth: through its address), the panel
+// surface's constructor and destructor body, the DC's non-virtual members, the red-black tree's
 // increment (library).
-__declspec(naked) void __fastcall InterfaceFitRect(void*, void*, RECT*) EI_ORIGINAL(0x005F7CA0)
-__declspec(naked) void __fastcall InterfaceSetPanelRect(void*, void*, RECT*) EI_ORIGINAL(0x005F7DA0)
-__declspec(naked) void* __fastcall PanelConstruct(void*, void*, void* /*ui*/, RECT*, int) EI_ORIGINAL(0x005FCDD0)
-__declspec(naked) void __fastcall PanelDestruct(void*) EI_ORIGINAL(0x005FD120)
-void __fastcall DcFillSolidRect(void* a0, void*, int a2, int a3, int a4, int a5, COLORREF a6) { DcFillSolidRectOriginal(a0, nullptr, a2, a3, a4, a5, a6); }
-int __fastcall DcSetBkMode(void* a0, void*, int a2) { return DcSetBkModeOriginal(a0, nullptr, a2); }
-void __fastcall TreeIncrement(Node** a0) { TreeIncrementOriginal((void*)a0); }
+__declspec(naked) void __fastcall InterfaceSetPanelRect(CInterface3D*, void*, RECT*) EI_ORIGINAL(0x005F7DA0)
+__declspec(naked) CUiSurface* __fastcall PanelConstruct(void*, void*, CInterface3D* /*ui*/, RECT*, int) EI_ORIGINAL(0x005FCDD0)
+__declspec(naked) void __fastcall PanelDestruct(CUiSurface*) EI_ORIGINAL(0x005FD120)
+void __fastcall DcFillSolidRect(ui_gdi::GameDC* a0, void*, int a2, int a3, int a4, int a5, COLORREF a6) { DcFillSolidRectOriginal(a0, nullptr, a2, a3, a4, a5, a6); }
+int __fastcall DcSetBkMode(ui_gdi::GameDC* a0, void*, int a2) { return DcSetBkModeOriginal(a0, nullptr, a2); }
+void __fastcall TreeIncrement(Node** a0) { TreeIncrementOriginal(a0); }
 __declspec(naked) void __fastcall PanelRedrawAt(void*) EI_ORIGINAL(0x00444D00)
 __declspec(naked) void __fastcall PanelShowAt(void*, void*, std::uint8_t) EI_ORIGINAL(0x00444F50)
 
-constexpr int kDcSelectFont = 10;
-constexpr int kDcSetTextColor = 12;
-constexpr int kDcDrawText = 26;
+// MFC CFont's vtable (0073BFB4) and the panel's font face (007842C8).
+constexpr std::uintptr_t kFontVtable = std::uintptr_t(0x0073BFB4);
+const char* FontFace() { return reinterpret_cast<const char*>(0x007842C8); }
 
-void DrawString(void* dc, const StringRep& s, RECT* rect) {
-    ei::VCall<int>(dc, kDcDrawText, static_cast<const char*>(s.start), static_cast<int>(s.finish - s.start), rect, 0x800u);
+void DrawString(ui_gdi::GameDC* dc, const stlp::string& s, RECT* rect) {
+    dc->DrawText(s.data(), static_cast<int>(s.size()), rect, 0x800u);
 }
 
 } // namespace
 
 // 00444A70: binds the panel to the interface: an 8-point font, the rectangle (10, 10, 290, 290).
-void __fastcall PanelInit(void* self, void*, void* ui) {
-    At<void*>(self, 0x10) = ui;
-    At<void*>(self, 0x14) = nullptr;
-    At<std::uint8_t>(self, 0x3C) = 0;
-    auto* font = static_cast<std::uint32_t*>(gamecrt::operator_new(8));
+void __fastcall PanelInit(void* self, void*, CInterface3D* ui) {
+    CDebugPanel* panel = Panel(self);
+    panel->ui_ = ui;
+    panel->surface_ = nullptr;
+    panel->visible_ = 0;
+    auto* font = static_cast<ui_gdi::GameFont*>(gamecrt::operator_new(8));
     if (font) {
-        font[1] = 0;
-        font[0] = 0x0073BFB4;   // CFont
+        font->handle_ = nullptr;
+        font->vtable_ = reinterpret_cast<void**>(kFontVtable);
     }
-    At<void*>(self, 0x18) = font;
-    if (!FontCreatePointOriginal(font, nullptr, 0x5A, reinterpret_cast<const char*>(0x007842C8), nullptr)) {
-        if (void* f = At<void*>(self, 0x18)) ei::VCall<void>(f, 1, 1);
-        At<void*>(self, 0x18) = nullptr;
+    panel->font_ = font;
+    if (!FontCreatePointOriginal(font, nullptr, 0x5A, FontFace(), nullptr)) {
+        if (ui_gdi::GameFont* f = panel->font_) f->Delete();
+        panel->font_ = nullptr;
     }
     RECT rect = {10, 10, 0x122, 0x122};
     DebugPanelSetRectOriginal(self, nullptr, &rect);
@@ -192,25 +197,27 @@ EI_REPLACE(0x00444A70, PanelInit);
 
 // 00444BD0: frees the panel surface and the font.
 void __fastcall PanelRelease(void* self) {
-    if (void* surface = At<void*>(self, 0x14)) {
+    CDebugPanel* panel = Panel(self);
+    if (CUiSurface* surface = panel->surface_) {
         PanelDestruct(surface);
         gamecrt::operator_delete(surface);
     }
-    At<void*>(self, 0x14) = nullptr;
-    if (void* font = At<void*>(self, 0x18)) ei::VCall<void>(font, 1, 1);
-    At<void*>(self, 0x18) = nullptr;
+    panel->surface_ = nullptr;
+    if (ui_gdi::GameFont* font = panel->font_) font->Delete();
+    panel->font_ = nullptr;
 }
 EI_REPLACE(0x00444BD0, PanelRelease);
 
 // 00444C10: the panel's rectangle: fitted by the interface, at least 100 x 15 and at most the
-// screen (the interface's +0 / +4); a shown panel is made again.
+// screen; a shown panel is made again.
 void __fastcall PanelSetRect(void* self, void*, const RECT* rect) {
-    void* ui = At<void*>(self, 0x10);
-    int width = At<int>(ui, 0);
-    int height = At<int>(ui, 4);
-    RECT& asked = At<RECT>(self, 0x2C);
+    CDebugPanel* panel = Panel(self);
+    CInterface3D* ui = panel->ui_;
+    int width = ui->width_;
+    int height = ui->height_;
+    RECT& asked = panel->asked_;
     asked = *rect;
-    InterfaceFitRect(ui, nullptr, &asked);
+    ui->CallScaleRectToScreen(&asked);
     int dx = asked.right - asked.left;
     int dy = asked.bottom - asked.top;
     if (dx < 100) dx = 100;
@@ -219,83 +226,85 @@ void __fastcall PanelSetRect(void* self, void*, const RECT* rect) {
     if (dy > height) dy = height;
     asked.right = asked.left + dx;
     asked.bottom = asked.top + dy;
-    RECT& shown = At<RECT>(self, 0x1C);
+    RECT& shown = panel->shown_;
     shown = asked;
-    InterfaceSetPanelRect(At<void*>(self, 0x10), nullptr, &shown);
-    if (At<std::uint8_t>(self, 0x3C)) {
+    InterfaceSetPanelRect(panel->ui_, nullptr, &shown);
+    if (panel->visible_) {
         PanelShowAt(self, nullptr, 0);
         PanelShowAt(self, nullptr, 1);
     }
 }
 EI_REPLACE(0x00444C10, PanelSetRect);
 
-// 00444CD0: redraws at most every 500 ms, then the panel surface's slot 0.
+// 00444CD0: redraws at most every 500 ms, then the panel surface's slot 0 (Blit).
 void __fastcall PanelTick(void* self) {
+    CDebugPanel* panel = Panel(self);
     DWORD now = gameapi::timeGetTime();
-    if (now - At<DWORD>(self, 0x40) > 500) {
-        At<DWORD>(self, 0x40) = now;
+    if (now - panel->lastDraw_ > 500) {
+        panel->lastDraw_ = now;
         PanelRedrawAt(self);
     }
-    if (void* surface = At<void*>(self, 0x14)) ei::VCall<void>(surface, 0);
+    if (CUiSurface* surface = panel->surface_) surface->Blit();
 }
 EI_REPLACE(0x00444CD0, PanelTick);
 
 // 00444D00: clears the panel and draws each entry (the key in the left half, the value in the
 // right half; a dark copy one pixel down and right first) until the next line would not fit.
 void __fastcall PanelRedraw(void* self) {
-    void* surface = At<void*>(self, 0x14);
+    CDebugPanel* panel = Panel(self);
+    CUiSurface* surface = panel->surface_;
     if (!surface) return;
-    void* dc = SurfaceGetDC(surface);
-    RECT& asked = At<RECT>(self, 0x2C);
+    ui_gdi::GameDC* dc = SurfaceGetDC(surface);
+    RECT& asked = panel->asked_;
     DcFillSolidRect(dc, nullptr, 0, 0, asked.right - asked.left, asked.bottom - asked.top, 0);
     DcSetBkMode(dc, nullptr, 1);
-    void* oldFont = ei::VCall<void*>(dc, kDcSelectFont, At<void*>(self, 0x18));
+    void* oldFont = dc->SelectFont(panel->font_);
     RECT key = {0, 0, (asked.right - asked.left) / 2, 20};
     RECT value = {(asked.right - asked.left) / 2, 0, asked.right - asked.left, 20};
-    Tree& tree = TreeOf(self);
-    Node* it = tree.header->left;
-    while (it != tree.header) {
-        ei::VCall<COLORREF>(dc, kDcSetTextColor, static_cast<COLORREF>(0x080808));
+    StringMap& map = panel->entries_;
+    Node* it = map.begin();
+    while (it != map.end()) {
+        dc->SetTextColor(static_cast<COLORREF>(0x080808));
         RECT shadow = key;
         gameapi::OffsetRect(&shadow, 1, 1);
         RECT r = shadow;
-        DrawString(dc, it->key, &r);
+        DrawString(dc, it->first, &r);
         shadow = value;
         gameapi::OffsetRect(&shadow, 1, 1);
         r = shadow;
-        DrawString(dc, it->value, &r);
-        ei::VCall<COLORREF>(dc, kDcSetTextColor, static_cast<COLORREF>(0xFFFFFF));
-        DrawString(dc, it->key, &key);
-        DrawString(dc, it->value, &value);
+        DrawString(dc, it->second, &r);
+        dc->SetTextColor(static_cast<COLORREF>(0xFFFFFF));
+        DrawString(dc, it->first, &key);
+        DrawString(dc, it->second, &value);
         gameapi::OffsetRect(&key, 0, 15);
         gameapi::OffsetRect(&value, 0, 15);
         if (key.bottom > asked.bottom - asked.top) break;
         TreeIncrement(&it);
     }
-    ei::VCall<void*>(dc, kDcSelectFont, oldFont);
-    SurfaceReleaseDC(At<void*>(self, 0x14));
+    dc->SelectFont(oldFont);
+    SurfaceReleaseDC(panel->surface_);
 }
 EI_REPLACE(0x00444D00, PanelRedraw);
 
 // 00444F50: shows the panel (its surface made when missing, drawn at once) or hides it (the
 // surface freed).
 void __fastcall PanelShow(void* self, void*, std::uint8_t show) {
-    At<std::uint8_t>(self, 0x3C) = show;
+    CDebugPanel* panel = Panel(self);
+    panel->visible_ = show;
     if (show) {
-        if (!At<void*>(self, 0x14)) {
+        if (!panel->surface_) {
             void* memory = gamecrt::operator_new(0x38);
-            At<void*>(self, 0x14) =
-                memory ? PanelConstruct(memory, nullptr, At<void*>(self, 0x10), &At<RECT>(self, 0x1C), 5) : nullptr;
+            panel->surface_ = memory ? PanelConstruct(memory, nullptr, panel->ui_, &panel->shown_, 5) : nullptr;
         }
-        At<DWORD>(self, 0x40) = gameapi::timeGetTime();
+        panel->lastDraw_ = gameapi::timeGetTime();
         PanelRedrawAt(self);
         return;
     }
-    if (void* surface = At<void*>(self, 0x14)) {
+    if (CUiSurface* surface = panel->surface_) {
         PanelDestruct(surface);
         gamecrt::operator_delete(surface);
     }
-    At<void*>(self, 0x14) = nullptr;
+    panel->surface_ = nullptr;
 }
 EI_REPLACE(0x00444F50, PanelShow);
 
