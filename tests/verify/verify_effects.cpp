@@ -324,6 +324,57 @@ static void __fastcall RainStartVerify(CRainSnow* self, void*, int newMode, floa
 }
 EI_VERIFY(0x004E3FC0, RainStartVerify, 0, s_unusedRainStart);
 
+// The fog object's slots (A-S10; the visibility fog of CEffectShowVisibility / 004E28D0). Create /
+// Destroy / the destructors free the cells: ours only, the table checked empty. Class name and id
+// (MOV EAX,imm32: 5): both, compared.
+static bool FogEmpty(const CVisibilityFog* fog) {
+    return fog->cells.Size() == 0 && fog->cells.First() == nullptr && fog->boundsValid == 0;
+}
+static void* s_unusedFogCreate;
+static int __fastcall FogCreateVerify(CVisibilityFog* self) {
+    int r = FogCreate(self);
+    ei::verify::Check("FogCreate", true, r == 1 && FogEmpty(self), "result %d", r);
+    return r;
+}
+EI_VERIFY(0x004E23D0, FogCreateVerify, 0, s_unusedFogCreate);
+static void* s_unusedFogDestroy;
+static void __fastcall FogDestroyVerify(CVisibilityFog* self) {
+    FogDestroy(self);
+    ei::verify::Check("FogDestroy", true, FogEmpty(self), "fog %p", static_cast<void*>(self));
+}
+EI_VERIFY(0x004E2440, FogDestroyVerify, 0, s_unusedFogDestroy);
+static const char*(__fastcall* s_fogClassName)(CVisibilityFog*);
+static const char* __fastcall FogClassNameVerify(CVisibilityFog* self) {
+    const char* expected = s_fogClassName(self);
+    const char* actual = FogClassName(self);
+    ei::verify::Check("FogClassName", true, std::strcmp(expected, actual) == 0, "%s", actual);
+    return actual;
+}
+EI_VERIFY(0x004E24A0, FogClassNameVerify, 5, s_fogClassName);
+static int(__fastcall* s_fogClassId)(CVisibilityFog*);
+static int __fastcall FogClassIdVerify(CVisibilityFog* self) {
+    int expected = s_fogClassId(self);
+    int actual = FogClassId(self);
+    ei::verify::Check("FogClassId", expected, actual, "id %d / %d", expected, actual);
+    return actual;
+}
+EI_VERIFY(0x004E24B0, FogClassIdVerify, 5, s_fogClassId);
+static void* s_unusedFogDestruct;
+static void __fastcall FogDestructVerify(CVisibilityFog* self) {
+    self->CVisibilityFog::Destruct();
+    ei::verify::Check("CVisibilityFog::Destruct", true,
+                      self->vtable_ == reinterpret_cast<void*>(CEngineObject::kVtableAddress) && self->cells.Size() == 0,
+                      "fog %p", static_cast<void*>(self));
+}
+EI_VERIFY(0x004E24E0, FogDestructVerify, 0, s_unusedFogDestruct);
+static void* s_unusedFogDeleting;
+static CVisibilityFog* __fastcall FogDeletingVerify(CVisibilityFog* self, void*, int flags) {
+    CVisibilityFog* result = self->CVisibilityFog::DeletingDestruct(flags);
+    ei::verify::Check("CVisibilityFog::DeletingDestruct", true, result == self, "flags %d", flags);
+    return result;
+}
+EI_VERIFY(0x004E24C0, FogDeletingVerify, 0, s_unusedFogDeleting);
+
 // --- Visibility fog -----------------------------------------------------------------------------
 
 namespace {

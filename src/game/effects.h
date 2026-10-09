@@ -467,6 +467,13 @@ public:
     void ComputeBounds();                           // 004E1770
     int UpdateCells();                              // 004E1AB0 (vtable slot 6; no C++ virtuals here)
     void Reveal(const FogGrid* grid);               // 004E1C60
+    // A-S10 (effects_weather.cpp). Every cell freed (nodes back to the pool), the bounds invalid:
+    // the body of slots 2 (004E23D0, returns 1) and 3 (004E2440).
+    void ClearCells();
+    // 004E24E0. The destructor body: the vtable, ClearCells, the table freed, the engine object's
+    // base destructor. 004E24C0 (slot 0, RET 4): it, then operator delete on bit 0; returns this.
+    void Destruct();
+    CVisibilityFog* DeletingDestruct(int flags);
 
     // Not rewritten (forwarders).
     void* World();                                  // 00455950 (CEngineObject)
@@ -485,4 +492,10 @@ public:
     std::uint8_t unknown_69[3];
 };
 static_assert(offsetof(CVisibilityFog, cells) == 0x54);
+// The fog object's slots 2 / 3 (004E23D0: ClearCells, returns 1; 004E2440: ClearCells) and 11 / 12
+// (004E24A0 "CVisibilityFog", 004E24B0 0x5F); effects_weather.cpp.
+int __fastcall FogCreate(CVisibilityFog* self);
+void __fastcall FogDestroy(CVisibilityFog* self);
+const char* __fastcall FogClassName(CVisibilityFog* self);
+int __fastcall FogClassId(CVisibilityFog* self);
 static_assert(sizeof(CVisibilityFog) == 0x6C);

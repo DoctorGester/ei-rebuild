@@ -295,3 +295,45 @@ void CVisibilityFog::Reveal(const FogGrid* grid) {
     }
 }
 EI_REPLACE_METHOD(0x004E1C60, CVisibilityFog::Reveal);
+
+// ---- The fog object's slots (A-S10) ----------------------------------------------------------------
+
+// The cell nodes (0x20 bytes) go back to the pool's 32-byte free list (0079B230), as the original
+// pushes them.
+static_assert(sizeof(CVisibilityFog::CellMap::Node) > 24 && sizeof(CVisibilityFog::CellMap::Node) <= 32);
+
+void CVisibilityFog::ClearCells() {
+    cells.Clear();
+    boundsValid = 0;
+}
+
+void CVisibilityFog::Destruct() {
+    vtable_ = reinterpret_cast<void*>(0x0073D6B4);
+    ClearCells();
+    cells.Destroy();
+    reinterpret_cast<CEngineObject*>(this)->DestructBase();
+}
+EI_REPLACE_METHOD(0x004E24E0, CVisibilityFog::Destruct);
+
+CVisibilityFog* CVisibilityFog::DeletingDestruct(int flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x004E24C0, CVisibilityFog::DeletingDestruct);
+
+namespace {
+constexpr int kFogClassId = 0x5F;
+} // namespace
+// Slots 2 / 3 (004E23D0 returns 1), 11 / 12 ("CVisibilityFog" 0078DE80, 0x5F).
+int __fastcall FogCreate(CVisibilityFog* self) {
+    self->ClearCells();
+    return 1;
+}
+void __fastcall FogDestroy(CVisibilityFog* self) { self->ClearCells(); }
+const char* __fastcall FogClassName(CVisibilityFog*) { return reinterpret_cast<const char*>(0x0078DE80); }
+int __fastcall FogClassId(CVisibilityFog*) { return kFogClassId; }
+EI_REPLACE(0x004E23D0, FogCreate);
+EI_REPLACE(0x004E2440, FogDestroy);
+EI_REPLACE(0x004E24A0, FogClassName);
+EI_REPLACE(0x004E24B0, FogClassId);
