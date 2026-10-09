@@ -328,7 +328,9 @@ public:
     virtual void ForgetObject() = 0;       // 56: (object) empty; units: the controller's slot 42
     virtual void UpdateMoveFactors() = 0;  // 57: empty; units: the controller's slot 53
     virtual void RefreshWounds() = 0;      // 58: 0; units: the controller's slot 31
-    virtual void MoveSpeed() = 0;          // 59: ST0 0 (0050E540); units: forward speed (004468B0)
+    // 59 (0xEC): the speed the object moves at, in ST0 unrounded: 0 (0050E540); units their forward
+    // speed (004468B0).
+    virtual double MoveSpeed() = 0;
     virtual float Radius() = 0;                         // 60 (0xF0): units' +0x328 (004468A0), ST0
     // 61 (0xF4): units (00446830) keep `name` in their CString +0x238 (the script name).
     virtual void SetScriptName(const char* name) = 0;
@@ -358,6 +360,12 @@ public:
     virtual int RefreshVitals(char withHitPoints) = 0;   // 19: 005533B0 (1), client 00533BD0 (0)
     // 20 (0x50): 00553F40 CUnitServer::TakeHit(hit, attacker, source); either unit may be null.
     virtual int TakeHitSlot(DamageInfo* hit, CEngineObject* attacker, CEngineObject* source) = 0;
+    virtual int Heal(float amount) = 0;     // 21: 005543B0 (1)
+    virtual void RepackStats() = 0;        // 22: 00553500
+    virtual void UpdateSizeClasses() = 0;  // 23: 00552FB0
+    virtual int Level() = 0;               // 24: 00556760
+    // 25 (0x64, RET 4): 00553610 CUnitServer::TakeUpWeapon(slot); 1 when the weapon was taken up.
+    virtual int TakeUpWeapon(int slot) = 0;
 };
 inline CUnitServerVirtuals* ServerSlots(CEngineObject* controller) { return static_cast<CUnitServerVirtuals*>(controller); }
 

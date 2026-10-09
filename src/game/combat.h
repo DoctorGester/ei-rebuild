@@ -208,6 +208,7 @@ static_assert(offsetof(CombatStats, naturalWeapon) == 0xAC);
 static_assert(sizeof(CombatStats) == 0x110);
 
 class CItem;
+struct AIBrain;   // unit_ai.h
 
 // An entry of the armour spell list (CUnitServer + 0x91C; 005528F0 builds it): the item (a counted
 // reference), its countdown and whether it is still worn.
@@ -832,6 +833,8 @@ public:
     // +0xF8) and +0x110 (CList of units the unit watches).
     std::uint8_t brain[0x190];
     std::int32_t voice[4];          // +0xB10 the voice / alarm (005AEA50 zeroes it, 005AEA60 Say)
+
+    AIBrain* Brain() { return reinterpret_cast<AIBrain*>(brain); }
 
     // combat_lifetime.cpp. 00545580. The constructor: the base controller (vtable 0073EDBC) and
     // the members (empty lists, orders of kind 9, the AI brain 00545990, the voice), then this

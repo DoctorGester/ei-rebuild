@@ -41,7 +41,7 @@ src/game/combat_save.cpp,27,1,0,0,0,0,0,0,0
 src/game/combat_sight.cpp,3,8,3,1,4,0,0,1,0
 src/game/combat_steps.cpp,0,3,1,1,1,0,0,1,0
 src/game/combat_taming.cpp,14,2,0,0,0,0,0,1,0
-src/game/combat_tick.cpp,60,14,1,1,1,0,0,2,0
+src/game/combat_tick.cpp,0,0,1,1,1,0,0,0,0
 src/game/combat_update.cpp,43,8,0,0,0,0,0,7,0
 src/game/console.cpp,0,0,0,0,54,3,0,0,0
 src/game/console.h,0,0,0,0,3,0,0,0,0
