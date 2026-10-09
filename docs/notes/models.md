@@ -162,8 +162,7 @@ perPage * pages (not 16) before falling back to 15; Load picks a vertex's water 
 found. Lesson: Ghidra's listing of 006C1C00 drops the FNSTSW AX at 006C1F48 (a plain minimum select on the comparison
 status); check the raw bytes when a listing's addresses skip.
 
-Skipped: the other draw functions (R); 006C68B0 and 006D0630 / 006D7620 (Rebirth-patched); 006C8140 `SectorAt` (stateful
-cache, next candidate with invariant checks), vertex lighting (chop rounding), point light registration 006CAC10 (global
+Skipped: the other draw functions (R); 006C68B0 and 006D0630 / 006D7620 (Rebirth-patched); vertex lighting (chop rounding), point light registration 006CAC10 (global
 node pool), 006C3E80 animated tiles; dead code 006C8990, 006C9560, 006C5EA0, 006C5F50, 006C84E0, 006C4790 / 006C4A40 /
 006C4C90; STLport / MFC instantiations (006B01F0-006B4230, 006BDDD0-006BE300, 006CD540-006CEA10). Risk: the animated-tile path
 draws from the game's random generator (a mistake would shift later draws).
@@ -192,6 +191,7 @@ Ported (A-X1; V as above):
 | Address | Name | V |
 |---|---|---|
 | 006CA260 | `Terrain::SetVisibleSectors` (terrain_landscape.cpp; the original on a raw copy with its own array blocks) | S |
+| 006C8140 | `Terrain::SectorAt` (LRU cache `mfc::CList<SectorData*>` +0x1FC, grid +0x1F8, frame +0x218; checks: the sector returned and, every 64th call, the cache's links, grid entries and frame order) | O |
 | 006CD5C0, 006CE890 / 006CDD50, 006CDE90 | `lib::AlignedArray<uint32>::SetSize` / `SetAtGrow` copies | S |
 | 006D9A30 / 006D9CE0 / 006D9F80 | `acks::AckTable<UnitAcks / ModelAcks / ExtraAcks>::Find` (acks_db.cpp; index operator[], adds a null entry for a missing name) | P |
 | 006D8780 / 006D88E0 | `acks::PickSpeech` / `PickEnvironmentSpeech` (rand() and ISAAC state restored between the runs and compared) | S |

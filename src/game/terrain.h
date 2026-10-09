@@ -3,11 +3,16 @@
 #include "engine_object.h"
 
 #include "lib/containers.h"
+#include "lib/mfc.h"
 
 #include <cstddef>
 #include <cstdint>
 
 // Names are provisional: they describe what the code does, not names recovered from the original.
+
+namespace terrain {
+struct SectorData;   // terrain_sector.h: the full sector (TerrainSector names a few of its fields)
+}
 
 // A 32x32-cell block of terrain. Each sector holds two layers of 33x33 vertices (x, y, z): the
 // ground, and the water surface when the sector has water.
@@ -31,8 +36,12 @@ public:
     // where the sector has no such layer.
     const float* VertexAt(int ix, int iy, int layer);
 
-    // 006C8140. Sector (sx, sy); not rewritten yet.
-    TerrainSector* SectorAt(int sx, int sy, int unknown1, int unknown2);
+    // 006C8140 (RET 0x10; terrain_landscape.cpp). Sector (sx, sy) when it has any of the `wanted`
+    // stages built (1 loaded, 2 geometry, 4 lit), else null. Sectors live in an LRU cache: a hit
+    // moves to the front (stamped with the frame); with `create` a missing sector is loaded (the
+    // least recently used one reused when older than 240 frames, older ones freed) and the wanted
+    // stages are built.
+    TerrainSector* SectorAt(int sx, int sy, std::uint32_t wanted, int create);
 
     // 006C8930. Ground height at (x, y), and water depth above it (0 when dry).
     void GroundAndWaterDepth(float x, float y, float* ground, float* depth);
@@ -56,14 +65,21 @@ public:
     float width;                    // +0x10C last valid vertex column
     float height;                   // +0x110 last valid vertex row
     float heightRange;              // +0x114 the highest terrain height (cursor picking starts at half of it)
-    std::uint8_t unknown_118[0x12C - 0x118];
+    std::uint8_t unknown_118[0x11C - 0x118];
+    int pages;                      // +0x11C texture pages (sector loading)
+    std::uint8_t unknown_120[0x128 - 0x120];
+    int perPage;                    // +0x128 textures per page
     // Members constructed in place by Setup (their constructors' addresses).
     std::uint8_t part12C[0x10];     // +0x12C 00570E40
     std::uint8_t part13C[0x10];     // +0x13C 0056FD30
     std::uint8_t part14C[0x10];     // +0x14C 0056FD30
     std::uint8_t part15C[0x8C];     // +0x15C 006721D0
-    std::uint8_t part1E8[0x14];     // +0x1E8 00570E70
-    std::uint8_t part1FC[0x60];     // +0x1FC 00570EA0 (10)
+    std::uint8_t part1E8[0x10];     // +0x1E8 00570E70
+    using SectorCache = mfc::CList<terrain::SectorData*>;
+    SectorCache::Node*** sectorGrid;   // +0x1F8 [sx][sy]: the sector's cache node, or null
+    SectorCache sectorCache;        // +0x1FC 00570EA0 (block size 10), most recently used first
+    int frame;                      // +0x218 counted by the per-frame update
+    std::uint8_t unknown_21C[0x25C - 0x21C];
     std::uint8_t part25C[0x34];     // +0x25C 00571050
     std::uint8_t part290[0x10];     // +0x290 00570DE0 (an aligned array)
     std::uint8_t unknown_2A0[0xAA4 - 0x2A0];
@@ -79,7 +95,9 @@ static_assert(offsetof(Terrain, unknownD8) == 0xD8);
 static_assert(offsetof(Terrain, textF8) == 0xF8);
 static_assert(offsetof(Terrain, width) == 0x10C);
 static_assert(offsetof(Terrain, part12C) == 0x12C);
-static_assert(offsetof(Terrain, part1FC) == 0x1FC);
+static_assert(offsetof(Terrain, sectorGrid) == 0x1F8);
+static_assert(offsetof(Terrain, sectorCache) == 0x1FC);
+static_assert(offsetof(Terrain, frame) == 0x218);
 static_assert(offsetof(Terrain, part25C) == 0x25C);
 static_assert(offsetof(Terrain, part290) == 0x290);
 static_assert(offsetof(Terrain, visibleRowFirst) == 0xAA4);

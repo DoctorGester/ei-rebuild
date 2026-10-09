@@ -2,11 +2,18 @@
 // instantiations next to them (006CD5C0-006CE890). Sector loading and building are in
 // terrain_sector.cpp, height queries in terrain.cpp.
 #include "terrain.h"
+#include "terrain_sector.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/crt.h"
 
 #include <cstdint>
+
+using terrain::SectorData;
+
+// 006BF8A0: the sector's destructor body (not rewritten).
+__declspec(naked) void SectorData::Destruct() EI_ORIGINAL(0x006BF8A0)
 
 namespace {
 
@@ -19,7 +26,61 @@ int SectorBound(float value, int count) {
     return sector;
 }
 
+// How many frames an unused sector stays cached before a load may reuse or free it.
+constexpr int kSectorAge = 240;
+
+void DeleteSector(SectorData* sector) {
+    sector->Destruct();
+    gamecrt::operator_delete(sector);
+}
+
 } // namespace
+
+TerrainSector* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int create) {
+    if (sx < 0 || sy < 0 || sx >= sectorsX || sy >= sectorsY) return nullptr;
+    auto* fields = reinterpret_cast<terrain::TerrainFields*>(this);
+    SectorCache::Node* node = sectorGrid[sx][sy];
+    if (node) {
+        SectorData* sector = node->data;
+        if (sector->lastUsed < frame) {
+            sector->lastUsed = frame;
+            sectorCache.RemoveAt(node);
+            sectorCache.AddHead(sector);
+            sectorGrid[sx][sy] = sectorCache.head;
+        }
+        if (create) sector->Ensure(wanted, fields);
+        return (sector->built & wanted) ? reinterpret_cast<TerrainSector*>(sector) : nullptr;
+    }
+    if (!create) return nullptr;
+
+    // A new sector, or the least recently used one when it is old enough; then every further
+    // sector at the cache's end that is old enough is freed.
+    SectorData* sector;
+    SectorData* last = sectorCache.count != 0 ? sectorCache.tail->data : nullptr;
+    if (!last || frame - kSectorAge <= last->lastUsed) {
+        auto* memory = static_cast<SectorData*>(gamecrt::operator_new(sizeof(SectorData)));
+        sector = memory ? memory->Construct() : nullptr;
+    } else {
+        sector = last;
+        sectorGrid[sector->sx][sector->sy] = nullptr;
+        sectorCache.RemoveTail();
+        while (sectorCache.count != 0 && sectorCache.tail->data->lastUsed < frame - kSectorAge) {
+            SectorData* old = sectorCache.RemoveTail();
+            sectorGrid[old->sx][old->sy] = nullptr;
+            if (old) DeleteSector(old);
+        }
+    }
+    if (sector->Load(part15C, sx, sy, pages, perPage, textF8, fields)) {
+        sector->lastUsed = frame;
+        sectorCache.AddHead(sector);
+        sectorGrid[sx][sy] = sectorCache.head;
+        sector->Ensure(wanted, fields);
+        return (sector->built & wanted) ? reinterpret_cast<TerrainSector*>(sector) : nullptr;
+    }
+    if (sector) DeleteSector(sector);
+    return nullptr;
+}
+EI_REPLACE_METHOD(0x006C8140, Terrain::SectorAt);
 
 void Terrain::SetVisibleSectors(float x, float y, float radius) {
     int columnFirst = SectorBound(x - radius - 0.5f, sectorsX);

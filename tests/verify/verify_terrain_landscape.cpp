@@ -2,6 +2,7 @@
 #include "verify.h"
 
 #include "../../src/game/terrain.h"
+#include "../../src/game/terrain_sector.h"
 
 #include <cstdint>
 #include <cstring>
@@ -59,6 +60,45 @@ void __fastcall SetVisibleSectorsVerify(Terrain* self, void*, float x, float y, 
     FreeCopy(scratch->visibleColumnLast);
 }
 EI_VERIFY(0x006CA260, SetVisibleSectorsVerify, 6, s_setVisible);
+
+// ---- Terrain::SectorAt ------------------------------------------------------------------------------
+// 006C8140: ours only (it loads, builds, reuses and frees sectors). Every terrain query of every
+// scenario reaches it. Checked: a returned sector is (sx, sy) and is the grid's entry; every 64th
+// call the whole cache: as many nodes as its count, each the grid's entry for its sector, linked
+// both ways, the frame stamps not increasing towards the tail.
+TerrainSector*(__fastcall* s_sectorAt)(Terrain*, void*, int, int, std::uint32_t, int);
+
+void CheckSectorCache(Terrain* self) {
+    int nodes = 0;
+    bool linked = true, gridded = true, ordered = true;
+    Terrain::SectorCache::Node* prev = nullptr;
+    for (Terrain::SectorCache::Node* n = self->sectorCache.head; n && nodes <= self->sectorCache.count; n = n->next) {
+        ++nodes;
+        if (n->prev != prev) linked = false;
+        if (self->sectorGrid[n->data->sx][n->data->sy] != n) gridded = false;
+        if (prev && prev->data->lastUsed < n->data->lastUsed) ordered = false;
+        prev = n;
+    }
+    if (prev != self->sectorCache.tail) linked = false;
+    ei::verify::Check("Terrain::SectorAt cache", true, nodes == self->sectorCache.count && linked && gridded && ordered,
+                      "nodes %d count %d linked %d grid %d ordered %d", nodes, self->sectorCache.count, linked, gridded,
+                      ordered);
+}
+
+TerrainSector* __fastcall SectorAtVerify(Terrain* self, void*, int sx, int sy, std::uint32_t wanted, int create) {
+    static unsigned calls;
+    TerrainSector* result = self->SectorAt(sx, sy, wanted, create);
+    if (result) {
+        auto* sector = reinterpret_cast<terrain::SectorData*>(result);
+        Terrain::SectorCache::Node* node = self->sectorGrid[sx][sy];
+        ei::verify::Check("Terrain::SectorAt", true,
+                          sector->sx == sx && sector->sy == sy && node && node->data == sector && (sector->built & wanted),
+                          "(%d, %d) wanted %u create %d", sx, sy, wanted, create);
+    }
+    if ((++calls & 63) == 0) CheckSectorCache(self);
+    return result;
+}
+EI_VERIFY(0x006C8140, SectorAtVerify, 0, s_sectorAt);
 
 // ---- Aligned array SetSize / SetAtGrow -------------------------------------------------------------
 // The original on a copy with its own block, ours on the real array; header and elements compared.

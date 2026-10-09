@@ -165,6 +165,7 @@ struct SectorData {
     int Project(CTransformPipeline* pipeline);
 
     // Not rewritten (forwarders).
+    void Destruct();                    // 006BF8A0 the destructor body (terrain_landscape.cpp)
     void Clear();                       // 006C3C80
     void BuildAtOriginal();             // 006C1C00 through its address (lands on the installed hook)
     void Light(void* lights, TerrainFields* owner, int skipColours, int x0, int y0, int x1, int y1); // 006C3A00
