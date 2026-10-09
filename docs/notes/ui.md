@@ -160,8 +160,7 @@ before the call and must be left exactly on those the dispatcher skipped; a hand
 ## 3. Interface base: frame update, text layout, console window, cursor (005E0000-00610000)
 
 Files: `ui_interface_frame.cpp`, `ui_text.cpp`, `ui_console_window.cpp`, `ui_cursor*.cpp`, `ui_gdi.h` (the game's MFC CDC /
-CPen as the interface uses them); wrappers `verify_ui_base.cpp`. Not rewritten in this range: 005E18E0
-`CFlyingHitPoints::Draw` (float-heavy vertex building; cannot be compared without faking the clock and the device),
+CPen as the interface uses them); wrappers `verify_ui_base.cpp`. Not rewritten in this range:
 005E2A30 / 005E3230 / 005E3700 (chat window; multiplayer only, 005E3700 Rebirth-patched), 005F8340 (text extent,
 Rebirth-patched), 005F7B40.
 
@@ -209,12 +208,14 @@ held-row update 00626C50 (slot 24; `ui_trade_panel_input.cpp`; ours only: hold e
 the row's price; scenario `ui_trade_hold` with the new harness steps `ldown` / `lup`, the purchases only in the Rebirth
 run (GiveUnitExp)). Kept: a held purchase does not mark the record bought and does not reset the hold time. Library:
 0062B350 (vector destructor) and 005E67F0 (RefPtr destructor) are reached only from unwind funclets.
+`CFlyingHitPoints::Draw` 005E18E0 (`ui_flying_hit_points.cpp`; renderer slot 12 is now `CSceneRenderer::DrawTriangles`,
+`FigurePart::mesh` +0x94): side by side with the game's timeGetTime import held at one value, the original on a copy of
+the list with a stand-in renderer recording slots 11 / 12, ours likewise, its calls replayed on the real renderer;
+draws, entries left and the result compared. Every zone; numbers need hits with option 17 (0079BE74) on. The
+original leaves the render target size unset without a primary surface (ours 0).
 
-Next in 005E0000-00640000 after A-I17 (not Rebirth-patched, single player first): 005F4F90 (the interface's shutdown:
-closes the windows, writes config\tutorial.ini from the help map +0x98, frees the surfaces), 005F4790 (a destructor
-body: the help map, the +0x84 list, the window stack's storage), 005FC1F0 (`CUiModel::Load`), 00626C50, 0062B350,
-005E18E0 (`CFlyingHitPoints::Draw`, 2.9 KB float), 00612CF0 (the camp's slot 39, a debug fill of the constructors; no
-scenario). Multiplayer / lobby last: 005E2A30 / 005E3230 / 005E3550 / 005E3CE0 / 005E26F0 (chat), 00608D20-006097E0 (the
+Next in 005E0000-00640000 after A-I18 (not Rebirth-patched, single player first): 00612CF0 (the camp's slot 39, a
+debug fill of the constructors; no scenario). Multiplayer / lobby last: 005E2A30 / 005E3230 / 005E3550 / 005E3CE0 / 005E26F0 (chat), 00608D20-006097E0 (the
 base screen's chat window), 0062C250 / 0062C9C0 (exchange), 0061B2C0-00620300 (connection screens). 005E67F0 is only
 an unwind helper.
 

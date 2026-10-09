@@ -67,4 +67,9 @@ inline const char* SpellContainerText() { return reinterpret_cast<const char*>(0
 inline const char* TutorialIniText() { return reinterpret_cast<const char*>(0x00792FF0); }
 inline const char* TutorialLineFormat() { return reinterpret_cast<const char*>(0x00793044); }
 
+// The flying hit points' draw (005E18E0): 0078EEEC "%d" (the amount), 00792D84
+// "CFlyingHitPoints::Draw.\n SetTexture failed.\n" (its FatalError).
+inline const char* DecimalFormat() { return reinterpret_cast<const char*>(0x0078EEEC); }
+inline const char* FlyingHitPointsTextureText() { return reinterpret_cast<const char*>(0x00792D84); }
+
 } // namespace game
