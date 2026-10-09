@@ -55,5 +55,5 @@ hook and verify wrapper.
   `hash_tables_400` / `atexit_400` raw views of the registry.
 - Duplicate forwarders seen: 00411850 (`ui_battle_update.cpp` `UnitListConstruct`), 006E6653 (`ui_saveload.cpp`, `world_game.cpp`), 0070133F
   (`texture_compose.cpp`, `ui_saveload.cpp`), 00700AA9 / 00700970 (`net_*.cpp`), `CIacos` (`core_transform_math.cpp`, `quaternion.cpp`), `CIpow`
-  (`ui_hud_map.cpp`, `ui_item_info.cpp` inline asm), `NodeFreeList` (4 files); 006FDA6D is `Mid`, not `Right` (callers of `Right` show it takes the
-  start index); 007AF738 is the terrain here but `LightManager()` elsewhere.
+  (`ui_hud_map.cpp`, `ui_item_info.cpp` inline asm), `NodeFreeList` (4 files; `stlp::SmallNodeFreeList` is the same address); 007AF738 is the
+  terrain here but `LightManager()` elsewhere. (006FDA6D is `Right(nCount)`, 006FD9B4 `Mid(nFirst)`: core.md "MFC CString: Mid and Right".)
