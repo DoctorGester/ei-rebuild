@@ -172,6 +172,12 @@ public:
     virtual int DrawPartTextured(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
                                  lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars,
                                  std::uint32_t u, std::uint32_t v);
+    // 13 / 14: the shadow of part `name` (0051CE60): its points projected with `matrix` (the
+    // part's per-vertex offsets added) into `points`, growing `bounds`; then its projected points
+    // `pixels` rasterised into the shadow target. Both return the point count.
+    virtual int ProjectPart(const stlp::string* name, lib::AlignedArray<Vector3>* offsets, const float* matrix,
+                            float* points, float* bounds);
+    virtual int RasterisePart(const stlp::string* name, int* pixels, void* target);
 
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073D790);
     static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073D7CC);   // the part-header base
