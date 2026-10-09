@@ -234,8 +234,8 @@ which needs a hero on the multiplayer hero screen and Continue):
   times a frame.
 
 **Next in 005E0000-00640000:** the largest Rebirth-patched ones (vanilla only): 0060C870 (camp Create), 00613EA0 (hero
-screen Create), 0063A560 (battle keys); the connection screen's Create 0061B2C0 and list draw 0061D780; std::sort for the
-address list (0061EF60-0061FB00, library-like but not in library.csv).
+screen Create), 0063A560 (battle keys); the connection screen's Create 0061B2C0 and list draw 0061D780. The address list's
+std::sort and vector plumbing (0061EC40-006200D0) are in library.csv (A-I21).
 
 ## 4. Main menu, dialogs, escape menu, credits
 
