@@ -5,6 +5,7 @@
 #include "item_db.h"
 #include "map_object_figures.h"
 #include "unit.h"
+#include "unit_db.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -20,11 +21,10 @@
 #include <new>
 
 namespace {
-constexpr int kArmourSlotField = 0x0C;   // armour prototype: 0 helmet, 1 body, 2 trousers, ...
-constexpr int kArmourNumber = 0x18;      // armour prototype: the number in "armor<nn>"
-constexpr int kWeaponTypeField = 0x0C;   // weapon prototype: its type
-constexpr int kPrototypeHair = 0x10;     // unit prototype: the hair number, -1 none
-constexpr int kPrototypeSkin = 0x0C;     // unit prototype: the skin number
+// The item prototypes' head (type: an armour's slot, 0 helmet, 1 body, 2 trousers, ..., or a
+// weapon's type; number: the number in "armor<nn>") and the unit prototypes (hair, -1 none; skin).
+const itemdb::ItemRecordHead* ItemHead(const char* record) { return reinterpret_cast<const itemdb::ItemRecordHead*>(record); }
+const UnitPrototypeRecord* Prototype(const char* record) { return reinterpret_cast<const UnitPrototypeRecord*>(record); }
 constexpr std::uint32_t kNone = 0xFFFFFFFFu;
 constexpr std::uint32_t kFiguresDetached = 0x80;   // the unit's flags_, passed on to 00517240
 
@@ -93,7 +93,7 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
     if (itemId == kNone) return false;
     std::uint32_t type = itemId >> 16;
     if (type == 0xFFFF || (itemId & 0xFFFF) == 0xFFFF) return false;
-    std::uint32_t slot = Field<std::uint32_t>(ArmourRecord(type), kArmourSlotField);
+    std::uint32_t slot = static_cast<std::uint32_t>(ItemHead(ArmourRecord(type))->type);
     if (slot >= 7) return false;
     if (armourIds[slot] == itemId) return true;
     armourIds[slot] = itemId;
@@ -117,12 +117,12 @@ bool CUnitClientSpecific::WearArmourModel(std::uint32_t itemId) {
                             reinterpret_cast<const unsigned char*>(kHair)) == 0) {
             const char* prototype = unitdb::Prototypes().At(static_cast<std::uint32_t>(unit->unknown_18),
                                                              unitdb::kPrototypeSize);
-            int hair = Field<int>(prototype, kPrototypeHair);
+            int hair = Prototype(prototype)->hair;
             if (hair == -1) continue;
             part.Format(Text(0x0078FB0C), hair);   // "hr.%.2d"
         }
         CEngineObject* current = FindPart(unit, nullptr, part);
-        armourPart.Format(Text(0x0078FB14), static_cast<const char*>(part), Field<int>(armour, kArmourNumber));
+        armourPart.Format(Text(0x0078FB14), static_cast<const char*>(part), ItemHead(armour)->number);
         if (FindEntry(*static_cast<void**>(model), nullptr, armourPart) != -1) {
             AddPart(unit, nullptr, armourPart, model, FiguresFlag(unit));
             if (!SameName(plain, kHead)) RemovePart(unit, nullptr, current);
@@ -176,7 +176,7 @@ bool CUnitClientSpecific::RemoveArmourModel(std::uint32_t slot) {
         if (CompareNames(part, kHair) == 0) {
             const char* prototype = unitdb::Prototypes().At(static_cast<std::uint32_t>(unit->unknown_18),
                                                              unitdb::kPrototypeSize);
-            int hair = Field<int>(prototype, kPrototypeHair);
+            int hair = Prototype(prototype)->hair;
             if (hair == -1) continue;
             part.Format(Text(0x0078FB0C), hair);   // "hr.%.2d"
         }
@@ -211,7 +211,6 @@ __declspec(naked) void* __fastcall AnimateNewPart(CUnit*, void*, CEngineObject*)
 __declspec(naked) void __fastcall WeaponPartNames(std::uint32_t, console::CStringArray*) EI_ORIGINAL(0x006A0FF0)
 __declspec(naked) int __fastcall WeaponTypeOf(std::uint32_t) EI_ORIGINAL(0x006A2B80)
 
-constexpr int kSlotWeaponChanged = 0x78 / 4;   // the controller's slot 30, after the change
 constexpr int kWeaponBow = 5;
 constexpr std::uint32_t kArrowPartFlag = 0x80;  // set in the arrow part's flags_
 const char* const kBowArrow = Text(0x0078FAF8);   // "rh3.arrow00"
@@ -219,12 +218,6 @@ const char* const kBowArrow = Text(0x0078FAF8);   // "rh3.arrow00"
 std::uint32_t WeaponIdOf(const CUnitClientSpecific* self, std::uint32_t slot) {
     return slot < 4 ? self->weaponIds[slot] : kNone;
 }
-
-// The controller's bytes +0x74 (cleared by a weapon change) and +0x75 (the bow's arrow part was
-// flagged).
-std::uint8_t& ByteAt(CUnitClientSpecific* self, int offset) { return reinterpret_cast<std::uint8_t*>(self)[offset]; }
-constexpr int kByte74 = 0x74;
-constexpr int kArrowFlagged = 0x75;
 } // namespace
 
 int CUnitClientSpecific::ChangeWeaponModel(std::uint32_t slot) {
@@ -241,23 +234,24 @@ int CUnitClientSpecific::ChangeWeaponModel(std::uint32_t slot) {
         for (int i = 0; i < names.GetSize(); ++i) RemovePartNamed(unit, nullptr, names[i]);
     }
     unit->activeWeapon = slot;
-    ByteAt(this, kByte74) = 0;
+    weaponHidden = 0;
     if (next != kNone) {
         WeaponPartNames(next >> 16, &names);
         for (int i = 0; i < names.GetSize(); ++i) {
             CEngineObject* part = AddPart(unit, nullptr, names[i], model, FiguresFlag(unit));
             if (part) AnimateNewPart(unit, nullptr, part);
         }
-        ByteAt(this, kArrowFlagged) = 0;
+        arrowHidden = 0;
         std::uint32_t hand = WeaponIdOf(this, unit->activeWeapon);
         if (hand != kNone && WeaponTypeOf(hand) == kWeaponBow) {
             if (CEngineObject* arrow = FindAnyPart(unit, nullptr, kBowArrow)) {
                 arrow->flags_ |= kArrowPartFlag;
-                ByteAt(this, kArrowFlagged) = 1;
+                arrowHidden = 1;
             }
         }
     }
-    ei::VCall<void>(this, kSlotWeaponChanged);
+    // The controller's slot 30 (RefreshModel), after the change.
+    static_cast<CUnitController*>(static_cast<CEngineObject*>(this))->RefreshModel();
     return 1;
 }
 EI_REPLACE_METHOD(0x00535590, CUnitClientSpecific::ChangeWeaponModel);
@@ -328,17 +322,17 @@ void __fastcall CollectArmourPartNames(const char* prototype, const stlp::vector
     for (const std::uint32_t* id = armourIds->begin(); id != armourIds->end(); ++id) {
         const char* armour = ArmourRecord(*id >> 16);
         if (!armour) continue;
-        int row = RowOfSlot(Field<int>(armour, kArmourSlotField));
+        int row = RowOfSlot(ItemHead(armour)->type);
         if (row < 0) continue;
         for (int i = 0; i < 7; ++i) {
             const char* plain = ArmourPartNames()[row][i];
             if (!plain[0]) break;
             if (SameName(plain, kHair)) {
-                int hair = Field<int>(prototype, kPrototypeHair);
+                int hair = Prototype(prototype)->hair;
                 if (hair == -1) continue;
-                gamecrt::sprintf(text, Text(0x0078FB24), hair, Field<int>(armour, kArmourNumber));   // "hr.%.2d.armor%.2d"
+                gamecrt::sprintf(text, Text(0x0078FB24), hair, ItemHead(armour)->number);   // "hr.%.2d.armor%.2d"
             } else {
-                gamecrt::sprintf(text, Text(0x0078FB14), plain, Field<int>(armour, kArmourNumber));  // "%s.armor%.2d"
+                gamecrt::sprintf(text, Text(0x0078FB14), plain, ItemHead(armour)->number);  // "%s.armor%.2d"
             }
             stlp::string name(text);
             names->push_back(name);
@@ -352,7 +346,7 @@ void __fastcall CollectArmourPartNames(const char* prototype, const stlp::vector
         for (int i = 0; i < 7; ++i) {
             const char* plain = ArmourPartNames()[row][i];
             if (SameName(plain, kHair)) {
-                int hair = Field<int>(prototype, kPrototypeHair);
+                int hair = Prototype(prototype)->hair;
                 if (hair == -1) continue;
                 gamecrt::sprintf(text, Text(0x0078FB0C), hair);   // "hr.%.2d"
                 stlp::string name(text);
@@ -378,7 +372,7 @@ void CUnitClientSpecific::BuildSkinLayers(int detailed, SkinLayerArray* out) {
             if (const char* armour = armours.At(id >> 16, itemdb::kArmorSize)) {
                 out->data[0].id = id;
                 out->data[0].kind = kLayerArmour;
-                out->data[0].slot = Field<int>(armour, kArmourSlotField);
+                out->data[0].slot = ItemHead(armour)->type;
             }
         }
         std::uint32_t hand = unit->activeWeapon;
@@ -386,7 +380,7 @@ void CUnitClientSpecific::BuildSkinLayers(int detailed, SkinLayerArray* out) {
             if (const char* weapon = itemdb::Weapons().At(id >> 16, itemdb::kWeaponSize)) {
                 out->data[1].id = id;
                 out->data[1].kind = kLayerWeapon;
-                out->data[1].slot = Field<int>(weapon, kWeaponTypeField);
+                out->data[1].slot = ItemHead(weapon)->type;
             }
         }
         return;
@@ -404,7 +398,7 @@ void CUnitClientSpecific::BuildSkinLayers(int detailed, SkinLayerArray* out) {
         if (!armour) continue;
         out->data[k + 1].id = id;
         out->data[k + 1].kind = kLayerArmour;
-        out->data[k + 1].slot = Field<int>(armour, kArmourSlotField);
+        out->data[k + 1].slot = ItemHead(armour)->type;
     }
 }
 EI_REPLACE_METHOD(0x00536300, CUnitClientSpecific::BuildSkinLayers);
@@ -495,7 +489,7 @@ void NameSkinTextures(const CUnitClientSpecific* self, int detailed, SkinRequest
     request.flags = kFlagDetailed;
     const char* prototype = unitdb::Prototypes().At(static_cast<std::uint32_t>(unit->unknown_18), unitdb::kPrototypeSize);
     if (prototype)
-        texture.Format(Text(0x0078FB64), unit->prototypeName, Field<int>(prototype, kPrototypeSkin));   // "%sskin_%.2d.mmp"
+        texture.Format(Text(0x0078FB64), unit->prototypeName, Prototype(prototype)->skin);   // "%sskin_%.2d.mmp"
     else
         texture.Format(Text(0x0078FB54), unit->prototypeName);   // "%sskin_00.mmp"
     AddTexture(request, texture);
