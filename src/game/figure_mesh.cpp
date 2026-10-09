@@ -170,11 +170,11 @@ void CFigureMesh::LoadBounds(char** cursor, float s, float t, float u, std::uint
         radius_ = MorphScalar(reinterpret_cast<const float*>(*cursor), s, t, u, true);
         *cursor += 0x20;
 
-        std::memcpy(bounds_.center, &center_, 12);
+        std::memcpy(&bounds_.center, &center_, 12);
         bounds_.radius = radius_;
         bounds_.flags |= 1;
-        std::memcpy(bounds_.boxMin, &boxMin_, 12);
-        std::memcpy(bounds_.boxMax, &boxMax_, 12);
+        std::memcpy(&bounds_.boxMin, &boxMin_, 12);
+        std::memcpy(&bounds_.boxMax, &boxMax_, 12);
         bounds_.flags |= 2;
         return;
     }
@@ -186,7 +186,7 @@ void CFigureMesh::LoadBounds(char** cursor, float s, float t, float u, std::uint
     *cursor += 12;
     std::memcpy(&radius_, *cursor, 4);
     *cursor += 4;
-    std::memcpy(bounds_.center, &center_, 12);
+    std::memcpy(&bounds_.center, &center_, 12);
     bounds_.flags |= 1;
     bounds_.radius = radius_;
     bounds_.SetBox(&boxMin_.x, &boxMax_.x);
@@ -201,14 +201,14 @@ void __stdcall MorphFigureBounds(ClipBounds* out, const float* data, float s, fl
         Vector3 mx = MorphVector(data + 0x30, s, t, u, false);
         float radius = MorphScalar(data + 0x48, s, t, u, false);
         out->flags |= 1;
-        out->center[0] = c.x;
-        out->center[1] = c.y;
-        out->center[2] = c.z;
+        out->center.x = c.x;
+        out->center.y = c.y;
+        out->center.z = c.z;
         out->radius = radius;
         boxMin = {mn.x, mn.y, mn.z};
         boxMax = {mx.x, mx.y, mx.z};
     } else {
-        std::memcpy(out->center, data, 12);
+        std::memcpy(&out->center, data, 12);
         std::memcpy(&boxMin, data + 3, 12);
         std::memcpy(&boxMax, data + 6, 12);
         out->radius = data[9];
@@ -223,9 +223,9 @@ void __stdcall MorphFigureBounds6(ClipBounds* out, const float* data, float s, f
     Vector3 mn = MorphVector6(data + 0x12, s, t, u, false);
     Vector3 mx = MorphVector6(data + 0x24, s, t, u, false);
     float radius = MorphScalar6(data + 0x36, s, t, u);
-    out->center[0] = c.x;
-    out->center[1] = c.y;
-    out->center[2] = c.z;
+    out->center.x = c.x;
+    out->center.y = c.y;
+    out->center.z = c.z;
     out->flags |= 1;
     out->radius = radius;
     Vector3 boxMin{mn.x, mn.y, mn.z};
@@ -299,11 +299,11 @@ void MorphOldBounds(ClipBounds& bounds, const float* p, float s, float t, float 
     q = p + 0x24;
     float mx[3] = {CornerPerOpKeptSum(q, s, t, u), CornerPerOpKeptSum(q + 1, s, t, u), CornerPerOpKeptSum(q + 2, s, t, u)};
     float radius = MorphScalar6(p + 0x36, s, t, u);
-    std::memcpy(bounds.center, c, 12);
+    std::memcpy(&bounds.center, c, 12);
     bounds.flags |= 1;
     bounds.radius = radius;
-    std::memcpy(bounds.boxMin, mn, 12);
-    std::memcpy(bounds.boxMax, mx, 12);
+    std::memcpy(&bounds.boxMin, mn, 12);
+    std::memcpy(&bounds.boxMax, mx, 12);
     bounds.flags |= 2;
 }
 
@@ -574,8 +574,7 @@ void Extend(float& max, float& min, float v) {
 
 void CFigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* minX, float* minY, float* minZ) const {
     // ((x*x + y*y) + z*z) of the position, on the FPU; NaN passes.
-    double far = static_cast<double>(position_[0]) * position_[0] + static_cast<double>(position_[1]) * position_[1];
-    far = far + static_cast<double>(position_[2]) * position_[2];
+    double far = LengthSquaredXYZ(position_);
     if (far > FarLimit()) return;
 
     float m[16];
@@ -584,9 +583,9 @@ void CFigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* m
 
     // The 8 corners of the box (centre + minimum / maximum), maximum x first; each sum stays on
     // the FPU, each transformed coordinate is stored.
-    const float* c = bounds_.center;
-    const float* lo = bounds_.boxMin;
-    const float* hi = bounds_.boxMax;
+    const float* c = &bounds_.center.x;
+    const float* lo = &bounds_.boxMin.x;
+    const float* hi = &bounds_.boxMax.x;
     for (int corner = 0; corner < 8; ++corner) {
         const float* sx = (corner & 4) ? lo : hi;
         const float* sy = (corner & 2) ? lo : hi;

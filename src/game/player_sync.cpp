@@ -176,7 +176,7 @@ int CPlayerServer::SendObjectsAdded(const PlayerObjectArray* objects) {
         WriteByte(&out_, kMessageObjectAdded);
         out_.Write(header, sizeof(header));
         float scale[3];
-        std::memcpy(scale, object->scale, sizeof(scale));
+        std::memcpy(scale, &object->scale, sizeof(scale));
         out_.Write(scale, sizeof(scale));
         WriteText(&out_, object->name2);
         WriteText(&out_, object->name);

@@ -260,7 +260,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         message->behaviour[0].unknown_38 = 1;
         message->behaviour[0].flags = 0;
         base.kind = 5;
-        std::memcpy(object.scale, &record->unknown_724, 12);
+        std::memcpy(&object.scale, &record->unknown_724, 12);
         object.visible = 1;
         object.unknown_6E = 0;
         object.parentIname = record->texts[3];
@@ -392,7 +392,7 @@ void CWorldServer::UseQuickItem(void* /*item*/, CEngineObject* unit) {
     message->base.id = -1;
     message->parentIname = worlddata::QuickEffectModel();
     message->parentId = static_cast<std::int32_t>(kQuickEffectFlags);
-    std::memset(&message->scale[1], 0, 4);
+    std::memset(&message->scale.y, 0, 4);
     // At the unit's position, on the ground.
     std::memcpy(&message->base.position, &static_cast<CMapObject*>(unit)->positionX, 12);
     std::memset(&message->base.position.z, 0, 4);
@@ -482,11 +482,11 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         ObjectMarkNew(object, nullptr);
     };
     auto place = [spec](CMapObject* object) {
-        ObjectSetMovement(object, nullptr, spec->scale);
-        Copy(object->baseScale, spec->scale, 12);
+        ObjectSetMovement(object, nullptr, &spec->scale);
+        Copy(&object->baseScale, &spec->scale, 12);
         ObjectSlots(object)->ApplyBaseScale();
         Copy(&object->positionX, &spec->base.position, 12);
-        Copy(object->orientation, &spec->base.rotation, 16);
+        Copy(&object->orientation, &spec->base.rotation, 16);
     };
     auto timed = [this](CEffect* object) {
         object->startTick_ = tick_;

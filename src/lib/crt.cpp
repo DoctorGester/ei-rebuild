@@ -17,6 +17,7 @@ __declspec(naked) int __cdecl stricmp(const char*, const char*) EI_ORIGINAL(0x00
 __declspec(naked) char* __cdecl strncpy(char*, const char*, std::size_t) EI_ORIGINAL(0x006E7E80)
 __declspec(naked) int __cdecl isalpha(int) EI_ORIGINAL(0x006E92FB)
 __declspec(naked) int __cdecl isdigit(int) EI_ORIGINAL(0x006E9379)
+__declspec(naked) int __cdecl isprint(int) EI_ORIGINAL(0x006E944C)
 __declspec(naked) int __cdecl sprintf(char*, const char*, ...) EI_ORIGINAL(0x006E8715)
 __declspec(naked) int __cdecl mbsicmp(const unsigned char*, const unsigned char*) EI_ORIGINAL(0x006E8767)
 __declspec(naked) int __cdecl access(const char*, int) EI_ORIGINAL(0x006EAF20)

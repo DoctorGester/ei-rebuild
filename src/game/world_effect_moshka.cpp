@@ -148,7 +148,7 @@ void CEffectMoshka::Update(float now) {
     const Vector3& followed = PositionOf(followedObject);
     auto* bird = static_cast<CObject3D*>(bird_);
     Vector3 birdAt;
-    std::memcpy(&birdAt, bird->position, sizeof(birdAt));
+    std::memcpy(&birdAt, &bird->position, sizeof(birdAt));
 
     float elapsed = StoreFloat(now - lastTime_);
     lastTime_ = now;
@@ -174,7 +174,7 @@ void CEffectMoshka::Update(float now) {
             double outward = kHalfPi + angle;
             perch.x = StoreFloat(static_cast<float>(std::cos(outward) * kPerchSearchRadius + perch.x));
             perch.y = StoreFloat(static_cast<float>(std::sin(outward) * kPerchSearchRadius + perch.y));
-            if (AIMap()->LineOfSight(reinterpret_cast<const Vector3*>(bird->position), &perch) > kClearance) {
+            if (AIMap()->LineOfSight(&bird->position, &perch) > kClearance) {
                 state_ = kFlyingOff;
                 timer_ = kFlyingOffFrames;
                 localPosition_ = perch;
@@ -255,7 +255,7 @@ void CEffectMoshka::Follow(int objectId) {
     CEngineObject* attached = bird->attached;
     Vector3 perch;
     FindPerch(&perch, &PositionOf(followed));
-    std::memcpy(bird->position, &perch, sizeof(bird->position));
+    std::memcpy(&bird->position, &perch, sizeof(bird->position));
     console::CStringArray parts;
     Object3DMakeFigureOriginal(bird, nullptr, model, &parts, 1);
     FigureLoadTexturesOriginal(attached);

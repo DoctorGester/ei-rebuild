@@ -387,8 +387,8 @@ double CUnit::ScaledValue(float value) {
 EI_REPLACE_METHOD(0x0052FBC0, CUnit::ScaledValue);
 
 double CUnit::BaseSpeed() {
-    if (boundsFlags & 2) return above[2] * kFastSpeedScale;
-    return radius * kWalkSpeedScale + center[2];
+    if (boundsFlags & 2) return above.z * kFastSpeedScale;
+    return radius * kWalkSpeedScale + center.z;
 }
 EI_REPLACE_METHOD(0x00530370, CUnit::BaseSpeed);
 

@@ -64,12 +64,15 @@ static void __fastcall SetUpAnimatedFigureVerify(CObject3D* self, void*, const c
         high[0] = high[1] = 0.5f;
         low[0] = low[1] = -0.5f;
     }
+    const float* center = &self->center.x;
+    const float* below = &self->below.x;
+    const float* above = &self->above.x;
     for (int k = 0; ok && k < 3; ++k) {
         float c = (low[k] + high[k]) * 0.5f;
-        ok = Near(c, self->center[k]) && Near(low[k] - c, self->below[k]) && Near(high[k] - c, self->above[k]);
+        ok = Near(c, center[k]) && Near(low[k] - c, below[k]) && Near(high[k] - c, above[k]);
     }
     ei::verify::Check("CObject3D::SetUpAnimatedFigure", true, ok, "%s: %d parts, centre %g %g %g", model ? model : "-",
-                      parts, self->center[0], self->center[1], self->center[2]);
+                      parts, self->center.x, self->center.y, self->center.z);
 }
 EI_VERIFY(0x005179E0, SetUpAnimatedFigureVerify, 0, s_unusedSetUp);
 
@@ -89,8 +92,8 @@ static FigurePart* __fastcall LoadPartVerify(CObject3D* self, void*, const char*
     if (part) {
         bool listed = false;
         for (int i = 0; i < self->parts.size; ++i) listed = listed || self->parts.data[i] == part;
-        ok = listed && (part->boxFlags & 4) != 0 && part->boxPivot[0] == part->position[0] &&
-             part->boxPivot[1] == part->position[1] && part->boxPivot[2] == part->position[2];
+        ok = listed && (part->boxFlags & 4) != 0 && part->boxPivot.x == part->position.x &&
+             part->boxPivot.y == part->position.y && part->boxPivot.z == part->position.z;
     }
     ei::verify::Check("CObject3D::LoadPart", true, ok, "%s: %p", partName ? partName : "-", static_cast<void*>(part));
     return part;
@@ -136,12 +139,12 @@ static void __fastcall UpdatePartBoundsVerify(CObject3D* self) {
     std::memcpy(before, bounds, sizeof(before));
     s_updatePartBounds(self);
     std::uint32_t flags = self->boundsFlags;
-    float expected[10] = {self->center[0], self->center[1], self->center[2], self->radius,   self->below[0],
-                          self->below[1],  self->below[2],  self->above[0],  self->above[1], self->above[2]};
+    float expected[10] = {self->center.x, self->center.y, self->center.z, self->radius,   self->below.x,
+                          self->below.y,  self->below.z,  self->above.x,  self->above.y, self->above.z};
     std::memcpy(bounds, before, sizeof(before));
     self->UpdatePartBounds();
-    float actual[10] = {self->center[0], self->center[1], self->center[2], self->radius,   self->below[0],
-                        self->below[1],  self->below[2],  self->above[0],  self->above[1], self->above[2]};
+    float actual[10] = {self->center.x, self->center.y, self->center.z, self->radius,   self->below.x,
+                        self->below.y,  self->below.z,  self->above.x,  self->above.y, self->above.z};
     bool ok = flags == self->boundsFlags;
     for (int i = 0; i < 10; ++i) ok = ok && Near(expected[i], actual[i]);
     ei::verify::Check("CObject3D::UpdatePartBounds", true, ok, "%d parts, radius %g vs %g", self->parts.size,

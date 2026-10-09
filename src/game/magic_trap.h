@@ -138,7 +138,7 @@ static_assert(sizeof(MagicTrap) == 0x290);
 struct MagicTrapRecord {
     std::uint32_t sides;        // +0x00
     const char* spell;          // +0x04 the spell's text (a CString)
-    float position[3];          // +0x08
+    Vector3 position;           // +0x08
     TrapArea area;              // +0x14
     TrapPoints points;          // +0x28
     std::uint32_t period;       // +0x3C

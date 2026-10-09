@@ -93,7 +93,7 @@ float* CObject3D::PartWorldPosition(float* out, const FigurePart* part) {
     // v' = 2 (u.v) u + (w^2 - u.u) v + 2 w (u x v) for the quaternion (w, u).
     const float w = orientation.w;
     const float ux = orientation.x, uy = orientation.y, uz = orientation.z;
-    const float vx = part->position[0], vy = part->position[1], vz = part->position[2];
+    const float vx = part->position.x, vy = part->position.y, vz = part->position.z;
     float twiceDot = 2.0f * ((uz * vz + uy * vy) + ux * vx);
     float twiceW = w + w;
     float crossX = uy * vz - uz * vy;
@@ -103,9 +103,9 @@ float* CObject3D::PartWorldPosition(float* out, const FigurePart* part) {
     float x = (along * vx + twiceW * crossX) + twiceDot * ux;
     float y = (along * vy + twiceW * crossY) + twiceDot * uy;
     float z = (along * vz + twiceW * crossZ) + twiceDot * uz;
-    out[0] = x * scaleX + position[0];
-    out[1] = y * scaleY + position[1];
-    out[2] = z * scaleZ + position[2];
+    out[0] = x * scaleX + position.x;
+    out[1] = y * scaleY + position.y;
+    out[2] = z * scaleZ + position.z;
     return out;
 }
 EI_REPLACE_METHOD(0x005188B0, CObject3D::PartWorldPosition);

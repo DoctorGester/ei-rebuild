@@ -170,6 +170,14 @@ public:
     // 00670190, 0x31: unit ids, two flags, an object id; each unit's Player mode attacks it.
     int OnAttack();
     int OnPartyUpdate();       // 00670B60, 0x50: a sized block loaded into the party (no variables)
+    // 0066F890, 0x00 (A-H19): the login (LoginMessage). 0 unless the state is 0 (after the read).
+    // A client version other than 0x64: message 0x11 with the server's "SrvErrMsg" /
+    // "WrongClientVersion" text (formatted with 1, 0), state 3, 0. 0 when the name or password
+    // is not printable text (IsPrintableText(.., 0x3F, 1)). By game mode: 1 the party manager's
+    // EndRedeploy and OpenEdgeExits on the party; 2 / 3 the party stored under +0xFC loaded
+    // (PartyMapLoad; 0 when it is not stored); 4 Clear(1, 0). Then message 0x00 with the player's
+    // id, SendParty, state 1, 1.
+    int OnLogin();
     // 0066F0C0. Message 0x83: the party saved without its variables as a sized block.
     void SendPartyUpdate();
     // 0066F450 (from the player state tick 0058B750). A joined, deployed player's party is sent
@@ -253,6 +261,21 @@ static_assert(offsetof(CPlayerServer, out_) == 0x48);
 static_assert(offsetof(CPlayerServer, flag70_) == 0x70);
 static_assert(offsetof(CPlayerServer, handlers_) == 0x28);
 static_assert(offsetof(CPlayerServer, placements_) == 0x74);
+
+// The client's login message (0x88 bytes, read whole by CPlayerServer::OnLogin).
+struct LoginMessage {
+    int version;                    // +0x00 0x64
+    char name[0x40];                // +0x04
+    char password[0x40];            // +0x44
+    std::uint32_t unknown_84;       // +0x84 cleared before the read
+};
+static_assert(sizeof(LoginMessage) == 0x88);
+
+// 0047ADA0 (__fastcall, RET 4; player_server_handlers.cpp). 1 when the first `maxLength`
+// characters of `text` are printable (the game's isprint, of the signed char); a terminator
+// before that gives whether at least `minLength` characters came first; 0 at the first
+// unprintable one.
+BOOL __fastcall IsPrintableText(const char* text, int maxLength, int minLength);
 
 // 00670670 (__fastcall). |a - b| squared, unrounded in ST0 (the use order's nearest-unit test).
 double __fastcall UseOrderDistanceSquared(const Vector3* a, const Vector3* b);

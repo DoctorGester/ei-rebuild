@@ -70,7 +70,7 @@ static int __fastcall CreateMapObjectVerify(CMapObject* object) {
     if (!problem && (object->changeStamp != -1 || object->effects || object->effectCount)) problem = "stamp / effects";
     if (!problem && (object->unknown_174 != 5 || object->unknown_178 != 1.0f)) problem = "+0x174 / +0x178";
     if (!problem && (!object->name2 || object->name2[0])) problem = "second name";
-    if (!problem && (object->baseScale[0] != 0.0f || object->baseScale[1] != 0.0f || object->baseScale[2] != 0.0f))
+    if (!problem && (object->baseScale.x != 0.0f || object->baseScale.y != 0.0f || object->baseScale.z != 0.0f))
         problem = "base scale";
     if (!problem && (As3D(object)->figure || As3D(object)->attached)) problem = "figure / side half";
     ei::verify::Check("CMapObject::CreateMapObject", true, problem == nullptr, "object %d: %s", object->id_,

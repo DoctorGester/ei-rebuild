@@ -365,10 +365,10 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         std::uint8_t wasFlag = FailedByte(c) == 1;
         PathClear(MotionPathOf(c));
         int time = WorldTime(ObjectWorld(c));
-        float axis[3], back[3];
-        QuaternionAxisY(&UnitOf(c)->orientation, nullptr, axis);
-        float* facing = Negate(back, axis);
-        if (PathStart(MotionPathOf(c), nullptr, &UnitOf(c)->positionX, facing, time)) UnitPathSpeeds(UnitOf(c));
+        Vector3 axis, back;
+        QuaternionAxisY(&UnitOf(c)->orientation, nullptr, &axis);
+        Vector3* facing = Negate(&back, &axis);
+        if (PathStart(MotionPathOf(c), nullptr, &UnitOf(c)->positionX, &facing->x, time)) UnitPathSpeeds(UnitOf(c));
         CtlSetStanding(c, nullptr, 0);
         CtlSetState(c, nullptr, 6);
         c->stoodBlocked = wasFlag;
@@ -377,10 +377,10 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
     if (!MapContinuePath(world->AIMap(), nullptr, unit, MotionPathOf(c))) {
         PathClear(MotionPathOf(c));
         int time = WorldTime(ObjectWorld(c));
-        float axis[3], back[3];
-        QuaternionAxisY(&UnitOf(c)->orientation, nullptr, axis);
-        float* facing = Negate(back, axis);
-        if (PathStart(MotionPathOf(c), nullptr, &UnitOf(c)->positionX, facing, time)) UnitPathSpeeds(UnitOf(c));
+        Vector3 axis, back;
+        QuaternionAxisY(&UnitOf(c)->orientation, nullptr, &axis);
+        Vector3* facing = Negate(&back, &axis);
+        if (PathStart(MotionPathOf(c), nullptr, &UnitOf(c)->positionX, &facing->x, time)) UnitPathSpeeds(UnitOf(c));
         CtlSetStanding(c, nullptr, 0);
         CtlSetState(c, nullptr, 6);
         c->stoodBlocked = 0;
@@ -476,18 +476,18 @@ void Exhaustion(CUnitServer* c) {
 // held there.
 void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
     CWorldServer* world = ServerOf(c);
-    float position[3];
-    std::memcpy(position, &UnitOf(c)->positionX, 12);
-    ToHalfCells(position);
+    Vector3 position;
+    std::memcpy(&position, &UnitOf(c)->positionX, 12);
+    ToHalfCells(&position.x);
     int time = WorldTime(world);
     bool turning = false;
-    float direction[3];
+    Vector3 direction;
     float speed;
     int cellX, cellY;
     bool going = MotionSample(UnitOf(c)->Motion(), nullptr, world, MotionPathOf(c), TimeAsFloat(&time), &turning,
-                              position, direction, &speed, &cellX, &cellY);
+                              &position.x, &direction.x, &speed, &cellX, &cellY);
     bool motionOver = !going;
-    FromHalfCells(position);
+    FromHalfCells(&position.x);
 
     if (!turning && c->movingAnimation == 0) QueueNextAnimation(c);
 
@@ -511,7 +511,7 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
         SectorMapRemove(sectors, nullptr, UnitOf(c));
         canStand = MapCanStand(world->AIMap(), nullptr, UnitOf(c), cellX, cellY, &blocked);
         if (!canStand) {
-            CUnit* blocker = MapBlockingUnit(world->AIMap(), nullptr, UnitOf(c), position);
+            CUnit* blocker = MapBlockingUnit(world->AIMap(), nullptr, UnitOf(c), &position.x);
             if (!blocker) {
                 canStand = true;
             } else {
@@ -525,17 +525,17 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
     // An idle unit standing in a kind-3 occluder (while its motion order started (+0x4C) before
     // the world's +0x2804 and moveMode2's flag4 is clear) replans.
     bool replan = false;
-    if (c->state == kStateIdle && MapOccluderAt(world->AIMap(), nullptr, position) &&
+    if (c->state == kStateIdle && MapOccluderAt(world->AIMap(), nullptr, &position.x) &&
         OrderOf(MotionPathOf(c))->startTime < world->occluderReplanTime_ && c->moveMode2.flag4 == 0) {
         blocked = kBlockedReplan;
         replan = true;
     }
-    if (!replan && canStand && SectorMove(world->Sectors(), nullptr, UnitOf(c), position)) {
+    if (!replan && canStand && SectorMove(world->Sectors(), nullptr, UnitOf(c), &position.x)) {
         SetObstacle(c, c->state == kStateIdle ? 1 : 0);
-        FaceDirection(UnitOf(c), nullptr, direction);
+        FaceDirection(UnitOf(c), nullptr, &direction.x);
         if (motionOver) MotionOver(c, world);
     } else if (blocked == kBlockedReplan) {
-        Replan(c, world, liftBlocker, position);
+        Replan(c, world, liftBlocker, &position.x);
     } else if (blocked == kBlockedWait) {
         if (c->stats.unknown_060 == 2) c->unknown_021 = 1;   // +0x240: the stats' +0x60
         else c->unknown_020 = 1;

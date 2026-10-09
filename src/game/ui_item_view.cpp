@@ -19,6 +19,7 @@
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "originals_engine.h"
+#include "originals_library.h"
 #include "originals_render.h"
 #include "originals_ui.h"
 
@@ -525,7 +526,7 @@ namespace {
 // hash_map<string, record*>::operator[] of the unit prototypes (007AF364, 005335E0) and of the
 // figure prototypes (007AF3A4, 0053C780); both insert a null entry for an unknown name.
 __declspec(naked) char** __fastcall UnitPrototypeAt(void*, void*, const stlp::string*) EI_ORIGINAL(0x005335E0)
-__declspec(naked) char** __fastcall FigurePrototypeAt(void*, void*, const stlp::string*) EI_ORIGINAL(0x0053C780)
+char** FigurePrototypeAt(void* map, void*, const stlp::string* key) { return FigureMapAtOriginal(map, nullptr, key); }
 
 // 00506C70 (__fastcall, RET 4): out = a * b.
 __declspec(naked) Quaternion* __fastcall QuaternionProduct(Quaternion*, const Quaternion*, const Quaternion*)

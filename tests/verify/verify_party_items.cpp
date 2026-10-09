@@ -107,6 +107,32 @@ static CItem* __fastcall RemoveItemVerify(CParty* self, void*, CItem* item, int 
 }
 EI_VERIFY(0x00661F30, RemoveItemVerify, 0, s_unused);
 
+// 00661FB0 (stolen 0; A-H19): the list is the old one without its quest items (class 0x14, read
+// before the run: removed items may be freed). Reached by every new game (GameFlow::AfterServerStart
+// on the party outside a game) and the network client's award kind 4.
+static void __fastcall RemoveQuestItemsVerify(CParty* self) {
+    std::vector<void*> before = Snapshot(self->items_.data, self->items_.size);
+    std::vector<void*> expected;
+    for (void* p : before)
+        if (static_cast<CItem*>(p)->GetClassId() != 0x14) expected.push_back(p);
+    self->RemoveQuestItems();
+    bool ok = self->items_.size == static_cast<int>(expected.size()) &&
+              (expected.empty() || std::memcmp(expected.data(), self->items_.data, expected.size() * sizeof(void*)) == 0);
+    ei::verify::Check("CParty::RemoveQuestItems", true, ok, "%d -> %d items (%d expected)", static_cast<int>(before.size()),
+                      self->items_.size, static_cast<int>(expected.size()));
+}
+EI_VERIFY(0x00661FB0, RemoveQuestItemsVerify, 0, s_unused);
+
+// 00661FE0 (stolen 0; A-H19): the list is empty with no storage. Reached only by the multiplayer
+// exchange (0062D210); no scenario.
+static void __fastcall ReleaseAllItemsVerify(CParty* self) {
+    int count = self->items_.size;
+    self->ReleaseAllItems();
+    bool ok = self->items_.data == nullptr && self->items_.size == 0 && self->items_.capacity == 0;
+    ei::verify::Check("CParty::ReleaseAllItems", true, ok, "%d items", count);
+}
+EI_VERIFY(0x00661FE0, ReleaseAllItemsVerify, 0, s_unused);
+
 // The record lists (stolen 0): Add appends the returned copy (counted), Remove takes the entry out.
 #define RECORD_LIST_VERIFY(Add, Remove, data, count)                                       \
     static CItem* __fastcall Add##Verify(PartyUnitRecord* self, void*, CItem* item) {                            \

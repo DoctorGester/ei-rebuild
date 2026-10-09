@@ -58,8 +58,8 @@ int Classify(const std::uint32_t (&codes)[8]) {
 // ---- ClipBounds / CTransformPipeline ---------------------------------------------------------------
 
 std::uint32_t ClipBounds::SetBox(const float* min, const float* max) {
-    std::memcpy(boxMin, min, 12);
-    std::memcpy(boxMax, max, 12);
+    std::memcpy(&boxMin, min, 12);
+    std::memcpy(&boxMax, max, 12);
     flags |= 2;
     return flags;
 }
@@ -74,7 +74,7 @@ int CTransformPipeline::ClipTest(const ClipBounds* b) const {
     if (b->flags & 1) {
         // The cube of half side `radius` around the centre. The corner coordinates are sums the
         // original keeps on the FPU stack; each use recomputes the same value.
-        const float* c = b->center;
+        const float* c = &b->center.x;
         const float r = b->radius;
         std::uint32_t codes[8] = {
             EI_CLIP_CODE(m, c[0] + r, r + c[1], r + c[2]),
@@ -91,9 +91,9 @@ int CTransformPipeline::ClipTest(const ClipBounds* b) const {
     }
 
     if (b->flags & 2) {
-        const float* c = b->center;
-        const float* lo = b->boxMin;
-        const float* hi = b->boxMax;
+        const float* c = &b->center.x;
+        const float* lo = &b->boxMin.x;
+        const float* hi = &b->boxMax.x;
         std::uint32_t codes[8] = {
             EI_CLIP_CODE(m, hi[0] + c[0], hi[1] + c[1], hi[2] + c[2]),
             EI_CLIP_CODE(m, hi[0] + c[0], hi[1] + c[1], lo[2] + c[2]),

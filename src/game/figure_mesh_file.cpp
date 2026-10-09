@@ -149,7 +149,7 @@ void CFigureMesh::SetPose(const float* q, const float* offset) {
     // The position (+0x1C) rotated by the quaternion q = (w, x, y, z):
     //   2 (v.p) v + 2w (v x p) + (w^2 - v.v) p, then moved by `offset`, into +0x28.
     Vector3 v{q[1], q[2], q[3]};
-    auto* p = reinterpret_cast<const Vector3*>(position_);
+    auto* p = &position_;
     double dot = static_cast<double>(v.z) * p->z + static_cast<double>(v.y) * p->y + static_cast<double>(v.x) * p->x;
     double twice = dot + dot;
     float z = StoreFloat(static_cast<float>(v.z * twice));

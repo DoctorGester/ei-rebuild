@@ -195,6 +195,32 @@ src/render can switch at any time (frame-capture checks, no bitwise compare). Ou
 bodies may use the helpers when the order matches (keeping the all-loads-before-stores aliasing); rewritten callers use the
 inline helper instead of calling Dot / Length / CrossProduct (same bits).
 
+**V3 progress (2026-10-09).** check_cleanup column "hand-written vector maths" (tools/check_cleanup.py,
+`count_vector_maths`): two-product sums whose operand pairs differ only in axis letters / digits (looking through one
+`D(...)` / `static_cast<T>(...)`), plus non-const `float n[3]`, `[16]`, `[4][4]`, and `float n[4]` named like a quaternion;
+colour / stat names and const tables skipped; vecmath.h exempt. Seeded at 507 (309 sums, 198 arrays); now 409.
+- Fields done: map_object_figures.h (FigurePart, FigurePieceRecord, CObject3D: 16), map_object.h (orientation ->
+  Quaternion, scale, pointOffset, extent, baseScale), map_object_animation.h (position, rotation -> Quaternion), unit.h
+  (modelHeight, center, below, above), combat.h / combat_plan.h / unit_ai.h (point, direction), magic_trap.h, model.h
+  ClipBounds, map_object_shadow.h, figure_mesh.h position_, map_spec.h, scene_loader.h MeshFace::normal, unit_db.h,
+  map_object_cage.h. Float[3] locals in combat_planning / combat_update / combat_motion / combat_tick / unit_points /
+  unit_motion_tick / unit_client_path. Callees that still take `float*` (forwarders such as QuaternionAxisY, Negate,
+  MotionSample, PathStart) get `&v.x` until their declarations take Vector3*. Checked by disassembling the release objects
+  before / after: identical, or only stack slots / scheduling / commuted FMUL operands (figure_mesh's 12-byte copies became
+  FLD / FSTP pairs).
+- Helpers done (lengths, distances, dots; grouping per site): unit_ai_fear (ZXY / ZYX / XYZ), unit_ai_sight (Length2D,
+  DotZYX, LengthZYX), combat_tick, effects (orbit dot, tendril length), ground_decal (Normalised<XYZ>, DotZYX + offset),
+  lightning_draw (its LengthXZY is LengthZXY), object3d_figure_setup radii, figure_mesh ExtendWorldBox, face_normal
+  distance, view_matrices (view translation, LightShearMatrix: DotZXY * 2, Cross, LengthSquaredZXY), scene_normals.
+  All main-thread code.
+- Left for later: world.h / sound.h / script.h / ui*.h / terrain_sector.h members (other tickets were editing those
+  files), CMapObject::positionX/Y/Z (403 uses in 69 files; most 2D distances use them, so most unit_ai_* / combat_*
+  2D sums wait for that field), link_figure.h morph_ (morph coefficients, not a point), figure_mesh.h block[4][4]
+  (indexed [i][j]), quaternion axis forms (unit_ai_sight Prepare, combat_actions), particles.
+- Callees retyped: Negate 00402200 and QuaternionAxisY 0040F560 (originals_core.h), the local AxisX 0040D940 forwarders
+  (unit_points, world_client_draw) take Vector3* / Quaternion*. Still `float*`: PathStart 005C7B00 (declared in
+  combat_motion and unit_motion_tick), MotionSample, MarkerDraw, the AI map lookups. Matrix x point not started.
+
 ## 7. Risks
 
 - **/fp:fast reassociation** (above): inspect the release disassembly of one migrated site per batch.

@@ -158,14 +158,11 @@ void DecalBuilder::Begin(lib::AlignedArray<VertexPacket>* points, lib::AlignedAr
     Vector3 vCorner = {m[0], m[4], m[8]};
 
     Vector3& dir = direction_;
-    double length = std::sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
-    dir.x = static_cast<float>(dir.x / length);
-    dir.y = static_cast<float>(dir.y / length);
-    dir.z = static_cast<float>(dir.z / length);
+    dir = Normalised<Sum3::XYZ>(dir);
 
     // The u edge without its part along the direction, over its squared length.
     uAxis_ = {m[2] - origin.x, m[6] - origin.y, m[10] - origin.z};
-    double along = uAxis_.z * dir.z + uAxis_.y * dir.y + uAxis_.x * dir.x;
+    double along = DotZYX(uAxis_, dir);
     Vector3 part = {static_cast<float>(along * dir.x), static_cast<float>(along * dir.y),
                     static_cast<float>(along * dir.z)};
     uAxis_ = {uAxis_.x - part.x, uAxis_.y - part.y, uAxis_.z - part.z};
@@ -196,11 +193,11 @@ void DecalBuilder::Begin(lib::AlignedArray<VertexPacket>* points, lib::AlignedAr
 }
 
 bool DecalBuilder::Touches(const Vector3* center, float radius) const {
-    double v = vAxis_.y * center->y + vAxis_.z * center->z + center->x * vAxis_.x + vOffset_;
+    double v = DotZYX(vAxis_, *center) + vOffset_;
     double vReach = radius * vLength_;
     if (v - vReach > 1.0f) return false;
     if (!(v + vReach >= 0.0f)) return false;
-    double u = uAxis_.y * center->y + uAxis_.z * center->z + center->x * uAxis_.x + uOffset_;
+    double u = DotZYX(uAxis_, *center) + uOffset_;
     double uReach = radius * uLength_;
     if (u - uReach > 1.0f) return false;
     if (!(u + uReach >= 0.0f)) return false;

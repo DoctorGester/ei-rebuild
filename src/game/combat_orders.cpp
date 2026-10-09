@@ -107,7 +107,7 @@ void CUnitServer::FinishCast() {
     if (!spell) return;
     Vector3 at;
     if (!action.target) {
-        std::memcpy(&at, action.point, sizeof(at));
+        std::memcpy(&at, &action.point, sizeof(at));
     } else {
         Vector3 point;
         std::memcpy(&at, ei::VCall<const Vector3*>(action.target, kUnitSlotAimPoint, &point), sizeof(at));
@@ -147,7 +147,7 @@ EI_REPLACE_METHOD(0x0054EE10, CUnitServer::FinishCast);
 void CUnitServer::OrderTurn(const float* direction, std::uint32_t time) {
     ResetOrder(&action2);
     action2.kind = 2;
-    std::memcpy(action2.point, direction, sizeof(action2.point));
+    std::memcpy(&action2.point, direction, sizeof(action2.point));
     ReleaseTarget(&action2);
     action2.unknown_20 = 0;
     action2.unknown_1C = static_cast<int>(time);
@@ -158,10 +158,10 @@ void CUnitServer::OrderMove(const float* point, int run, int walk, std::uint32_t
     const char* world = static_cast<const char*>(ManagerContext());
     ResetOrder(&action2);
     action2.kind = 1;
-    std::memcpy(action2.point, point, sizeof(action2.point));
+    std::memcpy(&action2.point, point, sizeof(action2.point));
     ReleaseTarget(&action2);
     action2.source = static_cast<std::uint8_t>(walk) != 0 ? 1 : 0;
-    std::memcpy(&action2.point[2], &z, sizeof(z));
+    std::memcpy(&action2.point.z, &z, sizeof(z));
     action2.unknown_20 = static_cast<std::uint8_t>(run);
     action2.unknown_1C = 0;
     if (!unit->player) return;
@@ -268,7 +268,7 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const float* point, int run)
     action2.kind = 4;
     if (action2.target) ReleaseTarget(&action2);
     action2.source = source;
-    std::memcpy(action2.point, &at, sizeof(at));
+    std::memcpy(&action2.point, &at, sizeof(at));
     action2.unknown_20 = static_cast<std::uint8_t>(run);
     if (!PlanOrder(&action2, CanCast(&action2) ? 3 : -1)) ResetOrder(&action2);
 }
@@ -299,7 +299,7 @@ void CUnitServer::OrderCast(std::uint32_t source, CEngineObject* target, int run
     action2.kind = 5;
     SetTarget(&action2, target);
     action2.source = source;
-    std::memset(action2.point, 0, sizeof(action2.point));
+    std::memset(&action2.point, 0, sizeof(action2.point));
     action2.unknown_20 = static_cast<std::uint8_t>(run);
     if (!PlanOrder(&action2, CanCast(&action2) ? 3 : -1)) ResetOrder(&action2);
 }

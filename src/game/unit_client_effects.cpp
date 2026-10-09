@@ -108,8 +108,8 @@ const UnitModelRecord* ModelOf(CUnit* unit) {
 
 // The smaller of the unit's two horizontal extents (the original's select keeps +0x148 for NaN).
 float SmallerExtent(const CUnit* unit) {
-    float y = unit->above[1];
-    float x = unit->above[0];
+    float y = unit->above.y;
+    float x = unit->above.x;
     return !(y >= x) ? y : x;
 }
 
@@ -182,7 +182,7 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
     if (blood == 0 || blood > kLastDecalBlood) return;
     float smaller = SmallerExtent(unit);
     float reach = !(1.0f >= smaller) ? smaller : 1.0f;
-    volatile float sizeStored = (part->boxMax[1] + part->boxMax[0]) * kHalf * kDecalScale;
+    volatile float sizeStored = (part->boxMax.y + part->boxMax.x) * kHalf * kDecalScale;
     float size = sizeStored;
     float at[3];
     ObjectPartPositionOriginal(unit, nullptr, at, part);
@@ -217,7 +217,7 @@ void CUnitClientSpecific::DeathEffect() {
     float at[3];
     float size;
     if (auto* body = static_cast<FigurePart*>(ObjectFindPartOriginal(unit, nullptr, "bd"))) {
-        volatile float stored = (body->boxMax[1] + body->boxMax[0]) * kHalf;
+        volatile float stored = (body->boxMax.y + body->boxMax.x) * kHalf;
         size = stored;
         ObjectPartPositionOriginal(unit, nullptr, at, body);
     } else {

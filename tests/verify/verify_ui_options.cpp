@@ -198,3 +198,31 @@ static void __fastcall EditKeyDownVerify(void* input, void*, int key, int repeat
                       before.caret, expected.caret, actual.caret);
 }
 EI_VERIFY(0x0065C610, EditKeyDownVerify, 6, s_editKeyDown);
+
+// 0065C930 (A-H19): MOV EAX,FS:[0] (6 bytes). Side by side as OnKeyDown. No scenario types into an
+// edit field (the message box with flag 4 and the multiplayer screens have one).
+static void(__fastcall* s_editChar)(void*, void*, int, int, int);
+static void __fastcall EditCharVerify(void* input, void*, int key, int repeat, int flags) {
+    CUiEditField* w = EditFromInput(input);
+    EditState before = TakeEditState(w);
+    s_editChar(input, nullptr, key, repeat, flags);
+    EditState expected = TakeEditState(w);
+    PutEditState(w, before);
+    w->CUiEditField::OnChar(key, repeat, flags);
+    EditState actual = TakeEditState(w);
+    ei::verify::Check("CUiEditField::OnChar", true, SameEditState(expected, actual), "key %X caret %d->%d/%d", key,
+                      before.caret, expected.caret, actual.caret);
+}
+EI_VERIFY(0x0065C930, EditCharVerify, 6, s_editChar);
+
+// 0065C010 (A-H19; ours only, it allocates): the fields, one surface over the rectangle, focused.
+static void* s_editUnused;
+static CUiEditField* __fastcall EditConstructVerify(CUiEditField* self, void*, CInterface3D* ui, RECT rect) {
+    self->CUiEditField::Construct(ui, rect);
+    bool ok = self->vtable_ == reinterpret_cast<void**>(std::uintptr_t(0x00742DF4)) && self->charClasses_ == 0xF &&
+              self->font_ == 1 && self->maxLength_ == 50 && self->focused_ && self->surfaces_.size == 1 &&
+              std::memcmp(&self->area_, &rect, sizeof(rect)) == 0 && self->Text().GetLength() == 0;
+    ei::verify::Check("CUiEditField::Construct", true, ok, "(%d,%d,%d,%d)", rect.left, rect.top, rect.right, rect.bottom);
+    return self;
+}
+EI_VERIFY(0x0065C010, EditConstructVerify, 0, s_editUnused);

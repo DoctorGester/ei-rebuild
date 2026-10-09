@@ -76,7 +76,7 @@ int CMapObject::CreateMapObject() {
     effectCount = 0;
     unknown_174 = kInitialCountdown;
     *reinterpret_cast<mfc::CString*>(&name2) = game::EmptyText();
-    baseScale[0] = baseScale[1] = baseScale[2] = 0.0f;
+    baseScale.x = baseScale.y = baseScale.z = 0.0f;
     return 1;
 }
 EI_REPLACE_METHOD(0x0050E770, CMapObject::CreateMapObject);

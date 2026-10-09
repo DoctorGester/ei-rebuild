@@ -182,8 +182,8 @@ CObject3D* CObject3D::Construct() {
     SetVtable(this, kObject3DVtable);
     attached = nullptr;
     animation = nullptr;
-    std::memset(scale, 0, sizeof(scale));
-    std::memcpy(defaultScale, DefaultFigureScale(), 12);
+    std::memset(&scale, 0, sizeof(scale));
+    std::memcpy(&defaultScale, DefaultFigureScale(), sizeof(defaultScale));
     return this;
 }
 EI_REPLACE_METHOD(0x00515BD0, CObject3D::Construct);

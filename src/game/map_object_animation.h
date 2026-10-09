@@ -3,6 +3,8 @@
 // Animation tracks of figure parts (00500000-0050E000). Names provisional; see
 // docs/notes/map_objects.md ("Animation tracks").
 
+#include "maths.h"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -25,8 +27,8 @@ struct AnimationTrack {
     int frameCount;                 // +0x3C
     std::uint8_t unknown_40[8];
     float time;                     // +0x48
-    float position[3];              // +0x4C
-    float rotation[4];              // +0x58
+    Vector3 position;               // +0x4C
+    Quaternion rotation;            // +0x58
     float* vertices;                // +0x68 the morphed vertices
 };
 static_assert(offsetof(AnimationTrack, positionCount) == 0x24);

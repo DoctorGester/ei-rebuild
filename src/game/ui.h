@@ -581,11 +581,16 @@ struct UiInputSide {
         using Fn = void(__thiscall*)(UiInputSide*);
         reinterpret_cast<Fn>(vtable_[kDeactivate])(this);
     }
-    // Slots 2-11: (buttons, x, y) or (key, repeat, flags).
-    void Event(int slot, int a, int b, int c) {
-        using Fn = void(__thiscall*)(UiInputSide*, int, int, int);
-        reinterpret_cast<Fn>(vtable_[slot])(this, a, b, c);
+    // Slots 2-11: (buttons, x, y) or (key, repeat, flags). Returns the handler's EAX.
+    int Event(int slot, int a, int b, int c) {
+        using Fn = int(__thiscall*)(UiInputSide*, int, int, int);
+        return reinterpret_cast<Fn>(vtable_[slot])(this, a, b, c);
     }
+    // 005E2860 / 005E2880 (slots 7 / 8 of the base input side 007401D0 and most screens;
+    // ui_input_defaults.cpp; RET 0xC): a double click is handled as a single press, slot 2 / 5 with
+    // the same arguments; the handler's EAX is returned.
+    int LeftDoubleAsDown(int buttons, int x, int y);
+    int RightDoubleAsDown(int buttons, int x, int y);
     // Slot 12. The handlers return 1.
     int Wheel(int flags, int delta, int x, int y) {
         using Fn = int(__thiscall*)(UiInputSide*, int, int, int, int);
@@ -1700,9 +1705,19 @@ public:
     // Virtual slot 26 (0065B490; 0065D0A0 for the scrolling text): places the bar over the layout
     // rectangle `rect` (rect_, arrows, thumb and regions; the text's surface and line width).
     void CallSetRect(const RECT* rect);
-    // 0065AEA0 (not rewritten). Constructor: a bar over the layout rectangle `rect` (passed by
-    // value), scrolling `speed` lines per second; returns this.
-    CUiScrollbar* Construct(CInterface3D* ui, RECT rect, float speed, int a, float b);
+    // 0065AEA0 (RET 0x20; ui_scrollbar.cpp, A-H19). Constructor: a window of `ui` with the
+    // "Scrollbar" texture (kind 3), four sprites (track, thumb, up, down) and three regions, laid
+    // out over `rect` (SetRect, called directly) at `depth`, `maximum` positions, scrolling
+    // `speed` lines per second; then SetPosition(0) from -1. Returns this.
+    CUiScrollbar* Construct(CInterface3D* ui, RECT rect, float depth, int maximum, float speed);
+    // 0065B0C0 (slot 25 of the plain bar, RET 4). `position` clamped to 0..maximum, moved_ set;
+    // a new position moves the thumb sprite (1) and thumb_ along the track: the offset is the
+    // track's height times the position over the maximum, truncated.
+    void SetPosition(int position);
+    // 0065B490 (slot 26 of the plain bar, RET 4). rect_, the track (the right 10 pixels less
+    // 26 at either end), the four sprites and the three regions (up arrow, down arrow, the rest);
+    // then the position set again through slot 25 (one below first, so it counts as a change).
+    void SetRect(const RECT* rect);
 
     int maxPosition_;                // +0x148
     float speed_;                    // +0x14C lines per second while an arrow is held (/16)
@@ -1734,8 +1749,8 @@ static_assert(sizeof(CUiScrollbar) == 0x18C);
 // regions 0 the left arrow, 1 the right arrow, 2 the track. ui_options.cpp.
 class CUiSlider : public CUiScrollbar {
 public:
-    // 0065BC30 (RET 0x20, not rewritten): CUiScrollbar's constructor (0065AEA0) with the slider's
-    // vtables. Returns this.
+    // 0065BC30 (RET 0x20; ui_scrollbar.cpp): CUiScrollbar's constructor (0065AEA0) with the
+    // slider's vtables. Returns this.
     // (`depth` goes to depth_ +0x17C, `maximum` to +0x148, `speed` to speed_ +0x14C.)
     CUiSlider* Construct(CInterface3D* ui, RECT rect, float depth, int maximum, float speed);
     // 0065B8B0 (slot 26, RET 4). Lays the slider out over `rect` (layout coordinates) and sets
@@ -1784,8 +1799,10 @@ public:
     // widths), and before each run of newline, BEL C<rgb> and BEL F<digit> tokens one format
     // token.
     void Tokenize(const mfc::CString* text);
-    // 0065D970 (RET 0xC; not rewritten). The token of `text` at `pos` (spaces and tabs skipped)
-    // into `out`; returns the position after it, or -1 at the end.
+    // 0065D970 (RET 0xC; ui_scroll_text.cpp, A-H19; ECX not read). The token of `text` at `pos`
+    // (spaces and tabs skipped): a BEL F / BEL C format (3 / 5 characters), a newline, or up to the
+    // next space, tab, BEL or newline
+    // into `out`; returns the position after it, or -1 at the end (`out` untouched).
     int NextToken(const mfc::CString* text, int pos, mfc::CString* out);
     // 0065D150 (RET 4; called by 0065D120; ui_scroll_text.cpp, DR-H16). Draws the lines
     // into surface 0 from `scroll` pixels down: the first line reaching `scroll` and the ones
@@ -1810,14 +1827,16 @@ static_assert(offsetof(CUiScrollText, align_) == 0x1C4);
 // OptionSetting read as a separate UiSpin.
 class CUiSpin : public CUiWindow {
 public:
-    // 0065BCD0 (RET 0x18, not rewritten). Constructor: the window over the layout rectangle
-    // `rect` (by value; also kept at +0x164), a surface of it, the first text `text` (null: the
-    // exe's empty text), value 0 (0065BEE0). Returns this.
+    // 0065BCD0 (RET 0x18; ui_spin.cpp, A-H19). Constructor: the window over the layout rectangle
+    // `rect` (by value; also kept at +0x164), a surface of it (format 5; null when the allocation
+    // fails), the first text `text` (null: the exe's empty text), not changed, value 0 (SetValue).
+    // Returns this.
     CUiSpin* Construct(CInterface3D* ui, RECT rect, const char* text);
-    // 0065BE70 (RET 4, not rewritten). Appends a text (null: the empty text).
+    // 0065BE70 (RET 4; ui_spin.cpp). Appends a text (null: the empty text).
     void AddText(const char* text);
-    // 0065BEB0 / 0065BEE0 (not rewritten). The value, and whether it changed since the last call
-    // (the flag is cleared); SetValue steps through the texts.
+    // 0065BEB0 / 0065BEE0 (RET 4; ui_spin.cpp). The value, and whether it changed since the last
+    // call (the flag is cleared). SetValue: `value` (0 when not below the text count; a negative
+    // one is kept), its text drawn on the cleared surface (format 1, colour 0xA7D7E4), changed.
     bool GetValue(int* value);
     void SetValue(int value);
 
@@ -2244,8 +2263,27 @@ public:
     // the caret. (Not named DrawText: windows.h makes that a macro.)
     void DrawContents();
     mfc::CString& Text() { return *reinterpret_cast<mfc::CString*>(&text_); }
+    // 0065C010 (RET 0x14; ui_edit_field.cpp, A-H19). Constructor: the window, an empty text,
+    // vtables 00742DF4 / 00742DC0, every character class, font 1, at most 50 characters, colours
+    // 0xFFFFFF / 0xFF, no surfaces, then a surface (format 5) over `rect` (kept in area_; null when
+    // the allocation fails), the text drawn, focused. caret_, editing_ and changed_ are left as
+    // they are. Returns this.
+    CUiEditField* Construct(CInterface3D* ui, RECT rect);
+    // 0065C930 (input side slot 10, RET 0xC; ui_edit_field.cpp, A-H19). While focused and
+    // without Ctrl held, a character other than Backspace, Tab, Enter and Esc whose class (digit 1,
+    // letter or space 2, '.' or ':' 8, other 4) is allowed: the first one starts editing from an
+    // empty text; it is inserted at the caret when the text is shorter than maxLength_ and the new
+    // text is narrower than area_ in font_ (005F8340), then the text is drawn and the key used.
+    void OnChar(int key, int repeat, int flags);
 
-    std::uint8_t unknown_148[0x170 - 0x148];
+    RECT area_;                      // +0x148 the surface's layout rectangle
+    std::uint32_t charClasses_;      // +0x158 classes OnChar takes (1 digits, 2 letters / space, 4 others, 8 '.' ':')
+    std::uint8_t mode15C_;           // +0x15C 0 from the constructor; DrawContents offsets the text box when set
+    std::uint8_t unknown_15D[3];
+    int font_;                       // +0x160 interface font
+    int maxLength_;                  // +0x164
+    COLORREF colour_;                // +0x168 the text's colour
+    COLORREF unknown_16C;            // +0x16C 0xFF from the constructor
     const char* text_;               // +0x170 CString: the text typed
     int caret_;                      // +0x174 caret position in text_
     bool editing_;                   // +0x178 an edit key was pressed (the first one sets it)

@@ -78,7 +78,7 @@ void LoadOrder(UnitStream* stream, UnitAction* order) {
     stream->Read(&order->kind, 4);
     stream->Read(&order->source, 4);
     CountedRefLoad(&order->target, nullptr, stream, WorldServer());
-    stream->Read(order->point, 0xC);
+    stream->Read(&order->point, 0xC);
     stream->Read(&order->unknown_1C, 4);
     stream->Read(&order->unknown_20, 1);
     if (stream->version >= kVersionPlanDirection) stream->Read(&order->flag18, 1);
@@ -88,7 +88,7 @@ void SaveOrder(UnitStream* stream, UnitAction* order) {
     stream->Write(&order->kind, 4);
     stream->Write(&order->source, 4);
     CountedRefSave(&order->target, nullptr, stream);
-    stream->Write(order->point, 0xC);
+    stream->Write(&order->point, 0xC);
     WriteCopy(stream, order->unknown_1C);
     WriteCopy(stream, order->unknown_20);
     WriteCopy(stream, order->flag18);
@@ -104,7 +104,7 @@ void LoadPlanFields(UnitStream* stream, OrderPlan* plan) {
     stream->Read(&plan->isCast, 1);
     stream->Read(&plan->notSkill, 1);
     stream->Read(&plan->castKind, 4);
-    if (stream->version >= kVersionPlanDirection) stream->Read(plan->direction, 0xC);
+    if (stream->version >= kVersionPlanDirection) stream->Read(&plan->direction, 0xC);
 }
 
 void SavePlanFields(UnitStream* stream, OrderPlan* plan) {
@@ -116,7 +116,7 @@ void SavePlanFields(UnitStream* stream, OrderPlan* plan) {
     WriteCopy(stream, plan->isCast);
     WriteCopy(stream, plan->notSkill);
     stream->Write(&plan->castKind, 4);
-    stream->Write(plan->direction, 0xC);
+    stream->Write(&plan->direction, 0xC);
 }
 } // namespace
 

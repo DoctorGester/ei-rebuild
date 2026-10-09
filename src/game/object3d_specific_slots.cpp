@@ -10,9 +10,9 @@
 #include "originals_render.h"
 
 void CObject3DClientSpecific::ExtraScale(float* x, float* y, float* z) {
-    *x = figureScale[0];
-    *y = figureScale[1];
-    *z = figureScale[2];
+    *x = figureScale.x;
+    *y = figureScale.y;
+    *z = figureScale.z;
 }
 EI_REPLACE_METHOD(0x0051AD20, CObject3DClientSpecific::ExtraScale);
 

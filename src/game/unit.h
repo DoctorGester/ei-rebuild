@@ -561,14 +561,14 @@ public:
     float build;                    // +0x0C8 the figure's build (HUD faces: below 0.2 thin, above 0.8 fat)
     float animationCC;              // +0x0CC an animation time
     std::uint8_t unknown_0D0[0xF4 - 0xD0];
-    float modelHeight[3];           // +0x0F4 (0, the model record's height, 0); set by the client's 00667EC0
+    Vector3 modelHeight;            // +0x0F4 (0, the model record's height, 0); set by the client's 00667EC0
     std::uint8_t unknown_100[0x124 - 0x100];
     // The figure parts' bounding box as CObject3D keeps it (map_object_figures.h, 00518310).
     std::uint32_t boundsFlags;      // +0x124 bits 1 and 2: the bounds are valid
-    float center[3];                // +0x128 relative to the position
+    Vector3 center;                 // +0x128 relative to the position
     float radius;                   // +0x134
-    float below[3];                 // +0x138 box minimum - centre
-    float above[3];                 // +0x144 box maximum - centre
+    Vector3 below;                  // +0x138 box minimum - centre
+    Vector3 above;                  // +0x144 box maximum - centre
     std::uint8_t unknown_150[8];
     float unknown_158;              // +0x158 part of the AI's eye height (005CA410)
     std::uint8_t unknown_15C[4];

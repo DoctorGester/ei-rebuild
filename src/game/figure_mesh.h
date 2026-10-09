@@ -139,7 +139,7 @@ public:
     std::uint8_t unknown_004[4];
     std::uint32_t flags_;               // +0x008 0x20: loaded
     std::uint8_t unknown_00C[0x1C - 0x0C];
-    float position_[3];                 // +0x01C (CTransformObject)
+    Vector3 position_;                  // +0x01C (CTransformObject)
     std::uint8_t unknown_028[0x94 - 0x28];
     FigureMeshDrawer* drawer_;          // +0x094 (00501D00 draws through it)
     CObject3D* owner_;                  // +0x098 the object whose figure (+0xF0) may draw the mesh

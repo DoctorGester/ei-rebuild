@@ -326,7 +326,7 @@ void CCamera::Update(float dt) {
             // Behind the target, looking along its heading.
             const CTransformObject* t = static_cast<const CTransformObject*>(target);
             const CObject3D* body = static_cast<const CObject3D*>(target);
-            double lift = D(body->above[2]) + body->center[2];
+            double lift = D(body->above.z) + body->center.z;
             std::memcpy(&localPosition_.x, &t->localPosition_.x, sizeof(float));
             std::memcpy(&localPosition_.y, &t->localPosition_.y, sizeof(float));
             localPosition_.z = Store(lift + t->localPosition_.z);
@@ -409,7 +409,7 @@ void CCamera::Update(float dt) {
     float average, low, high;
     SampleTerrain(&focus_, &camera::ZeroVector(), &camera::ZeroVector(), Store(D(camera::CellSize()) * 0.5f), camera::CellSize(), camera::CellSize(),
                   &average, &low, &high);
-    double ground = target ? D(static_cast<const CObject3D*>(target)->position[2]) : D(average);
+    double ground = target ? D(static_cast<const CObject3D*>(target)->position.z) : D(average);
     focus_.z = Store(((ground + focusHeight_) - focus_.z) * kHeightLag + focus_.z);
 
     // Tilt (pitch in degrees, clamped to the settings' range).

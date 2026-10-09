@@ -68,3 +68,6 @@ void* QuestTable::Find(const char* name) {
     return QuestFindOrInsert(&byName, nullptr, &pair)->value;
 }
 EI_REPLACE_METHOD(0x004C9C90, QuestTable::Find);
+// 0064F550: a second copy of the same code (the objectives window's quest sort, __median 0064F400,
+// orders quests by their record's +0x1C through it).
+EI_REPLACE_METHOD(0x0064F550, QuestTable::Find);

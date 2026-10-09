@@ -382,8 +382,8 @@ void __fastcall UnitSpecApply(UnitSpec* self) {
     ListsMoveObject(reinterpret_cast<void*>(0x007B01F4), nullptr, b.object, &b.position);
     SelectionTurnObject(reinterpret_cast<void*>(0x007B00D0), nullptr, b.object, &b.rotation);
     std::memcpy(static_cast<std::uint8_t*>(b.object) + 0x34, &b.rotation, 16);
-    ObjectSetScale(b.object, nullptr, self->object.scale);
-    std::memcpy(static_cast<std::uint8_t*>(b.object) + 0x1AC, self->object.scale, 12);
+    ObjectSetScale(b.object, nullptr, &self->object.scale.x);
+    std::memcpy(static_cast<std::uint8_t*>(b.object) + 0x1AC, &self->object.scale, 12);
     ei::VCall<void>(b.object, kObjectSlotUpdate);
     std::uint32_t& flags = At<std::uint32_t>(b.object, 8);
     if (!self->object.visible) flags |= 8;

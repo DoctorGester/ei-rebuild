@@ -33,6 +33,7 @@ class Terrain;
 class CCamera;   // camera.h
 struct ClientManager19C;
 struct FootprintPart;   // ai_map.h: a figure part's box (FigurePart +0x188)
+class CFileRegistry;   // registry.h
 class CWorldServer;
 
 namespace world {
@@ -632,7 +633,11 @@ public:
     mfc::CStringArray mobFiles_;           // +0x124 .mob files loaded in this zone (LoadMobFile)
     int gameResult_;                      // +0x138 0 while the game runs
     std::uint32_t unknown13C_;            // +0x13C saved and loaded
-    std::uint8_t unknown_140[0x15C - 0x140];
+    std::uint8_t unknown_140[0x144 - 0x140];
+    // +0x144 a CFileRegistry (registry.h; closed by 0058B0E7) with the server's messages: the
+    // login handler (0066F890) reads "SrvErrMsg" / "WrongClientVersion" from it.
+    std::uint8_t messages_[0x15C - 0x144];
+    CFileRegistry* Messages() { return reinterpret_cast<CFileRegistry*>(messages_); }
     int unknown15C_;                      // +0x15C cleared when a .mob file fails to load
     int unknown160_;                      // +0x160 non-zero: Tick runs the first command queue
     float startPosition_[3];              // +0x164 where joining players start (0058DAF0)

@@ -57,9 +57,9 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 2, &modelIndex);
     Dword(ar, 3, &skin);
     Dword(ar, 4, &hair);
-    Dword(ar, 5, &scale[0]);
-    Dword(ar, 6, &scale[1]);
-    Dword(ar, 7, &scale[2]);
+    Dword(ar, 5, &scale.x);
+    Dword(ar, 6, &scale.y);
+    Dword(ar, 7, &scale.z);
     ArchiveString(ar, nullptr, 8, &soundFolder);
     Dword(ar, 9, &hitPoints);
     Dword(ar, 10, &mana);

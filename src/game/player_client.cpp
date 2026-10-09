@@ -658,7 +658,7 @@ int CPlayerClient::OnNewObject() {
     bool isUnit = created->GetClassId() == kClassUnitObject;
     created->unknown_18 = header.prototype;
     figure->SetFigureScale(scale);
-    std::memcpy(object->baseScale, scale, sizeof(scale));
+    std::memcpy(&object->baseScale, scale, sizeof(scale));
     ObjectSlots(created)->ApplyBaseScale();
     *reinterpret_cast<mfc::CString*>(&object->name2) = static_cast<const char*>(secondName);   // 0050F150
     if (isUnit) {
@@ -666,9 +666,9 @@ int CPlayerClient::OnNewObject() {
         const UnitPrototypeRecord* prototype = PrototypeRecord(header.prototype);
         auto* modelRecord = reinterpret_cast<const UnitModelRecord*>(
             unitdb::Models().At(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
-        unit->modelHeight[0] = 0.0f;
-        unit->modelHeight[1] = modelRecord->height;
-        unit->modelHeight[2] = 0.0f;
+        unit->modelHeight.x = 0.0f;
+        unit->modelHeight.y = modelRecord->height;
+        unit->modelHeight.z = 0.0f;
         std::memcpy(unit->resistances, modelRecord->unknown_2C, sizeof(unit->resistances));
         unit->SetPrototype23CIndex(prototypeValue);
     }

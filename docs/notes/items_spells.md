@@ -366,6 +366,27 @@ vector's four, 32 for the spell database (00684D60..00688470); 0069EF50 / 0069E3
 from 006A7940 below 006A7C20, the spell serialisers. 00646C25 is a tail of 006462A0 that Ghidra splits off. Most of what is
 left in 00640000-00660000 is Rebirth-patched (ui.md section 7 lists them).
 
-**Next candidates** (A-H18 did sound Open / Close / Reset, the terrain sectors, the item database destructor and the item
-vector serialisers): 0064F550 (a quest's order, inlined into the quest list sort's comparison), 0066F890 (server login,
-objects.md "Message handlers not yet ported"), 00661FB0 / 00661FE0, the item kinds' serialisers from 006A7940 below 006A7C20.
+**A-H19** (verify wrappers in brackets; scenarios): 0064F550 is a second copy of QuestTable::Find (004C9C90), registered on the
+same method (against the original; `ui_objectives_sort`: 18 quests, so the sort's median runs); CParty::RemoveQuestItems
+00661FB0 (ours, the list minus class 0x14; every new game) and ReleaseAllItems 00661FE0 (ours, empty list; only the
+multiplayer exchange, no scenario); the server's login handler 0066F890 (CPlayerServer::OnLogin, ours: stream moved 0x88, the
+written message and state; every new game / zone change) with its name check 0047ADA0 (IsPrintableText, against the original).
+The server world's +0x144 is a CFileRegistry (`CWorldServer::Messages()`). Callers of 00661FB0 / 00661FE0 keep their forwarders
+so the wrappers see them.
+Interface controls (ui_scrollbar.cpp, ui_spin.cpp, ui_edit_field.cpp, ui_scroll_text.cpp): CUiScrollbar Construct 0065AEA0 /
+SetPosition 0065B0C0 / SetRect 0065B490 and CUiSlider::Construct 0065BC30 (verify_ui_scrollbar.cpp: SetPosition against the
+original with the thumb sprite's position, the rest ours only; objectives, save / load and options windows); CUiSpin Construct
+0065BCD0, AddText 0065BE70, GetValue 0065BEB0 (against the original), SetValue 0065BEE0 (verify_ui_spin.cpp; the options window);
+CUiEditField Construct 0065C010 (ours) and OnChar 0065C930 (against the original; no scenario types into an edit field: the
+message box with flag 4 and the multiplayer screens); CUiScrollText::NextToken 0065D970 (against the original; every log text).
+ReadStringList 006AE740 (verify_quest_lists.cpp, against the original into a scratch vector; every quest registration; the
+loader keeps calling it through its address). Kept: the scroll bar's SetPosition divides by the maximum without a check (0 gives
+the integer indefinite); the edit field's constructor leaves caret / editing / changed unset; NextToken's unknown BEL symbol
+takes the token's data pointer as its length should FatalError return; NextToken calls GetBuffer(0) on its text.
+Shared: 005FCDD0 (CUiSurface over a RECT) in originals_ui.h (string_map.cpp and ui_console_window.cpp keep their own);
+CString::FindOneOf (00700ECC) moved into mfc.h from ui_console_window.cpp; gamecrt::isprint (006E944C).
+
+**Next candidates**: the item kinds' serialisers from 006A7940 below 006A7C20; CUiScrollText's constructor 0065CC00, destructor
+body 0065CE20 and line layout 0065DAA0; the tooltip's constructor 0065E320 and line drawing 0065E880 (CUiTooltip is not declared
+as a CUiWindow yet); the quest database's constructor / destructor 006AE0F0 / 006ADF40 (its verify wrapper uses them) and
+006AD000 / 006AD670; 0065AB80 / 0065AD00 are STLport pair<string, string> node helpers (library candidates).

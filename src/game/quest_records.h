@@ -50,3 +50,9 @@ struct QuestBriefingRecord {
 static_assert(offsetof(QuestBriefingRecord, lists) == 0x14);
 static_assert(offsetof(QuestBriefingRecord, text) == 0x5C);
 static_assert(sizeof(QuestBriefingRecord) == 0x6C);
+
+class CFileRegistry;   // registry.h
+// 006AE740 (__fastcall registry, section; key and list on the stack, RET 8; quest_database.cpp,
+// A-H19). The registry's string list `section` / `key` into `list`: the list emptied, reserved for
+// the strings' count, then every non-empty string appended (the briefings' lists).
+void __fastcall ReadStringList(CFileRegistry* registry, const char* section, const char* key, CStringVector* list);

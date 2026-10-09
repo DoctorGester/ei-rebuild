@@ -75,7 +75,7 @@ __declspec(naked) void __fastcall PrepareThroughAddress(AIViewer*, void*, CUnit*
 void AIViewer::Prepare(CUnit* self) {
     if (cellX >= 0 && cellY >= 0 && cellX < map->width && cellY < map->height)
         eye.z = RoundToFloat(static_cast<double>(map->cells[cellY][cellX].groundLevel) / map->heightScale + eye.z);
-    eye.z = RoundToFloat(static_cast<double>(self->above[2]) * kEyeHeightFactor + self->unknown_158 + self->center[2] + eye.z);
+    eye.z = RoundToFloat(static_cast<double>(self->above.z) * kEyeHeightFactor + self->unknown_158 + self->center.z + eye.z);
     const Quaternion& q = self->orientation;
     double a = static_cast<double>(q.y) * q.x - static_cast<double>(q.w) * q.z;
     a += a;
@@ -144,27 +144,24 @@ void AIViewer::See(CUnit* self, AIBrain* brain) {
         if (!ready) PrepareThroughAddress(this, nullptr, self);
         Vector3 theirEye;
         static_cast<CMapObjectVirtuals*>(static_cast<CEngineObject*>(other))->EyePoint(&theirEye);
-        Vector3 d{RoundToFloat(static_cast<double>(theirEye.x) - eye.x), RoundToFloat(static_cast<double>(theirEye.y) - eye.y),
-                  RoundToFloat(static_cast<double>(theirEye.z) - eye.z)};
+        Vector3 d = theirEye - eye;
         UnitController* theirs = ControllerOf(other);
         float coneLimit = ours->stats.unknown_044;
-        float distance = RoundToFloat(std::sqrt(static_cast<double>(d.y) * d.y + static_cast<double>(d.x) * d.x));
+        float distance = Length2D({d.x, d.y});
         double sightRaw = static_cast<double>(theirs->moveFactors[2]) * ours->moveFactors[3] * theirs->stats.valuesE0[0].current *
                           ours->stats.valuesB0[0].current;
         float sight = RoundToFloat(sightRaw);
         bool seen = false;
         if (sightRaw >= distance) {
-            double along = static_cast<double>(d.z) * facing.z + static_cast<double>(d.y) * facing.y + static_cast<double>(d.x) * facing.x;
+            double along = DotZYX(d, facing);
             if (!(static_cast<double>(coneLimit) * distance > along)) {
-                Vector3 to{RoundToFloat(static_cast<double>(eye.x) + d.x), RoundToFloat(static_cast<double>(eye.y) + d.y),
-                           RoundToFloat(static_cast<double>(eye.z) + d.z)};
+                Vector3 to = eye + d;
                 seen = LineOfSightOriginal(map, nullptr, &eye, &to) * sight > distance;
             }
         }
         bool alive = !dead;
         if (!seen) {
-            float behind = RoundToFloat(static_cast<double>(d.z) * facing.z + static_cast<double>(d.y) * facing.y +
-                                        static_cast<double>(d.x) * facing.x);
+            float behind = DotZYX(d, facing);
             if ((std::bit_cast<std::uint32_t>(behind) & 0x80000000u) == 0 && ours->stats.unknown_048 > distance) {
                 console::EndLine(LogPair(self, " sees unit ", other) << " with peripheral vision");
                 seen = true;
@@ -216,8 +213,7 @@ void AIViewer::Update(UnitController* owner, AIBrain* brain) {
         Vector3 d{RoundToFloat(static_cast<double>(other->positionX) - self->positionX),
                   RoundToFloat(static_cast<double>(other->positionY) - self->positionY),
                   RoundToFloat(static_cast<double>(other->positionZ) - self->positionZ)};
-        float distance = RoundToFloat(
-            std::sqrt(static_cast<double>(d.z) * d.z + static_cast<double>(d.y) * d.y + static_cast<double>(d.x) * d.x));
+        float distance = LengthZYX(d);
         if (IsDead(other)) {
             if (Allied(self->side, other->side)) {
                 // The original's inlined AddTail (a second copy follows below).

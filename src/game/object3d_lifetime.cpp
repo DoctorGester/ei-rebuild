@@ -31,17 +31,17 @@ void CountedRef::Assign(CEngineObject* value) {
 EI_REPLACE_METHOD(0x00519580, CountedRef::Assign);
 
 int CObject3D::Create3D() {
-    std::memset(position, 0, sizeof(position));
+    std::memset(&position, 0, sizeof(position));
     orientation = IdentityOrientation();
     attached = nullptr;
     flags_ = 0;
     unknown_09C = 0;
     animations = nullptr;
-    std::memset(scale, 0, sizeof(scale));
+    std::memset(&scale, 0, sizeof(scale));
     CEngineObject* old = figure;
     figure = nullptr;
     DropReference(old);
-    std::memcpy(defaultScale, DefaultFigureScale(), sizeof(defaultScale));
+    std::memcpy(&defaultScale, DefaultFigureScale(), sizeof(defaultScale));
     std::memset(&boundsFlags, 0, reinterpret_cast<char*>(&partBoxArrayVtable) - reinterpret_cast<char*>(&boundsFlags));
     if (partBoxes) {
         gamecrt::operator_delete(partBoxes);

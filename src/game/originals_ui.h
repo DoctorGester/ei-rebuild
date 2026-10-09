@@ -11,6 +11,7 @@
 class CEngineObject;
 class CInterface3D;
 class CItem;
+class CUiSurface;
 namespace mfc { class CString; }
 namespace ui_gdi { struct GameDC; }
 struct ItemObjectCache;
@@ -46,6 +47,17 @@ __declspec(naked) inline void __fastcall ShowWeapon(void*, void*, char*) EI_ORIG
 __declspec(naked) inline void __fastcall ShowArmour(void*, void*, char*) EI_ORIGINAL(0x00622A30)
 __declspec(naked) inline void __fastcall ShowContainer(void*, void*, char*) EI_ORIGINAL(0x00622BC0)
 __declspec(naked) inline void** __fastcall QuestIndexAt(void*, void*, const void*) EI_ORIGINAL(0x0064EE90)
+// The edit field (CUiEditField, ui.h): 0065C010 constructor (RET 0x14: the interface and a RECT by value, passed here
+// as its four ints; returns this), 0065C1A0 its look (RET 0x18: two ints, the font, an int, the text and caret
+// colours), 0065C290 its text (RET 4).
+__declspec(naked) inline void* __fastcall EditFieldConstructOriginal(void* /*memory*/, void*, CInterface3D*, int /*left*/,
+                                                                     int /*top*/, int /*right*/, int /*bottom*/)
+    EI_ORIGINAL(0x0065C010)
+__declspec(naked) inline void __fastcall EditFieldSetLookOriginal(void* /*edit*/, void*, int, int, int /*font*/, int,
+                                                                  std::uint32_t /*colour*/, std::uint32_t /*caret*/)
+    EI_ORIGINAL(0x0065C1A0)
+__declspec(naked) inline void __fastcall EditFieldSetTextOriginal(void* /*edit*/, void*, const void* /*text*/)
+    EI_ORIGINAL(0x0065C290)
 // 005E5200: the mouse cursor (007C7BD8) SetShape(shape), RET 4, returns the previous shape or -1.
 __declspec(naked) inline int __fastcall CursorSetShapeOriginal(void* /*cursor*/, void*, int /*shape*/) EI_ORIGINAL(0x005E5200)
 // 00634650: constructs a message box window in `memory` (RET 0x18, returns it).
@@ -171,6 +183,12 @@ __declspec(naked) inline void __fastcall ContainerAddInputOriginal(void* /*conta
 // 0062AC90 (rewritten as CUiRegion::SetRectFrom): the region's SetRect from a RECT passed by value (RET 0x10).
 __declspec(naked) inline void __fastcall RegionSetRectFromOriginal(class CUiRegion*, void*, int /*left*/, int /*top*/,
                                                                    int /*right*/, int /*bottom*/) EI_ORIGINAL(0x0062AC90)
+// 005FCDD0: CUiSurface constructor in `memory` over the layout rectangle `rect` with format `format` (thiscall, RET 0xC,
+// returns `memory`; string_map.cpp and ui_console_window.cpp still have their own forwarders).
+__declspec(naked) inline CUiSurface* __fastcall SurfaceConstructOnRectOriginal(void* /*memory*/, void*,
+                                                                                    CInterface3D* /*ui*/,
+                                                                                    const tagRECT* /*rect*/,
+                                                                                    int /*format*/) EI_ORIGINAL(0x005FCDD0)
 // 005FE2F0: CUiSurface fills its DC's surface with black (ECX, plain RET).
 __declspec(naked) inline void __fastcall SurfaceClearOriginal(void* /*surface*/) EI_ORIGINAL(0x005FE2F0)
 // The client glue objects (007AFEA4 / 007AFEA5 / 007AFEA6, thiscall; the object is not read): 00578DC0 the game's

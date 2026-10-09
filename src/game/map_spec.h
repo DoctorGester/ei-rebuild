@@ -95,7 +95,7 @@ struct ObjectSpec {
     mfc::CString texture;        // +0x54
     mfc::CString primaryTexture; // +0x58
     std::int32_t player;         // +0x5C (-1); the type name formats it
-    float scale[3];              // +0x60 (0.5 each; read and written y, x, z)
+    Vector3 scale;               // +0x60 (0.5 each; read and written y, x, z)
     std::uint8_t shadow;         // +0x6C
     std::uint8_t visible;        // +0x6D (1)
     std::uint8_t unknown_6E;     // +0x6E

@@ -54,9 +54,9 @@ Vector3* CParticleSource::PartPoint(Vector3* out, CObject3D* object, const char*
         *out = point;
         return out;
     }
-    out->x = object->position[0];
-    out->y = object->position[1];
-    out->z = object->position[2] + object->above[2];
+    out->x = object->position.x;
+    out->y = object->position.y;
+    out->z = object->position.z + object->above.z;
     return out;
 }
 EI_REPLACE_METHOD(0x00484B40, CParticleSource::PartPoint);
@@ -70,7 +70,7 @@ Vector3* CParticleSource::AttachmentPoint(Vector3* out, void* objectArg) {
         return out;
     }
     if (!(flags_ & kFlagOnPart)) {
-        SetPosition(out, object->position);
+        SetPosition(out, &object->position.x);
         return out;
     }
     const auto point = static_cast<std::uint32_t>(attachPoint);
@@ -81,10 +81,10 @@ Vector3* CParticleSource::AttachmentPoint(Vector3* out, void* objectArg) {
         return out;
     }
     float rise = (object->boundsFlags & kBoundsSphere) ? object->radius * 1.6f
-                                                         : object->above[2] - object->below[2];
-    out->x = object->position[0];
-    out->y = object->position[1];
-    out->z = rise + object->position[2];
+                                                         : object->above.z - object->below.z;
+    out->x = object->position.x;
+    out->y = object->position.y;
+    out->z = rise + object->position.z;
     return out;
 }
 EI_REPLACE_METHOD(0x00484C00, CParticleSource::AttachmentPoint);
@@ -102,14 +102,14 @@ Vector3* CParticleSource::AttachmentOffset(Vector3* out, float* radius) {
     if (object->boundsFlags & kBoundsSphere) {
         *radius = object->radius;
     } else {
-        double dz = object->above[2] - object->below[2];
-        double dx = object->above[0] - object->below[0];
-        double dy = object->above[1] - object->below[1];
+        double dz = object->above.z - object->below.z;
+        double dx = object->above.x - object->below.x;
+        double dy = object->above.y - object->below.y;
         *radius = static_cast<float>(std::sqrt(dy * dy + dx * dx + dz * dz) * 0.5);
     }
     out->x = 0.0f;
     out->y = 0.0f;
-    out->z = object->center[2];
+    out->z = object->center.z;
     return out;
 }
 EI_REPLACE_METHOD(0x00485280, CParticleSource::AttachmentOffset);

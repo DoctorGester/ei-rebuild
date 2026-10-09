@@ -40,14 +40,13 @@ void __fastcall CopyConstructB(ClassTemplate** a0, void*, ClassTemplate* const* 
 // The item database (template +0x3C slot 18) lists the names of each kind into a CStringArray:
 // 006AD2F0 weapons, 006AD380 armors, 006AD410 quick items, 006AD260 the fourth kind (its records
 // have the class mask at +0x4C). The spell database (template +0xAC slot 22): 00689570 spells,
-// 00689610 spell modifiers. All __thiscall (CStringArray*).
-using NameListFn = void(__fastcall*)(void* db, void*, console::CStringArray*);
-__declspec(naked) void __fastcall ListWeapons(void*, void*, console::CStringArray*) EI_ORIGINAL(0x006AD2F0)
-__declspec(naked) void __fastcall ListArmors(void*, void*, console::CStringArray*) EI_ORIGINAL(0x006AD380)
-__declspec(naked) void __fastcall ListQuickItems(void*, void*, console::CStringArray*) EI_ORIGINAL(0x006AD410)
-__declspec(naked) void __fastcall ListFourthKind(void*, void*, console::CStringArray*) EI_ORIGINAL(0x006AD260)
-__declspec(naked) void __fastcall ListSpells(void*, void*, console::CStringArray*) EI_ORIGINAL(0x00689570)
-__declspec(naked) void __fastcall ListModifiers(void*, void*, console::CStringArray*) EI_ORIGINAL(0x00689610)
+// 00689610 spell modifiers (originals_gameplay.h).
+void ListWeapons(void* db, void*, console::CStringArray* names) { ItemDbListWeaponsOriginal(db, nullptr, names); }
+void ListArmors(void* db, void*, console::CStringArray* names) { ItemDbListArmorsOriginal(db, nullptr, names); }
+void ListQuickItems(void* db, void*, console::CStringArray* names) { ItemDbListQuickItemsOriginal(db, nullptr, names); }
+void ListFourthKind(void* db, void*, console::CStringArray* names) { ItemDbListFourthKindOriginal(db, nullptr, names); }
+void ListSpells(void* db, void*, console::CStringArray* names) { SpellDbListSpellsOriginal(db, nullptr, names); }
+void ListModifiers(void* db, void*, console::CStringArray* names) { SpellDbListModifiersOriginal(db, nullptr, names); }
 // 006893F0 / 006894B0 (rewritten in spell.cpp, __stdcall; the caller passes the database in ECX).
 __declspec(naked) char* __stdcall SpellCode(const char*) EI_ORIGINAL(0x006893F0)
 __declspec(naked) char* __stdcall ModifierCode(const char*) EI_ORIGINAL(0x006894B0)

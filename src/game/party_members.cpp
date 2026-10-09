@@ -127,9 +127,9 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
         unitdb::Models().At(static_cast<std::uint32_t>(prototype->modelIndex), unitdb::kModelSize));
     record->texts[2] = model->unknown_E8;
     BuildNpcStats(reinterpret_cast<UnitStats*>(record->stats), record->texts[5]);
-    record->unknown_728 = prototype->scale[1];
-    record->unknown_724 = prototype->scale[0];
-    record->height = prototype->scale[2];
+    record->unknown_728 = prototype->scale.y;
+    record->unknown_724 = prototype->scale.x;
+    record->height = prototype->scale.z;
 
     // What 005143E0 copies out of the prototype: armour names, the two weapon names, spell names.
     const CStringVector& armour = prototype->armourNames;

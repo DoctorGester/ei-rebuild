@@ -14,6 +14,7 @@
 // most slots); slots are called through ei::VCall, and the rewritten slots are plain members.
 
 #include "engine_object.h"
+#include "maths.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -185,7 +186,7 @@ public:
     float positionY;                // +0x020
     float positionZ;                // +0x024
     std::uint8_t unknown_028[0x34 - 0x28];
-    float orientation[4];           // +0x034 a quaternion
+    Quaternion orientation;         // +0x034 a quaternion
     std::uint8_t unknown_044[0x94 - 0x44];
     // +0x094 the attached side object (type 0x46, taken by the 3D object's slot 19 00516D50: the
     // figure / CObject3D side half; object3d_specific_slots.cpp, the screen pickers' slots 22 / 24).
@@ -193,12 +194,12 @@ public:
     std::uint8_t unknown_098[0xA4 - 0x98];
     char* name;                     // +0x0A4 CString (the prototype name for units)
     std::uint8_t unknown_0A8[0xC4 - 0xA8];
-    float scale[3];                 // +0x0C4
+    Vector3 scale;                  // +0x0C4
     std::uint8_t unknown_0D0[0x128 - 0xD0];
-    float pointOffset[3];           // +0x128 (GroundPoint)
+    Vector3 pointOffset;            // +0x128 (GroundPoint)
     float radius;                   // +0x134 (CObject3D::radius)
     std::uint8_t unknown_138[0x144 - 0x138];
-    float extent[3];                // +0x144 half the bounding box (units: box maximum - centre)
+    Vector3 extent;                 // +0x144 half the bounding box (units: box maximum - centre)
     std::uint8_t unknown_150[0x170 - 0x150];
     CEngineObject* companion;       // +0x170 CMapObjectServer / CMapObjectClientSpecific
     int unknown_174;                // +0x174 (5 after Create)
@@ -210,7 +211,7 @@ public:
     int effectCapacity;             // +0x1A0 |
     int effectGrowBy;               // +0x1A4 /
     char* name2;                    // +0x1A8 CString
-    float baseScale[3];             // +0x1AC
+    Vector3 baseScale;              // +0x1AC
     int sectorCellX;                // +0x1B8
     int sectorCellY;                // +0x1BC
     int changeStamp;                // +0x1C0 world + 0x68 when last changed

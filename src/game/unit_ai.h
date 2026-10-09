@@ -129,7 +129,7 @@ struct AIOrder {
     int kind;                       // +0x00
     int what;                       // +0x04 6 for an attack, the spell for a cast
     CEngineObject* object;          // +0x08 counted
-    float point[3];                 // +0x0C left uninitialised by the AI's orders
+    Vector3 point;                  // +0x0C left uninitialised by the AI's orders
     std::uint8_t flag;              // +0x18
     std::uint8_t unknown_19[3];
 };

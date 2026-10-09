@@ -35,7 +35,6 @@ __declspec(naked) void CUiModel::CallLoad(const char*, const char*, const char*)
 void CUiMesh::SetRectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { UiMeshRectangleOriginal((void*)this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
 __declspec(naked) void CUiMesh::SetFrame(float, float, float, float, float, float, float, int, int, int, int)
     EI_ORIGINAL(0x005E7D60)
-__declspec(naked) CUiScrollbar* CUiScrollbar::Construct(CInterface3D*, RECT, float, int, float) EI_ORIGINAL(0x0065AEA0)
 
 namespace {
 // The text manager (global at 007AF788; item_db_text.h) as the builders use it.
@@ -553,10 +552,13 @@ struct BoxMetricsAt {
 };
 __declspec(naked) SIZE BoxMetricsAt::TextExtentRaw(char*, int) EI_ORIGINAL(0x005F8340)
 
-__declspec(naked) CUiEditField* __fastcall EditConstruct(void* /*memory*/, void*, CInterface3D*, RECT) EI_ORIGINAL(0x0065C010)
-__declspec(naked) void __fastcall EditSetLook(CUiWindow*, void*, int, int, int /*font*/, int, COLORREF, COLORREF)
-    EI_ORIGINAL(0x0065C1A0)
-__declspec(naked) void __fastcall EditSetText(CUiWindow*, void*, const char*) EI_ORIGINAL(0x0065C290)
+CUiEditField* EditConstruct(void* memory, void*, CInterface3D* ui, RECT r) {
+    return static_cast<CUiEditField*>(EditFieldConstructOriginal(memory, nullptr, ui, r.left, r.top, r.right, r.bottom));
+}
+void EditSetLook(CUiWindow* edit, void*, int a, int b, int font, int c, COLORREF text, COLORREF caret) {
+    EditFieldSetLookOriginal(edit, nullptr, a, b, font, c, text, caret);
+}
+void EditSetText(CUiWindow* edit, void*, const char* text) { EditFieldSetTextOriginal(edit, nullptr, text); }
 
 BoxSurfaceAt* BoxSurface(CUiSurface* surface) { return reinterpret_cast<BoxSurfaceAt*>(surface); }
 } // namespace

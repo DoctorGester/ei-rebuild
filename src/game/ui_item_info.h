@@ -127,6 +127,9 @@ public:
     // 005F2A90 (slot 18). The frame sprites: a strip of 8 cells over the layout's middle, the
     // column edges and corners of four 200-wide columns, and six bars.
     void Build();
+    // 005F2E00 (RET 4; the exchange window with 300). Places the two bars (sprites 25, 26) across
+    // the left and right columns (0..100, 100..200) at y - 20..y + 20 (depth 7.8, scale 100).
+    void PlaceBars(int y);
 };
 
 // The item screens (the camp, the multiplayer hero screen and the exchange window share these
