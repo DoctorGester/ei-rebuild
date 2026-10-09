@@ -319,3 +319,25 @@ float_control pragma). Behaviour unchanged; what moved or got a type:
 - CRegionMap::Reaches / ReachesRegion take the AI map's SearchGrid<int8_t> marks, LoadBlocks a
   CStream; NearbyBlocksOriginal (005B0370) is shared in originals_ai.h.
 - Globals named in world_data.h (quests, Segment, WorldCreateManagers sections) and ai_map.h.
+
+## C8 cleanup (2026-10-09)
+
+script_exec_run, script_eval, script_addon_commands, script_exec, world_sync, world_client_view,
+world_rules and world_party have no At<>/Field<>, VCall, byte arithmetic, per-file containers or
+raw addresses outside `__asm` left (their `__asm` helpers and float_control pragmas stay).
+Behaviour unchanged; direct calls of rewritten members replace a few forwarders (the replacement
+is what the original address runs anyway), except where a file calls through addresses on purpose
+(script_exec keeps that: its callees are now call-only `...Calls` facades over the real objects).
+Header changes:
+- CMapObjectCompanion slot 17 `IsDead()`; CMapObjectVirtuals slot 40 `KeyId()` returns int.
+- world_effect.h: CTimedObjectVirtuals (timed objects' slots 18 Reset, 19 Radius, 20 Position)
+  and TimedSlots().
+- CObject3D: viewPosition (+0x28) and worldMatrix (+0x54); CObject3DClientSpecific::touchTime
+  (+0xEC); Terrain::heightRange (+0x114).
+- itemdb::WeaponRecord: attackBonus (+0x84), defenceBonus (+0x88), damageTypes (+0x98).
+- console.h GameOStream::Flush(); party_manager.h GamePartyManager() (007AA5A0);
+  originals_world.h GameGlueObject() (007AFEA4).
+Findings: script variables' "danger" is CPlayerServer::refreshPending_ (IsPlayerInDanger reads
+it); GetAIClass reads CUnit::sizeClass; IsUnitVisible walks CPlayerServer::partyUnits_; the unit
+perception list is CUnitServer's AI brain `visible`; the script's Events / SpellManager globals are
+CWorld::players_ / manager4C_; GameTime's fraction is CWorldClient::tickFraction_.
