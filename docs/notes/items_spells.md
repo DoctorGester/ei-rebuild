@@ -371,8 +371,8 @@ numbers). library.csv holds this range's STLport / MFC instantiations (quest, it
 slots, options vectors, twins of existing helpers); 006B4000-006C0000 was reviewed in A-H13 (sound.md). 00646C25 is a tail of
 006462A0 that Ghidra splits off. Most of what is left in 00640000-00660000 is Rebirth-patched (ui.md section 7 lists them). Done in A-H21
 without notes (see the code): 00652000 `COptionsWindow::CommitBinding` (ui_options_bind), 0064E5A0
-`CObjectivesWindow::OnKeyDown` (ui_objectives), 006BF8A0 `SectorData::DestructBody`, `CPlayerClient` 00666D10 / 00666FD0 /
-00666FB0 and `CPlayerConnection` destructors 00666EC0 / 00666F70. The server world's +0x144 is a CFileRegistry
+`CObjectivesWindow::OnKeyDown` (ui_objectives), 006BF8A0 `SectorData::DestructBody`, the CPlayerClient lifetime (objects.md,
+"Players"). The server world's +0x144 is a CFileRegistry
 (`CWorldServer::Messages()`); the login handler 0066F890 is in objects.md, its name check 0047ADA0 `IsPrintableText` (S).
 
 ## Interface controls 0065AEA0-0065E880 (A-H19, A-H20)

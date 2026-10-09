@@ -35,7 +35,11 @@ remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every 
   StandPoint, 49 / 50 network state, 51 PlaceUnitOnGround, 52 / 53 unit points. Create 0052E400 is `CreateUnit`: a member
   named Create would override CEngineObject's virtual.
 - Controller slots are called through `CUnitController` (unit.h; `CUnit::Controller()`): an interface declaration the
-  controller classes do not derive from, so their registered slot members stay non-virtual.
+  controller classes do not derive from, so their registered slot members stay non-virtual. Its unit_ is +0x1C; slots 48
+  Died, 49 EffectsChanged, 50 GetAttackParams, 51 Say, 52 StopSpeech; UpdateSizeClasses and Resettle return EAX
+  (std::uintptr_t), Level int; slot 19 RefreshVitals takes an int (0052EB30 pushes a whole dword, the bodies read the low
+  byte). UnitPrototypeRecord +0x50 is `level` (CUnit::Level without a text key). World heights: CWorld slots 29 / 30.
+  unit_update.cpp is clean (C10; its `_ftol` `__asm` and float_control stay).
 - ST0 results are `double` (the original returns floats unrounded and 00532A20 truncates `Reduce` with `_ftol`): UnitStats
   Period20, AttributeWithBonus, SkillWithBonus, Value6E8, Value6E9, Value6E9Arg, Reduce, ReduceKind1, CUnit MoveSpeed2,
   MoveSpeedFor, ScaledValue, BaseSpeed, ModeSpeed, TotalItemWeight, AnimationRatio, UnitParams::Period. UnitStats level
@@ -122,17 +126,16 @@ remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every 
   (weapon -1 with flag 0x40000000; writing refreshes a class 0x3E controller, slot 29), 6 +0x264 / +0x268 / +0x26C (+0x270
   = +0x26C, slot 25 on a change), 7 packed bits of +0x25C / +0x260 / +0x274 / +0x278, 8 +0x254, +0x255, +0x258, +0x256, 9
   the CString +0x238, 10 path (005C7DB0 / 005C7FC0) and motion speeds, 11 masks, +0x250, player id, 12 +0x4C8, 13 +0x438,
-  then re-equip (slots 32 / 33) and refresh (25, 29). The field 3 count is one byte read into a word. Verify: compare only
-  the bytes the reader writes of each effect (+0, +1, dword +4, +0x10), because the companion's slot 13 changes the others;
-  with `first == 0` the controller's slot 41 (00535850) can snap the orientation to the path by clearing byte +0x76, so the
-  wrapper saves that byte before ours and restores it before the original's read.
+  then re-equip (slots 32 / 33) and refresh (25, 29). The field 3 count is one byte read into a word. The wrapper compares
+  only the effect bytes the reader writes (the companion's slot 13 changes the others) and restores byte +0x76, which slot 41
+  (00535850) clears when it snaps the orientation to the path.
 - **Unit points** (slots 52 / 53): `UnitActionPoint` (0052FDF0, RET 4) always returns `out` in EAX although Ghidra shows
   void (CUnitServer::ApproachTarget reads it; returning nothing crashed combat, sound and units scenarios); a missing
   animation entry logs "Can't find animation entry index"; it falls back to the position where size class 3 cannot stand
   (005BA790). `UnitPredictPosition` (0052FCC0, RET 8) samples the motion for client units following a path order (kind 2).
 - **Client path placement** (`ClientPlaceOnPath` 00535850, RET 8; from slot 41 and 00535B30; `unit_client_path.cpp`): the
-  two heading angles must go through a volatile float store (`Store`) as the original's FSTP; unrounded angles moved the
-  heading by an ULP in ~10% of calls and flipped the orientation quaternion's sign near +-pi.
+  two heading angles must go through a float store (`Store`) as the original's FSTP (unrounded, the quaternion's sign flips
+  near +-pi).
 - Size class and figure queries: `UpdateSizeClass` (00530570) relies on controller slot 45 (server's UpdateMoveFactors;
   empty on client / base controllers) so verify runs it twice; `FindAnimation` (005301B0) works only for type_ 0x32..0x34
   and draws with `rand()` through 005190C0 / 00519380; `GroundHeight` (00530280) has a body too short for a trampoline
@@ -198,7 +201,7 @@ original, compared: unit 0x4DC, stats 0x704, vitals 0x58); C capture streams; ou
 | 00514930, 005144D0, 005145D0, 00513240, 005134F0, 005136D0, 00513DA0, 00524CD0, 00526450, 005260A0, 00526C70, 00513B60, 00512730 | prototype / NPC FindByName, PrototypeObjectClass, SetDefaults, BuildFromPrototype, BuildNpcStats (O), ResetToBase, LearnSkill (S), CanLearn, WeaponSkillBonus (P), ApplyPrototype, CMapObjectManager::CreateObject (ours) | unit_create*.cpp | |
 | 00552F40, 00552780, 00532AC0, 005141F0 | CUnitServer::SetStats, Shout, CUnit::DropBrokenEquipment, GiveStartingEquipment | unit_create.cpp, unit_equipment.cpp | ours |
 | 0052D740, 0052DC70, 0052DA60, 0053A050, 00539CE0, 0051FB50, 0053EE70, 0053A8E0 | Prototype / Model / Npc record Serialize (loading: ours, then the original reads the same record again, compared), DestroyUnitDatabase, NpcTable, SkillDatabase, ModelRecord, CountSoundFiles (S) | unit_db*.cpp, unit_sound_counts.cpp | |
-| 00539A10, 00539B20, 00539E70, 0053EBC0, 0053ED30, 0053A7B0 | A-U8: ConstructUnitDatabase (the tables' STLport constructors forwarded), DestroyPrototypeTable / ModelTable (0057DEE0's reload; the name map clear shared with NpcTable as `DestroyNames`), DestroyPrototypeRecord / NpcRecord, ChunkArchive::Construct (= ConstructLocal; every database load) | unit_db_destroy.cpp, chunk_archive.cpp | ours |
+| 00539A10, 00539B20, 00539E70, 0053EBC0, 0053ED30, 0053A7B0 | ConstructUnitDatabase (the tables' STLport constructors forwarded), DestroyPrototypeTable / ModelTable (0057DEE0's reload; the name map clear shared with NpcTable as `DestroyNames`), DestroyPrototypeRecord / NpcRecord, ChunkArchive::Construct (= ConstructLocal; every database load) | unit_db_destroy.cpp, chunk_archive.cpp | ours |
 | 00527850, 00528050, 005285D0, 00538960, 005230C0, 00523300, 00523020, 00525E90, 00527EB0, 005270E0, 00526860 | WeaponSkillBonus (packed), SkillPrice, ScaleDamageByEffects copy, ClientGetAttackParams (O, 4 ULPs), AddArmourLayer, RebuildArmourLayers, PackBodyProtection, AttributeWithItems, SpellSchoolSkill, ProtectionBlock, WeaponPrototypeSkillBonus | unit_params_*.cpp, unit_skill_price.cpp, unit_armour_layers.cpp | P / O |
 | 00530570, 00525B20, 00531400, 005301B0, 00530240, 005304A0, 00530280, 00532860, 0052FCC0, 0052FDF0, 00535850 | UpdateSizeClass, PickLocation, TakeRandomItem, FindAnimation, AnimationEntry, BodyExtent, GroundHeight, EffectPoint (skipped where the original rotates uninitialised stack), UnitPredictPosition, UnitActionPoint, ClientPlaceOnPath | unit_size_class.cpp, unit_hit_location.cpp, unit_steal.cpp, unit_figure_queries.cpp, unit_points.cpp, unit_client_path.cpp | differential (random generators saved; 8 ULPs, quaternion strict) |
 | 0052E400, 0052BFC0, 0052E970, 0052E9D0, 005300D0, 0052E740, 0052E590, 0052EB70 | CUnit::CreateUnit, TorchCreate, SetHostileMask, RefreshMotion (path forgets the unit, motion +0x27C rebuilt from GetMoveSpeeds; part 10), SetPlayer, ReleaseUnit, DestroyUnit, PackPrototypeStats (differential) | map_object_create.cpp, unit_controller.cpp, unit_prototype_stats.cpp | ours |
@@ -311,11 +314,3 @@ original, compared: unit 0x4DC, stats 0x704, vitals 0x58); C capture streams; ou
   declares virtual slots 13-41 (named, world.h), so a later non-virtual CWorldServer / CWorldClient member with one of these
   names silently overrides (check_thunks catches it when hooked). The serialisers' verify relies on loading being
   repeatable; `ComposeSkin` and `WearArmourModel` build CString / STLport temporaries in the original's order.
-
-## C10 cleanup (unit_update.cpp, 2026-10-09)
-
-unit_update.cpp has no VCalls, offsets or byte arithmetic left (its `_ftol` `__asm` and float_control stay). CUnitController
-(unit.h) got slots 48 Died and 49 EffectsChanged, unit_ at +0x1C (AttachCompanion), and the return types the CUnit slots pass
-on: UpdateSizeClasses and Resettle return EAX (std::uintptr_t), Level int; slot 19 RefreshVitals takes an int (CUnit's
-ScaleEffectChanged 0052EB30 pushes its whole dword; the bodies read the low byte). UnitPrototypeRecord +0x50 is `level`
-(CUnit::Level of units without a text key). The world heights go through CWorld slots 29 / 30.
