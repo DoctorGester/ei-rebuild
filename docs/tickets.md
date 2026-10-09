@@ -36,7 +36,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- A-H .. A-H15 done (the options/keyboard screens and widgets were done as DR-H16). A-H16 taken (party 006625B0 / 00662AC0, 00658E10, 006AD900, then the largest in 0x640000-0x6C0000).
+- A-H .. A-H15 done (the options/keyboard screens and widgets were done as DR-H16). A-H16 done (19 + 13 library). A-H17 taken (client 00668C50, sound 006B6D80 / 006B7D10 / 006B6A30 / 006B73E0, 006BFC80 / 006BF5F0, trader stock 0069BAC0 / 0069EF50, item database serialisers 006A6E50 / 006A6570 / 006A73B0 / 006A7110, objectives window 0064E330 / 0064EA80 / 0064F650 / 0064FEA0, party 006641D0 / 0065F2D0 / 0065F020 / 006629D0).
 
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
