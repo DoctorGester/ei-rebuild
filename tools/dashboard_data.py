@@ -15,6 +15,39 @@ import argparse, csv, io, json, os, re, subprocess, sys
 from collections import defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, 'tools'))
+import check_cleanup  # noqa: E402  (the cleanup ratchet's patterns, so both count the same things)
+
+# check_cleanup's columns that the CLEANUP dict below does not already cover, by data.json key.
+RATCHET = {
+    'raw_addresses': 'raw game address (0x004..0x007 literal)',
+    'at_views': '*At view struct',
+    'slot_placeholders': 'placeholder virtual (SlotNN)',
+    'byte_arithmetic': 'byte offset arithmetic',
+    'container_structs': 'per-file container struct',
+    'vector_map_set_structs': 'per-file vector/map/set struct',
+    'vector_maths': 'hand-written vector maths',
+}
+
+
+def ratchet_counts(path, text):
+    """check_cleanup's counts for one file (its comment stripping, exemptions and registration rule)."""
+    code = check_cleanup.strip_comments(text)
+    out = {}
+    for key, name in RATCHET.items():
+        rx = check_cleanup.PATTERNS.get(name)
+        if rx is None or (name in check_cleanup.EXEMPT and path.startswith(check_cleanup.EXEMPT[name])):
+            continue
+        if callable(rx):
+            out[key] = rx(code)
+            continue
+        n = 0
+        for m in rx.finditer(code):
+            if name.startswith('raw game address') and check_cleanup.REGISTRATION.search(code[max(0, m.start() - 40):m.start()]):
+                continue
+            n += 1
+        out[key] = n
+    return out
 
 AREAS = [
     (0x400000, 0x480000, 'Engine base, network, app'),
@@ -127,6 +160,8 @@ def measure(tree):
             if not path.startswith('src/hook/'):
                 for k, rx in CLEANUP.items():
                     cleanup[k] += len(rx.findall(code))
+                for k, n in ratchet_counts(path, text).items():
+                    cleanup[k] += n
         else:
             cleanup['verify_wrappers'] += len(re.findall(r'\bEI_VERIFY\s*\(', code))
     cleanup['forwarded_from_several_files'] = sum(1 for f in origin_files.values() if len(f) > 1)

@@ -59,6 +59,10 @@ footer { color: var(--muted); font-size: 12px }
     <div class="tablewrap"><table id="areas"><thead><tr><th>Area</th><th class="mono">Range</th><th>Bytes ported</th><th class="r">%</th><th class="r">Functions</th><th class="r">KB left</th></tr></thead><tbody></tbody></table></div>
   </section>
   <section>
+    <h2>Cleanup</h2>
+    <div class="tablewrap"><table id="cleanup"><thead><tr><th>Pattern</th><th class="r">Peak</th><th class="r">Now</th><th class="r">From peak</th></tr></thead><tbody></tbody></table></div>
+  </section>
+  <section>
     <h2>Over time</h2>
     <div class="charts" id="charts"></div>
   </section>
@@ -125,6 +129,21 @@ function render(data) {
       `<td class="r num">${p.toFixed(1)}</td><td class="r num">${fmt(a.ported_functions)} / ${fmt(a.functions)}</td>` +
       `<td class="r num">${fmt(Math.round((a.bytes - a.ported_bytes) / 1024))}</td></tr>`;
   }).join('');
+  const metrics = [
+    ['Offset accesses (At<>/Field<>)', 'offset_access'], ['VCall slot calls', 'vcall'],
+    ['Byte-offset arithmetic', 'byte_arithmetic'], ['Raw game addresses', 'raw_addresses'],
+    ['Placeholder virtuals (SlotNN)', 'slot_placeholders'], ['*At view structs', 'at_views'],
+    ['Per-file Array / List containers', 'container_structs'], ['Per-file Vector / Map / Set layouts', 'vector_map_set_structs'],
+    ['Hand-written vector maths', 'vector_maths'], ['Forwarder sites', 'forwarder_sites'],
+    ['Functions forwarded from several files', 'forwarded_from_several_files'],
+    ['__asm blocks', 'asm_blocks'], ['float_control pragmas', 'float_control']];
+  document.querySelector('#cleanup tbody').innerHTML = metrics.map(([name, key]) => {
+    const vals = h.map(p => p.cleanup && p.cleanup[key]).filter(v => v != null);
+    const peak = vals.length ? Math.max(...vals) : null, now = c.cleanup[key] ?? 0;
+    const change = peak ? Math.round(100 * (now - peak) / peak) : 0;
+    return `<tr><td>${name}</td><td class="r num">${peak == null ? '' : fmt(peak)}</td><td class="r num">${fmt(now)}</td>` +
+      `<td class="r num">${peak ? (change > 0 ? '+' : '') + change + '%' : ''}</td></tr>`;
+  }).join('');
   const accent = css('--accent'), good = css('--good'), muted = css('--muted');
   const areaColors = ['#b5652a', '#3d7a52', '#4a6fa5', '#8a5aa0', '#a5793a', '#3a8a8a', '#a54a5a', '#6a7a3a', '#7a7a7a'];
   document.getElementById('charts').innerHTML =
@@ -137,14 +156,22 @@ function render(data) {
                   { name: 'tests/verify', color: good, get: p => p.loc['tests/verify'] },
                   { name: 'src/render', color: '#4a6fa5', get: p => p.loc['src/render'] }],
       { title: 'Lines of code', note: 'Line counts of the main source trees.' }) +
+    lineChart(h, [{ name: 'Offset accesses (At<>/Field<>)', color: '#4a6fa5', get: p => p.cleanup.offset_access },
+                  { name: 'Raw game addresses', color: accent, get: p => p.cleanup.raw_addresses },
+                  { name: 'VCall slot calls', color: good, get: p => p.cleanup.vcall },
+                  { name: 'Byte-offset arithmetic', color: muted, get: p => p.cleanup.byte_arithmetic }],
+      { title: 'Cleanup: member access', note: 'Offsets, slot numbers and literal addresses instead of named members, virtuals and globals. Lower is better.' }) +
     lineChart(h, [{ name: 'Forwarder sites', color: accent, get: p => p.cleanup.forwarder_sites },
-                  { name: 'Offset accesses (At<>/Field<>)', color: '#4a6fa5', get: p => p.cleanup.offset_access },
-                  { name: 'VCall slot calls', color: good, get: p => p.cleanup.vcall }],
-      { title: 'Cleanup artefacts', note: 'Hook-era patterns the cleanup removes. Lower is better.' }) +
-    lineChart(h, [{ name: 'Duplicated forwarders', color: accent, get: p => p.cleanup.forwarded_from_several_files },
-                  { name: '__asm blocks', color: muted, get: p => p.cleanup.asm_blocks },
+                  { name: 'Duplicated forwarders', color: good, get: p => p.cleanup.forwarded_from_several_files }],
+      { title: 'Cleanup: forwarders', note: 'Calls into original code; they go as the port completes.' }) +
+    lineChart(h, [{ name: 'Hand-written vector maths', color: '#8a5aa0', get: p => p.cleanup.vector_maths },
+                  { name: 'Placeholder virtuals', color: accent, get: p => p.cleanup.slot_placeholders },
+                  { name: 'Per-file containers (all kinds)', color: good, get: p => p.cleanup.container_structs == null && p.cleanup.vector_map_set_structs == null ? null : (p.cleanup.container_structs || 0) + (p.cleanup.vector_map_set_structs || 0) },
+                  { name: '*At view structs', color: muted, get: p => p.cleanup.at_views }],
+      { title: 'Cleanup: types', note: 'Vector maths outside vecmath.h, unnamed virtuals and per-file container layouts.' }) +
+    lineChart(h, [{ name: '__asm blocks', color: muted, get: p => p.cleanup.asm_blocks },
                   { name: 'float_control pragmas', color: good, get: p => p.cleanup.float_control }],
-      { title: 'Cleanup: smaller counts', note: 'Functions forwarded from several files, inline assembly, x87 precision pragmas.' }) +
+      { title: 'Cleanup: x87', note: 'Inline assembly and precision pragmas, mostly kept for bit-exact x87 maths until the standalone build.' }) +
     lineChart(h, [{ name: 'Verify wrappers', color: good, get: p => p.cleanup.verify_wrappers },
                   { name: 'Scenarios × 10', color: accent, get: p => (p.cleanup.scenarios || 0) * 10 }],
       { title: 'Test coverage', note: 'Checks comparing rewrites with the original, and in-game scenarios.' });
