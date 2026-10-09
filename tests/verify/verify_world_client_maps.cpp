@@ -324,6 +324,52 @@ static void __fastcall RemoveObjectVerify(CWorldClient* client, void*, int id) {
 }
 EI_VERIFY(0x00564BE0, RemoveObjectVerify, 0, s_unused);
 
+// 005651A0 RefreshPlatforms: ours only (it edits the platform list; reached by moving levers, the
+// rewritten 0052B490 calls it through its address: `levers`). Checked: the list's links and count
+// agree, and an object of another class than 0x54 / 0x5D has no faces left when it is filed (an
+// unfiled one leaves the count as it was).
+static void __fastcall RefreshPlatformsVerify(CWorldClient* client, void*, CEngineObject* object) {
+    const int id = object->id_;
+    const int listed = CountIdInList(client, 0xB8, id);
+    const int before = client->platforms_.list.count;
+    client->RefreshPlatforms(object);
+    int nodes = 0, faces = 0;
+    for (PlatformNode* node = client->platforms_.list.head; node; node = node->next) {
+        ++nodes;
+        if (node->data.id == id) ++faces;
+    }
+    const int kind = object->GetClassId();
+    bool ok = nodes == client->platforms_.list.count;
+    if (!listed) ok = ok && nodes == before;
+    else if (kind != 0x54 && kind != 0x5D) ok = ok && faces == 0;
+    ei::verify::Check("CWorldClient::RefreshPlatforms", true, ok, "object %d class %#x listed %d: %d faces, %d -> %d", id,
+                      kind, listed, faces, before, nodes);
+}
+EI_VERIFY(0x005651A0, RefreshPlatformsVerify, 0, s_unused);
+
+// 0056D7E0 QueueSynchronised: ours only (it edits the list and the id map; reached by a lever's
+// network state, 0052B650 through its address: `levers`). Checked: the id maps to a node holding
+// the object afterwards, and the result is whether it was absent before.
+static bool __fastcall QueueSynchronisedVerify(CWorldClient* client, void*, CEngineObject* object) {
+    const auto key = static_cast<std::uint32_t>(object->id_);
+    const bool absent = client->dynamicNodes_.Find(key) == nullptr;
+    const bool result = client->QueueSynchronised(object);
+    const PendingMap::Node* entry = client->dynamicNodes_.Find(key);
+    const bool ok = result == absent && entry && (!absent || static_cast<mfc::CList<CEngineObject*>::Node*>(entry->value)->data == object);
+    ei::verify::Check("CWorldClient::QueueSynchronised", true, ok, "object %d: absent %d, result %d", object->id_, absent,
+                      result);
+    return result;
+}
+EI_VERIFY(0x0056D7E0, QueueSynchronisedVerify, 0, s_unused);
+
+// 0056D7A0 DropShadows: ours only (reached by the options' display mode change, 006524A0; no
+// scenario changes it). Nothing is compared: it only calls 0051E200 / 0051E280 per filed object.
+static void __fastcall DropShadowsVerify(CWorldClient* client) {
+    client->DropShadows();
+    ei::verify::Check("CWorldClient::DropShadows", true, true, "");
+}
+EI_VERIFY(0x0056D7A0, DropShadowsVerify, 0, s_unused);
+
 // 00564E70: ours only. The grids, +0xB4, +0x7BC, the MFC lists and the id map are empty; what is
 // left in +0xB8 has no positive id.
 static void __fastcall ClearMapsVerify(CWorldClient* client, void*) {

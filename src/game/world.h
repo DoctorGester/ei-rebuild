@@ -1133,6 +1133,17 @@ public:
     // reference), the sector grid +0x120 (removed first, then appended) and, for heroes with a
     // text-key id, the list +0xB4. Returns 1.
     int AddObject(CEngineObject* object);
+    // 005651A0 (RET 4; a platform object moved: 0052B490, the client's 00668840). When an object
+    // with `object`'s id is filed (+0xB8): its platform faces are removed and, for classes 0x54 /
+    // 0x5D, its platform items added again where it now stands (as AddObject). EAX is not read.
+    void RefreshPlatforms(CEngineObject* object);
+    // 0056D7E0 (RET 4). Files `object` in the synchronised list +0xBC and the id map +0xD8 (as
+    // AddObject does) unless its id is there already. AL: 1 when added (the upper bytes of EAX
+    // are not a result; the callers do not read it).
+    bool QueueSynchronised(CEngineObject* object);
+    // 0056D7A0 (the options' display mode change). Every filed object whose kind has no shadows
+    // (0051E200 false) drops its shadow (0051E280).
+    void DropShadows();
     // 00564BE0 (RET 4). Takes the object `id` out of the maps: the MFC list +0x1F0 entries for it,
     // its +0xBC node and +0xD8 entry, then (when it is in +0xB8) the +0xB4 entries of a hero with
     // a text-key id (and 00538EA0 on its +0x240 in a session of kind 3), its grid cell and +0xB8;

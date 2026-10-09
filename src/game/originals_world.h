@@ -28,6 +28,10 @@ __declspec(naked) inline CUnit* __fastcall WorldUnitAtPointOriginal(void* /*worl
 __declspec(naked) inline void __fastcall ClientSetPlayer(void*, void*, int) EI_ORIGINAL(0x00566CE0)
 __declspec(naked) inline float* __fastcall HoverPickSurface(void*, void*, float*, int, int) EI_ORIGINAL(0x0056C350)
 __declspec(naked) inline void __fastcall CountedRelease(void*, void*, int) EI_ORIGINAL(0x00575510)
+// A 3D object's client half (CObject3DClientSpecific, __fastcall on it): 0051E200 whether shadows are drawn for its
+// object's kind (0079BD0C above 0 and the kind's switch; AL), 0051E280 drops its shadow (geometry, texture, bounds).
+__declspec(naked) inline bool __fastcall ShadowsShownOriginal(void* /*half*/) EI_ORIGINAL(0x0051E200)
+__declspec(naked) inline void __fastcall ShadowClearOriginal(void* /*half*/) EI_ORIGINAL(0x0051E280)
 // 0056F360 (library: STLport vector<12-byte texture record>::resize(count, value); thiscall, RET 8, no result).
 __declspec(naked) inline void __fastcall TextureRecordsResizeOriginal(void* /*vector*/, void*, unsigned /*count*/,
                                                                       const void* /*value*/) EI_ORIGINAL(0x0056F360)
@@ -123,8 +127,8 @@ __declspec(naked) inline void __fastcall WorldAfterPartyCopyOriginal(void* /*wor
     EI_ORIGINAL(0x00591070)
 
 // The client world (007AF5B8; thiscall, RET 4, results not used by the callers so far):
-// 005651A0 refreshes a drawn object (dropped from a pending list; units and levers with flagged
-// parts re-add their part lights, 00560820); 0056D7E0 queues an object by id (a list and a hash
+// 005651A0 (CWorldClient::RefreshPlatforms, called through its address for its wrapper) puts a filed object's platform
+// faces where it now stands (dropped, then re-added for classes 0x54 / 0x5D through 00560820); 0056D7E0 queues an object by id (a list and a hash
 // map; nothing when it is queued already).
 __declspec(naked) inline void __fastcall ClientRefreshObjectOriginal(void* /*world*/, void*, CEngineObject* /*object*/)
     EI_ORIGINAL(0x005651A0)
