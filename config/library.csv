@@ -3390,6 +3390,7 @@ address,name,library,signature,notes
 00683A90,counted pointer assignment,compiler,,A-H11 sweep: same instructions as 0056F1A0 (data addresses masked; every call goes to the same callee or to library code)
 00683AB0,counted pointer assignment,compiler,,A-H11 sweep: same instructions as 0056F1A0 (data addresses masked; every call goes to the same callee or to library code)
 00684330,counted pointer destructor,compiler,,A-H11 sweep: same instructions as 005715C0 (data addresses masked; every call goes to the same callee or to library code)
+00684390,compiler-generated destructor (the spell database 007C8510),compiler,,"A-H21: members only, in reverse order: the three 0x34-record vectors (00589860 per record), the modifier index and vector, the spell index and vector (atexit stub 00684380); no game logic"
 00684A00,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 4 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 00684A40,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain (CString values), nodes back to the pool; loose-family member of 00461540 (reviewed)"
 00684AB0,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain (CString values), nodes back to the pool; loose-family member of 00461540 (reviewed)"

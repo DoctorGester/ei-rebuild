@@ -10,11 +10,13 @@
 // null record) rather than inventing a default.
 
 #include "console.h"
+#include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>
 
 class CStream;
+class ChunkArchive;
 
 // BOOL: 0/1 in the whole of EAX, callers test all 32 bits.
 using BOOL = int;
@@ -50,27 +52,63 @@ constexpr int kSpellModifierSize = 0x24;
 
 // A spell prototype (kSpellSize bytes; 007C8510): the fields the camp's spell maker reads.
 struct SpellRecord {
-    std::uint8_t unknown_00[4];
-    // +0x04 CString: the spell's code (0068C820 finds a record by it; the trader stock's spell
+    // 00683B80 (RET 4; item_db_load.cpp, A-H21). Fields 0-2 the strings, 3-15 +0x0C..+0x40 (not
+    // +0x14), 16 / 17 the id lists, 18 +0x60, 19 the school, 20 the five bytes +0x78, 21 the skill,
+    // 22 +0x80, 23-27 +0x64..+0x74.
+    void Serialize(ChunkArchive* ar);
+
+    mfc::CString name;                  // +0x00
+    // +0x04 the spell's code (0068C820 finds a record by it; the trader stock's spell
     // instructions, item_stock.cpp).
-    const char* code;
-    std::uint8_t unknown_08[0x10 - 0x08];
+    mfc::CString code;
+    mfc::CString text08;                // +0x08
+    std::uint32_t unknown_0C;           // +0x0C
     int unknown_10;                     // +0x10 1: cast without noise (0054EE10) and without slowing the caster (005536B0)
     int school;                         // +0x14
     float mana;                         // +0x18
-    std::uint8_t unknown_1C[0x40 - 0x1C];
+    std::uint32_t unknown_1C[9];        // +0x1C..+0x3C
     int needsSight;                     // +0x40 needs a line of sight to its target (0054BBC0)
     int skill;                          // +0x44 the school skill it needs
-    std::uint8_t unknown_48[0x84 - 0x48];
+    stlp::vector<int> list48;           // +0x48 (chunk 16)
+    stlp::vector<int> list54;           // +0x54 (chunk 17)
+    std::uint32_t unknown_60;           // +0x60
+    std::uint32_t unknown_64[5];        // +0x64..+0x74
+    std::uint8_t bytes78[5];            // +0x78
+    std::uint8_t unknown_7D[3];
+    std::uint32_t unknown_80;           // +0x80
 };
 static_assert(offsetof(SpellRecord, code) == 0x04);
 static_assert(offsetof(SpellRecord, needsSight) == 0x40);
 static_assert(offsetof(SpellRecord, skill) == 0x44);
+static_assert(offsetof(SpellRecord, list48) == 0x48);
+static_assert(offsetof(SpellRecord, unknown_80) == 0x80);
 static_assert(sizeof(SpellRecord) == 0x84);
+
+// The spell database's three lists of 0x34-byte records (007C8550 / 007C855C / 007C8568, chunks
+// 3-5 of spells.sdb; destructor 00589860): a name, two string lists, a text and a value.
+struct SpellListRecord {
+    // 00683D40 (RET 4; item_db_load.cpp, A-H21). String 1, the lists as chunks 2 / 3 (one string
+    // field 1 per entry; loading erases the list (00583CB0) and resizes it (004DC900) first),
+    // string 4, field 5.
+    void Serialize(ChunkArchive* ar);
+
+    stlp::string name;                  // +0x00
+    stlp::vector<stlp::string> list0C;  // +0x0C
+    stlp::vector<stlp::string> list18;  // +0x18
+    stlp::string text24;                // +0x24
+    std::uint32_t value30;              // +0x30
+};
+static_assert(offsetof(SpellListRecord, list0C) == 0x0C);
+static_assert(offsetof(SpellListRecord, text24) == 0x24);
+static_assert(sizeof(SpellListRecord) == 0x34);
 
 // A spell modifier prototype (kSpellModifierSize bytes; 007C8530).
 struct SpellModifierRecord {
-    std::uint8_t unknown_00[4];
+    // 00683AF0 (RET 4; item_db_load.cpp, A-H21). String 0, fields 1-6 the dwords +0x04..+0x18,
+    // string 7, field 8.
+    void Serialize(ChunkArchive* ar);
+
+    mfc::CString name;                  // +0x00
     // +0x04 the modifier's code inline (0068C920 finds a record by it); its first one or two
     // letters are the kind the trader stock keys it by (item_stock.cpp: a, d, e, m, r, t; fi, ii).
     char code[0x0C - 0x04];
@@ -78,7 +116,8 @@ struct SpellModifierRecord {
     float mana;                         // +0x10 added to the spell's
     float strength;                     // +0x14 the trader stock keeps the strongest per kind; kind 'm' scales the cost
     int skill;                          // +0x18 added to the spell's
-    std::uint8_t unknown_1C[0x24 - 0x1C];
+    mfc::CString text1C;                // +0x1C
+    std::uint32_t unknown_20;           // +0x20
 };
 static_assert(offsetof(SpellModifierRecord, code) == 0x04);
 static_assert(offsetof(SpellModifierRecord, strength) == 0x14);

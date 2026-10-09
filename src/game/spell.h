@@ -317,6 +317,13 @@ public:
     // container, the vtable. Returns this.
     CSpellConstructor* Construct();
 
+    // 006840A0 (spell_cast.cpp, A-H21). Destructor body: the vtable, the container released, the
+    // manager's count dropped (+4), then the container member's release (null by then) and
+    // CEngineObject's.
+    void DestructBody();
+    // 00684080 (slot 0, RET 4). DestructBody, then operator delete when bit 0 of `flags` is set.
+    CSpellConstructor* DeletingDestruct(unsigned flags);
+
     // 00684120. Virtual slot 2: releases the container and forgets the manager. Returns 1.
     BOOL Reset();
 
@@ -346,6 +353,9 @@ public:
     CSpellContainer* container_;    // +0x20
 };
 static_assert(sizeof(CSpellConstructor) == 0x24);
+// 00684060 / 00684070 (spell_cast.cpp, A-H21): "CSpellConstructor", class id 0x1B.
+const char* __fastcall SpellConstructorClassName(CSpellConstructor*);
+int __fastcall SpellConstructorClassId(CSpellConstructor*);
 
 // A light (vtable 00743AFC, GetClassName "CLight", class id 10). type_ 0x31 is a point light.
 class CLight : public CEngineObject {

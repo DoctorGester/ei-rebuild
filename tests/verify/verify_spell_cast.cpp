@@ -171,8 +171,40 @@ static CSpell* __fastcall CreateSpellVerify(CSpellManager* self, void*, char* pr
 }
 EI_VERIFY(0x00689310, CreateSpellVerify, 0, s_createSpell);
 
+static void* s_unusedDestruct;
+
 // --- CSpellConstructor -------------------------------------------------------------------------
 // All change references or create containers: ours only, the fields checked afterwards.
+
+// 006840A0 / 00684080 (A-H21): the destructors leave CEngineObject's vtable, no manager or
+// container. Scenario: spells (each cast's constructor) and every zone change / game end.
+static void __fastcall ConstructorDestructVerify(CSpellConstructor* self) {
+    self->DestructBody();
+    bool ok = *reinterpret_cast<std::uintptr_t*>(self) == CEngineObject::kVtableAddress && !self->manager_ && !self->container_;
+    ei::verify::Check("CSpellConstructor::DestructBody", true, ok, "%p", self);
+}
+EI_VERIFY(0x006840A0, ConstructorDestructVerify, 0, s_unusedDestruct);
+static CSpellConstructor* __fastcall ConstructorDeleteVerify(CSpellConstructor* self, void*, unsigned flags) {
+    CSpellConstructor* result = self->DeletingDestruct(flags);
+    ei::verify::Check("CSpellConstructor::DeletingDestruct", true, result == self, "%p", self);
+    return result;
+}
+EI_VERIFY(0x00684080, ConstructorDeleteVerify, 0, s_unusedDestruct);
+// 00684060 / 00684070: MOV EAX,imm32 (5 bytes); against the original.
+static const char*(__fastcall* s_constructorName)(CSpellConstructor*);
+static const char* __fastcall ConstructorNameVerify(CSpellConstructor* self) {
+    const char* expected = s_constructorName(self);
+    ei::verify::Check("CSpellConstructor::GetClassName", expected, SpellConstructorClassName(self), "%p", self);
+    return expected;
+}
+EI_VERIFY(0x00684060, ConstructorNameVerify, 5, s_constructorName);
+static int(__fastcall* s_constructorId)(CSpellConstructor*);
+static int __fastcall ConstructorIdVerify(CSpellConstructor* self) {
+    int expected = s_constructorId(self);
+    ei::verify::Check("CSpellConstructor::GetClassId", expected, SpellConstructorClassId(self), "%p", self);
+    return expected;
+}
+EI_VERIFY(0x00684070, ConstructorIdVerify, 5, s_constructorId);
 
 static void* s_constructorReset;
 static BOOL __fastcall ConstructorResetVerify(CSpellConstructor* self) {

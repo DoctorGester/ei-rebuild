@@ -369,6 +369,31 @@ EI_REPLACE_METHOD(0x00689310, CSpellManager::CreateSpell);
 
 // --- CSpellConstructor -------------------------------------------------------------------------
 
+void CSpellConstructor::DestructBody() {
+    ei::SetVtable(this, kVtableAddress);
+    CSpellContainer* container = container_;
+    container_ = nullptr;
+    if (container) container->Release();
+    if (manager_) --manager_->refCount_;
+    manager_ = nullptr;
+    if (container_) container_->Release();   // the container member's destructor
+    DestructBase();
+}
+EI_REPLACE_METHOD(0x006840A0, CSpellConstructor::DestructBody);
+
+CSpellConstructor* CSpellConstructor::DeletingDestruct(unsigned flags) {
+    DestructBody();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x00684080, CSpellConstructor::DeletingDestruct);
+
+constexpr std::uintptr_t kSpellConstructorClassName = std::uintptr_t(0x00795828);   // "CSpellConstructor"
+const char* __fastcall SpellConstructorClassName(CSpellConstructor*) { return reinterpret_cast<const char*>(kSpellConstructorClassName); }
+int __fastcall SpellConstructorClassId(CSpellConstructor*) { return 0x1B; }
+EI_REPLACE(0x00684060, SpellConstructorClassName);
+EI_REPLACE(0x00684070, SpellConstructorClassId);
+
 BOOL CSpellConstructor::Reset() {
     CSpellContainer* container = container_;
     container_ = nullptr;
