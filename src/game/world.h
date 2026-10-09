@@ -681,7 +681,7 @@ public:
     int gridWidth_;                       // +0x2810
     int gridHeight_;                      // +0x2814
     std::uint8_t unknown_2818[0x2838 - 0x2818];
-    std::uint8_t timeWheel_[0x12874 - 0x2838]; // +0x2838 time wheel (005C9530; size unknown)
+    std::uint8_t timeWheel_[0x12874 - 0x2838]; // +0x2838 the AI events (AIEventTable, unit_ai.h: time wheel, grid)
     std::uint8_t commandsA_[0x12A6C - 0x12874]; // +0x12874 script command queue (004BF000)
     // commandsA_ is the zone's CScript (script.h, 0x1F8 bytes): its globals_ hold the "Heroes" group.
     CScript* MainScript() { return reinterpret_cast<CScript*>(commandsA_); }
