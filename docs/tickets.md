@@ -21,7 +21,7 @@ section; tools/progress.py misses UI_INPUT_HANDLER / UI_WHEEL_HANDLER registrati
 - Interface 0x005E0000-0x00640000 (ui.md): A-I .. A-I21 done (A-I, A-I4, A-I5, A-I19 cut off). Next: ui.md section 3 "Next".
 - HUD, spells, items 0x00640000-0x006C0000 (items_spells.md): A-H .. A-H21 done (A-H18, A-H21 cut off). A-H22 done 2026-10-09 (29). A-H23 taken 2026-10-09. Next: items_spells.md "Next candidates".
 - Scripts 0x004C0000-0x00500000 (script.md): A-S .. A-S9 done (A-S2 cut off). A-S10 taken 2026-10-09. Next: script.md "Next candidates in this range".
-- CRT / MFC range 0x006C0000-0x00740000 (models.md): A-X1, A-X2 done (A-X2 cut off). A-X3 done (landscape tick, sun, water, ambience, decal terrain part). A-X4 taken 2026-10-09. Next: models.md "Game code left in 0x006C0000-0x00740000".
+- CRT / MFC range 0x006C0000-0x00740000 (models.md): A-X1, A-X2 done (A-X2 cut off). A-X3 done (landscape tick, sun, water, ambience, decal terrain part). A-X4 done (landscape setup, point lights, acks serialisers; CDib dead). A-X5 taken 2026-10-09 (print effects 006CECD0..006CFEA0 with the world-client prints 0056D150 / 0056CE90 / 0056D4C0 / 0056C750; 006C7A80, 006C7750). Next: models.md "Game code left in 0x006C0000-0x00740000".
 - I11 (open): 0063EF60 / 0063E020 need modifier keys held during a click (harness step); ui.md section 6.
 
 - X28 done 2026-10-09: LoadSky's check expected GetClassId 0x44 (the factory class; CSkyObject's is 0x20); UnitTextureRecords put items[1..6] in records 1..6, the original in 2..7. Both re-enabled.
