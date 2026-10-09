@@ -132,7 +132,7 @@ __declspec(naked) double __fastcall ClientWorldTime(void* /*glue*/) EI_ORIGINAL(
 
 CSky* CSky::Construct() {
     object = nullptr;
-    unknown_04 = 0;
+    material = nullptr;
     texture = nullptr;
     turns = 1;
     LoadTextureOriginal(&texture, nullptr, kSkyTextureKind, kSkyTextureName);

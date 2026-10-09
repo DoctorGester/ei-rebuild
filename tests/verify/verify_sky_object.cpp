@@ -120,7 +120,7 @@ static CSky* (__fastcall* s_skyConstruct)(CSky*);
 static CSky* __fastcall SkyConstructVerify(CSky* self) {
     CSky* result = self->Construct();
     ei::verify::Check("CSky::Construct", true,
-                      result == self && !self->object && self->unknown_04 == 0 && self->turns == 1 && self->texture,
+                      result == self && !self->object && !self->material && self->turns == 1 && self->texture,
                       "%p", self->texture);
     return result;
 }

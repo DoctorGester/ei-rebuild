@@ -1083,6 +1083,15 @@ public:
     BOOL FindExitAt(const float* point, int* index);
     // 005674C0. Centre of exit `index`'s rectangle.
     float* ExitCentre(float* out, int index);   // returns out
+    // 00567500 (the client world load 00567AB0). One ZoneExit particle source (0x2038) per exit
+    // that leads somewhere, in +0xA0 at the exit's index (others null; the old markers released):
+    // at the rectangle's centre, half extents and the angle's cos / sin at +0x118..+0x124, ticked
+    // 20 times; then UpdateExitMarkers.
+    void CreateExitMarkers();
+    // 005677F0 (RET 0xC; the client glue 00578A20). Whether the party can leave through `exit`:
+    // every living unit of `records` (unit id at +0x1C) stands in an exit (FindExitAt) and that
+    // exit is `exit`. Those that do are listed in `inExit` (emptied first). 0 when no unit lives.
+    BOOL PartyInExit(const RecordPtrArray* records, int exit, RecordPtrArray* inExit);
     // 0056D9F0. Flags describing the current environment for `unit`: unit state (+0x268), island
     // (gipat/ingos/suslanger), night (0x100) or day (0x80), and two world settings.
     std::uint32_t EnvironmentFlags(CEngineObject* unit);
@@ -1179,6 +1188,11 @@ public:
     // the figures resource (the CString 0079BC94) in +0x34 (counted, the old one released); then
     // the unit database counts the sound files of +0x1CC.
     void SetUpGraphics(void* device);
+    // 00562F70 (world_client_setup.cpp; SetUpGraphics). Once (+0x1AC null): a new CSky; the figure
+    // manager makes a CSkyObject (class 0x44, id -666) named "nask0" that loads "nask0sky.fig"
+    // from the figure resources and becomes the sky's object (flag 0x10), with a material of type
+    // 0x12. Without the file the object is referenced and released again.
+    void LoadSky();
 
     // The local session (+0x20C) as the maps read it.
     WorldSession* Session() const { return reinterpret_cast<WorldSession*>(session_); }

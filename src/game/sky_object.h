@@ -30,6 +30,11 @@ public:
     // 11: 004D9270 "CSkyObject" (0078DB14). 12: 004D9280 (0x20).
     const char* GetClassName() override;
     int GetClassId() override;
+    // The figure mesh's slots (vtable 0073D5B8 as 0073C1C4): 18 0059F0F0 the copy (arguments not
+    // declared); 19 005A2490 (RET 0x10) loads the mesh from memory at *cursor once (flag 0x20):
+    // "FIG" data through slot 20 (LoadFig), other data through slot 21 (LoadOld).
+    virtual void CopyFigure() = 0;
+    virtual void LoadFromMemory(char** cursor, float s, float t, float u) = 0;
 
     // 004D9110. The constructor body: the figure's (its transform base, names, arrays, vtable
     // 0073C224, its Create 0059F210), the sky's arrays empty, vtable 0073D5B8, its Create
@@ -90,7 +95,7 @@ struct CSky {
     void Draw(CSceneRenderer* renderer, const Vector3* eye);
 
     CSkyObject* object;   // +0x00 null until the zone's sky is loaded
-    std::uint32_t unknown_04;   // +0x04 0 when constructed
+    CEngineObject* material;   // +0x04 counted (0068E970, type 0x12, by CWorldClient::LoadSky); 0 when constructed
     void* texture;        // +0x08 texture holder
     int turns;            // +0x0C 1 when constructed
 

@@ -87,3 +87,7 @@ __declspec(naked) inline int __fastcall DeviceSetTextureOriginal(void* /*device*
 // to record +0x20 (RET 8: record, key; EAX 1, or 0 for a null record; no caller reads it).
 __declspec(naked) inline int __fastcall MaterialRegisterOriginal(void* /*manager*/, void*, void* /*record*/,
                                                                  std::uint32_t /*key*/) EI_ORIGINAL(0x0068EAF0)
+// 0068E970: the material manager makes a material of `type` (its slot 23 with id -1, flag 8) and copies the stored value of
+// the material's key (+0x10) into it (RET 4; EAX the material, or 0).
+__declspec(naked) inline std::uint8_t* __fastcall MaterialCreateOriginal(void* /*manager*/, void*, int /*type*/)
+    EI_ORIGINAL(0x0068E970)
