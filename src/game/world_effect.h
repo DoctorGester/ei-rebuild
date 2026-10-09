@@ -24,6 +24,16 @@
 #include <cstddef>
 #include <cstdint>
 
+// A timed object of the world (CWorld::timedObjects_: the effects and spells) as callers reach
+// slots 18-20 through its vtable. The rewritten slot bodies stay plain members of the classes.
+class CTimedObjectVirtuals : public CTransformObject {
+public:
+    virtual void Reset() = 0;                   // 18
+    virtual double Radius() = 0;                // 19: how far it reaches, in ST0 (effects: radius_)
+    virtual Vector3* Position(void* group) = 0; // 20: its position as `group` sees it (00675FA0)
+};
+inline CTimedObjectVirtuals* TimedSlots(CEngineObject* object) { return static_cast<CTimedObjectVirtuals*>(object); }
+
 // The common base (vtable 007434AC; slots 11, 12, 21-23 pure). 0x14C bytes.
 class CEffect : public CTransformObject {
 public:

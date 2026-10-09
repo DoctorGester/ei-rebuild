@@ -287,7 +287,6 @@ src/game/world_quests.cpp,0,0,1,2,1,0,0,0,0,0
 src/game/world_rules.cpp,28,5,0,2,0,0,0,1,0,0
 src/game/world_server.cpp,0,6,0,0,0,0,0,3,0,0
 src/game/world_spells.cpp,23,3,0,2,1,0,0,2,0,0
-src/game/world_sync.cpp,31,6,0,0,5,0,0,0,0,0
 src/game/world_tick.cpp,0,1,0,0,3,0,0,0,0,0
 src/game/world_unit_set.cpp,25,2,0,0,0,0,0,1,0,0
 src/game/world_units.cpp,0,0,4,2,1,0,0,0,0,0
