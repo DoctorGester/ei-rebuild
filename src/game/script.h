@@ -890,7 +890,7 @@ void __fastcall ScriptQuestAddObjective(int type, const mfc::CString* text, floa
 struct QuestTable {
     using Map = stlp::hash_map<stlp::string, void*, stlp::StringHash>;
 
-    // 004C9C90 (RET 4). The record of quest `name`, null if none. The map's operator[] (the game's
+    // 004C9C90 and its copy 0064F550 (RET 4). The record of quest `name`, null if none. The map's operator[] (the game's
     // find_or_insert 004CE110 on a {name, null} pair) leaves a null entry for a missing name.
     void* Find(const char* name);
 

@@ -178,6 +178,44 @@ int __fastcall PartyUpdateVerify(CPlayerServer* self) {
     return RunHandler("CPlayerServer::OnPartyUpdate", self, &CPlayerServer::OnPartyUpdate, -1, 0);
 }
 
+// 0066F890 (A-H19): ours only (it reads the received stream). The stream moved past the 0x88-byte
+// message; refused in any state but 0 with nothing written; a wrong version writes 0x11 and leaves
+// state 3; a login writes 0x00 and the player's id (then SendParty's 0x80) and leaves state 1.
+// Reached by every new game and zone change (the client logs in to the local server).
+int __fastcall LoginVerify(CPlayerServer* self) {
+    int state = self->state_;
+    std::uint32_t before = self->out_.position_;
+    CMemoryStream& in = Received();
+    std::int32_t version = PeekInt(in, in.position_);
+    int result = RunHandler("CPlayerServer::OnLogin", self, &CPlayerServer::OnLogin, 0x88, 0);
+    std::uint32_t grown = self->out_.position_ - before;
+    bool ok;
+    if (state != 0) {
+        ok = result == 0 && grown == 0 && self->state_ == state;
+    } else if (version != 0x64) {
+        ok = result == 0 && self->state_ == 3 && grown >= 2 && self->out_.data_[before] == 0x11;
+    } else if (result == 1) {
+        std::int32_t id = 0;
+        if (grown >= 5) std::memcpy(&id, self->out_.data_ + before + 1, 4);
+        ok = self->state_ == 1 && grown > 5 && self->out_.data_[before] == 0 && id == self->Owner()->id_;
+    } else {
+        ok = self->state_ == 0 && grown == 0;
+    }
+    ei::verify::Check("CPlayerServer::OnLogin state", true, ok, "state %d -> %d, version %X, result %d, wrote %u", state,
+                      self->state_, version, result, grown);
+    return result;
+}
+
+// 0047ADA0 (A-H19; the login's name check): against the original. PUSH EBX; PUSH ESI; MOV EBX,EDX;
+// XOR ESI,ESI (6 bytes).
+BOOL(__fastcall* s_printable)(const char*, int, int);
+BOOL __fastcall PrintableVerify(const char* text, int maxLength, int minLength) {
+    BOOL expected = s_printable(text, maxLength, minLength);
+    BOOL actual = IsPrintableText(text, maxLength, minLength);
+    ei::verify::Check("IsPrintableText", expected, actual, "'%.63s' %d %d", text, maxLength, minLength);
+    return expected;
+}
+
 // 0066F310: ours only. A joined player that leaves is in state 3 with the party's zone and
 // entrance set, message 0x08 written and flushed; otherwise (not joined, or the leader gone in a
 // single-player campaign) nothing changes but the leader's death.
@@ -256,6 +294,8 @@ EI_VERIFY(0x0066FBD0, GoToVerify, 0, s_unused);
 EI_VERIFY(0x00670190, AttackVerify, 0, s_unused);
 EI_VERIFY(0x00670B60, PartyUpdateVerify, 0, s_unused);
 EI_VERIFY(0x0066F310, LeaveToZoneVerify, 0, s_unused);
+EI_VERIFY(0x0066F890, LoginVerify, 0, s_unused);
+EI_VERIFY(0x0047ADA0, PrintableVerify, 6, s_printable);
 EI_VERIFY(0x0066FD70, FormationVerify, 7, s_formation);
 EI_VERIFY(0x0066F4C0, LeaderDiedVerify, 0, s_unused);
 EI_VERIFY(0x00670310, UseOrderVerify, 0, s_unused);

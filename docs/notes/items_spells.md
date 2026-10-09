@@ -366,6 +366,12 @@ vector's four, 32 for the spell database (00684D60..00688470); 0069EF50 / 0069E3
 from 006A7940 below 006A7C20, the spell serialisers. 00646C25 is a tail of 006462A0 that Ghidra splits off. Most of what is
 left in 00640000-00660000 is Rebirth-patched (ui.md section 7 lists them).
 
-**Next candidates** (A-H18 did sound Open / Close / Reset, the terrain sectors, the item database destructor and the item
-vector serialisers): 0064F550 (a quest's order, inlined into the quest list sort's comparison), 0066F890 (server login,
-objects.md "Message handlers not yet ported"), 00661FB0 / 00661FE0, the item kinds' serialisers from 006A7940 below 006A7C20.
+**A-H19** (verify wrappers in brackets; scenarios): 0064F550 is a second copy of QuestTable::Find (004C9C90), registered on the
+same method (against the original; `ui_objectives_sort`: 18 quests, so the sort's median runs); CParty::RemoveQuestItems
+00661FB0 (ours, the list minus class 0x14; every new game) and ReleaseAllItems 00661FE0 (ours, empty list; only the
+multiplayer exchange, no scenario); the server's login handler 0066F890 (CPlayerServer::OnLogin, ours: stream moved 0x88, the
+written message and state; every new game / zone change) with its name check 0047ADA0 (IsPrintableText, against the original).
+The server world's +0x144 is a CFileRegistry (`CWorldServer::Messages()`). Callers of 00661FB0 / 00661FE0 keep their forwarders
+so the wrappers see them.
+
+**Next candidates**: the item kinds' serialisers from 006A7940 below 006A7C20.
