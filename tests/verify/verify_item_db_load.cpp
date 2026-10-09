@@ -88,6 +88,26 @@ EI_VERIFY(0x006A7C20, SerializeQuickItemsVerify, 0, s_unused);
 EI_VERIFY(0x006A7D20, SerializeLootVerify, 0, s_unused);
 EI_VERIFY(0x006A7E10, SerializeQuestItemsVerify, 0, s_unused);
 
+// A-H20: the same for 006A7940 / 006A7A30 / 006A7B30 (materials, weapons, armor; the database's
+// load 006A67A0 at startup, every scenario).
+namespace {
+void __fastcall SerializeMaterialsVerify(ChunkArchive* ar, void*, int id, void* records, void* unused) {
+    SerializeItemsVerify<&ChunkArchive::SerializeMaterials>("ChunkArchive::SerializeMaterials", ar, id, records, unused,
+                                                            itemdb::kMaterialSize);
+}
+void __fastcall SerializeWeaponsVerify(ChunkArchive* ar, void*, int id, void* records, void* unused) {
+    SerializeItemsVerify<&ChunkArchive::SerializeWeapons>("ChunkArchive::SerializeWeapons", ar, id, records, unused,
+                                                          itemdb::kWeaponSize);
+}
+void __fastcall SerializeArmorsVerify(ChunkArchive* ar, void*, int id, void* records, void* unused) {
+    SerializeItemsVerify<&ChunkArchive::SerializeArmors>("ChunkArchive::SerializeArmors", ar, id, records, unused,
+                                                         itemdb::kArmorSize);
+}
+} // namespace
+EI_VERIFY(0x006A7940, SerializeMaterialsVerify, 0, s_unused);
+EI_VERIFY(0x006A7A30, SerializeWeaponsVerify, 0, s_unused);
+EI_VERIFY(0x006A7B30, SerializeArmorsVerify, 0, s_unused);
+
 // A-H18: the database's destructor 006A6570 (exit, through atexit 006A6560; every scenario that
 // lets the game exit): ours only; it must return (the tables are not used afterwards).
 namespace {

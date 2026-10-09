@@ -3278,6 +3278,8 @@ address,name,library,signature,notes
 0065A910,stlp::list<T>::insert,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0065A940,stlp::list<T>::list,STLport,,inventory sweep: loose-family member of library.csv entry 00411850
 0065AB00,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_new_node",STLport,,inventory sweep: 16-byte node from the free list 0079B228; loose-family member of 00404C90 (reviewed)
+0065AB80,"stlp::list<pair<string,string>>::_M_create_node",STLport,,"A-H20: a 0x20-byte node from the node pool free list 0079B230 (refilled by _S_chunk_alloc), the pair's two strings copy-constructed (004217C0 / 004217E0 / 00428DF0); called by the list insert 0065A910"
+0065AD00,"stlp::pair<string,string>::pair(const string&, const string&)",STLport,,"A-H20: each STLport string allocated (length + 1 from the node pool) and copied (0042BE40); returns this"
 0065ACC0,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,,"inventory sweep: n*sizeof(T) back to the node-pool free list, operator delete above 128 bytes; loose-family member of 00411B30 (reviewed)"
 0065DC70,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 00742F14 (GetRuntimeClass 007005E3, Serialize 0065DC90 identified); touches no other vtable; callees library only"
 0065DC90,"CArray<TYPE,ARG_TYPE>::Serialize",MFC,,inventory sweep: CArchive::WriteCount/ReadCount + inlined SetSize + SerializeElements (CArchive::Read/Write); loose-family member of 004511F0 (reviewed)
@@ -3577,6 +3579,12 @@ address,name,library,signature,notes
 006A83F0,"stlp::vector<T>::resize (0x8C quick item records)",STLport,,"A-H11 review: erase of the tail or fill_insert of a default record (built on the stack and destroyed)"
 006A85A0,"stlp::vector<T>::resize (0x7C records)",STLport,,"A-H11 review: erase of the tail or fill_insert of a default record (built on the stack and destroyed)"
 006A8790,"stlp::vector<T>::resize (0x78 records)",STLport,,"A-H11 review: erase of the tail or fill_insert of a default record (built on the stack and destroyed)"
+006A88F0,"compiler-generated destructor (0x50-byte material record)",compiler,,"A-H20 review: the three CStrings (+0x08, +0x04, +0x00); called by the item database's vector serialisers and destructor"
+006A8950,"compiler-generated destructor (0xB4-byte weapon record)",compiler,,"A-H20 review: two CStringArrays (+0x50, +0x20) and three CStrings (+0x10, +0x08, +0x04); called by the item database's vector serialisers and destructor"
+006A89D0,"compiler-generated destructor (0xC8-byte armour record)",compiler,,"A-H20 review: as the weapon record's; called by the item database's vector serialisers and destructor"
+006A8A50,"compiler-generated destructor (0x8C-byte quick item record)",compiler,,"A-H20 review: a CString (+0x7C), then as the weapon record's; called by the item database's vector serialisers and destructor"
+006A8AE0,"compiler-generated destructor (0x7C-byte loot record)",compiler,,"A-H20 review: a vector's block back to the node pool, then as the weapon record's; called by the item database's vector serialisers and destructor"
+006A8BD0,"compiler-generated destructor (0x78-byte quest item record)",compiler,,"A-H20 review: as the weapon record's; called by the item database's vector serialisers and destructor"
 006A8C50,"stlp::vector<T>::_M_fill_insert (0xB4 weapon records)",STLport,,"A-H11 review: copy of the value, move of the tail, fill; overflow path through 006AA380"
 006A90B0,"stlp::vector<T>::_M_fill_insert (0xC8 armour records)",STLport,,"A-H11 review: copy of the value, move of the tail, fill; overflow path through 006AA630"
 006A9420,"stlp::vector<T>::_M_fill_insert (0x8C quick item records)",STLport,,"A-H11 review: copy of the value, move of the tail, fill; overflow path through 006AA8D0"
@@ -3598,10 +3606,13 @@ address,name,library,signature,notes
 006AB680,"stlp::copy (0x78 records)",STLport,,"A-H11 review: member-wise assignment over [first,last) forwards; returns the end"
 006AB760,"stlp::uninitialized_copy (0x50 records)",STLport,,"A-H11 review: copy construction (three CStrings, dwords) of each element in place"
 006AB890,"stlp::uninitialized_fill_n (0x50 records)",STLport,,"A-H11 review: n copy constructions of one record"
+006AD670,"stlp::hashtable<pair<const string,T>,...>::find_or_insert",STLport,,"A-H20 review: the weapon name index (007C8704) operator[]: a (key, null) pair, resize, __stl_hash_string, compare, insert at the bucket head; same family as 006A75E0 (armor) / 004ABBD0"
 006ADBD0,"stlp vector<T*>::erase(first, last)",STLport,,A-H11 sweep: same instructions as 0056F5E0 (data addresses masked; every call goes to the same callee or to library code)
 006ADC10,"stlp::vector<float>::_M_fill_insert",STLport,,"A-H16 review: the quest places' resize (from 006AD7D0); room check, overflow 006ADD50, tail moves, fill"
 006ADD50,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00408060 (reviewed)"
 006ADEE0,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408C20 (data addresses masked; every call goes to the same callee or to library code)
+006ADF40,compiler-generated destructor (the quest database 007C87A8),compiler,,"A-H20 review: the briefing index hash_map (+0x2C: nodes 006B0840, buckets 0042B150), the briefing records (+0x20, 006AF5A0 each, storage 006B0270), the quest index (+0x0C: 006B0750, 006AFF40) and the quest records (+0x00, 006AF4D0 each, 006B0230); only the members' destructors inlined; atexit stub 006ADF30"
+006AE0F0,compiler-generated constructor (the quest database 007C87A8),compiler,,"A-H20 review: two empty vectors and two hash_maps of 100 buckets (006AFCF0 / 006AFFC0); only the members' constructors inlined; static initialiser 006ADF10"
 006AF4D0,compiler-generated destructor (quest database record with vectors),compiler,,"A-H11 review: frees the record's vectors and strings to the node pool; no game logic"
 006AF5A0,compiler-generated destructor (quest record with CString vectors),compiler,,"A-H11 review: destroys the CString vectors and strings member by member; no game logic"
 006AF740,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)

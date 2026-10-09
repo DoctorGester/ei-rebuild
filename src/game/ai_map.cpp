@@ -94,13 +94,13 @@ bool CAIMap::CanStandAtFromHere(CUnit* unit, int x, int y, int* reason) {
     *reason = 1;
     // The unit's own cell is not bounds-checked, as in the original.
     if (cells[y][x].level > static_cast<std::uint8_t>(level)) {
-        int ux = WorldToCell(unit->positionX), uy = WorldToCell(unit->positionY);
+        int ux = WorldToCell(unit->position.x), uy = WorldToCell(unit->position.y);
         if (cells[y][x].level > cells[uy][ux].level) return false;
     }
     level &= 0xFF;
     *reason = 2;
     if (waterDepth[y][x] > level) {
-        int ux = WorldToCell(unit->positionX), uy = WorldToCell(unit->positionY);
+        int ux = WorldToCell(unit->position.x), uy = WorldToCell(unit->position.y);
         if (waterDepth[y][x] > waterDepth[uy][ux]) return false;
     }
     *reason = 0;
@@ -134,7 +134,7 @@ bool CAIMap::IsPassableWithoutSelf(CUnit* unit, const Vector3* position) {
 EI_REPLACE_METHOD(0x005B7A40, CAIMap::IsPassableWithoutSelf);
 
 bool CAIMap::IsUnitCellPassable(CUnit* unit) {
-    int x = WorldToCell(unit->positionX), y = WorldToCell(unit->positionY);
+    int x = WorldToCell(unit->position.x), y = WorldToCell(unit->position.y);
     if (x < 0 || y < 0 || x >= width || y >= height) return false;
     return ((cells[y][x].passable >> ((unit->sizeClass * 4) & 31)) & 0xF) != 0;
 }
@@ -149,7 +149,7 @@ EI_REPLACE_METHOD(0x005BA790, CAIMap::IsPassableForClass);
 
 bool CAIMap::CanLeaveCell(CUnit* unit) {
     static const int kOffsets[9][2] = {{0, 0}, {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
-    int x = WorldToCell(unit->positionX), y = WorldToCell(unit->positionY);
+    int x = WorldToCell(unit->position.x), y = WorldToCell(unit->position.y);
     if (x < 0 || y < 0 || x >= width || y >= height) return false;
     int sizeClass = unit->sizeClass;
     const ClimbTable& table = sizeClass == 0 ? climbSmall : climbLarge;

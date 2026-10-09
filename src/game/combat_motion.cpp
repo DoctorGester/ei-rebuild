@@ -76,7 +76,6 @@ __declspec(naked) bool __fastcall MapCheapCell(void*, void*, CUnit*) EI_ORIGINAL
 __declspec(naked) int __fastcall GroupContains(void*, void*, CEngineObject*) EI_ORIGINAL(0x004B3330)
 // The motion (+0x3C, an AIPath; ai_motion.cpp / ai_path_stand.cpp): 005B23A0 Clear, 005C7B00 Start,
 // 005B1F10 follow a target, 005B2050 turn to a direction, 005B22C0 the path's end point.
-__declspec(naked) bool __fastcall PathStart(void*, void*, const float*, const float*, int) EI_ORIGINAL(0x005C7B00)
 __declspec(naked) void __fastcall PathFollow(void*, void*, int /*now*/, CUnit*, int /*targetId*/, int /*until*/,
                                              int /*start*/) EI_ORIGINAL(0x005B1F10)
 __declspec(naked) void __fastcall PathTurn(void*, void*, int /*now*/, CUnit*, const float* /*direction*/,
@@ -175,7 +174,7 @@ void FaceAndStop(CUnitServer* self) {
     QuaternionAxisY(&self->unit->orientation, nullptr, &axis);
     Vector3 back;
     const Vector3* direction = Negate(&back, &axis);
-    if (PathStart(Motion(self), nullptr, &self->unit->positionX, &direction->x, now)) UnitPathSpeeds(self->unit);
+    if (AIPathStartOriginal(Motion(self), nullptr, &self->unit->position, direction, now)) UnitPathSpeeds(self->unit);
     CtlSetStanding(self, nullptr, 0);
     CtlSetState(self, nullptr, kStateChasing);
 }
@@ -283,7 +282,7 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     Vector3 axis;
     QuaternionAxisY(&self->unit->orientation, nullptr, &axis);
     Vector3 back = -axis;
-    if (PathStart(Motion(self), nullptr, &self->unit->positionX, &back.x, now)) UnitPathSpeeds(self->unit);
+    if (AIPathStartOriginal(Motion(self), nullptr, &self->unit->position, &back, now)) UnitPathSpeeds(self->unit);
     // Standing 0 (005467B0 inlined; CUnit +0x278).
     CWorldServer* world = ContextOf(self);
     if (self->unit->unknown_278 != 0) {
@@ -671,9 +670,9 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
     if (!player || player->sessionKind100_ != 1) return;
     // Away from the point: the units near it that are not in the player's group (+0x510C of its
     // messages object) are lifted off the sector map and stay in the list.
-    float dx = point[0] - unit->positionX;
-    float dy = point[1] - unit->positionY;
-    float dz = point[2] - unit->positionZ;
+    float dx = point[0] - unit->position.x;
+    float dy = point[1] - unit->position.y;
+    float dz = point[2] - unit->position.z;
     if ((dz * dz + dy * dy) + dx * dx > *reinterpret_cast<const float*>(0x0073CA98)) {
         CSectorMap* sectors = world->Sectors();
         SectorMapFindUnitsInRadius(sectors, nullptr, point, list, 4.0f);
@@ -730,8 +729,8 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
         message = kMessageCannotDo;
     } else {
         PathToMotionOrder(path, nullptr, &end);
-        float dy = self->positionY - goal[1];
-        float dx = self->positionX - goal[0];
+        float dy = self->position.y - goal[1];
+        float dx = self->position.x - goal[0];
         float reached = dx * dx + dy * dy;
         float half = HalfCell();
         float ey = half * path->targetY - goal[1];
@@ -794,7 +793,7 @@ void CUnitServer::ResyncWithUnit() {
     QuaternionAxisY(&unit->orientation, nullptr, &axis);
     Vector3 back;
     const Vector3* direction = Negate(&back, &axis);
-    if (PathStart(Motion(this), nullptr, &unit->positionX, &direction->x, now)) UnitPathSpeeds(unit);
+    if (AIPathStartOriginal(Motion(this), nullptr, &unit->position, direction, now)) UnitPathSpeeds(unit);
     CtlSetStanding(this, nullptr, 0);
     CtlSetState(this, nullptr, kStateChasing);
     UnitUpdateSizeClass(unit);

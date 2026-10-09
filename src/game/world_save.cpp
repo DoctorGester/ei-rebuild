@@ -139,8 +139,6 @@ __declspec(naked) void __fastcall AIMapBeginRefresh(void*, void*) EI_ORIGINAL(0x
 __declspec(naked) void __fastcall AIMapEndRefresh(void*, void*) EI_ORIGINAL(0x005B8B80)
 // 005BA830 / 005BA9D0. CAIMap::CanLeaveCell / FindFreeCellNear (ai_map.cpp).
 __declspec(naked) bool __fastcall AIMapCanLeaveCell(void*, void*, CEngineObject*) EI_ORIGINAL(0x005BA830)
-__declspec(naked) bool __fastcall AIMapFindFreeCellNear(void*, void*, CEngineObject*, const Vector3* /*from*/,
-                                                        Vector3* /*out*/) EI_ORIGINAL(0x005BA9D0)
 // 00596140 (RET 0xC). Loads the zone's AI graph state into `out` (map, .mob); non-zero when found.
 __declspec(naked) int __fastcall LoadAIGraph(CWorldServer*, void*, const char* /*map*/, const char* /*mob*/,
                                              CMemoryStream* /*out*/) EI_ORIGINAL(0x00596140)
@@ -350,12 +348,12 @@ void RelocateStrandedUnits(CWorldServer* world) {
         CEngineObject* unit = WorldFindUnit(world, nullptr, stranded.data[i]);
         if (unit && unit->id_ > kTextKeyIdMin) {
             SectorMapRemove(world->Sectors(), nullptr, unit);
-            float* position = &static_cast<CUnit*>(unit)->positionX;   // x, y, z
+            float* position = &static_cast<CUnit*>(unit)->position.x;   // x, y, z
             Vector3 from;
             Vector3 to;
             std::memcpy(&from, position, sizeof(Vector3));
             std::memcpy(&to, position, sizeof(Vector3));
-            AIMapFindFreeCellNear(world->AIMap(), nullptr, unit, &from, &to);
+            FindFreeCellNearOriginal(world->AIMap(), nullptr, unit, &from, &to);
             std::memcpy(position, &to, sizeof(Vector3));
             SectorMapAdd(world->Sectors(), nullptr, unit);
             ControllerReposition(static_cast<CUnit*>(unit)->controller, nullptr);

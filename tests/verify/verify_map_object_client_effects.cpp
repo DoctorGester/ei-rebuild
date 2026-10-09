@@ -219,8 +219,8 @@ static void __fastcall CreateLightVerify(CMapObjectClientSpecific* self, void*, 
     auto* light = static_cast<CLight*>(self->light);
     bool ok = light && light->type_ == 0x31 && std::memcmp(&light->range_, &radius, 4) == 0 &&
               (light->flags_ & 0x500) == 0x500 && (!flag || (light->flags_ & 0x40)) &&
-              std::memcmp(&light->position_.x, &owner->positionX, 4) == 0 &&
-              std::memcmp(&light->position_.y, &owner->positionY, 4) == 0;
+              std::memcmp(&light->position_.x, &owner->position.x, 4) == 0 &&
+              std::memcmp(&light->position_.y, &owner->position.y, 4) == 0;
     ei::verify::Check("CMapObjectClientSpecific::CreateLight", true, ok, "object %d radius %g", owner->id_, radius);
 }
 EI_VERIFY(0x00511830, CreateLightVerify, 0, s_unusedCreate);

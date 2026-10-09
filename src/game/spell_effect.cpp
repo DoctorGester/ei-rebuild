@@ -111,9 +111,9 @@ void CSpellEffect::HitUnitsAlong(const Vector3* direction) {
         CEngineObject* unit = node->data;
         node = node->next;
         const CUnit* at = static_cast<CUnit*>(unit);
-        double dz = at->positionZ - position.z;
-        double dy = at->positionY - position.y;
-        double dx = at->positionX - position.x;
+        double dz = at->position.z - position.z;
+        double dy = at->position.y - position.y;
+        double dx = at->position.x - position.x;
         float distance = static_cast<float>((dz * normalZ + dy * normalY) + dx * normalX);
         std::uint32_t bits;
         std::memcpy(&bits, &distance, sizeof(bits));

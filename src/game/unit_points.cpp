@@ -23,9 +23,7 @@ namespace {
 // turning, position (half-cells), direction, speed, cell x, cell y]; the animation entry of an
 // animation index [00518F80 (index)]; the orientation's axes [0040D940 X, 0040F560 Y (out)]; the AI
 // map's passability for a size class [005BA790 (class, point)]; the debug message [0044C470].
-__declspec(naked) Vector3* __fastcall AxisX(const Quaternion*, void*, Vector3*) EI_ORIGINAL(0x0040D940)
 Vector3* __fastcall AxisY(const Quaternion* q, void*, Vector3* out) { return QuaternionAxisY(q, nullptr, out); }
-__declspec(naked) bool __fastcall IsPassableForClass(void*, void*, int, const float*) EI_ORIGINAL(0x005BA790)
 
 constexpr int kOrderPath = 2;
 constexpr float kCellScale = 1.0f;            // 0073E9B8 / 0073EBF0
@@ -34,7 +32,7 @@ const char* const kNoEntry = reinterpret_cast<const char*>(0x0078F918);   // "Ca
 
 // The unit's virtual slot 55 (IsDead: +0x274).
 bool IsDead(CUnit* unit) { return ObjectSlots(unit)->IsDead() != 0; }
-void CopyPosition(float* out, const CUnit* unit) { std::memcpy(out, &unit->positionX, 12); }
+void CopyPosition(float* out, const CUnit* unit) { std::memcpy(out, &unit->position.x, 12); }
 
 } // namespace
 
@@ -52,19 +50,19 @@ float* __fastcall UnitPredictPosition(std::uint8_t* object, void*, float* out, i
     auto* order = reinterpret_cast<MotionOrder*>(path);
     if (order->kind == kOrderPath && !(unit->flags_ & 0x8000000)) {
         float toCells = 1.0f / (kCellScale * kHalf);
-        float position[3] = {unit->positionX, unit->positionY, unit->positionZ};
-        position[0] = toCells * position[0];
-        position[1] = toCells * position[1];
+        Vector3 position = {unit->position.x, unit->position.y, unit->position.z};
+        position.x = toCells * position.x;
+        position.y = toCells * position.y;
         bool turning;
         Vector3 direction;
         float speed;
         int cellX, cellY;
-        MotionSample(unit->motion, nullptr, ObjectWorld(unit), order, static_cast<float>(time), &turning, position,
-                     &direction.x, &speed, &cellX, &cellY);
+        MotionSample(unit->motion, nullptr, ObjectWorld(unit), order, static_cast<float>(time), &turning, &position,
+                     &direction, &speed, &cellX, &cellY);
         float toWorld = kCellScale * kHalf;
-        out[0] = toWorld * position[0];
-        out[1] = toWorld * position[1];
-        std::memcpy(&out[2], &position[2], 4);
+        out[0] = toWorld * position.x;
+        out[1] = toWorld * position.y;
+        std::memcpy(&out[2], &position.z, 4);
         return out;
     }
     CopyPosition(out, unit);
@@ -100,11 +98,11 @@ float* __fastcall UnitActionPoint(std::uint8_t* object, void*, float* out) {
             float reach = unit->above.y;
             offset = -axis * reach;
         } else if (side == 0xC00000) {
-            AxisX(&unit->orientation, nullptr, &axis);
+            QuaternionAxisX(&unit->orientation, nullptr, &axis);
             float reach = unit->above.x;
             offset = axis * reach;
         } else if (side == 0x1000000) {
-            AxisX(&unit->orientation, nullptr, &axis);
+            QuaternionAxisX(&unit->orientation, nullptr, &axis);
             float reach = unit->above.x;
             offset = -axis * reach;
         }
@@ -112,15 +110,15 @@ float* __fastcall UnitActionPoint(std::uint8_t* object, void*, float* out) {
     // The world's slot 26 (IsServer); the server's AI map.
     auto* world = static_cast<CWorldServer*>(ObjectWorld(unit));
     if (world->IsServer()) {
-        float point[3] = {offset.x + unit->positionX, offset.y + unit->positionY, offset.z + unit->positionZ};
-        if (!IsPassableForClass(world->AIMap(), nullptr, 3, point)) {
+        Vector3 point = {offset.x + unit->position.x, offset.y + unit->position.y, offset.z + unit->position.z};
+        if (!IsPassableForClassOriginal(world->AIMap(), nullptr, 3, &point)) {
             CopyPosition(out, unit);
             return out;
         }
     }
-    out[0] = offset.x + unit->positionX;
-    out[1] = offset.y + unit->positionY;
-    out[2] = offset.z + unit->positionZ;
+    out[0] = offset.x + unit->position.x;
+    out[1] = offset.y + unit->position.y;
+    out[2] = offset.z + unit->position.z;
     return out;
 }
 

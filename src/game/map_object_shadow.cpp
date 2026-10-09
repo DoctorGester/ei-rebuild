@@ -404,7 +404,7 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
     turn.y = -turn.y;
     turn.z = -turn.z;
     PreMultiplyAt(&self->object->orientation, nullptr, &turn);
-    std::memcpy(view, self->object->worldMatrix, sizeof(view));
+    std::memcpy(view, self->object->worldMatrix.m, sizeof(view));
     std::memcpy(&self->bounds[0], &kFloatMax, 4);
     std::memcpy(&self->bounds[2], &kFloatLowest, 4);
     std::memcpy(&self->bounds[1], &kFloatMax, 4);

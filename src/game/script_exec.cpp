@@ -538,7 +538,7 @@ CUnitServer* Controller(void* state) { return static_cast<CUnitServer*>(state); 
 ControllerCalls* ControllerOf(void* state) { return static_cast<ControllerCalls*>(state); }
 BrainCalls* BrainOf(void* state) { return reinterpret_cast<BrainCalls*>(Controller(state)->Brain()); }
 StatsCalls* StatsOf(void* state) { return reinterpret_cast<StatsCalls*>(&Controller(state)->stats); }
-Vector3* Position(CEngineObject* object) { return reinterpret_cast<Vector3*>(&static_cast<CMapObject*>(object)->positionX); }
+Vector3* Position(CEngineObject* object) { return &static_cast<CMapObject*>(object)->position; }
 PlayerStateCalls* StateOf(WorldPlayer* player) { return reinterpret_cast<PlayerStateCalls*>(player->server); }
 
 CEngineObject* Arg(const SSCCmd* cmd, int i) { return cmd->objectArgs.data[i]->object; }

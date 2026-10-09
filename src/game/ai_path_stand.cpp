@@ -7,6 +7,8 @@
 // 005B2190 starts at the path's own time (+0x10). See ai_map.h (AIPath) and docs/notes/ai.md.
 #include "ai_map.h"
 #include "core_maths.h"
+#include "map_object.h"
+#include "originals_ai.h"
 
 #include "ei/hook.h"
 
@@ -79,7 +81,6 @@ __declspec(naked) void __fastcall OrderSetTrack(AIPath*, void*, std::uint32_t, s
     EI_ORIGINAL(0x005C7C20)
 __declspec(naked) void __fastcall OrderSetTurnUntil(AIPath*, void*, std::uint32_t, std::uint32_t, std::uint32_t)
     EI_ORIGINAL(0x005C7C40)
-__declspec(naked) bool __fastcall OrderStart(AIPath*, void*, const void*, const Vector3*, int) EI_ORIGINAL(0x005C7B00)
 
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
 
@@ -100,12 +101,12 @@ void StandAt(AIPath* path, const int* time, std::uint8_t* unit) {
     path->reached = true;
     double scale = static_cast<double>(GameFloat(0x0073B84C)) /
                    (static_cast<double>(GameFloat(0x0073FD18)) * GameFloat(0x0073B86C));
-    const float* position = reinterpret_cast<const float*>(unit + 0x1C);
-    path->targetX = StoreFloat(static_cast<float>(scale * position[0]));
-    path->targetY = StoreFloat(static_cast<float>(scale * position[1]));
+    const CMapObject* object = reinterpret_cast<const CMapObject*>(unit);
+    path->targetX = StoreFloat(static_cast<float>(scale * object->position.x));
+    path->targetY = StoreFloat(static_cast<float>(scale * object->position.y));
     Vector3 facing;
-    FacingFromQuaternion(reinterpret_cast<const float*>(unit + 0x34), &facing.x);
-    OrderStart(path, nullptr, position, &facing, *time);
+    FacingFromQuaternion(&object->orientation.w, &facing.x);
+    AIPathStartOriginal(path, nullptr, &object->position, &facing, *time);
 }
 
 #pragma float_control(pop)

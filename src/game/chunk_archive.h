@@ -137,6 +137,11 @@ public:
     void SerializeQuickItems(int id, void* records, void* unused);
     void SerializeLoot(int id, void* records, void* unused);
     void SerializeQuestItems(int id, void* records, void* unused);
+    // A-H20, the same for 006A7940 materials (0x50), 006A7A30 weapons (0xB4) and 006A7B30 armor
+    // (0xC8).
+    void SerializeMaterials(int id, void* records, void* unused);
+    void SerializeWeapons(int id, void* records, void* unused);
+    void SerializeArmors(int id, void* records, void* unused);
 
     // The quest database's vectors (quest_records.cpp; RET 0xC, the third argument unused): one
     // chunk 1 per record (its Serialize); loading destroys the records and resizes the vector to

@@ -72,9 +72,9 @@ int CEffectMissile::Steer() {
         arrived_ = 1;
     } else {
         // At the middle of the target's bounding box.
-        float aimZ = target->extent.z * 0.5f + target->pointOffset.z + target->positionZ;
-        velocity_.x = target->positionX - localPosition_.x;
-        velocity_.y = target->positionY - localPosition_.y;
+        float aimZ = target->extent.z * 0.5f + target->pointOffset.z + target->position.z;
+        velocity_.x = target->position.x - localPosition_.x;
+        velocity_.y = target->position.y - localPosition_.y;
         velocity_.z = aimZ - localPosition_.z;
         float speed = kMissileSpeed;
         float distance = StoreFloat(std::sqrt(velocity_.y * velocity_.y + velocity_.x * velocity_.x));

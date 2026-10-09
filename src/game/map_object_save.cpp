@@ -37,7 +37,7 @@ void WriteText(CStream* stream, const char* text) {
 void CMapObject::LoadMapObject(CStream* stream) {
     companion->Load(stream);
     stream->Read(&unknown_178, sizeof(unknown_178));
-    stream->Read(&positionX, 3 * sizeof(float));
+    stream->Read(&position.x, 3 * sizeof(float));
     stream->Read(&orientation, sizeof(orientation));
     {
         ReadText text(stream);
@@ -65,7 +65,7 @@ void CMapObject::SaveMapObject(CStream* stream) {
     companion->Save(stream);
     float value178 = unknown_178;
     stream->Write(&value178, sizeof(value178));
-    stream->Write(&positionX, 3 * sizeof(float));
+    stream->Write(&position.x, 3 * sizeof(float));
     stream->Write(&orientation, sizeof(orientation));
     WriteText(stream, name);
     stream->Write(&scale, sizeof(scale));

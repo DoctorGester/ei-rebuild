@@ -538,10 +538,10 @@ constexpr std::uint32_t kScaleSmall = 0x3F0CCCCD;   // 0.55: quick slots 0..3
 constexpr std::uint32_t kScaleOne = 0x3F800000;     // 1.0
 constexpr int kOrderEventFollow = 7;                // the speech event of a follow order
 
-// A unit's position (CUnit positionX..Z), copied as the original copies it (three dwords).
+// A unit's position (CUnit position), copied as the original copies it (three dwords).
 Vector3 PositionOf(const CUnit* unit) {
     Vector3 v;
-    std::memcpy(&v, &unit->positionX, sizeof(v));
+    std::memcpy(&v, &unit->position.x, sizeof(v));
     return v;
 }
 
