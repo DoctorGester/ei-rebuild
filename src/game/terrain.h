@@ -35,6 +35,15 @@ struct LightArea {
     int firstX, firstY, lastX, lastY;
 };
 
+// 006BF580 (RET 0x14; terrain_lights.cpp). The area of the bounds (minX, minY)..(maxX, maxY): the
+// first vertex truncated, the last rounded (_ftol of value / cell + 0.5), then SetLightArea.
+void __fastcall LightAreaFromBounds(int sectorsX, int sectorsY, float minX, float minY, float maxX, float maxY,
+                                    LightArea* area);
+// 006BF4A0 (RET 0x14). The area from vertex (x0, y0) (clamped to the map) to (x1, y1): sector and
+// vertex within it (x / 32, x % 32); a first vertex on a sector edge counts as vertex 32 of the
+// sector before.
+void __fastcall SetLightArea(int x0, int y0, int x1, int y1, int sectorsX, int sectorsY, LightArea* area);
+
 // A point light registered with the landscape (006CA5D0): the light (held) and its area.
 struct LandscapeLight {
     CLight* light;
@@ -70,6 +79,27 @@ public:
     void BuildVertexTiles();
     // 006C7750 (forwarder). Frees the map: ambient loops, sectors, textures, materials, grid.
     void ClearMap();
+
+    // Point lights (terrain_lights.cpp; the light manager *007AF738 is the landscape). Nothing
+    // happens before a map is loaded (unknown_100 null).
+    // 006CA5D0 (RET 4). Holds the light, registers it by id with its area, adds it to the vertices
+    // in range of the area's built sectors and relights the area.
+    void AddLight(CLight* light);
+    // 006CA720 (RET 4). Drops the registration, takes the light off the vertices of its area,
+    // relights the area and releases the light.
+    void RemoveLight(CLight* light);
+    // 006CA830 (RET 8). Before the light moves by `delta`: its area grows by the move, the vertices
+    // in range of the new position get it, the area is relit with the light moved, then the area
+    // becomes the one at the new position (the light itself is left where it was).
+    void MoveLight(CLight* light, const Vector3* delta);
+    // 006CA9C0 (RET 4, when a sector is built). Every registered light whose area covers the
+    // sector is added to its vertices in range.
+    void LightSector(terrain::SectorData* sector);
+    // 006CAA70 (RET 0xC). The area of the light's square (position +- range), widened by `delta`
+    // on the side it points to.
+    void LightAreaOf(CLight* light, const Vector3* delta, LightArea* area);
+    // 006CAB50 (RET 4). Relights the area's lit sectors (their point lights only).
+    void RelightArea(const LightArea* area);
 
     // 006C8680. Height of `layer` (0 = ground, 1 = water surface) at (x, y).
     float HeightAt(float x, float y, int layer);
