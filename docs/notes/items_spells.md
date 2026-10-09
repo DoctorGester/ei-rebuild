@@ -193,6 +193,7 @@ archive), 004E15C0 (node creation).
 | 0068BA20, 0068BA60, 0068B700, 0068B770 (AL), 0068B7C0 (AL), 0068B4C0 | CSpell::GetPrototype, GetModifierCount, GetDamageType, IsOffensive, HasCastFlagModifier, CanAffect | P |
 | 0068B320 (slot 2), 0068B430, 0068B350 (slot 3), 0068B370, 0068B410 | CSpell::Clear, InitFromPrototype, ClearModifiers, CopyTo (S), Clone (O) | S |
 | 00683950 | CSpellEffect::GetDamage | S into a scratch DamageInfo |
+| 0068B860, 0068B920 (slots 9 / 10), 00688550, 006885A0 | CSpell::LoadSpell / SaveSpell, MapEffect::Load / Save (spell_save; +0x1C..+0x2F is a MapEffect, `CSpell::Effect()`) | S: saves captured; loads replayed into the object's old copy (ui_saveload, world_load) |
 | 0068D730, 0068D280 | CLight::GetIntensityAt (the original starts with a 4-byte CMP + JNZ, so the wrapper calls its two branches 0068D736 point light / 0068D7B4 other directly), SetLitColors | P / S |
 | 006893F0, 006894B0 | SpellCodeByName, SpellModifierCodeByName (stdcall) | P |
 | 0068BD80 (2), 0068BDD0 (3), 0068BC00 (7), 0068BE30, 0068BEC0, 0068BF60 | CSpellContainer::Reset, Shutdown, NameField (P), AddModifier, AllowsModifier (P), Build (S: bytes +0x48..+0x8C and the code string) | O / P / S |
@@ -210,7 +211,8 @@ is this spell's duration (named `targetCount`; for attack spells it may be a tar
 radius. Build's `d` / `t` truncation and the area sqrt are small naked helpers (FILD qword / FMUL / `_ftol`; FLD / FDIV
 [00743A7C] / FSQRT); its double verify run is safe because it empties the code string first.
 
-Kept: Build leaves the target flags alone when the prototype kind is neither 'u' nor 't', so they accumulate across rebuilds
+Kept: LoadSpell reads flags_ through the stream argument's stack slot (a read that writes nothing leaves the stream's
+address). Build leaves the target flags alone when the prototype kind is neither 'u' nor 't', so they accumulate across rebuilds
 until Reset; a modifier whose code is not found becomes code 0, which sorts first and empties the modifier list;
 BeginConstruct writes the prototype into the new container without checking the manager returned one; the container's
 AddModifier reports a null record as "Invalid rune" (007959F0); CopyTo tests the address of its modifier array for null
@@ -218,7 +220,7 @@ AddModifier reports a null record as "Invalid rune" (007959F0); CopyTo tests the
 
 Not rewritten: 0068D310, 0068D5A0 (CLight colour contributions: a 4-float colour by value whose 4th component is
 uninitialised stack, cannot be compared bit for bit); 00688EC0 CreateSpellObject, 00688CD0 (factory), 00688990 / 00688B40
-(manager teardown), serialisation 0068B860, 0068B920, constructors / destructors (CSpellConstructor's 006840A0 / 00684080
+(manager teardown), constructors / destructors (CSpellConstructor's 006840A0 / 00684080
 are done), 0068C820 / 0068C920 (find a spell / modifier record by code, thiscall on 007C8510 / 007C8530),
 STLport helpers 0068C500..0068CD50, the Rebirth-patched 00684550 (spell database load), 0068E640, 00691500. No callers:
 00684180 / 00684280 / 006842E0 / 00684310 / 006838E0.

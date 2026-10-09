@@ -37,6 +37,11 @@ struct MapEffect {
     std::uint32_t unknown_0C;
     std::uint8_t ending;            // +0x10 the client plays no end sound when set
     std::uint8_t unknown_11[3];
+
+    // 00688550 / 006885A0 (spell_save.cpp; RET 4): type, power, ticksLeft, value and unknown_0C,
+    // read or written one by one (`ending` is not saved).
+    void Load(CStream* stream);
+    void Save(CStream* stream) const;
 };
 static_assert(sizeof(MapEffect) == 0x14);
 

@@ -10,6 +10,9 @@
 #include "item_db.h"
 #include "maths.h"
 
+class CStream;              // core_streams.h
+struct MapEffect;           // map_object.h
+
 // A spell instance (vtable 00743A94). unknown_18 of CEngineObject is the packed id: spell
 // prototype index << 16.
 class CSpell : public CEngineObject {
@@ -54,6 +57,14 @@ public:
 
     // Forwarder to the game's entry of CopyTo (so its verify wrapper sees the call).
     void CallCopyTo(CSpell* target);
+
+    // 0068B860 / 0068B920 (vtable slots 9 / 10, Load / Save; spell_save.cpp): the effect record
+    // (+0x1C), +0x30..+0x4C, the modifiers, flags_ and +0x50. Load clears the modifiers first.
+    void LoadSpell(CStream* stream);
+    void SaveSpell(CStream* stream);
+    // +0x1C..+0x2F has the layout of an active effect record (map_object.h), which a buff copies.
+    MapEffect& Effect() { return *reinterpret_cast<MapEffect*>(&prototypeIndex_); }
+    const MapEffect& Effect() const { return *reinterpret_cast<const MapEffect*>(&prototypeIndex_); }
 
     std::uint8_t prototypeIndex_;   // +0x1C copy of the index byte
     std::uint8_t unknown_1D;        // +0x1D set to 0x10
