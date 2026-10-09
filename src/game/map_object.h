@@ -307,7 +307,7 @@ public:
     virtual void UpdateSizeClasses() = 0;
     virtual int IsUsable() = 0;            // 38: 0 (0050F0C0); traps 1, levers NeedsKey 0052BB00
     virtual int IsDirectUseBlocked() = 0;  // 39: 0 (0050F0D0); levers +0x260 (0052B2D0). Best guess
-    virtual void KeyId() = 0;              // 40: -123 (0050F0E0); levers 0052BBC0
+    virtual int KeyId() = 0;               // 40: the key it asks for: -123 (0050F0E0); levers 0052BBC0
     virtual void ApplyScience() = 0;       // 41: 0050F0F0; traps Disarm, levers ApplyKey
     // 42 (0xA8): whether `key` fits: 0 (0050F110, RET 4); levers KeyOpens, traps KeyFits.
     virtual int AcceptsKey(const LockKey* key) = 0;

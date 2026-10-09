@@ -282,7 +282,7 @@ src/game/world_guard.cpp,3,0,0,0,0,0,0,0,0,0
 src/game/world_loot.cpp,3,4,0,0,2,0,0,0,0,0
 src/game/world_map.cpp,0,15,0,0,1,0,0,7,0,0
 src/game/world_object_sets.cpp,0,2,0,0,0,0,0,0,0,1
-src/game/world_party.cpp,27,7,4,2,8,0,0,0,0,0
+src/game/world_party.cpp,0,0,4,2,0,0,0,0,0,0
 src/game/world_quests.cpp,0,0,1,2,1,0,0,0,0,0
 src/game/world_rules.cpp,0,0,0,2,0,0,0,0,0,0
 src/game/world_server.cpp,0,6,0,0,0,0,0,3,0,0
