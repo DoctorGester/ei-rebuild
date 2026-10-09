@@ -6,6 +6,7 @@
 #include "../../src/game/script.h"
 #include "../../src/game/world.h"
 #include "../../src/lib/crt.h"
+#include "ei/x87.h"
 
 #include <cstring>
 #include <new>
@@ -303,6 +304,27 @@ static bool __fastcall OnPlatformVerify(PlatformSet* self, void*, float x, float
 }
 EI_VERIFY(0x00561050, OnPlatformVerify, 6, s_onPlatform);
 
+// 00561150: SUB ESP,0xC; PUSH EBX; MOV EBX,[ESP+0x1C] (8 bytes). Writes only its outputs: the
+// original into scratch, ours into the caller's; height and normal compared within a few ULPs (a
+// surface whose z ties with the best so far may rarely pick the other normal, rule 7). Reached by
+// the ground dust particles (0x203A / 0x203B, CParticleSource::TickGroundPlane calls through the
+// address): footsteps and landings on zone1.
+static void(__fastcall* s_surfacePlane)(PlatformSet*, void*, float, float, Vector3*, float*);
+static void __fastcall SurfacePlaneVerify(PlatformSet* self, void*, float x, float y, Vector3* normal, float* height) {
+    Vector3 expectedNormal;
+    float expectedHeight;
+    s_surfacePlane(self, nullptr, x, y, &expectedNormal, &expectedHeight);
+    self->SurfacePlane(x, y, normal, height);
+    const bool same = ei::verify::NearlyEqual(expectedHeight, *height, 4, 1e-6f) &&
+                      ei::verify::NearlyEqual(expectedNormal.x, normal->x, 4, 1e-6f) &&
+                      ei::verify::NearlyEqual(expectedNormal.y, normal->y, 4, 1e-6f) &&
+                      ei::verify::NearlyEqual(expectedNormal.z, normal->z, 4, 1e-6f);
+    ei::verify::Check("PlatformSet::SurfacePlane", true, same, "(%g %g): %g (%g %g %g) vs %g (%g %g %g)", x, y,
+                      expectedHeight, expectedNormal.x, expectedNormal.y, expectedNormal.z, *height, normal->x, normal->y,
+                      normal->z);
+}
+EI_VERIFY(0x00561150, SurfacePlaneVerify, 8, s_surfacePlane);
+
 // 00560E10: MOV EAX,[ESP+8]; FLD [ECX+0x28] (7 bytes). Output only: ours into a scratch vector first.
 static Vector3*(__fastcall* s_transform)(const MatrixRows*, void*, Vector3*, const Vector3*);
 static Vector3* __fastcall TransformVerify(const MatrixRows* self, void*, Vector3* out, const Vector3* v) {
@@ -417,6 +439,27 @@ static BOOL __fastcall PartyInExitVerify(CWorldClient* self, void*, const Record
     return actual;
 }
 EI_VERIFY(0x005677F0, PartyInExitVerify, 9, s_partyInExit);
+
+// 00565380 OnQuestVariable / 00566C20 SummonBird: ours only (they make the bird and tell objects
+// their visibility). Reached by `ui_quest_notice` ("q.zxzone.zxq" set to 1 and 2: the bird is
+// summoned at 2; "q.zxzone.zxs.1" keeps a dot). Checked: the bird exists afterwards when it had to
+// be summoned.
+static void __fastcall OnQuestVariableVerify(CWorldClient* self, void*, const char* variable, float value) {
+    self->OnQuestVariable(variable, value);
+    const char* second = std::strchr(variable, '.');
+    second = second ? std::strchr(second + 1, '.') : nullptr;
+    const char* name = second ? second + 1 : variable;
+    const bool summoned = (value == 2.0f || x87::IsNaN(value)) && !std::strchr(name, '.');
+    ei::verify::Check("CWorldClient::OnQuestVariable", true, !summoned || self->owned1B0_ != nullptr, "%s = %g",
+                      variable, value);
+}
+EI_VERIFY(0x00565380, OnQuestVariableVerify, 0, s_unused);
+
+static void __fastcall SummonBirdVerify(CWorldClient* self) {
+    self->SummonBird();
+    ei::verify::Check("CWorldClient::SummonBird", true, self->owned1B0_ != nullptr, "");
+}
+EI_VERIFY(0x00566C20, SummonBirdVerify, 0, s_unused);
 
 // 005674C0: MOV EAX,[ESP+8]; MOV ECX,[ECX+0x90] (10 bytes). Output only.
 static float*(__fastcall* s_exitCentre)(CWorldClient*, void*, float*, int);

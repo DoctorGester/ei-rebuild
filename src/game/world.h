@@ -772,6 +772,10 @@ struct PlatformSet {
     float SurfaceHeight(const Vector3* point, float height);
     // 00561050. Whether (x, y) lies on some platform (with a 0.1 margin).
     bool Contains(float x, float y);
+    // 00561150 (RET 0x10; the particles' ground plane, CParticleSource::TickGroundPlane, through
+    // 007AF78C). The highest platform surface above 0 at (x, y) (with a 0.5 margin): *height its
+    // z and *normal its normal; 0 and (0, 0, 1) when there is none.
+    void SurfacePlane(float x, float y, Vector3* normal, float* height);
     // 00560650 (RET 0x14; world_client_maps.cpp). Adds the face with corner `a`, edges to `b` and
     // `c` and `normal` when normal.z >= 0.8: origin a, unit axes (b - a) / |b - a| and (c - a) /
     // |c - a|, the two lengths, the normal; *out = the new record (its id, centre and radius are the
@@ -1092,6 +1096,14 @@ public:
     // every living unit of `records` (unit id at +0x1C) stands in an exit (FindExitAt) and that
     // exit is `exit`. Those that do are listed in `inExit` (emptied first). 0 when no unit lives.
     BOOL PartyInExit(const RecordPtrArray* records, int exit, RecordPtrArray* inExit);
+    // 00566C20. Makes the bird (+0x1B0, a CEffectMoshka) when there is none, resets it (slot 18)
+    // and has it follow the unit of the local party's first record.
+    void SummonBird();
+    // 00565380 (RET 8; the server's quest variable message through 00580840). A quest variable
+    // "q.<quest>.<name>" changed to `value`: every filed object whose name (+0x1A8) is <name> (the
+    // text after the second dot) gets the visibility level `value` (0050F170); a value of 2 (or
+    // NaN) with a <name> without a dot summons the bird (as SummonBird).
+    void OnQuestVariable(const char* name, float value);
     // 0056D9F0. Flags describing the current environment for `unit`: unit state (+0x268), island
     // (gipat/ingos/suslanger), night (0x100) or day (0x80), and two world settings.
     std::uint32_t EnvironmentFlags(CEngineObject* unit);
