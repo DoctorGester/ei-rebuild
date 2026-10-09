@@ -335,6 +335,12 @@ void ChunkArchive::ConstructLocal() {
     version_ = 1;
 }
 
+ChunkArchive* ChunkArchive::Construct() {
+    ConstructLocal();
+    return this;
+}
+EI_REPLACE_METHOD(0x0053A7B0, ChunkArchive::Construct);
+
 void ChunkArchive::DestructLocal() {
     SavedDestroy(&saved_);
     ObjectsDestroy(&objects_);

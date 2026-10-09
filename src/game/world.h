@@ -13,6 +13,7 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "engine_object.h"
+#include "player_source.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "maths.h"
@@ -244,8 +245,12 @@ public:
     // (+0x38, +0x40, +0x3C, +0x44, +0x58, +0x54, +0x50, +0x4C, +0x48; +0x34 only at its last
     // reference) and the shared pointers +0x5C / +0x60 dropped.
     void DestroyManagers();
+    // 0055F410 (world_sessions.cpp; the server's SetGameResult 2 / 3, the client's 00566D80). A new
+    // empty network session (netlink::DriverSession) shared into +0x60, the previous one
+    // destroyed (RefPtr::ShareAssign, inlined).
+    void OpenSession();
 
-    float timeBase_;                     // +0x1C
+    float timeBase_;                   // +0x1C
     float secondsPerTick_;                // +0x20
     std::uint8_t unknown24_[12];          // +0x24 wind direction (three floats); saved and loaded as they are
     std::uint32_t unknown30_;             // +0x30 wind strength (float bits, 0..1); saved and loaded
@@ -261,7 +266,7 @@ public:
     CEngineObject* manager58_;            // +0x58 (slot 16)
     // +0x5C a counted helper (0xC bytes, vtable 0073F240) WorldCreateManagers shares in.
     RefPtr shared5C_;
-    void* unknown60_;                     // +0x60 replaced by 0055F410 when the game ends
+    void* unknown60_;                     // +0x60 the network session (a counted pointer; OpenSession)
     int tick_;                            // +0x64 game time in ticks
     int updateCount_;                     // +0x068 world updates run (the server's Update)
     // +0x06C paused: the server's Update skips the players and the tick while it is set; the
@@ -912,13 +917,25 @@ struct ClientObject1A8 : CEngineObject {
 };
 static_assert(sizeof(ClientObject1A8) == 0x58);
 
-// The worlds' counted helpers (CWorld + 0x5C, vtable 0073F240; the client's +0x1C8, 0073F628):
-// reference objects with two slots after CRefObject's.
-class CWorldHandle : public CRefObject {
+// The worlds' counted helpers (CWorld + 0x5C, vtable 0073F240, 0xC bytes; the client's +0x1C8,
+// 0073F628): player sources (player_source.h; Query AL 0, the client's Segment calls Pump every
+// tick). The server's hands its pending link over once (slot 6, 00478880). world_sessions.cpp.
+class CWorldHandle : public CPlayerSource {
 public:
-    virtual bool Query();   // 4: AL 0 in both (0055F250, 005626F0); meaning unknown
-    virtual void Pump();    // 5: 0055F190 in both (empty); the client's Segment calls it every tick
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F240);
+
+    // 0: 0055F260 (DeletingDestruct)
+    int OnShutdown() override;          // 2: 0055F1E0 (the link released; built again in place)
+    CWorldHandle* Clone() override;     // 3: 0055F1A0 (the same link, counted)
+
+    // 0055F280. The link released, the root vtable left.
+    void Destruct();
+    // 0055F260 (slot 0). Destruct, then operator delete when bit 0 of `flags` is set.
+    CWorldHandle* DeletingDestruct(unsigned flags);
+
+    CRefObject* pendingLink_;           // +0x08 counted; handed over by slot 6
 };
+static_assert(offsetof(CWorldHandle, pendingLink_) == 0x08);
 
 // A window rectangle of the frame (the client's list +0xF0 and the hit vector +0xF4; 0x18 bytes).
 struct ScreenEntry {

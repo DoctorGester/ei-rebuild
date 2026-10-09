@@ -1,9 +1,10 @@
-// Destructors of the unit databases (docs/notes/units.md, "Ninth round"): the unit database at
-// 007AF358 (0053A050, its four tables), the NPC table alone (00539CE0) and the skill database at
-// 007AF268 (0051FB50). All three are thiscall with no arguments; they run at exit (0053A050 and
-// 0051FB50 from the dynamic atexit functions 0053A040 / 0051FB40) and when the database file
-// changes (0057DEE0 destroys each table, constructs the database again and loads it; 00539CE0 is
-// its NPC table's step).
+// Lifetime of the unit databases (docs/notes/units.md): the unit database at 007AF358 (constructor
+// 00539A10, destructor 0053A050), its prototype / NPC / model tables alone (00539B20, 00539CE0,
+// 00539E70), the record destructors (0053EBC0, 0053ED30, 0053EE70) and the skill database at
+// 007AF268 (0051FB50). All are thiscall (or fastcall) with no arguments; the destructors run at exit
+// (0053A050 and 0051FB50 from the dynamic atexit functions 0053A040 / 0051FB40) and when the
+// database file changes (0057DEE0 destroys each table, constructs the database again and loads it);
+// the record destructors also from the tables' erase / reallocation code.
 #include "unit_db.h"
 
 #include "ei/hook.h"
@@ -65,9 +66,14 @@ struct SkillDatabase {
     RawVector skills;   // +0x0C
 };
 
+UnitDatabase* __fastcall ConstructUnitDatabase(UnitDatabase* self);
 void __fastcall DestroyUnitDatabase(UnitDatabase* self);
+void __fastcall DestroyPrototypeTable(RecordTable* self);
 void __fastcall DestroyNpcTable(RecordTable* self);
+void __fastcall DestroyModelTable(RecordTable* self);
 void __fastcall DestroySkillDatabase(SkillDatabase* self);
+void __fastcall DestroyPrototypeRecord(UnitPrototypeRecord* record);
+void __fastcall DestroyNpcRecord(UnitNpcRecord* record);
 void __fastcall DestroyModelRecord(UnitModelRecord* record);
 
 namespace {
@@ -86,7 +92,7 @@ __declspec(naked) void __fastcall ModelRecordDestroy(char*) EI_ORIGINAL(0x0053EE
 __declspec(naked) void __fastcall ModelsFree(RawVector*) EI_ORIGINAL(0x0053B7A0)
 __declspec(naked) void __fastcall NpcNamesClear(NameTable*) EI_ORIGINAL(0x0053C280)
 __declspec(naked) void __fastcall NpcBucketsFree(HashNode***) EI_ORIGINAL(0x005150D0)
-__declspec(naked) void __fastcall NpcRecordDestroy(char*) EI_ORIGINAL(0x0053ED30)
+void __fastcall NpcRecordDestroy(char* record) { DestroyNpcRecord(reinterpret_cast<UnitNpcRecord*>(record)); }
 __declspec(naked) void __fastcall NpcsFree(RawVector*) EI_ORIGINAL(0x0053B600)
 __declspec(naked) void __fastcall PrototypeNamesClear(NameTable*) EI_ORIGINAL(0x0053C0D0)
 __declspec(naked) void __fastcall PrototypeBucketsFree(HashNode***) EI_ORIGINAL(0x0053BE70)
@@ -99,6 +105,48 @@ __declspec(naked) void __fastcall PrototypesFree(RawVector*) EI_ORIGINAL(0x0053B
 // (00520EB0) and a whole vector<CString>'s destructor (0053F020).
 __declspec(naked) void __fastcall NameValueDestroy(void*, void*, int) EI_ORIGINAL(0x0053D990)
 __declspec(naked) void __fastcall NameNodeDeallocate(int*, void*, HashNode*, int) EI_ORIGINAL(0x0053CAA0)
+// The same two for the prototype table (0053D970 / 0053CA60) and the model table (0053D9B0 / 0053CAE0).
+__declspec(naked) void __fastcall PrototypeNameValueDestroy(void*, void*, int) EI_ORIGINAL(0x0053D970)
+__declspec(naked) void __fastcall PrototypeNameNodeDeallocate(int*, void*, HashNode*, int) EI_ORIGINAL(0x0053CA60)
+__declspec(naked) void __fastcall ModelNameValueDestroy(void*, void*, int) EI_ORIGINAL(0x0053D9B0)
+__declspec(naked) void __fastcall ModelNameNodeDeallocate(int*, void*, HashNode*, int) EI_ORIGINAL(0x0053CAE0)
+
+// The tables' constructors (STLport instantiations): each record vector's base (RET 4, the
+// allocator by reference) and each name map's hashtable(n, hash, equal, allocator) (RET 0x10).
+__declspec(naked) void* __fastcall PrototypesConstruct(RawVector*, void*, const void*) EI_ORIGINAL(0x0053B440)
+__declspec(naked) void* __fastcall PrototypeNamesConstruct(NameTable*, void*, int, const void*, const void*, const void*)
+    EI_ORIGINAL(0x0053B4B0)
+__declspec(naked) void* __fastcall NpcsConstruct(RawVector*, void*, const void*) EI_ORIGINAL(0x0053B5E0)
+__declspec(naked) void* __fastcall NpcNamesConstruct(NameTable*, void*, int, const void*, const void*, const void*)
+    EI_ORIGINAL(0x0053B650)
+__declspec(naked) void* __fastcall ModelsConstruct(RawVector*, void*, const void*) EI_ORIGINAL(0x0053B780)
+__declspec(naked) void* __fastcall ModelNamesConstruct(NameTable*, void*, int, const void*, const void*, const void*)
+    EI_ORIGINAL(0x0053B800)
+__declspec(naked) void* __fastcall LevelsConstruct(RawVector*, void*, const void*) EI_ORIGINAL(0x0053B980)
+__declspec(naked) void* __fastcall LevelNamesConstruct(NameTable*, void*, int, const void*, const void*, const void*)
+    EI_ORIGINAL(0x0053BA00)
+constexpr int kNameBuckets = 100;   // the bucket count each name map asks for
+
+using NameValueDestroyFn = void(__fastcall*)(void*, void*, int);
+using NameNodeDeallocateFn = void(__fastcall*)(int*, void*, HashNode*, int);
+
+// A name map's clear as the table destructors inline it: each chain's values destroyed and nodes
+// freed, each bucket emptied (the bucket count read again every pass), the count 0; then the
+// buckets freed.
+void DestroyNames(NameTable& names, NameValueDestroyFn destroyValue, NameNodeDeallocateFn deallocateNode) {
+    for (std::uint32_t b = 0; b < static_cast<std::uint32_t>(names.bucketsEnd - names.buckets); ++b) {
+        for (HashNode* node = names.buckets[b]; node;) {
+            HashNode* next = node->next;
+            destroyValue(node->value, nullptr, 0);
+            deallocateNode(&names.count, nullptr, node, 1);
+            node = next;
+        }
+        names.buckets[b] = nullptr;
+    }
+    names.count = 0;
+    if (names.buckets)
+        stlp::deallocate(names.buckets, static_cast<std::size_t>(names.bucketsEos - names.buckets) * sizeof(HashNode*));
+}
 __declspec(naked) void __fastcall DestroyStrings(mfc::CString* /*first*/, mfc::CString* /*last*/) EI_ORIGINAL(0x005214B0)
 __declspec(naked) void __fastcall StringVectorFree(CStringVector*) EI_ORIGINAL(0x00520EB0)
 __declspec(naked) void __fastcall StringVectorDestroy(CStringVector*) EI_ORIGINAL(0x0053F020)
@@ -180,20 +228,7 @@ void __fastcall DestroyUnitDatabase(UnitDatabase* self) {
 // buckets freed, then each record (0x60 bytes, UnitNpcRecord) destroyed in reverse member order
 // and the storage freed. The original leaves junk in EAX; nothing reads it.
 void __fastcall DestroyNpcTable(RecordTable* self) {
-    NameTable& names = self->names;
-    for (std::uint32_t b = 0; b < static_cast<std::uint32_t>(names.bucketsEnd - names.buckets); ++b) {
-        for (HashNode* node = names.buckets[b]; node;) {
-            HashNode* next = node->next;
-            NameValueDestroy(node->value, nullptr, 0);
-            NameNodeDeallocate(&names.count, nullptr, node, 1);
-            node = next;
-        }
-        names.buckets[b] = nullptr;
-    }
-    names.count = 0;
-    if (names.buckets)
-        stlp::deallocate(names.buckets, static_cast<std::size_t>(names.bucketsEos - names.buckets) * sizeof(HashNode*));
-
+    DestroyNames(self->names, NameValueDestroy, NameNodeDeallocate);
     for (char *p = self->records.begin, *end = self->records.end; p != end; p += sizeof(UnitNpcRecord)) {
         auto* record = reinterpret_cast<UnitNpcRecord*>(p);
         DestroyStringVector(&record->startSpells);
@@ -259,9 +294,68 @@ void __fastcall DestroyModelRecord(UnitModelRecord* record) {
     DestroyString(&record->name);
 }
 
+// 0053EBC0. A unit prototype record's destructor, members in reverse order: the two weapon names,
+// the armour, spell and +0xE8 string vectors, the sound folder, the model name and the name.
+void __fastcall DestroyPrototypeRecord(UnitPrototypeRecord* record) {
+    DestroyString(&record->secondWeaponName);
+    DestroyString(&record->weaponName);
+    DestroyStringsAndFree(&record->armourNames);
+    DestroyStringsAndFree(&record->spellNames);
+    DestroyStringsAndFree(&record->unknown_E8);
+    DestroyString(&record->soundFolder);
+    DestroyString(&record->modelName);
+    DestroyString(&record->name);
+}
+
+// 0053ED30. An NPC record's destructor: the four string vectors last to first, then the name.
+void __fastcall DestroyNpcRecord(UnitNpcRecord* record) {
+    DestroyStringsAndFree(&record->startSpells);
+    DestroyStringsAndFree(&record->startQuickItems);
+    DestroyStringsAndFree(&record->startWeapons);
+    DestroyStringsAndFree(&record->skillNames);
+    DestroyString(&record->name);
+}
+
+// 00539B20 / 00539E70. The prototype / model table as 0057DEE0 destroys it before a reload (the
+// same steps as DestroyNpcTable): the name map cleared and its buckets freed, every record
+// destroyed (the record destructors inlined; the same calls), the storage freed. The original
+// leaves junk in EAX; nothing reads it.
+void __fastcall DestroyPrototypeTable(RecordTable* self) {
+    DestroyNames(self->names, PrototypeNameValueDestroy, PrototypeNameNodeDeallocate);
+    for (char *p = self->records.begin, *end = self->records.end; p != end; p += sizeof(UnitPrototypeRecord))
+        DestroyPrototypeRecord(reinterpret_cast<UnitPrototypeRecord*>(p));
+    FreeStorage(&self->records, sizeof(UnitPrototypeRecord));
+}
+void __fastcall DestroyModelTable(RecordTable* self) {
+    DestroyNames(self->names, ModelNameValueDestroy, ModelNameNodeDeallocate);
+    for (char *p = self->records.begin, *end = self->records.end; p != end; p += sizeof(UnitModelRecord))
+        DestroyModelRecord(reinterpret_cast<UnitModelRecord*>(p));
+    FreeStorage(&self->records, sizeof(UnitModelRecord));
+}
+
+// 00539A10 (the dynamic initialiser of 007AF358 and 0057DEE0's reload). The four tables in order:
+// each record vector empty, each name map with 100 buckets asked for. Returns the database.
+UnitDatabase* __fastcall ConstructUnitDatabase(UnitDatabase* self) {
+    std::uint8_t functors[3] = {};   // the empty hash / equal / allocator objects passed by reference
+    PrototypesConstruct(&self->prototypes.records, nullptr, &functors[0]);
+    PrototypeNamesConstruct(&self->prototypes.names, nullptr, kNameBuckets, &functors[0], &functors[1], &functors[2]);
+    NpcsConstruct(&self->npcs.records, nullptr, &functors[0]);
+    NpcNamesConstruct(&self->npcs.names, nullptr, kNameBuckets, &functors[0], &functors[1], &functors[2]);
+    ModelsConstruct(&self->models.records, nullptr, &functors[0]);
+    ModelNamesConstruct(&self->models.names, nullptr, kNameBuckets, &functors[0], &functors[1], &functors[2]);
+    LevelsConstruct(&self->levels.records, nullptr, &functors[0]);
+    LevelNamesConstruct(&self->levels.names, nullptr, kNameBuckets, &functors[0], &functors[1], &functors[2]);
+    return self;
+}
+
 } // namespace unitdb
 
 EI_REPLACE(0x0053EE70, unitdb::DestroyModelRecord);
 EI_REPLACE(0x0053A050, unitdb::DestroyUnitDatabase);
 EI_REPLACE(0x00539CE0, unitdb::DestroyNpcTable);
 EI_REPLACE(0x0051FB50, unitdb::DestroySkillDatabase);
+EI_REPLACE(0x0053EBC0, unitdb::DestroyPrototypeRecord);
+EI_REPLACE(0x0053ED30, unitdb::DestroyNpcRecord);
+EI_REPLACE(0x00539B20, unitdb::DestroyPrototypeTable);
+EI_REPLACE(0x00539E70, unitdb::DestroyModelTable);
+EI_REPLACE(0x00539A10, unitdb::ConstructUnitDatabase);

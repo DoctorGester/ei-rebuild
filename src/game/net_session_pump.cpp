@@ -60,7 +60,7 @@ DriverLink* NewDriver(DriverSession* self, CRefObject* player, void* raw) {
 // A driver for every player of `world` the session has none for, when the player has something
 // queued and the manager 0079B5DC knows it; then each driver pumped (slot 10), and those whose
 // player is gone or detached erased.
-void DriverSession::Pump(CRefObject* world) {   // 00479E30
+void DriverSession::PumpDrivers(CRefObject* world) {   // 00479E30
     if (!IsLive(world)) return;
     for (DriverNode* node = WorldPlayers(world)->next; node != WorldPlayers(world); node = node->next) {
         CRefObject* player = node->value.ptr;
@@ -95,7 +95,7 @@ void DriverSession::Pump(CRefObject* world) {   // 00479E30
         }
     }
 }
-EI_REPLACE_METHOD(0x00479E30, DriverSession::Pump);
+EI_REPLACE_METHOD(0x00479E30, DriverSession::PumpDrivers);
 
 // Both lists emptied, then one driver for `player`: started (slot 10), and its pending output
 // drained into throwaway memory streams (slot 9) while slot 6 answers true. Returns the driver.
