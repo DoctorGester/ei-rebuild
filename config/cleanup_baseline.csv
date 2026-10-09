@@ -287,7 +287,7 @@ src/game/world_create.cpp,31,11,0,0,1,0,0,0,0
 src/game/world_effect_internal.h,0,13,1,0,7,0,0,0,0
 src/game/world_effect_tornado.cpp,0,0,0,0,0,0,1,0,0
 src/game/world_effect_visual.cpp,0,3,4,0,0,0,0,17,0
-src/game/world_game.cpp,15,2,2,0,3,1,0,1,0
+src/game/world_game.cpp,1,1,2,0,3,1,0,0,0
 src/game/world_guard.cpp,3,0,0,0,0,0,0,0,0
 src/game/world_loot.cpp,3,4,0,0,2,0,0,1,0
 src/game/world_map.cpp,0,15,0,0,1,0,0,10,0

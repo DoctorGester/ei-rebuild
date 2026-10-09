@@ -70,7 +70,8 @@ struct WorldPlayer {
     std::uint8_t unknown_0D8[0xE0 - 0xD8];
     // +0x0E0 an item list (CPtrList); the HUD top panel's page 1 lists it (0064A7A0).
     mfc::CTypedPtrList<CEngineObject> items;
-    std::uint8_t unknown_0FC[0x104 - 0xFC];
+    std::uint8_t unknown_0FC[0x100 - 0xFC];
+    int sessionKind;                     // +0x100 CPlayer::sessionKind100_ (set from the server world's +0x12D64 on joining; 1: the flow applies the server's variables by stamp)
     int lastScreen;                      // +0x104 the interface screen it comes from (5: the camp)
     std::uint8_t unknown_108[0x110 - 0x108];
     int lastTick;                        // +0x110
@@ -82,6 +83,7 @@ static_assert(offsetof(WorldPlayer, mercs) == 0xA0);
 static_assert(offsetof(WorldPlayer, variables) == 0xC4);
 static_assert(offsetof(WorldPlayer, items) == 0xE0);
 static_assert(offsetof(WorldPlayer, objects) == 0x28);
+static_assert(offsetof(WorldPlayer, sessionKind) == 0x100);
 static_assert(offsetof(WorldPlayer, lastScreen) == 0x104);
 
 // What CWorldClient::LocalView (005699F0) returns: the local view, +0x1C its player.
@@ -91,8 +93,10 @@ struct LocalViewData {
     std::uint8_t unknown_20[0x84 - 0x20];
     std::uint8_t unknown_84;             // +0x84 set: a unit's network owner becomes the local player
                                          //       whatever its id (UnitReadNetState)
+    std::uint8_t partyTaken;             // +0x85 the flow sets it once the local player took the requested party, clears it for a new zone
 };
 static_assert(offsetof(LocalViewData, unknown_84) == 0x84);
+static_assert(offsetof(LocalViewData, partyTaken) == 0x85);
 static_assert(offsetof(WorldPlayer, dirty) == 0x130);
 
 // Walks the world's player list. The list object is reference counted (+4) while an iterator holds
@@ -1290,14 +1294,22 @@ static_assert(offsetof(GameFlow, requestTarget_) == 0x04);
 static_assert(offsetof(GameFlow, requestArg_) == 0x78);
 static_assert(offsetof(GameFlow, flag80_) == 0x80);
 
-// The saved multiplayer parties: +0 the folder (CString), +4 an STLport vector of 0x74-byte entries
-// (the party records and the file name).
+struct SavedPartyEntry;   // world_game.cpp: the party records (0x70 bytes) and the file name
+
+// The saved multiplayer parties: the folder and an STLport vector of 0x74-byte entries.
 struct SavedParties {
     // 00662FB0 (world_game.cpp). Rebuilds the list from the folder's "*.mp" files: each is read
     // into party records (00662DD0); a loaded one has its variables emptied and, with records +0x34
     // == 1, is appended. Rebirth's PersistentGlobalVars keeps the "gvar." variables.
     void Reload();
+
+    char* folder_;                  // +0x00 CString
+    SavedPartyEntry* entries_;      // +0x04 vector<SavedPartyEntry>: start, finish, end of storage
+    SavedPartyEntry* finish_;       // +0x08
+    SavedPartyEntry* eos_;          // +0x0C
 };
+static_assert(offsetof(SavedParties, entries_) == 0x04);
+static_assert(offsetof(SavedParties, eos_) == 0x0C);
 
 // 00581630 (RET 8; world_game.cpp). Sets 007C7D94 and has the local view ask to go to `zone`
 // (0066B1B0); returns what that returns.
