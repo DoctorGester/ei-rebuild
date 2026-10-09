@@ -136,3 +136,29 @@ attached); `static_cast<CMapObject*>` of ManagerFindObject's result.
 
 All three files drafted; notes complete. Nothing built. Next: merge DR-C2, DR-C1, add camera_, build,
 fix, run the scenarios above, check_cleanup --update.
+
+## Finished (build pass)
+
+Main merged (DR-C1..C4 and the rest); the draft compiled as written against DR-C1's names. Changes on top:
+- terrain.h conflict: main's Terrain layout, the draft's `unknown_100` pointer kept (+0x100).
+- CWorldClient `camera_` (+0x210, `CCamera*`), `unknown_214`, static_assert; `class CCamera;` in world.h.
+- world.h's `FrameObjectList` tripped check_cleanup's per-file container rule: FrameObjects() now
+  returns `stlp::vector<CEngineObject*>&` (begin() / end(); `Finish()` where the old code stored
+  the end pointer).
+- ui_hud.cpp: slots 38 / 39 / 42 are `ObjectSlots(x)->IsUsable()` / `IsDirectUseBlocked()` /
+  `AcceptsKey(&itemUseKey_)` (main's int signatures). CBattleScreen::itemUseKey_ is a `LockKey`
+  (ui.h includes unit.h); the item slot 21 helper ItemUseKey returns `const LockKey*` and the copy is
+  a struct assignment (12 bytes, as the memcpy was).
+- world_client_draw.cpp: map object slots 22-24 declared `int DrawFigure / DrawCollectDirty /
+  DrawFigureShadow(void* context)` (RET 4, from 00516460 / 00516420 / 00516490); DrawEach takes a
+  lambda per slot. CWorld slot 36 declared `ClientManager19C* ClientParticleManager()` (005619B0
+  returns +0x19C). The attached side half's slots 25 / 26 are CObject3DSpecific's `Unused25(0)`
+  (0051C9D0, an empty RET 4) and `SetLit(0)`.
+- Counts after (At, VCall, asm, pragma, raw, view struct, placeholder, byte arithmetic):
+  ui_surface_create.cpp all 0 (was 62, 2, 0, 0, 3, 1, 0, 0); ui_hud.cpp all 0 (was 73, 8, ..., 2);
+  world_client_draw.cpp 0, 0, 6, 0, 3, 0, 0, 0 (was 71, 5, 6, 0, 17, 0, 0, 8): the six x87 `__asm`
+  helpers and the three raw addresses inside them remain. config/forwarder_duplicates.txt lost the two
+  duplicates the draft dropped.
+- verify and release build without warnings; check_thunks, check_returns, check_forwarders,
+  check_cleanup, check_stolen, check_x87, check_signatures at 0. Not run in game (the suite is run
+  centrally): the scenarios listed at the top still apply.
