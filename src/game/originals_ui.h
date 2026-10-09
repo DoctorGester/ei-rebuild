@@ -46,6 +46,17 @@ __declspec(naked) inline void __fastcall ShowWeapon(void*, void*, char*) EI_ORIG
 __declspec(naked) inline void __fastcall ShowArmour(void*, void*, char*) EI_ORIGINAL(0x00622A30)
 __declspec(naked) inline void __fastcall ShowContainer(void*, void*, char*) EI_ORIGINAL(0x00622BC0)
 __declspec(naked) inline void** __fastcall QuestIndexAt(void*, void*, const void*) EI_ORIGINAL(0x0064EE90)
+// The edit field (CUiEditField, ui.h): 0065C010 constructor (RET 0x14: the interface and a RECT by value, passed here
+// as its four ints; returns this), 0065C1A0 its look (RET 0x18: two ints, the font, an int, the text and caret
+// colours), 0065C290 its text (RET 4).
+__declspec(naked) inline void* __fastcall EditFieldConstructOriginal(void* /*memory*/, void*, CInterface3D*, int /*left*/,
+                                                                     int /*top*/, int /*right*/, int /*bottom*/)
+    EI_ORIGINAL(0x0065C010)
+__declspec(naked) inline void __fastcall EditFieldSetLookOriginal(void* /*edit*/, void*, int, int, int /*font*/, int,
+                                                                  std::uint32_t /*colour*/, std::uint32_t /*caret*/)
+    EI_ORIGINAL(0x0065C1A0)
+__declspec(naked) inline void __fastcall EditFieldSetTextOriginal(void* /*edit*/, void*, const void* /*text*/)
+    EI_ORIGINAL(0x0065C290)
 // 005E5200: the mouse cursor (007C7BD8) SetShape(shape), RET 4, returns the previous shape or -1.
 __declspec(naked) inline int __fastcall CursorSetShapeOriginal(void* /*cursor*/, void*, int /*shape*/) EI_ORIGINAL(0x005E5200)
 // 00634650: constructs a message box window in `memory` (RET 0x18, returns it).

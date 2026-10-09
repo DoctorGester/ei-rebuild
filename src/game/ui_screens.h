@@ -757,6 +757,23 @@ class CParty;
 class CTradeGrid;
 class CExchangeScreen : public CItemScreen {
 public:
+    // 0062C250 (slot 25; ui_exchange.cpp). Builds the window: texture "campinfo", regions 0 accept,
+    // 1 take back, 2 leave (tips 0xA028, 0xA029, 0xA02B), their four button sprites (the third
+    // hidden, the leave button shaded 0.5), the item screens' base (005EDD80) with the icon
+    // window's bars at y 300, a scratch party (made, slot 2), our offer (the client's +0x2620,
+    // cleared) and the partner's (+0x2690), then the children: the description panel at (600,
+    // 100), the local party's item strip (forwarding, action 1, items), the players' figure strip
+    // (top, no arrow tips), the trade grid over both offers (mode 5) and the money field (0..200 x
+    // 0x15E..0x16E, empty), and four 200-wide surfaces.
+    void Create();
+    // 0062C9C0 (slot 20, RET 4; ui_exchange.cpp). The item (or help topic) under the mouse from
+    // the strip, else the grid, goes to the description panel; the four surfaces get
+    // "xch_current_money" with the local party's money and "xch_accept", "xch_money_offer", and
+    // while the partner's offer pairs with ours (0041E220) "xch_money_remote" with its money and
+    // "xch_remote_header" with "xch_remote_ok" / "_cancel"; the accept / take back buttons are
+    // shaded by our offer's acceptance and the third button by the partner's; then the children.
+    // Returns 1.
+    BOOL Draw(int pass);
     void OnKeyDown(int key, int repeat, int flags);   // 0062D090
     // 0062D210 (slot 37, RET 0xC; ui_exchange.cpp; CInterface3D::OnExchangeDone). The exchange
     // went through: the local party's items are released (00661FE0), every item of `partyC`, then
