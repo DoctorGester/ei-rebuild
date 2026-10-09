@@ -231,8 +231,10 @@ split of the rewritten 006361B0 (OnUnitJoined), not a function.
 constructor and repair pages). Kept: the trade grid's sold-list topic follows buyKind_ too. Library: 005FBD30 / 005FBD80 /
 005FBDD0 (record destructors), 005FBF50 / 005FBFB0 / 005FC010 (ConstructElements).
 
-Next in 005E0000-00640000 after A-I18 (not Rebirth-patched, single player first): 00612CF0 (the camp's slot 39, a
-debug fill of the constructors; no scenario). Multiplayer / lobby last: 005E2A30 / 005E3230 / 005E3550 / 005E3CE0 / 005E26F0 (chat), 00608D20-006097E0 (the
+Next in 005E0000-00640000 after A-I18 (not Rebirth-patched, single player first): 005EE310 (an item panel input
+handler shared by four vtables: slot 25's item to the owner's slots 42 / 44), 005EBFB0 (the item view's texture),
+0060E360 (a window's destructor body), 0062D210 (vtable 00740DAC), 00612CF0 (the camp's slot 39, a debug fill of the
+constructors; no scenario). Multiplayer / lobby last: 005E2A30 / 005E3230 / 005E3550 / 005E3CE0 / 005E26F0 (chat), 00608D20-006097E0 (the
 base screen's chat window), 0062C250 / 0062C9C0 (exchange), 0061B2C0-00620300 (connection screens). 005E67F0 is only
 an unwind helper.
 
