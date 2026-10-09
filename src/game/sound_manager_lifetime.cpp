@@ -1,10 +1,11 @@
 // The sound manager's engine object slots, its wave sources and sound folder, and the music
-// stream's file reading (A-H14). The constructor / destructor bodies (006B6040 / 006B65D0) and the
-// Miles setup (Reset 006B73E0, Close 006B6D80) stay original.
+// stream's file reading (A-H14); the constructor / destructor bodies (006B6040 / 006B65D0, A-H15);
+// the Miles setup Open / Close / Reset (006B6A30 / 006B6D80 / 006B73E0, A-H18).
 #include "sound.h"
 #include "game_strings.h"
 #include "originals_engine.h"
 #include "originals_library.h"
+#include "originals_ui.h"
 
 #include "../lib/crt.h"
 #include "../lib/gameapi.h"
@@ -25,9 +26,6 @@ int CompareText(const char* a, const char* b) {
 }
 CRITICAL_SECTION* Lock(std::uint8_t* storage) { return reinterpret_cast<CRITICAL_SECTION*>(storage); }
 } // namespace
-
-__declspec(naked) void CSoundManager::Close() EI_ORIGINAL(0x006B6D80)
-__declspec(naked) void CSoundManager::Reset() EI_ORIGINAL(0x006B73E0)
 
 const char* __fastcall SoundManagerClassName(CSoundManager*) {
     return reinterpret_cast<const char*>(kSoundManagerClassNameAddress);
@@ -285,3 +283,224 @@ void __fastcall SoundResetStream(void* stream) {
 EI_REPLACE_METHOD(0x006B6040, CSoundManager::Construct);
 EI_REPLACE_METHOD(0x006B65D0, CSoundManager::DestructBody);
 EI_REPLACE(0x006BA9C0, SoundResetStream);
+
+// --- A-H18: Open, Close, Reset ------------------------------------------------------------------------
+
+namespace {
+
+constexpr int kVoiceCount = 15;
+constexpr int kWaveOutMode = 2;             // the sound option choosing the wave mapper over DirectSound
+constexpr int kWaveMapper = -1;
+constexpr unsigned kMaxRate = 44100;
+constexpr int kStreamThreadPriority = 15;   // THREAD_PRIORITY_TIME_CRITICAL
+// Miles preferences (AIL_set_preference).
+constexpr unsigned kPrefReverb = 0x28;
+constexpr int kReverbBufferBytes = 0x40000;
+constexpr unsigned kPrefMixerChannels = 1;
+constexpr int kMixerChannels = 0x12;
+constexpr unsigned kPrefUseWaveOut = 0xF;
+
+// The sound option (0 off: startup does not open sound; 2 the wave mapper).
+int SoundOption() { return *reinterpret_cast<const int*>(std::uintptr_t(0x0079BCC0)); }
+
+// The voice constructor / destructor the CRT's eh vector iterators run (compiler-generated, the
+// name string's; config/library.csv), the DirectSoundEnumerateA callback appending each device's
+// GUID pointer to an aligned array (006B68A0), the stream thread's entry (006B6A10 -> 006BB910).
+constexpr std::uintptr_t kVoiceConstruct = std::uintptr_t(0x006B6CC0);
+constexpr std::uintptr_t kVoiceDestruct = std::uintptr_t(0x006B6D30);
+constexpr std::uintptr_t kDeviceCallback = std::uintptr_t(0x006B68A0);
+constexpr std::uintptr_t kStreamThreadEntry = std::uintptr_t(0x006B6A10);
+
+// The MP3 stream's open on the manager's +0x100 (RET 4): nonzero when it could start.
+__declspec(naked) int __fastcall StreamOpen(void* /*stream*/, void*, void* /*driver*/) EI_ORIGINAL(0x006BAAC0)
+
+// DirectSound and Miles through game.exe's import table (all __stdcall).
+using EnumerateFn = long(__stdcall*)(void*, void*);
+using PreferenceFn = int(__stdcall*)(unsigned, int);
+using WaveOutOpenFn = int(__stdcall*)(void**, void*, int, const void*);
+using LastErrorFn = const char*(__stdcall*)();
+using DriverWindowFn = void(__stdcall*)(void*, void*);
+using AllocateSampleFn = void*(__stdcall*)(void*);
+using SampleUserDataFn = void(__stdcall*)(void*, unsigned, std::intptr_t);
+using HandleFn = void(__stdcall*)(void*);
+EnumerateFn DirectSoundEnumerate() { return *reinterpret_cast<EnumerateFn*>(std::uintptr_t(0x0073B04C)); }
+PreferenceFn AilSetPreference() { return *reinterpret_cast<PreferenceFn*>(std::uintptr_t(0x0073B7A0)); }
+WaveOutOpenFn AilWaveOutOpen() { return *reinterpret_cast<WaveOutOpenFn*>(std::uintptr_t(0x0073B7A4)); }
+LastErrorFn AilLastError() { return *reinterpret_cast<LastErrorFn*>(std::uintptr_t(0x0073B7A8)); }
+DriverWindowFn AilSetDirectSoundWindow() { return *reinterpret_cast<DriverWindowFn*>(std::uintptr_t(0x0073B7AC)); }
+AllocateSampleFn AilAllocateSample() { return *reinterpret_cast<AllocateSampleFn*>(std::uintptr_t(0x0073B7B0)); }
+SampleUserDataFn AilSetSampleUserData() { return *reinterpret_cast<SampleUserDataFn*>(std::uintptr_t(0x0073B7C8)); }
+HandleFn AilReleaseSample() { return *reinterpret_cast<HandleFn*>(std::uintptr_t(0x0073B788)); }
+HandleFn AilEndSequence() { return *reinterpret_cast<HandleFn*>(std::uintptr_t(0x0073B800)); }
+HandleFn AilReleaseSequence() { return *reinterpret_cast<HandleFn*>(std::uintptr_t(0x0073B794)); }
+HandleFn AilMemFree() { return *reinterpret_cast<HandleFn*>(std::uintptr_t(0x0073B7FC)); }
+HandleFn AilWaveOutClose() { return *reinterpret_cast<HandleFn*>(std::uintptr_t(0x0073B798)); }
+HandleFn AilMidiOutClose() { return *reinterpret_cast<HandleFn*>(std::uintptr_t(0x0073B79C)); }
+
+// PCMWAVEFORMAT, as Open fills it.
+#pragma pack(push, 2)
+struct PcmFormat {
+    std::uint16_t formatTag;
+    std::uint16_t channels;
+    std::uint32_t samplesPerSecond;
+    std::uint32_t bytesPerSecond;
+    std::uint16_t blockAlign;
+    std::uint16_t bitsPerSample;
+};
+#pragma pack(pop)
+static_assert(sizeof(PcmFormat) == 0x10);
+
+void WaitForThread(const mfc::CWinThread* thread) { gameapi::WaitForSingleObject(thread->thread, INFINITE); }
+
+} // namespace
+
+int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned rate, int /*bits*/) {
+    Destroy();   // slot 3: Close
+    const bool waveOut = SoundOption() == kWaveOutMode;
+    int device = waveOut ? kWaveMapper : 0;
+    if (deviceIndex >= 0) {
+        lib::AlignedArray<int> devices;
+        devices.Construct();
+        if (DirectSoundEnumerate()(reinterpret_cast<void*>(kDeviceCallback), &devices) == 0 && deviceIndex < devices.size)
+            device = devices[deviceIndex];
+        devices.FreeData();
+    }
+    reverbOn = useReverb;
+    if (useReverb != 0) AilSetPreference()(kPrefReverb, kReverbBufferBytes);
+    if (rate >= kMaxRate) rate = kMaxRate;
+    PcmFormat format{1, 2, rate, rate * 4, 4, 16};
+    AilSetPreference()(kPrefMixerChannels, kMixerChannels);
+    if (waveOut) AilSetPreference()(kPrefUseWaveOut, 1);
+    if (AilWaveOutOpen()(&waveDriver, nullptr, device, &format) != 0) {
+        game::DebugLog(AilLastError()());
+        return 0;
+    }
+    AilSetDirectSoundWindow()(waveDriver, window);
+    if (StreamOpen(const_cast<std::int32_t*>(&streamState), nullptr, waveDriver) != 0)
+        streamThread = static_cast<mfc::CWinThread*>(AfxBeginThreadOriginal(reinterpret_cast<void*>(kStreamThreadEntry),
+                                                                            this, kStreamThreadPriority, 0, 0, nullptr));
+    // operator new[]: the count, then the voices.
+    auto* block = static_cast<std::int32_t*>(gamecrt::operator_new(sizeof(std::int32_t) + kVoiceCount * sizeof(SoundSlot)));
+    SoundSlot* voices = nullptr;
+    if (block != nullptr) {
+        *block = kVoiceCount;
+        voices = reinterpret_cast<SoundSlot*>(block + 1);
+        EhVectorConstructorIterator(voices, sizeof(SoundSlot), kVoiceCount, reinterpret_cast<void*>(kVoiceConstruct),
+                                    reinterpret_cast<void*>(kVoiceDestruct));
+    }
+    slots = voices;
+    for (int i = 0; i < kVoiceCount; ++i) {
+        SoundSlot& slot = slots[i];
+        slot.sample = nullptr;
+        slot.volume = -1;
+        slot.baseVolume = -1;
+        slot.pan = -1;
+        slot.priority = -1;
+        slot.playing = 0;
+        slot.looping = 0;
+        slot.speech = 0;
+        slot.finished = 0;
+        slot.heightFade = 0;
+        slot.handle = -1;
+        slot.sample = AilAllocateSample()(waveDriver);
+        AilSetSampleUserData()(slot.sample, 0, reinterpret_cast<std::intptr_t>(this));
+        AilSetSampleUserData()(slot.sample, 1, reinterpret_cast<std::intptr_t>(&slot));
+    }
+    enabled = 1;
+    return 1;
+}
+EI_REPLACE_METHOD(0x006B6A30, CSoundManager::Open);
+
+void CSoundManager::Close() {
+    if (streamThread != nullptr) {
+        threadsQuit = 1;
+        WaitForThread(streamThread);
+    }
+    if (midiThread != nullptr) {
+        threadsQuit = 1;
+        WaitForThread(midiThread);
+    }
+    if (slots != nullptr) {
+        for (int i = 0; i < kVoiceCount; ++i) {
+            if (slots[i].playing != 0) EndSlot(&slots[i]);
+            if (slots[i].sample != nullptr) AilReleaseSample()(slots[i].sample);
+        }
+        // operator delete[]: the count stands before the voices.
+        std::int32_t* block = reinterpret_cast<std::int32_t*>(slots) - 1;
+        EhVectorDestructorIterator(slots, sizeof(SoundSlot), *block, reinterpret_cast<void*>(kVoiceDestruct));
+        gamecrt::operator_delete(block);
+    }
+    DeleteDeferred();
+    // The original takes each record out by value (RemoveHead 006BC6F0 copies its name) and
+    // destroys the copy; here the node's own name is freed.
+    while (cacheList.count != 0) {
+        AilMemFree()(cacheList.head->data.data);
+        WaveRecord record = cacheList.RemoveHead();
+        StringRepDestroy(record.name);
+    }
+    CacheMapClear(cache);
+    if (midiSequence != nullptr) {
+        AilEndSequence()(midiSequence);
+        AilReleaseSequence()(midiSequence);
+    }
+    if (midiData1D0 != nullptr) AilMemFree()(midiData1D0);
+    if (midiData1D4 != nullptr) AilMemFree()(midiData1D4);
+    if (waveDriver != nullptr) AilWaveOutClose()(waveDriver);
+    if (midiDriver != nullptr) AilMidiOutClose()(midiDriver);
+    ClearWaveSources();
+    streamReader.Close();
+    archive074.CloseResource();
+    soundRegistry.Close();
+    Reset();
+}
+EI_REPLACE_METHOD(0x006B6D80, CSoundManager::Close);
+
+void CSoundManager::Reset() {
+    waveDriver = nullptr;
+    midiDriver = nullptr;
+    ResetStream();
+    streamThread = nullptr;
+    midiThread = nullptr;
+    threadsQuit = 0;
+    slots = nullptr;
+    cacheBytes = 0;
+    for (SoundEmitter& e : emitters) {
+        e.active = 0;
+        e.position[0] = e.position[1] = e.position[2] = 0.0f;
+        e.innerRadius = 0.0f;
+        e.outerRadius = 0.0f;
+        e.minInterval = -1;
+        e.maxInterval = -1;
+        e.lastPlayed = 0;
+    }
+    for (SoundSequence& q : sequences) {
+        q.active = 0;
+        q.handle = -1;
+        q.position[0] = q.position[1] = q.position[2] = 0.0f;
+        q.nearDistance = 0.0f;
+        q.farDistance = 0.0f;
+        q.remaining = -1;
+        q.index = -1;
+        q.priority = -1;
+        q.random = 0;
+        q.chooser = nullptr;
+        q.id = -1;
+    }
+    nextHandle = 0;
+    emitterTick = 0;
+    midiSequence = nullptr;
+    midiState = 0;
+    midiData1D0 = nullptr;
+    midiData1D4 = nullptr;
+    ConstructFader(midiFader);
+    speechVolume = kFullVolume;
+    effectsVolume = kFullVolume;
+    enabled = 0;
+    unknown89C = 0;
+    reverbOn = 0;
+    panDirect = 0;
+    reverb[0] = reverb[1] = reverb[2] = 0.0f;
+    soundPath = game::EmptyText();
+    randomStart = 0;
+}
+EI_REPLACE_METHOD(0x006B73E0, CSoundManager::Reset);

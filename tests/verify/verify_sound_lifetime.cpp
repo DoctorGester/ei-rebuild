@@ -204,3 +204,45 @@ void __fastcall SoundResetStreamVerify(void* stream) {
 EI_VERIFY(0x006B6040, SoundConstructVerify, 0, s_unused);
 EI_VERIFY(0x006B65D0, SoundDestructVerify, 0, s_unused);
 EI_VERIFY(0x006BA9C0, SoundResetStreamVerify, 0, s_unused);
+
+// A-H18: Open (startup 00456440, when the sound option is on), Close (Open's first call, the
+// destructor at exit) and Reset (the constructor, Close): ours only, the state they leave. Every
+// scenario reaches them.
+namespace {
+bool VoicesFree(const CSoundManager* m) {
+    for (int i = 0; i < 15; ++i)
+        if (m->slots[i].handle != -1 || m->slots[i].playing != 0) return false;
+    return true;
+}
+bool ResetState(const CSoundManager* m) {
+    bool ok = m->waveDriver == nullptr && m->midiDriver == nullptr && m->streamThread == nullptr && m->midiThread == nullptr &&
+              m->slots == nullptr && m->enabled == 0 && m->nextHandle == 0 && m->effectsVolume == 100 &&
+              m->speechVolume == 100 && m->midiFader.volume == 100 && m->midiFader.level == 127 &&
+              m->soundPath.GetLength() == 0 && m->streamState == 0 && m->switchMode == 4;
+    for (const SoundEmitter& e : m->emitters) ok = ok && e.active == 0 && e.minInterval == -1;
+    for (const SoundSequence& q : m->sequences) ok = ok && q.active == 0 && q.id == -1 && q.handle == -1;
+    return ok;
+}
+int __fastcall SoundOpenVerify(CSoundManager* self, void*, void* window, int reverb, int device, unsigned rate, int bits) {
+    int result = self->Open(window, reverb, device, rate, bits);
+    bool ok;
+    if (result == 0) ok = ResetState(self);
+    else ok = result == 1 && self->enabled == 1 && self->waveDriver != nullptr && self->slots != nullptr &&
+              self->reverbOn == reverb && VoicesFree(self);
+    ei::verify::Check("CSoundManager::Open", true, ok, "result %d device %d rate %u stream thread %p", result, device, rate,
+                      self->streamThread);
+    return result;
+}
+void __fastcall SoundCloseVerify(CSoundManager* self) {
+    self->Close();
+    bool ok = ResetState(self) && self->cacheList.count == 0 && self->deferred.count == 0 && self->waveSources.count == 0;
+    ei::verify::Check("CSoundManager::Close", true, ok, "manager %p", self);
+}
+void __fastcall SoundResetVerify(CSoundManager* self) {
+    self->Reset();
+    ei::verify::Check("CSoundManager::Reset", true, ResetState(self), "manager %p", self);
+}
+} // namespace
+EI_VERIFY(0x006B6A30, SoundOpenVerify, 0, s_unused);
+EI_VERIFY(0x006B6D80, SoundCloseVerify, 0, s_unused);
+EI_VERIFY(0x006B73E0, SoundResetVerify, 0, s_unused);
