@@ -307,7 +307,7 @@ public:
     virtual void UpdateSizeClasses() = 0;
     virtual int IsUsable() = 0;            // 38: 0 (0050F0C0); traps 1, levers NeedsKey 0052BB00
     virtual int IsDirectUseBlocked() = 0;  // 39: 0 (0050F0D0); levers +0x260 (0052B2D0). Best guess
-    virtual void KeyId() = 0;              // 40: -123 (0050F0E0); levers 0052BBC0
+    virtual int KeyId() = 0;               // 40: the key it asks for: -123 (0050F0E0); levers 0052BBC0
     virtual void ApplyScience() = 0;       // 41: 0050F0F0; traps Disarm, levers ApplyKey
     // 42 (0xA8): whether `key` fits: 0 (0050F110, RET 4); levers KeyOpens, traps KeyFits.
     virtual int AcceptsKey(const LockKey* key) = 0;
@@ -348,6 +348,9 @@ public:
     // 16: a hit of `damage` with the hit-kind bits `kind` (1, 2, 4). Server 005106F0 (empty, RET 8);
     // client 005117F0: for a living, visible-flag (0x400000) object, 0056CE40 with the object's id.
     virtual void Hit(int damage, int kind);
+    // 17 (0x44): whether the object is dead (server 005156A0: hit points rounded to 16 bits <= 0;
+    // client 005104D0: the unit's hit points <= 0).
+    virtual int IsDead();
 };
 
 // A unit's server half (CUnit::controller, +0x240: CUnitServer, class 0x3E) as callers reach it

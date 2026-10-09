@@ -47,7 +47,8 @@ public:
     std::uint8_t unknown_104[0x10C - 0x104];
     float width;                    // +0x10C last valid vertex column
     float height;                   // +0x110 last valid vertex row
-    std::uint8_t unknown_114[0x12C - 0x114];
+    float heightRange;              // +0x114 the highest terrain height (cursor picking starts at half of it)
+    std::uint8_t unknown_118[0x12C - 0x118];
     // Members constructed in place by Setup (their constructors' addresses).
     std::uint8_t part12C[0x10];     // +0x12C 00570E40
     std::uint8_t part13C[0x10];     // +0x13C 0056FD30
