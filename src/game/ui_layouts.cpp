@@ -553,10 +553,13 @@ struct BoxMetricsAt {
 };
 __declspec(naked) SIZE BoxMetricsAt::TextExtentRaw(char*, int) EI_ORIGINAL(0x005F8340)
 
-__declspec(naked) CUiEditField* __fastcall EditConstruct(void* /*memory*/, void*, CInterface3D*, RECT) EI_ORIGINAL(0x0065C010)
-__declspec(naked) void __fastcall EditSetLook(CUiWindow*, void*, int, int, int /*font*/, int, COLORREF, COLORREF)
-    EI_ORIGINAL(0x0065C1A0)
-__declspec(naked) void __fastcall EditSetText(CUiWindow*, void*, const char*) EI_ORIGINAL(0x0065C290)
+CUiEditField* EditConstruct(void* memory, void*, CInterface3D* ui, RECT r) {
+    return static_cast<CUiEditField*>(EditFieldConstructOriginal(memory, nullptr, ui, r.left, r.top, r.right, r.bottom));
+}
+void EditSetLook(CUiWindow* edit, void*, int a, int b, int font, int c, COLORREF text, COLORREF caret) {
+    EditFieldSetLookOriginal(edit, nullptr, a, b, font, c, text, caret);
+}
+void EditSetText(CUiWindow* edit, void*, const char* text) { EditFieldSetTextOriginal(edit, nullptr, text); }
 
 BoxSurfaceAt* BoxSurface(CUiSurface* surface) { return reinterpret_cast<BoxSurfaceAt*>(surface); }
 } // namespace

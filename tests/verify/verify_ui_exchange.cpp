@@ -1,5 +1,6 @@
-// Checks for the exchange between players (ui_exchange.cpp). Multiplayer only: no scenario reaches
-// it (the harness has no second player).
+// Checks for the exchange between players (ui_exchange.cpp) and the icon window's bars (005F2E00,
+// which only the exchange calls). Multiplayer only: no scenario reaches them (the harness has no
+// second player).
 //
 // 0062D210: ours only (it moves items and leaves the screen): the local party's money is
 // partyB's - partyA's + partyC's (read before), and partyB and partyC are empty afterwards.
@@ -51,3 +52,36 @@ static void __fastcall ExchangeLButtonDownVerify(void* input, void*, int buttons
     ei::verify::Check("CExchangeScreen::OnLButtonDown", true, true, "");
 }
 EI_VERIFY(0x0062CF70, ExchangeLButtonDownVerify, 0, s_unused);
+
+// 0062C250: ours only (it builds the window's children and surfaces). Afterwards three regions,
+// four surfaces, every child made, the scratch party and an emptied offer of ours.
+static void __fastcall ExchangeCreateVerify(CExchangeScreen* self) {
+    self->Create();
+    bool ok = self->regions_.size == 3 && self->surfaces_.size == 4 && self->descPanel_ && self->strip_ &&
+              self->figures_ && self->grid_ && self->moneyField_ && self->scratch_ && self->ownOffer_->items_.size == 0;
+    ei::verify::Check("CExchangeScreen::Create", true, ok, "regions %d surfaces %d", self->regions_.size,
+                      self->surfaces_.size);
+}
+EI_VERIFY(0x0062C250, ExchangeCreateVerify, 0, s_unused);
+
+// 0062C9C0: ours only (it describes, draws on the surfaces and the children); returns 1 with every
+// surface's DC let go.
+static BOOL __fastcall ExchangeDrawVerify(CExchangeScreen* self, void*, int pass) {
+    BOOL result = self->Draw(pass);
+    bool released = true;
+    for (int i = 0; i < self->surfaces_.size; ++i) released = released && self->surfaces_.data[i]->dc_ == nullptr;
+    ei::verify::Check("CExchangeScreen::Draw", true, result == 1 && released, "result %d", result);
+    return result;
+}
+EI_VERIFY(0x0062C9C0, ExchangeDrawVerify, 0, s_unused);
+
+// 005F2E00 (ui_item_screen.cpp): ours only (the sprites' geometry through the Rebirth-patched
+// SetRectangle); the two bars stay where they were in the list.
+static void __fastcall IconBarsVerify(CItemIconWindow* self, void*, int y) {
+    CEngineObject* left = self->sceneObjects_.data[25];
+    CEngineObject* right = self->sceneObjects_.data[26];
+    self->PlaceBars(y);
+    ei::verify::Check("CItemIconWindow::PlaceBars", true,
+                      self->sceneObjects_.data[25] == left && self->sceneObjects_.data[26] == right, "");
+}
+EI_VERIFY(0x005F2E00, IconBarsVerify, 0, s_unused);

@@ -93,9 +93,9 @@ EI_REPLACE_METHOD(0x005EE380, CItemInfoPanel::DestroyBody);
 
 void CChatWindow::DestroyBody() {
     texts_.Destruct();
-    for (CRefObject* message : messages_)
-        if (message) message->Release();
-    messages_.FreeStorage();
+    for (CRefObject* player : players_)
+        if (player) player->Release();
+    players_.FreeStorage();
     DestroyBase();
 }
 EI_REPLACE_METHOD(0x00608ED0, CChatWindow::DestroyBody);

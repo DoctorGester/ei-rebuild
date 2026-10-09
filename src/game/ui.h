@@ -581,11 +581,16 @@ struct UiInputSide {
         using Fn = void(__thiscall*)(UiInputSide*);
         reinterpret_cast<Fn>(vtable_[kDeactivate])(this);
     }
-    // Slots 2-11: (buttons, x, y) or (key, repeat, flags).
-    void Event(int slot, int a, int b, int c) {
-        using Fn = void(__thiscall*)(UiInputSide*, int, int, int);
-        reinterpret_cast<Fn>(vtable_[slot])(this, a, b, c);
+    // Slots 2-11: (buttons, x, y) or (key, repeat, flags). Returns the handler's EAX.
+    int Event(int slot, int a, int b, int c) {
+        using Fn = int(__thiscall*)(UiInputSide*, int, int, int);
+        return reinterpret_cast<Fn>(vtable_[slot])(this, a, b, c);
     }
+    // 005E2860 / 005E2880 (slots 7 / 8 of the base input side 007401D0 and most screens;
+    // ui_input_defaults.cpp; RET 0xC): a double click is handled as a single press, slot 2 / 5 with
+    // the same arguments; the handler's EAX is returned.
+    int LeftDoubleAsDown(int buttons, int x, int y);
+    int RightDoubleAsDown(int buttons, int x, int y);
     // Slot 12. The handlers return 1.
     int Wheel(int flags, int delta, int x, int y) {
         using Fn = int(__thiscall*)(UiInputSide*, int, int, int, int);

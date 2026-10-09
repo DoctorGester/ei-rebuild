@@ -112,6 +112,19 @@ void CItemIconWindow::Build() {
 }
 EI_REPLACE_METHOD(0x005F2A90, CItemIconWindow::Build);
 
+// --- 005F2E00: the first two bars moved ------------------------------------------------------------
+
+void CItemIconWindow::PlaceBars(int y) {
+    constexpr int kLeftBar = 25, kRightBar = 26;   // after the cell strip and the 4 x 6 column pieces
+    float top = static_cast<float>(y - 20);
+    float bottom = static_cast<float>(y + 20);
+    reinterpret_cast<CUiMesh*>(sceneObjects_.data[kLeftBar])
+        ->SetRectangle(7.8f, 100.0f, 0.0f, top, 100.0f, bottom, 0xFE, 0x22, 0x9A, 0x4A);
+    reinterpret_cast<CUiMesh*>(sceneObjects_.data[kRightBar])
+        ->SetRectangle(7.8f, 100.0f, 100.0f, top, 200.0f, bottom, 0x9A, 0x22, 0xFE, 0x4A);
+}
+EI_REPLACE_METHOD(0x005F2E00, CItemIconWindow::PlaceBars);
+
 // --- 005EDD80: the item screens' base Create ------------------------------------------------------
 
 namespace {

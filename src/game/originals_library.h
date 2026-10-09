@@ -378,6 +378,10 @@ __declspec(naked) inline void* __fastcall PointArrayConstructOriginal(void* /*ar
 // the iterator to `out` (RET 8: out, key; EAX = out).
 __declspec(naked) inline void* __fastcall NameMapInsertOriginal(void* /*map*/, void*, const void* /*pair*/)
     EI_ORIGINAL(0x00514880)
+// 0053C780: operator[] of the figure prototypes' hash_map<string, record*> (007AF3A4; RET 4: the key string; EAX the
+// value's address; an unknown name gets a null entry).
+__declspec(naked) inline char** __fastcall FigureMapAtOriginal(void* /*map*/, void*, const void* /*key*/)
+    EI_ORIGINAL(0x0053C780)
 // 0053D340: the same find_or_insert on another hash_map<string, T*> instantiation (the figure prototypes, 007AF3A4).
 __declspec(naked) inline void* __fastcall FigureMapInsertOriginal(void* /*map*/, void*, const void* /*pair*/)
     EI_ORIGINAL(0x0053D340)
