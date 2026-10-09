@@ -84,6 +84,10 @@ public:
     // 004A4A90 (RET 8, AL). From the start (reading_ set), reads blocks until one has tag `id`;
     // when none has, `out` is emptied and the result is false.
     bool FindTagged(std::uint32_t id, CStream* out);
+    // 004A4AF0 (RET 0xC; A-S9; called only by Rebirth's EI_Plugin.asi). Copies this stream's tagged
+    // blocks, from its position, to `out` (reading_ cleared), the block with tag `id` replaced by all
+    // of `replacement` (sought to 0, read); without one, `replacement` is appended under `id`.
+    void ReplaceTagged(std::uint32_t id, CStream* replacement, CStream* out);
     // 004A48F0 (RET 8). Reads bytes into `buffer` until a zero or `capacity` bytes;
     // buffer[capacity - 1] is always set to zero.
     void ReadText(char* buffer, int capacity);

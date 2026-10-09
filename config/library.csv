@@ -1249,8 +1249,17 @@ address,name,library,signature,notes
 004A2FF0,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,,"inventory sweep: n*sizeof(T) back to the node-pool free list, operator delete above 128 bytes; loose-family member of 004251B0 (reviewed)"
 004A3030,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 5 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 004A5950,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 004A5950 (reviewed)"
+004A5A30,NamedPartyRecords destructor (compiler-generated),STLport,,"A-S9: EH unwinding only: the two CStrings, each record released (0040A3A0), the vector storage"
+004A5D50,counted_ptr<T>::counted_ptr(const counted_ptr&),STLport,,"A-S9: copy, count +1 (PartyRecord)"
+004A5D70,counted_ptr<T>::~counted_ptr,STLport,,"A-S9: release: count -1, slot 0 with 1 at zero (PartyRecord)"
 004A6280,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 3 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
+004A6840,ItemStock destructor (compiler-generated),STLport,,A-S9: EH unwinding only; the template destructor 004A6A90 inlines its own copy
 004A6990,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 004A5950 (reviewed)"
+004A7EA0,counted_ptr<T>::~counted_ptr,STLport,,"A-S9: release: count -1, slot 0 with 1 at zero (ClassTemplate)"
+004A8300,counted_ptr<T> add-reference,STLport,,"A-S9: count +1 (0055763D, 004A826E)"
+004A8930,stlp::string::string(const string&),STLport,,A-S9: node-pool copy with the length_error path (stlp.h names it)
+004A8A50,"stlp::hash_map<CString,float>::hash_map(const hash_map&)",STLport,,A-S9: the party variables' table (FloatTableCopyConstructOriginal)
+004A8AD0,"stlp::hash_map<CString,float>::operator=",STLport,,"A-S9: the party variables' table: clear, functors, _M_copy_from 004AA950"
 004A8B70,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 00408F90 (reviewed)"
 004A8C60,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 00421500 (reviewed)
 004A8CB0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 00421500 (reviewed)
@@ -1260,7 +1269,12 @@ address,name,library,signature,notes
 004A8E60,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 004A5950 (reviewed)"
 004A8F40,"stlp::hashtable<V,K,HF,ExK,EqK,A>::hashtable(n,hf,eql,a)",STLport,,inventory sweep: default 100 buckets rounded up through the STLport prime list; loose-family member of 004639D0 (reviewed)
 004A9010,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 004A5950 (reviewed)"
+004A90F0,stlp::vector<counted_ptr<T>>::~vector,STLport,,"A-S9: releases each pointer, frees the storage (EH unwinding of 004A8310 / 004A8560)"
+004A91B0,"stlp::hash_map<int,CParty>::operator[]",STLport,,"A-S9: the party manager's parties by key (resize 004AC940, _M_new_node 004AB980)"
+004A92B0,stlp::vector<T>::~vector (0x14-byte party manager entries),STLport,,A-S9: two CStrings and a vector<int> per element (EH unwinding)
 004A93D0,stlp::list<T>::clear,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+004A9460,stlp::_Destroy (CParty),STLport,,A-S9: the hash node value's destructor body 006611D0
+004A9480,"stlp::hashtable<V,K,HF,ExK,EqK,A>::hash_funct",STLport,,A-S9: copies the functor byte
 004A94A0,stlp::list<T>::list,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004A9650,stlp::list<T>::clear,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004A96A0,stlp::list<T>::clear,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
@@ -1274,8 +1288,10 @@ address,name,library,signature,notes
 004A9830,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004A9870,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004A98C0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+004A9910,"stlp::vector<counted_ptr<T>>::erase(first,last)",STLport,,A-S9: PartyRecord pointers (release 004A5D70)
 004A99A0,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004A99C0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+004A9A00,"stlp::vector<counted_ptr<T>>::erase(first,last)",STLport,,A-S9: ClassTemplate pointers (release 004A7EA0)
 004A9A90,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004A9AD0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004A9C80,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 00424AF0 (reviewed)
@@ -1303,6 +1319,7 @@ address,name,library,signature,notes
 004AA8D0,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,,"inventory sweep: n*sizeof(T) back to the node-pool free list, operator delete above 128 bytes; loose-family member of 00411B30 (reviewed)"
 004AA910,stlp::_STLP_alloc_proxy<T>::_STLP_alloc_proxy,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004AA930,stlp::_STLP_alloc_proxy<T>::_STLP_alloc_proxy,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+004AA950,"stlp::hashtable<pair<const CString,float>,...>::_M_copy_from",STLport,,"A-S9: the party variables' table (FloatTableCopyFromOriginal); bucket vector resized, each chain copied (004615B0)"
 004AAB20,stlp::vector<T>::reserve,STLport,,inventory sweep: returns if capacity suffices; else allocate_and_copy and free the old block to the node pool; loose-family member of 0040AF00 (reviewed)
 004AAD70,stlp::vector<T>::_M_fill_insert,STLport,,inventory sweep: insert n copies at pos; calls _M_insert_overflow when capacity is short; loose-family member of 00406810 (reviewed)
 004AAEB0,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain (CString values), nodes back to the pool; loose-family member of 00461540 (reviewed)"
@@ -1311,9 +1328,16 @@ address,name,library,signature,notes
 004AB2B0,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain (CString values), nodes back to the pool; loose-family member of 00461540 (reviewed)"
 004AB320,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00426F00 (reviewed)"
 004AB520,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00426F00 (reviewed)"
+004AB720,"stlp::hash_map<string,T*>::operator[](const char*) (weapon table 007C86F8 +0xC)",STLport,,"A-S9: temporary string and pair, find_or_insert 004ACAB0; same kind as 00613820"
+004AB820,"stlp::hash_map<string,T*>::operator[](const char*) (armor table 007C8718 +0xC)",STLport,,"A-S9: temporary string and pair, find_or_insert 004ACB60; same kind as 00613820"
+004AB910,stlp::copy(counted_ptr<T>),STLport,,"A-S9: counted assignment, returns the destination end"
+004AB960,counted_ptr<PartyRecord> scalar deleting destructor,STLport,,"A-S9: release 004A5D70, then delete on flag bit 0"
+004AB980,"stlp::hashtable<pair<const int,CParty>,...>::_M_new_node",STLport,,"A-S9: 0x78-byte nodes from the pool chunk list 0079B25C, value copy-constructed (006613C0)"
+004ABA70,"stlp::hashtable<pair<const int,CParty>,...>::_M_delete_node",STLport,,"A-S9: value destroyed, node back to 0079B25C"
 004ABAA0,"stlp::hashtable<pair<const string,T>,...>::find_or_insert",STLport,,"inventory sweep: string key, EH frame; resize, hash, compare, insert; loose-family member of 004297A0 (reviewed)"
 004ABBD0,"stlp::hashtable<pair<const string,T>,...>::find_or_insert",STLport,,"inventory sweep: string key, EH frame; resize, hash, compare, insert; loose-family member of 004297A0 (reviewed)"
 004ABD00,"stlp::hashtable<pair<const string,T>,...>::find_or_insert",STLport,,"inventory sweep: string key, EH frame; resize, hash, compare, insert; loose-family member of 004297A0 (reviewed)"
+004ABE30,counted_ptr<T>::counted_ptr(const counted_ptr&),STLport,,"A-S9: copy, count +1"
 004ABE50,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 0040C720 (reviewed)
 004ABE90,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 0040C720 (reviewed)
 004ABED0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 0040C720 (reviewed)
@@ -1335,19 +1359,31 @@ address,name,library,signature,notes
 004ACB60,"stlp::hashtable<pair<const string,T>,...>::find_or_insert",STLport,,inventory sweep: resize(n+1); __stl_hash_string (h*5+c); string compare; _M_new_node; loose-family member of 004ACAB0 (reviewed)
 004ACC10,"stlp::hashtable<pair<const string,T>,...>::find_or_insert",STLport,,inventory sweep: resize(n+1); __stl_hash_string (h*5+c); string compare; _M_new_node; loose-family member of 004ACAB0 (reviewed)
 004AD050,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain (CString values), nodes back to the pool; loose-family member of 00461540 (reviewed)"
+004AD2E0,stlp::list<T>::iterator::iterator,STLport,,A-S9: stores the node pointer
+004AD2F0,stlp::copy(counted_ptr<T>),STLport,,A-S9: counted assignment forward
+004AD340,stlp::copy(counted_ptr<T>),STLport,,A-S9: counted assignment forward (ClassTemplate)
+004AD390,stlp::copy (0x14-byte party manager entries),STLport,,"A-S9: element-wise assignment (CStrings, vector<int>::operator=)"
+004AD500,party manager entry operator= (compiler-generated),STLport,,A-S9: two CStrings and vector<int>::operator= inlined
+004AD620,stlp hash node value scalar deleting destructor (CParty),STLport,,"A-S9: 004A9460, then delete on flag bit 0"
+004AD640,stlp container destructor (vector + list sentinel),STLport,,"A-S9: list nodes and sentinel back to the pool, then the vector storage"
 004AD6C0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 0040C720 (reviewed)
 004AD700,stlp::vector<T>::resize,STLport,,inventory sweep: destroys the tail (RefPtr release) or fills; RefPtr elements; loose-family member of 004200C0 (reviewed)
+004AD8B0,counted_ptr<T>::counted_ptr(const counted_ptr&),STLport,,"A-S9: copy, count +1"
 004AD8D0,stlp::vector<T>::resize,STLport,,inventory sweep: destroys the tail (RefPtr release) or fills; RefPtr elements; loose-family member of 004200C0 (reviewed)
 004ADA80,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+004ADAA0,stlp::vector<T>::resize (0x14-byte party manager entries),STLport,,A-S9: erase the tail or _M_fill_insert 004AF5D0 with an empty entry
 004ADBE0,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_new_node",STLport,,"inventory sweep: node from the node-pool free list (inlined refill), value constructed in place; loose-family member of 0042A650 (reviewed)"
 004ADD00,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_new_node",STLport,,"inventory sweep: node from the node-pool free list (inlined refill), value constructed in place; loose-family member of 0042A650 (reviewed)"
 004ADE20,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_new_node",STLport,,"inventory sweep: node from the node-pool free list (inlined refill), value constructed in place; loose-family member of 0042A650 (reviewed)"
 004ADF40,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_new_node",STLport,,"inventory sweep: node from the node-pool free list (inlined refill), value constructed in place; loose-family member of 0042A650 (reviewed)"
 004AE060,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_new_node",STLport,,"inventory sweep: node from the node-pool free list (inlined refill), value constructed in place; loose-family member of 0042A650 (reviewed)"
 004AE180,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_new_node",STLport,,"inventory sweep: node from the node-pool free list (inlined refill), value constructed in place; loose-family member of 0042A650 (reviewed)"
+004AE2D0,party manager entry destructor (compiler-generated),STLport,,"A-S9: vector<int> storage, two CStrings"
+004AE3A0,"stlp::vector<int>::resize(n, x)",STLport,,A-S9: truncate or fill-insert at the end
 004AE500,"stlp::hashtable<V,K,HF,ExK,EqK,A>::begin",STLport,,inventory sweep: first non-empty bucket; loose-family member of 00404C30 (reviewed)
 004AE560,"stlp::_Vector_base<T>::_Vector_base(size_t,const allocator&)",STLport,,inventory sweep: allocates n elements from the node pool (inlined _S_chunk_alloc refill); loose-family member of 00407740 (reviewed)
 004AE780,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+004AE7C0,trivial destructor (empty),STLport,,A-S9: RET only
 004AE7D0,stlp::_STLP_alloc_proxy<T>::_STLP_alloc_proxy,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004AE7F0,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,,"inventory sweep: n*sizeof(T) back to the node-pool free list, operator delete above 128 bytes; loose-family member of 004251B0 (reviewed)"
 004AE830,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00408060 (reviewed)"
@@ -1364,6 +1400,9 @@ address,name,library,signature,notes
 004AF2B0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004AF300,"stlp::hashtable<V,K,HF,ExK,EqK,A>::resize",STLport,,inventory sweep: next size from the STLport prime list 0073B914..0073B980; rehashes the bucket chains; loose-family member of 0042AFD0 (reviewed)
 004AF460,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
+004AF5D0,stlp::vector<T>::_M_fill_insert (0x14-byte party manager entries),STLport,,A-S9: in place or through _M_insert_overflow 004B0F80
+004AF850,stlp::vector<int>::operator=,STLport,,A-S9: reallocate (004B0E20) or copy in place
+004AFAC0,stlp::copy<int>,STLport,,A-S9: dword copy forward
 004AFAE0,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004AFB00,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 004AFB20,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
