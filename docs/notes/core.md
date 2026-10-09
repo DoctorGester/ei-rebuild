@@ -84,9 +84,8 @@ File `engine_object.cpp`, `base_manager.cpp`, `hash_tables_400.cpp`. Verify `ver
   manager around vtable 00743D10) are reached only through vtables.
 - Not hookable (shorter than the 5-byte jump): 00402CC0, 00402CD0, 00402D00, 00402D10, 00402D80,
   00402DC0, 00403010 (RETs / `return 0` slots).
-- Verify fixes worth remembering: ConstructBase and the registry constructor copy uninitialised stack
-  bytes into the hashtable functor bytes (+0x1C / +0x50 / +0x68 / +0x80); ours writes zeros, the wrapper
-  copies those bytes from ours before comparing.
+- ConstructBase and the registry constructor copy uninitialised stack bytes into the hashtable functor bytes (+0x1C /
+  +0x50 / +0x68 / +0x80); ours writes zeros (the wrapper copies them from ours before comparing).
 - Kept: DestroyAll and Destroy read a node's next pointer after Release may have freed the object (the
   STLport pool keeps the memory); LoadObjects reads an id equal to the end mark as an object id when a
   1 byte follows.
@@ -131,13 +130,10 @@ Verify `verify_core_streams`, `verify_chunk_stream`, `verify_chunk_archive`.
 | 0042BEC0-0042D0E0 (30) | `Chunk` Construct, Destruct, Advance, File, Begin/EndWrite, WriteHeader, SkipContent, ReadHeader, ForEachChild, Read / Write Float / Int / Byte / Vector3 / Quad / Quaternion / Bytes / Blob; 0042C580 ReadString, 0042C650 ReadEncodedString (content decoded by 004D8E10), 0042C820 WriteString, 0042CA20 / 0042CB80 Read / WriteStringArray; RootChunk Open / Destruct | recorded file (below); ForEachChild, strings through the recording proxy; ForEachChild ours only |
 | 00409070-0040A5A0 (24) | `ChunkArchive` NextChild, FindChild, CountChildrenOf, CountChunks, Field, EnterChunk, LeaveChunk, AppendChild, ResizeToCurrent, `Ref::Reset`, Read / Find / WriteStreamChunk, Open, Close, CStringField (004093A0), StringField (00409470), StreamField (00409640), SaveObjectRef (0040A440), ObjectRef (0040A5A0) | pure side by side; EnterChunk original first (chunk popped) then ours; others ours only + depth / size; loading fields: original into a scratch |
 
-- Recorded-file verify (chunks, FileStream, transform save / load): ours runs on the real object with
-  the embedded CFile's vtable swapped for a recorder (each call forwarded, then logged: slot, arguments,
-  result, bytes up to 64 KB); the original then runs on a byte copy whose CFile replays the log. Calls,
-  arguments, written bytes, chunk chains and outputs must match; a log over 256 calls / 256 KB skips the
-  comparison. Checks do not nest.
-- Memory streams are deep-copied only for the two CMemoryStream vtables; with any other stream class
-  the wrapper runs ours only.
+- Recorded-file verify (chunks, FileStream, transform save / load): ours runs with the CFile's vtable swapped for a
+  recorder, the original on a byte copy whose CFile replays the log; calls, bytes, chunk chains and outputs compared
+  (over 256 calls / 256 KB skipped; checks do not nest). Memory streams are deep-copied only for the two CMemoryStream
+  vtables; other stream classes run ours only.
 - Kept: `ReadQuad` returns the file's values in the order 2, 0, 3, 1; `ReadVector3` copies x and z
   through the FPU (a signalling NaN becomes quiet; `FpuCopyBits`), y as an integer; `ForEachChild` reads
   the parent without a null check; `CMemoryStream::Destruct` leaves the freed pointer;
@@ -153,9 +149,8 @@ Verify `verify_core_streams`, `verify_chunk_stream`, `verify_chunk_archive`.
 File `clip.cpp`, `verify_clip`. `ClipTriangle` 0042D910 and the six plane clippers 0042DB70 (X below),
 0042DD00, 0042DE90, 0042E020, 0042E1B0, 0042E340 (Z above) and `LerpVertex` 0042E4D0 clip the mesh
 renderer's software path (meshes drawn through slot 17 of vtable 0073D93C, 00502CA0, whose triangles
-cross the viewport). Verified by ours first on the real data (index list, counts, appended vertices,
-work buffer, last ratio recorded), then the inputs are restored and the original runs; everything
-must match. The original `ClipTriangle` calls the clippers through their hooked addresses.
+cross the viewport). Verified ours first, inputs restored, original, all outputs compared (the original `ClipTriangle`
+calls the clippers through their hooked addresses).
 Compiled with `float_control(precise, on)` (`(b - a) * t + a`); the intersection ratio is computed in
 a small naked helper (`StoreRatio`) because the original stores the float with FST while comparing
 the unrounded quotient with 1.

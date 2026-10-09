@@ -661,10 +661,9 @@ The steps added for UI work (`screen`, `clickregion` / `moveregion`, `wheel`, `d
   00594180 with player 0) as the zone exit handler (00670C20) and script command 0x8A do; it needs state 1, and in campaign mode 1
   or 3 a dead or missing leader loses the game instead. `waitzone` waits for no pending game request, campaign mode (007C2CC4) not
   2 (menu), the server world's zone name (+0x120, set by NewZone 00595480) and state 1; the party appears a little later
-  (Redeploy), so follow it with `waitfor ... HP(GetLeader())`. The exit index is stored in the world player's +0xDC (zone +0xD8);
-  Redeploy (00590700, modes 1 and 3) puts the party at the centre of that exit's deploy rectangle (exit +0x04..+0x10), facing away
-  from the map centre unless the exit has a `#deployangle` (an index outside the zone's exits leaves it at (0, 0)); the index
-  counts `#exit` blocks from 0, i.e. map.txt's `#exit n` minus 1. Zones: game `gz1g`..`gz21g`, brief `bz1g`..`bz18h`, edge zones
+  (Redeploy, world.md "Party between zones"), so follow it with `waitfor ... HP(GetLeader())`. The exit index (world player
+  +0xDC, zone +0xD8) counts `#exit` blocks from 0 (map.txt's `#exit n` minus 1); the deploy rectangle is exit +0x04..+0x10, an
+  index outside the zone's exits leaves the party at (0, 0). Zones: game `gz1g`..`gz21g`, brief `bz1g`..`bz18h`, edge zones
   `<a>_<b>` (no `#res`, mode 4; `waitzone` does not recognise them). One-way entrances (`none 0`): gz1g's #exit 1, gz4g's 5, bz4g's
   and bz13h's 1, gz11k's 4, gz15h's 2..4, gz20g's; `gz21g` names zonemichel.mpr / .mob which the install lacks (NewZone fails;
   untested); `gz6g` loads its frozen map when `z.gz6g.frozen` is nonzero; no zone needs quest state to load. Not tried: edge zones,
