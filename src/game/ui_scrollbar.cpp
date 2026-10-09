@@ -5,6 +5,7 @@
 
 #include "ei/hook.h"
 
+
 namespace {
 
 constexpr std::uintptr_t kScrollbarVtable = std::uintptr_t(0x00742C18);
@@ -53,8 +54,11 @@ void CUiScrollbar::SetPosition(int position) {
     moved_ = true;
     if (position_ == position) return;
     position_ = position;
-    // FILD, FIDIV, _ftol: truncated (a zero maximum gives the integer indefinite, as the original).
-    int offset = static_cast<int>(static_cast<double>((track_.bottom - track_.top) * position) / maximum);
+    // FILD, FIDIV, _ftol: truncated. A zero maximum divides 0 by 0 (the position is clamped to 0);
+    // the game's _ftol stores the NaN as a 64-bit integer (0x8000000000000000) and returns its low
+    // half, 0, where a C++ cast would give 0x80000000.
+    int offset = maximum == 0 ? 0
+                              : static_cast<int>(static_cast<double>((track_.bottom - track_.top) * position) / maximum);
     Sprite(this, kThumb)->Place(static_cast<float>(track_.left + static_cast<double>(ThumbInset())),
                                 static_cast<float>(static_cast<double>(offset) + track_.top), depth_ - ThumbLift());
     thumb_.left = track_.left;
