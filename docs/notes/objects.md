@@ -126,8 +126,7 @@ The "changed" senders compare the object's stamp with the world's update count; 
 (0050EA70 for map objects, `CEffect::SendDelta` for timed ones). world_sync.cpp names the six senders by the DiffObjectSets output
 they get: its "Kept" array gets the removals, "Removed" the changes. Receive errors go through 00664B70 (fatal) with the previous
 and current type. `CUnitServer::IsFighting` (0054B580) is Rebirth-patched: called through its address.
-`CWorldServer::CollectSharedObjects` (00594A30) takes the player id first (its two stack arguments were once swapped, also in
-its verify wrapper; multiplayer only).
+`CWorldServer::CollectSharedObjects` (00594A30) takes the player id first (multiplayer only).
 
 Rewritten (O unless marked; S = ours into the stream, the stream (and the fields named) restored, the original, compared):
 

@@ -57,13 +57,9 @@ top window's input slot 9. In-game hotkeys are looked up by scan code in the tab
 | 0064BE80-0065A500 | objectives window (0063B5D0), options, save/load; tutorial / help window from 00658000 (created by 005F86F0) |
 | 0065A500-00660000 | controls: scroll bar 0065AEA0, spin / edit 0065BC30 / 0065BCD0 / 0065C010, scrolling text 0065CC00, tooltip 0065E320, DirectInput mouse 0065EAD0, RichEdit 0065ED30, party bar 0065F2D0 |
 
-**Rebirth.** Rebirth's addon patches the five scaling helpers, the UI sprite placement (005E6FA0, 005E70E0, 005E7D60,
-005E7680, 005E99D0), CUiRegion::SetRect / AddPoint, 005FDE20 (text), 005F8340 (text extent) and many screen builders and
-key handlers. Rewritten callers go through the original addresses (`CInterface3D::CallScale*`, `CUiRegion::CallSetRect`,
-`CUiMesh::SetRectangle / SetFrame / Place`): calling our scaling versions directly made `RegionAt` disagree with the
-patched original. Rebirth also overwrites data the original reads at run time (00742B08, the clock's x centre, 800 in the
-exe, becomes its widescreen width): read such constants from memory. Rebirth-patched functions are hooked in the vanilla
-install only; the Rebirth smoke run is the check.
+**Rebirth** (WideScreen, rebirth.md) patches the five scaling helpers, the sprite placement (005E6FA0, 005E70E0, 005E7D60,
+005E7680, 005E99D0), CUiRegion::SetRect / AddPoint, 005FDE20 (text), 005F8340 (text extent), many screen builders and key
+handlers, and the constant 00742B08 (the clock's x centre, 800): callers go through the original addresses (rule 9).
 
 ## 2. Interface manager and window base (`ui_interface.cpp`, `ui_window.cpp`)
 
@@ -93,25 +89,17 @@ division-by-600 magic multiply) in EAX ("to screen") or the last result ("from s
 
 Kept: `AddRegion` leaves the new region's bounds uninitialised; the append's dead branch for `size == -1` frees the storage
 and stores through the null array; removing by index does not check it (past the end the original's `REP MOVSD` faults;
-ours skips the move). Library: STLport / MFC code in 005F3000-005F4990, 005F9810-005FC010, 0060A320-0060BD70,
-00613400-00613DF0, 00619420-0061B220, 0062A390 (reviewed ones in library.csv; 70 twins from the "A-I15 sweep").
+ours skips the move). The range's STLport / MFC code is in library.csv.
 
-**Byte-identical copies** registered with their anchors: iterator copies 005E2470, 005F97D0, 00609A30, 00609A70, 0062C080
-(`TextSourceIterator::CopyTo`), 005E6810 (`DwordArraySetSize`), 00600A80 (`AllocateDwords`), 00600330-006003B0 / 00601B50
-(`ArrayFree1`), 005ED7A0 (`RefObjectDestructBase`), 005FC1C0 (`RefPtrNull`), 00609960 (`RefPtrCopyPlain`), 0062D330 (= 
-`CBriefingScreen::SaveState`), 005EA150 (`CFigureMesh::RefreshBuffers`). Left: twins under 5 bytes, the 30-byte scalar
-deleting destructors, the CString-member destructors 005FBE30 / 006062B0 / 0060F460.
+**Byte-identical copies** are registered with their anchors (iterators, DwordArraySetSize, AllocateDwords, ArrayFree1,
+RefObjectDestructBase, RefPtrNull, RefPtrCopyPlain, 0062D330 = `CBriefingScreen::SaveState`, 005EA150 =
+`CFigureMesh::RefreshBuffers`). Left: twins under 5 bytes, the 30-byte scalar deleting destructors, the CString-member
+destructors 005FBE30 / 006062B0 / 0060F460.
 
-**Deleting destructors** (`ui_window_delete.cpp`, O). Slot 0 of every window in 005E0000-00640000 (50) and the input
-sides' slot 0 (37 thunks `SUB ECX,0x94; JMP`; ours return the window); bodies that only jump to 005FE930 / 00600BA0 are
-registered as those. Ported bodies: 005EACF0 / 00602BA0 (input side base 007401D0), 005EE380 `CItemInfoPanel`, 00608ED0
-`CChatWindow` (00741478, the base screen's chat window, constructor 00608D20), 0060E2B0 the forwarding strip (0060E280, the
-plain strip's, frees nothing of its own: kept), 0060E600 `CSpellMakerPage`, 0061E3E0 = 00633750 `CMessageBox`, 0061E460
-`CMasterRequestBox` (00741DD8: message box + master server link at +0x180), 005E28E0 / 005E2670 `CChatOverlay` /
-`ChatLine` (007400DC), 005F6130 `CBattleScreenSetup`, 005F8970 `CHelpWindow` (00740E28), 00603B90 `CObjectivesWindow` (does
-not free the exit distances map +0x178: kept), 006070C0 `CSaveLoadWindow`, 005F6BA0 `CBriefingScreen`, 00618570
-`CMpConnectScreen` (`MpAddressEntry` 0x34 bytes), the HUD panels' input thunks 0064BCF0-0064BD80. 0062EDA0 is 00499E30's
-code.
+**Deleting destructors** (`ui_window_delete.cpp`, O): slot 0 of all 50 windows in 005E0000-00640000 and the input sides'
+37 thunks (`SUB ECX,0x94; JMP`; ours return the window). Kept: the plain strip's 0060E280 frees nothing of its own;
+`CObjectivesWindow` 00603B90 does not free the exit distances map +0x178. `CMasterRequestBox` (00741DD8) is a message box
+plus a master server link at +0x180; `MpAddressEntry` is 0x34 bytes; 0062EDA0 is 00499E30's code.
 
 ### Window stack, screen construction, window base methods (O unless noted)
 
@@ -168,8 +156,7 @@ Every scenario reaches the frame, draw, cursor and shutdown code. Not rewritten 
 `CInterface3D` declares +0x40 (queued window), the fonts +0x70, `messages_` +0x84 (stlp::list of CString), `helpTopics_` +0x98
 (stlp::map<CString, int>); its root window +0x1C is the `CChatOverlay` (`chatOpen_` +0x14C, `caret_` +0x154). `CUiItemPanel`
 (+0x148 `mode_`, +0x14C `owner_`) is the base of the description panel, hero equipment, quick strip, trade / repair grids,
-constructor pages and the blank panel 00741B58. The hero stats panel's deleting destructors 0060E340 / 00613DD0 were once
-registered as the plain window's and leaked (fixed).
+constructor pages and the blank panel 00741B58. The hero stats panel has its own deleting destructors 0060E340 / 00613DD0.
 
 `Update`: a pending value (+0x4C) pops the top window (input slot 1, slot 26, deleting destructor); 0x990001 sets close-all
 and leaves the game (0057ECA0, 00581660); then +0x81 polls slot 35, close-all pops every window (005F8C50), a queued window
@@ -181,11 +168,10 @@ value, which a naked forwarder cannot declare (C3068): the data pointer is hande
 (`TextMetricsAt::TextExtent`). Measuring uses a screen DC GetDC(0079BC28) and the font CInterface3D +0x70 + font*4, scaled to
 800x600 by integer maths; a word that did not fit before a '\n' goes on a line of its own (even an empty one).
 
-**Rule (GDI text pixel checks).** A rare pixel mismatch (a short Cyrillic word, two runs at the same millisecond) was an
-outside event on the shared full-screen dgVoodoo desktop. The check redraws the original from the recorded pixels until two
-draws agree (`ei::verify::SettleOriginal`, `tests/verify/pixel_settle.h`: up to 5 tries, 150 ms total) and compares ours with
-that; an original that never settles is not compared. Used by DrawWrappedText, the console, the item panel's `CompareDrawing`
-and `CTradePanel::DrawLists` (X11), the only wrappers that compare surface pixels.
+**Rule (GDI text pixel checks).** Other programs on the shared dgVoodoo desktop can disturb a draw: the check redraws the
+original until two draws agree (`ei::verify::SettleOriginal`, `tests/verify/pixel_settle.h`: up to 5 tries, 150 ms) and
+compares ours with that (never settled: not compared). Used by DrawWrappedText, the console, the item panel's
+`CompareDrawing` and `CTradePanel::DrawLists`, the only wrappers that compare surface pixels.
 
 Kept: the console's Up key increases the command index, Down stops at -1; Delete with no selection at the input's end does
 nothing; a failed console font allocation still calls CreatePointFont on null; Shutdown deletes the queued window (+0x40) and
@@ -357,15 +343,14 @@ Hazards and facts:
   record +0x10 flag is set (made by a constructor) go back to the constructor's parts list and strip (+0x1EC / +0x1F0), others to
   the local player (00578BA0) and the item strip (+0x1E0). Leaving (page 7) without a constructor still calls ReturnAll with the
   null constructor lists +0x1C8 / +0x1B4 as `to` and empty `from` lists; ReturnAll reads `to` only when `from` holds something,
-  and so must its wrapper (its log once faulted at 0x44). Hero skills: 00527EB0's result is stored as float then FISTP; the mana
+  and so must its wrapper. Hero skills: 00527EB0's result is stored as float then FISTP; the mana
   maximum (00523F50) is stored as float, divided by the period (00523CD0, unrounded) and truncated (`StoreFloat`).
 - **MoveItem**: with `limit` > 0 (and at least that many items in the target) it moves only an item the same as one of the
   target's first `limit` items, and then gives no turning state; ScrollToItem (the camp's "AddItem" call sites) does not update
   `count_`; its second loop inlines the array's SetSize.
 - **Trade panel** (vtable 007417A8; the camp's +0x1F4, the hero screen's +0x1C4): rows of 0x18 bytes (STLport vectors); perk text
   keys are the record's +4 name without trailing "123" plus "0"; held perks are a level byte per group of three skill records
-  (007AF268, 0x44 bytes). **The hero screen's rotation state is window +0x1E4 (the turn +0x1E0), not +0x150**: `rotating_` was once
-  declared at +0x150 and the preview kept turning (fixed).
+  (007AF268, 0x44 bytes). **The hero screen's rotation state is window +0x1E4 (the turn +0x1E0), not +0x150.**
 
 Kept: `FindPaths` leaves `beyondTarget_` (+0x1DD) set when the target zone it went beyond is already on the way; the global map's
 marker array templates have uninitialised numbers (ours 0); `ZonePosition` / `QuestPosition` leave uninitialised stack in `out`
@@ -549,8 +534,8 @@ Rectangles from `menus.reg`: save/load OK 163..237, Cancel 563..637, Delete 363.
 | Address | Name (file) | Scenario |
 |---|---|---|
 | 00654660, 006547B0, 006544A0, 006545E0, 00654430, 00654450, 006548A0, 00655430, 00657820 (P), 00655050, 006577B0 | `CSaveLoadWindow::OnMouseDown`, `OnDoubleClick`, `Draw`, `Update`, `CloseDialog`, `OnDialogResult` (the caller 005F590D ignores EAX), `OnKeyDown` (Esc: 0x100001 / 0x110001), `ShowSelection`, `IsReservedSave`, `OnChar`, `TakeSelectedTitle` | ui_hud, ui_saveload |
-| 00655290, 00655380, 00655A10, 00655B20 | `Confirm`, `AskDelete`, `LoadSelected`, `DeleteSave` (looked up through the game's GetFileAttributesA import, which harness runs redirect to harness_saves; X23); called by address (Call*) | ui_saveload, ui_saveload_delete |
-| 00653A50 (S), 00653BD0 (S), 00653CD0 (S) | `SaveEntry::MakeTitle`, `ZoneTitle` / `AllodTitle` ("zone " / "allod " with the space, 007941F8 / 00794200: without it every title was the fallback, X23; else "save_camp" / "Unknown") (`ui_saveload.cpp`) | ui_saveload |
+| 00655290, 00655380, 00655A10, 00655B20 | `Confirm`, `AskDelete`, `LoadSelected`, `DeleteSave` (looked up through the game's GetFileAttributesA import, which harness runs redirect to harness_saves); called by address (Call*) | ui_saveload, ui_saveload_delete |
+| 00653A50 (S), 00653BD0 (S), 00653CD0 (S) | `SaveEntry::MakeTitle`, `ZoneTitle` / `AllodTitle` ("zone " / "allod " with the space, 007941F8 / 00794200; else "save_camp" / "Unknown") (`ui_saveload.cpp`) | ui_saveload |
 | 006570E0, 006575B0 | `QuickSave` (`__fastcall` slot, DL frame step), `QuickLoad` | newgame's savea |
 | 00653DD0, 006503C0, 0062B180 | `CSaveLoadWindow::Build`, `COptionsWindow::Build`, `DestroyOptions` (`bindings_` / `settings_` are stlp::vectors, `groupNames_` an mfc::CStringArray) | ui_hud, ui_main_menu, ui_screens |
 | 00650C20, 00650D70, 00650920, 00650A20, 006508E0, 00650900 (P), 00650A30, 00650E40 | `COptionsWindow::OnMouseDown`, `OnDoubleClick`, `Draw`, `Redraw`, `OnDialogResult`, `HelpTopic`, `Update`, `OnKeyDown` | ui_hud |
