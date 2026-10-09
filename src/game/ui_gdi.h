@@ -56,6 +56,27 @@ struct GamePen {
 };
 static_assert(sizeof(GamePen) == 8);
 
+// MFC CBrush (CGdiObject: vtable, m_hObject), as a local: constructed empty with CBrush's vtable,
+// a brush attached, destroyed as the game inlines it.
+struct GameBrush {
+    BOOL Attach(HGDIOBJ handle);                                 // 0070A075 CGdiObject::Attach
+    BOOL DeleteObject();                                         // 0070A0CC CGdiObject::DeleteObject
+    void Construct() {
+        vtable_ = reinterpret_cast<void**>(0x007463C4);
+        handle_ = nullptr;
+    }
+    void Destruct() {
+        vtable_ = reinterpret_cast<void**>(0x007463D4);
+        DeleteObject();
+    }
+    // operator HBRUSH (GetSafeHandle; a local is never null).
+    HBRUSH Handle() const { return static_cast<HBRUSH>(handle_); }
+
+    void** vtable_;
+    HGDIOBJ handle_;
+};
+static_assert(sizeof(GameBrush) == 8);
+
 // The DC of an interface surface (CUiSurface; also the console window's surface).
 struct SurfaceDC {
     GameDC* GetDC() { return SurfaceGetDC(this); }      // 005FDC00 (null when the surface has no DirectDraw surface)

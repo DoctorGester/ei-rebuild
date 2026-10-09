@@ -277,9 +277,6 @@ void PutArrow(UiQuadBlock& b, const CUnit* unit, float x, float y) {
 
 // --- Forwarders --------------------------------------------------------------------------------
 
-__declspec(naked) void CUiMesh::SetQuadCount(int) EI_ORIGINAL(0x005EA210)
-__declspec(naked) void CUiMesh::SetVertexCount(int) EI_ORIGINAL(0x005EA600)
-__declspec(naked) void CUiMesh::SetIndexCount(int) EI_ORIGINAL(0x005EA4C0)
 __declspec(naked) int CUiMesh::Commit() EI_ORIGINAL(0x005EA150)
 
 // --- 00643DC0 ----------------------------------------------------------------------------------
@@ -442,7 +439,6 @@ void ClipPass(UiPointArray& points, Cut cut, Outside outside) {
 
 } // namespace
 
-__declspec(naked) void CUiMesh::SetUvCount(int) EI_ORIGINAL(0x005EA380)
 __declspec(naked) void __fastcall UiPointsSetSize(UiPointArray*, void*, int, int) EI_ORIGINAL(0x00453100)
 
 void CHudMap::UpdateView() {

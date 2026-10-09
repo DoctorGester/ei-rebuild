@@ -123,6 +123,19 @@ wait 200
 hudstate
 click 90 320
 wait 1000
+# A double click (the interface's flag +0x7F on the last release) uses the quick item (0063E020)
+# or the spell (0063EF60) at once: an attack spell on the nearest unit the hero sees (a wolf), or
+# the "nomagic" sound when it sees none.
+move 695 575
+wait 200
+dblclick 695 575
+wait 500
+hudstate
+move 780 490
+wait 200
+dblclick 780 490
+wait 500
+hudstate
 check IsAlive(GetLeader())
 report
 quit

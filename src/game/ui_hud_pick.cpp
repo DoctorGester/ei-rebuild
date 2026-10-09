@@ -7,6 +7,7 @@
 #include "item.h"
 #include "spell.h"
 #include "unit.h"
+#include "world.h"
 
 #include "ei/hook.h"
 #include "originals_ui.h"
@@ -14,7 +15,8 @@
 #include <cstdint>
 
 namespace {
-constexpr const char* kSoundClick = "buttons\\battle\\click.wav";   // 00794460
+constexpr const char* kSoundClick = "buttons\\battle\\click.wav";       // 00794460
+constexpr const char* kSoundNoMagic = "buttons\\battle\\nomagic.wav";   // 00794524
 constexpr int kQuickSlots = 8;
 // Item categories (CItem::GetCategory) that carry a spell to aim: wands and scrolls.
 constexpr int kCategoryWand = 5;
@@ -35,6 +37,29 @@ enum PendingAction : int {
 
 // The spell (+0x44) an item carries, or null.
 CSpell* SpellOf(CEngineObject* item) { return static_cast<CSpell*>(static_cast<CItem*>(item)->spell_); }
+
+// The shared tail of 0063E020 and 0063EF60: `spell` (an item's +0x44) used at once by `unit`'s
+// side. An attack spell goes to the nearest unit `unit` sees (none: the "nomagic" sound and the
+// pending action dropped; false), any other to `unit` itself; then UseOnUnit for a spell aimed at
+// a unit, else UseAtPoint at the target's position (both through their addresses), with `quick`.
+bool UseAtOnce(CBattleScreen* screen, CInterface3D* ui, CUnit* unit, CSpell* spell, char quick) {
+    CUnit* target = unit;
+    if (SpellIsOffensiveOriginal(spell)) {
+        target = static_cast<CUnit*>(WorldClient()->NearestVisibleUnit(unit));
+        if (!target) {
+            ui->PlaySound(kSoundNoMagic, 0);
+            screen->SetPendingAction(kPendingNone, -1, -1);
+            return false;
+        }
+    } else if (!target) {
+        return true;
+    }
+    if (spell->targetFlags_ & kSpellOnUnit)
+        BattleUseOnUnitOriginal(screen, nullptr, target, quick, 0);
+    else
+        BattleUseAtPointOriginal(screen, nullptr, target->positionX, target->positionY, target->positionZ, unit, quick);
+    return true;
+}
 } // namespace
 
 // --- Forwarders --------------------------------------------------------------------------------
@@ -148,3 +173,37 @@ namespace {
 void __fastcall QuickItemsPick(CHudQuickItems* self, void*, int slot) { self->Pick(slot); }
 } // namespace
 EI_REPLACE(0x0063DD70, QuickItemsPick);
+
+// --- 0063E020 / 0063EF60: a quick item or spell used at once ------------------------------------
+
+__declspec(naked) void CHudQuickItems::UseNowAt(int) EI_ORIGINAL(0x0063E020)
+
+void CHudQuickItems::UseNow(int slot) {
+    if (!unit_) return;
+    CEngineObject* item = unit_->GetQuickItem(slot);
+    if (!item) return;
+    owner_->SetPendingAction(kPendingQuickOnUnit, slot, -1);
+    int category = static_cast<CItem*>(item)->GetCategory();
+    if ((category == kCategoryWand || category == kCategoryScroll) && SpellOf(item))
+        if (!UseAtOnce(owner_, interface_, unit_, SpellOf(item), 1)) return;
+    interface_->PlaySound(kSoundClick, 0);
+    owner_->SetPendingAction(kPendingNone, -1, -1);
+}
+namespace {
+void __fastcall QuickItemsUseNow(CHudQuickItems* self, void*, int slot) { self->UseNow(slot); }
+} // namespace
+EI_REPLACE(0x0063E020, QuickItemsUseNow);
+
+void CHudSpellColumn::ClickAlternate(int index) {
+    if (!unit_ || index < 0 || index >= count_) return;
+    owner_->SetPendingAction(kPendingSpellOnUnit, index, -1);
+    CEngineObject* item = unit_->GetSpell(index);
+    if (item && SpellOf(item))
+        if (!UseAtOnce(owner_, interface_, unit_, SpellOf(item), 0)) return;
+    interface_->PlaySound(kSoundClick, 0);
+    owner_->SetPendingAction(kPendingNone, -1, -1);
+}
+namespace {
+void __fastcall SpellColumnClickAlternate(CHudSpellColumn* self, void*, int index) { self->ClickAlternate(index); }
+} // namespace
+EI_REPLACE(0x0063EF60, SpellColumnClickAlternate);

@@ -94,7 +94,7 @@ static void __fastcall BuildBindingsVerify(COptionsWindow* self, void*) {
 EI_VERIFY(0x00651600, BuildBindingsVerify, 0, s_unused);
 
 // 006524A0 (writes the game's option globals; ours only): the key table is the window's copy and,
-// outside a multiplayer client, the difficulty is setting 25's value. No scenario presses OK.
+// outside a multiplayer client, the difficulty is setting 25's value. ui_main_menu presses OK once.
 static void __fastcall ApplyVerify(COptionsWindow* self, void*) {
     int difficulty = GameDifficulty();
     self->COptionsWindow::Apply();

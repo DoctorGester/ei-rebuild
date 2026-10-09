@@ -29,6 +29,28 @@ class CUiRootWindow;
 struct UiInputSide;
 class CUiMesh;
 struct CDXSurface;
+class CSceneRenderer;   // model.h
+class CStream;          // core_streams.h
+class CUiSurface;
+
+// The interface's screen fade and letterbox (CInterface3D +0x18), drawn over everything by the
+// interface's draw (005F5220). Only the fields its draw uses.
+struct CScreenFade {
+    // 005E69C0 (RET 4; ui_interface_draw.cpp). With the letterbox, black bars of the screen height
+    // times 0.125-ish (00740150) at the top and bottom; while fading, the alpha moves by
+    // rate * elapsed ms towards 255 (rate > 0) or 0 (rate < 0), clamped at 255; below 0 the fade
+    // ends (nothing drawn), otherwise a black rectangle of that alpha over the screen. Both draws
+    // with the depth test off (render state 7) through the renderer's slot 19. Returns 1.
+    int Draw(CSceneRenderer* renderer);
+
+    float rate_;                     // +0x00 alpha per millisecond
+    float alpha_;                    // +0x04 0..255
+    std::uint8_t active_;            // +0x08 fading
+    std::uint8_t unknown_09[3];
+    DWORD lastTime_;                 // +0x0C timeGetTime of the last step
+    std::uint8_t letterbox_;         // +0x10 the bars are shown
+};
+static_assert(offsetof(CScreenFade, lastTime_) == 0x0C && offsetof(CScreenFade, letterbox_) == 0x10);
 
 // The interface manager (CInterface3D; created by 005F4990, which reads the screen size from the
 // render target). Only the members used by the rewritten code; the object is created by original
@@ -146,6 +168,11 @@ public:
     void CloseAll();
     // 005F5AB0 (the input dispatcher's first step). CloseAll when +0x44 asks for it (cleared).
     void CloseAllPending();
+    // 005F5220 (ui_interface_draw.cpp; every frame from the main loop). A pending close-all
+    // (CloseAllPending, inlined by the original); the backdrop (+0x54, its slot 0) in backdrop
+    // modes 2-4; the top window's slot 20 with the renderer (00500960); then the fade over it all.
+    // Returns 1.
+    int Draw();
 
     int width_;                      // +0x00 screen width
     int height_;                     // +0x04 screen height
@@ -153,7 +180,7 @@ public:
     void* mouseCapture_;             // +0x0C input side (window +0x94) that took the button press
     std::uint8_t unknown_10[0x14 - 0x10];
     console::ConsoleWindow* console_;   // +0x14 the console window (shown while its +0x7A is set)
-    std::uint8_t unknown_18[0x1C - 0x18];
+    CScreenFade* fade_;              // +0x18
     CUiRootWindow* root_;            // +0x1C updated after the top window every frame
     std::uint8_t unknown_20[0x30 - 0x20];
     // +0x30 the windows draw, redraw their surfaces and update their tooltips only while this is
@@ -168,7 +195,11 @@ public:
     std::uint8_t unknown_45[0x48 - 0x45];
     std::uint32_t pendingValue_;     // +0x48
     bool pendingFlag_;               // +0x4C
-    std::uint8_t unknown_4D[0x60 - 0x4D];
+    std::uint8_t unknown_4D[0x50 - 0x4D];
+    int backdropMode_;               // +0x50 the backdrop is drawn in modes 2, 3 and 4 (PushWindow sets 3 / 1)
+    CUiSurface* backdrop_;           // +0x54
+    CUiSurface* secondBackdrop_;     // +0x58
+    std::uint8_t unknown_5C[0x60 - 0x5C];
     std::uint8_t serverFlag_;        // +0x60 the server flag kept for the first window (PushWindow)
     std::uint8_t unknown_61[0x68 - 0x61];
     int mouseX_;                     // +0x68 mouse position in screen coordinates
@@ -189,6 +220,15 @@ public:
     int unknown_8C;
     int unknown_90;
     int fastGame_;                   // +0x94 the fast game speed (the clock's +0x154)
+    std::uint8_t unknown_98[0xA4 - 0x98];
+    char* messageText_;              // +0xA4 CString: the message window's text (ShowMessage)
+    int messageFlag_;                // +0xA8 (ShowMessage clears it)
+    char* savedText_;                // +0xAC CString saved with the game (from version 0x5F)
+
+    // 005F85C0 (RET 4; ui_interface_save.cpp). Writes what LoadState reads: +0x89..+0x8B, +0x8C,
+    // +0x90, +0x94, an empty obsolete list (count 0), the message text with its zero, +0xA8 and
+    // the saved text with its zero.
+    void SaveState(CStream* stream);
 
     // 005F51F0 (ui_main_menu.cpp; the main menu's Create). Clears the saved state: +0x89..+0x8B,
     // +0x8C, +0x90 and +0x94.
@@ -199,6 +239,7 @@ static_assert(offsetof(CInterface3D, doubleClick_) == 0x7F);
 static_assert(offsetof(CInterface3D, stackBegin_) == 0x34);
 static_assert(offsetof(CInterface3D, pendingValue_) == 0x48);
 static_assert(offsetof(CInterface3D, mouseX_) == 0x68);
+static_assert(offsetof(CInterface3D, messageText_) == 0xA4 && offsetof(CInterface3D, savedText_) == 0xAC);
 static_assert(offsetof(CInterface3D, console_) == 0x14);
 static_assert(offsetof(CInterface3D, root_) == 0x1C);
 static_assert(offsetof(CInterface3D, drawing_) == 0x30);
@@ -357,13 +398,17 @@ public:
 
     // Calls 005FD7A0 through its address (the wrapper runs).
     void CallSwapContents(int restore);
+    // 005FDCB0 (RET 8; ui_surface_frame.cpp). With a surface (and its DC held): a one-pixel frame
+    // of `colour` (a GDI solid brush) around `rect` (layout coordinates, scaled to the screen through
+    // 005F7CA0) or, for an empty rect, around the whole surface.
+    void FrameRect(const RECT* rect, COLORREF colour);
 
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00740F28);
     static constexpr std::uint32_t kFromPicture = 1;   // flags_: made by 005FCF80 from an .mmp picture
 
     void* vtable_;
     CInterface3D* interface_;        // +0x04
-    std::uint8_t unknown_08[0x0C - 0x08];
+    HDC dc_;                         // +0x08 while the DC is held (005FDC00 .. 005FDC60)
     std::uint32_t flags_;            // +0x0C (the constructors store the format here, then set kShown)
     CDXSurface* holder_;             // +0x10 the DirectDraw surface's holder (null while swapped out)
     int width_;                      // +0x14
@@ -497,6 +542,8 @@ public:
     // 005FF110 / 005FF180. Releases an object and removes it from the list.
     void RemoveObject(CEngineObject* object);
     void RemoveObjectAt(int index);
+    // 005FF1E0. Every referenced object released (slot 4), the list emptied (its storage freed).
+    void ClearObjects();
 
     // 005FF700 / 005FF770 / 005FF7D0. The second object list (+0x108).
     BOOL RemoveSceneObject(CEngineObject* object);
@@ -598,6 +645,11 @@ public:
     // UpdateRegionTips) and redraws itself (its slot 22), region by region.
     void RedrawTips();
     // Slots 22, 23 and 24 (+0x58, +0x5C, +0x60) through the vtable: redraw, tooltips, update.
+    // Slot 20 (+0x50): the window's per-frame draw in the renderer's pass (returns 1).
+    BOOL VirtualDraw(void* pass) {
+        using Fn = BOOL(__thiscall*)(CUiWindow*, void*);
+        return reinterpret_cast<Fn>(vtable_[20])(this, pass);
+    }
     void VirtualRedraw() { CallVirtual(22); }
     void VirtualRedrawTips() { CallVirtual(23); }
     void VirtualUpdate() { CallVirtual(24); }
@@ -863,6 +915,12 @@ public:
     // its spell has flag 0x10000000 (on a unit), 4 (at a point), 0 without a spell. Other
     // categories change nothing.
     void Pick(int slot);
+    // 0063E020 (RET 4; ui_hud_pick.cpp). The unit's quick item `slot` used at once (a release with
+    // key flag +0x7F, or the key handler's Ctrl / Alt): as ClickAlternate with pending action 3
+    // and quick 1, for a wand (category 5) or scroll (8) with a spell; nothing without a unit or
+    // an item there.
+    void UseNow(int slot);
+    void UseNowAt(int slot);   // through the original's address
     // 0063CD20 (RET 8; ui_hud_highlight.cpp). Highlights the sprite shown in region `slot` when
     // it shows one (bottom row, slots 0-3: scale 0.65 / 0.55; top row 1.0 / 0.85; colour
     // 0xFF404040 / 0xFF000000; with `on` also selected_ = slot).
@@ -928,9 +986,14 @@ public:
     void Click(int index);
     // The same through the original's address (OnMouseUp; so the verify wrapper sees the call).
     void ClickAt(int index);
-    // 0063EF60 (not rewritten). Click with key flag +0x7F (or the key handler's Ctrl / Alt): the
-    // spell is cast at once.
+    // 0063EF60 (RET 4; ui_hud_pick.cpp). Click with key flag +0x7F (or the key handler's Ctrl /
+    // Alt): the spell is cast at once. Without a unit or with `index` out of range nothing;
+    // otherwise the pending action becomes 1 on `index`, and when the spell there has its data
+    // (+0x44) it is used (UseOnUnit / UseAtPoint, quick 0) on the unit itself, or for an attack
+    // spell (CSpell::IsOffensive) on the nearest unit the unit sees (none: the "nomagic" sound,
+    // the pending action dropped, done). Then the click sound and the pending action dropped.
     void ClickAlternate(int index);
+    void ClickAlternateAt(int index);   // through the original's address
     // 0063E750 (RET 8; ui_hud_highlight.cpp). Button `index` highlighted (scale 1.15, colour
     // 0xFF404040) or not (1.0, 0xFF000000); selected_ = index either way.
     void Highlight(int index, int on);
@@ -1097,7 +1160,12 @@ static_assert(offsetof(CHudPortraits, slots_) == 0x158);
 struct UiQuadBlock {
     float x[4];
     float y[4];
-    std::uint8_t unknown_20[0x20];
+    float z[4];                      // 0 when the array grows (SetQuadCount)
+    float w[4];                      // 1
+};
+// A texture coordinate pair of a sprite's vertex.
+struct UiTexel {
+    float u, v;
 };
 static_assert(sizeof(UiQuadBlock) == 0x40);
 struct UiMeshVertex {
@@ -1108,13 +1176,20 @@ struct UiMeshVertex {
 static_assert(sizeof(UiMeshVertex) == 6);
 class CUiMesh {
 public:
-    // Not rewritten: array sizes (005EA210 quads, 005EA600 vertices, 005EA4C0 indices) and
-    // Commit (005EA150), which hands the arrays to the renderer fields (+0x9C..+0xC8) and
-    // returns the index count.
+    // The array sizes (RET 4; ui_mesh_draw.cpp): each is the aligned array's SetSize(count); the
+    // quads (005EA210) then get z 0 and w 1 in every block, the vertices (005EA600) +2 zero in
+    // every entry; the indices (005EA4C0) and texture coordinates (005EA380, 8 bytes each) nothing.
     void SetQuadCount(int count);
     void SetVertexCount(int count);
     void SetIndexCount(int count);
-    void SetUvCount(int count);      // 005EA380 texture coordinates (8 bytes each)
+    void SetUvCount(int count);
+    // The four arrays as the engine's aligned arrays (the fields below are their data and size).
+    lib::AlignedArray<UiQuadBlock>& Quads() { return *reinterpret_cast<lib::AlignedArray<UiQuadBlock>*>(&quads_); }
+    lib::AlignedArray<UiMeshVertex>& Vertices() { return *reinterpret_cast<lib::AlignedArray<UiMeshVertex>*>(&vertices_); }
+    lib::AlignedArray<std::uint16_t>& Indices() { return *reinterpret_cast<lib::AlignedArray<std::uint16_t>*>(&indices_); }
+    lib::AlignedArray<UiTexel>& Texels() { return *reinterpret_cast<lib::AlignedArray<UiTexel>*>(&uvs_); }
+    // Not rewritten: Commit (005EA150), which hands the arrays to the renderer fields
+    // (+0x9C..+0xC8) and returns the index count.
     int Commit();
     // 005E6FA0 (Rebirth-patched, not rewritten). Puts the sprite at layout point (x, y) at
     // `depth` in front of the interface camera (sets the local position +0x1C).
@@ -1129,12 +1204,23 @@ public:
     // 005E7060 (RET 4; ui_hud_highlight.cpp). The three scale fields = `scale` (copied as bits;
     // EAX is left holding them, callers do not read it).
     void SetScale(float scale);
+    // 005E6D90 (RET 4; ui_mesh_draw.cpp). Draws the sprite in `renderer`'s pass when visible;
+    // returns 1.
+    int Draw(CSceneRenderer* renderer);
+    // 005E6C60 (vtable slot 2, Create; ui_mesh_draw.cpp). The figure's Create (005A6C70), then no
+    // material or texture, the scale matrix the identity, tint 1, +0x230 zero, the identity
+    // orientation (007C7CD8), position (0, 0, 10), both colours 0xFF000000, visible. Returns 1.
+    int CreateSprite();
 
     std::uint8_t unknown_000[0x08];
     std::uint32_t flags_;            // +0x08 engine object flags (0x100: drawn in the plain colour +0xD4)
-    std::uint8_t unknown_00C[0x34 - 0x0C];
+    std::uint8_t unknown_00C[0x1C - 0x0C];
+    Vector3 position_;               // +0x1C (Place)
+    std::uint8_t unknown_028[0x34 - 0x28];
     Quaternion orientation_;         // +0x34 (the HUD's face models turn with it)
-    std::uint8_t unknown_044[0xCC - 0x44];
+    std::uint8_t unknown_044[0x54 - 0x44];
+    float placement_[16];            // +0x54 row-major 4x4: orientation and position (Draw writes it)
+    std::uint8_t unknown_094[0xCC - 0x94];
     float uOffset_;                  // +0xCC added to the texture coordinates (a frame of the
     float vOffset_;                  // +0xD0 sprite sheet: the HUD buttons' states, the bars' colours)
     std::uint32_t plainColour_;      // +0xD4 ARGB (the global map's layers and its pick render)
@@ -1142,37 +1228,43 @@ public:
     std::uint8_t unknown_0DC[0x1C0 - 0xDC];
     UiQuadBlock* quads_;             // +0x1C0
     int quadCount_;                  // +0x1C4
-    std::uint8_t unknown_1C8[0x1E0 - 0x1C8];
+    int quadCapacity_;               // +0x1C8
+    int quadGrowBy_;                 // +0x1CC
+    std::uint8_t unknown_1D0[0x1E0 - 0x1D0];
     UiMeshVertex* vertices_;         // +0x1E0
     int vertexCount_;                // +0x1E4
-    std::uint8_t unknown_1E8[0x200 - 0x1E8];
+    int vertexCapacity_;             // +0x1E8
+    int vertexGrowBy_;               // +0x1EC
+    std::uint8_t unknown_1F0[0x200 - 0x1F0];
     std::uint16_t* indices_;         // +0x200
     int indexCount_;                 // +0x204
-    std::uint8_t unknown_208[0x210 - 0x208];
+    int indexCapacity_;              // +0x208
+    int indexGrowBy_;                // +0x20C
     float* uvs_;                     // +0x210 u, v per vertex
     int uvCount_;                    // +0x214
-    std::uint8_t unknown_218[0x220 - 0x218];
+    int uvCapacity_;                 // +0x218
+    int uvGrowBy_;                   // +0x21C
     int visible_;                    // +0x220
     float tint_[3];                  // +0x224 colour factors (the HUD: 1 selected, 0.5 not)
-    std::uint8_t unknown_230[0x23C - 0x230];
-    // The scale 005E7060 sets (the same value in all three; the diagonal of a matrix of rows of
-    // five floats, the rest unknown).
-    float scaleX_;                   // +0x23C
-    std::uint8_t unknown_240[0x250 - 0x240];
-    float scaleY_;                   // +0x250
-    std::uint8_t unknown_254[0x264 - 0x254];
-    float scaleZ_;                   // +0x264
-    std::uint8_t unknown_268[0x27C - 0x268];
+    float unknown_230[3];            // +0x230 zero (Create)
+    // A row-major 4x4 matrix applied after the placement (Draw); its diagonal elements 0, 5 and 10
+    // are the scale 005E7060 sets (the same value in all three).
+    float scaleMatrix_[16];          // +0x23C
+    float& ScaleX() { return scaleMatrix_[0]; }
+    float& ScaleY() { return scaleMatrix_[5]; }
+    float& ScaleZ() { return scaleMatrix_[10]; }
     CEngineObject* material_;        // +0x27C the window's black material (CUiWindow +0xEC)
     CEngineObject* texture_;         // +0x280 one of the window's referenced objects (+0xF8)
 };
 static_assert(offsetof(CUiMesh, colour_) == 0xD8);
-static_assert(offsetof(CUiMesh, scaleX_) == 0x23C);
-static_assert(offsetof(CUiMesh, scaleZ_) == 0x264);
+static_assert(offsetof(CUiMesh, scaleMatrix_) == 0x23C && offsetof(CUiMesh, material_) == 0x27C);
+static_assert(offsetof(CUiMesh, position_) == 0x1C && offsetof(CUiMesh, placement_) == 0x54);
 static_assert(offsetof(CUiMesh, quads_) == 0x1C0);
 static_assert(offsetof(CUiMesh, vertices_) == 0x1E0);
 static_assert(offsetof(CUiMesh, indices_) == 0x200);
-static_assert(offsetof(CUiMesh, uvs_) == 0x210);
+static_assert(offsetof(CUiMesh, uvs_) == 0x210 && offsetof(CUiMesh, uvGrowBy_) == 0x21C);
+static_assert(offsetof(CUiMesh, quadGrowBy_) == 0x1CC && offsetof(CUiMesh, vertexGrowBy_) == 0x1EC &&
+              offsetof(CUiMesh, indexGrowBy_) == 0x20C);
 static_assert(offsetof(CUiMesh, visible_) == 0x220);
 static_assert(offsetof(CUiMesh, uOffset_) == 0xCC);
 static_assert(offsetof(CUiMesh, tint_) == 0x224);

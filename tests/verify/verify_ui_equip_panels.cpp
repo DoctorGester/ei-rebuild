@@ -90,3 +90,30 @@ static CItem* __fastcall QuickStripItemAtVerify(CHeroQuickStrip* self, void*, in
     return actual;
 }
 EI_VERIFY(0x00622D40, QuickStripItemAtVerify, 5, s_stripItemAt);
+
+// 00628B50 / 006298B0 (the constructor pages' slot 25, ui_constructor_slots.cpp): side by side as
+// above. Reached by the camp's hover over a maker page: ui_camp_deals (pages 3 and 5, the mouse on
+// the first two slots).
+static CItem*(__fastcall* s_spellMakerItemAt)(CConstructorPage*, void*, int, int, int*);
+static CItem* __fastcall SpellMakerItemAtVerify(CConstructorPage* self, void*, int x, int y, int* topic) {
+    int expectedTopic = -2;
+    CItem* expected = s_spellMakerItemAt(self, nullptr, x, y, &expectedTopic);
+    CItem* actual = self->SpellMakerItemAt(x, y, topic);
+    ei::verify::Check("CConstructorPage::SpellMakerItemAt", true, expected == actual && expectedTopic == *topic,
+                      "(%d, %d): %p topic %d, ours %p topic %d", x, y, static_cast<void*>(expected), expectedTopic,
+                      static_cast<void*>(actual), *topic);
+    return actual;
+}
+EI_VERIFY(0x00628B50, SpellMakerItemAtVerify, 6, s_spellMakerItemAt);
+
+static CItem*(__fastcall* s_itemMakerItemAt)(CConstructorPage*, void*, int, int, int*);
+static CItem* __fastcall ItemMakerItemAtVerify(CConstructorPage* self, void*, int x, int y, int* topic) {
+    int expectedTopic = -2;
+    CItem* expected = s_itemMakerItemAt(self, nullptr, x, y, &expectedTopic);
+    CItem* actual = self->ItemMakerItemAt(x, y, topic);
+    ei::verify::Check("CConstructorPage::ItemMakerItemAt", true, expected == actual && expectedTopic == *topic,
+                      "(%d, %d): %p topic %d, ours %p topic %d", x, y, static_cast<void*>(expected), expectedTopic,
+                      static_cast<void*>(actual), *topic);
+    return actual;
+}
+EI_VERIFY(0x006298B0, ItemMakerItemAtVerify, 8, s_itemMakerItemAt);

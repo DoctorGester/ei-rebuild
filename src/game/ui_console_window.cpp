@@ -427,4 +427,6 @@ __declspec(naked) POINT GameDC::MoveTo(int, int) EI_ORIGINAL(0x00709613)
 __declspec(naked) BOOL GameDC::LineTo(int, int) EI_ORIGINAL(0x0070965F)
 __declspec(naked) GamePen* GamePen::Construct(int, int, COLORREF) EI_ORIGINAL(0x0070A0E2)
 __declspec(naked) BOOL GamePen::DeleteObject() EI_ORIGINAL(0x0070A0CC)
+__declspec(naked) BOOL GameBrush::DeleteObject() EI_ORIGINAL(0x0070A0CC)
+__declspec(naked) BOOL GameBrush::Attach(HGDIOBJ) EI_ORIGINAL(0x0070A075)
 } // namespace ui_gdi

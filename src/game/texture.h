@@ -22,7 +22,17 @@ public:
     int ParseMmpHeader(const void* data, PixelFormat* format);   // 004E7C40
     int FindFormat(int id, PixelFormat* format);                 // 004E7DA0
 
-    std::uint8_t unknown_00[8];
+    // Holders count references to it (the cursor): one more, or one less with the deleting
+    // destructor (vtable slot 0, with 1) at zero.
+    void AddRef() { ++refs_; }
+    void Release() {
+        if (--refs_ != 0) return;
+        using Destroy = void(__fastcall*)(CTextureDevice*, void*, int);
+        (*static_cast<Destroy*>(vtable_))(this, nullptr, 1);
+    }
+
+    void* vtable_;
+    int refs_;                  // +0x04
     int lastLoadResult_;        // +0x08 result of the last IDirect3DDevice7::Load (and other calls)
     void* ddraw_;               // +0x0C IDirectDraw7*
     std::uint8_t unknown_10[4];

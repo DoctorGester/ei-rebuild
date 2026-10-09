@@ -130,11 +130,9 @@ __declspec(naked) mfc::CString* MapScreen::QuestTitle(mfc::CString*, const char*
 __declspec(naked) Vector3* MapScreen::QuestPosition(Vector3*, const char*) EI_ORIGINAL(0x00630CC0)
 __declspec(naked) void MapScreen::SetWeather() EI_ORIGINAL(0x0062EE90)
 
-// The marker arrays (MFC CArray instantiations) and their elements' assignment.
-struct ZoneArrayAt {
-    void SetAtGrow(int index, const GlobalMapZone& zone);   // 00631CC0
-};
-__declspec(naked) void ZoneArrayAt::SetAtGrow(int, const GlobalMapZone&) EI_ORIGINAL(0x00631CC0)
+// The marker arrays (MFC CArray instantiations) and their elements' assignment. The zones'
+// SetAtGrow (00631CC0) is rewritten below; called through its address so its wrapper runs.
+__declspec(naked) void __fastcall ZonesSetAtGrowAt(GlobalMapZoneArray*, void*, int, const GlobalMapZone*) EI_ORIGINAL(0x00631CC0)
 struct PlaceArrayAt {
     void SetLinksSize(int size, int growBy);    // 00631E70
     void SetQuestsSize(int size, int growBy);   // 00631FF0
@@ -444,7 +442,7 @@ void CGlobalMap::Create() {
     for (int i = 0; i < allod->zoneCount; ++i) {
         MapZoneRecord* zone = ZoneAt(allod->zones[i]);
         if (zone->type != 0 || !NonEmpty(zone->figure)) continue;
-        reinterpret_cast<ZoneArrayAt*>(&zones_)->SetAtGrow(zones_.size, zoneTemplate.Get());
+        ZonesSetAtGrowAt(&zones_, nullptr, zones_.size, &zoneTemplate.Get());
         variable.Format(GameText(0x00794148), zone->name);   // "z.%s"
         zones_.data[zoneCount_].link = -1;
         zones_.data[zoneCount_].state = GameFtol(D(LocalPlayerVariable(variable)));
@@ -979,3 +977,35 @@ void __fastcall GlobalMapDestroy(CGlobalMap* self) {
     DestroyContainerBody(self);
 }
 EI_REPLACE(0x005F6920, GlobalMapDestroy);
+
+// --- 00631CC0: the zone array's SetAtGrow --------------------------------------------------------
+
+namespace {
+mfc::CString& AsString(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }
+const mfc::CString& AsString(char* const& field) { return *reinterpret_cast<const mfc::CString*>(&field); }
+} // namespace
+
+void GlobalMapZoneElements::Construct(GlobalMapZone* zones, int count) {
+    std::memset(static_cast<void*>(zones), 0, static_cast<std::size_t>(count) * sizeof(GlobalMapZone));
+    for (int i = 0; i < count; ++i) {
+        new (&zones[i].name) mfc::CString();
+        new (&zones[i].title) mfc::CString();
+    }
+}
+
+void GlobalMapZoneElements::Destruct(GlobalMapZone* zones, int count) {
+    for (int i = 0; i < count; ++i) {
+        AsString(zones[i].title).~CString();
+        AsString(zones[i].name).~CString();
+    }
+}
+
+void __fastcall GlobalMapZonesSetAtGrow(GlobalMapZoneArray* zones, void*, int index, const GlobalMapZone* zone) {
+    if (index >= zones->size) zones->SetSize(index + 1);
+    GlobalMapZone& slot = zones->data[index];
+    slot.state = zone->state;
+    slot.link = zone->link;
+    AsString(slot.name) = AsString(zone->name);
+    AsString(slot.title) = AsString(zone->title);
+}
+EI_REPLACE(0x00631CC0, GlobalMapZonesSetAtGrow);

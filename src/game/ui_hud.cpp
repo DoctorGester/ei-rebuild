@@ -98,7 +98,7 @@ void UiRenderer::FlushBatchA() { DeviceFlushBatchAOriginal((void*)this); }
 void UiRenderer::FlushBatchB() { DeviceFlushBatchBOriginal((void*)this); }
 __declspec(naked) void CHudWeaponBar::Highlight(int, int) EI_ORIGINAL(0x0063C050)
 __declspec(naked) void CHudQuickItems::ItemTipAt(unsigned, void*) EI_ORIGINAL(0x0063CEE0)
-__declspec(naked) void CHudSpellColumn::ClickAlternate(int) EI_ORIGINAL(0x0063EF60)
+__declspec(naked) void CHudSpellColumn::ClickAlternateAt(int) EI_ORIGINAL(0x0063EF60)
 __declspec(naked) void CHudMovePanel::CallToggleFlag() EI_ORIGINAL(0x00649810)
 __declspec(naked) void CHudMovePanel::ShowMode(int) EI_ORIGINAL(0x00649910)
 __declspec(naked) void CHudTopPanel::CallShowPage() EI_ORIGINAL(0x0064A320)
@@ -238,7 +238,7 @@ void CHudSpellColumn::OnMouseUp(int, int x, int y) {
     if (region < 0 || region >= count_) return;
     inputHandled_ = true;
     if (interface_->doubleClick_)
-        ClickAlternate(region);
+        ClickAlternateAt(region);
     else
         ClickAt(region);
 }
@@ -554,8 +554,12 @@ UiVec3 PositionOf(const CUnit* unit) {
 __declspec(naked) void __fastcall ScreenOrderAt(CBattleScreen*, void*, UiVec3, int, char) EI_ORIGINAL(0x00636F10)
 __declspec(naked) void __fastcall ScreenOrderUnit(CBattleScreen*, void*, CUnit*, char) EI_ORIGINAL(0x00637190)
 __declspec(naked) void __fastcall ScreenOrderDead(CBattleScreen*, void*, CUnit*, char) EI_ORIGINAL(0x006373A0)
-__declspec(naked) void __fastcall ScreenCastOn(CBattleScreen*, void*, CUnit*, char, int) EI_ORIGINAL(0x00637500)
-__declspec(naked) void __fastcall ScreenCastAt(CBattleScreen*, void*, UiVec3, CUnit*, int) EI_ORIGINAL(0x00637750)
+void ScreenCastOn(CBattleScreen* screen, void*, CUnit* target, char quick, int ctrl) {
+    BattleUseOnUnitOriginal(screen, nullptr, target, quick, ctrl);
+}
+void ScreenCastAt(CBattleScreen* screen, void*, UiVec3 at, CUnit* unit, int quick) {
+    BattleUseAtPointOriginal(screen, nullptr, at.x, at.y, at.z, unit, static_cast<char>(quick));
+}
 __declspec(naked) void __fastcall ScreenToggleMember(CBattleScreen*, void*, int) EI_ORIGINAL(0x006379E0)
 // The HUD panels: quick items 0063CD20 (slot, 0), spells 0063E750 (index, 0), actions 0063F730
 // (index, 0) and 0063F7A0 (all).
@@ -841,7 +845,6 @@ namespace {
 // The quick item panel (thiscall, RET 4, slot): 0063DD70 picks the unit's quick item `slot` (a wand
 // or scroll with a spell starts target mode 3 / 4), 0063E020 uses it at once (key +0x7F).
 __declspec(naked) void __fastcall QuickPanelPick(CHudQuickItems*, void*, int) EI_ORIGINAL(0x0063DD70)
-__declspec(naked) void __fastcall QuickPanelUseNow(CHudQuickItems*, void*, int) EI_ORIGINAL(0x0063E020)
 // Slot 21 (+0x54) of a player's loot item (CItemLoot, type 0x3009): its key (the one map object
 // slot 42 AcceptsKey tests) into `buffer`, returns it. CItem declares only slots 13-15 (item.h),
 // so the slot is reached through the vtable here until the item classes declare 16-21 (16, 19
@@ -862,7 +865,7 @@ void CHudQuickItems::OnMouseUp(int, int x, int y) {
     inputHandled_ = true;
     if (region < 4 && entries_[entry].own) {
         if (interface_->doubleClick_)
-            QuickPanelUseNow(this, nullptr, region);
+            UseNowAt(region);
         else
             QuickPanelPick(this, nullptr, region);
         return;
