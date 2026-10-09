@@ -180,5 +180,57 @@ installed, and runs that copy as the original (`stolenBytes` 0). Constructors al
   screenshot), 00458270 (startup movies; the harness empties the list), 0045E310 (DirectX version probe), 00458570 (hash_map registration): mapped, not rewritten.
 - Players: the rest of the player classes (packet dispatchers, compression and sending, party records with CString / CArray / hash_map members, the client's handlers; mostly multiplayer); next candidates 0066E130,
   (0066F0C0..0066F840, 0066F310 and the server handlers are done, A-H14); 0066D730 (message 0x12) writes one uninitialised stack byte and cannot be reproduced exactly; STLport instantiations 006632B0-00664D00.
-- A-H15: the client handlers 0x00 00667DA0, 0x01 00667DE0, 0x0B 00667DF0, 0x0F 00667D10, 0x12 00667E20, 0x04 00667C20 and others in the table (player_client.cpp) are missing from config/functions.csv (Ghidra made no functions there); they are live code, not yet ported. 0066A280 (unwind-only DeltaField destructor) and the hash_map members 0066B320-0066B510 / 0066BAD0 went to library.csv; 0066BE00 is a copy of 0047B940.
+- 0066A280 (unwind-only DeltaField destructor) and the hash_map members 0066B320-0066B510 / 0066BAD0 went to library.csv; 0066BE00 is a copy of 0047B940.
+
+### Message handlers not yet ported (research from DR-H16 / DR-C4)
+
+Reached only through the handler tables, so Ghidra made no functions for them; they are rows in config/functions.csv
+(gap to the next function), config/extra_function_sizes.csv (code sizes, capstone) and src/hook/function_sizes.inc.
+
+Client (CPlayerClient table +0x24, filled by 00667230; thiscall, +0x1C the player, +0x34 the received stream read through
+its slot 1 Read(buffer, n); no stack arguments; returns 1, 0 on a failed lookup or read where noted):
+
+| Type | Address | Size | What it does |
+|---|---|---|---|
+| 0x00 | 00667DA0 | 52 | login accepted: a dword, state +0x20 = 2, 0066C1E0(player, value) on the player's +0x14 |
+| 0x01 | 00667DE0 | 14 | the player's 00665A10 |
+| 0x04 | 00667C20 | 228 | camera placement: a point and two dwords; client world 005662B0(point); unless the player's +0xD8 string equals 007900F4 the camera (0079B2A8) 00411470(point, 23.0, 00743148 * 0073BA30 * 0073DF70), else 004108D0(6 if the second dword is 3, else 7); then 004109E0(first dword); returns the last Read's result |
+| 0x07 | 00669D50 | 340 | game state (CreateScreen 005F5BA0, ui.md section 1) |
+| 0x09 | 00669F30 | 16 | the interface's (007C7D50) 005F7FA0 |
+| 0x0B | 00667DF0 | 48 | two dwords to the interface's 005F82A0 (a numbered message with a value) |
+| 0x0C | 006696A0 | 103 | (id, float) pairs until id -1: object manager 007AF60C's object (00403F40) gets the float at +0x28; 0 when the client's +0x39 flag is clear |
+| 0x0F | 00667D10 | 97 | two points and a byte: the camera's 00411060(a, b, 0) and 00410E50(byte) |
+| 0x12 | 00667E20 | 52 | a byte and a dword: the player's world (00455940) 00566C10(dword) |
+| 0x14 | 0066A420 | 94 | (id, float): the party's (+0x70) slot 18 object table's object gets the float at +0x28 and goes to the player's 00665BE0 |
+| 0x16 | 00669400 | 133 | (unit id, index): the party member 006621B0 takes record `index` of its +0x730 list (00660A50); the client unit's brain (+0x240) slot 25 with -1 |
+| 0x19 | 0066A620 | 225 | kind byte and unit id: 0 the client world controls the unit (00566030), 1 / 2 set / clear unit flag 0x100 (not for flag 0x10) and its +0x94 object's slot 26 with 1 / 0, 3 clears the selection (00566100(0)); other kinds return 0; jump table 0066A704 |
+| 0x41 | 006687B0 | 160 | map object changed: the id in the player's +0x28 hash map reads its delta (0050EAB0(1, stream), 0 on failure); kinds 0x54 / 0x5D also go to the world's 005651A0 |
+| 0x42 | 00668850 | 237 | map object removed: a unit of the player's +0x40 map gets 005300D0(0); the +0x28 entry erased (0059BCB0 / 0059BC70 / 00598E40 / 0059B750), the object flagged 1 and released (slot 4), client world 00564BE0(id); 0 when unknown |
+| 0x43 | 0066A3B0 | 74 | an id: the object manager's (007AF5F8) object of kind 0x50 gets its +0x240 slot 48 |
+| 0x50 | 00668940 | 238 | timed object added: (kind, id); the world's factory (slot 14) makes it (slot 23), it reads itself (00675BA0(0, stream)), goes into the player's +0x58 hash map (highest id kept) with one more reference |
+| 0x51 | 00668A30 | 105 | timed object changed: the +0x58 entry reads its delta (00675BA0(1, stream)); 0 when unknown or the read fails |
+| 0x52 | 00668AA0 | 157 | timed object removed: the +0x58 entry erased, flagged 1 and released (slot 4); 0 when unknown |
+| 0x70 | 00669760 | 70 | a byte and a 16-bit value: 007AFCAC's 004E3FC0(byte, (float)value) |
+| 0x71 | 006697B0 | 68 | two dwords: client world 0055FB50(second), 0055FB30(first), 00566360() |
+| 0x72 | 00669800 | 66 | a point and a dword: client world 00564190(point, dword) |
+| 0x73 | 0066A400 | 20 | the client world's 005683B0(stream) reads a block |
+
+Server (table built by 0066C9A0; thiscall on the CPlayerServer, plain RET; the received stream 007C83D0 through its
+slot 1, the player +0x1C, the state +0x20, the send stream +0x48; returns 1 unless noted):
+
+| Type | Address | Size | What it does |
+|---|---|---|---|
+| 0x00 | 0066F890 | 488 (+16 jump table 0066FA78) | login: reads 0x88 bytes; returns 0 in any state but 0. A first dword other than 0x64 (client version): "SrvErrMsg" / "WrongClientVersi..." (00794F50 / 00794F5C, 00694DC0 on world +0x144, formatted by 006E8715) sent as message 0x11, state 3, returns 0. Else two strings of up to 0x3F (0047ADA0) and by game kind (007B0098): 1 PartyManagerEndRedeploy (004A8880 on 007AA5A0) and 006629D0 on the player's party; 2 / 3 PartyMapLoad (004A8790 with the two strings, player +0xFC and the party; failure returns 0); 4 party Clear(1, 0). Then byte 0 and the player's id (+0x0C), SendParty (0066EF80), state 1 |
+| 0x01 | 0066FA90 | 11 | leave: the state's slot 16 (Leave 0066D020) |
+| 0x04 | 00670CE0 | 191 | only in state 1 (else 0): a dword into the player's +0x100, CWorldServer::CollectParty (00590A40) with this +0x74, SendParty, byte 7, the player's +0x100 and dword 007AFFC4; clears dirty bit 0x10 (+0x130); state 2 |
+| 0x10 | 0066FAC0 | 162 | pause request: a byte. When 0057F440, the game server (0079B5DC) exists and is attached and the byte is set: only when the session's leader id (0041A020) is the player's first mercenary's unit id (else nothing) and the leader's PlayerMessage is found and attached, AnnounceText 0xC with its name. Then the world's SetUnknown6C (005942C0) with byte != 0 |
+| 0x32 | 006708D0 | 137 | cast at a point: {spell, unit id, point, flag byte} (0x15 bytes); a unit (0055FB00) not flagged 0x800000, not dead (slot 55), with a Player mode (005D5E60 on controller +0x980): 005D3D90(spell, point, flag) |
+| 0x33 | 00670820 | 164 | cast at an object: {spell, unit id, target id, flag} (0xD bytes); target by world slot 40; as above: 005D3D20(spell, target, flag) |
+| 0x34 | 00670960 | 107 | wanted weapon: {unit id, slot byte}; a living unit not flagged 0x800000: SetWantedWeapon (005552E0) |
+| 0x35 | 006709D0 | 98 | wanted movement style: {unit id, byte}; a living unit (no 0x800000 test): controller 00555270 |
+| 0x37 | 00670810 | 3 | refused: returns 0 |
+| 0x38 | 00670A40 | 80 | two dwords, the first looked up as a unit (0055FB00); result unused |
+| 0x39 | 00670A90 | 132 | follow: {unit id, leader id}; with the unit, the leader (may be null) and a Player mode: 005D3DE0 (Follow); no dead test |
+| 0x3B | 0066FB70 | 96 | a unit id and a byte: CUnit::SetUnknown438 (0052E9B0) with the signed byte |
+| 0x40 | 00670B20 | 51 | 8 bytes into this +0x38 / +0x3C |
 

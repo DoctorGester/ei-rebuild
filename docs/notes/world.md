@@ -319,3 +319,29 @@ float_control pragma). Behaviour unchanged; what moved or got a type:
 - CRegionMap::Reaches / ReachesRegion take the AI map's SearchGrid<int8_t> marks, LoadBlocks a
   CStream; NearbyBlocksOriginal (005B0370) is shared in originals_ai.h.
 - Globals named in world_data.h (quests, Segment, WorldCreateManagers sections) and ai_map.h.
+
+## Cleanup left and unverified points (from the merged drafts DR-C1, DR-C3, DR-C4, DR-C5)
+
+- world_game.cpp: `At<int>(World(), 0x5C)` (CWorld::shared5C_, a RefPtr): on the server the pending connection source
+  world_update.cpp steps (its slot 6 is the lobby's TakeNew, the remaining VCall in AcceptNewPlayers) and hands to
+  0058DAF0; ClientSetPlayer (00566CE0, originals_world.h, declared with an int) passes it to 004782E0 as a link. Needs a
+  class and the forwarder retyped (app.cpp shares it). Also left: the two `__asm` helpers (_ftol, 24.0), `TextOpsAt`, and
+  the accessors with literal addresses (GameMode, Campaign, ...) that belong in game_flow_data.h.
+- world_map.cpp's `LoadedFresh` / `KeepsState` still use byte offsets (+0x11D / +0x11E = CWorldServer::loadedFresh_ /
+  keepsState_). world_client_draw.cpp keeps six x87 `__asm` helpers; world_client_view.cpp keeps its own constants
+  (kTouchedModels..., a local DeferredUnits(), a RenderDevice view of 007AF068) that could use world.h `FrameObjects` /
+  `FrameDeferredUnits` and model.h `ScenePipeline`.
+- Facts from the cleanup: 00564AF0 (`CObject3D::PartBox`, once "CWorldClient::ListItem") runs on a platform object
+  (AddObject passes the object in ECX; it reads CObject3D::parts +0xD0 / +0xD4 and pendingParts +0xE0), not on the client.
+  The client's +0x1F0 list is the platform set's face list (PlatformSet +0x1D4: an engine object, then an
+  mfc::CList<Platform> at +0x1C; 00573000 carves 0x54-byte nodes; AddFace is AddHead).
+- Unverified: owned1A8_ / owned1B0_ are engine objects (only slots 0 / 2 are called); the +0xA0 array's elements are engine
+  objects (00570000 calls their slot 4); whether CWorldServer's aiLayer_ (+0x2468..+0x2804, 005B1380's argument) and
+  occluderReplanTime_ (+0x2804) belong to the sector map. world.h's SaveFileRead parameters `minimum` / `maximum` are
+  swapped in meaning (ReadHeader takes newest, oldest; LoadMission passes 00790260, 00790268).
+- Behaviour risks kept: the torch's slot 16 now takes `float` (flame->volume) where the old code pushed the dword, so a
+  signalling NaN could be quietened; Setup writes the handle's refs / flags as three stores (one dword in the original).
+  Now called by name instead of through their hooked address (their wrappers no longer see these calls): PartBox,
+  PlatformSet::AddBox, 004031B0, 00404410 (CBaseManager::FreeSpares), 00404920, 00404960, 0040D3B0, 00417DF0, 00413250,
+  00413270 / 00418BE0, 004A53F0; world_savefile.cpp's coder (0042FCA0 / 00430450 / 00430960 / 0041D930) and
+  CStream::ReadHeader / WriteHeader; AddSharedObject's ServerSession::FindPlayer (0041A2E0). None is Rebirth-patched.

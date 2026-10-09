@@ -532,3 +532,8 @@ texture manager's 6 KB is the renderer's; 00646C25 is a tail of 006462A0 that Gh
 | 6B4000-6C0000 | sound (Miles), misc | 70 | 15007 | 1442 | 006BB3A0, 006B6D80, 006BFC80, 006B7D10 |
 
 Next candidates: see "A-H17" above.
+
+Open from the DR-C4 cleanup: item_stock.cpp's record slot 0 `Kind()` was named from an old comment and not re-checked in
+Ghidra; the maps 007C851C / 007C853C hold pointers into the spell (0x84) and modifier (0x24) tables (confirmed: 006AC970
+turns them into indices); `stlp::SmallNodeFreeList()` (stlp.h) and camera.h's `NodeFreeList()` are the same address
+(0079B228) and should be merged.

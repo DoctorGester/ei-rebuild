@@ -681,10 +681,32 @@ overwritten at once.
 
 The help / message window (`ui_help_window.cpp`, A-H16): Build 00658E10 ("tutorial <topic>": the title key and a "#screen" line per page, each key's text from "tutor <key>"; alpha reference 1 through the device and the renderer's mirror), Close 006590F0, the pulse 0065A5E0 (plain C++ floats), clicks 00659190 and keys 006592C0; the page draw 00659420 is Rebirth-patched (forwarded). Ours only (`verify_ui_help_window.cpp`), scenario `ui_help` (F1 on the battle screen). 00658030-00658C90 are the save list sort's STLport instantiations and 0065A770 the help topics' operator[] (library.csv).
 
+Options / keyboard screens and widgets (DR-H16, `ui_options.cpp`, `ui_scroll_text.cpp`, `ui_edit_field.cpp`;
+`verify_ui_options.cpp`): `COptionsWindow::RefreshRows` 00651350, `ShowGroup` 00651D70 (RET 4), `BuildSettings` 00651940,
+`BuildBindings` 00651600, `LoadSettings` 00652200 (side by side; sets every control twice), `Apply` 006524A0,
+`CUiSlider::SetRect` 0065B8B0 (slider vtable 00742CBC slot 26, RET 4), `CUiScrollText::DrawLines` 0065D150 (RET 4),
+`CUiEditField::OnKeyDown` 0065C610 (input slot 9, RET 0xC; side by side). Reached: Build 006503C0 runs BuildSettings ->
+SetRect per slider, LoadSettings, BuildBindings, ShowGroup(0) -> RefreshRows (ui_hud, ui_main_menu, ui_container_input;
+ui_hud also clicks group 2); DrawLines by the battle message log. No scenario: Apply (OK at 213..287 x 526..574) and the
+edit field (a message box with flag 4 or the multiplayer hero screen's name fields). Facts: the options rows are
+{OptionBinding*, OptionSetting*}; OptionSetting::definition_ points into 00787430 (26 x 0x18: id, name, kind, maximum, group,
+row), OptionBinding::action_ into 00787080 (59 x 0x10); key names 007857B0 (88 x 0x48); 14 rows, 11 groups. The edit
+field's jump table (0065C8EC / 0065C908): 08 Backspace, 23 End, 24 Home, 25 Left, 27 Right, 2E Delete. The slider's regions:
+0 (left, bottom - 10, left + 12, bottom), 1 (right - 12, bottom - 10, right, bottom), 2 (left, top, right, bottom - 10);
+CUiScrollbar +0x17C is the depth (BuildSettings' 3.0). Strings 007948C4 "OFF", 007948B4 "ON", 00794830 "  |  " after each
+key name, 0079482C " |" (TrimRight set). Kept: the original push_back copies a stack temporary whose non-string fields are
+unwritten (a definition of another kind than 0 / 1 would keep garbage; ours null; the table has none); DrawLines indexes
+its three font heights out of range for a font above 2 (never with the game's texts); OnKeyDown does not clamp the caret
+on Left / Right (0065C2E0, Rebirth-patched, presumably does); ShowGroup draws a filled row twice.
+
+Cleanup leftovers (DR-C5): ui.h has `GameDeviceLock()` (007AEE78) while about twenty files keep a local `DeviceLock()`;
+`kUnitPtrArrayVtable` (007402AC, the game's CArray<CUnit*>) is still spelled out in ui_battle_commands.cpp, ui_camp.cpp,
+ui_create_screen.cpp, ui_hero_screen_click.cpp, ui_item_screen.cpp and player_server_handlers.cpp. ui_hud.cpp's portrait
+server command calls `net::GameClient()->SendCommand` (0041D260) directly, so its wrapper does not see those calls.
+
 Not rewritten: the
-controls' constructors and the edit control (0065AEA0, 0065E320, 0065BC30, 0065BCD0, 0065C010, keys 0065C610: no scenario types into
-one), the objectives window's key handler 0064E5A0, quest list 0064E8B0, exit selection 0064E990, clicks 0064E330, update 0064E760,
-00651940 / 0065B8B0 (window builders and layouts), 006592C0, 0065D150, 0065C930. The portraits' 006407E0 / 00640060, the quick save 006570E0, 00649AF0 and
+controls' constructors (0065AEA0, 0065E320, 0065BC30, 0065BCD0, 0065C010), the objectives window's key handler 0064E5A0,
+quest list 0064E8B0, exit selection 0064E990, update 0064E760, 0065C930. The portraits' 006407E0 / 00640060, the quick save 006570E0, 00649AF0 and
 0065F9B0 are rewritten (`items_spells.md`; EI_Plugin patches the portraits at runtime, rebirth.md).
 
 ## 9. Item descriptions, item view, sprite shapes, surface helpers (005E0000-00610000)
