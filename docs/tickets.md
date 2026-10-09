@@ -16,13 +16,15 @@ section; tools/progress.py misses UI_INPUT_HANDLER / UI_WHEEL_HANDLER registrati
 
 ## Area tickets (done; next candidates)
 
-- Units and combat 0x00500000-0x00560000 (units.md, combat.md): A-U .. A-U8 done (A-U8 cut off, merged 2026-10-09). A-U9 taken 2026-10-09. Next: render / animation block 005015A0 / 00503A40 / 00504A60 / 00507E80 / 0050C230, then the largest in 0x500000-0x560000.
-- World, AI, server 0x00540000-0x005E0000 (world.md, ai.md, unit_ai.md): A-W .. A-W9 done (A-W2, A-W3, A-W9 cut off). A-W10 taken 2026-10-09. Next: world.md "Open items".
+- Units and combat 0x00500000-0x00560000 (units.md, combat.md): A-U .. A-U8 done (A-U8 cut off, merged 2026-10-09). A-U9 done 2026-10-09 (12; FigureBone names fixed to "none"). Next: render / animation block 005015A0 / 00503A40 / 00504A60 / 00507E80 / 0050C230, then the largest in 0x500000-0x560000.
+- World, AI, server 0x00540000-0x005E0000 (world.md, ai.md, unit_ai.md): A-W .. A-W9 done (A-W2, A-W3, A-W9 cut off). A-W10 done 2026-10-09 (22; X28 open). Next: world.md "Open items".
 - Interface 0x005E0000-0x00640000 (ui.md): A-I .. A-I21 done (A-I, A-I4, A-I5, A-I19 cut off). Next: ui.md section 3 "Next".
-- HUD, spells, items 0x00640000-0x006C0000 (items_spells.md): A-H .. A-H21 done (A-H18, A-H21 cut off). A-H22 taken 2026-10-09. Next: items_spells.md "Next candidates".
+- HUD, spells, items 0x00640000-0x006C0000 (items_spells.md): A-H .. A-H21 done (A-H18, A-H21 cut off). A-H22 done 2026-10-09 (29). Next: items_spells.md "Next candidates".
 - Scripts 0x004C0000-0x00500000 (script.md): A-S .. A-S9 done (A-S2 cut off). Next: script.md "Next candidates in this range".
 - CRT / MFC range 0x006C0000-0x00740000 (models.md): A-X1, A-X2 done (A-X2 cut off). A-X3 done (landscape tick, sun, water, ambience, decal terrain part). A-X4 taken 2026-10-09. Next: models.md "Game code left in 0x006C0000-0x00740000".
 - I11 (open): 0063EF60 / 0063E020 need modifier keys held during a click (harness step); ui.md section 6.
+
+- X28 (taken): A-W10's LoadSky 00562F70 (148/148 "sky .. object ..") and UnitTextureRecords 005683D0 (515/1042 "body 1: 8/8 records") mismatch; both in disabled.txt until fixed.
 
 ## Vector math (planned 2026-10-09)
 
