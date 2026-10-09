@@ -1,9 +1,13 @@
 #include "texture.h"
 
+#include "app.h"
+
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+
+#include <ddraw.h>
 
 #include <cstring>
 #include <new>
@@ -123,6 +127,57 @@ int CTextureManager::LoadTextureFrom(CTexture* texture, const char* directory) {
     gamecrt::operator_delete(buffer);
     return 1;
 }
+
+namespace {
+// The texture quality setting (0 best .. 3).
+int TextureQuality() { return *reinterpret_cast<const int*>(0x0079BCDC); }
+const char* CantGetDeviceDescriptionText() { return reinterpret_cast<const char*>(0x0078EE20); }
+
+// IDirect3DDevice7::GetCaps (slot 3) into a D3DDEVICEDESC7, whose largest texture size is at +0x84 / +0x88.
+constexpr int kDeviceGetCaps = 3;
+struct DeviceDescription {
+    std::uint8_t unknown_00[0x84];
+    std::uint32_t maxTextureWidth;    // +0x84
+    std::uint32_t maxTextureHeight;   // +0x88
+    std::uint8_t unknown_8C[0x100 - 0x8C];
+};
+long DeviceGetCaps(void* device, DeviceDescription* desc) {
+    using Fn = long(__stdcall*)(void*, DeviceDescription*);
+    return reinterpret_cast<Fn>((*static_cast<void***>(device))[kDeviceGetCaps])(device, desc);
+}
+} // namespace
+
+void CTextureManager::SetDevice(CTextureDevice* device) {
+    CTextureDevice* old = device_;
+    device_ = device;
+    if (device) device->AddRef();
+    if (old) old->Release();
+    if (!device_) {
+        limitTo512_ = 1;
+        mipLevel_ = 2;
+        return;
+    }
+    switch (TextureQuality()) {
+    case 0: mipLevel_ = 0; break;
+    case 1: mipLevel_ = 1; break;
+    case 2: mipLevel_ = 2; break;
+    default: mipLevel_ = 3; break;
+    }
+    DeviceDescription desc;
+    long result = DeviceGetCaps(device_->d3dDevice_, &desc);
+    device_->lastLoadResult_ = result;
+    if (result != 0 && app::FatalErrorCode(result, CantGetDeviceDescriptionText()) == 0)
+        limitTo512_ = 1;
+    else
+        limitTo512_ = desc.maxTextureWidth > 0x100 && desc.maxTextureHeight > 0x100 ? 0 : 1;
+    DDSCAPS2 caps;
+    std::memset(&caps, 0, sizeof(caps));
+    caps.dwCaps = DDSCAPS_TEXTURE | DDSCAPS_LOCALVIDMEM;   // 0x10001000
+    DWORD total = 0, available = 0;
+    static_cast<IDirectDraw7*>(device_->ddraw_)->GetAvailableVidMem(&caps, &total, &available);
+    videoMemoryTenth_ = total / 10;
+}
+EI_REPLACE_METHOD(0x006913A0, CTextureManager::SetDevice);
 
 CEngineObject* CTextureManager::NewObject(int type) {
     void* memory = gamecrt::operator_new(sizeof(CTexture));

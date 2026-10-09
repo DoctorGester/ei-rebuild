@@ -69,3 +69,34 @@ static void __fastcall BufferSetSizeVerify(AlignedBuffer* self, void*, int count
     if (scratch.data) AlignedBuffer::Free(scratch.data);
 }
 EI_VERIFY(0x00694300, BufferSetSizeVerify, 5, s_bufferSetSize);
+
+// 006913A0 (the client world's setup, every scenario): side by side. The original runs first with
+// the old device protected by an extra reference; then the manager's fields are put back and the
+// references it moved undone, and ours runs. Device, mip level, size limit and the video memory
+// share compared. (A failed GetCaps exits through the DirectX report.)
+// MOV EAX,[ESP+4] (4); SUB ESP,0x104 (6).
+static void(__fastcall* s_setDevice)(CTextureManager*, void*, CTextureDevice*);
+static void __fastcall SetDeviceVerify(CTextureManager* self, void*, CTextureDevice* device) {
+    CTextureDevice* old = self->device_;
+    const std::uint16_t mip = self->mipLevel_;
+    const int limit = self->limitTo512_;
+    const std::uint32_t memory = self->videoMemoryTenth_;
+    if (old) old->AddRef();
+    s_setDevice(self, nullptr, device);
+    CTextureDevice* expectedDevice = self->device_;
+    const std::uint16_t expectedMip = self->mipLevel_;
+    const int expectedLimit = self->limitTo512_;
+    const std::uint32_t expectedMemory = self->videoMemoryTenth_;
+    if (device) --device->refs_;   // the original's reference on the new device
+    self->device_ = old;           // keeps the reference the original dropped (ours drops it again)
+    self->mipLevel_ = mip;
+    self->limitTo512_ = limit;
+    self->videoMemoryTenth_ = memory;
+    self->SetDevice(device);
+    bool same = self->device_ == expectedDevice && self->mipLevel_ == expectedMip &&
+                self->limitTo512_ == expectedLimit && self->videoMemoryTenth_ == expectedMemory;
+    ei::verify::Check("CTextureManager::SetDevice", true, same, "mip %u/%u limit %d/%d memory %u/%u",
+                      static_cast<unsigned>(expectedMip), static_cast<unsigned>(self->mipLevel_), expectedLimit,
+                      self->limitTo512_, expectedMemory, self->videoMemoryTenth_);
+}
+EI_VERIFY(0x006913A0, SetDeviceVerify, 10, s_setDevice);

@@ -267,6 +267,12 @@ public:
     // (no name, no surface, an empty extra block, a pixel format of size 0x20 and nothing else).
     // Null when the allocation fails.
     CEngineObject* NewObject(int type) override;
+    // 006913A0 (texture.cpp; RET 4). Holds `device` (counted). Without one: textures limited to 511
+    // pixels and mip level 2. Else the mip level from the texture quality setting (0, 1, 2, else 3),
+    // the limit when the Direct3D device's largest texture is at most 256 pixels wide or high (or
+    // its GetCaps fails and the DirectX report comes back with 0), and a tenth of the total local
+    // video memory for textures.
+    void SetDevice(CTextureDevice* device);
     // 00691BF0 (texture_cache.cpp). The cached texture of `type` named `name`, taken out of the
     // cache and registered again (its surface's priority 100); null when there is none.
     CTexture* TakeFromCache(int type, const char* name);
@@ -276,7 +282,7 @@ public:
 
     mfc::CTypedPtrList<CTexture> cache_;   // +0xBC released textures kept for reuse (vtable 00743D18)
     int cachedBytes_;           // +0xD8 the cached textures' byte sizes (CTexture::uploadResult_)
-    std::uint32_t unknown_DC;
+    std::uint32_t videoMemoryTenth_;   // +0xDC a tenth of the local video memory for textures (SetDevice)
     CTexture* shadowRenderSurface_;   // +0xE0 the shadows' render surface (00692140; counted)
     CTextureDevice* device_;    // +0xE4
     std::uint16_t mipLevel_;    // +0xE8 first mip level to load (texture quality setting)
