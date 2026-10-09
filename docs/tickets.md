@@ -46,7 +46,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Pending work
 
-The four porting batches (A-I16, A-H15, A-S9, A-U7) are merged (2026-10-09, 140 runs pass). Left: build, fix and merge the drafts below in this order: DR-C1, DR-C4, DR-C5 (DR-C2, DR-C3, DR-H16 are merged). Then republish the dashboard and remove merged worktrees.
+The four porting batches (A-I16, A-H15, A-S9, A-U7) are merged (2026-10-09, 140 runs pass). Left: build, fix and merge the drafts below in this order: DR-C1, DR-C5 (the rest are merged). net_state.cpp's last 14 VCalls: being converted. Then republish the dashboard and remove merged worktrees.
 
 ## Draft passes (no build, 2026-10-07)
 
@@ -55,7 +55,7 @@ The PC can't build or run the suite until a reboot (process-zombie leak, memory 
 - DR-C2 merged 2026-10-09 (102 slots named; 16 placeholders left elsewhere).
 - DR-C3 merged 2026-10-09 (net_state.cpp's last 14 VCalls can now use DR-C2's names).
 - DR-C5 (drafted: ui_surface_create.cpp clean, ui_hud.cpp 6 VCalls left (map object slots 38/39/42 need DR-C2's names with int returns), world_client_draw.cpp 4 VCalls left; head 38582dd; written against DR-C1's CWorldClient names, needs `CCamera* camera_` at CWorldClient +0x210 after DR-C1 (notes); branch draft-dr-c5 in worktree agent-abcd1eeb0aab855a0): cleanup draft of ui_hud.cpp, ui_surface_create.cpp, world_client_draw.cpp.
-- DR-C4 (finishing 2026-10-09; drafted: 3 files clean, head 976571a; needs DR-C2 first with signatures CWorld::PlayerList()->CEngineObject* (20), ItemFactory()->CEngineObject* (18), CUnitController::RefreshVitals(char) (19), CParty::ItemConstructor()->CItemConstructor* (16); 13 server handlers missing from functions.csv listed in its notes (0066F890 login, 0066FA90, 00670CE0, 0066FAC0, 006708D0, 00670820, 00670960, 006709D0, 00670810, 00670A40, 00670A90, 0066FB70, 00670B20); branch draft-dr-c4 in worktree agent-a116a5a6e1c9b6cb7): cleanup draft of world_savefile.cpp, world_save.cpp, item_stock.cpp (VCall 59 between them, plus their At<>/Field<>); then the server message handler table, looking for handlers missing from functions.csv as DR-H16 found on the client side.
+- DR-C4 merged 2026-10-09 (3 files clean; 13 server handlers in functions.csv). Open: 007C8778 QuestItems vs loot table name; stlp::SmallNodeFreeList and camera.h NodeFreeList are the same address.
 - DR-H16 merged 2026-10-09. Apply 006524A0 and the edit field 0065C610 have no scenario. function_sizes.inc needs a real regeneration once the Ghidra database is whole (it reports cut-short bodies, e.g. 0040D710 555 -> 60).
 
 ## Verify checks
