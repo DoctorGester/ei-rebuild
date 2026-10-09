@@ -186,7 +186,7 @@ src/game/scene_loader.cpp,0,0,1,0,0,0,0,0,0,0,0
 src/game/scene_loader.h,0,0,0,0,0,0,0,0,0,1,0
 src/game/scene_material.cpp,0,0,0,0,25,0,0,0,0,0,0
 src/game/scene_normals.cpp,0,0,0,0,0,0,0,0,0,0,1
-src/game/scene_registry.cpp,19,0,1,0,2,0,0,0,0,1,0
+src/game/scene_registry.cpp,0,0,1,0,0,0,0,0,0,0,0
 src/game/scene_skeleton.cpp,0,0,0,0,0,0,0,0,0,0,3
 src/game/scene_weld.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/script.h,0,0,0,0,0,0,0,0,0,0,3

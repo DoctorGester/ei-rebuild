@@ -264,7 +264,10 @@ struct SceneMesh : CEngineObject {
     Vector3 boxMin;                     // +0x168
     Vector3 boxMax;                     // +0x174
     float radius;                       // +0x180
-    std::uint32_t unknown_184[2];       // +0x184 the figure's +0x158 / +0x15C
+    // +0x184 / +0x188 the material of the mesh's last group (0044A2A0 from its name; 0044B980);
+    // the figure copies them to its +0x158 / +0x15C.
+    int materialValue;
+    int materialType;
 };
 static_assert(offsetof(SceneMesh, name) == mesh::kName);
 static_assert(offsetof(SceneMesh, positions) == mesh::kPositions);
@@ -276,7 +279,7 @@ static_assert(offsetof(SceneMesh, normals) == 0xF8);
 static_assert(offsetof(SceneMesh, corners) == 0x108);
 static_assert(offsetof(SceneMesh, cornerIndices) == 0x128);
 static_assert(offsetof(SceneMesh, center) == 0x15C);
-static_assert(offsetof(SceneMesh, unknown_184) == 0x184);
+static_assert(offsetof(SceneMesh, materialValue) == 0x184);
 static_assert(sizeof(SceneMesh) == mesh::kSize);
 
 // The caller's node and mesh arrays seen with their element types (never resized through these).
@@ -320,6 +323,8 @@ constexpr std::size_t kValue60 = 0x60;     // file +0x24
 constexpr std::size_t kName2 = 0x8C;       // CString
 constexpr std::size_t kName3 = 0x94;       // CString
 } // namespace helper
+
+using HelperArray = mfc::CArray<struct SceneHelper, mfc::RawElements<struct SceneHelper>>;
 
 // A helper (helper:: offsets; 0x9C bytes): three names and the file's vectors, kept as bits.
 struct SceneHelper {

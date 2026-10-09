@@ -11,7 +11,7 @@
 #include <vector>
 
 namespace scene {
-int __fastcall LoadFigureRegistry(char* unit, const mfc::CString* path, VtArray* links, VtArray* names);
+int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path, VtArray* links, VtArray* names);
 }
 
 namespace {
@@ -88,7 +88,7 @@ static int __fastcall LoadFigureRegistryVerify(char* unit, const mfc::CString* p
     RestoreTexCoords(unit, saved);
     links->size = linksSize;
     names->size = namesSize;
-    Outcome actual = Capture(scene::LoadFigureRegistry(unit, path, links, names), unit, links, linksSize, names,
+    Outcome actual = Capture(scene::LoadFigureRegistry(reinterpret_cast<scene::FakeUnitScene*>(unit), path, links, names), unit, links, linksSize, names,
                              namesSize);
     ei::verify::Check("LoadFigureRegistry.result", expected.result, actual.result, "");
     ei::verify::Check("LoadFigureRegistry.texCoords", true, expected.texCoords == actual.texCoords, "meshes %d",

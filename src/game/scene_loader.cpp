@@ -98,7 +98,7 @@ using NormalRecords = mfc::CArray<FileNormal>;               // H
 
 using MeshRecordArray = mfc::CArray<SceneMesh, OriginalElements<SceneMesh, ConstructMeshes, DestructMeshes>>;
 using NodeRecordArray = mfc::CArray<SceneNode, OriginalElements<SceneNode, ConstructNodes, DestructNodes>>;
-using HelperArray = mfc::CArray<SceneHelper, mfc::RawElements<SceneHelper>>;
+
 using MapRecordArray = mfc::CArray<DwordMap, OriginalElements<DwordMap, ConstructMaps>>;
 
 // Out-of-line members of the instantiations the loader reaches (the template with the original's address).
@@ -765,8 +765,8 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     figureArray.SetSize(meshes->size);
     for (int i = 0; i < meshes->size; ++i) {
         figureArray.data[i].name_ = meshArray.data[i].GetName();
-        figureArray.data[i].unknown_158 = meshArray.data[i].unknown_184[0];
-        figureArray.data[i].unknown_15C = meshArray.data[i].unknown_184[1];
+        figureArray.data[i].unknown_158 = static_cast<std::uint32_t>(meshArray.data[i].materialValue);
+        figureArray.data[i].unknown_15C = static_cast<std::uint32_t>(meshArray.data[i].materialType);
     }
 
     if (!BuildSkeleton(meshes, &s.nodes, static_cast<int>(s.infoDword - 1), &u->skin))
