@@ -80,6 +80,59 @@ void CInterface3D::OnQuestVariable(const char* name, float value) {
 }
 EI_REPLACE_METHOD(0x005F7FC0, CInterface3D::OnQuestVariable);
 
+// --- 005F7F30-005F8310, 005F86D0: news for the top window -------------------------------------
+
+namespace {
+// A unit's speech without an extra argument (slot 32's third).
+constexpr char* kNoExtra = nullptr;
+} // namespace
+
+void CInterface3D::OnItemsPicked(void* items, int money, int crippled) {
+    if (stackBegin_ != stackEnd_) stackEnd_[-1]->VirtualItemsPicked(items, money, crippled);
+}
+EI_REPLACE_METHOD(0x005F7F30, CInterface3D::OnItemsPicked);
+
+void CInterface3D::OnUnitJoined(void* unit) {
+    if (stackBegin_ != stackEnd_) stackEnd_[-1]->VirtualUnitJoined(unit);
+}
+EI_REPLACE_METHOD(0x005F7F60, CInterface3D::OnUnitJoined);
+
+void CInterface3D::OnUnitLeft(void* unit) {
+    if (stackBegin_ != stackEnd_) stackEnd_[-1]->VirtualUnitLeft(unit);
+}
+EI_REPLACE_METHOD(0x005F7F80, CInterface3D::OnUnitLeft);
+
+void CInterface3D::OnGameLost() {
+    if (stackBegin_ != stackEnd_) stackEnd_[-1]->VirtualGameOver(0);
+}
+EI_REPLACE_METHOD(0x005F7FA0, CInterface3D::OnGameLost);
+
+void CInterface3D::OnUnitSpeech(int id, unsigned event) {
+    if (stackBegin_ != stackEnd_) stackEnd_[-1]->VirtualSpeech(id, event, kNoExtra);
+}
+EI_REPLACE_METHOD(0x005F82A0, CInterface3D::OnUnitSpeech);
+
+void CInterface3D::OnPlayersChanged(int added) {
+    if (stackBegin_ != stackEnd_) stackEnd_[-1]->VirtualPlayersChanged(added);
+}
+EI_REPLACE_METHOD(0x005F82D0, CInterface3D::OnPlayersChanged);
+
+void CInterface3D::OnChatLine(const char* text, std::uint32_t number) {
+    ChatOverlayAddLineOriginal(root_, nullptr, text, number);
+}
+EI_REPLACE_METHOD(0x005F82F0, CInterface3D::OnChatLine);
+
+void CInterface3D::OnExchangeDone(void* partyB, void* partyA, void* partyC) {
+    if (stackBegin_ != stackEnd_) stackEnd_[-1]->VirtualExchangeDone(partyB, partyA, partyC);
+}
+EI_REPLACE_METHOD(0x005F8310, CInterface3D::OnExchangeDone);
+
+// The bottom window, not the top one (a save is made from the battle screen under the save window).
+void CInterface3D::SaveWindowState() {
+    if (stackBegin_ != stackEnd_) stackBegin_[0]->VirtualSaveState();
+}
+EI_REPLACE_METHOD(0x005F86D0, CInterface3D::SaveWindowState);
+
 void CInterface3D::ShowStatusText(const char* text) {
     void* memory = gamecrt::operator_new(sizeof(CUiSurface));
     statusSurface_ = memory ? static_cast<CUiSurface*>(memory)->Construct(this, 0, kStatusTop, kLayoutWidth, kStatusBottom,

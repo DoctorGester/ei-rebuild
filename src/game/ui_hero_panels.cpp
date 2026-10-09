@@ -385,7 +385,7 @@ void BuildCellGrid(CUiWindow* window) {
 void CHeroEquipPanel::Build(bool body) {
     body_ = body;
     rect_ = RECT{0, 0, 800, body ? 500 : 100};
-    unknown_148 = 0;
+    mode_ = 0;
     for (int x = 0; x < 800; x += 100) AddRect(this, RECT{x, 0, x + 100, 100});
     // Two hidden highlight frames.
     for (int i = 0; i < 2; ++i) {
@@ -531,7 +531,7 @@ EI_REPLACE(0x00628060, RepairGridItemAt);
 
 void CRepairGrid::Build(void* items) {
     rect_ = RECT{200, 100, 600, 500};
-    unknown_148 = 8;
+    mode_ = 8;
     items_ = static_cast<UiItemList*>(items);
     LoadTexture(GameText(0x00793ED4), 3, 0);   // repair1
     LoadTexture(GameText(0x00793ECC), 3, 0);   // repair2
@@ -546,7 +546,7 @@ EI_REPLACE_METHOD(0x006279E0, CRepairGrid::Build);
 void CHeroQuickStrip::Build(bool top) {
     y_ = top ? 0 : 500;
     rect_ = RECT{0, y_, 800, y_ + 100};
-    unknown_148 = 0;
+    mode_ = 0;
     for (int x = 0; x < 800; x += 100) AddRect(this, RECT{x, y_, x + 100, y_ + 100});
     CUiMesh* frame = AddSprite(0);
     Builder(frame)->Framed(3.0f, 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100, 0x100);
@@ -591,7 +591,7 @@ void AddMakerPictures(CConstructorPage* page) {
 
 void CConstructorPage::BuildSpellMaker(void* slots) {
     rect_ = RECT{200, 100, 600, 500};
-    kind_ = 6;
+    mode_ = 6;
     slots_ = slots;
     LoadTexture(GameText(0x00793F0C), 3, 0);   // constrspell1
     LoadTexture(GameText(0x00793EFC), 3, 0);   // constrspell2
@@ -620,7 +620,7 @@ EI_REPLACE_METHOD(0x006280C0, CConstructorPage::BuildSpellMaker);
 
 void CConstructorPage::BuildItemMaker(void* slots) {
     rect_ = RECT{200, 100, 600, 500};
-    kind_ = 7;
+    mode_ = 7;
     slots_ = slots;
     LoadTexture(GameText(0x00793F4C), 3, 0);   // constritem1
     LoadTexture(GameText(0x00793F40), 3, 0);   // constritem2

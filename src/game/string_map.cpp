@@ -150,7 +150,6 @@ T& At(void* base, std::size_t offset) { return *reinterpret_cast<T*>(static_cast
 // The font (MFC CFont, library), the interface's panel rectangles, the panel surface and its DC
 // (an MFC CDC: slots 10 SelectObject(CFont*), 12 SetTextColor, 26 DrawText), the red-black tree's
 // increment (library).
-__declspec(naked) int __fastcall FontCreatePoint(void*, void*, int /*size*/, const char* /*face*/, void* /*dc*/) EI_ORIGINAL(0x0070BBE5)
 __declspec(naked) void __fastcall InterfaceFitRect(void*, void*, RECT*) EI_ORIGINAL(0x005F7CA0)
 __declspec(naked) void __fastcall InterfaceSetPanelRect(void*, void*, RECT*) EI_ORIGINAL(0x005F7DA0)
 __declspec(naked) void* __fastcall PanelConstruct(void*, void*, void* /*ui*/, RECT*, int) EI_ORIGINAL(0x005FCDD0)
@@ -182,7 +181,7 @@ void __fastcall PanelInit(void* self, void*, void* ui) {
         font[0] = 0x0073BFB4;   // CFont
     }
     At<void*>(self, 0x18) = font;
-    if (!FontCreatePoint(font, nullptr, 0x5A, reinterpret_cast<const char*>(0x007842C8), nullptr)) {
+    if (!FontCreatePointOriginal(font, nullptr, 0x5A, reinterpret_cast<const char*>(0x007842C8), nullptr)) {
         if (void* f = At<void*>(self, 0x18)) ei::VCall<void>(f, 1, 1);
         At<void*>(self, 0x18) = nullptr;
     }

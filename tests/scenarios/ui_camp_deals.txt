@@ -31,6 +31,12 @@ campputon 3006 1
 wait 500
 clickregion 1
 wait 500
+# Left clicks on the trade grid's cells (the panels' shared handler 005EE310: an item goes to the
+# camp's slot 42 with the grid's mode, an empty cell's topic to slot 44).
+click 250 150
+wait 300
+click 250 350
+wait 300
 # The other pages for their draws (an unoffered one shows the current page again): region 7 page 3
 # (the spell maker 006284A0), 9 page 5 (the item maker 00628F80), 10 page 6. The mouse rests on
 # each maker's first two slots (250, 300) / (350, 300): the camp's draw asks the page for the item

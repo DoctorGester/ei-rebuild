@@ -86,7 +86,7 @@ BOOL CHeroQuickStrip::Draw(int pass) {
     }
     for (int i = 0; i < static_cast<int>(hero->spellCount); ++i) {
         ItemCell cell{reinterpret_cast<CItem*>(hero->spells[i]), static_cast<float>(i * 100 + 50),
-                      static_cast<float>(y_ + 50), 12.0f, 100.0f, unknown_148};
+                      static_cast<float>(y_ + 50), 12.0f, 100.0f, mode_};
         DrawItem(owner_, pass, &cell);
     }
     return DrawBase(pass);
@@ -120,7 +120,7 @@ BOOL CRepairGrid::Draw(int pass) {
         auto scale = static_cast<int>(1u << ((3 - (i >> 2)) & 31));
         CItem* item = list->data[i];
         ItemCell cell{item, static_cast<float>(x) + 250.0f, static_cast<float>(y) + 150.0f,
-                      static_cast<float>(scale) * 6.0f, 100.0f, unknown_148};
+                      static_cast<float>(scale) * 6.0f, 100.0f, mode_};
         DrawItem(owner_, pass, &cell);
         int pieces = static_cast<int>(item->unknown_48);   // the stack's count
         if (pieces > 1) {
@@ -210,7 +210,7 @@ BOOL CConstructorPage::DrawSpellMaker(int pass) {
     int column = 0;
     for (int i = 0; i < slots->count; ++i) {
         CItem* item = slots->items[i];
-        ItemCell cell{item, 0.0f, 0.0f, 6.0f, 100.0f, kind_};
+        ItemCell cell{item, 0.0f, 0.0f, 6.0f, 100.0f, mode_};
         if (IsSpellContainer(item)) {
             cell.x = 250.0f;
             cell.y = 300.0f;
@@ -331,7 +331,7 @@ BOOL CConstructorPage::DrawItemMaker(int pass) {
     int column = 0;
     for (int i = 0; i < slots->count; ++i) {
         CItem* item = slots->items[i];
-        ItemCell cell{item, 0.0f, 0.0f, 6.0f, 100.0f, kind_};
+        ItemCell cell{item, 0.0f, 0.0f, 6.0f, 100.0f, mode_};
         if (ItemKindIsBuildableOriginal(item)) {
             cell.x = 250.0f;
             cell.y = 300.0f;

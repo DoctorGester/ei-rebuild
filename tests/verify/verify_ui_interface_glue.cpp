@@ -9,6 +9,9 @@
 #include "../../src/game/console.h"
 #include "../../src/game/ui.h"
 
+#include "slot_recorder.h"
+
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 
@@ -93,3 +96,88 @@ static void __fastcall ShowStatusTextVerify(CInterface3D* self, void*, const cha
     ei::verify::Check("CInterface3D::ShowStatusText", true, self->statusSurface_ == nullptr, "text %s", text ? text : "");
 }
 EI_VERIFY(0x005F75B0, ShowStatusTextVerify, 0, s_unused);
+
+// --- 005F7F30-005F8310, 005F86D0: the news slots --------------------------------------------------
+// Side by side on the call: the top window (the bottom one for 005F86D0) gets a stand-in vtable
+// whose news slot records the call and forwards it; ours runs once; the call must be that slot
+// with the arguments passed on (none without a window). Scenarios: items picked up and units
+// joining or leaving the party (items, ui_hud, every new game: the party joins), speech (combat:
+// units shout), saves (ui_saveload: 005F86D0), the game lost (hero_death). The players, chat and
+// exchange news (005F82D0, 005F82F0, 005F8310) need a multiplayer client: no scenario.
+namespace {
+template <int Slot, int Args, typename Run>
+void CheckNews(const char* name, CInterface3D* self, bool bottom, std::uintptr_t a, std::uintptr_t b, std::uintptr_t c,
+               Run run) {
+    CUiWindow* target = self->stackBegin_ == self->stackEnd_ ? nullptr
+                        : bottom                             ? self->stackBegin_[0]
+                                                             : self->stackEnd_[-1];
+    if (!target) {
+        run();
+        ei::verify::Check(name, true, true, "");
+        return;
+    }
+    ei::verify::SlotRecorder recorder(target);
+    recorder.Record<Slot, Args>();
+    run();
+    const ei::verify::SlotCall& call = ei::verify::SlotRecorder::Call();
+    bool ok = call.calls == 1 && call.slot == Slot && (Args < 1 || call.args[0] == a) && (Args < 2 || call.args[1] == b) &&
+              (Args < 3 || call.args[2] == c);
+    ei::verify::Check(name, true, ok, "calls %d slot %d args %x %x %x", call.calls, call.slot, call.args[0], call.args[1],
+                      call.args[2]);
+}
+std::uintptr_t U(const void* p) { return reinterpret_cast<std::uintptr_t>(p); }
+std::uintptr_t U(int v) { return static_cast<std::uintptr_t>(v); }
+} // namespace
+
+static void __fastcall OnItemsPickedVerify(CInterface3D* self, void*, void* items, int money, int crippled) {
+    CheckNews<28, 3>("CInterface3D::OnItemsPicked", self, false, U(items), U(money), U(crippled),
+                     [&] { self->CInterface3D::OnItemsPicked(items, money, crippled); });
+}
+EI_VERIFY(0x005F7F30, OnItemsPickedVerify, 0, s_unused);
+
+static void __fastcall OnUnitJoinedVerify(CInterface3D* self, void*, void* unit) {
+    CheckNews<29, 1>("CInterface3D::OnUnitJoined", self, false, U(unit), 0, 0,
+                     [&] { self->CInterface3D::OnUnitJoined(unit); });
+}
+EI_VERIFY(0x005F7F60, OnUnitJoinedVerify, 0, s_unused);
+
+static void __fastcall OnUnitLeftVerify(CInterface3D* self, void*, void* unit) {
+    CheckNews<30, 1>("CInterface3D::OnUnitLeft", self, false, U(unit), 0, 0, [&] { self->CInterface3D::OnUnitLeft(unit); });
+}
+EI_VERIFY(0x005F7F80, OnUnitLeftVerify, 0, s_unused);
+
+static void __fastcall OnGameLostVerify(CInterface3D* self, void*) {
+    CheckNews<31, 1>("CInterface3D::OnGameLost", self, false, 0, 0, 0, [&] { self->CInterface3D::OnGameLost(); });
+}
+EI_VERIFY(0x005F7FA0, OnGameLostVerify, 0, s_unused);
+
+static void __fastcall OnUnitSpeechVerify(CInterface3D* self, void*, int id, unsigned event) {
+    CheckNews<32, 3>("CInterface3D::OnUnitSpeech", self, false, U(id), event, 0,
+                     [&] { self->CInterface3D::OnUnitSpeech(id, event); });
+}
+EI_VERIFY(0x005F82A0, OnUnitSpeechVerify, 0, s_unused);
+
+static void __fastcall OnPlayersChangedVerify(CInterface3D* self, void*, int added) {
+    CheckNews<36, 1>("CInterface3D::OnPlayersChanged", self, false, U(added), 0, 0,
+                     [&] { self->CInterface3D::OnPlayersChanged(added); });
+}
+EI_VERIFY(0x005F82D0, OnPlayersChangedVerify, 0, s_unused);
+
+static void __fastcall OnExchangeDoneVerify(CInterface3D* self, void*, void* partyB, void* partyA, void* partyC) {
+    CheckNews<37, 3>("CInterface3D::OnExchangeDone", self, false, U(partyB), U(partyA), U(partyC),
+                     [&] { self->CInterface3D::OnExchangeDone(partyB, partyA, partyC); });
+}
+EI_VERIFY(0x005F8310, OnExchangeDoneVerify, 0, s_unused);
+
+static void __fastcall SaveWindowStateVerify(CInterface3D* self, void*) {
+    CheckNews<40, 0>("CInterface3D::SaveWindowState", self, true, 0, 0, 0,
+                     [&] { self->CInterface3D::SaveWindowState(); });
+}
+EI_VERIFY(0x005F86D0, SaveWindowStateVerify, 0, s_unused);
+
+// 005F82F0: ours only (the chat overlay's AddLine is checked by its own wrapper).
+static void __fastcall OnChatLineVerify(CInterface3D* self, void*, const char* text, std::uint32_t number) {
+    self->CInterface3D::OnChatLine(text, number);
+    ei::verify::Check("CInterface3D::OnChatLine", true, true, "");
+}
+EI_VERIFY(0x005F82F0, OnChatLineVerify, 0, s_unused);
