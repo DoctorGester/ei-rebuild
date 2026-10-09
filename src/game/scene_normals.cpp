@@ -18,16 +18,6 @@
 namespace scene {
 namespace {
 
-template <typename T>
-T& At(const void* base, std::size_t offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(const_cast<void*>(base)) + offset);
-}
-
-// Mesh members used here (see scene_loader.h for the rest).
-constexpr std::size_t kNormalBlocks = 0xB8;   // aligned array of 64-byte blocks
-constexpr std::size_t kNormals = 0xF8;        // aligned array of points
-constexpr std::size_t kFaceNormal = 0x24;     // in MeshFace: 3 floats
-
 __declspec(naked) void __fastcall PointsSetAtGrow(PointBuffer*, void*, int, Vector3) EI_ORIGINAL(0x00452AF0)
 __declspec(naked) void __fastcall DwordsSetAtGrow(DwordBuffer*, void*, int, std::uint32_t) EI_ORIGINAL(0x004538D0)
 // 0049AEC0: the face's normal from the mesh's positions (stored at face +0x24).
@@ -50,10 +40,10 @@ void __fastcall ComputeMeshNormals(VtArray* meshes) {
     DwordBuffer facesOfVertex{};
     const double weld = WeldDistance();
     for (int m = 0; m < meshes->size; ++m) {
-        char* mesh = reinterpret_cast<char*>(meshes->data) + m * mesh::kSize;
-        PointBuffer& normals = At<PointBuffer>(mesh, kNormals);
-        PointBuffer& positions = At<PointBuffer>(mesh, mesh::kPositions);
-        FaceBuffer& faces = At<FaceBuffer>(mesh, mesh::kFaces);
+        SceneMesh* mesh = &Typed<MeshArray>(*meshes).data[m];
+        PointBuffer& normals = mesh->normals;
+        PointBuffer& positions = mesh->positions;
+        FaceBuffer& faces = mesh->faces;
         normals.SetSize(0);
         for (int f = 0; f < faces.size; ++f) FaceNormal(&faces.data[f], nullptr, &positions);
 
@@ -68,7 +58,7 @@ void __fastcall ComputeMeshNormals(VtArray* meshes) {
             Vector3 sum = GamePoint(0x0079B9B0);
             const std::uint32_t* list = facesOfVertex.data;
             for (int i = 0; i < facesOfVertex.size; ++i) {
-                const Vector3& n = At<Vector3>(&faces.data[list[i]], kFaceNormal);
+                const Vector3& n = faces.data[list[i]].normal;
                 sum.x += n.x;
                 sum.y += n.y;
                 sum.z += n.z;
@@ -93,7 +83,7 @@ void __fastcall ComputeMeshNormals(VtArray* meshes) {
         }
 
         // Four normals per block (lanes x[4], y[4], z[4], w[4]).
-        BlockBuffer& blocks = At<BlockBuffer>(mesh, kNormalBlocks);
+        BlockBuffer& blocks = mesh->normalBlocks;
         int count = normals.size;
         blocks.SetSize(count % 4 == 0 ? count / 4 : count / 4 + 1);
         for (int b = 0; b < blocks.size; ++b) {
@@ -131,12 +121,12 @@ EI_REPLACE(0x0044DCF0, ComputeMeshNormals);
 // 0044E3B0 (Ghidra: PlaceMeshes; `unit` is the fake unit, meshes at +0x544): every mesh's
 // positions packed four at a time into 64-byte blocks at +0xA8 (x[4], y[4], z[4], w[4] = 1); every
 // lane starts as the first position, so the unused lanes of the last block keep it.
-void __fastcall PackMeshPositions(void* unit) {
-    VtArray& meshes = At<VtArray>(unit, 0x544);
+void __fastcall PackMeshPositions(FakeUnitScene* unit) {
+    VtArray& meshes = unit->meshes;
     for (int m = 0; m < meshes.size; ++m) {
-        char* mesh = reinterpret_cast<char*>(meshes.data) + m * mesh::kSize;
-        PointBuffer& positions = At<PointBuffer>(mesh, mesh::kPositions);
-        BlockBuffer& blocks = At<BlockBuffer>(mesh, 0xA8);
+        SceneMesh* mesh = &Typed<MeshArray>(meshes).data[m];
+        PointBuffer& positions = mesh->positions;
+        BlockBuffer& blocks = mesh->positionBlocks;
         int count = positions.size;
         blocks.SetSize(count % 4 == 0 ? count / 4 : count / 4 + 1);
         for (int b = 0; b < blocks.size; ++b) {
@@ -177,8 +167,8 @@ float SelectBelow(float a, float b) { return !(a >= b) ? b : a; }
 // +0x174 max, both made relative to the centre), its centre (+0x15C, half the sum, 0073B86C) and
 // the radius (+0x180, half the box's diagonal). The running maximum of x starts at 0073C1A8
 // (-FLT_MAX), the others at +/-FLT_MAX. Plain float maths (rule 7).
-void __fastcall ComputeMeshBounds(char* mesh) {
-    const PointBuffer& positions = At<PointBuffer>(mesh, mesh::kPositions);
+void __fastcall ComputeMeshBounds(SceneMesh* mesh) {
+    const PointBuffer& positions = mesh->positions;
     float maxX = GameFloat(0x0073C1A8);
     std::uint32_t lowest = 0xFF7FFFFFu, highest = 0x7F7FFFFFu;
     float maxY, maxZ, minX, minY, minZ;
@@ -196,15 +186,15 @@ void __fastcall ComputeMeshBounds(char* mesh) {
         maxZ = SelectBelow(p.z, maxZ);
         minZ = SelectBelow(minZ, p.z);
     }
-    Vector3& low = At<Vector3>(mesh, 0x168);
-    Vector3& high = At<Vector3>(mesh, 0x174);
-    Vector3& centre = At<Vector3>(mesh, 0x15C);
+    Vector3& low = mesh->boxMin;
+    Vector3& high = mesh->boxMax;
+    Vector3& centre = mesh->center;
     low = {minX, minY, minZ};
     high = {maxX, maxY, maxZ};
     const float half = GameFloat(0x0073B86C);
     centre = {(high.x + low.x) * half, (high.y + low.y) * half, (high.z + low.z) * half};
     float dx = (high.x - low.x) * half, dy = (high.y - low.y) * half, dz = (high.z - low.z) * half;
-    At<float>(mesh, 0x180) = std::sqrt(dz * dz + dy * dy + dx * dx);
+    mesh->radius = std::sqrt(dz * dz + dy * dy + dx * dx);
     low.x -= centre.x;
     low.y -= centre.y;
     low.z -= centre.z;

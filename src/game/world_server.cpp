@@ -74,11 +74,6 @@ constexpr int kClassNoSector = 0x61;     // objects of this class are not in the
 constexpr int kSlotRemoved = 5;          // object slot 5 (+0x14): it leaves the server
 constexpr int kSlotForget = 56;          // object slot 56 (+0xE0): another object is removed
 
-// The map at +0x12D88: the map objects SendFreshObjects sent (world_map.cpp).
-ObjectIdMap& SentObjects(CWorldServer* world) {
-    return *reinterpret_cast<ObjectIdMap*>(reinterpret_cast<std::uint8_t*>(world) + 0x12D88);
-}
-
 // find + erase(iterator), as the original inlines it for each map.
 void EraseId(ObjectIdMap& map, unsigned id) {
     if (auto* node = map.map.Find(id)) map.map.Erase(node);
@@ -227,8 +222,8 @@ void CWorldServer::RemoveObject(unsigned id) {
     IdMapEraseOriginal(&updateMap_, nullptr, &id);
     EraseId(objects_, id);
     if (namedObjects_.map.Find(id)) EraseId(namedObjects_, id);
-    if (SentObjects(this).map.Find(id)) {
-        EraseId(SentObjects(this), id);
+    if (sentObjects_.map.Find(id)) {
+        EraseId(sentObjects_, id);
     } else {
         EraseId(mapObjects_, id);
         if (otherMapObjects_.map.Find(id)) EraseId(otherMapObjects_, id);

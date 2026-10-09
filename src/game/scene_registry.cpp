@@ -21,17 +21,8 @@
 namespace scene {
 namespace {
 
-template <typename T>
-T& At(void* base, std::size_t offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(base) + offset);
-}
-
-// The unit's arrays: meshes (+0x544, 0x18C each) and helpers (+0x56C, 0x9C each).
-constexpr std::size_t kMeshes = 0x544;
-constexpr std::size_t kHelpers = 0x56C;
-// Mesh fields used here (see scene_loader.h for the rest).
-constexpr std::size_t kMaterialValue = 0x184;
-constexpr std::size_t kMaterialType = 0x188;
+// The unit's arrays: meshes (SceneMesh) and helpers (SceneHelper); FakeUnitScene, scene_loader.h.
+SceneMesh& MeshAt(FakeUnitScene* unit, int index) { return Typed<MeshArray>(unit->meshes).data[index]; }
 
 // A CString passed by value: the caller copy-constructs it into the argument slot, the callee
 // destroys it. Naked forwarders cannot take a class by value, so the slot is a raw pointer.
@@ -71,7 +62,7 @@ __declspec(naked) mfc::CString Registry::GetString(const char*, const char*, Str
 __declspec(naked) void Registry::Close() EI_ORIGINAL(0x006946B0)
 
 // 00450750: the helper `index` of the unit's helper array (thiscall).
-__declspec(naked) char* __fastcall HelperAt(VtArray*, void*, int /*index*/) EI_ORIGINAL(0x00450750)
+__declspec(naked) SceneHelper* __fastcall HelperAt(VtArray*, void*, int /*index*/) EI_ORIGINAL(0x00450750)
 // 00447F50: *out = the section of `sections` equal to `name` ignoring case, else `name` (consumed).
 __declspec(naked) mfc::CString* __fastcall FindSection(mfc::CString* /*out*/, const console::CStringArray*, StringArg)
     EI_ORIGINAL(0x00447F50)
@@ -84,18 +75,10 @@ __declspec(naked) void __fastcall LinksSetSize(VtArray*, void*, int, int) EI_ORI
 __declspec(naked) void __stdcall ConstructNamed(void* /*p*/, int /*count*/) EI_ORIGINAL(0x004553F0)
 __declspec(naked) void __fastcall DestroyNamed(void*, void*, int /*flags*/) EI_ORIGINAL(0x00454360)
 
-// The local CMap<DWORD, DWORD> of texture coordinates already moved (vtable 0073C16C): its
-// GetAssocAt (00453C60), InitHashTable (00453B90) and NewAssoc (00453C00).
-struct SeenMap {
-    std::uintptr_t vtable;
-    MapAssoc** table;
-    std::uint32_t hashSize;
-    int count;
-    MapAssoc* freeList;
-    mfc::CPlex* blocks;
-    int blockSize;
-};
-static_assert(sizeof(SeenMap) == 0x1C);
+// The local CMap<DWORD, DWORD> of texture coordinates already moved (vtable 0073C16C; the
+// DwordMap layout): its GetAssocAt (00453C60), InitHashTable (00453B90) and NewAssoc (00453C00).
+using SeenMap = DwordMap;
+std::uintptr_t SeenMapVtable() { return std::uintptr_t(0x0073C16C); }
 __declspec(naked) MapAssoc* __fastcall MapGetAssocAt(SeenMap*, void*, const std::uint32_t*, std::uint32_t*)
     EI_ORIGINAL(0x00453C60)
 __declspec(naked) void __fastcall MapInitHashTable(SeenMap*, void*, std::uint32_t, int) EI_ORIGINAL(0x00453B90)
@@ -142,7 +125,7 @@ void MapMark(SeenMap& map, std::uint32_t key) {
 // The map's destructor as inlined: RemoveAll (the table is deleted even when null) and the block
 // chain freed.
 void MapDestroy(SeenMap& map) {
-    map.vtable = 0x0073C16C;
+    map.vtable = SeenMapVtable();
     gamecrt::operator_delete(map.table);
     map.table = nullptr;
     map.count = 0;
@@ -221,12 +204,12 @@ struct GroupStrings {
     mfc::CString& section;
 };
 
-void MapGroup(char* unit, Registry& reg, const console::CStringArray& sections, GroupStrings& s, char* meshes,
-              std::size_t meshOffset, int group, int helper, SeenMap& seen) {
-    char* helperRecord = HelperAt(&At<VtArray>(unit, kHelpers), nullptr, helper);
+void MapGroup(FakeUnitScene* unit, Registry& reg, const console::CStringArray& sections, GroupStrings& s, int meshIndex,
+              int group, int helper, SeenMap& seen) {
+    SceneHelper* helperRecord = HelperAt(&unit->helpers, nullptr, helper);
     alignas(mfc::CString) unsigned char found[sizeof(mfc::CString)];
     auto* foundString = reinterpret_cast<mfc::CString*>(found);
-    FindSection(foundString, &sections, Copy(At<mfc::CString>(helperRecord, helper::kName2)));
+    FindSection(foundString, &sections, Copy(helperRecord->name2));
     s.section = *foundString;
     foundString->~CString();
     s.mapping = reg.GetString(s.section, Text(0x007846DC), Copy(Text(0x007846F0)));   // "Main Texture Name", "none"
@@ -234,8 +217,7 @@ void MapGroup(char* unit, Registry& reg, const console::CStringArray& sections, 
     Mapping m;
     m.width = static_cast<float>(reg.GetInt(Text(0x007846C8), Text(0x007846D4), 0x100));      // "Dimentions", "Width"
     m.height = static_cast<float>(reg.GetInt(Text(0x007846C8), Text(0x007846C0), 0x100));     // "Height"
-    const char* mapping = s.mapping;
-    if (reinterpret_cast<const int*>(mapping)[-2] == 0) {   // CStringData::nDataLength
+    if (s.mapping.GetLength() == 0) {
         m.h = 0.0f;
         m.w = 0.0f;
         m.y = 0.0f;
@@ -259,14 +241,14 @@ void MapGroup(char* unit, Registry& reg, const console::CStringArray& sections, 
         }
     }
 
-    for (int f = 0; f < At<FaceGroup*>(meshes + meshOffset, mesh::kGroups + 4)[group].faces.size; ++f) {
-        const FaceGroup& g = At<FaceGroup*>(meshes + meshOffset, mesh::kGroups + 4)[group];
-        std::uint32_t face = reinterpret_cast<const std::uint32_t*>(g.faces.data)[f];
+    for (int f = 0; f < MeshAt(unit, meshIndex).groups.data[group].faces.size; ++f) {
+        const FaceGroup& g = MeshAt(unit, meshIndex).groups.data[group];
+        std::uint32_t face = g.faces.data[f];
         for (int k = 0; k < 3; ++k) {
-            char* mesh = At<char*>(unit, kMeshes + 4) + meshOffset;
-            std::uint32_t t = At<MeshFace*>(mesh, mesh::kFaces)[face].vertex2[k];
+            SceneMesh& mesh = MeshAt(unit, meshIndex);
+            std::uint32_t t = mesh.faces.data[face].vertex2[k];
             if (MapLookup(seen, t)->value != 0) continue;
-            MapTexCoord(At<float*>(mesh, mesh::kTexCoords) + t * 2, &m);
+            MapTexCoord(reinterpret_cast<float*>(&mesh.texCoords.data[t]), &m);   // (u, v) as floats
             MapMark(seen, t);
         }
     }
@@ -274,7 +256,7 @@ void MapGroup(char* unit, Registry& reg, const console::CStringArray& sections, 
 
 // The material type of the mesh's last group name (0044A2A0) into the mesh (+0x188 type, +0x184
 // value) and, once each, into `links` (type, value) and `names` (type, texture name).
-void RecordMaterial(char* unit, std::size_t meshOffset, const mfc::CString& groupName, const mfc::CString& mapping,
+void RecordMaterial(FakeUnitScene* unit, int meshIndex, const mfc::CString& groupName, const mfc::CString& mapping,
                     VtArray* links, VtArray* names) {
     mfc::CString texture;
     int type;
@@ -285,8 +267,8 @@ void RecordMaterial(char* unit, std::size_t meshOffset, const mfc::CString& grou
     }
     int textureType = type;
     texture = mapping;
-    At<int>(At<char*>(unit, kMeshes + 4) + meshOffset, kMaterialType) = type;
-    At<int>(At<char*>(unit, kMeshes + 4) + meshOffset, kMaterialValue) = value;
+    MeshAt(unit, meshIndex).materialType = type;
+    MeshAt(unit, meshIndex).materialValue = value;
 
     auto* pairs = reinterpret_cast<int*>(links->data);
     int count = links->size;
@@ -324,7 +306,7 @@ void RecordMaterial(char* unit, std::size_t meshOffset, const mfc::CString& grou
 // 0044B980 (__fastcall: the unit in ECX, the .reg path in EDX; RET 8). `links` collects (type,
 // value) pairs, `names` (type, texture name) records, each once. Returns 1, 0 when the file has
 // no sections, or what FatalError returns when it cannot be opened.
-int __fastcall LoadFigureRegistry(char* unit, const mfc::CString* path, VtArray* links, VtArray* names) {
+int __fastcall LoadFigureRegistry(FakeUnitScene* unit, const mfc::CString* path, VtArray* links, VtArray* names) {
     mfc::CString groupName;
     mfc::CString mapping;
     mfc::CString section;
@@ -342,24 +324,22 @@ int __fastcall LoadFigureRegistry(char* unit, const mfc::CString* path, VtArray*
     }
     GroupStrings strings{groupName, mapping, section};
 
-    for (int m = 0; m < At<int>(unit, kMeshes + 8); ++m) {
-        SeenMap seen{0x0073C16C, nullptr, 17, 0, nullptr, nullptr, 10};
-        std::size_t meshOffset = static_cast<std::size_t>(m) * mesh::kSize;
-        for (int g = 0; g < At<int>(At<char*>(unit, kMeshes + 4) + meshOffset, mesh::kGroups + 8); ++g) {
-            char* meshes = At<char*>(unit, kMeshes + 4);
-            groupName = At<FaceGroup*>(meshes + meshOffset, mesh::kGroups + 4)[g].name;
-            for (int h = 0; h < At<int>(unit, kHelpers + 8); ++h) {
-                char* helperRecord = At<char*>(unit, kHelpers + 4) + h * helper::kSize;
-                if (gamecrt::mbscmp(At<const unsigned char*>(helperRecord, helper::kName),
+    for (int m = 0; m < unit->meshes.size; ++m) {
+        SeenMap seen{SeenMapVtable(), nullptr, 17, 0, nullptr, nullptr, 10};
+        for (int g = 0; g < MeshAt(unit, m).groups.size; ++g) {
+            groupName = MeshAt(unit, m).groups.data[g].name;
+            for (int h = 0; h < unit->helpers.size; ++h) {
+                const SceneHelper& helperRecord = Typed<HelperArray>(unit->helpers).data[h];
+                if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(helperRecord.name)),
                                     reinterpret_cast<const unsigned char*>(static_cast<const char*>(groupName))) != 0) {
                     continue;
                 }
-                MapGroup(unit, reg, sections, strings, meshes, meshOffset, g, h, seen);
+                MapGroup(unit, reg, sections, strings, m, g, h, seen);
                 break;
             }
         }
 
-        RecordMaterial(unit, meshOffset, groupName, mapping, links, names);
+        RecordMaterial(unit, m, groupName, mapping, links, names);
         MapDestroy(seen);
     }
 

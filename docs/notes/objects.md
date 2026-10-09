@@ -262,3 +262,26 @@ player +0x1C, the state +0x20, the send stream +0x48; returns 1 unless noted):
 - Networking (00440000-00444000), WinMain, animation file loading beyond the scene helpers, CInventory: larger, stateful, built on
   unrewritten CString / CArray / stream code. 00458010 (frame present + screenshot), 00458270 (startup movies; the harness empties
   the list), 0045E310 (DirectX version probe), 00458570 (hash_map registration): mapped, not rewritten.
+
+## C10 cleanup (scene files, 2026-10-09)
+
+scene_bones, scene_skeleton, scene_bone_frames, scene_loader, scene_normals, scene_meshes, scene_weld and scene_registry
+have no offsets, VCalls or raw addresses left (scene_bones / scene_loader / scene_registry keep their x87 `__asm`).
+- The bone is figure.h's CAnimationNode (constructor 00506710 fills the same fields): name_, parent_, children_,
+  frameCount_, rotationKeys_ (+0x44, AnimationRotationKey: the scene's position keys, axis-angle, then the rotation),
+  translationKeys_ (+0x58, AnimationTranslationKey with the step to the next key), normals_, morphFrames_
+  (AnimationMorphFrameElements: 00452E20 / 00452DF0), pointsB_, restRotation_, restPosition_, pointsA_; position_ (+0x110)
+  is also where the skeleton keeps the rest position in the parent's frame.
+- scene_loader.h: SceneNode (key records NodeRotationKey / NodePositionKey / NodeMorphKey with signed 16-bit frames,
+  NodeMorphKeyElements 00454F30 / 00453700, normals, frames = NodeFrame records that the loader copies to the figures' bone
+  links), SceneMesh (an engine object: GetName is slot 7; position / normal blocks, positions as the file's bits, normals,
+  corner table, pairs, corner indices, faces, groups, bounds, material value / type), SceneHelper, SceneSkin, FakeUnitScene
+  (CObject3D part, skin +0x4E0, figures / meshes / bone links / helpers +0x530..+0x56C), the .reg records, SceneTexture,
+  the typed array views NodeArray / MeshArray / HelperArray and scenedata:: (the loader's array vtables and messages).
+  CFigureMesh +0x120 is name_; the loader's figures are CFigureMesh records (vertices_ / normals_ take the mesh's blocks,
+  colorsA_ / colorsB_ get four entries per block). ConstructBone (originals_render.h) returns CAnimationNode*.
+- mfc.h CFileVirtuals: MFC 4.2's CFile slots (vtable 00745DF4; 8 Open, 10 Seek, 12 GetLength, 13 Read, 14 Write, 19 Close).
+  SceneInfo::Load reads through slot 13 as the original does (its verify wrapper hands it a proxy file).
+- Fixed a port bug in BuildBone (004492F0): before the first morph key, point j was copied from `data + j * 12` on a
+  12-byte element pointer (point 12j, past the array for j > 0); the original copies point j (00449F32..00449F4A).
+- The node's morph key frame, the file records and the helper vectors are still copied as bits (memcpy / FpuCopyBits).

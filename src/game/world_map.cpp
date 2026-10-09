@@ -7,7 +7,9 @@
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
+#include "core_streams.h"
+#include "map_object.h"
+#include "lib/containers.h"
 #include "originals_gameplay.h"
 #include "originals_script.h"
 #include "originals_world.h"
@@ -25,7 +27,7 @@ __declspec(naked) int __fastcall AIMapLoad(void*, void*, const char* /*path*/) E
 // 00595BA0 (RET 8). The full path of a map file (CString constructed into `out`). Patched by Rebirth.
 char** __fastcall ServerMapPath(CWorldServer* a0, void*, char** a2, const char* a3) { return (char**)ServerMapPathOriginal((void*)a0, nullptr, (void*)a2, a3); }
 // 005B1180 (RET 4). The AI layer (+0x2468) reads its state from the graph stream (AL).
-__declspec(naked) bool __fastcall AILayerLoad(void*, void*, void* /*stream*/) EI_ORIGINAL(0x005B1180)
+__declspec(naked) bool __fastcall AILayerLoad(void*, void*, CStream* /*stream*/) EI_ORIGINAL(0x005B1180)
 // 004BE6E0. A script command queue's reset.
 // 004554B0. CDiplomacy::Reset (object_diplomacy.cpp).
 __declspec(naked) void __fastcall DiplomacyReset(void*, void*) EI_ORIGINAL(0x004554B0)
@@ -41,17 +43,13 @@ __declspec(naked) void __fastcall ResetZoneAt(CWorldServer*, void*) EI_ORIGINAL(
 // 005951A0. A fresh zone's start (players placed, scripts started).
 __declspec(naked) void __fastcall StartFreshZone(CWorldServer*, void*) EI_ORIGINAL(0x005951A0)
 
-constexpr int kSlotStreamSeek = 3;
-constexpr int kSlotStreamSize = 4;
-constexpr int kSlotTimedEnd = 5;   // a timed object's slot 5 (+0x14): end it
-
-// The timed objects are ended (slot 5) and released, then the map is emptied (the walk stops at
-// the first empty entry).
+// The timed objects are ended (slot 5, ClearState) and released, then the map is emptied (the
+// walk stops at the first empty entry).
 void EndTimedObjects(CWorldServer* world) {
     auto& map = world->timedObjects_.map;
     for (auto* node = map.First(); node && node->value; node = map.After(node)) {
         CEngineObject* object = node->value;
-        ei::VCall<void>(object, kSlotTimedEnd);
+        object->ClearState();
         object->Release();
     }
     TimedMapClear(&world->timedObjects_, nullptr);
@@ -65,12 +63,9 @@ void ClearMissiles(CWorldServer* world) {
     list.RemoveAll();
 }
 
-bool* LoadedFresh(CWorldServer* world) { return reinterpret_cast<bool*>(reinterpret_cast<std::uint8_t*>(world) + 0x11D); }
-bool* KeepsState(CWorldServer* world) { return reinterpret_cast<bool*>(reinterpret_cast<std::uint8_t*>(world) + 0x11E); }
-
 } // namespace
 
-int CWorldServer::LoadMap(const char* map, const char* mob, void* graph, char fromSave) {
+int CWorldServer::LoadMap(const char* map, const char* mob, CStream* graph, char fromSave) {
     void* aiMap = aiMap_;
     if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(mapName_), reinterpret_cast<const unsigned char*>(map)) != 0) {
         AIMapReset(aiMap, nullptr);
@@ -86,12 +81,9 @@ int CWorldServer::LoadMap(const char* map, const char* mob, void* graph, char fr
         *reinterpret_cast<mfc::CString*>(&mapName_) = map;
         *reinterpret_cast<mfc::CString*>(&mobName_) = game::EmptyText();
     }
-    ei::VCall<void>(graph, kSlotStreamSeek, 0);
-    if (ei::VCall<unsigned>(graph, kSlotStreamSize) != 0 &&
-        !AILayerLoad(reinterpret_cast<std::uint8_t*>(this) + 0x2468, nullptr, graph))
-        return 0;
+    graph->Seek(0);
+    if (graph->Size() != 0 && !AILayerLoad(aiLayer_, nullptr, graph)) return 0;
 
-    std::uint8_t* raw = reinterpret_cast<std::uint8_t*>(this);
     if (gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(mobName_), reinterpret_cast<const unsigned char*>(mob)) == 0) {
         // The same zone again: start over.
         QueueReset(commandsA_, nullptr);
@@ -100,45 +92,45 @@ int CWorldServer::LoadMap(const char* map, const char* mob, void* graph, char fr
         ClearMapObjectsAt(this, nullptr);
         ClearMissiles(this);
         EndTimedObjects(this);
-        *KeepsState(this) = false;
-        *LoadedFresh(this) = fromSave == 0;
-        *reinterpret_cast<int*>(raw + 0x2804) = 0;
+        keepsState_ = 0;
+        loadedFresh_ = fromSave == 0;
+        occluderReplanTime_ = 0;
     } else {
         ResetZoneAt(this, nullptr);
-        *KeepsState(this) = true;
-        *LoadedFresh(this) = fromSave == 0;
+        keepsState_ = 1;
+        loadedFresh_ = fromSave == 0;
     }
 
     PlayerIterator it;
-    for (WorldPlayer* player = it.First(ei::VCall<CEngineObject*>(this, 20)); player; player = it.Next())
+    for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next())
         player->dirty = 0xFFFFFFFFu;
     if (it.list) --it.list->refCount_;
     unknown15C_ = 1;
     unknownE4_ = 0;
     unknownE8_ = 0.0f;
     it.list = nullptr;
-    for (WorldPlayer* player = it.First(ei::VCall<CEngineObject*>(this, 20)); player; player = it.Next()) player->dirty |= 2;
+    for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) player->dirty |= 2;
     if (it.list) {
         --it.list->refCount_;
         it.list = nullptr;
     }
 
-    if (*KeepsState(this) || *LoadedFresh(this)) {
+    if (keepsState_ || loadedFresh_) {
         *reinterpret_cast<mfc::CString*>(&mobName_) = mob;
-        int loaded = LoadMapObjectsAt(this, nullptr, mob, *LoadedFresh(this) == 0);
+        int loaded = LoadMapObjectsAt(this, nullptr, mob, loadedFresh_ == 0);
         if (!loaded) return loaded;
-        if (!*LoadedFresh(this)) {
+        if (!loadedFresh_) {
             QueueReset(commandsA_, nullptr);
             DiplomacyReset(diplomacy_, nullptr);
         }
-        if (*KeepsState(this)) StartFreshZone(this, nullptr);
+        if (keepsState_) StartFreshZone(this, nullptr);
     }
     if (fromSave) {
         ClearMapObjectsAt(this, nullptr);
         EndTimedObjects(this);
     }
-    *LoadedFresh(this) = true;
-    *KeepsState(this) = true;
+    loadedFresh_ = 1;
+    keepsState_ = 1;
     return 1;
 }
 
@@ -159,22 +151,10 @@ __declspec(naked) void __fastcall IdMapClear(void*, void*) EI_ORIGINAL(0x0059D6D
 // 00404410. A manager's clear.
 __declspec(naked) void __fastcall ManagerClear(CEngineObject*, void*) EI_ORIGINAL(0x00404410)
 
-constexpr int kSlotObjectEnd = 5;
-
-template <typename T>
-void FreeListBlocks(T& list) {   // an MFC CList or CTypedPtrList
-    list.count = 0;
-    list.free = nullptr;
-    list.tail = nullptr;
-    list.head = nullptr;
-    mfc::PlexFreeDataChain(list.blocks);
-    list.blocks = nullptr;
-}
-
 void ClearMissilePointers(CWorldServer* world) {
     auto& list = world->projectiles_;
     for (auto* node = list.head; node; node = node->next) MissilePtrDestruct(&node->data, nullptr, 0);
-    FreeListBlocks(list);
+    list.RemoveAll();   // the elements were destroyed above; this frees the blocks
 }
 
 } // namespace
@@ -182,7 +162,7 @@ void ClearMissilePointers(CWorldServer* world) {
 void CWorldServer::ResetZone() {
     SharedObjectList& shared = sharedObjects_;
     for (auto* node = shared.head; node; node = node->next) SharedObjectDestruct(&node->data, nullptr, 0);
-    FreeListBlocks(shared);
+    shared.RemoveAll();
     StringArraySetSize(&mobFiles_, nullptr, 0, -1);
     CountdownsClear(countdowns_, nullptr);
     ZoneExitsSetSizeOriginal(&exitsVtable_, nullptr, 0, -1);
@@ -190,12 +170,12 @@ void CWorldServer::ResetZone() {
     QueueReset(commandsB_, nullptr);
     ClearMissilePointers(this);
     for (auto* node = counted_.head; node; node = node->next) CountedRangeRelease(&node->data, 1);
-    FreeListBlocks(counted_);
+    counted_.RemoveAll();
 
-    if (ei::VCall<CEngineObject*>(this, 20)) {
+    if (PlayerList()) {
         auto* it = static_cast<PlayerIterator*>(gamecrt::operator_new(sizeof(PlayerIterator)));
         if (it) it->list = nullptr;
-        for (WorldPlayer* player = it->First(ei::VCall<CEngineObject*>(this, 20)); player; player = it->Next())
+        for (WorldPlayer* player = it->First(PlayerList()); player; player = it->Next())
             PlayerClear(player, nullptr);
         if (it) {
             if (it->list) {
@@ -207,10 +187,9 @@ void CWorldServer::ResetZone() {
     }
 
     for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node))
-        ei::VCall<void>(node->value, kSlotObjectEnd);
+        node->value->ClearState();
     ObjectMapClearOriginal(&objects_);
-    ObjectIdMap* const maps[] = {reinterpret_cast<ObjectIdMap*>(reinterpret_cast<std::uint8_t*>(this) + 0x12D88),
-                                 &mapObjects_, &otherMapObjects_, &updateMap_, &namedObjects_};
+    ObjectIdMap* const maps[] = {&sentObjects_, &mapObjects_, &otherMapObjects_, &updateMap_, &namedObjects_};
     for (ObjectIdMap* map : maps) {
         IdMapClear(map, nullptr);
         map->maxId = 0;
@@ -239,10 +218,10 @@ __declspec(naked) void __fastcall WorldBaseTeardown(CWorldServer*, void*) EI_ORI
 void CWorldServer::TeardownZone() {
     // Every player leaves (the list is walked from its start again after each one).
     PlayerIterator it;
-    for (WorldPlayer* player = it.First(ei::VCall<CEngineObject*>(this, 20)); player;
-         player = it.First(ei::VCall<CEngineObject*>(this, 20))) {
+    for (WorldPlayer* player = it.First(PlayerList()); player;
+         player = it.First(PlayerList())) {
         PlayerDisconnect(player, nullptr);
-        PlayerListRelease(ei::VCall<CEngineObject*>(this, 20), nullptr, player);
+        PlayerListRelease(PlayerList(), nullptr, player);
         if (it.list) --it.list->refCount_;
         it.list = nullptr;
     }
@@ -253,12 +232,7 @@ void CWorldServer::TeardownZone() {
     SharedObjectList& shared = sharedObjects_;
     for (auto* node = shared.head; node; node = node->next)
         ObjectPtrArrayDestruct(&node->data.objects, nullptr);
-    shared.count = 0;
-    shared.free = nullptr;
-    shared.tail = nullptr;
-    shared.head = nullptr;
-    mfc::PlexFreeDataChain(shared.blocks);
-    shared.blocks = nullptr;
+    shared.RemoveAll();
     StringArraySetSize(&mobFiles_, nullptr, 0, -1);
     aiMap_[2] = 0;   // CAIMap +0x172: refreshes off
     QueueReset(commandsA_, nullptr);
@@ -266,19 +240,13 @@ void CWorldServer::TeardownZone() {
     DiplomacyReset(diplomacy_, nullptr);
     ClearMapObjectsAt(this, nullptr);
 
-    // The missiles' counted pointers, released inline (16-bit count at +4, slot 0 deletes).
+    // The missiles' counted pointers, released inline (16-bit count, slot 0 deletes).
     auto& missiles = projectiles_;
     for (auto* node = missiles.head; node; node = node->next) {
-        auto* missile = reinterpret_cast<std::uint8_t*>(node->data);
-        if (missile && --*reinterpret_cast<std::int16_t*>(missile + 4) == 0 && missile)
-            ei::VCall<void>(missile, 0, 1u);
+        Projectile* missile = node->data;
+        if (missile && --missile->referenceCount == 0 && missile) missile->DeletingDestructor(1);
     }
-    missiles.count = 0;
-    missiles.free = nullptr;
-    missiles.tail = nullptr;
-    missiles.head = nullptr;
-    mfc::PlexFreeDataChain(missiles.blocks);
-    missiles.blocks = nullptr;
+    missiles.RemoveAll();
 
     EndTimedObjects(this);
     WorldBaseTeardown(this, nullptr);
@@ -290,8 +258,6 @@ void CWorldServer::TeardownZone() {
 
 namespace {
 
-constexpr std::uintptr_t kObjectListVtable = 0x0073F530;
-
 mfc::CTypedPtrList<CEngineObject>::Node* __fastcall ObjectListNewNode(
     mfc::CTypedPtrList<CEngineObject>* a0, void*, mfc::CTypedPtrList<CEngineObject>::Node* a2,
     mfc::CTypedPtrList<CEngineObject>::Node* a3) {
@@ -302,45 +268,35 @@ __declspec(naked) void __fastcall ObjectListRemoveAll(mfc::CTypedPtrList<CEngine
 // null).
 __declspec(naked) CEngineObject** __fastcall IdMapLookup(ObjectIdMap*, void*, const unsigned*) EI_ORIGINAL(0x00599AE0)
 // 0059CCE0 (RET 8). The aligned object array's SetAtGrow.
-__declspec(naked) void __fastcall AlignedArraySetAtGrow(void*, void*, int, CEngineObject*) EI_ORIGINAL(0x0059CCE0)
+__declspec(naked) void __fastcall AlignedArraySetAtGrow(lib::AlignedArray<CEngineObject*>*, void*, int,
+                                                         CEngineObject*) EI_ORIGINAL(0x0059CCE0)
 // 0066C180. The player list creates a temporary player (returned).
 WorldPlayer* __fastcall PlayerListCreateTemporary(CEngineObject* a0, void*) { return (WorldPlayer*)PlayerCreateOriginal((void*)a0); }
 // 0066D7F0 (RET 4) / 0066D230 (RET 4). The player state: objects added / the zone header stream.
 void __fastcall StateObjectsAdded(void* a0, void*, void* a2) { StateObjectsAddedOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall StateSendHeader(void*, void*, void* /*stream*/) EI_ORIGINAL(0x0066D230)
 
-constexpr int kSlotObjectStatic = 29;   // object slot 29 (+0x74, AL): part of the map itself
-constexpr int kSlotHeaderReset = 6;     // the header object at +0x12E00: slot 6 (+0x18)
-
-struct AlignedObjects {
-    CEngineObject** data;
-    int size;
-    int capacity;
-    int growBy;
-};
-
 } // namespace
 
 void CWorldServer::SendFreshObjects() {
     mfc::CTypedPtrList<CEngineObject> fresh;
-    fresh.vtable = reinterpret_cast<void*>(kObjectListVtable);
+    fresh.vtable = ObjectPtrListVtable();
     fresh.head = nullptr;
     fresh.tail = nullptr;
     fresh.count = 0;
     fresh.free = nullptr;
     fresh.blocks = nullptr;
     fresh.blockSize = 10;
-    void* header = reinterpret_cast<std::uint8_t*>(this) + 0x12E00;
-    ei::VCall<void>(header, kSlotHeaderReset);
+    CStream* header = &zoneHeader_;
+    header->Clear();
 
-    // The map objects that are not part of the map itself (slot 29): also kept in +0x12D88.
-    auto& created = *reinterpret_cast<ObjectIdMap*>(reinterpret_cast<std::uint8_t*>(this) + 0x12D88);
+    // The map objects that are not part of the map itself (slot 29): also kept in sentObjects_.
     for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node)) {
         CEngineObject* object = node->value;
         unsigned id = static_cast<unsigned>(object->id_);
         if (!mapObjects_.map.Find(id)) continue;
-        if (ei::VCall<bool>(object, kSlotObjectStatic)) continue;
-        created.Set(static_cast<unsigned>(object->id_), object);
+        if (static_cast<CMapObjectVirtuals*>(object)->IsSynchronised()) continue;
+        sentObjects_.Set(static_cast<unsigned>(object->id_), object);
         auto* entry = ObjectListNewNode(&fresh, nullptr, fresh.tail, nullptr);
         entry->data = object;
         if (fresh.tail) fresh.tail->next = entry;
@@ -350,8 +306,8 @@ void CWorldServer::SendFreshObjects() {
 
     // They stop being map objects and are sent to a temporary player, which is then dropped.
     WorldPlayer* temporary = PlayerListCreateTemporary(players_, nullptr);
-    void* state = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(temporary) + 0x20);
-    AlignedObjects objects{nullptr, 0, 0, 0};
+    CPlayerServer* state = temporary->server;
+    lib::AlignedArray<CEngineObject*> objects{nullptr, 0, 0, 0};
     for (auto* node = fresh.head; node;) {
         auto* next = node->next;
         CEngineObject* object = node->data;
@@ -367,9 +323,9 @@ void CWorldServer::SendFreshObjects() {
     }
     StateObjectsAdded(state, nullptr, &objects);
     StateSendHeader(state, nullptr, header);
-    PlayerListRelease(ei::VCall<CEngineObject*>(this, 20), nullptr, temporary);
-    if (objects.data) gamecrt::operator_delete(reinterpret_cast<void**>(objects.data)[-1]);
-    fresh.vtable = reinterpret_cast<void*>(kObjectListVtable);
+    PlayerListRelease(PlayerList(), nullptr, temporary);
+    if (objects.data) lib::AlignedArray<CEngineObject*>::Free(objects.data);
+    fresh.vtable = ObjectPtrListVtable();
     ObjectListRemoveAll(&fresh, nullptr);
 }
 

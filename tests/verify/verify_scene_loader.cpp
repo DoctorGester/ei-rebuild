@@ -227,7 +227,7 @@ mfc::BOOL __fastcall LoadVerify(SceneInfo* self, void*, void* file, VtArray* mes
     ProxyFile recorder{ProxyVtable(), file, &ops, &data, 0, false};
     // The copies start as the real arrays did (vtable and grow step).
     VtArray meshCopy = *meshes, helperCopy = *helpers, nodeCopy = *nodes;
-    mfc::BOOL actual = self->Load(&recorder, meshes, helpers, nodes);
+    mfc::BOOL actual = self->Load(reinterpret_cast<mfc::CFileVirtuals*>(&recorder), meshes, helpers, nodes);
     if (!comparable) {
         ei::verify::Check("SceneInfo::Load (ours only)", true, meshes->size == nodes->size, "%d meshes, %d nodes",
                           meshes->size, nodes->size);
@@ -260,7 +260,7 @@ mfc::BOOL __fastcall LoadVerify(SceneInfo* self, void*, void* file, VtArray* mes
 // figure named like its mesh, and the unit's +0x1C vector set to (0, 0, 500).
 void* s_unused;
 mfc::BOOL __stdcall LoadFakeUnitSceneVerify(const char* fileName, const char* registryName, void* fakeUnit) {
-    mfc::BOOL result = LoadFakeUnitScene(fileName, registryName, fakeUnit);
+    mfc::BOOL result = LoadFakeUnitScene(fileName, registryName, static_cast<FakeUnitScene*>(fakeUnit));
     const char* u = static_cast<const char*>(fakeUnit);
     Diff d;
     if (result) {

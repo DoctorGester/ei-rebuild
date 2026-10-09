@@ -15,11 +15,10 @@ bool SameName(const char* a, const char* b) {
 } // namespace
 
 // 00595C70.
-static int __fastcall LoadMapVerify(CWorldServer* self, void*, const char* map, const char* mob, void* graph, char fromSave) {
+static int __fastcall LoadMapVerify(CWorldServer* self, void*, const char* map, const char* mob, CStream* graph, char fromSave) {
     int result = self->LoadMap(map, mob, graph, fromSave);
-    auto* raw = reinterpret_cast<std::uint8_t*>(self);
     bool ok = result == 0 ||
-              (result == 1 && SameName(self->mapName_, map) && SameName(self->mobName_, mob) && raw[0x11D] && raw[0x11E]);
+              (result == 1 && SameName(self->mapName_, map) && SameName(self->mobName_, mob) && self->loadedFresh_ && self->keepsState_);
     ei::verify::Check("CWorldServer::LoadMap", true, ok, "%s / %s save %d -> %d", map ? map : "", mob ? mob : "", fromSave,
                       result);
     return result;
@@ -62,10 +61,10 @@ static void __fastcall TeardownZoneVerify(CWorldServer* self, void*) {
 }
 EI_VERIFY(0x005957E0, TeardownZoneVerify, 0, s_unused);
 
-// 005951A0: afterwards every map object is still a world object, and none of them is in +0x12D88.
+// 005951A0: afterwards every map object is still a world object, and none of them is in sentObjects_ (+0x12D88).
 static void __fastcall SendFreshObjectsVerify(CWorldServer* self, void*) {
     self->SendFreshObjects();
-    auto& created = *reinterpret_cast<ObjectIdMap*>(reinterpret_cast<std::uint8_t*>(self) + 0x12D88);
+    auto& created = self->sentObjects_;
     bool ok = true;
     for (auto* node = self->mapObjects_.map.First(); node && node->value && ok; node = self->mapObjects_.map.After(node))
         ok = created.map.Find(node->key) == nullptr;

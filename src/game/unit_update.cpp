@@ -3,10 +3,12 @@
 // standing on the ground. See unit.h and docs/notes/units.md.
 #include "unit.h"
 
+#include "map_object.h"
 #include "object_tables.h"
+#include "unit_db.h"
+#include "world.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 
 #include <cstring>
 
@@ -18,21 +20,8 @@ constexpr int kControllerType = 0x48;         // CEngineObject::type_ of unit co
 constexpr std::uint32_t kFlagFiguresLoaded = 0x80;
 constexpr std::uint8_t kMovesOnWater = 2;     // CUnit::movementKind
 
-// Controller slots (vtable 0073EDBC and the classes deriving from it).
-constexpr int kControllerUpdate = 6;
-constexpr int kControllerFiguresLoaded = 13;
-constexpr int kControllerScaleEffect = 19;
-constexpr int kControllerStatsChanged = 22;
-constexpr int kControllerSizeClasses = 23;
-constexpr int kControllerLevel = 24;
-constexpr int kControllerScaleChanged = 44;
-constexpr int kControllerEffectsChanged = 49;
-
-// World slots: ground height (29) and water surface height (30) at (x, y), in ST0.
-constexpr int kWorldGroundHeight = 0x74 / 4;
-constexpr int kWorldSurfaceHeight = 0x78 / 4;
-
-CEngineObject* WorldOf(CUnit* unit) { return static_cast<CEngineObject*>(unit->World()); }
+// The world's slots 29 / 30 give the ground and water surface heights at (x, y), in ST0.
+CWorld* WorldOf(CUnit* unit) { return static_cast<CWorld*>(unit->World()); }
 } // namespace
 
 // Map object (CMapObject, map_object.cpp) and CObject3D methods, through their game addresses.
@@ -42,7 +31,7 @@ __declspec(naked) int __fastcall CallMapObjectUpdate(CUnit*) EI_ORIGINAL(0x0050F
 __declspec(naked) std::uintptr_t __fastcall CallRecomputeScale(CUnit*) EI_ORIGINAL(0x0050F2D0)
 // 00517700, CObject3D::SetFigureScale: the figures' scale from `scale`, three floats. Rewritten in
 // map_object_figures.cpp, called through its address.
-__declspec(naked) std::uintptr_t __fastcall CallSetFigureScale(CUnit*, void*, const float*) EI_ORIGINAL(0x00517700)
+__declspec(naked) std::uintptr_t __fastcall CallSetFigureScale(CUnit*, void*, const Vector3*) EI_ORIGINAL(0x00517700)
 // 00517500, CObject3D::LoadFigures, slot 26: loads the figures. map_object_figures.cpp.
 __declspec(naked) std::uintptr_t __fastcall CallLoadFigures(CUnit*) EI_ORIGINAL(0x00517500)
 // 0050E890, CMapObject::AttachObject, slot 19: attaches a companion of another type. map_object.cpp.
@@ -71,7 +60,7 @@ __declspec(naked) int __cdecl GameFtol(double) {
 } // namespace
 
 int CUnit::Tick() {
-    ei::VCall<int>(controller, kControllerUpdate);
+    controller->RunTick();
     CallMapObjectUpdate(this);
     return 1;
 }
@@ -79,22 +68,22 @@ EI_REPLACE_METHOD(0x0052F7D0, CUnit::Tick);
 
 std::uintptr_t CUnit::RecomputeUnitScale() {
     CallRecomputeScale(this);
-    return ei::VCall<std::uintptr_t>(controller, kControllerScaleChanged);
+    return Controller()->Resettle();
 }
 EI_REPLACE_METHOD(0x00532A80, CUnit::RecomputeUnitScale);
 
-std::uintptr_t CUnit::EffectsChanged() { return ei::VCall<std::uintptr_t>(controller, kControllerEffectsChanged); }
+std::uintptr_t CUnit::EffectsChanged() { return Controller()->EffectsChanged(); }
 EI_REPLACE_METHOD(0x00532AB0, CUnit::EffectsChanged);
 
 std::uintptr_t CUnit::ResetUnitScale() {
-    return CallSetFigureScale(this, nullptr, reinterpret_cast<const float*>(reinterpret_cast<char*>(this) + 0x1AC));
+    return CallSetFigureScale(this, nullptr, &MapObject()->baseScale);
 }
 EI_REPLACE_METHOD(0x00532AA0, CUnit::ResetUnitScale);
 
 std::uintptr_t CUnit::LoadUnitFigures() {
     if (flags_ & kFlagFiguresLoaded) return 1;
     std::uintptr_t result = CallLoadFigures(this);
-    ei::VCall<int>(controller, kControllerFiguresLoaded);
+    Controller()->FiguresLoaded();
     return result;
 }
 EI_REPLACE_METHOD(0x0052E910, CUnit::LoadUnitFigures);
@@ -102,25 +91,25 @@ EI_REPLACE_METHOD(0x0052E910, CUnit::LoadUnitFigures);
 std::uintptr_t CUnit::AttachCompanion(CEngineObject* attached) {
     if (!attached || attached->type_ != kControllerType) return CallAttachCompanion(this, nullptr, attached);
     if (controller) {
-        *reinterpret_cast<CUnit**>(reinterpret_cast<char*>(controller) + 0x1C) = nullptr;
+        Controller()->unit_ = nullptr;
         controller->Release();
     }
     controller = attached;
-    *reinterpret_cast<CUnit**>(reinterpret_cast<char*>(attached) + 0x1C) = this;
+    static_cast<CUnitController*>(attached)->unit_ = this;
     return static_cast<std::uintptr_t>(++controller->refCount_);
 }
 EI_REPLACE_METHOD(0x0052E870, CUnit::AttachCompanion);
 
 int CUnit::StatsChanged() {
     CallMapObjectStatsChanged(this);
-    if (controller) ei::VCall<int>(controller, kControllerStatsChanged);
+    if (controller) Controller()->RepackStats();
     return 1;
 }
 EI_REPLACE_METHOD(0x0052EB50, CUnit::StatsChanged);
 
 std::uintptr_t CUnit::ScaleEffectChanged(int value) {
     if (!controller) return 0;
-    return ei::VCall<std::uintptr_t>(controller, kControllerScaleEffect, value);
+    return static_cast<std::uintptr_t>(Controller()->RefreshVitals(value));
 }
 EI_REPLACE_METHOD(0x0052EB30, CUnit::ScaleEffectChanged);
 
@@ -131,23 +120,23 @@ std::uintptr_t CUnit::SetServerStats(const UnitStats* stats) {
 }
 EI_REPLACE_METHOD(0x00530A20, CUnit::SetServerStats);
 
-std::uintptr_t CUnit::UpdateSizeClasses() { return ei::VCall<std::uintptr_t>(controller, kControllerSizeClasses); }
+std::uintptr_t CUnit::UpdateSizeClasses() { return Controller()->UpdateSizeClasses(); }
 EI_REPLACE_METHOD(0x00530A50, CUnit::UpdateSizeClasses);
 
 float* CUnit::StandPoint(float* out) {
     float x = position.x;
     float y = position.y;
     volatile float lift = static_cast<float>(ModeSpeed());   // the original inlines it
-    CEngineObject* world = WorldOf(this);
+    CWorld* world = WorldOf(this);
     double height;
     if (movementKind == kMovesOnWater) {
         if (controller->GetClassId() == kClassUnitServer) {
-            height = ei::VCall<double>(world, kWorldSurfaceHeight, x, y) + position.z;
+            height = world->SurfaceHeightAt(x, y) + position.z;
         } else {
-            height = ei::VCall<double>(world, kWorldSurfaceHeight, x, y) + heightOffset;
+            height = world->SurfaceHeightAt(x, y) + heightOffset;
         }
     } else {
-        height = ei::VCall<double>(world, kWorldGroundHeight, x, y);
+        height = world->GroundHeightAt(x, y);
     }
     out[0] = x;
     out[1] = y;
@@ -160,21 +149,21 @@ void CUnit::PlaceUnitOnGround(float offset) {
     float x = position.x;
     float y = position.y;
     heightOffset = offset;
-    CEngineObject* world = WorldOf(this);
+    CWorld* world = WorldOf(this);
     if (movementKind == kMovesOnWater) {
         if (controller->GetClassId() == kClassUnitServer) {
-            position.z = static_cast<float>(ei::VCall<double>(world, kWorldSurfaceHeight, x, y) + position.z);
+            position.z = static_cast<float>(world->SurfaceHeightAt(x, y) + position.z);
         } else {
-            position.z = static_cast<float>(ei::VCall<double>(world, kWorldSurfaceHeight, x, y) + heightOffset);
+            position.z = static_cast<float>(world->SurfaceHeightAt(x, y) + heightOffset);
         }
     } else {
-        position.z = static_cast<float>(ei::VCall<double>(world, kWorldGroundHeight, x, y));
+        position.z = static_cast<float>(world->GroundHeightAt(x, y));
     }
 }
 EI_REPLACE_METHOD(0x0052F740, CUnit::PlaceUnitOnGround);
 
 void CUnit::SetFromStats(UnitStats* stats) {
-    CallPackStats(stats, nullptr, this, reinterpret_cast<UnitParams*>(reinterpret_cast<char*>(this) + 0x330));
+    CallPackStats(stats, nullptr, this, Params());
     float curve = static_cast<float>(CallHitPointCurve(stats));
     float limit = CallScaleHitPoints(this, curve);
     maxHitPoints = static_cast<std::int16_t>(GameFtol(limit));
@@ -183,8 +172,9 @@ void CUnit::SetFromStats(UnitStats* stats) {
 EI_REPLACE_METHOD(0x00532A20, CUnit::SetFromStats);
 
 int CUnit::Level() {
-    if (IsTextKey(id_) & 0xFF) return ei::VCall<int>(controller, kControllerLevel);
-    const char* prototype = unitdb::Prototypes().At(unknown_18, unitdb::kPrototypeSize);
-    return Field<int>(prototype, 0x50);
+    if (IsTextKey(id_) & 0xFF) return Controller()->Level();
+    const auto* prototype =
+        reinterpret_cast<const UnitPrototypeRecord*>(unitdb::Prototypes().At(unknown_18, unitdb::kPrototypeSize));
+    return static_cast<int>(prototype->level);
 }
 EI_REPLACE_METHOD(0x00532D40, CUnit::Level);

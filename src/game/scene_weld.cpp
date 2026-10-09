@@ -17,11 +17,6 @@
 namespace scene {
 namespace {
 
-template <typename T>
-T& At(const void* base, std::size_t offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(const_cast<void*>(base)) + offset);
-}
-
 // The aligned arrays' instantiations used here: points (Add 0044F2E0), texture coordinates (Add
 // 0044FBB0) go through their original addresses (the Add copies take the element as separate
 // arguments).
@@ -39,17 +34,17 @@ double WeldDistance() {
 // 0044C4A0. `unit`: the fake unit (meshes: CArray at +0x544, 0x18C each); `nodes`: the scene's
 // nodes, one per mesh (morph keys at +0xD0). A position or coordinate within the weld distance of
 // an earlier kept one (or a NaN distance) maps to it, otherwise it is kept.
-void __fastcall WeldMeshVertices(void* unit, VtArray* nodes) {
+void __fastcall WeldMeshVertices(FakeUnitScene* unit, VtArray* nodes) {
     PointBuffer points{};
     DwordBuffer pointMap{};
     UvBuffer coords{};
     DwordBuffer coordMap{};
-    VtArray& meshes = At<VtArray>(unit, 0x544);
+    VtArray& meshes = unit->meshes;
     if (meshes.size <= 0) return;
     const double weld = WeldDistance();
     for (int m = 0; m < meshes.size; ++m) {
-        char* mesh = reinterpret_cast<char*>(meshes.data) + m * mesh::kSize;
-        PointBuffer& positions = At<PointBuffer>(mesh, mesh::kPositions);
+        SceneMesh* mesh = &Typed<MeshArray>(meshes).data[m];
+        PointBuffer& positions = mesh->positions;
 
         points.SetSize(0);
         pointMap.SetSize(0);
@@ -74,19 +69,19 @@ void __fastcall WeldMeshVertices(void* unit, VtArray* nodes) {
         std::memcpy(positions.data, points.data, static_cast<std::size_t>(points.size) * sizeof(Vector3));
 
         // The node's morph keys (0x14 each, an aligned point array at +4) move to the merged list.
-        char* node = reinterpret_cast<char*>(nodes->data) + m * node::kSize;
-        VtArray& morph = At<VtArray>(node, node::kMorphKeys);
+        SceneNode* node = &Typed<NodeArray>(*nodes).data[m];
+        auto& morph = node->morphKeys;
         for (int k = 0; k < morph.size; ++k) {
-            PointBuffer& keyPoints = At<PointBuffer>(reinterpret_cast<char*>(morph.data) + k * 0x14, 4);
+            lib::AlignedArray<Vector3>& keyPoints = morph.data[k].points;
             int count = points.size;
-            Vector3* moved = count ? reinterpret_cast<Vector3*>(PointBuffer::Allocate(count)) : nullptr;
-            for (int i = 0; i < keyPoints.size; ++i) moved[pointMap.data[i]] = reinterpret_cast<Vector3*>(keyPoints.data)[i];
+            Vector3* moved = count ? lib::AlignedArray<Vector3>::Allocate(count) : nullptr;
+            for (int i = 0; i < keyPoints.size; ++i) moved[pointMap.data[i]] = keyPoints.data[i];
             keyPoints.SetSize(count);
             std::memcpy(keyPoints.data, moved, static_cast<std::size_t>(count) * sizeof(Vector3));
             if (moved) lib::FreeAligned32(moved);
         }
 
-        UvBuffer& texCoords = At<UvBuffer>(mesh, mesh::kTexCoords);
+        UvBuffer& texCoords = mesh->texCoords;
         coords.SetSize(0);
         coordMap.SetSize(0);
         coordMap.SetSize(texCoords.size);
@@ -107,7 +102,7 @@ void __fastcall WeldMeshVertices(void* unit, VtArray* nodes) {
         texCoords.SetSize(coords.size);
         std::memcpy(texCoords.data, coords.data, static_cast<std::size_t>(coords.size) * 8);
 
-        FaceBuffer& faces = At<FaceBuffer>(mesh, mesh::kFaces);
+        FaceBuffer& faces = mesh->faces;
         for (int f = 0; f < faces.size; ++f) {
             MeshFace& face = faces.data[f];
             for (auto& v : face.vertex) v = pointMap.data[v];

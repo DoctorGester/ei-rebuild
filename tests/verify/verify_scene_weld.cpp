@@ -12,7 +12,7 @@
 #include <vector>
 
 namespace scene {
-void __fastcall WeldMeshVertices(void* unit, VtArray* nodes);
+void __fastcall WeldMeshVertices(FakeUnitScene* unit, VtArray* nodes);
 }
 
 namespace {
@@ -49,7 +49,7 @@ void __fastcall WeldVerify(void* unit, VtArray* nodes) {
             }
         }
     }
-    WeldMeshVertices(unit, nodes);
+    WeldMeshVertices(static_cast<FakeUnitScene*>(unit), nodes);
     double weld;
     std::memcpy(&weld, reinterpret_cast<const void*>(0x0073B860), sizeof(weld));
     bool ok = true;

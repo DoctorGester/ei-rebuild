@@ -324,8 +324,14 @@ pragma (DR-C4): release code is fild elapsed, fmul secondsPerTick_, fadd offset,
   (00566CE0, originals_world.h, declared with an int) passes it to 004782E0 as a link. Needs a class and the forwarder
   retyped (app.cpp shares it). Also left: the two `__asm` helpers (_ftol, 24.0), `TextOpsAt`, and the accessors with literal
   addresses (GameMode, Campaign, ...) that belong in game_flow_data.h.
-- world_map.cpp's `LoadedFresh` / `KeepsState` still use byte offsets (+0x11D / +0x11E = CWorldServer::loadedFresh_ /
-  keepsState_). world_client_draw.cpp keeps six x87 `__asm` helpers; world_client_view.cpp keeps its own draw-queue view
+- C10 (2026-10-09) made world_map.cpp and world_update.cpp clean (world_update keeps its float_control pragma):
+  CWorldServer sentObjects_ (+0x12D88, also world_server.cpp) and zoneHeader_ (+0x12E00, a CMemoryStream built by
+  0041DD70 in the constructor 00589ED0; called through a CStream* so the slot dispatch stays), MainScript() (the CScript at
+  +0x12874: globals_ holds the "Heroes" group); WorldPlayer link (+0x1C) and Connection() (CPlayerConnection's slots on
+  +0x20); Projectile slot 0 DeletingDestructor and the 16-bit referenceCount view; ObjectPtrListVtable() (0073F530, also
+  world_zone.cpp); LoadMap takes a CStream*; world_data.h names the Update strings, WakeMargin / HearingScale and the flush
+  manipulator. The hand-inlined list RemoveAll copies call mfc::CList::RemoveAll (elements destroyed first, as before).
+  world_client_draw.cpp keeps six x87 `__asm` helpers; world_client_view.cpp keeps its own draw-queue view
   (DrawQueues at 007AF508, a local DeferredUnits()) that could use world.h `FrameObjects` / `FrameDeferredUnits`.
 - 00564AF0 (`CObject3D::PartBox`, once "CWorldClient::ListItem") runs on a platform object (AddObject passes the object in
   ECX; it reads CObject3D::parts +0xD0 / +0xD4 and pendingParts +0xE0), not on the client. The client's +0x1F0 list is the
