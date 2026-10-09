@@ -28,6 +28,7 @@ class CUiRootWindow;
 struct UiInputSide;
 class CUiMesh;
 class CSceneRenderer;   // model.h
+class CStream;          // core_streams.h
 class CUiSurface;
 
 // The interface's screen fade and letterbox (CInterface3D +0x18), drawn over everything by the
@@ -217,6 +218,15 @@ public:
     int unknown_8C;
     int unknown_90;
     int fastGame_;                   // +0x94 the fast game speed (the clock's +0x154)
+    std::uint8_t unknown_98[0xA4 - 0x98];
+    char* messageText_;              // +0xA4 CString: the message window's text (ShowMessage)
+    int messageFlag_;                // +0xA8 (ShowMessage clears it)
+    char* savedText_;                // +0xAC CString saved with the game (from version 0x5F)
+
+    // 005F85C0 (RET 4; ui_interface_save.cpp). Writes what LoadState reads: +0x89..+0x8B, +0x8C,
+    // +0x90, +0x94, an empty obsolete list (count 0), the message text with its zero, +0xA8 and
+    // the saved text with its zero.
+    void SaveState(CStream* stream);
 
     // 005F51F0 (ui_main_menu.cpp; the main menu's Create). Clears the saved state: +0x89..+0x8B,
     // +0x8C, +0x90 and +0x94.
@@ -227,6 +237,7 @@ static_assert(offsetof(CInterface3D, doubleClick_) == 0x7F);
 static_assert(offsetof(CInterface3D, stackBegin_) == 0x34);
 static_assert(offsetof(CInterface3D, pendingValue_) == 0x48);
 static_assert(offsetof(CInterface3D, mouseX_) == 0x68);
+static_assert(offsetof(CInterface3D, messageText_) == 0xA4 && offsetof(CInterface3D, savedText_) == 0xAC);
 static_assert(offsetof(CInterface3D, console_) == 0x14);
 static_assert(offsetof(CInterface3D, root_) == 0x1C);
 static_assert(offsetof(CInterface3D, drawing_) == 0x30);

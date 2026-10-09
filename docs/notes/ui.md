@@ -190,7 +190,9 @@ array sizes `CUiMesh::SetQuadCount` 005EA210 (then z 0, w 1 in every block), `Se
 `Vertices()`, `Indices()`, `Texels()`); ours only (size, capacity, kept prefix, the element fields). `CUiSurface::FrameRect`
 005FDCB0 (`ui_surface_frame.cpp`; the tooltips' border: a CBrush local (`ui_gdi::GameBrush`, Attach 0070A075 /
 DeleteObject 0070A0CC), FrameRect on the held DC around the rect scaled by 005F7CA0 by address, or the whole surface);
-ours only (the DC field unchanged). CDC::FromHandle 00708D79 is `CdcFromHandleOriginal` in originals_ui.h now.
+ours only (the DC field unchanged). CDC::FromHandle 00708D79 is `CdcFromHandleOriginal` in originals_ui.h now. `CInterface3D::SaveState`
+005F85C0 (`ui_interface_save.cpp`, LoadState's counterpart; side by side through a recorder on the stream's Write;
+every save).
 
 | Address | Name | Verify |
 |---|---|---|

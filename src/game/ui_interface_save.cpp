@@ -1,11 +1,14 @@
-// CInterface3D's saved state (005F8420). See ui.h.
+// CInterface3D's saved state (005F8420 reads it, 005F85C0 writes it). See ui.h.
 #include "ui.h"
+
+#include "core_streams.h"
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
 #include "originals_engine.h"
 
 #include <cstdint>
+#include <cstring>
 
 namespace {
 
@@ -104,3 +107,22 @@ namespace {
 void __fastcall InterfaceLoadState(CInterface3D* self, void*, void* stream) { self->LoadState(stream); }
 } // namespace
 EI_REPLACE(0x005F8420, InterfaceLoadState);
+
+// --- 005F85C0: the saved state written -----------------------------------------------------------
+
+void CInterface3D::SaveState(CStream* stream) {
+    for (std::uint8_t flag : unknown_89) stream->Write(&flag, 1);
+    int value = unknown_8C;
+    stream->Write(&value, 4);
+    value = unknown_90;
+    stream->Write(&value, 4);
+    value = fastGame_;
+    stream->Write(&value, 4);
+    value = 0;   // the obsolete list LoadState skips: no entries
+    stream->Write(&value, 4);
+    stream->Write(messageText_, static_cast<std::uint32_t>(std::strlen(messageText_) + 1));
+    value = messageFlag_;
+    stream->Write(&value, 4);
+    stream->Write(savedText_, static_cast<std::uint32_t>(std::strlen(savedText_) + 1));
+}
+EI_REPLACE_METHOD(0x005F85C0, CInterface3D::SaveState);
