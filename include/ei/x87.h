@@ -46,6 +46,15 @@ __declspec(naked) inline double __cdecl fsqrt(double) {
     __asm ret
 }
 
+// FPATAN: atan2(y, x), unrounded (FPATAN ignores the precision control). std::atan2 only becomes
+// FPATAN under /fp:fast; under precise semantics it calls the modern CRT.
+__declspec(naked) inline double __cdecl fpatan(double /*y*/, double /*x*/) {
+    __asm fld qword ptr [esp + 4]
+    __asm fld qword ptr [esp + 12]
+    __asm fpatan
+    __asm ret
+}
+
 // FISTP: float to int using the FPU's current rounding mode (round-to-nearest by default), unlike
 // a C++ cast, which truncates.
 __declspec(naked) inline int __cdecl fistp(float) {

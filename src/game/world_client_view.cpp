@@ -42,13 +42,6 @@ namespace {
 
 MatrixDevice* Device() { return TheMatrixDevice(); }
 
-// A 4x4 float matrix (16 floats).
-struct Matrix4 {
-    // 004D9880. this = a * b (RET 8).
-    void Multiply(const float* a, const float* b);
-};
-void Matrix4::Multiply(const float* a, const float* b) { MatrixMultiplyOriginal(reinterpret_cast<float*>(this), nullptr, a, b); }
-
 // The quaternion at +0x34 of a map object.
 struct Orientation {
     // 004D9AA0. Writes the rotation into the 4x4 matrix `out` (RET 4).
@@ -132,8 +125,9 @@ void PushObjectMatrix(MatrixDevice* device, float* matrix) {
         std::memcpy(device->objectStack, matrix, 0x40);
     } else {
         int depth = ++device->objectDepth;
-        reinterpret_cast<Matrix4*>(device->objectStack + (depth - 1) * 16)
-            ->Multiply(device->objectStack + (depth - 2) * 16, matrix);
+        // 004D9880: top = previous top * matrix.
+        MatrixMultiplyOriginal(device->objectStack + (depth - 1) * 16, nullptr, device->objectStack + (depth - 2) * 16,
+                               matrix);
     }
 }
 
@@ -267,8 +261,7 @@ float* PickPoint(CWorldClient* world, float* out, int screenX, int screenY, Heig
         std::memcpy(device->pickStack, top, 0x40);
     } else {
         int depth = ++device->pickDepth;
-        reinterpret_cast<Matrix4*>(device->pickStack + (depth - 1) * 16)
-            ->Multiply(device->pickStack + (depth - 2) * 16, top);
+        MatrixMultiplyOriginal(device->pickStack + (depth - 1) * 16, nullptr, device->pickStack + (depth - 2) * 16, top);
     }
     MatrixDevice* current = Device();
     const float* m = current->pickStack + (current->pickDepth - 1) * 16;

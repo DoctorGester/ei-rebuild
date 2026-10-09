@@ -17,7 +17,7 @@ struct RecordArray {
 
 // 0058EF20: afterwards every record's id names a unit of the world.
 static void __fastcall CreateUnitsVerify(CWorldServer* self, void*, void* player, void* records,
-                                         const Vector3* position, Float4 rotation, void* placements) {
+                                         const Vector3* position, Quaternion rotation, void* placements) {
     self->CreateUnits(player, records, position, rotation, placements);
     auto* array = static_cast<RecordArray*>(records);
     int created = 0;

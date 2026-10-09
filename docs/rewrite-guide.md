@@ -35,7 +35,9 @@ comes from a bug we already hit.
   table; generated). Add to these only when needed, in small separate additions.
 - `tests/verify/verify_<area>.cpp`: verify wrappers. `tests/verify/verified.txt` is updated centrally.
 - Shared headers others use: `src/game/engine_object.h` (CEngineObject virtual interface),
-  `maths.h` (Vector3, Quaternion), `ai_map.h`, `resource*.h`, `terrain.h`, `base_manager.h`.
+  `src/lib/vecmath.h` (Vector2/3/4, Quaternion, Matrix4 and inline helpers with named sum
+  groupings, docs/notes/vector-math.md; `maths.h` includes it), `ai_map.h`, `resource*.h`,
+  `terrain.h`, `base_manager.h`.
 
 ## The rules
 

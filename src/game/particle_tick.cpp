@@ -59,7 +59,7 @@ using UpdateFn = int(__fastcall*)(CParticleSource*, void*, Particle*);
 using ElementFn = void(__fastcall*)(CParticleSource*, void*, ParticleElement*);
 
 // sqrt((x*x + y*y) + z*z), all on the FPU.
-double LengthXYZ(const Vector3& v) {
+double LengthDouble(const Vector3& v) {
     double x = v.x, y = v.y, z = v.z;
     return x87::fsqrt(x * x + y * y + z * z);
 }
@@ -171,7 +171,7 @@ struct TickSteps {
     // up = normalize(motion x side); both zero when the source barely moved.
     void BuildBasis() {
         const Vector3& m = s->motion;
-        double distance = LengthXYZ(m);
+        double distance = LengthDouble(m);
         s->distance = Store(distance);
         if (!(distance > EI_STILL)) {
             std::memset(&s->side, 0, sizeof(Vector3));
@@ -182,7 +182,7 @@ struct TickSteps {
         s->side.x = Store(D(m.y) - zero);
         s->side.y = Store(zero - D(m.x));
         SetBits(s->side.z, 0);
-        double length = LengthXYZ(s->side);
+        double length = LengthDouble(s->side);
         if (LessOrUnordered(length, EI_DEGENERATE)) {
             float mx = m.x;
             s->side.x = Store(D(m.y) - D(m.z));
@@ -198,7 +198,7 @@ struct TickSteps {
         s->up.x = ux;
         s->up.y = uy;
         s->up.z = uz;
-        Normalize(s->up, LengthXYZ(s->up));
+        Normalize(s->up, LengthDouble(s->up));
     }
 
     void RunElements() {

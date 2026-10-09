@@ -156,7 +156,7 @@ void Chunk::WriteVector3(std::uint32_t id, std::uint32_t x, std::uint32_t y, std
 EI_REPLACE_METHOD(0x0042CD70, Chunk::WriteVector3);
 
 // The four values are written as one 16-byte block.
-void Chunk::WriteQuaternion(std::uint32_t id, Float4 value) {
+void Chunk::WriteQuaternion(std::uint32_t id, Quaternion value) {
     int size = 0x18;
     FileWrite(File(), &id, 4);
     FileWrite(File(), &size, 4);

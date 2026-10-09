@@ -5,19 +5,7 @@
 
 #include "maths.h"
 
-struct Vector2 {
-    float x, y;
-};
-static_assert(sizeof(Vector2) == 8);
-
-// A homogeneous point (x, y, z, w). Name provisional.
-struct Vector4 {
-    float x, y, z, w;
-
-    // 004679D0. (p, 1); returns this.
-    Vector4* FromPoint(const Vector3& p);
-};
-static_assert(sizeof(Vector4) == 16);
+// Vector2 and Vector4 (with Vector4::FromPoint 004679D0) are in src/lib/vecmath.h.
 
 // 004489D0. `out` = a x b. __fastcall (out in ECX, a in EDX, b on the stack); returns out. All three
 // components are computed before the first store.

@@ -5,45 +5,30 @@
 // The order of operations in every expression follows the original instruction sequence. Doubling
 // is written as `* 2.0f`, which is exact and equal to the original's FADD ST0,ST0, so no named
 // temporary (which the compiler could spill and round) is needed.
+//
+// The vector operators are vecmath.h's: one operation per component, rounded when stored, the whole
+// result computed before `*out` is written (out may alias an input, as in the original).
 
 Vector3* __fastcall AddVectors(Vector3* out, const Vector3& a, const Vector3& b) {
-    // All components are loaded before the first store, as in the original (out may alias a or b).
-    float z = a.z + b.z;
-    float y = a.y + b.y;
-    float x = a.x + b.x;
-    out->x = x;
-    out->y = y;
-    out->z = z;
+    *out = a + b;
     return out;
 }
 EI_REPLACE(0x0040CDC0, AddVectors);
 
 Vector3* __fastcall NegateVector(Vector3* out, const Vector3& v) {
-    float z = -v.z;
-    float y = -v.y;
-    float x = -v.x;
-    out->x = x;
-    out->y = y;
-    out->z = z;
+    *out = -v;
     return out;
 }
 EI_REPLACE(0x00402200, NegateVector);
 
 Vector3* __fastcall ScaleVector(Vector3* out, const Vector3& v, float s) {
-    float z = s * v.z;
-    float y = s * v.y;
-    float x = s * v.x;
-    out->x = x;
-    out->y = y;
-    out->z = z;
+    *out = s * v;
     return out;
 }
 EI_REPLACE(0x00410770, ScaleVector);
 
 const Vector3* Vector3::AddInPlace(const Vector3& v) {
-    x = v.x + x;
-    y = v.y + y;
-    z = v.z + z;
+    *this += v;   // v.x + x in the original: the same sum
     return &v;
 }
 EI_REPLACE_METHOD(0x00410750, Vector3::AddInPlace);
@@ -77,7 +62,7 @@ void Quaternion::PreMultiply(const Quaternion& r) {
 EI_REPLACE_METHOD(0x004018A0, Quaternion::PreMultiply);
 
 Vector3* Quaternion::AxisX(Vector3* out) const {
-    float xx = StoreFloat(x * x);   // the original keeps x*x in a float temporary
+    float xx = RoundToFloat(x * x);   // the original keeps x*x in a float temporary
     float rz = (x * z - y * w) * 2.0f;
     float ry = (y * x + w * z) * 2.0f;
     float rx = (w * w - ((z * z + y * y) + xx)) + xx * 2.0f;

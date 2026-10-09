@@ -337,7 +337,7 @@ struct ZoneTemplate {
 static_assert(sizeof(ZoneTemplate) == sizeof(GlobalMapZone));
 struct PlaceTemplate {
     int zone = 0;
-    float x = 0.0f, y = 0.0f, z = 0.0f;
+    Vector3 position{0.0f, 0.0f, 0.0f};
     mfc::CString name;
     mfc::CString title;
     const GlobalMapPlace& Get() const { return *reinterpret_cast<const GlobalMapPlace*>(this); }
@@ -486,10 +486,10 @@ void CGlobalMap::Create() {
                     {
                         Vector3 position;
                         Screen(this)->QuestPosition(&position, parts[2]);
-                        std::memcpy(&quests_.data[n].x, &position, 12);
+                        std::memcpy(&quests_.data[n].position, &position, 12);
                     }
                     CUiMesh* sprite = AddFigure(this, allod->questMarker);
-                    Vector3 local = {quests_.data[n].x, quests_.data[n].y, quests_.data[n].z};
+                    Vector3 local = quests_.data[n].position;
                     SetPosition(sprite, builder.ModelPoint(local));
                     SetTexture(sprite, builder.Texture(1));
                     Ops(sprite)->SetScale(GameFloat(0x007420D0));
@@ -534,10 +534,10 @@ void CGlobalMap::Create() {
             {
                 Vector3 position;
                 Screen(this)->ZonePosition(&position, way->name);
-                std::memcpy(&links_.data[n].x, &position, 12);
+                std::memcpy(&links_.data[n].position, &position, 12);
             }
             CUiMesh* sprite = AddFigure(this, way->figure);
-            Vector3 local = {links_.data[n].x, links_.data[n].y, links_.data[n].z};
+            Vector3 local = links_.data[n].position;
             SetPosition(sprite, builder.ModelPoint(local));
             SetTexture(sprite, builder.Texture(1));
             Ops(sprite)->SetScale(GameFloat(0x007420D0));
@@ -797,7 +797,7 @@ void CGlobalMap::Update() {
         for (int i = 0; i < zoneCount_; ++i) builder.Turn(reinterpret_cast<CUiMesh*>(sceneObjects_.data[3 + i]));
         for (int i = 0; i < questCount_; ++i) {
             CUiMesh* sprite = reinterpret_cast<CUiMesh*>(sceneObjects_.data[3 + zoneCount_ + i]);
-            Vector3 local = {quests_.data[i].x, quests_.data[i].y, quests_.data[i].z};
+            Vector3 local = quests_.data[i].position;
             SetPosition(sprite, builder.ModelPoint(local));
             builder.Turn(sprite);
             float x, y, depth;
@@ -805,7 +805,7 @@ void CGlobalMap::Update() {
         }
         for (int i = 0; i < linkCount_; ++i) {
             CUiMesh* sprite = reinterpret_cast<CUiMesh*>(sceneObjects_.data[3 + questCount_ + zoneCount_ + i]);
-            Vector3 local = {links_.data[i].x, links_.data[i].y, links_.data[i].z};
+            Vector3 local = links_.data[i].position;
             SetPosition(sprite, builder.ModelPoint(local));
             builder.Turn(sprite);
             float x, y, depth;

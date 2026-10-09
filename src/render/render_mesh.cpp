@@ -66,9 +66,9 @@ bool Build(Frame& f, Pending& p) {
         const float* block = m.positions + (position / 4) * 16;
         int lane = position % 4;
         Vertex v{};
-        v.x = block[lane];
-        v.y = block[4 + lane];
-        v.z = block[8 + lane];
+        v.position.x = block[lane];
+        v.position.y = block[4 + lane];
+        v.position.z = block[8 + lane];
         v.colour = m.colours[c[1]];
         v.specular = m.speculars[c[1]];
         v.u = m.uvs[c[2] * 2];
@@ -581,7 +581,7 @@ bool TlDraw(void* device, const void* vertices, int fvf, int vertexCount, const 
     for (int i = 0; i < vertexCount; ++i) {
         const auto* p = static_cast<const std::uint8_t*>(vertices) + static_cast<std::size_t>(i) * stride;
         Vertex v{};
-        std::memcpy(&v.x, p, 12);   // x, y, z (rhw taken as 1: affine interpolation)
+        std::memcpy(&v.position, p, 12);   // x, y, z (rhw taken as 1: affine interpolation)
         std::memcpy(&v.colour, p + 16, 8);
         if (stride == 32) std::memcpy(&v.u, p + 24, 8);
         f.meshVertices.push_back(v);

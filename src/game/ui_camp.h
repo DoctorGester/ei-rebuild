@@ -11,6 +11,7 @@
 
 #include "lib/mfc.h"
 #include "lib/stlp.h"
+#include "lib/vecmath.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -335,11 +336,11 @@ void __fastcall GlobalMapZonesSetAtGrow(GlobalMapZoneArray* zones, void*, int in
 // A quest place or a link (an "edge" zone) on the map (0x18 bytes, CArrays at +0x1A0 / +0x1B4).
 struct GlobalMapPlace {
     int zone;                        // +0x00 index into the zones
-    float x, y, z;                   // +0x04 position on the map model
+    Vector3 position;                // +0x04 on the map model
     char* name;                      // +0x10 CString
     char* title;                     // +0x14 CString
 };
-static_assert(sizeof(GlobalMapPlace) == 0x18);
+static_assert(sizeof(GlobalMapPlace) == 0x18 && offsetof(GlobalMapPlace, position) == 0x04);
 
 // The global map's weather (vtable 007420D4, 0x34 bytes; 00499F10 draws it into the map's texture).
 class __declspec(novtable) GlobalMapWeather {

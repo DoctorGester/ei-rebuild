@@ -68,9 +68,9 @@ namespace decal {
 
 void __fastcall Interpolate(const DecalVertex* p, const DecalVertex* q, DecalVertex* out, float dp, float dq) {
     double scale = 1.0f / (dq - dp);
-    out->x = static_cast<float>((dq * p->x - dp * q->x) * scale);
-    out->y = static_cast<float>((dq * p->y - dp * q->y) * scale);
-    out->z = static_cast<float>((dq * p->z - dp * q->z) * scale);
+    out->position.x = static_cast<float>((dq * p->position.x - dp * q->position.x) * scale);
+    out->position.y = static_cast<float>((dq * p->position.y - dp * q->position.y) * scale);
+    out->position.z = static_cast<float>((dq * p->position.z - dp * q->position.z) * scale);
     out->u = static_cast<float>((dq * p->u - dp * q->u) * scale);
     out->v = static_cast<float>((dq * p->v - dp * q->v) * scale);
 }
@@ -217,9 +217,9 @@ void DecalBuilder::Reserve(int triangles) {
 std::uint16_t DecalBuilder::AddVertex(const DecalVertex* v) {
     int i = vertexCount_;
     VertexPacket& packet = points_->data[i / 4];
-    std::memcpy(&packet.block[0][i & 3], &v->x, 4);
-    std::memcpy(&packet.block[1][i & 3], &v->y, 4);
-    std::memcpy(&packet.block[2][i & 3], &v->z, 4);
+    std::memcpy(&packet.block[0][i & 3], &v->position.x, 4);
+    std::memcpy(&packet.block[1][i & 3], &v->position.y, 4);
+    std::memcpy(&packet.block[2][i & 3], &v->position.z, 4);
     std::memcpy(&texCoords_->data[i].u, &v->u, 4);
     std::memcpy(&texCoords_->data[i].v, &v->v, 4);
     vertexCount_ = i + 1;
@@ -238,7 +238,7 @@ void DecalBuilder::ClipStage(DecalVertex* tri, int stage) {
     for (int k = 0; k < 3; ++k) {
         const DecalVertex& c = tri[k];
         switch (stage) {
-        case 0: d[k] = Project(normal_, &c.x, planeOffset_); break;
+        case 0: d[k] = Project(normal_, &c.position.x, planeOffset_); break;
         case 1: d[k] = c.u; break;
         case 2: d[k] = c.v; break;
         case 3: d[k] = 1.0f - c.u; break;
@@ -263,9 +263,9 @@ void DecalBuilder::ClipFromUMax(DecalVertex* tri) { ClipStage(tri, 3); }
 void DecalBuilder::AddCorners(DecalVertex* tri, const Vector3* a, const Vector3* b, const Vector3* c) {
     const Vector3* corners[3] = {a, b, c};
     for (int k = 0; k < 3; ++k) {
-        std::memcpy(&tri[k].x, corners[k], sizeof(Vector3));
-        tri[k].u = Project(uAxis_, &tri[k].x, uOffset_);
-        tri[k].v = Project(vAxis_, &tri[k].x, vOffset_);
+        std::memcpy(&tri[k].position, corners[k], sizeof(Vector3));
+        tri[k].u = Project(uAxis_, &tri[k].position.x, uOffset_);
+        tri[k].v = Project(vAxis_, &tri[k].position.x, vOffset_);
     }
 }
 

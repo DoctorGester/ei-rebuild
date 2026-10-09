@@ -19,6 +19,7 @@
 #include "device_buffers.h"
 #include "lib/containers.h"
 #include "lib/mfc.h"
+#include "lib/vecmath.h"
 
 #include <cstdint>
 #include <cstring>
@@ -298,11 +299,6 @@ struct ScreenSize {
     std::uint32_t width = 0;
     std::uint32_t height = 0;
 };
-
-float RoundToFloat(double value) {
-    volatile float rounded = static_cast<float>(value);
-    return rounded;
-}
 
 // Some corners off screen: each triangle goes through the clipper, which may append vertices.
 bool DrawClipped(char* renderer, int sprites, ScreenSize& screen) {

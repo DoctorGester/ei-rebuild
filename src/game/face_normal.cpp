@@ -3,6 +3,7 @@
 // rounded through a volatile store.
 #include "scene_loader.h"
 
+#include "lib/vecmath.h"
 #include "ei/hook.h"
 #include "ei/x87.h"
 
@@ -13,27 +14,23 @@ namespace scene {
 
 namespace {
 
-struct Point {
-    float x, y, z;
-};
-
 float StoreFloat(double value) {
     volatile float stored = static_cast<float>(value);
     return stored;
 }
 
 // The normal used for a degenerate face (007A9C98).
-const Point& DegenerateNormal() { return *reinterpret_cast<const Point*>(0x007A9C98); }
+const Vector3& DegenerateNormal() { return *reinterpret_cast<const Vector3*>(0x007A9C98); }
 
 constexpr double kMinimumSquare = 1e-10;
 
 } // namespace
 
 void __fastcall ComputeFaceNormal(MeshFace* face, void*, const PointBuffer* positions) {
-    const auto* points = reinterpret_cast<const Point*>(positions->data);
-    const Point& origin = points[face->vertex[1]];
-    const Point& p2 = points[face->vertex[2]];
-    const Point& p0 = points[face->vertex[0]];
+    const auto* points = reinterpret_cast<const Vector3*>(positions->data);
+    const Vector3& origin = points[face->vertex[1]];
+    const Vector3& p2 = points[face->vertex[2]];
+    const Vector3& p0 = points[face->vertex[0]];
 
     double ax = static_cast<double>(p2.x) - origin.x;
     double ay = static_cast<double>(p2.y) - origin.y;
@@ -66,14 +63,14 @@ void __fastcall ComputeFaceNormal(MeshFace* face, void*, const PointBuffer* posi
     const double z = face->normal[2];
     const double length = std::sqrt(x * x + y * y + z * z);
     if (length == 0.0 || x87::IsNaN(static_cast<float>(length))) {   // FCOM 0; C3: equal or unordered
-        std::memcpy(face->normal, &DegenerateNormal(), sizeof(Point));
+        std::memcpy(face->normal, &DegenerateNormal(), sizeof(Vector3));
     } else {
         double inverse = 1.0 / length;
         face->normal[0] = StoreFloat(inverse * face->normal[0]);
         face->normal[1] = StoreFloat(inverse * face->normal[1]);
         face->normal[2] = StoreFloat(inverse * face->normal[2]);
     }
-    const Point& at = points[face->vertex[1]];
+    const Vector3& at = points[face->vertex[1]];
     face->distance = StoreFloat(static_cast<double>(at.z) * face->normal[2] + static_cast<double>(at.y) * face->normal[1] +
                                 static_cast<double>(at.x) * face->normal[0]);
 }
