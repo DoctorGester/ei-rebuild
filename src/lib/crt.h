@@ -8,6 +8,7 @@
 // the modern CRT, after checking the behaviour is identical.
 
 #include <cstddef>
+#include <cstdint>
 
 namespace gamecrt {
 
@@ -33,6 +34,12 @@ int __cdecl mbscmp(const unsigned char* a, const unsigned char* b);  // 006E848B
 // from the FLD of the argument on; the result is left unrounded in ST0).
 double __cdecl acos(double c);                                // 006E7334
 double __cdecl asin(double s);                                // 006E83D4
+// _controlfp: sets the FPU control word bits in `mask` to `value`; returns the new word (the
+// terrain lighting 006C3A00 switches to chop rounding with it).
+unsigned __cdecl controlfp(unsigned value, unsigned mask);    // 006EBBB4
+// The game's _ftol (006E853C) for a value computed in C++: the low 32 bits of the 64-bit
+// truncation (NaN and values out of the 64-bit range give 0), unlike a C++ cast to int.
+inline std::uint32_t Ftol(double value) { return static_cast<std::uint32_t>(static_cast<std::int64_t>(value)); }
 
 // Low-level I/O on CRT file descriptors.
 int __cdecl open(const char* path, int flags, ...);           // 006EB35C
