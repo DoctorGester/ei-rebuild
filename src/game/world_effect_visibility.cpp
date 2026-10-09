@@ -122,7 +122,7 @@ int CEffectShowVisibility::Tick() {
     CEngineObject* seer = WorldFindUnit(ObjectWorld(this), nullptr, seerId_);
     CEngineObject* observer = WorldFindUnit(ObjectWorld(this), nullptr, observerId_);
     if (seer == nullptr || observer == nullptr) return 0;
-    std::memcpy(&localPosition_, &static_cast<CMapObject*>(seer)->positionX, sizeof(Vector3));
+    std::memcpy(&localPosition_, &static_cast<CMapObject*>(seer)->position.x, sizeof(Vector3));
     ComputeSight(seer, observer, &grid_);
     MarkChanged();
     return 1;

@@ -182,15 +182,7 @@ public:
     std::uintptr_t MarkChanged(int part);
     int HasEffect(std::uint32_t type);
 
-#pragma warning(push)
-#pragma warning(disable : 4201)   // V3 transition: the old names until every use is position.x / y / z
-    union {
-        Vector3 position;           // +0x01C
-        struct {
-            float positionX, positionY, positionZ;
-        };
-    };
-#pragma warning(pop)
+    Vector3 position;               // +0x01C
     std::uint8_t unknown_028[0x34 - 0x28];
     Quaternion orientation;         // +0x034 a quaternion
     std::uint8_t unknown_044[0x94 - 0x44];

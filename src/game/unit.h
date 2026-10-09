@@ -550,15 +550,7 @@ public:
     // 00518D30. An animation time factor (1 for no animation).
     double AnimationFactor(float time);
 
-#pragma warning(push)
-#pragma warning(disable : 4201)   // V3 transition: the old names until every use is position.x / y / z
-    union {
-        Vector3 position;           // +0x01C
-        struct {
-            float positionX, positionY, positionZ;
-        };
-    };
-#pragma warning(pop)
+    Vector3 position;               // +0x01C
     std::uint8_t unknown_028[0x34 - 0x28];
     Quaternion orientation;         // +0x034
     std::uint8_t unknown_044[0xA4 - 0x44];
