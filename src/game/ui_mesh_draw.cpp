@@ -1,5 +1,6 @@
-// An interface sprite (CUiMesh, ui.h) draws itself: 005E6D90, called by the window base's draw
-// (005FEB90) and the panels that draw single sprites. docs/notes/ui.md, section 9.
+// An interface sprite (CUiMesh, ui.h): its Create (005E6C60, vtable slot 2) and its draw (005E6D90,
+// called by the window base's draw 005FEB90 and the panels that draw single sprites).
+// docs/notes/ui.md, section 9.
 #include "ui.h"
 
 #include "model.h"
@@ -7,6 +8,7 @@
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "originals_engine.h"
+#include "originals_ui.h"
 
 #include <cstdint>
 #include <cstring>
@@ -18,9 +20,11 @@ constexpr std::uint32_t kOne = 0x3F800000;
 constexpr int kStackWorld = 1;           // the transform pipeline's stacks the sprite is pushed on
 constexpr int kStackView = 2;
 
-// The data the sprite draw hands the renderer's DrawFigure as its second argument (written by
-// 005E6C30, not read on that path).
-const void* SpriteDrawArgument() { return reinterpret_cast<const void*>(0x007C7CD8); }
+// The identity orientation (w 1, x y z 0; set by 005E6C30 at start): a sprite's first orientation,
+// and what the draw hands DrawFigure as its second argument (not read on that path).
+const Quaternion& IdentityOrientation() { return *reinterpret_cast<const Quaternion*>(0x007C7CD8); }
+constexpr float kSpriteDepth = 10.0f;
+constexpr std::uint32_t kOpaqueBlack = 0xFF000000;
 const char* SetTextureFailed() { return reinterpret_cast<const char*>(0x00792E38); }   // "CI3DFigure::Draw: SetTexture fai..."
 const char* DrawFailed() { return reinterpret_cast<const char*>(0x00792E0C); }         // "CI3DFigure::Draw: CFigure::Draw f..."
 
@@ -65,7 +69,7 @@ int CUiMesh::Draw(CSceneRenderer* renderer) {
     const std::uint32_t blue = ColourByte(tint_[2]);
     renderer->SetColour((((red | 0xFFFFFF00u) << 8 | green) << 8) | blue);
     const float origin[3] = {0.0f, 0.0f, 0.0f};
-    const int drawn = renderer->DrawFigure(this, SpriteDrawArgument(), origin, material_, 0xFF, nullptr);
+    const int drawn = renderer->DrawFigure(this, &IdentityOrientation(), origin, material_, 0xFF, nullptr);
     renderer->SetColour(saved);
     if (!drawn) return FatalErrorOriginal(DrawFailed());
 
@@ -78,3 +82,29 @@ int CUiMesh::Draw(CSceneRenderer* renderer) {
     return 1;
 }
 EI_REPLACE_METHOD(0x005E6D90, CUiMesh::Draw);
+
+int CUiMesh::CreateSprite() {
+    FigureCreateOriginal(this);
+    material_ = nullptr;
+    texture_ = nullptr;
+    std::memset(scaleMatrix_, 0, sizeof(scaleMatrix_));
+    scaleMatrix_[15] = 1.0f;
+    scaleMatrix_[10] = 1.0f;
+    scaleMatrix_[5] = 1.0f;
+    scaleMatrix_[0] = 1.0f;
+    tint_[0] = 1.0f;
+    tint_[1] = 1.0f;
+    tint_[2] = 1.0f;
+    unknown_230[0] = 0.0f;
+    unknown_230[1] = 0.0f;
+    unknown_230[2] = 0.0f;
+    orientation_ = IdentityOrientation();
+    position_.x = 0.0f;
+    position_.y = 0.0f;
+    position_.z = kSpriteDepth;
+    plainColour_ = kOpaqueBlack;
+    colour_ = kOpaqueBlack;
+    visible_ = 1;
+    return 1;
+}
+EI_REPLACE_METHOD(0x005E6C60, CUiMesh::CreateSprite);

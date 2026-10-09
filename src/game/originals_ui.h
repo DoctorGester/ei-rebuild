@@ -215,6 +215,8 @@ __declspec(naked) inline void __fastcall WindowShowSurfacesOriginal(void* /*wind
 // A-I6. 005E67B0: the cursor (007C7BD8) is held in place while the right button turns the view (thiscall, RET 4: a
 // byte into +0x90 under its lock when the cursor exists; no result).
 __declspec(naked) inline void __fastcall CursorSetHeldOriginal(void* /*cursor*/, void*, char /*held*/) EI_ORIGINAL(0x005E67B0)
+// 005A6C70 (a jump to 0059F210): the figure's Create (vtable slot 2; thiscall, plain RET; the result is not used).
+__declspec(naked) inline void __fastcall FigureCreateOriginal(void* /*figure*/) EI_ORIGINAL(0x005A6C70)
 // 0065ECB0: the DirectInput mouse's state read (thiscall, RET 4; the argument is not read; returns the DIMOUSESTATE
 // inside the object).
 __declspec(naked) inline const long* __fastcall DirectInputMousePollOriginal(void* /*mouse*/, void*, int /*unused*/)

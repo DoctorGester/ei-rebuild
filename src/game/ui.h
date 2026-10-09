@@ -28,6 +28,26 @@ class CUiRootWindow;
 struct UiInputSide;
 class CUiMesh;
 class CSceneRenderer;   // model.h
+class CUiSurface;
+
+// The interface's screen fade and letterbox (CInterface3D +0x18), drawn over everything by the
+// interface's draw (005F5220). Only the fields its draw uses.
+struct CScreenFade {
+    // 005E69C0 (RET 4; ui_interface_draw.cpp). With the letterbox, black bars of the screen height
+    // times 0.125-ish (00740150) at the top and bottom; while fading, the alpha moves by
+    // rate * elapsed ms towards 255 (rate > 0) or 0 (rate < 0), clamped at 255; below 0 the fade
+    // ends (nothing drawn), otherwise a black rectangle of that alpha over the screen. Both draws
+    // with the depth test off (render state 7) through the renderer's slot 19. Returns 1.
+    int Draw(CSceneRenderer* renderer);
+
+    float rate_;                     // +0x00 alpha per millisecond
+    float alpha_;                    // +0x04 0..255
+    std::uint8_t active_;            // +0x08 fading
+    std::uint8_t unknown_09[3];
+    DWORD lastTime_;                 // +0x0C timeGetTime of the last step
+    std::uint8_t letterbox_;         // +0x10 the bars are shown
+};
+static_assert(offsetof(CScreenFade, lastTime_) == 0x0C && offsetof(CScreenFade, letterbox_) == 0x10);
 
 // The interface manager (CInterface3D; created by 005F4990, which reads the screen size from the
 // render target). Only the members used by the rewritten code; the object is created by original
@@ -145,6 +165,11 @@ public:
     void CloseAll();
     // 005F5AB0 (the input dispatcher's first step). CloseAll when +0x44 asks for it (cleared).
     void CloseAllPending();
+    // 005F5220 (ui_interface_draw.cpp; every frame from the main loop). A pending close-all
+    // (CloseAllPending, inlined by the original); the backdrop (+0x54, its slot 0) in backdrop
+    // modes 2-4; the top window's slot 20 with the renderer (00500960); then the fade over it all.
+    // Returns 1.
+    int Draw();
 
     int width_;                      // +0x00 screen width
     int height_;                     // +0x04 screen height
@@ -152,7 +177,7 @@ public:
     void* mouseCapture_;             // +0x0C input side (window +0x94) that took the button press
     std::uint8_t unknown_10[0x14 - 0x10];
     console::ConsoleWindow* console_;   // +0x14 the console window (shown while its +0x7A is set)
-    std::uint8_t unknown_18[0x1C - 0x18];
+    CScreenFade* fade_;              // +0x18
     CUiRootWindow* root_;            // +0x1C updated after the top window every frame
     std::uint8_t unknown_20[0x30 - 0x20];
     // +0x30 the windows draw, redraw their surfaces and update their tooltips only while this is
@@ -167,7 +192,11 @@ public:
     std::uint8_t unknown_45[0x48 - 0x45];
     std::uint32_t pendingValue_;     // +0x48
     bool pendingFlag_;               // +0x4C
-    std::uint8_t unknown_4D[0x60 - 0x4D];
+    std::uint8_t unknown_4D[0x50 - 0x4D];
+    int backdropMode_;               // +0x50 the backdrop is drawn in modes 2, 3 and 4 (PushWindow sets 3 / 1)
+    CUiSurface* backdrop_;           // +0x54
+    CUiSurface* secondBackdrop_;     // +0x58
+    std::uint8_t unknown_5C[0x60 - 0x5C];
     std::uint8_t serverFlag_;        // +0x60 the server flag kept for the first window (PushWindow)
     std::uint8_t unknown_61[0x68 - 0x61];
     int mouseX_;                     // +0x68 mouse position in screen coordinates
@@ -481,6 +510,8 @@ public:
     // 005FF110 / 005FF180. Releases an object and removes it from the list.
     void RemoveObject(CEngineObject* object);
     void RemoveObjectAt(int index);
+    // 005FF1E0. Every referenced object released (slot 4), the list emptied (its storage freed).
+    void ClearObjects();
 
     // 005FF700 / 005FF770 / 005FF7D0. The second object list (+0x108).
     BOOL RemoveSceneObject(CEngineObject* object);
@@ -582,6 +613,11 @@ public:
     // UpdateRegionTips) and redraws itself (its slot 22), region by region.
     void RedrawTips();
     // Slots 22, 23 and 24 (+0x58, +0x5C, +0x60) through the vtable: redraw, tooltips, update.
+    // Slot 20 (+0x50): the window's per-frame draw in the renderer's pass (returns 1).
+    BOOL VirtualDraw(void* pass) {
+        using Fn = BOOL(__thiscall*)(CUiWindow*, void*);
+        return reinterpret_cast<Fn>(vtable_[20])(this, pass);
+    }
     void VirtualRedraw() { CallVirtual(22); }
     void VirtualRedrawTips() { CallVirtual(23); }
     void VirtualUpdate() { CallVirtual(24); }
@@ -1097,6 +1133,10 @@ public:
     // 005E6D90 (RET 4; ui_mesh_draw.cpp). Draws the sprite in `renderer`'s pass when visible;
     // returns 1.
     int Draw(CSceneRenderer* renderer);
+    // 005E6C60 (vtable slot 2, Create; ui_mesh_draw.cpp). The figure's Create (005A6C70), then no
+    // material or texture, the scale matrix the identity, tint 1, +0x230 zero, the identity
+    // orientation (007C7CD8), position (0, 0, 10), both colours 0xFF000000, visible. Returns 1.
+    int CreateSprite();
 
     std::uint8_t unknown_000[0x08];
     std::uint32_t flags_;            // +0x08 engine object flags (0x100: drawn in the plain colour +0xD4)
@@ -1126,7 +1166,7 @@ public:
     std::uint8_t unknown_218[0x220 - 0x218];
     int visible_;                    // +0x220
     float tint_[3];                  // +0x224 colour factors (the HUD: 1 selected, 0.5 not)
-    std::uint8_t unknown_230[0x23C - 0x230];
+    float unknown_230[3];            // +0x230 zero (Create)
     // A row-major 4x4 matrix applied after the placement (Draw); its diagonal elements 0, 5 and 10
     // are the scale 005E7060 sets (the same value in all three).
     float scaleMatrix_[16];          // +0x23C

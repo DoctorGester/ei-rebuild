@@ -42,3 +42,20 @@ static int __fastcall SpriteDrawVerify(CUiMesh* self, void*, CSceneRenderer* ren
     return result;
 }
 EI_VERIFY(0x005E6D90, SpriteDrawVerify, 0, s_unused);
+
+// 005E6C60 (the sprite's Create, vtable slot 2): ours only (the figure's Create runs first): the
+// fields it sets. Every scenario (every sprite a window adds).
+static int __fastcall SpriteCreateVerify(CUiMesh* self) {
+    const int result = self->CreateSprite();
+    const float* m = self->scaleMatrix_;
+    bool identity = true;
+    for (int i = 0; i < 16; ++i) identity = identity && m[i] == ((i % 5 == 0) ? 1.0f : 0.0f);
+    const Quaternion& q = *reinterpret_cast<const Quaternion*>(0x007C7CD8);
+    const bool ok = result == 1 && identity && !self->material_ && !self->texture_ && self->tint_[0] == 1.0f &&
+                    self->tint_[2] == 1.0f && std::memcmp(&self->orientation_, &q, sizeof(q)) == 0 &&
+                    self->position_.z == 10.0f && self->colour_ == 0xFF000000 && self->plainColour_ == 0xFF000000 &&
+                    self->visible_ == 1;
+    ei::verify::Check("CUiMesh::CreateSprite", true, ok, "");
+    return result;
+}
+EI_VERIFY(0x005E6C60, SpriteCreateVerify, 0, s_unused);

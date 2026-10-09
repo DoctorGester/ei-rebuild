@@ -178,6 +178,14 @@ the address), `ShowImage` 005E5270, `SetHeld` 005E67B0, `TakeLock` / `ReleaseLoc
 (fields, the lock's owner, bounds and the from / rect sizes); every scenario. Kept: Shutdown dereferences a null shape
 entry (AddShape stores one when its allocation fails). 005E67F0 is only called by an unwind funclet (not ported).
 
+A-I17 also: `CInterface3D::Draw` 005F5220 (`ui_interface_draw.cpp`: CloseAllPending, the backdrop +0x54 in modes 2-4,
+the top window's slot 20 with 00500960, the fade +0x18) and `CScreenFade::Draw` 005E69C0 (letterbox bars of
+height * [00740150], the fade's alpha step `(ms as qword) * rate + alpha` stored as float, clamp at 255, below 0 the
+fade ends; renderer slot 19 `DrawRectangle` with ZENABLE off; render states mirrored to render::state); ours only
+(result 1, no close-all pending, alpha in range); every scenario. `CUiMesh::CreateSprite` 005E6C60 (slot 2: the
+figure's Create 005A6C70, identity scale matrix, tint 1, the identity orientation 007C7CD8, z 10, colours
+0xFF000000, visible) and `CUiWindow::ClearObjects` 005FF1E0 (only the base screen's chat window 006091C0 calls it).
+
 | Address | Name | Verify |
 |---|---|---|
 | 005E1710, 005E17E0, 005E1870 | `CFlyingHitPoints::Construct` / `Destruct` / `Add` (`ui_flying_hit_points.cpp`; the world client's list of {target, amount, flags, start time}; flag 8 starts 0.5 s later) | ours only: empty list; one entry more with the arguments. Every zone; Add on hits |

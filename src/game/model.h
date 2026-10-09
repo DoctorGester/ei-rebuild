@@ -81,6 +81,7 @@ public:
 static_assert(offsetof(CTransformPipeline, stacks_) == 0x14 && offsetof(CTransformPipeline, transform_) == 0x0C);
 
 struct tagRECT;
+class CTextureDevice;
 
 // The scene renderer (the global at 007AF060, vtable 0073D93C, 26 slots; 00500960 returns it).
 // Only the slots rewritten code calls are named. The game's code stores the vtable (novtable).
@@ -109,6 +110,13 @@ public:
     // and third arguments are not read there.
     virtual int DrawFigure(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
                            tagRECT* screen);
+    virtual void Unknown15();
+    virtual void Unknown16();
+    virtual void Unknown17();
+    virtual void Unknown18();
+    // 19: 005041F0 (RET 0x18; renderer_rect.cpp). A black rectangle (left, top, right, bottom in
+    // screen pixels) of `alpha` over the current blend state, with `outline` a white frame. Returns 1.
+    virtual int DrawRectangle(int left, int top, int right, int bottom, int alpha, int outline);
 
     // 004BA120 (RET 0xC; scene_renderer.cpp, A-S8). The fog (and clear) colour from components in
     // 0..1: each times 255 as a float, rounded to the nearest integer (FISTP); A = 0xFF, packed as
@@ -120,9 +128,11 @@ public:
     std::uint8_t unknown_0C[8];
     std::uint32_t fogColour_;        // +0x14 also the colour the frame is cleared with
     std::uint32_t colour_;           // +0x18 the draw colour (slot 7)
+    std::uint8_t unknown_1C[4];
+    CTextureDevice* device_;         // +0x20 the device object (007AF080)
 };
 static_assert(offsetof(CSceneRenderer, pipeline_) == 0x08 && offsetof(CSceneRenderer, fogColour_) == 0x14 &&
-              offsetof(CSceneRenderer, colour_) == 0x18);
+              offsetof(CSceneRenderer, colour_) == 0x18 && offsetof(CSceneRenderer, device_) == 0x20);
 
 // 004F1370. Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by
 // the half extents, y flipped. Returns out.
