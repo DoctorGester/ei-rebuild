@@ -113,3 +113,10 @@ static CTexture* __fastcall FindTextureVerify(CTextureManager* self, void*, cons
     return texture;
 }
 EI_VERIFY(0x00693C60, FindTextureVerify, 0, s_findTexture);
+
+// 006916F0 deletes files: ours only, counted; nothing checked afterwards, since what a delete does
+// in a harness run is the overlay's business (the game folder itself is never changed). Reached at
+// startup and when the client world is set up (every scenario).
+static void* s_deleteComposed;
+static void __cdecl DeleteComposedVerify() { DeleteComposedTextures(); }
+EI_VERIFY(0x006916F0, DeleteComposedVerify, 0, s_deleteComposed);

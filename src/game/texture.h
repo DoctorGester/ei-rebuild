@@ -234,6 +234,11 @@ static_assert(sizeof(CTexture) == 0x68);
 
 constexpr std::uint32_t kTextureLoaded = 0x08;    // CEngineObject::flags_
 
+// 006916F0 (texture_cache.cpp; cdecl). Deletes every composed-skin cache file
+// (<data path>textures\*.mmp); a file that cannot be deleted is reported through the debug log
+// with its name and GetLastError.
+void __cdecl DeleteComposedTextures();
+
 // vtable 00743CB0, class id 0x26. Slots 16-22 are CResourceManager's.
 class CTextureManager : public CResourceManager {
 public:
