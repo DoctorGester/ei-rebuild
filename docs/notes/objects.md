@@ -164,8 +164,7 @@ Rewritten (O unless marked; S = ours into the stream, the stream (and the fields
 Verify rule for the changed-sender wrappers: `CEffect::SendDelta` leaves flags_ bit 1 set, so the original's second run would
 pack the effects again against snapshots ours just updated. The wrapper runs ours, restores the stream, runs the original with
 flags_ bit 1 cleared on every listed object, puts the flags back and compares (skipped when ours grew the stream or an effect
-is listed twice). Never copy a game stream (or any `__declspec(novtable)` class) by value: the implicit copy leaves the vptr
-null; RawCopy / memcpy only.
+is listed twice).
 
 Kept: the login's two 64-byte text buffers are sent with uninitialised bytes after the texts (ours zeroes them); 0x06's flag
 byte goes out zero-extended (the original's upper three bytes are stack garbage); OnNewObject reads the world's slot 19 as its

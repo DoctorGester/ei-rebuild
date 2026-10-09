@@ -586,8 +586,8 @@ or Enter closes it. Build shows the current zone's page, or with +0x17C the zone
 ("q.<zone>.<quest>" = 1; any allod in multiplayer). ShowZone's exits come from the map database record (+0x4C, 0x3C bytes), not
 the world's ZoneExit; the player's variables are copied into a local hash_map<CString, float> (00609C10, 00578B70) walked in
 STLport order. RefreshQuests (0064E8B0 -> 0064DC60) trims sprites and regions to 21 + exits and 9 + exits and adds one of each
-per quest place, which the wrapper must allow (gz1g in a Rebirth run once mismatched). The +0x17C zone list and the distance
-table (+0x178, a map<int, float> from the global map) are not reached.
+per quest place, which the wrapper must allow. The +0x17C zone list and the distance table (+0x178, a map<int, float> from
+the global map) are not reached.
 
 Kept: options rows are indexed from the region number without a bound; save/load Left can take the caret below 0 and Right past
 the name (RefreshList clamps it); options Left / Right do not set the handled flag; a key missing from the key name table keeps
@@ -691,20 +691,15 @@ Scenario lessons:
 
 ## 11. Rules and lessons for interface work
 
-- Rebirth-patched callees are called through their original address (`CInterface3D::CallScale*`, `CUiRegion::CallSetRect`,
-  `CUiMesh::SetRectangle / SetFrame / Place`, 005FDE20 text, 005F8340 extent, the panel builders, ...); rewritten functions that
-  Rebirth patches itself are hookable in the vanilla install only. Read constants from the exe's memory (00742B08).
-- Calls from a rewritten function to another rewritten one that a verify wrapper covers go through the original address too
-  (`Call*` members, `...At` forwarders), so nested wrappers run.
-- Float-heavy per-frame code (clock, top panel, strip scroll, minimap) keeps the original's operation order: values the original
-  keeps on the FPU stay `double`, stores to float go through `StoreFloat`, truncations are `_ftol` (the compiler may drop a float
-  store under /fp:fast), sums the original does not round are not rounded (`ItemAt`, `SetTab`), unsigned random words are loaded
-  like FILD qword, NaN compares keep FCOMP / `TEST AH` behaviour.
-- COM (Direct3D / DirectDraw) device methods are stdcall with the interface pushed first: call them through a stdcall helper (a
-  thiscall helper once put the interface in ECX and crashed the camp's hero preview).
-- Side-by-side checks of stateful handlers record the fields the original may change (handled flag, capture, panel state), put
-  them back, run ours and compare; pixel checks use the settle rule (section 3).
-- A function that returns its argument or `this` in EAX must too (`AddSurface`).
-- A wrapper's snapshot must not follow pointers a Create sets later (the global map's weather object).
-- Fields declared at a wrong offset hide bugs for a long time (`CMpHeroScreen::rotating_`): when a state seems stuck, check the
-  offset in the handler that sets it against the one that clears it.
+The rewrite guide's rules 2, 5, 7 and 9 apply throughout (Rebirth-patched callees such as `CInterface3D::CallScale*`,
+`CUiRegion::CallSetRect`, `CUiMesh::SetRectangle / SetFrame / Place`, 005FDE20, 005F8340 and the panel builders by address;
+nested wrappers through `Call*` / `...At`; 00742B08 read from memory). Interface-specific:
+- Float-heavy per-frame code (clock, top panel, strip scroll, minimap) keeps the original's order: FPU values `double`, float
+  stores through `StoreFloat`, `_ftol` truncations, unrounded sums stay unrounded (`ItemAt`, `SetTab`).
+- COM device methods are stdcall with the interface pushed first: call them through a stdcall helper (a thiscall helper put
+  the interface in ECX and crashed the hero preview).
+- Side-by-side checks of stateful handlers record the fields the original may change (handled flag, capture, panel state),
+  put them back, run ours and compare; pixel checks use the settle rule (section 3). A wrapper's snapshot must not follow
+  pointers a Create sets later (the global map's weather object).
+- A wrongly placed field hides bugs for long (`CMpHeroScreen::rotating_`): when a state seems stuck, compare the offset in
+  the handler that sets it with the one that clears it.

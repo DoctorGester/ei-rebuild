@@ -170,8 +170,7 @@ are built on first use and the last two arrays do not keep their contents when t
 bytes, so it is four times larger than needed (as in the original); render state 0x1D goes through `*007AF080 + 0x54`.
 Kept: Load passes the error message to FatalError as its format string; Build's texture class index is compared against
 perPage * pages (not 16) before falling back to 15; Load picks a vertex's water material by lowest priority, Build the first
-found. Lesson: Ghidra's listing of 006C1C00 drops the FNSTSW AX at 006C1F48 (a plain minimum select on the comparison
-status); check the raw bytes when a listing's addresses skip.
+found (Ghidra's listing of 006C1C00 drops the FNSTSW AX at 006C1F48: rewrite guide rule 1).
 Lighting: owner (`TerrainFields`) +0x94 flags (4 edge fade, 0x10 sun shadows), +0x224 ambient, +0x24C..+0x254 the vertex
 being lit (read by the forwarded shadow test 006C92C0, which loads the sectors the ray crosses), +0x258 the sun; record +0x11
 colour, +0x15 specular, +0x37 lit colour; material +0x14 absorption; 007C8908 the water falloff. Kept: ShadeSun passes an
