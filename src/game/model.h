@@ -82,6 +82,7 @@ inline CTransformPipeline* ScenePipeline() { return *reinterpret_cast<CTransform
 
 struct tagRECT;
 class CTextureDevice;
+class CLight;   // spell.h
 
 // The renderer's counted helper object (0x118 bytes, constructor 004FCA60 with the Direct3D device
 // and a flag). Only its count is known; slot 0 is the deleting destructor.
@@ -141,7 +142,9 @@ public:
     std::uint8_t unknown_0C[8];
     std::uint32_t fogColour_;        // +0x14 also the colour the frame is cleared with
     std::uint32_t colour_;           // +0x18 the draw colour (slot 7)
-    std::uint8_t unknown_1C[4];
+    // +0x1C the sun (counted; 00500800 sets it with the ambient colour, the client's lighting
+    // 00566360 moves it every frame).
+    CLight* sun_;
     CTextureDevice* device_;         // +0x20 the device object (007AF080), a counted holder (00504E20 assigns)
     CRenderHelper* helper_;          // +0x24 counted
     std::uint8_t unknown_28[0x34 - 0x28];

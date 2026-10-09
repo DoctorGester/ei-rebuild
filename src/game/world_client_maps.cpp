@@ -862,10 +862,10 @@ void CWorldClient::Teardown() {
         gamecrt::operator_delete(p);
         numbers_ = nullptr;
     }
-    if (void* p = owned1AC_) {
+    if (void* p = skyDome_) {
         Destroy1AC(p);
         gamecrt::operator_delete(p);
-        owned1AC_ = nullptr;
+        skyDome_ = nullptr;
     }
     DeleteOwned(owned1B0_);
     Teardown563190(this);
@@ -1186,7 +1186,7 @@ int CWorldClient::Setup() {
         entries.eos = block + 400;
     }
     unknown84_ = -100000;
-    unknown6E0_ = 0;
+    cave_ = 0;
     unknown6E4_ = 0;
     GridToFour(secondGrid_, GridResize2, CellsDelete2, GridAllocate2);
     GridToFour(objectGrid_, GridResize, CellsDelete, GridAllocate);

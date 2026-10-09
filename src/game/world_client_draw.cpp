@@ -91,7 +91,7 @@ void PopMatrix(MatrixStack& stack) {
 }
 
 // Render's callees.
-__declspec(naked) void __fastcall ClientBeginFrame(CWorldClient*) EI_ORIGINAL(0x00566360)
+__declspec(naked) int __fastcall UpdateLightingAt(CWorldClient*) EI_ORIGINAL(0x00566360)
 __declspec(naked) void __fastcall SkyDraw(void*, void*, void*, const void*) EI_ORIGINAL(0x004D96E0)
 __declspec(naked) void __fastcall CameraFrame(CCamera*, void*, void*) EI_ORIGINAL(0x0040E810)
 __declspec(naked) void __fastcall TerrainSetView(Terrain*, void*, float, float, float) EI_ORIGINAL(0x006CA260)
@@ -305,7 +305,7 @@ int CWorldClient::Render() {
     render::BeginWorld();
     CTextureDevice* renderer = RenderDeviceObject();
     CTransformPipeline* device = ScenePipeline();
-    ClientBeginFrame(this);
+    UpdateLightingAt(this);
     Flush(renderer);
     Matrix4 view;
     DeviceViewMatrix(device, nullptr, view.m, camera::TheCamera());
@@ -317,7 +317,7 @@ int CWorldClient::Render() {
     PushMatrix(device->stacks_[kStackWorld], device->Top(kStackView)->m);
 
     std::uint32_t flags = flags_;
-    void* sky = owned1AC_;
+    void* sky = skyDome_;
     if ((flags & 0x1000) && sky) {
         SetRenderState(renderer, 15, 0);
         ApplyStateBlock(renderer, StateBlockScene());
@@ -325,7 +325,7 @@ int CWorldClient::Render() {
         SetRenderState(renderer, 22, 1);
         SetRenderState(renderer, 29, 1);
         renderer->unknown_158 = 0;
-        SkyDraw(owned1AC_, nullptr, SceneContext(), &camera_->localPosition_);
+        SkyDraw(skyDome_, nullptr, SceneContext(), &camera_->localPosition_);
         Flush(renderer);
         renderer->unknown_158 = 1;
         SetRenderState(renderer, 22, 2);
