@@ -137,7 +137,6 @@ src/game/net_session_base.cpp,0,0,0,0,17,0,0,0,0
 src/game/net_session_pump.cpp,0,0,0,0,0,0,0,1,0
 src/game/net_session_tick.cpp,0,0,0,1,9,0,0,0,0
 src/game/net_socket_driver.cpp,0,2,0,0,0,0,0,0,0
-src/game/net_state.cpp,0,14,0,0,0,0,0,0,0
 src/game/object.h,0,0,0,0,1,0,0,0,0
 src/game/object_tables.cpp,0,0,0,0,2,0,0,0,0
 src/game/options.cpp,0,0,4,0,126,0,0,0,0

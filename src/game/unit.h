@@ -208,8 +208,8 @@ public:
     virtual int RefreshEquipment();
     virtual void RefreshModel();            // 30: after a weapon change
     virtual void RefreshWounds();           // 31: client 00537360, base 0 (00533C50)
-    virtual void SetArmourModels();         // 32: (ids, count) client 00538140
-    virtual void SetWeaponModels();         // 33: (ids, count) client 00538860
+    virtual void SetArmourModels(const std::uint32_t* ids, std::uint32_t count);   // 32: client 00538140 (RET 8; count capped at 7), base empty (00533C60)
+    virtual void SetWeaponModels(const std::uint32_t* ids, std::uint32_t count);   // 33: client 00538860 (RET 8; count capped at 4)
     virtual bool WeaponAdded(std::uint32_t itemId);     // 34: client 005388C0 (AddWeaponModel)
     virtual void RemoveWeaponModel();       // 35: (id) client 00538920
     virtual void HasOtherArmour();          // 36: server 005567A0 (client 005391B0: weapon models)
@@ -217,14 +217,22 @@ public:
     virtual void HostileMaskChanged();      // 38: server 00552CD0 (the brain), base empty (00533CA0)
     virtual int TamingStage();              // 39: server 005460A0 (+0x908, the taming stage), base 0 (00533CB0)
     virtual void AdvanceTime(float time);   // 40: client 00535B30
-    // 41: client 00535B20: the unit placed on its path at its +0x34 time (00535850 with (+0x34, 0)).
-    virtual void PlaceOnPath();
-    // 42: server 00552670: `object` is going away (its targets, the brain and +0x1DC forget it);
-    // base and client empty (00533CE0, RET 4).
+    // 41: the unit's path was replaced; client 00535B20 places the unit on it at its +0x34 time
+    // (00535850 with (+0x34, 0)), base empty (00533CD0).
+    virtual void MotionChanged();
+    // 42: server 00552670 (CUnitServer::OnObjectDeleted): `object` is going away (its targets, the
+    // brain and +0x1DC forget it); base and client empty (00533CE0, RET 4).
     virtual void ObjectDeleted(CEngineObject* object);
-    // 43: client 005344A0: the fade-in starts (+0x78 and every part's alpha 0); base empty
-    // (00533CF0). The client world's AddObject calls it for units joining a session.
-    virtual void StartFadeIn();
+    // 43: client 005344A0 (unit_client_models.h): the fade-in starts again (+0x78 and every part's
+    // alpha 0); base empty (00533CF0). The client world's AddObject calls it for units joining a session.
+    virtual void RestartFadeIn();
+    virtual void Resettle();                // 44: server 00553260 (combat.h)
+    virtual void UpdateMoveFactors();       // 45: server 005536B0 (combat.h)
+    // 46: a body part's condition changed by `change` (a fraction of its maximum) for stat `stat`
+    // (0..5); `flags` is the unit's Params()->flags byte (bit 3 skips it). Client 00537500 (RET 0xC,
+    // text and a particle effect), base empty (00533D20).
+    virtual void StatChanged(std::uint32_t stat, float change, std::uint8_t flags);
+    virtual void Wound(float lost);         // 47: the hit took `lost` (a fraction of the hit points) with the wound flag; client 00537C00 (RET 4, the argument is not read), base empty (00533D30)
 };
 
 class CUnit : public CEngineObject {

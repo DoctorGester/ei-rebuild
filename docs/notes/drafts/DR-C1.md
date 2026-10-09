@@ -83,7 +83,7 @@ Second pass (the rest of the file):
   world_client.cpp's SurfaceHeight / Contains and verify_world_client_maps.cpp updated.
 - Slots: CObject3DSpecific 22 HitsDirtyRect / 24 HitsPartRect (map_object_figures.h; client
   0051C130 / 0051C160 read from vtable 0073DE90), CUnitController 41 PlaceOnPath (client 00535B20),
-  42 ObjectDeleted (server 00552670, base 00533CE0), 43 StartFadeIn (client 005344A0, base 00533CF0)
+  42 ObjectDeleted (server 00552670, base 00533CE0), 43 StartFadeIn (client 005344A0, base 00533CF0; after the third merge: main's MotionChanged / ObjectDeleted / RestartFadeIn)
   (unit.h; client vtable 0073ECD8, server 0073EF38). These five are NEW names in DR-C2's headers.
   CLinkFigureLoader::ClearCache (slot 5) for ClearMaps' +0x34 call; CBaseManager::Init (slot 13)
   for the managers' "attach world"; CBaseManager::FreeSpares (00404410) for ManagerFreeRecords;
@@ -244,3 +244,11 @@ clear after it; FreeListBlocks takes any MFC list) and verify_world_save.cpp
 (AddSharedObjectVerify) now use CWorldServer::sharedObjects_ (SharedObjectList) instead of
 byte arithmetic at +0x12E60; world_loot's SharedLootNode is gone (the gold is
 SharedObject::unknown_08).
+
+Third merge with main (net_state.cpp's controller slots 41-47): main's names kept for 41-43,
+checked in Ghidra. 41 client 00535B20 only calls 00535850 (ClientPlaceOnPath) with (+0x34, 0),
+base 00533CD0 empty, its one caller (net_state.cpp) calls it after rebuilding the motion:
+MotionChanged. 42 ObjectDeleted (same on both sides). 43 client 005344A0 zeroes +0x78 and every
+part's alpha, the function main already rewrites as CUnitClientSpecific::RestartFadeIn:
+RestartFadeIn (world_client_maps.cpp's AddObject caller renamed). The draft's comments are
+folded into main's declarations.

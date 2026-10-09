@@ -338,7 +338,7 @@ int CWorldClient::AddObject(CEngineObject* object) {
     }
     if (object->GetClassId() == world::kClassUnit && Session()->gameKind == 1) {
         auto* unit = static_cast<CUnit*>(object);
-        if (unit->player == nullptr && sessionJoins_ >= 1) unit->Controller()->StartFadeIn();
+        if (unit->player == nullptr && sessionJoins_ >= 1) unit->Controller()->RestartFadeIn();
     }
 
     ++object->refCount_;
