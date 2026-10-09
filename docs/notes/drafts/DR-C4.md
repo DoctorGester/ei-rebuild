@@ -1,7 +1,8 @@
-# DR-C4 draft: cleanup of world_savefile.cpp, world_save.cpp, item_stock.cpp; server handlers
+# DR-C4: cleanup of world_savefile.cpp, world_save.cpp, item_stock.cpp; server handlers
 
-Branch draft-dr-c4 (worktree agent-a116a5a6e1c9b6cb7). Nothing here was compiled or run (no-build pass,
-2026-10-07). A later worker builds, fixes and finishes it.
+Branch draft-dr-c4 (worktree agent-a116a5a6e1c9b6cb7). Drafted without building (2026-10-07), finished
+2026-10-09: merged with main (DR-C2), builds verify and release without errors or warnings, all checks at 0
+(see "Finish" at the end). Not run in the game.
 
 ## Status
 
@@ -17,20 +18,11 @@ Counts before (config/cleanup_baseline.csv) -> after, by grep (run check_cleanup
   item_stock.h +12, item.h +1, lib/mfc.h +1, lib/stlp.h +1): that is the rewrite guide's "constexpr address in one
   header, or an accessor"; run `python tools/check_cleanup.py --update` after the build.
 
-## Depends on DR-C2 (merge DR-C2 first)
+## DR-C2 slots
 
-The drafts call DR-C2's slot names, which DR-C2 declared as `void Name()`. Give them these signatures when merging
-(on main they are still SlotNN, so this branch does not compile alone):
-- `CWorld::PlayerList()` (slot 20): `CEngineObject* PlayerList();` (returns players_, 0055EB50).
-- `CWorld::ItemFactory()` (slot 18): `CEngineObject* ItemFactory();` (itemManager_, 004BA000). DR-C1 called the
-  same slot `ItemManager()` returning CEngineObject*; take DR-C2's name.
-- `CUnitController::RefreshVitals()` (slot 19): `void RefreshVitals(char withHitPoints);` (PrepareSave passes 0;
-  the original's VCall pushed an int 0, one stack slot either way; check RET 4 of 005533B0).
-- `CParty::ItemConstructor()` (slot 16, party.h): `CItemConstructor* ItemConstructor();` (0065F540,
-  itemConstructor_). item_stock.cpp reinterpret_casts it to its local `Constructor` forwarder struct.
-Already named on main and used as is: CWorld::SetTime / SetTimeSpeed (31 / 32), CMapObjectVirtuals::TakePrototype
-(34) and IsDead (55) through ObjectSlots(), CBaseManager::CreateObject (23), CStream Read / Write / Seek / Size /
-Position, CParty::ItemManager (18) / SpellManager (22), CEngineObject::Release (4) / Load (9).
+Main's DR-C2 has exactly the names and signatures the draft used (CWorld::PlayerList / ItemFactory returning
+CEngineObject*, CUnitController::RefreshVitals(char) virtual slot 19, CParty::ItemConstructor returning
+CItemConstructor*); nothing to adapt. PrepareSave's release code calls [vtable+0x4C] with a pushed 0.
 
 ## Header changes (all additive except where noted)
 
@@ -113,8 +105,34 @@ The other 12 (0066FAA0, 00670C20, 00670DA0, 00670E00, 00670EB0, 00670F50, 006710
 00670310, 0066FBD0, 00670B60) are in functions.csv. The disassembly used is in the session's scratchpad only; redo
 it with capstone (or create the functions in Ghidra) when porting.
 
-## Where I stopped
+## Finish (2026-10-09)
 
-Everything in the ticket is drafted. Next: merge DR-C2, give the four slots their signatures (above), build
-verify and release, fix compile errors, run check_cleanup --update, then the scenarios that reach the saves
-(ui_saveload, mission save / load) and the trader stock (the camp).
+- Merge: world.h's only conflict was CWorldServer +0x2468..+0x280C: aiLayer_ (this branch) now ends at
+  +0x2804 where main's occluderReplanTime_ (+0x2804) and unknown_2808 follow; both static_asserts kept.
+- Compile fixes for the +0x12E60 list: world_server.cpp (IsObjectShared, CollectSharedObjects) and
+  tests/verify/verify_world_loot.cpp walked the old `void* sharedObjects_` (+0x12E64, the list's head);
+  they walk `sharedObjects_.head` and read node->data (SharedObject: objectId +0, player +4, the same
+  offsets as their local node structs had). world_server.cpp's local SharedObjectNode removed.
+  world_loot.cpp / world_map.cpp / verify_world_save.cpp still use +0x12E60 byte arithmetic (left for DR-C1).
+- check_cleanup: the static constexpr vtable addresses in world.h (SharedObject, 2) and item.h (CItemLink, 1)
+  counted as raw addresses in headers allowed 0; they are accessors now (SharedObject::ObjectsVtable() /
+  ObjectsBaseVtable(), CItemLink::Vtable()). Baseline lowered with --update (world_save.cpp,
+  world_savefile.cpp and item_stock.cpp drop out: all counts 0); config/forwarder_duplicates.txt lowered
+  (4 fixed).
+- Risks checked:
+  - UpdatePlayerTimes without the float_control pragma: release code is fild elapsed, fmul secondsPerTick_,
+    fadd offset (as double), faddp gtime, fstp float: the same operations in the same order as main's
+    precise build (which only also spilled the exact int-to-double conversion). No change.
+  - 007C851C / 007C853C values: 006AC970 turns them into table indices as (value - 007C8510) / 0x84 and
+    ((value - 007C8530) / 0x24), and 004A7080 tests their +0x80 / +0x20 class masks (the last dwords of the
+    0x84 / 0x24 records): they are pointers into the spell and spell-modifier tables. Confirmed.
+  - sharedObjects_ at +0x12E60: main had +0x12E64 as the MFC list's head (the list object starting at +0x12E60,
+    as world_loot.cpp / world_map.cpp already read it); last member, no sizeof(CWorldServer) use.
+- Server handlers: the 13 rows are in config/functions.csv (gap to the next function; the four rows they
+  split, 0066F840 / 0066FAA0 / 006707D0 / 00670C20, shortened to their own gap), config/extra_function_sizes.csv
+  (code sizes, capstone re-measured from run/vanilla/game.exe: all as in the table above) and
+  src/hook/function_sizes.inc (13 rows; no other entry regenerated).
+- Still open: the 007C8778 name (QuestItems() vs the loot table), stlp::SmallNodeFreeList vs camera.h's
+  NodeFreeList (same address, not merged), record slot 0 `Kind()` not re-checked.
+- Scenarios for the suite: ui_saveload and mission save / load (world_save, world_savefile: SaveWorld's
+  wrapper compares the stream with the original), the trader stock (camp; item_stock).
