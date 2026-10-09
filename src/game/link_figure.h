@@ -20,13 +20,15 @@
 // rewritten code calls it.
 class ITransformPipeline {
 public:
-    // Slots 0-6 are not called from this code.
     virtual void Unknown0();
-    virtual void Unknown1();
+    // 1: the viewport's size in pixels (the renderer's creation, 00500B70).
+    virtual void SetViewportSize(float width, float height);
     virtual void Unknown2();
     virtual void Unknown3();
-    virtual void Unknown4();
-    virtual void Unknown5();
+    // 4: the projection matrix, transposed (00500B70 passes a copy).
+    virtual void SetProjection(float* transposed);
+    // 5: the depth range (00500B70: the options' fog start and far clip distances).
+    virtual void SetDepthRange(float first, float second);
     virtual void Unknown6();
     // 7: fits `bounds` around `count` vertex packets.
     virtual void FitBounds(ClipBounds* bounds, const VertexPacket* vertices, int count);

@@ -67,6 +67,14 @@ static_assert(offsetof(CTextureDevice, screen_) == 0x24);
 static_assert(offsetof(CTextureDevice, d3dDevice_) == 0x54);
 static_assert(offsetof(CTextureDevice, pipeline_) == 0xAC);
 
+// A Direct3D driver of the device list (the STLport list at 007AEE64, filled by 004EE4A0; 004EE5D0
+// returns the first hardware one, 004EE6D0 the one with an index). Only what the renderer reads.
+struct DirectDrawDriver {
+    std::uint8_t unknown_00[0x10];
+    GUID* guid;                 // +0x10 for DirectDrawCreateEx
+};
+static_assert(offsetof(DirectDrawDriver, guid) == 0x10);
+
 // A DirectDraw surface wrapper (004EFA60 constructs it from a DDSURFACEDESC2, 004EF7B0 for an
 // off-screen surface of the screen's format; 0x20 bytes): vtable (slot 0 the deleting destructor),
 // the reference count, the last DirectDraw result, the device object, the IDirectDrawSurface7*,

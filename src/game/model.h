@@ -83,6 +83,17 @@ inline CTransformPipeline* ScenePipeline() { return *reinterpret_cast<CTransform
 struct tagRECT;
 class CTextureDevice;
 
+// The renderer's counted helper object (0x118 bytes, constructor 004FCA60 with the Direct3D device
+// and a flag). Only its count is known; slot 0 is the deleting destructor.
+class __declspec(novtable) CRenderHelper {
+public:
+    virtual void* DeleteThis(unsigned flags);   // 0
+
+    int refs_;   // +0x04
+    std::uint8_t unknown_08[0x118 - 0x08];
+};
+static_assert(offsetof(CRenderHelper, refs_) == 0x04 && sizeof(CRenderHelper) == 0x118);
+
 // The scene renderer (the global at 007AF060, vtable 0073D93C, 26 slots; 00500960 returns it).
 // Only the slots rewritten code calls are named. The game's code stores the vtable (novtable).
 class __declspec(novtable) CSceneRenderer {
@@ -125,16 +136,31 @@ public:
     // ((r | 0xFFFFFF00) << 8 | g) << 8 | b; stored at +0x14 and set through slot 0.
     void SetFogColour(float r, float g, float b);
 
-    std::uint8_t unknown_04[4];
+    std::uint32_t flags_;            // +0x04 bit 0: the software cursor option; bit 1 set by the creation (00500B70)
     CTransformPipeline* pipeline_;   // +0x08
     std::uint8_t unknown_0C[8];
     std::uint32_t fogColour_;        // +0x14 also the colour the frame is cleared with
     std::uint32_t colour_;           // +0x18 the draw colour (slot 7)
     std::uint8_t unknown_1C[4];
-    CTextureDevice* device_;         // +0x20 the device object (007AF080)
+    CTextureDevice* device_;         // +0x20 the device object (007AF080), a counted holder (00504E20 assigns)
+    CRenderHelper* helper_;          // +0x24 counted
+    std::uint8_t unknown_28[0x34 - 0x28];
+    // +0x34 .. +0x58: set by the creation (0, 0x80000000, zeros, the time, zeros).
+    int unknown_34;
+    std::uint32_t unknown_38;
+    int unknown_3C;
+    int unknown_40;
+    int unknown_44;
+    int unknown_48;
+    std::uint8_t unknown_4C[4];
+    std::uint32_t createdTime_;      // +0x50 timeGetTime at the creation
+    int unknown_54;
+    int unknown_58;
 };
 static_assert(offsetof(CSceneRenderer, pipeline_) == 0x08 && offsetof(CSceneRenderer, fogColour_) == 0x14 &&
               offsetof(CSceneRenderer, colour_) == 0x18 && offsetof(CSceneRenderer, device_) == 0x20);
+static_assert(offsetof(CSceneRenderer, helper_) == 0x24 && offsetof(CSceneRenderer, unknown_34) == 0x34 &&
+              offsetof(CSceneRenderer, createdTime_) == 0x50 && offsetof(CSceneRenderer, unknown_58) == 0x58);
 
 // 004F1370. Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by
 // the half extents, y flipped. Returns out.

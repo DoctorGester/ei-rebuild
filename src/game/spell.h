@@ -4,6 +4,7 @@
 // to eight modifiers, and the spell effects that turn them into damage. Class names come from the
 // game's own GetClassName strings where there is one; field names are provisional.
 
+#include "base_manager.h"
 #include "engine_object.h"
 #include "resource_manager.h"
 #include "item_db.h"
@@ -371,6 +372,18 @@ public:
 static_assert(offsetof(CLight, color_) == 0x98);
 static_assert(offsetof(CLight, rangeSquared_) == 0x100);
 static_assert(offsetof(CLight, litColors_) == 0x114);
+static_assert(offsetof(CLight, range_) == 0xE0);
+
+// The light factory (the global pointer at 007AF748): CreateObject (slot 23) makes lights by
+// class (0x2E: the renderer's default light, 00500B70). Its +0xD4 list holds the ids of the lights
+// held on (00511FB0 erases from it).
+class CLightFactory : public CBaseManager {
+public:
+    std::uint8_t unknown_B0[0xD4 - 0xB0];
+    stlp::list<int> litIds_;        // +0xD4
+};
+static_assert(offsetof(CLightFactory, litIds_) == 0xD4);
+inline CLightFactory* TheLightFactory() { return *reinterpret_cast<CLightFactory* const*>(0x007AF748); }
 
 // 006893F0. The code (+0x04) of the spell prototype whose name matches (_mbsicmp); 0 if none.
 int __stdcall SpellCodeByName(const char* name);
