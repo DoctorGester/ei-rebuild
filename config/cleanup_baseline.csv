@@ -82,7 +82,6 @@ src/game/item_constructor.cpp,16,14,1,0,7,0,0,5,0
 src/game/item_db_text.cpp,2,1,0,0,0,0,0,0,0
 src/game/item_names.cpp,20,1,0,0,5,0,0,0,0
 src/game/item_parts.cpp,2,0,0,0,0,0,0,0,0
-src/game/item_stock.cpp,36,19,0,0,17,0,0,0,0
 src/game/key_bindings.cpp,0,0,0,0,1,0,0,0,0
 src/game/lightning.cpp,0,0,0,1,0,0,0,1,0
 src/game/lightning_draw.cpp,0,7,0,0,0,0,0,0,0
@@ -296,8 +295,6 @@ src/game/world_object_sets.cpp,0,2,0,0,0,0,0,0,0
 src/game/world_party.cpp,27,7,4,2,8,0,0,0,0
 src/game/world_quests.cpp,0,14,1,2,17,0,0,33,0
 src/game/world_rules.cpp,28,5,0,2,0,0,0,1,0
-src/game/world_save.cpp,35,17,0,2,8,0,0,1,0
-src/game/world_savefile.cpp,0,23,0,0,1,0,0,1,0
 src/game/world_server.cpp,0,6,0,0,0,0,0,3,0
 src/game/world_spells.cpp,23,3,0,2,1,0,0,2,0
 src/game/world_sync.cpp,31,6,0,0,5,0,0,0,0

@@ -41,7 +41,7 @@ namespace {
 
 // kMemoryStreamVtable (0073BD90) and kStreamVtable (0073BDB0, its CStream base): core_streams.h.
 // The CArray<int> vtable is mfc::DWordArrayVtable, the script group's scriptvtable::kRefs (set
-// after 004C2030), the item link record's CItemLink::kVtableAddress (item.h).
+// after 004C2030), the item link record's CItemLink::Vtable() (item.h).
 constexpr std::uint32_t kStreamLimit = 2000000000;            // CStream +0x08 as constructed
 constexpr int kTextKeyIdMin = 100000000;                      // ids above this are scripted (text-key) units
 constexpr int kMissileSize = 0xA8;                            // operator new size of a Projectile
@@ -563,7 +563,7 @@ int CWorldServer::LoadSave(WorldStream* stream, const char* map) {
                     // The count's whole dword is cleared, before the null test.
                     record->references = 0;
                     record->unknown_06 = 0;
-                    if (record) record->vtable = reinterpret_cast<void*>(CItemLink::kVtableAddress);
+                    if (record) record->vtable = CItemLink::Vtable();
                     record->value = value;
                     CItemLink* old = LinkOf(object);
                     static_cast<CItem*>(object)->unknown_1C = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(record));
@@ -847,13 +847,13 @@ void CWorldServer::AddSharedObject(int id, int /*unused*/, std::uint32_t value, 
     // AddHead(SharedObject()): the new head copies an empty local (whose first three dwords the
     // original leaves unset; they are overwritten below).
     SharedObjectList& shared = sharedObjects_;
-    ObjectPtrArray empty{reinterpret_cast<void*>(SharedObject::kObjectsVtable), nullptr, 0, 0, 0};
+    ObjectPtrArray empty{SharedObject::ObjectsVtable(), nullptr, 0, 0, 0};
     SharedObjectNode* node = SharedObjectsNewNode(&shared, nullptr, nullptr, shared.head);
     ObjectPtrArrayCopy(&node->data.objects, nullptr, &empty);
     if (shared.head) shared.head->prev = node;
     else shared.tail = node;
     shared.head = node;
-    empty.vtable = reinterpret_cast<void*>(SharedObject::kObjectsBaseVtable);
+    empty.vtable = SharedObject::ObjectsBaseVtable();
     if (empty.data) {
         CountedRangeRelease(empty.data, empty.size);
         gamecrt::operator_delete(empty.data);

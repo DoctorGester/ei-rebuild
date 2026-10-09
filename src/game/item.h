@@ -121,7 +121,7 @@ static_assert(sizeof(CItem) == 0x4C);
 // bytes, vtable 0073FA88): a counted value with a 16-bit count and the dword the world's save keeps
 // per item (world_save.cpp, world_units.cpp, world_quests.cpp).
 struct CItemLink {
-    static constexpr std::uintptr_t kVtableAddress = 0x0073FA88;
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073FA88); }
 
     void* vtable;
     std::int16_t references;        // +0x04

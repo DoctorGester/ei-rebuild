@@ -277,8 +277,8 @@ using WorldStream = CStream;
 // (vtable 0073FAC8, base 0073FABC; constructor 005985C0, destructor 0059A100 releases the objects
 // through slot 4 and frees the data).
 struct SharedObject {
-    static constexpr std::uintptr_t kObjectsVtable = 0x0073FAC8;
-    static constexpr std::uintptr_t kObjectsBaseVtable = 0x0073FABC;   // set by the destructor
+    static void* ObjectsVtable() { return reinterpret_cast<void*>(0x0073FAC8); }
+    static void* ObjectsBaseVtable() { return reinterpret_cast<void*>(0x0073FABC); }   // set by the destructor
 
     int objectId;
     int player;
