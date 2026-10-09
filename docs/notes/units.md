@@ -310,3 +310,11 @@ original, compared: unit 0x4DC, stats 0x704, vitals 0x58); C capture streams; ou
   declares virtual slots 13-41 (named, world.h), so a later non-virtual CWorldServer / CWorldClient member with one of these
   names silently overrides (check_thunks catches it when hooked). The serialisers' verify relies on loading being
   repeatable; `ComposeSkin` and `WearArmourModel` build CString / STLport temporaries in the original's order.
+
+## C10 cleanup (unit_update.cpp, 2026-10-09)
+
+unit_update.cpp has no VCalls, offsets or byte arithmetic left (its `_ftol` `__asm` and float_control stay). CUnitController
+(unit.h) got slots 48 Died and 49 EffectsChanged, unit_ at +0x1C (AttachCompanion), and the return types the CUnit slots pass
+on: UpdateSizeClasses and Resettle return EAX (std::uintptr_t), Level int; slot 19 RefreshVitals takes an int (CUnit's
+ScaleEffectChanged 0052EB30 pushes its whole dword; the bodies read the low byte). UnitPrototypeRecord +0x50 is `level`
+(CUnit::Level of units without a text key). The world heights go through CWorld slots 29 / 30.
