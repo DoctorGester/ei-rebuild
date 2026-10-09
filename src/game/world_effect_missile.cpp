@@ -345,7 +345,7 @@ void CEffectArrowFigure::Start(int update) {
     // figure is made, as the original does.
     auto* figure = static_cast<CObject3D*>(figure_);
     CEngineObject* attached = figure->attached;
-    std::memcpy(figure->position, &localPosition_, sizeof(figure->position));
+    std::memcpy(&figure->position, &localPosition_, sizeof(figure->position));
     console::CStringArray parts;
     Object3DMakeFigureOriginal(figure, nullptr, model, &parts, 1);
     FigureLoadTexturesOriginal(attached);

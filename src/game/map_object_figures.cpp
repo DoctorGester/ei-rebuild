@@ -106,30 +106,30 @@ struct BoxBits {
 
 // (x * x + y * y) + z * z of the part's position, unrounded.
 double DistanceSquared(const FigurePart* part) {
-    double x = part->position[0];
-    double y = part->position[1];
-    double z = part->position[2];
+    double x = part->position.x;
+    double y = part->position.y;
+    double z = part->position.z;
     return (x * x + y * y) + z * z;
 }
 
 // A placed part: its piece's box moved by its position and the piece's offset.
 void AddPlacedPart(BoxBits& box, const FigurePart* p) {
-    box.low[0] = KeepLower(box.low[0], Sum3(p->boxMin[0], p->position[0], p->offset[0]));
-    box.high[0] = KeepHigher(box.high[0], Sum3(p->boxMax[0], p->position[0], p->offset[0]));
-    box.low[1] = KeepLower(box.low[1], Sum3(p->boxMin[1], p->position[1], p->offset[1]));
-    box.high[1] = KeepHigher(box.high[1], Sum3(p->boxMax[1], p->position[1], p->offset[1]));
-    box.low[2] = KeepLower(box.low[2], Sum3(p->boxMin[2], p->position[2], p->offset[2]));
-    box.high[2] = KeepHigher(box.high[2], Sum3(p->boxMax[2], p->position[2], p->offset[2]));
+    box.low[0] = KeepLower(box.low[0], Sum3(p->boxMin.x, p->position.x, p->offset.x));
+    box.high[0] = KeepHigher(box.high[0], Sum3(p->boxMax.x, p->position.x, p->offset.x));
+    box.low[1] = KeepLower(box.low[1], Sum3(p->boxMin.y, p->position.y, p->offset.y));
+    box.high[1] = KeepHigher(box.high[1], Sum3(p->boxMax.y, p->position.y, p->offset.y));
+    box.low[2] = KeepLower(box.low[2], Sum3(p->boxMin.z, p->position.z, p->offset.z));
+    box.high[2] = KeepHigher(box.high[2], Sum3(p->boxMax.z, p->position.z, p->offset.z));
 }
 
 // A pending part (position just reset to 0; the sums keep the original's operand order).
 void AddPendingPart(BoxBits& box, const FigurePart* p) {
-    box.low[0] = KeepLower(box.low[0], static_cast<float>(static_cast<double>(p->boxMin[0]) + p->offset[0]));
-    box.high[0] = KeepHigher(box.high[0], Sum3(p->boxMax[0], p->offset[0], p->position[0]));
-    box.low[1] = KeepLower(box.low[1], Sum3(p->boxMin[1], p->offset[1], p->position[1]));
-    box.high[1] = KeepHigher(box.high[1], Sum3(p->boxMax[1], p->offset[1], p->position[1]));
-    box.low[2] = KeepLower(box.low[2], Sum3(p->boxMin[2], p->position[2], p->offset[2]));
-    box.high[2] = KeepHigher(box.high[2], Sum3(p->boxMax[2], p->position[2], p->offset[2]));
+    box.low[0] = KeepLower(box.low[0], static_cast<float>(static_cast<double>(p->boxMin.x) + p->offset.x));
+    box.high[0] = KeepHigher(box.high[0], Sum3(p->boxMax.x, p->offset.x, p->position.x));
+    box.low[1] = KeepLower(box.low[1], Sum3(p->boxMin.y, p->offset.y, p->position.y));
+    box.high[1] = KeepHigher(box.high[1], Sum3(p->boxMax.y, p->offset.y, p->position.y));
+    box.low[2] = KeepLower(box.low[2], Sum3(p->boxMin.z, p->position.z, p->offset.z));
+    box.high[2] = KeepHigher(box.high[2], Sum3(p->boxMax.z, p->position.z, p->offset.z));
 }
 } // namespace
 
@@ -142,7 +142,7 @@ std::uint32_t CObject3D::ComputeBounds() {
     }
     for (int i = 0; i < pendingParts.size; ++i) {
         auto* part = static_cast<FigurePart*>(pendingParts.data[i]);
-        std::memset(part->position, 0, sizeof(part->position));
+        std::memset(&part->position, 0, sizeof(part->position));
         AddPendingPart(box, part);
     }
     if (parts.size == 0 && pendingParts.size == 0) return 0;   // EAX: the pending count
@@ -162,20 +162,20 @@ std::uint32_t CObject3D::ComputeBounds() {
     float belowXf = static_cast<float>(belowX);
     float belowY = static_cast<float>(static_cast<double>(lowY) - centerY);
     float belowZ = static_cast<float>(static_cast<double>(lowZ) - centerZ);
-    below[0] = belowXf;
-    below[1] = belowY;
-    below[2] = belowZ;
+    below.x = belowXf;
+    below.y = belowY;
+    below.z = belowZ;
     double yz = static_cast<double>(belowZ) * belowZ + static_cast<double>(belowY) * belowY;
     double length = x87::fsqrt(yz + belowX * belowX);
-    above[0] = aboveX;
-    above[1] = aboveY;
-    above[2] = aboveZ;
+    above.x = aboveX;
+    above.y = aboveY;
+    above.z = aboveZ;
     boundsFlags |= 2;
     boundsFlags |= 1;
     radius = static_cast<float>(length);
-    center[0] = centerX;
-    center[1] = centerY;
-    center[2] = centerZ;
+    center.x = centerX;
+    center.y = centerY;
+    center.z = centerZ;
     return Bits(centerZ);   // EAX: the last value copied
 }
 EI_REPLACE_METHOD(0x00518310, CObject3D::ComputeBounds);
@@ -183,13 +183,13 @@ EI_REPLACE_METHOD(0x00518310, CObject3D::ComputeBounds);
 // --- Scale ------------------------------------------------------------------------------------
 
 std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
-    if (!Differs(scale[0], newScale[0]) && !Differs(scale[1], newScale[1]) && !Differs(scale[2], newScale[2]))
+    if (!Differs(scale.x, newScale[0]) && !Differs(scale.y, newScale[1]) && !Differs(scale.z, newScale[2]))
         return 0;   // the original leaves the FPU status word in AX here
-    std::memcpy(scale, newScale, sizeof(scale));
+    std::memcpy(&scale, newScale, sizeof(scale));
     if (CEngineObject* current = figure) {
         void* cache = ei::VCall<void*>(ManagerContext(), kContextFigureCache);
-        auto* rebuilt = ei::VCall<CEngineObject*>(cache, kCacheScaledFigure, current, Bits(scale[0]), Bits(scale[1]),
-                                                  Bits(scale[2]));
+        auto* rebuilt = ei::VCall<CEngineObject*>(cache, kCacheScaledFigure, current, Bits(scale.x), Bits(scale.y),
+                                                  Bits(scale.z));
         AssignCounted(&figure, rebuilt);
         for (int i = 0; i < parts.size; ++i) {
             auto* part = static_cast<FigurePart*>(parts.data[i]);
@@ -200,13 +200,13 @@ std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
                 FindPiece(reinterpret_cast<char*>(figure) + 0x14, nullptr, &piece, &key);
             }
             part = static_cast<FigurePart*>(parts.data[i]);
-            std::memcpy(part->offset, piece->offset, sizeof(part->offset));
-            std::memcpy(part->boxMin, piece->boxMin, sizeof(part->boxMin));
-            std::memcpy(part->boxMax, piece->boxMax, sizeof(part->boxMax));
+            std::memcpy(&part->offset, &piece->offset, sizeof(part->offset));
+            std::memcpy(&part->boxMin, &piece->boxMin, sizeof(part->boxMin));
+            std::memcpy(&part->boxMax, &piece->boxMax, sizeof(part->boxMax));
             std::memcpy(&part->unknown_198, &piece->unknown_34, sizeof(float));
         }
     }
-    if (animation) AnimationSetScale(animation, nullptr, Bits(scale[0]), Bits(scale[1]), Bits(scale[2]));
+    if (animation) AnimationSetScale(animation, nullptr, Bits(scale.x), Bits(scale.y), Bits(scale.z));
     return ComputeBoundsAt(this);
 }
 EI_REPLACE_METHOD(0x00517700, CObject3D::SetFigureScale);
@@ -236,8 +236,8 @@ int CObject3D::LoadFigures() {
         model = FindModel(manager, nullptr, &key);
     }
     for (int i = 0; i < pendingParts.size; ++i) {
-        BuildPart(manager, nullptr, static_cast<FigurePart*>(pendingParts.data[i]), model, Bits(scale[0]),
-                  Bits(scale[1]), Bits(scale[2]));
+        BuildPart(manager, nullptr, static_cast<FigurePart*>(pendingParts.data[i]), model, Bits(scale.x),
+                  Bits(scale.y), Bits(scale.z));
         --static_cast<FigurePart*>(pendingParts.data[i])->refCount_;   // no release at 0
         auto* part = static_cast<FigurePart*>(pendingParts.data[i]);
         bool known = false;

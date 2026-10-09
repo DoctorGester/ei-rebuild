@@ -186,10 +186,10 @@ bool CUnitClientSpecific::WeaponPoint(Vector3* out) {
         AnimationStateFindNodeOriginal(unit->Object3D()->animation, nullptr, static_cast<const char*>(node)));
     if (!found) return false;
     // The node's position (+0x74; a figure part's pivot, FigurePart::pivot).
-    const auto* position = reinterpret_cast<const FigurePart*>(found)->pivot;
-    out->x = position[0];
-    out->y = position[1];
-    out->z = position[2];
+    const Vector3& position = reinterpret_cast<const FigurePart*>(found)->pivot;
+    out->x = position.x;
+    out->y = position.y;
+    out->z = position.z;
     return true;
 }
 EI_REPLACE_METHOD(0x00535770, CUnitClientSpecific::WeaponPoint);

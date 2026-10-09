@@ -118,18 +118,18 @@ void BuildMatrix(CEngineObject* object) {
 // Does `light` reach `object`: its range + 10 squared at least the squared distance.
 bool InReach(const CObject3D* object, CEngineObject* light) {
     const float* at = &At<float>(light, 0x1C);
-    float dx = static_cast<float>(static_cast<double>(object->position[0]) - at[0]);
-    float dy = static_cast<float>(static_cast<double>(object->position[1]) - at[1]);
-    float dz = static_cast<float>(static_cast<double>(object->position[2]) - at[2]);
+    float dx = static_cast<float>(static_cast<double>(object->position.x) - at[0]);
+    float dy = static_cast<float>(static_cast<double>(object->position.y) - at[1]);
+    float dz = static_cast<float>(static_cast<double>(object->position.z) - at[2]);
     double reach = static_cast<double>(At<float>(light, 0xE0)) + kLightMargin;
     double distanceSquared = (static_cast<double>(dx) * dx + static_cast<double>(dz) * dz) + static_cast<double>(dy) * dy;
     return reach * reach >= distanceSquared;   // NaN does not reach
 }
 
 bool PartTooFar(const FigurePart* part) {
-    double x = part->position[0];
-    double y = part->position[1];
-    double z = part->position[2];
+    double x = part->position.x;
+    double y = part->position.y;
+    double z = part->position.z;
     return (x * x + y * y) + z * z > kNearSquared;
 }
 
@@ -148,7 +148,7 @@ int CObject3DClientSpecific::Draw(ShadowDrawContext* context, void* dirty) {
     std::uint32_t anyDirty = 0;
     void* scene = context->scene;
     float at[3];
-    std::memcpy(at, object->position, sizeof(at));
+    std::memcpy(at, &object->position, sizeof(at));
     ei::VCall<void>(object, 0x68 / 4);
     if (!(object->flags_ & kObjectAnimated)) object->flags_ &= ~kObjectStatic;
     if (dirty) {

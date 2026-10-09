@@ -96,8 +96,8 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
     Vector3 high = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
     Vector3 low = {FLT_MAX, FLT_MAX, FLT_MAX};
     if (animation) {
-        AnimationStateSetScaleOriginal(animation, nullptr, std::bit_cast<std::uint32_t>(scale[0]),
-                                       std::bit_cast<std::uint32_t>(scale[1]), std::bit_cast<std::uint32_t>(scale[2]));
+        AnimationStateSetScaleOriginal(animation, nullptr, std::bit_cast<std::uint32_t>(scale.x),
+                                       std::bit_cast<std::uint32_t>(scale.y), std::bit_cast<std::uint32_t>(scale.z));
         AnimationStateSetModelOriginal(animation, nullptr, model);
         animation->Play(nullptr);
         FigureApplyPendingOriginal(animation);
@@ -116,11 +116,11 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
             node = node->next;
             FootprintPart* box = &partBoxes[index];
             FigureManagerPartBoundsOriginal(manager, nullptr, box, figureModel, model, part->GetName(),
-                                            std::bit_cast<std::uint32_t>(scale[0]),
-                                            std::bit_cast<std::uint32_t>(scale[1]),
-                                            std::bit_cast<std::uint32_t>(scale[2]));
+                                            std::bit_cast<std::uint32_t>(scale.x),
+                                            std::bit_cast<std::uint32_t>(scale.y),
+                                            std::bit_cast<std::uint32_t>(scale.z));
             box = &partBoxes[index];
-            box->pivot = {part->pivot[0], part->pivot[1], part->pivot[2]};
+            box->pivot = {part->pivot.x, part->pivot.y, part->pivot.z};
             box->flags |= kBoxLoaded;
             reinterpret_cast<mfc::CString*>(partNames)[index] = part->GetName();
 
@@ -145,17 +145,17 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
         low.y = -kHeroHalfWidth;
         low.x = -kHeroHalfWidth;
     }
-    center[0] = StoreFloat((low.x + high.x) * kHalf);
-    center[1] = StoreFloat((low.y + high.y) * kHalf);
-    center[2] = StoreFloat((low.z + high.z) * kHalf);
-    below[0] = low.x - center[0];
-    below[1] = low.y - center[1];
-    below[2] = low.z - center[2];
-    above[0] = high.x - center[0];
-    above[1] = high.y - center[1];
-    above[2] = high.z - center[2];
+    center.x = StoreFloat((low.x + high.x) * kHalf);
+    center.y = StoreFloat((low.y + high.y) * kHalf);
+    center.z = StoreFloat((low.z + high.z) * kHalf);
+    below.x = low.x - center.x;
+    below.y = low.y - center.y;
+    below.z = low.z - center.z;
+    above.x = high.x - center.x;
+    above.y = high.y - center.y;
+    above.z = high.z - center.z;
     boundsFlags |= kBoundsBox;
-    radius = std::sqrt(above[0] * above[0] + above[1] * above[1] + above[2] * above[2]);
+    radius = std::sqrt(above.x * above.x + above.y * above.y + above.z * above.z);
     boundsFlags |= kBoundsSphere;
 }
 
@@ -170,25 +170,25 @@ void CObject3D::UpdatePartBounds() {
     for (int i = 0; i < parts.size; ++i) {
         // A part is a figure mesh (figure_mesh.h) on a CTransformObject.
         static_cast<CTransformObject*>(parts.data[i])
-            ->UpdateWorld(orientation, *reinterpret_cast<const Vector3*>(position));
+            ->UpdateWorld(orientation, position);
         static_cast<const CFigureMesh*>(parts.data[i])->ExtendWorldBox(&highX, &highY, &highZ, &lowX, &lowY, &lowZ);
     }
     // The x sum stays on the FPU stack; the y and z sums are stored first.
     float centreX = StoreFloat((highX + lowX) * kHalf);
     float centreY = StoreFloat(StoreFloat(highY + lowY) * kHalf);
     float centreZ = StoreFloat(StoreFloat(highZ + lowZ) * kHalf);
-    above[0] = highX - centreX;
-    above[1] = highY - centreY;
-    above[2] = highZ - centreZ;
-    below[0] = lowX - centreX;
-    below[1] = lowY - centreY;
-    below[2] = lowZ - centreZ;
+    above.x = highX - centreX;
+    above.y = highY - centreY;
+    above.z = highZ - centreZ;
+    below.x = lowX - centreX;
+    below.y = lowY - centreY;
+    below.z = lowZ - centreZ;
     boundsFlags |= kBoundsBox;
     boundsFlags |= kBoundsSphere;
-    radius = std::sqrt((below[2] * below[2] + below[1] * below[1]) + below[0] * below[0]);
-    center[0] = centreX - position[0];
-    center[1] = centreY - position[1];
-    center[2] = centreZ - position[2];
+    radius = std::sqrt((below.z * below.z + below.y * below.y) + below.x * below.x);
+    center.x = centreX - position.x;
+    center.y = centreY - position.y;
+    center.z = centreZ - position.z;
 }
 EI_REPLACE_METHOD(0x00518100, CObject3D::UpdatePartBounds);
 
@@ -237,8 +237,8 @@ EI_REPLACE_METHOD(0x00519A10, AlignedPtrArray::Add);
 FigurePart* CObject3D::LoadPart(const char* partName, void* model, std::uint32_t arg) {
     CEngineObject* manager = FigureManagerOf(this);
     auto* part = static_cast<FigurePart*>(FigureManagerLoadPartOriginal(
-        manager, nullptr, name, partName, model, std::bit_cast<std::uint32_t>(scale[0]),
-        std::bit_cast<std::uint32_t>(scale[1]), std::bit_cast<std::uint32_t>(scale[2]), arg, flags_ & kFlagDetached));
+        manager, nullptr, name, partName, model, std::bit_cast<std::uint32_t>(scale.x),
+        std::bit_cast<std::uint32_t>(scale.y), std::bit_cast<std::uint32_t>(scale.z), arg, flags_ & kFlagDetached));
     if (!part) {
         DebugMessageOriginal(kCantLoadPart, partName, name);
         return nullptr;
@@ -277,10 +277,10 @@ FigurePart* CObject3D::LoadPart(const char* partName, void* model, std::uint32_t
         if (animation) AnimationStateAddPartOriginal(animation, nullptr, part);
         if (attached) Specific()->OnPartAdded(part);
     }
-    part->boxPivot[0] = part->position[0];
-    part->boxPivot[1] = part->position[1];
+    part->boxPivot.x = part->position.x;
+    part->boxPivot.y = part->position.y;
     part->boxFlags |= kBoxLoaded;
-    part->boxPivot[2] = part->position[2];
+    part->boxPivot.z = part->position.z;
     return part;
 }
 EI_REPLACE_METHOD(0x00517240, CObject3D::LoadPart);
@@ -350,8 +350,8 @@ CFigureCache* FigureCacheOf(const CObject3D* object) {
 int CObject3D::MakeFigure(const char* model, void* partList, std::uint32_t arg) {
     *reinterpret_cast<mfc::CString*>(&name) = model;
     if (animation) {
-        AnimationStateSetScaleOriginal(animation, nullptr, std::bit_cast<std::uint32_t>(scale[0]),
-                                       std::bit_cast<std::uint32_t>(scale[1]), std::bit_cast<std::uint32_t>(scale[2]));
+        AnimationStateSetScaleOriginal(animation, nullptr, std::bit_cast<std::uint32_t>(scale.x),
+                                       std::bit_cast<std::uint32_t>(scale.y), std::bit_cast<std::uint32_t>(scale.z));
         AnimationStateSetModelOriginal(animation, nullptr, model);
     }
     auto* names = static_cast<const PartNameArray*>(partList);
@@ -359,16 +359,16 @@ int CObject3D::MakeFigure(const char* model, void* partList, std::uint32_t arg) 
         AnimationStatePartNamesOriginal(animation, nullptr, partList);
         stlp::string key(model, model + std::strlen(model));
         CFigureInstance* made = FigureCacheOf(this)->BuildWholeFigure(
-            &key, std::bit_cast<std::uint32_t>(scale[0]), std::bit_cast<std::uint32_t>(scale[1]),
-            std::bit_cast<std::uint32_t>(scale[2]), 0);
+            &key, std::bit_cast<std::uint32_t>(scale.x), std::bit_cast<std::uint32_t>(scale.y),
+            std::bit_cast<std::uint32_t>(scale.z), 0);
         reinterpret_cast<CountedRef*>(&figure)->Assign(static_cast<CEngineObject*>(static_cast<void*>(made)));
     } else {
         PieceNames pieces = MakePieceNames(names);
         {
             stlp::string key(model, model + std::strlen(model));
             CFigureInstance* made = FigureCacheOf(this)->BuildFigure(
-                &key, &pieces, std::bit_cast<std::uint32_t>(scale[0]), std::bit_cast<std::uint32_t>(scale[1]),
-                std::bit_cast<std::uint32_t>(scale[2]), 0);
+                &key, &pieces, std::bit_cast<std::uint32_t>(scale.x), std::bit_cast<std::uint32_t>(scale.y),
+                std::bit_cast<std::uint32_t>(scale.z), 0);
             auto* old = static_cast<CFigureInstance*>(static_cast<void*>(figure));
             figure = static_cast<CEngineObject*>(static_cast<void*>(made));
             if (made) ++made->refCount;

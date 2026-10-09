@@ -96,8 +96,8 @@ EI_VERIFY(0x005FC4F0, ShowAllPartsVerify, 0, s_unused);
 static void __fastcall LoadVerify(CUiModel* self, void*, const char* name, const char* from, const char* to) {
     self->CUiModel::Load(name, from, to);
     CObject3D* object = self->Figure();
-    bool ok = object && object->refCount_ >= 1 && (object->flags_ & 0x4000000) && object->position[0] == 0.0f &&
-              object->position[1] == 0.0f && object->position[2] == 3.0f && object->parts.size > 0;
+    bool ok = object && object->refCount_ >= 1 && (object->flags_ & 0x4000000) && object->position.x == 0.0f &&
+              object->position.y == 0.0f && object->position.z == 3.0f && object->parts.size > 0;
     ei::verify::Check("CUiModel::Load", true, ok, "model %s object %p parts %d", name ? name : "(null)",
                       static_cast<void*>(object), object ? object->parts.size : -1);
 }

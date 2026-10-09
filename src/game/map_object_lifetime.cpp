@@ -156,7 +156,7 @@ CObject3D* CObject3D::Construct() {
     SetVtable(this, kObject3DVtable);
     attached = nullptr;
     animation = nullptr;
-    std::memset(scale, 0, sizeof(scale));
+    std::memset(&scale, 0, sizeof(scale));
     std::memcpy(reinterpret_cast<char*>(this) + 0xF4, reinterpret_cast<const void*>(0x007AF1D0), 12);
     return this;
 }

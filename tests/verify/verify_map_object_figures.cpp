@@ -50,16 +50,16 @@ EI_VERIFY(0x00518310, ComputeBoundsVerify, 6, s_computeBounds);
 static std::uintptr_t __fastcall SetFigureScaleVerify(CObject3D* self, void*, const float* scale) {
     float wanted[3];
     std::memcpy(wanted, scale, sizeof(wanted));
-    bool same = !(self->scale[0] < wanted[0] || self->scale[0] > wanted[0]) &&
-                !(self->scale[1] < wanted[1] || self->scale[1] > wanted[1]) &&
-                !(self->scale[2] < wanted[2] || self->scale[2] > wanted[2]);
+    bool same = !(self->scale.x < wanted[0] || self->scale.x > wanted[0]) &&
+                !(self->scale.y < wanted[1] || self->scale.y > wanted[1]) &&
+                !(self->scale.z < wanted[2] || self->scale.z > wanted[2]);
     float old[3];
-    std::memcpy(old, self->scale, sizeof(old));
+    std::memcpy(old, &self->scale, sizeof(old));
     std::uintptr_t result = self->SetFigureScale(wanted);
-    bool ok = same ? std::memcmp(old, self->scale, sizeof(old)) == 0 && result == 0
-                   : std::memcmp(wanted, self->scale, sizeof(wanted)) == 0 &&
+    bool ok = same ? std::memcmp(old, &self->scale, sizeof(old)) == 0 && result == 0
+                   : std::memcmp(wanted, &self->scale, sizeof(wanted)) == 0 &&
                          (self->parts.size == 0 && self->pendingParts.size == 0 ||
-                          ((self->boundsFlags & 3) == 3 && result == Bits(self->center[2])));
+                          ((self->boundsFlags & 3) == 3 && result == Bits(self->center.z)));
     ei::verify::Check("CObject3D::SetFigureScale", true, ok, "object %d", self->id_);
     return result;
 }
