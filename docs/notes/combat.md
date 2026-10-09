@@ -139,6 +139,17 @@ the zero-extended remainder (`Unsigned`). Random-number wrappers keep their snap
 naked stub in verify_combat.cpp. The movement tick's stale-local quirk is reproduced by reading the stack dword at entry
 ESP - 0x98 in a naked entry before the frame exists.
 
+### Declarations (C6 cleanup)
+
+combat_*, magic_trap, unit_skins, unit_lever, unit_client_path, unit_points, unit_client_models, unit_motion_tick and
+net_state have no offsets / VCalls left (the __asm / float_control blocks, magic_trap's vtable constants and unit_skins'
+Text(0x...) strings stay; next by count: unit_create_stats.cpp). map_object.h slot 44 `UseSpots(void* out, float
+userRadius)`, 55 IsDead (units return +0x274), 59 `double MoveSpeed()` (ST0); CUnitServerVirtuals slots 21-50 (TakeUpWeapon
+25, TameStage 39, GetAttackParams 50, 48 empty); `SpellRecord::unknown_10` (+0x10: 1 casts without noise / slowing the
+caster); `ArmorRecord::layer` (+0xB8); tick globals 007AFFC4 / 007B00D2 / 007B01F4 / 007B2798 = WorldServer()->tick_,
+AIMap()->refreshUnits, Sectors(), timeWheel_; unit_skins' zone records DressedUnitRecord 0x24 / FiguredUnitRecord 0x3C, its
+figure maker call CLinkFigureLoader::LoadFigure (morph floats as floats).
+
 ## Rewritten
 
 V: P pure; O output (original into a scratch copy); R random (generators (ISAAC, rand() seed at `_getptd` + 0x14) saved
@@ -160,7 +171,7 @@ ours = consistency checks (most order / update code: run every tick).
 | 00548DE0, 00548FA0, 00550F30, 005474B0, 00551400, 005494D0, 00548520, 0054A150, 00548700, 005468D0, 0054EB30, 00546480, 00554450 | PlayAnimationOrder (state 3), PlayEmoteOrder (4), IdleAnimation, PlayIdle, NextAnimation, StartAction, UpdateSneak, ChangeMoveMode, PathTo, LiftNearby, ReportPath, ResetController, ResyncWithUnit (`combat_motion.cpp`) | ours |
 | 0054DF50, 0054E250 (ST0; compared), 0054E600, 00554830, 00551AE0, 00552280, 00547890 | FindUseSpot, TimeUntilAction, PlanOrderRoute, PlanMove, TryTame, UndoTaming, UpdateMotion | ours |
 | 0055EE40, 0055F8E0, 00558FA0 (C) | World::CreateManagers, CWorld::DestroyManagers, UnitSetEntryHead::Write (SendZone's unit set entry head; `world_unit_set.cpp`) | ours |
-| 0055F2E0 / 0055F2F0, 0055F1A0 (compared), 0055F1E0, 0055F280 / 0055F260, 0055F550 (compared), 0055F6B0, 0055F7B0 / 0055F790, 0055F410 | Player sources (`player_source.h`, `world_sessions.cpp`; A-U8): CPlayerSource base destructor (vtable 0073F38C), CWorldHandle (+0x5C; +8 a counted pending link) Clone / OnShutdown / destructors, netlink::DriverSession (+0x60, 0073F3A8; was "the game result object") Clone / OnShutdown / destructors, CWorld::OpenSession (new session ShareAssigned into +0x60) | ours |
+| 0055F2E0 / 0055F2F0, 0055F1A0 (compared), 0055F1E0, 0055F280 / 0055F260, 0055F550 (compared), 0055F6B0, 0055F7B0 / 0055F790, 0055F410 | Player sources (`player_source.h`, `world_sessions.cpp`): CPlayerSource base destructor (vtable 0073F38C), CWorldHandle (+0x5C; +8 a counted pending link) Clone / OnShutdown / destructors, netlink::DriverSession (+0x60, 0073F3A8; was "the game result object") Clone / OnShutdown / destructors, CWorld::OpenSession (new session ShareAssigned into +0x60) | ours |
 | 0055F310-0055F400 (names / ids P) | CPlayerManager, CEffectManager (0073F2C4), CItemManager class names, ids and destructors (`world_managers.cpp`); 0055F3B0 (CItemManager slot 25 "items") left: CResourceManager does not declare slot 25 | ours |
 | 0054A5A0, 00555270, 005552E0, 005553B0, 00555480, 00555570, 00555630, 00555700, 00555840, 00512F60 | FitsMoveMode, SetMoveStyle, SetWantedWeapon, OrderSteal / Tame / Use / SearchBody, PlayAnimation, StopAction (state 6, orders 9 / 0, empty plan), FindFigureAnimation (`combat_order_setters.cpp`) | ours |
 | 005535F0 (29), 00552CD0 (38), 00553380, 00552D00, 00553610 (25), 00552670 (42), 00553260 (44), 00546450 (2), 00546080 (5), 005460A0 (39, P) | RefreshEquipment, ForgetClaims, AddExperience, ClaimHostility, TakeUpWeapon, OnObjectDeleted, Resettle, CreateServer, ResetSlot, TameStage | ours |
@@ -237,17 +248,3 @@ ours = consistency checks (most order / update code: run every tick).
   archer "Human Gipath Brigand A1" may walk up instead of shooting; a wrong prototype name fails `waitfor IsAlive`). An order
   given ~50 ms after AddUnitToServer / SetPlayer is sometimes dropped (about 1 run in 30 with 16 games in parallel):
   scenarios wait 1 s after the spawn, give the order, wait 1 s and give it again (`hp0` is read before the first order).
-
-## C6 cleanup (2026-10-09)
-
-Offsets, VCall and byte arithmetic removed (behaviour unchanged) from combat_tick, combat_update, combat, combat_internal.h,
-magic_trap, combat_save, unit_skins, unit_lever, unit_client_path, unit_points, combat_taming, combat_planning,
-unit_client_models; DR-C3 did unit_motion_tick.cpp, combat_motion.cpp and net_state.cpp. Facts found: map_object.h slot 44
-is `UseSpots(void* out, float userRadius)`, slot 59 `double MoveSpeed()` (ST0, unrounded), slot 55 is IsDead (units return
-+0x274; unit_points' "IsServer" was wrong); CUnitServerVirtuals slots 21-50 (TakeUpWeapon 25, TameStage 39, GetAttackParams
-50; 48 an empty base slot); `SpellRecord::unknown_10` (+0x10: 1 casts without noise / slowing the caster),
-`ArmorRecord::layer` (+0xB8); the tick globals 007AFFC4 / 007B00D2 / 007B01F4 / 007B2798 are WorldServer()->tick_,
-AIMap()->refreshUnits, Sectors() and timeWheel_; unit_skins' zone records are DressedUnitRecord 0x24 and FiguredUnitRecord
-0x3C, its figure maker call CLinkFigureLoader::LoadFigure (morph floats passed as floats). Left: the __asm / float_control
-blocks (combat_tick, combat, unit_motion_tick's 8), magic_trap's vtable constants, unit_skins' Text(0x...) strings. Next by
-count: unit_create_stats.cpp.
