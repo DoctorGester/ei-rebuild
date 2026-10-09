@@ -51,7 +51,7 @@ The four porting batches (A-I16, A-H15, A-S9, A-U7) are merged (2026-10-09, 140 
 
 ## Game code in the CRT / MFC range, 0x006C0000-0x00740000
 
-- A-X1 (taken 2026-10-09): the largest unported game functions in 0x006C0000-0x00740000 (11% ported, 250 functions, 92 KB left).
+- A-X1 done 2026-10-09 (98 to library, 3 dead; landscape sectors, aligned arrays, acks ported; 136 functions / 52 KB left, next in models.md "Game code left in 0x006C0000-0x00740000").
 
 ## Vector math (planned 2026-10-09)
 
