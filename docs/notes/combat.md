@@ -191,3 +191,26 @@ Not on the Rebirth list except 0054B580 (above); the patched callee 005935C0 is 
   `waitfor IsAlive`). An order given ~50 ms after AddUnitToServer / SetPlayer is sometimes dropped (about 1 run in 30 with 16 games in parallel): scenarios wait 1 s after the spawn, give the order, wait 1 s and give
   it again (`hp0` is read before the first order).
 - A-U6: the CUnitServer constructor 00545580 (from 004D6A6F) is not ported: it needs CUnitServer members for +0x24 (queue), +0x148, +0x91C (armour spell list), +0x940..+0x974 (movement / idle records) instead of byte arrays, and forwarders for 00557B60, 00556850 (x2), 00545F40, 00557B80, 00545990 (AIBrain constructor, 385 bytes) and 005AEA50 (voice); +0x3C is AIPath::Construct (006706A0 inlined) and the end is ResetController. Only reached from EH unwind funclets (dead in practice): 00545B80, 00545FD0, 005461E0, 00546200; 0054B220 is called only by the rewritten 0054A900.
+
+## C6 cleanup (2026-10-09)
+
+Offsets, VCall and byte arithmetic removed (behaviour unchanged; no new hooks or wrappers) from
+combat_tick, combat_update, combat, combat_internal.h, magic_trap, combat_save, unit_skins,
+unit_lever, unit_client_path, unit_points, combat_taming, combat_planning, unit_client_models.
+Header changes (additive):
+- map_object.h: slot 44 `UseSpots(void* out, float userRadius)`, slot 59 `double MoveSpeed()`
+  (ST0, unrounded); CUnitServerVirtuals declares slots 21-50 (TakeUpWeapon 25, TameStage 39,
+  GetAttackParams 50; 48 is an empty base slot, Unused48).
+- combat.h: `CUnitServer::Brain()`; +0x918 typed `AIEventPresence*` (x, y at +8 / +0xC).
+- world.h: `CWorld::TimedObjectManager()` returns the manager (slot 14).
+- item_db.h: `SpellRecord::unknown_10` (+0x10: 1 casts without noise / slowing the caster),
+  `ArmorRecord::layer` (+0xB8).
+- combat_internal.h: `GameOstream::field4`; ServerObjectOf / ServerStatsOf through members.
+Findings: unit_points' "IsServer" slot is slot 55, IsDead (units return +0x274); comments fixed.
+The tick globals 007AFFC4 / 007B00D2 / 007B01F4 / 007B2798 are WorldServer()->tick_,
+AIMap()->refreshUnits, Sectors() and timeWheel_. CUnit +0x350 (the last damage source) is
+UnitParams::unknown_20 (CUnit::Params()). unit_skins' zone records are declared there
+(DressedUnitRecord 0x24, FiguredUnitRecord 0x3C); its figure maker call is
+CLinkFigureLoader::LoadFigure (morph floats passed as floats, no longer as raw bits).
+Left: the __asm / float_control blocks (combat_tick, combat), magic_trap's vtable constants,
+unit_skins' Text(0x...) strings.
