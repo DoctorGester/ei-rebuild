@@ -29,11 +29,15 @@ void __fastcall BlitMipChain(CTexture* target, const int* at, CTexture* source, 
 
 // An entry of a client controller's speech queue (0x14 bytes; the value of a node of the STLport
 // list at +0x9C; 005380D0 plays one).
-// What a unit says (the record slot 51 is given): its sound file name at +0x04.
+// What a unit says (the record slot 51 is given; 0x28 bytes, an acks.db entry, acks_db.h): its
+// sound file name at +0x04.
 struct SpeechRecord {
-    std::uint8_t unknown_00[4];
-    const char* soundName;          // +0x04
+    int chance;                     // +0x00 eligible when at least the roll (0..99, acks_db.cpp)
+    const char* soundName;          // +0x04 (the start of an STLport string)
+    std::uint8_t unknown_08[0x1C - 0x08];
+    stlp::string name;              // +0x1C named speeches (006D8A40)
 };
+static_assert(sizeof(SpeechRecord) == 0x28);
 
 struct ClientSpeech {
     const SpeechRecord* id;         // +0x00 (005380D0 compares it with the last speech, +0x94)

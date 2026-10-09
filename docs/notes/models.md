@@ -187,6 +187,23 @@ All of it lies in 006C1390-006E5E30 (beyond is the CRT / MFC). Groups (R = Rebir
 - **CDib** 006D49E0-006D6FC0 (~4 KB; BMP overrides and movie screenshots).
 - Dead (config/dead_code.csv): 006C98F0 (reached only from the unreferenced chunk 006CA170), 006D5480, 006D6800.
 
+Ported (A-X1; V as above):
+
+| Address | Name | V |
+|---|---|---|
+| 006CA260 | `Terrain::SetVisibleSectors` (terrain_landscape.cpp; the original on a raw copy with its own array blocks) | S |
+| 006CD5C0, 006CE890 / 006CDD50, 006CDE90 | `lib::AlignedArray<uint32>::SetSize` / `SetAtGrow` copies | S |
+| 006D9A30 / 006D9CE0 / 006D9F80 | `acks::AckTable<UnitAcks / ModelAcks / ExtraAcks>::Find` (acks_db.cpp; index operator[], adds a null entry for a missing name) | P |
+| 006D8780 / 006D88E0 | `acks::PickSpeech` / `PickEnvironmentSpeech` (rand() and ISAAC state restored between the runs and compared) | S |
+| 006D8430 / 006D8A40 | `acks::SayAck` / `SayNamedAck` (call the five above through their addresses so their wrappers run) | O |
+
+acks.db (acks_db.h): database 007C8A60 = three tables {vector of records, hash_map<string, record*>}: 0x1C4-byte records by
+prototype name (kinds up to 0x29; 0x29 = the environment speeches +0x1AC, 0x2C bytes, flags +0x28 matched against
+`CWorldClient::EnvironmentFlags`), 0x5C by model name (0x2E..0x32, fallback through the prototype's model), 0x38 by
+prototype name (0x2A..0x2D); each record: name, hash_map<int kind, vector<SpeechRecord>*>. `CUnitController` slots 48-52
+were declared for Say (51) / StopSpeech (52). The original picks through a temporary vector of pointers; ours counts and
+indexes (same draws, no allocation).
+
 ## Resources and the sound file reader (00671280-00675B40)
 
 Code: `resource_stream.h/.cpp`; earlier resource work (CMappedResource, CMMIOResource methods, CResourceManager slots 16-22,
