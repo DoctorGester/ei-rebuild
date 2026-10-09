@@ -10,10 +10,13 @@
 #include "../../src/game/net_link.h"
 #include "../../src/game/originals_engine.h"
 #include "../../src/game/party.h"
+#include "../../src/game/originals_world.h"
 #include "../../src/game/player_client.h"
+#include "../../src/game/world.h"
 
 #include <cstring>
 #include <string>
+#include <vector>
 
 namespace {
 void* s_unused;
@@ -160,7 +163,7 @@ void __fastcall CoderResetVerify(CoderState* self) {
 }
 void __fastcall ClearVerify(CPlayerClient* self) {
     self->Clear();
-    bool ok = self->state_ == 0 && self->array50D8_.data == nullptr && self->array50D8_.size == 0 &&
+    bool ok = self->state_ == 0 && self->partyUnitIds_.data == nullptr && self->partyUnitIds_.size == 0 &&
               self->in_.size_ == 0 && self->out_.size_ == 0 && self->sendParty_ == 0 && self->compressor_.matchPos == -1;
     ei::verify::Check("CPlayerClient::Clear", true, ok, "client %p", self);
 }
@@ -228,3 +231,36 @@ BOOL __fastcall CreateClientVerify(CPlayerClient* self) {
     return result;
 }
 EI_VERIFY(0x00667230, CreateClientVerify, 0, s_unused);
+
+// A-H17. 00668C50 (0x60, the party state; every scenario: the server sends it with each sync).
+// Ours only (it flags units and fills a shared set): 1; the stream moved past the whole message;
+// the world's pause byte and +0x6E4, both id lists as sent; the party's units carry 0x400000.
+int __fastcall PartyStateVerify(CPlayerClient* self) {
+    const auto* pending = reinterpret_cast<const std::uint8_t*>(PendingText(self));
+    auto dword = [&](int offset) {
+        int value;
+        std::memcpy(&value, pending + offset, 4);
+        return value;
+    };
+    std::uint8_t paused = pending[0];
+    int count = dword(5);
+    std::vector<int> ids;
+    for (int i = 0; i < count; ++i) ids.push_back(dword(9 + 4 * i));
+    int danger = dword(9 + 4 * count);
+    int others = dword(13 + 4 * count);
+    std::uint32_t end = self->in_.position_ + 17 + 4 * static_cast<std::uint32_t>(count + others);
+
+    int result = self->OnPartyState();
+    auto* world = static_cast<CWorldClient*>(self->Owner()->ManagerContext());
+    bool ok = result == 1 && self->in_.position_ == end && world->serverPaused_ == (paused != 0 ? 1 : 0) &&
+              world->unknown6E4_ == danger && self->partyUnitIds_.size == count && self->otherUnitIds_.size == others;
+    for (int i = 0; ok && i < count; ++i) {
+        ok = self->partyUnitIds_[i] == ids[static_cast<std::size_t>(i)];
+        CEngineObject* unit = WorldFindUnit(world, nullptr, ids[static_cast<std::size_t>(i)]);
+        if (unit != nullptr && (unit->flags_ & 0x400000) == 0) ok = false;
+    }
+    ei::verify::Check("CPlayerClient::OnPartyState", true, ok, "client %p: %d units, %d others, position %u vs %u", self,
+                      count, others, self->in_.position_, end);
+    return result;
+}
+EI_VERIFY(0x00668C50, PartyStateVerify, 0, s_unused);

@@ -68,3 +68,13 @@ static void __fastcall SaveAllVerify(SavedParties* self, void*) {
     ei::verify::Check("SavedParties::SaveAll", true, ok, "%s: %d heroes", self->folder_, count);
 }
 EI_VERIFY(0x006632B0, SaveAllVerify, 0, s_unused);
+
+// A-H17. 0065F2D0 (stolen 0; the static destructor at exit, so every scenario that quits through
+// WinMain): ours only; it only frees, so the check only counts the entries it destroyed.
+static void __fastcall DestructVerify(SavedParties* self, void*) {
+    auto* begin = reinterpret_cast<MpHeroRecord*>(self->entries_);
+    int count = static_cast<int>(reinterpret_cast<MpHeroRecord*>(self->finish_) - begin);
+    self->Destruct();
+    ei::verify::Check("SavedParties::Destruct", true, count >= 0, "%d heroes", count);
+}
+EI_VERIFY(0x0065F2D0, DestructVerify, 0, s_unused);

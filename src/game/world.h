@@ -1065,7 +1065,11 @@ public:
     // The local session (+0x20C) as the maps read it.
     WorldSession* Session() const { return reinterpret_cast<WorldSession*>(session_); }
 
-    std::uint8_t unknown_068[0x84 - 0x68];
+    std::uint8_t unknown_068[0x6C - 0x68];
+    // +0x06C the server's world is paused (its +0x6C; message 0x60, 00566350): the update skips the
+    // session and the HUD is told.
+    std::uint8_t serverPaused_;
+    std::uint8_t unknown_06D[0x84 - 0x6D];
     int unknown84_;                       // +0x084 -100000 after Setup
     std::uint8_t unknown_088[0x90 - 0x88];
     ZoneExit* exits_;                     // +0x090
@@ -1125,7 +1129,7 @@ public:
     std::uint8_t unknown_6AC[0x6DC - 0x6AC];
     int unknown6DC_;                      // +0x6DC 0 after Setup
     int unknown6E0_;                      // +0x6E0
-    int unknown6E4_;                      // +0x6E4 0 after Setup
+    int unknown6E4_;                      // +0x6E4 0 after Setup; the party state's danger (0x60: 2 fighting)
     std::uint8_t unknown_6E8[0x6EC - 0x6E8];
     int sessionJoins_;                    // +0x6EC AddObject fades units in (slot 43) when >= 1
     std::uint8_t unknown_6F0[0x6F4 - 0x6F0];
@@ -1137,6 +1141,7 @@ public:
     std::uint8_t unknown_7C0[0x7D0 - 0x7C0];
     void* cursor_;                        // +0x7D0 HCURSOR wincurs\Df0000.cur
 };
+static_assert(offsetof(CWorldClient, serverPaused_) == 0x6C);
 static_assert(offsetof(CWorldClient, unknown84_) == 0x84);
 static_assert(offsetof(CWorldClient, countedA0_) == 0xA0);
 static_assert(offsetof(CWorldClient, heroes_) == 0xB4);
@@ -1350,12 +1355,20 @@ struct SavedParties {
     // 006632B0 (party_file.cpp). With a folder name: the folder created and emptied (0057AAB0),
     // then every entry written into it (MpHeroRecord::WriteFile, 00662AC0).
     void SaveAll();
+    // 0065F2D0 (party_file.cpp, A-H17; the static destructor 0065F2C0 at exit). The party outside a
+    // game (+0x10) as an MpHeroRecord (file name, then the party), every entry, the vector's
+    // storage back to the node allocator, the folder name.
+    void Destruct();
 
     char* folder_;               // +0x00 CString
     SavedPartyEntry* entries_;      // +0x04 vector<SavedPartyEntry>: start, finish, end of storage
     SavedPartyEntry* finish_;       // +0x08
     SavedPartyEntry* eos_;          // +0x0C
+    // +0x10 the party outside a game (CParty, 0x70 bytes; 007C82B0) and a file name: an MpHeroRecord
+    // (ui_screens.h).
+    std::uint8_t outsideGame_[0x74];
 };
+static_assert(offsetof(SavedParties, outsideGame_) == 0x10);
 static_assert(offsetof(SavedParties, entries_) == 0x04);
 static_assert(offsetof(SavedParties, eos_) == 0x0C);
 

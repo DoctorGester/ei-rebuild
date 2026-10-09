@@ -621,14 +621,25 @@ public:
     // 0065F1C0 (RET 8). Starts the text at `speed` (0: still), from below the surface when
     // `fromBelow`; the start time is the game time.
     void Start(float speed, char fromBelow);
+    // 0065F020 (ui_scrolling_surface.cpp, A-H17). Renders the RichEdit's text into the surface:
+    // the DC held, the surface cleared, the background colour (+0x34) set (EM_SETBKGNDCOLOR), the
+    // whole text formatted (EM_FORMATRANGE) into the surface's size in twips shifted by the scroll
+    // offsets (+0x40, +0x44; 1000 twips more below). The first time the text fits (the returned
+    // character index reaches +0x4C) the offset is kept in +0x50; once the offset has moved 1000
+    // twips plus the height past it, the speed and +0x50 become 0. The DC is released.
+    void RenderText();
 
-    std::uint8_t unknown_38[4];
+    HWND richEdit_;             // +0x38 the RichEdit control holding the text
     float startTime_;           // +0x3C
-    std::uint8_t unknown_40[4];
-    int offset_;                // +0x44
+    int offsetX_;               // +0x40 twips
+    int offset_;                // +0x44 twips scrolled
     float speed_;               // +0x48 0 once the text has scrolled through
-    std::uint8_t unknown_4C[0x58 - 0x4C];
+    int textLength_;            // +0x4C characters (set when the text is loaded)
+    int endOffset_;             // +0x50 offset_ when the end of the text came into view (0: not yet)
+    std::uint8_t unknown_54[0x58 - 0x54];
 };
+static_assert(offsetof(CUiScrollingSurface, richEdit_) == 0x38);
+static_assert(offsetof(CUiScrollingSurface, endOffset_) == 0x50);
 static_assert(offsetof(CUiScrollingSurface, speed_) == 0x48);
 static_assert(sizeof(CUiScrollingSurface) == 0x58);
 

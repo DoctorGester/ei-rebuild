@@ -468,6 +468,16 @@ record helpers 00653100..006535D0. Left: RefreshList 006567A0 (Rebirth-patched),
 hook's jump), the tutorial window 00658030.. (A-H15: 006537E0 / 00653800 and their bodies 006518A0 / 00651CE0 are the key
 records' compiler-generated destructors, run by STLport's _Destroy from 00651600: library.csv.)
 
+## A-H17
+
+| Address | What | Verify (scenario) |
+|---|---|---|
+| 00668C50 | `CPlayerClient::OnPartyState` (client message 0x60, player_client.cpp): old party ids lose unit flag 0x400000 and go into the hash_set 007C8370 (forwarded 0066B400 / 0066B490 / 0066BA70); pause byte to CWorldClient +0x6C; new ids (+0x50D8, SetSizeDiscard) flagged, new ones fade in (slot 43) under the 007AFCA4 gate; +0x6E4; other players' ids (+0x50E8, SetSize) | ours only: stream end, both lists, pause, +0x6E4, flags (every scenario) |
+| 006629D0 | `CParty::OpenEdgeExits` (party_members.cpp): on an edge zone (kind 1) the exits' kind-0 targets get "z.<name>" = 1 when 0 / NaN | ours only: before / after values (newgame login; zone1 is not an edge zone) |
+| 0065F2D0 | `SavedParties::Destruct` (party_file.cpp; static destructor of 007C82A0 at exit): +0x10 (party outside a game + file, an MpHeroRecord), the entries, the vector storage, the folder | ours only (exit) |
+| 0065F020 | `CUiScrollingSurface::RenderText` (ui_scrolling_surface.cpp): the titles' RichEdit text through EM_FORMATRANGE into the surface, the end offset / speed logic | ours only: offsets kept, end offset rule (ui_main_menu, render_titles_present) |
+| 006641D0 | `PartyMemberArray::Serialize` = `mfc::CArray::Serialize` (new, with a minimal `mfc::CArchive`) | ours only; no caller (vtable slot only) |
+
 ## What is left in 0x00640000-0x006C0000
 
 Classification: functions.csv kind game, minus library.csv, dead_code.csv and EI_REPLACE. 115 entries were added to library.csv from this range: 90 with
