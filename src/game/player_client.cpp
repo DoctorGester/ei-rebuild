@@ -500,7 +500,7 @@ int CPlayerClient::OnPathMarker() {
             if (kind == 0) source->alpha = 1.0f;
             else if (kind == 1) source->alpha = 0.0f;
             else if (kind == 2) source->alpha = 2.0f;
-            pathSource->Slot6();   // one tick
+            pathSource->RunTick();   // one tick
             source->Attach(nullptr);
         }
         walker->Release();

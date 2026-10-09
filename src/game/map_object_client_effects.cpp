@@ -327,7 +327,7 @@ void CMapObjectClientSpecific::UpdateEffectParticles(bool first) {
             source->Attach(CompanionOwner(this));
             source->ScaleSize(static_cast<float>(power) * kPowerScale / source->baseSize);
             if (first)
-                for (int tick = 0; tick < kWarmUpTicks; ++tick) reinterpret_cast<CEngineObject*>(source)->Slot6();
+                for (int tick = 0; tick < kWarmUpTicks; ++tick) reinterpret_cast<CEngineObject*>(source)->RunTick();
             break;
         }
         }

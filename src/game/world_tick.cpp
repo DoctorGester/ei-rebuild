@@ -133,7 +133,7 @@ void CWorldServer::Tick(char force) {
     CEngineObject* object = node ? node->value : nullptr;
     IdList finished;
     while (node) {
-        if (object->Slot6() == 0) {
+        if (object->RunTick() == 0) {
             finished.PushBack(static_cast<unsigned>(object->id_));
             object->Release();
         }
@@ -273,7 +273,7 @@ void CWorldServer::UpdateUnits() {
         auto& objects = mapObjects_.map;
         for (auto* node = objects.First(); node && node->value; node = objects.After(node)) {
             CEngineObject* object = node->value;
-            object->Slot6();
+            object->RunTick();
             if (object->flags_ & 1) IdArraySetAtGrow(&RemovedIds(), nullptr, RemovedIds().size, static_cast<unsigned>(object->id_));
         }
     } else {
@@ -283,7 +283,7 @@ void CWorldServer::UpdateUnits() {
         auto& awake = updateMap_.map;
         for (auto* node = awake.First(); node && node->value; node = awake.After(node)) {
             CEngineObject* object = node->value;
-            object->Slot6();
+            object->RunTick();
             if (object->flags_ & 1) IdArraySetAtGrow(&RemovedIds(), nullptr, RemovedIds().size, static_cast<unsigned>(object->id_));
             if (object->GetClassId() != world::kClassUnit) continue;
             if (--SleepCountdown(object) > 0) continue;
@@ -300,7 +300,7 @@ void CWorldServer::UpdateUnits() {
     for (auto* position = counted_.head; position;) {
         auto* current = position;
         position = position->next;
-        if (current->data->Slot6() == 0) CountedRemoveAt(&counted_, nullptr, current);
+        if (current->data->RunTick() == 0) CountedRemoveAt(&counted_, nullptr, current);
     }
     for (int i = 0; i < SleepingIds().size; ++i) {
         if (auto* found = updateMap_.map.Find(SleepingIds().data[i])) updateMap_.map.Erase(found);

@@ -277,7 +277,7 @@ public:
     virtual int DrawFigure(void* context) = 0;
     virtual int DrawCollectDirty(void* context) = 0;
     virtual int DrawFigureShadow(void* context) = 0;
-    virtual void AdvanceTime() = 0;        // 25: (float time) 0050E410 empty; units 0052FC40
+    virtual void AdvanceTime(float time) = 0;   // 25: 0050E410 empty; units 0052FC40
     virtual void LoadFigures() = 0;        // 26: CObject3D 00517500 (units 0052E910)
     virtual void RecomputeScale() = 0;     // 27: 0050F2D0 (units 00532A80)
     virtual void EffectsChanged() = 0;     // 28: 0050E420 empty; units 00532AB0

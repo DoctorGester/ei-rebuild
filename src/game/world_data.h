@@ -6,6 +6,11 @@
 
 #include <cstdint>
 
+#include "engine_object.h"
+#include "lib/stlp.h"
+
+class CLight;   // spell.h
+
 namespace worlddata {
 
 inline float ExeFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
@@ -107,5 +112,32 @@ inline const char* ConfiguredBasePath() { return *reinterpret_cast<const char* c
 constexpr std::uintptr_t kPlayerListVtable = std::uintptr_t(0x0073F328);
 constexpr std::uintptr_t kTimedObjectsVtable = std::uintptr_t(0x0073F2C4);
 constexpr std::uintptr_t kSharedHelperVtable = std::uintptr_t(0x0073F240);
+
+// ---- The client's Segment (005641F0) ------------------------------------------------------------
+
+// The interface manager (007C7D50; script string events go to it).
+inline void* InterfaceManager() { return reinterpret_cast<void*>(std::uintptr_t(0x007C7D50)); }
+inline const char* AutosaveEventText() { return reinterpret_cast<const char*>(std::uintptr_t(0x00787704)); }   // "autosave"
+// "CWorldClient::Segment(): ..." (the lost connection's FatalError).
+inline const char* SegmentDisconnectedText() { return reinterpret_cast<const char*>(std::uintptr_t(0x00790084)); }
+// The volume settings the sound manager takes on the client's tenth tick (006B7740 / 006B78A0 /
+// 006B7A00; the last is the movies' volume, bink_video.cpp).
+inline int VolumeSettingA() { return *reinterpret_cast<const int*>(std::uintptr_t(0x0079BCC8)); }
+inline int VolumeSettingB() { return *reinterpret_cast<const int*>(std::uintptr_t(0x0079BCCC)); }
+inline int MovieVolumeSetting() { return *reinterpret_cast<const int*>(std::uintptr_t(0x0079BCC4)); }
+// 007AFC9C: 2 while the party fights (sound_music.cpp).
+inline int FightState() { return *reinterpret_cast<const volatile int*>(std::uintptr_t(0x007AFC9C)); }
+// The interface's list of the multiplayer peers (an STLport vector of 4-byte entries at 007C7D84).
+inline const stlp::vector<int>& PeerList() { return *reinterpret_cast<const stlp::vector<int>*>(std::uintptr_t(0x007C7D84)); }
+// The light effects' grey levels: on when 0079BD58 is set; the countdown takes the world update
+// period (0078FF34) per tick and restarts at 0079BD24.
+inline int LightLevelsSetting() { return *reinterpret_cast<const int*>(std::uintptr_t(0x0079BD58)); }
+inline int WorldUpdatePeriod() { return *reinterpret_cast<const int*>(std::uintptr_t(0x0078FF34)); }
+inline int LightLevelsPeriod() { return *reinterpret_cast<const int*>(std::uintptr_t(0x0079BD24)); }
+// The scene's sun light (007AF07C; figure_part_draw.cpp) and the point 007AFDB0 the grey levels
+// start from (its distance to the sun; meaning unknown).
+inline CLight* SceneSun() { return *reinterpret_cast<CLight* const*>(std::uintptr_t(0x007AF07C)); }
+inline const void* LightReferencePoint() { return reinterpret_cast<const void*>(std::uintptr_t(0x007AFDB0)); }
+inline float ColourScale() { return ExeFloat(std::uintptr_t(0x0073C370)); }   // 255
 
 } // namespace worlddata

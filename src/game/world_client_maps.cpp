@@ -338,7 +338,7 @@ int CWorldClient::AddObject(CEngineObject* object) {
     }
     if (object->GetClassId() == world::kClassUnit && Session()->gameKind == 1) {
         auto* unit = static_cast<CUnit*>(object);
-        if (unit->player == nullptr && sessionJoins_ >= 1) unit->Controller()->RestartFadeIn();
+        if (unit->player == nullptr && ticksRun_ >= 1) unit->Controller()->RestartFadeIn();
     }
 
     ++object->refCount_;
@@ -884,15 +884,15 @@ void CWorldClient::Teardown() {
     DeleteOwned(owned1B0_);
     Teardown563190(this);
     CountedArraySetSize(&countedA0_, nullptr, 0, -1);
-    EmptyList(list1B8_, [](SectorListNode* node) {
+    EmptyList(list1B8_, [](stlp::list<ClientLightEffect>::Node* node) {
         Element1B8Destroy(&node->data);
         Node1B8Free(node, 1);
     });
-    EmptyList(list1BC_, [](stlp::list<OpaqueRecord<0x94>>::Node* node) {
+    EmptyList(list1BC_, [](stlp::list<ClientEffectRecord<0x94>>::Node* node) {
         Element1BCDestroy(&node->data, nullptr, 0);
         if (node) stlp::deallocate(node, sizeof(*node));
     });
-    EmptyList(list1C0_, [](stlp::list<OpaqueRecord<0x8C>>::Node* node) {
+    EmptyList(list1C0_, [](stlp::list<ClientEffectRecord<0x8C>>::Node* node) {
         Element1C0Destroy(&node->data, nullptr, 0);
         if (node) stlp::deallocate(node, sizeof(*node));
     });
@@ -1154,7 +1154,7 @@ int CWorldClient::Setup() {
     arrayManager_ = arrays;
     arrays->Init(this);
     std::uint8_t* memory = New(0x58);
-    auto* owned = static_cast<CEngineObject*>(memory ? Construct6B4350(memory) : nullptr);
+    auto* owned = static_cast<ClientObject1A8*>(memory ? Construct6B4350(memory) : nullptr);
     owned1A8_ = owned;
     owned->Create();
 
@@ -1204,7 +1204,7 @@ int CWorldClient::Setup() {
     unknown6E4_ = 0;
     GridToFour(secondGrid_, GridResize2, CellsDelete2, GridAllocate2);
     GridToFour(objectGrid_, GridResize, CellsDelete, GridAllocate);
-    sessionJoins_ = 0;
+    ticksRun_ = 0;
     unknown1C4_ = 0;
     return 1;
 }
