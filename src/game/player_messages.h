@@ -173,6 +173,36 @@ public:
     // 0066F840 (RET 8; the briefing screen). Message 0x19: a byte and a dword.
     void SendPair19(std::uint8_t a, std::uint32_t b);
 
+    // A-H15: the lifetime and the connection slots (player_messages.cpp unless noted).
+    // 0066C540. Constructor body (0x5128 bytes, made by the server's specific manager): the
+    // engine object's fields, an empty handler table, the outgoing stream (a queue stream), the
+    // placements, both coders, the sent arrays and groups, then ClearState. Returns this.
+    CPlayerServer* Construct();
+    // 0066C770. Destructor body: ClearState (an ISAAC draw, as the original), the groups
+    // destroyed, the sent arrays' blocks freed, both coders' output ended, the placements' and
+    // the stream's storage freed, the handler table's block freed, then CEngineObject's.
+    void DestructBody();
+    // 0066C750 (slot 0, RET 4). DestructBody, then operator delete when bit 0 of `flags` is set.
+    CPlayerServer* DeletingDestruct(unsigned flags);
+    // 0066CC50 (slot 3) and 0066CF20 (slot 15), and CreateServer's first part: the outgoing
+    // messages emptied, both sent arrays released and freed, state 0, the last position 0 and
+    // +0x44 -1, both groups emptied, +0x24 -1, no refresh pending, flag70_ 0, the placements
+    // emptied, both coders reset, the next party refresh in 900..1800 updates (ISAAC).
+    void ClearState();
+    // 0066CE50 (slot 13). Both sent arrays released and freed, both groups emptied.
+    void ForgetSentObjects();
+    // 0066D090 (slot 21). group50F8_ emptied.
+    void ClearGroup50F8();
+    // 0066D020 (slot 16; player_server_handlers.cpp). A joined player (state 1) collects its
+    // party when deployed (flag70_, then cleared) and, in a multiplayer game, sends it
+    // (SendParty); then state 3 with message 0x01 unless already 3, and Flush.
+    void Leave();
+    // 0066D490 (RET 0x18). Message 0x0E about a path of `unit` (nothing for null): kind, flag,
+    // the point's two dwords, the unit's id and `limitBits`; except for kind 3 the path
+    // (005C7DB0) written through a delta field on the stack, its channel 0 output appended.
+    void SendPathMessage(CEngineObject* unit, void* path, const float* point, int kind, int flag,
+                         std::uint32_t limitBits);
+
     CPlayer* Owner() const { return reinterpret_cast<CPlayer*>(player_); }
 
     void* vtable_;

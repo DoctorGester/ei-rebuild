@@ -1,4 +1,5 @@
 #include "resource.h"
+#include "originals_engine.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -77,14 +78,8 @@ void CMappedResource::Destroy() {
     }
 }
 
-namespace {
-// The destructor body at its original address: Rebirth patches it (it then runs Rebirth's version),
-// and in the vanilla launch the address leads to CMappedResource::Destroy.
-__declspec(naked) void __fastcall DestroyAtOriginalAddress(CMappedResource*) EI_ORIGINAL(0x006714A0)
-} // namespace
-
 CMappedResource* CMappedResource::DeletingDestroy(unsigned flags) {
-    DestroyAtOriginalAddress(this);
+    MappedResourceDestroyOriginal(this);
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }

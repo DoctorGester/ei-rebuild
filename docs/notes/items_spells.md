@@ -462,8 +462,9 @@ Shared forwarders: 006EAF20 `_access` (gamecrt::access), 00578D00 (ServerFlagOri
 unchecked (null when the allocation failed). The window and the key handler call Confirm / AskDelete / DeleteSave / LoadSelected through
 their addresses (Call*) so the wrappers run. Scenarios: ui_saveload (Confirm into the new save, titles), ui_saveload_delete (Delete, Enter,
 load). Library (A-H14): SaveEntry's copy / assignment / destructor and its vector's STLport helpers 006578F0..00658020, the 0x14 / 0x18
-record helpers 00653100..006535D0. Left: RefreshList 006567A0 (Rebirth-patched), 006537E0 / 00653800 (deleting destructors, bodies
-006518A0 / 00651CE0 in the options range), 00654490 (`return 0`, vtable 0074142C), the tutorial window 00658030..
+record helpers 00653100..006535D0. Left: RefreshList 006567A0 (Rebirth-patched), 00654490 (`return 0`, vtable 0074142C; 3 bytes, too short for the
+hook's jump), the tutorial window 00658030.. (A-H15: 006537E0 / 00653800 and their bodies 006518A0 / 00651CE0 are the key
+records' compiler-generated destructors, run by STLport's _Destroy from 00651600: library.csv.)
 
 ## What is left in 0x00640000-0x006C0000
 
