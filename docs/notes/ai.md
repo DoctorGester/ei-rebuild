@@ -101,6 +101,7 @@ compared; ours only = consistency check.
 | 005B89F0 | CAIMap::ClearUnmarkedArea | ai_refresh.cpp | differential on the cell words |
 | 005C8D40 | VisibilityGrid::Grow (Include stays the forwarder) | ai_movement.cpp | ours only: covers the square, keeps exactly the old marks |
 | 005C0930, 005C0BD0, 005C0DF0, 005C1010, 005C11D0 | CSectorMap: UnitsAt, FindUnitsInRadius, Add, Remove, Move | sector_map.cpp | UnitsAt pure; others in `verified.txt` |
+| 005C7DB0, 005C7FC0 | AIPath::WriteState / ReadState (order and steps on a delta field; A-W9) | ai_path_state.cpp | differential on field / reader copies (the read into a scratch path) |
 
 ## Original bugs and oddities kept on purpose
 
