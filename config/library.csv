@@ -4216,3 +4216,4 @@ address,name,library,signature,notes
 005C8560,"CArray<TYPE,ARG_TYPE>::SetSize (motion points, ConstructElements 005338A0)",MFC,,A-W10 sweep: MFC CArray instantiation (operator new / delete and ConstructElements only)
 005C87F0,"CArray<TYPE,ARG_TYPE>::SetSize (12-byte elements, ConstructElements 005338D0)",MFC,,A-W10 sweep: MFC CArray instantiation (operator new / delete and ConstructElements only)
 005C8950,"CArray<TYPE,ARG_TYPE>::SetSize (step speeds, no construction)",MFC,,A-W10 sweep: MFC CArray instantiation (operator new / delete and ConstructElements only)
+004A39C0,"stlp::deque<T*>::_M_reallocate_map",STLport,,"A-S10: map at +0x20 / size +0x24, iterators +0x04 / +0x14 (buffers of 0x200 bytes); node-pool or operator new map"

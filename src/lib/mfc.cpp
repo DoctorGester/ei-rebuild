@@ -42,6 +42,7 @@ __declspec(naked) void CFile::Close() EI_ORIGINAL(0x00701403)
 __declspec(naked) CFileFind::CFileFind() EI_ORIGINAL(0x006E6370)
 __declspec(naked) CFileFind::~CFileFind() EI_ORIGINAL(0x006E63AD)
 __declspec(naked) BOOL CFileFind::FindFile(const char*, unsigned long) EI_ORIGINAL(0x006E6433)
+__declspec(naked) unsigned long CFileFind::GetLength() const EI_ORIGINAL(0x006E68AA)
 
 __declspec(naked) void CStringArray::Construct() EI_ORIGINAL(0x006FE925)
 __declspec(naked) void CStringArray::Destruct() EI_ORIGINAL(0x006FE958)

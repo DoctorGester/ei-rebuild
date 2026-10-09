@@ -1,6 +1,8 @@
 // Splitting texts into CStringArrays and replacing characters (004DBE40-004DC4F0). See text_split.h.
 #include "text_split.h"
 
+#include "game_strings.h"
+
 #include "ei/hook.h"
 #include "originals_library.h"
 
@@ -56,5 +58,17 @@ int __fastcall ReplaceChar(mfc::CString* string, char from, char to) {
     return 1;
 }
 EI_REPLACE(0x004DC400, ReplaceChar);
+
+int __fastcall Join(mfc::CString* out, const mfc::CStringArray* parts, char separator) {
+    *out = game::EmptyText();
+    if (parts->GetSize() == 0) return 1;
+    *out += (*parts)[0];
+    for (int i = 1; i < parts->GetSize(); ++i) {
+        console::Ops(*out).AppendChar(separator);
+        *out += (*parts)[i];
+    }
+    return 1;
+}
+EI_REPLACE(0x004DC390, Join);
 
 } // namespace text

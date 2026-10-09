@@ -18,6 +18,7 @@ void* __cdecl malloc(std::size_t size);         // 006EABD1
 void __cdecl free(void* p);                     // 006EA8AD
 
 int __cdecl rand();                             // 006E77F7
+void __cdecl srand(unsigned seed);              // 006E77EA
 int __cdecl tolower(int c);                     // 006EBA53
 int __cdecl toupper(int c);                     // 006E91C0
 int __cdecl strnicmp(const char* a, const char* b, std::size_t n); // 006FA1A0

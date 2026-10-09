@@ -1,6 +1,12 @@
 #include "random.h"
 
 #include "ei/hook.h"
+#include "lib/crt.h"
+#include "lib/gameapi.h"
+#include "lib/mfc.h"
+#include "originals_library.h"
+
+#include <cstring>
 
 std::uint32_t IsaacRandom::Next() {
     if (count_-- == 0) {
@@ -49,7 +55,122 @@ void IsaacRandom::Refill() {
 }
 EI_REPLACE_METHOD(0x0049EE70, IsaacRandom::Refill);
 
-__declspec(naked) void IsaacRandom::Seed() EI_ORIGINAL(0x0049F660)
+namespace {
+
+// The exe's search strings: the pointer at 0073D080 ("C:\*.*") and the sub-directory suffix 0078B054
+// ("\*.*").
+const char* SeedSearchPattern() { return *reinterpret_cast<const char* const*>(0x0073D080); }
+const char* SubdirectoryPattern() { return reinterpret_cast<const char*>(0x0078B054); }
+
+constexpr unsigned long kAttributeHidden = 0x02;      // FILE_ATTRIBUTE_HIDDEN
+constexpr unsigned long kAttributeSystem = 0x04;      // FILE_ATTRIBUTE_SYSTEM
+constexpr unsigned long kAttributeDirectory = 0x10;   // FILE_ATTRIBUTE_DIRECTORY
+constexpr unsigned long kMinimumFileSize = 0x800;
+constexpr unsigned kOpenReadShared = 0x8040;          // CFile modeRead | shareDenyNone | typeBinary
+constexpr int kSeedBytes = 0x400;
+
+// The original's 284-byte path buffer on its stack.
+constexpr int kPathBuffer = 0x11C;
+
+// rand() % 512 as the original computes it (rand() is never negative).
+int RandomBelow512() { return gamecrt::rand() & 0x1FF; }
+
+// CFileFind::MatchesMask through the vtable, as the original calls it.
+BOOL Matches(const mfc::CFileFind& finder, unsigned long mask) {
+    return reinterpret_cast<const mfc::CFileFindVirtuals*>(&finder)->MatchesMask(mask);
+}
+
+// MFC's result-slot calls (GetFilePath, operator+) write a CString into raw storage.
+struct CStringSlot {
+    alignas(mfc::CString) unsigned char bytes[sizeof(mfc::CString)];
+    mfc::CString* Get() { return reinterpret_cast<mfc::CString*>(bytes); }
+};
+
+// 0049F660 and 0049F4B0 through their addresses, so their verify wrappers are reached from Init /
+// Seed (the search's own recursion calls itself directly).
+__declspec(naked) void __fastcall SeedAt(IsaacRandom*) EI_ORIGINAL(0x0049F660)
+__declspec(naked) int __fastcall FindSeedFileAt(IsaacRandom*, void*, char* /*out*/, const char* /*pattern*/,
+                                                int /*target*/, int* /*counter*/) EI_ORIGINAL(0x0049F4B0)
+
+} // namespace
+
+int IsaacRandom::FindSeedFile(char* out, const char* pattern, int target, int* counter) {
+    mfc::CFileFind finder;
+    BOOL more = finder.FindFile(pattern, 0);
+    while (more) {
+        more = CFileFindNext(&finder);
+        if (CFileFindIsDotsOriginal(&finder)) continue;
+        if (Matches(finder, kAttributeSystem) || Matches(finder, kAttributeHidden)) continue;
+        if (Matches(finder, kAttributeDirectory)) {
+            CStringSlot path, sub;
+            CFileFindPathOriginal(&finder, nullptr, path.Get());
+            CStringConcatTextOriginal(sub.Get(), path.Get(), SubdirectoryPattern());
+            int found = FindSeedFile(out, *sub.Get(), target, counter);
+            sub.Get()->~CString();
+            path.Get()->~CString();
+            if (found == 1) return 1;
+            continue;
+        }
+        if (*counter >= target) {
+            if (finder.GetLength() >= kMinimumFileSize) {
+                CStringSlot path;
+                CFileFindPathOriginal(&finder, nullptr, path.Get());
+                const char* text = *path.Get();
+                std::memcpy(out, text, std::strlen(text) + 1);   // strcpy, unbounded as in the original
+                path.Get()->~CString();
+                return 1;
+            }
+            --*counter;
+        }
+        ++*counter;
+    }
+    return 0;
+}
+EI_REPLACE_METHOD(0x0049F4B0, IsaacRandom::FindSeedFile);
+
+// The original opens the file with CFile's throwing constructor inside TRY / CATCH(CFileException):
+// a failed open, seek or read clears `ok`. Here Open reports the failure and the seek and read go to
+// the handle directly (as CFile::Seek / Read do), so nothing throws. Kept: when the first search
+// counts exactly one file, rand() % 0 faults as in the original.
+void IsaacRandom::Seed() {
+    char path[kPathBuffer];
+    gamecrt::srand(gameapi::timeGetTime());
+    int ok = 0;
+    while (!ok) {
+        int counter = 0;
+        if (!FindSeedFileAt(this, nullptr, path, SeedSearchPattern(), RandomBelow512() + 1, &counter)) {
+            int r = gamecrt::rand();
+            int files = counter;
+            counter = 0;
+            if (!FindSeedFileAt(this, nullptr, path, SeedSearchPattern(), r % (files - 1) + 1, &counter)) continue;
+        }
+        ok = 1;
+        mfc::CFile file;
+        if (file.Open(path, kOpenReadShared, nullptr)) {
+            gamecrt::srand(gameapi::timeGetTime());
+            long offset = kSeedBytes - RandomBelow512();
+            DWORD read = 0;
+            if (gameapi::SetFilePointer(file.Handle(), offset, nullptr, FILE_BEGIN) == INVALID_SET_FILE_POINTER ||
+                !gameapi::ReadFile(file.Handle(), results_, kSeedBytes, &read, nullptr) || read != kSeedBytes)
+                ok = 0;
+            file.Close();
+        } else {
+            ok = 0;
+        }
+        bool zero = true;
+        for (std::uint32_t word : results_)
+            if (word != 0) {
+                zero = false;
+                break;
+            }
+        if (zero) {
+            ok = 0;
+            gameapi::Sleep(10);
+        }
+        for (std::uint32_t& word : results_) word ^= static_cast<std::uint32_t>(gamecrt::rand());
+    }
+}
+EI_REPLACE_METHOD(0x0049F660, IsaacRandom::Seed);
 
 namespace {
 
@@ -84,7 +205,7 @@ struct InitMix {
 
 void IsaacRandom::Init() {
     if (seeded_ != 0) return;
-    Seed();
+    SeedAt(this);
     c_ = 0;
     b_ = 0;
     a_ = 0;

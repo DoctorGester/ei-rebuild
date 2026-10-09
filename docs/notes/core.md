@@ -33,7 +33,7 @@ File: `core_maths.cpp`, `core_transform.cpp`, `core_transform_math.cpp`, `quater
 | 0040E3D0, 0040E440, 0040E460 | `CubicSegment::SetBSpline`, `Evaluate`; `CubicCurve3::Evaluate` | writes its object only / pure |
 | 00401490, 0040CB80, 0040CC30, 00401510, 00401540 | `CTransformObject` slots 13-17: CopyTransform, CombineRotation, UpdateWorld, SaveTransform, LoadTransform | scratch copy; UpdateWorld on a scratch copy with the base vtable; Save / Load against a recording file |
 | 00401570, 00401680, 00401940, 00401B50, 00401E50, 00401F00, 00402220 | `CTransformObject` WorldMatrix (4x4), TiltTowards (down axis a tenth of the way to a target), TurnTowards (forward axis onto a target), RollTowards, Rotate(axis, angle), TurnUpTowards, SetHeading (atan2 about +Z) | scratch copy, rotation / matrix bitwise |
-| 004667F0, 0049EE70, 0049F150 | `IsaacRandom::Next`, `Refill`, `Init` (the generator is at 007A9D40; seeding 0049F660 reads 1 KB of a random file from C:\ with the recursive CFileFind 0049F4B0, mixed with `rand()`; not rewritten) | Init: original on a scratch copy with the seed material replayed through a wrapper on 0049F660 |
+| 004667F0, 0049EE70, 0049F150, 0049F660, 0049F4B0 | `IsaacRandom::Next`, `Refill`, `Init` (the generator is at 007A9D40), `Seed` (1 KB of a random file on drive C, xored with `rand()`; A-S10), `FindSeedFile` (its recursive CFileFind walk) | Init: original on a scratch copy with the seed material replayed through the wrapper on 0049F660; Seed ours only; FindSeedFile against the original (two walks) |
 
 - `CTransformObject` (vtable 0073BA38, abstract, 0x54 bytes): CEngineObject + local position (+0x1C),
   world position (+0x28), local rotation (+0x34), world rotation (+0x44). Slots 13-17 are the five

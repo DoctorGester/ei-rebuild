@@ -242,7 +242,7 @@ V: S against the original (it runs first on scratch / copies, ours on the real o
 | Buffered file streams (`buffered_file.cpp`) | 004DAAF0 `Flush`, 004DB040 `BufferedStreamCommit` (slot 2, `Rebase`), 004DAC80 `ReleaseBlock`, slots 0, 1, 3, 4, 6 004DAE30 / 004DAFC0 / 004DB200 / 004DB420 / 004DB0F0 (`ReserveRead`, `ReserveWrite`, `ReadMore`, `WriteMore`, `Seek`), 004DB5E0 / 004DB630 `ReadAt` / `WriteAt` (7 / 8), 004DB680 / 004DB700 `BufferedFile::Close` / `Open` (O) | S; newgame (005809D0 reads "quest.reg") |
 | Matrix helpers (`matrix_math.cpp`) | 004D9880 `MatrixMultiply`, 004D9AA0 `Quaternion::ToMatrix`, 004D9B80 `CTransformPipeline::PushMatrix` (stacks at +0x14, 8 bytes each); 004D9ED0 (= 0047B940) | S (same aliasing); every frame |
 | View / light matrices (`view_matrices.cpp`) | 004F0EF0 `view::CameraViewMatrix` (stdcall: rows = the camera rotation's X axis (0040D940), Y and Z axes inline, column 3 = -position . row), 004F15C0 `LightRotation`, 004F1440 `LightShearMatrix` (the shadow's projection; map_object_shadow.cpp calls them by address; acos is the C++ one), 004E5660 (byte copy of `CubicSegment::Evaluate` 0040E440), 004E5710 `AllocateBlocks32` (as 00452DA0), 004F65B0 `AllocateBlocks8` (as 004545A0) | S; every frame, shadows, unit motion |
-| Text splitting (`text_split.cpp`) | 004DBE40 `text::Split`, 004DBF50 `SplitWords`, 004DC400 `ReplaceChar` | S; console (lines with breaks), keyboard.ini at startup, item name keys |
+| Text splitting (`text_split.cpp`) | 004DBE40 `text::Split`, 004DBF50 `SplitWords`, 004DC400 `ReplaceChar`, 004DC390 `Join` (A-S10; CTexture::LoadBmp calls it directly) | S; console (lines with breaks), keyboard.ini at startup, item name keys; Join no scenario (loose .bmp only) |
 | Text archive list (`text_sources.cpp`) | 004DE930 / 004DEAF0 / 004DEB60 `TextSourceList::Add` / `Remove` / `Clear`, 004DEDB0 / 004DEDD0 / 004DED40 `CTextManager::AddSource` / `RemoveSource` / `ClearSources` (004DED40 is slot 3 of vtable 0073F6F0) | O; newgame (client start, briefings add / remove zone texts), world_load |
 | Zone exit (`exit_area.cpp`) | 004E59F0 `ZoneExit::Contains` (world.h's +0x24 is `angle`) | P; FindExitAt and 005677F0; zone_base_bz1g, newgame |
 | Ground decals (`ground_decal.cpp`) | 004D7F50 `DecalBuilder::Construct`, 004D8000 `Begin`, 004D7F60 `Touches`, 004D8780 `Reserve`, 004D89A0 `Finish`; 004D85F0 `AddTriangle`, 004D8490 `AddTerrainTriangle`, 004D7BD0 `ClipPlane`, 004D74B0 `ClipFromV`, 004D71D0 `ClipFromUMax`, 004D6CF0 `Emit`, 004D6C50 `AddVertex`; 004D6E90 `decal::ClipTriangle`, 004D7140 `Interpolate`, 004D8470 `Vector3::LengthSquared` | S (NearlyEqual); every frame with shadows. ClipPlane / AddTriangle / AddTerrainTriangle are in tests/verify/disabled.txt (X17) |
@@ -344,9 +344,9 @@ work), `CSysInfo` 004DDCB0-004DE8B0 (static initialiser table 00783310: standalo
 - Renderer tickets: the D3D state-block manager 004FCA60 / 004FD2A0 / 004FD9D0 / 004FCE90, rain / snow draws 004E4240 /
   004E4C80, the fog object 004E1EB0-004E24E0, the CLinkMesh draw slots 7-14 004F3870-004F4850, the device functions
   004E5E50-004EFEA0; the TL library loader and matrices 004F0B90-004F15C0 (004F1330 Rebirth).
-- Particle element manager pieces 00497FE0 (manager clear, from 005627C0), 00498480 / 00498630; the keyframe track / static
-  initialiser block 0049F810-0049F890; 004A39C0 (from 004A38F0 / 004A3B70 / 0051E840); 0049F4B0 (recursive CFileFind for the
-  ISAAC seed); the effect manager and STLport members 004FC320-004FF4C0; CStringArray join 004DC390; 004BD310 / 004BDE40
-  (skipped, above).
+- A-S10 did the particle manager (particles.md), the ISAAC seed 0049F660 / 0049F4B0 (core.md) and 004DC390. Classified:
+  0049F820 / 0049F840 / 0049F870 are static initialisers (before the hooks); 0049F890 (keyframe track) is reached only from
+  00448720, which only calls itself (dead; inside 00447F50's Ghidra body); 004A39C0 is STLport deque::_M_reallocate_map.
+  Left: the effect manager and STLport members 004FC320-004FF4C0; 004BD310 / 004BDE40 (skipped, above).
 - Standalone build: `CSysInfo`, the party manager's static constructor 004A5870 and exit destructor 004A5700, CTorchObjectSpec
   Create / Destroy 0052C610 / 0052C680 (not ported; slots 13-15 004D6B20/30/40 are a bare RET).

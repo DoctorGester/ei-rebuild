@@ -49,8 +49,22 @@ int __fastcall ReplaceVerify(mfc::CString* string, char from, char to) {
     return actualRet;
 }
 
+// 004DC390: PUSH EBX, PUSH EDI, MOV EDI,EDX, MOV EBX,ECX (6). The original joins into a scratch
+// string, ours into the real one. Reached only by CTexture::LoadBmp (loose .bmp textures; no
+// scenario).
+int(__fastcall* s_join)(mfc::CString*, const mfc::CStringArray*, char);
+int __fastcall JoinVerify(mfc::CString* out, const mfc::CStringArray* parts, char separator) {
+    mfc::CString expected;
+    int expectedRet = s_join(&expected, parts, separator);
+    int actualRet = text::Join(out, parts, separator);
+    ei::verify::Check("text::Join", true, expectedRet == actualRet && std::strcmp(expected, *out) == 0,
+                      "%d parts, separator %02X", parts->GetSize(), static_cast<unsigned char>(separator));
+    return actualRet;
+}
+
 } // namespace
 
 EI_VERIFY(0x004DBE40, SplitVerify, 7, s_split);
 EI_VERIFY(0x004DBF50, SplitWordsVerify, 7, s_splitWords);
 EI_VERIFY(0x004DC400, ReplaceVerify, 7, s_replace);
+EI_VERIFY(0x004DC390, JoinVerify, 6, s_join);
