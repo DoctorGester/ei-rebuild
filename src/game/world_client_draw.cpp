@@ -131,7 +131,7 @@ float LandscapeDrawRadius() {
 __declspec(naked) void __fastcall VectorClear(stlp::vector<CEngineObject*>*) EI_ORIGINAL(0x0056E870)
 __declspec(naked) float* __fastcall CameraPosition(CCamera*) EI_ORIGINAL(0x0040FB20)
 __declspec(naked) void __fastcall SoundListener(void*, void*, float) EI_ORIGINAL(0x0067CEF0)
-__declspec(naked) int __fastcall CollectVisibleAt(CWorldClient*, void*, void*, const float*, float, std::uint32_t, int, int)
+__declspec(naked) int __fastcall CollectVisibleAt(CWorldClient*, void*, void*, const Matrix4*, float, std::uint32_t, int, int)
     EI_ORIGINAL(0x0056A990)
 __declspec(naked) void __fastcall NodeFree12(void*, void*, void*, int) EI_ORIGINAL(0x0056F700)
 __declspec(naked) void __fastcall NodeFree32(void*, void*, void*, int) EI_ORIGINAL(0x0056F840)
@@ -309,10 +309,10 @@ int CWorldClient::Render() {
     CTransformPipeline* device = ScenePipeline();
     ClientBeginFrame(this);
     Flush(renderer);
-    float view[16];
-    DeviceViewMatrix(device, nullptr, view, camera::TheCamera());
+    Matrix4 view;
+    DeviceViewMatrix(device, nullptr, view.m, camera::TheCamera());
     PopMatrix(device->stacks_[kStackView]);
-    PushMatrix(device->stacks_[kStackView], view);
+    PushMatrix(device->stacks_[kStackView], view.m);
     const float* top = device->Top(kStackView)->m;
     PushSceneMatrixOriginal(device, nullptr, top, kStackScene2);
     PushSceneMatrixOriginal(device, nullptr, top, kStackScene1);
@@ -413,7 +413,7 @@ int CWorldClient::DrawPass() {
     CTextureDevice* renderer = RenderDeviceObject();
     CTransformPipeline* device = ScenePipeline();
     std::uint32_t now = gameapi::timeGetTime();
-    const float* view = device->Top(kStackView)->m;
+    const Matrix4* view = device->Top(kStackView);
     CountedListClearOriginal(FrameDeferredUnits());
     static const FrameList kCleared[] = {FrameList::Visible54,   FrameList::VisibleOther, FrameList::Visible5D,
                                          FrameList::VisibleUnits, FrameList::Visible52,   FrameList::Shadow54,
@@ -538,22 +538,22 @@ int CWorldClient::DrawPass() {
         SortByModel(FrameList::ShadowOther, renderer);
         SortByModel(FrameList::Shadow5D, renderer);
         SortByModel(FrameList::Shadow52, renderer);
-        float matrix[16] = {};
-        matrix[15] = 1.0f;
-        matrix[10] = 1.0f;
-        matrix[5] = 1.0f;
-        matrix[0] = 1.0f;
+        Matrix4 matrix = {};
+        matrix.m[15] = 1.0f;
+        matrix.m[10] = 1.0f;
+        matrix.m[5] = 1.0f;
+        matrix.m[0] = 1.0f;
         float sun[3];
         QuaternionAxisZ(&camera::TheCamera()->localRotation_, nullptr, sun);
         const float scale = ShadowLength();
         volatile float product = sun[0] * scale;
-        matrix[3] = product;
+        matrix.m[3] = product;
         product = sun[1] * scale;
-        matrix[7] = product;
+        matrix.m[7] = product;
         product = sun[2] * scale;
-        matrix[11] = product;
-        PushSceneMatrixOriginal(device, nullptr, matrix, kStackScene2);
-        PushSceneMatrixOriginal(device, nullptr, matrix, kStackScene1);
+        matrix.m[11] = product;
+        PushSceneMatrixOriginal(device, nullptr, matrix.m, kStackScene2);
+        PushSceneMatrixOriginal(device, nullptr, matrix.m, kStackScene1);
         ApplyStateBlock(renderer, StateBlockAlpha());
         SetRenderState(renderer, 15, 0);
         SetRenderState(renderer, 14, 0);

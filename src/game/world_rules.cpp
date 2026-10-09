@@ -72,7 +72,7 @@ bool UnitOrderLess::Less(CEngineObject* a, CEngineObject* b) {
     auto sb = reinterpret_cast<std::uint32_t>(Object3D(b)->figure);
     if (sa < sb) return true;
     if (sa != sb) return false;
-    return !(Object3D(a)->viewPosition[2] >= Object3D(b)->viewPosition[2]);
+    return !(Object3D(a)->viewPosition.z >= Object3D(b)->viewPosition.z);
 }
 
 BOOL EntryIdLess::Less(const std::uint8_t* a, const std::uint8_t* b) {

@@ -118,7 +118,7 @@ CObject3DClientSpecific* ModelOf(CEngineObject* object) {
 
 // ---- Visibility ----------------------------------------------------------------------------------
 
-int CWorldClient::CollectVisible(void* list, const float* view, float animTime, std::uint32_t now, char animateUnits,
+int CWorldClient::CollectVisible(void* list, const Matrix4* view, float animTime, std::uint32_t now, char animateUnits,
                                  char withScripted) {
     MatrixDevice* device = Device();
     int touched = 0;
@@ -151,7 +151,7 @@ int CWorldClient::CollectVisible(void* list, const float* view, float animTime, 
             if (process) {
                 // Object -> world matrix: the rotation with the position as the last column.
                 CObject3D* o3d = Object3D(object);
-                float* matrix = o3d->worldMatrix;
+                float* matrix = o3d->worldMatrix.m;
                 QuaternionToMatrixOriginal(&o3d->orientation, nullptr, matrix);
                 std::memcpy(&matrix[3], &o3d->position.x, 4);
                 std::memcpy(&matrix[7], &o3d->position.y, 4);
@@ -170,14 +170,8 @@ int CWorldClient::CollectVisible(void* list, const float* view, float animTime, 
                 DrawQueues& frame = Frame();
                 if (where != 2) {
                     object->flags_ |= kFlagVisible;
-                    // View-space position: each row summed as (a + b) + c, then rounded.
-                    const float* p = &o3d->position.x;
-                    float z = StoreFloat((view[8] * p[0] + view[9] * p[1]) + view[10] * p[2]);
-                    float y = StoreFloat((view[4] * p[0] + view[5] * p[1]) + view[6] * p[2]);
-                    float x = StoreFloat((view[1] * p[1] + view[2] * p[2]) + view[0] * p[0]);
-                    o3d->viewPosition[0] = x;
-                    o3d->viewPosition[1] = y;
-                    o3d->viewPosition[2] = z;
+                    // View-space position: x summed ZYX, y and z XYZ, each rounded.
+                    o3d->viewPosition = TransformColumnNormal<Sum3::ZYX, Sum3::XYZ>(*view, o3d->position);
                     switch (object->GetClassId()) {
                     case 0x50:
                         PushBack(frame.visibleUnits, entry);

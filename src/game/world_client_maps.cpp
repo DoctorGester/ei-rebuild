@@ -332,7 +332,7 @@ int CWorldClient::AddObject(CEngineObject* object) {
         for (int i = 0; i < figure->parts.size; ++i) {
             if ((figure->PartBox(i)->flags >> 10) & 1) {
                 int id = object->id_;
-                platforms_.AddBox(id, figure->PartBox(i), &mapObject->positionX, &mapObject->orientation.w);
+                platforms_.AddBox(id, figure->PartBox(i), reinterpret_cast<const Vector3*>(&mapObject->positionX), &mapObject->orientation);
             }
         }
     }
@@ -751,14 +751,14 @@ int PlatformSet::AddFace(const float* a, const float* b, const float* c, const f
     return 1;
 }
 
-void PlatformSet::AddBox(int id, const FootprintPart* item, const float* position, const float* rotation) {
-    const float* offset = &item->offset.x;
-    const float* low = &item->boxMin.x;
-    const float* high = &item->boxMax.x;
-    const float* pivot = &item->pivot.x;
+void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* position, const Quaternion* rotation) {
+    const Vector3& offset = item->offset;
+    const Vector3& low = item->boxMin;
+    const Vector3& high = item->boxMax;
+    const Vector3& pivot = item->pivot;
 
     // The rotation matrix of the quaternion (w, x, y, z), as the original builds it.
-    float q0 = rotation[0], q1 = rotation[1], q2 = rotation[2], q3 = rotation[3];
+    float q0 = rotation->w, q1 = rotation->x, q2 = rotation->y, q3 = rotation->z;
     float t1 = q1 + q1, t2 = q2 + q2, t3 = q3 + q3;
     float t1q0 = t1 * q0, t2q0 = t2 * q0, t3q0 = t3 * q0;
     float t1q1 = t1 * q1, t2q1 = t2 * q1, t3q1 = t3 * q1;
@@ -775,38 +775,24 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const float* positio
     m.m[10] = 1.0f - (t2q2 + t1q1);
 
     // The box's corners (two of them repeated, as the faces walk them), moved by the pivot and the
-    // offset, rotated and placed.
-    float corners[8][3] = {{high[0], low[1], low[2]},  {low[0], low[1], low[2]},   {low[0], high[1], low[2]},
-                           {low[0], high[1], high[2]}, {high[0], high[1], high[2]}, {high[0], low[1], high[2]},
-                           {high[0], low[1], low[2]},  {low[0], low[1], low[2]}};
-    for (auto& corner : corners) {
-        float x = (pivot[0] + corner[0]) + offset[0];
-        float y = (pivot[1] + corner[1]) + offset[1];
-        float z = (pivot[2] + corner[2]) + offset[2];
-        float rx = (m.m[2] * z + m.m[1] * y) + m.m[0] * x;
-        float ry = (m.m[6] * z + m.m[5] * y) + m.m[4] * x;
-        float rz = (m.m[10] * z + m.m[9] * y) + m.m[8] * x;
-        corner[0] = position[0] + rx;
-        corner[1] = position[1] + ry;
-        corner[2] = rz + position[2];
-    }
-    float normals[6][3] = {{0, 0, -1}, {-1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 0}, {0, -1, 0}};
-    for (auto& n : normals) {
-        float nx = n[0], ny = n[1], nz = n[2];
-        n[0] = (m.m[2] * nz + m.m[0] * nx) + m.m[1] * ny;
-        n[1] = (m.m[6] * nz + m.m[4] * nx) + m.m[5] * ny;
-        n[2] = (m.m[10] * nz + m.m[8] * nx) + m.m[9] * ny;
-    }
+    // offset (stored), rotated (rows summed ZYX, stored) and placed.
+    Vector3 corners[8] = {{high.x, low.y, low.z},  {low.x, low.y, low.z},   {low.x, high.y, low.z},
+                          {low.x, high.y, high.z}, {high.x, high.y, high.z}, {high.x, low.y, high.z},
+                          {high.x, low.y, low.z},  {low.x, low.y, low.z}};
+    for (Vector3& corner : corners) corner = *position + TransformColumnNormal<Sum3::ZYX>(m, (pivot + corner) + offset);
+    // The face normals, rotated (rows summed ZXY).
+    Vector3 normals[6] = {{0, 0, -1}, {-1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 0}, {0, -1, 0}};
+    for (Vector3& n : normals) n = TransformColumnNormal<Sum3::ZXY>(m, n);
     for (int i = 0; i < 6; ++i) {
         Platform* record;
-        if (!AddFace(corners[i + 1], corners[i], corners[i + 2], normals[i], &record)) continue;
+        if (!AddFace(&corners[i + 1].x, &corners[i].x, &corners[i + 2].x, &normals[i].x, &record)) continue;
         record->id = id;
-        Vector3 moved = {pivot[0] + offset[0], pivot[1] + offset[1], pivot[2] + offset[2]};
+        Vector3 moved = pivot + offset;
         Vector3 rotated;
         m.Transform(&rotated, &moved);
-        record->x = rotated.x + position[0];
-        record->y = rotated.y + position[1];
-        record->z = rotated.z + position[2];
+        record->x = rotated.x + position->x;
+        record->y = rotated.y + position->y;
+        record->z = rotated.z + position->z;
         std::memcpy(&record->radius, &item->unknown_10, 4);   // a dword move
     }
 }

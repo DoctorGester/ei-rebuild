@@ -69,7 +69,7 @@ src/game/fake_unit.cpp,7,4,0,0,5,0,0,0,0,0,0
 src/game/figure_factory.cpp,5,0,0,0,3,0,0,0,0,0,0
 src/game/figure_links.cpp,0,7,0,0,0,0,0,0,0,0,0
 src/game/figure_load_bounds.cpp,0,4,0,0,0,0,0,0,0,0,0
-src/game/figure_mesh.cpp,0,2,0,4,0,0,0,1,0,0,7
+src/game/figure_mesh.cpp,0,2,0,4,0,0,0,1,0,0,3
 src/game/figure_mesh.h,0,0,0,0,0,0,0,0,0,0,1
 src/game/figure_mesh_file.cpp,13,3,3,2,0,0,0,4,0,0,1
 src/game/figure_model_destroy.cpp,0,3,0,0,1,0,0,0,0,0,0
@@ -103,7 +103,6 @@ src/game/map_object_companion.cpp,0,5,0,1,0,0,0,7,0,0,3
 src/game/map_object_create.cpp,1,0,0,0,0,0,0,0,0,0,0
 src/game/map_object_draw.cpp,24,3,0,1,0,0,0,0,0,1,4
 src/game/map_object_figures.cpp,0,8,0,1,0,0,0,1,0,0,2
-src/game/map_object_figures.h,0,0,0,0,0,0,0,0,0,0,2
 src/game/map_object_parts.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/map_object_shadow.cpp,8,4,1,1,0,0,0,0,0,0,15
 src/game/map_spec.cpp,1,8,0,0,9,0,0,3,0,0,3
@@ -317,10 +316,10 @@ src/game/view_matrices.cpp,0,0,0,0,0,0,0,0,0,0,5
 src/game/weather_draw.cpp,10,0,0,0,0,0,0,1,0,0,0
 src/game/world.h,0,0,0,0,0,0,0,0,0,4,5
 src/game/world_briefing.cpp,0,0,0,0,10,0,0,1,0,1,0
-src/game/world_client.cpp,0,0,0,0,0,0,0,0,0,0,8
-src/game/world_client_draw.cpp,0,0,6,0,3,0,0,0,0,0,5
-src/game/world_client_maps.cpp,0,0,0,0,0,0,0,0,0,0,9
-src/game/world_client_view.cpp,0,0,0,2,0,0,0,0,0,0,3
+src/game/world_client.cpp,0,0,0,0,0,0,0,0,0,0,5
+src/game/world_client_draw.cpp,0,0,6,0,3,0,0,0,0,0,3
+src/game/world_client_maps.cpp,0,0,0,0,0,0,0,0,0,0,3
+src/game/world_client_view.cpp,0,0,0,2,0,0,0,0,0,0,0
 src/game/world_effect_internal.h,0,13,1,0,7,0,0,0,0,0,0
 src/game/world_effect_missile.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/world_effect_moshka.cpp,0,0,0,0,0,0,0,0,0,0,4

@@ -428,10 +428,10 @@ public:
     const CTransformObject* Transform() const { return reinterpret_cast<const CTransformObject*>(this); }
 
     Vector3 position;               // +0x01C
-    float viewPosition[3];          // +0x028 the position in view space (CWorldClient::CollectVisible)
+    Vector3 viewPosition;           // +0x028 the position in view space (CWorldClient::CollectVisible)
     Quaternion orientation;         // +0x034
     Quaternion worldOrientation;    // +0x044 the parent's rotation times the orientation (slot 14)
-    float worldMatrix[16];          // +0x054 object -> world: the rotation, the position as column 3
+    Matrix4 worldMatrix;            // +0x054 object -> world: the rotation, the position as column 3
     CEngineObject* attached;        // +0x094 the object slot 19 accepts (type 0x46)
     CFigureAnimationState* animation;   // +0x098 the figure's animation state
     std::uint32_t unknown_09C;      // +0x09C cleared by Create3D / Destroy3D
