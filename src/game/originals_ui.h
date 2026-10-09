@@ -521,4 +521,16 @@ __declspec(naked) inline void __fastcall ConsoleDrawLinesOriginal(void* /*consol
 // 005E3700 (thiscall on the chat overlay, plain RET; Rebirth-patched): the typed line drawn on its surface (hidden while
 // the chat is closed), the caret clamped to it.
 __declspec(naked) inline void __fastcall ChatOverlayDrawTypedOriginal(void* /*chat*/) EI_ORIGINAL(0x005E3700)
+// 00578B20 (on the client glue 007AFEA5, ECX not read): the client leaves the interface screen for the world (message 5).
+__declspec(naked) inline void __fastcall GlueBackToWorldOriginal(void* /*glue*/) EI_ORIGINAL(0x00578B20)
+// 00661FE0 (thiscall on a CParty, plain RET): every item released (its slot 4), the item array's storage freed.
+__declspec(naked) inline void __fastcall PartyReleaseItemsOriginal(void* /*party*/) EI_ORIGINAL(0x00661FE0)
+// The game client's trade offer (ClientSession, thiscall on GameClient(); rewritten in net_client_*.cpp, called through
+// their address so the wrappers run): 0041E0A0 records the trade with `party` (RET 4), 0041E180 takes the acceptance
+// back, 0041E3E0 drops the offer, 0041DA50 publishes our offer (plain RET each).
+__declspec(naked) inline void __fastcall ClientRecordTradeOriginal(void* /*client*/, void*, const void* /*party*/)
+    EI_ORIGINAL(0x0041E0A0)
+__declspec(naked) inline void __fastcall ClientCommitPartyOriginal(void* /*client*/) EI_ORIGINAL(0x0041E180)
+__declspec(naked) inline void __fastcall ClientDropPartyOriginal(void* /*client*/) EI_ORIGINAL(0x0041E3E0)
+__declspec(naked) inline void __fastcall ClientPublishPartyOriginal(void* /*client*/) EI_ORIGINAL(0x0041DA50)
 

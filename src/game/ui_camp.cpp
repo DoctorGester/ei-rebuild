@@ -57,11 +57,6 @@ void* CampItems::Move(void* item, void* to, void* from, int a, int b, int c) {
     return ItemScreenMoveItemOriginal(this, nullptr, static_cast<CItem*>(item), to, from, a, b, c);
 }
 
-// 00578B20 (on 007AFEA5): the client leaves the interface screen for the world.
-struct LocalClient {
-    void BackToWorld();
-};
-__declspec(naked) void LocalClient::BackToWorld() EI_ORIGINAL(0x00578B20)
 
 // Surface text (005FDE20 is Rebirth-patched).
 struct SurfaceDraw {
@@ -192,7 +187,7 @@ void CCampPages::ShowPage(int page) {
             interface_->SetPendingValue(0);
             return;
         }
-        reinterpret_cast<LocalClient*>(0x007AFEA5)->BackToWorld();
+        GlueBackToWorldOriginal(UiClientGlue());
         return;
     }
     default:

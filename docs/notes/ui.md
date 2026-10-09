@@ -244,8 +244,8 @@ title, window): its deleting destructors 0060E340 / 00613DD0 were registered as 
 `console::ConsoleWindow::Construct` 005E3CE0 (`console_window_create.cpp`; SetRect / DrawLines by address; kept: a
 failed font allocation still calls CreatePointFont on null).
 
-Next in 005E0000-00640000 (not Rebirth-patched, single player first): 0062D210 (the exchange's slot 37), 00612CF0
-(the camp's slot 39, a debug fill of the constructors; no scenario). Multiplayer / lobby last: 005E2A30 / 005E3230 / 005E3550 / 005E3CE0 / 005E26F0 (chat), 00608D20-006097E0 (the
+Next in 005E0000-00640000 (not Rebirth-patched, single player first): 00612CF0 (the camp's slot 39, a debug fill of
+the constructors; no caller but the vtable, no scenario). Multiplayer / lobby last: 005E2A30 / 005E3230 / 005E3550 / 005E3CE0 / 005E26F0 (chat), 00608D20-006097E0 (the
 base screen's chat window), 0062C250 / 0062C9C0 (exchange), 0061B2C0-00620300 (connection screens). 005E67F0 is only
 an unwind helper.
 
@@ -446,7 +446,12 @@ each record unwritten.
 
 Not rewritten: 00612CF0 (camp slot 39, a debug fill; no caller but the vtable) (the trade grid draw 00627390 is in `ui_trade_grid_draw.cpp`, renderer.md),
 0062CF70, 006091C0 (the chat window's player list; its RefPtr assignment 00609D40 is done, net_server_trade.cpp);
-the exchange window (0062C250, 0062C9C0) and the lobby screens (0061C430, 0061C700, 0061D470, 0061E2F0 ...) need a network session, no scenario.
+the exchange window's Create / Draw (0062C250, 0062C9C0) and the lobby screens (0061C430, 0061C700, 0061D470, 0061E2F0 ...) need a network session, no scenario.
+A-I19: `CExchangeScreen` (screen 9) derives from `CItemScreen` now with its fields (+0x190 scratch party, +0x194 / +0x198
+the client's parties_[1] / [0], strip, figure strip, trade grid, money field, figure names); `ui_exchange.cpp`:
+`OnExchangeDone` 0062D210 (slot 37), `Close` 0062C8F0, `OnMessageResult` 0062C920, `Update` 0062C930, `OnLButtonDown`
+0062CF70 (`verify_ui_exchange.cpp`, ours only; multiplayer only, no scenario). The client's trade calls go through
+their addresses (originals_ui.h `Client*Original`).
 
 ### Briefing / base screen (`ui_briefing*.cpp`, `ui_briefing.h`, `ui_person_texts.cpp`; `verify_ui_briefing*.cpp`)
 
