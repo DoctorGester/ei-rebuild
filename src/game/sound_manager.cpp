@@ -960,6 +960,13 @@ void CSoundManager::StopAll(bool stopStream) {
         for (int i = 0; i < 15; ++i)
             if (slots[i].playing != 0) EndSlot(&slots[i]);
     nextHandle = 0;
+    DeleteDeferred();
+    if (stopStream) StopStream(4);
+}
+EI_REPLACE_METHOD(0x006B71C0, CSoundManager::StopAll);
+
+// StopAll's loop (Close's is the same with the map's clear() out of line, 006BD100).
+void CSoundManager::DeleteDeferred() {
     DeferredIter it;
     DeferredBegin(&deferred, nullptr, &it);
     while (it.node != nullptr) {
@@ -973,9 +980,7 @@ void CSoundManager::StopAll(bool stopStream) {
         it.node = next;
     }
     deferred.Clear();
-    if (stopStream) StopStream(4);
 }
-EI_REPLACE_METHOD(0x006B71C0, CSoundManager::StopAll);
 
 namespace {
 // AILSOUNDINFO, filled by AIL_WAV_info.

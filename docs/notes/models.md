@@ -145,7 +145,7 @@ Code: `terrain_sector.h/.cpp` (`terrain::SectorData` / `TerrainFields` are views
 `terrain_draw.cpp` (`DrawSectorPage`, algorithm in its header). Verify: `verify_terrain_sector.cpp`, `verify_terrain_draw.cpp`. Reached by every scenario (zone1 loads several sectors, water sectors only where the map
 has water; the terrain pass draws every visible page each frame). Sound parts of the range are in `sound.md`.
 
-Map (R = Direct3D / renderer calls, left original): 006BF5F0 / 006BF8A0 `SectorData` ctor / dtor (0x394 bytes); 006C13A0 `Load` (`<zone>XXXYYY.sec`, magic CF4BF774); 006C1C00 (+ chunk 006C29BD) `Build`; 006C30E0
+Map (R = Direct3D / renderer calls, left original): 006BF5F0 / 006BF8A0 `SectorData` ctor / dtor (0x394 bytes); 006BFC80 `Project`; 006C13A0 `Load` (`<zone>XXXYYY.sec`, magic CF4BF774); 006C1C00 (+ chunk 006C29BD) `Build`; 006C30E0
 `ApplyWaterLevels`; 006C3DD0 `Ensure` (build 2 / light 4 on demand); 006C53C0 `TileUv`; vertex lighting 006C31C0 / 006C36B0 / 006C3A00 (3A00 switches the FPU to chop rounding with `_controlfp(0x300, 0x300)`; 36B0 tests
 shadows through 006C92C0); landscape object (vtable 0073F6A8): per-frame Update 006CB1E0 (light countdown 006C8ED0, animated tiles, ambience 006CB390, frame counter +0x218); draw passes 006C6230 / 006C6330 / 006C6460 /
 006C66E0 (from the renderer 00569E40, Rebirth-patched) (R) -> `DrawSectorPage` 006BFF40; 006C68B0 map loader (Rebirth-patched, not rewritten); 006C8140 `Terrain::SectorAt` sector cache (grid +0x1F8, LRU list
@@ -159,6 +159,8 @@ shadows through 006C92C0); landscape object (vtable 0073F6A8): per-frame Update 
 | 006C30E0 | SectorData::ApplyWaterLevels | snapshot, original, restore, ours, compare |
 | 006C3DD0 | SectorData::Ensure | ours only: result and built flags (calls Build through its original address) |
 | 006C53C0, 006C8D40, 006C8930 | TileUv, SurfaceClass, GroundAndWaterDepth | pure / side by side / outputs |
+| 006BF5F0 | SectorData::Construct (A-H18; sizes the shared projection buffers 007C88F8 / 007C88E8 / 007C88D0 to 0x330) | ours on the real sector, original on a copy of its starting bytes; all 0x394 bytes compared |
+| 006BFC80 | SectorData::Project (A-H18, RET 4: the pipeline; the pass 006C6460): per quarter not culled, positions at the LOD step through 004F29F0 against the quarter box (a ClipBounds prefix); records +0x00 projected, +0x10 outcode | original, restore, ours; quarter modes and every record's first 0x11 bytes compared |
 | 006BFF40 | DrawSectorPage (`__fastcall` for the thiscall with four stack arguments: context, unused, texture page, unused) | ours only: result 0 / 1, vertex buffer size within capacity and a multiple of 4 |
 
 Facts: terrain_sector.cpp is compiled with `float_control(precise, on)` (running x / y, heights in flight and bounding box intermediates are doubles; constants read from the exe; HeightAt taken unrounded through a

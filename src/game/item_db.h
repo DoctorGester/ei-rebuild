@@ -266,6 +266,21 @@ struct IndexedRecordTable {
 };
 static_assert(sizeof(IndexedRecordTable) == 0x20);
 
+// The item database (007C86D8; constructed by 0057E3D0, destroyed at exit through 006A6560).
+struct ItemDatabase {
+    // 006A6570 (item_db_load.cpp, A-H18). The tables from the last to the first: the name index
+    // emptied and its buckets freed, every record destroyed, the record storage freed.
+    void DestructBody();
+
+    IndexedRecordTable materials;   // +0x00 kMaterialSize records
+    IndexedRecordTable weapons;     // +0x20 kWeaponSize
+    IndexedRecordTable armors;      // +0x40 kArmorSize
+    IndexedRecordTable quickItems;  // +0x60 kQuickItemSize
+    IndexedRecordTable loot;        // +0x80 kLootSize (Loot())
+    IndexedRecordTable questItems;  // +0xA0 kQuestItemSize (QuestItems())
+};
+static_assert(sizeof(ItemDatabase) == 0xC0);
+
 // Field offsets that the rewritten functions read. Names provisional, from how callers use them.
 namespace field {
 // Common to every item prototype (weapons, armors, quick, quest and loot items).
