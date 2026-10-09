@@ -360,8 +360,7 @@ bool CUnitServer::StartMove() {
     offset.x = unit->positionX - action.point.x;
     offset.y = unit->positionY - action.point.y;
     offset.z = unit->positionZ - action.point.z;
-    double lengthSq = static_cast<double>(offset.z) * offset.z + static_cast<double>(offset.y) * offset.y;
-    lengthSq = lengthSq + static_cast<double>(offset.x) * offset.x;
+    double lengthSq = LengthSquaredZYX(offset);
     if (LessOrUnordered(lengthSq, kArrived)) {
         action.CallReset();
         if (action2.kind == kOrderEmpty) CallIdle();
@@ -812,9 +811,7 @@ void CUnitServer::ApproachTarget() {
             offset.z = p[2] - unit->positionZ;
             double closing = Slots(unit)->MoveSpeed() * (static_cast<double>(kOne) * kHalf);
             if (closing > kZero) {
-                double distance = x87::fsqrt(static_cast<double>(offset.x) * offset.x +
-                                             static_cast<double>(offset.y) * offset.y +
-                                             static_cast<double>(offset.z) * offset.z);
+                double distance = LengthXYZ(offset);
                 double ticks = (distance - reach) / closing;
                 if (static_cast<double>(lead) > ticks) {
                     if (state != kStateTurning) StandIdle(this);
@@ -847,8 +844,7 @@ void CUnitServer::ApproachTarget() {
     offset.x = where[0] - unit->positionX;
     offset.y = where[1] - unit->positionY;
     offset.z = where[2] - unit->positionZ;
-    double sum = static_cast<double>(offset.x) * offset.x + static_cast<double>(offset.z) * offset.z;
-    volatile float distance = static_cast<float>(x87::fsqrt(sum + static_cast<double>(offset.y) * offset.y));
+    volatile float distance = LengthZXY(offset);
     volatile float mySpeed = static_cast<float>(Slots(unit)->MoveSpeed());
     double closing;
     if (IsMoving(chased)) {

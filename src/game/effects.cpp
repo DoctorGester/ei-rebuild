@@ -303,7 +303,7 @@ int CParticleSource::UpdateOrbit(Particle* p) {
     float d = elements[0].value[5];
     if (d > kOrbitMinRadius) {
         const Vector3& n = elements[1].pos;
-        float t = StoreFloat(-((p->velocity.z * n.z + p->velocity.y * n.y + p->velocity.x * n.x) / d));
+        float t = StoreFloat(-(DotZYX(p->velocity, n) / d));
         t = LessOrUnordered(t, kOne) ? t : kOne;
         t = LessOrUnordered(t, kZero) ? kZero : t;
         Vector3 along;
@@ -351,7 +351,7 @@ EI_REPLACE_METHOD(0x004892E0, CParticleSource::TickNuke);
 // Tendril smoke: emission proportional to the length of `extent`, at least 6, at most a 16th of
 // the particle limit.
 void CParticleSource::TickTendril(ParticleElement*) {
-    int n = GameFtol(x87::fsqrt(extent.x * extent.x + extent.y * extent.y + extent.z * extent.z) * kTendrilDensity);
+    int n = GameFtol(LengthXYZ(extent) * kTendrilDensity);
     emitCount = n;
     int count = n < 6 ? 6 : n;
     int cap = maxParticles / 16;

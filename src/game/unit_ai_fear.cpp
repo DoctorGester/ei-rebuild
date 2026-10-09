@@ -87,8 +87,7 @@ void ConstructOrder(AIMoveOrder* order) {
 bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, const Vector3& foe, float dx, float dy,
                      Vector3* out) {
     Vector3 away{dx, dy, Round(static_cast<double>(foe.z) - me.z)};
-    double length = std::sqrt(static_cast<double>(away.x) * away.x + static_cast<double>(away.z) * away.z +
-                              static_cast<double>(away.y) * away.y);
+    double length = LengthZXY(away);
     if (!ZeroOrNaN(length)) {
         double scale = kFlightStep / length;
         away.x = Round(scale * away.x);
@@ -98,15 +97,11 @@ bool FindFlightPoint(AIBrain* brain, CUnit* self, CUnit* enemy, Vector3 me, cons
     IsaacRandom& random = IsaacRandom::Global();
     float jitterX = Round(x87::FromUnsigned(random.Next()) * kRandomSix - kThree);
     float jitterY = Round(x87::FromUnsigned(random.Next()) * kRandomSix - kThree);
-    Vector3 back{Round(static_cast<double>(me.x) - away.x), Round(static_cast<double>(me.y) - away.y),
-                 Round(static_cast<double>(me.z) - away.z)};
+    Vector3 back = me - away;
     Vector3 dest{Round(static_cast<double>(back.x) + jitterX), Round(static_cast<double>(back.y) + jitterY), back.z};
 
     ScopedPath local;
-    Vector3 delta{Round(static_cast<double>(dest.x) - me.x), Round(static_cast<double>(dest.y) - me.y),
-                  Round(static_cast<double>(dest.z) - me.z)};
-    double way = std::sqrt(static_cast<double>(delta.x) * delta.x + static_cast<double>(delta.z) * delta.z +
-                           static_cast<double>(delta.y) * delta.y);
+    double way = DistanceZXY(dest, me);
     float wayRounded = Round(way);
     float range = Round(way * kThree + kRangeBase);
     if (!Map()->FindPath(self, &dest, &local.path, range, kMinDistance)) return false;
@@ -235,10 +230,7 @@ void FearMode::Execute(AIBrain* brain) {
         brain->noticedKind = 0;
     }
 
-    Vector3 away{Round(static_cast<double>(here->x) - from.x), Round(static_cast<double>(here->y) - from.y),
-                 Round(static_cast<double>(here->z) - from.z)};
-    double near2 = static_cast<double>(away.z) * away.z + static_cast<double>(away.y) * away.y +
-                   static_cast<double>(away.x) * away.x;
+    double near2 = DistanceSquaredZYX(*here, from);
     if (static_cast<double>(distance) * distance > near2 && brain->owner->command != kCommandWalk &&
         brain->owner->nextCommand != kCommandWalk) {
         Vector3 dest;
@@ -273,10 +265,7 @@ void FearMode::Execute(AIBrain* brain) {
             dest.z = backZ;
         }
         ScopedPath local;
-        Vector3 delta{Round(static_cast<double>(dest.x) - here->x), Round(static_cast<double>(dest.y) - here->y),
-                      Round(static_cast<double>(dest.z) - here->z)};
-        double way = std::sqrt(static_cast<double>(delta.z) * delta.z + static_cast<double>(delta.y) * delta.y +
-                               static_cast<double>(delta.x) * delta.x);
+        double way = DistanceZYX(dest, *here);
         float range = Round(way * kThree + kRangeBase);
         if (Map()->FindPath(brain->owner->unit, &dest, &local.path, range, kMinDistance)) {
             brain->action = AIBrain::kActionWalk;
@@ -299,11 +288,9 @@ void FearMode::Execute(AIBrain* brain) {
         if (brain->action == AIBrain::kActionNone) {
             // Stand still and look away from the danger.
             order.point = *PositionOf(brain->owner->unit);
-            Vector3 v{Round(static_cast<double>(from.x) - here->x), Round(static_cast<double>(from.y) - here->y),
-                      Round(static_cast<double>(from.z) - here->z)};
+            Vector3 v = from - *here;
             Vector3 direction = v;
-            double length = std::sqrt(static_cast<double>(v.x) * v.x + static_cast<double>(v.y) * v.y +
-                                      static_cast<double>(v.z) * v.z);
+            double length = LengthXYZ(v);
             if (!ZeroOrNaN(length)) {
                 double twice = length + length;
                 direction.x = Round(v.x / twice);

@@ -155,7 +155,7 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
     above.y = high.y - center.y;
     above.z = high.z - center.z;
     boundsFlags |= kBoundsBox;
-    radius = std::sqrt(above.x * above.x + above.y * above.y + above.z * above.z);
+    radius = LengthXYZ(above);
     boundsFlags |= kBoundsSphere;
 }
 
@@ -185,7 +185,7 @@ void CObject3D::UpdatePartBounds() {
     below.z = lowZ - centreZ;
     boundsFlags |= kBoundsBox;
     boundsFlags |= kBoundsSphere;
-    radius = std::sqrt((below.z * below.z + below.y * below.y) + below.x * below.x);
+    radius = LengthZYX(below);
     center.x = centreX - position.x;
     center.y = centreY - position.y;
     center.z = centreZ - position.z;

@@ -65,8 +65,6 @@ std::uint8_t& GlowGuards() { return *reinterpret_cast<std::uint8_t*>(0x0079C1F4)
 void SizeSprites() { Sprites().SetSize(8); }
 void SizePoints() { GlowPoints().SetSize(8); }
 
-// A segment step's length, summed in the original's order.
-float LengthXZY(const Vector3& v) { return std::sqrt((v.x * v.x + v.z * v.z) + v.y * v.y); }
 
 // A random texture offset: 0, 0.25, 0.5 or 0.75.
 float RandomOffset() {
@@ -110,13 +108,9 @@ void __fastcall DrawLightningGlow(CLightning* self, void*, void* device, const V
 
     // Towards the camera (0079B2C4), normalised unless zero.
     const Vector3& camera = *reinterpret_cast<const Vector3*>(0x0079B2C4);
-    Vector3 towards{camera.x - position->x, camera.y - position->y, camera.z - position->z};
-    float length = std::sqrt(towards.z * towards.z + towards.y * towards.y + towards.x * towards.x);
-    if (length > 0.0f || length < 0.0f) {
-        towards.x /= length;
-        towards.y /= length;
-        towards.z /= length;
-    }
+    Vector3 towards = camera - *position;
+    float length = LengthZYX(towards);
+    if (length > 0.0f || length < 0.0f) towards /= length;
     float scaled = position->x * GameFloat(0x0073C518);   // 15
     int shift = x87::fistp(scaled);
     int frame = (static_cast<int*>(ObjectWorld(self))[0x64 / 4] + shift) % 15;
@@ -152,11 +146,11 @@ int __fastcall DrawLightning(CLightning* self, void*, void* device) {
         for (LightningSegment& b : self->branches_) ei::VCall<int>(device, kDrawStrip, &b.points, b.width, visibility, 0.0f, 0.0f, slant);
     } else {
         float offset = RandomOffset();
-        float span = LengthXZY(self->main_.step) * static_cast<float>(self->main_.points.size) * GameFloat(0x0073C4FC);   // 0.6
+        float span = LengthZXY(self->main_.step) * static_cast<float>(self->main_.points.size) * GameFloat(0x0073C4FC);   // 0.6
         ei::VCall<int>(device, kDrawStrip, &self->main_.points, self->main_.width, visibility, span, offset, slant);
         for (LightningSegment& b : self->branches_) {
             offset = RandomOffset();
-            span = LengthXZY(b.step) * static_cast<float>(b.points.size) * GameFloat(0x0073C4FC);
+            span = LengthZXY(b.step) * static_cast<float>(b.points.size) * GameFloat(0x0073C4FC);
             ei::VCall<int>(device, kDrawStrip, &b.points, b.width, visibility, span, offset, slant);
         }
     }

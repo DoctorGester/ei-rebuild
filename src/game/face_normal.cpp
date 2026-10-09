@@ -71,8 +71,7 @@ void __fastcall ComputeFaceNormal(MeshFace* face, void*, const PointBuffer* posi
         face->normal.z = StoreFloat(inverse * face->normal.z);
     }
     const Vector3& at = points[face->vertex[1]];
-    face->distance = StoreFloat(static_cast<double>(at.z) * face->normal.z + static_cast<double>(at.y) * face->normal.y +
-                                static_cast<double>(at.x) * face->normal.x);
+    face->distance = StoreFloat(DotZYX(at, face->normal));
 }
 EI_REPLACE(0x0049AEC0, ComputeFaceNormal);
 

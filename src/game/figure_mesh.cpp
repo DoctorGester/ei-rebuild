@@ -574,8 +574,7 @@ void Extend(float& max, float& min, float v) {
 
 void CFigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* minX, float* minY, float* minZ) const {
     // ((x*x + y*y) + z*z) of the position, on the FPU; NaN passes.
-    double far = static_cast<double>(position_.x) * position_.x + static_cast<double>(position_.y) * position_.y;
-    far = far + static_cast<double>(position_.z) * position_.z;
+    double far = LengthSquaredXYZ(position_);
     if (far > FarLimit()) return;
 
     float m[16];
