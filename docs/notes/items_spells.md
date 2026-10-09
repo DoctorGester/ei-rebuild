@@ -414,5 +414,4 @@ heights by the token's font digit, fonts 3-9 read the original's other stack slo
 tooltip's constructor leaves the measurements and both arguments unwritten for an empty text. Risks: the constructor wrappers
 are ours only; Layout's stand-in shares the sprites.
 
-**Next candidates**: 00690D30 / 00690B30 / 0068FA10 / 00690260 / 00690970 (texture manager); spell serialisers 0068B860 /
-0068B920; then the largest left in 0x640000-0x6C0000 (`python tools/progress.py`).
+**Next candidates** (after A-H22): 00688EC0 CreateSpellObject (hash_map of sequences inlined), 0068BA80 CSpellContainer constructor, 00691250 / 00688990 / 00688B40 (manager destructors), 00693010, 00692D30, 0068DE30 / 0068D850 / 0068DBC0 (lights), 00663410, 00669D50; then the largest left in 0x640000-0x6C0000 (`python tools/progress.py`; it misses UI_INPUT_HANDLER registrations, so check `grep` before picking).
