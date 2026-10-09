@@ -43,6 +43,9 @@ struct CScreenFade {
     // ends (nothing drawn), otherwise a black rectangle of that alpha over the screen. Both draws
     // with the depth test off (render state 7) through the renderer's slot 19. Returns 1.
     int Draw(CSceneRenderer* renderer);
+    // 005E6B90 (RET 4; ui_interface_draw.cpp). Starts a fade over `ms` milliseconds: rate_ 255 /
+    // ms (stored as float), from alpha 0 (ms > 0, fading out) or 255, the clock now, fading.
+    void Start(int ms);
 
     float rate_;                     // +0x00 alpha per millisecond
     float alpha_;                    // +0x04 0..255
@@ -433,9 +436,9 @@ public:
                         int flag);
     // 005FD120 (ui_surface_create.cpp). Destructor body: releases the DirectDraw surface.
     void ReleaseContents();
-    // 005FD760 (not rewritten). Sets (`frozen` nonzero) or clears the shown flag (4 of +0x0C):
-    // setting it puts kept contents (+0x1C) back into a surface (005FD7A0 with 1); clearing it with
-    // `restore` set keeps the contents in memory and releases the surface (005FD7A0 with 0).
+    // 005FD760 (RET 8; ui_window.cpp). Sets (`frozen` nonzero) or clears the shown flag (4 of
+    // +0x0C): setting it puts kept contents (+0x1C) back into a surface (005FD7A0 with 1); clearing
+    // it with `restore` set keeps the contents in memory and releases the surface (005FD7A0 with 0).
     void Freeze(int frozen, int restore);
     // 005FCC00 (ui_surface_create.cpp). Constructor: a surface of the layout rectangle (left, top,
     // right, bottom) with format `format`; returns this.
@@ -823,6 +826,9 @@ public:
     // owner's slot 42 with mode_ (the camp's MoveItem); without one, a help topic the panel named
     // goes to the owner's slot 44 (the camp: the strip tabs for it). The event is not marked used.
     void OnLeftDown(int buttons, int x, int y);
+    // 0060E210 (RET 8; ui_item_panel_input.cpp). The blank panel's constructor (the camp's): the
+    // window base, vtables 00741B58 / 00741B24, owner_ = `owner` (mode_ left). Returns this.
+    CUiItemPanel* ConstructBlank(CInterface3D* ui, CUiWindow* owner);
 
     // The owner's slots the panels call (the camp 0074091C, the hero screen 0074214C).
     // Slot 42 (+0xA8): take `item` with the panel's action mode.
@@ -1342,6 +1348,10 @@ public:
     // Not rewritten: Commit (005EA150), which hands the arrays to the renderer fields
     // (+0x9C..+0xC8) and returns the index count.
     int Commit();
+    // 005E7010 (RET 0xC; ui_mesh_draw.cpp). Where Place put the sprite: the layout point
+    // ((x / z / 0.4816 + 1) * 400, y / z / 0.4816 * 400 + 300; each stored as float) and the depth
+    // (z, copied).
+    void GetPlacement(float* x, float* y, float* depth) const;
     // 005E6FA0 (Rebirth-patched, not rewritten). Puts the sprite at layout point (x, y) at
     // `depth` in front of the interface camera (sets the local position +0x1C).
     void Place(float x, float y, float depth);
@@ -2340,19 +2350,7 @@ static_assert(offsetof(CMessageBox, title_) == 0x164);
 static_assert(offsetof(CMessageBox, edit_) == 0x178);
 static_assert(sizeof(CMessageBox) == 0x180);
 
-// A message box waiting on a master server request (constructor 0061E2F0 from the lobby's
-// 0061D0D0; vtables 00741DD8 / 00741DA4): the box with OK only, a master server link and a
-// sprite. Names provisional.
-class CMasterRequestBox : public CMessageBox {
-public:
-    // 0061E460 (ui_window_delete.cpp). The destructor body: the link (00440D40), then the box's.
-    void DestroyBody();
-
-    std::uint8_t link_[0x40];        // +0x180 net::MasterLink (net_socket_driver.cpp)
-    CUiMesh* sprite_;                // +0x1C0
-};
-static_assert(offsetof(CMasterRequestBox, link_) == 0x180);
-static_assert(offsetof(CMasterRequestBox, sprite_) == 0x1C0);
+// CMasterRequestBox, the message box waiting on a master server request: ui_screens.h.
 
 // The help / message window (0x194 bytes, vtables 00740E28 / 00740DF4; built inline by
 // CInterface3D::ShowMessage 005F8A80 and OpenHelp 005F86F0, ui_create_screen.cpp). Its pages

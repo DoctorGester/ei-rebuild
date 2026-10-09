@@ -97,6 +97,13 @@ void __fastcall TrimItemTextures(ItemObjectCache* cache);
 // An item's turning state (0x18 bytes, vtable 007403F8, a counted object at the item's +0x1C, its
 // count a 16-bit word): made by the item draw (005ECA10) and the moves (005EE1B0).
 struct ItemTurn {
+    // 005ED710 (slot 3, ui_item_screen.cpp). A new state with the same angle, speed, flag and glow
+    // and no references (null when the allocation fails, after writing the count through it).
+    ItemTurn* Clone() const;
+    // 005ED780 (slot 0, RET 4). The counted object's base vtable (005ED7A0), freed with bit 0 of
+    // `flags`; returns this.
+    ItemTurn* DeletingDestruct(unsigned flags);
+
     void* vtable;
     int references;          // +0x04
     float angle;             // +0x08 radians, wrapped at 007C7D20 (2 pi)

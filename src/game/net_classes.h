@@ -64,6 +64,18 @@ struct NetAddress {
 };
 static_assert(sizeof(NetAddress) == 0x10);
 
+// The TCP link to the master server (0x40 bytes; constructor 00440C60, destructor 00440D40, tick
+// 00440DE0; net_socket_driver.cpp). The master request box (ui_screens.h) holds one.
+struct MasterLink {
+    enum State : std::int32_t { kClosed = 0, kConnecting = 1, kReceiving = 2, kDone = 3, kSending = 4 };
+
+    GameBuffer out;              // +0x00 what is sent once connected
+    GameBuffer in;               // +0x1C what was received
+    std::uint32_t socket;        // +0x38 (-1: none)
+    std::int32_t state;          // +0x3C State
+};
+static_assert(sizeof(MasterLink) == 0x40);
+
 // The network log (0079B91C; null when logging is off): an old iostream whose inserters are library
 // code, called at their addresses (net_session_tick.cpp).
 class LogStream {

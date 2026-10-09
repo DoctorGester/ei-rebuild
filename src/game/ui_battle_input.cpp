@@ -1,5 +1,5 @@
-// The battle screen's double click (00638AD0), key release (0063B6D0) and wheel (0063B770): its
-// input side slots 7, 11 and 12. See ui_camp.h (CBattleScreenSetup) and docs/notes/ui.md, section 6.
+// The battle screen's slot 1 (00638A10), double click (00638AD0), key release (0063B6D0) and wheel (0063B770): its
+// input side slots 1, 7, 11 and 12. See ui_camp.h (CBattleScreenSetup) and docs/notes/ui.md, section 6.
 #include "ui_camp.h"
 
 #include "ei/hook.h"
@@ -11,6 +11,19 @@ constexpr int kFirstOrderKeyAction = 0x11;
 // Which orderKeys_ entry each of them releases (the original's jump table at 0063B754).
 constexpr int kOrderKeyOfAction[6] = {0, 1, 5, 4, 3, 2};
 } // namespace
+
+// --- 00638A10: the battle screen loses the top -----------------------------------------------
+
+void CBattleScreenSetup::OnDeactivate() {
+    for (std::uint8_t& key : orderKeys_) key = 0;
+    unknown_1C0 = false;
+    unknown_1C1 = false;
+    static_cast<UiContainerInput*>(Input())->OnDeactivate();
+}
+namespace {
+void __fastcall BattleScreenDeactivate(void* input) { WindowFromInput<CBattleScreenSetup>(input)->OnDeactivate(); }
+} // namespace
+EI_REPLACE(0x00638A10, BattleScreenDeactivate);
 
 // --- 00638AD0: a double click on the battle screen -------------------------------------------
 

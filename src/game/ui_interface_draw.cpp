@@ -73,6 +73,14 @@ int CScreenFade::Draw(CSceneRenderer* renderer) {
 }
 EI_REPLACE_METHOD(0x005E69C0, CScreenFade::Draw);
 
+void CScreenFade::Start(int ms) {
+    rate_ = kOpaque / static_cast<float>(ms);
+    alpha_ = ms > 0 ? 0.0f : kOpaque;
+    lastTime_ = gameapi::timeGetTime();
+    active_ = 1;
+}
+EI_REPLACE_METHOD(0x005E6B90, CScreenFade::Start);
+
 int CInterface3D::Draw() {
     CloseAllPending();
     if ((backdropMode_ == 2 || backdropMode_ == 4 || backdropMode_ == 3) && backdrop_) backdrop_->Blit();
