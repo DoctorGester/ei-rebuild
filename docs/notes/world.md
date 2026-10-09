@@ -253,6 +253,7 @@ vtable 0073D0C4).
 | Client frame | 0056A990 CollectVisible, 0056BF30 PickGround / 0056C350 PickSurface, sorts 005740D0 / 00574390 / 00573D50 / 00573F10, 00569E40 Render / 0056AFE0 DrawPass, 005641F0 Segment, 00595080 SelectLoadingMovie (FixProgressNames) | ours only; picks and sorts compared (ranges with a null element, no model or NaN depth go to the original alone) |
 | Client maps | 00570860 / 00570BB0 SectorGrid::Move / Move2 (compared on the first 256 calls then every 32nd), 00571D50 MarkWithinRadius, 00571800 / 005718B0 CollectWindowsAt / At2, 0056FC60 PendingMapLookup, 0056E400 / 0056E440 RecordAt50 / AtB4, 005647E0 AddObject, 00564BE0 RemoveObject, 00564E70 ClearMaps, 005726B0 ReleaseIfIdentified, 00565790 / 005659D0 PickAt / PickAt2, 00566F70 CreatePartyUnits, 0056DAF0 ObjectsInRange, 00563290 Teardown, 00561E50 Setup, 00560650 AddFace / 00560820 AddBox (8 ULPs), 00559E60 UnitSet::Write, 0055A190 ReadUnitLooks | compared; AddObject .. Setup ours only |
 | Startup, client set-up | 005CE0F0 LogicSettings::Load (007C53F8, `logic_settings.h`: [Logic], [RPG], [LMP], [Scenario], [DifficultyLevels]), 005DAEA0 SetUpCursors / 005DAE70 ResetCursors (`cursor_setup.cpp`), 00563710 SetUpGraphics (texture device, platforms, "numbers" digits +0x1B4, figure loader +0x34, sound counts), 00563930 LoadLights (tables `sunlight_` / `ambient_` / `sky_` at +0x22C / +0x3AC / +0x52C) | Load / LoadLights compared; rest ours only; every start |
+| Client lighting (A-W9) | 00566360 UpdateLighting (Render, zone load, message 0x71: fog start, sun direction / colour, ambient, sky colour by hour; caves (`cave_` +0x6E0) hour 0 and a fixed sun; the terrain's sun 006C8ED0 once per hour), 00567680 UpdateExitMarkers (exit particle sources red when "z.<zone>" is 1) (`world_client_lights.cpp`) | D: original first (terrain hidden: its sun call is not idempotent), state put back, ours; colours / direction CheckNear, fog colour bytes within 1; markers bitwise |
 | Figure meshes | 005A18E0 LoadBounds, 005A2500 LoadFig, 005A5C70 LoadFigShared, 005A3800 LoadOld, 005A4D60 LoadOldShared, 005AAE60 / 005AB9A0 MorphFigureBounds / 6, 0059FDF0 ExtendWorldBox, 005A4B30 / 005A4BF0 MirrorX / Y (ours, the original undoes it, ours again), 005A6E70 Resize, 005A6D40 RefreshBuffers, 005A0B10 SetOffsets, 005A0CD0 DrawOffset, 0059F0F0 CopyFrom, 0059F510 SetPose, 0059F710 / 0059F8F0 SaveToFile / LoadFromFile, 005ACE80 LoadMenuRects | on copies (colour arrays by shape only: the loaders size them without writing); the last ones ours only |
 | Party records, templates | 004A5BD0 Reset, 004A5E90 Add, 004A5FA0 Remove, 004A5E10 Find, 004A7630 ClassTemplatesBuild, 004A7080 ClassTemplateFill, 004A74F0, 004A88E0, 004A8910, 004A88A0, 004A88C0, 004A8890, 004A8880, 004A8790, 004A8800 | above |
 
@@ -284,6 +285,9 @@ every guarded dword, then ours again.
   copies quiet a signalling NaN (ours may copy bits). `AddFace` copies 0x4C bytes of uninitialised stack over the new record
   first. Client: picking runs 100 + 100 height queries when |dz| never drops to 0.01; `ObjectsInRange`'s dz is the point's z
   minus itself (0 or NaN).
+- UpdateLighting writes stack garbage as the sunlight's fourth float (+0x6D8) and the sky colour's fourth argument (ours
+  leave +0x6D8 alone and pass 0); a black ambient entry (0 or NaN in all three) takes 0.8 x the sunlight; NaN hours take
+  the night formulas.
 - With every flag off the Rebirth-patched rewrites keep the vanilla behaviour (`rebirth.md`).
 
 ## Floating point
@@ -300,8 +304,7 @@ pragma (DR-C4): release code is fild elapsed, fmul secondsPerTick_, fadd offset,
 
 - Rebirth-patched and not rewritten: 00567AB0 (client world load), 0057F560, 005809D0, 005812F0, 005813A0 (the `Maps` /
   `ResOverride` path hooks), 00595480 `NewZone`, 00595BA0 (map path).
-- Large and not rewritten (next candidates, unit_ai.md "A-W8"): 00566360 (day lights) / 00567500 / 00567680 (per-frame
-  manager updates), 005677F0 (whether a group's units all stand in the same zone exit), 005683D0 (skins "%sskin%2d.mmp"),
+- Large and not rewritten (next candidates): 00567500 (the exits' ZoneExit particle sources), 005677F0 (whether a group's units all stand in the same zone exit), 005683D0 (skins "%sskin%2d.mmp"),
   00562F70 (platform / sky loading), 0056C750 (platform triangles into the device's slot 26: renderer work), 0056D150
   (footprints).
 - Lifetime code: the CWorldServer constructor 00589ED0 (a static initialiser before the hooks), destructor 0058AAD0, Create

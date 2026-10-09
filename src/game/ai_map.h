@@ -102,6 +102,8 @@ struct VisibilityGrid {
 static_assert(sizeof(VisibilityGrid) == 0x18);
 
 // A cell of a path (CList element, 8 bytes). Layout provisional.
+struct DeltaField;   // net_delta.h
+
 struct PathCell {
     std::int16_t x, y;
     std::uint16_t flags;        // 0x200 on a path that is a single cell
@@ -185,6 +187,13 @@ struct AIPath {
     int SetStepSpeeds(std::uint16_t speed);
     // 005C7D00. Where the order leads (world); returns `out`.
     Vector3* Destination(Vector3* out);
+    // 005C7DB0 / 005C7FC0 (RET 4; ai_path_state.cpp). The order (kind byte, the steps' count as two
+    // bytes, start x / y, the angle within +-007C4378, the time and three arguments) on the field's
+    // delta channels, then each step as a 16-bit header (x and y codes: one less, the same, one more
+    // than the previous step, or written out after it; unknown_6 & 3; the flags up to 0x3FF) on both
+    // outputs. ReadState empties the steps and reads them back.
+    void WriteState(DeltaField* field);
+    void ReadState(DeltaField* field);
     // 005B23A0. Empties the path, the steps and the order.
     void Clear();
     // 006706A0 (player_server_handlers.cpp). An out-of-line copy of the inlined constructor: both

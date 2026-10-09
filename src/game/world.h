@@ -1144,6 +1144,18 @@ public:
     // between two keys in file order are filled by linear steps from the earlier key (the first
     // from hour 0). Hours are not range-checked. Returns 1.
     int LoadLights(const char* file);
+    // 00566360 (world_client_lights.cpp; Render, the zone load and message 0x71 call it). The
+    // frame's light from the time of day (00567680 first): fog start, sun direction (the hour
+    // turns it once around +z, its elevation peaks at noon), sunlight, ambient and sky colours
+    // interpolated between the hour's table entries; the renderer's sun, ambient and fog colour,
+    // the sky's lighting; once per new hour the terrain's sun (006C8ED0). A cave takes hour 0's
+    // colours and a fixed sun. Returns 1 when a new hour began (or the renderer's +4 bit 0 is
+    // clear: nothing done), else 0; no caller reads it.
+    int UpdateLighting();
+    // 00567680 (world_client_lights.cpp). With one marker per exit (+0xA0, ZoneExit particle
+    // sources made by 00567500): a marker whose target zone's party variable "z.<zone>" is 1 (or
+    // NaN) gets extent (1, 0, 0) (its particles turn red), the others (0, 0, 0).
+    void UpdateExitMarkers();
     // 00563710 (RET 4; world_client_setup.cpp; once at startup, 00456440, with the renderer).
     // The texture manager gets `device` (006913A0); the platforms and sky (00562F70); the digit
     // sprites (+0x1B4) with the "numbers" texture (kind 6; flag 0x40000); a new figure loader for
@@ -1187,7 +1199,7 @@ public:
     ClientListManager* listManager_;      // +0x1A0 owned
     ClientArrayManager* arrayManager_;    // +0x1A4 owned
     ClientObject1A8* owned1A8_;           // +0x1A8 owned (constructor 006B4350)
-    void* owned1AC_;                      // +0x1AC owned (destructor body 005636A0)
+    struct CSky* skyDome_;                // +0x1AC the sky (owned; destructor body 005636A0; sky_object.h)
     CEngineObject* owned1B0_;             // +0x1B0 owned
     ClientNumbers* numbers_;              // +0x1B4 owned
     // +0x1B8 / +0x1BC / +0x1C0 lists of records (element destructors 0056D080, 00575560, 00575580;
@@ -1210,9 +1222,17 @@ public:
     LightColour sunlight_[24];
     LightColour ambient_[24];
     LightColour sky_[24];
-    std::uint8_t unknown_6AC[0x6DC - 0x6AC];
-    int unknown6DC_;                      // +0x6DC 0 after Setup
-    int unknown6E0_;                      // +0x6E0
+    // +0x6AC / +0x6BC / +0x6CC this frame's light (UpdateLighting): the ambient colour (the
+    // table's, or 0.8 x the sunlight when the table's is black; its fourth float +0x6B8 is never
+    // written), a copy of it (four floats, the sky's ambient) and the sunlight (its fourth float is
+    // whatever the original's stack held).
+    LightColour frameAmbient_;
+    LightColour skyAmbient_;
+    LightColour frameSun_;
+    int unknown6DC_;                      // +0x6DC 0 after Setup, 0x80 once UpdateLighting runs outside a cave
+    // +0x6E0 1: a cave zone (the map's flag: LightsCave.ini, the sky "Sky01", light fixed at hour 0;
+    // EnvironmentFlags 0x400 instead of 0x200).
+    int cave_;
     int unknown6E4_;                      // +0x6E4 0 after Setup; the party state's danger (0x60: 2 fighting)
     std::uint8_t unknown_6E8[0x6EC - 0x6E8];
     int ticksRun_;                        // +0x6EC Segment's count; AddObject fades units in (slot 43) when >= 1
@@ -1247,6 +1267,7 @@ static_assert(offsetof(CWorldClient, sounds_) == 0x1CC);
 static_assert(offsetof(CWorldClient, texts_) == 0x1D0);
 static_assert(offsetof(CWorldClient, texturePath_) == 0x224);
 static_assert(offsetof(CWorldClient, unknown6DC_) == 0x6DC);
+static_assert(offsetof(CWorldClient, frameAmbient_) == 0x6AC && offsetof(CWorldClient, frameSun_) == 0x6CC);
 static_assert(offsetof(CWorldClient, ticksRun_) == 0x6EC);
 static_assert(offsetof(CWorldClient, ribbons_) == 0x6F4);
 static_assert(offsetof(CWorldClient, list7BC_) == 0x7BC);
@@ -1508,6 +1529,11 @@ void __stdcall SelectLoadingMovie(const char* zone);
 CWorldServer* WorldServer();   // 007AFF60
 // 0079BE5C: the time speed setting (the options' value; a negative speed asks for it).
 inline int TimeSpeedSetting() { return *reinterpret_cast<const int*>(0x0079BE5C); }
+// The display options' distances: 0079BED4 the fog start by day, 0079BED0 at night, 0079BE54
+// the far clip (the transform pipeline's depth range, 00500B70 / 00566360).
+inline float FogStartDay() { return *reinterpret_cast<const float*>(0x0079BED4); }
+inline float FogStartNight() { return *reinterpret_cast<const float*>(0x0079BED0); }
+inline float FarClipDistance() { return *reinterpret_cast<const float*>(0x0079BE54); }
 CWorldClient* WorldClient();   // 007AF5B8
 
 // The client's per-frame draw lists (world_client_view.cpp files the visible objects in them,

@@ -9,6 +9,7 @@
 // copies' buffers are freed afterwards.
 #include "verify.h"
 
+#include "../../src/game/ai_motion.h"
 #include "../../src/game/net_delta.h"
 #include "../../src/lib/crt.h"
 
@@ -601,3 +602,50 @@ EI_VERIFY(0x0047FB70, ResetVerify, 6, s_reset);
 EI_VERIFY(0x0047FBF0, BeginFieldVerify, 7, s_beginField);
 EI_VERIFY(0x0047FD50, SetModeVerify, 6, s_setMode);
 EI_VERIFY(0x0047FD80, BeginReadVerify, 7, s_beginRead);
+
+// --- AIPath network state (src/game/ai_path_state.cpp) -------------------------------------------------
+// Unit state messages and the path message (0x0E) write it every time a unit's order or steps change
+// (every scenario with moving units); the client's reads run on the units' updates.
+
+// 005C7DB0 WriteState: SUB ESP,0xC (3), PUSH EBX (1), MOV EBX,[ESP+0x14] (4). The original writes into
+// a copy of the field; the fields are compared.
+static void(__fastcall* s_pathWrite)(AIPath*, void*, DeltaField*);
+static void __fastcall PathWriteStateVerify(AIPath* self, void*, DeltaField* field) {
+    CheckField(
+        "AIPath::WriteState", field, [&](DeltaField* f) { s_pathWrite(self, nullptr, f); return 0; },
+        [&](DeltaField* f) { self->WriteState(f); return 0; }, [](int, int, DeltaField*) { return true; });
+}
+EI_VERIFY(0x005C7DB0, PathWriteStateVerify, 8, s_pathWrite);
+
+// 005C7FC0 ReadState: SUB ESP,0x20 (3), LEA EAX,[ESP+0xC] (4). The original reads from copies of the
+// field and the reader into a scratch path (empty steps); ours into the path. Compared: the field, the
+// reader, the order (0x20 bytes) and the steps.
+static void(__fastcall* s_pathRead)(AIPath*, void*, DeltaField*);
+static void __fastcall PathReadStateVerify(AIPath* self, void*, DeltaField* field) {
+    const Globals before = Globals::Save();
+    if (!before.reader || !before.snapshot || !IsMemoryField(field) || !IsMemoryStream(before.reader) ||
+        !IsMemoryStream(before.snapshot) || !Inside(before.snapshot, field, sizeof(DeltaField))) {
+        self->ReadState(field);
+        return;
+    }
+    FieldCopy expected(field);
+    StreamCopy reader(before.reader);
+    alignas(4) unsigned char scratchBytes[sizeof(AIPath)] = {};
+    auto* scratch = reinterpret_cast<AIPath*>(scratchBytes);
+    scratch->steps.vtable = PathCellListVtable();
+    scratch->steps.blockSize = 0x80;
+    Globals scratchGlobals = before;
+    scratchGlobals.reader = &reader.stream;
+    scratchGlobals.snapshot = Map(before.snapshot, field, &expected.field, sizeof(DeltaField));
+    scratchGlobals.Restore();
+    s_pathRead(scratch, nullptr, &expected.field);
+    before.Restore();
+    self->ReadState(field);
+    bool same = expected.Same(field) && SameStream(&reader.stream, before.reader) &&
+                std::memcmp(scratch, self, 0x20) == 0 && scratch->steps.count == self->steps.count;
+    for (auto *a = scratch->steps.head, *b = self->steps.head; same && a && b; a = a->next, b = b->next)
+        same = std::memcmp(&a->data, &b->data, sizeof(PathCell)) == 0;
+    ei::verify::Check("AIPath::ReadState", true, same, "%d steps (original %d)", self->steps.count, scratch->steps.count);
+    scratch->steps.RemoveAll();
+}
+EI_VERIFY(0x005C7FC0, PathReadStateVerify, 7, s_pathRead);

@@ -175,7 +175,7 @@ std::uint32_t CWorldClient::EnvironmentFlags(CEngineObject* unit) {
     else if (GameMbscmp(zoneName_, "ingos") == 0) flags |= 0x20;
     else if (GameMbscmp(zoneName_, "suslanger") == 0) flags |= 0x40;
     flags |= IsNight() ? 0x100 : 0x80;
-    flags |= unknown6E0_ == 1 ? 0x400 : 0x200;
+    flags |= cave_ == 1 ? 0x400 : 0x200;
     if (unknown7A8_ == 1) return flags | 0x800;
     if (unknown7A8_ == 2) return flags | 0x1000;
     return flags | 0x2000;
