@@ -46,15 +46,15 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Pending work
 
-The four porting batches (A-I16, A-H15, A-S9, A-U7) are merged (2026-10-09, 140 runs pass). Left: build, fix and merge the drafts below in this order: DR-C1, DR-C5 (the rest are merged). net_state.cpp's last 14 VCalls: being converted. Then republish the dashboard and remove merged worktrees.
+The four porting batches (A-I16, A-H15, A-S9, A-U7) are merged (2026-10-09, 140 runs pass). Left: build, fix and merge the drafts below only DR-C5 is left (the rest and net_state.cpp's last VCalls are merged). Then republish the dashboard and remove merged worktrees.
 
 ## Draft passes (no build, 2026-10-07)
 
 Drafts written without building (2026-10-07), each on its own branch with a notes file docs/notes/drafts/<ticket>.md saying what is drafted, what is unverified and where it stopped; a later worker builds, fixes and merges it.
-- DR-C1 (finishing 2026-10-09; drafted: world_units.cpp and world_client_maps.cpp clean, world_game.cpp half (At<> 155 -> 80; stopped at the network sessions +0x25A0..+0x261C); head 86931a0, branch draft-dr-c1 in worktree agent-a9b8a6df2bce6075b). Overlaps DR-C2: both named CMapObject slot 29, CWorld 18/24, CUnitController 29 and 41-43; reconcile when merging (DR-C2 first, then take its names): world_units.cpp done, world_client_maps.cpp partly, head 064e0d0; part 2 taken for the rest; branch draft-dr-c1 in worktree agent-a9b8a6df2bce6075b). Overlaps DR-C2: both named CMapObject slot 29 (IsDynamicSlot vs IsSynchronised), CWorld 18/24 and CUnitController 29; reconcile when merging (DR-C2 first, then take its names): cleanup draft of world_client_maps.cpp, world_units.cpp, world_game.cpp (At<>/Field<> 470, VCall 106 between them).
+- DR-C1 merged 2026-10-09 (world_units.cpp, world_client_maps.cpp clean; world_game.cpp left: World()+0x5C pending connection source (needs a class; app.cpp shares the forwarder), the __asm helpers, TextOpsAt).
 - DR-C2 merged 2026-10-09 (102 slots named; 16 placeholders left elsewhere).
 - DR-C3 merged 2026-10-09 (net_state.cpp's last 14 VCalls can now use DR-C2's names).
-- DR-C5 (drafted: ui_surface_create.cpp clean, ui_hud.cpp 6 VCalls left (map object slots 38/39/42 need DR-C2's names with int returns), world_client_draw.cpp 4 VCalls left; head 38582dd; written against DR-C1's CWorldClient names, needs `CCamera* camera_` at CWorldClient +0x210 after DR-C1 (notes); branch draft-dr-c5 in worktree agent-abcd1eeb0aab855a0): cleanup draft of ui_hud.cpp, ui_surface_create.cpp, world_client_draw.cpp.
+- DR-C5 (finishing 2026-10-09; drafted: ui_surface_create.cpp clean, ui_hud.cpp 6 VCalls left (map object slots 38/39/42 need DR-C2's names with int returns), world_client_draw.cpp 4 VCalls left; head 38582dd; written against DR-C1's CWorldClient names, needs `CCamera* camera_` at CWorldClient +0x210 after DR-C1 (notes); branch draft-dr-c5 in worktree agent-abcd1eeb0aab855a0): cleanup draft of ui_hud.cpp, ui_surface_create.cpp, world_client_draw.cpp.
 - DR-C4 merged 2026-10-09 (3 files clean; 13 server handlers in functions.csv). Open: 007C8778 QuestItems vs loot table name; stlp::SmallNodeFreeList and camera.h NodeFreeList are the same address.
 - DR-H16 merged 2026-10-09. Apply 006524A0 and the edit field 0065C610 have no scenario. function_sizes.inc needs a real regeneration once the Ghidra database is whole (it reports cut-short bodies, e.g. 0040D710 555 -> 60).
 
