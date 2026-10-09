@@ -183,6 +183,12 @@ public:
 
     // 0055FCB0 (world_time.cpp). Stores the wind direction (+0x24) and strength (+0x30).
     void SetWind(const Vector3* direction, float strength);
+    // 0055F8E0 (world_managers.cpp, A-U7). Slot 3 (Destroy) of the base vtable 0073F18C, also
+    // called by the client 00563290 and the server 0058B020: every object of the spell manager
+    // (slot 22) gets its slot 5 (ClearState), then the managers are deleted whatever their counts
+    // (+0x38, +0x40, +0x3C, +0x44, +0x58, +0x54, +0x50, +0x4C, +0x48; +0x34 only at its last
+    // reference) and the shared pointers +0x5C / +0x60 dropped.
+    void DestroyManagers();
 
     float timeBase_;                     // +0x1C
     float secondsPerTick_;                // +0x20
@@ -657,6 +663,24 @@ struct UnitSet {
     // counted dword arrays, a byte and a dword.
     void Write(void* stream);
 };
+
+// The head of a unit set entry (and of the 0x24-byte look records): a 16-bit key, two dword
+// vectors, a byte and a dword.
+struct UnitSetEntryHead {
+    // 00558FA0 (RET 4; world_unit_set.cpp, A-U7). Writes the key (2 bytes), each vector's count and
+    // dwords (the data written even when empty), the byte and the dword through `stream`'s slot 2.
+    void Write(void* stream);
+
+    std::int16_t key;                     // +0x00
+    std::uint8_t unknown_02[2];
+    stlp::vector<int> first;              // +0x04
+    stlp::vector<int> second;             // +0x10
+    std::uint8_t flag;                    // +0x1C
+    std::uint8_t unknown_1D[3];
+    std::uint32_t value;                  // +0x20
+};
+static_assert(offsetof(UnitSetEntryHead, second) == 0x10);
+static_assert(offsetof(UnitSetEntryHead, value) == 0x20);
 
 // 0055A190 (ECX stream, EDX first list, RET 4; called by the client's zone load 00567AB0). Reads
 // the zone's two unit look lists from `stream` (slot 1 reads bytes): a count, then per 0x3C-byte
