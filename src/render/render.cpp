@@ -439,9 +439,9 @@ bool GameTargetSize(int* width, int* height) {
 }
 
 int AddMatrix(const float* m) {
-    if (!g_frame.matrices.empty() && std::memcmp(g_frame.matrices.back().m, m, sizeof(Matrix)) == 0)
+    if (!g_frame.matrices.empty() && std::memcmp(g_frame.matrices.back().m, m, sizeof(Matrix4)) == 0)
         return static_cast<int>(g_frame.matrices.size()) - 1;
-    Matrix copy;
+    Matrix4 copy;
     std::memcpy(copy.m, m, sizeof(copy.m));
     g_frame.matrices.push_back(copy);
     return static_cast<int>(g_frame.matrices.size()) - 1;

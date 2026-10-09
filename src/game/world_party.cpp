@@ -82,7 +82,7 @@ __declspec(naked) void __fastcall CommandQueueRun(void*, void*) EI_ORIGINAL(0x00
 // Rewritten here and elsewhere, reached through their addresses.
 __declspec(naked) void __fastcall TakeZoneQuestItemsAt(CWorldServer*, void*, ItemArray*, ObjectList*) EI_ORIGINAL(0x005901E0)
 __declspec(naked) void __fastcall RestorePlayerItemsAt(CWorldServer*, void*, WorldPlayer*) EI_ORIGINAL(0x00590460)
-__declspec(naked) void __fastcall CreateUnitsAt(CWorldServer*, void*, WorldPlayer*, RecordArray*, const Vector3*, Float4,
+__declspec(naked) void __fastcall CreateUnitsAt(CWorldServer*, void*, WorldPlayer*, RecordArray*, const Vector3*, Quaternion,
                                                 void*) EI_ORIGINAL(0x0058EF20)
 __declspec(naked) void __fastcall UpdateMercBriefingsAt(CWorldServer*, void*) EI_ORIGINAL(0x00591800)
 
@@ -229,7 +229,7 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     double cell = static_cast<double>(GameFloat(kCellSize)) * GameFloat(kHalf);
     float centreX = StoreFloat(static_cast<float>(gridWidth_ * cell * GameFloat(kHalf)));
     float centreY = StoreFloat(static_cast<float>(gridHeight_ * cell * GameFloat(kHalf)));
-    Float4 rotation;
+    Quaternion rotation;
     std::memcpy(&rotation, reinterpret_cast<const void*>(kNoRotation), sizeof(rotation));
     Vector3 start{0.0f, 0.0f, 0.0f};
     std::uint32_t startValue = 0;

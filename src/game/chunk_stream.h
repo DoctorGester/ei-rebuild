@@ -17,11 +17,6 @@
 #include <cstddef>
 #include <cstdint>
 
-// Four floats passed by value (16 bytes on the stack), kept as bits.
-struct Float4 {
-    std::uint32_t bits[4];
-};
-
 class __declspec(novtable) Chunk {
 public:
     static constexpr std::uintptr_t kVtableAddress = 0x0073BE94;
@@ -65,7 +60,7 @@ public:
     void WriteInt(std::uint32_t id, int value);             // 0042C380
     void WriteByte(std::uint32_t id, std::uint8_t value);   // 0042C500
     void WriteVector3(std::uint32_t id, std::uint32_t x, std::uint32_t y, std::uint32_t z); // 0042CD70
-    void WriteQuaternion(std::uint32_t id, Float4 value);                    // 0042D0E0
+    void WriteQuaternion(std::uint32_t id, Quaternion value);                    // 0042D0E0
     void WriteBlob(std::uint32_t id, const void* data, int size);            // 0042CFA0
     // Text. A string chunk's content is its characters (no terminator); the string arrays are a
     // count followed by one string chunk per element (all with the array chunk's id). CStrings are

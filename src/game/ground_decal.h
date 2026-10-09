@@ -15,10 +15,10 @@
 
 // A clipper vertex: position, then the decal's texture coordinate. 0x14 bytes.
 struct DecalVertex {
-    float x, y, z;
+    Vector3 position;
     float u, v;
 };
-static_assert(sizeof(DecalVertex) == 0x14);
+static_assert(sizeof(DecalVertex) == 0x14 && offsetof(DecalVertex, u) == 0x0C);
 
 // The texture coordinate array's element.
 struct DecalTexCoord {

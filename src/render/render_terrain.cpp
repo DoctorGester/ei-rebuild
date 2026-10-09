@@ -346,9 +346,9 @@ void TerrainPage(const SectorData* s, void* renderer, int page) {
                 const float* position = s->vertices.data[index].xyz;
                 const auto* record = reinterpret_cast<const std::uint8_t*>(e.vertex);
                 TerrainVertex v{};
-                v.x = position[0];
-                v.y = position[1];
-                v.z = position[2];
+                v.position.x = position[0];
+                v.position.y = position[1];
+                v.position.z = position[2];
                 std::memcpy(&v.colour, record + 0x11, 4);
                 std::memcpy(&v.specular, record + 0x15, 4);
                 v.u = e.u;

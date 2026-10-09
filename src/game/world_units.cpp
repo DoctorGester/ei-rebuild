@@ -161,12 +161,12 @@ void FillHeroParts(UnitSpec* message, const char* prototypeName, mfc::CString& s
 
 // The place of the `index`th unit when no placement is given: a line from `position` along the
 // rotation's heading.
-void PlaceInLine(UnitSpec* message, const Vector3* position, const Float4& rotation, int index) {
+void PlaceInLine(UnitSpec* message, const Vector3* position, const Quaternion& rotation, int index) {
     float rx, ry, rz, rw;
-    std::memcpy(&rx, &rotation.bits[0], 4);
-    std::memcpy(&ry, &rotation.bits[1], 4);
-    std::memcpy(&rz, &rotation.bits[2], 4);
-    std::memcpy(&rw, &rotation.bits[3], 4);
+    std::memcpy(&rx, &rotation.w, 4);
+    std::memcpy(&ry, &rotation.x, 4);
+    std::memcpy(&rz, &rotation.y, 4);
+    std::memcpy(&rw, &rotation.z, 4);
     double axis = static_cast<double>(ry) * ry + static_cast<double>(rz) * rz + static_cast<double>(rw) * rw;
     double angle;
     if (!(axis > worlddata::AxisEpsilon())) {
@@ -183,7 +183,7 @@ void PlaceInLine(UnitSpec* message, const Vector3* position, const Float4& rotat
     Spec& spec = message->object.base;
     float zStep = 0.0f;
     std::memcpy(&spec.position, position, 12);
-    std::memcpy(&spec.rotation, rotation.bits, 16);
+    std::memcpy(&spec.rotation, &rotation, 16);
     float cosine = StoreFloat(static_cast<float>(x87::fcos(angle)));
     double sine = x87::fsin(angle);
     float step = StoreFloat(static_cast<float>(index));
@@ -223,7 +223,7 @@ CEngineObject* MakeItem(CWorldServer* world, CEngineObject* itemRecord, bool ref
 
 } // namespace
 
-void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* position, Float4 rotation,
+void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* position, Quaternion rotation,
                                void* placementsArg) {
     auto* records = static_cast<RecordPtrArray*>(recordsArg);
     auto* placements = static_cast<PlacementArray*>(placementsArg);

@@ -34,7 +34,6 @@ class CCamera;   // camera.h
 struct ClientManager19C;
 struct FootprintPart;   // ai_map.h: a figure part's box (FigurePart +0x188)
 class CWorldServer;
-struct Float4;   // chunk_stream.h: four floats passed by value
 
 namespace world {
 constexpr int kClassUnit = 0x50;   // CEngineObject::GetClassId() of units
@@ -589,7 +588,7 @@ public:
     // `position` along `rotation`, moved to a free cell, under `player`'s control, with its items,
     // spells and AI; heroes get their figure parts. Followers are given their leaders; with a
     // player the units are added to the "Heroes" script group.
-    void CreateUnits(void* player, void* records, const Vector3* position, Float4 rotation, void* placements);
+    void CreateUnits(void* player, void* records, const Vector3* position, Quaternion rotation, void* placements);
     // 0058ECE0 (RET 8). A quick item (potion) is used by `unit`: the effect object "st.tr.130"
     // (model "unhuma", type 9, flags 0x3010) is created at the unit's position on the ground and
     // flagged new (00529D20: flags_ |= 0x180000). `item` is not used.
