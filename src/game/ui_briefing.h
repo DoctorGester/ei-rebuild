@@ -122,21 +122,53 @@ private:
 
 class CRefObject;
 
-// A network client's chat window on the base screen (constructor 00608D20, 0x170 bytes, vtables
-// 00741478 / 00741444): a surface along the bottom, the held messages and the status texts
-// ("lmp_status_zone" .. "lmp_exch_they_offer").
+// A network client's player list on the base screen (constructor 00608D20, 0x170 bytes, vtables
+// 00741478 / 00741444; ui_chat_window.cpp): the players' faces along the top right (0x38 pixels
+// each from x 0x2E8 leftwards, a region each), a surface under them with each one's status and
+// offer, and the status texts ("lmp_status_zone" .. "lmp_exch_they_offer"). Multiplayer only.
 class CChatWindow : public CUiWindow {
 public:
-    // 00608ED0 (ui_window_delete.cpp). The destructor body: the texts, each held message released,
+    // 00608D20 (RET 4). Constructor: the window base, an empty player vector and text array, the
+    // vtables, the rectangle 0x1D0, 0, 800, 0xA0, a surface over 0x1D0..800 x 0x4B..0x69 (format 5),
+    // no faces, the six texts from the text table. Returns this.
+    CChatWindow* Construct(CInterface3D* ui);
+    // 00608ED0 (ui_window_delete.cpp). The destructor body: the texts, each held player released,
     // the vector's storage, then the window's.
     void DestroyBody();
+    // 00608F90 (RET 8). A face: every fourth one first makes a 256 x 256 texture (kind 0x20);
+    // `texture` is copied into the newest texture's quarter (count % 4: left / right, top / bottom)
+    // and a sprite of `model` placed at the face's centre (depth 7, scale 0.3, turned pi * 1.05
+    // about x), or without the model a plain 7 / 100 rectangle 0..60 high; the sprite shows the
+    // quarter (+0xCC / +0xD0 in 1/256) of that texture; a region 0..0x50 high over the face.
+    void AddPortrait(const char* model, const char* texture);
+    // 006091C0 (the base screen's slot 36 with 1, 00603090). Clears the sprites, regions and
+    // referenced objects; lists the client's players (only while its binding is live; its own
+    // player first) with a reference each, counts them (+0x148), then gives each a face from its
+    // unit prototype (+0x18: "infa<model>me<hair+1>face", "face<m|f><skin, 2 digits>"; the sex
+    // letter carries over from the previous player when the model is neither "unhuma" nor
+    // "unhufe") and its name as the region's tip.
+    void ShowPlayers();
+    // 006095A0 (slot 24). While the client has a live trade (+0x2618) it asks for screen 9 (the
+    // exchange); otherwise surface 0 is cleared and each listed player gets its status (state
+    // 0..4: texts 0, 1, 2, 3, 3) on the first line and "we offer" (our offer's partner) or "they
+    // offer" (an offer from it) on the second, white, 0x38 pixels per player from x 0x118 leftwards.
+    void Update();
+    // Input side (`this` the window). 006097E0 (slot 2, RET 0xC): a click on a face (the event
+    // marked used): with the active window's player pick (CBriefingScreen +0x2A0) 1 / 2 the
+    // player's serial goes to the server as command 4 / 5 ("%d") and the pick ends; otherwise the
+    // on_off sound and, unless it is our own player, our offer to it is dropped when it is its
+    // partner, else one is started (0041E270). 00609900 (slot 4, RET 0xC): over a face while a
+    // pick is on, the cursor's shape 0.
+    void OnLButtonDown(int buttons, int x, int y);
+    void OnMouseMove(int buttons, int x, int y);
 
-    std::uint8_t unknown_148[4];
-    int unknown_14C;                          // +0x14C 0
-    stlp::vector<CRefObject*> messages_;      // +0x150
+    int listed_;                              // +0x148 players listed
+    int portraits_;                           // +0x14C faces added
+    stlp::vector<CRefObject*> players_;       // +0x150 counted PlayerMessage records
     mfc::CStringArray texts_;                 // +0x15C
 };
-static_assert(offsetof(CChatWindow, messages_) == 0x150);
+static_assert(offsetof(CChatWindow, listed_) == 0x148);
+static_assert(offsetof(CChatWindow, players_) == 0x150);
 static_assert(offsetof(CChatWindow, texts_) == 0x15C);
 static_assert(sizeof(CChatWindow) == 0x170);
 
