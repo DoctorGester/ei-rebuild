@@ -155,6 +155,9 @@ struct SectorData {
     // perPage -1, +0x60 2; the shared projection buffers (positions, projected, outcodes) sized for
     // 0x330 vertices. Returns this.
     SectorData* Construct();
+    // 006BF8A0 (terrain_sector.cpp, A-H21). The destructor body: Clear, then the members in reverse
+    // order (each array's elements destroyed, its storage freed, its vtable written first).
+    void DestructBody();
 
     // 006BFC80 (RET 4; the draw pass 006C6460). Projects the vertices of every quarter that is not
     // culled (quarterMode != 2), at the level of detail unknown_170 (from 1 every second column,

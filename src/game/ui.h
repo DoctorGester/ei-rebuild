@@ -2177,6 +2177,13 @@ public:
     // (+0x1C0 the first shown; selected, drawn, shown), from 9 an exit (with two buttons and its
     // flag: the "enter" sound and SelectExit, else the cancel sound).
     void OnLButtonDown(int buttons, int x, int y);
+    // 0064E5A0 (input slot 9, RET 0xC; ui_objectives_input.cpp, A-H21). The base input's key
+    // handler, then: Enter as the OK region (without two buttons the pending value 0, else the
+    // nearest exit's travel and zone request), Esc closes (the cancel sound with two buttons, else
+    // the OK sound), PgUp / PgDn / Up / Down move the selected quest by 5 / 1 (RefreshQuests); those
+    // mark the key used. A key not used that is bound to the objectives action (key table 4) closes a
+    // window with one button.
+    void OnKeyDown(int key, int repeat, int flags);
     // 0064EA80 (RET 4; ShowQuest calls it through its address). The places of quest `name` into
     // +0x1CC (emptied first): a multiplayer client takes them from the quest database's record
     // (its float pairs), otherwise from map.txt's "#quest <name>" entry (the second line after
@@ -2305,8 +2312,12 @@ public:
     void CallLoadSettings();
     void CallBuildBindings();
 
-    // Not rewritten.
-    void CommitBinding();    // 00652000
+    // 00652000 (ui_options.cpp, A-H21). Binds pressedKey_ to the selected row's action: the row's
+    // keys unbound and replaced by the pressed one (keys text rebuilt), the key taken from the first
+    // binding row of the action it was bound to (that row's text rebuilt), then the key table entry
+    // set. Nothing without a pressed key or a binding row.
+    void CommitBinding();
+    void CallCommitBinding();
     // Cancel: puts back the volumes and the display settings the window started with.
     static void RestoreSettings();
     // 006503C0 (slot 25, the window's Create): builds the window (ui_layouts.cpp).
@@ -2337,8 +2348,8 @@ public:
     mfc::CStringArray groupNames_;   // +0x3FC the option groups' titles
     bool displayModeChanged_;        // +0x410 a display mode setting (7-9) changed
     std::uint8_t unknown_411[3];
-    int unknown_414;                 // +0x414 cleared by Build; OnKeyDown keeps the UiKeyName* of
-                                     //        the key pressed for a binding there (null: none)
+    const UiKeyName* pressedKey_;    // +0x414 the key pressed for a binding row (OnKeyDown; Build
+                                     //        clears it)
 };
 static_assert(offsetof(COptionsWindow, settings_) == 0x378);
 static_assert(offsetof(COptionsWindow, displayModeChanged_) == 0x410);

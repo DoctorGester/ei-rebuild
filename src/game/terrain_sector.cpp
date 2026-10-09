@@ -632,6 +632,29 @@ SectorData* SectorData::Construct() {
 }
 EI_REPLACE_METHOD(0x006BF5F0, SectorData::Construct);
 
+void SectorData::DestructBody() {
+    Clear();
+    classCounts.FreeData();
+    animated.FreeData();
+    for (int q = 3; q >= 0; --q) {
+        tiles[q].vtable = reinterpret_cast<void*>(kTileListArrayVtable);
+        tiles[q].FreeData();
+    }
+    for (int q = 3; q >= 0; --q) {
+        tileFlags[q].vtable = reinterpret_cast<void*>(kFlagArrayArrayVtable);
+        tileFlags[q].FreeData();
+    }
+    waterTiles.FreeData();
+    tileTextures.FreeData();
+    records.vtable = reinterpret_cast<void*>(kRecordArrayVtable);
+    records.FreeData();   // each record's light list released (the original inlines 006C4EE0's loop)
+    vertices.vtable = reinterpret_cast<void*>(kPositionArrayVtable);
+    vertices.FreeData();
+    waterMaterials.vtable = reinterpret_cast<void*>(kByteArrayVtable);   // ~CByteArray (006FF61D)
+    waterMaterials.FreeData();
+}
+EI_REPLACE_METHOD(0x006BF8A0, SectorData::DestructBody);
+
 int SectorData::Project(CTransformPipeline* pipeline) {
     const int columnStep = unknown_170 >= 1 ? 2 : 1;
     const int rowStep = unknown_170 >= 2 ? 2 : 1;

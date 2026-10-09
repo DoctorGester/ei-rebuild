@@ -2,7 +2,7 @@
 # q0g held ("#quest q0g" is in map.txt), so ShowQuest fills the quest's places (0064EA80, the
 # map.txt branch). Its clicks (0064E330): the first quest row (4), the zone arrows (2 / 3; only
 # one zone is listed, so nothing), cancel (1; one button, so nothing), the first exit (9: the
-# cancel sound, or SelectExit), then OK (0: the pending value 0 closes the window).
+# cancel sound, or SelectExit), then OK (0: the pending value 0 closes the window). Keys: below.
 reject Script error
 wait 6000
 console thingamabob
@@ -26,7 +26,25 @@ clickregion 1
 wait 300
 clickregion 9
 wait 500
+# Its keys (0064E5A0): the quest list keys, then OK; TAB again closes it (the objectives key), and
+# Enter closes the next one (one button: the pending value 0).
+key down
+wait 200
+key up
+wait 200
+key pgdn
+wait 200
+key pgup
+wait 200
 clickregion 0
+wait 1000
+key tab
+wait 1500
+key tab
+wait 1000
+key tab
+wait 1500
+key enter
 wait 1000
 check IsAlive(GetLeader())
 report

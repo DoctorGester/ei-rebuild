@@ -353,8 +353,20 @@ static SectorData* __fastcall ConstructVerify(SectorData* s) {
                        ok ? "" : DiffDword("sector", s, scratch, 0, sizeof(SectorData)));
     return result;
 }
+static void* s_unusedDestruct;
 // 006bf5f0 PUSH -1; PUSH 0x736f12 (7 bytes)
 EI_VERIFY(0x006BF5F0, ConstructVerify, 7, s_construct);
+
+// 006BF8A0 SectorData::DestructBody (A-H21; a zone's sectors when the terrain is unloaded: every
+// zone change and game end): ours only (it frees); the arrays' vtables are the instantiations'.
+static void __fastcall DestructVerify(SectorData* s) {
+    s->DestructBody();
+    bool ok = reinterpret_cast<std::uintptr_t>(s->records.vtable) == 0x00744184u &&
+              reinterpret_cast<std::uintptr_t>(s->vertices.vtable) == 0x0073C120u &&
+              reinterpret_cast<std::uintptr_t>(s->waterMaterials.vtable) == 0x00746560u;
+    ei::verify::Check("SectorData::DestructBody", true, ok, "sector (%d, %d)", s->sx, s->sy);
+}
+EI_VERIFY(0x006BF8A0, DestructVerify, 0, s_unusedDestruct);
 
 // 006BFC80 SectorData::Project (the terrain pass 006C6460, every frame): the quarter modes and the
 // records' projected positions and outcodes saved, the original run, its results kept, the saved

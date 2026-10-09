@@ -242,7 +242,7 @@ void COptionsWindow::Build() {
 
     if (sliding_) slide_ = 0.0f;
     waitingForKey_ = false;
-    unknown_414 = 0;
+    pressedKey_ = nullptr;
     CallBuildSettings();
     CallLoadSettings();
     CallBuildBindings();

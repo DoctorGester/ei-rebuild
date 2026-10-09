@@ -29,6 +29,7 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
+#include "ei/vcall.h"
 
 #include <cmath>
 #include <cstring>
@@ -803,6 +804,80 @@ void CPlayerClient::Clear() {
     compressor_.Reset();
     decompressor_.Reset();
 }
+
+// --- A-H21: constructor and destructor -----------------------------------------------------------
+
+namespace {
+constexpr std::uintptr_t kClientVtable = std::uintptr_t(0x00743180);
+constexpr std::uintptr_t kConnectionVtable = std::uintptr_t(0x007431E0);   // CPlayerConnection's own
+constexpr std::uintptr_t kClientClassName = std::uintptr_t(0x00794CC0);    // "CPlayerClient"
+constexpr int kClientClassId = 0x3C;
+
+// The engine object part (CPlayerClient does not derive from CEngineObject in C++).
+CEngineObject* EngineObject(CPlayerClient* client) { return reinterpret_cast<CEngineObject*>(client); }
+} // namespace
+
+CPlayerClient* CPlayerClient::Construct() {
+    EngineObject(this)->ClearFields();
+    vtable_ = reinterpret_cast<void*>(kConnectionVtable);
+    player_ = nullptr;
+    handlers_.Construct();
+    in_.ConstructQueueStream();
+    out_.ConstructQueueStream();
+    compressor_.Construct();
+    decompressor_.Construct();
+    partyUnitIds_.Construct();
+    otherUnitIds_.Construct();
+    vtable_ = reinterpret_cast<void*>(kClientVtable);
+    Clear();
+    return this;
+}
+
+void CPlayerClient::DestructBody() {
+    vtable_ = reinterpret_cast<void*>(kClientVtable);
+    Clear();
+    otherUnitIds_.FreeData();
+    partyUnitIds_.FreeData();
+    decompressor_.out.End();
+    compressor_.out.End();
+    out_.Destruct();
+    in_.Destruct();
+    handlers_.FreeData();
+    vtable_ = reinterpret_cast<void*>(kConnectionVtable);
+    player_ = nullptr;
+    EngineObject(this)->DestructBase();
+}
+
+CPlayerClient* CPlayerClient::DeletingDestruct(unsigned flags) {
+    DestructBody();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+
+// 00666EC0 / 00666F70 (RET 4): CPlayerConnection's own destructor body (its vtable, no player,
+// CEngineObject's) and deleting destructor.
+void __fastcall ConnectionDestructBody(CPlayerConnection* self) {
+    ei::SetVtable(self, kConnectionVtable);
+    self->player_ = nullptr;
+    self->DestructBase();
+}
+CPlayerConnection* __fastcall ConnectionDeletingDestruct(CPlayerConnection* self, void*, unsigned flags) {
+    ConnectionDestructBody(self);
+    if (flags & 1) gamecrt::operator_delete(self);
+    return self;
+}
+
+// 00666F90 / 00666FA0 (slots of CEngineObject): "CPlayerClient", class id 0x3C.
+const char* __fastcall PlayerClientClassName(CPlayerClient*) { return reinterpret_cast<const char*>(kClientClassName); }
+int __fastcall PlayerClientClassId(CPlayerClient*) { return kClientClassId; }
+
+EI_REPLACE_METHOD(0x00666D10, CPlayerClient::Construct);
+EI_REPLACE_METHOD(0x00666FD0, CPlayerClient::DestructBody);
+EI_REPLACE_METHOD(0x00666FB0, CPlayerClient::DeletingDestruct);
+EI_REPLACE(0x00666EC0, ConnectionDestructBody);
+EI_REPLACE(0x00666F70, ConnectionDeletingDestruct);
+EI_REPLACE(0x00666F90, PlayerClientClassName);
+EI_REPLACE(0x00666FA0, PlayerClientClassId);
 
 EI_REPLACE_METHOD(0x006671A0, CoderState::Reset);
 EI_REPLACE_METHOD(0x00667510, CPlayerClient::Clear);

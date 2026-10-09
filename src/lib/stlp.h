@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <cstring>
 #include <new>
+#include <type_traits>
 
 namespace stlp {
 
@@ -129,9 +130,13 @@ public:
     T*& Finish() { return finish_; }
     T*& EndOfStorage() { return eos_; }
 
-    // erase(pos): shift the tail down by assignment, destroy the last element.
+    // erase(pos): shift the tail down by assignment (AssignFrom, or a plain copy for scalars such as
+    // pointers), destroy the last element.
     void erase(T* pos) {
-        for (T* p = pos; p + 1 != finish_; ++p) p->AssignFrom(p[1]);
+        for (T* p = pos; p + 1 != finish_; ++p) {
+            if constexpr (std::is_class_v<T>) p->AssignFrom(p[1]);
+            else *p = p[1];
+        }
         --finish_;
         finish_->~T();
     }

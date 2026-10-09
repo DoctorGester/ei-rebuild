@@ -22,6 +22,7 @@ const char* OkSound() { return Text(0x0079477C); }       // "buttons\tutorial\ok
 const char* CancelSound() { return Text(0x007937E4); }   // "buttons\messbox\cancel.wav"
 const char* SelectSound() { return Text(0x0079475C); }   // "buttons\objectives\select.wav"
 const char* EnterSound() { return Text(0x0079473C); }    // "buttons\objectives\enter.wav"
+const char* MessageOkSound() { return Text(0x00793A88); }   // "buttons\messbox\ok.wav"
 const char* MapText() { return Text(0x007856A0); }       // "map.txt"
 const char* QuestHeader() { return Text(0x007941D4); }   // "#quest %s"
 
@@ -99,11 +100,59 @@ void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
 }
 
 namespace {
+constexpr int kKeyEnter = 0x0D, kKeyEsc = 0x1B, kKeyPageUp = 0x21, kKeyPageDown = 0x22, kKeyUp = 0x26, kKeyDown = 0x28;
+constexpr int kActionObjectives = 4;   // "obj" in the key table
+} // namespace
+
+void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
+    InputOf(this)->BaseKeyDown(key, repeat, flags);
+    int step = 0;
+    switch (key) {
+    case kKeyEnter:
+        interface_->PlaySound(OkSound(), 0);
+        if (twoButtons_ == 0) {
+            interface_->SetPendingValue(0);
+        } else if (nearestExit_ >= 0) {
+            const ObjectiveExit& exit = exits_[nearestExit_];
+            int index = exit.exit_;
+            PassTravelTimeOriginal(ClientGlue(), nullptr, exit.distance_);
+            RequestZone(shownZone_, index);
+        }
+        inputHandled_ = true;
+        break;
+    case kKeyEsc:
+        interface_->PlaySound(twoButtons_ == 0 ? OkSound() : CancelSound(), 0);
+        interface_->SetPendingValue(0);
+        inputHandled_ = true;
+        break;
+    case kKeyPageUp: step = -5; break;
+    case kKeyPageDown: step = 5; break;
+    case kKeyUp: step = -1; break;
+    case kKeyDown: step = 1; break;
+    default: break;
+    }
+    if (step != 0) {
+        interface_->PlaySound(SelectSound(), 0);
+        selectedQuest_ += step;
+        RefreshQuests();
+        inputHandled_ = true;
+    }
+    if (!inputHandled_ && KeyActions()[flags & 0x1FF] == kActionObjectives && twoButtons_ == 0) {
+        interface_->PlaySound(MessageOkSound(), 0);
+        interface_->SetPendingValue(0);
+    }
+}
+
+namespace {
+void __fastcall ObjectivesKeyDown(void* input, void*, int key, int repeat, int flags) {
+    WindowFromInput<CObjectivesWindow>(input)->OnKeyDown(key, repeat, flags);
+}
 void __fastcall ObjectivesLButtonDown(void* input, void*, int buttons, int x, int y) {
     WindowFromInput<CObjectivesWindow>(input)->OnLButtonDown(buttons, x, y);
 }
 } // namespace
 EI_REPLACE(0x0064E330, ObjectivesLButtonDown);
+EI_REPLACE(0x0064E5A0, ObjectivesKeyDown);
 
 void CObjectivesWindow::LoadQuestPlaces(const char* name) {
     stlp::vector<UiPointF>& places = QuestPlaces();

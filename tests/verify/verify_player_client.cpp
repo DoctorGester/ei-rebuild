@@ -264,3 +264,61 @@ int __fastcall PartyStateVerify(CPlayerClient* self) {
     return result;
 }
 EI_VERIFY(0x00668C50, PartyStateVerify, 0, s_unused);
+
+// --- A-H21: constructor, destructors, class name / id ------------------------------------------
+// Scenario: every new game (the local client is made by 0042D700 'I' and destroyed with the game).
+// Constructor / destructors ours only (they allocate nothing but free the arrays and streams).
+namespace {
+const char*(__fastcall* s_clientName)(CPlayerClient*);
+int(__fastcall* s_clientId)(CPlayerClient*);
+
+CPlayerClient* __fastcall ClientConstructVerify(CPlayerClient* self) {
+    CPlayerClient* result = self->Construct();
+    auto* object = reinterpret_cast<CEngineObject*>(self);
+    bool ok = result == self && reinterpret_cast<std::uintptr_t>(self->vtable_) == 0x00743180u && object->refCount_ == 0 &&
+              object->id_ == -1 && self->player_ == nullptr && self->state_ == 0 && self->handlers_.data == nullptr &&
+              self->partyUnitIds_.data == nullptr && self->otherUnitIds_.data == nullptr && self->in_.size_ == 0 &&
+              self->out_.size_ == 0 && self->sendParty_ == 0;
+    ei::verify::Check("CPlayerClient::Construct", true, ok, "client %p", self);
+    return result;
+}
+void __fastcall ClientDestructVerify(CPlayerClient* self) {
+    self->DestructBody();
+    bool ok = reinterpret_cast<std::uintptr_t>(self->vtable_) == CEngineObject::kVtableAddress && self->player_ == nullptr;
+    ei::verify::Check("CPlayerClient::DestructBody", true, ok, "client %p", self);
+}
+CPlayerClient* __fastcall ClientDeleteVerify(CPlayerClient* self, void*, unsigned flags) {
+    CPlayerClient* result = self->DeletingDestruct(flags);
+    ei::verify::Check("CPlayerClient::DeletingDestruct", true, result == self, "client %p", self);
+    return result;
+}
+const char* __fastcall ClientNameVerify(CPlayerClient* self) {
+    const char* expected = s_clientName(self);
+    ei::verify::Check("CPlayerClient::GetClassName", expected, PlayerClientClassName(self), "client %p", self);
+    return expected;
+}
+int __fastcall ClientIdVerify(CPlayerClient* self) {
+    int expected = s_clientId(self);
+    ei::verify::Check("CPlayerClient::GetClassId", expected, PlayerClientClassId(self), "client %p", self);
+    return expected;
+}
+// CPlayerConnection's own destructors (no live object has that vtable; nothing may call them);
+// ours only.
+void __fastcall ConnectionDestructVerify(CPlayerConnection* self) {
+    ConnectionDestructBody(self);
+    ei::verify::Check("CPlayerConnection::DestructBody", true, self->player_ == nullptr, "connection %p", self);
+}
+CPlayerConnection* __fastcall ConnectionDeleteVerify(CPlayerConnection* self, void*, unsigned flags) {
+    CPlayerConnection* result = ConnectionDeletingDestruct(self, nullptr, flags);
+    ei::verify::Check("CPlayerConnection::DeletingDestruct", true, result == self, "connection %p", self);
+    return result;
+}
+} // namespace
+
+EI_VERIFY(0x00666D10, ClientConstructVerify, 0, s_unused);
+EI_VERIFY(0x00666FD0, ClientDestructVerify, 0, s_unused);
+EI_VERIFY(0x00666FB0, ClientDeleteVerify, 0, s_unused);
+EI_VERIFY(0x00666F90, ClientNameVerify, 5, s_clientName);
+EI_VERIFY(0x00666FA0, ClientIdVerify, 5, s_clientId);
+EI_VERIFY(0x00666EC0, ConnectionDestructVerify, 0, s_unused);
+EI_VERIFY(0x00666F70, ConnectionDeleteVerify, 0, s_unused);

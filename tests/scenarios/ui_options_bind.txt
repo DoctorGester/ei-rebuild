@@ -1,0 +1,25 @@
+# The options window's key binding (00652000 CommitBinding, docs/notes/ui.md section 8): group 4
+# (region 6: select1 / select2 / select3 / select_all) selects its first row, select1. Enter waits
+# for a key; G (free in keyboard.ini) is bound at once; then Q (weapon1's) asks first, and the
+# message box's OK (region 0) binds it. The options are cancelled, so the key table is not stored.
+reject Script error
+wait 6000
+
+clickregion 3
+wait 1500
+clickregion 6
+wait 500
+key enter
+wait 300
+key g
+wait 500
+key enter
+wait 300
+key q
+wait 800
+clickregion 0
+wait 800
+clickregion 1
+wait 1500
+report
+quit

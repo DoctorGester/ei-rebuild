@@ -143,6 +143,16 @@ public:
     void SerializeWeapons(int id, void* records, void* unused);
     void SerializeArmors(int id, void* records, void* unused);
 
+    // The spell database's vectors (item_db_load.cpp, A-H21; RET 0xC, the third argument unused),
+    // as the item database's: 00684EF0 the spells (0x84), 00684FE0 the modifiers (0x24), 00684C50
+    // the three lists of 0x34-byte records.
+    void SerializeSpells(int id, void* records, void* unused);
+    void SerializeSpellModifiers(int id, void* records, void* unused);
+    void SerializeSpellLists(int id, void* records, void* unused);
+    // 00683EB0 (RET 0xC; the third argument is unused). vector<int> as chunk `id`: one field 1 per
+    // value; loading empties the vector and refills it with as many zeros as there are fields.
+    void IntVectorField(int id, stlp::vector<int>* values, void* unused);
+
     // The quest database's vectors (quest_records.cpp; RET 0xC, the third argument unused): one
     // chunk 1 per record (its Serialize); loading destroys the records and resizes the vector to
     // the record chunks first. 006B1F20 the quests, 006B2010 the briefings.

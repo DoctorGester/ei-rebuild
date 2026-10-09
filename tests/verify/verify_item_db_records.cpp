@@ -73,6 +73,17 @@ static ItemRecordHead* __fastcall AssignVerify(ItemRecordHead* self, void*, cons
 }
 EI_VERIFY(0x006A8F20, AssignVerify, 0, s_unused);
 
+// 006A8FB0 (stolen 0): the weapon record's operator=: head and own bytes equal the source's;
+// returns this. Scenario: only STLport inserts into the weapon vector in the middle (the database
+// load appends, so it may not run).
+static WeaponRecord* __fastcall AssignWeaponVerify(WeaponRecord* self, void*, const WeaponRecord* source) {
+    WeaponRecord* result = self->AssignWeapon(source);
+    ei::verify::Check("WeaponRecord::operator=", true, result == self && SameHead(self, source) && SameOwn(self, source),
+                      "number %d", source->number);
+    return result;
+}
+EI_VERIFY(0x006A8FB0, AssignWeaponVerify, 0, s_unused);
+
 EI_VERIFY(0x006AB9C0, CopyVerify<WeaponRecord>, 0, s_unused);
 EI_VERIFY(0x006ABB50, FillVerify<WeaponRecord>, 0, s_unused);
 EI_VERIFY(0x006ABCD0, CopyVerify<ArmorRecord>, 0, s_unused);

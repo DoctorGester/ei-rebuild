@@ -91,17 +91,17 @@ __declspec(naked) void __fastcall ArmorSerialize(void*, void*, ChunkArchive*) EI
 // The body of the three instantiations: chunk `id` holding one chunk 1 per record; loading
 // destroys the old records (erase(begin, end): the tail copy is empty) and resizes to the number
 // of record chunks first.
-void SerializeItemRecords(ChunkArchive* ar, int id, itemdb::IndexedRecordTable* table, int size, RecordFn destroy,
+void SerializeItemRecords(ChunkArchive* ar, int id, RecordTable* vector, int size, RecordFn destroy,
                           ResizeFn resize, RecordSerializeFn serialize) {
     if (!ar->EnterChunk(id)) return;
-    auto& records = table->records;
+    auto& records = *vector;
     int count;
     if (ar->loading_) {
         char* end = records.end;
         for (char* p = records.begin; p != end; p += size) destroy(p);
         records.end = records.begin;
         count = ar->CountChunks(1);
-        resize(table, nullptr, static_cast<unsigned>(count));
+        resize(vector, nullptr, static_cast<unsigned>(count));
     } else {
         count = static_cast<int>(records.end - records.begin) / size;
     }
@@ -119,15 +119,15 @@ void SerializeItemRecords(ChunkArchive* ar, int id, itemdb::IndexedRecordTable* 
 } // namespace
 
 void ChunkArchive::SerializeQuickItems(int id, void* records, void*) {
-    SerializeItemRecords(this, id, static_cast<itemdb::IndexedRecordTable*>(records), itemdb::kQuickItemSize,
+    SerializeItemRecords(this, id, static_cast<RecordTable*>(records), itemdb::kQuickItemSize,
                          QuickItemDestroy, QuickItemsResize, QuickItemSerialize);
 }
 void ChunkArchive::SerializeLoot(int id, void* records, void*) {
-    SerializeItemRecords(this, id, static_cast<itemdb::IndexedRecordTable*>(records), itemdb::kLootSize, LootDestroy,
+    SerializeItemRecords(this, id, static_cast<RecordTable*>(records), itemdb::kLootSize, LootDestroy,
                          LootResize, LootSerialize);
 }
 void ChunkArchive::SerializeQuestItems(int id, void* records, void*) {
-    SerializeItemRecords(this, id, static_cast<itemdb::IndexedRecordTable*>(records), itemdb::kQuestItemSize,
+    SerializeItemRecords(this, id, static_cast<RecordTable*>(records), itemdb::kQuestItemSize,
                          QuestItemDestroy, QuestItemsResize, QuestItemSerialize);
 }
 EI_REPLACE_METHOD(0x006A7C20, ChunkArchive::SerializeQuickItems);
@@ -135,15 +135,15 @@ EI_REPLACE_METHOD(0x006A7D20, ChunkArchive::SerializeLoot);
 EI_REPLACE_METHOD(0x006A7E10, ChunkArchive::SerializeQuestItems);
 
 void ChunkArchive::SerializeMaterials(int id, void* records, void*) {
-    SerializeItemRecords(this, id, static_cast<itemdb::IndexedRecordTable*>(records), itemdb::kMaterialSize,
+    SerializeItemRecords(this, id, static_cast<RecordTable*>(records), itemdb::kMaterialSize,
                          MaterialDestroy, MaterialsResize, MaterialSerialize);
 }
 void ChunkArchive::SerializeWeapons(int id, void* records, void*) {
-    SerializeItemRecords(this, id, static_cast<itemdb::IndexedRecordTable*>(records), itemdb::kWeaponSize,
+    SerializeItemRecords(this, id, static_cast<RecordTable*>(records), itemdb::kWeaponSize,
                          WeaponDestroy, WeaponsResize, WeaponSerialize);
 }
 void ChunkArchive::SerializeArmors(int id, void* records, void*) {
-    SerializeItemRecords(this, id, static_cast<itemdb::IndexedRecordTable*>(records), itemdb::kArmorSize,
+    SerializeItemRecords(this, id, static_cast<RecordTable*>(records), itemdb::kArmorSize,
                          ArmorDestroy, ArmorsResize, ArmorSerialize);
 }
 EI_REPLACE_METHOD(0x006A7940, ChunkArchive::SerializeMaterials);
@@ -153,6 +153,134 @@ EI_REPLACE_METHOD(0x006A7B30, ChunkArchive::SerializeArmors);
 EI_REPLACE_METHOD(0x006A6E50, itemdb::IndexedRecordTable::LoadQuickItems);
 EI_REPLACE_METHOD(0x006A7110, itemdb::IndexedRecordTable::LoadLoot);
 EI_REPLACE_METHOD(0x006A73B0, itemdb::IndexedRecordTable::LoadQuestItems);
+
+// --- A-H21: the spell database's vectors and records ---------------------------------------------
+
+namespace {
+
+// Per record type (compiler-generated destructors, plain RET; the vectors' resize, RET 4; both in
+// library.csv except 00589860).
+__declspec(naked) void __fastcall SpellDestroy(void*) EI_ORIGINAL(0x00685AA0)
+__declspec(naked) void __fastcall SpellModifierDestroy(void*) EI_ORIGINAL(0x00685B70)
+__declspec(naked) void __fastcall SpellListDestroy(void*) EI_ORIGINAL(0x00589860)
+__declspec(naked) void __fastcall SpellsResize(void*, void*, unsigned) EI_ORIGINAL(0x00685730)
+__declspec(naked) void __fastcall SpellModifiersResize(void*, void*, unsigned) EI_ORIGINAL(0x006858D0)
+__declspec(naked) void __fastcall SpellListsResize(void*, void*, unsigned) EI_ORIGINAL(0x00684D60)
+// The records' Serialize (rewritten below), called through their addresses so that their verify
+// wrappers run for every record.
+__declspec(naked) void __fastcall SpellSerializeAt(void*, void*, ChunkArchive*) EI_ORIGINAL(0x00683B80)
+__declspec(naked) void __fastcall SpellModifierSerializeAt(void*, void*, ChunkArchive*) EI_ORIGINAL(0x00683AF0)
+__declspec(naked) void __fastcall SpellListSerializeAt(void*, void*, ChunkArchive*) EI_ORIGINAL(0x00683D40)
+// 00683EB0 (RET 0xC), through its address for the same reason.
+__declspec(naked) void __fastcall IntVectorFieldAt(ChunkArchive*, void*, int /*id*/, stlp::vector<int>*, void* /*unused*/)
+    EI_ORIGINAL(0x00683EB0)
+// STLport instantiations: vector<int>::_M_fill_insert(position, count, value) (RET 0xC),
+// vector<string>::erase(first, last) (RET 8) and resize(count) (RET 4).
+__declspec(naked) void __fastcall IntsFillInsert(stlp::vector<int>*, void*, int* /*position*/, unsigned /*count*/,
+                                                 const int* /*value*/) EI_ORIGINAL(0x0055B030)
+__declspec(naked) stlp::string* __fastcall StringsErase(stlp::vector<stlp::string>*, void*, stlp::string* /*first*/,
+                                                        stlp::string* /*last*/) EI_ORIGINAL(0x00583CB0)
+__declspec(naked) void __fastcall StringsResize(stlp::vector<stlp::string>*, void*, unsigned /*count*/) EI_ORIGINAL(0x004DC900)
+
+// A string list as chunk `id`: one string field 1 per entry; loading erases the list and resizes it
+// to the field count first.
+void StringListField(ChunkArchive* ar, int id, stlp::vector<stlp::string>* list) {
+    if (!ar->EnterChunk(id)) return;
+    int count;
+    if (ar->loading_) {
+        StringsErase(list, nullptr, list->begin(), list->end());
+        count = ar->CountChunks(1);
+        StringsResize(list, nullptr, static_cast<unsigned>(count));
+    } else {
+        count = static_cast<int>(list->size());
+    }
+    for (int i = 0; i < count; ++i) {
+        ar->Current()->occurrence = i + 1;
+        ar->StringField(1, &list->Start()[i]);
+    }
+    ar->LeaveChunk();
+}
+
+} // namespace
+
+void itemdb::SpellRecord::Serialize(ChunkArchive* ar) {
+    ar->CStringField(0, &name);
+    ar->CStringField(1, &code);
+    ar->CStringField(2, &text08);
+    ar->Field(3, &unknown_0C, 4);
+    ar->Field(4, &unknown_10, 4);
+    ar->Field(5, &mana, 4);
+    for (int i = 0; i < 9; ++i) ar->Field(6 + i, &unknown_1C[i], 4);
+    ar->Field(15, &needsSight, 4);
+    IntVectorFieldAt(ar, nullptr, 16, &list48, ar);
+    IntVectorFieldAt(ar, nullptr, 17, &list54, ar);
+    ar->Field(18, &unknown_60, 4);
+    ar->Field(19, &school, 4);
+    ar->Field(20, bytes78, 5);
+    ar->Field(21, &skill, 4);
+    ar->Field(22, &unknown_80, 4);
+    for (int i = 0; i < 5; ++i) ar->Field(23 + i, &unknown_64[i], 4);
+}
+EI_REPLACE_METHOD(0x00683B80, itemdb::SpellRecord::Serialize);
+
+void itemdb::SpellModifierRecord::Serialize(ChunkArchive* ar) {
+    ar->CStringField(0, &name);
+    ar->Field(1, &code[0], 4);
+    ar->Field(2, &code[4], 4);
+    ar->Field(3, &kind, 4);
+    ar->Field(4, &mana, 4);
+    ar->Field(5, &strength, 4);
+    ar->Field(6, &skill, 4);
+    ar->CStringField(7, &text1C);
+    ar->Field(8, &unknown_20, 4);
+}
+EI_REPLACE_METHOD(0x00683AF0, itemdb::SpellModifierRecord::Serialize);
+
+void itemdb::SpellListRecord::Serialize(ChunkArchive* ar) {
+    ar->StringField(1, &name);
+    StringListField(ar, 2, &list0C);
+    StringListField(ar, 3, &list18);
+    ar->StringField(4, &text24);
+    ar->Field(5, &value30, 4);
+}
+EI_REPLACE_METHOD(0x00683D40, itemdb::SpellListRecord::Serialize);
+
+void ChunkArchive::IntVectorField(int id, stlp::vector<int>* values, void*) {
+    if (!EnterChunk(id)) return;
+    int count;
+    if (loading_) {
+        // erase(begin, end) (the tail copy 00500040 is empty), then resize(count, 0): the vector is
+        // empty, so always the fill insert (the shrinking branch, 0055C2C0, is not reached).
+        values->Finish() = values->Start();
+        count = CountChunks(1);
+        int zero = 0;
+        IntsFillInsert(values, nullptr, values->Finish(), static_cast<unsigned>(count), &zero);
+    } else {
+        count = static_cast<int>(values->size());
+    }
+    for (int i = 0; i < count; ++i) {
+        Current()->occurrence = i + 1;
+        Field(1, &values->Start()[i], 4);
+    }
+    LeaveChunk();
+}
+EI_REPLACE_METHOD(0x00683EB0, ChunkArchive::IntVectorField);
+
+void ChunkArchive::SerializeSpells(int id, void* records, void*) {
+    SerializeItemRecords(this, id, static_cast<RecordTable*>(records), itemdb::kSpellSize, SpellDestroy,
+                         SpellsResize, SpellSerializeAt);
+}
+void ChunkArchive::SerializeSpellModifiers(int id, void* records, void*) {
+    SerializeItemRecords(this, id, static_cast<RecordTable*>(records), itemdb::kSpellModifierSize,
+                         SpellModifierDestroy, SpellModifiersResize, SpellModifierSerializeAt);
+}
+void ChunkArchive::SerializeSpellLists(int id, void* records, void*) {
+    SerializeItemRecords(this, id, static_cast<RecordTable*>(records), sizeof(itemdb::SpellListRecord),
+                         SpellListDestroy, SpellListsResize, SpellListSerializeAt);
+}
+EI_REPLACE_METHOD(0x00684EF0, ChunkArchive::SerializeSpells);
+EI_REPLACE_METHOD(0x00684FE0, ChunkArchive::SerializeSpellModifiers);
+EI_REPLACE_METHOD(0x00684C50, ChunkArchive::SerializeSpellLists);
 
 // --- A-H18: the database's destructor ---------------------------------------------------------------
 
