@@ -62,9 +62,9 @@ Conventions that came out of it (keep following them):
   were dummies).
 - Constructors and copies return `this` (`void*`); results callers never read are `void`; a result in ST0 is declared `double` (so it stays
   unrounded) and `float` arguments the function only copies are passed as raw dword bits (`std::bit_cast`; no FPU load touches a NaN payload).
-- `Right(n)` of the game's CString is `Mid(first)` (006FDA6D takes the start index; callers pass `Length - n`); 006FDAE9 `Left` is `CString
-  CString::Left(int) const` (RET 8: result slot, count). The iostream inserters are distinct addresses: 006FC9C6 "%d", 006FC14E "%u",
-  006FC91C "%ld", 006FC7FA double (RET 8), 006FC0B0 char, 006FC31D string, 00434FE0 manipulator.
+- CString: 006FDA6D is `Right(nCount)` and 006FD9B4 `Mid(nFirst)` (core.md, "MFC CString: Mid and Right"); 006FDAE9 `Left` is
+  `CString CString::Left(int) const` (RET 8: result slot, count). The iostream inserters are distinct addresses: 006FC9C6 "%d", 006FC14E
+  "%u", 006FC91C "%ld", 006FC7FA double (RET 8), 006FC0B0 char, 006FC31D string, 00434FE0 manipulator.
 - `src/lib` keeps its own copy of some functions (lib cannot include game headers): 0044C470, 006E6370, 006E63AD, 006E6433, 006FE90F,
   00700AA9, 00700AF9, 00700B9F, 00700C05, 00700D4C, 00700E17 (and the CRT / STLport ones such as 006E848B, 00404D70, 00405950); those
   addresses stay listed as duplicates.
@@ -72,9 +72,7 @@ Conventions that came out of it (keep following them):
   wrapper over the shared forwarder; a rewrite that is also declared in a header (e.g. `FatalError` in app.cpp) gets a different shared name
   (`FatalErrorOriginal`).
 
-State (originals report, 349 addresses forwarded from more than one file): 243 already rewritten, 72 library code, 34 not yet ported; 261
-differ in signature. Of those 261, 219 are already rewritten (they go with the direct-call work); of the other 42, 31 wait for a `ui_*` site
-(17 have a shared declaration, so each site is a one-line wrapper to write once the interface area ticket is merged; 14 have none yet: 005EBDB0,
-005EE110, 005F7E60, 005F8F10, 005FC730, 005FD760, 006232D0, 006255A0, 0065AFE0, 0065C290, 0065CC00, 007005AF, 007006E5, 007009DE) and 11 keep a
-`src/lib` copy (0044C470, 006E6370, 006E63AD, 006E6433, 006FE90F, 00700AA9, 00700AF9, 00700B9F, 00700C05, 00700D4C, 00700E17). The pending `ui_*` sites are listed in the report (grep `src/game/ui_`). Batches are 50 addresses taken by site count from the report. Next step after the forwarders: call
-the rewritten ones directly.
+State: `docs/originals-report.md` groups every address forwarded from more than one file into already rewritten (to be called
+directly), library code and not yet ported, and lists the "differ" group (declarations that disagree), including the pending `ui_*` sites
+(grep `src/game/ui_`). Batches are 50 addresses taken by site count from the report. Next step after the forwarders: call the rewritten
+ones directly.

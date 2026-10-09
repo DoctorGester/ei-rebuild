@@ -170,3 +170,16 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
 A-U2: the effect / string counts of Load are read into the argument's stack slot (a failed read leaves the stream
 pointer as the count; ours starts the local with it); the flags_ read starts from stack garbage (ours: the current
 flags). CMapObjectServer now declares its vitals block (+0x20, UnitVitals), names and string array.
+
+## Virtual slot names with low confidence (DR-C2)
+
+The placeholder slots of map_object.h, unit.h, world.h, map_object_figures.h and party.h were named from the vtables
+(evidence in the headers' comments). Guesses to re-check when a caller needs them: CMapObjectVirtuals 29
+`IsSynchronised` (flags_ 0x20000, set by the zone loader for records with +0x6C or a script name; units, levers, traps,
+torches answer 1; SendFreshObjects moves the objects answering 0 out of the map-object maps), 39 `IsDirectUseBlocked`
+(levers: byte +0x260; a plain click uses an object only when 38 IsUsable is set and 39 is 0), 43 `KeepsMapFlag` (levers:
+byte +0x261); CMapObjectCompanion 14 `Unused14`; CUnitController 15 / 17 `Unused*`, 36 `HasOtherArmour` (server: armour
+slots 3..6, client: any weapon model; they differ); CWorld 37 / 38 `ClientManager194` / `ClientManager198` (not
+identified), 39 `Unused39`; CObject3DSpecific 25 `Unused25`. CLinkMesh's slot 4, declared `HasPiece`, is LoadPart
+(004F30D0 -> 004F7480). Placeholders still left (16): engine_object.h, map_spec.h, resource.h, ui_camp.h, unit_ai.h
+(`AIStream::Slot0` is CStream's deleting destructor).

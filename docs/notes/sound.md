@@ -123,7 +123,8 @@ goes through a naked helper. Miles is called through game.exe's import table (00
 - Library (A-H13, config/library.csv): the CArray<MusicTheme> members 006B56C0-006B5BC0 and MusicTheme's operator= /
   destructor 006B4D40 / 006B4D90; the cache list and wave cache members 006BBDF0-006BE240; unwind-only destructors 006B62D0 /
   006B6350 / 006BE300 and the name array element constructors 006B63D0 / 006B63F0. 006BBA00 is dead (no references).
-- Live game code left in 006B4000-006C0000 (next candidates): the terrain sector's 006BF4A0..006BFC80 (`models.md`).
+- Live game code left in 006B4000-006C0000: terrain sector pieces around 006BF4A0 (`models.md`; Construct 006BF5F0 and Project
+  006BFC80 are done).
 - A-H15 layout: +0x168 / +0x178 and the MIDI part's +0x1E4 / +0x1F4 are 32-byte aligned arrays (`lib::AlignedArray`;
   `markers` is the first); the MIDI part (+0x1CC) has two CStrings (+0x1DC / +0x1E0), a fader (+0x20C) and a lock (+0x22C).
   The constructor's hash maps get zero functor bytes where the original copies three uninitialised stack bytes (unused).
