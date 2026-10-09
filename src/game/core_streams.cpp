@@ -154,6 +154,7 @@ void** __fastcall AlignedPointerArrayAlloc(int count) {
 }
 EI_REPLACE(0x0047B940, AlignedPointerArrayAlloc);
 EI_REPLACE(0x004D9ED0, AlignedPointerArrayAlloc);   // byte-identical copy
+EI_REPLACE(0x0066BE00, AlignedPointerArrayAlloc);   // the same instructions (A-H15)
 
 void __fastcall AlignedObjectsClear(lib::AlignedArray<CEngineObject*>* objects) {
     // The size is read again after every call (a release may change the array).

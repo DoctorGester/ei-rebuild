@@ -279,19 +279,19 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
     char* player = unit->player;
     if (order->kind != kOrderSkill && !player) return true;
     float best = kFar;
-    LocalMotionOrder motion;
+    LocalMotionOrder route;
     float point[3];
     if (!order->target) std::memcpy(point, order->point, sizeof(point));
     else ei::VCall<void>(order->target, kSlotAimPoint, point);
     bool ok;
-    if (!CtlFindUseSpot(this, nullptr, order, motion.bytes)) {
-        PathMessage(unit, motion.bytes, point, 3, 1, kFar);
+    if (!CtlFindUseSpot(this, nullptr, order, route.bytes)) {
+        PathMessage(unit, route.bytes, point, 3, 1, kFar);
         ok = false;
     } else {
         if (!player) return true;
         if (CtlCanReachTarget(this, nullptr, order) && CtlCanPlanAction(this, nullptr, order)) {
             // The action can be done from here.
-            PathMessage(unit, motion.bytes, point, 3, 0, kFar);
+            PathMessage(unit, route.bytes, point, 3, 0, kFar);
             if ((shout <= 0x29 || shout == 0x30) && shout != 0xFFFFFFFFu && unit->player)
                 PlayerMessage(At<void*>(unit->player, 0x20), nullptr, unit, static_cast<int>(shout));
             return true;
@@ -313,7 +313,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
         // Where the unit would stand at the end of its way, and whether it could act from there.
         auto actsFromDestination = [&]() {
             float destination[3];
-            const float* at = MotionDestination(motion.bytes, nullptr, destination);
+            const float* at = MotionDestination(route.bytes, nullptr, destination);
             if (!CtlCanReachTarget(this, nullptr, order)) return false;
             float x = unit->positionX, y = unit->positionY, z = unit->positionZ;
             unit->positionX = at[0];
@@ -345,13 +345,13 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
                 SectorMapAdd(AsSectorMap(kSectorMap), nullptr, target);
                 PathFlag() = savedFlag;
             }
-            PathToMotionOrder(path.bytes, nullptr, motion.bytes);
+            PathToMotionOrder(path.bytes, nullptr, route.bytes);
             ok = actsFromDestination();
-            if (ok) best = static_cast<float>(CtlTimeUntilAction(this, nullptr, order, motion.bytes));
+            if (ok) best = static_cast<float>(CtlTimeUntilAction(this, nullptr, order, route.bytes));
         } else {
             ok = actsFromDestination();
         }
-        PathMessage(unit, motion.bytes, point, kind, ok ? 0 : 1, best);
+        PathMessage(unit, route.bytes, point, kind, ok ? 0 : 1, best);
         if (ok) {
             CtlShout(this, nullptr, shout);
             return true;

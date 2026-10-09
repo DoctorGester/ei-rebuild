@@ -86,6 +86,18 @@ static void __fastcall DestroyBaseVerify(CUiWindow* self, void*) {
                       self->models_.size);
 }
 EI_VERIFY(0x005FE930, DestroyBaseVerify, 0, s_unused);
+// Destructor bodies that only jump to it (ui_window_delete.cpp; A-I16).
+EI_VERIFY(0x005EE040, DestroyBaseVerify, 0, s_unused);
+EI_VERIFY(0x005EE410, DestroyBaseVerify, 0, s_unused);
+EI_VERIFY(0x0060E280, DestroyBaseVerify, 0, s_unused);
+EI_VERIFY(0x0060E300, DestroyBaseVerify, 0, s_unused);
+EI_VERIFY(0x0060E330, DestroyBaseVerify, 0, s_unused);
+EI_VERIFY(0x0060E5D0, DestroyBaseVerify, 0, s_unused);
+EI_VERIFY(0x0060E670, DestroyBaseVerify, 0, s_unused);
+EI_VERIFY(0x0060E6A0, DestroyBaseVerify, 0, s_unused);
+EI_VERIFY(0x006157F0, DestroyBaseVerify, 0, s_unused);
+EI_VERIFY(0x00635DA0, DestroyBaseVerify, 0, s_unused);
+EI_VERIFY(0x00635DD0, DestroyBaseVerify, 0, s_unused);
 
 // 005FE700: ours only (a constructor). The base window: its vtables, interface, empty arrays and
 // both materials.

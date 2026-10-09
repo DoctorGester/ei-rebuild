@@ -929,8 +929,8 @@ void CUnitServer::ApproachTarget() {
     PathFlag() = savedFlag;
     if (LessOrUnordered(static_cast<double>(reach) * reach, fx * fx + fy * fy)) {
         // The way leads elsewhere: stop, face along, and chase from here.
-        void* motion = &At<char>(this, 0x3C);
-        PathClear(motion);
+        void* path = &motion;
+        PathClear(path);
         int time = At<int>(ObjectWorld(this), 0x64);
         Vector3 axis;
         reinterpret_cast<const Quaternion*>(&At<float>(unit, 0x34))->AxisY(&axis);
@@ -938,7 +938,7 @@ void CUnitServer::ApproachTarget() {
         back.x = -axis.x;
         back.y = -axis.y;
         back.z = -axis.z;
-        if (MotionPlace(motion, nullptr, &unit->positionX, &back, time)) UnitPathSpeeds(unit);
+        if (MotionPlace(path, nullptr, &unit->positionX, &back, time)) UnitPathSpeeds(unit);
         CtlSetStanding(this, nullptr, 0);
         state = kStateChasing;
         UnitUpdateSizeClass(unit);

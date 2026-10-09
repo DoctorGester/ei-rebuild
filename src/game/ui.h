@@ -1565,7 +1565,7 @@ struct SaveEntry {
     float gameTime_;                 // +0x0C the "gtime" variable
     char* map_;                      // +0x10 CString: the map of the zone
     char* zone_;                     // +0x14 CString: the zone
-    std::uint8_t stringArrays_[0x28];   // +0x18 two CStringArrays (+0x18, +0x2C), copied with the entry
+    mfc::CStringArray stringArrays_[2];  // +0x18, +0x2C copied with the entry
     bool broken_;                    // +0x40 no info.sav: titled "Error Save", no picture
     std::uint8_t unknown_41[3];
 };
@@ -1595,6 +1595,9 @@ public:
     void Update();                                     // 006545E0 (slot 24)
     void CloseDialog();                                // 00654430 (slot 26)
     void OnDialogResult(int result);                   // 00654450 (slot 27)
+    // 006070C0 (ui_window_delete.cpp). The destructor body: the name, each entry's strings and
+    // string arrays, the entries' storage, then the container's.
+    void DestroyBody();
 
     // A-H14 (ui_saveload.cpp).
     // 00655290. OK: nothing without a selection; a save window plays "ok" and saves into the new
@@ -1743,6 +1746,10 @@ public:
     // list, strings, exit array (vtable 00741264), quest arrays and places; vtables 007411BC /
     // 00741188 (the rest is set by Build). Returns this.
     CObjectivesWindow* Construct(CInterface3D* ui);
+    // 00603B90 (ui_window_delete.cpp). The destructor body: the objective texts, the quest places'
+    // storage, the quests, the exits (vtable 00741264, storage freed), the two zone names, the
+    // zone list, then the container's. The exit distances (+0x178) are not freed here.
+    void DestroyBody();
     // 0064BE80 (slot 25, the window's Create; ui_objectives.cpp).
     void Build();
     // 0064CC10: shows zone `zone`: picture, exits, quests and description.
@@ -1976,6 +1983,9 @@ public:
     void OnKeyDown(int key, int repeat, int flags);
     // The OK answer's edit text into editText_ (the caller's buffer).
     void CopyEditText();
+    // 0061E3E0 (and the difficulty question's 00633750, the same code; ui_window_delete.cpp). The
+    // destructor body: the text and title strings, then the container's.
+    void DestroyBody();
 
     const char* title_;              // +0x164 CString (text of the title key)
     const char* text_;               // +0x168 CString (text of the text key)
@@ -1988,6 +1998,78 @@ public:
 static_assert(offsetof(CMessageBox, title_) == 0x164);
 static_assert(offsetof(CMessageBox, edit_) == 0x178);
 static_assert(sizeof(CMessageBox) == 0x180);
+
+// A message box waiting on a master server request (constructor 0061E2F0 from the lobby's
+// 0061D0D0; vtables 00741DD8 / 00741DA4): the box with OK only, a master server link and a
+// sprite. Names provisional.
+class CMasterRequestBox : public CMessageBox {
+public:
+    // 0061E460 (ui_window_delete.cpp). The destructor body: the link (00440D40), then the box's.
+    void DestroyBody();
+
+    std::uint8_t link_[0x40];        // +0x180 net::MasterLink (net_socket_driver.cpp)
+    CUiMesh* sprite_;                // +0x1C0
+};
+static_assert(offsetof(CMasterRequestBox, link_) == 0x180);
+static_assert(offsetof(CMasterRequestBox, sprite_) == 0x1C0);
+
+// The help / message window (0x194 bytes, vtables 00740E28 / 00740DF4; built inline by
+// CInterface3D::ShowMessage 005F8A80 and OpenHelp 005F86F0, ui_create_screen.cpp). Names
+// provisional.
+class CHelpWindow : public CUiContainer {
+public:
+    // 005F8970 (ui_window_delete.cpp). The destructor body: the two lists (nodes, then the
+    // sentinel), the text array, the two strings, then the container's.
+    void DestroyBody();
+
+    std::uint8_t unknown_164;
+    std::uint8_t unknown_165[3];
+    mfc::CString text_;                  // +0x168 the message
+    mfc::CString title_;                 // +0x16C
+    mfc::CStringArray lines_;            // +0x170
+    std::uint32_t value_;                // +0x184
+    stlp::list<std::uint32_t> listA_;    // +0x188
+    stlp::list<std::uint32_t> listB_;    // +0x18C
+    std::uint8_t unknown_190[4];
+};
+static_assert(offsetof(CHelpWindow, text_) == 0x168);
+static_assert(offsetof(CHelpWindow, lines_) == 0x170);
+static_assert(offsetof(CHelpWindow, listA_) == 0x188);
+static_assert(sizeof(CHelpWindow) == 0x194);
+
+// A line of the in-game chat overlay: the text, the speaker, a value and the line's own surface.
+struct ChatLine {
+    // 005E2670 (ui_window_delete.cpp). Destructor: the surface released and freed (cleared),
+    // then the two strings.
+    void Destroy();
+
+    mfc::CString text;          // +0x00
+    mfc::CString name;          // +0x04
+    std::uint32_t time;         // +0x08 timeGetTime when it was added
+    CUiSurface* surface;        // +0x0C
+};
+static_assert(sizeof(ChatLine) == 0x10);
+
+// The in-game chat overlay (vtables 007400DC / 007400A8; made by CInterface3D::Create 005F4990,
+// constructor 005E26F0; its drawing and input 005E2A30 / 005E3230 / 005E3700 are not rewritten).
+class CChatOverlay : public CUiWindow {
+public:
+    // 005E28E0 (ui_window_delete.cpp). The destructor body: the typed line, every chat line
+    // (destroyed, node freed), the list's sentinel, then the window's.
+    void DestroyBody();
+    // 005E2990 (slot 24). Lines older than 20 s (timeGetTime) are erased.
+    void Update();
+    // 005E29E0 (slot 22). Each line's surface placed at (10, 10 + 16 * row) and blitted, then the
+    // window's own redraw (005FECC0).
+    void Redraw();
+
+    stlp::list<ChatLine> lines_;     // +0x148
+    std::uint8_t unknown_14C;        // +0x14C 0
+    std::uint8_t unknown_14D[3];
+    mfc::CString typed_;             // +0x150
+};
+static_assert(offsetof(CChatOverlay, lines_) == 0x148);
+static_assert(offsetof(CChatOverlay, typed_) == 0x150);
 
 // The new game's difficulty question (vtables 0074225C / 00742228, 0x184 bytes; the main menu's
 // region 0): a message box ("option_difficulty", OK and cancel) with two check boxes. Its button

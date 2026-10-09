@@ -16,6 +16,9 @@ struct WorldPlayer;
 __declspec(naked) inline void __fastcall PartyCopyFrom(void* /*party*/, void*, const void* /*from*/)
     EI_ORIGINAL(0x00661300)
 __declspec(naked) inline void __fastcall PartyResetItems(void* /*party*/) EI_ORIGINAL(0x00661FB0)
+// 004A91B0 (library, RET 4): the party manager's hash_map<int, CParty>::operator[] (a new key gets a
+// default party).
+__declspec(naked) inline void* __fastcall PartyMapAtOriginal(void* /*map*/, void*, const int* /*key*/) EI_ORIGINAL(0x004A91B0)
 __declspec(naked) inline void __fastcall PlayerListRelease(CEngineObject*, void*, WorldPlayer*)
     EI_ORIGINAL(0x0066C1D0)
 __declspec(naked) inline void __fastcall PlayerSendPair(void*, void*, int, float) EI_ORIGINAL(0x0066F2C0)
@@ -35,6 +38,12 @@ __declspec(naked) inline void __fastcall PlayerGiveItemsOriginal(void* /*player*
 // two flags are read as bytes; EAX is the item, or null).
 __declspec(naked) inline void __fastcall PartyResetOriginal(void* /*party*/, void*, int /*a*/, int /*b*/)
     EI_ORIGINAL(0x00661700)
+// 00619920: the insert overflow of a vector of party file entries (0x74 bytes: the records and a CString file name;
+// the multiplayer heroes 007C82A4, the world's party list): `count` copies of `value` at `position` in a new block
+// (RET 0xC, no result).
+__declspec(naked) inline void __fastcall PartyEntriesInsertOverflowOriginal(void* /*vector*/, void*, void* /*position*/,
+                                                                            const void* /*value*/, unsigned /*count*/)
+    EI_ORIGINAL(0x00619920)
 // 00662AC0: a party (the multiplayer heroes' records too) sends its map transfer `transfer` (RET 4, no result).
 __declspec(naked) inline void __fastcall PartySendTransferOriginal(void* /*party*/, void*, int /*transfer*/) EI_ORIGINAL(0x00662AC0)
 __declspec(naked) inline void* __fastcall PartyAddItemOriginal(void* /*party*/, void*, void* /*item*/, int /*a*/,
@@ -66,6 +75,10 @@ __declspec(naked) inline void __fastcall PartyRecordsDestructOriginal(void* /*pa
 __declspec(naked) inline void __fastcall PlayerClearOriginal(void* /*player*/) EI_ORIGINAL(0x00665200)
 __declspec(naked) inline void __fastcall PlayerDisconnectOriginal(void* /*player*/) EI_ORIGINAL(0x00665A10)
 __declspec(naked) inline void* __fastcall PlayerCreateOriginal(void* /*session*/) EI_ORIGINAL(0x0066C180)
+// 0066D730 (CPlayerServer, RET 8): message 0x12, one uninitialised stack byte and `value` (the first
+// argument is not read; not rewritten because of that byte).
+__declspec(naked) inline void __fastcall PlayerServerSend12Original(void* /*server*/, void*, int /*unused*/, int /*value*/)
+    EI_ORIGINAL(0x0066D730)
 __declspec(naked) inline void __fastcall PlayerStateRefreshOriginal(void* /*state*/) EI_ORIGINAL(0x0066EF80)
 // 0059C3D0 (RET 8, no result): SetSize(count, growBy) of the unit placements (an MFC CArray of 0x28-byte records whose
 // new elements 004CEE20 builds), the player state's +0x74 and the zone entry's list.

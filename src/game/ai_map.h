@@ -190,6 +190,9 @@ struct AIPath {
     // cell lists empty (blocks of 0x80), no points (vtable kPointsVtable), then Clear. Returns this.
     // The destructor body is 00546100 (AIPathDestructOriginal).
     AIPath* Construct();
+    // 00546100 (combat_lifetime.cpp, A-U7). The destructor body: the points freed (vtable
+    // 0073F07C), then both cell lists emptied with their vtable (0073EDB0).
+    void Destruct();
     // 00670730 (RET 4). The search's target cell (targetX, targetY) in world units: each times
     // 0074326C * 0073B86C, z 0. Returns `out`.
     Vector3* TargetPoint(Vector3* out) const;
