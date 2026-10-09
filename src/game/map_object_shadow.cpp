@@ -248,7 +248,7 @@ double Brightness(const CEngineObject* light) {
 // A point light's share: from the light towards the object, scaled by its brightness and its
 // falloff over the squared distance. False when the object is out of its range.
 bool PointLightShare(const CObject3D* object, CEngineObject* light, float* out) {
-    const float* at = object->position;
+    const float* at = &object->position.x;
     const float* from = &At<float>(light, 0x1C);
     double dx = static_cast<double>(at[0]) - from[0];
     double dy = static_cast<double>(at[1]) - from[1];
@@ -311,9 +311,9 @@ void LightDirection(const float* sum, float* direction) {
 
 // The squared distance of a part from the object; parts beyond 1e10 are skipped (NaN is not).
 bool PartTooFar(const FigurePart* part) {
-    double x = part->position[0];
-    double y = part->position[1];
-    double z = part->position[2];
+    double x = part->position.x;
+    double y = part->position.y;
+    double z = part->position.z;
     return (x * x + y * y) + z * z > kFarSquared;
 }
 
@@ -506,7 +506,7 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
     float y2 = static_cast<float>(static_cast<double>(turn.y) + turn.y);
     float z2 = static_cast<float>(static_cast<double>(turn.z) + turn.z);
     float at[3];
-    std::memcpy(at, self->object->position, sizeof(at));
+    std::memcpy(at, &self->object->position, sizeof(at));
     float wx = static_cast<float>(x2 * turn.w);
     float wy = static_cast<float>(static_cast<double>(y2) * turn.w);
     float wz = static_cast<float>(static_cast<double>(z2) * turn.w);
@@ -571,10 +571,10 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
 
     if (self->vertexCount != 0) {
         ei::VCall<void>(sceneObject, 7, &self->sphere, self->vertices, self->vertexCount);
-        const float* position = self->object->position;
-        self->sphereCentre[0] = static_cast<float>(static_cast<double>(self->sphereCentre[0]) - position[0]);
-        self->sphereCentre[1] = static_cast<float>(static_cast<double>(self->sphereCentre[1]) - position[1]);
-        self->sphereCentre[2] = static_cast<float>(static_cast<double>(self->sphereCentre[2]) - position[2]);
+        const float* position = &self->object->position.x;
+        self->sphereCentre.x = static_cast<float>(static_cast<double>(self->sphereCentre.x) - position[0]);
+        self->sphereCentre.y = static_cast<float>(static_cast<double>(self->sphereCentre.y) - position[1]);
+        self->sphereCentre.z = static_cast<float>(static_cast<double>(self->sphereCentre.z) - position[2]);
     } else {
         self->sphere = 0;
     }
@@ -612,7 +612,7 @@ int CObject3DClientSpecific::DrawShadow(ShadowDrawContext* context) {
         colour = (static_cast<std::uint32_t>(x87::fistp(alpha)) << 24) | 0xFFFFFF;
     }
     SetTexture(TextureStages(), nullptr, 0, texture);
-    std::uint8_t lit = IsLit(LightManager(), nullptr, object->position);
+    std::uint8_t lit = IsLit(LightManager(), nullptr, &object->position.x);
     DrawGeometry(RenderDevice(), nullptr, vertices, indices, vertexCount, texCoords, primitiveCount, colour,
                  static_cast<std::uint32_t>(static_cast<std::uint8_t>(lit)) << 24, 0, kDrawDepth);
     return 1;

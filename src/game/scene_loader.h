@@ -13,6 +13,7 @@
 
 #include "../lib/containers.h"
 #include "../lib/mfc.h"
+#include "../lib/vecmath.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -107,7 +108,7 @@ struct MeshFace {
     std::uint32_t vertex[3];       // +00
     std::uint32_t vertex2[3];      // +0C
     std::uint32_t position[3];     // +18 the file's position indices
-    float normal[3];               // +24 unit normal of the plane (0049AEC0)
+    Vector3 normal;                // +24 unit normal of the plane (0049AEC0)
     float distance;                // +30 the plane's distance: dot(position[1]'s point, normal)
 };
 static_assert(sizeof(MeshFace) == 0x34);

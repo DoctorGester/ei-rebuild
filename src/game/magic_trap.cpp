@@ -235,7 +235,7 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
     spell = made;
     if (made) ++made->refCount_;
     if (old) old->Release();
-    std::memcpy(&positionX, record->position, sizeof(record->position));   // copied as dwords
+    std::memcpy(&positionX, &record->position, sizeof(record->position));   // copied as dwords
 
     // The loop bounds are read again on every pass, as in the original.
     CirclesSetSize(&area, nullptr, record->area.count, -1);

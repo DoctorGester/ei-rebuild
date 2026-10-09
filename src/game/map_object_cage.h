@@ -4,6 +4,8 @@
 // parameters (t, u, w) between the corners of a cube (8 points) or a prism (6 points) read from a
 // record stream. Names provisional; see docs/notes/map_objects.md ("Cages").
 
+#include "maths.h"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -18,7 +20,7 @@ struct CageInterpolator {
     void InterpolatePrism(const float** stream);
 
     std::uint8_t unknown_00[0x5C];
-    float point[3];     // +0x5C the result
+    Vector3 point;      // +0x5C the result
     float t;            // +0x68
     float u;            // +0x6C
     float w;            // +0x70

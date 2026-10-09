@@ -20,7 +20,7 @@ int UnitId(const CUnitServer* self) { return self->unit ? self->unit->id_ : -1; 
 static UnitAction* __fastcall AssignVerify(UnitAction* self, void*, const UnitAction* from) {
     UnitAction* result = self->Assign(from);
     bool same = result == self && self->kind == from->kind && self->source == from->source &&
-                self->target == from->target && std::memcmp(self->point, from->point, sizeof(self->point)) == 0 &&
+                self->target == from->target && std::memcmp(&self->point, &from->point, sizeof(self->point)) == 0 &&
                 self->flag18 == from->flag18 && self->unknown_1C == from->unknown_1C && self->unknown_20 == from->unknown_20;
     ei::verify::Check("UnitAction::Assign", true, same, "kind %d", from->kind);
     return result;

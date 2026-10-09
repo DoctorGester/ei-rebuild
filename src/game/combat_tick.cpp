@@ -199,7 +199,7 @@ UnitAction* UnitAction::Assign(const UnitAction* from) {
         if (from->target) ++from->target->refCount_;
         target = from->target;
     }
-    std::memcpy(point, from->point, sizeof(point));
+    std::memcpy(&point, &from->point, sizeof(point));
     flag18 = from->flag18;
     unknown_1C = from->unknown_1C;
     unknown_1C = from->unknown_1C;   // copied twice by the original
@@ -274,7 +274,7 @@ void CUnitServer::TakeQueuedOrder() {
         if (target) ++target->refCount_;
         action.target = target;
     }
-    std::memcpy(action.point, action2.point, sizeof(action.point));
+    std::memcpy(&action.point, &action2.point, sizeof(action.point));
     action.flag18 = action2.flag18;
     action.unknown_1C = action2.unknown_1C;
     action.unknown_1C = action2.unknown_1C;
@@ -357,11 +357,10 @@ bool CUnitServer::StartMove() {
     }
     // Already there: the order is done and the next one starts.
     Vector3 offset;
-    offset.x = unit->positionX - action.point[0];
-    offset.y = unit->positionY - action.point[1];
-    offset.z = unit->positionZ - action.point[2];
-    double lengthSq = static_cast<double>(offset.z) * offset.z + static_cast<double>(offset.y) * offset.y;
-    lengthSq = lengthSq + static_cast<double>(offset.x) * offset.x;
+    offset.x = unit->positionX - action.point.x;
+    offset.y = unit->positionY - action.point.y;
+    offset.z = unit->positionZ - action.point.z;
+    double lengthSq = LengthSquaredZYX(offset);
     if (LessOrUnordered(lengthSq, kArrived)) {
         action.CallReset();
         if (action2.kind == kOrderEmpty) CallIdle();
@@ -370,10 +369,10 @@ bool CUnitServer::StartMove() {
         return result;
     }
     // Plan the way with the units near the goal lifted off the sector map.
-    CtlLiftNearby(this, nullptr, &lifted, action.point, action.source != 0);
+    CtlLiftNearby(this, nullptr, &lifted, &action.point.x, action.source != 0);
     CAIMap* map = static_cast<CWorldServer*>(ManagerContext())->AIMap();
     unit->unknown_43C = MapCellFlag80(map, nullptr, &unit->positionX);
-    bool found = TickPathTo(this, nullptr, action.point, std::bit_cast<std::uint32_t>(action.point[2]));
+    bool found = TickPathTo(this, nullptr, &action.point.x, std::bit_cast<std::uint32_t>(action.point.z));
     for (UnitPtrList::Node* node = lifted.head; node;) {
         UnitPtrList::Node* current = node;
         node = node->next;
@@ -384,8 +383,8 @@ bool CUnitServer::StartMove() {
         action.unknown_1C = 0;
         bool close = false;
         if (!found) {
-            double dy = static_cast<double>(action.point[1]) - unit->positionY;
-            double dx = static_cast<double>(action.point[0]) - unit->positionX;
+            double dy = static_cast<double>(action.point.y) - unit->positionY;
+            double dx = static_cast<double>(action.point.x) - unit->positionX;
             close = LessOrUnordered(dx * dx + dy * dy, kLong);
         }
         if (close) arrived = true;
@@ -426,7 +425,7 @@ bool CUnitServer::StartQueuedOrder() {
         LeaveMoveMode(this);
         int time = action.unknown_1C;
         int now = static_cast<CWorld*>(ManagerContext())->tick_;
-        MotionTurn(&motion, nullptr, now, unit, action.point, time);
+        MotionTurn(&motion, nullptr, now, unit, &action.point.x, time);
         UnitPathSpeeds(unit);
         TickMotion5474B0(this);
         CtlSetState(this, nullptr, 1);
@@ -755,28 +754,28 @@ void CUnitServer::ApproachTarget() {
 
     if (action.flag18 || !target) {
         // A point: walk there; fail when there is no way or the order cannot be done from there.
-        float goal[3];
-        std::memcpy(goal, action.point, sizeof(goal));
+        Vector3 goal;
+        std::memcpy(&goal, &action.point, sizeof(goal));
         if (state == kStateIdle) {
-            double dy = static_cast<double>(goal[1]) - motion.goal.y;
-            double dx = static_cast<double>(goal[0]) - motion.goal.x;
+            double dy = static_cast<double>(goal.y) - motion.goal.y;
+            double dx = static_cast<double>(goal.x) - motion.goal.x;
             if (!(dx * dx + dy * dy > kNearPoint)) return;
         }
-        if (TickPathTo(this, nullptr, goal, kFarBits)) {
+        if (TickPathTo(this, nullptr, &goal.x, kFarBits)) {
             double h = HalfScale();
             Vector3 heading;
             heading.x = static_cast<float>(h * motion.targetX);
             heading.y = static_cast<float>(h * motion.targetY);
             heading.z = 0.0f;
-            double dx = static_cast<double>(heading.x) - goal[0];
-            double dy = static_cast<double>(heading.y) - goal[1];
+            double dx = static_cast<double>(heading.x) - goal.x;
+            double dy = static_cast<double>(heading.y) - goal.y;
             if (!(dy * dy + dx * dx > kNearPoint)) return;
             if (CtlCanReachTarget(this, nullptr, &action)) {
-                float saved[3];
-                std::memcpy(saved, &unit->positionX, sizeof(saved));
+                Vector3 saved;
+                std::memcpy(&saved, &unit->positionX, sizeof(saved));
                 std::memcpy(&unit->positionX, &heading, sizeof(saved));
                 bool ok = CallCanPlanAction(&action);
-                std::memcpy(&unit->positionX, saved, sizeof(saved));
+                std::memcpy(&unit->positionX, &saved, sizeof(saved));
                 if (ok) return;
             }
         }
@@ -812,9 +811,7 @@ void CUnitServer::ApproachTarget() {
             offset.z = p[2] - unit->positionZ;
             double closing = Slots(unit)->MoveSpeed() * (static_cast<double>(kOne) * kHalf);
             if (closing > kZero) {
-                double distance = x87::fsqrt(static_cast<double>(offset.x) * offset.x +
-                                             static_cast<double>(offset.y) * offset.y +
-                                             static_cast<double>(offset.z) * offset.z);
+                double distance = LengthXYZ(offset);
                 double ticks = (distance - reach) / closing;
                 if (static_cast<double>(lead) > ticks) {
                     if (state != kStateTurning) StandIdle(this);
@@ -847,8 +844,7 @@ void CUnitServer::ApproachTarget() {
     offset.x = where[0] - unit->positionX;
     offset.y = where[1] - unit->positionY;
     offset.z = where[2] - unit->positionZ;
-    double sum = static_cast<double>(offset.x) * offset.x + static_cast<double>(offset.z) * offset.z;
-    volatile float distance = static_cast<float>(x87::fsqrt(sum + static_cast<double>(offset.y) * offset.y));
+    volatile float distance = LengthZXY(offset);
     volatile float mySpeed = static_cast<float>(Slots(unit)->MoveSpeed());
     double closing;
     if (IsMoving(chased)) {
@@ -885,13 +881,13 @@ void CUnitServer::ApproachTarget() {
     else if (ticks < kChaseMinTicks) ticks = kChaseMinTicks;
     int when = ticks + now;
     const float* future = &Slots(chased)->PositionAt(&scratch, when)->x;
-    float goal[3];
-    std::memcpy(goal, future, sizeof(goal));
+    Vector3 goal;
+    std::memcpy(&goal, future, sizeof(goal));
 
     if (state == kStateIdle) {
         double close = (static_cast<double>(distance) + kOne) * kPointOne;
-        double dy = static_cast<double>(goal[1]) - motion.goal.y;
-        double dx = static_cast<double>(goal[0]) - motion.goal.x;
+        double dy = static_cast<double>(goal.y) - motion.goal.y;
+        double dx = static_cast<double>(goal.x) - motion.goal.x;
         if (close * close > dx * dx + dy * dy) {
             // Still heading close enough to it: only the patience (the path goal's z) changes.
             motion.goal.z = static_cast<float>(UnitScaledValue(unit, nullptr, distance) + kFive);
@@ -902,26 +898,26 @@ void CUnitServer::ApproachTarget() {
     CAIMap* aiMap = WorldServer()->AIMap();
     bool savedFlag = aiMap->refreshUnits;
     aiMap->refreshUnits = false;
-    double ay = static_cast<double>(unit->positionY) - goal[1];
-    double ax = static_cast<double>(unit->positionX) - goal[0];
+    double ay = static_cast<double>(unit->positionY) - goal.y;
+    double ax = static_cast<double>(unit->positionX) - goal.x;
     if (!(ax * ax + ay * ay > kPointOne)) return;   // (sic: the path flag stays cleared)
 
     SectorMapRemove(WorldServer()->Sectors(), nullptr, chased);
-    volatile float far = static_cast<float>(static_cast<double>(goal[1]) * kShort);
-    double nearX = static_cast<double>(goal[0]) * kShort;
+    volatile float far = static_cast<float>(static_cast<double>(goal.y) * kShort);
+    double nearX = static_cast<double>(goal.x) * kShort;
     volatile float unitY = static_cast<float>(static_cast<double>(unit->positionY) * kLong);
-    float point[3];
-    point[0] = static_cast<float>(static_cast<double>(unit->positionX) * kLong + nearX);
-    point[1] = static_cast<float>(static_cast<double>(unitY) + far);
-    point[2] = goal[2];
-    if (!TickPathTo(this, nullptr, point, std::bit_cast<std::uint32_t>(static_cast<float>(patience))))
+    Vector3 point;
+    point.x = static_cast<float>(static_cast<double>(unit->positionX) * kLong + nearX);
+    point.y = static_cast<float>(static_cast<double>(unitY) + far);
+    point.z = goal.z;
+    if (!TickPathTo(this, nullptr, &point.x, std::bit_cast<std::uint32_t>(static_cast<float>(patience))))
         stoodBlocked = 1;
     SectorMapAdd(WorldServer()->Sectors(), nullptr, chased);
 
     double h = HalfScale();
     volatile float headX = static_cast<float>(h * motion.targetX);
-    double fy = static_cast<double>(goal[1]) - h * motion.targetY;
-    double fx = static_cast<double>(goal[0]) - headX;
+    double fy = static_cast<double>(goal.y) - h * motion.targetY;
+    double fx = static_cast<double>(goal.x) - headX;
     aiMap->refreshUnits = savedFlag;
     if (LessOrUnordered(static_cast<double>(reach) * reach, fx * fx + fy * fy)) {
         // The way leads elsewhere: stop, face along, and chase from here.

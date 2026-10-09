@@ -332,7 +332,7 @@ int CWorldClient::AddObject(CEngineObject* object) {
         for (int i = 0; i < figure->parts.size; ++i) {
             if ((figure->PartBox(i)->flags >> 10) & 1) {
                 int id = object->id_;
-                platforms_.AddBox(id, figure->PartBox(i), &mapObject->positionX, mapObject->orientation);
+                platforms_.AddBox(id, figure->PartBox(i), &mapObject->positionX, &mapObject->orientation.w);
             }
         }
     }
@@ -627,7 +627,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         CMapObjectVirtuals* slots = ObjectSlots(unit);
         slots->SetStats(reinterpret_cast<const UnitStats*>(record->stats));
         UnitSetPosition(unit, nullptr, &record->unknown_724);
-        std::memcpy(unit->MapObject()->baseScale, &record->unknown_724, 12);
+        std::memcpy(&unit->MapObject()->baseScale, &record->unknown_724, 12);
         slots->ApplyBaseScale();
         UnitReleaseAllItems(unit);
         for (int j = 0; j < static_cast<int>(record->weaponCount); ++j)
@@ -685,9 +685,9 @@ void CWorldClient::ObjectsInRange(const float* point, float radius, void* out) {
         for (SectorListNode* node = cell->head->next; node != cell->head; node = node->next) {
             CMapObject* object = MapObjectOf(node->data);
             float pz = point[2];
-            float ox = object->positionX + object->pointOffset[0];
-            float oy = object->positionY + object->pointOffset[1];
-            double reach = Hypot(object->extent[0], object->extent[1]) + radius;
+            float ox = object->positionX + object->pointOffset.x;
+            float oy = object->positionY + object->pointOffset.y;
+            double reach = Hypot(object->extent.x, object->extent.y) + radius;
             float dx = ox - point[0];
             float dy = oy - point[1];
             float dz = pz - point[2];

@@ -124,9 +124,9 @@ Vector3* CUnit::EffectPoint(Vector3* out) {
                 return out;
             }
         } else if (!static_cast<CUnitClientSpecific*>(controller)->WeaponPoint(&local)) {
-            out->x = positionX + center[0];
-            out->y = positionY + center[1];
-            out->z = positionZ + center[2];
+            out->x = positionX + center.x;
+            out->y = positionY + center.y;
+            out->z = positionZ + center.z;
             return out;
         }
     }

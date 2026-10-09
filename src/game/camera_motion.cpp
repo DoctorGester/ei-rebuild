@@ -147,13 +147,13 @@ void CCamera::ClampAboveObjects() {
     for (NearbyNode* node = list.head->next; node != list.head; node = node->next) {
         const CObject3D* object = node->data;
         const float limit = CAM_OBJECT_EXTENT_LIMIT;
-        if (object->above[0] > limit || object->above[1] > limit || object->above[2] > limit ||
-            object->center[2] > limit)
+        if (object->above.x > limit || object->above.y > limit || object->above.z > limit ||
+            object->center.z > limit)
             continue;
-        float cx = Store(D(object->position[0]) + object->center[0]);
-        float cy = Store(D(object->position[1]) + object->center[1]);
+        float cx = Store(D(object->position.x) + object->center.x);
+        float cy = Store(D(object->position.y) + object->center.y);
         float cz = p->z;
-        double radius = Hypot(object->above[0], object->above[1]);
+        double radius = Hypot(object->above.x, object->above.y);
         double dx = D(cx) - p->x;
         double dy = D(cy) - p->y;
         double dz = D(cz) - p->z;
@@ -161,7 +161,7 @@ void CCamera::ClampAboveObjects() {
         double factor = CAM_ZERO;
         if (!(outside > CAM_ZERO)) factor = CAM_ONE;
         else if (!(outside > CAM_OBJECT_FADE)) factor = D(CAM_ONE) - D(outside) * D(CAM_TENTH);
-        float height = Store(((D(object->position[2]) + object->above[2]) + object->center[2]) * factor);
+        float height = Store(((D(object->position.z) + object->above.z) + object->center.z) * factor);
         if (!(best >= height)) best = height;
     }
     CameraSettings* s = settings_;

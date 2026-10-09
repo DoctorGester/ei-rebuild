@@ -40,7 +40,7 @@ static_assert(offsetof(FigurePartAnimator, unknown_48) == 0x48);
 // A part of an object's figure (a scene node; names provisional). Only what the figure code
 // reads: its position relative to the object, the piece's offset and box in the figure.
 struct FigurePart : CEngineObject {
-    float position[3];              // +0x01C
+    Vector3 position;               // +0x01C
     std::uint8_t unknown_028[0x2C - 0x28];
     float alpha;                    // +0x02C (a unit's fade-in, CUnitClientSpecific +0x78)
     std::uint8_t unknown_030[0x40 - 0x30];
@@ -48,7 +48,7 @@ struct FigurePart : CEngineObject {
     FigurePartAnimator* previousAnimator;   // +0x04C the animator before an animation change
     FigurePartAnimator* animator;   // +0x050 counted; made on first use (Animator())
     std::uint8_t unknown_054[0x74 - 0x54];
-    float pivot[3];                 // +0x074 copied to the object's part box (FootprintPart::pivot)
+    Vector3 pivot;                  // +0x074 copied to the object's part box (FootprintPart::pivot)
     std::uint8_t unknown_080[0x94 - 0x80];
     // +0x094 the part's own mesh (a CLinkMesh, link_figure.h) when flags_ 0x40 is set; its screen
     // rectangle (+0x20) is where the part was last drawn (the flying hit points, 005E18E0).
@@ -60,11 +60,11 @@ struct FigurePart : CEngineObject {
     // +0x188..+0x1C0: the part's box, laid out as a FootprintPart (ai_map.h); copied whole from
     // the piece record (FigurePieceRecord::boxFlags on).
     std::uint32_t boxFlags;         // +0x188 4 loaded, 0x400 "BASE", 0x90 "CROWN" / "EMPTY", 0x800 "EMPTY"
-    float offset[3];                // +0x18C the piece's place in the figure
+    Vector3 offset;                 // +0x18C the piece's place in the figure
     float unknown_198;              // +0x198
-    float boxMin[3];                // +0x19C
-    float boxMax[3];                // +0x1A8
-    float boxPivot[3];              // +0x1B4 the part's position when it was loaded
+    Vector3 boxMin;                 // +0x19C
+    Vector3 boxMax;                 // +0x1A8
+    Vector3 boxPivot;               // +0x1B4 the part's position when it was loaded
 };
 static_assert(offsetof(FigurePart, position) == 0x1C);
 static_assert(offsetof(FigurePart, tint) == 0x40);
@@ -84,11 +84,11 @@ struct FigurePieceRecord {
     std::uint32_t unknown_1C;       // +0x1C -> part +0x15C (00517240)
     std::uint32_t unknown_20;       // +0x20 -> part +0x158
     std::uint32_t boxFlags;         // +0x24 -> part +0x188 (0x38 bytes copied from here)
-    float offset[3];                // +0x28 -> part +0x18C
+    Vector3 offset;                 // +0x28 -> part +0x18C
     float unknown_34;               // +0x34 -> part +0x198
-    float boxMin[3];                // +0x38 -> part +0x19C
-    float boxMax[3];                // +0x44 -> part +0x1A8
-    float pivot[3];                 // +0x50 -> part +0x1B4
+    Vector3 boxMin;                 // +0x38 -> part +0x19C
+    Vector3 boxMax;                 // +0x44 -> part +0x1A8
+    Vector3 pivot;                  // +0x50 -> part +0x1B4
 };
 static_assert(offsetof(FigurePieceRecord, boxMax) == 0x44);
 
@@ -425,7 +425,7 @@ public:
     CTransformObject* Transform() { return reinterpret_cast<CTransformObject*>(this); }
     const CTransformObject* Transform() const { return reinterpret_cast<const CTransformObject*>(this); }
 
-    float position[3];              // +0x01C
+    Vector3 position;               // +0x01C
     float viewPosition[3];          // +0x028 the position in view space (CWorldClient::CollectVisible)
     Quaternion orientation;         // +0x034
     Quaternion worldOrientation;    // +0x044 the parent's rotation times the orientation (slot 14)
@@ -438,21 +438,21 @@ public:
     // +0x0A8 the particle sources attached to the object (MFC CPtrList, vtable 0073DE4C, block
     // size 10).
     mfc::CTypedPtrList<CEngineObject> effectSources;
-    float scale[3];                 // +0x0C4
+    Vector3 scale;                  // +0x0C4
     AlignedPtrArray parts;          // +0x0D0 FigurePart*
     AlignedPtrArray pendingParts;   // +0x0E0 FigurePart*, built by LoadFigures
     CEngineObject* figure;          // +0x0F0 counted reference (slot 0 deletes)
-    float defaultScale[3];          // +0x0F4 from 007AF1D0 (constructor, Create3D)
+    Vector3 defaultScale;           // +0x0F4 from 007AF1D0 (constructor, Create3D)
     int dirtyRect[4];               // +0x100 RECT: the screen area the last DrawCollectDirty covered
     void* partNameArrayVtable;      // +0x110 \ CStringArray of the part names
     char** partNames;               // +0x114 the figure's part names (00517990), in the order of
     int partNameCount;              // +0x118 the part boxes (CUnit::partBoxes, +0x160)
     std::uint8_t unknown_11C[0x124 - 0x11C];
     std::uint32_t boundsFlags;      // +0x124 1 and 2: the bounds are valid
-    float center[3];                // +0x128
+    Vector3 center;                 // +0x128
     float radius;                   // +0x134
-    float below[3];                 // +0x138 box minimum - centre
-    float above[3];                 // +0x144 box maximum - centre
+    Vector3 below;                  // +0x138 box minimum - centre
+    Vector3 above;                  // +0x144 box maximum - centre
     std::uint8_t unknown_150[0x15C - 0x150];   // cleared with the bounds
     void* partBoxArrayVtable;       // +0x15C \ CArray of the part boxes (vtable 0073DE40)
     FootprintPart* partBoxes;       // +0x160 | (ai_map.h)

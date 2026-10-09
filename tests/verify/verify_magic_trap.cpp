@@ -153,7 +153,7 @@ static void __fastcall SetUpVerify(MagicTrap* trap, void*, const MagicTrapRecord
     const auto* area = &Field<TrapArea>(trap, 0x240);
     const auto* points = &Field<TrapPoints>(trap, 0x254);
     if (Field<std::uint32_t>(trap, 0x238) != record->sides) problem = "sides";
-    else if (std::memcmp(&Field<float>(trap, 0x1C), record->position, sizeof(record->position)) != 0) problem = "position";
+    else if (std::memcmp(&Field<float>(trap, 0x1C), &record->position, sizeof(record->position)) != 0) problem = "position";
     else if (area->count != record->area.count ||
              (area->count > 0 && std::memcmp(area->circles, record->area.circles, area->count * sizeof(TrapCircle)) != 0))
         problem = "circles";

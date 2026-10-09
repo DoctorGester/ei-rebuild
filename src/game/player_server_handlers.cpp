@@ -177,9 +177,9 @@ void AIOrder::MakeUse(CEngineObject* target, int use) {
 
 Vector3* AIOrder::AimPoint(Vector3* out) const {
     if (object == nullptr) {
-        out->x = point[0];
-        out->y = point[1];
-        out->z = point[2];
+        out->x = point.x;
+        out->y = point.y;
+        out->z = point.z;
         return out;
     }
     static_cast<CMapObjectVirtuals*>(object)->AimPoint(out);

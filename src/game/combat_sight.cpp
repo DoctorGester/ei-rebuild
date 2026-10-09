@@ -174,7 +174,7 @@ bool CUnitServer::FindSightTarget(const UnitAction* order, SightTarget* out) {
         void* spell;
         if (!OrderSpell(this, order->source, &spell) || !spell) return false;
         if (Get<int>(SpellPrototypeOf(spell), 0x40) == 0) return false;
-        out->point[0] = out->point[1] = out->point[2] = 0.0f;
+        out->point.x = out->point.y = out->point.z = 0.0f;
         std::memset(&out->minDistanceSq, 0, sizeof(float));
         out->unit = nullptr;
         if (IsUnit(target)) {
@@ -185,15 +185,15 @@ bool CUnitServer::FindSightTarget(const UnitAction* order, SightTarget* out) {
             out->eyeHeight = static_cast<float>(UnitEyeHeight(unit));
             return true;
         }
-        std::memcpy(out->point, order->point, sizeof(out->point));
-        out->point[2] = static_cast<float>(
-            ei::VCall<double>(world, kWorldSurfaceHeight, out->point[0], out->point[1]) + kOne);
+        std::memcpy(&out->point, &order->point, sizeof(out->point));
+        out->point.z = static_cast<float>(
+            ei::VCall<double>(world, kWorldSurfaceHeight, out->point.x, out->point.y) + kOne);
         out->eyeHeight = static_cast<float>(UnitEyeHeight(unit));
         return true;
     }
 
     if (!IsUnit(target)) return false;
-    out->point[0] = out->point[1] = out->point[2] = 0.0f;
+    out->point.x = out->point.y = out->point.z = 0.0f;
     out->minDistanceSq = kNearSq;
     out->unit = static_cast<CUnit*>(target);
     out->eyeHeight = static_cast<float>(UnitEyeHeight(unit));
@@ -290,14 +290,14 @@ bool CUnitServer::CanActFrom(const UnitAction* order, const float* point, int ti
     if (!CallFindSightTarget(order, &sight)) return true;
     if (sight.unit) {
         // A unit target is seen at `point`, at its own height above the ground there.
-        std::memcpy(sight.point, point, sizeof(sight.point));
+        std::memcpy(&sight.point, point, sizeof(sight.point));
         volatile float ground = static_cast<float>(UnitGroundHeight(sight.unit, nullptr, point[0], point[1]));
-        sight.point[2] = static_cast<float>(UnitModeHeight(sight.unit) + ground);
+        sight.point.z = static_cast<float>(UnitModeHeight(sight.unit) + ground);
         sight.unit = nullptr;
         // (The original then asks a remaining sight.unit for slot 48; it is always null here.)
     }
-    double ey = static_cast<double>(sight.point[1]) - unit->positionY;
-    double ex = static_cast<double>(sight.point[0]) - unit->positionX;
+    double ey = static_cast<double>(sight.point.y) - unit->positionY;
+    double ex = static_cast<double>(sight.point.x) - unit->positionX;
     if (LessOrUnordered(ex * ex + ey * ey, sight.minDistanceSq)) return true;
 
     Vector3 eye;
@@ -306,7 +306,7 @@ bool CUnitServer::CanActFrom(const UnitAction* order, const float* point, int ti
     eye.z = unit->positionZ;
     eye.z = static_cast<float>(UnitGroundHeight(unit, nullptr, eye.x, eye.y) + sight.eyeHeight);
     void* map = static_cast<char*>(ManagerContext()) + 0x170;
-    double visibility = MapLineOfSight(map, nullptr, &eye, reinterpret_cast<const Vector3*>(sight.point));
+    double visibility = MapLineOfSight(map, nullptr, &eye, &sight.point);
     return !LessOrUnordered(visibility, kPointOne);
 }
 EI_REPLACE_METHOD(0x0054C2F0, CUnitServer::CanActFrom);
@@ -358,8 +358,8 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
 
     if (order->flag18) {
         double distance = CtlActionDistance(this, nullptr, order);
-        double dy = static_cast<double>(order->point[1]) - unit->positionY;
-        double dx = static_cast<double>(order->point[0]) - unit->positionX;
+        double dy = static_cast<double>(order->point.y) - unit->positionY;
+        double dx = static_cast<double>(order->point.x) - unit->positionX;
         if (LessOrUnordered(distance * distance, dx * dx + dy * dy)) {
             DestroySteps(&steps);
             return false;
@@ -412,7 +412,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
 
     Vector3 aim;
     if (order->target) ei::VCall<float*>(order->target, kSlotAimPoint, &aim);
-    else std::memcpy(&aim, order->point, sizeof(aim));
+    else std::memcpy(&aim, &order->point, sizeof(aim));
     volatile float delta[3];
     delta[0] = aim.x - origin.x;
     delta[1] = aim.y - origin.y;
@@ -536,9 +536,9 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
                 for (int i = 0; i < steps.count; ++i) plan->animation.steps[i] = steps.steps[i];
                 plan->animation.extra = steps.extra;
                 plan->notSkill = order->source != kSkillSource;
-                plan->direction[0] = delta[0];
-                plan->direction[1] = delta[1];
-                plan->direction[2] = delta[2];
+                plan->direction.x = delta[0];
+                plan->direction.y = delta[1];
+                plan->direction.z = delta[2];
                 if (order->kind == kOrderCast || order->kind == kOrderCastAt) FillCastKind(plan, spell);
                 DestroySteps(&steps);
                 return true;

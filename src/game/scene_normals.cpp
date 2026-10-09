@@ -73,7 +73,7 @@ void __fastcall ComputeMeshNormals(VtArray* meshes) {
                 sum.y += n.y;
                 sum.z += n.z;
             }
-            float length = std::sqrt(sum.x * sum.x + sum.y * sum.y + sum.z * sum.z);
+            float length = LengthXYZ(sum);
             Vector3 normal;
             if (!(length > weld)) {   // within the weld distance of zero, or NaN
                 normal = GamePoint(0x0079B9B0);

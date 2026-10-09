@@ -45,8 +45,8 @@ int FirstDiff(const std::vector<VertexPacket>& expected, const VertexPacket* act
 
 bool SameBounds(const ClipBounds& e, const ClipBounds& a) {
     if (e.flags != a.flags) return false;
-    const float* ef = &e.center[0];
-    const float* af = &a.center[0];
+    const float* ef = &e.center.x;
+    const float* af = &a.center.x;
     for (int k = 0; k < 10; ++k)
         if (!Near(ef[k], af[k])) return false;
     return true;

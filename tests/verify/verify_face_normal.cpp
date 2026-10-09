@@ -11,7 +11,9 @@ static void __fastcall FaceNormalVerify(scene::MeshFace* face, void*, const scen
     scene::MeshFace expected = *face;
     s_faceNormal(&expected, nullptr, positions);
     scene::ComputeFaceNormal(face, nullptr, positions);
-    for (int i = 0; i < 3; ++i) ei::verify::CheckNear("ComputeFaceNormal normal", expected.normal[i], face->normal[i], "%d", i);
+    ei::verify::CheckNear("ComputeFaceNormal normal", expected.normal.x, face->normal.x, "%d", 0);
+    ei::verify::CheckNear("ComputeFaceNormal normal", expected.normal.y, face->normal.y, "%d", 1);
+    ei::verify::CheckNear("ComputeFaceNormal normal", expected.normal.z, face->normal.z, "%d", 2);
     ei::verify::CheckNear("ComputeFaceNormal distance", expected.distance, face->distance, "d");
 }
 EI_VERIFY(0x0049AEC0, FaceNormalVerify, 6, s_faceNormal);

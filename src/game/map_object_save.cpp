@@ -38,12 +38,12 @@ void CMapObject::LoadMapObject(CStream* stream) {
     companion->Load(stream);
     stream->Read(&unknown_178, sizeof(unknown_178));
     stream->Read(&positionX, 3 * sizeof(float));
-    stream->Read(orientation, sizeof(orientation));
+    stream->Read(&orientation, sizeof(orientation));
     {
         ReadText text(stream);
         AsString(name) = static_cast<const char*>(*text.text);
     }
-    stream->Read(scale, sizeof(scale));
+    stream->Read(&scale, sizeof(scale));
     // The original reads the count into its argument's stack slot: a failed read leaves the stream
     // pointer there.
     int count = static_cast<int>(reinterpret_cast<std::uintptr_t>(stream));
@@ -57,7 +57,7 @@ void CMapObject::LoadMapObject(CStream* stream) {
         ReadText text(stream);
         AsString(name2) = *text.text;
     }
-    if (stream->version_ > kBaseScaleVersion) stream->Read(baseScale, sizeof(baseScale));
+    if (stream->version_ > kBaseScaleVersion) stream->Read(&baseScale, sizeof(baseScale));
 }
 EI_REPLACE_METHOD(0x0050F7A0, CMapObject::LoadMapObject);
 
@@ -66,16 +66,16 @@ void CMapObject::SaveMapObject(CStream* stream) {
     float value178 = unknown_178;
     stream->Write(&value178, sizeof(value178));
     stream->Write(&positionX, 3 * sizeof(float));
-    stream->Write(orientation, sizeof(orientation));
+    stream->Write(&orientation, sizeof(orientation));
     WriteText(stream, name);
-    stream->Write(scale, sizeof(scale));
+    stream->Write(&scale, sizeof(scale));
     int count = effectCount;
     stream->Write(&count, sizeof(count));
     for (int i = 0; i < effectCount; ++i) MapEffectSave(&effects[i], nullptr, stream);
     std::uint32_t flags = flags_;
     stream->Write(&flags, sizeof(flags));
     WriteText(stream, name2);
-    stream->Write(baseScale, sizeof(baseScale));
+    stream->Write(&baseScale, sizeof(baseScale));
 }
 EI_REPLACE_METHOD(0x0050F900, CMapObject::SaveMapObject);
 

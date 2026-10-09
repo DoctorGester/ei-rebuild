@@ -624,15 +624,15 @@ void CUnitServer::TickAction() {
         // Still acting: the unit stays where its motion puts it, facing its direction.
         void* context = ManagerContextOf(this);
         float position[3] = {unit->positionX, unit->positionY, unit->positionZ};
-        float direction[3];
+        Vector3 direction;
         float speed;
         int cellX;
         int cellY;
         bool turning;
         MotionSample(unit->motion, nullptr, context, Motion(this),
-                     static_cast<float>(TickOf(context)), &turning, position, direction, &speed, &cellX, &cellY);
+                     static_cast<float>(TickOf(context)), &turning, position, &direction.x, &speed, &cellX, &cellY);
         SetStandingFlag(this, state == kStateIdle ? 1 : 0);
-        UnitTurnUpTowards(unit, nullptr, direction, 0);
+        UnitTurnUpTowards(unit, nullptr, &direction.x, 0);
         return;
     }
     // The action's moment has come: it is carried out and the plan cleared.
@@ -654,9 +654,9 @@ void CUnitServer::TickAction() {
     }
     PathClear(Motion(this));
     int time = TickOf(ObjectWorld(this));
-    float axis[3];
-    QuaternionAxisY(&unit->orientation, nullptr, axis);
-    float backwards[3] = {-axis[0], -axis[1], -axis[2]};
+    Vector3 axis;
+    QuaternionAxisY(&unit->orientation, nullptr, &axis);
+    float backwards[3] = {-axis.x, -axis.y, -axis.z};
     if (PathStart(Motion(this), nullptr, &unit->positionX, backwards, time)) UnitPathSpeeds(unit);
     CtlSetStanding(this, nullptr, 0);
 }

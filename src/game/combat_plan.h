@@ -15,7 +15,7 @@ inline void* const kAnimationStepsBaseVtable = reinterpret_cast<void*>(0x0073EF2
 
 // Where an order must be seen from (0x18 bytes; 0054BCB0 fills it).
 struct SightTarget {
-    float point[3];             // +0x00 the point to see (a target unit's is filled in later)
+    Vector3 point;              // +0x00 the point to see (a target unit's is filled in later)
     float minDistanceSq;        // +0x0C closer than this needs no line of sight
     float eyeHeight;            // +0x10 the viewer's eye height above the ground
     CUnit* unit;                // +0x14 the target unit, or null for a point

@@ -153,9 +153,9 @@ int CWorldClient::CollectVisible(void* list, const float* view, float animTime, 
                 CObject3D* o3d = Object3D(object);
                 float* matrix = o3d->worldMatrix;
                 QuaternionToMatrixOriginal(&o3d->orientation, nullptr, matrix);
-                std::memcpy(&matrix[3], &o3d->position[0], 4);
-                std::memcpy(&matrix[7], &o3d->position[1], 4);
-                std::memcpy(&matrix[11], &o3d->position[2], 4);
+                std::memcpy(&matrix[3], &o3d->position.x, 4);
+                std::memcpy(&matrix[7], &o3d->position.y, 4);
+                std::memcpy(&matrix[11], &o3d->position.z, 4);
                 const std::uint32_t zero = 0;
                 const std::uint32_t one = 0x3F800000;   // 1.0f
                 std::memcpy(&matrix[14], &zero, 4);
@@ -171,7 +171,7 @@ int CWorldClient::CollectVisible(void* list, const float* view, float animTime, 
                 if (where != 2) {
                     object->flags_ |= kFlagVisible;
                     // View-space position: each row summed as (a + b) + c, then rounded.
-                    const float* p = o3d->position;
+                    const float* p = &o3d->position.x;
                     float z = StoreFloat((view[8] * p[0] + view[9] * p[1]) + view[10] * p[2]);
                     float y = StoreFloat((view[4] * p[0] + view[5] * p[1]) + view[6] * p[2]);
                     float x = StoreFloat((view[1] * p[1] + view[2] * p[2]) + view[0] * p[0]);

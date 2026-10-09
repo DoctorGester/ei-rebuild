@@ -6,6 +6,7 @@
 // the field ids are the archive's. See docs/notes/units.md ("Database records").
 
 #include "lib/mfc.h"
+#include "maths.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -39,7 +40,7 @@ struct UnitPrototypeRecord {
     int modelIndex;                 // +0x08 2 (0053A200 replaces it by the model's index)
     int skin;                       // +0x0C 3
     int hair;                       // +0x10 4 (-1: none)
-    float scale[3];                 // +0x14 5, 6, 7
+    Vector3 scale;                  // +0x14 5, 6, 7
     std::uint32_t unknown_20;       // 0x22
     std::uint32_t unknown_24;       // 0x23
     float viewDistance;             // +0x28 0x25 how far before the unit a dialogue's camera may stand (00607BB0)

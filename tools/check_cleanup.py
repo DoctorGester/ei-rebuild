@@ -9,6 +9,49 @@ usage: python tools/check_cleanup.py [--update]
 """
 import csv, glob, os, re, sys
 
+# Hand-written vector maths (docs/notes/vector-math.md; the helpers are in src/lib/vecmath.h).
+# 1. A two-product sum `P * Q + R * S` whose operand pairs are the same expression on another axis:
+#    a.x * b.x + a.y * b.y, dx * dx + dy * dy, v[0] * w[0] + v[1] * w[1], m[8] * nx + m[4] * ny,
+#    D(dz) * dz + D(dy) * dy (one wrapper call or static_cast<T>(...) is looked through). "Another
+#    axis" = equal after every x/y/z/w letter and every digit run is blanked, but not identical, for
+#    both pairs (P~R and Q~S, or P~S and Q~R). A 3-term sum counts once (the scan resumes after the
+#    first two products); a 4-term matrix row counts twice. Not counted: differences (cross
+#    products), scalar weights (`a * s + b * t`), squares of unrelated names (`a * a + b * b`).
+# 2. A non-const `float name[3]`, `[16]` or `[4][4]` (a vector or matrix that should be Vector3 /
+#    Matrix4), and `float name[4]` only when the name says quaternion or homogeneous point; names
+#    that say colour, stats, sound or unknown bytes are skipped, as are const tables.
+_VEC_OPERAND = r'(?:\w+\s*(?:<\s*\w+\s*>\s*)?\(\s*[\w.\[\]>-]+\s*\)|\w+(?:\s*(?:\.|->)\s*\w+|\s*\[\s*\w+\s*\])*)'
+_VEC_SUM = re.compile(r'(?<![\w.>\]])(' + _VEC_OPERAND + r')\s*\*\s*(' + _VEC_OPERAND + r')\s*\+\s*(' +
+                      _VEC_OPERAND + r')\s*\*\s*(' + _VEC_OPERAND + r')(?![\w(\[])')
+_VEC_WRAPPER = re.compile(r'^\w+(?:<\w+>)?\((.*)\)$')
+_VEC_ARRAY = re.compile(r'(?<!const )\bfloat\s+(\w+)\s*\[\s*(3|4|16)\s*\](\s*\[\s*\d+\s*\])?')
+_VEC_NOT_VECTOR = re.compile(r'(?i)colou?r|rgb|tint|fog|^red$|stat|skill|attack|defen|absorp|reverb|unknown_|weight')
+_VEC_QUATERNION = re.compile(r'(?i)quat|orient|rotat|turn|xyzw|^q$|projected')
+
+
+def _other_axis(a, b):
+    a, b = (re.sub(r'\s+', '', s) for s in (a, b))
+    a, b = ((m.group(1) if (m := _VEC_WRAPPER.match(s)) else s) for s in (a, b))
+    blank = lambda s: re.sub(r'[xyzwXYZW]', '#', re.sub(r'[0-9]+', '#', s))
+    return a != b and blank(a) == blank(b)
+
+
+def count_vector_maths(text):
+    n = 0
+    for m in _VEC_SUM.finditer(text):
+        p, q, r, s = m.groups()
+        if (_other_axis(p, r) and _other_axis(q, s)) or (_other_axis(p, s) and _other_axis(q, r)):
+            n += 1
+    for m in _VEC_ARRAY.finditer(text):
+        name, size, second = m.groups()
+        if second and not (size == '4' and re.sub(r'\D', '', second) == '4'):
+            continue
+        if _VEC_NOT_VECTOR.search(name) or (size == '4' and not second and not _VEC_QUATERNION.search(name)):
+            continue
+        n += 1
+    return n
+
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 BASELINE = os.path.join(ROOT, 'config', 'cleanup_baseline.csv')
 PATTERNS = {
@@ -29,12 +72,14 @@ PATTERNS = {
     # The same for STLport-shaped layouts (stlp::vector / map / set / hash_map views declared per
     # file). Some matches are grids or managers named *Map; those go when they are renamed.
     'per-file vector/map/set struct': re.compile(r'(?<!template )\bstruct\s+\w*(?:Vector|Map|Set)\b(?=\s*[:{])'),
+    # Vector maths written out instead of the vecmath.h helpers and types (count_vector_maths above).
+    'hand-written vector maths': count_vector_maths,
 }
 # Patterns not counted under these directories (or files). src/lib/vecmath.h compiles its inline
 # helpers with precise semantics on purpose: /fp:fast regrouped their sums with the caller's
 # expression (docs/notes/vector-math.md, tests/verify/verify_vecmath.cpp).
 EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set struct': 'src/lib/',
-          'float_control pragma': 'src/lib/vecmath.h'}
+          'float_control pragma': 'src/lib/vecmath.h', 'hand-written vector maths': 'src/lib/vecmath.h'}
 # A literal address directly inside EI_ORIGINAL(...)/EI_REPLACE(...)/EI_VERIFY(...)/UI_INPUT_HANDLER(...) is how hooks are
 # written and is not counted; the lookahead above skips "0x...)" and the prefix test below the rest.
 REGISTRATION = re.compile(r'(?:EI_(?:ORIGINAL|REPLACE|REPLACE_METHOD|VERIFY|REBIRTH_IMPLEMENTS)|UI_(?:INPUT|WHEEL)_HANDLER)\s*\(\s*$')
@@ -57,6 +102,9 @@ def counts():
             n = 0
             if name in EXEMPT and rel.startswith(EXEMPT[name]):
                 row[name] = 0
+                continue
+            if callable(rx):
+                row[name] = rx(text)
                 continue
             for m in rx.finditer(text):
                 if name.startswith('raw game address') and REGISTRATION.search(text[max(0, m.start() - 40):m.start()]):

@@ -120,9 +120,9 @@ void CUiModel::Load(const char* name, const char* from, const char* to) {
     object_ = reinterpret_cast<CTransformObject*>(object);
     ++object->refCount_;
     object->flags_ |= kPreviewObject;
-    object->position[0] = 0.0f;
-    object->position[1] = 0.0f;
-    object->position[2] = 3.0f;
+    object->position.x = 0.0f;
+    object->position.y = 0.0f;
+    object->position.z = 3.0f;
     CEngineObject* specific = object->attached;
     console::CStringArray parts;
     Object3DMakeFigureOriginal(object, nullptr, name, &parts, 1);

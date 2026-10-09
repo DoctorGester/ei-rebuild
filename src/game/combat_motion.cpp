@@ -171,11 +171,11 @@ void DropEffectObject(CUnitServer* self) {
 void FaceAndStop(CUnitServer* self) {
     PathClear(Motion(self));
     int now = TickOf(ObjectWorld(self));
-    float axis[3];
-    QuaternionAxisY(&self->unit->orientation, nullptr, axis);
-    float back[3];
-    const float* direction = Negate(back, axis);
-    if (PathStart(Motion(self), nullptr, &self->unit->positionX, direction, now)) UnitPathSpeeds(self->unit);
+    Vector3 axis;
+    QuaternionAxisY(&self->unit->orientation, nullptr, &axis);
+    Vector3 back;
+    const Vector3* direction = Negate(&back, &axis);
+    if (PathStart(Motion(self), nullptr, &self->unit->positionX, &direction->x, now)) UnitPathSpeeds(self->unit);
     CtlSetStanding(self, nullptr, 0);
     CtlSetState(self, nullptr, kStateChasing);
 }
@@ -280,10 +280,10 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     ShowHead(self);
     PathClear(Motion(self));
     int now = TickOf(ObjectWorld(self));
-    float axis[3];
-    QuaternionAxisY(&self->unit->orientation, nullptr, axis);
-    float back[3] = {-axis[0], -axis[1], -axis[2]};
-    if (PathStart(Motion(self), nullptr, &self->unit->positionX, back, now)) UnitPathSpeeds(self->unit);
+    Vector3 axis;
+    QuaternionAxisY(&self->unit->orientation, nullptr, &axis);
+    Vector3 back = -axis;
+    if (PathStart(Motion(self), nullptr, &self->unit->positionX, &back.x, now)) UnitPathSpeeds(self->unit);
     // Standing 0 (005467B0 inlined; CUnit +0x278).
     CWorldServer* world = ContextOf(self);
     if (self->unit->unknown_278 != 0) {
@@ -463,7 +463,7 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
     actingCheckTime = TickOf(ManagerContextOf(this)) + 10;
     if (plan.targetId == -1) {
         int now = TickOf(ObjectWorld(this));
-        PathTurn(Motion(this), nullptr, now, unit, plan.direction, plan.endTime, plan.startTime);
+        PathTurn(Motion(this), nullptr, now, unit, &plan.direction.x, plan.endTime, plan.startTime);
     } else {
         int until = follow ? plan.endTime : 0;
         int now = TickOf(ObjectWorld(this));
@@ -790,11 +790,11 @@ void CUnitServer::ResyncWithUnit() {
     RecordFromMode(&moveMode2, unit->moveMode2);
     PathClear(Motion(this));
     int now = TickOf(ObjectWorld(this));
-    float axis[3];
-    QuaternionAxisY(&unit->orientation, nullptr, axis);
-    float back[3];
-    const float* direction = Negate(back, axis);
-    if (PathStart(Motion(this), nullptr, &unit->positionX, direction, now)) UnitPathSpeeds(unit);
+    Vector3 axis;
+    QuaternionAxisY(&unit->orientation, nullptr, &axis);
+    Vector3 back;
+    const Vector3* direction = Negate(&back, &axis);
+    if (PathStart(Motion(this), nullptr, &unit->positionX, &direction->x, now)) UnitPathSpeeds(unit);
     CtlSetStanding(this, nullptr, 0);
     CtlSetState(this, nullptr, kStateChasing);
     UnitUpdateSizeClass(unit);

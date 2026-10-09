@@ -38,10 +38,10 @@ static int __fastcall Create3DVerify(CObject3D* self) {
     int result = self->Create3D();
     const char* problem = nullptr;
     if (result != 1) problem = "result";
-    else if (self->position[0] != 0.0f || self->position[1] != 0.0f || self->position[2] != 0.0f) problem = "position";
+    else if (self->position.x != 0.0f || self->position.y != 0.0f || self->position.z != 0.0f) problem = "position";
     else if (std::memcmp(&self->orientation, reinterpret_cast<const void*>(0x007AF1C0), 16)) problem = "orientation";
     else if (self->attached || self->animations || self->figure || self->flags_) problem = "side half / database / figure";
-    else if (std::memcmp(self->defaultScale, reinterpret_cast<const void*>(0x007AF1D0), 12)) problem = "default scale";
+    else if (std::memcmp(&self->defaultScale, reinterpret_cast<const void*>(0x007AF1D0), 12)) problem = "default scale";
     else if (self->boundsFlags || self->radius != 0.0f || self->partBoxes || self->partBoxCount) problem = "bounds";
     ei::verify::Check("CObject3D::Create3D", true, problem == nullptr, "object %d: %s", self->id_,
                       problem ? problem : "");
