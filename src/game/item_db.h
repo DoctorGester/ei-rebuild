@@ -48,7 +48,11 @@ constexpr int kSpellModifierSize = 0x24;
 
 // A spell prototype (kSpellSize bytes; 007C8510): the fields the camp's spell maker reads.
 struct SpellRecord {
-    std::uint8_t unknown_00[0x14];
+    std::uint8_t unknown_00[4];
+    // +0x04 CString: the spell's code (0068C820 finds a record by it; the trader stock's spell
+    // instructions, item_stock.cpp).
+    const char* code;
+    std::uint8_t unknown_08[0x14 - 0x08];
     int school;                         // +0x14
     float mana;                         // +0x18
     std::uint8_t unknown_1C[0x40 - 0x1C];
@@ -56,19 +60,25 @@ struct SpellRecord {
     int skill;                          // +0x44 the school skill it needs
     std::uint8_t unknown_48[0x84 - 0x48];
 };
+static_assert(offsetof(SpellRecord, code) == 0x04);
 static_assert(offsetof(SpellRecord, needsSight) == 0x40);
 static_assert(offsetof(SpellRecord, skill) == 0x44);
 static_assert(sizeof(SpellRecord) == 0x84);
 
 // A spell modifier prototype (kSpellModifierSize bytes; 007C8530).
 struct SpellModifierRecord {
-    std::uint8_t unknown_00[0x0C];
+    std::uint8_t unknown_00[4];
+    // +0x04 the modifier's code inline (0068C920 finds a record by it); its first one or two
+    // letters are the kind the trader stock keys it by (item_stock.cpp: a, d, e, m, r, t; fi, ii).
+    char code[0x0C - 0x04];
     std::uint32_t kind;                 // +0x0C
     float mana;                         // +0x10 added to the spell's
-    std::uint8_t unknown_14[4];
+    float strength;                     // +0x14 the trader stock keeps the strongest per kind; kind 'm' scales the cost
     int skill;                          // +0x18 added to the spell's
     std::uint8_t unknown_1C[0x24 - 0x1C];
 };
+static_assert(offsetof(SpellModifierRecord, code) == 0x04);
+static_assert(offsetof(SpellModifierRecord, strength) == 0x14);
 static_assert(offsetof(SpellModifierRecord, skill) == 0x18);
 static_assert(sizeof(SpellModifierRecord) == 0x24);
 
@@ -112,6 +122,14 @@ static_assert(offsetof(ItemRecordHead, number) == 0x18);
 static_assert(offsetof(ItemRecordHead, price) == 0x34);
 static_assert(offsetof(ItemRecordHead, value48) == 0x48);
 static_assert(sizeof(ItemRecordHead) == 0x70);
+
+// The item records' own virtual slot 0 (the record vtables 00744054..00744068): the item kind the
+// record makes (CItemConstructor::BeginCreateItem's kind; item_stock.cpp).
+class ItemRecordSlots {
+public:
+    virtual int Kind() = 0;
+};
+inline ItemRecordSlots* RecordSlots(ItemRecordHead* record) { return reinterpret_cast<ItemRecordSlots*>(record); }
 
 // A weapon prototype (kWeaponSize bytes): what CItemWeapon takes besides the head.
 // The record kinds' copy constructors, as STLport's uninitialized_copy (first, last, dest) and
@@ -210,7 +228,10 @@ struct MaterialRecordHead {
     const char* key;                    // +0x00 CString (the camp's "material.<key>" loot items)
     const char* soundName;              // +0x04 CString: the material of hit sounds ("Metal", "Bone", ...)
     const char* name;                   // +0x08 CString
+    std::uint32_t unknown_0C;
+    float quality;                      // +0x10 the trader stock's material draw (item_stock.cpp)
 };
+static_assert(offsetof(MaterialRecordHead, quality) == 0x10);
 
 inline const RecordTable& Materials() { return *reinterpret_cast<const RecordTable*>(0x007C86D8); }
 inline const RecordTable& Weapons() { return *reinterpret_cast<const RecordTable*>(0x007C86F8); }

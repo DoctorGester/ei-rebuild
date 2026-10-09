@@ -7,10 +7,32 @@
 
 #include "item_stock.h"
 
+class ChunkArchive;
+
 #include <cstddef>
 #include <cstdint>
 
 struct ClassTemplate {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073D0C4);
+    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073BB68);   // the counted root
+
+    // 004A6580 (class_template_stock.cpp). Constructor body (+4 is left to the caller): the base
+    // vtable, the two parties (CParty::Construct), the stocks (ItemStock::Construct on the items /
+    // spells party; the first one inlined in the original), the vtable, both parties created (slot
+    // 2), class -1, both flags 0, flag38 1. Returns this.
+    ClassTemplate* Construct();
+    // 004A6A90 (class_template_stock.cpp). Destructor body: the vtable, both parties destroyed (slot
+    // 3), the stocks' maps and vectors freed (the magic stock first, each stock's context cleared),
+    // both parties' destructor bodies (spells first), the base vtable.
+    void Destruct();
+    // 004A6A70 (slot 0, RET 4). Destruct, then operator delete when bit 0 of `flags` is set.
+    ClassTemplate* DeletingDestruct(unsigned flags);
+    // 004A6C40 (slot 1 Serialize, RET 4; party_manager.cpp). Fields 1 class (4 bytes), 2 / 3 the
+    // flags (1 byte each), 4 the weights and the 4 bytes after them (0x28), stream field 5 (both
+    // parties without variables, then both stocks' lists: SaveLists 0069BAC0 / LoadLists
+    // 0069B5B0), field 6 flag38 (1 byte).
+    void Serialize(ChunkArchive* ar);
+
     void* vtable;                   // 0073D0C4 (base 0073BB68)
     std::int16_t refCount;          // +0x04 counted pointers (the dword is cleared before construction)
     std::int16_t unknown_06;
@@ -19,7 +41,9 @@ struct ClassTemplate {
     std::uint8_t flag0D;            // +0x0D
     std::uint8_t unknown_0E[2];
     std::uint32_t weights[9];       // +0x10..+0x30 floats (bit patterns)
-    std::uint8_t unknown_34[0x3C - 0x34];
+    std::uint8_t unknown_34[4];
+    std::uint8_t flag38;            // +0x38 set by the constructor and by a quest completion (004A88E0)
+    std::uint8_t unknown_39[3];
     std::uint8_t items[0x70];       // +0x3C party object (00661050); slot 18: its item manager (+0x1C)
     std::uint8_t spells[0x70];      // +0xAC party object; slot 22: its spell manager (+0x24)
     ItemStock allowed;              // +0x11C everything the class may use (vectors at +0x08 armors,
@@ -29,6 +53,8 @@ struct ClassTemplate {
 };
 static_assert(sizeof(ClassTemplate) == 0x28C);
 static_assert(offsetof(ClassTemplate, weights) == 0x10);
+static_assert(offsetof(ClassTemplate, unknown_34) == 0x34);
+static_assert(offsetof(ClassTemplate, flag38) == 0x38);
 static_assert(offsetof(ClassTemplate, allowed) == 0x11C);
 static_assert(offsetof(ClassTemplate, magic) == 0x1D4);
 static_assert(sizeof(ItemStock) == 0xB8);

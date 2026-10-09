@@ -59,7 +59,7 @@ ServerSession* ServerSession::Construct(std::uint32_t kind) {
     ListConstruct4225E0(&lines_, nullptr, &allocator);
     ListConstruct422800(&files_, nullptr, &allocator);
     ListConstruct4229E0(&fileRequests_, nullptr, &allocator);
-    unknown_25A0.ptr = nullptr;
+    hostInfo_.ptr = nullptr;
     ListConstruct422BE0(&bindings_, nullptr, &allocator);
     map_.ptr = nullptr;
     ListConstruct422DC0(&queuedMaps_, nullptr, &allocator);
@@ -157,7 +157,7 @@ void ServerSession::CollectReplicated(ReplicatedVector** out) {
     }
     if (hosting)
         for (void* n = Next(Head(&queuedMaps_)); n != Head(&queuedMaps_); n = Next(n)) PushReplicated(*out, ValueOf(n), 2);
-    if (CRefObject* object = unknown_25A0.ptr) PushReplicated(*out, object, 2);
+    if (CRefObject* object = hostInfo_.ptr) PushReplicated(*out, object, 2);
     if (CRefObject* object = map_.ptr) PushReplicated(*out, object, 2);
     for (void* n = Next(Head(&awards_)); n != Head(&awards_); n = Next(n)) {
         auto* award = ValueOf<AwardMessage, 0xC>(n);

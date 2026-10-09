@@ -33,27 +33,14 @@ __forceinline T& Field(void* object, int offset) {
     return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
 }
 
-// The render device (global pointer at 007AF068). Three stacks of 4x4 float matrices.
-struct RenderDevice {
-    std::uint8_t unknown_00[0x14];
-    float* pickStack;      // +0x14 used by the cursor picking
-    int pickDepth;         // +0x18
-    std::uint8_t unknown_1C[0x24 - 0x1C];
-    float* objectStack;    // +0x24 object -> world, pushed while testing an object
-    int objectDepth;       // +0x28
-    std::uint8_t unknown_2C[0x5C - 0x2C];
-    float* viewStack;      // +0x5C the view matrices
-    int viewDepth;         // +0x60
+} // namespace
 
-    // 004F16A0. Where the bounding volume lies against the view frustum; 2 = outside.
-    int Classify(const void* bounds);
-};
-static_assert(offsetof(RenderDevice, pickStack) == 0x14);
-static_assert(offsetof(RenderDevice, objectStack) == 0x24);
-static_assert(offsetof(RenderDevice, viewStack) == 0x5C);
-__declspec(naked) int RenderDevice::Classify(const void*) EI_ORIGINAL(0x004F16A0)
+// The render device (MatrixDevice, world.h).
+__declspec(naked) int MatrixDevice::Classify(const void*) EI_ORIGINAL(0x004F16A0)
 
-RenderDevice* Device() { return *reinterpret_cast<RenderDevice**>(0x007AF068); }
+namespace {
+
+MatrixDevice* Device() { return TheMatrixDevice(); }
 
 // A 4x4 float matrix (16 floats).
 struct Matrix4 {
@@ -139,7 +126,7 @@ const std::uint32_t& g_multiplayerView = *reinterpret_cast<const std::uint32_t*>
 const std::uint32_t& g_modelTouchDelay = *reinterpret_cast<const std::uint32_t*>(0x0079BD24);
 
 // Pushes the object's matrix (at +0x54) on the device's object stack, as the original inlines it.
-void PushObjectMatrix(RenderDevice* device, float* matrix) {
+void PushObjectMatrix(MatrixDevice* device, float* matrix) {
     if (device->objectDepth == 0) {
         device->objectDepth = 1;
         std::memcpy(device->objectStack, matrix, 0x40);
@@ -156,7 +143,7 @@ void PushObjectMatrix(RenderDevice* device, float* matrix) {
 
 int CWorldClient::CollectVisible(void* list, const float* view, float animTime, std::uint32_t now, char animateUnits,
                                  char withScripted) {
-    RenderDevice* device = Device();
+    MatrixDevice* device = Device();
     int touched = 0;
     // Only a multiplayer spectator view (session +0x100 == 1) leaves units it cannot see out.
     bool drawAllUnits = true;
@@ -268,7 +255,7 @@ __forceinline float NonNegative(float v) { return !(v >= 0.0f) ? 0.0f : v; }
 // 0056BF30 / 0056C350 share everything but the height function (which returns ST0 unrounded).
 template <typename Height>
 float* PickPoint(CWorldClient* world, float* out, int screenX, int screenY, Height height) {
-    RenderDevice* device = Device();
+    MatrixDevice* device = Device();
     if (device->viewDepth == 0) {
         std::memcpy(out, reinterpret_cast<const void*>(0x007AFDB0), 12);
         return out;
@@ -283,7 +270,7 @@ float* PickPoint(CWorldClient* world, float* out, int screenX, int screenY, Heig
         reinterpret_cast<Matrix4*>(device->pickStack + (depth - 1) * 16)
             ->Multiply(device->pickStack + (depth - 2) * 16, top);
     }
-    RenderDevice* current = Device();
+    MatrixDevice* current = Device();
     const float* m = current->pickStack + (current->pickDepth - 1) * 16;
 
     // The values the original keeps on the FPU stack are doubles here (no rounding to float).

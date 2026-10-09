@@ -113,9 +113,31 @@ public:
     void* spell_;                 // +0x44 CSpell carried by the item (scrolls, wands)
     std::uint32_t unknown_48;
 };
+// The counted record an item's +0x1C (CItem::unknown_1C, a RefPtr slot) points at when the world
+// server builds a unit's items from its party record (0058EF20): a reference value (constructor
+// 00419720 then vtable 0073FA88, or 0058FBB0) holding the id of the record's item.
+struct ItemSourceRef {
+    void* vtable;                 // +0x00
+    std::uint32_t refs;           // +0x04 CRefCounted's count and flags (written as one dword)
+    std::uint32_t itemId;         // +0x08 the source item's id_ (its +0x0C)
+};
+static_assert(sizeof(ItemSourceRef) == 0xC);
 static_assert(offsetof(CItem, charge_) == 0x28);
 static_assert(offsetof(CItem, spell_) == 0x44);
 static_assert(sizeof(CItem) == 0x4C);
+
+// The record an item's link (CItem::unknown_1C) points at as the world server makes it (0xC
+// bytes, vtable 0073FA88): a counted value with a 16-bit count and the dword the world's save keeps
+// per item (world_save.cpp, world_units.cpp, world_quests.cpp).
+struct CItemLink {
+    static void* Vtable() { return reinterpret_cast<void*>(0x0073FA88); }
+
+    void* vtable;
+    std::int16_t references;        // +0x04
+    std::uint16_t unknown_06;
+    std::uint32_t value;            // +0x08
+};
+static_assert(sizeof(CItemLink) == 0xC);
 
 // vtable 00743DFC, GetClassId 0x11.
 class CItemWeapon : public CItem {

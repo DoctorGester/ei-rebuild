@@ -7,6 +7,7 @@
 #include "engine_object.h"
 #include "item_db.h"
 #include "maths.h"
+#include "object_tables.h"
 
 #include "lib/mfc.h"
 
@@ -24,7 +25,8 @@ struct FootprintPart;   // ai_map.h
 // The stream the game's Load / Save slots read and write (the same interface as unit_ai.h's
 // AIStream): slot 1 reads, slot 2 writes; +0x08 is the format version of a stream being loaded.
 struct UnitStream {
-    virtual void Slot0() = 0;
+    // 0: the deleting destructor (CStream 00417400; its flags argument is not declared).
+    virtual void DeletingDestructor() = 0;
     virtual int Read(void* buffer, unsigned size) = 0;          // 1: nonzero when read
     virtual void Write(const void* buffer, unsigned size) = 0;   // 2
 
@@ -134,16 +136,30 @@ static_assert(offsetof(PartyUnitRecord, quickItems) == 0x740);
 static_assert(offsetof(PartyUnitRecord, armor) == 0x750);
 static_assert(offsetof(PartyUnitRecord, spells) == 0x760);
 
-// The player's list of party unit records (player + 0x70).
+// The player's list of party unit records (player + 0x70; 0x70 bytes, constructor 00661050,
+// destructor 006611D0; the party 007AA5A0 hands its records to / takes them from one).
 struct PartyRecords {
     // 006621B0. The record of the unit with id `unitId`, or null (not rewritten).
     PartyUnitRecord* Find(int unitId);
 
-    std::uint8_t unknown_00[0x30];
+    std::uint8_t unknown_00[0x2C];
+    // +0x2C an MFC CArray of the unit records (its vtable here, records / count its data / size;
+    // 00664160 destroys it).
+    void* recordArrayVtable;         // +0x2C
     PartyUnitRecord* records;        // +0x30
     int count;                       // +0x34
+    std::uint8_t unknown_38[0x40 - 0x38];
+    std::uint8_t array40[0x54 - 0x40];   // +0x40 an array (006643F0 destroys it)
+    NamedFloatTable variables;       // +0x54 the party's variables ("zs.<zone>" visited, quests)
+    char* zone;                      // +0x68 CString: the zone the party is in
+    int entrance;                    // +0x6C the zone exit it arrives by (EnterZone)
 };
+static_assert(offsetof(PartyRecords, recordArrayVtable) == 0x2C);
 static_assert(offsetof(PartyRecords, records) == 0x30);
+static_assert(offsetof(PartyRecords, array40) == 0x40);
+static_assert(offsetof(PartyRecords, variables) == 0x54);
+static_assert(offsetof(PartyRecords, zone) == 0x68);
+static_assert(sizeof(PartyRecords) == 0x70);
 
 // One of a unit's six body part records (+0x374, 0x1C bytes) as the unit panel reads them: the
 // part's state (0 none: not shown; 1 drawn in red; 3 with a bar of `durability` / `maxDurability`).
@@ -163,39 +179,60 @@ class CMapObject;    // map_object.h
 // The unit's controller (CUnit + 0x240) as the unit code calls it: CUnitServer (class id 0x3E,
 // vtable 0073EF38, combat.h) on the server, CUnitClientSpecific (0x3D, 0073ECD8,
 // unit_client_models.h) for party units on the client; their abstract base has vtable 0073EDBC.
-// Only the slots the rewritten unit code calls are named. The controller classes do not derive
-// from this declaration (their rewritten slots are registered by address); CUnit::Controller()
-// reaches it. unit_ai.h's UnitController names fields of the same objects.
+// Slots declared `void Name()` keep their place in the order only (their real arguments are not
+// declared; give them their signature when calling them; docs/notes/drafts/DR-C2.md). The
+// controller classes do not derive from this declaration (their rewritten slots are registered by
+// address); CUnit::Controller() reaches it. unit_ai.h's UnitController names fields of the same
+// objects.
 class CUnitController : public CEngineObject {
 public:
-    virtual void Slot13();
+    virtual void FiguresLoaded();           // 13: client 005344E0, base 00533B90
     virtual void RestartAnimation(float time);  // 14: client 005352B0 (the animations the unit names at +0x254 / +0x255 from frame `time`)
-    virtual void Slot15();
+    virtual void Unused15();                // 15: empty everywhere (base 00533BB0, client 00535580)
     virtual AIPath* Path();                 // 16: server +0x3C (00546090), client +0x38 (00533DF0)
-    virtual void Slot17();
+    virtual void Unused17();                // 17: empty (server 005460B0, client 00534130)
     virtual void PlayerChanged(void* player);   // 18: client 00534140, base empty (00533BC0)
-    virtual void Slot19();
-    virtual void Slot20();
-    virtual void Slot21();
-    virtual void Slot22();
-    virtual void Slot23();
-    virtual void Slot24();
+    virtual int RefreshVitals(char withHitPoints);  // 19: server 005533B0 (1), client 00533BD0 (0)
+    virtual void TakeHit();                 // 20: server 00553F40 (map_object.h CUnitServerVirtuals)
+    virtual void Heal();                    // 21: (float amount) server 005543B0
+    virtual void RepackStats();             // 22: server 00553500
+    virtual void UpdateSizeClasses();       // 23: server 00552FB0
+    virtual void Level();                   // 24: server 00556760, client 00539160
     virtual void ShowWeapon(std::uint32_t index);   // 25: the weapon the figure holds (-1 none)
     virtual bool ArmourPutOn(std::uint32_t itemId);     // 26: client 005381B0 (WearArmourModel)
     virtual bool ArmourTakenOff(std::uint32_t slot);    // 27: client 005385A0 (RemoveArmourModel)
-    virtual void Slot28();
-    virtual void Slot29();
+    virtual void ClearOuterArmourLayers();  // 28: server 005535E0
+    // 29: server 005535F0; client 00536100 (RefreshSkins): for a hero (type 0x32), the two textures
+    // of its figure (+0x94's +0x20 / +0x24) are reloaded when 00536670 names other ones (after its
+    // items changed); returns 1.
+    virtual int RefreshEquipment();
     virtual void RefreshModel();            // 30: after a weapon change
-    virtual void Slot31();
-    virtual void Slot32();
-    virtual void Slot33();
+    virtual void RefreshWounds();           // 31: client 00537360, base 0 (00533C50)
+    virtual void SetArmourModels(const std::uint32_t* ids, std::uint32_t count);   // 32: client 00538140 (RET 8; count capped at 7), base empty (00533C60)
+    virtual void SetWeaponModels(const std::uint32_t* ids, std::uint32_t count);   // 33: client 00538860 (RET 8; count capped at 4)
     virtual bool WeaponAdded(std::uint32_t itemId);     // 34: client 005388C0 (AddWeaponModel)
-    virtual void Slot35();
-    virtual void Slot36();
-    virtual void Slot37();
+    virtual void RemoveWeaponModel();       // 35: (id) client 00538920
+    virtual void HasOtherArmour();          // 36: server 005567A0 (client 005391B0: weapon models)
+    virtual void HasMainArmour();           // 37: server 005567E0, client 005391E0
     virtual void HostileMaskChanged();      // 38: server 00552CD0 (the brain), base empty (00533CA0)
     virtual int TamingStage();              // 39: server 005460A0 (+0x908, the taming stage), base 0 (00533CB0)
     virtual void AdvanceTime(float time);   // 40: client 00535B30
+    // 41: the unit's path was replaced; client 00535B20 places the unit on it at its +0x34 time
+    // (00535850 with (+0x34, 0)), base empty (00533CD0).
+    virtual void MotionChanged();
+    // 42: server 00552670 (CUnitServer::OnObjectDeleted): `object` is going away (its targets, the
+    // brain and +0x1DC forget it); base and client empty (00533CE0, RET 4).
+    virtual void ObjectDeleted(CEngineObject* object);
+    // 43: client 005344A0 (unit_client_models.h): the fade-in starts again (+0x78 and every part's
+    // alpha 0); base empty (00533CF0). The client world's AddObject calls it for units joining a session.
+    virtual void RestartFadeIn();
+    virtual void Resettle();                // 44: server 00553260 (combat.h)
+    virtual void UpdateMoveFactors();       // 45: server 005536B0 (combat.h)
+    // 46: a body part's condition changed by `change` (a fraction of its maximum) for stat `stat`
+    // (0..5); `flags` is the unit's Params()->flags byte (bit 3 skips it). Client 00537500 (RET 0xC,
+    // text and a particle effect), base empty (00533D20).
+    virtual void StatChanged(std::uint32_t stat, float change, std::uint8_t flags);
+    virtual void Wound(float lost);         // 47: the hit took `lost` (a fraction of the hit points) with the wound flag; client 00537C00 (RET 4, the argument is not read), base empty (00533D30)
 };
 
 class CUnit : public CEngineObject {
@@ -334,7 +371,7 @@ public:
     // 0052E870. Slot 19: a companion of type 0x48 becomes the controller (the old one is
     // detached and released; returns the new reference count); others go to the map object's
     // 0050E890.
-    std::uintptr_t AttachCompanion(CEngineObject* companion);
+    std::uintptr_t AttachCompanion(CEngineObject* attached);
     // 0052EB50. Slot 32 (statistics changed): the map object's 0050E970 (packs the server
     // object's vitals into +0x17C), then the controller's slot 22. Returns 1.
     int StatsChanged();
@@ -536,8 +573,10 @@ public:
     float unknown_158;              // +0x158 part of the AI's eye height (005CA410)
     std::uint8_t unknown_15C[4];
     FootprintPart* partBoxes;       // +0x160 per figure part (the index 00517990 finds by name)
-    std::uint8_t unknown_164[0x178 - 0x164];
-    float animationSpeed;           // +0x178 the animation's speed factor (the client's 00535850)
+    std::uint8_t unknown_164[0x170 - 0x164];
+    CEngineObject* companion;       // +0x170 CMapObjectServer (server) / CMapObjectClientSpecific (client)
+    std::uint8_t unknown_174[0x178 - 0x174];
+    float animationSpeed;          // +0x178 the animation's speed factor (the client's 00535850)
     std::uint8_t unknown_17C[0x17E - 0x17C];
     std::int16_t hitPoints;         // +0x17E
     std::int16_t maxHitPoints;      // +0x180
@@ -553,8 +592,9 @@ public:
     int changeStamp;                // +0x1C0 world + 0x68 when last changed
     std::uint8_t unknown_1C4[0x1DC - 0x1C4];
     std::uint16_t changedParts;     // +0x1DC bit per part changed (MarkChanged)
-    std::uint8_t unknown_1DE[0x23C - 0x1DE];
-    int prototype23C;               // +0x23C a second prototype index (-1 none)
+    std::uint8_t unknown_1DE[0x238 - 0x1DE];
+    char* scriptName;               // +0x238 CString (virtual slot 61 sets it; network field 9)
+    int prototype23C;              // +0x23C a second prototype index (-1 none)
     CEngineObject* controller;      // +0x240 (the script code calls it the perception object)
     std::uint32_t relationsA;       // +0x244 \ a unit regards side s as hostile when both have
     std::uint32_t relationsB;       // +0x248 / bit s set
@@ -630,6 +670,14 @@ static_assert(offsetof(CUnit, carried) == 0x4A0);
 static_assert(offsetof(CUnit, resistances) == 0x4B0);
 static_assert(offsetof(CUnit, dead) == 0x274);
 static_assert(offsetof(CUnit, heightOffset) == 0x320);
+static_assert(offsetof(CUnit, companion) == 0x170);
+static_assert(offsetof(CUnit, scriptName) == 0x238);
+static_assert(offsetof(CUnit, unknown_254) == 0x254);
+static_assert(offsetof(CUnit, unknown_278) == 0x278);
+static_assert(offsetof(CUnit, motion) == 0x27C);
+static_assert(offsetof(CUnit, unknown_330) == 0x330);
+static_assert(offsetof(CUnit, unknown_43C) == 0x43C);
+static_assert(offsetof(CUnit, levels4C8) == 0x4C8);
 static_assert(sizeof(CUnit) == 0x4DC);    // operator new(0x4DC) in 00512730
 
 constexpr std::uint32_t kInSectorMap = 0x8000;    // CEngineObject::flags_

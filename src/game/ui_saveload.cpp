@@ -155,7 +155,7 @@ struct FileFindOps : mfc::CFileFind {
     BOOL IsDirectory() const { return ei::VCall<BOOL>(this, kSlotMatchesMask, 0x10ul); }
 };
 __declspec(naked) BOOL FileFindOps::Next() EI_ORIGINAL(0x006E6653)
-__declspec(naked) BOOL FileFindOps::IsDots() const EI_ORIGINAL(0x006E661A)
+BOOL FileFindOps::IsDots() const { return CFileFindIsDotsOriginal(this); }
 __declspec(naked) mfc::CString FileFindOps::FilePath() const EI_ORIGINAL(0x006E6722)
 __declspec(naked) mfc::CString FileFindOps::FileName() const EI_ORIGINAL(0x006E684B)
 __declspec(naked) void FileFindOps::Close() EI_ORIGINAL(0x006E63E9)
@@ -189,8 +189,8 @@ struct LocalEntry {
         e.folder_ = empty;
         e.map_ = empty;
         e.zone_ = empty;
-        StringArrayConstruct(e.stringArrays_);
-        StringArrayConstruct(e.stringArrays_ + 0x14);
+        StringArrayConstruct(&e.stringArrays_[0]);
+        StringArrayConstruct(&e.stringArrays_[1]);
     }
     explicit LocalEntry(const SaveEntry& from) { EntryCopy(&e, nullptr, &from); }
     ~LocalEntry() { EntryDestruct(&e); }

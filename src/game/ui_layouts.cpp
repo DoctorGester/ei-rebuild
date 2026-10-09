@@ -36,9 +36,6 @@ void CUiMesh::SetRectangle(float a0, float a1, float a2, float a3, float a4, flo
 __declspec(naked) void CUiMesh::SetFrame(float, float, float, float, float, float, float, int, int, int, int)
     EI_ORIGINAL(0x005E7D60)
 __declspec(naked) CUiScrollbar* CUiScrollbar::Construct(CInterface3D*, RECT, float, int, float) EI_ORIGINAL(0x0065AEA0)
-__declspec(naked) void COptionsWindow::BuildSettings() EI_ORIGINAL(0x00651940)
-__declspec(naked) void COptionsWindow::LoadSettings() EI_ORIGINAL(0x00652200)
-__declspec(naked) void COptionsWindow::BuildBindings() EI_ORIGINAL(0x00651600)
 
 namespace {
 // The text manager (global at 007AF788; item_db_text.h) as the builders use it.
@@ -247,11 +244,11 @@ void COptionsWindow::Build() {
     if (sliding_) slide_ = 0.0f;
     waitingForKey_ = false;
     unknown_414 = 0;
-    BuildSettings();
-    LoadSettings();
-    BuildBindings();
+    CallBuildSettings();
+    CallLoadSettings();
+    CallBuildBindings();
     displayModeChanged_ = false;
-    ShowGroup(0);
+    CallShowGroup(0);
     if (!sliding_) interface_->ShowHelp(0);
 }
 EI_REPLACE_METHOD(0x006503C0, COptionsWindow::Build);

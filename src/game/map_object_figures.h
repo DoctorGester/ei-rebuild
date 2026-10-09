@@ -136,20 +136,30 @@ FigureAnimation* __fastcall FindFigureAnimation(CBaseManager* manager, void*, co
 class CObject3DSpecific : public CEngineObject {
 public:
     virtual int OnPartAdded(FigurePart* part);      // 13: client 0051B050, server 0051F270 (0)
-    virtual void Slot14();                          // 14
+    // 14: (name) client 0051B210: the part named (slot 16) taken out of the drawn part sets (+0x20,
+    // +0x24) and released; returns it or null. Server 0051F290. Slots declared `void Name()` keep
+    // their place in the order only (docs/notes/drafts/DR-C2.md).
+    virtual void RemoveFromPartSets();
     virtual int OnPartRemoved(FigurePart* part);    // 15: client 0051B160, server 0051F280 (0)
-    virtual void Slot16();                          // 16: client 0051B2E0 (a part by name, 005169A0)
-    virtual void Slot17();                          // 17: client 0051B2D0 (a part by id, 00516920)
+    virtual void FindPart();                        // 16: client 0051B2E0 (a part by name, 005169A0)
+    virtual void FindPartById();                    // 17: client 0051B2D0 (a part by id, 00516920)
     // 18: the figure's extra scale: client +0xF0..+0xF8 (0051AD20), server 1, 1, 1 (0051AC30).
     virtual void GetScale(float* x, float* y, float* z);
     // 19 / 20: client 0051B7E0 (CObject3DClientSpecific::Draw) / 0051CE60 (DrawShadow); server 0051AC60 / 0051AC70.
     virtual int DrawParts(void* context, int* dirty);
     virtual int DrawPartsShadow(void* context);
-    virtual void Slot21();
-    virtual void Slot22();
-    virtual void Slot23();
-    virtual void Slot24();
-    virtual void Slot25(int);                       // 25: client 0051C9D0 (empty)
+    // 21: client 0051CB30 (after LoadFigures): the world's materials (slot 33) to the parts, then the
+    // skin texture (+0xE0 / +0xE4, 0051C250). Server 0051AC80.
+    virtual void ApplyMaterials();
+    // 22-24 (screen picking): client 0051C130 the point in the object's dirtyRect (flags_ 0x20) /
+    // 0051C1D0 a rect meeting a drawn part's screen rect / 0051C160 the point in one. Server
+    // 0051AC90 / 0051ACB0 / 0051ACA0.
+    // 22: whether the screen point (x, y) is in the object's dirtyRect (PickAt).
+    virtual int BoundsContainPoint(const long* point);
+    virtual void PartsIntersectRect();
+    // 24: whether the point is in the rectangle (+0x94 + 0x20) of a part with flag 0x40 (PickAt2).
+    virtual int PartsContainPoint(const long* point);
+    virtual void Unused25(int);                     // 25: client 0051C9D0, server 0051ACC0 (empty)
     virtual void SetLit(int lit);                   // 26: client 0051C9E0 (0051C9F0): the object's light is on / off
 
     CObject3D* object;              // +0x1C the object it belongs to
@@ -202,14 +212,14 @@ static_assert(offsetof(CFigureAnimationState, time) == 0x60);
 static_assert(offsetof(CFigureAnimationState, onEnd) == 0x64);
 static_assert(offsetof(CFigureAnimationState, changed) == 0x74);
 
-// The figure an object holds at +0xF0 (counted; slot 0 deletes; class not identified). Only what
-// CObject3D::LoadPart uses.
+// The figure an object holds at +0xF0 (counted; slot 0 deletes): a CLinkMesh (link_figure.h,
+// vtable 0073D790), seen from CObject3D::LoadPart. Slots 1-3 keep their place only.
 class CFigureInstance {
 public:
     virtual void DeletingDestructor(unsigned flags);   // 0
-    virtual void Slot1();
-    virtual void Slot2();
-    virtual void Slot3();
+    virtual void UpdateScreenRect();   // 1: 004F45E0
+    virtual void HasPart();            // 2: 004F3040 (name)
+    virtual void CollectPartNames();   // 3: 004F2FB0 (out)
     virtual bool HasPiece(const void* name);   // 4: the piece map (+0x14) holds `name` (an stlp::string)
 
     int refCount;                   // +0x04
@@ -218,13 +228,14 @@ public:
 };
 static_assert(offsetof(CFigureInstance, pieces) == 0x14);
 
-// The figure cache (the world's slot 23): builds the figures objects hold at +0xF0. Only the slots
-// the 3D object calls; the scale is passed as float bits.
+// The figure cache (the world's slot 23): builds the figures objects hold at +0xF0; the
+// CLinkFigureLoader (model.h, vtable 0073D808) as the 3D object calls it, the scale passed as
+// float bits. Slots 0-2 keep their place only.
 class CFigureCache {
 public:
-    virtual void Slot0();
-    virtual void Slot1();
-    virtual void Slot2();
+    virtual void DeleteThis();   // 0: 004F6A30 (flags)
+    virtual void CacheSize();    // 1: 004F6A20
+    virtual void CacheBytes();   // 2: 004FAAA0
     // 3: the figure of model `name` (an stlp::string) made of the pieces `pieceNames` (an STLport
     // vector<string>), at the scale; referenced by the caller.
     virtual CFigureInstance* BuildFigure(const void* name, const void* pieceNames, std::uint32_t x, std::uint32_t y,
@@ -360,6 +371,9 @@ public:
     int MakeFigure(const char* model, void* partList, std::uint32_t arg);
     // 00517990. The index of the part name (+0x114) equal to `partName` (_mbscmp), or -1.
     int FindPartIndex(const char* partName);
+    // 00564AF0 (world_client.cpp; the client's AddObject walks a platform object's boxes with it).
+    // The box (FigurePart +0x188) of part `index` of the parts followed by the pending parts.
+    FootprintPart* PartBox(int index);
 
     // object3d_lifetime.cpp (A-U).
     // 00515F70. Virtual slot 2 (Create; another name so it is no override): position 0, the

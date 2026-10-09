@@ -78,8 +78,14 @@ class Batch:
         return data.decode('utf-8', errors='replace')
 
 
+HEX = re.compile(r'^[0-9A-Fa-f]+$')
+
+
 def addresses(text, column='address'):
-    return {int(r[column], 16) for r in csv.DictReader(io.StringIO(text))} if text else set()
+    # Rows that are not addresses (a conflict marker committed by mistake once) are skipped.
+    if not text:
+        return set()
+    return {int(r[column], 16) for r in csv.DictReader(io.StringIO(text)) if HEX.match(r.get(column) or '')}
 
 
 def measure(tree):

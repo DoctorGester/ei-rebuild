@@ -7,9 +7,6 @@
 // stacks (ScenePipeline(), 007AF068), exactly as the original: the same calls in the same order.
 // Callees are reached through their original addresses (rewritten ones included, so the verify
 // build's wrappers see the calls).
-//
-// DR-C5 draft: the CWorldClient members used here are DR-C1's names (draft-dr-c1's world.h) plus
-// camera_ (+0x210), which neither declares yet (docs/notes/drafts/DR-C5.md).
 #include "world.h"
 
 #include "camera.h"
@@ -134,7 +131,7 @@ float LandscapeDrawRadius() {
 }
 
 // DrawPass's callees.
-__declspec(naked) void __fastcall VectorClear(FrameObjectList*) EI_ORIGINAL(0x0056E870)
+__declspec(naked) void __fastcall VectorClear(stlp::vector<CEngineObject*>*) EI_ORIGINAL(0x0056E870)
 __declspec(naked) float* __fastcall CameraPosition(CCamera*) EI_ORIGINAL(0x0040FB20)
 __declspec(naked) void __fastcall SoundListener(void*, void*, float) EI_ORIGINAL(0x0067CEF0)
 __declspec(naked) int __fastcall CollectVisibleAt(CWorldClient*, void*, void*, const float*, float, std::uint32_t, int, int)
@@ -156,7 +153,7 @@ __declspec(naked) void __fastcall MarkerDraw(void*, void*, const float*, float, 
 __declspec(naked) void __fastcall ListErase(void*, void*, void**, void*) EI_ORIGINAL(0x00512030)
 __declspec(naked) CEngineObject** __fastcall VectorCopyBack(CEngineObject**, CEngineObject**, CEngineObject**)
     EI_ORIGINAL(0x00571E30)
-__declspec(naked) void __fastcall VectorErase(FrameObjectList*, void*, CEngineObject**, CEngineObject**) EI_ORIGINAL(0x0056F5E0)
+__declspec(naked) void __fastcall VectorErase(stlp::vector<CEngineObject*>*, void*, CEngineObject**, CEngineObject**) EI_ORIGINAL(0x0056F5E0)
 
 // The object margin around the camera when collecting what to draw (0073BAB0, 100.0).
 float ObjectsDrawMargin() { return *reinterpret_cast<const float*>(0x0073BAB0); }
@@ -256,9 +253,9 @@ int Log2(int n) {
 
 // Sorts one draw list with UnitOrderLess (the comparator gets the renderer).
 void SortByModel(FrameList list, CTextureDevice* renderer) {
-    FrameObjectList& v = FrameObjects(list);
-    CEngineObject** first = v.begin;
-    CEngineObject** last = v.end;
+    stlp::vector<CEngineObject*>& v = FrameObjects(list);
+    CEngineObject** first = v.begin();
+    CEngineObject** last = v.end();
     if (first == last) return;
     IntroSortByModelAt(first, last, nullptr, Log2(static_cast<int>(last - first)) * 2, renderer);
     FinalSortByModelAt(first, last, renderer);
@@ -268,8 +265,8 @@ void SortByModel(FrameList list, CTextureDevice* renderer) {
 // Slots 22-24 of the drawn objects are placeholders in map_object.h (CMapObjectVirtuals; DR-C2
 // names 23 DrawCollectDirty); switch these VCalls once the draw slots are named.
 void DrawEach(FrameList list, int slot) {
-    CEngineObject** end = FrameObjects(list).end;
-    for (CEngineObject** p = FrameObjects(list).begin; p != end; ++p) ei::VCall<void>(*p, slot, SceneContext());
+    CEngineObject** end = FrameObjects(list).end();
+    for (CEngineObject** p = FrameObjects(list).begin(); p != end; ++p) ei::VCall<void>(*p, slot, SceneContext());
 }
 constexpr int kSlotDraw = 22;         // +0x58, 005783C0
 constexpr int kSlotDrawUnit = 23;     // +0x5C, 005783A0
@@ -471,15 +468,15 @@ int CWorldClient::DrawPass() {
     touched += CollectVisibleAt(this, nullptr, &heroes_, view, animTime, now, 1, 1);
 
     // Models in view stay loaded: the most recently used max(10, n / 8) lose flag 0x400.
-    FrameObjectList& models = FrameObjects(FrameList::TouchedModels);
-    if (models.begin != models.end) {
-        CEngineObject** first = models.begin;
-        CEngineObject** last = models.end;
+    stlp::vector<CEngineObject*>& models = FrameObjects(FrameList::TouchedModels);
+    if (models.begin() != models.end()) {
+        CEngineObject** first = models.begin();
+        CEngineObject** last = models.end();
         IntroSortByModelUseAt(first, last, nullptr, Log2(static_cast<int>(last - first)) * 2, nullptr);
         FinalSortByModelUseAt(first, last, nullptr);
         int count = touched >> 3;
         if (count < 10) count = 10;
-        for (CEngineObject** p = models.begin; p != models.end && count != 0; --count) {
+        for (CEngineObject** p = models.begin(); p != models.end() && count != 0; --count) {
             CEngineObject* object = *p++;
             object->flags_ &= ~0x400u;
         }
@@ -513,20 +510,20 @@ int CWorldClient::DrawPass() {
         SetRenderState(renderer, 24, 0xC8);
         DrawEach(FrameList::VisibleOther, kSlotDraw);
         DrawEach(FrameList::Visible5D, kSlotDrawUnit);
-        CEngineObject** end = FrameObjects(FrameList::Visible5D).end;
-        for (CEngineObject** p = FrameObjects(FrameList::Visible5D).begin; p != end; ++p) QueueSelected(*p, &queued);
+        CEngineObject** end = FrameObjects(FrameList::Visible5D).end();
+        for (CEngineObject** p = FrameObjects(FrameList::Visible5D).begin(); p != end; ++p) QueueSelected(*p, &queued);
         Flush(renderer);
         DrawEach(FrameList::Visible54, kSlotDraw);
         DrawEach(FrameList::Visible52, kSlotDraw);
         Flush(renderer);
     }
-    if ((flags_ & 0x80) && FrameObjects(FrameList::VisibleUnits).begin != FrameObjects(FrameList::VisibleUnits).end) {
+    if ((flags_ & 0x80) && FrameObjects(FrameList::VisibleUnits).begin() != FrameObjects(FrameList::VisibleUnits).end()) {
         SortByModel(FrameList::VisibleUnits, renderer);
         SetRenderState(renderer, 24, 10);
         ApplyStateBlock(renderer, StateBlockAlpha());
         DrawEach(FrameList::VisibleUnits, kSlotDrawUnit);
-        CEngineObject** end = FrameObjects(FrameList::VisibleUnits).end;
-        for (CEngineObject** p = FrameObjects(FrameList::VisibleUnits).begin; p != end; ++p) QueueSelected(*p, &queued);
+        CEngineObject** end = FrameObjects(FrameList::VisibleUnits).end();
+        for (CEngineObject** p = FrameObjects(FrameList::VisibleUnits).begin(); p != end; ++p) QueueSelected(*p, &queued);
         Flush(renderer);
     }
 
@@ -624,17 +621,17 @@ int CWorldClient::DrawPass() {
                                         FrameList::VisibleUnits, FrameList::Visible52,    FrameList::Shadow54,
                                         FrameList::ShadowOther};
     for (FrameList list : kCopied) {
-        FrameObjectList& v = FrameObjects(list);
-        v.end = VectorCopyBack(v.end, v.end, v.begin);
+        stlp::vector<CEngineObject*>& v = FrameObjects(list);
+        v.Finish() = VectorCopyBack(v.end(), v.end(), v.begin());
     }
-    FrameObjectList& shadow5D = FrameObjects(FrameList::Shadow5D);
-    VectorErase(&shadow5D, nullptr, shadow5D.begin, shadow5D.end);
-    FrameObjectList& shadowUnits = FrameObjects(FrameList::ShadowUnits);
-    VectorErase(&shadowUnits, nullptr, shadowUnits.begin, shadowUnits.end);
-    FrameObjectList& shadow52 = FrameObjects(FrameList::Shadow52);
-    shadow52.end = VectorCopyBack(shadow52.end, shadow52.end, shadow52.begin);
-    FrameObjectList& touchedModels = FrameObjects(FrameList::TouchedModels);
-    VectorErase(&touchedModels, nullptr, touchedModels.begin, touchedModels.end);
+    stlp::vector<CEngineObject*>& shadow5D = FrameObjects(FrameList::Shadow5D);
+    VectorErase(&shadow5D, nullptr, shadow5D.begin(), shadow5D.end());
+    stlp::vector<CEngineObject*>& shadowUnits = FrameObjects(FrameList::ShadowUnits);
+    VectorErase(&shadowUnits, nullptr, shadowUnits.begin(), shadowUnits.end());
+    stlp::vector<CEngineObject*>& shadow52 = FrameObjects(FrameList::Shadow52);
+    shadow52.Finish() = VectorCopyBack(shadow52.end(), shadow52.end(), shadow52.begin());
+    stlp::vector<CEngineObject*>& touchedModels = FrameObjects(FrameList::TouchedModels);
+    VectorErase(&touchedModels, nullptr, touchedModels.begin(), touchedModels.end());
     return 1;
 }
 EI_REPLACE_METHOD(0x0056AFE0, CWorldClient::DrawPass);

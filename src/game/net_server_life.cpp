@@ -65,7 +65,7 @@ void ServerSession::Destruct() {
     DestroyList(queuedMaps_, List25ACClear, List25ACFree);
     DestroyInline(map_);
     DestroyList(bindings_, List25A4Clear, List25A4Free);
-    DestroyInline(unknown_25A0);
+    DestroyInline(hostInfo_);
     DestroyList(fileRequests_, List259CClear, List259CFree);
     DestroyList(files_, List2598Clear, List2598Free);
     DestroyList(lines_, List2594Clear, List2594Free);

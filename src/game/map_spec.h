@@ -173,11 +173,66 @@ struct ZoneDiplomacy {
 static_assert(offsetof(ZoneDiplomacy, names) == 0x1000);
 static_assert(sizeof(ZoneDiplomacy) == 0x1014);
 
-// The record types defined with their code (map_spec_effect.cpp, map_spec_unit.cpp).
-struct ParticleSpec;
-struct LightSpec;
-struct SoundSpec;
-struct UnitSpec;
+// The effect records' base (vtable 0073C728, 0x54 bytes; code in map_spec_effect.cpp).
+struct EffectSpec {
+    Spec base;                   // +0x00
+    void* effect;                // +0x4C the effect the world object runs
+    std::uint8_t visible;        // +0x50 (1)
+    std::uint8_t unknown_51[3];
+};
+static_assert(sizeof(EffectSpec) == 0x54);
+
+struct ParticleSpec {            // 0073C758
+    EffectSpec effect;
+    std::int32_t type;           // +0x54 (0: none made)
+    float scale;                 // +0x58 (1)
+};
+static_assert(sizeof(ParticleSpec) == 0x5C);
+
+struct LightSpec {               // 0073C788
+    EffectSpec effect;
+    Vector3 colour;              // +0x54 (1, 1, 1)
+    std::uint8_t shadows;        // +0x60 (1)
+    std::uint8_t unknown_61[3];
+    float radius;                // +0x64 (10)
+};
+static_assert(sizeof(LightSpec) == 0x68);
+
+struct SoundSpec {               // 0073C7B8
+    EffectSpec effect;
+    mfc::CStringArray sounds;     // +0x54 (none made without any)
+    std::int32_t unknown_68;     // +0x68 (10) the ambient sound's volume (CreateObject, 005927C0)
+    std::int32_t unknown_6C;     // +0x6C (15) the ambient sound's radius
+    std::int32_t unknown_70;     // +0x70 (1)
+    std::int32_t unknown_74;     // +0x74 (1500)
+    std::int32_t unknown_78;     // +0x78 (3000)
+    std::int32_t unknown_7C;     // +0x7C
+    std::int32_t unknown_80;     // +0x80
+    std::uint8_t unknown_84;     // +0x84 set: an ambient sound (class 0x49), else a plain one (0x48)
+    std::uint8_t unknown_85;     // +0x85
+    std::uint8_t unknown_86[2];
+};
+static_assert(offsetof(SoundSpec, unknown_68) == 0x68);
+static_assert(offsetof(SoundSpec, unknown_84) == 0x84);
+static_assert(sizeof(SoundSpec) == 0x88);
+
+// A unit record (vtable 0073C6E0, 0x324 bytes; code in map_spec_unit.cpp). The world server's
+// CreateUnits (0058EF20) fills one on the stack for each unit it creates.
+struct UnitSpec {
+    ObjectSpec object;           // +0x000
+    std::int32_t behaviours;     // +0x08C records read so far
+    Behaviour behaviour[5];      // +0x090
+    mfc::CString prototype;      // +0x20C ("none")
+    std::uint8_t stats[0xAC];    // +0x210 (applied to the unit by 00477B00)
+    mfc::CStringArray lists[5];   // +0x2BC ... +0x30C (chunks BBBB0005 ... BBBB0009); [1]: the item
+                                 // names the unit wears (CreateObject, 005927C0)
+    std::uint32_t unknown_320;   // +0x320
+};
+static_assert(offsetof(UnitSpec, behaviour) == 0x90);
+static_assert(offsetof(UnitSpec, prototype) == 0x20C);
+static_assert(offsetof(UnitSpec, stats) == 0x210);
+static_assert(offsetof(UnitSpec, lists) == 0x2BC);
+static_assert(sizeof(UnitSpec) == 0x324);
 
 // Record constructors (each returns this), by .mob chunk id.
 ObjectSpec* __fastcall ObjectSpecConstruct(ObjectSpec* self);       // 0046A5C0 (0xB001, 0x8C bytes)

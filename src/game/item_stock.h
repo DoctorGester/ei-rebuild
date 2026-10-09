@@ -56,6 +56,75 @@ struct SpellRecipeVector {
     char* eos;
 };
 
+// STLport vector<string> (start, finish, end of storage).
+struct StockStringVector {
+    const stlp::string* start;
+    const stlp::string* finish;
+    const stlp::string* eos;
+    unsigned size() const { return static_cast<unsigned>(finish - start); }
+};
+
+// A spell recipe (kSpellRecipeSize bytes, inline in a SpellRecipeVector).
+struct SpellRecipe {
+    stlp::string spell;             // +0x00 the spell's name
+    StockStringVector required;     // +0x0C modifier names
+    StockStringVector optional;     // +0x18 modifier names
+    stlp::string repeated;          // +0x24 the modifier repeated while it fits
+    std::uint32_t classMask;        // +0x30 bit per ItemStock::classIndex
+};
+static_assert(offsetof(SpellRecipe, required) == 0x0C);
+static_assert(offsetof(SpellRecipe, repeated) == 0x24);
+static_assert(offsetof(SpellRecipe, classMask) == 0x30);
+static_assert(sizeof(SpellRecipe) == kSpellRecipeSize);
+
+// A pair of the recipe map (ItemStock::spellMap, hash_map<string, list<recipe*>>) and its node.
+struct StockRecipeEntry {
+    stlp::string name;              // +0x00
+    StockList recipes;              // +0x0C (its sentinel)
+};
+struct StockRecipeNode {
+    StockRecipeNode* next;          // +0x00
+    StockRecipeEntry entry;         // +0x04 (the list at +0x10)
+};
+static_assert(offsetof(StockRecipeNode, entry) == 0x04);
+static_assert(sizeof(StockRecipeEntry) == 0x10);
+
+// A pair of the modifier map (ItemStock::modifierMap, map<string, modifier*>; 0x10 bytes): the
+// key and the modifier record (itemdb::SpellModifierRecord).
+struct StockModifierEntry {
+    stlp::string key;
+    char* modifier;                 // +0x0C
+};
+static_assert(sizeof(StockModifierEntry) == 0x10);
+
+// The globals of the stock generation (the exe's data).
+namespace stock {
+// Scratch vectors: the prototypes taken (007C8680), the candidate materials of one prototype
+// (007C8650, pointers into the stock's material entries), the material entries taken (007C8640),
+// the spells (007C8670) and modifiers (007C8660) taken.
+struct CandidateVector {
+    StockMaterial** start;
+    StockMaterial** finish;
+    StockMaterial** eos;
+};
+inline StockPtrVector& TakenPrototypes() { return *reinterpret_cast<StockPtrVector*>(0x007C8680); }
+inline CandidateVector& Candidates() { return *reinterpret_cast<CandidateVector*>(0x007C8650); }
+inline StockMaterialVector& TakenMaterials() { return *reinterpret_cast<StockMaterialVector*>(0x007C8640); }
+inline StockPtrVector& TakenSpells() { return *reinterpret_cast<StockPtrVector*>(0x007C8670); }
+inline StockPtrVector& TakenModifiers() { return *reinterpret_cast<StockPtrVector*>(0x007C8660); }
+// The spell recipe vectors for weapons, armors and scrolls (FillSpellMaps' argument).
+inline void* WeaponSpellRecipes() { return reinterpret_cast<void*>(0x007C8568); }
+inline void* ArmorSpellRecipes() { return reinterpret_cast<void*>(0x007C855C); }
+inline void* ScrollSpellRecipes() { return reinterpret_cast<void*>(0x007C8550); }
+// The spell and modifier maps by name (STLport maps; their operator[] inserts a null record).
+inline void* SpellsByName() { return reinterpret_cast<void*>(0x007C851C); }
+inline void* ModifiersByName() { return reinterpret_cast<void*>(0x007C853C); }
+// The material draw's factors of the prototype's price (read from the exe as the original does):
+// 00743D78 (a seventh) and 0073BAD4 (0.2).
+inline float SeventhFactor() { return *reinterpret_cast<const float*>(0x00743D78); }
+inline float FifthFactor() { return *reinterpret_cast<const float*>(0x0073BAD4); }
+} // namespace stock
+
 struct ItemStock {
     void* context;                  // +0x00 the template's party object: slot 16 the item constructor,
                                     //   slot 18 the item manager
@@ -70,6 +139,12 @@ struct ItemStock {
     std::uint8_t modifierMap[0x14]; // +0x64 modifiers by kind key (STLport map<string, modifier*>, 0069A480)
     float baseLevels[8];            // +0x78 8 floats, set with +0x98 (00699410)
     float scrollLevels[8];          // +0x98 the spell level per school for the scrolls (0069AC20)
+
+    // 004A66C0 (RET 4; class_template_stock.cpp). Constructor body: `context`, class index 0, the
+    // six vectors empty, both maps empty with NextPrime(100) buckets (their functor bytes left as
+    // they are; the original copies an uninitialised stack byte). Returns this. +0x78..+0xB7 are
+    // not written.
+    ItemStock* Construct(void* context);
 
     // 00699410 (RET 8). +0x78 and +0x98 each set from 8 floats (004A6DC0).
     void SetLevels(const float* base, const float* scroll);
@@ -147,6 +222,12 @@ struct ItemStock {
     // lower-cased (0069D290, kept even when unknown) and the three ints), then spells (+0x38) and
     // modifiers (+0x44) by name as read (maps 007C851C / 007C853C).
     void LoadLists(void* stream);
+    // 0069BAC0 (RET 4; not rewritten). Writes what LoadLists reads.
+    void SaveLists(void* stream);
+    // The destructor as the class template's (004A6A90) inlines it: context cleared, the modifier
+    // and spell maps destroyed (their own instantiations, 004A9010 / 004A8E60), each vector's storage
+    // freed from the last to the first.
+    void Destruct();
 };
 static_assert(offsetof(ItemStock, materials) == 0x2C);
 static_assert(offsetof(ItemStock, spellMap) == 0x50);

@@ -142,12 +142,12 @@ void* const kWorldServer = reinterpret_cast<void*>(0x007AFF60);
 void* const kAIEvents = reinterpret_cast<void*>(0x007B2798);   // the world server + 0x2838
 int WorldTime(const void* object) { return At<int>(ManagerContextOf(object), 0x64); }
 
-AnimationSteps& Queue(CUnitServer* self) { return At<AnimationSteps>(self, 0x24); }
-AnimationSteps& SavedQueue(CUnitServer* self) { return At<AnimationSteps>(self, 0x148); }
+AnimationSteps& Queue(CUnitServer* self) { return self->queue; }
+AnimationSteps& SavedQueue(CUnitServer* self) { return self->savedQueue; }
 int& QueueTime(CUnitServer* self) { return Queue(self).extra; }       // +0x38
 int& SavedQueueTime(CUnitServer* self) { return SavedQueue(self).extra; }   // +0x15C
-OrderPlan& Plan(CUnitServer* self) { return At<OrderPlan>(self, 0xC4); }
-void* Motion(CUnitServer* self) { return reinterpret_cast<char*>(self) + 0x3C; }
+OrderPlan& Plan(CUnitServer* self) { return self->currentPlan; }
+void* Motion(CUnitServer* self) { return &self->motion; }
 
 // A queue that has no start time yet starts now.
 void StartQueueIfUnset(CUnitServer* self) {
@@ -417,7 +417,6 @@ void CUnitServer::AdvanceAnimation() {
         ++Plan(this).endTime;
     }
     UnitSet260(unit, nullptr, held ? 1 : 0);
-    AnimationSteps& queue = Queue(this);
     if (CtlPopFinishedSteps(this)) {
         if (queue.count == 0) {
             UnitSet25C(unit, nullptr, 0);
@@ -443,7 +442,6 @@ EI_REPLACE_METHOD(0x00546F30, CUnitServer::AdvanceAnimation);
 bool CUnitServer::PopFinishedSteps() {
     bool popped = false;
     int now = WorldTime(this);
-    AnimationSteps& queue = Queue(this);
     while (queue.count != 0) {
         AnimationStep* steps = queue.steps;
         int duration = steps[0].duration;
@@ -473,7 +471,6 @@ bool CUnitServer::PopFinishedSteps() {
 EI_REPLACE_METHOD(0x00546B40, CUnitServer::PopFinishedSteps);
 
 void CUnitServer::ShowCurrentStep() {
-    AnimationSteps& queue = Queue(this);
     if (queue.count == 0) return;
     const AnimationStep& head = queue.steps[0];
     if (head.animation != 0xFF || head.unknown_01 != 0xFF)
@@ -483,7 +480,6 @@ EI_REPLACE_METHOD(0x00546C10, CUnitServer::ShowCurrentStep);
 
 void CUnitServer::PlaySteps(const AnimationSteps* steps) {
     // The steps are copied in twice (each time resized first), as the original does.
-    AnimationSteps& queue = Queue(this);
     for (int pass = 0; pass < 2; ++pass) {
         StepsSetSize(&queue, nullptr, steps->count, -1);
         for (int i = 0; i < steps->count; ++i) queue.steps[i] = steps->steps[i];
