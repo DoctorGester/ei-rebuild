@@ -12,6 +12,7 @@
 #include "verify.h"
 
 #include "../../src/game/ui.h"
+#include "../../src/game/unit.h"
 
 #include <cstdint>
 #include <cstring>
@@ -142,3 +143,37 @@ static void __fastcall QuickPickVerify(CHudQuickItems* self, void*, int slot) {
         [&] { self->CHudQuickItems::Pick(slot); });
 }
 EI_VERIFY(0x0063DD70, QuickPickVerify, 7, s_quickPick);
+
+// 0063E020 / 0063EF60 use the item or spell at once, so they run ours only: an early return (no
+// unit, no item, index out of range) leaves the state as it was; every other path ends with the
+// pending action dropped (mode 0, slot and item -1) and no button highlighted. Reached with the
+// interface's double-click flag +0x7F on a quick item release (0063DB20) or a spell button
+// release, or Ctrl / Alt with a spell or quick item key (0063A560); no scenario holds those yet.
+namespace {
+void* s_usedAtOnce;
+template <typename Ours>
+void UsedAtOnce(const char* name, CBattleScreen* screen, int index, bool early, Ours ours) {
+    PickState before = Snapshot(screen);
+    ours();
+    PickState after = Snapshot(screen);
+    bool same = before.action == after.action && before.slot == after.slot && before.item == after.item &&
+                std::memcmp(before.selected, after.selected, sizeof(before.selected)) == 0;
+    bool dropped = after.action == 0 && after.slot == -1 && after.item == -1 && after.selected[0] == -1 &&
+                   after.selected[1] == -1 && after.selected[2] == -1;
+    ei::verify::Check(name, true, early ? same : dropped, "index %d early %d: mode %d slot %d item %d", index, early,
+                      after.action, after.slot, after.item);
+}
+} // namespace
+
+static void __fastcall QuickUseNowVerify(CHudQuickItems* self, void*, int slot) {
+    bool early = !self->unit_ || !self->unit_->GetQuickItem(slot);
+    UsedAtOnce("CHudQuickItems::UseNow", self->owner_, slot, early, [&] { self->CHudQuickItems::UseNow(slot); });
+}
+EI_VERIFY(0x0063E020, QuickUseNowVerify, 0, s_usedAtOnce);
+
+static void __fastcall SpellClickAlternateVerify(CHudSpellColumn* self, void*, int index) {
+    bool early = !self->unit_ || index < 0 || index >= self->count_;
+    UsedAtOnce("CHudSpellColumn::ClickAlternate", self->owner_, index, early,
+               [&] { self->CHudSpellColumn::ClickAlternate(index); });
+}
+EI_VERIFY(0x0063EF60, SpellClickAlternateVerify, 0, s_usedAtOnce);

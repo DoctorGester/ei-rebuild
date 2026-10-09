@@ -480,10 +480,12 @@ How they chain (the code has the details):
 Not exercised by the scenarios: the battle screen's drag (no drag step in the harness), the order's mode 1 and the toggle with
 Shift (the harness cannot hold Shift during a click), the exit flag (no scenario clicks an exit), RefreshSelection with several
 units selected, the attack kinds 0..5 and the level-gap speech, the quest notice's sub-objective path, the mouse move's portrait
-pick branch (a multiplayer server command). Not rewritten: 0063EF60 (`ClickAlternate`) and 0063E020 (the quick item used at once):
-they need the interface's key flag +0x7F during a click, or Ctrl / Alt held during a spell or quick item key; both are
-SetPendingAction plus an immediate 00637500 / 00637750 and `CSpell::IsOffensive` (0068B770, Rebirth-patched: call through its
-address).
+pick branch (a multiplayer server command). A-I17: 0063EF60 `CHudSpellColumn::ClickAlternate` and 0063E020
+`CHudQuickItems::UseNow` (`ui_hud_pick.cpp`): SetPendingAction (1 / 3), then for a spell with data an immediate 00637500 /
+00637750 (quick 0 / 1) on the unit, or for an attack spell (0068B770 by address) on the nearest unit it sees (none: "nomagic",
+dropped), then the click sound and the action dropped. Ours only (early return: state unchanged; else nothing pending, no
+highlight). Reached by `dblclick` on a quick slot / the spell button (the double-click flag +0x7F on the last release):
+ui_quick_items' last steps.
 
 Quirks kept (screens): `OnUnitJoined` appends a unit without a record but marks the portrait at the count of records matched; `OnMessageResult` (0x20001) writes the load window's flags without checking the allocation; the message box's OK copies the edit text into the caller's buffer without a length check; `CMpHeroScreen::OnKeyDown` leaves the paging keys unused outside modes 9 / 10.
 

@@ -817,6 +817,12 @@ public:
     // its spell has flag 0x10000000 (on a unit), 4 (at a point), 0 without a spell. Other
     // categories change nothing.
     void Pick(int slot);
+    // 0063E020 (RET 4; ui_hud_pick.cpp). The unit's quick item `slot` used at once (a release with
+    // key flag +0x7F, or the key handler's Ctrl / Alt): as ClickAlternate with pending action 3
+    // and quick 1, for a wand (category 5) or scroll (8) with a spell; nothing without a unit or
+    // an item there.
+    void UseNow(int slot);
+    void UseNowAt(int slot);   // through the original's address
     // 0063CD20 (RET 8; ui_hud_highlight.cpp). Highlights the sprite shown in region `slot` when
     // it shows one (bottom row, slots 0-3: scale 0.65 / 0.55; top row 1.0 / 0.85; colour
     // 0xFF404040 / 0xFF000000; with `on` also selected_ = slot).
@@ -882,9 +888,14 @@ public:
     void Click(int index);
     // The same through the original's address (OnMouseUp; so the verify wrapper sees the call).
     void ClickAt(int index);
-    // 0063EF60 (not rewritten). Click with key flag +0x7F (or the key handler's Ctrl / Alt): the
-    // spell is cast at once.
+    // 0063EF60 (RET 4; ui_hud_pick.cpp). Click with key flag +0x7F (or the key handler's Ctrl /
+    // Alt): the spell is cast at once. Without a unit or with `index` out of range nothing;
+    // otherwise the pending action becomes 1 on `index`, and when the spell there has its data
+    // (+0x44) it is used (UseOnUnit / UseAtPoint, quick 0) on the unit itself, or for an attack
+    // spell (CSpell::IsOffensive) on the nearest unit the unit sees (none: the "nomagic" sound,
+    // the pending action dropped, done). Then the click sound and the pending action dropped.
     void ClickAlternate(int index);
+    void ClickAlternateAt(int index);   // through the original's address
     // 0063E750 (RET 8; ui_hud_highlight.cpp). Button `index` highlighted (scale 1.15, colour
     // 0xFF404040) or not (1.0, 0xFF000000); selected_ = index either way.
     void Highlight(int index, int on);

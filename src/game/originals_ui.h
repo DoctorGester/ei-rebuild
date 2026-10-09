@@ -215,6 +215,16 @@ __declspec(naked) inline void __fastcall WindowShowSurfacesOriginal(void* /*wind
 // A-I6. 005E67B0: the cursor (007C7BD8) is held in place while the right button turns the view (thiscall, RET 4: a
 // byte into +0x90 under its lock when the cursor exists; no result).
 __declspec(naked) inline void __fastcall CursorSetHeldOriginal(void* /*cursor*/, void*, char /*held*/) EI_ORIGINAL(0x005E67B0)
+// 00637500 / 00637750 (rewritten as CBattleScreenSetup::UseOnUnit / UseAtPoint; through their addresses so the
+// wrappers run): the pending spell or quick item used on `target` (thiscall, RET 0xC: target, quick (low byte), ctrl)
+// or at the point (RET 0x14: x, y, z, unit, quick (low byte)); no result.
+__declspec(naked) inline void __fastcall BattleUseOnUnitOriginal(void* /*screen*/, void*, void* /*target*/, char /*quick*/,
+                                                                 int /*ctrl*/) EI_ORIGINAL(0x00637500)
+__declspec(naked) inline void __fastcall BattleUseAtPointOriginal(void* /*screen*/, void*, float /*x*/, float /*y*/, float /*z*/,
+                                                                  void* /*unit*/, char /*quick*/) EI_ORIGINAL(0x00637750)
+// 0068B770 (rewritten as CSpell::IsOffensive; Rebirth's FixSpellSelfCasting patches it): an attack spell (thiscall on
+// the spell, plain RET, AL).
+__declspec(naked) inline bool __fastcall SpellIsOffensiveOriginal(void* /*spell*/) EI_ORIGINAL(0x0068B770)
 // 005E4EB0 (rewritten as CursorImage::Construct; through its address so the wrapper runs): a cursor image on
 // `memory` from the picture file `name` (thiscall, RET 0x10: name, hot spot x, y, flag; returns `memory`).
 __declspec(naked) inline struct CursorImage* __fastcall CursorImageConstructOriginal(void* /*memory*/, void*, const char* /*name*/,
