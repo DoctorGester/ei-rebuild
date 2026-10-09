@@ -1,5 +1,5 @@
 // Checks for ui_scrollbar.cpp (A-H19). Scenarios: the objectives window (ui_objectives,
-// ui_objectives_sort: its quest list and log bars), the save / load window (ui_saveload) and the
+// its quest list and log bars), the save / load window (ui_saveload) and the
 // options window's sliders (ui_options) construct and lay out bars.
 // - CUiScrollbar::Construct (0065AEA0), CUiSlider::Construct (0065BC30): ours only (they allocate):
 //   the fields, four sprites, three regions, the vtables, the position 0.

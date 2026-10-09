@@ -1,7 +1,9 @@
 // QuestTable::Find (script_quest.cpp) against the original: the original runs first (a missing name
 // gets its null entry there), then ours, which must find the same record and leave the map's size
 // as the original left it. 004C9C90 is reached by QuestComplete (`script_quest`); its copy 0064F550
-// by the objectives window's quest sort with more than 16 quests (`ui_objectives_sort`).
+// by the objectives window's quest sort (its median, 0064F400) with more than 16 quests, all with
+// quest records: no scenario (with unknown names the original sort runs past its array, see
+// items_spells.md A-H19).
 #include "verify.h"
 
 #include "../../src/game/script.h"
