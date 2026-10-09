@@ -27,7 +27,7 @@ Rewritten as `SetHeadingHook` (src/game/core_transform_math.cpp).
 
 ### 0x00402B20: 2 files, 2 sites, signatures differ
 Rewritten as `CBaseManager::ConstructBase` (src/game/base_manager.cpp).
-- `src/game/world_client_maps.cpp:972`: `void __fastcall ManagerBase(void*)`
+- `src/game/world_client_maps.cpp:970`: `void __fastcall ManagerBase(void*)`
 - `src/game/world_create.cpp:29`: `void* __fastcall ObjectBaseConstruct(void*)`
 
 ### 0x00404920: 3 files, 3 sites, signatures differ
@@ -45,7 +45,7 @@ Rewritten as `ObjectListIterator::Next` (src/game/base_manager.cpp).
 ### 0x00405350: 2 files, 2 sites, signatures differ
 Rewritten as `hash400::PositionsRemoveKey` (src/game/hash_tables_400.cpp).
 - `src/game/base_manager.cpp:88`: `ObjectNode* __fastcall PositionRemoveKey(PositionMap*, void*, const int* /*key*/)`
-- `src/game/world_client.cpp:223`: `void __fastcall PendingRemoveKey(void*, void*, const int*)`
+- `src/game/world_client.cpp:203`: `void __fastcall PendingRemoveKey(PendingMap*, void*, const int*)`
 
 ### 0x00406A10: 2 files, 2 sites, signatures differ
 Rewritten as `hash400::PositionAt` (src/game/hash_tables_400.cpp).
@@ -94,17 +94,17 @@ Rewritten as `CCamera::Shake` (src/game/camera.cpp).
 
 ### 0x00419720: 3 files, 3 sites, signatures differ
 Rewritten as `RefValueConstructBase` (src/game/core_streams.cpp).
-- `src/game/world_client_maps.cpp:977`: `void __fastcall Construct419720(void*)`
-- `src/game/world_quests.cpp:566`: `void* __fastcall RefValueConstruct(void*, void*)`
-- `src/game/world_units.cpp:120`: `void* __fastcall RefValueConstruct(void*, void*)`
+- `src/game/world_client_maps.cpp:975`: `void __fastcall Construct419720(void*)`
+- `src/game/world_quests.cpp:527`: `void* __fastcall RefValueConstruct(void*, void*)`
+- `src/game/world_units.cpp:114`: `void* __fastcall RefValueConstruct(void*, void*)`
 
 ### 0x00419CD0: 5 files, 5 sites, signatures differ
 Rewritten as `RefPtr::Assign` (src/game/core_refcount.cpp).
 - `src/game/ui_item_view.cpp:154`: `void RefSlot::Assign(void*)`
 - `src/game/world_game.cpp:1139`: `void __fastcall SessionRefAssign(void*, void*, void*)`
-- `src/game/world_quests.cpp:567`: `void __fastcall RefPtrAssign(void*, void*, void*)`
+- `src/game/world_quests.cpp:528`: `void __fastcall RefPtrAssign(void*, void*, void*)`
 - `src/game/world_save.cpp:179`: `void __fastcall RefPtrAssign(void* /*slot*/, void*, void* /*object*/)`
-- `src/game/world_units.cpp:121`: `void __fastcall RefPtrAssign(void* /*slot*/, void*, void* /*object*/)`
+- `src/game/world_units.cpp:115`: `void __fastcall RefPtrAssign(void* /*slot*/, void*, void* /*object*/)`
 
 ### 0x0041D260: 2 files, 2 sites, signatures differ
 Rewritten as `ClientSession::SendCommand` (src/game/net_client_commands.cpp).
@@ -160,7 +160,7 @@ Rewritten as `DwordArraySetAtGrow` (src/game/aligned_arrays.cpp).
 ### 0x00455660: 2 files, 2 sites, signatures differ
 Rewritten as `CDiplomacy::GetHostileMask` (src/game/object_diplomacy.cpp).
 - `src/game/script_exec.cpp:393`: `std::uint32_t Diplomacy::GetHostileMask(int)`
-- `src/game/world_units.cpp:433`: `int __fastcall DiplomacyMaskOf(void*, void*, int)`
+- `src/game/world_units.cpp:427`: `int __fastcall DiplomacyMaskOf(void*, void*, int)`
 
 ### 0x00455930: 4 files, 4 sites, signatures differ
 Rewritten as `CEngineObject::DestructBase` (src/game/engine_object.cpp).
@@ -184,7 +184,7 @@ Rewritten as `TextKeyFromName` (src/game/object_tables.cpp).
 - `src/game/script_eval.cpp:265`: `int __fastcall ObjectIdFromName(const char*)`
 - `src/game/script_exec.cpp:129`: `int __fastcall TextKeyFromName(const char*)`
 - `src/game/ui_interface_frame.cpp:215`: `int __fastcall TextNumber(const char*)`
-- `src/game/world_quests.cpp:46`: `unsigned __fastcall TextKey(const char*)`
+- `src/game/world_quests.cpp:36`: `unsigned __fastcall TextKey(const char*)`
 
 ### 0x004667F0: 4 files, 4 sites, signatures differ
 Rewritten as `IsaacRandom::Next` (src/game/random.cpp).
@@ -249,7 +249,7 @@ Rewritten as `ScriptDefinitionDestruct` (src/game/script_destroy.cpp).
 Rewritten as `ScriptTick` (src/game/script_exec_run.cpp).
 - `src/game/console_addon.cpp:36`: `void __fastcall ScriptsRun(void*)`
 - `src/game/world_party.cpp:81`: `void __fastcall CommandQueueRun(void*, void*)`
-- `src/game/world_quests.cpp:204`: `void __fastcall CommandQueueRun(void*, void*)`
+- `src/game/world_quests.cpp:188`: `void __fastcall CommandQueueRun(void*, void*)`
 - `src/game/world_tick.cpp:43`: `void __fastcall CommandQueueRun(void*, void*)`
 
 ### 0x004BF540: 2 files, 2 sites, signatures differ
@@ -387,7 +387,7 @@ Rewritten as `CObject3D::SetFigureScale` (src/game/map_object_figures.cpp).
 - `src/game/unit_create_stats.cpp:157`: `std::uintptr_t __fastcall SetFigureScaleAt(CEngineObject*, void*, const float*)`
 - `src/game/unit_update.cpp:45`: `std::uintptr_t __fastcall CallSetFigureScale(CUnit*, void*, const float*)`
 - `src/game/world_client_maps.cpp:561`: `void __fastcall UnitSetPosition(void*, void*, const float*)`
-- `src/game/world_units.cpp:420`: `void __fastcall ObjectSetMovement(CEngineObject*, void*, const void*)`
+- `src/game/world_units.cpp:414`: `void __fastcall ObjectSetMovement(CEngineObject*, void*, const void*)`
 
 ### 0x00523370: 2 files, 2 sites, signatures differ
 Rewritten as `UnitVitals::Reset` (src/game/unit_stats_pack.cpp).
@@ -408,7 +408,7 @@ Rewritten as `UnitParams::Reset` (src/game/unit_stats_pack.cpp).
 Rewritten as `UnitStats::AddScaledExperience` (src/game/unit_vitals.cpp).
 - `src/game/console_commands.cpp:103`: `void UnitStatsAt::AddExperience(float)`
 - `src/game/unit_create_stats.cpp:137`: `void __fastcall AddScaledExperienceAt(UnitStats*, void*, float)`
-- `src/game/world_quests.cpp:413`: `void __fastcall RecordGainExperience(void*, void*, float)`
+- `src/game/world_quests.cpp:383`: `void __fastcall RecordGainExperience(void*, void*, float)`
 
 ### 0x00523E80: 2 files, 2 sites, signatures differ
 Rewritten as `UnitStats::HitPointCurve` (src/game/unit_vitals.cpp).
@@ -483,7 +483,7 @@ Rewritten as `CUnit::CanUseQuickItem` (src/game/unit.cpp).
 Rewritten as `CUnit::SetSide` (src/game/unit.cpp).
 - `src/game/combat_taming.cpp:37`: `void __fastcall UnitSetSide(CUnit*, void*, int)`
 - `src/game/script_exec.cpp:293`: `void Unit::SetSide(int)`
-- `src/game/world_units.cpp:432`: `void __fastcall UnitSetSide(CEngineObject*, void*, int)`
+- `src/game/world_units.cpp:426`: `void __fastcall UnitSetSide(CEngineObject*, void*, int)`
 
 ### 0x005302F0: 2 files, 2 sites, signatures differ
 Rewritten as `CUnit::ModeSpeed` (src/game/unit.cpp).
@@ -498,7 +498,7 @@ Rewritten as `CUnit::UnequipArmour` (src/game/unit_items.cpp).
 ### 0x005308D0: 2 files, 2 sites, signatures differ
 Rewritten as `CUnit::SetPrototype23CByName` (src/game/unit_items.cpp).
 - `src/game/world_client_maps.cpp:554`: `void __fastcall UnitSetPrototype2(void*, void*, const char*)`
-- `src/game/world_units.cpp:117`: `void __fastcall UnitSet18(CEngineObject*, void*, const char*)`
+- `src/game/world_units.cpp:111`: `void __fastcall UnitSet18(CEngineObject*, void*, const char*)`
 
 ### 0x00530970: 2 files, 2 sites, signatures differ
 Rewritten as `CUnit::GetPrototypeModel` (src/game/unit.cpp).
@@ -520,7 +520,7 @@ Rewritten as `CUnit::RemoveWeapon` (src/game/unit.cpp).
 Rewritten as `CUnit::AddQuickItem` (src/game/unit.cpp).
 - `src/game/unit_record.cpp:29`: `int Unit::AddQuickItem(void*)`
 - `src/game/world_client_maps.cpp:565`: `void __fastcall UnitAddQuickItem(void*, void*, void*)`
-- `src/game/world_units.cpp:114`: `void __fastcall UnitWear(CEngineObject*, void*, CEngineObject*)`
+- `src/game/world_units.cpp:108`: `void __fastcall UnitWear(CEngineObject*, void*, CEngineObject*)`
 
 ### 0x00531220: 2 files, 2 sites, signatures differ
 Rewritten as `CUnit::AddCarried` (src/game/unit_items.cpp).
@@ -537,32 +537,32 @@ Rewritten as `CUnit::ReleaseAllItems` (src/game/unit_items.cpp).
 - `src/game/net_state.cpp:231`: `void __fastcall UnitReleaseAllItems(void*)`
 - `src/game/unit_record.cpp:27`: `void Unit::ReleaseAllItems()`
 - `src/game/world_client_maps.cpp:562`: `void __fastcall UnitReleaseAllItems(void*)`
-- `src/game/world_units.cpp:111`: `void __fastcall UnitAfterStats(CEngineObject*, void*)`
+- `src/game/world_units.cpp:105`: `void __fastcall UnitAfterStats(CEngineObject*, void*)`
 
 ### 0x00531820: 4 files, 4 sites, signatures differ
 Rewritten as `CUnit::AddSpell` (src/game/unit.cpp).
 - `src/game/script_exec.cpp:298`: `void Unit::AddSpell(void*)`
 - `src/game/unit_equipment.cpp:46`: `int __fastcall AddSpellAt(CUnit*, void*, CEngineObject*)`
 - `src/game/unit_record.cpp:31`: `int Unit::AddSpell(void*)`
-- `src/game/world_units.cpp:115`: `void __fastcall UnitAddSpell(CEngineObject*, void*, CEngineObject*)`
+- `src/game/world_units.cpp:109`: `void __fastcall UnitAddSpell(CEngineObject*, void*, CEngineObject*)`
 
 ### 0x005318B0: 3 files, 3 sites, signatures differ
 Rewritten as `CUnit::GetWeapon` (src/game/unit.cpp).
 - `src/game/combat_update.cpp:761`: `CEngineObject* __fastcall UnitWeapon(CUnit*, void*, std::uint32_t)`
 - `src/game/hoover_loot.cpp:44`: `void* __fastcall UnitWeapon(void* /*unit*/, void*, int)`
-- `src/game/world_quests.cpp:560`: `CEngineObject* __fastcall UnitQuickItem(CEngineObject*, void*, int)`
+- `src/game/world_quests.cpp:521`: `CEngineObject* __fastcall UnitQuickItem(CEngineObject*, void*, int)`
 
 ### 0x00531920: 4 files, 4 sites, signatures differ
 Rewritten as `CUnit::GetQuickItem` (src/game/unit.cpp).
 - `src/game/hoover_loot.cpp:38`: `void* __fastcall UnitQuickItem(void* /*unit*/, void*, int)`
 - `src/game/ui_battle_hover.cpp:66`: `void* __fastcall HoverQuickItem(CUnit*, void*, int)`
 - `src/game/ui_hud.cpp:578`: `void* __fastcall UnitQuickItem(CUnit*, void*, int)`
-- `src/game/world_quests.cpp:562`: `CEngineObject* __fastcall UnitBeltItem(CEngineObject*, void*, int)`
+- `src/game/world_quests.cpp:523`: `CEngineObject* __fastcall UnitBeltItem(CEngineObject*, void*, int)`
 
 ### 0x005319A0: 2 files, 2 sites, signatures differ
 Rewritten as `CUnit::GetSpell` (src/game/unit.cpp).
 - `src/game/ui_spell_column.cpp:24`: `CEngineObject* __fastcall SpellAt(CUnit*, void*, unsigned)`
-- `src/game/world_quests.cpp:563`: `CEngineObject* __fastcall UnitSpell(CEngineObject*, void*, int)`
+- `src/game/world_quests.cpp:524`: `CEngineObject* __fastcall UnitSpell(CEngineObject*, void*, int)`
 
 ### 0x005327D0: 2 files, 2 sites, signatures differ
 Rewritten as `CUnit::ResistanceTo` (src/game/unit.cpp).
@@ -737,7 +737,7 @@ Rewritten as `CWorldServer::CastSpell` (src/game/world_spells.cpp).
 - `src/game/combat_actions.cpp:171`: `void __fastcall WorldCastSpell(void*, void*, void*, CUnit*, const float*, CEngineObject*, const void*, int)`
 - `src/game/magic_trap.cpp:159`: `void __fastcall WorldCastSpell(void*, void*, void* /*spell*/, void* /*caster*/, const float* /*from*/, CEngineObject* /*target*/, const float* /*at*/, int)`
 - `src/game/script_exec.cpp:170`: `void World::CastSpell(void*, int, const Vec3*, CEngineObject*, const void*, int)`
-- `src/game/world_units.cpp:427`: `void __fastcall ServerCastSpell(CWorldServer*, void*, CEngineObject*, int, const void*, CEngineObject*, const void*, int)`
+- `src/game/world_units.cpp:421`: `void __fastcall ServerCastSpell(CWorldServer*, void*, CEngineObject*, int, const void*, CEngineObject*, const void*, int)`
 
 ### 0x0058EF20: 2 files, 2 sites, signatures differ
 Rewritten as `CWorldServer::CreateUnits` (src/game/world_units.cpp).
@@ -750,13 +750,13 @@ Rewritten as `CWorldServer::AwardExperience` (src/game/world_quests.cpp).
 - `src/game/net_client_awards.cpp:32`: `void __fastcall AwardExperience(void* /*world*/, void*, void* /*player*/, std::uint32_t /*amount bits*/)`
 - `src/game/script_addon_commands.cpp:35`: `void __fastcall WorldAwardExperience(void*, void*, void* /*player*/, float)`
 - `src/game/script_exec.cpp:169`: `void World::AwardKill(void*, int)`
-- `src/game/world_quests.cpp:182`: `void __fastcall AwardExperience(CWorldServer*, void*, WorldPlayer*, std::uint32_t)`
+- `src/game/world_quests.cpp:166`: `void __fastcall AwardExperience(CWorldServer*, void*, WorldPlayer*, std::uint32_t)`
 
 ### 0x00591800: 3 files, 3 sites, signatures differ
 Rewritten as `CWorldServer::UpdateMercBriefings` (src/game/world_quests.cpp).
 - `src/game/script_exec.cpp:159`: `void World::RecalcMercBriefings()`
 - `src/game/world_party.cpp:87`: `void __fastcall UpdateMercBriefingsAt(CWorldServer*, void*)`
-- `src/game/world_quests.cpp:337`: `void __fastcall UpdateMercBriefingsAt(CWorldServer*, void*)`
+- `src/game/world_quests.cpp:310`: `void __fastcall UpdateMercBriefingsAt(CWorldServer*, void*)`
 
 ### 0x005927C0: 5 files, 5 sites, signatures differ
 Rewritten as `CWorldServer::CreateObject` (src/game/world_units.cpp).
@@ -764,7 +764,7 @@ Rewritten as `CWorldServer::CreateObject` (src/game/world_units.cpp).
 - `src/game/map_spec_effect.cpp:34`: `void __fastcall WorldMakeObject(void*, void*, Spec*)`
 - `src/game/map_spec_unit.cpp:64`: `void __fastcall WorldMakeObject(void*, void*, Spec*)`
 - `src/game/originals_world.h:42`: `void __fastcall WorldMakeObjectOriginal(void* /*world*/, void*, void* /*spec*/)`
-- `src/game/world_units.cpp:87`: `int __fastcall CreateObjectAt(CWorldServer*, void*, void* /*message*/)`
+- `src/game/world_units.cpp:81`: `int __fastcall CreateObjectAt(CWorldServer*, void*, void* /*message*/)`
 
 ### 0x00593AA0: 3 files, 3 sites, signatures differ
 Rewritten as `CWorldServer::FindObject` (src/game/world_server.cpp).
@@ -842,7 +842,7 @@ Rewritten as `CAIMap::CellMark` (src/game/ai_refresh.cpp).
 ### 0x005BA790: 2 files, 2 sites, signatures differ
 Rewritten as `CAIMap::IsPassableForClass` (src/game/ai_map.cpp).
 - `src/game/unit_points.cpp:28`: `bool __fastcall IsPassableForClass(void*, void*, int, const float*)`
-- `src/game/world_units.cpp:105`: `bool __fastcall AIMapCellFlag(void*, void*, int, const Vector3*)`
+- `src/game/world_units.cpp:99`: `bool __fastcall AIMapCellFlag(void*, void*, int, const Vector3*)`
 
 ### 0x005BA830: 5 files, 5 sites, signatures differ
 Rewritten as `CAIMap::CanLeaveCell` (src/game/ai_map.cpp).
@@ -857,7 +857,7 @@ Rewritten as `CAIMap::FindFreeCellNear` (src/game/ai_map.cpp).
 - `src/game/script_exec.cpp:188`: `bool AIMap::FindFreeCellNear(CEngineObject*, const Vec3*, Vec3*)`
 - `src/game/unit_lever.cpp:41`: `bool __fastcall MapFindFreeCellNear(void*, void*, void*, const float*, float*)`
 - `src/game/world_save.cpp:143`: `bool __fastcall AIMapFindFreeCellNear(void*, void*, CEngineObject*, const Vector3* /*from*/, Vector3* /*out*/)`
-- `src/game/world_units.cpp:104`: `bool __fastcall AIMapFindFreeCellNear(void*, void*, CEngineObject*, const Vector3*, Vector3*)`
+- `src/game/world_units.cpp:98`: `bool __fastcall AIMapFindFreeCellNear(void*, void*, CEngineObject*, const Vector3*, Vector3*)`
 
 ### 0x005BBC70: 4 files, 4 sites, signatures differ
 Rewritten as `CAIMap::CellFlag80At` (src/game/ai_map.cpp).
@@ -871,12 +871,12 @@ Rewritten as `CAIMap::LineOfSight` (src/game/ai_map.cpp).
 - `src/game/ai_movement.cpp:38`: `double __fastcall LineOfSightRaw(CAIMap*, void*, const Vector3*, const Vector3*)`
 - `src/game/combat_planning.cpp:61`: `double __fastcall MapLineOfSight(void*, void*, const float*, const float*)`
 - `src/game/combat_sight.cpp:157`: `double __fastcall MapLineOfSight(void*, void*, const Vector3*, const Vector3*)`
-- `src/game/originals_ai.h:81`: `double __fastcall LineOfSightOriginal(CAIMap*, void*, const Vector3* /*from*/, const Vector3* /*to*/)`
+- `src/game/originals_ai.h:86`: `double __fastcall LineOfSightOriginal(CAIMap*, void*, const Vector3* /*from*/, const Vector3* /*to*/)`
 
 ### 0x005C11D0: 3 files, 3 sites, signatures differ
 Rewritten as `CSectorMap::Move` (src/game/sector_map.cpp).
 - `src/game/map_spec_unit.cpp:65`: `void __fastcall ListsMoveObject(void*, void*, void* /*object*/, const Vector3*)`
-- `src/game/originals_ai.h:54`: `bool __fastcall SectorMapMove(void* /*sectors*/, void*, CEngineObject*, const Vector3*)`
+- `src/game/originals_ai.h:59`: `bool __fastcall SectorMapMove(void* /*sectors*/, void*, CEngineObject*, const Vector3*)`
 - `src/game/unit_motion_tick.cpp:56`: `bool __fastcall SectorMove(void*, void*, CUnit*, const float*)`
 
 ### 0x005C6270: 2 files, 2 sites, signatures differ
@@ -897,13 +897,13 @@ Rewritten as `AIBrain::LeaderOrFollowed` (src/game/unit_ai.cpp).
 - `src/game/combat_motion.cpp:91`: `CUnit* __fastcall BrainLeader(void*)`
 - `src/game/combat_tick.cpp:155`: `void* __fastcall BrainLeader(void*)`
 - `src/game/unit_motion_tick.cpp:71`: `CUnit* __fastcall BrainLeader(void*)`
-- `src/game/world_quests.cpp:682`: `void* __fastcall BrainFindFollowMode(void*, void*)`
+- `src/game/world_quests.cpp:639`: `CEngineObject* __fastcall BrainLeader(void* /*brain*/, void*)`
 
 ### 0x005D7790: 3 files, 3 sites, signatures differ
 Rewritten as `AIBrain::StopAction` (src/game/unit_ai.cpp).
 - `src/game/combat_taming.cpp:47`: `void __fastcall BrainStopAction(void*)`
 - `src/game/script_exec.cpp:215`: `void Brain::StopAction()`
-- `src/game/world_units.cpp:99`: `void __fastcall BrainStopAction(void*, void*)`
+- `src/game/world_units.cpp:93`: `void __fastcall BrainStopAction(void*, void*)`
 
 ### 0x005D7E90: 2 files, 2 sites, signatures differ
 Rewritten as `AIBrain::SetSeen` (src/game/unit_ai.cpp).
@@ -1079,7 +1079,7 @@ Rewritten as `CPlayer::IsLeader` (src/game/player.cpp).
 
 ### 0x00665DE0: 2 files, 2 sites, signatures differ
 Rewritten as `CPlayer::Tick` (src/game/player_messages.cpp).
-- `src/game/world_client.cpp:219`: `void __fastcall SessionUpdate(void*)`
+- `src/game/world_client.cpp:199`: `void __fastcall SessionUpdate(WorldSession*)`
 - `src/game/world_update.cpp:63`: `void __fastcall PlayerUpdate(WorldPlayer*, void*)`
 
 ### 0x0066D6E0: 4 files, 4 sites, signatures differ
@@ -1100,13 +1100,13 @@ Rewritten as `CPlayerServer::SetVariable` (src/game/player_messages.cpp).
 - `src/game/console_commands.cpp:96`: `void PlayerStateAt::SetVariable(const char*, float)`
 - `src/game/script_addon_commands.cpp:51`: `void __fastcall PlayerSetVariable(void*, void*, const char*, float)`
 - `src/game/script_exec.cpp:341`: `void PlayerState::SetVar(const char*, float)`
-- `src/game/world_quests.cpp:50`: `void __fastcall StateSetVariable(void*, void*, const char*, float)`
+- `src/game/world_quests.cpp:40`: `void __fastcall StateSetVariable(CPlayerServer*, void*, const char*, float)`
 - `src/game/world_save.cpp:207`: `void __fastcall PlayerStateSetVariable(void*, void*, const char*, float)`
 
 ### 0x0066EE80: 2 files, 2 sites, signatures differ
 Rewritten as `CPlayerServer::SetVariableMax` (src/game/player_messages.cpp).
 - `src/game/script_exec.cpp:342`: `void PlayerState::SetVarMax(const char*, float)`
-- `src/game/world_quests.cpp:201`: `void __fastcall StateSetVariableMax(void*, void*, const char*, float)`
+- `src/game/world_quests.cpp:185`: `void __fastcall StateSetVariableMax(CPlayerServer*, void*, const char*, float)`
 
 ### 0x00671280: 3 files, 3 sites, signatures differ
 Rewritten as `CMappedResource::Construct` (src/game/resource.cpp).
@@ -1124,7 +1124,7 @@ Rewritten as `CMMIOResource::Construct` (src/game/resource_stream.cpp).
 - `src/game/figure_models.cpp:44`: `void* __fastcall ConstructAnimation(void*)`
 - `src/game/model.cpp:198`: `CMappedResource* __fastcall ConstructMmioResource(void*)`
 - `src/game/resource_manager.cpp:13`: `CMappedResource* __fastcall ConstructMmioResource(void*)`
-- `src/game/world_client_maps.cpp:961`: `void __fastcall Construct6721D0(void*)`
+- `src/game/world_client_maps.cpp:959`: `void __fastcall Construct6721D0(void*)`
 
 ### 0x00674850: 2 files, 2 sites, signatures differ
 Rewritten as `CMappedResource::FindEntry` (src/game/resource.cpp).
@@ -1172,7 +1172,7 @@ Rewritten as `CSpellManager::CreateSpellFromText` (src/game/spell_text.cpp).
 - `src/game/item_constructor.cpp:165`: `CSpell* __fastcall CallCreateSpellFromText(void*, void*, const char*)`
 - `src/game/magic_trap.cpp:209`: `void* __fastcall CreateSpellFromText(void* /*manager*/, void*, const char*)`
 - `src/game/script_exec.cpp:452`: `void* SpellManager::CreateSpellFromText(const char*)`
-- `src/game/world_units.cpp:428`: `CEngineObject* __fastcall SpellsFromText(void*, void*, const char*)`
+- `src/game/world_units.cpp:422`: `CEngineObject* __fastcall SpellsFromText(void*, void*, const char*)`
 
 ### 0x0068B410: 3 files, 3 sites, signatures differ
 Rewritten as `CSpell::Clone` (src/game/spell_cast.cpp).
@@ -1314,8 +1314,8 @@ Rewritten as `CItemManager::CreateItem` (src/game/item_constructor.cpp).
 - `src/game/unit_equipment.cpp:42`: `CEngineObject* __fastcall CreateItemAt(void*, void*, const char*)`
 - `src/game/unit_record.cpp:48`: `void* Factory::CreateItem(std::uint32_t)`
 - `src/game/world_party.cpp:308`: `CEngineObject* __fastcall ManagerCreateItem(void*, void*, const char*)`
-- `src/game/world_quests.cpp:193`: `CEngineObject* __fastcall CreateItemByName(void*, void*, const char*)`
-- `src/game/world_units.cpp:435`: `CEngineObject* __fastcall ItemsCreateItem(void*, void*, const char*)`
+- `src/game/world_quests.cpp:177`: `CEngineObject* __fastcall CreateItemByName(void*, void*, const char*)`
+- `src/game/world_units.cpp:429`: `CEngineObject* __fastcall ItemsCreateItem(void*, void*, const char*)`
 
 ### 0x006B4F70: 2 files, 2 sites, signatures differ
 Rewritten as `CMusicSystem::Stop` (src/game/sound_music.cpp).
@@ -1325,17 +1325,17 @@ Rewritten as `CMusicSystem::Stop` (src/game/sound_music.cpp).
 ### 0x006B7740: 2 files, 2 sites, signatures differ
 Rewritten as `CSoundManager::SetEffectsVolume` (src/game/sound_manager.cpp).
 - `src/game/ui_menus.cpp:50`: `void UiSoundSystem::SetVolumeA(int)`
-- `src/game/world_client.cpp:215`: `void __fastcall SoundSetVolumeA(void*, void*, int)`
+- `src/game/world_client.cpp:194`: `void __fastcall SoundSetVolumeA(CSoundManager*, void*, int)`
 
 ### 0x006B78A0: 2 files, 2 sites, signatures differ
 Rewritten as `CSoundManager::SetSpeechVolume` (src/game/sound_manager.cpp).
 - `src/game/ui_menus.cpp:52`: `void UiSoundSystem::SetVolumeC(int)`
-- `src/game/world_client.cpp:216`: `void __fastcall SoundSetVolumeB(void*, void*, int)`
+- `src/game/world_client.cpp:195`: `void __fastcall SoundSetVolumeB(CSoundManager*, void*, int)`
 
 ### 0x006B7A00: 2 files, 2 sites, signatures differ
 Rewritten as `CSoundManager::SetMusicVolume` (src/game/sound_manager.cpp).
 - `src/game/ui_menus.cpp:51`: `void UiSoundSystem::SetVolumeB(int)`
-- `src/game/world_client.cpp:217`: `void __fastcall SoundSetVolumeC(void*, void*, int)`
+- `src/game/world_client.cpp:196`: `void __fastcall SoundSetVolumeC(CSoundManager*, void*, int)`
 
 ### 0x006B8600: 2 files, 2 sites, signatures differ
 Rewritten as `CSoundManager::Play3D` (src/game/sound_manager.cpp).
@@ -1346,7 +1346,7 @@ Rewritten as `CSoundManager::Play3D` (src/game/sound_manager.cpp).
 Rewritten as `Terrain::HeightAt` (src/game/terrain.cpp).
 - `src/game/map_spec_effect.cpp:35`: `double __fastcall TerrainHeight(void*, void*, float /*x*/, float /*y*/, int /*zero*/)`
 - `src/game/terrain_sector.cpp:510`: `double HeightOps::HeightAt(float, float, int)`
-- `src/game/world_client.cpp:229`: `double __fastcall TerrainHeightAt(void*, void*, float, float, int)`
+- `src/game/world_client.cpp:210`: `double __fastcall TerrainHeightAt(Terrain*, void*, float, float, int)`
 - `src/game/world_client_view.cpp:77`: `double TerrainHeight::HeightAt(float, float, int)`
 
 ### 0x006D43E0: 3 files, 3 sites, signatures differ

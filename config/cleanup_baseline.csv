@@ -12,12 +12,11 @@ src/game/ai_map_construct.cpp,23,0,0,0,5,0,0,0,0,0
 src/game/ai_motion.cpp,0,3,4,0,0,0,0,0,0,0
 src/game/ai_motion.h,0,0,0,0,0,0,0,1,0,0
 src/game/ai_movement.cpp,0,4,0,0,0,0,0,2,0,0
-src/game/ai_path.cpp,0,0,4,0,0,0,0,4,0,0
+src/game/ai_path.cpp,0,0,4,0,0,0,0,3,0,0
 src/game/ai_path_save.cpp,0,2,0,0,0,0,0,0,0,0
 src/game/ai_path_stand.cpp,0,0,1,2,0,0,0,2,0,0
 src/game/ai_plan.cpp,8,0,0,0,2,0,0,2,0,0
 src/game/ai_refresh.cpp,14,0,1,2,6,0,0,0,0,0
-src/game/ai_region_reach.cpp,64,0,0,0,1,0,0,7,0,0
 src/game/ai_shape_cache.cpp,0,1,0,2,0,0,0,0,0,0
 src/game/ai_unit_layer.cpp,0,2,0,0,0,0,0,0,0,0
 src/game/ai_water_patch.cpp,0,0,0,2,1,0,0,0,0,0
@@ -65,7 +64,7 @@ src/game/device_states.cpp,12,0,0,0,0,0,0,0,0,0
 src/game/dx_surface.cpp,0,2,0,0,0,0,0,0,0,0
 src/game/effects.cpp,0,0,2,0,1,0,0,0,0,0
 src/game/effects_weather.cpp,0,1,0,0,1,0,0,0,0,1
-src/game/engine_object.h,0,0,0,0,1,0,1,0,0,0
+src/game/engine_object.h,0,0,0,0,1,0,0,0,0,0
 src/game/fake_unit.cpp,7,4,0,0,5,0,0,0,0,0
 src/game/figure_factory.cpp,5,0,0,0,3,0,0,0,0,0
 src/game/figure_links.cpp,0,7,0,0,0,0,0,0,0,0
@@ -96,7 +95,6 @@ src/game/map_object.cpp,0,10,0,1,0,0,0,5,0,0
 src/game/map_object.h,0,0,0,0,0,0,0,1,0,0
 src/game/map_object_animation.cpp,0,0,0,1,0,0,0,0,0,0
 src/game/map_object_cage.cpp,0,0,0,1,0,0,0,0,0,0
-src/game/map_object_client_effects.cpp,0,0,0,0,0,0,1,0,0,0
 src/game/map_object_companion.cpp,0,5,0,1,0,0,0,7,0,0
 src/game/map_object_create.cpp,1,0,0,0,0,0,0,0,0,0
 src/game/map_object_draw.cpp,24,3,0,1,0,0,0,0,0,1
@@ -155,7 +153,6 @@ src/game/particle_emitters.cpp,0,0,1,1,1,0,0,1,0,0
 src/game/particle_render.cpp,0,0,1,1,1,0,0,0,0,0
 src/game/particle_tick.cpp,0,0,0,1,0,0,0,0,0,0
 src/game/party_records.cpp,0,2,0,0,0,0,0,0,0,0
-src/game/player_client.cpp,0,0,0,0,0,0,1,0,0,0
 src/game/player_messages.cpp,0,3,1,0,0,0,0,2,0,0
 src/game/quaternion.cpp,0,0,4,1,1,0,0,0,0,0
 src/game/quest_database.cpp,18,0,0,0,16,0,0,0,0,0
@@ -286,12 +283,9 @@ src/game/unit_vitals.cpp,2,0,4,1,24,0,0,6,0,0
 src/game/weather_draw.cpp,10,0,0,0,0,0,0,1,0,0
 src/game/world.h,0,0,0,0,0,0,0,0,0,4
 src/game/world_briefing.cpp,0,0,0,0,10,0,0,1,0,1
-src/game/world_client.cpp,13,17,0,0,0,0,0,4,0,0
 src/game/world_client_draw.cpp,0,0,6,0,3,0,0,0,0,0
 src/game/world_client_view.cpp,29,2,0,2,11,0,0,0,0,1
-src/game/world_create.cpp,31,11,0,0,1,0,0,0,0,0
 src/game/world_effect_internal.h,0,13,1,0,7,0,0,0,0,0
-src/game/world_effect_tornado.cpp,0,0,0,0,0,0,1,0,0,0
 src/game/world_effect_visual.cpp,0,3,4,0,0,0,0,17,0,0
 src/game/world_game.cpp,1,1,2,0,3,1,0,0,0,1
 src/game/world_guard.cpp,3,0,0,0,0,0,0,0,0,0
@@ -299,12 +293,12 @@ src/game/world_loot.cpp,3,4,0,0,2,0,0,0,0,0
 src/game/world_map.cpp,0,15,0,0,1,0,0,7,0,0
 src/game/world_object_sets.cpp,0,2,0,0,0,0,0,0,0,1
 src/game/world_party.cpp,27,7,4,2,8,0,0,0,0,0
-src/game/world_quests.cpp,0,14,1,2,17,0,0,33,0,1
+src/game/world_quests.cpp,0,0,1,2,1,0,0,0,0,0
 src/game/world_rules.cpp,28,5,0,2,0,0,0,1,0,0
 src/game/world_server.cpp,0,6,0,0,0,0,0,3,0,0
 src/game/world_spells.cpp,23,3,0,2,1,0,0,2,0,0
 src/game/world_sync.cpp,31,6,0,0,5,0,0,0,0,0
-src/game/world_tick.cpp,0,1,0,0,3,0,4,0,0,0
+src/game/world_tick.cpp,0,1,0,0,3,0,0,0,0,0
 src/game/world_unit_set.cpp,25,2,0,0,0,0,0,1,0,0
 src/game/world_units.cpp,0,0,4,2,1,0,0,0,0,0
 src/game/world_update.cpp,21,10,0,2,4,0,0,0,0,0
