@@ -131,6 +131,14 @@ struct AlignedArray {
         --size;
     }
 
+    // RemoveAt(index, count) as the out-of-line copies write it (00663F60: RET 8): the elements
+    // after the range moved down (REP MOVSD), then the size lowered; the storage stays.
+    void RemoveRange(int index, int count) {
+        int after = size - index - count;
+        for (int i = 0; i < after; ++i) data[index + i] = data[index + count + i];
+        size -= count;
+    }
+
     // SetSize(0) inlined: frees the block and empties the array.
     void RemoveAll() {
         if (data) {

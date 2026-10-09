@@ -26,7 +26,7 @@
 
 namespace scriptparse {
 
-__declspec(naked) int __cdecl IsDigit(int) EI_ORIGINAL(0x006E9379)
+int __cdecl IsDigit(int c) { return gamecrt::isdigit(c); }
 __declspec(naked) int __cdecl IsSpace(int) EI_ORIGINAL(0x006E93CE)
 __declspec(naked) int __cdecl Strncmp(const char*, const char*, std::size_t) EI_ORIGINAL(0x006E9180)
 int __cdecl Mbscmp(const char* a0, const char* a1) { return GameMbscmp(a0, a1); }

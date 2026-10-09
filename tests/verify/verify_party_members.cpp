@@ -8,6 +8,8 @@
 #include "../../src/game/item.h"
 #include "../../src/game/party.h"
 #include "../../src/game/unit.h"
+#include "../../src/game/unit_create.h"
+#include "../../src/game/unit_db.h"
 
 #include <cstddef>
 #include <cstring>
@@ -114,3 +116,69 @@ static BOOL __fastcall RemoveMemberVerify(CParty* self, void*, int key) {
     return result;
 }
 EI_VERIFY(0x006620F0, RemoveMemberVerify, 0, s_unused);
+
+// 006625B0 (stolen 0): spells and weapons emptied first, so with an NPC record (looked up after
+// the call; operator[] has added it when absent) they hold exactly its start spells and weapons,
+// the quick items grew by its start quick items, the money by its start money, text 6 is text 5
+// and the result 1; without one, 0 and both lists empty. Scenario: ui_hero_screen (00616AC0).
+static BOOL __fastcall EquipFromPrototypeVerify(CParty* self, void*, PartyUnitRecord* record) {
+    std::uint32_t quickBefore = record->quickItemCount;
+    int moneyBefore = self->Money();
+    BOOL result = self->EquipFromPrototype(record);
+    auto* node = unitdb::NpcTable().byName.Find(stlp::string(record->texts[5]));
+    auto* npc = node ? reinterpret_cast<const UnitNpcRecord*>(node->value) : nullptr;
+    auto count = [](const CStringVector& names) { return static_cast<std::uint32_t>(names.end - names.begin); };
+    bool ok = npc ? result == 1 && record->spellCount == count(npc->startSpells) && record->weaponCount == count(npc->startWeapons) &&
+                        record->quickItemCount == quickBefore + count(npc->startQuickItems) &&
+                        self->Money() == moneyBefore + npc->startMoney && std::strcmp(record->texts[6], record->texts[5]) == 0
+                  : result == 0 && record->spellCount == 0 && record->weaponCount == 0 && self->Money() == moneyBefore;
+    ei::verify::Check("CParty::EquipFromPrototype", true, ok, "%s: result %d, %u spells, %u weapons, %u quick items",
+                      static_cast<const char*>(record->texts[5]), result, record->spellCount, record->weaponCount,
+                      record->quickItemCount);
+    return result;
+}
+EI_VERIFY(0x006625B0, EquipFromPrototypeVerify, 0, s_unused);
+
+// 00663E40 (stolen 0): the index is the old size, the value stored there, one element more,
+// the block still aligned.
+static int __fastcall AddVerify(AlignedPtrArray* self, void*, void* value) {
+    int before = self->size;
+    int index = self->Add(value);
+    bool ok = index == before && self->size == before + 1 && self->data[index] == value &&
+              (reinterpret_cast<std::uintptr_t>(self->data) & 0x1F) == 0;
+    ei::verify::Check("AlignedPtrArray::Add (spell list copy)", true, ok, "index %d of %d", index, before);
+    return index;
+}
+EI_VERIFY(0x00663E40, AddVerify, 0, s_unused);
+
+// 00663F60 / 00663A70 (stolen 6: MOV EDX,[ESP+8]; MOV EAX,ECX): the original on a copy of the
+// array and its elements (it does not allocate), ours on the real one; size and elements
+// compared (arrays of up to 64 elements). Their only caller is 006625B0, so with it replaced no
+// scenario reaches these three wrappers (they run with EquipFromPrototype's hook turned off).
+static void(__fastcall* s_removeRange663F60)(AlignedPtrArray*, void*, int, int);
+static void(__fastcall* s_removeRange663A70)(AlignedPtrArray*, void*, int, int);
+static void CheckRemoveRange(void(__fastcall* original)(AlignedPtrArray*, void*, int, int), AlignedPtrArray* self, int index,
+                             int count) {
+    void* scratchData[64];
+    bool compared = self->size <= 64;
+    AlignedPtrArray scratch = *self;
+    if (compared) {
+        std::memcpy(scratchData, self->data, static_cast<std::size_t>(self->size) * sizeof(void*));
+        scratch.data = scratchData;
+        original(&scratch, nullptr, index, count);
+    }
+    self->RemoveRange(index, count);
+    if (!compared) return;
+    bool ok = scratch.size == self->size &&
+              std::memcmp(scratchData, self->data, static_cast<std::size_t>(self->size) * sizeof(void*)) == 0;
+    ei::verify::Check("AlignedPtrArray::RemoveRange (record list copy)", true, ok, "remove %d at %d: size %d / %d", count,
+                      index, scratch.size, self->size);
+}
+static void __fastcall RemoveRange663F60Verify(AlignedPtrArray* self, void*, int index, int count) {
+    CheckRemoveRange(s_removeRange663F60, self, index, count);
+}
+static void __fastcall RemoveRange663A70Verify(AlignedPtrArray* self, void*, int index, int count) {
+    CheckRemoveRange(s_removeRange663A70, self, index, count);
+}
+EI_VERIFY(0x00663F60, RemoveRange663F60Verify, 6, s_removeRange663F60);
+EI_VERIFY(0x00663A70, RemoveRange663A70Verify, 6, s_removeRange663A70);

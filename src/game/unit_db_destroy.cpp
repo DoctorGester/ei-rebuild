@@ -196,9 +196,9 @@ void __fastcall DestroyNpcTable(RecordTable* self) {
 
     for (char *p = self->records.begin, *end = self->records.end; p != end; p += sizeof(UnitNpcRecord)) {
         auto* record = reinterpret_cast<UnitNpcRecord*>(p);
-        DestroyStringVector(&record->unknown_48);
-        DestroyStringVector(&record->unknown_3C);
-        StringVectorDestroy(&record->unknown_30);
+        DestroyStringVector(&record->startSpells);
+        DestroyStringVector(&record->startQuickItems);
+        StringVectorDestroy(&record->startWeapons);
         StringVectorDestroy(&record->skillNames);
         DestroyString(&record->name);
     }

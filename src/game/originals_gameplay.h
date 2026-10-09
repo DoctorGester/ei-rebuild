@@ -44,7 +44,9 @@ __declspec(naked) inline void __fastcall PartyResetOriginal(void* /*party*/, voi
 __declspec(naked) inline void __fastcall PartyEntriesInsertOverflowOriginal(void* /*vector*/, void*, void* /*position*/,
                                                                             const void* /*value*/, unsigned /*count*/)
     EI_ORIGINAL(0x00619920)
-// 00662AC0: a party (the multiplayer heroes' records too) sends its map transfer `transfer` (RET 4, no result).
+// 00662AC0 (RET 4, no result): a multiplayer hero record (MpHeroRecord, ui_screens.h) writes its party file into
+// the folder (a CString; the heroes' folder 007C82A0) passed as an int; rewritten as MpHeroRecord::WriteFile
+// (party_file.cpp), called through its address so the verify wrapper runs.
 __declspec(naked) inline void __fastcall PartySendTransferOriginal(void* /*party*/, void*, int /*transfer*/) EI_ORIGINAL(0x00662AC0)
 __declspec(naked) inline void* __fastcall PartyAddItemOriginal(void* /*party*/, void*, void* /*item*/, int /*a*/,
                                                                int /*b*/) EI_ORIGINAL(0x00661DB0)

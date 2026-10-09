@@ -162,6 +162,51 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
 }
 EI_REPLACE_METHOD(0x006621F0, CParty::FillFromPrototype);
 
+BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
+    // Each list emptied from the front (the original looks the first entry up, finding it at 0).
+    for (AlignedPtrArray* list : {&ItemList(record->spells), &ItemList(record->weapons)}) {
+        while (list->size != 0) {
+            static_cast<CEngineObject*>(list->data[0])->Release();
+            list->RemoveRange(0, 1);
+        }
+    }
+    auto* npc = reinterpret_cast<UnitNpcRecord*>(unitdb::NpcTable().byName[stlp::string(record->texts[5])]);
+    if (!npc) return 0;
+
+    const CStringVector& spellNames = npc->startSpells;
+    for (unsigned i = 0; i < static_cast<unsigned>(spellNames.end - spellNames.begin); ++i) {
+        CSpellManager* owner = SpellManager();
+        auto* spell = static_cast<CItem*>(FactoryCreateSpellOriginal(ItemManager(), nullptr, spellNames.begin[i], owner));
+        ItemList(record->spells).Add(CountedClone(spell));
+        Drop(spell);
+    }
+    const CStringVector& quickNames = npc->startQuickItems;
+    for (unsigned i = 0; i < static_cast<unsigned>(quickNames.end - quickNames.begin); ++i) {
+        CItem* item = MakeItem(this, quickNames.begin[i]);
+        CItem* copy = CountedClone(item);
+        ItemList(record->quickItems).SetAtGrow(static_cast<int>(record->quickItemCount), copy);
+        Drop(item);
+    }
+    const CStringVector& weaponNames = npc->startWeapons;
+    for (unsigned i = 0; i < static_cast<unsigned>(weaponNames.end - weaponNames.begin); ++i) {
+        CItem* item = MakeItem(this, weaponNames.begin[i]);
+        CItem* copy = CountedClone(item);
+        ItemList(record->weapons).SetAtGrow(static_cast<int>(record->weaponCount), copy);
+        Drop(item);
+    }
+    Money() += npc->startMoney;
+    reinterpret_cast<UnitStats*>(record->stats)->AddExperience(npc->experienceFloor);
+    record->texts[6] = record->texts[5];
+    return 1;
+}
+EI_REPLACE_METHOD(0x006625B0, CParty::EquipFromPrototype);
+
+// The record lists' out-of-line Add (spells, 00663E40) and RemoveAt(index, count) (spells
+// 00663F60, weapons 00663A70).
+EI_REPLACE_METHOD(0x00663E40, AlignedPtrArray::Add);
+EI_REPLACE_METHOD(0x00663F60, AlignedPtrArray::RemoveRange);
+EI_REPLACE_METHOD(0x00663A70, AlignedPtrArray::RemoveRange);
+
 BOOL CParty::RemoveMember(int key) {
     for (int i = 0; i < members_.size; ++i) {
         PartyUnitRecord* record = &members_.data[i];

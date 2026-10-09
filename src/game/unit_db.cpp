@@ -161,11 +161,11 @@ void UnitNpcRecord::Serialize(ChunkArchive* ar) {
     ArchiveField(ar, nullptr, 6, attributes, sizeof(attributes));
     ArchiveField(ar, nullptr, 7, skills, sizeof(skills));
     ArchiveStrings(ar, nullptr, 8, &skillNames, ar);
-    InlineStrings(ar, 9, &unknown_30);
-    InlineStrings(ar, 10, &unknown_3C);
-    InlineStrings(ar, 11, &unknown_48);
+    InlineStrings(ar, 9, &startWeapons);
+    InlineStrings(ar, 10, &startQuickItems);
+    InlineStrings(ar, 11, &startSpells);
     Dword(ar, 12, &experienceFloor);
-    Dword(ar, 13, &unknown_58);
+    Dword(ar, 13, &startMoney);
     ArchiveField(ar, nullptr, 14, &unknown_5C, 1);
 }
 EI_REPLACE_METHOD(0x0052DA60, UnitNpcRecord::Serialize);

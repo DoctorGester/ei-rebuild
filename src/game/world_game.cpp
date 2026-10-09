@@ -919,8 +919,6 @@ constexpr std::uint32_t kGraphChunk = 0x31415926;         // the AI graph chunk 
 mfc::CString* __fastcall MapPathInto(CWorldServer* a0, void*, void* a2, const char* a3) { return (mfc::CString*)ServerMapPathOriginal((void*)a0, nullptr, a2, a3); }
 // 004A4A90 (RET 8, AL). Finds the chunk `id` in a stream and reads it into `out`.
 __declspec(naked) bool __fastcall StreamReadChunk(void*, void*, std::uint32_t, void* /*out*/) EI_ORIGINAL(0x004A4A90)
-// 006FDBB7 (RET 4). CString::ReverseFind(char).
-__declspec(naked) int __fastcall StringReverseFind(const mfc::CString*, void*, char) EI_ORIGINAL(0x006FDBB7)
 
 } // namespace
 
@@ -942,7 +940,7 @@ int CWorldServer::ReadAIGraph(const char* map, const char* mob, void* out) {
     // Otherwise <map without extension>.grp.
     alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
     mfc::CString* base = MapPathInto(this, nullptr, storage, map);
-    int dot = StringReverseFind(base, nullptr, '.');
+    int dot = base->ReverseFind('.');
     if (dot > 0) {
         mfc::CString cut = base->Left(dot);
         *base = cut;
