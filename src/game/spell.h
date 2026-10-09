@@ -17,6 +17,15 @@ struct MapEffect;           // map_object.h
 // prototype index << 16.
 class CSpell : public CEngineObject {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743A94);
+
+    // spell_lifetime.cpp. 0068B1F0: the base fields, the effect record (MapEffect::Construct),
+    // +0x30..+0x4C 0, +0x50 1, no modifiers; returns this. 0068B2C0: the inlined ClearModifiers
+    // (slot 3), then the base's destructor body. 0068B2A0: slot 0 (operator delete with flag 1).
+    CSpell* Construct();
+    void Destruct();
+    CSpell* DeletingDestruct(unsigned flags);
+
     // 0068B320. Virtual slot 2: clears the parameters and the modifier list. Returns 1.
     BOOL Clear();   // vtable slot 2; deliberately not named Create (that would override CEngineObject::Create)
 
@@ -189,6 +198,16 @@ struct CSpellEffect {
     void ReleaseVisual();
     void ReleaseSound();
     void ReleaseLight();
+
+    // spell_lifetime.cpp. 0067E510: everything but the reference count cleared, the spell
+    // constructed; returns this. 0067E5D0: the footprint cleared when stamped, the visual removed
+    // from the world's timed objects and dropped, the sound and light dropped, the spell destroyed,
+    // the caster and target released; the base vtable 0073BB68 last. 0067E5B0: slot 0.
+    CSpellEffect* Construct();
+    void Destruct();
+    CSpellEffect* DeletingDestruct(unsigned flags);
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0074399C);
+    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073BB68);
 
     // spell_effect_save.cpp (RET 4). 0067E960: the position, caster and target ids, the target
     // point, the state, the spell (its slot 10), the packed id, the visual / sound / light ids (-1

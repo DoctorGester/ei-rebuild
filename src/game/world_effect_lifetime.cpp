@@ -140,6 +140,32 @@ EI_REPLACE_METHOD(0x00676980, CEffectSoundSeq::Destruct);
 CEffectSoundSeq* CEffectSoundSeq::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
 EI_REPLACE_METHOD(0x00676960, CEffectSoundSeq::DeletingDestruct);
 
+// --- CEffectAmbientSound -------------------------------------------------------------------------
+
+std::uintptr_t CEffectAmbientSound::Vtable() { return static_cast<std::uintptr_t>(0x0074350C); }
+
+CEffectAmbientSound* CEffectAmbientSound::Construct() {
+    ConstructEffect();
+    names_.Construct();
+    SetVtable(this, Vtable());
+    sound_ = -1;
+    Reset();
+    return this;
+}
+EI_REPLACE_METHOD(0x00677510, CEffectAmbientSound::Construct);
+
+void CEffectAmbientSound::Destruct() {
+    SetVtable(this, Vtable());
+    Reset();
+    Reset();   // again through slot 18
+    names_.Destruct();
+    DestructEffect();
+}
+EI_REPLACE_METHOD(0x006776E0, CEffectAmbientSound::Destruct);
+
+CEffectAmbientSound* CEffectAmbientSound::DeletingDestruct(unsigned flags) { return DeleteAfter(this, flags); }
+EI_REPLACE_METHOD(0x006776C0, CEffectAmbientSound::DeletingDestruct);
+
 // --- CEffectPointLight ---------------------------------------------------------------------------
 
 std::uintptr_t CEffectPointLight::Vtable() { return static_cast<std::uintptr_t>(0x0074356C); }
@@ -243,18 +269,10 @@ EI_REPLACE_METHOD(0x0067A090, CEffectLightning::DeletingDestruct);
 
 namespace {
 
-// Constructor bodies not rewritten yet (ECX = the memory; they return it).
-__declspec(naked) CEngineObject* __fastcall ConstructAmbientSound(void*) EI_ORIGINAL(0x00677510)
-
 template <typename T>
 CEngineObject* NewEffect() {
     void* memory = gamecrt::operator_new(sizeof(T));
     return memory != nullptr ? static_cast<T*>(memory)->Construct() : nullptr;
-}
-
-CEngineObject* NewEffect(std::size_t size, CEngineObject*(__fastcall* construct)(void*)) {
-    void* memory = gamecrt::operator_new(size);
-    return memory != nullptr ? construct(memory) : nullptr;
 }
 
 } // namespace
@@ -263,7 +281,7 @@ CEngineObject* __fastcall EffectNewObject(CBaseManager*, void*, int type) {
     CEngineObject* object;
     switch (type) {
     case 0x48: object = NewEffect<CEffectSound>(); break;
-    case 0x49: object = NewEffect(0x174, &ConstructAmbientSound); break;
+    case 0x49: object = NewEffect<CEffectAmbientSound>(); break;
     case 0x4A: object = NewEffect<CEffectParticle>(); break;
     case 0x4B: object = NewEffect<CEffectPointLight>(); break;
     case 0x4D: object = NewEffect<CEffectLightning>(); break;

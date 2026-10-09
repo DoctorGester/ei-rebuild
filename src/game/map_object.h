@@ -38,6 +38,9 @@ struct MapEffect {
     std::uint8_t ending;            // +0x10 the client plays no end sound when set
     std::uint8_t unknown_11[3];
 
+    // 00688510 (spell_lifetime.cpp): type, power, ticksLeft, value and ending cleared (unknown_0C
+    // not). Returns this.
+    MapEffect* Construct();
     // 00688550 / 006885A0 (spell_save.cpp; RET 4): type, power, ticksLeft, value and unknown_0C,
     // read or written one by one (`ending` is not saved).
     void Load(CStream* stream);

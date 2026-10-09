@@ -193,6 +193,7 @@ archive), 004E15C0 (node creation).
 | 0068BA20, 0068BA60, 0068B700, 0068B770 (AL), 0068B7C0 (AL), 0068B4C0 | CSpell::GetPrototype, GetModifierCount, GetDamageType, IsOffensive, HasCastFlagModifier, CanAffect | P |
 | 0068B320 (slot 2), 0068B430, 0068B350 (slot 3), 0068B370, 0068B410 | CSpell::Clear, InitFromPrototype, ClearModifiers, CopyTo (S), Clone (O) | S |
 | 00683950 | CSpellEffect::GetDamage | S into a scratch DamageInfo |
+| 00688510, 0068B1F0, 0068B2C0, 0068B2A0 (slot 0), 0067E510, 0067E5D0, 0067E5B0 (slot 0) | MapEffect::Construct, CSpell / CSpellEffect Construct, Destruct, DeletingDestruct (spell_lifetime) | constructors S on scratch copies; destructors O (state left) |
 | 0068B860, 0068B920 (slots 9 / 10), 00688550, 006885A0 | CSpell::LoadSpell / SaveSpell, MapEffect::Load / Save (spell_save; +0x1C..+0x2F is a MapEffect, `CSpell::Effect()`) | S: saves captured; loads replayed into the object's old copy (ui_saveload, world_load) |
 | 0068D730, 0068D280 | CLight::GetIntensityAt (the original starts with a 4-byte CMP + JNZ, so the wrapper calls its two branches 0068D736 point light / 0068D7B4 other directly), SetLitColors | P / S |
 | 006893F0, 006894B0 | SpellCodeByName, SpellModifierCodeByName (stdcall) | P |
@@ -275,9 +276,7 @@ the light's SetVelocity in state 2 does not check the light. Charm with a target
 changing state, so the effect restarts every tick. The light strike (4) uses -7 as bolt width factor; the walls compute the
 normal with a z of 0 * k. Fireworks, clairvoyance and possession keep a unit list on the stack for the whole function, emptied
 at the end. Risk: scenario wolves are placed 5 to 13 units from the hero without checking terrain (blocked ground fails the
-`IsAlive` waitfor). Not rewritten: 0067AC70 (missile target), 0067C640 (CEffectShowVisibility ids), 00688510 (buff record
-constructor), 005B2A00 / 005B2760 (footprint builders), 005C98C0 (AI noise), 005CBBE0, 00554450; 0067F360 (no callers),
-0067E510 / 0067E5D0 (constructor / destructor).
+`IsAlive` waitfor). Not rewritten: 0067AC70 (missile target), 0067C640 (CEffectShowVisibility ids), 005B2A00 / 005B2760 (footprint builders), 005C98C0 (AI noise), 005CBBE0, 00554450; 0067F360 (no callers).
 
 ## Quest database (006AE8E0, quest_database.cpp, quest_records.cpp)
 
