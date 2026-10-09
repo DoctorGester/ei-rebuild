@@ -251,6 +251,10 @@ static void __fastcall ContainerDestroyVerify(CUiContainer* self) {
     ei::verify::Check("CUiContainer::DestroyContainer", true, ok, "size %d", self->children_.size);
 }
 EI_VERIFY(0x00600BA0, ContainerDestroyVerify, 0, s_unusedLifetime);
+// Destructor bodies that only jump to it (screen 7, the main menu, the escape menu; A-I16).
+EI_VERIFY(0x005F5F50, ContainerDestroyVerify, 0, s_unusedLifetime);
+EI_VERIFY(0x005F5F80, ContainerDestroyVerify, 0, s_unusedLifetime);
+EI_VERIFY(0x00603CF0, ContainerDestroyVerify, 0, s_unusedLifetime);
 
 // 00600CC0: the side appended (the earlier ones kept in order); the capacity grows to size +
 // max(size, 1) when full. Null changes nothing.

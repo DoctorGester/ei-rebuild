@@ -79,6 +79,15 @@ EI_REPLACE(0x004263B0, RefPtrCopyPlain);
 EI_REPLACE(0x00429910, RefPtrCopyPlain);   // byte-identical copy
 EI_REPLACE(0x00609960, RefPtrCopyPlain);   // byte-identical copy (the lobby's player list)
 
+// 00609D40: the counted pointer's assignment from another holder (the chat window's player list
+// 006091C0): RefPtr::Assign of the other's object (a reference added, the old one released, even
+// for the same object; no copy-on-share handling). Returns the holder.
+RefPtr* __fastcall RefPtrAssignCounted(RefPtr* self, void*, const RefPtr* other) {
+    self->Assign(other->ptr);
+    return self;
+}
+EI_REPLACE(0x00609D40, RefPtrAssignCounted);
+
 // 0041ACF0: the trade between the two offers (in either order), or null.
 void* ServerSession::FindTrade(void* offer, void* other) {
     void** sentinel = static_cast<void**>(trades_);

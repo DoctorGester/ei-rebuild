@@ -6,6 +6,8 @@
 
 #include <windows.h>
 
+#include <cstdarg>
+
 namespace app {
 
 // 00457D40. The game window's procedure (also called directly by the pump and the dispatcher).
@@ -19,5 +21,11 @@ void __cdecl PumpMessages();
 // loads the map into the world server and runs the command line's script file. Returns 1, or
 // FatalError's result.
 int __cdecl StartFirstMap();
+// 004800E0 (cdecl, printf style, plain RET; A-S9). A DirectX failure: the formatted text (1 KB),
+// then "%s (0x%.8X) %s" with the result and its DirectXErrorText in a message box and to the error
+// hook; the error counter is raised and the game exits (exit(-1)). Not patched by Rebirth. Returns 0.
+int __cdecl FatalErrorCode(long result, const char* format, ...);
+// The same with the arguments as a va_list (the verify wrapper's entry).
+int FatalErrorCodeV(long result, const char* format, va_list args);
 
 } // namespace app

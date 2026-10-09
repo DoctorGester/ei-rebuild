@@ -132,11 +132,11 @@ AnimationSteps& Queue(CUnitServer* self) { return self->queue; }
 int& QueueTime(CUnitServer* self) { return self->queue.extra; }
 OrderPlan& Plan(CUnitServer* self) { return self->currentPlan; }
 AIPath* Motion(CUnitServer* self) { return self->MotionPath(); }
-AnimationSteps& MoveSteps(CUnitServer* self) { return self->moveSteps; }
-AnimationSteps& IdleSteps(CUnitServer* self) { return self->idleSteps; }
-std::uint32_t& MoveKey(CUnitServer* self) { return self->moveKey; }
+AnimationSteps& MoveSteps(CUnitServer* self) { return self->moveAnimation; }
+AnimationSteps& IdleSteps(CUnitServer* self) { return self->idleAnimation; }
+std::uint32_t& MoveKey(CUnitServer* self) { return self->moveAnimationKey; }
 std::uint32_t& IdleKey(CUnitServer* self) { return self->idleKey; }
-int& IdleTime(CUnitServer* self) { return self->idleSteps.extra; }   // +0x974
+int& IdleTime(CUnitServer* self) { return self->idleAnimation.extra; }   // +0x974
 
 // The world time (CWorld::tick_) of an object's world (ObjectWorld) or manager context.
 int TickOf(void* world) { return static_cast<CWorld*>(world)->tick_; }
@@ -908,9 +908,11 @@ void CUnitServer::ResetController() {
     StepsSetSize(&IdleSteps(this), nullptr, 0, -1);
     IdleSteps(this).extra = -1;
     unknown_938 = 0;
-    // The armour spell list (+0x91C) emptied: each element's reference released (00552B80, the
-    // element policy's Destruct), then count, free list, tail, head and blocks cleared.
-    itemSpells.RemoveAll();
-    unknown_978 = 0;
+    // The armour spell list (+0x91C) emptied: each element's item released (00552B80, the
+    // instantiation's DestructElements), then count, free list, tail, head and blocks cleared.
+    for (auto* node = armourSpells.head; node; node = node->next)
+        if (node->data.item) node->data.item->Release();
+    armourSpells.RemoveAll();
+    actionDone = nullptr;
 }
 EI_REPLACE_METHOD(0x00546480, CUnitServer::ResetController);

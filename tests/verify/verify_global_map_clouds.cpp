@@ -100,6 +100,9 @@ static CCloudNoise* __fastcall DeletingDestructVerify(CCloudNoise* self, void*, 
     return CloudNoiseBaseDeletingDestruct(self, nullptr, flags);
 }
 EI_VERIFY(0x00499E30, DeletingDestructVerify, 0, s_deletingDestruct);
+// 0062EDA0: the global map's class's slot 2, the same (ui_window_delete.cpp; A-I16).
+static CCloudNoise* (__fastcall* s_mapDeletingDestruct)(CCloudNoise*, void*, unsigned);
+EI_VERIFY(0x0062EDA0, DeletingDestructVerify, 0, s_mapDeletingDestruct);
 
 // 00499EE0 / 00499F10: the step stays in 0..15 and the fade below 1.
 static void (__fastcall* s_start)(CCloudNoise*);

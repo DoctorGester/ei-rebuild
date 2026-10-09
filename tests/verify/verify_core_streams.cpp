@@ -198,6 +198,16 @@ void** __fastcall AlignedAllocVerify(int count) {
     return result;
 }
 
+// 0066BE00 (the same instructions as 0047B940; A-H15): ours only.
+void** __fastcall AlignedAlloc66Verify(int count) {
+    void** result = AlignedPointerArrayAlloc(count);
+    auto aligned = reinterpret_cast<std::uintptr_t>(result);
+    auto block = reinterpret_cast<std::uintptr_t>(reinterpret_cast<void**>(result)[-1]);
+    bool ok = (aligned & 0x1F) == 0 && aligned - block >= 4 && aligned - block <= 0x23;
+    ei::verify::Check("AlignedPointerArrayAlloc@0066BE00", true, ok, "count %d", count);
+    return result;
+}
+
 void __fastcall AlignedClearVerify(lib::AlignedArray<CEngineObject*>* self) {
     AlignedObjectsClear(self);
     ei::verify::Check("AlignedObjectsClear", true, !self->data && !self->size && !self->capacity, "");
@@ -240,4 +250,5 @@ EI_VERIFY(0x00417350, MsClearVerify, 6, s_msClear);
 EI_VERIFY(0x00468C20, MsResetVerify, 6, s_msReset);
 EI_VERIFY(0x0047B940, AlignedAllocVerify, 0, s_unused);
 EI_VERIFY(0x0047B620, AlignedClearVerify, 0, s_unused);
+EI_VERIFY(0x0066BE00, AlignedAlloc66Verify, 0, s_unused);
 EI_VERIFY(0x0042FCA0, CoderCtorVerify, 5, s_coderCtor);

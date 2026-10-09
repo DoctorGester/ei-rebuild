@@ -215,6 +215,24 @@ static void __fastcall HeroDeleteVerify(CMpHeroScreen* self, void*) {
 }
 EI_VERIFY(0x00617E40, HeroDeleteVerify, 0, s_unused);
 
+// 00617A50: ours only (it writes a file and appends a record): one record more, selected, its file
+// "<n>.mp"; the hero keeps at most one entry per list; mode 9. ui_hero_delete.
+static void __fastcall HeroAddNewVerify(CMpHeroScreen* self, void*) {
+    std::uint32_t before = MpHeroTotal();
+    self->AddNewHero();
+    std::uint32_t after = MpHeroTotal();
+    auto* hero = reinterpret_cast<PartyUnitRecord*>(self->Hero());
+    const MpHeroRecord* record = reinterpret_cast<const MpHeroRecord*>(MpHeroes().begin) + self->heroIndex_;
+    const char* file = record->file;
+    std::size_t length = std::strlen(file);
+    bool ok = after == before + 1 && self->heroIndex_ == static_cast<int>(after) - 1 && self->mode_ == 9 &&
+              length > 3 && std::strcmp(file + length - 3, ".mp") == 0 && hero->weaponCount <= 1 &&
+              hero->quickItemCount <= 1 && hero->spellCount <= 1;
+    ei::verify::Check("CMpHeroScreen::AddNewHero", true, ok, "count %u -> %u index %d file %s", before, after,
+                      self->heroIndex_, file);
+}
+EI_VERIFY(0x00617A50, HeroAddNewVerify, 0, s_unused);
+
 static void __fastcall HeroMessageVerify(CMpHeroScreen* self, void*, int result) {
     self->OnMessageResult(result);
     ei::verify::Check("CMpHeroScreen::OnMessageResult", 9, self->mode_, "result %X", result);

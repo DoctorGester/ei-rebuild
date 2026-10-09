@@ -38,6 +38,31 @@ public:
     int SendFollow(CUnit* unit, CEngineObject* target);
     // 0066B040 (RET 4). 0x10: whether `value` (a byte) is set.
     int SendFlag10(std::uint8_t value);
+    // A-H15.
+    // 0066AA20 (RET 0x14). 0x36 use order for one unit (count 1, its id or -1): `flag`, `kind`,
+    // `value`, the target's id (CPlayerServer::OnUseOrder). The original builds a one-element
+    // CArray<CUnit*> on the heap for it.
+    int SendUseOrder(CUnit* unit, CEngineObject* target, int kind, int value, int flag);
+    // 0066AB80 (RET 0xC). 0x36 for `units` on a dead `target`: `flag`, kind 0x18A95, value -1.
+    int SendUseDead(const mfc::CArray<CUnit*>* units, CEngineObject* target, int flag);
+    // 0066B080. 0x50: the player's party saved without its variables (CParty::SaveParty, which
+    // draws an ISAAC key) as a sized block. Returns 1.
+    int SendPartyUpdate();
+    // The zone requests. When the client is between zones (state 3) they first return the local
+    // party (GameFlow::ReturnLocalParty), send it (SendPartyUpdate) and the joined message 0x05
+    // (state 2). The result is what the original leaves in EAX: the stream position after the
+    // last write (004A53F0's result).
+    // 0066B140 (RET 4). 0x03: take exit `exit`.
+    int TakeExit(int exit);
+    // 0066B1B0 (RET 8). 0x06: go to `zone` (the text with its zero) at `entrance`.
+    int RequestZone(const char* zone, int entrance);
+    // 0066B2C0. Only the state 3 part (0x05 joined); nothing otherwise.
+    void Rejoin();
+    // 0066B280 (RET 4). 0x04 and `value`; state 3. The original returns what the stream's Write
+    // leaves in EAX (its one caller, 00578B00, passes it on unused); ours returns the position.
+    int SendLeave04(int value);
+    // 0066B300. 0x09 (resume).
+    int SendResume();
 
     // player_client.cpp (A-H8).
     // 00667680 (slot 6). State 0: once the link is connected, the party (message 8, with the
