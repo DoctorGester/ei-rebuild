@@ -167,7 +167,7 @@ void SetSize(StaticPtrArray& a, int n) {
 }
 
 CMapObject* MapObject(CEngineObject* object) { return static_cast<CMapObject*>(object); }
-const float* PositionOf(CEngineObject* object) { return &MapObject(object)->positionX; }
+const float* PositionOf(CEngineObject* object) { return &MapObject(object)->position.x; }
 
 // Whether (x, y) lies outside the camera's view range around (cx, cy); NaN counts as inside. The
 // squared distance and the squared range stay on the FPU (dy^2 + dx^2, as the original adds).

@@ -577,28 +577,21 @@ void CFigureMesh::ExtendWorldBox(float* maxX, float* maxY, float* maxZ, float* m
     double far = LengthSquaredXYZ(position_);
     if (far > FarLimit()) return;
 
-    float m[16];
-    std::memset(m, 0, sizeof(m));
-    ObjectMatrix(this, nullptr, m);
+    Matrix4 m = {};
+    ObjectMatrix(this, nullptr, m.m);
 
-    // The 8 corners of the box (centre + minimum / maximum), maximum x first; each sum stays on
-    // the FPU, each transformed coordinate is stored.
-    const float* c = &bounds_.center.x;
-    const float* lo = &bounds_.boxMin.x;
-    const float* hi = &bounds_.boxMax.x;
+    // The 8 corners of the box (centre + minimum / maximum), maximum x first, times the matrix as
+    // a row vector (ZYX, translation last); each transformed coordinate is stored. The corner
+    // sums stay on the FPU in the original (the same at the main thread's 24-bit precision).
+    const Vector3& c = bounds_.center;
+    const Vector3& lo = bounds_.boxMin;
+    const Vector3& hi = bounds_.boxMax;
     for (int corner = 0; corner < 8; ++corner) {
-        const float* sx = (corner & 4) ? lo : hi;
-        const float* sy = (corner & 2) ? lo : hi;
-        const float* sz = (corner & 1) ? lo : hi;
-        double x = static_cast<double>(sx[0]) + c[0];
-        double y = static_cast<double>(sy[1]) + c[1];
-        double z = static_cast<double>(sz[2]) + c[2];
-        float wx = F(((z * m[8] + y * m[4]) + x * m[0]) + m[12]);
-        float wy = F(((z * m[9] + y * m[5]) + x * m[1]) + m[13]);
-        float wz = F(((z * m[10] + y * m[6]) + x * m[2]) + m[14]);
-        Extend(*maxX, *minX, wx);
-        Extend(*maxY, *minY, wy);
-        Extend(*maxZ, *minZ, wz);
+        Vector3 p = {((corner & 4) ? lo : hi).x + c.x, ((corner & 2) ? lo : hi).y + c.y, ((corner & 1) ? lo : hi).z + c.z};
+        Vector3 w = TransformRow<Sum3::ZYX>(m, p);
+        Extend(*maxX, *minX, w.x);
+        Extend(*maxY, *minY, w.y);
+        Extend(*maxZ, *minZ, w.z);
     }
 }
 EI_REPLACE_METHOD(0x0059FDF0, CFigureMesh::ExtendWorldBox);

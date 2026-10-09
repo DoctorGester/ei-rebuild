@@ -117,7 +117,7 @@ static bool(__fastcall* s_unitCellPassable)(CAIMap*, void*, CUnit*);
 static bool __fastcall IsUnitCellPassableVerify(CAIMap* self, void*, CUnit* unit) {
     bool expected = s_unitCellPassable(self, nullptr, unit);
     ei::verify::Check("CAIMap::IsUnitCellPassable", expected, self->IsUnitCellPassable(unit), "(%g,%g)",
-                      unit->positionX, unit->positionY);
+                      unit->position.x, unit->position.y);
     return expected;
 }
 EI_VERIFY(0x005BA6E0, IsUnitCellPassableVerify, 6, s_unitCellPassable);
@@ -134,8 +134,8 @@ EI_VERIFY(0x005BA790, IsPassableForClassVerify, 6, s_passableForClass);
 static bool(__fastcall* s_canLeave)(CAIMap*, void*, CUnit*);
 static bool __fastcall CanLeaveCellVerify(CAIMap* self, void*, CUnit* unit) {
     bool expected = s_canLeave(self, nullptr, unit);
-    ei::verify::Check("CAIMap::CanLeaveCell", expected, self->CanLeaveCell(unit), "(%g,%g)", unit->positionX,
-                      unit->positionY);
+    ei::verify::Check("CAIMap::CanLeaveCell", expected, self->CanLeaveCell(unit), "(%g,%g)", unit->position.x,
+                      unit->position.y);
     return expected;
 }
 EI_VERIFY(0x005BA830, CanLeaveCellVerify, 6, s_canLeave);

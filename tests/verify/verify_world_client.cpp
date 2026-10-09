@@ -244,7 +244,7 @@ const ClassLists& ListsFor(int classId) {
 // appended: the return value counts the touched-model entries; every visible entry has flag 0x20
 // and sits in the lists of its class, with the same entry appended to the class's shadow list;
 // deferred units are units and only appear on the first pass.
-static int __fastcall CollectVisibleVerify(CWorldClient* self, void*, void* list, const float* view, float animTime,
+static int __fastcall CollectVisibleVerify(CWorldClient* self, void*, void* list, const Matrix4* view, float animTime,
                                            std::uint32_t now, char animateUnits, char withScripted) {
     // 0056AFE0 passes the top of the device's view stack (+0x5C, depth +0x60) without checking
     // the depth: with an empty stack the "matrix" is the 64 bytes before the buffer, and the view

@@ -83,7 +83,7 @@ void CUnitClientSpecific::AdvanceTime(float time) {
     volatile float stored = time - lastTime;   // FST to a float local
     float step = stored;
     if (!(step >= 0.0f)) {   // back in time (or NaN): only put back on the ground
-        float position[3] = {unit->positionX, unit->positionY, unit->positionZ};
+        float position[3] = {unit->position.x, unit->position.y, unit->position.z};
         position[2] = static_cast<float>(UnitGroundHeightOriginal(unit, nullptr, position[0], position[1]) +
                                          unit->heightOffset);
         static_cast<CWorld*>(ObjectWorld(this))->MoveObject(unit, position);

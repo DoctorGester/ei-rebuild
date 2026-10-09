@@ -79,7 +79,7 @@ static void __fastcall UpdateVerify(AIViewer* self, void*, UnitController* owner
     AIBrain* brain = BrainOfMemory(memory);
     self->Update(owner, brain);
     CUnit* unit = owner->unit;
-    bool ok = self->eye.x == unit->positionX && self->eye.y == unit->positionY && Distinct(brain->visible);
+    bool ok = self->eye.x == unit->position.x && self->eye.y == unit->position.y && Distinct(brain->visible);
     for (auto* node = brain->visible.head; ok && node; node = node->next)
         ok = static_cast<CMapObjectVirtuals*>(node->data)->IsDead() == 0;
     ei::verify::Check("AIViewer::Update", true, ok, "unit %p, %d visible", unit, brain->visible.count);

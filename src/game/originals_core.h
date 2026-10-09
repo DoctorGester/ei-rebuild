@@ -38,5 +38,10 @@ __declspec(naked) inline void __fastcall DestructTextureName(void*) EI_ORIGINAL(
 __declspec(naked) inline void __fastcall RefObjectRelease(void* /*object*/) EI_ORIGINAL(0x0040A3A0)
 __declspec(naked) inline Vector3* __fastcall QuaternionAxisY(const Quaternion* /*quaternion*/, void*, Vector3* /*out*/)
     EI_ORIGINAL(0x0040F560)
+// 0040D940 / 0040D6B0: Quaternion::AxisX / AxisZ, the same way (RET 4, return out).
+__declspec(naked) inline Vector3* __fastcall QuaternionAxisX(const Quaternion* /*quaternion*/, void*, Vector3* /*out*/)
+    EI_ORIGINAL(0x0040D940)
+__declspec(naked) inline Vector3* __fastcall QuaternionAxisZ(const Quaternion* /*quaternion*/, void*, Vector3* /*out*/)
+    EI_ORIGINAL(0x0040D6B0)
 // 0059F030: CFigure's destructor body (plain RET; CFigure's slot 0 00453470 and CSkyObject's 004D92B0 end with it).
 __declspec(naked) inline void __fastcall FigureDestructBodyOriginal(void* /*figure*/) EI_ORIGINAL(0x0059F030)

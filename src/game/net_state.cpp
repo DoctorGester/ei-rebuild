@@ -57,7 +57,7 @@ void __fastcall MapObjectWriteNetState(std::uint8_t* object) {
     }
     if (DeltaField* field = state->BeginField(2)) {
         PutByte(field, static_cast<std::uint8_t>((self->flags_ >> 3) & 1));
-        field->WriteDelta(&self->positionX, 0xC);
+        field->WriteDelta(&self->position.x, 0xC);
         field->WriteDelta(&self->orientation, 0x10);
         field->EndField();
     }
@@ -196,7 +196,7 @@ std::uint32_t __fastcall MapObjectReadNetState(std::uint8_t* object, void*, int 
         field->ReadDelta(&self->orientation, 0x10);
         CWorld* world = WorldOf(object);
         world->MoveObject(self, position);
-        ObjectSlots(self)->PlaceOnGround(self->positionZ);
+        ObjectSlots(self)->PlaceOnGround(self->position.z);
         complete &= SnapshotConsumed();
         field->EndField();
     }

@@ -43,7 +43,7 @@ void AIBrain::LookAround(int unused) {
     candidates.vtable = mfc::PtrListVtable();
     candidates.blockSize = 10;
     int best[2] = {-1, 0};          // {part, object}
-    Vector3 from = *reinterpret_cast<const Vector3*>(&owner->unit->positionX);
+    Vector3 from = *&owner->unit->position;
     ChooseTarget(best, &candidates, &from, 1, unused);
     auto* chosen = reinterpret_cast<CEngineObject*>(best[1]);
     if (chosen) {

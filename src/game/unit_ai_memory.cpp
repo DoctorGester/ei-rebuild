@@ -28,9 +28,9 @@ bool Allied(int side, int other) { return (GameDiplomacy()->allied_[side] & (1u 
 
 // (a - b) squared in 3D, summed as the original: z, then x, then y.
 double Distance2(const CUnit* a, const float* b) {
-    double dx = static_cast<double>(a->positionX) - b[0];
-    double dy = static_cast<double>(a->positionY) - b[1];
-    double dz = static_cast<double>(a->positionZ) - b[2];
+    double dx = static_cast<double>(a->position.x) - b[0];
+    double dy = static_cast<double>(a->position.y) - b[1];
+    double dz = static_cast<double>(a->position.z) - b[2];
     return dz * dz + dx * dx + dy * dy;
 }
 
@@ -90,9 +90,9 @@ CUnit* AIBrain::NearestEnemy(CUnit* self) {
     for (auto* node = visible.head; node; node = node->next) {
         auto* other = static_cast<CUnit*>(node->data);
         if (!self->IsHostileTo(other) || IsDead(other)) continue;
-        double dx = static_cast<double>(self->positionX) - other->positionX;
-        double dy = static_cast<double>(self->positionY) - other->positionY;
-        double dz = static_cast<double>(self->positionZ) - other->positionZ;
+        double dx = static_cast<double>(self->position.x) - other->position.x;
+        double dy = static_cast<double>(self->position.y) - other->position.y;
+        double dz = static_cast<double>(self->position.z) - other->position.z;
         double d2 = dz * dz + dx * dx + dy * dy;
         if (!(d2 >= best)) {
             best = RoundToFloat(d2);
@@ -110,9 +110,9 @@ void AIBrain::ForceSee(CUnit* self, CEngineObject* object) {
     auto* other = static_cast<CUnit*>(object);
     UnitController* theirs = ControllerOf(other);
     UnitController* ours = ControllerOf(self);
-    double dx = static_cast<double>(self->positionX) - other->positionX;
-    double dy = static_cast<double>(self->positionY) - other->positionY;
-    double dz = static_cast<double>(self->positionZ) - other->positionZ;
+    double dx = static_cast<double>(self->position.x) - other->position.x;
+    double dy = static_cast<double>(self->position.y) - other->position.y;
+    double dz = static_cast<double>(self->position.z) - other->position.z;
     float distance = RoundToFloat(std::sqrt(dz * dz + dy * dy + dx * dx));
     AIBrain* theirBrain = theirs->Brain();
     bool attacksUs = (theirBrain->action == kActionAttack || theirBrain->action == kActionCast) &&
@@ -177,9 +177,9 @@ void AIBrain::MeasureExposure(UnitController* self, float* out) {
         auto* other = static_cast<CUnit*>(node->data);
         if (IsDead(other) || !unit->IsHostileTo(other)) continue;
         UnitController* theirs = ControllerOf(other);
-        double dx = static_cast<double>(other->positionX) - unit->positionX;
-        double dy = static_cast<double>(other->positionY) - unit->positionY;
-        double dz = static_cast<double>(other->positionZ) - unit->positionZ;
+        double dx = static_cast<double>(other->position.x) - unit->position.x;
+        double dy = static_cast<double>(other->position.y) - unit->position.y;
+        double dz = static_cast<double>(other->position.z) - unit->position.z;
         float distance = RoundToFloat(std::sqrt(dz * dz + dy * dy + dx * dx));
         float sight = RoundToFloat(static_cast<double>(theirs->moveFactors[3]) * self->moveFactors[2] *
                                    theirs->stats.valuesB0[0].current * self->stats.valuesE0[0].current);

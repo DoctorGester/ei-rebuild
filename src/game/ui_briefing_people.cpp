@@ -86,7 +86,7 @@ void CBriefingScreen::MovePerson(CUnit* unit, float x, float y, float z, float d
     if (!serverUnit) return;
     auto* controller = reinterpret_cast<UnitController*>(serverUnit->controller);
     if (!controller) return;
-    Vector3 target{x, y, serverUnit->positionZ};
+    Vector3 target{x, y, serverUnit->position.z};
     if (immediate) {
         SectorMapMove(SectorMap(), nullptr, serverUnit, &target);
         Vector3 facing = Normalised(dx, dy, dz);

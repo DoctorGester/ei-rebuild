@@ -47,7 +47,7 @@ __declspec(naked) double __cdecl Fpatan(double, double) {
     __asm ret
 }
 
-const Vector3& PositionOf(const CUnit* unit) { return *reinterpret_cast<const Vector3*>(&unit->positionX); }
+const Vector3& PositionOf(const CUnit* unit) { return *&unit->position; }
 
 bool IsCellPassable(CAIMap* map, CUnit* unit, int x, int y) {
     return ((map->cells[y][x].passable >> ((unit->sizeClass * 4) & 31)) & 0xF) != 0;

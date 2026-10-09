@@ -158,7 +158,7 @@ void CUnitClientSpecific::HitEffect(int location, float amount, std::uint32_t fl
     if (const char* format = HitSoundFormat(HitSoundKind(unit))) sound.Format(format, static_cast<const char*>(material));
     if (sound.GetLength() != 0) {
         auto* world = static_cast<CWorldClient*>(ManagerContext());
-        world->sounds_->Play3D(sound, kSoundPriority, &unit->positionX, kSoundNear, kSoundFar, 0, 0);
+        world->sounds_->Play3D(sound, kSoundPriority, &unit->position.x, kSoundNear, kSoundFar, 0, 0);
     }
 
     if (location < 0 || location > 5) return;
@@ -223,9 +223,9 @@ void CUnitClientSpecific::DeathEffect() {
     } else {
         volatile float stored = static_cast<float>(SmallerExtent(unit) * kDeathDecalScale);
         size = stored;
-        at[0] = unit->positionX;
-        at[1] = unit->positionY;
-        at[2] = unit->positionZ;
+        at[0] = unit->position.x;
+        at[1] = unit->position.y;
+        at[2] = unit->position.z;
     }
     std::uint32_t variant = DecalVariant() + kDeathVariantBase;
     AddBloodDecal(WorldClient(), nullptr, at[0], at[1], size, size * kDecalLength, DecalKind(variant, blood), 0);

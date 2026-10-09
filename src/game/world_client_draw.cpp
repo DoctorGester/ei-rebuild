@@ -131,7 +131,7 @@ float LandscapeDrawRadius() {
 __declspec(naked) void __fastcall VectorClear(stlp::vector<CEngineObject*>*) EI_ORIGINAL(0x0056E870)
 __declspec(naked) float* __fastcall CameraPosition(CCamera*) EI_ORIGINAL(0x0040FB20)
 __declspec(naked) void __fastcall SoundListener(void*, void*, float) EI_ORIGINAL(0x0067CEF0)
-__declspec(naked) int __fastcall CollectVisibleAt(CWorldClient*, void*, void*, const float*, float, std::uint32_t, int, int)
+__declspec(naked) int __fastcall CollectVisibleAt(CWorldClient*, void*, void*, const Matrix4*, float, std::uint32_t, int, int)
     EI_ORIGINAL(0x0056A990)
 __declspec(naked) void __fastcall NodeFree12(void*, void*, void*, int) EI_ORIGINAL(0x0056F700)
 __declspec(naked) void __fastcall NodeFree32(void*, void*, void*, int) EI_ORIGINAL(0x0056F840)
@@ -143,9 +143,7 @@ __declspec(naked) void __fastcall IntroSortByModelUseAt(CEngineObject**, CEngine
 __declspec(naked) void __fastcall FinalSortByModelUseAt(CEngineObject**, CEngineObject**, void*) EI_ORIGINAL(0x00573F10)
 __declspec(naked) void __fastcall QueueSelected(CEngineObject*, void*) EI_ORIGINAL(0x0056A370)
 __declspec(naked) void __fastcall LightEffectDraw(void*) EI_ORIGINAL(0x006CEDE0)
-__declspec(naked) void __fastcall QuaternionAxisZ(const void*, void*, float*) EI_ORIGINAL(0x0040D6B0)
-__declspec(naked) void __fastcall QuaternionAxisX(const Quaternion*, void*, Vector3*) EI_ORIGINAL(0x0040D940)
-__declspec(naked) void __fastcall MarkerDraw(void*, void*, const float*, float, const float*, const float*)
+__declspec(naked) void __fastcall MarkerDraw(void*, void*, const Vector3*, float, const Vector3*, const Vector3*)
     EI_ORIGINAL(0x00503A40)
 __declspec(naked) void __fastcall ListErase(void*, void*, void**, void*) EI_ORIGINAL(0x00512030)
 __declspec(naked) CEngineObject** __fastcall VectorCopyBack(CEngineObject**, CEngineObject**, CEngineObject**)
@@ -309,10 +307,10 @@ int CWorldClient::Render() {
     CTransformPipeline* device = ScenePipeline();
     ClientBeginFrame(this);
     Flush(renderer);
-    float view[16];
-    DeviceViewMatrix(device, nullptr, view, camera::TheCamera());
+    Matrix4 view;
+    DeviceViewMatrix(device, nullptr, view.m, camera::TheCamera());
     PopMatrix(device->stacks_[kStackView]);
-    PushMatrix(device->stacks_[kStackView], view);
+    PushMatrix(device->stacks_[kStackView], view.m);
     const float* top = device->Top(kStackView)->m;
     PushSceneMatrixOriginal(device, nullptr, top, kStackScene2);
     PushSceneMatrixOriginal(device, nullptr, top, kStackScene1);
@@ -413,7 +411,7 @@ int CWorldClient::DrawPass() {
     CTextureDevice* renderer = RenderDeviceObject();
     CTransformPipeline* device = ScenePipeline();
     std::uint32_t now = gameapi::timeGetTime();
-    const float* view = device->Top(kStackView)->m;
+    const Matrix4* view = device->Top(kStackView);
     CountedListClearOriginal(FrameDeferredUnits());
     static const FrameList kCleared[] = {FrameList::Visible54,   FrameList::VisibleOther, FrameList::Visible5D,
                                          FrameList::VisibleUnits, FrameList::Visible52,   FrameList::Shadow54,
@@ -538,22 +536,22 @@ int CWorldClient::DrawPass() {
         SortByModel(FrameList::ShadowOther, renderer);
         SortByModel(FrameList::Shadow5D, renderer);
         SortByModel(FrameList::Shadow52, renderer);
-        float matrix[16] = {};
-        matrix[15] = 1.0f;
-        matrix[10] = 1.0f;
-        matrix[5] = 1.0f;
-        matrix[0] = 1.0f;
-        float sun[3];
-        QuaternionAxisZ(&camera::TheCamera()->localRotation_, nullptr, sun);
+        Matrix4 matrix = {};
+        matrix.m[15] = 1.0f;
+        matrix.m[10] = 1.0f;
+        matrix.m[5] = 1.0f;
+        matrix.m[0] = 1.0f;
+        Vector3 sun;
+        QuaternionAxisZ(&camera::TheCamera()->localRotation_, nullptr, &sun);
         const float scale = ShadowLength();
-        volatile float product = sun[0] * scale;
-        matrix[3] = product;
-        product = sun[1] * scale;
-        matrix[7] = product;
-        product = sun[2] * scale;
-        matrix[11] = product;
-        PushSceneMatrixOriginal(device, nullptr, matrix, kStackScene2);
-        PushSceneMatrixOriginal(device, nullptr, matrix, kStackScene1);
+        volatile float product = sun.x * scale;
+        matrix.m[3] = product;
+        product = sun.y * scale;
+        matrix.m[7] = product;
+        product = sun.z * scale;
+        matrix.m[11] = product;
+        PushSceneMatrixOriginal(device, nullptr, matrix.m, kStackScene2);
+        PushSceneMatrixOriginal(device, nullptr, matrix.m, kStackScene1);
         ApplyStateBlock(renderer, StateBlockAlpha());
         SetRenderState(renderer, 15, 0);
         SetRenderState(renderer, 14, 0);
@@ -583,19 +581,19 @@ int CWorldClient::DrawPass() {
             auto* object = static_cast<CMapObject*>(ManagerFindObject(manager, nullptr, id));
             if (object) {
                 if (ObjectSlots(object)->IsDead() == 0) {
-                    float point[3];
-                    std::memcpy(point, &object->positionX, sizeof(point));
+                    Vector3 point;
+                    std::memcpy(&point, &object->position, sizeof(point));
                     if (void* part = ObjectFindPartOriginal(object, nullptr, MarkerPartName())) {
-                        float scratch[3];
-                        const float* at = ObjectPartPositionOriginal(object, nullptr, scratch, part);
-                        std::memcpy(point, at, sizeof(point));
-                        point[2] = Reload(object->positionZ);
+                        Vector3 scratch;
+                        const float* at = ObjectPartPositionOriginal(object, nullptr, &scratch.x, part);
+                        std::memcpy(&point, at, sizeof(point));
+                        point.z = Reload(object->position.z);
                     }
                     const Quaternion* orientation = &object->orientation;
                     Vector3 axisY, axisX;
                     QuaternionAxisY(orientation, nullptr, &axisY);
                     QuaternionAxisX(orientation, nullptr, &axisX);
-                    MarkerDraw(SceneContext(), nullptr, point, 0.5f, &axisX.x, &axisY.x);
+                    MarkerDraw(SceneContext(), nullptr, &point, 0.5f, &axisX, &axisY);
                 } else {
                     if (object->flags_ & 0x10) {
                         object->flags_ &= ~0x110u;

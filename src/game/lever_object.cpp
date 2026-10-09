@@ -163,9 +163,9 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
     std::uint8_t disabled;
     field->ReadDelta(&disabled, 1);
     BitStream* snapshot = delta::ReadSnapshot();
-    std::uint32_t position = snapshot->Position();
+    std::uint32_t readTo = snapshot->Position();
     std::uint32_t size = delta::ReadSnapshot()->Size();
-    complete &= position == size ? 1u : 0u;
+    complete &= readTo == size ? 1u : 0u;
     field->EndField();
     if (disabled) flags_ |= kDisabled;
     else flags_ &= ~kDisabled;
@@ -173,7 +173,7 @@ std::uint32_t Lever::ReadLeverNetState(int first) {
     if (first == 1) {
         const LeverRecord* record = LeverRecordOriginal(LeverTable(), nullptr, name);
         if (record && Differ(from, to))
-            sound::Manager()->Play3D(record->sound, 0, &positionX, kSoundNear, kSoundFar, 0, 0);
+            sound::Manager()->Play3D(record->sound, 0, &position.x, kSoundNear, kSoundFar, 0, 0);
     }
     return complete;
 }
