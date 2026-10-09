@@ -34,6 +34,19 @@ __declspec(naked) inline CEngineObject* __fastcall ItemManagerCreateItemOriginal
 __declspec(naked) inline void __fastcall PlayerGiveItemsOriginal(void* /*player*/, void*, void* /*items*/, int /*flag*/)
     EI_ORIGINAL(0x00665470)
 
+// The item database (007AF60C) lists the names of each kind into a CStringArray: 006AD2F0 weapons, 006AD380 armors,
+// 006AD410 quick items, 006AD260 the fourth kind (materials). The spell database (007AF604): 00689570 spells, 00689610
+// modifiers. All __thiscall, RET 4, no result.
+__declspec(naked) inline void __fastcall ItemDbListWeaponsOriginal(void* /*db*/, void*, mfc::CStringArray*) EI_ORIGINAL(0x006AD2F0)
+__declspec(naked) inline void __fastcall ItemDbListArmorsOriginal(void* /*db*/, void*, mfc::CStringArray*) EI_ORIGINAL(0x006AD380)
+__declspec(naked) inline void __fastcall ItemDbListQuickItemsOriginal(void* /*db*/, void*, mfc::CStringArray*)
+    EI_ORIGINAL(0x006AD410)
+__declspec(naked) inline void __fastcall ItemDbListFourthKindOriginal(void* /*db*/, void*, mfc::CStringArray*)
+    EI_ORIGINAL(0x006AD260)
+__declspec(naked) inline void __fastcall SpellDbListSpellsOriginal(void* /*db*/, void*, mfc::CStringArray*) EI_ORIGINAL(0x00689570)
+__declspec(naked) inline void __fastcall SpellDbListModifiersOriginal(void* /*db*/, void*, mfc::CStringArray*)
+    EI_ORIGINAL(0x00689610)
+
 // C3h. 00661700: party Reset(a, b) (RET 8, EAX not a result); 00661DB0: party AddItem(item, flag1, flag2) (RET 0xC; the
 // two flags are read as bytes; EAX is the item, or null).
 __declspec(naked) inline void __fastcall PartyResetOriginal(void* /*party*/, void*, int /*a*/, int /*b*/)

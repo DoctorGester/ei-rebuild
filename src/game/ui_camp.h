@@ -797,6 +797,14 @@ public:
     // the results. Returns true.
     bool DeconstructItem();
 
+    // 00612CF0 (slot 39; ui_camp_debug.cpp; only the vtable refers to it). A debug fill of the
+    // constructors' first lists: itemParts_[0] cleared (Clear(1, 0)) and given ten of each weapon,
+    // armour (names without "prototype") and quick item (names with "wand") instruction, a weapon
+    // and armour of each matching material (the material's +0x04 against the record's +0x10,
+    // _mbsicmp) and twenty of each "Material.<name>"; spellParts_[0] cleared and given ten of each
+    // "Rune" and "Prototype". Items come from the lists' item managers, unchecked.
+    void DebugFill();
+
     std::uint8_t unknown_148[0x164 - 0x148];
     CUiWindow* descPanel_;           // +0x164 the description panel (vtable 007404DC)
     std::uint8_t* hoveredItem_;      // +0x168 the item under the mouse (set by Draw)

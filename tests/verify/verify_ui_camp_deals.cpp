@@ -94,3 +94,17 @@ static bool __fastcall CampDeconstructItemVerify(CCampPages* self, void*) {
     return result;
 }
 EI_VERIFY(0x006129C0, CampDeconstructItemVerify, 0, s_unused);
+// 00612CF0 (ui_camp_debug.cpp): ours only (it clears and fills the constructors' first lists). Only
+// the camp's vtable refers to it; no scenario reaches it. Afterwards neither list holds a null entry.
+static void __fastcall CampDebugFillVerify(CCampPages* self) {
+    self->DebugFill();
+    bool ok = true;
+    for (void* list : {self->itemParts_[0], self->spellParts_[0]}) {
+        if (!list) continue;
+        auto* party = static_cast<CParty*>(list);
+        for (int i = 0; i < party->items_.size; ++i) ok = ok && party->items_.data[i] != nullptr;
+    }
+    ei::verify::Check("CCampPages::DebugFill", true, ok, "items %d spells %d", CountOf(self->itemParts_[0]),
+                      CountOf(self->spellParts_[0]));
+}
+EI_VERIFY(0x00612CF0, CampDebugFillVerify, 0, s_unused);
