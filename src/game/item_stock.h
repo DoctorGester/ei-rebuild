@@ -56,6 +56,75 @@ struct SpellRecipeVector {
     char* eos;
 };
 
+// STLport vector<string> (start, finish, end of storage).
+struct StockStringVector {
+    const stlp::string* start;
+    const stlp::string* finish;
+    const stlp::string* eos;
+    unsigned size() const { return static_cast<unsigned>(finish - start); }
+};
+
+// A spell recipe (kSpellRecipeSize bytes, inline in a SpellRecipeVector).
+struct SpellRecipe {
+    stlp::string spell;             // +0x00 the spell's name
+    StockStringVector required;     // +0x0C modifier names
+    StockStringVector optional;     // +0x18 modifier names
+    stlp::string repeated;          // +0x24 the modifier repeated while it fits
+    std::uint32_t classMask;        // +0x30 bit per ItemStock::classIndex
+};
+static_assert(offsetof(SpellRecipe, required) == 0x0C);
+static_assert(offsetof(SpellRecipe, repeated) == 0x24);
+static_assert(offsetof(SpellRecipe, classMask) == 0x30);
+static_assert(sizeof(SpellRecipe) == kSpellRecipeSize);
+
+// A pair of the recipe map (ItemStock::spellMap, hash_map<string, list<recipe*>>) and its node.
+struct StockRecipeEntry {
+    stlp::string name;              // +0x00
+    StockList recipes;              // +0x0C (its sentinel)
+};
+struct StockRecipeNode {
+    StockRecipeNode* next;          // +0x00
+    StockRecipeEntry entry;         // +0x04 (the list at +0x10)
+};
+static_assert(offsetof(StockRecipeNode, entry) == 0x04);
+static_assert(sizeof(StockRecipeEntry) == 0x10);
+
+// A pair of the modifier map (ItemStock::modifierMap, map<string, modifier*>; 0x10 bytes): the
+// key and the modifier record (itemdb::SpellModifierRecord).
+struct StockModifierEntry {
+    stlp::string key;
+    char* modifier;                 // +0x0C
+};
+static_assert(sizeof(StockModifierEntry) == 0x10);
+
+// The globals of the stock generation (the exe's data).
+namespace stock {
+// Scratch vectors: the prototypes taken (007C8680), the candidate materials of one prototype
+// (007C8650, pointers into the stock's material entries), the material entries taken (007C8640),
+// the spells (007C8670) and modifiers (007C8660) taken.
+struct CandidateVector {
+    StockMaterial** start;
+    StockMaterial** finish;
+    StockMaterial** eos;
+};
+inline StockPtrVector& TakenPrototypes() { return *reinterpret_cast<StockPtrVector*>(0x007C8680); }
+inline CandidateVector& Candidates() { return *reinterpret_cast<CandidateVector*>(0x007C8650); }
+inline StockMaterialVector& TakenMaterials() { return *reinterpret_cast<StockMaterialVector*>(0x007C8640); }
+inline StockPtrVector& TakenSpells() { return *reinterpret_cast<StockPtrVector*>(0x007C8670); }
+inline StockPtrVector& TakenModifiers() { return *reinterpret_cast<StockPtrVector*>(0x007C8660); }
+// The spell recipe vectors for weapons, armors and scrolls (FillSpellMaps' argument).
+inline void* WeaponSpellRecipes() { return reinterpret_cast<void*>(0x007C8568); }
+inline void* ArmorSpellRecipes() { return reinterpret_cast<void*>(0x007C855C); }
+inline void* ScrollSpellRecipes() { return reinterpret_cast<void*>(0x007C8550); }
+// The spell and modifier maps by name (STLport maps; their operator[] inserts a null record).
+inline void* SpellsByName() { return reinterpret_cast<void*>(0x007C851C); }
+inline void* ModifiersByName() { return reinterpret_cast<void*>(0x007C853C); }
+// The material draw's factors of the prototype's price (read from the exe as the original does):
+// 00743D78 (a seventh) and 0073BAD4 (0.2).
+inline float SeventhFactor() { return *reinterpret_cast<const float*>(0x00743D78); }
+inline float FifthFactor() { return *reinterpret_cast<const float*>(0x0073BAD4); }
+} // namespace stock
+
 struct ItemStock {
     void* context;                  // +0x00 the template's party object: slot 16 the item constructor,
                                     //   slot 18 the item manager

@@ -17,6 +17,9 @@ namespace stlp {
 // The game's __node_alloc: 16 free lists for sizes up to 128 bytes, operator new above that.
 void* allocate(std::size_t bytes);                  // 00405950
 void deallocate(void* p, std::size_t bytes);        // 00404D70
+// 0079B228: the node allocator's free list of 12-byte nodes (list nodes), which some code pushes
+// to inline.
+inline void*& SmallNodeFreeList() { return *reinterpret_cast<void**>(0x0079B228); }
 
 // basic_string<char>: three pointers, no small-string buffer. 12 bytes.
 class string {

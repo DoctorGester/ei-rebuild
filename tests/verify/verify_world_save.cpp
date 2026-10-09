@@ -177,14 +177,14 @@ EI_VERIFY(0x00589CA0, LoadSharedObjectVerify, 5, s_originalLoadShared);
 // object per element of the source list.
 static void __fastcall AddSharedObjectVerify(CWorldServer* self, void*, int id, int unused, std::uint32_t value,
                                              void* objects) {
-    auto& list = *reinterpret_cast<mfc::CTypedPtrList<void>*>(reinterpret_cast<std::uint8_t*>(self) + 0x12E60);
+    SharedObjectList& list = self->sharedObjects_;
     int before = list.count;
     int sourceCount = static_cast<mfc::CTypedPtrList<CEngineObject>*>(objects)->count;
     self->AddSharedObject(id, unused, value, objects);
-    auto* head = reinterpret_cast<SharedEntry*>(reinterpret_cast<std::uint8_t*>(list.head) + 8);
-    bool ok = list.count == before + 1 && head->id == id && head->value == value && head->size == sourceCount;
+    const SharedObject& head = list.head->data;
+    bool ok = list.count == before + 1 && head.objectId == id && head.unknown_08 == value && head.objects.size == sourceCount;
     ei::verify::Check("CWorldServer::AddSharedObject", true, ok, "id %d player %d, %d objects, list %d -> %d", id,
-                      head->player, head->size, before, list.count);
+                      head.player, head.objects.size, before, list.count);
 }
 EI_VERIFY(0x005947E0, AddSharedObjectVerify, 0, s_unused);
 

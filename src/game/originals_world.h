@@ -128,3 +128,5 @@ __declspec(naked) inline void __fastcall ClientRefreshObjectOriginal(void* /*wor
 __declspec(naked) inline void __fastcall ClientQueueObjectOriginal(void* /*world*/, void*, CEngineObject* /*object*/)
     EI_ORIGINAL(0x0056D7E0)
 inline void* ClientWorldObject() { return reinterpret_cast<void*>(0x007AF5B8); }
+// The local player's client glue object (007AFEA5; its thiscall methods 00578xxx do not read it).
+inline void* ClientGlueObject() { return reinterpret_cast<void*>(0x007AFEA5); }

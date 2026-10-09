@@ -46,9 +46,18 @@ public:
     void* converter_;           // +0x4C 2DintMMX's graphics processor (pixel conversions)
     std::uint8_t unknown_50[4];
     void* d3dDevice_;           // +0x54 IDirect3DDevice7*
-    std::uint8_t unknown_58[0xAC - 0x58];
+    std::uint8_t unknown_58[0x60 - 0x58];
+    std::uint32_t zEnable_;     // +0x60 the z-buffer setting render state 7 goes back to (00569E40)
+    std::uint8_t unknown_64[0xAC - 0x64];
     CTransformPipeline* pipeline_;   // +0xAC the scene renderer's pipeline (model.h)
+    std::uint8_t unknown_B0[0x158 - 0xB0];
+    int unknown_158;            // +0x158 cleared around the sky and hit point draws (00569E40), else 1
 };
+static_assert(offsetof(CTextureDevice, zEnable_) == 0x60);
+static_assert(offsetof(CTextureDevice, unknown_158) == 0x158);
+
+// The renderer's device object (the global pointer at 007AF080).
+inline CTextureDevice* RenderDeviceObject() { return *reinterpret_cast<CTextureDevice* const*>(0x007AF080); }
 static_assert(offsetof(CTextureDevice, ddraw_) == 0x0C);
 static_assert(offsetof(CTextureDevice, converter_) == 0x4C);
 static_assert(offsetof(CTextureDevice, primary_) == 0x14);

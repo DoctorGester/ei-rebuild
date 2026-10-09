@@ -18,12 +18,17 @@
 // that throw ends the game.
 #include "ui.h"
 
+#include "base_manager.h"
 #include "dx_surface.h"
+#include "game_strings.h"
+#include "texture.h"
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+
+#include <windows.h>
+#include <ddraw.h>
 
 #include <cstdint>
 #include <cstring>
@@ -32,183 +37,161 @@
 
 namespace {
 
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
+constexpr unsigned long kColourFillWait = DDBLT_COLORFILL | DDBLT_WAIT;   // 0x01000400
+
+IDirectDrawSurface7* DirectDrawSurfaceOf(const CDXSurface* holder) {
+    return static_cast<IDirectDrawSurface7*>(holder->surface);
 }
 
-template <typename... Args>
-long ComCall(void* object, int slot, Args... args) {
-    return reinterpret_cast<long(__stdcall*)(void*, Args...)>((*static_cast<void***>(object))[slot])(object, args...);
+// The surface's description: from its game-owned memory in the switch-over (DirectPixels: window
+// and picture holders alike), else GetSurfaceDesc (the result in the holder's result, reported).
+// `desc` must be zeroed with its size set.
+void Describe(CDXSurface* holder, DDSURFACEDESC2* desc) {
+    if (DirectPixels(holder, reinterpret_cast<std::uint32_t*>(desc))) return;
+    long hr = DirectDrawSurfaceOf(holder)->GetSurfaceDesc(desc);
+    holder->result = hr;
+    if (hr != 0) FatalDirectX(hr, game::CantGetSurfaceDescriptionText());
 }
 
-constexpr int kBlt = 5, kGetSurfaceDesc = 22;              // IDirectDrawSurface7
-constexpr unsigned long kColourFillWait = 0x01000400;      // DDBLT_COLORFILL | DDBLT_WAIT
+// height * pitch of the surface's description.
+std::uint32_t SurfaceBytes(const DDSURFACEDESC2& desc) {
+    return desc.dwHeight * static_cast<std::uint32_t>(desc.lPitch);
+}
 
-CRITICAL_SECTION* DeviceLock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
-std::uint32_t& SurfaceBytesTotal() { return *reinterpret_cast<std::uint32_t*>(0x007C7E78); }
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
+// Puts `made` (counted once more, may be null) into the surface's holder and drops the previous
+// one's reference through 004E6BA0's inlined body (the deleting destructor at zero).
+void ReplaceHolder(CUiSurface* self, CDXSurface* made) {
+    CDXSurface* previous = self->holder_;
+    self->holder_ = made;
+    if (made) ++made->refCount;
+    if (previous) previous->Release();
+}
 
-__declspec(naked) void* __cdecl GameNew(unsigned) EI_ORIGINAL(0x007005AF)
-__declspec(naked) char* __fastcall ConstructHolder(void*, void*, void*, int, int) EI_ORIGINAL(0x004EF7B0)
-
-// 005F7CA0 (thiscall on the interface, RET 4).
-struct ScaleAt {
-    int ScaleRectToScreen(int* rect);
-};
-__declspec(naked) int ScaleAt::ScaleRectToScreen(int*) EI_ORIGINAL(0x005F7CA0)
-
-// The common tail: +0x24..+0x30 hold the layout rectangle, +0x04 the interface, +0x0C the format.
-char* Finish(char* self, bool scale) {
-    int* rect = &At<int>(self, 0x24);
-    char* ui = At<char*>(self, 4);
-    if (scale) reinterpret_cast<ScaleAt*>(ui)->ScaleRectToScreen(rect);
-    At<int>(self, 0x14) = rect[2] - rect[0];
-    At<int>(self, 0x18) = rect[3] - rect[1];
-    void* memory = GameNew(0x20);
-    char* made = memory ? ConstructHolder(memory, nullptr, At<void*>(At<char*>(self, 4), 8), At<int>(self, 0x14),
-                                          At<int>(self, 0x18))
-                        : nullptr;
-    char* previous = At<char*>(self, 0x10);
-    At<char*>(self, 0x10) = made;
-    if (made) ++At<int>(made, 4);
-    if (previous && --At<int>(previous, 4) == 0) {
-        using DeleteFn = void(__thiscall*)(void*, int);
-        reinterpret_cast<DeleteFn>(**reinterpret_cast<void***>(previous))(previous, 1);
-    }
-    char* holder = At<char*>(self, 0x10);
-    std::uint32_t desc[0x1F] = {};
-    desc[0] = 0x7C;
-    if (!DirectPixels(holder, desc)) {
-        long hr = ComCall(At<void*>(holder, 0x10), kGetSurfaceDesc, static_cast<void*>(desc));
-        At<long>(holder, 8) = hr;
-        if (hr != 0) FatalDirectX(hr, Text(0x0078E6C4));   // "Can't get surface description"
-    }
-    SurfaceBytesTotal() += desc[2] * desc[4];   // height * pitch
+// The common tail: rect_ holds the layout rectangle, interface_ the interface, flags_ the format.
+CUiSurface* Finish(CUiSurface* self, bool scale) {
+    RECT* rect = &self->rect_;
+    if (scale) self->interface_->CallScaleRectToScreen(rect);
+    self->width_ = rect->right - rect->left;
+    self->height_ = rect->bottom - rect->top;
+    void* memory = gamecrt::operator_new(sizeof(CDXSurface));
+    CDXSurface* made = memory ? reinterpret_cast<CDXSurface*>(DXSurfaceConstructOriginal(
+                                    memory, nullptr, self->interface_->renderer_, self->width_, self->height_))
+                              : nullptr;
+    ReplaceHolder(self, made);
+    CDXSurface* holder = self->holder_;
+    DDSURFACEDESC2 desc = {};
+    desc.dwSize = sizeof(desc);   // 0x7C
+    Describe(holder, &desc);
+    UiSurfaceBytes() += SurfaceBytes(desc);
     if (!ClientBitmap(holder)) {
-        std::uint32_t fx[0x19] = {};   // DDBLTFX: size, fill colour (+0x50) 0
-        fx[0] = 100;
-        gameapi::EnterCriticalSection(DeviceLock());
-        ComCall(At<void*>(holder, 0x10), kBlt, static_cast<void*>(nullptr), static_cast<void*>(nullptr),
-                static_cast<void*>(nullptr), kColourFillWait, static_cast<void*>(fx));
-        gameapi::LeaveCriticalSection(DeviceLock());
+        DDBLTFX fx = {};   // fill colour 0
+        fx.dwSize = sizeof(fx);   // 100
+        gameapi::EnterCriticalSection(GameDeviceLock());
+        DirectDrawSurfaceOf(holder)->Blt(nullptr, nullptr, nullptr, kColourFillWait, &fx);
+        gameapi::LeaveCriticalSection(GameDeviceLock());
     }
-    At<int>(self, 0x1C) = 0;
-    At<std::uint32_t>(self, 0x0C) |= 4;
-    At<int>(self, 0x20) = 0;
+    self->kept_ = nullptr;
+    self->flags_ |= CUiSurface::kShown;
+    self->keptSize_ = 0;
     return self;
 }
 
-void Begin(char* self, void* ui, int format) {
-    At<void*>(self, 0x10) = nullptr;
-    At<int>(self, 0x0C) = format;
-    At<std::uintptr_t>(self, 0) = 0x00740F28;
-    At<int>(self, 0x34) = 0;
-    At<void*>(self, 4) = ui;
+void Begin(CUiSurface* self, CInterface3D* ui, int format) {
+    self->holder_ = nullptr;
+    self->flags_ = static_cast<std::uint32_t>(format);
+    self->vtable_ = reinterpret_cast<void*>(CUiSurface::kVtableAddress);
+    self->unknown_34 = 0;
+    self->interface_ = ui;
 }
 
-} // namespace
-
-namespace {
-
-// The surface's description: from its game-owned memory in the switch-over (DirectPixels: window
-// and picture holders alike), else GetSurfaceDesc (the result in the holder's +8, reported).
-void Describe(char* holder, std::uint32_t* desc) {
-    std::memset(desc, 0, 0x7C);
-    desc[0] = 0x7C;
-    if (DirectPixels(holder, desc)) return;
-    long hr = ComCall(At<void*>(holder, 0x10), kGetSurfaceDesc, static_cast<void*>(desc));
-    At<long>(holder, 8) = hr;
-    if (hr != 0) FatalDirectX(hr, Text(0x0078E6C4));   // "Can't get surface description"
-}
-
-void ReleaseHolderReference(char* holder) {
-    if (holder && --At<int>(holder, 4) == 0) {
-        using DeleteFn = void(__thiscall*)(void*, int);
-        reinterpret_cast<DeleteFn>(**reinterpret_cast<void***>(holder))(holder, 1);
-    }
-}
-
-void __fastcall DropHolder(char* a0) { SurfaceHolderReleaseOriginal((void*)a0); }
+CUiSurface* AsSurface(char* self) { return reinterpret_cast<CUiSurface*>(self); }
 
 } // namespace
 
 // 005FD120 (thiscall). The destructor body (CUiSurface::ReleaseContents): frees the kept bytes
 // (total 007C7E74), takes the surface's height * pitch off 007C7E78, drops the holder and empties
 // the screen rectangle.
-void __fastcall UiSurfaceRelease(char* self) {
-    At<std::uintptr_t>(self, 0) = 0x00740F28;
-    if (void* kept = At<void*>(self, 0x1C)) {
+void __fastcall UiSurfaceRelease(char* raw) {
+    CUiSurface* self = AsSurface(raw);
+    self->vtable_ = reinterpret_cast<void*>(CUiSurface::kVtableAddress);
+    if (std::uint8_t* kept = self->kept_) {
         gamecrt::operator_delete(kept);
-        At<void*>(self, 0x1C) = nullptr;
-        *reinterpret_cast<std::uint32_t*>(0x007C7E74) -= At<std::uint32_t>(self, 0x20);
+        self->kept_ = nullptr;
+        UiSurfaceKeptBytes() -= self->keptSize_;
     }
-    if (char* holder = At<char*>(self, 0x10)) {
-        std::uint32_t desc[0x1F];
-        Describe(holder, desc);
-        SurfaceBytesTotal() -= desc[2] * desc[4];   // height * pitch
+    if (CDXSurface* holder = self->holder_) {
+        DDSURFACEDESC2 desc = {};
+        desc.dwSize = sizeof(desc);
+        Describe(holder, &desc);
+        UiSurfaceBytes() -= SurfaceBytes(desc);
     }
-    char* holder = At<char*>(self, 0x10);
-    At<char*>(self, 0x10) = nullptr;
-    ReleaseHolderReference(holder);
-    gameapi::SetRectEmpty(&At<RECT>(self, 0x24));
+    CDXSurface* holder = self->holder_;
+    self->holder_ = nullptr;
+    if (holder) holder->Release();
+    gameapi::SetRectEmpty(&self->rect_);
 }
 EI_REPLACE(0x005FD120, UiSurfaceRelease);
 
 // 005FCF80 (thiscall: interface, picture name by value; RET 8). A window showing the picture
-// "<name>.mmp" from the texture manager (007AF744 slots 19 / 20: find, release), through a picture
-// holder (004EFC60); its size is the picture's, the screen rectangle (0, 0, width, height), flag 1.
-char* __fastcall UiSurfaceFromPicture(char* self, void*, void* ui, mfc::CString name) {
-    At<void*>(self, 0x10) = nullptr;
-    At<std::uintptr_t>(self, 0) = 0x00740F28;
-    At<int>(self, 0x34) = 0;
-    At<void*>(self, 4) = ui;
-    void* manager = *reinterpret_cast<void* const*>(0x007AF744);
+// "<name>.mmp" from the texture manager (007AF744 slots 19 / 20: GetFile, CloseFile), through a
+// picture holder (004EFC60); its size is the picture's, the screen rectangle (0, 0, width, height),
+// flag 1.
+char* __fastcall UiSurfaceFromPicture(char* raw, void*, void* ui, mfc::CString name) {
+    CUiSurface* self = AsSurface(raw);
+    self->holder_ = nullptr;
+    self->vtable_ = reinterpret_cast<void*>(CUiSurface::kVtableAddress);
+    self->unknown_34 = 0;
+    self->interface_ = static_cast<CInterface3D*>(ui);
+    CBaseManager* manager = static_cast<CBaseManager*>(UiTextureManager());
     void* picture;
     {
-        mfc::CString file = name + Text(0x0078FB4C);   // ".mmp"
-        picture = ei::VCall<void*>(manager, 19, *reinterpret_cast<const char* const*>(&file), 0);
+        mfc::CString file = name + game::MmpExtensionText();   // ".mmp"
+        picture = manager->GetFile(*reinterpret_cast<const char* const*>(&file), nullptr);
     }
-    void* memory = GameNew(0x20);
-    char* made = memory ? static_cast<char*>(DXSurfaceFromPictureOriginal(memory, nullptr, At<void*>(At<char*>(self, 4), 8),
-                                                                          picture, 0))
-                        : nullptr;
-    char* previous = At<char*>(self, 0x10);
-    At<char*>(self, 0x10) = made;
-    if (made) ++At<int>(made, 4);
-    if (previous) DropHolder(previous);
-    ei::VCall<void>(manager, 20, picture);
-    char* holder = At<char*>(self, 0x10);
-    At<int>(self, 0x14) = At<int>(holder, 0x14);
-    At<int>(self, 0x18) = At<int>(holder, 0x18);
-    std::uint32_t desc[0x1F];
-    Describe(holder, desc);
-    SurfaceBytesTotal() += desc[2] * desc[4];   // height * pitch
-    gameapi::SetRect(&At<RECT>(self, 0x24), 0, 0, At<int>(At<char*>(self, 0x10), 0x14),
-                     At<int>(At<char*>(self, 0x10), 0x18));
-    At<int>(self, 0x1C) = 0;
-    At<int>(self, 0x20) = 0;
-    At<std::uint32_t>(self, 0x0C) |= 1;
-    return self;
+    void* memory = gamecrt::operator_new(sizeof(CDXSurface));
+    CDXSurface* made = memory ? static_cast<CDXSurface*>(DXSurfaceFromPictureOriginal(
+                                    memory, nullptr, self->interface_->renderer_, picture, 0))
+                              : nullptr;
+    CDXSurface* previous = self->holder_;
+    self->holder_ = made;
+    if (made) ++made->refCount;
+    if (previous) SurfaceHolderReleaseOriginal(previous);
+    manager->CloseFile(picture);
+    CDXSurface* holder = self->holder_;
+    self->width_ = holder->width;
+    self->height_ = holder->height;
+    DDSURFACEDESC2 desc = {};
+    desc.dwSize = sizeof(desc);
+    Describe(holder, &desc);
+    UiSurfaceBytes() += SurfaceBytes(desc);
+    gameapi::SetRect(&self->rect_, 0, 0, self->holder_->width, self->holder_->height);
+    self->kept_ = nullptr;
+    self->keptSize_ = 0;
+    self->flags_ |= CUiSurface::kFromPicture;
+    return raw;
 }
 EI_REPLACE(0x005FCF80, UiSurfaceFromPicture);
 
 // 005FCC00.
-char* __fastcall UiSurfaceConstruct(char* self, void*, void* ui, int left, int top, int right, int bottom, int format,
+char* __fastcall UiSurfaceConstruct(char* raw, void*, void* ui, int left, int top, int right, int bottom, int format,
                                     char scale) {
-    Begin(self, ui, format);
-    At<int>(self, 0x24) = left;
-    At<int>(self, 0x28) = top;
-    At<int>(self, 0x2C) = right;
-    At<int>(self, 0x30) = bottom;
-    return Finish(self, scale != 0);
+    CUiSurface* self = AsSurface(raw);
+    Begin(self, static_cast<CInterface3D*>(ui), format);
+    self->rect_.left = left;
+    self->rect_.top = top;
+    self->rect_.right = right;
+    self->rect_.bottom = bottom;
+    Finish(self, scale != 0);
+    return raw;
 }
 EI_REPLACE(0x005FCC00, UiSurfaceConstruct);
 
 // 005FCDD0.
-char* __fastcall UiSurfaceConstructRect(char* self, void*, void* ui, const int* rect, int format) {
-    Begin(self, ui, format);
-    std::memcpy(&At<int>(self, 0x24), rect, 16);
-    return Finish(self, true);
+char* __fastcall UiSurfaceConstructRect(char* raw, void*, void* ui, const int* rect, int format) {
+    CUiSurface* self = AsSurface(raw);
+    Begin(self, static_cast<CInterface3D*>(ui), format);
+    std::memcpy(&self->rect_, rect, sizeof(RECT));
+    Finish(self, true);
+    return raw;
 }
 EI_REPLACE(0x005FCDD0, UiSurfaceConstructRect);

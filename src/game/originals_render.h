@@ -22,6 +22,8 @@ __declspec(naked) inline char* __fastcall ConstructBone(void*) EI_ORIGINAL(0x005
 // 00500960: the display / renderer object (the global at 007AF060; plain RET, no arguments).
 // 00468F70: 16-byte aligned scratch allocation of `count` 16-byte records (ECX, plain RET).
 __declspec(naked) inline void* __cdecl DisplayObject() EI_ORIGINAL(0x00500960)
+// The same object without the call: the scene context the draw slots take (007AF060).
+inline void* SceneContext() { return reinterpret_cast<void*>(0x007AF060); }
 __declspec(naked) inline char* __fastcall AllocAligned16(int /*count*/) EI_ORIGINAL(0x00468F70)
 // 004ECB50: 32-byte aligned allocation of `count` bytes (ECX, plain RET).
 __declspec(naked) inline char* __fastcall AllocAligned32Original(int /*count*/) EI_ORIGINAL(0x004ECB50)

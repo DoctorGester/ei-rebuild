@@ -36,7 +36,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- A-H .. A-H13 done. A-H15 done (29 + 11 library; next: options / keyboard screens 00651940, 00651350, 00651600, 00652200, 00651D70, 006524A0; widgets 0065B8B0, 0065D150, 0065C610; party 006625B0, 00662AC0; the client handlers missing from functions.csv, objects.md). A-H14 done (54 + 16 library; merged, regressions in X23) (sound.md next candidates; CPlayer 00664BF0..00665D20, save screen, message handlers).
+- A-H .. A-H15 done (the options/keyboard screens and widgets were done as DR-H16). A-H16 taken (party 006625B0 / 00662AC0, 00658E10, 006AD900, then the largest in 0x640000-0x6C0000).
 
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
@@ -46,22 +46,21 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Pending work
 
-The four porting batches (A-I16, A-H15, A-S9, A-U7) are merged (2026-10-09, 140 runs pass). Left: build, fix and merge the drafts below in this order: DR-C1, DR-C4, DR-C5 (DR-C2, DR-C3, DR-H16 are merged). Then republish the dashboard and remove merged worktrees.
+The four porting batches (A-I16, A-H15, A-S9, A-U7) are merged (2026-10-09, 140 runs pass). Left: build, fix and merge the drafts below only DR-C5 is left (the rest and net_state.cpp's last VCalls are merged). Then republish the dashboard and remove merged worktrees.
 
 ## Draft passes (no build, 2026-10-07)
 
-The PC can't build or run the suite until a reboot (process-zombie leak, memory notes). These tickets write code on their own branches without building and leave a notes file docs/notes/drafts/<ticket>.md saying what is drafted, what is unverified and where they stopped. A later worker builds, fixes and finishes each one.
-- DR-C1 (finishing 2026-10-09; drafted: world_units.cpp and world_client_maps.cpp clean, world_game.cpp half (At<> 155 -> 80; stopped at the network sessions +0x25A0..+0x261C); head 86931a0, branch draft-dr-c1 in worktree agent-a9b8a6df2bce6075b). Overlaps DR-C2: both named CMapObject slot 29, CWorld 18/24, CUnitController 29 and 41-43; reconcile when merging (DR-C2 first, then take its names): world_units.cpp done, world_client_maps.cpp partly, head 064e0d0; part 2 taken for the rest; branch draft-dr-c1 in worktree agent-a9b8a6df2bce6075b). Overlaps DR-C2: both named CMapObject slot 29 (IsDynamicSlot vs IsSynchronised), CWorld 18/24 and CUnitController 29; reconcile when merging (DR-C2 first, then take its names): cleanup draft of world_client_maps.cpp, world_units.cpp, world_game.cpp (At<>/Field<> 470, VCall 106 between them).
+Drafts written without building (2026-10-07), each on its own branch with a notes file docs/notes/drafts/<ticket>.md saying what is drafted, what is unverified and where it stopped; a later worker builds, fixes and merges it.
+- DR-C1 merged 2026-10-09 (world_units.cpp, world_client_maps.cpp clean; world_game.cpp left: World()+0x5C pending connection source (needs a class; app.cpp shares the forwarder), the __asm helpers, TextOpsAt).
 - DR-C2 merged 2026-10-09 (102 slots named; 16 placeholders left elsewhere).
 - DR-C3 merged 2026-10-09 (net_state.cpp's last 14 VCalls can now use DR-C2's names).
-- DR-C5 (drafted: ui_surface_create.cpp clean, ui_hud.cpp 6 VCalls left (map object slots 38/39/42 need DR-C2's names with int returns), world_client_draw.cpp 4 VCalls left; head 38582dd; written against DR-C1's CWorldClient names, needs `CCamera* camera_` at CWorldClient +0x210 after DR-C1 (notes); branch draft-dr-c5 in worktree agent-abcd1eeb0aab855a0): cleanup draft of ui_hud.cpp, ui_surface_create.cpp, world_client_draw.cpp.
-- DR-C4 (finishing 2026-10-09; drafted: 3 files clean, head 976571a; needs DR-C2 first with signatures CWorld::PlayerList()->CEngineObject* (20), ItemFactory()->CEngineObject* (18), CUnitController::RefreshVitals(char) (19), CParty::ItemConstructor()->CItemConstructor* (16); 13 server handlers missing from functions.csv listed in its notes (0066F890 login, 0066FA90, 00670CE0, 0066FAC0, 006708D0, 00670820, 00670960, 006709D0, 00670810, 00670A40, 00670A90, 0066FB70, 00670B20); branch draft-dr-c4 in worktree agent-a116a5a6e1c9b6cb7): cleanup draft of world_savefile.cpp, world_save.cpp, item_stock.cpp (VCall 59 between them, plus their At<>/Field<>); then the server message handler table, looking for handlers missing from functions.csv as DR-H16 found on the client side.
+- DR-C5 (finishing 2026-10-09; drafted: ui_surface_create.cpp clean, ui_hud.cpp 6 VCalls left (map object slots 38/39/42 need DR-C2's names with int returns), world_client_draw.cpp 4 VCalls left; head 38582dd; written against DR-C1's CWorldClient names, needs `CCamera* camera_` at CWorldClient +0x210 after DR-C1 (notes); branch draft-dr-c5 in worktree agent-abcd1eeb0aab855a0): cleanup draft of ui_hud.cpp, ui_surface_create.cpp, world_client_draw.cpp.
+- DR-C4 merged 2026-10-09 (3 files clean; 13 server handlers in functions.csv). Open: 007C8778 QuestItems vs loot table name; stlp::SmallNodeFreeList and camera.h NodeFreeList are the same address.
 - DR-H16 merged 2026-10-09. Apply 006524A0 and the edit field 0065C610 have no scenario. function_sizes.inc needs a real regeneration once the Ghidra database is whole (it reports cut-short bodies, e.g. 0040D710 555 -> 60).
 
 ## Verify checks
 
 
-- X24 note: with the Windows session locked, 16 parallel runs give random D3D11 texture failures, C++ exceptions (E06D7363) and step-0 hangs; 6 at once is clean (132 runs ALL PASS at 7b1ec35). Use --jobs 6 while locked; after hours locked even 6 fails (crashes, step-0 hangs), 3 is clean (X25, A-W7 was not the cause).
 
 - X23 (done 2026-10-07: title keys "zone "/"allod ", DeleteSave check via the game import, harness quit only from WinMain's loop; rebirth_flags / render_scene / render_movie_present crashes not traced to A-H14, re-run) A-H14 merge regressions (main 9d61b1d): magic_traps both (game did not exit 5 s after quit), script_fx both, ui_saveload / ui_saveload_delete both, rebirth_flags rebirth (crash E06D7363), render_scene vanilla (crash C0000005 in DDraw), render_movie_present rebirth (hang). Mismatches: CSaveLoadWindow::DeleteSave 2/2, SaveEntry::AllodTitle 34/34, SaveEntry::ZoneTitle 82/82.
 

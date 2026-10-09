@@ -186,7 +186,11 @@ public:
     float positionZ;                // +0x024
     std::uint8_t unknown_028[0x34 - 0x28];
     float orientation[4];           // +0x034 a quaternion
-    std::uint8_t unknown_044[0xA4 - 0x44];
+    std::uint8_t unknown_044[0x94 - 0x44];
+    // +0x094 the attached side object (type 0x46, taken by the 3D object's slot 19 00516D50: the
+    // figure / CObject3D side half; object3d_specific_slots.cpp, the screen pickers' slots 22 / 24).
+    CEngineObject* attached;
+    std::uint8_t unknown_098[0xA4 - 0x98];
     char* name;                     // +0x0A4 CString (the prototype name for units)
     std::uint8_t unknown_0A8[0xC4 - 0xA8];
     float scale[3];                 // +0x0C4
@@ -218,6 +222,7 @@ public:
 };
 static_assert(offsetof(CMapObject, positionX) == 0x1C);
 static_assert(offsetof(CMapObject, orientation) == 0x34);
+static_assert(offsetof(CMapObject, attached) == 0x94);
 static_assert(offsetof(CMapObject, name) == 0xA4);
 static_assert(offsetof(CMapObject, extent) == 0x144);
 static_assert(offsetof(CMapObject, scale) == 0xC4);
@@ -245,6 +250,7 @@ constexpr int kSetStunned = 46;           // 0xB8 (CUnit::SetFlag1000000 for uni
 
 struct Vector3;
 struct DamageInfo;   // spell.h
+struct UnitStats;    // unit.h
 struct LockKey;      // unit.h
 
 // The map objects' virtual slots past CEngineObject's, as callers reach them through the vtable
@@ -265,16 +271,21 @@ public:
     virtual void AttachObject() = 0;       // 19: 0050E890 (units 0052E870 AttachCompanion)
     virtual void CopyFigure() = 0;         // 20: CObject3D 005161E0
     virtual bool InvisibleSlot() = 0;   // 21 (0x54): 0050FA10 IsInvisible
-    virtual void DrawFigure() = 0;         // 22: CObject3D 00516460
-    virtual void DrawCollectDirty() = 0;   // 23: CObject3D 00516420
-    virtual void DrawFigureShadow() = 0;   // 24: CObject3D 00516490
+    // 22 / 23 / 24 (0x58 / 0x5C / 0x60, RET 4): draw the figure / draw it and collect its screen
+    // rectangle / draw its shadow with the scene context (CObject3D 00516460 / 00516420 / 00516490:
+    // the side half's slots 19 / 20; 1 without one).
+    virtual int DrawFigure(void* context) = 0;
+    virtual int DrawCollectDirty(void* context) = 0;
+    virtual int DrawFigureShadow(void* context) = 0;
     virtual void AdvanceTime() = 0;        // 25: (float time) 0050E410 empty; units 0052FC40
     virtual void LoadFigures() = 0;        // 26: CObject3D 00517500 (units 0052E910)
     virtual void RecomputeScale() = 0;     // 27: 0050F2D0 (units 00532A80)
     virtual void EffectsChanged() = 0;     // 28: 0050E420 empty; units 00532AB0
-    // 29 (AL): flags_ 0x20000 (0050E430); units, levers, traps, torches 1. False ones leave the
-    // server's map-object maps after the zone loads (SendFreshObjects). Best guess.
-    virtual void IsSynchronised() = 0;
+    // 29 (AL): flags_ 0x20000 (0050E430, bit 17 as 0 / 1); units (004467E0), levers, traps,
+    // torches 1. False ones leave the server's map-object maps after the zone loads
+    // (SendFreshObjects). The world server creates such objects only with its +0x11D set, the
+    // others with +0x11E (005927C0).
+    virtual bool IsSynchronised() = 0;
     // 30 (0x78): the scale becomes the base scale (+0x1AC; 0050E440, units 00532AA0). Returns the z
     // component's bits.
     virtual std::uint32_t ApplyBaseScale() = 0;
@@ -282,12 +293,17 @@ public:
     // objects ignore it, 0050E460).
     virtual void ReceiveHit(DamageInfo* hit, CEngineObject* attacker, CEngineObject* caster) = 0;
     virtual void StatsChanged() = 0;       // 32: 0050E970 PackVitals (units 0052EB50)
-    virtual void ScaleEffectChanged() = 0; // 33: 0050E960 (units 0052EB30)
+    // 33 (0x84, mapslot::kScaleEffectChanged): 0050E960; units 0052EB30 hand the argument to
+    // their controller's slot 19.
+    virtual void ScaleEffectChanged(int scaleEffect) = 0;
     // 34 (0x88): the prototype by name (units 0052EB70: their statistics; 0050E9B0 for others).
     virtual void TakePrototype(const char* prototype) = 0;
-    virtual void SetStats() = 0;           // 35: (stats) 0050E480 empty; units 00530A20 SetServerStats
+    // 35 (0x8C): 0050E480 empty; units 00530A20: a CUnitServer controller (class 0x3E) copies the
+    // statistics (00552F40, CUnitServer::SetStats).
+    virtual void SetStats(const UnitStats* stats) = 0;
     virtual void SetServerData() = 0;      // 36: 0050F050
-    virtual void UpdateSizeClasses() = 0;  // 37: 0050E490 empty; units 00530A50
+    // 37 (0x94): 0050E490 empty; units 00530A50, the controller's slot 23 (CUnitServer 00552FB0).
+    virtual void UpdateSizeClasses() = 0;
     virtual int IsUsable() = 0;            // 38: 0 (0050F0C0); traps 1, levers NeedsKey 0052BB00
     virtual int IsDirectUseBlocked() = 0;  // 39: 0 (0050F0D0); levers +0x260 (0052B2D0). Best guess
     virtual void KeyId() = 0;              // 40: -123 (0050F0E0); levers 0052BBC0
@@ -302,7 +318,7 @@ public:
     virtual Vector3* EyePoint(Vector3* out) = 0;        // 48 (0xC0): where the object sees from; returns `out`
     virtual void ReadNetState() = 0;       // 49: 0050EC30 (units 0052EF90)
     virtual void WriteNetState() = 0;      // 50: 0050EAF0 (units 0052EC70)
-    virtual void PlaceOnGround() = 0;      // 51: 0050F020 (units 0052F740)
+    virtual void PlaceOnGround(float offset) = 0;   // 51 (RET 4): 0050F020 (units 0052F740) sets +0x24 to the ground height at (+0x1C, +0x20) plus `offset`
     // 52 (0xD0): where the object is at world time `time` (units: along their path; other objects
     // ignore the time, GetPosition). Returns `out`.
     virtual Vector3* PositionAt(Vector3* out, int time) = 0;
@@ -321,9 +337,12 @@ public:
 // A map object's companion (CMapObjectServer / CMapObjectClientSpecific) as the base class calls it.
 class CMapObjectCompanion : public CEngineObject {
 public:
-    virtual void EffectsChanged();   // 13: client 005117D0, server 005106D0 (empty, RET 4)
+    virtual void EffectsChanged(int first);   // 13: client 005117D0, server 005106D0 (empty, RET 4)
     virtual void Unused14();         // 14: empty in both (client 005104B0, server 00515810)
     virtual int Query(int first, int second);   // 15: 005104C0 in both (0)
+    // 16: a hit of `damage` with the hit-kind bits `kind` (1, 2, 4). Server 005106F0 (empty, RET 8);
+    // client 005117F0: for a living, visible-flag (0x400000) object, 0056CE40 with the object's id.
+    virtual void Hit(int damage, int kind);
 };
 
 // A unit's server half (CUnit::controller, +0x240: CUnitServer, class 0x3E) as callers reach it

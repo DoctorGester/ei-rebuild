@@ -426,8 +426,8 @@ bool NearFloat(float expected, float actual, float absEps) {
 // The records added after `last` (nodes link backwards from head), oldest first.
 std::vector<const Platform*> RecordsAfter(const PlatformSet* set, const PlatformNode* last) {
     std::vector<const Platform*> records;
-    for (const PlatformNode* node = set->head; node && node != last; node = node->next)
-        records.insert(records.begin(), &node->platform);
+    for (const PlatformNode* node = set->list.head; node && node != last; node = node->next)
+        records.insert(records.begin(), &node->data);
     return records;
 }
 
@@ -470,11 +470,11 @@ static int __fastcall AddFaceVerify(PlatformSet* set, void*, const float* a, con
 EI_VERIFY(0x00560650, AddFaceVerify, 7, s_addFace);
 
 // 00560820: SUB ESP,0x13C (6 bytes).
-using AddBoxFn = void(__fastcall*)(PlatformSet*, void*, int, const std::uint8_t*, const float*, const float*);
+using AddBoxFn = void(__fastcall*)(PlatformSet*, void*, int, const FootprintPart*, const float*, const float*);
 static AddBoxFn s_addBox;
-static void __fastcall AddBoxVerify(PlatformSet* set, void*, int id, const std::uint8_t* item, const float* position,
+static void __fastcall AddBoxVerify(PlatformSet* set, void*, int id, const FootprintPart* item, const float* position,
                                     const float* rotation) {
-    PlatformNode* last = set->head;
+    PlatformNode* last = set->list.head;
     s_addBox(set, nullptr, id, item, position, rotation);
     std::vector<const Platform*> theirs = RecordsAfter(set, last);
     ScratchPlatforms scratch(set);
