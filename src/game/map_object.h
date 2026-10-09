@@ -348,6 +348,9 @@ public:
     // 16: a hit of `damage` with the hit-kind bits `kind` (1, 2, 4). Server 005106F0 (empty, RET 8);
     // client 005117F0: for a living, visible-flag (0x400000) object, 0056CE40 with the object's id.
     virtual void Hit(int damage, int kind);
+    // 17 (0x44): whether the object is dead (server 005156A0: hit points rounded to 16 bits <= 0;
+    // client 005104D0: the unit's hit points <= 0).
+    virtual int IsDead();
 };
 
 // A unit's server half (CUnit::controller, +0x240: CUnitServer, class 0x3E) as callers reach it
