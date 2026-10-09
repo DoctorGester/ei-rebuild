@@ -193,7 +193,7 @@ __declspec(naked) float __fastcall TimeAsFloat(const int* /*time*/) {
 CUnit* UnitOf(CUnitServer* c) { return c->unit; }
 AnimationSteps* Queue(CUnitServer* c) { return &c->queue; }
 int& QueueStart(CUnitServer* c) { return c->queue.extra; }
-AIPath* MotionOrder(CUnitServer* c) { return c->MotionPath(); }
+AIPath* MotionPathOf(CUnitServer* c) { return c->MotionPath(); }
 // The world server (ManagerContextOf) and an object's world (ObjectWorld).
 CWorldServer* ServerOf(CUnitServer* c) { return static_cast<CWorldServer*>(ManagerContextOf(c)); }
 int WorldTime(void* world) { return static_cast<CWorld*>(world)->tick_; }
@@ -359,26 +359,26 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
 // the path continues or, at its end, the unit stops facing its way.
 void MotionOver(CUnitServer* c, CWorldServer* world) {
     CUnit* unit = UnitOf(c);
-    if (MotionOrder(c)->reached) {
-        std::uint8_t wasFlag = MotionOrder(c)->failed == 1;
-        PathClear(MotionOrder(c));
+    if (MotionPathOf(c)->reached) {
+        std::uint8_t wasFlag = MotionPathOf(c)->failed == 1;
+        PathClear(MotionPathOf(c));
         int time = WorldTime(ObjectWorld(c));
         float axis[3], back[3];
         QuaternionAxisY(&UnitOf(c)->orientation, nullptr, axis);
         float* facing = Negate(back, axis);
-        if (PathStart(MotionOrder(c), nullptr, &UnitOf(c)->positionX, facing, time)) UnitPathSpeeds(UnitOf(c));
+        if (PathStart(MotionPathOf(c), nullptr, &UnitOf(c)->positionX, facing, time)) UnitPathSpeeds(UnitOf(c));
         CtlSetStanding(c, nullptr, 0);
         CtlSetState(c, nullptr, 6);
         c->stoodBlocked = wasFlag;
         return;
     }
-    if (!MapContinuePath(world->AIMap(), nullptr, unit, MotionOrder(c))) {
-        PathClear(MotionOrder(c));
+    if (!MapContinuePath(world->AIMap(), nullptr, unit, MotionPathOf(c))) {
+        PathClear(MotionPathOf(c));
         int time = WorldTime(ObjectWorld(c));
         float axis[3], back[3];
         QuaternionAxisY(&UnitOf(c)->orientation, nullptr, axis);
         float* facing = Negate(back, axis);
-        if (PathStart(MotionOrder(c), nullptr, &UnitOf(c)->positionX, facing, time)) UnitPathSpeeds(UnitOf(c));
+        if (PathStart(MotionPathOf(c), nullptr, &UnitOf(c)->positionX, facing, time)) UnitPathSpeeds(UnitOf(c));
         CtlSetStanding(c, nullptr, 0);
         CtlSetState(c, nullptr, 6);
         c->stoodBlocked = 0;
@@ -399,15 +399,15 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const float* 
         SectorMapAdd(world->Sectors(), nullptr, UnitOf(c));
     }
     // The path's remaining cells (AIPath::cells, +0x78) emptied, as RemoveAll inlined.
-    MotionOrder(c)->cells.RemoveAll();
+    MotionPathOf(c)->cells.RemoveAll();
 
-    float range = MotionOrder(c)->goal.z;
+    float range = MotionPathOf(c)->goal.z;
     std::uint32_t saved = UnitOf(c)->unknown_43C;
     CWorldServer* context = ServerOf(c);
-    MotionOrder(c)->flag6E = UnitOf(c)->player ? 0 : 1;
+    MotionPathOf(c)->flag6E = UnitOf(c)->player ? 0 : 1;
     std::uint32_t current = UnitOf(c)->unknown_43C;
     UnitOf(c)->unknown_43C = saved;
-    bool found = MapFindPath(context->AIMap(), nullptr, UnitOf(c), &MotionOrder(c)->goal, MotionOrder(c), range, 0.0f);
+    bool found = MapFindPath(context->AIMap(), nullptr, UnitOf(c), &MotionPathOf(c)->goal, MotionPathOf(c), range, 0.0f);
     UnitOf(c)->unknown_43C = current;
     if (liftBlocker) {
         SectorMapRemove(world->Sectors(), nullptr, UnitOf(c));
@@ -421,7 +421,7 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const float* 
         PlaySteps(c, nullptr, CtlIdleAnimation(c));
         return;
     }
-    std::uint8_t wasFlag = MotionOrder(c)->failed == 1;
+    std::uint8_t wasFlag = MotionPathOf(c)->failed == 1;
     CtlStandStill(c);
     CtlSetState(c, nullptr, 6);
     c->stoodBlocked = wasFlag;
@@ -482,7 +482,7 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
     float direction[3];
     float speed;
     int cellX, cellY;
-    bool going = MotionSample(UnitOf(c)->Motion(), nullptr, world, MotionOrder(c), TimeAsFloat(&time), &turning,
+    bool going = MotionSample(UnitOf(c)->Motion(), nullptr, world, MotionPathOf(c), TimeAsFloat(&time), &turning,
                               position, direction, &speed, &cellX, &cellY);
     bool motionOver = !going;
     FromHalfCells(position);
@@ -524,7 +524,7 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
     // the world's +0x2804 and moveMode2's flag4 is clear) replans.
     bool replan = false;
     if (c->state == kStateIdle && MapOccluderAt(world->AIMap(), nullptr, position) &&
-        OrderOf(MotionOrder(c))->startTime < world->occluderReplanTime_ && c->moveMode2.flag4 == 0) {
+        OrderOf(MotionPathOf(c))->startTime < world->occluderReplanTime_ && c->moveMode2.flag4 == 0) {
         blocked = kBlockedReplan;
         replan = true;
     }

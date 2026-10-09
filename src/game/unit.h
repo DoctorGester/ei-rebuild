@@ -334,7 +334,7 @@ public:
     // 0052E870. Slot 19: a companion of type 0x48 becomes the controller (the old one is
     // detached and released; returns the new reference count); others go to the map object's
     // 0050E890.
-    std::uintptr_t AttachCompanion(CEngineObject* companion);
+    std::uintptr_t AttachCompanion(CEngineObject* attached);
     // 0052EB50. Slot 32 (statistics changed): the map object's 0050E970 (packs the server
     // object's vitals into +0x17C), then the controller's slot 22. Returns 1.
     int StatsChanged();
