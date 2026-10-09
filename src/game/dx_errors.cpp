@@ -3,9 +3,13 @@
 #include "dx_errors.h"
 
 #include "ei/hook.h"
+#include "lib/crt.h"
+#include "lib/gameapi.h"
 
 #include <algorithm>
+#include <cstdarg>
 #include <cstdint>
+#include <cstring>
 #include <iterator>
 
 namespace {
@@ -179,3 +183,87 @@ const char* __fastcall DirectXErrorText(long result) {
     return found != std::end(kErrorTexts) && found->result == key ? found->text : kUnrecognized;
 }
 EI_REPLACE(0x00480B80, DirectXErrorText);
+
+// ---- The thrown error object (00480250-004815D0) ---------------------------------------------------
+
+static_assert(sizeof(GameError) == 0xC);
+
+namespace {
+
+void* ErrorVtable() { return reinterpret_cast<void*>(0x0073CAB4); }
+void* ErrorBaseVtable() { return reinterpret_cast<void*>(0x0073CAB0); }
+// 00787EE4: "%s (0x%.8X) %s".
+const char* ResultFormat() { return reinterpret_cast<const char*>(0x00787EE4); }
+
+// The original's stack buffers (wvsprintf writes at most 1024 characters; the sprintf of 00480300
+// can run past its 1024 bytes, as in the original).
+constexpr std::size_t kBuffer = 0x400;
+
+// The message: an operator new copy of `text`.
+char* CopyMessage(const char* text) {
+    std::size_t size = std::strlen(text) + 1;
+    auto* message = static_cast<char*>(gamecrt::operator_new(size));
+    std::memcpy(message, text, size);
+    return message;
+}
+
+} // namespace
+
+GameError* GameErrorFormat(GameError* error, const char* format, va_list args) {
+    error->message = nullptr;
+    error->vtable = ErrorVtable();
+    char text[kBuffer];
+    gameapi::wvsprintfA(text, format, args);
+    error->message = CopyMessage(text);
+    return error;
+}
+
+GameError* __cdecl GameErrorConstruct(GameError* error, const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    GameErrorFormat(error, format, args);
+    va_end(args);
+    return error;
+}
+EI_REPLACE(0x00480250, GameErrorConstruct);
+
+GameError* GameErrorFormatResult(GameError* error, long result, const char* format, va_list args) {
+    error->message = nullptr;
+    error->vtable = ErrorVtable();
+    char text[kBuffer];
+    char full[kBuffer];
+    gameapi::wvsprintfA(text, format, args);
+    error->result = result;
+    gamecrt::sprintf(full, ResultFormat(), text, result, DirectXErrorText(result));
+    error->message = CopyMessage(full);
+    return error;
+}
+
+GameError* __cdecl GameErrorConstructResult(GameError* error, long result, const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    GameErrorFormatResult(error, result, format, args);
+    va_end(args);
+    return error;
+}
+EI_REPLACE(0x00480300, GameErrorConstructResult);
+
+void __fastcall GameErrorDestruct(GameError* error) {
+    error->vtable = ErrorBaseVtable();
+    if (error->message) gamecrt::operator_delete(error->message);
+}
+EI_REPLACE(0x004815D0, GameErrorDestruct);
+
+GameError* __fastcall GameErrorDeletingDestruct(GameError* error, void*, int flags) {
+    GameErrorDestruct(error);
+    if (flags & 1) gamecrt::operator_delete(error);
+    return error;
+}
+EI_REPLACE(0x004815B0, GameErrorDeletingDestruct);
+
+GameError* __fastcall GameErrorBaseDeletingDestruct(GameError* error, void*, int flags) {
+    GameErrorDestruct(error);
+    if (flags & 1) gamecrt::operator_delete(error);
+    return error;
+}
+EI_REPLACE(0x00481580, GameErrorBaseDeletingDestruct);

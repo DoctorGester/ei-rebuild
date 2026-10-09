@@ -12,6 +12,8 @@
 
 #include "../../src/game/effects.h"
 
+#include <cstring>
+
 namespace {
 
 using HeldNode = CParticleManager::HeldMap::Node;
@@ -84,8 +86,34 @@ void __fastcall ReleaseUnheldVerify(CParticleManager* self) {
                       "held %d -> %d, %d with one reference", held, after, single);
 }
 
+// CParticleSource's slots 11 / 12 (MOV EAX,imm32: 5): both, compared by content / value. Slot 0
+// (004982F0): ours only, the result.
+const char*(__fastcall* s_className)(CParticleSource*);
+const char* __fastcall ClassNameVerify(CParticleSource* self) {
+    const char* expected = s_className(self);
+    const char* actual = ParticleSourceClassName(self);
+    ei::verify::Check("ParticleSourceClassName", true, std::strcmp(expected, actual) == 0, "%s", actual);
+    return actual;
+}
+int(__fastcall* s_classId)(CParticleSource*);
+int __fastcall ClassIdVerify(CParticleSource* self) {
+    int expected = s_classId(self);
+    int actual = ParticleSourceClassId(self);
+    ei::verify::Check("ParticleSourceClassId", expected, actual, "id %d / %d", expected, actual);
+    return actual;
+}
+void* s_unusedDeleting;
+CParticleSource* __fastcall DeletingVerify(CParticleSource* self, void*, int flags) {
+    CParticleSource* result = self->CParticleSource::DeletingDestruct(flags);
+    ei::verify::Check("CParticleSource::DeletingDestruct", true, result == self, "flags %d", flags);
+    return result;
+}
+
 } // namespace
 
+EI_VERIFY(0x004982D0, ClassNameVerify, 5, s_className);
+EI_VERIFY(0x004982E0, ClassIdVerify, 5, s_classId);
+EI_VERIFY(0x004982F0, DeletingVerify, 0, s_unusedDeleting);
 EI_VERIFY(0x00497FC0, CreateVerify, 0, s_unusedCreate);
 EI_VERIFY(0x00497FE0, DestroyVerify, 0, s_unusedDestroy);
 EI_VERIFY(0x00498400, CreateSourceVerify, 0, s_unusedCreateSource);

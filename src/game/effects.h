@@ -131,6 +131,7 @@ public:
     void Reset();                                   // 004847E0: defaults, texture and elements dropped
     void Clear();                                   // 00484710 (vtable slot 3): particles back to the pool, detach, Reset
     void Destruct();                                // 00498310: destructor body (Clear, free, base)
+    CParticleSource* DeletingDestruct(int flags);   // 004982F0 (slot 0): Destruct, delete on bit 0
 
     // --- per-frame tick (vtable slot 6; particle_tick.cpp) ---
     int Tick();                                     // 00496EB0: 1 while the source stays alive
@@ -364,6 +365,9 @@ static_assert(sizeof(CParticleSource) == 0x1F0);
 // 004981B0. The class factory's creator for particle sources (particle_create.cpp): a new source of
 // `type` (the register arguments are unused), or null.
 CParticleSource* __fastcall NewParticleSource(void*, void*, int type);
+// 004982D0 / 004982E0 (CParticleSource slots 11 / 12, particle_create.cpp): "CParticle", 12.
+const char* __fastcall ParticleSourceClassName(CParticleSource* source);
+int __fastcall ParticleSourceClassId(CParticleSource* source);
 
 // 00488940. `out` = v / d, all three quotients computed before the first store. __fastcall (out in
 // ECX, v in EDX, d on the stack); returns out.

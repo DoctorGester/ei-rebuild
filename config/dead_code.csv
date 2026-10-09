@@ -654,3 +654,4 @@ address,size,name,evidence
 006D6800,207,FUN_006d6800,"CDib reader wrapper, no call/jmp; the only matching dword (00784523) is unaligned string data (A-X1; none in the Rebirth binaries)"
 00448720,688,(no Ghidra function),"A-S10: inside Ghidra's 00447F50 body; called only by itself (rel32 scan; no dword in the exe or the Rebirth binaries)"
 0049F890,1616,(no Ghidra function),"A-S10: inside Ghidra's 0049F810 body; keyframe track evaluator, called only from dead code 00448720 (no dword in the exe or the Rebirth binaries)"
+004BFC60,95,FUN_004bfc60,"A-S10: lookup by name in an array of 0xC0-byte records; called only from the dead script dumper 004D41C0"
