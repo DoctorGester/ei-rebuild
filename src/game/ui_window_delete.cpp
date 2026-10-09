@@ -129,7 +129,7 @@ EI_REPLACE_METHOD(0x0061E3E0, CMessageBox::DestroyBody);
 EI_REPLACE_METHOD(0x00633750, CMessageBox::DestroyBody);   // the difficulty question's copy
 
 void CMasterRequestBox::DestroyBody() {
-    MasterLinkDestructAt(link_);
+    MasterLinkDestructAt(&link_);
     CMessageBox::DestroyBody();
 }
 EI_REPLACE_METHOD(0x0061E460, CMasterRequestBox::DestroyBody);
@@ -199,14 +199,14 @@ void CBriefingScreen::DestroyBody() {
 EI_REPLACE_METHOD(0x005F6BA0, CBriefingScreen::DestroyBody);
 
 void CMpConnectScreen::DestroyBody() {
-    StringArrayDestruct(moreStrings_);
-    StringArrayDestruct(strings_);
-    CStringDestroy(&text_);
-    for (MpAddressEntry* entry = entries_; entry != entriesEnd_; ++entry) {
-        entry->address.~CString();
-        entry->name.~CString();
+    texts_.Destruct();
+    allodNames_.Destruct();
+    hostPassword_.~CString();
+    for (MpAddressEntry& entry : entries_) {
+        entry.description.~CString();
+        entry.name.~CString();
     }
-    FreeVectorStorage(entries_, entriesCapacity_);
+    entries_.FreeStorage();
     DestroyContainer();
 }
 EI_REPLACE_METHOD(0x00618570, CMpConnectScreen::DestroyBody);

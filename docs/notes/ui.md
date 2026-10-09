@@ -214,17 +214,28 @@ Library (A-I18): 005F3000 / 005F3170, 005F4390 / 005F44A0 / 005F9C70 / 0062C0C0,
   `CItemIconWindow::PlaceBars` (`ui_item_screen.cpp`). Edit field forwarders 0065C010 / 0065C1A0 / 0065C290 shared in
   originals_ui.h (ui_layouts / ui_hero_screen_click use them; one duplicate fewer).
 
-**Next in 005E0000-00640000:** the connection screen (`CMpConnectScreen`, vtables 00741CD0 / 00741C9C; Create 0061B2C0 and
-the list draw 0061D780 are Rebirth-patched): slots 24 0061C430 (update: join state, refusal box, 0.5 s refresh), 26
-0061C2D0 (empty), 27 0061C2E0 (box answers 0x20001..0x50001), 41 0061C420 (returns 0); input 2 0061C700, 7 0061CA30, 9
-0061CAD0; helpers 0061CC00 (select / scroll), 0061CCE0 (connect or host), 0061CF50 (edit / forget), 0061D0D0 (master
-request box 0061E2F0, `CMasterRequestBox`), 0061D1C0 (writes config\addrbook.ini), 0061D470 (rebuild the list from the
-client's servers, sorted by +0x258 with the std::sort instantiation 0061EF60 / 0061F6F0 / 0061FB00). Layout from these
-(window offsets): +0x164 refresh timer, +0x168 entries (MpAddressEntry 0x34: +0x00 / +0x04 CStrings, +0x14 NetAddress,
-+0x24 game type, +0x28 wrong protocol, +0x2C kind, +0x30 password), +0x174 selected, +0x178 its address, +0x188 scroll
-top, +0x18C scroll bar, +0x194 name edit, +0x19C game type tab, +0x1A0 password buffer, +0x220 flag, +0x23C joining,
-+0x244 text keys, +0x258 sort. Then the master request box 0061E2F0-0061E8F0 and the largest Rebirth-patched ones
-(vanilla only): 0060C870, 00613EA0, 0063A560.
+**A-I21** (`ui_connect_screen.cpp`, `ui_screens.h`; all O, multiplayer only: no scenario opens the connection screen,
+which needs a hero on the multiplayer hero screen and Continue):
+- `CMpConnectScreen`: 0061C430 `Update` (slot 24), 0061C2E0 `OnBoxResult` (slot 27), 0061C700 / 0061CA30 / 0061CAD0 input 2 /
+  7 / 9, 0061CC00 `SelectAndScroll`, 0061CCE0 `Connect`, 0061CF50 `EditAddress`, 0061D0D0 `MasterRequest`, 0061D1C0
+  `SaveAddressBook`, 0061D470 `RebuildList`. Slots 26 (0061C2D0, `RET`) and 41 (0061C420, returns 0) are too short to hook.
+  Create 0061B2C0 and the list draw 0061D780 stay (Rebirth-patched; the draw is called by address). Layout and regions in
+  ui_screens.h. The helpers call each other through their addresses (wrappers run).
+- `CMasterRequestBox` 0061E2F0 `Construct`, 0061E4E0 `Update`; `net::MasterLink` moved to net_classes.h.
+- The list's `vector<MpAddressEntry>` members: 0061E5A0 push default, 0061E660 insert default, 0061EA90 erase, 0061EE80 /
+  0061E8F0 / 0061E8A0 the entry's copy, assignment, destructor. Forwarded (library): std::sort's 0061EF60 / 0061F6F0 /
+  0061FB00, `_M_insert_overflow` 0061EC40; 0057E970 (the game flow joins a server, not rewritten).
+- Differences: the original's default entry temporaries leave players, ping, game type, foreign, state and password as
+  stack bytes; ours zero them. All but the new game row's password flag are overwritten by RebuildList; that flag (read only
+  by the list draw) is 0 in ours.
+- Kept: an empty list in SelectAndScroll selects -1 and reads the entry before the list; the join password answer
+  (0x50001) does not check the selection; Connect joins a password server at once with no password and again from the box;
+  RebuildList sets the scroll bar's position again and then scrollTop_ 0; the master box steps its link up to three
+  times a frame.
+
+**Next in 005E0000-00640000:** the largest Rebirth-patched ones (vanilla only): 0060C870 (camp Create), 00613EA0 (hero
+screen Create), 0063A560 (battle keys); the connection screen's Create 0061B2C0 and list draw 0061D780; std::sort for the
+address list (0061EF60-0061FB00, library-like but not in library.csv).
 
 ## 4. Main menu, dialogs, escape menu, credits
 

@@ -2340,19 +2340,7 @@ static_assert(offsetof(CMessageBox, title_) == 0x164);
 static_assert(offsetof(CMessageBox, edit_) == 0x178);
 static_assert(sizeof(CMessageBox) == 0x180);
 
-// A message box waiting on a master server request (constructor 0061E2F0 from the lobby's
-// 0061D0D0; vtables 00741DD8 / 00741DA4): the box with OK only, a master server link and a
-// sprite. Names provisional.
-class CMasterRequestBox : public CMessageBox {
-public:
-    // 0061E460 (ui_window_delete.cpp). The destructor body: the link (00440D40), then the box's.
-    void DestroyBody();
-
-    std::uint8_t link_[0x40];        // +0x180 net::MasterLink (net_socket_driver.cpp)
-    CUiMesh* sprite_;                // +0x1C0
-};
-static_assert(offsetof(CMasterRequestBox, link_) == 0x180);
-static_assert(offsetof(CMasterRequestBox, sprite_) == 0x1C0);
+// CMasterRequestBox, the message box waiting on a master server request: ui_screens.h.
 
 // The help / message window (0x194 bytes, vtables 00740E28 / 00740DF4; built inline by
 // CInterface3D::ShowMessage 005F8A80 and OpenHelp 005F86F0, ui_create_screen.cpp). Its pages

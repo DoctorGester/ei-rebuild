@@ -16,15 +16,6 @@
 
 namespace net {
 
-// The TCP link to the master server (constructor 00440C60, destructor 00440D40, tick 00440DE0).
-struct MasterLink {
-    GameBuffer out;              // +0x00 what is sent once connected
-    GameBuffer in;               // +0x1C what was received
-    std::uint32_t socket;        // +0x38 (-1: none)
-    std::int32_t state;          // +0x3C 0 closed, 1 connecting, 2 receiving, 3 done, 4 sending
-};
-static_assert(sizeof(MasterLink) == 0x40);
-
 namespace {
 
 // Winsock through the import thunks (006E60E2 ...).
