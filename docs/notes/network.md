@@ -70,10 +70,8 @@ function does; this file keeps what is not visible in the code.
 
 ## Rewritten
 
-Verify idioms: *BuiltCompare* = the original builds a scratch object, ours the real one, compared dword by dword (pointers outside the image pair one to one;
-the +0x54 socket skipped; the scratch is destroyed by its destructor); *deep copies* = memory streams (the two CMemoryStream vtables only; any other stream class:
-ours only) are deep-copied for the original's run, ours runs on the real ones, headers, bytes and outputs compared; *recorded CFile* = see `core.md`; *ours only* =
-state checks (the function allocates, sends or changes shared state).
+Verify idioms: *BuiltCompare* = the original builds a scratch object, ours the real one, dword by dword (heap pointers paired
+one to one, the +0x54 socket skipped); *deep copies* and *recorded CFile*: core.md ("Streams"); *ours only* = state checks.
 
 | Addresses | Names | Verify |
 |---|---|---|

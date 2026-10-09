@@ -140,8 +140,7 @@ size; object ids go through `FindObject` and `Assign` 004B24D0, group members th
   `Set(point, radius, wander)`, 004BA360 `SentryMode` (0073D190), 004BA450 `FollowMode` (base 0073D15C, then the leader
   referenced, 0073D1C4), 004BA610 `SuspectionMode` (0073D1F8), 004BA710 / 004BA830 `AggressionMode` (0073D260; the second
   with `fixed` = UMRevenge), 004BA920 `CorpseWatcherMode` (0073D294), 004BA1A0 `AILook` (UMPatrolLook). None sets the count
-  (+4): the commands write 0 there after operator new. Verify: the original constructs a copy of the object's bytes, ours the
-  object; all bytes and both returned pointers equal.
+  (+4): the commands write 0 there after operator new.
 - Text manager line reader (`text_reader.cpp` on `CTextManager`; 54 callers of Open in the interface, the map loader's
   FindLine / Split, the item texts): the cursor (+0x20) walks the current text (+0x24, +0x28 bytes); every end test is the
   signed `(p - text) < length`; characters are MBCS. Open 004DEFC0 asks each archive (slot 5, GetFile(key, &length)) in list
@@ -155,13 +154,10 @@ size; object ids go through `FindObject` and `Assign` 004B24D0, group members th
 
 ## Rewritten (script engine)
 
-Verify idioms: *pure*; *double evaluation* (ISAAC state saved, ours into a local result, generator state recorded and
-restored, the original into the real result, compared; cost grows with tree size times depth); *capture streams* (both
-write into capture streams, bytes and write sizes compared); *record / replay* (the original reads the real stream into a
-scratch object through a recording stream, ours replays the recording into the real object; reads must match in order and
-size; ours only when the real object is not empty); *deep-copy destructor check* (the original destroys a deep copy, ours the
-real object; every dword the original changed in the copy must hold the same value in the real one, the rest unchanged,
-reference counts drop by the times held); *ours only*.
+Verify idioms: *pure*; *double evaluation* (ISAAC state restored between ours into a local and the original into the real
+result); *capture streams* (bytes and write sizes compared); *record / replay* (the original reads the real stream into a
+scratch object through a recorder, ours replays it into the real object); *deep-copy destructor check* (the original
+destroys a deep copy, ours the real object; changed dwords must agree); *ours only*.
 
 | Subsystem | Addresses and names | Verify |
 |---|---|---|
@@ -279,9 +275,8 @@ Facts:
 - Matrices: each product element sums its four terms in the original's order (two orders: `kProductOrder` / `kPushOrder`),
   pinned with StoreFloat against /fp:fast regrouping; elements are written in memory order, so an output that is also an
   input behaves as in the original.
-- MFC naming traps: `mfc::CString::Mid(int)` (006FDA6D) is MFC's Right(n); the real Mid(first) is 006FD9B4
-  (`console::Str::Mid`). 006FE216 is TrimLeft() and 006FE11F TrimRight() (ini_file.cpp's TextOps names them the other way
-  round; the calls are right).
+- MFC naming traps: Mid / Right in core.md ("MFC CString: Mid and Right"); 006FE216 is TrimLeft() and 006FE11F TrimRight()
+  (ini_file.cpp's TextOps names them the other way round; the calls are right).
 - Text archive list: Add keeps a failed archive in the list (unlike `CLinkFigureLoader::AddArchive`) and returns
   OpenResource's result; nodes go back to the 0x18-byte list through `stlp::deallocate`. Not ported: 004DEBC0 (`Find`),
   004DEC40 (Rebirth) and its forwarder 004DEFA0, 004DED20 (setlocale / _setmbcp, slot 2).
@@ -297,8 +292,8 @@ Facts:
   1 + the vertex count (over-reserves, kept); `Finish` pads the last packet with copies of vertex 0; the statics' guard bits and
   empty atexit handlers are not reproduced. /fp:fast sums the projections as (z + y) + (x + offset) where the original does
   ((z + y) + x) + offset: the wrapper compares within 1e-3 + 1e-5 relative (`NearClipped`). In the verify build the original
-  004D8490 calls the hooked 004D7BD0, so a corner within rounding of a clip line can change the triangles that follow (about
-  12 of 37M calls; X17's mismatches, 0.03-6% of calls, are why the three are disabled).
+  004D8490 calls the hooked 004D7BD0, so a corner within rounding of a clip line changes the triangles that follow (why X17
+  disabled the three).
 - Link figures: `CLinkMesh` (vtable 0073D790, 0xB0, slots 0-6 declared): part headers stlp::map<string, LinkPartHeader 0x50>
   +0x14, morph coefficients +0x30, six aligned arrays +0x3C (vertex packets, normal packets, texture coordinates, 6-byte
   corners (`lib::AlignedArray<IndexTriangle>`), dwords, words), ranges map<string, 0x30> +0x9C, loader +0xA8, pipeline +0xAC
@@ -308,8 +303,7 @@ Facts:
   lerp(c6,c7,s), t), u), old records lerp(lerp(lerp(c0,c1,s), c2, t), lerp(lerp(c3,c4,s), c5, t), u) (`MorphFig8Packet`,
   `MorphOldPacket`). Forwarders: 004F9E50, 004FBD80 (the cache's insert_equal; 004F7B10 inlines the descent and calls
   _M_insert 004FC4F0). The rewritten loaders are called through their addresses so their checks stay reached. `AddPart`
-  returns bool in AL (its success path ends `MOV EDI,EAX` then `MOV AL,1`, so EAX's upper bytes are 004F4CE0's value pointer);
-  `AppendedDiff` compares the corners in triangle units (a `* 3` offset in 6-byte units once read past the block). Kept:
+  returns bool in AL (EAX's upper bytes are 004F4CE0's value pointer). Kept:
   `RemovePart` lowers the later parts' starts by the removed part's starts, not its counts (only right for the first part),
   and picks the later parts by their index start alone; RemorphFigPart reads every record as FIG8 (a plain FIG part is
   skipped 0x168 bytes and morphed from 8 versions); an empty part name in a .lnk keeps the previous one; a missing link file
@@ -324,7 +318,7 @@ Facts:
   falls back to "bd", then to the position raised by the bounds' upper z extent. Not a unit or attachPoint > 12: position
   raised by radius * 1.6 (bounds bit 0) or the box height. Attach recurses through Add/RemoveEffectSource; the nested
   Attach(object) runs before the outer call sets the origin, so the wrapper checks the origin only for calls that change the
-  attachment (573 false mismatches otherwise).
+  attachment.
 - .mob: the wind strength is clamped by the float at 0079BE58, which nothing writes (0), so ChangeWind gets at most 0; the
   weather chunk's last two floats are read and unused. 00481660's branch under 0079BCF4 (colour quantisation 0049BEA0 and its
   STLport helpers) never runs: nothing writes 0079BCF4 (bss); the 78 functions only that branch reaches are in
@@ -339,15 +333,11 @@ Facts:
   pointers are released through `CRefCounted` (`delete` = slot 0 with 1); the party map's party is `PartyInPlace` storage.
   The archive on the stack: `ChunkArchive::ConstructLocal` / `DestructLocal` (chunk_archive.cpp).
 
-Classification of 0x004C0000-0x00500000 at the A-S sweep (363 functions, 90.6 KB): 25 library templates, 5 dead (the dumper's
-writer 004D41C0 and what only it reaches), the device layer 004E5E50-004F0B00 and state blocks 004FCA60-004FDB50 (renderer
-work), `CSysInfo` 004DDCB0-004DE8B0 (static initialiser table 00783310: standalone build). Dead (A-S8): 33 functions
-004A1E60-004A47D0 (the 3DS loader's sort / merge helpers, only reached from dead callers). Library (A-S7..A-S9): the mesh maps'
-and the loader's STLport members 004F4CD0-004F6850 and 004FAE40-004FC6A0 (operator[] 004F4B90 / 004F4CE0, erase 004F4E40 /
-004F5090, equal_range 004FB5E0, insert_equal 004FBD80, 004FC4F0), 30 of the 34 in 004A90F0-004AFAC0 (the party manager's
-containers, counted-pointer copies, the weapon / armor lookups 004AB720 / 004AB820), 004A5A30 / 004A6840 (EH-only), 004A5D50 /
-004A5D70 / 004A7EA0 / 004A8300, 004A8930, 004A8A50, 004A8AD0; the archive containers' constructors / destructors 004A94A0,
-004639D0, 00463AA0, 004A9650, 004A8B70, 004A96A0.
+Classification of 0x004A0000-0x00500000: library.csv holds the STLport / MFC members (mesh maps, the link loader's cache
+004F4CD0-004F6850 / 004FAE40-004FC6A0, the party manager's containers 004A90F0-004AFAC0 including the weapon / armour lookups
+004AB720 / 004AB820, EH-only helpers); dead_code.csv the dumper's writer 004D41C0 and the 3DS loader's helpers
+004A1E60-004A47D0. Not game logic here: the device layer 004E5E50-004F0B00 and state blocks 004FCA60-004FDB50 (renderer
+work), `CSysInfo` 004DDCB0-004DE8B0 (static initialiser table 00783310: standalone build).
 
 ### Next candidates in this range
 

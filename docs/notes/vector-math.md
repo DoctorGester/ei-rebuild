@@ -156,32 +156,21 @@ keeps unrounded in ST0 and uses further stays written out unless the function is
 **Self-test** (tests/verify/verify_vecmath.cpp, verify build, at DLL load at 24-bit precision, "vecmath self-test" in the
 log): every grouped helper in /fp:fast contexts (alone, `* 2 + 1`, two groupings in one expression, transforms with
 translation, normalising, distances, lerps) against a reference that rounds each operation separately, on 24 inputs per
-helper chosen so that XYZ, ZYX and ZXY give three different results. Standalone: 2088 checks (2448 since V3 part 2: mixed groupings, TransformColumnW), 0 mismatches; with the precise
-pragmas removed it reports 116 mismatches (Dot / LengthSquared / DistanceSquared `* 2`, NormalisedReciprocal, LerpWeighted
-`* 2`).
+helper chosen so that XYZ, ZYX and ZXY give three different results (2448 checks, 0 mismatches; without the precise
+pragmas 116 mismatch).
 
-**Done in V2**: folded into the vecmath types (layouts unchanged, offsets asserted): world_client_view.cpp's method-only
-Matrix4 (now `MatrixMultiplyOriginal` calls), render::detail::Matrix, the render `Vertex` / `DecalVertex` / `GlobalMapPlace`
-positions, chunk_stream.h's `Float4` (Quaternion; still copied with memcpy), Point (face_normal, scene_normals, scene_weld),
-Vec3 (script_exec, ui_hero_preview), UiVec3 (ui_hud), V3 (figure_mesh, map_object_cage), Quat (ui_hero_preview),
-Quaternion4 (ui_item_view). The two method-view forwarders of 0049E800 became one `QuaternionSetAxisAngleOriginal`
-(originals_render.h). Local helpers whose names vecmath uses were renamed, maths unchanged: particle_tick `LengthXYZ` ->
-`LengthDouble`, ui_hero_preview `Dot` / `Cross` -> `DotUnrounded` / `CrossStored`, figure_mesh `Lerp` -> `LerpStored`.
-First migration batch (core_maths.cpp, object_maths.cpp, quaternion.cpp, matrix_math.cpp, maths.cpp): AddVectors,
-NegateVector, ScaleVector, AddInPlace, CrossProduct, SubtractVectors, SubtractVectors2, DivideInPlace on the operators /
-Cross; PreMultiplyConjugate and MultiplyByConjugate take `Conjugate`; SetAngleAxis / SetAxisAngle scale the axis with
-`factor * axis`; matrix_math.cpp and AxisX round through RoundToFloat. Kept written out: Dot 00401E00, Length 00401E20 and
-the squared axis lengths of FromAxisAngle / SetAngleAxis / SetAxisAngle (unrounded sums: a version using LengthSquaredXYZ
-there differed at 53 and 64 bits, which is where the migration rule comes from), the quaternion products and AxisX/Y/Z,
-MatrixMultiply's per-element orders, Slerp. Checked with a scratch harness (old and new bodies, 20k random inputs with
-aliased outputs, at 24, 53 and 64 bits): identical bits; the verify wrappers (verify_core_maths, verify_object,
-verify_quaternion, verify_maths, the matrix wrappers) cover them in game.
+**Done in V2**: the old local vector types (render::detail::Matrix, render `Vertex` / `DecalVertex` / `GlobalMapPlace`
+positions, chunk_stream.h `Float4` (Quaternion, still memcpy'd), Point, Vec3, UiVec3, V3, Quat, Quaternion4) are the vecmath
+types; 0049E800's forwarders are one `QuaternionSetAxisAngleOriginal` (originals_render.h); local helpers renamed where
+vecmath uses the name (`LengthDouble`, `DotUnrounded` / `CrossStored`, `LerpStored`). core_maths / object_maths /
+quaternion / matrix_math / maths use the operators, `Cross`, `Conjugate`, `RoundToFloat`. Kept written out: Dot 00401E00,
+Length 00401E20 and the squared axis lengths of FromAxisAngle / SetAngleAxis / SetAxisAngle (unrounded sums: a
+LengthSquaredXYZ version differed at 53 and 64 bits, hence the migration rule), quaternion products, AxisX/Y/Z,
+MatrixMultiply's per-element orders, Slerp.
 
 ## 6. Migration order (V3, each batch through the full suite)
 
-V3 first adds a check_cleanup column for unrolled vector maths (the x*x + y*y forms and float[3] / [16] members). Not folded
-yet: particle_callbacks.cpp's `float x, y, z` locals (particles batch), TLVertex, LightningPoint, the `float [3]` / `[16]`
-class members (batch 2).
+Not folded yet: particle_callbacks.cpp's `float x, y, z` locals (particles batch), TLVertex, LightningPoint.
 1. Core: done in V2 (above), except core_transform*.cpp.
 2. Fields: the 71 `float [3]` class members, the 3 quaternion `float [4]` members and the `float [16]` members become
    Vector3 / Quaternion / Matrix4 (layout-identical, asserts kept).
@@ -196,45 +185,28 @@ src/render can switch at any time (frame-capture checks, no bitwise compare). Ou
 bodies may use the helpers when the order matches (keeping the all-loads-before-stores aliasing); rewritten callers use the
 inline helper instead of calling Dot / Length / CrossProduct (same bits).
 
-**V3 progress (2026-10-09).** check_cleanup column "hand-written vector maths" (tools/check_cleanup.py,
-`count_vector_maths`): two-product sums whose operand pairs differ only in axis letters / digits (looking through one
-`D(...)` / `static_cast<T>(...)`), plus non-const `float n[3]`, `[16]`, `[4][4]`, and `float n[4]` named like a quaternion;
-colour / stat names and const tables skipped; vecmath.h exempt. Seeded at 507 (309 sums, 198 arrays); 409 after part 1, 377 after part 2.
-- Fields done: map_object_figures.h (FigurePart, FigurePieceRecord, CObject3D: 16), map_object.h (orientation ->
-  Quaternion, scale, pointOffset, extent, baseScale), map_object_animation.h (position, rotation -> Quaternion), unit.h
-  (modelHeight, center, below, above), combat.h / combat_plan.h / unit_ai.h (point, direction), magic_trap.h, model.h
-  ClipBounds, map_object_shadow.h, figure_mesh.h position_, map_spec.h, scene_loader.h MeshFace::normal, unit_db.h,
-  map_object_cage.h. Float[3] locals in combat_planning / combat_update / combat_motion / combat_tick / unit_points /
-  unit_motion_tick / unit_client_path. Callees that still take `float*` (forwarders such as QuaternionAxisY, Negate,
-  MotionSample, PathStart) get `&v.x` until their declarations take Vector3*. Checked by disassembling the release objects
-  before / after: identical, or only stack slots / scheduling / commuted FMUL operands (figure_mesh's 12-byte copies became
-  FLD / FSTP pairs).
-- Helpers done (lengths, distances, dots; grouping per site): unit_ai_fear (ZXY / ZYX / XYZ), unit_ai_sight (Length2D,
-  DotZYX, LengthZYX), combat_tick, effects (orbit dot, tendril length), ground_decal (Normalised<XYZ>, DotZYX + offset),
-  lightning_draw (its LengthXZY is LengthZXY), object3d_figure_setup radii, figure_mesh ExtendWorldBox, face_normal
-  distance, view_matrices (view translation, LightShearMatrix: DotZXY * 2, Cross, LengthSquaredZXY), scene_normals.
-  All main-thread code.
-- Left for later: world.h / sound.h / script.h / ui*.h / terrain_sector.h members (other tickets were editing those
-  files), link_figure.h morph_ (morph coefficients, not a point), figure_mesh.h block[4][4]
-  (indexed [i][j]), quaternion axis forms (unit_ai_sight Prepare, combat_actions), particles.
-- Callees retyped: Negate 00402200 and QuaternionAxisY 0040F560 (originals_core.h), the local AxisX 0040D940 forwarders
-  (unit_points, world_client_draw) take Vector3* / Quaternion*.
-
-**V3 part 2 (2026-10-09), 408 -> 377.** Release objects compared function by function (dumpbin) before / after each
-commit: FPU operations unchanged except where noted.
-- Matrix x point (groupings read from the disassembly): MatrixRows::Transform 00560E10 (x ZYX, y / z ZXY), ClipTest
-  004F16A0 (`ClipCode`: x, y, w ZXY, z ZYX), ExtendWorldBox 0059FDF0 (row ZYX), PlatformSet::AddBox 00560820
-  (corners ZYX, normals ZXY), CollectVisible 0056A990 (view position x ZYX, y / z XYZ). ClipTest and ExtendWorldBox
-  now round the box corners to float, which the original keeps on the FPU: the same at 24 bits (main thread, render
-  code). CObject3D viewPosition / worldMatrix are Vector3 / Matrix4; CollectVisible takes `const Matrix4*`.
-- CMapObject and CUnit have `Vector3 position` (+0x1C) instead of positionX / Y / Z, every use converted (pure rename;
-  four locals named `position` that would hide the member renamed). One commuted FMUL operand in CEffectMissile::Steer.
-- Shared declarations taking Vector3*: AIPathStartOriginal 005C7B00 (originals_ai.h; replaced 5 local forwarders),
-  MotionSample 005C7430, QuaternionAxisX / AxisZ 0040D940 / 0040D6B0 (originals_core.h), MarkerDraw 00503A40, the
-  CAIMap lookups IsPassableForClass / FindFreeCellNear / CellFlag80At / HasKind3OccluderAt / BlockingUnitAt /
-  StampWaterPatch (originals_ai.h); callers use LineOfSightOriginal / SectorMapMove instead of their own copies.
-- Next: the 2D distance / dot sums on `position` (unit_ai_*, combat_*; batch 3 above), world.h Platform's
-  origin / axisU / axisV / normal (world_client.cpp's plane dots), the remaining `float [3]` members and locals.
+**V3 status.** check_cleanup column "hand-written vector maths" (tools/check_cleanup.py `count_vector_maths`: two-product
+sums whose operand pairs differ only in axis letters / digits, looking through one `D(...)` / `static_cast`; non-const
+`float n[3]`, `[16]`, `[4][4]`, quaternion-named `float n[4]`; colour / stat names and const tables skipped; vecmath.h
+exempt): 507 at the start, 377 after part 2. Each batch compares the release objects function by function (dumpbin):
+identical, or only stack slots / scheduling / commuted FMUL operands.
+- Fields done: map_object_figures.h, map_object.h (orientation Quaternion), map_object_animation.h, unit.h, combat.h /
+  combat_plan.h / unit_ai.h, magic_trap.h, model.h ClipBounds, map_object_shadow.h, figure_mesh.h position_, map_spec.h,
+  scene_loader.h, unit_db.h, map_object_cage.h; CObject3D viewPosition / worldMatrix; CMapObject / CUnit `Vector3 position`
+  (+0x1C); float[3] locals in combat_* / unit_points / unit_motion_tick / unit_client_path.
+- Helpers done (grouping per site, all main-thread code): unit_ai_fear, unit_ai_sight, combat_tick, effects, ground_decal,
+  lightning_draw (its LengthXZY is LengthZXY), object3d_figure_setup, face_normal, view_matrices, scene_normals.
+- Matrix x point groupings (from the disassembly): MatrixRows::Transform 00560E10 (x ZYX, y / z ZXY), ClipTest 004F16A0
+  (x, y, w ZXY, z ZYX), ExtendWorldBox 0059FDF0 (row ZYX), PlatformSet::AddBox 00560820 (corners ZYX, normals ZXY),
+  CollectVisible 0056A990 (x ZYX, y / z XYZ). ClipTest and ExtendWorldBox round the box corners to float, which the
+  original keeps on the FPU (same at 24 bits).
+- Callees taking Vector3* / Quaternion*: Negate 00402200, QuaternionAxisX / Y / Z 0040D940 / 0040F560 / 0040D6B0
+  (originals_core.h), AIPathStartOriginal 005C7B00, MotionSample 005C7430, the CAIMap lookups (originals_ai.h), MarkerDraw
+  00503A40; callers use LineOfSightOriginal / SectorMapMove. Others still get `&v.x`.
+- Left: world.h / sound.h / script.h / ui*.h / terrain_sector.h members, world.h Platform's origin / axisU / axisV / normal
+  (world_client.cpp's plane dots), link_figure.h morph_ (coefficients, not a point), figure_mesh.h block[4][4] (indexed),
+  quaternion axis forms (unit_ai_sight Prepare, combat_actions), particles. Next: the 2D distance / dot sums on `position`
+  (unit_ai_*, combat_*; batch 3).
 
 ## 7. Risks
 

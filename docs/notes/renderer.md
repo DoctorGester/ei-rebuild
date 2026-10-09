@@ -35,11 +35,10 @@ the full text is the header of `src/render/render.h`.
 | `present` | the switch-over: everything handed over is off in the old path, `cpuwindows` on, and at the old present (004EF610) the new frame is copied into the game's render target which the old Flip / BltFast shows; captures write the new frame as `frames\<name>.bmp` |
 
 Without `new` nothing in `src/render` runs. Harness steps `oldterrain`, `oldobjects`, `oldinterface` (on / off)
-switch the old path's parts during a run. `present` copies into the old render target and `show` / `split` use a
-child window because dgVoodoo owns a flip-model DXGI swap chain on the game HWND (a second one on that window fails),
-and under dgVoodoo's full screen a child window's swap chain made the game window inactive (WM_ACTIVATE inactive: the
-frame function then draws nothing and the window minimises itself), so `show` / `split` work windowed only.
-Presenting from our own swap chain needs dgVoodoo gone (section 9).
+switch the old path's parts during a run. dgVoodoo owns a flip-model DXGI swap chain on the game HWND (a second one
+fails), hence `present`'s copy and the child window of `show` / `split`, which work windowed only (under full screen
+the child's swap chain deactivates the game window, which then draws nothing and minimises). Presenting from our own
+swap chain needs dgVoodoo gone (section 9).
 
 ## 2. Frame structure of the game
 
@@ -139,8 +138,8 @@ records:
 | 007AEDD0 | texture x diffuse | diffuse (SELECTARG1) |
 
 A state nothing has fed is read from the old device and logged once ("render: pass state: render state N not fed by
-the game code yet"), with a count every 20000 passes. The verify build also reads every fed state back and logs
-disagreements ("fed X but the old device has Y": a writer not converted); the device's value is drawn then. States the
+the game code yet"). The verify build reads every fed state back and logs disagreements ("fed X but the old device
+has Y": a writer not converted) and draws the device's value. States the
 game never sets (ZFUNC, TEXTUREFACTOR, ADDRESSU / V, stage 1 off) start with the device's initial values.
 **Documented exception:** stage 0's mip filter, which the unit panel's draw 006462A0 turns off around the unit's
 picture (Rebirth replaces that whole function, so it cannot feed the mirror until rewritten with that patch): the
@@ -200,11 +199,10 @@ video-memory holder throws (only with 00784756 0).
 0068F6C0): objects_[1] filled by 00656E10 (ShowPicture: the selected save's shot.sav) and +0x184 (the new save's
 picture) filled by 00655D40 (FillEntries, from the escape menu's 256x192 copy, interface +0x5C) and written to shot.sav
 by 00655550 (SaveGame; the autosave 006570E0 writes it from a window surface). 00656464 is not a function (inside
-00655D40, which ends at 0065663C; a false vtable entry 0074718C). With cpuwindows Build (00653DD0) and FillEntries give
-each texture's holder memory (`GivePictureMemory` -> `AttachTextureMemory`, CTexture +0x3C); outside the switch-over the
-DirectDraw texture stays and the fills still Lock it and copy the 0x18000-byte block into the memory before Unlock.
-Verify: ShowPicture and FillEntries run the original first on the real window then ours (safe twice); SaveGame ours
-only. Scenario ui_saveload (`new,present`). Kept: the 0x18000 bytes are one block (pitch taken as 512); Locks use flags
+00655D40; a false vtable entry 0074718C). With cpuwindows Build (00653DD0) and FillEntries give each texture's holder
+memory (`GivePictureMemory` -> `AttachTextureMemory`, CTexture +0x3C); outside the switch-over the DirectDraw texture
+stays and the fills still Lock it and copy the 0x18000-byte block into the memory. Verify: ShowPicture / FillEntries
+original then ours, SaveGame ours only; scenario ui_saveload (`new,present`). Kept: the 0x18000 bytes are one block (pitch taken as 512); Locks use flags
 0; a failed Lock whose report says stop leaves the device lock held; the entries' temporaries leave +8 / +0x0C unset
 where info.sav does not give them; the new folder is "save<n>", n one more than the highest atoi(folder.Mid(4))
 (006FD9B4 is Mid). The SavesPath Rebirth patch is disabled in this install and not reproduced.
@@ -235,9 +233,9 @@ the holder; a holder with neither surface nor memory shows its decoded texture u
 texture and window entries); `TexturePixels` ignores a holder with memory.
 
 Verify wrappers in the switch-over (`tests/verify/memory_texture.h`): an original that locks such a texture runs on a
-temporary DirectDraw texture lent to the holder and taken back (00691D80's wrapper lends every new texture while
-005EC020 / 00655D40's original runs). If DirectDraw refuses it ("verify: no DirectDraw texture ... ours only") 005FFFB0
-/ 00656E10 run ours only and 005EC020 / 00655D40 would crash in their original (not expected). Scenarios:
+temporary DirectDraw texture lent to the holder (00691D80's wrapper lends every new texture while 005EC020 / 00655D40's
+original runs); refused ("verify: no DirectDraw texture ... ours only"): 005FFFB0 / 00656E10 run ours only, 005EC020 /
+00655D40's original would crash (not expected). Scenarios:
 render_present*, render_movie_present, render_titles_present, ui_saveload; outside the switch-over ui_camp, ui_screens,
 ui_hud, frames_basic, render_scene.
 
@@ -356,9 +354,8 @@ Harness, verify build. `capture <name>` skips two presented frames and writes th
 from the old render target at the present point (after scene and interface, before the software cursor and the flip;
 a read-only Lock of the render target, GetDC as fallback: a GDI capture of the window comes back black with dgVoodoo);
 with the new renderer on, its frame of the same moment goes to `frames\<name>.new.bmp`. `freeze` / `unfreeze` hold
-timeGetTime / GetTickCount and the camera (CCamera::Update runs once per frame even with dt 0, 00457595, and parts of it
-move a fixed fraction per call; that was an 8.4% difference between two frozen captures); the main loop then runs no
-world, client or camera update. `samecapture <a> <b> [tolerance] [fraction]` fails the run when two captures differ
+timeGetTime / GetTickCount and the camera (CCamera::Update at 00457595 runs once per frame even with dt 0 and moves a
+fixed fraction per call); the main loop then runs no world, client or camera update. `samecapture <a> <b> [tolerance] [fraction]` fails the run when two captures differ
 (frames_basic and render_terrain: two captures in one frozen moment must match). `tools/compare_frames.py A B [--mask M1
 M2 [--mask-background]] [--exclude E1 E2 ...] [--exclude-grow N] [--diff OUT]`: per-pixel tolerance (default 8),
 differing fraction (default limit 0.1%), worst regions. Limits: what moves by itself between frames without the game's

@@ -55,7 +55,16 @@ range are in `network.md`, `app.md` and `core.md`; the party (CParty, party reco
   through `SceneInfo::Load` (00471B10), requires one top-level node, reads the figure's .reg (`Ini's\<name>.reg` for scenes under
   `scenes\`), links nodes, builds one 0x220-byte figure per mesh (unit +0x530), the skeleton (00448A40), bone links (+0x558) and
   textures from the .reg. Floats the original copies through the FPU go through `FpuCopyBits`, products it keeps there through
-  small naked helpers.
+  small naked helpers. Scene layouts (C10; the scene_*.cpp files have no offsets left, three keep x87 `__asm`): the bone is
+  figure.h's CAnimationNode (ctor 00506710; rotationKeys_ +0x44 = position keys, axis-angle, rotation; translationKeys_ +0x58
+  with the step to the next key; morphFrames_ elements 00452E20 / 00452DF0; position_ +0x110 also holds the rest position in
+  the parent's frame); scene_loader.h declares SceneNode (16-bit signed key frames, NodeMorphKeyElements 00454F30 / 00453700,
+  NodeFrame records copied to the bone links), SceneMesh (engine object, GetName slot 7; positions as the file's bits),
+  SceneHelper, SceneSkin, FakeUnitScene (skin +0x4E0, figures / meshes / bone links / helpers +0x530..+0x56C), the .reg
+  records and the array views. The loader's figures are CFigureMesh (+0x120 name_; colorsA_ / colorsB_ four entries per
+  block). mfc.h `CFileVirtuals`: CFile vtable 00745DF4 slots 8 Open, 10 Seek, 12 GetLength, 13 Read, 14 Write, 19 Close.
+  Still copied as bits: the morph key frame, file records, helper vectors. A port bug in BuildBone 004492F0 (point j read
+  from `data + j * 12` on a 12-byte element pointer) was fixed in C10.
 - **Options**: ~120 values under HKCU\<path>\<subkey> through the game's registry helper (006972A0-006988A0); the writer uses the
   setter matching each getter (00697D40 int, 00697CA0 dword, 00697E80 floats as REG_BINARY bits, 00697FC0 strings). 00458870
   (constructor) runs from a static initializer before the hooks exist.
@@ -117,8 +126,7 @@ The "changed" senders compare the object's stamp with the world's update count; 
 (0050EA70 for map objects, `CEffect::SendDelta` for timed ones). world_sync.cpp names the six senders by the DiffObjectSets output
 they get: its "Kept" array gets the removals, "Removed" the changes. Receive errors go through 00664B70 (fatal) with the previous
 and current type. `CUnitServer::IsFighting` (0054B580) is Rebirth-patched: called through its address.
-`CWorldServer::CollectSharedObjects` (00594A30) takes the player id first (its two stack arguments were once swapped, also in
-its verify wrapper; multiplayer only).
+`CWorldServer::CollectSharedObjects` (00594A30) takes the player id first (multiplayer only).
 
 Rewritten (O unless marked; S = ours into the stream, the stream (and the fields named) restored, the original, compared):
 
@@ -142,6 +150,7 @@ Rewritten (O unless marked; S = ours into the stream, the stream (and the fields
 | 00670310, 00670670, 006706A0 (S), 00670730 (S), 00670760 (S), 006707D0 (S) | OnUseOrder (0x36: units, flag, kind, value, object; the nearest unit asked by CheckOrder / CheckOrderAt from its path end; Player mode CommandUse), UseOrderDistanceSquared, AIPath::Construct / TargetPoint, AIOrder::MakeUse / AimPoint (ui_battle_commands' dead-wolf clicks) |
 | 0066FAA0, 00670C20, 00670DA0, 00670E00, 00670EB0, 00670F50, 00671060, 0066FFF0, 0066FBD0, 00670190, 00670B60 | server handlers 0x02 refresh party, 0x03 take exit, 0x05 joined, 0x06 leave to zone, 0x07 briefing done, 0x08 new party, 0x09 resume, 0x30 walk, 0x3A go to, 0x31 attack, 0x50 party update |
 | 0066C0F0, 0066C110, 0066C1D0, 0066C1E0, 0066C340 / 0066C3C0 | CPlayerManager (`player_manager.cpp`, vtable 0073F328): CreatePlayers (2), NewPlayer (14), ReleasePlayer, ChangeId (client message 0x00), SendValueToAll / SendTextToAll (0x12 via 0066D730 forwarded / SendText13) |
+| 00666D10, 00666FD0 / 00666FB0, 00666F90 / 00666FA0, 00666EC0 / 00666F70 | CPlayerClient Construct, DestructBody / DeletingDestruct, class name / id; CPlayerConnection's destructors (A-H21, `player_client.cpp`) |
 | 00667510 (3) / 00667600 (15), 006671A0, 00667680, 00667810, 00667970, 00667A30 | CPlayerClient::Clear, CoderState::Reset (out.End, then Construct), Pump (slot 4: login message 0 with version 100, "Tango", "Very top secret", the player's +0xFC; state 2 sends the camera anchor as 0x40), SendToServer, DispatchMessages, ReceiveMessages (slot 21, one packet per call) |
 | 00667D80 (S), 00669850, 00669960, 00669EB0, 00669F40, 00669010, 006690F0, 006691C0, 00669290 | client handlers: ReadText, 0x81 set variable, 0x82 delete variable, 0x08 zone change (`GameFlow::RequestZoneChange`), 0x0D jingle (`CMusicSystem::PlayJingle`), 0x02 zone (player cleared, client world 00567AB0, Rebirth-patched, by address), 0x03 / 0x05 world blocks (00567A60 / 00567950), 0x0A item removed (00665870, then quest log 005F7F30 with an empty CPtrList, vtable 0073BE80) |
 | 00669490, 00669A30, 00669C90 | 0x06 items received (money, items gathered in reverse with AddHead, 00665470 and the quest log with the money gained), 0x80 party (sized block into LoadParty(1); recharge list +0x114 gets items with charge < max; a multiplayer client restores its variables from a copy 004A8A50 / 00461540 / 004AA950; 005652E0, `GameFlow::ReturnLocalParty`), 0x83 party update (LoadParty(0)) |
@@ -152,12 +161,9 @@ Rewritten (O unless marked; S = ours into the stream, the stream (and the fields
 | 0066AA20, 0066AB80, 0066B280, 0066B300, 0066B080, 0066B140, 0066B1B0, 0066B2C0 | SendUseOrder (0x36, one unit; the original's heap CArray not built), SendUseDead (0x36, kind 0x18A95, value -1), SendLeave04 (state 3), SendResume (0x09), SendPartyUpdate (0x50, SaveParty draws an ISAAC key), TakeExit (0x03), RequestZone (0x06), Rejoin (state 3 only: ReturnLocalParty, 0x50, 0x05, state 2); the zone requests return the stream position (004A53F0's EAX); S outside state 3 |
 
 Verify rule for the changed-sender wrappers: `CEffect::SendDelta` leaves flags_ bit 1 set, so the original's second run would
-pack the effects again against snapshots ours just updated (this once gave 310 false SendTimedChanged mismatches). The wrapper
-therefore lets ours run, restores the player's stream, runs the original with flags_ bit 1 cleared on every listed object (it
-writes from the fields ours packed), puts the flags back and compares; skipped when ours grew the stream or a packed effect is
-listed twice. Lesson: never copy a game stream (or any `__declspec(novtable)` class) by value, its implicit copy leaves the
-vtable pointer null; RawCopy / memcpy only (a push_back copy of saved headers once wrote a null vptr back into live effects and
-crashed most scenarios in RewindAndEmpty).
+pack the effects again against snapshots ours just updated. The wrapper runs ours, restores the stream, runs the original with
+flags_ bit 1 cleared on every listed object, puts the flags back and compares (skipped when ours grew the stream or an effect
+is listed twice).
 
 Kept: the login's two 64-byte text buffers are sent with uninitialised bytes after the texts (ours zeroes them); 0x06's flag
 byte goes out zero-extended (the original's upper three bytes are stack garbage); OnNewObject reads the world's slot 19 as its
@@ -208,7 +214,7 @@ player +0x1C, the state +0x20, the send stream +0x48; returns 1 unless noted):
 
 | Type | Address | Size | What it does |
 |---|---|---|---|
-| 0x00 | 0066F890 | 488 (+16 jump table 0066FA78) | (ported A-H19, OnLogin) login: reads 0x88 bytes; returns 0 in any state but 0. A first dword other than 0x64 (client version): "SrvErrMsg" / "WrongClientVersi..." (00794F50 / 00794F5C, 00694DC0 on world +0x144, formatted by 006E8715) sent as message 0x11, state 3, returns 0. Else two strings of up to 0x3F (0047ADA0) and by game kind (007B0098): 1 PartyManagerEndRedeploy (004A8880 on 007AA5A0) and 006629D0 on the player's party; 2 / 3 PartyMapLoad (004A8790 with the two strings, player +0xFC and the party; failure returns 0); 4 party Clear(1, 0). Then byte 0 and the player's id (+0x0C), SendParty (0066EF80), state 1 |
+| 0x00 | 0066F890 | 488 (+16 jump table 0066FA78) | ported (`CPlayerServer::OnLogin`, O; name check 0047ADA0 S) login: reads 0x88 bytes; returns 0 in any state but 0. A first dword other than 0x64 (client version): "SrvErrMsg" / "WrongClientVersi..." (00794F50 / 00794F5C, 00694DC0 on world +0x144, formatted by 006E8715) sent as message 0x11, state 3, returns 0. Else two strings of up to 0x3F (0047ADA0) and by game kind (007B0098): 1 PartyManagerEndRedeploy (004A8880 on 007AA5A0) and 006629D0 on the player's party; 2 / 3 PartyMapLoad (004A8790 with the two strings, player +0xFC and the party; failure returns 0); 4 party Clear(1, 0). Then byte 0 and the player's id (+0x0C), SendParty (0066EF80), state 1 |
 | 0x01 | 0066FA90 | 11 | leave: the state's slot 16 (Leave 0066D020) |
 | 0x04 | 00670CE0 | 191 | only in state 1 (else 0): a dword into the player's +0x100, CWorldServer::CollectParty (00590A40) with this +0x74, SendParty, byte 7, the player's +0x100 and dword 007AFFC4; clears dirty bit 0x10 (+0x130); state 2 |
 | 0x10 | 0066FAC0 | 162 | pause request: a byte. When 0057F440, the game server (0079B5DC) exists and is attached and the byte is set: only when the session's leader id (0041A020) is the player's first mercenary's unit id (else nothing) and the leader's PlayerMessage is found and attached, AnnounceText 0xC with its name. Then the world's SetUnknown6C (005942C0) with byte != 0 |
@@ -263,25 +269,3 @@ player +0x1C, the state +0x20, the send stream +0x48; returns 1 unless noted):
   unrewritten CString / CArray / stream code. 00458010 (frame present + screenshot), 00458270 (startup movies; the harness empties
   the list), 0045E310 (DirectX version probe), 00458570 (hash_map registration): mapped, not rewritten.
 
-## C10 cleanup (scene files, 2026-10-09)
-
-scene_bones, scene_skeleton, scene_bone_frames, scene_loader, scene_normals, scene_meshes, scene_weld and scene_registry
-have no offsets, VCalls or raw addresses left (scene_bones / scene_loader / scene_registry keep their x87 `__asm`).
-- The bone is figure.h's CAnimationNode (constructor 00506710 fills the same fields): name_, parent_, children_,
-  frameCount_, rotationKeys_ (+0x44, AnimationRotationKey: the scene's position keys, axis-angle, then the rotation),
-  translationKeys_ (+0x58, AnimationTranslationKey with the step to the next key), normals_, morphFrames_
-  (AnimationMorphFrameElements: 00452E20 / 00452DF0), pointsB_, restRotation_, restPosition_, pointsA_; position_ (+0x110)
-  is also where the skeleton keeps the rest position in the parent's frame.
-- scene_loader.h: SceneNode (key records NodeRotationKey / NodePositionKey / NodeMorphKey with signed 16-bit frames,
-  NodeMorphKeyElements 00454F30 / 00453700, normals, frames = NodeFrame records that the loader copies to the figures' bone
-  links), SceneMesh (an engine object: GetName is slot 7; position / normal blocks, positions as the file's bits, normals,
-  corner table, pairs, corner indices, faces, groups, bounds, material value / type), SceneHelper, SceneSkin, FakeUnitScene
-  (CObject3D part, skin +0x4E0, figures / meshes / bone links / helpers +0x530..+0x56C), the .reg records, SceneTexture,
-  the typed array views NodeArray / MeshArray / HelperArray and scenedata:: (the loader's array vtables and messages).
-  CFigureMesh +0x120 is name_; the loader's figures are CFigureMesh records (vertices_ / normals_ take the mesh's blocks,
-  colorsA_ / colorsB_ get four entries per block). ConstructBone (originals_render.h) returns CAnimationNode*.
-- mfc.h CFileVirtuals: MFC 4.2's CFile slots (vtable 00745DF4; 8 Open, 10 Seek, 12 GetLength, 13 Read, 14 Write, 19 Close).
-  SceneInfo::Load reads through slot 13 as the original does (its verify wrapper hands it a proxy file).
-- Fixed a port bug in BuildBone (004492F0): before the first morph key, point j was copied from `data + j * 12` on a
-  12-byte element pointer (point 12j, past the array for j > 0); the original copies point j (00449F32..00449F4A).
-- The node's morph key frame, the file records and the helper vectors are still copied as bits (memcpy / FpuCopyBits).

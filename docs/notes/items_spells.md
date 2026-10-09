@@ -44,17 +44,19 @@ and the five kinds' uninitialized_copy / uninitialized_fill_n (__fastcall, RET 8
 weapons 006AB9C0 / 006ABB50 (vtable 00744068; own bytes +0x6C..+0x83, +0x8C..+0xB4), armour 006ABCD0 / 006ABE20 (00744064;
 +0x6C..+0xB4), quick 006ABF60 / 006AC0D0 (0074405C; +0x70 and +0x80..+0x8A, the string +0x7C constructed empty, the category
 not copied), the 0x7C kind 006AC240 / 006AC3B0 (00744058; +0x6C, its zone vector +0x70 left empty), the 0x78 kind 006AC520 /
-006AC640 (00744054; +0x6C..+0x77). Kept: the copies drop the fields listed as not copied. Not ported (not reached while
-loading: the vectors start empty): the kinds' operator= (006A8FB0 ...) and destructors (006A88F0, 006A8950, 006A89D0,
-006A8A50, 006A8AE0, 006A8BD0).
+006AC640 (00744054; +0x6C..+0x77); the weapon record's operator= 006A8FB0 `WeaponRecord::AssignWeapon` (skips +0x50..+0x67;
+called by STLport inserts). Kept: the copies drop the fields listed as not copied. The six record destructors 006A88F0..006A8BD0
+are in library.csv.
 
 Loading (item_db_load.cpp; O; startup, every scenario): `IndexedRecordTable::LoadQuickItems / LoadLoot / LoadQuestItems`
 006A6E50 / 006A7110 / 006A73B0 (a stack archive: ConstructLocal, Open, the vector serialisers, Close; then each record filed
 under its name with find_or_insert 00613B70 / 006A7870 / 0069E2A0, originals_library.h; Rebirth's patched 006A67A0 calls them
 by address), `ChunkArchive::SerializeQuickItems / SerializeLoot / SerializeQuestItems` 006A7C20 / 006A7D20 / 006A7E10 (the
-quest_records.cpp pattern; the loads call them by address), `ItemDatabase::DestructBody` 006A6570 (007C86D8; six tables last
-to first: index clear + buckets, or the materials' index destructor 006A6C20; record destructor bodies 006A88F0..006A8BD0; on
-exit).
+quest_records.cpp pattern; the loads call them by address), `SerializeMaterials / Weapons / Armors` 006A7940 / 006A7A30 /
+006A7B30, `ItemDatabase::DestructBody` 006A6570 (007C86D8; six tables last to first: index clear + buckets, or the materials'
+index destructor 006A6C20; record destructor bodies 006A88F0..006A8BD0; on exit). Spell database (A-H21, verify_spell_db_load):
+the spell, modifier and 0x34 list records' Serialize 00683B80 / 00683AF0 / 00683D40, `ChunkArchive::IntVectorField` 00683EB0,
+the vectors 00684EF0 / 00684FE0 / 00684C50 (SpellRecord / SpellModifierRecord / SpellListRecord in item_db.h).
 
 ## Item rules (scenario items)
 
@@ -88,6 +90,7 @@ their record fields (the quest item takes the head's +0x6C).
 | 006A0840, 006A0F70, 006A2750, 006A27E0 (weapon); 006A3240, 006A36A0, 006A3720, 006A37B0 (armor); 006A3CD0; 006A4040, 006A45C0; 006A47B0, 006A5820; 006A4B90, 006A5030 (loot) | ModelName / FirstListName / FigureName / PictureName (slots 17-20) per item class | S (text) |
 | 006A0CC0, 006A3480 | WeaponBaseFigure, ArmorModelName | S |
 | 00689030 | CSpellManager::CreateSpellFromText (spell_text.cpp) | O |
+| 006AD000 | CItemManager::MakeItem (item_constructor.cpp; CItemManager derives CResourceManager, context slot 16 on CManagerContext) | O |
 
 - Build's temporary record is built like the game's record classes (vtables 00744054..00744068); the extra members of the
   quick / quest / loot records leak as in the original. Build reads operands into locals before multiplying;
@@ -107,6 +110,7 @@ their record fields (the quest item takes the head's +0x6C).
 | 0069FF70, 0069FFC0 | CItem::Clone (RET 4, spell manager), CopyTo (slot 15's base body, RET 8) |
 | 006A0730 / 006A3140 / 006A3C50 / 006A4540 / 006A4B50 / 006A57F0 | CItemWeapon / Armor / Quick / Quest / Loot / Spell::CopyTo (slot 15): 0 for another kind, else 1 |
 | 00661DB0, 00661F30 | CParty::AddItem (RET 0xC; flags read as bytes), RemoveItem |
+| 00661FB0, 00661FE0 | CParty::RemoveQuestItems (the list minus class 0x14; every new game), ReleaseAllItems (multiplayer exchange only); callers keep their forwarders |
 | 006608D0 / 00660AB0 / 00660C90 / 00660E70 and 00660A50 / 00660C30 / 00660E10 / 00660FF0 | PartyUnitRecord::AddWeapon / AddQuickItem / AddArmor / AddSpell and the four Removes (lists +0x730 / +0x740 / +0x750 / +0x760) |
 
 Clone = the owning manager's CreateObject(kind, -1) (slot 23), then the source's slot 15; on failure the new item gets a
@@ -214,8 +218,8 @@ AddModifier reports a null record as "Invalid rune" (007959F0); CopyTo tests the
 
 Not rewritten: 0068D310, 0068D5A0 (CLight colour contributions: a 4-float colour by value whose 4th component is
 uninitialised stack, cannot be compared bit for bit); 00688EC0 CreateSpellObject, 00688CD0 (factory), 00688990 / 00688B40
-(manager teardown), serialisation (00683AF0..00683EB0, 0068B860, 0068B920, the database's 00684C50 / 00684EF0 / 00684FE0),
-constructors / destructors, 0068C820 / 0068C920 (find a spell / modifier record by code, thiscall on 007C8510 / 007C8530),
+(manager teardown), serialisation 0068B860, 0068B920, constructors / destructors (CSpellConstructor's 006840A0 / 00684080
+are done), 0068C820 / 0068C920 (find a spell / modifier record by code, thiscall on 007C8510 / 007C8530),
 STLport helpers 0068C500..0068CD50, the Rebirth-patched 00684550 (spell database load), 0068E640, 00691500. No callers:
 00684180 / 00684280 / 006842E0 / 00684310 / 006838E0.
 
@@ -277,6 +281,11 @@ database did not have yet. A record is added unless the name index already holds
 is cleared and rebuilt over the whole vector (0064EE90). One briefing record is filled three times ("briefing receive" reads
 its six lists inline, "reject" two inline and four by 006AE740, "complete" all six by 006AE740). Records are raw blocks with
 the original layouts, containers go through the original members. Risk: no unwinding for the raw records if a member throws.
+ReadStringList 006AE740 (verify_quest_lists.cpp, S into a scratch vector; every quest registration; the loader calls it by
+address). 0064F550 is a second copy of QuestTable::Find (004C9C90), registered on the same method (S; no scenario: only the
+sort's median calls it, with more than 16 quests, all with records: the sort puts a quest without a record before every quest,
+so with unknown names the unguarded partition 0064F650 runs past the array in the original too; X26 dropped the
+`ui_objectives_sort` scenario that crashed this way). The compiler-generated ctor / dtor 006AE0F0 / 006ADF40 are in library.csv.
 
 In archives: `QuestRecord::Serialize` 006AD7D0 (0x38 bytes; places through vector<float> fill insert 006ADC10),
 `QuestBriefingRecord::Serialize` 006AD900 (0x6C; list 0 through 0052DF40, lists 1-5 inline), the vectors
@@ -358,63 +367,39 @@ material is loaded with a null record.
 ## What is left in 0x00640000-0x006C0000
 
 Classification: functions.csv kind game, minus library.csv, dead_code.csv and EI_REPLACE (`python tools/progress.py` for the
-numbers; the per-group byte table of the A-H13 sweep went stale and was dropped). Library additions from this range: 90 twins
-of existing entries (STLport copy / fill / list / hashtable helpers, aligned buffer and counted pointer destructors), 25 quest
-database container instantiations (006AF4D0..006B3E60), 25 for the item database's record vectors, the portrait slot
-vector's four, 32 for the spell database (00684D60..00688470); 0069EF50 / 0069E3F0 (`vector<T*>` range insert / insert);
-006B4000-006C0000 reviewed in A-H13 (sound.md). Game code that stays: the weapon record's operator= (006A8FB0)
-and the spell serialisers (the item serialisers were ported in A-H20). 00646C25 is a tail of 006462A0 that Ghidra splits off. Most of what is
-left in 00640000-00660000 is Rebirth-patched (ui.md section 7 lists them).
+numbers). library.csv holds this range's STLport / MFC instantiations (quest, item and spell database containers, portrait
+slots, options vectors, twins of existing helpers); 006B4000-006C0000 was reviewed in A-H13 (sound.md). 00646C25 is a tail of
+006462A0 that Ghidra splits off. Most of what is left in 00640000-00660000 is Rebirth-patched (ui.md section 7 lists them). Done in A-H21
+without notes (see the code): 00652000 `COptionsWindow::CommitBinding` (ui_options_bind), 0064E5A0
+`CObjectivesWindow::OnKeyDown` (ui_objectives), 006BF8A0 `SectorData::DestructBody`, the CPlayerClient lifetime (objects.md,
+"Players"). The server world's +0x144 is a CFileRegistry
+(`CWorldServer::Messages()`); the login handler 0066F890 is in objects.md, its name check 0047ADA0 `IsPrintableText` (S).
 
-**A-H19** (verify wrappers in brackets; scenarios): 0064F550 is a second copy of QuestTable::Find (004C9C90), registered on the
-same method (against the original; no scenario: only the sort's median calls it, with more than 16 quests, and those must
-all have records: the sort's comparison puts a quest without a record before every quest, another such one included, so with
-unknown names the unguarded partition 0064F650 runs past the array in the original too; the first `ui_objectives_sort` with 17
-made-up names crashed that way, X26, and was dropped); CParty::RemoveQuestItems
-00661FB0 (ours, the list minus class 0x14; every new game) and ReleaseAllItems 00661FE0 (ours, empty list; only the
-multiplayer exchange, no scenario); the server's login handler 0066F890 (CPlayerServer::OnLogin, ours: stream moved 0x88, the
-written message and state; every new game / zone change) with its name check 0047ADA0 (IsPrintableText, against the original).
-The server world's +0x144 is a CFileRegistry (`CWorldServer::Messages()`). Callers of 00661FB0 / 00661FE0 keep their forwarders
-so the wrappers see them.
-Interface controls (ui_scrollbar.cpp, ui_spin.cpp, ui_edit_field.cpp, ui_scroll_text.cpp): CUiScrollbar Construct 0065AEA0 /
-SetPosition 0065B0C0 / SetRect 0065B490 and CUiSlider::Construct 0065BC30 (verify_ui_scrollbar.cpp: SetPosition against the
-original with the thumb sprite's position, the rest ours only; objectives, save / load and options windows); CUiSpin Construct
-0065BCD0, AddText 0065BE70, GetValue 0065BEB0 (against the original), SetValue 0065BEE0 (verify_ui_spin.cpp; the options window);
-CUiEditField Construct 0065C010 (ours) and OnChar 0065C930 (against the original; no scenario types into an edit field: the
-message box with flag 4 and the multiplayer screens); CUiScrollText::NextToken 0065D970 (against the original; every log text).
-ReadStringList 006AE740 (verify_quest_lists.cpp, against the original into a scratch vector; every quest registration; the
-loader keeps calling it through its address). Kept: the scroll bar's SetPosition divides by the maximum without a check (0 gives
-the integer indefinite); the edit field's constructor leaves caret / editing / changed unset; NextToken's unknown BEL symbol
-takes the token's data pointer as its length should FatalError return; NextToken calls GetBuffer(0) on its text.
-Shared: 005FCDD0 (CUiSurface over a RECT) in originals_ui.h (string_map.cpp and ui_console_window.cpp keep their own);
-CString::FindOneOf (00700ECC) moved into mfc.h from ui_console_window.cpp; gamecrt::isprint (006E944C).
+## Interface controls 0065AEA0-0065E880 (A-H19, A-H20)
 
-**A-H20** (S side by side, O ours only; scenarios in the wrappers' headers):
-- CUiScrollText (ui_scroll_text.cpp, verify_ui_scroll_text.cpp): Construct 0065CC00, DestroyBody 0065CE20, AddText 0065CF30,
-  SetText 0065CFE0, SetRect 0065D0A0 (slot 26), Draw 0065D120 (slot 20), Clear 0065D450 (all O); Layout 0065DAA0 (S: the
-  original on a byte copy with an empty line array); CUiScrollbar::SetMaximum 0065AFE0 and Maximum 0065B720 (S). The
-  constructor's float is the bar's depth, not a line height (originals_ui.h corrected). Tokenize, Layout and DrawLines are
-  called through their addresses (originals_ui.h) so their wrappers run.
-- Scroll bar input (ui_scrollbar.cpp, S): thumb drags 0065B1A0 / slider 0065B810, wheel 0065B430, CUiSlider::SetPosition
-  0065B730. No scenario drags a thumb or turns the wheel over a bar.
-- Destructors (ui_control_delete.cpp, O): bodies and deleting destructors of the scroll bar / slider (0065AFC0, 0065BCB0,
-  0065AFA0, 0065BC90), spin (0065BE10, 0065BDF0), edit field (0065C140, 0065C120), scrolling text (0065CE00), tooltip
-  (0065E4F0, 0065E4D0), the input sides' copies (0065CB70-0065CBA0, 0065E2B0, 0065EAC0) and the text tokens (0065D8A0,
-  0065D8C0, 0065D8F0; bodies 0065D8E0 / 0065D960 / 0065D910).
-- CUiTooltip is now a CUiWindow (ui.h, after CUiWindow; fields from +0x148 named: lines_, lineHeight_, keyWidth_, keyName_).
-  ui_tooltip.cpp: Construct 0065E320 (S: the original into a scratch block, destroyed again), SetText 0065E540 (S),
-  DrawLines 0065E880 (O). OnMouseMove 0065E580 stays original (Rebirth-patched).
-- CItemManager::MakeItem 006AD000 (item_constructor.cpp, O; CItemManager now derives CResourceManager, the context's slot 16
-  declared on CManagerContext in item.h).
-- ChunkArchive::SerializeMaterials / Weapons / Armors 006A7940 / 006A7A30 / 006A7B30 (item_db_load.cpp, O as A-H18's).
-- library.csv: 0065AB80 / 0065AD00 (list<pair<string,string>> node, pair), 006AD670 (weapon name index find_or_insert),
-  006AE0F0 / 006ADF40 (the quest database's compiler-generated constructor / destructor: members only; the static initialiser
-  006ADF10 and atexit stub 006ADF30 are not in functions.csv), the six item record destructors 006A88F0..006A8BD0.
-Kept: the layout reads the measured heights by the format token's font digit; fonts 3-9 read the original's other stack
-slots (font 3: its return address), ours 0. The slider's and bars' _ftol of 0/0 gives 0 (int64 truncation, as the game's).
-The tooltip's constructor leaves the measurements and both arguments unwritten for an empty text.
-Risks: the constructor wrappers are ours only; Layout's stand-in shares the sprites (both versions write them the same).
+Code ui_scrollbar.cpp, ui_spin.cpp, ui_edit_field.cpp, ui_scroll_text.cpp, ui_tooltip.cpp, ui_control_delete.cpp; wrappers
+verify_<file>.cpp (scenarios in their headers: objectives, save / load and options windows, every log text).
 
-**Next candidates**: 006A8FB0 (the weapon record's operator=, skips +0x50..+0x67: probably not compiler-generated; called by
-STLport inserts); 00690D30 / 00690B30 / 0068FA10 / 00690260 / 00690970 (texture manager), 006BF8A0, 00652930 / 00652000 /
-00652BF0 (save screen), 00666FD0 / 00666D10 (players), 00684390 / 00683B80 (spell effects), 0064E5A0 / 0064F160.
+| Address | Name | V |
+|---|---|---|
+| 0065AEA0, 0065B0C0, 0065B490, 0065BC30 | CUiScrollbar Construct, SetPosition (with the thumb sprite), SetRect; CUiSlider::Construct | O / S / O / O |
+| 0065AFE0, 0065B720, 0065B1A0, 0065B810, 0065B430, 0065B730 | SetMaximum, Maximum, thumb drag / slider drag, wheel, CUiSlider::SetPosition (no scenario drags or wheels a bar) | S |
+| 0065BCD0, 0065BE70, 0065BEB0 (S), 0065BEE0 | CUiSpin Construct, AddText, GetValue, SetValue (options window) | O |
+| 0065C010 (O), 0065C930 (S) | CUiEditField Construct, OnChar (no scenario types into one: message box flag 4, multiplayer screens) | |
+| 0065CC00, 0065CE20, 0065CF30, 0065CFE0, 0065D0A0, 0065D120, 0065D450 | CUiScrollText Construct, DestroyBody, AddText, SetText, SetRect (26), Draw (20), Clear | O |
+| 0065DAA0, 0065D970 | CUiScrollText::Layout (the original on a byte copy with an empty line array), NextToken | S |
+| 0065E320, 0065E540, 0065E880 | CUiTooltip Construct (the original into a scratch block), SetText, DrawLines; OnMouseMove 0065E580 stays original (Rebirth-patched) | S / S / O |
+| 0065AFC0, 0065BCB0, 0065AFA0, 0065BC90, 0065BE10, 0065BDF0, 0065C140, 0065C120, 0065CE00, 0065E4F0, 0065E4D0, 0065CB70-0065CBA0, 0065E2B0, 0065EAC0, 0065D8A0 / 0065D8C0 / 0065D8F0 (bodies 0065D8E0 / 0065D960 / 0065D910) | destructors: scroll bar / slider, spin, edit field, scrolling text, tooltip, the input sides' copies, text tokens | O |
+
+The scroll text constructor's float is the bar's depth, not a line height. Tokenize, Layout and DrawLines are called through
+their addresses (originals_ui.h). CUiTooltip is a CUiWindow (fields from +0x148: lines_, lineHeight_, keyWidth_, keyName_).
+Shared: 005FCDD0 (CUiSurface over a RECT) in originals_ui.h; CString::FindOneOf (00700ECC) in mfc.h; gamecrt::isprint (006E944C).
+Kept: SetPosition divides by the maximum without a check (0 gives the integer indefinite); _ftol of 0/0 gives 0 (int64
+truncation); the edit field's constructor leaves caret / editing / changed unset; NextToken's unknown BEL symbol takes the
+token's data pointer as its length should FatalError return, and it calls GetBuffer(0) on its text; Layout reads the measured
+heights by the token's font digit, fonts 3-9 read the original's other stack slots (font 3: its return address), ours 0; the
+tooltip's constructor leaves the measurements and both arguments unwritten for an empty text. Risks: the constructor wrappers
+are ours only; Layout's stand-in shares the sprites.
+
+**Next candidates**: 00690D30 / 00690B30 / 0068FA10 / 00690260 / 00690970 (texture manager); spell serialisers 0068B860 /
+0068B920; then the largest left in 0x640000-0x6C0000 (`python tools/progress.py`).
