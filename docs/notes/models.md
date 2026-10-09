@@ -212,6 +212,7 @@ Ported (V as above; terrain lighting is in the terrain table):
 | 006C3C80, 006C3D70, 006C3E30, 006C3E50 | `SectorData::Clear` (O), `ResetFields`, `ScheduleRelight`, `RelightTick` | S |
 | 006CB390, 006CBCD0 | `Terrain::PlayAmbience` / `StopAmbience` (terrain_ambience.cpp; sounds, ISAAC, sector loads) | O |
 | 006CBC00 | `CWorldClient::AmbienceTimeOfDay` (CString out) | S |
+| 006CCF20 | `Terrain::AddDecalTriangles` (terrain_decal.cpp; triangles through the unhooked original 004D8490, X17 / X18; appended data compared) | S |
 
 acks.db (acks_db.h): database 007C8A60 = three tables {vector of records, hash_map<string, record*>}: 0x1C4-byte records by
 prototype name (kinds up to 0x29; 0x29 = the environment speeches +0x1AC, 0x2C bytes, flags +0x28 matched against
@@ -230,8 +231,7 @@ Ambience: sound classes at 007969D0 (16 x 0x18: name, variants, weight, class it
 memory, most have variants -1, so the one-shot index is a draw % 0xFFFFFFFF + 1); loop slots +0xAC8 handles / +0xAD4 classes,
 +0xAE0 the sound set. The class votes are sorted by the game's qsort (comparator 006CB360 rewritten as `ByWeight`).
 
-Next in the range: decal triangles 006CCF20 (floats, X17's decal functions are disabled in verify);
-shadow 006CEDE0; map setup 006C5AA0; acks record serialisers 006E3780 / 006E3FD0 / 006E3DC0 (startup,
+Next in the range: shadow 006CEDE0; map setup 006C5AA0; acks record serialisers 006E3780 / 006E3FD0 / 006E3DC0 (startup,
 through the Rebirth-patched loader); CDib 006D5BF0. The records' compiler-generated members (006DE370, 006DC390, ...)
 need only the record declarations in a standalone build.
 

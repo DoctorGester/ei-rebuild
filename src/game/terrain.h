@@ -12,6 +12,7 @@
 // Names are provisional: they describe what the code does, not names recovered from the original.
 
 class CLight;
+class DecalBuilder;
 
 namespace terrain {
 struct SectorData;   // terrain_sector.h: the full sector (TerrainSector names a few of its fields)
@@ -74,6 +75,12 @@ public:
     void PlayAmbience();
     // 006CBCD0 (from 00578940). Clears flag 8 and stops the three loops.
     void StopAmbience();
+    // 006CCF20 (RET 8; terrain_decal.cpp, from the shadow projector 0056C750). Slides the decal
+    // quad (`corners` as DecalBuilder::Begin takes them) along the builder's slope until its lowest
+    // point meets the lowest ground vertex of the cells under it (one cell of margin, clamped to
+    // the map), then hands those cells' ground triangles to the builder (Reserve, then two
+    // AddTerrainTriangle per cell, through the original 004D8490).
+    void AddDecalTriangles(DecalBuilder* builder, float* const* corners);
 
     std::uint8_t unknown_01C[0x94 - 0x1C];   // the rest of the CTransformObject base
     std::uint32_t landscapeFlags;   // +0x094 terrain::TerrainFields::flags
