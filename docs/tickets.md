@@ -46,7 +46,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Pending work
 
-The four porting batches (A-I16, A-H15, A-S9, A-U7) are merged (2026-10-09, 140 runs pass). Left: build, fix and merge the drafts below only DR-C5 is left (the rest and net_state.cpp's last VCalls are merged). Then republish the dashboard and remove merged worktrees.
+The four porting batches (A-I16, A-H15, A-S9, A-U7) are merged (2026-10-09, 140 runs pass). Left: build, fix and merge the drafts below all six drafts are merged (2026-10-09). Then republish the dashboard and remove merged worktrees.
 
 ## Draft passes (no build, 2026-10-07)
 
@@ -54,7 +54,7 @@ Drafts written without building (2026-10-07), each on its own branch with a note
 - DR-C1 merged 2026-10-09 (world_units.cpp, world_client_maps.cpp clean; world_game.cpp left: World()+0x5C pending connection source (needs a class; app.cpp shares the forwarder), the __asm helpers, TextOpsAt).
 - DR-C2 merged 2026-10-09 (102 slots named; 16 placeholders left elsewhere).
 - DR-C3 merged 2026-10-09 (net_state.cpp's last 14 VCalls can now use DR-C2's names).
-- DR-C5 (finishing 2026-10-09; drafted: ui_surface_create.cpp clean, ui_hud.cpp 6 VCalls left (map object slots 38/39/42 need DR-C2's names with int returns), world_client_draw.cpp 4 VCalls left; head 38582dd; written against DR-C1's CWorldClient names, needs `CCamera* camera_` at CWorldClient +0x210 after DR-C1 (notes); branch draft-dr-c5 in worktree agent-abcd1eeb0aab855a0): cleanup draft of ui_hud.cpp, ui_surface_create.cpp, world_client_draw.cpp.
+- DR-C5 merged 2026-10-09 (ui_surface_create.cpp, ui_hud.cpp clean; world_client_draw.cpp left with its 6 x87 __asm helpers).
 - DR-C4 merged 2026-10-09 (3 files clean; 13 server handlers in functions.csv). Open: 007C8778 QuestItems vs loot table name; stlp::SmallNodeFreeList and camera.h NodeFreeList are the same address.
 - DR-H16 merged 2026-10-09. Apply 006524A0 and the edit field 0065C610 have no scenario. function_sizes.inc needs a real regeneration once the Ghidra database is whole (it reports cut-short bodies, e.g. 0040D710 555 -> 60).
 
