@@ -145,7 +145,6 @@ __declspec(naked) void __fastcall QueueSelected(CEngineObject*, void*) EI_ORIGIN
 __declspec(naked) void __fastcall LightEffectDraw(void*) EI_ORIGINAL(0x006CEDE0)
 __declspec(naked) void __fastcall MarkerDraw(void*, void*, const Vector3*, float, const Vector3*, const Vector3*)
     EI_ORIGINAL(0x00503A40)
-__declspec(naked) void __fastcall ListErase(void*, void*, void**, void*) EI_ORIGINAL(0x00512030)
 __declspec(naked) CEngineObject** __fastcall VectorCopyBack(CEngineObject**, CEngineObject**, CEngineObject**)
     EI_ORIGINAL(0x00571E30)
 __declspec(naked) void __fastcall VectorErase(stlp::vector<CEngineObject*>*, void*, CEngineObject**, CEngineObject**) EI_ORIGINAL(0x0056F5E0)
@@ -602,7 +601,7 @@ int CWorldClient::DrawPass() {
                         static_cast<CObject3DSpecific*>(object->attached)->SetLit(0);
                     }
                     void* unused;
-                    ListErase(&selected, nullptr, &unused, node);
+                    IdListEraseOriginal(&selected, nullptr, &unused, node);
                 }
             }
             node = next;

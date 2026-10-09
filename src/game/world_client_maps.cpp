@@ -580,6 +580,28 @@ CEngineObject* Pick(CWorldClient* client, const long* point,
 CEngineObject* CWorldClient::PickAt(const long* point) { return Pick(this, point, CollectWindowsAt); }
 CEngineObject* CWorldClient::PickAt2(const long* point) { return Pick(this, point, CollectWindowsAt2); }
 
+namespace {
+// From a picked object on: the first unit of the sorted hits. The cursor moves past entries whose
+// object is gone or is not a unit; null at the end.
+CEngineObject* FirstUnitHit(CWorldClient* client, CEngineObject* object) {
+    while (object->GetClassId() != world::kClassUnit) {
+        do {
+            if (++client->hitCursor_ == client->hits_.finish) return nullptr;
+            object = static_cast<CBaseManager*>(client->manager40_)->FindObject(client->hitCursor_->objectId);
+        } while (!object);
+    }
+    return object;
+}
+} // namespace
+
+CEngineObject* CWorldClient::UnitAt(const long* point) {
+    if (CEngineObject* picked = PickAt2(point)) {
+        if (CEngineObject* unit = FirstUnitHit(this, picked)) return unit;
+    }
+    CEngineObject* picked = PickAt(point);
+    return picked ? FirstUnitHit(this, picked) : nullptr;
+}
+
 // ---- The party's units (00566F70) ----------------------------------------------------------------
 
 namespace {
@@ -967,6 +989,41 @@ void CWorldClient::Teardown() {
     DropAndDelete(texts_);
 }
 
+// ---- The selection (00566100) --------------------------------------------------------------------
+
+namespace {
+// The selection highlight off: flags 0x10 and 0x100 cleared, the side half's slots 25 (empty) and
+// 26 with 0 (its light goes off).
+void Unhighlight(CEngineObject* object) {
+    object->flags_ &= ~0x110u;
+    auto* half = static_cast<CObject3DSpecific*>(MapObjectOf(object)->attached);
+    half->Unused25(0);
+    half = static_cast<CObject3DSpecific*>(MapObjectOf(object)->attached);
+    half->SetLit(0);
+}
+} // namespace
+
+void CWorldClient::Deselect(CEngineObject* object) {
+    stlp::list<void*>& selected = list7BC_;
+    using Node = stlp::list<void*>::Node;
+    auto* objects = static_cast<CBaseManager*>(manager40_);
+    if (!object) {
+        for (Node* node = selected.head->next; node != selected.head; node = node->next) {
+            CEngineObject* found = objects->FindObject(static_cast<unsigned>(reinterpret_cast<std::uintptr_t>(node->data)));
+            if (found && (found->flags_ & 0x10)) Unhighlight(found);
+        }
+        EmptyList(selected, [](Node* node) { Node7BCFree(node, 1); });
+        return;
+    }
+    const auto id = reinterpret_cast<void*>(static_cast<std::intptr_t>(object->id_));
+    Node* node = selected.head->next;
+    while (node != selected.head && node->data != id) node = node->next;   // 00571960 find
+    if (node == selected.head) return;
+    void* unused;
+    IdListEraseOriginal(&selected, nullptr, &unused, node);
+    if (object->flags_ & 0x10) Unhighlight(object);
+}
+
 // ---- Set up (00561E50) ---------------------------------------------------------------------------
 
 namespace {
@@ -1244,6 +1301,7 @@ EI_REPLACE_METHOD(0x00561E50, CWorldClient::Setup);
 EI_REPLACE_METHOD(0x00560650, PlatformSet::AddFace);
 EI_REPLACE_METHOD(0x00560820, PlatformSet::AddBox);
 EI_REPLACE_METHOD(0x00563290, CWorldClient::Teardown);
+EI_REPLACE_METHOD(0x00566100, CWorldClient::Deselect);
 EI_REPLACE_METHOD(0x0056DAF0, CWorldClient::ObjectsInRange);
 EI_REPLACE_METHOD(0x00566F70, CWorldClient::CreatePartyUnits);
 EI_REPLACE_METHOD(0x005647E0, CWorldClient::AddObject);
@@ -1255,6 +1313,7 @@ EI_REPLACE_METHOD(0x00564E70, CWorldClient::ClearMaps);
 EI_REPLACE(0x005726B0, ReleaseIfIdentified);
 EI_REPLACE_METHOD(0x00565790, CWorldClient::PickAt);
 EI_REPLACE_METHOD(0x005659D0, CWorldClient::PickAt2);
+EI_REPLACE_METHOD(0x00565E40, CWorldClient::UnitAt);
 EI_REPLACE_METHOD(0x00570860, SectorGrid::Move);
 EI_REPLACE_METHOD(0x00570BB0, SectorGrid::Move2);
 EI_REPLACE(0x00571D50, MarkWithinRadius);

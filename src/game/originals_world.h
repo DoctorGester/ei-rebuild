@@ -28,6 +28,10 @@ __declspec(naked) inline CUnit* __fastcall WorldUnitAtPointOriginal(void* /*worl
 __declspec(naked) inline void __fastcall ClientSetPlayer(void*, void*, int) EI_ORIGINAL(0x00566CE0)
 __declspec(naked) inline float* __fastcall HoverPickSurface(void*, void*, float*, int, int) EI_ORIGINAL(0x0056C350)
 __declspec(naked) inline void __fastcall CountedRelease(void*, void*, int) EI_ORIGINAL(0x00575510)
+// 00512030 (library: STLport list<id>::erase(iterator), the client's selection list +0x7BC; thiscall, RET 8: the result
+// slot, the node).
+__declspec(naked) inline void __fastcall IdListEraseOriginal(void* /*list*/, void*, void** /*result*/, void* /*node*/)
+    EI_ORIGINAL(0x00512030)
 // A 3D object's client half (CObject3DClientSpecific, __fastcall on it): 0051E200 whether shadows are drawn for its
 // object's kind (0079BD0C above 0 and the kind's switch; AL), 0051E280 drops its shadow (geometry, texture, bounds).
 __declspec(naked) inline bool __fastcall ShadowsShownOriginal(void* /*half*/) EI_ORIGINAL(0x0051E200)

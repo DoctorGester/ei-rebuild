@@ -370,6 +370,25 @@ static void __fastcall DropShadowsVerify(CWorldClient* client) {
 }
 EI_VERIFY(0x0056D7A0, DropShadowsVerify, 0, s_unused);
 
+// 00566100 Deselect: ours only (it edits the selection list and the objects' lights; reached by
+// the battle screen's selection changes: `ui_battle_commands`). Checked: afterwards the list is
+// empty (null), or the object's id is listed once less than before (the first entry erased).
+static void __fastcall DeselectVerify(CWorldClient* client, void*, CEngineObject* object) {
+    stlp::list<void*>& selected = client->list7BC_;
+    const auto id = reinterpret_cast<void*>(static_cast<std::intptr_t>(object ? object->id_ : 0));
+    auto count = [&] {
+        int n = 0;
+        for (auto* node = selected.head->next; node != selected.head; node = node->next) n += node->data == id;
+        return n;
+    };
+    const int before = object ? count() : 0;
+    client->Deselect(object);
+    const int after = object ? count() : 0;
+    const bool ok = object ? after == (before > 0 ? before - 1 : 0) : selected.head->next == selected.head;
+    ei::verify::Check("CWorldClient::Deselect", true, ok, "object %d: %d -> %d", object ? object->id_ : -1, before, after);
+}
+EI_VERIFY(0x00566100, DeselectVerify, 0, s_unused);
+
 // 00564E70: ours only. The grids, +0xB4, +0x7BC, the MFC lists and the id map are empty; what is
 // left in +0xB8 has no positive id.
 static void __fastcall ClearMapsVerify(CWorldClient* client, void*) {
@@ -448,6 +467,24 @@ static CEngineObject* __fastcall PickAt2Verify(CWorldClient* client, void*, cons
     return PickChecked("CWorldClient::PickAt2", s_pick2, true, client, point);
 }
 EI_VERIFY(0x005659D0, PickAt2Verify, 5, s_pick2);
+
+// 00565E40 UnitAt: PUSH EBX; PUSH EBP; MOV EBP,[ESP+0xC] (6 bytes). The original runs first (its
+// picks rebuild the hits from the frame's screen entries, so ours sees the same); the unit and,
+// when there is one, the cursor's position are compared. Reached by the battle screen's hover and
+// clicks (`clickunit`, ui_battle_commands).
+static PickFn s_unitAt;
+static CEngineObject* __fastcall UnitAtVerify(CWorldClient* client, void*, const long* point) {
+    long pt[2] = {point[0], point[1]};
+    CEngineObject* theirs = s_unitAt(client, nullptr, pt);
+    std::ptrdiff_t theirsCursor = client->hitCursor_ - client->hits_.start;
+    CEngineObject* mine = client->UnitAt(pt);
+    std::ptrdiff_t mineCursor = client->hitCursor_ - client->hits_.start;
+    bool ok = theirs == mine && (!mine || theirsCursor == mineCursor);
+    ei::verify::Check("CWorldClient::UnitAt", true, ok, "(%ld, %ld): %p vs %p, cursor %td vs %td", pt[0], pt[1],
+                      static_cast<void*>(theirs), static_cast<void*>(mine), theirsCursor, mineCursor);
+    return mine;
+}
+EI_VERIFY(0x00565E40, UnitAtVerify, 6, s_unitAt);
 
 // ---- Platforms: the original on the real set, ours on a scratch set; the records compared --------
 

@@ -1144,6 +1144,10 @@ public:
     // 0056D7A0 (the options' display mode change). Every filed object whose kind has no shadows
     // (0051E200 false) drops its shadow (0051E280).
     void DropShadows();
+    // 00566100 (RET 4; the battle screen and the interface's selection). Takes `object` out of the
+    // selection list +0x7BC, its highlight off (flags 0x110 cleared, side half slots 25 / 26 with
+    // 0) when it was on; with null every listed object's highlight goes off and the list empties.
+    void Deselect(CEngineObject* object);
     // 00564BE0 (RET 4). Takes the object `id` out of the maps: the MFC list +0x1F0 entries for it,
     // its +0xBC node and +0xD8 entry, then (when it is in +0xB8) the +0xB4 entries of a hero with
     // a text-key id (and 00538EA0 on its +0x240 in a session of kind 3), its grid cell and +0xB8;
@@ -1159,6 +1163,11 @@ public:
     // matrix); the first entry whose object still exists wins (+0x100 is left on it). Null if none.
     CEngineObject* PickAt(const long* point);
     CEngineObject* PickAt2(const long* point);
+    // 00565E40 (RET 4; the battle screen's clicks and hover). The unit at screen point `point`:
+    // from PickAt2's object on, the first unit among the sorted hits (the cursor +0x100 moves past
+    // the others and those whose object is gone); failing that the same from PickAt's. Null if
+    // none.
+    CEngineObject* UnitAt(const long* point);
     // 00566F70 (RET 8). Creates the party's heroes from their records (+0x14 prototype, +0x18
     // second prototype, +0x1C id, +8 model, +0x10 skin, +0x20 stats, +0x724 position, +0x730 /
     // +0x740 / +0x750 weapons, quick items and armour as pointer arrays with their counts after):
