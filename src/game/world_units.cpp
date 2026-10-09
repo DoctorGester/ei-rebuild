@@ -13,6 +13,7 @@
 #include "map_object.h"
 #include "map_spec.h"
 #include "server_specific_manager.h"
+#include "torch.h"
 #include "unit.h"
 #include "unit_db.h"
 #include "world_effect.h"

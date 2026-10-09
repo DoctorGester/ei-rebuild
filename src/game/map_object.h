@@ -363,13 +363,3 @@ inline CMapObject*& CompanionOwner(CEngineObject* companion) {
 // the map object's Create (0050E770), the object at +0x238 released and cleared, 5 network fields
 // (the DeltaState at +0x1C4, SetSize 0050FA30 inlined), then DeltaState::Reset. Returns 1.
 int __fastcall TorchCreate(CMapObject* torch);
-
-// The torch (flame) map object (class id 0x3A, vtable 0073E834, 0x23C bytes): a map object with its
-// counted state object (a CTorchObjectSpec, server_specific_manager.h; the world server's
-// CreateObject 005927C0 sets its light, flame and sound through slots 16-18).
-class CTorchObject : public CMapObject {
-public:
-    CEngineObject* spec;            // +0x238
-};
-static_assert(offsetof(CTorchObject, spec) == 0x238);
-static_assert(sizeof(CTorchObject) == 0x23C);
