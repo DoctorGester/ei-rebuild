@@ -3192,9 +3192,20 @@ address,name,library,signature,notes
 0064B720,"ConstructElements (12-byte elements, zero fill)",MFC,,A-H11 sweep: same instructions as 0046F0E0 (data addresses masked; every call goes to the same callee or to library code)
 0064ECB0,stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection),STLport,,A-H11 sweep: same instructions as 00439DD0 (data addresses masked; every call goes to the same callee or to library code)
 0064ECF0,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00426B10 (reviewed)"
+0064F310,"stlp::__introsort_loop<CString*>",STLport,,"A-H17 review: the objectives window's quest sort (0064D05C; CString* by the quest order of 0064F550, inlined as quest database lookups 004CE110 / 0064EE90)"
+0064F400,"stlp::__median<CString>",STLport,,"A-H17 review: the objectives window's quest sort (0064D05C; CString* by the quest order of 0064F550, inlined as quest database lookups 004CE110 / 0064EE90)"
+0064F650,"stlp::__unguarded_partition<CString*>",STLport,,"A-H17 review: the objectives window's quest sort (0064D05C; CString* by the quest order of 0064F550, inlined as quest database lookups 004CE110 / 0064EE90)"
 0064F880,"stlp pair<string, T>::pair(const string&, const T&)",STLport,,A-H11 sweep: same instructions as 005729D0 (data addresses masked; every call goes to the same callee or to library code)
+0064F9A0,"stlp::__insertion_sort<CString*>",STLport,,"A-H17 review: the objectives window's quest sort (0064D05C; CString* by the quest order of 0064F550, inlined as quest database lookups 004CE110 / 0064EE90)"
 0064F9E0,stlp::uninitialized_copy<pair*>,STLport,,A-H11 sweep: same instructions as 0042B3C0 (data addresses masked; every call goes to the same callee or to library code)
 0064FA10,stlp::uninitialized_fill_n<pair*>,STLport,,A-H11 sweep: same instructions as 0042B3F0 (data addresses masked; every call goes to the same callee or to library code)
+0064FA40,"stlp::__linear_insert<CString*>",STLport,,"A-H17 review: the objectives window's quest sort (0064D05C; CString* by the quest order of 0064F550, inlined as quest database lookups 004CE110 / 0064EE90)"
+0064FBD0,"stlp::__unguarded_insertion_sort<CString*>",STLport,,"A-H17 review: the objectives window's quest sort (0064D05C; CString* by the quest order of 0064F550, inlined as quest database lookups 004CE110 / 0064EE90)"
+0064FC10,"stlp::__pop_heap<CString*>",STLport,,"A-H17 review: the objectives window's quest sort (0064D05C; CString* by the quest order of 0064F550, inlined as quest database lookups 004CE110 / 0064EE90)"
+0064FC90,"stlp::__unguarded_linear_insert<CString*>",STLport,,"A-H17 review: the objectives window's quest sort (0064D05C; CString* by the quest order of 0064F550, inlined as quest database lookups 004CE110 / 0064EE90)"
+0064FE40,"stlp::make_heap<CString*>",STLport,,"A-H17 review: the objectives window's quest sort (0064D05C; CString* by the quest order of 0064F550, inlined as quest database lookups 004CE110 / 0064EE90)"
+0064FEA0,"stlp::__adjust_heap<CString*>",STLport,,"A-H17 review: the objectives window's quest sort (0064D05C; CString* by the quest order of 0064F550, inlined as quest database lookups 004CE110 / 0064EE90)"
+006500B0,"stlp::__push_heap<CString*>",STLport,,"A-H17 review: the objectives window's quest sort (0064D05C; CString* by the quest order of 0064F550, inlined as quest database lookups 004CE110 / 0064EE90)"
 006518A0,"compiler-generated destructor (0x18-byte record with a vector and two CStrings)",compiler,,"A-H15: the two CStrings (+0x14, +0x10), then the vector's block back to the node pool 0079B224 (above 0x80 bytes operator delete); reached from 006537E0 and the unwind funclet 0072EBF8"
 00651CE0,"compiler-generated destructor (0x14-byte record with a CString)",compiler,,"A-H15: the CString at +0x10 (a tail jump to CString::~CString); reached from 00653800"
 00652740,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)

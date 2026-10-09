@@ -477,6 +477,11 @@ records' compiler-generated destructors, run by STLport's _Destroy from 00651600
 | 0065F2D0 | `SavedParties::Destruct` (party_file.cpp; static destructor of 007C82A0 at exit): +0x10 (party outside a game + file, an MpHeroRecord), the entries, the vector storage, the folder | ours only (exit) |
 | 0065F020 | `CUiScrollingSurface::RenderText` (ui_scrolling_surface.cpp): the titles' RichEdit text through EM_FORMATRANGE into the surface, the end offset / speed logic | ours only: offsets kept, end offset rule (ui_main_menu, render_titles_present) |
 | 006641D0 | `PartyMemberArray::Serialize` = `mfc::CArray::Serialize` (new, with a minimal `mfc::CArchive`) | ours only; no caller (vtable slot only) |
+| 0064E330 | `CObjectivesWindow::OnLButtonDown` (ui_objectives_input.cpp; input slot 2, shim from the input side): OK (travel time 00578700 forwarded, RequestZone at the nearest exit), cancel, zone arrows, quest rows, exits | ours only: zone index / selected quest in range (ui_objectives, new) |
+| 0064EA80 | `CObjectivesWindow::LoadQuestPlaces` (named so: ui_objectives.cpp's forwarder is `FillQuestPlaces`): map.txt "#quest <name>" pairs, or the quest record's floats for a multiplayer client | original first, then ours; points compared (ui_objectives) |
+
+0064F650 / 0064FEA0 (and 0064F310, 0064F400, 0064F9A0, 0064FA40, 0064FBD0, 0064FC10, 0064FC90, 0064FE40, 006500B0) are the quest list sort's STLport
+instantiations (library.csv); their comparison inlines 0064F550 (a quest's order through the quest database, game code, not rewritten).
 
 ## What is left in 0x00640000-0x006C0000
 
