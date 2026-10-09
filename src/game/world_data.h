@@ -165,4 +165,12 @@ constexpr std::uintptr_t kItemListVtable = std::uintptr_t(0x0073BE80);
 constexpr std::uintptr_t kShareListVtable = std::uintptr_t(0x0073FAB0);
 constexpr std::uintptr_t kRecordArrayVtable = std::uintptr_t(0x0073FAA4);
 
+// ---- Update (world_update.cpp) --------------------------------------------------------------
+inline const char* DisconnectingPlayerText() { return reinterpret_cast<const char*>(std::uintptr_t(0x00790894)); }   // "Disconnecting player "
+inline const char* HeroesGroupText() { return reinterpret_cast<const char*>(std::uintptr_t(0x007908C0)); }   // "Heroes"
+inline float HearingScale() { return ExeFloat(std::uintptr_t(0x0073F910)); }   // the units' perception scale (SyncPlayer too)
+inline float WakeMargin() { return ExeFloat(std::uintptr_t(0x0073CCF8)); }     // added to it when units wake others
+// 00435000: the ostream flush manipulator (ostream& flush(ostream&)).
+inline void* FlushManipulator() { return reinterpret_cast<void*>(std::uintptr_t(0x00435000)); }
+
 } // namespace worlddata

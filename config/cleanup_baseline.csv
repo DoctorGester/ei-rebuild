@@ -341,7 +341,7 @@ src/game/world_sync.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/world_tick.cpp,0,1,0,0,3,0,0,0,0,0,0
 src/game/world_unit_set.cpp,25,2,0,0,0,0,0,1,0,0,0
 src/game/world_units.cpp,0,0,4,2,1,0,0,0,0,0,3
-src/game/world_update.cpp,21,10,0,2,4,0,0,0,0,0,0
+src/game/world_update.cpp,0,0,0,2,0,0,0,0,0,0,0
 src/game/world_weather.cpp,1,4,0,2,3,0,0,0,0,0,0
 src/game/world_zone.cpp,5,5,0,0,6,0,0,0,0,0,0
 src/game/zone_records.cpp,3,0,0,0,1,0,0,1,0,0,0

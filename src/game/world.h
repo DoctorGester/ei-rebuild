@@ -22,6 +22,11 @@ using BOOL = int;
 struct ScriptGroup;
 class CAIMap;       // ai_map.h
 class CPlayerServer;   // player_messages.h
+class CPlayerConnection;   // player_messages.h
+class CScript;   // script.h
+namespace netlink {
+class NetLink;   // net_link.h
+}
 class CBaseManager;
 struct CSoundManager;   // sound.h
 class CSectorMap;   // sector_map.h
@@ -60,7 +65,8 @@ struct PartyRecords;   // unit.h
 
 // A player (one per human or AI side). Fields named only as far as used here.
 struct WorldPlayer {
-    std::uint8_t unknown_000[0x20];
+    std::uint8_t unknown_000[0x1C];
+    netlink::NetLink* link;              // +0x01C the link to the player's client (CPlayer::link_), or null
     CPlayerServer* server;               // +0x020 the player's connection (player_messages.h), or null
 
     int id;                              // +0x024 player number (0 = the local player)
@@ -90,7 +96,10 @@ struct WorldPlayer {
     std::uint32_t dirty;                 // +0x130 changes still to send to this player
 
     class CParty* Party() { return reinterpret_cast<class CParty*>(party); }
+    // The connection seen through its virtual slots (CPlayerConnection, player_messages.h).
+    CPlayerConnection* Connection() { return reinterpret_cast<CPlayerConnection*>(server); }
 };
+static_assert(offsetof(WorldPlayer, link) == 0x1C);
 static_assert(offsetof(WorldPlayer, party) == 0x70);
 static_assert(offsetof(WorldPlayer, unknownFC) == 0xFC);
 static_assert(offsetof(WorldPlayer, unknown108) == 0x108);
@@ -669,6 +678,8 @@ public:
     std::uint8_t unknown_2818[0x2838 - 0x2818];
     std::uint8_t timeWheel_[0x12874 - 0x2838]; // +0x2838 time wheel (005C9530; size unknown)
     std::uint8_t commandsA_[0x12A6C - 0x12874]; // +0x12874 script command queue (004BF000)
+    // commandsA_ is the zone's CScript (script.h, 0x1F8 bytes): its globals_ hold the "Heroes" group.
+    CScript* MainScript() { return reinterpret_cast<CScript*>(commandsA_); }
     std::uint8_t commandsB_[0x12C64 - 0x12A6C]; // +0x12A6C script command queue (004BF000)
     std::uint8_t diplomacy_[0x12D64 - 0x12C64]; // +0x12C64 CDiplomacy (object_diplomacy.h)
     int unknown12D64_;                    // +0x12D64 1 or 3: SaveWorld updates the players' "gtime" first
