@@ -8,6 +8,7 @@
 #include "model.h"
 
 #include "lib/containers.h"
+#include "lib/mfc.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -119,7 +120,9 @@ public:
     Vector3 position_;                  // +0x01C (CTransformObject)
     std::uint8_t unknown_028[0x9C - 0x28];
     MeshBuffers buffers_;               // +0x09C
-    std::uint8_t unknown_0CC[0x128 - 0xCC];
+    std::uint8_t unknown_0CC[0x120 - 0xCC];
+    mfc::CString name_;                 // +0x120 (the scene loader names it after its mesh)
+    std::uint32_t unknown_124;
     lib::AlignedArray<Vector3> offsets_;     // +0x128 per-vertex offsets added when drawing (005A0B10 / 005A0CD0)
     lib::AlignedArray<std::uint32_t> colorsA_;   // +0x138 one per normal (lit colours)
     lib::AlignedArray<std::uint32_t> colorsB_;   // +0x148 one per normal
@@ -141,6 +144,7 @@ public:
 };
 static_assert(offsetof(CFigureMesh, flags_) == 0x08);
 static_assert(offsetof(CFigureMesh, buffers_) == 0x9C);
+static_assert(offsetof(CFigureMesh, name_) == 0x120);
 static_assert(offsetof(CFigureMesh, colorsA_) == 0x138);
 static_assert(offsetof(CFigureMesh, unknown_158) == 0x158);
 static_assert(offsetof(CFigureMesh, center_) == 0x160);

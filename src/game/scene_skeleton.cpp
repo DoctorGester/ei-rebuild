@@ -165,10 +165,10 @@ int __fastcall BuildSkeleton(VtArray* meshArray, VtArray* nodeArray, int frames,
         float m00 = 1.0f - (zz + yy), m01 = xy - zw, m02 = xz + yw;
         float m10 = xy + zw, m11 = 1.0f - (zz + xx), m12 = yz - xw;
         float m20 = xz - yw, m21 = yz + xw, m22 = 1.0f - (yy + xx);
-        lib::AlignedArray<Vector3>& positions = mesh->positions;
+        PointBuffer& positions = mesh->positions;
         const Vector3& pivot = node->pivot;
         for (int i = 0; i < positions.size; ++i) {
-            Vector3& p = positions.data[i];
+            Vector3& p = reinterpret_cast<Vector3&>(positions.data[i]);   // the file's bits as floats
             p = p - pivot;
             float rx = (m00 * p.x + m01 * p.y) + m02 * p.z;
             float ry = (m11 * p.y + m10 * p.x) + m12 * p.z;

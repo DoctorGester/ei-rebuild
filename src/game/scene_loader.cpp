@@ -8,10 +8,12 @@
 #include "scene_loader.h"
 
 #include "console.h"
+#include "figure_mesh.h"
+#include "map_object_figures.h"
+#include "world.h"
 
 #include "../lib/crt.h"
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "originals_core.h"
 #include "originals_engine.h"
 #include "originals_library.h"
@@ -24,9 +26,8 @@
 namespace scene {
 namespace {
 
-constexpr int kFileRead = 13;   // CFile slot 13
-
-void Read(void* file, void* data, std::uint32_t size) { ei::VCall<std::uint32_t>(file, kFileRead, data, size); }
+// Through the file's vtable (slot 13), as the original reads.
+void Read(mfc::CFileVirtuals* file, void* data, std::uint32_t size) { file->Read(data, size); }
 
 // FLD + FSTP of a float, as the original copies some of the values it read (a signalling NaN comes
 // out quiet).
@@ -41,21 +42,8 @@ __declspec(naked) std::uint32_t __cdecl FpuCopyBits(const void* /*value*/) {
     }
 }
 
-template <typename T = std::uint8_t>
-T* At(void* base, std::size_t offset) { return reinterpret_cast<T*>(static_cast<char*>(base) + offset); }
-
-std::uint32_t Dword(const void* p, std::size_t offset) {
-    std::uint32_t v;
-    std::memcpy(&v, static_cast<const char*>(p) + offset, 4);
-    return v;
-}
-std::uint16_t Word(const void* p, std::size_t offset) {
-    std::uint16_t v;
-    std::memcpy(&v, static_cast<const char*>(p) + offset, 2);
-    return v;
-}
-void SetDword(void* p, std::size_t offset, std::uint32_t v) { std::memcpy(static_cast<char*>(p) + offset, &v, 4); }
-void SetWord(void* p, std::size_t offset, std::uint16_t v) { std::memcpy(static_cast<char*>(p) + offset, &v, 2); }
+// A float stored from the bits the loader copied.
+void SetBits(float& to, std::uint32_t bits) { std::memcpy(&to, &bits, 4); }
 
 // --- Element types and constructors of the arrays the loader fills ----------------------------------
 
@@ -78,22 +66,39 @@ using FilePointArray = mfc::CArray<PointBits>;                // A: 12-byte posi
 using FileUvArray = mfc::CArray<FileUv>;                      // B
 using FileFaceArray = mfc::CArray<FileFace>;                  // C
 using GroupRecordArray = mfc::CArray<FaceGroup, OriginalElements<FaceGroup, ConstructGroups, DestructGroups>>;   // D
-using RotKeyRecords = mfc::CArray<Rec<0x14>>;                 // E, and the node's rotation keys
-using PosKeyRecords = mfc::CArray<Rec<0x18>>;                 // F, and the node's position keys
-using MorphHeadRecords = mfc::CArray<Rec<8>>;                 // G
-using NormalRecords = mfc::CArray<Rec<0x14>>;                 // H
-using NodeNormalArray = mfc::CArray<Rec<12>>;                 // the node's normals
-
-// A node's morph key: its frame and the positions (an aligned point array).
-struct MorphKey {
+// The file's key records: the frame word, then the values (the loader copies them through the
+// FPU into the node's keys).
+struct FileRotationKey {       // E (0x14): a vector at +8
     std::uint16_t frame;
-    PointBuffer points;
+    std::uint16_t unknown_02;
+    std::uint32_t unknown_04;
+    std::uint32_t value[3];
 };
-static_assert(sizeof(MorphKey) == 0x14);
-using MorphKeyArray = mfc::CArray<MorphKey, OriginalElements<MorphKey, ConstructNodeMorphKeys, DestructNodeMorphKeys>>;
+struct FilePositionKey {       // F (0x18): an axis at +8, the angle at +0x14
+    std::uint16_t frame;
+    std::uint16_t unknown_02;
+    std::uint32_t unknown_04;
+    std::uint32_t axis[3];
+    std::uint32_t angle;
+};
+struct FileMorphHead {         // G (8): the frame (low word) and a second dword, read separately
+    std::uint32_t frame;
+    std::uint32_t unknown_04;
+};
+struct FileNormal {            // H (0x14): a normal at +8
+    std::uint32_t unknown_00[2];
+    std::uint32_t value[3];
+};
+static_assert(sizeof(FileRotationKey) == 0x14 && sizeof(FilePositionKey) == 0x18);
+static_assert(sizeof(FileMorphHead) == 8 && sizeof(FileNormal) == 0x14);
+using RotKeyRecords = mfc::CArray<FileRotationKey>;          // E
+using PosKeyRecords = mfc::CArray<FilePositionKey>;          // F
+using MorphHeadRecords = mfc::CArray<FileMorphHead>;         // G
+using NormalRecords = mfc::CArray<FileNormal>;               // H
 
-using MeshRecordArray = mfc::CArray<Rec<mesh::kSize>, OriginalElements<Rec<mesh::kSize>, ConstructMeshes, DestructMeshes>>;
-using NodeRecordArray = mfc::CArray<Rec<node::kSize>, OriginalElements<Rec<node::kSize>, ConstructNodes, DestructNodes>>;
+using MeshRecordArray = mfc::CArray<SceneMesh, OriginalElements<SceneMesh, ConstructMeshes, DestructMeshes>>;
+using NodeRecordArray = mfc::CArray<SceneNode, OriginalElements<SceneNode, ConstructNodes, DestructNodes>>;
+using HelperArray = mfc::CArray<SceneHelper, mfc::RawElements<SceneHelper>>;
 using MapRecordArray = mfc::CArray<DwordMap, OriginalElements<DwordMap, ConstructMaps>>;
 
 // Out-of-line members of the instantiations the loader reaches (the template with the original's address).
@@ -101,7 +106,7 @@ using IndexArray = mfc::CArray<std::uint32_t>;   // CArray<DWORD, const DWORD&> 
 __declspec(naked) void __fastcall IndexSetAtGrow(IndexArray*, void*, int, const std::uint32_t&) EI_ORIGINAL(0x004773F0)
 __declspec(naked) int __fastcall IndexAdd(IndexArray*, void*, const std::uint32_t&) EI_ORIGINAL(0x00476640)
 __declspec(naked) void __fastcall IndexDestruct(IndexArray*) EI_ORIGINAL(0x00476780)
-__declspec(naked) void __fastcall GroupsSetSize(GroupRecordArray*, void*, int, int) EI_ORIGINAL(0x00474DB0)   // the mesh's groups (+0x148)
+__declspec(naked) void __fastcall GroupsSetSize(mfc::CArray<FaceGroup>*, void*, int, int) EI_ORIGINAL(0x00474DB0)   // the mesh's groups (+0x148)
 __declspec(naked) void __fastcall AssignGroup(FaceGroup*, void*, const FaceGroup*) EI_ORIGINAL(0x00474C50)
 
 } // namespace
@@ -109,6 +114,9 @@ __declspec(naked) void __fastcall AssignGroup(FaceGroup*, void*, const FaceGroup
 __declspec(naked) MapAssoc* DwordMap::GetAssocAt(const std::uint32_t&, std::uint32_t&) const EI_ORIGINAL(0x00477340)
 __declspec(naked) std::uint32_t& DwordMap::At(const std::uint32_t&) EI_ORIGINAL(0x00476050)
 __declspec(naked) void DwordMap::Destruct() EI_ORIGINAL(0x00476140)
+
+void NodeMorphKeyElements::Construct(NodeMorphKey* keys, int count) { ConstructNodeMorphKeys(keys, count); }
+void NodeMorphKeyElements::Destruct(NodeMorphKey* keys, int count) { DestructNodeMorphKeys(keys, count); }
 
 namespace {
 
@@ -142,19 +150,6 @@ __declspec(naked) void __fastcall SetSizeHelpers(VtArray*, void*, int, int) EI_O
 // MFC.
 void __fastcall SetSizeDwordArray(mfc::CArray<std::uint32_t>* a0, void*, int a2, int a3) { UIntArraySetSizeOriginal(a0, nullptr, a2, a3); }
 
-// Vtables of the record's local arrays.
-constexpr std::uintptr_t kPointArrayVtable = 0x0073C860;      // A
-constexpr std::uintptr_t kTexCoordArrayVtable = 0x0073C854;   // B
-constexpr std::uintptr_t kFileFaceArrayVtable = 0x0073C848;   // C
-constexpr std::uintptr_t kGroupArrayVtable = 0x0073C2BC;      // D
-constexpr std::uintptr_t kRotKeyArrayVtable = 0x0073C83C;     // E
-constexpr std::uintptr_t kPosKeyArrayVtable = 0x0073C830;     // F
-constexpr std::uintptr_t kMorphHeadArrayVtable = 0x0073C824;  // G
-constexpr std::uintptr_t kNormalArrayVtable = 0x0073C86C;     // H
-constexpr std::uintptr_t kDwordMapVtable = 0x0073C818;
-constexpr std::uintptr_t kMapArrayVtable = 0x0073C80C;
-constexpr std::uintptr_t kIndexArrayVtable = 0x0073C800;
-
 // --- Inlined MFC templates -----------------------------------------------------------------------
 
 // CMap::RemoveAll, inlined (the keys and values need no destructor).
@@ -169,13 +164,13 @@ void RemoveAll(DwordMap& map) {
 
 // An empty array of the instantiation with `vtable`.
 template <typename Records>
-void InitArray(Records& a, std::uintptr_t vtable) {
+void InitArray(Records& a, void* vtable) {
     a = {};
-    a.vtable = reinterpret_cast<void*>(vtable);
+    a.vtable = vtable;
 }
 
 void InitMap(DwordMap& map) {
-    map.vtable = kDwordMapVtable;
+    map.vtable = scenedata::DwordMapVtable();
     map.table = nullptr;
     map.hashSize = 17;
     map.count = 0;
@@ -270,20 +265,20 @@ void MergeCorner(RecordArrays& r, VertexMerge& m, MeshFace* meshFace, std::uint3
 
 class Loader {
 public:
-    Loader(void* file, std::uint32_t version) : file_(file), version_(version) {}
+    Loader(mfc::CFileVirtuals* file, std::uint32_t version) : file_(file), version_(version) {}
 
     void LoadRecord(int i, VtArray* meshes, VtArray* nodes);
     void SkipRecord();
-    void LoadHelper(void* helper);
+    void LoadHelper(SceneHelper* helper);
 
 private:
     void SizeRecordArrays(RecordArrays& r, const RecordHeader& h);
     void ReadGroups(RecordArrays& r, const RecordHeader& h);
-    void LoadNodeKeys(RecordArrays& r, const RecordHeader& h, void* node);
-    void LoadMorphKeys(RecordArrays& r, const RecordHeader& h, void* node);
-    void BuildMesh(RecordArrays& r, void* mesh, void* node);
+    void LoadNodeKeys(RecordArrays& r, const RecordHeader& h, SceneNode* node);
+    void LoadMorphKeys(RecordArrays& r, const RecordHeader& h, SceneNode* node);
+    void BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node);
 
-    void* file_;
+    mfc::CFileVirtuals* file_;
     std::uint32_t version_;
 };
 
@@ -311,85 +306,79 @@ void Loader::ReadGroups(RecordArrays& r, const RecordHeader& h) {
 
 // The node's rotation and position keys (and normals in the newer version), copied field by
 // field from the file records.
-void Loader::LoadNodeKeys(RecordArrays& r, const RecordHeader& h, void* node) {
+void Loader::LoadNodeKeys(RecordArrays& r, const RecordHeader& h, SceneNode* node) {
     Read(file_, r.rotKeys.data, r.rotKeys.size * 0x14);
-    RotKeyRecords& rot = *At<RotKeyRecords>(node, node::kRotKeys);
+    auto& rot = node->rotationKeys;
     rot.SetSize(r.rotKeys.size);
     for (int k = 0; k < rot.size; ++k) {
-        const void* from = r.rotKeys.data[k].bytes;
-        void* to = rot.data[k].bytes;
-        SetWord(to, 0, Word(from, 0));
-        std::uint32_t z = FpuCopyBits(At(const_cast<void*>(from), 0x10));
-        std::uint32_t y = FpuCopyBits(At(const_cast<void*>(from), 0x0C));
-        std::uint32_t x = FpuCopyBits(At(const_cast<void*>(from), 0x08));
-        SetDword(to, 0x08, x);
-        SetDword(to, 0x0C, y);
-        SetDword(to, 0x10, z);
+        const FileRotationKey& from = r.rotKeys.data[k];
+        NodeRotationKey& to = rot.data[k];
+        to.frame = static_cast<std::int16_t>(from.frame);
+        std::uint32_t z = FpuCopyBits(&from.value[2]);
+        std::uint32_t y = FpuCopyBits(&from.value[1]);
+        std::uint32_t x = FpuCopyBits(&from.value[0]);
+        SetBits(to.value.x, x);
+        SetBits(to.value.y, y);
+        SetBits(to.value.z, z);
     }
 
     Read(file_, r.posKeys.data, r.posKeys.size * 0x18);
-    PosKeyRecords& pos = *At<PosKeyRecords>(node, node::kPosKeys);
+    auto& pos = node->positionKeys;
     pos.SetSize(r.posKeys.size);
     for (int k = 0; k < pos.size; ++k) {
-        const void* from = r.posKeys.data[k].bytes;
-        void* to = pos.data[k].bytes;
-        SetWord(to, 0, Word(from, 0));
-        std::uint32_t z = FpuCopyBits(At(const_cast<void*>(from), 0x10));
-        std::uint32_t y = FpuCopyBits(At(const_cast<void*>(from), 0x0C));
-        std::uint32_t x = FpuCopyBits(At(const_cast<void*>(from), 0x08));
-        SetDword(to, 0x0C, x);
-        SetDword(to, 0x10, y);
-        SetDword(to, 0x14, z);
-        SetDword(to, 0x08, Dword(from, 0x14));
+        const FilePositionKey& from = r.posKeys.data[k];
+        NodePositionKey& to = pos.data[k];
+        to.frame = static_cast<std::int16_t>(from.frame);
+        std::uint32_t z = FpuCopyBits(&from.axis[2]);
+        std::uint32_t y = FpuCopyBits(&from.axis[1]);
+        std::uint32_t x = FpuCopyBits(&from.axis[0]);
+        SetBits(to.axis.x, x);
+        SetBits(to.axis.y, y);
+        SetBits(to.axis.z, z);
+        SetBits(to.angle, from.angle);
     }
 
     if (version_ != kVersionWithNormals) return;
     r.normals.SetSize(h.posKeyCount);
-    NodeNormalArray& normals = *At<NodeNormalArray>(node, node::kNormals);
+    auto& normals = node->normals;
     normals.SetSize(h.posKeyCount);
     Read(file_, r.normals.data, r.normals.size * 0x14);
     for (int k = 0; k < normals.size; ++k) {
-        const void* from = r.normals.data[k].bytes;
-        void* to = normals.data[k].bytes;
-        std::uint32_t z = FpuCopyBits(At(const_cast<void*>(from), 0x10));
-        std::uint32_t y = FpuCopyBits(At(const_cast<void*>(from), 0x0C));
-        std::uint32_t x = FpuCopyBits(At(const_cast<void*>(from), 0x08));
-        SetDword(to, 0, x);
-        SetDword(to, 4, y);
-        SetDword(to, 8, z);
+        const FileNormal& from = r.normals.data[k];
+        Vector3& to = normals.data[k];
+        std::uint32_t z = FpuCopyBits(&from.value[2]);
+        std::uint32_t y = FpuCopyBits(&from.value[1]);
+        std::uint32_t x = FpuCopyBits(&from.value[0]);
+        SetBits(to.x, x);
+        SetBits(to.y, y);
+        SetBits(to.z, z);
     }
 }
 
 // The vertex animation keys: per key two dwords (the first word is the frame) and a full set of
 // positions, kept in the node as an aligned point array.
-void Loader::LoadMorphKeys(RecordArrays& r, const RecordHeader& h, void* node) {
-    MorphKeyArray& keys = *At<MorphKeyArray>(node, node::kMorphKeys);
+void Loader::LoadMorphKeys(RecordArrays& r, const RecordHeader& h, SceneNode* node) {
+    auto& keys = node->morphKeys;
     keys.SetSize(r.morphHeads.size);
     for (int k = 0; k < r.morphHeads.size; ++k) {
         int count = h.pointCount;
         PointBits* points = count ? PointBuffer::Allocate(count) : nullptr;
-        void* head = r.morphHeads.data[k].bytes;
-        Read(file_, head, 4);
-        Read(file_, At(head, 4), 4);
+        FileMorphHead& head = r.morphHeads.data[k];
+        Read(file_, &head.frame, 4);
+        Read(file_, &head.unknown_04, 4);
         Read(file_, points, h.pointCount * 12);
-        MorphKey& key = keys.data[k];
-        key.frame = Word(head, 0);
+        NodeMorphKey& key = keys.data[k];
+        key.frame = static_cast<std::int16_t>(head.frame);
         key.points.SetSize(count);
-        for (int p = 0; p < count; ++p) {
-            std::uint32_t* to = key.points.data[p].v;
-            const std::uint32_t* from = points[p].v;
-            to[0] = from[0];
-            to[1] = from[1];
-            to[2] = from[2];
-        }
+        for (int p = 0; p < count; ++p) std::memcpy(&key.points.data[p], &points[p], sizeof(PointBits));
         if (points) PointBuffer::Free(points);
     }
 }
 
 // Faces, merged vertices and groups of the mesh; then the morph keys are reordered to the merged
 // vertices.
-void Loader::BuildMesh(RecordArrays& r, void* mesh, void* node) {
-    FaceBuffer& meshFaces = *At<FaceBuffer>(mesh, mesh::kFaces);
+void Loader::BuildMesh(RecordArrays& r, SceneMesh* mesh, SceneNode* node) {
+    FaceBuffer& meshFaces = mesh->faces;
     meshFaces.SetSize(r.faces.size);
     for (int f = 0; f < r.faces.size; ++f) {
         const std::uint32_t* from = reinterpret_cast<const std::uint32_t*>(r.Face(f));
@@ -403,8 +392,8 @@ void Loader::BuildMesh(RecordArrays& r, void* mesh, void* node) {
     VertexMerge m;
     InitMap(m.seen);
     InitMap(m.index);
-    InitArray(m.maps, kMapArrayVtable);
-    InitArray(m.sources, kIndexArrayVtable);
+    InitArray(m.maps, scenedata::MapArrayVtable());
+    InitArray(m.sources, scenedata::IndexArrayVtable());
     m.positions = {};
     m.texCoords = {};
 
@@ -417,34 +406,30 @@ void Loader::BuildMesh(RecordArrays& r, void* mesh, void* node) {
         for (int j = 0; j < group->faces.size; ++j) {
             std::uint32_t faceIndex = r.Group(g)->faces.data[j];
             for (int corner = 0; corner < 3; ++corner) {
-                MeshFace* meshFace = &At<FaceBuffer>(mesh, mesh::kFaces)->data[faceIndex];
+                MeshFace* meshFace = &mesh->faces.data[faceIndex];
                 MergeCorner(r, m, meshFace, faceIndex, corner);
             }
         }
     }
 
-    At<PointBuffer>(mesh, mesh::kPositions)->Copy(m.positions);
-    At<UvBuffer>(mesh, mesh::kTexCoords)->Copy(m.texCoords);
+    mesh->positions.Copy(m.positions);
+    mesh->texCoords.Copy(m.texCoords);
     m.positions.SetSize(0);
     m.texCoords.SetSize(0);
-    GroupRecordArray* groups = At<GroupRecordArray>(mesh, mesh::kGroups);
+    mfc::CArray<FaceGroup>* groups = &mesh->groups;
     GroupsSetSize(groups, nullptr, r.groups.size, -1);
     for (int g = 0; g < r.groups.size; ++g) {
         AssignGroup(&groups->data[g], nullptr, r.Group(g));
     }
 
     // Every morph key's points, reordered to the merged vertices.
-    MorphKeyArray& morph = *At<MorphKeyArray>(node, node::kMorphKeys);
+    auto& morph = node->morphKeys;
     for (int k = 0; k < morph.size; ++k) {
-        PointBuffer reordered{};
+        lib::AlignedArray<Vector3> reordered{};
         reordered.SetSize(m.sources.size);
         for (int v = 0; v < m.sources.size; ++v) {
             std::uint32_t source = m.sources.data[v];
-            const std::uint32_t* from = morph.data[k].points.data[source].v;
-            std::uint32_t* to = reordered.data[v].v;
-            to[0] = from[0];
-            to[1] = from[1];
-            to[2] = from[2];
+            std::memcpy(&reordered.data[v], &morph.data[k].points.data[source], sizeof(Vector3));   // as dwords
         }
         morph.data[k].points.Copy(reordered);
         reordered.FreeData();
@@ -463,32 +448,32 @@ void Loader::LoadRecord(int i, VtArray* meshes, VtArray* nodes) {
     mfc::CString name;
     mfc::CString parent;
     RecordArrays r;
-    InitArray(r.normals, kNormalArrayVtable);
-    InitArray(r.points, kPointArrayVtable);
-    InitArray(r.texCoords, kTexCoordArrayVtable);
-    InitArray(r.faces, kFileFaceArrayVtable);
-    InitArray(r.groups, kGroupArrayVtable);
-    InitArray(r.rotKeys, kRotKeyArrayVtable);
-    InitArray(r.posKeys, kPosKeyArrayVtable);
-    InitArray(r.morphHeads, kMorphHeadArrayVtable);
+    InitArray(r.normals, scenedata::NormalArrayVtable());
+    InitArray(r.points, scenedata::PointArrayVtable());
+    InitArray(r.texCoords, scenedata::TexCoordArrayVtable());
+    InitArray(r.faces, scenedata::FileFaceArrayVtable());
+    InitArray(r.groups, scenedata::GroupArrayVtable());
+    InitArray(r.rotKeys, scenedata::RotKeyArrayVtable());
+    InitArray(r.posKeys, scenedata::PosKeyArrayVtable());
+    InitArray(r.morphHeads, scenedata::MorphHeadArrayVtable());
 
     RecordHeader h;
     Read(file_, &h, sizeof(h));
-    void* node = At(nodes->data, i * node::kSize);
-    void* mesh = At(meshes->data, i * mesh::kSize);
+    SceneNode* node = &Typed<NodeArray>(*nodes).data[i];
+    SceneMesh* mesh = &Typed<MeshArray>(*meshes).data[i];
     std::uint32_t x = FpuCopyBits(&h.offset[0]);
     std::uint32_t y = FpuCopyBits(&h.offset[1]);
     std::uint32_t z = FpuCopyBits(&h.offset[2]);
-    SetDword(node, node::kOffset, x);
-    SetDword(node, node::kOffset + 4, y);
-    SetDword(node, node::kOffset + 8, z);
+    SetBits(node->offset.x, x);
+    SetBits(node->offset.y, y);
+    SetBits(node->offset.z, z);
 
     SizeRecordArrays(r, h);
     Read(file_, name.GetBufferSetLength(h.nameLength), h.nameLength);
     Read(file_, parent.GetBufferSetLength(h.parentLength), h.parentLength);
-    *At<mfc::CString>(node, node::kName) = name;
-    *At<mfc::CString>(node, node::kParent) = parent;
-    *At<mfc::CString>(mesh, mesh::kName) = name;
+    node->name = name;
+    node->parent = parent;
+    mesh->name = name;
 
     Read(file_, r.points.data, h.pointCount * 12);
     Read(file_, r.texCoords.data, h.texCoordCount * 12);
@@ -537,8 +522,8 @@ void Loader::SkipRecord() {
         PointBuffer points;
         ConstructPointBlock(&points);
         SetSizePointBlock(&points, nullptr, h.pointCount, -1);
-        Read(file_, morphHeads.data[k].bytes, 4);
-        Read(file_, morphHeads.data[k].bytes + 4, 4);
+        Read(file_, &morphHeads.data[k].frame, 4);
+        Read(file_, &morphHeads.data[k].unknown_04, 4);
         Read(file_, points.data, h.pointCount * 12);
         DestroyPointBlock(&points);
     }
@@ -549,7 +534,7 @@ void Loader::SkipRecord() {
 }
 
 // A helper (0x3E-byte header, then three names).
-void Loader::LoadHelper(void* helper) {
+void Loader::LoadHelper(SceneHelper* helper) {
 #pragma pack(push, 1)
     struct HelperHeader {
         std::uint32_t vectorA[3];    // +00
@@ -569,22 +554,22 @@ void Loader::LoadHelper(void* helper) {
     mfc::CString text;
     HelperHeader h;
     Read(file_, &h, sizeof(h));
-    std::memcpy(At(helper, helper::kVectorA), h.vectorA, 12);
-    std::memcpy(At(helper, helper::kVectorB), h.vectorB, 12);
-    std::memcpy(At(helper, helper::kVectorC), h.vectorC, 12);
-    SetDword(helper, helper::kValue2C, h.value2C);
-    SetDword(helper, helper::kValue60, h.value60);
+    std::memcpy(&helper->vectorA, h.vectorA, 12);
+    std::memcpy(&helper->vectorB, h.vectorB, 12);
+    std::memcpy(&helper->vectorC, h.vectorC, 12);
+    helper->value2C = h.value2C;
+    helper->value60 = h.value60;
     Read(file_, text.GetBufferSetLength(h.nameLength), h.nameLength);
-    *At<mfc::CString>(helper, helper::kName) = static_cast<const char*>(text);
+    helper->name = static_cast<const char*>(text);
     Read(file_, text.GetBufferSetLength(h.name2Length), h.name2Length);
-    *At<mfc::CString>(helper, helper::kName2) = static_cast<const char*>(text);
+    helper->name2 = static_cast<const char*>(text);
     Read(file_, text.GetBufferSetLength(h.name3Length), h.name3Length);
-    *At<mfc::CString>(helper, helper::kName3) = static_cast<const char*>(text);
+    helper->name3 = static_cast<const char*>(text);
 }
 
 } // namespace
 
-mfc::BOOL SceneInfo::Load(void* file, VtArray* meshes, VtArray* helpers, VtArray* nodes) {
+mfc::BOOL SceneInfo::Load(mfc::CFileVirtuals* file, VtArray* meshes, VtArray* helpers, VtArray* nodes) {
     struct FileHeader {
         std::uint32_t version;
         int recordCount;
@@ -605,7 +590,7 @@ mfc::BOOL SceneInfo::Load(void* file, VtArray* meshes, VtArray* helpers, VtArray
     for (int i = 0; i < header.skippedCount; ++i) loader.SkipRecord();
 
     SetSizeHelpers(helpers, nullptr, header.helperCount, -1);
-    for (int i = 0; i < helpers->size; ++i) loader.LoadHelper(At(helpers->data, i * helper::kSize));
+    for (int i = 0; i < helpers->size; ++i) loader.LoadHelper(&Typed<HelperArray>(*helpers).data[i]);
     return 1;
 }
 EI_REPLACE_METHOD(0x00471B10, SceneInfo::Load);
@@ -620,66 +605,20 @@ struct Text : mfc::CString {
 };
 __declspec(naked) int Text::Find(const char*) const EI_ORIGINAL(0x006FDBD9)
 const Text& Ops(const mfc::CString& s) { return static_cast<const Text&>(s); }
-int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
+int Length(const mfc::CString& s) { return s.GetLength(); }
 
-// String constants, passed by their original address (mods may patch the data).
-const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
-constexpr std::uintptr_t kCantOpenText = 0x00784394;     // "Can't open file %s.\n"
-constexpr std::uintptr_t kManyTopsText = 0x00784344;     // "Scene \"%s\" have more then one top-level object!..."
-constexpr std::uintptr_t kNewLineText = 0x00784340;      // "\n"
-constexpr std::uintptr_t kSceneExtText = 0x00784338;     // ".amf"
-constexpr std::uintptr_t kScenesDirText = 0x00784330;    // "scenes\\"
-constexpr std::uintptr_t kIniDirText = 0x00784328;       // "Ini's\\"
-constexpr std::uintptr_t kRegExtText = 0x00784320;       // ".reg"
-constexpr std::uintptr_t kModelNameText = 0x00784304;    // "Model File Name = \"%s\".\n"
-constexpr std::uintptr_t kBmpExtText = 0x007842FC;       // ".bmp"
-
-// The fake unit's fields used here.
-namespace unit {
-constexpr std::size_t kOffset1C = 0x1C;       // 3 floats, set to (0, 0, 500)
-constexpr std::size_t kTextureOwner = 0x94;   // the object 0051B2F0 / 0051B470 work on
-constexpr std::size_t kSkinTarget = 0xD0;
-constexpr std::size_t kSkin = 0x4E0;
-constexpr std::size_t kFigures = 0x530;       // CArray of figures (0x220 bytes, constructed by 00453240)
-constexpr std::size_t kMeshes = 0x544;        // CArray of meshes (scene_loader.h)
-constexpr std::size_t kBoneLinks = 0x558;     // CArray of 0x14-byte CArrays of 0x28-byte records
-constexpr std::size_t kHelpers = 0x56C;       // CArray of helpers
-} // namespace unit
-
-// The figure (element of the unit's +0x530 array).
-namespace figure {
-constexpr std::size_t kSize = 0x220;
-constexpr std::size_t kName = 0x120;          // CString
-constexpr std::size_t kIndices = 0x138;       // aligned dword array
-constexpr std::size_t kIndices2 = 0x148;      // aligned dword array
-constexpr std::size_t kValue158 = 0x158;      // 2 dwords from the mesh's +0x184
-constexpr std::size_t kVectors160 = 0x160;    // 3 x 3 dwords + 1 from the mesh's +0x15C
-constexpr std::size_t kMatrices = 0x1C0;      // aligned array of 64-byte matrices
-constexpr std::size_t kMatrices2 = 0x1D0;
-} // namespace figure
-
-constexpr std::size_t kMeshMatrices = 0xA8;   // mesh: aligned arrays of 64-byte matrices
-constexpr std::size_t kMeshMatrices2 = 0xB8;
-constexpr std::size_t kMeshVectors15C = 0x15C;
-constexpr std::size_t kMeshValue184 = 0x184;
-constexpr std::size_t kNodeBoneLinks = 0xF8;  // node: CArray of 0x28-byte records
-constexpr std::size_t kTextureName = 0x1C;    // CString of the texture objects
-
-constexpr std::uintptr_t kNodeArrayVtable = 0x0073C15C;
-constexpr std::uintptr_t kTextureNameArrayVtable = 0x0073C144;   // {id, CString}
-constexpr std::uintptr_t kTextureLinkArrayVtable = 0x0073C150;   // {id, value}
-
-constexpr int kGetNameSlot = 7;              // CEngineObject::GetName
-constexpr int kTextureManagerSlot = 33;      // manager context slot 33 (+0x84)
+// The figure meshes are engine objects (class 0x42; CFigureMesh keeps its vtable as a field): slot
+// 7 (GetName) gives the name.
+CEngineObject* FigureObject(CFigureMesh* figure) { return reinterpret_cast<CEngineObject*>(figure); }
 
 // Not rewritten.
 __declspec(naked) void __stdcall ConstructFigures(void*, int) EI_ORIGINAL(0x00453240)
 __declspec(naked) void __stdcall DestructFigures(void*, int) EI_ORIGINAL(0x00453210)
 __declspec(naked) void __stdcall ConstructBoneLinks(void*, int) EI_ORIGINAL(0x004534F0)
 __declspec(naked) void __stdcall DestructBoneLinks(void*, int) EI_ORIGINAL(0x004534C0)
-using FigureRecordArray =
-    mfc::CArray<Rec<figure::kSize>, OriginalElements<Rec<figure::kSize>, ConstructFigures, DestructFigures>>;
-using BoneLinkArray = mfc::CArray<Rec<0x14>, OriginalElements<Rec<0x14>, ConstructBoneLinks, DestructBoneLinks>>;
+using FigureRecordArray = mfc::CArray<CFigureMesh, OriginalElements<CFigureMesh, ConstructFigures, DestructFigures>>;
+// Per figure, a copy of its node's frame records (NodeFrame, 0x28 bytes each).
+using BoneLinkArray = mfc::CArray<VtArray, OriginalElements<VtArray, ConstructBoneLinks, DestructBoneLinks>>;
 __declspec(naked) void __fastcall SetSizeBoneLinks(VtArray*, void*, int, int) EI_ORIGINAL(0x00450370)       // unit +0x558
 void __fastcall SetSizeFigures(VtArray* a0, void*, int a2, int a3) { FigureArraySetSizeOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall SetSizeBoneLinkRecords(VtArray*, void*, int, int) EI_ORIGINAL(0x00450F20) // 0x28-byte records
@@ -694,8 +633,8 @@ __declspec(naked) void __fastcall PlaceMeshes(void*) EI_ORIGINAL(0x0044E3B0)
 __declspec(naked) void __fastcall PrepareMeshes(VtArray*) EI_ORIGINAL(0x0044DCF0)
 __declspec(naked) void __fastcall PrepareMeshes2(VtArray*) EI_ORIGINAL(0x0044CFF0)
 __declspec(naked) void __fastcall PrepareMesh(void*) EI_ORIGINAL(0x0044E8A0)
-__declspec(naked) void* __fastcall FindTexture(void*, void*, std::uint32_t) EI_ORIGINAL(0x0051B2F0)
-__declspec(naked) void* __fastcall AddTextureLink(void*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0051B470)
+__declspec(naked) SceneTexture* __fastcall FindTexture(void*, void*, std::uint32_t) EI_ORIGINAL(0x0051B2F0)
+__declspec(naked) SceneTexture* __fastcall AddTextureLink(void*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0051B470)
 int __fastcall RegisterTexture(void* a0, void*, void* a2, std::uint32_t a3) { return MaterialRegisterOriginal(a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall FinishFigure(void*) EI_ORIGINAL(0x005A6D40)
 __declspec(naked) void __fastcall AddFigure(void*, void*, void*) EI_ORIGINAL(0x005164B0)
@@ -707,10 +646,10 @@ __declspec(naked) mfc::BOOL __fastcall LoadScene(SceneInfo*, void*, void*, VtArr
 // The loader's locals that need cleaning up, as small owners. Declared in the original's
 // construction order, so C++ destroys them in its order.
 struct SceneNodes : VtArray {
-    SceneNodes() : VtArray{reinterpret_cast<void*>(kNodeArrayVtable), nullptr, 0, 0, 0} {}
+    SceneNodes() : VtArray{scenedata::NodeArrayVtable(), nullptr, 0, 0, 0} {}
     ~SceneNodes() {
         if (!data) return;
-        for (int i = 0; i < size; ++i) DestructNode(At(data, i * node::kSize));
+        for (int i = 0; i < size; ++i) DestructNode(&Typed<NodeArray>(*this).data[i]);
         gamecrt::operator_delete(data);
     }
 };
@@ -720,20 +659,22 @@ struct Registry {
     ~Registry() { DestroyRegistry(bytes); }
 };
 struct TextureLinks : VtArray {
-    TextureLinks() : VtArray{reinterpret_cast<void*>(kTextureLinkArrayVtable), nullptr, 0, 0, 0} {}
+    TextureLinks() : VtArray{scenedata::TextureLinkArrayVtable(), nullptr, 0, 0, 0} {}
     ~TextureLinks() {
         if (data) gamecrt::operator_delete(data);
     }
+    const TextureLinkRecord& Record(int i) const { return reinterpret_cast<const TextureLinkRecord*>(data)[i]; }
 };
 struct TextureNames : VtArray {
-    TextureNames() : VtArray{reinterpret_cast<void*>(kTextureNameArrayVtable), nullptr, 0, 0, 0} {}
+    TextureNames() : VtArray{scenedata::TextureNameArrayVtable(), nullptr, 0, 0, 0} {}
     ~TextureNames() {
         if (!data) return;
-        for (int i = 0; i < size; ++i) DestructTextureName(At(data, i * 8));
+        for (int i = 0; i < size; ++i) DestructTextureName(&Records()[i]);
         gamecrt::operator_delete(data);
     }
-    std::uint32_t Id(int i) const { return Dword(data, i * 8); }
-    mfc::CString& Name(int i) { return *At<mfc::CString>(data, i * 8 + 4); }
+    TextureNameRecord* Records() { return reinterpret_cast<TextureNameRecord*>(data); }
+    std::uint32_t Id(int i) { return Records()[i].id; }
+    mfc::CString& Name(int i) { return Records()[i].name; }
 };
 
 struct SceneLoad {
@@ -756,8 +697,6 @@ struct SceneLoad {
     explicit SceneLoad(const char* fileName) : path(fileName), infoDword(0) {}
 };
 
-char* Element(const VtArray* a, int i, std::size_t size) { return At<char>(a->data, i * size); }
-
 } // namespace
 
 // 00446C10. Loads the scene `fileName` (an .amf) into the fake unit: meshes, helpers and nodes,
@@ -765,12 +704,12 @@ char* Element(const VtArray* a, int i, std::size_t size) { return At<char>(a->da
 // "scenes\\"), the figures, skeleton and textures. Returns 0 if the file cannot be opened or the
 // scene has more than one top-level node (a fatal error). The caller also passes the unit in ECX;
 // it is not read.
-mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registryName, void* fakeUnit) {
-    char* u = static_cast<char*>(fakeUnit);
-    VtArray* meshes = reinterpret_cast<VtArray*>(u + unit::kMeshes);
-    VtArray* helpers = reinterpret_cast<VtArray*>(u + unit::kHelpers);
-    VtArray* figures = reinterpret_cast<VtArray*>(u + unit::kFigures);
-    VtArray* boneLinks = reinterpret_cast<VtArray*>(u + unit::kBoneLinks);
+mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registryName, FakeUnitScene* fakeUnit) {
+    FakeUnitScene* u = fakeUnit;
+    VtArray* meshes = &u->meshes;
+    VtArray* helpers = &u->helpers;
+    VtArray* figures = &u->figures;
+    VtArray* boneLinks = &u->boneLinks;
 
     SceneLoad s(fileName);
     SetSizeBoneLinks(boneLinks, nullptr, 0, -1);
@@ -779,7 +718,7 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
 
     if (!s.file.Open(fileName, 0x8000, nullptr)) {
         mfc::CString message;
-        message.Format(GameText(kCantOpenText), fileName);
+        message.Format(scenedata::CantOpenText(), fileName);
         AfxMessageBox(message, 0x10, 0);
         return 0;
     }
@@ -789,29 +728,29 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     // Exactly one node may have no parent.
     int tops = 0;
     for (int i = 0; i < s.nodes.size; ++i) {
-        char* n = Element(&s.nodes, i, node::kSize);
-        if (Length(*At<mfc::CString>(n, node::kParent)) == 0) {
+        SceneNode& n = Typed<NodeArray>(s.nodes).data[i];
+        if (Length(n.parent) == 0) {
             ++tops;
-            s.roots.SetAtGrow(s.roots.size, *At<mfc::CString>(n, node::kName));
+            s.roots.SetAtGrow(s.roots.size, n.name);
         }
     }
     if (tops > 1) {
         mfc::CString message;
-        message.Format(GameText(kManyTopsText), fileName);
-        for (int i = 0; i < s.roots.size; ++i) message += s.roots[i] + GameText(kNewLineText);
+        message.Format(scenedata::ManyTopsText(), fileName);
+        for (int i = 0; i < s.roots.size; ++i) message += s.roots[i] + scenedata::NewLineText();
         game::FatalError(message);
         return 0;
     }
 
     // The figure's registry file.
-    int ext = Ops(s.path).Find(GameText(kSceneExtText));
+    int ext = Ops(s.path).Find(scenedata::SceneExtText());
     if (ext != -1) {
         if (!registryName) {
-            if (Ops(s.path).Find(GameText(kScenesDirText)) == 0) {
-                s.path = GameText(kIniDirText) + Ops(s.path).Right(Length(s.path) - 7);
+            if (Ops(s.path).Find(scenedata::ScenesDirText()) == 0) {
+                s.path = scenedata::IniDirText() + Ops(s.path).Right(Length(s.path) - 7);
                 --ext;
             }
-            s.path = s.path.Left(ext) + GameText(kRegExtText);
+            s.path = s.path.Left(ext) + scenedata::RegExtText();
         } else {
             s.path = mfc::CString(registryName);
         }
@@ -820,28 +759,32 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
     }
 
     // One figure per mesh.
-    Typed<FigureRecordArray>(*figures).SetSize(meshes->size);
+    FigureRecordArray& figureArray = Typed<FigureRecordArray>(*figures);
+    MeshArray& meshArray = Typed<MeshArray>(*meshes);
+    NodeArray& nodeArray = Typed<NodeArray>(s.nodes);
+    figureArray.SetSize(meshes->size);
     for (int i = 0; i < meshes->size; ++i) {
-        char* m = Element(meshes, i, mesh::kSize);
-        *At<mfc::CString>(Element(figures, i, figure::kSize), figure::kName) = ei::VCall<const char*>(m, kGetNameSlot);
-        SetDword(Element(figures, i, figure::kSize), figure::kValue158, Dword(Element(meshes, i, mesh::kSize), kMeshValue184));
-        SetDword(Element(figures, i, figure::kSize), figure::kValue158 + 4, Dword(Element(meshes, i, mesh::kSize), kMeshValue184 + 4));
+        figureArray.data[i].name_ = meshArray.data[i].GetName();
+        figureArray.data[i].unknown_158 = meshArray.data[i].unknown_184[0];
+        figureArray.data[i].unknown_15C = meshArray.data[i].unknown_184[1];
     }
 
-    if (!BuildSkeleton(meshes, &s.nodes, static_cast<int>(s.infoDword - 1), u + unit::kSkin))
-        game::FatalError(GameText(kModelNameText), fileName);
+    if (!BuildSkeleton(meshes, &s.nodes, static_cast<int>(s.infoDword - 1), &u->skin))
+        game::FatalError(scenedata::ModelNameText(), fileName);
     PlaceMeshes(fakeUnit);
 
     // Each figure takes the bone links of the nodes of the same name.
-    Typed<BoneLinkArray>(*boneLinks).SetSize(figures->size);
+    BoneLinkArray& linkArray = Typed<BoneLinkArray>(*boneLinks);
+    linkArray.SetSize(figures->size);
     for (int f = 0; f < figures->size; ++f) {
         for (int n = 0; n < s.nodes.size; ++n) {
-            const char* name = ei::VCall<const char*>(Element(figures, f, figure::kSize), kGetNameSlot);
-            char* nd = Element(&s.nodes, n, node::kSize);
-            if (gamecrt::mbscmp(*At<const unsigned char*>(nd, node::kName), reinterpret_cast<const unsigned char*>(name)) != 0)
+            const char* name = FigureObject(&figureArray.data[f])->GetName();
+            SceneNode& nd = nodeArray.data[n];
+            if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(nd.name)),
+                                reinterpret_cast<const unsigned char*>(name)) != 0)
                 continue;
-            VtArray* links = reinterpret_cast<VtArray*>(Element(boneLinks, f, 0x14));
-            const VtArray* from = At<VtArray>(nd, kNodeBoneLinks);
+            VtArray* links = &linkArray.data[f];
+            const VtArray* from = &nd.frames;
             SetSizeBoneLinkRecords(links, nullptr, from->size, -1);
             std::memcpy(links->data, from->data, from->size * 0x28);
         }
@@ -849,59 +792,58 @@ mfc::BOOL __stdcall LoadFakeUnitScene(const char* fileName, const char* registry
 
     PrepareMeshes(meshes);
     PrepareMeshes2(meshes);
-    for (int i = 0; i < meshes->size; ++i) PrepareMesh(Element(meshes, i, mesh::kSize));
+    for (int i = 0; i < meshes->size; ++i) PrepareMesh(&meshArray.data[i]);
 
-    // The figures take the meshes' matrices; their index arrays get four entries per matrix.
+    // The figures take the meshes' matrices (64-byte blocks: the figure's vertex and normal
+    // packets); their colour arrays get four entries per matrix.
+    auto copyBlocks = [](auto& to, const BlockBuffer& from) {
+        to.SetSize(from.size);
+        std::memcpy(static_cast<void*>(to.data), from.data, static_cast<std::size_t>(from.size) << 6);
+    };
     for (int i = 0; i < meshes->size; ++i) {
-        for (int pair = 0; pair < 2; ++pair) {
-            const BlockBuffer* from = At<BlockBuffer>(Element(meshes, i, mesh::kSize), pair ? kMeshMatrices2 : kMeshMatrices);
-            BlockBuffer* to = At<BlockBuffer>(Element(figures, i, figure::kSize), pair ? figure::kMatrices2 : figure::kMatrices);
-            to->SetSize(from->size);
-            std::memcpy(to->data, from->data, static_cast<std::size_t>(from->size) << 6);
-        }
-        const std::size_t indexArrays[2] = {figure::kIndices, figure::kIndices2};
-        for (std::size_t indices : indexArrays) {
-            char* f = Element(figures, i, figure::kSize);
-            int count = At<BlockBuffer>(f, figure::kMatrices2)->size * 4;
-            At<DwordBuffer>(f, indices)->SetSize(count);
-        }
-        for (std::size_t v = 0; v < 3; ++v)
-            std::memcpy(Element(figures, i, figure::kSize) + figure::kVectors160 + v * 12,
-                        Element(meshes, i, mesh::kSize) + kMeshVectors15C + v * 12, 12);
-        SetDword(Element(figures, i, figure::kSize), figure::kVectors160 + 0x24,
-                 Dword(Element(meshes, i, mesh::kSize), kMeshVectors15C + 0x24));
+        CFigureMesh& figure = figureArray.data[i];
+        const SceneMesh& mesh = meshArray.data[i];
+        copyBlocks(figure.vertices_, mesh.matrices);
+        copyBlocks(figure.normals_, mesh.matrices2);
+        figure.colorsA_.SetSize(figure.normals_.size * 4);
+        figure.colorsB_.SetSize(figure.normals_.size * 4);
+        std::memcpy(&figure.center_, &mesh.center, sizeof(Vector3));
+        std::memcpy(&figure.boxMin_, &mesh.boxMin, sizeof(Vector3));
+        std::memcpy(&figure.boxMax_, &mesh.boxMax, sizeof(Vector3));
+        std::memcpy(&figure.radius_, &mesh.radius, sizeof(float));
     }
 
     // The textures named in the registry file (without ".bmp") and their links.
     for (int t = 0; t < s.textureNames.size; ++t) {
-        void* owner = *At<void*>(u, unit::kTextureOwner);
-        void* texture = FindTexture(owner, nullptr, s.textureNames.Id(t));
+        void* owner = u->Object3D()->attached;
+        SceneTexture* texture = FindTexture(owner, nullptr, s.textureNames.Id(t));
         bool bmp = gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(Ops(s.textureNames.Name(t)).Right(4))),
-                                    reinterpret_cast<const unsigned char*>(GameText(kBmpExtText))) == 0;
+                                    reinterpret_cast<const unsigned char*>(scenedata::BmpExtText())) == 0;
         if (bmp) {
             const mfc::CString& name = s.textureNames.Name(t);
-            *At<mfc::CString>(texture, kTextureName) = static_cast<const char*>(name.Left(Length(name) - 4));
+            texture->name = static_cast<const char*>(name.Left(Length(name) - 4));
         } else {
-            *At<mfc::CString>(texture, kTextureName) = static_cast<const char*>(s.textureNames.Name(t));
+            texture->name = static_cast<const char*>(s.textureNames.Name(t));
         }
         for (int l = 0; l < s.textureLinks.size; ++l) {
-            void* manager = ei::VCall<void*>(ManagerContextOf(fakeUnit), kTextureManagerSlot);
-            std::uint32_t id = Dword(s.textureLinks.data, l * 8);
+            // The manager context's slot 33 (CWorld::MaterialManager).
+            void* manager = static_cast<CWorld*>(ManagerContextOf(fakeUnit))->MaterialManager();
+            std::uint32_t id = s.textureLinks.Record(l).id;
             if (id != s.textureNames.Id(t)) continue;
-            void* linked = AddTextureLink(owner, nullptr, id, Dword(s.textureLinks.data, l * 8 + 4));
-            *At<mfc::CString>(linked, kTextureName) = static_cast<const char*>(s.textureNames.Name(t));
-            RegisterTexture(manager, nullptr, linked, Dword(s.textureLinks.data, l * 8 + 4));
+            SceneTexture* linked = AddTextureLink(owner, nullptr, id, s.textureLinks.Record(l).value);
+            linked->name = static_cast<const char*>(s.textureNames.Name(t));
+            RegisterTexture(manager, nullptr, linked, s.textureLinks.Record(l).value);
         }
     }
 
     for (int f = 0; f < figures->size; ++f) {
-        FinishFigure(Element(figures, f, figure::kSize));
-        AddFigure(fakeUnit, nullptr, Element(figures, f, figure::kSize));
+        FinishFigure(&figureArray.data[f]);
+        AddFigure(fakeUnit, nullptr, &figureArray.data[f]);
     }
-    BindSkin(u + unit::kSkin, nullptr, u + unit::kSkinTarget);
-    ResetSkin(u + unit::kSkin);
+    BindSkin(&u->skin, nullptr, &u->Object3D()->parts);
+    ResetSkin(&u->skin);
     const std::uint32_t offset[3] = {0, 0, 0x44FA0000};   // (0, 0, 500)
-    std::memcpy(u + unit::kOffset1C, offset, sizeof(offset));
+    std::memcpy(&u->Object3D()->position, offset, sizeof(offset));
     return 1;
 }
 EI_REPLACE(0x00446C10, LoadFakeUnitScene);

@@ -70,6 +70,34 @@ private:
 };
 static_assert(sizeof(CFile) == 0x10);
 
+// The virtual slots of MFC 4.2's CFile (vtable 00745DF4) for callers that dispatch through a
+// file's vtable (the original does; the verify build hands some loaders a proxy file). CFile above
+// calls the bodies directly. Declared only: a devirtualised call would not link. Slots declared
+// `void Name()` keep their place in the order only.
+class __declspec(novtable) CFileVirtuals {
+public:
+    virtual void GetRuntimeClass();                                    // 0: 0070BE58
+    virtual void* DeletingDestructor(unsigned flags);                  // 1: 00701050
+    virtual void Serialize();                                          // 2: CObject's (empty)
+    virtual unsigned long GetPosition() const;                         // 3: 007013B9
+    virtual void GetFileName();                                        // 4
+    virtual void GetFileTitle();                                       // 5
+    virtual void GetFilePath();                                        // 6
+    virtual void SetFilePath();                                        // 7
+    virtual BOOL Open(const char* path, unsigned flags, void* error);  // 8: 007011E8
+    virtual void Duplicate();                                          // 9
+    virtual long Seek(long offset, unsigned from);                     // 10: 0070138A
+    virtual void SetLength(unsigned long length);                      // 11
+    virtual unsigned long GetLength() const;                           // 12: 007014E2
+    virtual unsigned Read(void* buffer, unsigned count);               // 13: 00701305
+    virtual void Write(const void* buffer, unsigned count);            // 14: 0070133F
+    virtual void LockRange();                                          // 15
+    virtual void UnlockRange();                                        // 16
+    virtual void Abort();                                              // 17
+    virtual void Flush();                                              // 18
+    virtual void Close();                                              // 19: 00701403
+};
+
 // CFileFind (0x1C bytes).
 class CFileFind {
 public:

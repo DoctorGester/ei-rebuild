@@ -182,7 +182,7 @@ src/game/resource_manager.h,0,0,0,0,1,0,0,0,0,0,0
 src/game/resource_stream.cpp,0,0,0,0,4,0,0,0,0,0,0
 src/game/scene_bone_frames.cpp,0,0,0,0,0,0,0,0,0,0,4
 src/game/scene_bones.cpp,0,0,1,0,0,0,0,0,0,0,0
-src/game/scene_loader.cpp,31,4,1,0,23,0,0,0,0,0,0
+src/game/scene_loader.cpp,0,0,1,0,0,0,0,0,0,0,0
 src/game/scene_loader.h,0,0,0,0,0,0,0,0,0,1,0
 src/game/scene_material.cpp,0,0,0,0,25,0,0,0,0,0,0
 src/game/scene_meshes.cpp,10,0,0,0,0,0,0,0,0,0,0
