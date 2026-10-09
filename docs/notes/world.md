@@ -300,8 +300,7 @@ pragma (DR-C4): release code is fild elapsed, fmul secondsPerTick_, fadd offset,
 
 - Rebirth-patched and not rewritten: 00567AB0 (client world load), 0057F560, 005809D0, 005812F0, 005813A0 (the `Maps` /
   `ResOverride` path hooks), 00595480 `NewZone`, 00595BA0 (map path).
-- Large and not rewritten (next candidates): 0056C750 (shadow / decal pass over the object list, platform triangles into the
-  device's slot 26: renderer work; Ghidra garbles its frame); 0058B020 (the server's slot 3 teardown);
+- Large and not rewritten (next candidates): 0058B020 (the server's slot 3 teardown);
   005C06F0, 005C8230 / 005C8BF0 (AI stream code), 005629B0, 00563190, 0057E1A0 / 0057E3D0; then the largest unported
   functions of 0x560000-0x5E0000 (config/functions.csv; A-W10 moved MFC instantiations found there to library.csv).
 - Lifetime code: the CWorldServer constructor 00589ED0 (a static initialiser before the hooks), destructor 0058AAD0, Create

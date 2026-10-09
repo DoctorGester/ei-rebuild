@@ -1069,6 +1069,16 @@ public:
     // 0056D4C0 (RET 0x18): a scorch mark of `alpha` (made when it is positive and the scorch entry
     // has a life).
     void AddScorchMark(float x, float y, float halfWidth, float halfLength, float angle, float alpha);
+    // A-X5 (world_client_decals.cpp). 0056C750 (RET 0x24): lays a decal on the ground into the three
+    // arrays (shadows 0051CE60, ground prints 006CEDE0). The static builder (007AF488) starts on the
+    // quad `corners` projected along `direction` from `point`; the terrain under it adds its
+    // triangles unless `skipOnPlatform` is set and the point lies on a platform; with `objects`,
+    // every platform face's object that the decal can touch adds the triangles of each part of its
+    // figure (transformed by the object's and the part's matrices, on the scene pipeline's stack
+    // 14). An object with several faces adds its parts once per face.
+    void ProjectDecal(const Vector3* direction, const Vector3* point, float depth, VertexPacket* const* corners,
+                      lib::AlignedArray<VertexPacket>* points, lib::AlignedArray<DecalTexCoord>* texCoords,
+                      lib::AlignedArray<std::uint16_t>* indices, std::uint8_t skipOnPlatform, std::uint8_t objects);
     // 006CBC00 (RET 4; terrain_ambience.cpp). The ambient sounds' time of day into `out`: "day"
     // from 6 to 18 o'clock, "morning" before 6 and "evening" after 18 within 2..22, else "night".
     // Returns out.

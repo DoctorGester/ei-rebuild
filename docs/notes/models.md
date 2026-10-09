@@ -185,11 +185,10 @@ draws from the game's random generator (a mistake would shift later draws).
 
 All of it lies in 006C1390-006E5E30 (beyond is the CRT / MFC). Groups (R = Rebirth-patched, forwarded):
 - **Landscape / sectors** 006C1390-006CCF20: shadow test 006C92C0; animated tiles 006C3E80; light countdown 006C8ED0;
-  ambience 006CB390 / 006CBC00 / 006CBCD0; map loading 006C68B0 (R), 006C5AA0, 006C7750 / 006C7940 / 006C7A80 / 006C7D70 /
-  006C7EB0, 006C5430-006C57E0 (client setup from 00561E50 / 00562B80); draw passes 006C6230 / 006C6330 / 006C6460 /
+  ambience 006CB390 / 006CBC00 / 006CBCD0; map loading 006C68B0 (R), 006C5AA0, 006C7940 / 006C7D70 / 006C7EB0, 006C5430-006C57E0 (client setup from 00561E50 / 00562B80); draw passes 006C6230 / 006C6330 / 006C6460 /
   006C66E0 / 006C67E0 / 006C42A0 / 006C4310; point lights 006CA5D0-006CAC10, 006CB020; water level 006CC7F0; decal
   triangles 006CCF20; sector parts (Clear 006C3C80, CArray element pairs 006C4EE0-006C5230).
-- Shadow / print effects 006CECD0 / 006CEDE0, prints 006CF370-006CFEA0.
+- Ground prints 006CECD0-006CFEA0: ported (A-X5, below).
 - **prints.db / acks.db** 006D00E0-006E5140: database ctors / dtors, the records' compiler-generated members, acks record
   serialisers 006E3780 / 006E3DC0 / 006E3FD0 / 006E42F0 / 006E4410 / 006E46C0 / 006E4F40; loaders 006D0630 / 006D7620 (R).
   98 STLport / MFC instantiations are in config/library.csv ("A-X1 review").
@@ -274,8 +273,7 @@ are {alpha, life, lifetime} (`PrintLook`), the client's +0x7A8 picks the second.
 Facts: Draw's uv loop is unrolled four times in the original: the fourth vertex rounds its u part to a float, the others
 their v part (kept). Blood: spin = 30 / life degrees per tick, spreads min(life / 2, 45) ticks (rebuilt each tick), angle a
 random multiple of 0.001 below 2 pi; footprints take the kind of a death's blood print they step into (fresh hits' are
-skipped) and return it. 0056C750 is forwarded as `ClientProjectDecalOriginal` (originals_world.h; map_object_shadow.cpp
-adapts its call). Kept: Load does not restore alpha_ (the next tick does). Risks: Draw's corners use FCOS / FSIN through
+skipped) and return it. Kept: Load does not restore alpha_ (the next tick does). Risks: Draw's corners use FCOS / FSIN through
 x87::fcos / fsin and plain double maths (CheckNear-level differences possible); the footprint's blood test compares
 `limit >= d2` (NaN positions would differ).
 
@@ -284,8 +282,18 @@ first `count` tiles: the original leaves the rest as its reused stack record hel
 Create / Destroy call them through their addresses. terrain.h now declares `archive` (+0x15C, CMMIOResource) and
 `vertexTiles` (+0x1E8; `terrain::VertexTiles` moved there from terrain_sector.h).
 
-Next: 0056C750 (the decal projector; Ghidra garbles its frame). The acks records' compiler-generated
-members (006DE370, 006DC390, ...) need only the record declarations in a standalone build.
+The decal projector 0056C750 is `CWorldClient::ProjectDecal` (world_client_decals.cpp; S: the original into private copies of
+the three arrays, ours into the caller's, sizes / capacities / used elements compared; callers reach it through
+`ClientProjectDecalOriginal`, originals_world.h). Statics: the builder 007AF488 and the part points (Vector4 array 007AF478),
+guard 007AF504, exit handlers 0056CE30 / 0056CE10. The platform pass walks the platform faces (an object with several faces
+adds its parts once per face, kept), pushes the object's and each part's matrix on the scene pipeline's stack 14
+(`kDecalStack`), transforms the part's packets with the transposed top through the transform object's slot 26
+(`TransformPoints`) and adds each triangle (AddTriangle through its unhooked original). GetPartData's result is not checked
+(kept; ours starts from no part data). The parts are used as CObject3D-like scene nodes (+0x34 orientation, +0x54 matrix),
+which FigurePart's declaration contradicts (C9).
+
+Next: models.md "Game code left in 0x006C0000-0x00740000" (shadow test 006C92C0, draw passes, the CDib class). The acks
+records' compiler-generated members (006DE370, 006DC390, ...) need only the record declarations in a standalone build.
 
 ## Resources and the sound file reader (00671280-00675B40)
 
