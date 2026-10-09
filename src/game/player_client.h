@@ -173,7 +173,9 @@ public:
     std::uint8_t unknown_86[2];
     CoderState compressor_;         // +0x88 for the requests sent
     CoderState decompressor_;       // +0x28B0 for the messages received
-    PlayerObjectArray array50D8_;   // +0x50D8 (aligned storage; Clear frees it)
+    // +0x50D8 the ids of the units the local player sees as its party (message 0x60; the client
+    // world's NearestVisibleUnit; aligned storage, Clear frees it).
+    lib::AlignedArray<int> array50D8_;
 };
 static_assert(offsetof(CPlayerClient, array50D8_) == 0x50D8);
 static_assert(offsetof(CPlayerClient, handlers_) == 0x24);

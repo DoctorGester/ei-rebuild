@@ -61,7 +61,8 @@ struct WorldPlayer {
 
     int id;                              // +0x024 player number (0 = the local player)
     ObjectIdMap objects;                 // +0x028 its objects by id (the briefing screen walks it)
-    std::uint8_t unknown_040[0x70 - 0x40];
+    ObjectIdMap units;                   // +0x040 its units by id (CPlayer::units_ / maxUnitId_)
+    std::uint8_t unknown_058[0x70 - 0x58];
     // +0x070 the player's party (a CParty, party.h, 0x70 bytes to +0xE0: Party()); mercs,
     // mercCount and variables below are its members_ and variables_ seen from here. Loaded and
     // saved by 006618C0 / 00661C10 (world_save.cpp).
@@ -96,6 +97,7 @@ static_assert(offsetof(WorldPlayer, mercs) == 0xA0);
 static_assert(offsetof(WorldPlayer, variables) == 0xC4);
 static_assert(offsetof(WorldPlayer, items) == 0xE0);
 static_assert(offsetof(WorldPlayer, objects) == 0x28);
+static_assert(offsetof(WorldPlayer, units) == 0x40);
 static_assert(offsetof(WorldPlayer, lastScreen) == 0x104);
 
 // What CWorldClient::LocalView (005699F0) returns: the local view, +0x1C its player.
@@ -173,13 +175,13 @@ public:
     // rule 4. Names and evidence: docs/notes/drafts/DR-C2.md. Some names avoid free helpers of
     // the same name (World, ItemManager, LightManager, ...) that the members' bodies call.
     virtual void ThisWorld();             // 13: 0055EB40 returns this
-    virtual void TimedObjectManager();    // 14: 0055EB90 (+0x48)
+    virtual CBaseManager* TimedObjectManager();   // 14: 0055EB90 (+0x48; the client's Segment ticks its objects)
     virtual CEngineObject* FigureManager();  // 15: the figure manager (+0x3C)
     virtual void ItemConstructor();       // 16: 0055EBB0 (+0x58)
     virtual void SpellConstructor();      // 17: 0055EBC0 (+0x50)
     virtual CEngineObject* ItemFactory(); // 18: 004BA000 (+0x54, itemManager_)
     virtual CEngineObject* MapObjectManager();   // 19: 0055EB70, the map object manager (+0x40)
-    virtual CEngineObject* PlayerList();  // 20: 0055EB50 (+0x38, players_)
+    virtual CBaseManager* PlayerList();   // 20: 0055EB50 (+0x38, players_)
     // 21: 0055EB80 (+0x44): the side-specific halves' manager (the client's is a
     // CClientSpecificManager, 0042D690; it makes the class 0x45 objects of CFakeUnit's figures).
     virtual void SpecificManager();
@@ -206,7 +208,8 @@ public:
     virtual void SetTimeSpeed(float speed);
     virtual void* MaterialManager();      // 33: the material manager (0051C970 registers part materials)
     virtual CTextureManager* TextureManager();   // 34: the client's 00561990 (+0x18C)
-    virtual void ClientLightManager();    // 35: client 005619A0 (+0x190, a CLightManager), server 0
+    // 35: client 005619A0 (+0x190, a CLightManager), server 0. The client's Segment walks its objects.
+    virtual CBaseManager* ClientLightManager();
     virtual ClientManager19C* ClientParticleManager();   // 36: client 005619B0 (+0x19C, a CParticleManager), server 0
     virtual void ClientManager194();      // 37: client 005619C0 (+0x194), server 0. Not identified
     virtual void ClientManager198();      // 38: client 005619D0 (+0x198), server 0. Not identified
@@ -217,6 +220,9 @@ public:
     // unit_client_path.cpp reach it through VCall).
     virtual void MoveObject(CEngineObject* object, const float* position);
 
+    // 0055FC10 (not rewritten; world_client.cpp forwards it). Whether the hour of the day is
+    // before 6 or from 22 on.
+    BOOL IsNight();
     // 0055FCB0 (world_time.cpp). Stores the wind direction (+0x24) and strength (+0x30).
     void SetWind(const Vector3* direction, float strength);
     // 0055F8E0 (world_managers.cpp, A-U7). Slot 3 (Destroy) of the base vtable 0073F18C, also
@@ -240,10 +246,25 @@ public:
     CEngineObject* manager50_;            // +0x50 (slot 17)
     CEngineObject* itemManager_;          // +0x54 items (slot 18)
     CEngineObject* manager58_;            // +0x58 (slot 16)
-    std::uint8_t unknown_5C[4];
+    // +0x5C a counted helper (0xC bytes, vtable 0073F240) WorldCreateManagers shares in.
+    RefPtr shared5C_;
     void* unknown60_;                     // +0x60 replaced by 0055F410 when the game ends
     int tick_;                            // +0x64 game time in ticks
+    int updateCount_;                     // +0x068 world updates run (the server's Update)
+    // +0x06C the server's Update skips the players and the tick while it is set; the client's
+    // Segment skips its own ticks (paused).
+    std::uint8_t unknown6C_;
+    std::uint8_t unknown_06D[0x70 - 0x6D];
+    std::uint8_t countdowns_[0x84 - 0x70]; // +0x070 countdown list (006D43E0 sets it up, 006D44E0 ticks it; a CArray)
 };
+static_assert(offsetof(CWorld, shared5C_) == 0x5C);
+// 0055EE40 (world_create.cpp; slot 2 of the base vtable 0073F18C, called by both worlds' Setup).
+// The world's folders from the configured paths, the clock and wind cleared, the managers made,
+// counted and attached (slot 13 with the world, or slot 2), the counted helper at +0x5C, the
+// ISAAC generator seeded and the countdowns (+0x70) set up. Returns 1.
+int __fastcall WorldCreateManagers(CWorld* world);
+static_assert(offsetof(CWorld, updateCount_) == 0x68);
+static_assert(offsetof(CWorld, unknown6C_) == 0x6C);
 static_assert(offsetof(CWorld, unknown24_) == 0x24);
 static_assert(offsetof(CWorld, manager40_) == 0x40);
 static_assert(offsetof(CWorld, itemManager_) == 0x54);
@@ -584,10 +605,6 @@ public:
     // zone's units) and, for a new game, where it starts. 0 when the player state refused it.
     int SendZone(WorldPlayer* player);
 
-    int updateCount_;                     // +0x068 world updates run (Update)
-    std::uint8_t unknown6C_;              // +0x6C
-    std::uint8_t unknown_06D[0x70 - 0x6D];
-    std::uint8_t countdowns_[0x84 - 0x70]; // +0x070 countdown list (006D44E0 ticks it; a CArray)
     std::uint32_t unknown84_;             // +0x084 the day-time value (0058CCD0)
     std::uint32_t unknown88_;             // +0x088
     WorldAlarm alarms_[5];                // +0x08C
@@ -834,6 +851,44 @@ struct OpaqueRecord {
     std::uint8_t bytes[N];
 };
 
+// The client's effect records (the lists +0x1B8, +0x1BC, +0x1C0): objects (their vtable at +0)
+// whose slot 0 runs them one tick; the client's Segment erases those that return 0.
+class ClientEffect {
+public:
+    virtual int Run();   // 0
+};
+// The records of +0x1BC / +0x1C0 (0x94 and 0x8C bytes; element destructors 00575560 / 00575580).
+template <std::size_t N>
+struct ClientEffectRecord : ClientEffect {
+    std::uint8_t unknown_04[N - 4];
+};
+// The records of +0x1B8 (element destructor 0056D080): lights at a point, coloured by Segment
+// with a grey level from the units near them (size unknown; the fields Segment uses).
+struct ClientLightEffect : ClientEffect {
+    std::uint8_t unknown_04[4];
+    float x, y;                           // +0x08
+    std::uint8_t unknown_10[0x54 - 0x10];
+    std::uint32_t colour;                 // +0x54 0xFF grey grey grey
+};
+static_assert(offsetof(ClientLightEffect, colour) == 0x54);
+
+// The client's +0x1A8 (0x58 bytes, vtable 00744098, constructor 006B4350; its names start as
+// "none"). Segment clears +0x44 on its 90th tick (earlier once the party fights, 007AFC9C 2).
+struct ClientObject1A8 : CEngineObject {
+    std::uint8_t unknown_1C[0x44 - 0x1C];
+    int unknown44_;                       // +0x44
+    std::uint8_t unknown_48[0x58 - 0x48];
+};
+static_assert(sizeof(ClientObject1A8) == 0x58);
+
+// The worlds' counted helpers (CWorld + 0x5C, vtable 0073F240; the client's +0x1C8, 0073F628):
+// reference objects with two slots after CRefObject's.
+class CWorldHandle : public CRefObject {
+public:
+    virtual bool Query();   // 4: AL 0 in both (0055F250, 005626F0); meaning unknown
+    virtual void Pump();    // 5: 0055F190 in both (empty); the client's Segment calls it every tick
+};
+
 // A window rectangle of the frame (the client's list +0xF0 and the hit vector +0xF4; 0x18 bytes).
 struct ScreenEntry {
     std::uint32_t unknown_00;
@@ -873,10 +928,13 @@ struct RadiusMarker {
 };
 static_assert(offsetof(RadiusMarker, radius) == 0x8C);
 
-// The client's local session (CWorldClient + 0x20C, made by 0066C180), as far as the maps read it.
+// The client's local session (CWorldClient + 0x20C, made by 0066C180), as far as the maps read it:
+// the local CPlayer (player_messages.h; its Tick 00665DE0 and Disconnect 00665A10 run on it).
 struct WorldSession : CEngineObject {
     std::uint8_t unknown_1C[4];
-    std::uint8_t* localView;              // +0x20
+    // +0x20 the local view: the player's connection (CPlayer::connection_), a CPlayerClient.
+    class CPlayerConnection* localView;
+    class CPlayerClient* LocalClient() const { return reinterpret_cast<class CPlayerClient*>(localView); }
     std::uint8_t unknown_24[0x100 - 0x24];
     int gameKind;                         // +0x100 1 / 3: kinds of multiplayer session
 };
@@ -1065,7 +1123,6 @@ public:
     // The local session (+0x20C) as the maps read it.
     WorldSession* Session() const { return reinterpret_cast<WorldSession*>(session_); }
 
-    std::uint8_t unknown_068[0x84 - 0x68];
     int unknown84_;                       // +0x084 -100000 after Setup
     std::uint8_t unknown_088[0x90 - 0x88];
     ZoneExit* exits_;                     // +0x090
@@ -1098,15 +1155,15 @@ public:
     ClientManager19C* manager19C_;        // +0x19C counted
     ClientListManager* listManager_;      // +0x1A0 owned
     ClientArrayManager* arrayManager_;    // +0x1A4 owned
-    CEngineObject* owned1A8_;             // +0x1A8 owned (constructor 006B4350)
+    ClientObject1A8* owned1A8_;           // +0x1A8 owned (constructor 006B4350)
     void* owned1AC_;                      // +0x1AC owned (destructor body 005636A0)
     CEngineObject* owned1B0_;             // +0x1B0 owned
     ClientNumbers* numbers_;              // +0x1B4 owned
     // +0x1B8 / +0x1BC / +0x1C0 lists of records (element destructors 0056D080, 00575560, 00575580;
     // nodes of 0x9C and 0x94 bytes for the last two).
-    SectorList list1B8_;
-    stlp::list<OpaqueRecord<0x94>> list1BC_;
-    stlp::list<OpaqueRecord<0x8C>> list1C0_;
+    stlp::list<ClientLightEffect> list1B8_;
+    stlp::list<ClientEffectRecord<0x94>> list1BC_;
+    stlp::list<ClientEffectRecord<0x8C>> list1C0_;
     int unknown1C4_;                      // +0x1C4 0 after Setup
     RefPtr handle_;                       // +0x1C8 (vtable 0073F628)
     CSoundManager* sounds_;               // +0x1CC the sound manager (owned; the client controller's hit sounds)
@@ -1127,8 +1184,8 @@ public:
     int unknown6E0_;                      // +0x6E0
     int unknown6E4_;                      // +0x6E4 0 after Setup
     std::uint8_t unknown_6E8[0x6EC - 0x6E8];
-    int sessionJoins_;                    // +0x6EC AddObject fades units in (slot 43) when >= 1
-    std::uint8_t unknown_6F0[0x6F4 - 0x6F0];
+    int ticksRun_;                        // +0x6EC Segment's count; AddObject fades units in (slot 43) when >= 1
+    float tickFraction_;                  // +0x6F0 added to the tick for the units' time (network client)
     ClientRibbons ribbons_;               // +0x6F4
     std::uint8_t unknown_718[0x7A8 - 0x718];
     int unknown7A8_;                      // +0x7A8
@@ -1159,7 +1216,7 @@ static_assert(offsetof(CWorldClient, sounds_) == 0x1CC);
 static_assert(offsetof(CWorldClient, texts_) == 0x1D0);
 static_assert(offsetof(CWorldClient, texturePath_) == 0x224);
 static_assert(offsetof(CWorldClient, unknown6DC_) == 0x6DC);
-static_assert(offsetof(CWorldClient, sessionJoins_) == 0x6EC);
+static_assert(offsetof(CWorldClient, ticksRun_) == 0x6EC);
 static_assert(offsetof(CWorldClient, ribbons_) == 0x6F4);
 static_assert(offsetof(CWorldClient, list7BC_) == 0x7BC);
 static_assert(offsetof(CWorldClient, cursor_) == 0x7D0);
@@ -1338,6 +1395,7 @@ struct GameFlow {
 static_assert(offsetof(GameFlow, requestTarget_) == 0x04);
 static_assert(offsetof(GameFlow, requestArg_) == 0x78);
 static_assert(offsetof(GameFlow, flag80_) == 0x80);
+inline GameFlow* TheGameFlow() { return reinterpret_cast<GameFlow*>(std::uintptr_t(0x007AFE20)); }
 
 struct SavedPartyEntry;   // world_game.cpp: the party records (0x70 bytes) and the file name
 

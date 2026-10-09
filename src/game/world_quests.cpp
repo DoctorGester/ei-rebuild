@@ -1,15 +1,22 @@
 // CWorldServer: the quest variables the server keeps for the scripts (the mercenaries' briefing
 // variables "b.mercN.nK_N"). See world.h and docs/notes/world.md.
 #include "world.h"
+#include "world_data.h"
 #include "game_strings.h"
 
+#include "combat.h"
 #include "console.h"
+#include "item.h"
+#include "map_object.h"
+#include "party.h"
+#include "player_messages.h"
+#include "ui_briefing.h"
+#include "unit.h"
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
@@ -23,31 +30,14 @@
 
 namespace {
 
-const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
-
-// The ten mercenary slots and the zone where each is briefed (pointers at 007907AC).
-const char* MercZone(int slot) { return reinterpret_cast<const char* const*>(0x007907AC)[slot]; }
 constexpr int kMercSlots = 10;
-
-constexpr std::uintptr_t kMercName = 0x007909E4;    // "merc%i"
-constexpr std::uintptr_t kVarN8 = 0x007909D8;       // "b.%s.n8_%i"
-constexpr std::uintptr_t kVarN1 = 0x007909CC;       // "b.%s.n1_%i"
-constexpr std::uintptr_t kVarN2 = 0x007909C0;       // "b.%s.n2_%i"
-constexpr std::uintptr_t kVarN3 = 0x007909B4;       // "b.%s.n3_%i"
-constexpr std::uintptr_t kVarN9 = 0x007909A8;       // "b.%s.n9_%i"
-constexpr std::uintptr_t kVarN10 = 0x0079099C;      // "b.%s.n10_%i"
-constexpr std::uintptr_t kVarN11 = 0x00790990;      // "b.%s.n11_%i"
-constexpr std::uintptr_t kVarHired = 0x00790984;    // "amerc_%i"
-
-float Zero() { return *reinterpret_cast<const volatile float*>(0x0073B858); }
-float One() { return *reinterpret_cast<const volatile float*>(0x0073B84C); }
 
 // 00461360. The text key (object id) of a name (object_tables.cpp), ECX = name.
 __declspec(naked) unsigned __fastcall TextKey(const char*) EI_ORIGINAL(0x00461360)
 // 00460AF0 (RET 4). Named float table Get; the value is left in ST0.
 double __fastcall VariableGet(void* a0, void*, const char* a2) { return (double)NamedTableGet(a0, nullptr, a2); }
 // 0066EE10 (RET 8). CPlayerServer::SetVariable (player_messages.cpp).
-__declspec(naked) void __fastcall StateSetVariable(void*, void*, const char*, float) EI_ORIGINAL(0x0066EE10)
+__declspec(naked) void __fastcall StateSetVariable(CPlayerServer*, void*, const char*, float) EI_ORIGINAL(0x0066EE10)
 
 // C3 of FCOMP: equal or unordered (the original's TEST AH,0x40).
 bool EqualOrUnordered(double a, float b) { return !(a < b) && !(a > b); }
@@ -58,42 +48,46 @@ struct Briefing {
     mfc::CString n1, n3, n9, n8, n2, n10, hired, n11;
 };
 
+// The player's party (its records, items and variables; WorldPlayer + 0x70).
+CParty* PartyOf(WorldPlayer* player) { return player->Party(); }
+PartyUnitRecord& MercRecord(WorldPlayer* player, int index) { return player->Party()->members_.data[index]; }
+
 } // namespace
 
 void CWorldServer::UpdateMercBriefings() {
     PlayerIterator it;
-    for (WorldPlayer* player = it.First(ei::VCall<CEngineObject*>(this, 20)); player; player = it.Next()) {
-        void* state = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(player) + 0x20);
+    for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
+        CPlayerServer* state = player->server;
         int otherMercs = CountLivingMercs(player->id);
         auto set = [&](const mfc::CString& name, float value) { StateSetVariable(state, nullptr, name, value); };
 
         for (int slot = 1; slot <= kMercSlots; ++slot) {
             mfc::CString merc;
-            merc.Format(Text(kMercName), slot);
+            merc.Format(worlddata::MercNameFormat(), slot);
             unsigned key = TextKey(merc);
             bool briefedHere = gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(zoneName_),
-                                                reinterpret_cast<const unsigned char*>(MercZone(slot - 1))) == 0;
+                                                reinterpret_cast<const unsigned char*>(worlddata::MercZoneName(slot - 1))) == 0;
             Briefing b;
-            b.n8.Format(Text(kVarN8), static_cast<const char*>(merc), slot);
-            b.n1.Format(Text(kVarN1), static_cast<const char*>(merc), slot);
-            b.n2.Format(Text(kVarN2), static_cast<const char*>(merc), slot);
-            b.n3.Format(Text(kVarN3), static_cast<const char*>(merc), slot);
-            b.n9.Format(Text(kVarN9), static_cast<const char*>(merc), slot);
-            b.n10.Format(Text(kVarN10), static_cast<const char*>(merc), slot);
-            b.n11.Format(Text(kVarN11), static_cast<const char*>(merc), slot);
-            b.hired.Format(Text(kVarHired), slot);
+            b.n8.Format(worlddata::MercVariableN8Format(), static_cast<const char*>(merc), slot);
+            b.n1.Format(worlddata::MercVariableN1Format(), static_cast<const char*>(merc), slot);
+            b.n2.Format(worlddata::MercVariableN2Format(), static_cast<const char*>(merc), slot);
+            b.n3.Format(worlddata::MercVariableN3Format(), static_cast<const char*>(merc), slot);
+            b.n9.Format(worlddata::MercVariableN9Format(), static_cast<const char*>(merc), slot);
+            b.n10.Format(worlddata::MercVariableN10Format(), static_cast<const char*>(merc), slot);
+            b.n11.Format(worlddata::MercVariableN11Format(), static_cast<const char*>(merc), slot);
+            b.hired.Format(worlddata::MercHiredFormat(), slot);
             set(b.n11, 0.0f);
 
             bool inParty = false;
             for (int i = 0; i < player->mercCount; ++i) {
-                if (*reinterpret_cast<unsigned*>(player->mercs + i * 0x784 + 0x1C) == key) {
+                if (MercRecord(player, i).unknown_01C == key) {
                     inParty = true;
                     break;
                 }
             }
             void* variables = player->variables;
             if (inParty) {
-                if (!EqualOrUnordered(VariableGet(variables, nullptr, b.n10), Zero())) {
+                if (!EqualOrUnordered(VariableGet(variables, nullptr, b.n10), worlddata::Zero())) {
                     set(b.n8, 0.0f);
                     set(b.n1, 0.0f);
                     set(b.n2, 0.0f);
@@ -106,7 +100,7 @@ void CWorldServer::UpdateMercBriefings() {
                     set(b.n9, 0.0f);
                     set(b.n2, briefedHere ? 1.0f : 0.0f);
                 }
-            } else if (!EqualOrUnordered(VariableGet(variables, nullptr, b.n10), Zero())) {
+            } else if (!EqualOrUnordered(VariableGet(variables, nullptr, b.n10), worlddata::Zero())) {
                 set(b.n8, 0.0f);
                 set(b.n1, 0.0f);
                 set(b.n2, 0.0f);
@@ -118,10 +112,10 @@ void CWorldServer::UpdateMercBriefings() {
                 double hiredValue = VariableGet(variables, nullptr, b.hired);
                 float hired = static_cast<float>(hiredValue);   // FST: stored as float, compared unrounded
                 volatile float hiredStored = hired;
-                if (!EqualOrUnordered(hiredValue, Zero())) {
-                    if (!EqualOrUnordered(VariableGet(variables, nullptr, b.n8), One())) {
+                if (!EqualOrUnordered(hiredValue, worlddata::Zero())) {
+                    if (!EqualOrUnordered(VariableGet(variables, nullptr, b.n8), worlddata::One())) {
                         if (otherMercs < 2) {
-                            bool firstTime = EqualOrUnordered(hiredStored, One());
+                            bool firstTime = EqualOrUnordered(hiredStored, worlddata::One());
                             set(b.n1, firstTime ? 1.0f : 0.0f);
                             set(b.n3, firstTime ? 0.0f : 1.0f);
                             set(b.n8, 0.0f);
@@ -141,7 +135,7 @@ void CWorldServer::UpdateMercBriefings() {
                         set(b.n9, 0.0f);
                         set(b.n10, 0.0f);
                     }
-                } else if (!EqualOrUnordered(VariableGet(variables, nullptr, b.n8), One())) {
+                } else if (!EqualOrUnordered(VariableGet(variables, nullptr, b.n8), worlddata::One())) {
                     set(b.n11, 1.0f);
                 }
             }
@@ -153,29 +147,19 @@ void CWorldServer::UpdateMercBriefings() {
 
 namespace {
 
-constexpr std::uintptr_t kBriefingScript = 0x007909EC;
-// "WorldScript( GSSetVar( %i,"%s",2 ) #OnBriefingComplete( %i, "%s" ) )"
-constexpr std::uintptr_t kPtrListVtable = 0x0073BE80;
 constexpr int kKindNoRangeTest = 3;
 constexpr int kClassQuestItem = 0x14;
 
-// The briefing records by name (007C87D4: hash_map<string, record*>). A record: +0x0C experience
-// (float), +0x10 gold (float), then vectors of names (begin, end): +0x14 items to give, +0x20
-// quest items to take, +0x2C / +0x44 variables raised to 1, +0x38 / +0x50 variables set to 2.
-struct NameVector {
-    const char** begin;
-    const char** end;
-    const char** capacity;
-};
+using NameList = BriefingRecord::NameList;
 
 struct RawString {
     std::uint8_t bytes[12];
 };
 static RawString* RawStringInit(RawString* s, void*, const char* text, void* alloc) { return static_cast<RawString*>(::StringInitFromChars(s, nullptr, text, alloc)); }
-inline std::uint8_t** __fastcall BriefingMapAt(void* a0, void*, const RawString* a2) { return (std::uint8_t**)MapRegistryFindOriginal(a0, nullptr, a2); }
+inline BriefingRecord** __fastcall BriefingMapAt(void* a0, void*, const RawString* a2) { return static_cast<BriefingRecord**>(MapRegistryFindOriginal(a0, nullptr, a2)); }
 // 004DBE40. Splits `text` (ECX) at `separator` into `out` (EDX).
-// 0057FB60 (RET 4). The client asks the server to complete briefing `name` (ECX = 007AFE20).
-__declspec(naked) void __fastcall RequestBriefing(void*, void*, const char*) EI_ORIGINAL(0x0057FB60)
+// 0057FB60 (RET 4). The client asks the server to complete briefing `name` (GameFlow::RequestBriefing).
+__declspec(naked) void __fastcall RequestBriefing(GameFlow*, void*, const char*) EI_ORIGINAL(0x0057FB60)
 // 00591DE0 (RET 8). CWorldServer: the player's part of completing a briefing.
 __declspec(naked) void __fastcall BriefingNotify(CWorldServer*, void*, WorldPlayer*, const char*) EI_ORIGINAL(0x00591DE0)
 // 005911C0 (RET 8). CWorldServer: experience for `player` (float bits).
@@ -193,53 +177,49 @@ __declspec(naked) int __cdecl GameFtol(double) {
 __declspec(naked) CEngineObject* __fastcall CreateItemByName(void*, void*, const char*) EI_ORIGINAL(0x006AC970)
 // 00598EC0 (RET 4) / 00405130. A pointer list (vtable 0073B8D4) built and destroyed around each
 // item creation, unused.
-__declspec(naked) void __fastcall TempListConstruct(void*, void*, int /*blockSize*/) EI_ORIGINAL(0x00598EC0)
-__declspec(naked) void __fastcall TempListDestruct(void*, void*) EI_ORIGINAL(0x00405130)
+__declspec(naked) void __fastcall TempListConstruct(mfc::CTypedPtrList<void>*, void*, int /*blockSize*/) EI_ORIGINAL(0x00598EC0)
+__declspec(naked) void __fastcall TempListDestruct(mfc::CTypedPtrList<void>*, void*) EI_ORIGINAL(0x00405130)
 inline mfc::CTypedPtrList<CEngineObject>::Node* __fastcall PtrListNewNode(mfc::CTypedPtrList<CEngineObject>* l, void*, mfc::CTypedPtrList<CEngineObject>::Node* prev, mfc::CTypedPtrList<CEngineObject>::Node* next) { return static_cast<mfc::CTypedPtrList<CEngineObject>::Node*>(PtrListNewNodeOriginal(l, nullptr, prev, next)); }
 void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, mfc::CTypedPtrList<CEngineObject>* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, (void*)a2, a3); }
 void __fastcall PlayerEraseQuestItem(WorldPlayer* a0, void*, int a2) { PlayerEraseQuestItemOriginal(a0, nullptr, a2); }
-__declspec(naked) void __fastcall StateSetVariableMax(void*, void*, const char*, float) EI_ORIGINAL(0x0066EE80)
+__declspec(naked) void __fastcall StateSetVariableMax(CPlayerServer*, void*, const char*, float) EI_ORIGINAL(0x0066EE80)
 // 004D23A0 (RET 8) / 004BF000. The first command queue: add a line, run once.
 int __fastcall CommandQueueAdd(void* a0, void*, const mfc::CString* a2, int a3) { return ScriptLoadLine(a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall CommandQueueRun(void*, void*) EI_ORIGINAL(0x004BF000)
 
-void* ItemManager() { return *reinterpret_cast<void**>(0x007AFFB4); }
-
 // The item named `name`, with the original's unused temporary lists around the creation (built
 // in the order `firstAt`, then the other).
 CEngineObject* CreateNamedItem(const char* name, bool fromSecond) {
-    alignas(4) std::uint8_t lists[2][0x1C];
-    void* first = fromSecond ? lists[0] : lists[1];
-    void* second = fromSecond ? lists[1] : lists[0];
+    mfc::CTypedPtrList<void> lists[2];
+    mfc::CTypedPtrList<void>* first = fromSecond ? &lists[0] : &lists[1];
+    mfc::CTypedPtrList<void>* second = fromSecond ? &lists[1] : &lists[0];
     TempListConstruct(first, nullptr, 10);
     TempListConstruct(second, nullptr, 10);
-    CEngineObject* item = CreateItemByName(ItemManager(), nullptr, name);
+    CEngineObject* item = CreateItemByName(WorldItemManager(), nullptr, name);
     TempListDestruct(second, nullptr);
     TempListDestruct(first, nullptr);
     return item;
 }
 
 // The rewards of a briefing record for `player`.
-void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, std::uint8_t* record) {
-    float experience = *reinterpret_cast<float*>(record + 0x0C);
+void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, BriefingRecord* record) {
+    float experience = record->experience;
     if (experience < 0.0f || experience > 0.0f) {
         std::uint32_t bits;
         std::memcpy(&bits, &experience, 4);
         AwardExperience(world, nullptr, player, bits);
     }
-    *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(player) + 0xC0) +=
-        GameFtol(*reinterpret_cast<float*>(record + 0x10));
+    PartyOf(player)->Money() += GameFtol(record->gold);
 
     mfc::CTypedPtrList<CEngineObject> items;
-    items.vtable = reinterpret_cast<void*>(kPtrListVtable);
+    items.vtable = reinterpret_cast<void*>(worlddata::kItemListVtable);
     items.head = nullptr;
     items.tail = nullptr;
     items.count = 0;
     items.free = nullptr;
     items.blocks = nullptr;
     items.blockSize = 10;
-    auto& give = *reinterpret_cast<NameVector*>(record + 0x14);
-    for (const char** name = give.begin; name != give.end; ++name) {
+    for (const mfc::CString* name = record->giveItems.begin(); name != record->giveItems.end(); ++name) {
         CEngineObject* item = CreateNamedItem(*name, true);
         if (!item) continue;
         auto* node = PtrListNewNode(&items, nullptr, items.tail, nullptr);
@@ -250,32 +230,27 @@ void GiveBriefingRewards(CWorldServer* world, WorldPlayer* player, std::uint8_t*
     }
     if (items.count) PlayerGiveItems(player, nullptr, &items, 0);
 
-    auto& take = *reinterpret_cast<NameVector*>(record + 0x20);
-    for (const char** name = take.begin; name != take.end; ++name) {
+    for (const mfc::CString* name = record->removeItems.begin(); name != record->removeItems.end(); ++name) {
         CEngineObject* item = CreateNamedItem(*name, false);
         if (!item) continue;
         ++item->refCount_;
         if (item->GetClassId() == kClassQuestItem)
-            PlayerEraseQuestItem(player, nullptr, *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(item) + 0x4C));
+            PlayerEraseQuestItem(player, nullptr, static_cast<int>(static_cast<CItemQuest*>(item)->unknown_4C));
         item->Release();
     }
 
-    void* state = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(player) + 0x20);
-    for (const char** name = reinterpret_cast<NameVector*>(record + 0x2C)->begin;
-         name != reinterpret_cast<NameVector*>(record + 0x2C)->end; ++name)
+    CPlayerServer* state = player->server;
+    for (const mfc::CString* name = record->giveQuests.begin(); name != record->giveQuests.end(); ++name)
         StateSetVariableMax(state, nullptr, *name, 1.0f);
-    for (const char** name = reinterpret_cast<NameVector*>(record + 0x38)->begin;
-         name != reinterpret_cast<NameVector*>(record + 0x38)->end; ++name)
+    for (const mfc::CString* name = record->completeQuests.begin(); name != record->completeQuests.end(); ++name)
         StateSetVariable(state, nullptr, *name, 2.0f);
-    for (const char** name = reinterpret_cast<NameVector*>(record + 0x44)->begin;
-         name != reinterpret_cast<NameVector*>(record + 0x44)->end; ++name)
+    for (const mfc::CString* name = record->availableZones.begin(); name != record->availableZones.end(); ++name)
         StateSetVariableMax(state, nullptr, *name, 1.0f);
-    for (const char** name = reinterpret_cast<NameVector*>(record + 0x50)->begin;
-         name != reinterpret_cast<NameVector*>(record + 0x50)->end; ++name)
+    for (const mfc::CString* name = record->completeZones.begin(); name != record->completeZones.end(); ++name)
         StateSetVariable(state, nullptr, *name, 2.0f);
 
     // The list's inlined destructor (its nodes are dropped, the items stay with the player).
-    items.vtable = reinterpret_cast<void*>(kPtrListVtable);
+    items.vtable = reinterpret_cast<void*>(worlddata::kItemListVtable);
     items.RemoveAll();
 }
 
@@ -285,23 +260,23 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
     if (IsMultiplayerClient()) {
         console::CStringArray parts;
         StringSplit(name, &parts, '.');
-        if (parts.GetSize() == 3) RequestBriefing(reinterpret_cast<void*>(0x007AFE20), nullptr, parts[2]);
+        if (parts.GetSize() == 3) RequestBriefing(TheGameFlow(), nullptr, parts[2]);
         return;
     }
     console::CStringArray parts;
     StringSplit(name, &parts, '.');
-    std::uint8_t* record = nullptr;
+    BriefingRecord* record = nullptr;
     if (parts.GetSize() == 3) {
         RawString key;
         char allocator;
         RawStringInit(&key, nullptr, parts[2], &allocator);
-        record = *BriefingMapAt(reinterpret_cast<void*>(0x007C87D4), nullptr, &key);
+        record = *BriefingMapAt(worlddata::QuestBriefings(), nullptr, &key);
         StlStringDestroy(&key);
     }
     WorldPlayer* player = nullptr;
     {
         PlayerIterator it;
-        for (WorldPlayer* p = it.First(ei::VCall<CEngineObject*>(this, 20)); p; p = it.Next()) {
+        for (WorldPlayer* p = it.First(PlayerList()); p; p = it.Next()) {
             if (p->id == playerId) {
                 player = p;
                 break;
@@ -314,7 +289,7 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
     }
 
     mfc::CString script;
-    script.Format(reinterpret_cast<const char*>(kBriefingScript), playerId, name, playerId, name);
+    script.Format(worlddata::BriefingCompleteScript(), playerId, name, playerId, name);
     CommandQueueAdd(commandsA_, nullptr, &script, 1);
     if (unknown12D64_ == kKindNoRangeTest)
         for (int i = 0; i < 5; ++i) CommandQueueRun(commandsA_, nullptr);
@@ -324,15 +299,13 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
 
 namespace {
 
-constexpr std::uintptr_t kHumanHero = 0x0078B0FC;   // "Human Hero"
-
 // 0055FB00 (RET 4). CWorld: the unit object with a text key.
 // 00530930. The unit's prototype record; its first field is the prototype name.
 static const char** UnitPrototype(CEngineObject* object, void*) { return static_cast<const char**>(::UnitPrototypeOf(object)); }
 // 006628D0 (RET 0xC) / 006620F0 (RET 4). The player's party records (+0x70): add a member
 // (name, prototype, extra), remove the member with a text key.
-void __fastcall PartyAddMember(void* a0, void*, const char* a2, const char* a3, const char* a4) { PartyAddMemberOriginal(a0, nullptr, a2, a3, a4); }
-void __fastcall PartyRemoveMember(void* a0, void*, unsigned a2) { PartyRemoveMemberOriginal(a0, nullptr, a2); }
+void __fastcall PartyAddMember(CParty* a0, void*, const char* a2, const char* a3, const char* a4) { PartyAddMemberOriginal(a0, nullptr, a2, a3, a4); }
+void __fastcall PartyRemoveMember(CParty* a0, void*, unsigned a2) { PartyRemoveMemberOriginal(a0, nullptr, a2); }
 // 005935C0 (RET 4, patched by Rebirth). CWorldServer: removes the object with an id.
 __declspec(naked) void __fastcall UpdateMercBriefingsAt(CWorldServer*, void*) EI_ORIGINAL(0x00591800)
 
@@ -345,23 +318,23 @@ struct MercNames {
 } // namespace
 
 void CWorldServer::ApplyMercBriefing(WorldPlayer* player, const char* name) {
-    void* state = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(player) + 0x20);
-    void* party = reinterpret_cast<std::uint8_t*>(player) + 0x70;
+    CPlayerServer* state = player->server;
+    CParty* party = PartyOf(player);
     auto is = [name](const mfc::CString& variable) {
         return gamecrt::mbsicmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(variable)),
                                 reinterpret_cast<const unsigned char*>(name)) == 0;
     };
     for (int slot = 1; slot <= kMercSlots; ++slot) {
         MercNames v;
-        v.merc.Format(Text(kMercName), slot);
+        v.merc.Format(worlddata::MercNameFormat(), slot);
         unsigned key = TextKey(v.merc);
-        v.n8.Format(Text(kVarN8), static_cast<const char*>(v.merc), slot);
-        v.n1.Format(Text(kVarN1), static_cast<const char*>(v.merc), slot);
-        v.n2.Format(Text(kVarN2), static_cast<const char*>(v.merc), slot);
-        v.n3.Format(Text(kVarN3), static_cast<const char*>(v.merc), slot);
-        v.n9.Format(Text(kVarN9), static_cast<const char*>(v.merc), slot);
-        v.n10.Format(Text(kVarN10), static_cast<const char*>(v.merc), slot);
-        v.hired.Format(Text(kVarHired), slot);
+        v.n8.Format(worlddata::MercVariableN8Format(), static_cast<const char*>(v.merc), slot);
+        v.n1.Format(worlddata::MercVariableN1Format(), static_cast<const char*>(v.merc), slot);
+        v.n2.Format(worlddata::MercVariableN2Format(), static_cast<const char*>(v.merc), slot);
+        v.n3.Format(worlddata::MercVariableN3Format(), static_cast<const char*>(v.merc), slot);
+        v.n9.Format(worlddata::MercVariableN9Format(), static_cast<const char*>(v.merc), slot);
+        v.n10.Format(worlddata::MercVariableN10Format(), static_cast<const char*>(v.merc), slot);
+        v.hired.Format(worlddata::MercHiredFormat(), slot);
         CEngineObject* unit = WorldFindUnit(this, nullptr, key);
 
         if (is(v.n8)) StateSetVariable(state, nullptr, v.n8, 0.0f);
@@ -374,7 +347,7 @@ void CWorldServer::ApplyMercBriefing(WorldPlayer* player, const char* name) {
         // n1 / n3: hired (amerc_N = 2) and added to the party with its unit's prototype.
         if (is(v.n1) || is(v.n3)) {
             StateSetVariable(state, nullptr, v.hired, 2.0f);
-            const char* prototype = unit ? *UnitPrototype(unit, nullptr) : Text(kHumanHero);
+            const char* prototype = unit ? *UnitPrototype(unit, nullptr) : worlddata::HumanHeroText();
             PartyAddMember(party, nullptr, v.merc, prototype, game::EmptyText());
         }
     }
@@ -388,14 +361,11 @@ void CWorldServer::ApplyMercBriefing(WorldPlayer* player, const char* name) {
 
 namespace {
 
-constexpr std::uintptr_t kShareListVtable = 0x0073FAB0;   // CList<{controller, share}>
-constexpr std::uintptr_t kIdArrayVtable = 0x0073C3D0;     // CArray<int>
-constexpr int kTypeHero = 0x32;
 constexpr std::uint32_t kMinimumWeight = 0x3C23D70A;      // 0.01f
 
 // An element of the list of shares: the unit's controller and its experience (nodes of 0x10 bytes).
 struct Share {
-    std::uint8_t* controller;
+    CUnitServer* controller;
     float share;
 };
 using ShareList = mfc::CList<Share>;
@@ -412,33 +382,33 @@ inline void __fastcall IdArraySetSize(IdArray* a, void*, int n, int g) { DwordAr
 // 00523960 (RET 4). A party record's statistics (+0x20) gain experience.
 __declspec(naked) void __fastcall RecordGainExperience(void*, void*, float) EI_ORIGINAL(0x00523960)
 // 0066F2C0 (RET 8) / 0066F280 (RET 4). The player state tells its client about experience.
-__declspec(naked) void __fastcall StatePartyExperience(void*, void*, float) EI_ORIGINAL(0x0066F280)
+__declspec(naked) void __fastcall StatePartyExperience(CPlayerServer*, void*, float) EI_ORIGINAL(0x0066F280)
 
-constexpr int kSlotIsDead = 55;
+// The unit's controller (CUnit + 0x240), a CUnitServer on the server.
+CUnitServer* ControllerOf(CEngineObject* unit) { return static_cast<CUnitServer*>(static_cast<CUnit*>(unit)->controller); }
 
-// The weight of a unit in the shared experience: sqrt(+0x8E0 + +0x1E4) of its controller.
-double Weight(std::uint8_t* controller) {
-    return x87::fsqrt(static_cast<double>(*reinterpret_cast<float*>(controller + 0x8E0)) +
-                      *reinterpret_cast<float*>(controller + 0x1E4));
+// The weight of a unit in the shared experience: sqrt(pending + gained experience) of its
+// controller's statistics (+0x8E0, +0x1E4).
+double Weight(CUnitServer* controller) {
+    return x87::fsqrt(static_cast<double>(controller->stats.pendingExperience) + controller->stats.experience);
 }
 
 // Without a player: the single heroes of every player share `amount` in proportion to their
 // weights.
 void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
-    if (*reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(ei::VCall<CEngineObject*>(world, 20)) + 0x2C) == 0)
-        return;
-    ShareList list{reinterpret_cast<void*>(kShareListVtable), nullptr, nullptr, 0, nullptr, nullptr, 10};
+    if (world->PlayerList()->objects_.Size() == 0) return;
+    ShareList list{reinterpret_cast<void*>(worlddata::kShareListVtable), nullptr, nullptr, 0, nullptr, nullptr, 10};
     auto soloUnit = [&](WorldPlayer* p) -> CEngineObject* {
-        if (!*reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(p) + 0x20) || p->mercCount != 1) return nullptr;
-        return WorldFindUnit(world, nullptr, *reinterpret_cast<int*>(p->mercs + 0x1C));
+        if (!p->server || p->mercCount != 1) return nullptr;
+        return WorldFindUnit(world, nullptr, static_cast<int>(MercRecord(p, 0).unknown_01C));
     };
 
     float total = 0.0f;
     PlayerIterator it;
-    for (WorldPlayer* p = it.First(ei::VCall<CEngineObject*>(world, 20)); p; p = it.Next()) {
+    for (WorldPlayer* p = it.First(world->PlayerList()); p; p = it.Next()) {
         CEngineObject* unit = soloUnit(p);
         if (!unit) continue;
-        auto* controller = *reinterpret_cast<std::uint8_t**>(reinterpret_cast<std::uint8_t*>(unit) + 0x240);
+        CUnitServer* controller = ControllerOf(unit);
         if (!controller) continue;
         ShareNode* node = ShareListNewNode(&list, nullptr, list.tail, nullptr);
         node->data.controller = controller;
@@ -464,37 +434,33 @@ void ShareAmongSoloPlayers(CWorldServer* world, float amount) {
         node = next;
     }
     ShareNode* cursor = list.head;
-    for (WorldPlayer* p = it.First(ei::VCall<CEngineObject*>(world, 20)); p; p = it.Next()) {
+    for (WorldPlayer* p = it.First(world->PlayerList()); p; p = it.Next()) {
         CEngineObject* unit = soloUnit(p);
-        if (!unit || !*reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(unit) + 0x240)) continue;
+        if (!unit || !ControllerOf(unit)) continue;
         ShareNode* node = cursor;
         cursor = node->next;
-        RecordGainExperience(p->mercs + 0x20, nullptr, node->data.share);
+        RecordGainExperience(MercRecord(p, 0).stats, nullptr, node->data.share);
     }
-    for (WorldPlayer* p = it.First(ei::VCall<CEngineObject*>(world, 20)); p; p = it.Next()) {
-        void* state = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(p) + 0x20);
+    for (WorldPlayer* p = it.First(world->PlayerList()); p; p = it.Next()) {
+        CPlayerServer* state = p->server;
         if (!state) continue;
-        for (ShareNode* node = list.head; node; node = node->next) {
-            auto* unit = *reinterpret_cast<CEngineObject**>(node->data.controller + 0x1C);
-            PlayerSendPair(state, nullptr, unit->id_, node->data.share);
-        }
+        for (ShareNode* node = list.head; node; node = node->next)
+            PlayerSendPair(state, nullptr, node->data.controller->unit->id_, node->data.share);
     }
     if (it.list) {
         --it.list->refCount_;
         it.list = nullptr;
     }
-    list.vtable = reinterpret_cast<void*>(kShareListVtable);
+    list.vtable = reinterpret_cast<void*>(worlddata::kShareListVtable);
     ShareListRemoveAll(&list, nullptr);
 }
 
 // With a player: its living heroes share `amount` equally.
 void ShareAmongHeroes(CWorldServer* world, WorldPlayer* player, float amount) {
-    IdArray heroes{reinterpret_cast<void*>(kIdArrayVtable), nullptr, 0, 0, 0};
-    auto& units = *reinterpret_cast<stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash>*>(
-        reinterpret_cast<std::uint8_t*>(player) + 0x40);
-    for (auto* node = units.First(); node && node->value; node = units.After(node)) {
+    IdArray heroes{mfc::DWordArrayVtable(), nullptr, 0, 0, 0};
+    for (auto* node = player->units.map.First(); node && node->value; node = player->units.map.After(node)) {
         CEngineObject* unit = node->value;
-        if (ei::VCall<int>(unit, kSlotIsDead) != 0 || unit->type_ != kTypeHero) continue;
+        if (ObjectSlots(unit)->IsDead() != 0 || unit->type_ != kUnitTypeHero) continue;
         int id = unit->id_;
         int index = heroes.size;
         IdArraySetSize(&heroes, nullptr, index + 1, -1);
@@ -507,17 +473,15 @@ void ShareAmongHeroes(CWorldServer* world, WorldPlayer* player, float amount) {
         share = stored;
         for (int i = 0; i < heroes.size; ++i) {
             CEngineObject* unit = WorldFindUnit(world, nullptr, heroes.data[i]);
-            DataGainExperience(*reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(unit) + 0x240), nullptr,
-                                     share);
+            DataGainExperience(ControllerOf(unit), nullptr, share);
             for (int j = 0; j < player->mercCount; ++j) {
-                std::uint8_t* record = player->mercs + j * 0x784;
-                if (*reinterpret_cast<int*>(record + 0x1C) == heroes.data[i])
-                    RecordGainExperience(record + 0x20, nullptr, share);
+                PartyUnitRecord& record = MercRecord(player, j);
+                if (static_cast<int>(record.unknown_01C) == heroes.data[i]) RecordGainExperience(record.stats, nullptr, share);
             }
         }
-        StatePartyExperience(*reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(player) + 0x20), nullptr, share);
+        StatePartyExperience(player->server, nullptr, share);
     }
-    heroes.vtable = reinterpret_cast<void*>(kIdArrayVtable);
+    heroes.vtable = mfc::DWordArrayVtable();
     if (heroes.data) gamecrt::operator_delete(heroes.data);
 }
 
@@ -535,129 +499,130 @@ void CWorldServer::AwardExperience(WorldPlayer* player, float amount) {
 
 namespace {
 
-constexpr std::uintptr_t kRecordArrayVtable = 0x0073FAA4;   // CArray<record*>
-constexpr std::uintptr_t kItemRecordVtable = 0x0073FA88;
 constexpr int kQuickSlots = 4;
 constexpr int kWornSlots = 7;
 constexpr int kBeltSlots = 4;
 constexpr int kSpellSlots = 8;
-constexpr int kSlotRecordFromItem = 24;   // the party records (WorldPlayer + 0x70): slot 24 (+0x60)
 
-inline int __fastcall PartyAddItem(void* a0, void*, void* a2, int a3, int a4) { return (int)PartyAddItemOriginal((void*)a0, nullptr, a2, a3, a4); }
-void __fastcall RecordArraySetAtGrow(RecordPtrArray* a0, void*, int a2, std::uint8_t* a3) { RecordArraySetAtGrowOriginal((void*)a0, nullptr, a2, (void*)a3); }
-// The unit record's lists (+0x730 quick items, +0x740 belt, +0x750 worn, +0x760 spells): remove the first entry
-// (00660A50, 00660C30, 00660E10, 00660FF0); add an entry (006608D0, 00660AB0, 00660C90, 00660E70; they return
-// the record entry).
-void __fastcall RecordRemoveWorn(std::uint8_t* a0, void*, void* a2) { RecordRemoveWornEntryOriginal((void*)a0, nullptr, a2); }
-void __fastcall RecordRemoveQuick(std::uint8_t* a0, void*, void* a2) { RecordRemoveQuickEntryOriginal((void*)a0, nullptr, a2); }
-void __fastcall RecordRemoveSpell(std::uint8_t* a0, void*, void* a2) { RecordRemoveSpellEntryOriginal((void*)a0, nullptr, a2); }
-void __fastcall RecordRemoveBelt(std::uint8_t* a0, void*, void* a2) { RecordRemoveBeltEntryOriginal((void*)a0, nullptr, a2); }
-std::uint8_t* __fastcall RecordAddQuick(std::uint8_t* a0, void*, void* a2) { return (std::uint8_t*)RecordAddQuickEntryOriginal((void*)a0, nullptr, a2); }
-std::uint8_t* __fastcall RecordAddWorn(std::uint8_t* a0, void*, void* a2) { return (std::uint8_t*)RecordAddWornEntryOriginal((void*)a0, nullptr, a2); }
-std::uint8_t* __fastcall RecordAddBelt(std::uint8_t* a0, void*, void* a2) { return (std::uint8_t*)RecordAddBeltEntryOriginal((void*)a0, nullptr, a2); }
-std::uint8_t* __fastcall RecordAddSpell(std::uint8_t* a0, void*, void* a2) { return (std::uint8_t*)RecordAddSpellEntryOriginal((void*)a0, nullptr, a2); }
+inline int __fastcall PartyAddItem(CParty* a0, void*, void* a2, int a3, int a4) { return (int)PartyAddItemOriginal((void*)a0, nullptr, a2, a3, a4); }
+void __fastcall RecordArraySetAtGrow(RecordPtrArray* a0, void*, int a2, PartyUnitRecord* a3) { RecordArraySetAtGrowOriginal((void*)a0, nullptr, a2, (void*)a3); }
+// The unit record's lists (weapons +0x730 (the unit's "quick" slots below), quick items +0x740
+// ("belt"), armour +0x750 ("worn"), spells +0x760): remove an entry (00660A50, 00660C30, 00660E10,
+// 00660FF0); add an entry (006608D0, 00660AB0, 00660C90, 00660E70; they return the record entry).
+void __fastcall RecordRemoveWorn(PartyUnitRecord* a0, void*, void* a2) { RecordRemoveWornEntryOriginal((void*)a0, nullptr, a2); }
+void __fastcall RecordRemoveQuick(PartyUnitRecord* a0, void*, void* a2) { RecordRemoveQuickEntryOriginal((void*)a0, nullptr, a2); }
+void __fastcall RecordRemoveSpell(PartyUnitRecord* a0, void*, void* a2) { RecordRemoveSpellEntryOriginal((void*)a0, nullptr, a2); }
+void __fastcall RecordRemoveBelt(PartyUnitRecord* a0, void*, void* a2) { RecordRemoveBeltEntryOriginal((void*)a0, nullptr, a2); }
+CEngineObject* __fastcall RecordAddQuick(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)RecordAddQuickEntryOriginal((void*)a0, nullptr, a2); }
+CEngineObject* __fastcall RecordAddWorn(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)RecordAddWornEntryOriginal((void*)a0, nullptr, a2); }
+CEngineObject* __fastcall RecordAddBelt(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)RecordAddBeltEntryOriginal((void*)a0, nullptr, a2); }
+CEngineObject* __fastcall RecordAddSpell(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)RecordAddSpellEntryOriginal((void*)a0, nullptr, a2); }
 // The unit's slots: quick (005318B0), worn (00530830), belt (00531920), spells (005319A0).
 __declspec(naked) CEngineObject* __fastcall UnitQuickItem(CEngineObject*, void*, int) EI_ORIGINAL(0x005318B0)
 CEngineObject* __fastcall UnitWornItem(CEngineObject* a0, void*, int a2) { return UnitWornItemOriginal((const void*)a0, nullptr, a2); }
 __declspec(naked) CEngineObject* __fastcall UnitBeltItem(CEngineObject*, void*, int) EI_ORIGINAL(0x00531920)
 __declspec(naked) CEngineObject* __fastcall UnitSpell(CEngineObject*, void*, int) EI_ORIGINAL(0x005319A0)
 // 00553360 (RET 4). The controller copies its statistics into a record's (+0x20).
-__declspec(naked) void __fastcall ControllerStoreStats(void*, void*, void*) EI_ORIGINAL(0x00553360)
+__declspec(naked) void __fastcall ControllerStoreStats(CUnitServer*, void*, void*) EI_ORIGINAL(0x00553360)
 __declspec(naked) void* __fastcall RefValueConstruct(void*, void*) EI_ORIGINAL(0x00419720)
 __declspec(naked) void __fastcall RefPtrAssign(void*, void*, void*) EI_ORIGINAL(0x00419CD0)
 void __fastcall RefRelease(void* a0, void*) { RefObjectRelease(a0); }
 
+// The party's copy of an item (CParty slot 24; the record entry's source).
+CItem* PartyCopy(CParty* party, CEngineObject* item) { return party->CopyItem(static_cast<CItem*>(item)); }
+
 // The record entry for `item` from the party records, with a reference held across `add`.
 template <typename Add>
-std::uint8_t* AddToRecord(void* records, std::uint8_t* record, CEngineObject* item, Add add) {
-    auto* entry = ei::VCall<CEngineObject*>(records, kSlotRecordFromItem, item);
+CEngineObject* AddToRecord(CParty* party, PartyUnitRecord* record, CEngineObject* item, Add add) {
+    CItem* entry = PartyCopy(party, item);
     if (entry) ++entry->refCount_;
-    std::uint8_t* added = add(record, nullptr, entry);
+    CEngineObject* added = add(record, nullptr, entry);
     if (entry) entry->Release();
     return added;
 }
 
-// A fresh 12-byte item record (+0x08 = the record entry's +0x0C) for the item's +0x1C.
-void* NewItemRecord(bool refValueBase) {
-    void* memory = gamecrt::operator_new(0xC);
-    *reinterpret_cast<std::uint32_t*>(static_cast<std::uint8_t*>(memory) + 4) = 0;   // before the null test
+// A fresh item record (ItemSourceRef, item.h) for the item's link (+0x1C).
+ItemSourceRef* NewItemRecord(bool refValueBase) {
+    auto* memory = static_cast<ItemSourceRef*>(gamecrt::operator_new(sizeof(ItemSourceRef)));
+    memory->refs = 0;   // before the null test
     if (!memory) return nullptr;
-    if (!refValueBase) return ItemRecordConstruct(memory, nullptr);
+    if (!refValueBase) return static_cast<ItemSourceRef*>(ItemRecordConstruct(memory, nullptr));
     RefValueConstruct(memory, nullptr);
-    *static_cast<void**>(memory) = reinterpret_cast<void*>(kItemRecordVtable);
+    memory->vtable = reinterpret_cast<void*>(worlddata::kItemSourceRefVtable);
     return memory;
 }
 
-void SyncRecord(std::uint8_t* records, std::uint8_t* record, CEngineObject* unit) {
-    void* controller = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(unit) + 0x240);
-    auto count = [&](int offset) { return *reinterpret_cast<int*>(record + offset); };
-    auto first = [&](int offset) { return **reinterpret_cast<void***>(record + offset); };
-    while (count(0x754)) RecordRemoveWorn(record, nullptr, first(0x750));
-    while (count(0x734)) RecordRemoveQuick(record, nullptr, first(0x730));
-    while (count(0x764)) RecordRemoveSpell(record, nullptr, first(0x760));
-    while (count(0x744)) RecordRemoveBelt(record, nullptr, first(0x740));
+// The record's four lists emptied (armour, weapons, spells, quick items: the first entry each time).
+void ClearRecordItems(PartyUnitRecord* record) {
+    while (record->armorCount) RecordRemoveWorn(record, nullptr, record->armor[0]);
+    while (record->weaponCount) RecordRemoveQuick(record, nullptr, record->weapons[0]);
+    while (record->spellCount) RecordRemoveSpell(record, nullptr, record->spells[0]);
+    while (record->quickItemCount) RecordRemoveBelt(record, nullptr, record->quickItems[0]);
+}
+
+void SyncRecord(CParty* party, PartyUnitRecord* record, CEngineObject* unit) {
+    CUnitServer* controller = ControllerOf(unit);
+    ClearRecordItems(record);
 
     for (int slot = 0; slot < kQuickSlots; ++slot) {
         CEngineObject* item = UnitQuickItem(unit, nullptr, slot);
         if (!item) continue;
-        std::uint8_t* entry = AddToRecord(records, record, item, RecordAddQuick);
-        void* ref = NewItemRecord(false);
-        *reinterpret_cast<std::uint32_t*>(static_cast<std::uint8_t*>(ref) + 8) = *reinterpret_cast<std::uint32_t*>(entry + 0xC);
-        RefPtrAssign(reinterpret_cast<std::uint8_t*>(item) + 0x1C, nullptr, ref);
+        CEngineObject* entry = AddToRecord(party, record, item, RecordAddQuick);
+        ItemSourceRef* ref = NewItemRecord(false);
+        ref->itemId = static_cast<std::uint32_t>(entry->id_);
+        RefPtrAssign(&static_cast<CItem*>(item)->unknown_1C, nullptr, ref);
     }
     for (int slot = 0; slot < kWornSlots; ++slot) {
         CEngineObject* item = UnitWornItem(unit, nullptr, slot);
         if (!item) continue;
-        std::uint8_t* entry = AddToRecord(records, record, item, RecordAddWorn);
-        void* ref = NewItemRecord(true);
-        *reinterpret_cast<std::uint32_t*>(static_cast<std::uint8_t*>(ref) + 8) = *reinterpret_cast<std::uint32_t*>(entry + 0xC);
-        RefPtrAssign(reinterpret_cast<std::uint8_t*>(item) + 0x1C, nullptr, ref);
+        CEngineObject* entry = AddToRecord(party, record, item, RecordAddWorn);
+        ItemSourceRef* ref = NewItemRecord(true);
+        ref->itemId = static_cast<std::uint32_t>(entry->id_);
+        RefPtrAssign(&static_cast<CItem*>(item)->unknown_1C, nullptr, ref);
     }
     for (int slot = 0; slot < kBeltSlots; ++slot) {
-        CEngineObject* item = UnitBeltItem(unit, nullptr, slot);
-        if (!item || *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(item) + 0x48) <= 0) continue;
-        auto* entry = ei::VCall<CEngineObject*>(records, kSlotRecordFromItem, item);
-        *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(entry) + 0x48) =
-            *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(item) + 0x48);   // before the null test
+        auto* item = static_cast<CItem*>(UnitBeltItem(unit, nullptr, slot));
+        if (!item || static_cast<int>(item->unknown_48) <= 0) continue;
+        CItem* entry = PartyCopy(party, item);
+        entry->unknown_48 = item->unknown_48;   // before the null test
         if (entry) ++entry->refCount_;
-        std::uint8_t* added = RecordAddBelt(record, nullptr, entry);
+        CEngineObject* added = RecordAddBelt(record, nullptr, entry);
         if (entry) entry->Release();
-        void* ref = NewItemRecord(true);
-        *reinterpret_cast<std::uint32_t*>(static_cast<std::uint8_t*>(ref) + 8) = *reinterpret_cast<std::uint32_t*>(added + 0xC);
+        ItemSourceRef* ref = NewItemRecord(true);
+        ref->itemId = static_cast<std::uint32_t>(added->id_);
         // The counted pointer's assignment, inlined (16-bit count at +4).
-        void*& slotRef = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(item) + 0x1C);
-        void* old = slotRef;
-        slotRef = ref;
-        if (ref) ++*reinterpret_cast<std::int16_t*>(static_cast<std::uint8_t*>(ref) + 4);
+        auto* link = reinterpret_cast<CItemLink*>(ref);
+        CItemLink* old = reinterpret_cast<CItemLink*>(static_cast<std::uintptr_t>(item->unknown_1C));
+        item->unknown_1C = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(link));
+        if (link) ++link->references;
         if (old) RefRelease(old, nullptr);
     }
     for (int slot = 0; slot < kSpellSlots; ++slot) {
         CEngineObject* spell = UnitSpell(unit, nullptr, slot);
         if (!spell) continue;
-        AddToRecord(records, record, spell, RecordAddSpell);
+        AddToRecord(party, record, spell, RecordAddSpell);
     }
-    ControllerStoreStats(controller, nullptr, record + 0x20);
+    ControllerStoreStats(controller, nullptr, record->stats);
 }
 
 } // namespace
 
 void CWorldServer::SyncPartyRecords(WorldPlayer* player) {
-    std::uint8_t* records = reinterpret_cast<std::uint8_t*>(player) + 0x70;
-    for (auto* node = *reinterpret_cast<mfc::CTypedPtrList<void>::Node**>(reinterpret_cast<std::uint8_t*>(player) + 0xE4);
-         node;) {
+    CParty* party = PartyOf(player);
+    for (auto* node = player->items.head; node;) {
         auto* next = node->next;
-        PartyAddItem(records, nullptr, node->data, 1, 1);
+        PartyAddItem(party, nullptr, node->data, 1, 1);
         node = next;
     }
-    RecordPtrArray list{reinterpret_cast<void*>(kRecordArrayVtable), nullptr, 0, 0, 0};
-    for (int i = 0; i < player->mercCount; ++i) RecordArraySetAtGrow(&list, nullptr, list.size, player->mercs + i * 0x784);
+    RecordPtrArray list{reinterpret_cast<void*>(worlddata::kRecordArrayVtable), nullptr, 0, 0, 0};
+    for (int i = 0; i < player->mercCount; ++i) RecordArraySetAtGrow(&list, nullptr, list.size, &MercRecord(player, i));
     for (int i = 0; i < list.size; ++i) {
-        std::uint8_t* record = list.data[i];
-        CEngineObject* unit = WorldFindUnit(this, nullptr, *reinterpret_cast<int*>(record + 0x1C));
-        if (!unit || ei::VCall<int>(unit, kSlotIsDead) != 0) continue;
-        SyncRecord(records, record, unit);
+        auto* record = reinterpret_cast<PartyUnitRecord*>(list.data[i]);
+        CEngineObject* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unknown_01C));
+        if (!unit || ObjectSlots(unit)->IsDead() != 0) continue;
+        SyncRecord(party, record, unit);
     }
-    list.vtable = reinterpret_cast<void*>(kRecordArrayVtable);
+    list.vtable = reinterpret_cast<void*>(worlddata::kRecordArrayVtable);
     if (list.data) gamecrt::operator_delete(list.data);
 }
 
@@ -666,99 +631,88 @@ void CWorldServer::SyncPartyRecords(WorldPlayer* player) {
 namespace {
 
 constexpr int kKindNetwork = 4;   // kKindNoRangeTest (3): above
-constexpr std::size_t kUnitRecordSize = 0x784;
 
-// The placement array a zone change fills (CArray<Placement>, SetAtGrow 0059C510).
-struct PlacementRecord {
-    int id;
-    std::uint32_t position[3];
-    std::uint32_t rotation[4];
-    std::uint32_t value268;
-    std::uint32_t value26C;
-};
-static_assert(sizeof(PlacementRecord) == 0x28);
+using PlacementArray = mfc::CArray<UnitPlacement>;
 
-__declspec(naked) void __fastcall PlacementsSetAtGrow(void*, void*, int, const PlacementRecord*) EI_ORIGINAL(0x0059C510)
-__declspec(naked) void* __fastcall BrainFindFollowMode(void*, void*) EI_ORIGINAL(0x005D5E90)
+__declspec(naked) void __fastcall PlacementsSetAtGrow(PlacementArray*, void*, int, const UnitPlacement*) EI_ORIGINAL(0x0059C510)
+// 005D5E90 (AIBrain::LeaderOrFollowed, unit_ai.h): the leader the brain follows, or null.
+__declspec(naked) CEngineObject* __fastcall BrainLeader(void* /*brain*/, void*) EI_ORIGINAL(0x005D5E90)
 __declspec(naked) void __fastcall RecordStatsFinish(void*, void*) EI_ORIGINAL(0x00523C80)
 inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { UnitSetControllerOriginal((void*)a0, nullptr, a2); }
-__declspec(naked) void __fastcall StorePartyAt(CWorldServer*, void*, RecordPtrArray*, void*, void*) EI_ORIGINAL(0x0058FD90)
+__declspec(naked) void __fastcall StorePartyAt(CWorldServer*, void*, RecordPtrArray*, CParty*, void*) EI_ORIGINAL(0x0058FD90)
 // 00590160 (RET 8). The player's items into its party records before leaving.
-__declspec(naked) void __fastcall StorePlayerItems(CWorldServer*, void*, WorldPlayer*, void* /*records*/) EI_ORIGINAL(0x00590160)
+__declspec(naked) void __fastcall StorePlayerItems(CWorldServer*, void*, WorldPlayer*, CParty* /*records*/) EI_ORIGINAL(0x00590160)
 // 0066F0C0. The player state before a zone change.
-__declspec(naked) void __fastcall StateBeforeZoneChange(void*, void*) EI_ORIGINAL(0x0066F0C0)
+__declspec(naked) void __fastcall StateBeforeZoneChange(CPlayerServer*, void*) EI_ORIGINAL(0x0066F0C0)
 // 0065F740. The unit record's destructor body.
-__declspec(naked) void __fastcall UnitRecordDestruct(void*, void*) EI_ORIGINAL(0x0065F740)
+__declspec(naked) void __fastcall UnitRecordDestruct(PartyUnitRecord*, void*) EI_ORIGINAL(0x0065F740)
 inline void __fastcall RecordArraySetSize(RecordPtrArray* a, void*, int n, int g) { RecordArraySetSizeOriginal(a, nullptr, n, g); }
 
 // One record rebuilt from its living unit (as SyncPartyRecords does, without the items'
 // records), plus the unit's +0x268 / +0x26C (single player) and +0x438.
-void StoreRecord(CWorldServer* world, void* records, std::uint8_t* record, CEngineObject* unit) {
-    void* controller = *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(unit) + 0x240);
-    auto count = [&](int offset) { return *reinterpret_cast<int*>(record + offset); };
-    auto first = [&](int offset) { return **reinterpret_cast<void***>(record + offset); };
-    while (count(0x754)) RecordRemoveWorn(record, nullptr, first(0x750));
-    while (count(0x734)) RecordRemoveQuick(record, nullptr, first(0x730));
-    while (count(0x764)) RecordRemoveSpell(record, nullptr, first(0x760));
-    while (count(0x744)) RecordRemoveBelt(record, nullptr, first(0x740));
+void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CEngineObject* unitObject) {
+    auto* unit = static_cast<CUnit*>(unitObject);
+    CUnitServer* controller = ControllerOf(unit);
+    ClearRecordItems(record);
     for (int slot = 0; slot < kQuickSlots; ++slot)
-        if (CEngineObject* item = UnitQuickItem(unit, nullptr, slot)) AddToRecord(records, record, item, RecordAddQuick);
+        if (CEngineObject* item = UnitQuickItem(unit, nullptr, slot)) AddToRecord(party, record, item, RecordAddQuick);
     for (int slot = 0; slot < kWornSlots; ++slot)
-        if (CEngineObject* item = UnitWornItem(unit, nullptr, slot)) AddToRecord(records, record, item, RecordAddWorn);
+        if (CEngineObject* item = UnitWornItem(unit, nullptr, slot)) AddToRecord(party, record, item, RecordAddWorn);
     for (int slot = 0; slot < kBeltSlots; ++slot) {
-        CEngineObject* item = UnitBeltItem(unit, nullptr, slot);
-        if (!item || *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(item) + 0x48) <= 0) continue;
-        auto* entry = ei::VCall<std::uint8_t*>(records, kSlotRecordFromItem, item);
-        int amount = *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(item) + 0x48);
-        std::uint32_t value2C = *reinterpret_cast<std::uint32_t*>(entry + 0x2C);   // before the null test
-        *reinterpret_cast<int*>(entry + 0x48) = amount;
-        *reinterpret_cast<std::uint32_t*>(entry + 0x28) = value2C;
-        if (entry) ++reinterpret_cast<CEngineObject*>(entry)->refCount_;
+        auto* item = static_cast<CItem*>(UnitBeltItem(unit, nullptr, slot));
+        if (!item || static_cast<int>(item->unknown_48) <= 0) continue;
+        CItem* entry = PartyCopy(party, item);
+        std::uint32_t amount = item->unknown_48;
+        std::uint32_t maximum;
+        std::memcpy(&maximum, &entry->chargeMax_, sizeof(maximum));   // before the null test
+        entry->unknown_48 = amount;
+        std::memcpy(&entry->charge_, &maximum, sizeof(maximum));
+        if (entry) ++entry->refCount_;
         RecordAddBelt(record, nullptr, entry);
-        if (entry) reinterpret_cast<CEngineObject*>(entry)->Release();
+        if (entry) entry->Release();
     }
     for (int slot = 0; slot < kSpellSlots; ++slot)
-        if (CEngineObject* spell = UnitSpell(unit, nullptr, slot)) AddToRecord(records, record, spell, RecordAddSpell);
-    ControllerStoreStats(controller, nullptr, record + 0x20);
+        if (CEngineObject* spell = UnitSpell(unit, nullptr, slot)) AddToRecord(party, record, spell, RecordAddSpell);
+    ControllerStoreStats(controller, nullptr, record->stats);
     if (world->unknown12D64_ == 1) {
-        *reinterpret_cast<std::uint32_t*>(record + 0x770) = *reinterpret_cast<std::uint32_t*>(reinterpret_cast<std::uint8_t*>(unit) + 0x268);
-        *reinterpret_cast<std::uint32_t*>(record + 0x774) = *reinterpret_cast<std::uint32_t*>(reinterpret_cast<std::uint8_t*>(unit) + 0x26C);
+        record->unknown_770 = unit->moveMode2;
+        record->weaponIndex = unit->activeWeapon;
     }
-    *reinterpret_cast<std::uint32_t*>(record + 0x780) = *reinterpret_cast<std::uint32_t*>(reinterpret_cast<std::uint8_t*>(unit) + 0x438);
-    RecordStatsFinish(record + 0x20, nullptr);
+    record->unknown_780 = unit->unknown_438;
+    RecordStatsFinish(record->stats, nullptr);
 }
 
 } // namespace
 
-void CWorldServer::StoreParty(void* recordsArg, void* partyRecords, void* placements) {
+void CWorldServer::StoreParty(void* recordsArg, void* partyRecords, void* placementsArg) {
     auto* list = static_cast<RecordPtrArray*>(recordsArg);
+    auto* party = static_cast<CParty*>(partyRecords);
+    auto* placements = static_cast<PlacementArray*>(placementsArg);
     if (unknown12D64_ == 1) {
         // Each record remembers whom its unit follows (-1: nobody).
         for (int i = 0; i < list->size; ++i) {
-            std::uint8_t* record = list->data[i];
-            CEngineObject* unit = WorldFindUnit(this, nullptr, *reinterpret_cast<int*>(record + 0x1C));
-            void* brain = *reinterpret_cast<std::uint8_t**>(reinterpret_cast<std::uint8_t*>(unit) + 0x240) + 0x980;
-            auto* follow = static_cast<std::uint8_t*>(BrainFindFollowMode(brain, nullptr));
-            *reinterpret_cast<int*>(record + 0x77C) = follow ? *reinterpret_cast<int*>(follow + 0xC) : -1;
+            auto* record = reinterpret_cast<PartyUnitRecord*>(list->data[i]);
+            CEngineObject* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unknown_01C));
+            CEngineObject* leader = BrainLeader(ControllerOf(unit)->brain, nullptr);
+            record->unknown_77C = leader ? leader->id_ : -1;
         }
     }
     for (int i = 0; i < list->size; ++i) {
-        std::uint8_t* record = list->data[i];
-        CEngineObject* unit = WorldFindUnit(this, nullptr, *reinterpret_cast<int*>(record + 0x1C));
-        if (!unit) continue;
+        auto* record = reinterpret_cast<PartyUnitRecord*>(list->data[i]);
+        CEngineObject* found = WorldFindUnit(this, nullptr, static_cast<int>(record->unknown_01C));
+        if (!found) continue;
+        auto* unit = static_cast<CUnit*>(found);
         if (placements) {
-            auto* raw = reinterpret_cast<std::uint8_t*>(unit);
-            PlacementRecord entry;
+            UnitPlacement entry;
             entry.id = unit->id_;
-            std::memcpy(entry.position, raw + 0x1C, 12);
-            std::memcpy(entry.rotation, raw + 0x34, 16);
-            entry.value268 = *reinterpret_cast<std::uint32_t*>(raw + 0x268);
-            entry.value26C = *reinterpret_cast<std::uint32_t*>(raw + 0x26C);
-            PlacementsSetAtGrow(placements, nullptr, *reinterpret_cast<int*>(static_cast<std::uint8_t*>(placements) + 8),
-                                &entry);
+            std::memcpy(entry.position, &unit->positionX, sizeof(entry.position));
+            std::memcpy(entry.rotation, &unit->orientation, sizeof(entry.rotation));
+            entry.value20 = static_cast<std::uint32_t>(unit->moveMode2);
+            entry.value24 = unit->activeWeapon;
+            PlacementsSetAtGrow(placements, nullptr, placements->size, &entry);
         }
-        if (!ei::VCall<int>(unit, kSlotIsDead) || IsMultiplayerClient()) StoreRecord(this, partyRecords, record, unit);
-        if (!ei::VCall<int>(unit, kSlotIsDead)) WorldRemoveObject(this, nullptr, unit->id_);
+        if (!ObjectSlots(unit)->IsDead() || IsMultiplayerClient()) StoreRecord(this, party, record, unit);
+        if (!ObjectSlots(unit)->IsDead()) WorldRemoveObject(this, nullptr, unit->id_);
         else UnitSetController(unit, nullptr, nullptr);
     }
 }
@@ -767,32 +721,31 @@ void CWorldServer::CollectParty(WorldPlayer* player, void* placements) {
     if (!player) return;
     if (unknown12D64_ == 1 || unknown12D64_ == kKindNoRangeTest) UpdatePlayerTimesAt(this, nullptr, 0.0f);
     if (unknown12D64_ != kKindNetwork) {
-        StorePlayerItems(this, nullptr, player, reinterpret_cast<std::uint8_t*>(player) + 0x70);
-        StateBeforeZoneChange(*reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(player) + 0x20), nullptr);
+        StorePlayerItems(this, nullptr, player, PartyOf(player));
+        StateBeforeZoneChange(player->server, nullptr);
     }
     if (!(unknown12D64_ == 1 || unknown12D64_ == kKindNoRangeTest) || unknown15C_ == 0) return;
 
-    RecordPtrArray list{reinterpret_cast<void*>(kRecordArrayVtable), nullptr, 0, 0, 0};
+    RecordPtrArray list{reinterpret_cast<void*>(worlddata::kRecordArrayVtable), nullptr, 0, 0, 0};
     // Records whose unit is gone (or dead, outside a network client game) are dropped (the
     // inlined CArray::RemoveAt).
     for (int i = 0; i < player->mercCount; ++i) {
-        CEngineObject* unit = WorldFindUnit(this, nullptr, *reinterpret_cast<int*>(player->mercs + i * kUnitRecordSize + 0x1C));
-        if (unit && (!ei::VCall<int>(unit, kSlotIsDead) || IsMultiplayerClient())) continue;
+        CEngineObject* unit = WorldFindUnit(this, nullptr, static_cast<int>(MercRecord(player, i).unknown_01C));
+        if (unit && (!ObjectSlots(unit)->IsDead() || IsMultiplayerClient())) continue;
         int following = player->mercCount - i - 1;
-        UnitRecordDestruct(player->mercs + i * kUnitRecordSize, nullptr);
+        UnitRecordDestruct(&MercRecord(player, i), nullptr);
         if (following)
-            GameMemmove(player->mercs + i * kUnitRecordSize, player->mercs + (i + 1) * kUnitRecordSize,
-                        following * kUnitRecordSize);
+            GameMemmove(&MercRecord(player, i), &MercRecord(player, i + 1), following * sizeof(PartyUnitRecord));
         --player->mercCount;
         --i;
     }
     for (int i = 0; i < player->mercCount; ++i) {
         int index = list.size;
         RecordArraySetSize(&list, nullptr, index + 1, -1);
-        list.data[index] = player->mercs + i * kUnitRecordSize;
+        list.data[index] = reinterpret_cast<std::uint8_t*>(&MercRecord(player, i));
     }
-    StorePartyAt(this, nullptr, &list, reinterpret_cast<std::uint8_t*>(player) + 0x70, placements);
-    list.vtable = reinterpret_cast<void*>(kRecordArrayVtable);
+    StorePartyAt(this, nullptr, &list, PartyOf(player), placements);
+    list.vtable = reinterpret_cast<void*>(worlddata::kRecordArrayVtable);
     if (list.data) gamecrt::operator_delete(list.data);
 }
 

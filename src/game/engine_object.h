@@ -18,7 +18,7 @@ public:
     virtual void Destroy() = 0;                        // 3
     virtual void Release();                            // 4: 00455980 (refcount; the owner releases it at 0)
     virtual void ClearState();                         // 5: 00402CC0 (empty); CUnitServer 00546080 ResetController
-    virtual int Slot6();                               // 6: 00402CD0 (0); world objects' per-tick update
+    virtual int RunTick();                             // 6: 00402CD0 (0); world objects' per-tick update
     virtual const char* GetName();                     // 7: 00402CE0 "noname"
     virtual const char* GetDescription();              // 8: 00402CF0 "nodesc"
     virtual void Load(void* stream);                   // 9: 00402D00 (empty); a CStream (core_streams.h)

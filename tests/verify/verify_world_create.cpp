@@ -2,19 +2,21 @@
 // and attaches the managers); afterwards every manager slot is set.
 #include "verify.h"
 
-#include <cstdint>
-
-int __fastcall WorldCreateManagers(std::uint8_t* world);
+#include "../../src/game/world.h"
 
 namespace {
 void* s_unused;
 }
 
-static int __fastcall WorldCreateManagersVerify(std::uint8_t* world) {
+static int __fastcall WorldCreateManagersVerify(CWorld* world) {
     int result = WorldCreateManagers(world);
     bool ok = result == 1;
-    for (int offset : {0x38, 0x3C, 0x40, 0x48, 0x4C, 0x50, 0x54, 0x58, 0x5C})
-        if (!*reinterpret_cast<void* const*>(world + offset)) ok = false;
+    for (const void* manager : {static_cast<const void*>(world->players_), static_cast<const void*>(world->manager3C_),
+                                static_cast<const void*>(world->manager40_), static_cast<const void*>(world->manager48_),
+                                static_cast<const void*>(world->manager4C_), static_cast<const void*>(world->manager50_),
+                                static_cast<const void*>(world->itemManager_), static_cast<const void*>(world->manager58_),
+                                static_cast<const void*>(world->shared5C_.ptr)})
+        if (!manager) ok = false;
     ei::verify::Check("World::CreateManagers", true, ok, "world %p", world);
     return result;
 }

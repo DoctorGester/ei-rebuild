@@ -185,7 +185,7 @@ void CEffectTornado::Start(int update) {
     Source()->ScaleSize(1.0f);
     int behind = effect::GameTick() - launchTick_;
     if (behind >= kMaxCatchUp) behind = kMaxCatchUp;
-    for (int i = 1; i < behind; ++i) source_->Slot6();
+    for (int i = 1; i < behind; ++i) source_->RunTick();
 }
 
 void CEffectTornado::LoadState(void* stream) {
