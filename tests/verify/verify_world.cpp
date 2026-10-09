@@ -1,6 +1,7 @@
 // Differential checks for the world server, world client and world glue code (src/game/world*.cpp).
 #include "verify.h"
 
+#include "../../src/game/map_object_figures.h"
 #include "../../src/game/script.h"
 #include "../../src/game/world.h"
 #include "../../src/lib/crt.h"
@@ -323,10 +324,11 @@ static CEngineObject* __fastcall NearestUnitVerify(CWorldClient* self, void*, CE
 EI_VERIFY(0x005640A0, NearestUnitVerify, 9, s_nearestUnit);
 
 // 00564AF0: MOV EDX,[ECX+0xD4] (6 bytes). Pure.
-static void*(__fastcall* s_listItem)(CWorldClient*, void*, int);
-static void* __fastcall ListItemVerify(CWorldClient* self, void*, int index) {
-    void* expected = s_listItem(self, nullptr, index);
-    ei::verify::Check("CWorldClient::ListItem", expected, self->ListItem(index), "index %d", index);
+static FootprintPart*(__fastcall* s_listItem)(CObject3D*, void*, int);
+static FootprintPart* __fastcall ListItemVerify(CObject3D* self, void*, int index) {
+    FootprintPart* expected = s_listItem(self, nullptr, index);
+    ei::verify::Check("CObject3D::PartBox", static_cast<void*>(expected), static_cast<void*>(self->PartBox(index)),
+                      "index %d", index);
     return expected;
 }
 EI_VERIFY(0x00564AF0, ListItemVerify, 6, s_listItem);

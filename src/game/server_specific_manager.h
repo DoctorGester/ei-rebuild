@@ -74,3 +74,17 @@ static_assert(offsetof(CTorchObjectSpec, unknown_1C) == 0x1C);
 static_assert(offsetof(CTorchObjectSpec, name_) == 0x24);
 static_assert(offsetof(CTorchObjectSpec, colours_) == 0x40);
 static_assert(sizeof(CTorchObjectSpec) == 0x58);
+
+// CTorchObjectSpec's slots past CEngineObject's (vtable 0073D558), as callers reach them through the
+// vtable (the world server's CreateObject 005927C0 on a torch's +0x238). The bodies stay the plain
+// members above, registered by address (rewrite guide rule 4).
+class CTorchObjectSpecSlots : public CEngineObject {
+public:
+    virtual void Empty13() = 0;   // 13: 004D6B20 (empty)
+    virtual void Empty14() = 0;   // 14: 004D6B30 (empty)
+    virtual void Empty15() = 0;   // 15: 004D6B40 (empty)
+    virtual void SetLightSlot(std::uint32_t kind, const float* colour, float value) = 0;   // 16: 0052C590 SetLight
+    virtual void SetFlameSlot(const float* colour, float value, const float* values) = 0;  // 17: 0052C5C0 SetFlame
+    virtual void SetNameSlot(const char* name) = 0;                                    // 18: 0052C600 SetName
+};
+inline CTorchObjectSpecSlots* TorchSpecSlots(CEngineObject* spec) { return static_cast<CTorchObjectSpecSlots*>(spec); }

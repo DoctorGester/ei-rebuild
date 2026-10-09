@@ -162,7 +162,7 @@ __declspec(naked) void __fastcall ManagerClear(CEngineObject*, void*) EI_ORIGINA
 constexpr int kSlotObjectEnd = 5;
 
 template <typename T>
-void FreeListBlocks(mfc::CTypedPtrList<T>& list) {
+void FreeListBlocks(T& list) {   // an MFC CList or CTypedPtrList
     list.count = 0;
     list.free = nullptr;
     list.tail = nullptr;
@@ -180,7 +180,7 @@ void ClearMissilePointers(CWorldServer* world) {
 } // namespace
 
 void CWorldServer::ResetZone() {
-    auto& shared = *reinterpret_cast<mfc::CTypedPtrList<void>*>(reinterpret_cast<std::uint8_t*>(this) + 0x12E60);
+    SharedObjectList& shared = sharedObjects_;
     for (auto* node = shared.head; node; node = node->next) SharedObjectDestruct(&node->data, nullptr, 0);
     FreeListBlocks(shared);
     StringArraySetSize(&mobFiles_, nullptr, 0, -1);
@@ -250,9 +250,9 @@ void CWorldServer::TeardownZone() {
     it.list = nullptr;
     unknown15C_ = 0;
 
-    auto& shared = *reinterpret_cast<mfc::CTypedPtrList<void>*>(reinterpret_cast<std::uint8_t*>(this) + 0x12E60);
+    SharedObjectList& shared = sharedObjects_;
     for (auto* node = shared.head; node; node = node->next)
-        ObjectPtrArrayDestruct(reinterpret_cast<std::uint8_t*>(node) + 0x14, nullptr);
+        ObjectPtrArrayDestruct(&node->data.objects, nullptr);
     shared.count = 0;
     shared.free = nullptr;
     shared.tail = nullptr;

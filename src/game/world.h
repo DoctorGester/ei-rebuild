@@ -9,6 +9,8 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "base_manager.h"
+#include "core_refcount.h"
 #include "core_streams.h"
 #include "engine_object.h"
 #include "lib/mfc.h"
@@ -28,6 +30,7 @@ class CLinkFigureLoader;   // model.h
 class CTexture;   // texture.h
 class CTextureManager;   // texture.h
 class Terrain;
+struct FootprintPart;   // ai_map.h: a figure part's box (FigurePart +0x188)
 class CWorldServer;
 struct Float4;   // chunk_stream.h: four floats passed by value
 
@@ -46,6 +49,8 @@ struct ObjectIdMap {
     void Set(const unsigned& key, CEngineObject* const& value);
 };
 static_assert(sizeof(ObjectIdMap) == 0x18);
+
+struct PartyRecords;   // unit.h
 
 // A player (one per human or AI side). Fields named only as far as used here.
 struct WorldPlayer {
@@ -67,7 +72,9 @@ struct WorldPlayer {
     // +0x0E0 an item list (CPtrList); the HUD top panel's page 1 lists it (0064A7A0).
     mfc::CTypedPtrList<CEngineObject> items;
     std::uint32_t unknownFC;             // +0x0FC saved with the world (SaveWorld / LoadSave)
-    std::uint32_t unknown100;            // +0x100 saved with the world
+    // +0x100 saved with the world; CPlayer::sessionKind100_: set from the server world's +0x12D64
+    // on joining (AcceptNewPlayers); 1: the flow applies the server's variables by stamp.
+    std::uint32_t unknown100;
     int lastScreen;                      // +0x104 the interface screen it comes from (5: the camp)
     std::uint8_t unknown108;             // +0x108 saved with the world (one byte)
     std::uint8_t unknown_109[0x110 - 0x109];
@@ -96,8 +103,10 @@ struct LocalViewData {
     std::uint8_t unknown_20[0x84 - 0x20];
     std::uint8_t unknown_84;             // +0x84 set: a unit's network owner becomes the local player
                                          //       whatever its id (UnitReadNetState)
+    std::uint8_t partyTaken;             // +0x85 the flow sets it once the local player took the requested party, clears it for a new zone
 };
 static_assert(offsetof(LocalViewData, unknown_84) == 0x84);
+static_assert(offsetof(LocalViewData, partyTaken) == 0x85);
 static_assert(offsetof(WorldPlayer, dirty) == 0x130);
 
 // Walks the world's player list. The list object is reference counted (+4) while an iterator holds
@@ -176,7 +185,7 @@ public:
     virtual class CFigureCache* FigureCache();   // 23: the figure cache (+0x5C; map_object_figures.h)
     // 24: a copy of an item (client 0055E940 as CParty::CopyItem; server 00594CE0, CWorldServer::
     // CopyItem). Not called CopyItem here: CWorldServer's plain member of that name would hide it.
-    virtual void DuplicateItem();
+    virtual CEngineObject* DuplicateItem(CEngineObject* item);
     virtual void TexturePath();           // 25: client 00561890 (the CString +0x224, "textures\"), server 0
     virtual int IsServer();               // 26: 1 for the server (0058A380), 0 for the client (0055EB30)
     virtual void GridHeightAt();          // 27: the terrain height, (x, y) server CWorldServer::GridHeight 00594220, client 00563F70
@@ -592,7 +601,14 @@ public:
     std::uint8_t loaded_;                 // +0x100 0 while LoadSave runs
     std::uint8_t unknown_101[0x104 - 0x101];
     ObjectIdMap updateMap_;               // +0x104
-    std::uint8_t unknown_11C[0x120 - 0x11C];
+    std::uint8_t unknown_11C;
+    // +0x11D / +0x11E (LoadMap, world_map.cpp: LoadedFresh / KeepsState): CreateObject (005927C0)
+    // makes objects answering map object slot 29 (IsSynchronised), sounds, lights and particle
+    // sources only with loadedFresh_ set, the other map objects only with keepsState_ set; a refused
+    // object is released.
+    std::uint8_t loadedFresh_;            // +0x11D the zone is not loaded from a save
+    std::uint8_t keepsState_;             // +0x11E
+    std::uint8_t unknown_11F;
     char* zoneName_;                      // +0x120 CString: the zone's map database name
     mfc::CStringArray mobFiles_;           // +0x124 .mob files loaded in this zone (LoadMobFile)
     int gameResult_;                      // +0x138 0 while the game runs
@@ -639,6 +655,8 @@ static_assert(offsetof(CWorldServer, countdowns_) == 0x70);
 static_assert(offsetof(CWorldServer, unknown84_) == 0x84);
 static_assert(offsetof(CWorldServer, loaded_) == 0x100);
 static_assert(offsetof(CWorldServer, zoneName_) == 0x120);
+static_assert(offsetof(CWorldServer, loadedFresh_) == 0x11D);
+static_assert(offsetof(CWorldServer, keepsState_) == 0x11E);
 static_assert(offsetof(CWorldServer, unknown13C_) == 0x13C);
 static_assert(offsetof(CWorldServer, aiMap_) == 0x170);
 static_assert(offsetof(CWorldServer, diplomacy_) == 0x12C64);
@@ -670,12 +688,12 @@ static_assert(offsetof(CWorldServer, unknown15C_) == 0x15C);
 static_assert(offsetof(CWorldServer, mapObjects_) == 0x12DA0);
 static_assert(offsetof(CWorldServer, counted_) == 0x12E44);
 
-// One walkable platform (bridge, deck) the client tests positions against. 0x4C bytes, stored in
-// an MFC-style singly linked list (next pointer first, then the record).
+// One walkable platform (bridge, deck) the client tests positions against. 0x4C bytes, the
+// element of the platform set's MFC CList (node: next, prev, then the record).
 struct Platform {
-    std::uint8_t unknown_00[4];
+    int id;                               // +0x00 the object it belongs to (RemoveObject drops its faces)
     float x, y;                           // +0x04 centre of the bounding circle
-    std::uint8_t unknown_0C[4];
+    float z;                              // +0x0C
     float radius;                         // +0x10
     float origin[3];                      // +0x14
     float axisU[3];                       // +0x20 local u axis
@@ -685,13 +703,14 @@ struct Platform {
 };
 static_assert(sizeof(Platform) == 0x4C);
 
-struct PlatformNode {
-    PlatformNode* next;
-    std::uint8_t unknown_04[4];
-    Platform platform;                    // +0x08
-};
+using PlatformList = mfc::CList<Platform>;
+using PlatformNode = PlatformList::Node;
+static_assert(sizeof(PlatformNode) == 0x54);   // 00573000 carves nodes of 0x54 bytes
 
-// The client world's platform set (CWorldClient + 0x1D4).
+// The client world's platform set (CWorldClient + 0x1D4, 0x38 bytes): an engine object (its
+// vtable at +0; Setup calls slot 2, Teardown slot 3) and the CList of the platform faces at +0x1C
+// (AddFace adds at the head; the list's own NewNode 00573000, RemoveAt 0056FDD0, RemoveAll
+// 0056FDA0).
 struct PlatformSet {
     // 00560F00. max(height, z of every platform surface whose area contains the point); the
     // point is projected onto each platform plane along z.
@@ -708,11 +727,16 @@ struct PlatformSet {
     // `position` with the rotation quaternion `rotation` (w, x, y, z): the box's corners and the six
     // face normals rotated, and every face that points up added with the id, the centre
     // R (pivot + offset) + position and the radius.
-    void AddBox(int id, const std::uint8_t* item, const float* position, const float* rotation);
+    void AddBox(int id, const FootprintPart* item, const float* position, const float* rotation);
 
-    std::uint8_t unknown_00[0x20];
-    PlatformNode* head;                   // +0x20 the last node added (nodes link backwards)
+    // The set as the engine object it starts with (its vtable is not declared here).
+    CEngineObject* Engine() { return reinterpret_cast<CEngineObject*>(this); }
+
+    std::uint8_t engineObject_[0x1C];     // +0x00 CEngineObject
+    PlatformList list;                    // +0x1C the faces, the newest first
 };
+static_assert(offsetof(PlatformSet, list) == 0x1C);
+static_assert(sizeof(PlatformSet) == 0x38);
 
 // The unit set the server's SendZone fills (world_sync.cpp; 005593D0 adds a unit): an STLport
 // hash_map whose nodes hold a second hash_map of unit entries (node + 8), a word at +0x24 and a
@@ -802,6 +826,122 @@ struct RecordVector {
 const std::uint8_t* __fastcall RecordAt50(const RecordVector* records, void*, std::uint32_t index);
 const std::uint8_t* __fastcall RecordAtB4(const RecordVector* records, void*, std::uint32_t index);
 
+// A list element whose layout is not needed here (only its size, for the node's).
+template <std::size_t N>
+struct OpaqueRecord {
+    std::uint8_t bytes[N];
+};
+
+// A window rectangle of the frame (the client's list +0xF0 and the hit vector +0xF4; 0x18 bytes).
+struct ScreenEntry {
+    std::uint32_t unknown_00;
+    unsigned objectId;                    // +0x04 the object, in the map object manager
+    std::int32_t rect[4];                 // +0x08 RECT on the screen
+};
+static_assert(sizeof(ScreenEntry) == 0x18);
+using ScreenEntryNode = stlp::list<ScreenEntry>::Node;
+
+// The STLport vector<ScreenEntry> the pickers fill (CWorldClient + 0xF4). Its _M_insert_overflow
+// (00573350) is the instantiation's own (world_client_maps.cpp); push_back as the collectors inline
+// it.
+struct ScreenHits {
+    ScreenEntry* start;
+    ScreenEntry* finish;
+    ScreenEntry* eos;
+    void InsertOverflow(ScreenEntry* position, const ScreenEntry* value, int count);
+    void PushBack(const ScreenEntry* entry) {
+        if (finish != eos) {
+            if (finish) *finish = *entry;
+            ++finish;
+        } else {
+            InsertOverflow(finish, entry, 1);
+        }
+    }
+};
+static_assert(sizeof(ScreenHits) == 12);
+
+// A marker entry MarkWithinRadius walks (an STLport list's element: node + 8).
+struct RadiusMarker {
+    std::uint8_t unknown_00[5];
+    std::uint8_t marked;                  // +0x05 set when within the radius
+    std::uint8_t unknown_06[2];
+    float x, y;                           // +0x08
+    std::uint8_t unknown_10[0x8C - 0x10];
+    float radius;                         // +0x8C scaled by the functor's scale
+};
+static_assert(offsetof(RadiusMarker, radius) == 0x8C);
+
+// The client's local session (CWorldClient + 0x20C, made by 0066C180), as far as the maps read it.
+struct WorldSession : CEngineObject {
+    std::uint8_t unknown_1C[4];
+    std::uint8_t* localView;              // +0x20
+    std::uint8_t unknown_24[0x100 - 0x24];
+    int gameKind;                         // +0x100 1 / 3: kinds of multiplayer session
+};
+static_assert(offsetof(WorldSession, localView) == 0x20);
+static_assert(offsetof(WorldSession, gameKind) == 0x100);
+
+// The client's ribbon effects (CWorldClient + 0x6F4, constructor 004E3C20; drawn by 004E5B10):
+// an engine object (Teardown calls its slot 3) that keeps the world at +0x20.
+struct ClientRibbons {
+    CEngineObject* Engine() { return reinterpret_cast<CEngineObject*>(this); }
+    std::uint8_t engineObject_[0x1C];
+    std::uint8_t unknown_1C[4];
+    class CWorldClient* world;            // +0x20
+};
+static_assert(offsetof(ClientRibbons, world) == 0x20);
+
+// The client's text resources (CWorldClient + 0x1D0, 0x2C bytes, vtable 0073F6F0; constructor
+// 004DED20 after the engine object fields and the table at +0x1C, 00562A80).
+struct ClientTexts : CEngineObject {
+    std::uint8_t table[0x10];             // +0x1C
+};
+static_assert(sizeof(ClientTexts) == 0x2C);
+
+// The client's managers Setup builds with their constructors partly inlined (base 00402B20).
+// +0x1A0 (0xCC bytes, vtable 0073F5B8): a CList at +0xB0 (vtable 0073F61C, block size 10).
+struct ClientListManager : CBaseManager {
+    mfc::CList<void*> list;               // +0xB0
+};
+static_assert(sizeof(ClientListManager) == 0xCC);
+// +0x1A4 (0xD0 bytes, vtable 0073F554): a dword and a CList (constructor 005715D0, 10).
+struct ClientArrayManager : CBaseManager {
+    int unknown_B0;
+    std::uint8_t list[0x1C];              // +0xB4
+};
+static_assert(sizeof(ClientArrayManager) == 0xD0);
+// +0x19C (0xE8 bytes, vtable 0073F644, constructor tail 004981A0): a CList (0056FD40, 10), a table
+// (005725E0) and a dword.
+struct ClientManager19C : CBaseManager {
+    std::uint8_t list[0x1C];              // +0xB0
+    std::uint8_t table[0x14];             // +0xCC
+    int unknown_E0;                       // +0xE0
+    std::uint8_t unknown_E4[4];
+};
+static_assert(offsetof(ClientManager19C, unknown_E0) == 0xE0);
+static_assert(sizeof(ClientManager19C) == 0xE8);
+
+// The render device (the global pointer at 007AF068): three stacks of 4x4 float matrices.
+struct MatrixDevice {
+    std::uint8_t unknown_00[0x14];
+    float* pickStack;      // +0x14 used by the cursor picking
+    int pickDepth;         // +0x18
+    std::uint8_t unknown_1C[0x24 - 0x1C];
+    float* objectStack;    // +0x24 object -> world, pushed while testing an object
+    int objectDepth;       // +0x28
+    std::uint8_t unknown_2C[0x5C - 0x2C];
+    float* viewStack;      // +0x5C the view matrices
+    int viewDepth;         // +0x60
+
+    // 004F16A0 (world_client_view.cpp). Where the bounding volume lies against the view frustum;
+    // 2 = outside.
+    int Classify(const void* bounds);
+};
+static_assert(offsetof(MatrixDevice, pickStack) == 0x14);
+static_assert(offsetof(MatrixDevice, objectStack) == 0x24);
+static_assert(offsetof(MatrixDevice, viewStack) == 0x5C);
+inline MatrixDevice* TheMatrixDevice() { return *reinterpret_cast<MatrixDevice**>(std::uintptr_t(0x007AF068)); }
+
 // The drawing side (vtable 0073F41C).
 class CWorldClient : public CWorld {
 public:
@@ -825,8 +965,6 @@ public:
     // 005640A0. Nearest living unit of the local player's group that `unit`'s side can see
     // (relation masks +0x244/+0x248 of the candidate); null when none or `unit` is null.
     CEngineObject* NearestVisibleUnit(CEngineObject* unit);
-    // 00564AF0. Item `index` of the concatenation of two pointer arrays, at +0x188 of each.
-    void* ListItem(int index);
     // 005699F0. The local view (session +0x20; its +0x1C is the local WorldPlayer), or null.
     std::uint8_t* LocalView();
     // 00566EC0. Whether the local view is in mode 2 (+0x20).
@@ -922,40 +1060,106 @@ public:
     // the unit database counts the sound files of +0x1CC.
     void SetUpGraphics(void* device);
 
-    std::uint8_t unknown_068[0x90 - 0x68];
+    // The local session (+0x20C) as the maps read it.
+    WorldSession* Session() const { return reinterpret_cast<WorldSession*>(session_); }
+
+    std::uint8_t unknown_068[0x84 - 0x68];
+    int unknown84_;                       // +0x084 -100000 after Setup
+    std::uint8_t unknown_088[0x90 - 0x88];
     ZoneExit* exits_;                     // +0x090
     int exitCount_;                       // +0x094
-    std::uint8_t unknown_098[0xD0 - 0x98];
-    std::uint8_t** listA_;                // +0x0D0
-    int listACount_;                      // +0x0D4
-    std::uint8_t unknown_0D8[0xE0 - 0xD8];
-    std::uint8_t** listB_;                // +0x0E0
-    std::uint8_t unknown_0E4[0x120 - 0xE4];
+    std::uint8_t unknown_098[0xA0 - 0x98];
+    // +0x0A0 counted objects (MFC CArray; its own SetSize 00570000 releases the dropped ones).
+    mfc::CArray<CEngineObject*> countedA0_;
+    SectorList heroes_;                   // +0x0B4 heroes with a text-key id (counted)
+    SectorList objects_;                  // +0x0B8 every filed object (one reference each)
+    // +0x0BC the objects answering slot 29 (IsSynchronised), with their nodes by id in +0x0D8 and
+    // the highest id at +0x0EC (Segment drops those whose update returns 0).
+    mfc::CList<CEngineObject*> dynamicObjects_;
+    PendingMap dynamicNodes_;             // +0x0D8 id -> its node in dynamicObjects_
+    int dynamicMaxId_;                    // +0x0EC
+    stlp::list<ScreenEntry> screenEntries_;   // +0x0F0 the window rectangles of the frame
+    ScreenHits hits_;                     // +0x0F4 the entries under the point (PickAt)
+    ScreenEntry* hitCursor_;              // +0x100 PickAt's walk, left on the entry it returns
+    std::uint8_t unknown_104[0x120 - 0x104];
     SectorGrid objectGrid_;               // +0x120 the objects by sector (slot 41 moves them)
-    std::uint8_t unknown_138[0x180 - 0x138];
-    Terrain* terrain_;                    // +0x180
-    char* zoneName_;                      // +0x184 CString
-    std::uint8_t unknown_188[4];
-    CTextureManager* textureManager_;     // +0x18C (slot 34)
-    std::uint8_t unknown_190[0x1B4 - 0x190];
+    // +0x138 ObjectsInRange's cell range and its walk's cursor.
+    std::uint32_t rangeFirstX_, rangeFirstY_, rangeLastX_, rangeLastY_, rangeX_, rangeY_;
+    SectorGrid secondGrid_;               // +0x150 (slot 42 moves objects in it)
+    std::uint8_t unknown_168[0x180 - 0x168];
+    Terrain* terrain_;                    // +0x180 counted
+    char* zoneName_;                      // +0x184 CString ("gipath" after Setup)
+    CBaseManager* manager188_;            // +0x188 counted (constructor 0068E3F0)
+    CTextureManager* textureManager_;     // +0x18C (slot 34) counted
+    CBaseManager* manager190_;            // +0x190 counted (constructor 0068D850)
+    std::uint8_t unknown_194[0x19C - 0x194];
+    ClientManager19C* manager19C_;        // +0x19C counted
+    ClientListManager* listManager_;      // +0x1A0 owned
+    ClientArrayManager* arrayManager_;    // +0x1A4 owned
+    CEngineObject* owned1A8_;             // +0x1A8 owned (constructor 006B4350)
+    void* owned1AC_;                      // +0x1AC owned (destructor body 005636A0)
+    CEngineObject* owned1B0_;             // +0x1B0 owned
     ClientNumbers* numbers_;              // +0x1B4 owned
-    std::uint8_t unknown_1B8[0x1CC - 0x1B8];
+    // +0x1B8 / +0x1BC / +0x1C0 lists of records (element destructors 0056D080, 00575560, 00575580;
+    // nodes of 0x9C and 0x94 bytes for the last two).
+    SectorList list1B8_;
+    stlp::list<OpaqueRecord<0x94>> list1BC_;
+    stlp::list<OpaqueRecord<0x8C>> list1C0_;
+    int unknown1C4_;                      // +0x1C4 0 after Setup
+    RefPtr handle_;                       // +0x1C8 (vtable 0073F628)
     CSoundManager* sounds_;               // +0x1CC the sound manager (owned; the client controller's hit sounds)
-    std::uint8_t unknown_1D0[4];
+    ClientTexts* texts_;                  // +0x1D0 the text resources (counted)
     PlatformSet platforms_;               // +0x1D4
-    std::uint8_t unknown_1F8[0x20C - 0x1F8];
     std::uint8_t* session_;               // +0x20C local session; its +0x20 is the local view
-    std::uint8_t unknown_210[0x22C - 0x210];
+    std::uint8_t unknown_210[0x224 - 0x210];
+    char* texturePath_;                   // +0x224 CString: <data path>textures\ (Setup)
+    std::uint8_t unknown_228[0x22C - 0x228];
     // +0x22C / +0x3AC / +0x52C the light colours by hour (0..23; r, g, b, 1) from the lights table's
     // [sunlight], [ambient] and [sky] sections (LoadLights).
     LightColour sunlight_[24];
     LightColour ambient_[24];
     LightColour sky_[24];
-    std::uint8_t unknown_6AC[0x6E0 - 0x6AC];
+    std::uint8_t unknown_6AC[0x6DC - 0x6AC];
+    int unknown6DC_;                      // +0x6DC 0 after Setup
     int unknown6E0_;                      // +0x6E0
-    std::uint8_t unknown_6E4[0x7A8 - 0x6E4];
+    int unknown6E4_;                      // +0x6E4 0 after Setup
+    std::uint8_t unknown_6E8[0x6EC - 0x6E8];
+    int sessionJoins_;                    // +0x6EC AddObject fades units in (slot 43) when >= 1
+    std::uint8_t unknown_6F0[0x6F4 - 0x6F0];
+    ClientRibbons ribbons_;               // +0x6F4
+    std::uint8_t unknown_718[0x7A8 - 0x718];
     int unknown7A8_;                      // +0x7A8
+    std::uint8_t unknown_7AC[0x7BC - 0x7AC];
+    stlp::list<void*> list7BC_;           // +0x7BC (nodes of 0xC bytes; pool free 00498C40)
+    std::uint8_t unknown_7C0[0x7D0 - 0x7C0];
+    void* cursor_;                        // +0x7D0 HCURSOR wincurs\Df0000.cur
 };
+static_assert(offsetof(CWorldClient, unknown84_) == 0x84);
+static_assert(offsetof(CWorldClient, countedA0_) == 0xA0);
+static_assert(offsetof(CWorldClient, heroes_) == 0xB4);
+static_assert(offsetof(CWorldClient, objects_) == 0xB8);
+static_assert(offsetof(CWorldClient, dynamicObjects_) == 0xBC);
+static_assert(offsetof(CWorldClient, dynamicNodes_) == 0xD8);
+static_assert(offsetof(CWorldClient, dynamicMaxId_) == 0xEC);
+static_assert(offsetof(CWorldClient, screenEntries_) == 0xF0);
+static_assert(offsetof(CWorldClient, hits_) == 0xF4);
+static_assert(offsetof(CWorldClient, hitCursor_) == 0x100);
+static_assert(offsetof(CWorldClient, rangeFirstX_) == 0x138);
+static_assert(offsetof(CWorldClient, rangeY_) == 0x14C);
+static_assert(offsetof(CWorldClient, secondGrid_) == 0x150);
+static_assert(offsetof(CWorldClient, manager188_) == 0x188);
+static_assert(offsetof(CWorldClient, manager19C_) == 0x19C);
+static_assert(offsetof(CWorldClient, owned1B0_) == 0x1B0);
+static_assert(offsetof(CWorldClient, list1B8_) == 0x1B8);
+static_assert(offsetof(CWorldClient, handle_) == 0x1C8);
+static_assert(offsetof(CWorldClient, sounds_) == 0x1CC);
+static_assert(offsetof(CWorldClient, texts_) == 0x1D0);
+static_assert(offsetof(CWorldClient, texturePath_) == 0x224);
+static_assert(offsetof(CWorldClient, unknown6DC_) == 0x6DC);
+static_assert(offsetof(CWorldClient, sessionJoins_) == 0x6EC);
+static_assert(offsetof(CWorldClient, ribbons_) == 0x6F4);
+static_assert(offsetof(CWorldClient, list7BC_) == 0x7BC);
+static_assert(offsetof(CWorldClient, cursor_) == 0x7D0);
 static_assert(offsetof(CWorldClient, exits_) == 0x90);
 static_assert(offsetof(CWorldClient, objectGrid_) == 0x120);
 static_assert(offsetof(CWorldClient, terrain_) == 0x180);
@@ -1116,16 +1320,37 @@ struct GameFlow {
     // "q." variables, then the server's variables applied in stamp order (007AFED0 / 007AFED4),
     // and the multiplayer flag variable. Rebirth's PersistentGlobalVars keeps the "gvar." ones.
     void UpdateFromServer();
-};
 
-// The saved multiplayer parties: +0 the folder (CString), +4 an STLport vector of 0x74-byte entries
-// (the party records and the file name).
+    // The party records of a request (PartyRecords, unit.h; RequestPartyZone5 / 6 copy one in).
+    PartyRecords* RequestParty() { return reinterpret_cast<PartyRecords*>(requestParty_); }
+
+    int state_;                           // +0x00 the pending request (1..6; ProcessRequest runs it)
+    char* requestTarget_;                 // +0x04 CString: the request's zone or save name
+    std::uint8_t requestParty_[0x70];     // +0x08 PartyRecords: RequestParty()
+    int requestArg_;                      // +0x78 the entrance (4) or the load flag (2)
+    char* zone7C_;                        // +0x7C CString: the multiplayer zone (SwitchMultiplayerZone)
+    char flag80_;                         // +0x80 set by SwitchMultiplayerZone, cleared by the game's start
+};
+static_assert(offsetof(GameFlow, requestTarget_) == 0x04);
+static_assert(offsetof(GameFlow, requestArg_) == 0x78);
+static_assert(offsetof(GameFlow, flag80_) == 0x80);
+
+struct SavedPartyEntry;   // world_game.cpp: the party records (0x70 bytes) and the file name
+
+// The saved multiplayer parties: the folder and an STLport vector of 0x74-byte entries.
 struct SavedParties {
     // 00662FB0 (world_game.cpp). Rebuilds the list from the folder's "*.mp" files: each is read
     // into party records (00662DD0); a loaded one has its variables emptied and, with records +0x34
     // == 1, is appended. Rebirth's PersistentGlobalVars keeps the "gvar." variables.
     void Reload();
+
+    char* folder_;                  // +0x00 CString
+    SavedPartyEntry* entries_;      // +0x04 vector<SavedPartyEntry>: start, finish, end of storage
+    SavedPartyEntry* finish_;       // +0x08
+    SavedPartyEntry* eos_;          // +0x0C
 };
+static_assert(offsetof(SavedParties, entries_) == 0x04);
+static_assert(offsetof(SavedParties, eos_) == 0x0C);
 
 // 00581630 (RET 8; world_game.cpp). Sets 007C7D94 and has the local view ask to go to `zone`
 // (0066B1B0); returns what that returns.

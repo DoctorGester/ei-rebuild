@@ -7,9 +7,22 @@
 // instantiations), the window hit collectors, the radius marker, the pending-map lookup and the
 // bounds-checked record accessors.
 #include "world.h"
+#include "world_data.h"
 
+#include "ai_map.h"
 #include "base_manager.h"
+#include "camera.h"
 #include "console.h"
+#include "game_strings.h"
+#include "map_object.h"
+#include "map_object_figures.h"
+#include "model.h"
+#include "sound.h"
+#include "spell.h"
+#include "terrain.h"
+#include "texture.h"
+#include "unit.h"
+#include "unit_db.h"
 #include "object_tables.h"
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -29,14 +42,8 @@
 
 namespace {
 
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
-}
-
-constexpr int kSlotRelease = 4;
-
-// _hypot (the game's CRT), through its address.
+// The objects the maps file are map objects (their position at +0x1C).
+CMapObject* MapObjectOf(CEngineObject* object) { return static_cast<CMapObject*>(object); }
 
 // The cell index of a coordinate: FISTP (round to nearest), then an unsigned shift by 4, so a
 // negative coordinate gives a huge index that fails the bounds tests.
@@ -75,12 +82,12 @@ void HoldRef(CEngineObject* object) {
     if (object) ++object->refCount_;
 }
 void DropRef(CEngineObject* object) {
-    if (object) ei::VCall<void>(object, kSlotRelease);
+    if (object) object->Release();
 }
 
 template <typename Ops>
 void MoveInGrid(SectorGrid* grid, CEngineObject* object, const float* position) {
-    float* stored = &At<float>(object, 0x1C);
+    float* stored = &MapObjectOf(object)->positionX;   // x, y, z
     std::uint32_t oldX = CellOf(stored[0]);
     std::uint32_t oldY = CellOf(stored[1]);
     std::uint32_t newX = CellOf(position[0]);
@@ -134,14 +141,16 @@ void SectorGrid::Move2(CEngineObject* object, const float* position) {
 
 float* __fastcall MarkWithinRadius(float* out, void*, std::uint8_t* first, std::uint8_t* last, float x, float y,
                                    float scale) {
-    for (std::uint8_t* node = first; node != last; node = *reinterpret_cast<std::uint8_t**>(node)) {
-        double dx = At<float>(node, 0x10) - x;
-        double dy = At<float>(node, 0x14) - y;
+    using Node = stlp::list<RadiusMarker>::Node;
+    for (Node* node = reinterpret_cast<Node*>(first); node != reinterpret_cast<Node*>(last); node = node->next) {
+        RadiusMarker& marker = node->data;
+        double dx = marker.x - x;
+        double dy = marker.y - y;
         double distance = Hypot(dx, dy);
-        float limit = At<float>(node, 0x94) * scale;
+        float limit = marker.radius * scale;
         // FCOMPP + TEST AH,0x41: marked unless the distance is greater (a NaN marks too).
         bool unordered = x87::IsNaN(static_cast<float>(distance)) || x87::IsNaN(limit);
-        if (unordered || !(distance > static_cast<double>(limit))) At<std::uint8_t>(node, 0xD) = 1;
+        if (unordered || !(distance > static_cast<double>(limit))) marker.marked = 1;
     }
     out[0] = x;
     out[1] = y;
@@ -151,36 +160,30 @@ float* __fastcall MarkWithinRadius(float* out, void*, std::uint8_t* first, std::
 
 namespace {
 
-// vector<0x18-byte entry>::_M_insert_overflow (00573350) and push_back as the collectors inline it.
-struct HitVector {
-    std::uint8_t* start;
-    std::uint8_t* finish;
-    std::uint8_t* eos;
-    void InsertOverflow(std::uint8_t* position, const std::uint8_t* value, int count);
-    void PushBack(const std::uint8_t* entry) {
-        if (finish != eos) {
-            if (finish) std::memcpy(finish, entry, 0x18);
-            finish += 0x18;
-        } else {
-            InsertOverflow(finish, entry, 1);
-        }
-    }
-};
-__declspec(naked) void HitVector::InsertOverflow(std::uint8_t*, const std::uint8_t*, int) EI_ORIGINAL(0x00573350)
+} // namespace
 
-// The list entries (node + 8, 0x18 bytes): +4 object id, +8 RECT. The hit test is slot `slot` of
-// the object's +0x94 (the point).
+__declspec(naked) void ScreenHits::InsertOverflow(ScreenEntry*, const ScreenEntry*, int) EI_ORIGINAL(0x00573350)
+
+namespace {
+
+// The hit test of the object's side half (CObject3D + 0x94) for the point: slot 22 or 24.
+using HitTest = int (CObject3DSpecific::*)(const long* point);
+
+// The entries of the screen list's nodes [first, last) whose rectangle holds (x, y) and whose
+// object still exists and answers `test` go to `hits`.
 void** CollectHits(void** out, std::uint8_t* first, std::uint8_t* last, void* hits, LONG x, LONG y,
-                   CBaseManager* manager, int slot) {
-    HitVector* vector = static_cast<HitVector*>(hits);
-    for (std::uint8_t* node = first; node != last; node = *reinterpret_cast<std::uint8_t**>(node)) {
-        std::uint8_t* entry = node + 8;
+                   CBaseManager* manager, HitTest test) {
+    ScreenHits* vector = static_cast<ScreenHits*>(hits);
+    for (ScreenEntryNode* node = reinterpret_cast<ScreenEntryNode*>(first); node != reinterpret_cast<ScreenEntryNode*>(last);
+         node = node->next) {
+        const ScreenEntry* entry = &node->data;
         POINT pt = {x, y};
-        if (!PtInRect(reinterpret_cast<const RECT*>(entry + 8), pt)) continue;
-        CEngineObject* object = manager->FindObject(At<unsigned>(entry, 4));
+        if (!PtInRect(reinterpret_cast<const RECT*>(entry->rect), pt)) continue;
+        CEngineObject* object = manager->FindObject(entry->objectId);
         if (!object) continue;
         LONG point[2] = {x, y};
-        if (!ei::VCall<int>(At<void*>(object, 0x94), slot, point)) continue;
+        CObject3DSpecific* half = MapObjectOf(object)->Object3D()->Specific();
+        if (!(half->*test)(point)) continue;
         vector->PushBack(entry);
     }
     *out = hits;
@@ -191,12 +194,12 @@ void** CollectHits(void** out, std::uint8_t* first, std::uint8_t* last, void* hi
 
 void** __fastcall CollectWindowsAt(void** out, void*, std::uint8_t* first, std::uint8_t* last, void* hits, LONG x,
                                    LONG y, CBaseManager* manager) {
-    return CollectHits(out, first, last, hits, x, y, manager, 0x58 / 4);
+    return CollectHits(out, first, last, hits, x, y, manager, &CObject3DSpecific::BoundsContainPoint);
 }
 
 void** __fastcall CollectWindowsAt2(void** out, void*, std::uint8_t* first, std::uint8_t* last, void* hits, LONG x,
                                     LONG y, CBaseManager* manager) {
-    return CollectHits(out, first, last, hits, x, y, manager, 0x60 / 4);
+    return CollectHits(out, first, last, hits, x, y, manager, &CObject3DSpecific::PartsContainPoint);
 }
 
 // ---- Lookups -------------------------------------------------------------------------------------
@@ -253,60 +256,46 @@ __declspec(naked) void __fastcall CellOps::Remove(SectorList*, void*, CEngineObj
 __declspec(naked) void __fastcall CellOps::PushBack(SectorList*, void*, CEngineObject* const*) EI_ORIGINAL(0x0056DED0)
 __declspec(naked) void __fastcall CellOps::Clear2(SectorList*) EI_ORIGINAL(0x00573660)
 
-// The MFC CList<CEngineObject*> / CList<int> of the client (+0xBC, +0x1F0): NewNode [00573290],
-// FreeNode [00573300], RemoveAt [0056FDD0].
-using MfcList = mfc::CList<void*>;
-using MfcNode = MfcList::Node;
-MfcNode* __fastcall MfcNewNode(MfcList* list, void*, MfcNode* prev, MfcNode* next) {
-    return static_cast<MfcNode*>(PtrListNewNode573290Original(list, nullptr, prev, next));
+// The client's MFC CList<CEngineObject*> (+0xBC): NewNode [00573290], FreeNode [00573300]; the
+// platform list's RemoveAt [0056FDD0] (on the platform set's list, +0x1F0).
+using DynamicList = mfc::CList<CEngineObject*>;
+using DynamicNode = DynamicList::Node;
+DynamicNode* __fastcall DynamicNewNode(DynamicList* list, void*, DynamicNode* prev, DynamicNode* next) {
+    return static_cast<DynamicNode*>(PtrListNewNode573290Original(list, nullptr, prev, next));
 }
-__declspec(naked) void __fastcall MfcFreeNode(MfcList*, void*, MfcNode*) EI_ORIGINAL(0x00573300)
-__declspec(naked) void __fastcall MfcRemoveAt(MfcList*, void*, MfcNode*) EI_ORIGINAL(0x0056FDD0)
+__declspec(naked) void __fastcall DynamicFreeNode(DynamicList*, void*, DynamicNode*) EI_ORIGINAL(0x00573300)
+__declspec(naked) void __fastcall PlatformRemoveAt(PlatformList*, void*, PlatformNode*) EI_ORIGINAL(0x0056FDD0)
 
-// The id map +0xD8 (hash_map<unsigned, MfcNode*>, then the highest key at +0x14): operator[]
+// The id map +0xD8 (hash_map<unsigned, DynamicNode*>, then the highest key): operator[]
 // [00406A10], erase(iterator) [00405720], clear [00406E80].
-__declspec(naked) void** __fastcall IdMapAt(void*, void*, const int*) EI_ORIGINAL(0x00406A10)
-void __fastcall IdMapErase(void* a0, void*, const void* a2, const void* a3) { HashEraseOriginal(a0, nullptr, (void*)a2, a3); }
-void __fastcall IdMapClear(void* a0) { HashClearOriginal(a0); }
+__declspec(naked) void** __fastcall IdMapAt(PendingMap*, void*, const int*) EI_ORIGINAL(0x00406A10)
+void __fastcall IdMapErase(PendingMap* map, void*, const PendingMap::Node* node, const PendingMap* owner) {
+    HashEraseOriginal(map, nullptr, const_cast<PendingMap::Node*>(node), owner);
+}
+void __fastcall IdMapClear(PendingMap* map) { HashClearOriginal(map); }
 
-// Item `index` of an object's two item arrays [00564AF0, on the object]; a platform item added to
-// the client's platform set [00560820: id, item, position, orientation].
-__declspec(naked) std::uint32_t* __fastcall ObjectItem(void*, void*, int) EI_ORIGINAL(0x00564AF0)
-__declspec(naked) void __fastcall PlatformsAdd(void*, void*, int, std::uint32_t*, float*, float*) EI_ORIGINAL(0x00560820)
-// 00538EA0 on a unit's +0x240 (a hero leaving a session of kind 3).
-__declspec(naked) void __fastcall HeroLeft(void*) EI_ORIGINAL(0x00538EA0)
-// ClearMaps: a counted node value's destructor [00575510 (flags)], the node's release to the pool
-// [0056FB40 (node, count)], the session's player data [00665200], a manager's records [00404410].
-void __fastcall SessionPlayerClear(void* a0) { PlayerClearOriginal(a0); }
-__declspec(naked) void __fastcall ManagerFreeRecords(void*) EI_ORIGINAL(0x00404410)
+// 00538EA0 on a unit's controller (a hero leaving a session of kind 3).
+__declspec(naked) void __fastcall HeroLeft(CEngineObject*) EI_ORIGINAL(0x00538EA0)
+// ClearMaps: the session's player data [00665200].
+void __fastcall SessionPlayerClear(WorldSession* session) { PlayerClearOriginal(session); }
 
-// The STLport sort over the 0x18-byte screen entries with DepthLess {plane, manager}:
-// __introsort_loop [00573740] (its heap fallback is partial_sort 005769C0), __insertion_sort
-// [00575BC0], __unguarded_insertion_sort [00576D40].
-__declspec(naked) void __fastcall IntroSortLoop(std::uint8_t*, std::uint8_t*, void*, int, const float*, void*)
+// The STLport sort over the screen entries with DepthLess {plane, manager}: __introsort_loop
+// [00573740] (its heap fallback is partial_sort 005769C0), __insertion_sort [00575BC0],
+// __unguarded_insertion_sort [00576D40].
+__declspec(naked) void __fastcall IntroSortLoop(ScreenEntry*, ScreenEntry*, void*, int, const float*, void*)
     EI_ORIGINAL(0x00573740)
-__declspec(naked) void __fastcall InsertionSort(std::uint8_t*, std::uint8_t*, const float*, void*) EI_ORIGINAL(0x00575BC0)
-__declspec(naked) void __fastcall UnguardedInsertionSort(std::uint8_t*, std::uint8_t*, void*, const float*, void*)
+__declspec(naked) void __fastcall InsertionSort(ScreenEntry*, ScreenEntry*, const float*, void*) EI_ORIGINAL(0x00575BC0)
+__declspec(naked) void __fastcall UnguardedInsertionSort(ScreenEntry*, ScreenEntry*, void*, const float*, void*)
     EI_ORIGINAL(0x00576D40)
 
-constexpr int kSlotKeepInMaps = 0x74 / 4;    // object: () -> AL
-constexpr int kSlotClassId = 0x30 / 4;       // object: ()
-constexpr int kSlotSessionJoin = 0xAC / 4;   // unit +0x240: ()
-constexpr int kSlotObjects = 0x4C / 4;       // client: () -> the object manager
-constexpr int kSlotReset = 0x14 / 4;         // client +0x34: ()
 constexpr int kClassPlatform54 = 0x54;
 constexpr int kClassPlatform5D = 0x5D;
 constexpr int kTypeHero = 0x32;
 
-PlainList& ListAt(void* client, int offset) { return *reinterpret_cast<PlainList*>(static_cast<std::uint8_t*>(client) + offset); }
-MfcList& MfcListAt(void* client, int offset) { return *reinterpret_cast<MfcList*>(static_cast<std::uint8_t*>(client) + offset); }
-SectorGrid& GridAt(void* client, int offset) { return *reinterpret_cast<SectorGrid*>(static_cast<std::uint8_t*>(client) + offset); }
-PendingMap& IdMap(void* client) { return *reinterpret_cast<PendingMap*>(static_cast<std::uint8_t*>(client) + 0xD8); }
-
 // The object's grid cell list, or null outside the grid.
 SectorList* CellFor(SectorGrid& grid, CEngineObject* object) {
-    std::uint32_t x = CellOf(At<float>(object, 0x1C));
-    std::uint32_t y = CellOf(At<float>(object, 0x20));
+    std::uint32_t x = CellOf(MapObjectOf(object)->positionX);
+    std::uint32_t y = CellOf(MapObjectOf(object)->positionY);
     if (x >= grid.width_ || y >= grid.height_) return nullptr;
     return &grid.rows_[y][x];
 }
@@ -314,48 +303,50 @@ SectorList* CellFor(SectorGrid& grid, CEngineObject* object) {
 } // namespace
 
 int CWorldClient::AddObject(CEngineObject* object) {
-    PlainList& objects = ListAt(this, 0xB8);
+    PlainList& objects = objects_;
     for (SectorListNode* node = objects.head->next; node != objects.head; node = node->next) {
         if (node->data->id_ == object->id_) {
             ++object->refCount_;
-            ei::VCall<void>(object, kSlotRelease);
+            object->Release();
             return 1;
         }
     }
-    const PendingMap::Node* entry = IdMap(this).Find(static_cast<std::uint32_t>(object->id_));
-    if (!entry && ei::VCall<bool>(object, kSlotKeepInMaps)) {
-        MfcList& kept = MfcListAt(this, 0xBC);
-        MfcNode* node = MfcNewNode(&kept, nullptr, kept.tail, nullptr);
+    const PendingMap::Node* entry = dynamicNodes_.Find(static_cast<std::uint32_t>(object->id_));
+    if (!entry && ObjectSlots(object)->IsSynchronised()) {
+        DynamicList& kept = dynamicObjects_;
+        DynamicNode* node = DynamicNewNode(&kept, nullptr, kept.tail, nullptr);
         node->data = object;
         if (kept.tail)
             kept.tail->next = node;
         else
             kept.head = node;
         kept.tail = node;
-        MfcNode* tail = kept.tail;
+        DynamicNode* tail = kept.tail;
         int key = object->id_;
-        *IdMapAt(&IdMap(this), nullptr, &key) = tail;
+        *IdMapAt(&dynamicNodes_, nullptr, &key) = tail;
     }
-    int kind = ei::VCall<int>(object, kSlotClassId);
-    if (kind == kClassPlatform54 || ei::VCall<int>(object, kSlotClassId) == kClassPlatform5D) {
-        for (int i = 0; i < At<int>(object, 0xD4); ++i) {
-            if ((*ObjectItem(object, nullptr, i) >> 10) & 1) {
+    int kind = object->GetClassId();
+    if (kind == kClassPlatform54 || object->GetClassId() == kClassPlatform5D) {
+        CMapObject* mapObject = MapObjectOf(object);
+        CObject3D* figure = mapObject->Object3D();
+        for (int i = 0; i < figure->parts.size; ++i) {
+            if ((figure->PartBox(i)->flags >> 10) & 1) {
                 int id = object->id_;
-                PlatformsAdd(&platforms_, nullptr, id, ObjectItem(object, nullptr, i), &At<float>(object, 0x1C),
-                             &At<float>(object, 0x34));
+                platforms_.AddBox(id, figure->PartBox(i), &mapObject->positionX, mapObject->orientation);
             }
         }
     }
-    if (ei::VCall<int>(object, kSlotClassId) == world::kClassUnit && At<int>(session_, 0x100) == 1 &&
-        At<int>(object, 0x24C) == 0 && At<int>(this, 0x6EC) >= 1)
-        ei::VCall<void>(At<void*>(object, 0x240), kSlotSessionJoin);
+    if (object->GetClassId() == world::kClassUnit && Session()->gameKind == 1) {
+        auto* unit = static_cast<CUnit*>(object);
+        if (unit->player == nullptr && sessionJoins_ >= 1) unit->Controller()->RestartFadeIn();
+    }
 
     ++object->refCount_;
     SectorListNode* end;
     SectorListNode* inserted;
     PlainOps::Insert(&objects, nullptr, &inserted, *PlainOps::End(&objects, nullptr, &end), object);
 
-    SectorGrid& grid = GridAt(this, 0x120);
+    SectorGrid& grid = objectGrid_;
     if (SectorList* cell = CellFor(grid, object)) {
         CEngineObject* value = object;
         HoldRef(value);
@@ -371,7 +362,7 @@ int CWorldClient::AddObject(CEngineObject* object) {
     if (object->type_ == kTypeHero && (IsTextKey(object->id_) & 0xFF)) {
         CEngineObject* value = object;
         HoldRef(value);
-        SectorList& heroes = ListAt(this, 0xB4);
+        SectorList& heroes = heroes_;
         SectorListNode* heroEnd;
         GridOpsA::Insert(&heroes, nullptr, &inserted, *GridOpsA::End(&heroes, nullptr, &heroEnd), value);
         DropRef(value);
@@ -380,16 +371,17 @@ int CWorldClient::AddObject(CEngineObject* object) {
 }
 
 void CWorldClient::RemoveObject(int id) {
-    MfcList& pending = MfcListAt(this, 0x1F0);
-    for (MfcNode* node = pending.head; node;) {
-        MfcNode* next = node->next;
-        if (reinterpret_cast<std::intptr_t>(node->data) == id) MfcRemoveAt(&pending, nullptr, node);
+    // The object's platform faces.
+    PlatformList& platforms = platforms_.list;
+    for (PlatformNode* node = platforms.head; node;) {
+        PlatformNode* next = node->next;
+        if (node->data.id == id) PlatformRemoveAt(&platforms, nullptr, node);
         node = next;
     }
-    PendingMap& ids = IdMap(this);
+    PendingMap& ids = dynamicNodes_;
     if (const PendingMap::Node* entry = ids.Find(static_cast<std::uint32_t>(id))) {
-        MfcList& kept = MfcListAt(this, 0xBC);
-        MfcNode* node = static_cast<MfcNode*>(entry->value);
+        DynamicList& kept = dynamicObjects_;
+        DynamicNode* node = static_cast<DynamicNode*>(entry->value);
         if (node == kept.head)
             kept.head = node->next;
         else
@@ -398,10 +390,10 @@ void CWorldClient::RemoveObject(int id) {
             kept.tail = node->prev;
         else
             node->next->prev = node->prev;
-        MfcFreeNode(&kept, nullptr, node);
+        DynamicFreeNode(&kept, nullptr, node);
         if (const PendingMap::Node* again = ids.Find(static_cast<std::uint32_t>(id))) IdMapErase(&ids, nullptr, again, &ids);
     }
-    PlainList& objects = ListAt(this, 0xB8);
+    PlainList& objects = objects_;
     SectorListNode* node = objects.head->next;
     for (;; node = node->next) {
         if (node == objects.head) return;
@@ -411,7 +403,7 @@ void CWorldClient::RemoveObject(int id) {
     if (object->type_ == kTypeHero && (IsTextKey(id) & 0xFF)) {
         CEngineObject* value = object;
         HoldRef(value);
-        SectorList& heroes = ListAt(this, 0xB4);
+        SectorList& heroes = heroes_;
         for (SectorListNode* hero = heroes.head->next; hero != heroes.head;) {
             SectorListNode* next = hero->next;
             if (hero->data == value) {
@@ -421,9 +413,9 @@ void CWorldClient::RemoveObject(int id) {
             hero = next;
         }
         DropRef(value);
-        if (At<int>(session_, 0x100) == 3) HeroLeft(At<void*>(object, 0x240));
+        if (Session()->gameKind == 3) HeroLeft(static_cast<CUnit*>(object)->controller);
     }
-    if (SectorList* cell = CellFor(GridAt(this, 0x120), object)) {
+    if (SectorList* cell = CellFor(objectGrid_, object)) {
         CEngineObject* value = object;
         HoldRef(value);
         CellOps::Remove(cell, nullptr, &value);
@@ -431,43 +423,44 @@ void CWorldClient::RemoveObject(int id) {
     }
     SectorListNode* ignored;
     PlainOps::Erase(&objects, nullptr, &ignored, node);
-    ei::VCall<void>(object, kSlotRelease);
+    object->Release();
 }
 
 bool __fastcall ReleaseIfIdentified(void*, void*, CEngineObject* object) {
     if (object->id_ > 0) {
-        ei::VCall<void>(object, kSlotRelease);
+        object->Release();
         return true;
     }
     return false;
 }
 
 void CWorldClient::ClearMaps() {
-    SectorGrid& second = GridAt(this, 0x150);
+    SectorGrid& second = secondGrid_;
     for (int x = 0; x < static_cast<int>(second.width_); ++x)
         for (int y = 0; y < static_cast<int>(second.height_); ++y)
             CellOps::Clear2(&second.rows_[y][x]);
-    SectorGrid& grid = GridAt(this, 0x120);
+    SectorGrid& grid = objectGrid_;
     for (int x = 0; x < static_cast<int>(grid.width_); ++x)
         for (int y = 0; y < static_cast<int>(grid.height_); ++y)
             CellOps::Clear(&grid.rows_[y][x]);
 
-    // MFC RemoveAll of the two lists (the elements need no destruction).
-    MfcList* lists[] = {&MfcListAt(this, 0x1F0), &MfcListAt(this, 0xBC)};
-    for (MfcList* list : lists) list->RemoveAll();
-    IdMapClear(&IdMap(this));
-    At<int>(this, 0xD8 + 0x14) = 0;
+    // MFC RemoveAll of the platform faces and the dynamic objects (the elements need no
+    // destruction).
+    platforms_.list.RemoveAll();
+    dynamicObjects_.RemoveAll();
+    IdMapClear(&dynamicNodes_);
+    dynamicMaxId_ = 0;
 
-    PlainList& records = ListAt(this, 0x7BC);
-    for (SectorListNode* node = records.head->next; node != records.head;) {
-        SectorListNode* next = node->next;
+    stlp::list<void*>& records = list7BC_;
+    for (stlp::list<void*>::Node* node = records.head->next; node != records.head;) {
+        stlp::list<void*>::Node* next = node->next;
         if (node) stlp::deallocate(node, 0xC);
         node = next;
     }
     records.head->next = records.head;
     records.head->prev = records.head;
 
-    PlainList& heroes = ListAt(this, 0xB4);
+    PlainList& heroes = heroes_;
     for (SectorListNode* node = heroes.head->next; node != heroes.head;) {
         SectorListNode* next = node->next;
         CountedRelease(&node->data, nullptr, 0);
@@ -477,7 +470,7 @@ void CWorldClient::ClearMaps() {
     heroes.head->next = heroes.head;
     heroes.head->prev = heroes.head;
 
-    PlainList& objects = ListAt(this, 0xB8);
+    PlainList& objects = objects_;
     SectorListNode* node;
     PlainOps::Begin(&objects, nullptr, &node);
     SectorListNode* end = objects.head;
@@ -490,11 +483,11 @@ void CWorldClient::ClearMaps() {
         }
         node = next;
     }
-    SessionPlayerClear(session_);
-    if (void* owner = At<void*>(this, 0x34)) ei::VCall<void>(owner, kSlotReset);
-    ManagerFreeRecords(At<void*>(this, 0x3C));
-    ManagerFreeRecords(At<void*>(this, 0x40));
-    ManagerFreeRecords(At<void*>(this, 0x44));
+    SessionPlayerClear(Session());
+    if (CLinkFigureLoader* loader = figureLoader_) loader->ClearCache();
+    static_cast<CBaseManager*>(manager3C_)->FreeSpares();
+    static_cast<CBaseManager*>(manager40_)->FreeSpares();
+    static_cast<CBaseManager*>(manager44_)->FreeSpares();
 }
 
 namespace {
@@ -502,10 +495,10 @@ namespace {
 CEngineObject* Pick(CWorldClient* client, const long* point,
                     void** (__fastcall* collect)(void**, void*, std::uint8_t*, std::uint8_t*, void*, long, long,
                                                   CBaseManager*)) {
-    HitVector& hits = At<HitVector>(client, 0xF4);
+    ScreenHits& hits = client->hits_;
     hits.finish = hits.start;   // erase(begin, end): __copy of nothing
-    CBaseManager* manager = ei::VCall<CBaseManager*>(client, kSlotObjects);
-    PlainList& screen = At<PlainList>(client, 0xF0);
+    CBaseManager* manager = static_cast<CBaseManager*>(client->MapObjectManager());
+    stlp::list<ScreenEntry>& screen = client->screenEntries_;
     void* functor;
     collect(&functor, nullptr, reinterpret_cast<std::uint8_t*>(screen.head->next),
             reinterpret_cast<std::uint8_t*>(screen.head), &hits, point[0], point[1], manager);
@@ -513,26 +506,26 @@ CEngineObject* Pick(CWorldClient* client, const long* point,
 
     // sort(begin, end, DepthLess{top of the view stack, objects}), the introsort loop's first level
     // inlined in the original (the same steps as the out-of-line loop).
-    std::uint8_t* device = *reinterpret_cast<std::uint8_t**>(0x007AF068);
-    const float* plane = At<float*>(device, 0x5C) + (At<int>(device, 0x60) - 1) * 16;
-    void* objects = ei::VCall<void*>(client, kSlotObjects);
-    std::uint8_t* first = hits.start;
-    std::uint8_t* last = hits.finish;
+    MatrixDevice* device = TheMatrixDevice();
+    const float* plane = device->viewStack + (device->viewDepth - 1) * 16;
+    void* objects = client->MapObjectManager();
+    ScreenEntry* first = hits.start;
+    ScreenEntry* last = hits.finish;
     if (first != last) {
-        int count = static_cast<int>((last - first) / 0x18);
+        int count = static_cast<int>(last - first);
         int depth = 0;
         for (int n = count; n != 1; n >>= 1) ++depth;
         if (count > 16) {
             IntroSortLoop(first, last, nullptr, depth * 2, plane, objects);
-            InsertionSort(first, first + 16 * 0x18, plane, objects);
-            UnguardedInsertionSort(first + 16 * 0x18, last, nullptr, plane, objects);
+            InsertionSort(first, first + 16, plane, objects);
+            UnguardedInsertionSort(first + 16, last, nullptr, plane, objects);
         } else {
             InsertionSort(first, last, plane, objects);
         }
     }
-    std::uint8_t*& cursor = At<std::uint8_t*>(client, 0x100);
-    for (cursor = hits.start; cursor != hits.finish; cursor += 0x18) {
-        if (CEngineObject* object = manager->FindObject(At<unsigned>(cursor, 4))) return object;
+    ScreenEntry*& cursor = client->hitCursor_;
+    for (cursor = hits.start; cursor != hits.finish; ++cursor) {
+        if (CEngineObject* object = manager->FindObject(cursor->objectId)) return object;
     }
     return nullptr;
 }
@@ -546,13 +539,14 @@ CEngineObject* CWorldClient::PickAt2(const long* point) { return Pick(this, poin
 
 namespace {
 
-// The prototypes' name map (007AF364, hash_map<string, record*>): find or insert a {name, 0} pair
-// [00514880], returning the stored pair; the prototype table's lookup by name [00514930].
+// The prototypes' name map (worlddata::PrototypeNameMap, hash_map<string, record*>): find or insert
+// a {name, 0} pair [00514880], returning the stored pair; the prototype table's lookup by name
+// [00514930].
 struct NamePair {
     stlp::string first;
-    int second;
+    UnitPrototypeRecord* second;
 };
-std::uint8_t* __fastcall NameMapFindOrInsert(void* a0, void*, const NamePair* a2) { return (std::uint8_t*)NameMapInsertOriginal(a0, nullptr, (const void*)a2); }
+NamePair* __fastcall NameMapFindOrInsert(void* a0, void*, const NamePair* a2) { return (NamePair*)NameMapInsertOriginal(a0, nullptr, (const void*)a2); }
 __declspec(naked) std::uint8_t* __fastcall FindPrototypeByName(void*, void*, const char*) EI_ORIGINAL(0x00514930)
 // CUnit: the second prototype by name [005308D0], the figure made from a model and its part names
 // [00516DA0], 00518840 / 00518860 after it, 0050EA40, the position [00517700], the items
@@ -577,15 +571,6 @@ void __fastcall FigureSwapTexture(void* a0, void*, const char* a2, const char* a
 }
 __declspec(naked) int __fastcall ArmourType(void*) EI_ORIGINAL(0x006A39E0)
 
-constexpr int kSlotCreate = 0x5C / 4;        // object manager: (type, id) -> object
-constexpr int kSlotSetStats = 0x8C / 4;      // unit: (stats block)
-constexpr int kSlotRefresh = 0x78 / 4;       // unit and its controller: ()
-constexpr int kSlotSetPlayer = 0xF4 / 4;     // unit: (player)
-constexpr int kSlotEquipped = 0x64 / 4;      // controller: (0)
-constexpr int kSlotItemsChanged = 0x74 / 4;  // controller: ()
-
-const char* GameString(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
-
 bool SameText(const char* a, const char* b) {   // the inlined strcmp(a, b) == 0
     for (;; ++a, ++b) {
         if (*a != *b) return false;
@@ -593,74 +578,71 @@ bool SameText(const char* a, const char* b) {   // the inlined strcmp(a, b) == 0
     }
 }
 
-// The figure's part names: "hd", "bd", "hp", "hr" (the hair: "hr.%.2d" with the prototype's
-// number, or left out at -1), "lh1".."rl3".
-constexpr std::uintptr_t kPartNames[] = {0x0078AD74, 0x0078AD38, 0x007900E4, 0x0078FB38, 0x007900E0, 0x0078AD70,
-                                         0x007900DC, 0x007900D8, 0x0078AD6C, 0x0078F95C, 0x007900D4, 0x0078AD68,
-                                         0x0078B008, 0x007900D0, 0x0078AD64, 0x0078B004};
-constexpr std::uintptr_t kHair = 0x0078FB38;        // "hr"
-constexpr std::uintptr_t kHairFormat = 0x0078FB0C;  // "hr.%.2d"
-constexpr std::uintptr_t kNone = 0x007846F0;        // "none"
-
 } // namespace
 
+// The figure's part names (worlddata::HeroPartText): "hd", "bd", "hp", "hr" (the hair: "hr.%.2d"
+// with the prototype's number, or left out at -1), "lh1".."rl3".
 void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour) {
     mfc::CString hair;
     for (int i = 0; i < party->size; ++i) {
-        std::uint8_t* record = party->data[i];
+        auto* record = reinterpret_cast<PartyUnitRecord*>(party->data[i]);
         console::CStringArray parts;
-        for (std::uintptr_t name : kPartNames) {
-            if (SameText(GameString(name), GameString(kHair))) {
-                std::uint8_t* stored;
+        for (int n = 0; n < worlddata::kHeroPartCount; ++n) {
+            const char* name = worlddata::HeroPartText(n);
+            if (SameText(name, worlddata::HairPartText())) {
+                NamePair* stored;
                 {
-                    stlp::string key(At<const char*>(record, 0x14));
-                    NamePair pair{key, 0};
-                    stored = NameMapFindOrInsert(reinterpret_cast<void*>(0x007AF364), nullptr, &pair);
+                    stlp::string key(static_cast<const char*>(record->texts[5]));
+                    NamePair pair{key, nullptr};
+                    stored = NameMapFindOrInsert(worlddata::PrototypeNameMap(), nullptr, &pair);
                 }
-                int number = At<int>(At<void*>(stored, 0xC), 0x10);
+                int number = stored->second->hair;
                 if (number != -1) {
-                    hair.Format(GameString(kHairFormat), number);
+                    hair.Format(worlddata::HairFormat(), number);
                     parts.SetAtGrow(parts.GetSize(), hair);
                 }
             } else {
-                parts.SetAtGrow(parts.GetSize(), GameString(name));
+                parts.SetAtGrow(parts.GetSize(), name);
             }
         }
-        void* manager = ei::VCall<void*>(this, kSlotObjects);
-        CEngineObject* unit = ei::VCall<CEngineObject*>(manager, kSlotCreate, kTypeHero, At<int>(record, 0x1C));
+        auto* manager = static_cast<CBaseManager*>(MapObjectManager());
+        auto* unit = static_cast<CUnit*>(manager->CreateObject(kTypeHero, static_cast<int>(record->unknown_01C)));
         if (!unit) return;   // (the original leaves the loop: the same as returning here)
-        std::uint8_t* prototype =
-            FindPrototypeByName(reinterpret_cast<void*>(0x007AF358), nullptr, At<const char*>(record, 0x14));
-        At<int>(unit, 0x18) =
-            prototype ? static_cast<int>(prototype - *reinterpret_cast<std::uint8_t**>(0x007AF358)) / 0x120 : -1;
-        UnitSetPrototype2(unit, nullptr, At<const char*>(record, 0x18));
+        std::uint8_t* prototype = FindPrototypeByName(const_cast<RecordTable*>(&unitdb::Prototypes()), nullptr,
+                                                      record->texts[5]);
+        unit->unknown_18 = static_cast<std::uint32_t>(
+            prototype ? static_cast<int>(prototype - reinterpret_cast<std::uint8_t*>(unitdb::Prototypes().begin)) /
+                            unitdb::kPrototypeSize
+                      : -1);
+        UnitSetPrototype2(unit, nullptr, record->texts[6]);
         unit->flags_ |= 0x4000000;
-        if (!UnitMakeFigure(unit, nullptr, At<const char*>(record, 8), &parts, 1)) return;
-        void* figure = At<void*>(unit, 0x94);
+        if (!UnitMakeFigure(unit, nullptr, record->texts[2], &parts, 1)) return;
+        CEngineObject* figure = unit->Object3D()->attached;
         Figure51C970(figure);
-        Unit518840(unit, nullptr, At<const char*>(record, 8), 0);
+        Unit518840(unit, nullptr, record->texts[2], 0);
         Unit518860(unit);
-        const char* skin = At<const char*>(record, 0x10);
-        FigureSwapTexture(figure, nullptr, GameString(kNone), SameText(skin, GameString(kNone)) ? nullptr : skin);
+        const char* skin = record->texts[4];
+        FigureSwapTexture(figure, nullptr, game::NoneText(), SameText(skin, game::NoneText()) ? nullptr : skin);
         Unit50EA40(unit);
-        ei::VCall<void>(unit, kSlotSetStats, record + 0x20);
-        UnitSetPosition(unit, nullptr, &At<float>(record, 0x724));
-        std::memcpy(&At<float>(unit, 0x1AC), &At<float>(record, 0x724), 12);
-        ei::VCall<void>(unit, kSlotRefresh);
+        CMapObjectVirtuals* slots = ObjectSlots(unit);
+        slots->SetStats(reinterpret_cast<const UnitStats*>(record->stats));
+        UnitSetPosition(unit, nullptr, &record->unknown_724);
+        std::memcpy(unit->MapObject()->baseScale, &record->unknown_724, 12);
+        slots->ApplyBaseScale();
         UnitReleaseAllItems(unit);
-        for (int j = 0; j < At<int>(record, 0x734); ++j)
-            UnitAddWeapon(unit, nullptr, At<void**>(record, 0x730)[j]);
-        void* controller = At<void*>(unit, 0x240);
-        if (At<int>(record, 0x734) != 0) ei::VCall<void>(controller, kSlotEquipped, 0);
-        for (int j = 0; j < At<int>(record, 0x754); ++j) {
-            void* armour = At<void**>(record, 0x750)[j];
+        for (int j = 0; j < static_cast<int>(record->weaponCount); ++j)
+            UnitAddWeapon(unit, nullptr, record->weapons[j]);
+        CUnitController* controller = unit->Controller();
+        if (record->weaponCount != 0) controller->ShowWeapon(0);
+        for (int j = 0; j < static_cast<int>(record->armorCount); ++j) {
+            CEngineObject* armour = record->armor[j];
             if (allArmour || ArmourType(armour) != 0) UnitEquipArmour(unit, nullptr, armour);
         }
-        for (int j = 0; j < At<int>(record, 0x744); ++j)
-            UnitAddQuickItem(unit, nullptr, At<void**>(record, 0x740)[j]);
-        ei::VCall<void>(At<void*>(unit, 0x240), kSlotItemsChanged);
-        ei::VCall<void>(At<void*>(unit, 0x240), kSlotRefresh);
-        ei::VCall<void>(unit, kSlotSetPlayer, At<void*>(record, 0));
+        for (int j = 0; j < static_cast<int>(record->quickItemCount); ++j)
+            UnitAddQuickItem(unit, nullptr, record->quickItems[j]);
+        unit->Controller()->RefreshEquipment();
+        unit->Controller()->RefreshModel();
+        slots->SetScriptName(record->texts[0]);
         AddObject(unit);
     }
 }
@@ -680,32 +662,32 @@ std::uint32_t Ftol(float v) { return static_cast<std::uint32_t>(static_cast<std:
 } // namespace
 
 void CWorldClient::ObjectsInRange(const float* point, float radius, void* out) {
-    float maxX = At<float>(terrain_, 0x10C) - 1.0f;
-    float maxY = At<float>(terrain_, 0x110) - 1.0f;
+    float maxX = terrain_->width - 1.0f;
+    float maxY = terrain_->height - 1.0f;
     float y1 = MinOf(MaxZero(point[1] + radius), maxY);
     float x1 = MinOf(MaxZero(point[0] + radius), maxX);
     float y0 = MaxZero(MinOf(MaxZero(point[1] - radius), maxY));
     float x0 = MaxZero(MinOf(MaxZero(point[0] - radius), maxX));
-    std::uint32_t& firstX = At<std::uint32_t>(this, 0x138);
-    std::uint32_t& firstY = At<std::uint32_t>(this, 0x13C);
-    std::uint32_t& lastX = At<std::uint32_t>(this, 0x140);
-    std::uint32_t& lastY = At<std::uint32_t>(this, 0x144);
-    std::uint32_t& x = At<std::uint32_t>(this, 0x148);
-    std::uint32_t& y = At<std::uint32_t>(this, 0x14C);
+    std::uint32_t& firstX = rangeFirstX_;
+    std::uint32_t& firstY = rangeFirstY_;
+    std::uint32_t& lastX = rangeLastX_;
+    std::uint32_t& lastY = rangeLastY_;
+    std::uint32_t& x = rangeX_;
+    std::uint32_t& y = rangeY_;
     firstX = x = Ftol(x0) >> 4;
     firstY = y = Ftol(y0) >> 4;
     lastX = Ftol(x1) >> 4;
     lastY = Ftol(y1) >> 4;
 
-    SectorGrid& grid = GridAt(this, 0x120);
+    SectorGrid& grid = objectGrid_;
     PlainList* list = static_cast<PlainList*>(out);
     for (SectorList* cell = &grid.rows_[y][x]; cell;) {
         for (SectorListNode* node = cell->head->next; node != cell->head; node = node->next) {
-            CEngineObject* object = node->data;
+            CMapObject* object = MapObjectOf(node->data);
             float pz = point[2];
-            float ox = At<float>(object, 0x1C) + At<float>(object, 0x128);
-            float oy = At<float>(object, 0x20) + At<float>(object, 0x12C);
-            double reach = Hypot(At<float>(object, 0x144), At<float>(object, 0x148)) + radius;
+            float ox = object->positionX + object->pointOffset[0];
+            float oy = object->positionY + object->pointOffset[1];
+            double reach = Hypot(object->extent[0], object->extent[1]) + radius;
             float dx = ox - point[0];
             float dy = oy - point[1];
             float dz = pz - point[2];
@@ -716,7 +698,7 @@ void CWorldClient::ObjectsInRange(const float* point, float radius, void* out) {
             if (!unordered && !(limit < distance)) {
                 SectorListNode* end;
                 SectorListNode* inserted;
-                PlainOps::Insert(list, nullptr, &inserted, *PlainOps::End(list, nullptr, &end), object);
+                PlainOps::Insert(list, nullptr, &inserted, *PlainOps::End(list, nullptr, &end), node->data);
             }
         }
         if (++x > lastX) {
@@ -730,8 +712,9 @@ void CWorldClient::ObjectsInRange(const float* point, float radius, void* out) {
 // ---- Platforms (00560650, 00560820) --------------------------------------------------------------
 
 namespace {
-// The record list's node allocation [00573000, on the set's list at +0x1C: (next, prev)].
-__declspec(naked) std::uint8_t* __fastcall PlatformNewNode(void*, void*, void*, void*) EI_ORIGINAL(0x00573000)
+// The face list's NewNode [00573000: (prev, next); the element constructed by 00575660].
+__declspec(naked) PlatformNode* __fastcall PlatformNewNode(PlatformList*, void*, PlatformNode*, PlatformNode*)
+    EI_ORIGINAL(0x00573000)
 constexpr float kSteepest = 0.8f;   // 0073CCA8: the smallest normal z of a face added
 } // namespace
 
@@ -739,17 +722,17 @@ int PlatformSet::AddFace(const float* a, const float* b, const float* c, const f
     *out = nullptr;
     // FCOMP + TEST AH,1: steeper faces (and a NaN z) are left out.
     if (x87::IsNaN(normal[2]) || normal[2] < kSteepest) return 0;
-    std::uint8_t* list = reinterpret_cast<std::uint8_t*>(this) + 0x1C;
-    PlatformNode* last = head;
-    std::uint8_t* node = PlatformNewNode(list, nullptr, nullptr, last);
+    // AddHead with the instantiation's NewNode.
+    PlatformNode* last = list.head;
+    PlatformNode* node = PlatformNewNode(&list, nullptr, nullptr, last);
     // (The original first copies 0x4C bytes of uninitialised stack over the record; every field is
     // written below or by the caller.)
     if (last)
-        At<std::uint8_t*>(last, 4) = node;
+        last->prev = node;
     else
-        At<std::uint8_t*>(this, 0x24) = node;
-    head = reinterpret_cast<PlatformNode*>(node);
-    Platform* record = reinterpret_cast<Platform*>(node + 8);
+        list.tail = node;
+    list.head = node;
+    Platform* record = &node->data;
     *out = record;
     float ux = b[0] - a[0], uy = b[1] - a[1], uz = b[2] - a[2];
     float vx = c[0] - a[0], vy = c[1] - a[1], vz = c[2] - a[2];
@@ -768,11 +751,11 @@ int PlatformSet::AddFace(const float* a, const float* b, const float* c, const f
     return 1;
 }
 
-void PlatformSet::AddBox(int id, const std::uint8_t* item, const float* position, const float* rotation) {
-    const float* offset = reinterpret_cast<const float*>(item + 4);
-    const float* low = reinterpret_cast<const float*>(item + 0x14);
-    const float* high = reinterpret_cast<const float*>(item + 0x20);
-    const float* pivot = reinterpret_cast<const float*>(item + 0x2C);
+void PlatformSet::AddBox(int id, const FootprintPart* item, const float* position, const float* rotation) {
+    const float* offset = &item->offset.x;
+    const float* low = &item->boxMin.x;
+    const float* high = &item->boxMax.x;
+    const float* pivot = &item->pivot.x;
 
     // The rotation matrix of the quaternion (w, x, y, z), as the original builds it.
     float q0 = rotation[0], q1 = rotation[1], q2 = rotation[2], q3 = rotation[3];
@@ -817,14 +800,14 @@ void PlatformSet::AddBox(int id, const std::uint8_t* item, const float* position
     for (int i = 0; i < 6; ++i) {
         Platform* record;
         if (!AddFace(corners[i + 1], corners[i], corners[i + 2], normals[i], &record)) continue;
-        At<int>(record, 0) = id;
+        record->id = id;
         Vector3 moved = {pivot[0] + offset[0], pivot[1] + offset[1], pivot[2] + offset[2]};
         Vector3 rotated;
         m.Transform(&rotated, &moved);
         record->x = rotated.x + position[0];
         record->y = rotated.y + position[1];
-        At<float>(record, 0xC) = rotated.z + position[2];
-        At<std::uint32_t>(record, 0x10) = *reinterpret_cast<const std::uint32_t*>(item + 0x10);
+        record->z = rotated.z + position[2];
+        std::memcpy(&record->radius, &item->unknown_10, 4);   // a dword move
     }
 }
 
@@ -832,11 +815,11 @@ void PlatformSet::AddBox(int id, const std::uint8_t* item, const float* position
 
 namespace {
 
-__declspec(naked) void __fastcall CameraSetTarget(void*, void*, void*) EI_ORIGINAL(0x0040D3B0)
-__declspec(naked) void __fastcall Destroy1B4(void*) EI_ORIGINAL(0x005E17E0)
+__declspec(naked) void __fastcall Destroy1B4(ClientNumbers*) EI_ORIGINAL(0x005E17E0)
 __declspec(naked) void __fastcall Destroy1AC(void*) EI_ORIGINAL(0x005636A0)
-__declspec(naked) void __fastcall Teardown563190(void*) EI_ORIGINAL(0x00563190)
-__declspec(naked) void __fastcall ClearA0(void*, void*, int, int) EI_ORIGINAL(0x00570000)
+__declspec(naked) void __fastcall Teardown563190(CWorldClient*) EI_ORIGINAL(0x00563190)
+// The counted array +0xA0's SetSize (its own instantiation: dropped elements released).
+__declspec(naked) void __fastcall CountedArraySetSize(mfc::CArray<CEngineObject*>*, void*, int, int) EI_ORIGINAL(0x00570000)
 // The lists' element destructors [0056D080 (node + 8); 00575560 / 00575580 (node + 8, flags)] and
 // node releases [0056FB80 / 00498C40 / 0056FB00 (node, count)].
 __declspec(naked) void __fastcall Element1B8Destroy(void*) EI_ORIGINAL(0x0056D080)
@@ -847,22 +830,17 @@ __declspec(naked) void __fastcall Node7BCFree(void*, int) EI_ORIGINAL(0x00498C40
 __declspec(naked) void __fastcall NodeB8Free(void*, int) EI_ORIGINAL(0x0056FB00)
 // for_each(first, last, functor) releasing every value [00571780, RET 0xC].
 __declspec(naked) char __stdcall ForEachRelease(SectorListNode*, SectorListNode*, char) EI_ORIGINAL(0x00571780)
-// CList RemoveAll [0056FDA0]; the counted handle's Shutdown [00417DF0], Release [0040A3A0], Share
-// [00418BE0]; the base world's teardown [0055F8E0].
-__declspec(naked) void __fastcall MfcRemoveAll(void*) EI_ORIGINAL(0x0056FDA0)
-__declspec(naked) void __fastcall RefShutdown(void*) EI_ORIGINAL(0x00417DF0)
-void __fastcall RefRelease(void* a0) { RefObjectRelease(a0); }
-__declspec(naked) void __fastcall WorldTeardown(void*) EI_ORIGINAL(0x0055F8E0)
-
-constexpr int kSlotDeletingDestructor = 0;
-constexpr int kSlotDestroy = 3;
+// The platform list's RemoveAll [0056FDA0]; the base world's teardown [0055F8E0].
+__declspec(naked) void __fastcall PlatformRemoveAll(PlatformList*) EI_ORIGINAL(0x0056FDA0)
+__declspec(naked) void __fastcall WorldTeardown(CWorldClient*) EI_ORIGINAL(0x0055F8E0)
 
 // The list's nodes walked from the head's next, each given to `free` after the next is read; the
 // list is left empty.
-template <typename F>
-void EmptyList(PlainList& list, F free) {
-    for (SectorListNode* node = list.head->next; node != list.head;) {
-        SectorListNode* next = node->next;
+template <typename T, typename F>
+void EmptyList(stlp::list<T>& list, F free) {
+    using Node = typename stlp::list<T>::Node;
+    for (Node* node = list.head->next; node != list.head;) {
+        Node* next = node->next;
         free(node);
         node = next;
     }
@@ -870,17 +848,21 @@ void EmptyList(PlainList& list, F free) {
     list.head->prev = list.head;
 }
 
-void DeleteOwned(void*& slot) {
+// An owned engine object deleted (its slot 0, the scalar deleting destructor, with 1) and cleared.
+template <typename T>
+void DeleteOwned(T*& slot) {
     if (slot) {
-        ei::VCall<void>(slot, kSlotDeletingDestructor, 1);
+        delete static_cast<CEngineObject*>(slot);
         slot = nullptr;
     }
 }
 
-void DropAndDelete(void*& slot) {
+// A counted engine object: its count dropped (without a release), then deleted the same way.
+template <typename T>
+void DropAndDelete(T*& slot) {
     if (slot) {
-        --static_cast<CEngineObject*>(slot)->refCount_;
-        if (slot) ei::VCall<void>(slot, kSlotDeletingDestructor, 1);
+        --slot->refCount_;
+        if (slot) delete static_cast<CEngineObject*>(slot);
         slot = nullptr;
     }
 }
@@ -888,70 +870,70 @@ void DropAndDelete(void*& slot) {
 } // namespace
 
 void CWorldClient::Teardown() {
-    CameraSetTarget(reinterpret_cast<void*>(0x0079B2A8), nullptr, nullptr);
-    if (void* p = At<void*>(this, 0x1B4)) {
+    camera::TheCamera()->SetTarget(nullptr);
+    if (ClientNumbers* p = numbers_) {
         Destroy1B4(p);
         gamecrt::operator_delete(p);
-        At<void*>(this, 0x1B4) = nullptr;
+        numbers_ = nullptr;
     }
-    if (void* p = At<void*>(this, 0x1AC)) {
+    if (void* p = owned1AC_) {
         Destroy1AC(p);
         gamecrt::operator_delete(p);
-        At<void*>(this, 0x1AC) = nullptr;
+        owned1AC_ = nullptr;
     }
-    DeleteOwned(At<void*>(this, 0x1B0));
+    DeleteOwned(owned1B0_);
     Teardown563190(this);
-    ClearA0(&At<std::uint8_t>(this, 0xA0), nullptr, 0, -1);
-    EmptyList(ListAt(this, 0x1B8), [](SectorListNode* node) {
+    CountedArraySetSize(&countedA0_, nullptr, 0, -1);
+    EmptyList(list1B8_, [](SectorListNode* node) {
         Element1B8Destroy(&node->data);
         Node1B8Free(node, 1);
     });
-    EmptyList(ListAt(this, 0x1BC), [](SectorListNode* node) {
+    EmptyList(list1BC_, [](stlp::list<OpaqueRecord<0x94>>::Node* node) {
         Element1BCDestroy(&node->data, nullptr, 0);
-        if (node) stlp::deallocate(node, 0x9C);
+        if (node) stlp::deallocate(node, sizeof(*node));
     });
-    EmptyList(ListAt(this, 0x1C0), [](SectorListNode* node) {
+    EmptyList(list1C0_, [](stlp::list<OpaqueRecord<0x8C>>::Node* node) {
         Element1C0Destroy(&node->data, nullptr, 0);
-        if (node) stlp::deallocate(node, 0x94);
+        if (node) stlp::deallocate(node, sizeof(*node));
     });
-    ei::VCall<void>(&At<std::uint8_t>(this, 0x6F4), kSlotDestroy);
-    ei::VCall<void>(&platforms_, kSlotDestroy);
-    MfcRemoveAll(&At<std::uint8_t>(this, 0x1F0));
-    SectorGrid& grid = GridAt(this, 0x120);
+    ribbons_.Engine()->Destroy();
+    platforms_.Engine()->Destroy();
+    PlatformRemoveAll(&platforms_.list);
+    SectorGrid& grid = objectGrid_;
     for (int x = 0; x < static_cast<int>(grid.width_); ++x)
         for (int y = 0; y < static_cast<int>(grid.height_); ++y)
             CellOps::Clear(&grid.rows_[y][x]);
-    EmptyList(ListAt(this, 0x7BC), [](SectorListNode* node) { Node7BCFree(node, 1); });
-    EmptyList(ListAt(this, 0xB4), [](SectorListNode* node) {
+    EmptyList(list7BC_, [](stlp::list<void*>::Node* node) { Node7BCFree(node, 1); });
+    EmptyList(heroes_, [](SectorListNode* node) {
         CountedRelease(&node->data, nullptr, 0);
         NodeFree12Fast(node, 1);
     });
-    PlainList& objects = ListAt(this, 0xB8);
+    PlainList& objects = objects_;
     ForEachRelease(objects.head->next, objects.head, 0);
     EmptyList(objects, [](SectorListNode* node) { NodeB8Free(node, 1); });
-    if (session_) {
-        ei::VCall<void>(session_, kSlotRelease);
+    if (WorldSession* session = Session()) {
+        session->Release();
         session_ = nullptr;
     }
-    if (void* handle = At<void*>(this, 0x1C8)) {
-        if (At<std::uint16_t>(handle, 4) != 1) {
-            At<std::uint8_t>(handle, 7) |= 0x80;
-            RefShutdown(handle);
+    if (CRefObject* handle = handle_.ptr) {
+        if (handle->refs_ != 1) {
+            handle->flags7_ |= CRefCounted::kDetached;
+            handle->Shutdown();
         }
-        RefRelease(At<void*>(this, 0x1C8));
-        RefShare(&At<void*>(this, 0x1C8), nullptr, nullptr);
+        handle_.ptr->Release();
+        handle_.Share(nullptr);
     }
     WorldTeardown(this);
-    DeleteOwned(At<void*>(this, 0x1A0));
-    DeleteOwned(At<void*>(this, 0x1A4));
-    DropAndDelete(At<void*>(this, 0x19C));
-    DropAndDelete(At<void*>(this, 0x180));
-    DropAndDelete(At<void*>(this, 0x190));
-    DropAndDelete(At<void*>(this, 0x188));
-    DropAndDelete(At<void*>(this, 0x18C));
-    DeleteOwned(At<void*>(this, 0x1A8));
-    DropAndDelete(At<void*>(this, 0x1CC));
-    DropAndDelete(At<void*>(this, 0x1D0));
+    DeleteOwned(listManager_);
+    DeleteOwned(arrayManager_);
+    DropAndDelete(manager19C_);
+    DropAndDelete(terrain_);
+    DropAndDelete(manager190_);
+    DropAndDelete(manager188_);
+    DropAndDelete(textureManager_);
+    DeleteOwned(owned1A8_);
+    DropAndDelete(sounds_);
+    DropAndDelete(texts_);
 }
 
 // ---- Set up (00561E50) ---------------------------------------------------------------------------
@@ -985,7 +967,6 @@ __declspec(naked) void __fastcall Construct5711C0(void*) EI_ORIGINAL(0x005711C0)
 __declspec(naked) void __fastcall Construct6C5620(void*) EI_ORIGINAL(0x006C5620)
 __declspec(naked) void* __fastcall Construct42D690(void*) EI_ORIGINAL(0x0042D690)
 __declspec(naked) void* __fastcall Construct691140(void*) EI_ORIGINAL(0x00691140)
-__declspec(naked) void __fastcall Attach4031B0(void*, void*, void*) EI_ORIGINAL(0x004031B0)
 __declspec(naked) void* __fastcall Construct68E3F0(void*) EI_ORIGINAL(0x0068E3F0)
 __declspec(naked) void* __fastcall Construct68D850(void*) EI_ORIGINAL(0x0068D850)
 __declspec(naked) void __fastcall ManagerBase(void*) EI_ORIGINAL(0x00402B20)
@@ -997,43 +978,33 @@ __declspec(naked) void __fastcall Construct419720(void*) EI_ORIGINAL(0x00419720)
 __declspec(naked) void __fastcall Construct5715D0(void*, void*, int) EI_ORIGINAL(0x005715D0)
 __declspec(naked) void* __fastcall Construct6B4350(void*) EI_ORIGINAL(0x006B4350)
 __declspec(naked) void __fastcall Construct4E3C20(void*) EI_ORIGINAL(0x004E3C20)
-// The player list walk (begin [00404920: list], next [00404960]).
-__declspec(naked) CEngineObject* __fastcall PlayersBegin(void*, void*, void*) EI_ORIGINAL(0x00404920)
-__declspec(naked) CEngineObject* __fastcall PlayersNext(void*) EI_ORIGINAL(0x00404960)
-// vector<0x18 entry>::_M_allocate_and_copy [00573520: count, first, last].
-__declspec(naked) std::uint8_t* __fastcall EntriesAllocateCopy(void*, void*, int, std::uint8_t*, std::uint8_t*)
+// vector<ScreenEntry>::_M_allocate_and_copy [00573520: count, first, last].
+__declspec(naked) ScreenEntry* __fastcall EntriesAllocateCopy(ScreenHits*, void*, int, ScreenEntry*, ScreenEntry*)
     EI_ORIGINAL(0x00573520)
 // The sector grids: resize [00572450 / 005724F0 (width, height)], the cells' vector deleting
 // destructor [00572B30 / 00572C50 (flags)], the allocation [00572820 / 005728D0].
-__declspec(naked) void __fastcall GridResize(void*, void*, int, int) EI_ORIGINAL(0x00572450)
-__declspec(naked) void __fastcall GridResize2(void*, void*, int, int) EI_ORIGINAL(0x005724F0)
-__declspec(naked) void __fastcall CellsDelete(void*, void*, int) EI_ORIGINAL(0x00572B30)
-__declspec(naked) void __fastcall CellsDelete2(void*, void*, int) EI_ORIGINAL(0x00572C50)
-__declspec(naked) void __fastcall GridAllocate(void*) EI_ORIGINAL(0x00572820)
-__declspec(naked) void __fastcall GridAllocate2(void*) EI_ORIGINAL(0x005728D0)
-
-constexpr int kSlotCreateSelf = 8 / 4;     // owned objects: ()
-constexpr int kSlotAttachWorld = 0x34 / 4; // managers: (world)
-constexpr int kSlotPlayers = 0x58 / 4;     // the world: () -> the player list
-
-const void* const kDataPath = reinterpret_cast<const void*>(0x007AF460);   // CString
-const void* const kTextPath = reinterpret_cast<const void*>(0x007AF45C);   // CString
-std::uintptr_t EmptyString() { return *reinterpret_cast<const std::uintptr_t*>(0x00796E48); }
+__declspec(naked) void __fastcall GridResize(SectorGrid*, void*, int, int) EI_ORIGINAL(0x00572450)
+__declspec(naked) void __fastcall GridResize2(SectorGrid*, void*, int, int) EI_ORIGINAL(0x005724F0)
+__declspec(naked) void __fastcall CellsDelete(SectorList*, void*, int) EI_ORIGINAL(0x00572B30)
+__declspec(naked) void __fastcall CellsDelete2(SectorList*, void*, int) EI_ORIGINAL(0x00572C50)
+__declspec(naked) void __fastcall GridAllocate(SectorGrid*) EI_ORIGINAL(0x00572820)
+__declspec(naked) void __fastcall GridAllocate2(SectorGrid*) EI_ORIGINAL(0x005728D0)
 
 std::uint8_t* New(std::size_t size) { return static_cast<std::uint8_t*>(gamecrt::operator_new(size)); }
 
 // A heap object made by its constructor (null without memory), stored and referenced (the
 // original does not test the pointer before counting).
-CEngineObject* MakeCounted(std::size_t size, void* (__fastcall* construct)(void*)) {
+template <typename T>
+T* MakeCounted(std::size_t size, void* (__fastcall* construct)(void*)) {
     std::uint8_t* memory = New(size);
-    auto* object = static_cast<CEngineObject*>(memory ? construct(memory) : nullptr);
+    auto* object = static_cast<T*>(memory ? construct(memory) : nullptr);
     ++object->refCount_;
     return object;
 }
 
 // The grid set to 4 x 4 cells, reallocated unless its storage already has that size.
-void GridToFour(SectorGrid& grid, void (__fastcall* resize)(void*, void*, int, int),
-                void (__fastcall* deleteCells)(void*, void*, int), void (__fastcall* allocate)(void*)) {
+void GridToFour(SectorGrid& grid, void (__fastcall* resize)(SectorGrid*, void*, int, int),
+                void (__fastcall* deleteCells)(SectorList*, void*, int), void (__fastcall* allocate)(SectorGrid*)) {
     resize(&grid, nullptr, 1, 1);
     grid.width_ = 4;
     grid.height_ = 4;
@@ -1051,191 +1022,192 @@ void GridToFour(SectorGrid& grid, void (__fastcall* resize)(void*, void*, int, i
 int CWorldClient::Setup() {
     WorldCreateManagers(reinterpret_cast<std::uint8_t*>(this));
     void* path;
-    CStringConcat(&path, kDataPath, reinterpret_cast<const char*>(0x0078FFE4));   // "textures\"
-    CStringAssign(&At<std::uint8_t>(this, 0x224), nullptr, &path);
+    CStringConcat(&path, worlddata::DataPathString(), worlddata::TexturesFolderText());
+    CStringAssign(&texturePath_, nullptr, &path);
     CStringDestroy(&path);
-    LoadLightsAt(this, nullptr, reinterpret_cast<const char*>(0x0078FFD4));          // "LightsGipat.ini"
-    At<int>(this, 0x6DC) = 0;
-    At<CEngineObject*>(this, 0x1CC) = MakeCounted(0x8C0, Construct6B6040);
+    LoadLightsAt(this, nullptr, worlddata::LightsTableText());
+    unknown6DC_ = 0;
+    sounds_ = MakeCounted<CSoundManager>(0x8C0, Construct6B6040);
 
-    std::uint8_t* texts = New(0x2C);
+    // The text resources: the engine object's fields (in the original's order), the table, then
+    // the class's constructor body.
+    auto* texts = reinterpret_cast<ClientTexts*>(New(sizeof(ClientTexts)));
     if (texts) {
-        At<std::uintptr_t>(texts, 0) = 0x0073B8E0;
-        At<int>(texts, 4) = 0;
-        At<int>(texts, 0xC) = -1;
-        At<int>(texts, 0x18) = 0;
-        At<int>(texts, 0x10) = 0;
-        At<int>(texts, 8) = 0;
-        At<int>(texts, 0x14) = 0;
-        Construct562A80(texts + 0x1C);
-        At<std::uintptr_t>(texts, 0) = 0x0073F6F0;
+        ei::SetVtable(texts, CEngineObject::kVtableAddress);
+        texts->refCount_ = 0;
+        texts->id_ = -1;
+        texts->unknown_18 = 0;
+        texts->type_ = 0;
+        texts->flags_ = 0;
+        texts->owner_ = nullptr;
+        Construct562A80(texts->table);
+        ei::SetVtable(texts, worlddata::kClientTextsVtable);
         Construct4DED20(texts);
     }
-    At<std::uint8_t*>(this, 0x1D0) = texts;
-    ++At<int>(texts, 4);
+    texts_ = texts;
+    ++texts->refCount_;
 
-    std::uint8_t* terrain = New(0xAFC);
+    // The terrain, its constructor inlined up to the class's own body (006C5620).
+    auto* terrain = reinterpret_cast<Terrain*>(New(sizeof(Terrain)));
     if (terrain) {
         TransformObjectBase(terrain);
-        At<int>(terrain, 0xD8) = 0;
-        At<int>(terrain, 0xE4) = 0;
-        At<int>(terrain, 0xE0) = 0;
-        At<int>(terrain, 0xDC) = 0;
-        Construct570E10(terrain + 0xE8);
-        At<std::uintptr_t>(terrain, 0xF8) = EmptyString();
-        At<std::uintptr_t>(terrain, 0xFC) = EmptyString();
-        Construct570E40(terrain + 0x12C);
-        Construct56FD30(terrain + 0x13C);
-        Construct56FD30(terrain + 0x14C);
-        Construct6721D0(terrain + 0x15C);
-        Construct570E70(terrain + 0x1E8);
-        Construct570EA0(terrain + 0x1FC, nullptr, 10);
-        Construct571050(terrain + 0x25C);
-        Construct570DE0(terrain + 0x290);
-        Construct56FD30(terrain + 0xAA8);
-        Construct56FD30(terrain + 0xAB8);
-        At<std::uintptr_t>(terrain, 0xAE0) = EmptyString();
-        Construct5711C0(terrain + 0xAE8);
-        At<std::uintptr_t>(terrain, 0) = 0x0073F6A8;
+        terrain->unknownD8 = 0;
+        terrain->unknownE4 = 0;
+        terrain->unknownE0 = 0;
+        terrain->unknownDC = 0;
+        Construct570E10(terrain->partE8);
+        terrain->textF8 = camera::EmptyStringData();
+        terrain->textFC = camera::EmptyStringData();
+        Construct570E40(terrain->part12C);
+        Construct56FD30(terrain->part13C);
+        Construct56FD30(terrain->part14C);
+        Construct6721D0(terrain->part15C);
+        Construct570E70(terrain->part1E8);
+        Construct570EA0(terrain->part1FC, nullptr, 10);
+        Construct571050(terrain->part25C);
+        Construct570DE0(terrain->part290);
+        Construct56FD30(terrain->partAA8);
+        Construct56FD30(terrain->partAB8);
+        terrain->textAE0 = camera::EmptyStringData();
+        Construct5711C0(terrain->partAE8);
+        ei::SetVtable(terrain, worlddata::kTerrainVtable);
         Construct6C5620(terrain);
     }
-    At<std::uint8_t*>(this, 0x180) = terrain;
-    ++At<int>(terrain, 4);
-    CStringAssignText(&At<std::uint8_t>(this, 0x184), nullptr, reinterpret_cast<const char*>(0x0078FFCC));   // "gipath"
+    terrain_ = terrain;
+    ++terrain->refCount_;
+    CStringAssignText(&zoneName_, nullptr, worlddata::GipathText());
 
-    CEngineObject* object = MakeCounted(0xB0, Construct42D690);
-    At<CEngineObject*>(this, 0x44) = object;
-    ei::VCall<void>(object, kSlotAttachWorld, this);
-    object = MakeCounted(0xF0, Construct691140);
-    At<CEngineObject*>(this, 0x18C) = object;
-    Attach4031B0(object, nullptr, this);
-    object = MakeCounted(0xD0, Construct68E3F0);
-    At<CEngineObject*>(this, 0x188) = object;
-    ei::VCall<void>(object, kSlotAttachWorld, this);
-    object = MakeCounted(0xD8, Construct68D850);
-    At<CEngineObject*>(this, 0x190) = object;
-    ei::VCall<void>(object, kSlotAttachWorld, this);
+    manager44_ = MakeCounted<CBaseManager>(0xB0, Construct42D690);
+    static_cast<CBaseManager*>(manager44_)->Init(this);
+    textureManager_ = MakeCounted<CTextureManager>(0xF0, Construct691140);
+    textureManager_->CBaseManager::Init(this);   // 004031B0 called directly
+    manager188_ = MakeCounted<CBaseManager>(0xD0, Construct68E3F0);
+    manager188_->Init(this);
+    manager190_ = MakeCounted<CBaseManager>(0xD8, Construct68D850);
+    manager190_->Init(this);
 
-    std::uint8_t* manager = New(0xE8);
+    auto* manager = reinterpret_cast<ClientManager19C*>(New(sizeof(ClientManager19C)));
     if (manager) {
         ManagerBase(manager);
-        Construct56FD40(manager + 0xB0, nullptr, 10);
-        Construct5725E0(manager + 0xCC);
-        At<int>(manager, 0xE0) = 0;
-        At<std::uintptr_t>(manager, 0) = 0x0073F644;
+        Construct56FD40(manager->list, nullptr, 10);
+        Construct5725E0(manager->table);
+        manager->unknown_E0 = 0;
+        ei::SetVtable(manager, worlddata::kClientManager19CVtable);
         Construct4981A0(manager);
     }
-    At<std::uint8_t*>(this, 0x19C) = manager;
-    ++At<int>(manager, 4);
-    ei::VCall<void>(manager, kSlotAttachWorld, this);
+    manager19C_ = manager;
+    ++manager->refCount_;
+    manager->Init(this);
 
     session_ = static_cast<std::uint8_t*>(SessionFor(players_));
 
-    std::uint8_t* handle = New(8);
-    At<int>(handle, 4) = 0;   // (written before the pointer is tested)
-    void* created = nullptr;
+    auto* handle = reinterpret_cast<CRefObject*>(New(sizeof(CRefObject)));
+    handle->refs_ = 0;   // (refs and flags written before the pointer is tested)
+    handle->flags6_ = 0;
+    handle->flags7_ = 0;
+    CRefObject* created = nullptr;
     if (handle) {
         Construct419720(handle);
-        At<std::uintptr_t>(handle, 0) = 0x0073F628;
+        ei::SetVtable(handle, worlddata::kClientHandleVtable);
         created = handle;
     }
-    void*& slot = At<void*>(this, 0x1C8);
-    if (created != slot) {
-        if (void* old = slot) {
-            if (At<std::uint16_t>(old, 4) != 1) {
-                At<std::uint8_t>(old, 7) |= 0x80;
-                RefShutdown(old);
+    if (created != handle_.ptr) {
+        if (CRefObject* old = handle_.ptr) {
+            if (old->refs_ != 1) {
+                old->flags7_ |= CRefCounted::kDetached;
+                old->Shutdown();
             }
-            RefRelease(slot);
+            handle_.ptr->Release();
         }
-        RefShare(&slot, nullptr, created);
+        handle_.Share(created);
     }
-    ei::VCall<void>(At<void*>(this, 0x180), kSlotCreateSelf);
-    ei::VCall<void>(At<void*>(this, 0x1CC), kSlotCreateSelf);
-    ei::VCall<void>(At<void*>(this, 0x1D0), kSlotCreateSelf);
-    CStringConcat(&path, kTextPath, reinterpret_cast<const char*>(0x0078FFC0));   // "texts.res"
-    LoadTexts(At<void*>(this, 0x1D0), nullptr, static_cast<const char*>(path));
+    terrain_->Create();
+    sounds_->Create();
+    texts_->Create();
+    CStringConcat(&path, worlddata::TextPathString(), worlddata::TextsFileText());
+    LoadTexts(texts_, nullptr, static_cast<const char*>(path));
     CStringDestroy(&path);
-    CStringConcat(&path, kTextPath, reinterpret_cast<const char*>(0x0078FFB0));   // "textsLmp.res"
-    LoadTexts(At<void*>(this, 0x1D0), nullptr, static_cast<const char*>(path));
+    CStringConcat(&path, worlddata::TextPathString(), worlddata::TextsLmpFileText());
+    LoadTexts(texts_, nullptr, static_cast<const char*>(path));
     CStringDestroy(&path);
 
-    std::uint8_t* lists = New(0xCC);
+    // The list manager: the base, then its CList's fields (in the original's order).
+    auto* lists = reinterpret_cast<ClientListManager*>(New(sizeof(ClientListManager)));
     if (lists) {
         ManagerBase(lists);
-        At<std::uintptr_t>(lists, 0xB0) = 0x0073F61C;
-        At<int>(lists, 0xBC) = 0;
-        At<int>(lists, 0xC0) = 0;
-        At<int>(lists, 0xB8) = 0;
-        At<int>(lists, 0xB4) = 0;
-        At<int>(lists, 0xC4) = 0;
-        At<int>(lists, 0xC8) = 10;
-        At<std::uintptr_t>(lists, 0) = 0x0073F5B8;
+        lists->list.vtable = reinterpret_cast<void*>(worlddata::kClientListVtable);
+        lists->list.count = 0;
+        lists->list.free = nullptr;
+        lists->list.tail = nullptr;
+        lists->list.head = nullptr;
+        lists->list.blocks = nullptr;
+        lists->list.blockSize = 10;
+        ei::SetVtable(lists, worlddata::kClientListManagerVtable);
     }
-    At<std::uint8_t*>(this, 0x1A0) = lists;
-    ei::VCall<void>(lists, kSlotAttachWorld, this);
-    std::uint8_t* arrays = New(0xD0);
+    listManager_ = lists;
+    lists->Init(this);
+    auto* arrays = reinterpret_cast<ClientArrayManager*>(New(sizeof(ClientArrayManager)));
     if (arrays) {
         ManagerBase(arrays);
-        At<int>(arrays, 0xB0) = 0;
-        Construct5715D0(arrays + 0xB4, nullptr, 10);
-        At<std::uintptr_t>(arrays, 0) = 0x0073F554;
+        arrays->unknown_B0 = 0;
+        Construct5715D0(arrays->list, nullptr, 10);
+        ei::SetVtable(arrays, worlddata::kClientArrayManagerVtable);
     }
-    At<std::uint8_t*>(this, 0x1A4) = arrays;
-    ei::VCall<void>(arrays, kSlotAttachWorld, this);
+    arrayManager_ = arrays;
+    arrays->Init(this);
     std::uint8_t* memory = New(0x58);
-    void* owned = memory ? Construct6B4350(memory) : nullptr;
-    At<void*>(this, 0x1A8) = owned;
-    ei::VCall<void>(owned, kSlotCreateSelf);
+    auto* owned = static_cast<CEngineObject*>(memory ? Construct6B4350(memory) : nullptr);
+    owned1A8_ = owned;
+    owned->Create();
 
-    Construct4E3C20(&At<std::uint8_t>(this, 0x6F4));
-    At<CWorldClient*>(this, 0x6F4 + 0x20) = this;
-    ei::VCall<void>(&platforms_, kSlotCreateSelf);
-    if (*reinterpret_cast<const int*>(0x0079BD0C) > 0)
+    Construct4E3C20(&ribbons_);
+    ribbons_.world = this;
+    platforms_.Engine()->Create();
+    if (worlddata::ShadowSetting() > 0)
         flags_ |= 0x200;
     else
         flags_ &= ~0x200u;
-    CStringConcat(&path, kDataPath, reinterpret_cast<const char*>(0x0078FF9C));   // "wincurs\Df0000.cur"
-    At<HCURSOR>(this, 0x7D0) = LoadCursorFromFileA(static_cast<const char*>(path));
+    CStringConcat(&path, worlddata::DataPathString(), worlddata::CursorFileText());
+    cursor_ = LoadCursorFromFileA(static_cast<const char*>(path));
     CStringDestroy(&path);
 
-    if (ei::VCall<void*>(this, kSlotPlayers)) {
-        void** walk = reinterpret_cast<void**>(New(8));
-        if (walk) *walk = nullptr;
-        for (CEngineObject* player = PlayersBegin(walk, nullptr, ei::VCall<void*>(this, kSlotPlayers)); player;
-             player = PlayersNext(walk))
-            ++player->refCount_;
+    // A reference on every object of the manager of slot 22 (the original's iterator is on the heap).
+    if (SpellManager()) {
+        auto* walk = reinterpret_cast<ObjectListIterator*>(New(sizeof(ObjectListIterator)));
+        if (walk) walk->manager = nullptr;
+        for (CEngineObject* object = walk->First(SpellManager()); object; object = walk->Next()) ++object->refCount_;
         if (walk) {
-            if (auto* held = static_cast<CEngineObject*>(*walk)) {
+            if (CBaseManager* held = walk->manager) {
                 --held->refCount_;
-                *walk = nullptr;
+                walk->manager = nullptr;
             }
             gamecrt::operator_delete(walk);
         }
     }
 
-    HitVector& entries = At<HitVector>(this, 0xF4);
-    if (static_cast<std::uint32_t>((entries.eos - entries.start) / 0x18) < 400) {
-        int count = static_cast<int>((entries.finish - entries.start) / 0x18);
-        std::uint8_t* block;
+    // Room for 400 screen entries (reserve).
+    ScreenHits& entries = hits_;
+    if (static_cast<std::uint32_t>(entries.eos - entries.start) < 400) {
+        int count = static_cast<int>(entries.finish - entries.start);
+        ScreenEntry* block;
         if (entries.start) {
             block = EntriesAllocateCopy(&entries, nullptr, 400, entries.start, entries.finish);
-            if (std::uint8_t* old = entries.start)
-                stlp::deallocate(old, static_cast<std::size_t>((entries.eos - old) / 0x18) * 0x18);
+            if (ScreenEntry* old = entries.start)
+                stlp::deallocate(old, static_cast<std::size_t>(entries.eos - old) * sizeof(ScreenEntry));
         } else {
-            block = New(0x2580);
+            block = reinterpret_cast<ScreenEntry*>(New(400 * sizeof(ScreenEntry)));
         }
         entries.start = block;
-        entries.finish = block + count * 0x18;
-        entries.eos = block + 0x2580;
+        entries.finish = block + count;
+        entries.eos = block + 400;
     }
-    At<int>(this, 0x84) = -100000;
-    At<int>(this, 0x6E0) = 0;
-    At<int>(this, 0x6E4) = 0;
-    GridToFour(GridAt(this, 0x150), GridResize2, CellsDelete2, GridAllocate2);
-    GridToFour(GridAt(this, 0x120), GridResize, CellsDelete, GridAllocate);
-    At<int>(this, 0x6EC) = 0;
-    At<int>(this, 0x1C4) = 0;
+    unknown84_ = -100000;
+    unknown6E0_ = 0;
+    unknown6E4_ = 0;
+    GridToFour(secondGrid_, GridResize2, CellsDelete2, GridAllocate2);
+    GridToFour(objectGrid_, GridResize, CellsDelete, GridAllocate);
+    sessionJoins_ = 0;
+    unknown1C4_ = 0;
     return 1;
 }
 

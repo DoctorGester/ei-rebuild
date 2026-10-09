@@ -245,6 +245,7 @@ constexpr int kSetStunned = 46;           // 0xB8 (CUnit::SetFlag1000000 for uni
 
 struct Vector3;
 struct DamageInfo;   // spell.h
+struct UnitStats;    // unit.h
 struct LockKey;      // unit.h
 
 // The map objects' virtual slots past CEngineObject's, as callers reach them through the vtable
@@ -272,9 +273,11 @@ public:
     virtual void LoadFigures() = 0;        // 26: CObject3D 00517500 (units 0052E910)
     virtual void RecomputeScale() = 0;     // 27: 0050F2D0 (units 00532A80)
     virtual void EffectsChanged() = 0;     // 28: 0050E420 empty; units 00532AB0
-    // 29 (AL): flags_ 0x20000 (0050E430); units, levers, traps, torches 1. False ones leave the
-    // server's map-object maps after the zone loads (SendFreshObjects). Best guess.
-    virtual void IsSynchronised() = 0;
+    // 29 (AL): flags_ 0x20000 (0050E430, bit 17 as 0 / 1); units (004467E0), levers, traps,
+    // torches 1. False ones leave the server's map-object maps after the zone loads
+    // (SendFreshObjects). The world server creates such objects only with its +0x11D set, the
+    // others with +0x11E (005927C0).
+    virtual bool IsSynchronised() = 0;
     // 30 (0x78): the scale becomes the base scale (+0x1AC; 0050E440, units 00532AA0). Returns the z
     // component's bits.
     virtual std::uint32_t ApplyBaseScale() = 0;
@@ -282,12 +285,17 @@ public:
     // objects ignore it, 0050E460).
     virtual void ReceiveHit(DamageInfo* hit, CEngineObject* attacker, CEngineObject* caster) = 0;
     virtual void StatsChanged() = 0;       // 32: 0050E970 PackVitals (units 0052EB50)
-    virtual void ScaleEffectChanged() = 0; // 33: 0050E960 (units 0052EB30)
+    // 33 (0x84, mapslot::kScaleEffectChanged): 0050E960; units 0052EB30 hand the argument to
+    // their controller's slot 19.
+    virtual void ScaleEffectChanged(int scaleEffect) = 0;
     // 34 (0x88): the prototype by name (units 0052EB70: their statistics; 0050E9B0 for others).
     virtual void TakePrototype(const char* prototype) = 0;
-    virtual void SetStats() = 0;           // 35: (stats) 0050E480 empty; units 00530A20 SetServerStats
+    // 35 (0x8C): 0050E480 empty; units 00530A20: a CUnitServer controller (class 0x3E) copies the
+    // statistics (00552F40, CUnitServer::SetStats).
+    virtual void SetStats(const UnitStats* stats) = 0;
     virtual void SetServerData() = 0;      // 36: 0050F050
-    virtual void UpdateSizeClasses() = 0;  // 37: 0050E490 empty; units 00530A50
+    // 37 (0x94): 0050E490 empty; units 00530A50, the controller's slot 23 (CUnitServer 00552FB0).
+    virtual void UpdateSizeClasses() = 0;
     virtual int IsUsable() = 0;            // 38: 0 (0050F0C0); traps 1, levers NeedsKey 0052BB00
     virtual int IsDirectUseBlocked() = 0;  // 39: 0 (0050F0D0); levers +0x260 (0052B2D0). Best guess
     virtual void KeyId() = 0;              // 40: -123 (0050F0E0); levers 0052BBC0

@@ -83,7 +83,7 @@ class ServerSession;
 class ClientSession;
 
 // 0079B91C: the network log.
-inline LogStream* NetLog() { return *reinterpret_cast<LogStream**>(0x0079B91C); }
+inline LogStream*& NetLog() { return *reinterpret_cast<LogStream**>(0x0079B91C); }
 // 0079B920: the session being updated (set by Tick / Receive and by the connection code).
 inline SessionBase*& CurrentSession() { return *reinterpret_cast<SessionBase**>(0x0079B920); }
 // 0079B924: the connection being updated or read (null outside the session code).
@@ -503,7 +503,9 @@ public:
     void* lines_;                       // +0x2594 chat and system lines (0073BC88), at most 50
     void* files_;                       // +0x2598 shared files (0073BD18)
     void* fileRequests_;                // +0x259C the clients' requests (0073BC58: file, connection)
-    RefPtr unknown_25A0;                // +0x25A0 replicated to everyone when set
+    // +0x25A0 where the game is hosted (a HostMessage, net_messages.h; world_game.cpp's AnnounceHost),
+    // replicated to everyone when set
+    RefPtr hostInfo_;
     void* bindings_;                    // +0x25A4 player <-> connection (0073BCB8)
     RefPtr map_;                        // +0x25A8 the map message (0073BD00) while a map is played
     void* queuedMaps_;                  // +0x25AC map messages (0073BCD0) the host may pick next
@@ -648,7 +650,7 @@ public:
     void* offers_;                      // +0x2610 the other players' trade offers (0073BD78)
     void* tradeRecords_;                // +0x2614 0x160-byte nodes: the trades done
     CRefObject* trade_;                 // +0x2618 the current trade (0073BD60), counted
-    std::uint32_t unknown_261C;         // +0x261C set by the creator (0057E740)
+    std::uint32_t gameType_;            // +0x261C the multiplayer game type 0..3 (StartServer 0057E740): start zone, type variable
     UnitRecordBuilder parties_[2];      // +0x2620 ours (published at +0x260C), +0x2690 the partner's
 };
 static_assert(offsetof(ClientSession, players_) == 0x25D8);
