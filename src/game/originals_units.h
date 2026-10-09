@@ -314,6 +314,10 @@ __declspec(naked) inline void __fastcall SkillVectorResizeOriginal(void* /*vecto
     EI_ORIGINAL(0x005209D0)
 __declspec(naked) inline void __fastcall SkillLevelVectorResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
     EI_ORIGINAL(0x00520B20)
+// A-U10 (map_object_animation_bones.cpp). 0050AAF0 (thiscall on an animation track, RET 4): loads its key frames from
+// *data (an entry of a figure model part). No result.
+__declspec(naked) inline void __fastcall AnimationTrackLoadOriginal(void* /*track*/, void*, void* const* /*data*/)
+    EI_ORIGINAL(0x0050AAF0)
 // A-U10 (map_object_animation_bones.cpp). Rewritten, called through their addresses so the wrappers run: 0050C230
 // FigureBone::Place (RET 4), 0050ACD0 AnimationTrack::Evaluate (RET 4), 005ACB80 LoadFigureBones (thiscall on the figure manager, RET 8: model, bone;
 // 1 / 0), 005AC880 LoadSkeletonLinks (thiscall on the figure manager, RET 8: state, model name; 1 or FatalError's).

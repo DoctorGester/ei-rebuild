@@ -228,6 +228,19 @@ static_assert(offsetof(FigureBone, position) == 0x74 && offsetof(FigureBone, rot
 static_assert(offsetof(FigureBone, counted54) == 0x54 && offsetof(FigureBone, matrices) == 0x90);
 static_assert(sizeof(FigureBone) == 0xA0);
 
+// A part of a figure model (the model 005AA5F0 finds: +0 mesh, +4 bones, ... ; the animations
+// part comes from 005A9EF0). Only the slot the animation state calls is named.
+class __declspec(novtable) CFigureModelPart {
+public:
+    virtual void Unknown0();
+    virtual void Unknown1();
+    virtual void Unknown2();
+    virtual void Unknown3();
+    virtual void Unknown4();
+    // 5: the data of entry `name` (its size to *size when not null), or null.
+    virtual void* ReadEntry(const char* name, int* size);
+};
+
 // The figure's animation state (class id 0x300D, vtable 0073DA4C, 0x78 bytes; CObject3D + 0x98): the
 // skeleton's bones, the animation playing and the queue behind it, the frame reached.
 class CFigureAnimationState : public CEngineObject {
@@ -308,6 +321,14 @@ public:
     void Rescale(float s, float t, float u);
     // 0050D920 (RET 4). Every bone's name appended to `out` (SetAtGrow at its size).
     void CollectBoneNames(mfc::CStringArray* out);
+    // 0050D950 (the figure manager's 005ACCF0 without an animation). Every bone's placing track
+    // forgets its animation and key frames (DestroyTrack's reset, the bone kept). `changed` set.
+    // Returns 1.
+    int ClearBoneTracks();
+    // 0050DA10 (RET 8; 005ACCF0 with an animation). Every bone's placing track loads the entry of
+    // `part` named as the bone (slot 5; 0050AAF0), or without one is cleared as above, and takes
+    // `animation`. `changed` set. Returns 1.
+    int LoadBoneTracks(CFigureModelPart* part, const FigureAnimation* animation);
 
     CObject3D* owner;               // +0x1C
     FigureBone* root;               // +0x20 the skeleton's root bone (FindRoot)

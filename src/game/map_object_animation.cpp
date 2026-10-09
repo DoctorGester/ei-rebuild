@@ -61,11 +61,11 @@ void AnimationTrack::Evaluate(float atTime) {
         std::memcpy(&rotation, reinterpret_cast<const void*>(0x007AF100), 16);
     }
 
-    if (next < frameCount) {
+    if (next < frames.size) {
         for (int v = 0; v < vertexCount; ++v)
-            LerpPoint(vertices + 3 * v, frames[index] + 3 * v, frames[next] + 3 * v, fraction);
-    } else if (frameCount != 0) {
-        std::memcpy(vertices, frames[frameCount - 1], static_cast<std::size_t>(vertexCount) * 12);
+            LerpPoint(&vertices.data[v].x, frames.data[index] + 3 * v, frames.data[next] + 3 * v, fraction);
+    } else if (frames.size != 0) {
+        std::memcpy(vertices.data, frames.data[frames.size - 1], static_cast<std::size_t>(vertexCount) * 12);
     }
     std::memcpy(&time, &atTime, 4);
 }

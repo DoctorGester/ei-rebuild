@@ -261,6 +261,32 @@ static void __fastcall CollectBoneNamesVerify(CFigureAnimationState* state, void
 }
 EI_VERIFY(0x0050D920, CollectBoneNamesVerify, 0, s_unusedNames);
 
+// 0050D950 / 0050DA10 (the figure manager's 005ACCF0): ours only; every bone's placing track
+// plays nothing without key frames / plays `animation`; `changed` set.
+static void* s_unusedClearTracks;
+static int __fastcall ClearBoneTracksVerify(CFigureAnimationState* state, void*) {
+    int result = state->ClearBoneTracks();
+    bool ok = result == 1 && state->changed == 1;
+    for (auto* node = state->bones.head; node; node = node->next) {
+        const AnimationTrack* track = node->data->pose;
+        ok = ok && !track->animation && track->frames.size == 0 && !track->vertices.data && track->time == 0.0f;
+    }
+    ei::verify::Check("CFigureAnimationState::ClearBoneTracks", true, ok, "%d bones", state->bones.count);
+    return result;
+}
+EI_VERIFY(0x0050D950, ClearBoneTracksVerify, 0, s_unusedClearTracks);
+
+static void* s_unusedLoadTracks;
+static int __fastcall LoadBoneTracksVerify(CFigureAnimationState* state, void*, CFigureModelPart* part,
+                                           const FigureAnimation* animation) {
+    int result = state->LoadBoneTracks(part, animation);
+    bool ok = result == 1 && state->changed == 1;
+    for (auto* node = state->bones.head; node; node = node->next) ok = ok && node->data->pose->animation == animation;
+    ei::verify::Check("CFigureAnimationState::LoadBoneTracks", true, ok, "%d bones", state->bones.count);
+    return result;
+}
+EI_VERIFY(0x0050DA10, LoadBoneTracksVerify, 0, s_unusedLoadTracks);
+
 // 0050DFF0: AlignedPtrArray::SetSize (the animation tracks' copy): ours only, the size as asked,
 // the block 32-byte aligned (none at 0).
 static void* s_unusedSetSize;

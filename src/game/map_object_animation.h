@@ -6,6 +6,8 @@
 #include "engine_object.h"
 #include "maths.h"
 
+#include "lib/containers.h"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -23,6 +25,22 @@ struct AnimationTrack : CEngineObject {
     // (007AF110 / 007AF100). Remembers `time` (+0x48).
     void Evaluate(float time);
 
+    // animation_track_lifetime.cpp (A-U10; vtable 0073D9D8, 0x78 bytes).
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073D9D8);
+    // 0050A5D0. The constructor: engine object fields, empty arrays, the vtable, then DestroyTrack's
+    // reset. Returns this.
+    AnimationTrack* Construct();
+    // 0050A720. The destructor body: the reset with both arrays emptied through their SetSize(0)
+    // (0050DFF0 / 0044F1D0), their blocks freed, the engine object's.
+    void DestructBody();
+    // 0050A700 (slot 0, RET 4). DestructBody, then operator delete with flags bit 0. Returns this.
+    AnimationTrack* DeleteTrack(unsigned flags);
+    // 0050A810 (slot 2). DestroyTrack's reset; returns 1.
+    int CreateTrack();
+    // 0050A8C0 (slot 3). No animation, bone or key frames (the vertex sets' block freed), the
+    // default position and rotation (007AF110 / 007AF100), no morphed vertices (freed), time 0.
+    void DestroyTrack();
+
     const FigureAnimation* animation;   // +0x1C the animation playing (null: none)
     FigureBone* bone;               // +0x20 the bone it animates
     int positionCount;              // +0x24
@@ -30,17 +48,15 @@ struct AnimationTrack : CEngineObject {
     int rotationCount;              // +0x2C
     const float* rotations;         // +0x30 quaternions
     int vertexCount;                // +0x34
-    float* const* frames;           // +0x38 vertex sets, three floats per vertex
-    int frameCount;                 // +0x3C
-    std::uint8_t unknown_40[8];
+    lib::AlignedArray<float*> frames;   // +0x38 vertex sets (three floats per vertex), one per key frame
     float time;                     // +0x48 (0 when the animation changes)
     Vector3 position;               // +0x4C
     Quaternion rotation;            // +0x58
-    float* vertices;                // +0x68 the morphed vertices
-    int verticesSize;               // +0x6C their count ({vertices, count} is what a bone gives 005A0B10)
+    // +0x68 the morphed vertices ({data, size} is what a bone gives 005A0B10).
+    lib::AlignedArray<Vector3> vertices;
 };
 static_assert(offsetof(AnimationTrack, bone) == 0x20 && offsetof(AnimationTrack, positionCount) == 0x24);
-static_assert(offsetof(AnimationTrack, frameCount) == 0x3C);
+static_assert(offsetof(AnimationTrack, frames) == 0x38 && sizeof(AnimationTrack) == 0x78);
 static_assert(offsetof(AnimationTrack, time) == 0x48);
 static_assert(offsetof(AnimationTrack, rotation) == 0x58);
 static_assert(offsetof(AnimationTrack, vertices) == 0x68 && offsetof(AnimationTrack, animation) == 0x1C);

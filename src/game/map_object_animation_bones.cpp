@@ -64,6 +64,22 @@ void PlaceRoot(CFigureAnimationState* state) {
     FigureBonePlaceOriginal(state->root, nullptr, &origin);
 }
 
+// 0050D950 / 0050DA10 inline DestroyTrack's reset without the bone (the key frames' array emptied
+// through its SetSize(0), 0050DFF0).
+void ClearTrack(AnimationTrack* track) {
+    track->animation = nullptr;
+    track->positionCount = 0;
+    track->positions = nullptr;
+    track->rotationCount = 0;
+    track->rotations = nullptr;
+    track->vertexCount = 0;
+    track->frames.SetSize(0, -1);
+    track->position = *reinterpret_cast<const Vector3*>(std::uintptr_t(0x007AF110));
+    track->rotation = *reinterpret_cast<const Quaternion*>(std::uintptr_t(0x007AF100));
+    track->vertices.RemoveAll();
+    track->time = 0.0f;
+}
+
 } // namespace
 
 CFigureAnimationState* CFigureAnimationState::Construct() {
@@ -302,3 +318,29 @@ EI_REPLACE_METHOD(0x0050D920, CFigureAnimationState::CollectBoneNames);
 // 0050DFF0 (RET 8): AlignedPtrArray::SetSize's copy for the animation tracks' arrays (the key
 // frames' vertex sets; 0050A720, 0050C552). Registered on the template (map_object_figures.cpp).
 EI_REPLACE_METHOD(0x0050DFF0, AlignedPtrArray::SetSize);
+
+int CFigureAnimationState::ClearBoneTracks() {
+    changed = 1;
+    for (auto* node = bones.head; node;) {
+        FigureBone* bone = node->data;
+        node = node->next;
+        ClearTrack(bone->pose);
+        bone->pose->animation = nullptr;
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x0050D950, CFigureAnimationState::ClearBoneTracks);
+
+int CFigureAnimationState::LoadBoneTracks(CFigureModelPart* part, const FigureAnimation* animation) {
+    changed = 1;
+    for (auto* node = bones.head; node;) {
+        FigureBone* bone = node->data;
+        node = node->next;
+        void* data = part->ReadEntry(bone->name, nullptr);
+        if (!data) ClearTrack(bone->pose);
+        else AnimationTrackLoadOriginal(bone->pose, nullptr, &data);
+        bone->pose->animation = animation;
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x0050DA10, CFigureAnimationState::LoadBoneTracks);
