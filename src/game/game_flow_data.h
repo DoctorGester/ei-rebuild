@@ -39,7 +39,6 @@ constexpr std::uintptr_t kHalf = std::uintptr_t(0x0073B86C);            // 0.5f
 constexpr std::uintptr_t kNetworkExitTarget = std::uintptr_t(0x00790620);   // "MPGame1": where every exit leads
 constexpr std::uintptr_t kExitArrayVtable = std::uintptr_t(0x0073C400);      // CArray<ZoneExit> (after 0056FFE0)
 constexpr std::uintptr_t kExitArrayBaseVtable = std::uintptr_t(0x0073C3F4);
-constexpr std::uintptr_t kHostRecordVtable = std::uintptr_t(0x0073BCA0);
 
 // ---- LeaveZone ---------------------------------------------------------------------------------
 constexpr std::uintptr_t kCantWrite = std::uintptr_t(0x007905A0);   // "Can`t write to %s"

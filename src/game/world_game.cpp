@@ -9,7 +9,10 @@
 #include "core_maths.h"
 #include "core_streams.h"
 #include "mob_script_decoder.h"
+#include "net_classes.h"
+#include "net_connection.h"
 #include "net_link.h"
+#include "net_messages.h"
 #include "object.h"
 #include "object_tables.h"
 #include "unit.h"
@@ -59,6 +62,8 @@ int Campaign() { return *reinterpret_cast<const int*>(0x007C2CC4); }        // 4
 const char* GameFolder() { return *reinterpret_cast<char* const*>(0x007AF460); }
 int SaveVersion() { return *reinterpret_cast<const int*>(0x00790260); }
 std::uint8_t& ToMainMenu() { return *reinterpret_cast<std::uint8_t*>(0x007C7D94); }
+// 007C7DD8: the network sessions are open (BeginMultiplayerGame sets it, a missing zone clears it).
+std::uint8_t& SessionsOpen() { return *reinterpret_cast<std::uint8_t*>(0x007C7DD8); }
 
 void* const kParty = reinterpret_cast<void*>(0x007AA5A0);
 void* const kRenderer = reinterpret_cast<void*>(0x007C7BD8);
@@ -496,12 +501,12 @@ __declspec(naked) int __fastcall WorldLoadMobFile(CWorldServer*, void*, const ch
 // assigns a string from a range) and the message 0041A500(8, zone).
 __declspec(naked) bool __fastcall AddressInit(void*, void*, const char* /*host*/, int /*port*/) EI_ORIGINAL(0x00440440)
 __declspec(naked) const char* const* __fastcall AddressFormat(void*, void*, void* /*out string*/) EI_ORIGINAL(0x00435010)
-__declspec(naked) void __fastcall HostRecordConstruct(void*, void*) EI_ORIGINAL(0x004186E0)
-__declspec(naked) void __fastcall CountedDestroy(void* /*slot*/, void*) EI_ORIGINAL(0x00413270)
+__declspec(naked) void __fastcall HostRecordConstruct(net::HostMessage*, void*) EI_ORIGINAL(0x004186E0)
 void __fastcall HostStringAssign(void* a0, void*, const char* a2, const char* a3) { StringAssignRangeOriginal(a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall ServerSendText(void*, void*, int /*message*/, const char*) EI_ORIGINAL(0x0041A500)
 
-std::uint8_t* GameServer() { return *reinterpret_cast<std::uint8_t**>(0x0079B5DC); }
+// A session or a replicated record is usable: there, and not detached by its owner.
+bool Active(const CRefCounted* object) { return object && !(object->flags7_ & CRefCounted::kDetached); }
 
 // Tells the clients of the game server where the game is: the host's address and the zone.
 void AnnounceHost(const char* zone) {
@@ -512,27 +517,27 @@ void AnnounceHost(const char* zone) {
     alignas(4) std::uint8_t text[12];
     mfc::CString formatted(*AddressFormat(address, nullptr, text));
     StringBufferFree(text);
-    void* memory = gamecrt::operator_new(0x24);
-    At<std::uint32_t>(memory, 4) = 0;   // written before the null test
-    void* record = nullptr;
+    // (the count cleared before the null test)
+    auto* memory = static_cast<net::HostMessage*>(net::NewRefObject(sizeof(net::HostMessage)));
+    net::HostMessage* record = nullptr;
     if (memory) {
         HostRecordConstruct(memory, nullptr);
-        StringInitEmpty(static_cast<std::uint8_t*>(memory) + 0xC);
-        StringInitEmpty(static_cast<std::uint8_t*>(memory) + 0x18);
-        *static_cast<void**>(memory) = reinterpret_cast<void*>(kHostRecordVtable);
+        StringInitEmpty(&memory->address_);
+        StringInitEmpty(&memory->zone_);
+        ei::SetVtable(memory, net::HostMessage::kVtableAddress);
         record = memory;
     }
-    void* slot = GameServer() + 0x25A0;
-    if (record != *static_cast<void**>(slot)) {
-        CountedDestroy(slot, nullptr);
-        RefShare(slot, nullptr, record);
+    RefPtr& slot = net::GameServer()->hostInfo_;
+    if (record != slot.ptr) {
+        slot.Destroy();
+        slot.Share(record);
     }
     const char* text1 = formatted;
-    std::uint8_t* shared = At<std::uint8_t*>(GameServer(), 0x25A0);
-    HostStringAssign(shared + 0xC, nullptr, text1, text1 + std::strlen(text1));
-    shared = At<std::uint8_t*>(GameServer(), 0x25A0);
-    HostStringAssign(shared + 0x18, nullptr, zone, zone + std::strlen(zone));
-    ServerSendText(GameServer(), nullptr, kServerMessageZone, zone);
+    auto* shared = static_cast<net::HostMessage*>(net::GameServer()->hostInfo_.ptr);
+    HostStringAssign(&shared->address_, nullptr, text1, text1 + std::strlen(text1));
+    shared = static_cast<net::HostMessage*>(net::GameServer()->hostInfo_.ptr);
+    HostStringAssign(&shared->zone_, nullptr, zone, zone + std::strlen(zone));
+    ServerSendText(net::GameServer(), nullptr, kServerMessageZone, zone);
 }
 
 } // namespace
@@ -607,8 +612,7 @@ int __stdcall StartNetworkZone(const char* zone) {
     WorldSetGameResult(World(), nullptr, kGameResultNetwork);
     SpectatorFlag() = 1;
 
-    std::uint8_t* server = GameServer();
-    if (server && !(At<std::uint32_t>(server, 4) & 0x80000000u)) {
+    if (Active(net::GameServer())) {
         AnnounceHost(zone);
         mfc::CString name(zone);
         mfc::CString mob = name + Text(kMobExtension);
@@ -707,13 +711,9 @@ int __stdcall LeaveZone(std::uint8_t* recordsBytes) {
 
 namespace {
 
-constexpr std::uint32_t kSessionInactive = 0x80000000u;       // net_session.h
-
-std::uint8_t* ClientSession() { return *reinterpret_cast<std::uint8_t**>(0x0079B5D8); }
-std::uint8_t* ServerSession() { return *reinterpret_cast<std::uint8_t**>(0x0079B5DC); }
-bool Active(const std::uint8_t* session) {
-    return session && !(*reinterpret_cast<const std::uint32_t*>(session + 4) & kSessionInactive);
-}
+// The local client's player record (ClientSession::player_, a LoginMessage): its state_ is the
+// game state request to the server (a change goes out with a new version_).
+net::LoginMessage* LocalLogin() { return static_cast<net::LoginMessage*>(net::GameClient()->player_.ptr); }
 // The server world's player list (007AFF60 + 0x38); +0x2C is its player count.
 int ServerPlayerCount() { return At<int>(*reinterpret_cast<void**>(0x007AFF98), 0x2C); }
 
@@ -722,27 +722,27 @@ int ServerPlayerCount() { return At<int>(*reinterpret_cast<void**>(0x007AFF98), 
 void GameFlow::UpdateMultiplayerVariable() {
     auto* player = *reinterpret_cast<WorldPlayer**>(WorldClient()->LocalView() + 0x1C);
     void* variables = player->variables;
-    if (!Active(ClientSession())) return;
+    if (!Active(net::GameClient())) return;
     auto set = [variables](bool on) {
         if (on) VariableSetAt(variables, nullptr, Text(kMultiplayerVariable), 1.0f);
         else VariableRemove(variables, nullptr, Text(kMultiplayerVariable));
     };
-    if (!Active(ServerSession())) {
-        // A client: set while the client has no peer (+0x25EC).
-        set(!Active(At<std::uint8_t*>(ClientSession(), 0x25EC)));
+    if (!Active(net::GameServer())) {
+        // A client: set while it has no host announcement (info_).
+        set(!Active(net::GameClient()->info_));
         return;
     }
     // The host: with +0x80, set while more than one player is in; otherwise while the client
-    // has no peer at +0x25F4.
+    // has no map message (map_).
     if (flag80_) set(ServerPlayerCount() > 1);
-    else set(!Active(At<std::uint8_t*>(ClientSession(), 0x25F4)));
+    else set(!Active(net::GameClient()->map_));
 }
 
 // ---- Starting a multiplayer game ------------------------------------------------------------------
 
 namespace {
 
-// The multiplayer start zones by the client session's game type (+0x261C): 1..3 -> bz2mpg ..
+// The multiplayer start zones by the client session's game type (gameType_): 1..3 -> bz2mpg ..
 // bz4mpg, anything else bz1mpg.
 
 // The party manager (007AA5A0): 004A88C0 resets it, 004A8890 (RET 4) begins a redeploy of a
@@ -760,7 +760,7 @@ constexpr std::uint32_t kMultiplayerHeroId = 0x3B9AF5CE;   // the only record's 
 } // namespace
 
 mfc::CString* GameFlow::MultiplayerZoneInto(mfc::CString* out) {
-    unsigned type = At<unsigned>(ClientSession(), 0x261C);
+    unsigned type = net::GameClient()->gameType_;
     return new (out) mfc::CString(Text(kMultiplayerZones[type <= 3 ? type : 0]));
 }
 
@@ -784,10 +784,10 @@ void GameFlow::BeginMultiplayerGame() {
         zone->~CString();
     }
     flag80_ = 0;
-    // The client's game state request (+0x2600): kind 1, a new request.
-    At<int>(At<std::uint8_t*>(ClientSession(), 0x2600), 0x28) = 1;
-    ++At<int>(At<std::uint8_t*>(ClientSession(), 0x2600), 8);
-    *reinterpret_cast<char*>(0x007C7DD8) = 1;
+    // The client's game state request: 1, a new version.
+    LocalLogin()->state_ = 1;
+    ++LocalLogin()->version_;
+    SessionsOpen() = 1;
 }
 
 // ---- Small glue of the flow -----------------------------------------------------------------------
@@ -806,7 +806,7 @@ constexpr int kRequestDone = 3;   // the client's game state request: answered
 } // namespace
 
 void GameFlow::ReturnLocalParty() {
-    if (!Active(ClientSession())) return;
+    if (!Active(net::GameClient())) return;
     auto* player = *reinterpret_cast<std::uint8_t**>(WorldClient()->LocalView() + 0x1C);
     void* party = player + 0x70;
     PartyCopyFrom(GlobalParty(), nullptr, party);
@@ -816,43 +816,40 @@ void GameFlow::ReturnLocalParty() {
 }
 
 void GameFlow::UpdateAndAcknowledge() {
-    if (!Active(ClientSession())) return;
+    if (!Active(net::GameClient())) return;
     FlowUpdate(this, nullptr);
-    std::uint8_t* request = At<std::uint8_t*>(ClientSession(), 0x2600);
-    if (At<int>(request, 0x28) != kRequestDone) return;
-    At<int>(request, 0x28) = 0;
-    ++At<int>(At<std::uint8_t*>(ClientSession(), 0x2600), 8);
+    if (LocalLogin()->state_ != kRequestDone) return;
+    LocalLogin()->state_ = 0;
+    ++LocalLogin()->version_;
 }
 
 void GameFlow::RequestBriefing(const char* briefing) {
-    std::uint8_t* client = ClientSession();
+    net::ClientSession* client = net::GameClient();
     if (Active(client)) SessionCommand(client, nullptr, kCommandBriefing, briefing);
 }
 
 namespace {
 
 // 0041BC40. The game client session's constructor (0x2700 bytes).
-__declspec(naked) std::uint8_t* __fastcall ClientSessionConstruct(void*, void*) EI_ORIGINAL(0x0041BC40)
-constexpr std::size_t kClientSessionSize = 0x2700;
+__declspec(naked) net::ClientSession* __fastcall ClientSessionConstruct(void*, void*) EI_ORIGINAL(0x0041BC40)
 
-// The sessions' reference count is the low word at +4; the last reference deletes (slot 0 with 1).
-void ReleaseSession(std::uint8_t* session) {
-    if (session && --At<std::uint16_t>(session, 4) == 0) ei::VCall<void*>(session, 0, 1);
+// The last reference deletes the session (slot 0, the deleting destructor, with 1).
+void ReleaseSession(CRefCounted* session) {
+    if (session && --session->refs_ == 0) delete session;
 }
 
 } // namespace
 
 void GameFlow::RecreateClientSession() {
-    auto& global = *reinterpret_cast<std::uint8_t**>(0x0079B5D8);
-    std::uint8_t* old = global;
+    net::ClientSession*& global = net::GameClient();
+    net::ClientSession* old = global;
     global = nullptr;
     ReleaseSession(old);
-    auto* memory = static_cast<std::uint8_t*>(gamecrt::operator_new(kClientSessionSize));
-    At<std::uint32_t>(memory, 4) = 0;
-    std::uint8_t* session = memory ? ClientSessionConstruct(memory, nullptr) : nullptr;
-    std::uint8_t* previous = global;
+    void* memory = net::NewRefObject(sizeof(net::ClientSession));
+    net::ClientSession* session = memory ? ClientSessionConstruct(memory, nullptr) : nullptr;
+    net::ClientSession* previous = global;
     global = session;
-    if (session) ++At<std::uint16_t>(session, 4);
+    if (session) ++session->refs_;
     ReleaseSession(previous);
 }
 
@@ -872,15 +869,15 @@ int __stdcall RequestZone(const char* zone, int entrance) {
 }
 
 void GameFlow::CloseSessions() {
-    *reinterpret_cast<char*>(0x007C7DD8) = 0;
-    auto& server = *reinterpret_cast<std::uint8_t**>(0x0079B5DC);
-    std::uint8_t* old = server;
+    SessionsOpen() = 0;
+    net::ServerSession*& server = net::GameServer();
+    net::ServerSession* oldServer = server;
     server = nullptr;
-    ReleaseSession(old);
-    auto& client = *reinterpret_cast<std::uint8_t**>(0x0079B5D8);
-    old = client;
+    ReleaseSession(oldServer);
+    net::ClientSession*& client = net::GameClient();
+    net::ClientSession* oldClient = client;
     client = nullptr;
-    ReleaseSession(old);
+    ReleaseSession(oldClient);
     state_ = 1;   // the state
 }
 
@@ -1049,18 +1046,16 @@ namespace {
 
 // 0041A500 (RET 8). A server command with an argument (9: drop a client).
 __declspec(naked) void __fastcall ServerCommand(void*, void*, int, const char*) EI_ORIGINAL(0x0041A500)
-// 00413270 / 00418BE0 (RET 4). The session handle at the server's +0x25A0: close / assign.
-__declspec(naked) void __fastcall HandleClose(void*, void*) EI_ORIGINAL(0x00413270)
 // 00590C70 / 00591070 (RET 4). CWorldServer: sync a player's party records / after the copy.
 __declspec(naked) void __fastcall SyncPartyRecordsAt(void*, void*, WorldPlayer*) EI_ORIGINAL(0x00590C70)
 __declspec(naked) int __fastcall ViewRequestZoneAt(void*, void*, const char*, int) EI_ORIGINAL(0x0066B1B0)
 
 constexpr int kServerDropClient = 9;
 
-// The client's game state request (+0x2600): `kind`, a new request.
+// The client's game state request: `kind`, a new version.
 void RequestKind(int kind) {
-    At<int>(At<std::uint8_t*>(ClientSession(), 0x2600), 0x28) = kind;
-    ++At<int>(At<std::uint8_t*>(ClientSession(), 0x2600), 8);
+    LocalLogin()->state_ = kind;
+    ++LocalLogin()->version_;
 }
 
 } // namespace
@@ -1069,8 +1064,7 @@ void GameFlow::SwitchMultiplayerZone() {
     if (flag80_) {
         // A switch is pending: ask for the start zone again.
         RequestKind(1);
-        std::uint8_t* server = ServerSession();
-        bool host = server && !(At<std::uint32_t>(server, 4) & kSessionInactive);
+        bool host = Active(net::GameServer());
         {
             alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
             mfc::CString* zone = MultiplayerZoneAt(this, nullptr, storage);
@@ -1079,29 +1073,30 @@ void GameFlow::SwitchMultiplayerZone() {
             zone->~CString();
         }
         if (host) {
-            // The host drops its client (+0x25A0) and closes the handle.
-            std::uint8_t* client = At<std::uint8_t*>(ServerSession(), 0x25A0);
-            if (Active(client)) ServerCommand(ServerSession(), nullptr, kServerDropClient, At<const char*>(client, 0x18));
-            void* handle = ServerSession() + 0x25A0;
-            if (*static_cast<void**>(handle)) {
-                HandleClose(handle, nullptr);
-                RefShare(handle, nullptr, nullptr);
+            // The host sends command 9 with the announced zone and drops the announcement.
+            auto* announced = static_cast<net::HostMessage*>(net::GameServer()->hostInfo_.ptr);
+            if (Active(announced)) ServerCommand(net::GameServer(), nullptr, kServerDropClient, announced->zone_.start);
+            RefPtr& handle = net::GameServer()->hostInfo_;
+            if (handle.ptr) {
+                handle.Destroy();
+                handle.Share(nullptr);
             }
         }
         flag80_ = 0;
         return;
     }
 
-    // Every connection of the host (a list at +0x28) is reset to state 6.
-    std::uint8_t* server = ServerSession();
-    if (server && !(At<std::uint32_t>(server, 4) & kSessionInactive)) {
-        auto* head = reinterpret_cast<std::uint8_t**>(server + 0x28);
-        for (auto* node = *reinterpret_cast<std::uint8_t**>(*head); node != *head; node = *reinterpret_cast<std::uint8_t**>(node)) {
-            std::uint8_t* connection = At<std::uint8_t*>(node, 8);
-            std::uint32_t value = At<std::uint32_t>(connection, 0x114C);
-            At<int>(connection, 0x1160) = 6;
-            At<std::uint32_t>(connection, 0x1158) = value;
-            At<std::uint32_t>(connection, 0x1150) = value;
+    // Every connection of the host drops what it has read of the incoming reliable stream
+    // (flags 6, high and the cursor back to the start).
+    net::ServerSession* server = net::GameServer();
+    if (Active(server)) {
+        net::ClientNode* head = server->clients_;
+        for (net::ClientNode* node = head->next; node != head; node = node->next) {
+            GameBuffer& in = node->connection->reliableIn_;
+            std::uint8_t* begin = in.begin;
+            in.flags = 6;
+            in.high = begin;
+            in.cur = begin;
         }
     }
     LocalRecords records;
@@ -1115,17 +1110,17 @@ void GameFlow::SwitchMultiplayerZone() {
     }
     AsCString(records.party.zone) = AsCString(zone7C_);
     RequestKind(3);
-    if (Active(ServerSession())) {
+    if (Active(net::GameServer())) {
         state_ = 6;
         AsCString(requestTarget_) = zone7C_;
         PartyCopyFrom(RequestParty(), nullptr, &records.party);
     } else {
-        std::uint8_t* peer = At<std::uint8_t*>(ClientSession(), 0x25EC);
-        if (Active(peer)) AsCString(records.party.zone) = At<const char*>(peer, 0x18);
-        peer = At<std::uint8_t*>(ClientSession(), 0x25EC);
-        if (Active(peer)) {
+        auto* host = static_cast<net::HostMessage*>(net::GameClient()->info_);
+        if (Active(host)) AsCString(records.party.zone) = host->zone_.start;
+        host = static_cast<net::HostMessage*>(net::GameClient()->info_);
+        if (Active(host)) {
             state_ = 5;
-            AsCString(requestTarget_) = At<const char*>(peer, 0x0C);
+            AsCString(requestTarget_) = host->address_.start;
             PartyCopyFrom(RequestParty(), nullptr, &records.party);
         }
     }
@@ -1136,14 +1131,13 @@ void GameFlow::SwitchMultiplayerZone() {
 
 namespace {
 
-constexpr std::size_t kServerSessionSize = 0x2600;
 constexpr std::size_t kPasswordSize = 0x14;
 
 // 0057F560 / 0057EB10 (patched by Rebirth): the flow before / after starting the sessions.
 __declspec(naked) void __fastcall FlowBeforeServer(GameFlow*, void*) EI_ORIGINAL(0x0057F560)
 __declspec(naked) void __fastcall FlowAfterServer(GameFlow*, void*) EI_ORIGINAL(0x0057EB10)
 // 00412D80 (RET 4). The game server session's constructor (game type).
-__declspec(naked) std::uint8_t* __fastcall ServerSessionConstruct(void*, void*, int) EI_ORIGINAL(0x00412D80)
+__declspec(naked) net::ServerSession* __fastcall ServerSessionConstruct(void*, void*, int) EI_ORIGINAL(0x00412D80)
 // 00419CD0 (RET 4). A session reference (0079B5DC / 0079B5D8) assigned.
 __declspec(naked) void __fastcall SessionRefAssign(void*, void*, void*) EI_ORIGINAL(0x00419CD0)
 // 00440440 (RET 8). A 16-byte network address from a host name and a port.
@@ -1157,7 +1151,7 @@ void __fastcall StringAssignRange(void* a0, void*, const char* a2, const char* a
 // 0041A140 (RET 4) / 00417E10 (RET 4). The server's password / whether it is listed.
 __declspec(naked) void __fastcall ServerSetPassword(void*, void*, const char*) EI_ORIGINAL(0x0041A140)
 __declspec(naked) void __fastcall ServerSetPublic(void*, void*, int) EI_ORIGINAL(0x00417E10)
-__declspec(naked) std::uint8_t* __fastcall ClientSessionNew(void*, void*) EI_ORIGINAL(0x0041BC40)
+__declspec(naked) net::ClientSession* __fastcall ClientSessionNew(void*, void*) EI_ORIGINAL(0x0041BC40)
 // 006E7E80. The CRT's strncpy.
 
 } // namespace
@@ -1165,18 +1159,16 @@ __declspec(naked) std::uint8_t* __fastcall ClientSessionNew(void*, void*) EI_ORI
 void GameFlow::StartServer(const char* name, int value25E0, int gameType, const char* password, char unlisted,
                            int value25FC) {
     FlowBeforeServer(this, nullptr);
-    *reinterpret_cast<std::uintptr_t*>(0x0079B91C) = kNetLogStream;
+    net::NetLog() = reinterpret_cast<net::LogStream*>(kNetLogStream);
     {
-        auto* memory = static_cast<std::uint8_t*>(gamecrt::operator_new(kServerSessionSize));
-        At<std::uint32_t>(memory, 4) = 0;
-        std::uint8_t* server = memory ? ServerSessionConstruct(memory, nullptr, gameType) : nullptr;
-        SessionRefAssign(reinterpret_cast<void*>(0x0079B5DC), nullptr, server);
+        void* memory = net::NewRefObject(sizeof(net::ServerSession));
+        net::ServerSession* server = memory ? ServerSessionConstruct(memory, nullptr, gameType) : nullptr;
+        SessionRefAssign(&net::GameServer(), nullptr, server);
     }
     {
-        auto* memory = static_cast<std::uint8_t*>(gamecrt::operator_new(kClientSessionSize));
-        At<std::uint32_t>(memory, 4) = 0;
-        std::uint8_t* client = memory ? ClientSessionNew(memory, nullptr) : nullptr;
-        SessionRefAssign(reinterpret_cast<void*>(0x0079B5D8), nullptr, client);
+        void* memory = net::NewRefObject(sizeof(net::ClientSession));
+        net::ClientSession* client = memory ? ClientSessionNew(memory, nullptr) : nullptr;
+        SessionRefAssign(&net::GameClient(), nullptr, client);
     }
     // The local client connects to the local server with the password as its hello.
     alignas(4) std::uint8_t address[16] = {};
@@ -1187,17 +1179,17 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
         char secret[kPasswordSize] = {};
         if (password) GameStrncpy(secret, password, kPasswordSize);
         BufferPut(&hello, nullptr, secret, static_cast<int>(kPasswordSize));
-        ClientConnect(ClientSession(), nullptr, address, &hello);
+        ClientConnect(net::GameClient(), nullptr, address, &hello);
         GrowingBufferDestruct(&hello);
     }
-    At<std::uint8_t>(At<std::uint8_t*>(ClientSession(), 0x2600), 0x24) = 1;
+    LocalLogin()->host_ = 1;
     const char* shown = name && *name ? name : Text(kServerName);
-    StringAssignRange(ServerSession() + 0x25C8, nullptr, shown, shown + std::strlen(shown));
-    At<int>(ServerSession(), 0x25E0) = value25E0;
-    if (password && *password) ServerSetPassword(ServerSession(), nullptr, password);
-    ServerSetPublic(ServerSession(), nullptr, unlisted == 0);
-    At<int>(ClientSession(), 0x261C) = gameType;
-    At<int>(ServerSession(), 0x25FC) = value25FC;
+    StringAssignRange(&net::GameServer()->name_, nullptr, shown, shown + std::strlen(shown));
+    net::GameServer()->maxPlayers_ = value25E0;
+    if (password && *password) ServerSetPassword(net::GameServer(), nullptr, password);
+    ServerSetPublic(net::GameServer(), nullptr, unlisted == 0);
+    net::GameClient()->gameType_ = gameType;
+    net::GameServer()->unknown_25FC = value25FC;
     FlowAfterServer(this, nullptr);
 }
 
@@ -1219,7 +1211,7 @@ inline void* __fastcall OstreamPutLong(void* s, void*, long v) { return OstreamP
 } // namespace
 
 void CWorldServer::AcceptNewPlayers(void* lobby) {
-    mfc::CTypedPtrList<std::uint8_t> joined;
+    mfc::CTypedPtrList<netlink::NetLink> joined;
     joined.vtable = reinterpret_cast<void*>(kSessionListVtable);
     joined.head = nullptr;
     joined.tail = nullptr;
@@ -1234,7 +1226,7 @@ void CWorldServer::AcceptNewPlayers(void* lobby) {
     ei::VCall<void>(lobby, kSlotLobbyTakeNew, &joined);
     for (auto* node = joined.head; node;) {
         auto* next = node->next;
-        std::uint8_t* connection = node->data;
+        netlink::NetLink* connection = node->data;
         WorldPlayer* player = PlayersAdd(players_, nullptr);
         PlayerAttach(player, nullptr, connection);
         player->dirty = 0xFFFFFFFFu;
@@ -1435,7 +1427,6 @@ constexpr int kModeEndOfGame = 8;    // the zone "endofgame"
 constexpr int kResultPlaying = 1;
 constexpr int kResultMainMenu = 4;
 
-std::uint8_t& SessionsOpen() { return *reinterpret_cast<std::uint8_t*>(0x007C7DD8); }
 void* const kClientWorld = reinterpret_cast<void*>(0x007AF5B8);
 
 // 0058EEE0 / 0058EEA0 (RET 4). CWorldServer::SetTimeSpeed / SetTime.
@@ -1490,17 +1481,16 @@ void GameFlow::StartZone(const char* zone, int mode) {
     if (!found) {
         // An unknown zone: the error, the network sessions closed, the main menu instead.
         game::FatalError(Text(kZoneNotFound), zone);
-        std::uint8_t* client = ClientSession();
-        if (client && !(At<std::uint32_t>(client, 4) & kSessionInactive)) {
-            auto& server = *reinterpret_cast<std::uint8_t**>(0x0079B5DC);
-            std::uint8_t* old = server;
+        if (Active(net::GameClient())) {
+            net::ServerSession*& server = net::GameServer();
+            net::ServerSession* oldServer = server;
             SessionsOpen() = 0;
             server = nullptr;
-            ReleaseSession(old);
-            auto& clientSlot = *reinterpret_cast<std::uint8_t**>(0x0079B5D8);
-            old = clientSlot;
-            clientSlot = nullptr;
-            ReleaseSession(old);
+            ReleaseSession(oldServer);
+            net::ClientSession*& client = net::GameClient();
+            net::ClientSession* oldClient = client;
+            client = nullptr;
+            ReleaseSession(oldClient);
         }
         mode = kModeMainMenu;
     }
@@ -1616,8 +1606,7 @@ void GameFlow::ProcessRequest() {
     }
     InterfaceCloseAll(reinterpret_cast<void*>(0x007C7D50));
     WorldTeardownZone(World(), nullptr);
-    std::uint8_t* client = ClientSession();
-    bool network = client && !(At<std::uint32_t>(client, 4) & kSessionInactive);
+    bool network = Active(net::GameClient());
     if (!(LastResourcesGuard() & 1)) {
         LastResourcesGuard() |= 1;
         new (&LastResources()) mfc::CString(Text(kResourcesSingle));
@@ -1679,8 +1668,7 @@ void GameFlow::ProcessRequest() {
         PlayerTakeParty(player, nullptr, RequestParty());
         WorldTeardownZone(World(), nullptr);
         if (!ClientHasZone(clientWorld, nullptr, zone)) {
-            std::uint8_t* session = ClientSession();
-            if (session && !(At<std::uint32_t>(session, 4) & kSessionInactive)) {
+            if (Active(net::GameClient())) {
                 BeginMultiplayerGameAt(this, nullptr);
             } else {
                 ToMainMenu() = 1;
@@ -1852,8 +1840,7 @@ __declspec(naked) void __fastcall VariablesClear(NamedFloatTable*) EI_ORIGINAL(0
 // original, the same algorithm).
 void __fastcall RangeAssign(void* a0, void*, const char* a2, const char* a3) { StringAssignRangeOriginal(a0, nullptr, a2, a3); }
 
-std::uint8_t* HostRecord() { return *reinterpret_cast<std::uint8_t**>(ClientSession() + 0x2600); }
-void AssignText(std::uint8_t* field, const char* text) { RangeAssign(field, nullptr, text, text + std::strlen(text)); }
+void AssignText(net::StringRep* field, const char* text) { RangeAssign(field, nullptr, text, text + std::strlen(text)); }
 
 } // namespace
 
@@ -1867,23 +1854,23 @@ void GameFlow::AfterServerStart() {
     else
         VariablesClear(variables);
     PartyResetItems(reinterpret_cast<void*>(0x007C82B0));
-    // The client's host record gets the hero's and the party's names (or the defaults).
+    // The client's player record gets the hero's and the party's names (or the defaults).
     if (*reinterpret_cast<int*>(0x007C82E4) == 1) {
         char** names = *reinterpret_cast<char***>(0x007C82E0);
-        AssignText(HostRecord() + 0x18, names[5]);
-        AssignText(HostRecord() + 0xC, names[0]);
+        AssignText(&LocalLogin()->text_, names[5]);
+        AssignText(&LocalLogin()->name_, names[0]);
     } else {
-        AssignText(HostRecord() + 0x18, Text(kDefaultHeroName));
-        AssignText(HostRecord() + 0xC, Text(kDefaultPartyName));
+        AssignText(&LocalLogin()->text_, Text(kDefaultHeroName));
+        AssignText(&LocalLogin()->name_, Text(kDefaultPartyName));
     }
-    At<int>(HostRecord(), 0x28) = 1;
+    LocalLogin()->state_ = 1;
 }
 
 // ---- The client's update from the server (005800C0) ---------------------------------------------
 
 namespace {
 
-// The game types' (client session +0x261C, 0..3) variable set to 1 and briefing name.
+// The game types' (ClientSession::gameType_, 0..3) variable set to 1 and briefing name.
 
 unsigned& ServerStamp() { return *reinterpret_cast<unsigned*>(0x007AFED0); }   // the newest variable stamp seen
 unsigned& AppliedStamp() { return *reinterpret_cast<unsigned*>(0x007AFED4); }  // the stamp applied up to
@@ -1947,17 +1934,31 @@ struct LocalVariables {
     }
 };
 
-// The server's variable list (client session +0x25FC, a list with a sentinel head; node +8 the
-// record: name +0x0C, value +0x18, stamp +0x1C).
-std::uint8_t* VariableList() { return At<std::uint8_t*>(ClientSession(), 0x25FC); }
-std::uint8_t* NodeRecord(std::uint8_t* node) { return At<std::uint8_t*>(node, 8); }
-unsigned NodeStamp(std::uint8_t* node) { return At<unsigned>(NodeRecord(node), 0x1C); }
+// The client's STLport lists of counted messages (ClientSession::zones_, variables_): a sentinel
+// head, each node's value the message.
+template <typename T>
+struct MessageNode {
+    MessageNode* next;
+    MessageNode* prev;
+    T* message;
+};
+using VariableNode = MessageNode<net::VariableMessage>;
+using ZoneNode = MessageNode<net::ZoneMessage>;
+// The server's variables (name_, value_ and the stamp serial_).
+VariableNode* VariableList() { return static_cast<VariableNode*>(net::GameClient()->variables_); }
+net::VariableMessage* NodeRecord(VariableNode* node) { return node->message; }
+unsigned NodeStamp(VariableNode* node) { return NodeRecord(node)->serial_; }
+// The value's bits, moved as the dword the original pushes (no FPU load).
+std::uint32_t ValueBits(const net::VariableMessage* record) {
+    std::uint32_t bits;
+    std::memcpy(&bits, &record->value_, 4);
+    return bits;
+}
 
 } // namespace
 
 void GameFlow::UpdateFromServer() {
-    std::uint8_t* client = ClientSession();
-    if (!client || (At<std::uint32_t>(client, 4) & kSessionInactive)) return;
+    if (!Active(net::GameClient())) return;
     if (void* texts = *reinterpret_cast<void**>(0x007AF788)) {
         auto* files = reinterpret_cast<std::uint8_t**>(0x007AFDD0);
         for (std::uint8_t* file = files[0]; file != files[1]; file += 0xC)
@@ -1979,13 +1980,13 @@ void GameFlow::UpdateFromServer() {
     else
         VariablesClearAt(variables);
     VariableSet(variables, nullptr, Text(kConstructionVariable), construction);
-    if (std::uint8_t* zone = At<std::uint8_t*>(ClientSession(), 0x25F4)) {
-        if (!(At<std::uint32_t>(zone, 4) & kSessionInactive)) FlowLoadZoneQuests(this, nullptr, At<const char*>(zone, 0xC));
+    if (auto* map = static_cast<net::MapMessage*>(net::GameClient()->map_)) {
+        if (Active(map)) FlowLoadZoneQuests(this, nullptr, map->text_.start);
     }
 
     // The game type's construction variable and briefings, at least 1.
     mfc::CString briefing;
-    unsigned type = At<unsigned>(ClientSession(), 0x261C);
+    unsigned type = net::GameClient()->gameType_;
     if (type <= 3) {
         VariableSet(variables, nullptr, Text(kTypeVariables[type]), 1.0f);
         briefing = Text(kTypeBriefings[type]);
@@ -2007,13 +2008,12 @@ void GameFlow::UpdateFromServer() {
     }
 
     // The briefings the server says were seen.
-    for (std::uint8_t* node = *At<std::uint8_t**>(ClientSession(), 0x25F8); node != At<std::uint8_t*>(ClientSession(), 0x25F8);
-         node = *reinterpret_cast<std::uint8_t**>(node))
-        FlowMarkBriefing(this, nullptr, At<const char*>(At<std::uint8_t*>(node, 8), 0xC));
+    for (ZoneNode* node = static_cast<ZoneNode*>(net::GameClient()->zones_)->next;
+         node != static_cast<ZoneNode*>(net::GameClient()->zones_); node = node->next)
+        FlowMarkBriefing(this, nullptr, node->message->text_.start);
     // The quest variables ("q.<folder>.<name>") register their quest folders.
-    for (std::uint8_t* node = *reinterpret_cast<std::uint8_t**>(VariableList()); node != VariableList();
-         node = *reinterpret_cast<std::uint8_t**>(node)) {
-        mfc::CString name(At<const char*>(NodeRecord(node), 0xC));
+    for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
+        mfc::CString name(NodeRecord(node)->name_.start);
         bool quest;
         {
             mfc::CString prefix = name.Left(2);
@@ -2036,8 +2036,7 @@ void GameFlow::UpdateFromServer() {
         NodeVector changed;
         char allocator;
         NodeVectorConstruct(&changed, nullptr, &allocator);
-        for (std::uint8_t* node = *reinterpret_cast<std::uint8_t**>(VariableList()); node != VariableList();
-             node = *reinterpret_cast<std::uint8_t**>(node)) {
+        for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
             if (ServerStamp() <= NodeStamp(node)) ServerStamp() = NodeStamp(node);
             unsigned stamp = NodeStamp(node);
             if (stamp >= AppliedStamp() || stamp < previous) continue;
@@ -2059,26 +2058,24 @@ void GameFlow::UpdateFromServer() {
         bool settled;
         do {
             settled = true;
-            for (std::uint8_t* node = *reinterpret_cast<std::uint8_t**>(VariableList()); node != VariableList();
-                 node = *reinterpret_cast<std::uint8_t**>(node)) {
+            for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
                 if (NodeStamp(node) > AppliedStamp()) continue;
                 if (NodeStamp(node) == AppliedStamp()) {
                     FlowVariableChanged(node, nullptr, node);
                     ++AppliedStamp();
                     settled = false;
                 }
-                std::uint8_t* record = NodeRecord(node);
-                VariableSetBits(variables, nullptr, At<const char*>(record, 0xC), At<std::uint32_t>(record, 0x18));
+                net::VariableMessage* record = NodeRecord(node);
+                VariableSetBits(variables, nullptr, record->name_.start, ValueBits(record));
             }
         } while (!settled);
         NodeVectorFree(changed.start, static_cast<unsigned>(changed.eos - changed.start));
     } else {
-        for (std::uint8_t* node = *reinterpret_cast<std::uint8_t**>(VariableList()); node != VariableList();
-             node = *reinterpret_cast<std::uint8_t**>(node)) {
+        for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
             if (ServerStamp() <= NodeStamp(node)) ServerStamp() = NodeStamp(node);
-            std::uint8_t* record = NodeRecord(node);
-            mfc::CString name(At<const char*>(record, 0xC));
-            VariableSetBits(variables, nullptr, At<const char*>(record, 0xC), At<std::uint32_t>(record, 0x18));
+            net::VariableMessage* record = NodeRecord(node);
+            mfc::CString name(record->name_.start);
+            VariableSetBits(variables, nullptr, record->name_.start, ValueBits(record));
         }
         AppliedStamp() = 0;
     }
