@@ -51,6 +51,14 @@ The four porting batches (A-I16, A-H15, A-S9, A-U7) are merged (2026-10-09, 140 
 - C6 (taken 2026-10-09): cleanup of combat_tick.cpp, combat_update.cpp, combat.cpp, magic_trap.cpp, then the next combat/unit files by count (offsets, VCall, byte arithmetic, raw addresses).
 - C7 (taken 2026-10-09): cleanup of world_quests.cpp, world_client.cpp, world_create.cpp, ai_region_reach.cpp, then the next world/AI files by count.
 
+## Vector math (planned 2026-10-09)
+
+Vector and matrix maths is mostly written out by hand: x*x + y*y (+ z*z) forms in 25 files, 164 sqrt calls, 235 raw float[3] / [4] / [9] / [16] arrays, and four separate 3-float structs (maths.h Vector3, ground_decal.h, render/render_internal.h, ui_camp.h) plus chunk_stream.h's Float4. Goal: one set of types and named operations, used everywhere, without changing results.
+Constraints: the original is MSVC6 x87 code that inlined this maths, so the order of operations decides the rounding. Every helper is __forceinline and evaluates in a fixed, documented order (x, y, z left to right); where the original uses another order, the helper is a named variant, never a silent reorder. Side-by-side checks that compare floats exactly must still pass; CheckNear tolerances are not widened to make a migration pass. The x87 __asm helpers are a separate ticket.
+- V1 (research, no code): catalog the patterns in src/game with counts and example sites (dot, length squared, 2D / 3D distance, cross, normalise, lerp, matrix x point / normal, quaternion ops, raw float arrays that are really vectors or matrices) and the evaluation orders the original uses for each; list the duplicate types with their layouts. Output: docs/notes/vector-math.md with the catalog and the proposed API.
+- V2: src/lib/vecmath.h with Vector2 / Vector3 / Vector4, Matrix4 (row-major, D3D layout) and Quaternion (moved from maths.h / model.h, same layouts, static_assert sizes), inline operators and the named helpers from V1. Fold the duplicate structs into it. Existing out-of-line helpers (Length 00401E20, Dot 00401E00, ...) keep their hooks.
+- V3: a check_cleanup column for unrolled vector maths (the x*x + y*y forms and float[3] / [16] members), then migrations by area in batches, each through the full suite.
+
 ## Draft passes (no build, 2026-10-07)
 
 Drafts written without building (2026-10-07), each on its own branch with a notes file docs/notes/drafts/<ticket>.md saying what is drafted, what is unverified and where it stopped; a later worker builds, fixes and merges it.

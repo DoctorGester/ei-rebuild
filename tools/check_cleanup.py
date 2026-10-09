@@ -26,9 +26,12 @@ PATTERNS = {
     # instead of the shared templates in src/lib (mfc::CArray / CList, lib::AlignedArray, stlp::).
     # Definitions only; src/lib itself is not counted.
     'per-file container struct': re.compile(r'(?<!template )\bstruct\s+\w*(?:Array|List)\b(?=\s*[:{])'),
+    # The same for STLport-shaped layouts (stlp::vector / map / set / hash_map views declared per
+    # file). Some matches are grids or managers named *Map; those go when they are renamed.
+    'per-file vector/map/set struct': re.compile(r'(?<!template )\bstruct\s+\w*(?:Vector|Map|Set)\b(?=\s*[:{])'),
 }
 # Patterns not counted under these directories.
-EXEMPT = {'per-file container struct': 'src/lib/'}
+EXEMPT = {'per-file container struct': 'src/lib/', 'per-file vector/map/set struct': 'src/lib/'}
 # A literal address directly inside EI_ORIGINAL(...)/EI_REPLACE(...)/EI_VERIFY(...)/UI_INPUT_HANDLER(...) is how hooks are
 # written and is not counted; the lookahead above skips "0x...)" and the prefix test below the rest.
 REGISTRATION = re.compile(r'(?:EI_(?:ORIGINAL|REPLACE|REPLACE_METHOD|VERIFY|REBIRTH_IMPLEMENTS)|UI_(?:INPUT|WHEEL)_HANDLER)\s*\(\s*$')
