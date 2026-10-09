@@ -52,6 +52,10 @@ struct ObjectIdMap {
 };
 static_assert(sizeof(ObjectIdMap) == 0x18);
 
+// 0073F530: the vtable the game stores in its CTypedPtrList<CPtrList, CEngineObject*> locals
+// (SendFreshObjects, world_map.cpp; world_zone.cpp).
+inline void* ObjectPtrListVtable() { return reinterpret_cast<void*>(0x0073F530); }
+
 struct PartyRecords;   // unit.h
 
 // A player (one per human or AI side). Fields named only as far as used here.
@@ -285,16 +289,22 @@ static_assert(sizeof(WorldAlarm) == 16);
 
 // A missile in flight (0xA8 bytes, constructor 0067E510; created by 0058E670). Reference counted
 // through a 16-bit count at +4. Not rewritten.
-struct Projectile {
+struct __declspec(novtable) Projectile {
+    // Slot 0 (vtable set by the constructor): the scalar deleting destructor (flags 1: free it).
+    virtual void* DeletingDestructor(unsigned flags);
+
     // 0067E6D0. Moves the missile one tick; 0 once it has hit or expired.
     int Update();
 
-    void* vtable;
     // +0x04 the reference count (16 bits; LoadSave clears the whole dword of a new allocation before
     // its null test and the constructor).
-    std::uint32_t references;
+    union {
+        std::uint32_t references;
+        std::int16_t referenceCount;
+    };
 };
 static_assert(offsetof(Projectile, references) == 4);
+static_assert(offsetof(Projectile, referenceCount) == 4);
 // 007C84EC: the world the missiles find while they load (LoadSave sets it).
 inline CWorldServer*& LoadingProjectileWorld() { return *reinterpret_cast<CWorldServer**>(0x007C84EC); }
 // The world server's missiles: an MFC CList of counted pointers (CWorldServer + 0x12E28). Its
@@ -470,7 +480,7 @@ public:
     // world (ResetZone 0058B250); every player is marked dirty; the .mob objects are loaded (fresh
     // zones start, 005951A0). From a save the loaded objects are cleared again (the save holds
     // them). Returns 1, 0 when the map or the objects cannot be loaded.
-    int LoadMap(const char* map, const char* mob, void* graph, char fromSave);
+    int LoadMap(const char* map, const char* mob, CStream* graph, char fromSave);
     // 0058B250. Empties the world of the current zone: shared objects, .mob files, countdowns,
     // exits, command queues, missiles, counted objects, the players' zone data, every object
     // (slot 5 then the maps), timed objects, the zone names and three managers.
@@ -665,12 +675,15 @@ public:
     char* mobName_;                       // +0x12D68 CString: the zone's .mob file
     char* mapName_;                       // +0x12D6C CString: the zone's map
     ObjectIdMap objects_;                 // +0x12D70 every world object by id
-    std::uint8_t unknown_12D88[0x12DA0 - 0x12D88];
+    // +0x12D88 the map objects SendFreshObjects sent (not part of the map itself, slot 29).
+    ObjectIdMap sentObjects_;
     ObjectIdMap mapObjects_;              // +0x12DA0 objects saved with the zone (SaveMapObjects)
     ObjectIdMap otherMapObjects_;         // +0x12DB8 the map objects that are not units
     ObjectIdMap namedObjects_;            // +0x12DD0 objects with a second name (+0x1A8)
     ObjectIdMap timedObjects_;            // +0x12DE8
-    std::uint8_t unknown_12E00[0x12E28 - 0x12E00];
+    // +0x12E00 the zone header SendFreshObjects sends to a temporary player (constructed by
+    // 0041DD70 in the constructor 00589ED0).
+    CMemoryStream zoneHeader_;
     ProjectileList projectiles_;          // +0x12E28
     mfc::CTypedPtrList<CEngineObject> counted_; // +0x12E44 counted references (released on clear)
     SharedObjectList sharedObjects_;      // +0x12E60 (world_save.cpp; AddSharedObject, IsObjectShared)
@@ -686,6 +699,8 @@ static_assert(offsetof(CWorldServer, aiMap_) == 0x170);
 static_assert(offsetof(CWorldServer, diplomacy_) == 0x12C64);
 static_assert(offsetof(CWorldServer, unknown12D64_) == 0x12D64);
 static_assert(offsetof(CWorldServer, mapName_) == 0x12D6C);
+static_assert(offsetof(CWorldServer, sentObjects_) == 0x12D88);
+static_assert(offsetof(CWorldServer, zoneHeader_) == 0x12E00);
 static_assert(offsetof(CWorldServer, otherMapObjects_) == 0x12DB8);
 static_assert(offsetof(CWorldServer, namedObjects_) == 0x12DD0);
 static_assert(offsetof(CWorldServer, alarms_) == 0x8C);
