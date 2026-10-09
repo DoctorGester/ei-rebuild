@@ -37,6 +37,12 @@ struct AnimationTrack : CEngineObject {
     AnimationTrack* DeleteTrack(unsigned flags);
     // 0050A810 (slot 2). DestroyTrack's reset; returns 1.
     int CreateTrack();
+    // 0050AAF0 (RET 4; animation_track_lifetime.cpp). The key frames from the model entry at
+    // *cursor (advanced past them): the rotations (a count, then that many quaternions; none: null),
+    // the positions (likewise, three floats each), the frame count and the vertex count; the frame
+    // array is sized to the frames and the vertices to the vertex count (both without keeping their
+    // contents), and each frame points at its vertex set, which follow one after another.
+    void LoadKeyFrames(std::uint8_t** cursor);
     // 0050A8C0 (slot 3). No animation, bone or key frames (the vertex sets' block freed), the
     // default position and rotation (007AF110 / 007AF100), no morphed vertices (freed), time 0.
     void DestroyTrack();

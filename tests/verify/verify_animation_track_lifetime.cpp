@@ -71,6 +71,35 @@ static void __fastcall DestructBodyVerify(AnimationTrack* track, void*) {
 }
 EI_VERIFY(0x0050A720, DestructBodyVerify, 0, s_unusedDestruct);
 
+// 0050AAF0 (LoadKeyFrames): ours only (it sizes the arrays); the counts are read from the entry
+// first, then the track's counts, its frame pointers and the cursor's end are checked against them.
+// Reached through LoadBoneTracks (0050DA10) whenever a unit's animation changes.
+static void* s_unusedLoad;
+static void __fastcall LoadKeyFramesVerify(AnimationTrack* track, void*, std::uint8_t** cursor) {
+    const std::uint8_t* start = *cursor;
+    auto countAt = [start](int offset) {
+        int value;
+        std::memcpy(&value, start + offset, sizeof(value));
+        return value;
+    };
+    int rotations = countAt(0);
+    int positionsAt = 4 + rotations * 16;
+    int positions = countAt(positionsAt);
+    int framesAt = positionsAt + 4 + positions * 12;
+    int frames = countAt(framesAt);
+    int vertices = countAt(framesAt + 4);
+    const std::uint8_t* firstFrame = start + framesAt + 8;
+    track->LoadKeyFrames(cursor);
+    bool ok = track->rotationCount == rotations && track->positionCount == positions && track->frames.size == frames &&
+              track->vertexCount == vertices && track->vertices.size == vertices &&
+              *cursor == firstFrame + frames * vertices * 12;
+    for (int i = 0; ok && i < frames; ++i)
+        ok = reinterpret_cast<const std::uint8_t*>(track->frames.data[i]) == firstFrame + i * vertices * 12;
+    ei::verify::Check("AnimationTrack::LoadKeyFrames", true, ok, "%d rotations, %d positions, %d frames of %d", rotations,
+                      positions, frames, vertices);
+}
+EI_VERIFY(0x0050AAF0, LoadKeyFramesVerify, 0, s_unusedLoad);
+
 static AnimationTrack* __fastcall DeleteTrackVerify(AnimationTrack* track, void*, unsigned flags) {
     AnimationTrack* result = track->DeleteTrack(flags);
     ei::verify::Check("AnimationTrack::DeleteTrack", true, result == track, "flags %u", flags);

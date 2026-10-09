@@ -16,7 +16,7 @@ section; tools/progress.py misses UI_INPUT_HANDLER / UI_WHEEL_HANDLER registrati
 
 ## Area tickets (done; next candidates)
 
-- Units and combat 0x00500000-0x00560000 (units.md, combat.md): A-U .. A-U8 done (A-U8 cut off, merged 2026-10-09). A-U9 done 2026-10-09 (12; FigureBone names fixed to "none"). A-U10 taken 2026-10-09. Next: map_objects.md "Skipped and why" (0050D7C0, 0050CC60, 0050C730, 0050C5F0, 0050DFF0, 00506710 / 005068C0, renderer 00504860 / 00503F40 / 005040A0 / 00504E50 / 00504F70 / 00505270), then 0051C3D0 wounds texture, perks database 0051F5B0 / 00521630 / 005218E0.
+- Units and combat 0x00500000-0x00560000 (units.md, combat.md): A-U .. A-U8 done (A-U8 cut off, merged 2026-10-09). A-U9 done 2026-10-09 (12; FigureBone names fixed to "none"). A-U10 done 2026-10-10 (50; branch head). Next: map_objects.md "Skipped and why" (0050A210, 00507C50, the renderer's small slots, 00505380-005055F0), then units.md "Skipped" (0053A200 / 00520220 loaders are Rebirth-patched).
 - World, AI, server 0x00540000-0x005E0000 (world.md, ai.md, unit_ai.md): A-W .. A-W9 done (A-W2, A-W3, A-W9 cut off). A-W10 done 2026-10-09 (22; X28 fixed). Next: world.md "Open items".
 - Interface 0x005E0000-0x00640000 (ui.md): A-I .. A-I21 done (A-I, A-I4, A-I5, A-I19 cut off). Next: ui.md section 3 "Next".
 - HUD, spells, items 0x00640000-0x006C0000 (items_spells.md): A-H .. A-H21 done (A-H18, A-H21 cut off). A-H22 done 2026-10-09 (29). A-H23 taken 2026-10-09. Next: items_spells.md "Next candidates".

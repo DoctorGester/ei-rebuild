@@ -119,6 +119,7 @@ is snapshotted and restored, the original runs, bytes and EAX compared.
 | 0051C3D0 | CObject3DClientSpecific::ShowWounds (unit_client_wounds.cpp): the wounds texture (kind 6) found / made, reloaded unless its .mmp extra block is unchanged; the material (WoundsMaterial: blend 5 / 6, helper preset 4, stages: part set texture, wounds texture) | ours only (texture held, last stage draws it; 0: dropped or no part set) |
 | 0050A5D0, 0050A720, 0050A700, 0050A810, 0050A8C0 | AnimationTrack (class 0x300B, vtable 0073D9D8, 0x78 bytes) Construct, DestructBody, DeleteTrack (0), CreateTrack / DestroyTrack (2 / 3) (animation_track_lifetime.cpp); `frames` (+0x38) and `vertices` (+0x68) are AlignedArrays now | ctor: original into a raw copy, all bytes compared; the rest ours only |
 | 0050D950, 0050DA10 | CFigureAnimationState ClearBoneTracks / LoadBoneTracks (005ACCF0: the tracks cleared, or loaded from the model part's entry named as the bone, slot 5 / 0050AAF0) | ours only |
+| 0050AAF0 | AnimationTrack::LoadKeyFrames (rotations, positions, frame and vertex counts from the model entry; arrays sized without keeping contents; frame pointers into the entry) | ours only: counts, frame pointers and the cursor's end predicted from the entry |
 | 00506C70 | MultiplyQuaternions (fastcall out, a, b: a * b, Hamilton; skin nodes, hero preview; skin_quaternion.cpp) | original vs ours, CheckNear |
 
 Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEffect::Tick`, 00524FE0
@@ -161,8 +162,7 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
 - CArray Serialize / SetSize instantiations (library).
 - A-U9: 005015A0 (renderer slot 25: the projection / viewport / axis-swap stacks for a rectangle and a field of view,
   like the creation's FillMatrixStacks) has no caller (no `call [reg+0x64]` on the renderer in game.exe); 00508A30
-  (sets the skin clock, rewinds) is unreferenced. Next here: 0050AAF0 (a track's key frames from a model
-  entry), 0050A210, 00507C50, the renderer's small slots (00500AA0, 005019F0, 00501A40 ClearFrame, 00501AF0, 00501D40,
+  (sets the skin clock, rewinds) is unreferenced. Next here: 0050A210, 00507C50, the renderer's small slots (00500AA0, 005019F0, 00501A40 ClearFrame, 00501AF0, 00501D40,
   00504780), 00505380-005055F0.
 - 0050E9B0 (slot 34): packs a stack UnitVitals the builder leaves unwritten when the prototype exists (garbage in the
   original; cannot be reproduced). 0050F080 is rewritten (A-U5, map_object_vitals.cpp: CMapObject::ClearProtectionBases,
