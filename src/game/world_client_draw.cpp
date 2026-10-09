@@ -144,7 +144,7 @@ __declspec(naked) void __fastcall FinalSortByModelUseAt(CEngineObject**, CEngine
 __declspec(naked) void __fastcall QueueSelected(CEngineObject*, void*) EI_ORIGINAL(0x0056A370)
 __declspec(naked) void __fastcall LightEffectDraw(void*) EI_ORIGINAL(0x006CEDE0)
 __declspec(naked) void __fastcall QuaternionAxisZ(const void*, void*, float*) EI_ORIGINAL(0x0040D6B0)
-__declspec(naked) void __fastcall QuaternionAxisX(const void*, void*, float*) EI_ORIGINAL(0x0040D940)
+__declspec(naked) void __fastcall QuaternionAxisX(const Quaternion*, void*, Vector3*) EI_ORIGINAL(0x0040D940)
 __declspec(naked) void __fastcall MarkerDraw(void*, void*, const float*, float, const float*, const float*)
     EI_ORIGINAL(0x00503A40)
 __declspec(naked) void __fastcall ListErase(void*, void*, void**, void*) EI_ORIGINAL(0x00512030)
@@ -591,11 +591,11 @@ int CWorldClient::DrawPass() {
                         std::memcpy(point, at, sizeof(point));
                         point[2] = Reload(object->positionZ);
                     }
-                    const void* orientation = &object->orientation;
-                    float axisY[3], axisX[3];
-                    QuaternionAxisY(orientation, nullptr, axisY);
-                    QuaternionAxisX(orientation, nullptr, axisX);
-                    MarkerDraw(SceneContext(), nullptr, point, 0.5f, axisX, axisY);
+                    const Quaternion* orientation = &object->orientation;
+                    Vector3 axisY, axisX;
+                    QuaternionAxisY(orientation, nullptr, &axisY);
+                    QuaternionAxisX(orientation, nullptr, &axisX);
+                    MarkerDraw(SceneContext(), nullptr, point, 0.5f, &axisX.x, &axisY.x);
                 } else {
                     if (object->flags_ & 0x10) {
                         object->flags_ &= ~0x110u;

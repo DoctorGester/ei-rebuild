@@ -366,9 +366,9 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         PathClear(MotionPathOf(c));
         int time = WorldTime(ObjectWorld(c));
         Vector3 axis, back;
-        QuaternionAxisY(&UnitOf(c)->orientation, nullptr, &axis.x);
-        float* facing = Negate(&back.x, &axis.x);
-        if (PathStart(MotionPathOf(c), nullptr, &UnitOf(c)->positionX, facing, time)) UnitPathSpeeds(UnitOf(c));
+        QuaternionAxisY(&UnitOf(c)->orientation, nullptr, &axis);
+        Vector3* facing = Negate(&back, &axis);
+        if (PathStart(MotionPathOf(c), nullptr, &UnitOf(c)->positionX, &facing->x, time)) UnitPathSpeeds(UnitOf(c));
         CtlSetStanding(c, nullptr, 0);
         CtlSetState(c, nullptr, 6);
         c->stoodBlocked = wasFlag;
@@ -378,9 +378,9 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
         PathClear(MotionPathOf(c));
         int time = WorldTime(ObjectWorld(c));
         Vector3 axis, back;
-        QuaternionAxisY(&UnitOf(c)->orientation, nullptr, &axis.x);
-        float* facing = Negate(&back.x, &axis.x);
-        if (PathStart(MotionPathOf(c), nullptr, &UnitOf(c)->positionX, facing, time)) UnitPathSpeeds(UnitOf(c));
+        QuaternionAxisY(&UnitOf(c)->orientation, nullptr, &axis);
+        Vector3* facing = Negate(&back, &axis);
+        if (PathStart(MotionPathOf(c), nullptr, &UnitOf(c)->positionX, &facing->x, time)) UnitPathSpeeds(UnitOf(c));
         CtlSetStanding(c, nullptr, 0);
         CtlSetState(c, nullptr, 6);
         c->stoodBlocked = 0;

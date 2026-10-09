@@ -23,8 +23,8 @@ namespace {
 // turning, position (half-cells), direction, speed, cell x, cell y]; the animation entry of an
 // animation index [00518F80 (index)]; the orientation's axes [0040D940 X, 0040F560 Y (out)]; the AI
 // map's passability for a size class [005BA790 (class, point)]; the debug message [0044C470].
-__declspec(naked) float* __fastcall AxisX(const void*, void*, float*) EI_ORIGINAL(0x0040D940)
-float* __fastcall AxisY(const void* a0, void*, float* a2) { return QuaternionAxisY(a0, nullptr, a2); }
+__declspec(naked) Vector3* __fastcall AxisX(const Quaternion*, void*, Vector3*) EI_ORIGINAL(0x0040D940)
+Vector3* __fastcall AxisY(const Quaternion* q, void*, Vector3* out) { return QuaternionAxisY(q, nullptr, out); }
 __declspec(naked) bool __fastcall IsPassableForClass(void*, void*, int, const float*) EI_ORIGINAL(0x005BA790)
 
 constexpr int kOrderPath = 2;
@@ -92,19 +92,19 @@ float* __fastcall UnitActionPoint(std::uint8_t* object, void*, float* out) {
         std::uint32_t side = entry->flags & 0x1C00000;
         Vector3 axis;
         if (side == 0x800000) {
-            AxisY(&unit->orientation, nullptr, &axis.x);
+            AxisY(&unit->orientation, nullptr, &axis);
             float reach = unit->above.y;
             offset = axis * reach;
         } else if (side == 0x400000) {
-            AxisY(&unit->orientation, nullptr, &axis.x);
+            AxisY(&unit->orientation, nullptr, &axis);
             float reach = unit->above.y;
             offset = -axis * reach;
         } else if (side == 0xC00000) {
-            AxisX(&unit->orientation, nullptr, &axis.x);
+            AxisX(&unit->orientation, nullptr, &axis);
             float reach = unit->above.x;
             offset = axis * reach;
         } else if (side == 0x1000000) {
-            AxisX(&unit->orientation, nullptr, &axis.x);
+            AxisX(&unit->orientation, nullptr, &axis);
             float reach = unit->above.x;
             offset = -axis * reach;
         }

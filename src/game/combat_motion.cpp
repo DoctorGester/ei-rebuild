@@ -172,10 +172,10 @@ void FaceAndStop(CUnitServer* self) {
     PathClear(Motion(self));
     int now = TickOf(ObjectWorld(self));
     Vector3 axis;
-    QuaternionAxisY(&self->unit->orientation, nullptr, &axis.x);
+    QuaternionAxisY(&self->unit->orientation, nullptr, &axis);
     Vector3 back;
-    const float* direction = Negate(&back.x, &axis.x);
-    if (PathStart(Motion(self), nullptr, &self->unit->positionX, direction, now)) UnitPathSpeeds(self->unit);
+    const Vector3* direction = Negate(&back, &axis);
+    if (PathStart(Motion(self), nullptr, &self->unit->positionX, &direction->x, now)) UnitPathSpeeds(self->unit);
     CtlSetStanding(self, nullptr, 0);
     CtlSetState(self, nullptr, kStateChasing);
 }
@@ -281,7 +281,7 @@ void PlayByValue(CUnitServer* self, AnimationSteps& steps, int newState) {
     PathClear(Motion(self));
     int now = TickOf(ObjectWorld(self));
     Vector3 axis;
-    QuaternionAxisY(&self->unit->orientation, nullptr, &axis.x);
+    QuaternionAxisY(&self->unit->orientation, nullptr, &axis);
     Vector3 back = -axis;
     if (PathStart(Motion(self), nullptr, &self->unit->positionX, &back.x, now)) UnitPathSpeeds(self->unit);
     // Standing 0 (005467B0 inlined; CUnit +0x278).
@@ -791,10 +791,10 @@ void CUnitServer::ResyncWithUnit() {
     PathClear(Motion(this));
     int now = TickOf(ObjectWorld(this));
     Vector3 axis;
-    QuaternionAxisY(&unit->orientation, nullptr, &axis.x);
+    QuaternionAxisY(&unit->orientation, nullptr, &axis);
     Vector3 back;
-    const float* direction = Negate(&back.x, &axis.x);
-    if (PathStart(Motion(this), nullptr, &unit->positionX, direction, now)) UnitPathSpeeds(unit);
+    const Vector3* direction = Negate(&back, &axis);
+    if (PathStart(Motion(this), nullptr, &unit->positionX, &direction->x, now)) UnitPathSpeeds(unit);
     CtlSetStanding(this, nullptr, 0);
     CtlSetState(this, nullptr, kStateChasing);
     UnitUpdateSizeClass(unit);

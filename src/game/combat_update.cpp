@@ -655,7 +655,7 @@ void CUnitServer::TickAction() {
     PathClear(Motion(this));
     int time = TickOf(ObjectWorld(this));
     Vector3 axis;
-    QuaternionAxisY(&unit->orientation, nullptr, &axis.x);
+    QuaternionAxisY(&unit->orientation, nullptr, &axis);
     float backwards[3] = {-axis.x, -axis.y, -axis.z};
     if (PathStart(Motion(this), nullptr, &unit->positionX, backwards, time)) UnitPathSpeeds(unit);
     CtlSetStanding(this, nullptr, 0);
