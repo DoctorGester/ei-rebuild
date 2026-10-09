@@ -32,9 +32,8 @@ src/game/chunk_stream.cpp,0,5,1,0,0,0,0,0,0
 src/game/chunk_stream.h,0,0,0,0,2,0,0,0,0
 src/game/class_templates.cpp,3,3,0,0,0,0,0,5,0
 src/game/clip.cpp,0,0,1,1,0,0,0,0,0
-src/game/combat.cpp,12,15,3,1,1,0,0,5,0
+src/game/combat.cpp,0,0,3,1,1,0,0,0,0
 src/game/combat_actions.cpp,1,11,1,1,0,0,0,6,0
-src/game/combat_internal.h,0,0,0,0,0,0,0,2,0
 src/game/combat_orders.cpp,3,3,1,1,0,0,0,2,0
 src/game/combat_planning.cpp,12,5,0,0,0,0,0,6,0
 src/game/combat_save.cpp,27,1,0,0,0,0,0,0,0

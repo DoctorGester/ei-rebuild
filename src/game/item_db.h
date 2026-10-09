@@ -52,7 +52,8 @@ struct SpellRecord {
     // +0x04 CString: the spell's code (0068C820 finds a record by it; the trader stock's spell
     // instructions, item_stock.cpp).
     const char* code;
-    std::uint8_t unknown_08[0x14 - 0x08];
+    std::uint8_t unknown_08[0x10 - 0x08];
+    int unknown_10;                     // +0x10 1: cast without noise (0054EE10) and without slowing the caster (005536B0)
     int school;                         // +0x14
     float mana;                         // +0x18
     std::uint8_t unknown_1C[0x40 - 0x1C];

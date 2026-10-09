@@ -4,16 +4,19 @@
 #include "combat_internal.h"
 
 #include "item.h"
+#include "item_db.h"
+#include "map_object.h"
 #include "object_tables.h"
 #include "object_diplomacy.h"
+#include "player_messages.h"
 #include "random.h"
+#include "unit_db.h"
 #include "world.h"
 
 #include "lib/crt.h"
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_library.h"
 #include "originals_units.h"
@@ -68,7 +71,6 @@ constexpr float kIdleMode3Factor1 = 0.5f;                           // 0073EF10
 constexpr float kCastingFactor2 = 1.5f;                             // 0073EF0C
 constexpr float kSpeedFast = kSizeMedium;                           // 0073CDF4 (1.2)
 constexpr float kSpeedSlow = std::bit_cast<float>(0x3E19999Au);     // 0073CD18 (0.15)
-constexpr int kUnitSlotSpeed = 59;      // CUnit vtable slot 59 (first output of 0052F920)
 
 constexpr int kClassQuickItem = 0x13;
 constexpr std::uint32_t kQuickItemSource = 0x80000000u;
@@ -76,12 +78,9 @@ constexpr std::uint32_t kSkillOnTarget = 0x18A95;   // UnitAction::source of a s
 constexpr int kNoNaturalWeapon = 0x10;
 constexpr int kWeaponBow = 5;
 constexpr int kWeaponCrossbow = 6;
-constexpr int kUnitSlotIsDead = 55;     // CUnit vtable slot 55 (+0x274)
-constexpr int kUnitSlotRadius = 60;     // CUnit vtable slot 60 (float +0x328)
-constexpr int kSlotAttackParams = 50;   // CUnitServer vtable slot 50 (GetAttackParams)
 constexpr std::uint32_t kFlagSpellBlocked = 0x10000000;
 
-IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+IsaacRandom& GlobalRandom() { return IsaacRandom::Global(); }
 float Global7C5488() { return *reinterpret_cast<const float*>(0x007C5488); }
 float Global7C548C() { return *reinterpret_cast<const float*>(0x007C548C); }
 // Difficulty (0079BEC0) and the attack factor per difficulty (007C54AC, floats).
@@ -90,13 +89,15 @@ float DifficultyAttackFactor() {
     return reinterpret_cast<const float*>(0x007C54AC)[difficulty];
 }
 
-// The unit's server object (CUnit + 0x170); +0x34 is its mana.
-float ServerMana(const CUnit* unit) {
-    const char* server = *reinterpret_cast<char* const*>(reinterpret_cast<const char*>(unit) + 0x170);
-    return Field<float>(server, 0x34);
-}
+// The unit's server object (CUnit + 0x170): its mana.
+float ServerMana(const CUnit* unit) { return static_cast<const CMapObjectServer*>(unit->companion)->vitals.mana; }
 
-std::uint8_t PlayerMode108(const char* player) { return Field<std::uint8_t>(player, 0x108); }
+std::uint8_t PlayerMode108(const char* player) { return reinterpret_cast<const CPlayer*>(player)->unknown_108; }
+
+// The map objects' virtual slots (map_object.h) and the server controller's (CUnitServerVirtuals).
+float Radius(CEngineObject* object) { return ObjectSlots(object)->Radius(); }
+int IsDead(CEngineObject* object) { return ObjectSlots(object)->IsDead(); }
+void AttackParamsOf(CUnitServer* controller, AttackParams* out) { ServerSlots(controller)->GetAttackParams(out); }
 
 // x87 FCOM: "ST < operand or unordered" (C0), as `TEST AH,1` reads it.
 bool LessOrUnordered(double a, double b) { return !(a >= b); }
@@ -121,11 +122,11 @@ void FpuCopy(void* dst, const void* src) {
     }
 }
 
-float FloatAt(const void* p, int offset) {
-    float f;
-    std::memcpy(&f, static_cast<const char*>(p) + offset, sizeof(f));
-    return f;
-}
+// A CSpell's dword fields that hold floats: +0x24 (prototype +0x2C, the damage), +0x34 (+0x24,
+// the range) and +0x40 (+0x18, the mana cost).
+float SpellDamage(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->unknown_24); }
+float SpellRange(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->unknown_34); }
+float SpellCost(const void* spell) { return std::bit_cast<float>(static_cast<const CSpell*>(spell)->unknown_40); }
 
 // The game's _ftol (006E853C): truncation; out-of-range values keep the low 32 bits of the
 // 64-bit result (unlike the modern CRT's conversion).
@@ -185,11 +186,9 @@ const char* HitLocationName(int location) {
     }
 }
 
-// CUnit + 0x350: what last damaged the unit: a weapon type, 0x10 + the attacking creature's
-// +0x18 (its prototype index), or 7 (elemental or no attacker).
-std::int16_t& LastDamageSource(CUnit* unit) {
-    return *reinterpret_cast<std::int16_t*>(reinterpret_cast<char*>(unit) + 0x350);
-}
+// CUnit + 0x350 (UnitParams +0x20): what last damaged the unit: a weapon type, 0x10 + the
+// attacking creature's +0x18 (its prototype index), or 7 (elemental or no attacker).
+std::int16_t& LastDamageSource(CUnit* unit) { return unit->Params()->unknown_20; }
 } // namespace
 
 float CUnitServer::AttackRange() {
@@ -227,7 +226,8 @@ int CUnitServer::ScaledItemValue(const CItem* item) {
     if (!item) return 0;
     double factor = Combat().unknown_30;    // stays on the FPU stack
     if (factor < kZero || factor > kZero) factor = kFifteen / factor;
-    float value = static_cast<float>(Unsigned(Field<std::uint32_t>(reinterpret_cast<const char*>(item), 0x4C)) * factor);
+    // +0x4C of the item's kind (CItemWeapon::unknown_4C and the others' at the same place).
+    float value = static_cast<float>(Unsigned(static_cast<const CItemWeapon*>(item)->unknown_4C) * factor);
     return x87::fistp(value);
 }
 EI_REPLACE_METHOD(0x0054B760, CUnitServer::ScaledItemValue);
@@ -237,7 +237,7 @@ int CUnitServer::ScaledAttackValue(int kind, CItem* item) {
     if (factor < kZero || factor > kZero) factor = kFifteen / factor;
     if (kind != 3) return 0;
     int value;
-    if (item) value = Field<int>(item->GetPrototype(), 0x6C);
+    if (item) value = static_cast<int>(reinterpret_cast<const itemdb::ItemRecordHead*>(item->GetPrototype())->category);
     else value = GameFtol(Combat().unknown_8C);
     float scaled = static_cast<float>(static_cast<double>(value) * factor);
     return x87::fistp(scaled);
@@ -272,7 +272,7 @@ void CUnitServer::GetSpellDamage(std::uint32_t source, std::int16_t* out) {
     void* spell = SpellOfSource(source);
     std::memset(out, 0, 16);
     if (spell) {
-        auto value = static_cast<std::int16_t>(GameFtol(FloatAt(spell, 0x24)));
+        auto value = static_cast<std::int16_t>(GameFtol(SpellDamage(spell)));
         int type = static_cast<CSpell*>(spell)->GetDamageType();
         out[1 + type] = value;
     }
@@ -340,12 +340,12 @@ bool CUnitServer::CanCast(const UnitAction* order) {
         if (!spell) return false;
         if (item->GetCategory() != 5) return true;
         // FCOMPP of the charge against the cost: less or unordered refuses.
-        return !LessOrUnordered(item->charge_, FloatAt(spell, 0x40));
+        return !LessOrUnordered(item->charge_, SpellCost(spell));
     }
     void* spell = unit->GetSpellObject(source);
     if (!spell) return false;
     if (unit->player != nullptr) {      // 005301A0
-        float cost = FloatAt(spell, 0x40);
+        float cost = SpellCost(spell);
         float mana = ServerMana(unit);
         double needed = static_cast<double>(stats.Period20()) * cost;
         if (needed > mana) return false;
@@ -382,20 +382,20 @@ float CUnitServer::ActionDistance(const UnitAction* order) {
         } else {
             spell = unit->GetSpellObject(source);
         }
-        if (spell) return FloatAt(spell, 0x34);
+        if (spell) return SpellRange(spell);
         return kTen;
     }
     if (kind == 6) {
         if (order->source == kSkillOnTarget) {
-            float part = static_cast<float>(ei::VCall<float>(target, kUnitSlotRadius) * kPointThree);
-            return static_cast<float>(ei::VCall<float>(unit, kUnitSlotRadius) + part);
+            float part = static_cast<float>(Radius(target) * kPointThree);
+            return static_cast<float>(Radius(unit) + part);
         }
         if (target->GetClassId() == kClassUnit) {
             auto* other = static_cast<CUnit*>(target);
             return static_cast<float>((static_cast<double>(unit->standingHeight) + other->standingHeight) + kPointSix);
         }
-        float own = ei::VCall<float>(unit, kUnitSlotRadius);
-        return static_cast<float>((ei::VCall<float>(target, kUnitSlotRadius) + static_cast<double>(own)) - kPointOne);
+        float own = Radius(unit);
+        return static_cast<float>((Radius(target) + static_cast<double>(own)) - kPointOne);
     }
     // Melee (kinds below 4 and above 6).
     if (target->GetClassId() == kClassUnit) {
@@ -409,8 +409,8 @@ float CUnitServer::ActionDistance(const UnitAction* order) {
     }
     CItemWeapon* weapon = ActiveWeapon(unit);
     float range = weapon ? weapon->unknown_58 : Combat().reach;
-    float own = ei::VCall<float>(unit, kUnitSlotRadius);
-    return static_cast<float>((ei::VCall<float>(target, kUnitSlotRadius) + static_cast<double>(own)) + range);
+    float own = Radius(unit);
+    return static_cast<float>((Radius(target) + static_cast<double>(own)) + range);
 }
 EI_REPLACE_METHOD(0x0054C070, CUnitServer::ActionDistance);
 
@@ -419,14 +419,15 @@ bool CUnitServer::CanReachTarget(const UnitAction* order) {
     CEngineObject* target = order->target;
     if (!target) return true;
     if (target->GetClassId() != kClassUnit) return true;
-    if (ei::VCall<int>(target, kUnitSlotIsDead) != 0) return true;
+    if (IsDead(target) != 0) return true;
     auto* other = static_cast<CUnit*>(target);
     if (other->sizeClass != 0) return true;
     if (order->kind == 3) {
         CItemWeapon* weapon = ActiveWeapon(unit);
         if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return true;
     }
-    double height = static_cast<double>(Field<float>(other->GetPrototype(), 0x24)) + other->positionZ;
+    float offset = std::bit_cast<float>(reinterpret_cast<const UnitPrototypeRecord*>(other->GetPrototype())->unknown_24);
+    double height = static_cast<double>(offset) + other->positionZ;
     return LessOrUnordered(height, kOnePointFive);
 }
 EI_REPLACE_METHOD(0x0054C800, CUnitServer::CanReachTarget);
@@ -509,10 +510,10 @@ void CUnitServer::GetAttackParams(AttackParams* out) {
             out->damageType = WeaponDamageType(weapon->unknown_18);
         } else {
             out->weaponType = Combat().naturalWeapon;
-            const char* model = self->GetPrototypeModel();
+            const auto* model = reinterpret_cast<const UnitModelRecord*>(self->GetPrototypeModel());
             // The first damage type with a non-zero weight; left as it was when there is none.
             for (int i = 0; i < 7; ++i) {
-                float weight = Field<float>(model, 0x50 + 4 * i);
+                float weight = std::bit_cast<float>(model->damageWeights[i]);
                 if (weight < kZero || weight > kZero) {
                     out->damageType = i;
                     break;
@@ -531,8 +532,8 @@ EI_REPLACE_METHOD(0x00555A00, CUnitServer::GetAttackParams);
 float CUnitServer::AttackRoll(CUnitServer* attacker, bool backstab) {
     AttackParams theirs;
     AttackParams mine;
-    ei::VCall<void>(attacker, kSlotAttackParams, &theirs);
-    ei::VCall<void>(this, kSlotAttackParams, &mine);
+    AttackParamsOf(attacker, &theirs);
+    AttackParamsOf(this, &mine);
     float speedRatio = static_cast<float>(theirs.speed / (static_cast<double>(kSpeedScale) * mine.speed));
     const CUnit* self = unit;
     const CUnit* other = attacker->unit;
@@ -541,7 +542,7 @@ float CUnitServer::AttackRoll(CUnitServer* attacker, bool backstab) {
     double dz = static_cast<double>(self->positionZ) - other->positionZ;
     double distance = x87::fsqrt((dz * dz + dy * dy) + dx * dx);
     float twice = static_cast<float>(distance + distance);
-    double radius = ei::VCall<float>(unit, kUnitSlotRadius) * static_cast<double>(kDistanceScale);
+    double radius = Radius(unit) * static_cast<double>(kDistanceScale);
     float penalty = static_cast<float>(twice / (radius + radius));
 
     double roll = kZero;
@@ -572,7 +573,7 @@ BOOL CUnitServer::ResolveHit(DamageInfo* hit, CUnit* attacker) {
         }
     }
     AttackParams mine;
-    ei::VCall<void>(this, kSlotAttackParams, &mine);
+    AttackParamsOf(this, &mine);
     if (hit->unknown_34 > kOne) mine.defence = 0;
     float result = static_cast<double>(mine.defence) > roll ? kMissMark : kHitMark;
     std::memcpy(&hit->unknown_20, &result, sizeof(result));
@@ -638,7 +639,7 @@ EI_REPLACE_METHOD(0x0054F580, CUnitServer::PrepareAttack);
 
 BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     void* world = ManagerContext();
-    int dead = ei::VCall<int>(unit, kUnitSlotIsDead);
+    int dead = IsDead(unit);
     bool hadPlayer = unit->player != nullptr;
     // |+0x20| below FLT_MAX (or NaN): not resolved yet.
     if (LessOrUnordered(std::bit_cast<float>(hit->unknown_20 & 0x7FFFFFFFu), kHitMark)) ResolveHit(hit, attacker);
@@ -652,7 +653,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
         }
         GameOstream* log = GameLog()->Put(" skill=");
         log->SetField4();
-        log = log->Put(static_cast<double>(FloatAt(hit, 0x20)));
+        log = log->Put(static_cast<double>(std::bit_cast<float>(hit->unknown_20)));
         float amount = hit->amount;
         log = log->Put(" damage=");
         log->SetField4();
@@ -676,10 +677,10 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     }
 
     AttackParams mine;
-    ei::VCall<void>(this, kSlotAttackParams, &mine);
+    AttackParamsOf(this, &mine);
     if (hit->unknown_34 > kOne) mine.defence = 0;
-    if (!(static_cast<double>(mine.defence) > FloatAt(hit, 0x20))) {
-        *reinterpret_cast<std::uint32_t*>(reinterpret_cast<char*>(&stats) + 0x6F8) |= 0x10;
+    if (!(static_cast<double>(mine.defence) > std::bit_cast<float>(hit->unknown_20))) {
+        stats.flags |= 0x10;
         unit->MarkChanged(4);
         CallTriggerItemSpells(1);
         CEngineObject* weapon = attacker ? attacker->GetWeapon(attacker->activeWeapon) : nullptr;
@@ -701,13 +702,14 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
             unit->MarkChanged(4);
             if (!dead) {
                 CallOnDamaged(attacker, hit->unknown_30);
-                if (ei::VCall<int>(unit, kUnitSlotIsDead) != 0 && source && source->player && !hadPlayer) {
+                if (IsDead(unit) != 0 && source && source->player && !hadPlayer) {
+                    const auto* prototype = reinterpret_cast<const UnitPrototypeRecord*>(unit->GetPrototype());
                     if (IsMultiplayerClient() & 0xFF) {
-                        WorldAwardKill(world, nullptr, nullptr, Field<int>(unit->GetPrototype(), 0x54));
+                        WorldAwardKill(world, nullptr, nullptr, static_cast<int>(prototype->unknown_54));
                         return 1;
                     }
                     char* killer = source->player;
-                    WorldAwardKill(world, nullptr, killer, Field<int>(unit->GetPrototype(), 0x54));
+                    WorldAwardKill(world, nullptr, killer, static_cast<int>(prototype->unknown_54));
                 }
             }
             return 1;
@@ -715,10 +717,10 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
     }
     // Missed (or the stats refused the hit).
     if (attacker && attacker->GetClassId() == kClassUnit) {
-        auto* diplomacy = reinterpret_cast<CDiplomacy*>(static_cast<char*>(ManagerContext()) + 0x12C64);
+        auto* diplomacy = reinterpret_cast<CDiplomacy*>(static_cast<CWorldServer*>(ManagerContext())->diplomacy_);
         diplomacy->OnAttack(attacker, unit, 10);
     }
-    RememberAttacker(reinterpret_cast<char*>(this) + 0x980, nullptr, attacker);
+    RememberAttacker(brain, nullptr, attacker);
     return 0;
 }
 EI_REPLACE_METHOD(0x00553F40, CUnitServer::TakeHit);
@@ -742,8 +744,8 @@ void CUnitServer::UpdateSizeClasses() {
         return;
     }
     float load = static_cast<float>(UnitLoad(unit));
-    const char* model = unit->GetPrototypeModel();
-    double size = UnitSize(unit) * Field<float>(model, 0x120);
+    const auto* model = reinterpret_cast<const UnitModelRecord*>(unit->GetPrototypeModel());
+    double size = UnitSize(unit) * std::bit_cast<float>(model->unknown_120);
     if (unit->type_ == kUnitTypeHero) {
         float uncapped = static_cast<float>(size);
         size = LessOrUnordered(kHeroSizeCap, uncapped) ? kHeroSizeCap : uncapped;
@@ -755,15 +757,15 @@ void CUnitServer::UpdateSizeClasses() {
 EI_REPLACE_METHOD(0x00552FB0, CUnitServer::UpdateSizeClasses);
 
 void CUnitServer::UpdateMoveFactors() {
-    const char* world = static_cast<const char*>(ManagerContext());
-    double factor = Field<float>(world, 0x84);
+    const auto* world = static_cast<const CWorldServer*>(ManagerContext());
+    double factor = std::bit_cast<float>(world->unknown84_);
     double scaled = (factor * Combat().unknown_BC) * kWorldFactorScale;
     moveFactors[0] = kOne;
     moveFactors[2] = kOne;
     moveFactors[1] = kOne;
     double sum = scaled + (kOne - factor);
     moveFactors[3] = static_cast<float>(sum);
-    moveFactors[3] = static_cast<float>(Field<float>(world, 0x88) * sum);
+    moveFactors[3] = static_cast<float>(std::bit_cast<float>(world->unknown88_) * sum);
     if (unit->moveMode == 0) {
         moveFactors[2] = kMode0Factor2;
         moveFactors[3] = kMode0Factor3 * moveFactors[3];
@@ -782,14 +784,14 @@ void CUnitServer::UpdateMoveFactors() {
     }
     if (state == 5 && (action.kind == 4 || action.kind == 5)) {
         void* spell = SpellOfSource(action.source);
-        if (spell && Field<int>(static_cast<CSpell*>(spell)->GetPrototype(), 0x10) != 1)
+        if (spell && reinterpret_cast<const itemdb::SpellRecord*>(static_cast<CSpell*>(spell)->GetPrototype())->unknown_10 != 1)
             moveFactors[2] = kCastingFactor2 * moveFactors[2];
     }
     if (state != 0) {
         speedClass = 15;
         return;
     }
-    float speed = ei::VCall<float>(unit, kUnitSlotSpeed);
+    float speed = static_cast<float>(ObjectSlots(unit)->MoveSpeed());
     if (speed > kSpeedFast) speedClass = 0;
     else if (speed > kSizeSmall) speedClass = 1;
     else if (speed > kPointThree) speedClass = 3;
