@@ -2148,12 +2148,10 @@ constexpr std::uintptr_t kPartyFilePattern = 0x00794C88;   // "\*.mp"
 constexpr std::size_t kPartyEntrySize = 0x74;              // the party records (0x70) and the file name
 // The vector's element copy loop (ECX first, EDX last, destination on the stack; returns the end),
 // element destructor (00664AE0, flag 0), the records' copy constructor (006613C0) and the
-// insert overflow (00619920: position, value, count).
+// insert overflow (00619920, originals_gameplay.h).
 __declspec(naked) std::uint8_t* __fastcall PartyEntriesCopy(std::uint8_t*, std::uint8_t*, std::uint8_t*) EI_ORIGINAL(0x00664410)
 __declspec(naked) void __fastcall PartyEntryDestroy(std::uint8_t*, void*, int) EI_ORIGINAL(0x00664AE0)
 __declspec(naked) void __fastcall PartyRecordsCopy(std::uint8_t*, void*, const std::uint8_t*) EI_ORIGINAL(0x006613C0)
-__declspec(naked) void __fastcall PartyEntriesInsertOverflow(void*, void*, std::uint8_t*, const std::uint8_t*, unsigned)
-    EI_ORIGINAL(0x00619920)
 // 00662DD0 (RET 4): the records read a party file from `folder` (their +0x68 names the file).
 __declspec(naked) bool __fastcall PartyRecordsLoad(void*, void*, const char*) EI_ORIGINAL(0x00662DD0)
 // The records' destructor pieces, as 00662FB0 inlines it: 00661700 (Reset(1, 1)), 00661640, the
@@ -2233,7 +2231,7 @@ void SavedParties::Reload() {
                     }
                     finish += kPartyEntrySize;
                 } else {
-                    PartyEntriesInsertOverflow(self + 4, nullptr, finish, entry, 1);
+                    PartyEntriesInsertOverflowOriginal(self + 4, nullptr, finish, entry, 1);
                 }
             }
         }
