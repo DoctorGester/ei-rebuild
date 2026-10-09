@@ -372,8 +372,8 @@ void __fastcall BuildUnitSkins(CWorldClient* self, void*, const void* othersVect
 EI_REPLACE(0x00568800, BuildUnitSkins);
 
 // The list is emptied; nothing more for a unit without items. The body list has eight records:
-// [0] the body (0x32, the prototype), [1..6] the armour pieces of items[1..6] (0x3005, the
-// armour's type), [7] empty (0, -1, -1). The head list two: [0] the helmet row items[0] (0x3005)
+// [0] the body (0x32, the prototype), [1] empty (0, -1, -1), [2..7] the armour pieces of
+// items[1..6] (0x3005, the armour's type; item i goes to record i + 1, 00568441). The head list two: [0] the helmet row items[0] (0x3005)
 // and [1] the shown extra weapon (0x3004, the weapon's type) when its index is within the list.
 // items[1..6] are read whatever the item list's size; an id past its table reads through a null
 // record as the original does (it faults).
@@ -394,9 +394,9 @@ void __fastcall UnitTextureRecords(char body, const void* recordPointer, void* l
         out[0].itemType = kNone;
         for (int i = 1; i < 7; ++i) {
             if (ids[i] == kNone) continue;
-            out[i].id = ids[i];
-            out[i].kind = kArmourPiece;
-            out[i].itemType = static_cast<std::uint32_t>(Armour(ids[i] >> 16)->type);
+            out[i + 1].id = ids[i];
+            out[i + 1].kind = kArmourPiece;
+            out[i + 1].itemType = static_cast<std::uint32_t>(Armour(ids[i] >> 16)->type);
         }
         return;
     }

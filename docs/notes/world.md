@@ -343,3 +343,9 @@ pragma (DR-C4): release code is fild elapsed, fmul secondsPerTick_, fadd offset,
   PlatformSet::AddBox, 004031B0, 00404410 (CBaseManager::FreeSpares), 00404920, 00404960, 0040D3B0, 00417DF0, 00413250,
   00413270 / 00418BE0, 004A53F0; world_savefile.cpp's coder (0042FCA0 / 00430450 / 00430960 / 0041D930) and
   CStream::ReadHeader / WriteHeader; AddSharedObject's ServerSession::FindPlayer (0041A2E0). None is Rebirth-patched.
+
+X28 (2026-10-09): A-W10's two mismatches. LoadSky (00562F70): the port was right; its check wanted
+GetClassId() == 0x44, but 0x44 is the figure factory's class number, CSkyObject's own id is 0x20.
+The check now prints class, name, flags and material. UnitTextureRecords (005683D0): the port was
+wrong; the body list is [0] body, [1] empty, [2..7] items[1..6] (the loop at 00568441 starts at
+record offset 0xC + 0xC), not [1..6] with [7] empty. Both removed from tests/verify/disabled.txt.

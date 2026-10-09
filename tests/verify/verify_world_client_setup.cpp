@@ -49,19 +49,25 @@ static void __fastcall SetUpGraphicsVerify(CWorldClient* self, void*, void* devi
 EI_VERIFY(0x00563710, SetUpGraphicsVerify, 0, s_unused);
 
 // 00562F70 LoadSky: makes objects, so ours only (every start, from SetUpGraphics). Checked: the sky
-// exists; when it got its object, that is a class 0x44 figure named "nask0" with flag 0x10, and
-// the sky has a material.
+// exists; when it got its object, that is a CSkyObject (made as the figure factory's class 0x44;
+// its own GetClassId is 0x20) named "nask0" with flag 0x10, and the sky has a material.
 static void __fastcall LoadSkyVerify(CWorldClient* self) {
     const bool had = self->skyDome_ != nullptr;
     self->LoadSky();
     CSky* sky = self->skyDome_;
     bool ok = sky != nullptr;
-    if (ok && !had && sky->object) {
-        CSkyObject* object = sky->object;
-        ok = object->GetClassId() == 0x44 && std::strcmp(object->name_, "nask0") == 0 && (object->flags_ & 0x10) &&
-             sky->material != nullptr;
+    CSkyObject* object = sky ? sky->object : nullptr;
+    int classId = -1;
+    const char* name = "";
+    unsigned flags = 0;
+    if (ok && !had && object) {
+        classId = object->GetClassId();
+        name = object->name_ ? static_cast<const char*>(object->name_) : "(null)";
+        flags = object->flags_;
+        ok = classId == 0x20 && std::strcmp(name, "nask0") == 0 && (flags & 0x10) && sky->material != nullptr;
     }
-    ei::verify::Check("CWorldClient::LoadSky", true, ok, "sky %p object %p", static_cast<void*>(sky),
-                      sky ? static_cast<void*>(sky->object) : nullptr);
+    ei::verify::Check("CWorldClient::LoadSky", true, ok, "sky %p object %p class 0x%X name \"%s\" flags 0x%X material %p",
+                      static_cast<void*>(sky), static_cast<void*>(object), classId, name, flags,
+                      sky ? static_cast<void*>(sky->material) : nullptr);
 }
 EI_VERIFY(0x00562F70, LoadSkyVerify, 0, s_unused);
