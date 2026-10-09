@@ -784,6 +784,55 @@ void ItemStock::LoadLists(void* stream) {
 }
 EI_REPLACE_METHOD(0x0069B5B0, ItemStock::LoadLists);
 
+// ---- 0069BAC0 (A-H17) ------------------------------------------------------------------------------
+
+namespace {
+
+void WriteInt(CStream* stream, std::uint32_t value) { stream->Write(&value, 4u); }
+// A text with its terminating zero.
+void WriteText(CStream* stream, const char* text) {
+    stream->Write(text, static_cast<std::uint32_t>(std::strlen(text) + 1));
+}
+
+void SaveItemRecords(CStream* stream, const StockPtrVector& list) {
+    WriteInt(stream, static_cast<std::uint32_t>(list.size()));
+    for (char** p = list.start; p != list.finish; ++p)
+        WriteText(stream, reinterpret_cast<const itemdb::ItemRecordHead*>(*p)->text04);
+}
+
+} // namespace
+
+void ItemStock::SaveLists(void* stream) {
+    auto* out = static_cast<CStream*>(stream);
+    SaveItemRecords(out, armors);
+    SaveItemRecords(out, weapons);
+    SaveItemRecords(out, quickItems);
+
+    WriteInt(out, static_cast<std::uint32_t>(materials.size()));
+    for (StockMaterial* e = materials.start; e != materials.finish; ++e) {
+        WriteText(out, reinterpret_cast<const itemdb::MaterialRecordHead*>(e->record)->key);
+        WriteInt(out, static_cast<std::uint32_t>(e->minCount));
+        WriteInt(out, static_cast<std::uint32_t>(e->maxCount));
+        WriteInt(out, static_cast<std::uint32_t>(e->left));
+    }
+
+    WriteInt(out, static_cast<std::uint32_t>(spells.size()));
+    for (char** p = spells.start; p != spells.finish; ++p)
+        WriteText(out, reinterpret_cast<const itemdb::SpellRecord*>(*p)->code);
+
+    // The modifiers' codes go through a CString made from a stack copy of their first four bytes
+    // (the original's fifth byte is an uninitialised stack byte, its sixth a zero; ours stops
+    // after the four).
+    WriteInt(out, static_cast<std::uint32_t>(modifiers.size()));
+    for (char** p = modifiers.start; p != modifiers.finish; ++p) {
+        char code[5] = {};
+        std::memcpy(code, reinterpret_cast<const itemdb::SpellModifierRecord*>(*p)->code, 4);
+        mfc::CString text(code);
+        WriteText(out, text);
+    }
+}
+EI_REPLACE_METHOD(0x0069BAC0, ItemStock::SaveLists);
+
 // ---- 006993B0 / 00699440 --------------------------------------------------------------------------
 
 void ItemStock::ResetMaterialUnits() {

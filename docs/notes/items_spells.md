@@ -480,6 +480,12 @@ records' compiler-generated destructors, run by STLport's _Destroy from 00651600
 | 0064E330 | `CObjectivesWindow::OnLButtonDown` (ui_objectives_input.cpp; input slot 2, shim from the input side): OK (travel time 00578700 forwarded, RequestZone at the nearest exit), cancel, zone arrows, quest rows, exits | ours only: zone index / selected quest in range (ui_objectives, new) |
 | 0064EA80 | `CObjectivesWindow::LoadQuestPlaces` (named so: ui_objectives.cpp's forwarder is `FillQuestPlaces`): map.txt "#quest <name>" pairs, or the quest record's floats for a multiplayer client | original first, then ours; points compared (ui_objectives) |
 
+| 0069BAC0 | `ItemStock::SaveLists` (item_stock.cpp): counts and names (texts with their zero) of armors, weapons, quick items, materials (+ 3 ints), spells, modifiers (the code's first 4 bytes through a CString; the original adds an uninitialised stack byte after a 4-letter code) | original first, then ours on the restored memory stream, bytes compared (saving with class templates: ui_saveload). party_manager.cpp now calls it through its address |
+| 006A6E50, 006A7110, 006A73B0 | `itemdb::IndexedRecordTable::LoadQuickItems / LoadLoot / LoadQuestItems` (item_db_load.cpp): a stack archive (ConstructLocal, Open, the vector serialisers 006A7C20 / 006A7D20 / 006A7E10 forwarded, Close), then each record filed under its name (find_or_insert 00613B70 / 006A7870 / 0069E2A0, originals_library.h) | ours only: every record's name finds a record of that name (startup, every scenario; Rebirth's patched 006A67A0 calls them by address) |
+
+0069EF50 (and 0069E3F0) are `vector<T*>::_M_range_insert` / `insert` (library.csv). 006A6570 (the item database's static destructor at exit:
+six tables' indexes, records and storage, ~23 library and record-destructor calls) is left for later.
+
 0064F650 / 0064FEA0 (and 0064F310, 0064F400, 0064F9A0, 0064FA40, 0064FBD0, 0064FC10, 0064FC90, 0064FE40, 006500B0) are the quest list sort's STLport
 instantiations (library.csv); their comparison inlines 0064F550 (a quest's order through the quest database, game code, not rewritten).
 

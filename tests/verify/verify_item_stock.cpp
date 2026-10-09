@@ -10,6 +10,7 @@
 //   count is within the clipped range), each counted; the scratch vector is empty.
 #include "verify.h"
 
+#include "../../src/game/core_streams.h"
 #include "../../src/game/item_stock.h"
 #include "../../src/lib/stlp.h"
 #include "ei/hook.h"
@@ -17,6 +18,7 @@
 
 #include <climits>
 #include <cstring>
+#include <vector>
 
 namespace {
 
@@ -528,3 +530,32 @@ static void __fastcall GenerateQuickItemsVerify(ItemStock* self, void*, int minC
     CheckThunk("ItemStock::GenerateQuickItems", self, self->quickItems, minCount, maxCount, out, &ItemStock::GenerateQuickItems);
 }
 EI_VERIFY(0x0069B590, GenerateQuickItemsVerify, 0, s_unusedQuickItems);
+
+// A-H17. 0069BAC0 SaveLists (saving a game with class templates: ui_saveload, world_load save
+// first). The stream is the class template's memory stream: the original writes first, its bytes
+// are kept, the stream's position, size and bit state put back, then ours writes; the bytes are
+// compared. A modifier code of four or more letters may differ in its fifth byte (the original
+// writes an uninitialised stack byte there).
+static void(__fastcall* s_saveLists)(ItemStock*, void*, void*);
+static void __fastcall SaveListsVerify(ItemStock* self, void*, void* stream) {
+    auto* memory = static_cast<CMemoryStream*>(stream);
+    std::uint32_t position = memory->position_;
+    std::uint32_t size = memory->size_;
+    std::uint8_t bits = memory->bits_;
+    std::int32_t mask = memory->bitMask_;
+    std::int32_t index = memory->bitsIndex_;
+    s_saveLists(self, nullptr, stream);
+    std::vector<std::uint8_t> expected(memory->data_ + position, memory->data_ + memory->position_);
+    memory->position_ = position;
+    memory->size_ = size;
+    memory->bits_ = bits;
+    memory->bitMask_ = mask;
+    memory->bitsIndex_ = index;
+    self->SaveLists(stream);
+    std::uint32_t written = memory->position_ - position;
+    bool ok = written == expected.size() &&
+              (expected.empty() || std::memcmp(memory->data_ + position, expected.data(), expected.size()) == 0);
+    ei::verify::Check("ItemStock::SaveLists", true, ok, "%u bytes vs %u", written, static_cast<unsigned>(expected.size()));
+}
+// 0069BAC0: PUSH -1; PUSH 007337C8 (7).
+EI_VERIFY(0x0069BAC0, SaveListsVerify, 7, s_saveLists);

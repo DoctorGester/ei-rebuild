@@ -3511,6 +3511,7 @@ address,name,library,signature,notes
 0069E090,"stlp::hashtable<V,K,HF,ExK,EqK,A>::resize",STLport,,inventory sweep: next size from the STLport prime list 0073B914..0073B980; rehashes the bucket chains; loose-family member of 0042AFD0 (reviewed)
 0069E1F0,"stlp::hashtable<pair<const string,T>,...>::find_or_insert",STLport,,inventory sweep: resize(n+1); __stl_hash_string (h*5+c); string compare; _M_new_node; loose-family member of 004ACAB0 (reviewed)
 0069E2A0,"stlp::hashtable<pair<const string,T>,...>::find_or_insert",STLport,,inventory sweep: resize(n+1); __stl_hash_string (h*5+c); string compare; _M_new_node; loose-family member of 004ACAB0 (reviewed)
+0069E3F0,"stlp::vector<T*>::insert(pos, first, last)",STLport,,"A-H17 review: the trader stock's prototype vector (GenerateItems 0069AE20 copies the prototypes taken); STLport range insert (grows to size + max(size, n) through the node allocator)"
 0069E450,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408C20 (data addresses masked; every call goes to the same callee or to library code)
 0069E570,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0069E590,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
@@ -3521,6 +3522,7 @@ address,name,library,signature,notes
 0069EB40,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408C20 (data addresses masked; every call goes to the same callee or to library code)
 0069EB70,"stlp::hashtable<V,K,HF,ExK,EqK,A>::resize",STLport,,inventory sweep: next size from the STLport prime list 0073B914..0073B980; rehashes the bucket chains; loose-family member of 0042AFD0 (reviewed)
 0069ECD0,stlp::vector<T>::_M_range_insert,STLport,,"inventory sweep: insert [first,last) at pos; node-pool reallocation; loose-family member of 0049E0D0 (reviewed)"
+0069EF50,"stlp::vector<T*>::_M_range_insert",STLport,,"A-H17 review: the trader stock's prototype vector (GenerateItems 0069AE20 copies the prototypes taken); STLport range insert (grows to size + max(size, n) through the node allocator)"
 0069F1D0,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0069F1F0,"stlp::_Vector_base<T>::_Vector_base(size_t,const allocator&)",STLport,,inventory sweep: allocates n elements from the node pool (inlined _S_chunk_alloc refill); loose-family member of 00407740 (reviewed)
 0069F400,stlp::uninitialized_copy<T*>,STLport,,A-H11 sweep: same instructions as 0042B6C0 (data addresses masked; every call goes to the same callee or to library code)

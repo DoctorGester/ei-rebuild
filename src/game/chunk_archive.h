@@ -131,6 +131,13 @@ public:
     // 004AD2C0 (RET 8). Field(id, value, 4).
     void IntField(int id, int* value);
 
+    // The item database's vectors (item_db_load.cpp, A-H17; not rewritten; RET 0xC, the third
+    // argument unused): 006A7C20 quick items (0x8C bytes), 006A7D20 loot (0x7C), 006A7E10 quest
+    // items (0x78), one chunk 1 per record.
+    void SerializeQuickItems(int id, void* records, void* unused);
+    void SerializeLoot(int id, void* records, void* unused);
+    void SerializeQuestItems(int id, void* records, void* unused);
+
     // The quest database's vectors (quest_records.cpp; RET 0xC, the third argument unused): one
     // chunk 1 per record (its Serialize); loading destroys the records and resizes the vector to
     // the record chunks first. 006B1F20 the quests, 006B2010 the briefings.
