@@ -1049,7 +1049,7 @@ int CWorldClient::Setup() {
         Construct570E70(terrain->part1E8);
         Construct570EA0(&terrain->sectorCache, nullptr, 10);
         Construct571050(terrain->part25C);
-        Construct570DE0(terrain->part290);
+        Construct570DE0(&terrain->wavePhases);
         Construct56FD30(&terrain->visibleColumnFirst);
         Construct56FD30(&terrain->visibleColumnLast);
         terrain->textAE0 = camera::EmptyStringData();

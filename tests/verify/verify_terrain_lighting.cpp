@@ -62,7 +62,7 @@ EI_VERIFY(0x006C36B0, ShadeSunVerify, 6, s_shadeSun);
 // ---- SectorData::Light -------------------------------------------------------------------------
 // 006C3A00: SUB ESP,0x10; PUSH EBX; PUSH EBP (5 bytes). The original first (its per-vertex calls go
 // through the two wrappers above), then every record, the sector's hasSpecular / built /
-// unknown_388 and the owner's lighting fields are restored and ours runs; the records' colour,
+// relightCountdown and the owner's lighting fields are restored and ours runs; the records' colour,
 // specular and lit colour compared (mismatch count and the first one reported).
 void(__fastcall* s_light)(SectorData*, void*, CLight*, TerrainFields*, int, int, int, int, int);
 
@@ -72,7 +72,7 @@ void __fastcall LightVerify(SectorData* self, void*, CLight* sun, TerrainFields*
     std::vector<SectorVertex> before(self->records.data, self->records.data + count);
     std::uint8_t flag = self->hasSpecular;
     std::uint32_t built = self->built;
-    int stamp = self->unknown_388;
+    int stamp = self->relightCountdown;
     SectorData* sector = owner->lightingSector;
     int lx = owner->lightingX, ly = owner->lightingY;
 
@@ -80,14 +80,14 @@ void __fastcall LightVerify(SectorData* self, void*, CLight* sun, TerrainFields*
     std::vector<SectorVertex> original(self->records.data, self->records.data + count);
     std::uint8_t flagOriginal = self->hasSpecular;
     std::uint32_t builtOriginal = self->built;
-    int stampOriginal = self->unknown_388;
+    int stampOriginal = self->relightCountdown;
     SectorData* sectorOriginal = owner->lightingSector;
     int lxOriginal = owner->lightingX, lyOriginal = owner->lightingY;
 
     std::memcpy(static_cast<void*>(self->records.data), before.data(), count * sizeof(SectorVertex));
     self->hasSpecular = flag;
     self->built = built;
-    self->unknown_388 = stamp;
+    self->relightCountdown = stamp;
     owner->lightingSector = sector;
     owner->lightingX = lx;
     owner->lightingY = ly;
@@ -103,7 +103,7 @@ void __fastcall LightVerify(SectorData* self, void*, CLight* sun, TerrainFields*
         if (!same && mismatches++ == 0) first = i;
     }
     bool state = flagOriginal == self->hasSpecular && builtOriginal == self->built &&
-                 stampOriginal == self->unknown_388 && sectorOriginal == owner->lightingSector &&
+                 stampOriginal == self->relightCountdown && sectorOriginal == owner->lightingSector &&
                  lxOriginal == owner->lightingX && lyOriginal == owner->lightingY;
     ei::verify::Check("SectorData::Light", 0, mismatches, "(%d, %d)-(%d, %d) skip %d: first record %d", x0, y0, x1, y1,
                       skipSun, first);

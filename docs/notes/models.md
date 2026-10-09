@@ -206,6 +206,10 @@ Ported (V as above; terrain lighting is in the terrain table):
 | 006D9A30 / 006D9CE0 / 006D9F80 | `acks::AckTable<UnitAcks / ModelAcks / ExtraAcks>::Find` (acks_db.cpp; index operator[], adds a null entry for a missing name) | P |
 | 006D8780 / 006D88E0 | `acks::PickSpeech` / `PickEnvironmentSpeech` (rand() and ISAAC state restored between the runs and compared) | S |
 | 006D8430 / 006D8A40 | `acks::SayAck` / `SayNamedAck` (call the five above through their addresses so their wrappers run) | O |
+| 006CB1E0 | `Terrain::RunTick` (slot 6; terrain_animation.cpp) | O |
+| 006C8ED0 | `Terrain::SetSun` (ray steps; relight countdowns of the lit cached sectors, sorted through the game's qsort) | S |
+| 006C3E80 | `SectorData::Animate` (animated tiles, water waves; ISAAC restored between the runs) | S |
+| 006C3C80, 006C3D70, 006C3E30, 006C3E50 | `SectorData::Clear` (O), `ResetFields`, `ScheduleRelight`, `RelightTick` | S |
 
 acks.db (acks_db.h): database 007C8A60 = three tables {vector of records, hash_map<string, record*>}: 0x1C4-byte records by
 prototype name (kinds up to 0x29; 0x29 = the environment speeches +0x1AC, 0x2C bytes, flags +0x28 matched against
@@ -214,8 +218,14 @@ prototype name (0x2A..0x2D); each record: name, hash_map<int kind, vector<Speech
 were declared for Say (51) / StopSpeech (52). The original picks through a temporary vector of pointers; ours counts and
 indexes (same draws, no allocation).
 
+Landscape fields (terrain.h / TerrainFields): +0x94 flags (1 waves, 2 animated tiles, 8 ambient sounds); +0x21C / +0x220 light
+interval / countdown; +0x234..+0x248 the sun's ray steps; +0x274..+0x28C waves (direction, height, glow, phase, speed); +0x290
+per-vertex wave phases; +0x2A0 a 512-entry sine table. Kept: SetSun's qsort comparator (006C8E90) reads +0xC / +8 of the array
+slots, i.e. the pointers three and two slots on (past the end for the last ones), so the relight order follows pointer values.
+Animate's sine index uses 256 / pi as a double (the original divides at run time; a .5 edge may rarely differ).
+
 Next in the range: ambience 006CB390; decal triangles 006CCF20 (floats, X17's decal functions are disabled in verify);
-shadow 006CEDE0; animated tiles and water waves 006C3E80 (ISAAC draws); map setup 006C5AA0; acks record serialisers 006E3780 / 006E3FD0 / 006E3DC0 (startup,
+shadow 006CEDE0; map setup 006C5AA0; acks record serialisers 006E3780 / 006E3FD0 / 006E3DC0 (startup,
 through the Rebirth-patched loader); CDib 006D5BF0. The records' compiler-generated members (006DE370, 006DC390, ...)
 need only the record declarations in a standalone build.
 
