@@ -488,8 +488,13 @@ public:
     // 005FC2F0 (RET 4). Draws the object in `pass` (a UiDrawPass) in white at the interface's
     // animation clock (timeGetTime / 67), with object flag 0x800 set while it draws.
     void Draw(UiDrawPass* pass);
-    // 005FC1F0 (not rewritten). Loads the model (`name`, its layout and label parts).
-    void Load(const char* name, const char* layout, const char* labels);
+    // 005FC1F0 (RET 0xC). A new map object (class 0x33, id 0x88CA6C00) of the client world's map
+    // object manager, referenced, flag 0x4000000, at (0, 0, 3), with the figure of model `name`
+    // (all parts, 00516DA0), its textures (0051C970 on +0x94), animations (00518840 / 00518860)
+    // and texture `from` swapped for `to` (0051C250; e.g. "escMenu00" / "escMenu00labels").
+    void Load(const char* name, const char* from, const char* to);
+    // The same through its address (ui_layouts.cpp), so the wrapper runs.
+    void CallLoad(const char* name, const char* from, const char* to);
     // 005FC4F0 (RET 4) shows or hides all its parts (part flag 0x80), 005FC4C0 (RET 8) one part by
     // name.
     void ShowAllParts(int show);
@@ -726,6 +731,8 @@ static_assert(offsetof(CUiWindow, models_) == 0x138);
 // main loop runs its frames only while it is set (00784750; app_frame.cpp's Running).
 inline bool& InterfaceHasScreen() { return *reinterpret_cast<bool*>(0x00784750); }
 
+// The client world (CWorldClient, world.h).
+inline class CWorldClient* UiClientWorld() { return reinterpret_cast<class CWorldClient*>(0x007AF5B8); }
 // The debug information panel (string_map.cpp; the console's "debuginfo" rectangle).
 inline void* DebugInfoPanel() { return reinterpret_cast<void*>(0x0079B930); }
 // The game's data path (CString 007AF460; 00578DB0 returns its address).

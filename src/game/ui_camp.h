@@ -623,6 +623,15 @@ public:
     // captured), 11-33 a learnable perk, 34 up (and below 0) the next level of a held perk; the
     // spent experience grows by the price, the record is marked bought and the lists rebuilt.
     void OnLButtonDown(int buttons, int x, int y);
+    // 00626C30 (input slot 3, RET 0xC; EAX 0). Releases the mouse unconditionally and ends a
+    // hold (heldRegion_ -1, holdTime_ 0).
+    void OnLButtonUp(int buttons, int x, int y);
+    // 00626C50 (slot 24, ui_trade_panel_input.cpp). While a school or science row is held
+    // (heldRegion_ >= 0) the hold time grows by the frame time; from 0.25 s on, every frame buys
+    // the row's next level again while its level is below 100 and the experience covers the price
+    // (the record is not marked bought), else the mouse is released and the hold ends. The hold
+    // time is not reset after a purchase.
+    void UpdateHeld();
     // The record of the hero shown (recordIndex_).
     const TradeRecord& Record() const { return records_.begin[recordIndex_]; }
 

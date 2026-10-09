@@ -2894,6 +2894,7 @@ address,name,library,signature,notes
 005E3AD0,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 27 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 005E3B20,stlp::list<T>::insert,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 005E3B50,stlp::list<T>::iterator copy,STLport,,A-I15 sweep: identical instruction stream to 0040A950 (code addresses masked)
+005E67F0,"RefPtr<T>::~RefPtr (decrement, slot 0 with 1 at zero; reached only from exception unwind funclet 00729240)",STLport,,"A-I18: compiler-generated smart pointer destructor, EH unwinding only"
 005EBBE0,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 007402AC (GetRuntimeClass 007005E3, Serialize 005EBC00 identified); touches no other vtable; callees library only"
 005EBC00,"CArray<TYPE,ARG_TYPE>::Serialize",MFC,,inventory sweep: CArchive::WriteCount/ReadCount + inlined SetSize + SerializeElements (CArchive::Read/Write); loose-family member of 004511F0 (reviewed)
 005EBD90,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 007402AC (GetRuntimeClass 007005E3, Serialize 005EBC00 identified); touches no other vtable; callees library only"
@@ -3137,6 +3138,7 @@ address,name,library,signature,notes
 0061EF20,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 00629DA0,exception::~exception,CRT,,A-I15 sweep: identical instruction stream to 0040C4A0 (code addresses masked)
 0062A390,"CArray<TYPE,ARG_TYPE>::SetSize",MFC,,"inventory sweep: MFC SetSize: nGrowBy update, delete/new[] buffer, ConstructElements/DestructElements, grow by max(4,min(1024,n/8)); loose-family member of 00453790 (reviewed)"
+0062B350,"stlp::vector<T>::~vector (0x18-byte records: two CStrings at +0x10 / +0x14, a vector<int> at +4)",STLport,,"A-I18: reached only from exception unwind funclets (0072CEEC, 0072CF28, 0072D579); not game logic"
 0062B550,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0062B570,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0062B590,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 00424AF0 (reviewed)

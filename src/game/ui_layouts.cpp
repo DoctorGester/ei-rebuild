@@ -31,7 +31,7 @@
 
 __declspec(naked) void CUiRegion::CallSetRect(int, int, int, int) EI_ORIGINAL(0x005FC9E0)
 __declspec(naked) CUiSurface* CUiSurface::Construct(CInterface3D*, int, int, int, int, int, int) EI_ORIGINAL(0x005FCC00)
-__declspec(naked) void CUiModel::Load(const char*, const char*, const char*) EI_ORIGINAL(0x005FC1F0)
+__declspec(naked) void CUiModel::CallLoad(const char*, const char*, const char*) EI_ORIGINAL(0x005FC1F0)
 void CUiMesh::SetRectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { UiMeshRectangleOriginal((void*)this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
 __declspec(naked) void CUiMesh::SetFrame(float, float, float, float, float, float, float, int, int, int, int)
     EI_ORIGINAL(0x005E7D60)
@@ -106,7 +106,7 @@ void Shade(CUiWindow* window, float depth, float left, float top, float right, f
 // The window's 3D model: the stone menu (`escMenu00`) turned about x.
 CUiModel* AddMenuModel(CUiWindow* window, float angle) {
     CUiModel* model = window->AddModel();
-    model->Load(GameText(0x00793FA8), GameText(0x00793FB0), GameText(0x00793FBC));   // "unmoco1", "escMenu00", "escMenu00labels"
+    model->CallLoad(GameText(0x00793FA8), GameText(0x00793FB0), GameText(0x00793FBC));   // "unmoco1", "escMenu00", "escMenu00labels"
     Vector3 axis = {1.0f, 0.0f, 0.0f};
     Quaternion turn;
     turn.SetAxisAngle(axis, angle);
@@ -258,7 +258,7 @@ EI_REPLACE_METHOD(0x006503C0, COptionsWindow::Build);
 void CEscMenu::Build() {
     window.rect_ = RECT{0, 0, 800, 600};
     CUiModel* model = window.AddModel();
-    model->Load(GameText(0x00793FA8), GameText(0x00793FB0), GameText(0x00793FBC));
+    model->CallLoad(GameText(0x00793FA8), GameText(0x00793FB0), GameText(0x00793FBC));
     model->SetScreenPosition(400.0f, 700.0f, 4.8f);
     Vector3 axis = {1.0f, 0.0f, 0.0f};
     Quaternion turn;

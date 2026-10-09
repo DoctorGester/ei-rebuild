@@ -3,7 +3,9 @@
 // release, animate and draw the shared object). Reached by the Esc menu (ui_screens, ui_hud: its
 // Build plays animation 1, hovering a stone plays and stops them, its slot 20 draws the model), the
 // save / load and options windows (ShowPart / ShowAllParts in their Builds, Draw while sliding in)
-// and every window destroyed with a model (ReleaseObject).
+// and every window destroyed with a model (ReleaseObject). 005FC1F0 Load (A-I18, ours only: it makes an
+// object): a referenced object with flag 0x4000000 at (0, 0, 3) holding parts; reached by the Esc menu,
+// options and save / load windows (ui_screens, ui_options, ui_saveload).
 #include "verify.h"
 
 #include "../../src/game/map_object_figures.h"
@@ -90,3 +92,13 @@ static void __fastcall ShowAllPartsVerify(CUiModel* self, void*, int show) {
     ei::verify::Check("CUiModel::ShowAllParts", true, ok, "parts %d show %d", object->parts.size, show);
 }
 EI_VERIFY(0x005FC4F0, ShowAllPartsVerify, 0, s_unused);
+
+static void __fastcall LoadVerify(CUiModel* self, void*, const char* name, const char* from, const char* to) {
+    self->CUiModel::Load(name, from, to);
+    CObject3D* object = self->Figure();
+    bool ok = object && object->refCount_ >= 1 && (object->flags_ & 0x4000000) && object->position[0] == 0.0f &&
+              object->position[1] == 0.0f && object->position[2] == 3.0f && object->parts.size > 0;
+    ei::verify::Check("CUiModel::Load", true, ok, "model %s object %p parts %d", name ? name : "(null)",
+                      static_cast<void*>(object), object ? object->parts.size : -1);
+}
+EI_VERIFY(0x005FC1F0, LoadVerify, 0, s_unused);

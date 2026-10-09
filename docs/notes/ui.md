@@ -202,6 +202,13 @@ destructor: CStrings, help map, message list, stack storage; the wrapper finds t
 lists), `ConsoleWindow::DestroyBody` 005E3DF0. Kept: Shutdown deletes the queued window (+0x40) and the fade (+0x18)
 without clearing them. `CInterface3D` now declares +0x20, +0x40, +0x5C, the fonts +0x70, `messages_` +0x84 (stlp::list
 of CString), `helpTopics_` +0x98 (stlp::map<CString, int>) and the CStrings +0xA4 / +0xAC as `mfc::CString`.
+`CUiModel::Load` 005FC1F0 (`ui_model.cpp`; a map object of class 0x33 / id 0x88CA6C00 from the client world's map
+object manager, the figure steps through their addresses; ui_layouts.cpp calls it as `CallLoad`; ours only: referenced,
+flag 0x4000000, at (0, 0, 3), parts; ui_screens / ui_options / ui_saveload). The trade panel's left-up 00626C30 and
+held-row update 00626C50 (slot 24; `ui_trade_panel_input.cpp`; ours only: hold ended / waiting / one level bought for
+the row's price; scenario `ui_trade_hold` with the new harness steps `ldown` / `lup`, the purchases only in the Rebirth
+run (GiveUnitExp)). Kept: a held purchase does not mark the record bought and does not reset the hold time. Library:
+0062B350 (vector destructor) and 005E67F0 (RefPtr destructor) are reached only from unwind funclets.
 
 Next in 005E0000-00640000 after A-I17 (not Rebirth-patched, single player first): 005F4F90 (the interface's shutdown:
 closes the windows, writes config\tutorial.ini from the help map +0x98, frees the surfaces), 005F4790 (a destructor
