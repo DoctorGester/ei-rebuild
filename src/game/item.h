@@ -7,6 +7,7 @@
 
 #include "engine_object.h"
 #include "item_db.h"
+#include "resource_manager.h"
 #include "../lib/mfc.h"
 
 class CSpell;
@@ -397,12 +398,29 @@ public:
 };
 static_assert(sizeof(CItemConstructor) == 0x34);
 
+// The context a manager belongs to (CBaseManager::context_): the world or a party, whose slots
+// 13-24 are the same getters (CWorld, CParty). Declared up to the slot used here.
+class CManagerContext : public CEngineObject {
+public:
+    virtual void ThisWorld();                      // 13
+    virtual void TimedObjectManager();             // 14
+    virtual void FigureManager();                  // 15
+    virtual CItemConstructor* ItemConstructor();   // 16
+};
+
 // The item manager (007AFFB4; a CResourceManager with vtable 0073F25C, 0xBC bytes, as the world
-// and every party make one). Only the functions rewritten here are declared; +0xAC is its
-// manager context (slot 16: the item constructor, slot 22: the spell manager).
-struct CItemManager {
+// and every party make one). Only the functions rewritten here are declared; context_ (+0xAC) is
+// its manager context (slot 16: the item constructor, slot 22: the spell manager).
+struct CItemManager : CResourceManager {
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F25C);
     static constexpr std::size_t kSize = 0xBC;
+
+    // 006AD000 (RET 0x10; item_constructor.cpp, A-H20). An item of `kind` built by the context's
+    // item constructor (BeginCreateItem with `kind` and `key`) from prototype record `index` of
+    // the kind's table (an index whose low 16 bits are 0xFFFF: 0) and, for weapons and armor,
+    // material record `material`; an index out of range or another kind gives a null record.
+    // Returns the item (null when the build fails).
+    CItem* MakeItem(int kind, std::uint32_t index, std::uint32_t material, int key);
 
     // 006AC970 (RET 4). An item from its name, "prototype[.material][[extra]]" (lowercased):
     // "spell container[spell]" makes a scroll; otherwise the prototype is looked up in the weapon,

@@ -1,6 +1,8 @@
 // A scrolling text's tokeniser (CUiScrollText::Tokenize, 0065D4B0): the message log and the
 // objectives window's quest log hand it each text they add; and its drawing of the laid out lines
-// (DrawLines, 0065D150). See ui.h and docs/notes/ui.md.
+// (DrawLines, 0065D150); A-H20: the rest of the class (constructor, destructor body, texts, layout,
+// drawing), the scroll bar's maximum and the tokens' destructor bodies. See ui.h and
+// docs/notes/items_spells.md.
 #include "ui.h"
 
 #include "ei/hook.h"
@@ -257,3 +259,186 @@ void CUiScrollText::DrawLines(int scroll) {
     SurfaceReleaseDC(surface);
 }
 EI_REPLACE_METHOD(0x0065D150, CUiScrollText::DrawLines);
+
+// --- A-H20: construction, texts, layout ----------------------------------------------------------
+
+namespace {
+constexpr std::uintptr_t kScrollTextVtable = std::uintptr_t(0x00742E9C);
+constexpr std::uintptr_t kScrollTextInputVtable = std::uintptr_t(0x00742E68);
+constexpr std::uintptr_t kTokenArrayVtable = std::uintptr_t(0x00742F14);   // CArray<UiTextToken*>
+constexpr std::uintptr_t kLineArrayVtable = std::uintptr_t(0x00742F08);    // CArray<UiTextLine*>
+constexpr float kScrollSpeed = 20.0f;        // lines per second while an arrow is held
+constexpr int kBarWidth = 14;                // the text's rectangle stops short of the bar
+constexpr int kSurfaceFormat = 5;
+constexpr int kJustified = 2;
+constexpr int kScrollbarSprites = 4;
+// The layout measures fonts 0-2; a format token may name any digit. The original reads its other
+// stack slots (font 3: its return address) for the others; here they are 0.
+constexpr int kFontSlots = 10;
+
+// The tokeniser and the layout through their addresses (their verify wrappers run).
+void TokenizeText(CUiScrollText* self, const char* text) {
+    mfc::CString copy(text);
+    ScrollTextTokenizeOriginal(self, nullptr, &copy);
+}
+void LayOut(CUiScrollText* self) { ScrollTextLayoutOriginal(self); }
+} // namespace
+
+CUiScrollText* CUiScrollText::Construct(CInterface3D* ui, const char* text, RECT rect, float depth) {
+    CUiScrollbar::Construct(ui, rect, depth, 0, kScrollSpeed);
+    tokens_.Construct(kTokenArrayVtable);
+    lines_.Construct(kLineArrayVtable);
+    vtable_ = reinterpret_cast<void**>(kScrollTextVtable);
+    inputVtable_ = reinterpret_cast<void**>(kScrollTextInputVtable);
+    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
+    AddSurface(memory ? SurfaceConstructOnRectOriginal(memory, nullptr, interface_, &rect, kSurfaceFormat) : nullptr);
+    CUiScrollbar::SetRect(&rect);
+    PlaceText(rect);
+    DeleteTokens();
+    tokens_.SetSize(0, -1);
+    TokenizeText(this, text);
+    LayOut(this);
+    CallSetPosition(0);
+    CUiScrollbar::SetPosition(0);
+    align_ = kJustified;
+    return this;
+}
+EI_REPLACE_METHOD(0x0065CC00, CUiScrollText::Construct);
+
+void CUiScrollText::DeleteTokens() {
+    for (int i = 0; i < tokens_.size; ++i)
+        if (UiTextToken* token = tokens_.data[i]) token->Delete();
+}
+
+void CUiScrollText::PlaceText(const RECT& rect) {
+    if (surfaces_.size > 0 && surfaces_.data[0]) surfaces_.data[0]->MoveTo(rect.left, rect.top);
+    textRect_ = {0, 0, rect.right - rect.left, rect.bottom - rect.top};
+    textRect_.right -= kBarWidth;
+    LayOut(this);
+}
+
+void CUiScrollText::DestroyBody() {
+    vtable_ = reinterpret_cast<void**>(kScrollTextVtable);
+    inputVtable_ = reinterpret_cast<void**>(kScrollTextInputVtable);
+    DeleteTokens();
+    tokens_.SetSize(0, -1);
+    for (int i = 0; i < lines_.size; ++i) gamecrt::operator_delete(lines_.data[i]);
+    lines_.SetSize(0, -1);
+    lines_.vtable = reinterpret_cast<void*>(kLineArrayVtable);
+    lines_.FreeData();
+    tokens_.vtable = reinterpret_cast<void*>(kTokenArrayVtable);
+    tokens_.FreeData();
+    CUiScrollbar::DestroyBody();
+}
+EI_REPLACE_METHOD(0x0065CE20, CUiScrollText::DestroyBody);
+
+void CUiScrollText::AddText(const char* text) {
+    CallSetPosition(maxPosition_);
+    int position;
+    moved_ = true;
+    TakePosition(&position);
+    int before = Maximum();
+    TokenizeText(this, text);
+    LayOut(this);
+    CallSetPosition(Maximum() - before + position);
+}
+EI_REPLACE_METHOD(0x0065CF30, CUiScrollText::AddText);
+
+void CUiScrollText::SetText(const char* text) {
+    Clear();
+    TokenizeText(this, text);
+    LayOut(this);
+    CallSetPosition(0);
+}
+EI_REPLACE_METHOD(0x0065CFE0, CUiScrollText::SetText);
+
+void CUiScrollText::SetRect(const RECT* rect) {
+    CUiScrollbar::SetRect(rect);
+    PlaceText(*rect);
+}
+EI_REPLACE_METHOD(0x0065D0A0, CUiScrollText::SetRect);
+
+BOOL CUiScrollText::Draw(int pass) {
+    int position;
+    if (TakePosition(&position)) ScrollTextDrawLinesOriginal(this, nullptr, position);
+    return DrawBase(pass);
+}
+EI_REPLACE_METHOD(0x0065D120, CUiScrollText::Draw);
+
+void CUiScrollText::Clear() {
+    DeleteTokens();
+    tokens_.SetSize(0, -1);
+}
+EI_REPLACE_METHOD(0x0065D450, CUiScrollText::Clear);
+
+void CUiScrollText::Layout() {
+    int total = 0;
+    int width = textRect_.right - textRect_.left;
+    int font = kDefaultFont;
+    int heights[kFontSlots] = {};
+    for (int f = 0; f < kMeasuredFonts; ++f) {
+        mfc::CString sample(FontSampleText());
+        heights[f] = reinterpret_cast<TextMetricsAt*>(interface_)->TextExtent(sample, f).cy;
+    }
+    for (int i = 0; i < lines_.size; ++i) gamecrt::operator_delete(lines_.data[i]);
+    lines_.SetSize(0, -1);
+
+    for (int t = 0; t < tokens_.size; ++t) {
+        // (The original does not check the allocation.)
+        auto* line = static_cast<UiTextLine*>(gamecrt::operator_new(sizeof(UiTextLine)));
+        int height = heights[font];
+        line->firstToken_ = t;
+        line->height_ = height;
+        lines_.Add(line);
+        int x = 0;
+        for (; t < tokens_.size && x < width; ++t) {
+            UiTextToken* token = tokens_.data[t];
+            if (token->type_ == kFormatType) {
+                auto* format = static_cast<UiFormatToken*>(token);
+                if (format->newline_) {
+                    font = format->font_;
+                    break;
+                }
+            } else if (token->type_ == kWordType) {
+                x += static_cast<UiWordToken*>(token)->width_ + height / 3;
+                if (x >= width) {
+                    if (line->firstToken_ != t) --t;   // the word starts the next line
+                    break;
+                }
+            }
+        }
+        total += height;
+    }
+    SetMaximum(textRect_.top - textRect_.bottom + total);
+}
+EI_REPLACE_METHOD(0x0065DAA0, CUiScrollText::Layout);
+
+// --- The scroll bar's maximum ------------------------------------------------------------------
+
+int CUiScrollbar::Maximum() const { return maxPosition_; }
+EI_REPLACE_METHOD(0x0065B720, CUiScrollbar::Maximum);
+
+void CUiScrollbar::SetMaximum(int maximum) {
+    if (maximum < 0) maximum = 0;
+    maxPosition_ = maximum;
+    moved_ = true;
+    int visible = maximum != 0 ? 1 : 0;
+    for (int i = 0; i < kScrollbarSprites; ++i) reinterpret_cast<CUiMesh*>(sceneObjects_.data[i])->visible_ = visible;
+    int position = position_;
+    position_ = position - 1;
+    CallSetPosition(position);
+}
+EI_REPLACE_METHOD(0x0065AFE0, CUiScrollbar::SetMaximum);
+
+// --- The tokens' destructors ---------------------------------------------------------------------
+
+void UiTextToken::DestroyBase() { vtable_ = reinterpret_cast<void*>(kTokenVtable); }
+EI_REPLACE_METHOD(0x0065D8E0, UiTextToken::DestroyBase);
+EI_REPLACE_METHOD(0x0065D960, UiTextToken::DestroyBase);
+
+void UiWordToken::DestroyWord() {
+    vtable_ = reinterpret_cast<void*>(kWordVtable);
+    reinterpret_cast<mfc::CString*>(&text_)->~CString();
+    vtable_ = reinterpret_cast<void*>(kTokenVtable);
+}
+EI_REPLACE_METHOD(0x0065D910, UiWordToken::DestroyWord);
