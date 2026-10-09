@@ -67,7 +67,7 @@ static void __fastcall OrderTurnVerify(CUnitServer* self, void*, const float* di
     self->OrderTurn(direction, time);
     const UnitAction& now = self->action2;
     bool ok = now.kind == 2 && !now.target && !now.flag18 && !now.unknown_20 &&
-              static_cast<std::uint32_t>(now.unknown_1C) == time && std::memcmp(now.point, point, sizeof(point)) == 0;
+              static_cast<std::uint32_t>(now.unknown_1C) == time && std::memcmp(&now.point, &point, sizeof(point)) == 0;
     ei::verify::Check("CUnitServer::OrderTurn", true, ok, "unit %d: queued kind %d", UnitId(self), now.kind);
 }
 EI_VERIFY(0x005546B0, OrderTurnVerify, 0, s_unusedOrderTurn);
@@ -84,8 +84,8 @@ static void __fastcall OrderMoveVerify(CUnitServer* self, void*, const float* po
                  static_cast<const char*>(self->ManagerContext())[0x6C] != 0;
     self->OrderMove(point, run, walk, z);
     const UnitAction& now = self->action2;
-    bool ok = turns || (now.kind == 1 && !now.target && std::memcmp(now.point, input, 8) == 0 &&
-                        Bits(now.point[2]) == z && now.source == (static_cast<std::uint8_t>(walk) != 0 ? 1u : 0u) &&
+    bool ok = turns || (now.kind == 1 && !now.target && std::memcmp(&now.point, input, 8) == 0 &&
+                        Bits(now.point.z) == z && now.source == (static_cast<std::uint8_t>(walk) != 0 ? 1u : 0u) &&
                         now.unknown_20 == static_cast<std::uint8_t>(run) &&
                         (now.unknown_1C == 0 || now.unknown_1C == 1));
     ei::verify::Check("CUnitServer::OrderMove", true, ok, "unit %d: queued kind %d source %u +1C %d", UnitId(self),

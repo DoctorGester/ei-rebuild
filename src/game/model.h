@@ -21,10 +21,10 @@
 // Bounding volume of a figure part, tested against the view frustum. 0x2C bytes.
 struct ClipBounds {
     std::uint32_t flags;   // +0x00 bit 0: centre/radius valid, bit 1: box valid
-    float center[3];       // +0x04
+    Vector3 center;        // +0x04
     float radius;          // +0x10 half the side of the cube around the centre
-    float boxMin[3];       // +0x14 box corners, relative to the centre
-    float boxMax[3];       // +0x20
+    Vector3 boxMin;        // +0x14 box corners, relative to the centre
+    Vector3 boxMax;        // +0x20
 
     // 004F93A0. Sets the box and its flag; returns the new flags (left in EAX).
     std::uint32_t SetBox(const float* min, const float* max);

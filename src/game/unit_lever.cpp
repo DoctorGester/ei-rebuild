@@ -91,7 +91,7 @@ void Lever::SetState(int wanted, float duration) {
     // FCOMP + TEST AH,0x41: timed only for a duration above zero.
     if (!x87::IsNaN(duration) && duration > 0.0f) {
         to = position;
-        std::memcpy(&from, &scale[1], sizeof(from));   // copied as a dword
+        std::memcpy(&from, &scale.y, sizeof(from));   // copied as a dword
         endTick = (static_cast<float>(world->tick_) + duration) + 1.0f;
         rate = 1.0f / duration;
     } else {
@@ -100,7 +100,7 @@ void Lever::SetState(int wanted, float duration) {
         endTick = 0.0f;
         rate = 0.0f;
     }
-    scale[1] = position;   // the shown position
+    scale.y = position;   // the shown position
     FigureAnimate(this, nullptr, name);
     UnitMarkChanged(this, nullptr, 5);
     SectorMapAdd(sectors, nullptr, AsEngineObject(this));
@@ -147,7 +147,7 @@ void Lever::UseSpots(LeverSpots* out, float userRadius) {
     out->size = 0;
     const LeverRecord* record = LeverRecordByName(kLeverTable, nullptr, name);
     if (!record || record->spotCount == 0) return;
-    const Quaternion& facing = *reinterpret_cast<const Quaternion*>(orientation);
+    const Quaternion& facing = orientation;
     // The count is read again each time; a count above 2 reads on into the record (sic).
     for (std::uint32_t i = 0; i < record->spotCount; ++i) {
         const float* spot = &record->spots[0][0] + 2 * i;
@@ -160,7 +160,7 @@ void Lever::UseSpots(LeverSpots* out, float userRadius) {
             along = along / length;
             across = across / length;
         }
-        float phase = scale[2];
+        float phase = scale.z;
         float distance = ((1.0f - phase) + phase * record->farScale) * length + userRadius;
         Vector3 axis;
         facing.AxisX(&axis);

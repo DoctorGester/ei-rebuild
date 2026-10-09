@@ -163,9 +163,9 @@ ObjectSpec* __fastcall ObjectSpecConstruct(ObjectSpec* self) {
     self->texture = none;
     self->primaryTexture = none;
     self->player = -1;
-    self->scale[1] = 0.5f;
-    self->scale[0] = 0.5f;
-    self->scale[2] = 0.5f;
+    self->scale.y = 0.5f;
+    self->scale.x = 0.5f;
+    self->scale.z = 0.5f;
     self->shadow = 0;
     self->visible = 1;
     self->unknown_6E = 0;
@@ -215,7 +215,7 @@ void __fastcall ObjectSpecAssign(ObjectSpec* self, void*, const ObjectSpec* from
     self->texture = from->texture;
     self->primaryTexture = from->primaryTexture;
     self->player = from->player;
-    std::memcpy(self->scale, from->scale, sizeof(self->scale));
+    std::memcpy(&self->scale, &from->scale, sizeof(self->scale));
     self->shadow = from->shadow;
     self->visible = from->visible;
     self->unknown_6E = from->unknown_6E;
@@ -248,9 +248,9 @@ void __fastcall ObjectSpecWriteFields(ObjectSpec* self) {
     c.WriteInt(0xB012, self->player);
     c.WriteString(0xB016, self->model);
     c.WriteHeader(0xB00C, 0xC);
-    FileWrite(c, &self->scale[1], 4);
-    FileWrite(c, &self->scale[0], 4);
-    FileWrite(c, &self->scale[2], 4);
+    FileWrite(c, &self->scale.y, 4);
+    FileWrite(c, &self->scale.x, 4);
+    FileWrite(c, &self->scale.z, 4);
 }
 EI_REPLACE(0x0046A940, ObjectSpecWriteFields);
 
@@ -283,9 +283,9 @@ void __fastcall ObjectSpecOnChunk(ObjectSpec* self) {
         break;
     }
     case 0xB00C:
-        self->scale[1] = c.ReadFloat();
-        self->scale[0] = c.ReadFloat();
-        self->scale[2] = c.ReadFloat();
+        self->scale.y = c.ReadFloat();
+        self->scale.x = c.ReadFloat();
+        self->scale.z = c.ReadFloat();
         break;
     case 0xB00D: c.ReadStringArray(&self->parts); break;
     case 0xB00E: ReadInto(c, self->primaryTexture); break;
@@ -328,8 +328,8 @@ void __fastcall ObjectSpecApply(ObjectSpec* self) {
     SectorMapRemove(AsSectorMap(Lists()), nullptr, AsEngineObject(self->base.object));
     std::memcpy(static_cast<std::uint8_t*>(self->base.object) + 0x1C, &self->base.position, 12);
     std::memcpy(static_cast<std::uint8_t*>(self->base.object) + 0x34, &self->base.rotation, 16);
-    ObjectSetScale(self->base.object, nullptr, self->scale);
-    std::memcpy(static_cast<std::uint8_t*>(self->base.object) + 0x1AC, self->scale, 12);
+    ObjectSetScale(self->base.object, nullptr, &self->scale.x);
+    std::memcpy(static_cast<std::uint8_t*>(self->base.object) + 0x1AC, &self->scale, 12);
     ei::VCall<void>(self->base.object, kObjectSlotUpdate);
     std::uint32_t& flags = At<std::uint32_t>(self->base.object, 8);
     if (!self->visible) flags |= 8;

@@ -93,19 +93,19 @@ float* __fastcall UnitActionPoint(std::uint8_t* object, void*, float* out) {
         float axis[3];
         if (side == 0x800000) {
             AxisY(&unit->orientation, nullptr, axis);
-            float reach = unit->above[1];
+            float reach = unit->above.y;
             for (int i = 0; i < 3; ++i) offset[i] = axis[i] * reach;
         } else if (side == 0x400000) {
             AxisY(&unit->orientation, nullptr, axis);
-            float reach = unit->above[1];
+            float reach = unit->above.y;
             for (int i = 0; i < 3; ++i) offset[i] = -axis[i] * reach;
         } else if (side == 0xC00000) {
             AxisX(&unit->orientation, nullptr, axis);
-            float reach = unit->above[0];
+            float reach = unit->above.x;
             for (int i = 0; i < 3; ++i) offset[i] = axis[i] * reach;
         } else if (side == 0x1000000) {
             AxisX(&unit->orientation, nullptr, axis);
-            float reach = unit->above[0];
+            float reach = unit->above.x;
             for (int i = 0; i < 3; ++i) offset[i] = -axis[i] * reach;
         }
     }

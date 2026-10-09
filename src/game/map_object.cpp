@@ -155,16 +155,16 @@ std::uintptr_t CMapObject::RecomputeScale() {
         if (strengthLevel != 0.0f) {
             double step = strengthLevel * static_cast<double>(kScaleStep);   // FMUL, FST to a float
             float stepRounded = static_cast<float>(step);
-            StoreBits(scale[0], ClampToZero(static_cast<float>(step + scale[0])));
+            StoreBits(scale.x, ClampToZero(static_cast<float>(step + scale.x)));
             if (type_ != kTypeHero)
-                StoreBits(scale[2], ClampToZero(static_cast<float>(static_cast<double>(stepRounded) + scale[2])));
+                StoreBits(scale.z, ClampToZero(static_cast<float>(static_cast<double>(stepRounded) + scale.z)));
         }
     } else if (total != 0.0f) {
         double step = total * static_cast<double>(kScaleStep);
         float stepRounded = static_cast<float>(step);
-        StoreBits(scale[0], ClampToZero(static_cast<float>(step + scale[0])));
-        StoreBits(scale[1], ClampToZero(static_cast<float>(static_cast<double>(stepRounded) + scale[1])));
-        StoreBits(scale[2], ClampToZero(static_cast<float>(static_cast<double>(stepRounded) + scale[2])));
+        StoreBits(scale.x, ClampToZero(static_cast<float>(step + scale.x)));
+        StoreBits(scale.y, ClampToZero(static_cast<float>(static_cast<double>(stepRounded) + scale.y)));
+        StoreBits(scale.z, ClampToZero(static_cast<float>(static_cast<double>(stepRounded) + scale.z)));
     }
     changedParts = static_cast<std::uint16_t>(changedParts | 2);   // part 1
     flags_ |= kFlagDirty;
@@ -176,9 +176,9 @@ std::uintptr_t CMapObject::RecomputeScale() {
 EI_REPLACE_METHOD(0x0050F2D0, CMapObject::RecomputeScale);
 
 std::uint32_t CMapObject::ResetScale() {
-    std::memcpy(scale, baseScale, sizeof(scale));
+    std::memcpy(&scale, &baseScale, sizeof(scale));
     std::uint32_t z;
-    std::memcpy(&z, &baseScale[2], sizeof(z));
+    std::memcpy(&z, &baseScale.z, sizeof(z));
     return z;
 }
 EI_REPLACE_METHOD(0x0050E440, CMapObject::ResetScale);
@@ -198,9 +198,9 @@ float* CMapObject::GetPosition2(float* out) {
 EI_REPLACE_METHOD(0x0050E4D0, CMapObject::GetPosition2);
 
 float* CMapObject::GroundPoint(float* out) {
-    float x = positionX + pointOffset[0];   // each stored to a float local
-    float y = positionY + pointOffset[1];
-    float z = positionZ + pointOffset[2];
+    float x = positionX + pointOffset.x;   // each stored to a float local
+    float y = positionY + pointOffset.y;
+    float z = positionZ + pointOffset.z;
     double height = GroundHeight(World(), x, y);
     out[0] = x;
     out[1] = y;

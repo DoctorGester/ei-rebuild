@@ -199,7 +199,7 @@ UnitAction* UnitAction::Assign(const UnitAction* from) {
         if (from->target) ++from->target->refCount_;
         target = from->target;
     }
-    std::memcpy(point, from->point, sizeof(point));
+    std::memcpy(&point, &from->point, sizeof(point));
     flag18 = from->flag18;
     unknown_1C = from->unknown_1C;
     unknown_1C = from->unknown_1C;   // copied twice by the original
@@ -274,7 +274,7 @@ void CUnitServer::TakeQueuedOrder() {
         if (target) ++target->refCount_;
         action.target = target;
     }
-    std::memcpy(action.point, action2.point, sizeof(action.point));
+    std::memcpy(&action.point, &action2.point, sizeof(action.point));
     action.flag18 = action2.flag18;
     action.unknown_1C = action2.unknown_1C;
     action.unknown_1C = action2.unknown_1C;
@@ -357,9 +357,9 @@ bool CUnitServer::StartMove() {
     }
     // Already there: the order is done and the next one starts.
     Vector3 offset;
-    offset.x = unit->positionX - action.point[0];
-    offset.y = unit->positionY - action.point[1];
-    offset.z = unit->positionZ - action.point[2];
+    offset.x = unit->positionX - action.point.x;
+    offset.y = unit->positionY - action.point.y;
+    offset.z = unit->positionZ - action.point.z;
     double lengthSq = static_cast<double>(offset.z) * offset.z + static_cast<double>(offset.y) * offset.y;
     lengthSq = lengthSq + static_cast<double>(offset.x) * offset.x;
     if (LessOrUnordered(lengthSq, kArrived)) {
@@ -370,10 +370,10 @@ bool CUnitServer::StartMove() {
         return result;
     }
     // Plan the way with the units near the goal lifted off the sector map.
-    CtlLiftNearby(this, nullptr, &lifted, action.point, action.source != 0);
+    CtlLiftNearby(this, nullptr, &lifted, &action.point.x, action.source != 0);
     CAIMap* map = static_cast<CWorldServer*>(ManagerContext())->AIMap();
     unit->unknown_43C = MapCellFlag80(map, nullptr, &unit->positionX);
-    bool found = TickPathTo(this, nullptr, action.point, std::bit_cast<std::uint32_t>(action.point[2]));
+    bool found = TickPathTo(this, nullptr, &action.point.x, std::bit_cast<std::uint32_t>(action.point.z));
     for (UnitPtrList::Node* node = lifted.head; node;) {
         UnitPtrList::Node* current = node;
         node = node->next;
@@ -384,8 +384,8 @@ bool CUnitServer::StartMove() {
         action.unknown_1C = 0;
         bool close = false;
         if (!found) {
-            double dy = static_cast<double>(action.point[1]) - unit->positionY;
-            double dx = static_cast<double>(action.point[0]) - unit->positionX;
+            double dy = static_cast<double>(action.point.y) - unit->positionY;
+            double dx = static_cast<double>(action.point.x) - unit->positionX;
             close = LessOrUnordered(dx * dx + dy * dy, kLong);
         }
         if (close) arrived = true;
@@ -426,7 +426,7 @@ bool CUnitServer::StartQueuedOrder() {
         LeaveMoveMode(this);
         int time = action.unknown_1C;
         int now = static_cast<CWorld*>(ManagerContext())->tick_;
-        MotionTurn(&motion, nullptr, now, unit, action.point, time);
+        MotionTurn(&motion, nullptr, now, unit, &action.point.x, time);
         UnitPathSpeeds(unit);
         TickMotion5474B0(this);
         CtlSetState(this, nullptr, 1);
@@ -756,7 +756,7 @@ void CUnitServer::ApproachTarget() {
     if (action.flag18 || !target) {
         // A point: walk there; fail when there is no way or the order cannot be done from there.
         float goal[3];
-        std::memcpy(goal, action.point, sizeof(goal));
+        std::memcpy(goal, &action.point, sizeof(goal));
         if (state == kStateIdle) {
             double dy = static_cast<double>(goal[1]) - motion.goal.y;
             double dx = static_cast<double>(goal[0]) - motion.goal.x;

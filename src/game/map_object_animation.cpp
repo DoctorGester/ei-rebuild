@@ -46,19 +46,19 @@ void AnimationTrack::Evaluate(float atTime) {
     int next = index + 1;
 
     if (next < positionCount) {
-        LerpPoint(position, positions + 3 * index, positions + 3 * next, fraction);
+        LerpPoint(&position.x, positions + 3 * index, positions + 3 * next, fraction);
     } else if (positionCount != 0) {
-        std::memcpy(position, positions + 3 * (positionCount - 1), 12);
+        std::memcpy(&position, positions + 3 * (positionCount - 1), 12);
     } else {
-        std::memcpy(position, reinterpret_cast<const void*>(0x007AF110), 12);
+        std::memcpy(&position, reinterpret_cast<const void*>(0x007AF110), 12);
     }
 
     if (next < rotationCount) {
-        SlerpAt(rotation, nullptr, fraction, rotations + 4 * index, rotations + 4 * next);
+        SlerpAt(&rotation, nullptr, fraction, rotations + 4 * index, rotations + 4 * next);
     } else if (rotationCount != 0) {
-        std::memcpy(rotation, rotations + 4 * (rotationCount - 1), 16);
+        std::memcpy(&rotation, rotations + 4 * (rotationCount - 1), 16);
     } else {
-        std::memcpy(rotation, reinterpret_cast<const void*>(0x007AF100), 16);
+        std::memcpy(&rotation, reinterpret_cast<const void*>(0x007AF100), 16);
     }
 
     if (next < frameCount) {

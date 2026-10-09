@@ -186,7 +186,7 @@ void PathMessage(CUnit* unit, const void* motion, const float* point, int kind, 
 
 bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
     void* world = ObjectWorld(this);
-    order->point[2] = std::bit_cast<float>(kNoZBits);
+    order->point.z = std::bit_cast<float>(kNoZBits);
     if (order->kind != kOrderSkill || !order->target || order->source != 0) return true;
     SpotArray spots{reinterpret_cast<void*>(0x0073C120), nullptr, 0, 0, 0};
     float size = static_cast<float>(Slots(unit)->Radius());
@@ -217,7 +217,7 @@ bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
             result = false;
         } else {
             order->flag18 = 1;
-            std::memcpy(order->point, bestSpot, sizeof(bestSpot));
+            std::memcpy(&order->point, bestSpot, sizeof(bestSpot));
         }
     }
     spots.vtable = reinterpret_cast<void*>(0x0073C120);
@@ -240,7 +240,7 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
     float aim[3] = {0.0f, 0.0f, -1000.0f};
     double distance = CtlActionDistance(this, nullptr, order);
     float reachSq = static_cast<float>(distance * distance);
-    if (!order->target) std::memcpy(aim, order->point, sizeof(aim));
+    if (!order->target) std::memcpy(aim, &order->point, sizeof(aim));
     else AimPointInto(order->target, aim);
     float t = 0.0f;
     for (;;) {
@@ -269,15 +269,15 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
         if (sight.unit) {
             Vector3 eye;
             const float* at = &Slots(sight.unit)->EyePoint(&eye)->x;
-            std::memcpy(sight.point, at, sizeof(sight.point));
+            std::memcpy(&sight.point, at, sizeof(sight.point));
             sight.unit = nullptr;
         }
-        float sy = sight.point[1] - position[1];
-        float sx = sight.point[0] - position[0];
+        float sy = sight.point.y - position[1];
+        float sx = sight.point.x - position[0];
         if (!(sy * sy + sx * sx >= sight.minDistanceSq)) break;   // C0: closer (or unordered)
         float from[3] = {position[0], position[1], position[2]};
         from[2] = static_cast<float>(UnitGroundHeight(unit, nullptr, position[0], position[1]) + sight.eyeHeight);
-        double visible = MapLineOfSight(MapOf(ManagerContextOf(this)), nullptr, from, sight.point);
+        double visible = MapLineOfSight(MapOf(ManagerContextOf(this)), nullptr, from, &sight.point.x);
         if (!(visible < *reinterpret_cast<const float*>(0x0073EEC0))) break;
         t += 5.0f;
     }
@@ -293,7 +293,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
     float best = kFar;
     LocalMotionOrder route;
     float point[3];
-    if (!order->target) std::memcpy(point, order->point, sizeof(point));
+    if (!order->target) std::memcpy(point, &order->point, sizeof(point));
     else AimPointInto(order->target, point);
     bool ok;
     if (!CtlFindUseSpot(this, nullptr, order, route.bytes())) {

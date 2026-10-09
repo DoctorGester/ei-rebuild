@@ -54,25 +54,25 @@ void __fastcall ComputeFaceNormal(MeshFace* face, void*, const PointBuffer* posi
         bz *= inverse;
     }
 
-    face->normal[0] = StoreFloat(bz * ay - by * az);
-    face->normal[1] = StoreFloat(az * bx - bz * ax);
-    face->normal[2] = StoreFloat(by * ax - ay * bx);
+    face->normal.x = StoreFloat(bz * ay - by * az);
+    face->normal.y = StoreFloat(az * bx - bz * ax);
+    face->normal.z = StoreFloat(by * ax - ay * bx);
 
-    const double x = face->normal[0];
-    const double y = face->normal[1];
-    const double z = face->normal[2];
+    const double x = face->normal.x;
+    const double y = face->normal.y;
+    const double z = face->normal.z;
     const double length = std::sqrt(x * x + y * y + z * z);
     if (length == 0.0 || x87::IsNaN(static_cast<float>(length))) {   // FCOM 0; C3: equal or unordered
-        std::memcpy(face->normal, &DegenerateNormal(), sizeof(Vector3));
+        std::memcpy(&face->normal, &DegenerateNormal(), sizeof(Vector3));
     } else {
         double inverse = 1.0 / length;
-        face->normal[0] = StoreFloat(inverse * face->normal[0]);
-        face->normal[1] = StoreFloat(inverse * face->normal[1]);
-        face->normal[2] = StoreFloat(inverse * face->normal[2]);
+        face->normal.x = StoreFloat(inverse * face->normal.x);
+        face->normal.y = StoreFloat(inverse * face->normal.y);
+        face->normal.z = StoreFloat(inverse * face->normal.z);
     }
     const Vector3& at = points[face->vertex[1]];
-    face->distance = StoreFloat(static_cast<double>(at.z) * face->normal[2] + static_cast<double>(at.y) * face->normal[1] +
-                                static_cast<double>(at.x) * face->normal[0]);
+    face->distance = StoreFloat(static_cast<double>(at.z) * face->normal.z + static_cast<double>(at.y) * face->normal.y +
+                                static_cast<double>(at.x) * face->normal.x);
 }
 EI_REPLACE(0x0049AEC0, ComputeFaceNormal);
 

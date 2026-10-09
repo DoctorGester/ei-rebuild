@@ -75,7 +75,7 @@ __declspec(naked) void __fastcall PrepareThroughAddress(AIViewer*, void*, CUnit*
 void AIViewer::Prepare(CUnit* self) {
     if (cellX >= 0 && cellY >= 0 && cellX < map->width && cellY < map->height)
         eye.z = RoundToFloat(static_cast<double>(map->cells[cellY][cellX].groundLevel) / map->heightScale + eye.z);
-    eye.z = RoundToFloat(static_cast<double>(self->above[2]) * kEyeHeightFactor + self->unknown_158 + self->center[2] + eye.z);
+    eye.z = RoundToFloat(static_cast<double>(self->above.z) * kEyeHeightFactor + self->unknown_158 + self->center.z + eye.z);
     const Quaternion& q = self->orientation;
     double a = static_cast<double>(q.y) * q.x - static_cast<double>(q.w) * q.z;
     a += a;

@@ -108,8 +108,8 @@ const UnitModelRecord* ModelOf(CUnit* unit) {
 
 // The smaller of the unit's two horizontal extents (the original's select keeps +0x148 for NaN).
 float SmallerExtent(const CUnit* unit) {
-    float y = unit->above[1];
-    float x = unit->above[0];
+    float y = unit->above.y;
+    float x = unit->above.x;
     return !(y >= x) ? y : x;
 }
 

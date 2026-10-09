@@ -591,7 +591,7 @@ int CWorldClient::DrawPass() {
                         std::memcpy(point, at, sizeof(point));
                         point[2] = Reload(object->positionZ);
                     }
-                    const void* orientation = object->orientation;
+                    const void* orientation = &object->orientation;
                     float axisY[3], axisX[3];
                     QuaternionAxisY(orientation, nullptr, axisY);
                     QuaternionAxisX(orientation, nullptr, axisX);

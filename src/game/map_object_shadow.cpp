@@ -572,9 +572,9 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
     if (self->vertexCount != 0) {
         ei::VCall<void>(sceneObject, 7, &self->sphere, self->vertices, self->vertexCount);
         const float* position = &self->object->position.x;
-        self->sphereCentre[0] = static_cast<float>(static_cast<double>(self->sphereCentre[0]) - position[0]);
-        self->sphereCentre[1] = static_cast<float>(static_cast<double>(self->sphereCentre[1]) - position[1]);
-        self->sphereCentre[2] = static_cast<float>(static_cast<double>(self->sphereCentre[2]) - position[2]);
+        self->sphereCentre.x = static_cast<float>(static_cast<double>(self->sphereCentre.x) - position[0]);
+        self->sphereCentre.y = static_cast<float>(static_cast<double>(self->sphereCentre.y) - position[1]);
+        self->sphereCentre.z = static_cast<float>(static_cast<double>(self->sphereCentre.z) - position[2]);
     } else {
         self->sphere = 0;
     }

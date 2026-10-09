@@ -463,7 +463,7 @@ void CUnitServer::StartAction(char follow, char stepFlags) {
     actingCheckTime = TickOf(ManagerContextOf(this)) + 10;
     if (plan.targetId == -1) {
         int now = TickOf(ObjectWorld(this));
-        PathTurn(Motion(this), nullptr, now, unit, plan.direction, plan.endTime, plan.startTime);
+        PathTurn(Motion(this), nullptr, now, unit, &plan.direction.x, plan.endTime, plan.startTime);
     } else {
         int until = follow ? plan.endTime : 0;
         int now = TickOf(ObjectWorld(this));

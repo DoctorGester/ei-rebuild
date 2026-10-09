@@ -356,11 +356,11 @@ EI_REPLACE_METHOD(0x0054BF80, CUnitServer::CanCast);
 
 BOOL CUnitServer::GetMovePoint(float* out) {
     if (action.kind == 1) {
-        std::memcpy(out, action.point, sizeof(action.point));
+        std::memcpy(out, &action.point, sizeof(action.point));
         return 1;
     }
     if (action2.kind == 1) {
-        std::memcpy(out, action2.point, sizeof(action2.point));
+        std::memcpy(out, &action2.point, sizeof(action2.point));
         return 1;
     }
     return 0;

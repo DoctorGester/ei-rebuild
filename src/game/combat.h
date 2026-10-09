@@ -21,7 +21,7 @@ struct UnitAction {
     std::uint32_t source;       // +0x04 spell slot, or quick item slot | 0x80000000; 0x18A95 for a
                                 //       skill used on a target (kind 6)
     CEngineObject* target;      // +0x08 (referenced)
-    float point[3];             // +0x0C target point
+    Vector3 point;              // +0x0C target point
     std::uint8_t flag18;        // +0x18
     std::uint8_t unknown_19[3];
     int unknown_1C;
@@ -120,7 +120,7 @@ struct OrderPlan {
     std::uint8_t unknown_31[3];
     int castKind;               // +0x34 8; for a cast: 1 (spell kind 0x28), 0 (0x29) or the
                                 //       spell prototype's +0x14
-    float direction[3];         // +0x38 from the unit to the target
+    Vector3 direction;          // +0x38 from the unit to the target
 
     // combat_lifetime.cpp. 00545110 (RET 0x20). The plan takes `steps` (passed by value and freed
     // here) starting at `start` for `duration` ticks: emptied first (extra and targetId -1, rangeSq

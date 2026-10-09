@@ -6,6 +6,7 @@
 // ("Shadows").
 
 #include "engine_object.h"
+#include "maths.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -105,14 +106,14 @@ public:
     CEngineObject* texture;         // +0x7C the shadow texture (counted)
     float bounds[4];                // +0x80 minimum x, y and maximum x, y in the light's view
     std::uint32_t sphere;           // +0x90 the shadow's bounding sphere (the scene object's slot
-    float sphereCentre[3];          // +0x94  7), its centre relative to the object
+    Vector3 sphereCentre;           // +0x94  7), its centre relative to the object
     std::uint8_t unknown_A0[0xD8 - 0xA0];
     CEngineObject* woundsTexture;   // +0xD8 the wounds texture (counted; 0051C3D0 loads it)
     struct WoundsMaterial* woundsMaterial;  // +0xDC the material drawing it (counted; slot 0 deletes)
     std::uint8_t unknown_E0[0xE8 - 0xE0];
     float pulseClock;               // +0xE8 frames counted by the invisible / stunned pulses
     std::uint8_t unknown_EC[4];
-    float figureScale[3];           // +0xF0 the figure's extra scale (slot 18, ExtraScale)
+    Vector3 figureScale;            // +0xF0 the figure's extra scale (slot 18, ExtraScale)
 };
 static_assert(offsetof(CObject3DClientSpecific, object) == 0x1C);
 static_assert(offsetof(CObject3DClientSpecific, vertices) == 0x4C);

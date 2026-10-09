@@ -88,7 +88,7 @@ EI_REPLACE_METHOD(0x0052B370, Lever::CreateLever);
 int Lever::UpdateLever() {
     Update();
     if (static_cast<CWorld*>(ManagerContext())->IsServer()) return 0;
-    float shown[3] = {scale[0], scale[1], scale[2]};
+    float shown[3] = {scale.x, scale.y, scale.z};
     double t = (endTick - static_cast<double>(GameTick())) * rate;
     if (t > 0.0) {
         shown[1] = StoreFloat(static_cast<float>(to - (to - from) * t));
@@ -139,9 +139,9 @@ void Lever::WriteLeverNetState() {
     MapObjectWriteNetState(reinterpret_cast<std::uint8_t*>(this));
     DeltaField* field = NetState()->BeginField(kLeverField);
     if (!field) return;
-    if (Differ(to, scale[1])) {
+    if (Differ(to, scale.y)) {
         rate = 0.0f;
-        to = scale[1];
+        to = scale.y;
     }
     field->WriteDelta(&lock, sizeof(LockKey));
     for (float value : {from, to, endTick, rate}) field->WriteDelta(&value, 4);
@@ -186,8 +186,8 @@ std::uintptr_t Lever::SetUp(const LeverSetup* setup) {
     lock = setup->lock;
     flag260 = setup->flag260;
     keepsMapFlag = setup->keepsMapFlag;
-    if (stateCount > 1) scale[1] = StoreFloat(static_cast<float>(static_cast<double>(state) / (stateCount - 1)));
-    else scale[1] = 0.0f;
+    if (stateCount > 1) scale.y = StoreFloat(static_cast<float>(static_cast<double>(state) / (stateCount - 1)));
+    else scale.y = 0.0f;
     return MarkChanged(kPartScale);
 }
 EI_REPLACE_METHOD(0x0052B3F0, Lever::SetUp);

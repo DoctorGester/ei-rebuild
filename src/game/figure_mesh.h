@@ -116,7 +116,7 @@ public:
     std::uint8_t unknown_004[4];
     std::uint32_t flags_;               // +0x008 0x20: loaded
     std::uint8_t unknown_00C[0x1C - 0x0C];
-    float position_[3];                 // +0x01C (CTransformObject)
+    Vector3 position_;                  // +0x01C (CTransformObject)
     std::uint8_t unknown_028[0x9C - 0x28];
     MeshBuffers buffers_;               // +0x09C
     std::uint8_t unknown_0CC[0x128 - 0xCC];
