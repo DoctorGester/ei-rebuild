@@ -125,8 +125,9 @@ All `__forceinline`, by value:
 | `LengthSquared<Sum3>`, `Length<Sum3>` (+ `...XYZ / ZYX / ZXY`) | grouped sum of squares; FSQRT (`x87::fsqrt`) |
 | `DistanceSquared<Sum3>`, `Distance<Sum3>` (+ named) | of `a - b` |
 | `Normalised<Sum3>`, `NormalisedReciprocal<Sum3>` | `v / len`, `v * (1 / len)` |
-| `TransformRow<Sum3>`, `TransformRowNormal<Sum3>` | `v * M`: grouped `x*m[i], y*m[4+i], z*m[8+i]`, then `+ m[12+i]` |
-| `TransformColumn<Sum3>`, `TransformColumnNormal<Sum3>` (Matrix4 or MatrixRows) | `M * v`: grouped `m[4i]*x, m[4i+1]*y, m[4i+2]*z`, then `+ m[4i+3]` |
+| `TransformRow<OX, OY, OZ>`, `TransformRowNormal<...>` | `v * M`: grouped `x*m[i], y*m[4+i], z*m[8+i]`, then `+ m[12+i]`; one grouping per component (OY defaults to OX, OZ to OY) |
+| `TransformColumn<OX, OY, OZ>`, `TransformColumnNormal<...>` (Matrix4 or MatrixRows) | `M * v`: grouped `m[4i]*x, m[4i+1]*y, m[4i+2]*z`, then `+ m[4i+3]` |
+| `TransformColumnW<Sum3>` | the homogeneous w of `M * (v, 1)`: grouped `m[12]*x, m[13]*y, m[14]*z`, then `+ m[15]` |
 | `Conjugate(q)` | `(w, -x, -y, -z)` |
 | `RoundToFloat(double)` | volatile float store (replaces the local Store / StoreFloat / Round copies) |
 | `Atan2(y, x)` | `x87::fpatan` (include/ei/x87.h), unrounded double |
@@ -155,7 +156,7 @@ keeps unrounded in ST0 and uses further stays written out unless the function is
 **Self-test** (tests/verify/verify_vecmath.cpp, verify build, at DLL load at 24-bit precision, "vecmath self-test" in the
 log): every grouped helper in /fp:fast contexts (alone, `* 2 + 1`, two groupings in one expression, transforms with
 translation, normalising, distances, lerps) against a reference that rounds each operation separately, on 24 inputs per
-helper chosen so that XYZ, ZYX and ZXY give three different results. Standalone: 2088 checks, 0 mismatches; with the precise
+helper chosen so that XYZ, ZYX and ZXY give three different results. Standalone: 2088 checks (2448 since V3 part 2: mixed groupings, TransformColumnW), 0 mismatches; with the precise
 pragmas removed it reports 116 mismatches (Dot / LengthSquared / DistanceSquared `* 2`, NormalisedReciprocal, LerpWeighted
 `* 2`).
 
@@ -198,7 +199,7 @@ inline helper instead of calling Dot / Length / CrossProduct (same bits).
 **V3 progress (2026-10-09).** check_cleanup column "hand-written vector maths" (tools/check_cleanup.py,
 `count_vector_maths`): two-product sums whose operand pairs differ only in axis letters / digits (looking through one
 `D(...)` / `static_cast<T>(...)`), plus non-const `float n[3]`, `[16]`, `[4][4]`, and `float n[4]` named like a quaternion;
-colour / stat names and const tables skipped; vecmath.h exempt. Seeded at 507 (309 sums, 198 arrays); now 409.
+colour / stat names and const tables skipped; vecmath.h exempt. Seeded at 507 (309 sums, 198 arrays); 409 after part 1, 377 after part 2.
 - Fields done: map_object_figures.h (FigurePart, FigurePieceRecord, CObject3D: 16), map_object.h (orientation ->
   Quaternion, scale, pointOffset, extent, baseScale), map_object_animation.h (position, rotation -> Quaternion), unit.h
   (modelHeight, center, below, above), combat.h / combat_plan.h / unit_ai.h (point, direction), magic_trap.h, model.h
@@ -214,12 +215,26 @@ colour / stat names and const tables skipped; vecmath.h exempt. Seeded at 507 (3
   distance, view_matrices (view translation, LightShearMatrix: DotZXY * 2, Cross, LengthSquaredZXY), scene_normals.
   All main-thread code.
 - Left for later: world.h / sound.h / script.h / ui*.h / terrain_sector.h members (other tickets were editing those
-  files), CMapObject::positionX/Y/Z (403 uses in 69 files; most 2D distances use them, so most unit_ai_* / combat_*
-  2D sums wait for that field), link_figure.h morph_ (morph coefficients, not a point), figure_mesh.h block[4][4]
+  files), link_figure.h morph_ (morph coefficients, not a point), figure_mesh.h block[4][4]
   (indexed [i][j]), quaternion axis forms (unit_ai_sight Prepare, combat_actions), particles.
 - Callees retyped: Negate 00402200 and QuaternionAxisY 0040F560 (originals_core.h), the local AxisX 0040D940 forwarders
-  (unit_points, world_client_draw) take Vector3* / Quaternion*. Still `float*`: PathStart 005C7B00 (declared in
-  combat_motion and unit_motion_tick), MotionSample, MarkerDraw, the AI map lookups. Matrix x point not started.
+  (unit_points, world_client_draw) take Vector3* / Quaternion*.
+
+**V3 part 2 (2026-10-09), 408 -> 377.** Release objects compared function by function (dumpbin) before / after each
+commit: FPU operations unchanged except where noted.
+- Matrix x point (groupings read from the disassembly): MatrixRows::Transform 00560E10 (x ZYX, y / z ZXY), ClipTest
+  004F16A0 (`ClipCode`: x, y, w ZXY, z ZYX), ExtendWorldBox 0059FDF0 (row ZYX), PlatformSet::AddBox 00560820
+  (corners ZYX, normals ZXY), CollectVisible 0056A990 (view position x ZYX, y / z XYZ). ClipTest and ExtendWorldBox
+  now round the box corners to float, which the original keeps on the FPU: the same at 24 bits (main thread, render
+  code). CObject3D viewPosition / worldMatrix are Vector3 / Matrix4; CollectVisible takes `const Matrix4*`.
+- CMapObject and CUnit have `Vector3 position` (+0x1C) instead of positionX / Y / Z, every use converted (pure rename;
+  four locals named `position` that would hide the member renamed). One commuted FMUL operand in CEffectMissile::Steer.
+- Shared declarations taking Vector3*: AIPathStartOriginal 005C7B00 (originals_ai.h; replaced 5 local forwarders),
+  MotionSample 005C7430, QuaternionAxisX / AxisZ 0040D940 / 0040D6B0 (originals_core.h), MarkerDraw 00503A40, the
+  CAIMap lookups IsPassableForClass / FindFreeCellNear / CellFlag80At / HasKind3OccluderAt / BlockingUnitAt /
+  StampWaterPatch (originals_ai.h); callers use LineOfSightOriginal / SectorMapMove instead of their own copies.
+- Next: the 2D distance / dot sums on `position` (unit_ai_*, combat_*; batch 3 above), world.h Platform's
+  origin / axisU / axisV / normal (world_client.cpp's plane dots), the remaining `float [3]` members and locals.
 
 ## 7. Risks
 
