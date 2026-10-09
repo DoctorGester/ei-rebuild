@@ -3011,9 +3011,15 @@ address,name,library,signature,notes
 005FB890,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 00740BE4 (GetRuntimeClass 007005E3, Serialize 005FB5F0 identified); touches no other vtable; callees library only"
 005FB940,"stlp::_Rb_tree<K,V,KoV,C,A>::_M_insert",STLport,,"inventory sweep: creates the node (_mbscmp compare), links it, rebalances; loose-family member of 005E11F0 (reviewed)"
 005FBB20,"stlp::_Rb_tree<K,V,KoV,C,A>::insert_unique(const value_type&)",STLport,,"inventory sweep: descend from the root (_mbscmp compare), then _M_insert; loose-family member of 005E13D0 (reviewed)"
+005FBD30,"compiler-generated destructor of a global map record (two CStrings)",MFC,,"A-I18: element destructor of the CArray 005FB120 (Serialize) and the global map destructor 005F6920"
+005FBD80,"compiler-generated destructor of a global map record (two CStrings)",MFC,,"A-I18: element destructor of the CArray 005FB380 (Serialize) and 005F6920"
+005FBDD0,"compiler-generated destructor of a global map record (two CStrings)",MFC,,"A-I18: element destructor of the CArray 005FB5F0 (Serialize) and 005F6920"
 005FBE20,exception::~exception,CRT,,A-I15 sweep: identical instruction stream to 0040C4A0 (code addresses masked)
 005FBE40,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 2 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 005FBF30,stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection),STLport,,A-I15 sweep: identical instruction stream to 0043FDF0 (code addresses masked)
+005FBF50,"ConstructElements<T> (16-byte records, two CStrings at +8 / +0xC set empty)",MFC,,"A-I18: called by the library CArray code 005FB120 / 00631CC0"
+005FBFB0,"ConstructElements<T> (24-byte records, two CStrings at +0x10 / +0x14 set empty)",MFC,,"A-I18: called by the library CArray code 005FB380 / 00631E70"
+005FC010,"ConstructElements<T> (24-byte records, two CStrings at +0x10 / +0x14 set empty)",MFC,,"A-I18: called by the library CArray code 005FB5F0 / 00631FF0"
 005FC070,stlp::uninitialized_copy<T*>,STLport,,A-I15 sweep: identical instruction stream to 0042B6C0 (code addresses masked)
 005FC090,stlp::uninitialized_fill_n<T*>,STLport,,A-I15 sweep: identical instruction stream to 0042B6E0 (code addresses masked)
 00601B10,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 00421500 (reviewed)
