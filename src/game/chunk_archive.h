@@ -154,6 +154,9 @@ public:
     // constructors (004A94A0, 004639D0, 00463AA0), version 1; the destructors in reverse order.
     void ConstructLocal();
     void DestructLocal();
+    // 0053A7B0 (A-U8). The out-of-line constructor (the database loaders' archives): the same
+    // steps as ConstructLocal, the streams' constructors and the containers' inlined. Returns this.
+    ChunkArchive* Construct();
 
     CMemoryStream indexStream_;    // +0x00 chunk 0
     CMemoryStream dataStream_;     // +0x28 the chunk data (chunk 2 while loading the records)

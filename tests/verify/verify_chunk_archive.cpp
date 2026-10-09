@@ -238,7 +238,21 @@ CRefObject* __fastcall ObjectRefVerify(ChunkArchive* self, void*, int id) {
     return actual;
 }
 
+// 0053A7B0 (A-U8): ours only (it allocates the sentinels and buckets); afterwards two empty
+// streams, both lists empty, the object map with buckets and no elements, version 1. Every database
+// load at startup reaches it.
+ChunkArchive* __fastcall ConstructVerify(ChunkArchive* self) {
+    ChunkArchive* result = self->Construct();
+    bool ok = result == self && !self->indexStream_.data_ && self->indexStream_.size_ == 0 && !self->dataStream_.data_ &&
+              self->dataStream_.size_ == 0 && Depth(self) == 0 && self->saved_->next == self->saved_ &&
+              self->objects_.BucketCount() > 0 && self->objects_.Size() == 0 && self->version_ == 1;
+    ei::verify::Check("ChunkArchive::Construct", true, ok, "");
+    return result;
+}
+
 } // namespace
+
+EI_VERIFY(0x0053A7B0, ConstructVerify, 0, s_unused);
 
 EI_VERIFY(0x004093A0, CStringVerify, 5, s_cstring);
 EI_VERIFY(0x00409470, StringVerify, 5, s_string);

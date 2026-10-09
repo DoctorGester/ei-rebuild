@@ -58,3 +58,68 @@ static void __fastcall DestroyModelRecordVerify(UnitModelRecord* record) {
     ei::verify::Check("DestroyModelRecord", true, true, "");
 }
 EI_VERIFY(0x0053EE70, DestroyModelRecordVerify, 0, s_unused);
+
+// A-U8. The record destructors (0053EBC0 prototype, 0053ED30 NPC): ours only, reported when they
+// run (the database load's erase 0053DC10 / 0053DD00 inside 0053A200 at startup, the tables'
+// destructors at exit). The prototype / model tables (00539B20 / 00539E70, from 0057DEE0 only):
+// ours only, the name map empty afterwards. The constructor (00539A10, 007AF358's dynamic
+// initialiser and 0057DEE0): ours only; afterwards every table's records empty and its name map
+// with buckets, all empty, and no elements.
+struct UnitPrototypeRecord;
+struct UnitNpcRecord;
+namespace unitdb {
+void __fastcall DestroyPrototypeRecord(UnitPrototypeRecord* record);
+void __fastcall DestroyNpcRecord(UnitNpcRecord* record);
+void __fastcall DestroyPrototypeTable(RecordTable* self);
+void __fastcall DestroyModelTable(RecordTable* self);
+UnitDatabase* __fastcall ConstructUnitDatabase(UnitDatabase* self);
+} // namespace unitdb
+
+static void __fastcall DestroyPrototypeRecordVerify(UnitPrototypeRecord* record) {
+    unitdb::DestroyPrototypeRecord(record);
+    ei::verify::Check("DestroyPrototypeRecord", true, true, "");
+}
+EI_VERIFY(0x0053EBC0, DestroyPrototypeRecordVerify, 0, s_unused);
+
+static void __fastcall DestroyNpcRecordVerify(UnitNpcRecord* record) {
+    unitdb::DestroyNpcRecord(record);
+    ei::verify::Check("DestroyNpcRecord", true, true, "");
+}
+EI_VERIFY(0x0053ED30, DestroyNpcRecordVerify, 0, s_unused);
+
+static void __fastcall DestroyPrototypeTableVerify(unitdb::RecordTable* self) {
+    unitdb::DestroyPrototypeTable(self);
+    ei::verify::Check("DestroyPrototypeTable", 0, NameCount(self), "names");
+}
+EI_VERIFY(0x00539B20, DestroyPrototypeTableVerify, 0, s_unused);
+
+static void __fastcall DestroyModelTableVerify(unitdb::RecordTable* self) {
+    unitdb::DestroyModelTable(self);
+    ei::verify::Check("DestroyModelTable", 0, NameCount(self), "names");
+}
+EI_VERIFY(0x00539E70, DestroyModelTableVerify, 0, s_unused);
+
+namespace {
+// A fresh table (0x20 bytes): the records' begin / end / end of storage null, the name map's
+// buckets (+0x10 .. +0x14) allocated and null, its element count (+0x1C) 0.
+bool FreshTable(const std::uint8_t* table) {
+    const auto* words = reinterpret_cast<void* const*>(table);
+    if (words[0] || words[1] || words[2]) return false;
+    auto* const* begin = static_cast<void* const*>(words[4]);
+    auto* const* end = static_cast<void* const*>(words[5]);
+    if (!begin || end <= begin) return false;
+    for (auto* const* p = begin; p != end; ++p)
+        if (*p) return false;
+    return NameCount(table) == 0;
+}
+} // namespace
+
+static unitdb::UnitDatabase* __fastcall ConstructUnitDatabaseVerify(unitdb::UnitDatabase* self) {
+    unitdb::UnitDatabase* result = unitdb::ConstructUnitDatabase(self);
+    const auto* base = reinterpret_cast<const std::uint8_t*>(self);
+    bool ok = result == self;
+    for (int t = 0; ok && t < 4; ++t) ok = FreshTable(base + 0x20 * t);
+    ei::verify::Check("ConstructUnitDatabase", true, ok, "");
+    return result;
+}
+EI_VERIFY(0x00539A10, ConstructUnitDatabaseVerify, 0, s_unused);
