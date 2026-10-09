@@ -8,6 +8,21 @@
 #include "script.h"
 #include "script_addon.h"
 
+#include "ai_map.h"
+#include "base_manager.h"
+#include "combat.h"
+#include "lever.h"
+#include "map_object.h"
+#include "net_classes.h"
+#include "object.h"
+#include "object_diplomacy.h"
+#include "object_tables.h"
+#include "party.h"
+#include "player_messages.h"
+#include "unit.h"
+#include "unit_ai.h"
+#include "world.h"
+
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
@@ -155,95 +170,41 @@ float FromBool(bool b) { return static_cast<float>(b ? 1 : 0); }
 
 // ---- Game state reached by the functions --------------------------------------------------------
 
-template <typename T>
-T& Field(void* object, std::size_t offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
-}
-
-constexpr int kClassUnit = 0x50;
 constexpr int kClassLever = 0x5D;
 
-// The world (global at 007AFF60).
-struct World {
-    CEngineObject* FindObject(int id);                // 00593AA0
-    void* GetPlayer(int index);                        // 00594180
-    float TerrainHeight(float x, float y);             // 00594220
-    int MercsNumber(int player);                       // 00591740
-    CEngineObject* FindUnitObject(int unitId);         // 0055FB00
-};
-__declspec(naked) CEngineObject* World::FindObject(int) EI_ORIGINAL(0x00593AA0)
-void* World::GetPlayer(int id) { return ::WorldGetPlayer(this, nullptr, id); }
-__declspec(naked) float World::TerrainHeight(float, float) EI_ORIGINAL(0x00594220)
-__declspec(naked) int World::MercsNumber(int) EI_ORIGINAL(0x00591740)
-CEngineObject* World::FindUnitObject(int id) { return ::WorldFindUnit(this, nullptr, id); }
-World* TheWorld() { return reinterpret_cast<World*>(0x007AFF60); }
+// A script object as the map object it is (units, levers, ...): position at +0x1C, the
+// side-specific companion at +0x170.
+CMapObject* MapObject(CEngineObject* object) { return static_cast<CMapObject*>(object); }
 
-// Height of the ground under a unit (00530280, a unit method).
-struct UnitGround {
-    double Height(float x, float y);   // ST0 stays unrounded, as the original left it
-};
-double UnitGround::Height(float x, float y) { return UnitGroundHeightOriginal(this, nullptr, x, y); }
+// The companion holding a map object's vitals. Scripts run on the server, so it is the
+// CMapObjectServer (the original reads it without checking).
+CMapObjectServer* ServerHalf(CEngineObject* object) {
+    return static_cast<CMapObjectServer*>(MapObject(object)->companion);
+}
 
-// Diplomacy table (007C2BC4).
-struct Diplomacy {
-    int Get(int a, int b);   // 00455630: 0 allied, 2 enemies
-};
-__declspec(naked) int Diplomacy::Get(int, int) EI_ORIGINAL(0x00455630)
+// 00530280: the ground (or water surface) height under (x, y) for the unit; ST0 stays unrounded,
+// as the original left it.
+double UnitGroundHeight(CEngineObject* unit, float x, float y) { return UnitGroundHeightOriginal(unit, nullptr, x, y); }
 
-struct Player {
-    int HasItem(int item);   // 00665640
-};
-__declspec(naked) int Player::HasItem(int) EI_ORIGINAL(0x00665640)
+// 00665640 (RET 4): CPlayer::HasLoot, called through its address.
+__declspec(naked) BOOL __fastcall PlayerHasLoot(CPlayer*, void*, int) EI_ORIGINAL(0x00665640)
 
-// Per-player quest variables (player + 0xC4).
-struct QuestVars {
-    float Get(const char* name);   // 00460AF0
-};
-float QuestVars::Get(const char* a0) { return NamedTableGet((void*)this, nullptr, a0); }
-
-// Water level map (007B00D0).
-struct WaterMap {
-    bool IsInWater(const float* position);   // 005BBC70
-};
-__declspec(naked) bool WaterMap::IsInWater(const float*) EI_ORIGINAL(0x005BBC70)
-
-// Network state (007AFE20) and the game server object (pointer at 0079B5DC).
-struct Network {
-    bool IsMultiplayer();   // 0057F440
-};
-bool Network::IsMultiplayer() { return IsNetworkClientOriginal(); }
-
-struct GameServer {
-    float GetVar(const stlp::string* name);   // 00419940
-    int GetLeaderId();                         // 0041A020
-};
-__declspec(naked) float GameServer::GetVar(const stlp::string*) EI_ORIGINAL(0x00419940)
-__declspec(naked) int GameServer::GetLeaderId() EI_ORIGINAL(0x0041A020)
-
-GameServer* ActiveServer() {
-    auto* server = *reinterpret_cast<GameServer**>(0x0079B5DC);
-    if (server && !(Field<std::uint32_t>(server, 4) & 0x80000000u)) return server;
+// The game server session when one runs and is not shut down.
+net::ServerSession* ActiveServer() {
+    net::ServerSession* server = net::GameServer();
+    if (server && !(server->flags7_ & CRefCounted::kDetached)) return server;
     return nullptr;
 }
 
-// Camera script player (007AFEA5).
-struct CameraPlayer {
-    int IsPlaying();   // 005788B0
+// The local player's client glue (007AFEA5; the object is not read).
+struct ClientGlue {
+    int IsCameraPlaying();   // 005788B0
 };
-__declspec(naked) int CameraPlayer::IsPlaying() EI_ORIGINAL(0x005788B0)
+__declspec(naked) int ClientGlue::IsCameraPlaying() EI_ORIGINAL(0x005788B0)
 
-// Alarms raised by InvokeAlarm: 16-byte slots at 007AFFEC.
-struct AlarmSlot {
-    std::uint8_t active;
-    std::uint8_t unknown_01[3];
-    int time;
-    float x;
-    float y;
-};
-static_assert(sizeof(AlarmSlot) == 16);
-AlarmSlot& Alarm(int index) { return reinterpret_cast<AlarmSlot*>(0x007AFFEC)[index]; }
+WorldAlarm& Alarm(int index) { return WorldServer()->alarms_[index]; }
 
-int GameTime() { return *reinterpret_cast<int*>(0x007AFFC4); }
+int WorldTick() { return WorldServer()->tick_; }
 
 // _CIfmod (006E95AA): ST1 mod ST0. GetWorldTime: (time * scale + offset) mod 24.
 float WorldTimeOfDay() {
@@ -259,24 +220,6 @@ float WorldTimeOfDay() {
         fstp result
     }
     return result;
-}
-
-// Object id from a name (00461360): (sum * 5 + toupper(c)) % 1e9 + 1e9, ECX = name.
-__declspec(naked) int __fastcall ObjectIdFromName(const char*) EI_ORIGINAL(0x00461360)
-
-// Virtual calls on world objects by vtable offset.
-const float* FuturePosition(CEngineObject* object, float* buffer, int time) {
-    using Fn = const float*(__thiscall*)(CEngineObject*, float*, int);
-    return reinterpret_cast<Fn>((*reinterpret_cast<void***>(object))[0xD0 / 4])(object, buffer, time);
-}
-int DeathState(void* stats) {
-    using Fn = int(__thiscall*)(void*);
-    return reinterpret_cast<Fn>((*reinterpret_cast<void***>(stats))[0x44 / 4])(stats);
-}
-float WorldBszValue(float x, float y) {
-    using Fn = float(__thiscall*)(World*, float, float);
-    World* world = TheWorld();
-    return reinterpret_cast<Fn>((*reinterpret_cast<void***>(world))[0x70 / 4])(world, x, y);
 }
 
 CEngineObject* AsUnit(CEngineObject* o) { return o && o->GetClassId() == kClassUnit ? o : nullptr; }
@@ -374,17 +317,24 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0x50:   // MaxHP
     case 0x51:   // Mana
     case 0x52: { // MaxMana
-        static const std::size_t kStatOffset[] = {0x28, 0x2C, 0x34, 0x38};
         CEngineObject* o = objectArgs.data[0]->object;
-        void* stats = o ? Field<void*>(o, 0x170) : nullptr;
-        if (stats) CopyFloat(result, &Field<float>(stats, kStatOffset[id - 0x4F]));
-        else StoreBits(result, kZero);
+        CMapObjectServer* stats = o ? ServerHalf(o) : nullptr;
+        if (stats) {
+            const UnitVitals& vitals = stats->vitals;
+            const float* value = id == 0x4F ? &vitals.hitPoints
+                               : id == 0x50 ? &vitals.maxHitPoints
+                               : id == 0x51 ? &vitals.mana
+                                            : &vitals.maxMana;
+            CopyFloat(result, value);
+        } else {
+            StoreBits(result, kZero);
+        }
         return;
     }
     case 0x55:   // GetX
     case 0x56: { // GetY
         CEngineObject* o = objectArgs.data[0]->object;
-        if (o) CopyFloat(result, &Field<float>(o, id == 0x55 ? 0x1C : 0x20));
+        if (o) CopyFloat(result, id == 0x55 ? &MapObject(o)->positionX : &MapObject(o)->positionY);
         else StoreBits(result, kZero);
         return;
     }
@@ -394,16 +344,16 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
             StoreBits(result, kZero);
             return;
         }
-        float x = Field<float>(o, 0x1C), y = Field<float>(o, 0x20), z = Field<float>(o, 0x24);
-        if (o->GetClassId() == kClassUnit) *result = static_cast<float>(reinterpret_cast<UnitGround*>(o)->Height(x, y) + z);
-        else *result = TheWorld()->TerrainHeight(x, y) + z;
+        float x = MapObject(o)->positionX, y = MapObject(o)->positionY, z = MapObject(o)->positionZ;
+        if (o->GetClassId() == kClassUnit) *result = static_cast<float>(UnitGroundHeight(o, x, y) + z);
+        else *result = WorldServer()->GridHeight(x, y) + z;
         return;
     }
     case 0xE1:   // GetLootItemsCount
     case 0xE2: { // GetMoney
         StoreBits(result, kZero);
-        void* player = TheWorld()->GetPlayer(Ftol(f[0]));
-        if (player) *result = static_cast<float>(Field<int>(player, id == 0xE1 ? 0xEC : 0xC0));
+        WorldPlayer* player = WorldServer()->GetPlayer(Ftol(f[0]));
+        if (player) *result = static_cast<float>(id == 0xE1 ? player->items.count : player->Party()->Money());
         return;
     }
     case 0xE3: { // WasLooted
@@ -419,15 +369,15 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
             StoreBits(result, kZero);
             return;
         }
-        float buffer[3];
-        const float* position = FuturePosition(o, buffer, RoundTimeOffset(GameTime(), f[0]));
-        std::memcpy(result, &position[id == 0xBF ? 0 : 1], 4);
+        Vector3 buffer;
+        const Vector3* position = ObjectSlots(o)->PositionAt(&buffer, RoundTimeOffset(WorldTick(), f[0]));
+        std::memcpy(result, id == 0xBF ? &position->x : &position->y, 4);
         return;
     }
-    case 0x99: { // IsUnitInWater
+    case 0x99: { // IsUnitInWater: flag 0x80 of the AI map cell at the object's position
         CEngineObject* o = objectArgs.data[0]->object;
         int inWater = 0;
-        if (o) inWater = reinterpret_cast<WaterMap*>(0x007B00D0)->IsInWater(&Field<float>(o, 0x1C)) ? 1 : 0;
+        if (o) inWater = WorldServer()->AIMap()->CellFlag80At(reinterpret_cast<const Vector3*>(&MapObject(o)->positionX)) ? 1 : 0;
         *result = static_cast<float>(inWater);
         return;
     }
@@ -448,14 +398,14 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     }
     case 0x5F: { // Random(range): [0, range]
         float range = f[0];
-        std::uint32_t value = reinterpret_cast<IsaacRandom*>(0x007A9D40)->Next();
+        std::uint32_t value = IsaacRandom::Global().Next();
         *result = ScaleRandom(value, range);
         return;
     }
     case 0x60: { // GetDiplomacy: 1 allied, -1 enemies, 0 otherwise
         int b = Ftol(f[1]);
         int a = Ftol(f[0]);
-        int relation = reinterpret_cast<Diplomacy*>(0x007C2BC4)->Get(a, b);
+        int relation = GameDiplomacy()->GetRelation(a, b);
         StoreBits(result, kZero);
         if (relation == 2) StoreBits(result, kMinusOne);
         else if (relation == 0) StoreBits(result, kOne);
@@ -464,10 +414,10 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0x63:   // IsAlive
     case 0x64: { // IsDead
         CEngineObject* o = objectArgs.data[0]->object;
-        void* stats = o ? Field<void*>(o, 0x170) : nullptr;
+        CEngineObject* stats = o ? MapObject(o)->companion : nullptr;
         StoreBits(result, kZero);
         if (!stats) return;
-        int state = DeathState(stats);
+        int state = static_cast<CMapObjectCompanion*>(stats)->IsDead();
         *result = static_cast<float>(id == 0x63 ? (state == 0 ? 1 : 0) : state);
         return;
     }
@@ -477,27 +427,28 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         if (!unit) return;
         int player = Ftol(f[0]);
         std::uint32_t mask = 1u << (player & 31);
-        bool enemy = (mask & Field<std::uint32_t>(unit, 0x248) & Field<std::uint32_t>(unit, 0x244)) != 0;
+        const CUnit* u = static_cast<const CUnit*>(unit);
+        bool enemy = (mask & u->relationsB & u->relationsA) != 0;
         *result = static_cast<float>(enemy ? 1 : 0);
         return;
     }
     case 0x65: { // GetPlayer
         CEngineObject* unit = AsUnit(objectArgs.data[0]->object);
         StoreBits(result, kZero);
-        if (unit) *result = static_cast<float>(Field<int>(unit, 0x250));
+        if (unit) *result = static_cast<float>(static_cast<CUnit*>(unit)->side);
         return;
     }
-    case 0x8F: { // GetAIClass
+    case 0x8F: { // GetAIClass (the unit's size class, +0x324)
         CEngineObject* unit = AsUnit(objectArgs.data[0]->object);
         StoreBits(result, kMinusOne);
-        if (unit) *result = static_cast<float>(Field<int>(unit, 0x324));
+        if (unit) *result = static_cast<float>(static_cast<CUnit*>(unit)->sizeClass);
         return;
     }
     case 0x90: { // GetLeverState
         CEngineObject* o = objectArgs.data[0]->object;
         StoreBits(result, kZero);
         if (!o || o->GetClassId() != kClassLever) return;
-        *result = static_cast<float>(Field<int>(o, 0x238));
+        *result = static_cast<float>(static_cast<Lever*>(o)->state);
         return;
     }
     case 0x66: { // GetObjectID
@@ -521,13 +472,13 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
     case 0x53: { // DistanceUnitUnit
         CEngineObject* a = objectArgs.data[0]->object;
         CEngineObject* b = objectArgs.data[1]->object;
-        if (a && b) *result = Distance(Field<float>(a, 0x1C), Field<float>(a, 0x20), Field<float>(b, 0x1C), Field<float>(b, 0x20));
+        if (a && b) *result = Distance(MapObject(a)->positionX, MapObject(a)->positionY, MapObject(b)->positionX, MapObject(b)->positionY);
         else StoreBits(result, kFar);
         return;
     }
     case 0x54: { // DistanceUnitPoint
         CEngineObject* o = objectArgs.data[0]->object;
-        if (o) *result = Distance(Field<float>(o, 0x1C), Field<float>(o, 0x20), f[0], f[1]);
+        if (o) *result = Distance(MapObject(o)->positionX, MapObject(o)->positionY, f[0], f[1]);
         else StoreBits(result, kFar);
         return;
     }
@@ -588,40 +539,41 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
 
     case 0x7C: { // HaveItem(player, item)
         StoreBits(result, kZero);
-        auto* player = static_cast<Player*>(TheWorld()->GetPlayer(Ftol(f[0])));
-        if (player && player->HasItem(Ftol(f[1]))) StoreBits(result, kOne);
+        auto* player = reinterpret_cast<CPlayer*>(WorldServer()->GetPlayer(Ftol(f[0])));
+        if (player && PlayerHasLoot(player, nullptr, Ftol(f[1]))) StoreBits(result, kOne);
         return;
     }
     case 0xB1:   // IsPlayerInDanger
     case 0xB2: { // IsPlayerInSafety
         StoreBits(result, kZero);
-        void* player = TheWorld()->GetPlayer(Ftol(f[0]));
+        WorldPlayer* player = WorldServer()->GetPlayer(Ftol(f[0]));
         if (!player) return;
-        int danger = Field<int>(Field<void*>(player, 0x20), 0x5120);
+        int danger = player->server->refreshPending_;
         if (id == 0xB1 ? danger == 2 : danger == 0) StoreBits(result, kOne);
         return;
     }
     case 0xD1:   // GetMercsNumber
-        *result = static_cast<float>(TheWorld()->MercsNumber(Ftol(f[0])));
+        *result = static_cast<float>(WorldServer()->CountLivingMercs(Ftol(f[0])));
         return;
     case 0x80: { // GSGetVar(player, name): from the game server in multiplayer, else the player's
-        GameServer* server = reinterpret_cast<Network*>(0x007AFE20)->IsMultiplayer() ? ActiveServer() : nullptr;
+        net::ServerSession* server = IsNetworkClientOriginal() ? ActiveServer() : nullptr;
         if (server) {
             const char* name = stringArgs.data[0];
             stlp::string key(name);
-            *result = server->GetVar(&key);
+            // StringRep is the raw layout of an STLport string.
+            *result = static_cast<float>(server->GetVariable(reinterpret_cast<const net::StringRep*>(&key)));
             return;
         }
         StoreBits(result, kZero);
-        void* player = TheWorld()->GetPlayer(Ftol(f[0]));
-        if (player) *result = reinterpret_cast<QuestVars*>(static_cast<char*>(player) + 0xC4)->Get(stringArgs.data[0]);
+        WorldPlayer* player = WorldServer()->GetPlayer(Ftol(f[0]));
+        if (player) *result = NamedTableGet(player->variables, nullptr, stringArgs.data[0]);
         return;
     }
     case 0xA2:   // IsCameraPlaying
-        *result = static_cast<float>(reinterpret_cast<CameraPlayer*>(0x007AFEA5)->IsPlaying());
+        *result = static_cast<float>(static_cast<ClientGlue*>(ClientGlueObject())->IsCameraPlaying());
         return;
-    case 0xAA:   // IsNight
-        CopyFloat(result, reinterpret_cast<const float*>(0x007AFFE4));
+    case 0xAA:   // IsNight (the world's day-time value, copied as a float)
+        CopyFloat(result, reinterpret_cast<const float*>(&WorldServer()->unknown84_));
         return;
     case 0xB5:   // GetWorldTime
         *result = WorldTimeOfDay();
@@ -636,22 +588,22 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         CEngineObject* o = objectArgs.data[0]->object;
         StoreBits(result, kZero);
         if (!o) return;
-        float x = Field<float>(o, 0x1C), y = Field<float>(o, 0x20);
+        float x = MapObject(o)->positionX, y = MapObject(o)->positionY;
         bool inside = !(Compare(x, f[0]) & kLess) && (Compare(x, f[2]) & kLessOrEqual) &&
                       !(Compare(y, f[1]) & kLess) && (Compare(y, f[3]) & kLessOrEqual);
         *result = static_cast<float>(inside ? 1 : 0);
         return;
     }
-    case 0xE5: { // IsUnitVisible: in the local player's list of visible units
+    case 0xE5: { // IsUnitVisible: in the local player's list of units always sent
         CEngineObject* o = objectArgs.data[0]->object;
         StoreBits(result, kZero);
         if (!o) return;
-        void* player = TheWorld()->GetPlayer(0);
+        WorldPlayer* player = WorldServer()->GetPlayer(0);
         if (!player) return;
-        auto& visible = Field<mfc::CArray<CEngineObject*>>(Field<void*>(player, 0x20), 0x510C);
+        const ScriptGroup& visible = player->server->partyUnits_;
         bool found = false;
         for (int i = 0; i < visible.size; ++i)
-            if (visible.data[i] == o) {
+            if (visible.data[i].object == o) {
                 found = true;
                 break;
             }
@@ -659,10 +611,10 @@ void SSCCmd::CalcFloat(CScript* script, ScriptVars* vars, float* result) {
         return;
     }
     case 0xBD:   // GetZValue
-        *result = TheWorld()->TerrainHeight(f[0], f[1]);
+        *result = WorldServer()->GridHeight(f[0], f[1]);
         return;
     case 0xBE:   // GetBSZValue
-        *result = WorldBszValue(f[0], f[1]);
+        *result = static_cast<float>(WorldServer()->RawSurfaceHeightAt(f[0], f[1]));
         return;
     case 0xC5: { // IsInArea(area, x, y)
         int area = x87::fistp(f[0]);
@@ -710,7 +662,7 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
     }
     switch (id) {
     case 0x4E: { // GetObject(id)
-        CEngineObject* o = TheWorld()->FindObject(Ftol(floatArgs.data[0]));
+        CEngineObject* o = WorldServer()->FindObject(Ftol(floatArgs.data[0]));
         if (!o) game::DebugLog("Object with ID %d not found in function \"%s\".\n", Ftol(floatArgs.data[0]), "GetObject");
         ScriptObjectRef* slot = *result;
         slot->Reset();
@@ -719,18 +671,19 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
         return;
     }
     case 0xB4: { // GetUnitOfPlayer(player, index)
-        void* player = TheWorld()->GetPlayer(Ftol(floatArgs.data[0]));
+        WorldPlayer* player = WorldServer()->GetPlayer(Ftol(floatArgs.data[0]));
         CEngineObject* o = nullptr;
         if (player) {
+            const PartyMemberArray& members = player->Party()->members_;
             int index = x87::fistp(floatArgs.data[1]);
-            if (index >= 0 && index < Field<int>(player, 0xA4))
-                o = TheWorld()->FindUnitObject(Field<int>(Field<char*>(player, 0xA0) + index * 0x784, 0x1C));
+            if (index >= 0 && index < members.size)
+                o = WorldFindUnit(WorldServer(), nullptr, static_cast<int>(members.data[index].unknown_01C));
         }
         Store(*result, o);
         return;
     }
     case 0x85: { // GetObjectByName
-        CEngineObject* o = TheWorld()->FindObject(ObjectIdFromName(stringArgs.data[0]));
+        CEngineObject* o = WorldServer()->FindObject(TextKeyFromName(stringArgs.data[0]));
         if (!o)
             game::DebugLog("Object with name %s not found in function \"%s\".\n",
                            static_cast<const char*>(stringArgs.data[0]), "GetObjectByName");
@@ -738,7 +691,7 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
         return;
     }
     case 0xAB: { // GetObjectByID (decimal string)
-        CEngineObject* o = TheWorld()->FindObject(GameAtoi(stringArgs.data[0]));
+        CEngineObject* o = WorldServer()->FindObject(GameAtoi(stringArgs.data[0]));
         if (!o)
             game::DebugLog("Object with ID %s not found in function \"%s\".\n",
                            static_cast<const char*>(stringArgs.data[0]), "GetObjectByID");
@@ -747,14 +700,15 @@ void SSCCmd::CalcObject(CScript* script, ScriptVars* vars, ScriptObjectRef** res
     }
     case 0xE4: { // GetLeader: the server's leader in multiplayer, else player 0's first unit
         int unitId;
-        if (GameServer* server = ActiveServer()) {
-            unitId = server->GetLeaderId();
+        if (net::ServerSession* server = ActiveServer()) {
+            unitId = server->LeaderId();
         } else {
             unitId = 0x3B9AF5CE;
-            void* player = TheWorld()->GetPlayer(0);
-            if (player && Field<int>(player, 0xA4) > 0) unitId = Field<int>(Field<char*>(player, 0xA0), 0x1C);
+            WorldPlayer* player = WorldServer()->GetPlayer(0);
+            if (player && player->Party()->members_.size > 0)
+                unitId = static_cast<int>(player->Party()->members_.data[0].unknown_01C);
         }
-        Store(*result, TheWorld()->FindObject(unitId));
+        Store(*result, WorldServer()->FindObject(unitId));
         return;
     }
     default:
@@ -769,22 +723,13 @@ EI_REBIRTH_IMPLEMENTS(0x004B56C0, ei::rebirth::Patch::AddNewScriptCommands);
 
 namespace {
 
-// The script's temporary groups (CList<ScriptGroup> at +0x1B0): AddTail (004C8D80) copies the group
-// into a new node (the group at node + 8) and returns the node. 004C2290: group destructor.
-// 004C1290: group assignment.
-__declspec(naked) char* __fastcall GroupTempsAddTail(void* /*list*/, void*, const ScriptGroup*) EI_ORIGINAL(0x004C8D80)
+using TempGroupList = mfc::CList<ScriptGroup>;
+
+// The script's temporary groups: AddTail (004C8D80) copies the group into a new node and returns
+// the node. 004C2290: group destructor. 004C1290: group assignment.
+__declspec(naked) TempGroupList::Node* __fastcall GroupTempsAddTail(TempGroupList*, void*, const ScriptGroup*) EI_ORIGINAL(0x004C8D80)
 inline void __fastcall GroupDestruct(ScriptGroup* a0) { ScriptGroupDestructOriginal((void*)a0); }
 inline void __fastcall GroupAssign(ScriptGroup* a0, void*, const ScriptGroup* a2) { GroupAssignOriginal((void*)a0, nullptr, (const void*)a2); }
-
-// Walks the world object manager's list (007AFFA0); holds a reference on the manager meanwhile.
-struct ObjectIterator {
-    void* First(void* list);   // 00404920
-    void* Next();              // 00404960
-    void* list;
-    void* node;
-};
-__declspec(naked) void* ObjectIterator::First(void*) EI_ORIGINAL(0x00404920)
-__declspec(naked) void* ObjectIterator::Next() EI_ORIGINAL(0x00404960)
 
 // FNSTSW after FILD a, FCOMP b (AH).
 int CompareIntFloat(int a, float b) {
@@ -799,66 +744,35 @@ int CompareIntFloat(int a, float b) {
     return status;
 }
 
-// What a unit sees: its perception object (+0x240) lists the objects at +0xA94 ({next, ?, object}).
-void InsertSeen(ScriptGroup* group, char* perception) {
-    for (char* node = Field<char*>(perception, 0xA94); node;) {
-        char* current = node;
-        node = Field<char*>(current, 0);
-        group->Insert(Field<CEngineObject*>(current, 8));
+// What a unit sees: the units in sight of its server half (CUnit::controller, the AI brain's
+// visible list).
+void InsertSeen(ScriptGroup* group, CEngineObject* controller) {
+    const auto& visible = static_cast<CUnitServer*>(controller)->Brain()->visible;
+    for (auto* node = visible.head; node;) {
+        auto* current = node;
+        node = current->next;
+        group->Insert(current->data);
     }
 }
 
-// A player's party: an STLport hash_map<id, unit> at player + 0x40 (as in combat_actions.cpp).
-struct PartyNode {
-    PartyNode* next;
-    std::uint32_t key;
-    CEngineObject* unit;
-};
-struct PartyMap {
-    std::uint32_t functors;
-    PartyNode** buckets;
-    PartyNode** finish;
-};
-
-std::uint32_t BucketCount(const PartyMap* map) {
-    return static_cast<std::uint32_t>(static_cast<int>(reinterpret_cast<std::uintptr_t>(map->finish) -
-                                                       reinterpret_cast<std::uintptr_t>(map->buckets)) >> 2);
-}
-
-// 00455830 (hashtable::begin): the head of the first non-empty bucket.
-PartyNode* FirstNode(const PartyMap* map) {
-    for (std::uint32_t i = 0; i < BucketCount(map); ++i)
-        if (map->buckets[i]) return map->buckets[i];
-    return nullptr;
-}
-
-// operator++ (004558B0 when the chain ends).
-PartyNode* NextNode(const PartyMap* map, const PartyNode* node) {
-    if (node->next) return node->next;
-    std::uint32_t bucket = node->key % BucketCount(map);
-    for (;;) {
-        ++bucket;
-        if (BucketCount(map) <= bucket) return nullptr;
-        if (PartyNode* head = map->buckets[bucket]) return head;
-    }
-}
+CEngineObject* ControllerOf(CEngineObject* unit) { return static_cast<CUnit*>(unit)->controller; }
 
 } // namespace
 
 void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) {
-    ObjectIterator objects;
-    objects.list = nullptr;
+    ObjectListIterator objects;
+    objects.manager = nullptr;
     PrepareArguments(script, vars);
     {
         ScriptGroup empty;   // 004B5ED0
-        empty.vtable = reinterpret_cast<void*>(0x0073D110);
+        empty.vtable = scriptvtable::kRefs;
         empty.data = nullptr;
         empty.size = 0;
         empty.maxSize = 0;
         empty.growBy = 0;
-        char* node = GroupTempsAddTail(script->Field(0x1B0), nullptr, &empty);
+        TempGroupList::Node* node = GroupTempsAddTail(&script->tempGroups_, nullptr, &empty);
         GroupDestruct(&empty);
-        *result = reinterpret_cast<ScriptGroup*>(node + 8);
+        *result = &node->data;
     }
     ScriptGroup* group = *result;
     bool done = false;
@@ -882,7 +796,7 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
         group->SetSize(0, -1);
         CEngineObject* unit = objectArgs.data[0]->AsUnit();
         if (!unit) break;
-        if (char* perception = Field<char*>(unit, 0x240)) InsertSeen(*result, perception);
+        if (CEngineObject* controller = ControllerOf(unit)) InsertSeen(*result, controller);
         break;
     }
     case 0x5E: { // GroupSee(group): what its units see
@@ -890,39 +804,38 @@ void SSCCmd::CalcGroup(CScript* script, ScriptVars* vars, ScriptGroup** result) 
         for (int i = 0; i < groupArgs.data[0]->size; ++i) {
             CEngineObject* unit = groupArgs.data[0]->data[i].AsUnit();
             if (!unit) continue;
-            if (char* perception = Field<char*>(unit, 0x240)) InsertSeen(*result, perception);
+            if (CEngineObject* controller = ControllerOf(unit)) InsertSeen(*result, controller);
         }
         break;
     }
     case 0x62: { // GetPlayerUnits(player): the world's units whose player compares equal (or NaN)
-        for (auto* o = static_cast<CEngineObject*>(objects.First(*reinterpret_cast<void**>(0x007AFFA0))); o;
-             o = static_cast<CEngineObject*>(objects.Next())) {
+        for (CEngineObject* o = objects.First(WorldObjectManager()); o; o = objects.Next()) {
             if (o->GetClassId() != kClassUnit) continue;
-            if (CompareIntFloat(Field<int>(o, 0x250), floatArgs.data[0]) & kEqual) (*result)->Insert(o);
+            if (CompareIntFloat(static_cast<CUnit*>(o)->side, floatArgs.data[0]) & kEqual) (*result)->Insert(o);
         }
         break;
     }
-    case 0xA5: { // PlayerSee(player): the player's seen objects, its party and what the party sees
-        void* player = TheWorld()->GetPlayer(Ftol(floatArgs.data[0]));
+    case 0xA5: { // PlayerSee(player): the player's seen objects, its units and what they see
+        WorldPlayer* player = WorldServer()->GetPlayer(Ftol(floatArgs.data[0]));
         if (!player) {
             (*result)->SetSize(0, -1);
             break;
         }
-        GroupAssign(*result, nullptr, reinterpret_cast<const ScriptGroup*>(Field<char*>(player, 0x20) + 0x50F8));
-        const auto* party = reinterpret_cast<const PartyMap*>(static_cast<char*>(player) + 0x40);
-        for (PartyNode* node = FirstNode(party); node; node = NextNode(party, node)) {
-            CEngineObject* unit = node->unit;
+        GroupAssign(*result, nullptr, &player->server->group50F8_);
+        const auto& units = player->units.map;
+        for (auto* node = units.First(); node; node = units.After(node)) {
+            CEngineObject* unit = node->value;
             if (!unit) break;
             (*result)->Insert(unit);
-            InsertSeen(*result, Field<char*>(unit, 0x240));   // no null check, as in the original
+            InsertSeen(*result, ControllerOf(unit));   // no null check, as in the original
         }
         break;
     }
     default:
-        game::FatalError(reinterpret_cast<const char*>(0x0078B748));   // "Function does not return string at ..."
+        game::FatalError("Function does not return string at SSCCmd::CalcFunction");
         break;
     }
-    if (objects.list) --Field<int>(objects.list, 4);   // the iterator's destructor
+    if (objects.manager) --objects.manager->refCount_;   // the iterator's destructor
 }
 EI_REPLACE_METHOD(0x004B5B00, SSCCmd::CalcGroup);
 EI_REBIRTH_IMPLEMENTS(0x004B5B00, ei::rebirth::Patch::AddNewScriptCommands);

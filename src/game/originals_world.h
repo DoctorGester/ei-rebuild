@@ -130,3 +130,5 @@ __declspec(naked) inline void __fastcall ClientQueueObjectOriginal(void* /*world
 inline void* ClientWorldObject() { return reinterpret_cast<void*>(0x007AF5B8); }
 // The local player's client glue object (007AFEA5; its thiscall methods 00578xxx do not read it).
 inline void* ClientGlueObject() { return reinterpret_cast<void*>(0x007AFEA5); }
+// The game's glue object before it (007AFEA4; GameDirectoryOriginal and the like do not read it).
+inline void* GameGlueObject() { return reinterpret_cast<void*>(0x007AFEA4); }

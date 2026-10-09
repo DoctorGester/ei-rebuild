@@ -42,7 +42,8 @@ Mark a ticket taken by adding the date; remove it when merged.
 The four porting batches (A-I16, A-H15, A-S9, A-U7) are merged (2026-10-09, 140 runs pass). Left: build, fix and merge the drafts below all six drafts are merged (2026-10-09). Then republish the dashboard and remove merged worktrees.
 
 - C6 done 2026-10-09 (combat.md "C6 cleanup"). C7 done 2026-10-09.
-- C8 done 2026-10-09, re-merging with V2 (taken): branch worktree-agent-aaca8610a3b615722 head 5613448 (worktree agent-ab62f033819489b11) conflicts with V2 in world_client_view.cpp, world_party.cpp (and more; merge was aborted); a fresh worker should merge main into it and resolve, taking vecmath.h's types. Files: script_exec_run, script_eval, script_addon_commands, script_exec, world_sync, world_client_view, world_rules, world_party.
+- C8 merged 2026-10-09 (8 script / world files).
+- C9 (taken 2026-10-09): renderer_init, map_object_lifetime, figure_part_draw, string_map, map_object_shadow, world_map, world_update, scene_bones, unit_update.
 
 ## Vector math (planned 2026-10-09)
 

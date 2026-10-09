@@ -314,17 +314,19 @@ pragma (DR-C4): release code is fild elapsed, fmul secondsPerTick_, fadd offset,
 ## Cleanup left and unverified points (C7, C8, drafts DR-C1, DR-C3, DR-C4, DR-C5)
 
 - C7 made world_create.cpp, world_client.cpp, world_quests.cpp (GameFtol's `__asm` and its pragma left) and
-  ai_region_reach.cpp clean. C8 (script_exec_run, script_eval, script_addon_commands, script_exec, world_sync,
-  world_client_view, world_rules, world_party) is done on a branch, not merged (tickets.md).
+  ai_region_reach.cpp clean. C8 did the same for script_exec_run, script_eval, script_addon_commands, script_exec (its
+  callees are call-only `...Calls` facades), world_sync, world_client_view, world_rules, world_party. C8 added
+  CMapObjectCompanion slot 17 IsDead, CMapObjectVirtuals slot 40 KeyId, world_effect.h CTimedObjectVirtuals (18-20),
+  CObject3D viewPosition / worldMatrix, touchTime, Terrain::heightRange, WeaponRecord bonuses / damageTypes. Script
+  "danger" is CPlayerServer::refreshPending_; GetAIClass reads CUnit::sizeClass; GameTime's fraction is tickFraction_.
 - world_game.cpp: `At<int>(World(), 0x5C)` (CWorld::shared5C_): on the server the pending connection source world_update.cpp
   steps (its slot 6 is the lobby's TakeNew, the remaining VCall in AcceptNewPlayers) and hands to 0058DAF0; ClientSetPlayer
   (00566CE0, originals_world.h, declared with an int) passes it to 004782E0 as a link. Needs a class and the forwarder
   retyped (app.cpp shares it). Also left: the two `__asm` helpers (_ftol, 24.0), `TextOpsAt`, and the accessors with literal
   addresses (GameMode, Campaign, ...) that belong in game_flow_data.h.
 - world_map.cpp's `LoadedFresh` / `KeepsState` still use byte offsets (+0x11D / +0x11E = CWorldServer::loadedFresh_ /
-  keepsState_). world_client_draw.cpp keeps six x87 `__asm` helpers; world_client_view.cpp keeps its own constants
-  (kTouchedModels..., a local DeferredUnits(), a RenderDevice view of 007AF068) that could use world.h `FrameObjects` /
-  `FrameDeferredUnits` and model.h `ScenePipeline`.
+  keepsState_). world_client_draw.cpp keeps six x87 `__asm` helpers; world_client_view.cpp keeps its own draw-queue view
+  (DrawQueues at 007AF508, a local DeferredUnits()) that could use world.h `FrameObjects` / `FrameDeferredUnits`.
 - 00564AF0 (`CObject3D::PartBox`, once "CWorldClient::ListItem") runs on a platform object (AddObject passes the object in
   ECX; it reads CObject3D::parts +0xD0 / +0xD4 and pendingParts +0xE0), not on the client. The client's +0x1F0 list is the
   platform set's face list (PlatformSet +0x1D4: an engine object, then an mfc::CList<Platform> at +0x1C; 00573000 carves
