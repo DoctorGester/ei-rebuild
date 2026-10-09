@@ -4,8 +4,12 @@
 // Float maths is plain C++ (rewrite-guide rule 7): atan2, exp, cos and sin come from the C++
 // library instead of FPATAN / F2XM1 / FCOS / FSIN, so a heading may rarely differ in its last bit
 // (the two angles are rounded to float like the original's, which removed the common 1-ULP shift).
+#include "map_object_figures.h"
+#include "unit.h"
+#include "unit_client_models.h"
+#include "world.h"
+
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_ai.h"
 #include "originals_engine.h"
@@ -13,14 +17,11 @@
 #include "originals_units.h"
 
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 namespace {
-
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
-}
 
 // The controller's world [00455950]; the motion's sample [005C7430 on unit +0x27C: world, order,
 // time, turning, position (half-cells), direction, speed, cell x, cell y]; the unit's ground height
@@ -33,7 +34,6 @@ __declspec(naked) void __fastcall UnitFaceDirection(void*, void*, const float*) 
 __declspec(naked) double __fastcall UnitAnimationSpeed(void*, void*, const void*) EI_ORIGINAL(0x005327D0)
 float* __fastcall FacingAxis(const void* a0, void*, float* a2) { return QuaternionAxisY(a0, nullptr, a2); }
 
-constexpr int kSlotMoveObject = 0xA4 / 4;     // world: (object, position)
 constexpr float kCellScale = 1.0f;            // 0073EBF0
 constexpr float kHalf = 0.5f;                 // 0073B86C
 constexpr float kHalfTurn = 3.1416f;          // 0073CF80
@@ -56,33 +56,34 @@ float Store(double v) {
 // direction with weight exp(-0.3 rate) on the old heading when `rate` > 0; finally the animation
 // speed factor +0x178 from the motion's speed and the figure's current animation.
 void __fastcall ClientPlaceOnPath(std::uint8_t* controller, void*, float time, float rate) {
-    std::uint8_t* unit = At<std::uint8_t*>(controller, 0x1C);
-    if (At<std::uint32_t>(unit, 8) & 0x4000000) return;
+    auto* self = reinterpret_cast<CUnitClientSpecific*>(controller);
+    CUnit* unit = self->unit;
+    if (unit->flags_ & 0x4000000) return;
     float toCells = 1.0f / (kCellScale * kHalf);
-    float position[3] = {At<float>(unit, 0x1C), At<float>(unit, 0x20), At<float>(unit, 0x24)};
+    float position[3] = {unit->positionX, unit->positionY, unit->positionZ};
     position[0] = toCells * position[0];
     position[1] = toCells * position[1];
     float direction[3];
     float speed;
     int cellX, cellY;
     bool turning;
-    std::uint8_t* world = static_cast<std::uint8_t*>(ObjectWorld(controller));
-    MotionSample(unit + 0x27C, nullptr, world, controller + 0x38, time, &turning, position, direction, &speed, &cellX,
+    void* world = ObjectWorld(controller);
+    MotionSample(unit->motion, nullptr, world, self->motionOrder, time, &turning, position, direction, &speed, &cellX,
                  &cellY);
     float toWorld = kCellScale * kHalf;
     position[0] = toWorld * position[0];
     position[1] = toWorld * position[1];
-    position[2] = static_cast<float>(UnitGroundHeight(unit, nullptr, position[0], position[1]) + At<float>(unit, 0x320));
-    ei::VCall<void>(ObjectWorld(controller), kSlotMoveObject, unit, position);
-    if (At<std::uint8_t>(controller, 0x76)) {
-        At<std::uint8_t>(controller, 0x76) = 0;
+    position[2] = static_cast<float>(UnitGroundHeight(unit, nullptr, position[0], position[1]) + unit->heightOffset);
+    static_cast<CWorld*>(ObjectWorld(controller))->MoveObject(unit, position);   // the world's slot 41
+    if (self->snapHeading) {
+        self->snapHeading = 0;
         UnitTurnTowards(unit, nullptr, direction, 0);
     }
-    if (At<std::uint32_t>(unit, 8) & 0x10000000) {
+    if (unit->flags_ & 0x10000000) {
         UnitTurnTowards(unit, nullptr, direction, 1);
     } else if (!x87::IsNaN(rate) && rate > 0.0f) {   // FCOMP + TEST AH,0x41: only above zero
         float axis[3];
-        FacingAxis(unit + 0x34, nullptr, axis);
+        FacingAxis(&unit->orientation, nullptr, axis);
         // The original stores both angles as floats (FSTP). Left unrounded they shift the heading by
         // a float ULP in about one call in ten, and at a heading of +-pi (where 00402220 jumps from
         // one quaternion sign to the other) that flipped the orientation's sign once in the ui_hud run.
@@ -106,27 +107,33 @@ void __fastcall ClientPlaceOnPath(std::uint8_t* controller, void*, float time, f
         UnitFaceDirection(unit, nullptr, direction);
     }
 
-    void* animation = At<void*>(At<void*>(unit, 0x98), 0x40);
+    // The animation the figure plays (its animation state, CObject3D +0x98).
+    const FigureAnimation* animation = unit->Object3D()->animation->current;
     if (!animation) {
-        At<float>(unit, 0x178) = 1.0f;
+        unit->animationSpeed = 1.0f;
         return;
     }
-    float length = At<float>(animation, 0x24);
+    float length;
+    std::memcpy(&length, animation->unknown_24, sizeof(length));   // +0x24, a float
     // FCOMP + TEST AH,0x40: equal to 0 (or unordered).
     if (x87::IsNaN(length) || length == 0.0f) {
-        At<float>(unit, 0x178) = static_cast<float>(UnitAnimationSpeed(unit, nullptr, animation));
+        unit->animationSpeed = static_cast<float>(UnitAnimationSpeed(unit, nullptr, animation));
         return;
     }
-    std::uint8_t* entry = static_cast<std::uint8_t*>(animation) - At<int>(animation, 0x10) * 0x58 - 0x2C;
+    // The database the animation is in: its index (read as a dword) back to the first one.
+    int index;
+    std::memcpy(&index, &animation->index, sizeof(index));
+    const auto* database = reinterpret_cast<const AnimationDatabase*>(
+        reinterpret_cast<const char*>(animation - index) - offsetof(AnimationDatabase, animations));
     float frames = 1.0f;
-    float span = At<float>(entry, 0x24);
+    float span = database->length;
     if (!(x87::IsNaN(span) || span == 0.0f))
-        frames = ((At<float>(entry, 0x28) - At<float>(entry, 0x20)) * At<float>(unit, 0xCC) + At<float>(entry, 0x20)) / span;
+        frames = ((database->end - database->start) * unit->animationCC + database->start) / span;
     double moved = std::sqrt((static_cast<double>(direction[2]) * direction[2] + static_cast<double>(direction[1]) * direction[1]) +
                              static_cast<double>(direction[0]) * direction[0]);
     double numerator = moved * speed * kAnimationRate;
     double denominator = (1.0f / (kCellScale * kHalf)) * (static_cast<double>(frames) * length);
-    At<float>(unit, 0x178) = static_cast<float>(numerator / denominator);
+    unit->animationSpeed = static_cast<float>(numerator / denominator);
 }
 
 EI_REPLACE(0x00535850, ClientPlaceOnPath);
