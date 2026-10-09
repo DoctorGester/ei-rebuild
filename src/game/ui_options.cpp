@@ -22,7 +22,6 @@
 
 // --- Forwarders --------------------------------------------------------------------------------
 
-__declspec(naked) CUiSlider* CUiSlider::Construct(CInterface3D*, RECT, float, int, float) EI_ORIGINAL(0x0065BC30)
 __declspec(naked) CUiSpin* CUiSpin::Construct(CInterface3D*, RECT, const char*) EI_ORIGINAL(0x0065BCD0)
 __declspec(naked) void CUiSpin::AddText(const char*) EI_ORIGINAL(0x0065BE70)
 

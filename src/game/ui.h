@@ -1700,9 +1700,19 @@ public:
     // Virtual slot 26 (0065B490; 0065D0A0 for the scrolling text): places the bar over the layout
     // rectangle `rect` (rect_, arrows, thumb and regions; the text's surface and line width).
     void CallSetRect(const RECT* rect);
-    // 0065AEA0 (not rewritten). Constructor: a bar over the layout rectangle `rect` (passed by
-    // value), scrolling `speed` lines per second; returns this.
-    CUiScrollbar* Construct(CInterface3D* ui, RECT rect, float speed, int a, float b);
+    // 0065AEA0 (RET 0x20; ui_scrollbar.cpp, A-H19). Constructor: a window of `ui` with the
+    // "Scrollbar" texture (kind 3), four sprites (track, thumb, up, down) and three regions, laid
+    // out over `rect` (SetRect, called directly) at `depth`, `maximum` positions, scrolling
+    // `speed` lines per second; then SetPosition(0) from -1. Returns this.
+    CUiScrollbar* Construct(CInterface3D* ui, RECT rect, float depth, int maximum, float speed);
+    // 0065B0C0 (slot 25 of the plain bar, RET 4). `position` clamped to 0..maximum, moved_ set;
+    // a new position moves the thumb sprite (1) and thumb_ along the track: the offset is the
+    // track's height times the position over the maximum, truncated.
+    void SetPosition(int position);
+    // 0065B490 (slot 26 of the plain bar, RET 4). rect_, the track (the right 10 pixels less
+    // 26 at either end), the four sprites and the three regions (up arrow, down arrow, the rest);
+    // then the position set again through slot 25 (one below first, so it counts as a change).
+    void SetRect(const RECT* rect);
 
     int maxPosition_;                // +0x148
     float speed_;                    // +0x14C lines per second while an arrow is held (/16)
@@ -1734,8 +1744,8 @@ static_assert(sizeof(CUiScrollbar) == 0x18C);
 // regions 0 the left arrow, 1 the right arrow, 2 the track. ui_options.cpp.
 class CUiSlider : public CUiScrollbar {
 public:
-    // 0065BC30 (RET 0x20, not rewritten): CUiScrollbar's constructor (0065AEA0) with the slider's
-    // vtables. Returns this.
+    // 0065BC30 (RET 0x20; ui_scrollbar.cpp): CUiScrollbar's constructor (0065AEA0) with the
+    // slider's vtables. Returns this.
     // (`depth` goes to depth_ +0x17C, `maximum` to +0x148, `speed` to speed_ +0x14C.)
     CUiSlider* Construct(CInterface3D* ui, RECT rect, float depth, int maximum, float speed);
     // 0065B8B0 (slot 26, RET 4). Lays the slider out over `rect` (layout coordinates) and sets
