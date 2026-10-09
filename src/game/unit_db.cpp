@@ -99,7 +99,7 @@ void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
     Dword(ar, 0x26, &viewHeight);
     Dword(ar, 0x27, &hitSoundKind);
     Dword(ar, 0x28, &shake);
-    Dword(ar, 0x29, &unknown_50);
+    Dword(ar, 0x29, &level);
     ArchiveString(ar, nullptr, 0x2A, &secondWeaponName);
     Dword(ar, 0x2B, &unknown_54);
 }

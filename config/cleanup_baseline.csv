@@ -313,7 +313,7 @@ src/game/unit_skill_price.cpp,2,0,0,0,4,0,0,0,0,0,0
 src/game/unit_skins.cpp,0,0,0,0,0,0,0,0,0,1,1
 src/game/unit_stats.cpp,2,0,0,1,0,0,0,0,0,0,0
 src/game/unit_stats_pack.cpp,0,0,1,1,1,0,0,2,0,0,0
-src/game/unit_update.cpp,1,14,1,1,1,0,0,4,0,0,0
+src/game/unit_update.cpp,0,0,1,1,1,0,0,0,0,0,0
 src/game/unit_vitals.cpp,2,0,4,1,24,0,0,6,0,0,0
 src/game/view_matrices.cpp,0,0,0,0,0,0,0,0,0,0,5
 src/game/weather_draw.cpp,10,0,0,0,0,0,0,1,0,0,0
