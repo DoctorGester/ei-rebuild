@@ -35,7 +35,6 @@ __declspec(naked) void CUiModel::CallLoad(const char*, const char*, const char*)
 void CUiMesh::SetRectangle(float a0, float a1, float a2, float a3, float a4, float a5, int a6, int a7, int a8, int a9) { UiMeshRectangleOriginal((void*)this, nullptr, a0, a1, a2, a3, a4, a5, a6, a7, a8, a9); }
 __declspec(naked) void CUiMesh::SetFrame(float, float, float, float, float, float, float, int, int, int, int)
     EI_ORIGINAL(0x005E7D60)
-__declspec(naked) CUiScrollbar* CUiScrollbar::Construct(CInterface3D*, RECT, float, int, float) EI_ORIGINAL(0x0065AEA0)
 
 namespace {
 // The text manager (global at 007AF788; item_db_text.h) as the builders use it.

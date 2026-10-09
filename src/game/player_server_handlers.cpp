@@ -12,18 +12,21 @@
 #include "originals_world.h"
 #include "party.h"
 #include "party_records.h"
+#include "registry.h"
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_create.h"
 #include "unit_db.h"
 #include "world.h"
 
+#include "lib/crt.h"
 #include "lib/mfc.h"
 #include "originals_library.h"
 
 #include "ei/hook.h"
 
 #include <cmath>
+#include <cstring>
 
 namespace {
 
@@ -550,6 +553,78 @@ int CPlayerServer::OnPartyUpdate() {
     if (in.ok_) Owner()->Party()->LoadParty(block.Get(), 0);
     return 1;
 }
+
+// --- A-H19: the login ------------------------------------------------------------------------------
+
+namespace {
+constexpr int kClientVersion = 0x64;
+constexpr int kLoginTextLength = 0x3F;
+constexpr std::uint8_t kMessageLogin = 0x00;
+constexpr std::uint8_t kMessageError = 0x11;
+} // namespace
+
+BOOL __fastcall IsPrintableText(const char* text, int maxLength, int minLength) {
+    for (int i = 0; i < maxLength; ++i) {
+        char c = text[i];
+        if (c == 0) return i >= minLength;
+        if (gamecrt::isprint(c) == 0) return 0;
+    }
+    return 1;
+}
+EI_REPLACE(0x0047ADA0, IsPrintableText);
+
+int CPlayerServer::OnLogin() {
+    LoginMessage login;
+    login.unknown_84 = 0;
+    ReceivedMessages().Read(&login, sizeof(login));
+    if (state_ != 0) return 0;
+    CPlayer* player = Owner();
+    if (login.version != kClientVersion) {
+        int length = 0x100;
+        char format[0x100];
+        char text[0x140];
+        auto* world = static_cast<CWorldServer*>(player->ManagerContext());
+        world->Messages()->GetStringBuffer("SrvErrMsg", "WrongClientVersion", format, &length, "");
+        gamecrt::sprintf(text, format, 1, 0);
+        std::uint8_t type = kMessageError;
+        out_.Write(&type, 1);
+        out_.Write(text, static_cast<std::uint32_t>(std::strlen(text) + 1));
+        state_ = 3;
+        return 0;
+    }
+    if (!IsPrintableText(login.name, kLoginTextLength, 1)) return 0;
+    if (!IsPrintableText(login.password, kLoginTextLength, 1)) return 0;
+    login.name[kLoginTextLength] = 0;
+    login.password[kLoginTextLength] = 0;
+    CParty* party = player->Party();
+    switch (GameMode()) {
+    case 1:
+        PartyManagerEndRedeploy(PartyManager(), nullptr, party);
+        party->OpenEdgeExits();
+        break;
+    case 2:
+    case 3:
+        // The two strings are passed but not read.
+        if (!PartyMapLoad(PartyManager(), nullptr, static_cast<int>(reinterpret_cast<std::intptr_t>(login.name)),
+                          static_cast<int>(reinterpret_cast<std::intptr_t>(login.password)),
+                          reinterpret_cast<const int*>(&player->unknownFC_), party))
+            return 0;
+        break;
+    case 4:
+        party->Clear(1, 0);
+        break;
+    default:
+        break;
+    }
+    std::uint8_t type = kMessageLogin;
+    int id = player->id_;
+    out_.Write(&type, 1);
+    out_.Write(&id, 4);
+    SendParty();
+    state_ = 1;
+    return 1;
+}
+EI_REPLACE_METHOD(0x0066F890, CPlayerServer::OnLogin);
 
 EI_REPLACE_METHOD(0x0066FAA0, CPlayerServer::OnRefreshParty);
 EI_REPLACE_METHOD(0x00670C20, CPlayerServer::OnTakeExit);

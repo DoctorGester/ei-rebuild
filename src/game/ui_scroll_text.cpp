@@ -55,7 +55,39 @@ bool IsFormat(const char* token) {
 }
 } // namespace
 
-__declspec(naked) int CUiScrollText::NextToken(const mfc::CString*, int, mfc::CString*) EI_ORIGINAL(0x0065D970)
+// --- 0065D970 (A-H19) ------------------------------------------------------------------------------
+
+int CUiScrollText::NextToken(const mfc::CString* text, int pos, mfc::CString* out) {
+    int length = text->GetLength();
+    const char* chars = *text;
+    while (pos < length && (chars[pos] == ' ' || chars[pos] == '\t')) ++pos;
+    if (pos >= length) return -1;
+    // GetBuffer(0) on the text, as the original (a shared text gets its own copy).
+    char* buffer = const_cast<mfc::CString*>(text)->GetBuffer(0);
+    mfc::CString rest(buffer + pos);
+    const char* r = rest;
+    int count;
+    if (r[0] == kEscape) {
+        if (r[1] == 'F') {
+            count = 3;
+        } else if (r[1] == 'C') {
+            count = 5;
+        } else {
+            game::FatalError("ScrollText::Incorrect special symbol '%c'", static_cast<int>(r[1]));
+            // Should the error come back, the original takes the text's data pointer as the count.
+            count = static_cast<int>(reinterpret_cast<std::intptr_t>(r));
+            if (count == -1) count = rest.GetLength();
+        }
+    } else if (r[0] == '\n') {
+        count = 1;
+    } else {
+        count = rest.FindOneOf(" \t\a\n");
+        if (count == -1) count = rest.GetLength();
+    }
+    *out = rest.Left(count);
+    return pos + count;
+}
+EI_REPLACE_METHOD(0x0065D970, CUiScrollText::NextToken);
 
 // --- 0065D4B0 ------------------------------------------------------------------------------------
 

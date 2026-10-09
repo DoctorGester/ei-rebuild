@@ -90,6 +90,12 @@ public:
     // and not `all`, the count drops by one and the item is returned; otherwise it is released
     // and removed, and the result is null (also when it is not in the list).
     CItem* RemoveItem(CItem* item, int all);   // `all` read as a byte
+    // 00661FB0 (party_items.cpp). Every quest item (class 0x14) taken out with RemoveItem(item, 1),
+    // from the back of the list.
+    void RemoveQuestItems();
+    // 00661FE0 (party_items.cpp). Every item released (slot 4; the count re-read after each), the
+    // list's storage freed and the list emptied (what DestroyParty and Clear inline).
+    void ReleaseAllItems();
 
     // 006628D0 (RET 0xC; party_members.cpp). Appends a unit record: Create (slot 2) when there is
     // no item manager; a constructed record assigned to the new entry (its statistics are the

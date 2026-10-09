@@ -179,6 +179,24 @@ CItem* CParty::RemoveItem(CItem* item, int all) {
 }
 EI_REPLACE_METHOD(0x00661F30, CParty::RemoveItem);
 
+namespace {
+constexpr int kQuestItemClassId = 0x14;   // CItemQuest
+} // namespace
+
+void CParty::RemoveQuestItems() {
+    for (int i = items_.size - 1; i >= 0; --i) {
+        auto* item = static_cast<CItem*>(items_.data[i]);
+        if (item->GetClassId() == kQuestItemClassId) RemoveItem(item, 1);
+    }
+}
+EI_REPLACE_METHOD(0x00661FB0, CParty::RemoveQuestItems);
+
+void CParty::ReleaseAllItems() {
+    for (int i = 0; i < items_.size; ++i) static_cast<CEngineObject*>(items_.data[i])->Release();
+    items_.SetSize(0, -1);
+}
+EI_REPLACE_METHOD(0x00661FE0, CParty::ReleaseAllItems);
+
 // --- The party unit records' item lists ---------------------------------------------------------
 
 CItem* PartyUnitRecord::AddWeapon(CItem* item) { return AddEntry(weapons, item); }

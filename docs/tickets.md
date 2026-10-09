@@ -31,7 +31,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- A-H .. A-H17 done. A-H18 cut off, merged 2026-10-09. A-H19 taken (the rest of A-H18's list) (sound Open / Close / Reset, terrain sectors, item database destructor, item vector serialisers); left: 0064F550, server login 0066F890, 00661FB0 / 00661FE0 (items_spells.md "Next candidates").
+- A-H .. A-H17 done. A-H18 cut off, merged 2026-10-09. A-H19 done 2026-10-09 (branch of agent-a6ce8430e2d38d020; 0064F550, login 0066F890, party 00661FB0 / 00661FE0, UI controls 0065AEA0-0065D970, 006AE740); next: items_spells.md "Next candidates".
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
