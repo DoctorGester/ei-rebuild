@@ -312,6 +312,19 @@ struct IndexedRecordTable {
 };
 static_assert(sizeof(IndexedRecordTable) == 0x20);
 
+// The spell and spell modifier tables (007C8510 / 007C8530, 0x20 bytes each): the records and the
+// index by code (+0x0C; filled by the Rebirth-patched load 00684550).
+struct CodeIndexedTable {
+    // 0068C820 / 0068C920 (RET 4; spell_db_lookup.cpp). The record filed under `code`: the index's
+    // operator[] with a copy of the key, so an unknown code is filed with null.
+    char* FindByCode(const char* code);
+
+    RecordTable records;            // +0x00 begin, end
+    char* capacityEnd;              // +0x08
+    stlp::hash_map<stlp::string, char*, stlp::StringHash> byCode;   // +0x0C
+};
+static_assert(sizeof(CodeIndexedTable) == 0x20);
+
 // The item database (007C86D8; constructed by 0057E3D0, destroyed at exit through 006A6560).
 struct ItemDatabase {
     // 006A6570 (item_db_load.cpp, A-H18). The tables from the last to the first: the name index

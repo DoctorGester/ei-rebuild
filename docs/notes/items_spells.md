@@ -194,6 +194,7 @@ archive), 004E15C0 (node creation).
 | 0068B320 (slot 2), 0068B430, 0068B350 (slot 3), 0068B370, 0068B410 | CSpell::Clear, InitFromPrototype, ClearModifiers, CopyTo (S), Clone (O) | S |
 | 00683950 | CSpellEffect::GetDamage | S into a scratch DamageInfo |
 | 00688510, 0068B1F0, 0068B2C0, 0068B2A0 (slot 0), 0067E510, 0067E5D0, 0067E5B0 (slot 0) | MapEffect::Construct, CSpell / CSpellEffect Construct, Destruct, DeletingDestruct (spell_lifetime) | constructors S on scratch copies; destructors O (state left) |
+| 0068C820, 0068C920 | `CodeIndexedTable::FindByCode` (item_db.h; the index's operator[], unknown codes filed with null; spell_db_lookup) | S: ours, then the original finds the same entry (skipped when its resize would rehash) |
 | 0068B860, 0068B920 (slots 9 / 10), 00688550, 006885A0 | CSpell::LoadSpell / SaveSpell, MapEffect::Load / Save (spell_save; +0x1C..+0x2F is a MapEffect, `CSpell::Effect()`) | S: saves captured; loads replayed into the object's old copy (ui_saveload, world_load) |
 | 0068D730, 0068D280 | CLight::GetIntensityAt (the original starts with a 4-byte CMP + JNZ, so the wrapper calls its two branches 0068D736 point light / 0068D7B4 other directly), SetLitColors | P / S |
 | 006893F0, 006894B0 | SpellCodeByName, SpellModifierCodeByName (stdcall) | P |
@@ -221,8 +222,7 @@ AddModifier reports a null record as "Invalid rune" (007959F0); CopyTo tests the
 
 Not rewritten: 0068D310, 0068D5A0 (CLight colour contributions: a 4-float colour by value whose 4th component is
 uninitialised stack, cannot be compared bit for bit); 00688EC0 CreateSpellObject, 00688CD0 (factory), 00688990 / 00688B40
-(manager teardown), constructors / destructors (CSpellConstructor's 006840A0 / 00684080
-are done), 0068C820 / 0068C920 (find a spell / modifier record by code, thiscall on 007C8510 / 007C8530),
+(manager teardown, STLport hash_map walks), 0068BA80 (CSpellContainer constructor: list, string, CSpell inlined),
 STLport helpers 0068C500..0068CD50, the Rebirth-patched 00684550 (spell database load), 0068E640, 00691500. No callers:
 00684180 / 00684280 / 006842E0 / 00684310 / 006838E0.
 
