@@ -306,6 +306,14 @@ __declspec(naked) inline void* __fastcall FigureManagerLoadPartOriginal(void* /*
                                                                         const char* /*part*/, void* /*model*/, std::uint32_t,
                                                                         std::uint32_t, std::uint32_t, std::uint32_t /*arg*/,
                                                                         std::uint32_t /*detached*/) EI_ORIGINAL(0x005AC2B0)
+// A-U10 (unit_db.cpp). The skill database's STLport vectors: 00520D20 / 00520DE0 destroy a skill / skill level record
+// (thiscall, plain RET), 005209D0 / 00520B20 resize the vector of skills / levels (RET 4: count). No results.
+__declspec(naked) inline void __fastcall SkillRecordDestroyOriginal(void* /*record*/) EI_ORIGINAL(0x00520D20)
+__declspec(naked) inline void __fastcall SkillLevelDestroyOriginal(void* /*record*/) EI_ORIGINAL(0x00520DE0)
+__declspec(naked) inline void __fastcall SkillVectorResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
+    EI_ORIGINAL(0x005209D0)
+__declspec(naked) inline void __fastcall SkillLevelVectorResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
+    EI_ORIGINAL(0x00520B20)
 // A-U10 (map_object_animation_bones.cpp). Rewritten, called through their addresses so the wrappers run: 0050C230
 // FigureBone::Place (RET 4), 0050ACD0 AnimationTrack::Evaluate (RET 4), 005ACB80 LoadFigureBones (thiscall on the figure manager, RET 8: model, bone;
 // 1 / 0), 005AC880 LoadSkeletonLinks (thiscall on the figure manager, RET 8: state, model name; 1 or FatalError's).

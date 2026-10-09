@@ -223,6 +223,7 @@ original, compared: unit 0x4DC, stats 0x704, vitals 0x58); C capture streams; ou
 | 0052BEE0-0052C2C0 (13), 0052C490-0052C680 (7) | CTorchObject lifetime, Destroy, Update, Load / Save, AttachTorchObject, net state; CTorchObjectSpec Create / Destroy / Load / Save / setters 16-18 | torch_object.cpp, torch_spec.cpp | C / S / P |
 | 005296E0-00529A10 (20), 0052B030 / 0052B050 / 0052A8F0 / 0050E220 / 0050E290 | CTree / CBuilding / CStone / CStuffObject (PlainMapObject<vtable>) lifetimes and class slots; AIRef Reset / Assign / Load / Save | map_object_kinds.cpp, counted_ref.cpp | |
 | 00529A80-00529DA0 (14), 00529F50 / 00529F60 / 00529F70, 00522AD0 | CTrapObject (class 0x55), the magic trap's class slots and deleting destructor, LockKey::AcceptedByTrap | trap_object.cpp | |
+| 0051F3A0, 0051F480, 005207D0, 005208C0, 00521480, 0051FE00, 0051FE80, 0051FF00 | Skill (perk) database 007AF268 (A-U10): SkillRecord / SkillLevelRecord::Serialize (O: read twice), the archive's skill / level vectors and level chunk (ours: count), FindLevel / IndexOf (_mbsicmp on the level's +4 name) / IndexOfLevel (P) | unit_db.cpp | |
 
 ## Original bugs and oddities kept on purpose
 
@@ -287,7 +288,8 @@ original, compared: unit 0x4DC, stats 0x704, vitals 0x58); C capture streams; ou
   / 0052CB40 / 0052CC50 (STLport / CArray instantiations).
 - Not unit logic: 00500000-0050E000 (`map_objects.md`), map object effect visuals (00510B80, 005112A0, 005114D0, 00511A00),
   the client half's material sets and colour stack (0051C3D0, 0051C250, 0051B050, 0051B160, 0051C9F0: renderer data),
-  0051FF40 (writes "perks.pdb", no references: dead), unit database STLport / MFC code (library: 0053F530, 0053FCC0,
+  0051FF40 (writes "perks.pdb", no references: dead), the perks loader 00520220 (Rebirth-patched; its STLport helpers
+  0051F5B0 / 00521630 / 005218E0 are vector resize / insert-overflow instantiations), unit database STLport / MFC code (library: 0053F530, 0053FCC0,
   0053F950, 00520FA0, 00521220, 0053E2A0, 00521C70, 0051F790, 005225E0, 00522480, 00522010, 00522160, 005222F0, 0052C740;
   005335E0, 00539440, 00512060, 0051E5D0), 0053A200 and 00520220 (Rebirth-patched).
 - Inlined, no own function: 00519FC0 (zero part boxes), 0069FB60 (list AddTail pair), STLport `vector<int>::resize`

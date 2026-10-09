@@ -106,3 +106,98 @@ static void __fastcall NpcSerializeVerify(UnitNpcRecord* self, void*, ChunkArchi
     SerializeVerify("UnitNpcRecord::Serialize", s_npcSerialize, self, ar, kNpcLayout);
 }
 EI_VERIFY(0x0052DA60, NpcSerializeVerify, 7, s_npcSerialize);
+
+// The skill database (A-U10; startup: perks.pdb is loaded by 00520220 in every scenario).
+// - SkillRecord / SkillLevelRecord::Serialize (0051F3A0 / 0051F480): as the records above (ours,
+//   then the original reads the same record again; compared).
+// - FindLevel / IndexOf / IndexOfLevel (0051FE00 / 0051FE80 / 0051FF00): pure, original vs ours
+//   (the trade panel, item descriptions and the hero statistics look levels up by name).
+// - SerializeSkills / SerializeSkillLevels / SkillLevelChunk (005207D0 / 005208C0 / 00521480):
+//   ours only; after a load the vector holds as many records as the chunk has record chunks.
+namespace {
+constexpr int kSkillStrings[] = {0x00, 0x04};
+constexpr int kSkillVectors[] = {0x0C};
+constexpr Layout kSkillLayout{sizeof(SkillRecord), kSkillStrings, 2, kSkillVectors, 1};
+constexpr int kSkillLevelStrings[] = {0x00, 0x04, 0x0C, 0x14};
+constexpr Layout kSkillLevelLayout{sizeof(SkillLevelRecord), kSkillLevelStrings, 4, nullptr, 0};
+
+// The record chunks of chunk `id` of the current chunk (re-entered after the call; reading leaves
+// the parent as it was).
+int RecordChunks(ChunkArchive* ar, int id) {
+    if (!ar->EnterChunk(id)) return 0;
+    int count = ar->CountChunks(1);
+    ar->LeaveChunk();
+    return count;
+}
+
+void* s_unusedSkills;
+void* s_unusedSkillLevels;
+void* s_unusedSkillLevelChunk;
+} // namespace
+
+// 0051F3A0 / 0051F480: PUSH ESI; PUSH EDI; MOV EDI,[ESP+0xC] (6 bytes).
+static void(__fastcall* s_skillSerialize)(SkillRecord*, void*, ChunkArchive*);
+static void __fastcall SkillSerializeVerify(SkillRecord* self, void*, ChunkArchive* ar) {
+    SerializeVerify("SkillRecord::Serialize", s_skillSerialize, self, ar, kSkillLayout);
+}
+EI_VERIFY(0x0051F3A0, SkillSerializeVerify, 6, s_skillSerialize);
+
+static void(__fastcall* s_skillLevelSerialize)(SkillLevelRecord*, void*, ChunkArchive*);
+static void __fastcall SkillLevelSerializeVerify(SkillLevelRecord* self, void*, ChunkArchive* ar) {
+    SerializeVerify("SkillLevelRecord::Serialize", s_skillLevelSerialize, self, ar, kSkillLevelLayout);
+}
+EI_VERIFY(0x0051F480, SkillLevelSerializeVerify, 6, s_skillLevelSerialize);
+
+static void __fastcall SerializeSkillsVerify(ChunkArchive* ar, void*, int id, stlp::vector<SkillRecord>* skills,
+                                             void* unused) {
+    ar->SerializeSkills(id, skills, unused);
+    if (!ar->loading_) return;
+    int chunks = RecordChunks(ar, id);
+    ei::verify::Check("ChunkArchive::SerializeSkills", chunks, static_cast<int>(skills->size()), "%d records", chunks);
+}
+EI_VERIFY(0x005207D0, SerializeSkillsVerify, 0, s_unusedSkills);
+
+static void __fastcall SerializeSkillLevelsVerify(ChunkArchive* ar, void*, int id,
+                                                  stlp::vector<SkillLevelRecord>* levels, void* unused) {
+    ar->SerializeSkillLevels(id, levels, unused);
+    if (!ar->loading_) return;
+    int chunks = RecordChunks(ar, id);
+    ei::verify::Check("ChunkArchive::SerializeSkillLevels", chunks, static_cast<int>(levels->size()), "%d records",
+                      chunks);
+}
+EI_VERIFY(0x005208C0, SerializeSkillLevelsVerify, 0, s_unusedSkillLevels);
+
+static void __fastcall SkillLevelChunkVerify(ChunkArchive* ar, void*, int id, SkillLevelRecord* record) {
+    ar->SkillLevelChunk(id, record);
+    ei::verify::Check("ChunkArchive::SkillLevelChunk", true, record != nullptr, "chunk %d", id);
+}
+EI_VERIFY(0x00521480, SkillLevelChunkVerify, 0, s_unusedSkillLevelChunk);
+
+// 0051FE00 / 0051FE80: PUSH EBX; PUSH EBP; PUSH ESI; MOV ESI,ECX; PUSH EDI (6 bytes).
+static SkillLevelRecord*(__fastcall* s_findLevel)(SkillDatabase*, void*, const char*);
+static SkillLevelRecord* __fastcall FindLevelVerify(SkillDatabase* self, void*, const char* name) {
+    SkillLevelRecord* expected = s_findLevel(self, nullptr, name);
+    SkillLevelRecord* actual = self->FindLevel(name);
+    ei::verify::Check("SkillDatabase::FindLevel", static_cast<void*>(expected), static_cast<void*>(actual), "%s", name);
+    return expected;
+}
+EI_VERIFY(0x0051FE00, FindLevelVerify, 6, s_findLevel);
+
+static int(__fastcall* s_indexOf)(SkillDatabase*, void*, const char*);
+static int __fastcall IndexOfVerify(SkillDatabase* self, void*, const char* name) {
+    int expected = s_indexOf(self, nullptr, name);
+    int actual = self->IndexOf(name);
+    ei::verify::Check("SkillDatabase::IndexOf", expected, actual, "%s", name);
+    return expected;
+}
+EI_VERIFY(0x0051FE80, IndexOfVerify, 6, s_indexOf);
+
+// 0051FF00: MOV EDX,[ECX+0xC]; MOV ECX,[ECX+0x10] (6 bytes).
+static int(__fastcall* s_indexOfLevel)(SkillDatabase*, void*, const SkillLevelRecord*);
+static int __fastcall IndexOfLevelVerify(SkillDatabase* self, void*, const SkillLevelRecord* record) {
+    int expected = s_indexOfLevel(self, nullptr, record);
+    int actual = self->IndexOfLevel(record);
+    ei::verify::Check("SkillDatabase::IndexOfLevel", expected, actual, "%p", static_cast<const void*>(record));
+    return expected;
+}
+EI_VERIFY(0x0051FF00, IndexOfLevelVerify, 6, s_indexOfLevel);

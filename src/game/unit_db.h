@@ -8,6 +8,8 @@
 #include "lib/mfc.h"
 #include "maths.h"
 
+#include "lib/stlp.h"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -203,3 +205,53 @@ struct UnitDatabase {
     UnitModelRecord* modelsEndOfStorage;
 };
 static_assert(offsetof(UnitDatabase, modelsBegin) == 0x40);
+
+// The skill (perk) database (global 007AF268; loaded from "perks.pdb" at startup by 00520220,
+// Rebirth-patched): the skills, then the skill level records (three per skill: levels 1..3).
+// unit_db.cpp (A-U10).
+
+// A skill (0x18 bytes).
+struct SkillRecord {
+    // 0051F3A0 (RET 4). Fields 0..2 and chunk 10 (the stat names, InlineStrings).
+    void Serialize(ChunkArchive* ar);
+
+    mfc::CString name;              // +0x00 field 0
+    mfc::CString unknown_04;        // +0x04 1
+    std::uint32_t unknown_08;       // +0x08 2
+    // +0x0C chunk 10: the stats it counts; the first one's first letter picks the stat ('s'
+    // strength, 'd' dexterity, 'i' intelligence; UnitStats::SkillWithBonus).
+    CStringVector statNames;
+};
+static_assert(offsetof(SkillRecord, statNames) == 0x0C && sizeof(SkillRecord) == 0x18);
+
+// A skill level record (0x44 bytes; the perks the trade panel offers, the level's value at +0x34).
+struct SkillLevelRecord {
+    // 0051F480 (RET 4). Fields 0, 1, 2, 10, 11, 12..22 and 0x17.
+    void Serialize(ChunkArchive* ar);
+
+    mfc::CString unknown_00;        // +0x00 field 0
+    mfc::CString name;              // +0x04 1 (the lookups compare it, _mbsicmp)
+    std::uint32_t unknown_08;       // +0x08 2
+    mfc::CString unknown_0C;        // +0x0C 10
+    std::uint32_t unknown_10;       // +0x10 0x17
+    mfc::CString unknown_14;        // +0x14 11
+    std::uint32_t values[10];       // +0x18 12..21 (values[7], +0x34: the level's value)
+    std::uint8_t unknown_40;        // +0x40 22 (one byte)
+    std::uint8_t unknown_41[3];
+};
+static_assert(offsetof(SkillLevelRecord, values) == 0x18 && sizeof(SkillLevelRecord) == 0x44);
+
+struct SkillDatabase {
+    // 0051FE00 (RET 4). The level record named `levelName` (_mbsicmp), or null.
+    SkillLevelRecord* FindLevel(const char* levelName);
+    // 0051FE80 (RET 4). The index of the level record named `levelName` (_mbsicmp), or -1.
+    int IndexOf(const char* levelName);
+    // 0051FF00 (RET 4). The index of `record` among the level records, or -1.
+    int IndexOfLevel(const SkillLevelRecord* record);
+
+    stlp::vector<SkillRecord> skills;        // +0x00
+    stlp::vector<SkillLevelRecord> levels;   // +0x0C
+};
+static_assert(sizeof(stlp::vector<SkillRecord>) == 0x0C);
+// The skill database (007AF268).
+inline SkillDatabase* SkillDb() { return reinterpret_cast<SkillDatabase*>(std::uintptr_t(0x007AF268)); }

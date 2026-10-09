@@ -166,7 +166,8 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
 - Dead (A-U5 sweep, config/dead_code.csv): 0050BFA0, 0051FCD0, 005476A0 (PlayIdle's body after 0052E9D0), 0054A0A0, 0054B950.
 - 0050C230 (bone hierarchy update, recursive), 005179E0 / 00516DA0 (animated figures): drawing, stateful (since
   rewritten).
-- CObject3DServer stubs, the perks database, 00500000-0050E000 apart from tracks / cages.
+- CObject3DServer stubs; the perks database's records and lookups are rewritten (units.md, A-U10), its loader and STLport
+  vector instantiations are not.
 - Trivial bodies too short for the 5-byte jump (`MOV AL,1; RET`, `RET`, `XOR EAX,EAX; RET`, FLD
   constant; RET).
 
