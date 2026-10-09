@@ -1347,8 +1347,11 @@ struct SavedParties {
     // into party records (00662DD0); a loaded one has its variables emptied and, with records +0x34
     // == 1, is appended. Rebirth's PersistentGlobalVars keeps the "gvar." variables.
     void Reload();
+    // 006632B0 (party_file.cpp). With a folder name: the folder created and emptied (0057AAB0),
+    // then every entry written into it (MpHeroRecord::WriteFile, 00662AC0).
+    void SaveAll();
 
-    char* folder_;                  // +0x00 CString
+    char* folder_;               // +0x00 CString
     SavedPartyEntry* entries_;      // +0x04 vector<SavedPartyEntry>: start, finish, end of storage
     SavedPartyEntry* finish_;       // +0x08
     SavedPartyEntry* eos_;          // +0x0C

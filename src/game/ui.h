@@ -220,9 +220,10 @@ public:
     int unknown_8C;
     int unknown_90;
     int fastGame_;                   // +0x94 the fast game speed (the clock's +0x154)
-    std::uint8_t unknown_98[0xA4 - 0x98];
+    // +0x98 the help topics seen (OpenHelp), each with the page the help window was closed on.
+    stlp::map<mfc::CString, int> helpTopics_;
     char* messageText_;              // +0xA4 CString: the message window's text (ShowMessage)
-    int messageFlag_;                // +0xA8 (ShowMessage clears it)
+    int messageFlag_;                // +0xA8 (ShowMessage clears it; the message window's page, set when it closes)
     char* savedText_;                // +0xAC CString saved with the game (from version 0x5F)
 
     // 005F85C0 (RET 4; ui_interface_save.cpp). Writes what LoadState reads: +0x89..+0x8B, +0x8C,
@@ -247,6 +248,7 @@ static_assert(offsetof(CInterface3D, closeAll_) == 0x44);
 static_assert(offsetof(CInterface3D, rightDown_) == 0x80);
 static_assert(offsetof(CInterface3D, unknown_8C) == 0x8C);
 static_assert(offsetof(CInterface3D, fastGame_) == 0x94);
+static_assert(offsetof(CInterface3D, helpTopics_) == 0x98);
 
 // The interface's growable pointer arrays: engine aligned arrays of pointers (lib::AlignedArray).
 // The original has one out-of-line SetSize per array (006003D0, 006004E0, 00600730, 00600840,
@@ -2155,27 +2157,54 @@ static_assert(offsetof(CMasterRequestBox, link_) == 0x180);
 static_assert(offsetof(CMasterRequestBox, sprite_) == 0x1C0);
 
 // The help / message window (0x194 bytes, vtables 00740E28 / 00740DF4; built inline by
-// CInterface3D::ShowMessage 005F8A80 and OpenHelp 005F86F0, ui_create_screen.cpp). Names
-// provisional.
+// CInterface3D::ShowMessage 005F8A80 and OpenHelp 005F86F0, ui_create_screen.cpp). Its pages
+// come from the texts: "tutorial <text_>" holds the title key and a "#screen" line per page, and
+// "tutor <key>" each key's text. Names provisional.
 class CHelpWindow : public CUiContainer {
 public:
     // 005F8970 (ui_window_delete.cpp). The destructor body: the two lists (nodes, then the
     // sentinel), the text array, the two strings, then the container's.
     void DestroyBody();
+    // 00658E10 (slot 25; ui_help_window.cpp). Loads "saveload", makes a 256x256 texture, reads the
+    // title and the pages (above; the keys replaced by their "tutor" texts, trailing CR / LF
+    // trimmed); without the text or without pages the interface's pending value is set to 0 and
+    // nothing else happens. Otherwise the page is clamped to the pages, the pulse restarted, the
+    // device's alpha reference set to 1 and the page shown (00659420).
+    void Build();
+    // 006590F0 (slot 26). Empties the two lists, then the surfaces, regions and scene objects.
+    void Close();
+    // 0065A5E0 (slot 24). The children's update, then the pulse: its time advanced by the frame
+    // time and the pulsing sprites' plain colour set from it (alpha 255 * v, red and green / blue
+    // from 80 * (1 - v), v = (cos(5 t) + 1) / 2).
+    void Update();
+    // 00659190 (input slot 2, RET 0xC). The container's button handler, then region 0 the
+    // previous page, 1 OK (Finish), 2 the next page.
+    void OnLeftDown(int buttons, int x, int y);
+    // 006592C0 (input slot 9, RET 0xC). The container's key handler, then Enter the next page
+    // (Finish on the last), Esc or the help key (action ';') Finish; each sets the handled flag.
+    void OnKeyDown(int key, int repeat, int flags);
+    // 00659420 (Rebirth-patched; through its address). Shows page page_.
+    void ShowPage();
 
-    std::uint8_t unknown_164;
+    bool message_;                       // +0x164 a message window (ShowMessage), not help
     std::uint8_t unknown_165[3];
-    mfc::CString text_;                  // +0x168 the message
+    mfc::CString text_;                  // +0x168 the message, or the help topic
     mfc::CString title_;                 // +0x16C
-    mfc::CStringArray lines_;            // +0x170
-    std::uint32_t value_;                // +0x184
-    stlp::list<std::uint32_t> listA_;    // +0x188
+    mfc::CStringArray lines_;            // +0x170 the pages' texts
+    int page_;                           // +0x184 the page shown (the topic's or message's saved page)
+    stlp::list<CUiMesh*> pulsing_;       // +0x188 sprites whose plain colour pulses (Update)
     stlp::list<std::uint32_t> listB_;    // +0x18C
-    std::uint8_t unknown_190[4];
+    float pulseTime_;                    // +0x190
+
+private:
+    // The OK button's end: the "ok" sound, the page kept for the topic (or the message), the
+    // interface's pending value set to 0.
+    void Finish();
 };
 static_assert(offsetof(CHelpWindow, text_) == 0x168);
 static_assert(offsetof(CHelpWindow, lines_) == 0x170);
-static_assert(offsetof(CHelpWindow, listA_) == 0x188);
+static_assert(offsetof(CHelpWindow, pulsing_) == 0x188);
+static_assert(offsetof(CHelpWindow, page_) == 0x184);
 static_assert(sizeof(CHelpWindow) == 0x194);
 
 // A line of the in-game chat overlay: the text, the speaker, a value and the line's own surface.

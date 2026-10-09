@@ -3227,7 +3227,19 @@ address,name,library,signature,notes
 00657F10,"stlp::__final_insertion_sort<SaveEntry*>",STLport,,"A-H14 review of the save screen 00653000-00658000: template instantiation of the list sort"
 00657F90,"stlp::__median<SaveEntry> (the introsort pivot)",STLport,,"A-H14 review of the save screen 00653000-00658000: template instantiation; median of three with the comparison 00658020"
 00658020,"the list sort's comparison object (saved time < value)",compiler,,"A-H14 review of the save screen 00653000-00658000: one compare of SaveEntry +0x08; the sort predicate"
+00658030,"stlp::__unguarded_partition<SaveEntry*>",STLport,,"A-H16 review: the save list sort's remaining instantiations (SaveEntry 0x44 bytes, comparison 00658020)"
+00658200,"stlp::uninitialized_copy<SaveEntry*>",STLport,,"A-H16 review: the save list sort's remaining instantiations (SaveEntry 0x44 bytes, comparison 00658020)"
+00658370,"stlp::uninitialized_fill_n<SaveEntry*>",STLport,,"A-H16 review: the save list sort's remaining instantiations (SaveEntry 0x44 bytes, comparison 00658020)"
+006584E0,"stlp::__linear_insert<SaveEntry*>",STLport,,"A-H16 review: the save list sort's remaining instantiations (SaveEntry 0x44 bytes, comparison 00658020)"
+006586A0,"stlp::__unguarded_insertion_sort<SaveEntry*>",STLport,,"A-H16 review: the save list sort's remaining instantiations (SaveEntry 0x44 bytes, comparison 00658020)"
+006586E0,"stlp::__unguarded_linear_insert<SaveEntry*>",STLport,,"A-H16 review: the save list sort's remaining instantiations (SaveEntry 0x44 bytes, comparison 00658020)"
+00658850,"stlp::make_heap<SaveEntry*>",STLport,,"A-H16 review: the save list sort's remaining instantiations (SaveEntry 0x44 bytes, comparison 00658020)"
+006588C0,"stlp::__adjust_heap<SaveEntry*>",STLport,,"A-H16 review: the save list sort's remaining instantiations (SaveEntry 0x44 bytes, comparison 00658020)"
+00658AB0,"stlp::__push_heap<SaveEntry*>",STLport,,"A-H16 review: the save list sort's remaining instantiations (SaveEntry 0x44 bytes, comparison 00658020)"
+00658C60,"stlp::__pop_heap_aux<SaveEntry*>",STLport,,"A-H16 review: the save list sort's remaining instantiations (SaveEntry 0x44 bytes, comparison 00658020)"
+00658C90,"stlp::__pop_heap<SaveEntry*>",STLport,,"A-H16 review: the save list sort's remaining instantiations (SaveEntry 0x44 bytes, comparison 00658020)"
 0065A500,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 5 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
+0065A770,"stlp::map<CString,int>::operator[] (the interface's help topics)",STLport,,"A-H16 review: lower_bound 005FAF30, _mbscmp, insert with a hint 005F9810 (RET 4, the value's address)"
 0065A840,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),A-H11 sweep: same instructions as 00411530 (data addresses masked; every call goes to the same callee or to library code)
 0065A850,stlp::list<T>::end,STLport,iterator* __thiscall(iterator*),A-H11 sweep: same instructions as 00411530 (data addresses masked; every call goes to the same callee or to library code)
 0065A8E0,stlp::list<T>::insert,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
@@ -3553,6 +3565,7 @@ address,name,library,signature,notes
 006AB760,"stlp::uninitialized_copy (0x50 records)",STLport,,"A-H11 review: copy construction (three CStrings, dwords) of each element in place"
 006AB890,"stlp::uninitialized_fill_n (0x50 records)",STLport,,"A-H11 review: n copy constructions of one record"
 006ADBD0,"stlp vector<T*>::erase(first, last)",STLport,,A-H11 sweep: same instructions as 0056F5E0 (data addresses masked; every call goes to the same callee or to library code)
+006ADC10,"stlp::vector<float>::_M_fill_insert",STLport,,"A-H16 review: the quest places' resize (from 006AD7D0); room check, overflow 006ADD50, tail moves, fill"
 006ADD50,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00408060 (reviewed)"
 006ADEE0,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408C20 (data addresses masked; every call goes to the same callee or to library code)
 006AF4D0,compiler-generated destructor (quest database record with vectors),compiler,,"A-H11 review: frees the record's vectors and strings to the node pool; no game logic"
@@ -3604,8 +3617,8 @@ address,name,library,signature,notes
 006B1CB0,compiler-generated copy constructor (0x6C-byte quest record),compiler,,"A-H11 review: string, two dwords, CString vectors copied member by member"
 006B1EE0,exception scalar deleting destructor,CRT,void* __thiscall(unsigned),A-H11 sweep: same instructions as 0041F740 (data addresses masked; every call goes to the same callee or to library code)
 006B1F00,stlp::_Vector_base<T>::get_allocator,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
-006B2100,stlp::vector<T>::reserve (0x38-byte records),STLport,,"A-H11 review: allocate, uninitialized copy, destroy and free the old block"
-006B2240,stlp::vector<T>::reserve (0x6C-byte records),STLport,,"A-H11 review: allocate, uninitialized copy, destroy and free the old block"
+006B2100,stlp::vector<T>::resize (0x38-byte records),STLport,,"A-H11 review: allocate, uninitialized copy, destroy and free the old block"
+006B2240,stlp::vector<T>::resize (0x6C-byte records),STLport,,"A-H11 review: allocate, uninitialized copy, destroy and free the old block"
 006B2450,stlp::vector<T>::_M_fill_insert (0x38-byte records),STLport,,"A-H11 review: copy of the value, move of the tail, fill; overflow path through 006B0EF0"
 006B2700,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 2 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 006B27E0,stlp::vector<T>::_M_fill_insert (0x6C-byte records),STLport,,"A-H11 review: copy of the value, move of the tail, fill; overflow path through 006B1480"

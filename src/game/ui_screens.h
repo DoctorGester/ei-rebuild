@@ -25,6 +25,7 @@
 #include <cstdint>
 
 class CItemInfoPanel;
+class CParty;
 
 // Offset of the input sub-object (the second vtable) inside every window.
 constexpr std::ptrdiff_t kUiInputOffset = 0x94;
@@ -555,6 +556,17 @@ struct MpHeroRecord {
     MpHeroRecord* Construct();
     // 00619560. Destructor: the file name, then the party (006611D0).
     void Destruct();
+    // 00662AC0 (RET 4; party_file.cpp). Writes the party to `folder` + file: a file name with no
+    // '.' or with anything but digits before the last one is deleted instead. Otherwise the old
+    // file is moved to `folder` + "temp.mp", the party saved (with its variables) into a memory
+    // stream and that written as a save file (magic 0x114, the save version), then the temporary
+    // file deleted.
+    void WriteFile(const char* folder);
+    // 00662DD0 (RET 4, AL; party_file.cpp). Reads the party from `folder` + file (magic 0x114,
+    // the versions 00790260..00790268): false when the file does not read, else the party loaded
+    // (with its variables) and the memory stream's ok flag.
+    bool ReadFile(const char* folder);
+    CParty* Party() { return reinterpret_cast<CParty*>(party); }
 
     std::uint8_t party[0x70];        // +0x00 CParty
     mfc::CString file;               // +0x70

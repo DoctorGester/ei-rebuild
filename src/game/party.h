@@ -103,6 +103,14 @@ public:
     // Returns 1. (The original reads the lists through 005143E0, whose only failure, a missing
     // prototype, cannot happen after the record was read; here they come from the record.)
     BOOL FillFromPrototype(PartyUnitRecord* record);
+    // 006625B0 (RET 4; party_members.cpp). The multiplayer hero's starting equipment: `record`'s
+    // spells and weapons released and removed (from the front), then, from the NPC record of its
+    // prototype (text 5; NpcTable's operator[], which adds an empty entry for an unknown name),
+    // copies of the start spells (appended), quick items and weapons (each at its list's count,
+    // SetAtGrow), the start money added to the party's, the start experience to the record's
+    // statistics, and text 6 = text 5. 0 without an NPC record (after the lists were emptied),
+    // else 1.
+    BOOL EquipFromPrototype(PartyUnitRecord* record);
     // 006620F0 (RET 4). Destroys the first record whose key (+0x1C) is `key` and closes the gap;
     // 1 when there was one, else 0.
     BOOL RemoveMember(int key);

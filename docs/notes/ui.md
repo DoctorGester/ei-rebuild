@@ -623,7 +623,9 @@ keeps the binding waiting, a failed allocation of the message box (or of a token
 Build appends the 11 group titles without clearing the array first; Tokenize's format token constructor colour (0x1C8DC) and font are
 overwritten at once.
 
-Not rewritten: the tutorial / help window (00658000-0065A500, `tutor`, created by 005F86F0; 0065A5E0 pulse needs inline x87), the
+The help / message window (`ui_help_window.cpp`, A-H16): Build 00658E10 ("tutorial <topic>": the title key and a "#screen" line per page, each key's text from "tutor <key>"; alpha reference 1 through the device and the renderer's mirror), Close 006590F0, the pulse 0065A5E0 (plain C++ floats), clicks 00659190 and keys 006592C0; the page draw 00659420 is Rebirth-patched (forwarded). Ours only (`verify_ui_help_window.cpp`), scenario `ui_help` (F1 on the battle screen). 00658030-00658C90 are the save list sort's STLport instantiations and 0065A770 the help topics' operator[] (library.csv).
+
+Not rewritten: the
 controls' constructors and the edit control (0065AEA0, 0065E320, 0065BC30, 0065BCD0, 0065C010, keys 0065C610: no scenario types into
 one), the objectives window's key handler 0064E5A0, quest list 0064E8B0, exit selection 0064E990, clicks 0064E330, update 0064E760,
 00651940 / 0065B8B0 (window builders and layouts), 006592C0, 0065D150, 0065C930. The portraits' 006407E0 / 00640060, the quick save 006570E0, 00649AF0 and

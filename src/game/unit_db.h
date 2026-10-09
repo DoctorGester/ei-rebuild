@@ -21,6 +21,13 @@ struct CStringVector {
 };
 static_assert(sizeof(CStringVector) == 0xC);
 
+// unit_db.cpp. A vector<CString> as chunk `id` holding one field 1 per string, the way the NPC
+// and quest briefing serialisers inline it: loading empties the vector (0052E010; 0052DF40
+// erases the range through 0051F970 instead, with the same result) and resizes it to the count
+// of fields 1; each string is the next occurrence of field 1 (the current chunk's occurrence, set
+// before each).
+void InlineStrings(ChunkArchive* ar, int id, CStringVector* strings);
+
 // A unit prototype (0x120 bytes, table 007AF358). Fields whose meaning is known are named after
 // what the statistics builders (unit_create_stats.cpp) make of them.
 struct UnitPrototypeRecord {
@@ -94,11 +101,11 @@ struct UnitNpcRecord {
     std::uint8_t skills[8];         // +0x1B 7 (eight bytes)
     std::uint8_t unknown_23;        // not serialised
     CStringVector skillNames;       // +0x24 8 (the skill level records it learns)
-    CStringVector unknown_30;       // 9
-    CStringVector unknown_3C;       // 10
-    CStringVector unknown_48;       // 11
-    float experienceFloor;          // +0x54 12: experience a hero keeps when it dies in a network game (0066F4C0)
-    std::uint32_t unknown_58;       // 13
+    CStringVector startWeapons;     // +0x30 9: item names a multiplayer hero starts with (006625B0)
+    CStringVector startQuickItems;  // +0x3C 10: its quick items
+    CStringVector startSpells;      // +0x48 11: its spells
+    float experienceFloor;          // +0x54 12: its starting experience (006625B0), which it keeps when it dies in a network game (0066F4C0)
+    int startMoney;                 // +0x58 13: money its party starts with (006625B0)
     std::uint8_t unknown_5C;        // 14 (one byte)
     std::uint8_t unknown_5D[3];
 };

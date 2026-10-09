@@ -16,10 +16,11 @@ __declspec(naked) void __fastcall ArchiveField(ChunkArchive*, void*, int /*id*/,
 __declspec(naked) void __fastcall ArchiveString(ChunkArchive*, void*, int /*id*/, mfc::CString*) EI_ORIGINAL(0x004093A0)
 __declspec(naked) bool __fastcall ArchiveEnter(ChunkArchive*, void*, int /*id*/) EI_ORIGINAL(0x004098D0)
 __declspec(naked) void __fastcall ArchiveLeave(ChunkArchive*) EI_ORIGINAL(0x00409980)
-// Not rewritten: 0052DF40, a vector<CString> as chunk `id` (loading: the vector is emptied and
-// resized to the chunk's count of fields 1; the third argument, the archive again, is unused but
-// popped); 0052D6A0, four dwords as fields 0..3; 0052D6F0, a model's body slot as fields 0..3.
-__declspec(naked) void __fastcall ArchiveStrings(ChunkArchive*, void*, int /*id*/, CStringVector*, ChunkArchive*) EI_ORIGINAL(0x0052DF40)
+// Not rewritten: 0052DF40 (ArchiveCStringsOriginal, originals_library.h); 0052D6A0, four dwords
+// as fields 0..3; 0052D6F0, a model's body slot as fields 0..3.
+void __fastcall ArchiveStrings(ChunkArchive* ar, void*, int id, CStringVector* strings, ChunkArchive* unused) {
+    ArchiveCStringsOriginal(ar, nullptr, id, strings, unused);
+}
 __declspec(naked) void __fastcall FourDwords(std::uint32_t*, void*, ChunkArchive*) EI_ORIGINAL(0x0052D6A0)
 __declspec(naked) void __fastcall ModelSlot(UnitModelSlot*, void*, ChunkArchive*) EI_ORIGINAL(0x0052D6F0)
 // The pieces of 0052DF40 that the NPC serialiser inlines: counting the fields `id` of the current
@@ -31,10 +32,8 @@ void __fastcall StringsResize(CStringVector* a0, void*, std::uint32_t a2) { CStr
 
 void Dword(ChunkArchive* ar, int id, void* data) { ArchiveField(ar, nullptr, id, data, 4); }
 
-// A vector<CString> as chunk `id` holding one field 1 per string, the way the NPC serialiser
-// inlines it: loading empties the vector (0052E010; 0052DF40 erases the range through 0051F970
-// instead, with the same result) and resizes it to the count of fields 1; each string is the
-// next occurrence of field 1 (the current chunk's occurrence, set before each).
+} // namespace
+
 void InlineStrings(ChunkArchive* ar, int id, CStringVector* strings) {
     if (!ArchiveEnter(ar, nullptr, id)) return;
     int count;
@@ -51,8 +50,6 @@ void InlineStrings(ChunkArchive* ar, int id, CStringVector* strings) {
     }
     ArchiveLeave(ar);
 }
-
-} // namespace
 
 void UnitPrototypeRecord::Serialize(ChunkArchive* ar) {
     ArchiveString(ar, nullptr, 0, &name);
@@ -161,11 +158,11 @@ void UnitNpcRecord::Serialize(ChunkArchive* ar) {
     ArchiveField(ar, nullptr, 6, attributes, sizeof(attributes));
     ArchiveField(ar, nullptr, 7, skills, sizeof(skills));
     ArchiveStrings(ar, nullptr, 8, &skillNames, ar);
-    InlineStrings(ar, 9, &unknown_30);
-    InlineStrings(ar, 10, &unknown_3C);
-    InlineStrings(ar, 11, &unknown_48);
+    InlineStrings(ar, 9, &startWeapons);
+    InlineStrings(ar, 10, &startQuickItems);
+    InlineStrings(ar, 11, &startSpells);
     Dword(ar, 12, &experienceFloor);
-    Dword(ar, 13, &unknown_58);
+    Dword(ar, 13, &startMoney);
     ArchiveField(ar, nullptr, 14, &unknown_5C, 1);
 }
 EI_REPLACE_METHOD(0x0052DA60, UnitNpcRecord::Serialize);

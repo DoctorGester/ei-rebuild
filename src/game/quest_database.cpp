@@ -124,8 +124,8 @@ __declspec(naked) void __fastcall ListReserve(void*, void*, int) EI_ORIGINAL(0x0
 __declspec(naked) void __fastcall ListPushBack(void*, void*, const mfc::CString*) EI_ORIGINAL(0x006AF790)
 __declspec(naked) void __fastcall ReadList(Registry*, const char*, const char*, void*) EI_ORIGINAL(0x006AE740)
 // The record destructors [quest 006AF4D0, briefing 006AF5A0].
-__declspec(naked) void __fastcall QuestDestroy(void*) EI_ORIGINAL(0x006AF4D0)
-__declspec(naked) void __fastcall BriefingDestroy(void*) EI_ORIGINAL(0x006AF5A0)
+void __fastcall QuestDestroy(void* record) { QuestRecordDestroyOriginal(record); }
+void __fastcall BriefingDestroy(void* record) { BriefingRecordDestroyOriginal(record); }
 // The quest index: find by the record's name [006B0870: out iterator, record], the end iterator
 // [006B0B10: node, map], push_back [006B0710], clear [006B0520], operator[] [0064EE90: the record,
 // returns the value slot]. The briefing index: 006B07C0, 006B0B30, 006B0780, 006B0590, 004297A0,

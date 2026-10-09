@@ -23,6 +23,7 @@ int __cdecl strnicmp(const char* a, const char* b, std::size_t n); // 006FA1A0
 int __cdecl stricmp(const char* a, const char* b);                 // 006F2230
 char* __cdecl strncpy(char* dst, const char* src, std::size_t n);  // 006E7E80
 int __cdecl isalpha(int c);                                        // 006E92FB
+int __cdecl isdigit(int c);                                        // 006E9379
 int __cdecl sprintf(char* buffer, const char* format, ...);        // 006E8715
 int __cdecl mbsicmp(const unsigned char* a, const unsigned char* b); // 006E8767 _mbsicmp
 int __cdecl mbscmp(const unsigned char* a, const unsigned char* b);  // 006E848B _mbscmp

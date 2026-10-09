@@ -371,6 +371,14 @@ __declspec(naked) inline void** __fastcall StringMapFindOriginal(void* /*map*/, 
 __declspec(naked) inline void __fastcall CStringVectorResizeOriginal(void* /*vector*/, void*, std::uint32_t /*count*/)
     EI_ORIGINAL(0x0051F5B0)
 __declspec(naked) inline void __fastcall CStringVectorClearOriginal(void* /*vector*/) EI_ORIGINAL(0x0052E010)
+// The quest database records' compiler-generated destructors (plain RET): 006AF4D0 a quest (0x38 bytes), 006AF5A0 a
+// briefing (0x6C bytes).
+__declspec(naked) inline void __fastcall QuestRecordDestroyOriginal(void* /*record*/) EI_ORIGINAL(0x006AF4D0)
+__declspec(naked) inline void __fastcall BriefingRecordDestroyOriginal(void* /*record*/) EI_ORIGINAL(0x006AF5A0)
+// 0052DF40 (thiscall on a ChunkArchive, RET 0xC, no result): a vector<CString> as chunk `id` (loading: the vector is
+// emptied and resized to the chunk's count of fields 1); the third argument, the archive again, is unused.
+__declspec(naked) inline void __fastcall ArchiveCStringsOriginal(void* /*archive*/, void*, int /*id*/, void* /*strings*/,
+                                                                 void* /*unused*/) EI_ORIGINAL(0x0052DF40)
 
 // C3l. MSVC 6 ostream members on the game's streams; all return the stream (`this`): 006FC14E operator<<(unsigned) (format "%u",
 // RET 4), 006FC91C operator<<(long) (format "%ld", RET 4; 006FC9C6 above is the "%d" one), 006FC7FA operator<<(double) (RET 8: the
