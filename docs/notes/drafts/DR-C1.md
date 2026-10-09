@@ -1,9 +1,7 @@
 # DR-C1: cleanup draft of world_client_maps.cpp, world_units.cpp, world_game.cpp
 
-Draft only: NOTHING HERE HAS BEEN COMPILED (the machine was short of memory; no build, no
-python checks, no game). The next worker must build `build.cmd verify` / `release`, fix what
-does not compile, run check_cleanup / check_thunks / check_signatures, then
-`python tools/check_cleanup.py --update`.
+Written as an uncompiled draft; built and finished by the second pass ("Finishing pass" at the
+end). Slot names below are the draft's; after the merge with DR-C2 they are main's (see the end).
 
 Baseline counts (config/cleanup_baseline.csv) before: world_client_maps 160 At / 39 VCall / 27 raw;
 world_game 155 / 3 / 70; world_units 155 / 29 / 30 (+ 4 asm, 2 float_control, 4 byte arithmetic).
@@ -174,3 +172,66 @@ Left (where to continue in world_game.cpp):
 - The three VCalls (session release slot 0 with 1, ...), the `__asm` _ftol / 24.0 helpers (out
   of scope), the accessor functions with literal addresses (GameMode, Campaign, ...; not counted
   as they end in `)`, but they belong in game_flow_data.h).
+
+## Finishing pass (builds; not run in the game)
+
+Merge with main (DR-C2, DR-C3, A-U7, ...): where both named the same slot, DR-C2's name was kept
+with the draft's signature: CMapObjectVirtuals 29 IsSynchronised() (bool), 33
+ScaleEffectChanged(int), 35 SetStats(const UnitStats*), 37 UpdateSizeClasses(); CWorld 18
+ItemFactory(), 24 DuplicateItem(CEngineObject*) -> CEngineObject*; CUnitController 29
+RefreshEquipment() -> int; CObject3DSpecific 22 BoundsContainPoint / 24 PartsContainPoint
+(const long*) -> int. Controller 41-43 keep the draft's names (main had none). The draft's
+CTorchObject in map_object.h was a duplicate of main's torch.h (A-U6): removed, world_units.cpp
+includes torch.h (spec is CTorchObjectSpec*, TorchSpecSlots takes it as CEngineObject*).
+
+Everything else compiled as drafted: build.cmd verify / release with no errors or warnings,
+check_thunks / check_returns / check_forwarders / check_cleanup / check_stolen / check_x87 /
+check_signatures at 0. forwarder_duplicates.txt lost 00404410 (now CBaseManager::FreeSpares).
+
+Callees the draft now calls by name instead of through their hooked address were checked
+against docs/rebirth-patched-functions.txt (none is patched): 004031B0, 00404410, 00404920,
+00404960, 0040D3B0, 00417DF0, 00564AF0, and in world_game.cpp 00413250 (NewRefObject),
+00413270 / 00418BE0 (RefPtr::Destroy / Share), 004A53F0 (CMemoryStream::Write). Their verify
+wrappers no longer see these calls. Setup's handle store (three stores for the one dword) leaves
+the same memory; kept.
+
+world_game.cpp, continued:
+- The sessions: net::GameClient() / GameServer() (net_classes.h) replace the byte views. The
+  client's +0x2600 "request record" is player_ (a LoginMessage): state_ (+0x28) the game state
+  request, version_ (+8) bumped with it, host_ (+0x24), name_ / text_ (AfterServerStart).
+  +0x25EC is info_ (HostMessage: address_ +0xC, zone_ +0x18), +0x25F4 map_ (MapMessage text_),
+  +0x25F8 zones_ / +0x25FC variables_ (lists of ZoneMessage / VariableMessage: name_, value_
+  moved as its dword, serial_ the stamp; MessageNode<T> in the file), +0x261C renamed
+  ClientSession::gameType_. Server: +0x25A0 renamed ServerSession::hostInfo_ (the HostMessage
+  AnnounceHost builds; net_server.cpp / net_server_life.cpp follow), name_, maxPlayers_,
+  unknown_25FC, clients_ (ClientNode list). SwitchMultiplayerZone's +0x114C..+0x1160 is the
+  connection's reliableIn_ GameBuffer (begin; flags = 6, high = cur = begin).
+- Active() tests CRefCounted::flags7_ & kDetached (the original tests the dword's bit 31).
+  ReleaseSession deletes through the virtual destructor (`delete`, slot 0 with 1) instead of
+  VCall. Session / record allocation through net::NewRefObject (operator new + the count cleared,
+  as inlined). net::NetLog() now returns a reference (StartServer stores it).
+- Players: LocalViewData::player, new LocalViewData::partyTaken (+0x85), new
+  WorldPlayer::sessionKind (+0x100), WorldPlayer::server->flag70_ / lastPosition_
+  (player_messages.h), the server world's player count as CBaseManager::objects_.Size() of
+  World()->players_.
+- GlobalParty() is a PartyRecords*; PartyRecords gains recordArrayVtable (+0x2C, the records'
+  CArray) and array40 (+0x40). SavedParties gains folder_ / entries_ / finish_ / eos_ over the
+  new SavedPartyEntry (records + fileName, 0x74, defined in world_game.cpp).
+- AcceptNewPlayers' list is CTypedPtrList<netlink::NetLink>.
+
+Counts now (config/cleanup_baseline.csv): world_units 0 At / 0 VCall / 1 raw (asm forwarder),
+asm 4, float_control 2; world_client_maps all 0; world_game 1 At / 1 VCall / 2 asm / 3 raw (in
+the asm) / 1 *At view struct (TextOpsAt) / 0 byte arithmetic.
+
+Left in world_game.cpp:
+- World()->+0x5C (`At<int>`, and 007AFFBC read directly twice): CWorld::unknown_5C is a RefPtr
+  (world_managers.cpp drops it); on the server it is the pending connection source that
+  world_update.cpp steps (its slot 6 is the lobby's TakeNew, the remaining VCall in
+  AcceptNewPlayers) and hands to 0058DAF0; ClientSetPlayer (00566CE0, originals_world.h, declared
+  with an int) passes it to 004782E0 as a link. Needs a class for that object and the forwarder
+  retyped (app.cpp uses it too).
+- The two `__asm` helpers (_ftol, 24.0), TextOpsAt, the accessors with literal addresses
+  (GameMode, Campaign, ...; not counted, but they belong in game_flow_data.h).
+- Behaviour risks still open from the draft: the torch slot 16 float argument (a signalling NaN
+  could be quietened), PrototypeNamePair, the overlap fix (PartBox on CObject3D), and the
+  UNVERIFIED notes above (owned1A8_ / owned1B0_, the +0xA0 array, CTorchObject's spec).
