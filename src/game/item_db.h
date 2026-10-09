@@ -147,13 +147,17 @@ struct WeaponRecord : ItemRecordHead {
 
     std::uint8_t unknown_70[0x7B - 0x70];
     std::uint8_t skillBonus[2];         // +0x7B the wielder's weapon skill bonus (skill 0 / 1)
-    std::uint8_t unknown_7D[0x8C - 0x7D];
-    std::uint32_t value8C;              // +0x8C item +0x58
+    std::uint8_t unknown_7D[0x84 - 0x7D];
+    float attackBonus;                  // +0x84 field::kWeapon84: added to the wielder's attack
+    float defenceBonus;                 // +0x88 field::kWeapon88: added to the wielder's defence
+    std::uint32_t value8C;              // +0x8C item +0x58; the wielder's reach (float bits)
     float damage;                       // +0x90 field::kWeaponDamage
     float damageSpread;                 // +0x94 field::kWeaponDamageSpread
-    std::uint8_t unknown_98[kWeaponSize - 0x98];
+    float damageTypes[7];               // +0x98 field::kWeaponDamageTypes
 };
 static_assert(offsetof(WeaponRecord, value8C) == 0x8C);
+static_assert(offsetof(WeaponRecord, attackBonus) == 0x84);
+static_assert(offsetof(WeaponRecord, damageTypes) == 0x98);
 static_assert(sizeof(WeaponRecord) == kWeaponSize);
 
 // An armour prototype (kArmorSize bytes): the two absorption rows CItemArmor takes.
