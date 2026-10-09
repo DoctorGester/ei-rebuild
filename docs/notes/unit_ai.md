@@ -71,6 +71,7 @@ differential (original first, state put back, ours, compared), C capture / recor
 | 005CB260 (O), 005CB480 (O), 005CB670 (P), 005CBC80, 005CD500, 005CB850 (O, CheckNear), 005CBE90 | FindEnemies, FindEnemiesNear, NearestEnemy, ForceSee ("is forced to see unit"), AddCountedTail, MeasureExposure (each server tick: five exposure ratios into CUnit + 0x4C8), SeeCorpse (OnDamaged) (`unit_ai_memory.cpp`) | |
 | 005CAA00, 005CA1D0, 005CA5A0, 005CA410 (O), 005CD210 (O) | AIViewer Update, Refresh, See, Prepare, MarkSightCells (the show-visibility effect) (`unit_ai_sight.cpp`) | ours |
 | 005CC9D0, 00558D00, 00552CF0, 005CDD60, 005CD880 | AICallArray::Update (heard calls, each tick), AICallRecord::Destruct, UnitController::AddHostileMask, the heard calls' SetSize / Add on the template (`unit_ai_brain.cpp`) | ours against a model taken before |
+| 005C98C0, 005CCD40, 005CCEA0, 005CCBF0, 005CBBA0, 005CBBC0 | AIViewer::Noise (attacks, skills, explosions: hostile units within 50 whose hearing x loudness reaches hear kind at the source's position), heard calls Hear / AddClaim / RemoveClaims, the memory's two entry points (`unit_ai_hearing.cpp`, A-W9) | ours against a model; Noise: the hearers asked again |
 | 005CF220 (O), 005CFE40, 005D0030 (D), 005CF9A0 (P), 005CF7F0 (P), 005CFE20 (P), 00545F40, 005CF720, 005CF780, 005CF3C0 (D, AL) | AIBrain::CurrentAttack, LookAround (`unit_ai_attention.cpp`; `this` the attention +0xA4, brain passed), AIAttention::Choose, Score, IsUsable, AIDistance2, AIOrder Clear / MakeAttack / MakeCast, CanReach (spell aimed at no object vs a large size-class-0 unit: no; else the order check from the unit, or from the end of a path search with the target lifted) (`unit_ai_targets.cpp`) | |
 | 005CEED0 (D), 005CEA30 (O), 005CEA60, 005CEBD0, 005CEDC0 (P), 005CE9B0 (P), 005D9250, 005CE860, 005CE920 (C), 005D9B80 | AIAttention::Build (the option lists, when a unit's controller is set up (005535F0 / 00553610) and by 005D6630), InitOption, AddWeaponOption / AddSpellOption, SpellKind (spell type -> kind table), AIAttackOption::Weight, CArray<AIAttackOption>::SetSize, AIAttackOption Load / Save, LoadAttackOptions (`unit_ai_options.cpp`; unit_ai, units, spells_cast, ui_saveload) | |
 | 005D5B40 (D), 005D7F80 (D) | PlanLooks, FindStandPoint (`unit_ai_moves.cpp`; random state put back; 4 ULPs) | |
@@ -123,6 +124,9 @@ buffers a copy would share.
   sight notices an unset local (ours zero; only matters for a distance above 1e15). StaysWithParty reads a party unit's
   missing Player mode at address 0x0C in the original (a crash; ours skips it); UpdateCombat attacks the chosen target with
   the weapon even when the choice was a spell.
+
+- AddClaim (005CCEA0) leaves the new call's point as its stack held it (ours zero); Noise tests the console filter's byte,
+  builds an empty text otherwise and takes the hearer's controller unchecked.
 
 ## Skipped
 

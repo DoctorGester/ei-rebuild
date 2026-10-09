@@ -625,6 +625,15 @@ void __fastcall CallsSetSizeAt(AICallArray* calls, void*, int size, int growBy);
 // level is below 900, the call's point becomes the noticed point (900, kind -3; logged when the
 // level rose by more than 100 or the point lies more than sqrt(10) away).
 void __fastcall CallsUpdate(AICallArray* calls, void*, CUnit* unit, void* memory);
+// 005CCD40 (RET 0xC; unit_ai_hearing.cpp; the memory's HearCall 005CBBA0 and AIViewer::Noise
+// inline it). The calls without a mask whose kind is `kind` or above are dropped, then {point,
+// kind, 0, text} is appended.
+void __fastcall CallsHear(AICallArray* calls, void*, const Vector3* point, int kind, const char* text);
+// 005CCEA0 (RET 0xC; the memory's 005CBBC0). Appends {point not set, kind, mask, text}: when it
+// runs out (CallsUpdate) the unit's controller takes the hostility mask.
+void __fastcall CallsAddClaim(AICallArray* calls, void*, std::uint32_t mask, int kind, const char* text);
+// 005CCBF0 (plain RET). Drops the calls that carry a mask.
+void __fastcall CallsRemoveClaims(AICallArray* calls);
 
 // An object the memory reported (8 bytes; the object is a counted reference).
 struct AIReport {
@@ -739,6 +748,13 @@ struct AIViewer {
     // 005CA410 (RET 4). Raises the eye by the AI map's ground level of its cell and the unit's
     // height parts and sets the facing from the unit's orientation (once per update).
     void Prepare(CUnit* self);
+    // 005C98C0 (RET 0x10; unit_ai_hearing.cpp; attacks, skill uses, explosions). A noise of
+    // `loudness` made by `source`'s unit at `at` (null: the unit's position): every unit within 50
+    // of the point (the sector map) that is hostile to the source's unit, whose noticed level is
+    // below 900 and whose hearing (moveFactors[1] x valuesB0[3]) times the loudness reaches past
+    // the distance hears a call of `kind` at the source unit's position (CallsHear; the text
+    // "Unit %i heard unit %i from %fm distance" only with console filter bit 0).
+    void Noise(UnitController* source, float loudness, int kind, const Vector3* at);
 
     CAIMap* map;                    // +0x00
     int unknown_04;
