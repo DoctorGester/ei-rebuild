@@ -312,7 +312,9 @@ public:
     // 42 (0xA8): whether `key` fits: 0 (0050F110, RET 4); levers KeyOpens, traps KeyFits.
     virtual int AcceptsKey(const LockKey* key) = 0;
     virtual void KeepsMapFlag() = 0;       // 43: AL 1 (004467B0); levers +0x261 (0052B2C0). Best guess
-    virtual void UseSpots() = 0;           // 44: 0050F120 FreeArray (none); levers 0052BBE0
+    // 44 (0xB0, RET 8): the spots a user of radius `userRadius` may use the object from, into the
+    // CArray<Vector3> `out`: 0050F120 FreeArray (none); levers 0052BBE0 UseSpots.
+    virtual void UseSpots(void* out, float userRadius) = 0;
     virtual void AddEffect() = 0;          // 45: 0050F1E0
     virtual void SetStunned() = 0;         // 46: 0050E4A0; units 0052F7F0 SetFlag1000000
     virtual int SetVisibilityMode(int mode) = 0;    // 47 (0xBC): 004467C0 hands it to the companion
