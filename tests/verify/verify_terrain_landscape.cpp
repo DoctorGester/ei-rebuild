@@ -3,6 +3,7 @@
 
 #include "combat_verify_util.h"
 
+#include "../../src/game/material.h"
 #include "../../src/game/terrain.h"
 #include "../../src/game/terrain_sector.h"
 
@@ -306,5 +307,25 @@ void __fastcall DestroyVerify(Terrain* self, void*) {
                       "lights %u cache %d", static_cast<unsigned>(self->lights.Size()), self->sectorCache.count);
 }
 EI_VERIFY(0x006C54D0, DestroyVerify, 0, s_destroy);
+
+// 006C5AA0: ours only (it makes, holds and loads textures and materials; zone load through the map
+// loader 006C68B0). The result; with 1, both arrays as long as the pages asked for plus the extra
+// ones found, every entry set, every material named "Wood".
+int(__fastcall* s_setupPages)(Terrain*, void*, int);
+
+int __fastcall SetupPagesVerify(Terrain* self, void*, int count) {
+    int extra = self->extraPages;
+    int result = self->SetupPages(count);
+    if (result == 1) {
+        int pages = count + self->extraPages - extra;
+        bool filled = self->pageTextures.size == pages && self->pageMaterials.size == pages;
+        for (int i = 0; filled && i < pages; ++i)
+            filled = self->pageTextures[i] && self->pageMaterials[i] &&
+                     std::strcmp(self->pageMaterials[i]->name, "Wood") == 0;
+        ei::verify::Check("Terrain::SetupPages", true, filled, "%d pages, %d extra", count, self->extraPages - extra);
+    }
+    return result;
+}
+EI_VERIFY(0x006C5AA0, SetupPagesVerify, 0, s_setupPages);
 
 } // namespace

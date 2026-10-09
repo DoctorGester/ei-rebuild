@@ -219,6 +219,8 @@ __declspec(naked) inline void* __fastcall ManagerFindNamedOriginal(void* /*manag
 __declspec(naked) inline void* __fastcall TextureNamedOriginal(void* /*manager*/, void*, int /*kind*/, const char* /*name*/)
     EI_ORIGINAL(0x00691D00)
 __declspec(naked) inline int __fastcall TextureLoadOriginal(void* /*manager*/, void*, void* /*texture*/) EI_ORIGINAL(0x006922A0)
+// The material manager [007AF740] (thiscall): 0068E970 makes a material of `kind` (RET 4; a CMaterial, material.h).
+__declspec(naked) inline void* __fastcall MaterialNewOriginal(void* /*manager*/, void*, int /*kind*/) EI_ORIGINAL(0x0068E970)
 __declspec(naked) inline int __fastcall TextureLoadFromOriginal(void* /*manager*/, void*, void* /*texture*/,
                                                                 const char* /*directory*/) EI_ORIGINAL(0x006926F0)
 __declspec(naked) inline std::uint8_t* __fastcall NewManagedTextureOriginal(void* /*manager*/, void*, int /*width*/,

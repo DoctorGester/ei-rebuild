@@ -13,6 +13,8 @@
 // Names are provisional: they describe what the code does, not names recovered from the original.
 
 class CLight;
+class CMaterial;
+class CTexture;
 class DecalBuilder;
 
 namespace terrain {
@@ -75,6 +77,11 @@ public:
     void SetWaveStrength(float strength);
     // 006C7EB0 (RET 8). The direction, then the strength as SetWaveStrength.
     void SetWaves(const Vector3* direction, float strength);
+    // 006C5AA0 (RET 4, from the map loader 006C68B0). The texture pages: `count` pages
+    // (<map>NNN, "%s%3.3i" of textF8), then up to two extra pages <map>L00 / L01 while their .mmp
+    // exists (counted in extraPages); each page's texture (kind 0xB, held, loaded) and a "Wood"
+    // material (kind 0x12, held). 0 when a texture does not load, else 1.
+    int SetupPages(int count);
     // 006C7A80 (forwarder). The table of the cells around each vertex (+0x1E8).
     void BuildVertexTiles();
     // 006C7750 (forwarder). Frees the map: ambient loops, sectors, textures, materials, grid.
@@ -153,8 +160,8 @@ public:
     std::uint8_t unknown_054[0x94 - 0x54];
     std::uint32_t landscapeFlags;   // +0x094 terrain::TerrainFields::flags
     std::uint8_t unknown_098[0x40]; // +0x098 zeroed by Reset
-    lib::AlignedArray<CEngineObject*> pageTextures;    // +0x0D8 per texture page (006C5AA0)
-    lib::AlignedArray<CEngineObject*> pageMaterials;   // +0x0E8 per texture page (constructor 00570E10)
+    lib::AlignedArray<CTexture*> pageTextures;     // +0x0D8 per texture page (SetupPages; held)
+    lib::AlignedArray<CMaterial*> pageMaterials;   // +0x0E8 per texture page (constructor 00570E10; held)
     const char* textF8;             // +0x0F8 CString
     const char* textFC;             // +0x0FC CString
     void* unknown_100;              // +0x100 CWorldClient::DrawPass draws nothing while it is null

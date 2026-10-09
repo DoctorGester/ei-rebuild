@@ -3,11 +3,14 @@
 // terrain_sector.cpp, height queries in terrain.cpp.
 #include "terrain.h"
 #include "terrain_sector.h"
+#include "material.h"
 #include "spell.h"
+#include "texture.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "originals_ui.h"
 #include "originals_world.h"
 
 #include <cstdint>
@@ -252,6 +255,51 @@ void Terrain::SetWaves(const Vector3* direction, float strength) {
     waveDirection = *direction;
     SetWaveStrength(strength);
 }
+
+namespace {
+
+// The texture manager (007AF744) and the material manager (007AF740).
+CTextureManager* Textures() { return *reinterpret_cast<CTextureManager* const*>(0x007AF744); }
+void* Materials() { return *reinterpret_cast<void* const*>(0x007AF740); }
+
+constexpr int kPageTexture = 0xB;     // texture kind of the terrain pages
+constexpr int kPageMaterial = 0x12;   // material kind
+constexpr int kExtraPages = 2;        // <map>L00, <map>L01
+
+} // namespace
+
+int Terrain::SetupPages(int count) {
+    pageTextures.SetSize(count);
+    pageMaterials.SetSize(count);
+    for (int i = 0; i < count + kExtraPages; ++i) {
+        mfc::CString name;
+        if (i < count) {
+            name.Format("%s%3.3i", textF8, i);
+        } else {
+            name.Format("%sL%2.2i", textF8, i - count);
+            if (!Textures()->HasFile(name + ".mmp")) return 1;
+            ++extraPages;
+            pageTextures.SetAtGrow(pageTextures.size, nullptr);
+            pageMaterials.SetAtGrow(pageMaterials.size, nullptr);
+        }
+        CTexture* texture = static_cast<CTexture*>(TextureNamedOriginal(Textures(), nullptr, kPageTexture, name));
+        pageTextures[i] = texture;
+        ++texture->refCount_;
+        CMaterial* material = static_cast<CMaterial*>(MaterialNewOriginal(Materials(), nullptr, kPageMaterial));
+        pageMaterials[i] = material;
+        ++material->refCount_;
+        material->name = "Wood";
+        material->diffuse.x = material->diffuse.y = material->diffuse.z = 0.3f;
+        material->ambient.x = material->ambient.y = material->ambient.z = 0.7f;
+        material->specular.x = material->specular.y = material->specular.z = 0.2f;
+        material->emissive.x = material->emissive.y = material->emissive.z = 0.0f;
+        material->diffuse.w = 1.0f;
+        material->power = 5.0f;
+        if (!TextureLoadOriginal(Textures(), nullptr, pageTextures[i])) return 0;
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x006C5AA0, Terrain::SetupPages);
 
 int __fastcall CreateHook(Terrain* self, void*) { return self->Terrain::Create(); }
 void __fastcall DestroyHook(Terrain* self, void*) { self->Terrain::Destroy(); }
