@@ -142,9 +142,7 @@ EI_REPLACE_METHOD(0x00518FC0, CObject3D::FindSkillAnimation);
 
 double CObject3D::AnimationFactor(float time) {
     if (GetClassId() != kClassUnit || !Animations()) return 1.0;
-    const AnimationDatabase& db = *animations;
-    if (!(db.length < 0.0f || db.length > 0.0f)) return 1.0;   // 0 or NaN
-    return ((static_cast<double>(db.end) - db.start) * time + db.start) / db.length;
+    return animations->TimeFactor(time);
 }
 EI_REPLACE_METHOD(0x00518D30, CObject3D::AnimationFactor);
 

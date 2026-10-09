@@ -20,6 +20,16 @@ __declspec(naked) inline void __cdecl ReportError(long, const char*) EI_ORIGINAL
 __declspec(naked) inline void __fastcall LoadTextureOriginal(void** /*holder*/, void*, int /*kind*/, const char* /*name*/)
     EI_ORIGINAL(0x00500A00)
 __declspec(naked) inline CAnimationNode* __fastcall ConstructBone(void*) EI_ORIGINAL(0x00506710)
+// 004EA4A0 (device_shadow.cpp, thiscall on the device object at the renderer's +0x20, RET 0x24): the
+// flat geometry draw [positions (blocks of four), uvs, blocks, indices, index count, colour, specular,
+// bounds (null: crossing), z scale]; 2 when nothing is visible, else 0. Called through its address so
+// its verify wrapper stays in the path.
+__declspec(naked) inline int __fastcall DeviceDrawFlatOriginal(void* /*device*/, void*, const void* /*positions*/,
+                                                               const void* /*uvs*/, int /*blocks*/,
+                                                               const void* /*indices*/, int /*indexCount*/,
+                                                               std::uint32_t /*colour*/, std::uint32_t /*specular*/,
+                                                               const void* /*bounds*/, float /*zScale*/)
+    EI_ORIGINAL(0x004EA4A0)
 
 // 00500960: the display / renderer object (the global at 007AF060; plain RET, no arguments).
 // 00468F70: 16-byte aligned scratch allocation of `count` 16-byte records (ECX, plain RET).

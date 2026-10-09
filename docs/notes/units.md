@@ -177,6 +177,9 @@ remove), `magic_traps.txt`, `levers.txt`, `world_load` (save / load), and every 
 
 ## Rewritten
 
+A-U9 (render / animation block 0x500000-0x50E000) is listed in `map_objects.md` (marker, gamma, bones) and `objects.md`
+(fake unit skeleton rewind), with that block's next candidates under "Skipped and why".
+
 V: P pure (float bits); O output (original into a scratch copy); S stateful (ours, object snapshotted and restored,
 original, compared: unit 0x4DC, stats 0x704, vitals 0x58); C capture streams; ours = consistency checks.
 

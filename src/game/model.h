@@ -136,6 +136,20 @@ public:
     // 0..1: each times 255 as a float, rounded to the nearest integer (FISTP); A = 0xFF, packed as
     // ((r | 0xFFFFFF00) << 8 | g) << 8 | b; stored at +0x14 and set through slot 0.
     void SetFogColour(float r, float g, float b);
+    // 00503A40 (RET 0x10, EAX 1; renderer_marker.cpp, A-U9). The selection marker under a selected
+    // unit (00569E40's draw pass): a flat green arrow of half-transparent 0x8000FF00, 0.3 above
+    // `point`, `size` long, pointing along -`axisY` (`axisX` across), drawn by the device's flat
+    // geometry draw (004EA4A0) as six triangles of two vertex blocks.
+    int DrawSelectionMarker(const Vector3* point, float size, const Vector3* axisX, const Vector3* axisY);
+    // 00504A60 (virtual slot 22, RET 0xC, AL; renderer_gamma.cpp, A-U9; the options' brightness,
+    // contrast and gamma, at start-up, from the options screen and with zeros at exit). Without a
+    // device or a primary-surface gamma ramp (DDCAPS2_PRIMARYGAMMA) false. Keeps the three values,
+    // then sets the primary surface's gamma ramp (calibrated when the driver can): each value
+    // clamped to -1..1 and halved; level i / 255 raised to 1 / (1 + 5 g) (g > 0) or 1 / (1 + g / 2)
+    // (g < 0), times the contrast's scale (1 + 4 |c|, inverted for c < 0) and centred, clamped to
+    // 0..1, plus the brightness, clamped again, times 65280 (truncated) for all three channels.
+    // True when SetGammaRamp succeeds.
+    bool SetGamma(float brightness, float contrast, float gamma);
 
     std::uint32_t flags_;            // +0x04 bit 0: the software cursor option; bit 1 set by the creation (00500B70)
     CTransformPipeline* pipeline_;   // +0x08
@@ -147,7 +161,10 @@ public:
     CLight* sun_;
     CTextureDevice* device_;         // +0x20 the device object (007AF080), a counted holder (00504E20 assigns)
     CRenderHelper* helper_;          // +0x24 counted
-    std::uint8_t unknown_28[0x34 - 0x28];
+    // +0x28 .. +0x30: the display settings slot 22 (SetGamma) last applied, as given.
+    float brightness_;
+    float contrast_;
+    float gamma_;
     // +0x34 .. +0x58: set by the creation (0, 0x80000000, zeros, the time, zeros).
     int unknown_34;
     std::uint32_t unknown_38;

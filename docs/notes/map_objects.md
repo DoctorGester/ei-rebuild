@@ -11,7 +11,7 @@ Scenarios: `map_objects.txt`, `unit_create.txt` (also world_load, models and eve
 
 | Range | Contents |
 |---|---|
-| 00500000-0050E000 | rendering and animation (tracks and cages rewritten; the rest not looked at) |
+| 00500000-0050E000 | rendering and animation (tracks, cages, the selection marker and the gamma ramp rewritten; renderer slots in models.md) |
 | 0050E2D0-0050F730 | **CMapObject** (vtable 0073DAA0, 67 slots): ctor 0050E2D0, Create (slot 2) 0050E770, Destroy (3) 0050E840, attach (19), MarkChanged 0050E9F0, network write / read (50 / 49, 0050EAF0 / 0050EC30, net_state.cpp), AddEffect (45), scale (27 / 30), position (48, 51-53), Load / Save (9 / 10, 0050F7A0 / 0050F900) |
 | 00510450-00512600 | **CMapObjectClientSpecific** (0x3A, vtable 0073DBEC): Update (slot 6), effect particles 00510B80 and looping sounds 005112A0 (called by slot 13 005117D0 when the effect list changes), sound names by type 005114D0, the light (+0x50: 00511830 create, 00511950 show, 005119B0 hide, 00511A00 slot 19) |
 | 005125E0-00512730 | CMapObjectManager ("map_objects", id 0x2D, vtable 0073DCD8); factory 00512730 |
@@ -102,6 +102,9 @@ is snapshotted and restored, the original runs, bytes and EAX compared.
 | 005117D0, 00510B80, 005112A0, 005114D0 | CMapObjectClientSpecific EffectsChanged (slot 13), UpdateEffectParticles, UpdateEffectSounds, PlayEffectSound (map_object_client_effects.cpp; A-U3) | ours only: records present, one per merged type at the highest power / per effect otherwise, one sound per type; stench timer 0, feeble mind handle toggles |
 | 0051CCA0, 0051CD60 | CObject3DClientSpecific ResetPartAlpha / ClearPartTints (invisibility / stun ended) | original, parts put back, ours; bitwise |
 | 00511830, 00511950, 005119B0, 00511A00, 005107B0 | CMapObjectClientSpecific CreateLight, ShowLight, HideLight, SetLightMode (slot 19; mode 1 holds the light on and lists its id at *007AF748 + 0xD4, mode 2 drops it), DestroyClientCompanion (slot 3) | ours only: hidden flag toggles as the rules say; new light class 0x31 with the radius at +0xE0; held light listed / no light |
+| 0050C230 | FigureBone::Place (class 0x300C skeleton bone, map_object_figures.h; figure_bones.cpp; A-U9): child = parent position + offset turned by the parent's rotation, rotation pose * parent (Hamilton; 00507E80 multiplies the other way); root = pose (times the animation's time factor) - origin; the mesh gets both and the pose's vertices (005A0B10) | the original's recursion goes straight to it inside the wrapper; subtree snapshotted, original, kept, restored, ours; bone and mesh poses within 4 ULPs |
+| 0050AF40, 0050B370, 0050B510, 0050B1D0, 0050B1B0 | FigureBone Construct, CreateBone (slot 2: reset; the matrices +0x90 emptied without freeing, as 0050DD40), DestroyBone (slot 3: mesh forgotten then released, pose only forgotten, animator / +0x54 / +0x58 released), DestructBody, DeleteBone (figure_bone_lifetime.cpp; A-U9; slots 7 / 11 / 12 0050B180 / 90 / A0 are trivial) | ctor: original into a raw copy, bytes compared except +0x90 and the unwritten offset; the rest ours only (blank state / engine object vtable) |
+| 00503A40, 00504A60 | CSceneRenderer DrawSelectionMarker (the green arrow under selected units; renderer_marker.cpp), SetGamma (slot 22: the options' brightness / contrast / gamma as the primary surface's gamma ramp; renderer_gamma.cpp) (A-U9) | marker: original with 004EA4A0's call recorded and skipped (flat_draw_capture.h), ours recorded and drawn, arguments compared (positions 4 ULPs); gamma: original, ramp read back (GetGammaRamp), ours, read again; results, kept values and ramps (entries within 1) compared |
 
 Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEffect::Tick`, 00524FE0
 (hit onto the statistics block); sound system (global 007AF784) 006B8600 / 006B7C10 / 006B7CB0 /
@@ -141,7 +144,11 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
 ## Skipped and why
 
 - CArray Serialize / SetSize instantiations (library).
-- 0050F170 (fade mode from a float, slot 47): small, next candidate.
+- A-U9: 005015A0 (renderer slot 25: the projection / viewport / axis-swap stacks for a rectangle and a field of view,
+  like the creation's FillMatrixStacks) has no caller (no `call [reg+0x64]` on the renderer in game.exe); 00508A30
+  (sets the skin clock, rewinds) is unreferenced. Next here: 0050D7C0 (animation state rescale), 0050CC60 (LinkPiece),
+  0050C730, 0050C5F0, 0050DFF0, 00506710 / 005068C0 (CAnimationNode ctor / dtor body), the renderer's 00504860,
+  00503F40, 005040A0, 00504E50, 00504F70, 00505270.
 - 0050E9B0 (slot 34): packs a stack UnitVitals the builder leaves unwritten when the prototype exists (garbage in the
   original; cannot be reproduced). 0050F080 is rewritten (A-U5, map_object_vitals.cpp: CMapObject::ClearProtectionBases,
   verified ours vs original on the protection pairs; reached by every unit spawn through 0058EF20).

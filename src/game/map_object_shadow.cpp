@@ -127,9 +127,7 @@ __declspec(naked) void __fastcall ProjectShadow(void*, void*, const float*, cons
 // 00501AF0. Texture stages: binds a texture.
 void __fastcall SetTexture(void* a0, void*, int a2, CEngineObject* a3) { DeviceSetTextureOriginal(a0, nullptr, a2, (void*)a3); }
 // 006CB020. Light manager: is the point lit, AL.
-// 004EA4A0. Device: draws the shadow geometry.
-__declspec(naked) void __fastcall DrawGeometry(void*, void*, void*, void*, int, void*, int, std::uint32_t,
-                                               std::uint32_t, int, std::uint32_t) EI_ORIGINAL(0x004EA4A0)
+// 004EA4A0 (DeviceDrawFlatOriginal, originals_render.h). Device: draws the shadow geometry.
 // Rewritten elsewhere, through their game addresses: 004018A0 Quaternion::PreMultiply,
 // 005A0CD0 CFigureMesh::DrawOffset.
 __declspec(naked) void __fastcall PreMultiplyAt(Quaternion*, void*, const Quaternion*) EI_ORIGINAL(0x004018A0)
@@ -619,8 +617,9 @@ int CObject3DClientSpecific::DrawShadow(ShadowDrawContext* context) {
     }
     SetTexture(TextureStages(), nullptr, 0, texture);
     std::uint8_t lit = IsLit(LightManager(), nullptr, &object->position.x);
-    DrawGeometry(RenderDevice(), nullptr, vertices, indices, vertexCount, texCoords, primitiveCount, colour,
-                 static_cast<std::uint32_t>(static_cast<std::uint8_t>(lit)) << 24, 0, kDrawDepth);
+    DeviceDrawFlatOriginal(RenderDevice(), nullptr, vertices, indices, vertexCount, texCoords, primitiveCount, colour,
+                           static_cast<std::uint32_t>(static_cast<std::uint8_t>(lit)) << 24, nullptr,
+                           std::bit_cast<float>(kDrawDepth));
     return 1;
 }
 EI_REPLACE_METHOD(0x0051CE60, CObject3DClientSpecific::DrawShadow);

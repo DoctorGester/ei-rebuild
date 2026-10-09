@@ -62,6 +62,16 @@ public:
     // 005064C0. Stores the morph coefficients and computes the bone position from `box`.
     void SetMorph(const BoneMorphBox* box, float s, float t, float u);
 
+    // skin_rewind.cpp (A-U9):
+    // 00507E80. The pose at the animation's start: rotation = the parent's pose rotation times the
+    // first rotation key's (the key's alone for the root), position = the parent's pose position plus
+    // position_ turned by the parent's rotation (the root: turned by its own); the current morph
+    // points become the rest ones (pointsB_ = pointsA_) and the four key cursors 0.
+    void ResetPose();
+    // 005081C0. Rewinds this node and its children: the clock (+0x38 / +0x3C) to 0, ResetPose, and
+    // the mesh (when there is one) placed at the pose with the morph points as its offsets (005A0B10).
+    void Rewind();
+
     std::uint32_t unknown_000;
     mfc::CString name_;                                  // +0x004
     mfc::CString unknown_008;                            // +0x008
@@ -69,17 +79,21 @@ public:
     std::uint32_t unknown_010[3];
     CAnimationNode* parent_;                             // +0x01C
     lib::AlignedArray<CAnimationNode*> children_;        // +0x020
-    std::uint32_t unknown_030[4];
+    class CFigureMesh* mesh_;                            // +0x030 the part the node places, or null
+    std::uint32_t unknown_034;
+    std::uint32_t clock_[2];                             // +0x038 cleared by Rewind (a double?)
     int frameCount_;                                     // +0x040 the animation's frames (a short)
     lib::AlignedArray<AnimationRotationKey> rotationKeys_;   // +0x044
-    int unknown_054;                                     // +0x054 -1 after construction
+    int rotationCursor_;                                 // +0x054 -1 after construction, 0 after ResetPose
     lib::AlignedArray<AnimationTranslationKey> translationKeys_;   // +0x058
-    int unknown_068;                                     // +0x068 -1
+    int translationCursor_;                              // +0x068 the same
     mfc::CArray<Vector3> normals_;                       // +0x06C (vtable 0073C120; zeroed when added)
-    int unknown_080;                                     // +0x080 -1
+    int normalCursor_;                                   // +0x080 the same
     mfc::CArray<AnimationMorphFrame, AnimationMorphFrameElements> morphFrames_;   // +0x084 (vtable 0073D9BC)
-    int unknown_098;                                     // +0x098 -1
-    std::uint8_t unknown_09C[0xD4 - 0x9C];
+    int morphCursor_;                                    // +0x098 the same
+    std::uint8_t unknown_09C[0xB8 - 0x9C];
+    Quaternion poseRotation_;                            // +0x0B8 the node's rotation in the figure
+    Vector3 posePosition_;                               // +0x0C8 its position in the figure
     lib::AlignedArray<Vector3> pointsB_;                 // +0x0D4 one per morph point, zeroed
     Quaternion restRotation_;                            // +0x0E4 the node's rest rotation
     Vector3 restPosition_;                               // +0x0F4 the node's rest pivot
@@ -100,6 +114,9 @@ static_assert(offsetof(CAnimationNode, translationKeys_) == 0x58);
 static_assert(offsetof(CAnimationNode, normals_) == 0x6C);
 static_assert(offsetof(CAnimationNode, morphFrames_) == 0x84);
 static_assert(offsetof(CAnimationNode, pointsB_) == 0xD4);
+static_assert(offsetof(CAnimationNode, mesh_) == 0x30 && offsetof(CAnimationNode, clock_) == 0x38);
+static_assert(offsetof(CAnimationNode, rotationCursor_) == 0x54 && offsetof(CAnimationNode, morphCursor_) == 0x98);
+static_assert(offsetof(CAnimationNode, poseRotation_) == 0xB8 && offsetof(CAnimationNode, posePosition_) == 0xC8);
 static_assert(offsetof(CAnimationNode, restRotation_) == 0xE4);
 static_assert(offsetof(CAnimationNode, restPosition_) == 0xF4);
 static_assert(offsetof(CAnimationNode, pointsA_) == 0x100);

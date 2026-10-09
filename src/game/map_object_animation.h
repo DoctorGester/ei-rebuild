@@ -8,8 +8,11 @@
 #include <cstddef>
 #include <cstdint>
 
+struct FigureAnimation;   // map_object_figures.h
+
 // A part's track (only the fields used here): key frames of positions, rotations and morphed
-// vertex sets, one per time unit, and the values at the current time.
+// vertex sets, one per time unit, and the values at the current time. The same object as
+// FigurePartAnimator (class 0x300B, map_object_figures.h).
 struct AnimationTrack {
     // 0050ACD0. The values at `time`: between key frame floor(time) (rounded from the CRT's
     // modf) and the next by the fraction - positions and morph vertices linearly, rotations by
@@ -17,7 +20,9 @@ struct AnimationTrack {
     // (007AF110 / 007AF100). Remembers `time` (+0x48).
     void Evaluate(float time);
 
-    std::uint8_t unknown_00[0x24];
+    std::uint8_t unknown_00[0x1C];
+    const FigureAnimation* animation;   // +0x1C the animation playing (FigurePartAnimator::animation)
+    std::uint8_t unknown_20[4];
     int positionCount;              // +0x24
     const float* positions;         // +0x28 three floats each
     int rotationCount;              // +0x2C
@@ -30,9 +35,10 @@ struct AnimationTrack {
     Vector3 position;               // +0x4C
     Quaternion rotation;            // +0x58
     float* vertices;                // +0x68 the morphed vertices
+    int verticesSize;               // +0x6C their count ({vertices, count} is what a bone gives 005A0B10)
 };
 static_assert(offsetof(AnimationTrack, positionCount) == 0x24);
 static_assert(offsetof(AnimationTrack, frameCount) == 0x3C);
 static_assert(offsetof(AnimationTrack, time) == 0x48);
 static_assert(offsetof(AnimationTrack, rotation) == 0x58);
-static_assert(offsetof(AnimationTrack, vertices) == 0x68);
+static_assert(offsetof(AnimationTrack, vertices) == 0x68 && offsetof(AnimationTrack, animation) == 0x1C);
