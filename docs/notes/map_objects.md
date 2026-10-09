@@ -144,7 +144,11 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
 ## Skipped and why
 
 - CArray Serialize / SetSize instantiations (library).
-- 0050F170 (fade mode from a float, slot 47): small, next candidate.
+- A-U9: 005015A0 (renderer slot 25: the projection / viewport / axis-swap stacks for a rectangle and a field of view,
+  like the creation's FillMatrixStacks) has no caller (no `call [reg+0x64]` on the renderer in game.exe); 00508A30
+  (sets the skin clock, rewinds) is unreferenced. Next here: 0050D7C0 (animation state rescale), 0050CC60 (LinkPiece),
+  0050C730, 0050C5F0, 0050DFF0, 00506710 / 005068C0 (CAnimationNode ctor / dtor body), the renderer's 00504860,
+  00503F40, 005040A0, 00504E50, 00504F70, 00505270.
 - 0050E9B0 (slot 34): packs a stack UnitVitals the builder leaves unwritten when the prototype exists (garbage in the
   original; cannot be reproduced). 0050F080 is rewritten (A-U5, map_object_vitals.cpp: CMapObject::ClearProtectionBases,
   verified ours vs original on the protection pairs; reached by every unit spawn through 0058EF20).
