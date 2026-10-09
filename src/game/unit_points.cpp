@@ -2,8 +2,13 @@
 // 0073BFE8): 52 the position predicted along its path (0052FCC0) and 53 the point its current
 // animation acts on (0052FDF0). Registered as free functions (thiscall as fastcall; rule 4). See
 // docs/notes/units.md ("Unit points").
+#include "ai_motion.h"
+#include "map_object.h"
+#include "map_object_figures.h"
+#include "unit.h"
+#include "world.h"
+
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "originals_ai.h"
 #include "originals_engine.h"
 #include "originals_core.h"
@@ -14,11 +19,6 @@
 
 namespace {
 
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
-}
-
 // The unit's world [00455950]; the motion's sample [005C7430 on +0x27C: world, order, time,
 // turning, position (half-cells), direction, speed, cell x, cell y]; the animation entry of an
 // animation index [00518F80 (index)]; the orientation's axes [0040D940 X, 0040F560 Y (out)]; the AI
@@ -27,36 +27,39 @@ __declspec(naked) float* __fastcall AxisX(const void*, void*, float*) EI_ORIGINA
 float* __fastcall AxisY(const void* a0, void*, float* a2) { return QuaternionAxisY(a0, nullptr, a2); }
 __declspec(naked) bool __fastcall IsPassableForClass(void*, void*, int, const float*) EI_ORIGINAL(0x005BA790)
 
-constexpr int kSlotPath = 0x40 / 4;           // controller: () -> its motion order
-constexpr int kSlotIsServer = 0xDC / 4;       // unit: ()
-constexpr int kSlotActionPoint = 0xD4 / 4;    // unit: (out) — slot 53
-constexpr int kSlotWorldActive = 0x68 / 4;    // world: ()
 constexpr int kOrderPath = 2;
 constexpr float kCellScale = 1.0f;            // 0073E9B8 / 0073EBF0
 constexpr float kHalf = 0.5f;                 // 0073B86C
 const char* const kNoEntry = reinterpret_cast<const char*>(0x0078F918);   // "Can't find animation entry index..."
 
+// The unit's virtual slot 55 (IsDead: +0x274).
+bool IsDead(CUnit* unit) { return ObjectSlots(unit)->IsDead() != 0; }
+void CopyPosition(float* out, const CUnit* unit) { std::memcpy(out, &unit->positionX, 12); }
+
 } // namespace
 
-// 0052FCC0 (slot 52, RET 8). The server's unit gives its action point (slot 53); on a client a
+// 0052FCC0 (slot 52, RET 8). A dead unit (slot 55) gives its action point (slot 53); otherwise a
 // unit following a path order (kind 2) without flag 0x8000000 gives its motion's position at
-// `time`; otherwise its position.
-float* __fastcall UnitPredictPosition(std::uint8_t* unit, void*, float* out, int time) {
-    void* order = ei::VCall<void*>(At<void*>(unit, 0x240), kSlotPath);
-    if (ei::VCall<int>(unit, kSlotIsServer)) {
-        ei::VCall<float*>(unit, kSlotActionPoint, out);
+// `time`, and any other its position.
+float* __fastcall UnitPredictPosition(std::uint8_t* object, void*, float* out, int time) {
+    auto* unit = reinterpret_cast<CUnit*>(object);
+    // The controller's slot 16: its motion (the order in its first 0x20 bytes).
+    AIPath* path = static_cast<CUnitController*>(unit->controller)->Path();
+    if (IsDead(unit)) {
+        ObjectSlots(unit)->AimPoint(reinterpret_cast<Vector3*>(out));
         return out;
     }
-    if (At<int>(order, 0) == kOrderPath && !(At<std::uint32_t>(unit, 8) & 0x8000000)) {
+    auto* order = reinterpret_cast<MotionOrder*>(path);
+    if (order->kind == kOrderPath && !(unit->flags_ & 0x8000000)) {
         float toCells = 1.0f / (kCellScale * kHalf);
-        float position[3] = {At<float>(unit, 0x1C), At<float>(unit, 0x20), At<float>(unit, 0x24)};
+        float position[3] = {unit->positionX, unit->positionY, unit->positionZ};
         position[0] = toCells * position[0];
         position[1] = toCells * position[1];
         bool turning;
         float direction[3];
         float speed;
         int cellX, cellY;
-        MotionSample(unit + 0x27C, nullptr, ObjectWorld(unit), order, static_cast<float>(time), &turning, position,
+        MotionSample(unit->motion, nullptr, ObjectWorld(unit), order, static_cast<float>(time), &turning, position,
                      direction, &speed, &cellX, &cellY);
         float toWorld = kCellScale * kHalf;
         out[0] = toWorld * position[0];
@@ -64,59 +67,60 @@ float* __fastcall UnitPredictPosition(std::uint8_t* unit, void*, float* out, int
         std::memcpy(&out[2], &position[2], 4);
         return out;
     }
-    std::memcpy(out, unit + 0x1C, 12);
+    CopyPosition(out, unit);
     return out;
 }
 
-// 0052FDF0 (slot 53, RET 4; returns `out` in EAX, which the callers use). On the server, the
-// point the unit's current animation (+0x254) acts on: an animation entry of kind 0x1C0000 (bits
-// 0x3C0000 of +0x14) offsets the position along the orientation by its direction bits (0x1C00000
-// of +0x18): 0x400000 back (-Y), 0x800000 forward (+Y) by +0x148, 0xC00000 right (+X), 0x1000000
-// left (-X) by +0x144. The point is kept only where the AI map lets size class 3 stand (when the
-// world is live); otherwise, and on a client, the position.
-float* __fastcall UnitActionPoint(std::uint8_t* unit, void*, float* out) {
-    if (!ei::VCall<int>(unit, kSlotIsServer)) {
-        std::memcpy(out, unit + 0x1C, 12);
+// 0052FDF0 (slot 53, RET 4; returns `out` in EAX, which the callers use). For a dead unit (slot
+// 55), the point the unit's current animation (+0x254) acts on: an animation entry of kind
+// 0x1C0000 (bits 0x3C0000 of its key) offsets the position along the orientation by its direction
+// bits (0x1C00000 of its flags): 0x400000 back (-Y), 0x800000 forward (+Y) by above[1], 0xC00000
+// right (+X), 0x1000000 left (-X) by above[0]. The point is kept only where the AI map lets size
+// class 3 stand (on the server); otherwise, and for a living unit, the position.
+float* __fastcall UnitActionPoint(std::uint8_t* object, void*, float* out) {
+    auto* unit = reinterpret_cast<CUnit*>(object);
+    if (!IsDead(unit)) {
+        CopyPosition(out, unit);
         return out;
     }
-    std::uint8_t index = At<std::uint8_t>(unit, 0x254);
+    auto index = static_cast<std::uint8_t>(unit->unknown_254);
     float offset[3] = {0.0f, 0.0f, 0.0f};
-    auto* entry = reinterpret_cast<std::uint8_t*>(ObjectAnimationEntryOriginal(unit, nullptr, index));
+    auto* entry = reinterpret_cast<const FigureAnimation*>(ObjectAnimationEntryOriginal(unit, nullptr, index));
     if (!entry) {
-        DebugMessageOriginal(kNoEntry, static_cast<unsigned>(index), At<const char*>(unit, 0xA4));
-    } else if ((At<std::uint32_t>(entry, 0x14) & 0x3C0000) == 0x1C0000) {
-        std::uint32_t side = At<std::uint32_t>(entry, 0x18) & 0x1C00000;
+        DebugMessageOriginal(kNoEntry, static_cast<unsigned>(index), unit->prototypeName);
+    } else if ((entry->key & 0x3C0000) == 0x1C0000) {
+        std::uint32_t side = entry->flags & 0x1C00000;
         float axis[3];
         if (side == 0x800000) {
-            AxisY(unit + 0x34, nullptr, axis);
-            float reach = At<float>(unit, 0x148);
+            AxisY(&unit->orientation, nullptr, axis);
+            float reach = unit->above[1];
             for (int i = 0; i < 3; ++i) offset[i] = axis[i] * reach;
         } else if (side == 0x400000) {
-            AxisY(unit + 0x34, nullptr, axis);
-            float reach = At<float>(unit, 0x148);
+            AxisY(&unit->orientation, nullptr, axis);
+            float reach = unit->above[1];
             for (int i = 0; i < 3; ++i) offset[i] = -axis[i] * reach;
         } else if (side == 0xC00000) {
-            AxisX(unit + 0x34, nullptr, axis);
-            float reach = At<float>(unit, 0x144);
+            AxisX(&unit->orientation, nullptr, axis);
+            float reach = unit->above[0];
             for (int i = 0; i < 3; ++i) offset[i] = axis[i] * reach;
         } else if (side == 0x1000000) {
-            AxisX(unit + 0x34, nullptr, axis);
-            float reach = At<float>(unit, 0x144);
+            AxisX(&unit->orientation, nullptr, axis);
+            float reach = unit->above[0];
             for (int i = 0; i < 3; ++i) offset[i] = -axis[i] * reach;
         }
     }
-    std::uint8_t* world = static_cast<std::uint8_t*>(ObjectWorld(unit));
-    if (ei::VCall<int>(world, kSlotWorldActive)) {
-        float point[3] = {offset[0] + At<float>(unit, 0x1C), offset[1] + At<float>(unit, 0x20),
-                          offset[2] + At<float>(unit, 0x24)};
-        if (!IsPassableForClass(world + 0x170, nullptr, 3, point)) {
-            std::memcpy(out, unit + 0x1C, 12);
+    // The world's slot 26 (IsServer); the server's AI map.
+    auto* world = static_cast<CWorldServer*>(ObjectWorld(unit));
+    if (world->IsServer()) {
+        float point[3] = {offset[0] + unit->positionX, offset[1] + unit->positionY, offset[2] + unit->positionZ};
+        if (!IsPassableForClass(world->AIMap(), nullptr, 3, point)) {
+            CopyPosition(out, unit);
             return out;
         }
     }
-    out[0] = offset[0] + At<float>(unit, 0x1C);
-    out[1] = offset[1] + At<float>(unit, 0x20);
-    out[2] = offset[2] + At<float>(unit, 0x24);
+    out[0] = offset[0] + unit->positionX;
+    out[1] = offset[1] + unit->positionY;
+    out[2] = offset[2] + unit->positionZ;
     return out;
 }
 

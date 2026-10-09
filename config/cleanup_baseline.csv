@@ -259,7 +259,6 @@ src/game/unit_hits.cpp,7,0,0,1,4,0,0,0,0
 src/game/unit_items.cpp,1,4,0,0,0,0,0,0,0
 src/game/unit_motion_tick.cpp,0,0,8,0,1,0,0,0,0
 src/game/unit_params_skill.cpp,3,0,0,0,0,0,0,0,0
-src/game/unit_points.cpp,20,5,0,0,0,0,0,0,0
 src/game/unit_record.cpp,0,0,2,0,0,0,0,0,0
 src/game/unit_save.cpp,8,6,0,0,0,0,0,0,0
 src/game/unit_size_class.cpp,8,1,0,0,0,0,0,0,0
