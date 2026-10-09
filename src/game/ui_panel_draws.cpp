@@ -18,12 +18,6 @@
 
 namespace {
 
-// The items of a camp item list (its +0x40 part; the list is 0x70 bytes, 00661050).
-struct CampItemSlots {
-    void** first;                    // +0x00
-    int count;                       // +0x04
-};
-
 constexpr std::uint32_t kTextColour = 0xA7D7E4;
 constexpr int kD3DClear = 10;                    // IDirect3DDevice7::Clear
 constexpr std::uint32_t kClearZBuffer = 2;       // D3DCLEAR_ZBUFFER
@@ -118,13 +112,13 @@ BOOL CRepairGrid::Draw(int pass) {
     auto* surface = reinterpret_cast<SurfaceText*>(surfaces_.data[0]);
     surface->Begin();
     surface->Clear();
-    auto* list = static_cast<CampItemSlots*>(items_);
-    for (int i = 0; i < list->count; ++i) {
+    const UiItemList* list = items_;
+    for (int i = 0; i < list->size; ++i) {
         int x = (i % 4) * 100;
         int y = (i / 4) * 100;
         // 1 << (3 - row) as SHL does it (the count masked to five bits).
         auto scale = static_cast<int>(1u << ((3 - (i >> 2)) & 31));
-        auto* item = static_cast<CItem*>(list->first[i]);
+        CItem* item = list->data[i];
         ItemCell cell{item, static_cast<float>(x) + 250.0f, static_cast<float>(y) + 150.0f,
                       static_cast<float>(scale) * 6.0f, 100.0f, unknown_148};
         DrawItem(owner_, pass, &cell);

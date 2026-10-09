@@ -226,6 +226,10 @@ window slot 40), 005F82F0 (chat).
 (help topics map find), 005F60B0 / 005F6AD0 / 005F8FC0 / 005F9570 / 0062B480 / 00634090 (unwind-only destructors).
 005F46A0 is CInterface3D's constructor (a static initialiser, before the hooks; not ported). 00636203 is a Ghidra
 split of the rewritten 006361B0 (OnUnitJoined), not a function.
+`CTradeGrid::ItemAt` 00627920 / `CRepairGrid::ItemAt` 00628060 (`ui_hero_panels.cpp`; the grids' lists are typed
+`UiItemList` = `lib::AlignedArray<CItem*>` now; side by side in `verify_ui_equip_panels.cpp`; the camp's hover over the
+constructor and repair pages). Kept: the trade grid's sold-list topic follows buyKind_ too. Library: 005FBD30 / 005FBD80 /
+005FBDD0 (record destructors), 005FBF50 / 005FBFB0 / 005FC010 (ConstructElements).
 
 Next in 005E0000-00640000 after A-I18 (not Rebirth-patched, single player first): 00612CF0 (the camp's slot 39, a
 debug fill of the constructors; no scenario). Multiplayer / lobby last: 005E2A30 / 005E3230 / 005E3550 / 005E3CE0 / 005E26F0 (chat), 00608D20-006097E0 (the

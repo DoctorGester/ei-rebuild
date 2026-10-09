@@ -91,6 +91,33 @@ static CItem* __fastcall QuickStripItemAtVerify(CHeroQuickStrip* self, void*, in
 }
 EI_VERIFY(0x00622D40, QuickStripItemAtVerify, 5, s_stripItemAt);
 
+// 00627920 / 00628060 (the trade and repair grids' slot 25, A-I18): side by side as above.
+// Reached by the camp's hover over a constructor's first page or the repair page (ui_camp,
+// ui_camp_deals, trader_stock: the camp's Draw asks the shown panels for the item under the mouse).
+static CItem*(__fastcall* s_tradeGridItemAt)(CTradeGrid*, void*, int, int, int*);
+static CItem* __fastcall TradeGridItemAtVerify(CTradeGrid* self, void*, int x, int y, int* topic) {
+    int expectedTopic = -2;
+    CItem* expected = s_tradeGridItemAt(self, nullptr, x, y, &expectedTopic);
+    CItem* actual = self->ItemAt(x, y, topic);
+    ei::verify::Check("CTradeGrid::ItemAt", true, expected == actual && expectedTopic == *topic,
+                      "(%d, %d): %p topic %d, ours %p topic %d", x, y, static_cast<void*>(expected), expectedTopic,
+                      static_cast<void*>(actual), *topic);
+    return actual;
+}
+EI_VERIFY(0x00627920, TradeGridItemAtVerify, 6, s_tradeGridItemAt);
+
+static CItem*(__fastcall* s_repairGridItemAt)(CRepairGrid*, void*, int, int, int*);
+static CItem* __fastcall RepairGridItemAtVerify(CRepairGrid* self, void*, int x, int y, int* topic) {
+    int expectedTopic = -2;
+    CItem* expected = s_repairGridItemAt(self, nullptr, x, y, &expectedTopic);
+    CItem* actual = self->ItemAt(x, y, topic);
+    ei::verify::Check("CRepairGrid::ItemAt", true, expected == actual && expectedTopic == *topic,
+                      "(%d, %d): %p topic %d, ours %p topic %d", x, y, static_cast<void*>(expected), expectedTopic,
+                      static_cast<void*>(actual), *topic);
+    return actual;
+}
+EI_VERIFY(0x00628060, RepairGridItemAtVerify, 6, s_repairGridItemAt);
+
 // 00628B50 / 006298B0 (the constructor pages' slot 25, ui_constructor_slots.cpp): side by side as
 // above. Reached by the camp's hover over a maker page: ui_camp_deals (pages 3 and 5, the mouse on
 // the first two slots).
