@@ -25,13 +25,13 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- A-I .. A-I18 done (A-I, A-I4, A-I5 cut off). A-I19 cut off, merged 2026-10-09 (item panels, chat overlay, console window, exchange slots, top-window news); left: ui.md section 3 "Next" (00612CF0; multiplayer: the base screen's chat window 00608D20-006097E0, exchange 0062C250 / 0062C9C0, connection screens 0061B2C0-00620300).
+- A-I .. A-I18 done (A-I, A-I4, A-I5 cut off). A-I19 cut off, merged 2026-10-09. A-I20 taken (the rest of A-I19's list) (item panels, chat overlay, console window, exchange slots, top-window news); left: ui.md section 3 "Next" (00612CF0; multiplayer: the base screen's chat window 00608D20-006097E0, exchange 0062C250 / 0062C9C0, connection screens 0061B2C0-00620300).
 
 - I11 Next interface functions (ui.md, battle screen section); 0063EF60 / 0063E020 need modifier keys held during a click (harness step).
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- A-H .. A-H17 done. A-H18 cut off, merged 2026-10-09 (sound Open / Close / Reset, terrain sectors, item database destructor, item vector serialisers); left: 0064F550, server login 0066F890, 00661FB0 / 00661FE0 (items_spells.md "Next candidates").
+- A-H .. A-H17 done. A-H18 cut off, merged 2026-10-09. A-H19 taken (the rest of A-H18's list) (sound Open / Close / Reset, terrain sectors, item database destructor, item vector serialisers); left: 0064F550, server login 0066F890, 00661FB0 / 00661FE0 (items_spells.md "Next candidates").
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
@@ -42,14 +42,14 @@ Mark a ticket taken by adding the date; remove it when merged.
 The four porting batches (A-I16, A-H15, A-S9, A-U7) are merged (2026-10-09, 140 runs pass). Left: build, fix and merge the drafts below all six drafts are merged (2026-10-09). Then republish the dashboard and remove merged worktrees.
 
 - C6 done 2026-10-09 (combat.md "C6 cleanup"). C7 done 2026-10-09.
-- C8 done 2026-10-09, NOT merged: branch worktree-agent-aaca8610a3b615722 head 5613448 (worktree agent-ab62f033819489b11) conflicts with V2 in world_client_view.cpp, world_party.cpp (and more; merge was aborted); a fresh worker should merge main into it and resolve, taking vecmath.h's types. Files: script_exec_run, script_eval, script_addon_commands, script_exec, world_sync, world_client_view, world_rules, world_party.
+- C8 done 2026-10-09, re-merging with V2 (taken): branch worktree-agent-aaca8610a3b615722 head 5613448 (worktree agent-ab62f033819489b11) conflicts with V2 in world_client_view.cpp, world_party.cpp (and more; merge was aborted); a fresh worker should merge main into it and resolve, taking vecmath.h's types. Files: script_exec_run, script_eval, script_addon_commands, script_exec, world_sync, world_client_view, world_rules, world_party.
 
 ## Vector math (planned 2026-10-09)
 
 Vector and matrix maths is mostly written out by hand: x*x + y*y (+ z*z) forms in 25 files, 164 sqrt calls, 235 raw float[3] / [4] / [9] / [16] arrays, and four separate 3-float structs (maths.h Vector3, ground_decal.h, render/render_internal.h, ui_camp.h) plus chunk_stream.h's Float4. Goal: one set of types and named operations, used everywhere, without changing results.
 Constraints: the original is MSVC6 x87 code that inlined this maths, so the order of operations decides the rounding. Every helper is __forceinline and evaluates in a fixed, documented order (x, y, z left to right); where the original uses another order, the helper is a named variant, never a silent reorder. Side-by-side checks that compare floats exactly must still pass; CheckNear tolerances are not widened to make a migration pass. The x87 __asm helpers are a separate ticket.
 - V1 done 2026-10-09, V2 done 2026-10-09 (vector-math.md).
-- V3: a check_cleanup column for unrolled vector maths (the x*x + y*y forms and float[3] / [16] members), then migrations by area in batches, each through the full suite.
+- V3 (taken 2026-10-09): a check_cleanup column for unrolled vector maths (the x*x + y*y forms and float[3] / [16] members), then migrations by area in batches, each through the full suite.
 
 ## Draft passes (no build, 2026-10-07)
 
