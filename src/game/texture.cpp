@@ -29,7 +29,6 @@ int BmpFormatFor(int type) {
 __declspec(naked) int CTextureDevice::ParseMmpHeader(const void*, PixelFormat*) EI_ORIGINAL(0x004E7C40)
 __declspec(naked) int CTextureDevice::FindFormat(int, PixelFormat*) EI_ORIGINAL(0x004E7DA0)
 __declspec(naked) int CTexture::CallCreateFromMmp(CTextureDevice*, const void*, unsigned) EI_ORIGINAL(0x00690430)
-__declspec(naked) int CTexture::LoadBmp(CTextureDevice*, const char*) EI_ORIGINAL(0x00690260)
 __declspec(naked) int ChannelLayout::Split(const void*) EI_ORIGINAL(0x004EDAA0)
 
 int CTextureManager::LoadTexture(CTexture* texture) {
@@ -54,7 +53,7 @@ int CTextureManager::LoadTexture(CTexture* texture) {
                 "CTextureManager::LoadTexture.\n Can't find desired texture format %d for texture \"%s\".\n", 0,
                 texture->GetName());
         texture->format_ = format;
-        return texture->LoadBmp(device_, path);
+        return texture->CallLoadBmp(device_, path);
     }
 
     path = mfc::CString(texture->GetName()) + ".mmp";

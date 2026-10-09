@@ -300,13 +300,17 @@ vectors O. Reached by saving and loading a game (ui_saveload, world_load).
 | 00690430, 006928C0 | CTexture::CreateFromMmp, CTextureManager::LoadMmpExtra | O |
 | 006908E0 | MmpHeader::MipOffset | P |
 | 00693180 | `ComposeTexture` (RET 0x1C) | O |
+| 0068FA10, 00690970, 00690B30, 00690D30 | CTexture::FillSurface (O: result = FilledBytes over the chain), CopyToSurface, ConvertToSurface (8888 to 16 bits), UnpackToSurface (DXT through the converter's slot 10) | S: the original fills, levels read back and overwritten, ours fills, compared (texture_fill) |
+| 00690260 | CTexture::LoadBmp (alpha "a_<file>" beside it; no scenario: no loose .bmp) | O |
 
 ComposeTexture: the cache file `<game folder>textures\<name>.mmp` keeps the request's layer bytes in its extra block (header
 +0x48), so an unchanged request is reused (1). When `name` has no file and differs from the fallback name, the fallback's
 file is tried. No layer textures deletes the file (0); else the image is drawn by 00693010 (not rewritten) and written, each
 level converted to 16 bits by the pixel converter 007AF06C slot 2 [out, in, kind, count] (kind 3 for 4444, 2 for 5551, 0 for
 5650, else -1) and halved by slot 7. A file that cannot be created goes to FatalError (the image block leaks, as in the
-original). Not rewritten: 00690970 / 00690B30 (surface lock copies); 00693970 is dead.
+original). 00693970 is dead. The fills keep a reference on every attached
+level they move to (never released, as in the original; the wrappers drop their second run's); a DXT file / surface pair
+without a decode mode passes the mip level as the mode (kept).
 
 ## Registry and ini (registry, ini_file, win_registry; every scenario)
 

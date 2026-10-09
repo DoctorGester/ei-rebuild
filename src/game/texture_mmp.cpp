@@ -43,9 +43,6 @@ template <typename... Args> long Com(void* object, int slot, Args... args) {
     return reinterpret_cast<long(__stdcall*)(void*, Args...)>(fn)(object, args...);
 }
 
-// 0068FA10: fills `surface` with the .mmp pixels from level `mip` on (thiscall on the texture).
-__declspec(naked) int __fastcall FillSurface(CTexture*, void*, CDXSurface*, const void*, unsigned)
-    EI_ORIGINAL(0x0068FA10)
 // 006908E0 through its game address (so its verify wrapper sees the call).
 __declspec(naked) std::uint32_t __fastcall CallMipOffset(const MmpHeader*, void*, unsigned) EI_ORIGINAL(0x006908E0)
 
@@ -280,7 +277,7 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const void* data, unsigned m
     if (surface) ++surface->refCount;
     if (previous) ReleaseSurface(previous);   // 004E6BA0
 
-    uploadResult_ = FillSurface(this, nullptr, staging, data, mip);
+    uploadResult_ = CallFillSurface(staging, data, static_cast<int>(mip));
     gameapi::EnterCriticalSection(DeviceLock());
     device->lastLoadResult_ = Com(device->d3dDevice_, kDeviceLoad, surface_->surface, static_cast<void*>(nullptr),
                                   staging->surface, static_cast<void*>(nullptr), 0u);
