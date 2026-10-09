@@ -38,6 +38,9 @@ void __fastcall ItemDamageLists(const float* values, console::CStringArray* out,
 // holding image "<name>.mmp" decoded and packed to 1:5:5:5 at the bottom left (rows of 512 bytes),
 // or white when there is no such image; null when it cannot be made or locked.
 void* __fastcall ItemFigureTexture(const char* name);
+// 005EBFB0 (__fastcall; ui_item_model.cpp). The model manager's object `name`, or a 100 x 100
+// interface sprite standing in for it; counted (one reference for the caller).
+CEngineObject* __fastcall ItemModel(const char* name);
 
 // An item drawn as a turning model in a cell (005ECA10's argument, 0x18 bytes).
 struct ItemCell {
@@ -189,7 +192,7 @@ struct ItemHoverInfo {
 static_assert(sizeof(ItemHoverInfo) == 0x18);
 static_assert(offsetof(ItemHoverInfo, stats) == 0x10);
 
-class CItemInfoPanel : public CUiWindow {
+class CItemInfoPanel : public CUiItemPanel {
 public:
     // 005EE760. Clears the surface and describes the item in the list (nothing without one):
     // its own description for blueprints (005F0370), materials (005EFD90), spells (005F0B90),
@@ -230,8 +233,6 @@ public:
     // The described item (005EE720 inlined): the list's first entry, or null.
     CItem* Item() const { return itemCount_ ? items_[0] : nullptr; }
 
-    std::uint8_t unknown_148[4];
-    CUiWindow* owner_;               // +0x14C the item screen (camp, hero screen, exchange)
     std::uint8_t itemList_[0x40];    // +0x150 an item list (0x70 bytes, 00661050 class); its
     CItem** items_;                  // +0x190   entries
     int itemCount_;                  // +0x194

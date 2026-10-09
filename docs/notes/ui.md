@@ -217,9 +217,10 @@ original leaves the render target size unset without a primary surface (ours 0).
 100), `StopSound` 005F7E90, `ConsoleAddText` / `SetConsoleRect` / `SetConsoleHistory` 005F7EB0 / 005F7ED0 / 005F7EF0,
 `SetDebugInfoRect` 005F7F10, `ShowFps` 005F5700 (+0x20 is the frame rate surface), `OnQuestVariable` 005F7FC0 (top
 window slot 33; at 1 the name's third '.' part becomes savedText_, the current quest). Scenarios: console, every
-screen with sounds, every zone with quest variables. Not done: the top-window forwarders for multiplayer messages
-005F7F30 / 005F7F60 / 005F7F80 / 005F7FA0 / 005F82A0 / 005F82D0 / 005F8310 (slots 28-32, 36, 37), 005F86D0 (bottom
-window slot 40), 005F82F0 (chat).
+screen with sounds, every zone with quest variables. A-I19: the news for the top window 005F7F30 / 005F7F60 /
+005F7F80 / 005F7FA0 / 005F82A0 / 005F82D0 / 005F8310 (slots 28-32, 36, 37 as `CUiWindow::Virtual*`), 005F86D0 (the
+bottom window's slot 40, the save game) and 005F82F0 (the chat overlay's 005E2A30): side by side on the call through
+a stand-in vtable (`tests/verify/slot_recorder.h`); 005F82D0 / 005F82F0 / 005F8310 are multiplayer only.
 `ShowStatusText` 005F75B0 (+0x64 the status surface while shown; ours only: freed after). `CUiSurface::Fill` 005FE370 /
 `Clear` 005FE2F0 (`ui_surface_frame.cpp`, +0x34 is `background_`; ours only: DC and holder kept). Library (A-I18 review):
 005F3000 / 005F3170 (map<string,T>::operator[]), 005F4390 / 005F44A0 / 005F9C70 / 0062C0C0 (node creation), 005FAEA0
@@ -231,10 +232,16 @@ split of the rewritten 006361B0 (OnUnitJoined), not a function.
 constructor and repair pages). Kept: the trade grid's sold-list topic follows buyKind_ too. Library: 005FBD30 / 005FBD80 /
 005FBDD0 (record destructors), 005FBF50 / 005FBFB0 / 005FC010 (ConstructElements).
 
-Next in 005E0000-00640000 after A-I18 (not Rebirth-patched, single player first): 005EE310 (an item panel input
-handler shared by four vtables: slot 25's item to the owner's slots 42 / 44), 005EBFB0 (the item view's texture),
-0060E360 (a window's destructor body), 0062D210 (vtable 00740DAC), 00612CF0 (the camp's slot 39, a debug fill of the
-constructors; no scenario). Multiplayer / lobby last: 005E2A30 / 005E3230 / 005E3550 / 005E3CE0 / 005E26F0 (chat), 00608D20-006097E0 (the
+A-I19: `CUiItemPanel` (ui.h: +0x148 `mode_`, +0x14C `owner_`) is now the base of the item panels (description panel,
+hero equipment, quick strip, trade / repair grids, constructor pages, the blank panel 00741B58); their shared input slot
+2 `CUiItemPanel::OnLeftDown` 005EE310 (`ui_item_panel_input.cpp`; side by side on the owner's slot 42 / 44 call through
+a stand-in vtable; scenario ui_camp_deals clicks the trade grid). `ItemModel` 005EBFB0 (`ui_item_model.cpp`; the model
+manager's object or a 100 x 100 stand-in sprite, counted; ours only). `CHeroStatsPanel::DestroyBody` 0060E360 (texts,
+title, window): its deleting destructors 0060E340 / 00613DD0 were registered as the plain window's and leaked both
+(fixed). The root window +0x1C is the `CChatOverlay` (CUiRootWindow folded into it; `chatOpen_` +0x14C).
+
+Next in 005E0000-00640000 (not Rebirth-patched, single player first): 0062D210 (the exchange's slot 37), 00612CF0
+(the camp's slot 39, a debug fill of the constructors; no scenario). Multiplayer / lobby last: 005E2A30 / 005E3230 / 005E3550 / 005E3CE0 / 005E26F0 (chat), 00608D20-006097E0 (the
 base screen's chat window), 0062C250 / 0062C9C0 (exchange), 0061B2C0-00620300 (connection screens). 005E67F0 is only
 an unwind helper.
 

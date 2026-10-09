@@ -26,7 +26,7 @@ namespace console { class ConsoleWindow; }
 namespace ui_gdi { struct GameFont; }
 
 class CUiWindow;
-class CUiRootWindow;
+class CChatOverlay;
 struct UiInputSide;
 class CUiMesh;
 struct CDXSurface;
@@ -157,6 +157,23 @@ public:
     // window's slot 33 hears of it; at 1 (or NaN) a name of three or more '.' parts keeps its
     // third part in savedText_ (the current quest).
     void OnQuestVariable(const char* name, float value);
+    // News for the top window (ui_interface_glue.cpp; nothing without a window): 005F7F30 (RET 0xC)
+    // items picked up (slot 28), 005F7F60 / 005F7F80 (RET 4) a unit joined / left the party (slots
+    // 29 / 30; the client's UnitChanged 00667BA0 picks one by the unit's +0x24C), 005F7FA0 the game
+    // is lost (slot 31 with 0), 005F82A0 (RET 8) a unit speaks (slot 32 with no extra), 005F82D0
+    // (RET 4) the players changed (slot 36), 005F8310 (RET 0xC) an exchange between players ended
+    // (slot 37). 005F86D0: the bottom window saves its state (slot 40; the save game 0057B3B0).
+    void OnItemsPicked(void* items, int money, int crippled);
+    void OnUnitJoined(void* unit);
+    void OnUnitLeft(void* unit);
+    void OnGameLost();
+    void OnUnitSpeech(int id, unsigned event);
+    void OnPlayersChanged(int added);
+    void OnExchangeDone(void* partyB, void* partyA, void* partyC);
+    void SaveWindowState();
+    // 005F82F0 (RET 8). A chat line (`text` from player `number`) for the root window's chat
+    // (005E2A30 on +0x1C).
+    void OnChatLine(const char* text, std::uint32_t number);
     // 005F75B0 (RET 4; the save / load window while it saves or loads). `text` drawn in green
     // (005FDE20: rect (0, 0)-(800, 40), format 2) on a cleared surface over (0, 280)-(800, 320)
     // (+0x64), one frame shown (00458010 with 1, 1), the surface freed.
@@ -204,7 +221,7 @@ public:
     std::uint8_t unknown_10[0x14 - 0x10];
     console::ConsoleWindow* console_;   // +0x14 the console window (shown while its +0x7A is set)
     CScreenFade* fade_;              // +0x18
-    CUiRootWindow* root_;            // +0x1C updated after the top window every frame
+    CChatOverlay* root_;             // +0x1C the chat overlay; updated after the top window every frame
     CUiSurface* fpsSurface_;         // +0x20 the frame rate's surface while shown (ShowFps)
     std::uint8_t unknown_24[0x30 - 0x24];
     // +0x30 the windows draw, redraw their surfaces and update their tooltips only while this is
@@ -655,6 +672,39 @@ public:
         using Fn = void(__thiscall*)(CUiWindow*, const char*, float);
         reinterpret_cast<Fn>(vtable_[33])(this, name, value);
     }
+    // The interface's news slots (CInterface3D::OnItemsPicked .. SaveWindowState; the battle
+    // screen's implementations are in ui_camp.h): 28 items picked up, 29 / 30 a unit joined / left,
+    // 31 the game ended, 32 a unit speaks, 36 the players changed, 37 an exchange ended, 40 the
+    // window's part of a save game.
+    void VirtualItemsPicked(void* items, int money, int crippled) {
+        using Fn = void(__thiscall*)(CUiWindow*, void*, int, int);
+        reinterpret_cast<Fn>(vtable_[28])(this, items, money, crippled);
+    }
+    void VirtualUnitJoined(void* unit) {
+        using Fn = void(__thiscall*)(CUiWindow*, void*);
+        reinterpret_cast<Fn>(vtable_[29])(this, unit);
+    }
+    void VirtualUnitLeft(void* unit) {
+        using Fn = void(__thiscall*)(CUiWindow*, void*);
+        reinterpret_cast<Fn>(vtable_[30])(this, unit);
+    }
+    void VirtualGameOver(int won) {
+        using Fn = void(__thiscall*)(CUiWindow*, int);
+        reinterpret_cast<Fn>(vtable_[31])(this, won);
+    }
+    void VirtualSpeech(int id, unsigned event, char* extra) {
+        using Fn = void(__thiscall*)(CUiWindow*, int, unsigned, char*);
+        reinterpret_cast<Fn>(vtable_[32])(this, id, event, extra);
+    }
+    void VirtualPlayersChanged(int added) {
+        using Fn = void(__thiscall*)(CUiWindow*, int);
+        reinterpret_cast<Fn>(vtable_[36])(this, added);
+    }
+    void VirtualExchangeDone(void* partyB, void* partyA, void* partyC) {
+        using Fn = void(__thiscall*)(CUiWindow*, void*, void*, void*);
+        reinterpret_cast<Fn>(vtable_[37])(this, partyB, partyA, partyC);
+    }
+    void VirtualSaveState() { CallVirtual(40); }
     // Slot 26 (+0x68): the window is closed (taken off the screen, before it is deleted).
     void CloseWindow() {
         using Fn = void(__thiscall*)(CUiWindow*);
@@ -758,8 +808,35 @@ static_assert(offsetof(CUiWindow, objects_) == 0xF8);
 static_assert(offsetof(CUiWindow, regions_) == 0x128);
 static_assert(offsetof(CUiWindow, models_) == 0x138);
 
-// The interface's root window (CInterface3D +0x1C): updated after the top window every frame; in a
-// multiplayer client it holds the chat line, which takes the keys while it is open.
+// The panels of the item screens (camp, multiplayer hero screen, exchange): the description panel,
+// hero equipment, quick strip, trade and repair grids, constructor pages and the blank panel
+// (vtables 00741B58 / 00741B24, constructor 0060E210). Their input sides share the left-button
+// handler 005EE310; slot 25 (VirtualItemAt) gives the item or help topic under the mouse.
+class CUiItemPanel : public CUiWindow {
+public:
+    // 005EE310 (input slot 2, RET 0xC; ui_item_panel_input.cpp). The item under (x, y) goes to the
+    // owner's slot 42 with mode_ (the camp's MoveItem); without one, a help topic the panel named
+    // goes to the owner's slot 44 (the camp: the strip tabs for it). The event is not marked used.
+    void OnLeftDown(int buttons, int x, int y);
+
+    // The owner's slots the panels call (the camp 0074091C, the hero screen 0074214C).
+    // Slot 42 (+0xA8): take `item` with the panel's action mode.
+    void OwnerTakeItem(void* item) {
+        using Fn = void(__thiscall*)(CUiWindow*, void*, int);
+        reinterpret_cast<Fn>(owner_->vtable_[42])(owner_, item, mode_);
+    }
+    // Slot 44 (+0xB0): help topic `topic` clicked.
+    void OwnerTopicClicked(int topic) {
+        using Fn = void(__thiscall*)(CUiWindow*, int, int);
+        reinterpret_cast<Fn>(owner_->vtable_[44])(owner_, topic, mode_);
+    }
+
+    int mode_;                       // +0x148 the action mode handed to the owner (ItemCell::mode)
+    CUiWindow* owner_;               // +0x14C the item screen
+};
+static_assert(offsetof(CUiItemPanel, mode_) == 0x148);
+static_assert(offsetof(CUiItemPanel, owner_) == 0x14C);
+
 // Set when a screen is activated (005F71C0 / 005F7350), cleared when every window is closed; the
 // main loop runs its frames only while it is set (00784750; app_frame.cpp's Running).
 inline bool& InterfaceHasScreen() { return *reinterpret_cast<bool*>(0x00784750); }
@@ -777,6 +854,8 @@ inline const mfc::CString& GameDataPath() { return *reinterpret_cast<const mfc::
 
 // The texture manager (CTextureManager, texture.h) the windows load their textures from.
 inline void* UiTextureManager() { return *reinterpret_cast<void* const*>(0x007AF744); }
+// The model manager (007AF5F4) the windows take their sprites and item models from.
+inline void* UiModelManager() { return *reinterpret_cast<void* const*>(0x007AF5F4); }
 
 // The in-game key bindings (config\keyboard.ini, read by 00462C10): the action of each scan code
 // (0x200 entries, the WM_KEYDOWN flags & 0x1FF).
@@ -784,13 +863,6 @@ inline const signed char* KeyActions() { return reinterpret_cast<const signed ch
 // The same table for writing (the options window's OK stores its copy there).
 inline signed char* KeyActionTable() { return reinterpret_cast<signed char*>(0x0079BF70); }
 constexpr int kKeyActionCount = 0x200;
-
-class CUiRootWindow : public CUiWindow {
-public:
-    std::uint8_t unknown_148[4];
-    bool chatOpen_;                  // +0x14C
-};
-static_assert(offsetof(CUiRootWindow, chatOpen_) == 0x14C);
 
 // 005F2EA0 / 005F2EE0. Bounds-checked records of the spell and spell-modifier databases, as the
 // spell book reads them (stride 0x84 and 0x24; see item_db.h).
@@ -2293,7 +2365,9 @@ struct ChatLine {
 static_assert(sizeof(ChatLine) == 0x10);
 
 // The in-game chat overlay (vtables 007400DC / 007400A8; made by CInterface3D::Create 005F4990,
-// constructor 005E26F0; its drawing and input 005E2A30 / 005E3230 / 005E3700 are not rewritten).
+// constructor 005E26F0): the interface's root window (CInterface3D +0x1C), updated after the top
+// window every frame; in a multiplayer client it holds the chat line, which takes the keys while
+// it is open.
 class CChatOverlay : public CUiWindow {
 public:
     // 005E28E0 (ui_window_delete.cpp). The destructor body: the typed line, every chat line
@@ -2306,7 +2380,7 @@ public:
     void Redraw();
 
     stlp::list<ChatLine> lines_;     // +0x148
-    std::uint8_t unknown_14C;        // +0x14C 0
+    bool chatOpen_;                  // +0x14C a multiplayer client's chat line is open (it takes the keys)
     std::uint8_t unknown_14D[3];
     mfc::CString typed_;             // +0x150
 };

@@ -67,6 +67,12 @@ static void __fastcall SpellMakerDestroyVerify(CSpellMakerPage* self) {
 }
 EI_VERIFY(0x0060E600, SpellMakerDestroyVerify, 0, s_unused);
 
+static void __fastcall StatsPanelDestroyVerify(CHeroStatsPanel* self) {
+    self->DestroyBody();
+    ei::verify::Check("CHeroStatsPanel::DestroyBody", true, BaseEmpty(self), "");
+}
+EI_VERIFY(0x0060E360, StatsPanelDestroyVerify, 0, s_unused);
+
 static void __fastcall MessageBoxDestroyVerify(CMessageBox* self) {
     self->DestroyBody();
     ei::verify::Check("CMessageBox::DestroyBody", true, BaseEmpty(self) && !self->children_.data, "");
@@ -159,6 +165,7 @@ EI_DELETE_VERIFY(CSaveLoadWindow, SaveLoadDelete)
 EI_DELETE_VERIFY(CChatWindow, ChatWindowDelete)
 EI_DELETE_VERIFY(CUiItemStrip, ForwardingStripDelete)
 EI_DELETE_VERIFY(CUiWindow, TradePanelDelete)
+EI_DELETE_VERIFY(CHeroStatsPanel, StatsPanelDelete)
 EI_DELETE_VERIFY(CSpellMakerPage, SpellMakerDelete)
 EI_DELETE_VERIFY(CMpConnectScreen, ConnectScreenDelete)
 EI_DELETE_VERIFY(CMasterRequestBox, MasterRequestBoxDelete)
@@ -186,7 +193,7 @@ EI_VERIFY(0x0060E240, UiWindowDeleteVerify, 0, s_unused);
 EI_VERIFY(0x0060E260, UiWindowDeleteVerify, 0, s_unused);
 EI_VERIFY(0x0060E2E0, UiWindowDeleteVerify, 0, s_unused);
 EI_VERIFY(0x0060E310, UiWindowDeleteVerify, 0, s_unused);
-EI_VERIFY(0x0060E340, UiWindowDeleteVerify, 0, s_unused);
+EI_VERIFY(0x0060E340, StatsPanelDeleteVerify, 0, s_unused);
 EI_VERIFY(0x0060E5B0, UiWindowDeleteVerify, 0, s_unused);
 EI_VERIFY(0x0060E650, UiWindowDeleteVerify, 0, s_unused);
 EI_VERIFY(0x0060E680, UiWindowDeleteVerify, 0, s_unused);
@@ -257,6 +264,7 @@ EI_INPUT_DELETE_VERIFY(SaveLoadInputDelete)
 EI_INPUT_DELETE_VERIFY(ChatWindowInputDelete)
 EI_INPUT_DELETE_VERIFY(ForwardingStripInputDelete)
 EI_INPUT_DELETE_VERIFY(TradePanelInputDelete)
+EI_INPUT_DELETE_VERIFY(StatsPanelInputDelete)
 EI_INPUT_DELETE_VERIFY(SpellMakerInputDelete)
 EI_INPUT_DELETE_VERIFY(ConnectScreenInputDelete)
 EI_INPUT_DELETE_VERIFY(MasterRequestBoxInputDelete)
@@ -273,7 +281,7 @@ EI_VERIFY(0x00613D70, UiWindowInputDeleteVerify, 0, s_unused);
 EI_VERIFY(0x00613D80, UiWindowInputDeleteVerify, 0, s_unused);
 EI_VERIFY(0x00613D90, UiWindowInputDeleteVerify, 0, s_unused);
 EI_VERIFY(0x00613DA0, UiWindowInputDeleteVerify, 0, s_unused);
-EI_VERIFY(0x00613DD0, UiWindowInputDeleteVerify, 0, s_unused);
+EI_VERIFY(0x00613DD0, StatsPanelInputDeleteVerify, 0, s_unused);
 EI_VERIFY(0x00613DE0, UiWindowInputDeleteVerify, 0, s_unused);
 EI_VERIFY(0x0061B210, UiWindowInputDeleteVerify, 0, s_unused);
 EI_VERIFY(0x00601E70, UiContainerInputDeleteVerify, 0, s_unused);

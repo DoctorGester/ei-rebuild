@@ -503,3 +503,13 @@ __declspec(naked) inline void __fastcall DebugPanelReleaseOriginal(void* /*panel
 __declspec(naked) inline void __fastcall DebugPanelSetRectOriginal(void* /*panel*/, void*, const tagRECT* /*rect*/)
     EI_ORIGINAL(0x00444C10)
 __declspec(naked) inline void __cdecl SaveKeyBindingsOriginal() EI_ORIGINAL(0x00462DF0)
+// 005AC1A0 (thiscall on the model manager, UiModelManager(), RET 4): a new object `name` (a figure; null: an interface
+// sprite, CUiMesh), or null.
+__declspec(naked) inline CEngineObject* __fastcall ModelManagerNewObjectOriginal(void* /*manager*/, void*,
+                                                                                 const char* /*name*/)
+    EI_ORIGINAL(0x005AC1A0)
+// 005A37C0 (thiscall, plain RET): a figure hands its quads (+0x1C0, count +0x1C4) to the renderer's buffer +0x188.
+__declspec(naked) inline void __fastcall FigureUploadQuadsOriginal(void* /*figure*/) EI_ORIGINAL(0x005A37C0)
+// 005E2A30 (thiscall on the chat overlay, CInterface3D +0x1C; RET 8): a chat line (`text` from player `number`) added.
+__declspec(naked) inline void __fastcall ChatOverlayAddLineOriginal(void* /*chat*/, void*, const char* /*text*/,
+                                                                   std::uint32_t /*number*/) EI_ORIGINAL(0x005E2A30)

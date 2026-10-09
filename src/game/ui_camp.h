@@ -877,6 +877,8 @@ public:
     // parts' armour, 6 / 7 the shown weapon's attack / defence, 8 the damage, 9 encumbrance, 10
     // the magic skills.
     void HoverInfo(int x, int y, ItemHoverInfo* info);
+    // 0060E360 (ui_window_delete.cpp). The destructor body: the texts, the title, then the window's.
+    void DestroyBody();
     // 006232D0 (RET 8). Shows hero `heroIndex` of the owner (and `title` when not null): the
     // hero arrows (scene objects 0, 1) and their regions' tooltips only for a party of more than
     // one, +0x170 = the hero's height * 100 (truncated), then DrawStats (through its address).
@@ -911,8 +913,8 @@ public:
     int heroIndex_;                  // +0x150 passed to the owner's slot 50
     char* title_;                    // +0x154 CString
     int page_;                       // +0x158
-    std::uint8_t unknown_15C[4];
-    char** texts_;                   // +0x160 CStringArray data: weapon labels, the points texts, ...
+    void* textsVtable_;              // +0x15C CStringArray
+    char** texts_;                   // +0x160 its data: weapon labels, the points texts, ...
     std::uint8_t unknown_164[0x170 - 0x164];
     int points_;                     // +0x170 skill points left (page 10); SetHero puts the height * 100 here
     int heldRegion_;                 // +0x174 the -/+ button held on page 10 (-1 none)
@@ -928,7 +930,7 @@ static_assert(sizeof(CHeroStatsPanel) == 0x17C);
 //
 // The hero's equipment (vtables 007418E0 / 007418AC, 0x158 bytes; ui_hero_panels.cpp): the eight
 // quick slots along the top, and in the camp the body with its seven equipment slots.
-class CHeroEquipPanel : public CUiWindow {
+class CHeroEquipPanel : public CUiItemPanel {
 public:
     // 00622000. Builds the panel: eight slot regions and their frames along the strip, two
     // highlight frames; with `body` (the camp) the panel is 500 high and gets the seven body slot
@@ -948,9 +950,7 @@ public:
     // worn at body part region - 8 (topic region - 4); null elsewhere or while disabled (topic 0).
     CItem* ItemAt(int x, int y, int* topic);
 
-    int unknown_148;                 // +0x148 0
-    CUiWindow* owner_;               // +0x14C the camp or the hero screen
-    bool body_;                      // +0x150
+    bool body_;                      // +0x150 (mode_ 0; owner_ the camp or the hero screen)
     std::uint8_t unknown_151[3];
     int selected_;                   // +0x154 -1
 };
@@ -964,7 +964,7 @@ using UiItemList = lib::AlignedArray<CItem*>;
 //
 // The 4 x 4 grid of item cells on the constructors' first pages (vtables 0074170C / 007416D8,
 // 0x164 bytes; ui_hero_panels.cpp).
-class CTradeGrid : public CUiWindow {
+class CTradeGrid : public CUiItemPanel {
 public:
     // 006270A0. Builds the grid over 200..600 x 100..500: the cell pictures (textures trade1..4 by
     // quarter), their frames, a region per cell, and the surface. `spells` chooses the price kinds
@@ -976,7 +976,6 @@ public:
     // list's end or while disabled (topic 0 when off the cells or disabled).
     CItem* ItemAt(int x, int y, int* topic);
 
-    std::uint8_t unknown_148[0x150 - 0x148];
     UiItemList* bought_;             // +0x150 an item list (+0x40 of a 00661050 list)
     UiItemList* sold_;               // +0x154
     int buyKind_;                    // +0x158
@@ -989,7 +988,7 @@ static_assert(sizeof(CTradeGrid) == 0x164);
 
 // The repair page's grid (vtables 00741538 / 00741504, 0x154 bytes): the same cells as the trade
 // grid with textures repair1..4.
-class CRepairGrid : public CUiWindow {
+class CRepairGrid : public CUiItemPanel {
 public:
     // 006279E0. Builds the grid for the item list `items`.
     void Build(void* items);
@@ -1002,16 +1001,14 @@ public:
     // on the 16 cells), null past the list's end, elsewhere or while disabled (topic 0).
     CItem* ItemAt(int x, int y, int* topic);
 
-    int unknown_148;                 // +0x148 8 (the cells' mode)
-    CUiWindow* owner_;               // +0x14C the camp
-    UiItemList* items_;              // +0x150
+    UiItemList* items_;              // +0x150 (mode_ 8, the cells' mode; owner_ the camp)
 };
 static_assert(offsetof(CRepairGrid, items_) == 0x150);
 static_assert(sizeof(CRepairGrid) == 0x154);
 
 // The quick item strip of the hero panels (vtables 00741844 / 00741810, 0x158 bytes): eight
 // cells along the top (camp) or the bottom of the screen.
-class CHeroQuickStrip : public CUiWindow {
+class CHeroQuickStrip : public CUiItemPanel {
 public:
     // 00622A80. Builds the strip at y 0 (`top`) or 500: eight regions, a hidden highlight frame
     // and the cells.
@@ -1027,9 +1024,7 @@ public:
     // entry's model in its cell; then the window's sprites and models. Returns 1.
     BOOL Draw(int pass);
 
-    int unknown_148;                 // +0x148 0 (the cells' mode)
-    CUiWindow* owner_;               // +0x14C the camp or the hero screen
-    int y_;                          // +0x150
+    int y_;                          // +0x150 (mode_ 0, the cells' mode; owner_ the camp or the hero screen)
     int selected_;                   // +0x154 -1
 };
 static_assert(offsetof(CHeroQuickStrip, y_) == 0x150);
@@ -1037,7 +1032,7 @@ static_assert(sizeof(CHeroQuickStrip) == 0x158);
 
 // The constructors' second pages: the spell maker (vtables 00741670 / 0074163C, 0x16C bytes) and the
 // item maker (007415D4 / 007415A0, 0x158 bytes): the slots of what is being made beside a 2 x 4 grid.
-class CConstructorPage : public CUiWindow {
+class CConstructorPage : public CUiItemPanel {
 public:
     // 006280C0. The spell maker: the container and spell slots, the grid, the cost line's regions,
     // the four pictures (constrspell1..4), a highlight frame, the cost surface and its texts.
@@ -1069,9 +1064,7 @@ public:
     // region - 3 (0xF).
     CItem* ItemMakerItemAt(int x, int y, int* topic);
 
-    int kind_;                       // +0x148 6 spell maker, 7 item maker (the cells' mode)
-    CUiWindow* owner_;               // +0x14C the camp
-    void* slots_;                    // +0x150 an item list (0x70 bytes, 00661050)
+    void* slots_;                    // +0x150 (mode_ 6 spell maker, 7 item maker; owner_ the camp) an item list (0x70 bytes, 00661050)
     float pulse_;                    // +0x154 the highlight's time (0 when built)
 };
 static_assert(offsetof(CConstructorPage, slots_) == 0x150);
