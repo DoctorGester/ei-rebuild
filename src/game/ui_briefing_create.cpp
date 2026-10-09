@@ -133,8 +133,8 @@ void PlaceMover(BriefingMover* node) {
 // A walking mover near its target starts turning (its server unit turns over a second).
 void StepWalking(BriefingMover* node) {
     const CUnit* person = reinterpret_cast<const CUnit*>(node->person);
-    float dy = node->target[1] - person->positionY;
-    float dx = node->target[0] - person->positionX;
+    float dy = node->target[1] - person->position.y;
+    float dx = node->target[0] - person->position.x;
     if (dx * dx + dy * dy >= kCloseEnough) return;
     node->state = BriefingMover::kTurning;
     CUnit* unit = ServerUnit(node->person->id_);

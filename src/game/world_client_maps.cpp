@@ -87,7 +87,7 @@ void DropRef(CEngineObject* object) {
 
 template <typename Ops>
 void MoveInGrid(SectorGrid* grid, CEngineObject* object, const float* position) {
-    float* stored = &MapObjectOf(object)->positionX;   // x, y, z
+    float* stored = &MapObjectOf(object)->position.x;   // x, y, z
     std::uint32_t oldX = CellOf(stored[0]);
     std::uint32_t oldY = CellOf(stored[1]);
     std::uint32_t newX = CellOf(position[0]);
@@ -294,8 +294,8 @@ constexpr int kTypeHero = 0x32;
 
 // The object's grid cell list, or null outside the grid.
 SectorList* CellFor(SectorGrid& grid, CEngineObject* object) {
-    std::uint32_t x = CellOf(MapObjectOf(object)->positionX);
-    std::uint32_t y = CellOf(MapObjectOf(object)->positionY);
+    std::uint32_t x = CellOf(MapObjectOf(object)->position.x);
+    std::uint32_t y = CellOf(MapObjectOf(object)->position.y);
     if (x >= grid.width_ || y >= grid.height_) return nullptr;
     return &grid.rows_[y][x];
 }
@@ -332,7 +332,7 @@ int CWorldClient::AddObject(CEngineObject* object) {
         for (int i = 0; i < figure->parts.size; ++i) {
             if ((figure->PartBox(i)->flags >> 10) & 1) {
                 int id = object->id_;
-                platforms_.AddBox(id, figure->PartBox(i), reinterpret_cast<const Vector3*>(&mapObject->positionX), &mapObject->orientation);
+                platforms_.AddBox(id, figure->PartBox(i), &mapObject->position, &mapObject->orientation);
             }
         }
     }
@@ -685,8 +685,8 @@ void CWorldClient::ObjectsInRange(const float* point, float radius, void* out) {
         for (SectorListNode* node = cell->head->next; node != cell->head; node = node->next) {
             CMapObject* object = MapObjectOf(node->data);
             float pz = point[2];
-            float ox = object->positionX + object->pointOffset.x;
-            float oy = object->positionY + object->pointOffset.y;
+            float ox = object->position.x + object->pointOffset.x;
+            float oy = object->position.y + object->pointOffset.y;
             double reach = Hypot(object->extent.x, object->extent.y) + radius;
             float dx = ox - point[0];
             float dy = oy - point[1];

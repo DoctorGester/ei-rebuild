@@ -305,9 +305,9 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         BrainStopAction(brain, nullptr);
         SectorMapRemove(AsSectorMap(sectorMap_), nullptr, unit);
         Vector3 free;
-        std::memcpy(&free, &AsUnit(unit)->positionX, sizeof(free));
+        std::memcpy(&free, &AsUnit(unit)->position.x, sizeof(free));
         AIMapFindFreeCellNear(aiMap_, nullptr, unit, position, &free);
-        std::memcpy(&AsUnit(unit)->positionX, &free, sizeof(free));
+        std::memcpy(&AsUnit(unit)->position.x, &free, sizeof(free));
         SectorMapAdd(AsSectorMap(sectorMap_), nullptr, unit);
 
         UnitSetController(unit, nullptr, player);
@@ -340,7 +340,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         script += line;
         if (unknown12D64_ == kKindSinglePlayer && !atStart) AsUnit(unit)->moveMode2 = record->unknown_770;
         if (placement) {
-            bool flagged = AIMapCellFlag(aiMap_, nullptr, 1, reinterpret_cast<const Vector3*>(&AsUnit(unit)->positionX));
+            bool flagged = AIMapCellFlag(aiMap_, nullptr, 1, &AsUnit(unit)->position);
             if (flagged) UnitSetPose(unit, nullptr, placement->value20, placement->value20);
             else AsUnit(unit)->moveMode2 = static_cast<int>(placement->value20);
         }
@@ -394,7 +394,7 @@ void CWorldServer::UseQuickItem(void* /*item*/, CEngineObject* unit) {
     message->parentId = static_cast<std::int32_t>(kQuickEffectFlags);
     std::memset(&message->scale.y, 0, 4);
     // At the unit's position, on the ground.
-    std::memcpy(&message->base.position, &static_cast<CMapObject*>(unit)->positionX, 12);
+    std::memcpy(&message->base.position, &static_cast<CMapObject*>(unit)->position.x, 12);
     std::memset(&message->base.position.z, 0, 4);
     int id = CreateObjectAt(this, nullptr, message);
     CEngineObject* effect = ObjectWithId(id);
@@ -485,7 +485,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         ObjectSetMovement(object, nullptr, &spec->scale);
         Copy(&object->baseScale, &spec->scale, 12);
         ObjectSlots(object)->ApplyBaseScale();
-        Copy(&object->positionX, &spec->base.position, 12);
+        Copy(&object->position.x, &spec->base.position, 12);
         Copy(&object->orientation, &spec->base.rotation, 16);
     };
     auto timed = [this](CEffect* object) {

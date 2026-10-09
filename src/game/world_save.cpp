@@ -350,7 +350,7 @@ void RelocateStrandedUnits(CWorldServer* world) {
         CEngineObject* unit = WorldFindUnit(world, nullptr, stranded.data[i]);
         if (unit && unit->id_ > kTextKeyIdMin) {
             SectorMapRemove(world->Sectors(), nullptr, unit);
-            float* position = &static_cast<CUnit*>(unit)->positionX;   // x, y, z
+            float* position = &static_cast<CUnit*>(unit)->position.x;   // x, y, z
             Vector3 from;
             Vector3 to;
             std::memcpy(&from, position, sizeof(Vector3));

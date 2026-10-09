@@ -584,12 +584,12 @@ int CWorldClient::DrawPass() {
             if (object) {
                 if (ObjectSlots(object)->IsDead() == 0) {
                     float point[3];
-                    std::memcpy(point, &object->positionX, sizeof(point));
+                    std::memcpy(point, &object->position.x, sizeof(point));
                     if (void* part = ObjectFindPartOriginal(object, nullptr, MarkerPartName())) {
                         float scratch[3];
                         const float* at = ObjectPartPositionOriginal(object, nullptr, scratch, part);
                         std::memcpy(point, at, sizeof(point));
-                        point[2] = Reload(object->positionZ);
+                        point[2] = Reload(object->position.z);
                     }
                     const Quaternion* orientation = &object->orientation;
                     Vector3 axisY, axisX;

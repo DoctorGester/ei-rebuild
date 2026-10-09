@@ -105,8 +105,8 @@ CEngineObject* CWorldClient::NearestVisibleUnit(CEngineObject* unit) {
         auto* other = static_cast<CUnit*>(found);
         std::uint32_t side = 1u << (self->side & 31);
         if ((other->relationsA & (side & other->relationsB)) == 0) continue;
-        float dy = other->positionY - self->positionY;
-        float dx = other->positionX - self->positionX;
+        float dy = other->position.y - self->position.y;
+        float dx = other->position.x - self->position.x;
         float distance = dx * dx + dy * dy;
         if (!(distance >= best)) {
             best = StoreFloat(distance);
