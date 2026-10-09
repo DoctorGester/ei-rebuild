@@ -56,11 +56,11 @@ float* __fastcall UnitPredictPosition(std::uint8_t* object, void*, float* out, i
         position[0] = toCells * position[0];
         position[1] = toCells * position[1];
         bool turning;
-        float direction[3];
+        Vector3 direction;
         float speed;
         int cellX, cellY;
         MotionSample(unit->motion, nullptr, ObjectWorld(unit), order, static_cast<float>(time), &turning, position,
-                     direction, &speed, &cellX, &cellY);
+                     &direction.x, &speed, &cellX, &cellY);
         float toWorld = kCellScale * kHalf;
         out[0] = toWorld * position[0];
         out[1] = toWorld * position[1];
@@ -84,43 +84,43 @@ float* __fastcall UnitActionPoint(std::uint8_t* object, void*, float* out) {
         return out;
     }
     auto index = static_cast<std::uint8_t>(unit->unknown_254);
-    float offset[3] = {0.0f, 0.0f, 0.0f};
+    Vector3 offset = {0.0f, 0.0f, 0.0f};
     auto* entry = reinterpret_cast<const FigureAnimation*>(ObjectAnimationEntryOriginal(unit, nullptr, index));
     if (!entry) {
         DebugMessageOriginal(kNoEntry, static_cast<unsigned>(index), unit->prototypeName);
     } else if ((entry->key & 0x3C0000) == 0x1C0000) {
         std::uint32_t side = entry->flags & 0x1C00000;
-        float axis[3];
+        Vector3 axis;
         if (side == 0x800000) {
-            AxisY(&unit->orientation, nullptr, axis);
+            AxisY(&unit->orientation, nullptr, &axis.x);
             float reach = unit->above.y;
-            for (int i = 0; i < 3; ++i) offset[i] = axis[i] * reach;
+            offset = axis * reach;
         } else if (side == 0x400000) {
-            AxisY(&unit->orientation, nullptr, axis);
+            AxisY(&unit->orientation, nullptr, &axis.x);
             float reach = unit->above.y;
-            for (int i = 0; i < 3; ++i) offset[i] = -axis[i] * reach;
+            offset = -axis * reach;
         } else if (side == 0xC00000) {
-            AxisX(&unit->orientation, nullptr, axis);
+            AxisX(&unit->orientation, nullptr, &axis.x);
             float reach = unit->above.x;
-            for (int i = 0; i < 3; ++i) offset[i] = axis[i] * reach;
+            offset = axis * reach;
         } else if (side == 0x1000000) {
-            AxisX(&unit->orientation, nullptr, axis);
+            AxisX(&unit->orientation, nullptr, &axis.x);
             float reach = unit->above.x;
-            for (int i = 0; i < 3; ++i) offset[i] = -axis[i] * reach;
+            offset = -axis * reach;
         }
     }
     // The world's slot 26 (IsServer); the server's AI map.
     auto* world = static_cast<CWorldServer*>(ObjectWorld(unit));
     if (world->IsServer()) {
-        float point[3] = {offset[0] + unit->positionX, offset[1] + unit->positionY, offset[2] + unit->positionZ};
+        float point[3] = {offset.x + unit->positionX, offset.y + unit->positionY, offset.z + unit->positionZ};
         if (!IsPassableForClass(world->AIMap(), nullptr, 3, point)) {
             CopyPosition(out, unit);
             return out;
         }
     }
-    out[0] = offset[0] + unit->positionX;
-    out[1] = offset[1] + unit->positionY;
-    out[2] = offset[2] + unit->positionZ;
+    out[0] = offset.x + unit->positionX;
+    out[1] = offset.y + unit->positionY;
+    out[2] = offset.z + unit->positionZ;
     return out;
 }
 

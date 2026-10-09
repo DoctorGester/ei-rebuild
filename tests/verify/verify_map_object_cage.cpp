@@ -10,17 +10,17 @@ namespace {
 template <typename Ours, typename Original>
 void SameResult(const char* name, CageInterpolator* self, const float** stream, Ours ours, Original original) {
     float before[3];
-    std::memcpy(before, self->point, sizeof(before));
+    std::memcpy(before, &self->point, sizeof(before));
     const float* start = *stream;
     ours();
     float after[3];
-    std::memcpy(after, self->point, sizeof(after));
+    std::memcpy(after, &self->point, sizeof(after));
     const float* end = *stream;
-    std::memcpy(self->point, before, sizeof(before));
+    std::memcpy(&self->point, before, sizeof(before));
     *stream = start;
     original();
-    bool ok = std::memcmp(after, self->point, sizeof(after)) == 0 && end == *stream;
-    ei::verify::Check(name, true, ok, "%g %g %g vs %g %g %g", self->point[0], self->point[1], self->point[2], after[0],
+    bool ok = std::memcmp(after, &self->point, sizeof(after)) == 0 && end == *stream;
+    ei::verify::Check(name, true, ok, "%g %g %g vs %g %g %g", self->point.x, self->point.y, self->point.z, after[0],
                       after[1], after[2]);
 }
 } // namespace

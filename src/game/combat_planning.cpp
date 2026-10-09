@@ -195,22 +195,22 @@ bool CUnitServer::FindUseSpot(UnitAction* order, void* out) {
     if (spots.size > 0) {
         LocalPath path;
         int best = kNoSpot;
-        float spot[3];
+        Vector3 spot;
         float bestSpot[3] = {0.0f, 0.0f, 0.0f};
         CAIMap* map = MapOf(world);
         for (int i = 0; i < spots.size; ++i) {
-            std::memcpy(spot, spots.data[i], sizeof(spot));
+            std::memcpy(&spot, spots.data[i], sizeof(spot));
             PathClear(path.bytes);
-            if (!MapFindPath(map, nullptr, unit, spot, path.bytes, kFar, 0.0f)) continue;
+            if (!MapFindPath(map, nullptr, unit, &spot, path.bytes, kFar, 0.0f)) continue;
             // The path must end within 0073EF28 of the spot.
             float half = HalfCell();
-            float ey = half * path.TargetY() - spot[1];
-            float ex = half * path.TargetX() - spot[0];
+            float ey = half * path.TargetY() - spot.y;
+            float ex = half * path.TargetX() - spot.x;
             float limit = *reinterpret_cast<const float*>(0x0073EF28);
             if (!(ex * ex + ey * ey < limit * limit)) continue;
             if (path.Cost() >= best) continue;
             best = path.Cost();
-            std::memcpy(bestSpot, spot, sizeof(bestSpot));
+            std::memcpy(bestSpot, &spot, sizeof(bestSpot));
             if (out) PathToMotionOrder(path.bytes, nullptr, out);
         }
         if (best == kNoSpot) {
@@ -246,20 +246,20 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
     for (;;) {
         float time = static_cast<float>(pathOrder->startTime) + t;
         bool turning;
-        float position[3];
-        float direction[3];
+        Vector3 position;
+        Vector3 direction;
         float speed;
         int cellX;
         int cellY;
-        MotionSample(&simulated.motion, nullptr, nullptr, motionOrder, time, &turning, position, direction, &speed, &cellX,
+        MotionSample(&simulated.motion, nullptr, nullptr, motionOrder, time, &turning, &position.x, &direction.x, &speed, &cellX,
                      &cellY);
-        if (position[0] == previous[0] && position[1] == previous[1] && position[2] == previous[2]) break;
-        std::memcpy(previous, position, sizeof(previous));
+        if (position.x == previous[0] && position.y == previous[1] && position.z == previous[2]) break;
+        std::memcpy(previous, &position, sizeof(previous));
         float half = HalfCell();
-        position[0] = half * position[0];
-        position[1] = half * position[1];
-        float dx = position[0] - aim[0];
-        float dy = position[1] - aim[1];
+        position.x = half * position.x;
+        position.y = half * position.y;
+        float dx = position.x - aim[0];
+        float dy = position.y - aim[1];
         if (dy * dy + dx * dx > reachSq) {
             t += 5.0f;
             continue;
@@ -272,11 +272,11 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
             std::memcpy(&sight.point, at, sizeof(sight.point));
             sight.unit = nullptr;
         }
-        float sy = sight.point.y - position[1];
-        float sx = sight.point.x - position[0];
+        float sy = sight.point.y - position.y;
+        float sx = sight.point.x - position.x;
         if (!(sy * sy + sx * sx >= sight.minDistanceSq)) break;   // C0: closer (or unordered)
-        float from[3] = {position[0], position[1], position[2]};
-        from[2] = static_cast<float>(UnitGroundHeight(unit, nullptr, position[0], position[1]) + sight.eyeHeight);
+        float from[3] = {position.x, position.y, position.z};
+        from[2] = static_cast<float>(UnitGroundHeight(unit, nullptr, position.x, position.y) + sight.eyeHeight);
         double visible = MapLineOfSight(MapOf(ManagerContextOf(this)), nullptr, from, &sight.point.x);
         if (!(visible < *reinterpret_cast<const float*>(0x0073EEC0))) break;
         t += 5.0f;
@@ -292,18 +292,18 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
     if (order->kind != kOrderSkill && !player) return true;
     float best = kFar;
     LocalMotionOrder route;
-    float point[3];
-    if (!order->target) std::memcpy(point, &order->point, sizeof(point));
-    else AimPointInto(order->target, point);
+    Vector3 point;
+    if (!order->target) std::memcpy(&point, &order->point, sizeof(point));
+    else AimPointInto(order->target, &point.x);
     bool ok;
     if (!CtlFindUseSpot(this, nullptr, order, route.bytes())) {
-        PathMessage(unit, route.bytes(), point, 3, 1, kFar);
+        PathMessage(unit, route.bytes(), &point.x, 3, 1, kFar);
         ok = false;
     } else {
         if (!player) return true;
         if (CtlCanReachTarget(this, nullptr, order) && CtlCanPlanAction(this, nullptr, order)) {
             // The action can be done from here.
-            PathMessage(unit, route.bytes(), point, 3, 0, kFar);
+            PathMessage(unit, route.bytes(), &point.x, 3, 0, kFar);
             if ((shout <= 0x29 || shout == 0x30) && shout != 0xFFFFFFFFu && unit->player)
                 PlayerMessage(PlayerConnection(unit->player), nullptr, unit, static_cast<int>(shout));
             return true;
@@ -324,8 +324,8 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
         }
         // Where the unit would stand at the end of its way, and whether it could act from there.
         auto actsFromDestination = [&]() {
-            float destination[3];
-            const float* at = MotionDestination(route.bytes(), nullptr, destination);
+            Vector3 destination;
+            const float* at = MotionDestination(route.bytes(), nullptr, &destination.x);
             if (!CtlCanReachTarget(this, nullptr, order)) return false;
             float x = unit->positionX, y = unit->positionY, z = unit->positionZ;
             unit->positionX = at[0];
@@ -350,7 +350,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             path.Path()->flag6E = unit->player == nullptr;
             std::uint32_t saved43C = unit->unknown_43C;
             unit->unknown_43C = 1;
-            bool found = MapFindPath(MapOf(world), nullptr, unit, point, path.bytes, kFar, 0.0f);
+            bool found = MapFindPath(MapOf(world), nullptr, unit, &point, path.bytes, kFar, 0.0f);
             unit->unknown_43C = saved43C;
             if (!found) PathStandStill(path.bytes, nullptr, unit);
             if (target) {
@@ -363,7 +363,7 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
         } else {
             ok = actsFromDestination();
         }
-        PathMessage(unit, route.bytes(), point, kind, ok ? 0 : 1, best);
+        PathMessage(unit, route.bytes(), &point.x, kind, ok ? 0 : 1, best);
         if (ok) {
             CtlShout(this, nullptr, shout);
             return true;
