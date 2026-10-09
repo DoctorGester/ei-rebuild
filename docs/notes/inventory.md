@@ -31,11 +31,9 @@ STLport and MFC template instantiations plus a few CRT exception helpers. Recogn
 
 ### Not marked library (game code or too generic; candidates)
 
-- **Aligned array template** (about 10 KB, one engine template, port once): no vtable, data at +0
-  with the raw block at data[-1], allocation `operator new(n*size+0x24)` aligned to 32. Families
-  0044F540 (SetSize, 30 copies), 004538D0 (SetAtGrow), 0044F960, 0044F1D0, 0044F1B0 (free, 54
-  copies). The library rows `CArray<LightningPoint>::SetSize` (00468C50) and `... allocate`
-  (00468F70) are this template, not MFC CArray.
+- **Aligned array template** (no vtable, data at +0 with the raw block at data[-1], allocation `operator new(n*size+0x24)`
+  aligned to 32): ported once as `lib::AlignedArray<T>` (core.md, "Shared containers"); the library rows
+  `CArray<LightningPoint>::SetSize` (00468C50) and `... allocate` (00468F70) are this template, not MFC CArray.
 - **Scalar deleting destructors of game classes** calling `CEngineObject::DestructBase`: 557 copies
   of one 30-byte body (00402D20, ...); one generic helper covers them.
 - **Game RefPtr helpers** inlined everywhere: `Destroy` (family 00413270), release (004141D0),
@@ -66,7 +64,6 @@ coincidental pointers ruled out by reading). Facts not in the script:
 
 ## What remains
 
-The remaining code is spread over 004D0000-006EFFFF; 00600000-0061FFFF and 00640000-0066FFFF have
-the most unrewritten bytes. Largest unrewritten functions at the time of writing: 005B43C0
-(6.7 KB), 0060C870, 00613EA0, 00456440, 00604C50, 00659420, 0061B2C0, 0063A560. Rebirth patches
-00456440, so it can only be hooked in the vanilla launch (rewrite-guide rule 9).
+`python tools/progress.py` and the "What is left" tables in the area notes; the largest unrewritten functions are mostly
+Rebirth-patched (005B43C0 CAIMap::Load, 0060C870, 00613EA0, 00456440 WinMain, 00659420, 0061B2C0, 0063A560), which can only be
+hooked in the vanilla launch (rewrite-guide rule 9).
