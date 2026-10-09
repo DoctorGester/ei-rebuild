@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core_transform.h"
+#include "resource.h"
 
 #include "lib/containers.h"
 #include "lib/vecmath.h"
@@ -19,6 +20,14 @@ class DecalBuilder;
 
 namespace terrain {
 struct SectorData;   // terrain_sector.h: the full sector (TerrainSector names a few of its fields)
+
+// Vertex neighbourhood: the tiles (of the sector's 16 x 16) that share a vertex (Terrain::vertexTiles,
+// 33 x 33 entries; only the first `count` tiles are set).
+struct VertexTiles {
+    int count;
+    int tiles[4];
+};
+static_assert(sizeof(VertexTiles) == 0x14);
 }
 
 // A 32x32-cell block of terrain. Each sector holds two layers of 33x33 vertices (x, y, z): the
@@ -82,9 +91,13 @@ public:
     // exists (counted in extraPages); each page's texture (kind 0xB, held, loaded) and a "Wood"
     // material (kind 0x12, held). 0 when a texture does not load, else 1.
     int SetupPages(int count);
-    // 006C7A80 (forwarder). The table of the cells around each vertex (+0x1E8).
+    // 006C7A80 (terrain_landscape.cpp). The table of the tiles around each vertex of a sector (sized
+    // to 33 x 33, rows of vertices): two tiles across a tile edge, four at a corner, one inside.
     void BuildVertexTiles();
-    // 006C7750 (forwarder). Frees the map: ambient loops, sectors, textures, materials, grid.
+    // 006C7750 (terrain_landscape.cpp). Frees the map: the ambient loops stopped, the cached
+    // sectors deleted (most recently used first), the page textures and materials released and
+    // their arrays emptied, the archive closed, the sector grid freed (no map: sizes -1, unknown_100
+    // null), the uv tables freed.
     void ClearMap();
 
     // Point lights (terrain_lights.cpp; the light manager *007AF738 is the landscape). Nothing
@@ -179,10 +192,10 @@ public:
     std::uint8_t part12C[0x10];     // +0x12C 00570E40
     std::uint8_t part13C[0x10];     // +0x13C 0056FD30
     std::uint8_t part14C[0x10];     // +0x14C 0056FD30
-    std::uint8_t part15C[0x6C];     // +0x15C 006721D0
+    CMMIOResource archive;          // +0x15C the map's sector archive (006721D0)
     float* uvTables[4];             // +0x1C8 terrain::TerrainFields
     float* uvTablesLast[4];         // +0x1D8
-    std::uint8_t part1E8[0x10];     // +0x1E8 00570E70
+    lib::AlignedArray<terrain::VertexTiles> vertexTiles;   // +0x1E8 (00570E70) BuildVertexTiles
     using SectorCache = mfc::CList<terrain::SectorData*>;
     SectorCache::Node*** sectorGrid;   // +0x1F8 [sx][sy]: the sector's cache node, or null
     SectorCache sectorCache;        // +0x1FC 00570EA0 (block size 10), most recently used first
@@ -222,7 +235,8 @@ static_assert(offsetof(Terrain, pageTextures) == 0xD8 && offsetof(Terrain, pageM
 static_assert(offsetof(Terrain, uvTables) == 0x1C8 && offsetof(Terrain, maxLightId) == 0x270);
 static_assert(offsetof(Terrain, textF8) == 0xF8);
 static_assert(offsetof(Terrain, width) == 0x10C);
-static_assert(offsetof(Terrain, part12C) == 0x12C);
+static_assert(offsetof(Terrain, part12C) == 0x12C && offsetof(Terrain, archive) == 0x15C);
+static_assert(offsetof(Terrain, vertexTiles) == 0x1E8);
 static_assert(offsetof(Terrain, sectorGrid) == 0x1F8);
 static_assert(offsetof(Terrain, sectorCache) == 0x1FC);
 static_assert(offsetof(Terrain, frame) == 0x218);

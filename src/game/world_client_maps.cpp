@@ -1160,8 +1160,8 @@ int CWorldClient::Setup() {
         Construct570E40(terrain->part12C);
         Construct56FD30(terrain->part13C);
         Construct56FD30(terrain->part14C);
-        Construct6721D0(terrain->part15C);
-        Construct570E70(terrain->part1E8);
+        Construct6721D0(&terrain->archive);
+        Construct570E70(&terrain->vertexTiles);
         Construct570EA0(&terrain->sectorCache, nullptr, 10);
         Construct571050(&terrain->lights);
         Construct570DE0(&terrain->wavePhases);

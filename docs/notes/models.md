@@ -248,7 +248,7 @@ verify_terrain_lights.cpp, verify_acks_db.cpp):
 | 006E3780 / 006E3FD0 / 006E3DC0 | `UnitAcks` / `ModelAcks` / `ExtraAcks::Serialize` (loading: the original into a scratch element made by the original resize; failed-search chunks popped) | S |
 | 006E42F0 / 006E4410 / 006E4F40 | `SpeechListField` / `EnvironmentSpeechListField` / `SpeechField` (archive helpers; reached from the originals' side runs) | S |
 
-Forwarders: 006C7A80 (vertex tile table) and 006C7750 (map free) as Terrain members; 006C5620 shared as
+Forwarders: 006C5620 shared as
 `LandscapeResetOriginal` (originals_world.h), 0068E970 as `MaterialNewOriginal` (originals_ui.h); 006E4560 / 006E47F0
 (speech list resize). Kept: RemoveLight of an unregistered light loops over an uninitialised area in the original (ours
 over none); MoveLight of an unregistered light writes its area to address 4 (ours to null: both crash); RemoveLight /
@@ -279,7 +279,12 @@ adapts its call). Kept: Load does not restore alpha_ (the next tick does). Risks
 x87::fcos / fsin and plain double maths (CheckNear-level differences possible); the footprint's blood test compares
 `limit >= d2` (NaN positions would differ).
 
-Next: 0056C750 (the decal projector; Ghidra garbles its frame), 006C7A80, 006C7750. The acks records' compiler-generated
+Also (terrain_landscape.cpp): 006C7A80 `Terrain::BuildVertexTiles` (S: the original on a raw copy; each entry's count and
+first `count` tiles: the original leaves the rest as its reused stack record held) and 006C7750 `Terrain::ClearMap` (O);
+Create / Destroy call them through their addresses. terrain.h now declares `archive` (+0x15C, CMMIOResource) and
+`vertexTiles` (+0x1E8; `terrain::VertexTiles` moved there from terrain_sector.h).
+
+Next: 0056C750 (the decal projector; Ghidra garbles its frame). The acks records' compiler-generated
 members (006DE370, 006DC390, ...) need only the record declarations in a standalone build.
 
 ## Resources and the sound file reader (00671280-00675B40)

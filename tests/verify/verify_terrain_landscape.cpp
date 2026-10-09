@@ -328,4 +328,47 @@ int __fastcall SetupPagesVerify(Terrain* self, void*, int count) {
 }
 EI_VERIFY(0x006C5AA0, SetupPagesVerify, 0, s_setupPages);
 
+// 006C7A80: SUB ESP,0x1C; PUSH EBX; MOV EBX,ECX (6 bytes). Create (startup and every new game). The
+// original into a raw copy of the landscape with a private copy of the table; the headers and each
+// entry's count and first `count` tiles compared (the original leaves the rest of an entry as its
+// stack record held).
+void(__fastcall* s_vertexTiles)(Terrain*);
+
+void __fastcall VertexTilesVerify(Terrain* self) {
+    alignas(Terrain) unsigned char storage[sizeof(Terrain)];
+    std::memcpy(storage, self, sizeof(Terrain));
+    auto* copy = reinterpret_cast<Terrain*>(storage);
+    copy->vertexTiles = CopyArray(self->vertexTiles);
+    s_vertexTiles(copy);
+    self->BuildVertexTiles();
+    const auto& e = copy->vertexTiles;
+    const auto& a = self->vertexTiles;
+    int bad = -1;
+    if (e.size != a.size || e.capacity != a.capacity || e.growBy != a.growBy) bad = -2;
+    for (int i = 0; bad == -1 && i < a.size; ++i) {
+        bool same = e[i].count == a[i].count;
+        for (int k = 0; same && k < a[i].count; ++k) same = e[i].tiles[k] == a[i].tiles[k];
+        if (!same) bad = i;
+    }
+    ei::verify::Check("Terrain::BuildVertexTiles", -1, bad, "size %d / %d capacity %d / %d", e.size, a.size, e.capacity,
+                      a.capacity);
+    FreeCopy(copy->vertexTiles);
+}
+EI_VERIFY(0x006C7A80, VertexTilesVerify, 6, s_vertexTiles);
+
+// 006C7750: ours only (it stops sounds, deletes sectors and releases textures; every zone load
+// through the map loader, and Destroy). The map's state emptied afterwards.
+void(__fastcall* s_clearMap)(Terrain*);
+
+void __fastcall ClearMapVerify(Terrain* self) {
+    self->ClearMap();
+    bool empty = self->sectorCache.count == 0 && self->sectorCache.head == nullptr && self->sectorGrid == nullptr &&
+                 self->pageTextures.size == 0 && self->pageMaterials.size == 0 && self->sectorsX == -1 &&
+                 self->sectorsY == -1 && self->unknown_100 == nullptr && self->ambientClasses[0] == -1;
+    for (int i = 0; empty && i < 4; ++i) empty = !self->uvTables[i] && !self->uvTablesLast[i];
+    ei::verify::Check("Terrain::ClearMap", true, empty, "cache %d pages %d / %d", self->sectorCache.count,
+                      self->pageTextures.size, self->pageMaterials.size);
+}
+EI_VERIFY(0x006C7750, ClearMapVerify, 0, s_clearMap);
+
 } // namespace

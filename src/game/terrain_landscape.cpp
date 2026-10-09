@@ -4,6 +4,7 @@
 #include "terrain.h"
 #include "terrain_sector.h"
 #include "material.h"
+#include "sound.h"
 #include "spell.h"
 #include "texture.h"
 
@@ -77,7 +78,7 @@ TerrainSector* Terrain::SectorAt(int sx, int sy, std::uint32_t wanted, int creat
             if (old) DeleteSector(old);
         }
     }
-    if (sector->Load(part15C, sx, sy, pages, perPage, textF8, fields)) {
+    if (sector->Load(&archive, sx, sy, pages, perPage, textF8, fields)) {
         sector->lastUsed = frame;
         sectorCache.AddHead(sector);
         sectorGrid[sx][sy] = sectorCache.head;
@@ -108,8 +109,79 @@ EI_REPLACE_METHOD(0x006CA260, Terrain::SetVisibleSectors);
 
 // ---- Create, Destroy, Reset and the waves --------------------------------------------------------
 
-__declspec(naked) void Terrain::BuildVertexTiles() EI_ORIGINAL(0x006C7A80)
-__declspec(naked) void Terrain::ClearMap() EI_ORIGINAL(0x006C7750)
+namespace {
+
+constexpr int kSectorTiles = 16;          // tiles per sector row (2 x 2 cells each)
+
+// Appends tile (x, y) of the sector when it exists.
+void AddTile(terrain::VertexTiles& entry, int x, int y) {
+    if (x >= 0 && y >= 0 && x < kSectorTiles && y < kSectorTiles) entry.tiles[entry.count++] = y * kSectorTiles + x;
+}
+
+} // namespace
+
+void Terrain::BuildVertexTiles() {
+    constexpr int kSide = 33;   // vertices per sector row
+    vertexTiles.SetSize(kSide * kSide);
+    // The original fills one stack record per vertex without clearing it: the tiles after `count`
+    // keep earlier vertices' values (ours start from zero).
+    terrain::VertexTiles entry{};
+    terrain::VertexTiles* out = vertexTiles.data;
+    for (int y = 0; y < kSide; ++y) {
+        for (int x = 0; x < kSide; ++x) {
+            entry.count = 0;
+            int tx = x / 2;
+            int ty = y / 2;
+            bool xEdge = (x & 1) == 0;
+            bool yEdge = (y & 1) == 0;
+            if (xEdge && yEdge) {
+                AddTile(entry, tx - 1, ty - 1);
+                AddTile(entry, tx - 1, ty);
+                AddTile(entry, tx, ty - 1);
+            } else if (xEdge) {
+                AddTile(entry, tx - 1, ty);
+            } else if (yEdge) {
+                AddTile(entry, tx, ty - 1);
+            }
+            AddTile(entry, tx, ty);
+            *out++ = entry;
+        }
+    }
+}
+EI_REPLACE_METHOD(0x006C7A80, Terrain::BuildVertexTiles);
+
+void Terrain::ClearMap() {
+    for (int slot = 0; slot < 3; ++slot) {
+        ambientSounds[slot] = sound::Manager()->StopSound(ambientSounds[slot]);
+        ambientClasses[slot] = -1;
+    }
+    while (sectorCache.count != 0) {
+        SectorData* sector = sectorCache.RemoveHead();
+        if (sector) DeleteSector(sector);
+    }
+    for (int i = 0; i < pageTextures.size; ++i) pageTextures[i]->Release();
+    pageTextures.SetSize(0, -1);
+    for (int i = 0; i < pageMaterials.size; ++i) pageMaterials[i]->Release();
+    pageMaterials.SetSize(0, -1);
+    archive.CloseResource();
+    if (sectorGrid) {
+        for (int i = 0; i < sectorsX; ++i) gamecrt::operator_delete(sectorGrid[i]);
+        gamecrt::operator_delete(sectorGrid);
+        sectorGrid = nullptr;
+    }
+    sectorsX = -1;
+    sectorsY = -1;
+    unknown_100 = nullptr;
+    for (float*& table : uvTables) {
+        if (table) gamecrt::operator_delete(table);
+        table = nullptr;
+    }
+    for (float*& table : uvTablesLast) {
+        if (table) gamecrt::operator_delete(table);
+        table = nullptr;
+    }
+}
+EI_REPLACE_METHOD(0x006C7750, Terrain::ClearMap);
 
 namespace {
 
@@ -137,12 +209,15 @@ mfc::CString& AsString(const char*& text) { return reinterpret_cast<mfc::CString
 // Reset (LandscapeResetOriginal) and the wave phases are called through their addresses, so that
 // their verify wrappers run.
 __declspec(naked) void __fastcall BuildWavePhasesAt(Terrain*) EI_ORIGINAL(0x006C57E0)
+// The same for the vertex tile table and the map's freeing.
+__declspec(naked) void __fastcall BuildVertexTilesAt(Terrain*) EI_ORIGINAL(0x006C7A80)
+__declspec(naked) void __fastcall ClearMapAt(Terrain*) EI_ORIGINAL(0x006C7750)
 
 } // namespace
 
 int Terrain::Create() {
     LandscapeResetOriginal(this);
-    BuildVertexTiles();
+    BuildVertexTilesAt(this);
     BuildWavePhasesAt(this);
     for (int i = 0; i < 512; ++i) sine[i] = static_cast<float>(x87::fsin(i * kPiDouble * kSineStep));
     localPosition_ = ZeroPosition();
@@ -151,7 +226,7 @@ int Terrain::Create() {
 }
 
 void Terrain::Destroy() {
-    ClearMap();
+    ClearMapAt(this);
     for (LightTable::Node* node = lights.First(); node; node = lights.After(node)) node->value.light->Release();
     maxLightId = 0;
     lights.Clear();
