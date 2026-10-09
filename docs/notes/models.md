@@ -252,3 +252,15 @@ file-local `CDebugPanel` in string_map.cpp. Left in map_object_shadow.cpp: Build
 which FigurePart's layout contradicts), the scene's matrix stack (+0x64) and object (+0xC, slot 7), the material's colour
 key (+0x60), the device's blur slots 11 / 12 and the world's slot 34; the __asm / float_control blocks everywhere. Not
 started: world_map, world_update, scene_bones, unit_update.
+
+## A-X2 (2026-10-09)
+
+| Address | Name | V |
+|---|---|---|
+| 006C3A00 / 006C36B0 / 006C31C0 | `SectorData::Light` / `ShadeSun` / `LightVertex` (terrain_lighting.cpp; chop rounding through the game's `_controlfp` 006EBBB4, `gamecrt::Ftol` for its `_ftol`s) | S (the vertex pair ours first, original last; Light compares every record) |
+
+Facts: owner (`TerrainFields`) +0x94 flags (4 edge fade, 0x10 sun shadows), +0x224 ambient, +0x24C..+0x254 the vertex being
+lit (read by the shadow test 006C92C0, forwarded: it loads the sectors the ray crosses), +0x258 the sun; record +0x11 colour,
++0x15 specular, +0x37 lit colour; material +0x14 absorption; 007C8908 the water falloff. Ensure now lights through
+006C3A00's address (so its wrapper runs). Kept: ShadeSun passes an uninitialised fourth colour component (ours 0, only copied
+through by 0068D310); channel FISTPs are or-ed whole into the colour word.

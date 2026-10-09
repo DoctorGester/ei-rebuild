@@ -108,7 +108,7 @@ bool IsAnimated(const TerrainFields* owner, int texture) {
 
 __declspec(naked) void SectorData::Clear() EI_ORIGINAL(0x006C3C80)
 __declspec(naked) void SectorData::BuildAtOriginal() EI_ORIGINAL(0x006C1C00)
-__declspec(naked) void SectorData::Light(void*, TerrainFields*, int, int, int, int, int) EI_ORIGINAL(0x006C3A00)
+__declspec(naked) void SectorData::LightAtOriginal(CLight*, TerrainFields*, int, int, int, int, int) EI_ORIGINAL(0x006C3A00)
 
 const float* TerrainFields::TileUv(int rotation, int index, int page) {
     int wrapped = page % (pages + 2);
@@ -244,7 +244,7 @@ const std::uint8_t* BuildRecords(SectorData& s) {
             if (!(z < s.maxZ) && !x87::IsNaN(z) && !x87::IsNaN(s.maxZ)) s.maxZ = z;
 
             rec->materialByte = 0xFF;
-            std::memset(rec->materialColour, 0, sizeof(rec->materialColour));
+            rec->materialColour = {0.0f, 0.0f, 0.0f};
             rec->waterMaterial = 0xFFFF;
             if (layer == 1) {
                 // The first water material among the vertex's tiles.
@@ -255,7 +255,7 @@ const std::uint8_t* BuildRecords(SectorData& s) {
                 if (m != -1) {
                     const TerrainMaterial& mat = s.owner->materials[m];
                     rec->materialByte = mat.byte18;
-                    std::memcpy(rec->materialColour, mat.colour, sizeof(mat.colour));
+                    rec->materialColour = mat.colour;
                 }
                 std::memcpy(rec->position, vin, 12);
                 (rec - kVertices)->depth = Store(static_cast<double>(vin[2]) - vin[2 - kVertices * 3]);
@@ -546,7 +546,7 @@ std::uint32_t SectorData::Ensure(std::uint32_t wanted, TerrainFields* terrain) {
     if (wanted & built) return 1;
     if (wanted >= 2 && !(built & 2)) BuildAtOriginal();
     if (wanted >= 4 && !(built & 4))
-        Light(*reinterpret_cast<void* const*>(reinterpret_cast<const char*>(terrain) + 0x258), terrain, 0, 0, 0, 0x20, 0x20);
+        LightAtOriginal(terrain->sun, terrain, 0, 0, 0, 0x20, 0x20);
     return wanted & built;
 }
 
@@ -624,7 +624,7 @@ SectorData* SectorData::Construct() {
     unknown_060 = kCulled;
     unknown_38C = 0;
     unknown_390 = 0;
-    unknown_000 = 0;
+    hasSpecular = 0;
     ProjectionInput().SetSize(kProjectionVertices);
     ProjectionOutput().SetSize(kProjectionVertices);
     ByteArraySetSizeOriginal(&ProjectionOutcodes(), nullptr, ProjectionInput().size, -1);
