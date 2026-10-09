@@ -551,7 +551,7 @@ Hazards and facts:
 Files: `ui_objectives.cpp`, `ui_layouts.cpp` (Esc menu, save/load and options Build; also section 4), `ui_menus.cpp` (mouse, draw,
 update, scroll bar, tooltip), `ui_menu_keys.cpp`, `ui_scroll_text.cpp`; wrappers `verify_ui_menus.cpp`, `verify_ui_objectives.cpp`,
 `verify_ui_menu_keys.cpp`. Rectangles from `menus.reg`: save/load OK 163..237, Cancel 563..637, Delete 363..437 (all y 526..574),
-list rows 108..370 x 108.. in 24 steps; options OK 213..287, Cancel 513..587, groups 100..250 x 156.. in 24 steps, rows x 250..520.
+list rows 108..370 x 108.. in 24 steps; options OK 213..287 (ui_main_menu clicks it once: Apply 006524A0, `ui_options.cpp`), Cancel 513..587, groups 100..250 x 156.. in 24 steps, rows x 250..520.
 
 | Address | Name | Verify |
 |---|---|---|
