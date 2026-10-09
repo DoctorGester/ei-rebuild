@@ -14,11 +14,11 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Units and combat, 0x00500000-0x00540000 (docs/notes/units.md, combat.md)
 
-- A-U .. A-U7 done (2026-10-05 .. 10-09); U2 done.
+- A-U .. A-U7 done (2026-10-05 .. 10-09); U2 done. A-U8 taken 2026-10-09 (combat.md next candidates: 0055F410 / 0055F550 game result, unit database ctor / dtors 0053A7B0 / 00539B20 / 00539E70, 0053EBC0 / 0053ED30, render / animation block 005015A0 / 00503A40 / 00504A60 / 00507E80 / 0050C230, then the largest in 0x500000-0x560000).
 
 ## World, AI and server, 0x00540000-0x005E0000 (docs/notes/world.md, ai.md, unit_ai.md)
 
-- A-W .. A-W8 done (A-W2 / A-W3 cut off). Next: unit_ai.md "A-W8" (client 00566360 / 0056C750 / 0056D150).
+- A-W .. A-W8 done (A-W2 / A-W3 cut off). Next: unit_ai.md "A-W8" (client 00566360 / 0056C750 / 0056D150). A-W9 taken 2026-10-09 (those, then the largest in 0x540000-0x5E0000).
 
 ## App and startup, 0x00440000-0x00480000
 
@@ -31,7 +31,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## HUD, battle screen, spells and items, 0x00640000-0x006C0000
 
-- A-H .. A-H17 done. A-H18 cut off, merged 2026-10-09. A-H19 done 2026-10-09 (branch of agent-a6ce8430e2d38d020; 0064F550, login 0066F890, party 00661FB0 / 00661FE0, UI controls 0065AEA0-0065D970, 006AE740); next: items_spells.md "Next candidates".
+- A-H .. A-H17 done. A-H18 cut off, merged 2026-10-09. A-H19 done 2026-10-09 (branch of agent-a6ce8430e2d38d020; 0064F550, login 0066F890, party 00661FB0 / 00661FE0, UI controls 0065AEA0-0065D970, 006AE740); next: items_spells.md "Next candidates". A-H21 taken 2026-10-09 (A-H20 next: 006A8FB0, texture manager 00690D30 / 00690B30 / 0068FA10 / 00690260 / 00690970, 006BF8A0, save screen 00652930 / 00652000 / 00652BF0, players 00666FD0 / 00666D10, spell effects 00684390 / 00683B80, 0064E5A0, 0064F160).
 
 ## Scripts, 0x004C0000-0x00500000 (docs/notes/script.md)
 
