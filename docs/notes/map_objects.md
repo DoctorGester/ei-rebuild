@@ -49,6 +49,9 @@ Scenarios: `map_objects.txt`, `unit_create.txt` (also world_load, models and eve
 - The side half at +0x94 (`CObject3DSpecific`: client 0x37 vtable 0073DE90, server 0x38 0073DFBC) is declared as an interface;
   slot 18 GetScale gives the client's +0xF0..+0xF8 or 1, 1, 1 on the server. Scenarios reaching the part code: units, unit_create, combat
   (weapon / armour models), spells_cast, effects (EffectPoint, particle callbacks).
+- **Skeleton**: the animation state (class 0x300D) holds the bones (class 0x300C, FigureBone) in `bones` (+0x24); each
+  bone's animator (+0x50) and placing track (+0x4C) are AnimationTracks (class 0x300B, an engine object; it was declared
+  twice as FigurePartAnimator until A-U10). The parts list once typed FigurePart there holds bones.
 - **Animation tracks and cages**: AnimationTrack::Evaluate uses the CRT's modf of the time rounded
   with FISTP, `Quaternion::Slerp` 0049ED20, defaults at 007AF110 / 007AF100; CageInterpolator cube /
   prism are called by the figure manager's 005ACB80 and read point records from a stream advancing
@@ -105,6 +108,11 @@ is snapshotted and restored, the original runs, bytes and EAX compared.
 | 0050C230 | FigureBone::Place (class 0x300C skeleton bone, map_object_figures.h; figure_bones.cpp; A-U9): child = parent position + offset turned by the parent's rotation, rotation pose * parent (Hamilton; 00507E80 multiplies the other way); root = pose (times the animation's time factor) - origin; the mesh gets both and the pose's vertices (005A0B10) | the original's recursion goes straight to it inside the wrapper; subtree snapshotted, original, kept, restored, ours; bone and mesh poses within 4 ULPs |
 | 0050AF40, 0050B370, 0050B510, 0050B1D0, 0050B1B0 | FigureBone Construct, CreateBone (slot 2: reset; the matrices +0x90 emptied without freeing, as 0050DD40), DestroyBone (slot 3: mesh forgotten then released, pose only forgotten, animator / +0x54 / +0x58 released), DestructBody, DeleteBone (figure_bone_lifetime.cpp; A-U9; slots 7 / 11 / 12 0050B180 / 90 / A0 are trivial) | ctor: original into a raw copy, bytes compared except +0x90 and the unwritten offset; the rest ours only (blank state / engine object vtable) |
 | 00503A40, 00504A60 | CSceneRenderer DrawSelectionMarker (the green arrow under selected units; renderer_marker.cpp), SetGamma (slot 22: the options' brightness / contrast / gamma as the primary surface's gamma ramp; renderer_gamma.cpp) (A-U9) | marker: original with 004EA4A0's call recorded and skipped (flat_draw_capture.h), ours recorded and drawn, arguments compared (positions 4 ULPs); gamma: original, ramp read back (GetGammaRamp), ours, read again; results, kept values and ramps (entries within 1) compared |
+| 0050C5F0, 0050C730, 0050C710, 0050C860, 0050C8E0, 0050C990, 0050C9E0 | CFigureAnimationState Construct, DestructBody, DeleteState (slot 0), CreateState / DestroyState (slots 2 / 3), ReleaseBones, Reset (map_object_animation_bones.cpp; A-U10) | Construct: original into a raw copy, bytes +0..+0x74 compared; the rest ours only (blank state) |
+| 0050CC20, 0050CC60, 0050CD70, 0050D2E0, 0050D320 | FindBone, LinkPiece (a bone of class 0x300C from the figure manager), LinkBone (child of the first bone named as its parent unless it has a child of that name; list, reference, name3 = model, morph, 005ACB80), FindRoot (first bone without a parent name), SetModel (005AC880) | FindBone pure; FindRoot original vs ours (result, root, changed); the rest ours only |
+| 0050D0E0, 0050D350, 0050D3A0 | AttachMesh (the bone named as the part's slot 7 carries it: referenced, given the bone's position / rotation, old one released), DetachMesh, DetachMeshes | ours only |
+| 0050D3E0, 0050D450, 0050D5A0, 0050D7C0, 0050D920 | PlaceIfChanged / UpdatePose (tracks evaluated at the frame, then the root places the skeleton at owner AnimationFactor(scale.z) * defaultScale: x, y from the factor stored to float, z unrounded), Stop, Rescale (morph to every bone and the state, key frames reloaded, `changed` cleared, root placed), CollectBoneNames | ours only (Place compared by its own wrapper) |
+| 0050DFF0 | AlignedPtrArray::SetSize copy (the tracks' arrays) | ours only |
 
 Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEffect::Tick`, 00524FE0
 (hit onto the statistics block); sound system (global 007AF784) 006B8600 / 006B7C10 / 006B7CB0 /
@@ -146,9 +154,10 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
 - CArray Serialize / SetSize instantiations (library).
 - A-U9: 005015A0 (renderer slot 25: the projection / viewport / axis-swap stacks for a rectangle and a field of view,
   like the creation's FillMatrixStacks) has no caller (no `call [reg+0x64]` on the renderer in game.exe); 00508A30
-  (sets the skin clock, rewinds) is unreferenced. Next here: 0050D7C0 (animation state rescale), 0050CC60 (LinkPiece),
-  0050C730, 0050C5F0, 0050DFF0, 00506710 / 005068C0 (CAnimationNode ctor / dtor body), the renderer's 00504860,
-  00503F40, 005040A0, 00504E50, 00504F70, 00505270.
+  (sets the skin clock, rewinds) is unreferenced. Next here: 00506710 / 005068C0 (CAnimationNode ctor / dtor
+  body), the renderer's 00504860, 00503F40, 005040A0, 00504E50, 00504F70, 00505270; 0050D950 / 0050DA10 (reset / reload
+  the bones' tracks; need AnimationTrack's arrays declared), 0050DD40 (the bones' matrix SetSize, a discarding copy with
+  growBy).
 - 0050E9B0 (slot 34): packs a stack UnitVitals the builder leaves unwritten when the prototype exists (garbage in the
   original; cannot be reproduced). 0050F080 is rewritten (A-U5, map_object_vitals.cpp: CMapObject::ClearProtectionBases,
   verified ours vs original on the protection pairs; reached by every unit spawn through 0058EF20).

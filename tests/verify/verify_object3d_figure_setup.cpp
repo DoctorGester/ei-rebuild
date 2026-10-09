@@ -40,7 +40,7 @@ static void __fastcall SetUpAnimatedFigureVerify(CObject3D* self, void*, const c
 
     bool ok = (self->boundsFlags & 3) == 3;
     if (hadAnimation) {
-        ok = ok && self->partNameCount == parts && self->animation->parts.count == 0 && !self->animation->parts.head;
+        ok = ok && self->partNameCount == parts && self->animation->bones.count == 0 && !self->animation->bones.head;
     }
     float high[3] = {-FLT_MAX, -FLT_MAX, -FLT_MAX};
     float low[3] = {FLT_MAX, FLT_MAX, FLT_MAX};

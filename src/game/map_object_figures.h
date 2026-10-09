@@ -6,6 +6,7 @@
 // provisional; see docs/notes/map_objects.md ("Figures").
 
 #include "engine_object.h"
+#include "map_object_animation.h"   // AnimationTrack (a bone's animator)
 #include "maths.h"
 
 #include "lib/containers.h"
@@ -26,17 +27,6 @@ using AlignedPtrArray = lib::AlignedArray<void*>;
 struct FigurePart;
 struct FootprintPart;   // ai_map.h: a figure part's box (0x38 bytes)
 
-// What animates one figure part (class id 0x300B, made by the part's manager on first use and
-// kept counted at FigurePart +0x50). Only the fields the animation state sets.
-struct FigurePartAnimator : CEngineObject {
-    const struct FigureAnimation* animation;    // +0x1C the animation it plays (null: none)
-    FigurePart* part;               // +0x20 the part it animates
-    std::uint8_t unknown_24[0x48 - 0x24];
-    int unknown_48;                 // +0x48 cleared when the animation changes
-};
-static_assert(offsetof(FigurePartAnimator, part) == 0x20);
-static_assert(offsetof(FigurePartAnimator, unknown_48) == 0x48);
-
 // A part of an object's figure (a scene node; names provisional). Only what the figure code
 // reads: its position relative to the object, the piece's offset and box in the figure.
 struct FigurePart : CEngineObject {
@@ -45,9 +35,7 @@ struct FigurePart : CEngineObject {
     float alpha;                    // +0x02C (a unit's fade-in, CUnitClientSpecific +0x78)
     std::uint8_t unknown_030[0x40 - 0x30];
     float tint[3];                  // +0x040 a colour the client half sets (stunned: red, 0, 0)
-    FigurePartAnimator* previousAnimator;   // +0x04C the animator before an animation change
-    FigurePartAnimator* animator;   // +0x050 counted; made on first use (Animator())
-    std::uint8_t unknown_054[0x74 - 0x54];
+    std::uint8_t unknown_04C[0x74 - 0x4C];
     Vector3 pivot;                  // +0x074 copied to the object's part box (FootprintPart::pivot)
     std::uint8_t unknown_080[0x94 - 0x80];
     // +0x094 the part's own mesh (a CLinkMesh, link_figure.h) when flags_ 0x40 is set; its screen
@@ -70,7 +58,6 @@ struct FigurePart : CEngineObject {
 };
 static_assert(offsetof(FigurePart, position) == 0x1C);
 static_assert(offsetof(FigurePart, tint) == 0x40);
-static_assert(offsetof(FigurePart, animator) == 0x50);
 static_assert(offsetof(FigurePart, offset) == 0x18C);
 static_assert(offsetof(FigurePart, boxMin) == 0x19C);
 static_assert(offsetof(FigurePart, boxMax) == 0x1A8);
@@ -186,20 +173,19 @@ public:
 
 class CObject3D;
 class CFigureMesh;           // figure_mesh.h
-struct AnimationTrack;       // map_object_animation.h
 
 // A bone of a figure's skeleton (class id 0x300C, made by 0050CC60 from the skeleton links; names
-// provisional). The animation state's parts list holds them (FigurePart there, which declares the
-// two animator pointers the same way), its +0x20 the root. Only the fields the pose code uses.
+// provisional). The animation state's bone list holds them, its +0x20 the root. Only the fields
+// the pose code uses.
 struct FigureBone : CEngineObject {
     mfc::CString name;                      // +0x1C the piece's name (0050CC60 links children by it)
-    mfc::CString name2;                     // +0x20
-    mfc::CString name3;                     // +0x24
+    mfc::CString name2;                     // +0x20 its parent's name (empty for the root)
+    mfc::CString name3;                     // +0x24 the figure's model name (LinkBone)
     FigureBone* parent;                     // +0x28 null for the root
     mfc::CTypedPtrList<FigureBone> children;    // +0x2C
     CFigureMesh* mesh;                      // +0x48 the part the bone places, or null
     AnimationTrack* pose;                   // +0x4C the animator whose values place the bone
-    FigurePartAnimator* animator;           // +0x50 the latest animator (0050D4E0 copies it to +0x4C)
+    AnimationTrack* animator;               // +0x50 counted, made on first use; Play copies it to +0x4C
     CEngineObject* counted54;               // +0x54 counted (released by DestroyBone)
     CEngineObject* counted58;               // +0x58 counted
     Vector3 offset;                         // +0x5C the place relative to the parent
@@ -242,15 +228,15 @@ static_assert(offsetof(FigureBone, position) == 0x74 && offsetof(FigureBone, rot
 static_assert(offsetof(FigureBone, counted54) == 0x54 && offsetof(FigureBone, matrices) == 0x90);
 static_assert(sizeof(FigureBone) == 0xA0);
 
-// The figure's animation state (CObject3D + 0x98; 0050D0E0 adds a part, 0050D350 removes one,
-// 0050D3A0 lets go of every part, 0050D7C0 rescales).
+// The figure's animation state (class id 0x300D, vtable 0073DA4C, 0x78 bytes; CObject3D + 0x98): the
+// skeleton's bones, the animation playing and the queue behind it, the frame reached.
 class CFigureAnimationState : public CEngineObject {
 public:
     // map_object_animation_state.cpp (A-U2).
-    // 0050CA50. Plays `animation` from its start: each part keeps its animator as the previous
-    // one (making it first, Animator()), the figure manager (the world's slot 15) is asked to set
-    // the animation on this state by the owner's model name (005ACCF0); when it does not, each
-    // part's animator takes it (AnimatePart). Then SetTime(0) and `current` = `animation`.
+    // 0050CA50. Plays `animation` from its start: each bone keeps its animator as the one placing
+    // it (making it first), the figure manager (the world's slot 15) is asked to set the animation
+    // on this state by the owner's model name (005ACCF0); when it does not, each bone's animator
+    // takes it (AnimateBone). Then SetTime(0) and `current` = `animation`.
     void Play(FigureAnimation* animation);
     // 0050CBA0. Queues `animation` after the one playing (the queue's AddTail). Returns the node.
     void* Queue(FigureAnimation* animation);
@@ -258,34 +244,95 @@ public:
     // playing the next queued animation starts at 0; while the frame lies beyond the animation's
     // frame count the count is taken off, the callback (+0x64) runs, and the next queued animation
     // plays, or else the animation holds its last frame unless its key's top bits are 10 (loops).
-    // When the animation changed, the figure manager or the parts take it as in Play.
+    // When the animation changed, the figure manager or the bones take it as in Play.
     void SetTime(float frame);
     // 0050D5E0. SetTime(time + `frames`).
     void Advance(float frames);
 
-    // Each part's animator plays `animation` (0050CA50 / 0050D600 inline it): the part's manager
-    // is told (005ACA60) and the animator's +0x48 cleared.
-    static void AnimatePart(FigurePart* part, const FigureAnimation* animation);
+    // Each bone's animator plays `animation` (0050CA50 / 0050D600 inline it): the bone's manager
+    // is told (005ACA60) and the animator's time cleared.
+    static void AnimateBone(FigureBone* bone, const FigureAnimation* animation);
+
+    // map_object_animation_bones.cpp (A-U10).
+    // 0050C5F0. The constructor: engine object fields, empty lists (blocks of 10), the vtable, then
+    // Reset. Returns this.
+    CFigureAnimationState* Construct();
+    // 0050C730. The destructor body: every bone released, the lists emptied, Reset's fields, the
+    // lists' destructors, the engine object's.
+    void DestructBody();
+    // 0050C710 (slot 0, RET 4). DestructBody, then operator delete with flags bit 0. Returns this.
+    CFigureAnimationState* DeleteState(unsigned flags);
+    // 0050C860 (slot 2). Reset with `changed` set first. Returns 1.
+    int CreateState();
+    // 0050C8E0 (slot 3). ReleaseBones, then Reset (the root only forgotten).
+    void DestroyState();
+    // 0050C990. Every bone released, the list emptied.
+    void ReleaseBones();
+    // 0050C9E0. No owner, root, callback, bones (not released), animation, queue; frame and morph
+    // 0, `changed` set.
+    void Reset();
+    // 0050CC20 (RET 4). The first bone named `boneName` (_mbscmp), or null.
+    FigureBone* FindBone(const char* boneName);
+    // 0050CC60 (RET 0xC). A new bone (the figure manager's class 0x300C) named `child` with parent
+    // `parentName` joins through LinkBone. Returns 1.
+    int LinkPiece(void* model, const char* child, const char* parentName);
+    // 0050CD70 (RET 8). `bone` becomes a child of the first bone named as its parent (name2)
+    // unless that one has a child of its name; it joins the list (referenced), takes the model
+    // name (name3) and morph, and its manager loads its key frames from `model` (005ACB80).
+    // `changed` set. Returns 1.
+    int LinkBone(void* model, FigureBone* bone);
+    // 0050D0E0 (RET 4). The bone named as `part` (its slot 7) carries it as its mesh (referenced,
+    // the old one released): the part takes the bone's position and rotation. 0 when no bone has
+    // the name, else 1. `changed` set.
+    int AttachMesh(CEngineObject* part);
+    // 0050D2E0. The root becomes the first bone without a parent name. 1, or 0 when none.
+    int FindRoot();
+    // 0050D320 (RET 4). The figure manager links the skeleton of `model` into this state
+    // (005AC880). `changed` set. Returns its result.
+    int SetModel(const char* model);
+    // 0050D350 (RET 4). The first bone carrying `part` lets it go (released). 1, or 0 when none.
+    int DetachMesh(CEngineObject* part);
+    // 0050D3A0. Every bone lets its mesh go (released). `changed` set. Returns 1.
+    int DetachMeshes();
+    // 0050D3E0. When `changed`: cleared, and the root (if any) places the skeleton (0050C230) at
+    // the owner's time factor (00518D30 at its scale z) times its default scale.
+    void PlaceIfChanged();
+    // 0050D450. When `changed`: each bone's placing animator is evaluated at the frame reached
+    // (0050ACD0), then PlaceIfChanged.
+    void UpdatePose();
+    // 0050D5A0. The queue emptied, Play(null), `changed` set.
+    void Stop();
+    // 0050D7C0 (RET 0xC). The morph becomes (s, t, u) on every bone, whose manager reloads its key
+    // frames from the owner's model (005ACB80), and on the state (`changed` cleared); then the
+    // root places the skeleton as PlaceIfChanged does.
+    void Rescale(float s, float t, float u);
+    // 0050D920 (RET 4). Every bone's name appended to `out` (SetAtGrow at its size).
+    void CollectBoneNames(mfc::CStringArray* out);
 
     CObject3D* owner;               // +0x1C
-    FigureBone* root;               // +0x20 the skeleton's root bone (0050D3E0 / 0050D450 place it)
-    // +0x24 the parts the animation moves (MFC CPtrList; 0050D0E0 adds, 0050D350 removes).
-    mfc::CTypedPtrList<FigurePart> parts;
+    FigureBone* root;               // +0x20 the skeleton's root bone (FindRoot)
+    // +0x24 the skeleton's bones (MFC CPtrList, vtable 0073DA40; LinkBone adds).
+    mfc::CTypedPtrList<FigureBone> bones;
     FigureAnimation* current;       // +0x40 the animation playing, or null
-    // +0x44 the animations queued after it (MFC CPtrList; the client update keeps fewer than 3).
+    // +0x44 the animations queued after it (MFC CPtrList, vtable 0073DA80; the client update
+    // keeps fewer than 3).
     mfc::CTypedPtrList<FigureAnimation> queue;
     float time;                     // +0x60 the frame reached
     // +0x64 called (with the owner in ECX) each time an animation's end is passed, or null.
     void(__fastcall* onEnd)(CObject3D* owner);
-    std::uint8_t unknown_68[0x74 - 0x68];
-    std::uint8_t changed;           // +0x74 set when the frame or the animation changed
+    float morphS;                   // +0x68 the figure's morph coefficients (Rescale; bones copy them)
+    float morphT;                   // +0x6C
+    float morphU;                   // +0x70
+    std::uint8_t changed;           // +0x74 set when the frame, the animation or the bones changed
 };
-static_assert(offsetof(CFigureAnimationState, parts) == 0x24);
+static_assert(offsetof(CFigureAnimationState, bones) == 0x24);
 static_assert(offsetof(CFigureAnimationState, current) == 0x40);
 static_assert(offsetof(CFigureAnimationState, queue) == 0x44);
 static_assert(offsetof(CFigureAnimationState, time) == 0x60);
 static_assert(offsetof(CFigureAnimationState, onEnd) == 0x64);
+static_assert(offsetof(CFigureAnimationState, morphS) == 0x68);
 static_assert(offsetof(CFigureAnimationState, changed) == 0x74);
+static_assert(sizeof(CFigureAnimationState) == 0x78);
 
 // The figure an object holds at +0xF0 (counted; slot 0 deletes): a CLinkMesh (link_figure.h,
 // vtable 0073D790), seen from CObject3D::LoadPart. Slots 1-3 keep their place only.

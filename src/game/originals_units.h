@@ -306,6 +306,17 @@ __declspec(naked) inline void* __fastcall FigureManagerLoadPartOriginal(void* /*
                                                                         const char* /*part*/, void* /*model*/, std::uint32_t,
                                                                         std::uint32_t, std::uint32_t, std::uint32_t /*arg*/,
                                                                         std::uint32_t /*detached*/) EI_ORIGINAL(0x005AC2B0)
+// A-U10 (map_object_animation_bones.cpp). Rewritten, called through their addresses so the wrappers run: 0050C230
+// FigureBone::Place (RET 4), 0050ACD0 AnimationTrack::Evaluate (RET 4), 005ACB80 LoadFigureBones (thiscall on the figure manager, RET 8: model, bone;
+// 1 / 0), 005AC880 LoadSkeletonLinks (thiscall on the figure manager, RET 8: state, model name; 1 or FatalError's).
+__declspec(naked) inline void __fastcall FigureBonePlaceOriginal(void* /*bone*/, void*, const void* /*origin*/)
+    EI_ORIGINAL(0x0050C230)
+__declspec(naked) inline void __fastcall AnimationTrackEvaluateOriginal(void* /*track*/, void*, float /*time*/)
+    EI_ORIGINAL(0x0050ACD0)
+__declspec(naked) inline int __fastcall FigureManagerLoadBonesOriginal(void* /*manager*/, void*, void* /*model*/,
+                                                                       void* /*bone*/) EI_ORIGINAL(0x005ACB80)
+__declspec(naked) inline int __fastcall FigureManagerLinkSkeletonOriginal(void* /*manager*/, void*, void* /*state*/,
+                                                                          const char* /*model*/) EI_ORIGINAL(0x005AC880)
 // 00693180 (rewritten as ComposeTexture, texture_compose.cpp; through its address so the wrapper runs): the texture
 // manager composes the skin `request` into the cached texture `name` (or `fallback`), its name into `out` (thiscall,
 // RET 0x1C; 1 / 0).
