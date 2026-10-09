@@ -1,5 +1,5 @@
-// Destructors of the interface controls (A-H20): the scroll bar, options slider, spin, edit field
-// and scrolling text (destructor bodies and slot 0, the scalar deleting destructors, with their input
+// Destructors of the interface controls (A-H20): the scroll bar, options slider, spin, edit field,
+// scrolling text and tooltip (destructor bodies and slot 0, the scalar deleting destructors, with their input
 // sides' copies: `this` moved back from the input side at +0x94, then the window's), and the
 // scrolling text's tokens. The scrolling text's body is in ui_scroll_text.cpp. See ui.h and
 // docs/notes/items_spells.md.
@@ -85,8 +85,16 @@ CUiScrollText* __fastcall ScrollTextDelete(CUiScrollText* self, void*, unsigned 
 }
 EI_REPLACE(0x0065CE00, ScrollTextDelete);
 
+// 0065E4D0: a region's tooltip (00742F64).
+CUiTooltip* __fastcall TooltipDelete(CUiTooltip* self, void*, unsigned flags) {
+    self->DestroyBody();
+    return FreeIfAsked(self, flags);
+}
+EI_REPLACE(0x0065E4D0, TooltipDelete);
+
 // The input sides' slot 0 (SUB ECX,0x94; JMP to the window's): 0065CB70 the scroll bar's, 0065CB80
-// the slider's, 0065CB90 the spin's, 0065CBA0 the edit field's, 0065E2B0 the scrolling text's.
+// the slider's, 0065CB90 the spin's, 0065CBA0 the edit field's, 0065E2B0 the scrolling text's,
+// 0065EAC0 the tooltip's.
 void* __fastcall ScrollbarInputDelete(void* input, void*, unsigned flags) {
     return ScrollbarDelete(WindowFromInput<CUiScrollbar>(input), nullptr, flags);
 }
@@ -104,6 +112,10 @@ void* __fastcall ScrollTextInputDelete(void* input, void*, unsigned flags) {
     return ScrollTextDelete(WindowFromInput<CUiScrollText>(input), nullptr, flags);
 }
 EI_REPLACE(0x0065E2B0, ScrollTextInputDelete);
+void* __fastcall TooltipInputDelete(void* input, void*, unsigned flags) {
+    return TooltipDelete(WindowFromInput<CUiTooltip>(input), nullptr, flags);
+}
+EI_REPLACE(0x0065EAC0, TooltipInputDelete);
 
 // --- The scrolling text's tokens ------------------------------------------------------------------
 

@@ -326,42 +326,9 @@ using UiPtrArray = lib::AlignedArray<T*>;
 void* AllocAligned(std::size_t bytes);
 void FreeAligned(void* data);
 
-// The tooltip attached to a region (0x184 bytes, constructed by 0065E320).
+// The tooltip attached to a region (CUiWindow, below).
 class CUiRegion;
-struct CUiTooltip {
-    // Slot 0: the deleting destructor (with 1: the memory is freed).
-    void Delete() {
-        using Fn = void(__thiscall*)(CUiTooltip*, int);
-        reinterpret_cast<Fn>(vtable_[0])(this, 1);
-    }
-
-    void** vtable_;                  // 00742F64 (the window's; its input side 00742F30 at +0x94)
-    std::uint8_t unknown_004[0x148 - 0x004];   // the CUiWindow base
-    void* linesVtable_;              // +0x148 CStringArray: the text's lines (none for an empty text)
-    char** lines_;                   // +0x14C
-    int lineCount_;                  // +0x150
-    std::uint8_t unknown_154[0x164 - 0x154];
-    int flag_;                       // +0x164 the constructor's fourth argument (1 almost everywhere)
-    int extra_;                      // +0x168 its fifth (the HUD's slot tips: an index)
-    int unknown_16C;                 // +0x16C
-    CUiRegion* region_;              // +0x170 the region it belongs to
-    int width_;                      // +0x174 widest line + 12 (a text only)
-    int height_;                     // +0x178 the lines' heights + 8
-    int unknown_17C;                 // +0x17C 0
-    int state_;                      // +0x180 0, 1: idle/hovered; other values: shown
-    // 0065E580. Tracks the mouse (layout coordinates).
-    void OnMouseMove(int x, int y);
-    // 0065EA50 (window slot 20; the tooltip is a CUiWindow, vtable 00742F64). Draws only while
-    // shown; returns 1 otherwise. (ui_menus.cpp)
-    BOOL Draw(int pass);
-    // 0065EA80 (slot 22). Redraws (005FECC0, the window's base slot 22) only while shown.
-    void Redraw();
-    bool Shown() const { return state_ != 1 && state_ != 0; }
-};
-static_assert(offsetof(CUiTooltip, state_) == 0x180);
-static_assert(offsetof(CUiTooltip, lines_) == 0x14C);
-static_assert(offsetof(CUiTooltip, flag_) == 0x164);
-static_assert(offsetof(CUiTooltip, region_) == 0x170);
+struct CUiTooltip;
 
 struct UiPoint {
     int x;
@@ -812,6 +779,55 @@ static_assert(offsetof(CUiWindow, blackMaterial_) == 0xEC);
 static_assert(offsetof(CUiWindow, objects_) == 0xF8);
 static_assert(offsetof(CUiWindow, regions_) == 0x128);
 static_assert(offsetof(CUiWindow, models_) == 0x138);
+
+// The tooltip attached to a region (0x184 bytes, vtables 00742F64 / 00742F30, constructor
+// 0065E320; ui_tooltip.cpp, A-H20). Its surface is made while it is shown (0065E580).
+struct CUiTooltip : CUiWindow {
+    // Slot 0: the deleting destructor (with 1: the memory is freed).
+    void Delete() {
+        using Fn = void(__thiscall*)(CUiTooltip*, int);
+        reinterpret_cast<Fn>(vtable_[0])(this, 1);
+    }
+    // 0065E320 (RET 0x14; ui_tooltip.cpp). Constructor: the window, no lines, idle, of `region`;
+    // a non-empty `text` is split at newlines into the lines and measured (Measure). Returns this.
+    CUiTooltip* Construct(CInterface3D* ui, CUiRegion* region, const char* text, int flag, int extra);
+    // 0065E4F0 (ui_tooltip.cpp). Destructor body: the lines (006FE958), then the window's.
+    void DestroyBody();
+    // 0065E540 (RET 4; ui_tooltip.cpp). A non-empty `text` replaces the lines and they are drawn
+    // (the size is not measured again); null or empty: nothing.
+    void SetText(const char* text);
+    // 0065E880 (ui_tooltip.cpp). Draws the lines into surface 0 (when there is one): filled with
+    // 0x1C2B, framed in 0x31B3FF, then line by line in font 0 from (6, 4), lineHeight_ apart, the
+    // first flag_ lines in 0x31B3FF and the others in 0xA7D7E4; the first line followed by
+    // "  ( <key> )" when keyName_ is set.
+    void DrawLines();
+    // 0065E580 (Rebirth-patched, not rewritten). Tracks the mouse (layout coordinates).
+    void OnMouseMove(int x, int y);
+    // 0065EA50 (window slot 20; ui_menus.cpp). Draws only while shown; returns 1 otherwise.
+    BOOL Draw(int pass);
+    // 0065EA80 (slot 22). Redraws (005FECC0, the window's base slot 22) only while shown.
+    void Redraw();
+    bool Shown() const { return state_ != 1 && state_ != 0; }
+
+    mfc::CStringArray lines_;        // +0x148 the text's lines (none for an empty text)
+    int lineHeight_;                 // +0x15C the last line's height: the rows' step
+    int keyWidth_;                   // +0x160 the first line with the key name, + 12 (0065E580)
+    int flag_;                       // +0x164 the constructor's fourth argument: the title lines (1 almost everywhere)
+    int extra_;                      // +0x168 its fifth: a command whose key is shown (0065E580)
+    const char* keyName_;            // +0x16C that key's name, or null
+    CUiRegion* region_;              // +0x170 the region it belongs to
+    int width_;                      // +0x174 widest line + 12 (a text only)
+    int height_;                     // +0x178 the lines' heights + 8
+    int unknown_17C;                 // +0x17C 0 (0065E580: a float timer)
+    int state_;                      // +0x180 0, 1: idle/hovered; other values: shown
+};
+static_assert(offsetof(CUiTooltip, lines_) == 0x148);
+static_assert(offsetof(CUiTooltip, lineHeight_) == 0x15C);
+static_assert(offsetof(CUiTooltip, flag_) == 0x164);
+static_assert(offsetof(CUiTooltip, keyName_) == 0x16C);
+static_assert(offsetof(CUiTooltip, region_) == 0x170);
+static_assert(offsetof(CUiTooltip, state_) == 0x180);
+static_assert(sizeof(CUiTooltip) == 0x184);
 
 // The panels of the item screens (camp, multiplayer hero screen, exchange): the description panel,
 // hero equipment, quick strip, trade and repair grids, constructor pages and the blank panel

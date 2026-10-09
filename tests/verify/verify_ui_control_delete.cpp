@@ -1,4 +1,4 @@
-// Checks for the interface controls' destructors (ui_control_delete.cpp, A-H20). All ours only (they
+// Checks for the interface controls' and tooltips' destructors (ui_control_delete.cpp, A-H20). All ours only (they
 // free memory): a deleting destructor returns the object (input sides: the window, 0x94 before the
 // side); after a body the window base holds nothing; a token's body leaves the base vtable.
 // Scenarios: every scenario closes the message log at exit; ui_objectives, ui_saveload and
@@ -19,6 +19,8 @@ void* __fastcall ScrollbarInputDelete(void* input, void*, unsigned flags);
 void* __fastcall SpinInputDelete(void* input, void*, unsigned flags);
 void* __fastcall EditFieldInputDelete(void* input, void*, unsigned flags);
 void* __fastcall ScrollTextInputDelete(void* input, void*, unsigned flags);
+CUiTooltip* __fastcall TooltipDelete(CUiTooltip* self, void*, unsigned flags);
+void* __fastcall TooltipInputDelete(void* input, void*, unsigned flags);
 UiTextToken* __fastcall TextTokenDelete(UiTextToken* self, void*, unsigned flags);
 UiTextToken* __fastcall FormatTokenDelete(UiTextToken* self, void*, unsigned flags);
 UiWordToken* __fastcall WordTokenDelete(UiWordToken* self, void*, unsigned flags);
@@ -84,6 +86,7 @@ EI_DELETE_VERIFY(0x0065BC90, SliderDeleteVerify, ScrollbarDelete, CUiScrollbar)
 EI_DELETE_VERIFY(0x0065BDF0, SpinDeleteVerify, SpinDelete, CUiSpin)
 EI_DELETE_VERIFY(0x0065C120, EditFieldDeleteVerify, EditFieldDelete, CUiEditField)
 EI_DELETE_VERIFY(0x0065CE00, ScrollTextDeleteVerify, ScrollTextDelete, CUiScrollText)
+EI_DELETE_VERIFY(0x0065E4D0, TooltipDeleteVerify, TooltipDelete, CUiTooltip)
 EI_DELETE_VERIFY(0x0065D8A0, TextTokenDeleteVerify, TextTokenDelete, UiTextToken)
 EI_DELETE_VERIFY(0x0065D8C0, FormatTokenDeleteVerify, FormatTokenDelete, UiTextToken)
 EI_DELETE_VERIFY(0x0065D8F0, WordTokenDeleteVerify, WordTokenDelete, UiWordToken)
@@ -102,3 +105,4 @@ EI_INPUT_DELETE_VERIFY(0x0065CB80, SliderInputDeleteVerify, ScrollbarInputDelete
 EI_INPUT_DELETE_VERIFY(0x0065CB90, SpinInputDeleteVerify, SpinInputDelete)
 EI_INPUT_DELETE_VERIFY(0x0065CBA0, EditFieldInputDeleteVerify, EditFieldInputDelete)
 EI_INPUT_DELETE_VERIFY(0x0065E2B0, ScrollTextInputDeleteVerify, ScrollTextInputDelete)
+EI_INPUT_DELETE_VERIFY(0x0065EAC0, TooltipInputDeleteVerify, TooltipInputDelete)

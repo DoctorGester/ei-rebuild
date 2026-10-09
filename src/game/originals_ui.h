@@ -153,7 +153,8 @@ __declspec(naked) inline void __fastcall InterfaceCloseAllOriginal(void* /*inter
 __declspec(naked) inline void __fastcall StatsPanelDrawStatsOriginal(void* /*panel*/) EI_ORIGINAL(0x00623880)
 
 // 0065E320: CUiTooltip constructor in `memory` (0x184 bytes; thiscall, RET 0x14: interface, region, text, flag, extra; the
-// text is split into lines, not kept); returns `memory`. 0065E540: its SetText (RET 4, no result).
+// text is split into lines, not kept); returns `memory`. 0065E540: its SetText (RET 4, no result). Both rewritten in
+// ui_tooltip.cpp (A-H20); callers go through these so the wrappers run.
 __declspec(naked) inline struct CUiTooltip* __fastcall TooltipConstructOriginal(void* /*memory*/, void*, CInterface3D*,
                                                                               class CUiRegion*, const char* /*text*/,
                                                                               int /*flag*/, int /*extra*/)
