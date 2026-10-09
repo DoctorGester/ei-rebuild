@@ -57,12 +57,6 @@ CEngineObject* Make(std::size_t size, Construct construct, std::uintptr_t vtable
 // A manager attached to the world (its slot 13), after the world holds it.
 void Attach(CEngineObject* manager, CWorld* world) { static_cast<CBaseManager*>(manager)->Init(world); }
 
-// The counted helper at +0x5C (0xC bytes): the reference header and one dword.
-struct SharedHelper : CRefObject {
-    std::uint32_t unknown_08;
-};
-static_assert(sizeof(SharedHelper) == 0xC);
-
 } // namespace
 
 int __fastcall WorldCreateManagers(CWorld* world) {
@@ -95,13 +89,13 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     Attach(world->itemManager_, world);
 
     // The helper goes into the counted pointer at +0x5C (RefPtr::ShareAssign, inlined).
-    auto* helper = static_cast<SharedHelper*>(gamecrt::operator_new(sizeof(SharedHelper)));
+    auto* helper = static_cast<CWorldHandle*>(gamecrt::operator_new(sizeof(CWorldHandle)));
     // The count and both flag bytes as one dword, written before the test as the original does.
     const std::uint32_t noReferences = 0;
     std::memcpy(&helper->refs_, &noReferences, sizeof(noReferences));
     if (helper) {
-        helper->unknown_08 = 0;
-        ei::SetVtable(helper, worlddata::kSharedHelperVtable);
+        helper->pendingLink_ = nullptr;
+        ei::SetVtable(helper, CWorldHandle::kVtableAddress);
     }
     world->shared5C_.ShareAssign(helper);
     RandomInit(&IsaacRandom::Global());

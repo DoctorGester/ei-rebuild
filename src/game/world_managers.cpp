@@ -4,11 +4,17 @@
 
 #include "base_manager.h"
 #include "core_refcount.h"
+#include "item.h"
 #include "model.h"
+#include "player_manager.h"
 #include "resource_manager.h"
 #include "spell.h"
 
 #include "ei/hook.h"
+#include "ei/vcall.h"
+#include "lib/crt.h"
+
+#include <cstdint>
 
 namespace {
 // The original drops the world's reference and deletes the manager without testing the count.
@@ -50,3 +56,69 @@ void CWorld::DestroyManagers() {
     DeleteManager(manager48_);
 }
 EI_REPLACE_METHOD(0x0055F8E0, CWorld::DestroyManagers);
+
+// ---- The managers' own small slots (0055F310-0055F400, A-U8) -------------------------------------
+// GetClassName (11) / GetClassId (12) and the destructors of the player manager (vtable 0073F328),
+// the effect manager (0073F2C4, the world's +0x48) and the item manager (0073F25C). Each destructor
+// body stores the class's vtable and runs the base's body; slot 0 adds the delete. The item
+// manager's slot 25 (0055F3B0, "items") is a CResourceManager slot not declared yet.
+
+namespace {
+constexpr std::uintptr_t kPlayerManagerName = std::uintptr_t(0x0078FEE8);   // "CPlayerManager"
+constexpr std::uintptr_t kEffectManagerName = std::uintptr_t(0x0078FEF8);   // "CEffectManager"
+constexpr std::uintptr_t kItemManagerName = std::uintptr_t(0x0078FF10);     // "CItemManager"
+constexpr int kPlayerManagerId = 0x2E;
+constexpr int kEffectManagerId = 0x32;
+constexpr int kItemManagerId = 0x2F;
+constexpr std::uintptr_t kEffectManagerVtable = std::uintptr_t(0x0073F2C4);
+
+template <typename T> T* DeleteIf(T* self, unsigned flags) {
+    if (flags & 1) gamecrt::operator_delete(self);
+    return self;
+}
+} // namespace
+
+const char* __fastcall PlayerManagerClassName(CPlayerManager*) { return reinterpret_cast<const char*>(kPlayerManagerName); }
+int __fastcall PlayerManagerClassId(CPlayerManager*) { return kPlayerManagerId; }
+void __fastcall PlayerManagerDestruct(CPlayerManager* self) {   // 0055F350
+    ei::SetVtable(self, CPlayerManager::kVtableAddress);
+    self->DestructBody();
+}
+CPlayerManager* __fastcall PlayerManagerDelete(CPlayerManager* self, void*, unsigned flags) {   // 0055F330
+    PlayerManagerDestruct(self);
+    return DeleteIf(self, flags);
+}
+EI_REPLACE(0x0055F310, PlayerManagerClassName);
+EI_REPLACE(0x0055F320, PlayerManagerClassId);
+EI_REPLACE(0x0055F350, PlayerManagerDestruct);
+EI_REPLACE(0x0055F330, PlayerManagerDelete);
+
+const char* __fastcall EffectManagerClassName(CBaseManager*) { return reinterpret_cast<const char*>(kEffectManagerName); }
+int __fastcall EffectManagerClassId(CBaseManager*) { return kEffectManagerId; }
+void __fastcall EffectManagerDestruct(CBaseManager* self) {   // 0055F3A0
+    ei::SetVtable(self, kEffectManagerVtable);
+    self->DestructBody();
+}
+CBaseManager* __fastcall EffectManagerDelete(CBaseManager* self, void*, unsigned flags) {   // 0055F380
+    EffectManagerDestruct(self);
+    return DeleteIf(self, flags);
+}
+EI_REPLACE(0x0055F360, EffectManagerClassName);
+EI_REPLACE(0x0055F370, EffectManagerClassId);
+EI_REPLACE(0x0055F3A0, EffectManagerDestruct);
+EI_REPLACE(0x0055F380, EffectManagerDelete);
+
+const char* __fastcall ItemManagerClassName(CItemManager*) { return reinterpret_cast<const char*>(kItemManagerName); }
+int __fastcall ItemManagerClassId(CItemManager*) { return kItemManagerId; }
+void __fastcall ItemManagerDestruct(CItemManager* self) {   // 0055F400
+    ei::SetVtable(self, CItemManager::kVtableAddress);
+    self->CResourceManager::Destruct();
+}
+CItemManager* __fastcall ItemManagerDelete(CItemManager* self, void*, unsigned flags) {   // 0055F3E0
+    ItemManagerDestruct(self);
+    return DeleteIf(self, flags);
+}
+EI_REPLACE(0x0055F3C0, ItemManagerClassName);
+EI_REPLACE(0x0055F3D0, ItemManagerClassId);
+EI_REPLACE(0x0055F400, ItemManagerDestruct);
+EI_REPLACE(0x0055F3E0, ItemManagerDelete);

@@ -160,6 +160,8 @@ ours = consistency checks (most order / update code: run every tick).
 | 00548DE0, 00548FA0, 00550F30, 005474B0, 00551400, 005494D0, 00548520, 0054A150, 00548700, 005468D0, 0054EB30, 00546480, 00554450 | PlayAnimationOrder (state 3), PlayEmoteOrder (4), IdleAnimation, PlayIdle, NextAnimation, StartAction, UpdateSneak, ChangeMoveMode, PathTo, LiftNearby, ReportPath, ResetController, ResyncWithUnit (`combat_motion.cpp`) | ours |
 | 0054DF50, 0054E250 (ST0; compared), 0054E600, 00554830, 00551AE0, 00552280, 00547890 | FindUseSpot, TimeUntilAction, PlanOrderRoute, PlanMove, TryTame, UndoTaming, UpdateMotion | ours |
 | 0055EE40, 0055F8E0, 00558FA0 (C) | World::CreateManagers, CWorld::DestroyManagers, UnitSetEntryHead::Write (SendZone's unit set entry head; `world_unit_set.cpp`) | ours |
+| 0055F2E0 / 0055F2F0, 0055F1A0 (compared), 0055F1E0, 0055F280 / 0055F260, 0055F550 (compared), 0055F6B0, 0055F7B0 / 0055F790, 0055F410 | Player sources (`player_source.h`, `world_sessions.cpp`; A-U8): CPlayerSource base destructor (vtable 0073F38C), CWorldHandle (+0x5C; +8 a counted pending link) Clone / OnShutdown / destructors, netlink::DriverSession (+0x60, 0073F3A8; was "the game result object") Clone / OnShutdown / destructors, CWorld::OpenSession (new session ShareAssigned into +0x60) | ours |
+| 0055F310-0055F400 (names / ids P) | CPlayerManager, CEffectManager (0073F2C4), CItemManager class names, ids and destructors (`world_managers.cpp`); 0055F3B0 (CItemManager slot 25 "items") left: CResourceManager does not declare slot 25 | ours |
 | 0054A5A0, 00555270, 005552E0, 005553B0, 00555480, 00555570, 00555630, 00555700, 00555840, 00512F60 | FitsMoveMode, SetMoveStyle, SetWantedWeapon, OrderSteal / Tame / Use / SearchBody, PlayAnimation, StopAction (state 6, orders 9 / 0, empty plan), FindFigureAnimation (`combat_order_setters.cpp`) | ours |
 | 005535F0 (29), 00552CD0 (38), 00553380, 00552D00, 00553610 (25), 00552670 (42), 00553260 (44), 00546450 (2), 00546080 (5), 005460A0 (39, P) | RefreshEquipment, ForgetClaims, AddExperience, ClaimHostility, TakeUpWeapon, OnObjectDeleted, Resettle, CreateServer, ResetSlot, TameStage | ours |
 | 00544CE0, 00544D50, 00544DD0, 00544E40 (P), 00544E70 (P), 00544F60 (C), 00544EF0, 00544FD0, 00545110 (O) | AnimationSteps::AddStep / AddEmote / SetStepFlags (ours on a deep copy, original on the list, compared without byte 3) / Duration / SameAs / Save / Load, OrderPlanReset, OrderPlan::TakeSteps (only for a queued order of kind 10, whose one setter 005557E0 is dead: unreachable) | |
@@ -205,7 +207,9 @@ ours = consistency checks (most order / update code: run every tick).
   allocations (the Clones test first in ours).
 - Lifetime: TakeSteps clears isCast twice; LoadArmourSpells' new entries carry a stack byte in `worn` (ours 0) and its
   second loop reads an id and countdown for every entry of the list, old ones included; an unread step-list count is stack
-  garbage (ours 0); the controller constructor sizes the movement list with SetSize(0) out of line and the idle list inline.
+  garbage (ours 0); the controller constructor sizes the movement list with SetSize(0) out of line and the idle list inline. The player
+  sources' Clones and OpenSession write the new object's count before testing the allocation (ours test first);
+  their OnShutdowns return a leftover EAX (ours 0; RefPtr::Destroy ignores it).
 
 ## Skipped and left
 

@@ -27,6 +27,7 @@
 #include "core_refcount.h"
 #include "core_streams.h"
 #include "net_connection.h"
+#include "player_source.h"
 
 #include "ei/vcall.h"
 
@@ -267,16 +268,32 @@ struct DriverNode {
     DriverLink* Driver() const { return static_cast<DriverLink*>(value.ptr); }
 };
 
-// The part of the game's network session the connection pump uses (its class is not mapped yet):
-// two lists of drivers.
-struct DriverSession {
-    std::uint8_t unknown_00[8];
+// The network session (vtable 0073F3A8, 0x10 bytes; CWorld + 0x60, made by CWorld::OpenSession
+// 0055F410): a player source (player_source.h) with two lists of drivers. Its lifetime slots are in
+// world_sessions.cpp.
+class __declspec(novtable) DriverSession : public CPlayerSource {
+public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F3A8);
+
+    // 0: 0055F790 (DeletingDestruct); 4: 0047A220 (AL 1); 5: the base's; 6: 0047A230 (the live
+    // holders' links appended to the list).
+    int OnShutdown() override;          // 2: 0055F6B0 (both lists emptied; built again in place)
+    DriverSession* Clone() override;    // 3: 0055F550 (drivers shared, holders counted)
+
+    // The constructor as 0055F410 inlines it on `memory` (0x10 bytes of operator new, the count
+    // already cleared): both lists empty. Returns the session.
+    static DriverSession* ConstructAt(void* memory);
+    // 0055F7B0. Both lists destroyed (holders released, drivers destroyed), the root vtable left.
+    void Destruct();
+    // 0055F790 (slot 0). Destruct, then operator delete when bit 0 of `flags` is set.
+    DriverSession* DeletingDestruct(unsigned flags);
+
     DriverNode* drivers_;        // +0x08 list<RefPtr> (owning)
     DriverNode* holders_;        // +0x0C list of plain holders (released, not detached)
 
     // 00479E30 (RET 4). A driver for every new player of `world` with something queued; then each
     // driver pumped, and those whose player is gone erased.
-    void Pump(CRefObject* world);
+    void PumpDrivers(CRefObject* world);
     // 0047A080 (RET 4). Both lists emptied, then one driver for `player`, started and drained.
     DriverLink* Start(net::Connection* player);
 };
