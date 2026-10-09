@@ -11,13 +11,8 @@ namespace {
 void* s_unused;
 
 bool OnSharedList(CWorldServer* world, int id) {
-    struct Node {
-        Node* next;
-        Node* prev;
-        int objectId;
-    };
-    for (auto* node = static_cast<Node*>(world->sharedObjects_); node; node = node->next)
-        if (node->objectId == id) return true;
+    for (auto* node = world->sharedObjects_.head; node; node = node->next)
+        if (node->data.objectId == id) return true;
     return false;
 }
 } // namespace

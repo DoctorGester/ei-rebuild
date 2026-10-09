@@ -808,7 +808,7 @@ constexpr int kRequestDone = 3;   // the client's game state request: answered
 void GameFlow::ReturnLocalParty() {
     if (!Active(net::GameClient())) return;
     WorldPlayer* player = reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player;
-    PartyRecords* party = player->Party();
+    CParty* party = player->Party();
     PartyCopyFrom(GlobalParty(), nullptr, party);
     PartyManagerBeginRedeploy(PartyManager(), nullptr, party);
     PartySendTransferOriginal(GlobalParty(), nullptr, *reinterpret_cast<int*>(0x007C82A0));
@@ -1229,7 +1229,7 @@ void CWorldServer::AcceptNewPlayers(void* lobby) {
         WorldPlayer* player = PlayersAdd(players_, nullptr);
         PlayerAttach(player, nullptr, connection);
         player->dirty = 0xFFFFFFFFu;
-        player->sessionKind = unknown12D64_;
+        player->unknown100 = unknown12D64_;
         std::memcpy(&player->server->lastPosition_, startPosition_, 12);
         int id = player->id;
         void* log = OstreamPutLong(OstreamPutString(kNetLog, nullptr, Text(kAcceptedPlayer)), nullptr, id);
@@ -2029,7 +2029,7 @@ void GameFlow::UpdateFromServer() {
     }
 
     // The server's variables, by stamp.
-    if (ClientWorldLocalView(clientWorld)->player->sessionKind == 1) {
+    if (ClientWorldLocalView(clientWorld)->player->unknown100 == 1) {
         unsigned previous = AppliedStamp();
         if (ServerStamp() > AppliedStamp() + 2) AppliedStamp() = ServerStamp() + 1;
         NodeVector changed;

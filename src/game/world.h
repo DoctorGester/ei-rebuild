@@ -31,7 +31,8 @@ class CTexture;   // texture.h
 class CTextureManager;   // texture.h
 class Terrain;
 struct FootprintPart;   // ai_map.h: a figure part's box (FigurePart +0x188)
-struct Float4;  // chunk_stream.h: four floats passed by value
+class CWorldServer;
+struct Float4;   // chunk_stream.h: four floats passed by value
 
 namespace world {
 constexpr int kClassUnit = 0x50;   // CEngineObject::GetClassId() of units
@@ -53,16 +54,16 @@ struct PartyRecords;   // unit.h
 
 // A player (one per human or AI side). Fields named only as far as used here.
 struct WorldPlayer {
-    // The party records (unit.h) its fields from +0x70 form: mercs / mercCount are their records,
-    // variables their variables (+0x54), +0xD8 their zone.
-    PartyRecords* Party() { return reinterpret_cast<PartyRecords*>(&unknown_040[0x70 - 0x40]); }
-
     std::uint8_t unknown_000[0x20];
     CPlayerServer* server;               // +0x020 the player's connection (player_messages.h), or null
 
     int id;                              // +0x024 player number (0 = the local player)
     ObjectIdMap objects;                 // +0x028 its objects by id (the briefing screen walks it)
-    std::uint8_t unknown_040[0xA0 - 0x40];
+    std::uint8_t unknown_040[0x70 - 0x40];
+    // +0x070 the player's party (a CParty, party.h, 0x70 bytes to +0xE0: Party()); mercs,
+    // mercCount and variables below are its members_ and variables_ seen from here. Loaded and
+    // saved by 006618C0 / 00661C10 (world_save.cpp).
+    std::uint8_t party[0xA0 - 0x70];
     std::uint8_t* mercs;                 // +0x0A0 0x784-byte records, unit id at +0x1C
     int mercCount;                       // +0x0A4
     std::uint8_t unknown_0A8[0xC4 - 0xA8];
@@ -70,20 +71,29 @@ struct WorldPlayer {
     std::uint8_t unknown_0D8[0xE0 - 0xD8];
     // +0x0E0 an item list (CPtrList); the HUD top panel's page 1 lists it (0064A7A0).
     mfc::CTypedPtrList<CEngineObject> items;
-    std::uint8_t unknown_0FC[0x100 - 0xFC];
-    int sessionKind;                     // +0x100 CPlayer::sessionKind100_ (set from the server world's +0x12D64 on joining; 1: the flow applies the server's variables by stamp)
+    std::uint32_t unknownFC;             // +0x0FC saved with the world (SaveWorld / LoadSave)
+    // +0x100 saved with the world; CPlayer::sessionKind100_: set from the server world's +0x12D64
+    // on joining (AcceptNewPlayers); 1: the flow applies the server's variables by stamp.
+    std::uint32_t unknown100;
     int lastScreen;                      // +0x104 the interface screen it comes from (5: the camp)
-    std::uint8_t unknown_108[0x110 - 0x108];
+    std::uint8_t unknown108;             // +0x108 saved with the world (one byte)
+    std::uint8_t unknown_109[0x110 - 0x109];
     int lastTick;                        // +0x110
-    std::uint8_t unknown_114[0x130 - 0x114];
+    mfc::CList<std::uint32_t> ids;       // +0x114 saved with the world from version 0x55 (AddTail 0059CC60)
     std::uint32_t dirty;                 // +0x130 changes still to send to this player
+
+    class CParty* Party() { return reinterpret_cast<class CParty*>(party); }
 };
+static_assert(offsetof(WorldPlayer, party) == 0x70);
+static_assert(offsetof(WorldPlayer, unknownFC) == 0xFC);
+static_assert(offsetof(WorldPlayer, unknown108) == 0x108);
+static_assert(offsetof(WorldPlayer, lastTick) == 0x110);
+static_assert(offsetof(WorldPlayer, ids) == 0x114);
 static_assert(offsetof(WorldPlayer, server) == 0x20);
 static_assert(offsetof(WorldPlayer, mercs) == 0xA0);
 static_assert(offsetof(WorldPlayer, variables) == 0xC4);
 static_assert(offsetof(WorldPlayer, items) == 0xE0);
 static_assert(offsetof(WorldPlayer, objects) == 0x28);
-static_assert(offsetof(WorldPlayer, sessionKind) == 0x100);
 static_assert(offsetof(WorldPlayer, lastScreen) == 0x104);
 
 // What CWorldClient::LocalView (005699F0) returns: the local view, +0x1C its player.
@@ -254,7 +264,15 @@ static_assert(sizeof(WorldAlarm) == 16);
 struct Projectile {
     // 0067E6D0. Moves the missile one tick; 0 once it has hit or expired.
     int Update();
+
+    void* vtable;
+    // +0x04 the reference count (16 bits; LoadSave clears the whole dword of a new allocation before
+    // its null test and the constructor).
+    std::uint32_t references;
 };
+static_assert(offsetof(Projectile, references) == 4);
+// 007C84EC: the world the missiles find while they load (LoadSave sets it).
+inline CWorldServer*& LoadingProjectileWorld() { return *reinterpret_cast<CWorldServer**>(0x007C84EC); }
 // The world server's missiles: an MFC CList of counted pointers (CWorldServer + 0x12E28). Its
 // FreeNode (0059C810, world_tick.cpp) releases the node's missile.
 using ProjectileList = mfc::CTypedPtrList<Projectile>;
@@ -262,6 +280,26 @@ using ProjectileList = mfc::CTypedPtrList<Projectile>;
 // The stream the world's save and load code reads and writes (the CMemoryStream holding
 // mission.sav) is the engine's CStream (core_streams.h); version_ is the save format version.
 using WorldStream = CStream;
+
+// An element of the world server's shared-object list (CWorldServer + 0x12E60, 0x20 bytes;
+// world_save.cpp): object id, player, a third dword and an MFC CArray of counted object pointers
+// (vtable 0073FAC8, base 0073FABC; constructor 005985C0, destructor 0059A100 releases the objects
+// through slot 4 and frees the data).
+struct SharedObject {
+    static void* ObjectsVtable() { return reinterpret_cast<void*>(0x0073FAC8); }
+    static void* ObjectsBaseVtable() { return reinterpret_cast<void*>(0x0073FABC); }   // set by the destructor
+
+    int objectId;
+    int player;
+    std::uint32_t unknown_08;
+    mfc::CArray<CEngineObject*> objects;    // +0x0C
+
+    void CopyFrom(const SharedObject* from);  // 0059B510 (RET 4)
+    void Load(WorldStream* stream);           // 00589CA0 (RET 4)
+};
+static_assert(sizeof(SharedObject) == 0x20);
+// MFC CList<SharedObject> (its NewNode 0059CA60 constructs the element).
+using SharedObjectList = mfc::CList<SharedObject>;
 
 // The game rules side (vtable 0073F928).
 class CWorldServer : public CWorld {
@@ -583,7 +621,10 @@ public:
     CAIMap* AIMap() { return reinterpret_cast<CAIMap*>(aiMap_); }
     float gridHeightScale_;               // +0x290
     CSectorMap* Sectors() { return reinterpret_cast<CSectorMap*>(sectorMap_); }
-    std::uint8_t sectorMap_[0x2804 - 0x294]; // +0x294 CSectorMap (sector_map.h; size unknown)
+    std::uint8_t sectorMap_[0x2468 - 0x294]; // +0x294 CSectorMap (sector_map.h; size unknown)
+    // +0x2468 the AI layer state SaveWorld saves (005B1380 into a memory stream); its extent and
+    // whether it belongs to the sector map are unknown.
+    std::uint8_t aiLayer_[0x2804 - 0x2468];
     // +0x2804 a world tick: an idle unit standing in a kind-3 occluder replans while its motion order
     // started before it (the movement tick 00547890). Part of the sector map or not: unknown.
     int occluderReplanTime_;
@@ -608,8 +649,7 @@ public:
     std::uint8_t unknown_12E00[0x12E28 - 0x12E00];
     ProjectileList projectiles_;          // +0x12E28
     mfc::CTypedPtrList<CEngineObject> counted_; // +0x12E44 counted references (released on clear)
-    std::uint8_t unknown_12E60[0x12E64 - 0x12E60];
-    void* sharedObjects_;                 // +0x12E64 head of an MFC list of {object id, player}
+    SharedObjectList sharedObjects_;      // +0x12E60 (world_save.cpp; AddSharedObject, IsObjectShared)
 };
 static_assert(offsetof(CWorldServer, countdowns_) == 0x70);
 static_assert(offsetof(CWorldServer, unknown84_) == 0x84);
@@ -630,6 +670,7 @@ static_assert(offsetof(CWorldServer, exits_) == 0xF0);
 static_assert(offsetof(CWorldServer, gameResult_) == 0x138);
 static_assert(offsetof(CWorldServer, unknown160_) == 0x160);
 static_assert(offsetof(CWorldServer, sectorMap_) == 0x294);
+static_assert(offsetof(CWorldServer, aiLayer_) == 0x2468);
 static_assert(offsetof(CWorldServer, occluderReplanTime_) == 0x2804);
 static_assert(offsetof(CWorldServer, timeWheel_) == 0x2838);
 static_assert(offsetof(CWorldServer, commandsA_) == 0x12874);
@@ -640,7 +681,7 @@ static_assert(offsetof(CWorldServer, gridHeightScale_) == 0x290);
 static_assert(offsetof(CWorldServer, gridRows_) == 0x280C);
 static_assert(offsetof(CWorldServer, objects_) == 0x12D70);
 static_assert(offsetof(CWorldServer, timedObjects_) == 0x12DE8);
-static_assert(offsetof(CWorldServer, sharedObjects_) == 0x12E64);
+static_assert(offsetof(CWorldServer, sharedObjects_) == 0x12E60);
 static_assert(offsetof(CWorldServer, exitsVtable_) == 0xEC);
 static_assert(offsetof(CWorldServer, mobFiles_) == 0x124);
 static_assert(offsetof(CWorldServer, unknown15C_) == 0x15C);
@@ -1345,6 +1386,8 @@ int __stdcall LoadMission(void* file);
 // false on a bad header or checksum.
 void __fastcall SaveFileWrite(void* file, unsigned magic, int version, void* data);
 bool __fastcall SaveFileRead(void* out, unsigned magic, int minimum, int maximum, void* file);
+// 00790264: the newest save version stored uncompressed (SaveFileRead reads those as they are).
+inline int SaveLastUncompressedVersion() { return *reinterpret_cast<const int*>(0x00790264); }
 
 // world_briefing.cpp. 0057FC90 (RET 8): the mercenary who speaks `briefing` (the second word of
 // the first "#show" line of section "briefing <name>" that is not "Hero"), or "", constructed
@@ -1369,6 +1412,8 @@ CWorldClient* WorldClient();   // 007AF5B8
 // 007AF63C: the id the next object only the client makes gets (client figures such as a bow
 // shot's arrow); each use counts it down.
 inline int& NextClientObjectId() { return *reinterpret_cast<int*>(0x007AF63C); }
+// 007AFFB4: the world server's item manager (the item factory, CWorld slot 18 / itemManager_).
+inline CEngineObject* WorldItemManager() { return *reinterpret_cast<CEngineObject* const*>(0x007AFFB4); }
 
 // 00589CA0 (thiscall on a shared-object entry, RET 4; world_save.cpp). Reads an entry of the
 // shared-object list: id, player, value, then object ids resolved by the item manager (007AFFB4);

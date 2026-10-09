@@ -235,3 +235,12 @@ Left in world_game.cpp:
 - Behaviour risks still open from the draft: the torch slot 16 float argument (a signalling NaN
   could be quietened), PrototypeNamePair, the overlap fix (PartBox on CObject3D), and the
   UNVERIFIED notes above (owned1A8_ / owned1B0_, the +0xA0 array, CTorchObject's spec).
+
+Second merge with main (DR-C4): world.h kept both sides. WorldPlayer: main's party (+0x70,
+CParty* Party()), unknownFC / unknown100 / unknown108 / ids; the draft's PartyRecords* Party()
+is gone (world_game.cpp's ReturnLocalParty takes the CParty*), and the draft's sessionKind is
+main's unknown100 (comment folded in). world_loot.cpp (Loot), world_map.cpp (ResetZone and the
+clear after it; FreeListBlocks takes any MFC list) and verify_world_save.cpp
+(AddSharedObjectVerify) now use CWorldServer::sharedObjects_ (SharedObjectList) instead of
+byte arithmetic at +0x12E60; world_loot's SharedLootNode is gone (the gold is
+SharedObject::unknown_08).

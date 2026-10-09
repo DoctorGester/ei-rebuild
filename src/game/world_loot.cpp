@@ -61,18 +61,6 @@ void InitList(ObjectList& list, std::uintptr_t vtable) {
     list.blockSize = 10;
 }
 
-// The SharedObject element of the shared-object list (world_save.cpp has the full layout).
-struct SharedLootNode {
-    SharedLootNode* next;
-    SharedLootNode* prev;
-    int objectId;
-    int player;
-    int gold;                  // +0x10
-    void* arrayVtable;
-    CEngineObject** objects;   // +0x18
-    int count;                 // +0x1C
-};
-
 } // namespace
 
 bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
@@ -109,29 +97,29 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
     }
 
     if (object->flags_ & kFlagSharedLoot) {
-        auto& list = *reinterpret_cast<mfc::CTypedPtrList<void>*>(reinterpret_cast<std::uint8_t*>(this) + 0x12E60);
-        SharedLootNode* node = reinterpret_cast<SharedLootNode*>(list.head);
-        while (node && node->objectId != object->id_) node = node->next;
+        // The shared-object list's entry for the object (SharedObject: its unknown_08 is the gold).
+        SharedObjectList& list = sharedObjects_;
+        SharedObjectList::Node* node = list.head;
+        while (node && node->data.objectId != object->id_) node = node->next;
         if (!node) {
             abandon();
             return false;
         }
-        for (int i = 0; i < node->count; ++i) {
-            CEngineObject* item = node->objects[i];
+        for (int i = 0; i < node->data.objects.size; ++i) {
+            CEngineObject* item = node->data.objects.data[i];
             ObjectList::Node* entry = PtrListNewNode(&items, nullptr, items.tail, nullptr);
             entry->data = item;
             if (items.tail) items.tail->next = entry;
             else items.head = entry;
             items.tail = entry;
         }
-        At<int>(player, kPlayerGold) += node->gold;
+        At<int>(player, kPlayerGold) += static_cast<int>(node->data.unknown_08);
         PlayerGiveItems(player, nullptr, &items, 0);
-        auto* raw = reinterpret_cast<SharedLootNode*>(node);
-        if (raw == reinterpret_cast<SharedLootNode*>(list.head)) list.head = reinterpret_cast<decltype(list.head)>(raw->next);
-        else raw->prev->next = raw->next;
-        if (raw == reinterpret_cast<SharedLootNode*>(list.tail)) list.tail = reinterpret_cast<decltype(list.tail)>(raw->prev);
-        else raw->next->prev = raw->prev;
-        SharedListFreeNode(&list, nullptr, raw);
+        if (node == list.head) list.head = node->next;
+        else node->prev->next = node->next;
+        if (node == list.tail) list.tail = node->prev;
+        else node->next->prev = node->prev;
+        SharedListFreeNode(&list, nullptr, node);
         abandon();
         return true;
     }

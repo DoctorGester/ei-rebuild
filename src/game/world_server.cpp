@@ -43,14 +43,6 @@ int SharedListPlayer(int playerId) {
     return -1;
 }
 
-// Node of the MFC list at +0x12E64.
-struct SharedObjectNode {
-    SharedObjectNode* next;
-    SharedObjectNode* prev;
-    int objectId;
-    int player;   // -1: every player
-};
-
 // 00675CA0 (unit code): marks an object new (flags_ |= 2) and stamps it with the global at 007AFFC8.
 struct NewObjectMark {
     void Apply();
@@ -145,19 +137,19 @@ int CWorldServer::CountLivingMercs(int id) {
 
 bool CWorldServer::IsObjectShared(int objectId, int playerId) {
     int player = SharedListPlayer(playerId);
-    for (auto* node = static_cast<SharedObjectNode*>(sharedObjects_); node; node = node->next)
-        if (node->objectId == objectId && (node->player == player || node->player == -1)) return true;
+    for (auto* node = sharedObjects_.head; node; node = node->next)
+        if (node->data.objectId == objectId && (node->data.player == player || node->data.player == -1)) return true;
     return false;
 }
 
 void CWorldServer::CollectSharedObjects(int playerId, ScriptGroup* group) {
     group->SetSize(0, -1);
     int player = SharedListPlayer(playerId);
-    for (auto* node = static_cast<SharedObjectNode*>(sharedObjects_); node;) {
-        SharedObjectNode* current = node;
+    for (auto* node = sharedObjects_.head; node;) {
+        const SharedObject& current = node->data;
         node = node->next;
-        if (current->player != player && current->player != -1) continue;
-        if (CEngineObject* unit = reinterpret_cast<WorldBase*>(this)->FindUnit(current->objectId)) group->Insert(unit);
+        if (current.player != player && current.player != -1) continue;   // -1: every player
+        if (CEngineObject* unit = reinterpret_cast<WorldBase*>(this)->FindUnit(current.objectId)) group->Insert(unit);
     }
 }
 
