@@ -25,7 +25,7 @@ Mark a ticket taken by adding the date; remove it when merged.
 
 ## Interface, 0x005E0000-0x00640000 (docs/notes/ui.md)
 
-- A-I .. A-I18 done (A-I, A-I4, A-I5 cut off). A-I19 cut off, merged 2026-10-09. A-I20 done (camp debug fill, base screen player list, double-click defaults, exchange window). A-I21 taken (connection screen CMpConnectScreen 0061C2D0-0061D470, master request box 0061E2F0-0061E8F0; ui.md "Next") (item panels, chat overlay, console window, exchange slots, top-window news); left: ui.md section 3 "Next" (00612CF0; multiplayer: the base screen's chat window 00608D20-006097E0, exchange 0062C250 / 0062C9C0, connection screens 0061B2C0-00620300).
+- A-I .. A-I18 done (A-I, A-I4, A-I5 cut off). A-I19 cut off, merged 2026-10-09. A-I20 done (camp debug fill, base screen player list, double-click defaults, exchange window). A-I21 done (connection screen, master request box, small slots; next: Rebirth-patched vanilla-only 0060C870 / 00613EA0 / 0063A560 / 0061B2C0 / 0061D780; 0062D100, 00632490 / 006324E0). Was A-I21 (connection screen CMpConnectScreen 0061C2D0-0061D470, master request box 0061E2F0-0061E8F0; ui.md "Next") (item panels, chat overlay, console window, exchange slots, top-window news); left: ui.md section 3 "Next" (00612CF0; multiplayer: the base screen's chat window 00608D20-006097E0, exchange 0062C250 / 0062C9C0, connection screens 0061B2C0-00620300).
 
 - I11 Next interface functions (ui.md, battle screen section); 0063EF60 / 0063E020 need modifier keys held during a click (harness step).
 
@@ -48,6 +48,10 @@ The four porting batches (A-I16, A-H15, A-S9, A-U7) are merged (2026-10-09, 140 
 - X27 (low): CPlayerClient::SendLeave04 state check mismatched once (1 of 44) in an effects_bow Rebirth run that also timed out; effects_bow passes alone. Watch.
 
 - R-next (parked until porting is finished, user 2026-10-09): renderer device removal (no DirectDraw / D3D7 device in the switch-over, own swap chain, renderer.md section 9), then native UI drawing window by window.
+
+## Game code in the CRT / MFC range, 0x006C0000-0x00740000
+
+- A-X1 (taken 2026-10-09): the largest unported game functions in 0x006C0000-0x00740000 (11% ported, 250 functions, 92 KB left).
 
 ## Vector math (planned 2026-10-09)
 
