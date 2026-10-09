@@ -170,7 +170,13 @@ the scale matrix +0x23C on stacks 2 and 1, the tint through renderer slot 7 `Set
 verify ours only: result 1, stack depths and renderer colour back, placement recomputed with 004D9AA0; every scenario) and
 the cursor's `CCursor::Init` 005E60B0 / `AddShape` 005E63F0 (`ui_cursor_setup.cpp`; ours only: fields, size globals,
 holders of the cursor size and twice it; one entry appended; every scenario at start). Init does not free the
-surface memory when 004EF7B0 throws (the original's unwind does).
+surface memory when 004EF7B0 throws (the original's unwind does). The rest of the cursor object is in the same file: `CursorImage::Destroy`
+005E5160, `CCursor::Construct` 005E51C0 / `DestroyBody` 005E4E00, `ChangeShape` 005E5200 (callers keep `SetShape` through
+the address), `ShowImage` 005E5270, `SetHeld` 005E67B0, `TakeLock` / `ReleaseLock` 005E65F0 / 005E6610 (mode 2 only),
+`Start` 005E6260 (AfxBeginThread 007022A0 of 005E52A0, priority 2, unless mode 1), `Shutdown` 005E62E0, `UpdatePosition`
+005E52E0 (frames every 125 ms; +0x08 is the DirectInput mouse, polled by 0065ECB0; +0x98 the thread). Verify ours only
+(fields, the lock's owner, bounds and the from / rect sizes); every scenario. Kept: Shutdown dereferences a null shape
+entry (AddShape stores one when its allocation fails). 005E67F0 is only called by an unwind funclet (not ported).
 
 | Address | Name | Verify |
 |---|---|---|

@@ -15,6 +15,14 @@
 class CTextureDevice;
 struct CDXSurface;
 
+// The DirectInput mouse (the class of 0065EAD0): only its poll is used here.
+class CDirectInputMouse {
+public:
+    // 0065ECB0 (RET 4; not rewritten). Reads the device state (DIMOUSESTATE: lX, lY, lZ, buttons;
+    // zeroed when the read fails) into the object and returns it. The argument is not read.
+    const LONG* Poll(int unused) { return DirectInputMousePollOriginal(this, nullptr, unused); }
+};
+
 // The cursor's image (what +0x10 points at; made by 005E4EB0 for every cursor shape, from 005E63F0):
 // its surface holder (the picture: `frames` square frames side by side), a frame's size, the frame
 // shown, the hot spot and the mask.
@@ -23,6 +31,8 @@ struct CursorImage {
     // texture manager; loaded into a holder by 004EFC60 with `flag`), the hot spot given in the
     // 32-pixel layout. Returns this.
     CursorImage* Construct(const char* name, int hotSpotX, int hotSpotY, int flag);
+    // 005E5160 (ui_cursor_setup.cpp). Destructor body: the mask freed, the holder released.
+    void Destroy();
 
     CDXSurface* holder;              // +0x00 surface holder
     LONG width;                      // +0x04 a frame's width
@@ -46,16 +56,48 @@ public:
     // from-sized top left of the background copy (+0x60), and writes over `to`
     // (background & saved) | image per pixel (16 or 32 bits, by the image's bit depth).
     void Blit(CursorImage* image, RECT* to, RECT* from);
-    // 005E5200 (RET 4, not rewritten). Selects cursor shape `shape`; returns the previous one (-1
-    // when the cursor is not set up).
+    // 005E5200 through its address (so its wrapper runs). Selects cursor shape `shape`; returns the
+    // previous one (-1 when the cursor is not set up).
     int SetShape(int shape) { return CursorSetShapeOriginal(this, nullptr, shape); }
 
+    // ui_cursor_setup.cpp:
+    // 005E51C0. Constructor body: no device, surfaces or shapes, the lock initialised, not
+    // enabled. Returns this.
+    CCursor* Construct();
+    // 005E4E00. Destructor body: the lock deleted, the shape list's storage freed, the two
+    // surfaces and the device released (the fields left as they are).
+    void DestroyBody();
+    // 005E5200 (RET 4). Unless no shape is selected yet or the cursor is not enabled (-1): under
+    // the lock, shape `shape` and its image become current with the image's current frame as
+    // `from_`; returns the previous shape.
+    int ChangeShape(int shape);
+    // 005E5270 (RET 4). Under the lock, whether an image is shown (when enabled).
+    void ShowImage(int shown);
+    // 005E67B0 (RET 4). Under the lock, the held byte (when enabled).
+    void SetHeld(char held);
+    // 005E65F0 / 005E6610. The lock taken / released, only when enabled in mode 2.
+    void TakeLock();
+    void ReleaseLock();
+    // 005E6260. Shape 0 (its image and frame) under the lock; unless in mode 1 the drawing thread
+    // started (AfxBeginThread of 005E52A0 at priority 2).
+    void Start();
+    // 005E62E0. Ends the drawing thread (stop_, then waits for `stopped_`), closes the event,
+    // releases and frees every shape and empties the list, releases the surfaces and the device
+    // and resets the fields (not enabled, shape -1, mode 0).
+    void Shutdown();
+    // 005E52E0 (plain RET, AL). Steps the image's frame every 125 ms, adds the DirectInput motion
+    // to motion_, takes the mouse position (or heldPosition_ while held) clamped into the bounds,
+    // places rect_ at the previous position less the hot spot (the frame's size, clipped to the
+    // bounds, `from_` clipped the same way) and keeps the new position. Returns whether the frame
+    // stepped or the position changed.
+    char UpdatePosition();
+
     // 005E60B0 (RET 0x10; ui_cursor_setup.cpp). Sets the cursor up on `device` (a reference
-    // taken, the old one's dropped) in `mode` with `context`; `smallCursors` (low byte) picks 16-pixel
+    // taken, the old one's dropped) in `mode` with `mouse`; `smallCursors` (low byte) picks 16-pixel
     // cursors instead of 32 (the size globals 007C7C90 / 007C7C94). Makes the end event, the
     // bounds (the render target's size when there is a primary surface) and the background and
     // composition surfaces (cursor size and twice that, through 004EF7B0).
-    void Init(CTextureDevice* device, int mode, int context, int smallCursors);
+    void Init(CTextureDevice* device, int mode, CDirectInputMouse* mouse, int smallCursors);
     // 005E63F0 (RET 0x10; ui_cursor_setup.cpp). Adds the shape made from the picture "<name>.mmp"
     // with the hot spot (hotX, hotY) and `flag` (CursorImage::Construct; null when the allocation
     // fails) to the shape list.
@@ -63,7 +105,7 @@ public:
 
     int mode_;                       // +0x00 2: the background is saved from the primary without an image
     CTextureDevice* device_;         // +0x04 the device object (its +0x0C IDirectDraw7), referenced
-    int context_;                    // +0x08 Init's context
+    CDirectInputMouse* mouse_;       // +0x08 polled for the motion (005E52E0)
     int imageShown_;                 // +0x0C an image is shown (005E5270)
     CursorImage* image_;             // +0x10
     std::uint32_t unknown_14;        // +0x14 cleared by Init
@@ -83,7 +125,7 @@ public:
     std::uint8_t enabled_;           // +0x91 the cursor exists (created)
     std::uint8_t unknown_92[2];
     DWORD frameTime_;                // +0x94 when the image's frame last stepped
-    std::uint32_t unknown_98;        // +0x98 cleared by Init
+    void* thread_;                   // +0x98 the drawing thread (a CWinThread), or null
     int stop_;                       // +0x9C asks the cursor thread to end
     CRITICAL_SECTION lock_;          // +0xA0
 };
@@ -94,7 +136,7 @@ static_assert(offsetof(CCursor, drawn_) == 0x20);
 static_assert(offsetof(CCursor, bounds_) == 0x50);
 static_assert(offsetof(CCursor, under_) == 0x60);
 static_assert(offsetof(CCursor, enabled_) == 0x91 && offsetof(CCursor, images_) == 0x68 && offsetof(CCursor, motion_) == 0x88);
-static_assert(offsetof(CCursor, frameTime_) == 0x94 && offsetof(CCursor, unknown_98) == 0x98);
+static_assert(offsetof(CCursor, frameTime_) == 0x94 && offsetof(CCursor, thread_) == 0x98);
 static_assert(offsetof(CCursor, stop_) == 0x9C);
 static_assert(offsetof(CCursor, lock_) == 0xA0);
 

@@ -215,6 +215,15 @@ __declspec(naked) inline void __fastcall WindowShowSurfacesOriginal(void* /*wind
 // A-I6. 005E67B0: the cursor (007C7BD8) is held in place while the right button turns the view (thiscall, RET 4: a
 // byte into +0x90 under its lock when the cursor exists; no result).
 __declspec(naked) inline void __fastcall CursorSetHeldOriginal(void* /*cursor*/, void*, char /*held*/) EI_ORIGINAL(0x005E67B0)
+// 0065ECB0: the DirectInput mouse's state read (thiscall, RET 4; the argument is not read; returns the DIMOUSESTATE
+// inside the object).
+__declspec(naked) inline const long* __fastcall DirectInputMousePollOriginal(void* /*mouse*/, void*, int /*unused*/)
+    EI_ORIGINAL(0x0065ECB0)
+// 007022A0: MFC's AfxBeginThread(procedure, parameter, priority, stack size, flags, security) (__stdcall; returns the
+// CWinThread).
+__declspec(naked) inline void* __stdcall AfxBeginThreadOriginal(void* /*procedure*/, void* /*parameter*/, int /*priority*/,
+                                                                unsigned /*stack*/, unsigned long /*flags*/,
+                                                                void* /*security*/) EI_ORIGINAL(0x007022A0)
 // 00637500 / 00637750 (rewritten as CBattleScreenSetup::UseOnUnit / UseAtPoint; through their addresses so the
 // wrappers run): the pending spell or quick item used on `target` (thiscall, RET 0xC: target, quick (low byte), ctrl)
 // or at the point (RET 0x14: x, y, z, unit, quick (low byte)); no result.
