@@ -418,7 +418,7 @@ Rewritten as `UnitPrototypeTable::FindByName` (src/game/unit_create.cpp).
 Rewritten as `CObject3D::SetFigureScale` (src/game/map_object_figures.cpp).
 - `src/game/map_spec.cpp:50`: `void __fastcall ObjectSetScale(void* /*object*/, void*, const float* /*scale*/)`
 - `src/game/map_spec_unit.cpp:80`: `void __fastcall ObjectSetScale(void*, void*, const float*)`
-- `src/game/net_state.cpp:146`: `void __fastcall SetPosition(void*, void*, const float*)`
+- `src/game/net_state.cpp:156`: `void __fastcall SetPosition(void*, void*, const float*)`
 - `src/game/unit_create_stats.cpp:157`: `std::uintptr_t __fastcall SetFigureScaleAt(CEngineObject*, void*, const float*)`
 - `src/game/unit_update.cpp:45`: `std::uintptr_t __fastcall CallSetFigureScale(CUnit*, void*, const float*)`
 - `src/game/world_client_maps.cpp:567`: `void __fastcall UnitSetPosition(void*, void*, const float*)`
@@ -569,7 +569,7 @@ Rewritten as `CUnit::RemoveCarried` (src/game/unit_items.cpp).
 
 ### 0x005315B0: 4 files, 4 sites, signatures differ
 Rewritten as `CUnit::ReleaseAllItems` (src/game/unit_items.cpp).
-- `src/game/net_state.cpp:229`: `void __fastcall UnitReleaseAllItems(void*)`
+- `src/game/net_state.cpp:239`: `void __fastcall UnitReleaseAllItems(void*)`
 - `src/game/unit_record.cpp:27`: `void Unit::ReleaseAllItems()`
 - `src/game/world_client_maps.cpp:568`: `void __fastcall UnitReleaseAllItems(void*)`
 - `src/game/world_units.cpp:152`: `void __fastcall UnitAfterStats(CEngineObject*, void*)`
@@ -702,7 +702,7 @@ Rewritten as `CUnitServer::StopQueued` (src/game/combat_orders.cpp).
 Rewritten as `CWorldClient::LocalView` (src/game/world_client.cpp).
 - `src/game/app.cpp:201`: `std::uint8_t* __fastcall ClientLocalView(void*)`
 - `src/game/console_commands.cpp:73`: `char* DebugDisplayAt::LocalClient()`
-- `src/game/net_state.cpp:235`: `std::uint8_t* __fastcall LocalView(void*)`
+- `src/game/net_state.cpp:245`: `std::uint8_t* __fastcall LocalView(void*)`
 - `src/game/ui_battle_commands.cpp:55`: `std::uint8_t* __fastcall LocalView(void*)`
 - `src/game/ui_hud.cpp:599`: `std::uint8_t* __fastcall ClientView(void*)`
 - `src/game/world_game.cpp:1484`: `std::uint8_t* __fastcall ClientWorldLocalView(void*)`
