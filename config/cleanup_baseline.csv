@@ -69,7 +69,7 @@ src/game/figure_mesh_file.cpp,13,3,3,2,0,0,0,4,0,0
 src/game/figure_model_destroy.cpp,0,3,0,0,1,0,0,0,0,0
 src/game/figure_models.cpp,0,6,0,0,0,0,0,0,0,0
 src/game/figure_part_bounds.cpp,5,0,0,2,0,0,0,0,0,0
-src/game/figure_part_draw.cpp,57,0,6,0,0,0,0,1,0,0
+src/game/figure_part_draw.cpp,0,0,6,0,0,0,0,0,0,0
 src/game/figure_part_draw_plain.cpp,22,0,2,0,0,0,0,0,0,0
 src/game/figure_rasterise.cpp,8,0,0,2,0,0,0,0,0,0
 src/game/game_strings.h,0,0,0,0,1,0,0,0,0,0

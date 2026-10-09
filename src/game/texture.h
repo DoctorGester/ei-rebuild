@@ -52,7 +52,9 @@ public:
     CTransformPipeline* pipeline_;   // +0xAC the scene renderer's pipeline (model.h)
     std::uint8_t unknown_B0[0x158 - 0xB0];
     int unknown_158;            // +0x158 cleared around the sky and hit point draws (00569E40), else 1
+    RECT drawnRect_;            // +0x15C the screen rectangle of the last mesh draw (004E9010 / 004E9A50)
 };
+static_assert(offsetof(CTextureDevice, drawnRect_) == 0x15C);
 static_assert(offsetof(CTextureDevice, zEnable_) == 0x60);
 static_assert(offsetof(CTextureDevice, unknown_158) == 0x158);
 
