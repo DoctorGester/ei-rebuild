@@ -194,6 +194,14 @@ ours only (the DC field unchanged). CDC::FromHandle 00708D79 is `CdcFromHandleOr
 005F85C0 (`ui_interface_save.cpp`, LoadState's counterpart; side by side through a recorder on the stream's Write;
 every save).
 
+Next in 005E0000-00640000 after A-I17 (not Rebirth-patched, single player first): 005F4F90 (the interface's shutdown:
+closes the windows, writes config\tutorial.ini from the help map +0x98, frees the surfaces), 005F4790 (a destructor
+body: the help map, the +0x84 list, the window stack's storage), 005FC1F0 (`CUiModel::Load`), 00626C50, 0062B350,
+005E18E0 (`CFlyingHitPoints::Draw`, 2.9 KB float), 00612CF0 (the camp's slot 39, a debug fill of the constructors; no
+scenario). Multiplayer / lobby last: 005E2A30 / 005E3230 / 005E3550 / 005E3CE0 / 005E26F0 (chat), 00608D20-006097E0 (the
+base screen's chat window), 0062C250 / 0062C9C0 (exchange), 0061B2C0-00620300 (connection screens). 005E67F0 is only
+an unwind helper.
+
 | Address | Name | Verify |
 |---|---|---|
 | 005E1710, 005E17E0, 005E1870 | `CFlyingHitPoints::Construct` / `Destruct` / `Add` (`ui_flying_hit_points.cpp`; the world client's list of {target, amount, flags, start time}; flag 8 starts 0.5 s later) | ours only: empty list; one entry more with the arguments. Every zone; Add on hits |
