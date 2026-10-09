@@ -48,6 +48,11 @@ not copied), the 0x7C kind 006AC240 / 006AC3B0 (00744058; +0x6C, its zone vector
 called by STLport inserts). Kept: the copies drop the fields listed as not copied. The six record destructors 006A88F0..006A8BD0
 are in library.csv.
 
+Record Serialize (A-H23, item_db_serialize.cpp; verify_item_db_serialize: loading read twice, ours then the original, digests
+compared; saving O): 0069F620 material, 0069F700 `ItemRecordHead::SerializeHead` (fields 0-15), 0069F800 weapon, 0069F8C0
+armour (two 9-dword rows at +0x6C / +0x90 that straddle the declared members), 0069F940 quick, 0069F9C0 the 0x7C kind
+(zone list through InlineStrings), 0069FA90 the 0x78 kind (fields 0x15-0x17).
+
 Loading (item_db_load.cpp; O; startup, every scenario): `IndexedRecordTable::LoadQuickItems / LoadLoot / LoadQuestItems`
 006A6E50 / 006A7110 / 006A73B0 (a stack archive: ConstructLocal, Open, the vector serialisers, Close; then each record filed
 under its name with find_or_insert 00613B70 / 006A7870 / 0069E2A0, originals_library.h; Rebirth's patched 006A67A0 calls them
