@@ -1,23 +1,23 @@
-# DR-H16: options / keyboard screens, widgets, client message handlers (draft, not built)
+# DR-H16: options / keyboard screens, widgets, client message handlers
 
-Branch draft-dr-h16. Nothing here has been compiled, checked by the tools or run. The next worker
-builds (`build.cmd verify`, `build.cmd release`), runs check_stolen / check_x87 /
-check_signatures / check_forwarders / check_cleanup / check_thunks, fixes, and runs the scenarios
-below.
+Branch draft-dr-h16. Builds: `build.cmd verify` and `build.cmd release` with no errors or warnings,
+check_thunks / check_returns / check_forwarders / check_cleanup (run by build.cmd), check_stolen,
+check_x87 and check_signatures at 0 problems (main merged in first). Not run in the game yet: the
+scenarios below should reach every function.
 
 ## Functions
 
 | Address | Function | Status | File |
 |---|---|---|---|
-| 00651350 | COptionsWindow::RefreshRows | drafted, wrapper drafted (ours only) | src/game/ui_options.cpp |
-| 00651D70 | COptionsWindow::ShowGroup (RET 4) | drafted, wrapper drafted (ours only) | ui_options.cpp |
-| 00651940 | COptionsWindow::BuildSettings | drafted, wrapper drafted (ours only) | ui_options.cpp |
-| 00651600 | COptionsWindow::BuildBindings | drafted, wrapper drafted (ours only) | ui_options.cpp |
-| 00652200 | COptionsWindow::LoadSettings | drafted, wrapper drafted (side by side, 5 stolen bytes) | ui_options.cpp |
-| 006524A0 | COptionsWindow::Apply | drafted, wrapper drafted (ours only) | ui_options.cpp |
-| 0065B8B0 | CUiSlider::SetRect (slider vtable 00742CBC slot 26, RET 4) | drafted, wrapper drafted (ours only) | ui_options.cpp |
-| 0065D150 | CUiScrollText::DrawLines (RET 4) | drafted, wrapper drafted (ours only) | src/game/ui_scroll_text.cpp |
-| 0065C610 | CUiEditField::OnKeyDown (input side slot 9, RET 0xC) | drafted, wrapper drafted (side by side, 6 stolen bytes) | src/game/ui_edit_field.cpp |
+| 00651350 | COptionsWindow::RefreshRows | built, wrapper ours only | src/game/ui_options.cpp |
+| 00651D70 | COptionsWindow::ShowGroup (RET 4) | built, wrapper ours only | ui_options.cpp |
+| 00651940 | COptionsWindow::BuildSettings | built, wrapper ours only | ui_options.cpp |
+| 00651600 | COptionsWindow::BuildBindings | built, wrapper ours only | ui_options.cpp |
+| 00652200 | COptionsWindow::LoadSettings | built, wrapper side by side (5 stolen bytes) | ui_options.cpp |
+| 006524A0 | COptionsWindow::Apply | built, wrapper ours only | ui_options.cpp |
+| 0065B8B0 | CUiSlider::SetRect (slider vtable 00742CBC slot 26, RET 4) | built, wrapper ours only | ui_options.cpp |
+| 0065D150 | CUiScrollText::DrawLines (RET 4) | built, wrapper ours only | src/game/ui_scroll_text.cpp |
+| 0065C610 | CUiEditField::OnKeyDown (input side slot 9, RET 0xC) | built, wrapper side by side (6 stolen bytes) | src/game/ui_edit_field.cpp |
 
 Wrappers: tests/verify/verify_ui_options.cpp.
 
@@ -57,29 +57,41 @@ hero screen's name fields; no scenario types into one yet.
   console.cpp and ui_console_window.cpp (listed in config/forwarder_duplicates.txt); if
   check_forwarders objects to a third, switch those two to mfc::CString::Mid.
 
-## Not checked (fix at build time)
+## Checked at build time (against the exe's bytes, capstone)
 
-- Everything compiles at all: aggregate init `OptionBinding{}` / `OptionSetting{}` (stlp::vector
-  with a deleted copy constructor inside OptionBinding: only placement / value init is used, never
-  a copy; the vector template's push_back is used for OptionSetting and `const UiKeyName*` only).
-- 00652930 (bindings' _M_insert_overflow) declared RET 0xC from its call site (three pushes, no
-  caller cleanup); argument order (pos, value, count) from the pushes.
-- The slider's region order (0, 1, 2) in 0065B8B0: the Ghidra listing was cut off after the first
-  sprite, so the regions' ECX loads were not read; taken from the decompiler's order of the three
-  SetRect calls and the scroll bar's region meaning (0 up/left, 1 down/right, 2 track). Check the
-  raw bytes 0065BA..0065BC20.
-- Strings 007948C4 / 007948B4 (the spin's fallback texts) and 00794830 / 0079482C (the keys'
-  separator and trim set) are not defined in Ghidra; their contents were not read. Only their
-  addresses are used, so the behaviour does not depend on it.
-- Constants read from memory (0073B84C "one", 0074023C, 00742B80, 0073BAA0, 0073C3B0, 0073B86C,
-  0073B850, the angle 007C8210): values inferred from use only.
-- `IsMultiplayerClient()` (world.h, BOOL) is called directly (it is rewritten, world_rules.cpp);
-  0056D7A0 is forwarded locally as ClientWorldRefreshObjectsOriginal with ClientWorldObject()
-  (originals_world.h).
-- check_cleanup: ui_options.cpp / ui_edit_field.cpp are new (start at zero): they use
-  `reinterpret_cast<CUiMesh*>` of scene objects (as CDifficultyBox does) and reinterpret_cast of
-  global addresses through named constexpr addresses; if the tool counts those, move the option
-  globals into a header with accessors.
+- All nine functions read instruction by instruction against the rewrites: field offsets, call
+  arguments and their order, RET counts (ShowGroup / SetRect / DrawLines RET 4, OnKeyDown RET 0xC,
+  the rest plain RET), loop bounds (26 settings x 0x14, 59 actions x 0x10, 88 key names x 0x48,
+  14 rows, 11 groups). The edit field's jump table (0065C8EC / 0065C908): 08 Backspace, 23 End,
+  24 Home, 25 Left, 27 Right, 2E Delete, everything else nothing.
+- 00652930 (bindings' _M_insert_overflow): thiscall, pushes 1, &temp, finish, no caller cleanup:
+  (pos, value, count), RET 0xC as declared.
+- The slider's regions (0065BBB7..0065BC03): region 0 (left, bottom - 10, left + 12, bottom),
+  1 (right - 12, bottom - 10, right, bottom), 2 (left, top, right, bottom - 10), as drafted. Its
+  four sprites' SetRectangle / Place arguments match too.
+- CUiScrollbar +0x17C: the constructor 0065AEA0 stores its first float there (and the second at
+  +0x14C, the int at +0x148), so the slider's depth is BuildSettings' 3.0; CUiSlider::Construct's
+  parameters renamed (depth, maximum, speed).
+- Strings: 007948C4 "OFF", 007948B4 "ON", 00794830 "  |  " (after each key name), 0079482C " |"
+  (TrimRight set), 00787BCC "W" (DrawLines' font sample).
+- Float constants (all single precision, used by FMUL / FADD / FSUB / FCOMP dword): 0073B84C 1.0,
+  0074023C 50.0, 00742B80 0.02, 0073BAA0 4.0, 0073C3B0 0.25, 0073B86C 0.5, 0073B850 0.1. 007C8210
+  (the sprites' quarter turn) is in .bss, set at start-up. LoadSettings' products of two floats are
+  exact in double; Apply's int * 0.02 (- 1) products are exact in double for the settings' ranges,
+  so the one float rounding matches the x87 one.
+- 0057F440 is IsMultiplayerClient (Apply tests AL), 00578E20 returns [007AF788] (GameTexts()).
+- check_cleanup: the option globals, strings and constants are named accessors in ui_options.cpp
+  (and the font sample in ui_scroll_text.cpp); both files at their baseline.
+- check_forwarders did not object to the third 006FD9B4 forwarder (mfc::CString::Mid; the address
+  was already in config/forwarder_duplicates.txt), so console.cpp / ui_console_window.cpp were left.
+
+## function_sizes.inc
+
+Ghidra answered, but `tools/gen_function_sizes.py` would have shrunk 98 existing entries (none grew;
+e.g. 0040D710 555 -> 60, 004B6760 13477 -> 8792): the open Ghidra database currently reports
+truncated function bodies (its listing of 0040D710 stops after an FMUL). That output was not used;
+only the 22 handler rows from config/extra_function_sizes.csv were added to the committed file.
+Regenerate it once the Ghidra database's function bodies are whole again.
 
 ## Behaviour notes / differences kept on purpose
 
@@ -95,12 +107,12 @@ hero screen's name fields; no scenario types into one yet.
 - ShowGroup draws the rows twice when a row is filled (once on selecting it, once at the end), as
   the original.
 
-## Where I stopped
+## Where it stands
 
-All nine functions drafted with wrappers (commit 3cea4aa). The handler research below is done and
-in config/functions.csv and config/extra_function_sizes.csv. Not done: regenerating
-src/hook/function_sizes.inc (`python tools/gen_function_sizes.py` with Ghidra running; it picks the
-new handlers up from extra_function_sizes.csv), and any rewrite of the handlers.
+All nine functions built with wrappers; the handler research below is in config/functions.csv,
+config/extra_function_sizes.csv and src/hook/function_sizes.inc. Not done: any rewrite of the
+handlers, and an in-game run of the scenarios. LoadSettings' side-by-side wrapper sets every
+control twice (the original's values, then ours: the same values again).
 
 ## Client message handlers missing from config/functions.csv
 
