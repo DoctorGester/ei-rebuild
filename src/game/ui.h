@@ -10,6 +10,7 @@
 #include "core_transform.h"
 #include "engine_object.h"
 #include "item_db.h"
+#include "unit.h"   // LockKey
 
 #include "lib/containers.h"
 #include "lib/mfc.h"
@@ -775,9 +776,9 @@ public:
     CHudActionColumn* actionColumn_; // +0x1A0
     CHudPortraits* portraits_;       // +0x1A4
     std::uint8_t unknown_1A8[0x220 - 0x1A8];
-    // +0x220 the 12 bytes a player's item gives (its slot 21) when it starts mode 6; SelectUnit
-    // hands their address to the target's slot 42.
-    std::uint32_t itemUseKey_[3];
+    // +0x220 the key a player's item gives (its slot 21) when it starts mode 6; SelectUnit hands
+    // it to the target's AcceptsKey (map object slot 42).
+    LockKey itemUseKey_;
     int portraitMode_;               // +0x22C 0: normal; 1, 2: the next portrait click picks a
                                      //        player for a server command (4, 5)
 

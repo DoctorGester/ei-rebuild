@@ -15,7 +15,6 @@
 #include "ei/hook.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -536,13 +535,6 @@ struct UiVec3 {
     float x, y, z;
 };
 
-// Map object slots 38, 39 and 42 (+0x98, +0x9C, +0xA8; 42 with the screen's itemUseKey_) are still
-// placeholders in map_object.h (CMapObjectVirtuals::Slot38 / 39 / 42); DR-C2 names them IsUsable,
-// IsDirectUseBlocked and AcceptsKey (declared void there: they return int here). Switch these
-// VCalls to ObjectSlots(...)->... once DR-C2 is merged.
-constexpr int kSlotCanTarget = 38;          // slot 38 (+0x98)
-constexpr int kSlotSlot39 = 39;             // slot 39 (+0x9C)
-constexpr int kSlotAcceptsSpell = 42;       // slot 42 (+0xA8), with the screen's +0x220
 constexpr std::uint32_t kFlagSelected = 0x10;
 constexpr int kQuickSlots = 8;
 constexpr std::uint32_t kSpriteOpaque = 0xFF000000u;
@@ -729,7 +721,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
             return;
         }
         if (CUnit* object = objectAt()) {
-            if (ei::VCall<int>(object, kSlotCanTarget) != 0 && ei::VCall<int>(object, kSlotSlot39) == 0 && selected == 1) {
+            if (ObjectSlots(object)->IsUsable() != 0 && ObjectSlots(object)->IsDirectUseBlocked() == 0 && selected == 1) {
                 order(first, object, 0, -1);
                 flash(firstIndex);
                 return;
@@ -770,7 +762,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     case 5: {   // use an item on an object
         CUnit* target = unit ? unit : objectAt();
         if (!target || !first) return;
-        if (ei::VCall<int>(target, kSlotCanTarget) == 0) return;
+        if (ObjectSlots(target)->IsUsable() == 0) return;
         order(first, target, 0, pendingItem_);
         flash(firstIndex);
         resetMode(false);
@@ -779,8 +771,8 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
     case 6: {   // use a spell on an object
         CUnit* target = unit ? unit : objectAt();
         if (!target || !first) return;
-        if (ei::VCall<int>(target, kSlotCanTarget) == 0) return;
-        if (ei::VCall<int>(target, kSlotAcceptsSpell, static_cast<void*>(itemUseKey_)) == 0) return;
+        if (ObjectSlots(target)->IsUsable() == 0) return;
+        if (ObjectSlots(target)->AcceptsKey(&itemUseKey_) == 0) return;
         order(first, target, 0, pendingItem_);
         flash(firstIndex);
         resetMode(true);
@@ -829,7 +821,7 @@ void CBattleScreen::SelectUnit(CUnit* unit, int x, int y) {
                 if (unit == party_[i]) return;
             order(first, unit, 1, -1);
         } else {
-            if (ei::VCall<int>(target, kSlotCanTarget) == 0) return;
+            if (ObjectSlots(target)->IsUsable() == 0) return;
             order(first, target, 0, -1);
         }
         flash(firstIndex);
@@ -850,12 +842,12 @@ namespace {
 // or scroll with a spell starts target mode 3 / 4), 0063E020 uses it at once (key +0x7F).
 __declspec(naked) void __fastcall QuickPanelPick(CHudQuickItems*, void*, int) EI_ORIGINAL(0x0063DD70)
 __declspec(naked) void __fastcall QuickPanelUseNow(CHudQuickItems*, void*, int) EI_ORIGINAL(0x0063E020)
-// Slot 21 (+0x54) of a player's loot item (CItemLoot, type 0x3009): 12 bytes into `buffer`,
-// returns it. CItem declares only slots 13-15 (item.h), so the slot is reached through the vtable
-// here until the item classes declare 16-21 (16, 19 and 20 are known: GetPrice, FigureName,
-// PictureName).
-const std::uint32_t* ItemUseKey(CEngineObject* item, std::uint32_t* buffer) {
-    using Fn = const std::uint32_t*(__thiscall*)(CEngineObject*, std::uint32_t*);
+// Slot 21 (+0x54) of a player's loot item (CItemLoot, type 0x3009): its key (the one map object
+// slot 42 AcceptsKey tests) into `buffer`, returns it. CItem declares only slots 13-15 (item.h),
+// so the slot is reached through the vtable here until the item classes declare 16-21 (16, 19
+// and 20 are known: GetPrice, FigureName, PictureName).
+const LockKey* ItemUseKey(CEngineObject* item, LockKey* buffer) {
+    using Fn = const LockKey*(__thiscall*)(CEngineObject*, LockKey*);
     constexpr int kSlot = 21;
     return reinterpret_cast<Fn>((*reinterpret_cast<void***>(item))[kSlot])(item, buffer);
 }
@@ -889,11 +881,10 @@ void CHudQuickItems::OnMouseUp(int, int x, int y) {
     };
     if (selected_ != region) {
         // One of the player's items (top row): "use on an object" (mode 6) with the item's
-        // 12-byte value (slot 21) in the screen's itemUseKey_ and its id in pendingItem_.
+        // key (slot 21) in the screen's itemUseKey_ and its id in pendingItem_.
         interface_->PlaySound(kSoundClick, 0);
-        std::uint32_t buffer[3];
-        const std::uint32_t* value = ItemUseKey(entries_[entry].item, buffer);
-        std::memcpy(screen->itemUseKey_, value, 12);
+        LockKey buffer;
+        screen->itemUseKey_ = *ItemUseKey(entries_[entry].item, &buffer);
         screen->pendingItem_ = entries_[entry].id;
         screen->pendingSlot_ = region;
         screen->pendingAction_ = 6;
