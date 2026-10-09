@@ -6,6 +6,7 @@
 // there. The records and the database's containers are STLport objects handled through the
 // original members. Names provisional; see docs/notes/items_spells.md ("Quest database").
 #include "console.h"
+#include "quest_records.h"
 #include "game_strings.h"
 #include "registry.h"
 
@@ -122,6 +123,7 @@ __declspec(naked) void __fastcall ListErase(void*, void*, void*, void*) EI_ORIGI
 void __fastcall ListClear(void* a0) { CStringVectorClearOriginal(a0); }
 __declspec(naked) void __fastcall ListReserve(void*, void*, int) EI_ORIGINAL(0x006B02B0)
 __declspec(naked) void __fastcall ListPushBack(void*, void*, const mfc::CString*) EI_ORIGINAL(0x006AF790)
+// Called through its address so the wrapper of the rewrite below (ReadStringList) runs.
 __declspec(naked) void __fastcall ReadList(Registry*, const char*, const char*, void*) EI_ORIGINAL(0x006AE740)
 // The record destructors [quest 006AF4D0, briefing 006AF5A0].
 void __fastcall QuestDestroy(void* record) { QuestRecordDestroyOriginal(record); }
@@ -321,3 +323,16 @@ bool __fastcall QuestDatabaseLoad(char* db, void*, const void* image) {
     return true;
 }
 EI_REPLACE(0x006AE8E0, QuestDatabaseLoad);
+
+// 006AE740 (A-H19). The original inlines the vector's erase, reserve and push_back; the same
+// template members are called here.
+void __fastcall ReadStringList(CFileRegistry* registry, const char* section, const char* key, CStringVector* list) {
+    console::CStringArray strings;
+    registry->GetStringArray(section, key, &strings);
+    ListErase(list, nullptr, list->begin, list->end);
+    ListReserve(list, nullptr, strings.GetSize());
+    for (int i = 0; i < strings.GetSize(); ++i) {
+        if (Length(strings[i]) != 0) ListPushBack(list, nullptr, &strings[i]);
+    }
+}
+EI_REPLACE(0x006AE740, ReadStringList);
