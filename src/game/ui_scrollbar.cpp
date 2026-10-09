@@ -1,10 +1,13 @@
 // The plain scroll bar's constructor, position and layout (CUiScrollbar, 0065AEA0-0065B6F8) and the
-// options slider's constructor (0065BC30). See ui.h and docs/notes/items_spells.md (A-H19).
+// options slider's constructor (0065BC30); A-H20: the thumb drags, the wheel and the slider's
+// position. See ui.h and docs/notes/items_spells.md (A-H19, A-H20).
 
 #include "ui.h"
+#include "ui_screens.h"
 
 #include "ei/hook.h"
 
+#include <cstdint>
 
 namespace {
 
@@ -104,3 +107,81 @@ CUiSlider* CUiSlider::Construct(CInterface3D* ui, RECT rect, float depth, int ma
     return this;
 }
 EI_REPLACE_METHOD(0x0065BC30, CUiSlider::Construct);
+
+// --- A-H20: dragging, the wheel, the slider's position --------------------------------------------
+
+namespace {
+constexpr int kDragging = 1;
+constexpr int kSliderThumbHalfWidth = 14;
+constexpr int kSliderThumbHeight = 10;
+
+// The game's _ftol: the low half of a 64-bit truncation (NaN and overflow give 0, where a C++ cast
+// to int gives 0x80000000).
+int Truncate(double value) { return static_cast<int>(static_cast<std::int64_t>(value)); }
+// The wheel's step per unit of delta: 1/120 (00742C84).
+float WheelStep() { return *reinterpret_cast<const float*>(std::uintptr_t(0x00742C84)); }
+} // namespace
+
+void CUiScrollbar::OnMouseMove(int, int x, int y) {
+    if (state_ == kDragging) {
+        POINT point{x, y};
+        interface_->CallScalePointFromScreen(&point);
+        int along = point.y - grabY_;
+        CallSetPosition(Truncate(static_cast<double>(along - track_.top) * maxPosition_ / (track_.bottom - track_.top)));
+    }
+    inputHandled_ = true;
+}
+
+int CUiScrollbar::OnWheel(int, int delta, int x, int y) {
+    if (RegionAt(x, y) == kTrackRegion) {
+        double step = static_cast<double>(static_cast<short>(delta)) * speed_ * WheelStep();
+        accumulated_ = static_cast<float>(accumulated_ - step);
+        inputHandled_ = true;
+    }
+    return 1;
+}
+
+void CUiSlider::SetPosition(int position) {
+    if (position < 0) position = 0;
+    int maximum = maxPosition_;
+    if (position > maximum) position = maximum;
+    moved_ = true;
+    if (position_ == position) return;
+    position_ = position;
+    // FILD, FIDIV, _ftol (a zero maximum: 0 / 0, which _ftol makes 0).
+    int offset = Truncate(static_cast<double>((track_.right - track_.left) * position) / maximum);
+    Sprite(this, kThumb)->Place(static_cast<float>(track_.left + offset),
+                                static_cast<float>(track_.top + static_cast<double>(ThumbInset())), depth_ - ThumbLift());
+    thumb_.top = track_.top;
+    thumb_.bottom = track_.top + kSliderThumbHeight;
+    int centre = track_.left + offset;
+    thumb_.left = centre - kSliderThumbHalfWidth;
+    thumb_.right = centre + kSliderThumbHalfWidth;
+}
+EI_REPLACE_METHOD(0x0065B730, CUiSlider::SetPosition);
+
+void CUiSlider::OnMouseMove(int, int x, int y) {
+    if (state_ == kDragging) {
+        POINT point{x, y};
+        interface_->CallScalePointFromScreen(&point);
+        int along = point.x - grabX_;
+        CallSetPosition(Truncate(static_cast<double>(along - track_.left) * maxPosition_ / (track_.right - track_.left)));
+    }
+    inputHandled_ = true;
+}
+
+namespace {
+void __fastcall ScrollbarMouseMove(void* input, void*, int buttons, int x, int y) {
+    WindowFromInput<CUiScrollbar>(input)->OnMouseMove(buttons, x, y);
+}
+int __fastcall ScrollbarWheel(void* input, void*, int flags, int delta, int x, int y) {
+    return WindowFromInput<CUiScrollbar>(input)->OnWheel(flags, delta, x, y);
+}
+void __fastcall SliderMouseMove(void* input, void*, int buttons, int x, int y) {
+    WindowFromInput<CUiSlider>(input)->OnMouseMove(buttons, x, y);
+}
+} // namespace
+
+EI_REPLACE(0x0065B1A0, ScrollbarMouseMove);
+EI_REPLACE(0x0065B430, ScrollbarWheel);
+EI_REPLACE(0x0065B810, SliderMouseMove);

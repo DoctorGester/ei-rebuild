@@ -1700,6 +1700,15 @@ public:
     void Update();
     void OnMouseDown(int buttons, int x, int y);   // 0065B240: thumb drag or an arrow
     void OnMouseUp(int buttons, int x, int y);     // 0065B340
+    // 0065B1A0 (input slot 4, RET 0xC; ui_scrollbar.cpp, A-H20). While the thumb is dragged
+    // (state 1): the position under the mouse (layout coordinates less the grab offset, over the
+    // track's height times the maximum, truncated by _ftol) through slot 25. The event is used
+    // either way.
+    void OnMouseMove(int buttons, int x, int y);
+    // 0065B430 (input slot 12, RET 0x10; ui_scrollbar.cpp). Over the track (region 2) the wheel
+    // scrolls: the accumulated amount less delta (its low 16 bits) times speed_ over 120 (Update
+    // applies it), the event used. Returns 1.
+    int OnWheel(int flags, int delta, int x, int y);
     // Virtual slot 25 (0065B0C0 for the plain scroll bar): moves to `position`, clamped.
     void CallSetPosition(int position);
     // Virtual slot 26 (0065B490; 0065D0A0 for the scrolling text): places the bar over the layout
@@ -1762,6 +1771,12 @@ public:
     // slider's vtables. Returns this.
     // (`depth` goes to depth_ +0x17C, `maximum` to +0x148, `speed` to speed_ +0x14C.)
     CUiSlider* Construct(CInterface3D* ui, RECT rect, float depth, int maximum, float speed);
+    // 0065B730 (slot 25, RET 4; ui_scrollbar.cpp, A-H20). The scroll bar's SetPosition along the
+    // track's width: the thumb sprite at (track left + offset, track top + 5), the thumb 28 wide
+    // and 10 high.
+    void SetPosition(int position);
+    // 0065B810 (input slot 4, RET 0xC; ui_scrollbar.cpp, A-H20). The scroll bar's drag along x.
+    void OnMouseMove(int buttons, int x, int y);
     // 0065B8B0 (slot 26, RET 4). Lays the slider out over `rect` (layout coordinates) and sets
     // the position again (through slot 25, so it counts as moved).
     void SetRect(const RECT* rect);
