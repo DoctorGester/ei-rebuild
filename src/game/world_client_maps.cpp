@@ -1064,8 +1064,8 @@ int CWorldClient::Setup() {
         Construct570EA0(terrain->part1FC, nullptr, 10);
         Construct571050(terrain->part25C);
         Construct570DE0(terrain->part290);
-        Construct56FD30(terrain->partAA8);
-        Construct56FD30(terrain->partAB8);
+        Construct56FD30(&terrain->visibleColumnFirst);
+        Construct56FD30(&terrain->visibleColumnLast);
         terrain->textAE0 = camera::EmptyStringData();
         Construct5711C0(terrain->partAE8);
         ei::SetVtable(terrain, worlddata::kTerrainVtable);

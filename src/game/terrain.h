@@ -2,6 +2,8 @@
 
 #include "engine_object.h"
 
+#include "lib/containers.h"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -35,6 +37,11 @@ public:
     // 006C8930. Ground height at (x, y), and water depth above it (0 when dry).
     void GroundAndWaterDepth(float x, float y, float* ground, float* depth);
 
+    // 006CA260 (RET 0xC, from the draw pass 00569E40). The sectors within `radius` of (x, y): the
+    // first row in visibleRowFirst, per row the first and last column (the same for every row:
+    // a square). Each bound is FISTP(coordinate -/+ radius - 0.5) / 32, clamped to the map.
+    void SetVisibleSectors(float x, float y, float radius);
+
     std::uint8_t unknown_01C[0xD8 - 0x1C];   // the rest of the CTransformObject base
     int unknownD8;                  // +0x0D8 \ cleared by the constructor
     int unknownDC;                  // +0x0DC |
@@ -44,7 +51,8 @@ public:
     const char* textF8;             // +0x0F8 CString
     const char* textFC;             // +0x0FC CString
     void* unknown_100;              // +0x100 CWorldClient::DrawPass draws nothing while it is null
-    std::uint8_t unknown_104[0x10C - 0x104];
+    int sectorsX;                   // +0x104 map size in sectors
+    int sectorsY;                   // +0x108
     float width;                    // +0x10C last valid vertex column
     float height;                   // +0x110 last valid vertex row
     float heightRange;              // +0x114 the highest terrain height (cursor picking starts at half of it)
@@ -57,9 +65,12 @@ public:
     std::uint8_t part1E8[0x14];     // +0x1E8 00570E70
     std::uint8_t part1FC[0x60];     // +0x1FC 00570EA0 (10)
     std::uint8_t part25C[0x34];     // +0x25C 00571050
-    std::uint8_t part290[0xAA8 - 0x290];   // +0x290 00570DE0
-    std::uint8_t partAA8[0x10];     // +0xAA8 0056FD30
-    std::uint8_t partAB8[0x28];     // +0xAB8 0056FD30
+    std::uint8_t part290[0x10];     // +0x290 00570DE0 (an aligned array)
+    std::uint8_t unknown_2A0[0xAA4 - 0x2A0];
+    int visibleRowFirst;            // +0xAA4 SetVisibleSectors
+    lib::AlignedArray<int> visibleColumnFirst;   // +0xAA8 0056FD30, per visible row
+    lib::AlignedArray<int> visibleColumnLast;    // +0xAB8 0056FD30
+    std::uint8_t unknown_AC8[0xAE0 - 0xAC8];
     const char* textAE0;            // +0xAE0 CString
     std::uint8_t unknown_AE4[4];
     std::uint8_t partAE8[0x14];     // +0xAE8 005711C0
@@ -71,7 +82,8 @@ static_assert(offsetof(Terrain, part12C) == 0x12C);
 static_assert(offsetof(Terrain, part1FC) == 0x1FC);
 static_assert(offsetof(Terrain, part25C) == 0x25C);
 static_assert(offsetof(Terrain, part290) == 0x290);
-static_assert(offsetof(Terrain, partAB8) == 0xAB8);
+static_assert(offsetof(Terrain, visibleRowFirst) == 0xAA4);
+static_assert(offsetof(Terrain, visibleColumnLast) == 0xAB8);
 static_assert(offsetof(Terrain, textAE0) == 0xAE0);
 static_assert(sizeof(Terrain) == 0xAFC);
 
