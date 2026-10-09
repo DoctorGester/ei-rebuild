@@ -4,12 +4,14 @@
 // the results are compared within a few ULPs (rule 7: plain float maths, std::acos).
 #include "verify.h"
 
+#include "../../src/game/figure.h"
+
 #include <cstdint>
 #include <cstring>
 #include <vector>
 
 namespace scene {
-void __fastcall MakeFrameRelative(char* parent, char* bone, int frame);
+void __fastcall MakeFrameRelative(CAnimationNode* parent, CAnimationNode* bone, int frame);
 }
 
 namespace {
@@ -19,17 +21,16 @@ struct Field {
     std::size_t size;
 };
 
-void Collect(char* bone, int frame, std::vector<Field>& out) {
-    char* keys = *reinterpret_cast<char**>(bone + 0x44);
-    char* translations = *reinterpret_cast<char**>(bone + 0x58);
-    out.push_back({keys + frame * 40, 40});
-    if (frame > 0) out.push_back({keys + (frame - 1) * 40, 40});
-    out.push_back({translations + frame * 32, 32});
-    out.push_back({bone + 0xE4, 0x1C});
-    out.push_back({bone + 0x110, 12});
-    int children = *reinterpret_cast<int*>(bone + 0x24);
-    char** list = *reinterpret_cast<char***>(bone + 0x20);
-    for (int i = 0; i < children; ++i) Collect(list[i], frame, out);
+char* Bytes(void* p) { return static_cast<char*>(p); }
+
+void Collect(CAnimationNode* bone, int frame, std::vector<Field>& out) {
+    AnimationRotationKey* keys = bone->rotationKeys_.data;
+    out.push_back({Bytes(&keys[frame]), sizeof(AnimationRotationKey)});
+    if (frame > 0) out.push_back({Bytes(&keys[frame - 1]), sizeof(AnimationRotationKey)});
+    out.push_back({Bytes(&bone->translationKeys_.data[frame]), sizeof(AnimationTranslationKey)});
+    out.push_back({Bytes(&bone->restRotation_), sizeof(Quaternion) + sizeof(Vector3)});   // and restPosition_
+    out.push_back({Bytes(&bone->position_), sizeof(Vector3)});
+    for (int i = 0; i < bone->children_.size; ++i) Collect(bone->children_.data[i], frame, out);
 }
 
 std::vector<std::uint8_t> Save(const std::vector<Field>& fields) {
@@ -48,8 +49,8 @@ void Restore(const std::vector<Field>& fields, const std::vector<std::uint8_t>& 
 bool g_busy;
 
 // 0044EB60: SUB ESP,0xBC (6).
-void(__fastcall* s_frames)(char*, char*, int);
-void __fastcall FramesVerify(char* parent, char* bone, int frame) {
+void(__fastcall* s_frames)(CAnimationNode*, CAnimationNode*, int);
+void __fastcall FramesVerify(CAnimationNode* parent, CAnimationNode* bone, int frame) {
     if (g_busy) {
         s_frames(parent, bone, frame);
         return;
