@@ -367,7 +367,10 @@ from 006A7940 below 006A7C20, the spell serialisers. 00646C25 is a tail of 00646
 left in 00640000-00660000 is Rebirth-patched (ui.md section 7 lists them).
 
 **A-H19** (verify wrappers in brackets; scenarios): 0064F550 is a second copy of QuestTable::Find (004C9C90), registered on the
-same method (against the original; `ui_objectives_sort`: 18 quests, so the sort's median runs); CParty::RemoveQuestItems
+same method (against the original; no scenario: only the sort's median calls it, with more than 16 quests, and those must
+all have records: the sort's comparison puts a quest without a record before every quest, another such one included, so with
+unknown names the unguarded partition 0064F650 runs past the array in the original too; the first `ui_objectives_sort` with 17
+made-up names crashed that way, X26, and was dropped); CParty::RemoveQuestItems
 00661FB0 (ours, the list minus class 0x14; every new game) and ReleaseAllItems 00661FE0 (ours, empty list; only the
 multiplayer exchange, no scenario); the server's login handler 0066F890 (CPlayerServer::OnLogin, ours: stream moved 0x88, the
 written message and state; every new game / zone change) with its name check 0047ADA0 (IsPrintableText, against the original).
