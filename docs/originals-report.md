@@ -82,8 +82,8 @@ Rewritten as `AddVectors` (src/game/core_maths.cpp).
 
 ### 0x0040D940: 2 files, 2 sites, signatures differ
 Rewritten as `Quaternion::AxisX` (src/game/core_maths.cpp).
-- `src/game/unit_points.cpp:26`: `float* __fastcall AxisX(const void*, void*, float*)`
-- `src/game/world_client_draw.cpp:147`: `void __fastcall QuaternionAxisX(const void*, void*, float*)`
+- `src/game/unit_points.cpp:26`: `Vector3* __fastcall AxisX(const Quaternion*, void*, Vector3*)`
+- `src/game/world_client_draw.cpp:147`: `void __fastcall QuaternionAxisX(const Quaternion*, void*, Vector3*)`
 
 ### 0x004113A0: 2 files, 2 sites, signatures differ
 Rewritten as `CCamera::Shake` (src/game/camera.cpp).
