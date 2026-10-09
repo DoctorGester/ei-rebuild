@@ -51,7 +51,7 @@ static void __fastcall ShutdownVerify(CInterface3D* self, void*) {
     if (topics) std::snprintf(first, sizeof(first), "%s", static_cast<const char*>(self->helpTopics_.begin()->first));
     self->CInterface3D::Shutdown();
     bool closed = self->stackBegin_ == self->stackEnd_ && InputReset(self) && !InterfaceHasScreen();
-    bool freed = !self->surface20_ && !self->backdrop_ && !self->secondBackdrop_ && !self->block5C_ && !self->root_ &&
+    bool freed = !self->fpsSurface_ && !self->backdrop_ && !self->secondBackdrop_ && !self->block5C_ && !self->root_ &&
                  !self->console_ && !self->fonts_[0] && !self->fonts_[1] && !self->fonts_[2];
     ei::verify::Check("CInterface3D::Shutdown", true, closed && freed, "closed %d freed %d", closed ? 1 : 0, freed ? 1 : 0);
 

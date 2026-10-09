@@ -1,0 +1,76 @@
+// The interface manager's small services to the rest of the game (CInterface3D): interface sounds,
+// the console window and debug panel settings, the frame rate surface and quest variable news for
+// the top window (005F5700, 005F7E60-005F7FC0). See ui.h and docs/notes/ui.md, section 3.
+#include "ui.h"
+
+#include "console.h"
+#include "sound.h"
+#include "text_split.h"
+
+#include "ei/hook.h"
+#include "lib/crt.h"
+#include "originals_ui.h"
+
+namespace {
+constexpr int kInterfacePriority = 1000;
+constexpr int kFullVolume = 100;
+constexpr int kNoSound = -1;
+// The frame rate's surface: (730, 10)-(800, 28), format 5.
+constexpr int kFpsLeft = 730, kFpsTop = 10, kFpsRight = 800, kFpsBottom = 28, kFpsFormat = 5;
+constexpr int kQuestPart = 2;   // "q.<zone>.<quest>": the quest's name
+} // namespace
+
+int CInterface3D::PlaySound(const char* name, int loop) {
+    return sound::Manager()->Play2D(name, kInterfacePriority, kFullVolume, 0, loop, 0, 0, 0);
+}
+EI_REPLACE_METHOD(0x005F7E60, CInterface3D::PlaySound);
+
+void CInterface3D::StopSound(int handle) {
+    if (handle != kNoSound) sound::Manager()->StopSound(handle);
+}
+EI_REPLACE_METHOD(0x005F7E90, CInterface3D::StopSound);
+
+void CInterface3D::ConsoleAddText(const char* text) {
+    if (console_) console_->AddText(text);
+}
+EI_REPLACE_METHOD(0x005F7EB0, CInterface3D::ConsoleAddText);
+
+void CInterface3D::SetConsoleRect(const int* rect) {
+    if (console_) console_->SetRect(rect);
+}
+EI_REPLACE_METHOD(0x005F7ED0, CInterface3D::SetConsoleRect);
+
+void CInterface3D::SetConsoleHistory(int lines) {
+    if (console_) console_->SetHistory(lines);
+}
+EI_REPLACE_METHOD(0x005F7EF0, CInterface3D::SetConsoleHistory);
+
+void CInterface3D::SetDebugInfoRect(const RECT* rect) { DebugPanelSetRectOriginal(DebugInfoPanel(), nullptr, rect); }
+EI_REPLACE_METHOD(0x005F7F10, CInterface3D::SetDebugInfoRect);
+
+void CInterface3D::ShowFps(int on) {
+    if (!static_cast<std::uint8_t>(on)) {
+        if (fpsSurface_) {
+            fpsSurface_->ReleaseContents();
+            gamecrt::operator_delete(fpsSurface_);
+        }
+        fpsSurface_ = nullptr;
+        return;
+    }
+    if (fpsSurface_) return;
+    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
+    fpsSurface_ = memory ? static_cast<CUiSurface*>(memory)->Construct(this, kFpsLeft, kFpsTop, kFpsRight, kFpsBottom,
+                                                                      kFpsFormat, 1)
+                         : nullptr;
+}
+EI_REPLACE_METHOD(0x005F5700, CInterface3D::ShowFps);
+
+void CInterface3D::OnQuestVariable(const char* name, float value) {
+    if (stackBegin_ != stackEnd_) stackEnd_[-1]->OnQuestVariable(name, value);
+    console::CStringArray parts;
+    // FCOMP; TEST AH,0x40: equal, or unordered.
+    if (value < 1.0f || value > 1.0f) return;
+    text::SplitWords(name, &parts, '.');
+    if (parts.GetSize() > kQuestPart) savedText_ = parts[kQuestPart];
+}
+EI_REPLACE_METHOD(0x005F7FC0, CInterface3D::OnQuestVariable);

@@ -160,7 +160,6 @@ int __fastcall DcSetBkMode(void* a0, void*, int a2) { return DcSetBkModeOriginal
 void __fastcall TreeIncrement(Node** a0) { TreeIncrementOriginal((void*)a0); }
 __declspec(naked) void __fastcall PanelRedrawAt(void*) EI_ORIGINAL(0x00444D00)
 __declspec(naked) void __fastcall PanelShowAt(void*, void*, std::uint8_t) EI_ORIGINAL(0x00444F50)
-__declspec(naked) void __fastcall PanelSetRectAt(void*, void*, const RECT*) EI_ORIGINAL(0x00444C10)
 
 constexpr int kDcSelectFont = 10;
 constexpr int kDcSetTextColor = 12;
@@ -188,7 +187,7 @@ void __fastcall PanelInit(void* self, void*, void* ui) {
         At<void*>(self, 0x18) = nullptr;
     }
     RECT rect = {10, 10, 0x122, 0x122};
-    PanelSetRectAt(self, nullptr, &rect);
+    DebugPanelSetRectOriginal(self, nullptr, &rect);
 }
 EI_REPLACE(0x00444A70, PanelInit);
 

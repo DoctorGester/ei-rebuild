@@ -495,4 +495,7 @@ __declspec(naked) inline int __fastcall LocalViewSendAttackOriginal(void* /*view
 // (0079B930, string_map.cpp) frees its surface and font; 00462DF0 writes config\keyboard.ini
 // (key_bindings.cpp).
 __declspec(naked) inline void __fastcall DebugPanelReleaseOriginal(void* /*panel*/) EI_ORIGINAL(0x00444BD0)
+// 00444C10 (thiscall, RET 4): the debug information panel's rectangle (string_map.cpp).
+__declspec(naked) inline void __fastcall DebugPanelSetRectOriginal(void* /*panel*/, void*, const tagRECT* /*rect*/)
+    EI_ORIGINAL(0x00444C10)
 __declspec(naked) inline void __cdecl SaveKeyBindingsOriginal() EI_ORIGINAL(0x00462DF0)

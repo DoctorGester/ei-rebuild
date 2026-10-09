@@ -136,9 +136,27 @@ public:
 
     // 005F86F0 (not rewritten). Shows the help text of the active window's topic (its slot 41).
     void ShowHelp(int flag);
-    // 005F7E60 (not rewritten). Plays an interface sound (`name`, e.g. "buttons\battle\click.wav");
-    // the interface object itself is not used. Returns what the sound system returns.
-    int PlaySound(const char* name, int flag);
+    // 005F7E60 (RET 8; ui_interface_glue.cpp). Plays an interface sound (`name`, e.g.
+    // "buttons\battle\click.wav") without position: priority 1000, volume 100, `loop` passed on
+    // (sound::CSoundManager::Play2D). The interface object is not used. Returns Play2D's handle.
+    int PlaySound(const char* name, int loop);
+    // 005F7E90 (RET 4). Stops sound `handle` unless it is -1 (the interface is not used).
+    void StopSound(int handle);
+    // 005F7EB0 / 005F7ED0 / 005F7EF0 (RET 4). The console window's AddText / SetRect / SetHistory,
+    // when there is one.
+    void ConsoleAddText(const char* text);
+    void SetConsoleRect(const int* rect);
+    void SetConsoleHistory(int lines);
+    // 005F7F10 (RET 4). The debug information panel's rectangle (00444C10; the interface is not
+    // used).
+    void SetDebugInfoRect(const RECT* rect);
+    // 005F5700 (RET 4; the console's "fps"). With `on` (low byte) a surface for the frame rate at
+    // (730, 10)-(800, 28) unless there is one; without, the surface freed.
+    void ShowFps(int on);
+    // 005F7FC0 (RET 8; the client and the script tell it of a quest variable change). The top
+    // window's slot 33 hears of it; at 1 (or NaN) a name of three or more '.' parts keeps its
+    // third part in savedText_ (the current quest).
+    void OnQuestVariable(const char* name, float value);
 
     // Mouse messages from the input dispatcher (00457970; ui_interface_input.cpp; RET 0xC, the
     // wheel RET 0x10): each goes to the input side that took the mouse (+0x0C), else to the top
@@ -183,7 +201,7 @@ public:
     console::ConsoleWindow* console_;   // +0x14 the console window (shown while its +0x7A is set)
     CScreenFade* fade_;              // +0x18
     CUiRootWindow* root_;            // +0x1C updated after the top window every frame
-    CUiSurface* surface20_;          // +0x20 a surface the shutdown frees (writer not identified)
+    CUiSurface* fpsSurface_;         // +0x20 the frame rate's surface while shown (ShowFps)
     std::uint8_t unknown_24[0x30 - 0x24];
     // +0x30 the windows draw, redraw their surfaces and update their tooltips only while this is
     // set (the containers' slots 20, 22 and 23).
@@ -231,14 +249,14 @@ public:
     stlp::map<mfc::CString, int> helpTopics_;
     mfc::CString messageText_;       // +0xA4 the message window's text (ShowMessage)
     int messageFlag_;                // +0xA8 (ShowMessage clears it)
-    mfc::CString savedText_;         // +0xAC saved with the game (from version 0x5F)
+    mfc::CString savedText_;         // +0xAC the current quest (OnQuestVariable); saved from version 0x5F
 
     // 005F8C50. Clears the modifier, double-click and right-button flags (+0x7C..+0x80) and
     // deactivates the top window's input side (input slot 1), if any (ui_interface_shutdown.cpp).
     void ResetInput();
     // 005F4F90 (the main loop's exit, 00456440). Closes every window (as CloseAll, without its
     // trailing deactivation), ResetInput, pumps the messages, clears the screen flag; writes the
-    // help topics to config\tutorial.ini ("%s %d\n" each); then frees +0x20, the queued window
+    // help topics to config\tutorial.ini ("%s %d\n" each); then frees the frame rate surface (+0x20), the queued window
     // (+0x40, not cleared), both backdrops, +0x5C, the debug panel's surface and font (00444BD0),
     // the root window, the console window; saves the key bindings (00462DF0); frees the three fonts
     // and the fade (+0x18, not cleared).
@@ -269,7 +287,7 @@ static_assert(offsetof(CInterface3D, closeAll_) == 0x44);
 static_assert(offsetof(CInterface3D, rightDown_) == 0x80);
 static_assert(offsetof(CInterface3D, unknown_8C) == 0x8C);
 static_assert(offsetof(CInterface3D, fastGame_) == 0x94);
-static_assert(offsetof(CInterface3D, surface20_) == 0x20 && offsetof(CInterface3D, queuedWindow_) == 0x40);
+static_assert(offsetof(CInterface3D, fpsSurface_) == 0x20 && offsetof(CInterface3D, queuedWindow_) == 0x40);
 static_assert(offsetof(CInterface3D, block5C_) == 0x5C && offsetof(CInterface3D, fonts_) == 0x70);
 static_assert(offsetof(CInterface3D, messages_) == 0x84 && offsetof(CInterface3D, helpTopics_) == 0x98);
 
@@ -621,6 +639,11 @@ public:
         if (interface_->mouseCapture_ != InputSide()) return false;
         interface_->mouseCapture_ = nullptr;
         return true;
+    }
+    // Slot 33 (+0x84): a quest variable changed (CInterface3D::OnQuestVariable).
+    void OnQuestVariable(const char* name, float value) {
+        using Fn = void(__thiscall*)(CUiWindow*, const char*, float);
+        reinterpret_cast<Fn>(vtable_[33])(this, name, value);
     }
     // Slot 26 (+0x68): the window is closed (taken off the screen, before it is deleted).
     void CloseWindow() {

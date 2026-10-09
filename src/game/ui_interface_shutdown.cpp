@@ -63,8 +63,8 @@ void CInterface3D::Shutdown() {
         file.Close();
     }
 
-    DeleteSurface(surface20_);
-    surface20_ = nullptr;
+    DeleteSurface(fpsSurface_);
+    fpsSurface_ = nullptr;
     // The queued window is deleted but its pointer kept (the original does not clear it).
     if (queuedWindow_) queuedWindow_->DeleteWindow();
     DeleteSurface(backdrop_);

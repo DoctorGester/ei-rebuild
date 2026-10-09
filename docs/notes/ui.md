@@ -213,6 +213,13 @@ run (GiveUnitExp)). Kept: a held purchase does not mark the record bought and do
 the list with a stand-in renderer recording slots 11 / 12, ours likewise, its calls replayed on the real renderer;
 draws, entries left and the result compared. Every zone; numbers need hits with option 17 (0079BE74) on. The
 original leaves the render target size unset without a primary surface (ours 0).
+`ui_interface_glue.cpp` (`verify_ui_interface_glue.cpp`, ours only): `PlaySound` 005F7E60 (Play2D, priority 1000, volume
+100), `StopSound` 005F7E90, `ConsoleAddText` / `SetConsoleRect` / `SetConsoleHistory` 005F7EB0 / 005F7ED0 / 005F7EF0,
+`SetDebugInfoRect` 005F7F10, `ShowFps` 005F5700 (+0x20 is the frame rate surface), `OnQuestVariable` 005F7FC0 (top
+window slot 33; at 1 the name's third '.' part becomes savedText_, the current quest). Scenarios: console, every
+screen with sounds, every zone with quest variables. Not done: the top-window forwarders for multiplayer messages
+005F7F30 / 005F7F60 / 005F7F80 / 005F7FA0 / 005F82A0 / 005F82D0 / 005F8310 (slots 28-32, 36, 37), 005F86D0 (bottom
+window slot 40), 005F82F0 (chat).
 
 Next in 005E0000-00640000 after A-I18 (not Rebirth-patched, single player first): 00612CF0 (the camp's slot 39, a
 debug fill of the constructors; no scenario). Multiplayer / lobby last: 005E2A30 / 005E3230 / 005E3550 / 005E3CE0 / 005E26F0 (chat), 00608D20-006097E0 (the
