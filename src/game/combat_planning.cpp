@@ -327,14 +327,14 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
             Vector3 destination;
             const float* at = MotionDestination(route.bytes(), nullptr, &destination.x);
             if (!CtlCanReachTarget(this, nullptr, order)) return false;
-            float x = unit->positionX, y = unit->positionY, z = unit->positionZ;
-            unit->positionX = at[0];
-            unit->positionY = at[1];
-            unit->positionZ = at[2];
+            float x = unit->position.x, y = unit->position.y, z = unit->position.z;
+            unit->position.x = at[0];
+            unit->position.y = at[1];
+            unit->position.z = at[2];
             bool can = CtlCanPlanAction(this, nullptr, order);
-            unit->positionX = x;
-            unit->positionY = y;
-            unit->positionZ = z;
+            unit->position.x = x;
+            unit->position.y = y;
+            unit->position.z = z;
             return can;
         };
         if (order->flag18 == 0) {
@@ -393,7 +393,7 @@ void CUnitServer::PlanMove(const float* point, int moving, int run, float range)
         if (!MapCanLeaveCell(map, nullptr, unit)) unit->moveMode = mode;
         SectorMapAdd(sectors, nullptr, unit);
     }
-    std::uint32_t flag = MapCellFlag80(map, nullptr, &unit->positionX);
+    std::uint32_t flag = MapCellFlag80(map, nullptr, &unit->position.x);
     void* world2 = ManagerContextOf(this);
     path.Path()->flag6E = unit->player == nullptr;
     std::uint32_t saved43C = unit->unknown_43C;

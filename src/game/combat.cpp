@@ -427,7 +427,7 @@ bool CUnitServer::CanReachTarget(const UnitAction* order) {
         if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) return true;
     }
     float offset = std::bit_cast<float>(reinterpret_cast<const UnitPrototypeRecord*>(other->GetPrototype())->unknown_24);
-    double height = static_cast<double>(offset) + other->positionZ;
+    double height = static_cast<double>(offset) + other->position.z;
     return LessOrUnordered(height, kOnePointFive);
 }
 EI_REPLACE_METHOD(0x0054C800, CUnitServer::CanReachTarget);
@@ -537,9 +537,9 @@ float CUnitServer::AttackRoll(CUnitServer* attacker, bool backstab) {
     float speedRatio = static_cast<float>(theirs.speed / (static_cast<double>(kSpeedScale) * mine.speed));
     const CUnit* self = unit;
     const CUnit* other = attacker->unit;
-    double dx = static_cast<double>(self->positionX) - other->positionX;
-    double dy = static_cast<double>(self->positionY) - other->positionY;
-    double dz = static_cast<double>(self->positionZ) - other->positionZ;
+    double dx = static_cast<double>(self->position.x) - other->position.x;
+    double dy = static_cast<double>(self->position.y) - other->position.y;
+    double dz = static_cast<double>(self->position.z) - other->position.z;
     double distance = x87::fsqrt((dz * dz + dy * dy) + dx * dx);
     float twice = static_cast<float>(distance + distance);
     double radius = Radius(unit) * static_cast<double>(kDistanceScale);

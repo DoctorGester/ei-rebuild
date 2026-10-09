@@ -135,7 +135,7 @@ void CUnitServer::FinishCast() {
         (*reinterpret_cast<CUnit**>(server + 0x1C))->MarkChanged(0);
         unit->MarkChanged(0);
     }
-    WorldCastSpell(world, nullptr, spell, unit, &unit->positionX, action.target, &at, 0);
+    WorldCastSpell(world, nullptr, spell, unit, &unit->position.x, action.target, &at, 0);
     if (Field<int>(spell->GetPrototype(), 0x10) != 1) {
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kCastNoiseScale);
         AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, 0);
@@ -197,7 +197,7 @@ void CUnitServer::OrderAttack(CEngineObject* target, int location, int calledSho
             }
             if (!ranged) {
                 auto* victim = static_cast<CUnit*>(other);
-                double height = static_cast<double>(Field<float>(victim->GetPrototype(), 0x24)) + victim->positionZ;
+                double height = static_cast<double>(Field<float>(victim->GetPrototype(), 0x24)) + victim->position.z;
                 if (!LessOrUnordered(height, kReachHeight)) {
                     TellParty(unit, kMessageOutOfReach);
                     action2.kind = 9;
@@ -251,7 +251,7 @@ void CUnitServer::OrderCastAt(std::uint32_t source, const float* point, int run)
             if (!scroll || !scroll->unknown_48) return;
             CItem* carrier = SpellCarrier(source);
             if (!carrier || !carrier->spell_) return;
-            WorldCastSpell(world, nullptr, carrier->spell_, unit, &unit->positionX, nullptr, point, 0);
+            WorldCastSpell(world, nullptr, carrier->spell_, unit, &unit->position.x, nullptr, point, 0);
             WorldUseScroll(world, nullptr, unit, scroll);
             return;
         }
@@ -285,8 +285,8 @@ void CUnitServer::OrderCast(std::uint32_t source, CEngineObject* target, int run
             if (!scroll || !scroll->unknown_48) return;
             CItem* spellCarrier = SpellCarrier(source);
             if (!spellCarrier || !spellCarrier->spell_) return;
-            WorldCastSpell(world, nullptr, spellCarrier->spell_, unit, &unit->positionX, target,
-                           &reinterpret_cast<CUnit*>(target)->positionX, 0);
+            WorldCastSpell(world, nullptr, spellCarrier->spell_, unit, &unit->position.x, target,
+                           &reinterpret_cast<CUnit*>(target)->position.x, 0);
             WorldUseScroll(world, nullptr, unit, scroll);
             return;
         }
