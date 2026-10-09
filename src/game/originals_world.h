@@ -53,6 +53,9 @@ __declspec(naked) inline void __fastcall WorldMakeObjectOriginal(void* /*world*/
     EI_ORIGINAL(0x005927C0)
 __declspec(naked) inline void __fastcall WorldPrepareMap(void* /*world*/, void*, const char* /*name*/)
     EI_ORIGINAL(0x0057ED60)
+// 005800C0 (rewritten as GameFlow::UpdateFromServer; patched by Rebirth, so called here): the game
+// flow (007AFE20) applies a multiplayer client's update from the server (thiscall, plain RET).
+__declspec(naked) inline void __fastcall FlowUpdateFromServerOriginal(void* /*flow*/) EI_ORIGINAL(0x005800C0)
 // 0057F440 (rewritten as IsMultiplayerClient): no arguments (a plain RET, ECX is not read); AL/EAX = 1 when
 // the network game exists and is not the host (flag 0x80000000 of its +4 clear), else 0.
 __declspec(naked) inline bool __cdecl IsNetworkClientOriginal() EI_ORIGINAL(0x0057F440)

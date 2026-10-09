@@ -19,6 +19,10 @@ struct OrderPlan;
 struct PathCell;
 struct UnitAction;
 
+// 0050EAB0 (RET 8): the map object reads its network state (its slot 49 between the state's begin
+// / end; `delta` 0 the full state, 1 a delta) from a memory stream. Nonzero when it was read.
+__declspec(naked) inline int __fastcall MapObjectReadStateOriginal(void* /*object*/, void*, int /*delta*/,
+                                                                   void* /*from*/) EI_ORIGINAL(0x0050EAB0)
 // 005287A0 / 00528800: UnitStats Load / Save (RET 4: the stream; no result).
 __declspec(naked) inline void __fastcall UnitStatsLoadOriginal(void* /*stats*/, void*, void* /*stream*/) EI_ORIGINAL(0x005287A0)
 __declspec(naked) inline void __fastcall UnitStatsSaveOriginal(void* /*stats*/, void*, void* /*stream*/) EI_ORIGINAL(0x00528800)

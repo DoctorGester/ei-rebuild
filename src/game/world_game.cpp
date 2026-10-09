@@ -795,8 +795,6 @@ void GameFlow::BeginMultiplayerGame() {
 namespace {
 
 // 00661300 (RET 4). Party::CopyFrom. 00662AC0 (RET 4): the party sends its map transfer.
-// 005800C0. The flow's update (patched by Rebirth: original address).
-__declspec(naked) void __fastcall FlowUpdate(GameFlow*, void*) EI_ORIGINAL(0x005800C0)
 // 0041D260 (RET 8). A session command (0 zone, 1 briefing, 2 kick, 3 ban).
 __declspec(naked) void __fastcall SessionCommand(void*, void*, int, const char*) EI_ORIGINAL(0x0041D260)
 
@@ -812,12 +810,12 @@ void GameFlow::ReturnLocalParty() {
     PartyCopyFrom(GlobalParty(), nullptr, party);
     PartyManagerBeginRedeploy(PartyManager(), nullptr, party);
     PartySendTransferOriginal(GlobalParty(), nullptr, *reinterpret_cast<int*>(0x007C82A0));
-    FlowUpdate(this, nullptr);
+    FlowUpdateFromServerOriginal(this);
 }
 
 void GameFlow::UpdateAndAcknowledge() {
     if (!Active(net::GameClient())) return;
-    FlowUpdate(this, nullptr);
+    FlowUpdateFromServerOriginal(this);
     if (LocalLogin()->state_ != kRequestDone) return;
     LocalLogin()->state_ = 0;
     ++LocalLogin()->version_;

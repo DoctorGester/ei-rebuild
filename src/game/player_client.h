@@ -176,6 +176,75 @@ public:
     // 00666FB0 (slot 0, RET 4). DestructBody, then operator delete when bit 0 of `flags` is set.
     CPlayerClient* DeletingDestruct(unsigned flags);
 
+    // A-H23 (player_client_handlers.cpp): the other message handlers (docs/notes/objects.md, "Client"
+    // table). Each returns 1 unless noted.
+    // 00667DA0 (0x00). Login accepted: a dword, state 2, the player manager (the player's owner_)
+    // gives the player that id (CPlayerManager::ChangeId).
+    int OnLoginAccepted();
+    // 00667DE0 (0x01). The player disconnects (CPlayer::Disconnect).
+    int OnDisconnect();
+    // 00667C20 (0x04). A point and two dwords (heading, mode): the client world centres on the
+    // point (005662B0); in zone "gz20g" (the player's +0xD8) the camera takes distance 23 and a
+    // 30-degree pitch (SetDistancePitch), elsewhere view 6 (mode 3) or 7 (RestoreView); then
+    // SetHeading. Returns the last Read's byte count.
+    int OnCameraPlacement();
+    // 00669D50 (0x07). The game state and the world tick: the player's +0x104 keeps the old state.
+    // While +0x84 is set only an Enter key-down (-1, 0xD, 0) goes to the interface; otherwise the
+    // state is stored, the interface makes its screen, the tick is set, state 3 refreshes the
+    // client world's units (0056DE80), every unit of the player goes through slot 14 (the walk
+    // stops at a null one) and a multiplayer client updates from the server (005800C0).
+    int OnGameState();
+    // 00669F30 (0x09). The interface's OnGameLost.
+    int OnGameLost();
+    // 00667DF0 (0x0B). Two dwords to the interface's OnUnitSpeech.
+    int OnUnitSpeech();
+    // 006696A0 (0x0C). (id, float) pairs until id -1: the object manager's object gets the float
+    // at +0x28; an unknown id's float is not read (the next id is read from it). 0 when the stream
+    // fails.
+    int OnObjectValues();
+    // 00667D10 (0x0F). Two points and a byte: the camera looks from the first at the second
+    // (LookFrom) and goes free or not (SetFree).
+    int OnFreeCamera();
+    // 00667E20 (0x12). A byte and a dword: the dword to the player's world (00566C10, +0x7C0).
+    int OnWorldValue();
+    // 0066A420 (0x14). (id, float): the item of the party's item manager gets the float at +0x28
+    // and the player's ItemUsed.
+    int OnItemValue();
+    // 00669400 (0x16). (unit id, index): the party member's weapon record `index` is removed
+    // (signed bound check) and the client unit's controller shows no weapon.
+    int OnWeaponRemoved();
+    // 0066A620 (0x19). A kind byte and a unit id: 0 the client world controls the unit, 1 / 2 set
+    // / clear its flag 0x100 and light (not with flag 0x10), 3 deselects; 0 for other kinds.
+    int OnUnitControl();
+    // 006687B0 (0x41). A known map object reads its delta; platforms (0x54, 0x5D) refresh. 0 when
+    // unknown or the read fails.
+    int OnObjectChanged();
+    // 00668850 (0x42). A known map object goes: a unit of the player leaves it, the entry is
+    // erased, the object flagged 1 and released, the client world removes the id. 0 when unknown.
+    int OnObjectRemoved();
+    // 0066A3B0 (0x43). The object manager's unit (class 0x50) with this id: its controller's Died.
+    int OnUnitDied();
+    // 00668940 / 00668A30 / 00668AA0 (0x50 / 0x51 / 0x52). A timed object: (id, type) made by the
+    // world's timed object manager, read in full, filed (counted; the highest id kept) / read as a
+    // delta / erased, flagged 1 and released. 0 when it cannot be made, read or found.
+    int OnTimedObjectAdded();
+    int OnTimedObjectChanged();
+    int OnTimedObjectRemoved();
+    // 00669760 (0x70). The weather (007AFCAC, "RainSnow"): its 004E3FC0(kind byte, 16-bit
+    // strength as a float).
+    int OnWeather();
+    // 006697B0 (0x71). Two floats: the client world's time speed (second) and time (first), then
+    // its lighting.
+    int OnWorldTime();
+    // 00669800 (0x72). A point and a dword to the client world's 00564190.
+    int OnWorldPoint();
+    // 0066A400 (0x73). The client world's 005683B0 reads the stream.
+    int OnWorldStream();
+    // 00667BA0 (slot 14, RET 4). A unit joined (+0x24C set) or left the player: the interface is
+    // told; a multiplayer client whose party has one member, `unit`, puts its id (-1 when it left)
+    // in the login record (+0x2C) and raises its version.
+    void NotifyUnitChanged(CUnit* unit);
+
     CPlayer* Owner() const { return reinterpret_cast<CPlayer*>(player_); }
 
     void* vtable_;
