@@ -39,6 +39,7 @@ public:
     CString Left(int count) const;                // 006FDAE9 (RET 8: result slot, count)
     CString Right(int count) const;               // 006FDA6D Right(nCount) (RET 8: result slot, count; Mid(nFirst) is 006FD9B4)
     CString Mid(int first) const;                 // 006FD9B4 Mid(nFirst) (RET 8: result slot, first)
+    int FindOneOf(const char* set) const;         // 00700ECC
     int ReverseFind(char ch) const;               // 006FDBB7 (RET 4; -1 when absent)
 
     operator const char*() const { return data_; }

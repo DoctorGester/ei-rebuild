@@ -188,10 +188,8 @@ constexpr std::uintptr_t kNewLine = 0x00784340;   // "\n"
 
 struct TextAt : mfc::CString {
     mfc::CString Mid(int first) const;    // 006FD9B4
-    int FindOneOf(const char* set) const; // 00700ECC
 };
 __declspec(naked) mfc::CString TextAt::Mid(int) const EI_ORIGINAL(0x006FD9B4)
-__declspec(naked) int TextAt::FindOneOf(const char*) const EI_ORIGINAL(0x00700ECC)
 mfc::CString MidOf(const mfc::CString& s, int first) { return static_cast<const TextAt&>(s).Mid(first); }
 // 006FD56E (stdcall). operator+(const CString&, TCHAR).
 // 006FED03. CStringArray::InsertAt(index, const CString&, count).

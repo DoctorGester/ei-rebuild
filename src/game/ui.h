@@ -1794,8 +1794,10 @@ public:
     // widths), and before each run of newline, BEL C<rgb> and BEL F<digit> tokens one format
     // token.
     void Tokenize(const mfc::CString* text);
-    // 0065D970 (RET 0xC; not rewritten). The token of `text` at `pos` (spaces and tabs skipped)
-    // into `out`; returns the position after it, or -1 at the end.
+    // 0065D970 (RET 0xC; ui_scroll_text.cpp, A-H19; ECX not read). The token of `text` at `pos`
+    // (spaces and tabs skipped): a BEL F / BEL C format (3 / 5 characters), a newline, or up to the
+    // next space, tab, BEL or newline
+    // into `out`; returns the position after it, or -1 at the end (`out` untouched).
     int NextToken(const mfc::CString* text, int pos, mfc::CString* out);
     // 0065D150 (RET 4; called by 0065D120; ui_scroll_text.cpp, DR-H16). Draws the lines
     // into surface 0 from `scroll` pixels down: the first line reaching `scroll` and the ones
