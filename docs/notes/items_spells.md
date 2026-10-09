@@ -193,6 +193,9 @@ archive), 004E15C0 (node creation).
 | 0068BA20, 0068BA60, 0068B700, 0068B770 (AL), 0068B7C0 (AL), 0068B4C0 | CSpell::GetPrototype, GetModifierCount, GetDamageType, IsOffensive, HasCastFlagModifier, CanAffect | P |
 | 0068B320 (slot 2), 0068B430, 0068B350 (slot 3), 0068B370, 0068B410 | CSpell::Clear, InitFromPrototype, ClearModifiers, CopyTo (S), Clone (O) | S |
 | 00683950 | CSpellEffect::GetDamage | S into a scratch DamageInfo |
+| 00688510, 0068B1F0, 0068B2C0, 0068B2A0 (slot 0), 0067E510, 0067E5D0, 0067E5B0 (slot 0) | MapEffect::Construct, CSpell / CSpellEffect Construct, Destruct, DeletingDestruct (spell_lifetime) | constructors S on scratch copies; destructors O (state left) |
+| 0068C820, 0068C920 | `CodeIndexedTable::FindByCode` (item_db.h; the index's operator[], unknown codes filed with null; spell_db_lookup) | S: ours, then the original finds the same entry (skipped when its resize would rehash) |
+| 0068B860, 0068B920 (slots 9 / 10), 00688550, 006885A0 | CSpell::LoadSpell / SaveSpell, MapEffect::Load / Save (spell_save; +0x1C..+0x2F is a MapEffect, `CSpell::Effect()`) | S: saves captured; loads replayed into the object's old copy (ui_saveload, world_load) |
 | 0068D730, 0068D280 | CLight::GetIntensityAt (the original starts with a 4-byte CMP + JNZ, so the wrapper calls its two branches 0068D736 point light / 0068D7B4 other directly), SetLitColors | P / S |
 | 006893F0, 006894B0 | SpellCodeByName, SpellModifierCodeByName (stdcall) | P |
 | 0068BD80 (2), 0068BDD0 (3), 0068BC00 (7), 0068BE30, 0068BEC0, 0068BF60 | CSpellContainer::Reset, Shutdown, NameField (P), AddModifier, AllowsModifier (P), Build (S: bytes +0x48..+0x8C and the code string) | O / P / S |
@@ -210,7 +213,8 @@ is this spell's duration (named `targetCount`; for attack spells it may be a tar
 radius. Build's `d` / `t` truncation and the area sqrt are small naked helpers (FILD qword / FMUL / `_ftol`; FLD / FDIV
 [00743A7C] / FSQRT); its double verify run is safe because it empties the code string first.
 
-Kept: Build leaves the target flags alone when the prototype kind is neither 'u' nor 't', so they accumulate across rebuilds
+Kept: LoadSpell reads flags_ through the stream argument's stack slot (a read that writes nothing leaves the stream's
+address). Build leaves the target flags alone when the prototype kind is neither 'u' nor 't', so they accumulate across rebuilds
 until Reset; a modifier whose code is not found becomes code 0, which sorts first and empties the modifier list;
 BeginConstruct writes the prototype into the new container without checking the manager returned one; the container's
 AddModifier reports a null record as "Invalid rune" (007959F0); CopyTo tests the address of its modifier array for null
@@ -218,8 +222,7 @@ AddModifier reports a null record as "Invalid rune" (007959F0); CopyTo tests the
 
 Not rewritten: 0068D310, 0068D5A0 (CLight colour contributions: a 4-float colour by value whose 4th component is
 uninitialised stack, cannot be compared bit for bit); 00688EC0 CreateSpellObject, 00688CD0 (factory), 00688990 / 00688B40
-(manager teardown), serialisation 0068B860, 0068B920, constructors / destructors (CSpellConstructor's 006840A0 / 00684080
-are done), 0068C820 / 0068C920 (find a spell / modifier record by code, thiscall on 007C8510 / 007C8530),
+(manager teardown, STLport hash_map walks), 0068BA80 (CSpellContainer constructor: list, string, CSpell inlined),
 STLport helpers 0068C500..0068CD50, the Rebirth-patched 00684550 (spell database load), 0068E640, 00691500. No callers:
 00684180 / 00684280 / 006842E0 / 00684310 / 006838E0.
 
@@ -259,6 +262,11 @@ along the direction (normal built with length 2, distance compared with 1).
 | 006835B0, 00683600, 00683730, 0067F870, 0067E6D0, 00681BB0, 00682650 | HitUnit, HitUnitsInRadius, HitUnitsAlong, CSpellEffect::Start, Update, UpdateMissile (2.6 KB), UpdateLasting (3.8 KB) | O (states, parameters +0x4C..+0x60 unchanged) |
 | 0067EF40, 0067EFC0, 0067F170, 0067F260, 0067F410, 0067F580, 0067F660, 0067F7C0, 0067EE00, 0067EE40, 0067EE80 | SetVisual, UpdateFootprint (stamped flag follows `stamp` for 6, 7, 8, 0x27), CreateArrow (class 0x4E), CreateParticle (0x4A / 0x5A), CreateLightning (0x4D, with a target), CreateSound, CreateSoundSequence (class 99, max(count, 1) names), CreatePointLight (0x4B, flags 0x840), ReleaseVisual / Sound / Light | O |
 
+0067E7D0 / 0067E960 `CSpellEffect::Load` / `Save` (spell_effect_save; Save S into capture streams, Load O: the original Save
+writes back what ours read; no scenario saves during a cast). Load takes the world from 007C84EC, the three objects from its
+timed object manager, and stamps the footprint; the packed id and object ids are read through stack slots holding the stream
+and `this` (kept).
+
 Every sequence with more than one FP operation before a store is a naked helper in `spell_effect_internal.h`. Rebirth-patched
 callee: 005C11D0 (CSectorMap::Move, the teleport).
 
@@ -268,9 +276,7 @@ the light's SetVelocity in state 2 does not check the light. Charm with a target
 changing state, so the effect restarts every tick. The light strike (4) uses -7 as bolt width factor; the walls compute the
 normal with a z of 0 * k. Fireworks, clairvoyance and possession keep a unit list on the stack for the whole function, emptied
 at the end. Risk: scenario wolves are placed 5 to 13 units from the hero without checking terrain (blocked ground fails the
-`IsAlive` waitfor). Not rewritten: 0067AC70 (missile target), 0067C640 (CEffectShowVisibility ids), 00688510 (buff record
-constructor), 005B2A00 / 005B2760 (footprint builders), 005C98C0 (AI noise), 005CBBE0, 00554450; 0067F360 (no callers),
-0067E510 / 0067E5D0 (constructor / destructor), 0067E7D0 / 0067E960 (save / load).
+`IsAlive` waitfor). Not rewritten: 0067AC70 (missile target), 0067C640 (CEffectShowVisibility ids), 005B2A00 / 005B2760 (footprint builders), 005C98C0 (AI noise), 005CBBE0, 00554450; 0067F360 (no callers).
 
 ## Quest database (006AE8E0, quest_database.cpp, quest_records.cpp)
 
@@ -300,13 +306,20 @@ vectors O. Reached by saving and loading a game (ui_saveload, world_load).
 | 00690430, 006928C0 | CTexture::CreateFromMmp, CTextureManager::LoadMmpExtra | O |
 | 006908E0 | MmpHeader::MipOffset | P |
 | 00693180 | `ComposeTexture` (RET 0x1C) | O |
+| 0068FA10, 00690970, 00690B30, 00690D30 | CTexture::FillSurface (O: result = FilledBytes over the chain), CopyToSurface, ConvertToSurface (8888 to 16 bits), UnpackToSurface (DXT through the converter's slot 10) | S: the original fills, levels read back and overwritten, ours fills, compared (texture_fill) |
+| 00691810 (manager slot 14), 00694300 | CTextureManager::NewObject (texture.cpp; constructor and reset inlined), the extra block's `AlignedArray<uint8_t>::SetSize` (`AlignedBuffer` is that array now) | O (fresh fields) / S on a copy |
+| 006913A0 | CTextureManager::SetDevice (texture.cpp; quality 0079BCDC to the mip level, the 512 limit from GetCaps, a tenth of the local video memory at +0xDC; world_client_setup calls it by address) | S (references undone between the runs) |
+| 006916F0 | `DeleteComposedTextures` (texture_cache; cdecl: every <data path>textures\*.mmp through the game's DeleteFileA, failures to the debug log) | O (counted only: the harness overlay decides what a delete does) |
+| 00690260 | CTexture::LoadBmp (alpha "a_<file>" beside it; no scenario: no loose .bmp) | O |
 
 ComposeTexture: the cache file `<game folder>textures\<name>.mmp` keeps the request's layer bytes in its extra block (header
 +0x48), so an unchanged request is reused (1). When `name` has no file and differs from the fallback name, the fallback's
 file is tried. No layer textures deletes the file (0); else the image is drawn by 00693010 (not rewritten) and written, each
 level converted to 16 bits by the pixel converter 007AF06C slot 2 [out, in, kind, count] (kind 3 for 4444, 2 for 5551, 0 for
 5650, else -1) and halved by slot 7. A file that cannot be created goes to FatalError (the image block leaks, as in the
-original). Not rewritten: 00690970 / 00690B30 (surface lock copies); 00693970 is dead.
+original). 00693970 and 0068F860 (a texture from a surface description; its one caller 00691D50 is dead) are dead. Not rewritten: 00691250 (the manager's destructor body), 00693010 (the composed image's drawing), 00692D30. The fills keep a reference on every attached
+level they move to (never released, as in the original; the wrappers drop their second run's); a DXT file / surface pair
+without a decode mode passes the mip level as the mode (kept).
 
 ## Registry and ini (registry, ini_file, win_registry; every scenario)
 
@@ -401,5 +414,4 @@ heights by the token's font digit, fonts 3-9 read the original's other stack slo
 tooltip's constructor leaves the measurements and both arguments unwritten for an empty text. Risks: the constructor wrappers
 are ours only; Layout's stand-in shares the sprites.
 
-**Next candidates**: 00690D30 / 00690B30 / 0068FA10 / 00690260 / 00690970 (texture manager); spell serialisers 0068B860 /
-0068B920; then the largest left in 0x640000-0x6C0000 (`python tools/progress.py`).
+**Next candidates** (after A-H22): 00688EC0 CreateSpellObject (hash_map of sequences inlined), 0068BA80 CSpellContainer constructor, 00691250 / 00688990 / 00688B40 (manager destructors), 00693010, 00692D30, 0068DE30 / 0068D850 / 0068DBC0 (lights), 00663410, 00669D50; then the largest left in 0x640000-0x6C0000 (`python tools/progress.py`; it misses UI_INPUT_HANDLER registrations, so check `grep` before picking).

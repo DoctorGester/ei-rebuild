@@ -104,6 +104,10 @@ CEffectPointLight*(__fastcall* s_lightCtor)(CEffectPointLight*);
 CEffectParticle*(__fastcall* s_particleCtor)(CEffectParticle*);
 CEffectWall*(__fastcall* s_wallCtor)(CEffectWall*);
 CEffectLightning*(__fastcall* s_lightningCtor)(CEffectLightning*);
+CEffectAmbientSound*(__fastcall* s_ambientCtor)(CEffectAmbientSound*);
+CEffectAmbientSound* __fastcall AmbientCtorVerify(CEffectAmbientSound* self) {
+    return ConstructBoth("CEffectAmbientSound::Construct", s_ambientCtor, self);
+}
 CEffectSound* __fastcall SoundCtorVerify(CEffectSound* self) { return ConstructBoth("CEffectSound::Construct", s_soundCtor, self); }
 CEffectSoundSeq* __fastcall SeqCtorVerify(CEffectSoundSeq* self) {
     return ConstructBoth("CEffectSoundSeq::Construct", s_seqCtor, self);
@@ -132,6 +136,7 @@ bool DestroyedBase(const CEffect* e) {
 
 bool Destroyed(const CEffectSound* e) { return DestroyedBase(e) && e->sound_ == -1 && e->looping_ == 1; }
 bool Destroyed(const CEffectSoundSeq* e) { return DestroyedBase(e) && e->sound_ == -1; }
+bool Destroyed(const CEffectAmbientSound* e) { return DestroyedBase(e) && e->sound_ == -1; }
 bool Destroyed(const CEffectPointLight* e) { return DestroyedBase(e) && e->light_ == nullptr; }
 bool Destroyed(const CEffectParticle* e) { return DestroyedBase(e) && e->source_ == nullptr && e->attachedTo_ == -1; }
 bool Destroyed(const CEffectLightning* e) { return DestroyedBase(e) && e->bolt_ == nullptr && e->toObject_ == -1; }
@@ -160,6 +165,10 @@ T* DeleteOurs(const char* name, T* self, unsigned flags) {
 
 void __fastcall SoundDestructVerify(CEffectSound* self) { DestructOurs("CEffectSound::Destruct", self); }
 void __fastcall SeqDestructVerify(CEffectSoundSeq* self) { DestructOurs("CEffectSoundSeq::Destruct", self); }
+void __fastcall AmbientDestructVerify(CEffectAmbientSound* self) { DestructOurs("CEffectAmbientSound::Destruct", self); }
+CEffectAmbientSound* __fastcall AmbientDeleteVerify(CEffectAmbientSound* self, void*, unsigned flags) {
+    return DeleteOurs("CEffectAmbientSound::DeletingDestruct", self, flags);
+}
 void __fastcall LightDestructVerify(CEffectPointLight* self) { DestructOurs("CEffectPointLight::Destruct", self); }
 void __fastcall ParticleDestructVerify(CEffectParticle* self) { DestructOurs("CEffectParticle::Destruct", self); }
 void __fastcall WallDestructVerify(CEffectWall* self) { DestructOurs("CEffectWall::Destruct", self); }
@@ -299,6 +308,7 @@ EI_VERIFY(0x00675F70, FieldEmptyVerify, 5, s_fieldEmpty);
 
 EI_VERIFY(0x00675DD0, SoundCtorVerify, 7, s_soundCtor);
 EI_VERIFY(0x00676760, SeqCtorVerify, 7, s_seqCtor);
+EI_VERIFY(0x00677510, AmbientCtorVerify, 7, s_ambientCtor);
 EI_VERIFY(0x00677D30, LightCtorVerify, 7, s_lightCtor);
 EI_VERIFY(0x006787B0, ParticleCtorVerify, 7, s_particleCtor);
 EI_VERIFY(0x006797E0, WallCtorVerify, 7, s_wallCtor);
@@ -306,6 +316,7 @@ EI_VERIFY(0x00679FC0, LightningCtorVerify, 7, s_lightningCtor);
 
 EI_VERIFY(0x006760A0, SoundDestructVerify, 0, s_unused);
 EI_VERIFY(0x00676980, SeqDestructVerify, 0, s_unused);
+EI_VERIFY(0x006776E0, AmbientDestructVerify, 0, s_unused);
 EI_VERIFY(0x00677FC0, LightDestructVerify, 0, s_unused);
 EI_VERIFY(0x00678990, ParticleDestructVerify, 0, s_unused);
 EI_VERIFY(0x006799E0, WallDestructVerify, 0, s_unused);
@@ -313,6 +324,7 @@ EI_VERIFY(0x0067A0B0, LightningDestructVerify, 0, s_unused);
 
 EI_VERIFY(0x00676080, SoundDeleteVerify, 0, s_unused);
 EI_VERIFY(0x00676960, SeqDeleteVerify, 0, s_unused);
+EI_VERIFY(0x006776C0, AmbientDeleteVerify, 0, s_unused);
 EI_VERIFY(0x00677FA0, LightDeleteVerify, 0, s_unused);
 EI_VERIFY(0x00678970, ParticleDeleteVerify, 0, s_unused);
 EI_VERIFY(0x006799C0, WallDeleteVerify, 0, s_unused);

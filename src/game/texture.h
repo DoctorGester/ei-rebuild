@@ -2,6 +2,7 @@
 
 #include "engine_object.h"
 #include "resource_manager.h"
+#include "lib/containers.h"
 
 #include <windows.h>
 
@@ -104,14 +105,8 @@ static_assert(offsetof(CDXSurface, surface) == 0x10);
 static_assert(offsetof(CDXSurface, bitsPerPixel) == 0x1C);
 static_assert(sizeof(CDXSurface) == 0x20);
 
-// A byte buffer aligned to 32 bytes (the raw block pointer is stored just before the data), with
-// MFC CByteArray-style size, capacity and growth step.
-struct AlignedBuffer {
-    std::uint8_t* data;         // +0x00
-    int size;                   // +0x04
-    int capacity;               // +0x08
-    int growBy;                 // +0x0C 0: an eighth of the size, 4..1024
-};
+// A byte buffer aligned to 32 bytes (the engine's aligned array; its out-of-line SetSize is 00694300).
+using AlignedBuffer = lib::AlignedArray<std::uint8_t>;
 
 // Header of an .mmp file (0x4C bytes); the extra block of +0x48 bytes follows it, then the mips.
 // Each channel: its mask, the shift of its lowest bit and its bit count.
@@ -170,13 +165,30 @@ static_assert(sizeof(ChannelLayout) == 0x34);
 // vtable 00743D24, class id 6. 0x68 bytes (00691810 makes it).
 class CTexture : public CEngineObject {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743D24);
+
     // 00690430. Creates the surface from .mmp data, starting at mip level `mip`: a system-memory
     // surface filled from the file (0068FA10) and loaded into a managed texture surface; copies
     // the file's extra block. Returns 1.
     int CreateFromMmp(CTextureDevice* device, const void* data, unsigned mip);
     int CallCreateFromMmp(CTextureDevice* device, const void* data, unsigned mip);   // through 00690430
-    // 00690260. Creates the surface from a .bmp file on disk.
+    // 00690260 (texture_fill.cpp). Loads the .bmp `path` with its alpha from "a_<file>" beside it
+    // (LoadBmpFiles), the path's pieces trimmed. 1 without loading when this texture is loaded and
+    // named `path`.
     int LoadBmp(CTextureDevice* device, const char* path);
+    int CallLoadBmp(CTextureDevice* device, const char* path);   // through 00690260
+    // 0068FA10 (texture_fill.cpp). Fills `surface`'s levels with the .mmp `data` from level `mip`
+    // on: copied (00690970) when the formats match, 8888 converted to 16 bits (00690B30), DXT
+    // decoded to 16 bits (00690D30). Returns the bytes written (MmpHeader::FilledBytes).
+    int FillSurface(CDXSurface* surface, const void* data, int mip);
+    int CallFillSurface(CDXSurface* surface, const void* data, int mip);   // through 0068FA10
+    // 00690970, 00690B30, 00690D30 (thiscall, the texture unused by the first and last): each locks
+    // a level, writes it, unlocks it and moves to the attached level (not released, as in the
+    // original) until the file's last level or the chain's end. Bytes written, or the DirectX
+    // report's result when a lock or unlock fails. `kind` is the converter's decode mode.
+    int CopyToSurface(CDXSurface* surface, const MmpHeader* header, int mip);
+    int ConvertToSurface(CDXSurface* surface, const MmpHeader* header, int mip);
+    int UnpackToSurface(CDXSurface* surface, const MmpHeader* header, int mip, int kind);
     // 0068F6C0. A surface with no pixels yet, as `header` describes it (texture_blank.cpp): square,
     // header->width wide (the height is not read), header->mipCount levels, the texture's format_,
     // a managed texture (system memory with flag 0x400). Returns 1.
@@ -222,6 +234,11 @@ static_assert(sizeof(CTexture) == 0x68);
 
 constexpr std::uint32_t kTextureLoaded = 0x08;    // CEngineObject::flags_
 
+// 006916F0 (texture_cache.cpp; cdecl). Deletes every composed-skin cache file
+// (<data path>textures\*.mmp); a file that cannot be deleted is reported through the debug log
+// with its name and GetLastError.
+void __cdecl DeleteComposedTextures();
+
 // vtable 00743CB0, class id 0x26. Slots 16-22 are CResourceManager's.
 class CTextureManager : public CResourceManager {
 public:
@@ -251,6 +268,16 @@ public:
     // registered one with a flag of 0x38 goes into the cache (cache_, cachedBytes_; its surface's
     // priority 0), any other is destroyed and kept as a spare. Returns 0.
     int ReleaseObject(CEngineObject* object) override;
+    // 14: 00691810 (texture.cpp). A new CTexture of `type`: the constructor and the reset inlined
+    // (no name, no surface, an empty extra block, a pixel format of size 0x20 and nothing else).
+    // Null when the allocation fails.
+    CEngineObject* NewObject(int type) override;
+    // 006913A0 (texture.cpp; RET 4). Holds `device` (counted). Without one: textures limited to 511
+    // pixels and mip level 2. Else the mip level from the texture quality setting (0, 1, 2, else 3),
+    // the limit when the Direct3D device's largest texture is at most 256 pixels wide or high (or
+    // its GetCaps fails and the DirectX report comes back with 0), and a tenth of the total local
+    // video memory for textures.
+    void SetDevice(CTextureDevice* device);
     // 00691BF0 (texture_cache.cpp). The cached texture of `type` named `name`, taken out of the
     // cache and registered again (its surface's priority 100); null when there is none.
     CTexture* TakeFromCache(int type, const char* name);
@@ -260,7 +287,7 @@ public:
 
     mfc::CTypedPtrList<CTexture> cache_;   // +0xBC released textures kept for reuse (vtable 00743D18)
     int cachedBytes_;           // +0xD8 the cached textures' byte sizes (CTexture::uploadResult_)
-    std::uint32_t unknown_DC;
+    std::uint32_t videoMemoryTenth_;   // +0xDC a tenth of the local video memory for textures (SetDevice)
     CTexture* shadowRenderSurface_;   // +0xE0 the shadows' render surface (00692140; counted)
     CTextureDevice* device_;    // +0xE4
     std::uint16_t mipLevel_;    // +0xE8 first mip level to load (texture quality setting)

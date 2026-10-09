@@ -21,6 +21,7 @@ CMapObject +0x144 is the extent.
 | 0067B690, 0067B800, 0067B9A0, 0067B8E0 | Unpack, Pack, SaveState, LoadState | as the other effects (Load ours only: CString reader) |
 | 0067AE30, 0067B1C0, 0067B1A0 | Construct, Destruct, DeletingDestruct | original on seeded scratch, all bytes / ours only |
 | 00676C00, 00676FD0 (+ ten pickers 00676DD0..00676F90) | CEffectSoundSeq Start, Unpack (world_effect_sequence.cpp) | ours only (Start: an id or -1; Unpack result) |
+| 00677510, 006776E0, 006776C0 | CEffectAmbientSound Construct, Destruct (Reset inline, then again), DeletingDestruct (A-H22) | original on scratch, all bytes / ours only |
 | 0067E170 | effect factory EffectNewObject (manager slot 14, RET 4; world_effect_lifetime.cpp) | ours only: slot 12 and type_ equal the request |
 
 Kept: Load and Unpack do not recompute the moving flag; Start copies the sound name unbounded.
@@ -32,7 +33,7 @@ CSoundManager::AddSequence with a chooser for their count; an update moves the s
 the sequence id. The chooser takes the number of sounds started so far in EDX (`SoundSequence::PlayNext`, sound_manager.cpp,
 passes it).
 
-The factory constructs the ambient sound, class 0x5B, Moshka (100) and Tornado (0x65) through their constructor addresses.
+The factory constructs class 0x5B, Moshka (100) and Tornado (0x65) through their constructor addresses.
 
 CEffectShowVisibility (0x5E, vtable 0074381C, 0x170): +0x14C observer, +0x150 seer (SetUnits 0067C640, from vision fog
 0x17 with caster and target), +0x154 counted fog object (client: made by the fog manager *007AF75C, 004E28D0), +0x158

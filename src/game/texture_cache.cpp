@@ -10,7 +10,12 @@
 // (section 16).
 #include "texture.h"
 
+#include "originals_library.h"
+
 #include "ei/hook.h"
+#include "lib/crt.h"
+#include "lib/gameapi.h"
+#include "lib/mfc.h"
 
 #include <cstring>
 
@@ -34,6 +39,35 @@ void SetPriority(const CTexture* texture, unsigned priority) {
 }
 
 } // namespace
+
+// --- 006916F0 ----------------------------------------------------------------------------------------
+
+namespace {
+const mfc::CString& DataPathString() { return *reinterpret_cast<const mfc::CString*>(0x007AF460); }
+const char* ComposedTexturePattern() { return reinterpret_cast<const char*>(0x00795D58); }   // "textures\*.mmp"
+const char* CantDeleteText() { return reinterpret_cast<const char*>(0x00795D34); }   // "Can't delete file \"%s\" due to %d"
+} // namespace
+
+void __cdecl DeleteComposedTextures() {
+    mfc::CFileFind find;
+    mfc::CString pattern = mfc::CString(DataPathString()) + ComposedTexturePattern();
+    if (!find.FindFile(pattern, 0)) return;
+    int more;
+    do {
+        more = CFileFindNext(&find);
+        alignas(mfc::CString) unsigned char pathSlot[sizeof(mfc::CString)];
+        mfc::CString* path = CFileFindPathOriginal(&find, nullptr, reinterpret_cast<mfc::CString*>(pathSlot));
+        BOOL deleted = gameapi::DeleteFileA(*path);
+        path->~CString();
+        if (!deleted) {
+            alignas(mfc::CString) unsigned char nameSlot[sizeof(mfc::CString)];
+            mfc::CString* name = CFileFindNameOriginal(&find, nullptr, reinterpret_cast<mfc::CString*>(nameSlot));
+            game::DebugLog(CantDeleteText(), static_cast<const char*>(*name), gameapi::GetLastError());
+            name->~CString();
+        }
+    } while (more);
+}
+EI_REPLACE(0x006916F0, DeleteComposedTextures);
 
 // --- 00691B00 ----------------------------------------------------------------------------------------
 

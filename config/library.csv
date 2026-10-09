@@ -3211,8 +3211,13 @@ address,name,library,signature,notes
 0064B630,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 007428A0 (GetRuntimeClass 007005E3, Serialize 0064B1E0 identified); touches no other vtable; callees library only"
 0064B650,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 3 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 0064B720,"ConstructElements (12-byte elements, zero fill)",MFC,,A-H11 sweep: same instructions as 0046F0E0 (data addresses masked; every call goes to the same callee or to library code)
+0064B750,stlp::__insertion_sort<int*> (final insertion sort: the first 16 guarded then unguarded),STLport,,"A-H22: plain int comparisons, no game logic"
+0064B890,compiler-generated copy constructor (HudPortraitSlot),compiler,,"A-H22: 30 dwords member-wise, the three CStrings (+0x40, +0x50, +0x54) copy-constructed"
+0064B9B0,stlp::uninitialized_copy<HudPortraitSlot>,STLport,,"A-H22: the slot copy constructor inlined per element; returns the end of the destination"
+0064BB50,stlp::uninitialized_fill_n<HudPortraitSlot>,STLport,,"A-H22: the slot copy constructor inlined per element; returns the end"
 0064ECB0,stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection),STLport,,A-H11 sweep: same instructions as 00439DD0 (data addresses masked; every call goes to the same callee or to library code)
 0064ECF0,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00426B10 (reviewed)"
+0064EFD0,"mfc::CArray<T>::SetSize (0x1C-byte ObjectiveExit)",MFC,,"A-H22: MFC SetSize (new elements zeroed, growth max(4, min(size/8, 1024)) or growBy); the objectives window's ExitArrayAt::SetSize"
 0064F160,mfc::CArray<T>::SetAtGrow (0x1C-byte ObjectiveExit),MFC,,"A-H21: SetSize(index + 1) inlined (new block zeroed, growth max(4, min(size/8, 1024)) or growBy, memcpy of the old elements), then the 7-dword element copied in; the objectives window's ShowZone 0064CC10 is its one caller"
 0064F310,"stlp::__introsort_loop<CString*>",STLport,,"A-H17 review: the objectives window's quest sort (0064D05C; CString* by the quest order of 0064F550, inlined as quest database lookups 004CE110 / 0064EE90)"
 0064F400,"stlp::__median<CString>",STLport,,"A-H17 review: the objectives window's quest sort (0064D05C; CString* by the quest order of 0064F550, inlined as quest database lookups 004CE110 / 0064EE90)"
@@ -3617,6 +3622,7 @@ address,name,library,signature,notes
 006ADEE0,stlp::copy<T*>,STLport,,A-H11 sweep: same instructions as 00408C20 (data addresses masked; every call goes to the same callee or to library code)
 006ADF40,compiler-generated destructor (the quest database 007C87A8),compiler,,"A-H20 review: the briefing index hash_map (+0x2C: nodes 006B0840, buckets 0042B150), the briefing records (+0x20, 006AF5A0 each, storage 006B0270), the quest index (+0x0C: 006B0750, 006AFF40) and the quest records (+0x00, 006AF4D0 each, 006B0230); only the members' destructors inlined; atexit stub 006ADF30"
 006AE0F0,compiler-generated constructor (the quest database 007C87A8),compiler,,"A-H20 review: two empty vectors and two hash_maps of 100 buckets (006AFCF0 / 006AFFC0); only the members' constructors inlined; static initialiser 006ADF10"
+006AE220,compiler-generated partial destructor (the quest database members),compiler,,"A-H22: only the unwind handlers 00735700 / 007357A6 call it: the hash_map buckets and the record vector freed through the node pool"
 006AF4D0,compiler-generated destructor (quest database record with vectors),compiler,,"A-H11 review: frees the record's vectors and strings to the node pool; no game logic"
 006AF5A0,compiler-generated destructor (quest record with CString vectors),compiler,,"A-H11 review: destroys the CString vectors and strings member by member; no game logic"
 006AF740,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)

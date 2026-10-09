@@ -465,6 +465,9 @@ __declspec(naked) inline int __fastcall CFileFindFindFileOriginal(void* /*find*/
                                                                   unsigned long /*flags*/) EI_ORIGINAL(0x006E6433)
 __declspec(naked) inline mfc::CString* __fastcall CFileFindPathOriginal(const void* /*find*/, void*, mfc::CString* /*out*/)
     EI_ORIGINAL(0x006E6722)
+// 006E684B: CFileFind::GetFileName(out) (RET 4, EAX = out).
+__declspec(naked) inline mfc::CString* __fastcall CFileFindNameOriginal(const void* /*find*/, void*, mfc::CString* /*out*/)
+    EI_ORIGINAL(0x006E684B)
 // 006E88FC: the CRT's qsort (cdecl, plain RET, no result).
 __declspec(naked) inline void __cdecl GameQsortOriginal(void* /*base*/, std::size_t /*count*/, std::size_t /*size*/,
                                                         int(__cdecl* /*compare*/)(const void*, const void*))

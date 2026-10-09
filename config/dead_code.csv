@@ -458,6 +458,7 @@ address,size,name,evidence
 00688660,137,FUN_00688660,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00688D70,313,FUN_00688d70,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0068D450,323,FUN_0068d450,"no references at all (no call/jmp, no absolute pointer in code or data)"
+0068F860,234,FUN_0068f860,"called only from dead code 00691D50 (A-H22; no pointer to it in the exe or the Rebirth binaries)"
 00691070,92,FUN_00691070,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00691D50,41,FUN_00691d50,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00692BF0,187,FUN_00692bf0,referenced only from dead code 00565650

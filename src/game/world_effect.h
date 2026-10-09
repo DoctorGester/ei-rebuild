@@ -139,6 +139,11 @@ static_assert(sizeof(CEffectSoundSeq) == 0x174);
 // A looping ambient sound (vtable 0074350C, class id 0x49). 0x174 bytes.
 class CEffectAmbientSound : public CEffect {
 public:
+    // The constructor ends with Reset; the destructor runs Reset twice (inline, then slot 18).
+    CEffectAmbientSound* Construct();             // 00677510
+    void Destruct();                              // 006776E0
+    CEffectAmbientSound* DeletingDestruct(unsigned flags);   // 006776C0
+    static std::uintptr_t Vtable();               // 0074350C
     void Reset();                                 // 00677870 (slot 18)
     void Start(int update);                       // 00677950 (slot 23)
     int Unpack(int update, DeltaField* field);    // 006779D0 (slot 21)

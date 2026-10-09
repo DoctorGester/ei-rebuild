@@ -157,7 +157,13 @@ struct FileFindOps : mfc::CFileFind {
 __declspec(naked) BOOL FileFindOps::Next() EI_ORIGINAL(0x006E6653)
 BOOL FileFindOps::IsDots() const { return CFileFindIsDotsOriginal(this); }
 __declspec(naked) mfc::CString FileFindOps::FilePath() const EI_ORIGINAL(0x006E6722)
-__declspec(naked) mfc::CString FileFindOps::FileName() const EI_ORIGINAL(0x006E684B)
+mfc::CString FileFindOps::FileName() const {
+    alignas(mfc::CString) unsigned char slot[sizeof(mfc::CString)];
+    mfc::CString* name = CFileFindNameOriginal(this, nullptr, reinterpret_cast<mfc::CString*>(slot));
+    mfc::CString result(*name);
+    name->~CString();
+    return result;
+}
 __declspec(naked) void FileFindOps::Close() EI_ORIGINAL(0x006E63E9)
 FileFindOps& Ops(mfc::CFileFind& find) { return static_cast<FileFindOps&>(find); }
 

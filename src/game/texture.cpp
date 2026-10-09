@@ -1,9 +1,16 @@
 #include "texture.h"
 
+#include "app.h"
+
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+
+#include <ddraw.h>
+
+#include <cstring>
+#include <new>
 
 namespace {
 // Game-wide paths set at startup. Names provisional.
@@ -29,7 +36,6 @@ int BmpFormatFor(int type) {
 __declspec(naked) int CTextureDevice::ParseMmpHeader(const void*, PixelFormat*) EI_ORIGINAL(0x004E7C40)
 __declspec(naked) int CTextureDevice::FindFormat(int, PixelFormat*) EI_ORIGINAL(0x004E7DA0)
 __declspec(naked) int CTexture::CallCreateFromMmp(CTextureDevice*, const void*, unsigned) EI_ORIGINAL(0x00690430)
-__declspec(naked) int CTexture::LoadBmp(CTextureDevice*, const char*) EI_ORIGINAL(0x00690260)
 __declspec(naked) int ChannelLayout::Split(const void*) EI_ORIGINAL(0x004EDAA0)
 
 int CTextureManager::LoadTexture(CTexture* texture) {
@@ -54,7 +60,7 @@ int CTextureManager::LoadTexture(CTexture* texture) {
                 "CTextureManager::LoadTexture.\n Can't find desired texture format %d for texture \"%s\".\n", 0,
                 texture->GetName());
         texture->format_ = format;
-        return texture->LoadBmp(device_, path);
+        return texture->CallLoadBmp(device_, path);
     }
 
     path = mfc::CString(texture->GetName()) + ".mmp";
@@ -121,6 +127,89 @@ int CTextureManager::LoadTextureFrom(CTexture* texture, const char* directory) {
     gamecrt::operator_delete(buffer);
     return 1;
 }
+
+namespace {
+// The texture quality setting (0 best .. 3).
+int TextureQuality() { return *reinterpret_cast<const int*>(0x0079BCDC); }
+const char* CantGetDeviceDescriptionText() { return reinterpret_cast<const char*>(0x0078EE20); }
+
+// IDirect3DDevice7::GetCaps (slot 3) into a D3DDEVICEDESC7, whose largest texture size is at +0x84 / +0x88.
+constexpr int kDeviceGetCaps = 3;
+struct DeviceDescription {
+    std::uint8_t unknown_00[0x84];
+    std::uint32_t maxTextureWidth;    // +0x84
+    std::uint32_t maxTextureHeight;   // +0x88
+    std::uint8_t unknown_8C[0x100 - 0x8C];
+};
+long DeviceGetCaps(void* device, DeviceDescription* desc) {
+    using Fn = long(__stdcall*)(void*, DeviceDescription*);
+    return reinterpret_cast<Fn>((*static_cast<void***>(device))[kDeviceGetCaps])(device, desc);
+}
+} // namespace
+
+void CTextureManager::SetDevice(CTextureDevice* device) {
+    CTextureDevice* old = device_;
+    device_ = device;
+    if (device) device->AddRef();
+    if (old) old->Release();
+    if (!device_) {
+        limitTo512_ = 1;
+        mipLevel_ = 2;
+        return;
+    }
+    switch (TextureQuality()) {
+    case 0: mipLevel_ = 0; break;
+    case 1: mipLevel_ = 1; break;
+    case 2: mipLevel_ = 2; break;
+    default: mipLevel_ = 3; break;
+    }
+    DeviceDescription desc;
+    long result = DeviceGetCaps(device_->d3dDevice_, &desc);
+    device_->lastLoadResult_ = result;
+    if (result != 0 && app::FatalErrorCode(result, CantGetDeviceDescriptionText()) == 0)
+        limitTo512_ = 1;
+    else
+        limitTo512_ = desc.maxTextureWidth > 0x100 && desc.maxTextureHeight > 0x100 ? 0 : 1;
+    DDSCAPS2 caps;
+    std::memset(&caps, 0, sizeof(caps));
+    caps.dwCaps = DDSCAPS_TEXTURE | DDSCAPS_LOCALVIDMEM;   // 0x10001000
+    DWORD total = 0, available = 0;
+    static_cast<IDirectDraw7*>(device_->ddraw_)->GetAvailableVidMem(&caps, &total, &available);
+    videoMemoryTenth_ = total / 10;
+}
+EI_REPLACE_METHOD(0x006913A0, CTextureManager::SetDevice);
+
+CEngineObject* CTextureManager::NewObject(int type) {
+    void* memory = gamecrt::operator_new(sizeof(CTexture));
+    if (!memory) return nullptr;
+    auto* texture = static_cast<CTexture*>(memory);
+    texture->ClearFields();
+    auto* name = new (&texture->name_) mfc::CString;
+    std::memset(&texture->extra_, 0, sizeof(texture->extra_));
+    texture->surface_ = nullptr;
+    ei::SetVtable(texture, CTexture::kVtableAddress);
+    name->Empty();
+    // 004EBE30, the counted surface pointer set to null.
+    CDXSurface* old = texture->surface_;
+    texture->surface_ = nullptr;
+    if (old) old->Release();
+    texture->block_ = nullptr;
+    texture->height_ = 0;
+    texture->width_ = 0;
+    texture->uploadResult_ = 0;
+    std::memset(&texture->format_, 0, sizeof(texture->format_));
+    texture->format_.words[0] = sizeof(PixelFormat);   // DDPIXELFORMAT dwSize
+    texture->unknown_64 = 0;
+    texture->extra_.SetSize(0, -1);
+    texture->type_ = type;
+    return texture;
+}
+CEngineObject* __fastcall TextureNewObjectHook(CTextureManager* self, void*, int type) {
+    return self->CTextureManager::NewObject(type);
+}
+EI_REPLACE(0x00691810, TextureNewObjectHook);
+// The extra block's out-of-line SetSize.
+EI_REPLACE_METHOD(0x00694300, lib::AlignedArray<std::uint8_t>::SetSize);
 
 EI_REPLACE_METHOD(0x006922A0, CTextureManager::LoadTexture);
 EI_REPLACE_METHOD(0x006926F0, CTextureManager::LoadTextureFrom);

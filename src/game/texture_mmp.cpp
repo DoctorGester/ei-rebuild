@@ -43,9 +43,6 @@ template <typename... Args> long Com(void* object, int slot, Args... args) {
     return reinterpret_cast<long(__stdcall*)(void*, Args...)>(fn)(object, args...);
 }
 
-// 0068FA10: fills `surface` with the .mmp pixels from level `mip` on (thiscall on the texture).
-__declspec(naked) int __fastcall FillSurface(CTexture*, void*, CDXSurface*, const void*, unsigned)
-    EI_ORIGINAL(0x0068FA10)
 // 006908E0 through its game address (so its verify wrapper sees the call).
 __declspec(naked) std::uint32_t __fastcall CallMipOffset(const MmpHeader*, void*, unsigned) EI_ORIGINAL(0x006908E0)
 
@@ -82,76 +79,6 @@ void FillDescription(std::uint32_t (&desc)[kDescWords], const CTexture* texture,
         desc[kMipCount] = levels;
         desc[kFlags] |= kDescMipMapCount;
         desc[kCaps] = caps | kCapsMipMaps;
-    }
-}
-
-// --- AlignedBuffer -----------------------------------------------------------------------------
-
-std::uint8_t* AllocateAligned(int size) {   // also 004ECB50
-    auto* raw = static_cast<std::uint8_t*>(gamecrt::operator_new(static_cast<std::size_t>(size + 0x24)));
-    auto* data = reinterpret_cast<std::uint8_t*>((reinterpret_cast<std::uintptr_t>(raw) + 0x23) & ~std::uintptr_t{0x1F});
-    reinterpret_cast<std::uint8_t**>(data)[-1] = raw;
-    return data;
-}
-
-void FreeAligned(std::uint8_t* data) { gamecrt::operator_delete(reinterpret_cast<std::uint8_t**>(data)[-1]); }
-
-// The new capacity for `size` bytes: capacity + growBy (an eighth of the size, 4..1024, when
-// growBy is 0), at least `size`.
-int GrownCapacity(const AlignedBuffer& buffer, int size) {
-    int grow = buffer.growBy;
-    if (grow == 0) {
-        grow = buffer.size / 8;
-        if (grow < 4)
-            grow = 4;
-        else if (grow > 0x400)
-            grow = 0x400;
-    }
-    int capacity = buffer.capacity + grow;
-    return size < capacity ? capacity : size;
-}
-
-// CByteArray::SetSize as CreateFromMmp inlines it: 0 frees the data, growing keeps the contents.
-void ResizeKeep(AlignedBuffer& buffer, int size) {
-    if (size == 0) {
-        if (buffer.data) {
-            FreeAligned(buffer.data);
-            buffer.data = nullptr;
-        }
-        buffer.capacity = 0;
-        buffer.size = 0;
-    } else if (!buffer.data) {
-        buffer.data = AllocateAligned(size);
-        buffer.capacity = size;
-        buffer.size = size;
-    } else if (size <= buffer.capacity) {
-        buffer.size = size;
-    } else {
-        int capacity = GrownCapacity(buffer, size);
-        std::uint8_t* data = AllocateAligned(capacity);
-        std::memcpy(data, buffer.data, static_cast<std::size_t>(static_cast<std::uint32_t>(buffer.size)));
-        FreeAligned(buffer.data);
-        buffer.data = data;
-        buffer.size = size;
-        buffer.capacity = capacity;
-    }
-}
-
-// The variant LoadMmpExtra inlines: the contents are not kept and size 0 keeps the block.
-void ResizeDiscard(AlignedBuffer& buffer, int size) {
-    if (!buffer.data) {
-        buffer.data = AllocateAligned(size);
-        buffer.capacity = size;
-        buffer.size = size;
-    } else if (size <= buffer.capacity) {
-        buffer.size = size;
-    } else {
-        int capacity = GrownCapacity(buffer, size);
-        std::uint8_t* data = AllocateAligned(capacity);
-        FreeAligned(buffer.data);
-        buffer.data = data;
-        buffer.capacity = capacity;
-        buffer.size = size;
     }
 }
 
@@ -255,7 +182,7 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const void* data, unsigned m
         if (previous) ReleaseSurface(previous);
         uploadResult_ = static_cast<int>(header->FilledBytes(format_, mip, levels));
         MarkLoaded(this, header);
-        ResizeKeep(extra_, static_cast<int>(header->extraSize));
+        extra_.SetSize(static_cast<int>(header->extraSize));
         std::memcpy(extra_.data, header + 1, header->extraSize);
         return 1;
     }
@@ -280,7 +207,7 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const void* data, unsigned m
     if (surface) ++surface->refCount;
     if (previous) ReleaseSurface(previous);   // 004E6BA0
 
-    uploadResult_ = FillSurface(this, nullptr, staging, data, mip);
+    uploadResult_ = CallFillSurface(staging, data, static_cast<int>(mip));
     gameapi::EnterCriticalSection(DeviceLock());
     device->lastLoadResult_ = Com(device->d3dDevice_, kDeviceLoad, surface_->surface, static_cast<void*>(nullptr),
                                   staging->surface, static_cast<void*>(nullptr), 0u);
@@ -289,7 +216,7 @@ int CTexture::CreateFromMmp(CTextureDevice* device, const void* data, unsigned m
     MarkLoaded(this, header);
     Com(surface_->surface, kSurfaceSetPriority, 100u);
 
-    ResizeKeep(extra_, static_cast<int>(header->extraSize));
+    extra_.SetSize(static_cast<int>(header->extraSize));
     std::memcpy(extra_.data, header + 1, header->extraSize);
 
     if (staging) ReleaseSurface(staging);
@@ -310,7 +237,7 @@ int CTextureManager::LoadMmpExtra(const char* name, AlignedBuffer* out) {
     if (file.Open(path, mfc::CFile::modeRead, nullptr)) {
         file.Read(&header, sizeof(header));
         int size = static_cast<int>(header.extraSize);
-        ResizeDiscard(*out, size);
+        out->SetSizeDiscard(size);
         if (size) file.Read(out->data, static_cast<unsigned>(size));
         file.Close();
         return 1;
@@ -318,11 +245,11 @@ int CTextureManager::LoadMmpExtra(const char* name, AlignedBuffer* out) {
     path.Format(Text(0x00795F44), name, Text(0x0078FB4C));   // "%s%s", ".mmp"
     void* data = ei::VCall<void*>(this, 19, static_cast<const char*>(path), static_cast<std::uint32_t*>(nullptr));
     if (!data) {
-        ResizeDiscard(*out, 0);
+        out->SetSizeDiscard(0);
         return 0;
     }
     const auto* fileHeader = static_cast<const MmpHeader*>(data);
-    ResizeDiscard(*out, static_cast<int>(fileHeader->extraSize));
+    out->SetSizeDiscard(static_cast<int>(fileHeader->extraSize));
     if (fileHeader->extraSize) std::memcpy(out->data, fileHeader + 1, fileHeader->extraSize);
     ei::VCall<int>(this, 20, data);
     return 1;
