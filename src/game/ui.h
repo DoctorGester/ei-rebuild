@@ -385,10 +385,14 @@ public:
 
     // Calls 005FD7A0 through its address (the wrapper runs).
     void CallSwapContents(int restore);
+    // 005FDCB0 (RET 8; ui_surface_frame.cpp). With a surface (and its DC held): a one-pixel frame
+    // of `colour` (a GDI solid brush) around `rect` (layout coordinates, scaled to the screen through
+    // 005F7CA0) or, for an empty rect, around the whole surface.
+    void FrameRect(const RECT* rect, COLORREF colour);
 
     void* vtable_;
     CInterface3D* interface_;        // +0x04
-    std::uint8_t unknown_08[0x0C - 0x08];
+    HDC dc_;                         // +0x08 while the DC is held (005FDC00 .. 005FDC60)
     std::uint32_t flags_;            // +0x0C
     void* holder_;                   // +0x10 the DirectDraw surface's holder (null while swapped out)
     int width_;                      // +0x14

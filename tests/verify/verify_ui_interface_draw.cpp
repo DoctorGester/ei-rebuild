@@ -27,3 +27,12 @@ static int __fastcall FadeDrawVerify(CScreenFade* self, void*, CSceneRenderer* r
     return result;
 }
 EI_VERIFY(0x005E69C0, FadeDrawVerify, 0, s_unused);
+
+// 005FDCB0 (CUiSurface::FrameRect, ui_surface_frame.cpp): ours only (it draws through GDI); the
+// surface's DC is left as it was. Every tooltip's border (0065E880): any scenario that hovers.
+static void __fastcall SurfaceFrameRectVerify(CUiSurface* self, void*, const RECT* rect, COLORREF colour) {
+    HDC dc = self->dc_;
+    self->FrameRect(rect, colour);
+    ei::verify::Check("CUiSurface::FrameRect", true, self->dc_ == dc, "colour %08lX", colour);
+}
+EI_VERIFY(0x005FDCB0, SurfaceFrameRectVerify, 0, s_unused);

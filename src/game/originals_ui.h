@@ -217,6 +217,8 @@ __declspec(naked) inline void __fastcall WindowShowSurfacesOriginal(void* /*wind
 __declspec(naked) inline void __fastcall CursorSetHeldOriginal(void* /*cursor*/, void*, char /*held*/) EI_ORIGINAL(0x005E67B0)
 // 005A6C70 (a jump to 0059F210): the figure's Create (vtable slot 2; thiscall, plain RET; the result is not used).
 __declspec(naked) inline void __fastcall FigureCreateOriginal(void* /*figure*/) EI_ORIGINAL(0x005A6C70)
+// 00708D79: MFC's CDC::FromHandle (static, stdcall): the temporary CDC of `dc`.
+__declspec(naked) inline void* __stdcall CdcFromHandleOriginal(void* /*dc*/) EI_ORIGINAL(0x00708D79)
 // 0065ECB0: the DirectInput mouse's state read (thiscall, RET 4; the argument is not read; returns the DIMOUSESTATE
 // inside the object).
 __declspec(naked) inline const long* __fastcall DirectInputMousePollOriginal(void* /*mouse*/, void*, int /*unused*/)

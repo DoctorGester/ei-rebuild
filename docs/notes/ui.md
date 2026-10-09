@@ -187,7 +187,10 @@ figure's Create 005A6C70, identity scale matrix, tint 1, the identity orientatio
 0xFF000000, visible) and `CUiWindow::ClearObjects` 005FF1E0 (only the base screen's chat window 006091C0 calls it). The sprite's
 array sizes `CUiMesh::SetQuadCount` 005EA210 (then z 0, w 1 in every block), `SetVertexCount` 005EA600 (+2 zeroed),
 `SetIndexCount` 005EA4C0, `SetUvCount` 005EA380 are `lib::AlignedArray<T>::SetSize` on typed views (`Quads()`,
-`Vertices()`, `Indices()`, `Texels()`); ours only (size, capacity, kept prefix, the element fields).
+`Vertices()`, `Indices()`, `Texels()`); ours only (size, capacity, kept prefix, the element fields). `CUiSurface::FrameRect`
+005FDCB0 (`ui_surface_frame.cpp`; the tooltips' border: a CBrush local (`ui_gdi::GameBrush`, Attach 0070A075 /
+DeleteObject 0070A0CC), FrameRect on the held DC around the rect scaled by 005F7CA0 by address, or the whole surface);
+ours only (the DC field unchanged). CDC::FromHandle 00708D79 is `CdcFromHandleOriginal` in originals_ui.h now.
 
 | Address | Name | Verify |
 |---|---|---|
