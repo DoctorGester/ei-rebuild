@@ -258,7 +258,6 @@ src/game/unit_db_destroy.cpp,0,0,0,0,1,0,0,0,0
 src/game/unit_equipment.cpp,0,2,0,0,6,0,0,0,0
 src/game/unit_hits.cpp,7,0,0,1,4,0,0,0,0
 src/game/unit_items.cpp,1,4,0,0,0,0,0,0,0
-src/game/unit_lever.cpp,30,1,0,0,0,0,0,0,0
 src/game/unit_motion_tick.cpp,0,0,8,0,1,0,0,0,0
 src/game/unit_params_skill.cpp,3,0,0,0,0,0,0,0,0
 src/game/unit_points.cpp,20,5,0,0,0,0,0,0,0
