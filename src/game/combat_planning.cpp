@@ -56,13 +56,11 @@ __declspec(naked) char* __fastcall SpellPrototype(void*) EI_ORIGINAL(0x0068BA20)
 // The AI map (world + 0x170): 005BB350 FindPath, 005BA830 CanLeaveCell, 005BBC70 the cell flag
 // 0x80 under a point, 005BC3E0 LineOfSight (ST0).
 __declspec(naked) bool __fastcall MapCanLeaveCell(void*, void*, CUnit*) EI_ORIGINAL(0x005BA830)
-__declspec(naked) std::uint8_t __fastcall MapCellFlag80(void*, void*, const float*) EI_ORIGINAL(0x005BBC70)
-__declspec(naked) double __fastcall MapLineOfSight(void*, void*, const float*, const float*) EI_ORIGINAL(0x005BC3E0)
 // The sector map (world + 0x294 = 007B01F4): 005C1010 Remove, 005C0DF0 Add.
 // AIPath (ai_motion.cpp / ai_path_stand.cpp): 005B23A0 Clear, 005B2190 stand still where the unit
 // is, 005B22C0 the path as a motion order, 005C7D00 Destination (of a motion order).
 __declspec(naked) void __fastcall PathStandStill(void*, void*, CUnit*) EI_ORIGINAL(0x005B2190)
-__declspec(naked) float* __fastcall MotionDestination(void*, void*, float* /*out*/) EI_ORIGINAL(0x005C7D00)
+__declspec(naked) Vector3* __fastcall MotionDestination(void*, void*, Vector3* /*out*/) EI_ORIGINAL(0x005C7D00)
 // UnitMotion (ai_motion.cpp): 005C6270 Clear, 005C67D0 Build, 005C7430 Sample.
 __declspec(naked) int __fastcall MotionClear(void*) EI_ORIGINAL(0x005C6270)
 // The controller's functions rewritten elsewhere, through their game addresses: 0054C800
@@ -275,9 +273,9 @@ double CUnitServer::TimeUntilAction(const UnitAction* order, void* motionOrder) 
         float sy = sight.point.y - position.y;
         float sx = sight.point.x - position.x;
         if (!(sy * sy + sx * sx >= sight.minDistanceSq)) break;   // C0: closer (or unordered)
-        float from[3] = {position.x, position.y, position.z};
-        from[2] = static_cast<float>(UnitGroundHeight(unit, nullptr, position.x, position.y) + sight.eyeHeight);
-        double visible = MapLineOfSight(MapOf(ManagerContextOf(this)), nullptr, from, &sight.point.x);
+        Vector3 from = {position.x, position.y, position.z};
+        from.z = static_cast<float>(UnitGroundHeight(unit, nullptr, position.x, position.y) + sight.eyeHeight);
+        double visible = LineOfSightOriginal(MapOf(ManagerContextOf(this)), nullptr, &from, &sight.point);
         if (!(visible < *reinterpret_cast<const float*>(0x0073EEC0))) break;
         t += 5.0f;
     }
@@ -325,12 +323,12 @@ bool CUnitServer::PlanOrderRoute(UnitAction* order, std::uint32_t shout) {
         // Where the unit would stand at the end of its way, and whether it could act from there.
         auto actsFromDestination = [&]() {
             Vector3 destination;
-            const float* at = MotionDestination(route.bytes(), nullptr, &destination.x);
+            const Vector3* at = MotionDestination(route.bytes(), nullptr, &destination);
             if (!CtlCanReachTarget(this, nullptr, order)) return false;
             float x = unit->position.x, y = unit->position.y, z = unit->position.z;
-            unit->position.x = at[0];
-            unit->position.y = at[1];
-            unit->position.z = at[2];
+            unit->position.x = at->x;
+            unit->position.y = at->y;
+            unit->position.z = at->z;
             bool can = CtlCanPlanAction(this, nullptr, order);
             unit->position.x = x;
             unit->position.y = y;
@@ -393,7 +391,7 @@ void CUnitServer::PlanMove(const float* point, int moving, int run, float range)
         if (!MapCanLeaveCell(map, nullptr, unit)) unit->moveMode = mode;
         SectorMapAdd(sectors, nullptr, unit);
     }
-    std::uint32_t flag = MapCellFlag80(map, nullptr, &unit->position.x);
+    std::uint32_t flag = CellFlag80AtOriginal(map, nullptr, &unit->position);
     void* world2 = ManagerContextOf(this);
     path.Path()->flag6E = unit->player == nullptr;
     std::uint32_t saved43C = unit->unknown_43C;

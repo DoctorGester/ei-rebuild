@@ -147,7 +147,6 @@ __declspec(naked) double __fastcall UnitScaledValue(CUnit*, void*, float) EI_ORI
 // Add, sector_map.cpp), the world's timed objects (0058E5D0, world_server.cpp), the brain's
 // leader (005D5E90, unit_ai.cpp), the memory's "is an enemy" (005CB7F0), the party's sight of a
 // unit (0066E110).
-__declspec(naked) std::uint8_t __fastcall MapCellFlag80(void*, void*, const float*) EI_ORIGINAL(0x005BBC70)
 __declspec(naked) void* __fastcall BrainLeader(void*) EI_ORIGINAL(0x005D5E90)
 int __fastcall MemoryIsEnemy(void* a0, void*, CUnit* a2, CEngineObject* a3) { return AiMemoryIsEnemyOriginal(a0, nullptr, (void*)a2, (void*)a3); }
 __declspec(naked) bool __fastcall PartySees(void*, void*, CEngineObject*) EI_ORIGINAL(0x0066E110)
@@ -370,7 +369,7 @@ bool CUnitServer::StartMove() {
     // Plan the way with the units near the goal lifted off the sector map.
     CtlLiftNearby(this, nullptr, &lifted, &action.point.x, action.source != 0);
     CAIMap* map = static_cast<CWorldServer*>(ManagerContext())->AIMap();
-    unit->unknown_43C = MapCellFlag80(map, nullptr, &unit->position.x);
+    unit->unknown_43C = CellFlag80AtOriginal(map, nullptr, &unit->position);
     bool found = TickPathTo(this, nullptr, &action.point.x, std::bit_cast<std::uint32_t>(action.point.z));
     for (UnitPtrList::Node* node = lifted.head; node;) {
         UnitPtrList::Node* current = node;

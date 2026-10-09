@@ -94,9 +94,6 @@ __declspec(naked) void __fastcall BrainStopAction(void*, void*) EI_ORIGINAL(0x00
 __declspec(naked) void* __fastcall BrainFindFollowMode(void*, void*) EI_ORIGINAL(0x005D5E60)
 __declspec(naked) void __fastcall FollowModeSetLeader(void*, void*, void* /*brain*/, CEngineObject*) EI_ORIGINAL(0x005D3DE0)
 // Placement on the maps.
-__declspec(naked) bool __fastcall AIMapFindFreeCellNear(void*, void*, CEngineObject*, const Vector3*, Vector3*)
-    EI_ORIGINAL(0x005BA9D0)
-__declspec(naked) bool __fastcall AIMapCellFlag(void*, void*, int, const Vector3*) EI_ORIGINAL(0x005BA790)
 void __fastcall ControllerReposition(void* a0, void*) { ControllerRepositionOriginal(a0); }
 // The unit's setup.
 inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { UnitSetControllerOriginal((void*)a0, nullptr, a2); }
@@ -306,7 +303,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         SectorMapRemove(AsSectorMap(sectorMap_), nullptr, unit);
         Vector3 free;
         std::memcpy(&free, &AsUnit(unit)->position.x, sizeof(free));
-        AIMapFindFreeCellNear(aiMap_, nullptr, unit, position, &free);
+        FindFreeCellNearOriginal(aiMap_, nullptr, unit, position, &free);
         std::memcpy(&AsUnit(unit)->position.x, &free, sizeof(free));
         SectorMapAdd(AsSectorMap(sectorMap_), nullptr, unit);
 
@@ -340,7 +337,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         script += line;
         if (unknown12D64_ == kKindSinglePlayer && !atStart) AsUnit(unit)->moveMode2 = record->unknown_770;
         if (placement) {
-            bool flagged = AIMapCellFlag(aiMap_, nullptr, 1, &AsUnit(unit)->position);
+            bool flagged = IsPassableForClassOriginal(aiMap_, nullptr, 1, &AsUnit(unit)->position);
             if (flagged) UnitSetPose(unit, nullptr, placement->value20, placement->value20);
             else AsUnit(unit)->moveMode2 = static_cast<int>(placement->value20);
         }

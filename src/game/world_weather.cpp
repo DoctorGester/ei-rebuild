@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "ei/x87.h"
+#include "originals_ai.h"
 #include "originals_world.h"
 #include "originals_effects.h"
 #include "originals_script.h"
@@ -60,7 +61,6 @@ double __fastcall WorldDayTime(CWorldServer* a0, void*) { return WorldDayTimeOri
 // CAIMap (+0x170): the cell kind at a point (005BBE40), whether the point is blocked (005BBC70, AL),
 // the free fraction of the line between two points (005BC750, ST0).
 __declspec(naked) int __fastcall AIMapCellKind(void*, void*, const Vector3*) EI_ORIGINAL(0x005BBE40)
-__declspec(naked) bool __fastcall AIMapBlocked(void*, void*, const Vector3*) EI_ORIGINAL(0x005BBC70)
 __declspec(naked) double __fastcall AIMapLineFree(void*, void*, const Vector3*, const Vector3*) EI_ORIGINAL(0x005BC750)
 // 0067DA50 (RET 8). A lightning object's path.
 __declspec(naked) void __fastcall LightningSetPath(void*, void*, const Vector3*, const Vector3*) EI_ORIGINAL(0x0067DA50)
@@ -90,7 +90,7 @@ void TryLightningStrike(CWorldServer* world) {
     void* aiMap = world->aiMap_;
     int kind = AIMapCellKind(aiMap, nullptr, &ground);
     if (kind != 3 && kind != 1) return;
-    if (AIMapBlocked(aiMap, nullptr, &ground)) return;
+    if (CellFlag80AtOriginal(aiMap, nullptr, &ground)) return;
 
     float dx = StoreFloat(static_cast<float>(x87::FromUnsigned(Random().Next()) * OffsetScale() - OffsetCentre()));
     double dyRaw = x87::FromUnsigned(Random().Next()) * OffsetScale() - OffsetCentre();

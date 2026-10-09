@@ -7,6 +7,7 @@
 #include "item.h"
 #include "maths.h"
 #include "spell.h"
+#include "world.h"
 
 #include "lib/crt.h"
 
@@ -15,6 +16,7 @@
 #include "ei/x87.h"
 #include "originals_engine.h"
 #include "originals_library.h"
+#include "originals_ai.h"
 #include "originals_units.h"
 
 #include <bit>
@@ -154,7 +156,6 @@ inline double __fastcall UnitGroundHeight(CUnit* a0, void*, float a2, float a3) 
 // CUnitServer::ActionDistance, 005BC3E0 CAIMap::LineOfSight.
 __declspec(naked) double __fastcall UnitEyeHeight(CUnit*) EI_ORIGINAL(0x00530370)
 __declspec(naked) double __fastcall UnitModeHeight(CUnit*) EI_ORIGINAL(0x005302F0)
-__declspec(naked) double __fastcall MapLineOfSight(void*, void*, const Vector3*, const Vector3*) EI_ORIGINAL(0x005BC3E0)
 
 } // namespace
 
@@ -305,8 +306,8 @@ bool CUnitServer::CanActFrom(const UnitAction* order, const float* point, int ti
     eye.y = unit->position.y;
     eye.z = unit->position.z;
     eye.z = static_cast<float>(UnitGroundHeight(unit, nullptr, eye.x, eye.y) + sight.eyeHeight);
-    void* map = static_cast<char*>(ManagerContext()) + 0x170;
-    double visibility = MapLineOfSight(map, nullptr, &eye, &sight.point);
+    CAIMap* map = static_cast<CWorldServer*>(ManagerContext())->AIMap();
+    double visibility = LineOfSightOriginal(map, nullptr, &eye, &sight.point);
     return !LessOrUnordered(visibility, kPointOne);
 }
 EI_REPLACE_METHOD(0x0054C2F0, CUnitServer::CanActFrom);

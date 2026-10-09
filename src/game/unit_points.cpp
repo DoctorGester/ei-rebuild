@@ -24,7 +24,6 @@ namespace {
 // animation index [00518F80 (index)]; the orientation's axes [0040D940 X, 0040F560 Y (out)]; the AI
 // map's passability for a size class [005BA790 (class, point)]; the debug message [0044C470].
 Vector3* __fastcall AxisY(const Quaternion* q, void*, Vector3* out) { return QuaternionAxisY(q, nullptr, out); }
-__declspec(naked) bool __fastcall IsPassableForClass(void*, void*, int, const float*) EI_ORIGINAL(0x005BA790)
 
 constexpr int kOrderPath = 2;
 constexpr float kCellScale = 1.0f;            // 0073E9B8 / 0073EBF0
@@ -111,8 +110,8 @@ float* __fastcall UnitActionPoint(std::uint8_t* object, void*, float* out) {
     // The world's slot 26 (IsServer); the server's AI map.
     auto* world = static_cast<CWorldServer*>(ObjectWorld(unit));
     if (world->IsServer()) {
-        float point[3] = {offset.x + unit->position.x, offset.y + unit->position.y, offset.z + unit->position.z};
-        if (!IsPassableForClass(world->AIMap(), nullptr, 3, point)) {
+        Vector3 point = {offset.x + unit->position.x, offset.y + unit->position.y, offset.z + unit->position.z};
+        if (!IsPassableForClassOriginal(world->AIMap(), nullptr, 3, &point)) {
             CopyPosition(out, unit);
             return out;
         }

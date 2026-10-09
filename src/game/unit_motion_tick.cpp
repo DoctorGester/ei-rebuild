@@ -53,16 +53,12 @@ void __fastcall StepsAddStep(AnimationSteps* a0, void*, std::uint32_t a2, int a3
 // (unit.cpp), 0052E9D0 the path speeds, 00402220 face a direction.
 __declspec(naked) void __fastcall FaceDirection(CUnit*, void*, const float*) EI_ORIGINAL(0x00402220)
 // The sector map (world + 0x294): 005C1010 Remove, 005C0DF0 Add, 005C11D0 Move (patched by Rebirth).
-__declspec(naked) bool __fastcall SectorMove(void*, void*, CUnit*, const float*) EI_ORIGINAL(0x005C11D0)
 // The AI map (world + 0x170, ai_map.cpp / ai_movement.cpp / ai_path.cpp): 005B81B0
 // CanStandAtFromHere, 005B7BB0 BlockingUnitAt, 005BBDB0 HasKind3OccluderAt, 005BB350 FindPath,
 // 005BB900 ContinuePath, 005B7EF0 lifts (1) / restores (0) the units around a point (not
 // rewritten).
 __declspec(naked) bool __fastcall MapCanStand(void*, void*, CUnit*, int, int, int*) EI_ORIGINAL(0x005B81B0)
-__declspec(naked) CUnit* __fastcall MapBlockingUnit(void*, void*, CUnit*, const float*) EI_ORIGINAL(0x005B7BB0)
-__declspec(naked) bool __fastcall MapOccluderAt(void*, void*, const float*) EI_ORIGINAL(0x005BBDB0)
 __declspec(naked) bool __fastcall MapContinuePath(void*, void*, CUnit*, void* /*path*/) EI_ORIGINAL(0x005BB900)
-__declspec(naked) void __fastcall MapLiftAround(void*, void*, const float*, int) EI_ORIGINAL(0x005B7EF0)
 // The motion order (+0x3C, an AIPath): 005B23A0 Clear, 005C7B00 Start (ai_motion.cpp).
 // 0040F560 Quaternion::AxisY, 00402200 NegateVector (core_maths.cpp).
 // 005D5E90 the AI brain's leader (unit_ai.cpp); 0066D6E0 a party message.
@@ -392,10 +388,10 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
 
 // Replans the path to the order's goal (+0x9C; its z, +0xA4, holds the range PathTo asked for), with
 // the units around the blocked step lifted when `liftBlocker`.
-void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const float* position) {
+void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3* position) {
     if (liftBlocker) {
         SectorMapRemove(world->Sectors(), nullptr, UnitOf(c));
-        MapLiftAround(world->AIMap(), nullptr, position, 1);
+        StampWaterPatchOriginal(world->AIMap(), nullptr, position, 1);
         SectorMapAdd(world->Sectors(), nullptr, UnitOf(c));
     }
     // The path's remaining cells (AIPath::cells, +0x78) emptied, as RemoveAll inlined.
@@ -411,7 +407,7 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const float* 
     UnitOf(c)->unknown_43C = current;
     if (liftBlocker) {
         SectorMapRemove(world->Sectors(), nullptr, UnitOf(c));
-        MapLiftAround(world->AIMap(), nullptr, position, 0);
+        StampWaterPatchOriginal(world->AIMap(), nullptr, position, 0);
         SectorMapAdd(world->Sectors(), nullptr, UnitOf(c));
     }
     if (found) {
@@ -509,7 +505,7 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
         SectorMapRemove(sectors, nullptr, UnitOf(c));
         canStand = MapCanStand(world->AIMap(), nullptr, UnitOf(c), cellX, cellY, &blocked);
         if (!canStand) {
-            CUnit* blocker = MapBlockingUnit(world->AIMap(), nullptr, UnitOf(c), &position.x);
+            CUnit* blocker = BlockingUnitAtOriginal(world->AIMap(), nullptr, UnitOf(c), &position);
             if (!blocker) {
                 canStand = true;
             } else {
@@ -523,17 +519,17 @@ void __fastcall UpdateMotionBody(CUnitServer* c, int stale) {
     // An idle unit standing in a kind-3 occluder (while its motion order started (+0x4C) before
     // the world's +0x2804 and moveMode2's flag4 is clear) replans.
     bool replan = false;
-    if (c->state == kStateIdle && MapOccluderAt(world->AIMap(), nullptr, &position.x) &&
+    if (c->state == kStateIdle && HasKind3OccluderAtOriginal(world->AIMap(), nullptr, &position) &&
         OrderOf(MotionPathOf(c))->startTime < world->occluderReplanTime_ && c->moveMode2.flag4 == 0) {
         blocked = kBlockedReplan;
         replan = true;
     }
-    if (!replan && canStand && SectorMove(world->Sectors(), nullptr, UnitOf(c), &position.x)) {
+    if (!replan && canStand && SectorMapMove(world->Sectors(), nullptr, UnitOf(c), &position)) {
         SetObstacle(c, c->state == kStateIdle ? 1 : 0);
         FaceDirection(UnitOf(c), nullptr, &direction.x);
         if (motionOver) MotionOver(c, world);
     } else if (blocked == kBlockedReplan) {
-        Replan(c, world, liftBlocker, &position.x);
+        Replan(c, world, liftBlocker, &position);
     } else if (blocked == kBlockedWait) {
         if (c->stats.unknown_060 == 2) c->unknown_021 = 1;   // +0x240: the stats' +0x60
         else c->unknown_020 = 1;

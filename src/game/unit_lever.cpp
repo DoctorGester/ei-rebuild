@@ -37,7 +37,6 @@ void* LeverRecordMap() { return reinterpret_cast<void*>(0x0079C1AC); }
 __declspec(naked) void __fastcall MapBeginRefresh(void*) EI_ORIGINAL(0x005B8B30)
 __declspec(naked) void __fastcall MapEndRefresh(void*) EI_ORIGINAL(0x005B8B80)
 __declspec(naked) bool __fastcall MapCanLeaveCell(void*, void*, void*) EI_ORIGINAL(0x005BA830)
-__declspec(naked) bool __fastcall MapFindFreeCellNear(void*, void*, void*, const float*, float*) EI_ORIGINAL(0x005BA9D0)
 void __fastcall FigureAnimate(void* a0, void*, const char* a2) { ObjectSetupFigureOriginal(a0, nullptr, a2); }
 void __fastcall ControllerResync(void* a0) { ControllerRepositionOriginal(a0); }
 
@@ -111,10 +110,10 @@ void Lever::SetState(int wanted, float duration) {
         auto* next = node->next;
         void* unit = node->data;
         if (!MapCanLeaveCell(map, nullptr, unit)) {
-            float* at = &AsMapObject(unit)->position.x;
-            float free[3] = {at[0], at[1], at[2]};
-            MapFindFreeCellNear(map, nullptr, unit, at, free);
-            std::memcpy(at, free, sizeof(free));
+            Vector3* at = &AsMapObject(unit)->position;
+            Vector3 free = {at->x, at->y, at->z};
+            FindFreeCellNearOriginal(map, nullptr, AsEngineObject(unit), at, &free);
+            std::memcpy(at, &free, sizeof(free));
             ControllerResync(static_cast<CUnit*>(AsEngineObject(unit))->controller);
         }
         SectorMapAdd(sectors, nullptr, AsEngineObject(unit));

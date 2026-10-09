@@ -35,7 +35,6 @@ __declspec(naked) int __fastcall CellPassability(CAIMap*, void*, std::uint32_t*,
 const float* ClassHeights() { return reinterpret_cast<const float*>(0x007912BC); }
 
 // LineOfSight through its original address (rewritten in ai_map.cpp), its ST0 taken unrounded.
-__declspec(naked) double __fastcall LineOfSightRaw(CAIMap*, void*, const Vector3*, const Vector3*) EI_ORIGINAL(0x005BC3E0)
 
 float Store(double v) {
     volatile float r = static_cast<float>(v);
@@ -252,7 +251,7 @@ void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* l
             }
             if (!noLineOfSight) {
                 cell.z = Store(static_cast<double>(cells[y][x].groundLevel) / heightScale + targetHeight);
-                double seen = LineOfSightRaw(this, nullptr, eye, &cell) * radius;
+                double seen = LineOfSightOriginal(this, nullptr, eye, &cell) * radius;
                 if (!(seen >= distance)) continue;
             }
             grid->rows[gy][gx] = 1;
