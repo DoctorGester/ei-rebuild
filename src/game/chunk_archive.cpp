@@ -51,6 +51,15 @@ __declspec(naked) ObjectPair* __fastcall MakeObjectPair(ObjectPair* /*pair*/, vo
                                                         CRefObject* const* /*value*/) EI_ORIGINAL(0x0040A9D0)
 __declspec(naked) ClassIdIterator* __fastcall ClassIdFind(ClassIdMap* /*map*/, void*, ClassIdIterator* /*out*/, const std::uint32_t* /*key*/) EI_ORIGINAL(0x0040B400)
 __declspec(naked) ChunkArchive::Factory* __fastcall FactoryAt(FactoryMap* /*map*/, void*, const std::uint32_t* /*key*/) EI_ORIGINAL(0x0040A800)
+// The containers' constructors and destructors an archive on the stack runs (004A8310 / 004A8560):
+// the chunk stack's list(allocator) and destructor, the object map's hashtable(100) and destructor,
+// the saved list's list(allocator) and destructor.
+__declspec(naked) void __fastcall StackConstruct(StackNode** /*list*/, void*, const void* /*allocator*/) EI_ORIGINAL(0x004A94A0)
+__declspec(naked) void __fastcall StackDestroy(StackNode** /*list*/) EI_ORIGINAL(0x004A9650)
+__declspec(naked) void __fastcall ObjectsConstruct(ObjectMap* /*map*/) EI_ORIGINAL(0x004639D0)
+__declspec(naked) void __fastcall ObjectsDestroy(ObjectMap* /*map*/) EI_ORIGINAL(0x004A8B70)
+__declspec(naked) void __fastcall SavedConstruct(SavedNode** /*list*/, void*, const void* /*allocator*/) EI_ORIGINAL(0x00463AA0)
+__declspec(naked) void __fastcall SavedDestroy(SavedNode** /*list*/) EI_ORIGINAL(0x004A96A0)
 // 0040A770: a counted pointer from a raw pointer (adds a reference).
 __declspec(naked) CRefObject** __fastcall CountedFromRaw(CRefObject** /*p*/, void*, CRefObject* /*object*/) EI_ORIGINAL(0x0040A770)
 
@@ -313,6 +322,26 @@ CRefObject* ChunkArchive::ObjectRef(int id) {
     return node ? node->value : nullptr;
 }
 EI_REPLACE_METHOD(0x0040A5A0, ChunkArchive::ObjectRef);
+
+// ---- An archive on the stack ----------------------------------------------------------------------
+
+void ChunkArchive::ConstructLocal() {
+    indexStream_.Construct();
+    dataStream_.Construct();
+    char allocator;   // the lists' allocator argument (an empty object; only its address is passed)
+    StackConstruct(&stack_, nullptr, &allocator);
+    ObjectsConstruct(&objects_);
+    SavedConstruct(&saved_, nullptr, &allocator);
+    version_ = 1;
+}
+
+void ChunkArchive::DestructLocal() {
+    SavedDestroy(&saved_);
+    ObjectsDestroy(&objects_);
+    StackDestroy(&stack_);
+    dataStream_.Destruct();
+    indexStream_.Destruct();
+}
 
 // ---- Whole archives over a CStream ---------------------------------------------------------------
 

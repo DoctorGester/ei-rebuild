@@ -196,6 +196,11 @@ public:
     BOOL OnWheel(int keys, short delta, int x, int y);   // 006210F0
     void OnLButtonDownForward(int flags, int x, int y);  // 006212A0 (the forwarding subclass)
 
+    // 0060E2B0 (ui_window_delete.cpp). The forwarding strip's destructor body (vtable 0074197C):
+    // the visible list's storage, then the window's. The plain strip's (0060E280) frees nothing of
+    // its own.
+    void DestroyForwarding();
+
     // Settles the pending scroll on release (inlined twice by the original).
     void SettleScroll();
     // Not rewritten: virtual slots 25 and 26 called through the vtable.
@@ -424,6 +429,17 @@ public:
     // OK) deletes the hero; then the selected hero's record takes the local player's party and
     // sends the transfer (00662AC0); mode 9 (00615D30).
     void OnMessageResult(int result);
+    // 00617A50 (ui_hero_screen_click.cpp). Region 1 / Enter of the statistics page: the new hero
+    // keeps only the chosen weapon, quick item and spell container (the others removed from its
+    // lists; the shown weapon 0, or -1 without one), and a spell container whose spell the hero
+    // cannot use (HeroCanUseSpell) goes back to the local player's items; a new hero record is
+    // appended (the vector's own growth through 00619920 when full) and selected, its file named
+    // "<the highest number among the folder's *.mp titles + 1>.mp", given the local party and
+    // saved (00662AC0); the list's scroll range, the list drawn, mode 9.
+    void AddNewHero();
+    // The hero list's scroll bar after the count changed (DeleteHero and AddNewHero inline it):
+    // range count - 10 keeping the position, or 0 with the top row 0.
+    void RefreshHeroScroll();
 
     CUiWindow window;
     std::uint8_t unknown_148[0x164 - 0x148];
@@ -492,15 +508,27 @@ static_assert(offsetof(UnitSoundSet, entries) == 0x1AC);
 
 // The multiplayer connection screen (0x260 bytes, vtables 00741CD0 / 00741C9C; configddrbook.ini),
 // as the hero screen's Continue builds it inline. Only what that construction writes.
+// An entry of the connection screen's address list (0x34 bytes; config\addrbook.ini).
+struct MpAddressEntry {
+    mfc::CString name;             // +0x00
+    mfc::CString address;          // +0x04
+    std::uint8_t unknown_08[0x34 - 0x08];
+};
+static_assert(sizeof(MpAddressEntry) == 0x34);
+
 class CMpConnectScreen : public CUiContainer {
 public:
     static void** Vtable() { return reinterpret_cast<void**>(std::uintptr_t(0x00741CD0)); }
     static void** InputVtable() { return reinterpret_cast<void**>(std::uintptr_t(0x00741C9C)); }
 
+    // 00618570 (ui_window_delete.cpp). The destructor body: the two text arrays, the text, the
+    // address entries (names, storage), then the container's.
+    void DestroyBody();
+
     std::uint8_t unknown_164[4];
-    int unknown_168;               // +0x168 0
-    int unknown_16C;               // +0x16C 0
-    int unknown_170;               // +0x170 0
+    MpAddressEntry* entries_;      // +0x168 STLport vector of the address book's entries
+    MpAddressEntry* entriesEnd_;   // +0x16C
+    MpAddressEntry* entriesCapacity_;   // +0x170
     std::uint8_t unknown_174[4];
     int unknown_178[4];            // +0x178..+0x184 0
     std::uint8_t unknown_188[0x224 - 0x188];

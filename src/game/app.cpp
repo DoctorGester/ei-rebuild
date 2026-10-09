@@ -4,6 +4,7 @@
 // Every callee is reached through its original address (several are patched by Rebirth:
 // 0057C700, 00595480, FatalError 00480080; 004D36F0 is rewritten and has a verify wrapper).
 #include "app.h"
+#include "dx_errors.h"
 #include "game_strings.h"
 
 #include "ei/hook.h"
@@ -371,5 +372,31 @@ int __cdecl FatalError(const char* format, ...) {
 }
 EI_REPLACE(0x00480080, FatalError);
 EI_REBIRTH_IMPLEMENTS(0x00480080, ei::rebirth::Patch::DisableExitOnCrashReport);
+
+// ---- FatalErrorCode (004800E0) -----------------------------------------------------------------
+
+namespace {
+const char* CodeReportFormat() { return reinterpret_cast<const char*>(std::uintptr_t(0x00787EE4)); }   // "%s (0x%.8X) %s"
+} // namespace
+
+int FatalErrorCodeV(long result, const char* format, va_list args) {
+    char text[0x400];
+    char report[0x400];
+    gameapi::wvsprintfA(text, format, args);
+    gamecrt::sprintf(report, CodeReportFormat(), text, result, DirectXErrorText(result));
+    ShowMessageBox(report, kErrorBoxFlags);
+    if (ErrorHook hook = FatalErrorHook()) hook(report);
+    if (++FatalErrorCount() >= 1) ExitGame(-1);
+    return 0;
+}
+
+int __cdecl FatalErrorCode(long result, const char* format, ...) {
+    va_list args;
+    va_start(args, format);
+    int value = FatalErrorCodeV(result, format, args);
+    va_end(args);
+    return value;
+}
+EI_REPLACE(0x004800E0, FatalErrorCode);
 
 } // namespace app

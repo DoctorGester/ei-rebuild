@@ -206,3 +206,96 @@ static BOOL __fastcall CreateServerVerify(CPlayerServer* self) {
     return result;
 }
 EI_VERIFY(0x0066C9A0, CreateServerVerify, 0, s_unused);
+
+// --- A-H15: the server's lifetime and slots ----------------------------------------------------------
+// Scenarios: every newgame constructs the server (0066C540) and runs ClearState through the
+// player's Create / Destroy; leaving the zone (zone_gz2g_traps, `zone`) runs Leave (slot 16) and
+// the destructor at the session's end; party units' combat motion (ui_battle_commands, sound's
+// goblin fight) sends the path message 0066D490.
+
+// 0066D490: side by side (ours, the stream and fields restored, the original, both compared).
+EI_MESSAGE_VERIFY(0x0066D490, 6, "CPlayerServer::SendPathMessage",
+                  (CPlayerServer* self, void*, CEngineObject* unit, void* path, const float* point, int kind, int flag,
+                   std::uint32_t limit),
+                  (self, nullptr, unit, path, point, kind, flag, limit),
+                  SendPathMessage(unit, path, point, kind, flag, limit));
+
+namespace {
+const char* (__fastcall* s_serverName)(CPlayerServer*);
+int(__fastcall* s_serverId)(CPlayerServer*);
+
+// The state ClearState leaves (the refresh timer drawn from ISAAC).
+bool Cleared(const CPlayerServer* self) {
+    return self->state_ == 0 && self->sentObjects_.size == 0 && self->sentTimed_.size == 0 && self->out_.size_ == 0 &&
+           self->group50F8_.size == 0 && self->partyUnits_.size == 0 && self->placements_.size == 0 &&
+           self->unknown_44 == -1 && self->unknown24_ == 0xFFFFFFFFu && self->refreshPending_ == 0 &&
+           self->flag70_ == 0 && self->refreshTimer_ >= 900 && self->refreshTimer_ <= 1800;
+}
+} // namespace
+
+const char* __fastcall PlayerServerClassName(CPlayerServer*);
+int __fastcall PlayerServerClassId(CPlayerServer*);
+
+// Constructor: ours only (an ISAAC draw): the vtable, the engine object's fields, an empty table
+// and a cleared state.
+static CPlayerServer* __fastcall ServerConstructVerify(CPlayerServer* self) {
+    CPlayerServer* result = self->Construct();
+    auto* object = reinterpret_cast<CEngineObject*>(self);
+    bool ok = result == self && reinterpret_cast<std::uintptr_t>(self->vtable_) == 0x00743280u && object->refCount_ == 0 &&
+              object->id_ == -1 && self->player_ == nullptr && self->handlers_.data == nullptr && Cleared(self);
+    ei::verify::Check("CPlayerServer::Construct", true, ok, "server %p timer %d", self, self->refreshTimer_);
+    return result;
+}
+// Destructor body / deleting destructor: ours only (the destructor body leaves CEngineObject's
+// vtable and no player).
+static void __fastcall ServerDestructVerify(CPlayerServer* self) {
+    self->DestructBody();
+    bool ok = reinterpret_cast<std::uintptr_t>(self->vtable_) == CEngineObject::kVtableAddress && self->player_ == nullptr;
+    ei::verify::Check("CPlayerServer::DestructBody", true, ok, "server %p", self);
+}
+static CPlayerServer* __fastcall ServerDeleteVerify(CPlayerServer* self, void*, unsigned flags) {
+    CPlayerServer* result = self->DeletingDestruct(flags);
+    ei::verify::Check("CPlayerServer::DeletingDestruct", true, result == self, "server %p", self);
+    return result;
+}
+// Class name / id: against the original.
+static const char* __fastcall ServerNameVerify(CPlayerServer* self) {
+    const char* expected = s_serverName(self);
+    ei::verify::Check("CPlayerServer::GetClassName", expected, PlayerServerClassName(self), "server %p", self);
+    return expected;
+}
+static int __fastcall ServerIdVerify(CPlayerServer* self) {
+    int expected = s_serverId(self);
+    ei::verify::Check("CPlayerServer::GetClassId", expected, PlayerServerClassId(self), "server %p", self);
+    return expected;
+}
+// ClearState (slots 3 and 15), ForgetSentObjects (13), ClearGroup50F8 (21), Leave (16): ours only.
+static void __fastcall ClearStateVerify(CPlayerServer* self) {
+    self->ClearState();
+    ei::verify::Check("CPlayerServer::ClearState", true, Cleared(self), "server %p timer %d", self, self->refreshTimer_);
+}
+static void __fastcall ForgetSentVerify(CPlayerServer* self) {
+    self->ForgetSentObjects();
+    bool ok = self->sentObjects_.size == 0 && self->sentObjects_.data == nullptr && self->sentTimed_.size == 0 &&
+              self->group50F8_.size == 0 && self->partyUnits_.size == 0 && self->partyUnits_.data == nullptr;
+    ei::verify::Check("CPlayerServer::ForgetSentObjects", true, ok, "server %p", self);
+}
+static void __fastcall ClearGroupVerify(CPlayerServer* self) {
+    self->ClearGroup50F8();
+    bool ok = self->group50F8_.size == 0 && self->group50F8_.data == nullptr && self->group50F8_.maxSize == 0;
+    ei::verify::Check("CPlayerServer::ClearGroup50F8", true, ok, "server %p", self);
+}
+static void __fastcall LeaveVerify(CPlayerServer* self) {
+    self->Leave();
+    ei::verify::Check("CPlayerServer::Leave", 3, self->state_, "server %p", self);
+}
+EI_VERIFY(0x0066C540, ServerConstructVerify, 0, s_unused);
+EI_VERIFY(0x0066C770, ServerDestructVerify, 0, s_unused);
+EI_VERIFY(0x0066C750, ServerDeleteVerify, 0, s_unused);
+EI_VERIFY(0x0066C730, ServerNameVerify, 5, s_serverName);
+EI_VERIFY(0x0066C740, ServerIdVerify, 5, s_serverId);
+EI_VERIFY(0x0066CC50, ClearStateVerify, 0, s_unused);
+EI_VERIFY(0x0066CF20, ClearStateVerify, 0, s_unused);
+EI_VERIFY(0x0066CE50, ForgetSentVerify, 0, s_unused);
+EI_VERIFY(0x0066D090, ClearGroupVerify, 0, s_unused);
+EI_VERIFY(0x0066D020, LeaveVerify, 0, s_unused);

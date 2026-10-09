@@ -7,6 +7,7 @@
 
 #include "engine_object.h"
 
+#include "../lib/containers.h"
 #include "../lib/mfc.h"
 #include "registry.h"
 #include "resource_stream.h"
@@ -172,25 +173,43 @@ struct CSoundManager : CEngineObject {
     void* streamSample;                 // +0x104 HSAMPLE
     void* streamFile;                   // +0x108 ASI stream
     void** streamCodec;                 // +0x10C ASI codec functions (slot 3: close)
-    std::uint8_t unknown110[0x10];
+    std::uint32_t unknown110;           // +0x110 0 after ResetStream
+    std::uint32_t unknown114;
+    std::uint32_t unknown118;
+    std::int32_t unknown11C;            // +0x11C -1 after ResetStream
     std::int32_t streamBufferBytes;     // +0x120
-    std::uint8_t unknown124[0xC];
+    std::int32_t unknown124;            // +0x124..+0x12C -1 after ResetStream
+    std::int32_t unknown128;
+    std::int32_t unknown12C;
     std::int32_t streamPosition;        // +0x130 bytes queued so far
     std::int32_t streamSwitchAt;        // +0x134 position at which nextName starts
-    std::uint8_t unknown138[0xC];
+    std::int32_t unknown138;            // +0x138, +0x13C -1 after ResetStream
+    std::int32_t unknown13C;
+    std::uint8_t unknown140;            // +0x140 0 after ResetStream
+    std::uint8_t unknown141[3];
     SoundFader musicFader;              // +0x144 music volume (options) and fades
     mfc::CString streamName;            // +0x160 playing
     mfc::CString nextName;              // +0x164 requested
-    std::int32_t* markers;              // +0x168 switch points (CArray<int>; "Markers1/2" in the file)
-    std::int32_t markerCount;           // +0x16C
-    std::uint8_t unknown170[0x18];
+    lib::AlignedArray<std::int32_t> markers;    // +0x168 switch points ("Markers1/2" in the file)
+    lib::AlignedArray<std::int32_t> markers2;   // +0x178
     std::uint8_t nameLock[0x18];        // +0x188 CRITICAL_SECTION guarding streamName
     std::int32_t switchMode;            // +0x1A0 how nextName was requested (RequestStream mode)
     std::int32_t streamFileSize;        // +0x1A4 bytes of the open stream file (StreamRead)
     std::int32_t streamReadPosition;    // +0x1A8
     std::uint32_t unknown1AC;
     std::uint8_t streamLock[0x18];      // +0x1B0 CRITICAL_SECTION guarding the stream and musicFader
-    std::uint8_t unknown1C8[0x84];
+    std::uint32_t unknown1C8;
+    // The MIDI sequence (+0x1CC; 006BBA00-006BBDF0).
+    std::uint8_t unknown1CC[0x10];
+    mfc::CString midiName;              // +0x1DC
+    mfc::CString midiNextName;          // +0x1E0
+    lib::AlignedArray<std::int32_t> midiArray1E4;   // +0x1E4
+    lib::AlignedArray<std::int32_t> midiArray1F4;   // +0x1F4
+    std::uint8_t unknown204[8];
+    SoundFader midiFader;               // +0x20C
+    std::uint8_t unknown228[4];
+    std::uint8_t midiLock[0x18];        // +0x22C CRITICAL_SECTION
+    std::uint8_t unknown244[8];
     SoundSlot* slots;                   // +0x24C 15 voices
     float listener[3];                  // +0x250 listener position (z: camera height)
     float listenerAxis[3];              // +0x25C listener direction, unit length in x/y
@@ -200,7 +219,8 @@ struct CSoundManager : CEngineObject {
     SoundSequence sequences[8];         // +0x5F0
     std::int32_t cacheBytes;            // +0x850 bytes held by the wave cache
     WaveList cacheList;                 // +0x854 the cached waves, most recently used first
-    std::uint8_t cache[0x14];           // +0x870 hash_map<string, cached wave> (006BBDF0)
+    std::uint8_t cache[4];              // +0x870 hash_map<string, cached wave> (006BBDF0): functor bytes
+    std::uint8_t cacheBuckets[0x10];    // +0x874 its bucket vector and element count
     DeferredMap deferred;               // +0x884
     std::int32_t enabled;               // +0x898
     std::int32_t unknown89C;
@@ -278,8 +298,25 @@ struct CSoundManager : CEngineObject {
     // empty unless the stream plays or switches.
     mfc::CString CurrentStreamName();
 
+    // A-H15 (sound_manager_lifetime.cpp).
+    // 006B6040. Constructor body: CEngineObject's fields, the sub-objects (stream reader,
+    // registries, archive, wave source list, the MP3 stream's strings, faders (volume 100), arrays
+    // and locks, the MIDI sequence's), the emitters and sequences (their element constructors
+    // 006B63D0 / 006B63F0 through the CRT's eh vector iterator), the wave cache list, both hash
+    // maps (100 buckets), the vtable, AIL_startup, then Reset. Returns this.
+    CSoundManager* Construct();
+    // 006B65D0. Destructor body: Close, AIL_shutdown, the hash maps, the cache list (each record's
+    // DestructElements 006BE210), the sequences and emitters, the MIDI and stream parts, the
+    // wave source list, the registries and archive (006714A0 through its address: Rebirth),
+    // the sound folder, the stream reader, CEngineObject's.
+    void DestructBody();
+    // 006BA9C0 (`this` is the manager's +0x100, the MP3 stream). The stream state reset: no
+    // sample, file or codec, the positions -1, both names empty, switch mode 4, no read
+    // position, the music fader at volume 100 with no fade.
+    void ResetStream();
+
     // Not rewritten.
-    void DestructBody();                                                                  // 006B65D0
+    void Close();                                                                         // 006B6D80 (Miles)
     void Reset();                                                                         // 006B73E0 (Miles)
     void StreamNotify(int mode);                                                          // 006BBAC0 (empty)
     int Play3D(const char* name, int priority, const float* position, float nearDist, float farDist, int loop,
@@ -294,7 +331,7 @@ struct CSoundManager : CEngineObject {
 static_assert(offsetof(CSoundManager, streamState) == 0x100);
 static_assert(offsetof(CSoundManager, musicFader) == 0x144);
 static_assert(offsetof(CSoundManager, streamName) == 0x160);
-static_assert(offsetof(CSoundManager, markerCount) == 0x16C);
+static_assert(offsetof(CSoundManager, markers) == 0x168);
 static_assert(offsetof(CSoundManager, switchMode) == 0x1A0);
 static_assert(offsetof(CSoundManager, streamLock) == 0x1B0);
 static_assert(offsetof(CSoundManager, slots) == 0x24C);
@@ -305,6 +342,10 @@ static_assert(offsetof(CSoundManager, streamReader) == 0x24 && offsetof(CSoundMa
 static_assert(offsetof(CSoundManager, archive074) == 0x74 && offsetof(CSoundManager, registry0CC) == 0xCC);
 static_assert(offsetof(CSoundManager, waveSources) == 0xE4);
 static_assert(offsetof(CSoundManager, streamReadPosition) == 0x1A8);
+static_assert(offsetof(CSoundManager, unknown11C) == 0x11C && offsetof(CSoundManager, unknown140) == 0x140);
+static_assert(offsetof(CSoundManager, markers2) == 0x178 && offsetof(CSoundManager, unknown1C8) == 0x1C8);
+static_assert(offsetof(CSoundManager, midiName) == 0x1DC && offsetof(CSoundManager, midiArray1F4) == 0x1F4);
+static_assert(offsetof(CSoundManager, midiFader) == 0x20C && offsetof(CSoundManager, midiLock) == 0x22C);
 static_assert(offsetof(CSoundManager, cacheList) == 0x854);
 static_assert(offsetof(CSoundManager, deferred) == 0x884);
 static_assert(offsetof(CSoundManager, enabled) == 0x898);

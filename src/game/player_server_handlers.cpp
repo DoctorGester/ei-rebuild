@@ -425,6 +425,24 @@ void CPlayerServer::LeaveToZone(const char* zone, int entrance) {
 }
 EI_REPLACE_METHOD(0x0066F310, CPlayerServer::LeaveToZone);
 
+// 0066D020 (slot 16; A-H15).
+void CPlayerServer::Leave() {
+    if (state_ == 1) {
+        if (flag70_) {
+            WorldServer()->CollectParty(reinterpret_cast<WorldPlayer*>(Owner()), nullptr);
+            flag70_ = 0;
+        }
+        if (GameMode() == 2) SendParty();
+    }
+    if (state_ != 3) {
+        state_ = 3;
+        std::uint8_t type = 0x01;
+        out_.Write(&type, 1);
+    }
+    Flush();
+}
+EI_REPLACE_METHOD(0x0066D020, CPlayerServer::Leave);
+
 int CPlayerServer::OnRefreshParty() {
     Owner()->ForgetKnownObjects();
     SendParty();

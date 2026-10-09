@@ -11,6 +11,9 @@
 #include "originals_core.h"
 #include "originals_engine.h"
 #include "originals_gameplay.h"
+#include "originals_ai.h"
+#include "originals_script.h"
+#include "../lib/crt.h"
 
 #include <cstring>
 
@@ -300,7 +303,7 @@ void ReleaseAll(PlayerObjectArray& objects) {
 
 } // namespace
 
-BOOL CPlayerServer::CreateServer() {
+void CPlayerServer::ClearState() {
     out_.Resize(0);
     ReleaseAll(sentObjects_);
     ReleaseAll(sentTimed_);
@@ -318,6 +321,10 @@ BOOL CPlayerServer::CreateServer() {
     compressor_.Reset();
     decompressor_.Reset();
     refreshTimer_ = static_cast<int>(IsaacRandom::Global().Next() % 0x385u + 0x384u);
+}
+
+BOOL CPlayerServer::CreateServer() {
+    ClearState();
     handlers_.SetSize(kServerHandlerCount);
     std::memset(static_cast<void*>(handlers_.data), 0, static_cast<std::size_t>(handlers_.size) * sizeof(Handler));
     for (const HandlerEntry& entry : kServerHandlers)
@@ -325,7 +332,137 @@ BOOL CPlayerServer::CreateServer() {
     return 1;
 }
 
+// --- A-H15: the server's lifetime and slots --------------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kConnectionVtable = std::uintptr_t(0x007431E0);   // CPlayerConnection's own
+constexpr std::uintptr_t kServerVtable = std::uintptr_t(0x00743280);
+constexpr std::uintptr_t kPlacementsVtable = std::uintptr_t(0x0073D2C8);
+constexpr std::uintptr_t kClassNameAddress = std::uintptr_t(0x00794E40);   // "CPlayerServer"
+constexpr int kClassId = 0x3B;
+
+void ConstructGroup(ScriptGroup& group) {
+    group.data = nullptr;
+    group.size = 0;
+    group.maxSize = 0;
+    group.growBy = 0;
+    group.vtable = scriptvtable::kRefs;
+}
+
+// The engine object part (CPlayerServer does not derive from CEngineObject in C++).
+CEngineObject* EngineObject(CPlayerServer* server) { return reinterpret_cast<CEngineObject*>(server); }
+
+// A delta field on the stack (four memory streams), as 0066D490 builds and destroys it inline.
+struct LocalDeltaField {
+    alignas(4) unsigned char bytes[sizeof(DeltaField)];
+    LocalDeltaField() { Get()->Construct(); }
+    ~LocalDeltaField() { Get()->Destruct(); }
+    DeltaField* Get() { return reinterpret_cast<DeltaField*>(bytes); }
+};
+constexpr std::uint8_t kPathMessage = 0x0E;
+constexpr int kPathKindNoPath = 3;
+
+} // namespace
+
+CPlayerServer* CPlayerServer::Construct() {
+    EngineObject(this)->ClearFields();
+    vtable_ = reinterpret_cast<void*>(kConnectionVtable);
+    player_ = nullptr;
+    handlers_.Construct();
+    out_.ConstructQueueStream();
+    placements_.vtable = reinterpret_cast<void*>(kPlacementsVtable);
+    placements_.data = nullptr;
+    placements_.size = 0;
+    placements_.maxSize = 0;
+    placements_.growBy = 0;
+    compressor_.Construct();
+    decompressor_.Construct();
+    sentObjects_.Construct();
+    sentTimed_.Construct();
+    ConstructGroup(group50F8_);
+    ScriptGroupConstructOriginal(&partyUnits_);
+    partyUnits_.vtable = scriptvtable::kRefs;
+    vtable_ = reinterpret_cast<void*>(kServerVtable);
+    ClearState();
+    return this;
+}
+
+void CPlayerServer::DestructBody() {
+    vtable_ = reinterpret_cast<void*>(kServerVtable);
+    ClearState();
+    ScriptGroupDestructOriginal(&partyUnits_);
+    ScriptGroupDestructOriginal(&group50F8_);
+    sentTimed_.FreeData();
+    sentObjects_.FreeData();
+    decompressor_.out.End();
+    compressor_.out.End();
+    placements_.vtable = reinterpret_cast<void*>(kPlacementsVtable);
+    if (placements_.data) gamecrt::operator_delete(placements_.data);
+    out_.Destruct();
+    handlers_.FreeData();
+    vtable_ = reinterpret_cast<void*>(kConnectionVtable);
+    player_ = nullptr;
+    EngineObject(this)->DestructBase();
+}
+
+CPlayerServer* CPlayerServer::DeletingDestruct(unsigned flags) {
+    DestructBody();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+
+const char* __fastcall PlayerServerClassName(CPlayerServer*) { return reinterpret_cast<const char*>(kClassNameAddress); }
+int __fastcall PlayerServerClassId(CPlayerServer*) { return kClassId; }
+
+void CPlayerServer::ForgetSentObjects() {
+    ReleaseAll(sentObjects_);
+    ReleaseAll(sentTimed_);
+    group50F8_.SetSize(0, -1);
+    partyUnits_.Resize(0);
+}
+
+void CPlayerServer::ClearGroup50F8() { group50F8_.Resize(0); }
+
+void CPlayerServer::SendPathMessage(CEngineObject* unit, void* path, const float* point, int kind, int flag,
+                                    std::uint32_t limitBits) {
+    if (!unit) return;
+    std::uint8_t type = kPathMessage;
+    out_.Write(&type, 1);
+    out_.Write(&kind, 4);
+    out_.Write(&flag, 4);
+    std::uint32_t word;
+    std::memcpy(&word, &point[0], 4);
+    out_.Write(&word, 4);
+    std::memcpy(&word, &point[1], 4);
+    out_.Write(&word, 4);
+    int id = unit->id_;
+    out_.Write(&id, 4);
+    out_.Write(&limitBits, 4);
+    if (kind == kPathKindNoPath) return;
+    LocalDeltaField field;
+    DeltaField* delta = field.Get()->BeginWriteB(0);
+    PathWriteOriginal(path, nullptr, delta);
+    delta->EndField();
+    out_.EndBits();
+    BitStream& written = field.Get()->out[0];
+    written.Seek(0);
+    std::uint8_t* data = written.data_;
+    out_.Write(data, written.Size());
+}
+
 // --- Hooks ---------------------------------------------------------------------------------------
+
+EI_REPLACE_METHOD(0x0066C540, CPlayerServer::Construct);
+EI_REPLACE_METHOD(0x0066C770, CPlayerServer::DestructBody);
+EI_REPLACE_METHOD(0x0066C750, CPlayerServer::DeletingDestruct);
+EI_REPLACE(0x0066C730, PlayerServerClassName);
+EI_REPLACE(0x0066C740, PlayerServerClassId);
+EI_REPLACE_METHOD(0x0066CC50, CPlayerServer::ClearState);
+EI_REPLACE_METHOD(0x0066CF20, CPlayerServer::ClearState);
+EI_REPLACE_METHOD(0x0066CE50, CPlayerServer::ForgetSentObjects);
+EI_REPLACE_METHOD(0x0066D090, CPlayerServer::ClearGroup50F8);
+EI_REPLACE_METHOD(0x0066D490, CPlayerServer::SendPathMessage);
 
 EI_REPLACE_METHOD(0x0066C9A0, CPlayerServer::CreateServer);
 

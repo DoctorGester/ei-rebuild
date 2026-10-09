@@ -140,6 +140,12 @@ struct ItemStock {
     float baseLevels[8];            // +0x78 8 floats, set with +0x98 (00699410)
     float scrollLevels[8];          // +0x98 the spell level per school for the scrolls (0069AC20)
 
+    // 004A66C0 (RET 4; class_template_stock.cpp). Constructor body: `context`, class index 0, the
+    // six vectors empty, both maps empty with NextPrime(100) buckets (their functor bytes left as
+    // they are; the original copies an uninitialised stack byte). Returns this. +0x78..+0xB7 are
+    // not written.
+    ItemStock* Construct(void* context);
+
     // 00699410 (RET 8). +0x78 and +0x98 each set from 8 floats (004A6DC0).
     void SetLevels(const float* base, const float* scroll);
 
@@ -216,6 +222,12 @@ struct ItemStock {
     // lower-cased (0069D290, kept even when unknown) and the three ints), then spells (+0x38) and
     // modifiers (+0x44) by name as read (maps 007C851C / 007C853C).
     void LoadLists(void* stream);
+    // 0069BAC0 (RET 4; not rewritten). Writes what LoadLists reads.
+    void SaveLists(void* stream);
+    // The destructor as the class template's (004A6A90) inlines it: context cleared, the modifier
+    // and spell maps destroyed (their own instantiations, 004A9010 / 004A8E60), each vector's storage
+    // freed from the last to the first.
+    void Destruct();
 };
 static_assert(offsetof(ItemStock, materials) == 0x2C);
 static_assert(offsetof(ItemStock, spellMap) == 0x50);

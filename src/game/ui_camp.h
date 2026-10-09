@@ -227,6 +227,10 @@ public:
     // game-over sound and the box "game_over" / "game_over_msg" (result 0x20000, OK and cancel);
     // won: "end_of_game" / "end_of_game_msg" (0xFFFF0000); opened on top (005F7350 with 1, 1).
     void OnGameOver(char won);
+    // 005F6130 (ui_window_delete.cpp). The destructor body: the two party id vectors' storage,
+    // the "pers" texts (every node erased, 005FAFA0, then the header), the hero ids and the party
+    // array (their vtables, storage freed), then the container's.
+    void DestroyBody();
     UiDwordArray& Party() { return *reinterpret_cast<UiDwordArray*>(partyArray_); }
 
     // The client's party ids (STLport vector<int>s): the ids of players with a unit, the camera's
@@ -277,7 +281,8 @@ public:
     RECT selectionBox_;              // +0x1CC the box (passed to 005656A0)
     UiDwordArray heroes_;            // +0x1DC ids of the heroes shown (saved with the game)
     PersonTextMap personTexts_;      // +0x1F0 the "pers" texts by person
-    std::uint8_t unknown_1F4[0x1FC - 0x1F4];
+    std::uint32_t personTextCount_;  // +0x1F4 the map's node count
+    std::uint8_t unknown_1F8[0x1FC - 0x1F8];
     int unknown_1FC;                 // +0x1FC 0; the quest sound to play (1 quest, 2 part done, 3 done)
     bool hasHero_;                   // +0x200 a hero id was added (new game)
     std::uint8_t unknown_201[3];
@@ -1034,6 +1039,9 @@ static_assert(offsetof(CConstructorPage, pulse_) == 0x154);
 // The spell maker's cost texts ("infoitem_35", "infoitem_36"): a CStringArray at +0x158.
 class CSpellMakerPage : public CConstructorPage {
 public:
+    // 0060E600 (ui_window_delete.cpp). The destructor body: the texts, then the window's.
+    void DestroyBody();
+
     void* textsVtable_;              // +0x158
     const char** texts_;             // +0x15C CString data
     int textCount_;                  // +0x160

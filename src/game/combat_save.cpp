@@ -7,15 +7,13 @@
 
 #include <cstdint>
 #include "originals_core.h"
+#include "originals_library.h"
 #include "originals_units.h"
 
 namespace {
 // Fields of CUnitServer that combat.h leaves unnamed (offsets from the controller).
-constexpr int kAnimation = 0x24;        // an AnimationList (0x14 bytes) and a dword at +0x38
 constexpr int kMotion = 0x3C;           // motion object (005B2430 / 005B2570)
 constexpr int kPlan = 0xC4;             // the plan of the current order (00544EF0 / 00544F60)
-constexpr int kAnimation2 = 0x148;      // a second AnimationList and its dword at +0x15C
-constexpr int kAttackers = 0x91C;       // CList of attacker records (0x91C vtable, +0x920 head, +0x928 count)
 constexpr int kVoice = 0xB10;
 
 constexpr int kVersionPlanDirection = 0x48;   // plan +0x38 and the orders' +0x18 byte
@@ -57,9 +55,6 @@ void AssignCounted(CEngineObject*& slot, CEngineObject* object) {
 
 namespace {
 // Not rewritten (forwarders):
-// 005582A0 / 00558420 (__fastcall): load / save an AnimationList (count, then 0xC-byte entries).
-__declspec(naked) void __fastcall AnimationListLoad(void*, UnitStream*) EI_ORIGINAL(0x005582A0)
-__declspec(naked) void __fastcall AnimationListSave(void*, UnitStream*) EI_ORIGINAL(0x00558420)
 // 005B2430 / 005B2570: the motion object at +0x3C.
 __declspec(naked) void __fastcall MotionLoad(void*, void*, UnitStream*) EI_ORIGINAL(0x005B2430)
 __declspec(naked) void __fastcall MotionSave(void*, void*, UnitStream*) EI_ORIGINAL(0x005B2570)
@@ -75,9 +70,6 @@ __declspec(naked) void __fastcall BrainSave(void*, void*, UnitStream*) EI_ORIGIN
 // 005AEC40 / 005AEC80: the voice at +0xB10.
 __declspec(naked) void __fastcall VoiceLoad(void*, void*, UnitStream*) EI_ORIGINAL(0x005AEC40)
 __declspec(naked) void __fastcall VoiceSave(void*, void*, UnitStream*) EI_ORIGINAL(0x005AEC80)
-// 005585F0 (__fastcall): loads the attackers list; 00545430 saves one of its records.
-__declspec(naked) void __fastcall AttackersLoad(void*, UnitStream*) EI_ORIGINAL(0x005585F0)
-__declspec(naked) void __fastcall AttackerSave(void*, void*, UnitStream*) EI_ORIGINAL(0x00545430)
 // 00403F40 CBaseManager::FindObject (base_manager.cpp), through its game address.
 
 // Resolves an id read from the stream in `manager` (-1: none).
@@ -133,19 +125,77 @@ void SavePlanFields(UnitStream* stream, void* plan) {
 }
 } // namespace
 
+// --- Step lists and the armour spell list (A-U7) ----------------------------------------------------
+
+namespace {
+// The item manager (007AFFB4), which resolves the armour spells' item ids.
+void* ItemManager() { return *reinterpret_cast<void**>(0x007AFFB4); }
+} // namespace
+
+void __fastcall LoadStepList(AnimationSteps* steps, UnitStream* stream) {
+    int count = 0;
+    stream->Read(&count, 4);
+    StepsSetSize(steps, nullptr, count, -1);
+    for (int i = 0; i < steps->count; ++i) stream->Read(&steps->steps[i], sizeof(AnimationStep));
+}
+EI_REPLACE(0x005582A0, LoadStepList);
+
+void __fastcall SaveStepList(const AnimationSteps* steps, UnitStream* stream) {
+    WriteCopy(stream, steps->count);
+    for (int i = 0; i < steps->count; ++i) stream->Write(&steps->steps[i], sizeof(AnimationStep));
+}
+EI_REPLACE(0x00558420, SaveStepList);
+
+void __fastcall SaveArmourSpell(const ArmourSpell* entry, void*, UnitStream* stream) {
+    WriteCopy(stream, IdOrNone(entry->item));
+    WriteCopy(stream, entry->countdown);
+}
+EI_REPLACE(0x00545430, SaveArmourSpell);
+
+void __fastcall LoadArmourSpells(ArmourSpellList* list, UnitStream* stream) {
+    int count = 0;
+    stream->Read(&count, 4);
+    for (int i = 0; i < count; ++i) {
+        auto* node = list->NewNode(list->tail, nullptr);
+        // The entry takes a blank one (no item, countdown 0; `worn` is the original's stack byte).
+        CEngineObject* old = node->data.item;
+        node->data.item = nullptr;
+        if (old) old->Release();
+        node->data.countdown = 0;
+        node->data.worn = 0;
+        if (list->tail) list->tail->next = node;
+        else list->head = node;
+        list->tail = node;
+    }
+    for (auto* node = list->head; node;) {
+        auto* current = node;
+        node = node->next;
+        AssignCounted(current->data.item, ReadObject(stream, ItemManager()));
+        stream->Read(&current->data.countdown, 4);
+    }
+}
+EI_REPLACE(0x005585F0, LoadArmourSpells);
+
+namespace {
+// The loads through their game addresses, so that the verify build's wrappers see them (LoadServer
+// is checked by running ours only).
+__declspec(naked) void __fastcall CallLoadStepList(AnimationSteps*, UnitStream*) EI_ORIGINAL(0x005582A0)
+__declspec(naked) void __fastcall CallLoadArmourSpells(ArmourSpellList*, UnitStream*) EI_ORIGINAL(0x005585F0)
+} // namespace
+
 void CUnitServer::LoadServer(UnitStream* stream) {
     At<int>(this, 0x918) = 0;
     stream->Read(&unknown_020, 1);
     stream->Read(&unknown_021, 1);
-    AnimationListLoad(Address(this, kAnimation), stream);
-    stream->Read(Address(this, kAnimation + 0x14), 4);
+    CallLoadStepList(&queue, stream);
+    stream->Read(&queue.extra, 4);
     MotionLoad(Address(this, kMotion), nullptr, stream);
     PlanLoad(Address(this, kPlan), nullptr, stream);
     LoadPlanFields(stream, Address(this, kPlan));
     stream->Read(&keepHitDirection, 1);
     for (int offset = 0x145; offset <= 0x147; ++offset) stream->Read(Address(this, offset), 1);
-    AnimationListLoad(Address(this, kAnimation2), stream);
-    stream->Read(Address(this, kAnimation2 + 0x14), 4);
+    CallLoadStepList(&savedQueue, stream);
+    stream->Read(&savedQueue.extra, 4);
     stream->Read(&hitDirection, 4);
     stream->Read(&state, 4);
     stream->Read(&moveMode, 8);
@@ -169,7 +219,7 @@ void CUnitServer::LoadServer(UnitStream* stream) {
 
     void* effects = ei::VCall<void*>(ManagerContext(), kContextEffectManager);
     AssignCounted(effectObject, ReadObject(stream, effects));
-    AttackersLoad(Address(this, kAttackers), stream);
+    CallLoadArmourSpells(&armourSpells, stream);
     stream->Read(Address(this, 0x1D8), 1);
     void* units = UnitManager();
     AssignCounted(At<CEngineObject*>(this, 0x1DC), ReadObject(stream, units));
@@ -195,14 +245,14 @@ EI_REPLACE_METHOD(0x00555D10, CUnitServer::LoadServer);
 void CUnitServer::SaveServer(UnitStream* stream) {
     WriteCopy(stream, unknown_020);
     WriteCopy(stream, unknown_021);
-    AnimationListSave(Address(this, kAnimation), stream);
-    WriteCopy(stream, At<int>(this, kAnimation + 0x14));
+    SaveStepList(&queue, stream);
+    WriteCopy(stream, queue.extra);
     MotionSave(Address(this, kMotion), nullptr, stream);
     PlanSave(Address(this, kPlan), nullptr, stream);
     SavePlanFields(stream, Address(this, kPlan));
     for (int offset = 0x144; offset <= 0x147; ++offset) WriteCopy(stream, At<std::uint8_t>(this, offset));
-    AnimationListSave(Address(this, kAnimation2), stream);
-    WriteCopy(stream, At<int>(this, kAnimation2 + 0x14));
+    SaveStepList(&savedQueue, stream);
+    WriteCopy(stream, savedQueue.extra);
     WriteCopy(stream, hitDirection);
     stream->Write(&state, 4);
     stream->Write(&moveMode, 8);
@@ -225,16 +275,11 @@ void CUnitServer::SaveServer(UnitStream* stream) {
     WriteCopy(stream, At<std::uint8_t>(this, 0x18D));
     WriteCopy(stream, At<int>(this, 0x8F4));
     WriteCopy(stream, IdOrNone(effectObject));
-    WriteCopy(stream, At<int>(this, kAttackers + 0xC));     // the list's count
-    struct Node {
-        Node* next;
-        Node* prev;
-        std::uint8_t record[1];   // the attacker record (saved by 00545430)
-    };
-    for (Node* node = At<Node*>(this, kAttackers + 4); node;) {
-        Node* current = node;
+    WriteCopy(stream, armourSpells.count);
+    for (auto* node = armourSpells.head; node;) {
+        auto* current = node;
         node = node->next;
-        AttackerSave(current->record, nullptr, stream);
+        SaveArmourSpell(&current->data, nullptr, stream);
     }
     WriteCopy(stream, At<std::uint8_t>(this, 0x1D8));
     WriteCopy(stream, IdOrNone(At<CEngineObject*>(this, 0x1DC)));

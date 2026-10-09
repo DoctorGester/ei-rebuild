@@ -292,7 +292,7 @@ Functions of 0x00480000-0x004B0000 and 0x004D8000-0x00500000 that belong to othe
 - Skipped: 004D5880 (ReadTextFile: MFC TRY / CATCH around CStdioFile, whose constructor throws the game's CFileException;
   our code cannot catch the game's C++ exceptions), 004BA120 (the display object's background colour: needs a declared
   display class with its slot 0).
-- Not ported (yet): 004A4AF0 (replaces a tagged block; no callers found), 004A8310 / 004A8560 (party load / save: tagged
+- Not ported (yet; A-S9 did these): 004A4AF0 (replaces a tagged block; no callers found), 004A8310 / 004A8560 (party load / save: tagged
   stream helpers 00409AE0.. and STLport tables), 004A66C0 / 004A6580 (ItemStock / ClassTemplate constructors: STLport members).
 - Clouds: SetRamp's alpha is trunc(255 - pow(width / 255, max(0, i - start)) * 255) >> 4 with the CRT pow; a last-bit pow
   difference can only matter on an exact multiple of 16 (SetRamp's wrapper would show it). Draw's blend is
@@ -433,14 +433,13 @@ array offsets and element sizes.
 ### Next candidates in this range
 
 A-S7 / A-S8 (below) finished the link figures, the sky and the pipeline projections. Left in 0x00480000-0x00500000:
-- classify 004A90F0-004AFAC0 (34 functions; world.md calls the range STLport instantiations, but 004ACDC0 / 004ACEC0 /
-  004AD0C0 call the tagged stream helpers 004098D0 / 00409A60 / 00409980: per-type Serialize templates, game code);
-- party records: 004A8310 / 004A8560 (load / save), 004A6050 / 004A6360 (copy through a memory stream), 004A66C0 /
-  004A6580 (ItemStock / ClassTemplate constructors);
 - the D3D state-block manager 004FCA60 / 004FD2A0 / 004FD9D0 / 004FCE90, rain / snow draws 004E4240 / 004E4C80, the fog
   object 004E1EB0-004E24E0, the CLinkMesh draw slots 7-14 004F3870-004F4850 and the device functions 004E5E50-004EFEA0
   (renderer tickets);
 - 004DDCB0-004DE8B0 (`CSysInfo`, static initialiser: standalone build).
+- After A-S9: particle element manager pieces 00497FE0 (manager clear, from 005627C0), 00498480 / 00498630; the keyframe
+  track / static initialiser block 0049F810-0049F890; 004A39C0 (from 004A38F0 / 004A3B70 / 0051E840); 0049F4B0
+  (recursive CFileFind for the ISAAC seed); 004BD310 / 004BDE40 (skipped, see above).
 
 ## A-S7: .mob decoder, link strings, sky, server-specific manager, link loader
 
@@ -505,3 +504,33 @@ A-S7 / A-S8 (below) finished the link figures, the sky and the pipeline projecti
 - Not kept: the header map's value destructor 004F4E70 zeroes the freed node's 0x50 value bytes (freed memory only).
 - Library (config/library.csv, A-S8): the mesh maps' and the loader's STLport members 004F4CD0-004F6850 and
   004FAE40-004FC6A0, among them the cache's equal_range 004FB5E0, insert_equal 004FBD80 (004FC4F0 was listed).
+
+## A-S9: party manager archive, 004A90F0-004AFAC0 classified
+
+| Address | Name (file) | Verify |
+|---|---|---|
+| 004A8560, 004A8310 | `PartyManager::Save`, `Load` (`party_manager.cpp`, `party_manager.h`: the manager 007AA5A0 as a struct: parties hash_map<int, CParty> +0x00, entries +0x14, field +0x20, records +0x24, templates +0x38) | Save against the original (scratch stream first, ISAAC state put back, appended bytes compared); Load ours only (block consumed, templates class 1..5 referenced, records referenced). Save: every new game's autosave; Load: `world_load` (load savea), `ui_saveload` |
+| 004ACEC0, 004AD0C0, 004ACDC0, 004AD2C0 | `ChunkArchive::SerializeParties`, `SerializePartyEntries`, `SerializeClassTemplates`, `IntField` | only called by Save / Load (directly): covered by Save's comparison |
+| 004A64B0 | `NamedPartyRecords::Serialize` | same |
+| 004A6050, 004A6360 | `NamedPartyRecords::BeginRedeploy`, `EndRedeploy` (the record a name picks found with `PartyRecordsFind`; the copy is SaveParty / LoadParty through a stream; Begin spreads the variables (004A8AD0 operator=), zone and +0x6C to every record; End clears the party (Clear(1, 0)) when no record matches, then text10 = text0C) | ours only: zones / +0x6C / variable counts equal; End: zone and +0x50 of the record (or cleared), text10 == text0C. End: every save (SaveGame's PartyStore); both: the script's RedeployParty (zone_* scenarios) |
+
+| 004A6580, 004A66C0 | `ClassTemplate::Construct`, `ItemStock::Construct` (`class_template_stock.cpp`; `ClassTemplate::flag38` +0x38 named, 004A88E0 uses it; the stock maps' buckets through a `hash_map<string, void*>` view, `InitBuckets(100)`) | ours only: vtable, class -1, flags, both parties created, both stocks empty with 193-bucket maps. Every new game (004A7630), loading templates (factory 00457850, `world_load`); 004A66C0 only from 004A6580 |
+| 004A5AF0, 004A6C40 | `PartyRecord::Serialize`, `ClassTemplate::Serialize` (slot 1 of each, run by the archive's Close / Open; `party_manager.cpp`; SaveLists 0069BAC0 forwarded as `ItemStock::SaveLists`) | ours only: a save grows the current chunk, a loaded template has class 1..5. Every save / `world_load` |
+| 004A6A90, 004A6A70 | `ClassTemplate::Destruct`, `DeletingDestruct` (`class_template_stock.cpp`; `ItemStock::Destruct` is the inlined stock destructor: maps 004A9010 / 004A8E60 forwarded, vector storage freed) | DeletingDestruct ours only: the template was unreferenced, the base vtable back without bit 0. New game (templates rebuilt), loads |
+| 004A4AF0 | `CStream::ReplaceTagged` (`core_stream_chunks.cpp`; no caller in game.exe: Rebirth's EI_Plugin.asi calls it through a thiscall thunk) | memory streams: against the original (scratch output, source / replacement positions put back, appended bytes compared); else ours only. Rebirth runs only |
+| 004800E0 | `app::FatalErrorCode` (`app.cpp`, beside FatalError; "%s (0x%.8X) %s" with DirectXErrorText; not Rebirth-patched, so it always exits) | ours only (result 0 if it returns); reached only by a DirectX failure |
+
+- The archive on the stack: `ChunkArchive::ConstructLocal` / `DestructLocal` (chunk_archive.cpp; the containers' library
+  constructors / destructors 004A94A0, 004639D0, 00463AA0, 004A9650, 004A8B70, 004A96A0 forwarded there).
+- Forwarders: 006617F0 `CParty::ArchiveParty` (party.h; SaveParty into a stream field / LoadParty with the archive's
+  version), library resizes 004ADAA0 / 004AD700 / 004AD8D0 / 004AE3A0 and clear 004AD050 (party_manager.cpp); 004A91B0
+  moved to originals_gameplay.h (`PartyMapAtOriginal`, party_records.cpp uses it).
+- Counted pointers are released through `CRefCounted` (`delete` = slot 0 with 1); the map's party is `PartyInPlace`
+  storage (CParty is abstract in C++).
+- Library (A-S9, also): 004A5A30 / 004A6840 (EH-only destructors), counted-pointer helpers 004A5D50 / 004A5D70 / 004A7EA0
+  / 004A8300, 004A8930 (string copy), 004A8A50 (variables' table copy), 004A8AD0 (its operator=).
+- Left in 0x004A4800-0x004B0000: the party manager's static constructor 004A5870 (runs before the hooks) and its exit
+  destructor 004A5700 (standalone build).
+- Library (config/library.csv, A-S9): 30 of the 34 in 004A90F0-004AFAC0 (vector / hash_map members of the party
+  manager's containers, counted-pointer copies, the entries' compiler-made assignment / destructor, and the weapon /
+  armor table lookups 004AB720 / 004AB820, classified like 00613820).

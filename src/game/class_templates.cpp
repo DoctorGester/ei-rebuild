@@ -246,7 +246,7 @@ unsigned __fastcall ClassTemplatesQuestCompleted(void* manager) {
     unsigned i = 0;
     while (i < static_cast<unsigned>(v->finish - v->start)) {
         ++i;
-        reinterpret_cast<std::uint8_t*>(v->start[i - 1])[0x38] = 1;
+        v->start[i - 1]->flag38 = 1;
     }
     return i;
 }
