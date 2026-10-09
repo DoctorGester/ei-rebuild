@@ -330,9 +330,15 @@ ComposeTexture: the cache file `<game folder>textures\<name>.mmp` keeps the requ
 file is tried. No layer textures deletes the file (0); else the image is drawn by 00693010 (not rewritten) and written, each
 level converted to 16 bits by the pixel converter 007AF06C slot 2 [out, in, kind, count] (kind 3 for 4444, 2 for 5551, 0 for
 5650, else -1) and halved by slot 7. A file that cannot be created goes to FatalError (the image block leaks, as in the
-original). 00693970 and 0068F860 (a texture from a surface description; its one caller 00691D50 is dead) are dead. Not rewritten: 00691250 (the manager's destructor body), 00693010 (the composed image's drawing), 00692D30. The fills keep a reference on every attached
+original). 00693970 and 0068F860 (a texture from a surface description; its one caller 00691D50 is dead) are dead. Not rewritten: 00693010 (the composed image's drawing), 00692D30, Rebirth-patched slot 2 00691500. The fills keep a reference on every attached
 level they move to (never released, as in the original; the wrappers drop their second run's); a DXT file / surface pair
 without a decode mode passes the mip level as the mode (kept).
+
+**Texture manager lifetime (A-H23; texture_manager_lifetime.cpp, verify_texture_manager_lifetime: O, names P).** 00691140
+constructor, 00691250 / 00691230 destructors, 00691630 Destroy (slot 3), 00691AA0 CreateObject (slot 23: flags_ |= 0x80 /
+0x100 / 0x200 for types 0x3E / 0x3F / 0x40, else 0x40; no null check, kept), 00691210 / 00691220 names, 00691200 slot 25
+("textures"). Destroy and the destructor release the shadow surface, destroy and delete every cached texture, delete the
+composed textures and drop the device; the destructor adds SetDevice(null).
 
 ## Registry and ini (registry, ini_file, win_registry; every scenario)
 
