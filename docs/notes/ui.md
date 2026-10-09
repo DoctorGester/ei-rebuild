@@ -242,10 +242,14 @@ title, window): its deleting destructors 0060E340 / 00613DD0 were registered as 
 +0x154). Constructors made by CInterface3D::Create (every scenario; ours only, fields): `CChatOverlay::Construct`
 005E26F0 (`ui_chat_overlay.cpp`; ends in the Rebirth-patched 005E3700, the typed line's draw, by address) and
 `console::ConsoleWindow::Construct` 005E3CE0 (`console_window_create.cpp`; SetRect / DrawLines by address; kept: a
-failed font allocation still calls CreatePointFont on null).
+failed font allocation still calls CreatePointFont on null). The chat (multiplayer only, no scenario; ours only):
+`AddLine` 005E2A30 (word wrap at 780 px, "^<digit>" colours, at most 12 lines), `SetOpen` 005E36C0, `ClearLines`
+005E3930, the chat line's keys 005E3230 / 005E3550 (input slots 9 / 10; Enter sends a `net::SayMessage` kept 60 s).
+Kept: a message of more than 12 lines erases past the list's sentinel; Enter with a failed message allocation writes
+through null; Left / Right leave the caret unclamped (the draw 005E3700 clamps it).
 
 Next in 005E0000-00640000 (not Rebirth-patched, single player first): 00612CF0 (the camp's slot 39, a debug fill of
-the constructors; no caller but the vtable, no scenario). Multiplayer / lobby last: 005E2A30 / 005E3230 / 005E3550 / 005E3CE0 / 005E26F0 (chat), 00608D20-006097E0 (the
+the constructors; no caller but the vtable, no scenario). Multiplayer / lobby last: 00608D20-006097E0 (the
 base screen's chat window), 0062C250 / 0062C9C0 (exchange), 0061B2C0-00620300 (connection screens). 005E67F0 is only
 an unwind helper.
 

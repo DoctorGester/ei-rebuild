@@ -2357,8 +2357,8 @@ struct ChatLine {
     // then the two strings.
     void Destroy();
 
-    mfc::CString text;          // +0x00
-    mfc::CString name;          // +0x04
+    mfc::CString text;          // +0x00 (AddLine leaves it empty)
+    mfc::CString name;          // +0x04 the line's text without its colour codes
     std::uint32_t time;         // +0x08 timeGetTime when it was added
     CUiSurface* surface;        // +0x0C
 };
@@ -2378,6 +2378,28 @@ public:
     // typed line's surface over (10, 573)-(790, 590) (format 4), closed, the caret at 0, then the
     // typed line drawn (005E3700, Rebirth-patched). Returns this.
     CChatOverlay* Construct(CInterface3D* ui);
+    // 005E2A30 (RET 8; ui_chat_overlay.cpp; CInterface3D::OnChatLine). Adds a chat line from
+    // player `number` (unused): the text is broken into lines narrower than 780 pixels (font 1;
+    // at spaces, a word wider than a line on its own), "^<digit>" switching the colour (a missing
+    // digit is taken as 7); the oldest lines are erased so that at most 12 remain; each new line
+    // gets the time and a surface (its width + 3 by 17, format 5) with its pieces drawn in their
+    // colours (the digit's bits 0 / 1 / 2 give blue / green / red, white to start).
+    void AddLine(const char* text, std::uint32_t number);
+    // 005E36C0 (RET 4). Opens (`open`, a byte: the typed line emptied, the caret at 0) or closes the
+    // chat line, then draws it (005E3700).
+    void SetOpen(bool open);
+    // 005E3930. Every line destroyed and its node returned to the pool; the list left empty.
+    void ClearLines();
+    // Input side (ui_chat_overlay.cpp; nothing while the chat is closed). 005E3230 (slot 9, RET
+    // 0xC): every key is marked used; Backspace / Delete remove the character before / at the
+    // caret, Home / End / Left / Right move it (unclamped; the draw clamps it), Enter sends a
+    // non-empty line as a chat message (a network client: SayMessage kept 60 s, 0041D1A0) and,
+    // like Esc, closes the chat; then the line is drawn. 005E3550 (slot 10, RET 0xC): a character
+    // other than 8, 9, 13 and 27 is inserted at the caret unless Ctrl is down, the line is 200
+    // characters or more, or the new line would be 780 pixels wide or more (font 1, 005F8340);
+    // then the line is drawn. The character is not marked used.
+    void OnKeyDown(int key, int repeat, int flags);
+    void OnChar(int key, int repeat, int flags);
     // 005E2990 (slot 24). Lines older than 20 s (timeGetTime) are erased.
     void Update();
     // 005E29E0 (slot 22). Each line's surface placed at (10, 10 + 16 * row) and blitted, then the

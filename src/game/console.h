@@ -23,6 +23,7 @@ inline int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(s
 struct Str : mfc::CString {
     mfc::CString Mid(int first) const;              // 006FD9B4 (006FDA6D is Right, mfc::CString::Right)
     mfc::CString Mid(int first, int count) const;   // 006FD9D7
+    int Find(const char* sub, int start) const;     // 006FDBE7 (-1 when absent)
     void AppendChar(char c);                        // 00700D73 operator+=(TCHAR)
     void AppendText(const char* text);              // 00700D4C operator+=(LPCTSTR)
     void AssignChar(char c);                        // 006FD559 operator=(TCHAR)
