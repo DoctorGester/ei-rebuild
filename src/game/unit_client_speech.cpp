@@ -143,7 +143,7 @@ EI_REPLACE_METHOD(0x00538040, CUnitClientSpecific::StopSpeech);
 bool CUnitClientSpecific::Speak(ClientSpeech* said) {
     std::uint32_t now = gameapi::timeGetTime();
     if (lastSpeech == said->id && now - lastSpeechTime < kRepeatAfter) return false;
-    said->sound = sound::Manager()->Play2D(said->id->soundName, kSpeechPriority, kSpeechVolume, 0, 0, 0, 1, 0);
+    said->sound = sound::Manager()->Play2D(said->id->sound.data(), kSpeechPriority, kSpeechVolume, 0, 0, 0, 1, 0);
     lastSpeech = said->id;
     lastSpeechTime = now;
     return true;

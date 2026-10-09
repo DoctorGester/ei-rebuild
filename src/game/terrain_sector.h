@@ -24,13 +24,33 @@ class CTransformPipeline;
 
 namespace terrain {
 
+struct LightRefBlock;
+
 // One entry per lit vertex: the point lights that reach it (pooled 16-byte nodes, 006CAC10).
 struct LightRef {
     LightRef* next;
     LightRef* prev;
-    void* pool;
+    LightRefBlock* block;   // the pool block it was taken from
     CLight* light;
 };
+
+// The LightRef pool (terrain_lights.cpp): blocks of 1000 nodes from operator new. Blocks with free
+// nodes are listed from 007C8840, full ones from 007C8844 (doubly linked, newest first); a block
+// whose nodes are all free again is deleted.
+struct LightRefBlock {
+    static constexpr int kRefs = 1000;
+    int freeCount;          // +0x00
+    LightRefBlock* next;    // +0x04
+    LightRefBlock* prev;    // +0x08
+    LightRef* freeList;     // +0x0C
+    LightRef refs[kRefs];   // +0x10
+};
+static_assert(sizeof(LightRefBlock) == 0x3E90);
+
+// A node from the pool (inlined in 006CAC10); its next / prev / light are the caller's to set.
+LightRef* AllocLightRef();
+// 006C5230 (RET 4). Returns `ref` to its block.
+void __stdcall FreeLightRef(LightRef* ref);
 
 #pragma pack(push, 1)
 // Per-vertex record, 0x54 bytes (odd offsets: the original packs it).
@@ -47,6 +67,9 @@ struct SectorVertex {
     Vector3 materialColour;             // +0x43 water material +0x1C..+0x24
     std::uint8_t materialByte;          // +0x4F water material +0x18, 0xFF none
     LightRef* lights;                   // +0x50
+
+    // 006C5150 (terrain_lights.cpp). Returns every node of `lights` to the pool.
+    void ReleaseLights();
 };
 #pragma pack(pop)
 static_assert(sizeof(SectorVertex) == 0x54);
@@ -92,6 +115,16 @@ static_assert(sizeof(SectorPosition) == 12);
 // The construct / destroy helpers of the sector's CArray instantiations (mfc::CArray's Elements
 // policy): the records (006C4F10 zeroes, 006C4EE0 releases their lights), the per-page tile flag
 // CByteArrays (006C4F90 / 006C4F60) and the per-page tile lists (006C5050 / 006C5010).
+// 006C4EE0 (RET 8; terrain_lights.cpp). ReleaseLights for `count` records.
+void __stdcall DestroyRecords(SectorVertex* records, int count);
+
+// 006CAC10 (RET 0x14; terrain_lights.cpp). For the vertices of `sector` inside `area` (the whole
+// sector where it lies inside the area's sector range): `light` is removed from a vertex's list
+// when `remove` is set or the vertex is not nearer than its range to `position`; otherwise it is
+// added at the list's head when missing.
+void __stdcall UpdateVertexLights(SectorData* sector, CLight* light, const Vector3* position, const LightArea* area,
+                                  int remove);
+
 struct RecordElements {
     static void Construct(SectorVertex* records, int count);
     static void Destruct(SectorVertex* records, int count);

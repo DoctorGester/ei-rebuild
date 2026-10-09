@@ -45,8 +45,7 @@ constexpr int kVertices = 33 * 33;      // per layer
 
 IsaacRandom& GlobalRandom() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 
-// Element helpers of the original (not rewritten).
-__declspec(naked) void __stdcall DestroyRecords(SectorVertex*, int) EI_ORIGINAL(0x006C4EE0)
+// Element helpers of the original (not rewritten; DestroyRecords is in terrain_lights.cpp).
 __declspec(naked) void __stdcall ConstructFlagArrays(FlagArray*, int) EI_ORIGINAL(0x006C4F90)
 __declspec(naked) void __stdcall DestroyFlagArrays(FlagArray*, int) EI_ORIGINAL(0x006C4F60)
 __declspec(naked) void __stdcall ConstructTileLists(TileList*, int) EI_ORIGINAL(0x006C5050)
@@ -58,11 +57,6 @@ struct MfcOps {
 };
 void MfcOps::SetSizeByte(int n, int g) { ByteArraySetSizeOriginal(this, nullptr, n, g); }
 __declspec(naked) void MfcOps::SetAtGrowByte(int, std::uint8_t) EI_ORIGINAL(0x006FF7DC)
-
-struct OwnerOps {
-    void LightSector(SectorData* sector);       // 006CA9C0 point lights reaching the sector
-};
-__declspec(naked) void OwnerOps::LightSector(SectorData*) EI_ORIGINAL(0x006CA9C0)
 
 } // namespace
 
@@ -453,7 +447,7 @@ void SectorData::Build() {
     std::memset(counts, 0, sizeof(counts));
     FillTiles(*this, tileWords, counts);
     ComputeBounds(*this);
-    reinterpret_cast<OwnerOps*>(owner)->LightSector(this);
+    reinterpret_cast<Terrain*>(owner)->LightSector(this);   // terrain_lights.cpp
     built |= 2;
 
     if (hasWater) {

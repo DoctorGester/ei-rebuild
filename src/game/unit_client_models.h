@@ -33,8 +33,8 @@ void __fastcall BlitMipChain(CTexture* target, const int* at, CTexture* source, 
 // sound file name at +0x04.
 struct SpeechRecord {
     int chance;                     // +0x00 eligible when at least the roll (0..99, acks_db.cpp)
-    const char* soundName;          // +0x04 (the start of an STLport string)
-    std::uint8_t unknown_08[0x1C - 0x08];
+    stlp::string sound;             // +0x04 the sound file
+    stlp::string text;              // +0x10
     stlp::string name;              // +0x1C named speeches (006D8A40)
 };
 static_assert(sizeof(SpeechRecord) == 0x28);

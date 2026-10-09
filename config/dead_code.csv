@@ -651,4 +651,5 @@ address,size,name,evidence
 004A47D0,176,FUN_004a47d0,"referenced only from dead code 004A4780 (A-S8: rel32 / rel8 / Jcc scan, no dword anywhere in the exe or Rebirth binaries)"
 006C98F0,2164,FUN_006c98f0,"referenced only from 006CA255, inside the chunk 006CA170 that nothing references (A-X1: rel32 scan, no dword in the exe or Rebirth binaries); companion of dead 006C9560"
 006D5480,65,FUN_006d5480,"CDib DIB-section helper, no references at all (A-X1: rel32 scan, no dword in the exe or Rebirth binaries)"
+006D5BF0,1475,FUN_006d5bf0,"CDib .mmp reader (DXT1-5 decode, mip level), called only from dead 006D6800 (006D68B7); no dword in the exe or the Rebirth binaries (A-X4)"
 006D6800,207,FUN_006d6800,"CDib reader wrapper, no call/jmp; the only matching dword (00784523) is unaligned string data (A-X1; none in the Rebirth binaries)"

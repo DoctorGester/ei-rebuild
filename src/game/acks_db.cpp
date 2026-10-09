@@ -1,8 +1,9 @@
 // Unit acknowledgements from acks.db (006D8430-006D9F80): which speech a unit says for an ack kind.
 // The database's loading (006D7620, Rebirth-patched) and the records' STLport plumbing stay original
-// (model_db.cpp has the vector serialisers).
+// (model_db.cpp has the vector serialisers); the records' Serialize functions are at the end.
 #include "acks_db.h"
 
+#include "chunk_archive.h"
 #include "map_object_figures.h"
 #include "originals_engine.h"
 #include "sound.h"
@@ -174,5 +175,117 @@ const SpeechRecord* __fastcall SayNamedAck(CUnit* unit, const char* name, bool a
     return nullptr;
 }
 EI_REPLACE(0x006D8A40, SayNamedAck);
+
+// ---- Serialising the records (006E3780-006E4F95; loaded once at startup through 006D7620) ----------
+
+namespace {
+
+// vector::resize of the two speech list instantiations (new elements default-constructed).
+__declspec(naked) void __fastcall ResizeSpeeches(SpeechList*, void*, unsigned) EI_ORIGINAL(0x006E4560)
+__declspec(naked) void __fastcall ResizeEnvironmentSpeeches(stlp::vector<EnvironmentSpeech>*, void*, unsigned)
+    EI_ORIGINAL(0x006E47F0)
+
+void SpeechFields(ChunkArchive* ar, SpeechRecord* speech) {
+    ar->StringField(1, &speech->sound);
+    ar->Field(2, &speech->chance, 4);
+    ar->StringField(3, &speech->text);
+    ar->StringField(4, &speech->name);
+}
+
+// Chunk `id` of a list, if present: loading empties the list (its elements destroyed in order) and
+// sizes it to the number of element chunks (id 1); then element i is chunk 1's (i + 1)-th occurrence.
+template <typename T, typename Fields>
+void ListField(ChunkArchive* ar, int id, stlp::vector<T>* list,
+               void(__fastcall* resize)(stlp::vector<T>*, void*, unsigned), Fields fields) {
+    if (!ar->EnterChunk(id)) return;
+    int count;
+    if (ar->loading_) {
+        list->clear();
+        count = ar->CountChunks(1);
+        resize(list, nullptr, static_cast<unsigned>(count));
+    } else {
+        count = static_cast<int>(list->size());
+    }
+    for (int i = 0; i < count; ++i) {
+        ar->Current()->occurrence = i + 1;
+        T* element = &(*list)[static_cast<std::size_t>(i)];
+        if (ar->EnterChunk(1)) {
+            fields(element);
+            ar->LeaveChunk();
+        }
+    }
+    ar->LeaveChunk();
+}
+
+} // namespace
+
+// The archive's helpers for the records (thiscall on the archive): 006E4F40 a speech as chunk `id`
+// (RET 8), 006E42F0 / 006E4410 a speech list / environment speech list as chunk `id` (RET 0xC; the
+// third argument is the archive again, unused). The records inline the same code for some lists.
+void __fastcall SpeechField(ChunkArchive* ar, void*, int id, SpeechRecord* speech) {
+    if (!ar->EnterChunk(id)) return;
+    SpeechFields(ar, speech);
+    ar->LeaveChunk();
+}
+void __fastcall SpeechListField(ChunkArchive* ar, void*, int id, SpeechList* list, ChunkArchive*) {
+    ListField(ar, id, list, ResizeSpeeches, [ar](SpeechRecord* speech) { SpeechFields(ar, speech); });
+}
+void __fastcall EnvironmentSpeechListField(ChunkArchive* ar, void*, int id, stlp::vector<EnvironmentSpeech>* list,
+                                           ChunkArchive*) {
+    ListField(ar, id, list, ResizeEnvironmentSpeeches, [ar](EnvironmentSpeech* speech) {
+        SpeechFields(ar, &speech->speech);
+        ar->Field(10, &speech->environment, 4);
+    });
+}
+EI_REPLACE(0x006E4F40, SpeechField);
+EI_REPLACE(0x006E42F0, SpeechListField);
+EI_REPLACE(0x006E4410, EnvironmentSpeechListField);
+
+namespace {
+
+// UnitAcks' chunks in the order the original writes them: the list index, or one of these two.
+constexpr int kEnvironment = -1;   // environmentSpeeches
+constexpr int kNamed = -2;         // namedSpeeches
+struct ListChunk {
+    std::uint8_t id;
+    std::int8_t list;
+};
+constexpr ListChunk kUnitChunks[] = {
+    {10, 0},  {11, 1},  {12, 2},  {13, 3},  {14, 4},  {15, 5},  {16, 6},  {17, 7},  {18, 8},
+    {19, 9},  {20, 11}, {21, 13}, {22, 14}, {23, 15}, {24, 16}, {25, 17}, {26, 18}, {27, 19},
+    {28, 22}, {29, 23}, {30, 24}, {31, 25}, {32, kEnvironment}, {33, 12}, {34, 20}, {35, 21},
+    {36, 10}, {37, 26}, {38, 27}, {39, 28}, {40, 29}, {41, kNamed}, {42, 30}, {43, 31}, {44, 32},
+};
+
+// The lists of a record as chunks 10, 11, ... in order.
+template <std::size_t N>
+void Lists(ChunkArchive* ar, SpeechList (&lists)[N]) {
+    for (std::size_t i = 0; i < N; ++i) SpeechListField(ar, nullptr, static_cast<int>(10 + i), &lists[i], ar);
+}
+
+} // namespace
+
+void UnitAcks::Serialize(ChunkArchive* ar) {
+    ar->StringField(1, &head.name);
+    for (const ListChunk& chunk : kUnitChunks) {
+        if (chunk.list == kEnvironment) EnvironmentSpeechListField(ar, nullptr, chunk.id, &environmentSpeeches, ar);
+        else if (chunk.list == kNamed) SpeechListField(ar, nullptr, chunk.id, &namedSpeeches, ar);
+        else SpeechListField(ar, nullptr, chunk.id, &lists[chunk.list], ar);
+    }
+}
+
+void ModelAcks::Serialize(ChunkArchive* ar) {
+    ar->StringField(1, &head.name);
+    Lists(ar, lists);
+}
+
+void ExtraAcks::Serialize(ChunkArchive* ar) {
+    ar->StringField(1, &head.name);
+    Lists(ar, lists);
+}
+
+EI_REPLACE_METHOD(0x006E3780, UnitAcks::Serialize);
+EI_REPLACE_METHOD(0x006E3FD0, ModelAcks::Serialize);
+EI_REPLACE_METHOD(0x006E3DC0, ExtraAcks::Serialize);
 
 } // namespace acks

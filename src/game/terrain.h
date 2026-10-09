@@ -1,10 +1,11 @@
 #pragma once
 
-#include "engine_object.h"
+#include "core_transform.h"
 
 #include "lib/containers.h"
 #include "lib/vecmath.h"
 #include "lib/mfc.h"
+#include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -12,6 +13,8 @@
 // Names are provisional: they describe what the code does, not names recovered from the original.
 
 class CLight;
+class CMaterial;
+class CTexture;
 class DecalBuilder;
 
 namespace terrain {
@@ -27,12 +30,84 @@ struct TerrainSector {
     float* vertices;                // +0x180 2 x 33 x 33 x (x, y, z)
 };
 
+// The area a point light reaches (006CAA70): the sectors it covers, and the first / last vertex
+// column and row inside the first / last sector.
+struct LightArea {
+    int firstSectorX, firstSectorY, lastSectorX, lastSectorY;
+    int firstX, firstY, lastX, lastY;
+};
+
+// 006BF580 (RET 0x14; terrain_lights.cpp). The area of the bounds (minX, minY)..(maxX, maxY): the
+// first vertex truncated, the last rounded (_ftol of value / cell + 0.5), then SetLightArea.
+void __fastcall LightAreaFromBounds(int sectorsX, int sectorsY, float minX, float minY, float maxX, float maxY,
+                                    LightArea* area);
+// 006BF4A0 (RET 0x14). The area from vertex (x0, y0) (clamped to the map) to (x1, y1): sector and
+// vertex within it (x / 32, x % 32); a first vertex on a sector edge counts as vertex 32 of the
+// sector before.
+void __fastcall SetLightArea(int x0, int y0, int x1, int y1, int sectorsX, int sectorsY, LightArea* area);
+
+// A point light registered with the landscape (006CA5D0): the light (held) and its area.
+struct LandscapeLight {
+    CLight* light;
+    LightArea area;
+};
+static_assert(sizeof(LandscapeLight) == 0x24);
+
 // Landscape: answers height queries for a world position. The vertex grid has unit spacing, but
 // vertices can be displaced sideways, so a point may lie in a neighbouring cell. A counted engine
 // object (0xAFC bytes, vtable 0073F6A8) on a CTransformObject base (00453400); the client world's
 // Setup inlines its constructor up to 006C5620, so the members it initialises are declared.
-class Terrain : public CEngineObject {
+class Terrain : public CTransformObject {
 public:
+    // 006C5430 (slot 2; terrain_landscape.cpp). Reset, the vertex tile table (006C7A80), the wave
+    // phases, the sine table sin(i * pi / 256); position zero, rotation identity. Returns 1.
+    int Create() override;
+    // 006C54D0 (slot 3). Frees the map (006C7750), releases the registered lights and empties
+    // their table, empties the sector cache list, then Reset.
+    void Destroy() override;
+    // 006C5620. The constructor's body: no map, no textures (the arrays freed), texts "none",
+    // frame 1, no sun, waves upwards at strength 0, phase 2 pi, no ambient loops.
+    void Reset();
+    // 006C57E0. The water vertices' wave phases (33 x 33): 40 ripples at random centres (rand(),
+    // radius 1..5) add (1 - d^2 / r^2) * pi / 2 inside them; each edge is then averaged with the
+    // opposite one, so neighbouring sectors join.
+    void BuildWavePhases();
+    // 006C7D70 (RET 4). Wave strength clamped to 0..1: glow, height and speed scale with it; the
+    // direction is normalised, its x and y scaled by the step asin(1 - s) + pi * 0.50025.
+    void SetWaveStrength(float strength);
+    // 006C7EB0 (RET 8). The direction, then the strength as SetWaveStrength.
+    void SetWaves(const Vector3* direction, float strength);
+    // 006C5AA0 (RET 4, from the map loader 006C68B0). The texture pages: `count` pages
+    // (<map>NNN, "%s%3.3i" of textF8), then up to two extra pages <map>L00 / L01 while their .mmp
+    // exists (counted in extraPages); each page's texture (kind 0xB, held, loaded) and a "Wood"
+    // material (kind 0x12, held). 0 when a texture does not load, else 1.
+    int SetupPages(int count);
+    // 006C7A80 (forwarder). The table of the cells around each vertex (+0x1E8).
+    void BuildVertexTiles();
+    // 006C7750 (forwarder). Frees the map: ambient loops, sectors, textures, materials, grid.
+    void ClearMap();
+
+    // Point lights (terrain_lights.cpp; the light manager *007AF738 is the landscape). Nothing
+    // happens before a map is loaded (unknown_100 null).
+    // 006CA5D0 (RET 4). Holds the light, registers it by id with its area, adds it to the vertices
+    // in range of the area's built sectors and relights the area.
+    void AddLight(CLight* light);
+    // 006CA720 (RET 4). Drops the registration, takes the light off the vertices of its area,
+    // relights the area and releases the light.
+    void RemoveLight(CLight* light);
+    // 006CA830 (RET 8). Before the light moves by `delta`: its area grows by the move, the vertices
+    // in range of the new position get it, the area is relit with the light moved, then the area
+    // becomes the one at the new position (the light itself is left where it was).
+    void MoveLight(CLight* light, const Vector3* delta);
+    // 006CA9C0 (RET 4, when a sector is built). Every registered light whose area covers the
+    // sector is added to its vertices in range.
+    void LightSector(terrain::SectorData* sector);
+    // 006CAA70 (RET 0xC). The area of the light's square (position +- range), widened by `delta`
+    // on the side it points to.
+    void LightAreaOf(CLight* light, const Vector3* delta, LightArea* area);
+    // 006CAB50 (RET 4). Relights the area's lit sectors (their point lights only).
+    void RelightArea(const LightArea* area);
+
     // 006C8680. Height of `layer` (0 = ground, 1 = water surface) at (x, y).
     float HeightAt(float x, float y, int layer);
 
@@ -82,14 +157,11 @@ public:
     // AddTerrainTriangle per cell, through the original 004D8490).
     void AddDecalTriangles(DecalBuilder* builder, float* const* corners);
 
-    std::uint8_t unknown_01C[0x94 - 0x1C];   // the rest of the CTransformObject base
+    std::uint8_t unknown_054[0x94 - 0x54];
     std::uint32_t landscapeFlags;   // +0x094 terrain::TerrainFields::flags
-    std::uint8_t unknown_098[0xD8 - 0x98];
-    int unknownD8;                  // +0x0D8 \ cleared by the constructor
-    int unknownDC;                  // +0x0DC |
-    int unknownE0;                  // +0x0E0 |
-    int unknownE4;                  // +0x0E4 /
-    std::uint8_t partE8[0x10];      // +0x0E8 (constructor 00570E10)
+    std::uint8_t unknown_098[0x40]; // +0x098 zeroed by Reset
+    lib::AlignedArray<CTexture*> pageTextures;     // +0x0D8 per texture page (SetupPages; held)
+    lib::AlignedArray<CMaterial*> pageMaterials;   // +0x0E8 per texture page (constructor 00570E10; held)
     const char* textF8;             // +0x0F8 CString
     const char* textFC;             // +0x0FC CString
     void* unknown_100;              // +0x100 CWorldClient::DrawPass draws nothing while it is null
@@ -98,15 +170,18 @@ public:
     float width;                    // +0x10C last valid vertex column
     float height;                   // +0x110 last valid vertex row
     float heightRange;              // +0x114 the highest terrain height (cursor picking starts at half of it)
-    std::uint8_t unknown_118[0x11C - 0x118];
+    int unknown_118;                // +0x118 -1 after Reset
     int pages;                      // +0x11C texture pages (sector loading)
-    std::uint8_t unknown_120[0x128 - 0x120];
+    int unknown_120;                // +0x120 -1 after Reset
+    int unknown_124;
     int perPage;                    // +0x128 textures per page
     // Members constructed in place by Setup (their constructors' addresses).
     std::uint8_t part12C[0x10];     // +0x12C 00570E40
     std::uint8_t part13C[0x10];     // +0x13C 0056FD30
     std::uint8_t part14C[0x10];     // +0x14C 0056FD30
-    std::uint8_t part15C[0x8C];     // +0x15C 006721D0
+    std::uint8_t part15C[0x6C];     // +0x15C 006721D0
+    float* uvTables[4];             // +0x1C8 terrain::TerrainFields
+    float* uvTablesLast[4];         // +0x1D8
     std::uint8_t part1E8[0x10];     // +0x1E8 00570E70
     using SectorCache = mfc::CList<terrain::SectorData*>;
     SectorCache::Node*** sectorGrid;   // +0x1F8 [sx][sy]: the sector's cache node, or null
@@ -123,7 +198,9 @@ public:
     int sunStepY;                   // +0x248
     std::uint8_t unknown_24C[0x258 - 0x24C];   // the vertex being lit (terrain::TerrainFields)
     CLight* sun;                    // +0x258
-    std::uint8_t part25C[0x18];     // +0x25C 00571050 (an STLport hash_map and a count)
+    using LightTable = stlp::hash_map<int, LandscapeLight, stlp::IntHash>;
+    LightTable lights;              // +0x25C 00571050: the registered point lights by id
+    int maxLightId;                 // +0x270 the highest id registered
     Vector3 waveDirection;          // +0x274 the wave fields: terrain::TerrainFields
     float waveHeight;               // +0x280
     float waveGlow;                 // +0x284
@@ -131,17 +208,18 @@ public:
     float waveSpeed;                // +0x28C
     lib::AlignedArray<float> wavePhases;   // +0x290 00570DE0
     float sine[512];                // +0x2A0
-    std::uint8_t unknown_AA0[0xAA4 - 0xAA0];
+    int unknown_AA0;                // +0xAA0 0 after Reset
     int visibleRowFirst;            // +0xAA4 SetVisibleSectors
     lib::AlignedArray<int> visibleColumnFirst;   // +0xAA8 0056FD30, per visible row
     lib::AlignedArray<int> visibleColumnLast;    // +0xAB8 0056FD30
     int ambientSounds[3];           // +0xAC8 the looping circle sounds (handles, -1 none)
     int ambientClasses[3];          // +0xAD4 their sound classes, -1 none
     const char* textAE0;            // +0xAE0 CString: the ambient sound set (ambient\<set>\...)
-    std::uint8_t unknown_AE4[4];
+    int extraPages;                 // +0xAE4 texture pages loaded after the map's own (006C5AA0)
     std::uint8_t partAE8[0x14];     // +0xAE8 005711C0
 };
-static_assert(offsetof(Terrain, unknownD8) == 0xD8);
+static_assert(offsetof(Terrain, pageTextures) == 0xD8 && offsetof(Terrain, pageMaterials) == 0xE8);
+static_assert(offsetof(Terrain, uvTables) == 0x1C8 && offsetof(Terrain, maxLightId) == 0x270);
 static_assert(offsetof(Terrain, textF8) == 0xF8);
 static_assert(offsetof(Terrain, width) == 0x10C);
 static_assert(offsetof(Terrain, part12C) == 0x12C);
@@ -150,7 +228,7 @@ static_assert(offsetof(Terrain, sectorCache) == 0x1FC);
 static_assert(offsetof(Terrain, frame) == 0x218);
 static_assert(offsetof(Terrain, landscapeFlags) == 0x94);
 static_assert(offsetof(Terrain, ambient) == 0x224 && offsetof(Terrain, sun) == 0x258);
-static_assert(offsetof(Terrain, part25C) == 0x25C && offsetof(Terrain, waveDirection) == 0x274);
+static_assert(offsetof(Terrain, lights) == 0x25C && offsetof(Terrain, waveDirection) == 0x274);
 static_assert(offsetof(Terrain, wavePhases) == 0x290 && offsetof(Terrain, sine) == 0x2A0);
 static_assert(offsetof(Terrain, visibleRowFirst) == 0xAA4);
 static_assert(offsetof(Terrain, visibleColumnLast) == 0xAB8);

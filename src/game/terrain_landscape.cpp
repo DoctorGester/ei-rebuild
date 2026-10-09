@@ -3,12 +3,19 @@
 // terrain_sector.cpp, height queries in terrain.cpp.
 #include "terrain.h"
 #include "terrain_sector.h"
+#include "material.h"
+#include "spell.h"
+#include "texture.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "originals_render.h"
+#include "originals_ui.h"
+#include "originals_world.h"
 
 #include <cstdint>
+#include <cstring>
 
 using terrain::SectorData;
 
@@ -98,6 +105,211 @@ void Terrain::SetVisibleSectors(float x, float y, float radius) {
     visibleRowFirst = rowFirst;
 }
 EI_REPLACE_METHOD(0x006CA260, Terrain::SetVisibleSectors);
+
+// ---- Create, Destroy, Reset and the waves --------------------------------------------------------
+
+__declspec(naked) void Terrain::BuildVertexTiles() EI_ORIGINAL(0x006C7A80)
+__declspec(naked) void Terrain::ClearMap() EI_ORIGINAL(0x006C7750)
+
+namespace {
+
+constexpr int kRow = 33;                  // vertices per sector row
+constexpr int kVertices = kRow * kRow;
+constexpr float kPi = 3.14159274f;        // 007441C8
+constexpr double kPiDouble = 3.141592653589793;   // 007441C0
+constexpr double kSineStep = 1.0 / 256;   // 007441F0
+constexpr float kWaveStepTurn = 0.500250161f;     // 007441F8
+constexpr int kRipples = 40;
+
+// Static initialisers (006C52D0, 006C52F0, 006C5360..006C53A0): the zero position and identity
+// rotation Create gives the landscape, and the waves' scales (computed from other constants at
+// startup, read from memory).
+const Vector3& ZeroPosition() { return *reinterpret_cast<const Vector3*>(0x007C8988); }
+const Quaternion& IdentityRotation() { return *reinterpret_cast<const Quaternion*>(0x007C8978); }
+float WaveHeightScale() { return *reinterpret_cast<const float*>(0x007C8970); }
+float WaveSpeedScale() { return *reinterpret_cast<const float*>(0x007C8968); }
+float WaveDirectionScale() { return *reinterpret_cast<const float*>(0x007C896C); }
+
+// The CString members are declared as their data pointers (the client world's Setup stores the
+// empty string's there); assignments go through MFC's operator=.
+mfc::CString& AsString(const char*& text) { return reinterpret_cast<mfc::CString&>(text); }
+
+// Reset (LandscapeResetOriginal) and the wave phases are called through their addresses, so that
+// their verify wrappers run.
+__declspec(naked) void __fastcall BuildWavePhasesAt(Terrain*) EI_ORIGINAL(0x006C57E0)
+
+} // namespace
+
+int Terrain::Create() {
+    LandscapeResetOriginal(this);
+    BuildVertexTiles();
+    BuildWavePhasesAt(this);
+    for (int i = 0; i < 512; ++i) sine[i] = static_cast<float>(x87::fsin(i * kPiDouble * kSineStep));
+    localPosition_ = ZeroPosition();
+    localRotation_ = IdentityRotation();
+    return 1;
+}
+
+void Terrain::Destroy() {
+    ClearMap();
+    for (LightTable::Node* node = lights.First(); node; node = lights.After(node)) node->value.light->Release();
+    maxLightId = 0;
+    lights.Clear();
+    sectorCache.RemoveAll();
+    LandscapeResetOriginal(this);
+}
+
+void Terrain::Reset() {
+    extraPages = 0;
+    landscapeFlags = 0;
+    pageTextures.RemoveAll();
+    pageMaterials.RemoveAll();
+    std::memset(unknown_098, 0, sizeof(unknown_098));
+    unknown_100 = nullptr;
+    AsString(textF8) = "none";
+    sectorsX = -1;
+    sectorsY = -1;
+    unknown_118 = -1;
+    unknown_120 = -1;
+    perPage = -1;
+    frame = 1;
+    lightInterval = -1;
+    lightCountdown = -1;
+    for (int i = 0; i < 4; ++i) {
+        uvTables[i] = nullptr;
+        uvTablesLast[i] = nullptr;
+    }
+    waveDirection = {0.0f, 0.0f, 1.0f};
+    sectorGrid = nullptr;
+    ambient.x = ambient.y = ambient.z = 0.0f;
+    sunSlopeX = sunSlopeY = sunRunX = sunRunY = 0.0f;
+    sunStepX = sunStepY = -1;
+    sun = nullptr;
+    SetWaveStrength(0.0f);
+    unknown_AA0 = 0;
+    visibleRowFirst = 0;
+    wavePhase = kPi + kPi;
+    visibleColumnFirst.SetSize(0, -1);
+    visibleColumnLast.SetSize(0, -1);
+    for (int i = 0; i < 3; ++i) {
+        ambientSounds[i] = -1;
+        ambientClasses[i] = -1;
+    }
+    AsString(textAE0) = "none";
+}
+
+void Terrain::BuildWavePhases() {
+    wavePhases.SetSize(kVertices);
+    float* phases = wavePhases.data;
+    std::memset(phases, 0, kVertices * sizeof(float));
+    for (int ripple = 0; ripple < kRipples; ++ripple) {
+        float centreX = static_cast<float>(gamecrt::rand() % kRow);
+        float centreY = static_cast<float>(gamecrt::rand() % kRow);
+        int radius = gamecrt::rand() % 5 + 1;
+        double radiusSquared = static_cast<double>(radius) * radius;
+        float* phase = phases;
+        for (int row = 0; row < kRow; ++row) {
+            double dy = row - centreY;
+            double dySquared = dy * dy;
+            for (int column = 0; column < kRow; ++column, ++phase) {
+                double dx = column - centreX;
+                double distanceSquared = dx * dx + dySquared;
+                if (distanceSquared < radiusSquared)
+                    *phase = static_cast<float>((1.0 - distanceSquared / radiusSquared) * kPi * 0.5f + *phase);
+            }
+        }
+    }
+    // The first and last rows, then the first and last columns, averaged pairwise; the four corners
+    // get the average of all four.
+    constexpr int kLastRow = kRow * (kRow - 1);
+    for (int i = 1; i < kRow - 1; ++i) {
+        float average = (phases[kLastRow + i] + phases[i]) * 0.5f;
+        phases[i] = average;
+        phases[kLastRow + i] = average;
+    }
+    for (int i = kRow; i < kLastRow; i += kRow) {
+        float average = (phases[i + kRow - 1] + phases[i]) * 0.5f;
+        phases[i] = average;
+        phases[i + kRow - 1] = average;
+    }
+    float corners = (((phases[kLastRow] + phases[kVertices - 1]) + phases[kRow - 1]) + phases[0]) * 0.25f;
+    phases[0] = corners;
+    phases[kRow - 1] = corners;
+    phases[kVertices - 1] = corners;
+    phases[kLastRow] = corners;
+}
+
+void Terrain::SetWaveStrength(float strength) {
+    if (!(strength >= 0.0f)) strength = 0.0f;
+    if (!(1.0f >= strength)) strength = 1.0f;
+    waveGlow = strength;
+    waveHeight = WaveHeightScale() * strength;
+    waveSpeed = WaveSpeedScale() * strength;
+    double step = Asin(1.0f - strength) + kPi * kWaveStepTurn;
+    float length = LengthXYZ(waveDirection);
+    if (length > 0.0f) waveDirection *= 1.0f / length;
+    waveDirection.x = static_cast<float>(WaveDirectionScale() * waveDirection.x * step);
+    waveDirection.y = static_cast<float>(WaveDirectionScale() * waveDirection.y * step);
+}
+
+void Terrain::SetWaves(const Vector3* direction, float strength) {
+    waveDirection = *direction;
+    SetWaveStrength(strength);
+}
+
+namespace {
+
+// The texture manager (007AF744) and the material manager (007AF740).
+CTextureManager* Textures() { return *reinterpret_cast<CTextureManager* const*>(0x007AF744); }
+void* Materials() { return *reinterpret_cast<void* const*>(0x007AF740); }
+
+constexpr int kPageTexture = 0xB;     // texture kind of the terrain pages
+constexpr int kPageMaterial = 0x12;   // material kind
+constexpr int kExtraPages = 2;        // <map>L00, <map>L01
+
+} // namespace
+
+int Terrain::SetupPages(int count) {
+    pageTextures.SetSize(count);
+    pageMaterials.SetSize(count);
+    for (int i = 0; i < count + kExtraPages; ++i) {
+        mfc::CString name;
+        if (i < count) {
+            name.Format("%s%3.3i", textF8, i);
+        } else {
+            name.Format("%sL%2.2i", textF8, i - count);
+            if (!Textures()->HasFile(name + ".mmp")) return 1;
+            ++extraPages;
+            pageTextures.SetAtGrow(pageTextures.size, nullptr);
+            pageMaterials.SetAtGrow(pageMaterials.size, nullptr);
+        }
+        CTexture* texture = static_cast<CTexture*>(TextureNamedOriginal(Textures(), nullptr, kPageTexture, name));
+        pageTextures[i] = texture;
+        ++texture->refCount_;
+        CMaterial* material = reinterpret_cast<CMaterial*>(MaterialCreateOriginal(Materials(), nullptr, kPageMaterial));
+        pageMaterials[i] = material;
+        ++material->refCount_;
+        material->name = "Wood";
+        material->diffuse.x = material->diffuse.y = material->diffuse.z = 0.3f;
+        material->ambient.x = material->ambient.y = material->ambient.z = 0.7f;
+        material->specular.x = material->specular.y = material->specular.z = 0.2f;
+        material->emissive.x = material->emissive.y = material->emissive.z = 0.0f;
+        material->diffuse.w = 1.0f;
+        material->power = 5.0f;
+        if (!TextureLoadOriginal(Textures(), nullptr, pageTextures[i])) return 0;
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x006C5AA0, Terrain::SetupPages);
+
+int __fastcall CreateHook(Terrain* self, void*) { return self->Terrain::Create(); }
+void __fastcall DestroyHook(Terrain* self, void*) { self->Terrain::Destroy(); }
+EI_REPLACE(0x006C5430, CreateHook);
+EI_REPLACE(0x006C54D0, DestroyHook);
+EI_REPLACE_METHOD(0x006C5620, Terrain::Reset);
+EI_REPLACE_METHOD(0x006C57E0, Terrain::BuildWavePhases);
+EI_REPLACE_METHOD(0x006C7D70, Terrain::SetWaveStrength);
+EI_REPLACE_METHOD(0x006C7EB0, Terrain::SetWaves);
 
 // ---- Aligned arrays of 4-byte elements (lib::AlignedArray) ----------------------------------------
 // SetSize(count, growBy) (RET 8): 006CD5C0 (the client setup's array, from 006C7750), 006CE890 (the
