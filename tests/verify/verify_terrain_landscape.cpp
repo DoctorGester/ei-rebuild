@@ -107,10 +107,16 @@ using SetSizeFn = void(__fastcall*)(Words*, void*, int, int);
 using SetAtGrowFn = void(__fastcall*)(Words*, void*, int, std::uint32_t);
 
 void CompareSetSize(const char* name, SetSizeFn original, Words* self, int count, int growBy) {
+    // The originals leave grown elements uninitialised (no fill after the copy), so only the elements
+    // kept from before are compared.
+    int kept = self->size < count ? self->size : count;
     Words scratch = CopyArray(*self);
     original(&scratch, nullptr, count, growBy);
     self->SetSize(count, growBy);
-    ei::verify::Check(name, true, SameArray(scratch, *self), "count %d growBy %d: size %d/%d cap %d/%d", count, growBy,
+    bool same = scratch.size == self->size && scratch.capacity == self->capacity && scratch.growBy == self->growBy &&
+                !scratch.data == !self->data &&
+                (kept <= 0 || std::memcmp(scratch.data, self->data, static_cast<std::size_t>(kept) * sizeof(std::uint32_t)) == 0);
+    ei::verify::Check(name, true, same, "count %d growBy %d: size %d/%d cap %d/%d", count, growBy,
                       scratch.size, self->size, scratch.capacity, self->capacity);
     FreeCopy(scratch);
 }
