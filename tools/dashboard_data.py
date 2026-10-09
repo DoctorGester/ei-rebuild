@@ -8,10 +8,13 @@ commit's own files:
   - cleanup artefacts: EI_ORIGINAL sites, functions forwarded from several files, At<>/Field<> uses,
     VCall uses, __asm blocks, float_control pragmas, verify wrappers, scenarios.
 
-usage: python tools/dashboard_data.py [--every N] [--out build/dashboard/data.json]
-Reads history through `git cat-file --batch`; nothing is checked out.
+usage: python tools/dashboard_data.py [--every N] [--out build/dashboard/data.json] [--no-cache]
+Reads history through `git cat-file --batch`; nothing is checked out. Each commit's numbers are cached
+by commit hash in build/dashboard/cache.json, so a rerun only measures new commits and the working
+tree. The cache is dropped when this script or tools/check_cleanup.py changes (their hash is stored
+with it), since then the numbers would be measured differently.
 """
-import argparse, csv, io, json, os, re, subprocess, sys
+import argparse, csv, hashlib, io, json, os, re, subprocess, sys
 from collections import defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -179,10 +182,19 @@ def measure(tree):
             'cleanup': dict(cleanup)}
 
 
+def metrics_version():
+    """Hash of the code that decides the numbers; a cache made by other code is not reused."""
+    h = hashlib.sha1()
+    for name in ('dashboard_data.py', 'check_cleanup.py'):
+        h.update(open(os.path.join(ROOT, 'tools', name), 'rb').read())
+    return h.hexdigest()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--every', type=int, default=8, help='sample every Nth first-parent commit')
     ap.add_argument('--out', default=os.path.join(ROOT, 'build', 'dashboard', 'data.json'))
+    ap.add_argument('--no-cache', action='store_true', help='measure every sampled commit again')
     args = ap.parse_args()
     log = subprocess.run(['git', 'log', '--first-parent', '--reverse', '--format=%H %cI %s', 'main'], cwd=ROOT,
                          capture_output=True, text=True).stdout.strip().split('\n')
@@ -191,13 +203,32 @@ def main():
     if sample[-1] != commits[-1]:
         sample.append(commits[-1])
     batch = Batch()
-    history = []
+    cache_path = os.path.join(os.path.dirname(args.out), 'cache.json')
+    version = metrics_version()
+    cache = {}
+    if not args.no_cache and os.path.exists(cache_path):
+        try:
+            saved = json.load(open(cache_path))
+            if saved.get('version') == version:
+                cache = saved.get('commits', {})
+        except (OSError, ValueError):
+            pass
+    history, measured = [], 0
     for sha, when, subject in sample:
-        m = measure(Tree(sha, batch))
+        if sha in cache:
+            m = cache[sha]
+        else:
+            m = measure(Tree(sha, batch))
+            cache[sha] = m   # None too: a commit without the inputs stays skipped
+            measured += 1
+            if m:
+                print(f'{sha[:7]} {when[:16]} {100 * m["ported_bytes"] / m["bytes"]:.1f}%', file=sys.stderr)
         if m:
-            m.update(commit=sha[:7], date=when, subject=subject[:80])
+            m = dict(m, commit=sha[:7], date=when, subject=subject[:80])
             history.append(m)
-            print(f'{sha[:7]} {when[:16]} {100 * m["ported_bytes"] / m["bytes"]:.1f}%', file=sys.stderr)
+    os.makedirs(os.path.dirname(args.out), exist_ok=True)
+    json.dump({'version': version, 'commits': cache}, open(cache_path, 'w'))
+    print(f'{measured} commits measured, {len(sample) - measured} from the cache', file=sys.stderr)
     current = measure(Tree(None, batch))
     current.update(commit='working tree', date=subprocess.run(['git', 'log', '-1', '--format=%cI'], cwd=ROOT,
                    capture_output=True, text=True).stdout.strip(), subject='')

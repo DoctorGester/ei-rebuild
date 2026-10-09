@@ -46,6 +46,10 @@ svg text { fill: var(--muted); font-family: var(--mono); font-size: 10px }
 .legend span::before { content: ""; display: inline-block; width: 10px; height: 3px; margin-right: 6px; vertical-align: middle; background: var(--c) }
 footer { color: var(--muted); font-size: 12px }
 #error { color: var(--accent) }
+  .dropzone { display: none; position: fixed; inset: 12px; border: 2px dashed var(--accent); border-radius: 12px;
+    background: color-mix(in srgb, var(--panel) 88%, transparent); color: var(--ink); font-size: 1.1rem;
+    align-items: center; justify-content: center; pointer-events: none; z-index: 10; }
+  body.dragging .dropzone { display: flex; }
 </style>
 
 <main>
@@ -66,7 +70,8 @@ footer { color: var(--muted); font-size: 12px }
     <h2>Over time</h2>
     <div class="charts" id="charts"></div>
   </section>
-  <footer>Numbers come from <span class="mono">tools/dashboard_data.py</span>, which reads every sampled commit on main. <span id="error"></span></footer>
+  <footer>Numbers come from <span class="mono">tools/dashboard_data.py</span>, which reads every sampled commit on main. Drop a <span class="mono">data.json</span> from it on this page to show that file instead. <span id="error"></span></footer>
+  <div class="dropzone" aria-hidden="true">Drop data.json to show it</div>
 </main>
 
 <script>
@@ -177,7 +182,24 @@ function render(data) {
       { title: 'Test coverage', note: 'Checks comparing rewrites with the original, and in-game scenarios.' });
 }
 
-fetch('data.json').then(r => r.json()).then(render).catch(e => {
-  document.getElementById('error').textContent = 'Could not load data.json: ' + e.message;
+function showError(message) { document.getElementById('error').textContent = message; }
+
+fetch('data.json').then(r => r.json()).then(render).catch(e => showError('Could not load data.json: ' + e.message));
+
+// Drop a data.json made by tools/dashboard_data.py anywhere on the page to show it instead.
+let dragDepth = 0;
+document.addEventListener('dragenter', e => { e.preventDefault(); dragDepth++; document.body.classList.add('dragging'); });
+document.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+document.addEventListener('dragleave', () => { if (--dragDepth <= 0) { dragDepth = 0; document.body.classList.remove('dragging'); } });
+document.addEventListener('drop', e => {
+  e.preventDefault(); dragDepth = 0; document.body.classList.remove('dragging');
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  if (!file) return;
+  file.text().then(text => {
+    const data = JSON.parse(text);
+    if (!data.current || !data.history) throw new Error('not a dashboard data file (no current / history)');
+    render(data);
+    showError('Showing ' + file.name + '.');
+  }).catch(err => showError('Could not read ' + file.name + ': ' + err.message));
 });
 </script>
