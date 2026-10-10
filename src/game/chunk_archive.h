@@ -25,6 +25,11 @@ struct QuestBriefingRecord;
 struct QuestRecord;
 struct SkillLevelRecord;
 struct SkillRecord;
+struct CStringVector;
+struct UnitLevelRecord;
+struct UnitModelRecord;
+struct UnitNpcRecord;
+struct UnitPrototypeRecord;
 namespace mfc {
 class CString;
 }
@@ -169,6 +174,16 @@ public:
     void SerializeSkillLevels(int id, stlp::vector<SkillLevelRecord>* levels, void* unused);
     // 00521480 (RET 8). Chunk `id` holding `record` (its Serialize).
     void SkillLevelChunk(int id, SkillLevelRecord* record);
+    // The unit database's vectors (unit_db.cpp, A-U11; the same shape, called by the Rebirth-patched
+    // loader 0053A200): 0053DC10 the prototypes (destroyed by 0053EBC0, resized by 0053E2A0), 0053DD00
+    // the NPCs (0053ED30 / 0053E520), 0053DF50 the models (0053EE70 / 0053E730), 0053E1B0 the level
+    // records (their name destroyed / 0053E9B0).
+    void SerializePrototypes(int id, stlp::vector<UnitPrototypeRecord>* records, void* unused);
+    void SerializeNpcs(int id, stlp::vector<UnitNpcRecord>* records, void* unused);
+    void SerializeModels(int id, stlp::vector<UnitModelRecord>* records, void* unused);
+    void SerializeUnitLevels(int id, stlp::vector<UnitLevelRecord>* records, void* unused);
+    // 0052DF40 (RET 0xC; unit_db.cpp, A-U11). A vector<CString> as chunk `id` (InlineStrings).
+    void SerializeCStrings(int id, CStringVector* strings, void* unused);
 
     // An archive built and destroyed inline on a function's stack, as 004A8310 / 004A8560 do
     // (0053A7B0 is the out-of-line constructor): two empty memory streams, the containers'

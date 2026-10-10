@@ -24,6 +24,9 @@ struct CStringVector {
 };
 static_assert(sizeof(CStringVector) == 0xC);
 
+// 0052D6A0 (thiscall on the values, RET 4; unit_db.cpp, A-U11). Four dwords as fields 0..3.
+void __fastcall SerializeFourDwords(std::uint32_t* values, void*, ChunkArchive* ar);
+
 // unit_db.cpp. A vector<CString> as chunk `id` holding one field 1 per string, the way the NPC
 // and quest briefing serialisers inline it: loading empties the vector (0052E010; 0052DF40
 // erases the range through 0051F970 instead, with the same result) and resizes it to the count
@@ -123,6 +126,9 @@ static_assert(sizeof(UnitNpcRecord) == 0x60);
 // 0x0C + slot): the skill level record's name, its index (0053A200 resolves the name), the slot's
 // share and factor.
 struct UnitModelSlot {
+    // 0052D6F0 (RET 4; A-U11). The level name as field 0, then levelIndex, share and factor as 1..3.
+    void Serialize(ChunkArchive* ar);
+
     mfc::CString levelName;         // +0x00
     int levelIndex;                 // +0x04
     float share;                    // +0x08
@@ -190,6 +196,20 @@ static_assert(offsetof(UnitModelRecord, idleSoundChance) == 0x150);
 static_assert(offsetof(UnitModelRecord, soundNames) == 0x138);
 static_assert(sizeof(UnitModelRecord) == 0x168);
 static_assert(offsetof(UnitModelRecord, soundCounts) == 0x144);
+
+// A unit database level record (0x44 bytes; the fourth table, 0053E1B0).
+struct UnitLevelRecord {
+    // 0052DEE0 (RET 4; A-U11). The name as field 0, the seven dwords at +0x08 / +0x24 as fields
+    // 1 / 2, +0x40 as 3 and +0x04 as 4.
+    void Serialize(ChunkArchive* ar);
+
+    mfc::CString name;              // +0x00 field 0
+    std::uint32_t unknown_04;       // +0x04 4
+    std::uint32_t valuesA[7];       // +0x08 1
+    std::uint32_t valuesB[7];       // +0x24 2
+    std::uint32_t unknown_40;       // +0x40 3
+};
+static_assert(offsetof(UnitLevelRecord, valuesB) == 0x24 && sizeof(UnitLevelRecord) == 0x44);
 
 // The unit database (global 007AF358): four 0x20-byte tables (prototypes, NPCs, models, ...;
 // unit_create.h / unit.h read them as their own tables). Only the models are named here.

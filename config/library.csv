@@ -4304,3 +4304,4 @@ address,name,library,signature,notes
 0052CC50,"CArray<12-byte spot>::SetAtGrow",MFC,,"A-U11 review: MFC CArray instantiation (12-byte elements, 00452DC0 constructs them), not game logic"
 0052CA40,"stlp::hash_map<string, record>::operator[] (a temporary string key)",STLport,,"A-U11 review: the lever table's (0079C1A0) map lookup by model name, library code (unit_lever.cpp)"
 0052CB40,"stlp::hash_map<string, record>::operator[] (a temporary string key)",STLport,,"A-U11 review: the lever table's (0079C1A0) map lookup by model name, library code (unit_lever.cpp)"
+0052E010,"stlp::vector<CString>::clear",STLport,,"A-U11 review (units.md): erase(begin, end) of a vector<CString> (copy of an empty range, the CStrings destroyed), not game logic"

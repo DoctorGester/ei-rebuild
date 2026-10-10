@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "originals_library.h"
+#include "originals_units.h"
 
 namespace unitdb {
 
@@ -88,7 +89,7 @@ __declspec(naked) void __fastcall LevelRecordDestroy(char*, void*, int /*delete*
 __declspec(naked) void __fastcall LevelsDeallocate(char**, void*, char* /*p*/, int /*n*/) EI_ORIGINAL(0x0053BEB0)
 __declspec(naked) void __fastcall ModelNamesClear(NameTable*) EI_ORIGINAL(0x0053C430)
 __declspec(naked) void __fastcall ModelBucketsFree(HashNode***) EI_ORIGINAL(0x0053B930)
-__declspec(naked) void __fastcall ModelRecordDestroy(char*) EI_ORIGINAL(0x0053EE70)
+void __fastcall ModelRecordDestroy(char* record) { UnitModelDestroyOriginal(record); }
 __declspec(naked) void __fastcall ModelsFree(RawVector*) EI_ORIGINAL(0x0053B7A0)
 __declspec(naked) void __fastcall NpcNamesClear(NameTable*) EI_ORIGINAL(0x0053C280)
 __declspec(naked) void __fastcall NpcBucketsFree(HashNode***) EI_ORIGINAL(0x005150D0)
