@@ -120,3 +120,47 @@ EI_VERIFY(0x00693C60, FindTextureVerify, 0, s_findTexture);
 static void* s_deleteComposed;
 static void __cdecl DeleteComposedVerify() { DeleteComposedTextures(); }
 EI_VERIFY(0x006916F0, DeleteComposedVerify, 0, s_deleteComposed);
+
+// --- 00692D30 ----------------------------------------------------------------------------------------
+
+// Ours only. A registered texture of the type and name (unchanged cache); else the cached one taken
+// back as TakeFromCache does (the cached bytes down by its size); else null with the cache unchanged.
+static void* s_findTypedTexture;
+static CTexture* __fastcall FindTypedTextureVerify(CTextureManager* self, void*, int type, const char* name) {
+    const CTexture* cached = CachedNamed(self, type, name);
+    int count = self->cache_.count;
+    int bytes = self->cachedBytes_;
+    int references = self->refCount_;
+    CTexture* texture = self->FindTypedTexture(type, name);
+    const char* problem = nullptr;
+    if (self->refCount_ != references) {
+        problem = "manager reference";
+    } else if (!texture) {
+        if (cached || self->cache_.count != count) problem = "a cached texture not found";
+    } else if (texture->type_ != type || std::strcmp(texture->GetName(), name) != 0 || !Registered(self, texture)) {
+        problem = "not a registered texture of the type and name";
+    } else if (self->cache_.count != count &&
+               (texture != cached || self->cache_.count != count - 1 || self->cachedBytes_ != bytes - texture->uploadResult_)) {
+        problem = "cache";
+    } else if (self->cache_.count == count && self->cachedBytes_ != bytes) {
+        problem = "cached bytes";
+    }
+    ei::verify::Check("CTextureManager::FindTypedTexture", true, problem == nullptr, "type %d \"%s\": %s", type, name,
+                      problem ? problem : "ok");
+    return texture;
+}
+EI_VERIFY(0x00692D30, FindTypedTextureVerify, 0, s_findTypedTexture);
+
+// --- 00692F00 ----------------------------------------------------------------------------------------
+
+// Ours only (deletes textures): the cache empty, no cached bytes. Reached when the client loads a
+// zone (00567AB0): every scenario with a new game.
+static void* s_freeCache;
+static void __fastcall FreeCacheVerify(CTextureManager* self) {
+    self->FreeCache();
+    ei::verify::Check("CTextureManager::FreeCache", true,
+                      self->cache_.count == 0 && self->cache_.head == nullptr && self->cache_.blocks == nullptr &&
+                          self->cachedBytes_ == 0,
+                      "manager %p", static_cast<void*>(self));
+}
+EI_VERIFY(0x00692F00, FreeCacheVerify, 0, s_freeCache);

@@ -335,7 +335,7 @@ ComposeTexture: the cache file `<game folder>textures\<name>.mmp` keeps the requ
 file is tried. No layer textures deletes the file (0); else the image is drawn by 00693010 (not rewritten) and written, each
 level converted to 16 bits by the pixel converter 007AF06C slot 2 [out, in, kind, count] (kind 3 for 4444, 2 for 5551, 0 for
 5650, else -1) and halved by slot 7. A file that cannot be created goes to FatalError (the image block leaks, as in the
-original). 00693970 and 0068F860 (a texture from a surface description; its one caller 00691D50 is dead) are dead. Not rewritten: 00693010 (the composed image's drawing), 00692D30, Rebirth-patched slot 2 00691500. The fills keep a reference on every attached
+original). 00693970 and 0068F860 (a texture from a surface description; its one caller 00691D50 is dead) are dead. A-H24: 00693010 CTextureManager::DrawLayers (S on an image copy; returns the layers drawn, the converter (CPixelConverter, texture.h) slot 5 per layer), 00692D30 FindTypedTexture and 00692F00 FreeCache (texture_cache.cpp, O). Not rewritten: Rebirth-patched slot 2 00691500. The fills keep a reference on every attached
 level they move to (never released, as in the original; the wrappers drop their second run's); a DXT file / surface pair
 without a decode mode passes the mip level as the mode (kept).
 
