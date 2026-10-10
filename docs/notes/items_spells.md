@@ -438,4 +438,20 @@ heights by the token's font digit, fonts 3-9 read the original's other stack slo
 tooltip's constructor leaves the measurements and both arguments unwritten for an empty text. Risks: the constructor wrappers
 are ours only; Layout's stand-in shares the sprites.
 
+## Materials (A-H24; material.cpp, verify_material: S = against the original on a scratch copy)
+
+| Address | Name | V |
+|---|---|---|
+| 0068DBC0, 0068DE30, 0068DD20 | CMaterial constructor (names "none", alpha 1, an empty deque; colours unwritten), destructor body, slot 0 | S / O / O |
+| 0068DF90, 0068E040, 0068DD00, 0068DD10 | CMaterial slots 2 (reset, 1), 3 (deque emptied), 11, 12 | O / O / P / P |
+| 0068E3F0, 0068E540, 0068E520, 0068E900 | CMaterialManager constructor (colour table of NextPrime(100) buckets), destructor body, slot 0, NewObject (slot 14) | O |
+| 0068E970, 0068EAF0 | NewMaterial (slot 23, flags_ 8, the table's colours for type_), FillMaterial (RET 8) | O / S |
+| 0068E4F0, 0068E500, 0068E510 | manager slots 25 "materials", 11, 12 | P |
+
+CMaterial (0x9C) is also the scene loader's helper record (SceneHelper, 00454E40 constructs arrays of them). The manager's
+table (+0xBC) maps a key to a D3DMATERIAL7 (MaterialColors); an absent key is entered with the key's bits in all 17 dwords
+(the original's default pair), and its Create 0068E640 (Rebirth-patched) fills it. The deque (16-byte elements, no writer
+found) is `stlp::deque<T>` now; its instantiations 0068DD40 / 0068E0B0 / 0068E1C0 / 0068E320 went to library.csv. Not
+hookable: 0068DCF0 (slot 7, 4 bytes). Differs: NewMaterial returns null on a failed creation (the original faults).
+
 **Next candidates** (after A-H23): 00693010, 00692D30 (composed textures), the material subsystem (CMaterial 0068DBC0 / 0068DE30 / 0068DF90 / 0068E040 with an STLport deque of 16-byte entries, CMaterialManager 0068E3F0 / 0068E540 / 0068E640 Rebirth-patched / 0068E900), the party container helpers 00664160 / 00664470 / 00664850 / 00664410 / 00664AC0 (CArray<PartyUnitRecord> destructor and friends; 00663410 is reached only from unwind funclets), 0069FB60 (items and their spells into two lists), the effect classes' 6-byte name / id getters in 0x675000-0x67E000; then the largest left in 0x640000-0x6C0000 (`python tools/progress.py`; it misses UI_INPUT_HANDLER registrations, so check `grep` before picking).

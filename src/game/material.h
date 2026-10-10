@@ -1,23 +1,99 @@
 #pragma once
 
 #include "engine_object.h"
+#include "resource_manager.h"
 
 #include "lib/mfc.h"
+#include "lib/stlp.h"
 #include "lib/vecmath.h"
 
 #include <cstddef>
+#include <cstdint>
 
-// A material, made by the material manager (*007AF740, 0068E970 MaterialCreateOriginal in originals_render.h): an engine
-// object with a name and a Direct3D material (D3DMATERIAL7: diffuse, ambient, specular and
-// emissive colours (r, g, b, a), power). Name provisional; only the members used so far.
+// A Direct3D material (D3DMATERIAL7): diffuse, ambient, specular and emissive colours (r, g, b, a)
+// and the specular power. 0x44 bytes; copied as dwords.
+struct MaterialColors {
+    Vector4 diffuse;        // +0x00
+    Vector4 ambient;        // +0x10
+    Vector4 specular;       // +0x20
+    Vector4 emissive;       // +0x30
+    float power;            // +0x40
+};
+static_assert(sizeof(MaterialColors) == 0x44);
+
+// An element of the material's deque (16 bytes). Nothing found writes one yet.
+struct MaterialEntry {
+    std::uint32_t unknown[4];
+};
+static_assert(sizeof(MaterialEntry) == 0x10);
+
+// A material (vtable 00743BB4, class id 5, "CMaterial", 0x9C bytes; material.cpp), made by the material
+// manager (*007AF740, CMaterialManager::NewMaterial) and by the scene loader for its helpers
+// (00454E40 builds an array of them; SceneHelper in scene_loader.h is this layout). Names
+// provisional.
 class CMaterial : public CEngineObject {
 public:
-    mfc::CString name;      // +0x1C
-    Vector4 diffuse;        // +0x20
-    Vector4 ambient;        // +0x30
-    Vector4 specular;       // +0x40
-    Vector4 emissive;       // +0x50
-    float power;            // +0x60
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743BB4);
+
+    // 0068DBC0. The constructor: an engine object with empty names, alpha 1 and an empty deque
+    // (one node). The colours stay as they were. Returns this.
+    CMaterial* Construct();
+    // 0068DE30. The destructor body: the deque emptied and freed, the names, the engine object.
+    void Destruct();
+    // 0068DD20. Slot 0: Destruct, then operator delete when flags bit 0 is set. Returns this.
+    CMaterial* DeletingDestruct(unsigned flags);
+    // 2: 0068DF90. Empty names, alpha 1, +0x90 / +0x98 0, the deque emptied; returns 1.
+    int Create() override;
+    // 3: 0068E040. Empties the deque.
+    void Destroy() override;
+    // Slot 7 (0068DCF0, 4 bytes: too short to hook) returns name; slots 11 / 12 are
+    // MaterialClassName / MaterialClassId below.
+
+    mfc::CString name;                      // +0x1C
+    MaterialColors colors;                  // +0x20
+    stlp::deque<MaterialEntry> entries;     // +0x64
+    mfc::CString name2;                     // +0x8C (the scene file's second name)
+    int unknown_90;                         // +0x90
+    mfc::CString name3;                     // +0x94 (the scene file's third name)
+    int unknown_98;                         // +0x98
 };
-static_assert(offsetof(CMaterial, name) == 0x1C && offsetof(CMaterial, diffuse) == 0x20 &&
-              offsetof(CMaterial, emissive) == 0x50 && offsetof(CMaterial, power) == 0x60);
+static_assert(offsetof(CMaterial, name) == 0x1C && offsetof(CMaterial, colors) == 0x20 &&
+              offsetof(CMaterial, entries) == 0x64 && offsetof(CMaterial, name2) == 0x8C &&
+              offsetof(CMaterial, name3) == 0x94 && sizeof(CMaterial) == 0x9C);
+
+// The material manager (vtable 00743C38, class id 0x27, "CMaterialManager", 0xD0 bytes; the world's
+// *007AF740; material.cpp): a resource manager of CMaterial objects with a table of colours by key
+// (filled by its Create, 0068E640, Rebirth-patched).
+class CMaterialManager : public CResourceManager {
+public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743C38);
+
+    using ColorTable = stlp::hash_map<unsigned, MaterialColors, stlp::IntHash>;
+
+    // 0068E3F0. CResourceManager's constructor body and an empty colour table (NextPrime(100) = 193 buckets).
+    // Returns this.
+    CMaterialManager* Construct();
+    // 0068E540. The destructor body: the colour table freed, then CResourceManager's.
+    void Destruct();
+    // 0068E520. Slot 0.
+    CMaterialManager* DeletingDestruct(unsigned flags);
+    // 14: 0068E900. A new CMaterial with type_ = `type`; null when the allocation fails.
+    CEngineObject* NewObject(int type) override;
+    // 0068E970 (RET 4). A material of `type` (slot 23 with id -1, flags_ |= 8 before the null
+    // check) given the table's colours for its type_ (an absent key is entered first, its colours
+    // the key's bits in every dword).
+    CMaterial* NewMaterial(int type);
+    // 0068EAF0 (RET 8). The table's colours for `key` (entered as NewMaterial does when absent)
+    // into `material`; 1, or 0 for a null material.
+    int FillMaterial(CMaterial* material, unsigned key);
+
+    ColorTable colors_;     // +0xBC
+};
+static_assert(offsetof(CMaterialManager, colors_) == 0xBC && sizeof(CMaterialManager) == 0xD0);
+
+// 0068E4F0 "materials", 0068E500 "CMaterialManager", 0068E510 0x27 (slots 25, 11, 12).
+const char* __fastcall MaterialManagerFolder(CMaterialManager* self);
+const char* __fastcall MaterialManagerClassName(CMaterialManager* self);
+int __fastcall MaterialManagerClassId(CMaterialManager* self);
+const char* __fastcall MaterialClassName(CMaterial* self);
+int __fastcall MaterialClassId(CMaterial* self);

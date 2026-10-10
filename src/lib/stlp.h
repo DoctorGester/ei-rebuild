@@ -204,6 +204,85 @@ struct list {
 };
 static_assert(sizeof(list<int>) == 4 && sizeof(list<int>::Node) == 12);
 
+// deque<T> (0x28 bytes): the start and finish iterators (cur, first, last, node), the map of node
+// pointers and its size; the allocator proxies are empty bytes inside the map words. Nodes hold
+// 512 / sizeof(T) elements (one for larger T). Only trivially destructible T: the game's
+// instantiations here destroy nothing. Instantiations: the camera's view stack (0x24-byte entries,
+// camera.h keeps its own layout), the material's (0x10-byte, material.h).
+template <typename T>
+class deque {
+public:
+    static constexpr std::size_t kPerNode = sizeof(T) < 512 ? 512 / sizeof(T) : 1;
+    static constexpr std::size_t kNodeBytes = kPerNode * sizeof(T);
+    static_assert(std::is_trivially_destructible_v<T>);
+
+    struct Iterator {
+        T* cur;
+        T* first;
+        T* last;
+        T** node;
+        void SetNode(T** n) {
+            node = n;
+            first = *n;
+            last = first + kPerNode;
+        }
+    };
+
+    bool empty() const { return finish_.cur == start_.cur; }
+    std::size_t size() const {
+        return static_cast<std::size_t>(finish_.node - start_.node - 1) * kPerNode +
+               static_cast<std::size_t>(finish_.cur - finish_.first) + static_cast<std::size_t>(start_.last - start_.cur);
+    }
+    const Iterator& Start() const { return start_; }
+    const Iterator& Finish() const { return finish_; }
+    T** Map() const { return map_; }
+    std::size_t MapSize() const { return mapSize_; }
+
+    // The constructor deque(n) with _M_initialize_map(n) (e.g. 0068E0B0 / 0068E1C0 / 0068E320): a
+    // map of max(8, nodes + 2) slots from the pool, the nodes for `n` elements in its middle.
+    void Construct(std::size_t n = 0) {
+        std::size_t nodes = n / kPerNode + 1;
+        mapSize_ = nodes + 2 > 8 ? nodes + 2 : 8;
+        map_ = static_cast<T**>(allocate(mapSize_ * sizeof(T*)));
+        T** nstart = map_ + (mapSize_ - nodes) / 2;
+        T** nfinish = nstart + nodes;
+        for (T** p = nstart; p < nfinish; ++p) *p = static_cast<T*>(allocate(kNodeBytes));
+        start_.SetNode(nstart);
+        finish_.SetNode(nfinish - 1);
+        start_.cur = start_.first;
+        finish_.cur = finish_.first + n % kPerNode;
+    }
+
+    // pop_back(): the finish steps back; leaving an emptied node frees it (_M_pop_back_aux).
+    void pop_back() {
+        if (finish_.cur != finish_.first) {
+            --finish_.cur;
+            return;
+        }
+        deallocate(finish_.first, kNodeBytes);
+        finish_.SetNode(finish_.node - 1);
+        finish_.cur = finish_.last - 1;
+    }
+
+    // `while (!empty()) pop_back();`, as the game inlines it to empty a deque.
+    void PopAll() {
+        while (!empty()) pop_back();
+    }
+
+    // ~deque (e.g. 0068DD40): every node from start to finish, then the map, back to the pool.
+    void Destroy() {
+        if (!map_) return;
+        for (T** p = start_.node; p < finish_.node + 1; ++p) deallocate(*p, kNodeBytes);
+        deallocate(map_, mapSize_ * sizeof(T*));
+    }
+
+private:
+    Iterator start_;
+    Iterator finish_;
+    T** map_;
+    std::size_t mapSize_;
+};
+
 // map<K, V> (_Rb_tree, 0xC bytes): the header node (allocated by the owner's constructor; its
 // parent is the root, its left / right children the leftmost / rightmost node), the element count,
 // the empty compare object (one byte). Keys are ordered by operator<. Only the lookups are written
