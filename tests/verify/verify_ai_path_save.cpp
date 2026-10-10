@@ -28,11 +28,15 @@ struct StandIn {
     void** vtable;
 };
 
+// Recordings nest (the path's save calls the order save, whose check records too), so the buffer
+// in use is put back afterwards.
 void SaveInto(SaveFn fn, AIPath* path, std::vector<std::uint8_t>& out) {
     s_vtable[2] = reinterpret_cast<void*>(&RecordWrite);
     StandIn stream{s_vtable};
+    std::vector<std::uint8_t>* outer = s_bytes;
     s_bytes = &out;
     fn(path, nullptr, &stream);
+    s_bytes = outer;
 }
 } // namespace
 
