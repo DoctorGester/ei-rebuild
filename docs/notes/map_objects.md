@@ -175,6 +175,12 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
   writers) are called only from dead 0044A7B0 (the animation exporter; Ghidra's bodies for them overlap live readers, so
   find_dead_code.py keeps them); 00501980 / 005019D0 only from slot 25 (005015A0, no caller); 00500A90 (4 bytes) too
   short; 00503F20 (a Vector3 copy) and 005000xx-005003D0 (STLport copy helpers) left.
+- Next after A-U11: CObject3DClientSpecific's part sets (+0x20 / +0x24: objects holding arrays of arrays of parts; needs
+  their layout declared): slots 13 / 14 / 15 (0051B050 / 0051B210 / 0051B160) with 0051B2F0 / 0051B470 / 0051B5B0 /
+  0051B630, ctor / dtor / Create / Destroy (0051AB00 / 0051AD90 / 0051AEC0 / 0051AF70), 0051CB30, the colour stack
+  0051C250 / 0051C9F0 / 0051C730-0051C890; CObject3DServer stubs (0051F240-0051F330); 0051E300-0051F0D0 (materials);
+  005101A0 / 005102A0, 005143E0, 00512660 / 00512A30, 0050E580, 0050FBC0, 0050BF00, 00508870; 5- and 6-byte constant
+  slots (byte-identical to rewritten stubs, but registering them under unrelated names was avoided).
 - 0050E9B0 (slot 34): packs a stack UnitVitals the builder leaves unwritten when the prototype exists (garbage in the
   original; cannot be reproduced). 0050F080 is rewritten (A-U5, map_object_vitals.cpp: CMapObject::ClearProtectionBases,
   verified ours vs original on the protection pairs; reached by every unit spawn through 0058EF20).
