@@ -153,7 +153,7 @@ public:
     std::uint32_t flatSpecular_;        // +0x0D8 every specular of a flat mesh
     std::uint8_t unknown_0DC[0x120 - 0xDC];
     mfc::CString name_;                 // +0x120 (the scene loader names it after its mesh)
-    std::uint32_t unknown_124;
+    mfc::CString directory_;            // +0x124 where its .fig file is (005AC2F0; NewFigure empties it)
     lib::AlignedArray<Vector3> offsets_;     // +0x128 per-vertex offsets added when drawing (005A0B10 / 005A0CD0)
     lib::AlignedArray<std::uint32_t> colorsA_;   // +0x138 one per normal (lit colours)
     lib::AlignedArray<std::uint32_t> colorsB_;   // +0x148 one per normal
