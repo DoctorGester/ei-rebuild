@@ -106,7 +106,9 @@ void __fastcall TextSourcesClear(TextSourceList* list);
 // 004E1540. Copies an iterator (thiscall: *out = *this).
 struct TextSourceIterator {
     CTextManager::SourceNode* node;
-    void CopyTo(CTextManager::SourceNode** out);  // 004E1540
+    // 004E1540 and its byte-identical copies: *out = node; returns `out` in EAX, which some callers use
+    // (the sector lists' End, 0056DEC0).
+    CTextManager::SourceNode** CopyTo(CTextManager::SourceNode** out);
 };
 
 // 004DEAB0 (thiscall on an stlp::string, not rewritten): frees the string's storage.

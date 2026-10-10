@@ -300,7 +300,10 @@ TextSourceNode** __fastcall TextSourcesInsert(TextSourceList* list, void*, TextS
 }
 EI_REPLACE(0x004E1590, TextSourcesInsert);
 
-void TextSourceIterator::CopyTo(CTextManager::SourceNode** out) { *out = node; }
+CTextManager::SourceNode** TextSourceIterator::CopyTo(CTextManager::SourceNode** out) {
+    *out = node;
+    return out;
+}
 EI_REPLACE_METHOD(0x004E1540, TextSourceIterator::CopyTo);
 // Byte-identical copies (other list iterators' copy in the interface; A-I15).
 EI_REPLACE_METHOD(0x005E2470, TextSourceIterator::CopyTo);

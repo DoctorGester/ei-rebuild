@@ -145,23 +145,25 @@ EI_BEGIN_COPY(0056DFE0)
 
 // 004E1540: MOV EAX,[ESP+4]; MOV ECX,[ECX] (6 bytes).
 static void(__fastcall* s_iteratorCopy)(TextSourceIterator*, void*, CTextManager::SourceNode**);
-static void __fastcall IteratorCopyVerify(TextSourceIterator* self, void*, CTextManager::SourceNode** out) {
+static CTextManager::SourceNode** __fastcall IteratorCopyVerify(TextSourceIterator* self, void*, CTextManager::SourceNode** out) {
     CTextManager::SourceNode* expected = nullptr;
     s_iteratorCopy(self, nullptr, &expected);
-    self->CopyTo(out);
+    CTextManager::SourceNode** result = self->CopyTo(out);
     ei::verify::Check("TextSourceIterator::CopyTo", expected, *out, "node %p", self->node);
+    return result;
 }
 EI_VERIFY(0x004E1540, IteratorCopyVerify, 6, s_iteratorCopy);
 
 // The interface's byte-identical copies (A-I15), side by side the same way.
 #define EI_ITERATOR_COPY(addr)                                                                       \
     static void(__fastcall* s_iteratorCopy_##addr)(TextSourceIterator*, void*, CTextManager::SourceNode**); \
-    static void __fastcall IteratorCopyVerify_##addr(TextSourceIterator* self, void*,                \
+    static CTextManager::SourceNode** __fastcall IteratorCopyVerify_##addr(TextSourceIterator* self, void*, \
                                                      CTextManager::SourceNode** out) {               \
         CTextManager::SourceNode* expected = nullptr;                                                \
         s_iteratorCopy_##addr(self, nullptr, &expected);                                             \
-        self->CopyTo(out);                                                                           \
+        CTextManager::SourceNode** result = self->CopyTo(out);                                       \
         ei::verify::Check("TextSourceIterator::CopyTo@" #addr, expected, *out, "node %p", self->node); \
+        return result;                                                                               \
     }
 EI_ITERATOR_COPY(005E2470) EI_ITERATOR_COPY(005F97D0) EI_ITERATOR_COPY(00609A30) EI_ITERATOR_COPY(00609A70)
 EI_ITERATOR_COPY(0062C080)
