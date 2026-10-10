@@ -57,6 +57,7 @@ void* __fastcall ClearArray(std::uint32_t* self) {
     return self;
 }
 EI_REPLACE(0x00453490, ClearArray);
+EI_REPLACE(0x005AD870, ClearArray);   // byte-identical copy (A-W12)
 
 // 0044C480: the address of the member at +0x8C.
 void* __fastcall MemberAt8C(std::uint8_t* self) { return self + 0x8C; }

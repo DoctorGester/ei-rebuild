@@ -88,6 +88,12 @@ public:
     // `bounds_`. RET 0x14.
     void LoadBounds(char** cursor, float s, float t, float u, std::uint32_t magic);
 
+    // 005A2490 / 005A4CF0 (vtable slot 19 of classes 0x42-0x44 / 0x41, byte-identical; RET 0x10;
+    // figure_manager.cpp, A-W12). Loads the mesh from memory at *cursor once (flags_ 0x20 set
+    // afterwards): data whose first dword starts with "FIG" through slot 20, other data through
+    // slot 21.
+    void LoadFromMemory(char** cursor, float s, float t, float u);
+
     // 005A2500 (vtable slot 20 of classes 0x42-0x44). Loads a "FIG" mesh from memory at *cursor
     // (advanced past it), morphing FIG8 vertices; once only (flag 0x20). RET 0x10.
     void LoadFig(char** cursor, float s, float t, float u);
@@ -147,13 +153,15 @@ public:
     FigureMeshDrawer* drawer_;          // +0x094 (00501D00 draws through it)
     CObject3D* owner_;                  // +0x098 the object whose figure (+0xF0) may draw the mesh
     MeshBuffers buffers_;               // +0x09C
-    std::uint32_t unknown_0CC;          // +0x0CC passed to the draws after the buffers, with +0xD0
-    std::uint32_t unknown_0D0;          // +0x0D0
+    // +0x0CC / +0x0D0 passed to the draws after the buffers: the texture offset (u, v floats) an
+    // animated mesh's drawer sets per frame (FigureMeshDrawer::Animate).
+    std::uint32_t unknown_0CC;
+    std::uint32_t unknown_0D0;
     std::uint32_t flatColour_;          // +0x0D4 every colour of a flat mesh (flags_ 0x100)
     std::uint32_t flatSpecular_;        // +0x0D8 every specular of a flat mesh
     std::uint8_t unknown_0DC[0x120 - 0xDC];
     mfc::CString name_;                 // +0x120 (the scene loader names it after its mesh)
-    std::uint32_t unknown_124;
+    mfc::CString directory_;            // +0x124 where its .fig file is (005AC2F0; NewFigure empties it)
     lib::AlignedArray<Vector3> offsets_;     // +0x128 per-vertex offsets added when drawing (005A0B10 / 005A0CD0)
     lib::AlignedArray<std::uint32_t> colorsA_;   // +0x138 one per normal (lit colours)
     lib::AlignedArray<std::uint32_t> colorsB_;   // +0x148 one per normal

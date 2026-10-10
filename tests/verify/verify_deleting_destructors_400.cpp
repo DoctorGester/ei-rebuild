@@ -61,6 +61,8 @@ EI_VERIFY(0x004178D0, DeleteVerify<0x004178F0>, 0, s_unused);
 EI_VERIFY(0x0041C450, DeleteVerify<0x0041C530>, 0, s_unused);
 EI_VERIFY(0x004292A0, DeleteVerify<0x0041DDA0>, 0, s_unused);
 EI_VERIFY(0x004292C0, DeleteVerify<0x00421640>, 0, s_unused);
+EI_VERIFY(0x0059DD90, DeleteVerify<0x0041DDA0>, 0, s_unused);   // A-W12 copies
+EI_VERIFY(0x005DA270, DeleteVerify<0x00421640>, 0, s_unused);
 EI_VERIFY(0x0042A5D0, DeleteVerify<0x0042A610>, 0, s_unused);
 EI_VERIFY(0x0042A5F0, DeleteVerify<0x00421600>, 0, s_unused);
 EI_VERIFY(0x0042B880, DeleteVerify<0x00419D00>, 0, s_unused);

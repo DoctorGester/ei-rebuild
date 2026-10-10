@@ -198,9 +198,22 @@ EI_VERIFY(0x0058EE00, SetE4E8Verify, 8, s_setE4E8);
 // 005942C0: MOV AL,[ESP+4]; MOV [ECX+0x6C],AL (7 bytes).
 static void(__fastcall* s_set6C)(CWorldServer*, void*, std::uint8_t);
 static void __fastcall Set6CVerify(CWorldServer* self, void*, std::uint8_t value) {
-    CompareSetter("CWorldServer::SetUnknown6C", self, [&] { self->SetUnknown6C(value); }, [&] { s_set6C(self, nullptr, value); });
+    CompareSetter("CWorld::SetPaused", self, [&] { self->SetPaused(value); }, [&] { s_set6C(self, nullptr, value); });
 }
 EI_VERIFY(0x005942C0, Set6CVerify, 7, s_set6C);
+
+// 00566350 (A-W12): the client's byte-identical copy; ours, then the original on the same world
+// with the byte put back (only +0x6C changes).
+static void(__fastcall* s_setPausedClient)(CWorld*, void*, std::uint8_t);
+static void __fastcall SetPausedClientVerify(CWorld* self, void*, std::uint8_t value) {
+    std::uint8_t before = self->paused_;
+    self->SetPaused(value);
+    std::uint8_t mine = self->paused_;
+    self->paused_ = before;
+    s_setPausedClient(self, nullptr, value);
+    ei::verify::Check("CWorld::SetPaused@00566350", self->paused_, mine, "value %u", value);
+}
+EI_VERIFY(0x00566350, SetPausedClientVerify, 7, s_setPausedClient);
 
 // 0058E4C0: MOV EAX,[ESP+4]; PUSH EDI (5 bytes). Output: the original assigns a scratch copy of the
 // string, ours the real one; CString assignment shares the buffer, so the pointers must match.

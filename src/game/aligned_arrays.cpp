@@ -129,6 +129,13 @@ EI_REPLACE(0x0051E8F0, ArrayFree1);
 EI_REPLACE(0x0051E910, ArrayFree1);
 EI_REPLACE(0x0051E930, ArrayFree1);
 EI_REPLACE(0x0051E950, ArrayFree1);
+// Byte-identical copies in the world range (A-W12).
+EI_REPLACE(0x0058A880, ArrayFree1);
+EI_REPLACE(0x005995C0, ArrayFree1);
+EI_REPLACE(0x00599780, ArrayFree1);
+EI_REPLACE(0x0059A6F0, ArrayFree1);
+EI_REPLACE(0x005A98B0, ArrayFree1);
+EI_REPLACE(0x005BDEC0, ArrayFree1);
 void __fastcall ArrayFree2(lib::AlignedArray<std::uint8_t>* a) { a->FreeData(); }
 EI_REPLACE(0x0044FA70, ArrayFree2);
 void __fastcall ArrayFree3(lib::AlignedArray<std::uint8_t>* a) { a->FreeData(); }

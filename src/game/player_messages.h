@@ -179,7 +179,7 @@ public:
     int OnGameStateRequest();
     // 0066FAC0, 0x10: a pause byte. A multiplayer client that is also the attached game server,
     // asking to pause: only the session leader (its id the party's first record's unit) may, and
-    // its name is announced (text 0xC); then the world's SetUnknown6C(pause != 0).
+    // its name is announced (text 0xC); then the world's SetPaused(pause != 0).
     int OnPause();
     // 00670820 / 006708D0, 0x33 / 0x32: {spell, unit id, target id / point, flag byte}: an able unit
     // with a Player mode casts at the object (world slot 40) / point (CommandCast / CommandCastAt).

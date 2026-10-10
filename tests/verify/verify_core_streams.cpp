@@ -66,6 +66,14 @@ void __fastcall RefDestruct3Verify(void* self) {
 void __fastcall RefDestruct4Verify(void* self) {
     CheckVoid("RefObjectDestructBase@004368C0", s_refDestruct4, RefObjectDestructBase, self);
 }
+// A-W12: the world range's byte-identical copies.
+VoidFn s_refDestruct6, s_refDestruct7;
+void __fastcall RefDestruct6Verify(void* self) {
+    CheckVoid("RefObjectDestructBase@00562770", s_refDestruct6, RefObjectDestructBase, self);
+}
+void __fastcall RefDestruct7Verify(void* self) {
+    CheckVoid("RefObjectDestructBase@0058FBE0", s_refDestruct7, RefObjectDestructBase, self);
+}
 void __fastcall StreamDestructVerify(CStream* self) {
     CheckVoid("CStream::DestructBase", s_streamDestruct, [](void* p) { static_cast<CStream*>(p)->DestructBase(); }, self);
 }
@@ -235,9 +243,13 @@ EI_VERIFY(0x00413430, RefDestruct2Verify, 6, s_refDestruct2);
 EI_VERIFY(0x005ED7A0, RefDestruct5Verify, 6, s_refDestruct5);
 EI_VERIFY(0x00412960, RefDestruct3Verify, 6, s_refDestruct3);
 EI_VERIFY(0x004368C0, RefDestruct4Verify, 6, s_refDestruct4);
+EI_VERIFY(0x00562770, RefDestruct6Verify, 6, s_refDestruct6);   // A-W12 copies
+EI_VERIFY(0x0058FBE0, RefDestruct7Verify, 6, s_refDestruct7);
 EI_VERIFY(0x00412730, RefDeleteVerify, 5, s_refDelete);
 EI_VERIFY(0x00419720, RefValueCtorVerify, 8, s_refValueCtor);
 EI_VERIFY(0x00412700, RefValueDeleteVerify, 0, s_unused);
+EI_VERIFY(0x00562750, RefValueDeleteVerify, 0, s_unused);   // A-W12 copies
+EI_VERIFY(0x0058FBC0, RefValueDeleteVerify, 0, s_unused);
 EI_VERIFY(0x0047A200, StreamCtorVerify, 8, s_streamCtor);
 EI_VERIFY(0x004174E0, StreamDestructVerify, 6, s_streamDestruct);
 EI_VERIFY(0x00417400, StreamDeleteVerify, 5, s_streamDelete);

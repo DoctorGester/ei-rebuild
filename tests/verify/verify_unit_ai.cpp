@@ -342,6 +342,80 @@ static int __fastcall PatrolEvaluateVerify(PatrolMode* self, void*, AIBrain* bra
 }
 EI_VERIFY(0x005D16B0, PatrolEvaluateVerify, 6, s_patrolEvaluate);
 
+// 005D1930 PatrolMode::Load (A-W12): ours only (it resizes the owned arrays), the bytes read
+// recorded; from version 0x44 (the full look format) our Save must write the same bytes back.
+static void __fastcall PatrolLoadVerify(PatrolMode* self, void*, AIStream* stream) {
+    RecordStream record(stream);
+    self->Load(&record);
+    if (stream->version < 0x44) return;
+    CaptureStream written(stream);
+    self->Save(&written);
+    ei::verify::Check("PatrolMode::Load", true, written.bytes == record.bytes, "%p points %d, %u bytes", self,
+                      self->points.size, static_cast<unsigned>(record.bytes.size()));
+}
+EI_VERIFY(0x005D1930, PatrolLoadVerify, 0, s_unused);
+
+// Two patrol points with the same position and looks (compared by content).
+static bool SamePoint(const PatrolPoint& a, const PatrolPoint& b) {
+    return std::memcmp(&a.position, &b.position, sizeof(Vector3)) == 0 && a.looks.size == b.looks.size &&
+           (a.looks.size == 0 || std::memcmp(a.looks.data, b.looks.data, a.looks.size * sizeof(AILook)) == 0);
+}
+
+// 005D1140 PatrolMode::Rebuild (A-W12): ours only (frees the points). Empty and constructed after.
+static void __fastcall PatrolRebuildVerify(PatrolMode* self) {
+    self->Rebuild();
+    bool ok = self->vtable == aimode::kPatrolVtable && self->points.vtable == aimode::kPatrolPointsVtable &&
+              self->points.data == nullptr && self->points.size == 0 && self->current == 0;
+    ei::verify::Check("PatrolMode::Rebuild", true, ok, "mode %p", self);
+}
+EI_VERIFY(0x005D1140, PatrolRebuildVerify, 0, s_unused);
+
+// 005D0F90 PatrolMode::Clone (A-W12): ours only (allocates). The copy holds equal points (its own
+// look arrays) and the same current point.
+static PatrolMode* __fastcall PatrolCloneVerify(PatrolMode* self) {
+    PatrolMode* clone = self->Clone();
+    bool ok = clone && clone != self && clone->vtable == aimode::kPatrolVtable && clone->current == self->current &&
+              clone->points.size == self->points.size;
+    for (int i = 0; ok && i < self->points.size; ++i)
+        ok = SamePoint(clone->points.data[i], self->points.data[i]) &&
+             (self->points.data[i].looks.size == 0 || clone->points.data[i].looks.data != self->points.data[i].looks.data);
+    ei::verify::Check("PatrolMode::Clone", true, ok, "mode %p points %d", self, self->points.size);
+    return clone;
+}
+EI_VERIFY(0x005D0F90, PatrolCloneVerify, 0, s_unused);
+
+// 005D9E40 / 005D9590 PatrolPointCopyAt (A-W12): the original into a scratch point, ours into
+// `out`; compared by content, then the scratch's looks freed.
+// 005D9E40: PUSH -1; PUSH 0x728698 (7 bytes); 005D9590: PUSH ECX; MOV EAX,[ESP+0xC] (5 bytes).
+static PatrolPoint*(__fastcall* s_pointCopy)(const PatrolPointArray*, void*, PatrolPoint*, int);
+static PatrolPoint*(__fastcall* s_pointCopyThunk)(const PatrolPointArray*, void*, PatrolPoint*, int);
+static void CheckPointCopy(const char* name, PatrolPoint*(__fastcall* original)(const PatrolPointArray*, void*, PatrolPoint*, int),
+                           const PatrolPointArray* points, PatrolPoint* out, int index) {
+    PatrolPoint scratch{};
+    PatrolPoint* returned = original(points, nullptr, &scratch, index);
+    PatrolPoint* result = PatrolPointCopyAt(points, nullptr, out, index);
+    ei::verify::Check(name, true, returned == &scratch && result == out && SamePoint(scratch, *out), "index %d", index);
+    if (scratch.looks.data) gamecrt::operator_delete(scratch.looks.data);
+}
+static PatrolPoint* __fastcall PointCopyVerify(const PatrolPointArray* points, void*, PatrolPoint* out, int index) {
+    CheckPointCopy("PatrolPointCopyAt", s_pointCopy, points, out, index);
+    return out;
+}
+static PatrolPoint* __fastcall PointCopyThunkVerify(const PatrolPointArray* points, void*, PatrolPoint* out, int index) {
+    CheckPointCopy("PatrolPointCopyAt@005D9590", s_pointCopyThunk, points, out, index);
+    return out;
+}
+EI_VERIFY(0x005D9E40, PointCopyVerify, 7, s_pointCopy);
+EI_VERIFY(0x005D9590, PointCopyThunkVerify, 5, s_pointCopyThunk);
+
+// 005D1A40 PatrolMode::Save (A-W12): SUB ESP,0x14; PUSH EBX; PUSH EBP (5 bytes). Both into
+// capture streams.
+static void(__fastcall* s_patrolSave)(PatrolMode*, void*, AIStream*);
+static void __fastcall PatrolSaveVerify(PatrolMode* self, void*, AIStream* stream) {
+    SameSave("PatrolMode::Save", self, stream, [](PatrolMode* m, AIStream* s) { s_patrolSave(m, nullptr, s); });
+}
+EI_VERIFY(0x005D1A40, PatrolSaveVerify, 5, s_patrolSave);
+
 // 005D1690: MOV EAX,[ECX+0x10]; TEST EAX,EAX (5 bytes).
 static PatrolPoint*(__fastcall* s_lastPoint)(PatrolMode*);
 static PatrolPoint* __fastcall LastPointVerify(PatrolMode* self) {

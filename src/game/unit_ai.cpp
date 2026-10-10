@@ -153,17 +153,12 @@ struct AIMemoryLists {
 };
 __declspec(naked) void AIMemoryLists::CollectEnemies(CUnit*, void*) EI_ORIGINAL(0x005CB260)
 
-struct AICorpses {
-    AIRef* PopHead(AIRef* out);                         // 005D8D50
-};
-__declspec(naked) AIRef* AICorpses::PopHead(AIRef*) EI_ORIGINAL(0x005D8D50)
-
 AIMemory* MemoryOf(AIBrain* brain) { return reinterpret_cast<AIMemory*>(brain->memory); }
 } // namespace
 
 void AIBrain::Perceive(UnitController* who) { MemoryOf(this)->Update(who); }
 void AIBrain::Report(CEngineObject* object, int what) { ReportsAdd(&reports, nullptr, object, what); }
-AIRef* AIBrain::PopCorpse(AIRef* out) { return reinterpret_cast<AICorpses*>(&corpses)->PopHead(out); }
+AIRef* AIBrain::PopCorpse(AIRef* out) { return CorpsesPopHead(&corpses, nullptr, out); }
 bool AIBrain::IsReported(CEngineObject* object) { return ReportsContains(&reports, nullptr, object); }
 void AIBrain::ChooseTarget(int* partAndObject, void* candidates, const Vector3* from, int a, int b) {
     ChooseThroughAddress(&attention, nullptr, this, partAndObject, candidates, from, a, b);
@@ -171,6 +166,34 @@ void AIBrain::ChooseTarget(int* partAndObject, void* candidates, const Vector3* 
 void AIBrain::CollectEnemies(CUnit* self, void* list) {
     reinterpret_cast<AIMemoryLists*>(memory)->CollectEnemies(self, list);
 }
+
+// --- The corpse list (005D8D50) ---------------------------------------------------------------
+
+// RemoveHead of the corpse list returning the element as a counted reference (A-W12). The original
+// copies the head's object into a counted local, unlinks the node, destroys the element in place
+// (0052CEC0 inlined: released, cleared), frees the node (the last one frees every block), then
+// copies the local into `out` and drops the local.
+AIRef* __fastcall CorpsesPopHead(CorpseList* list, void*, AIRef* out) {
+    CorpseList::Node* old = list->head;
+    CEngineObject* value = old->data;
+    if (value) ++value->refCount_;
+    list->head = old->next;
+    if (list->head) list->head->prev = nullptr;
+    else list->tail = nullptr;
+    if (old->data) old->data->Release();
+    old->data = nullptr;
+    old->next = list->free;
+    list->free = old;
+    if (--list->count == 0) list->RemoveAll();   // the list is empty: nothing left to destroy
+    out->object = nullptr;
+    if (value) {
+        ++value->refCount_;
+        out->object = value;
+    }
+    if (value) value->Release();
+    return out;
+}
+EI_REPLACE(0x005D8D50, CorpsesPopHead);
 
 // --- Think ---------------------------------------------------------------------------------------
 

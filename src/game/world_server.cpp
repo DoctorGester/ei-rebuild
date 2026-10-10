@@ -173,7 +173,7 @@ void CWorldServer::SetUnknownE4E8(int e4, float e8) {
     MarkPlayersDirty(2);
 }
 
-void CWorldServer::SetUnknown6C(std::uint8_t value) { paused_ = value; }
+void CWorld::SetPaused(std::uint8_t value) { paused_ = value; }
 
 BOOL CWorldServer::GetZoneExit(int index, mfc::CString* target, int* entrance) {
     if (index < 0 || index >= exitCount_) return 0;
@@ -267,7 +267,8 @@ EI_REPLACE_METHOD(0x0058B6D0, CWorldServer::MarkPlayersDirty);
 EI_REPLACE_METHOD(0x0058CC70, CWorldServer::SetUnknownE0);
 EI_REPLACE_METHOD(0x0058CC80, CWorldServer::SetUnknownDC);
 EI_REPLACE_METHOD(0x0058EE00, CWorldServer::SetUnknownE4E8);
-EI_REPLACE_METHOD(0x005942C0, CWorldServer::SetUnknown6C);
+EI_REPLACE_METHOD(0x005942C0, CWorld::SetPaused);
+EI_REPLACE_METHOD(0x00566350, CWorld::SetPaused);   // byte-identical copy (the client's, message 0x60; A-W12)
 EI_REPLACE_METHOD(0x0058E4C0, CWorldServer::GetZoneExit);
 EI_REPLACE_METHOD(0x0058E520, CWorldServer::AddTimedObject);
 EI_REPLACE_METHOD(0x0058E5D0, CWorldServer::RemoveTimedObject);

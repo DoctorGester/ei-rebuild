@@ -38,6 +38,8 @@ EI_REPLACE_METHOD(0x00438B30, RefPtr::Destroy);
 EI_REPLACE_METHOD(0x005587A0, RefPtr::Destroy);
 EI_REPLACE_METHOD(0x0055EDA0, RefPtr::Destroy);
 EI_REPLACE_METHOD(0x0055EDE0, RefPtr::Destroy);
+EI_REPLACE_METHOD(0x00561A20, RefPtr::Destroy);   // byte-identical copies (A-W12)
+EI_REPLACE_METHOD(0x005BE240, RefPtr::Destroy);
 
 // The same owner's release of the counted pointer at +4 (the destructor of a pair whose second
 // member is the RefPtr). 3 copies.
@@ -81,6 +83,7 @@ EI_REPLACE(0x0047D170, RefPtrRelease);
 EI_REPLACE(0x0047D7B0, RefPtrRelease);
 EI_REPLACE(0x00438A10, RefPtrRelease);
 EI_REPLACE(0x00439910, RefPtrRelease);
+EI_REPLACE(0x0059B4B0, RefPtrRelease);   // byte-identical copy (A-W12)
 
 // The same release of the counted pointer at +4 (the destructor of a pair whose second member is
 // the RefPtr). 4 copies.
@@ -129,6 +132,8 @@ EI_REPLACE(0x00438A90, RefPtrNull);
 EI_REPLACE(0x00438F50, RefPtrNull);
 EI_REPLACE(0x00478FB0, RefPtrNull);
 EI_REPLACE(0x005FC1C0, RefPtrNull);
+EI_REPLACE(0x005683A0, RefPtrNull);   // byte-identical copies (A-W12)
+EI_REPLACE(0x0058DFE0, RefPtrNull);
 
 // A holder of a raw pointer taken without a reference (ECX the holder, EDX the object), returning
 // the holder (the original also zeroes a dead stack slot). 16 copies.
@@ -237,6 +242,9 @@ EI_REPLACE(0x0051E3D0, ObjectHolderRelease);
 EI_REPLACE(0x0052D670, ObjectHolderRelease);
 EI_REPLACE(0x00552B80, ObjectHolderRelease);
 EI_REPLACE(0x00556AA0, ObjectHolderRelease);
+EI_REPLACE(0x00598960, ObjectHolderRelease);   // byte-identical copies (A-W12)
+EI_REPLACE(0x00598970, ObjectHolderRelease);
+EI_REPLACE(0x00598980, ObjectHolderRelease);
 // 00429B50: assignment: the new object gains a reference, the old one is released.
 void __fastcall ObjectHolderAssign(void** self, void*, void* object) {
     void* previous = *self;

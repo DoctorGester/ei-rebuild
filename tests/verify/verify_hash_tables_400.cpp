@@ -69,6 +69,14 @@ std::uint32_t* __fastcall FindVerify(Table* t, void*, const std::uint32_t* key) 
     ei::verify::Check("ObjectsFind", expected, actual, "key %u", *key);
     return actual;
 }
+// 00599AE0 (A-W12): the byte-identical copy, the same way through its own trampoline.
+std::uint32_t*(__fastcall* s_findCopy)(Table*, void*, const std::uint32_t*);
+std::uint32_t* __fastcall FindCopyVerify(Table* t, void*, const std::uint32_t* key) {
+    std::uint32_t* expected = s_findCopy(t, nullptr, key);
+    std::uint32_t* actual = hash400::ObjectsFind(t, nullptr, key);
+    ei::verify::Check("ObjectsFind@00599AE0", expected, actual, "key %u", *key);
+    return actual;
+}
 std::uint32_t* __fastcall PositionAtVerify(Table* t, void*, const std::int32_t* key) {
     std::int32_t k = *key;
     std::uint32_t* result = hash400::PositionAt(t, nullptr, key);
@@ -120,6 +128,8 @@ EI_VERIFY(0x00404F20, RemoveKeyVerify, 0, s_unused);
 EI_VERIFY(0x00404F80, LookupVerify, 5, s_lookup);
 EI_VERIFY(0x00405350, PositionsRemoveKeyVerify, 0, s_unused);
 EI_VERIFY(0x00406950, FindVerify, 5, s_find);
+EI_VERIFY(0x00599A80, RemoveKeyVerify, 0, s_unused);   // byte-identical copies (A-W12)
+EI_VERIFY(0x00599AE0, FindCopyVerify, 5, s_findCopy);
 EI_VERIFY(0x00406A10, PositionAtVerify, 0, s_unused);
 EI_VERIFY(0x00406AA0, SpareCountAtVerify, 0, s_unused);
 EI_VERIFY(0x00408EA0, ClassRegistryConstructVerify, 0, s_unused);

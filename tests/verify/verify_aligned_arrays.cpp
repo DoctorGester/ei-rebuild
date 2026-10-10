@@ -117,6 +117,13 @@ EI_VERIFY(0x0051E8F0, FreeVerify, 0, s_unused);
 EI_VERIFY(0x0051E910, FreeVerify, 0, s_unused);
 EI_VERIFY(0x0051E930, FreeVerify, 0, s_unused);
 EI_VERIFY(0x0051E950, FreeVerify, 0, s_unused);
+// A-W12: the byte-identical copies in the world range.
+EI_VERIFY(0x0058A880, FreeVerify, 0, s_unused);
+EI_VERIFY(0x005995C0, FreeVerify, 0, s_unused);
+EI_VERIFY(0x00599780, FreeVerify, 0, s_unused);
+EI_VERIFY(0x0059A6F0, FreeVerify, 0, s_unused);
+EI_VERIFY(0x005A98B0, FreeVerify, 0, s_unused);
+EI_VERIFY(0x005BDEC0, FreeVerify, 0, s_unused);
 EI_VERIFY(0x0050E100, AllocDwordsVerify, 0, s_unused);
 EI_VERIFY(0x00514D30, AllocDwordsVerify, 0, s_unused);
 EI_VERIFY(0x0051A170, AllocDwordsVerify, 0, s_unused);

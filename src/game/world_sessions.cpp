@@ -210,3 +210,13 @@ void CWorld::OpenSession() {
     reinterpret_cast<RefPtr*>(&unknown60_)->ShareAssign(session);
 }
 EI_REPLACE_METHOD(0x0055F410, CWorld::OpenSession);
+
+// ---- CWorld::CloseSession (0055F890) --------------------------------------------------------------
+
+void CWorld::CloseSession() {
+    RefPtr& session = *reinterpret_cast<RefPtr*>(&unknown60_);
+    if (!session.ptr) return;
+    session.Destroy();
+    session.ptr = nullptr;
+}
+EI_REPLACE_METHOD(0x0055F890, CWorld::CloseSession);

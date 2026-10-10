@@ -72,4 +72,11 @@ inline const char* TutorialLineFormat() { return reinterpret_cast<const char*>(0
 inline const char* DecimalFormat() { return reinterpret_cast<const char*>(0x0078EEEC); }
 inline const char* FlyingHitPointsTextureText() { return reinterpret_cast<const char*>(0x00792D84); }
 
+// The figure manager's file names (figure_manager.cpp): 00790C6C "%s.fig", 00790C90 "%s%s.fig",
+// 00790C74 "Can't open file \"%s%s.fig\"\n" (its FatalError), 00784630 ".ast" (a bone's animation).
+inline const char* FigFileFormat() { return reinterpret_cast<const char*>(0x00790C6C); }
+inline const char* FigPathFormat() { return reinterpret_cast<const char*>(0x00790C90); }
+inline const char* CantOpenFigText() { return reinterpret_cast<const char*>(0x00790C74); }
+inline const char* AstExtensionText() { return reinterpret_cast<const char*>(0x00784630); }
+
 } // namespace game
