@@ -51,8 +51,13 @@ EI_REPLACE(0x00416FA0, DeletingDestructor<0x00416FC0>);   // 0073BD60 trade
 EI_REPLACE(0x00417600, DeletingDestructor<0x00417620>);   // 0073BD78 party member
 EI_REPLACE(0x004178D0, DeletingDestructor<0x004178F0>);
 EI_REPLACE(0x0041C450, DeletingDestructor<0x0041C530>);
-EI_REPLACE(0x004292A0, DeletingDestructor<0x0041DDA0>);   // counted pointer holders
-EI_REPLACE(0x004292C0, DeletingDestructor<0x00421640>);
+// Counted pointer holders; the world range has a byte-identical copy of each (A-W12).
+constexpr auto* CountedHolderDelete = &DeletingDestructor<0x0041DDA0>;
+constexpr auto* CountedHolderDelete2 = &DeletingDestructor<0x00421640>;
+EI_REPLACE(0x004292A0, *CountedHolderDelete);
+EI_REPLACE(0x004292C0, *CountedHolderDelete2);
+EI_REPLACE(0x0059DD90, *CountedHolderDelete);
+EI_REPLACE(0x005DA270, *CountedHolderDelete2);
 EI_REPLACE(0x0042A5D0, DeletingDestructor<0x0042A610>);
 EI_REPLACE(0x0042A5F0, DeletingDestructor<0x00421600>);
 EI_REPLACE(0x0042B880, DeletingDestructor<0x00419D00>);

@@ -264,6 +264,11 @@ EI_REPLACE_METHOD(0x004E13E0, CTextManager::FormatItemName);
 
 void __fastcall TextSourcesBegin(TextSourceList* list, void*, TextSourceNode** out) { *out = list->head->next; }
 EI_REPLACE(0x004E1530, TextSourcesBegin);
+// Byte-identical copies (other lists' begin in the world range; A-W12).
+EI_REPLACE(0x00560030, TextSourcesBegin);
+EI_REPLACE(0x00560040, TextSourcesBegin);
+EI_REPLACE(0x0056DF90, TextSourcesBegin);
+EI_REPLACE(0x0056DFE0, TextSourcesBegin);
 
 TextSourceNode** __fastcall TextSourcesErase(TextSourceList*, void*, TextSourceNode** out, TextSourceNode* pos) {
     using Node = TextSourceNode;
@@ -304,3 +309,7 @@ EI_REPLACE_METHOD(0x00609A30, TextSourceIterator::CopyTo);
 EI_REPLACE_METHOD(0x00609A70, TextSourceIterator::CopyTo);
 EI_REPLACE_METHOD(0x0062C080, TextSourceIterator::CopyTo);
 EI_REPLACE_METHOD(0x00539210, TextSourceIterator::CopyTo);   // A-U11
+EI_REPLACE_METHOD(0x00560050, TextSourceIterator::CopyTo);   // A-W12
+EI_REPLACE_METHOD(0x0056DEC0, TextSourceIterator::CopyTo);
+EI_REPLACE_METHOD(0x0056DFA0, TextSourceIterator::CopyTo);
+EI_REPLACE_METHOD(0x0056DFF0, TextSourceIterator::CopyTo);

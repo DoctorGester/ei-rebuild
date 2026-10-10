@@ -78,6 +78,7 @@ RefPtr* __fastcall RefPtrCopyPlain(RefPtr* self, void*, const RefPtr* other) {
 EI_REPLACE(0x004263B0, RefPtrCopyPlain);
 EI_REPLACE(0x00429910, RefPtrCopyPlain);   // byte-identical copy
 EI_REPLACE(0x00609960, RefPtrCopyPlain);   // byte-identical copy (the lobby's player list)
+EI_REPLACE(0x005BEF50, RefPtrCopyPlain);   // byte-identical copy (A-W12)
 
 // 00609D40: the counted pointer's assignment from another holder (the chat window's player list
 // 006091C0): RefPtr::Assign of the other's object (a reference added, the old one released, even

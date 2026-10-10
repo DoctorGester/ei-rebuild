@@ -40,6 +40,8 @@ EI_REPLACE(0x00413430, RefObjectDestructBase);   // byte-identical copy
 EI_REPLACE(0x005ED7A0, RefObjectDestructBase);   // byte-identical copy (interface)
 EI_REPLACE(0x00412960, RefObjectDestructBase);   // byte-identical copy
 EI_REPLACE(0x004368C0, RefObjectDestructBase);   // byte-identical copy
+EI_REPLACE(0x00562770, RefObjectDestructBase);   // byte-identical copies (A-W12)
+EI_REPLACE(0x0058FBE0, RefObjectDestructBase);
 
 void* __fastcall RefObjectDeletingDestructor(void* self, void*, unsigned flags) {
     SetVtable(self, kRefObjectRootVtable);
@@ -59,6 +61,8 @@ void* __fastcall RefValueDeletingDestructor(void* self, void*, unsigned flags) {
     return DeleteIf(self, flags);
 }
 EI_REPLACE(0x00412700, RefValueDeletingDestructor);
+EI_REPLACE(0x00562750, RefValueDeletingDestructor);   // byte-identical copies (A-W12)
+EI_REPLACE(0x0058FBC0, RefValueDeletingDestructor);
 
 // --- CStream -----------------------------------------------------------------------------------
 

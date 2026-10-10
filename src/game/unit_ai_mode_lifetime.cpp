@@ -109,6 +109,7 @@ void __fastcall PatrolPointsDestruct(PatrolPointArray* points) {
     gamecrt::operator_delete(points->data);
 }
 EI_REPLACE(0x005D8CF0, PatrolPointsDestruct);
+EI_REPLACE(0x005D95B0, PatrolPointsDestruct);   // byte-identical copy (A-W12)
 
 PatrolPointArray* __fastcall PatrolPointsDeletingDestruct(PatrolPointArray* points, void*, int flags) {
     PatrolPointsDestruct(points);
@@ -116,6 +117,7 @@ PatrolPointArray* __fastcall PatrolPointsDeletingDestruct(PatrolPointArray* poin
     return points;
 }
 EI_REPLACE(0x005D8CD0, PatrolPointsDeletingDestruct);
+EI_REPLACE(0x005D9D00, PatrolPointsDeletingDestruct);   // byte-identical copy (A-W12)
 
 void __stdcall ZeroAttackOptions(AIAttackOption* first, int count) {
     std::memset(first, 0, sizeof(AIAttackOption) * static_cast<unsigned>(count));

@@ -260,6 +260,9 @@ public:
     // empty network session (netlink::DriverSession) shared into +0x60, the previous one
     // destroyed (RefPtr::ShareAssign, inlined).
     void OpenSession();
+    // 005942C0 (the server's, from the pause request 0x10) / 00566350 (the client's copy, from
+    // message 0x60), byte-identical (world_server.cpp): stores paused_ (+0x6C).
+    void SetPaused(std::uint8_t value);
 
     float timeBase_;                   // +0x1C
     float secondsPerTick_;                // +0x20
@@ -396,11 +399,10 @@ public:
     // 0058EE20 (world_time.cpp; script and .mob weather). SetWind with the strength clamped to
     // 0..1 (NaN: 0), then the players marked dirty (8).
     void ChangeWind(const Vector3* direction, float strength);
-    // 0058CC70 / 0058CC80 / 0058EE00 / 005942C0. Setters (weather and similar map settings).
+    // 0058CC70 / 0058CC80 / 0058EE00. Setters (weather and similar map settings).
     void SetUnknownE0(int value);
     void SetUnknownDC(int value);
     void SetUnknownE4E8(int e4, float e8);
-    void SetUnknown6C(std::uint8_t value);
     // 0058E4C0. Target zone and entrance of exit `index`; FALSE when out of range.
     BOOL GetZoneExit(int index, mfc::CString* target, int* entrance);
     // 0058E520. Registers an object that lives for a limited time (spells, effects): stamps the

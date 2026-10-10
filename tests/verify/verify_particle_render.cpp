@@ -101,6 +101,21 @@ static Particle** __fastcall NextParticleVerify(void* list, void*, mfc::CTypedPt
     return expected;
 }
 EI_VERIFY(0x00497D40, NextParticleVerify, 6, s_nextParticle);
+// A-W12: byte-identical copies (other CTypedPtrList iterators), the same way.
+#define EI_NEXT_COPY(addr)                                                                           \
+    static Particle**(__fastcall* s_next_##addr)(void*, void*, mfc::CTypedPtrList<Particle>::Node**);  \
+    static Particle** __fastcall NextVerify_##addr(void* list, void*, mfc::CTypedPtrList<Particle>::Node** position) { \
+        mfc::CTypedPtrList<Particle>::Node* mine = *position;                                         \
+        Particle** actual = NextParticle(list, nullptr, &mine);                                       \
+        Particle** expected = s_next_##addr(list, nullptr, position);                                 \
+        ei::verify::Check("NextParticle@" #addr, true, actual == expected && mine == *position, "node %p", \
+                          static_cast<void*>(mine));                                                  \
+        return expected;                                                                              \
+    }                                                                                                 \
+    EI_VERIFY(0x##addr, NextVerify_##addr, 6, s_next_##addr);
+EI_NEXT_COPY(0059A040)
+EI_NEXT_COPY(0059A670)
+EI_NEXT_COPY(005BD340)
 
 // 00497CE0: ours only (binds a texture on the device).
 static void* s_unusedBind;

@@ -39,6 +39,7 @@ static void __fastcall PointsDestructVerify(PatrolPointArray* self) {
     ei::verify::Check("PatrolPointArray::Destruct", aimode::kPatrolPointsBaseVtable, self->vtable, "array %p", self);
 }
 EI_VERIFY(0x005D8CF0, PointsDestructVerify, 0, s_unused);
+EI_VERIFY(0x005D95B0, PointsDestructVerify, 0, s_unused);   // A-W12 copy
 
 static PatrolPointArray* __fastcall PointsDeleteVerify(PatrolPointArray* self, void*, int flags) {
     PatrolPointArray* result = PatrolPointsDeletingDestruct(self, nullptr, flags);
@@ -46,6 +47,7 @@ static PatrolPointArray* __fastcall PointsDeleteVerify(PatrolPointArray* self, v
     return result;
 }
 EI_VERIFY(0x005D8CD0, PointsDeleteVerify, 0, s_unused);
+EI_VERIFY(0x005D9D00, PointsDeleteVerify, 0, s_unused);   // A-W12 copy
 
 // 005D9E10 ZeroAttackOptions: ours only: every byte zero.
 static void __stdcall ZeroAttackOptionsVerify(AIAttackOption* first, int count) {

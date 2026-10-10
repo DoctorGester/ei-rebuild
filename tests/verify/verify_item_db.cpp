@@ -128,6 +128,20 @@ static void __fastcall ListBeginVerify(TextSourceList* self, void*, CTextManager
     ei::verify::Check("TextSourcesBegin", expected, *out, "list %p", self->head);
 }
 EI_VERIFY(0x004E1530, ListBeginVerify, 8, s_listBegin);
+// A-W12: byte-identical copies in the world range, the same way.
+#define EI_BEGIN_COPY(addr)                                                                          \
+    static void(__fastcall* s_listBegin_##addr)(TextSourceList*, void*, CTextManager::SourceNode**);   \
+    static void __fastcall ListBeginVerify_##addr(TextSourceList* self, void*, CTextManager::SourceNode** out) { \
+        CTextManager::SourceNode* expected = nullptr;                                                 \
+        s_listBegin_##addr(self, nullptr, &expected);                                                 \
+        TextSourcesBegin(self, nullptr, out);                                                         \
+        ei::verify::Check("TextSourcesBegin@" #addr, expected, *out, "list %p", self->head);          \
+    }                                                                                                 \
+    EI_VERIFY(0x##addr, ListBeginVerify_##addr, 8, s_listBegin_##addr);
+EI_BEGIN_COPY(00560030)
+EI_BEGIN_COPY(00560040)
+EI_BEGIN_COPY(0056DF90)
+EI_BEGIN_COPY(0056DFE0)
 
 // 004E1540: MOV EAX,[ESP+4]; MOV ECX,[ECX] (6 bytes).
 static void(__fastcall* s_iteratorCopy)(TextSourceIterator*, void*, CTextManager::SourceNode**);
@@ -152,8 +166,13 @@ EI_VERIFY(0x004E1540, IteratorCopyVerify, 6, s_iteratorCopy);
 EI_ITERATOR_COPY(005E2470) EI_ITERATOR_COPY(005F97D0) EI_ITERATOR_COPY(00609A30) EI_ITERATOR_COPY(00609A70)
 EI_ITERATOR_COPY(0062C080)
 EI_ITERATOR_COPY(00539210)
+EI_ITERATOR_COPY(00560050) EI_ITERATOR_COPY(0056DEC0) EI_ITERATOR_COPY(0056DFA0) EI_ITERATOR_COPY(0056DFF0)
 EI_VERIFY(0x005E2470, IteratorCopyVerify_005E2470, 6, s_iteratorCopy_005E2470);
 EI_VERIFY(0x00539210, IteratorCopyVerify_00539210, 6, s_iteratorCopy_00539210);   // A-U11
+EI_VERIFY(0x00560050, IteratorCopyVerify_00560050, 6, s_iteratorCopy_00560050);   // A-W12
+EI_VERIFY(0x0056DEC0, IteratorCopyVerify_0056DEC0, 6, s_iteratorCopy_0056DEC0);
+EI_VERIFY(0x0056DFA0, IteratorCopyVerify_0056DFA0, 6, s_iteratorCopy_0056DFA0);
+EI_VERIFY(0x0056DFF0, IteratorCopyVerify_0056DFF0, 6, s_iteratorCopy_0056DFF0);
 EI_VERIFY(0x005F97D0, IteratorCopyVerify_005F97D0, 6, s_iteratorCopy_005F97D0);
 EI_VERIFY(0x00609A30, IteratorCopyVerify_00609A30, 6, s_iteratorCopy_00609A30);
 EI_VERIFY(0x00609A70, IteratorCopyVerify_00609A70, 6, s_iteratorCopy_00609A70);

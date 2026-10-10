@@ -106,6 +106,10 @@ Particle** __fastcall NextParticle(void*, void*, mfc::CTypedPtrList<Particle>::N
     return &node->data;
 }
 EI_REPLACE(0x00497D40, NextParticle);
+// Byte-identical copies (other CTypedPtrList iterators in the world range; A-W12).
+EI_REPLACE(0x0059A040, NextParticle);
+EI_REPLACE(0x0059A670, NextParticle);
+EI_REPLACE(0x005BD340, NextParticle);
 
 // 00497CE0.
 int __fastcall BindParticleTexture(void* renderer, void*, int stage, void** holder) {

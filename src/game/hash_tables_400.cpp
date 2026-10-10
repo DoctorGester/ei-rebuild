@@ -185,6 +185,9 @@ EI_REPLACE(0x00404F20, hash400::ObjectsRemoveKey);
 EI_REPLACE(0x00404F80, hash400::ObjectsLookup);
 EI_REPLACE(0x00405350, hash400::PositionsRemoveKey);
 EI_REPLACE(0x00406950, hash400::ObjectsFind);
+// Byte-identical copies in the world range (A-W12).
+EI_REPLACE(0x00599A80, hash400::ObjectsRemoveKey);
+EI_REPLACE(0x00599AE0, hash400::ObjectsFind);
 EI_REPLACE(0x00406A10, hash400::PositionAt);
 EI_REPLACE(0x00406AA0, hash400::SpareCountAt);
 EI_REPLACE(0x00408EA0, hash400::ClassRegistryConstruct);
