@@ -418,6 +418,23 @@ EI_REPLACE_METHOD(0x005CDD60, AICallArray::SetSize);
 EI_REPLACE_METHOD(0x005CD880, AICallArray::Add);
 EI_REPLACE_METHOD(0x00558D00, AICallRecord::Destruct);
 
+void __stdcall AIReportElements::Construct(AIReport* reports, int count) {
+    std::memset(static_cast<void*>(reports), 0, sizeof(AIReport) * static_cast<unsigned>(count));
+    for (int i = 0; i < count; ++i) reports[i].object = nullptr;
+}
+
+void AIReportElements::Destruct(AIReport* reports, int count) {
+    for (int i = 0; i < count; ++i) {
+        if (CEngineObject* object = reports[i].object) object->Release();
+        reports[i].object = nullptr;
+    }
+}
+
+// 005CD670 (RET 8): SetSize. 005CD800 (RET 8): RemoveAt (A-W12).
+EI_REPLACE_METHOD(0x005CD670, AIReportArray::SetSize);
+EI_REPLACE_METHOD(0x005CD800, AIReportArray::RemoveAt);
+EI_REPLACE(0x00558D10, AIReportElements::Construct);
+
 std::uintptr_t UnitController::AddHostileMask(std::uint32_t mask) { return unit->AddHostileMask(mask); }
 EI_REPLACE_METHOD(0x00552CF0, UnitController::AddHostileMask);
 

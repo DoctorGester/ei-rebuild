@@ -11,6 +11,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace {
 void* s_unused;
@@ -299,3 +300,52 @@ static std::uint32_t __fastcall ContainsVerify(AIReportArray* self, void*, CEngi
     return expected;
 }
 EI_VERIFY(0x005CC560, ContainsVerify, 5, s_contains);
+
+// 005CD670 AIReportArray::SetSize (A-W12): ours only (it releases the dropped objects). The size
+// asked for within the capacity, the storage freed at 0, the new slots empty.
+static void __fastcall ReportsSetSizeVerify(AIReportArray* self, void*, int size, int growBy) {
+    int before = self->size;
+    self->SetSize(size, growBy);
+    bool ok = self->size == size && self->maxSize >= size && (size != 0 || self->data == nullptr);
+    for (int i = before; ok && i < size; ++i) ok = self->data[i].object == nullptr && self->data[i].what == 0;
+    ei::verify::Check("AIReportArray::SetSize", true, ok, "array %p size %d", self, size);
+}
+EI_VERIFY(0x005CD670, ReportsSetSizeVerify, 0, s_unused);
+
+// 005CD800 AIReportArray::RemoveAt (A-W12): ours only. The elements after the removed ones moved
+// down, the size reduced.
+static void __fastcall ReportsRemoveAtVerify(AIReportArray* self, void*, int index, int count) {
+    std::vector<AIReport> tail(self->data + index + count, self->data + self->size);
+    int before = self->size;
+    self->RemoveAt(index, count);
+    bool ok = self->size == before - count &&
+              (tail.empty() || std::memcmp(self->data + index, tail.data(), tail.size() * sizeof(AIReport)) == 0);
+    ei::verify::Check("AIReportArray::RemoveAt", true, ok, "array %p index %d count %d", self, index, count);
+}
+EI_VERIFY(0x005CD800, ReportsRemoveAtVerify, 0, s_unused);
+
+// 00558D10 the reports' ConstructElements (A-W12; also other 8-byte reference arrays'; MOV EDX,[ESP+4];
+// PUSH EBX; PUSH ESI, 6 bytes): the
+// original on a scratch copy of the elements, ours on the real ones, compared.
+static void(__stdcall* s_reportsConstruct)(AIReport*, int);
+static void __stdcall ReportsConstructVerify(AIReport* reports, int count) {
+    std::vector<AIReport> scratch(reports, reports + count);
+    s_reportsConstruct(scratch.data(), count);
+    AIReportElements::Construct(reports, count);
+    bool same = count == 0 || std::memcmp(scratch.data(), reports, static_cast<std::size_t>(count) * sizeof(AIReport)) == 0;
+    ei::verify::Check("AIReportElements::Construct", true, same, "count %d", count);
+}
+EI_VERIFY(0x00558D10, ReportsConstructVerify, 6, s_reportsConstruct);
+
+// 005D8D50 the corpse list's RemoveHead (A-W12): ours only (it releases). `out` gets the head's
+// object, whose count is unchanged (the list's reference moved to `out`); the list is one shorter.
+static AIRef* __fastcall CorpsesPopHeadVerify(CorpseList* list, void*, AIRef* out) {
+    CEngineObject* head = list->head->data;
+    int refs = head ? head->refCount_ : 0;
+    int count = list->count;
+    AIRef* result = CorpsesPopHead(list, nullptr, out);
+    bool ok = result == out && out->object == head && (!head || head->refCount_ == refs) && list->count == count - 1;
+    ei::verify::Check("CorpsesPopHead", true, ok, "list %p object %p", static_cast<void*>(list), static_cast<void*>(head));
+    return result;
+}
+EI_VERIFY(0x005D8D50, CorpsesPopHeadVerify, 0, s_unused);

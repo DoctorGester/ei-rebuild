@@ -571,6 +571,12 @@ struct AIRef {
     CEngineObject* object;
 };
 
+// The brain's corpse list (+0x148; its elements are counted references). 005D8D50 (RET 4,
+// unit_ai.cpp; CorpseWatcherMode::Evaluate through AIBrain::PopCorpse): RemoveHead, the head's
+// object handed to `out` with a reference (the list's own reference released). Returns `out`.
+using CorpseList = mfc::CTypedPtrList<CEngineObject>;
+AIRef* __fastcall CorpsesPopHead(CorpseList* list, void*, AIRef* out);
+
 class CSpell;
 namespace console {
 class GameOStream;
@@ -642,9 +648,17 @@ struct AIReport {
 };
 static_assert(sizeof(AIReport) == 8);
 
-// CArray<AIReport> (brain + 0x164; thiscall on the array, unit_ai_brain.cpp). Its SetSize and
-// RemoveAt stay the instantiation's (005CD670 / 005CD800).
-using AIReportArray = mfc::CArray<AIReport, mfc::RawElements<AIReport>>;
+// The reports' ConstructElements (00558D10: zeroed, each object null) and DestructElements
+// (00558CE0 each: the object released, null); unit_ai_brain.cpp.
+struct AIReportElements {
+    static void __stdcall Construct(AIReport* reports, int count);   // 00558D10 (RET 8)
+    static void Destruct(AIReport* reports, int count);
+};
+
+// CArray<AIReport> (brain + 0x164; thiscall on the array, unit_ai_brain.cpp). SetSize 005CD670 and
+// RemoveAt 005CD800 are registered on the template (A-W12; callers still reach them through
+// ReportsSetSizeAt / ReportsRemoveAtAt, their addresses).
+using AIReportArray = mfc::CArray<AIReport, AIReportElements>;
 // 005CC620. Keeps the larger `what` of a listed object, else appends it (with a reference).
 void __fastcall ReportsAdd(AIReportArray* reports, void*, CEngineObject* object, int what);
 // 005CC560. Whether `object` is listed (only AL is set).
