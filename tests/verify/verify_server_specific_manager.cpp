@@ -35,7 +35,7 @@ static CEngineObject* __fastcall NewObjectVerify(CServerSpecificManager* self, v
     if (ok && type == 0x4B) {
         auto* spec = static_cast<CTorchObjectSpec*>(object);
         ok = VtableOf(spec) == CTorchObjectSpec::kVtableAddress && spec->name_.GetLength() == 0 &&
-             spec->unknown_1C == 0 && spec->values_[1] == 10.0f;
+             spec->torch_ == nullptr && spec->values_[1] == 10.0f;
     }
     ei::verify::Check("ServerSpecificManager::NewObject", true, ok, "type %X", type);
     return object;

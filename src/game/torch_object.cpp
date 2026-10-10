@@ -78,7 +78,7 @@ std::uintptr_t CTorchObject::AttachTorchObject(CEngineObject* object) {
     if (spec) ++spec->refCount_;
     if (old) old->Release();
     if (!spec) return 0;
-    spec->unknown_1C = reinterpret_cast<std::uintptr_t>(this);   // the spec's owner
+    spec->torch_ = this;   // the spec's owner
     return reinterpret_cast<std::uintptr_t>(spec);
 }
 EI_REPLACE_METHOD(0x0052C2C0, CTorchObject::AttachTorchObject);

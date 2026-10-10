@@ -482,3 +482,7 @@ EI_VERIFY(0x00429D80, IsUniqueVerify, 7, s_isUnique);
 EI_VERIFY(0x00429D90, DetachShutdownVerify, 0, s_unused);
 EI_VERIFY(0x00421350, HolderReleaseVerify, 0, s_unused);
 EI_VERIFY(0x00429B50, HolderAssignVerify, 0, s_unused);
+EI_VERIFY(0x00511B90, HolderAssignVerify, 0, s_unused);
+EI_VERIFY(0x0052C690, HolderAssignVerify, 0, s_unused);
+EI_VERIFY(0x00556C40, HolderAssignVerify, 0, s_unused);
+EI_VERIFY(0x00556C60, HolderAssignVerify, 0, s_unused);

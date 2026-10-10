@@ -264,3 +264,23 @@ static bool __fastcall ApplyKeyVerify(Lever* self, void*, const LockKey* key, in
     return result;
 }
 EI_VERIFY(0x0052BB50, ApplyKeyVerify, 0, s_unused);
+
+// A-U11. 00522A30 LockKey::WriteTo: both into capture streams, compared (PUSH ECX; PUSH ESI; MOV ESI,[ESP+0xC]:
+// 6 bytes). 005229F0 LockKey::ReadFrom: ours only (three dwords read). The rewritten lever Load / Save call them
+// directly, so these run only from original code (none left); Lever::SaveLever's compare covers the bytes.
+static void(__fastcall* s_lockWrite)(const LockKey*, void*, UnitStream*);
+static void __fastcall LockWriteVerify(const LockKey* self, void*, UnitStream* stream) {
+    CaptureStream expected(stream), actual(stream);
+    s_lockWrite(self, nullptr, &expected);
+    self->WriteTo(AsStream(&actual));
+    ei::verify::Check("LockKey::WriteTo", true, expected.Same(actual), "first difference at %d",
+                      expected.FirstDifference(actual));
+    expected.Forward(stream);
+}
+EI_VERIFY(0x00522A30, LockWriteVerify, 6, s_lockWrite);
+
+static void __fastcall LockReadVerify(LockKey* self, void*, CStream* stream) {
+    self->ReadFrom(stream);
+    ei::verify::Check("LockKey::ReadFrom", true, true, "");
+}
+EI_VERIFY(0x005229F0, LockReadVerify, 0, s_unused);

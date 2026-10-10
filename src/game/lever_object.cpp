@@ -110,9 +110,7 @@ void Lever::LoadLever(CStream* stream) {
     stream->Read(&state, 4);
     stream->Read(&stateCount, 4);
     stream->Read(&cycling, 4);
-    stream->Read(&lock.mask, 4);   // 005229F0: the lock's three dwords
-    stream->Read(&lock.id, 4);
-    stream->Read(&lock.level, 4);
+    lock.ReadFrom(stream);
     stream->Read(&flag260, 1);
     stream->Read(&keepsMapFlag, 1);
 }
@@ -127,13 +125,25 @@ void Lever::SaveLever(CStream* stream) {
     stream->Write(&value, 4);
     value = static_cast<std::uint32_t>(cycling);
     stream->Write(&value, 4);
-    for (std::uint32_t word : {lock.mask, lock.id, lock.level}) stream->Write(&word, 4);   // 00522A30
+    lock.WriteTo(stream);
     std::uint8_t byte = flag260;
     stream->Write(&byte, 1);
     byte = keepsMapFlag;
     stream->Write(&byte, 1);
 }
 EI_REPLACE_METHOD(0x0052BE40, Lever::SaveLever);
+
+void LockKey::ReadFrom(CStream* stream) {
+    stream->Read(&mask, 4);
+    stream->Read(&id, 4);
+    stream->Read(&level, 4);
+}
+EI_REPLACE_METHOD(0x005229F0, LockKey::ReadFrom);
+
+void LockKey::WriteTo(CStream* stream) const {
+    for (std::uint32_t word : {mask, id, level}) stream->Write(&word, 4);
+}
+EI_REPLACE_METHOD(0x00522A30, LockKey::WriteTo);
 
 void Lever::WriteLeverNetState() {
     MapObjectWriteNetState(reinterpret_cast<std::uint8_t*>(this));

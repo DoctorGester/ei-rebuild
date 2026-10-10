@@ -1123,6 +1123,10 @@ struct LockKey {
     BOOL Opens(const LockKey* lock);
     // 00522AD0 (trap_object.cpp). Always 1: placed traps take any key.
     BOOL AcceptedByTrap() const;
+    // 005229F0 / 00522A30 (RET 4; lever_object.cpp, A-U11; the lever's Load / Save). Reads / writes
+    // the three dwords (the writes through a stack copy each).
+    void ReadFrom(CStream* stream);
+    void WriteTo(CStream* stream) const;
 
     std::uint32_t mask;
     std::uint32_t id;

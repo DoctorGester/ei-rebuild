@@ -235,3 +235,9 @@ void __fastcall ObjectHolderAssign(void** self, void*, void* object) {
     if (previous) ei::VCall<int>(previous, 4);
 }
 EI_REPLACE(0x00429B50, ObjectHolderAssign);
+// The same assignment, byte-identical, in the units range (A-U11): 00511B90 (map objects' counted slots,
+// the torch's client light), 0052C690, 00556C40, 00556C60.
+EI_REPLACE(0x00511B90, ObjectHolderAssign);
+EI_REPLACE(0x0052C690, ObjectHolderAssign);
+EI_REPLACE(0x00556C40, ObjectHolderAssign);
+EI_REPLACE(0x00556C60, ObjectHolderAssign);

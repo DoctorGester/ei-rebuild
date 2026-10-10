@@ -4,6 +4,7 @@
 #include "server_specific_manager.h"
 
 #include "core_streams.h"
+#include "net_delta.h"
 
 #include "ei/hook.h"
 #include "originals_engine.h"
@@ -18,7 +19,7 @@ const float* DefaultColour() { return reinterpret_cast<const float*>(0x007AF2D0)
 } // namespace
 
 int CTorchObjectSpec::CreateSpec() {
-    unknown_1C = 0;
+    torch_ = nullptr;
     unknown_20 = 0;
     name_.Empty();
     values_[1] = kDefaultValue2C;
@@ -31,7 +32,7 @@ int CTorchObjectSpec::CreateSpec() {
 EI_REPLACE_METHOD(0x0052C610, CTorchObjectSpec::CreateSpec);
 
 void CTorchObjectSpec::DestroySpec() {
-    unknown_1C = 0;
+    torch_ = nullptr;
     name_.Empty();
 }
 EI_REPLACE_METHOD(0x0052C680, CTorchObjectSpec::DestroySpec);
@@ -78,3 +79,27 @@ EI_REPLACE_METHOD(0x0052C5C0, CTorchObjectSpec::SetFlame);
 
 void CTorchObjectSpec::SetName(const char* name) { name_ = name; }
 EI_REPLACE_METHOD(0x0052C600, CTorchObjectSpec::SetName);
+
+void CTorchObjectSpec::ReadNetState(DeltaField* field) {
+    std::uint32_t kind;
+    field->ReadDelta(&kind, 4);
+    unknown_20 = kind;
+    field->ReadDelta(&values_[0], 4);
+    field->ReadDelta(&values_[1], 4);
+    field->ReadDelta(&values_[2], 0x10);
+    field->ReadDelta(colours_[0], 0xC);
+    field->ReadDelta(colours_[1], 0xC);
+    {
+        alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
+        auto* read = static_cast<mfc::CString*>(field->ReadString(raw));
+        name_ = *read;
+        read->~CString();
+    }
+    CTorchObjectSpecSlots* slots = TorchSpecSlots(this);
+    slots->SetLightSlot(unknown_20, colours_[0], values_[0]);
+    slots->SetFlameSlot(colours_[1], values_[1], &values_[2]);
+    slots->SetNameSlot(name_);
+    slots->ShowEffectsSlot();
+    slots->WarmUpParticlesSlot();
+}
+EI_REPLACE_METHOD(0x0052C390, CTorchObjectSpec::ReadNetState);
