@@ -5,6 +5,7 @@
 // Floating point follows the original's x87 code: `double` for values the original keeps on the
 // FPU stack, StoreFloat where it stores to a float.
 #include "ai_motion.h"
+#include "core_streams.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -22,6 +23,7 @@ __declspec(naked) void __fastcall WaypointsSetAtGrow(mfc::CArray<MotionWaypoint>
     EI_ORIGINAL(0x005C87F0)
 __declspec(naked) void __fastcall StepSpeedsSetAtGrow(mfc::CArray<float>*, void*, int, float) EI_ORIGINAL(0x005C8950)
 __declspec(naked) void __fastcall PointsSetSize(mfc::CArray<MotionPoint>*, void*, int, int) EI_ORIGINAL(0x005C8560)
+__declspec(naked) void __fastcall WaypointsSetSize(mfc::CArray<MotionWaypoint>*, void*, int, int) EI_ORIGINAL(0x005C86B0)
 
 // FPATAN: atan2(y, x), unrounded.
 __declspec(naked) double __cdecl Fpatan(double, double) {
@@ -694,3 +696,46 @@ void UnitMotion::LimitSpeeds(float rate) {
     }
 }
 EI_REPLACE_METHOD(0x005C6290, UnitMotion::LimitSpeeds);
+
+// ---- The unit's save (005C7860 / 005C79B0) ------------------------------------------------------
+
+void UnitMotion::LoadState(CStream* stream) {
+    segment = -1;
+    // The original reads each count into its argument slot: a failed read leaves the stream pointer.
+    int count = 0;
+    stream->Read(&count, 4);
+    PointsSetSize(&points, nullptr, count, -1);
+    for (int i = 0; i < points.size; ++i) stream->Read(&points[i], sizeof(MotionPoint));
+    stream->Read(&count, 4);
+    WaypointsSetSize(&waypoints, nullptr, count, -1);
+    for (int i = 0; i < waypoints.size; ++i) stream->Read(&waypoints[i], sizeof(MotionWaypoint));
+    stream->Read(&count, 4);
+    stepSpeeds.SetSize(count, -1);
+    for (int i = 0; i < stepSpeeds.size; ++i) stream->Read(&stepSpeeds[i], 4);
+    stream->Read(&speedScale, 4);
+    stream->Read(&baseTurnRate, 4);
+    stream->Read(&turnRate, 4);
+    stream->Read(&startAngle, 4);
+    stream->Read(&turn, 4);
+}
+EI_REPLACE_METHOD(0x005C7860, UnitMotion::LoadState);
+
+void UnitMotion::SaveState(CStream* stream) {
+    int count = points.size;
+    stream->Write(&count, 4);
+    for (int i = 0; i < points.size; ++i) stream->Write(&points[i], sizeof(MotionPoint));
+    count = waypoints.size;
+    stream->Write(&count, 4);
+    for (int i = 0; i < waypoints.size; ++i) stream->Write(&waypoints[i], sizeof(MotionWaypoint));
+    count = stepSpeeds.size;
+    stream->Write(&count, 4);
+    for (int i = 0; i < stepSpeeds.size; ++i) stream->Write(&stepSpeeds[i], 4);
+    // Copied through a local as dwords.
+    const float* const fields[] = {&speedScale, &baseTurnRate, &turnRate, &startAngle, &turn};
+    for (const float* field : fields) {
+        std::uint32_t value;
+        std::memcpy(&value, field, 4);
+        stream->Write(&value, 4);
+    }
+}
+EI_REPLACE_METHOD(0x005C79B0, UnitMotion::SaveState);

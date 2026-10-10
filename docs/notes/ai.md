@@ -99,7 +99,8 @@ compared; ours only = consistency check.
 | 005AED60, 005AEE30, 005AEEC0, 005AEFF0, 005AF0C0, 005B0AF0, 005AFEC0 | BlockSearch Attach, Requeue, Relax, PickBest, Expand; CRegionMap SeedSearch, AttachSearches | ai_block_search.cpp | PickBest pure; the rest ours only (buckets sorted and linked, relaxed cost against a model, records reset) |
 | 005AFC70, 005AFEE0 | CRegionMap::UpdateBlocks, UpdateBlocksFor (thunk) | ai_block_search.cpp | ours only (steps called through their addresses, verified on their own) |
 | 005B89F0 | CAIMap::ClearUnmarkedArea | ai_refresh.cpp | differential on the cell words |
-| 005C8D40 | VisibilityGrid::Grow (Include stays the forwarder) | ai_movement.cpp | ours only: covers the square, keeps exactly the old marks |
+| 005C8D40 | VisibilityGrid::Grow (Include stays the forwarder; registered only in A-W11, before that only the verify build ran it) | ai_movement.cpp | ours only: covers the square, keeps exactly the old marks |
+| 005C7860, 005C79B0, 005C06F0 | UnitMotion::LoadState / SaveState (the unit save, CUnit + 0x27C), CSectorMap::Init (A-W11) | ai_motion.cpp, sector_map.cpp | SaveState compared byte for byte on a recording stream; the rest ours only |
 | 005C9530, 005C97B0, 005CAE30, 005CAFA0 | AIEventTable (CWorldServer + 0x2838, unit_ai.h): Advance (the time wheel's tick), ForgetUnit (a dead unit's events), Load / Save; AIEvent records from the pool CList 007C43A8 and the free list 007C53F0 (A-W10) | ai_events.cpp | Save compared byte for byte on recording streams; the rest ours only (wheel slots emptied / consistent, no event of the dead unit left) |
 | 005C0930, 005C0BD0, 005C0DF0, 005C1010, 005C11D0 | CSectorMap: UnitsAt, FindUnitsInRadius, Add, Remove, Move | sector_map.cpp | UnitsAt pure; others in `verified.txt` |
 | 005C7DB0, 005C7FC0 | AIPath::WriteState / ReadState (order and steps on a delta field) | ai_path_state.cpp | differential on field / reader copies (the read into a scratch path) |
