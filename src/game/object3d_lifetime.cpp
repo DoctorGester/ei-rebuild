@@ -29,6 +29,8 @@ void CountedRef::Assign(CEngineObject* value) {
     DropReference(old);
 }
 EI_REPLACE_METHOD(0x00519580, CountedRef::Assign);
+EI_REPLACE_METHOD(0x0051E4F0, CountedRef::Assign);   // byte-identical copies (A-U11)
+EI_REPLACE_METHOD(0x0051E570, CountedRef::Assign);
 
 int CObject3D::Create3D() {
     std::memset(&position, 0, sizeof(position));

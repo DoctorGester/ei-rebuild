@@ -288,6 +288,10 @@ void __fastcall DeviceHolderRelease(CTextureDevice** holder) {
     if (*holder) (*holder)->Release();
 }
 EI_REPLACE(0x00504E00, DeviceHolderRelease);
+// Byte-identical copies: other counted holders released the same way (an int count at +4, slot 0 with 1 at zero).
+EI_REPLACE(0x00519560, DeviceHolderRelease);
+EI_REPLACE(0x0051E3E0, DeviceHolderRelease);
+EI_REPLACE(0x0055FCE0, DeviceHolderRelease);
 
 // 00504E20 (RET 4). The holder takes `device` (one more reference), then the old one is released.
 void __fastcall DeviceHolderAssign(CTextureDevice** holder, void*, CTextureDevice* device) {

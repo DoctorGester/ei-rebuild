@@ -86,5 +86,6 @@ void __fastcall CountedPointerRelease(void** self) {
     if (--*reinterpret_cast<std::int16_t*>(object + 4) == 0 && object) ei::VCall<void*>(object, 0, 1);
 }
 EI_REPLACE(0x004586E0, CountedPointerRelease);
+EI_REPLACE(0x00545B80, CountedPointerRelease);   // byte-identical copy (A-U11)
 
 } // namespace app

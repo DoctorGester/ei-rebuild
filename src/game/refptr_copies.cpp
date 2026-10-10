@@ -34,6 +34,10 @@ EI_REPLACE_METHOD(0x0047D560, RefPtr::Destroy);
 EI_REPLACE_METHOD(0x00436430, RefPtr::Destroy);
 EI_REPLACE_METHOD(0x00438AA0, RefPtr::Destroy);
 EI_REPLACE_METHOD(0x00438B30, RefPtr::Destroy);
+// Byte-identical copies in the units range (A-U11).
+EI_REPLACE_METHOD(0x005587A0, RefPtr::Destroy);
+EI_REPLACE_METHOD(0x0055EDA0, RefPtr::Destroy);
+EI_REPLACE_METHOD(0x0055EDE0, RefPtr::Destroy);
 
 // The same owner's release of the counted pointer at +4 (the destructor of a pair whose second
 // member is the RefPtr). 3 copies.
@@ -227,6 +231,12 @@ void __fastcall ObjectHolderRelease(void** self) {
     if (void* object = *self) ei::VCall<int>(object, 4);
 }
 EI_REPLACE(0x00421350, ObjectHolderRelease);
+// Byte-identical copies in the units range (A-U11).
+EI_REPLACE(0x00511B80, ObjectHolderRelease);
+EI_REPLACE(0x0051E3D0, ObjectHolderRelease);
+EI_REPLACE(0x0052D670, ObjectHolderRelease);
+EI_REPLACE(0x00552B80, ObjectHolderRelease);
+EI_REPLACE(0x00556AA0, ObjectHolderRelease);
 // 00429B50: assignment: the new object gains a reference, the old one is released.
 void __fastcall ObjectHolderAssign(void** self, void*, void* object) {
     void* previous = *self;

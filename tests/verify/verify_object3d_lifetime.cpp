@@ -91,3 +91,5 @@ static void __fastcall CountedRefAssignVerify(CountedRef* self, void*, CEngineOb
     ei::verify::Check("CountedRef::Assign", true, ok, "value %p", static_cast<void*>(value));
 }
 EI_VERIFY(0x00519580, CountedRefAssignVerify, 0, s_unusedAssign);
+EI_VERIFY(0x0051E4F0, CountedRefAssignVerify, 0, s_unusedAssign);   // byte-identical copies (A-U11)
+EI_VERIFY(0x0051E570, CountedRefAssignVerify, 0, s_unusedAssign);

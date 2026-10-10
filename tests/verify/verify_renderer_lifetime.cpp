@@ -226,6 +226,9 @@ static void __fastcall DeviceHolderReleaseVerify(CTextureDevice** holder) {
                       static_cast<void*>(device));
 }
 EI_VERIFY(0x00504E00, DeviceHolderReleaseVerify, 0, s_unused[18]);
+EI_VERIFY(0x00519560, DeviceHolderReleaseVerify, 0, s_unused[18]);   // byte-identical copies
+EI_VERIFY(0x0051E3E0, DeviceHolderReleaseVerify, 0, s_unused[18]);
+EI_VERIFY(0x0055FCE0, DeviceHolderReleaseVerify, 0, s_unused[18]);
 
 static void __fastcall DeviceHolderAssignVerify(CTextureDevice** holder, void*, CTextureDevice* device) {
     int refs = device ? device->refs_ : 0;

@@ -151,6 +151,7 @@ void* __fastcall ScriptRefDestroy(CEngineObject** slot, void*, int flags) {
     return Finish(slot, flags);
 }
 EI_REPLACE(0x004CE1E0, ScriptRefDestroy);
+EI_REPLACE(0x0052D030, ScriptRefDestroy);   // byte-identical copy (A-U11)
 
 void* __fastcall ScriptGroupDestroy(void* group, void*, int flags) {
     GroupBody(group);
