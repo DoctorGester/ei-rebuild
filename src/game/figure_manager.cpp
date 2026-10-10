@@ -16,6 +16,8 @@
 namespace {
 
 constexpr int kFigureClass = 0x43;
+constexpr std::uint32_t kLoaded = 0x20;            // CFigureMesh::flags_
+constexpr std::uint32_t kFigMagic = 0x474946;      // "FIG"
 
 // Copies `text` with its terminator to `end`; returns the new end (at the terminator).
 char* Append(char* end, const char* text) {
@@ -81,6 +83,17 @@ int CFigureManager::LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator
     return 1;
 }
 
+void CFigureMesh::LoadFromMemory(char** cursor, float s, float t, float u) {
+    if (flags_ & kLoaded) return;
+    std::uint32_t magic;
+    std::memcpy(&magic, *cursor, 4);
+    if ((magic & 0xFFFFFF) == kFigMagic) FigureSlots(this)->LoadFig(cursor, s, t, u);
+    else FigureSlots(this)->LoadOld(cursor, s, t, u);
+    flags_ |= kLoaded;
+}
+
+EI_REPLACE_METHOD(0x005A2490, CFigureMesh::LoadFromMemory);
+EI_REPLACE_METHOD(0x005A4CF0, CFigureMesh::LoadFromMemory);   // byte-identical (class 0x41's slot 19)
 EI_REPLACE_METHOD(0x005AC1A0, CFigureManager::NewFigure);
 EI_REPLACE_METHOD(0x005AC2F0, CFigureManager::LoadPart);
 EI_REPLACE_METHOD(0x005ACA60, CFigureManager::LoadBoneAnimation);

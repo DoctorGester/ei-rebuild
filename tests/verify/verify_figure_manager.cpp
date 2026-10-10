@@ -1,4 +1,5 @@
-// A-W12: the figure manager's loaders (figure_manager.cpp). All ours only: they create objects and
+// A-W12: the figure manager's loaders and the figure meshes' slot 19 (figure_manager.cpp). All ours
+// only: they create objects and
 // open archive files. Reached whenever a figure loads: NewFigure by the interface's 3D models (the
 // model manager, ui_window.cpp) at the menus, LoadPart for every part of a unit or object figure
 // (BuildPart, map_object_figures.cpp; every new game), LoadBoneAnimation when a bone starts an
@@ -48,8 +49,17 @@ int __fastcall LoadBoneAnimationVerify(CFigureManager* self, void*, FigureBone* 
     return result;
 }
 
+// 005A2490 / 005A4CF0 (slot 19): the mesh is marked loaded afterwards (its loaders are verified
+// on their own).
+void __fastcall LoadFromMemoryVerify(CFigureMesh* self, void*, char** cursor, float s, float t, float u) {
+    self->LoadFromMemory(cursor, s, t, u);
+    ei::verify::Check("CFigureMesh::LoadFromMemory", true, (self->flags_ & kLoaded) != 0, "mesh %p", static_cast<void*>(self));
+}
+
 } // namespace
 
+EI_VERIFY(0x005A2490, LoadFromMemoryVerify, 0, s_unused);
+EI_VERIFY(0x005A4CF0, LoadFromMemoryVerify, 0, s_unused);
 EI_VERIFY(0x005AC1A0, NewFigureVerify, 0, s_unused);
 EI_VERIFY(0x005AC2F0, LoadPartVerify, 0, s_unused);
 EI_VERIFY(0x005ACA60, LoadBoneAnimationVerify, 0, s_unused);

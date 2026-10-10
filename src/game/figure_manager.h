@@ -31,6 +31,8 @@ class CFigureObjectVirtuals : public CTransformObject {
 public:
     virtual void CopyFigure() = 0;                                              // 18: 0059F0F0
     virtual void LoadFromMemory(char** cursor, float s, float t, float u) = 0;  // 19: 005A2490 / 005A4CF0
+    virtual void LoadFig(char** cursor, float s, float t, float u) = 0;         // 20: "FIG" data
+    virtual void LoadOld(char** cursor, float s, float t, float u) = 0;         // 21: the older format
 };
 inline CFigureObjectVirtuals* FigureSlots(CFigureMesh* figure) { return reinterpret_cast<CFigureObjectVirtuals*>(figure); }
 

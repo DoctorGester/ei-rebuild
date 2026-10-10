@@ -21,6 +21,12 @@ class CLight;        // spell.h
 // The drawer of a figure mesh (CFigureMesh::drawer_; its draws 005A7A70 / 005A7640, 005A7160
 // advances its animation, 005A7290 finishes a draw). Only what the draws use.
 struct FigureMeshDrawer {
+    // 005A7160 (RET 4; figure_drawer.cpp; the draws call it through its address for the animated
+    // mesh types 13..16). The texture offset of an animated mesh at `time` (truncated by _ftol):
+    // type 13 cycles 8 frames over two rows (u = frame % 4 / 4, v = 0 or 0.5), 14 16 frames of a
+    // 4 x 4 sheet, 16 32 frames of 8 x 4 (u = column / 4 or / 8, v = 1 - row / 4); 15 none.
+    void Animate(float time);
+
     std::uint8_t unknown_00[8];
     std::uint32_t flags_;       // +0x08 gets the bits of 00790C0C when the mesh is animated
     std::uint8_t unknown_0C[0x1C - 0x0C];
