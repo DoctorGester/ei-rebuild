@@ -83,17 +83,6 @@ int FillLevels(CDXSurface* holder, const MmpHeader* header, int mip, const char*
     return total;
 }
 
-// 004DC390's join (ECX out, EDX pieces, the separator on the stack): the pieces with `\` between them.
-void JoinPath(mfc::CString* out, const mfc::CStringArray& pieces) {
-    *out = "";
-    if (pieces.GetSize() == 0) return;
-    *out += pieces[0];
-    for (int i = 1; i < pieces.GetSize(); ++i) {
-        *out += "\\";
-        *out += pieces[i];
-    }
-}
-
 } // namespace
 
 // The fills and the .bmp loader through their addresses, so their verify wrappers see the calls.
@@ -211,10 +200,10 @@ int CTexture::LoadBmp(CTextureDevice* device, const char* path) {
     pieces.RemoveAt(pieces.GetSize() - 1, 1);
     alphaPath = mfc::operator+(AlphaPrefixText(), file);
     pieces.SetAtGrow(pieces.GetSize(), alphaPath);
-    JoinPath(&alphaPath, pieces);
+    text::Join(&alphaPath, &pieces, '\\');
     pieces.RemoveAt(pieces.GetSize() - 1, 1);
     pieces.SetAtGrow(pieces.GetSize(), file);
-    JoinPath(&file, pieces);
+    text::Join(&file, &pieces, '\\');
     return LoadBmpFiles(device, file, alphaPath);
 }
 EI_REPLACE_METHOD(0x00690260, CTexture::LoadBmp);

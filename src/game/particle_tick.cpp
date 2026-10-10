@@ -110,7 +110,7 @@ void RestorePrevious(Particle* p) {
 // --- Particle pool --------------------------------------------------------------------------------
 
 // 00498870. The head of the free list, or a fresh 0x64-byte particle when it is empty.
-Particle* ParticlePool::Acquire() {
+Particle* CParticleManager::AcquireParticle() {
     if (freeParticles.count == 0) return static_cast<Particle*>(gamecrt::operator_new(sizeof(Particle)));
     mfc::CTypedPtrList<Particle>::Node* node = freeParticles.head;
     Particle* p = node->data;
@@ -120,11 +120,11 @@ Particle* ParticlePool::Acquire() {
     freeParticles.FreeNode(node);
     return p;
 }
-EI_REPLACE_METHOD(0x00498870, ParticlePool::Acquire);
+EI_REPLACE_METHOD(0x00498870, CParticleManager::AcquireParticle);
 
 // 004987C0. Appends the particle to the free list.
-void ParticlePool::Release(Particle* p) { freeParticles.AddTail(p); }
-EI_REPLACE_METHOD(0x004987C0, ParticlePool::Release);
+void CParticleManager::ReleaseParticle(Particle* p) { freeParticles.AddTail(p); }
+EI_REPLACE_METHOD(0x004987C0, CParticleManager::ReleaseParticle);
 
 // --- Source -------------------------------------------------------------------------------------
 
@@ -209,14 +209,14 @@ struct TickSteps {
     // Updates every particle. A particle the previous tick rejected is unlinked and returned to
     // the pool first, but (as in the original) is still updated and counted in the bounds.
     void UpdateParticles() {
-        ParticlePool* pool = static_cast<ParticlePool*>(s->owner_);
+        CParticleManager* pool = static_cast<CParticleManager*>(s->owner_);
         mfc::CTypedPtrList<Particle>::Node* node = s->particles.head;
         while (node) {
             mfc::CTypedPtrList<Particle>::Node* next = node->next;
             Particle* p = node->data;
             if (p->dead) {
                 s->particles.RemoveAt(node);
-                pool->Release(p);
+                pool->ReleaseParticle(p);
             }
             SavePrevious(p);
             if (!reinterpret_cast<UpdateFn>(s->updateFn)(s, nullptr, p)) {
@@ -230,11 +230,11 @@ struct TickSteps {
 
     // One emission attempt: a particle from the pool, kept when the emit callback accepts it.
     void EmitOne(int index) {
-        ParticlePool* pool = static_cast<ParticlePool*>(s->owner_);
-        Particle* p = pool->Acquire();
+        CParticleManager* pool = static_cast<CParticleManager*>(s->owner_);
+        Particle* p = pool->AcquireParticle();
         if (!p) return;
         if (reinterpret_cast<EmitFn>(s->emitFn)(s, nullptr, p, index)) s->AddParticle(p);
-        else pool->Release(p);
+        else pool->ReleaseParticle(p);
     }
 
     // max(emitCount, distance / emitSpacing) tries, each emitting with emitChance percent; a

@@ -971,3 +971,17 @@ void CParticleSource::Destruct() {
     EngineObjectDestructBase(this);
 }
 EI_REPLACE_METHOD(0x00498310, CParticleSource::Destruct);
+
+// 004982F0 (slot 0, RET 4). Destruct, then operator delete when `flags` bit 0 is set; returns this.
+CParticleSource* CParticleSource::DeletingDestruct(int flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x004982F0, CParticleSource::DeletingDestruct);
+
+// 004982D0 / 004982E0 (slots 11 / 12): the exe's "CParticle" (0078B020) and class id 12.
+const char* __fastcall ParticleSourceClassName(CParticleSource*) { return reinterpret_cast<const char*>(0x0078B020); }
+int __fastcall ParticleSourceClassId(CParticleSource*) { return 12; }
+EI_REPLACE(0x004982D0, ParticleSourceClassName);
+EI_REPLACE(0x004982E0, ParticleSourceClassId);

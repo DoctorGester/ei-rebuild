@@ -141,6 +141,15 @@ size; object ids go through `FindObject` and `Assign` 004B24D0, group members th
   referenced, 0073D1C4), 004BA610 `SuspectionMode` (0073D1F8), 004BA710 / 004BA830 `AggressionMode` (0073D260; the second
   with `fixed` = UMRevenge), 004BA920 `CorpseWatcherMode` (0073D294), 004BA1A0 `AILook` (UMPatrolLook). None sets the count
   (+4): the commands write 0 there after operator new.
+- Their own slots (A-S10, same file; `verify_script_unit_mode_slots.cpp`): Clone (slot 3) 004BA250 / 004BA3B0 / 004BA4A0 /
+  004BA630 / 004BA730 / 004BA930, Reset (slot 2, OnShutdown: references dropped, constructor values back, EAX untouched)
+  004BA2D0 / 004BA3F0 / 004BA510 / 004BA6B0 / 004BA7C0 / 004BA950, deleting destructors 004BA300 / 004BA340 / 004BA420 /
+  004BA590 / 004BA680 / 004BA6E0 / 004BA8A0 / 004BA990 and bodies (004BA5B0 / 004BA8C0 release the leader / enemy; the rest
+  only store the root vtable 0073BB68), GetType 004BA410 / 004BA580 / 004BA6D0 / 004BA860 / 004BA980, Aggression
+  OnObjectDeleted 004BA870. Kept: a clone stores its count before testing operator new's result; Aggression's clone copies
+  `chosen` without a reference. Not hookable (3 bytes): 004BA220 / 004BA230 (RET 4), 004BA240 (MOV AL,1), 004BA2B0 / 004BA2C0
+  / 004BA970 (RET 4), 004BA2F0 (Guard type 0), 004BA620 (MOV AL,0). The accessors 004B9F20-004BA080 and 004BA9C0 are called
+  only from the rewritten runtime 004B6760 (not ported).
 - Text manager line reader (`text_reader.cpp` on `CTextManager`; 54 callers of Open in the interface, the map loader's
   FindLine / Split, the item texts): the cursor (+0x20) walks the current text (+0x24, +0x28 bytes); every end test is the
   signed `(p - text) < length`; characters are MBCS. Open 004DEFC0 asks each archive (slot 5, GetFile(key, &length)) in list
@@ -242,9 +251,9 @@ V: S against the original (it runs first on scratch / copies, ours on the real o
 | Buffered file streams (`buffered_file.cpp`) | 004DAAF0 `Flush`, 004DB040 `BufferedStreamCommit` (slot 2, `Rebase`), 004DAC80 `ReleaseBlock`, slots 0, 1, 3, 4, 6 004DAE30 / 004DAFC0 / 004DB200 / 004DB420 / 004DB0F0 (`ReserveRead`, `ReserveWrite`, `ReadMore`, `WriteMore`, `Seek`), 004DB5E0 / 004DB630 `ReadAt` / `WriteAt` (7 / 8), 004DB680 / 004DB700 `BufferedFile::Close` / `Open` (O) | S; newgame (005809D0 reads "quest.reg") |
 | Matrix helpers (`matrix_math.cpp`) | 004D9880 `MatrixMultiply`, 004D9AA0 `Quaternion::ToMatrix`, 004D9B80 `CTransformPipeline::PushMatrix` (stacks at +0x14, 8 bytes each); 004D9ED0 (= 0047B940) | S (same aliasing); every frame |
 | View / light matrices (`view_matrices.cpp`) | 004F0EF0 `view::CameraViewMatrix` (stdcall: rows = the camera rotation's X axis (0040D940), Y and Z axes inline, column 3 = -position . row), 004F15C0 `LightRotation`, 004F1440 `LightShearMatrix` (the shadow's projection; map_object_shadow.cpp calls them by address; acos is the C++ one), 004E5660 (byte copy of `CubicSegment::Evaluate` 0040E440), 004E5710 `AllocateBlocks32` (as 00452DA0), 004F65B0 `AllocateBlocks8` (as 004545A0) | S; every frame, shadows, unit motion |
-| Text splitting (`text_split.cpp`) | 004DBE40 `text::Split`, 004DBF50 `SplitWords`, 004DC400 `ReplaceChar` | S; console (lines with breaks), keyboard.ini at startup, item name keys |
+| Text splitting (`text_split.cpp`) | 004DBE40 `text::Split`, 004DBF50 `SplitWords`, 004DC400 `ReplaceChar`, 004DC390 `Join` (A-S10; CTexture::LoadBmp calls it directly) | S; console (lines with breaks), keyboard.ini at startup, item name keys; Join no scenario (loose .bmp only) |
 | Text archive list (`text_sources.cpp`) | 004DE930 / 004DEAF0 / 004DEB60 `TextSourceList::Add` / `Remove` / `Clear`, 004DEDB0 / 004DEDD0 / 004DED40 `CTextManager::AddSource` / `RemoveSource` / `ClearSources` (004DED40 is slot 3 of vtable 0073F6F0) | O; newgame (client start, briefings add / remove zone texts), world_load |
-| Zone exit (`exit_area.cpp`) | 004E59F0 `ZoneExit::Contains` (world.h's +0x24 is `angle`) | P; FindExitAt and 005677F0; zone_base_bz1g, newgame |
+| Zone exit (`exit_area.cpp`) | 004E59F0 `ZoneExit::Contains` (world.h's +0x24 is `angle`); A-S10: 004E5750 / 004E58A0 `ZoneExit::Read` / `Write` (+0x00..+0x20 dwords, target with terminator, +0x2C, +0x30, then byte +0x34, +0x38, angle; read from version 0x68 on, else 0), 004E5840 `CStream::ReadInto` (ReadString into a temporary, assigned) | P; Read / ReadInto S (the original reads first, the stream put back: position, ok flag), Write O; FindExitAt and 005677F0; zone_base_bz1g, newgame (client zone load, server zone message, saves) |
 | Ground decals (`ground_decal.cpp`) | 004D7F50 `DecalBuilder::Construct`, 004D8000 `Begin`, 004D7F60 `Touches`, 004D8780 `Reserve`, 004D89A0 `Finish`; 004D85F0 `AddTriangle`, 004D8490 `AddTerrainTriangle`, 004D7BD0 `ClipPlane`, 004D74B0 `ClipFromV`, 004D71D0 `ClipFromUMax`, 004D6CF0 `Emit`, 004D6C50 `AddVertex`; 004D6E90 `decal::ClipTriangle`, 004D7140 `Interpolate`, 004D8470 `Vector3::LengthSquared` | S (NearlyEqual); every frame with shadows. ClipPlane / AddTriangle / AddTerrainTriangle are in tests/verify/disabled.txt (X17) |
 | .mob reader (`mob_reader.cpp`), decoder | 00481F00 `ReadMobChunks` (scripts, weather, records, players), 00481660 `LoadMobFile` (relations applied, traps get their hostile mask and origin, units their alarm records 005D6D20, records deleted, scripts loaded unless keepIds), 004D8E10 `MobScriptDecoder::Decode` (resize 004D8EB0 = `CharVectorResizeOriginal`) | O / S; every zone load, zone_gz2g_traps |
 | Trader stock (`class_template_stock.cpp`) | 004A6DC0 `ClassTemplateSetLevels`, 004A6DF0 `ClassTemplateGenerateItems`, 004A6F60 `ClassTemplateGenerateMagic` (list<CItem*> sentinel from the node pool, generators, AddItem(1, 1) + Release), 004A6580 / 004A66C0 `ClassTemplate::Construct` / `ItemStock::Construct` (193-bucket maps), 004A6A90 / 004A6A70 `ClassTemplate::Destruct` / `DeletingDestruct` | O; trader_stock, every new game (004A7630), world_load |
@@ -257,7 +266,9 @@ V: S against the original (it runs first on scratch / copies, ours on the real o
 | Server-specific manager (`server_specific_manager.cpp`) | 004D6900 / 004D6960 / 004D6940 / 004D6920 / 004D6930 / 004D6970 `CServerSpecificManager` Construct, Destruct, DeletingDestruct, slots 11 / 12, slot 14 `NewObject` (0x46-0x49 through their constructors, 0x4B `CTorchObjectSpec` inline + Create through the vtable); 004D6BA0 / 004D6B80 / 004D6B60 / 004D6B70 / 004D6B50 `CTorchObjectSpec` Destruct, DeletingDestruct, slots 11 / 12 / 6 | names / ids S, rest O; newgame |
 | Pipeline projections (`model.cpp`) | 004F2650 `CTransformPipeline::ProjectBlocks`, 004F29F0 `ProjectTerrain` (`ITransformPipeline` slots 9 / 14 / 18 / 19) | O; shadows, every frame |
 | Party manager archive (`party_manager.cpp`, A-S9) | 004A8560 / 004A8310 `PartyManager::Save` (S, ISAAC state put back) / `Load` (the manager 007AA5A0: parties hash_map<int, CParty> +0x00, entries +0x14, field +0x20, records +0x24, templates +0x38); 004ACEC0 / 004AD0C0 / 004ACDC0 / 004AD2C0 `ChunkArchive::SerializeParties` / `SerializePartyEntries` / `SerializeClassTemplates` / `IntField`, 004A64B0 `NamedPartyRecords::Serialize` (covered by Save); 004A6050 / 004A6360 `BeginRedeploy` / `EndRedeploy` (Begin spreads the variables (004A8AD0 operator=), zone and +0x6C to every record; End clears the party when no record matches, then text10 = text0C); 004A5AF0 `PartyRecord::Serialize`, 004A6C40 `ClassTemplate::Serialize` (SaveLists 0069BAC0 by address) | every save (autosave), world_load, ui_saveload, zone_* (RedeployParty) |
-| Misc | 00480B80 `DirectXErrorText` (`dx_errors.cpp`, a sorted table of 149 codes), 004800E0 `app::FatalErrorCode` ("%s (0x%.8X) %s"; always exits) | only on a DirectX failure |
+| Rain / snow (`effects_weather.cpp`, `CRainSnow`, CWorldClient + 0x6F4 = world.h's `ClientRibbons`) | A-S10: 004E3B80 `Clear` (slot 3 via the thunk 005617B0: rain loop stopped, texture +0x1C released, wind / mode / fade / world +0x20 cleared, density 64), 004E3FC0 `Start(mode, duration)` (texture "RainSnow" kind 6 through 00500A00; rain plays the loop "nature\rain\circle.wav" (Play2D, priority 1000); fade start = the world's tick). Not ported: 004E3980 (noise tables, only from the static initialiser 004E3B20), 004E3C20 (buffers; renderer data), the draws 004E4240 / 004E4C80 | Clear S (copy without sound and texture), Start O; world teardown, the server's weather messages |
+| Visibility fog object (`effects_weather.cpp`, `CVisibilityFog`, vtable 0073D6B4) | A-S10: slots 2 / 3 004E23D0 / 004E2440 (cells freed to the pool, bounds invalid; slot 2 returns 1), 11 / 12 004E24A0 / 004E24B0 ("CVisibilityFog", 0x5F), destructor 004E24E0 and slot 0 004E24C0 | O (table empty) / S (11, 12); the fog of the show-visibility effect (no scenario known) |
+| Misc | 00480B80 `DirectXErrorText` (`dx_errors.cpp`, a sorted table of 149 codes), 004800E0 `app::FatalErrorCode` ("%s (0x%.8X) %s"; always exits); the thrown `GameError` (A-S10, 0xC: vtable 0073CAB4 / base 0073CAB0, operator new message, result): constructors 00480250 (wvsprintf) / 00480300 (+ result text), destructor 004815D0, deleting destructors 004815B0 / 00481580 | S (constructors: the original formats into a scratch object with the first eight argument dwords passed on) / O; only on a DirectX failure |
 
 Facts:
 - Memory stream: Write grows to (capacity + size) * 2 copying the old capacity's bytes; Resize grows to size * 1.5 + 0x10
@@ -341,12 +352,16 @@ work), `CSysInfo` 004DDCB0-004DE8B0 (static initialiser table 00783310: standalo
 
 ### Next candidates in this range
 
-- Renderer tickets: the D3D state-block manager 004FCA60 / 004FD2A0 / 004FD9D0 / 004FCE90, rain / snow draws 004E4240 /
-  004E4C80, the fog object 004E1EB0-004E24E0, the CLinkMesh draw slots 7-14 004F3870-004F4850, the device functions
-  004E5E50-004EFEA0; the TL library loader and matrices 004F0B90-004F15C0 (004F1330 Rebirth).
-- Particle element manager pieces 00497FE0 (manager clear, from 005627C0), 00498480 / 00498630; the keyframe track / static
-  initialiser block 0049F810-0049F890; 004A39C0 (from 004A38F0 / 004A3B70 / 0051E840); 0049F4B0 (recursive CFileFind for the
-  ISAAC seed); the effect manager and STLport members 004FC320-004FF4C0; CStringArray join 004DC390; 004BD310 / 004BDE40
-  (skipped, above).
+- Renderer tickets: the D3D state-block manager 004FCA60-004FDFE0 (its hash_map of state vectors; the STLport members
+  004FE0C0-004FF4C0 are now library rows), rain / snow draws 004E4240 / 004E4C80 and buffers 004E3C20, the fog draw
+  004E1EB0-004E2290, the CLinkMesh draw slots 7-14 004F3870-004F4850, the device functions 004E5E50-004EFEA0; the TL
+  library loader and matrices 004F0B90-004F15C0 (004F1330 Rebirth); the debug line lists 0049B140 / 0049B780.
+- A-S10 did the particle manager (particles.md), the ISAAC seed 0049F660 / 0049F4B0 (core.md), 004DC390, the unit modes'
+  slots, GameError, CRainSnow Clear / Start, the zone exit's stream form, CVisibilityFog's slots. Classified: 0049F820 /
+  0049F840 / 0049F870 / 004E3B20 / 004E3AD0 are static initialisers (before the hooks; 004E3980 is only theirs); 0049F890
+  (keyframe track) is reached only from 00448720, which only calls itself (dead); STLport / MFC rows for the party
+  manager's containers 004B0A90-004B1590, the script CArrays 004B5ED0 / 004BD120 / 004BDB80 / 004BE250-004BE430, 004A39C0.
+  Only reachable from rewritten callers (left unported): 004824B0 / 00483D40 (LoadMobFile's record map), 004B3200 (from
+  0066E2E0), the accessors 004B9F20-004BA080 / 004BA9C0 (from 004B6760). Left: 004BD310 / 004BDE40 (skipped, above).
 - Standalone build: `CSysInfo`, the party manager's static constructor 004A5870 and exit destructor 004A5700, CTorchObjectSpec
   Create / Destroy 0052C610 / 0052C680 (not ported; slots 13-15 004D6B20/30/40 are a bare RET).

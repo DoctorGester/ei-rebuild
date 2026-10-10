@@ -1,7 +1,7 @@
 #pragma once
 
-// Text helpers of 004DBE40-004DC4F0: splitting a text into a CStringArray at a separator and
-// replacing a character in a CString. See docs/notes/script.md ("Leftovers").
+// Text helpers of 004DBE40-004DC4F0: splitting a text into a CStringArray at a separator, joining
+// one, and replacing a character in a CString. See docs/notes/script.md ("Leftovers").
 
 #include "console.h"
 
@@ -16,5 +16,8 @@ int __fastcall Split(const char* text, console::CStringArray* array, char separa
 int __fastcall SplitWords(const char* text, console::CStringArray* array, char separator);
 // 004DC400 (ECX string, EDX from, RET 4 for `to`). Every `from` in the string becomes `to`. Returns 1.
 int __fastcall ReplaceChar(mfc::CString* string, char from, char to);
+// 004DC390 (ECX out, EDX array, RET 4 for `separator`). `out` becomes the array's strings with
+// `separator` between them (the exe's empty string for an empty array). Returns 1.
+int __fastcall Join(mfc::CString* out, const mfc::CStringArray* parts, char separator);
 
 } // namespace text

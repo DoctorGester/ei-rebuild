@@ -63,6 +63,8 @@ public:
     unsigned GetLength();                                           // 007014E2
     unsigned Read(void* buffer, unsigned count);                    // 00701305
     void Close();                                                   // 00701403
+    // The OS file handle (m_hFile; INVALID_HANDLE_VALUE when closed).
+    void* Handle() const { return handle_; }
 
 private:
     void* vtable_;
@@ -106,11 +108,35 @@ public:
     CFileFind();                                                    // 006E6370
     ~CFileFind();                                                   // 006E63AD
     BOOL FindFile(const char* pattern, unsigned long flags);       // 006E6433
+    unsigned long GetLength() const;                                // 006E68AA (the found file's size, low dword)
 
 private:
     std::uint8_t data_[0x1C - 0];
 };
 static_assert(sizeof(CFileFind) == 0x1C);
+
+// The virtual slots of MFC 4.2's CFileFind (vtable 00745EE8) for callers that dispatch through it
+// as the original does; declared only. Slots declared `void Name()` keep their place only (8-13
+// are the six GetLast*Time / GetCreationTime overloads).
+class __declspec(novtable) CFileFindVirtuals {
+public:
+    virtual void GetRuntimeClass();                         // 0: 0070BE5E
+    virtual void DeletingDestructor();                      // 1: 006E6391
+    virtual void Serialize();                               // 2
+    virtual void GetFileName();                             // 3: 006E684B
+    virtual void GetFilePath();                             // 4: 006E6722
+    virtual void GetFileTitle();                            // 5: 006E67BA
+    virtual void GetFileURL();                              // 6
+    virtual void GetRoot();                                 // 7
+    virtual void GetTime8();                                // 8
+    virtual void GetTime9();                                // 9
+    virtual void GetTime10();                               // 10
+    virtual void GetTime11();                               // 11
+    virtual void GetTime12();                               // 12
+    virtual void GetTime13();                               // 13
+    virtual BOOL MatchesMask(unsigned long mask) const;     // 14: 006E6513 (file attribute bits)
+    virtual BOOL IsDots() const;                            // 15: 006E661A
+};
 
 // CPlex: the block allocator behind MFC's lists and maps.
 struct CPlex {

@@ -368,7 +368,7 @@ int CWorldClient::Render() {
         SetRenderState(RenderDeviceObject(), 19, 5);
         SetRenderState(RenderDeviceObject(), 20, 6);
         SetRenderState(renderer, 14, 0);
-        ClientManager19C* particles = ClientParticleManager();
+        CParticleManager* particles = ClientParticleManager();
         ParticlesDraw(particles, nullptr, SceneContext());
         Flush(renderer);
         SetRenderState(RenderDeviceObject(), 19, 5);

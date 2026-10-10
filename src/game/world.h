@@ -38,7 +38,7 @@ class CTexture;   // texture.h
 class CTextureManager;   // texture.h
 class Terrain;
 class CCamera;   // camera.h
-struct ClientManager19C;
+class CParticleManager;   // effects.h
 struct FootprintPart;   // ai_map.h: a figure part's box (FigurePart +0x188)
 class CFileRegistry;   // registry.h
 class CWorldServer;
@@ -145,21 +145,30 @@ static_assert(sizeof(PlayerIterator) == 8);
 
 // A zone exit as the world server keeps it (0x3C bytes); the client keeps the same records.
 struct ZoneExit {
-    std::uint8_t unknown_00[0x14];
+    std::uint32_t unknown_00[5];          // +0x00 (saved as five dwords)
     float x1, y1, x2, y2;                 // +0x14 rectangle
     float angle;                          // +0x24 rotation about the rectangle's centre (radians)
     char* target;                         // +0x28 CString: target zone ("" = none)
     int entrance;                         // +0x2C entrance number in the target zone
-    std::uint8_t unknown_30[0x3C - 0x30];
+    int unknown_30;                       // +0x30
+    std::uint8_t unknown_34;              // +0x34 saved from version 0x68
+    std::uint8_t unknown_35[3];
+    int unknown_38;                       // +0x38 saved from version 0x68
 
     // 004E59F0 (exit_area.cpp). Whether (x, y) lies inside the exit area (rotated by `angle` about
     // the rectangle's centre when it is not 0).
     bool Contains(float x, float y) const;
+    // 004E5750 / 004E58A0 (exit_area.cpp, RET 4). From / to a stream (core_streams.h): +0x00..+0x20
+    // as dwords, the target with its terminator, +0x2C, +0x30, then +0x34 (a byte), +0x38 and the
+    // angle; Read takes the last three only from version 0x68 on (else 0).
+    void Read(class CStream* stream);
+    void Write(class CStream* stream) const;
     // 004608B0. Scalar deleting destructor (flags & 1: free the record too); returns this.
     ZoneExit* DeletingDestructor(unsigned flags);
 };
 static_assert(sizeof(ZoneExit) == 0x3C);
 static_assert(offsetof(ZoneExit, target) == 0x28);
+static_assert(offsetof(ZoneExit, unknown_38) == 0x38);
 
 // MFC CArray<ZoneExit> (CWorldServer + 0xEC; the map database's zone records hold one at +0x48).
 // Its SetSize is the instantiation's own: ZoneExitsSetSizeOriginal (00573080, originals_world.h;
@@ -225,7 +234,7 @@ public:
     virtual CTextureManager* TextureManager();   // 34: the client's 00561990 (+0x18C)
     // 35: client 005619A0 (+0x190, a CLightManager), server 0. The client's Segment walks its objects.
     virtual CBaseManager* ClientLightManager();
-    virtual ClientManager19C* ClientParticleManager();   // 36: client 005619B0 (+0x19C, a CParticleManager), server 0
+    virtual CParticleManager* ClientParticleManager();   // 36: client 005619B0 (+0x19C, a CParticleManager), server 0
     virtual void ClientManager194();      // 37: client 005619C0 (+0x194), server 0. Not identified
     virtual void ClientManager198();      // 38: client 005619D0 (+0x198), server 0. Not identified
     virtual void Unused39();              // 39: 0055EC40 returns 0 in both
@@ -1003,16 +1012,7 @@ struct ClientArrayManager : CBaseManager {
     std::uint8_t list[0x1C];              // +0xB4
 };
 static_assert(sizeof(ClientArrayManager) == 0xD0);
-// +0x19C (0xE8 bytes, vtable 0073F644, constructor tail 004981A0): a CList (0056FD40, 10), a table
-// (005725E0) and a dword.
-struct ClientManager19C : CBaseManager {
-    std::uint8_t list[0x1C];              // +0xB0
-    std::uint8_t table[0x14];             // +0xCC
-    int unknown_E0;                       // +0xE0
-    std::uint8_t unknown_E4[4];
-};
-static_assert(offsetof(ClientManager19C, unknown_E0) == 0xE0);
-static_assert(sizeof(ClientManager19C) == 0xE8);
+// +0x19C: the particle manager, CParticleManager (effects.h).
 
 // The render device (the global pointer at 007AF068): three stacks of 4x4 float matrices.
 struct MatrixDevice {
@@ -1276,7 +1276,7 @@ public:
     CTextureManager* textureManager_;     // +0x18C (slot 34) counted
     CBaseManager* manager190_;            // +0x190 counted (constructor 0068D850)
     std::uint8_t unknown_194[0x19C - 0x194];
-    ClientManager19C* manager19C_;        // +0x19C counted
+    CParticleManager* particleManager_;        // +0x19C counted
     ClientListManager* listManager_;      // +0x1A0 owned
     ClientArrayManager* arrayManager_;    // +0x1A4 owned
     ClientObject1A8* owned1A8_;           // +0x1A8 owned (constructor 006B4350)
@@ -1340,7 +1340,7 @@ static_assert(offsetof(CWorldClient, rangeFirstX_) == 0x138);
 static_assert(offsetof(CWorldClient, rangeY_) == 0x14C);
 static_assert(offsetof(CWorldClient, secondGrid_) == 0x150);
 static_assert(offsetof(CWorldClient, manager188_) == 0x188);
-static_assert(offsetof(CWorldClient, manager19C_) == 0x19C);
+static_assert(offsetof(CWorldClient, particleManager_) == 0x19C);
 static_assert(offsetof(CWorldClient, owned1B0_) == 0x1B0);
 static_assert(offsetof(CWorldClient, bloodPrints_) == 0x1B8 && offsetof(CWorldClient, scorchMarks_) == 0x1C0);
 static_assert(offsetof(CWorldClient, handle_) == 0x1C8);

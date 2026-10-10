@@ -1139,3 +1139,48 @@ AggressionMode* __fastcall ScriptAggressionModeConstruct(AggressionMode* mode);
 AggressionMode* __fastcall ScriptRevengeModeConstruct(AggressionMode* mode, void* edx, int fixed);
 CorpseWatcherMode* __fastcall ScriptCorpseWatcherModeConstruct(CorpseWatcherMode* mode);
 AILook* __fastcall ScriptAILookConstruct(AILook* look, void* edx, float angle, float wait, float time, int stopFirst);
+
+// The script-made modes' own slots, 004BA250-004BA9B0 (script_unit_modes.cpp). Clone (slot 3): a
+// new mode (operator new, refs and flags 0) with the fields copied (Follow / Aggression reference
+// their leader / enemy; Aggression's `chosen` is copied without one); null when the allocation
+// fails. Reset (slot 2, OnShutdown): the references dropped and the fields back to what the
+// constructor sets (EAX not set). Destruct: the references dropped, the root vtable. Slot 0:
+// Destruct, then operator delete when `flags` bit 0 is set; returns the mode. The plain modes'
+// destructor bodies only store the root vtable (aimode::DestructToRoot). Slots of 3 bytes (RET 4,
+// MOV AL,1, XOR EAX,EAX ...) cannot be hooked: 004BA220 / 004BA230 / 004BA240 / 004BA2B0 / 004BA2C0
+// / 004BA2F0 / 004BA620 / 004BA970.
+namespace aimode {
+// 004BA320 / 004BA330 / 004BA440 / 004BA6A0 / 004BA700 / 004BA9B0: the root vtable.
+void __fastcall DestructToRoot(AIMode* mode);
+// 004BA340 (abstract base 0073D15C) / 004BA680 (0073D22C), slot 0 (RET 4).
+AIMode* __fastcall DeletingDestructBase(AIMode* mode, void*, int flags);
+// Slot 8 (GetType): 004BA410 Sentry 2, 004BA580 Follow 10, 004BA6D0 Suspection 3, 004BA860
+// Aggression 4, 004BA980 CorpseWatcher 5.
+int __fastcall SentryType(AIMode* mode);
+int __fastcall FollowType(AIMode* mode);
+int __fastcall SuspectionType(AIMode* mode);
+int __fastcall AggressionType(AIMode* mode);
+int __fastcall CorpseWatcherType(AIMode* mode);
+} // namespace aimode
+GuardMode* __fastcall GuardClone(const GuardMode* mode);                                // 004BA250
+void __fastcall GuardReset(GuardMode* mode);                                            // 004BA2D0
+GuardMode* __fastcall GuardDeletingDestruct(GuardMode* mode, void*, int flags);         // 004BA300
+SentryMode* __fastcall SentryClone(const SentryMode* mode);                             // 004BA3B0
+void __fastcall SentryReset(SentryMode* mode);                                          // 004BA3F0
+SentryMode* __fastcall SentryDeletingDestruct(SentryMode* mode, void*, int flags);      // 004BA420
+FollowMode* __fastcall FollowClone(const FollowMode* mode);                             // 004BA4A0
+void __fastcall FollowReset(FollowMode* mode);                                          // 004BA510
+FollowMode* __fastcall FollowDeletingDestruct(FollowMode* mode, void*, int flags);      // 004BA590
+void __fastcall FollowDestruct(FollowMode* mode);                                       // 004BA5B0
+SuspectionMode* __fastcall SuspectionClone(const SuspectionMode* mode);                 // 004BA630
+void __fastcall SuspectionReset(SuspectionMode* mode);                                  // 004BA6B0
+SuspectionMode* __fastcall SuspectionDeletingDestruct(SuspectionMode* mode, void*, int flags);   // 004BA6E0
+AggressionMode* __fastcall AggressionClone(const AggressionMode* mode);                 // 004BA730
+void __fastcall AggressionReset(AggressionMode* mode);                                  // 004BA7C0
+// 004BA870 (slot 10, RET 4): the enemy is released and dropped when it is `object`.
+void __fastcall AggressionObjectDeleted(AggressionMode* mode, void*, CEngineObject* object);
+AggressionMode* __fastcall AggressionDeletingDestruct(AggressionMode* mode, void*, int flags);   // 004BA8A0
+void __fastcall AggressionDestruct(AggressionMode* mode);                               // 004BA8C0
+CorpseWatcherMode* __fastcall CorpseWatcherClone(const CorpseWatcherMode* mode);        // 004BA930
+void __fastcall CorpseWatcherReset(CorpseWatcherMode* mode);                            // 004BA950
+CorpseWatcherMode* __fastcall CorpseWatcherDeletingDestruct(CorpseWatcherMode* mode, void*, int flags);  // 004BA990

@@ -2,6 +2,8 @@
 
 #include "core_maths.h"
 #include "random.h"
+#include "sound.h"
+#include "world.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -9,6 +11,7 @@
 #include "originals_effects.h"
 #include "originals_engine.h"
 #include "originals_library.h"
+#include "originals_render.h"
 
 #include <bit>
 #include <cstring>
@@ -131,6 +134,48 @@ void CRainSnow::SetWind(const Vector3& direction, float strength) {
 }
 EI_REPLACE_METHOD(0x004E41F0, CRainSnow::SetWind);
 
+namespace {
+constexpr int kWeatherTextureKind = 6;
+constexpr int kRainPriority = 1000;
+constexpr int kFullDensity = 64;
+// 0078AE48 "RainSnow" and 0078DFA4 "nature\rain\circle.wav".
+const char* WeatherTextureName() { return reinterpret_cast<const char*>(0x0078AE48); }
+const char* RainSoundName() { return reinterpret_cast<const char*>(0x0078DFA4); }
+} // namespace
+
+void CRainSnow::Clear() {
+    if (sound) {
+        SoundStop(SoundManager(), nullptr, sound);
+        sound = 0;
+    }
+    CEngineObject* old = texture;
+    texture = nullptr;
+    if (old) old->Release();
+    wind = Vector3{0.0f, 0.0f, 0.0f};
+    world = nullptr;
+    unknown_0A4 = 0;
+    mode = 0;
+    targetMode = 0;
+    fadeStart = 0.0f;
+    fadeDuration = 0.0f;
+    density = kFullDensity;
+}
+EI_REPLACE_METHOD(0x004E3B80, CRainSnow::Clear);
+
+void CRainSnow::Start(int newMode, float duration) {
+    LoadTextureOriginal(reinterpret_cast<void**>(&texture), nullptr, kWeatherTextureKind, WeatherTextureName());
+    if (sound && newMode) {
+        SoundStop(SoundManager(), nullptr, sound);
+        sound = 0;
+    }
+    if (newMode == 1) sound = sound::Manager()->Play2D(RainSoundName(), kRainPriority, 0, 0, newMode, 0, 0, 0);
+    targetMode = newMode;
+    if (mode == 0) mode = newMode;
+    std::memcpy(&fadeDuration, &duration, sizeof(fadeDuration));
+    fadeStart = static_cast<float>(world->tick_);
+}
+EI_REPLACE_METHOD(0x004E3FC0, CRainSnow::Start);
+
 // --- Visibility fog -----------------------------------------------------------------------------
 
 void* CVisibilityFog::World() { return ObjectWorld(this); }
@@ -250,3 +295,45 @@ void CVisibilityFog::Reveal(const FogGrid* grid) {
     }
 }
 EI_REPLACE_METHOD(0x004E1C60, CVisibilityFog::Reveal);
+
+// ---- The fog object's slots (A-S10) ----------------------------------------------------------------
+
+// The cell nodes (0x20 bytes) go back to the pool's 32-byte free list (0079B230), as the original
+// pushes them.
+static_assert(sizeof(CVisibilityFog::CellMap::Node) > 24 && sizeof(CVisibilityFog::CellMap::Node) <= 32);
+
+void CVisibilityFog::ClearCells() {
+    cells.Clear();
+    boundsValid = 0;
+}
+
+void CVisibilityFog::Destruct() {
+    vtable_ = reinterpret_cast<void*>(0x0073D6B4);
+    ClearCells();
+    cells.Destroy();
+    reinterpret_cast<CEngineObject*>(this)->DestructBase();
+}
+EI_REPLACE_METHOD(0x004E24E0, CVisibilityFog::Destruct);
+
+CVisibilityFog* CVisibilityFog::DeletingDestruct(int flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x004E24C0, CVisibilityFog::DeletingDestruct);
+
+namespace {
+constexpr int kFogClassId = 0x5F;
+} // namespace
+// Slots 2 / 3 (004E23D0 returns 1), 11 / 12 ("CVisibilityFog" 0078DE80, 0x5F).
+int __fastcall FogCreate(CVisibilityFog* self) {
+    self->ClearCells();
+    return 1;
+}
+void __fastcall FogDestroy(CVisibilityFog* self) { self->ClearCells(); }
+const char* __fastcall FogClassName(CVisibilityFog*) { return reinterpret_cast<const char*>(0x0078DE80); }
+int __fastcall FogClassId(CVisibilityFog*) { return kFogClassId; }
+EI_REPLACE(0x004E23D0, FogCreate);
+EI_REPLACE(0x004E2440, FogDestroy);
+EI_REPLACE(0x004E24A0, FogClassName);
+EI_REPLACE(0x004E24B0, FogClassId);

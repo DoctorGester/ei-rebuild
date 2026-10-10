@@ -1310,7 +1310,7 @@ int CParticleSource::EmitPoisonFog(Particle*, int) {
             double yu = Unsigned(Next()) * (D(high) - D(low)) * EI_P_SCALE_1 + D(low) + D(y);
             y = Store(yu);
             if (yu * D(y) + D(x) * D(x) >= D(radiusSquared)) continue;
-            Particle* q = static_cast<ParticlePool*>(owner_)->Acquire();
+            Particle* q = static_cast<CParticleManager*>(owner_)->AcquireParticle();
             if (!q) continue;
             double px = D(x) + D(position.x);
             x = Store(px);

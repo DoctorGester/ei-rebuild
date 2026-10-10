@@ -124,24 +124,24 @@ EI_VERIFY(0x00496A20, AddParticleVerify, 0, s_unusedAddParticle);
 
 // 00498870: ours only. The pool's head comes off (or a new particle when empty).
 static void* s_unusedAcquire;
-static Particle* __fastcall AcquireVerify(ParticlePool* self) {
+static Particle* __fastcall AcquireVerify(CParticleManager* self) {
     int count = self->freeParticles.count;
     Particle* head = count ? self->freeParticles.head->data : nullptr;
-    Particle* p = self->ParticlePool::Acquire();
+    Particle* p = self->CParticleManager::AcquireParticle();
     bool ok = count ? (p == head && self->freeParticles.count == count - 1) : self->freeParticles.count == 0;
     ok = ok && ListLength(self->freeParticles) == self->freeParticles.count;
-    ei::verify::Check("ParticlePool::Acquire", true, ok, "pool %d", count);
+    ei::verify::Check("CParticleManager::AcquireParticle", true, ok, "pool %d", count);
     return p;
 }
 EI_VERIFY(0x00498870, AcquireVerify, 0, s_unusedAcquire);
 
 // 004987C0: ours only. The particle is the pool's new tail.
 static void* s_unusedRelease;
-static void __fastcall ReleaseVerify(ParticlePool* self, void*, Particle* p) {
+static void __fastcall ReleaseVerify(CParticleManager* self, void*, Particle* p) {
     int count = self->freeParticles.count;
-    self->ParticlePool::Release(p);
+    self->CParticleManager::ReleaseParticle(p);
     bool ok = self->freeParticles.count == count + 1 && self->freeParticles.tail->data == p &&
               ListLength(self->freeParticles) == self->freeParticles.count;
-    ei::verify::Check("ParticlePool::Release", true, ok, "pool %d", count);
+    ei::verify::Check("CParticleManager::ReleaseParticle", true, ok, "pool %d", count);
 }
 EI_VERIFY(0x004987C0, ReleaseVerify, 0, s_unusedRelease);

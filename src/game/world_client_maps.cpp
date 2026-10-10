@@ -13,6 +13,7 @@
 #include "base_manager.h"
 #include "camera.h"
 #include "console.h"
+#include "effects.h"
 #include "game_strings.h"
 #include "map_object.h"
 #include "map_object_figures.h"
@@ -979,7 +980,7 @@ void CWorldClient::Teardown() {
     WorldTeardown(this);
     DeleteOwned(listManager_);
     DeleteOwned(arrayManager_);
-    DropAndDelete(manager19C_);
+    DropAndDelete(particleManager_);
     DropAndDelete(terrain_);
     DropAndDelete(manager190_);
     DropAndDelete(manager188_);
@@ -1185,16 +1186,16 @@ int CWorldClient::Setup() {
     manager190_ = MakeCounted<CBaseManager>(0xD8, Construct68D850);
     manager190_->Init(this);
 
-    auto* manager = reinterpret_cast<ClientManager19C*>(New(sizeof(ClientManager19C)));
+    auto* manager = reinterpret_cast<CParticleManager*>(New(sizeof(CParticleManager)));
     if (manager) {
         ManagerBase(manager);
-        Construct56FD40(manager->list, nullptr, 10);
-        Construct5725E0(manager->table);
-        manager->unknown_E0 = 0;
-        ei::SetVtable(manager, worlddata::kClientManager19CVtable);
+        Construct56FD40(&manager->freeParticles, nullptr, 10);
+        Construct5725E0(&manager->held_);
+        manager->maxHeldId_ = 0;
+        ei::SetVtable(manager, worlddata::kParticleManagerVtable);
         Construct4981A0(manager);
     }
-    manager19C_ = manager;
+    particleManager_ = manager;
     ++manager->refCount_;
     manager->Init(this);
 

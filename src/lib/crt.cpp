@@ -10,6 +10,7 @@ __declspec(naked) void* __cdecl malloc(std::size_t) EI_ORIGINAL(0x006EABD1)
 __declspec(naked) void __cdecl free(void*) EI_ORIGINAL(0x006EA8AD)
 
 __declspec(naked) int __cdecl rand() EI_ORIGINAL(0x006E77F7)
+__declspec(naked) void __cdecl srand(unsigned) EI_ORIGINAL(0x006E77EA)
 __declspec(naked) int __cdecl tolower(int) EI_ORIGINAL(0x006EBA53)
 __declspec(naked) int __cdecl toupper(int) EI_ORIGINAL(0x006E91C0)
 __declspec(naked) int __cdecl strnicmp(const char*, const char*, std::size_t) EI_ORIGINAL(0x006FA1A0)
