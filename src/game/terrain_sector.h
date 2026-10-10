@@ -266,12 +266,6 @@ struct TerrainMaterial {
 };
 static_assert(sizeof(TerrainMaterial) == 0x38);
 
-// Vertex neighbourhood: the tiles that share a vertex (owner +0x1E8, 33x33 entries).
-struct VertexTiles {
-    int count;
-    int tiles[4];
-};
-
 // The landscape object (vtable 0073F6A8), only the fields used here.
 struct TerrainFields {
     std::uint8_t unknown_000[0x94];

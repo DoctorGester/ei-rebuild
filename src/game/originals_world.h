@@ -14,6 +14,10 @@ class CUnit;
 class CWorldServer;
 struct ObjectIdMap;
 struct WorldPlayer;
+struct Vector3;
+struct VertexPacket;
+struct DecalTexCoord;
+namespace lib { template <typename T> struct AlignedArray; }
 
 // 0047B670 (plain RET): an object id map with its highest id (the world's, the player's known objects): every
 // object released (slot 4) until a null one, the nodes freed, count and highest id 0.
@@ -149,3 +153,15 @@ inline void* ClientWorldObject() { return reinterpret_cast<void*>(0x007AF5B8); }
 inline void* ClientGlueObject() { return reinterpret_cast<void*>(0x007AFEA5); }
 // The game's glue object before it (007AFEA4; GameDirectoryOriginal and the like do not read it).
 inline void* GameGlueObject() { return reinterpret_cast<void*>(0x007AFEA4); }
+// A-X5. 0056C750 (CWorldClient::ProjectDecal, world_client_decals.cpp; called through its address so its
+// wrapper runs; thiscall on the client world, RET 0x24): lays a decal on the ground (the quad `corners`, one
+// 64-byte block of four corners, projected along `direction` from `point`) into the three arrays. Shadows
+// (0051CE60) and the ground prints (006CEDE0).
+__declspec(naked) inline void __fastcall ClientProjectDecalOriginal(void* /*world*/, void*, const Vector3* /*direction*/,
+                                                                    const Vector3* /*point*/, float /*depth*/,
+                                                                    VertexPacket* const* /*corners*/,
+                                                                    lib::AlignedArray<VertexPacket>* /*points*/,
+                                                                    lib::AlignedArray<DecalTexCoord>* /*texCoords*/,
+                                                                    lib::AlignedArray<std::uint16_t>* /*indices*/,
+                                                                    int /*skipOnPlatform*/, int /*objects*/)
+    EI_ORIGINAL(0x0056C750)

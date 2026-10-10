@@ -185,11 +185,10 @@ draws from the game's random generator (a mistake would shift later draws).
 
 All of it lies in 006C1390-006E5E30 (beyond is the CRT / MFC). Groups (R = Rebirth-patched, forwarded):
 - **Landscape / sectors** 006C1390-006CCF20: shadow test 006C92C0; animated tiles 006C3E80; light countdown 006C8ED0;
-  ambience 006CB390 / 006CBC00 / 006CBCD0; map loading 006C68B0 (R), 006C5AA0, 006C7750 / 006C7940 / 006C7A80 / 006C7D70 /
-  006C7EB0, 006C5430-006C57E0 (client setup from 00561E50 / 00562B80); draw passes 006C6230 / 006C6330 / 006C6460 /
+  ambience 006CB390 / 006CBC00 / 006CBCD0; map loading 006C68B0 (R), 006C5AA0, 006C7940 / 006C7D70 / 006C7EB0, 006C5430-006C57E0 (client setup from 00561E50 / 00562B80); draw passes 006C6230 / 006C6330 / 006C6460 /
   006C66E0 / 006C67E0 / 006C42A0 / 006C4310; point lights 006CA5D0-006CAC10, 006CB020; water level 006CC7F0; decal
   triangles 006CCF20; sector parts (Clear 006C3C80, CArray element pairs 006C4EE0-006C5230).
-- Shadow / print effects 006CECD0 / 006CEDE0, prints 006CF370-006CFEA0.
+- Ground prints 006CECD0-006CFEA0: ported (A-X5, below).
 - **prints.db / acks.db** 006D00E0-006E5140: database ctors / dtors, the records' compiler-generated members, acks record
   serialisers 006E3780 / 006E3DC0 / 006E3FD0 / 006E42F0 / 006E4410 / 006E46C0 / 006E4F40; loaders 006D0630 / 006D7620 (R).
   98 STLport / MFC instantiations are in config/library.csv ("A-X1 review").
@@ -248,25 +247,53 @@ verify_terrain_lights.cpp, verify_acks_db.cpp):
 | 006E3780 / 006E3FD0 / 006E3DC0 | `UnitAcks` / `ModelAcks` / `ExtraAcks::Serialize` (loading: the original into a scratch element made by the original resize; failed-search chunks popped) | S |
 | 006E42F0 / 006E4410 / 006E4F40 | `SpeechListField` / `EnvironmentSpeechListField` / `SpeechField` (archive helpers; reached from the originals' side runs) | S |
 
-Forwarders: 006C7A80 (vertex tile table) and 006C7750 (map free) as Terrain members; 006C5620 shared as
+Forwarders: 006C5620 shared as
 `LandscapeResetOriginal` (originals_world.h), 0068E970 as `MaterialNewOriginal` (originals_ui.h); 006E4560 / 006E47F0
 (speech list resize). Kept: RemoveLight of an unregistered light loops over an uninitialised area in the original (ours
 over none); MoveLight of an unregistered light writes its area to address 4 (ours to null: both crash); RemoveLight /
 MoveLight / AddLight do nothing (no Release) before a map is loaded. 006D5BF0 (CDib .mmp reader) is dead: only called from
 dead 006D6800 (config/dead_code.csv).
 
-Next (A-X4 cut off): the print effects (footprints, blood, scorch decals; client world lists +0x1B8..+0x1C0): vtables
-0073F754 {006CFA20, 006CFB40, 006CFAC0}, 0073F760 {006CECD0, 006CFE60, 006CFE10}, 0073F76C / 0073F778 {006CECD0 Tick,
-006CF4F0 Load, 006CF370 Save}; ctor 006CF660 (RET 0x28, rand() draws), dtor 006CF960, Draw 006CEDE0 (+5 visible, +4 built:
-quad of 64-byte SoA packets at the height from the world's slot 27 and 00560F00, 0056C750(normal (0, 0, -1), centre z + 1,
-0, quad, +0x5C, +0x6C, +0x7C, 1, 1), uv rotated by +0x40 (the unrolled loop's 4th pair rounds the u part, the others the v
-part), packet z + 0.01; then alpha byte FISTP(+0x4C * 255) into +0x54, 004EB1D0(0, +0x20), DeviceDrawFlat(+0x5C data, +0x6C
-data, +0x60, +0x7C data, +0x80, +0x54, lit << 24, 0, 1)), 006CFBA0 / 006CFEA0 from 0056D150 / 0056D4C0. Tick: life
-(short) - 1, half sizes + growth, alpha = (1 - max(t, 0)) * +0x50 with t = (lifetime - life) / lifetime, returns life.
-Layout: +8 x, +0xC y, +0x10 / +0x14 half size, +0x18 growth, +0x1C life, +0x20 stlp::string texture, +0x2C counted
-texture, +0x30..+0x3C uv offset / scale, +0x40 / +0x44 uv and quad angles, +0x48 lit byte (006CB020), +0x4C / +0x50 alpha,
-+0x54 colour, +0x58 lifetime, +0x5C / +0x6C / +0x7C aligned arrays. Also 006C7A80, 006C7750. The acks records'
-compiler-generated members (006DE370, 006DC390, ...) need only the record declarations in a standalone build.
+Ground prints (A-X5; ground_print.h / .cpp, wrappers in verify_ground_print.cpp): `GroundPrint` (scorch marks, 0x8C,
+vtable 0073F76C; list copies get 0073F778), `Footprint` (0x94, 0073F760), `BloodPrint` (0x9C, 0073F754) in the client lists
++0x1B8 blood, +0x1BC footprints, +0x1C0 scorch (world.h `bloodPrints_` / `footprints_` / `scorchMarks_`). prints.db
+(`PrintsDatabase`, model.h, 007C89C8): chunk 1 blood and bloody footprints, 2 footprints, 3 scorch; chunks 2 / 3 of a record
+are {alpha, life, lifetime} (`PrintLook`), the client's +0x7A8 picks the second.
+
+| Address | Name | V |
+|---|---|---|
+| 006CECD0 / 006CFA20 | `GroundPrint::Tick` / `BloodPrint::Tick` (raw copies) | S |
+| 006CF370 / 006CFE10 / 006CFAC0 | `Save` of the three (capture streams) | S |
+| 006CF4F0 / 006CFE60 / 006CFB40 | `Load` (ours from the stream, recorded; the original on a copy from the recording) | S |
+| 006CFEA0 / 006CFBA0 / 006CF660 | `ConstructScorch`, `Footprint::Construct`, `BloodPrint::Construct` (random state restored) | S |
+| 006CEDE0 | `GroundPrint::Draw` (alpha byte and geometry consistency only; the original would draw twice) | O |
+| 006CF960 | `GroundPrint::Destruct` (only from the constructors' unwinding) | O |
+| 0056CE90 / 0056D150 / 0056D4C0 | `CWorldClient::AddBloodPrint` / `AddFootprint` / `AddScorchMark` (the original's node taken out again; records compared) | S |
+
+Facts: Draw's uv loop is unrolled four times in the original: the fourth vertex rounds its u part to a float, the others
+their v part (kept). Blood: spin = 30 / life degrees per tick, spreads min(life / 2, 45) ticks (rebuilt each tick), angle a
+random multiple of 0.001 below 2 pi; footprints take the kind of a death's blood print they step into (fresh hits' are
+skipped) and return it. Kept: Load does not restore alpha_ (the next tick does). Risks: Draw's corners use FCOS / FSIN through
+x87::fcos / fsin and plain double maths (CheckNear-level differences possible); the footprint's blood test compares
+`limit >= d2` (NaN positions would differ).
+
+Also (terrain_landscape.cpp): 006C7A80 `Terrain::BuildVertexTiles` (S: the original on a raw copy; each entry's count and
+first `count` tiles: the original leaves the rest as its reused stack record held) and 006C7750 `Terrain::ClearMap` (O);
+Create / Destroy call them through their addresses. terrain.h now declares `archive` (+0x15C, CMMIOResource) and
+`vertexTiles` (+0x1E8; `terrain::VertexTiles` moved there from terrain_sector.h).
+
+The decal projector 0056C750 is `CWorldClient::ProjectDecal` (world_client_decals.cpp; S: the original into private copies of
+the three arrays, ours into the caller's, sizes / capacities / used elements compared; callers reach it through
+`ClientProjectDecalOriginal`, originals_world.h). Statics: the builder 007AF488 and the part points (Vector4 array 007AF478),
+guard 007AF504, exit handlers 0056CE30 / 0056CE10. The platform pass walks the platform faces (an object with several faces
+adds its parts once per face, kept), pushes the object's and each part's matrix on the scene pipeline's stack 14
+(`kDecalStack`), transforms the part's packets with the transposed top through the transform object's slot 26
+(`TransformPoints`) and adds each triangle (AddTriangle through its unhooked original). GetPartData's result is not checked
+(kept; ours starts from no part data). The parts are used as CObject3D-like scene nodes (+0x34 orientation, +0x54 matrix),
+which FigurePart's declaration contradicts (C9).
+
+Next: models.md "Game code left in 0x006C0000-0x00740000" (shadow test 006C92C0, draw passes, the CDib class). The acks
+records' compiler-generated members (006DE370, 006DC390, ...) need only the record declarations in a standalone build.
 
 ## Resources and the sound file reader (00671280-00675B40)
 

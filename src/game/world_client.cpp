@@ -374,7 +374,7 @@ void RunEffects(stlp::list<T>& list, EraseFn erase) {
     for (auto* node = head->next; node != head;) {
         auto* current = node;
         node = node->next;
-        if (current->data.Run() == 0) {
+        if (current->data.Tick() == 0) {
             void* out;
             erase(&list, nullptr, &out, current);
         }
@@ -457,25 +457,25 @@ int CWorldClient::Segment() {
     }
     if (manager19C_) HudTick(manager19C_, nullptr, static_cast<char>(paused_));
     if (!paused_) {
-        // Three lists of effects (std::list, sentinel head): finished ones (slot 0 returns 0) go.
-        RunEffects(list1B8_, EffectListErase0);
-        RunEffects(list1BC_, EffectListErase1);
-        RunEffects(list1C0_, EffectListErase2);
+        // The three print lists (std::list, sentinel head): finished ones (slot 0 returns 0) go.
+        RunEffects(bloodPrints_, EffectListErase0);
+        RunEffects(footprints_, EffectListErase1);
+        RunEffects(scorchMarks_, EffectListErase2);
         if (!paused_ && worlddata::LightLevelsSetting() != 0) {
             unknown1C4_ -= worlddata::WorldUpdatePeriod();
             if (unknown1C4_ <= 0) {
                 unknown1C4_ = worlddata::LightLevelsPeriod();
-                // Each light effect of list +0x1B8 gets a grey level: the brightest of the sun at
+                // Each blood print gets a grey level: the brightest of the sun at
                 // the reference point and the lights whose range reaches the effect's point.
                 CLight* sun = worlddata::SceneSun();
-                for (auto* node = list1B8_.head->next; node != list1B8_.head; node = node->next) {
-                    ClientLightEffect& effect = node->data;
+                for (auto* node = bloodPrints_.head->next; node != bloodPrints_.head; node = node->next) {
+                    BloodPrint& effect = node->data;
                     float level = static_cast<float>(LightIntensityAt(sun, nullptr, worlddata::LightReferencePoint()));
                     ObjectListIterator lights{nullptr, nullptr};   // [ebp-0x60]
                     for (auto* light = static_cast<CLight*>(lights.First(ClientLightManager())); light;
                          light = static_cast<CLight*>(lights.Next())) {
                         if (light == sun || (light->flags_ & 0x80)) continue;
-                        float nodeX = effect.x, nodeY = effect.y;
+                        float nodeX = effect.position_.x, nodeY = effect.position_.y;
                         double dy = static_cast<double>(light->position_.y) - nodeY;
                         double dx = static_cast<double>(light->position_.x) - nodeX;
                         double squared = dx * dx + dy * dy;
@@ -491,7 +491,7 @@ int CWorldClient::Segment() {
                     volatile float scaled = floor * worlddata::ColourScale();
                     std::uint32_t grey = static_cast<std::uint32_t>(x87::fistp(scaled));
                     std::uint32_t colour = ((((grey | 0xFFFFFF00u) << 8) | grey) << 8) | grey;
-                    effect.colour = colour;
+                    effect.colour_ = colour;
                     EndWalk(lights);
                 }
             }

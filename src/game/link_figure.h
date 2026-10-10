@@ -72,7 +72,9 @@ public:
     virtual void Unknown23();
     virtual void Unknown24();
     virtual void Unknown25();
-    virtual void Unknown26();
+    // 26: the `blocks` packets of four positions times the (transposed) matrix, as points (x, y, z, w)
+    // into `out` (the decal projector 0056C750).
+    virtual void TransformPoints(const Matrix4* transposed, const VertexPacket* vertices, Vector4* out, int blocks);
     virtual void Unknown27();
     virtual void Unknown28();
     virtual void Unknown29();

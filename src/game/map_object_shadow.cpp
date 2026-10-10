@@ -4,6 +4,7 @@
 
 #include "link_figure.h"        // CLinkMesh
 #include "map_object.h"         // ObjectSlots
+#include "ground_decal.h"        // DecalTexCoord
 #include "map_object_figures.h"
 #include "spell.h"              // CLight
 #include "unit.h"               // CUnit
@@ -22,6 +23,7 @@
 #include "ei/x87.h"
 #include "render/render.h"
 #include "originals_effects.h"
+#include "originals_world.h"
 
 #include <bit>
 #include <cstring>
@@ -121,9 +123,18 @@ __declspec(naked) int __fastcall RasterisePart(void*, void*, void*, void*, void*
 __declspec(naked) void* __fastcall RenderSurface(void*) EI_ORIGINAL(0x00692140)
 __declspec(naked) int __fastcall LockSurface(void*, void*, void*) EI_ORIGINAL(0x00690FC0)
 __declspec(naked) void __fastcall UnlockSurface(void*) EI_ORIGINAL(0x00691030)
-// 0056C750. The shadow projector: lays the texture's quad on the ground.
-__declspec(naked) void __fastcall ProjectShadow(void*, void*, const float*, const float*, std::uint32_t, void*, void*,
-                                                void*, void*, int, int) EI_ORIGINAL(0x0056C750)
+// 0056C750 (ClientProjectDecalOriginal, originals_world.h). The shadow projector: lays the texture's quad on
+// the ground (the depth passed as its bits).
+void __fastcall ProjectShadow(void* a0, void*, const float* a2, const float* a3, std::uint32_t a4, void* a5, void* a6,
+                              void* a7, void* a8, int a9, int a10) {
+    float depth;
+    std::memcpy(&depth, &a4, 4);
+    ClientProjectDecalOriginal(a0, nullptr, reinterpret_cast<const Vector3*>(a2), reinterpret_cast<const Vector3*>(a3),
+                               depth, static_cast<VertexPacket* const*>(a5),
+                               static_cast<lib::AlignedArray<VertexPacket>*>(a6),
+                               static_cast<lib::AlignedArray<DecalTexCoord>*>(a7),
+                               static_cast<lib::AlignedArray<std::uint16_t>*>(a8), a9, a10);
+}
 // 00501AF0. Texture stages: binds a texture.
 void __fastcall SetTexture(void* a0, void*, int a2, CEngineObject* a3) { DeviceSetTextureOriginal(a0, nullptr, a2, (void*)a3); }
 // 006CB020. Light manager: is the point lit, AL.

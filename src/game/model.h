@@ -49,8 +49,10 @@ class ITransformPipeline;   // link_figure.h
 // Only the matrix stacks and the transform object are known.
 class CTransformPipeline {
 public:
-    // Stack 2 holds the matrix ClipTest projects with.
+    // Stack 2 holds the matrix ClipTest projects with; 14 the decal projector's platform objects
+    // and parts (CWorldClient::ProjectDecal).
     static constexpr int kClipStack = 2;
+    static constexpr int kDecalStack = 14;
 
     // 004F16A0. Classifies `bounds` against the view volume of the current (top) matrix:
     // 2 = entirely outside one clip plane, 0 = entirely inside, 1 = crossing or not decided.
@@ -68,11 +70,15 @@ public:
     int ProjectTerrain(const void* vertices, void* projected, void* outcodes, int count, const ClipBounds* bounds);
     // The top of stack `index` (matrices[count - 1], as the original computes it even when empty).
     const Matrix4* Top(int index) const { return stacks_[index].matrices + (stacks_[index].count - 1); }
+    // 0051C110 (RET 4; also inlined): drops the top of stack `index` unless it is empty.
+    void PopMatrix(int index) {
+        if (stacks_[index].count != 0) --stacks_[index].count;
+    }
 
     std::uint8_t unknown_00[0x0C];
     ITransformPipeline* transform_;   // +0x0C 3DfpFPU.dll's transform object (projects and clips vertices)
     std::uint8_t unknown_10[4];
-    MatrixStack stacks_[11];    // +0x14 (models.md: stacks 0-2, 5-10 are in use)
+    MatrixStack stacks_[15];    // +0x14 (models.md: stacks 0-2, 5-10 and 14 are in use)
 };
 static_assert(offsetof(CTransformPipeline, stacks_) == 0x14 && offsetof(CTransformPipeline, transform_) == 0x0C);
 
@@ -367,6 +373,33 @@ struct PrintRecord2 {
 };
 static_assert(offsetof(PrintRecord2, name) == 0x04);
 static_assert(sizeof(PrintRecord2) == 0x34);
+
+// What chunks 2 and 3 of both record types hold: a print's alpha and its life and lifetime in
+// ticks (the client world's +0x7A8 picks chunk 3).
+struct PrintLook {
+    float alpha;
+    int life;
+    int lifetime;
+};
+inline const PrintLook& LookOf(const PrintRecord& r, bool second) {
+    return *reinterpret_cast<const PrintLook*>(second ? r.values3 : r.values2);
+}
+inline const PrintLook& LookOf(const PrintRecord2& r, bool second) {
+    return *reinterpret_cast<const PrintLook*>(second ? r.values3 : r.values2);
+}
+
+// prints.db (007C89C8, loaded at startup by 006D0630), indexed by the ground's surface class
+// (TerrainFields::SurfaceClass): chunk 1 blood and bloody footprints, chunk 2 footprints, chunk 3
+// scorch marks; each table is followed by a hash_map by name (not used here).
+struct PrintsDatabase {
+    stlp::vector<PrintRecord> blood;          // +0x00
+    std::uint8_t bloodByName[0x14];           // +0x0C
+    stlp::vector<PrintRecord2> footprints;    // +0x20
+    std::uint8_t footprintsByName[0x14];      // +0x2C
+    stlp::vector<PrintRecord> scorch;         // +0x40
+};
+static_assert(offsetof(PrintsDatabase, footprints) == 0x20 && offsetof(PrintsDatabase, scorch) == 0x40);
+inline const PrintsDatabase& ThePrintsDatabase() { return *reinterpret_cast<const PrintsDatabase*>(0x007C89C8); }
 
 // ---- Water level changes (006D4400) ---------------------------------------------------------------
 
