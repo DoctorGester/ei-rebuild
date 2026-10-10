@@ -210,6 +210,15 @@ n); no stack arguments; returns 1, 0 on a failed lookup or read where noted):
 | 0x72 | 00669800 | 66 | a point and a dword: client world 00564190(point, dword) |
 | 0x73 | 0066A400 | 20 | the client world's 005683B0(stream) reads a block |
 
+A-H23 rewrote every row above (player_client_handlers.cpp, names in player_client.h; wrappers ours only in
+verify_player_client_handlers.cpp: result and bytes consumed, the state the game-state / login / timed-object handlers leave),
+and the client's slot 14 00667BA0 `NotifyUnitChanged` (interface OnUnitJoined / OnUnitLeft; a multiplayer client whose one
+party member is the unit writes its id, -1 when it left, into the login record and raises its version). Corrections: 0x04's
+camera call is SetDistancePitch({23.0, the identity rotation 007C8388, 30 degrees}) in zone "gz20g" (007900F4; the party's
+zone), else RestoreView(6 if mode 3, else 7); 0x41 asks the client connection's own context (00455940 on the client, not the
+player) for the world; 0x50 reads (id, type); 0x70 is the weather (007AFCAC, "RainSnow"); 0x0C's unknown id leaves its float
+to be read as the next id (kept). Shared forwarders moved: 0050EAB0 to originals_units.h, 005800C0 to originals_world.h.
+
 Server (table built by 0066C9A0; thiscall on the CPlayerServer, plain RET; the received stream 007C83D0 through its slot 1, the
 player +0x1C, the state +0x20, the send stream +0x48; returns 1 unless noted):
 
@@ -228,6 +237,10 @@ player +0x1C, the state +0x20, the send stream +0x48; returns 1 unless noted):
 | 0x39 | 00670A90 | 132 | follow: {unit id, leader id}; with the unit, the leader (may be null) and a Player mode: 005D3DE0 (Follow); no dead test |
 | 0x3B | 0066FB70 | 96 | a unit id and a byte: CUnit::SetUnknown438 (0052E9B0) with the signed byte |
 | 0x40 | 00670B20 | 51 | 8 bytes into this +0x38 / +0x3C |
+
+A-H23 rewrote 0x01, 0x04, 0x10, 0x32-0x35, 0x38, 0x39, 0x3B, 0x40 (player_server_orders.cpp; wrappers ours only in
+verify_player_server_orders.cpp: result 1 and bytes consumed, 0x04's state 2 and message 0x07, 0x40's position). 0x37
+(00670810, 3 bytes) is too short to hook. 0x10's leader test failing returns before the world's SetUnknown6C (kept).
 
 ## Original behaviour kept on purpose
 

@@ -48,6 +48,11 @@ not copied), the 0x7C kind 006AC240 / 006AC3B0 (00744058; +0x6C, its zone vector
 called by STLport inserts). Kept: the copies drop the fields listed as not copied. The six record destructors 006A88F0..006A8BD0
 are in library.csv.
 
+Record Serialize (A-H23, item_db_serialize.cpp; verify_item_db_serialize: loading read twice, ours then the original, digests
+compared; saving O): 0069F620 material, 0069F700 `ItemRecordHead::SerializeHead` (fields 0-15), 0069F800 weapon, 0069F8C0
+armour (two 9-dword rows at +0x6C / +0x90 that straddle the declared members), 0069F940 quick, 0069F9C0 the 0x7C kind
+(zone list through InlineStrings), 0069FA90 the 0x78 kind (fields 0x15-0x17).
+
 Loading (item_db_load.cpp; O; startup, every scenario): `IndexedRecordTable::LoadQuickItems / LoadLoot / LoadQuestItems`
 006A6E50 / 006A7110 / 006A73B0 (a stack archive: ConstructLocal, Open, the vector serialisers, Close; then each record filed
 under its name with find_or_insert 00613B70 / 006A7870 / 0069E2A0, originals_library.h; Rebirth's patched 006A67A0 calls them
@@ -220,11 +225,24 @@ BeginConstruct writes the prototype into the new container without checking the 
 AddModifier reports a null record as "Invalid rune" (007959F0); CopyTo tests the address of its modifier array for null
 (never true); the constructor counts references to the manager (+4) and only decrements them.
 
-Not rewritten: 0068D310, 0068D5A0 (CLight colour contributions: a 4-float colour by value whose 4th component is
-uninitialised stack, cannot be compared bit for bit); 00688EC0 CreateSpellObject, 00688CD0 (factory), 00688990 / 00688B40
-(manager teardown, STLport hash_map walks), 0068BA80 (CSpellContainer constructor: list, string, CSpell inlined),
-STLport helpers 0068C500..0068CD50, the Rebirth-patched 00684550 (spell database load), 0068E640, 00691500. No callers:
+Not rewritten: 0068D310, 0068D450, 0068D5A0 (CLight colour contributions: a 4-float colour by value whose 4th component is
+uninitialised stack, cannot be compared bit for bit); STLport helpers 0068C500..0068CD50, the Rebirth-patched 00684550 (spell database load), 0068E640, 00691500. No callers:
 00684180 / 00684280 / 006842E0 / 00684310 / 006838E0.
+
+**Spell manager, containers, lights (A-H23; spell_manager.cpp, light.cpp; wrappers verify_spell_manager / verify_light).**
+CSpellManager: 00688EC0 CreateSpellObject, 00688CD0 NewObject (slot 14), 00688B30 / 00688B40 Create / Destroy, 00688990 /
+00688970 destructors, 006886F0 `SpellSequence::Destruct`, 00688950 / 00688960 names. The +0xBC map holds `SpellSequence`s
+(containers by the low half of a packed id); nothing fills it (CreateSpellObject's only caller, Clone, passes -1), so the id
+path is kept as written: low half 0 inits from the prototype, else FatalError without a sequence, and a new entry's null
+container faults in CopyTo (kept). Destroy deletes sequences without freeing their bucket arrays (leak kept); every walk
+stops at the first null value (kept). CSpellContainer: 0068BA80 constructor (Reset inlined), 0068BC50 / 0068BC30
+destructors, 0068BC10 / 0068BC20 names; +0x8C is an (always empty) CString. CLight (0x134; the first 0x54 bytes are a
+CTransformObject): 0068CED0 constructor (range sqrt(FLT_MAX): at 24-bit precision the square is 2^128 - 2^105; CheckNear),
+0068CFE0 / 0068CFC0 destructors, slots 2 / 3 0068CFF0 / 0068D000, 0068D010 SetPoint, 0068D0A0 SetDirectional (also
+TiltTowards), names 0068CFA0 / 0068CFB0. CLightFactory ("CLightManager", 0xD8): 0068D850 constructor, 0068D990 / 0068D970
+destructors, 0068DA40 NewObject (0x2E / 0x31, else DebugLog), 0068DAD0 CreateObject (clears flags bit 7, no null check,
+kept), names 0068D950 / 0068D960. Allocating and releasing functions are O; the light's constructor and setters S on scratch
+copies; names P.
 
 ## Spell effects (0067E6D0-00683950; scenarios spells, spells_cast)
 
@@ -317,9 +335,15 @@ ComposeTexture: the cache file `<game folder>textures\<name>.mmp` keeps the requ
 file is tried. No layer textures deletes the file (0); else the image is drawn by 00693010 (not rewritten) and written, each
 level converted to 16 bits by the pixel converter 007AF06C slot 2 [out, in, kind, count] (kind 3 for 4444, 2 for 5551, 0 for
 5650, else -1) and halved by slot 7. A file that cannot be created goes to FatalError (the image block leaks, as in the
-original). 00693970 and 0068F860 (a texture from a surface description; its one caller 00691D50 is dead) are dead. Not rewritten: 00691250 (the manager's destructor body), 00693010 (the composed image's drawing), 00692D30. The fills keep a reference on every attached
+original). 00693970 and 0068F860 (a texture from a surface description; its one caller 00691D50 is dead) are dead. Not rewritten: 00693010 (the composed image's drawing), 00692D30, Rebirth-patched slot 2 00691500. The fills keep a reference on every attached
 level they move to (never released, as in the original; the wrappers drop their second run's); a DXT file / surface pair
 without a decode mode passes the mip level as the mode (kept).
+
+**Texture manager lifetime (A-H23; texture_manager_lifetime.cpp, verify_texture_manager_lifetime: O, names P).** 00691140
+constructor, 00691250 / 00691230 destructors, 00691630 Destroy (slot 3), 00691AA0 CreateObject (slot 23: flags_ |= 0x80 /
+0x100 / 0x200 for types 0x3E / 0x3F / 0x40, else 0x40; no null check, kept), 00691210 / 00691220 names, 00691200 slot 25
+("textures"). Destroy and the destructor release the shadow surface, destroy and delete every cached texture, delete the
+composed textures and drop the device; the destructor adds SetDevice(null).
 
 ## Registry and ini (registry, ini_file, win_registry; every scenario)
 
@@ -414,4 +438,4 @@ heights by the token's font digit, fonts 3-9 read the original's other stack slo
 tooltip's constructor leaves the measurements and both arguments unwritten for an empty text. Risks: the constructor wrappers
 are ours only; Layout's stand-in shares the sprites.
 
-**Next candidates** (after A-H22): 00688EC0 CreateSpellObject (hash_map of sequences inlined), 0068BA80 CSpellContainer constructor, 00691250 / 00688990 / 00688B40 (manager destructors), 00693010, 00692D30, 0068DE30 / 0068D850 / 0068DBC0 (lights), 00663410, 00669D50; then the largest left in 0x640000-0x6C0000 (`python tools/progress.py`; it misses UI_INPUT_HANDLER registrations, so check `grep` before picking).
+**Next candidates** (after A-H23): 00693010, 00692D30 (composed textures), the material subsystem (CMaterial 0068DBC0 / 0068DE30 / 0068DF90 / 0068E040 with an STLport deque of 16-byte entries, CMaterialManager 0068E3F0 / 0068E540 / 0068E640 Rebirth-patched / 0068E900), the party container helpers 00664160 / 00664470 / 00664850 / 00664410 / 00664AC0 (CArray<PartyUnitRecord> destructor and friends; 00663410 is reached only from unwind funclets), 0069FB60 (items and their spells into two lists), the effect classes' 6-byte name / id getters in 0x675000-0x67E000; then the largest left in 0x640000-0x6C0000 (`python tools/progress.py`; it misses UI_INPUT_HANDLER registrations, so check `grep` before picking).

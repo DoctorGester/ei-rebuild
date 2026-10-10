@@ -590,10 +590,6 @@ bool Same(const char* a, const char* b) { return std::strcmp(a, b) == 0; }
 
 // 00455B50: the 1% check (rand) that runs 00455BA0 / 00458DA0 (ECX is the client, not read).
 __declspec(naked) void __fastcall NewObjectCheckOriginal(void* /*client*/) EI_ORIGINAL(0x00455B50)
-// 0050EAB0 (RET 8): the map object reads its full network state (its slot 49 between the
-// state's begin / end). Nonzero when it was read.
-__declspec(naked) int __fastcall MapObjectReadStateOriginal(void* /*object*/, void*, int /*second*/, BitStream* /*from*/)
-    EI_ORIGINAL(0x0050EAB0)
 // 005654F0 (RET 8): the client world's variable name for an object's second name, as a CString
 // constructed at `out`; returns `out`.
 __declspec(naked) mfc::CString* __fastcall ClientVariableNameOriginal(void* /*world*/, void*, void* /*out*/,

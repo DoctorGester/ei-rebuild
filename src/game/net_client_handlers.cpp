@@ -66,7 +66,7 @@ __declspec(naked) void __fastcall UiChatLine(void* /*table*/, void*, const char*
 __declspec(naked) void __fastcall UiTradeDone(void* /*table*/, void*, void* /*partyB*/, void* /*partyA*/, void* /*partyC*/) EI_ORIGINAL(0x005F8310)
 __declspec(naked) void __fastcall FlowZoneOffered(void* /*flow*/, void*, const char* /*zone*/) EI_ORIGINAL(0x0057FF40)
 __declspec(naked) void __fastcall FlowZoneWithdrawn(void* /*flow*/, void*, const char* /*zone*/) EI_ORIGINAL(0x00580040)
-__declspec(naked) void __fastcall FlowVariablesChanged(void* /*flow*/) EI_ORIGINAL(0x005800C0)
+inline void FlowVariablesChanged(void* flow) { FlowUpdateFromServerOriginal(flow); }
 __declspec(naked) bool __fastcall FlowHasFile(void* /*flow*/, void*, const char* /*name*/) EI_ORIGINAL(0x005812F0)
 inline void __fastcall FlowLoadZoneQuests(void*, void*, const char* a2) { FlowLoadQuestsOriginal(a2); }
 __declspec(naked) void __fastcall FlowLoadMap(void* /*flow*/, void*, const char* /*zone*/) EI_ORIGINAL(0x005810A0)

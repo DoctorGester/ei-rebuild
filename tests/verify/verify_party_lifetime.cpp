@@ -173,8 +173,8 @@ CSpellConstructor* __fastcall SpellConstructorConstructVerify(CSpellConstructor*
 
 CSpellManager* __fastcall SpellManagerConstructVerify(CSpellManager* self) {
     CSpellManager* result = self->Construct();
-    bool ok = result == self && VtableOf(self) == CSpellManager::kVtableAddress && EmptyMap(self->objects_) &&
-              self->unknown_D0 == 0 && self->refCount_ == 0 && self->owner_ == nullptr;
+    bool ok = result == self && VtableOf(self) == CSpellManager::kVtableAddress && EmptyMap(self->sequences_) &&
+              self->maxSequenceKey_ == 0 && self->refCount_ == 0 && self->owner_ == nullptr;
     ei::verify::Check("CSpellManager::Construct", true, ok, "%p", self);
     return result;
 }

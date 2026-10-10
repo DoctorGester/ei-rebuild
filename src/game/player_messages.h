@@ -170,6 +170,31 @@ public:
     // 00670190, 0x31: unit ids, two flags, an object id; each unit's Player mode attacks it.
     int OnAttack();
     int OnPartyUpdate();       // 00670B60, 0x50: a sized block loaded into the party (no variables)
+    // player_server_orders.cpp (A-H23): the last client messages. Units are the player's world's
+    // (0055FB00); "able" means present, not blocked (flag 0x800000) and not dead (slot 55).
+    int OnLeave();             // 0066FA90, 0x01: the connection's slot 16 (Leave)
+    // 00670CE0, 0x04 (joined players, state 1, else 0): the game state into the player's +0x100,
+    // the party collected (CollectParty with the placements) and sent, message 0x07 (the state and
+    // the world tick), dirty bit 0x10 cleared, state 2.
+    int OnGameStateRequest();
+    // 0066FAC0, 0x10: a pause byte. A multiplayer client that is also the attached game server,
+    // asking to pause: only the session leader (its id the party's first record's unit) may, and
+    // its name is announced (text 0xC); then the world's SetUnknown6C(pause != 0).
+    int OnPause();
+    // 00670820 / 006708D0, 0x33 / 0x32: {spell, unit id, target id / point, flag byte}: an able unit
+    // with a Player mode casts at the object (world slot 40) / point (CommandCast / CommandCastAt).
+    int OnCastAtObject();
+    int OnCastAtPoint();
+    // 00670960 / 006709D0, 0x34 / 0x35: {unit id, byte}: an able unit's wanted weapon slot / a living
+    // unit's movement style (no blocked test).
+    int OnWantedWeapon();
+    int OnMoveStyle();
+    int OnUnitLookup();        // 00670A40, 0x38: two dwords, the first looked up as a unit (unused)
+    // 00670A90, 0x39: {unit id, leader id}: a unit's Player mode follows the leader (may be null).
+    int OnFollow();
+    // 0066FB70, 0x3B: a unit id, then a byte: CUnit::SetUnknown438(signed byte) when the unit exists.
+    int OnUnitFlag438();
+    int OnLastPosition();      // 00670B20, 0x40: 8 bytes into lastPosition_ x, y
     // 0066F890, 0x00 (A-H19): the login (LoginMessage). 0 unless the state is 0 (after the read).
     // A client version other than 0x64: message 0x11 with the server's "SrvErrMsg" /
     // "WrongClientVersion" text (formatted with 1, 0), state 3, 0. 0 when the name or password

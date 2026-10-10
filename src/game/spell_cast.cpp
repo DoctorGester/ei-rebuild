@@ -158,7 +158,7 @@ EI_REPLACE_METHOD(0x0068B370, CSpell::CopyTo);
 __declspec(naked) void CSpell::CallCopyTo(CSpell*) EI_ORIGINAL(0x0068B370)
 
 CSpell* CSpell::Clone(CSpellManager* manager) {
-    CSpell* spell = manager->CreateSpellObject(-1);
+    CSpell* spell = manager->CallCreateSpellObject(-1);
     CallCopyTo(spell);
     return spell;
 }
@@ -346,7 +346,7 @@ CSpellContainer* CSpellManager::NewContainer() {
 }
 EI_REPLACE_METHOD(0x00688EB0, CSpellManager::NewContainer);
 
-__declspec(naked) CSpell* CSpellManager::CreateSpellObject(int) EI_ORIGINAL(0x00688EC0)
+__declspec(naked) CSpell* CSpellManager::CallCreateSpellObject(int) EI_ORIGINAL(0x00688EC0)
 
 CSpell* CSpellManager::CreateSpell(char* prototype, SpellModifierNode** modifiers) {
     auto* constructor = ei::VCall<CSpellConstructor*>(context_, kContextSlotSpellConstructor);

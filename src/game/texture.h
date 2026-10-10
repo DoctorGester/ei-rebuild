@@ -242,6 +242,24 @@ void __cdecl DeleteComposedTextures();
 // vtable 00743CB0, class id 0x26. Slots 16-22 are CResourceManager's.
 class CTextureManager : public CResourceManager {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743CB0);
+    static constexpr std::uintptr_t kCacheVtableAddress = std::uintptr_t(0x00743D18);   // cache_'s CPtrList
+
+    // texture_manager_lifetime.cpp (A-H23).
+    // 00691140. CResourceManager's constructor body, an empty cache (blocks of 10), no shadow
+    // surface or device, +0xD8 / +0xE8 / +0xEC 0. Returns this.
+    CTextureManager* Construct();
+    // 00691250. The destructor body: the shadow surface released, every cached texture destroyed
+    // (slot 3) and deleted, the cache emptied, the composed textures deleted, the device dropped,
+    // CResourceManager::Destroy, SetDevice(null), then CResourceManager's destructor body.
+    // 00691230: slot 0.
+    void Destruct();
+    CTextureManager* DeletingDestruct(unsigned flags);
+    // 3: 00691630. As the destructor up to CResourceManager::Destroy (without SetDevice).
+    void Destroy() override;
+    // 23: 00691AA0. CBaseManager::CreateObject, then flags_ by type: 0x3E 0x80, 0x3F 0x100, 0x40
+    // 0x200, any other 0x40 (no null check).
+    CEngineObject* CreateObject(int type, int id) override;
     // 006922A0. Loads a texture: textures\<name>.bmp on disk if present, else <name>.mmp from the
     // archives, else <data path>textures\<name>.mmp on disk.
     int LoadTexture(CTexture* texture);
@@ -299,3 +317,8 @@ static_assert(offsetof(CTextureManager, cachedBytes_) == 0xD8);
 static_assert(offsetof(CTextureManager, shadowRenderSurface_) == 0xE0);
 static_assert(offsetof(CTextureManager, device_) == 0xE4);
 static_assert(offsetof(CTextureManager, limitTo512_) == 0xEC);
+// 00691210 / 00691220 (slots 11 / 12): "CTextureManager", class id 0x26. 00691200 (slot 25): the
+// archive folder, "textures".
+const char* __fastcall TextureManagerClassName(CTextureManager*);
+int __fastcall TextureManagerClassId(CTextureManager*);
+const char* __fastcall TextureManagerFolder(CTextureManager*);

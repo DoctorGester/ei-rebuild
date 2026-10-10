@@ -131,6 +131,9 @@ struct ItemRecordHead {
     // +0x14..+0x1C, +0x34..+0x4C, the byte +0x68 and the string array +0x20 (CStringArray::Copy).
     // +0x50, +0x64 and +0x6C are not copied. Returns this.
     ItemRecordHead* Assign(const ItemRecordHead* source);
+    // 0069F700 (RET 4; item_db_serialize.cpp, A-H23). The head's fields in an archive: the strings
+    // 0, 1, 3, +0x0C, +0x14..+0x1C, +0x34..+0x4C (fields 7-13), +0x64 and the byte +0x68 (14, 15).
+    void SerializeHead(ChunkArchive* ar);
     // What the kinds' copy constructors do first: empty strings and string arrays, +0x68 = 1,
     // the kind's vtable.
     void ConstructHead(std::uintptr_t vtableAddress);
@@ -188,6 +191,8 @@ struct WeaponRecord : ItemRecordHead {
     // 006A8FB0 (RET 4; item_db_records.cpp): the weapon record's operator= (STLport's vector
     // inserts): the head's copy inlined, then the same bytes as CopyOwn. Returns this.
     WeaponRecord* AssignWeapon(const WeaponRecord* source);
+    // 0069F800 (RET 4; item_db_serialize.cpp). The head, then fields 0x15-0x1E.
+    void Serialize(ChunkArchive* ar);
 
     std::uint8_t unknown_70[0x7B - 0x70];
     std::uint8_t skillBonus[2];         // +0x7B the wielder's weapon skill bonus (skill 0 / 1)
@@ -209,6 +214,8 @@ struct ArmorRecord : ItemRecordHead {
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744064);
     // +0x6C..+0xB4 (+0xB4..+0xC7 are not copied).
     void CopyOwn(const ArmorRecord* source);
+    // 0069F8C0 (RET 4). The head, then the two 9-dword rows +0x6C / +0x90 and +0xB4..+0xC6.
+    void Serialize(ChunkArchive* ar);
 
     std::uint32_t absorbFirst[7];       // +0x70 item absorb_[0]
     std::uint8_t unknown_8C[0x94 - 0x8C];
@@ -229,6 +236,8 @@ struct QuickItemRecord : ItemRecordHead {
     // +0x70 and +0x80..+0x8A; the category (+0x6C), +0x74..+0x7B and the string +0x7C are not
     // copied (the string is constructed empty).
     void CopyOwn(const QuickItemRecord* source);
+    // 0069F940 (RET 4). The head, then +0x6C..+0x7B, the string +0x7C and +0x80..+0x8A.
+    void Serialize(ChunkArchive* ar);
 
     std::uint32_t value70;              // +0x70 item +0x4C
     std::uint8_t unknown_74[0x7C - 0x74];
@@ -246,6 +255,8 @@ struct QuestItemRecord : ItemRecordHead {
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744058);
     // +0x6C only: the zone list is constructed empty, not copied.
     void CopyOwn(const QuestItemRecord* source);
+    // 0069F9C0 (RET 4). The head, the category, then the zone list as chunk 0x16 (InlineStrings).
+    void Serialize(ChunkArchive* ar);
 
     mfc::CString* zonesBegin;           // +0x70 STLport vector<CString>
     mfc::CString* zonesEnd;             // +0x74
@@ -258,6 +269,8 @@ struct LootItemRecord : ItemRecordHead {
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744054);
     // +0x6C..+0x77.
     void CopyOwn(const LootItemRecord* source);
+    // 0069FA90 (RET 4). The head, then +0x6C, +0x70, +0x74.
+    void Serialize(ChunkArchive* ar);
 
     std::uint32_t recordType;           // +0x70
     std::uint32_t index;                // +0x74
@@ -281,7 +294,15 @@ struct MaterialRecordHead {
     const char* name;                   // +0x08 CString
     std::uint32_t unknown_0C;
     float quality;                      // +0x10 the trader stock's material draw (item_stock.cpp)
+    std::uint32_t unknown_14[6];        // +0x14
+    std::uint32_t unknown_2C[7];        // +0x2C one field
+    std::uint32_t unknown_48;           // +0x48
+    std::uint32_t unknown_4C;           // +0x4C
+
+    // 0069F620 (RET 4; item_db_serialize.cpp, A-H23). The three strings, then +0x0C..+0x4C.
+    void Serialize(ChunkArchive* ar);
 };
+static_assert(sizeof(MaterialRecordHead) == kMaterialSize);
 static_assert(offsetof(MaterialRecordHead, quality) == 0x10);
 
 inline const RecordTable& Materials() { return *reinterpret_cast<const RecordTable*>(0x007C86D8); }
