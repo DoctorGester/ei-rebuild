@@ -83,12 +83,27 @@ inline CTransformPipeline* ScenePipeline() { return *reinterpret_cast<CTransform
 struct tagRECT;
 class CTextureDevice;
 class CLight;   // spell.h
+class CTexture;   // texture.h
 
-// The renderer's counted helper object (0x118 bytes, constructor 004FCA60 with the Direct3D device
-// and a flag). Only its count is known; slot 0 is the deleting destructor.
+// The renderer's counted helper object (0x118 bytes, vtable 0073D840, constructor 004FCA60 with the
+// Direct3D device and a flag). Slot 0 is the deleting destructor.
+// A render state preset the helper keeps (counted; slot 0 is the deleting destructor).
+class __declspec(novtable) CRenderPreset {
+public:
+    virtual void* DeleteThis(unsigned flags);   // 0
+
+    int refs_;   // +0x04
+};
+
 class __declspec(novtable) CRenderHelper {
 public:
     virtual void* DeleteThis(unsigned flags);   // 0
+    virtual void Unknown1();                    // 1: 004FD2A0
+    virtual void Unknown2();                    // 2: 004FDB00
+    virtual void Unknown3();                    // 3: 004FD9D0
+    virtual void Unknown4();                    // 4: 004FDB50
+    // 5: 004FDBA0 (RET 4). Preset `index` of the nine at +0x10C, or null beyond them.
+    virtual CRenderPreset* Preset(unsigned index);
 
     int refs_;   // +0x04
     std::uint8_t unknown_08[0x118 - 0x08];
@@ -104,12 +119,14 @@ public:
     virtual void Unknown1();
     virtual void Unknown2();
     virtual void Unknown3();
-    virtual void Unknown4();
-    virtual void Unknown5();
+    virtual void Unknown4();   // 4: 00503F40 (BeginScene below)
+    virtual void Unknown5();   // 5: 005040A0 (EndScene below)
     virtual void Unknown6();
     // 7: 00501CC0 (RET 4). Sets the colour the next draws are tinted with (kept at +0x18).
     virtual void SetColour(std::uint32_t colour);
-    virtual void Unknown8();
+    // 8: 00501A40 (EAX 1). Clears the render target and the depth (and the stencil when the device
+    // has one) to the fog colour and 1.
+    virtual int ClearFrame();
     virtual void Unknown9();
     virtual void Unknown10();
     // 11: 00501AF0 (RET 8, EAX 1). Binds `texture` (a texture object, or null) to stage `stage`.
@@ -150,6 +167,23 @@ public:
     // 0..1, plus the brightness, clamped again, times 65280 (truncated) for all three channels.
     // True when SetGammaRamp succeeds.
     bool SetGamma(float brightness, float contrast, float gamma);
+    // renderer_scene.cpp (A-U10).
+    // 00503F40 (virtual slot 4, plain RET). 0 unless flags_ bit 0 is set. The frame statistics:
+    // this frame's time since the last EndScene, the shortest (nonzero) and longest (under 1000 ms),
+    // the total and count, and once a second's worth has passed the average over it; then ClearFrame
+    // (slot 8), the device's counters cleared and IDirect3DDevice7::BeginScene. When a scene is
+    // still open (D3DERR_SCENE_IN_SCENE) the batches are flushed, the scene ended and begun again;
+    // other failures are fatal ("Can't begin scene." / "Can't end scene."). Returns 1.
+    int BeginScene();
+    // 005040A0 (virtual slot 5, plain RET). Flushes the device's two batches and ends the scene
+    // (fatal on failure other than D3DERR_SCENE_NOT_IN_SCENE), then sets the debug panel's "FPS"
+    // (1000 / frame time, "%g"), "num verts" and "num trias" ("%d") and remembers the frame's start.
+    // Returns 1.
+    int EndScene();
+    // 00504860 (virtual slot 21, RET 0x10). Draws `texture` at (x, y) scaled by `scale` as a
+    // pre-transformed strip of four vertices (z 0.9, white, specular 0xFF000000) through stage 0
+    // (slot 11). 0 without a texture, else 1.
+    int DrawTexture(CTexture* texture, float x, float y, float scale);
 
     std::uint32_t flags_;            // +0x04 bit 0: the software cursor option; bit 1 set by the creation (00500B70)
     CTransformPipeline* pipeline_;   // +0x08
@@ -165,22 +199,23 @@ public:
     float brightness_;
     float contrast_;
     float gamma_;
-    // +0x34 .. +0x58: set by the creation (0, 0x80000000, zeros, the time, zeros).
-    int unknown_34;
-    std::uint32_t unknown_38;
-    int unknown_3C;
-    int unknown_40;
-    int unknown_44;
-    int unknown_48;
-    std::uint8_t unknown_4C[4];
-    std::uint32_t createdTime_;      // +0x50 timeGetTime at the creation
-    int unknown_54;
-    int unknown_58;
+    // +0x34 .. +0x58: the frame statistics (milliseconds; BeginScene / EndScene), set by the
+    // creation to 0, 0x80000000, zeros, the time, zeros.
+    std::uint32_t frameTime_;        // +0x34 the last frame's
+    std::uint32_t shortestFrame_;    // +0x38
+    std::uint32_t longestFrame_;     // +0x3C (under 1000)
+    std::uint32_t averageFrame_;     // +0x40 over the last second's worth of frames
+    std::uint32_t totalTime_;        // +0x44
+    std::uint32_t frameCount_;       // +0x48
+    std::uint32_t frameStart_;       // +0x4C timeGetTime at this frame's BeginScene
+    std::uint32_t lastFrameStart_;   // +0x50 the previous frame's (the creation: its time)
+    std::uint32_t windowTime_;       // +0x54 the time and frames toward the average
+    std::uint32_t windowFrames_;     // +0x58
 };
 static_assert(offsetof(CSceneRenderer, pipeline_) == 0x08 && offsetof(CSceneRenderer, fogColour_) == 0x14 &&
               offsetof(CSceneRenderer, colour_) == 0x18 && offsetof(CSceneRenderer, device_) == 0x20);
-static_assert(offsetof(CSceneRenderer, helper_) == 0x24 && offsetof(CSceneRenderer, unknown_34) == 0x34 &&
-              offsetof(CSceneRenderer, createdTime_) == 0x50 && offsetof(CSceneRenderer, unknown_58) == 0x58);
+static_assert(offsetof(CSceneRenderer, helper_) == 0x24 && offsetof(CSceneRenderer, frameTime_) == 0x34 &&
+              offsetof(CSceneRenderer, lastFrameStart_) == 0x50 && offsetof(CSceneRenderer, windowFrames_) == 0x58);
 
 // 004F1370. Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by
 // the half extents, y flipped. Returns out.

@@ -101,9 +101,9 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
         AnimationStateSetModelOriginal(animation, nullptr, model);
         animation->Play(nullptr);
         FigureApplyPendingOriginal(animation);
-        int count = animation->parts.count;
+        int count = animation->bones.count;
         SetBoxCount(this, count);
-        StringArraySetSize(&partNameArrayVtable, nullptr, animation->parts.count, -1);
+        StringArraySetSize(&partNameArrayVtable, nullptr, animation->bones.count, -1);
 
         void* figureModel;
         {
@@ -111,18 +111,18 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
             figureModel = FigureManagerFindModelOriginal(manager, nullptr, &modelName);
         }
         int index = 0;
-        for (auto* node = animation->parts.head; node; ++index) {
-            FigurePart* part = node->data;
+        for (auto* node = animation->bones.head; node; ++index) {
+            FigureBone* bone = node->data;
             node = node->next;
             FootprintPart* box = &partBoxes[index];
-            FigureManagerPartBoundsOriginal(manager, nullptr, box, figureModel, model, part->GetName(),
+            FigureManagerPartBoundsOriginal(manager, nullptr, box, figureModel, model, bone->GetName(),
                                             std::bit_cast<std::uint32_t>(scale.x),
                                             std::bit_cast<std::uint32_t>(scale.y),
                                             std::bit_cast<std::uint32_t>(scale.z));
             box = &partBoxes[index];
-            box->pivot = {part->pivot.x, part->pivot.y, part->pivot.z};
+            box->pivot = {bone->position.x, bone->position.y, bone->position.z};
             box->flags |= kBoxLoaded;
-            reinterpret_cast<mfc::CString*>(partNames)[index] = part->GetName();
+            reinterpret_cast<mfc::CString*>(partNames)[index] = bone->GetName();
 
             box = &partBoxes[index];
             high.x = Higher(high.x, StoreFloat(box->pivot.x + box->boxMax.x + box->offset.x));
@@ -132,7 +132,7 @@ void CObject3D::SetUpAnimatedFigure(const char* model) {
             low.y = Lower(low.y, StoreFloat(box->pivot.y + box->boxMin.y + box->offset.y));
             low.z = Lower(low.z, StoreFloat(box->pivot.z + box->boxMin.z + box->offset.z));
 
-            const char* partName = part->GetName();
+            const char* partName = bone->GetName();
             if (gamecrt::strnicmp(partName, "BASE", 4) == 0) box->flags |= kBoxBase;
             if (gamecrt::strnicmp(partName, "CROWN", 5) == 0) box->flags |= kBoxCrown;
             if (gamecrt::strnicmp(partName, "EMPTY", 5) == 0) box->flags |= kBoxEmpty;

@@ -109,6 +109,13 @@ struct AlignedArray {
         capacity = newCapacity;
     }
 
+    // The discarding SetSize's out-of-line copies (00505080, 0050DD40: RET 8) take a growth step
+    // too (-1 keeps it).
+    void SetSizeDiscardStep(int count, int newGrowBy) {
+        if (newGrowBy != -1) growBy = newGrowBy;
+        SetSizeDiscard(count);
+    }
+
     // SetAtGrow / Add take the element by value, as the out-of-line copies do (006005F0: RET 8),
     // so they can be registered on these members.
     void SetAtGrow(int index, T value) {

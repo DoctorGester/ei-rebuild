@@ -137,7 +137,7 @@ public:
     void SetPose(const float* q, const float* offset);
 
     void* vtable_;                      // +0x000
-    std::uint8_t unknown_004[4];
+    int refCount_;                      // +0x004 the engine object's reference count
     std::uint32_t flags_;               // +0x008 0x20: loaded
     std::uint8_t unknown_00C[0x1C - 0x0C];
     Vector3 position_;                  // +0x01C (CTransformObject: local position)

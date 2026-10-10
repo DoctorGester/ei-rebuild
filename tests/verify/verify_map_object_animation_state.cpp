@@ -4,7 +4,7 @@
 //   bytes +0x40..+0x78 are kept and put back, ours runs, bytes compared. Otherwise (callbacks, the
 //   queue, the figure manager) ours only: afterwards nothing plays or the frame lies within the
 //   animation, and a changed animation sets `changed`.
-// - Play (0050CA50): ours only; `current` is the animation, the frame 0, and every part's previous
+// - Play (0050CA50): ours only; `current` is the animation, the frame 0, and every bone's placing
 //   animator is its (existing) animator.
 // - Queue (0050CBA0): ours only; one more queued, the animation at the tail, the node returned.
 // - Advance (0050D5E0): ours only; when the same animation keeps playing within its length, the
@@ -67,9 +67,9 @@ EI_VERIFY(0x0050D600, SetTimeVerify, 5, s_setTime);
 static void __fastcall PlayVerify(CFigureAnimationState* self, void*, FigureAnimation* animation) {
     self->Play(animation);
     bool ok = self->current == animation && self->time == 0.0f;
-    for (auto* node = self->parts.head; node; node = node->next)
-        ok = ok && node->data->animator && node->data->previousAnimator == node->data->animator;
-    ei::verify::Check("CFigureAnimationState::Play", true, ok, "%d parts, frame %g", self->parts.count, self->time);
+    for (auto* node = self->bones.head; node; node = node->next)
+        ok = ok && node->data->animator && node->data->pose == node->data->animator;
+    ei::verify::Check("CFigureAnimationState::Play", true, ok, "%d bones, frame %g", self->bones.count, self->time);
 }
 EI_VERIFY(0x0050CA50, PlayVerify, 0, s_unusedPlay);
 

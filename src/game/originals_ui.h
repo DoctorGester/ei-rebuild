@@ -219,6 +219,10 @@ __declspec(naked) inline void* __fastcall ManagerFindNamedOriginal(void* /*manag
 __declspec(naked) inline void* __fastcall TextureNamedOriginal(void* /*manager*/, void*, int /*kind*/, const char* /*name*/)
     EI_ORIGINAL(0x00691D00)
 __declspec(naked) inline int __fastcall TextureLoadOriginal(void* /*manager*/, void*, void* /*texture*/) EI_ORIGINAL(0x006922A0)
+// 00692D30 (RET 8): the registered texture of `kind` named `name` (a byte compare), else the cached one (00691BF0);
+// null when neither has it.
+__declspec(naked) inline void* __fastcall TextureFindOriginal(void* /*manager*/, void*, int /*kind*/, const char* /*name*/)
+    EI_ORIGINAL(0x00692D30)
 __declspec(naked) inline int __fastcall TextureLoadFromOriginal(void* /*manager*/, void*, void* /*texture*/,
                                                                 const char* /*directory*/) EI_ORIGINAL(0x006926F0)
 __declspec(naked) inline std::uint8_t* __fastcall NewManagedTextureOriginal(void* /*manager*/, void*, int /*width*/,
@@ -530,6 +534,9 @@ __declspec(naked) inline void __fastcall DebugPanelReleaseOriginal(void* /*panel
 // 00444C10 (thiscall, RET 4): the debug information panel's rectangle (string_map.cpp).
 __declspec(naked) inline void __fastcall DebugPanelSetRectOriginal(void* /*panel*/, void*, const tagRECT* /*rect*/)
     EI_ORIGINAL(0x00444C10)
+// 004447E0 (the panel's slot 0, thiscall, RET 8; string_map.cpp's StringTableSet): panel[key] = value.
+__declspec(naked) inline void __fastcall DebugPanelSetOriginal(void* /*panel*/, void*, const char* /*key*/,
+                                                               const char* /*value*/) EI_ORIGINAL(0x004447E0)
 __declspec(naked) inline void __cdecl SaveKeyBindingsOriginal() EI_ORIGINAL(0x00462DF0)
 // 005AC1A0 (thiscall on the model manager, UiModelManager(), RET 4): a new object `name` (a figure; null: an interface
 // sprite, CUiMesh), or null.

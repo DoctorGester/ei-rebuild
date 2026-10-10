@@ -67,6 +67,29 @@ static void __fastcall HideWoundsVerify(CObject3DClientSpecific* self) {
 }
 EI_VERIFY(0x0051C920, HideWoundsVerify, 0, s_unusedHideWounds);
 
+// - ShowWounds (0051C3D0, A-U10): ours only (it loads the texture and makes the material). 1: the
+//   wounds texture is held and the material's last stage draws it (its first the part set's
+//   texture); 0: no first part set, or the texture and material dropped after a failed load.
+//   Reached by RefreshWounds (00537360) for a wounded party unit (combat, combat_more).
+namespace {
+void* s_unusedShowWounds;
+} // namespace
+
+static int __fastcall ShowWoundsVerify(CObject3DClientSpecific* self, void*, const char* name) {
+    int result = self->ShowWounds(name);
+    bool ok;
+    if (result == 1) {
+        const WoundsMaterial* material = self->woundsMaterial;
+        ok = self->woundsTexture && material && material->stages.size() >= 2 &&
+             material->stages.back().texture == reinterpret_cast<CEngineObject*>(self->woundsTexture);
+    } else {
+        ok = result == 0 && (!self->material || (!self->woundsTexture && !self->woundsMaterial));
+    }
+    ei::verify::Check("CObject3DClientSpecific::ShowWounds", true, ok, "%s: %d", name, result);
+    return result;
+}
+EI_VERIFY(0x0051C3D0, ShowWoundsVerify, 0, s_unusedShowWounds);
+
 // - WeaponPoint (00535770): output. The original into a scratch vector (seeded with `out`), ours
 //   into `out`; result and the three floats bitwise (copies). Reached by the original EffectPoint
 //   (00532860) for another unit's weapon point (spells_cast, effects).

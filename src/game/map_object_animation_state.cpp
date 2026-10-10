@@ -9,7 +9,7 @@
 #include "ei/x87.h"
 
 namespace {
-constexpr int kAnimatorClass = 0x300B;            // FigurePartAnimator's class id
+constexpr int kAnimatorClass = 0x300B;            // AnimationTrack's class id
 constexpr std::uint32_t kKeyEndMask = 0xC0000000; // FigureAnimation::key: what happens at the end
 constexpr std::uint32_t kKeyLoops = 0x80000000;
 
@@ -19,22 +19,22 @@ constexpr std::uint32_t kKeyLoops = 0x80000000;
 __declspec(naked) int __fastcall ManagerSetAnimation(CEngineObject* /*manager*/, void*, CFigureAnimationState* /*figure*/,
                                                      const char* /*model*/, const char* /*animation*/)
     EI_ORIGINAL(0x005ACCF0)
-// 005ACA60 (RET 0xC). The part's manager starts `animator` on `animation` (null: none).
-__declspec(naked) int __fastcall ManagerAnimatePart(CEngineObject* /*manager*/, void*, FigurePart* /*part*/,
-                                                    FigurePartAnimator* /*animator*/, const char* /*animation*/)
+// 005ACA60 (RET 0xC). The bone's manager starts `animator` on `animation` (null: none).
+__declspec(naked) int __fastcall ManagerAnimateBone(CEngineObject* /*manager*/, void*, FigureBone* /*bone*/,
+                                                    AnimationTrack* /*animator*/, const char* /*animation*/)
     EI_ORIGINAL(0x005ACA60)
 // Rewritten below, called through its game address so its verify wrapper stays in the path.
 __declspec(naked) void __fastcall CallSetTime(CFigureAnimationState*, void*, float) EI_ORIGINAL(0x0050D600)
 
-// The part's animator, made by its manager (counted) on first use.
-FigurePartAnimator* AnimatorOf(FigurePart* part) {
-    if (!part->animator) {
-        auto* made = static_cast<FigurePartAnimator*>(part->owner_->CreateObject(kAnimatorClass, -1));
-        part->animator = made;
+// The bone's animator, made by its manager (counted) on first use.
+AnimationTrack* AnimatorOf(FigureBone* bone) {
+    if (!bone->animator) {
+        auto* made = static_cast<AnimationTrack*>(bone->owner_->CreateObject(kAnimatorClass, -1));
+        bone->animator = made;
         ++made->refCount_;
-        part->animator->part = part;
+        bone->animator->bone = bone;
     }
-    return part->animator;
+    return bone->animator;
 }
 
 // The model name of the figure the state animates.
@@ -44,14 +44,14 @@ CEngineObject* FigureManagerOf(const CFigureAnimationState* state) {
     return static_cast<CWorld*>(state->ManagerContext())->FigureManager();
 }
 
-// The figure manager or else each part takes `animation`.
+// The figure manager or else each bone takes `animation`.
 void Apply(CFigureAnimationState* state, const FigureAnimation* animation) {
     CEngineObject* manager = FigureManagerOf(state);
     if (ManagerSetAnimation(manager, nullptr, state, ModelName(state), animation ? animation->name : nullptr)) return;
-    for (auto* node = state->parts.head; node;) {
-        FigurePart* part = node->data;
+    for (auto* node = state->bones.head; node;) {
+        FigureBone* bone = node->data;
         node = node->next;
-        CFigureAnimationState::AnimatePart(part, state->current);
+        CFigureAnimationState::AnimateBone(bone, state->current);
     }
 }
 
@@ -67,25 +67,25 @@ FigureAnimation* PopQueued(CFigureAnimationState* state) {
 }
 } // namespace
 
-void CFigureAnimationState::AnimatePart(FigurePart* part, const FigureAnimation* animation) {
-    FigurePartAnimator* animator = AnimatorOf(part);
+void CFigureAnimationState::AnimateBone(FigureBone* bone, const FigureAnimation* animation) {
+    AnimationTrack* animator = AnimatorOf(bone);
     animator->animation = animation;
-    ManagerAnimatePart(animator->owner_, nullptr, animator->part, animator, animation ? animation->name : nullptr);
-    animator->unknown_48 = 0;
+    ManagerAnimateBone(animator->owner_, nullptr, animator->bone, animator, animation ? animation->name : nullptr);
+    animator->time = 0.0f;
 }
 
 void CFigureAnimationState::Play(FigureAnimation* animation) {
-    for (auto* node = parts.head; node;) {
-        FigurePart* part = node->data;
+    for (auto* node = bones.head; node;) {
+        FigureBone* bone = node->data;
         node = node->next;
-        part->previousAnimator = AnimatorOf(part);
+        bone->pose = AnimatorOf(bone);
     }
     CEngineObject* manager = FigureManagerOf(this);
     if (!ManagerSetAnimation(manager, nullptr, this, ModelName(this), animation ? animation->name : nullptr)) {
-        for (auto* node = parts.head; node;) {
-            FigurePart* part = node->data;
+        for (auto* node = bones.head; node;) {
+            FigureBone* bone = node->data;
             node = node->next;
-            AnimatePart(part, animation);
+            AnimateBone(bone, animation);
         }
     }
     CallSetTime(this, nullptr, 0.0f);

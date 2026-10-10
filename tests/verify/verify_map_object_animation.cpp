@@ -20,18 +20,18 @@ static void __fastcall EvaluateVerify(AnimationTrack* self, void*, float time) {
     unsigned char ours[kValues];
     float verticesBefore[kMaxVertices * 3];
     float verticesOurs[kMaxVertices * 3];
-    bool morphs = self->frameCount != 0 && self->vertices && self->vertexCount > 0 && self->vertexCount <= kMaxVertices;
+    bool morphs = self->frames.size != 0 && self->vertices.data && self->vertexCount > 0 && self->vertexCount <= kMaxVertices;
     std::size_t vertexBytes = morphs ? static_cast<std::size_t>(self->vertexCount) * 12 : 0;
     std::memcpy(before, values, kValues);
-    if (vertexBytes) std::memcpy(verticesBefore, self->vertices, vertexBytes);
+    if (vertexBytes) std::memcpy(verticesBefore, self->vertices.data, vertexBytes);
     self->Evaluate(time);
     std::memcpy(ours, values, kValues);
-    if (vertexBytes) std::memcpy(verticesOurs, self->vertices, vertexBytes);
+    if (vertexBytes) std::memcpy(verticesOurs, self->vertices.data, vertexBytes);
     std::memcpy(values, before, kValues);
-    if (vertexBytes) std::memcpy(self->vertices, verticesBefore, vertexBytes);
+    if (vertexBytes) std::memcpy(self->vertices.data, verticesBefore, vertexBytes);
     s_evaluate(self, nullptr, time);
     bool same = std::memcmp(ours, values, kValues) == 0 &&
-                (!vertexBytes || std::memcmp(verticesOurs, self->vertices, vertexBytes) == 0);
+                (!vertexBytes || std::memcmp(verticesOurs, self->vertices.data, vertexBytes) == 0);
     ei::verify::Check("AnimationTrack::Evaluate", true, same, "time %g, %d vertices", time, self->vertexCount);
 }
 EI_VERIFY(0x0050ACD0, EvaluateVerify, 6, s_evaluate);
