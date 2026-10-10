@@ -19,8 +19,6 @@ namespace {
 
 // The bars' share of the screen height (00740150; read from the exe's memory).
 float LetterboxShare() { return *reinterpret_cast<const float*>(0x00740150); }
-// The scene renderer the fade draws through (007AF060).
-CSceneRenderer* SceneRenderer() { return reinterpret_cast<CSceneRenderer*>(0x007AF060); }
 
 constexpr float kOpaque = 255.0f;     // 0073C370
 constexpr std::uint32_t kZEnable = 7;  // D3DRENDERSTATE_ZENABLE

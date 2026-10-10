@@ -292,6 +292,9 @@ struct SceneSkin {
     // 00508990 (skin_rewind.cpp, A-U9). The root rewinds the skeleton (CAnimationNode::Rewind, its
     // body inlined) and the clock goes to 0.
     void Rewind();
+    // 00508BF0 (RET 4, EAX 1; skin_rewind.cpp, A-U11). The root (when there is one) binds the parts
+    // (CAnimationNode::AttachMeshes).
+    int BindMeshes(const lib::AlignedArray<void*>* parts);
 
     std::uint32_t unknown_00;
     lib::AlignedArray<CAnimationNode*> bones;   // +0x04 every bone, in build order (SetAtGrow 00452C40)

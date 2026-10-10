@@ -101,3 +101,15 @@ __declspec(naked) inline int __fastcall MaterialRegisterOriginal(void* /*manager
 // the material's key (+0x10) into it (RET 4; EAX the material, or 0).
 __declspec(naked) inline std::uint8_t* __fastcall MaterialCreateOriginal(void* /*manager*/, void*, int /*type*/)
     EI_ORIGINAL(0x0068E970)
+
+// A-U11 (renderer_lifetime.cpp). 0049B780: draws a line list (thiscall on the list, RET 8: pipeline, device object).
+// 004EECF0: the device object's cooperative level (RET 8: full screen flag, screen rectangle). 004EEBC0: its display mode
+// (RET 0x10: width, height, bits per pixel, 0). 00693F60: the texture manager [007AF744] restores its textures' surfaces
+// (plain RET, AL: all restored).
+__declspec(naked) inline void __fastcall LineListDrawOriginal(void* /*lines*/, void*, void* /*pipeline*/, void* /*device*/)
+    EI_ORIGINAL(0x0049B780)
+__declspec(naked) inline void __fastcall DeviceSetCooperativeLevelOriginal(void* /*device*/, void*, int /*fullScreen*/,
+                                                                           const void* /*rect*/) EI_ORIGINAL(0x004EECF0)
+__declspec(naked) inline void __fastcall DeviceSetDisplayModeOriginal(void* /*device*/, void*, int /*width*/, int /*height*/,
+                                                                      int /*bits*/, int) EI_ORIGINAL(0x004EEBC0)
+__declspec(naked) inline bool __fastcall TextureManagerRestoreOriginal(void* /*manager*/) EI_ORIGINAL(0x00693F60)

@@ -82,6 +82,11 @@ public:
     // 005081C0. Rewinds this node and its children: the clock (+0x38 / +0x3C) to 0, ResetPose, and
     // the mesh (when there is one) placed at the pose with the morph points as its offsets (005A0B10).
     void Rewind();
+    // 00507C50 (RET 4, EAX 1; skin_rewind.cpp, A-U11). Binds the figure's parts (CFigureMesh*) to this
+    // node and its children: the first part whose name (engine object slot 7) equals the node's
+    // becomes its mesh (one more reference; a mesh held before is overwritten without a release) and
+    // is placed at the pose with the morph points as its offsets (005A0B10).
+    int AttachMeshes(const lib::AlignedArray<void*>* parts);
 
     std::uint32_t unknown_000;
     mfc::CString name_;                                  // +0x004

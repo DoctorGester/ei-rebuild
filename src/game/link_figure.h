@@ -29,6 +29,14 @@ struct FigureMeshDrawer {
 };
 static_assert(offsetof(FigureMeshDrawer, mesh_) == 0x1C && offsetof(FigureMeshDrawer, screen_) == 0x20);
 
+class CTextureDevice;   // texture.h
+class CTexture;         // texture.h
+// The drawer's draws (the renderer's slots 13 / 14 call them): 005A7A70 lit, with two textures
+// (figure_part_draw.cpp), and 005A7640 plain (figure_part_draw_plain.cpp). Both return 1.
+int __fastcall DrawFigurePart(FigureMeshDrawer* node, void*, CTextureDevice* device, const FigureLights* lights,
+                              FigureMaterial* material, int alpha, RECT* rect, CTexture* textureA, CTexture* textureB);
+int __fastcall DrawFigurePartPlain(char* node, void*, char* device, int, int, int, int alpha, RECT* rect);
+
 struct CDXSurface;   // texture.h
 
 // The transform object of 3DfpFPU.dll (GetTLPipeline; CTransformPipeline::transform_), as far as
@@ -40,7 +48,8 @@ public:
     virtual void SetViewportSize(float width, float height);
     // 2: the sun for the next LightMesh (its localDirection_; 005A7A70).
     virtual void AddSun(CLight* sun);
-    virtual void Unknown3();
+    // 3: the ambient colour, components in 0..1 (the renderer's colour, 00500740).
+    virtual void SetAmbient(float r, float g, float b);
     // 4: the projection matrix, transposed (00500B70 passes a copy).
     virtual void SetProjection(float* transposed);
     // 5: the depth range (00500B70: the options' fog start and far clip distances).

@@ -120,6 +120,9 @@ is snapshotted and restored, the original runs, bytes and EAX compared.
 | 0050A5D0, 0050A720, 0050A700, 0050A810, 0050A8C0 | AnimationTrack (class 0x300B, vtable 0073D9D8, 0x78 bytes) Construct, DestructBody, DeleteTrack (0), CreateTrack / DestroyTrack (2 / 3) (animation_track_lifetime.cpp); `frames` (+0x38) and `vertices` (+0x68) are AlignedArrays now | ctor: original into a raw copy, all bytes compared; the rest ours only |
 | 0050D950, 0050DA10 | CFigureAnimationState ClearBoneTracks / LoadBoneTracks (005ACCF0: the tracks cleared, or loaded from the model part's entry named as the bone, slot 5 / 0050AAF0) | ours only |
 | 0050AAF0 | AnimationTrack::LoadKeyFrames (rotations, positions, frame and vertex counts from the model entry; arrays sized without keeping contents; frame pointers into the entry) | ours only: counts, frame pointers and the cursor's end predicted from the entry |
+| 00500440, 00500460, 00500480, 005006E0, 00500740, 005007C0, 00500800, 00500960, 00500A70, 00500AA0, 00500AC0, 005019F0, 00501A40, 00501AA0, 00501AF0, 00501CC0, 00501CE0, 00501D00, 00501D40, 00504A40, 00504780, 00504E00, 00504E20 | CSceneRenderer lifetime and small slots (renderer_lifetime.cpp, A-U11): base class (vtable 0073D8A0: ctor, deleting dtor, dtor, DestroyBase, SetBaseColour), SetSun / SetSunAndAmbient, SceneRenderer, ctor / deleting dtor / dtor, slots 3 DestroyRenderer, 8 ClearFrame, 9 ZEnable, 11 SetTexture, 7 SetColour, 15 DrawLineList, 14 DrawFigure, 13 DrawFigureLit, 23 GetGamma, 24 RestoreSurfaces, the device holder | SceneRenderer, ZEnable, GetGamma: original vs ours; the rest ours only (fields, results, bound stage) |
+| 00500970, 00500A00, 00504F60, 00505140, 00505260 | texture holders' EnsureLoaded / Load (by kind and name), the sprite work arrays' constructors (AlignedArray::Construct) | ours only |
+| 00507C50, 00508BF0 | CAnimationNode::AttachMeshes (the first part named as the node becomes its mesh, placed at the pose; recursive), SceneSkin::BindMeshes (skin_rewind.cpp) | ours only: the tree bound as predicted |
 | 00506C70 | MultiplyQuaternions (fastcall out, a, b: a * b, Hamilton; skin nodes, hero preview; skin_quaternion.cpp) | original vs ours, CheckNear |
 
 Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEffect::Tick`, 00524FE0
@@ -157,13 +160,20 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
 - Create3D drops the side half (+0x94) without releasing it; Destroy3D only decrements the placed
   parts' counts (no release, nothing freed at 0) while it releases the pending ones.
 
+- A-U11: RestoreSurfaces (00504780) passes an unwritten local as the display mode when a full-screen device has no
+  primary surface (ours 0); AttachMeshes (00507C50) overwrites a held mesh without releasing it; the renderer's
+  destructor releases the helper without clearing it.
+
 ## Skipped and why
 
 - CArray Serialize / SetSize instantiations (library).
 - A-U9: 005015A0 (renderer slot 25: the projection / viewport / axis-swap stacks for a rectangle and a field of view,
   like the creation's FillMatrixStacks) has no caller (no `call [reg+0x64]` on the renderer in game.exe); 00508A30
-  (sets the skin clock, rewinds) is unreferenced. Next here: 0050A210, 00507C50, the renderer's small slots (00500AA0, 005019F0, 00501A40 ClearFrame, 00501AF0, 00501D40,
-  00504780), 00505380-005055F0.
+  (sets the skin clock, rewinds) is unreferenced. A-U11: 0050A210 is library (CArray::Serialize); 00505380 (an aligned
+  buffer's free) runs only in an unwind funclet of 005045D0, which is rewritten; 00505410 / 005054E0 / 005055F0 (key record
+  writers) are called only from dead 0044A7B0 (the animation exporter; Ghidra's bodies for them overlap live readers, so
+  find_dead_code.py keeps them); 00501980 / 005019D0 only from slot 25 (005015A0, no caller); 00500A90 (4 bytes) too
+  short; 00503F20 (a Vector3 copy) and 005000xx-005003D0 (STLport copy helpers) left.
 - 0050E9B0 (slot 34): packs a stack UnitVitals the builder leaves unwritten when the prototype exists (garbage in the
   original; cannot be reproduced). 0050F080 is rewritten (A-U5, map_object_vitals.cpp: CMapObject::ClearProtectionBases,
   verified ours vs original on the protection pairs; reached by every unit spawn through 0058EF20).
