@@ -441,6 +441,9 @@ public:
     FigurePart* FindPartByPrefix(const char* prefix);
     // 005169A0. The first part (parts, then pending parts) named exactly `partName`, or null.
     FigurePart* FindPart(const char* partName);
+    // 00516920 (RET 4; object3d_specific_slots.cpp, A-U11). The first part (parts, then pending
+    // parts) whose engine object type_ is `type`, or null.
+    FigurePart* FindPartOfType(int type);
     // 00516B50 (object3d_figure_setup.cpp, A-U4; RET 8). Every part (parts, then pending parts)
     // whose name starts with `prefix` (strstr at the name's start) appended to `out`.
     void CollectPartsByPrefix(const char* prefix, AlignedPtrArray* out);

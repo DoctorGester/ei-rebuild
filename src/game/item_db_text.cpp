@@ -303,3 +303,4 @@ EI_REPLACE_METHOD(0x005F97D0, TextSourceIterator::CopyTo);
 EI_REPLACE_METHOD(0x00609A30, TextSourceIterator::CopyTo);
 EI_REPLACE_METHOD(0x00609A70, TextSourceIterator::CopyTo);
 EI_REPLACE_METHOD(0x0062C080, TextSourceIterator::CopyTo);
+EI_REPLACE_METHOD(0x00539210, TextSourceIterator::CopyTo);   // A-U11

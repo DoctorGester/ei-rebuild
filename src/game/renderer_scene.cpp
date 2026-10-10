@@ -74,7 +74,7 @@ int CSceneRenderer::BeginScene() {
     device->vertexCount_ = 0;
     device->primitiveCount_ = 0;
     device->drawCount_ = 0;
-    device->unknown_178 = 0;
+    device->textureChanges_ = 0;
     long result = DeviceBeginScene(device);
     if (result == D3DERR_SCENE_IN_SCENE) {
         DeviceFlushBatchAOriginal(device);

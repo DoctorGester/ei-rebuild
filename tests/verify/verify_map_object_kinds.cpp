@@ -95,6 +95,7 @@ static void __fastcall RefResetVerify(AIRef* self) {
 }
 EI_VERIFY(0x0052B030, RefResetVerify, 0, s_unused);
 EI_VERIFY(0x0052B050, RefResetVerify, 0, s_unused);
+EI_VERIFY(0x00558CE0, RefResetVerify, 0, s_unused);   // byte-identical copy (A-U11)
 
 static void __fastcall RefAssignVerify(AIRef* self, void*, CEngineObject* object) {
     self->Assign(object);

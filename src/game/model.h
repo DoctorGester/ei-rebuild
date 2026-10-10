@@ -75,7 +75,16 @@ public:
         if (stacks_[index].count != 0) --stacks_[index].count;
     }
 
-    std::uint8_t unknown_00[0x0C];
+    // Counted: holders drop a reference and call the deleting destructor (vtable slot 0, with 1) at 0.
+    void Release() {
+        if (--refs_ != 0) return;
+        using Destroy = void(__fastcall*)(CTransformPipeline*, void*, int);
+        (*static_cast<Destroy*>(vtable_))(this, nullptr, 1);
+    }
+
+    void* vtable_;
+    int refs_;                        // +0x04
+    std::uint8_t unknown_08[4];
     ITransformPipeline* transform_;   // +0x0C 3DfpFPU.dll's transform object (projects and clips vertices)
     std::uint8_t unknown_10[4];
     MatrixStack stacks_[15];    // +0x14 (models.md: stacks 0-2, 5-10 and 14 are in use)
@@ -122,38 +131,86 @@ class __declspec(novtable) CSceneRenderer {
 public:
     // 0: 00501AB0. Sets the device's fog colour render state (D3DRENDERSTATE_FOGCOLOR) to `colour`.
     virtual void SetFogColourState(std::uint32_t colour);
-    virtual void Unknown1();
-    virtual void Unknown2();
-    virtual void Unknown3();
+    // 1: 00500AA0 (RET 4; renderer_lifetime.cpp). Destructor body (00500AC0), then operator delete
+    // when bit 0 of `flags` is set. Returns this.
+    virtual void* DeleteRenderer(unsigned flags);
+    virtual void Unknown2();   // 2: 00500B70 (the creation, renderer_init.cpp)
+    // 3: 005019F0 (renderer_lifetime.cpp). The base part's DestroyBase, flags_ bit 1 cleared, the
+    // helper and the device object dropped (each set to null, then released).
+    virtual void DestroyRenderer();
     virtual void Unknown4();   // 4: 00503F40 (BeginScene below)
     virtual void Unknown5();   // 5: 005040A0 (EndScene below)
-    virtual void Unknown6();
-    // 7: 00501CC0 (RET 4). Sets the colour the next draws are tinted with (kept at +0x18).
+    // 6: 00500A90 (too short to hook). The last frame's time in ms (frameTime_).
+    virtual std::uint32_t FrameTime();
+    // 7: 00501CC0 (RET 4). Sets the colour the next draws are tinted with (kept at +0x18 and in the
+    // device object's colour_), the transform object's ambient from it (SetBaseColour).
     virtual void SetColour(std::uint32_t colour);
     // 8: 00501A40 (EAX 1). Clears the render target and the depth (and the stencil when the device
     // has one) to the fog colour and 1.
     virtual int ClearFrame();
-    virtual void Unknown9();
+    // 9: 00501AA0. The device object's z-buffer setting (CTextureDevice::zEnable_).
+    virtual std::uint32_t ZEnable();
     virtual void Unknown10();
     // 11: 00501AF0 (RET 8, EAX 1). Binds `texture` (a texture object, or null) to stage `stage`.
     virtual int SetTexture(int stage, void* texture);
     // 12: 00501BB0 (RET 0x10; renderer_triangles.cpp). Draws pre-transformed vertices (D3DTLVERTEX,
     // FVF 0x1C4) as an indexed triangle list with the current state. Returns 1.
     virtual int DrawTriangles(const void* vertices, int vertexCount, const std::uint16_t* indices, unsigned indexCount);
-    virtual void Unknown13();
+    // 13: 00501D40 (RET 0x1C). Draws `figure` (a CFigureMesh) through its drawer's lit draw
+    // (005A7A70) with `lights`, the drawing context `material`, `alpha`, `screen` (or null) and two
+    // textures, unless it is hidden (flags +8 bit 0x80). Returns 1.
+    virtual int DrawFigureLit(void* figure, const void* lights, void* material, int alpha, tagRECT* screen,
+                              CTexture* textureA, CTexture* textureB);
     // 14: 00501D00 (RET 0x18). Draws `figure` through its drawer (+0x94, 005A7640) unless it is
     // hidden (flags +8 bit 0x80); `alpha` reaches the mesh draw, `screen` (or null) gets the
     // rectangle drawn, `material` (null, or an interface sprite's material) is passed on. The second
     // and third arguments are not read there.
     virtual int DrawFigure(void* figure, const void* unknownA, const void* unknownB, void* material, int alpha,
                            tagRECT* screen);
-    virtual void Unknown15();
+    // 15: 00501CE0 (RET 4). Draws a line list (0049B780 with the pipeline and the device object).
+    virtual void DrawLineList(void* lines);
     virtual void Unknown16();
     virtual void Unknown17();
     virtual void Unknown18();
     // 19: 005041F0 (RET 0x18; renderer_rect.cpp). A black rectangle (left, top, right, bottom in
     // screen pixels) of `alpha` over the current blend state, with `outline` a white frame. Returns 1.
     virtual int DrawRectangle(int left, int top, int right, int bottom, int alpha, int outline);
+
+    // renderer_lifetime.cpp (A-U11). The base class (CVisualizator in the original's messages, vtable
+    // 0073D8A0: slots 1 00500460, 2 00500540, 3 005006E0, 7 00500740, the rest pure) owns +0x04 ..
+    // +0x1C; these are its methods, named apart from the renderer's.
+    // 00500440. Base constructor: vtable 0073D8A0, flags_, pipeline_ and sun_ cleared. Returns this.
+    CSceneRenderer* ConstructBase();
+    // 00500480. Base destructor body: vtable 0073D8A0, then DestroyBase.
+    void DestructBase();
+    // 00500460 (base slot 1, RET 4). DestructBase, operator delete when bit 0 of `flags` is set.
+    CSceneRenderer* DeleteBase(unsigned flags);
+    // 005006E0 (base slot 3). The sun dropped (set to null, then released) and the transform object
+    // told (AddSun with null), the pipeline dropped, the graphics library (2DintMMX.dll) freed and
+    // its processor forgotten.
+    void DestroyBase();
+    // 00500740 (base slot 7, RET 4). colour_ = `colour`; the transform object's ambient (slot 3)
+    // becomes its red, green and blue bytes times 1 / 255.
+    void SetBaseColour(std::uint32_t colour);
+    // 005007C0 (RET 4). The sun becomes `light` (counted; the old one released) and is handed to the
+    // transform object (AddSun) when there is one.
+    void SetSun(CLight* light);
+    // 00500800 (RET 0x10). SetSun, then the colour (slot 7) from r, g, b in 0..1, packed as
+    // SetFogColour packs them.
+    void SetSunAndAmbient(CLight* light, float r, float g, float b);
+    // 00500A70. Constructor: ConstructBase, device_ and helper_ cleared, vtable 0073D93C. Returns this.
+    CSceneRenderer* ConstructRenderer();
+    // 00500AC0. Destructor body: vtable 0073D93C; the device object dropped (null, then released),
+    // the helper released (left set), then DestructBase.
+    void DestructRenderer();
+    // 00504A40 (virtual slot 23, RET 0xC). The display settings SetGamma last kept.
+    void GetGamma(float* brightness, float* contrast, float* gamma) const;
+    // 00504780 (virtual slot 24, plain RET, AL; WM_ACTIVATE after a switch back, app.cpp). False without
+    // a device object. A full-screen device gets its cooperative level (004EECF0 with its screen
+    // rectangle) and display mode (004EEBC0: the render target's size and depth) back; then
+    // IDirectDraw7::RestoreAllSurfaces under the device lock, the primary, render target and depth
+    // surfaces restored, and the texture manager's restore (00693F60), whose result is returned.
+    bool RestoreSurfaces();
 
     // 004BA120 (RET 0xC; scene_renderer.cpp, A-S8). The fog (and clear) colour from components in
     // 0..1: each times 255 as a float, rounded to the nearest integer (FISTP); A = 0xFF, packed as
@@ -192,8 +249,9 @@ public:
     int DrawTexture(CTexture* texture, float x, float y, float scale);
 
     std::uint32_t flags_;            // +0x04 bit 0: the software cursor option; bit 1 set by the creation (00500B70)
-    CTransformPipeline* pipeline_;   // +0x08
-    std::uint8_t unknown_0C[8];
+    CTransformPipeline* pipeline_;   // +0x08 counted
+    void* graphicsProcessor_;        // +0x0C 2DintMMX.dll's GetGraphicsProcessor() (00500540)
+    void* graphicsLibrary_;          // +0x10 the HMODULE of 2DintMMX.dll
     std::uint32_t fogColour_;        // +0x14 also the colour the frame is cleared with
     std::uint32_t colour_;           // +0x18 the draw colour (slot 7)
     // +0x1C the sun (counted; 00500800 sets it with the ambient colour, the client's lighting
@@ -222,6 +280,13 @@ static_assert(offsetof(CSceneRenderer, pipeline_) == 0x08 && offsetof(CSceneRend
               offsetof(CSceneRenderer, colour_) == 0x18 && offsetof(CSceneRenderer, device_) == 0x20);
 static_assert(offsetof(CSceneRenderer, helper_) == 0x24 && offsetof(CSceneRenderer, frameTime_) == 0x34 &&
               offsetof(CSceneRenderer, lastFrameStart_) == 0x50 && offsetof(CSceneRenderer, windowFrames_) == 0x58);
+
+// renderer_lifetime.cpp (A-U11). 00500960 (cdecl): the renderer (the global at 007AF060).
+CSceneRenderer* __cdecl SceneRenderer();
+// The device object's counted holder (CSceneRenderer::device_): 00504E00 releases it (the pointer
+// left), 00504E20 (RET 4) takes `device` (one more reference) and releases the old one.
+void __fastcall DeviceHolderRelease(CTextureDevice** holder);
+void __fastcall DeviceHolderAssign(CTextureDevice** holder, void*, CTextureDevice* device);
 
 // 004F1370. Viewport matrix for a screen rectangle {left, top, right, bottom}: scale and offset by
 // the half extents, y flipped. Returns out.

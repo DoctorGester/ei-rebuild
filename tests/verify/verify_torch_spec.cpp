@@ -64,7 +64,7 @@ EI_VERIFY(0x0052C500, SpecSaveVerify, 5, s_save);
 
 static int __fastcall SpecCreateVerify(CTorchObjectSpec* self) {
     int result = self->CreateSpec();
-    bool ok = result == 1 && self->unknown_1C == 0 && self->unknown_20 == 0 && static_cast<const char*>(self->name_)[0] == 0 &&
+    bool ok = result == 1 && self->torch_ == nullptr && self->unknown_20 == 0 && static_cast<const char*>(self->name_)[0] == 0 &&
               self->values_[1] == 10.0f && self->values_[0] == 1.0f && self->values_[5] == 1.0f;
     ei::verify::Check("CTorchObjectSpec::CreateSpec", true, ok, "");
     return result;
@@ -73,7 +73,7 @@ EI_VERIFY(0x0052C610, SpecCreateVerify, 0, s_unused);
 
 static void __fastcall SpecDestroyVerify(CTorchObjectSpec* self) {
     self->DestroySpec();
-    ei::verify::Check("CTorchObjectSpec::DestroySpec", true, self->unknown_1C == 0 && static_cast<const char*>(self->name_)[0] == 0, "");
+    ei::verify::Check("CTorchObjectSpec::DestroySpec", true, self->torch_ == nullptr && static_cast<const char*>(self->name_)[0] == 0, "");
 }
 EI_VERIFY(0x0052C680, SpecDestroyVerify, 0, s_unused);
 

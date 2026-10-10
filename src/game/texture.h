@@ -47,23 +47,36 @@ public:
     void* converter_;           // +0x4C 2DintMMX's graphics processor (pixel conversions)
     std::uint8_t unknown_50[4];
     void* d3dDevice_;           // +0x54 IDirect3DDevice7*
-    std::uint8_t unknown_58[0x60 - 0x58];
+    CDXSurface* depth_;         // +0x58 the depth surface's holder (restored with the primary, 00504780)
+    std::uint8_t unknown_5C[4];
     std::uint32_t zEnable_;     // +0x60 the z-buffer setting render state 7 goes back to (00569E40)
-    std::uint8_t unknown_64[0xAC - 0x64];
+    std::uint8_t unknown_64[0x90 - 0x64];
+    // +0x90 / +0x9C: read as the depth format's DDPIXELFORMAT flags and stencil bits (the frame clear,
+    // 00501A40, clears the stencil too when DDPF_STENCILBUFFER is set and the bits are nonzero).
+    std::uint32_t depthFormatFlags_;   // +0x90
+    std::uint8_t unknown_94[8];
+    std::uint32_t stencilBits_;        // +0x9C
+    std::uint8_t unknown_A0[0xAC - 0xA0];
     CTransformPipeline* pipeline_;   // +0xAC the scene renderer's pipeline (model.h)
-    std::uint8_t unknown_B0[0x158 - 0xB0];
+    std::uint8_t unknown_B0[0x12C - 0xB0];
+    CDXSurface* stageSurfaces_[8];   // +0x12C the surface holder bound to each texture stage (00501AF0, 004EBAF0)
+    void* material_;                 // +0x14C the current material (004EB170)
+    std::uint32_t colour_;           // +0x150 the renderer's draw colour (00501CC0; mesh draw flag 4)
+    std::uint8_t unknown_154[4];
     int unknown_158;            // +0x158 cleared around the sky and hit point draws (00569E40), else 1
     RECT drawnRect_;            // +0x15C the screen rectangle of the last mesh draw (004E9010 / 004E9A50)
     // +0x16C .. +0x178: the frame's counts, cleared by the renderer's BeginScene (00503F40).
     int vertexCount_;           // +0x16C vertices drawn
     int primitiveCount_;        // +0x170 primitives drawn
     int drawCount_;             // +0x174 draw calls
-    int unknown_178;            // +0x178
+    int textureChanges_;        // +0x178 texture bindings changed (00501AF0)
 };
 static_assert(offsetof(CTextureDevice, drawnRect_) == 0x15C && offsetof(CTextureDevice, vertexCount_) == 0x16C);
 static_assert(sizeof(CTextureDevice) == 0x17C);
 static_assert(offsetof(CTextureDevice, zEnable_) == 0x60);
 static_assert(offsetof(CTextureDevice, unknown_158) == 0x158);
+static_assert(offsetof(CTextureDevice, depthFormatFlags_) == 0x90 && offsetof(CTextureDevice, stencilBits_) == 0x9C);
+static_assert(offsetof(CTextureDevice, stageSurfaces_) == 0x12C && offsetof(CTextureDevice, colour_) == 0x150);
 
 // The renderer's device object (the global pointer at 007AF080).
 inline CTextureDevice* RenderDeviceObject() { return *reinterpret_cast<CTextureDevice* const*>(0x007AF080); }
@@ -235,6 +248,16 @@ public:
 static_assert(offsetof(CTexture, extra_) == 0x2C);
 static_assert(offsetof(CTexture, format_) == 0x3C);
 static_assert(offsetof(CTexture, surface_) == 0x5C);
+
+// renderer_lifetime.cpp (A-U11). Counted texture holders (a CTexture* the user keeps).
+// 00500970. Makes sure the held texture is loaded: a null one is a fatal error ("Final loading data to
+// NULL texture!", its result returned); one with flags_ bit 3 gives 1; otherwise the texture
+// manager's LoadTexture (006922A0) and its result.
+int __fastcall TextureHolderEnsureLoaded(CTexture** holder);
+// 00500A00 (RET 8). The holder drops its texture (set to null, then released) and takes the texture
+// manager's registered or cached texture of `kind` named `name`, or a new one of `kind`
+// (CreateObject(kind, -1)), named `name` (one more reference).
+void __fastcall TextureHolderLoad(CTexture** holder, void*, int kind, const char* name);
 static_assert(offsetof(CTexture, block_) == 0x60);
 static_assert(sizeof(CTexture) == 0x68);
 

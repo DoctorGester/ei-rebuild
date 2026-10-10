@@ -18,6 +18,7 @@ void AIRef::Reset() {
 }
 EI_REPLACE_METHOD(0x0052B030, AIRef::Reset);
 EI_REPLACE_METHOD(0x0052B050, AIRef::Reset);
+EI_REPLACE_METHOD(0x00558CE0, AIRef::Reset);   // byte-identical copy (A-U11)
 
 void AIRef::Assign(CEngineObject* newObject) {
     if (newObject == object) return;

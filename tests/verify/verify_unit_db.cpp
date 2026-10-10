@@ -201,3 +201,93 @@ static int __fastcall IndexOfLevelVerify(SkillDatabase* self, void*, const Skill
     return expected;
 }
 EI_VERIFY(0x0051FF00, IndexOfLevelVerify, 6, s_indexOfLevel);
+
+// A-U11: the unit database's pieces and vectors (startup, 0053A200 in every scenario).
+// - UnitLevelRecord::Serialize (0052DEE0), the model slot (0052D6F0) and the four dwords (0052D6A0):
+//   ours, then the original reads the same again; compared (strings by content).
+// - SerializePrototypes / Npcs / Models / UnitLevels (0053DC10 / 0053DD00 / 0053DF50 / 0053E1B0) and
+//   SerializeCStrings (0052DF40): ours only; after a load the vector holds as many records as the chunk
+//   has record chunks (strings: fields 1).
+namespace {
+constexpr int kLevelStrings[] = {0x00};
+constexpr Layout kLevelLayout{sizeof(UnitLevelRecord), kLevelStrings, 1, nullptr, 0};
+void* s_unusedUnitVectors;
+} // namespace
+
+// 0052DEE0 / 0052D6F0 / 0052D6A0: PUSH ESI; PUSH EDI; MOV EDI,[ESP+0xC] (6 bytes).
+static void(__fastcall* s_levelSerialize)(UnitLevelRecord*, void*, ChunkArchive*);
+static void __fastcall LevelSerializeVerify(UnitLevelRecord* self, void*, ChunkArchive* ar) {
+    SerializeVerify("UnitLevelRecord::Serialize", s_levelSerialize, self, ar, kLevelLayout);
+}
+EI_VERIFY(0x0052DEE0, LevelSerializeVerify, 6, s_levelSerialize);
+
+static void(__fastcall* s_slotSerialize)(UnitModelSlot*, void*, ChunkArchive*);
+static void __fastcall SlotSerializeVerify(UnitModelSlot* self, void*, ChunkArchive* ar) {
+    self->Serialize(ar);
+    if (!ar->loading_) return;
+    unsigned char ours[12];
+    std::memcpy(ours, &self->levelIndex, sizeof(ours));
+    std::uint64_t oursText = 0xCBF29CE484222325ull;
+    Mix(oursText, self->levelName);
+    s_slotSerialize(self, nullptr, ar);
+    std::uint64_t theirsText = 0xCBF29CE484222325ull;
+    Mix(theirsText, self->levelName);
+    bool same = std::memcmp(ours, &self->levelIndex, sizeof(ours)) == 0 && oursText == theirsText;
+    ei::verify::Check("UnitModelSlot::Serialize", true, same, "\"%s\"", static_cast<const char*>(self->levelName));
+}
+EI_VERIFY(0x0052D6F0, SlotSerializeVerify, 6, s_slotSerialize);
+
+static void(__fastcall* s_fourDwords)(std::uint32_t*, void*, ChunkArchive*);
+static void __fastcall FourDwordsVerify(std::uint32_t* values, void*, ChunkArchive* ar) {
+    SerializeFourDwords(values, nullptr, ar);
+    if (!ar->loading_) return;
+    std::uint32_t ours[4];
+    std::memcpy(ours, values, sizeof(ours));
+    s_fourDwords(values, nullptr, ar);
+    ei::verify::Check("SerializeFourDwords", true, std::memcmp(ours, values, sizeof(ours)) == 0, "%u %u %u %u",
+                      values[0], values[1], values[2], values[3]);
+}
+EI_VERIFY(0x0052D6A0, FourDwordsVerify, 6, s_fourDwords);
+
+template <typename Record>
+void CheckRecords(const char* name, ChunkArchive* ar, int id, const stlp::vector<Record>* records) {
+    if (!ar->loading_) return;
+    int chunks = RecordChunks(ar, id);
+    ei::verify::Check(name, chunks, static_cast<int>(records->size()), "%d records", chunks);
+}
+
+static void __fastcall PrototypesVerify(ChunkArchive* ar, void*, int id, stlp::vector<UnitPrototypeRecord>* records,
+                                        void* unused) {
+    ar->SerializePrototypes(id, records, unused);
+    CheckRecords("ChunkArchive::SerializePrototypes", ar, id, records);
+}
+EI_VERIFY(0x0053DC10, PrototypesVerify, 0, s_unusedUnitVectors);
+
+static void __fastcall NpcsVerify(ChunkArchive* ar, void*, int id, stlp::vector<UnitNpcRecord>* records, void* unused) {
+    ar->SerializeNpcs(id, records, unused);
+    CheckRecords("ChunkArchive::SerializeNpcs", ar, id, records);
+}
+EI_VERIFY(0x0053DD00, NpcsVerify, 0, s_unusedUnitVectors);
+
+static void __fastcall ModelsVerify(ChunkArchive* ar, void*, int id, stlp::vector<UnitModelRecord>* records,
+                                    void* unused) {
+    ar->SerializeModels(id, records, unused);
+    CheckRecords("ChunkArchive::SerializeModels", ar, id, records);
+}
+EI_VERIFY(0x0053DF50, ModelsVerify, 0, s_unusedUnitVectors);
+
+static void __fastcall UnitLevelsVerify(ChunkArchive* ar, void*, int id, stlp::vector<UnitLevelRecord>* records,
+                                        void* unused) {
+    ar->SerializeUnitLevels(id, records, unused);
+    CheckRecords("ChunkArchive::SerializeUnitLevels", ar, id, records);
+}
+EI_VERIFY(0x0053E1B0, UnitLevelsVerify, 0, s_unusedUnitVectors);
+
+static void __fastcall CStringsVerify(ChunkArchive* ar, void*, int id, CStringVector* strings, void* unused) {
+    ar->SerializeCStrings(id, strings, unused);
+    if (!ar->loading_) return;
+    int fields = RecordChunks(ar, id);
+    ei::verify::Check("ChunkArchive::SerializeCStrings", fields, static_cast<int>(strings->end - strings->begin),
+                      "%d strings", fields);
+}
+EI_VERIFY(0x0052DF40, CStringsVerify, 0, s_unusedUnitVectors);

@@ -13,6 +13,8 @@
 #include <cstdint>
 
 class CStream;   // core_streams.h
+class CMapObject;   // map_object.h
+struct DeltaField;  // net_delta.h
 
 class CServerSpecificManager : public CBaseManager {
 public:
@@ -63,14 +65,19 @@ public:
     void SetLight(std::uint32_t kind, const float* colour, float value);
     void SetFlame(const float* colour, float value, const float* values);
     void SetName(const char* name);
+    // 0052C390 (RET 4; torch_spec.cpp, A-U11; the torch's network read, 0052C1F0). Reads the kind,
+    // values_[0], values_[1], values_[2..5], both vectors and the name from `field`, then applies them
+    // through the vtable (slots 16, 17, 18; a client half rebuilds its effects there), shows the
+    // effects (13) and warms the particles up (15).
+    void ReadNetState(DeltaField* field);
 
-    std::uint32_t unknown_1C;   // +0x1C 0 when constructed
+    CMapObject* torch_;         // +0x1C the torch it belongs to (set by the torch's attach, 0052C2C0); null when constructed
     std::uint32_t unknown_20;   // +0x20
     mfc::CString name_;         // +0x24
     float values_[6];           // +0x28 Create: 1, 10, 1, 1, 1, 1
     float colours_[2][3];       // +0x40 Create: both 007AF2D0..D8
 };
-static_assert(offsetof(CTorchObjectSpec, unknown_1C) == 0x1C);
+static_assert(offsetof(CTorchObjectSpec, torch_) == 0x1C);
 static_assert(offsetof(CTorchObjectSpec, name_) == 0x24);
 static_assert(offsetof(CTorchObjectSpec, colours_) == 0x40);
 static_assert(sizeof(CTorchObjectSpec) == 0x58);
@@ -80,9 +87,11 @@ static_assert(sizeof(CTorchObjectSpec) == 0x58);
 // members above, registered by address (rewrite guide rule 4).
 class CTorchObjectSpecSlots : public CEngineObject {
 public:
-    virtual void Empty13() = 0;   // 13: 004D6B20 (empty)
-    virtual void Empty14() = 0;   // 14: 004D6B30 (empty)
-    virtual void Empty15() = 0;   // 15: 004D6B40 (empty)
+    // 13-15: empty here (004D6B20 / 30 / 40); the client half (torch_client_spec.h) shows its
+    // effects (0052D580), hides them (0052D610) and warms its particles up (0052D3F0).
+    virtual void ShowEffectsSlot() = 0;       // 13
+    virtual void HideEffectsSlot() = 0;       // 14
+    virtual void WarmUpParticlesSlot() = 0;   // 15
     virtual void SetLightSlot(std::uint32_t kind, const float* colour, float value) = 0;   // 16: 0052C590 SetLight
     virtual void SetFlameSlot(const float* colour, float value, const float* values) = 0;  // 17: 0052C5C0 SetFlame
     virtual void SetNameSlot(const char* name) = 0;                                    // 18: 0052C600 SetName

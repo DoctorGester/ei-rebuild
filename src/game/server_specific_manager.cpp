@@ -84,7 +84,7 @@ CEngineObject* CServerSpecificManager::NewObject(int type) {
         spec->owner_ = nullptr;
         new (&spec->name_) mfc::CString();
         ei::SetVtable(spec, CTorchObjectSpec::kVtableAddress);
-        spec->unknown_1C = 0;
+        spec->torch_ = nullptr;
         spec->Create();
         return spec;
     }

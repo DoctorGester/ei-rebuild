@@ -98,7 +98,7 @@ static std::uintptr_t __fastcall TorchAttachVerify(CTorchObject* self, void*, CE
     bool spec = object->type_ == 0x4B;
     std::uintptr_t result = self->AttachTorchObject(object);
     bool ok = !spec || (self->spec == static_cast<CEngineObject*>(object) &&
-                        self->spec->unknown_1C == reinterpret_cast<std::uintptr_t>(self) &&
+                        self->spec->torch_ == self &&
                         result == reinterpret_cast<std::uintptr_t>(object));
     ei::verify::Check("CTorchObject::AttachTorchObject", true, ok, "torch %d type %d", self->id_, object->type_);
     return result;

@@ -120,6 +120,10 @@ is snapshotted and restored, the original runs, bytes and EAX compared.
 | 0050A5D0, 0050A720, 0050A700, 0050A810, 0050A8C0 | AnimationTrack (class 0x300B, vtable 0073D9D8, 0x78 bytes) Construct, DestructBody, DeleteTrack (0), CreateTrack / DestroyTrack (2 / 3) (animation_track_lifetime.cpp); `frames` (+0x38) and `vertices` (+0x68) are AlignedArrays now | ctor: original into a raw copy, all bytes compared; the rest ours only |
 | 0050D950, 0050DA10 | CFigureAnimationState ClearBoneTracks / LoadBoneTracks (005ACCF0: the tracks cleared, or loaded from the model part's entry named as the bone, slot 5 / 0050AAF0) | ours only |
 | 0050AAF0 | AnimationTrack::LoadKeyFrames (rotations, positions, frame and vertex counts from the model entry; arrays sized without keeping contents; frame pointers into the entry) | ours only: counts, frame pointers and the cursor's end predicted from the entry |
+| 00500440, 00500460, 00500480, 005006E0, 00500740, 005007C0, 00500800, 00500960, 00500A70, 00500AA0, 00500AC0, 005019F0, 00501A40, 00501AA0, 00501AF0, 00501CC0, 00501CE0, 00501D00, 00501D40, 00504A40, 00504780, 00504E00, 00504E20 | CSceneRenderer lifetime and small slots (renderer_lifetime.cpp, A-U11): base class (vtable 0073D8A0: ctor, deleting dtor, dtor, DestroyBase, SetBaseColour), SetSun / SetSunAndAmbient, SceneRenderer, ctor / deleting dtor / dtor, slots 3 DestroyRenderer, 8 ClearFrame, 9 ZEnable, 11 SetTexture, 7 SetColour, 15 DrawLineList, 14 DrawFigure, 13 DrawFigureLit, 23 GetGamma, 24 RestoreSurfaces, the device holder | SceneRenderer, ZEnable, GetGamma: original vs ours; the rest ours only (fields, results, bound stage) |
+| 00500970, 00500A00, 00504F60, 00505140, 00505260 | texture holders' EnsureLoaded / Load (by kind and name), the sprite work arrays' constructors (AlignedArray::Construct) | ours only |
+| 00507C50, 00508BF0 | CAnimationNode::AttachMeshes (the first part named as the node becomes its mesh, placed at the pose; recursive), SceneSkin::BindMeshes (skin_rewind.cpp) | ours only: the tree bound as predicted |
+| 0051C130, 0051C160, 0051C1D0, 0051B2E0, 0051B2D0, 00516920, 0051AD50, 0051AD60, 0051AD00, 0051ACE0 | CObject3DClientSpecific picking slots 22-24 (dirtyRect / own-mesh parts' screen rects; PtInRect, IntersectRect + IsRectEmpty), part lookups 16 / 17 (CObject3D::FindPart / FindPartOfType: type_, parts then pending), class name / id, the side half's base destructor (vtable 0073DEFC) (object3d_specific_slots.cpp, A-U11) | original vs ours; destructors ours only |
 | 00506C70 | MultiplyQuaternions (fastcall out, a, b: a * b, Hamilton; skin nodes, hero preview; skin_quaternion.cpp) | original vs ours, CheckNear |
 
 Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEffect::Tick`, 00524FE0
@@ -157,13 +161,26 @@ Other callees stay forwarders: 00455950 `CEngineObject::World`, 00688530 `MapEff
 - Create3D drops the side half (+0x94) without releasing it; Destroy3D only decrements the placed
   parts' counts (no release, nothing freed at 0) while it releases the pending ones.
 
+- A-U11: RestoreSurfaces (00504780) passes an unwritten local as the display mode when a full-screen device has no
+  primary surface (ours 0); AttachMeshes (00507C50) overwrites a held mesh without releasing it; the renderer's
+  destructor releases the helper without clearing it.
+
 ## Skipped and why
 
 - CArray Serialize / SetSize instantiations (library).
 - A-U9: 005015A0 (renderer slot 25: the projection / viewport / axis-swap stacks for a rectangle and a field of view,
   like the creation's FillMatrixStacks) has no caller (no `call [reg+0x64]` on the renderer in game.exe); 00508A30
-  (sets the skin clock, rewinds) is unreferenced. Next here: 0050A210, 00507C50, the renderer's small slots (00500AA0, 005019F0, 00501A40 ClearFrame, 00501AF0, 00501D40,
-  00504780), 00505380-005055F0.
+  (sets the skin clock, rewinds) is unreferenced. A-U11: 0050A210 is library (CArray::Serialize); 00505380 (an aligned
+  buffer's free) runs only in an unwind funclet of 005045D0, which is rewritten; 00505410 / 005054E0 / 005055F0 (key record
+  writers) are called only from dead 0044A7B0 (the animation exporter; Ghidra's bodies for them overlap live readers, so
+  find_dead_code.py keeps them); 00501980 / 005019D0 only from slot 25 (005015A0, no caller); 00500A90 (4 bytes) too
+  short; 00503F20 (a Vector3 copy) and 005000xx-005003D0 (STLport copy helpers) left.
+- Next after A-U11: CObject3DClientSpecific's part sets (+0x20 / +0x24: objects holding arrays of arrays of parts; needs
+  their layout declared): slots 13 / 14 / 15 (0051B050 / 0051B210 / 0051B160) with 0051B2F0 / 0051B470 / 0051B5B0 /
+  0051B630, ctor / dtor / Create / Destroy (0051AB00 / 0051AD90 / 0051AEC0 / 0051AF70), 0051CB30, the colour stack
+  0051C250 / 0051C9F0 / 0051C730-0051C890; CObject3DServer stubs (0051F240-0051F330); 0051E300-0051F0D0 (materials);
+  005101A0 / 005102A0, 005143E0, 00512660 / 00512A30, 0050E580, 0050FBC0, 0050BF00, 00508870; 5- and 6-byte constant
+  slots (byte-identical to rewritten stubs, but registering them under unrelated names was avoided).
 - 0050E9B0 (slot 34): packs a stack UnitVitals the builder leaves unwritten when the prototype exists (garbage in the
   original; cannot be reproduced). 0050F080 is rewritten (A-U5, map_object_vitals.cpp: CMapObject::ClearProtectionBases,
   verified ours vs original on the protection pairs; reached by every unit spawn through 0058EF20).

@@ -223,6 +223,10 @@ original, compared: unit 0x4DC, stats 0x704, vitals 0x58); C capture streams; ou
 | 0052BEE0-0052C2C0 (13), 0052C490-0052C680 (7) | CTorchObject lifetime, Destroy, Update, Load / Save, AttachTorchObject, net state; CTorchObjectSpec Create / Destroy / Load / Save / setters 16-18 | torch_object.cpp, torch_spec.cpp | C / S / P |
 | 005296E0-00529A10 (20), 0052B030 / 0052B050 / 0052A8F0 / 0050E220 / 0050E290 | CTree / CBuilding / CStone / CStuffObject (PlainMapObject<vtable>) lifetimes and class slots; AIRef Reset / Assign / Load / Save | map_object_kinds.cpp, counted_ref.cpp | |
 | 00529A80-00529DA0 (14), 00529F50 / 00529F60 / 00529F70, 00522AD0 | CTrapObject (class 0x55), the magic trap's class slots and deleting destructor, LockKey::AcceptedByTrap | trap_object.cpp | |
+| 0052D0D0-0052D610 (14), 0052C390 | CTorchObjectClientSpecific (A-U11, torch_client_spec.h: vtable 0073E954, 19 slots, 0x64): lifetime, 13 / 14 show / hide the particles, light and looping sound, 15 warms the particles up, 16-18 rebuild them (particle type + offset + scale, point light offset + radius + colour, sound name); the spec's network read (applies through slots 16-18, 13, 15) | torch_client_spec.cpp, torch_spec.cpp | ctor: original into a raw copy (+0..+0x60); class slots P; the rest ours |
+| 005229F0, 00522A30, 00511B90 / 0052C690 / 00556C40 / 00556C60 | LockKey ReadFrom / WriteTo (the lever's Load / Save), the counted-pointer assignment copies (ObjectHolderAssign) | lever_object.cpp, refptr_copies.cpp | WriteTo: capture compare; the rest ours |
+| 40 byte-identical copies (A-U11; found by comparing instruction streams with call targets resolved): aligned array free (14) / allocate (4) / SetSize (4) / SetAtGrow (0051EE50), RefPtr::Destroy (005587A0, 0055EDA0, 0055EDE0), ObjectHolderRelease (5), counted holder release (00519560, 0051E3E0, 0055FCE0 on DeviceHolderRelease), CountedRef::Assign (0051E4F0, 0051E570), AIRef::Reset (00558CE0), CountedPointerRelease (00545B80), ScriptRefDestroy (0052D030), TextSourceIterator::CopyTo (00539210) | registered beside the originals' rewrites | the originals' wrappers (compared where they compare); 0052D030 / 00545B80 ours only (verify_unit_range_copies.cpp) |
+| 0053DC10, 0053DD00, 0053DF50, 0053E1B0, 0052DF40, 0052DEE0, 0052D6F0, 0052D6A0 | Unit database (A-U11): ChunkArchive::SerializePrototypes / Npcs / Models / UnitLevels (the skill vectors' shape; records destroyed and resized through the originals), SerializeCStrings (InlineStrings), UnitLevelRecord (0x44: name, two runs of 7 dwords, +0x40, +0x04) / UnitModelSlot::Serialize, the four dwords | unit_db.cpp | records: O (read twice); vectors: ours (record count) |
 | 0051F3A0, 0051F480, 005207D0, 005208C0, 00521480, 0051FE00, 0051FE80, 0051FF00 | Skill (perk) database 007AF268 (A-U10): SkillRecord / SkillLevelRecord::Serialize (O: read twice), the archive's skill / level vectors and level chunk (ours: count), FindLevel / IndexOf (_mbsicmp on the level's +4 name) / IndexOfLevel (P) | unit_db.cpp | |
 
 ## Original bugs and oddities kept on purpose
@@ -283,9 +287,9 @@ original, compared: unit 0x4DC, stats 0x704, vitals 0x58); C capture streams; ou
 
 - 0052EA40 (SetMotionSpeeds with given speeds): only the multiplayer client calls it (00669FA0). 0050E9B0 (CMapObject slot
   34) packs vitals the builder never writes when the prototype exists: uninitialised stack, cannot be compared.
-- Candidates: 00522AE0 / 00522B20 (results depend on leftover register halves),
-  0052C390 (torch spec net read: calls the spec's slots 13-18 through the vtable, which a client spec may override), 0052CA40
-  / 0052CB40 / 0052CC50 (STLport / CArray instantiations).
+- Candidates: 00522AE0 / 00522B20 (results depend on leftover register halves). A-U11 put the skill database's
+  STLport / compiler plumbing (0051F5B0-00522910, 26 functions), 0052CC50 (CArray SetAtGrow) and 0052CA40 / 0052CB40
+  (the lever table's hash_map operator[]) in config/library.csv.
 - Not unit logic: 00500000-0050E000 (`map_objects.md`), map object effect visuals (00510B80, 005112A0, 005114D0, 00511A00),
   the client half's material sets and colour stack (0051C3D0, 0051C250, 0051B050, 0051B160, 0051C9F0: renderer data),
   0051FF40 (writes "perks.pdb", no references: dead), the perks loader 00520220 (Rebirth-patched; its STLport helpers

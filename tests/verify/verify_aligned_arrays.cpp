@@ -19,6 +19,7 @@ void __fastcall DwordArraySetSize(Dwords* a, void*, int n, int growBy);
 void __fastcall Vector3ArraySetSize(Vectors* a, void*, int n, int growBy);
 int __fastcall Vector3ArrayAdd(Vectors* a, void*, Blob<12> value);
 void __fastcall DwordArraySetAtGrowRef(Dwords* a, void*, int index, const std::uint32_t* value);
+void __fastcall DwordArraySetAtGrow(Dwords* a, void*, int index, std::uint32_t value);
 void __fastcall Vector3ArrayCopy(Vectors* a, void*, const Vectors* other);
 Blob<12>* __fastcall AllocateVectors(int count);
 std::uint32_t* __fastcall AllocateDwords(int count);
@@ -56,6 +57,11 @@ void __fastcall SetAtGrowVerify(Array* a, void*, int index, const std::uint32_t*
     std::uint32_t v = *value;
     DwordArraySetAtGrowRef(reinterpret_cast<Dwords*>(a), nullptr, index, value);
     ei::verify::Check("DwordArraySetAtGrowRef", true, a->size > index && std::memcmp(a->data + index * 4, &v, 4) == 0, "");
+}
+// A-U11: the by-value SetAtGrow copy.
+void __fastcall SetAtGrowValueVerify(Array* a, void*, int index, std::uint32_t value) {
+    DwordArraySetAtGrow(reinterpret_cast<Dwords*>(a), nullptr, index, value);
+    ei::verify::Check("DwordArraySetAtGrow", true, a->size > index && std::memcmp(a->data + index * 4, &value, 4) == 0, "");
 }
 void __fastcall CopyVerify(Array* a, void*, const Array* other) {
     Vector3ArrayCopy(reinterpret_cast<Vectors*>(a), nullptr, reinterpret_cast<const Vectors*>(other));
@@ -96,3 +102,27 @@ EI_VERIFY(0x0044F2E0, Add12Verify, 0, s_unused);
 EI_VERIFY(0x00452C40, SetAtGrowVerify, 0, s_unused);
 EI_VERIFY(0x0044F410, CopyVerify, 0, s_unused);
 EI_VERIFY(0x00452C20, AllocVerify, 0, s_unused);
+// A-U11: the byte-identical copies in the units range.
+EI_VERIFY(0x00505380, FreeVerify, 0, s_unused);
+EI_VERIFY(0x00509F40, FreeVerify, 0, s_unused);
+EI_VERIFY(0x00509F60, FreeVerify, 0, s_unused);
+EI_VERIFY(0x0050A090, FreeVerify, 0, s_unused);
+EI_VERIFY(0x0050A3F0, FreeVerify, 0, s_unused);
+EI_VERIFY(0x0050DAF0, FreeVerify, 0, s_unused);
+EI_VERIFY(0x005199F0, FreeVerify, 0, s_unused);
+EI_VERIFY(0x00519D10, FreeVerify, 0, s_unused);
+EI_VERIFY(0x0051E5B0, FreeVerify, 0, s_unused);
+EI_VERIFY(0x0051E8D0, FreeVerify, 0, s_unused);
+EI_VERIFY(0x0051E8F0, FreeVerify, 0, s_unused);
+EI_VERIFY(0x0051E910, FreeVerify, 0, s_unused);
+EI_VERIFY(0x0051E930, FreeVerify, 0, s_unused);
+EI_VERIFY(0x0051E950, FreeVerify, 0, s_unused);
+EI_VERIFY(0x0050E100, AllocDwordsVerify, 0, s_unused);
+EI_VERIFY(0x00514D30, AllocDwordsVerify, 0, s_unused);
+EI_VERIFY(0x0051A170, AllocDwordsVerify, 0, s_unused);
+EI_VERIFY(0x0051EF90, AllocDwordsVerify, 0, s_unused);
+EI_VERIFY(0x0051EA10, SetSize4Verify, 0, s_unused);
+EI_VERIFY(0x0051EB20, SetSize4Verify, 0, s_unused);
+EI_VERIFY(0x0051EC30, SetSize4Verify, 0, s_unused);
+EI_VERIFY(0x0051ED40, SetSize4Verify, 0, s_unused);
+EI_VERIFY(0x0051EE50, SetAtGrowValueVerify, 0, s_unused);

@@ -4,6 +4,7 @@
 #include "../../src/game/figure.h"
 #include "../../src/game/figure_mesh.h"
 #include "../../src/game/scene_loader.h"
+#include "../../src/game/engine_object.h"
 
 #include <cstring>
 #include <vector>
@@ -93,3 +94,41 @@ static void __fastcall SkinRewindVerify(scene::SceneSkin* skin, void*) {
     ei::verify::Check("SceneSkin::Rewind", true, ok, "root %p", static_cast<void*>(skin->root));
 }
 EI_VERIFY(0x00508990, SkinRewindVerify, 0, s_skinRewind);
+
+// 00507C50 / 00508BF0 (A-U11; ours only, they add references): afterwards every node of the tree whose
+// name a part has holds the first such part as its mesh, placed at its pose. Reached by the fake units'
+// scene loading (LoadFakeUnitScene: interface figures, the hero preview).
+namespace {
+bool MeshesBound(const CAnimationNode* node, const lib::AlignedArray<void*>* parts) {
+    for (int i = 0; i < parts->size; ++i) {
+        auto* part = static_cast<CEngineObject*>(parts->data[i]);
+        if (std::strcmp(part->GetName(), node->name_) != 0) continue;
+        CFigureMesh* mesh = node->mesh_;
+        if (mesh != parts->data[i]) return false;
+        if (std::memcmp(&mesh->position_, &node->posePosition_, sizeof(Vector3)) != 0) return false;
+        break;
+    }
+    for (int i = 0; i < node->children_.size; ++i) {
+        if (node->children_.data[i] && !MeshesBound(node->children_.data[i], parts)) return false;
+    }
+    return true;
+}
+void* s_attachMeshes;
+void* s_bindMeshes;
+} // namespace
+
+static int __fastcall AttachMeshesVerify(CAnimationNode* node, void*, const lib::AlignedArray<void*>* parts) {
+    int result = node->AttachMeshes(parts);
+    ei::verify::Check("CAnimationNode::AttachMeshes", true, result == 1 && MeshesBound(node, parts), "%d parts",
+                      parts->size);
+    return result;
+}
+EI_VERIFY(0x00507C50, AttachMeshesVerify, 0, s_attachMeshes);
+
+static int __fastcall BindMeshesVerify(scene::SceneSkin* skin, void*, const lib::AlignedArray<void*>* parts) {
+    int result = skin->BindMeshes(parts);
+    bool ok = result == 1 && (!skin->root || MeshesBound(skin->root, parts));
+    ei::verify::Check("SceneSkin::BindMeshes", true, ok, "%d parts", parts->size);
+    return result;
+}
+EI_VERIFY(0x00508BF0, BindMeshesVerify, 0, s_bindMeshes);

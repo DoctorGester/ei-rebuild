@@ -35,6 +35,11 @@ void __fastcall DwordArraySetSize2(Dwords* a, void*, int n, int growBy) { a->Set
 EI_REPLACE(0x004513A0, DwordArraySetSize2);
 void __fastcall DwordArraySetSize3(Dwords* a, void*, int n, int growBy) { a->SetSize(n, growBy); }
 EI_REPLACE(0x00452EB0, DwordArraySetSize3);
+// Byte-identical copies in the units range (A-U11).
+EI_REPLACE(0x0051EA10, DwordArraySetSize);
+EI_REPLACE(0x0051EB20, DwordArraySetSize);
+EI_REPLACE(0x0051EC30, DwordArraySetSize);
+EI_REPLACE(0x0051ED40, DwordArraySetSize);
 void __fastcall QwordArraySetSize(Qwords* a, void*, int n, int growBy) { a->SetSize(n, growBy); }
 EI_REPLACE(0x00453100, QwordArraySetSize);
 void __fastcall Vector3ArraySetSize(Vectors* a, void*, int n, int growBy) { a->SetSize(n, growBy); }
@@ -59,6 +64,7 @@ void __fastcall DwordArraySetAtGrowRef(Dwords* a, void*, int index, const std::u
 EI_REPLACE(0x00452C40, DwordArraySetAtGrowRef);
 void __fastcall DwordArraySetAtGrow(Dwords* a, void*, int index, std::uint32_t value) { a->SetAtGrow(index, value); }
 EI_REPLACE(0x004538D0, DwordArraySetAtGrow);
+EI_REPLACE(0x0051EE50, DwordArraySetAtGrow);   // byte-identical copy (A-U11)
 void __fastcall Vector3ArraySetAtGrow(Vectors* a, void*, int index, Blob<12> value) { a->SetAtGrow(index, value); }
 EI_REPLACE(0x00452AF0, Vector3ArraySetAtGrow);
 void __fastcall QwordArraySetAtGrow(Qwords* a, void*, int index, Blob<8> value) { a->SetAtGrow(index, value); }
@@ -74,6 +80,11 @@ EI_REPLACE(0x0044F410, Vector3ArrayCopy);
 std::uint32_t* __fastcall AllocateDwords(int count) { return Dwords::Allocate(count); }
 EI_REPLACE(0x00453A10, AllocateDwords);
 EI_REPLACE(0x00600A80, AllocateDwords);   // byte-identical copy (the interface's UiPtrArray)
+// Byte-identical copies in the units range (A-U11).
+EI_REPLACE(0x0050E100, AllocateDwords);
+EI_REPLACE(0x00514D30, AllocateDwords);
+EI_REPLACE(0x0051A170, AllocateDwords);
+EI_REPLACE(0x0051EF90, AllocateDwords);
 Blob<6>* __fastcall AllocateWords6(int count) { return lib::AlignedArray<Blob<6>>::Allocate(count); }
 EI_REPLACE(0x00452E90, AllocateWords6);
 Blob<8>* __fastcall AllocateQwords(int count) { return Qwords::Allocate(count); }
@@ -103,6 +114,21 @@ EI_REPLACE(0x00600370, ArrayFree1);
 EI_REPLACE(0x00600390, ArrayFree1);
 EI_REPLACE(0x006003B0, ArrayFree1);
 EI_REPLACE(0x00601B50, ArrayFree1);
+// Byte-identical copies in the units range (A-U11).
+EI_REPLACE(0x00505380, ArrayFree1);
+EI_REPLACE(0x00509F40, ArrayFree1);
+EI_REPLACE(0x00509F60, ArrayFree1);
+EI_REPLACE(0x0050A090, ArrayFree1);
+EI_REPLACE(0x0050A3F0, ArrayFree1);
+EI_REPLACE(0x0050DAF0, ArrayFree1);
+EI_REPLACE(0x005199F0, ArrayFree1);
+EI_REPLACE(0x00519D10, ArrayFree1);
+EI_REPLACE(0x0051E5B0, ArrayFree1);
+EI_REPLACE(0x0051E8D0, ArrayFree1);
+EI_REPLACE(0x0051E8F0, ArrayFree1);
+EI_REPLACE(0x0051E910, ArrayFree1);
+EI_REPLACE(0x0051E930, ArrayFree1);
+EI_REPLACE(0x0051E950, ArrayFree1);
 void __fastcall ArrayFree2(lib::AlignedArray<std::uint8_t>* a) { a->FreeData(); }
 EI_REPLACE(0x0044FA70, ArrayFree2);
 void __fastcall ArrayFree3(lib::AlignedArray<std::uint8_t>* a) { a->FreeData(); }

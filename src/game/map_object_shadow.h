@@ -39,6 +39,8 @@ struct AlignedRecordBuffer {
     int growBy;
 };
 
+struct tagRECT;   // windows.h
+
 class CObject3DClientSpecific : public CEngineObject {
 public:
     // 0051CE60. Draws the object's shadow (`context` is the frame's draw context). When shadows
@@ -94,6 +96,17 @@ public:
     // (world slot 33, 0068EAF0 with the part's type_).
     void ExtraScale(float* x, float* y, float* z);
     void RegisterPartMaterials();
+    // object3d_specific_slots.cpp (A-U11). Slots 22-24, the screen picking (RET 4; a shown object only,
+    // flags_ 0x20 of the 3D object): 0051C130 whether the point (x, y) is in the object's dirtyRect;
+    // 0051C160 in the screen rectangle of one of its parts with their own mesh (part flags 0x40);
+    // 0051C1D0 whether `rect` meets such a part's rectangle (a non-empty intersection).
+    int BoundsContainPoint(const long* point);
+    int PartsContainPoint(const long* point);
+    int PartsIntersectRect(const tagRECT* rect);
+    // Slots 16 / 17 (RET 4): 0051B2E0 the object's part named `name` (CObject3D::FindPart), 0051B2D0
+    // its part of type `type` (CObject3D::FindPartOfType).
+    FigurePart* ObjectPartNamed(const char* name);
+    FigurePart* ObjectPartOfType(int type);
 
     CObject3D* object;              // +0x1C
     CEngineObject** material;       // +0x20 its object's +0x60 is the shadow colour key; the

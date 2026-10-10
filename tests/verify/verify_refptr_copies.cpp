@@ -108,6 +108,9 @@ void CheckDestroy(const char* name, HolderFn original, RefPtr* self) {
     void __fastcall DestroyVerify_##addr(RefPtr* self) { CheckDestroy("RefPtr::Destroy@" #addr, s_destroy_##addr, self); }
 
 EI_DESTROY_COPY(00417A30)
+EI_DESTROY_COPY(005587A0)
+EI_DESTROY_COPY(0055EDA0)
+EI_DESTROY_COPY(0055EDE0)
 EI_DESTROY_COPY(00417A70)
 EI_DESTROY_COPY(00419D00)
 EI_DESTROY_COPY(00419F50)
@@ -219,6 +222,9 @@ EI_VERIFY(0x00429A50, ShareVerify_00429A50, 7, s_share_00429A50);
 EI_VERIFY(0x00429AB0, ShareVerify_00429AB0, 7, s_share_00429AB0);
 
 EI_VERIFY(0x00417A30, DestroyVerify_00417A30, 6, s_destroy_00417A30);
+EI_VERIFY(0x005587A0, DestroyVerify_005587A0, 6, s_destroy_005587A0);   // A-U11 copies
+EI_VERIFY(0x0055EDA0, DestroyVerify_0055EDA0, 6, s_destroy_0055EDA0);
+EI_VERIFY(0x0055EDE0, DestroyVerify_0055EDE0, 6, s_destroy_0055EDE0);
 EI_VERIFY(0x00417A70, DestroyVerify_00417A70, 6, s_destroy_00417A70);
 EI_VERIFY(0x00419D00, DestroyVerify_00419D00, 6, s_destroy_00419D00);
 EI_VERIFY(0x00419F50, DestroyVerify_00419F50, 6, s_destroy_00419F50);
@@ -481,4 +487,13 @@ EI_VERIFY(0x00438110, AssignObjectVerify, 0, s_unused);
 EI_VERIFY(0x00429D80, IsUniqueVerify, 7, s_isUnique);
 EI_VERIFY(0x00429D90, DetachShutdownVerify, 0, s_unused);
 EI_VERIFY(0x00421350, HolderReleaseVerify, 0, s_unused);
+EI_VERIFY(0x00511B80, HolderReleaseVerify, 0, s_unused);
+EI_VERIFY(0x0051E3D0, HolderReleaseVerify, 0, s_unused);
+EI_VERIFY(0x0052D670, HolderReleaseVerify, 0, s_unused);
+EI_VERIFY(0x00552B80, HolderReleaseVerify, 0, s_unused);
+EI_VERIFY(0x00556AA0, HolderReleaseVerify, 0, s_unused);
 EI_VERIFY(0x00429B50, HolderAssignVerify, 0, s_unused);
+EI_VERIFY(0x00511B90, HolderAssignVerify, 0, s_unused);
+EI_VERIFY(0x0052C690, HolderAssignVerify, 0, s_unused);
+EI_VERIFY(0x00556C40, HolderAssignVerify, 0, s_unused);
+EI_VERIFY(0x00556C60, HolderAssignVerify, 0, s_unused);

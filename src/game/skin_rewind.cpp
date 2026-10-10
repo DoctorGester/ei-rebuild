@@ -6,6 +6,7 @@
 #include "figure_mesh.h"    // CFigureMesh
 #include "scene_loader.h"   // SceneSkin
 #include "bone_pose.h"
+#include "engine_object.h"  // CEngineObject::GetName
 
 #include "ei/hook.h"
 #include "lib/vecmath.h"
@@ -65,6 +66,28 @@ void CAnimationNode::Rewind() {
 }
 EI_REPLACE_METHOD(0x005081C0, CAnimationNode::Rewind);
 
+// The parts are engine objects (figure mesh classes 0x41-0x44); slot 7 gives the mesh's name.
+int CAnimationNode::AttachMeshes(const lib::AlignedArray<void*>* parts) {
+    for (int i = 0; i < parts->size; ++i) {
+        auto* part = static_cast<CEngineObject*>(parts->data[i]);
+        if (std::strcmp(part->GetName(), name_) != 0) continue;
+        mesh_ = static_cast<CFigureMesh*>(parts->data[i]);
+        ++mesh_->refCount_;
+        if (mesh_) {
+            mesh_->position_ = posePosition_;
+            mesh_->rotation_ = poseRotation_;
+            CFigureMesh::OffsetSpan points{pointsB_.data, pointsB_.size};
+            mesh_->SetOffsets(&points);
+        }
+        break;
+    }
+    for (int i = 0; i < children_.size; ++i) {
+        if (children_.data[i]) children_.data[i]->AttachMeshes(parts);
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x00507C50, CAnimationNode::AttachMeshes);
+
 namespace scene {
 
 void SceneSkin::Rewind() {
@@ -73,5 +96,11 @@ void SceneSkin::Rewind() {
     clock[1] = 0;
 }
 EI_REPLACE_METHOD(0x00508990, SceneSkin::Rewind);
+
+int SceneSkin::BindMeshes(const lib::AlignedArray<void*>* parts) {
+    if (root) root->AttachMeshes(parts);
+    return 1;
+}
+EI_REPLACE_METHOD(0x00508BF0, SceneSkin::BindMeshes);
 
 } // namespace scene
