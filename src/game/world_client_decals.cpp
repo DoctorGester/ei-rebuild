@@ -19,6 +19,7 @@
 #include "lib/vecmath.h"
 
 #include <cstdint>
+#include <cstring>
 
 namespace {
 
@@ -51,6 +52,19 @@ void BuildNodeMatrix(CObject3D* node) {
     m[13] = 0.0f;
     m[12] = 0.0f;
     m[15] = 1.0f;
+}
+
+// Pushes `m` onto the pipeline's decal stack as the original inlines it: the product through
+// 004D9880, whose terms sum in another order than PushMatrix's (004D9B80) (X29).
+void PushDecalMatrix(CTransformPipeline* pipeline, const float* m) {
+    MatrixStack& stack = pipeline->stacks_[CTransformPipeline::kDecalStack];
+    if (stack.count == 0) {
+        stack.count = 1;
+        std::memcpy(stack.matrices, m, sizeof(Matrix4));
+        return;
+    }
+    ++stack.count;
+    MatrixMultiply(stack.matrices[stack.count - 1].m, nullptr, stack.matrices[stack.count - 2].m, m);
 }
 
 Matrix4 Transposed(const Matrix4& m) {
@@ -128,7 +142,7 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
             Vector3 centre = TransformColumnNormal<Sum3::ZYX, Sum3::ZXY, Sum3::ZXY>(object->worldMatrix, object->center) +
                              object->position;
             if (!BuilderTouches(&builder, nullptr, &centre, object->radius)) continue;
-            pipeline->PushMatrix(object->worldMatrix.m, CTransformPipeline::kDecalStack);
+            PushDecalMatrix(pipeline, object->worldMatrix.m);
             auto* figure = reinterpret_cast<CLinkMesh*>(object->figure);
             if (figure) {
                 // The parts are scene nodes laid out as CObject3D's first members (position,
@@ -136,7 +150,7 @@ void CWorldClient::ProjectDecal(const Vector3* direction, const Vector3* point, 
                 for (int i = 0; i < object->parts.size; ++i) {
                     auto* part = static_cast<CObject3D*>(object->parts[i]);
                     BuildNodeMatrix(part);
-                    pipeline->PushMatrix(part->worldMatrix.m, CTransformPipeline::kDecalStack);
+                    PushDecalMatrix(pipeline, part->worldMatrix.m);
                     AddPartTriangles(pipeline, figure, part, data);
                     pipeline->PopMatrix(CTransformPipeline::kDecalStack);
                 }

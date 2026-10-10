@@ -350,7 +350,10 @@ EI_VERIFY(0x006CF660, BloodVerify, 5, s_blood);
 
 // 006CEDE0 (ours only: the original would draw a second time). Every visible print, every frame.
 // Checks: the result (1 when hidden), the colour's alpha byte from alpha_, and that the geometry
-// made on the first draw holds together (a texture coordinate per vertex, indices in range).
+// made on the first draw holds together: whole triangles, indices below the vertex count and the
+// texture coordinate count. The decal builder leaves the texture coordinate array at its reserved
+// size (at least the vertices written, which fill all but at most the last 3 slots of the packets),
+// not at one per vertex (X29).
 int __fastcall DrawVerify(GroundPrint* self) {
     bool wasBuilt = self->built_;
     int result = self->Draw();
@@ -362,10 +365,17 @@ int __fastcall DrawVerify(GroundPrint* self) {
     ei::verify::Check("GroundPrint::Draw alpha", alpha, self->colour_ >> 24, "alpha %g", self->alpha_);
     if (!wasBuilt) {
         int vertices = self->positions_.size * 4;
-        bool ok = self->built_ && self->texCoords_.size == vertices;
-        for (int i = 0; ok && i < self->indices_.size; ++i) ok = self->indices_[i] < vertices;
-        ei::verify::Check("GroundPrint::Draw geometry", true, ok, "%d blocks, %d coordinates, %d indices",
-                          self->positions_.size, self->texCoords_.size, self->indices_.size);
+        bool enoughTexCoords = self->texCoords_.size >= vertices - 3;
+        bool wholeTriangles = self->indices_.size % 3 == 0;
+        int badIndex = -1;
+        for (int i = 0; badIndex < 0 && i < self->indices_.size; ++i)
+            if (self->indices_[i] >= vertices || self->indices_[i] >= self->texCoords_.size) badIndex = i;
+        bool ok = self->built_ && enoughTexCoords && wholeTriangles && badIndex < 0;
+        ei::verify::Check("GroundPrint::Draw geometry", true, ok,
+                          "built %d; %d blocks, %d coordinates%s, %d indices%s; index %d out of range (%d)", self->built_,
+                          self->positions_.size, self->texCoords_.size, enoughTexCoords ? "" : " (too few)",
+                          self->indices_.size, wholeTriangles ? "" : " (not whole triangles)", badIndex,
+                          badIndex < 0 ? -1 : self->indices_[badIndex]);
     }
     return result;
 }
