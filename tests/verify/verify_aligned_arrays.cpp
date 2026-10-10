@@ -128,6 +128,8 @@ EI_VERIFY(0x0050E100, AllocDwordsVerify, 0, s_unused);
 EI_VERIFY(0x00514D30, AllocDwordsVerify, 0, s_unused);
 EI_VERIFY(0x0051A170, AllocDwordsVerify, 0, s_unused);
 EI_VERIFY(0x0051EF90, AllocDwordsVerify, 0, s_unused);
+EI_VERIFY(0x00664910, AllocDwordsVerify, 0, s_unused);   // A-H24 copies
+EI_VERIFY(0x00671240, AllocDwordsVerify, 0, s_unused);
 EI_VERIFY(0x0051EA10, SetSize4Verify, 0, s_unused);
 EI_VERIFY(0x0051EB20, SetSize4Verify, 0, s_unused);
 EI_VERIFY(0x0051EC30, SetSize4Verify, 0, s_unused);

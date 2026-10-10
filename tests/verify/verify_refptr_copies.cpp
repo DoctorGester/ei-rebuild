@@ -279,6 +279,7 @@ EI_VERIFY(0x0047D7B0, ReleaseVerify, 0, s_unused);
 EI_VERIFY(0x00438A10, ReleaseVerify, 0, s_unused);
 EI_VERIFY(0x00439910, ReleaseVerify, 0, s_unused);
 EI_VERIFY(0x0059B4B0, ReleaseVerify, 0, s_unused);   // A-W12 copy
+EI_VERIFY(0x0069FD50, ReleaseVerify, 0, s_unused);   // A-H24 copy
 
 // The pair releases: the 29-byte body of 004215A0 (identical in all four; only internal jumps)
 // copied to executable memory is the original; dry runs on a stand-in held at +4.

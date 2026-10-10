@@ -454,4 +454,13 @@ table (+0xBC) maps a key to a D3DMATERIAL7 (MaterialColors); an absent key is en
 found) is `stlp::deque<T>` now; its instantiations 0068DD40 / 0068E0B0 / 0068E1C0 / 0068E320 went to library.csv. Not
 hookable: 0068DCF0 (slot 7, 4 bytes). Differs: NewMaterial returns null on a failed creation (the original faults).
 
+**Small slots and copies (A-H24).** class_names_640.cpp: the name / id slots (11 / 12) of CParty, the twelve CEffect*
+classes, CSpell, CTexture, the six CItem* classes and CItemConstructor (P, verify_class_names_640.cpp); 00688940 the spell
+manager's folder, 0067E150 the effect manager's Create (world_managers.cpp, O). Party containers (party_lifetime.cpp, O):
+00664160 / 00664470 CArray<PartyUnitRecord> destructor body / slot 0, 00664850 DestructElements, 00664AC0 the record's
+deleting destructor; ui_hero_screen_click.cpp: 00664AE0 MpHeroRecord's deleting destructor, 00664410 copy() of hero
+records (Assign each). Byte-identical copies registered beside their rewrites: 00664910 / 00671240 AllocateDwords,
+0069FD50 RefPtrRelease, 00689810 / 00689880 CleanupClear8. Left (under 5 bytes): CParty's slots 0065F4B0..0065F550,
+00661140..00661180, the empty `ret` slots of 00666EE0..00667670, 00691900, 0068DCF0.
+
 **Next candidates** (after A-H23): 00693010, 00692D30 (composed textures), the material subsystem (CMaterial 0068DBC0 / 0068DE30 / 0068DF90 / 0068E040 with an STLport deque of 16-byte entries, CMaterialManager 0068E3F0 / 0068E540 / 0068E640 Rebirth-patched / 0068E900), the party container helpers 00664160 / 00664470 / 00664850 / 00664410 / 00664AC0 (CArray<PartyUnitRecord> destructor and friends; 00663410 is reached only from unwind funclets), 0069FB60 (items and their spells into two lists), the effect classes' 6-byte name / id getters in 0x675000-0x67E000; then the largest left in 0x640000-0x6C0000 (`python tools/progress.py`; it misses UI_INPUT_HANDLER registrations, so check `grep` before picking).

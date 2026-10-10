@@ -30,6 +30,7 @@ const char* __fastcall EffectManagerClassName(CBaseManager*);
 int __fastcall EffectManagerClassId(CBaseManager*);
 void __fastcall EffectManagerDestruct(CBaseManager* self);
 CBaseManager* __fastcall EffectManagerDelete(CBaseManager* self, void*, unsigned flags);
+BOOL __fastcall EffectManagerCreate(CBaseManager* self);
 const char* __fastcall ItemManagerClassName(CItemManager*);
 int __fastcall ItemManagerClassId(CItemManager*);
 void __fastcall ItemManagerDestruct(CItemManager* self);
@@ -106,6 +107,13 @@ void __fastcall EffectDestructVerify(CBaseManager* self) {
 void* __fastcall EffectDeleteVerify(CBaseManager* self, void*, unsigned flags) {
     void* result = EffectManagerDelete(self, nullptr, flags);
     ei::verify::Check("EffectManagerDelete", static_cast<void*>(self), result, "");
+    return result;
+}
+// 0067E150 (A-H24): ours only (Create empties the tables): 1, the tables empty.
+BOOL __fastcall EffectCreateVerify(CBaseManager* self) {
+    BOOL result = EffectManagerCreate(self);
+    ei::verify::Check("EffectManagerCreate", true, result == 1 && self->objects_.Size() == 0 && self->objectList_.count == 0,
+                      "%p", static_cast<void*>(self));
     return result;
 }
 void __fastcall ItemDestructVerify(CItemManager* self) {
@@ -234,6 +242,7 @@ EI_VERIFY(0x0055F350, PlayerDestructVerify, 0, s_unused);
 EI_VERIFY(0x0055F330, PlayerDeleteVerify, 0, s_unused);
 EI_VERIFY(0x0055F3A0, EffectDestructVerify, 0, s_unused);
 EI_VERIFY(0x0055F380, EffectDeleteVerify, 0, s_unused);
+EI_VERIFY(0x0067E150, EffectCreateVerify, 0, s_unused);
 EI_VERIFY(0x0055F400, ItemDestructVerify, 0, s_unused);
 EI_VERIFY(0x0055F3E0, ItemDeleteVerify, 0, s_unused);
 EI_VERIFY(0x0055F2E0, SourceDestructVerify, 0, s_unused);

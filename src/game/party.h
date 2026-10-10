@@ -39,7 +39,11 @@ inline CParty*& LoadingParty() { return *reinterpret_cast<CParty**>(std::uintptr
 // memory zeroed, then each record constructed.
 void __stdcall ConstructPartyUnitRecords(PartyUnitRecord* records, int count);
 
-// ConstructElements / DestructElements of the records: 00664880, and each record's Destruct.
+// 00664850 (__stdcall, RET 8; party_lifetime.cpp). MFC DestructElements for the records: each
+// record's Destruct (a count of 0 does nothing).
+void __stdcall DestructPartyUnitRecords(PartyUnitRecord* records, int count);
+
+// ConstructElements / DestructElements of the records: 00664880, 00664850.
 struct PartyUnitRecordElements {
     static void Construct(PartyUnitRecord* records, int count) { ConstructPartyUnitRecords(records, count); }
     static void Destruct(PartyUnitRecord* records, int count);   // party_lifetime.cpp
@@ -48,6 +52,10 @@ struct PartyUnitRecordElements {
 // (00663FA0, RET 8) is registered on the template (party_lifetime.cpp).
 using PartyMemberArray = mfc::CArray<PartyUnitRecord, PartyUnitRecordElements>;
 constexpr std::uintptr_t kPartyMemberArrayVtable = std::uintptr_t(0x00742FF4);
+// 00664160 (party_lifetime.cpp). The array's destructor body: its vtable, the records destroyed
+// and the storage freed. 00664470: slot 0 (operator delete with flags bit 0; returns the array).
+void __fastcall DestructPartyMemberArray(PartyMemberArray* array);
+PartyMemberArray* __fastcall DeletePartyMemberArray(PartyMemberArray* array, void*, unsigned flags);
 
 // The party's named variables (the script's "gtime" and the like): an STLport hash_map<CString,
 // float>. Its hash is not needed by the code here (declared only).

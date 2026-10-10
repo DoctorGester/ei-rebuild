@@ -18,6 +18,7 @@ constexpr int kClassSpellContainer = 0x3003;
 
 constexpr std::uintptr_t kNoSequenceMessage = std::uintptr_t(0x00795908);    // "Can't find spell sequence ..."
 constexpr std::uintptr_t kSpellManagerClassName = std::uintptr_t(0x007958F8);  // "CSpellManager"
+constexpr std::uintptr_t kSpellManagerFolder = std::uintptr_t(0x007947FC);     // "spells"
 constexpr std::uintptr_t kSpellContainerClassName = std::uintptr_t(0x007959E0);  // "CSpellContainer"
 
 // The constructors through their game addresses, so their verify wrappers see the factory's calls.
@@ -139,6 +140,9 @@ const char* __fastcall SpellManagerClassName(CSpellManager*) { return reinterpre
 int __fastcall SpellManagerClassId(CSpellManager*) { return 0x33; }
 EI_REPLACE(0x00688950, SpellManagerClassName);
 EI_REPLACE(0x00688960, SpellManagerClassId);
+// 00688940: slot 25, the folder "spells" (A-H24).
+const char* __fastcall SpellManagerFolder(CSpellManager*) { return reinterpret_cast<const char*>(kSpellManagerFolder); }
+EI_REPLACE(0x00688940, SpellManagerFolder);
 
 // --- CSpellContainer -----------------------------------------------------------------------------
 

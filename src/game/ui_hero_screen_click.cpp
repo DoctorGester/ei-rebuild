@@ -628,6 +628,20 @@ void MpHeroRecord::Destruct() {
 }
 EI_REPLACE_METHOD(0x00619560, MpHeroRecord::Destruct);
 
+MpHeroRecord* MpHeroRecord::DeletingDestruct(unsigned flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x00664AE0, MpHeroRecord::DeletingDestruct);
+
+MpHeroRecord* __fastcall MpHeroRecord::CopyRange(const MpHeroRecord* first, const MpHeroRecord* last,
+                                                 MpHeroRecord* dest) {
+    for (std::ptrdiff_t n = last - first; n > 0; --n, ++first, ++dest) dest->Assign(first);
+    return dest;
+}
+EI_REPLACE(0x00664410, MpHeroRecord::CopyRange);
+
 namespace {
 // The heroes' folder (007C82A0, a CString; the records follow it) and the records as a vector.
 const mfc::CString& MpHeroesFolder() { return *reinterpret_cast<const mfc::CString*>(0x007C82A0); }

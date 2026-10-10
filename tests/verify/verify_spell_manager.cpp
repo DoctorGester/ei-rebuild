@@ -109,6 +109,12 @@ int __fastcall ManagerIdVerify(CSpellManager* self) {
     ei::verify::Check("CSpellManager::GetClassId", expected, SpellManagerClassId(self), "%p", self);
     return expected;
 }
+const char*(__fastcall* s_managerFolder)(CSpellManager*);
+const char* __fastcall ManagerFolderVerify(CSpellManager* self) {
+    const char* expected = s_managerFolder(self);
+    ei::verify::Check("CSpellManager::Folder", expected, SpellManagerFolder(self), "%p", self);
+    return expected;
+}
 const char*(__fastcall* s_containerName)(CSpellContainer*);
 const char* __fastcall ContainerNameVerify(CSpellContainer* self) {
     const char* expected = s_containerName(self);
@@ -136,5 +142,6 @@ EI_VERIFY(0x0068BC50, ContainerDestructVerify, 0, s_unused);
 EI_VERIFY(0x0068BC30, ContainerDeleteVerify, 0, s_unused);
 EI_VERIFY(0x00688950, ManagerNameVerify, 5, s_managerName);
 EI_VERIFY(0x00688960, ManagerIdVerify, 5, s_managerId);
+EI_VERIFY(0x00688940, ManagerFolderVerify, 5, s_managerFolder);
 EI_VERIFY(0x0068BC10, ContainerNameVerify, 5, s_containerName);
 EI_VERIFY(0x0068BC20, ContainerIdVerify, 5, s_containerId);

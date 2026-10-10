@@ -61,6 +61,9 @@ struct PartyUnitRecord {
     // 0065F740. Destructor body: ClearItems, the defaults, the lists' storage freed (none is left),
     // the strings destroyed (the last first).
     void Destruct();
+    // 00664AC0 (party_lifetime.cpp). Scalar deleting destructor: Destruct, then operator delete
+    // when flags bit 0 is set. Returns this.
+    PartyUnitRecord* DeletingDestruct(unsigned flags);
     // 0065F860. Releases every item of the four lists (slot 4), then empties them (SetSize(0, -1),
     // inlined for the first two).
     void ClearItems();
