@@ -446,10 +446,12 @@ static_assert(sizeof(FogCell) == 0x18);
 
 // The squares currently seen: rows of bytes, nonzero = visible.
 struct FogGrid {
-    // World-side members (not rewritten; called through their addresses).
+    // World-side members (ai_fog_grid.cpp).
     void Clear();                         // 005C8B60: no origin (0x7FFFFFFF), 1 x 1, zeroed
-    void Read(CMemoryStream* stream);     // 005C8BF0
-    void Write(CMemoryStream* stream);    // 005C8CC0
+    // 005C8BF0 / 005C8CC0 (RET 4): x0, y0, width, height (dwords), then the cells; reading makes
+    // the cells again when the size changed.
+    void Read(CMemoryStream* stream);
+    void Write(CMemoryStream* stream);
 
     int x0;                         // +0x00
     int y0;                         // +0x04

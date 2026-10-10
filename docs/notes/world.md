@@ -254,6 +254,7 @@ vtable 0073D0C4).
 | Startup, client set-up | 005CE0F0 LogicSettings::Load (007C53F8, `logic_settings.h`: [Logic], [RPG], [LMP], [Scenario], [DifficultyLevels]), 005DAEA0 SetUpCursors / 005DAE70 ResetCursors (`cursor_setup.cpp`), 00563710 SetUpGraphics (texture device, platforms, "numbers" digits +0x1B4, figure loader +0x34, sound counts), 00563930 LoadLights (tables `sunlight_` / `ambient_` / `sky_` at +0x22C / +0x3AC / +0x52C) | Load / LoadLights compared; rest ours only; every start |
 | Client lighting | 00566360 UpdateLighting (Render, zone load, message 0x71: fog start, sun direction / colour, ambient, sky colour by hour; caves (`cave_` +0x6E0) hour 0 and a fixed sun; the terrain's sun 006C8ED0 once per hour), 00567680 UpdateExitMarkers (exit particle sources red when "z.<zone>" is 1) (`world_client_lights.cpp`) | D: original first (terrain hidden: its sun call is not idempotent), state put back, ours; colours / direction CheckNear, fog colour bytes within 1; markers bitwise |
 | Figure meshes | 005A18E0 LoadBounds, 005A2500 LoadFig, 005A5C70 LoadFigShared, 005A3800 LoadOld, 005A4D60 LoadOldShared, 005AAE60 / 005AB9A0 MorphFigureBounds / 6, 0059FDF0 ExtendWorldBox, 005A4B30 / 005A4BF0 MirrorX / Y (ours, the original undoes it, ours again), 005A6E70 Resize, 005A6D40 RefreshBuffers, 005A0B10 SetOffsets, 005A0CD0 DrawOffset, 0059F0F0 CopyFrom, 0059F510 SetPose, 0059F710 / 0059F8F0 SaveToFile / LoadFromFile, 005ACE80 LoadMenuRects | on copies (colour arrays by shape only: the loaders size them without writing); the last ones ours only |
+| A-W11 | 0058AE10 Setup / 0058B020 Teardown (server slots 2 / 3, `world_server_life.cpp`; WinMain at start-up and exit; +0x140 is `hoover_`, a CHoover), 005C8230 / 005C8370 AIPath::LoadOrder / SaveOrder (`ai_path_save.cpp`), 005C8B60 / 005C8BF0 / 005C8CC0 FogGrid Clear / Read / Write (`ai_fog_grid.cpp`) | SaveOrder / FogGrid::Write differential (stand-in stream); the rest ours only (every run; `world_load`; `spells_hero`) |
 | Party records, templates | 004A5BD0 Reset, 004A5E90 Add, 004A5FA0 Remove, 004A5E10 Find, 004A7630 ClassTemplatesBuild, 004A7080 ClassTemplateFill, 004A74F0, 004A88E0, 004A8910, 004A88A0, 004A88C0, 004A8890, 004A8880, 004A8790, 004A8800 | above |
 
 ## Original bugs and oddities kept
@@ -300,11 +301,11 @@ pragma (DR-C4): release code is fild elapsed, fmul secondsPerTick_, fadd offset,
 
 - Rebirth-patched and not rewritten: 00567AB0 (client world load), 0057F560, 005809D0, 005812F0, 005813A0 (the `Maps` /
   `ResOverride` path hooks), 00595480 `NewZone`, 00595BA0 (map path).
-- Large and not rewritten (next candidates): 0058B020 (the server's slot 3 teardown);
-  005C06F0, 005C8230 / 005C8BF0 (AI stream code), 005629B0, 00563190, 0057E1A0 / 0057E3D0; then the largest unported
+- Large and not rewritten (next candidates): 005C06F0 (CAIMap::Load's grid set-up, only from the Rebirth-patched
+  005B43C0), 005629B0, 00563190, 0057E1A0 / 0057E3D0; then the largest unported
   functions of 0x560000-0x5E0000 (config/functions.csv; A-W10 moved MFC instantiations found there to library.csv).
-- Lifetime code: the CWorldServer constructor 00589ED0 (a static initialiser before the hooks), destructor 0058AAD0, Create
-  0058AE10, command queue / AI map destructors 0058A140 / 0058A450, the database tables' destructors called by the reload
+- Lifetime code: the CWorldServer constructor 00589ED0, destructor 0058AAD0, member destructors 0058A140 / 0058A450 and
+  CWorld's 0055EC80 are compiler-generated (library.csv, A-W11). Left: the database tables' destructors called by the reload
   0057DEE0 (0057D030, 0057D1D0, ...), the coder classes 00580DD0-00580EE0 (vtables 0073F8C8 / 0073F8A4, used by 005809D0;
   script.md "Buffered file streams"). `CWorldClient`'s constructor 005612F0 / destructor 00561B00 are in library.csv
   (compiler-generated member construction; the destructor calls our `Teardown`).

@@ -42,10 +42,6 @@ void ReleaseFog(CEngineObject*& fog) {
 
 } // namespace
 
-__declspec(naked) void FogGrid::Clear() EI_ORIGINAL(0x005C8B60)
-__declspec(naked) void FogGrid::Read(CMemoryStream*) EI_ORIGINAL(0x005C8BF0)
-__declspec(naked) void FogGrid::Write(CMemoryStream*) EI_ORIGINAL(0x005C8CC0)
-
 std::uintptr_t CEffectShowVisibility::Vtable() { return static_cast<std::uintptr_t>(0x0074381C); }
 
 CEffectShowVisibility* CEffectShowVisibility::Construct() {
