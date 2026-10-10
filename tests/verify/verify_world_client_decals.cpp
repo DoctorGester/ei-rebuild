@@ -5,7 +5,7 @@
 // The original runs first into private copies of the three arrays (same capacities, their own
 // buffers), ours into the caller's; both use the same builder code (through its addresses), so
 // the sizes, capacities and used elements must agree (positions without the packets' w row, which
-// the builder never writes). The rebuilt object matrices are the same values both times, the
+// the builder never writes; texture coordinates only of the vertices the indices use). The rebuilt object matrices are the same values both times, the
 // pipeline's stack 14 is balanced, the static builder starts afresh in Begin and the static point
 // array's contents are not kept, so nothing needs restoring between the runs.
 #include "verify.h"
@@ -48,9 +48,16 @@ int FirstPointDifference(const lib::AlignedArray<VertexPacket>& e, const lib::Al
                 if (!Near(e[i].block[row][k], a[i].block[row][k])) return i;
     return -1;
 }
-int FirstTexCoordDifference(const lib::AlignedArray<DecalTexCoord>& e, const lib::AlignedArray<DecalTexCoord>& a) {
-    for (int i = 0; i < a.size; ++i)
+// Only the vertices the indices use: the builder leaves the array at its reserved size (Reserve,
+// never trimmed by Finish), and the elements past the last vertex (and the padding vertices of
+// the last packet) are never written, so they hold whatever the buffers held before (X29).
+int FirstTexCoordDifference(const lib::AlignedArray<DecalTexCoord>& e, const lib::AlignedArray<DecalTexCoord>& a,
+                            const lib::AlignedArray<std::uint16_t>& indices) {
+    for (int k = 0; k < indices.size; ++k) {
+        int i = indices[k];
+        if (i >= a.size) return i;
         if (!Near(e[i].u, a[i].u) || !Near(e[i].v, a[i].v)) return i;
+    }
     return -1;
 }
 int FirstIndexDifference(const lib::AlignedArray<std::uint16_t>& e, const lib::AlignedArray<std::uint16_t>& a) {
@@ -78,12 +85,15 @@ void __fastcall ProjectDecalVerify(CWorldClient* self, void*, const Vector3* dir
     bool headers = SameHeader(expectedPoints, *points) && SameHeader(expectedTexCoords, *texCoords) &&
                    SameHeader(expectedIndices, *indices);
     int packet = headers ? FirstPointDifference(expectedPoints, *points) : -1;
-    int uv = headers ? FirstTexCoordDifference(expectedTexCoords, *texCoords) : -1;
     int index = headers ? FirstIndexDifference(expectedIndices, *indices) : -1;
+    int uv = headers && index < 0 ? FirstTexCoordDifference(expectedTexCoords, *texCoords, *indices) : -1;
+    bool uvInRange = uv >= 0 && uv < texCoords->size;
     ei::verify::Check("CWorldClient::ProjectDecal", true, headers && packet < 0 && uv < 0 && index < 0,
-                      "sizes %d / %d, %d / %d, %d / %d; first difference: packet %d, uv %d, index %d (objects %u)",
+                      "sizes %d / %d, %d / %d, %d / %d; first difference: packet %d, uv %d (%g, %g / %g, %g), "
+                      "index %d (objects %u)",
                       expectedPoints.size, points->size, expectedTexCoords.size, texCoords->size, expectedIndices.size,
-                      indices->size, packet, uv, index, objects & 0xFF);
+                      indices->size, packet, uv, uvInRange ? expectedTexCoords[uv].u : 0.0, uvInRange ? expectedTexCoords[uv].v : 0.0,
+                      uvInRange ? (*texCoords)[uv].u : 0.0, uvInRange ? (*texCoords)[uv].v : 0.0, index, objects & 0xFF);
     FreeCopy(expectedPoints);
     FreeCopy(expectedTexCoords);
     FreeCopy(expectedIndices);

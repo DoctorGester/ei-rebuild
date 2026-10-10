@@ -292,6 +292,15 @@ adds its parts once per face, kept), pushes the object's and each part's matrix 
 (kept; ours starts from no part data). The parts are used as CObject3D-like scene nodes (+0x34 orientation, +0x54 matrix),
 which FigurePart's declaration contradicts (C9).
 
+X29 (2026-10-10): ProjectDecal's pushes on stack 14 are inlined in the original and multiply through 004D9880
+(`MatrixMultiply`), not PushMatrix 004D9B80 whose terms sum in another order; ours called PushMatrix (last-bit differences
+in the part points). Now `PushDecalMatrix` in world_client_decals.cpp. Both checks were also wrong about the texture
+coordinate array: the builder leaves it at its reserved size (Reserve: triangles * 3 + vertices; Finish never trims it), so
+its size is not one per vertex, and the elements past the last written vertex (and the last packet's padding vertices)
+keep whatever the buffer held (heap leftovers in the wrapper's copies). ProjectDecal's wrapper now compares only the
+vertices the indices use (and prints both uv values); Draw's check wants whole triangles, indices below the vertex and
+coordinate counts, and at least vertices - 3 coordinates (it prints which part failed). Both re-enabled.
+
 Next: models.md "Game code left in 0x006C0000-0x00740000" (shadow test 006C92C0, draw passes, the CDib class). The acks
 records' compiler-generated members (006DE370, 006DC390, ...) need only the record declarations in a standalone build.
 
