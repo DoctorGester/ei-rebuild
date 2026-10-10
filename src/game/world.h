@@ -1179,6 +1179,9 @@ public:
     // 005630B0 (00567A60). One more reference on every item (slot 18's manager) and, when the item
     // factory exists (tested again, not the spell manager), on every spell (slot 22's).
     void ReferenceItemsAndSpells();
+    // 00563190 (Teardown). The reverse: every item (slot 18's manager) and then every spell (slot
+    // 22's) released (slot 4), each manager then emptied (its slot 15, DestroyAll).
+    void ReleaseItemsAndSpells();
     // 00564BE0 (RET 4). Takes the object `id` out of the maps: the MFC list +0x1F0 entries for it,
     // its +0xBC node and +0xD8 entry, then (when it is in +0xB8) the +0xB4 entries of a hero with
     // a text-key id (and 00538EA0 on its +0x240 in a session of kind 3), its grid cell and +0xB8;

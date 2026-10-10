@@ -3,7 +3,10 @@
 #include "item_db_text.h"
 #include "resource.h"
 
+#include "engine_object.h"
+
 #include "ei/hook.h"
+#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/stlp.h"
 
@@ -72,9 +75,27 @@ void CTextManager::RemoveSource(const char* path) { TextSourcesRemove(&sources_,
 
 void CTextManager::ClearSources() { TextSourcesClear(&sources_); }
 
+void CTextManager::Destruct() {
+    ei::SetVtable(this, kVtableAddress);
+    ClearSources();
+    TextSourcesClear(&sources_);
+    // The list's destructor: its clear (nothing is left) and the sentinel back to the pool.
+    sources_.ClearWith([](TextSource* source) { source->name.~string(); });
+    stlp::deallocate(sources_.head, sizeof(TextSourceNode));
+    reinterpret_cast<CEngineObject*>(this)->DestructBase();
+}
+
+CTextManager* CTextManager::DeletingDestruct(unsigned flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+
 EI_REPLACE(0x004DE930, TextSourcesAdd);
 EI_REPLACE(0x004DEAF0, TextSourcesRemove);
 EI_REPLACE(0x004DEB60, TextSourcesClear);
 EI_REPLACE_METHOD(0x004DEDB0, CTextManager::AddSource);
 EI_REPLACE_METHOD(0x004DEDD0, CTextManager::RemoveSource);
 EI_REPLACE_METHOD(0x004DED40, CTextManager::ClearSources);
+EI_REPLACE_METHOD(0x005629B0, CTextManager::Destruct);
+EI_REPLACE_METHOD(0x00562990, CTextManager::DeletingDestruct);

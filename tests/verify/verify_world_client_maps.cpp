@@ -6,6 +6,7 @@
 // ours. The lookups are pure and compared.
 #include "verify.h"
 
+#include "../../src/game/spell.h"
 #include "../../src/game/world.h"
 #include "ei/x87.h"
 
@@ -399,6 +400,26 @@ static void __fastcall ReferenceItemsAndSpellsVerify(CWorldClient* client) {
     ei::verify::Check("CWorldClient::ReferenceItemsAndSpells", before, after, "item factory count");
 }
 EI_VERIFY(0x005630B0, ReferenceItemsAndSpellsVerify, 0, s_unused);
+
+// 00563190 ReleaseItemsAndSpells (A-W11): ours only (it releases; reached by the client's Teardown
+// at exit). Checked: both managers are empty and the item factory's own count is as before.
+static void __fastcall ReleaseItemsAndSpellsVerify(CWorldClient* client) {
+    CEngineObject* items = client->ItemFactory();
+    const int before = items ? items->refCount_ : 0;
+    client->ReleaseItemsAndSpells();
+    const int after = items ? items->refCount_ : 0;
+    ObjectListIterator walk{nullptr, nullptr};
+    bool empty = !items || !walk.First(static_cast<CBaseManager*>(items));
+    if (walk.manager) --walk.manager->refCount_;
+    walk.manager = nullptr;
+    if (CBaseManager* spells = client->SpellManager()) {
+        empty = empty && !walk.First(spells);
+        if (walk.manager) --walk.manager->refCount_;
+    }
+    ei::verify::Check("CWorldClient::ReleaseItemsAndSpells", true, empty && before == after, "count %d -> %d", before,
+                      after);
+}
+EI_VERIFY(0x00563190, ReleaseItemsAndSpellsVerify, 0, s_unused);
 
 // 00564E70: ours only. The grids, +0xB4, +0x7BC, the MFC lists and the id map are empty; what is
 // left in +0xB8 has no positive id.

@@ -871,7 +871,6 @@ namespace {
 
 __declspec(naked) void __fastcall Destroy1B4(ClientNumbers*) EI_ORIGINAL(0x005E17E0)
 __declspec(naked) void __fastcall Destroy1AC(void*) EI_ORIGINAL(0x005636A0)
-__declspec(naked) void __fastcall Teardown563190(CWorldClient*) EI_ORIGINAL(0x00563190)
 // The counted array +0xA0's SetSize (its own instantiation: dropped elements released).
 __declspec(naked) void __fastcall CountedArraySetSize(mfc::CArray<CEngineObject*>*, void*, int, int) EI_ORIGINAL(0x00570000)
 // The lists' element destructors [0056D080 (node + 8); 00575560 / 00575580 (node + 8, flags)] and
@@ -936,7 +935,7 @@ void CWorldClient::Teardown() {
         skyDome_ = nullptr;
     }
     DeleteOwned(owned1B0_);
-    Teardown563190(this);
+    ReleaseItemsAndSpells();
     CountedArraySetSize(&countedA0_, nullptr, 0, -1);
     EmptyList(bloodPrints_, [](stlp::list<BloodPrint>::Node* node) {
         Element1B8Destroy(&node->data);
@@ -1308,12 +1307,40 @@ void CWorldClient::ReferenceItemsAndSpells() {
     if (ItemFactory()) ReferenceEveryObject(SpellManager());
 }
 
+namespace {
+// Every object of `manager` released (a heap iterator, as the original).
+void ReleaseEveryObject(CBaseManager* manager) {
+    auto* walk = reinterpret_cast<ObjectListIterator*>(New(sizeof(ObjectListIterator)));
+    if (walk) walk->manager = nullptr;
+    for (CEngineObject* object = walk->First(manager); object; object = walk->Next()) object->Release();
+    if (walk) {
+        if (CBaseManager* held = walk->manager) {
+            --held->refCount_;
+            walk->manager = nullptr;
+        }
+        gamecrt::operator_delete(walk);
+    }
+}
+} // namespace
+
+void CWorldClient::ReleaseItemsAndSpells() {
+    if (ItemFactory()) {
+        ReleaseEveryObject(static_cast<CBaseManager*>(ItemFactory()));
+        static_cast<CBaseManager*>(ItemFactory())->DestroyAll();
+    }
+    if (SpellManager()) {
+        ReleaseEveryObject(SpellManager());
+        SpellManager()->DestroyAll();
+    }
+}
+
 EI_REPLACE_METHOD(0x00561E50, CWorldClient::Setup);
 EI_REPLACE_METHOD(0x00560650, PlatformSet::AddFace);
 EI_REPLACE_METHOD(0x00560820, PlatformSet::AddBox);
 EI_REPLACE_METHOD(0x00563290, CWorldClient::Teardown);
 EI_REPLACE_METHOD(0x00566100, CWorldClient::Deselect);
 EI_REPLACE_METHOD(0x005630B0, CWorldClient::ReferenceItemsAndSpells);
+EI_REPLACE_METHOD(0x00563190, CWorldClient::ReleaseItemsAndSpells);
 EI_REPLACE_METHOD(0x0056DAF0, CWorldClient::ObjectsInRange);
 EI_REPLACE_METHOD(0x00566F70, CWorldClient::CreatePartyUnits);
 EI_REPLACE_METHOD(0x005647E0, CWorldClient::AddObject);

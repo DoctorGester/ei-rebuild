@@ -6,8 +6,10 @@
 // 0057F560 add and remove "<zone>" texts: `newgame`) and the client's teardown (005629B0 / 005628E0).
 #include "verify.h"
 
+#include "../../src/game/engine_object.h"
 #include "../../src/game/item_db_text.h"
 
+#include <cstdint>
 #include <cstring>
 
 namespace {
@@ -79,6 +81,20 @@ void __fastcall RemoveSourceVerify(CTextManager* self, void*, const char* path) 
 }
 void __fastcall ClearSourcesVerify(CTextManager* self) { CheckedClear(SourcesOf(self), "CTextManager::ClearSources"); }
 
+// 005629B0 / 00562990 (A-W11): the destructor ends with the engine object's vtable (DestructBase);
+// the deleting destructor returns this (its object may be freed, so nothing else is read).
+void __fastcall DestructVerify(CTextManager* self) {
+    self->Destruct();
+    std::uintptr_t vtable;
+    std::memcpy(&vtable, self, sizeof(vtable));
+    ei::verify::Check("CTextManager::Destruct", static_cast<std::uintptr_t>(CEngineObject::kVtableAddress), vtable, "");
+}
+CTextManager* __fastcall DeletingDestructVerify(CTextManager* self, void*, unsigned flags) {
+    CTextManager* result = self->DeletingDestruct(flags);
+    ei::verify::Check("CTextManager::DeletingDestruct", self, result, "flags %u", flags);
+    return result;
+}
+
 } // namespace
 
 EI_VERIFY(0x004DE930, AddVerify, 0, s_unused);
@@ -87,3 +103,5 @@ EI_VERIFY(0x004DEB60, ClearVerify, 0, s_unused);
 EI_VERIFY(0x004DEDB0, AddSourceVerify, 0, s_unused);
 EI_VERIFY(0x004DEDD0, RemoveSourceVerify, 0, s_unused);
 EI_VERIFY(0x004DED40, ClearSourcesVerify, 0, s_unused);
+EI_VERIFY(0x005629B0, DestructVerify, 0, s_unused);
+EI_VERIFY(0x00562990, DeletingDestructVerify, 0, s_unused);
