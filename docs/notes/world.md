@@ -301,13 +301,14 @@ pragma (DR-C4): release code is fild elapsed, fmul secondsPerTick_, fadd offset,
 
 - Rebirth-patched and not rewritten: 00567AB0 (client world load), 0057F560, 005809D0, 005812F0, 005813A0 (the `Maps` /
   `ResOverride` path hooks), 00595480 `NewZone`, 00595BA0 (map path).
-- Large and not rewritten (next candidates): 0057E1A0 / 0057E3D0; then the largest unported
-  functions of 0x560000-0x5E0000 (config/functions.csv; A-W10 moved MFC instantiations found there to library.csv).
+- Large and not rewritten (next candidates): the largest unported functions of 0x560000-0x5E0000 (config/functions.csv;
+  A-W10 moved MFC instantiations found there to library.csv). Network only, no scenario: 0057CB50 (the resource switch:
+  each database reset in place, then its Rebirth-patched loader) and 0057DEE0 (the LMP database reload).
 - Lifetime code: the CWorldServer constructor 00589ED0, destructor 0058AAD0, member destructors 0058A140 / 0058A450 and
-  CWorld's 0055EC80 are compiler-generated (library.csv, A-W11). Left: the database tables' destructors called by the reload
-  0057DEE0 (0057D030, 0057D1D0, ...), the coder classes 00580DD0-00580EE0 (vtables 0073F8C8 / 0073F8A4, used by 005809D0;
-  script.md "Buffered file streams"). `CWorldClient`'s constructor 005612F0 / destructor 00561B00 are in library.csv
-  (compiler-generated member construction; the destructor calls our `Teardown`).
+  CWorld's 0055EC80 are compiler-generated (library.csv, A-W11), as are the database globals' constructors, destructors and
+  in-place resets 0057CBE0-0057E510 (18). Left: the coder classes 00580DD0-00580EE0 (vtables 0073F8C8 / 0073F8A4, used by
+  005809D0; script.md "Buffered file streams"). `CWorldClient`'s constructor 005612F0 / destructor 00561B00 are in
+  library.csv (compiler-generated member construction; the destructor calls our `Teardown`).
 - Static initialisers (before the hooks): 0057F480, 005809A0, 00581070.
 
 ## Cleanup left and unverified points
