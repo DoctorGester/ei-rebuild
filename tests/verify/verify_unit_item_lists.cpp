@@ -7,6 +7,7 @@
 // combat (units, combat, unit_create).
 #include "verify.h"
 
+#include "../../src/game/item.h"
 #include "../../src/game/unit.h"
 
 #include <vector>
@@ -45,3 +46,26 @@ static void __fastcall CollectItemsVerify(CUnit* self, void*, mfc::CTypedPtrList
     scratchSpells.RemoveAll();
 }
 EI_VERIFY(0x005316F0, CollectItemsVerify, 5, s_collectItems);
+
+// 0069FB60 (A-H24; CollectItems' original above and CPlayerServer::SendItemsGiven call it): ours
+// only (the lists allocate). Afterwards the item is the items' new tail and its spell, when it has
+// one, the spells' new tail; nothing for a null item.
+void __fastcall GatherItem(mfc::CTypedPtrList<CEngineObject>* items, mfc::CTypedPtrList<void>* spells,
+                           CEngineObject* item);   // unit_item_lists.cpp
+static void* s_gatherItem;
+static void __fastcall GatherItemVerify(mfc::CTypedPtrList<CEngineObject>* items, mfc::CTypedPtrList<void>* spells,
+                                        CEngineObject* item) {
+    const int itemCount = items->count;
+    const int spellCount = spells->count;
+    void* spell = item ? static_cast<CItem*>(item)->spell_ : nullptr;
+    GatherItem(items, spells, item);
+    bool ok;
+    if (!item) {
+        ok = items->count == itemCount && spells->count == spellCount;
+    } else {
+        ok = items->count == itemCount + 1 && items->tail && items->tail->data == item &&
+             spells->count == spellCount + (spell ? 1 : 0) && (!spell || (spells->tail && spells->tail->data == spell));
+    }
+    ei::verify::Check("GatherItem", true, ok, "item %p spell %p", static_cast<void*>(item), spell);
+}
+EI_VERIFY(0x0069FB60, GatherItemVerify, 0, s_gatherItem);

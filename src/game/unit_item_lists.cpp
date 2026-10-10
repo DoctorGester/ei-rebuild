@@ -6,14 +6,20 @@
 
 #include "ei/hook.h"
 
-namespace {
-// 0069FB60 (inlined here): `item` joins `items`, its spell (when it has one) joins `spells`.
-// Empty slots add nothing.
-void AddItem(mfc::CTypedPtrList<CEngineObject>* items, mfc::CTypedPtrList<void>* spells, CEngineObject* item) {
+// 0069FB60 (A-H24; the original's loop runs once when the item has a spell).
+void __fastcall GatherItem(mfc::CTypedPtrList<CEngineObject>* items, mfc::CTypedPtrList<void>* spells,
+                           CEngineObject* item) {
     if (!item) return;
     items->AddTail(item);
     void* spell = static_cast<CItem*>(item)->spell_;
     if (spell) spells->AddTail(spell);
+}
+EI_REPLACE(0x0069FB60, GatherItem);
+
+namespace {
+// Empty slots add nothing.
+void AddItem(mfc::CTypedPtrList<CEngineObject>* items, mfc::CTypedPtrList<void>* spells, CEngineObject* item) {
+    GatherItem(items, spells, item);
 }
 
 void AddSlots(mfc::CTypedPtrList<CEngineObject>* items, mfc::CTypedPtrList<void>* spells, CEngineObject* const* slots,

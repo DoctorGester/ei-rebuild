@@ -587,9 +587,10 @@ Shared forwarders: 006EAF20 `_access`, 00578D00 (ServerFlagOriginal), 00458010 (
 (InterfaceTextExtentOriginal). Library: SaveEntry's copy / assignment / destructor and its vector helpers 006578F0..00658020, the
 0x14 / 0x18 record helpers 00653100..006535D0, the save list sort 00658030-00658C90, 0065A770, 006537E0 / 00653800 / 006518A0 /
 00651CE0 (key records' destructors), the quest list sort 0064F310 .. 006500B0 (its comparison inlines 0064F550, a quest's order,
-game code). Not rewritten: RefreshList 006567A0 (Rebirth-patched), 00654490 (3 bytes, too short), the objectives window's
-0064E8B0, 0064E990, 0064E760 (its keys 0064E5A0 and CommitBinding 00652000 were done in A-H21; the controls are in
-items_spells.md, "Interface controls").
+game code). Not rewritten: RefreshList 006567A0 (Rebirth-patched), 00654490 (3 bytes, too short). The objectives window's
+0064E8B0 RefreshQuests, 0064E990 SelectExit and 0064E760 Update (slot 24: the markers' blink alphas through std::cos and
+_ftol, a rounding edge may differ by one) are in ui_objectives_input.cpp (A-H24, O; callers go through CallSelectExit /
+CallRefreshQuests so the wrappers run); +0x1C0 is firstRow_, +0x1C8 the float blinkTime_.
 
 Cleanup leftovers (DR-C5): ui.h has `GameDeviceLock()` (007AEE78) while about twenty files keep a local `DeviceLock()`;
 `kUnitPtrArrayVtable` (007402AC) is still spelled out in ui_battle_commands.cpp, ui_camp.cpp, ui_create_screen.cpp,

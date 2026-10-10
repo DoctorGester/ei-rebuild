@@ -13,7 +13,10 @@
 #include "world.h"
 
 #include "ei/hook.h"
+#include "lib/crt.h"
 #include "lib/stlp.h"
+
+#include <cmath>
 
 namespace {
 
@@ -80,7 +83,7 @@ void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
     }
     if (region < kRegionFirstRow) return;
     if (region < kRegionFirstExit) {
-        int row = unknown_1C0 + region - kRegionFirstRow;
+        int row = firstRow_ + region - kRegionFirstRow;
         if (row >= 0 && row < reinterpret_cast<mfc::CStringArray*>(quests_)->GetSize()) {
             interface_->PlaySound(SelectSound(), 0);
             selectedQuest_ = row;
@@ -93,7 +96,7 @@ void CObjectivesWindow::OnLButtonDown(int buttons, int x, int y) {
     int exit = region - kRegionFirstExit;
     if (twoButtons_ != 0 && exits_[exit].flag_) {
         interface_->PlaySound(EnterSound(), 0);
-        SelectExit(exit);
+        CallSelectExit(exit);
         return;
     }
     interface_->PlaySound(CancelSound(), 0);
@@ -134,7 +137,7 @@ void CObjectivesWindow::OnKeyDown(int key, int repeat, int flags) {
     if (step != 0) {
         interface_->PlaySound(SelectSound(), 0);
         selectedQuest_ += step;
-        RefreshQuests();
+        CallRefreshQuests();
         inputHandled_ = true;
     }
     if (!inputHandled_ && KeyActions()[flags & 0x1FF] == kActionObjectives && twoButtons_ == 0) {
@@ -185,3 +188,80 @@ void CObjectivesWindow::LoadQuestPlaces(const char* name) {
     TextClose(texts);
 }
 EI_REPLACE_METHOD(0x0064EA80, CObjectivesWindow::LoadQuestPlaces);
+
+// --- 0064E990 / 0064E8B0 / 0064E760 (A-H24) --------------------------------------------------------
+
+namespace {
+constexpr int kFirstExitSprite = 21;     // the exits' markers, then the quest places'
+constexpr int kVisibleRows = 5;
+constexpr float kNearestScale = 1.2f;    // 0073CDF4
+constexpr float kOtherExitU = -0.125f;   // 0xBE000000
+constexpr std::uint32_t kPlainColour = 0x100;   // CUiMesh::flags_: drawn in plainColour_
+// The blink: (cos(rate x t) x amplitude + base) x 255 (0073CE18 2.5, 0073C54C 0.3, 0073B86C 0.5;
+// 0073BF34 5.0, 0073B868 0.4, 0073CDE0 0.6; 0073C370 255).
+constexpr float kSlowRate = 2.5f, kSlowAmplitude = 0.3f, kSlowBase = 0.5f;
+constexpr float kFastRate = 5.0f, kFastAmplitude = 0.4f, kFastBase = 0.6f;
+constexpr float kAlphaScale = 255.0f;
+
+CUiMesh* Sprite(const CObjectivesWindow* window, int index) {
+    return reinterpret_cast<CUiMesh*>(window->sceneObjects_.data[index]);
+}
+} // namespace
+
+void CObjectivesWindow::SelectExit(int index) {
+    nearestExit_ = index;
+    for (int i = 0; i < exitCount_; ++i) {
+        CUiMesh* marker = Sprite(this, kFirstExitSprite + i);
+        if (i == index) {
+            marker->SetScale(markerScale_ * kNearestScale);
+            marker->uOffset_ = 0.0f;
+            blinkTime_ = 0.0f;
+        } else {
+            marker->SetScale(markerScale_);
+            marker->uOffset_ = exits_[i].flag_ ? 0.0f : kOtherExitU;
+        }
+    }
+    Sprite(this, 4)->visible_ = 0;
+    Sprite(this, 5)->visible_ = 0;
+}
+EI_REPLACE_METHOD(0x0064E990, CObjectivesWindow::SelectExit);
+
+void CObjectivesWindow::RefreshQuests() {
+    const auto* quests = reinterpret_cast<const mfc::CStringArray*>(quests_);
+    if (quests->GetSize() == 0) return;
+    if (selectedQuest_ < 0) selectedQuest_ = 0;
+    if (selectedQuest_ >= quests->GetSize()) selectedQuest_ = quests->GetSize() - 1;
+    const int row = selectedQuest_;
+    if (firstRow_ + kVisibleRows <= row) firstRow_ = row - (kVisibleRows - 1);
+    if (row < firstRow_) firstRow_ = row;
+    bar_->CallSetPosition(firstRow_);
+    bar_->TakePosition(&firstRow_);
+    DrawQuestList();
+    ShowQuest();
+}
+EI_REPLACE_METHOD(0x0064E8B0, CObjectivesWindow::RefreshQuests);
+
+void CObjectivesWindow::Update() {
+    UpdateBase();
+    int first;
+    if (bar_->TakePosition(&first)) {
+        firstRow_ = first;
+        DrawQuestList();
+    }
+    // The sum stays unrounded for the alphas; the stored time is rounded to a float.
+    const double time = FrameTime() + blinkTime_;
+    blinkTime_ = static_cast<float>(time);
+    const std::uint32_t slow = gamecrt::Ftol((std::cos(time * kSlowRate) * kSlowAmplitude + kSlowBase) * kAlphaScale);
+    const std::uint32_t fast = gamecrt::Ftol((std::cos(time * kFastRate) * kFastAmplitude + kFastBase) * kAlphaScale);
+    for (int i = exitCount_ + kFirstExitSprite; i < sceneObjects_.size; ++i) {
+        CUiMesh* place = Sprite(this, i);
+        place->flags_ |= kPlainColour;
+        place->plainColour_ = fast << 24 | 0xFF0000u;
+    }
+    for (int i = 0; i < exitCount_; ++i) {
+        CUiMesh* marker = Sprite(this, kFirstExitSprite + i);
+        marker->flags_ |= kPlainColour;
+        marker->plainColour_ = i == nearestExit_ ? fast << 24 | 0xFFFFFFu : slow << 24 | 0xC8C8C8u;
+    }
+}
+EI_REPLACE_METHOD(0x0064E760, CObjectivesWindow::Update);

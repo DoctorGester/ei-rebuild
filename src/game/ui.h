@@ -2164,7 +2164,7 @@ public:
     // 0064DC60 (__fastcall): when the selected quest changed, its description in the log and a
     // marker and region per place of the quest on the zone picture.
     void ShowQuest();
-    // 0064D9B0 (__fastcall). Draws the quest list: up to five rows from `unknown_1C0`, each with
+    // 0064D9B0 (__fastcall). Draws the quest list: up to five rows from `firstRow_`, each with
     // its title ("quest " text, else the quest's name) and its state mark (scene objects 16-20:
     // state 2 one frame, 3 the other, else hidden); the selected row gets the cursor (object 2).
     void DrawQuestList();
@@ -2191,11 +2191,26 @@ public:
     void LoadQuestPlaces(const char* name);
     // The quest places (+0x1CC) as the STLport vector they are.
     stlp::vector<UiPointF>& QuestPlaces() { return reinterpret_cast<stlp::vector<UiPointF>&>(questPlacesBegin_); }
-    // Not rewritten.
-    void SelectExit(int index);      // 0064E990
-    void RefreshQuests();            // 0064E8B0
+    // ui_objectives_input.cpp (A-H24).
+    // 0064E990 (RET 4). Exit `index` becomes the nearest (+0x19C): its marker (sprite 21 + index)
+    // 1.2 times markerScale_ and the first frame, the blink restarted; the others markerScale_ and
+    // the first frame when their flag is set, else u offset -0.125. Sprites 4 and 5 hidden.
+    void SelectExit(int index);
+    // 0064E8B0. With quests: the selected one clamped to the list, the shown rows moved to keep it
+    // within five, the bar set there (slot 25, then TakePosition), the list drawn and the quest
+    // shown.
+    void RefreshQuests();
+    // 0064E760 (slot 24, every frame). The container's update; a moved bar shows its rows; the
+    // blink time advances by the frame time and gives two alphas, (cos(2.5 t) x 0.3 + 0.5) x 255
+    // and (cos(5 t) x 0.4 + 0.6) x 255 (_ftol): the quest place markers (sprites after the exits')
+    // are red with the second, the nearest exit's marker white with the second, the other exits'
+    // grey (C8C8C8) with the first; all drawn in their plain colour (flag 0x100).
+    void Update();
+    // Through their addresses (ui_objectives.cpp), so the wrappers run.
+    void CallSelectExit(int index);
+    void CallRefreshQuests();
 
-    char** zonesBegin_;              // +0x164 STLport vector<CString> of the zones listed
+    char** zonesBegin_;             // +0x164 STLport vector<CString> of the zones listed
     char** zonesEnd_;                // +0x168
     char** zonesCapacity_;           // +0x16C
     char* zoneName_;                 // +0x170 CString: the zone it was opened for
@@ -2214,9 +2229,9 @@ public:
     int shownQuest_;                 // +0x1A4 the row ShowQuest last showed (-1: none)
     std::uint8_t quests_[0x14];      // +0x1A8 CStringArray (data +0x1AC, size +0x1B0)
     CUiScrollbar* bar_;              // +0x1BC
-    int unknown_1C0;                 // +0x1C0
+    int firstRow_;                   // +0x1C0 the first quest row shown (the bar's position)
     float markerScale_;              // +0x1C4
-    int unknown_1C8;                 // +0x1C8
+    float blinkTime_;                // +0x1C8 seconds since the exit was selected (the markers' blink)
     // +0x1CC STLport vector of the selected quest's places (8-byte points); RefreshQuests
     // (0064DC60) gives each a sprite and a region after the exits'.
     UiPointF* questPlacesBegin_;     // +0x1CC
