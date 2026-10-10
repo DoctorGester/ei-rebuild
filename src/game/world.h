@@ -260,6 +260,9 @@ public:
     // empty network session (netlink::DriverSession) shared into +0x60, the previous one
     // destroyed (RefPtr::ShareAssign, inlined).
     void OpenSession();
+    // 0055F890 (world_sessions.cpp; the server's TeardownZone, the client's SetPlayer). The session
+    // +0x60 destroyed (RefPtr::Destroy, inlined) and the pointer cleared.
+    void CloseSession();
     // 005942C0 (the server's, from the pause request 0x10) / 00566350 (the client's copy, from
     // message 0x60), byte-identical (world_server.cpp): stores paused_ (+0x6C).
     void SetPaused(std::uint8_t value);
@@ -1193,6 +1196,23 @@ public:
     // map +0xD8, the lists +0x7BC and +0xB4, the +0xB8 entries with a positive id (released), the
     // session's player data, +0x34's slot 5 and the managers +0x3C/+0x40/+0x44's records.
     void ClearMaps();
+    // 00565090 (A-W12). The zone's leftovers dropped: the counted array +0xA0 emptied (its own
+    // SetSize releases them), the second grid's cells cleared (counted elements released), every
+    // timed object (slot 14's manager) released, the bird (+0x1B0) reset (slot 18).
+    void ResetZoneObjects();
+    // 00566CE0 / 00566D30 / 00566D80 (RET 4; world_client_session.cpp). The local session takes a
+    // new link: the single-player loopback pair for `player` (CWorld's teardown 0055F890 first), a
+    // replay of the recording `path`, or a driver for the game client's first connection (false
+    // without an active client or connection; the argument is unused). Each empties the maps
+    // (ClearMaps, ResetZoneObjects) and reconnects the session (CPlayer::Connect null, then the link).
+    void SetPlayer(std::uint8_t* player);
+    void PlayRecording(const char* path);
+    bool JoinGameClient(const char* unused);
+    // 00566E20 / 00566E70 (world_client_session.cpp). The player sources (+0x5C, +0x1C8) and the
+    // network session (+0x60) pumped, then the local player's link (when it is active) asked
+    // HasIncoming (slot 6, AL) / IncomingCount (slot 7); false / 0 without one.
+    bool PumpHasIncoming();
+    int PumpIncomingCount();
     // 00565790 / 005659D0 (RET 4). The object at screen point `point` (x, y): the screen entries of
     // the list +0xF0 that contain it and whose object's +0x94 answers slot 22 (00565790) or 24
     // (005659D0) go to the vector +0xF4, which is sorted front to back (DepthLess with the view

@@ -210,8 +210,6 @@ namespace {
 void __fastcall PlayerDisconnect(WorldPlayer* a0, void*) { PlayerDisconnectOriginal((void*)a0); }
 // 0059A100. The shared-object element's object array destructor.
 void __fastcall ObjectPtrArrayDestruct(void* a0, void*) { CountedPtrArrayDestructOriginal(a0); }
-// 0055F890. CWorld's own teardown (base class).
-__declspec(naked) void __fastcall WorldBaseTeardown(CWorldServer*, void*) EI_ORIGINAL(0x0055F890)
 
 } // namespace
 
@@ -249,7 +247,7 @@ void CWorldServer::TeardownZone() {
     missiles.RemoveAll();
 
     EndTimedObjects(this);
-    WorldBaseTeardown(this, nullptr);
+    CloseSession();
     gameResult_ = 0;
     unknown12D64_ = 0;
 }

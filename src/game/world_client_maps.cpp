@@ -24,6 +24,7 @@
 #include "texture.h"
 #include "unit.h"
 #include "unit_db.h"
+#include "world_effect.h"
 #include "object_tables.h"
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -989,6 +990,25 @@ void CWorldClient::Teardown() {
     DropAndDelete(texts_);
 }
 
+// ---- Zone reset (00565090) -----------------------------------------------------------------------
+
+void CWorldClient::ResetZoneObjects() {
+    CountedArraySetSize(&countedA0_, nullptr, 0, -1);
+    // The second grid's cells: each element released (005768A0, flags 0), its node freed (00572FC0),
+    // the cell linked to itself.
+    SectorGrid& second = secondGrid_;
+    for (int x = 0; x < static_cast<int>(second.width_); ++x)
+        for (int y = 0; y < static_cast<int>(second.height_); ++y)
+            second.rows_[y][x].ClearWith([](CEngineObject** element) {
+                if (CEngineObject* object = *element) object->Release();
+            });
+    ObjectListIterator it{nullptr, nullptr};
+    for (CEngineObject* object = it.First(TimedObjectManager()); object; object = it.Next()) object->Release();
+    if (owned1B0_) TimedSlots(owned1B0_)->Reset();
+    // The iterator's destructor, inlined: the manager's count drops without a release.
+    if (it.manager) --it.manager->refCount_;
+}
+
 // ---- The selection (00566100) --------------------------------------------------------------------
 
 namespace {
@@ -1338,6 +1358,7 @@ EI_REPLACE_METHOD(0x00561E50, CWorldClient::Setup);
 EI_REPLACE_METHOD(0x00560650, PlatformSet::AddFace);
 EI_REPLACE_METHOD(0x00560820, PlatformSet::AddBox);
 EI_REPLACE_METHOD(0x00563290, CWorldClient::Teardown);
+EI_REPLACE_METHOD(0x00565090, CWorldClient::ResetZoneObjects);
 EI_REPLACE_METHOD(0x00566100, CWorldClient::Deselect);
 EI_REPLACE_METHOD(0x005630B0, CWorldClient::ReferenceItemsAndSpells);
 EI_REPLACE_METHOD(0x00563190, CWorldClient::ReleaseItemsAndSpells);
