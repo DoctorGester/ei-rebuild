@@ -301,8 +301,12 @@ pragma (DR-C4): release code is fild elapsed, fmul secondsPerTick_, fadd offset,
 
 - Rebirth-patched and not rewritten: 00567AB0 (client world load), 0057F560, 005809D0, 005812F0, 005813A0 (the `Maps` /
   `ResOverride` path hooks), 00595480 `NewZone`, 00595BA0 (map path).
-- Large and not rewritten (next candidates): the largest unported functions of 0x560000-0x5E0000 (config/functions.csv;
-  A-W10 moved MFC instantiations found there to library.csv). Network only, no scenario: 0057CB50 (the resource switch:
+- Next candidates (A-W11): 00565090 (the client's zone reset: exit markers +0xA0 emptied, the second grid +0x150 cleared
+  inline with 005768A0 / 00572FC0, every timed object released, the bird +0x1B0 Reset) with its callers 00566CB0 /
+  00566CE0 (ClientSetPlayer) / 00566D30 / 00566D80 and 00566E20 / 00566E70 (session / link slots 5, 6, 7); 005CD670
+  (a CArray SetSize, elements 00558CE0); 005D8D50 (corpse watcher); 005ACA60 / 005AC1A0 / 005AC2F0 (figure names);
+  then the largest unported functions of 0x560000-0x5E0000 (config/functions.csv; A-W10 moved MFC instantiations found
+  there to library.csv). Static-initialiser-only code (005BF8F0 / 005BF5F0, 005C3690-005C5AB0) inflates that list. Network only, no scenario: 0057CB50 (the resource switch:
   each database reset in place, then its Rebirth-patched loader) and 0057DEE0 (the LMP database reload).
 - Lifetime code: the CWorldServer constructor 00589ED0, destructor 0058AAD0, member destructors 0058A140 / 0058A450 and
   CWorld's 0055EC80 are compiler-generated (library.csv, A-W11), as are the database globals' constructors, destructors and
