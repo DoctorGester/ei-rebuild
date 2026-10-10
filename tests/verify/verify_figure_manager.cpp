@@ -1,6 +1,5 @@
 // A-W12: the figure manager's loaders and the figure meshes' slot 19 (figure_manager.cpp). All ours
-// only: they create objects and
-// open archive files. Reached whenever a figure loads: NewFigure by the interface's 3D models (the
+// only: they create objects and open archive files. Reached whenever a figure loads: NewFigure by the interface's 3D models (the
 // model manager, ui_window.cpp) at the menus, LoadPart for every part of a unit or object figure
 // (BuildPart, map_object_figures.cpp; every new game), LoadBoneAnimation when a bone starts an
 // animation (map_object_animation_state.cpp).

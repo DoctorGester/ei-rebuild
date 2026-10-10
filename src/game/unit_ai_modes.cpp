@@ -264,6 +264,47 @@ PatrolPoint* PatrolMode::LastPoint() {
 }
 EI_REPLACE_METHOD(0x005D1690, PatrolMode::LastPoint);
 
+void PatrolMode::Load(AIStream* stream) {
+    int count;
+    ReadField(stream, &count);
+    PatrolPointArraySetSizeOriginal(&points, nullptr, count, -1);
+    for (int i = 0; i < points.size; ++i) {
+        PatrolPoint& point = points.data[i];
+        ReadField(stream, &point.position);
+        int lookCount;
+        ReadField(stream, &lookCount);
+        LooksSetSizeAt(&point.looks, nullptr, lookCount, -1);
+        for (int j = 0; j < point.looks.size; ++j) {
+            AILook& look = point.looks.data[j];
+            ReadField(stream, &look.angle);
+            ReadField(stream, &look.time);
+            ReadField(stream, &look.wait);
+            if (stream->version >= 0x44) ReadField(stream, &look.stopFirst);
+        }
+    }
+    ReadField(stream, &current);
+}
+EI_REPLACE_METHOD(0x005D1930, PatrolMode::Load);
+
+void PatrolMode::Save(AIStream* stream) {
+    WriteCopy(stream, points.size);
+    for (int i = 0; i < points.size; ++i) {
+        PatrolPoint& point = points.data[i];
+        stream->Write(&point.position, sizeof(Vector3));
+        WriteCopy(stream, point.looks.size);
+        for (int j = 0; j < point.looks.size; ++j) {
+            const AILook& look = point.looks.data[j];
+            // Each float goes through a stack copy as a dword (integer moves in the original).
+            WriteCopy(stream, std::bit_cast<std::uint32_t>(look.angle));
+            WriteCopy(stream, std::bit_cast<std::uint32_t>(look.time));
+            WriteCopy(stream, std::bit_cast<std::uint32_t>(look.wait));
+            WriteCopy(stream, look.stopFirst);
+        }
+    }
+    WriteCopy(stream, current);
+}
+EI_REPLACE_METHOD(0x005D1A40, PatrolMode::Save);
+
 // --- Sentry --------------------------------------------------------------------------------------
 
 void SentryMode::Set(const Vector3* p) { std::memcpy(&point, p, sizeof(Vector3)); }

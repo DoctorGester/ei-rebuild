@@ -9,6 +9,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "originals_ai.h"
 
 #include <cstring>
 
@@ -75,6 +76,60 @@ PatrolMode* PatrolMode::DeletingDestruct(int flags) {
     return this;
 }
 EI_REPLACE_METHOD(0x005D1220, PatrolMode::DeletingDestruct);
+
+// 005D1140 (slot 2): destroyed and built again in place (the reference count kept).
+void PatrolMode::Rebuild() {
+    Destruct();
+    Construct();
+}
+EI_REPLACE_METHOD(0x005D1140, PatrolMode::Rebuild);
+
+// 005D9E40 (and its thunk 005D9590; RET 8): point `index` copied into `out`: the position, then a
+// new look array sized to the source's (new looks zeroed) with each look copied.
+PatrolPoint* __fastcall PatrolPointCopyAt(const PatrolPointArray* points, void*, PatrolPoint* out, int index) {
+    const PatrolPoint& source = points->data[index];
+    std::memcpy(&out->position, &source.position, sizeof(Vector3));
+    out->looks.Construct(kLookArrayVtable);
+    out->looks.SetSize(source.looks.size, -1);
+    for (int i = 0; i < source.looks.size; ++i) out->looks.data[i] = source.looks.data[i];
+    return out;
+}
+EI_REPLACE(0x005D9E40, PatrolPointCopyAt);
+EI_REPLACE(0x005D9590, PatrolPointCopyAt);
+
+// 005D0F90 (slot 3): a copy with its own points. The reference count dword is cleared before the
+// allocation's null test; the abstract base's vtable stands while the points are copied, each
+// through a temporary copy of the source point (PatrolPointCopyAt) whose looks are freed after.
+PatrolMode* PatrolMode::Clone() {
+    auto* clone = static_cast<PatrolMode*>(gamecrt::operator_new(sizeof(PatrolMode)));
+    std::memset(&clone->refs, 0, 4);
+    if (!clone) return nullptr;
+    clone->vtable = aimode::kBaseVtable;
+    clone->points.data = nullptr;
+    clone->points.growBy = 0;
+    clone->points.maxSize = 0;
+    clone->points.size = 0;
+    clone->points.vtable = aimode::kPatrolPointsVtable;
+    PatrolPointArraySetSizeOriginal(&clone->points, nullptr, points.size, -1);
+    for (int i = 0; i < points.size; ++i) {
+        PatrolPoint temporary;
+        PatrolPointCopyAt(&points, nullptr, &temporary, i);
+        PatrolPoint& target = clone->points.data[i];
+        std::memcpy(&target.position, &temporary.position, sizeof(Vector3));
+        LooksSetSizeAt(&target.looks, nullptr, temporary.looks.size, -1);
+        for (int j = 0; j < temporary.looks.size; ++j) {
+            AILook look;
+            LooksElementAt(&temporary.looks, nullptr, &look, j);
+            target.looks.data[j] = look;
+        }
+        temporary.looks.vtable = reinterpret_cast<void*>(kLookArrayBaseVtable);
+        if (temporary.looks.data) gamecrt::operator_delete(temporary.looks.data);
+    }
+    clone->current = current;
+    clone->vtable = aimode::kPatrolVtable;
+    return clone;
+}
+EI_REPLACE_METHOD(0x005D0F90, PatrolMode::Clone);
 
 void FearMode::Destruct() { vtable = aimode::kRootVtable; }
 EI_REPLACE_METHOD(0x005D2950, FearMode::Destruct);

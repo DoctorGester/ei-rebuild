@@ -322,6 +322,9 @@ using PatrolPointArray = mfc::CArray<PatrolPoint, PatrolPointElements>;
 void __fastcall PatrolPointsDestruct(PatrolPointArray* points);
 // 005D8CD0 (RET 4). Destruct, then operator delete when `flags` bit 0 is set; returns `points`.
 PatrolPointArray* __fastcall PatrolPointsDeletingDestruct(PatrolPointArray* points, void*, int flags);
+// 005D9E40 / 005D9590 (RET 8; unit_ai_mode_lifetime.cpp). GetAt by value: point `index` copied into
+// `out` (a new look array); returns `out`.
+PatrolPoint* __fastcall PatrolPointCopyAt(const PatrolPointArray* points, void*, PatrolPoint* out, int index);
 
 // Patrol (vtable 0073FF40, 0x20 bytes): walk a list of points.
 struct PatrolMode : AIMode {
@@ -332,6 +335,11 @@ struct PatrolMode : AIMode {
     void Execute(AIBrain* brain);
     // 005D1690. The last point, or null.
     PatrolPoint* LastPoint();
+    // 005D1930 / 005D1A40 (slots 11 / 12). The point count (the points' SetSize 004C9970), per point
+    // its position, look count (the looks' SetSize 005D8EE0) and per look angle, time, wait and
+    // (from version 0x44 when loading) the stop flag byte; then `current`.
+    void Load(AIStream* stream);
+    void Save(AIStream* stream);
     // 005D12B0 (through its address, so the verify wrapper sees Evaluate's calls).
     void AddPoint(const Vector3* position);
     // 005D12B0 (unit_ai_looks.cpp). Appends a point with no looks at ((n + 0.5) / 2, z 0) for
@@ -344,6 +352,10 @@ struct PatrolMode : AIMode {
     PatrolMode* Construct();
     void Destruct();
     PatrolMode* DeletingDestruct(int flags);
+    // 005D1140 (slot 2): Destruct, then Construct (the count at +4 kept). 005D0F90 (slot 3): a new
+    // mode (0x20 bytes) with copies of the points and `current`; null when the allocation fails.
+    void Rebuild();
+    PatrolMode* Clone();
 
     PatrolPointArray points;        // +0x08 (vtables 0073FF74 / 0073FF80)
     int current;                    // +0x1C
