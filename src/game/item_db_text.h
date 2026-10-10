@@ -62,6 +62,15 @@ public:
     void RemoveSource(const char* path);
     void ClearSources();
 
+    // The text manager is an engine object (the first 0x1C bytes) with this vtable.
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F6F0);
+    // 005629B0 (text_sources.cpp, A-W11). The destructor body: its vtable, ClearSources, the
+    // archive list's own clear (004DEB60) and destruction (the sentinel back to the node pool),
+    // then the engine object's DestructBase. 00562990 (slot 0, RET 4): it, then operator delete
+    // when bit 0 of `flags` is set; returns this.
+    void Destruct();
+    CTextManager* DeletingDestruct(unsigned flags);
+
     std::uint8_t unknown_00[0x1C];
     TextSourceList sources_;   // +0x1C
     const char* cursor_;    // +0x20 read position in the current text

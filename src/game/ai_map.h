@@ -196,6 +196,12 @@ struct AIPath {
     void ReadState(DeltaField* field);
     // 005B23A0. Empties the path, the steps and the order.
     void Clear();
+    // 005C8230 / 005C8370 (RET 4; ai_path_save.cpp). The order and its steps in the save stream:
+    // kind, x / y, angle, start time and the three arguments (4, 8, 4, 4, 0xC bytes), the steps'
+    // count, then each step (8 bytes). Loading appends that many steps and reads over every step
+    // from the head.
+    void LoadOrder(CStream* stream);
+    void SaveOrder(CStream* stream);
     // 006706A0 (player_server_handlers.cpp). An out-of-line copy of the inlined constructor: both
     // cell lists empty (blocks of 0x80), no points (vtable kPointsVtable), then Clear. Returns this.
     // The destructor body is 00546100 (AIPathDestructOriginal).

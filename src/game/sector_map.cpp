@@ -21,6 +21,21 @@ constexpr float kCellSize = 1.0f;   // 0073FDD0
 constexpr float kZero = 0.0f;
 } // namespace
 
+namespace {
+__declspec(naked) void __stdcall ConstructSectors(Sector*, int) EI_ORIGINAL(0x0059DF90)
+} // namespace
+
+void SectorElements::Construct(Sector* sectors, int count) { ConstructSectors(sectors, count); }
+
+void CSectorMap::Init(int cellsX, int cellsY, CAIMap* map) {
+    width = cellsX / 32;
+    height = cellsY / 32;
+    added = 0;
+    sectors.SetSize(width * height, -1);
+    aiMap = map;
+}
+EI_REPLACE_METHOD(0x005C06F0, CSectorMap::Init);
+
 bool CSectorMap::Add(CEngineObject* object) {
     int cellX = x87::fistp(1.0f / (kCellSize * 0.5f) * PosX(object) - 0.5f);
     int cellY = x87::fistp(1.0f / (kCellSize * 0.5f) * PosY(object) - 0.5f);

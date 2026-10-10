@@ -5,6 +5,8 @@
 // dwords, and the smoothing value. Loading appends the cells to the list (created as {0, 0} by
 // 005BD2A0, then read over). See ai_map.h (AIPath).
 #include "ai_map.h"
+#include "ai_motion.h"
+#include "core_streams.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -18,9 +20,6 @@ namespace {
 // advanced).
 __declspec(naked) void __fastcall AppendCell(PathCellList*, void*, const PathCell*) EI_ORIGINAL(0x005BD2A0)
 __declspec(naked) PathCell* __fastcall NextCell(PathCellList*, void*, PathCellList::Node**) EI_ORIGINAL(0x005BD340)
-// The order's load / save (RET 4).
-__declspec(naked) void __fastcall OrderLoad(AIPath*, void*, void*) EI_ORIGINAL(0x005C8230)
-__declspec(naked) void __fastcall OrderSave(AIPath*, void*, void*) EI_ORIGINAL(0x005C8370)
 // 005B16D0 (RET 8): the excluded regions' SetSize.
 inline void __fastcall ExcludedSetSize(void* a, void*, int n, int g) { PointArraySetSizeOriginal(a, nullptr, n, g); }
 
@@ -45,7 +44,7 @@ void __fastcall LoadPath(AIPath* path, void*, void* stream) {
     }
     for (PathCellList::Node* position = path->cells.head; position;)
         Read(stream, NextCell(&path->cells, nullptr, &position), 8);
-    OrderLoad(path, nullptr, stream);
+    path->LoadOrder(static_cast<CStream*>(stream));
     auto* base = reinterpret_cast<std::uint8_t*>(path);
     Read(stream, base + 0x58, 8);
     Read(stream, base + 0x60, 0xC);
@@ -68,7 +67,7 @@ void __fastcall SavePath(AIPath* path, void*, void* stream) {
     Write(stream, &count, 4);
     for (PathCellList::Node* position = path->cells.head; position;)
         Write(stream, NextCell(&path->cells, nullptr, &position), 8);
-    OrderSave(path, nullptr, stream);
+    path->SaveOrder(static_cast<CStream*>(stream));
     auto* base = reinterpret_cast<std::uint8_t*>(path);
     Write(stream, base + 0x58, 8);
     Write(stream, base + 0x60, 0xC);
@@ -89,5 +88,43 @@ void __fastcall SavePath(AIPath* path, void*, void* stream) {
     Write(stream, &smoothing, 4);
 }
 
+// ---- The order (005C8230 / 005C8370) ----------------------------------------------------------
+
+void AIPath::LoadOrder(CStream* stream) {
+    MotionOrder* order = OrderOf(this);
+    stream->Read(&order->kind, 4);
+    stream->Read(&order->x, 8);
+    stream->Read(&order->angle, 4);
+    stream->Read(&order->startTime, 4);
+    stream->Read(&order->arg5, 0xC);
+    int count = 0;   // the original's local is left as it was when the read fails
+    stream->Read(&count, 4);
+    // The original's new step is {0, 0} and an uninitialised dword; every step is read over below.
+    for (int i = 0; i < count; ++i) steps.AddTail(PathCell{0, 0, 0, 0});
+    for (PathCellList::Node* node = steps.head; node;) {
+        PathCellList::Node* next = node->next;
+        stream->Read(&node->data, 8);
+        node = next;
+    }
+}
+
+void AIPath::SaveOrder(CStream* stream) {
+    MotionOrder* order = OrderOf(this);
+    stream->Write(&order->kind, 4);
+    stream->Write(&order->x, 8);
+    stream->Write(&order->angle, 4);
+    stream->Write(&order->startTime, 4);
+    stream->Write(&order->arg5, 0xC);
+    int count = steps.count;
+    stream->Write(&count, 4);
+    for (PathCellList::Node* node = steps.head; node;) {
+        PathCellList::Node* next = node->next;
+        stream->Write(&node->data, 8);
+        node = next;
+    }
+}
+
 EI_REPLACE(0x005B2430, LoadPath);
 EI_REPLACE(0x005B2570, SavePath);
+EI_REPLACE_METHOD(0x005C8230, AIPath::LoadOrder);
+EI_REPLACE_METHOD(0x005C8370, AIPath::SaveOrder);

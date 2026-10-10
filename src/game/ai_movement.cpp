@@ -219,6 +219,8 @@ void VisibilityGrid::Grow(int x, int y, int n) {
     gamecrt::operator_delete(old.data);
     gamecrt::operator_delete(old.rows);
 }
+// Registered in A-W11 (A-W6 wrote and verified it, but only the verify build ran it).
+EI_REPLACE_METHOD(0x005C8D40, VisibilityGrid::Grow);
 
 void CAIMap::MarkVisibleCells(const Vector3* eye, float radius, const Vector3* look, float cosLimit,
                               float targetHeight, VisibilityGrid* grid) {

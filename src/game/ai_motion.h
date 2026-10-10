@@ -83,6 +83,11 @@ struct UnitMotion {
                           float endOffset, int* stepIndex);
     // 005C6290. Slows the points down where the turn to the next one takes longer than the way.
     void LimitSpeeds(float turnRate);
+    // 005C7860 / 005C79B0 (RET 4; the unit's save, unit_save.cpp). The points (count, then 0x1C
+    // bytes each), the waypoints (0xC each), the step speeds (4 each), then +0x3C..+0x4C as dwords.
+    // Loading sizes each array to the count read and clears `segment` (-1) first.
+    void LoadState(CStream* stream);
+    void SaveState(CStream* stream);
 
     mfc::CArray<MotionPoint> points;          // +0x00
     mfc::CArray<MotionWaypoint> waypoints;    // +0x14

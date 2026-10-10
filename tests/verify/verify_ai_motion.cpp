@@ -7,7 +7,9 @@
 #include "../../src/game/ai_motion.h"
 #include "../../src/lib/crt.h"
 
+#include <cstdint>
 #include <cstring>
+#include <vector>
 
 namespace {
 void* s_unused;
@@ -363,3 +365,48 @@ static Vector3* __fastcall DestinationVerify(AIPath* self, void*, Vector3* out) 
     return result;
 }
 EI_VERIFY(0x005C7D00, DestinationVerify, 6, s_destination);
+
+// ---- The unit's save (A-W11) ----------------------------------------------------------------------
+
+namespace {
+// A stand-in stream whose slot 2 (Write) records the bytes.
+std::vector<std::uint8_t>* s_bytes;
+void __fastcall RecordWrite(void*, void*, const void* buffer, int size) {
+    auto* p = static_cast<const std::uint8_t*>(buffer);
+    s_bytes->insert(s_bytes->end(), p, p + size);
+}
+void* s_streamVtable[8];
+struct StandIn {
+    void** vtable;
+};
+
+using SaveStateFn = void(__fastcall*)(UnitMotion*, void*, CStream*);
+SaveStateFn s_saveState;
+} // namespace
+
+// 005C79B0: PUSH ECX; PUSH ESI; MOV ESI,[ESP+0xC] (6 bytes). Differential: the original, then ours,
+// into the stand-in stream; then ours into the real one. Every save with units (world_load).
+static void __fastcall SaveStateVerify(UnitMotion* self, void*, CStream* stream) {
+    std::vector<std::uint8_t> expected, actual;
+    s_streamVtable[2] = reinterpret_cast<void*>(&RecordWrite);
+    StandIn standIn{s_streamVtable};
+    s_bytes = &expected;
+    s_saveState(self, nullptr, reinterpret_cast<CStream*>(&standIn));
+    s_bytes = &actual;
+    self->SaveState(reinterpret_cast<CStream*>(&standIn));
+    ei::verify::Check("UnitMotion::SaveState", true, actual == expected, "%d bytes (original %d)",
+                      static_cast<int>(actual.size()), static_cast<int>(expected.size()));
+    self->SaveState(stream);
+}
+EI_VERIFY(0x005C79B0, SaveStateVerify, 6, s_saveState);
+
+// 005C7860: reads the real stream, so ours only: no segment, every array within its storage. Every
+// load with units (world_load).
+static void __fastcall LoadStateVerify(UnitMotion* self, void*, CStream* stream) {
+    self->LoadState(stream);
+    bool ok = self->segment == -1 && self->points.size <= self->points.maxSize &&
+              self->waypoints.size <= self->waypoints.maxSize && self->stepSpeeds.size <= self->stepSpeeds.maxSize;
+    ei::verify::Check("UnitMotion::LoadState", true, ok, "%d points, %d waypoints, %d steps", self->points.size,
+                      self->waypoints.size, self->stepSpeeds.size);
+}
+EI_VERIFY(0x005C7860, LoadStateVerify, 0, s_unused);

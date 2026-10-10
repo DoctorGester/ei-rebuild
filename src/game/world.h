@@ -41,6 +41,7 @@ class CCamera;   // camera.h
 class CParticleManager;   // effects.h
 struct FootprintPart;   // ai_map.h: a figure part's box (FigurePart +0x188)
 class CFileRegistry;   // registry.h
+class CHoover;   // object.h
 class CWorldServer;
 
 namespace world {
@@ -513,6 +514,17 @@ public:
     // reset and the game state cleared: +0x15C, the day-time value, alarms, the kind, the start
     // position, the day factor (1), loaded_ and +0x13C.
     void ResetState();
+    // world_server_life.cpp
+    // 0058AE10, vtable slot 2 (Create; called by WinMain). Teardown (slot 3) first, then the
+    // managers (WorldCreateManagers), the messages registry (text folder + "SMessBase.reg"), the
+    // side-specific manager (+0x44, a CServerSpecificManager given this world as context), the
+    // CHoover (+0x140), the wind (1, 0, 0; strength 0.4) and the zone state cleared. Returns 1, or
+    // FatalError's result when the managers or the registry fail.
+    int Setup();
+    // 0058B020, vtable slot 3 (Destroy; also WinMain at exit and the destructor 0058AAD0). Every
+    // player disconnected and released, the CHoover deleted, both script queues reset, ResetState,
+    // the messages registry closed, the zone exits freed, then the base's DestroyManagers.
+    void Teardown();
     // 005957E0. Before every game state request: every player leaves, the shared objects, .mob
     // files, script queues, diplomacy, map objects, missiles and timed objects go, then the
     // base class's teardown (0055F890); the game result and kind are cleared.
@@ -667,7 +679,7 @@ public:
     mfc::CStringArray mobFiles_;           // +0x124 .mob files loaded in this zone (LoadMobFile)
     int gameResult_;                      // +0x138 0 while the game runs
     std::uint32_t unknown13C_;            // +0x13C saved and loaded
-    std::uint8_t unknown_140[0x144 - 0x140];
+    CHoover* hoover_;                     // +0x140 a CHoover (object.h), counted; made by Setup, deleted by Teardown
     // +0x144 a CFileRegistry (registry.h; closed by 0058B0E7) with the server's messages: the
     // login handler (0066F890) reads "SrvErrMsg" / "WrongClientVersion" from it.
     std::uint8_t messages_[0x15C - 0x144];
@@ -718,6 +730,7 @@ static_assert(offsetof(CWorldServer, countdowns_) == 0x70);
 static_assert(offsetof(CWorldServer, unknown84_) == 0x84);
 static_assert(offsetof(CWorldServer, loaded_) == 0x100);
 static_assert(offsetof(CWorldServer, zoneName_) == 0x120);
+static_assert(offsetof(CWorldServer, hoover_) == 0x140);
 static_assert(offsetof(CWorldServer, loadedFresh_) == 0x11D);
 static_assert(offsetof(CWorldServer, keepsState_) == 0x11E);
 static_assert(offsetof(CWorldServer, unknown13C_) == 0x13C);
@@ -1166,6 +1179,9 @@ public:
     // 005630B0 (00567A60). One more reference on every item (slot 18's manager) and, when the item
     // factory exists (tested again, not the spell manager), on every spell (slot 22's).
     void ReferenceItemsAndSpells();
+    // 00563190 (Teardown). The reverse: every item (slot 18's manager) and then every spell (slot
+    // 22's) released (slot 4), each manager then emptied (its slot 15, DestroyAll).
+    void ReleaseItemsAndSpells();
     // 00564BE0 (RET 4). Takes the object `id` out of the maps: the MFC list +0x1F0 entries for it,
     // its +0xBC node and +0xD8 entry, then (when it is in +0xB8) the +0xB4 entries of a hero with
     // a text-key id (and 00538EA0 on its +0x240 in a session of kind 3), its grid cell and +0xB8;

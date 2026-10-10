@@ -75,3 +75,17 @@ static mfc::CTypedPtrList<CEngineObject>* __fastcall UnitsAtVerify(CSectorMap* s
     return actual;
 }
 EI_VERIFY(0x005C0930, UnitsAtVerify, 5, s_unitsAt);
+
+// 005C06F0 (A-W11): ours only (it frees and allocates the sectors). Afterwards the size is cells / 32
+// each way, the array holds width * height constructed sectors (vtable 0073FADC) and the AI map
+// is set. Every zone load (CAIMap::Load).
+static void __fastcall InitVerify(CSectorMap* self, void*, int cellsX, int cellsY, CAIMap* map) {
+    self->Init(cellsX, cellsY, map);
+    bool ok = self->width == cellsX / 32 && self->height == cellsY / 32 && self->added == 0 &&
+              self->sectors.size == self->width * self->height && self->sectors.maxSize >= self->sectors.size &&
+              self->aiMap == map;
+    for (int i = 0; ok && i < self->sectors.size; ++i)
+        ok = *reinterpret_cast<const std::uintptr_t*>(&self->sectors[i]) == 0x0073FADC;
+    ei::verify::Check("CSectorMap::Init", true, ok, "%d x %d cells: %d sectors", cellsX, cellsY, self->sectors.size);
+}
+EI_VERIFY(0x005C06F0, InitVerify, 0, s_unused);
