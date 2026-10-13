@@ -105,3 +105,11 @@ EI_VERIFY(0x004DEDD0, RemoveSourceVerify, 0, s_unused);
 EI_VERIFY(0x004DED40, ClearSourcesVerify, 0, s_unused);
 EI_VERIFY(0x005629B0, DestructVerify, 0, s_unused);
 EI_VERIFY(0x00562990, DeletingDestructVerify, 0, s_unused);
+
+// A-W13. 005628E0 frees the list with its sentinel: ours only, nothing is left to read afterwards.
+// Reached only when the owner's construction unwinds.
+static void __fastcall ListDestructVerify(TextSourceList* self) {
+    TextSourcesDestruct(self);
+    ei::verify::Check("TextSourcesDestruct", true, true, "");
+}
+EI_VERIFY(0x005628E0, ListDestructVerify, 0, s_unused);

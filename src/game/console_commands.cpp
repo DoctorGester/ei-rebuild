@@ -12,6 +12,8 @@
 #include "originals_render.h"
 #include "originals_gameplay.h"
 #include "originals_ui.h"
+#include "acks_db.h"
+#include "world_glue.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -435,6 +437,56 @@ void __fastcall Net(CStringArray* args) {
     }
 }
 EI_REPLACE(0x005DF9B0, Net);
+
+// 005DFC20 / 005DFCE0. Every speech of the list that has a text, as two lines: "#say <name>" and
+// the text. The lines go through the file's WriteString slot.
+namespace {
+void WriteSpeech(CStdioFileVirtuals* file, mfc::CString& line, const SpeechRecord& speech) {
+    if (speech.text.size() == 0) return;
+    line.Format(GameText(0x00792BF4), speech.name.data());   // "#say %s\n"
+    file->WriteString(line);
+    line.Format(GameText(0x00792BF0), speech.text.data());   // "%s\n"
+    file->WriteString(line);
+}
+} // namespace
+
+void __fastcall WriteSpeechLines(CStdioFileVirtuals* file, const acks::SpeechList* list) {
+    if (!list) return;
+    mfc::CString line;
+    for (const SpeechRecord& speech : *list) WriteSpeech(file, line, speech);
+}
+EI_REPLACE(0x005DFC20, WriteSpeechLines);
+
+void __fastcall WriteEnvironmentSpeechLines(CStdioFileVirtuals* file,
+                                            const stlp::vector<acks::EnvironmentSpeech>* list) {
+    if (!list) return;
+    mfc::CString line;
+    for (const acks::EnvironmentSpeech& entry : *list) WriteSpeech(file, line, entry.speech);
+}
+EI_REPLACE(0x005DFCE0, WriteEnvironmentSpeechLines);
+
+// 005DFDA0: generateacks. Writes <data folder>scenack.txt: for every record of the three ack
+// tables, each speech list its kind map names (in the map's order; a list that serves several
+// kinds is written once per kind), and after a unit record's lists its environment speeches.
+void __fastcall GenerateAcks(CStringArray*) {
+    CStdioFile file;
+    {
+        mfc::CString path = *GameDataPathString() + GameText(0x00792C00);   // "scenack.txt"
+        if (!file.Open(path, CStdioFile::modeCreate | CStdioFile::modeWrite, nullptr)) return;
+    }
+    CStdioFileVirtuals* out = file.Virtuals();
+    acks::AckDatabase& database = acks::Database();
+    for (acks::UnitAcks& record : database.units.records) {
+        record.head.speeches.ForEach([out](const auto* node) { WriteSpeechLines(out, node->value); });
+        WriteEnvironmentSpeechLines(out, &record.environmentSpeeches);
+    }
+    for (acks::ModelAcks& record : database.models.records)
+        record.head.speeches.ForEach([out](const auto* node) { WriteSpeechLines(out, node->value); });
+    for (acks::ExtraAcks& record : database.extras.records)
+        record.head.speeches.ForEach([out](const auto* node) { WriteSpeechLines(out, node->value); });
+    file.Close();
+}
+EI_REPLACE(0x005DFDA0, GenerateAcks);
 
 // 005E00D0: days ddmmyyyy DDMMYYYY: the days between two dates (06:00:00 and 07:01:01 local time).
 void __fastcall Days(CStringArray* args) {

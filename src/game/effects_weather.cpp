@@ -176,6 +176,28 @@ void CRainSnow::Start(int newMode, float duration) {
 }
 EI_REPLACE_METHOD(0x004E3FC0, CRainSnow::Start);
 
+void CRainSnow::DestructBody() {
+    ei::SetVtable(this, kRainSnowVtable);
+    Clear();
+    work094.FreeData();
+    WordArrayDestructOriginal(&words080);
+    work070.FreeData();
+    ByteArrayDestructOriginal(&bytes05C);
+    ByteArrayDestructOriginal(&bytes048);
+    work038.FreeData();
+    work028.FreeData();
+    if (texture) texture->Release();
+    DestructBase();
+}
+EI_REPLACE_METHOD(0x005616C0, CRainSnow::DestructBody);
+
+CRainSnow* CRainSnow::DeletingDestruct(unsigned flags) {
+    RainSnowDestructOriginal(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x005617E0, CRainSnow::DeletingDestruct);
+
 // --- Visibility fog -----------------------------------------------------------------------------
 
 void* CVisibilityFog::World() { return ObjectWorld(this); }

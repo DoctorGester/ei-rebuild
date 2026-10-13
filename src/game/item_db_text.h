@@ -102,6 +102,8 @@ TextSourceNode** __fastcall TextSourcesInsert(TextSourceList* list, void*, TextS
 BOOL __fastcall TextSourcesAdd(TextSourceList* list, void*, const char* path, BOOL writable);
 void __fastcall TextSourcesRemove(TextSourceList* list, void*, const char* path);
 void __fastcall TextSourcesClear(TextSourceList* list);
+// 005628E0 (plain RET; the list's owner unwinding). TextSourcesClear, then the list's own destructor.
+void __fastcall TextSourcesDestruct(TextSourceList* list);
 
 // 004E1540. Copies an iterator (thiscall: *out = *this).
 struct TextSourceIterator {

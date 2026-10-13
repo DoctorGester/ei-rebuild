@@ -11,6 +11,7 @@ namespace flowdata {
 // ---- SaveGame (0057B3B0) -----------------------------------------------------------------------
 constexpr std::uintptr_t kSlotFolder = std::uintptr_t(0x007905E4);      // "%ssaves\\%s\\"
 constexpr std::uintptr_t kCurrentFolder = std::uintptr_t(0x00790534);   // "%ssaves\\current\\"
+constexpr std::uintptr_t kCurrentFiles = std::uintptr_t(0x0079060C);    // "%ssaves\\current\\*.*"
 constexpr std::uintptr_t kVisitedPrefix = std::uintptr_t(0x00790548);   // "zs.": the "zone visited" variable
 constexpr std::uintptr_t kAlwaysCopied = std::uintptr_t(0x007905CC);    // "bz7g"
 constexpr std::uintptr_t kSaveExtension = std::uintptr_t(0x0079052C);   // ".sav"

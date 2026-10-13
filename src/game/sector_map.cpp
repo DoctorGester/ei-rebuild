@@ -21,9 +21,65 @@ constexpr float kCellSize = 1.0f;   // 0073FDD0
 constexpr float kZero = 0.0f;
 } // namespace
 
-namespace {
-__declspec(naked) void __stdcall ConstructSectors(Sector*, int) EI_ORIGINAL(0x0059DF90)
-} // namespace
+// ---- Sectors ------------------------------------------------------------------------------------
+
+void Sector::Clear() {
+    freeOccluder = -1;
+    occluders.SetSize(0, -1);
+    objects.RemoveAll();
+    units.RemoveAll();
+}
+EI_REPLACE_METHOD(0x005BFE00, Sector::Clear);
+
+int Sector::NewOccluder() {
+    if (freeOccluder >= 0) {
+        int index = freeOccluder;
+        freeOccluder = occluders[index].next;
+        return index;
+    }
+    occluders.SetSize(occluders.size + 1, -1);
+    return occluders.size - 1;
+}
+EI_REPLACE_METHOD(0x005BFE70, Sector::NewOccluder);
+
+int Sector::RemoveOccluder(int head, int bottom, int top, int kind, int transparency) {
+    std::int16_t first = static_cast<std::int16_t>(head);
+    std::int16_t* link = &first;
+    for (std::int16_t index = first; index >= 0;) {
+        SectorOccluder& record = occluders[index];
+        if (record.top == top && record.bottom == bottom && record.kind == kind && record.transparency == transparency) {
+            std::int16_t next = record.next;
+            record.next = static_cast<std::int16_t>(freeOccluder);
+            freeOccluder = *link;   // the record's own index
+            *link = next;
+            break;
+        }
+        link = &record.next;
+        index = record.next;
+    }
+    return first;
+}
+EI_REPLACE_METHOD(0x005BFFD0, Sector::RemoveOccluder);
+
+void Sector::FreeOccluder(int index) {
+    occluders[index].next = static_cast<std::int16_t>(freeOccluder);
+    freeOccluder = index;
+}
+EI_REPLACE_METHOD(0x005C0060, Sector::FreeOccluder);
+
+// 0059DF90: CArray<Sector>'s ConstructElements with the constructor inlined.
+void __stdcall ConstructSectors(Sector* sectors, int count) {
+    std::memset(static_cast<void*>(sectors), 0, sizeof(Sector) * static_cast<unsigned>(count));
+    for (; count != 0; --count, ++sectors) {
+        sectors->objects = {reinterpret_cast<void*>(kSectorObjectListVtable), nullptr, nullptr, 0, nullptr, nullptr, 10};
+        sectors->units = {mfc::PtrListVtable(), nullptr, nullptr, 0, nullptr, nullptr, 10};
+        sectors->occluders.Construct(kSectorOccluderArrayVtable);
+        std::uintptr_t vtable = kSectorVtable;
+        std::memcpy(static_cast<void*>(sectors), &vtable, sizeof(vtable));
+        sectors->Clear();
+    }
+}
+EI_REPLACE(0x0059DF90, ConstructSectors);
 
 void SectorElements::Construct(Sector* sectors, int count) { ConstructSectors(sectors, count); }
 
@@ -35,6 +91,22 @@ void CSectorMap::Init(int cellsX, int cellsY, CAIMap* map) {
     aiMap = map;
 }
 EI_REPLACE_METHOD(0x005C06F0, CSectorMap::Init);
+
+void CSectorMap::DestructBody() {
+    vtable = reinterpret_cast<void*>(kVtableAddress);
+    sectors.vtable = reinterpret_cast<void*>(kSectorArrayVtable);
+    if (!sectors.data) return;
+    SectorElements::Destruct(sectors.data, sectors.size);
+    gamecrt::operator_delete(sectors.data);
+}
+EI_REPLACE_METHOD(0x0058A700, CSectorMap::DestructBody);
+
+CSectorMap* CSectorMap::DeletingDestruct(unsigned flags) {
+    DestructBody();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x0058A780, CSectorMap::DeletingDestruct);
 
 bool CSectorMap::Add(CEngineObject* object) {
     int cellX = x87::fistp(1.0f / (kCellSize * 0.5f) * PosX(object) - 0.5f);
@@ -95,13 +167,26 @@ EI_REPLACE_METHOD(0x005C1010, CSectorMap::Remove);
 
 namespace {
 // Spiral of sector offsets ordered by distance, with a radius-to-length table. Globals at
-// 007C2FC4 (lengths) and 007C2FFC (offset pairs); 005BF7D0 maps a radius to a table index.
-struct SpiralTable;
-__declspec(naked) int __fastcall SpiralIndex(SpiralTable*, void*, float) EI_ORIGINAL(0x005BF7D0)
-SpiralTable* Spiral() { return reinterpret_cast<SpiralTable*>(0x007C2FD8); }
+// 007C2FC4 (lengths) and 007C2FFC (offset pairs); 005BF7D0 (RadiusTree::Find, called through its
+// address so its wrapper sees the calls) maps a radius to a table index.
+__declspec(naked) int __fastcall SpiralIndex(const RadiusTree*, void*, float) EI_ORIGINAL(0x005BF7D0)
+const RadiusTree* Spiral() { return reinterpret_cast<const RadiusTree*>(0x007C2FD8); }
 const int* SpiralLengths() { return *reinterpret_cast<const int* const*>(0x007C2FC4); }
 const std::int16_t* SpiralOffsets() { return *reinterpret_cast<const std::int16_t* const*>(0x007C2FFC); }
 } // namespace
+
+int RadiusTree::Find(float radius) const {
+    std::int32_t key;
+    std::memcpy(&key, &radius, sizeof(key));
+    int node = 1;
+    for (int level = depth; level > 0; --level) {
+        std::int32_t nodeKey;
+        std::memcpy(&nodeKey, &keys[node], sizeof(nodeKey));
+        node = node * 2 + (key > nodeKey ? 1 : 0);
+    }
+    return node & mask;
+}
+EI_REPLACE_METHOD(0x005BF7D0, RadiusTree::Find);
 
 void CSectorMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CEngineObject>* result, float radius) {
     int length = SpiralLengths()[SpiralIndex(Spiral(), nullptr, radius * 0.03125f)];

@@ -324,6 +324,25 @@ static void __fastcall RainStartVerify(CRainSnow* self, void*, int newMode, floa
 }
 EI_VERIFY(0x004E3FC0, RainStartVerify, 0, s_unusedRainStart);
 
+// A-W13. 005616C0 (the layer's destructor body) and 005617E0 (deleting) free the work arrays: ours
+// only. Checked: the sound and texture dropped, no owner, the engine object's vtable back; the
+// deleting one returns the object. The client world's teardown (leaving the game).
+static void* s_unusedRainDestruct;
+static void __fastcall RainDestructVerify(CRainSnow* self) {
+    self->DestructBody();
+    bool ok = self->sound == 0 && self->texture == nullptr && self->owner_ == nullptr &&
+              *reinterpret_cast<std::uintptr_t*>(self) == CEngineObject::kVtableAddress;
+    ei::verify::Check("CRainSnow::DestructBody", true, ok, "mode %d", self->mode);
+}
+EI_VERIFY(0x005616C0, RainDestructVerify, 0, s_unusedRainDestruct);
+
+static CRainSnow* __fastcall RainDeleteVerify(CRainSnow* self, void*, unsigned flags) {
+    CRainSnow* result = self->DeletingDestruct(flags);
+    ei::verify::Check("CRainSnow::DeletingDestruct", true, result == self, "flags %u", flags);
+    return result;
+}
+EI_VERIFY(0x005617E0, RainDeleteVerify, 0, s_unusedRainDestruct);
+
 // The fog object's slots (A-S10; the visibility fog of CEffectShowVisibility / 004E28D0). Create /
 // Destroy / the destructors free the cells: ours only, the table checked empty. Class name and id
 // (MOV EAX,imm32: 5): both, compared.

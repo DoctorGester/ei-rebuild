@@ -382,3 +382,62 @@ static int __fastcall DrawPassVerify(CWorldClient* self, void*) {
     return result;
 }
 EI_VERIFY(0x0056AFE0, DrawPassVerify, 0, s_unused);
+
+// A-W13. 00569D60 draws the line lists: ours only; it returns 1. Every frame (Render).
+static int __fastcall DrawLineListsVerify(CWorldClient* self) {
+    int result = self->DrawLineLists();
+    ei::verify::Check("CWorldClient::DrawLineLists", 1, result, "%u lists", static_cast<unsigned>(self->lineLists_.Size()));
+    return result;
+}
+EI_VERIFY(0x00569D60, DrawLineListsVerify, 0, s_unused);
+
+// The debug display's switches (the console's debug commands): both run, the original first (the
+// flags put back in between; a switch off also removes the panel's lines, which ours then finds
+// gone); the flags are compared. Stolen bytes: MOV reg,[ECX+0x88] (6), AND [ECX+0x88],imm8 (7),
+// PUSH EBX; PUSH ESI; PUSH EDI; MOV EDI,ECX (5).
+namespace {
+using SwitchFn = void(__fastcall*)(CWorldClient*);
+void CheckSwitch(const char* name, CWorldClient* self, SwitchFn original, void (CWorldClient::*ours)()) {
+    std::uint32_t before = self->debugFlags_;
+    original(self);
+    std::uint32_t expected = self->debugFlags_;
+    self->debugFlags_ = before;
+    (self->*ours)();
+    ei::verify::Check(name, true, expected == self->debugFlags_, "%08X -> %08X vs %08X", before, expected,
+                      self->debugFlags_);
+}
+} // namespace
+static SwitchFn s_showFps, s_hideFps, s_showRenderInfo, s_hideRenderInfo, s_showManagers, s_hideManagers,
+    s_showWorldData, s_hideWorldData;
+static void __fastcall ShowFpsVerify(CWorldClient* self) {
+    CheckSwitch("CWorldClient::ShowFps", self, s_showFps, &CWorldClient::ShowFps);
+}
+static void __fastcall HideFpsVerify(CWorldClient* self) {
+    CheckSwitch("CWorldClient::HideFps", self, s_hideFps, &CWorldClient::HideFps);
+}
+static void __fastcall ShowRenderInfoVerify(CWorldClient* self) {
+    CheckSwitch("CWorldClient::ShowRenderInfo", self, s_showRenderInfo, &CWorldClient::ShowRenderInfo);
+}
+static void __fastcall HideRenderInfoVerify(CWorldClient* self) {
+    CheckSwitch("CWorldClient::HideRenderInfo", self, s_hideRenderInfo, &CWorldClient::HideRenderInfo);
+}
+static void __fastcall ShowManagersVerify(CWorldClient* self) {
+    CheckSwitch("CWorldClient::ShowManagers", self, s_showManagers, &CWorldClient::ShowManagers);
+}
+static void __fastcall HideManagersVerify(CWorldClient* self) {
+    CheckSwitch("CWorldClient::HideManagers", self, s_hideManagers, &CWorldClient::HideManagers);
+}
+static void __fastcall ShowWorldDataVerify(CWorldClient* self) {
+    CheckSwitch("CWorldClient::ShowWorldData", self, s_showWorldData, &CWorldClient::ShowWorldData);
+}
+static void __fastcall HideWorldDataVerify(CWorldClient* self) {
+    CheckSwitch("CWorldClient::HideWorldData", self, s_hideWorldData, &CWorldClient::HideWorldData);
+}
+EI_VERIFY(0x00569A10, ShowFpsVerify, 6, s_showFps);
+EI_VERIFY(0x00569A20, HideFpsVerify, 7, s_hideFps);
+EI_VERIFY(0x00569A40, ShowRenderInfoVerify, 6, s_showRenderInfo);
+EI_VERIFY(0x00569A50, HideRenderInfoVerify, 6, s_hideRenderInfo);
+EI_VERIFY(0x00569A90, ShowManagersVerify, 6, s_showManagers);
+EI_VERIFY(0x00569AA0, HideManagersVerify, 5, s_hideManagers);
+EI_VERIFY(0x00569B10, ShowWorldDataVerify, 6, s_showWorldData);
+EI_VERIFY(0x00569B20, HideWorldDataVerify, 6, s_hideWorldData);

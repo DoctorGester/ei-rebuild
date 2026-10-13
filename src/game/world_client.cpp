@@ -34,7 +34,6 @@
 #include <cstring>
 #include <new>
 
-__declspec(naked) BOOL CWorld::IsNight() EI_ORIGINAL(0x0055FC10)
 
 CWorldClient* WorldClient() { return reinterpret_cast<CWorldClient*>(0x007AF5B8); }
 

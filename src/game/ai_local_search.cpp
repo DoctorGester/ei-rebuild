@@ -2,6 +2,7 @@
 // for short paths (CAIMap::JoinLocalSearches runs a forward and a backward one until they meet),
 // the long-range planner's legs and the region map's block measurements. See docs/notes/ai.md.
 #include "ai_map.h"
+#include "ai_grids.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -61,20 +62,6 @@ void Start(LocalSearch* search, int wx, int wy) {
     start->settled = true;
     for (SearchNode*& bucket : search->buckets) bucket = nullptr;
     search->active = true;
-}
-
-// 005B1470: the node grid's block and row table.
-void AllocateNodes(SearchGrid<SearchNode>& grid) {
-    grid.data = static_cast<SearchNode*>(gamecrt::operator_new(grid.width * grid.height * sizeof(SearchNode)));
-    grid.rows = static_cast<SearchNode**>(gamecrt::operator_new(grid.height * sizeof(SearchNode*)));
-    for (int i = 0; i < grid.height; ++i) grid.rows[i] = grid.data + i * grid.width;
-}
-
-// 005B14C0: the byte grid's block and row table.
-void AllocateLevels(SearchGrid<std::uint8_t>& grid) {
-    grid.data = static_cast<std::uint8_t*>(gamecrt::operator_new(grid.width * grid.height));
-    grid.rows = static_cast<std::uint8_t**>(gamecrt::operator_new(grid.height * sizeof(std::uint8_t*)));
-    for (int i = 0; i < grid.height; ++i) grid.rows[i] = grid.data + i * grid.width;
 }
 
 // The inclusive window range of cells on the map, off the window's border:
@@ -382,7 +369,7 @@ void LocalSearch::SaveLevels(bool clear) {
         gamecrt::operator_delete(levels.rows);
         levels.width = kWindow;
         levels.height = kWindow;
-        AllocateLevels(levels);
+        AllocateGrid(levels);
     }
     WindowRange r = OnMapRange(this);
     for (int wy = r.y0; wy <= r.y1; ++wy) {
@@ -427,7 +414,7 @@ void LocalSearch::Attach(CAIMap* mapArg, bool backwardArg) {
         gamecrt::operator_delete(nodes.rows);
         nodes.width = kWindow;
         nodes.height = kWindow;
-        AllocateNodes(nodes);
+        AllocateGrid(nodes);
     }
     for (int wy = 0; wy < kWindow; ++wy) {
         for (int wx = 0; wx < kWindow; ++wx) {
@@ -480,7 +467,7 @@ bool LocalSearch::Recenter(int x0, int y0, int x1, int y1, bool settleInside) {
     if (CdqAbs(originX - oldX) >= 31 || CdqAbs(originY - oldY) >= 31) return false;
     // A copy of the node grid (005C4BA0, inlined here).
     SearchGrid<SearchNode> old{nullptr, nullptr, nodes.width, nodes.height};
-    AllocateNodes(old);
+    AllocateGrid(old);
     if (old.width * old.height > 0) std::memcpy(old.data, nodes.data, old.width * old.height * sizeof(SearchNode));
     int shiftX = originX - oldX, shiftY = originY - oldY;
     // Shift the nodes; remember the cheapest one kept on the old window's inner ring.

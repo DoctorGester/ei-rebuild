@@ -87,6 +87,40 @@ static void __fastcall RemoveObjectVerify(CWorldServer* self, void*, unsigned id
 }
 EI_VERIFY(0x005935C0, RemoveObjectVerify, 0, s_unused);
 
+// A-W13. 005939E0 (world_server.cpp) removes every unit: ours only. Afterwards no unit (class 0x50)
+// is a world object. No caller in the exe (Rebirth's binaries refer to it), no scenario.
+static void __fastcall RemoveAllUnitsVerify(CWorldServer* self) {
+    self->RemoveAllUnits();
+    int units = 0;
+    self->objects_.map.ForEach([&](const auto* node) { units += node->value && node->value->GetClassId() == 0x50; });
+    ei::verify::Check("CWorldServer::RemoveAllUnits", 0, units, "%u objects left",
+                      static_cast<unsigned>(self->objects_.map.Size()));
+}
+EI_VERIFY(0x005939E0, RemoveAllUnitsVerify, 0, s_unused);
+
+// 0058D340 / 00593AF0 (world_quests.cpp) send a unit's message to the players whose party has it,
+// 00590160 moves a player's held items into its party: ours only. Checked for the last: the list is
+// empty afterwards. The alarm's remarks; a unit's death; every zone change (CollectParty).
+static void __fastcall TellPartiesVerify(CWorldServer* self, void*, CEngineObject* unit, std::uint32_t value) {
+    self->TellParties(unit, value);
+    ei::verify::Check("CWorldServer::TellParties", true, unit != nullptr, "value %u", value);
+}
+EI_VERIFY(0x0058D340, TellPartiesVerify, 0, s_unused);
+
+static void __fastcall TellPartiesGoneVerify(CWorldServer* self, void*, CEngineObject* unit) {
+    self->TellPartiesGone(unit);
+    ei::verify::Check("CWorldServer::TellPartiesGone", true, unit != nullptr, "unit %d", unit ? unit->id_ : -1);
+}
+EI_VERIFY(0x00593AF0, TellPartiesGoneVerify, 0, s_unused);
+
+static void __fastcall StorePlayerItemsVerify(CWorldServer* self, void*, WorldPlayer* player, class CParty* party) {
+    int before = player ? player->items.count : 0;
+    self->StorePlayerItems(player, party);
+    bool ok = !player || (player->items.head == nullptr && player->items.count == 0 && player->items.blocks == nullptr);
+    ei::verify::Check("CWorldServer::StorePlayerItems", true, ok, "%d items", before);
+}
+EI_VERIFY(0x00590160, StorePlayerItemsVerify, 0, s_unused);
+
 // 0058D3D0: PUSH EBP; MOV EBP,ESP; SUB ESP,0x20 (6 bytes). Only adds to the update map: the
 // original runs first, its entries are recorded, the map is put back (new keys erased, old values
 // and the highest id restored), ours runs, and the entries and highest id must match.
@@ -155,3 +189,69 @@ static void __fastcall SetGameResultVerify(CWorldServer* self, void*, int result
     ei::verify::Check("CWorldServer::SetGameResult", expected, self->gameResult_, "result %d (was %d)", result, before);
 }
 EI_VERIFY(0x0058DC90, SetGameResultVerify, 0, s_unused);
+
+// A-W13. ObjectMapIterator: First 0059AF20 / 0059AFF0 (MOV EAX,[ESP+4]; PUSH EBX, 5 bytes) and Next
+// 0059AF80 / 0059B050 (MOV EAX,[ECX]; PUSH EDI; TEST EAX,EAX, 5 bytes) only read the map, so the
+// original runs on a scratch iterator and the two are compared. Their callers in the exe are
+// rewritten and walk the maps themselves, so these run only for code outside the rewrite.
+using IterFirstFn = CEngineObject*(__fastcall*)(ObjectMapIterator*, void*, ObjectIdMap*);
+using IterNextFn = CEngineObject*(__fastcall*)(ObjectMapIterator*);
+static CEngineObject* CheckedIterFirst(IterFirstFn original, ObjectMapIterator* self, ObjectIdMap* objects) {
+    ObjectMapIterator theirs;
+    CEngineObject* expected = original(&theirs, nullptr, objects);
+    CEngineObject* actual = self->First(objects);
+    bool same = expected == actual && theirs.node == self->node && theirs.table == self->table && theirs.map == self->map;
+    ei::verify::Check("ObjectMapIterator::First", true, same, "%p vs %p", expected, actual);
+    return actual;
+}
+static CEngineObject* CheckedIterNext(IterNextFn original, ObjectMapIterator* self) {
+    ObjectMapIterator theirs = *self;
+    CEngineObject* expected = original(&theirs);
+    CEngineObject* actual = self->Next();
+    bool same = expected == actual && theirs.node == self->node && theirs.table == self->table && theirs.map == self->map;
+    ei::verify::Check("ObjectMapIterator::Next", true, same, "%p vs %p", expected, actual);
+    return actual;
+}
+static IterFirstFn s_iterFirstA, s_iterFirstB;
+static IterNextFn s_iterNextA, s_iterNextB;
+static CEngineObject* __fastcall IterFirstVerifyA(ObjectMapIterator* self, void*, ObjectIdMap* objects) {
+    return CheckedIterFirst(s_iterFirstA, self, objects);
+}
+static CEngineObject* __fastcall IterFirstVerifyB(ObjectMapIterator* self, void*, ObjectIdMap* objects) {
+    return CheckedIterFirst(s_iterFirstB, self, objects);
+}
+static CEngineObject* __fastcall IterNextVerifyA(ObjectMapIterator* self) { return CheckedIterNext(s_iterNextA, self); }
+static CEngineObject* __fastcall IterNextVerifyB(ObjectMapIterator* self) { return CheckedIterNext(s_iterNextB, self); }
+EI_VERIFY(0x0059AF20, IterFirstVerifyA, 5, s_iterFirstA);
+EI_VERIFY(0x0059AFF0, IterFirstVerifyB, 5, s_iterFirstB);
+EI_VERIFY(0x0059AF80, IterNextVerifyA, 5, s_iterNextA);
+EI_VERIFY(0x0059B050, IterNextVerifyB, 5, s_iterNextB);
+
+// A-W13. The server's height slots: 0058A390 (SUB ESP,0xC; MOV EAX,[ESP+0x10], 7 bytes), 0058A3D0 /
+// 0058A3F0 (MOV EDX,[ESP+8]; MOV EAX,[ECX], 6 bytes). Pure; compared as floats. The units'
+// placement and movement (`newgame`).
+using HeightFn = double(__fastcall*)(CWorldServer*, void*, float, float);
+static HeightFn s_serverRawHeight, s_serverGroundHeight, s_serverSurfaceHeight;
+static double __fastcall ServerRawHeightVerify(CWorldServer* self, void*, float x, float y) {
+    float expected = static_cast<float>(s_serverRawHeight(self, nullptr, x, y));
+    double result = self->ServerRawSurfaceHeight(x, y);
+    ei::verify::CheckNear("CWorldServer::ServerRawSurfaceHeight", expected, static_cast<float>(result), "(%g, %g)", x, y);
+    return result;
+}
+EI_VERIFY(0x0058A390, ServerRawHeightVerify, 7, s_serverRawHeight);
+
+static double __fastcall ServerGroundHeightVerify(CWorldServer* self, void*, float x, float y) {
+    float expected = static_cast<float>(s_serverGroundHeight(self, nullptr, x, y));
+    double result = self->ServerGroundHeight(x, y);
+    ei::verify::CheckNear("CWorldServer::ServerGroundHeight", expected, static_cast<float>(result), "(%g, %g)", x, y);
+    return result;
+}
+EI_VERIFY(0x0058A3D0, ServerGroundHeightVerify, 6, s_serverGroundHeight);
+
+static double __fastcall ServerSurfaceHeightVerify(CWorldServer* self, void*, float x, float y) {
+    float expected = static_cast<float>(s_serverSurfaceHeight(self, nullptr, x, y));
+    double result = self->ServerSurfaceHeight(x, y);
+    ei::verify::CheckNear("CWorldServer::ServerSurfaceHeight", expected, static_cast<float>(result), "(%g, %g)", x, y);
+    return result;
+}
+EI_VERIFY(0x0058A3F0, ServerSurfaceHeightVerify, 6, s_serverSurfaceHeight);

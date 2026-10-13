@@ -72,3 +72,12 @@ static void __fastcall SendFreshObjectsVerify(CWorldServer* self, void*) {
                       static_cast<unsigned>(self->mapObjects_.map.Size()), static_cast<unsigned>(created.map.Size()));
 }
 EI_VERIFY(0x005951A0, SendFreshObjectsVerify, 0, s_unused);
+
+// A-W13. 00595B50 EnsureZone: ours only (it loads and tears down a zone through NewZone, which
+// stays the original, and TeardownZone, which has its own check); logged. The client's state block
+// (00567AB0) in a network game.
+static void __fastcall EnsureZoneVerify(CWorldServer* self, void*, const char* map, const char* mob) {
+    self->EnsureZone(map, mob);
+    ei::verify::Check("CWorldServer::EnsureZone", true, true, "%s %s", map ? map : "", mob ? mob : "");
+}
+EI_VERIFY(0x00595B50, EnsureZoneVerify, 0, s_unused);

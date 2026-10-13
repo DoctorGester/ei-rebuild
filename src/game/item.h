@@ -440,6 +440,11 @@ public:
     virtual void TimedObjectManager();             // 14
     virtual void FigureManager();                  // 15
     virtual CItemConstructor* ItemConstructor();   // 16
+    virtual void SpellConstructor();               // 17
+    virtual void ItemFactory();                    // 18
+    virtual void MapObjectManager();               // 19
+    virtual void PlayerList();                     // 20
+    virtual CBaseManager* SpecificManager();       // 21: makes the figures' drawers (class 0x45; null for a party)
 };
 
 // The item manager (007AFFB4; a CResourceManager with vtable 0073F25C, 0xBC bytes, as the world

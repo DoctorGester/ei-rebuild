@@ -340,6 +340,7 @@ address,size,name,evidence
 00579710,18,FUN_00579710,referenced only from dead code 00602050
 00579730,155,FUN_00579730,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00579810,27,FUN_00579810,referenced only from dead code 00602170
+00579FB0,176,FUN_00579fb0,"no references at all (no call/jmp, no absolute pointer in code or data, none in Rebirth's binaries; A-W13: checked by hand): the world saved into a memory stream and written with tag 0x102"
 00589B40,11,FUN_00589b40,referenced only from vtable(s) installed only by dead code 0073F7C4
 0058B150,247,FUN_0058b150,"no references at all (no call/jmp, no absolute pointer in code or data)"
 0058C4F0,352,FUN_0058c4f0,"no references at all (no call/jmp, no absolute pointer in code or data)"
