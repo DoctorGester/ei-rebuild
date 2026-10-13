@@ -454,6 +454,18 @@ public:
     // it; a zone in state 0 or nothing hides the tip. A new name plays
     // "buttons\globalmap\zone.wav". Regions past the links do nothing.
     void OnMouseMove(int buttons, int x, int y);
+    // 0062F950 (input slot 2, RET 0xC; Rebirth-patched, this is the vanilla body, hooked in the
+    // vanilla launch only; ui_global_map_paths.cpp). The left button pressed (nothing while
+    // dragging). Regions 0 / 1, the turn buttons: turning_ -1 / +1 and
+    // "buttons\globalmap\move.wav". Region 2, the camp (unless noCamp_ is 1):
+    // "buttons\globalmap\transit.wav", the constructor 0 and screen 5 asked for. A link (regions
+    // 3..), or on gipat a zone that has one: "buttons\globalmap\ok.wav", the ways to the link's
+    // zone searched from the local player's zone and, when there is one, the time of arrival
+    // exit 0 passed (00578700) and the zone asked for at entrance 0. Any other zone under the
+    // mouse (read from the backdrop's pixel at half the point; its state not 0): the sound, the
+    // search, and the objectives window (built inline by the original) opened over the map with
+    // the zone, the arrival times, two buttons and no zone list.
+    void OnLeftDown(int buttons, int x, int y);
     // 00630580 (slot 9, RET 0xC). The container's handler first; Esc opens the escape menu (built
     // inline: 0x168 bytes, container constructor 00600B20, vtables 007412A4 / 00741270) and marks
     // the key used; an unused key whose action (KeyActions) is '5' quick-saves ("saveq",

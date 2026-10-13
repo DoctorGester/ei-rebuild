@@ -36,9 +36,7 @@ constexpr int kRegionNextZone = 3;
 constexpr int kRegionFirstRow = 4;
 constexpr int kRegionFirstExit = 9;
 
-// 00578700 (the client glue 007AFEA6, not read; RET 4): with a distance of at least 0, the
-// players' times move on by it (0058D280).
-__declspec(naked) void __fastcall PassTravelTimeOriginal(void*, void*, float /*distance*/) EI_ORIGINAL(0x00578700)
+// The client glue PassTravelTimeOriginal (originals_ui.h) is called on.
 void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA6); }
 
 // The quest database's index (007C87B4; operator[] adds an empty slot for an unknown name).

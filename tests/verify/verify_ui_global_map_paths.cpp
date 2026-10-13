@@ -12,10 +12,17 @@
 // the results recorded, the map emptied (00631710) and the flags put back, then ours; the entries
 // (arrival exit, time), found_ and the flags must agree. A call with results already present runs
 // ours only. Reached by a click on a zone or link of the map (0062F950); no scenario clicks one.
+//
+// OnLeftDown (0062F950, input slot 2; Rebirth-patched: the vanilla launch only): ours only (it
+// plays sounds, asks the server for the camp or a zone, or opens the objectives window). Read
+// back: nothing while dragging; the turn buttons (regions 0 / 1) set turning_ to -1 / +1 and
+// nothing else changes it. Scenario: ui_camp opens the map; whether it presses the left button
+// there has not been run (the worker cannot run the game).
 #include "verify.h"
 
 #include "../../src/game/originals_render.h"
 #include "../../src/game/ui_camp.h"
+#include "../../src/game/ui_screens.h"
 
 #include <cstdint>
 #include <cstring>
@@ -149,3 +156,16 @@ static void __fastcall FindPathsVerify(CGlobalMap* self, void*, MapRecord* from)
     }
 }
 EI_VERIFY(0x006312C0, FindPathsVerify, 7, s_findPaths);
+
+// CGlobalMap::OnLeftDown (0062F950): ours only.
+static void __fastcall GlobalMapLeftDownVerify(void* input, void*, int buttons, int x, int y) {
+    CGlobalMap* self = WindowFromInput<CGlobalMap>(input);
+    const bool dragging = self->dragging_;
+    const int turning = self->turning_;
+    const int region = self->RegionAt(x, y);
+    self->OnLeftDown(buttons, x, y);
+    const int expected = dragging ? turning : region == 0 ? -1 : region == 1 ? 1 : turning;
+    ei::verify::Check("CGlobalMap::OnLeftDown", expected, self->turning_, "region %d dragging %d", region,
+                      dragging ? 1 : 0);
+}
+EI_VERIFY(0x0062F950, GlobalMapLeftDownVerify, 0, s_unused);

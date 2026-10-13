@@ -465,6 +465,10 @@ __declspec(naked) inline void __fastcall BriefingStartPhrasesOriginal(void* /*sc
 __declspec(naked) inline void __fastcall GameSetConstructorOriginal(void* /*glue*/, void*, float /*constructor*/)
     EI_ORIGINAL(0x00578560)
 __declspec(naked) inline void __fastcall GameRequestScreenOriginal(void* /*glue*/, void*, int /*id*/) EI_ORIGINAL(0x00578B00)
+// 00578700 (the client glue 007AFEA6, not read; RET 4): with a distance of at least 0, the players' times move on by
+// it (0058D280). The objectives window's exits and the global map's links call it before the zone change.
+__declspec(naked) inline void __fastcall PassTravelTimeOriginal(void* /*glue*/, void*, float /*distance*/)
+    EI_ORIGINAL(0x00578700)
 // 006B4E20 (on the music system [007AF760], ECX not read): the sound manager's stream fades in (006BAFE0). 0066ED30
 // (rewritten as CPlayerServer::SendPosition04; through its address so the wrapper runs; RET 0xC): message 0x04, a
 // position and two dwords. 00592090 (rewritten as CWorldServer::CompleteBriefing; through its address so the wrapper
