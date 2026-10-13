@@ -371,3 +371,107 @@ the top of the pipeline's clip stack through the transform object's `ProjectClip
 hands the points to `DeviceDrawLineStrip` (0049B4B0); it never touches the Direct3D device itself. Returns 1.
 Users: the figure parts' debug bounds (005A7290) and the world client's line lists (00569D60); no scenario
 turns either on, so neither wrapper fires (AddPoint side by side on a copy, Draw ours only).
+
+## 12. A-S11: what is left of the old renderer's range (0x004C0000-0x00500000)
+
+173 game functions of the range were not rewritten when A-S11 started. Every one is classified below; this is
+the list the renderer work starts from. The plain game code of the range (text manager, script loader,
+`CSysInfo`, the fog manager) is in script.md (A-S11).
+
+| Class | Count | Rewritten | Left |
+| --- | --- | --- | --- |
+| (a) plain game code | 39 | 18 | 21 (static initialisers and what only they reach, one MFC TRY/CATCH) |
+| (b) renderer code through the renderer's own interfaces, or pure | 67 | 52 | 15 |
+| (c) calls DirectDraw / Direct3D 7 interfaces directly | 28 | 0 | 28 (forwarded on purpose) |
+| (d) library / compiler-generated (`config/library.csv`) | 25 | - | - |
+| (e) dead (`config/dead_code.csv`) | 6 | - | - |
+| under 5 bytes (cannot be hooked) | 8 | - | 8 |
+
+### (c) Direct calls into DirectDraw / Direct3D 7: left forwarded
+
+The interface names are read off the vtable offsets of the indirect calls (and the imports); the object behind
+each call was not traced for the larger functions, so treat a method name there as "this slot of the interface
+the function plainly works on", to be confirmed when the function is replaced.
+
+| Address | Bytes | What | Interface calls |
+| --- | --- | --- | --- |
+| 004E4240 | 2623 | rain draw (from 004E5680) | IDirect3DDevice7::SetTexture, DrawIndexedPrimitive, DrawIndexedPrimitiveVB; the device lock |
+| 004E4C80 | 2525 | snow draw (from 004E5680) | the same |
+| 004E5E50 | 2530 | the device object's constructor (renderer creation 00500B70) | IDirect3D7 (device enumeration with callback 004ED820, CreateDevice), IDirect3DDevice7::SetViewport, BeginStateBlock / EndStateBlock (4 blocks), SetTextureStageState (24) |
+| 004E68A0 | 767 | the device object's destructor body | IDirect3DDevice7::DeleteStateBlock (4), Release |
+| 004E6C30 | 673 | the depth buffer (format from `FindDepthFormat`, surface from 004EFA60) | IDirectDrawSurface7::AddAttachedSurface |
+| 004E6EE0 | 952 | the texture format table | IDirect3DDevice7::EnumTextureFormats |
+| 004E7840 | 506 | the vertex-buffer batch flushed, variant 1 (8 callers) | IDirect3DVertexBuffer7::Unlock, IDirect3DDevice7::DrawIndexedPrimitiveVB; the device lock |
+| 004E7A40 | 506 | the same, variant 2 (6 callers) | the same |
+| 004EB1D0 | 301 | texture bound by name (from 006CEDE0) | IDirect3DDevice7::SetTexture |
+| 004EB300 | 99 | texture bound to a stage | IDirect3DDevice7::SetTexture |
+| 004EBAF0 | 180 | texture pair bound (from 004EB550) | IDirect3DDevice7::SetTexture |
+| 004EDD70 | 1380 | the DirectDraw holder's constructor (`2DintMMX.dll`, `GetGraphicsProcessor`; its tail is 004EE2F8) | IDirectDraw7 slots 0x08 (Release), 0x18, 0x2C, 0x54; LoadLibraryA / GetProcAddress |
+| 004EE330 | 353 | the DirectDraw holder's destructor body | IDirectDraw7::RestoreDisplayMode, Release; FreeLibrary |
+| 004EE4A0 | 105 | the driver list filled | DirectDrawEnumerateExA (callback 004ED610) |
+| 004EE5D0 | 253 | a driver's capabilities | DirectDrawCreateEx, IDirectDraw7::GetCaps, Release |
+| 004EEA90 | 298 | a driver's display modes | DirectDrawCreateEx, IDirectDraw7::EnumDisplayModes |
+| 004EEBC0 | 155 | display mode set (from 00504780) | IDirectDraw7::SetDisplayMode |
+| 004EEC60 | 140 | display mode restored (from 00457D40) | IDirectDraw7::RestoreDisplayMode |
+| 004EECF0 | 310 | cooperative level | IDirectDraw7::SetCooperativeLevel |
+| 004EEE30 | 1756 | the primary and back surfaces | IDirectDraw7::CreateSurface (through 004EFA60), IDirectDrawSurface7::GetAttachedSurface, GetSurfaceDesc |
+| 004EFA60 | 504 | a surface created (7 callers, the interface among them) | IDirectDraw7::CreateSurface, IDirectDrawSurface7::GetSurfaceDesc |
+| 004EFEA0 | 137 | a surface's description | IDirectDrawSurface7::GetSurfaceDesc |
+| 004F3C60 | 824 | CLinkMesh draw slot (through `DeviceDrawMesh`) | IDirect3DDevice7::SetRenderState (state 0x1D) |
+| 004F3FA0 | 428 | CLinkMesh draw slot | the same |
+| 004FCA60 | 438 | `CRenderHelper`'s constructor | AddRef / Release of the device |
+| 004FCD50 | 311 | `CRenderHelper`'s destructor body | Release; the state blocks through slot 3 |
+| 004FD2A0 | 1480 | `CRenderHelper` slot 1: a preset's state block recorded | IDirect3DDevice7::BeginStateBlock, EndStateBlock, SetRenderState, SetTextureStageState |
+| 004FD9D0 | 295 | `CRenderHelper` slot 3: a state block released | IDirect3DDevice7::DeleteStateBlock |
+
+### (b) Through the renderer's own interfaces or pure: left
+
+| Address | Bytes | What | Why left |
+| --- | --- | --- | --- |
+| 004E1EB0 | 937 | a visibility fog's draw (cells into work arrays, `ClipTest`, the scene renderer's slot 17) | next candidate; owns static work arrays (007ABA30) with an exit handler |
+| 004E3C20 | 864 | the rain / snow buffers (from 00561E50) | next candidate (pure) |
+| 004E86B0, 004E8900 | 592, 1795 | the vertex bounds of `DeviceDrawMesh` / `DeviceDrawMesh2` (x87 minimum / maximum chains) | need a side-by-side run; float compares throughout |
+| 004ED610 | 358 | DirectDrawEnumerateExA's callback: a driver appended to the list | goes with 004EE4A0 |
+| 004ED820 | 517 | the device enumeration callback (from 004E5E50) | goes with 004E5E50 |
+| 004F0B90 | 535 | `CTransformPipeline`'s constructor: CPUID flags, `3DfpFPU.dll`, `GetTLPipeline` | throws a `GameError` through the game's `_CxxThrowException` |
+| 004F3870, 004F3AD0, 004F4150, 004F42D0, 004F4680, 004F4850 | 600, 390, 375, 774, 459, 730 | CLinkMesh slots (build, draws through `DeviceDrawMesh2` and the renderer's slots) | next candidates; reached through the vtable only |
+| 004F68C0 | 299 | `CLinkFigureLoader`'s constructor (`figures.res`, `menus.res`) | Rebirth-patched (ResOverride); vanilla launch only if ported |
+| 004FCE90 | 1004 | `CRenderHelper`: the built-in presets' state lists (a switch over the nine) | goes with 004FCA60 |
+
+### Rewritten by A-S11 (class b)
+
+- `pixel_formats.cpp`: the channel layout of a pixel format (004EDAA0 `Split`, 004EDC00 `ToNative`, 004EDC70
+  `FromNative`) and the device's format lookups (004E7DA0 by layout, 004E7C40 from an MMP header, 004E6BC0 the
+  depth format). All side by side (`verify_pixel_formats.cpp`; the two per-pixel converters sampled); every
+  texture load reaches them.
+- `device_helpers.cpp` (30): counted holders (004E6BA0, 004EBBB0, 004EBBD0, 004EBDF0, 004EBE10, 004FAED0,
+  004FAEF0, 004FDF70 release; 004EBE30, 004EBE60, 004EBE80 assign; 004C17E0, 004D9E60, 004D9E70 engine object
+  pointers; 004FDED0 a COM pointer), list iterator copies (004EBCA0, 004EC1A0, 004F0510, 004F0590, 004F05A0),
+  aligned blocks (004ECB50, 004ECB70, 004EC790 `AlignedArray<TLVertex>::SetSize`, 004D9EB0), the device's
+  vertex-buffer batch (004E7820 returns null: the batch is never locked; 004E7E00 appends indices and keeps the
+  original's loop that copies one index more than asked), deleting destructors (004EF790 `CDXSurface`, 004E7800
+  the counted base 0073D768, 004F6A00 the loader base) and the axis swap matrix 004F1330 (Rebirth WideScreen
+  patches it: vanilla launch only; `renderer_init.cpp` keeps its forwarder). Side by side: 004E7820, 004F1330;
+  the rest ours only (`verify_device_helpers.cpp` names the scenarios: any scene).
+- `render_helper.cpp` (16): `CRenderHelper`'s table slots 2, 4, 5, 6, 7 (004FDB00, 004FDB50, 004FDBA0, 004FDBC0,
+  004FDD80; `records_` is a hash_map from the preset to {its states, its state block}, `presets_` the nine
+  built-in ones), `CRenderPreset`'s destructor (004FD8B0, 004FD880), the deleting destructors of the device
+  object (004E6880), the DirectDraw holder (004EE310), the helper (004FCC20), the two abstract bases (004FCD30,
+  004FD900) and the pipeline (004F0DF0), `CTransformPipeline`'s destructor body 004F0E10 (`library_` at +0x10
+  is `3DfpFPU.dll`'s module: FreeLibrary, then the 16 stacks' blocks from the last to the first) and its matrix
+  stack constructor 004F0DB0 (16 matrices, aligned), and the driver list's lookup 004EE6D0 (`DriverAt`: a
+  negative index walks backwards through the end node as the original's loop does; the end node is the fatal
+  error "Can't find driver by index."). Side by side: 004FDB50, 004FDBA0, 004FDBC0 (into a scratch vector),
+  004EE6D0 for an index inside the list; the rest ours only (`verify_render_helper.cpp`).
+
+### (d), (e) and the rest
+
+- Library rows (25 in the range, all noted "A-S11"): 004D3650, 004D3670, 004D6310, 004E2B60, 004E2E10, 004E77D0,
+  004EBBF0, 004EBD30, 004EBEB0, 004EBF10, 004EC390, 004EC8A0, 004ECF60, 004ED780, 004EE2F8 (not a function: the
+  common exit of 004EDD70), 004F04C0, 004F06A0, 004F0A60, 004F69F0, 004F7A80, 004FB680, 004FCC40, 004FD8A0,
+  004FD920, 004FDFE0. One more outside the range: 0049F7B1 (not a function: the tail of `IsaacRandom::Seed`).
+- Dead rows (6): 004DABC0, 004E7FB0 and 004EE760 have no reference anywhere (rel32 and dword scans of the exe
+  and of Rebirth's binaries); 004F0A20, 004F0A90 and 004F0AE0 are called only by 004EE760. The display mode
+  callback 004ED7F0 is named only by 004EE760 too (Ghidra made no function of it).
+- Under 5 bytes: 004C17F0, 004D6B20, 004D6B30, 004D6B40, 004F0B00 (the DirectDraw error reporter: a bare RET),
+  004F6A20, 004FD870, 004FE940.

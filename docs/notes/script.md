@@ -406,3 +406,50 @@ work), `CSysInfo` 004DDCB0-004DE8B0 (static initialiser table 00783310: standalo
   ScriptDefinitionSave (004BBFE0), both rewritten with the same work inline, so no scenario reaches the
   hooks. Side by side where the prologue allows (the field put back between the runs); 004B2520, 004B9FD0,
   004BAA20 and 004BC1F0 ours only.
+
+### A-S11: the plain game code left in 0x004C0000-0x00500000
+
+The classification of all 173 functions that were left in the range is in renderer.md (section 12). The plain
+game code among them (39): 18 rewritten, 21 left.
+
+- Text manager (`text_sources.cpp`, `item_db_text.h`). 004DEBC0 `TextSourcesFind`: the first source that has
+  the key, its `GetFile` result (the size through the out pointer); null without one. 004DEC40
+  `TextSourcesListKeys`: every source's keys matching the pattern appended to the caller's array through a
+  temporary `CStringArray` (`mfc::CStringArray::Append`, 006FEB01, added to mfc.h as a forwarder);
+  Rebirth-patched (ResOverride), so it hooks in the vanilla launch only and `CTextManager::ListKeys` (004DEFA0)
+  calls the original through a forwarder. 004DED20, forwarded elsewhere as an unnamed constructor, is
+  `CTextManager`'s Create slot: `setlocale(LC_CTYPE, <the pointer at 0079BE94>)`, `_setmbcp(_MB_CP_LOCALE)`,
+  returns 1. Side by side: 004DEC40 and 004DEFA0 (the original into a scratch array, names compared by content),
+  004DED20 (running it twice changes nothing); 004DEBC0 ours only (GetFile counts the file's users)
+  (`verify_text_keys.cpp`). Scenarios: Create on every start; the interface's "pers *" listing (00607720,
+  00635250) has no known scenario.
+- 004D0AF0 `ScriptSubCallClear` (`script_blocks.cpp`): type and argument index zero, the command cleared. Only
+  the original `LoadFunction` calls it (a Rebirth launch's script loads). Ours only.
+- `CSysInfo` (`sys_info.cpp`; the global at 007AB8F8, vtable 0073D644, class id 0xD, five CStrings at +0x1C).
+  Rewritten: what can run after the hooks install: Create's shell 004DDF05 (it calls the collector 004DDF28
+  and returns 1), the empty Destroy 004DDF1D, the class name / id slots 004DE890 / 004DE8A0, the destructor
+  004DDE75, its deleting form 004DE8B0 and the exit handler 004DDD60. Side by side: the two pure slots; the
+  rest ours only (`verify_sys_info.cpp`); the exit handler runs on every exit. Not rewritten, because a static
+  initialiser runs them before the hooks install: the initialisers 004DDCB0, 004DDCBA (it stores 2 * pi at
+  007AB8F0), 004DDCCD, 004DDCD7, 004DDCEE, 004DDCF8, 004DDD0F, 004DDD19, 004DDD30 (constructs the global and
+  registers 004DDD60), 004DDD3F, 004DDD4E, 004DE855, 004DE87C, the constructor 004DDD6F, the collector 004DDF28
+  (1887 bytes: registry and version queries into the five texts) and its helpers 004DE687, 004DE6C2, 004DE6F3,
+  004DE789. They are standalone build material.
+- 004E3980 (the weather's noise tables filled from `rand`): only a static initialiser calls it; not rewritten.
+- 004D5880 (from 004D36F0: a text file read through `CStdioFile` inside an MFC TRY / CATCH): not rewritten;
+  the MFC exception link frames (`AFX_EXCEPTION_LINK`, `AfxTryCleanup`) need the game's own unwinding.
+- The visibility fog's manager (`vis_fog_manager.cpp`; `ClientArrayManager` in world.h is `CVisFogManager`,
+  vtable 0073F554: the "VisionFog" texture at +0xB0 and a CList of counted fogs at +0xB4). 004E2290 (slot 14)
+  makes a `CVisibilityFog`: engine object fields, +0x1C..+0x53 zero, a cell map of 193 buckets (resize(100));
+  the map's three hash functor bytes at +0x54 are left as allocated, as in the original. 004E2990 (Create):
+  the texture (kind 6), then the tile table at 007ABA58 the fog's draw reads, 16 records {u0, v1, u1, v0} with
+  u0 = column / 4, v0 = 1 - (row + 1) / 4 and a quarter added for the other two, then the base manager's
+  Create. 004E2850 (Destroy): the texture dropped (the pointer cleared before the release), every fog
+  released, the list emptied. 004E2760 (the tick): each fog's tick; one returning 0 leaves the list and is
+  released; returns 0. 004E28D0: a fog from `CreateObject(0, -1)`, counted once more, appended. 004E2700 (the
+  world draw 00569E40): nothing listed returns 1; otherwise the texture is loaded if needed and bound to stage
+  0 (0 when that fails) and every fog draws through 004E1EB0 (not rewritten). All ours only
+  (`verify_vis_fog_manager.cpp`: each loads, allocates, releases or draws); Create / Destroy run on every
+  start and exit, the tick and the draw on every frame of a map, the factory and the new fog only with the
+  "show visibility" effect (0067C660), for which no scenario is known. The world files keep their forwarders
+  to 004E2850, 004E28D0 and 004E2700 (another ticket's files); the hooks catch them.
