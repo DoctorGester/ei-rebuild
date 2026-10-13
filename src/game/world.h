@@ -194,13 +194,9 @@ static_assert(offsetof(ZoneExit, unknown_38) == 0x38);
 // new records are constructed).
 using ZoneExitArray = mfc::CArray<ZoneExit>;
 
-// The client's digit sprites (+0x1B4, 8 bytes; constructor 005E1710): the "numbers" texture
-// (counted) and an STLport list (its sentinel).
-struct ClientNumbers {
-    CTexture* texture;
-    void* list;
-};
-static_assert(sizeof(ClientNumbers) == 8);
+// The client's flying numbers (+0x1B4, 8 bytes; constructor 005E1710): the "numbers" texture
+// (counted) and the list of the numbers shown.
+class CFlyingHitPoints;     // ui_flying_hit_points.h
 
 // A light colour of the client's tables (CWorldClient + 0x22C ...): r, g, b and 1.
 struct LightColour {
@@ -1094,15 +1090,9 @@ struct WorldSession : CEngineObject {
 static_assert(offsetof(WorldSession, localView) == 0x20);
 static_assert(offsetof(WorldSession, gameKind) == 0x100);
 
-// The client's ribbon effects (CWorldClient + 0x6F4, constructor 004E3C20; drawn by 004E5B10):
-// an engine object (Teardown calls its slot 3) that keeps the world at +0x20.
-struct ClientRibbons {
-    CEngineObject* Engine() { return reinterpret_cast<CEngineObject*>(this); }
-    std::uint8_t engineObject_[0x1C];
-    std::uint8_t unknown_1C[4];
-    class CWorldClient* world;            // +0x20
-};
-static_assert(offsetof(ClientRibbons, world) == 0x20);
+// The client's rain / snow layer (CWorldClient + 0x6F4, 0xC8 bytes; constructor 004E3C20, drawn by
+// 004E5680): an engine object (Teardown calls its slot 3) that keeps the world at +0x20.
+class CRainSnow;            // effects.h
 
 // The client's text resources (CWorldClient + 0x1D0, 0x2C bytes, vtable 0073F6F0; constructor
 // 004DED20 after the engine object fields and the table at +0x1C, 00562A80).
@@ -1520,7 +1510,7 @@ public:
     struct CMusicSystem* music_;          // +0x1A8 owned (sound.h; constructor 006B4350)
     struct CSky* skyDome_;                // +0x1AC the sky (owned; destructor body 005636A0; sky_object.h)
     CEngineObject* owned1B0_;             // +0x1B0 owned
-    ClientNumbers* numbers_;              // +0x1B4 owned
+    CFlyingHitPoints* numbers_;           // +0x1B4 owned
     // +0x1B8 / +0x1BC / +0x1C0 the ground prints (ground_print.h; element destructors 0056D080,
     // 00575560, 00575580). Segment ticks them (slot 0) and colours the blood prints by the light.
     stlp::list<BloodPrint> bloodPrints_;
@@ -1556,10 +1546,12 @@ public:
     std::uint8_t unknown_6E8[0x6EC - 0x6E8];
     int ticksRun_;                        // +0x6EC Segment's count; AddObject fades units in (slot 43) when >= 1
     float tickFraction_;                  // +0x6F0 added to the tick for the units' time (network client)
-    ClientRibbons ribbons_;               // +0x6F4
-    std::uint8_t unknown_718[0x7A8 - 0x718];
-    int unknown7A8_;                      // +0x7A8
-    std::uint8_t unknown_7AC[0x7BC - 0x7AC];
+    // +0x6F4 the rain / snow layer. CRainSnow is abstract here like every engine object, so the
+    // world keeps its bytes and RainSnow() is the object. Its `mode` (+0x7A8 of the world: 1 rain,
+    // 2 snow) picks the ground prints' wet look and an environment flag.
+    alignas(4) std::uint8_t rainSnow_[0xC8];
+    CRainSnow* RainSnow() { return reinterpret_cast<CRainSnow*>(rainSnow_); }
+    const CRainSnow* RainSnow() const { return reinterpret_cast<const CRainSnow*>(rainSnow_); }
     stlp::list<void*> list7BC_;           // +0x7BC (nodes of 0xC bytes; pool free 00498C40)
     int worldValue_;                      // +0x7C0 -1; message 0x12 sets it (SetWorldValue); the exe never reads it
     std::uint8_t unknown_7C4[0x7D0 - 0x7C4];
@@ -1589,7 +1581,7 @@ static_assert(offsetof(CWorldClient, texturePath_) == 0x224);
 static_assert(offsetof(CWorldClient, unknown6DC_) == 0x6DC);
 static_assert(offsetof(CWorldClient, frameAmbient_) == 0x6AC && offsetof(CWorldClient, frameSun_) == 0x6CC);
 static_assert(offsetof(CWorldClient, ticksRun_) == 0x6EC);
-static_assert(offsetof(CWorldClient, ribbons_) == 0x6F4);
+static_assert(offsetof(CWorldClient, rainSnow_) == 0x6F4);
 static_assert(offsetof(CWorldClient, list7BC_) == 0x7BC);
 static_assert(offsetof(CWorldClient, cursor_) == 0x7D0);
 static_assert(offsetof(CWorldClient, exits_) == 0x90);
@@ -1602,7 +1594,6 @@ static_assert(offsetof(CWorldClient, textureManager_) == 0x18C);
 static_assert(offsetof(CWorldClient, numbers_) == 0x1B4);
 static_assert(offsetof(CWorldClient, sunlight_) == 0x22C);
 static_assert(offsetof(CWorldClient, sky_) == 0x52C);
-static_assert(offsetof(CWorldClient, unknown7A8_) == 0x7A8);
 
 // MatrixRows (the first three rows of a 4x4 matrix; Transform 00560E10) is in src/lib/vecmath.h.
 

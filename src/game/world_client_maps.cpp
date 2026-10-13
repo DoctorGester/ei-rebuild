@@ -432,7 +432,7 @@ void CWorldClient::ApplyWind(const Vector3* direction, float strength) {
         Vector3 copy = *direction;
         terrain_->SetWaves(&copy, strength);
     }
-    reinterpret_cast<CRainSnow*>(&ribbons_)->SetWind(*direction, strength);
+    RainSnow()->SetWind(*direction, strength);
 }
 
 int CWorldClient::CentreOn(const Vector3* point) {
@@ -459,7 +459,7 @@ double CWorldClient::ClientSurfaceHeight(float x, float y) {
 void CWorldClient::ShowNumber(int id, int value, std::uint32_t kind) {
     CEngineObject* object = static_cast<CBaseManager*>(MapObjectManager())->FindObject(static_cast<unsigned>(id));
     if (!object || object->GetClassId() != world::kClassUnit) return;
-    if (numbers_) reinterpret_cast<CFlyingHitPoints*>(numbers_)->Add(id, value, kind);
+    if (numbers_) numbers_->Add(id, value, kind);
 }
 
 void CWorldClient::LoadUnitFaces() {
@@ -960,7 +960,6 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* posit
 
 namespace {
 
-__declspec(naked) void __fastcall Destroy1B4(ClientNumbers*) EI_ORIGINAL(0x005E17E0)
 __declspec(naked) void __fastcall Destroy1AC(void*) EI_ORIGINAL(0x005636A0)
 // The counted array +0xA0's SetSize (its own instantiation: dropped elements released).
 __declspec(naked) void __fastcall CountedArraySetSize(mfc::CArray<CEngineObject*>*, void*, int, int) EI_ORIGINAL(0x00570000)
@@ -1032,8 +1031,8 @@ void DropAndDelete(T*& slot) {
 
 void CWorldClient::Teardown() {
     camera::TheCamera()->SetTarget(nullptr);
-    if (ClientNumbers* p = numbers_) {
-        Destroy1B4(p);
+    if (CFlyingHitPoints* p = numbers_) {
+        p->Destruct();
         gamecrt::operator_delete(p);
         numbers_ = nullptr;
     }
@@ -1046,7 +1045,7 @@ void CWorldClient::Teardown() {
     ReleaseItemsAndSpells();
     CountedArraySetSize(&countedA0_, nullptr, 0, -1);
     ClearGroundPrints(bloodPrints_, footprints_, scorchMarks_);
-    ribbons_.Engine()->Destroy();
+    RainSnow()->Destroy();
     platforms_.Engine()->Destroy();
     PlatformRemoveAll(&platforms_.list);
     SectorGrid& grid = objectGrid_;
@@ -1396,8 +1395,8 @@ int CWorldClient::Setup() {
     music_ = owned;
     owned->Create();
 
-    Construct4E3C20(&ribbons_);
-    ribbons_.world = this;
+    Construct4E3C20(RainSnow());
+    RainSnow()->world = this;
     platforms_.Engine()->Create();
     if (worlddata::ShadowSetting() > 0)
         flags_ |= 0x200;

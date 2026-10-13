@@ -321,13 +321,15 @@ std::uint32_t CWorldClient::EnvironmentFlags(CEngineObject* unit) {
     case 2: flags = 2; break;
     case 3: flags = 1; break;
     }
+    static_assert(sizeof(rainSnow_) == sizeof(CRainSnow) && offsetof(CWorldClient, rainSnow_) + offsetof(CRainSnow, mode) == 0x7A8);
     if (GameMbscmp(zoneName_, "gipat") == 0) flags |= 0x10;
     else if (GameMbscmp(zoneName_, "ingos") == 0) flags |= 0x20;
     else if (GameMbscmp(zoneName_, "suslanger") == 0) flags |= 0x40;
     flags |= IsNight() ? 0x100 : 0x80;
     flags |= cave_ == 1 ? 0x400 : 0x200;
-    if (unknown7A8_ == 1) return flags | 0x800;
-    if (unknown7A8_ == 2) return flags | 0x1000;
+    const int weather = RainSnow()->mode;
+    if (weather == 1) return flags | 0x800;
+    if (weather == 2) return flags | 0x1000;
     return flags | 0x2000;
 }
 

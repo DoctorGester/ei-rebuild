@@ -6,6 +6,7 @@
 #include "../../src/game/sky_object.h"   // before windows.h (GetClassName)
 #include "../../src/game/model.h"
 #include "../../src/game/texture.h"
+#include "../../src/game/ui_flying_hit_points.h"
 #include "../../src/game/world.h"
 
 #include <cstring>
@@ -42,7 +43,7 @@ EI_VERIFY(0x00563930, LoadLightsVerify, 7, s_loadLights);
 static void __fastcall SetUpGraphicsVerify(CWorldClient* self, void*, void* device) {
     self->SetUpGraphics(device);
     bool ok = self->numbers_ && self->figureLoader_ && self->figureLoader_->refCount_ >= 1 &&
-              (!self->numbers_->texture || (self->numbers_->texture->flags_ & 0x40000));
+              (!self->numbers_->object_ || (self->numbers_->object_->flags_ & 0x40000));
     ei::verify::Check("CWorldClient::SetUpGraphics", true, ok, "numbers %p loader %p", self->numbers_,
                       self->figureLoader_);
 }

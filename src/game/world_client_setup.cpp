@@ -8,6 +8,7 @@
 #include "sky_object.h"
 #include "originals_ui.h"
 #include "texture.h"
+#include "ui_flying_hit_points.h"
 #include "unit_db.h"
 
 #include "console.h"
@@ -39,12 +40,11 @@ const char* FiguresResource() { return *reinterpret_cast<const char* const*>(0x0
 void* Renderer() { return *reinterpret_cast<void* const*>(0x007AF080); }
 UnitDatabase* Units() { return reinterpret_cast<UnitDatabase*>(0x007AF358); }
 
-// Not rewritten: the texture manager's device (006913A0, RET 4), the digit sprites' constructor
-// (005E1710, returns this) and the figure loader's (004F68C0, RET 8, returns this; Rebirth-patched).
+// Not rewritten: the texture manager's device (006913A0, RET 4) and the figure loader's
+// constructor (004F68C0, RET 8, returns this; Rebirth-patched).
 // The sky (LoadSky, 00562F70) is called through its address so that its verify wrapper runs.
 __declspec(naked) void __fastcall TextureManagerSetDevice(CTextureManager*, void*, void* /*device*/) EI_ORIGINAL(0x006913A0)
 __declspec(naked) void __fastcall LoadSkyAt(CWorldClient*) EI_ORIGINAL(0x00562F70)
-__declspec(naked) ClientNumbers* __fastcall ConstructNumbers(ClientNumbers*) EI_ORIGINAL(0x005E1710)
 __declspec(naked) CLinkFigureLoader* __fastcall ConstructFigureLoader(CLinkFigureLoader*, void*, void* /*renderer*/,
                                                                       const stlp::string* /*resource*/)
     EI_ORIGINAL(0x004F68C0)
@@ -109,13 +109,14 @@ EI_REPLACE_METHOD(0x00563930, CWorldClient::LoadLights);
 void CWorldClient::SetUpGraphics(void* device) {
     TextureManagerSetDevice(TextureManager(), nullptr, device);
     LoadSkyAt(this);
-    auto* numbers = static_cast<ClientNumbers*>(gamecrt::operator_new(sizeof(ClientNumbers)));
-    numbers_ = numbers ? ConstructNumbers(numbers) : nullptr;
+    static_assert(sizeof(CFlyingHitPoints) == 8);
+    auto* numbers = static_cast<CFlyingHitPoints*>(gamecrt::operator_new(sizeof(CFlyingHitPoints)));
+    numbers_ = numbers ? numbers->Construct() : nullptr;
     auto* texture = static_cast<CTexture*>(TextureNamedOriginal(TextureManager(), nullptr, kNumbersKind, NumbersName()));
     if (texture) {
         ++texture->refCount_;
         TextureLoadOriginal(TextureManager(), nullptr, texture);
-        numbers_->texture = texture;
+        numbers_->object_ = texture;
         texture->flags_ |= kTextureKeep;
     }
     auto* loader = static_cast<CLinkFigureLoader*>(gamecrt::operator_new(sizeof(CLinkFigureLoader)));
