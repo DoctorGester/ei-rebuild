@@ -333,7 +333,8 @@ pragma (DR-C4): release code is fild elapsed, fmul secondsPerTick_, fadd offset,
   precision the process starts with (53 bits), so they show in the report's precision list: that is the precision the
   initialisers themselves ran at, and the spiral's square roots need it.
 - CAIMap::Load: `AttachTerrain` is not exercised by the wrapper (it cannot run twice on the real map; each function it
-  calls has its own check). A map whose float steps sit on a rounding edge would fail "CAIMap::Load exact" only.
+  calls has its own check). "CAIMap::Load exact" is expected to pass on every map (X31 below); if it fails it prints the
+  first cell whose ground level differs and the height scale.
 - The exit halves of the static initialisers (SmoothTable::Destruct, UnitShapeCache::Destruct) and the two loaders that
   run ours only have no comparison with the original. UnitShapeCache::Destruct walks the live cache at exit: a fault
   there would show as a crash when the game quits.
@@ -394,3 +395,20 @@ GetClassId() == 0x44, but 0x44 is the figure factory's class number, CSkyObject'
 The check now prints class, name, flags and material. UnitTextureRecords (005683D0): the port was
 wrong; the body list is [0] body, [1] empty, [2..7] items[1..6] (the loop at 00568441 starts at
 record offset 0xC + 0xC), not [1..6] with [7] empty. Both removed from tests/verify/disabled.txt.
+
+X31 (2026-10-13): "CAIMap::Load exact" failed on every map (ZoneMainMenuNew: 35 ground levels one
+unit off). The port was wrong in one constant: a vertex's altitude unit 0073FD84 is 37800100,
+1 / 65534 as a float (2^-16 + 2^-31), and ai_map_load.cpp had 1 / 65535 (37800080) without having
+read the exe. The relative error of 1.5e-5 is up to 0.008 of a height unit at the top of the 0..511
+range, enough to turn about one cell in 500 over a rounding edge. Recomputing the menu map's 16384
+cells from its archive in float arithmetic with both constants gives exactly 35 cells that differ,
+none by more than one. Operation order, the stores and the conversion (FLD, FMUL scale, FSTP float,
+FLD, FISTP in the current rounding mode; no FLDCW anywhere in 005B43C0) were as the original's; the
+height maths now also tells apart what the original stores to a float from what it keeps on the FPU
+stack (the first vertex's height, the diagonal's quarter, the water surface of the third cell), so
+it is the same at 24 and at 53 bits. Two things to keep in mind: every float constant of a port is
+compared with the exe's bits; and under /fp:fast a `constexpr float` initialised with an inexact
+constant expression (`1.0f / 65534.0f`) is folded at double precision where it meets a double (the
+dll held 3EF0002000400080 instead of the float's 3EF0002000000000), so such constants are written
+as exact fractions or bit patterns with a static_assert on the bits. Removed from
+tests/verify/disabled.txt. Not run.

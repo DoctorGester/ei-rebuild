@@ -34,7 +34,7 @@ double SectorCells() { return GameFloat(0x0073CA90); }  // 32
 double Half() { return GameFloat(0x0073B86C); }         // 0.5
 double MinusHalf() { return GameFloat(0x0073CDC8); }    // -0.5
 double OffsetScale() { return GameFloat(0x00744190); }  // 1/126: vertex displacement per unit
-double HeightUnit() { return GameFloat(0x0073FD84); }   // 1/65535
+double HeightUnit() { return GameFloat(0x0073FD84); }   // 1/65534 (37800100)
 double NormalScale() { return GameFloat(0x0074040C); }  // 0.001
 double NormalBias() { return GameFloat(0x0073C34C); }   // 1000
 double VOne() { return GameFloat(0x0073B84C); }         // 1: v = 1 - v
