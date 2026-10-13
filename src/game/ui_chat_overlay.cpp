@@ -5,6 +5,7 @@
 #include "net_classes.h"
 #include "net_messages.h"
 #include "ui.h"
+#include "ui_gdi.h"
 #include "ui_screens.h"
 #include "world.h"
 
@@ -242,6 +243,45 @@ void CChatOverlay::ClearLines() {
     lines_.ClearWith([](ChatLine* line) { line->Destroy(); });
 }
 EI_REPLACE_METHOD(0x005E3930, CChatOverlay::ClearLines);
+
+// --- 005E3700: the typed line drawn (Rebirth-patched; the vanilla body) ---------------------------------
+
+namespace {
+constexpr int kTypedTextRight = 0x30F, kTypedTextBottom = 0x11;
+constexpr int kCaretBottom = 0x10;
+constexpr COLORREF kTypedColour = 0xFFFFFF;
+} // namespace
+
+void CChatOverlay::DrawTyped() {
+    if (!chatOpen_) {
+        surfaces_.data[0]->Freeze(0, 0);
+        return;
+    }
+    surfaces_.data[0]->Freeze(1, 0);
+    if (caret_ > typed_.GetLength()) caret_ = typed_.GetLength();
+    if (caret_ < 0) caret_ = 0;
+    CUiSurface* surface = surfaces_.data[0];
+    ui_gdi::GameDC* dc = SurfaceGetDC(surface);
+    surface->Clear();
+    RECT rect{0, 0, kTypedTextRight, kTypedTextBottom};
+    SurfaceDrawText(surface, nullptr, typed_, &rect, kTypedFont, kTypedColour, DT_NOPREFIX, 1);
+    int width = TextWidth(interface_, typed_.Left(caret_), kTypedFont);
+    if (width < kMaxTypedWidth) {
+        ui_gdi::GamePen pen;
+        pen.Construct(PS_SOLID, 1, kTypedColour);
+        void* oldPen = dc->SelectPen(&pen);
+        POINT top{width, 0};
+        POINT bottom{width, kCaretBottom};
+        interface_->CallScalePointToScreen(&top);
+        interface_->CallScalePointToScreen(&bottom);
+        dc->MoveTo(top.x, top.y);
+        dc->LineTo(bottom.x, bottom.y);
+        dc->SelectPen(oldPen);
+        pen.Destruct();
+    }
+    SurfaceReleaseDC(surface);
+}
+EI_REPLACE_METHOD(0x005E3700, CChatOverlay::DrawTyped);
 
 // --- 005E3230 / 005E3550: the chat line's keys (input slots 9 and 10) ---------------------------------
 

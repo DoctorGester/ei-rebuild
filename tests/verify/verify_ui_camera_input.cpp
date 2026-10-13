@@ -7,7 +7,10 @@
 // rewrite uses plain float maths). Scenarios: the battle screen's key releases (camera, ui_hud
 // keys: OnKeyUp), the escape menu opening over it (ui_screens: OnDeactivate), right clicks on the
 // view (ui_battle_commands' `clickunit ... r`: OnRightDown / OnRightUp) and ui_hud's wheel
-// (OnWheel, when no panel takes it).
+// (OnWheel, when no panel takes it). OnMouseMove (005EB210, Rebirth-patched: the vanilla launch
+// only) also selects a cursor shape, which is put back between the runs and compared; every mouse
+// move over the battle screen reaches it (ui_hud, ui_battle_commands; turning with the right
+// button held: ui_battle_commands' right drags).
 #include "verify.h"
 
 #include "../../src/game/ui.h"
@@ -29,8 +32,10 @@ struct State {
     int dragX;
     int dragY;
     std::uint32_t held;
+    int shape;
 
     void Read(const CCameraInput* object) {
+        shape = GameCursor()->shape_;
         std::memcpy(camera, reinterpret_cast<const std::uint8_t*>(kCamera) + 4, sizeof(camera));
         std::memcpy(input, reinterpret_cast<const std::uint8_t*>(object) + 4, sizeof(input));
         dragX = MouseDragX();
@@ -43,6 +48,7 @@ struct State {
         MouseDragX() = dragX;
         MouseDragY() = dragY;
         reinterpret_cast<std::uint8_t*>(GameCursor())[0x90] = static_cast<std::uint8_t>(held);
+        if (GameCursor()->shape_ != shape) GameCursor()->SetShape(shape);
     }
 };
 
@@ -61,7 +67,7 @@ int FirstDifference(const State& a, const State& b) {
         if (!Near(a.camera[i], b.camera[i])) return static_cast<int>(4 + i * 4);
     for (std::size_t i = 0; i < kInputDwords - 1; ++i)
         if (!Near(a.input[i], b.input[i])) return 0x1004 + static_cast<int>(i * 4);
-    if (a.dragX != b.dragX || a.dragY != b.dragY || a.held != b.held) return 0x2000;
+    if (a.dragX != b.dragX || a.dragY != b.dragY || a.held != b.held || a.shape != b.shape) return 0x2000;
     return -1;
 }
 
@@ -83,6 +89,7 @@ void* s_keyUp;
 void* s_rightDown;
 void* s_rightUp;
 void* s_deactivate;
+void* s_mouseMove;
 void* s_wheel;
 
 } // namespace
@@ -113,6 +120,15 @@ static void __fastcall RightUpVerify(CCameraInput* self, void*, int buttons, int
 }
 // 005EAD50: SUB ESP,8; PUSH EBX; PUSH ESI (3 + 1 + 1 bytes).
 EI_VERIFY(0x005EAD50, RightUpVerify, 5, s_rightUp);
+
+static void __fastcall MouseMoveVerify(CCameraInput* self, void*, int buttons, int x, int y) {
+    SideBySide(
+        "CCameraInput::OnMouseMove", self, x,
+        [&] { reinterpret_cast<EventFn>(s_mouseMove)(self, nullptr, buttons, x, y); },
+        [&] { self->OnMouseMove(buttons, x, y); });
+}
+// 005EB210: SUB ESP,0x1C; PUSH EDI; MOV EDI,ECX (3 + 1 + 2 bytes).
+EI_VERIFY(0x005EB210, MouseMoveVerify, 6, s_mouseMove);
 
 static void __fastcall DeactivateVerify(CCameraInput* self) {
     SideBySide(

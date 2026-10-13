@@ -16,6 +16,7 @@ namespace mfc { class CString; }
 namespace ui_gdi { struct GameDC; }
 struct ItemObjectCache;
 struct tagRECT;
+struct tagPOINT;
 struct Vector3;
 struct PersonTextNode;
 
@@ -35,6 +36,10 @@ __declspec(naked) inline void __fastcall EmptyTextureMap(void*) EI_ORIGINAL(0x00
 // without a DirectDraw surface) and the matching release. The surface is a CUiSurface.
 __declspec(naked) inline ui_gdi::GameDC* __fastcall SurfaceGetDC(void* /*surface*/) EI_ORIGINAL(0x005FDC00)
 __declspec(naked) inline void __fastcall SurfaceReleaseDC(void* /*surface*/) EI_ORIGINAL(0x005FDC60)
+// 005FD240: CUiSurface's pixel at (x, y) as 0x00RRGGBB (RET 8; rewritten as SurfacePixelAt,
+// ui_surface_pixels.cpp).
+__declspec(naked) inline std::uint32_t __fastcall SurfacePixelAtOriginal(void* /*surface*/, void*, int /*x*/, int /*y*/)
+    EI_ORIGINAL(0x005FD240)
 // CUiSurface::DrawText (RET 0x18; the surface is `this`): text into a rectangle with a format, colour and
 // two more ints. Returns the DrawText result (0 without a DirectDraw surface). RECT is `tagRECT`.
 __declspec(naked) inline int __fastcall SurfaceDrawText(void* /*surface*/, void*, const char* /*text*/, tagRECT* /*rect*/,
@@ -179,6 +184,9 @@ __declspec(naked) inline void __fastcall InterfaceResetSavedStateOriginal(CInter
 __declspec(naked) inline void* __fastcall InterfaceTextExtentOriginal(CInterface3D*, void*, void* /*out SIZE*/,
                                                                       char* /*text, owned*/, int /*font*/)
     EI_ORIGINAL(0x005F8340)
+// 005F7E30 (Rebirth-patched; the second copy of the screen-to-layout point scaling; thiscall, RET 4): returns the new y.
+__declspec(naked) inline int __fastcall InterfacePointFromScreenCopyOriginal(const CInterface3D*, void*, tagPOINT* /*point*/)
+    EI_ORIGINAL(0x005F7E30)
 __declspec(naked) inline void __fastcall ContainerAddInputOriginal(void* /*container*/, void*, void* /*input*/)
     EI_ORIGINAL(0x00600CC0)
 // 0062AC90 (rewritten as CUiRegion::SetRectFrom): the region's SetRect from a RECT passed by value (RET 0x10).
@@ -242,6 +250,9 @@ __declspec(naked) inline void __fastcall WindowShowSurfacesOriginal(void* /*wind
 __declspec(naked) inline void __fastcall CursorSetHeldOriginal(void* /*cursor*/, void*, char /*held*/) EI_ORIGINAL(0x005E67B0)
 // 005A6C70 (a jump to 0059F210): the figure's Create (vtable slot 2; thiscall, plain RET; the result is not used).
 __declspec(naked) inline void __fastcall FigureCreateOriginal(void* /*figure*/) EI_ORIGINAL(0x005A6C70)
+// 005A6C80: the figure's slot 3 (its three arrays emptied, the parts' storage freed, then 0059F2B0, whose EAX is left;
+// thiscall, plain RET).
+__declspec(naked) inline int __fastcall FigureDestroyOriginal(void* /*figure*/) EI_ORIGINAL(0x005A6C80)
 // 00708D79: MFC's CDC::FromHandle (static, stdcall): the temporary CDC of `dc`.
 __declspec(naked) inline void* __stdcall CdcFromHandleOriginal(void* /*dc*/) EI_ORIGINAL(0x00708D79)
 // 0065ECB0 (CDirectInputMouse::Poll, input_mouse.cpp): the DirectInput mouse's state read (thiscall, RET 4; the
@@ -459,6 +470,16 @@ __declspec(naked) inline void __fastcall BriefingStartPhrasesOriginal(void* /*sc
 __declspec(naked) inline void __fastcall GameSetConstructorOriginal(void* /*glue*/, void*, float /*constructor*/)
     EI_ORIGINAL(0x00578560)
 __declspec(naked) inline void __fastcall GameRequestScreenOriginal(void* /*glue*/, void*, int /*id*/) EI_ORIGINAL(0x00578B00)
+// 00578700 (the client glue 007AFEA6, not read; RET 4): with a distance of at least 0, the players' times move on by
+// it (0058D280). The objectives window's exits and the global map's links call it before the zone change.
+__declspec(naked) inline void __fastcall PassTravelTimeOriginal(void* /*glue*/, void*, float /*distance*/)
+    EI_ORIGINAL(0x00578700)
+// 0065C2D0 (thiscall on an edit window, RET 4): its editing switched on (1) or off (0). The multiplayer hero screen's
+// name and rename edit windows.
+__declspec(naked) inline void __fastcall EditFieldActivateOriginal(void* /*edit*/, void*, int /*on*/) EI_ORIGINAL(0x0065C2D0)
+// 00615D30 (thiscall on the multiplayer hero screen, RET 4; Rebirth-patched, the vanilla body is
+// CMpHeroScreen::SetModeVanilla): the screen laid out for mode 9, 10 or 11.
+__declspec(naked) inline void __fastcall HeroScreenSetModeOriginal(void* /*screen*/, void*, int /*mode*/) EI_ORIGINAL(0x00615D30)
 // 006B4E20 (on the music system [007AF760], ECX not read): the sound manager's stream fades in (006BAFE0). 0066ED30
 // (rewritten as CPlayerServer::SendPosition04; through its address so the wrapper runs; RET 0xC): message 0x04, a
 // position and two dwords. 00592090 (rewritten as CWorldServer::CompleteBriefing; through its address so the wrapper
@@ -542,10 +563,22 @@ __declspec(naked) inline void __fastcall DebugPanelSetRectOriginal(void* /*panel
 // 004447E0 (the panel's slot 0, thiscall, RET 8; string_map.cpp's StringTableSet): panel[key] = value.
 __declspec(naked) inline void __fastcall DebugPanelSetOriginal(void* /*panel*/, void*, const char* /*key*/,
                                                                const char* /*value*/) EI_ORIGINAL(0x004447E0)
+// 00444CD0 (thiscall on the panel, plain RET; string_map.cpp's PanelTick): the panel redrawn every 500 ms and
+// blitted.
+__declspec(naked) inline void __fastcall DebugPanelTickOriginal(void* /*panel*/) EI_ORIGINAL(0x00444CD0)
 // 004449A0 (the panel's slot 1, thiscall, RET 4; string_map.cpp's StringTableRemove): the line `key` removed.
 __declspec(naked) inline void __fastcall DebugPanelRemoveOriginal(void* /*panel*/, void*, const char* /*key*/)
     EI_ORIGINAL(0x004449A0)
 __declspec(naked) inline void __cdecl SaveKeyBindingsOriginal() EI_ORIGINAL(0x00462DF0)
+// The interface's Create (005F4990) calls: 00462C10 reads config\keyboard.ini (key_bindings.cpp); 00444A70
+// (thiscall, RET 4; string_map.cpp's PanelInit) binds the debug information panel to the interface; 005F9810
+// (thiscall on the help topics' map, RET 0xC; library) inserts a {CString, int} pair before `hint` and gives the
+// new node in `out`, which it returns.
+__declspec(naked) inline void __cdecl LoadKeyBindingsOriginal() EI_ORIGINAL(0x00462C10)
+__declspec(naked) inline void __fastcall DebugPanelInitOriginal(void* /*panel*/, void*, CInterface3D* /*ui*/)
+    EI_ORIGINAL(0x00444A70)
+__declspec(naked) inline void** __fastcall HelpTopicsInsertOriginal(void* /*map*/, void*, void** /*out*/, void* /*hint*/,
+                                                                    const void* /*pair*/) EI_ORIGINAL(0x005F9810)
 // 005AC1A0 (thiscall on the model manager, UiModelManager(), RET 4): a new object `name` (a figure; null: an interface
 // sprite, CUiMesh), or null.
 __declspec(naked) inline CEngineObject* __fastcall ModelManagerNewObjectOriginal(void* /*manager*/, void*,

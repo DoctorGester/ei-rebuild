@@ -133,6 +133,11 @@ public:
     // arrows' tips 0x9DD0 / 0x9DD1 unless `noArrowTips`, no tabs and the six tab buttons' sprites
     // (scene objects 2..7) hidden.
     void SetupFigures(MpStringVector* names, char top, char noArrowTips);
+    // 00621F20 (RET 4; ui_small_members.cpp; the camp's Create and its page switch). slots_ = `slots`.
+    void SetSlots(int slots);
+    // 006157C0 (slot 25 of the figure strips 00741BF4, RET 0xC). No item under the point: null,
+    // `topic` not written.
+    void* FigureItemAt(int x, int y, int* topic);
     // The figure strips' own slots (vtable 00741BF4; ui_item_strip_setup.cpp). 00629AF0 (slot 20,
     // RET 4, returns 1): the end faces dimmed where it can scroll on, the background and cells
     // placed by the current tab's fraction, the frame (scene object 8) on selected_ when it is in
@@ -441,6 +446,37 @@ public:
     // "<the highest number among the folder's *.mp titles + 1>.mp", given the local party and
     // saved (00662AC0); the list's scroll range, the list drawn, mode 9.
     void AddNewHero();
+    // 00615D30 (RET 4; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
+    // only; ui_hero_screen_mode.cpp; rewritten callers go through their forwarder). The screen
+    // laid out for `mode`. First everything off: the menu model's parts, the nine child windows,
+    // every sprite and surface, the regions after the ninth removed and the others' tips emptied.
+    // 9, the hero list: the model's "but03" and "button03_multiplayer", the list's scroll bar, all
+    // sprites but 7-9, the four frame quarters (sprites 3-6), the buttons' regions and tips,
+    // surfaces 0 and 1, the name edit off, the selection frame (sprite 2), ten list rows as
+    // regions and the selected hero shown. 10, the new hero: the voices' scroll bar, sprites 3-9,
+    // the quarters, the bars at 300, the statistics panel and both figure strips, the regions
+    // and tips, the name edit on and editing, surface 2, the selection frame, eleven voice rows
+    // and the voices drawn. 11, its statistics: sprites 7-9, the bars at 400, the equipment,
+    // spell, trade and statistics panels, two regions and three tips, surface 2, the name edit
+    // off, the trade panel's hero 0. Last, for every mode: the description panel emptied, the
+    // statistics panel's page `mode`, mode_.
+    void SetModeVanilla(int mode);
+    // 00613EA0 (slot 25; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
+    // only; ui_hero_screen_create.cpp). The game's resources taken for a network game
+    // (0057DEE0 with 1); the menu model with its multiplayer button; nine regions; the item
+    // screen's base (005EDD80); the sprites (0, 1 the buttons, 2 the selection frame, 3-6 the
+    // quarters "campm1".."campm4" around the figure, 7-9 the new hero's buttons, 10-12 frames,
+    // 13, 14 backgrounds, 15-18 the commands' buttons); the description, statistics, equipment,
+    // quick item and trade panels; the list's scroll bar; the figures a new hero can take: every
+    // creature record (007AF378) whose unit prototype's figure model is "unhuma" (defaults_,
+    // voiceLists_[0]) or "unhufe" (names_, voiceLists_[1]), a voice "<lmp_male_voice /
+    // lmp_female_voice> <n>" only when the record's +0x5C is set; both name lists sorted, the
+    // women's then reversed; the two figure strips; the rename and name edit windows; the voices'
+    // scroll bar; four surfaces (the list, its commands with the four "lmp_pers_..." texts, the
+    // voices, the name being changed, hidden); the saved heroes reloaded from <data>"mp\"
+    // (00662FB0), the list's scroll range, the list drawn, the first hero selected (-1 without
+    // one) and mode 9 (00615D30).
+    void Create();
     // The hero list's scroll bar after the count changed (DeleteHero and AddNewHero inline it):
     // range count - 10 keeping the position, or 0 with the top row 0.
     void RefreshHeroScroll();
@@ -449,7 +485,8 @@ public:
     std::uint8_t unknown_148[0x164 - 0x148];
     CItemInfoPanel* descPanel_; // +0x164 the description panel
     std::uint8_t* hoveredItem_; // +0x168 the item under the mouse (set by Draw)
-    std::uint8_t unknown_16C[0x190 - 0x16C];
+    CItemIconWindow* iconWindow_;   // +0x16C the item screens' icon window (its two bars, PlaceBars)
+    std::uint8_t unknown_170[0x190 - 0x170];
     int mode_;                  // +0x190 9, 10, 11
     int heroIndex_;             // +0x194 selected hero
     void* heroScroll_;          // +0x198 scroll bar of the hero list
@@ -574,6 +611,22 @@ public:
     // 00618570 (ui_window_delete.cpp). The destructor body: the two text arrays, the password,
     // the entries (texts, storage), then the container's.
     void DestroyBody();
+    // 0061B2C0 (slot 25; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
+    // only). The screen over 800 x 600: the "saveload" and "scrollbar" textures, the stone menu
+    // model ("unmoco2" with "MainMenu00labels", parts "but03" and "button03_multiplayer") at
+    // (400, 350, 8) turned about x by 007C7F40 * 1.2; the regions (above) with tips 0x9E98,
+    // 0x9E99, 0x9EA2 and 0x9EA3 on the first four; sprites 0 / 1 the two buttons, 2 the selection
+    // bar (plain 0xC8A06800), 3 the sort arrow (the scroll bar's texture, hidden), 4 / 5 the
+    // unlisted and password switches, 6-9 the game type tabs (their names "lmp_allod_name_%d"
+    // into allodNames_, the first selected), 10 / 11 two bars, three frames and three dark
+    // backgrounds; fifteen row regions; surface 0 (100, 100)-(700, 500); the scroll bar, the
+    // player slider (position 5, maxPlayers_ 6) and the name edit (the first hero's name to its
+    // '|', at most 10 characters, trimmed; not focused) as children; the 22 "lmp_connection_%d"
+    // texts; the client started (0057EA50); the queries read from config\addrbook.ini (a chunk
+    // archive, chunk 1; an extra word of 0 becomes a random one xor the tick count) and given to
+    // the client (00442300) when the file opens; nothing selected, the list rebuilt and drawn,
+    // the help topic (005F86F0 with 0), and surface 1 with text 8 ("connecting").
+    void Create();
     // 0061C430 (slot 24). Surface 1 ("connecting") shown while the client asks a host (join
     // state 1); when it stops asking, a refusal box ("lmp_server_full",
     // "..._you_are_banned", "..._wrong_password", else "..._cannot_connect"; text key + "_msg")
@@ -622,6 +675,21 @@ public:
     void MasterRequest();
     // 0061D1C0. Writes the client's queries to config\addrbook.ini (a chunk archive, chunk 1).
     void SaveAddressBook();
+    // 0061D780 (Rebirth-patched, this is the vanilla body, hooked in the vanilla launch only;
+    // ui_connect_list.cpp; the screen's other members call it through its address). The list
+    // drawn on surface 0. With row 0 (the new game) selected its controls show: the player slider
+    // and the name edit enabled (and editing), sprites 4 and 5 and their regions' tips (0x9EA4 /
+    // 0x9EA5, set once: newGameTips_); otherwise they are off and the tips empty. Texts 10 and 11
+    // by the two buttons, the column titles (texts 12-15), the sort arrow (sprite 3: turned for an
+    // odd key, at its column while a key is set) and a line under the titles (a pen of the text
+    // colour); 15 rows from scrollTop_ in the colour of the entry's state (00793AD8: 1 0x31B3FF,
+    // 2 0x31E3EE, else 0xA7D7E4): the new game row "<text 7> <the name typed>", the others name,
+    // players "n/m", the game type's allod name ("?" for 4) and the ping; the selection frame
+    // (sprite 2) on the selected row. Then the selected entry's details at the right in 0xA7D7E4:
+    // for the new game the game type tabs (sprites 6-9) with their names, texts 0, 2 (with
+    // maxPlayers_), 3, 16 and 17; for a server its name, players, game type, the map's title
+    // wrapped over up to three lines, address, ping and, with a password, text 21.
+    void DrawListVanilla();
     // 0061D470. The list again: the client's servers (ServerAt) in order, sorted by sortKey_
     // (std::sort, 0061EF60 / 0061F6F0 / 0061FB00), the new game entry inserted first; the
     // selection follows its address (row 0 and address 0 when gone); the scroll bar's range is the
@@ -648,7 +716,8 @@ public:
     mfc::CStringArray texts_;      // +0x240 "lmp_connection %d" texts (22)
     int unknown_254;               // +0x254 0 from Create
     int sortKey_;                  // +0x258 0 none; 1..8 the column pairs (odd ascending)
-    std::uint8_t unknown_25C[4];   // +0x25C (byte 0 from Create)
+    bool newGameTips_;             // +0x25C the unlisted and password regions have their tips (DrawList; 0 from Create)
+    std::uint8_t unknown_25D[3];
 };
 static_assert(offsetof(CMpConnectScreen, refreshTimer_) == 0x164);
 static_assert(offsetof(CMpConnectScreen, selected_) == 0x174);
@@ -754,6 +823,9 @@ public:
     // 0062AE90 (input slot 2): opens the save window (region 0), the load window (1; neither in
     // multiplayer), resumes (2), asks to quit (3) or opens the options (4) (ui_layouts.cpp).
     void OnLButtonDown(int buttons, int x, int y);
+    // 0062ACB0 (slot 26; ui_small_members.cpp). The menu closes: its stone model (models_[0])
+    // plays animation 0.
+    void OnClose();
 
     CUiWindow window;
     std::uint8_t unknown_148[0x164 - 0x148];
@@ -854,6 +926,9 @@ public:
     // fontSmoothing_ (never read: kept), the display's +0x14 restored, the screen flag set and the
     // cursor shown.
     void OnClose();
+    // 0062BFD0 (slot 27, RET 4; ui_credits.cpp). A window above closed: the movie player is
+    // closed (005DBF70).
+    void OnMessageResult(int result);
 
     CUiWindow window;
     std::uint8_t unknown_148[0x164 - 0x148];
@@ -981,6 +1056,15 @@ public:
     // acceptance back (cancel sound and 0041E180, when it is accepted), 2 leave (the transit
     // sound and 0041E3E0). The event is not marked used.
     void OnLButtonDown(int buttons, int x, int y);
+    // 0062D100 (slot 42, RET 8; ui_exchange.cpp; what the strip and the grid call with their mode).
+    // Refused by slot 43: the cancel sound. Mode 1 (the strip): the put_on sound, `item` moves from
+    // the local party into our offer (MoveItem with limit 8, merging) and the offer is published
+    // (0041DA50). Mode 5 (the grid), only for an item of our offer: the put_off sound, the item
+    // moves back to the local party, the strip scrolls to what the party now holds (00621570) and
+    // the offer is published. Other modes nothing.
+    void MoveOffered(CItem* item, int mode);
+    // 0062D200 (slot 43, RET 8). Whether `item` may move with `mode`: always (AL 1).
+    bool CanMove(CItem* item, int mode);
 
     CParty* scratch_;                // +0x190 a party of the screen's own (made by Create, deleted by Close)
     CParty* partnerOffer_;           // +0x194 the client's parties_[1]

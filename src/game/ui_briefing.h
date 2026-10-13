@@ -357,6 +357,8 @@ public:
     // header), the dialogue text, the movers (nodes, sentinel), the party array (vtable 007402AC,
     // storage), the topic and the topics, then the container's.
     void DestroyBody();
+    // 005F6B70 (slot 38, RET 4; ui_small_members.cpp). chatActive_ = `mode`.
+    void SetChatActive(int mode);
 
     // 00604C50 (RET 4; ui_briefing_phrases.cpp). The next phrase of the current text: its lines up
     // to the next "#phrase <speaker> [voice]" are carried out ("#nolips", "#show", "#hide",

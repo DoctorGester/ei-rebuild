@@ -62,6 +62,17 @@ inline PartyUnitRecord* ShownHero(CUiWindow* screen) {
 inline const char* const* SkillNames() { return reinterpret_cast<const char* const*>(0x00793BD4); }
 inline const char* const* AttributeNames() { return reinterpret_cast<const char* const*>(0x00793BF0); }
 
+// What the battle screen's hover asks a target's slot 42 with (0xC bytes, the screen's +0x220).
+struct BattleTargetQuery {
+    // 005F5F90 (ui_small_members.cpp). Constructor: {1, 0, 0}. Returns this.
+    BattleTargetQuery* Construct();
+
+    int kind;                        // +0x00 1
+    int unknown_4;                   // +0x04 0
+    int unknown_8;                   // +0x08 0
+};
+static_assert(sizeof(BattleTargetQuery) == 0xC);
+
 // The in-game screen (CreateScreen id 1, vtables 00740764 / 00740730, 0x230 bytes). Its Create
 // (slot 25, 00635250) builds the HUD panels as children (ui_battle_setup.cpp). Children, in
 // order: weapon bar, quick items, spell column, action column, portraits, unit panel, map,
@@ -114,6 +125,28 @@ public:
     // 00638A10 (input slot 1; ui_battle_input.cpp). The screen loses the top: the order keys and
     // the press / box flags (+0x1C0, +0x1C1) cleared, then the container's slot 1.
     void OnDeactivate();
+    // 0063A560 (input side slot 9, RET 0xC; Rebirth-patched, this is the vanilla body, hooked in
+    // the vanilla launch only; ui_battle_keys.cpp). A key pressed. While a portrait click picks a
+    // player, Esc ends that and nothing else happens. On a network client Enter / Backspace go to
+    // the chat line (005F7C60 / 005F7C80) and the key is used. Otherwise the container's handler
+    // (00601820) first; a key nobody used and not repeating: Esc drops the pending action with
+    // every panel's highlight, or without one opens the escape menu (built inline: 0x168 bytes,
+    // vtables 007412A4 / 00741270); any other key by its action (KeyActions, by `flags & 0x1FF`):
+    // 1 pause (the clock's sound, 00578D30 with the opposite of 00578D50), 2 / 3 normal / fast
+    // speed (not while paused or on a network client: the clock's +0x154, the world's update
+    // period 55 / 27 ms, the interface's +0x94), 4 the objectives window of the player's zone,
+    // 0xB the camera follows the first selected member (or nobody), 0xC the camera faces north
+    // (the map's +0x1B0 0.5), 0x11..0x16 the order keys (orderKeys_), 0x17..0x1A the selected
+    // members' movement mode 0..3 and 0x1B their flag (the movement panel), 0x1C / 0x1D the
+    // action buttons "follow" / "science", 0x1E..0x25 spells 0..7 and 0x2A..0x2D quick items 0..3
+    // (cast or used at once with Ctrl or Alt), 0x26..0x29 weapons 0..3, 0x2E..0x31 the unit
+    // panel's body parts and 0x32 / 0x33 the top panel's pages (a panel slid away comes back, the
+    // choice already shown slides it away), 0x34 the map slides, 0x35 / 0x36 quick save / load
+    // ("saveq"), 0x37..0x39 party members 0..2 (ToggleMember; with Ctrl or Alt the camera follows
+    // the member), 0x3A every member selected (not on a network client), 0x3B the message window
+    // (005F8A80 with 1). Pause, the objectives, the movement keys, the message window and the
+    // escape menu mark the key used.
+    void OnKeyDown(int key, int repeat, int flags);
     // 0063B6D0 (input side slot 11, RET 0xC; ui_battle_input.cpp). A key released: unless a
     // portrait click picks a player, the container's key-up handler (006019A0), then the order
     // key of the key's action (0x11..0x16 of the key table, by `flags & 0x1FF`) is released.
@@ -231,6 +264,9 @@ public:
     // game-over sound and the box "game_over" / "game_over_msg" (result 0x20000, OK and cancel);
     // won: "end_of_game" / "end_of_game_msg" (0xFFFF0000); opened on top (005F7350 with 1, 1).
     void OnGameOver(char won);
+    // 005F5FB0 (slot 38, RET 4; ui_small_members.cpp). portraitMode_ = `mode` (a portrait click
+    // picks a player while it is not 0).
+    void SetPortraitMode(int mode);
     // 005F6130 (ui_window_delete.cpp). The destructor body: the two party id vectors' storage,
     // the "pers" texts (every node erased, 005FAFA0, then the header), the hero ids and the party
     // array (their vtables, storage freed), then the container's.
@@ -245,6 +281,9 @@ public:
         int* capacity;
     };
     struct PartyIds {
+        // 005F6080 (ui_small_members.cpp). Constructor: both id vectors empty (begin, end and
+        // capacity null); the camera id is not written. Returns this.
+        PartyIds* Construct();
         // 006381E0 (RET 4; ui_battle_update.cpp). Both id vectors hold the same ids in the same
         // order (the camera's id is not compared). AL.
         bool Equals(const PartyIds& other) const;
@@ -294,7 +333,7 @@ public:
     IdVector partyWithUnit_;         // +0x204
     int unknown_210;                 // +0x210 -1
     IdVector partyWithout_;          // +0x214
-    std::uint8_t unknown_220[0x22C - 0x220];
+    BattleTargetQuery targetQuery_;  // +0x220 passed to a hovered target's slot 42
     int portraitMode_;               // +0x22C 0
 };
 static_assert(offsetof(CBattleScreenSetup, pressX_) == 0x1C4);
@@ -338,6 +377,12 @@ void __fastcall GlobalMapZonesSetAtGrow(GlobalMapZoneArray* zones, void*, int in
 
 // A quest place or a link (an "edge" zone) on the map (0x18 bytes, CArrays at +0x1A0 / +0x1B4).
 struct GlobalMapPlace {
+    // 00632490 / 006324E0 (identical copies, the links' and the quests' arrays' one; RET 4;
+    // ui_small_members.cpp). The element assignment: zone and position copied, the two strings
+    // assigned as CStrings (00700AA9). Returns this.
+    GlobalMapPlace* Assign(const GlobalMapPlace& from);
+    GlobalMapPlace* AssignCopy(const GlobalMapPlace& from);
+
     int zone;                        // +0x00 index into the zones
     Vector3 position;                // +0x04 on the map model
     char* name;                      // +0x10 CString
@@ -420,6 +465,29 @@ public:
     void OnRightDown(int buttons, int x, int y);
     void OnRightUp(int buttons, int x, int y);
     void OnDeactivate();
+    // 00630010 (input slot 4, RET 0xC; Rebirth-patched, this is the vanilla body, hooked in the
+    // vanilla launch only). The mouse moved. While dragging: the drag motion (007C7C60, printed
+    // to the stream 007C5760) turns the map: angle_ += dx / 300 (layout units), taken mod
+    // 007C8020, and turn_ = the tilt (pi * 0.8 about x) times the spin about z; the motion is
+    // cleared. Otherwise the zone or link under the mouse is selected (a link's region 3..; or,
+    // off every region, the zone read from the backdrop's pixel at half the point, on gipat its
+    // link when it has one; nothing while a turn button is held) and its tip shown: the first
+    // surface with the title and the titles of the zone's quests, the last two sprites behind
+    // it; a zone in state 0 or nothing hides the tip. A new name plays
+    // "buttons\globalmap\zone.wav". Regions past the links do nothing.
+    void OnMouseMove(int buttons, int x, int y);
+    // 0062F950 (input slot 2, RET 0xC; Rebirth-patched, this is the vanilla body, hooked in the
+    // vanilla launch only; ui_global_map_paths.cpp). The left button pressed (nothing while
+    // dragging). Regions 0 / 1, the turn buttons: turning_ -1 / +1 and
+    // "buttons\globalmap\move.wav". Region 2, the camp (unless noCamp_ is 1):
+    // "buttons\globalmap\transit.wav", the constructor 0 and screen 5 asked for. A link (regions
+    // 3..), or on gipat a zone that has one: "buttons\globalmap\ok.wav", the ways to the link's
+    // zone searched from the local player's zone and, when there is one, the time of arrival
+    // exit 0 passed (00578700) and the zone asked for at entrance 0. Any other zone under the
+    // mouse (read from the backdrop's pixel at half the point; its state not 0): the sound, the
+    // search, and the objectives window (built inline by the original) opened over the map with
+    // the zone, the arrival times, two buttons and no zone list.
+    void OnLeftDown(int buttons, int x, int y);
     // 00630580 (slot 9, RET 0xC). The container's handler first; Esc opens the escape menu (built
     // inline: 0x168 bytes, container constructor 00600B20, vtables 007412A4 / 00741270) and marks
     // the key used; an unused key whose action (KeyActions) is '5' quick-saves ("saveq",
@@ -428,6 +496,15 @@ public:
     // 0062EE30 (slot 27, RET 4; the result is not read). A window above closed: no turn, no drag,
     // the zone selection refreshed, and a mouse move (input slot 4) at the mouse position.
     void OnMessageResult(int result);
+    // 0062EE70 (slot 41; ui_small_members.cpp). The help topic: "global_map_nocamp" when noCamp_
+    // is 1, else "global_map".
+    const char* HelpTopic();
+    // 0062FEF0 (input slot 3, RET 0xC; EAX 0; `this` the window). The left button released: a turn
+    // by a turn button ends (turning_ 0) and the zone selection is refreshed on the next update.
+    int OnLButtonUp(int buttons, int x, int y);
+    // 006316A0 (RET 4; the click 0062F950 asks it before each way out of the map). Always true
+    // (AL 1); neither the map nor the argument (the clicked region's +0x144) is read.
+    bool MayTravel(int unused);
     // 0062EDD0 (slot 26). The map closes: the weather deleted (its slot 2 with 1), the backdrop
     // surface released (005FD120) and deleted, the wind sound stopped (005F7E90).
     void Close();
@@ -475,7 +552,7 @@ public:
     std::uint8_t unknown_265[3];
     POINT dragStart_;                // +0x268 where the drag began (layout)
     float dragAngle_;                // +0x270 angle_ when the drag began
-    std::uint8_t unknown_274[0x278 - 0x274];
+    char* shownName_;                // +0x274 CString: the zone or link whose tip is shown
     bool gipat_;                     // +0x278 the allod is gipat
     std::uint8_t unknown_279[3];
     int noCamp_;                     // +0x27C the player's "i.nocamp" (1: no camp button)
@@ -636,6 +713,9 @@ public:
     // (the record is not marked bought), else the mouse is released and the hold ends. The hold
     // time is not reset after a purchase.
     void UpdateHeld();
+    // 00625510 (ui_small_members.cpp; the camp's action 00611930 reads it). Whether something was
+    // bought for the hero shown (its record's bought byte, in AL).
+    std::uint8_t Bought() const;
     // The record of the hero shown (recordIndex_).
     const TradeRecord& Record() const { return records_.begin[recordIndex_]; }
 
@@ -671,6 +751,21 @@ static_assert(offsetof(CTradePanel, holdTime_) == 0x1A0);
 // its other pages, 7 leave the camp.
 class CCampPages : public CUiWindow {
 public:
+    // 0060C870 (slot 25; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
+    // only; ui_camp_create.cpp). Builds the camp: the server flag set; the constructor's class
+    // template from the player's "constr.current" (none found: back to the world, nothing built)
+    // with its flags, price weights and part lists; the player's "i.noconstr" / "i.off..." /
+    // "i.on..." switches; texture "campinfo", twelve regions (the two action buttons, the two
+    // hero turn areas, the eight page buttons) and ten button sprites; the item screen's base;
+    // two surfaces; seven item lists; the panels (description, statistics, help, the item strip,
+    // equipment, quick items, trade, and each offered constructor's strip and pages); the party's
+    // heroes handed to the client world as units (records of class 0x32, ids raised by 100000000
+    // meanwhile), each idling, armed from its record and wearing its armour; the first hero shown
+    // (slot 48); the page titles; the first page (4 item constructor, 2 spell constructor, else
+    // 0); a constructor's stock made on its first visit (flag38) from the party's lowest and
+    // highest skill per spell school; the allod's constructor music; antialiasing (render state 2
+    // = 2) when the device sorts independently.
+    void Create();
     // 0060E9E0. Shows page `page` (regions 4-11 and Esc call it): hides every page's panels,
     // shows the page's ones, its title and the strip that goes with it; a constructor page the
     // camp does not offer falls back to the current page. Page 7 gives the constructors' unused
@@ -770,6 +865,11 @@ public:
     // 0060F600 (slot 9, RET 0xC): Esc shows page 7 (leaves); on a network client Backspace and
     // Enter go to the chat line; those mark the key used, other keys go to the container.
     void OnKeyDown(int key, int repeat, int flags);
+    // 0060F690 (input slot 11, RET 0xC; ui_small_members.cpp): the container's key-up handler
+    // (006019A0) with the same arguments.
+    void OnKeyUp(int key, int repeat, int flags);
+    // 005F65F0 (slot 50, RET 4). Hero `index` of the party's heroes (heroes_[index], not checked).
+    std::uint8_t* HeroAt(int index);
     // 0060E900 (slot 27, RET 4). The answer 0x10001 takes the shown hero's first weapon back into
     // the party's items (00661DB0 with 0, 1; the hero's entry removed, 00660A50), no weapon
     // chosen (+0x774 -1), the item strip scrolled to it (00621570) and the hero re-armed (slot 46).
@@ -821,9 +921,11 @@ public:
     bool itemConstructor_;           // +0x196 the item constructor's pages are offered
     std::uint8_t unknown_197;
     ClassTemplate* constructor_;     // +0x198 the constructor's class template ("constr.current"), or null
-    std::uint8_t unknown_19C[4];
-    std::uint8_t** heroes_;          // +0x1A0 the party's heroes (data of an array)
-    std::uint8_t unknown_1A4[0x1B0 - 0x1A4];
+    void* heroesVtable_;             // +0x19C the heroes' CArray (vtable 007402AC)
+    std::uint8_t** heroes_;          // +0x1A0 the party's heroes (its data): a unit per party record, null for other classes
+    int heroCount_;                  // +0x1A4
+    int heroCapacity_;               // +0x1A8
+    int heroGrowBy_;                 // +0x1AC
     int hero_;                       // +0x1B0 the hero shown (HeroRecord)
     // Item lists (0x70 bytes each, 00661050): the constructors' parts and what they made.
     void* itemParts_[3];             // +0x1B4 (the constructor's +0x3C), +0x1B8, +0x1BC
@@ -851,9 +953,11 @@ public:
     std::uint8_t unknown_213;
     std::uint8_t* itemMade_;         // +0x214 the item the item constructor would make, or null
     std::uint8_t* spellMade_;        // +0x218 the spell the spell constructor would make, or null
-    std::uint8_t unknown_21C[0x244 - 0x21C];
-    char** pageTitles_;              // +0x244 CStringArray data
-    std::uint8_t unknown_248[0x254 - 0x248];
+    std::uint32_t priceWeights_[9];  // +0x21C the constructor's price multipliers (floats; ClassTemplate::weights)
+    void* pageTitlesVtable_;         // +0x240 CStringArray: the seven pages' titles and "quit"
+    char** pageTitles_;              // +0x244 its data
+    int pageTitleCount_;             // +0x248
+    std::uint8_t unknown_24C[0x254 - 0x24C];
     bool noConstructor_;             // +0x254 the player's "i.noconstr" = 1: second pages hidden
     std::uint8_t unknown_255[0x258 - 0x255];
     std::uint32_t heroTurn_;         // +0x258 passed to the hero preview (005EC300)
@@ -867,6 +971,8 @@ static_assert(offsetof(CCampPages, statsPanel_) == 0x1D8);
 static_assert(offsetof(CCampPages, trade_) == 0x1F4);
 static_assert(offsetof(CCampPages, itemConstructor3_) == 0x208);
 static_assert(offsetof(CCampPages, pageTitles_) == 0x244);
+static_assert(offsetof(CCampPages, heroesVtable_) == 0x19C);
+static_assert(offsetof(CCampPages, priceWeights_) == 0x21C);
 static_assert(offsetof(CCampPages, noConstructor_) == 0x254);
 static_assert(sizeof(CCampPages) == 0x260);
 
@@ -907,6 +1013,9 @@ public:
     // adding the frame time) it repeats every frame; when it can step no more the hold ends (the
     // capture cleared). The owner is refreshed (slot 47) on every repeat attempt.
     void Update();
+    // 00624A40 (input slot 3, RET 0xC; EAX 0; ui_small_members.cpp). The left button released: the
+    // mouse let go (unconditionally) and the hold ended (heldRegion_ -1, holdTime_ 0).
+    int OnLButtonUp(int buttons, int x, int y);
     // A -/+ button of page 10: regions 6-8 take a point from strength, dexterity, intelligence
     // (above 15), 9 the height down (points_ >= 1), 10-12 give one (below 35, while the three add
     // up to under 75), 13 the height up (points_ <= 99; height = points_ * 0.01). True when it

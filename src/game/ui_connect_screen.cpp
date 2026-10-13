@@ -1,19 +1,29 @@
 // The multiplayer connection screen (CMpConnectScreen, 0061C2E0-0061D470), its master server request
 // box (CMasterRequestBox, 0061E2F0 / 0061E4E0) and the address list's vector members (0061E5A0-
 // 0061EE80). See ui_screens.h and docs/notes/ui.md, section 3. Multiplayer only: no scenario
-// reaches the screen (Create 0061B2C0 and the list draw 0061D780 are Rebirth-patched and stay).
+// reaches the screen. Its Create (0061B2C0) is Rebirth-patched: the vanilla body is here, hooked in
+// the vanilla launch only; the list draw 0061D780 (ui_connect_list.cpp) likewise.
 #include "ui_screens.h"
 
 #include "chunk_archive.h"
+#include "core_transform.h"
+#include "net_coder.h"
 #include "net_link.h"
+#include "party.h"
+#include "random.h"
+#include "unit.h"
 #include "world.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
+#include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "lib/vecmath.h"
+#include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "originals_world.h"
 
 #include <cstdint>
 #include <cstring>
@@ -143,6 +153,50 @@ struct LocalFileStream {
     LocalFileStream& operator=(const LocalFileStream&) = delete;
     netlink::FileStream stream;
 };
+
+// The queries Create reads from the address book: an empty vector, its replies and storage
+// released at the end (inline in the original; the node allocator's deallocate, 00404D70).
+struct LocalQueries {
+    LocalQueries() : queries{nullptr, nullptr, nullptr, 0} {}
+    ~LocalQueries() {
+        for (net::Query* query = queries.begin; query != queries.end; ++query) query->reply.DestructGrowing();
+        if (queries.begin)
+            StlNodeFreeOriginal(queries.begin, static_cast<std::size_t>(queries.eos - queries.begin) * sizeof(net::Query));
+    }
+    LocalQueries(const LocalQueries&) = delete;
+    LocalQueries& operator=(const LocalQueries&) = delete;
+    net::QueryVector queries;
+};
+
+// Create's layout (0061B2C0).
+const char* SaveLoadTexture() { return Text(0x00793380); }       // "saveload"
+const char* ScrollbarTexture() { return Text(0x00793B18); }      // "scrollbar"
+const char* MenuModel() { return Text(0x0078A5C0); }             // "unmoco2"
+const char* MenuTexture() { return Text(0x007939F0); }           // "MainMenu00"
+const char* MenuLabels() { return Text(0x007939FC); }            // "MainMenu00labels"
+const char* MenuButtonPart() { return Text(0x007939E8); }        // "but03"
+const char* MenuButtonLabel() { return Text(0x007939D0); }       // "button03_multiplayer"
+const char* AllodNameFormat() { return Text(0x00793B04); }       // "lmp_allod_name_%d"
+const char* ConnectionTextFormat() { return Text(0x00793AF0); }  // "lmp_connection_%d"
+const char* NameEnd() { return Text(0x00793AA4); }               // "|"
+// The model's turn about x: 007C7F40 (an angle set at start) times 1.2 (0073CDF4).
+float MenuTurn() { return GameFloat(0x007C7F40) * GameFloat(0x0073CDF4); }
+// The interface's text colour (the list draw changes it per row).
+std::uint32_t TextColour() { return *reinterpret_cast<const volatile std::uint32_t*>(0x00793AD8); }
+constexpr std::uint32_t kCaretColour = 0x31B3FF;
+constexpr std::uint32_t kSelectionColour = 0xC8A06800;
+constexpr std::uint32_t kBackColour = 0xA0000000;
+constexpr int kSurfaceFormat = 5;
+constexpr int kTextCount = 22;
+constexpr int kTextConnecting = 8;
+constexpr int kNameLength = 10;
+constexpr int kTextureKind = 3;
+constexpr int kScrollbarTexture = 1;   // objects_: 0 "saveload", 1 "scrollbar"
+
+CUiSurface* NewSurface(CInterface3D* ui, int left, int top, int right, int bottom) {
+    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
+    return memory ? static_cast<CUiSurface*>(memory)->Construct(ui, left, top, right, bottom, kSurfaceFormat, 1) : nullptr;
+}
 
 // A write the way the box's constructor inlines it: in place (marking the buffer written) when it
 // fits before `end`, otherwise through slot 4. Not inlined, so the slot is called through the
@@ -624,6 +678,170 @@ void CMpConnectScreen::RebuildList() {
     scrollTop_ = 0;
 }
 EI_REPLACE_METHOD(0x0061D470, CMpConnectScreen::RebuildList);
+
+// --- 0061B2C0: Create (the vanilla body) ----------------------------------------------------------
+
+void CMpConnectScreen::Create() {
+    rect_ = RECT{0, 0, 800, 600};
+    LoadTexture(SaveLoadTexture(), kTextureKind, nullptr);
+    LoadTexture(ScrollbarTexture(), kTextureKind, nullptr);
+    CUiModel* model = AddModel();
+    model->CallLoad(MenuModel(), MenuTexture(), MenuLabels());
+    model->SetScreenPosition(400.0f, 350.0f, 8.0f);
+    {
+        const Vector3 axis = {1.0f, 0.0f, 0.0f};
+        Quaternion turn;
+        model->object_->localRotation_ = *turn.SetAxisAngle(axis, MenuTurn());
+    }
+    model->ShowAllParts(0);
+    model->ShowPart(MenuButtonPart(), 1);
+    model->ShowPart(MenuButtonLabel(), 1);
+
+    auto region = [this](int left, int top, int right, int bottom, int tip) {
+        CUiRegion* added = AddRegion();
+        added->CallSetRect(left, top, right, bottom);
+        if (tip) added->SetTip(tip, 1, 0);
+    };
+    region(163, 526, 237, 574, 0x9E98);   // connect
+    region(563, 526, 637, 574, 0x9E99);   // back
+    region(490, 441, 620, 465, 0x9EA2);   // the master server
+    region(490, 465, 620, 489, 0x9EA3);   // an address
+    region(440, 346, 670, 367, 0);        // unlisted
+    region(440, 370, 670, 391, 0);        // the password
+    region(106, 106, 236, 127, 0);        // the four columns
+    region(236, 106, 264, 127, 0);
+    region(264, 106, 334, 127, 0);
+    region(334, 106, 375, 127, 0);
+
+    auto sprite = [this](float depth, float left, float top, float right, float bottom, int u0, int v0, int u1, int v1) {
+        CUiMesh* added = AddSprite(nullptr);
+        added->SetRectangle(depth, 100.0f, left, top, right, bottom, u0, v0, u1, v1);
+        return added;
+    };
+    auto plain = [](CUiMesh* mesh, std::uint32_t colour) {
+        mesh->texture_ = nullptr;
+        mesh->flags_ |= kPlainSprite;
+        mesh->plainColour_ = colour;
+    };
+    sprite(3.0f, 163.0f, 526.0f, 237.0f, 574.0f, 0x51, 2, 0x9B, 0x32);
+    sprite(3.0f, 563.0f, 526.0f, 637.0f, 574.0f, 0xA0, 2, 0xEA, 0x32);
+    plain(sprite(3.0f, 108.0f, 108.0f, 370.0f, 132.0f, 0, 0, 0x100, 0x100), kSelectionColour);
+    {
+        // The sort arrow, from the scroll bar's texture.
+        CUiMesh* arrow = AddSprite(nullptr);
+        arrow->texture_ = objects_.data[kScrollbarTexture];
+        arrow->SetRectangle(4.0f, 100.0f, 0.0f, 0.0f, 10.0f, 12.0f, 0x28, 0x80, 0x50, 0xB0);
+        arrow->visible_ = 0;
+    }
+    sprite(4.0f, 440.0f, 346.0f, 461.0f, 367.0f, 0xD1, 0x37, 0xE6, 0x4C)->uOffset_ = -kTabSelected;
+    sprite(4.0f, 440.0f, 370.0f, 461.0f, 391.0f, 0xD1, 0x37, 0xE6, 0x4C);
+
+    void* texts = GameFlowOriginal();   // 00578E20: the client's text table
+    mfc::CString text;
+    for (int i = 0, top = 238; top < 334; top += 24, ++i) {
+        text.Format(AllodNameFormat(), i);
+        TextsGetString(texts, nullptr, text, &text);
+        allodNames_.SetAtGrow(allodNames_.GetSize(), text);
+        const int bottom = top + 21;
+        sprite(4.0f, 460.0f, static_cast<float>(top), 481.0f, static_cast<float>(bottom), 0xD1, 0x37, 0xE6, 0x4C);
+        region(460, top, 670, bottom, 0);
+    }
+    reinterpret_cast<CUiMesh*>(sceneObjects_.data[kSpriteTabFirst])->uOffset_ = kTabSelected;
+    gameType_ = 0;
+    unlisted_ = true;
+    hostPassword_.Empty();
+    for (int top = 444; top < 492; top += 24)
+        sprite(3.0f, 490.0f, static_cast<float>(top), 620.0f, static_cast<float>(top + 21), 0x7A, 0x6C, 0xFC, 0x7F);
+    AddSprite(nullptr)->SetFrame(2.0f, 100.0f, 95.0f, 95.0f, 395.0f, 505.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
+    AddSprite(nullptr)->SetFrame(2.0f, 100.0f, 405.0f, 95.0f, 705.0f, 415.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
+    AddSprite(nullptr)->SetFrame(2.0f, 100.0f, 405.0f, 425.0f, 705.0f, 505.0f, 5.0f, 2, 0xFE, 0xB4, 0xF9);
+    plain(sprite(5.0f, 100.0f, 100.0f, 390.0f, 500.0f, 0, 0, 0x100, 0x100), kBackColour);
+    plain(sprite(5.0f, 410.0f, 100.0f, 700.0f, 410.0f, 0, 0, 0x100, 0x100), kBackColour);
+    plain(sprite(5.0f, 410.0f, 430.0f, 700.0f, 500.0f, 0, 0, 0x100, 0x100), kBackColour);
+    for (int top = 132; top < 492; top += 24) region(108, top, 370, top + 24, 0);   // the rows
+
+    AddSurface(NewSurface(interface_, 100, 100, 700, 500));
+    {
+        void* memory = gamecrt::operator_new(sizeof(CUiScrollbar));
+        scroll_ = memory ? static_cast<CUiScrollbar*>(memory)->Construct(interface_, RECT{108, 132, 384, 492}, 3.0f, 0, 1.0f)
+                         : nullptr;
+        AddChild(scroll_);
+    }
+    {
+        void* memory = gamecrt::operator_new(sizeof(CUiSlider));
+        playersSlider_ =
+            memory ? static_cast<CUiSlider*>(memory)->Construct(interface_, RECT{450, 196, 650, 206}, 3.0f, 5, 1.0f)
+                   : nullptr;
+        AddChild(playersSlider_);
+        RECT rect{450, 196, 650, 206};
+        playersSlider_->CallSetRect(&rect);
+        playersSlider_->CallSetPosition(5);
+        maxPlayers_ = 6;
+    }
+    {
+        void* memory = gamecrt::operator_new(sizeof(CUiEditField));
+        nameEdit_ = memory ? static_cast<CUiEditField*>(memory)->Construct(interface_, RECT{450, 144, 650, 160}) : nullptr;
+        AddChild(nameEdit_);
+        nameEdit_->SetLook(3, 0, 1, kNameLength, TextColour(), kCaretColour);
+    }
+    // The new game's name: the first hero's, to its '|', at most 10 characters.
+    mfc::CString name(reinterpret_cast<CParty*>(LocalPlayerData())->members_.data[0].texts[0]);
+    {
+        const int end = name.Find(NameEnd());
+        if (end >= 0) name = name.Left(end);
+        if (name.GetLength() > kNameLength) name = name.Left(kNameLength);
+        CStringTrimLeftOriginal(&name);
+        CStringTrimRightOriginal(&name);
+        nameEdit_->SetText(name);
+        nameEdit_->SetEnabled(0, 1);
+        nameEdit_->SetFocused(false);
+    }
+    for (int i = 0; i < kTextCount; ++i) {
+        text.Format(ConnectionTextFormat(), i);
+        TextsGetString(texts, nullptr, text, &text);
+        texts_.SetAtGrow(texts_.GetSize(), text);
+    }
+
+    TheGameFlow()->StartClient();
+    unknown_254 = 0;
+    // The address book: the queries the client asks.
+    LocalQueries book;
+    LocalArchive local;
+    LocalFileStream file;
+    if (file.stream.Open(GameDataPath() + AddressBookFile(), netlink::FileStream::kOpenRead, 1)) {
+        ChunkArchive& archive = local.archive;
+        archive.Open(&file.stream, 1, 1);
+        if (archive.EnterChunk(1)) {
+            book.queries.Serialize(&archive);
+            archive.LeaveChunk();
+        }
+        archive.Close(&file.stream);
+        file.stream.Close();
+        if (book.queries.extra == 0) {
+            const std::uint32_t random = IsaacRandom::Global().Next();
+            book.queries.extra = gameapi::GetTickCount() ^ random;
+        }
+        net::GameClient()->SetQueries(&book.queries);
+    }
+
+    sortKey_ = 0;
+    joining_ = false;
+    selected_ = 0;
+    newGameTips_ = false;
+    selectedAddress_ = net::NetAddress{};
+    RebuildListAt(this);
+    DrawListAt(this);
+    interface_->ShowHelp(0);
+    refreshTimer_ = 0.0f;
+    // Surface 1: "connecting".
+    CUiSurface* note = AddSurface(NewSurface(interface_, 0, 0, 300, 20));
+    SurfaceGetDC(note);
+    SurfaceClearOriginal(note);
+    RECT rect{0, 0, 300, 20};
+    SurfaceDrawText(note, nullptr, texts_[kTextConnecting], &rect, 2, TextColour(), 0, 1);
+    SurfaceReleaseDC(note);
+}
+EI_REPLACE_METHOD(0x0061B2C0, CMpConnectScreen::Create);
 
 // --- 0061E2F0 / 0061E4E0: the master request box --------------------------------------------------
 

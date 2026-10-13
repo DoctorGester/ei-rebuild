@@ -206,3 +206,50 @@ static void __fastcall MasterBoxUpdateVerify(CMasterRequestBox* self) {
                       self->link_.state);
 }
 EI_VERIFY(0x0061E4E0, MasterBoxUpdateVerify, 0, s_unused);
+
+// 0061D780 CMpConnectScreen::DrawListVanilla (Rebirth-patched: the vanilla launch only): ours only
+// (it draws). Read back: the new game's sprites (4, 5) and its tips' flag follow row 0 being
+// selected, the game type tabs (6-9) too when the list has it; the selection frame (2) shows when
+// the selected row is one of the 15 drawn. Not reached (see above).
+static void __fastcall DrawListVerify(CMpConnectScreen* self) {
+    self->DrawListVanilla();
+    auto visible = [self](int index) { return reinterpret_cast<CUiMesh*>(self->sceneObjects_.data[index])->visible_ != 0; };
+    const unsigned rows = static_cast<unsigned>(self->entries_.size());
+    const unsigned selected = static_cast<unsigned>(self->selected_);
+    const unsigned top = static_cast<unsigned>(self->scrollTop_);
+    const bool newGame = self->selected_ == 0;
+    const bool drawn = selected < rows && selected >= top && selected - top < static_cast<unsigned>(CMpConnectScreen::kRows);
+    bool tabs = true;
+    for (int i = 6; i < 10; ++i) tabs = tabs && visible(i) == (newGame && rows > 0);
+    ei::verify::Check("CMpConnectScreen::DrawListVanilla", true,
+                      visible(4) == newGame && visible(5) == newGame && self->newGameTips_ == newGame && tabs &&
+                          visible(2) == drawn,
+                      "selected %d of %u top %u: new game %d %d tips %d tabs %d frame %d", self->selected_, rows, top,
+                      visible(4) ? 1 : 0, visible(5) ? 1 : 0, self->newGameTips_ ? 1 : 0, tabs ? 1 : 0, visible(2) ? 1 : 0);
+}
+EI_VERIFY(0x0061D780, DrawListVerify, 0, s_unused);
+
+// 0061B2C0 CMpConnectScreen::Create (Rebirth-patched: the vanilla launch only): ours only (it
+// loads textures and a model, makes children and starts the network client). Read back, as the
+// differences Create makes: 29 regions (10 controls, 4 game type tabs, 15 rows), 18 sprites, two
+// surfaces, three children, 4 allod names and 22 texts; the new game's defaults and row 0
+// selected. Not reached (multiplayer only; see above).
+static void __fastcall ConnectCreateVerify(CMpConnectScreen* self) {
+    const int regions = self->regions_.size;
+    const int sprites = self->sceneObjects_.size;
+    const int surfaces = self->surfaces_.size;
+    const int children = self->children_.size;
+    const int names = self->allodNames_.GetSize();
+    const int texts = self->texts_.GetSize();
+    self->Create();
+    const bool counts = self->regions_.size == regions + 29 && self->sceneObjects_.size == sprites + 18 &&
+                        self->surfaces_.size == surfaces + 2 && self->children_.size == children + 3 &&
+                        self->allodNames_.GetSize() == names + 4 && self->texts_.GetSize() == texts + 22;
+    ei::verify::Check("CMpConnectScreen::Create counts", true, counts, "regions %d sprites %d surfaces %d children %d",
+                      self->regions_.size, self->sceneObjects_.size, self->surfaces_.size, self->children_.size);
+    const bool state = self->maxPlayers_ == 6 && self->gameType_ == 0 && self->unlisted_ && self->selected_ == 0 &&
+                       self->sortKey_ == 0 && !self->joining_ && self->scroll_ && self->playersSlider_ && self->nameEdit_;
+    ei::verify::Check("CMpConnectScreen::Create state", true, state, "players %d type %d unlisted %d selected %d",
+                      self->maxPlayers_, self->gameType_, self->unlisted_ ? 1 : 0, self->selected_);
+}
+EI_VERIFY(0x0061B2C0, ConnectCreateVerify, 0, s_unused);

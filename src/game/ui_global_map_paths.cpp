@@ -6,6 +6,9 @@
 #include "ui_camp.h"
 
 #include "object_tables.h"
+#include "originals_ui.h"
+#include "ui.h"
+#include "ui_screens.h"
 #include "world.h"
 
 #include "ei/hook.h"
@@ -46,6 +49,51 @@ float& Arrival(Arrivals& arrivals, int exit) {
 
 bool SameName(const char* a, const char* b) {
     return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b)) == 0;
+}
+
+// --- The click (0062F950) ---
+
+// 006312C0 through its address, as the original click calls it (the check's wrapper runs).
+__declspec(naked) void __fastcall FindPathsOriginal(CGlobalMap*, void*, MapRecord* /*from*/) EI_ORIGINAL(0x006312C0)
+
+const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
+const char* MoveSound() { return GameText(0x00794180); }      // "buttons\globalmap\move.wav"
+const char* TransitSound() { return GameText(0x0079372C); }   // "buttons\globalmap\transit.wav"
+const char* OkSound() { return GameText(0x0079419C); }        // "buttons\globalmap\ok.wav"
+// The client's glue objects (their members do not read them).
+void* ClientGlue() { return reinterpret_cast<void*>(0x007AFEA5); }
+void* UnitGlue() { return reinterpret_cast<void*>(0x007AFEA6); }
+
+constexpr int kRegionTurnLeft = 0;
+constexpr int kRegionTurnRight = 1;
+constexpr int kRegionCamp = 2;
+constexpr int kFirstLinkRegion = 3;
+constexpr int kCampScreen = 5;
+constexpr std::size_t kObjectivesSize = 0x1F0;
+
+mfc::CString& AsString(char*& field) { return *reinterpret_cast<mfc::CString*>(&field); }
+
+// The zone the local player is in.
+MapRecord* PlayerZone() {
+    alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
+    mfc::CString* name = LocalPlayerName(reinterpret_cast<mfc::CString*>(raw));
+    MapRecord* zone = GameMapDatabase()->FindMap(*name);
+    name->~CString();
+    return zone;
+}
+
+// The ways from the player's zone to `target`, the earlier results dropped.
+void SearchWays(CGlobalMap* map, const mfc::CString& target) {
+    AsString(map->target_) = target;
+    map->pathTime_ = 0.0f;
+    map->arrivals_.Clear();
+    map->found_ = false;
+    map->beyondTarget_ = false;
+    FindPathsOriginal(map, nullptr, PlayerZone());
+}
+
+bool MayTravelTo(CGlobalMap* map) {
+    return map->MayTravel(static_cast<int>(reinterpret_cast<std::uintptr_t>(map->target_)));
 }
 
 } // namespace
@@ -98,3 +146,55 @@ void CGlobalMap::FindPaths(MapRecord* from) {
     }
 }
 EI_REPLACE_METHOD(0x006312C0, CGlobalMap::FindPaths);
+
+void CGlobalMap::OnLeftDown(int, int x, int y) {
+    if (dragging_) return;
+    const int region = RegionAt(x, y);
+    if (region == kRegionTurnLeft || region == kRegionTurnRight) {
+        turning_ = region == kRegionTurnLeft ? -1 : 1;
+        interface_->PlaySound(MoveSound(), 0);
+        return;
+    }
+    if (region == kRegionCamp) {
+        if (noCamp_ == 1) return;
+        interface_->PlaySound(TransitSound(), 0);
+        GameSetConstructorOriginal(UnitGlue(), nullptr, 0.0f);
+        GameRequestScreenOriginal(ClientGlue(), nullptr, kCampScreen);
+        return;
+    }
+    int link;
+    if (region >= kFirstLinkRegion) {
+        interface_->PlaySound(OkSound(), 0);
+        link = region - kFirstLinkRegion;
+    } else {
+        // The pick picture (RefreshSelection) holds zone i as the colour 0x18 + 0x10 * i.
+        const std::uint32_t pixel = SurfacePixelAtOriginal(backdrop_, nullptr, x / 2, y / 2);
+        const int index = static_cast<int>((pixel >> 4) & 0xF) - 1;
+        if (index < 0 || index >= zoneCount_ || zones_.data[index].state == 0) return;
+        interface_->PlaySound(OkSound(), 0);
+        GlobalMapZone& zone = zones_.data[index];
+        link = zone.link;
+        if (!gipat_ || link < 0) {
+            // A zone: its objectives and the ways there, to choose from (found or not).
+            SearchWays(this, AsString(zone.name));
+            if (!MayTravelTo(this)) return;
+            void* memory = gamecrt::operator_new(kObjectivesSize);
+            void* window = memory ? ObjectivesConstructOriginal(memory, nullptr, interface_) : nullptr;
+            ObjectivesSetupOriginal(window, nullptr, target_, &arrivals_, 1, 0);
+            InterfacePushWindowOriginal(interface_, nullptr, window, 1, 1);
+            return;
+        }
+    }
+    // A link: the party goes there at once when there is a way.
+    SearchWays(this, AsString(links_.data[link].name));
+    if (!found_ || !MayTravelTo(this)) return;
+    PassTravelTimeOriginal(UnitGlue(), nullptr, Arrival(arrivals_, 0));
+    ::RequestZone(links_.data[link].name, 0);
+}
+
+namespace {
+void __fastcall GlobalMapLeftDown(void* input, void*, int buttons, int x, int y) {
+    WindowFromInput<CGlobalMap>(input)->OnLeftDown(buttons, x, y);
+}
+} // namespace
+EI_REPLACE(0x0062F950, GlobalMapLeftDown);

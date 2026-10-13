@@ -8,7 +8,9 @@
 #include "ui_cursor.h"
 
 #include "ei/hook.h"
+#include "ei/x87.h"
 #include "lib/gameapi.h"
+#include "lib/vecmath.h"
 #include "originals_ui.h"
 
 #include <cstring>
@@ -38,6 +40,38 @@ std::uint32_t Bits(float value) {
 }
 
 bool ModifierHeld(const CInterface3D* ui) { return ui->ctrlDown_ || ui->altDown_; }
+
+// The mouse options: the drag's pan speed, its turn and tilt speeds (with the mouse factors
+// 0079BD64 / 0079BD68) and the width of the screen edges that pan (0 = off).
+float DragPanSpeed() { return Option(0x0079BDBC) * Option(0x0079BDB8); }
+float DragTurnSpeed() { return Option(0x0079BDC8) * Option(0x0079BDC4) * Option(0x0079BD64); }
+float DragTiltSpeed() { return Option(0x0079BDD4) * Option(0x0079BDD0) * Option(0x0079BD68); }
+int EdgeMargin() { return *reinterpret_cast<const volatile int*>(0x0079BDAC); }
+// Layout units to a part of the screen (0074015C 1 / 400, 00740204 1 / 300) and the rates' scales
+// (0073BAAC 10, 0073BAB4 500).
+float PerWidth() { return Option(0x0074015C); }
+float PerHeight() { return Option(0x00740204); }
+
+// FCOMP; TEST AH,0x40: unordered counts as equal.
+bool Differs(float a, float b) { return a != b && !x87::IsNaN(a) && !x87::IsNaN(b); }
+
+constexpr int kDragCursor = 0x16;
+enum Edge : unsigned { kLeft = 1, kRight = 0x10, kTop = 0x100, kBottom = 0x1000 };
+
+// The arrow cursor of the screen edges the mouse is at.
+int EdgeCursor(unsigned edges) {
+    switch (edges) {
+    case kLeft: return 11;
+    case kRight: return 7;
+    case kTop: return 5;
+    case kLeft | kTop: return 12;
+    case kRight | kTop: return 6;
+    case kBottom: return 9;
+    case kLeft | kBottom: return 10;
+    case kRight | kBottom: return 8;
+    default: return 0;
+    }
+}
 
 constexpr int kScanCodeMask = 0x1FF;
 
@@ -124,6 +158,71 @@ void CCameraInput::OnRightUp(int, int, int) {
     handled_ = true;
 }
 
+void CCameraInput::OnMouseMove(int, int x, int y) {
+    CCamera* camera = camera::TheCamera();
+    if (turning_) {
+        POINT point{x, y};
+        POINT drag{MouseDragX(), MouseDragY()};
+        interface_->CallScalePointFromScreen(&point);
+        interface_->CallScalePointFromScreen(&drag);
+        float across = static_cast<float>(drag.x) * PerWidth();
+        float along = StoreFloat(static_cast<float>(drag.y) * PerHeight());
+        if (!ModifierHeld(interface_)) {
+            camera->SetTurnRate(DragTurnSpeed() * across * Option(0x0073BAAC));
+            float width = StoreFloat(static_cast<float>(drag.x < 0 ? -drag.x : drag.x));
+            float height = static_cast<float>(drag.y < 0 ? -drag.y : drag.y);
+            // At rest the camera tilts only when the mouse moves more up or down than sideways.
+            const float zero = Option(0x0073B858);
+            if (Differs(camera->tiltTarget_, zero) || Differs(camera->tiltRate_, zero) || height > width)
+                camera->SetTiltRate(DragTiltSpeed() * along * Option(0x0073BAB4));
+            else
+                camera->SetTiltRate(0.0f);
+        } else {
+            float speed = StoreFloat(DragPanSpeed());
+            Vector3 direction{StoreFloat(across * speed), StoreFloat(along * speed), 0.0f};
+            camera->Pan(&direction.x);
+        }
+        MouseDragY() = 0;
+        MouseDragX() = 0;
+        GameCursor()->SetShape(kDragCursor);
+        handled_ = true;
+        pressLayout_ = point;
+        return;
+    }
+    int margin = EdgeMargin();
+    if (margin > 0) {
+        unsigned edges = 0;
+        Vector3 direction{0.0f, 0.0f, 0.0f};
+        if (x < margin) {
+            direction.x = -1.0f;
+            edges = kLeft;
+        } else if (x >= interface_->width_ - margin) {
+            direction.x = 1.0f;
+            edges = kRight;
+        }
+        if (y < margin) {
+            direction.y = -1.0f;
+            edges |= kTop;
+        } else if (y >= interface_->height_ - margin) {
+            direction.y = 1.0f;
+            edges |= kBottom;
+        }
+        if (!ModifierHeld(interface_)) {
+            // The keys' pan goes on (OnKeyUp sets the same).
+            float left = StoreFloat(-x_);
+            float speed = StoreFloat(PanSpeed());
+            float forward = y_ * speed;
+            left = StoreFloat(left * speed);
+            direction.x = StoreFloat(forward + direction.x);
+            direction.y = StoreFloat(left + direction.y);
+        }
+        GameCursor()->SetShape(EdgeCursor(edges));
+        camera->Pan(&direction.x);
+        if (edges) handled_ = true;
+    }
+    pressLayout_ = POINT{x, y};
+}
+
 void CCameraInput::OnDeactivate() {
     turning_ = false;
     x_ = 0.0f;
@@ -151,6 +250,9 @@ void __fastcall CameraInputRightDown(CCameraInput* self, void*, int buttons, int
 void __fastcall CameraInputRightUp(CCameraInput* self, void*, int buttons, int x, int y) {
     self->OnRightUp(buttons, x, y);
 }
+void __fastcall CameraInputMouseMove(CCameraInput* self, void*, int buttons, int x, int y) {
+    self->OnMouseMove(buttons, x, y);
+}
 void __fastcall CameraInputDeactivate(CCameraInput* self) { self->OnDeactivate(); }
 BOOL __fastcall CameraInputWheel(CCameraInput* self, void*, int keys, int delta, int x, int y) {
     return self->OnWheel(keys, delta, x, y);
@@ -159,5 +261,6 @@ BOOL __fastcall CameraInputWheel(CCameraInput* self, void*, int keys, int delta,
 EI_REPLACE(0x005EB090, CameraInputKeyUp);
 EI_REPLACE(0x005EAD00, CameraInputRightDown);
 EI_REPLACE(0x005EAD50, CameraInputRightUp);
+EI_REPLACE(0x005EB210, CameraInputMouseMove);
 EI_REPLACE(0x005EB580, CameraInputDeactivate);
 EI_REPLACE(0x005EB540, CameraInputWheel);

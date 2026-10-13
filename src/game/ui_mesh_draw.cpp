@@ -49,6 +49,17 @@ void CUiMesh::GetPlacement(float* x, float* y, float* depth) const {
 }
 EI_REPLACE_METHOD(0x005E7010, CUiMesh::GetPlacement);
 
+// 005E6FA0 (Rebirth replaces it with its widescreen version; the vanilla body). The layout's
+// 1 / 400 (0074015C) and 0.75 (0073C524) with the constants above.
+void CUiMesh::PlaceVanilla(float x, float y, float depth) {
+    float placedX = (x * GameFloat(0x0074015C) - GameFloat(0x0073B84C)) * GameFloat(0x00740158) * depth;
+    float placedY = (y * GameFloat(0x0074015C) - GameFloat(0x0073C524)) * GameFloat(0x00740158) * depth;
+    position_.x = placedX;
+    position_.y = placedY;
+    std::memcpy(&position_.z, &depth, sizeof(float));
+}
+EI_REPLACE_METHOD(0x005E6FA0, CUiMesh::PlaceVanilla);
+
 // 005E6D90 (RET 4). Nothing unless visible. Binds the texture to stage 0 (failure is fatal), builds
 // the placement from the orientation and position, pushes it on the view and world stacks, then
 // the scale matrix on both (the view stack's push inlined), draws the sprite as a figure in its

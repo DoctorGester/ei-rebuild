@@ -378,12 +378,10 @@ EI_REPLACE(0x005F8A80, InterfaceShowMessage);
 
 namespace {
 // The seen-topics map at +0x98 (STLport map<CString, int>; thiscall): find (005FAEA0) and
-// lower_bound (005FAF30) into an iterator (RET 8), insert with a hint (005F9810, RET 0xC).
+// lower_bound (005FAF30) into an iterator (RET 8); insert with a hint is HelpTopicsInsertOriginal.
 __declspec(naked) void __fastcall TopicsFind(void*, void*, void** /*out*/, const void* /*key*/) EI_ORIGINAL(0x005FAEA0)
 __declspec(naked) void __fastcall TopicsLowerBound(void*, void*, void** /*out*/, const void* /*key*/)
     EI_ORIGINAL(0x005FAF30)
-__declspec(naked) void** __fastcall TopicsInsert(void*, void*, void** /*out*/, void* /*hint*/, const void* /*pair*/)
-    EI_ORIGINAL(0x005F9810)
 // The help window's list member at +0x188 (005F9A00, from an allocator; RET 4).
 __declspec(naked) void __fastcall ConstructHelpList(void*, void*, const void*) EI_ORIGINAL(0x005F9A00)
 // _mbscmp (the game's CRT).
@@ -424,7 +422,7 @@ void CInterface3D::OpenHelp(int flag) {
             CopyCString(pair.key, nullptr, &key);
             pair.value = 0;
             void* inserted;
-            TopicsInsert(topics, nullptr, &inserted, at, &pair);
+            HelpTopicsInsertOriginal(topics, nullptr, &inserted, at, &pair);
             at = inserted;
             reinterpret_cast<mfc::CString*>(pair.key)->~CString();
         }

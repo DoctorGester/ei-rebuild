@@ -103,6 +103,9 @@ struct ItemTurn {
     // 005ED780 (slot 0, RET 4). The counted object's base vtable (005ED7A0), freed with bit 0 of
     // `flags`; returns this.
     ItemTurn* DeletingDestruct(unsigned flags);
+    // 005ED760 (slot 2; ui_small_members.cpp). The object's vtables written again, the counted
+    // root's (0073BB68) and then its own (007403F8): a construction in place.
+    void ResetVtable();
 
     void* vtable;
     int references;          // +0x04
@@ -118,6 +121,11 @@ inline ItemTurn*& ItemTurnOf(CItem* item) { return reinterpret_cast<ItemTurn*&>(
 
 class CParty;
 class CItemScreen;
+// 005EC010 / 005EC2F0 (identical; ui_small_members.cpp). What the item screens' cache destructors
+// (005F6470, 005F6620, 005F7010, 005F8FC0, 00634500, 00634560) call per cached model / texture:
+// the object's slot 4 (its release), as a tail call; the slot's EAX is returned.
+int __fastcall UiReleaseCachedModel(void* object);
+int __fastcall UiReleaseCachedTexture(void* object);
 // 005F6470 / 005F6620 (__fastcall on the screen). Destructor bodies of the item screens (vtable
 // 00740A2C's screen; the camp, vtable 0074091C, which also has a CStringArray at +0x240 and a
 // CArray at +0x19C): both caches' objects released and their maps destroyed, then the container
@@ -175,6 +183,16 @@ public:
     // 005EE2C0 (RET 8; ui_item_screen.cpp). Moves every item of `from` into `to` (whole stacks,
     // merged); returns the last item `to` took, or null when `from` was empty.
     CItem* ReturnAll(CParty* to, CParty* from);
+    // The plain item screen's answers (vtable 00740A2C; the exchange 00740D18 and the hero screen
+    // 0074214C keep some of them; ui_small_members.cpp): 005F6380 (slot 43, RET 8) no item may
+    // be moved (AL 0); 005F63A0 (slot 45, RET 0xC) no skill and no mana; 005F6400 (slot 50, RET 4)
+    // no hero unit; 005F6430 (slot 53) no weight (0.0 from 0073B858, in ST0); 005F6440 (slot 54,
+    // RET 8) no price.
+    bool CanEquipDefault(CItem* item, int mode);
+    void BestPartySkillDefault(int school, int* skill, int* mana);
+    void* HeroUnitDefault(int index);
+    float WeightDefault();
+    int PriceDefault(CItem* item, int kind);
 
     std::uint8_t unknown_148[0x164 - 0x148];
     CItemInfoPanel* descPanel_;      // +0x164
@@ -240,6 +258,9 @@ public:
     // arrays, the item list (00661050 class's 006611D0), then the window's.
     void DestroyBody();
 
+    // 005EE720 (ui_small_members.cpp; the Describe* members call it). The described item: the
+    // list's first entry, or null.
+    CItem* FirstItem() const;
     // The described item (005EE720 inlined): the list's first entry, or null.
     CItem* Item() const { return itemCount_ ? items_[0] : nullptr; }
 

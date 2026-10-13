@@ -31,6 +31,7 @@ struct UiInputSide;
 class CUiMesh;
 struct CDXSurface;
 class CSceneRenderer;   // model.h
+class CTextureDevice;   // texture.h
 class CStream;          // core_streams.h
 class CUiSurface;
 
@@ -46,6 +47,9 @@ struct CScreenFade {
     // 005E6B90 (RET 4; ui_interface_draw.cpp). Starts a fade over `ms` milliseconds: rate_ 255 /
     // ms (stored as float), from alpha 0 (ms > 0, fading out) or 255, the clock now, fading.
     void Start(int ms);
+    // 005E6990 (ui_small_members.cpp; CInterface3D::Create builds it). Constructor: alpha 0, not
+    // fading, no letterbox; the rate and the clock are not written. Returns this.
+    CScreenFade* Construct();
 
     float rate_;                     // +0x00 alpha per millisecond
     float alpha_;                    // +0x04 0..255
@@ -145,6 +149,21 @@ public:
     int PlaySound(const char* name, int loop);
     // 005F7E90 (RET 4). Stops sound `handle` unless it is -1 (the interface is not used).
     void StopSound(int handle);
+    // 005F7C60 / 005F7C80 (ui_small_members.cpp; a multiplayer client's screens call them for
+    // Enter / Backspace). While the chat line is closed: Enter opens it (SetOpen(1)), Backspace
+    // empties the chat lines (ClearLines).
+    void ChatKeyEnter();
+    void ChatKeyBackspace();
+    // 005F8340 (RET 0xC; Rebirth-patched, this is the vanilla body; ui_text_draw.cpp; rewritten
+    // callers go through InterfaceTextExtentOriginal). The extent of `text` (a CString taken by
+    // value) in interface font `font`, measured on the game window's DC (GetTextExtentPoint32)
+    // and scaled to the layout: cx * 800 / width, cy * 600 / height. Returns `out`.
+    SIZE* TextExtent(SIZE* out, mfc::CString text, int font);
+    // 005F46A0 (ui_small_members.cpp). The constructor of the interface object 007C7D50, run by
+    // its static initialiser (005F4680) before the hook is installed: the window stack empty, the
+    // message list's sentinel and the help topic map's header from the node pool, the two texts
+    // empty. Nothing else is written. Returns this.
+    CInterface3D* Construct();
     // 005F7EB0 / 005F7ED0 / 005F7EF0 (RET 4). The console window's AddText / SetRect / SetHistory,
     // when there is one.
     void ConsoleAddText(const char* text);
@@ -216,6 +235,31 @@ public:
     // modes 2-4; the top window's slot 20 with the renderer (00500960); then the fade over it all.
     // Returns 1.
     int Draw();
+    // 005F5320 (Rebirth-patched, this is the vanilla body, hooked in the vanilla launch only;
+    // ui_interface_draw.cpp; the main loop calls it after the scene's EndScene through its
+    // address). What is drawn over the scene with GDI and blits: the debug panel hears the
+    // surfaces' kept and allocated bytes; the top window redraws its surfaces (slot 22) and
+    // tooltips (slot 23); the status surface blits; a backdrop asked for (mode 1 or 3) is made
+    // (800 x 600, or 400 x 300 stretched when the option 00784753 is set) and takes the screen:
+    // mode 1 also keeps a 256 x 192 copy (+0x5C) and greys the backdrop (mode 2), mode 3 first
+    // puts the old backdrop aside (+0x58, its contents kept in memory) (mode 4); a multiplayer
+    // client with one window redraws the chat overlay; the debug panel ticks; the frame rate
+    // ("FPS:" and frames * 1000 / ms, every 400 ms) is drawn and blitted while shown; the shown
+    // console blits.
+    void DrawOverlays();
+    // 005F4990 (RET 4; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
+    // only; ui_interface_create.cpp; the application's start 004570D4 calls it with the
+    // renderer's device object 007AF080). The screen size is the render target's (not written
+    // usefully without a primary surface). The three fonts are "Times New Roman": a 75-point one
+    // is made first and its height in pixels / 100 is the scale s; the fonts are of
+    // _ftol(width * k / s / 800) tenths of a point, k = 104, 112, 144 (a font that cannot be
+    // made is fatal: "CInterface3D::Create.\n Cannot create font.\n", and nothing else is
+    // done). The keyboard layout of the language 0079BE98 is activated (each layout is activated
+    // in turn and its name read as hex), else the English one (0x409), else the one it began
+    // with. Then the key bindings are read, the console window (0x7C bytes), the debug
+    // information panel, the chat overlay (0x158) and the fade (0x14) are made, the state is
+    // cleared and config\tutorial.ini's "topic count" lines are read into the help topics.
+    void Create(CTextureDevice* device);
 
     int width_;                      // +0x00 screen width
     int height_;                     // +0x04 screen height
@@ -226,7 +270,9 @@ public:
     CScreenFade* fade_;              // +0x18
     CChatOverlay* root_;             // +0x1C the chat overlay; updated after the top window every frame
     CUiSurface* fpsSurface_;         // +0x20 the frame rate's surface while shown (ShowFps)
-    std::uint8_t unknown_24[0x30 - 0x24];
+    int unknown_24;                  // +0x24 cleared by Create
+    DWORD fpsTime_;                  // +0x28 when the frame rate was last worked out (DrawOverlays)
+    int fpsFrames_;                  // +0x2C frames since then
     // +0x30 the windows draw, redraw their surfaces and update their tooltips only while this is
     // set (the containers' slots 20, 22 and 23).
     bool drawing_;
@@ -249,8 +295,8 @@ public:
     CUiSurface* statusSurface_;      // +0x64 only while ShowStatusText runs
     int mouseX_;                     // +0x68 mouse position in screen coordinates
     int mouseY_;                     // +0x6C
-    // +0x70..+0x78 the three interface fonts (Create 005F4990: CFont point sizes 75, then
-    // scaled with the screen height); text drawing selects font n from here.
+    // +0x70..+0x78 the three interface fonts (Create 005F4990: "Times New Roman", sized with the
+    // screen width); text drawing selects font n from here.
     ui_gdi::GameFont* fonts_[3];
     // Set by the key-down handler (005F78C0) from the scan codes, cleared by the key-up one
     // (005F7BE0) from the virtual keys and when the windows change.
@@ -401,6 +447,14 @@ public:
     // (ui_text.cpp).
     int DrawWrappedText(const char* text, const RECT* rect, int maxLines, int font, COLORREF colour, int format,
                         int flag);
+    // 005FDE20 (RET 0x18; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
+    // only; ui_text_draw.cpp; rewritten callers go through SurfaceDrawText). Draws `text` in
+    // interface font `font` and `colour` into `rect` (layout coordinates scaled to the screen,
+    // 005F7CA0, then two pixels wider and higher; an empty rect is the whole surface) with the
+    // DrawText `format`, transparent; with `shadow` first in 0x080808 one pixel right and down.
+    // The DC must be held. Returns DrawText's height scaled back to the layout (005F7E30), or 0
+    // without a surface.
+    int DrawTextIn(const char* text, const RECT* rect, int font, COLORREF colour, UINT format, int shadow);
     // 005FD120 (ui_surface_create.cpp). Destructor body: releases the DirectDraw surface.
     void ReleaseContents();
     // 005FD760 (RET 8; ui_window.cpp). Sets (`frozen` nonzero) or clears the shown flag (4 of
@@ -561,6 +615,9 @@ struct UiInputSide {
     // the same arguments; the handler's EAX is returned.
     int LeftDoubleAsDown(int buttons, int x, int y);
     int RightDoubleAsDown(int buttons, int x, int y);
+    // 005E28B0 (slot 12 of the base input side 007401D0 and of every window without a wheel
+    // handler; RET 0x10; ui_small_members.cpp): the wheel is not used, 0.
+    int WheelIgnored(int flags, int delta, int x, int y);
     // Slot 12. The handlers return 1.
     int Wheel(int flags, int delta, int x, int y) {
         using Fn = int(__thiscall*)(UiInputSide*, int, int, int, int);
@@ -756,6 +813,10 @@ public:
         using Fn = void(__thiscall*)(CUiWindow*);
         reinterpret_cast<Fn>(vtable_[slot])(this);
     }
+    // 005EE400 (slot 25 of the panels without items of their own: the description panel 007404DC,
+    // the blank item panel 00741B58, 00741A1C, the trade panel 007417A8 and the stats panel
+    // 00741ABC; RET 0xC; ui_small_members.cpp). Nothing under the point: `topic` 0, null.
+    void* NoItemAt(int x, int y, int* topic);
 
     void** inputVtable_;                      // +0x94 secondary vtable (input handlers)
     CInterface3D* interface_;                 // +0x98
@@ -1038,8 +1099,24 @@ public:
     void Update();
     // 0063C4F0 (slot 20). Draws with alpha test and specular on.
     BOOL Draw(int pass);
-    // 0063C050 (Rebirth-patched, not rewritten). Highlights slot `index` (or not).
+    // 0063C050 (Rebirth-patched; rewritten callers go through this forwarder). Highlights slot
+    // `index` (or not).
     void Highlight(int index, int on);
+    // The vanilla bodies of the bar's Rebirth-patched functions (ui_hud_build.cpp; hooked in the
+    // vanilla launch only, the battle screen and SetUnit reach them through their forwarders).
+    // 0063BAB0 (RET 8). Constructor: the window base, the labels, the vtables, the rectangle
+    // (80, 520, 240, 600), four 40-wide regions with empty tips, no sprites, nothing selected, no
+    // unit, and the labels "infoitem_15", "_20", "_10", "_5". Returns this.
+    CHudWeaponBar* Construct(CInterface3D* ui, CBattleScreen* owner);
+    // 0063C050 (RET 8). Slot `index` (0 .. count_ - 1) highlighted: its sprite at (100 + 40 *
+    // index, 540) depth 12, scale 0.65, colour 0xFF282828, its region from y 495; or not: at y 560,
+    // scale 1.2 ^ count_ and depth 24 times that, colour 0xFF000000, the region from y 520.
+    void HighlightVanilla(int index, int on);
+    // 0063BCC0 (RET 8). The next slot's sprite: `image` copied into the bar's texture (42 x 128,
+    // at column count_ / 2, row count_ % 2), the model `model` turned to face the screen, or a
+    // plain rectangle when there is no such model; its texture offsets, plain white; counted and
+    // shown not highlighted (Highlight).
+    void AddWeapon(const char* model, const char* image);
     // 0063C180 (RET 4; ui_hud_tips.cpp). Shows `unit`'s weapons: sprites dropped, the four
     // regions' tips cleared; per weapon a sprite (0063BCC0, Rebirth-patched) and the tip of its
     // region (id 0x26 + slot): the name, damage range and type, the prototype's +0x6C and the
@@ -1106,6 +1183,17 @@ public:
         return reinterpret_cast<const int*>(reinterpret_cast<const std::uint8_t*>(this) + 0x16C)[index];
     }
 
+    // The vanilla bodies of the panel's Rebirth-patched functions (ui_hud_build.cpp; hooked in the
+    // vanilla launch only). 0063C800 (RET 8): the constructor: the window base, the entries array,
+    // the labels, the vtables, the rectangle (520, 500, 720, 600), four 50 x 50 regions along the
+    // bottom row from the right (x 670 .. 520) and four along the top row, with empty tips and no
+    // items, nothing selected, no unit, and the labels "infoitem_7" .. "_13", "_21", "_22", "_26"
+    // .. "_28". Returns this.
+    CHudQuickItems* Construct(CInterface3D* ui, CBattleScreen* owner);
+    // 0063CAE0 (RET 8). The next sprite (at most eight): `image` copied into the panel's texture
+    // (64 x 64 at (128 + 64 * (n / 4), 64 * (n % 4))), the model `model` turned over (pi about x)
+    // or a plain rectangle without one; its texture offsets, plain white; counted.
+    void AddItem(const char* model, const char* image);
     // 0063D2B0 (RET 4; ui_battle_update.cpp). Shows `unit`'s quick items: the sprites, tooltips and
     // entries are dropped; for each of the unit's four quick items (00531920) a sprite (0063CAE0,
     // Rebirth-patched) in the bottom row, an entry and its tooltip (0063CEE0); then, when the unit
@@ -1173,6 +1261,17 @@ public:
     void HighlightAt(int index, int on);   // through the original's address
     // 0063E7C0 (ui_hud_highlight.cpp). Every button unhighlighted, then selected_ = -1.
     void ClearHighlights();
+    // The vanilla bodies of the column's Rebirth-patched functions (ui_hud_build.cpp; hooked in
+    // the vanilla launch only). 0063E2A0 (RET 8): the constructor: the window base, the labels,
+    // the vtables, the rectangle (760, 190, 800, 510), no sprites or regions, nothing selected, no
+    // unit, and the labels "infoitem_7", "_18", "_8" .. "_13", "_21", "_22", "_26" .. "_28".
+    // Returns this.
+    CHudSpellColumn* Construct(CInterface3D* ui, CBattleScreen* owner);
+    // 0063E4B0 (RET 8). The next button: the regions and sprites so far move up one 40-high step,
+    // a region and the sprite of `model` (not checked) are added at the bottom (y 470 .. 510) with
+    // `image` copied into the column's texture (64 x 64 at (128 + 64 * (n / 4), 64 * (n % 4)));
+    // plain white, scale 1, colour 0xFF000000; counted, selected_ = its index.
+    void AddSpell(const char* model, const char* image);
     // 0063E820 (RET 4; ui_spell_column.cpp). Shows `unit`'s spells: sprites and regions dropped;
     // for each of the unit's eight spell slots that holds one, a sprite (0063E4B0, Rebirth-patched)
     // and the tooltip of region `index` (tip id 0x1E + index): the spell's name and, when it has
@@ -1215,6 +1314,17 @@ public:
     void HighlightAt(int index, int on);   // through the original's address
     // 0063F7A0 (ui_hud_highlight.cpp). As CHudSpellColumn::ClearHighlights.
     void ClearHighlights();
+    // The vanilla bodies of the column's Rebirth-patched functions (ui_hud_build.cpp; hooked in
+    // the vanilla launch only). 0063F300 (RET 8): the constructor: the window base, the actions
+    // array, the labels, the vtables, the rectangle (0, 250, 40, 510), six 40 x 40 regions from
+    // the bottom (y 470) up with empty tips, no sprites or actions, nothing selected, no unit, and
+    // the label "infoitem_16". Returns this.
+    CHudActionColumn* Construct(CInterface3D* ui, CBattleScreen* owner);
+    // 0063F500 (RET 0xC). The next button, above the ones so far: the sprite of `model` (not
+    // checked) at (20, 490 - 40 * count_) with `image` copied into the column's texture (64 x 64
+    // at (64 * (n / 4), 64 * (n % 4))); plain white, scale 1, colour 0xFF000000; `action` appended;
+    // counted, selected_ = its index.
+    void AddAction(const char* model, const char* image, int action);
     // 0063F800 (RET 8; ui_hud_tips.cpp). Shows `unit`'s actions: sprites and the action array
     // dropped, the six regions' tips cleared; with `extra` (its low byte) first a "skill0011"
     // button (tip 0x290E); with a unit the science button ("skill0009", action 0) whose tip is
@@ -1378,9 +1488,46 @@ public:
                       int u1, int v1);
     void SetFrame(float depth, float scale, float left, float top, float right, float bottom, float border,
                   int u0, int v0, int u1, int v1);
+    // 005E70E0 (RET 0x28; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
+    // only; ui_mesh_shapes.cpp; rewritten callers go through SetRectangle). A rectangle of two
+    // triangles: one packet of normals (0, 0, 1), four corners, the texels (u0, v0)-(u1, v1) as
+    // texture coordinates (v upwards; both u one less when u0 > u1; half a texel inwards), the
+    // quad (+-half width, +-half height) / scale about the origin, position_ the layout centre at
+    // `depth` (as Place), the three scales 0.48157 * depth * scale / 400; then Commit.
+    void SetRectangleVanilla(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
+                             int u1, int v1);
+    // The other shapes' vanilla bodies (Rebirth-patched like the rectangle; ui_mesh_shapes.cpp).
+    // 005E7680 (RET 0x30). A grid of columns x rows cells over the rectangle, each cell a quad
+    // showing the whole picture (u0, v0)-(u1, v1): (columns + 1) * (rows + 1) points a cell apart
+    // (in units of `scale`), four corners and six indices per cell; position_ the layout's top
+    // left corner at `depth`.
+    void SetGridVanilla(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0, int u1,
+                        int v1, int columns, int rows);
+    // 005E7D60 (RET 0x2C). A frame `border` wide inside the rectangle: the outer and the inner
+    // rectangle's corners (two packets) joined by four quads, each showing the whole picture;
+    // position_ the layout centre at `depth`.
+    void SetFrameVanilla(float depth, float scale, float left, float top, float right, float bottom, float border, int u0,
+                         int v0, int u1, int v1);
+    // 005E99D0 (RET 0x38). A triangle: the first layout point is position_ (at `depth`), the
+    // other two are points relative to it in units of `scale`; the texels are floats here.
+    void SetTriangleVanilla(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2, float u0,
+                            float v0, float u1, float v1, float u2, float v2);
+    // 005E6FA0 (RET 0xC; Rebirth-patched, its widescreen version replaces it; this is the vanilla
+    // body, hooked in the vanilla launch only; ui_mesh_draw.cpp). Place: position_ =
+    // ((x * 0.0025 - 1) * 0.4816 * depth, (y * 0.0025 - 0.75) * 0.4816 * depth, depth), the
+    // constants read from 0074015C, 0073B84C, 0073C524 and 00740158; `depth` copied as bits.
+    void PlaceVanilla(float x, float y, float depth);
     // 005E7060 (RET 4; ui_hud_highlight.cpp). The three scale fields = `scale` (copied as bits;
     // EAX is left holding them, callers do not read it).
     void SetScale(float scale);
+    // 005E6D70 (vtable slot 3; ui_small_members.cpp). The material and the texture forgotten (not
+    // released), then the figure's own slot 3 (005A6C80), whose EAX is returned.
+    int DestroySprite();
+    // 005E7090 (RET 4). The y scale alone (scaleMatrix_[5]) = `bits` (copied as bits); the quick
+    // items' bar (006462A0) calls it.
+    void SetScaleYBits(std::uint32_t bits);
+    // 005E70B0. The x scale (scaleMatrix_[0], in ST0).
+    float GetScaleX() const;
     // 005E6D90 (RET 4; ui_mesh_draw.cpp). Draws the sprite in `renderer`'s pass when visible;
     // returns 1.
     int Draw(CSceneRenderer* renderer);
@@ -1498,14 +1645,21 @@ public:
     int viewPolygonCount_;           // +0x17C
     std::uint8_t unknown_180[0x188 - 0x180];
     UiPointArray visibleArea_;       // +0x188 the outline in world units, clipped to the world
-    std::uint8_t unknown_198[0x1AC - 0x198];
+    int sliding_;                    // +0x198 set when the sling button (or its key) starts the slide
+    std::uint8_t unknown_19C[0x1A8 - 0x19C];
+    float slideDirection_;           // +0x1A8 +1 / -1
     int view_;                       // +0x1AC 1 or 2 (scene objects 6 and 7 are the buttons)
+    float unknown_1B0;               // +0x1B0 0.5 when the "camera north" key turns the camera; the
+                                     //        frame update (00642B40) counts it down
 };
 static_assert(offsetof(CHudMap, centreX_) == 0x14C);
 static_assert(offsetof(CHudMap, scale_) == 0x168);
 static_assert(offsetof(CHudMap, zoomMax_) == 0x170);
 static_assert(offsetof(CHudMap, visibleArea_) == 0x188);
 static_assert(offsetof(CHudMap, view_) == 0x1AC);
+static_assert(offsetof(CHudMap, sliding_) == 0x198);
+static_assert(offsetof(CHudMap, slideDirection_) == 0x1A8);
+static_assert(offsetof(CHudMap, unknown_1B0) == 0x1B0);
 
 // Unit panel (set up by 006456E0, vtables 007426F8 / 007426C4; 0..185 x 0..225). Regions: 0
 // the sling button, 1-4 the body parts, 5 the whole panel.
@@ -2482,6 +2636,10 @@ public:
     void OnKeyDown(int key, int repeat, int flags);
     // The OK answer's edit text into editText_ (the caller's buffer).
     void CopyEditText();
+    // 00634D00 (slot 26 of the message box, the master request box 00741DD8 and the difficulty
+    // question 0074225C; ui_small_members.cpp). The box closes: its scene objects and surfaces
+    // released (005FF7D0, 005FFC50).
+    void OnClose();
     // 0061E3E0 (and the difficulty question's 00633750, the same code; ui_window_delete.cpp). The
     // destructor body: the text and title strings, then the container's.
     void DestroyBody();
@@ -2590,6 +2748,13 @@ public:
     void SetOpen(bool open);
     // 005E3930. Every line destroyed and its node returned to the pool; the list left empty.
     void ClearLines();
+    // 005E3700 (Rebirth-patched, this is the vanilla body, hooked in the vanilla launch only;
+    // rewritten callers go through ChatOverlayDrawTypedOriginal). The typed line's surface hidden
+    // while the chat is closed; else shown, the caret clamped to the line, the surface cleared,
+    // the line drawn (font 1, white, DT_NOPREFIX, shadowed) over (0, 0)-(783, 17) and, while the
+    // text before the caret is narrower than 780, the caret as a white line at its width from y
+    // 0 to 16 (layout points scaled to the screen).
+    void DrawTyped();
     // Input side (ui_chat_overlay.cpp; nothing while the chat is closed). 005E3230 (slot 9, RET
     // 0xC): every key is marked used; Backspace / Delete remove the character before / at the
     // caret, Home / End / Left / Right move it (unclamped; the draw clamps it), Enter sends a

@@ -423,7 +423,9 @@ address,size,name,evidence
 00624440,322,FUN_00624440,"no references at all (no call/jmp, no absolute pointer in code or data)"
 006311F0,207,FUN_006311f0,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00637C60,250,FUN_00637c60,"no references at all (no call/jmp, no absolute pointer in code or data)"
+0063C010,62,FUN_0063c010,"no references at all (no call/jmp, no absolute pointer in code or data; A-I22 scan of game.exe, addon.dll and EI_Plugin.asi): the weapon bar's reset (scene objects cleared, count 0, selection -1, four tips cleared), inlined by its SetUnit 0063C180"
 0063CCA0,114,FUN_0063cca0,referenced only from dead code 0063CC96
+0063F6E0,77,FUN_0063f6e0,"no references at all (no call/jmp, no absolute pointer in code or data; A-I22 scan of game.exe, addon.dll and EI_Plugin.asi): the action column's reset (scene objects and actions cleared, count 0, selection -1, six tips cleared), inlined by its SetUnit 0063F800"
 00645000,47,FUN_00645000,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00645030,45,FUN_00645030,"no references at all (no call/jmp, no absolute pointer in code or data)"
 00648270,88,FUN_00648270,"no references at all (no call/jmp, no absolute pointer in code or data)"

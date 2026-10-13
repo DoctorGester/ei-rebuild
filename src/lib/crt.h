@@ -28,6 +28,7 @@ int __cdecl isalpha(int c);                                        // 006E92FB
 int __cdecl isdigit(int c);                                        // 006E9379
 int __cdecl isprint(int c);                                        // 006E944C
 int __cdecl sprintf(char* buffer, const char* format, ...);        // 006E8715
+int __cdecl sscanf(const char* text, const char* format, ...);     // 006EAEEC
 int __cdecl mbsicmp(const unsigned char* a, const unsigned char* b); // 006E8767 _mbsicmp
 int __cdecl mbscmp(const unsigned char* a, const unsigned char* b);  // 006E848B _mbscmp
 
@@ -35,6 +36,9 @@ int __cdecl mbscmp(const unsigned char* a, const unsigned char* b);  // 006E848B
 // from the FLD of the argument on; the result is left unrounded in ST0).
 double __cdecl acos(double c);                                // 006E7334
 double __cdecl asin(double s);                                // 006E83D4
+// fmod: the C entry beside _CIfmod 006E95AA (the same FPREM loop; the result is left unrounded in
+// ST0).
+double __cdecl fmod(double x, double y);                      // 006E95A0
 // _controlfp: sets the FPU control word bits in `mask` to `value`; returns the new word (the
 // terrain lighting 006C3A00 switches to chop rounding with it).
 unsigned __cdecl controlfp(unsigned value, unsigned mask);    // 006EBBB4

@@ -178,6 +178,9 @@ public:
     void OnKeyUp(int key, int repeat, int flags);     // 005E47E0 VK_SHIFT / VK_CONTROL clear shift_ / ctrl_
     void DrawLines();                          // 005E4800 the lines above the input line
     void DrawInput();                          // 005E4A10 the input line, selection and caret
+    // 005E3FC0 (ui_small_members.cpp; the interface's 2D redraw 005F5320 calls it while the
+    // console is shown). The surface's slot 0 (its blit) when there is one; its EAX is returned.
+    int Blit();
     // 005E3DF0 (ui_interface_shutdown.cpp; the interface's shutdown deletes the window with it).
     // Frees the surface and the font, then the members (lines, input text, command history).
     void DestroyBody();

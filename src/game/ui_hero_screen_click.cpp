@@ -35,7 +35,7 @@ constexpr std::uintptr_t kSoundSelect = 0x00793A60;   // buttons\save_select.wav
 // The hero screen's own methods (thiscall on the window): 00615D30 the mode (RET 4;
 // Rebirth-patched), 006186F0 create the hero, 00617A50 the statistics page's next, 006183B0
 // continue to the connection screen, 00618060 rename, 00619150 the voice's sound.
-__declspec(naked) void __fastcall SetMode(CMpHeroScreen*, void*, int) EI_ORIGINAL(0x00615D30)
+void SetMode(CMpHeroScreen* screen, void*, int mode) { HeroScreenSetModeOriginal(screen, nullptr, mode); }
 __declspec(naked) void __fastcall CreateHeroAt(CMpHeroScreen*) EI_ORIGINAL(0x006186F0)
 __declspec(naked) void __fastcall StatsNext(CMpHeroScreen*) EI_ORIGINAL(0x00617A50)
 __declspec(naked) void __fastcall ContinueAt(CMpHeroScreen*) EI_ORIGINAL(0x006183B0)
@@ -52,7 +52,7 @@ __declspec(naked) void __fastcall ClampVoiceAt(CMpHeroScreen*) EI_ORIGINAL(0x006
 __declspec(naked) void __fastcall StatsSetHero(void*, void*, int, void*) EI_ORIGINAL(0x006232D0)
 __declspec(naked) void __fastcall TradeSetHero(void*, void*, int, int) EI_ORIGINAL(0x006255A0)
 void EditSetText(void* edit, void*, const void* text) { EditFieldSetTextOriginal(edit, nullptr, text); }
-__declspec(naked) void __fastcall EditActivate(void*, void*, int) EI_ORIGINAL(0x0065C2D0)
+void EditActivate(void* edit, void*, int on) { EditFieldActivateOriginal(edit, nullptr, on); }
 // Surfaces: 005FDC00 / 005FE2F0 / 005FDC60 (GetDC, clear, ReleaseDC), 005FD760 (RET 8) Freeze.
 struct SurfaceDraw {
     void* Begin() { return SurfaceGetDC(this); }   // 005FDC00

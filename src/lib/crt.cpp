@@ -20,6 +20,7 @@ __declspec(naked) int __cdecl isalpha(int) EI_ORIGINAL(0x006E92FB)
 __declspec(naked) int __cdecl isdigit(int) EI_ORIGINAL(0x006E9379)
 __declspec(naked) int __cdecl isprint(int) EI_ORIGINAL(0x006E944C)
 __declspec(naked) int __cdecl sprintf(char*, const char*, ...) EI_ORIGINAL(0x006E8715)
+__declspec(naked) int __cdecl sscanf(const char*, const char*, ...) EI_ORIGINAL(0x006EAEEC)
 __declspec(naked) int __cdecl mbsicmp(const unsigned char*, const unsigned char*) EI_ORIGINAL(0x006E8767)
 __declspec(naked) int __cdecl access(const char*, int) EI_ORIGINAL(0x006EAF20)
 __declspec(naked) static int __cdecl MbscmpOriginal(const char*, const char*) EI_ORIGINAL(0x006E848B)
@@ -29,6 +30,7 @@ int __cdecl mbscmp(const unsigned char* a, const unsigned char* b) {
 
 __declspec(naked) double __cdecl acos(double) EI_ORIGINAL(0x006E7334)
 __declspec(naked) double __cdecl asin(double) EI_ORIGINAL(0x006E83D4)
+__declspec(naked) double __cdecl fmod(double, double) EI_ORIGINAL(0x006E95A0)
 __declspec(naked) unsigned __cdecl controlfp(unsigned, unsigned) EI_ORIGINAL(0x006EBBB4)
 
 __declspec(naked) int __cdecl open(const char*, int, ...) EI_ORIGINAL(0x006EB35C)

@@ -7,6 +7,11 @@
 // the weather and backdrop, OnMessageResult sends a mouse move: ours only. Scenario: ui_camp (the
 // map's right-button drag, Esc opening the escape menu over it (OnKeyDown, OnDeactivate) and Esc
 // closing it again (OnMessageResult)); Close is not known to be reached (no scenario leaves the map).
+//
+// OnMouseMove (00630010, Rebirth-patched: the vanilla launch only). While dragging it only turns
+// the map (angle_, turn_) and clears the drag motion: side by side. Otherwise it selects a zone,
+// plays a sound and draws the tip: ours only, the tip's surface and its two sprites read back.
+// Scenario: ui_camp (mouse moves over the map; the right-button drag reaches the turning half).
 #include "verify.h"
 
 #include "../../src/game/ui_camp.h"
@@ -19,6 +24,7 @@ void* s_unused;
 void* s_deactivate;
 void* s_rightDown;
 void* s_rightUp;
+void* s_mouseMove;
 
 struct DragState {
     std::uint32_t dragging;
@@ -95,6 +101,44 @@ static void __fastcall RightUpVerify(void* input, void*, int buttons, int x, int
 }
 // 0062FFC0: XOR EAX,EAX; PUSH ESI; MOV byte ptr [ECX+0x1D0],AL (2 + 1 + 6 bytes).
 EI_VERIFY(0x0062FFC0, RightUpVerify, 9, s_rightUp);
+
+static void __fastcall MouseMoveVerify(void* input, void*, int buttons, int x, int y) {
+    auto* map = WindowFromInput<CGlobalMap>(input);
+    if (map->dragging_) {
+        float angle = map->angle_;
+        float turn[4];
+        std::memcpy(turn, map->turn_, sizeof(turn));
+        int motionX = MouseDragX();
+        int motionY = MouseDragY();
+        reinterpret_cast<MouseFn>(s_mouseMove)(input, nullptr, buttons, x, y);
+        float expectedAngle = map->angle_;
+        float expectedTurn[4];
+        std::memcpy(expectedTurn, map->turn_, sizeof(turn));
+        bool cleared = MouseDragX() == 0 && MouseDragY() == 0;
+        map->angle_ = angle;
+        std::memcpy(map->turn_, turn, sizeof(turn));
+        MouseDragX() = motionX;
+        MouseDragY() = motionY;
+        map->OnMouseMove(buttons, x, y);
+        ei::verify::CheckNear("CGlobalMap::OnMouseMove angle", expectedAngle, map->angle_, "motion %d", motionX);
+        for (int i = 0; i < 4; ++i)
+            ei::verify::CheckNear("CGlobalMap::OnMouseMove turn", expectedTurn[i], map->turn_[i], "component %d, motion %d",
+                                  i, motionX);
+        ei::verify::Check("CGlobalMap::OnMouseMove motion", cleared, MouseDragX() == 0 && MouseDragY() == 0, "");
+        return;
+    }
+    bool past = map->RegionAt(x, y) >= map->linkCount_ + 3;
+    map->OnMouseMove(buttons, x, y);
+    if (past) return;   // a region past the links: nothing is done
+    bool shown = map->surfaces_.data[0]->Shown();
+    bool back = map->SceneMesh(map->markerCount_ + 6)->visible_ != 0;
+    bool frame = map->SceneMesh(map->markerCount_ + 7)->visible_ != 0;
+    bool named = map->shownName_ != nullptr && map->shownName_[0] != 0;
+    ei::verify::Check("CGlobalMap::OnMouseMove tip", true, back == shown && frame == shown && (shown || !named),
+                      "shown %d sprites %d %d named %d", shown, back, frame, named);
+}
+// 00630010: MOV EAX,FS:[0] (6 bytes).
+EI_VERIFY(0x00630010, MouseMoveVerify, 6, s_mouseMove);
 
 static void __fastcall KeyDownVerify(void* input, void*, int key, int repeat, int flags) {
     auto* map = WindowFromInput<CGlobalMap>(input);
