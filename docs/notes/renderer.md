@@ -99,7 +99,7 @@ specular added after texturing. Textures use the .mmp file's own mip levels (not
 | Depth clears | 00636020, hero preview 005EC300, trade grid 00627390, hero equipment 00622420, screens 2 / 3 (00632A90 / 00602BF0) | `render::ClearDepth` | drawn |
 | Shadows | 64x64 shadow textures rasterised on the CPU (2DintMMX), ground quad 0056C750, drawn with 004EA4A0 (also selection markers, light decals) | `device_shadow.cpp` -> `render::BeginMesh` without corners; `map_object_shadow.cpp` (0051CE60) tells which texture changed (`TextureChanged`) | drawn; later GPU shadows |
 | Particles, ribbons, lightning, hit points, vision fog | pre-transformed draws: sprites 00502CA0 -> 00503680, ribbons 00501D90 -> 00502A20, triangles 00501BB0 (`renderer_triangles.cpp`), line strips 005045D0 / 0049B4B0 (`renderer_lines.cpp`) | `render::TlDraw` with vertices after the fog pass and the old device's state | drawn; later the particle data itself |
-| Weather | rain / snow quads built by 004E4240 / 004E4C80 (2.6 KB each, not rewritten) into pre-transformed vertices and drawn with the device directly | 004E5680 rewritten (`weather_draw.cpp`): after the draw its triangles go to `TlDraw`; the old draw stays | drawn; builders not split |
+| Weather | rain / snow triangles built by 004E4240 / 004E4C80 (`weather_particles.cpp`, A-S13: `BuildRain` / `BuildSnow`, then `DrawParticles`) into pre-transformed vertices and drawn with the device directly | 004E5680 rewritten (`weather_draw.cpp`): after the draw its triangles go to `TlDraw`; the old draw stays | drawn; the old draw (`DrawParticles`) still runs |
 | Interface surfaces | CUiSurface (0x38): +0x0C flags (1 colour key, 2 stretched, 4 shown), +0x10 holder, +0x24 rect, +0x34 key | 005FDA80 (`ui_surface_blit.cpp`) -> `render::SurfaceBlit` | drawn |
 | Rectangle fills | renderer slot 19 (005041F0) | `renderer_rect.cpp` -> `render::ScreenDraw` | drawn |
 | Cursor | object 007C7BD8; images from 8888 pictures loaded by 004EFC60 -> `render::PictureFromMmp`, mask from game memory | frame draw 005E54A0 (`ui_cursor_frame.cpp`) -> `render::Cursor` | drawn; cursor thread (005E5690) and background saves left out with `present` |
@@ -313,8 +313,8 @@ device at all):
 5. The cursor between frames: the hardware cursor needs nothing; the software cursor option draws only inside frames in
    the switch-over, so it does not move during movies and loading.
 
-Other open items: the fog colour and range come from the old device state (not game data yet); weather's two builders
-(004E4240 / 004E4C80) are not split from their draws; GPU shadows; several steps (holders, saved pictures, interface
+Other open items: the fog colour and range come from the old device state (not game data yet); weather's old draw
+(`CRainSnow::DrawParticles`, split from the builders by A-S13) still runs next to the hand-over; GPU shadows; several steps (holders, saved pictures, interface
 draws, movies, textures) are verified by wrappers and harness scenarios, never by a person in game.
 
 ## 10. The old boundary (reference)
@@ -423,6 +423,63 @@ the function plainly works on", to be confirmed when the function is replaced.
 | 004FCD50 | 311 | `CRenderHelper`'s destructor body | Release; the state blocks through slot 3 |
 | 004FD2A0 | 1480 | `CRenderHelper` slot 1: a preset's state block recorded | IDirect3DDevice7::BeginStateBlock, EndStateBlock, SetRenderState, SetTextureStageState |
 | 004FD9D0 | 295 | `CRenderHelper` slot 3: a state block released | IDirect3DDevice7::DeleteStateBlock |
+
+### (c) below 004F0000: rewritten by A-S13
+
+The 22 rows of the table above below 004F0000 and the two callbacks of the (b) table (004ED610, 004ED820) are
+rewritten. DirectDraw 7 / Direct3D 7 are called as the original calls them, through the typed interfaces
+(`<ddraw.h>`, `<d3d.h>`; the casts are in `device.h`); each method was read off its vtable offset. The COM objects
+are the boundary the new renderer replaces. Left of class (c): the six rows from 004F3C60 on (A-S12).
+
+- `device_binds.cpp`: the texture binds 004EB300 / 004EBAF0 / 004EB1D0 (SetTexture when the stage's holder
+  changes, the batch flushed first) and the batch flushes 004E7840 / 004E7A40 (Unlock,
+  DrawIndexedPrimitiveVB, the buffer moved to the used list).
+- `directdraw_holder.cpp`: the driver list (004EE4A0 with DirectDrawEnumerateExA's callback 004ED610,
+  004EE5D0 the first hardware driver) and the device object's DirectDraw base: constructor 004EDD70 (CPUID
+  into 007CAED0, `2DintMMX.dll`, the parts below), 004EEA90 (DirectDrawCreateEx, the display modes),
+  004EECF0, 004EEBC0, 004EEC60, 004EEE30 (primary surface, clipper or back buffers, the video formats probed),
+  destructor body 004EE330. `dx_surface.cpp`: a holder from a description 004EFA60 and its size 004EFEA0.
+  `dx_errors.h`: the game's error object thrown through the game's `_CxxThrowException` (006E7819).
+- `device_object.cpp`: constructor 004E5E50 (the base, IDirect3D7 from the DirectDraw object, EnumDevices with
+  004ED820, CreateDevice for the HAL device only, the format table, EnumZBufferFormats, the depth buffer, render
+  target and viewport, the four state blocks of stage 0 at 007AEDD0..DC), 004E6EE0 (EnumTextureFormats into
+  the list and the id table), 004E6C30 (the depth format by 004E6BC0, the depth holder attached to the render
+  target, a second one of one pixel), destructor body 004E68A0.
+- `weather_particles.cpp`: the rain draw 004E4240 and the snow draw 004E4C80 (`CRainSnow`, effects.h; its
+  work arrays are named now). 81 x 81 cells around the point the wind carries a particle to the camera from;
+  a cell's hash and the world's time give the particle's cycle, fall and texture frame; corners in packets
+  through `ProjectClipped` (stack 2), the ones on screen through the transform object's slot 32 (`ToScreen`:
+  the perspective divide and viewport, read from `3DfpFPU.dll`) and, with the device's fog flag, slot 35
+  (`FogVertices`), then DrawIndexedPrimitive. Snow sways by five tables of cubics (007ABB98 .. 007AE398, built
+  by the static initialiser 004E3B20 through 004E3980; evaluated with 004E5660).
+
+Verification (`verify_device_binds.cpp`, `verify_directdraw_holder.cpp`, `verify_device_object.cpp`,
+`verify_weather_particles.cpp`; every scenario starts the device, 152 runs with 0 mismatches):
+
+- Side by side: 004EB300, 004EB1D0 (ground prints), 004EBAF0 (no scenario reaches it: only the multi-pass
+  material draw's stage whose texture is still to be found by name), 004EE4A0, 004ED610, 004EE5D0, 004EEA90
+  (the original into a scratch object), 004EFEA0, 004EFA60 (a second surface into a scratch holder for the first
+  48 descriptions), 004ED820, 004E6EE0, and the two weather draws: on every other call ours builds the
+  vertices, then the original builds them again and draws; corners, frames, outcodes and vertices compared
+  bit for bit (rain in 69 runs, as the world's weather starts it; snow in rebirth_flags, `SetWeather`).
+- Ours only, with the state left checked: 004E7840, 004E7A40 (no vertex buffer is ever locked, so only their
+  first test runs), 004EDD70, 004EECF0, 004EEE30, 004EE330, 004EEBC0 (a full-screen mode change after a switch
+  back: no scenario), 004EEC60, 004E5E50, 004E6C30, 004E68A0, and the draw half of the weather draws (the other
+  calls). The original cannot run next to ours there (one cooperative level, primary surface, Direct3D device,
+  depth buffer). For those the device object after start-up was compared between a run with ours and a run
+  with the 17 originals (their addresses added to `build/verify/disabled.txt` for that run): the 39
+  `device-state:` lines of ei_hook.log (`verify_device_state.cpp`: flags, holders, display mode and driver
+  lists, formats, the id table, batches, state blocks) were the same.
+- The constructors call their parts through the addresses (`originals_render.h`: 004EDD70, 004EEA90, 004EECF0,
+  004EEE30, 004E6EE0, 004E6C30, 004EFEA0, 004EFA60), so each wrapper stays in the path; 004E5E50 passes the
+  enumeration callback as 004ED820 for the same reason. The standalone build calls the members directly.
+
+Original details kept: GetAttachedSurface's reference to the back buffer is never released; 004EFA60 describes
+the surface twice; the depth buffer's W-buffer choice is overwritten with 1; the T&L HAL device is never used;
+the rain's and snow's vertex colours are never written (the buffer's old bytes are drawn, the fog pass only
+lowers the specular's alpha) and neither are the packets' w; the rain's height uses the snow's rise (007AEDA0,
+both 40). Different in ours: a throw from the constructors does not free what was built (the game ends in
+WinMain either way); the driver record's unset GUID and monitor bytes are zeroed.
 
 ### (b) Through the renderer's own interfaces or pure: left
 
