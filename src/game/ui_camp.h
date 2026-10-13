@@ -706,6 +706,21 @@ static_assert(offsetof(CTradePanel, holdTime_) == 0x1A0);
 // its other pages, 7 leave the camp.
 class CCampPages : public CUiWindow {
 public:
+    // 0060C870 (slot 25; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
+    // only; ui_camp_create.cpp). Builds the camp: the server flag set; the constructor's class
+    // template from the player's "constr.current" (none found: back to the world, nothing built)
+    // with its flags, price weights and part lists; the player's "i.noconstr" / "i.off..." /
+    // "i.on..." switches; texture "campinfo", twelve regions (the two action buttons, the two
+    // hero turn areas, the eight page buttons) and ten button sprites; the item screen's base;
+    // two surfaces; seven item lists; the panels (description, statistics, help, the item strip,
+    // equipment, quick items, trade, and each offered constructor's strip and pages); the party's
+    // heroes handed to the client world as units (records of class 0x32, ids raised by 100000000
+    // meanwhile), each idling, armed from its record and wearing its armour; the first hero shown
+    // (slot 48); the page titles; the first page (4 item constructor, 2 spell constructor, else
+    // 0); a constructor's stock made on its first visit (flag38) from the party's lowest and
+    // highest skill per spell school; the allod's constructor music; antialiasing (render state 2
+    // = 2) when the device sorts independently.
+    void Create();
     // 0060E9E0. Shows page `page` (regions 4-11 and Esc call it): hides every page's panels,
     // shows the page's ones, its title and the strip that goes with it; a constructor page the
     // camp does not offer falls back to the current page. Page 7 gives the constructors' unused
@@ -861,9 +876,11 @@ public:
     bool itemConstructor_;           // +0x196 the item constructor's pages are offered
     std::uint8_t unknown_197;
     ClassTemplate* constructor_;     // +0x198 the constructor's class template ("constr.current"), or null
-    std::uint8_t unknown_19C[4];
-    std::uint8_t** heroes_;          // +0x1A0 the party's heroes (data of an array)
-    std::uint8_t unknown_1A4[0x1B0 - 0x1A4];
+    void* heroesVtable_;             // +0x19C the heroes' CArray (vtable 007402AC)
+    std::uint8_t** heroes_;          // +0x1A0 the party's heroes (its data): a unit per party record, null for other classes
+    int heroCount_;                  // +0x1A4
+    int heroCapacity_;               // +0x1A8
+    int heroGrowBy_;                 // +0x1AC
     int hero_;                       // +0x1B0 the hero shown (HeroRecord)
     // Item lists (0x70 bytes each, 00661050): the constructors' parts and what they made.
     void* itemParts_[3];             // +0x1B4 (the constructor's +0x3C), +0x1B8, +0x1BC
@@ -891,9 +908,11 @@ public:
     std::uint8_t unknown_213;
     std::uint8_t* itemMade_;         // +0x214 the item the item constructor would make, or null
     std::uint8_t* spellMade_;        // +0x218 the spell the spell constructor would make, or null
-    std::uint8_t unknown_21C[0x244 - 0x21C];
-    char** pageTitles_;              // +0x244 CStringArray data
-    std::uint8_t unknown_248[0x254 - 0x248];
+    std::uint32_t priceWeights_[9];  // +0x21C the constructor's price multipliers (floats; ClassTemplate::weights)
+    void* pageTitlesVtable_;         // +0x240 CStringArray: the seven pages' titles and "quit"
+    char** pageTitles_;              // +0x244 its data
+    int pageTitleCount_;             // +0x248
+    std::uint8_t unknown_24C[0x254 - 0x24C];
     bool noConstructor_;             // +0x254 the player's "i.noconstr" = 1: second pages hidden
     std::uint8_t unknown_255[0x258 - 0x255];
     std::uint32_t heroTurn_;         // +0x258 passed to the hero preview (005EC300)
@@ -907,6 +926,8 @@ static_assert(offsetof(CCampPages, statsPanel_) == 0x1D8);
 static_assert(offsetof(CCampPages, trade_) == 0x1F4);
 static_assert(offsetof(CCampPages, itemConstructor3_) == 0x208);
 static_assert(offsetof(CCampPages, pageTitles_) == 0x244);
+static_assert(offsetof(CCampPages, heroesVtable_) == 0x19C);
+static_assert(offsetof(CCampPages, priceWeights_) == 0x21C);
 static_assert(offsetof(CCampPages, noConstructor_) == 0x254);
 static_assert(sizeof(CCampPages) == 0x260);
 
