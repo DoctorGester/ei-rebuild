@@ -176,3 +176,47 @@ __declspec(naked) inline void __fastcall ClientProjectDecalOriginal(void* /*worl
 // 0056CE40 (RET 0xC): the client world shows a number over the unit with id `id` (the value, the kind bits).
 __declspec(naked) inline void __fastcall ClientShowNumberOriginal(void* /*world*/, void*, int /*id*/, int /*value*/,
                                                                 int /*kind*/) EI_ORIGINAL(0x0056CE40)
+// A-W13. CFigureMesh::Create 0059F210 (returns 1) and Clear 0059F2B0 (figure_mesh_life.cpp), called through
+// their addresses by the rewritten constructor, clear and destructor bodies so that their wrappers run.
+class CFigureMesh;
+__declspec(naked) inline int __fastcall FigureMeshCreateOriginal(CFigureMesh* /*mesh*/) EI_ORIGINAL(0x0059F210)
+__declspec(naked) inline void __fastcall FigureMeshClearOriginal(CFigureMesh* /*mesh*/) EI_ORIGINAL(0x0059F2B0)
+// A-W13. The resource databases' switch (0057CB50, world_game.cpp): each database's compiler-generated
+// reset (destroyed and constructed again in place: units 0057CBE0, skills 0057CD60, spell tables 0057CE80,
+// items 0057D340) and its load from "<resources><name>" (RET 8: 0053A200, 00520220, and the Rebirth-patched
+// 00684550 and 006A67A0).
+struct UnitDatabase;
+struct SkillDatabase;
+__declspec(naked) inline void __fastcall UnitDatabaseResetOriginal(UnitDatabase* /*database*/) EI_ORIGINAL(0x0057CBE0)
+__declspec(naked) inline void __fastcall SkillDatabaseResetOriginal(SkillDatabase* /*database*/) EI_ORIGINAL(0x0057CD60)
+__declspec(naked) inline void __fastcall SpellTablesResetOriginal(void* /*tables*/) EI_ORIGINAL(0x0057CE80)
+__declspec(naked) inline void __fastcall ItemDatabaseResetOriginal(void* /*database*/) EI_ORIGINAL(0x0057D340)
+__declspec(naked) inline void __fastcall UnitDatabaseLoadOriginal(UnitDatabase* /*database*/, void*, const char* /*resources*/,
+                                                                 const char* /*name*/) EI_ORIGINAL(0x0053A200)
+__declspec(naked) inline void __fastcall SkillDatabaseLoadOriginal(SkillDatabase* /*database*/, void*, const char* /*resources*/,
+                                                                  const char* /*name*/) EI_ORIGINAL(0x00520220)
+__declspec(naked) inline void __fastcall SpellTablesLoadOriginal(void* /*tables*/, void*, const char* /*resources*/,
+                                                                const char* /*name*/) EI_ORIGINAL(0x00684550)
+__declspec(naked) inline void __fastcall ItemDatabaseLoadOriginal(void* /*database*/, void*, const char* /*resources*/,
+                                                                 const char* /*name*/) EI_ORIGINAL(0x006A67A0)
+// A-W13. Called through their addresses by the client world's item and spell block loaders (world_client_maps.cpp)
+// so that their wrappers run: 005630B0 CWorldClient::ReferenceItemsAndSpells; 005679A0 LoadManagerObjects (ECX the
+// manager, EDX the stream; 1 at the end mark, 0 when the stream fails).
+class CBaseManager;
+class CStream;
+class CWorldClient;
+__declspec(naked) inline void __fastcall ClientReferenceItemsAndSpellsOriginal(CWorldClient* /*world*/) EI_ORIGINAL(0x005630B0)
+__declspec(naked) inline int __fastcall ClientLoadManagerObjectsOriginal(CBaseManager* /*manager*/, CStream* /*stream*/)
+    EI_ORIGINAL(0x005679A0)
+// A-W13. The client world's two small managers (world.h): 004E2850 the array manager's Clear (plain RET: its object
+// and every listed one released, the list emptied); 00562EC0 / 00562DF0 their destructor bodies, called through their
+// addresses by the deleting destructors.
+struct ClientArrayManager;
+struct ClientListManager;
+__declspec(naked) inline void __fastcall ClientArrayManagerClearOriginal(ClientArrayManager* /*manager*/) EI_ORIGINAL(0x004E2850)
+__declspec(naked) inline void __fastcall ClientListManagerDestructOriginal(ClientListManager* /*manager*/) EI_ORIGINAL(0x00562EC0)
+__declspec(naked) inline void __fastcall ClientArrayManagerDestructOriginal(ClientArrayManager* /*manager*/) EI_ORIGINAL(0x00562DF0)
+// 00561A60: the platform set's destructor body (PlatformSet::DestructBody), called through its address by the
+// deleting destructor.
+struct PlatformSet;
+__declspec(naked) inline void __fastcall PlatformSetDestructOriginal(PlatformSet* /*set*/) EI_ORIGINAL(0x00561A60)

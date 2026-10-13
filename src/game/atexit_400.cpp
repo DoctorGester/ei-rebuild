@@ -14,7 +14,6 @@ __declspec(naked) void __fastcall CameraDestruct(void* /*camera*/) EI_ORIGINAL(0
 __declspec(naked) void __fastcall ClassRegistryDestruct(void* /*registry*/) EI_ORIGINAL(0x00408D60)
 __declspec(naked) void __fastcall RefPtrRelease(void* /*ref*/) EI_ORIGINAL(0x00412260)
 __declspec(naked) void __fastcall RefPtrRelease2(void* /*ref*/) EI_ORIGINAL(0x004122B0)
-__declspec(naked) void __fastcall WordArrayDestruct(void* /*array*/) EI_ORIGINAL(0x006FEECD)   // CWordArray::~CWordArray
 __declspec(naked) void __fastcall Vector8Destruct(void* /*vector*/) EI_ORIGINAL(0x004387D0)
 
 void* At(std::uintptr_t address) { return reinterpret_cast<void*>(address); }
@@ -31,7 +30,7 @@ void __cdecl DestroyClassRegistry() { ClassRegistryDestruct(At(0x0079B270)); }
 void __cdecl ReleaseGlobalServer() { RefPtrRelease(At(0x0079B5DC)); }
 void __cdecl ReleaseGlobalClient() { RefPtrRelease2(At(0x0079B5D8)); }
 // 0042D900: the CWordArray at 0079B668.
-void __cdecl DestroyGlobalWordArray() { WordArrayDestruct(At(0x0079B668)); }
+void __cdecl DestroyGlobalWordArray() { WordArrayDestructOriginal(At(0x0079B668)); }
 // 00432CC0 / 00432D00: the growing buffers at 0079B900 and 0079B8E0, each destroyed once.
 void __cdecl DestroyGlobalBuffer1() {
     std::uint8_t flags = BufferFlags();

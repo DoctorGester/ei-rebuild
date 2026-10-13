@@ -138,6 +138,8 @@ console loadvar 0 .\saves\console_vars0.txt
 console loadvar 1 .\saves\console_vars1.txt
 console fadeout
 expect FADEOUT nMillSec
+# Writes scenack.txt (the units' speeches) into the data folder: the harness's overlay. No output.
+console generateacks
 
 # The console window (ui_console_window.cpp): the console key shows it (its surface is created
 # and drawn); typed text, caret moves, Delete, the command history and scrolling redraw it.

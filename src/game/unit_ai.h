@@ -172,6 +172,10 @@ struct AIMoveOrder {
     // 00545B20 (unit_ai_looks.cpp; the modes call it through Reset, its address). The point zeroed,
     // the looks' data freed, size and capacity 0 (step and vtable kept).
     void Clear();
+    // 005D7970 (RET 4; unit_ai_looks.cpp): operator=. The point, then the looks (the array's Copy
+    // inlined); returns this. Only the original fear mode 005D30A0 calls it (ours assigns the
+    // parts through the look array's address).
+    AIMoveOrder* Assign(const AIMoveOrder* other);
 
     Vector3 point;                  // +0x00
     AILookArray looks;              // +0x0C
@@ -448,6 +452,9 @@ struct FearMode : AIMode {
     // operator delete when `flags` bit 0 is set; returns this.
     void Destruct();
     FearMode* DeletingDestruct(int flags);
+    // 005D2880 (slot 3; unit_ai_mode_lifetime.cpp). A new mode with this one's fields (references
+    // 0; the abstract base's vtable stands while they are copied); null when the allocation fails.
+    FearMode* Clone();
     // 005D2960 (slot 4; unit_ai_fear.cpp). Remembers a seen object (notice 1000 / -2; `distance`
     // grows to 1.5 times its distance) and calms `spread` towards 3. 15000 when a ranged unit (size
     // class below 6, no spell in slot 0, not slowed, load factor above 0.6) has its nearest enemy
@@ -840,6 +847,13 @@ struct AIEventTable : AIViewer {
     // each cell's events by side (byte 1, x / y, +0x08, expiry, +0x14, source, side), then byte 0.
     void Load(CStream* stream);
     void Save(CStream* stream);
+    // 005B3F40 (the constructor; the AI map's 005B3C30). A 1 x 1 grid, then Clear. Returns this.
+    AIEventTable* Construct();
+    // 005C9250. Tick -1, the wheel emptied (its events are not freed), the grid back to 1 x 1
+    // (reallocated unless it is) and its cell emptied.
+    void Clear();
+    // 005C91F0 (the destructor). Every event of the wheel goes to the free list; the grid is freed.
+    void Destroy();
 
     // The cell of `event`, or null outside the grid.
     AIEventCell* CellOf(const AIEvent* event) const;
@@ -847,7 +861,7 @@ struct AIEventTable : AIViewer {
     void Free(AIEvent* event, int side);
 
     AIEvent* slots[0x400][16];      // +0x02C by tick & 0x3FF, then side
-    std::uint32_t unknown_1002C;
+    AIEventCell* cells;             // +0x1002C the grid's block
     AIEventCell** rows;             // +0x10030 the grid rows (each `width` cells)
     int width;                      // +0x10034
     int height;                     // +0x10038

@@ -63,6 +63,13 @@ void AIMoveOrder::Clear() {
 }
 EI_REPLACE_METHOD(0x00545B20, AIMoveOrder::Clear);
 
+AIMoveOrder* AIMoveOrder::Assign(const AIMoveOrder* other) {
+    point = other->point;
+    looks.Copy(other->looks);
+    return this;
+}
+EI_REPLACE_METHOD(0x005D7970, AIMoveOrder::Assign);
+
 void PatrolMode::AppendPoint(const Vector3* position) {
     // Half-cell index of each coordinate (rounded to nearest after a float store), then its middle.
     float cell = StoreFloat(kOne * kHalf);

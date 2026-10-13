@@ -2,6 +2,7 @@
 // and script state, so only ours runs and the result is checked.
 #include "verify.h"
 
+#include "../../src/game/unit_db.h"
 #include "../../src/game/world.h"
 
 #include "ei/rebirth.h"
@@ -226,6 +227,23 @@ static void __fastcall StartServerVerify(GameFlow* self, void*, const char* name
 }
 EI_VERIFY(0x0057E740, StartServerVerify, 0, s_unused);
 
+// A-W13. 0057EA50: afterwards there is no server session and a client session. 0057E970 sends the
+// join request: the client session is still there. Both ours only (sessions are created and a
+// connection is opened); reached from the multiplayer connect screens only.
+static void __fastcall StartClientVerify(GameFlow* self, void*) {
+    self->StartClient();
+    auto* server = *reinterpret_cast<std::uint8_t**>(0x0079B5DC);
+    auto* client = *reinterpret_cast<std::uint8_t**>(0x0079B5D8);
+    ei::verify::Check("GameFlow::StartClient", true, server == nullptr && client != nullptr, "%p %p", server, client);
+}
+EI_VERIFY(0x0057EA50, StartClientVerify, 0, s_unused);
+
+static void __fastcall JoinServerVerify(GameFlow* self, void*, const net::NetAddress* address, const char* password) {
+    self->JoinServer(address, password);
+    ei::verify::Check("GameFlow::JoinServer", true, *reinterpret_cast<void**>(0x0079B5D8) != nullptr, "%p", address);
+}
+EI_VERIFY(0x0057E970, JoinServerVerify, 0, s_unused);
+
 // 0058DAF0: no players are lost.
 static void __fastcall AcceptPlayersVerify(CWorldServer* self, void*, void* lobby) {
     auto count = [self] {
@@ -383,3 +401,80 @@ static int __fastcall LoadGameVerify(GameFlow* self, void*, const char* slot) {
     return result;
 }
 EI_VERIFY(0x0057ABA0, LoadGameVerify, 0, s_unused);
+
+// A-W13. 0057CB50 reloads the four resource databases (files read, every table rebuilt): ours only;
+// "database.res" and "databaseLMP.res" both hold unit models and skills. Reached when the database
+// changes: entering or leaving a network game (the multiplayer hero screen, back to the main menu).
+static void __fastcall SwitchResourceDatabasesVerify(const char* name) {
+    SwitchResourceDatabases(name);
+    const auto* units = reinterpret_cast<const UnitDatabase*>(0x007AF358);
+    bool ok = units->models.begin != units->models.end && SkillDb()->skills.size() != 0;
+    ei::verify::Check("SwitchResourceDatabases", true, ok, "%s", name);
+}
+EI_VERIFY(0x0057CB50, SwitchResourceDatabasesVerify, 0, s_unused);
+
+// 0057DEE0: ours only (it may switch the databases). Afterwards the last database name (007AFDEC) is
+// the one asked for. The main menu's Create, the multiplayer hero screen and every request.
+static void __fastcall UseResourcesVerify(GameFlow* self, void*, bool network) {
+    self->UseResources(network);
+    const char* last = *reinterpret_cast<const char* const*>(0x007AFDEC);
+    const char* wanted = network ? "databaseLMP.res" : "database.res";
+    ei::verify::Check("GameFlow::UseResources", true, std::strcmp(last, wanted) == 0, "%s, wanted %s", last, wanted);
+}
+EI_VERIFY(0x0057DEE0, UseResourcesVerify, 0, s_unused);
+
+// A-W13. 0057BC30 only lists files: PUSH -1; PUSH 0x7237D0 (7 bytes); both run and the sizes are
+// compared. The save screens.
+static int(__cdecl* s_currentSaveSize)();
+static int __cdecl CurrentSaveSizeVerify() {
+    int expected = s_currentSaveSize();
+    ei::verify::Check("CurrentSaveSize", expected, CurrentSaveSize(), "bytes");
+    return expected;
+}
+EI_VERIFY(0x0057BC30, CurrentSaveSizeVerify, 7, s_currentSaveSize);
+
+// 0057ED60 empties saves\current and may start the zone: ours only; the multiplayer zone (+0x7C)
+// is then the name given (empty for none). The session messages of a network game.
+static void __fastcall SetNetworkZoneVerify(GameFlow* self, void*, const char* zone) {
+    self->SetNetworkZone(zone);
+    ei::verify::Check("GameFlow::SetNetworkZone", true, std::strcmp(self->zone7C_, zone ? zone : "") == 0, "%s",
+                      zone ? zone : "(null)");
+}
+EI_VERIFY(0x0057ED60, SetNetworkZoneVerify, 0, s_unused);
+
+// 00578460 / 005784D0: the flow's constructor and destructor bodies (the static initialiser of
+// 007AFE20 and its atexit function): ours only. The constructor leaves no request and empty names.
+static GameFlow* __fastcall FlowConstructVerify(GameFlow* self) {
+    GameFlow* result = self->Construct();
+    bool ok = result == self && self->state_ == 0 && self->requestTarget_[0] == 0 && self->zone7C_[0] == 0;
+    ei::verify::Check("GameFlow::Construct", true, ok, "%p", self);
+    return result;
+}
+EI_VERIFY(0x00578460, FlowConstructVerify, 0, s_unused);
+
+static void __fastcall FlowDestructVerify(GameFlow* self) {
+    self->Destruct();
+    ei::verify::Check("GameFlow::Destruct", true, true, "%p", self);
+}
+EI_VERIFY(0x005784D0, FlowDestructVerify, 0, s_unused);
+
+// A-W13. 0057ECA0 DropSessions / 0057ED00 EndSession: ours only (they release the sessions).
+// Afterwards both sessions are gone, 007C7DD8 is clear and the flow's state is as it was. Leaving a
+// network game (the menus and the hero screens); no scenario reaches them.
+static bool SessionsGone() {
+    return *reinterpret_cast<void**>(0x0079B5DC) == nullptr && *reinterpret_cast<void**>(0x0079B5D8) == nullptr &&
+           *reinterpret_cast<char*>(0x007C7DD8) == 0;
+}
+static void __fastcall DropSessionsVerify(GameFlow* self, void*) {
+    int state = *reinterpret_cast<int*>(self);
+    self->DropSessions();
+    ei::verify::Check("GameFlow::DropSessions", true, SessionsGone() && *reinterpret_cast<int*>(self) == state, "");
+}
+EI_VERIFY(0x0057ECA0, DropSessionsVerify, 0, s_unused);
+
+static void __fastcall EndSessionVerify(GameFlow* self, void*) {
+    int state = *reinterpret_cast<int*>(self);
+    self->EndSession();
+    ei::verify::Check("GameFlow::EndSession", true, SessionsGone() && *reinterpret_cast<int*>(self) == state, "");
+}
+EI_VERIFY(0x0057ED00, EndSessionVerify, 0, s_unused);

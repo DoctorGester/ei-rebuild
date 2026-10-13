@@ -131,6 +131,21 @@ PatrolMode* PatrolMode::Clone() {
 }
 EI_REPLACE_METHOD(0x005D0F90, PatrolMode::Clone);
 
+FearMode* FearMode::Clone() {
+    auto* clone = static_cast<FearMode*>(gamecrt::operator_new(sizeof(FearMode)));
+    std::memset(&clone->refs, 0, 4);
+    if (!clone) return nullptr;
+    clone->vtable = aimode::kActionBaseVtable;
+    clone->distance = distance;
+    clone->spread = spread;
+    clone->shelter = shelter;
+    clone->fleePoint = fleePoint;
+    clone->flag = flag;
+    clone->vtable = aimode::kFearVtable;
+    return clone;
+}
+EI_REPLACE_METHOD(0x005D2880, FearMode::Clone);
+
 void FearMode::Destruct() { vtable = aimode::kRootVtable; }
 EI_REPLACE_METHOD(0x005D2950, FearMode::Destruct);
 

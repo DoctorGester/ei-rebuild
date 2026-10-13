@@ -61,6 +61,19 @@ static void __fastcall CopyFromVerify(AILookArray* self, void*, const AILookArra
 }
 EI_VERIFY(0x005D8B60, CopyFromVerify, 0, s_unused);
 
+// 005D7970 AIMoveOrder::Assign: ours only (it reallocates the looks); the point and the looks equal
+// the source's afterwards. Reached only while the original fear mode 005D30A0 runs (its wrapper).
+static AIMoveOrder* __fastcall OrderAssignVerify(AIMoveOrder* self, void*, const AIMoveOrder* other) {
+    AIMoveOrder* result = self->Assign(other);
+    bool ok = result == self && std::memcmp(&self->point, &other->point, sizeof(Vector3)) == 0 &&
+              self->looks.size == other->looks.size &&
+              (other->looks.size <= 0 ||
+               std::memcmp(self->looks.data, other->looks.data, sizeof(AILook) * other->looks.size) == 0);
+    ei::verify::Check("AIMoveOrder::Assign", true, ok, "order %p from %p: %d looks", self, other, other->looks.size);
+    return result;
+}
+EI_VERIFY(0x005D7970, OrderAssignVerify, 0, s_unused);
+
 // 005D9DE0 ElementAt: MOV EAX,[ESP+8]; MOV EDX,[ECX+4] (7 bytes). Pure: the original into a
 // scratch element, ours into `out`; bytes and the returned pointers compared.
 static AILook*(__fastcall* s_elementAt)(const AILookArray*, void*, AILook*, int);

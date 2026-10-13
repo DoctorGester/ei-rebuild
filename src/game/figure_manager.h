@@ -7,6 +7,8 @@
 #include "core_transform.h"
 #include "resource_manager.h"
 
+#include "lib/stlp.h"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -38,6 +40,16 @@ inline CFigureObjectVirtuals* FigureSlots(CFigureMesh* figure) { return reinterp
 
 class CFigureManager : public CResourceManager {
 public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073FB88);
+
+    // 005AA070 (figure_mesh_life.cpp, A-W13). The constructor body: CResourceManager's, an empty
+    // model map with NextPrime(100) buckets, the vtable. Returns this.
+    CFigureManager* Construct();
+    // 005AAE00 (slot 23, RET 8; figure_mesh_life.cpp). CBaseManager::CreateObject; a new figure
+    // (classes 0x41-0x44) also gets a drawer: a class 0x45 object (id -1) of the context's
+    // specific manager (its slot 21).
+    CEngineObject* CreateFigureObject(int type, int id);
+
     // 005AC1A0 (RET 4; the interface's model manager too). A figure object (class 0x43, slot 23 with
     // id -1); with a name it is named (+0x120; +0x124 emptied) and loaded from "<name>.fig" (slot
     // 19, then +0x188 cleared and the data closed), or released (slot 24) and null when the file is
@@ -53,4 +65,7 @@ public:
     // animation or the file. The path is built in a 0x200-byte buffer without a bounds check; the
     // data is not closed.
     int LoadBoneAnimation(FigureBone* bone, AnimationTrack* animator, const char* animation);
+
+    stlp::hash_map<stlp::string, FigureModel*, stlp::StringHash> models_;   // +0xBC the cached models by name
 };
+static_assert(offsetof(CFigureManager, models_) == 0xBC && sizeof(CFigureManager) == 0xD0);

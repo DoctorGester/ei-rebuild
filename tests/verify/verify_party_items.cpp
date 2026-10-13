@@ -265,3 +265,14 @@ static double __fastcall CarriedWeightVerify(const PartyUnitRecord* self) {
     return expected;
 }
 EI_VERIFY(0x00660840, CarriedWeightVerify, 6, s_carriedWeight);
+
+// A-W13. 0055E940 MakeCopyOf (slot 24 of the party and of the client world): ours only (it makes an
+// item). Checked: the copy has the item's kind and packed id. Items put into a party (AddItem) and
+// the HUD's item lists (`newgame`).
+static CItem* __fastcall MakeCopyOfVerify(CParty* self, void*, CItem* item) {
+    CItem* copy = self->MakeCopyOf(item);
+    bool ok = copy && copy->type_ == item->type_ && copy->unknown_18 == item->unknown_18;
+    ei::verify::Check("CParty::MakeCopyOf", true, ok, "kind %d id %08x", item->type_, item->unknown_18);
+    return copy;
+}
+EI_VERIFY(0x0055E940, MakeCopyOfVerify, 0, s_unused);

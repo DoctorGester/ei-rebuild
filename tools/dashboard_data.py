@@ -6,7 +6,10 @@ commit's own files:
     against config/functions.csv minus library and dead code, overall and per address range;
   - lines of code under src/ (game, lib, render, hook) and tests/;
   - cleanup artefacts: EI_ORIGINAL sites, functions forwarded from several files, At<>/Field<> uses,
-    VCall uses, __asm blocks, float_control pragmas, verify wrappers, scenarios.
+    VCall uses, __asm blocks, float_control pragmas, verify wrappers, scenarios;
+  - standalone readiness (docs/notes/standalone.md): what still ties the code to the original exe
+    (forwarders by target, game data addresses, uses of the exe's MFC / STLport / CRT / imports)
+    and the single-byte text sites a UTF-8 switch has to visit.
 
 usage: python tools/dashboard_data.py [--every N] [--out build/dashboard/data.json] [--no-cache]
 Reads history through `git cat-file --batch`; nothing is checked out. A rerun takes the numbers of
@@ -75,6 +78,29 @@ CLEANUP = {
     'float_control': re.compile(r'#\s*pragma\s+float_control'),
 }
 
+# Standalone readiness: qualified uses of the exe's runtime through src/lib, and text sites that
+# assume one byte per character (docs/notes/standalone.md).
+STANDALONE = {
+    'mfc_strings': re.compile(r'\bmfc::CString\b'),
+    'mfc_arrays': re.compile(r'\bmfc::(?:CArray|CStringArray|CPtrArray|CDWordArray|CUIntArray|CByteArray)\b'),
+    'mfc_lists': re.compile(r'\bmfc::(?:CTypedPtrList|CList|CPtrList|CObList|CStringList)\b'),
+    'mfc_maps': re.compile(r'\bmfc::CMap\w*'),
+    'mfc_files': re.compile(r'\bmfc::(?:CFile\w*|CArchive|CMemFile)\b'),
+    'stlp_uses': re.compile(r'\bstlp::'),
+    'stlp_hash_maps': re.compile(r'\bstlp::hash_(?:map|set)\b'),
+    'crt_allocations': re.compile(r'\bgamecrt::operator_(?:new|delete)\b'),
+    'crt_other': re.compile(r'\bgamecrt::(?!operator_(?:new|delete)\b)'),
+    'import_uses': re.compile(r'\bgameapi::'),
+    'text_case_compares': re.compile(r'\bgamecrt::mbsicmp\b|\b_?strn?icmp\b|\bMakeUpper\b|\bMakeLower\b|\bCompareNoCase\b'
+                                     r'|\bCharUpper\w*|\bCharLower\w*'),
+    'text_fixed_buffers': re.compile(r'\bchar\s+\w+\[[0-9A-Za-z_]+\]'),
+    'text_ansi_calls': re.compile(r'\b(?:CreateFileA|FindFirstFileA|DeleteFileA|GetFileAttributesA|CreateDirectoryA|fopen'
+                                  r'|RegQueryValueExA|RegSetValueExA|GetModuleFileNameA|SetWindowTextA|MessageBoxA'
+                                  r'|TextOutA|DrawTextA|ExtTextOutA|GetTextExtentPoint32A|GetKeyNameTextA)\b'),
+}
+DATA_LITERAL = re.compile(r'(?<![0-9A-Za-z_])0[xX]00([0-9A-Fa-f]{6})(?![0-9A-Fa-f])')
+UNHOOKABLE_BYTES = 5   # a hook needs five bytes: shorter functions are written at standalone time
+
 
 class Tree:
     """Files of one commit (or of the working tree when commit is None)."""
@@ -137,6 +163,7 @@ def measure(tree):
     game -= addresses(tree.read('config/library.csv')) | addresses(tree.read('config/dead_code.csv'))
 
     replaced, loc, cleanup = set(), defaultdict(int), defaultdict(int)
+    standalone, data = defaultdict(int), set()
     origin_files = defaultdict(set)
     for path in tree.paths:
         if not path.endswith(('.cpp', '.h', '.inc', '.txt', '.py')):
@@ -165,12 +192,28 @@ def measure(tree):
                     cleanup[k] += len(rx.findall(code))
                 for k, n in ratchet_counts(path, text).items():
                     cleanup[k] += n
+                data |= {a for a in (int(m, 16) for m in DATA_LITERAL.findall(code)) if 0x730000 <= a <= 0x8FFFFF}
+                if not path.startswith('src/lib/'):
+                    for k, rx in STANDALONE.items():
+                        standalone[k] += len(rx.findall(code))
         else:
             cleanup['verify_wrappers'] += len(re.findall(r'\bEI_VERIFY\s*\(', code))
     cleanup['forwarded_from_several_files'] = sum(1 for f in origin_files.values() if len(f) > 1)
 
     total = sum(sizes.get(a, 0) for a in game)
     done = game & replaced
+    # Forwarders by what they reach: game code still original (goes with the port), code already
+    # rewritten (call it directly), and everything else (the exe's library code, to be our own).
+    forwarded = set(origin_files)
+    patched = {int(m, 16) for m in re.findall(r'^\s*(?:0x)?([0-9A-Fa-f]{8})\b',
+                                              tree.read('docs/rebirth-patched-functions.txt') or '', re.M)}
+    left = game - done
+    standalone.update(
+        forwarder_addresses=len(forwarded), forwarders_to_unported=len(forwarded & left),
+        forwarders_to_rewritten=len(forwarded & replaced), forwarders_to_library=len(forwarded - left - replaced),
+        data_addresses=len(data), unported_functions=len(left),
+        unported_unhookable=sum(1 for a in left if sizes.get(a, 0) < UNHOOKABLE_BYTES),
+        unported_rebirth_patched=len(left & patched))
     areas = []
     for lo, hi, name in AREAS:
         g = {a for a in game if lo <= a < hi}
@@ -179,7 +222,7 @@ def measure(tree):
                       'bytes': sum(sizes.get(a, 0) for a in g), 'ported_bytes': sum(sizes.get(a, 0) for a in d)})
     return {'functions': len(game), 'ported_functions': len(done), 'bytes': total,
             'ported_bytes': sum(sizes.get(a, 0) for a in done), 'areas': areas, 'loc': dict(loc),
-            'cleanup': dict(cleanup)}
+            'cleanup': dict(cleanup), 'standalone': dict(standalone)}
 
 
 def metrics_version():

@@ -251,19 +251,16 @@ ours = consistency checks (most order / update code: run every tick).
 
 ## A-U12 (the server controller's leftovers, 0x00540000-0x00559000)
 
-- **Ported** (`combat_order_checks.cpp`; `verify_combat_order_checks.cpp`, all ours only): CUnitServer::CheckOrder
-  0054C8B0 (every queued order started) and CheckOrderFrom 0054C960 (the AI's reach checks; CanPlanAction run as if the
-  unit stood at `from`, its position put back). Both first refuse an attack (not with a bow or a crossbow: weapon types
-  5 / 6) or a use / skill (order kinds 3 / 6) on a living unit of size class 0 whose prototype's +0x24 plus its height
-  is at least 1.5 (0073C51C): too high to reach. WorldTick 0054B220 (4 bytes, not hookable), MotionSegmentInit 0054E5D0,
-  PathConstructSteps 0054EAC0, ArmourSpell::Assign 00558840 (RefreshItemSpells), the deleting destructors of a counted
-  reference and of a call record (00558CA0, 00558CC0: the brain's memory arrays destroyed).
+- **Ported** (`combat_small_records.cpp`; `verify_combat_small_records.cpp`, all ours only): WorldTick 0054B220 (4
+  bytes, not hookable), MotionSegmentInit 0054E5D0 (TimeUntilAction), PathConstructSteps 0054EAC0 (PlanOrderRoute, the
+  AI's test paths), ArmourSpell::Assign 00558840 (RefreshItemSpells), the deleting destructors of a counted reference
+  and of a call record (00558CA0, 00558CC0: the brain's memory arrays destroyed). The order checks 0054C8B0 / 0054C960
+  were ported by A-W13 at the same time (CanReachAndPlan / CanReachAndPlanFrom, combat_tick.cpp); this ticket's copy
+  was dropped when main was merged (both read the disassembly the same way).
 - **The maps folder** (`world_maps_folder.cpp`, 0055E990; Rebirth-patched, so the vanilla function, installed in the
   vanilla launch only): the data path (CString 007AF460) with "maps\" appended, constructed at the caller's storage.
   Side by side in the vanilla launch (every zone load), compared by content.
 - **config/library.csv**: 00545FD0, 005461E0, 00546200 (unwind-only destructors of locals), 005576B0 (an STLport count
   decrement whose only caller is library code).
-- **Oddity kept**: on the refusing path the originals return with the FPU status word in AH (callers read AL only).
-  A NaN height is not refused (the compare's "less or unordered" goes on to CanPlanAction).
 - **Left**: 0055E1B0-0055FF90 (the world's small slots and helpers; world.md) for the AI / world area. Nothing else in
   0x00540000-0x00560000 was unported when this ticket ended.

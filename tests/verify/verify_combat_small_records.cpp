@@ -1,8 +1,5 @@
-// Checks for combat_order_checks.cpp (A-U12). All ours only (they call virtual slots or change
-// objects; the state afterwards is checked):
-// - CUnitServer::CheckOrder (0054C8B0): every queued order started (StartQueuedOrder; any move or
-//   attack order). CUnitServer::CheckOrderFrom (0054C960): the AI's reach checks (a hostile unit
-//   choosing a place to attack from); the unit's position must be what it was.
+// Checks for combat_small_records.cpp (A-U12). All ours only (they change objects; the state
+// afterwards is checked):
 // - MotionSegmentInit (0054E5D0): TimeUntilAction (a unit's attack planned).
 // - PathConstructSteps (0054EAC0): PlanOrderRoute and the AI's test paths (any move order).
 // - ArmourSpell::Assign (00558840): RefreshItemSpells (a unit wearing an item with a spell).
@@ -14,7 +11,6 @@
 #include "../../src/game/ai_map.h"
 #include "../../src/game/ai_motion.h"
 #include "../../src/game/combat.h"
-#include "../../src/game/unit.h"
 #include "../../src/game/unit_ai.h"
 
 #include <cstring>
@@ -27,24 +23,6 @@ AICallRecord* __fastcall CallRecordDelete(AICallRecord* self, void*, unsigned fl
 namespace {
 void* s_unused;
 } // namespace
-
-static bool __fastcall CheckOrderVerify(CUnitServer* self, void*, const UnitAction* order) {
-    const Vector3 before = self->unit->position;
-    bool result = self->CheckOrder(order);
-    ei::verify::Check("CUnitServer::CheckOrder", true, std::memcmp(&before, &self->unit->position, sizeof before) == 0,
-                      "kind %d", order->kind);
-    return result;
-}
-EI_VERIFY(0x0054C8B0, CheckOrderVerify, 0, s_unused);
-
-static bool __fastcall CheckOrderFromVerify(CUnitServer* self, void*, const UnitAction* order, const Vector3* from) {
-    const Vector3 before = self->unit->position;
-    bool result = self->CheckOrderFrom(order, from);
-    ei::verify::Check("CUnitServer::CheckOrderFrom", true,
-                      std::memcmp(&before, &self->unit->position, sizeof before) == 0, "kind %d", order->kind);
-    return result;
-}
-EI_VERIFY(0x0054C960, CheckOrderFromVerify, 0, s_unused);
 
 static void* __fastcall MotionSegmentInitVerify(void* part) {
     void* result = MotionSegmentInit(part);

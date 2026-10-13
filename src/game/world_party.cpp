@@ -327,6 +327,20 @@ void CWorldServer::AddCounted(CEngineObject* item) {
 }
 
 EI_REPLACE_METHOD(0x00594CE0, CWorldServer::CopyItem);
+
+void CWorldServer::UseItemUp(CUnit* unit, CItem* item) {
+    if (unit->player) {
+        if (auto* link = reinterpret_cast<ItemSourceRef*>(item->unknown_1C)) {
+            CParty* party = reinterpret_cast<WorldPlayer*>(unit->player)->Party();
+            if (reinterpret_cast<PartyRecords*>(party)->Find(unit->id_)) {
+                CEngineObject* source = party->ItemManager()->FindObject(link->itemId);
+                if (source) --static_cast<CItem*>(source)->unknown_48;
+            }
+        }
+    }
+    --item->unknown_48;
+}
+EI_REPLACE_METHOD(0x00595020, CWorldServer::UseItemUp);
 EI_REPLACE_METHOD(0x00594F30, CWorldServer::AddCounted);
 EI_REPLACE_METHOD(0x00594AB0, CWorldServer::CreateItemNamed);
 EI_REPLACE_METHOD(0x00594BC0, CWorldServer::CreateSpellNamed);

@@ -67,6 +67,12 @@ void __fastcall TextSourcesClear(TextSourceList* list) {
     sentinel->prev = sentinel;
 }
 
+void __fastcall TextSourcesDestruct(TextSourceList* list) {
+    TextSourcesClear(list);
+    list->ClearWith([](TextSource* source) { source->name.~string(); });
+    stlp::deallocate(list->head, sizeof(TextSourceNode));
+}
+
 BOOL CTextManager::AddSource(const char* path) {
     return TextSourcesAdd(&sources_, nullptr, path, 0);
 }
@@ -94,6 +100,7 @@ CTextManager* CTextManager::DeletingDestruct(unsigned flags) {
 EI_REPLACE(0x004DE930, TextSourcesAdd);
 EI_REPLACE(0x004DEAF0, TextSourcesRemove);
 EI_REPLACE(0x004DEB60, TextSourcesClear);
+EI_REPLACE(0x005628E0, TextSourcesDestruct);
 EI_REPLACE_METHOD(0x004DEDB0, CTextManager::AddSource);
 EI_REPLACE_METHOD(0x004DEDD0, CTextManager::RemoveSource);
 EI_REPLACE_METHOD(0x004DED40, CTextManager::ClearSources);

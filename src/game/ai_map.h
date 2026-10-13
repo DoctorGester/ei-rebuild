@@ -196,6 +196,10 @@ struct AIPath {
     void ReadState(DeltaField* field);
     // 005B23A0. Empties the path, the steps and the order.
     void Clear();
+    // 005B22C0 (RET 4; ai_path_cells.cpp). The path as a motion order in `out` (its step list
+    // constructed): the order, the steps; and for an order that follows steps (kind 2) the rest
+    // of the path appended, repeats removed, every step's speed 0x200 and the target set.
+    void ToMotionOrder(AIPath* out) const;
     // 005C8230 / 005C8370 (RET 4; ai_path_save.cpp). The order and its steps in the save stream:
     // kind, x / y, angle, start time and the three arguments (4, 8, 4, 4, 0xC bytes), the steps'
     // count, then each step (8 bytes). Loading appends that many steps and reads over every step
@@ -238,6 +242,16 @@ static_assert(offsetof(AIPath, smoothing) == 0x84);
 class CAIMap;
 class CSectorMap;
 
+// A terrain type of the AI map (0x118 bytes; CAIMap::materials, indexed by the low 5 bits of a
+// cell's occluder word). Name provisional.
+struct AITerrainType {
+    std::uint8_t unknown_000[0x104];
+    int cost;                   // +0x104 what a cell of it costs (CellMark's starting cost)
+    std::uint8_t unknown_108[0x114 - 0x108];
+    std::uint32_t openMarks;    // +0x114 per size class nibble: the mark of a cell with nothing on it
+};
+static_assert(sizeof(AITerrainType) == 0x118);
+
 // A cell of the local search's window (0x14 bytes). Name provisional.
 struct SearchNode {
     int cost;                   // +0x00 0x7FFFFFFF until reached
@@ -251,8 +265,8 @@ struct SearchNode {
 };
 static_assert(sizeof(SearchNode) == 0x14);
 
-// {data, rows, width, height}: a grid allocated in one block with a row pointer table (005B1470
-// for nodes, 005B14C0 for bytes).
+// {data, rows, width, height}: a grid allocated in one block with a row pointer table (the game's
+// template; its instantiations are in ai_grids.h).
 template <typename T>
 struct SearchGrid {
     T* data;
@@ -322,6 +336,9 @@ struct LocalSearch {
     // queued. False when the window cannot be placed (unchanged) or moved 31 cells or more (the
     // window and row table are already moved, the nodes not).
     bool Recenter(int x0, int y0, int x1, int y1, bool settleInside);
+    // 005B3FF0 (RET 4; the constructor; ai_grids.cpp). 1 x 1 node and level grids, no map rows, no
+    // map; then Attach(owner, false) when `owner` is not null. Returns this.
+    LocalSearch* Construct(CAIMap* owner);
 
     bool active;                        // +0x00
     bool levelsSaved;                   // +0x01 the window's cell levels are in `levels`
@@ -423,6 +440,9 @@ struct CRegionMap {
     // 005B1180 (RET 4, AL; ai_region_reach.cpp). Reads the block grids of every size class from
     // the AI graph stream (width and height 1..256 first); returns the stream's state byte (+5).
     bool LoadBlocks(CStream* stream);
+    // 005B1380 (RET 4; the save, 00597BD0). The block grids as LoadBlocks reads them: width and
+    // height, then per size class each row's edge words, representative cells and regions.
+    void SaveBlocks(CStream* stream);
     // 005AF900 (RET 0xC; ai_region_reach.cpp). Per size class the representative cell of block
     // (bx, by): (3, 3) unless a passable cell in rings from the middle is better (005AF7B0).
     void PickRepresentatives(class CAIMap* map, int bx, int by);
@@ -745,6 +765,15 @@ public:
 
     CRegionMap* Regions() { return &regionMap; }
 
+    // 005B9BC0 (RET 4; PlanPath; ai_path_cells.cpp). Clears the marks of the cells around the
+    // blocks of `chain` (8 x 8 cells each): their bounding box widened by four blocks, clipped to
+    // the map. Nothing for an empty chain.
+    void ClearMarksAround(const PathCellList* chain);
+    // 005B8620 (CAIMap::Load; ai_grids.cpp). Every terrain type's `openMarks`: per size class the
+    // passability by its cost (up to 1: 14, 2: 13, up to 9: 10, up to 34: 6, up to 70: 3, above:
+    // 0; the table 0079118C); size class 0 always gets 14.
+    void BuildOpenMarks();
+
     // Refresh the rectangle now, or add it to the dirty rectangle while batching.
     void QueueRefresh(int minX, int maxX, int minY, int maxY);
 
@@ -762,8 +791,9 @@ public:
     std::uint8_t unknown_0E0[0xEC - 0xE0];
     ClimbTable climbSmall;              // +0x0EC size class 0
     std::uint8_t unknown_0F4[0xFC - 0xF4];
-    std::uint8_t* materials;            // +0x0FC 0x118-byte records
-    std::uint8_t unknown_100[0x10C - 0x100];
+    AITerrainType* materials;           // +0x0FC the terrain types (the game's own array: data, count)
+    int materialCount;                  // +0x100
+    std::uint8_t unknown_104[0x10C - 0x104];
     std::uint8_t bridgeHeights[0x14];   // +0x10C hash_map<int, uint16> keyed (short)x << 16 | (short)y
     float heightScale;                  // +0x120 world z to AI height units
     std::uint32_t unknown_124;          // +0x124 the sector map (CSectorMap) starts here
@@ -830,5 +860,9 @@ int WorldToCell(float world);
 int __stdcall LevelForSizeClass(int sizeClass);
 // 005B7B70. Standing level of `unit`: (2 - standingHeight) * 16, at least 0.
 int __stdcall StandingLevel(const CUnit* unit);
+// 005B30B0 (thiscall on the bridge map CAIMap + 0x10C, RET 0x10; ai_bridges.cpp). Puts back what
+// the cell's bridge map entry saved (ground level, object height, the occluder word's low five
+// bits) and erases the entry; nothing without one. x and y are read as shorts.
+void __fastcall RestoreBridgeCell(void* map, void*, int x, int y, AIMapCell* cell, std::uint32_t* occluder);
 // 005B3160. Bridge deck height of cell (x, y) from the hash map at CAIMap + 0x10C, 0 if none.
 int __fastcall BridgeHeight(const void* map, void*, short x, short y);

@@ -335,3 +335,8 @@ inline const char* EmptyStringData() { return *reinterpret_cast<const char* cons
 #define CAM_RIGHT_ANGLE (CAM_DEGREE * CAM_NINETY)
 
 } // namespace camera
+
+// camera_object.cpp. 0040E910 (RET 4): starts recording into ".\camera\" + `name` (1 when the file
+// can be made). 0040ECB0: stops recording (the file name emptied); returns 1.
+int __fastcall CameraOpenFile(CCamera* self, void*, const char* name);
+int __fastcall CameraCloseFile(CCamera* self);

@@ -7,7 +7,8 @@
 // - MapsFolder (0055E990; the vanilla launch only, Rebirth patches it): every zone load.
 // Ours only (the vanilla launch only, Rebirth patches both; they fill the databases, which are
 // checked afterwards):
-// - UnitDatabase::Load (0053A200), SkillDatabase::Load (00520220): every start of the game.
+// - UnitDatabase::Load (0053A200), SkillDatabase::Load (00520220): every start of the game, and each
+//   switch of the resource database (entering or leaving a network game, 0057CB50).
 #include "verify.h"
 
 #include "../../src/game/unit_db.h"

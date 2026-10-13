@@ -384,6 +384,24 @@ static PatrolMode* __fastcall PatrolCloneVerify(PatrolMode* self) {
 }
 EI_VERIFY(0x005D0F90, PatrolCloneVerify, 0, s_unused);
 
+// 005D2880 FearMode::Clone (A-W13): PUSH ESI; MOV ESI,ECX; PUSH 0x2C (5 bytes). Both allocate a
+// copy; the copies are compared field by field (vtable, references, the fields the original
+// copies), then the original's is freed. Reached when a unit with a Fear mode is copied (units
+// made from a prototype with modes).
+static FearMode*(__fastcall* s_fearClone)(FearMode*);
+static FearMode* __fastcall FearCloneVerify(FearMode* self) {
+    FearMode* expected = s_fearClone(self);
+    FearMode* clone = self->Clone();
+    bool ok = expected && clone && clone != self && clone->vtable == expected->vtable && clone->refs == expected->refs &&
+              clone->unknown_06 == expected->unknown_06 &&
+              std::memcmp(&clone->distance, &expected->distance, offsetof(FearMode, flag) - offsetof(FearMode, distance)) == 0 &&
+              clone->flag == expected->flag;
+    ei::verify::Check("FearMode::Clone", true, ok, "mode %p", self);
+    if (expected) gamecrt::operator_delete(expected);
+    return clone;
+}
+EI_VERIFY(0x005D2880, FearCloneVerify, 5, s_fearClone);
+
 // 005D9E40 / 005D9590 PatrolPointCopyAt (A-W12): the original into a scratch point, ours into
 // `out`; compared by content, then the scratch's looks freed.
 // 005D9E40: PUSH -1; PUSH 0x728698 (7 bytes); 005D9590: PUSH ECX; MOV EAX,[ESP+0xC] (5 bytes).

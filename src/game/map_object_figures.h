@@ -161,7 +161,8 @@ public:
     // 0051AC90 / 0051ACB0 / 0051ACA0.
     // 22: whether the screen point (x, y) is in the object's dirtyRect (PickAt).
     virtual int BoundsContainPoint(const long* point);
-    virtual void PartsIntersectRect();
+    // 23 (RET 4): whether the screen rectangle (a RECT) meets a drawn part's rectangle.
+    virtual int PartsIntersectRect(const long* rect);
     // 24: whether the point is in the rectangle (+0x94 + 0x20) of a part with flag 0x40 (PickAt2).
     virtual int PartsContainPoint(const long* point);
     virtual void Unused25(int);                     // 25: client 0051C9D0, server 0051ACC0 (empty)

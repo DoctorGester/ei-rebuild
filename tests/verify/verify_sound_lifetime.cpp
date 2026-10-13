@@ -177,7 +177,6 @@ EI_VERIFY(0x006B4E20, MusicFadeInVerify, 0, s_unused);
 // A-H15: the sound manager's constructor / destructor body (startup / exit) and the stream reset
 // 006BA9C0 (Reset 006B73E0 at startup and every zone load, the stream close 006BAC90): ours only.
 void __fastcall SoundResetStream(void* stream);
-void __stdcall SoundEndOfSample(void* sample);
 namespace {
 CSoundManager* __fastcall SoundConstructVerify(CSoundManager* self) {
     CSoundManager* result = self->Construct();
@@ -294,17 +293,12 @@ void __fastcall StreamThreadVerify(CSoundManager* self) {
                       self->streamBufferSize, order);
     self->StreamThread();
 }
-// 006B75E0 (A-H25; Miles' thread, whenever a voice plays to its end): ours only. The voice it
-// marks is the sample's; the mark itself is not checked (the game's thread takes it at once).
-void __stdcall EndOfSampleVerify(void* sample) {
-    SoundEndOfSample(sample);
-    using UserDataFn = std::intptr_t(__stdcall*)(void*, unsigned);
-    auto* slot = reinterpret_cast<SoundSlot*>((*reinterpret_cast<UserDataFn*>(std::uintptr_t(0x0073B7B4)))(sample, 1));
-    ei::verify::Check("SoundEndOfSample", true, slot != nullptr && slot->sample == sample, "sample %p slot %p", sample, slot);
-}
+// 006B75E0 (A-H25; Miles calls it from its timer thread, whenever a voice plays to its end) has no
+// wrapper on purpose: a check there logs, and that froze every vanilla run at the first sound that
+// ended (2026-10-13). The port is two user data reads and one store, compared with the original's
+// eight instructions by hand.
 } // namespace
 EI_VERIFY(0x006BB910, StreamThreadVerify, 0, s_unused);
-EI_VERIFY(0x006B75E0, EndOfSampleVerify, 0, s_unused);
 EI_VERIFY(0x006BAAC0, SoundOpenStreamVerify, 0, s_unused);
 EI_VERIFY(0x006BAC90, SoundCloseStreamVerify, 0, s_unused);
 EI_VERIFY(0x006B6A30, SoundOpenVerify, 0, s_unused);

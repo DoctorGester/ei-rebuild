@@ -10,6 +10,7 @@
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "originals_library.h"
+#include "world_glue.h"
 
 #include <cstdint>
 #include <cstring>
@@ -39,8 +40,7 @@ signed char* Bindings() { return reinterpret_cast<signed char*>(0x0079BF70); }
 
 const char* Text(std::uintptr_t a) { return reinterpret_cast<const char*>(a); }
 
-// 00578DB0 (ECX ignored): the base path CString (007AF460). 00700C05: operator+(CString, LPCTSTR).
-__declspec(naked) const mfc::CString* __fastcall BasePath(void*) EI_ORIGINAL(0x00578DB0)
+// 00700C05: operator+(CString, LPCTSTR).
 mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return CStringConcatTextOriginal(a0, a1, a2); }
 // 004DBF50 (ECX text, EDX array, separator on the stack): splits at the separator.
 __declspec(naked) void __fastcall SplitWords(const char*, console::CStringArray*, char) EI_ORIGINAL(0x004DBF50)
@@ -48,7 +48,7 @@ __declspec(naked) void __fastcall SplitWords(const char*, console::CStringArray*
 // Opens the bindings file with `flags`; the path is a temporary CString, as in the original.
 bool OpenFile(console::CStdioFile& file, unsigned flags) {
     alignas(mfc::CString) unsigned char raw[sizeof(mfc::CString)];
-    mfc::CString* path = ConcatText(reinterpret_cast<mfc::CString*>(raw), BasePath(reinterpret_cast<void*>(0x007AFEA4)), Text(0x00787C04));
+    mfc::CString* path = ConcatText(reinterpret_cast<mfc::CString*>(raw), GameDataPathString(), Text(0x00787C04));
     bool opened = file.Open(*path, flags, nullptr) != 0;
     path->~CString();
     return opened;
