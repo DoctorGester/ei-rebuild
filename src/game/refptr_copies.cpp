@@ -260,6 +260,10 @@ void __fastcall ObjectHolderDrop(CEngineObject** self) {
 }
 EI_REPLACE(0x005647C0, ObjectHolderDrop);
 EI_REPLACE(0x00579350, ObjectHolderDrop);
+// 005576B0 (A-W14): one reference less on a counted object (the 16-bit count), without the delete
+// at zero: the combat mode list's destructor (005575F0, MFC template code) tests the count itself.
+void __fastcall RefCountedDrop(CRefCounted* self) { --self->refs_; }
+EI_REPLACE(0x005576B0, RefCountedDrop);
 // 00429B50: assignment: the new object gains a reference, the old one is released.
 void __fastcall ObjectHolderAssign(void** self, void*, void* object) {
     void* previous = *self;

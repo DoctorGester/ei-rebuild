@@ -54,6 +54,11 @@ public:
     // (classes 0x41-0x44) also gets a drawer: a class 0x45 object (id -1) of the context's
     // specific manager (its slot 21).
     CEngineObject* CreateFigureObject(int type, int id);
+    // 005AA510 (slot 2, Create; patched by Rebirth, so vanilla only; A-W14). The base manager's
+    // Create (0 when it fails), then the archives "figures.res" and "menus.res" of the text
+    // resources' folder (007AF45C) added (slot 16) and the menus' button rectangles read
+    // (005ACE80 into 007C8048). Returns 1.
+    int CreateWithArchives();
 
     // 005AC1A0 (RET 4; the interface's model manager too). A figure object (class 0x43, slot 23 with
     // id -1); with a name it is named (+0x120; +0x124 emptied) and loaded from "<name>.fig" (slot
