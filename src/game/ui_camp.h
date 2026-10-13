@@ -242,6 +242,9 @@ public:
     // game-over sound and the box "game_over" / "game_over_msg" (result 0x20000, OK and cancel);
     // won: "end_of_game" / "end_of_game_msg" (0xFFFF0000); opened on top (005F7350 with 1, 1).
     void OnGameOver(char won);
+    // 005F5FB0 (slot 38, RET 4; ui_small_members.cpp). portraitMode_ = `mode` (a portrait click
+    // picks a player while it is not 0).
+    void SetPortraitMode(int mode);
     // 005F6130 (ui_window_delete.cpp). The destructor body: the two party id vectors' storage,
     // the "pers" texts (every node erased, 005FAFA0, then the header), the hero ids and the party
     // array (their vtables, storage freed), then the container's.
@@ -448,6 +451,15 @@ public:
     // 0062EE30 (slot 27, RET 4; the result is not read). A window above closed: no turn, no drag,
     // the zone selection refreshed, and a mouse move (input slot 4) at the mouse position.
     void OnMessageResult(int result);
+    // 0062EE70 (slot 41; ui_small_members.cpp). The help topic: "global_map_nocamp" when noCamp_
+    // is 1, else "global_map".
+    const char* HelpTopic();
+    // 0062FEF0 (input slot 3, RET 0xC; EAX 0; `this` the window). The left button released: a turn
+    // by a turn button ends (turning_ 0) and the zone selection is refreshed on the next update.
+    int OnLButtonUp(int buttons, int x, int y);
+    // 006316A0 (RET 4; the click 0062F950 asks it before each way out of the map). Always true
+    // (AL 1); neither the map nor the argument (the clicked region's +0x144) is read.
+    bool MayTravel(int unused);
     // 0062EDD0 (slot 26). The map closes: the weather deleted (its slot 2 with 1), the backdrop
     // surface released (005FD120) and deleted, the wind sound stopped (005F7E90).
     void Close();
@@ -656,6 +668,9 @@ public:
     // (the record is not marked bought), else the mouse is released and the hold ends. The hold
     // time is not reset after a purchase.
     void UpdateHeld();
+    // 00625510 (ui_small_members.cpp; the camp's action 00611930 reads it). Whether something was
+    // bought for the hero shown (its record's bought byte, in AL).
+    std::uint8_t Bought() const;
     // The record of the hero shown (recordIndex_).
     const TradeRecord& Record() const { return records_.begin[recordIndex_]; }
 
@@ -790,6 +805,11 @@ public:
     // 0060F600 (slot 9, RET 0xC): Esc shows page 7 (leaves); on a network client Backspace and
     // Enter go to the chat line; those mark the key used, other keys go to the container.
     void OnKeyDown(int key, int repeat, int flags);
+    // 0060F690 (input slot 11, RET 0xC; ui_small_members.cpp): the container's key-up handler
+    // (006019A0) with the same arguments.
+    void OnKeyUp(int key, int repeat, int flags);
+    // 005F65F0 (slot 50, RET 4). Hero `index` of the party's heroes (heroes_[index], not checked).
+    std::uint8_t* HeroAt(int index);
     // 0060E900 (slot 27, RET 4). The answer 0x10001 takes the shown hero's first weapon back into
     // the party's items (00661DB0 with 0, 1; the hero's entry removed, 00660A50), no weapon
     // chosen (+0x774 -1), the item strip scrolled to it (00621570) and the hero re-armed (slot 46).
@@ -927,6 +947,9 @@ public:
     // adding the frame time) it repeats every frame; when it can step no more the hold ends (the
     // capture cleared). The owner is refreshed (slot 47) on every repeat attempt.
     void Update();
+    // 00624A40 (input slot 3, RET 0xC; EAX 0; ui_small_members.cpp). The left button released: the
+    // mouse let go (unconditionally) and the hold ended (heldRegion_ -1, holdTime_ 0).
+    int OnLButtonUp(int buttons, int x, int y);
     // A -/+ button of page 10: regions 6-8 take a point from strength, dexterity, intelligence
     // (above 15), 9 the height down (points_ >= 1), 10-12 give one (below 35, while the three add
     // up to under 75), 13 the height up (points_ <= 99; height = points_ * 0.01). True when it

@@ -132,6 +132,11 @@ public:
     // arrows' tips 0x9DD0 / 0x9DD1 unless `noArrowTips`, no tabs and the six tab buttons' sprites
     // (scene objects 2..7) hidden.
     void SetupFigures(MpStringVector* names, char top, char noArrowTips);
+    // 00621F20 (RET 4; ui_small_members.cpp; the camp's Create and its page switch). slots_ = `slots`.
+    void SetSlots(int slots);
+    // 006157C0 (slot 25 of the figure strips 00741BF4, RET 0xC). No item under the point: null,
+    // `topic` not written.
+    void* FigureItemAt(int x, int y, int* topic);
     // The figure strips' own slots (vtable 00741BF4; ui_item_strip_setup.cpp). 00629AF0 (slot 20,
     // RET 4, returns 1): the end faces dimmed where it can scroll on, the background and cells
     // placed by the current tab's fraction, the frame (scene object 8) on selected_ when it is in
@@ -739,6 +744,9 @@ public:
     // 0062AE90 (input slot 2): opens the save window (region 0), the load window (1; neither in
     // multiplayer), resumes (2), asks to quit (3) or opens the options (4) (ui_layouts.cpp).
     void OnLButtonDown(int buttons, int x, int y);
+    // 0062ACB0 (slot 26; ui_small_members.cpp). The menu closes: its stone model (models_[0])
+    // plays animation 0.
+    void OnClose();
 
     CUiWindow window;
     std::uint8_t unknown_148[0x164 - 0x148];
@@ -818,6 +826,9 @@ public:
     // fontSmoothing_ (never read: kept), the display's +0x14 restored, the screen flag set and the
     // cursor shown.
     void OnClose();
+    // 0062BFD0 (slot 27, RET 4; ui_credits.cpp). A window above closed: the movie player is
+    // closed (005DBF70).
+    void OnMessageResult(int result);
 
     CUiWindow window;
     std::uint8_t unknown_148[0x164 - 0x148];

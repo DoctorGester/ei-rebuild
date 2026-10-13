@@ -37,6 +37,11 @@ DisplayColour* Display() { return static_cast<DisplayColour*>(DisplayObject()); 
 
 } // namespace
 
+// --- 0062BFD0: a window above the titles closed (slot 27) ---------------------------------------------
+
+void CCreditsScreen::OnMessageResult(int) { MovieCloseOriginal(&player_); }
+EI_REPLACE_METHOD(0x0062BFD0, CCreditsScreen::OnMessageResult);
+
 // --- 0065EF30 / 0065F1C0: the scrolling surface (not rewritten) ---------------------------------------
 
 __declspec(naked) bool CUiScrollingSurface::Load(void*, const char*) EI_ORIGINAL(0x0065EF30)

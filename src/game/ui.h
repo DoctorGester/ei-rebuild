@@ -46,6 +46,9 @@ struct CScreenFade {
     // 005E6B90 (RET 4; ui_interface_draw.cpp). Starts a fade over `ms` milliseconds: rate_ 255 /
     // ms (stored as float), from alpha 0 (ms > 0, fading out) or 255, the clock now, fading.
     void Start(int ms);
+    // 005E6990 (ui_small_members.cpp; CInterface3D::Create builds it). Constructor: alpha 0, not
+    // fading, no letterbox; the rate and the clock are not written. Returns this.
+    CScreenFade* Construct();
 
     float rate_;                     // +0x00 alpha per millisecond
     float alpha_;                    // +0x04 0..255
@@ -145,6 +148,16 @@ public:
     int PlaySound(const char* name, int loop);
     // 005F7E90 (RET 4). Stops sound `handle` unless it is -1 (the interface is not used).
     void StopSound(int handle);
+    // 005F7C60 / 005F7C80 (ui_small_members.cpp; a multiplayer client's screens call them for
+    // Enter / Backspace). While the chat line is closed: Enter opens it (SetOpen(1)), Backspace
+    // empties the chat lines (ClearLines).
+    void ChatKeyEnter();
+    void ChatKeyBackspace();
+    // 005F46A0 (ui_small_members.cpp). The constructor of the interface object 007C7D50, run by
+    // its static initialiser (005F4680) before the hook is installed: the window stack empty, the
+    // message list's sentinel and the help topic map's header from the node pool, the two texts
+    // empty. Nothing else is written. Returns this.
+    CInterface3D* Construct();
     // 005F7EB0 / 005F7ED0 / 005F7EF0 (RET 4). The console window's AddText / SetRect / SetHistory,
     // when there is one.
     void ConsoleAddText(const char* text);
@@ -561,6 +574,9 @@ struct UiInputSide {
     // the same arguments; the handler's EAX is returned.
     int LeftDoubleAsDown(int buttons, int x, int y);
     int RightDoubleAsDown(int buttons, int x, int y);
+    // 005E28B0 (slot 12 of the base input side 007401D0 and of every window without a wheel
+    // handler; RET 0x10; ui_small_members.cpp): the wheel is not used, 0.
+    int WheelIgnored(int flags, int delta, int x, int y);
     // Slot 12. The handlers return 1.
     int Wheel(int flags, int delta, int x, int y) {
         using Fn = int(__thiscall*)(UiInputSide*, int, int, int, int);
@@ -756,6 +772,10 @@ public:
         using Fn = void(__thiscall*)(CUiWindow*);
         reinterpret_cast<Fn>(vtable_[slot])(this);
     }
+    // 005EE400 (slot 25 of the panels without items of their own: the description panel 007404DC,
+    // the blank item panel 00741B58, 00741A1C, the trade panel 007417A8 and the stats panel
+    // 00741ABC; RET 0xC; ui_small_members.cpp). Nothing under the point: `topic` 0, null.
+    void* NoItemAt(int x, int y, int* topic);
 
     void** inputVtable_;                      // +0x94 secondary vtable (input handlers)
     CInterface3D* interface_;                 // +0x98
@@ -1381,6 +1401,14 @@ public:
     // 005E7060 (RET 4; ui_hud_highlight.cpp). The three scale fields = `scale` (copied as bits;
     // EAX is left holding them, callers do not read it).
     void SetScale(float scale);
+    // 005E6D70 (vtable slot 3; ui_small_members.cpp). The material and the texture forgotten (not
+    // released), then the figure's own slot 3 (005A6C80), whose EAX is returned.
+    int DestroySprite();
+    // 005E7090 (RET 4). The y scale alone (scaleMatrix_[5]) = `bits` (copied as bits); the quick
+    // items' bar (006462A0) calls it.
+    void SetScaleYBits(std::uint32_t bits);
+    // 005E70B0. The x scale (scaleMatrix_[0], in ST0).
+    float GetScaleX() const;
     // 005E6D90 (RET 4; ui_mesh_draw.cpp). Draws the sprite in `renderer`'s pass when visible;
     // returns 1.
     int Draw(CSceneRenderer* renderer);
@@ -2454,6 +2482,10 @@ public:
     void OnKeyDown(int key, int repeat, int flags);
     // The OK answer's edit text into editText_ (the caller's buffer).
     void CopyEditText();
+    // 00634D00 (slot 26 of the message box, the master request box 00741DD8 and the difficulty
+    // question 0074225C; ui_small_members.cpp). The box closes: its scene objects and surfaces
+    // released (005FF7D0, 005FFC50).
+    void OnClose();
     // 0061E3E0 (and the difficulty question's 00633750, the same code; ui_window_delete.cpp). The
     // destructor body: the text and title strings, then the container's.
     void DestroyBody();
