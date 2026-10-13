@@ -1629,7 +1629,7 @@ public:
     // 00645210 (RET 0xC; ui_hud.cpp, A-H26; Rebirth-patched, hooked in the vanilla launch only).
     // The button released over the map that took it. A held view button is let go (view_ 0, both
     // buttons dim; nothing else). Otherwise by region: 0 the sling (direction turned, the slide
-    // starts), 1 / 2 a point of the map (the layout point's offset from (700, 80) over +0x174,
+    // starts), 1 / 2 a point of the map (the layout point's offset from (700, 80) over halfSide_,
     // on the round map also over the zoom, over scale_ about the centre; inside the world the
     // camera stops following and focuses there), 5 "camera north" (heading 0, unknown_1B0 0.5);
     // any region marks the input handled.
@@ -1661,6 +1661,13 @@ public:
     // the direction; the interface's "map shown" flag (+0x8B) follows the direction; the "camera
     // north" time (unknown_1B0) counts down, scene object 11 tinted 1 while it runs and 0.5 after.
     void UpdateVanilla();
+    // 00641F20 (RET 8; ui_hud_slide.cpp, A-H26; Rebirth-patched, the vanilla body, hooked in the
+    // vanilla launch only; the battle screen's build calls it through the address). Sets the new
+    // panel up: the world's extent and the map's picture from the local player's zone record (32
+    // by 32 and "battle00" without one), the zoom (`zoom` up to zoomMax_), the slide at its far
+    // end when `slid`, the seven regions, the twelve sprites, the one-pixel surface at the centre
+    // and the view polygon (the disc's sixteen corners); then UpdateView, BuildMarkers and Layout.
+    void SetupVanilla(float zoom, std::uint8_t slid);
 
     CBattleScreen* owner_;           // +0x148
     float centreX_;                  // +0x14C world point at the map's centre (the camera's)
@@ -1673,10 +1680,8 @@ public:
     float scale_;                    // +0x168 world units to map units
     float zoom_;                     // +0x16C 1 .. zoomMax_ (the view buttons change it)
     float zoomMax_;                  // +0x170
-    float unknown_174;               // +0x174 divides a click's offset from the map's centre (OnMouseUp)
-    UiPointF* viewPolygon_;          // +0x178 the round map's outline in map units
-    int viewPolygonCount_;           // +0x17C
-    std::uint8_t unknown_180[0x188 - 0x180];
+    float halfSide_;                 // +0x174 80: half the map's side in layout units (a click's offset over it)
+    UiPointArray viewPolygon_;       // +0x178 the round map's outline in map units (the disc's corners)
     UiPointArray visibleArea_;       // +0x188 the outline in world units, clipped to the world
     int sliding_;                    // +0x198 set when the sling button (or its key) starts the slide
     int offset_;                     // +0x19C current slide offset in pixels (to the right)
@@ -1690,7 +1695,7 @@ public:
 static_assert(offsetof(CHudMap, centreX_) == 0x14C);
 static_assert(offsetof(CHudMap, scale_) == 0x168);
 static_assert(offsetof(CHudMap, zoomMax_) == 0x170);
-static_assert(offsetof(CHudMap, visibleArea_) == 0x188);
+static_assert(offsetof(CHudMap, viewPolygon_) == 0x178 && offsetof(CHudMap, visibleArea_) == 0x188);
 static_assert(offsetof(CHudMap, view_) == 0x1AC);
 static_assert(offsetof(CHudMap, sliding_) == 0x198 && offsetof(CHudMap, slide_) == 0x1A4);
 static_assert(offsetof(CHudMap, slideDirection_) == 0x1A8);

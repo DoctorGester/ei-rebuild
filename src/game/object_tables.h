@@ -48,7 +48,12 @@ struct MapRecord {
     char* allod;  // +0x04 CString (SaveGame keeps the visited zones of the current one's)
     char* mob;    // +0x08 CString: the .mob file without extension
     char* map;    // +0x0C CString: the .mpr map without extension ("" = none)
-    std::uint8_t unknown_10[0x28 - 0x10];
+    char* figure;           // +0x10 CString: the "#figure" line
+    char* picture2;         // +0x14 CString: the "#maps" second line's second word
+    char* picture;          // +0x18 CString: its first word, the HUD map's texture (00641F20)
+    char* camera;           // +0x1C CString: the "#camera" line
+    int sizeX;              // +0x20 "#maps" first line: the zone's size (times 32: the HUD map's world extent)
+    int sizeY;              // +0x24
     int kind;               // +0x28 0 game, 1 edge, 2 brief (2: the zone has a script folder, 00596350)
     int setting2C;          // +0x2C CWorldServer::SetUnknownDC when the zone starts
     int setting30;          // +0x30 CWorldServer::SetUnknownE0

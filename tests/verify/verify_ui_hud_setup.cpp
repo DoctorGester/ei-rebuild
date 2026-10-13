@@ -1,6 +1,6 @@
 // Checks for the HUD panels' setups (A-H26): the clock's and the movement panel's (00648520,
-// 00649190; ui_hud_setup.cpp) and the unit panel's (006456E0; ui_hud_slide.cpp). All are
-// Rebirth-patched, so they are hooked in the vanilla launch only.
+// 00649190; ui_hud_setup.cpp), the unit panel's and the map's (006456E0, 00641F20;
+// ui_hud_slide.cpp). All are Rebirth-patched, so they are hooked in the vanilla launch only.
 // Each runs side by side on the real panel, which is new and empty when the battle screen sets it
 // up: the original first, its regions (vertices, bounds, flags, offsets, tooltip lines and
 // arguments), its sprites (position, orientation, texture frame, tint, scale, flags, plain colour,
@@ -336,3 +336,118 @@ static void __fastcall UnitPanelSetupVerify(CHudUnitPanel* self, void*, int body
                       static_cast<int>(expected.sprites.size()), static_cast<int>(actual.sprites.size()), sprite, fields, rest);
 }
 EI_VERIFY(0x006456E0, UnitPanelSetupVerify, 7, s_unitPanelSetup);
+
+// --- 00641F20: the map's setup (ui_hud_slide.cpp) -------------------------------------------------
+
+namespace {
+
+struct MapFields {
+    float numbers[11];   // centreX_ .. halfSide_
+    int sliding;
+    int offset;
+    int travel;
+    float slide;
+    float direction;
+    int view;
+    float northTime;
+};
+static_assert(offsetof(CHudMap, halfSide_) - offsetof(CHudMap, centreX_) == 10 * sizeof(float));
+
+MapFields TakeFields(const CHudMap* p) {
+    MapFields f = {};
+    std::memcpy(f.numbers, &p->centreX_, sizeof(f.numbers));
+    f.sliding = p->sliding_;
+    f.offset = p->offset_;
+    f.travel = p->travel_;
+    f.slide = p->slide_;
+    f.direction = p->slideDirection_;
+    f.view = p->view_;
+    f.northTime = p->unknown_1B0;
+    return f;
+}
+
+void PutFields(CHudMap* p, const MapFields& f) {
+    std::memcpy(&p->centreX_, f.numbers, sizeof(f.numbers));
+    p->sliding_ = f.sliding;
+    p->offset_ = f.offset;
+    p->travel_ = f.travel;
+    p->slide_ = f.slide;
+    p->slideDirection_ = f.direction;
+    p->view_ = f.view;
+    p->unknown_1B0 = f.northTime;
+}
+
+bool SameFields(const MapFields& a, const MapFields& b) {
+    for (int i = 0; i < 11; ++i)
+        if (!Near(a.numbers[i], b.numbers[i])) return false;
+    return a.sliding == b.sliding && a.offset == b.offset && a.travel == b.travel && a.slide == b.slide &&
+           a.direction == b.direction && a.view == b.view && a.northTime == b.northTime;
+}
+
+std::vector<UiPointF> PointsOf(const UiPointArray& points) {
+    return std::vector<UiPointF>(points.data, points.data + points.size);
+}
+
+bool SamePoints(const std::vector<UiPointF>& a, const std::vector<UiPointF>& b) {
+    if (a.size() != b.size()) return false;
+    for (std::size_t i = 0; i < a.size(); ++i)
+        if (!Near(a[i].x, b[i].x) || !Near(a[i].y, b[i].y)) return false;
+    return true;
+}
+
+} // namespace
+
+// 00641F20: PUSH EBP; MOV EBP,ESP; PUSH -1 (5 bytes). Side by side as the setups above. Between the
+// runs the panel's surface and its two point arrays are dropped as well, and the map's picture the
+// first run loaded is taken out of the referenced objects with the reference LoadTexture added
+// (not released: the texture manager keeps the object, so the second run finds the same one and
+// its load is the manager's "already loaded" case). The setup ends in UpdateView, BuildMarkers and
+// Layout (00642E80, 00643DC0, 00642930), whose own side-by-side wrappers run inside both runs.
+static void(__fastcall* s_mapSetup)(CHudMap*, void*, float, std::uint8_t);
+static void __fastcall MapSetupVerify(CHudMap* self, void*, float zoom, std::uint8_t slid) {
+    if (self->regions_.size != 0 || self->sceneObjects_.size != 0 || self->surfaces_.size != 0 ||
+        self->viewPolygon_.size != 0 || self->visibleArea_.size != 0) {
+        self->CHudMap::SetupVanilla(zoom, slid);
+        ei::verify::Check("CHudMap::Setup", 0, self->view_, "ours only: the panel was not empty");
+        return;
+    }
+    const RECT rect = self->rect_;
+    const MapFields before = TakeFields(self);
+    const int objects = self->objects_.size;
+
+    s_mapSetup(self, nullptr, zoom, slid);
+    const PanelShot expected = TakePanel(self);
+    const MapFields expectedFields = TakeFields(self);
+    const int expectedSurfaces = self->surfaces_.size;
+    const int expectedObjects = self->objects_.size;
+    const CEngineObject* expectedPicture = expectedObjects > objects ? self->objects_.data[objects] : nullptr;
+    const std::vector<UiPointF> expectedPolygon = PointsOf(self->viewPolygon_);
+    const std::vector<UiPointF> expectedVisible = PointsOf(self->visibleArea_);
+
+    DropContents(self);
+    self->ClearSurfaces();
+    self->viewPolygon_.RemoveAll();
+    self->visibleArea_.RemoveAll();
+    while (self->objects_.size > objects) {
+        --self->objects_.data[self->objects_.size - 1]->refCount_;
+        --self->objects_.size;
+    }
+    self->rect_ = rect;
+    PutFields(self, before);
+
+    self->CHudMap::SetupVanilla(zoom, slid);
+    const PanelShot actual = TakePanel(self);
+    const int region = FirstRegionDifference(expected, actual);
+    const int sprite = FirstSpriteDifference(expected, actual);
+    const bool fields = std::memcmp(&expected.rect, &actual.rect, sizeof(RECT)) == 0 && SameFields(expectedFields, TakeFields(self));
+    const CEngineObject* picture = self->objects_.size > objects ? self->objects_.data[objects] : nullptr;
+    const bool rest = self->surfaces_.size == expectedSurfaces && self->objects_.size == expectedObjects &&
+                      picture == expectedPicture && SamePoints(expectedPolygon, PointsOf(self->viewPolygon_)) &&
+                      SamePoints(expectedVisible, PointsOf(self->visibleArea_));
+    ei::verify::Check("CHudMap::Setup", true, region < 0 && sprite < 0 && fields && rest,
+                      "zoom %g slid %d: regions %d / %d (first difference %d), sprites %d / %d (first difference %d), fields %d, "
+                      "surface, picture and polygons %d",
+                      zoom, slid, static_cast<int>(expected.regions.size()), static_cast<int>(actual.regions.size()), region,
+                      static_cast<int>(expected.sprites.size()), static_cast<int>(actual.sprites.size()), sprite, fields, rest);
+}
+EI_VERIFY(0x00641F20, MapSetupVerify, 5, s_mapSetup);

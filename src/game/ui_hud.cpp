@@ -405,8 +405,8 @@ void CHudMap::OnMouseUp(int, int x, int y) {
         // through its address.
         POINT point = {x, y};
         interface_->CallScalePointFromScreen(&point);
-        float right = static_cast<float>(point.x - kMapCentreX) / unknown_174;
-        float down = static_cast<float>(point.y - kMapCentreY) / unknown_174;
+        float right = static_cast<float>(point.x - kMapCentreX) / halfSide_;
+        float down = static_cast<float>(point.y - kMapCentreY) / halfSide_;
         if (region == 1) {
             right /= zoom_;
             down /= zoom_;

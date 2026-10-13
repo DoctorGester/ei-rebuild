@@ -519,7 +519,8 @@ sectors 35..80), top panel 180..620 x 0..100 (sling 385..415 x 0..20, page butto
 Rebirth-patched (vanilla-only hooks; callers use the original addresses): 00630010, 00636020, 00638EF0, 0063A560, 0063BAB0,
 0063BCC0, 0063C050, 0063C800, 0063CAE0, 0063E2A0, 0063E4B0, 0063F300, 0063F500, 00641F20, 00642930, 00642B40, 00645210, 006456E0,
 00645F80, 006462A0, 00647FB0, 00648520, 00648D70, 00649190, 00649910, 006567A0, 00659420, 0065C2E0, 0065E580 (of the last
-sixteen only 00641F20, 006456E0, 006462A0 and 00659420 are still original: A-H26 in items_spells.md). 006407E0 holds
+sixteen only 006462A0, which clears the Z-buffer through the Direct3D device itself, and 00659420 are still original: A-H26
+in items_spells.md). 006407E0 holds
 EI_Plugin Fixes sites (rebirth.md), so the installer keeps the original under Rebirth. Dead: 0063C010 / 0063F6E0 (a panel reset,
 no references). Library: 0064AB20 / 0064AD40 / 0064B3A0 / 0064ACD0 (the portrait slot vector).
 

@@ -44,7 +44,7 @@ EI_REPLACE_METHOD(0x0063F490, CHudActionColumn::DestroyBody);
 
 void CHudMap::DestroyBody() {
     if (visibleArea_.data) FreeAligned(visibleArea_.data);
-    if (viewPolygon_) FreeAligned(viewPolygon_);
+    if (viewPolygon_.data) FreeAligned(viewPolygon_.data);
     DestroyBase();
 }
 EI_REPLACE_METHOD(0x00635CA0, CHudMap::DestroyBody);

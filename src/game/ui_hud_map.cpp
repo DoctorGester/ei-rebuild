@@ -471,10 +471,10 @@ void CHudMap::UpdateView() {
     // The view polygon in world units.
     auto* area = reinterpret_cast<CUiMesh*>(sceneObjects_.data[1]);
     UiPointArray& points = visibleArea_;
-    int count = viewPolygonCount_;
+    int count = viewPolygon_.size;
     UiPointsSetSize(&points, nullptr, count, -1);   // the original inlines the same code
     for (int i = 0; i < count; ++i) {
-        const UiPointF& v = viewPolygon_[i];
+        const UiPointF& v = viewPolygon_.data[i];
         double x = D(v.x) / D(zoom_);
         float y = Store(D(v.y) / D(zoom_));
         points.data[i].x = Store(x / D(scale_) + D(centreX_));
