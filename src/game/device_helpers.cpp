@@ -2,7 +2,7 @@
 // holders (destructors, assignments), 32-byte aligned allocations, list iterator copies, deleting
 // destructors, the device's vertex-buffer batch (never used) and the axis swap matrix. None of them
 // touches DirectDraw or Direct3D except the COM pointer's Release. Most are byte-identical to
-// copies rewritten elsewhere; each says which. See docs/notes/renderer.md (section 22).
+// copies rewritten elsewhere; each says which. See docs/notes/renderer.md (section 12).
 #include "clip.h"            // TLVertex
 #include "engine_object.h"
 #include "model.h"           // CTransformPipeline

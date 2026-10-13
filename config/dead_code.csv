@@ -666,3 +666,9 @@ address,size,name,evidence
 005054E0,75,FUN_005054e0,"referenced only from dead code 0044A7B0 (calls at 0044A865 / 0044ABEA); a key record writer"
 005055F0,83,FUN_005055f0,"referenced only from dead code 0044A7B0 (calls at 0044A8DC / 0044AF46); a key record writer"
 0050BF00,155,FUN_0050bf00,"no references (a figure bone's remove-child; no call/jmp, the dwords at 006240B9 / 0063BAFA are the bytes of adjacent immediates MOV EDX,0B4h / MOV EDI,50h)"
+004DABC0,188,FUN_004dabc0,"no references at all (no call/jmp, no absolute pointer in code or data, none in Rebirth's binaries); a buffered stream's set-buffer-size (operator new of the size, the pending bytes written and read back through slots 8 / 7)"
+004E7FB0,1783,FUN_004e7fb0,"no references at all (no call/jmp, no absolute pointer in code or data, none in Rebirth's binaries); a third variant of the vertex bounds 004E86B0 / 004E8900"
+004EE760,771,FUN_004ee760,"no references at all (no call/jmp, no absolute pointer in code or data, none in Rebirth's binaries); a driver's display mode list rebuilt through DirectDrawCreateEx and IDirectDraw7::EnumDisplayModes (callback 004ED7F0, which only this function names)"
+004F0A20,57,FUN_004f0a20,referenced only from dead code 004EE760 (call at 004EEA1A); the stlp allocator's deallocate of n 0x10C-byte elements
+004F0A90,38,FUN_004f0a90,"referenced only from dead code 004EE760 (call at 004EE9E6); stlp list plumbing, byte-identical to the library 00438660"
+004F0AE0,30,FUN_004f0ae0,referenced only from dead code 004EE760 (call at 004EEA0E); a scalar deleting destructor over the library 004EDA30

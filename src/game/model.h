@@ -100,7 +100,7 @@ public:
     int refs_;                        // +0x04
     std::uint8_t unknown_08[4];
     ITransformPipeline* transform_;   // +0x0C 3DfpFPU.dll's transform object (projects and clips vertices)
-    std::uint8_t unknown_10[4];
+    void* library_;                   // +0x10 3DfpFPU.dll's module (FreeLibrary in the destructor 004F0E10)
     MatrixStack stacks_[16];    // +0x14 (models.md: stacks 0-2, 5-10 and 14 are in use)
 };
 static_assert(offsetof(CTransformPipeline, stacks_) == 0x14 && offsetof(CTransformPipeline, transform_) == 0x0C);
@@ -142,7 +142,7 @@ struct RenderPresetRecord {
 };
 static_assert(sizeof(RenderPresetRecord) == 0x10 && sizeof(RenderPresetRecord::State) == 0x28);
 
-// render_helper.cpp (A-S11) has the slots that only read the helper's tables (2, 4, 5, 7); the
+// render_helper.cpp (A-S11) has the slots that only read the helper's tables (2, 4, 5, 6, 7); the
 // others create, apply and delete Direct3D state blocks and are not rewritten.
 class __declspec(novtable) CRenderHelper {
 public:
