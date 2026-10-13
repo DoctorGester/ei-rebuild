@@ -487,6 +487,10 @@ public:
     // 00590160 (RET 8; CollectParty). The items the player holds (WorldPlayer::items) put into
     // `party` (CParty::AddItem(item, 1, 1)) and released, the list emptied. Nothing without a player.
     void StorePlayerItems(WorldPlayer* player, class CParty* party);
+    // 00591070 (RET 4; world_quests.cpp; `this` is not read). After a player's party was sent again
+    // (the multiplayer zone switch 0057EE10, ResendParty 0066F450): every item of the player's
+    // party (+0x70) taken out (CParty::RemoveItem(first, 1)) until none is left.
+    void ClearPlayerItems(WorldPlayer* player);
     // 005939E0 (no caller in the exe; Rebirth's binaries refer to it). Every unit (class 0x50) of
     // the object map removed (RemoveObject by id; the walk steps on before each removal).
     void RemoveAllUnits();
@@ -877,6 +881,9 @@ struct PlatformSet {
     // R (pivot + offset) + position and the radius.
     void AddBox(int id, const FootprintPart* item, const Vector3* position, const Quaternion* rotation);
 
+    // 00561800 (slot 2, the engine object's Create; the client's Setup). The face list emptied (its
+    // blocks freed); returns 1. The set is the engine's CBridgeManager (vtable 0073F4FC, class 0x34).
+    int Clear();
     // 00561A60. The destructor's body: the face list emptied (its vtable 0073F548 back), then the
     // engine object's body.
     void DestructBody();
@@ -1015,6 +1022,21 @@ public:
     CRefObject* pendingLink_;           // +0x08 counted; handed over by slot 6
 };
 static_assert(offsetof(CWorldHandle, pendingLink_) == 0x08);
+
+// The client world's player source (CWorldClient + 0x1C8, vtable 0073F628, 8 bytes; Setup makes
+// it): it has no state of its own. world_sessions.cpp.
+class CClientHandle : public CPlayerSource {
+public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F628);
+
+    // 0: 00562750 (the counted value's deleting destructor); 4: 005626F0 (AL 0).
+    int OnShutdown() override;          // 2: 005626D0 (built again in place: the root vtable, then its own)
+    CClientHandle* Clone() override;    // 3: 005626B0 (a new handle, count 0; null without memory)
+    // 6: 00562700 (RET 4). The client takes no connections: every link of the list is released
+    // and the list emptied (its blocks freed).
+    void TakeNew(void* joined) override;
+};
+static_assert(sizeof(CClientHandle) == 8);
 
 // A window rectangle of the frame (the client's list +0xF0 and the hit vector +0xF4; 0x18 bytes).
 struct ScreenEntry {
@@ -1457,7 +1479,8 @@ public:
     CBaseManager* manager188_;            // +0x188 counted (constructor 0068E3F0)
     CTextureManager* textureManager_;     // +0x18C (slot 34) counted
     CBaseManager* manager190_;            // +0x190 counted (constructor 0068D850)
-    std::uint8_t unknown_194[0x19C - 0x194];
+    CEngineObject* manager194_;           // +0x194 (slot 37 returns it; not identified)
+    CEngineObject* manager198_;           // +0x198 (slot 38 returns it; not identified)
     CParticleManager* particleManager_;        // +0x19C counted
     ClientListManager* listManager_;      // +0x1A0 owned
     ClientArrayManager* arrayManager_;    // +0x1A4 owned

@@ -1,6 +1,7 @@
 // Checks for the world server's tick, unit waking, alarms and game result (src/game/world_tick.cpp).
 #include "verify.h"
 
+#include "../../src/game/party.h"
 #include "../../src/game/unit.h"
 #include "../../src/game/world.h"
 
@@ -120,6 +121,16 @@ static void __fastcall StorePlayerItemsVerify(CWorldServer* self, void*, WorldPl
     ei::verify::Check("CWorldServer::StorePlayerItems", true, ok, "%d items", before);
 }
 EI_VERIFY(0x00590160, StorePlayerItemsVerify, 0, s_unused);
+
+// 00591070 CWorldServer::ClearPlayerItems (A-W14): ours only (the items leave the party and are
+// released); the party's item list is empty afterwards. Network games only (the multiplayer zone
+// switch, a party sent again): no scenario reaches it.
+static void __fastcall ClearPlayerItemsVerify(CWorldServer* self, void*, WorldPlayer* player) {
+    int before = player->Party()->items_.size;
+    self->ClearPlayerItems(player);
+    ei::verify::Check("CWorldServer::ClearPlayerItems", 0, player->Party()->items_.size, "%d items", before);
+}
+EI_VERIFY(0x00591070, ClearPlayerItemsVerify, 0, s_unused);
 
 // 0058D3D0: PUSH EBP; MOV EBP,ESP; SUB ESP,0x20 (6 bytes). Only adds to the update map: the
 // original runs first, its entries are recorded, the map is put back (new keys erased, old values

@@ -1060,7 +1060,7 @@ namespace {
 
 // 0041A500 (RET 8). A server command with an argument (9: drop a client).
 __declspec(naked) void __fastcall ServerCommand(void*, void*, int, const char*) EI_ORIGINAL(0x0041A500)
-// 00590C70 / 00591070 (RET 4). CWorldServer: sync a player's party records / after the copy.
+// 00590C70 (RET 4). CWorldServer: sync a player's party records.
 __declspec(naked) void __fastcall SyncPartyRecordsAt(void*, void*, WorldPlayer*) EI_ORIGINAL(0x00590C70)
 __declspec(naked) int __fastcall ViewRequestZoneAt(void*, void*, const char*, int) EI_ORIGINAL(0x0066B1B0)
 
@@ -1118,7 +1118,7 @@ void GameFlow::SwitchMultiplayerZone() {
     if (player && player->server->flag70_) {
         SyncPartyRecordsAt(World(), nullptr, player);
         PartyCopyFrom(&records.party, nullptr, player->Party());
-        WorldAfterPartyCopyOriginal(World(), nullptr, player);
+        World()->ClearPlayerItems(player);
     } else {
         PartyCopyFrom(&records.party, nullptr, GlobalParty());
     }

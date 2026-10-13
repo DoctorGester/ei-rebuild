@@ -402,6 +402,21 @@ static FearMode* __fastcall FearCloneVerify(FearMode* self) {
 }
 EI_VERIFY(0x005D2880, FearCloneVerify, 5, s_fearClone);
 
+// 005D28F0 FearMode::Reset (A-W14; slot 2): XOR EAX,EAX; MOV [ECX],imm32 (8 bytes). The original
+// on a scratch copy, ours on the mode; the 0x2C bytes and EAX (0) compared. Slot 2 runs when a
+// shared mode loses its owner (the counted pointer's 00413270); no scenario is known to reach it.
+static int(__fastcall* s_fearReset)(FearMode*);
+static int __fastcall FearResetVerify(FearMode* self) {
+    FearMode scratch;
+    std::memcpy(static_cast<void*>(&scratch), self, sizeof(scratch));
+    int expected = s_fearReset(&scratch);
+    int result = self->Reset();
+    bool ok = expected == result && std::memcmp(&scratch, self, sizeof(scratch)) == 0;
+    ei::verify::Check("FearMode::Reset", true, ok, "mode %p", self);
+    return result;
+}
+EI_VERIFY(0x005D28F0, FearResetVerify, 8, s_fearReset);
+
 // 005D9E40 / 005D9590 PatrolPointCopyAt (A-W12): the original into a scratch point, ours into
 // `out`; compared by content, then the scratch's looks freed.
 // 005D9E40: PUSH -1; PUSH 0x728698 (7 bytes); 005D9590: PUSH ECX; MOV EAX,[ESP+0xC] (5 bytes).

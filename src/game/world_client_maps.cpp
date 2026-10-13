@@ -1505,6 +1505,12 @@ int CWorldClient::LoadNewItemsAndSpells(CStream* block) {
 }
 EI_REPLACE_METHOD(0x00567950, CWorldClient::LoadNewItemsAndSpells);
 
+int PlatformSet::Clear() {
+    list.RemoveAll();
+    return 1;
+}
+EI_REPLACE_METHOD(0x00561800, PlatformSet::Clear);
+
 void PlatformSet::DestructBody() {
     list.vtable = reinterpret_cast<void*>(worlddata::kPlatformListVtable);
     list.RemoveAll();

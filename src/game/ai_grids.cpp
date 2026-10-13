@@ -78,6 +78,7 @@ EI_REPLACE(0x00598B00, FreeAnyGrid);
 EI_REPLACE(0x005B1450, FreeAnyGrid);
 EI_REPLACE(0x005BCC30, FreeAnyGrid);
 EI_REPLACE(0x005CD490, FreeAnyGrid);
+EI_REPLACE(0x0058AAB0, FreeAnyGrid);   // A-W14: only the world server's unwind funclets jump to it
 
 void __fastcall AllocateEventGrid(SearchGrid<AIEventCell>* grid) { AllocateGrid(*grid); }
 EI_REPLACE(0x005CD4B0, AllocateEventGrid);

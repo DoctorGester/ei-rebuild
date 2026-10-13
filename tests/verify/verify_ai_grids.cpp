@@ -143,6 +143,7 @@ EI_VERIFY(0x00598AA0, FreeGridVerify, 0, s_unused);
 EI_VERIFY(0x00598B00, FreeGridVerify, 0, s_unused);
 EI_VERIFY(0x005B1450, FreeGridVerify, 0, s_unused);
 EI_VERIFY(0x005BCC30, FreeGridVerify, 0, s_unused);
+EI_VERIFY(0x0058AAB0, FreeGridVerify, 0, s_unused);   // A-W14 (unwind funclets only)
 
 namespace {
 // The original constructs a probe, ours the real grid; the probe's result must be itself.
