@@ -1736,6 +1736,18 @@ public:
     // interface's "unit panel shown" flag (+0x89) follows the direction and its +0x8C is the
     // selected body part.
     void UpdateVanilla();
+    // 006456E0 (RET 8; ui_hud_slide.cpp, A-H26; Rebirth-patched: the vanilla body, hooked in the
+    // vanilla launch only; the battle screen calls it through its address). `slid` (the
+    // interface's +0x89) starts the panel at the far end of its slide: offset 180, slide 1,
+    // direction +1 (else 0, 0, -1). Rectangle (0, 0)-(185, 225); regions: 0 the sling button, 1-4 the body part buttons
+    // (tips 0x2774..0x2778), 5 the whole panel; scene objects 0 / 1 plain backgrounds, 2 the sling
+    // button, 3-6 the part buttons (the selected one tinted 1, the others 0.5), 7 the frame, 8 a
+    // strip of cells and 9 the "more effects" mark (both hidden), 10-13 the health and mana bars,
+    // 14-25 the body parts' bars (tables 00742434 / 0074244C), 26-31 the effects' pictures (the
+    // window's second texture); the text surface (20, 0)-(180, 220); Layout; no hover unit; the
+    // texts "infounit_0".."infounit_17" and the labels "hl_skull", "hl_torso", "hl_leg", "hl_arm"
+    // appended to the two string arrays; no effect pictures (-1).
+    void SetupVanilla(int bodyPart, std::uint8_t slid);
 
     CBattleScreen* owner_;           // +0x148
     std::uint8_t unknown_14C[0x150 - 0x14C];

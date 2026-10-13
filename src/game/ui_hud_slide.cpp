@@ -1,17 +1,20 @@
 // The battle HUD's two sliding side panels, the map (CHudMap) and the unit panel (CHudUnitPanel):
-// their layouts at the current slide offset (00642930, 00645F80) and their per-frame updates
-// (00642B40, 00647FB0, slot 24). A-H26.
-// Rebirth patches all four (its widescreen layout), so these are the vanilla bodies and install in
-// the vanilla launch only (rule 9); the sprites' Place (005E6FA0) is Rebirth-patched too and is
-// called through its address. See ui.h ("Battle screen and its HUD panels") and
+// their layouts at the current slide offset (00642930, 00645F80), their per-frame updates
+// (00642B40, 00647FB0, slot 24) and the unit panel's setup (006456E0). A-H26.
+// Rebirth patches all of them (its widescreen layout), so these are the vanilla bodies and install
+// in the vanilla launch only (rule 9); the callees Rebirth patches too (the sprites' Place
+// 005E6FA0 and shapes 005E70E0 / 005E7680 / 005E7D60, the regions' SetRect 005FC9E0) are called
+// through their addresses. See ui.h ("Battle screen and its HUD panels") and
 // docs/notes/items_spells.md ("A-H26").
 #include "ui.h"
 
+#include "item_db_text.h"       // GameTexts
 #include "map_object.h"
 #include "unit.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/mfc.h"
 #include "lib/vecmath.h"
 #include "originals_render.h"   // QuaternionSetAxisAngleOriginal
 #include "originals_ui.h"       // SpritePlaceOriginal, WindowFrameTimeOriginal
@@ -211,3 +214,124 @@ void CHudUnitPanel::UpdateVanilla() {
     interface_->unknown_8C = bodyPart_;
 }
 EI_REPLACE_METHOD(0x00647FB0, CHudUnitPanel::UpdateVanilla);
+
+// --- 006456E0: the unit panel's setup ----------------------------------------------------------------
+
+namespace {
+const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
+constexpr std::uintptr_t kArrowSprite = std::uintptr_t(0x007945B0);     // "in25arrow"
+constexpr std::uintptr_t kInfoTextFormat = std::uintptr_t(0x007945CC);  // "infounit_%d"
+constexpr std::uintptr_t kPartLabelKeys[4] = {
+    std::uintptr_t(0x00793E38),   // "hl_skull"
+    std::uintptr_t(0x00793E24),   // "hl_torso"
+    std::uintptr_t(0x007945C4),   // "hl_leg"
+    std::uintptr_t(0x007945BC),   // "hl_arm"
+};
+// The strip's scale: 100 / 0.48157 (the layout's half height at depth 1), both read from the exe.
+float StripScale() { return RoundToFloat(GameFloat(0x0073BAB0) / GameFloat(0x007423FC)); }
+constexpr int kUnitTravel = 180;
+constexpr int kInfoTexts = 18;
+constexpr std::uint32_t kPlainColour = 0x100;             // CUiMesh::flags_: drawn in plainColour_
+} // namespace
+
+void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
+    offset_ = slid ? kUnitTravel : 0;
+    slide_ = slid ? 1.0f : 0.0f;
+    slideDirection_ = slid ? 1.0f : -1.0f;
+    rect_ = RECT{0, 0, 185, 225};
+    sliding_ = 1;
+    travel_ = kUnitTravel;
+
+    // Regions: the sling button, the four body part buttons, the whole panel.
+    CUiRegion* sling = AddRegion();
+    sling->CallSetRect(0, 0, 20, 30);
+    sling->SetTip(0x2774, 1, 0);
+    for (int i = 0; i < 4; ++i) {
+        CUiRegion* part = AddRegion();
+        part->CallSetRect(0, 100 + 30 * i, 20, 130 + 30 * i);
+        part->SetTip(0x2775 + i, 1, 0x2E + i);
+    }
+    AddRegion()->CallSetRect(0, 0, 185, 225);
+
+    // Scene objects 0 and 1: the panel's and its edge's plain backgrounds.
+    CUiMesh* back = AddSprite(nullptr);
+    back->SetRectangle(60.0f, 100.0f, 20.0f, 0.0f, 180.0f, 220.0f, 0, 0, 256, 256);
+    back->texture_ = nullptr;
+    back->flags_ |= kPlainColour;
+    back->plainColour_ = 0x50000000;
+    back->visible_ = 0;
+    CUiMesh* edge = AddSprite(nullptr);
+    edge->SetRectangle(20.0f, 100.0f, 0.0f, 0.0f, 20.0f, 220.0f, 0, 0, 256, 256);
+    edge->texture_ = nullptr;
+    edge->flags_ |= kPlainColour;
+    edge->plainColour_ = 0xB4000000;
+    // 2: the sling button.
+    CUiMesh* slingButton = AddSprite(GameText(kArrowSprite));
+    slingButton->uOffset_ = 0.22265625f;
+    slingButton->vOffset_ = 0.140625f;
+    PlaceSling(reinterpret_cast<CEngineObject*>(slingButton), SlingTurn(), -50.0f);
+    slingButton->SetScale(0.8f);
+    // 3-6: the body part buttons; 7: the frame.
+    AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 0.0f, 100.0f, 20.0f, 130.0f, 0x2F, 0x3E, 0x43, 0x5C);
+    AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 0.0f, 130.0f, 20.0f, 160.0f, 0x45, 0x3E, 0x59, 0x5C);
+    AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 0.0f, 160.0f, 20.0f, 190.0f, 3, 0x5E, 0x17, 0x7C);
+    AddSprite(nullptr)->SetRectangle(10.0f, 80.0f, 0.0f, 190.0f, 20.0f, 220.0f, 0xE9, 0x70, 0xFD, 0x8E);
+    AddSprite(nullptr)->SetFrame(10.0f, 80.0f, -5.0f, -5.0f, 185.0f, 225.0f, 5.0f, 4, 0x37, 0x5A, 0x3C);
+    // 8: a strip of twenty cells down the edge; 9: the "more effects" mark. Both hidden.
+    CUiMesh* strip = AddSprite(nullptr);
+    UiMeshCellsOriginal(strip, nullptr, 4.0f, StripScale(), 20.0f, 0.0f, 25.0f, 220.0f, 0x55, 2, 0x5A, 0x2A, 1, 20);
+    strip->visible_ = 0;
+    CUiMesh* more = AddSprite(nullptr);
+    more->SetRectangle(4.0f, 100.0f, 164.0f, 204.0f, 180.0f, 220.0f, 0xD3, 2, 0xE3, 0x12);
+    more->visible_ = 0;
+    // 10-13: the health and the mana bar, each over its frame.
+    AddSprite(nullptr)->SetRectangle(4.0f, 100.0f, 40.0f, 190.0f, 140.0f, 195.0f, 0x40, 0x9A, 0xA4, 0x9F);
+    AddSprite(nullptr)->SetRectangle(5.0f, 100.0f, 35.0f, 190.0f, 145.0f, 195.0f, 0x3B, 0x93, 0xA9, 0x98);
+    AddSprite(nullptr)->SetRectangle(4.0f, 100.0f, 40.0f, 205.0f, 140.0f, 210.0f, 0x40, 0xA1, 0xA4, 0xA6);
+    AddSprite(nullptr)->SetRectangle(5.0f, 100.0f, 35.0f, 205.0f, 145.0f, 210.0f, 0x3B, 0x93, 0xA9, 0x98);
+    // 14-25: the six body parts' bars, each over its frame, at the tables' places.
+    for (int i = 0; i < kParts; ++i) {
+        const int x = PartX()[i];
+        const int y = PartY()[i];
+        AddSprite(nullptr)->SetRectangle(4.0f, 50.0f, static_cast<float>(x + 25), static_cast<float>(y + 15),
+                                         static_cast<float>(x + 75), static_cast<float>(y + 20), 0x40, 0x7E, 0x72, 0x83);
+        AddSprite(nullptr)->SetRectangle(5.0f, 50.0f, static_cast<float>(x + 20), static_cast<float>(y + 15),
+                                         static_cast<float>(x + 80), static_cast<float>(y + 20), 0x3B, 0x77, 0x77, 0x7C);
+    }
+    // 26-31: the effects' pictures, from the panel's icon texture.
+    for (int top = 38; top < 218; top += 30) {
+        CUiMesh* icon = AddSprite(nullptr);
+        icon->SetRectangle(5.0f, 30.0f, 28.0f, static_cast<float>(top), 52.0f, static_cast<float>(top + 24), 0, 0, 64, 64);
+        icon->texture_ = objects_.data[1];
+    }
+
+    // The text surface.
+    void* memory = gamecrt::operator_new(sizeof(CUiSurface));
+    AddSurface(memory ? static_cast<CUiSurface*>(memory)->Construct(interface_, 20, 0, 180, 220, 5, 1) : nullptr);
+
+    bodyPart_ = bodyPart;
+    for (int i = 0; i < 4; ++i) SetTint(sceneObjects_.data[3 + i], bodyPart_ == i ? 1.0f : 0.5f);
+    CallLayout();
+    std::memset(unknown_14C, 0, sizeof(unknown_14C));
+    hoverUnit_ = nullptr;
+
+    // The panel's texts "infounit_0".."infounit_17" and the four body part labels.
+    CTextManager* texts = GameTexts();
+    mfc::CString text;
+    mfc::CString key;
+    auto* infoTexts = reinterpret_cast<mfc::CStringArray*>(&textsVtable_);
+    for (int i = 0; i < kInfoTexts; ++i) {
+        key.Format(GameText(kInfoTextFormat), i);
+        text.Empty();
+        texts->GetString(key, &text);
+        infoTexts->SetAtGrow(infoTexts->size, text);
+    }
+    // A missing label keeps the text before it.
+    auto* labels = reinterpret_cast<mfc::CStringArray*>(&partLabelsVtable_);
+    for (std::uintptr_t labelKey : kPartLabelKeys) {
+        texts->GetString(GameText(labelKey), &text);
+        labels->SetAtGrow(labels->size, text);
+    }
+    for (int& icon : effectIcons_) icon = -1;
+}
+EI_REPLACE_METHOD(0x006456E0, CHudUnitPanel::SetupVanilla);

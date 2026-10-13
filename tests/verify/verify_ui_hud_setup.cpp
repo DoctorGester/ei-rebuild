@@ -1,8 +1,10 @@
-// Checks for ui_hud_setup.cpp (A-H26): the clock's and the movement panel's setups (00648520,
-// 00649190). Both are Rebirth-patched, so they are hooked in the vanilla launch only.
-// Both run side by side on the real panel, which is new and empty when the battle screen sets it
-// up: the original first, its regions (vertices, bounds, flags, tooltip lines and arguments), its
-// sprites (position, texture frame, tint, scale, array sizes) and the panel's fields recorded;
+// Checks for the HUD panels' setups (A-H26): the clock's and the movement panel's (00648520,
+// 00649190; ui_hud_setup.cpp) and the unit panel's (006456E0; ui_hud_slide.cpp). All are
+// Rebirth-patched, so they are hooked in the vanilla launch only.
+// Each runs side by side on the real panel, which is new and empty when the battle screen sets it
+// up: the original first, its regions (vertices, bounds, flags, offsets, tooltip lines and
+// arguments), its sprites (position, orientation, texture frame, tint, scale, flags, plain colour,
+// texture, array sizes, a rectangle's corners and texels) and the panel's fields recorded;
 // then the regions and sprites dropped (ClearRegions / ClearSceneObjects, as the HUD's rebuilt
 // panels do), the fields put back, and ours. A panel that is not empty runs ours alone.
 // The regions' vertices are integers truncated from sines and cosines: compared exactly (they
@@ -28,15 +30,23 @@ struct RegionShot {
     std::vector<std::string> lines;
     int tipFlag;
     int tipExtra;
+    int offset[2];
 };
 
 struct SpriteShot {
     Vector3 position;
+    Quaternion orientation;
     float frame[2];
     float tint[3];
     float scale;
     int sizes[4];
     int visible;
+    std::uint32_t flags;
+    std::uint32_t plainColour;
+    const void* texture;
+    // A rectangle's four corners and texels (every element of both is written); empty for the
+    // other shapes, whose arrays may keep unwritten elements.
+    std::vector<float> shape;
 };
 
 struct PanelShot {
@@ -64,6 +74,8 @@ PanelShot TakePanel(CUiWindow* w) {
                 r.tipExtra = tip->extra_;
             }
         }
+        r.offset[0] = region->offsetX_;
+        r.offset[1] = region->offsetY_;
         shot.regions.push_back(r);
     }
     for (int i = 0; i < w->sceneObjects_.size; ++i) {
@@ -79,6 +91,15 @@ PanelShot TakePanel(CUiWindow* w) {
         s.sizes[2] = sprite->indexCount_;
         s.sizes[3] = sprite->uvCount_;
         s.visible = sprite->visible_;
+        s.orientation = sprite->orientation_;
+        s.flags = sprite->flags_;
+        s.plainColour = sprite->plainColour_;
+        s.texture = sprite->texture_;
+        if (sprite->quadCount_ == 1 && sprite->vertexCount_ == 4 && sprite->indexCount_ == 6 && sprite->uvCount_ == 4) {
+            const float* corners = reinterpret_cast<const float*>(sprite->quads_);
+            s.shape.assign(corners, corners + sizeof(UiQuadBlock) / sizeof(float));
+            s.shape.insert(s.shape.end(), sprite->uvs_, sprite->uvs_ + 8);
+        }
         shot.sprites.push_back(s);
     }
     return shot;
@@ -95,7 +116,8 @@ int FirstRegionDifference(const PanelShot& a, const PanelShot& b) {
         bool same = x.points.size() == y.points.size() &&
                     (x.points.empty() || std::memcmp(x.points.data(), y.points.data(), x.points.size() * sizeof(UiPoint)) == 0) &&
                     std::memcmp(&x.bounds, &y.bounds, sizeof(RECT)) == 0 && x.rectOnly == y.rectOnly && x.enabled == y.enabled &&
-                    x.tip == y.tip && x.lines == y.lines && x.tipFlag == y.tipFlag && x.tipExtra == y.tipExtra;
+                    x.tip == y.tip && x.lines == y.lines && x.tipFlag == y.tipFlag && x.tipExtra == y.tipExtra &&
+                    x.offset[0] == y.offset[0] && x.offset[1] == y.offset[1];
         if (!same) return static_cast<int>(i);
     }
     return -1;
@@ -109,7 +131,11 @@ int FirstSpriteDifference(const PanelShot& a, const PanelShot& b) {
         bool same = Near(x.position.x, y.position.x) && Near(x.position.y, y.position.y) && Near(x.position.z, y.position.z) &&
                     Near(x.frame[0], y.frame[0]) && Near(x.frame[1], y.frame[1]) && Near(x.tint[0], y.tint[0]) &&
                     Near(x.tint[1], y.tint[1]) && Near(x.tint[2], y.tint[2]) && Near(x.scale, y.scale) &&
-                    std::memcmp(x.sizes, y.sizes, sizeof(x.sizes)) == 0 && x.visible == y.visible;
+                    std::memcmp(x.sizes, y.sizes, sizeof(x.sizes)) == 0 && x.visible == y.visible &&
+                    Near(x.orientation.w, y.orientation.w) && Near(x.orientation.x, y.orientation.x) &&
+                    Near(x.orientation.y, y.orientation.y) && Near(x.orientation.z, y.orientation.z) && x.flags == y.flags &&
+                    x.plainColour == y.plainColour && x.texture == y.texture && x.shape.size() == y.shape.size();
+        for (std::size_t k = 0; same && k < x.shape.size(); ++k) same = Near(x.shape[k], y.shape[k]);
         if (!same) return static_cast<int>(i);
     }
     return -1;
@@ -207,3 +233,106 @@ static void __fastcall MovePanelSetupVerify(CHudMovePanel* self) {
                       static_cast<int>(expected.sprites.size()), static_cast<int>(actual.sprites.size()), sprite, fields);
 }
 EI_VERIFY(0x00649190, MovePanelSetupVerify, 5, s_movePanelSetup);
+
+// --- 006456E0: the unit panel's setup (ui_hud_slide.cpp) ------------------------------------------
+
+namespace {
+
+struct UnitPanelFields {
+    int sliding;
+    int offset;
+    int travel;
+    float slide;
+    float direction;
+    int bodyPart;
+    std::uint8_t unknown14C[4];
+    CUnit* hoverUnit;
+    int effectIcons[6];
+};
+
+UnitPanelFields TakeFields(const CHudUnitPanel* p) {
+    UnitPanelFields f = {};
+    f.sliding = p->sliding_;
+    f.offset = p->offset_;
+    f.travel = p->travel_;
+    f.slide = p->slide_;
+    f.direction = p->slideDirection_;
+    f.bodyPart = p->bodyPart_;
+    std::memcpy(f.unknown14C, p->unknown_14C, sizeof(f.unknown14C));
+    f.hoverUnit = p->hoverUnit_;
+    std::memcpy(f.effectIcons, p->effectIcons_, sizeof(f.effectIcons));
+    return f;
+}
+
+void PutFields(CHudUnitPanel* p, const UnitPanelFields& f) {
+    p->sliding_ = f.sliding;
+    p->offset_ = f.offset;
+    p->travel_ = f.travel;
+    p->slide_ = f.slide;
+    p->slideDirection_ = f.direction;
+    p->bodyPart_ = f.bodyPart;
+    std::memcpy(p->unknown_14C, f.unknown14C, sizeof(f.unknown14C));
+    p->hoverUnit_ = f.hoverUnit;
+    std::memcpy(p->effectIcons_, f.effectIcons, sizeof(f.effectIcons));
+}
+
+std::vector<std::string> StringsOf(const mfc::CStringArray* array) {
+    std::vector<std::string> strings;
+    for (int i = 0; i < array->size; ++i) strings.emplace_back(static_cast<const char*>((*array)[i]));
+    return strings;
+}
+
+mfc::CStringArray* InfoTexts(CHudUnitPanel* p) { return reinterpret_cast<mfc::CStringArray*>(&p->textsVtable_); }
+mfc::CStringArray* PartLabels(CHudUnitPanel* p) { return reinterpret_cast<mfc::CStringArray*>(&p->partLabelsVtable_); }
+
+} // namespace
+
+// 006456E0: PUSH -1; PUSH 0x72E28B (7 bytes). Side by side as the two setups above; the panel's
+// text surface and the strings it appends to its two arrays are dropped as well between the runs.
+// The setup ends in Layout (00645F80), whose own side-by-side wrapper runs inside both runs.
+static void(__fastcall* s_unitPanelSetup)(CHudUnitPanel*, void*, int, std::uint8_t);
+static void __fastcall UnitPanelSetupVerify(CHudUnitPanel* self, void*, int bodyPart, std::uint8_t slid) {
+    if (self->regions_.size != 0 || self->sceneObjects_.size != 0 || self->surfaces_.size != 0 ||
+        InfoTexts(self)->size != 0 || PartLabels(self)->size != 0) {
+        self->CHudUnitPanel::SetupVanilla(bodyPart, slid);
+        ei::verify::Check("CHudUnitPanel::Setup", bodyPart, self->bodyPart_, "ours only: the panel was not empty");
+        return;
+    }
+    const RECT rect = self->rect_;
+    const UnitPanelFields before = TakeFields(self);
+
+    s_unitPanelSetup(self, nullptr, bodyPart, slid);
+    const PanelShot expected = TakePanel(self);
+    const UnitPanelFields expectedFields = TakeFields(self);
+    const int expectedSurfaces = self->surfaces_.size;
+    const std::vector<std::string> expectedTexts = StringsOf(InfoTexts(self));
+    const std::vector<std::string> expectedLabels = StringsOf(PartLabels(self));
+
+    DropContents(self);
+    self->ClearSurfaces();
+    InfoTexts(self)->SetSize(0);
+    PartLabels(self)->SetSize(0);
+    self->rect_ = rect;
+    PutFields(self, before);
+
+    self->CHudUnitPanel::SetupVanilla(bodyPart, slid);
+    const PanelShot actual = TakePanel(self);
+    const UnitPanelFields actualFields = TakeFields(self);
+    const int region = FirstRegionDifference(expected, actual);
+    const int sprite = FirstSpriteDifference(expected, actual);
+    const bool fields = std::memcmp(&expected.rect, &actual.rect, sizeof(RECT)) == 0 &&
+                        expectedFields.sliding == actualFields.sliding && expectedFields.offset == actualFields.offset &&
+                        expectedFields.travel == actualFields.travel && expectedFields.slide == actualFields.slide &&
+                        expectedFields.direction == actualFields.direction && expectedFields.bodyPart == actualFields.bodyPart &&
+                        std::memcmp(expectedFields.unknown14C, actualFields.unknown14C, sizeof(actualFields.unknown14C)) == 0 &&
+                        expectedFields.hoverUnit == actualFields.hoverUnit &&
+                        std::memcmp(expectedFields.effectIcons, actualFields.effectIcons, sizeof(actualFields.effectIcons)) == 0;
+    const bool rest = self->surfaces_.size == expectedSurfaces && StringsOf(InfoTexts(self)) == expectedTexts &&
+                      StringsOf(PartLabels(self)) == expectedLabels;
+    ei::verify::Check("CHudUnitPanel::Setup", true, region < 0 && sprite < 0 && fields && rest,
+                      "part %d slid %d: regions %d / %d (first difference %d), sprites %d / %d (first difference %d), fields %d, "
+                      "surfaces and texts %d",
+                      bodyPart, slid, static_cast<int>(expected.regions.size()), static_cast<int>(actual.regions.size()), region,
+                      static_cast<int>(expected.sprites.size()), static_cast<int>(actual.sprites.size()), sprite, fields, rest);
+}
+EI_VERIFY(0x006456E0, UnitPanelSetupVerify, 7, s_unitPanelSetup);
