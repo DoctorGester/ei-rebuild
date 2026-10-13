@@ -1645,6 +1645,13 @@ struct GameFlow {
     // (the world, SaveWorld). Without scenario.sav the game goes back to the main menu. Returns 1
     // when saved.
     int SaveGame(const char* slot);
+    // 0057F560 (StartServer, before the sessions; patched by Rebirth, so vanilla only; A-W14).
+    // Fills the zone table (007AFDE0) once, while it is empty: for every "*.mq" file of the maps
+    // folder, its title in lower case is registered as a quest folder (RegisterQuests) and the
+    // quest texts loaded so far are unloaded again; a zone the map database knows gets an entry
+    // {the title, the record's map name, the allod}: 0 / 1 / 2 by the three map name lists
+    // (00790270 zone2..zone9, 00790298 zone12 / zone13, 007902C0 zone17 / zone18), else 3.
+    void BuildZoneTable();
     // 0057F190 (each network step). The local player's "z.MPGame1" variable, set to 1 or
     // removed: on a client, set unless the client session's +0x25EC is active; on the host, set
     // when more than one player is in (with +0x80) or unless the client's +0x25F4 is active.
