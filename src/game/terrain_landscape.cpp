@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <initializer_list>
 
 using terrain::SectorData;
 
@@ -239,7 +240,7 @@ void Terrain::Reset() {
     landscapeFlags = 0;
     pageTextures.RemoveAll();
     pageMaterials.RemoveAll();
-    std::memset(unknown_098, 0, sizeof(unknown_098));
+    std::memset(&worldMatrix, 0, sizeof(worldMatrix));
     unknown_100 = nullptr;
     AsString(textF8) = "none";
     sectorsX = -1;
@@ -261,7 +262,7 @@ void Terrain::Reset() {
     sunStepX = sunStepY = -1;
     sun = nullptr;
     SetWaveStrength(0.0f);
-    unknown_AA0 = 0;
+    minDetail = 0;
     visibleRowFirst = 0;
     wavePhase = kPi + kPi;
     visibleColumnFirst.SetSize(0, -1);
@@ -377,10 +378,80 @@ int Terrain::SetupPages(int count) {
 }
 EI_REPLACE_METHOD(0x006C5AA0, Terrain::SetupPages);
 
+// ---- The world matrix, the light interval, water levels, tile texture coordinates -------------------
+
+void Terrain::CombineRotation(const Quaternion& parent) {
+    CTransformObject::CombineRotation(parent);
+    WorldMatrix(worldMatrix.m);
+}
+
+void Terrain::SetLightInterval(int frames) {
+    lightInterval = frames;
+    if (frames < 0) lightCountdown = -1;
+    if (lightCountdown < frames) lightCountdown = frames;
+}
+EI_REPLACE_METHOD(0x006C9290, Terrain::SetLightInterval);
+
+void Terrain::SetWaterLevel(int material, float level) {
+    if (material < 0 || material >= materials.size) return;
+    float change = RoundToFloat(level - materials[material].level);
+    materials[material].level = change + materials[material].level;
+    for (int sector = 0; sector < sectorsY * sectorsX; ++sector) {
+        float& sectorLevel = waterLevels[sector][material];
+        sectorLevel = change + sectorLevel;
+    }
+}
+EI_REPLACE_METHOD(0x006CC7F0, Terrain::SetWaterLevel);
+
+void Terrain::BuildTileUv(float* uv, int rotation, int column, int row, float size, float margin, char wholePage) {
+    constexpr int kSide = 3;                  // a tile's vertices per row
+    constexpr int kTileVertices = kSide * kSide;
+    float* u = uv;
+    float* v = uv + kTileVertices;
+    // u runs along each row, v down the rows: the margin, the middle, the far side less the margin.
+    const float vSize = wholePage ? 1.0f : size;
+    for (int i = 0; i < kSide; ++i) {
+        u[i * kSide] = margin;
+        u[i * kSide + 1] = size * 0.5f;
+        u[i * kSide + 2] = size - margin;
+    }
+    for (int i = 0; i < kSide; ++i) {
+        v[i] = margin;
+        v[kSide + i] = vSize * 0.5f;
+        v[2 * kSide + i] = vSize - margin;
+    }
+    // A quarter turn of both grids: the corners 0 <- 2 <- 8 <- 6 and the edges 1 <- 5 <- 7 <- 3.
+    for (; rotation > 0; --rotation) {
+        for (float* grid : {u, v}) {
+            float corner = grid[0];
+            grid[0] = grid[2];
+            grid[2] = grid[8];
+            grid[8] = grid[6];
+            grid[6] = corner;
+            float edge = grid[1];
+            grid[1] = grid[5];
+            grid[5] = grid[7];
+            grid[7] = grid[3];
+            grid[3] = edge;
+        }
+    }
+    const float uBase = static_cast<float>(column) * size;
+    const float vBase = wholePage ? 0.0f : static_cast<float>(row) * size;
+    for (int i = 0; i < kTileVertices; ++i) {
+        u[i] = uBase + u[i];
+        v[i] = vBase + v[i];
+    }
+}
+EI_REPLACE_METHOD(0x006C7940, Terrain::BuildTileUv);
+
 int __fastcall CreateHook(Terrain* self, void*) { return self->Terrain::Create(); }
 void __fastcall DestroyHook(Terrain* self, void*) { self->Terrain::Destroy(); }
 EI_REPLACE(0x006C5430, CreateHook);
 EI_REPLACE(0x006C54D0, DestroyHook);
+void __fastcall CombineRotationHook(Terrain* self, void*, const Quaternion* parent) {
+    self->Terrain::CombineRotation(*parent);
+}
+EI_REPLACE(0x006C6070, CombineRotationHook);
 EI_REPLACE_METHOD(0x006C5620, Terrain::Reset);
 EI_REPLACE_METHOD(0x006C57E0, Terrain::BuildWavePhases);
 EI_REPLACE_METHOD(0x006C7D70, Terrain::SetWaveStrength);

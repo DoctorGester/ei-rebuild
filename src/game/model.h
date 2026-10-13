@@ -68,6 +68,19 @@ public:
     int ProjectBlocks(const void* positions, void* projected, void* outcodes, int blocks, const ClipBounds* bounds);
     // 004F29F0 (RET 0x14, A-S8). The same for terrain vertices (slots 18 / 19), both with stack 2.
     int ProjectTerrain(const void* vertices, void* projected, void* outcodes, int count, const ClipBounds* bounds);
+    // The push the draw code inlines (the terrain passes 006C6230 / 006C6330; also the world draw
+    // 00569E40 and the decal projector 0056C750, which keep their own copies): as PushMatrix, but
+    // the new top is computed by MatrixMultiply (004D9880), whose elements sum in another order.
+    void PushMatrixProduct(const Matrix4& m, int index) {
+        MatrixStack& stack = stacks_[index];
+        if (stack.count == 0) {
+            stack.count = 1;
+            stack.matrices[0] = m;
+            return;
+        }
+        const int depth = ++stack.count;
+        MatrixMultiply(stack.matrices[depth - 1].m, nullptr, stack.matrices[depth - 2].m, m.m);
+    }
     // The top of stack `index` (matrices[count - 1], as the original computes it even when empty).
     const Matrix4* Top(int index) const { return stacks_[index].matrices + (stacks_[index].count - 1); }
     // 0051C110 (RET 4; also inlined): drops the top of stack `index` unless it is empty.

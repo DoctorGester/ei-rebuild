@@ -15,11 +15,14 @@
 
 class CLight;
 class CMaterial;
+class CSceneRenderer;
 class CTexture;
 class DecalBuilder;
 
 namespace terrain {
 struct SectorData;   // terrain_sector.h: the full sector (TerrainSector names a few of its fields)
+struct SectorPosition;
+struct TerrainMaterial;
 
 // Vertex neighbourhood: the tiles (of the sector's 16 x 16) that share a vertex (Terrain::vertexTiles,
 // 33 x 33 entries; only the first `count` tiles are set).
@@ -121,6 +124,52 @@ public:
     // 006CAB50 (RET 4). Relights the area's lit sectors (their point lights only).
     void RelightArea(const LightArea* area);
 
+    // 006C6070 (slot 14, RET 4; terrain_landscape.cpp). The base's world rotation, then worldMatrix
+    // from it and the world position (CTransformObject::WorldMatrix inlined; UpdateWorld calls this
+    // before it moves the position, so the matrix holds the position of the update before).
+    void CombineRotation(const Quaternion& parent) override;
+    // 006C9290 (RET 4, from the zone load 00567AB0). The frames between sun updates; negative: no
+    // countdown, otherwise the countdown is raised to the interval.
+    void SetLightInterval(int frames);
+    // 006CC7F0 (RET 8, from TweenArray::Load 006D45D0). Sets water material `material`'s level to
+    // `level`: the change is added to the material and to its entry of every sector's level table.
+    // Nothing for a material the map does not have.
+    void SetWaterLevel(int material, float level);
+    // 006C7940 (RET 0x1C, from the map loader 006C68B0; `this` is not used). The texture
+    // coordinates of the tile at (column, row) of a page whose tiles are `size` wide, `margin`
+    // inside each edge: 9 u then 9 v (rows of three), turned `rotation` quarter turns; with
+    // `wholePage` the v run covers the page's whole height (the last pages hold one row).
+    void BuildTileUv(float* uv, int rotation, int column, int row, float size, float margin, char wholePage);
+
+    // Light tests (terrain_shadow.cpp).
+    // 006CB020 (RET 4, AL). How much light a point keeps near the map's edges (flag 4): 255, less
+    // 255 * depth / fade for a point `depth` inside the fade band (MapEdgeFade, 0079BD34, plus one
+    // cell) of the map's borders, corners by the distance.
+    std::uint8_t EdgeFade(const Vector3* point);
+    // 006C92C0 (RET 4). Whether the sun reaches the vertex lightingX / lightingY of lightingSector
+    // from height `position`->z: the ray is walked over the vertex grid towards the sun (sunStepX /
+    // sunStepY: a line of max(|x|, |y|) steps, the height rising by sunSlopeX / sunSlopeY per
+    // column / row), loading the sectors it crosses; 0 when a vertex is above the ray, 1 at the
+    // ray's end or the map's edge. A sun at or below the horizon: its direction's z sign bit.
+    int SunReaches(const terrain::SectorPosition* position);
+
+    // The draw passes (terrain_passes.cpp), from the client's draw 00569E40.
+    // 006C6230 (RET 4). The ground: drawMatrix from the local rotation and position pushed on the
+    // renderer's pipeline stacks 2 and 1, the pages 0 .. pages + 1 drawn, the stacks popped.
+    void DrawGround(CSceneRenderer* renderer);
+    // 006C6330 (RET 4). The same for the water pages pages + 2 .. 2 * pages + 3.
+    void DrawWater(CSceneRenderer* renderer);
+    // 006C6460 (RET 0xC). 0 without a map. For the visible sectors (lit, loaded when needed): the
+    // level of detail and the clip test; for those not culled the seams against coarser neighbours
+    // and the projection; then per page firstPage .. lastPage every such sector with tiles on it
+    // is drawn (DrawSectorPage), the page's texture (page % (pages + 2)) bound to stage 0 before
+    // the first. 0 when a draw fails, else 1.
+    int DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage);
+    // 006C66E0 (RET 4). The sector's level of detail from the squared distance of its centre
+    // (mid height) to the camera: 0 within DetailNear, 1 within DetailFar, else 2; never below
+    // minDetail.
+    void ChooseDetail(terrain::SectorData* sector);
+
     // 006C8680. Height of `layer` (0 = ground, 1 = water surface) at (x, y).
     float HeightAt(float x, float y, int layer);
 
@@ -170,9 +219,9 @@ public:
     // AddTerrainTriangle per cell, through the original 004D8490).
     void AddDecalTriangles(DecalBuilder* builder, float* const* corners);
 
-    std::uint8_t unknown_054[0x94 - 0x54];
+    Matrix4 drawMatrix;             // +0x054 the draw passes' matrix (rotation, position in the last column)
     std::uint32_t landscapeFlags;   // +0x094 terrain::TerrainFields::flags
-    std::uint8_t unknown_098[0x40]; // +0x098 zeroed by Reset
+    Matrix4 worldMatrix;            // +0x098 CombineRotation (rows; position in the last row); zeroed by Reset
     lib::AlignedArray<CTexture*> pageTextures;     // +0x0D8 per texture page (SetupPages; held)
     lib::AlignedArray<CMaterial*> pageMaterials;   // +0x0E8 per texture page (constructor 00570E10; held)
     const char* textF8;             // +0x0F8 CString
@@ -189,7 +238,7 @@ public:
     int unknown_124;
     int perPage;                    // +0x128 textures per page
     // Members constructed in place by Setup (their constructors' addresses).
-    std::uint8_t part12C[0x10];     // +0x12C 00570E40
+    lib::AlignedArray<terrain::TerrainMaterial> materials;   // +0x12C 00570E40 the water materials
     std::uint8_t part13C[0x10];     // +0x13C 0056FD30
     std::uint8_t part14C[0x10];     // +0x14C 0056FD30
     CMMIOResource archive;          // +0x15C the map's sector archive (006721D0)
@@ -209,7 +258,9 @@ public:
     float sunRunY;                  // +0x240 y / z
     int sunStepX;                   // +0x244 FISTP(95 * x)
     int sunStepY;                   // +0x248
-    std::uint8_t unknown_24C[0x258 - 0x24C];   // the vertex being lit (terrain::TerrainFields)
+    terrain::SectorData* lightingSector;   // +0x24C the vertex being lit, for SunReaches
+    int lightingX;                  // +0x250
+    int lightingY;                  // +0x254
     CLight* sun;                    // +0x258
     using LightTable = stlp::hash_map<int, LandscapeLight, stlp::IntHash>;
     LightTable lights;              // +0x25C 00571050: the registered point lights by id
@@ -221,7 +272,7 @@ public:
     float waveSpeed;                // +0x28C
     lib::AlignedArray<float> wavePhases;   // +0x290 00570DE0
     float sine[512];                // +0x2A0
-    int unknown_AA0;                // +0xAA0 0 after Reset
+    int minDetail;                  // +0xAA0 the finest level of detail ChooseDetail gives; 0 after Reset
     int visibleRowFirst;            // +0xAA4 SetVisibleSectors
     lib::AlignedArray<int> visibleColumnFirst;   // +0xAA8 0056FD30, per visible row
     lib::AlignedArray<int> visibleColumnLast;    // +0xAB8 0056FD30
@@ -229,13 +280,16 @@ public:
     int ambientClasses[3];          // +0xAD4 their sound classes, -1 none
     const char* textAE0;            // +0xAE0 CString: the ambient sound set (ambient\<set>\...)
     int extraPages;                 // +0xAE4 texture pages loaded after the map's own (006C5AA0)
-    std::uint8_t partAE8[0x14];     // +0xAE8 005711C0
+    mfc::CArray<mfc::CArray<float>> waterLevels;   // +0xAE8 005711C0 per sector: a level per water material
 };
 static_assert(offsetof(Terrain, pageTextures) == 0xD8 && offsetof(Terrain, pageMaterials) == 0xE8);
 static_assert(offsetof(Terrain, uvTables) == 0x1C8 && offsetof(Terrain, maxLightId) == 0x270);
 static_assert(offsetof(Terrain, textF8) == 0xF8);
 static_assert(offsetof(Terrain, width) == 0x10C);
-static_assert(offsetof(Terrain, part12C) == 0x12C && offsetof(Terrain, archive) == 0x15C);
+static_assert(offsetof(Terrain, materials) == 0x12C && offsetof(Terrain, archive) == 0x15C);
+static_assert(offsetof(Terrain, drawMatrix) == 0x54 && offsetof(Terrain, worldMatrix) == 0x98);
+static_assert(offsetof(Terrain, lightingSector) == 0x24C && offsetof(Terrain, minDetail) == 0xAA0);
+static_assert(offsetof(Terrain, waterLevels) == 0xAE8);
 static_assert(offsetof(Terrain, vertexTiles) == 0x1E8);
 static_assert(offsetof(Terrain, sectorGrid) == 0x1F8);
 static_assert(offsetof(Terrain, sectorCache) == 0x1FC);

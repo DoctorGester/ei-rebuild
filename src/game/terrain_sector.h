@@ -20,6 +20,7 @@
 #include "lib/mfc.h"
 
 class CLight;
+class CSceneRenderer;
 class CTransformPipeline;
 
 namespace terrain {
@@ -236,9 +237,20 @@ struct SectorData {
     // colour.
     void Animate(TerrainFields* owner, int frame);
 
+    // 006C1390 (RET 4; terrain_passes.cpp). The level of detail (unknown_170) the sector is drawn
+    // at: 0 every vertex, 1 every second column, 2 every second row too.
+    void SetDetail(int level);
+
     // Not rewritten (forwarders).
     void Destruct();                    // 006BF8A0 the destructor body (terrain_landscape.cpp)
     int IsDrawn();                      // 006BFB00 +0x60 is 0 or 1 (the last Project did not cull it)
+    // 006BFB20 (RET 4; terrain_passes.cpp). The clip test of the sector's box (+0x60: 0 inside,
+    // 1 crossing, 2 culled; -1 counts as culled) and, unless culled, of its quarters (quarterMode)
+    // with the renderer's pipeline (004F16A0).
+    void ClipTest(CSceneRenderer* renderer);
+    // 006BFB80. The seams (unknown_174 / unknown_178): at detail 0 whether the sectors before /
+    // after in y are drawn at detail 1, at detail 1 whether those before / after in x are at 2.
+    void FindSeams();
     void BuildAtOriginal();             // 006C1C00 through its address (lands on the installed hook)
     void LightAtOriginal(CLight* sun, TerrainFields* owner, int skipSun, int x0, int y0, int x1, int y1); // 006C3A00
 };
@@ -313,9 +325,9 @@ struct TerrainFields {
     // point is under water, 8 outside the map.
     int SurfaceClass(float x, float y);
 
-    // 006C92C0 (RET 4, forwarder). 0 when the sun's ray from `position` (the vertex lightingX /
-    // lightingY of lightingSector) is blocked by the terrain, else nonzero; loads the sectors it
-    // crosses.
+    // 006C92C0 (RET 4; Terrain::SunReaches, called through its address so that its verify wrapper
+    // runs). 0 when the sun's ray from `position` (the vertex lightingX / lightingY of
+    // lightingSector) is blocked by the terrain, else nonzero; loads the sectors it crosses.
     int SunReaches(const SectorPosition* position);
 };
 static_assert(offsetof(TerrainFields, materials) == 0x12C);
