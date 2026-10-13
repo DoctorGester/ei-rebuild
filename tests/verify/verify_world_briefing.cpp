@@ -5,6 +5,7 @@
 #include "verify.h"
 
 #include "../../src/game/world.h"
+#include "../../src/game/world_map_files.h"
 
 #include <cstring>
 
@@ -122,3 +123,40 @@ static void __fastcall OnVariableChangedVerify(GameFlow* self, void*, const void
     ei::verify::Check("GameFlow::OnVariableChanged", true, true, "%s", name ? name : "");
 }
 EI_VERIFY(0x00580840, OnVariableChangedVerify, 0, s_unused);
+
+// 005809D0 LoadZoneQuests (A-W15; patched by Rebirth, so the vanilla launch only): it lists a file
+// with the server and loads a text source, so only ours runs. Checked: false only without the
+// texts or the file (the original's own CFileFind test, repeated through MapFileExists); true
+// leaves exactly one quest file ending in "\<zone>.mq" (the original compares the paths as
+// they are, so a zone named in another case is another entry), and the list
+// grows by at most one. Reached by the quest registration (005810A0) at every new game and zone
+// start, and by MarkBriefing: newgame and every scenario after it.
+static bool __stdcall LoadZoneQuestsVerify(const char* zone) {
+    struct Name {
+        const char* start;
+        const char* finish;
+        const char* end;
+    };
+    auto* files = reinterpret_cast<Name* const*>(0x007AFDD0);
+    const int before = static_cast<int>(files[1] - files[0]);
+    const bool texts = *reinterpret_cast<void* const*>(0x007AF788) != nullptr;
+    mfc::CString name = mfc::CString(zone) + ".mq";
+    const bool exists = MapFileExists(name);
+    const bool result = LoadZoneQuests(zone);
+    const int after = static_cast<int>(files[1] - files[0]);
+    int listed = 0;
+    const std::size_t length = std::strlen(name);
+    for (const Name* file = files[0]; file != files[1]; ++file) {
+        const std::size_t size = static_cast<std::size_t>(file->finish - file->start);
+        if (size > length && file->start[size - length - 1] == '\\' &&
+            std::memcmp(file->start + size - length, static_cast<const char*>(name), length) == 0)
+            ++listed;
+    }
+    bool ok = result == (texts && exists);
+    if (result) ok = ok && listed == 1 && (after == before || after == before + 1);
+    else ok = ok && after == before;
+    ei::verify::Check("LoadZoneQuests", true, ok, "%s: result %d (texts %d, file %d), %d -> %d files, %d listed", zone,
+                      result, texts, exists, before, after, listed);
+    return result;
+}
+EI_VERIFY(0x005809D0, LoadZoneQuestsVerify, 0, s_unused);

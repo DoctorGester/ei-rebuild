@@ -1832,6 +1832,14 @@ int __stdcall RequestZone(const char* zone, int entrance);
 // loaded so far (007AFDD0) is unloaded and the list emptied.
 void UnloadQuestTexts();
 
+// 005809D0 (RET 4, AL; ECX, the flow, is not read; world_briefing.cpp, A-W15). Loads the quest
+// texts of `zone`: false without the briefing texts (007AF788) or when the maps folder has no
+// "<zone>.mq" (CFileFind). A running game server (0079B5DC) first lists the file's bytes under
+// "<zone>.mq" for its clients (ShareFile); then a path not yet among the quest files (007AFDD0)
+// joins them and the briefing texts add it as a source. Rebirth patches it: hooked in the vanilla
+// launch only, and rewritten callers go through FlowLoadQuestsOriginal (originals_world.h).
+bool __stdcall LoadZoneQuests(const char* zone);
+
 // 0057F820 (ECX = list, EDX = name; world_game.cpp). Whether `name` is in `list` (an array of
 // names ended by an empty one), compared case-insensitively.
 bool __fastcall NameInList(const char* const* list, const char* name);

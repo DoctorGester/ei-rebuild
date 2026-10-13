@@ -88,6 +88,9 @@ public:
     // The block replaced by one of `capacity` bytes with the old capacity's bytes; the pointers
     // move with it (inlined in every growing slot).
     void Reallocate(std::uint32_t capacity);
+    // 00580EE0 (RET 4; buffered_file.cpp). Before `size` bytes are written in place: flags bit 0
+    // set, room made (slot 1) when the block ends before them. Returns the cursor.
+    std::uint8_t* BeginWrite(std::int32_t size);
 
     std::uint8_t* begin;       // +0x04
     std::uint8_t* cur;         // +0x08
