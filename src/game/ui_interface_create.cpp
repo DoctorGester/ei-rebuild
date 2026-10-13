@@ -1,0 +1,204 @@
+// The interface manager's start (CInterface3D::Create 005F4990, called once by the application's
+// start with the renderer's device object): the screen size, the three fonts, the keyboard layout,
+// the console window, the debug information panel, the chat overlay, the fade and the help topics
+// seen (config\tutorial.ini). Rebirth patches it, so this is the vanilla body and it is hooked in
+// the vanilla launch only. See ui.h and docs/notes/ui.md, section 3.
+#include "ui.h"
+
+#include "console.h"
+#include "game_strings.h"
+#include "text_split.h"
+#include "texture.h"
+#include "ui_gdi.h"
+
+#include "ei/hook.h"
+#include "lib/crt.h"
+#include "lib/gameapi.h"
+#include "lib/mfc.h"
+#include "lib/stlp.h"
+#include "originals_library.h"
+#include "originals_ui.h"
+
+#include <cstdint>
+#include <utility>
+
+namespace {
+
+const char* GameText(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
+float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const volatile float*>(address); }
+// The original keeps the fonts' scale in a float stack slot.
+float StoreScale(float value) {
+    volatile float stored = value;
+    return stored;
+}
+
+// The fonts: the face, the size the scale is measured with (tenths of a point) and each font's
+// share of the screen width.
+const char* FontFace() { return GameText(0x00793034); }   // "Times New Roman"
+constexpr int kMeasureSize = 750;
+constexpr int kFontShares[3] = {104, 112, 144};
+void** FontVtable() { return reinterpret_cast<void**>(0x0073BFB4); }
+
+// A new CFont without a handle (null when the memory cannot be had).
+ui_gdi::GameFont* NewFont() {
+    auto* font = static_cast<ui_gdi::GameFont*>(gamecrt::operator_new(sizeof(ui_gdi::GameFont)));
+    if (!font) return nullptr;
+    font->handle_ = nullptr;
+    font->vtable_ = FontVtable();
+    return font;
+}
+
+bool CreateFont(ui_gdi::GameFont* font, int size) {
+    if (FontCreatePointOriginal(font, nullptr, size, FontFace(), nullptr)) return true;
+    game::FatalError(GameText(0x00793008));   // "CInterface3D::Create.\n Cannot create font.\n"
+    return false;
+}
+
+// The language the keyboard starts in (the option 0079BE98, a Windows language id) and English.
+DWORD KeyboardLanguage() { return *reinterpret_cast<const volatile DWORD*>(0x0079BE98); }
+constexpr DWORD kEnglish = 0x409;
+constexpr int kMaxLayouts = 16;
+
+// Activates the layout of the wanted language, else the English one, else the one in use. Every
+// layout is activated on the way: its name (the language id in hex) can only be asked of the
+// active one.
+void ChooseKeyboardLayout() {
+    const DWORD wanted = KeyboardLanguage();
+    HKL layouts[kMaxLayouts];
+    const int count = gameapi::GetKeyboardLayoutList(kMaxLayouts, layouts);
+    int english = -1;
+    int found = -1;
+    HKL chosen = gameapi::GetKeyboardLayout(0);
+    for (int i = 0; i < count; ++i) {
+        gameapi::ActivateKeyboardLayout(layouts[i], 0);
+        char name[12];
+        if (!gameapi::GetKeyboardLayoutNameA(name)) continue;
+        unsigned id = 0;
+        gamecrt::sscanf(name, GameText(0x00793004), &id);   // "%x"
+        id &= 0xFFFF;
+        if (id == wanted) {
+            found = i;
+            break;
+        }
+        if (id == kEnglish) english = i;
+    }
+    if (found >= 0)
+        chosen = layouts[found];
+    else if (english >= 0)
+        chosen = layouts[english];
+    gameapi::ActivateKeyboardLayout(chosen, 0);
+}
+
+using Topics = stlp::map<mfc::CString, int>;
+
+int CompareNames(const char* a, const char* b) {
+    return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b));
+}
+
+// The topic's node, entered with 0 when it is new (the map's operator[], inlined by the original).
+Topics::Node* TopicNode(Topics& topics, const mfc::CString& name) {
+    Topics::Node* at = topics.end();
+    for (Topics::Node* n = at->parent; n;) {
+        if (CompareNames(n->first, name) < 0) {
+            n = n->right;
+        } else {
+            at = n;
+            n = n->left;
+        }
+    }
+    if (at != topics.end() && CompareNames(name, at->first) >= 0) return at;
+    std::pair<mfc::CString, int> entry(name, 0);
+    void* inserted;
+    HelpTopicsInsertOriginal(&topics, nullptr, &inserted, at, &entry);
+    return static_cast<Topics::Node*>(inserted);
+}
+
+static_assert(sizeof(std::pair<mfc::CString, int>) == 8);
+static_assert(sizeof(console::ConsoleWindow) == 0x7C && sizeof(CChatOverlay) == 0x158 && sizeof(CScreenFade) == 0x14);
+
+} // namespace
+
+void CInterface3D::Create(CTextureDevice* device) {
+    renderer_ = reinterpret_cast<UiRenderer*>(device);
+    // (Without a primary surface the original stores an uninitialised stack slot in both.)
+    int width = 0;
+    int height = 0;
+    if (device->primary_) {
+        width = device->renderTarget_->width;
+        height = device->renderTarget_->height;
+    }
+    width_ = width;
+    height_ = height;
+
+    // The scale: what a 75-point font is high here, in pixels / 100.
+    fonts_[0] = NewFont();
+    if (!CreateFont(fonts_[0], kMeasureSize)) return;
+    LOGFONTA measured;
+    gameapi::GetObjectA(fonts_[0]->handle_, sizeof(measured), &measured);
+    const int pixels = measured.lfHeight < 0 ? -measured.lfHeight : measured.lfHeight;
+    const float scale = StoreScale(static_cast<float>(pixels) * GameFloat(0x0073D09C));   // 0.01
+    if (fonts_[0]) fonts_[0]->Delete();
+    for (int i = 0; i < 3; ++i) {
+        fonts_[i] = NewFont();
+        float size = static_cast<float>(width * kFontShares[i]) / scale * GameFloat(0x00740164);   // 1 / 800
+        if (!CreateFont(fonts_[i], static_cast<int>(gamecrt::Ftol(size)))) return;
+    }
+
+    ChooseKeyboardLayout();
+    LoadKeyBindingsOriginal();
+    auto* window = static_cast<console::ConsoleWindow*>(gamecrt::operator_new(sizeof(console::ConsoleWindow)));
+    console_ = window ? window->Construct(&width_) : nullptr;
+    DebugPanelInitOriginal(DebugInfoPanel(), nullptr, this);
+    auto* chat = static_cast<CChatOverlay*>(gamecrt::operator_new(sizeof(CChatOverlay)));
+    root_ = chat ? chat->Construct(this) : nullptr;
+    mouseX_ = 0;
+    mouseCapture_ = nullptr;
+    backdrop_ = nullptr;
+    secondBackdrop_ = nullptr;
+    block5C_ = nullptr;
+    backdropMode_ = 0;
+    closeAll_ = false;
+    queuedWindow_ = nullptr;
+    drawing_ = true;
+    mouseY_ = 0;
+    auto* fade = static_cast<CScreenFade*>(gamecrt::operator_new(sizeof(CScreenFade)));
+    fade_ = fade ? fade->Construct() : nullptr;
+    unknown_89[0] = 0;
+    unknown_89[1] = 0;
+    unknown_89[2] = 0;
+    unknown_8C = 0;
+    unknown_90 = 0;
+    fastGame_ = 0;
+    ctrlDown_ = false;
+    shiftDown_ = 0;
+    altDown_ = false;
+    doubleClick_ = false;
+    rightDown_ = false;
+    unknown_81[0] = 0;
+
+    // The help topics seen: "topic count" lines.
+    console::CStdioFile file;
+    bool opened;
+    {
+        mfc::CString path = GameDataPath() + game::TutorialIniText();
+        opened = file.Open(path, console::CStdioFile::typeText, nullptr) != 0;
+    }
+    if (opened) {
+        mfc::CString line;
+        console::CStringArray words;
+        while (file.ReadString(line)) {
+            text::SplitWords(line, &words, ' ');
+            if (words.GetSize() <= 1) continue;
+            const char* count = words[1];
+            TopicNode(helpTopics_, words[0])->second = GameAtoi(count);
+        }
+        file.Close();
+    }
+    messageFlag_ = 0;
+    fpsSurface_ = nullptr;
+    unknown_24 = 0;
+    fpsTime_ = gameapi::timeGetTime();
+    fpsFrames_ = 0;
+    unknown_88 = 0;
+}
+EI_REPLACE_METHOD(0x005F4990, CInterface3D::Create);

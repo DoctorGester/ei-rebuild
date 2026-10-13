@@ -552,6 +552,15 @@ __declspec(naked) inline void __fastcall DebugPanelSetOriginal(void* /*panel*/, 
 // blitted.
 __declspec(naked) inline void __fastcall DebugPanelTickOriginal(void* /*panel*/) EI_ORIGINAL(0x00444CD0)
 __declspec(naked) inline void __cdecl SaveKeyBindingsOriginal() EI_ORIGINAL(0x00462DF0)
+// The interface's Create (005F4990) calls: 00462C10 reads config\keyboard.ini (key_bindings.cpp); 00444A70
+// (thiscall, RET 4; string_map.cpp's PanelInit) binds the debug information panel to the interface; 005F9810
+// (thiscall on the help topics' map, RET 0xC; library) inserts a {CString, int} pair before `hint` and gives the
+// new node in `out`, which it returns.
+__declspec(naked) inline void __cdecl LoadKeyBindingsOriginal() EI_ORIGINAL(0x00462C10)
+__declspec(naked) inline void __fastcall DebugPanelInitOriginal(void* /*panel*/, void*, CInterface3D* /*ui*/)
+    EI_ORIGINAL(0x00444A70)
+__declspec(naked) inline void** __fastcall HelpTopicsInsertOriginal(void* /*map*/, void*, void** /*out*/, void* /*hint*/,
+                                                                    const void* /*pair*/) EI_ORIGINAL(0x005F9810)
 // 005AC1A0 (thiscall on the model manager, UiModelManager(), RET 4): a new object `name` (a figure; null: an interface
 // sprite, CUiMesh), or null.
 __declspec(naked) inline CEngineObject* __fastcall ModelManagerNewObjectOriginal(void* /*manager*/, void*,

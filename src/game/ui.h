@@ -31,6 +31,7 @@ struct UiInputSide;
 class CUiMesh;
 struct CDXSurface;
 class CSceneRenderer;   // model.h
+class CTextureDevice;   // texture.h
 class CStream;          // core_streams.h
 class CUiSurface;
 
@@ -246,6 +247,19 @@ public:
     // ("FPS:" and frames * 1000 / ms, every 400 ms) is drawn and blitted while shown; the shown
     // console blits.
     void DrawOverlays();
+    // 005F4990 (RET 4; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
+    // only; ui_interface_create.cpp; the application's start 004570D4 calls it with the
+    // renderer's device object 007AF080). The screen size is the render target's (not written
+    // usefully without a primary surface). The three fonts are "Times New Roman": a 75-point one
+    // is made first and its height in pixels / 100 is the scale s; the fonts are of
+    // _ftol(width * k / s / 800) tenths of a point, k = 104, 112, 144 (a font that cannot be
+    // made is fatal: "CInterface3D::Create.\n Cannot create font.\n", and nothing else is
+    // done). The keyboard layout of the language 0079BE98 is activated (each layout is activated
+    // in turn and its name read as hex), else the English one (0x409), else the one it began
+    // with. Then the key bindings are read, the console window (0x7C bytes), the debug
+    // information panel, the chat overlay (0x158) and the fade (0x14) are made, the state is
+    // cleared and config\tutorial.ini's "topic count" lines are read into the help topics.
+    void Create(CTextureDevice* device);
 
     int width_;                      // +0x00 screen width
     int height_;                     // +0x04 screen height
@@ -256,7 +270,7 @@ public:
     CScreenFade* fade_;              // +0x18
     CChatOverlay* root_;             // +0x1C the chat overlay; updated after the top window every frame
     CUiSurface* fpsSurface_;         // +0x20 the frame rate's surface while shown (ShowFps)
-    std::uint8_t unknown_24[0x28 - 0x24];
+    int unknown_24;                  // +0x24 cleared by Create
     DWORD fpsTime_;                  // +0x28 when the frame rate was last worked out (DrawOverlays)
     int fpsFrames_;                  // +0x2C frames since then
     // +0x30 the windows draw, redraw their surfaces and update their tooltips only while this is
@@ -281,8 +295,8 @@ public:
     CUiSurface* statusSurface_;      // +0x64 only while ShowStatusText runs
     int mouseX_;                     // +0x68 mouse position in screen coordinates
     int mouseY_;                     // +0x6C
-    // +0x70..+0x78 the three interface fonts (Create 005F4990: CFont point sizes 75, then
-    // scaled with the screen height); text drawing selects font n from here.
+    // +0x70..+0x78 the three interface fonts (Create 005F4990: "Times New Roman", sized with the
+    // screen width); text drawing selects font n from here.
     ui_gdi::GameFont* fonts_[3];
     // Set by the key-down handler (005F78C0) from the scan codes, cleared by the key-up one
     // (005F7BE0) from the virtual keys and when the windows change.
