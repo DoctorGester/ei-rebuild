@@ -7,8 +7,8 @@
 // mode_; the regions (9 kept, plus 10 hero rows or 11 voice rows); the sprites shown (all but 7-9
 // on the hero list, 3-9 on the new hero, 7-9 on its statistics; not the selection frame, sprite
 // 2, which the lists show only with a selection); which of the surfaces 0-2 are shown (0 and 1,
-// or 2). The screen opens in mode 9 from the main menu's Multiplayer button; no scenario is known to
-// open it (ui_main_menu stays on the menu), so no scenario reaches this wrapper.
+// or 2). The screen opens in mode 9 from the main menu's Multiplayer button: scenarios
+// ui_hero_screen (modes 9 and 10), ui_hero_stats and ui_hero_delete reach this wrapper.
 #include "verify.h"
 
 #include "../../src/game/ui_screens.h"

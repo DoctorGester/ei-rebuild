@@ -461,6 +461,22 @@ public:
     // off, the trade panel's hero 0. Last, for every mode: the description panel emptied, the
     // statistics panel's page `mode`, mode_.
     void SetModeVanilla(int mode);
+    // 00613EA0 (slot 25; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
+    // only; ui_hero_screen_create.cpp). The game's resources taken for a network game
+    // (0057DEE0 with 1); the menu model with its multiplayer button; nine regions; the item
+    // screen's base (005EDD80); the sprites (0, 1 the buttons, 2 the selection frame, 3-6 the
+    // quarters "campm1".."campm4" around the figure, 7-9 the new hero's buttons, 10-12 frames,
+    // 13, 14 backgrounds, 15-18 the commands' buttons); the description, statistics, equipment,
+    // quick item and trade panels; the list's scroll bar; the figures a new hero can take: every
+    // creature record (007AF378) whose unit prototype's figure model is "unhuma" (defaults_,
+    // voiceLists_[0]) or "unhufe" (names_, voiceLists_[1]), a voice "<lmp_male_voice /
+    // lmp_female_voice> <n>" only when the record's +0x5C is set; both name lists sorted, the
+    // women's then reversed; the two figure strips; the rename and name edit windows; the voices'
+    // scroll bar; four surfaces (the list, its commands with the four "lmp_pers_..." texts, the
+    // voices, the name being changed, hidden); the saved heroes reloaded from <data>"mp\"
+    // (00662FB0), the list's scroll range, the list drawn, the first hero selected (-1 without
+    // one) and mode 9 (00615D30).
+    void Create();
     // The hero list's scroll bar after the count changed (DeleteHero and AddNewHero inline it):
     // range count - 10 keeping the position, or 0 with the top row 0.
     void RefreshHeroScroll();
