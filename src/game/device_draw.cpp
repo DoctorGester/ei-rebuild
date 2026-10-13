@@ -6,6 +6,8 @@
 // stage 0 from the next stage record and draws again, and the blend states are restored at the
 // end. 004EB370 (RET 0x24, used by 004E9A50) draws twice: with a first surface, then blended
 // (source alpha, inverse source alpha) with a second one. See docs/notes/models.md ("Material draw").
+#include "engine_object.h"
+
 #include "ei/hook.h"
 #include "lib/gameapi.h"
 #include "render/render_state.h"
@@ -80,8 +82,14 @@ void SetRenderState(char* device, int state, std::uint32_t value) {
 // The texture manager (007AF744): finds or loads a texture by name [00693C60].
 void* TextureManager() { return *reinterpret_cast<void**>(0x007AF744); }
 __declspec(naked) void* __fastcall FindTexture(void*, void*, const char*) EI_ORIGINAL(0x00693C60)
-// *slot = texture with counted references, the old one released [004EBE60].
-__declspec(naked) void __fastcall AssignTexture(void**, void*, void*) EI_ORIGINAL(0x004EBE60)
+// *slot = texture with counted references, the old one released through its slot 4 [004EBE60].
+void AssignTexture(void** slot, void* texture) {
+    auto* previous = static_cast<CEngineObject*>(*slot);
+    auto* value = static_cast<CEngineObject*>(texture);
+    *slot = value;
+    if (value) ++value->refCount_;
+    if (previous) previous->Release();
+}
 // The device [thiscall]: binds a surface to a stage [004EB300: stage, surface], binds a texture to
 // a stage [004EBAF0: stage, texture], flushes the batched vertices [004E7840].
 __declspec(naked) void __fastcall BindSurface(char*, void*, int, void*) EI_ORIGINAL(0x004EB300)
@@ -153,7 +161,7 @@ void SetFirstPassStage(char* device, int stage, MaterialStage& s) {
     if (s.texture) {
         BindSurface(device, nullptr, stage, TextureSurface(s.texture));
     } else if (s.nameBegin != s.nameEnd) {
-        AssignTexture(&s.texture, nullptr, FindTexture(TextureManager(), nullptr, s.nameBegin));
+        AssignTexture(&s.texture, FindTexture(TextureManager(), nullptr, s.nameBegin));
         BindTexture(device, nullptr, stage, s.texture);
     } else {
         BindSurface(device, nullptr, stage, nullptr);
@@ -166,7 +174,7 @@ void SetLaterPassStage(char* device, MaterialStage& s) {
     if (s.texture) {
         surface = TextureSurface(s.texture);
     } else if (s.nameBegin != s.nameEnd) {
-        AssignTexture(&s.texture, nullptr, FindTexture(TextureManager(), nullptr, s.nameBegin));
+        AssignTexture(&s.texture, FindTexture(TextureManager(), nullptr, s.nameBegin));
         if (s.texture) surface = TextureSurface(s.texture);
     }
     BindSurface(device, nullptr, 0, surface);

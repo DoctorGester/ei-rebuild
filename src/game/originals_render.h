@@ -12,10 +12,8 @@
 class CAnimationNode;   // figure.h
 
 __declspec(naked) inline char* __fastcall AllocVertices(int) EI_ORIGINAL(0x004E5710)
-__declspec(naked) inline void* __fastcall LockVertexBuffer(char*, void*, int) EI_ORIGINAL(0x004E7820)
 __declspec(naked) inline int __fastcall DrawMesh(char*, void*, const void*, int, std::uint32_t, int, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, int, int)
     EI_ORIGINAL(0x004E9010)
-__declspec(naked) inline char* __fastcall AllocVerticesOriginal(int) EI_ORIGINAL(0x004ECB70)
 __declspec(naked) inline void __cdecl ReportError(long, const char*) EI_ORIGINAL(0x004F0B00)
 __declspec(naked) inline void __fastcall LoadTextureOriginal(void** /*holder*/, void*, int /*kind*/, const char* /*name*/)
     EI_ORIGINAL(0x00500A00)
@@ -37,8 +35,6 @@ __declspec(naked) inline void* __cdecl DisplayObject() EI_ORIGINAL(0x00500960)
 // The same object without the call: the scene context the draw slots take (007AF060).
 inline void* SceneContext() { return reinterpret_cast<void*>(0x007AF060); }
 __declspec(naked) inline char* __fastcall AllocAligned16(int /*count*/) EI_ORIGINAL(0x00468F70)
-// 004ECB50: 32-byte aligned allocation of `count` bytes (ECX, plain RET).
-__declspec(naked) inline char* __fastcall AllocAligned32Original(int /*count*/) EI_ORIGINAL(0x004ECB50)
 // 004D9880: 4x4 matrix product out = a * b (ECX = out, RET 8, no result).
 __declspec(naked) inline void __fastcall MatrixMultiplyOriginal(float* /*out*/, void*, const float* /*a*/,
                                                                 const float* /*b*/) EI_ORIGINAL(0x004D9880)
@@ -75,16 +71,11 @@ __declspec(naked) inline int __fastcall DevicePresentOriginal(void* /*device*/) 
 // C3j. 004E7840 / 004E7A40: flush a device's batch A / B (plain RET, no result).
 __declspec(naked) inline void __fastcall DeviceFlushBatchAOriginal(void* /*device*/) EI_ORIGINAL(0x004E7840)
 __declspec(naked) inline void __fastcall DeviceFlushBatchBOriginal(void* /*device*/) EI_ORIGINAL(0x004E7A40)
-// 004E7E00: draws a vertex buffer with 16-bit indices (RET 8: indices, count; no result).
-__declspec(naked) inline void __fastcall DeviceDrawVertexBufferOriginal(void* /*device*/, void*, const void* /*indices*/,
-                                                                        int /*count*/) EI_ORIGINAL(0x004E7E00)
 // 004D9B80: pushes a scene matrix into slot `index` of the cache (RET 8: matrix, index; no result).
 __declspec(naked) inline void __fastcall PushSceneMatrixOriginal(void* /*cache*/, void*, const float* /*matrix*/, int /*index*/)
     EI_ORIGINAL(0x004D9B80)
 // 004F65B0: allocates `count` 8-byte elements, 32-byte aligned (ECX = count, plain RET, EAX = memory).
 __declspec(naked) inline void* __fastcall AllocAligned32Of8Original(int /*count*/) EI_ORIGINAL(0x004F65B0)
-// 004E6BA0: drops one reference of a surface holder and deletes it at zero (plain RET, no result).
-__declspec(naked) inline void __fastcall SurfaceHolderReleaseOriginal(void* /*holder*/) EI_ORIGINAL(0x004E6BA0)
 
 // C3k. 00500970: makes sure the texture behind a holder is loaded (plain RET; the manager loads it unless its flag 8 is
 // set; a null texture is a fatal error; EAX is not a result). 00501AF0: binds a texture to a stage (RET 8: stage, texture

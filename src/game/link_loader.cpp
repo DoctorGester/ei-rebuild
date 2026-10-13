@@ -2,9 +2,9 @@
 // link_figure.h and CLinkFigureLoader in model.h.
 #include "link_figure.h"
 
-#include "originals_render.h"  // SurfaceHolderReleaseOriginal
 #include "originals_world.h"   // FigureModelConstructOriginal, FigureModelLoadOriginal, FigureModelDestructOriginal
 #include "resource.h"          // CMappedResource
+#include "texture.h"           // CTextureDevice
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -338,7 +338,7 @@ void CLinkFigureLoader::Destruct() {
     }
     if (CTextureDevice* device = renderer_) {
         renderer_ = nullptr;
-        SurfaceHolderReleaseOriginal(device);
+        device->Release();   // 004E6BA0
     }
     CLinkFigureLoader::ClearCache();
     stlp::deallocate(cache_.end(), sizeof(Cache::Node));
