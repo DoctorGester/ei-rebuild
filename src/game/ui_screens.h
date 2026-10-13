@@ -595,6 +595,22 @@ public:
     // 00618570 (ui_window_delete.cpp). The destructor body: the two text arrays, the password,
     // the entries (texts, storage), then the container's.
     void DestroyBody();
+    // 0061B2C0 (slot 25; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
+    // only). The screen over 800 x 600: the "saveload" and "scrollbar" textures, the stone menu
+    // model ("unmoco2" with "MainMenu00labels", parts "but03" and "button03_multiplayer") at
+    // (400, 350, 8) turned about x by 007C7F40 * 1.2; the regions (above) with tips 0x9E98,
+    // 0x9E99, 0x9EA2 and 0x9EA3 on the first four; sprites 0 / 1 the two buttons, 2 the selection
+    // bar (plain 0xC8A06800), 3 the sort arrow (the scroll bar's texture, hidden), 4 / 5 the
+    // unlisted and password switches, 6-9 the game type tabs (their names "lmp_allod_name_%d"
+    // into allodNames_, the first selected), 10 / 11 two bars, three frames and three dark
+    // backgrounds; fifteen row regions; surface 0 (100, 100)-(700, 500); the scroll bar, the
+    // player slider (position 5, maxPlayers_ 6) and the name edit (the first hero's name to its
+    // '|', at most 10 characters, trimmed; not focused) as children; the 22 "lmp_connection_%d"
+    // texts; the client started (0057EA50); the queries read from config\addrbook.ini (a chunk
+    // archive, chunk 1; an extra word of 0 becomes a random one xor the tick count) and given to
+    // the client (00442300) when the file opens; nothing selected, the list rebuilt and drawn,
+    // the help topic (005F86F0 with 0), and surface 1 with text 8 ("connecting").
+    void Create();
     // 0061C430 (slot 24). Surface 1 ("connecting") shown while the client asks a host (join
     // state 1); when it stops asking, a refusal box ("lmp_server_full",
     // "..._you_are_banned", "..._wrong_password", else "..._cannot_connect"; text key + "_msg")
