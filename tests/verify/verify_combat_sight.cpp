@@ -122,3 +122,43 @@ static bool __fastcall CanPlanActionVerify(CUnitServer* self, void*, const UnitA
     return expected;
 }
 EI_VERIFY(0x0054C6B0, CanPlanActionVerify, 7, s_canPlan);
+
+// 0054C8B0: PUSH EBX; MOV EBX,[ESP+8] (5 bytes). Planning draws random numbers: ours, the
+// generator put back, the original; results and generator states compared. Every order check of
+// the AI and of player orders (combat, ui_order_attack).
+static bool(__fastcall* s_canReachAndPlan)(CUnitServer*, void*, const UnitAction*);
+static bool __fastcall CanReachAndPlanVerify(CUnitServer* self, void*, const UnitAction* order) {
+    RandomState before, afterOurs, afterOriginal;
+    before.Save();
+    bool actual = self->CanReachAndPlan(order);
+    afterOurs.Save();
+    before.Restore();
+    bool expected = s_canReachAndPlan(self, nullptr, order);
+    afterOriginal.Save();
+    ei::verify::Check("CUnitServer::CanReachAndPlan", true, expected == actual && afterOurs.SameAs(afterOriginal),
+                      "unit %d kind %d: %d vs %d", UnitId(self), order->kind, expected, actual);
+    return expected;
+}
+EI_VERIFY(0x0054C8B0, CanReachAndPlanVerify, 5, s_canReachAndPlan);
+
+// 0054C960: PUSH EBX; PUSH ESI; PUSH EDI; MOV EDI,[ESP+0x10] (7 bytes). The same; the unit's
+// position must be back afterwards.
+static bool(__fastcall* s_canReachAndPlanFrom)(CUnitServer*, void*, const UnitAction*, const Vector3*);
+static bool __fastcall CanReachAndPlanFromVerify(CUnitServer* self, void*, const UnitAction* order,
+                                                const Vector3* point) {
+    unsigned char position[sizeof(Vector3)];
+    std::memcpy(position, &self->unit->position, sizeof(position));
+    RandomState before, afterOurs, afterOriginal;
+    before.Save();
+    bool actual = self->CanReachAndPlanFrom(order, point);
+    afterOurs.Save();
+    bool back = std::memcmp(position, &self->unit->position, sizeof(position)) == 0;
+    before.Restore();
+    bool expected = s_canReachAndPlanFrom(self, nullptr, order, point);
+    afterOriginal.Save();
+    ei::verify::Check("CUnitServer::CanReachAndPlanFrom", true,
+                      expected == actual && back && afterOurs.SameAs(afterOriginal), "unit %d kind %d: %d vs %d",
+                      UnitId(self), order->kind, expected, actual);
+    return expected;
+}
+EI_VERIFY(0x0054C960, CanReachAndPlanFromVerify, 7, s_canReachAndPlanFrom);

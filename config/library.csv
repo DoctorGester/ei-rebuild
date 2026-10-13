@@ -3341,12 +3341,9 @@ address,name,library,signature,notes
 00668B70,"stlp::hashtable<V,K,HF,ExK,EqK,A>::clear",STLport,,"inventory sweep: destroys each bucket chain, nodes back to the pool; loose-family member of 00408F90 (reviewed)"
 0066A280,DeltaField destructor (unwind only),compiler,,"A-H15: the four memory streams' destructor bodies, last first (DeltaField::Destruct); reached only from the unwind funclets 00730BD0 / 00730EB0"
 0066B320,"stlp::hashtable<V,K,HF,ExK,EqK,A>::hashtable(n,hf,eql,a)",STLport,,inventory sweep: default 100 buckets rounded up through the STLport prime list; loose-family member of 004639D0 (reviewed)
-0066B320,"stlp::hashtable<V,K,HF,ExK,EqK,A>::hashtable(n,hf,eql,a)",STLport,,"A-H15: bucket count from the STLport prime list 0073B914 (00408A50), 100 buckets; reserve 0066B570, fill 0066B7C0"
 0066B400,"stlp::hashtable<V,K,HF,ExK,EqK,A>::insert_unique_noresize",STLport,,"A-H15: resize(n+1) 0066B900, key % bucket count, _M_new_node 0066BAD0; returns pair<iterator,bool>"
 0066B490,"stlp::hashtable<V,K,HF,ExK,EqK,A>::find",STLport,,"inventory sweep: key % bucket count, walk the chain; loose-family member of 00405560 (reviewed)"
-0066B490,"stlp::hashtable<V,K,HF,ExK,EqK,A>::find",STLport,,"A-H15: key % bucket count, walk the chain; returns the iterator"
 0066B4D0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
-0066B4D0,stlp::_Vector_base<T>::~_Vector_base,STLport,,"A-H15: the bucket vector back to the node pool 0079B224 (above 0x80 bytes operator delete)"
 0066B510,"stlp::pair<iterator,bool>::pair",STLport,,A-H15: copies the iterator and the flag byte
 0066B530,stlp::_STLP_alloc_proxy<T>::_STLP_alloc_proxy,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0066B550,aligned buffer destructor,compiler,,A-H11 sweep: same instructions as 00570DF0 (data addresses masked; every call goes to the same callee or to library code)
@@ -4371,3 +4368,155 @@ address,name,library,signature,notes
 006E3390,speech record destructor (implicit; three strings),compiler,,"A-X6 review (models.md): compiler-generated member of a prints.db / acks.db record or database (members only: STLport strings, vectors and maps), no game logic"
 006E35A0,SpeechRecord operator= (implicit),compiler,,"A-X6 review (models.md): compiler-generated member of a prints.db / acks.db record or database (members only: STLport strings, vectors and maps), no game logic"
 006E5140,SpeechRecord copy constructor (implicit),compiler,,"A-X6 review (models.md): compiler-generated member of a prints.db / acks.db record or database (members only: STLport strings, vectors and maps), no game logic"
+006AD580,"stlp::hash_map<string,T*>::operator[](const char*) (0x7C record table 007C8758 +0xC)",STLport,,"A-H25: temporary string and pair, find_or_insert 006A7870; same kind as 00613820"
+0069D290,"stlp::hash_map<string,T*>::operator[](const char*) (material table 007C86D8 +0xC)",STLport,,"A-H25: temporary string and pair, find_or_insert 0069E1F0; same kind as 00613820"
+0069D380,"stlp::hash_map<string,T*>::operator[](const char*) (0x78 record table 007C8778 +0xC)",STLport,,"A-H25: temporary string and pair, find_or_insert 0069E2A0; same kind as 00613820"
+0068C680,stlp::basic_string<char>::reserve,STLport,,"A-H25: new block of max(size, n) + 1 from the node pool, copy, old block freed; length_error for npos"
+0068CA10,stlp::__introsort_loop<char*>,STLport,,"A-H25: std::sort of the spell container's code string (0068BF60): median of three, partition, heap sort at depth 0"
+0068CB30,stlp::__insertion_sort<char*>,STLport,,A-H25: std::sort of the spell container's code string
+0068CB90,stlp::__partial_sort<char*>,STLport,,A-H25: std::sort of the spell container's code string (heap sort fallback)
+0068CCE0,stlp::__linear_insert<char*>,STLport,,A-H25: std::sort of the spell container's code string
+0068CD30,stlp::__unguarded_linear_insert<char*>,STLport,,A-H25: std::sort of the spell container's code string
+0068CD50,stlp::make_heap<char*>,STLport,,A-H25: std::sort of the spell container's code string (called by 0068CA10)
+0068CE00,stlp::__adjust_heap<char*>,STLport,,A-H25: std::sort of the spell container's code string
+0069BD60,"stlp::vector<T>::erase(first, last) (16-byte elements)",STLport,,"A-H25: the trader stock's material entries; tail copied down, finish set"
+0069BF10,stlp::basic_string<char>::push_back,STLport,,"A-H25: reserve (0068C680) when full, then the character and the terminator"
+0069C1C0,"stlp::pair<const string, list<T>>::pair(const string&, const list<T>&)",STLport,,"A-H25: the trader stock's recipe map value (item_stock.cpp); string copy, list copy through 0069D680"
+0069D680,"stlp::list<T>::insert(pos, first, last) dispatch",STLport,,A-H25: forwards to 0069E4E0 with an iterator copy
+0069D6B0,"stlp::hashtable<pair<const string, list<T>>,...>::_M_new_node",STLport,,"A-H25: 0x18-byte node from the free list 0079B22C; string copy, list copy 0069D7C0"
+0069D7C0,stlp::list<T>::list(const list&),STLport,,"A-H25: sentinel from the free list 0079B228, elements through 0069D680"
+0069DB00,stlp::vector<T>::_M_allocate_and_copy (16-byte elements),STLport,,"A-H25: n elements from the node pool, uninitialized copy 0069F4E0"
+0069DC30,stlp::copy<T*> (16-byte elements),STLport,,"A-H25: the trader stock's material entries, four dwords each"
+0069E410,stlp::copy<T*> (16-byte elements; returns the end),STLport,,"A-H25: the trader stock's material entries, four dwords each"
+0069E4E0,"stlp::list<T>::_M_insert_dispatch(pos, first, last)",STLport,,A-H25: one insert (0069C2F0) per source node
+0064AA40,stlp::vector<T>::~vector (0x78-byte records with three CStrings),STLport,,A-H25: reached only from the unwind funclet 0072E158; not game logic
+0065A860,"stlp::list<pair<string, string>>::~list",STLport,,"A-H25: reached only from the unwind funclet 0072F9B9; every node's two strings destroyed (0040C720), nodes and sentinel back to the free list 0079B230"
+00663410,stlp::vector<T>::~vector (0x74-byte party file entries),STLport,,"A-H25: reached only from the unwind funclets 0072FEC8 / 0072FF98; elements destroyed inline, storage freed"
+00663660,stlp::_Vector_base<T>::~_Vector_base (0x74-byte elements),STLport,,A-H25: storage back to the node pool or operator delete
+006726E0,"stlp::hashtable<pair<const string,T>,...>::erase(iterator)",STLport,,"A-H25: the mapped resource's file table (CMappedResource::CloseFile 00671FC0); unlink, destroy 006727B0, node to the free list 0079B22C"
+00675560,stlp::vector<T>::~vector (16-byte elements: a string and a counted value),STLport,,A-H25: reached only from the unwind funclet 00731538; not game logic
+006A5910,stlp::vector<stlp::string>::push_back,STLport,,"A-H25: copy construction 004F5DF0 in place, else _M_insert_overflow 004DCE90 (the weapon part names 006A2400..006A2700)"
+006AF790,stlp::vector<CString>::push_back,STLport,,"A-H25: _Construct 0055C270 in place, else _M_insert_overflow 0051F790 (the quest database load 006AE8E0)"
+006B0710,stlp::vector<T>::push_back (0x38-byte records),STLport,,"A-H25: _Construct 006B1770 in place, else _M_insert_overflow 006B0EF0 (the quest database load)"
+006B0780,stlp::vector<T>::push_back (0x6C-byte records),STLport,,"A-H25: _Construct 006B1910 in place, else _M_insert_overflow 006B1480 (the quest database load)"
+006B09B0,"stlp::pair<const string, T>::pair(const string&, const T&)",STLport,,"A-H25: string copy from the node pool (length_error path), the dword value; the quest database's name index (006AE3A0)"
+0069D0E0,"stlp::hashtable<pair<const string,T>,...>::_M_skip_to_next",STLport,,"A-H25: __stl_hash_string of the node's key, then the next non-empty bucket; the trader stock's recipe map walk (0069A780)"
+0069E350,"stlp::find<T**, T*>",STLport,,"A-H25: linear find over a pointer vector (the trader stock's sell lists, 0069B5B0); five identical instantiations 0069E350..0069E3D0"
+0069E370,"stlp::find<T**, T*>",STLport,,A-H25: as 0069E350
+0069E390,"stlp::find<T**, T*>",STLport,,A-H25: as 0069E350
+0069E3B0,"stlp::find<T**, T*>",STLport,,A-H25: as 0069E350
+0069E3D0,"stlp::find<T**, T*>",STLport,,A-H25: as 0069E350
+0069E540,scalar deleting destructor (counted pointer),compiler,,"A-H25: releases the held object through its slot 4 when set, then operator delete on flag bit 0; the trader stock's temporaries (0069AC20, 0069B29A)"
+006A9EF0,scalar deleting destructor (0x50-byte material record),compiler,,"A-H25: the compiler-generated destructor 006A88F0, then operator delete on flag bit 0; the vectors' resize and the database's destructor"
+006A9F10,scalar deleting destructor (0xB4-byte weapon record),compiler,,A-H25: as 006A9EF0 with 006A8950
+006A9F30,scalar deleting destructor (0xC8-byte armour record),compiler,,A-H25: as 006A9EF0 with 006A89D0
+006A9F50,scalar deleting destructor (0x8C-byte quick item record),compiler,,A-H25: as 006A9EF0 with 006A8A50
+006A9F70,scalar deleting destructor (0x7C-byte record),compiler,,A-H25: as 006A9EF0 with 006A8AE0
+006A9F90,scalar deleting destructor (0x78-byte record),compiler,,A-H25: as 006A9EF0 with 006A8BD0
+0064EE90,"hash_map<string, T>::operator[] (find or insert; the objectives' quest index)",STLport,,A-H25: STLport hashtable find_or_insert with the string key's hash and compare inlined (as 00613820)
+00652E30,"copy(first, last, result) over the options' key rows (0x18 bytes)",STLport,,A-H25: STLport __copy; the row's assignment (vector<int> and two CStrings) inlined
+00652F80,"copy(first, last, result) over 0x14-byte elements (four dwords and a CString)",STLport,,A-H25: STLport __copy with the element's assignment inlined
+00652FF0,"the options' key row copy constructor (0x18 bytes: an int, vector<int>, two CStrings)",compiler,,A-H25: compiler-generated memberwise copy (ui.h notes it); only the STLport vector copy and CString copies
+006581C0,__insertion_sort<SaveEntry*> (0x44-byte elements; __linear_insert 006584E0),STLport,,A-H25: STLport sort helper of the save list (00657F10)
+00675040,"_Construct<char>(char*, const char&)",STLport,,A-H25: STLport construct helper (one byte copied)
+00675690,"basic_string::append(first, last) entry",STLport,,A-H25: STLport; forwards to 0042B700
+0067C5D0,"unwind-only destructor freeing two blocks (+8, +0xC)",compiler,,A-H25: reached only from Unwind@00731AB6
+00698E70,static initialiser: an empty vector at 007C8680,compiler,,A-H25: three zero dwords; runs before the hooks are installed
+00698EC0,static initialiser: an empty vector at 007C8670,compiler,,A-H25: as 00698E70
+00698F10,static initialiser: an empty vector,compiler,,A-H25: as 00698E70
+00698F60,static initialiser: an empty vector,compiler,,A-H25: as 00698E70
+00698FB0,static initialiser: an empty vector,compiler,,A-H25: as 00698E70
+0065F580,"constructor of the multiplayer heroes global (two CStrings, a vector, a CParty 00661050)",compiler,,"A-H25: only the members' constructors; called from the static initialiser 0065F2A5, before the hooks are installed"
+006611B0,scalar deleting destructor of CParty's base (vtable 0074306C slot 0; body 0055ED90 -> 00455930),compiler,,A-H25: compiler-generated; the base vtable is only in place inside CParty's constructor and destructor
+006868D0,"scalar deleting destructor (spell record, body 00685AA0)",compiler,,A-H25: as 006A9EF0
+006868F0,"scalar deleting destructor (spell modifier record, body 00685B70)",compiler,,A-H25: as 006A9EF0
+006B2DE0,"scalar deleting destructor (quest record, body 006AF4D0)",compiler,,A-H25: as 006A9EF0
+006B2E00,"scalar deleting destructor (briefing record, body 006AF5A0)",compiler,,A-H25: as 006A9EF0
+00663570,operator delete of the block kept before a vector's elements ([this - 4]),compiler,,A-H25: called only from the unwind-only 00663410
+006B6CC0,"basic_string<char> default constructor (an 8-byte block, the terminator)",STLport,,A-H25: STLport; passed by address to the array constructor helper in 006B6A30
+0055E1C0,stlp::uninitialized_fill_n (0x3C-byte look records),STLport,,"A-W13 review (world.md, the unit set): copy-constructs n records from a value (its two vectors copied through 0055C730 / 00522740), destroying the constructed ones and rethrowing on an exception; only the vector's _M_fill_insert 0055BD60 / 0055D100 call it"
+0055E380,stlp::uninitialized_copy (0x24-byte look records),STLport,,"A-W13 review (world.md, the unit set): copy-constructs [first, last) into result with unwinding; only _M_fill_insert 0055C010 and its catch funclet call it"
+0055E510,stlp::uninitialized_fill_n (0x24-byte look records),STLport,,"A-W13 review (world.md, the unit set): copy-constructs n records from a value with unwinding; only _M_fill_insert 0055C010 and its catch funclet call it"
+0058C650,"destructor of two stlp::hash_maps (+0x00 / +0x14: nodes freed through 0059BF80 / 0059BFD0, bucket vectors freed)",compiler,,"A-W13 review (world.md, Open items): compiler-generated member destruction, reached only from the unwind funclets 00725A90 / 00725B68"
+00583060,stlp::vector<T>::~vector (0x8C-byte item records: three CStrings and two CStringArrays destroyed),STLport,,"A-W13 review (world.md, Open items): the item database's record vector; called by the in-place reset 0057D340 (library, A-W11) and unwind funclets"
+00562B80,"Terrain (landscape, vtable 0073F6A8) destructor (calls 006C54D0, then the members destructors and the base 00455930)",compiler,,"A-W13 review (world.md, Open items): compiler-generated member destruction around the class's own Destroy; only the deleting destructor 00562B60 calls it (the client world's teardown, process exit)"
+00562B60,Terrain scalar deleting destructor (vtable 0073F6A8 slot 0),compiler,,"A-W13 review (world.md, Open items): compiler-generated"
+005627C0,"particle manager (vtable 0073F644) destructor (calls 00497FE0, then the members destructors and the base 00402DF0)",compiler,,"A-W13 review (world.md, Open items): compiler-generated member destruction around the class's own teardown; only the deleting destructor 005627A0 calls it"
+005627A0,particle manager scalar deleting destructor (vtable 0073F644 slot 0),compiler,,"A-W13 review (world.md, Open items): compiler-generated"
+005BFCD0,"Sector (vtable 0073FADC) destructor (the occluder CArray and the two object lists destroyed)",compiler,,"A-W13 review (world.md, Open items): compiler-generated member destruction of a sector map element; only the deleting destructor 0059E080 calls it"
+0059E080,Sector scalar deleting destructor (vtable 0073FADC slot 0),compiler,,"A-W13 review (world.md, Open items): compiler-generated; sector_map.h's ~Sector() dispatches to it"
+0058A960,"destructor of a server member block (three arrays of eight 0x10-byte elements through the vector destructor iterator, a CArray, eight buffers freed)",compiler,,"A-W13 review (world.md, Open items): compiler-generated member destruction, reached only from the unwind funclets 00725530 / 007276C0 / 007279A0"
+005BF320,ConstructElements<TYPE> (12-byte elements: zero fill),MFC,,"A-W13 review: MFC template instantiation (the waypoint lists' NewNode 005BEDB0 and Serialize 005BDF40)"
+005C1C70,ConstructElements<TYPE> (4-byte elements: zero fill),MFC,,"A-W13 review: MFC template instantiation (the sector spiral's static initialiser 005BF8F0)"
+005C1C90,ConstructElements<TYPE> (8-byte elements: zero fill),MFC,,"A-W13 review: MFC template instantiation (005BF8F0 and CArray::Serialize 005C1AB0)"
+0059E260,ConstructElements<TYPE> (8-byte sector occluder records: zero fill),MFC,,"A-W13 review: MFC template instantiation (CArray::SetSize 005C14E0 and its copies inlined in 005BFE70 / 0059E0C0); mfc::PlainElements"
+005C1440,"CList<TYPE,ARG_TYPE>::Find (pointer elements)",MFC,,"A-W13 review: MFC template instantiation (the sector lists; CSectorMap::Add / Move, rewritten on mfc::CList::Find)"
+005C1470,"CList<TYPE,ARG_TYPE>::RemoveAt (FreeNode and RemoveAll inlined)",MFC,,"A-W13 review: MFC template instantiation (the sector lists; CSectorMap::Move, rewritten on mfc::CList::RemoveAt)"
+005B1B30,"CList<TYPE,ARG_TYPE> scalar deleting destructor (vtable 0073FD00; ~CList 005B1810)",compiler,,"A-W13 review: compiler-generated beside the MFC template destructor"
+005B1B50,"CList<TYPE,ARG_TYPE> scalar deleting destructor (vtable 0073FCF4; ~CList 005B19A0)",compiler,,"A-W13 review: compiler-generated beside the MFC template destructor"
+005B1BE0,"CList<TYPE,ARG_TYPE>::NewNode (16-byte nodes: the region vote list of CRegionMap::RegionAt)",MFC,,"A-W13 review: MFC template instantiation (CPlex::Create, ConstructElements 005B1CA0)"
+005B1C70,ConstructElements<TYPE> (12-byte block cost records: zero fill),MFC,,"A-W13 review: MFC template instantiation; BlockCostElements::Construct forwards to it"
+005B1CA0,ConstructElements<TYPE> (8-byte elements: zero fill),MFC,,"A-W13 review: MFC template instantiation (NewNode 005B1BE0 and 005B1A00)"
+005BD1C0,"CArray<TYPE,ARG_TYPE>::CArray (vtable 0073F9EC; CAIMap + 0x134)",MFC,,"A-W13 review: MFC template instantiation (the AI map's constructor 005B3C30)"
+005BCDE0,"hash_map<int, unsigned short>::operator[] (the AI map's bridge heights; resize 005BEA80, new node 005BE1B0)",STLport,,"A-W13 review: STLport template instantiation (CAIMap::ApplyBridges calls it through a forwarder)"
+005BD130,"_Hashtable_iterator constructor (node, table): the bridge height map",STLport,,"A-W13 review: STLport template instantiation (CAIMap::ApplyBridges)"
+005BD150,"_Hashtable_iterator constructor (node, table): the bridge height map",STLport,,"A-W13 review: STLport template instantiation (CAIMap::ApplyBridges, 005B30B0)"
+005BEE40,"hashtable::_M_new_node (24-byte nodes from the node allocator's free list 0079B22C: key, two counted pointers, two ints)",STLport,,"A-W13 review (world.md, Open items): STLport template instantiation (005BE730 / 005BE090, the unit shape cache's map)"
+00582D80,"vector<T>::~vector (200-byte records: two CStringArrays and three CStrings destroyed per element, then the block freed)",STLport,,"A-W13 review (world.md, Open items): STLport template instantiation (the item database's rebuild 0057D340 and unwinding)"
+005B3570,"unit shape scalar deleting destructor (vtable 0073FD5C slot 0; the base destructor 005B3590)",compiler,,"A-W13 review: compiler-generated (CUnitShape, ai_unit_layer.h)"
+005AE820,"__uninitialized_copy (16-byte records: an STLport string and an int)",STLport,,"A-W13 review: STLport template instantiation (the vector growth 005AD680)"
+005AE8E0,"__uninitialized_fill_n (16-byte records: an STLport string and an int)",STLport,,"A-W13 review: STLport template instantiation (the vector growth 005AD680)"
+005AE030,"copy constructor of a 16-byte record (an STLport string, copied inline, and an int)",compiler,,"A-W13 review: compiler-generated (005AA360, 00675050)"
+00577E90,"make_heap (pointers ordered by the unsigned value at [[p + 0x94] + 0xEC]: the model use sort's heap)",STLport,,"A-W13 review: STLport template instantiation (IntroSortByModelUse 00573EA1's caller chain)"
+00582030,"vector<T>::~vector (68-byte records: four CStrings destroyed per element, then the block freed)",STLport,,"A-W13 review: STLport template instantiation (0057DEE0)"
+0059A3C0,"CList<TYPE,ARG_TYPE>::~CList (vtable 0073FA10; RemoveAll with the elements' CArray members destroyed inline, CPlex::FreeDataChain)",MFC,,"A-W13 review: MFC template instantiation (0059B4F0 and unwinding)"
+00589860,"destructor of a record of two vectors of STLport strings (12-byte elements) and two 0043B310 members",compiler,,"A-W13 review: compiler-generated (00684390, 00684C50, 00589840 and unwinding)"
+00583CB0,"vector<string>::erase(first, last) (12-byte STLport strings: assigned down, the tail destroyed)",STLport,,"A-W13 review: STLport template instantiation"
+0056D080,"destructor of a record of three delete[] arrays, a counted pointer and an STLport vector block",compiler,,"A-W13 review: compiler-generated (00563290, 00572550, 00575540)"
+005896D0,"__uninitialized_fill_n (12-byte records: two CStrings and an int, copy-constructed n times)",STLport,,"A-W13 review: STLport template instantiation (vector insert 00587480)"
+00589610,"__uninitialized_copy (the same 12-byte records)",STLport,,"A-W13 review: STLport template instantiation (vector insert 00587480)"
+005CD5B0,"CList<TYPE,ARG_TYPE>::RemoveAt (elements of two counted pointers, released by the inlined FreeNode; RemoveAll when the list empties)",MFC,,"A-W13 review: MFC template instantiation (005CC020)"
+0056D400,"destructor of a record of three aligned arrays, a counted pointer and an STLport vector block",compiler,,"A-W13 review: compiler-generated (00572580, 00575560 and unwinding)"
+0056D680,"destructor of a record of three aligned arrays, a counted pointer and an STLport vector block (the same code as 0056D400)",compiler,,"A-W13 review: compiler-generated (005725B0, 00575580 and unwinding)"
+00562A80,"list<T>::list (an empty list: the 24-byte sentinel node from the node allocator, linked to itself)",STLport,,"A-W13 review: STLport template instantiation (CWorldClient::Setup 00561E50)"
+005782F0,"__adjust_heap / pop_heap step (pointers ordered by the unsigned value at [[p + 0x94] + 0xEC], as make_heap 00577E90)",STLport,,"A-W13 review: STLport template instantiation (the model use sort)"
+005783B0,"vcall thunk (jumps to the object's vtable slot 24)",compiler,,"A-W13 review: compiler-generated thunk for a pointer to a virtual member"
+0059A050,"CList<TYPE,ARG_TYPE>::RemoveAt (elements of one counted pointer, released by the inlined FreeNode; RemoveAll when the list empties)",MFC,,"A-W13 review: MFC template instantiation (CWorldServer::UpdateUnits 0058D670)"
+005894D0,"__median (three list nodes ordered by EntryIdLess 00589580, values through 00589230)",STLport,,"A-W13 review: STLport template instantiation (the introsort 00589160)"
+005BE370,"record copy constructor (a counted pointer shared, a handle cloned, plain fields copied)",compiler,,"A-W13 review: compiler-generated copy constructor (CAIMap::UnitShape)"
+00599CC0,"CList<TYPE,ARG_TYPE>::RemoveAt (elements destroyed by 0059B4B0 in the inlined FreeNode; RemoveAll when the list empties)",MFC,,"A-W13 review: MFC template instantiation (005935C0)"
+00577600,"__copy_backward (12-byte STLport strings, assigned element by element)",STLport,,"A-W13 review: STLport template instantiation (the vector insert 00575E50)"
+00583A60,"list<pair<CString, CString>>::~list (every node's two strings destroyed, the nodes and the sentinel freed)",STLport,,"A-W13 review: STLport template instantiation (unwinding only)"
+0055FF90,"list<T>::~list (nodes of one counted pointer released, the nodes and the sentinel freed)",STLport,,"A-W13 review: STLport template instantiation (unwinding only)"
+005BE280,"record destructor (the handle shut down and released, the counted pointer released)",compiler,,"A-W13 review: compiler-generated destructor of the record 005BE370 copies (CAIMap::UnitShape, 005B31F0)"
+00584EA0,"CArray<ZoneExit>::GetAt (the element by value into the result slot, through 00587DD0)",MFC,,"A-W13 review: MFC template instantiation (ExitArrayGetAt, world_game.cpp)"
+00587DD0,"CArray<ZoneExit>::GetAt body (the 0x3C-byte element copied field by field, its CString copy-constructed)",MFC,,"A-W13 review: MFC template instantiation with the element's compiler-generated copy constructor inlined (00584EA0)"
+00583B50,"ZoneExit::operator= (field by field, the CString assigned)",compiler,,"A-W13 review: compiler-generated assignment (ZoneExitAssign, world_game.cpp)"
+0056DEF0,"list<T>::~list (nodes of one counted pointer released, the 16-byte nodes and the sentinel freed)",STLport,,"A-W13 review: STLport template instantiation (00572B30 and unwinding)"
+00589A40,"__push_heap (pointers ordered by EntryIdLess 00589580, values through 00589230)",STLport,,"A-W13 review: STLport template instantiation (the introsort 00589160)"
+005899C0,"__adjust_heap (the same ordering; ends in __push_heap 00589A40)",STLport,,"A-W13 review: STLport template instantiation (the introsort 00589160)"
+005897D0,"__linear_insert (the same ordering; the unguarded insert 00589930 otherwise)",STLport,,"A-W13 review: STLport template instantiation (the introsort 00589160)"
+005778A0,"__unguarded_linear_insert (pointers ordered by the model use rank, then +0xF0, then the float +0x30)",STLport,,"A-W13 review: STLport template instantiation (the model use sort)"
+00580900,"hashtable<pair<const CString, float>, ...> copy constructor (the functors, an empty bucket vector, then _M_copy_from 004AA950)",STLport,,"A-W13 review: STLport template instantiation (GameFlow::UpdateFromServer 005800C0)"
+00599330,"CArray<Sector>::~CArray (each element's destructor slot with flags 0, the storage freed)",MFC,,"A-W13 review: MFC template instantiation (the AI map's reset, Destroy330)"
+005BE7B0,"CList<T>::NewNode (0x24-byte nodes, the 0x1C-byte element zeroed)",MFC,,"A-W13 review: MFC template instantiation"
+005BEDB0,"CList<T>::NewNode (0x14-byte nodes, the element constructed by 005BF320)",MFC,,"A-W13 review: MFC template instantiation"
+005DA1C0,"CList<T>::NewNode (0x14-byte nodes, the element constructed by 005DA2B0)",MFC,,"A-W13 review: MFC template instantiation"
+005895A0,"__partition step of the EntryIdLess introsort 00589160",STLport,,"A-W13 review: STLport template instantiation (the introsort 00589160)"
+005636A0,"destructor of three counted pointers (CWorldClient + 0x1AC)",compiler,,"A-W13 review: compiler-generated member destructor"
+005842C0,"_Vector_base<T>::~_Vector_base (0x8C-byte elements; the node allocator's deallocate)",STLport,,"A-W13 review: STLport template instantiation"
+00584340,"_Vector_base<T>::~_Vector_base (0x7C-byte elements; the node allocator's deallocate)",STLport,,"A-W13 review: STLport template instantiation"
+005776D0,"__unguarded_linear_insert (pointers ordered by the unsigned +0x94 -> +0xEC)",STLport,,"A-W13 review: STLport template instantiation (the sort called from 00573F93)"
+0059B7D0,"hashtable iterator operator++ (the next node, else the next non-empty bucket)",STLport,,"A-W13 review: STLport template instantiation"
+0059B8A0,"hashtable iterator operator++ (byte-identical to 0059B7D0)",STLport,,"A-W13 review: STLport template instantiation"
+00589930,"__unguarded_linear_insert (pointers ordered by EntryIdLess through 00589580)",STLport,,"A-W13 review: STLport template instantiation (the introsort 00589160)"
+00589B00,"__pop_heap (the same ordering; the sift 005899C0)",STLport,,"A-W13 review: STLport template instantiation (the introsort 00589160)"
+00589970,"make_heap (the same ordering; the sift 005899C0)",STLport,,"A-W13 review: STLport template instantiation (the introsort 00589160)"
+00576E90,"uninitialized_copy (12-byte elements)",STLport,,"A-W13 review: STLport template instantiation"
+00576ED0,"uninitialized_fill_n (12-byte elements)",STLport,,"A-W13 review: STLport template instantiation"
+00577300,"uninitialized_copy (24-byte elements)",STLport,,"A-W13 review: STLport template instantiation"
+00577330,"uninitialized_fill_n (24-byte elements)",STLport,,"A-W13 review: STLport template instantiation"
+00577F90,"copy_backward (pointers)",STLport,,"A-W13 review: STLport template instantiation"
+005849F0,"__stl_next_prime (lower_bound in the 28 primes at 0073B914)",STLport,,"A-W13 review: STLport template instantiation"
+00584A40,"__stl_next_prime (byte-identical to 005849F0)",STLport,,"A-W13 review: STLport template instantiation"
+005755E0,"list<counted pointer>::erase (the node unlinked, its object released through slot 4, the node to the free list)",STLport,,"A-W13 review: STLport template instantiation"

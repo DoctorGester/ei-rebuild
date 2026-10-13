@@ -74,6 +74,18 @@ int CEffect::Receive(int update, BitStream* reader) {
 
 void CEffect::ResetBase() { ClearBase(this); }
 
+void __fastcall ReadSavedStrings(mfc::CStringArray* array, CStream* stream) {
+    int count;
+    stream->Read(&count, 4);
+    for (int i = 0; i < count; ++i) {
+        alignas(mfc::CString) unsigned char slot[sizeof(mfc::CString)];
+        mfc::CString* text = stream->ReadString(slot);
+        array->SetAtGrow(array->size, *text);
+        text->~CString();
+    }
+}
+EI_REPLACE(0x006773A0, ReadSavedStrings);
+
 void CEffect::MarkChanged() {
     flags_ |= 2;
     changeStamp_ = ChangeStamp();

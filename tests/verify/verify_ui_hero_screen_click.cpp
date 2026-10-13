@@ -260,3 +260,12 @@ static void __fastcall HeroMessageVerify(CMpHeroScreen* self, void*, int result)
     ei::verify::Check("CMpHeroScreen::OnMessageResult", 9, self->mode_, "result %X", result);
 }
 EI_VERIFY(0x00615940, HeroMessageVerify, 0, s_unused);
+
+// 00662F80 (A-H25; the multiplayer hero screen showing a hero): the party is copied through a saved
+// stream, so ours only: the current hero has the file name of `hero`.
+static void __fastcall HeroListSelectVerify(MpHeroRoster* self, void*, const MpHeroRecord* hero) {
+    self->Select(hero);
+    ei::verify::Check("MpHeroRoster::Select", true, std::strcmp(self->current.file, hero->file) == 0, "file %s",
+                      static_cast<const char*>(hero->file));
+}
+EI_VERIFY(0x00662F80, HeroListSelectVerify, 0, s_unused);

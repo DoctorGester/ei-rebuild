@@ -146,6 +146,17 @@ struct ItemStock {
     // not written.
     ItemStock* Construct(void* context);
 
+    // 00699080 / 006990E0 / 00699140 / 006991A0 / 00699200 (RET 4; A-H25). `record` appended to the
+    // armors / weapons / quick items / spells / modifiers unless null or already there.
+    void AddArmor(char* record);
+    void AddWeapon(char* record);
+    void AddQuickItem(char* record);
+    void AddSpell(char* record);
+    void AddModifier(char* record);
+    // 00699260 (RET 0xC; A-H25). The material entry of `record` (null: nothing) gets the count range
+    // and `maxCount` units left; a new entry is appended when the record has none.
+    void AddMaterial(char* record, int minCount, int maxCount);
+
     // 00699410 (RET 8). +0x78 and +0x98 each set from 8 floats (004A6DC0).
     void SetLevels(const float* base, const float* scroll);
 

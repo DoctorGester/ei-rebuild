@@ -615,6 +615,9 @@ MpHeroRecord* MpHeroRecord::Assign(const MpHeroRecord* other) {
 }
 EI_REPLACE_METHOD(0x0061A350, MpHeroRecord::Assign);
 
+void MpHeroRoster::Select(const MpHeroRecord* hero) { current.Assign(hero); }
+EI_REPLACE_METHOD(0x00662F80, MpHeroRoster::Select);
+
 MpHeroRecord* MpHeroRecord::Construct() {
     PartyRecordsConstructOriginal(party);   // 00661050 by address: its wrapper runs
     new (&file) mfc::CString();

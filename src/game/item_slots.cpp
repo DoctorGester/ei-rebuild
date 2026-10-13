@@ -26,6 +26,14 @@ const Record* RecordOf(const char* record) { return reinterpret_cast<const Recor
 
 } // namespace
 
+// --- Slot 21 -----------------------------------------------------------------------------------
+
+ItemUse* CItemQuest::GetUse(ItemUse* out) {
+    *out = ItemUse{8, unknown_4C, 0};
+    return out;
+}
+EI_REPLACE_METHOD(0x006A43C0, CItemQuest::GetUse);
+
 // --- Slot 14 -----------------------------------------------------------------------------------
 
 BOOL CItem::IsSameAs(CItem* other) {

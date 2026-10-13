@@ -86,6 +86,11 @@ public:
     // 24: 0055E940. A new item made like `item` (the item factory, slot 18) and given its values
     // (its slot 15 with the spell manager, slot 22).
     virtual CItem* CopyItem(CItem* item);
+    // 0055E940 (RET 4; slot 24's body, in CWorld's base and client vtables too, whose slots 18 and
+    // 22 are the same getters). The item manager makes an item of `item`'s kind, prototype (high
+    // word of the packed id) and material (low word), which `item` then fills (its slot 15 with
+    // the spell manager). Returns the new item.
+    CItem* MakeCopyOf(CItem* item);
 
     // 00661DB0 (RET 0xC; party_items.cpp). Puts `item` among the party's items with a count of 1
     // (with `keepCount`, the item's own +0x48). With `merge`, an item the list already has that is
@@ -169,9 +174,11 @@ public:
     // count and records, the variables (with `saveVariables`), then +0x50 xor an ISAAC key and
     // the key.
     void SaveParty(CStream* stream, int saveVariables);
-    // 006617F0 (RET 4; not rewritten). The party in an archive: a memory stream holding SaveParty's
-    // output (with variables) as stream field 1, read back with the archive's version.
+    // 006617F0 (RET 4; party_save.cpp, A-H25). The party in an archive: a memory stream holding
+    // SaveParty's output (with variables) as stream field 1, read back with the archive's version.
+    // ArchivePartyThroughHook goes through the address (party_manager.cpp), so its check runs.
     void ArchiveParty(ChunkArchive* ar);
+    void ArchivePartyThroughHook(ChunkArchive* ar);
     // 00661300 (RET 4). operator=: Clear(1, 0), then `source` saved into a memory stream and
     // loaded back into this party (variables included). Returns this.
     CParty* Assign(CParty* source);

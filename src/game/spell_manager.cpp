@@ -125,6 +125,13 @@ CSpellManager* CSpellManager::DeletingDestruct(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x00688970, CSpellManager::DeletingDestruct);
 
+CSpellContainer* __fastcall NextSpellContainer(SpellContainerWalk* walk) {
+    if (!walk->node) return nullptr;
+    walk->node = walk->table->After(walk->node);
+    return walk->node ? walk->node->value : nullptr;
+}
+EI_REPLACE(0x00689820, NextSpellContainer);
+
 namespace {
 int __fastcall SpellManagerCreateHook(CSpellManager* self) { return self->CSpellManager::Create(); }
 void __fastcall SpellManagerDestroyHook(CSpellManager* self) { self->CSpellManager::Destroy(); }
@@ -143,6 +150,26 @@ EI_REPLACE(0x00688960, SpellManagerClassId);
 // 00688940: slot 25, the folder "spells" (A-H24).
 const char* __fastcall SpellManagerFolder(CSpellManager*) { return reinterpret_cast<const char*>(kSpellManagerFolder); }
 EI_REPLACE(0x00688940, SpellManagerFolder);
+
+// 00689570 / 00689610 (A-H25). The array takes the table's count, then element i the name of record
+// i while i is below the count (read again each time).
+namespace {
+template <typename Record>
+void ListRecordNames(const RecordTable& table, mfc::CStringArray* names) {
+    const int stride = static_cast<int>(sizeof(Record));
+    names->SetSize(static_cast<int>(table.end - table.begin) / stride, -1);
+    for (int i = 0; i < static_cast<int>(table.end - table.begin) / stride; ++i) {
+        auto* record = reinterpret_cast<const Record*>(table.At(static_cast<std::uint32_t>(i), stride));
+        names->data[i] = record->name;
+    }
+}
+} // namespace
+void CSpellManager::ListSpellNames(mfc::CStringArray* names) { ListRecordNames<itemdb::SpellRecord>(itemdb::Spells(), names); }
+void CSpellManager::ListModifierNames(mfc::CStringArray* names) {
+    ListRecordNames<itemdb::SpellModifierRecord>(itemdb::SpellModifiers(), names);
+}
+EI_REPLACE_METHOD(0x00689570, CSpellManager::ListSpellNames);
+EI_REPLACE_METHOD(0x00689610, CSpellManager::ListModifierNames);
 
 // --- CSpellContainer -----------------------------------------------------------------------------
 

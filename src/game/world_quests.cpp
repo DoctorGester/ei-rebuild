@@ -641,7 +641,7 @@ __declspec(naked) void __fastcall RecordStatsFinish(void*, void*) EI_ORIGINAL(0x
 inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { UnitSetControllerOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall StorePartyAt(CWorldServer*, void*, RecordPtrArray*, CParty*, void*) EI_ORIGINAL(0x0058FD90)
 // 00590160 (RET 8). The player's items into its party records before leaving.
-__declspec(naked) void __fastcall StorePlayerItems(CWorldServer*, void*, WorldPlayer*, CParty* /*records*/) EI_ORIGINAL(0x00590160)
+__declspec(naked) void __fastcall StorePlayerItemsOriginal(CWorldServer*, void*, WorldPlayer*, CParty* /*records*/) EI_ORIGINAL(0x00590160)
 // 0066F0C0. The player state before a zone change.
 __declspec(naked) void __fastcall StateBeforeZoneChange(CPlayerServer*, void*) EI_ORIGINAL(0x0066F0C0)
 // 0065F740. The unit record's destructor body.
@@ -721,7 +721,7 @@ void CWorldServer::CollectParty(WorldPlayer* player, void* placements) {
     if (!player) return;
     if (unknown12D64_ == 1 || unknown12D64_ == kKindNoRangeTest) UpdatePlayerTimesAt(this, nullptr, 0.0f);
     if (unknown12D64_ != kKindNetwork) {
-        StorePlayerItems(this, nullptr, player, PartyOf(player));
+        StorePlayerItemsOriginal(this, nullptr, player, PartyOf(player));
         StateBeforeZoneChange(player->server, nullptr);
     }
     if (!(unknown12D64_ == 1 || unknown12D64_ == kKindNoRangeTest) || unknown15C_ == 0) return;
@@ -749,6 +749,37 @@ void CWorldServer::CollectParty(WorldPlayer* player, void* placements) {
     if (list.data) gamecrt::operator_delete(list.data);
 }
 
+void CWorldServer::StorePlayerItems(WorldPlayer* player, CParty* party) {
+    if (!player) return;
+    for (auto* node = player->items.head; node;) {
+        CEngineObject* item = node->data;
+        node = node->next;
+        party->AddItem(static_cast<CItem*>(item), 1, 1);
+        item->Release();
+    }
+    player->items.RemoveAll();
+}
+
+void CWorldServer::TellParties(CEngineObject* unit, std::uint32_t value) {
+    PlayerIterator it;
+    for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
+        CPlayerServer* server = player->server;
+        // The original tests AL only.
+        if (static_cast<std::uint8_t>(server->IsPartyUnit(unit))) server->SendObject0B(unit, value);
+    }
+}
+
+void CWorldServer::TellPartiesGone(CEngineObject* unit) {
+    PlayerIterator it;
+    for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) {
+        CPlayerServer* server = player->server;
+        if (server->partyUnits_.Contains(unit)) server->SendObject43(unit);
+    }
+}
+
+EI_REPLACE_METHOD(0x00590160, CWorldServer::StorePlayerItems);
+EI_REPLACE_METHOD(0x0058D340, CWorldServer::TellParties);
+EI_REPLACE_METHOD(0x00593AF0, CWorldServer::TellPartiesGone);
 EI_REPLACE_METHOD(0x00591800, CWorldServer::UpdateMercBriefings);
 EI_REPLACE_METHOD(0x0058FD90, CWorldServer::StoreParty);
 EI_REPLACE_METHOD(0x00590A40, CWorldServer::CollectParty);

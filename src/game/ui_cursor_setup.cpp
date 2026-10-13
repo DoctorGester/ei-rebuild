@@ -232,7 +232,7 @@ char CCursor::UpdatePosition() {
     frameTime_ += steps * kFramePeriod;
     char moved = steps != 0;
 
-    const LONG* state = mouse_->Poll(2);
+    const LONG* state = mouse_->PollThroughHook(2);
     motion_.x += state[0];
     motion_.y += state[1];
     POINT point;

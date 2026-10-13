@@ -185,3 +185,43 @@ EI_VERIFY(0x0068DA40, ManagerNewObjectVerify, 0, s_unused);
 EI_VERIFY(0x0068DAD0, ManagerCreateObjectVerify, 0, s_unused);
 EI_VERIFY(0x0068D950, ManagerNameVerify, 5, s_managerName);
 EI_VERIFY(0x0068D960, ManagerIdVerify, 5, s_managerId);
+
+// --- 0068D310 / 0068D5A0 (A-H25): a colour lit by the light ------------------------------------------
+// Pure but for `out` (the terrain's vertex lighting: every scenario with a zone): the original into
+// the caller's colour, ours into a copy of what it held; r, g, b compared (the original leaves the
+// alpha unset when the colour is lit).
+namespace {
+void CheckLit(const char* name, const Vector4& expected, const Vector4& actual) {
+    ei::verify::CheckNear(name, expected.x, actual.x, "red %f / %f", expected.x, actual.x);
+    ei::verify::CheckNear(name, expected.y, actual.y, "green %f / %f", expected.y, actual.y);
+    ei::verify::CheckNear(name, expected.z, actual.z, "blue %f / %f", expected.z, actual.z);
+}
+
+// 0068D310: PUSH EBP; MOV EBP,ESP; SUB ESP,0x14 (6 bytes).
+void(__fastcall* s_addDirectional)(const CLight*, void*, Vector4*, float, const Vector4*, const Vector3*);
+void __fastcall AddDirectionalVerify(const CLight* self, void*, Vector4* out, float scale, const Vector4* base,
+                                     const Vector3* normal) {
+    Vector4 ours = *out;
+    const Vector4 baseCopy = *base;
+    const Vector3 normalCopy = *normal;
+    s_addDirectional(self, nullptr, out, scale, base, normal);
+    self->AddDirectional(&ours, scale, &baseCopy, &normalCopy);
+    CheckLit("CLight::AddDirectional", *out, ours);
+}
+
+// 0068D5A0: PUSH EBP; MOV EBP,ESP; SUB ESP,0x1C (6 bytes).
+void(__fastcall* s_addPoint)(const CLight*, void*, Vector4*, float, const Vector4*, const Vector3*, const Vector3*, float);
+void __fastcall AddPointVerify(const CLight* self, void*, Vector4* out, float scale, const Vector4* base,
+                               const Vector3* normal, const Vector3* toLight, float distance) {
+    Vector4 ours = *out;
+    const Vector4 baseCopy = *base;
+    const Vector3 normalCopy = *normal;
+    const Vector3 toLightCopy = *toLight;
+    s_addPoint(self, nullptr, out, scale, base, normal, toLight, distance);
+    self->AddPoint(&ours, scale, &baseCopy, &normalCopy, &toLightCopy, distance);
+    CheckLit("CLight::AddPoint", *out, ours);
+}
+} // namespace
+
+EI_VERIFY(0x0068D310, AddDirectionalVerify, 6, s_addDirectional);
+EI_VERIFY(0x0068D5A0, AddPointVerify, 6, s_addPoint);

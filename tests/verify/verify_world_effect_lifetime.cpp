@@ -329,3 +329,81 @@ EI_VERIFY(0x00677FA0, LightDeleteVerify, 0, s_unused);
 EI_VERIFY(0x00678970, ParticleDeleteVerify, 0, s_unused);
 EI_VERIFY(0x006799C0, WallDeleteVerify, 0, s_unused);
 EI_VERIFY(0x0067A090, LightningDeleteVerify, 0, s_unused);
+
+// --- The base's out-of-line pieces (A-H25) ------------------------------------------------------------
+// No live object has the abstract effect or missile vtable and the rewritten constructors and Resets
+// inline these, so nothing reaches 0067B050, 00675FB0 / 0067B390, 00676910 / 0067B430 or 0067AA00
+// outside unwinding; the wrappers are there for a caller that turns up. 00676900 is slot 6 of
+// CEffectAmbientSound (every tick of a placed ambient sound); ReadSavedStrings runs when a save
+// with a sound sequence or an ambient sound is loaded.
+
+namespace {
+
+// 0067B050: PUSH -1; PUSH imm32 (7).
+CEffect*(__fastcall* s_effectCtor)(CEffect*);
+CEffect* __fastcall EffectCtorVerify(CEffect* self) { return ConstructBoth("CEffect::Construct", s_effectCtor, self); }
+
+// Ours only (frees the streams' buffers).
+void __fastcall EffectDestructVerify(CEffect* self) {
+    self->DestructEffect();
+    ei::verify::Check("CEffect::DestructEffect", true, DestroyedBase(self), "effect %p", static_cast<void*>(self));
+}
+CEffect* __fastcall EffectDeleteVerify(CEffect* self, void*, unsigned flags) {
+    CEffect* result = self->DeletingDestructEffect(flags & ~1u);
+    ei::verify::Check("CEffect::DeletingDestructEffect", true, result == self && DestroyedBase(self), "effect %p",
+                      static_cast<void*>(self));
+    if (flags & 1) gamecrt::operator_delete(self);
+    return result;
+}
+
+// 00676900: MOV EAX,1 (5).
+int(__fastcall* s_tickDefault)(CEffect*);
+int __fastcall TickDefaultVerify(CEffect* self) {
+    int expected = s_tickDefault(self);
+    ei::verify::Check("CEffect::TickDefault", expected, self->TickDefault(), "effect %p", static_cast<void*>(self));
+    return expected;
+}
+
+// Ours only (the state field's streams are resized).
+void __fastcall ResetMissileVerify(CEffectMissile* self) {
+    self->ResetMissile();
+    const bool ok = self->arrived_ == 0 && self->targetId_ == -1 && self->fromCaster_ == 0 && self->moving_ == 0 &&
+                    self->startTick_ == 0 && self->changeStamp_ == -1;
+    ei::verify::Check("CEffectMissile::ResetMissile", true, ok, "missile %p", static_cast<void*>(self));
+}
+
+// 006773A0: MOV EAX,FS:[0] (6). The original appends to an empty scratch array (same vtable and
+// grow-by); the stream is put back where it was and ours appends to the real array. The new
+// elements must be the scratch's texts and the stream must end at the same place.
+void(__fastcall* s_readSavedStrings)(mfc::CStringArray*, CStream*);
+void __fastcall ReadSavedStringsVerify(mfc::CStringArray* array, CStream* stream) {
+    alignas(mfc::CStringArray) unsigned char raw[sizeof(mfc::CStringArray)];
+    auto* scratch = reinterpret_cast<mfc::CStringArray*>(raw);
+    scratch->vtable = array->vtable;
+    scratch->data = nullptr;
+    scratch->size = 0;
+    scratch->maxSize = 0;
+    scratch->growBy = array->growBy;
+    const std::uint32_t start = stream->Position();
+    s_readSavedStrings(scratch, stream);
+    const std::uint32_t end = stream->Position();
+    stream->Seek(start);
+    const int before = array->size;
+    ReadSavedStrings(array, stream);
+    bool same = stream->Position() == end && array->size == before + scratch->size;
+    for (int i = 0; same && i < scratch->size; ++i)
+        same = std::strcmp(static_cast<const char*>((*scratch)[i]), static_cast<const char*>((*array)[before + i])) == 0;
+    ei::verify::Check("ReadSavedStrings", true, same, "%d read, %d -> %d elements", scratch->size, before, array->size);
+    scratch->SetSize(0, -1);
+}
+
+} // namespace
+
+EI_VERIFY(0x0067B050, EffectCtorVerify, 7, s_effectCtor);
+EI_VERIFY(0x00675FB0, EffectDestructVerify, 0, s_unused);
+EI_VERIFY(0x0067B390, EffectDestructVerify, 0, s_unused);
+EI_VERIFY(0x00676910, EffectDeleteVerify, 0, s_unused);
+EI_VERIFY(0x0067B430, EffectDeleteVerify, 0, s_unused);
+EI_VERIFY(0x00676900, TickDefaultVerify, 5, s_tickDefault);
+EI_VERIFY(0x0067AA00, ResetMissileVerify, 0, s_unused);
+EI_VERIFY(0x006773A0, ReadSavedStringsVerify, 6, s_readSavedStrings);

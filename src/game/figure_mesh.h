@@ -55,6 +55,7 @@ struct MeshBuffers {
 static_assert(sizeof(MeshBuffers) == 0x30);
 
 class CObject3D;   // map_object_figures.h
+class CBaseManager;   // base_manager.h
 class CFigureMesh;
 
 struct FigureMeshDrawer;   // link_figure.h
@@ -82,6 +83,9 @@ struct FigureLights {
 // to +0x1E0 and its own loaders. No virtuals are declared: the vtable is a plain field.
 class CFigureMesh {
 public:
+    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073C224);   // class 0x44, the base
+    static constexpr std::uintptr_t kMeshVtableAddress = std::uintptr_t(0x0073FC48);   // class 0x43
+
     // 005A18E0. Reads the bounding volume (centre, box, radius) that follows the mesh header and
     // morphs it: "FIG8" files hold 8 corner versions of each value, blended trilinearly by the
     // figure's three morph coefficients; other versions hold one. Sets the box and centre of
@@ -142,14 +146,48 @@ public:
     // matrix at +0xE0 from the stored quaternion (+0x44).
     void SetPose(const float* q, const float* offset);
 
+    // Lifetime (figure_mesh_life.cpp, A-W13).
+    // 005AABC0. The constructor body the classes 0x41-0x43 share (the factory, figure_factory.cpp):
+    // the transform object's fields, no owner, empty names and arrays, no bounds, vtable 0073C224,
+    // then Create. Returns this.
+    CFigureMesh* ConstructBase();
+    // 0059F210 (slot 2 of every figure class; 005A6C70 / 005A6E00 jump to it). No drawer, flags,
+    // buffers or bounds; white flat colours. Returns 1.
+    int Create();
+    // 0059F2B0 (slot 3 of vtable 0073C224): names and colour arrays emptied, the buffer descriptor
+    // cleared, the drawer let go (released), no flags.
+    void Clear();
+    // 005A6C80 (slot 3 of classes 0x42-0x44) / 005A6E10 (class 0x41): the mesh's own arrays freed,
+    // then Clear.
+    void ClearMesh();
+    void ClearSharedMesh();
+    // 0059F030. The destructor body: Clear, the colour and offset arrays, the names, the engine
+    // object's destructor.
+    void DestructBase();
+    // 005AAD00 (class 0x43; sets its vtable 0073FC48) / 005AADC0 (class 0x41): the mesh's arrays
+    // freed, then DestructBase. 005AACE0 / 005AADA0 are their scalar deleting destructors.
+    void DestructMesh();
+    void DestructSharedMesh();
+    CFigureMesh* DeletingDestructMesh(unsigned flags);
+    CFigureMesh* DeletingDestructSharedMesh(unsigned flags);
+    // 0059F390 (RET 4). Lets the old drawer go (released) and takes `drawer` (one more reference,
+    // its mesh_ set).
+    void SetDrawer(FigureMeshDrawer* drawer);
+    // 0059F3D0 (RET 4).
+    void SetOwner(CObject3D* owner);
+
     void* vtable_;                      // +0x000
     int refCount_;                      // +0x004 the engine object's reference count
     std::uint32_t flags_;               // +0x008 0x20: loaded
-    std::uint8_t unknown_00C[0x1C - 0x0C];
+    int id_;                            // +0x00C (CEngineObject: -1 until a manager registers it)
+    int type_;                          // +0x010 the class id (0x41-0x44)
+    CBaseManager* manager_;             // +0x014 (CEngineObject: the manager that owns it)
+    std::uint32_t unknown_018;
     Vector3 position_;                  // +0x01C (CTransformObject: local position)
     std::uint8_t unknown_028[0x34 - 0x28];
     Quaternion rotation_;               // +0x034 (CTransformObject: local rotation; a bone places it, 0050C230)
-    std::uint8_t unknown_044[0x94 - 0x44];
+    Quaternion worldRotation_;          // +0x044 (CTransformObject)
+    std::uint8_t unknown_054[0x94 - 0x54];
     FigureMeshDrawer* drawer_;          // +0x094 (00501D00 draws through it)
     CObject3D* owner_;                  // +0x098 the object whose figure (+0xF0) may draw the mesh
     MeshBuffers buffers_;               // +0x09C
@@ -159,7 +197,8 @@ public:
     std::uint32_t unknown_0D0;
     std::uint32_t flatColour_;          // +0x0D4 every colour of a flat mesh (flags_ 0x100)
     std::uint32_t flatSpecular_;        // +0x0D8 every specular of a flat mesh
-    std::uint8_t unknown_0DC[0x120 - 0xDC];
+    std::uint32_t unknown_0DC;          // +0x0DC cleared by Create, copied by CopyFrom
+    std::uint8_t unknown_0E0[0x120 - 0xE0];
     mfc::CString name_;                 // +0x120 (the scene loader names it after its mesh)
     mfc::CString directory_;            // +0x124 where its .fig file is (005AC2F0; NewFigure empties it)
     lib::AlignedArray<Vector3> offsets_;     // +0x128 per-vertex offsets added when drawing (005A0B10 / 005A0CD0)

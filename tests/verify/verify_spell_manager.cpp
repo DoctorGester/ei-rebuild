@@ -130,6 +130,20 @@ int __fastcall ContainerIdVerify(CSpellContainer* self) {
 
 } // namespace
 
+// 00689820 (A-H25): MOV EAX,[ECX]; PUSH EDI; TEST EAX,EAX (5 bytes). Pure but for the walk it
+// moves: the original on a copy of the walk, then ours; the container and the place compared.
+// Nothing calls it now (its one live caller, the manager's Destroy, is rewritten).
+static CSpellContainer*(__fastcall* s_nextContainer)(SpellContainerWalk*);
+static CSpellContainer* __fastcall NextContainerVerify(SpellContainerWalk* walk) {
+    SpellContainerWalk copy = *walk;
+    CSpellContainer* expected = s_nextContainer(&copy);
+    CSpellContainer* actual = NextSpellContainer(walk);
+    ei::verify::Check("NextSpellContainer", true, expected == actual && copy.node == walk->node, "%p/%p node %p/%p",
+                      expected, actual, copy.node, walk->node);
+    return actual;
+}
+EI_VERIFY(0x00689820, NextContainerVerify, 5, s_nextContainer);
+
 EI_VERIFY(0x00688EC0, CreateSpellObjectVerify, 0, s_unused);
 EI_VERIFY(0x00688CD0, NewObjectVerify, 0, s_unused);
 EI_VERIFY(0x00688B30, CreateVerify, 0, s_unused);
@@ -145,3 +159,27 @@ EI_VERIFY(0x00688960, ManagerIdVerify, 5, s_managerId);
 EI_VERIFY(0x00688940, ManagerFolderVerify, 5, s_managerFolder);
 EI_VERIFY(0x0068BC10, ContainerNameVerify, 5, s_containerName);
 EI_VERIFY(0x0068BC20, ContainerIdVerify, 5, s_containerId);
+
+// A-H25. 00689570 / 00689610 only write the array: the original fills a scratch array, ours the
+// caller's; sizes and texts compared (MOV ECX,[imm32]: 6 bytes). Reached by ClassTemplateFill
+// (004A7080: every new game) and the camp's lists (00612CF0, ui_camp).
+namespace {
+using ListNamesFn = void(__fastcall*)(CSpellManager*, void*, mfc::CStringArray*);
+template <void (CSpellManager::*Ours)(mfc::CStringArray*)>
+struct ListNamesCheck {
+    static inline ListNamesFn original;
+    static void __fastcall Verify(CSpellManager* self, void*, mfc::CStringArray* names) {
+        console::CStringArray expected;
+        original(self, nullptr, &expected);
+        (self->*Ours)(names);
+        bool same = expected.size == names->size;
+        for (int i = 0; same && i < expected.size; ++i)
+            same = std::strcmp(static_cast<const char*>(expected.data[i]), static_cast<const char*>(names->data[i])) == 0;
+        ei::verify::Check("CSpellManager name list", true, same, "%d / %d names", expected.size, names->size);
+    }
+};
+} // namespace
+EI_VERIFY(0x00689570, ListNamesCheck<&CSpellManager::ListSpellNames>::Verify, 6,
+          ListNamesCheck<&CSpellManager::ListSpellNames>::original);
+EI_VERIFY(0x00689610, ListNamesCheck<&CSpellManager::ListModifierNames>::Verify, 6,
+          ListNamesCheck<&CSpellManager::ListModifierNames>::original);

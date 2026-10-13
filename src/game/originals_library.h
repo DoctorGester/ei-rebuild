@@ -198,6 +198,9 @@ __declspec(naked) inline void __fastcall WordArraySetSizeOriginal(void* /*array*
     EI_ORIGINAL(0x006FEEFA)
 __declspec(naked) inline void __fastcall ByteArraySetSizeOriginal(void* /*array*/, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x006FF64A)
+// MFC CWordArray::~CWordArray 006FEECD and CByteArray::~CByteArray 006FF61D (plain RET): the storage freed.
+__declspec(naked) inline void __fastcall WordArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x006FEECD)
+__declspec(naked) inline void __fastcall ByteArrayDestructOriginal(void* /*array*/) EI_ORIGINAL(0x006FF61D)
 // ostream::operator<<(long) 006FC9C6 (RET 4, returns the stream). CPlex::FreeDataChain 006FE90F (plain RET, ECX =
 // chain head). src/lib/mfc.cpp keeps its own PlexFreeDataChain.
 __declspec(naked) inline void* __fastcall OstreamPutLongOriginal(void* /*stream*/, void*, long /*value*/)
@@ -496,6 +499,11 @@ __declspec(naked) inline void __fastcall FloatTableClearOriginal(void* /*table*/
 __declspec(naked) inline void __fastcall FloatTableDeleteNodeOriginal(void* /*table*/, void*, void* /*node*/)
     EI_ORIGINAL(0x004616A0)
 __declspec(naked) inline void __fastcall BucketVectorDestroyOriginal(void* /*vector*/) EI_ORIGINAL(0x00609F50)
+// dinput.lib's DirectInputCreateEx (import thunk 006E61F0; __stdcall): instance, version, interface id, the
+// interface out, outer unknown.
+__declspec(naked) inline long __stdcall DirectInputCreateExOriginal(void* /*instance*/, unsigned long /*version*/,
+                                                                    const void* /*iid*/, void** /*out*/, void* /*outer*/)
+    EI_ORIGINAL(0x006E61F0)
 // MFC CFont::CreatePointFont(tenths of a point, face, CDC* or null) (0070BBE5, thiscall, RET 0xC): nonzero on success.
 __declspec(naked) inline int __fastcall FontCreatePointOriginal(void* /*font*/, void*, int /*size*/, const char* /*face*/,
                                                                 void* /*dc*/) EI_ORIGINAL(0x0070BBE5)

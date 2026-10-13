@@ -13,6 +13,7 @@
 #include "base_manager.h"
 #include "camera.h"
 #include "console.h"
+#include "core_streams.h"
 #include "effects.h"
 #include "game_strings.h"
 #include "map_object.h"
@@ -35,6 +36,9 @@
 #include "originals_world.h"
 #include "originals_units.h"
 #include "originals_gameplay.h"
+#include "player_client.h"
+#include "ui_flying_hit_points.h"
+#include "unit_client_models.h"
 
 #include <windows.h>
 
@@ -409,6 +413,68 @@ bool CWorldClient::QueueSynchronised(CEngineObject* object) {
     return true;
 }
 
+void CWorldClient::MarkFootprintsInSight(const float* point, float range) {
+    Vector3 functor;   // for_each's functor (x, y, range) comes back by value
+    MarkWithinRadius(&functor.x, nullptr, reinterpret_cast<std::uint8_t*>(footprints_.First()),
+                     reinterpret_cast<std::uint8_t*>(footprints_.End()), point[0], point[1], range);
+}
+
+void CWorldClient::ApplyWind(const Vector3* direction, float strength) {
+    SetWind(direction, strength);
+    if (terrain_) {
+        Vector3 copy = *direction;
+        terrain_->SetWaves(&copy, strength);
+    }
+    reinterpret_cast<CRainSnow*>(&ribbons_)->SetWind(*direction, strength);
+}
+
+int CWorldClient::CentreOn(const Vector3* point) {
+    Vector3 focus = *point;
+    focus.z = camera_->focus_.z;
+    camera_->SetFocus(&focus);
+    camera_->ApplyView();
+    camera_->ClampAboveObjects();
+    return 1;
+}
+
+double CWorldClient::ClientGroundHeight(float x, float y) {
+    Vector3 point = {x, y, 0.0f};
+    float height = static_cast<float>(GridHeightAt(x, y));
+    return platforms_.SurfaceHeight(&point, height);
+}
+
+double CWorldClient::ClientSurfaceHeight(float x, float y) {
+    Vector3 point = {x, y, 0.0f};
+    float height = static_cast<float>(RawSurfaceHeightAt(x, y));
+    return platforms_.SurfaceHeight(&point, height);
+}
+
+void CWorldClient::ShowNumber(int id, int value, std::uint32_t kind) {
+    CEngineObject* object = static_cast<CBaseManager*>(MapObjectManager())->FindObject(static_cast<unsigned>(id));
+    if (!object || object->GetClassId() != world::kClassUnit) return;
+    if (numbers_) reinterpret_cast<CFlyingHitPoints*>(numbers_)->Add(id, value, kind);
+}
+
+void CWorldClient::LoadUnitFaces() {
+    for (SectorListNode* node = objects_.head->next; node != objects_.head; node = node->next) {
+        CEngineObject* object = node->data;
+        if (object->GetClassId() != world::kClassUnit) continue;
+        if (!node->data) continue;   // the original tests the pointer after the class call
+        static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(node->data)->controller)->LoadFaceTexture();
+    }
+}
+
+const char* CWorldClient::ExitTarget(int index) { return exits_[index].target; }
+
+void CWorldClient::RemoveUnitsOf(const RecordPtrArray* records) {
+    for (int i = 0; i < records->size; ++i)
+        RemoveObject(static_cast<int>(reinterpret_cast<PartyUnitRecord*>(records->data[i])->unknown_01C));
+}
+
+int CWorldClient::SendFlag10(int value) {
+    return Session()->LocalClient()->SendFlag10(static_cast<std::uint8_t>(value));
+}
+
 void CWorldClient::DropShadows() {
     PlainList& objects = objects_;
     for (SectorListNode* node = objects.head->next; node != objects.head; node = node->next) {
@@ -602,6 +668,23 @@ CEngineObject* CWorldClient::UnitAt(const long* point) {
     }
     CEngineObject* picked = PickAt(point);
     return picked ? FirstUnitHit(this, picked) : nullptr;
+}
+
+CEngineObject* CWorldClient::UnitAt2(const long* point) {
+    CEngineObject* picked = PickAt2(point);
+    return picked ? FirstUnitHit(this, picked) : nullptr;
+}
+
+void CWorldClient::UnitsInBox(const long* rect, SectorList* out) {
+    for (ScreenEntryNode* node = screenEntries_.head->next; node != screenEntries_.head; node = node->next) {
+        CEngineObject* object = static_cast<CBaseManager*>(manager40_)->FindObject(node->data.objectId);
+        if (!object) continue;
+        if (!MapObjectOf(object)->Object3D()->Specific()->PartsIntersectRect(rect)) continue;
+        SectorListNode* end;
+        PlainOps::End(out, nullptr, &end);
+        SectorListNode* inserted;
+        PlainOps::Insert(out, nullptr, &inserted, end, object);
+    }
 }
 
 // ---- The party's units (00566F70) ----------------------------------------------------------------
@@ -1044,6 +1127,27 @@ void CWorldClient::Deselect(CEngineObject* object) {
     if (object->flags_ & 0x10) Unhighlight(object);
 }
 
+// ---- Selecting (00566030; A-W13) -----------------------------------------------------------------
+
+void CWorldClient::Select(CEngineObject* object) {
+    if (!object) return;
+    MapObjectOf(object)->Object3D()->UpdatePartBounds();
+    if (!(object->flags_ & 0x10)) {
+        if (!(object->flags_ & 0x100)) static_cast<CObject3DSpecific*>(MapObjectOf(object)->attached)->SetLit(1);
+        object->flags_ |= 0x10;
+        static_cast<CObject3DSpecific*>(MapObjectOf(object)->attached)->Unused25(1);
+    }
+    stlp::list<void*>& selected = list7BC_;
+    using Node = stlp::list<void*>::Node;
+    const auto id = reinterpret_cast<void*>(static_cast<std::intptr_t>(object->id_));
+    Node* node = selected.head->next;
+    while (node != selected.head && node->data != id) node = node->next;   // 00571960 find
+    if (node != selected.head) return;
+    void* unused;
+    ListInsert404A40Original(&selected, nullptr, &unused, selected.head, &id);
+}
+EI_REPLACE_METHOD(0x00566030, CWorldClient::Select);
+
 // ---- Set up (00561E50) ---------------------------------------------------------------------------
 
 namespace {
@@ -1268,8 +1372,8 @@ int CWorldClient::Setup() {
     auto* arrays = reinterpret_cast<ClientArrayManager*>(New(sizeof(ClientArrayManager)));
     if (arrays) {
         ManagerBase(arrays);
-        arrays->unknown_B0 = 0;
-        Construct5715D0(arrays->list, nullptr, 10);
+        arrays->current = nullptr;
+        Construct5715D0(&arrays->list, nullptr, 10);
         ei::SetVtable(arrays, worlddata::kClientArrayManagerVtable);
     }
     arrayManager_ = arrays;
@@ -1354,6 +1458,122 @@ void CWorldClient::ReleaseItemsAndSpells() {
     }
 }
 
+// ---- The item and spell blocks of a zone's state (00567A60, 00567950, 005679A0; A-W13) -----------
+
+int CWorldClient::LoadItemsAndSpells(CStream* block) {
+    ReleaseItemsAndSpells();
+    if (block->Size() != 0) {
+        manager4C_->Load(block);
+        itemManager_->Load(block);
+        static_cast<CBaseManager*>(manager4C_)->LoadObjects(block);
+        static_cast<CBaseManager*>(itemManager_)->LoadObjects(block);
+        ClientReferenceItemsAndSpellsOriginal(this);
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x00567A60, CWorldClient::LoadItemsAndSpells);
+
+int __fastcall LoadManagerObjects(CBaseManager* manager, CStream* stream) {
+    for (;;) {
+        std::uint8_t more;
+        stream->Read(&more, 1);
+        if (more == 0) return 1;
+        if (!stream->ok_) return 0;
+        int id;
+        int type;
+        std::uint32_t extra;
+        stream->Read(&id, 4);
+        stream->Read(&type, 4);
+        stream->Read(&extra, 4);
+        if (CEngineObject* old = manager->FindObject(static_cast<unsigned>(id))) {
+            if (old->refCount_ == 0) old->refCount_ = 1;
+            old->Release();
+        }
+        CEngineObject* object = manager->CreateObject(type, id);
+        object->unknown_18 = extra;
+        object->Load(stream);
+        ++object->refCount_;
+    }
+}
+EI_REPLACE(0x005679A0, LoadManagerObjects);
+
+int CWorldClient::LoadNewItemsAndSpells(CStream* block) {
+    block->Seek(0);
+    block->ok_ = 1;
+    if (!ClientLoadManagerObjectsOriginal(SpellManager(), block)) return 0;
+    return ClientLoadManagerObjectsOriginal(static_cast<CBaseManager*>(ItemFactory()), block) != 0;
+}
+EI_REPLACE_METHOD(0x00567950, CWorldClient::LoadNewItemsAndSpells);
+
+void PlatformSet::DestructBody() {
+    list.vtable = reinterpret_cast<void*>(worlddata::kPlatformListVtable);
+    list.RemoveAll();
+    Engine()->DestructBase();
+}
+EI_REPLACE_METHOD(0x00561A60, PlatformSet::DestructBody);
+
+PlatformSet* PlatformSet::DeletingDestruct(unsigned flags) {
+    PlatformSetDestructOriginal(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x00561AE0, PlatformSet::DeletingDestruct);
+
+// 0055E8A0 (ECX the list, EDX the stream; the items a player is given, CPlayerServer::SendItemsGiven).
+// What LoadManagerObjects reads back: per object a 1, its id, type and +0x18, then its own Save;
+// a 0 ends the list.
+void __fastcall SaveListedObjects(mfc::CList<CEngineObject*>* list, CStream* stream) {
+    for (auto* node = list->head; node;) {
+        CEngineObject* object = node->data;
+        node = node->next;
+        std::uint8_t more = 1;
+        stream->Write(&more, 1);
+        int id = object->id_;
+        stream->Write(&id, 4);
+        int type = object->type_;
+        stream->Write(&type, 4);
+        std::uint32_t extra = object->unknown_18;
+        stream->Write(&extra, 4);
+        object->Save(stream);
+    }
+    std::uint8_t more = 0;
+    stream->Write(&more, 1);
+}
+EI_REPLACE(0x0055E8A0, SaveListedObjects);
+
+void ClientListManager::DestructBody() {
+    list.vtable = reinterpret_cast<void*>(worlddata::kClientListVtable);
+    for (auto* node = list.head; node; node = node->next)
+        if (node->data) node->data->Release();
+    list.RemoveAll();
+    CBaseManager::DestructBody();
+}
+EI_REPLACE_METHOD(0x00562EC0, ClientListManager::DestructBody);
+
+ClientListManager* ClientListManager::DeletingDestruct(unsigned flags) {
+    ClientListManagerDestructOriginal(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x00562EA0, ClientListManager::DeletingDestruct);
+
+void ClientArrayManager::DestructBody() {
+    ei::SetVtable(this, worlddata::kClientArrayManagerVtable);
+    ClientArrayManagerClearOriginal(this);
+    list.vtable = reinterpret_cast<void*>(worlddata::kClientArrayListVtable);
+    list.RemoveAll();
+    if (current) current->Release();
+    CBaseManager::DestructBody();
+}
+EI_REPLACE_METHOD(0x00562DF0, ClientArrayManager::DestructBody);
+
+ClientArrayManager* ClientArrayManager::DeletingDestruct(unsigned flags) {
+    ClientArrayManagerDestructOriginal(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x00562DD0, ClientArrayManager::DeletingDestruct);
+
 EI_REPLACE_METHOD(0x00561E50, CWorldClient::Setup);
 EI_REPLACE_METHOD(0x00560650, PlatformSet::AddFace);
 EI_REPLACE_METHOD(0x00560820, PlatformSet::AddBox);
@@ -1374,6 +1594,18 @@ EI_REPLACE(0x005726B0, ReleaseIfIdentified);
 EI_REPLACE_METHOD(0x00565790, CWorldClient::PickAt);
 EI_REPLACE_METHOD(0x005659D0, CWorldClient::PickAt2);
 EI_REPLACE_METHOD(0x00565E40, CWorldClient::UnitAt);
+EI_REPLACE_METHOD(0x00565D00, CWorldClient::UnitAt2);
+EI_REPLACE_METHOD(0x005656A0, CWorldClient::UnitsInBox);
+EI_REPLACE_METHOD(0x0056D740, CWorldClient::MarkFootprintsInSight);
+EI_REPLACE_METHOD(0x00564190, CWorldClient::ApplyWind);
+EI_REPLACE_METHOD(0x005662B0, CWorldClient::CentreOn);
+EI_REPLACE_METHOD(0x00578A60, CWorldClient::ExitTarget);
+EI_REPLACE_METHOD(0x005618E0, CWorldClient::ClientGroundHeight);
+EI_REPLACE_METHOD(0x00561930, CWorldClient::ClientSurfaceHeight);
+EI_REPLACE_METHOD(0x0056CE40, CWorldClient::ShowNumber);
+EI_REPLACE_METHOD(0x0056DE80, CWorldClient::LoadUnitFaces);
+EI_REPLACE_METHOD(0x00567400, CWorldClient::RemoveUnitsOf);
+EI_REPLACE_METHOD(0x00566330, CWorldClient::SendFlag10);
 EI_REPLACE_METHOD(0x00570860, SectorGrid::Move);
 EI_REPLACE_METHOD(0x00570BB0, SectorGrid::Move2);
 EI_REPLACE(0x00571D50, MarkWithinRadius);

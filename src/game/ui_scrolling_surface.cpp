@@ -1,27 +1,124 @@
-// The titles' scrolling text surface (CUiScrollingSurface, ui_screens.h): rendering its RichEdit
-// text into the surface. Its constructor (0065ED30), Load (0065EF30) and Start (0065F1C0) are not
-// rewritten (ui_credits.cpp forwards them). See docs/notes/items_spells.md (A-H17).
+// The titles' scrolling text surface (CUiScrollingSurface, ui_screens.h; 0065ED30-0065F21E): a
+// window surface with a hidden RichEdit control holding an RTF text, formatted into the surface
+// at a scroll offset that moves with the game time. See docs/notes/items_spells.md (A-H17, A-H25).
 #include "ui_screens.h"
 
 #include "originals_ui.h"
+#include "resource.h"
 #include "ui_gdi.h"
+#include "world.h"
 
 #include "ei/hook.h"
+#include "lib/crt.h"
 #include "lib/gameapi.h"
 
 #include <richedit.h>
 
+#include <algorithm>
+#include <cstring>
+
 namespace {
 constexpr int kTwipsPerInch = 1440;
 constexpr int kExtraTwipsBelow = 1000;   // formatted below the visible height
+constexpr int kSurfaceFormat = 5;
+constexpr COLORREF kWhite = 0xFFFFFF;
+
+const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
+const char* const kRichEditLibrary = Text(0x00794C54);   // "Riched20.dll"
+const char* const kRichEditClass = Text(0x00794C48);     // "RichEdit20A"
+
+HWND GameWindow() { return *reinterpret_cast<HWND*>(std::uintptr_t(0x0079BC28)); }
+HINSTANCE GameInstance() { return *reinterpret_cast<HINSTANCE*>(std::uintptr_t(0x0079BC24)); }
+
+// The class's own functions through their addresses, so their checks run.
+__declspec(naked) void __fastcall RenderTextThroughHook(CUiScrollingSurface*) EI_ORIGINAL(0x0065F020)
+__declspec(naked) bool __fastcall LoadRtfThroughHook(CUiScrollingSurface*, void*, const void* /*data*/, std::uint32_t /*size*/)
+    EI_ORIGINAL(0x0065EF80)
+__declspec(naked) void __fastcall DestructThroughHook(CUiScrollingSurface*) EI_ORIGINAL(0x0065EDE0)
+
+// The block being streamed into the RichEdit (the original reads it through a CMemFile; its
+// callback is 0065EF10).
+struct RtfSource {
+    const std::uint8_t* data;
+    std::uint32_t size;
+    std::uint32_t position;
+};
+
+DWORD CALLBACK ReadRtf(DWORD_PTR cookie, LPBYTE buffer, LONG wanted, LONG* read) {
+    RtfSource* source = reinterpret_cast<RtfSource*>(cookie);
+    const std::uint32_t count = (std::min)(static_cast<std::uint32_t>(wanted), source->size - source->position);
+    std::memcpy(buffer, source->data + source->position, count);
+    source->position += count;
+    *read = static_cast<LONG>(count);
+    return 0;
+}
+
+int HeightInTwips(const CUiScrollingSurface* surface, const ui_gdi::GameDC* dc) {
+    return gameapi::MulDiv(surface->rect_.bottom - surface->rect_.top, kTwipsPerInch,
+                           gameapi::GetDeviceCaps(dc->attribDC_, LOGPIXELSY));
+}
 } // namespace
+
+CUiScrollingSurface* CUiScrollingSurface::Construct(CInterface3D* ui, const RECT* rect) {
+    SurfaceConstructOnRectOriginal(this, nullptr, ui, rect, kSurfaceFormat);
+    vtable_ = reinterpret_cast<void*>(kScrollingVtableAddress);
+    richEditLibrary_ = nullptr;
+    richEditLibrary_ = gameapi::LoadLibraryA(kRichEditLibrary);
+    richEdit_ = gameapi::CreateWindowExA(0, kRichEditClass, nullptr, WS_CHILD | ES_MULTILINE, 0, 0, 0, 0, GameWindow(),
+                                         nullptr, GameInstance(), nullptr);
+    offsetX_ = 0;
+    background_ = kWhite;
+    speed_ = 0.0f;
+    offset_ = 0;
+    endOffset_ = 0;
+    return this;
+}
+EI_REPLACE_METHOD(0x0065ED30, CUiScrollingSurface::Construct);
+
+void CUiScrollingSurface::DestructBody() {
+    vtable_ = reinterpret_cast<void*>(kScrollingVtableAddress);
+    gameapi::DestroyWindow(richEdit_);
+    if (richEditLibrary_) {
+        gameapi::FreeLibrary(richEditLibrary_);
+        richEditLibrary_ = nullptr;
+    }
+    ReleaseContents();
+}
+EI_REPLACE_METHOD(0x0065EDE0, CUiScrollingSurface::DestructBody);
+
+CUiScrollingSurface* CUiScrollingSurface::DeletingDestruct(unsigned deleteFlags) {
+    DestructThroughHook(this);
+    if (deleteFlags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x0065EDC0, CUiScrollingSurface::DeletingDestruct);
+
+bool CUiScrollingSurface::Load(CMappedResource* archive, const char* name) {
+    std::uint32_t size = 0;
+    void* data = archive->GetFile(name, &size);
+    if (data) LoadRtfThroughHook(this, nullptr, data, size);
+    archive->CloseFile(data);
+    return data != nullptr;
+}
+EI_REPLACE_METHOD(0x0065EF30, CUiScrollingSurface::Load);
+
+bool CUiScrollingSurface::LoadRtf(const void* data, std::uint32_t size) {
+    RtfSource source = {static_cast<const std::uint8_t*>(data), size, 0};
+    EDITSTREAM stream = {reinterpret_cast<DWORD_PTR>(&source), 0, ReadRtf};
+    textLength_ = static_cast<int>(
+        gameapi::SendMessageA(richEdit_, EM_STREAMIN, SF_RTF, reinterpret_cast<LPARAM>(&stream)));
+    offset_ = 0;
+    RenderTextThroughHook(this);
+    return true;
+}
+EI_REPLACE_METHOD(0x0065EF80, CUiScrollingSurface::LoadRtf);
 
 void CUiScrollingSurface::RenderText() {
     ui_gdi::GameDC* dc = SurfaceGetDC(this);
     SurfaceClearOriginal(this);
     gameapi::SendMessageA(richEdit_, EM_SETBKGNDCOLOR, 0, static_cast<LPARAM>(background_));
     int width = gameapi::MulDiv(rect_.right - rect_.left, kTwipsPerInch, gameapi::GetDeviceCaps(dc->attribDC_, LOGPIXELSX));
-    int height = gameapi::MulDiv(rect_.bottom - rect_.top, kTwipsPerInch, gameapi::GetDeviceCaps(dc->attribDC_, LOGPIXELSY));
+    int height = HeightInTwips(this, dc);
     RECT area = {0, 0, width, offset_ + kExtraTwipsBelow + height};
     gameapi::OffsetRect(&area, -offsetX_, -offset_);
     FORMATRANGE range;
@@ -43,3 +140,28 @@ void CUiScrollingSurface::RenderText() {
     SurfaceReleaseDC(this);
 }
 EI_REPLACE_METHOD(0x0065F020, CUiScrollingSurface::RenderText);
+
+void CUiScrollingSurface::Draw() {
+    if (speed_ < 0.0f || speed_ > 0.0f) {
+        const float now = GameTime();
+        offset_ = static_cast<int>(gamecrt::Ftol((static_cast<double>(now) - startTime_) * speed_ + offset_));
+        startTime_ = now;
+        RenderTextThroughHook(this);
+    }
+    SurfaceBlitOriginal(this);
+}
+EI_REPLACE_METHOD(0x0065F170, CUiScrollingSurface::Draw);
+
+void CUiScrollingSurface::Start(float speed, char fromBelow) {
+    endOffset_ = 0;
+    if (fromBelow) {
+        ui_gdi::GameDC* dc = SurfaceGetDC(this);
+        offset_ = -HeightInTwips(this, dc);
+        SurfaceReleaseDC(this);
+    } else {
+        offset_ = 0;
+    }
+    speed_ = speed;
+    startTime_ = GameTime();
+}
+EI_REPLACE_METHOD(0x0065F1C0, CUiScrollingSurface::Start);

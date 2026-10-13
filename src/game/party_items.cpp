@@ -144,6 +144,14 @@ EI_REPLACE_METHOD(0x006A57F0, CItemSpell::CopyTo);
 
 // --- The party's items --------------------------------------------------------------------------
 
+CItem* CParty::MakeCopyOf(CItem* item) {
+    std::uint32_t packed = item->unknown_18;
+    CItem* copy = static_cast<CItemManager*>(ItemManager())->MakeItem(item->type_, packed >> 16, packed & 0xFFFF, -1);
+    item->CopyToSlot(copy, SpellManager());
+    return copy;
+}
+EI_REPLACE_METHOD(0x0055E940, CParty::MakeCopyOf);
+
 CItem* CParty::AddItem(CItem* item, int keepCount, int merge) {
     if (!item) return nullptr;
     int count = ByteFlag(keepCount) ? static_cast<int>(item->unknown_48) : 1;
@@ -216,3 +224,24 @@ void PartyUnitRecord::RemoveArmor(CItem* entry) { RemoveEntry(armor, entry); }
 EI_REPLACE_METHOD(0x00660E10, PartyUnitRecord::RemoveArmor);
 void PartyUnitRecord::RemoveSpell(CItem* entry) { RemoveEntry(spells, entry); }
 EI_REPLACE_METHOD(0x00660FF0, PartyUnitRecord::RemoveSpell);
+
+// --- 00660840 (A-H25): the weight a unit record carries ---------------------------------------------
+
+namespace {
+// One running sum over the lists, in the original's order.
+void AddListWeight(float& weight, CEngineObject* const* list, std::uint32_t count) {
+    for (int i = 0; i < static_cast<int>(count); ++i) {
+        if (list[i]) weight += static_cast<const CItem*>(list[i])->Weight();
+    }
+}
+} // namespace
+
+float PartyUnitRecord::CarriedWeight() const {
+    float weight = 0.0f;
+    AddListWeight(weight, weapons, weaponCount);
+    AddListWeight(weight, quickItems, quickItemCount);
+    AddListWeight(weight, spells, spellCount);
+    AddListWeight(weight, armor, armorCount);
+    return weight;
+}
+EI_REPLACE_METHOD(0x00660840, PartyUnitRecord::CarriedWeight);

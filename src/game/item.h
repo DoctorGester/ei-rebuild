@@ -10,6 +10,8 @@
 #include "resource_manager.h"
 #include "../lib/mfc.h"
 
+#include <cstring>
+
 class CSpell;
 class CSpellManager;
 class CStream;
@@ -100,6 +102,12 @@ public:
     void SetSpell(CSpell* spell);
     // The condition back to its maximum (+0x20 = +0x24; the camp's repairs).
     void Repair() { unknown_20 = unknown_24; }
+    // The item's weight (+0x34; PartyUnitRecord::CarriedWeight adds them up).
+    float Weight() const {
+        float weight;
+        std::memcpy(&weight, &unknown_34, sizeof(weight));
+        return weight;
+    }
 
     std::uint32_t unknown_1C;
     std::uint32_t unknown_20;     // +0x20 both set from prototype +0x48
@@ -107,7 +115,7 @@ public:
     float charge_;                // +0x28
     float chargeMax_;             // +0x2C prototype +0x40
     float chargeRate_;            // +0x30 0.001 by default
-    std::uint32_t unknown_34;
+    std::uint32_t unknown_34;     // +0x34 the weight's bits (a float: Weight())
     float price_;                 // +0x38 includes the attached spell's price
     std::uint32_t unknown_3C;
     std::uint32_t unknown_40;
@@ -139,6 +147,13 @@ struct CItemLink {
     std::uint32_t value;            // +0x08
 };
 static_assert(sizeof(CItemLink) == 0xC);
+
+// What an item's slot 21 fills in (three dwords; no caller is rewritten yet).
+struct ItemUse {
+    std::uint32_t kind;
+    std::uint32_t value;
+    std::uint32_t extra;
+};
 
 // vtable 00743DFC, GetClassId 0x11.
 class CItemWeapon : public CItem {
@@ -261,6 +276,9 @@ public:
     // 006A4570 / 006A4590 (slots 9 / 10; item_save.cpp). CItem's, then +0x4C.
     void LoadItem(CStream* stream);
     void SaveItem(CStream* stream);
+    // 006A43C0 (RET 4; slot 21; item_slots.cpp, A-H25). Fills `out` with (8, +0x4C, 0) and
+    // returns it; the other classes share 004623C0, which writes three zeros.
+    ItemUse* GetUse(ItemUse* out);
 
     std::uint32_t unknown_4C;
 };
@@ -270,6 +288,8 @@ class CItemSpell : public CItem {
 public:
     // 006A5820. Slot 19: "spell<+0x60 of the carried spell's prototype>" (no null checks).
     mfc::CString FigureName();
+    // 006A58E0 (A-H25). Slot 20: "initqi1item".
+    mfc::CString PictureName();
     // 006A57F0 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C.
     BOOL CopyTo(CItem* target, CSpellManager* spells);
     // 006A56E0 (item_lifetime.cpp). CItem's and the vtable (+0x4C is left as it is).
@@ -335,6 +355,12 @@ bool __fastcall WeaponBaseFigure(std::uint32_t index, mfc::CString* out);
 // first; left empty when either is out of range). The type code is copied into the stack slot of
 // `materialIndex`, so for a type without a code the index's own bytes are the code.
 void __fastcall ArmorModelName(mfc::CString* out, std::uint32_t armorIndex, std::uint32_t materialIndex);
+// 006A0AA0 (RET 4; A-H25). The same for weapon prototype `weaponIndex` ("sw", "ax", ...).
+void __fastcall WeaponModelName(mfc::CString* out, std::uint32_t weaponIndex, std::uint32_t materialIndex);
+// 006A0BF0 (RET 4; A-H25). The same from the records themselves (no null checks, `out` not
+// emptied first); for a type without a code the code is the bytes of `out`'s address.
+void __fastcall WeaponRecordModelName(mfc::CString* out, const itemdb::WeaponRecord* weapon,
+                                      const itemdb::MaterialRecordHead* material);
 
 // 006A3200. Armor prototype field +0xB8 by prototype index; 0 if out of range.
 int __fastcall ArmorFieldB8(std::uint32_t index);
@@ -361,6 +387,8 @@ public:
 
     // 006A5B20. The destructor body (vtable 00744020): Detach's work, then the base destructor.
     void DestructBody();
+    // 006A5B00 (slot 0; A-H25). DestructBody, then operator delete when bit 0 of `flags` is set.
+    CItemConstructor* DeletingDestruct(unsigned flags);
 
     // 006A5C00. Counts a reference to `manager` (+4), dropping the previous one's (no release).
     void SetManager(CEngineObject* manager);
@@ -389,6 +417,12 @@ public:
     // for a weapon or armor without a material, else 1.
     BOOL Build();
 
+    // 006A6480 (RET 8; sets only AL; A-H25). Whether the item being built can hold a spell: not a
+    // weapon or armour (class 0x11 / 0x12) without a material. `level` gets the prototype's +0x44
+    // plus the material's +0x1C (unsigned, as a float), `power` the prototype's charge plus the
+    // material's +0x18; without a material the prototype's values alone.
+    bool MagicCapacity(float* level, float* power);
+
     CEngineObject* manager_;  // +0x1C counted (+4) but never released
     char* material_;          // +0x20 material record or null
     char* prototype_;         // +0x24 prototype record
@@ -406,6 +440,11 @@ public:
     virtual void TimedObjectManager();             // 14
     virtual void FigureManager();                  // 15
     virtual CItemConstructor* ItemConstructor();   // 16
+    virtual void SpellConstructor();               // 17
+    virtual void ItemFactory();                    // 18
+    virtual void MapObjectManager();               // 19
+    virtual void PlayerList();                     // 20
+    virtual CBaseManager* SpecificManager();       // 21: makes the figures' drawers (class 0x45; null for a party)
 };
 
 // The item manager (007AFFB4; a CResourceManager with vtable 0073F25C, 0xBC bytes, as the world
@@ -430,7 +469,27 @@ struct CItemManager : CResourceManager {
     // build reports FatalError and the original crashes; Rebirth's FixCreateItem returns null in
     // both cases without FatalError.
     CItem* CreateItem(const char* name);
+
+    // 006AD1E0 (RET 8; A-H25). A scroll ("spell container", kind 0x3008) holding the spell that
+    // `spells` builds from `spellText`; null when the spell or the item cannot be made (the spell
+    // is then left as it is).
+    CItem* CreateSpellItem(const char* spellText, CSpellManager* spells);
+
+    // 006AD260 / 006AD2F0 / 006AD380 / 006AD410 (RET 4; A-H25). `names` resized to the table's
+    // record count and filled with the records' names: the materials' keys (+0x00), the weapons',
+    // armours' and quick items' +0x04. `this` is not used.
+    void ListMaterialNames(mfc::CStringArray* names);
+    void ListWeaponNames(mfc::CStringArray* names);
+    void ListArmorNames(mfc::CStringArray* names);
+    void ListQuickItemNames(mfc::CStringArray* names);
 };
+// 006AC780 (slot 2; item_lifetime.cpp, A-H25). CBaseManager::Create's result as 0 / 1 (the
+// original also copies the text folder's name into a temporary it does not use).
+BOOL __fastcall ItemManagerCreate(CItemManager* self);
+// 006AC810 (slot 14, RET 4; item_lifetime.cpp, A-H25). The item factory: a new constructed item
+// for kind 0x3004 weapon, 0x3005 armour, 0x3006 quick, 0x3007 loot, 0x3008 scroll, 0x3009 quest,
+// its type_ set to the kind; null for another kind or without memory.
+CEngineObject* __fastcall ItemNewObject(CBaseManager* manager, void*, int kind);
 
 // --- Weapon model parts (item_parts.cpp)------------------------------------------------------
 

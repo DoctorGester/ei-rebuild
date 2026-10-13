@@ -214,7 +214,7 @@ void itemdb::SpellRecord::Serialize(ChunkArchive* ar) {
     ar->Field(15, &needsSight, 4);
     IntVectorFieldAt(ar, nullptr, 16, &list48, ar);
     IntVectorFieldAt(ar, nullptr, 17, &list54, ar);
-    ar->Field(18, &unknown_60, 4);
+    ar->Field(18, &icon, 4);
     ar->Field(19, &school, 4);
     ar->Field(20, bytes78, 5);
     ar->Field(21, &skill, 4);

@@ -272,3 +272,75 @@ static CUiEditField* __fastcall EditConstructVerify(CUiEditField* self, void*, C
     return self;
 }
 EI_VERIFY(0x0065C010, EditConstructVerify, 0, s_editUnused);
+
+// --- 0065C1A0 / 0065C290 / 0065C2D0 (A-H25): the edit field's look, text and focus, side by side ---
+// The original on the real field (it redraws the text), what it wrote kept and the field put back,
+// then ours. Reached from the multiplayer hero screen and the message box with an edit field (no
+// scenario opens either).
+
+namespace {
+struct EditLook {
+    std::uint32_t charClasses;
+    std::uint8_t mode;
+    int font;
+    int maxLength;
+    COLORREF colour;
+    COLORREF caretColour;
+};
+EditLook TakeLook(const CUiEditField* w) {
+    return EditLook{w->charClasses_, w->mode15C_, w->font_, w->maxLength_, w->colour_, w->caretColour_};
+}
+void PutLook(CUiEditField* w, const EditLook& s) {
+    w->charClasses_ = s.charClasses;
+    w->mode15C_ = s.mode;
+    w->font_ = s.font;
+    w->maxLength_ = s.maxLength;
+    w->colour_ = s.colour;
+    w->caretColour_ = s.caretColour;
+}
+bool SameLook(const EditLook& a, const EditLook& b) {
+    return a.charClasses == b.charClasses && a.mode == b.mode && a.font == b.font && a.maxLength == b.maxLength &&
+           a.colour == b.colour && a.caretColour == b.caretColour;
+}
+} // namespace
+
+// 0065C1A0: MOV EAX,[ESP+4]; MOV DL,[ESP+8] (8 bytes).
+static void(__fastcall* s_editSetLook)(CUiEditField*, void*, std::uint32_t, char, int, int, COLORREF, COLORREF);
+static void __fastcall EditSetLookVerify(CUiEditField* self, void*, std::uint32_t charClasses, char mode, int font,
+                                         int maxLength, COLORREF colour, COLORREF caretColour) {
+    EditLook before = TakeLook(self);
+    s_editSetLook(self, nullptr, charClasses, mode, font, maxLength, colour, caretColour);
+    EditLook expected = TakeLook(self);
+    PutLook(self, before);
+    self->CUiEditField::SetLook(charClasses, mode, font, maxLength, colour, caretColour);
+    ei::verify::Check("CUiEditField::SetLook", true, SameLook(expected, TakeLook(self)), "classes %X font %d length %d",
+                      charClasses, font, maxLength);
+}
+EI_VERIFY(0x0065C1A0, EditSetLookVerify, 8, s_editSetLook);
+
+// 0065C290: MOV EAX,[ESP+4]; PUSH ESI (5 bytes). `text` may be the field's own text: the kept state
+// holds that buffer while both run.
+static void(__fastcall* s_editSetText)(CUiEditField*, void*, const char*);
+static void __fastcall EditSetTextVerify(CUiEditField* self, void*, const char* text) {
+    EditState before = TakeEditState(self);
+    s_editSetText(self, nullptr, text);
+    EditState expected = TakeEditState(self);
+    PutEditState(self, before);
+    self->CUiEditField::SetText(text);
+    EditState actual = TakeEditState(self);
+    ei::verify::Check("CUiEditField::SetText", true, SameEditState(expected, actual), "'%s' caret %d/%d",
+                      static_cast<const char*>(expected.text), expected.caret, actual.caret);
+}
+EI_VERIFY(0x0065C290, EditSetTextVerify, 5, s_editSetText);
+
+// 0065C2D0: MOV AL,[ESP+4]; MOV [ECX+0x179],AL (10 bytes).
+static void(__fastcall* s_editSetFocused)(CUiEditField*, void*, bool);
+static void __fastcall EditSetFocusedVerify(CUiEditField* self, void*, bool focused) {
+    const bool before = self->focused_;
+    s_editSetFocused(self, nullptr, focused);
+    const bool expected = self->focused_;
+    self->focused_ = before;
+    self->CUiEditField::SetFocused(focused);
+    ei::verify::Check("CUiEditField::SetFocused", expected, self->focused_, "focused %d", focused);
+}
+EI_VERIFY(0x0065C2D0, EditSetFocusedVerify, 10, s_editSetFocused);

@@ -79,6 +79,10 @@ public:
     // handlers by type. 1 at the end of the stream; a read past the end, a type without a handler
     // or a refusing handler ends in the fatal error 00664B70 (its result returned).
     int DispatchMessages();
+    // 00667B40 (RET 4; A-H25; the client world's frame 00567AB0 with the local server's stream).
+    // Appends the bytes of `source` (rewound) to the received stream, whose pending bits are
+    // stored first; its read position stays.
+    void AppendReceived(BitStream* source);
     // 00667A30 (slot 23). One packet from the link, decompressed (+0x28B0) into +0x34 and
     // dispatched: 1 when there was none or it ran through, 0 without a link, when the receive
     // failed or the dispatch returned 0.

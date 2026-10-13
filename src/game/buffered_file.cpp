@@ -55,6 +55,38 @@ void BufferedStream::ReleaseBlock() {
 }
 EI_REPLACE_METHOD(0x004DAC80, BufferedStream::ReleaseBlock);
 
+BufferedStream* BufferedStream::Construct() {
+    base = 0;
+    ei::SetVtable(this, kVtableAddress);
+    begin = nullptr;
+    flags = 0;
+    return this;
+}
+EI_REPLACE_METHOD(0x00580DD0, BufferedStream::Construct);
+
+void BufferedStream::DestructBody() {
+    ei::SetVtable(this, kVtableAddress);
+    ReleaseBlock();
+    ei::SetVtable(this, kBaseVtableAddress);
+}
+EI_REPLACE_METHOD(0x00580DF0, BufferedStream::DestructBody);
+
+BufferedStream* BufferedStream::DeletingDestruct(unsigned deleteFlags) {
+    DestructBody();
+    if (deleteFlags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x00580E40, BufferedStream::DeletingDestruct);
+
+std::uint8_t* BufferedStream::BeginWrite(std::int32_t size) {
+    flags |= kFlagUnwritten;
+    // An unsigned compare of the addresses.
+    if (reinterpret_cast<std::uintptr_t>(cur) + static_cast<std::uint32_t>(size) > reinterpret_cast<std::uintptr_t>(end))
+        ReserveWrite(size);
+    return cur;
+}
+EI_REPLACE_METHOD(0x00580EE0, BufferedStream::BeginWrite);
+
 void BufferedStream::MoveWindow(std::int32_t position) {
     std::int32_t room = Capacity();
     std::int32_t left = static_cast<std::int32_t>(high - cur);
@@ -182,6 +214,22 @@ void BufferedFile::Close() {
     file = nullptr;
 }
 EI_REPLACE_METHOD(0x004DB680, BufferedFile::Close);
+
+void BufferedFile::DestructFile() {
+    ei::SetVtable(this, kFileVtableAddress);
+    Close();
+    ei::SetVtable(this, kVtableAddress);
+    ReleaseBlock();
+    ei::SetVtable(this, kBaseVtableAddress);
+}
+EI_REPLACE_METHOD(0x00580E60, BufferedFile::DestructFile);
+
+BufferedFile* BufferedFile::DeletingDestructFile(unsigned deleteFlags) {
+    DestructFile();
+    if (deleteFlags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x00580EC0, BufferedFile::DeletingDestructFile);
 
 void BufferedFile::Open(const char* path, const char* mode, std::uint32_t newFlags) {
     Close();

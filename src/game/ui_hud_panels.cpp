@@ -6,10 +6,12 @@
 
 #include "item.h"
 #include "item_db_text.h"
+#include "map_object.h"
 #include "party.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "originals_engine.h"
 #include "originals_ui.h"
@@ -162,6 +164,100 @@ void CHudMovePanel::ToggleFlag() {
     Sprite(this, 5)->uOffset_ = value == 0 ? 0.3359375f : 0.0f;
 }
 EI_REPLACE_METHOD(0x00649810, CHudMovePanel::ToggleFlag);
+
+// --- Unit panel: the effects on the unit (00646B90) -----------------------------------------------
+
+void CHudUnitPanel::ShowEffects(CUnit* unit) {
+    constexpr int kPlaces = 6;
+    constexpr int kMoreMark = 9;      // scene object: there are more effects than places
+    constexpr int kFirstIcon = 26;    // scene objects 26..31, one per listed effect
+    constexpr int kIconSize = 64;
+    constexpr int kLineHeight = 15;
+    // Where each kept picture sits in the panel's 256 x 256 icon texture (its object 1).
+    static constexpr int kPlaceX[kPlaces] = {0, 0, 64, 64, 64, 64};
+    static constexpr int kPlaceY[kPlaces] = {128, 192, 0, 64, 128, 192};
+
+    CTextManager* texts = GameTexts();
+    CUiSurface* surface = surfaces_.data[0];
+    mfc::CString code, text, number;
+    int icons[kPlaces], places[kPlaces];
+    bool taken[kPlaces] = {};
+    for (int i = 0; i < kPlaces; ++i) icons[i] = places[i] = -1;
+    RECT line{40, 35, 155, 50};
+
+    if (unit->effectCount > kPlaces) Sprite(this, kMoreMark)->visible_ = 1;
+    // The unit's effects are the map object's records (map_object.h).
+    const MapEffect* effects = reinterpret_cast<const MapEffect*>(unit->effects);
+    for (int i = 0; i < unit->effectCount && i < kPlaces; ++i) {
+        code.Empty();
+        text.Empty();
+        const auto* spell =
+            reinterpret_cast<const itemdb::SpellRecord*>(itemdb::Spells().At(effects[i].type, itemdb::kSpellSize));
+        if (spell) {
+            icons[i] = static_cast<int>(spell->icon);
+            code = static_cast<const char*>(spell->code);
+            // The texts' section "spell <code>": its first line is the spell's name.
+            bool found = TextsOpenSection(texts, nullptr, mfc::CString("spell ") + code) != 0;
+            if (found) texts->ReadLine(&text, 1);
+        }
+        SurfaceDrawText(surface, nullptr, text, &line, 0, kTextColour, 0, 1);
+        gameapi::OffsetRect(&line, 0, kLineHeight);
+        number.Format("%d", effects[i].ticksLeft / 15);
+        SurfaceDrawText(surface, nullptr, number, &line, 0, kTextColour, 0, 1);
+        gameapi::OffsetRect(&line, 0, kLineHeight);
+    }
+
+    // The pictures already in the texture keep their places (the last one that matches).
+    for (int i = 0; i < kPlaces; ++i) {
+        for (int place = 0; place < kPlaces; ++place) {
+            if (icons[i] >= 0 && icons[i] == effectIcons_[place]) {
+                taken[place] = true;
+                places[i] = place;
+            }
+        }
+    }
+    // The others go into the free places in order; the list ends when there is none left.
+    mfc::CString picture;
+    int free = 0;
+    for (int i = 0; i < kPlaces; ++i) {
+        if (icons[i] < 0) continue;
+        bool fresh = false;
+        if (places[i] < 0) {
+            while (free < kPlaces && taken[free]) ++free;
+            if (free == kPlaces) break;
+            taken[free] = true;
+            places[i] = free;
+            fresh = true;
+        }
+        int x = kPlaceX[places[i]];
+        int y = kPlaceY[places[i]];
+        if (fresh) {
+            picture.Format("spell%04d", icons[i]);
+            CopyImage(objects_.data[1], picture, kIconSize, kIconSize, kIconSize, kIconSize, x, y, 0, 0);
+            effectIcons_[free] = icons[i];
+        }
+        CUiMesh* icon = Sprite(this, kFirstIcon + i);
+        icon->visible_ = 1;
+        icon->uOffset_ = static_cast<float>(x) * (1.0f / 256.0f);
+        icon->vOffset_ = static_cast<float>(y + kIconSize) * (1.0f / 256.0f);
+    }
+}
+EI_REPLACE_METHOD(0x00646B90, CHudUnitPanel::ShowEffects);
+
+// --- Unit panel: the body part buttons (006481D0) -------------------------------------------------
+
+void CHudUnitPanel::ShowBodyPart() {
+    constexpr int kFirstPartButton = 3;
+    constexpr int kPartButtons = 4;
+    for (int i = 0; i < kPartButtons; ++i) {
+        float tint = bodyPart_ == i ? 1.0f : 0.5f;
+        CUiMesh* button = Sprite(this, kFirstPartButton + i);
+        button->tint_[0] = tint;
+        button->tint_[1] = tint;
+        button->tint_[2] = tint;
+    }
+}
+EI_REPLACE_METHOD(0x006481D0, CHudUnitPanel::ShowBodyPart);
 
 // --- Top panel -----------------------------------------------------------------------------------
 

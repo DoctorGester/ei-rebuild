@@ -2,10 +2,13 @@
 // adding cells, appending and reversing lists, dropping repeated cells, and stepping a cell in one
 // of the eight directions. See ai_map.h and docs/notes/ai.md.
 #include "ai_map.h"
+#include "ai_motion.h"
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
 #include "originals_units.h"
+
+#include <cstring>
 
 namespace {
 
@@ -84,3 +87,41 @@ void __fastcall PathCellsRemoveRepeats(PathCellList* list) {
     }
 }
 EI_REPLACE(0x005C6000, PathCellsRemoveRepeats);
+
+void AIPath::ToMotionOrder(AIPath* out) const {
+    constexpr int kFollowSteps = 2;
+    std::memcpy(out->unknown_00, unknown_00, sizeof(unknown_00));
+    out->steps.RemoveAll();
+    PathCellsAppend(&out->steps, nullptr, &steps);
+    if (OrderOf(out)->kind != kFollowSteps) return;
+    PathCellsAppend(&out->steps, nullptr, &cells);
+    PathCellsRemoveRepeats(&out->steps);
+    out->SetStepSpeeds(0x200);
+    out->SetTarget(targetX, targetY);
+}
+EI_REPLACE_METHOD(0x005B22C0, AIPath::ToMotionOrder);
+
+void CAIMap::ClearMarksAround(const PathCellList* chain) {
+    constexpr int kBlock = 8;
+    constexpr int kMargin = 4 * kBlock;
+    if (chain->count < 1) return;
+    const PathCellList::Node* node = chain->head;
+    int minX = node->data.x, maxX = minX;
+    int minY = node->data.y, maxY = minY;
+    for (; node; node = node->next) {
+        int x = node->data.x, y = node->data.y;
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+    }
+    int x0 = minX * kBlock - kMargin, x1 = maxX * kBlock + kBlock + kMargin;
+    int y0 = minY * kBlock - kMargin, y1 = maxY * kBlock + kBlock + kMargin;
+    if (x0 < 0) x0 = 0;
+    if (width < x1) x1 = width;
+    if (y0 < 0) y0 = 0;
+    if (height < y1) y1 = height;
+    for (int y = y0; y < y1; ++y)
+        for (int x = x0; x < x1; ++x) marks.rows[y][x] = 0;
+}
+EI_REPLACE_METHOD(0x005B9BC0, CAIMap::ClearMarksAround);

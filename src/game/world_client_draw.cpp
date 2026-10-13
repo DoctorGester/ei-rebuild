@@ -10,6 +10,7 @@
 #include "world.h"
 
 #include "camera.h"
+#include "effects.h"
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "model.h"
@@ -30,9 +31,14 @@
 #include <cstdint>
 #include <cstring>
 #include "originals_render.h"
+#include "originals_ui.h"
 #include "originals_units.h"
+#include "ui.h"
 
 #pragma warning(disable : 4740) // naked forwarders, inline assembly
+
+// windows.h renames CEngineObject's GetClassName.
+#undef GetClassName
 
 namespace {
 
@@ -400,6 +406,69 @@ int CWorldClient::Render() {
     return 1;
 }
 EI_REPLACE_METHOD(0x00569E40, CWorldClient::Render);
+
+// 00569D60 (A-W13).
+int CWorldClient::DrawLineLists() {
+    for (auto* node = lineLists_.First(); node; node = lineLists_.After(node))
+        LineListDrawOriginal(node->value, nullptr, ScenePipeline(), RenderDeviceObject());
+    return 1;
+}
+EI_REPLACE_METHOD(0x00569D60, CWorldClient::DrawLineLists);
+
+// ---- The debug display's switches -------------------------------------------------------------------
+
+namespace {
+constexpr std::uint32_t kShowFps = 1;
+constexpr std::uint32_t kShowRenderInfo = 2;
+constexpr std::uint32_t kShowManagers = 4;
+constexpr std::uint32_t kShowWorldData = 8;
+
+// The debug info panel (0079B930, what 004447D0 returns) loses the line `key` (its slot 1).
+void RemoveDebugLine(const char* key) { DebugPanelRemoveOriginal(DebugInfoPanel(), nullptr, key); }
+} // namespace
+
+void CWorldClient::ShowFps() { debugFlags_ |= kShowFps; }
+EI_REPLACE_METHOD(0x00569A10, CWorldClient::ShowFps);
+
+void CWorldClient::HideFps() {
+    debugFlags_ &= ~kShowFps;
+    RemoveDebugLine("FPS");
+}
+EI_REPLACE_METHOD(0x00569A20, CWorldClient::HideFps);
+
+void CWorldClient::ShowRenderInfo() { debugFlags_ |= kShowRenderInfo; }
+EI_REPLACE_METHOD(0x00569A40, CWorldClient::ShowRenderInfo);
+
+void CWorldClient::HideRenderInfo() {
+    debugFlags_ &= ~kShowRenderInfo;
+    RemoveDebugLine("triangles submitted");
+    RemoveDebugLine("vertices submitted");
+}
+EI_REPLACE_METHOD(0x00569A50, CWorldClient::HideRenderInfo);
+
+void CWorldClient::ShowManagers() { debugFlags_ |= kShowManagers; }
+EI_REPLACE_METHOD(0x00569A90, CWorldClient::ShowManagers);
+
+// Each manager's line is under its class name.
+void CWorldClient::HideManagers() {
+    debugFlags_ &= ~kShowManagers;
+    RemoveDebugLine(manager3C_->GetClassName());
+    RemoveDebugLine(manager40_->GetClassName());
+    RemoveDebugLine(textureManager_->GetClassName());
+    RemoveDebugLine(particleManager_->GetClassName());
+    RemoveDebugLine(manager190_->GetClassName());
+}
+EI_REPLACE_METHOD(0x00569AA0, CWorldClient::HideManagers);
+
+void CWorldClient::ShowWorldData() { debugFlags_ |= kShowWorldData; }
+EI_REPLACE_METHOD(0x00569B10, CWorldClient::ShowWorldData);
+
+void CWorldClient::HideWorldData() {
+    debugFlags_ &= ~kShowWorldData;
+    RemoveDebugLine("Last Event");
+    RemoveDebugLine("World Time");
+}
+EI_REPLACE_METHOD(0x00569B20, CWorldClient::HideWorldData);
 EI_REBIRTH_IMPLEMENTS(0x00569E40, ei::rebirth::Patch::LandscapeDrawRadius);
 
 // ---- DrawPass (0056AFE0) ------------------------------------------------------------------------

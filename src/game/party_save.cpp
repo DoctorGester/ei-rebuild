@@ -3,6 +3,7 @@
 // ("Party").
 #include "party.h"
 
+#include "chunk_archive.h"
 #include "core_streams.h"
 #include "object_tables.h"
 #include "originals_engine.h"
@@ -210,3 +211,19 @@ CParty* CParty::CopyConstruct(CParty* source) {
     return this;
 }
 EI_REPLACE_METHOD(0x006613C0, CParty::CopyConstruct);
+
+// --- 006617F0 (A-H25): the party as a stream field of an archive --------------------------------------
+
+void CParty::ArchiveParty(ChunkArchive* ar) {
+    constexpr int kStreamField = 1;
+    CopyStream held;
+    if (ar->loading_) {
+        ar->StreamField(kStreamField, &held.stream);
+        held.stream.version_ = static_cast<std::uint32_t>(ar->version_);
+        LoadParty(&held.stream, 1);
+    } else {
+        SaveParty(&held.stream, 1);
+        ar->StreamField(kStreamField, &held.stream);
+    }
+}
+EI_REPLACE_METHOD(0x006617F0, CParty::ArchiveParty);

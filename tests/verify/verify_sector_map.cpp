@@ -89,3 +89,21 @@ static void __fastcall InitVerify(CSectorMap* self, void*, int cellsX, int cells
     ei::verify::Check("CSectorMap::Init", true, ok, "%d x %d cells: %d sectors", cellsX, cellsY, self->sectors.size);
 }
 EI_VERIFY(0x005C06F0, InitVerify, 0, s_unused);
+
+// A-W13. 0058A700 / 0058A780 (the destructor): the sectors and their storage are freed, so ours
+// only. Checked: both vtables are the map's own; the deleting one returns the object. Reached only
+// when the AI map's construction unwinds.
+static void __fastcall DestructBodyVerify(CSectorMap* self) {
+    self->DestructBody();
+    bool ok = self->vtable == reinterpret_cast<void*>(CSectorMap::kVtableAddress) &&
+              self->sectors.vtable == reinterpret_cast<void*>(CSectorMap::kSectorArrayVtable);
+    ei::verify::Check("CSectorMap::DestructBody", true, ok, "%d sectors", self->sectors.size);
+}
+EI_VERIFY(0x0058A700, DestructBodyVerify, 0, s_unused);
+
+static CSectorMap* __fastcall DeletingDestructVerify(CSectorMap* self, void*, unsigned flags) {
+    CSectorMap* result = self->DeletingDestruct(flags);
+    ei::verify::Check("CSectorMap::DeletingDestruct", true, result == self, "flags %u", flags);
+    return result;
+}
+EI_VERIFY(0x0058A780, DeletingDestructVerify, 0, s_unused);

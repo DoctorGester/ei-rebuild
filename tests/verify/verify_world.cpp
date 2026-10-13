@@ -3,8 +3,10 @@
 
 #include "../../src/game/effects.h"
 #include "../../src/game/map_object_figures.h"
+#include "../../src/game/object_tables.h"
 #include "../../src/game/script.h"
 #include "../../src/game/world.h"
+#include "../../src/game/world_glue.h"
 #include "../../src/lib/crt.h"
 #include "ei/x87.h"
 
@@ -569,6 +571,24 @@ static float __cdecl GameTimeVerify() {
 }
 EI_VERIFY(0x00578B40, GameTimeVerify, 6, s_gameTime);
 
+// 00578DB0 / 00578DC0: MOV EAX,imm32 (5 bytes). Pure. Every start (the key bindings file) and the
+// main menu's exit movie.
+static const mfc::CString*(__cdecl* s_dataPath)();
+static const mfc::CString* __cdecl DataPathVerify() {
+    const mfc::CString* expected = s_dataPath();
+    ei::verify::Check("GameDataPathString", expected, GameDataPathString(), "");
+    return expected;
+}
+EI_VERIFY(0x00578DB0, DataPathVerify, 5, s_dataPath);
+
+static const mfc::CString*(__cdecl* s_basePath)();
+static const mfc::CString* __cdecl BasePathVerify() {
+    const mfc::CString* expected = s_basePath();
+    ei::verify::Check("GameBasePathString", expected, GameBasePathString(), "");
+    return expected;
+}
+EI_VERIFY(0x00578DC0, BasePathVerify, 5, s_basePath);
+
 // 00578BA0 / 00578B50: MOV ECX,0x7AF5B8 (5 bytes). Pure.
 static std::uint8_t*(__cdecl* s_playerData)();
 static std::uint8_t* __cdecl PlayerDataVerify() {
@@ -609,3 +629,43 @@ static mfc::CString* __stdcall PlayerNameVerify(mfc::CString* out) {
     return out;
 }
 EI_VERIFY(0x00578A90, PlayerNameVerify, 7, s_playerName);
+
+// A-W13. 005785D0 loads and may run a script: ours only. Checked: the result is Load's 0 / 1 and the
+// error copied out is the command script's (code, line, text by content). The console's script
+// command.
+static int __stdcall RunScriptTextVerify(mfc::CString* text, char run, ScriptErrorInfo* error) {
+    int result = RunScriptText(text, run, error);
+    auto* script = reinterpret_cast<CScript*>(0x007C29CC);
+    bool ok = (result == 0 || result == 1) &&
+              (!error || (error->code == script->ErrorCode() && error->line == script->ErrorLine() &&
+                          std::strcmp(error->text, script->ErrorText()) == 0));
+    ei::verify::Check("RunScriptText", true, ok, "result %d", result);
+    return result;
+}
+EI_VERIFY(0x005785D0, RunScriptTextVerify, 0, s_unused);
+
+// 00578C40 fills `out` (emptied first; its nodes are allocated): ours only. Checked: every name
+// copied starts with the prefix. The quest and briefing screens (every game with quests).
+static void __stdcall PlayerZeroVariablesVerify(const char* prefix, NamedFloatTable* out) {
+    PlayerZeroVariables(prefix, out);
+    std::size_t length = std::strlen(prefix);
+    bool ok = true;
+    for (NamedFloatTable::Node** bucket = out->buckets; bucket != out->finish; ++bucket)
+        for (NamedFloatTable::Node* node = *bucket; node; node = node->next)
+            if (std::strncmp(node->key, prefix, length) != 0) ok = false;
+    ei::verify::Check("PlayerZeroVariables", true, ok, "\"%s\": %u entries", prefix, out->count);
+}
+EI_VERIFY(0x00578C40, PlayerZeroVariablesVerify, 0, s_unused);
+
+// A-W13. 0055EA10 stores the start folder: both run (the original first, its text copied), the
+// texts compared. PUSH -1; PUSH imm32 (7 bytes). The application's start-up, every run.
+static void(__cdecl* s_storeStartFolder)();
+static void __cdecl StoreStartFolderVerify() {
+    auto& folder = *reinterpret_cast<mfc::CString*>(0x007AF454);
+    s_storeStartFolder();
+    mfc::CString expected(folder);
+    StoreStartFolder();
+    ei::verify::Check("StoreStartFolder", true, std::strcmp(expected, folder) == 0, "\"%s\"",
+                      static_cast<const char*>(folder));
+}
+EI_VERIFY(0x0055EA10, StoreStartFolderVerify, 7, s_storeStartFolder);

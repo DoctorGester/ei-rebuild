@@ -115,3 +115,48 @@ CSpellEffect* CSpellEffect::DeletingDestruct(unsigned deleteFlags) {
     return this;
 }
 EI_REPLACE_METHOD(0x0067E5B0, CSpellEffect::DeletingDestruct);
+
+// --- A-H25: the cast's start values and the object it forgets ------------------------------------
+
+namespace {
+// A counted pointer takes `object`: nothing when it holds it already; else the held one released,
+// the new one counted.
+void AssignCounted(CEngineObject*& slot, CEngineObject* object) {
+    if (object == slot) return;
+    if (slot) slot->Release();
+    slot = nullptr;
+    if (object) ++object->refCount_;
+    slot = object;
+}
+} // namespace
+
+void CSpellEffect::Init(char* newWorld, CSpell* spell, CEngineObject* newCaster, const Vector3* newPosition,
+                        CEngineObject* newTarget, const Vector3* newTargetPoint, std::uint8_t flagA4) {
+    spell->CallCopyTo(Spell());
+    world = newWorld;
+    position = *newPosition;
+    AssignCounted(caster, newCaster);
+    AssignCounted(target, newTarget);
+    targetPoint = *newTargetPoint;
+    state = 0;
+    unknown_A4 = flagA4;
+}
+EI_REPLACE_METHOD(0x0067ECB0, CSpellEffect::Init);
+
+BOOL CSpellEffect::Forget(CEngineObject* object) {
+    if (target == object) return 0;
+    if (caster == object && caster) {
+        caster->Release();
+        caster = nullptr;
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x0067EF00, CSpellEffect::Forget);
+
+// --- 00688530 (A-H25): an effect's tick --------------------------------------------------------------
+
+int MapEffect::Tick() {
+    --ticksLeft;
+    return ticksLeft > 0 ? 1 : 0;
+}
+EI_REPLACE_METHOD(0x00688530, MapEffect::Tick);

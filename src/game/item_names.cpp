@@ -217,6 +217,9 @@ mfc::CString CItemSpell::FigureName() {
 }
 EI_REPLACE_METHOD(0x006A5820, CItemSpell::FigureName);
 
+mfc::CString CItemSpell::PictureName() { return mfc::CString(kSpellPicture); }
+EI_REPLACE_METHOD(0x006A58E0, CItemSpell::PictureName);
+
 // --- Loot ----------------------------------------------------------------------------------------
 
 namespace {

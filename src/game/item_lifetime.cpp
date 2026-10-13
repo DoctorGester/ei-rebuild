@@ -156,3 +156,35 @@ CItemSpell* CItemSpell::Construct() {
     return this;
 }
 EI_REPLACE_METHOD(0x006A56E0, CItemSpell::Construct);
+
+// --- The item manager's Create and factory (A-H25) -------------------------------------------------
+
+BOOL __fastcall ItemManagerCreate(CItemManager* self) { return self->CBaseManager::Create() != 0 ? 1 : 0; }
+EI_REPLACE(0x006AC780, ItemManagerCreate);
+
+static_assert(sizeof(CItemWeapon) == 0x5C && sizeof(CItemArmor) == 0x8C && sizeof(CItemLoot) == 0x58);
+static_assert(sizeof(CItemQuest) == 0x50 && sizeof(CItemSpell) == 0x50);
+
+namespace {
+template <typename T>
+CEngineObject* NewItem() {
+    void* memory = gamecrt::operator_new(sizeof(T));
+    return memory != nullptr ? static_cast<T*>(memory)->Construct() : nullptr;
+}
+} // namespace
+
+CEngineObject* __fastcall ItemNewObject(CBaseManager*, void*, int kind) {
+    CEngineObject* object;
+    switch (kind) {
+    case 0x3004: object = NewItem<CItemWeapon>(); break;
+    case 0x3005: object = NewItem<CItemArmor>(); break;
+    case 0x3006: object = NewItem<CItemQuick>(); break;
+    case 0x3007: object = NewItem<CItemLoot>(); break;
+    case 0x3008: object = NewItem<CItemSpell>(); break;
+    case 0x3009: object = NewItem<CItemQuest>(); break;
+    default: return nullptr;
+    }
+    if (object != nullptr) object->type_ = kind;
+    return object;
+}
+EI_REPLACE(0x006AC810, ItemNewObject);

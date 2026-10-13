@@ -2,6 +2,7 @@
 // the id maps. See world.h.
 #include "world.h"
 
+#include "ai_map.h"
 #include "core_maths.h"
 #include "script.h"
 
@@ -254,6 +255,50 @@ void CWorldServer::RemoveObject(unsigned id) {
         object->Release();
     }
 }
+
+void CWorldServer::RemoveAllUnits() {
+    auto* node = objects_.map.First();
+    if (!node) return;
+    // The next object is read before the current one is removed, as the original does.
+    CEngineObject* object = node->value;
+    do {
+        unsigned id = static_cast<unsigned>(object->id_);
+        bool isUnit = object->GetClassId() == world::kClassUnit;
+        node = objects_.map.After(node);
+        object = node ? node->value : nullptr;
+        if (isUnit) RemoveObject(id);
+    } while (node);
+}
+EI_REPLACE_METHOD(0x005939E0, CWorldServer::RemoveAllUnits);
+
+CEngineObject* ObjectMapIterator::First(ObjectIdMap* objects) {
+    map = objects;
+    node = objects->map.First();
+    table = objects;
+    return node ? node->value : nullptr;
+}
+EI_REPLACE_METHOD(0x0059AF20, ObjectMapIterator::First);
+EI_REPLACE_METHOD(0x0059AFF0, ObjectMapIterator::First);   // byte-identical instantiation
+
+CEngineObject* ObjectMapIterator::Next() {
+    if (!node) return nullptr;
+    node = table->map.After(node);
+    return node ? node->value : nullptr;
+}
+EI_REPLACE_METHOD(0x0059AF80, ObjectMapIterator::Next);
+EI_REPLACE_METHOD(0x0059B050, ObjectMapIterator::Next);   // byte-identical instantiation
+
+double CWorldServer::ServerRawSurfaceHeight(float x, float y) {
+    Vector3 point = {x, y, 0.0f};
+    return AIMap()->TopHeightAt(&point);
+}
+EI_REPLACE_METHOD(0x0058A390, CWorldServer::ServerRawSurfaceHeight);
+
+double CWorldServer::ServerGroundHeight(float x, float y) { return GridHeightAt(x, y); }
+EI_REPLACE_METHOD(0x0058A3D0, CWorldServer::ServerGroundHeight);
+
+double CWorldServer::ServerSurfaceHeight(float x, float y) { return RawSurfaceHeightAt(x, y); }
+EI_REPLACE_METHOD(0x0058A3F0, CWorldServer::ServerSurfaceHeight);
 
 EI_REPLACE_METHOD(0x005935C0, CWorldServer::RemoveObject);
 EI_REBIRTH_IMPLEMENTS(0x005935C0, ei::rebirth::Patch::FixRemoveMapObject);

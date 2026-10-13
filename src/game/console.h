@@ -10,6 +10,9 @@
 #include <cstdint>
 
 namespace ui_gdi { struct GameFont; }
+struct SpeechRecord;            // unit_client_models.h
+namespace acks { struct EnvironmentSpeech; }   // acks_db.h
+namespace stlp { template <typename T> class vector; }
 
 namespace console {
 
@@ -46,6 +49,14 @@ public:
 };
 static_assert(sizeof(CStringArray) == 0x14);
 
+// The virtual slots of a CStdioFile (vtable 007464F0) for code that writes through the file's
+// vtable (generateacks' line writers). Declared only.
+class __declspec(novtable) CStdioFileVirtuals : public mfc::CFileVirtuals {
+public:
+    virtual void GetBufferPtr();                    // 20: 0070150F
+    virtual void WriteString(const char* text);     // 21: 00701E23
+};
+
 // MFC CStdioFile (0x14 bytes: CFile and the FILE*). Locals only; raw members for the forwarders.
 class CStdioFile {
 public:
@@ -56,6 +67,8 @@ public:
     mfc::BOOL ReadString(mfc::CString& line);                       // 00701E93
     void WriteString(const char* text);                             // 00701E23
     void Close();                                                   // 00701FE0
+    // The file as code that calls through its vtable sees it.
+    CStdioFileVirtuals* Virtuals() { return reinterpret_cast<CStdioFileVirtuals*>(this); }
 
 private:
     void* vtable_;
@@ -281,6 +294,7 @@ void __fastcall Give(CStringArray* args);          // 005DF0F0 give
 void __fastcall LootAll(CStringArray* args);       // 005DF5B0 lootall
 void __fastcall FadeOut(CStringArray* args);       // 005DF8E0 fadeout
 void __fastcall Net(CStringArray* args);           // 005DF9B0 net
+void __fastcall GenerateAcks(CStringArray* args);  // 005DFDA0 generateacks
 void __fastcall Days(CStringArray* args);          // 005E00D0 days
 void __fastcall PartyResend(CStringArray* args);   // 005E0570 partyresend
 void __fastcall Kick(CStringArray* args);          // 005E0590 kick
@@ -288,6 +302,11 @@ void __fastcall Ban(CStringArray* args);           // 005E06E0 ban
 void __fastcall Fps(CStringArray* args);           // 005E0830 fps
 void __fastcall Rate(CStringArray* args);          // 005E0990 rate
 void __fastcall LocalRate(CStringArray* args);     // 005E0A10 localrate
+// 005DFC20 / 005DFCE0 (ECX the file, EDX the list; a null list writes nothing): generateacks'
+// lines for a speech list / an environment speech list. See console_commands.cpp.
+void __fastcall WriteSpeechLines(CStdioFileVirtuals* file, const stlp::vector<SpeechRecord>* list);
+void __fastcall WriteEnvironmentSpeechLines(CStdioFileVirtuals* file,
+                                            const stlp::vector<acks::EnvironmentSpeech>* list);
 } // namespace commands
 
 } // namespace console

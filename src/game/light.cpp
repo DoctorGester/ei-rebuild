@@ -92,6 +92,49 @@ BOOL CLight::SetDirectional(const Vector3* color, const Vector3* direction) {
 }
 EI_REPLACE_METHOD(0x0068D0A0, CLight::SetDirectional);
 
+namespace {
+// A channel with the light's share added, clamped at 1.
+float Lit(float base, float amount, float color) {
+    const float sum = amount * color + base;
+    return sum > 1.0f ? 1.0f : sum;
+}
+} // namespace
+
+void CLight::AddDirectional(Vector4* out, float scale, const Vector4* base, const Vector3* normal) const {
+    const float facing = -vecmath::Dot<Sum3::ZYX>(direction_, *normal);
+    if (!(facing > 0.0f)) {
+        *out = *base;
+        return;
+    }
+    const float amount = facing * scale;
+    const float red = Lit(base->x, amount, color_[0]);
+    const float green = Lit(base->y, amount, color_[1]);
+    const float blue = Lit(base->z, amount, color_[2]);
+    out->x = red;
+    out->y = green;
+    out->z = blue;
+}
+EI_REPLACE_METHOD(0x0068D310, CLight::AddDirectional);
+
+void CLight::AddPoint(Vector4* out, float scale, const Vector4* base, const Vector3* normal, const Vector3* toLight,
+                      float distance) const {
+    const float falloff = 1.0f - distance * inverseRangeSquared_ * distance;
+    if (falloff < 0.0f) {
+        *out = *base;
+        return;
+    }
+    const float cosine = vecmath::Dot<Sum3::ZYX>(*normal, *toLight);
+    const float facing = cosine <= 0.0f ? cosine + 1.0f : 1.0f;
+    const float amount = facing * falloff * scale;
+    const float red = Lit(base->x, amount, color_[0]);
+    const float green = Lit(base->y, amount, color_[1]);
+    const float blue = Lit(base->z, amount, color_[2]);
+    out->x = red;
+    out->y = green;
+    out->z = blue;
+}
+EI_REPLACE_METHOD(0x0068D5A0, CLight::AddPoint);
+
 int __fastcall LightCreate(CLight*) { return 1; }
 void __fastcall LightDestroy(CLight* light) { light->flags_ &= ~kFlagDestroyed; }
 const char* __fastcall LightClassName(CLight*) { return reinterpret_cast<const char*>(kLightClassName); }

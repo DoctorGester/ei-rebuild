@@ -126,3 +126,36 @@ static bool __fastcall QuestDatabaseLoadVerify(char* db, void*, const void* imag
     return result;
 }
 EI_VERIFY(0x006AE8E0, QuestDatabaseLoadVerify, 7, s_load);
+
+// --- 006B0600 (A-H25): QuestBriefingTable::Add ------------------------------------------------------
+// It appends to the database (and the original load above runs it on its scratch database), so ours
+// only: false and nothing added for null or an indexed name; otherwise one more record with that
+// name, and every record indexed by its name at its place.
+#include "../../src/game/quest_records.h"
+
+static bool __fastcall BriefingTableAddVerify(QuestBriefingTable* self, void*, const QuestBriefingRecord* record) {
+    const std::size_t size = self->records.size();
+    bool present = false;
+    if (record) {
+        const QuestBriefingTable::Index::Node* node = self->index.Find(record->name);
+        present = node && node->value;
+    }
+    bool result = self->Add(record);
+    bool ok;
+    if (!record || present) {
+        ok = !result && self->records.size() == size;
+    } else {
+        ok = result && self->records.size() == size + 1 && self->records.back().name == record->name &&
+             self->index.Size() <= self->records.size();
+        for (QuestBriefingRecord* r = self->records.begin(); ok && r != self->records.end(); ++r) {
+            const QuestBriefingTable::Index::Node* node = self->index.Find(r->name);
+            ok = node && node->value && node->value->name == r->name;
+        }
+    }
+    const char* name = record && record->name.data() ? record->name.data() : "";
+    ei::verify::Check("QuestBriefingTable::Add", true, ok, "'%s': %d, %u -> %u records", name, result,
+                      static_cast<unsigned>(size), static_cast<unsigned>(self->records.size()));
+    return result;
+}
+static void* s_briefingAddUnused;
+EI_VERIFY(0x006B0600, BriefingTableAddVerify, 0, s_briefingAddUnused);
