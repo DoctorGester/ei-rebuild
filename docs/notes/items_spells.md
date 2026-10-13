@@ -549,6 +549,11 @@ V: S side by side, O ours only.
 | 00642930, 00645F80 | CHudMap::LayoutVanilla, CHudUnitPanel::LayoutVanilla (ui_hud_slide.cpp): the sprites, the text surface and the regions after the first at the slide offset (`offset_`, `travel_`, `slide_` named in both panels) | S; the battle screen's build (the setups call them) and every frame of a slide |
 | 00647FB0 | CHudUnitPanel::UpdateVanilla (slot 24): the slide (time x direction / 0.3 s, eased, _ftol of travel x eased), Layout, the sling button (scene object 2), a dead hover unit forgotten, the interface's +0x89 / +0x8C | S; every frame; the slide by ui_hud (the sling button twice) |
 | 00642B40 | CHudMap::UpdateVanilla (slot 24): zoom x or / 2.5^time towards zoomMax_ / 1 by view_, UpdateView, BuildMarkers (through their addresses), the slide as above (sling: scene object 5), +0x8B, the "camera north" time and its button's tint | O (it rebuilds the map's meshes): zoom, slide state, time and tint worked out from the state before; every frame; zoom by ui_hud; no scenario slides the map |
+| 00645210 | CHudMap::OnMouseUp (ui_hud.cpp): a held view button released (both tints back to 0.5); else by region: 0 the sling (direction turned, sliding), 1 / 2 a click on the map (the layout point through 005F7E00, relative to (700, 80), by the map's scale `unknown_174`, region 1 also by the zoom; inside the world the camera stops following and focuses there), 5 camera north (heading 0, the button lit for 0.5 s) | O: capture, the view reset, the handled flag, the sling's fields, the north time; ui_hud reaches only the view buttons' release (no scenario clicks the map, its sling or the north button) |
+| 0065E580 | CUiTooltip::OnMouseMoveVanilla (ui_tooltip.cpp; +0x17C is `timer_`): one step of the showing. State 1 (hovered): no lines or a zero delay (setting 20, 0079BE80) gives 0; the timer runs up to the delay; then the command's key (FindCommandByKey of `extra_`) measured with the first line, state 2, a surface (format 5) at the mouse + the cursor offset ((24, 24) screen pixels at 007C8258, set by the static initialiser 0065E310), pushed left off the right edge and above the mouse at the bottom. State 2 draws and becomes 4 (the appearing time 00742F2C is 0). State 3 draws while the timer is positive (it never is), then drops sprites and surface, state 0 | O (it makes the surface): the state reached from the state, timer and settings before, the surface count; every frame of a screen with region tooltips (ui_main_menu, ui_hud) |
+| 0065C2E0 | CUiEditField::DrawContentsVanilla (ui_edit_field.cpp; +0x15C is `centred_`): the caret clamped, the surface cleared, the text over the whole field (DT_NOPREFIX, + DT_CENTER when centred), the caret a pen line after the first caret_ characters (a centred text starts at width / 2 - text width / 2), not drawn outside the field | S (drawing twice leaves the same picture; the clamped caret compared, the pixels not); the screens with an edit field (ui_hero_screen, net_lobby) |
+| 00648520 | CHudClock::SetupVanilla (ui_hud_setup.cpp): rectangle (720, 520)-(800, 600); sprites 0 face disc, 1 hand, 2-5 "in25arrow", 6 / 7 discs; regions 0-2 the pi / 6 sectors between radius 35 and 80 about (800, 600), 3 the quarter disc of 34; tips 0x28A0, 0x28A2 / 0x28A3 (not on a network client), 0x28A1; fast, period 27 / 55, no blink | S (the original's regions and sprites recorded and dropped, the fields put back, then ours); every scenario that starts a game |
+| 00649190 | CHudMovePanel::SetupVanilla (slot 18, ui_hud_setup.cpp): rectangle (0, 520)-(80, 600); region 0 the quarter disc of 34 about (0, 600), 1-4 the pi / 8 sectors between 35 and 80 (tips 0x2904..0x2908, keys 0x1B, 0x17..0x1A); sprites 0 marker, 1-4 sector triangles (tint 0.7), 5 the disc (texture frame 0.48); ShowMode(-1), flag -1 | S as the clock; every scenario that starts a game |
 
 Shared: database_file.h (`dbfile::LocalResource`, `LocalStream`, `FillStream`, `LoadTable`, `OpenDatabase`, `ReportNoDatabase`;
 unit_db_load.cpp uses it too); `MappedResourceOpenOriginal`, `ChunkArchiveDestroyOriginal` (originals_engine.h);
@@ -563,12 +568,17 @@ a frame (the wrappers allow it and then skip the layout comparison).
 006BB3A0 (the stream reader) is called only by 006BB910 `StreamThread`, the game's own thread (AfxBeginThread), under the
 stream lock every 100 ms; not Miles' thread. Not ported yet.
 
-Still original (Rebirth-patched): 00641F20 (map setup), 00645210 (the map's button release: sling, camera north, a click on the map moves the camera), 006456E0 (unit panel setup), 006462A0 (unit panel draw),
-00648520 (clock setup), 00649190 (movement panel setup), 006567A0 (save / load list), 00659420 (help page draw), 0065C2E0
-(edit field draw), 0065E580 (tooltip mouse move), 006BB3A0, and 006C68B0 (map loader, models.md). None of the ported ones
-drives the Direct3D / DirectDraw device directly; 006462A0, 00659420 and 0065C2E0 draw (through sprites, surfaces and GDI
-text) and were not reached.
-Next candidates: 00648520 and 00649190 (the clock's and the movement panel's setups: sprites through 005E8C60 Disc and the
-patched 005E99D0 SetTriangle, region polygons through the patched 005FCA70 AddPoint, whose points are `_ftol(cos x 35)`:
-sin(pi / 2) x 35 truncates to 35 only at the game's 24-bit FPU precision, so use float maths there), 0065E580, 0065C2E0,
-006BB3A0 (ours-only wrapper without logging in the loop), then the two big setups and 006C68B0.
+Arc points (00648520, 00649190): the regions' vertices are `_ftol(cos(k x pi x step) x radius)` with every product and the
+cosine rounded to float, as the game's FPU does at its 24-bit precision: sin(pi / 2) is then exactly 1 and the vertex is the
+whole radius (35, 80, 34); a double sine gives 34.99.. and one less. `OnArc` in ui_hud_setup.cpp rounds each step with
+RoundToFloat, so it does not depend on the precision control. New forwarders: `CUiRegion::CallAddPoint` (005FCA70) and
+`CUiMesh::SetTriangle` (005E99D0; ui_objectives.cpp's own forwarder now calls it), both in ui_layouts.cpp.
+
+Still original (Rebirth-patched): 00641F20 (map setup), 006456E0 (unit panel setup), 006462A0 (unit panel draw), 006567A0
+(save / load list), 00659420 (help page draw), 006BB3A0, and 006C68B0 (map loader, models.md). None of the ported ones
+drives the Direct3D / DirectDraw device directly (0065E580 makes an interface surface through 005FCDD0, 0065C2E0 draws GDI
+text and a pen line into one through its DC); 006462A0 and 00659420 draw through sprites, surfaces and GDI text and were
+not reached.
+Next candidates: 006BB3A0 (ours-only wrapper without logging in the loop), 006567A0, then the two big setups (00641F20,
+006456E0: about 2.5 KB each, the same sprite and region calls as the two small setups, so the side-by-side wrapper of
+verify_ui_hud_setup.cpp fits them), 006462A0, 00659420 and 006C68B0.

@@ -415,6 +415,7 @@ public:
     void SetTipString(const char* text, int a, int b);
     // Layout code calls SetRect through its original address: Rebirth patches it (rule 9).
     void CallSetRect(int left, int top, int right, int bottom);   // -> 005FC9E0
+    void CallAddPoint(int x, int y);                              // -> 005FCA70 (Rebirth-patched too)
     // 0062AC90 (RET 0x10; ui_main_menu.cpp). SetRect (through its original address) from a RECT
     // passed by value; the menus' layouts use it for their menus.reg rectangles.
     void SetRectFrom(RECT rect);
@@ -1496,6 +1497,9 @@ public:
                       int u1, int v1);
     void SetFrame(float depth, float scale, float left, float top, float right, float bottom, float border,
                   int u0, int v0, int u1, int v1);
+    // 005E99D0 (Rebirth-patched: through its address; the vanilla body is SetTriangleVanilla).
+    void SetTriangle(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2, float u0,
+                     float v0, float u1, float v1, float u2, float v2);
     // 005E70E0 (RET 0x28; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
     // only; ui_mesh_shapes.cpp; rewritten callers go through SetRectangle). A rectangle of two
     // triangles: one packet of normals (0, 0, 1), four corners, the texels (u0, v0)-(u1, v1) as
@@ -1775,6 +1779,15 @@ public:
     // exits, no zone list) opened on top.
     void OpenObjectives();
     void CallOpenObjectives();                     // through 00648F10 (its verify wrapper)
+    // 00648520 (RET 4; ui_hud_setup.cpp, A-H26; Rebirth-patched: the vanilla body, hooked in the
+    // vanilla launch only; the battle screen calls it through its address). The clock's rectangle
+    // (720, 520)-(800, 600); scene objects: 0 the face (a disc of radius 65 about the layout's
+    // corner (800, 600)), 1 the hand (a triangle), 2-5 four "in25arrow" sprites (placed by
+    // Update), 6 and 7 two more discs (radius 32 and 80); regions 0-2: the three sectors of pi / 6
+    // between radius 35 and 80 about the corner (pause, normal, fast; the two speed tips not on a
+    // network client), region 3 the quarter disc of radius 34 (the objectives); then `fast`, the
+    // world's update period (27 ms fast, 55 normal), the interface's copy, no blink, no pulse.
+    void SetupVanilla(int fast);
 
     std::uint8_t unknown_148[4];
     float blink_;                    // +0x14C 0..1, the pause blink phase
@@ -1807,6 +1820,13 @@ public:
     // is turned about -z by (2 mode + 1) pi / 16 and placed on the circle of radius 73 about
     // (0, 600) at depth 8.
     void ShowModeVanilla(int mode);
+    // 00649190 (slot 18, the panel's Create; ui_hud_setup.cpp, A-H26; Rebirth-patched: the vanilla
+    // body, hooked in the vanilla launch only). The rectangle (0, 520)-(80, 600); region 0 the
+    // quarter disc of radius 34 about the layout's corner (0, 600), regions 1-4 the four sectors
+    // of pi / 8 between radius 35 and 80 (tips 0x2904..0x2908); scene objects: 0 the marker (a
+    // triangle), 1-4 the four sectors as triangles from the corner (tint 0.7), 5 the middle disc
+    // (radius 32); no mode shown (ShowMode(-1)), no flag (-1), the disc's texture frame 0.48.
+    void SetupVanilla();
 
     CBattleScreen* owner_;           // +0x148
     int mode_;                       // +0x14C the shown movement mode (-1, -2: none, mixed)
