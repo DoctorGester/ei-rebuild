@@ -247,7 +247,7 @@ const std::uint8_t* BuildRecords(SectorData& s) {
                 rec->waterMaterial = static_cast<std::uint16_t>(m);
                 if (m != -1) {
                     const TerrainMaterial& mat = s.owner->materials[m];
-                    rec->materialByte = mat.byte18;
+                    rec->materialByte = mat.opacityByte;
                     rec->materialColour = mat.colour;
                 }
                 std::memcpy(rec->position, vin, 12);

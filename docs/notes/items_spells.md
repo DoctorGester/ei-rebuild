@@ -592,7 +592,9 @@ there; a page index below -1 would search "#screen" until the text ends.
 `tests/verify/ui_panel_shot.h` holds the setups' record of regions and sprites (verify_ui_hud_setup.cpp and
 verify_ui_help_page.cpp use it).
 
-Still original (Rebirth-patched): 006462A0 (unit panel draw), and 006C68B0 (map loader, models.md).
+006C68B0 `Terrain::LoadMap` (the map loader) is ported too: models.md, side by side, every zone load.
+
+Still original (Rebirth-patched): 006462A0 (unit panel draw) only.
 006462A0 stays forwarded: it drives the Direct3D device directly. Between the panel's background and the unit's figure, and
 again after the figure, it clears three screen rectangles' Z-buffer (and stencil when the device has one) with
 IDirect3DDevice7::Clear (the device at the renderer's +0x54, vtable +0x28) under the render lock 007AEE78, after flushing
@@ -600,4 +602,5 @@ the renderer's two batches (004E7840, 004E7A40); in between it draws the unit's 
 stage 0's mip filter (state 0x12) read, set to 1 and put back through the device (vtable +0x90 / +0x94).
 None of the ported ones drives the device directly (0065E580 makes an interface surface through 005FCDD0; 0065C2E0 and
 006567A0 draw GDI text and a pen line into one through its DC; 00641F20 sets one pixel through a surface's DC).
-Next candidates: 006C68B0.
+Next candidates: none left of the ticket's list; 006462A0 once the device calls have a home (the renderer's Z clear and
+the texture stage state are behind the DDraw7 / D3D7 boundary).

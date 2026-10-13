@@ -31,6 +31,21 @@ struct VertexTiles {
     int tiles[4];
 };
 static_assert(sizeof(VertexTiles) == 0x14);
+
+// ConstructElements / DestructElements of the landscape's per-sector level arrays (00575690; the
+// elements' destructor slot 005755A0 with flags 0): zeroed, then each an empty CArray<float>
+// (vtable 0073D3E8); destroyed, each frees its storage.
+struct LevelArrayElements {
+    static void Construct(mfc::CArray<float>* arrays, int count);
+    static void Destruct(mfc::CArray<float>* arrays, int count);
+};
+
+// The ambient sound classes' one-shot counts for the sound set `set` (the map loader 006C68B0;
+// terrain_ambience.cpp): for every class with its own vote, how many of ambient\<set>\<class>\
+// day\1.wav, 2.wav, ... the wave sources have, counted until the first one missing. The table is
+// the game's (007969D0). AmbientVariants reads a class's count.
+void CountAmbientVariants(const char* set);
+int AmbientVariants(int soundClass);
 }
 
 // A 32x32-cell block of terrain. Each sector holds two layers of 33x33 vertices (x, y, z): the
@@ -94,17 +109,30 @@ public:
     // exists (counted in extraPages); each page's texture (kind 0xB, held, loaded) and a "Wood"
     // material (kind 0x12, held). 0 when a texture does not load, else 1.
     int SetupPages(int count);
+    // 006C68B0 (RET 0xC; A-H26: Rebirth redirects its ListFiles call, so this is the vanilla body,
+    // hooked in the vanilla launch only; a caller of ours must go through the address). Loads the
+    // map archive `path`: ClearMap, the archive opened (0 when it does not open), textFC the path
+    // without its extension, textF8 the name of the archive's first "*.mp" file; that file's
+    // header gives the sector grid (emptied), the sizes, the materials (opacity to absorption 1 /
+    // (1 - opacity) and a byte, the colour lit and capped at 1, level 0), the tile textures'
+    // classes and frame counts; then the pages (SetupPages; 0 and ClearMap when a texture does not
+    // load), the eight uv tables (BuildTileUv per tile and rotation; a margin of 8 pixels),
+    // mapLoaded, the ambient sound set ("Dungeon" when `dungeon`, else "Ingos" / "Suslanger" by
+    // `zone`, else "Gipat") with its one-shot counts, the low 16 flags set, and a zeroed water
+    // level per sector and material. 1; a missing or malformed map file is FatalError's result
+    // after ClearMap ("Unable to open file", "Wrong file format").
+    int LoadMap(const char* path, const char* zone, char dungeon);
     // 006C7A80 (terrain_landscape.cpp). The table of the tiles around each vertex of a sector (sized
     // to 33 x 33, rows of vertices): two tiles across a tile edge, four at a corner, one inside.
     void BuildVertexTiles();
     // 006C7750 (terrain_landscape.cpp). Frees the map: the ambient loops stopped, the cached
     // sectors deleted (most recently used first), the page textures and materials released and
-    // their arrays emptied, the archive closed, the sector grid freed (no map: sizes -1, unknown_100
+    // their arrays emptied, the archive closed, the sector grid freed (no map: sizes -1, mapLoaded
     // null), the uv tables freed.
     void ClearMap();
 
     // Point lights (terrain_lights.cpp; the light manager *007AF738 is the landscape). Nothing
-    // happens before a map is loaded (unknown_100 null).
+    // happens before a map is loaded (mapLoaded 0).
     // 006CA5D0 (RET 4). Holds the light, registers it by id with its area, adds it to the vertices
     // in range of the area's built sectors and relights the area.
     void AddLight(CLight* light);
@@ -226,21 +254,23 @@ public:
     lib::AlignedArray<CMaterial*> pageMaterials;   // +0x0E8 per texture page (constructor 00570E10; held)
     const char* textF8;             // +0x0F8 CString
     const char* textFC;             // +0x0FC CString
-    void* unknown_100;              // +0x100 CWorldClient::DrawPass draws nothing while it is null
+    int mapLoaded;                  // +0x100 1 once LoadMap has succeeded (nothing is drawn or lit while 0)
     int sectorsX;                   // +0x104 map size in sectors
     int sectorsY;                   // +0x108
     float width;                    // +0x10C last valid vertex column
     float height;                   // +0x110 last valid vertex row
     float heightRange;              // +0x114 the highest terrain height (cursor picking starts at half of it)
-    int unknown_118;                // +0x118 -1 after Reset
+    int pageSize;                   // +0x118 a texture page's side in pixels; -1 after Reset
     int pages;                      // +0x11C texture pages (sector loading)
-    int unknown_120;                // +0x120 -1 after Reset
-    int unknown_124;
-    int perPage;                    // +0x128 textures per page
+    int tileSize;                   // +0x120 a tile texture's side in pixels; -1 after Reset
+    int tilesPerRow;                // +0x124 pageSize / tileSize
+    int perPage;                    // +0x128 textures per page: tilesPerRow squared
     // Members constructed in place by Setup (their constructors' addresses).
     lib::AlignedArray<terrain::TerrainMaterial> materials;   // +0x12C 00570E40 the water materials
-    std::uint8_t part13C[0x10];     // +0x13C 0056FD30
-    std::uint8_t part14C[0x10];     // +0x14C 0056FD30
+    // +0x13C, +0x14C (0056FD30 both), per tile texture: its class 0..15 (sounds, prints), with
+    // sixteen entries of class 15 after the map's own; its frame count when animated, else 0.
+    lib::AlignedArray<int> textureClass;
+    lib::AlignedArray<int> textureFrames;
     CMMIOResource archive;          // +0x15C the map's sector archive (006721D0)
     float* uvTables[4];             // +0x1C8 terrain::TerrainFields
     float* uvTablesLast[4];         // +0x1D8
@@ -280,8 +310,11 @@ public:
     int ambientClasses[3];          // +0xAD4 their sound classes, -1 none
     const char* textAE0;            // +0xAE0 CString: the ambient sound set (ambient\<set>\...)
     int extraPages;                 // +0xAE4 texture pages loaded after the map's own (006C5AA0)
-    mfc::CArray<mfc::CArray<float>> waterLevels;   // +0xAE8 005711C0 per sector: a level per water material
+    // +0xAE8 (005711C0) per sector: a level per water material.
+    mfc::CArray<mfc::CArray<float>, terrain::LevelArrayElements> waterLevels;
 };
+static_assert(offsetof(Terrain, mapLoaded) == 0x100 && offsetof(Terrain, tilesPerRow) == 0x124);
+static_assert(offsetof(Terrain, textureClass) == 0x13C && offsetof(Terrain, textureFrames) == 0x14C);
 static_assert(offsetof(Terrain, pageTextures) == 0xD8 && offsetof(Terrain, pageMaterials) == 0xE8);
 static_assert(offsetof(Terrain, uvTables) == 0x1C8 && offsetof(Terrain, maxLightId) == 0x270);
 static_assert(offsetof(Terrain, textF8) == 0xF8);

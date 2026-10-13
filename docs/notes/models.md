@@ -185,7 +185,7 @@ draws from the game's random generator (a mistake would shift later draws).
 
 All of it lies in 006C1390-006E5E30 (beyond is the CRT / MFC). Groups (R = Rebirth-patched, forwarded):
 - **Landscape / sectors** 006C1390-006CCF20: shadow test 006C92C0; animated tiles 006C3E80; light countdown 006C8ED0;
-  ambience 006CB390 / 006CBC00 / 006CBCD0; map loading 006C68B0 (R), 006C5AA0, 006C7940 / 006C7D70 / 006C7EB0, 006C5430-006C57E0 (client setup from 00561E50 / 00562B80); draw passes 006C6230 / 006C6330 / 006C6460 /
+  ambience 006CB390 / 006CBC00 / 006CBCD0; map loading 006C68B0 (R; vanilla body ported, A-H26), 006C5AA0, 006C7940 / 006C7D70 / 006C7EB0, 006C5430-006C57E0 (client setup from 00561E50 / 00562B80); draw passes 006C6230 / 006C6330 / 006C6460 /
   006C66E0 / 006C67E0 / 006C42A0 / 006C4310; point lights 006CA5D0-006CAC10, 006CB020; water level 006CC7F0; decal
   triangles 006CCF20; sector parts (Clear 006C3C80, CArray element pairs 006C4EE0-006C5230).
 - Ground prints 006CECD0-006CFEA0: ported (A-X5, below).
@@ -349,9 +349,39 @@ into a memory stream, each table read through a ChunkArchive of its own (prints 
 acks chunks 1 units, 2 models, 3 extras) and filed under its records' names (`PrintsDatabase` gained `scorchByName` at
 +0x4C; 0x60 bytes). The ack load then fills every record's kind map: units kinds 0..0x15 to lists 0..21, 0x16..0x1B entered
 as null, 0x1C..0x1F to 22..25, 0x20..0x22 to 28..30, 0x23 / 0x24 to 26 / 27, 0x27 / 0x28 to 31 / 32, 0x2A the named
-speeches; models 0x2E..0x32; extras 0x2C / 0x2D. 006C68B0 (the map loader, 3.7 KB) is still original.
+speeches; models 0x2E..0x32; extras 0x2C / 0x2D.
 
-Stay forwarded: 006C68B0 (Rebirth-patched); `CDib::Read` 006D5910 / `Write` 006D5AC0 (MFC TRY / CATCH
+A-H26: 006C68B0 `Terrain::LoadMap(path, zone, dungeon)` (RET 0xC; terrain_landscape.cpp) is ported as its vanilla body
+(Rebirth redirects its ListFiles call at 006C6921; hooked in the vanilla launch only). Its only caller is the zone load
+00567AB0 (original, Rebirth-patched), with the zone's lower-cased name and "the zone is a dungeon" as a byte. ClearMap;
+the archive `path` opened (0 when not); +0xFC `textFC` the path without its extension; +0xF8 `textF8` the name of the
+archive's first "*.mp" file up to its dot (an archive without one is not tested for). The map file `<map>.MP` (the
+extension through the pointer at 007441D4), 0x26 bytes of header: magic CE4AF672, height range, sectors x / y, pages, page
+size, texture count, tile size, material count (16 bits), animated texture count; then the materials (0x2C bytes each), a
+class per texture, and (texture, frames) word pairs; the file's size must be exactly that. A missing file is FatalError
+"Unable to open file \"path\"", a short or mismatched one "Wrong file format: path" (through 00480080's address; its
+result is returned, after ClearMap). Then: the sector grid (+0x1F8, rows of null nodes); width / height = sectors x 32;
++0x118 `pageSize`, +0x120 `tileSize`, +0x124 `tilesPerRow` = page / tile, perPage its square; the materials (kind and
+colour copied, +0x10 `opacity`, absorption 1 / (1 - opacity), +0x18 `opacityByte` = _ftol(opacity x 255), colour = the
+file's light factor x colour capped at 1, priority, +0x30 from the record's +0x1C, level 0; +0x28 is left as it was);
++0x13C `textureClass` (the map's classes, then sixteen of class 15 for the extra pages' textures) and +0x14C
+`textureFrames` (0, or the frame count of an animated texture), both aligned int arrays; SetupPages (0 and ClearMap when a
+texture does not load); the uv tables (tile side 1 / tilesPerRow, margin side / tileSize x 8: BuildTileUv per rotation for
+every tile, and with "whole page" for one row of the last pages' tables); +0x100 `mapLoaded` = 1; the ambient sound set
+(+0xAE0: "Dungeon", or "Ingos" / "Suslanger" by `zone`, else "Gipat"); for each of the sixteen sound classes with its own
+vote (table 007969D0, +0x0C negative) the one-shot count +0x04 = how many of `ambient\<set>\<class>\day\<n>.wav`
+(n from 1) the wave sources have (`terrain::CountAmbientVariants`, terrain_ambience.cpp; each probe takes a reference on
+the wave file that is never given back); flags |= 0xFFFF; a water level per sector and material, zeroed (the outer
+CArray's elements are CArray<float>, vtable 0073D3E8: `terrain::LevelArrayElements` for 00575690 / 005755A0).
+Float note (rule 7): the quotients and products are rounded to float where the original's FPU does at 24-bit precision
+(RoundToFloat); the cap keeps 1 for a NaN, as the original's FCOMP does.
+V: side by side (verify_terrain_map_load.cpp). The loader frees the map itself, so the original runs first and ours
+replaces its result; texts, sizes, flags, materials' written fields, classes, frame counts, uv tables (by bits), page
+counts, one-shot counts compared, the grid and the levels checked empty; `extraPages` (only Reset clears it, SetupPages adds
+to it) and the flags are put back between the runs; a map the original does not load is not loaded again. Cost: the page
+textures load twice per zone in the verify build. Scenario: every one that enters a zone.
+
+Stay forwarded: `CDib::Read` 006D5910 / `Write` 006D5AC0 (MFC TRY / CATCH
 frames around the file calls, catching the game's MFC exceptions: as 004F0B90). Dead (config/dead_code.csv): 006C67E0,
 006C42A0, 006C4310 (a third draw pass reached only from the dead 006CC8D0). 50 rows in config/library.csv ("A-X6 review"): the landscape's CArray /
 aligned array element helpers and the prints / acks records' and databases' compiler-generated members. With these the

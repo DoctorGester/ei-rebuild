@@ -156,7 +156,7 @@ void(__fastcall* s_addLight)(Terrain*, void*, CLight*);
 void __fastcall AddLightVerify(Terrain* self, void*, CLight* light) {
     int refs = light->refCount_;
     self->AddLight(light);
-    if (!self->unknown_100) return;
+    if (!self->mapLoaded) return;
     Terrain::LightTable::Node* node = self->lights.Find(light->id_);
     ei::verify::Check("Terrain::AddLight", true,
                       node && node->value.light == light && light->refCount_ == refs + 1 && self->maxLightId >= light->id_,
@@ -170,7 +170,7 @@ void(__fastcall* s_removeLight)(Terrain*, void*, CLight*);
 
 void __fastcall RemoveLightVerify(Terrain* self, void*, CLight* light) {
     int id = light->id_;
-    bool loaded = self->unknown_100 != nullptr;
+    bool loaded = self->mapLoaded != 0;
     self->RemoveLight(light);
     if (loaded) ei::verify::Check("Terrain::RemoveLight", true, self->lights.Find(id) == nullptr, "light %d", id);
 }
@@ -182,7 +182,7 @@ void(__fastcall* s_moveLight)(Terrain*, void*, CLight*, const Vector3*);
 void __fastcall MoveLightVerify(Terrain* self, void*, CLight* light, const Vector3* delta) {
     Vector3 before = light->position_;
     self->MoveLight(light, delta);
-    if (!self->unknown_100) return;
+    if (!self->mapLoaded) return;
     ei::verify::Check("Terrain::MoveLight", true, std::memcmp(&before, &light->position_, sizeof(Vector3)) == 0,
                       "position kept");
     if (Terrain::LightTable::Node* node = self->lights.Find(light->id_)) {
