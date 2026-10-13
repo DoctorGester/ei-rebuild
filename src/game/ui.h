@@ -1071,8 +1071,24 @@ public:
     void Update();
     // 0063C4F0 (slot 20). Draws with alpha test and specular on.
     BOOL Draw(int pass);
-    // 0063C050 (Rebirth-patched, not rewritten). Highlights slot `index` (or not).
+    // 0063C050 (Rebirth-patched; rewritten callers go through this forwarder). Highlights slot
+    // `index` (or not).
     void Highlight(int index, int on);
+    // The vanilla bodies of the bar's Rebirth-patched functions (ui_hud_build.cpp; hooked in the
+    // vanilla launch only, the battle screen and SetUnit reach them through their forwarders).
+    // 0063BAB0 (RET 8). Constructor: the window base, the labels, the vtables, the rectangle
+    // (80, 520, 240, 600), four 40-wide regions with empty tips, no sprites, nothing selected, no
+    // unit, and the labels "infoitem_15", "_20", "_10", "_5". Returns this.
+    CHudWeaponBar* Construct(CInterface3D* ui, CBattleScreen* owner);
+    // 0063C050 (RET 8). Slot `index` (0 .. count_ - 1) highlighted: its sprite at (100 + 40 *
+    // index, 540) depth 12, scale 0.65, colour 0xFF282828, its region from y 495; or not: at y 560,
+    // scale 1.2 ^ count_ and depth 24 times that, colour 0xFF000000, the region from y 520.
+    void HighlightVanilla(int index, int on);
+    // 0063BCC0 (RET 8). The next slot's sprite: `image` copied into the bar's texture (42 x 128,
+    // at column count_ / 2, row count_ % 2), the model `model` turned to face the screen, or a
+    // plain rectangle when there is no such model; its texture offsets, plain white; counted and
+    // shown not highlighted (Highlight).
+    void AddWeapon(const char* model, const char* image);
     // 0063C180 (RET 4; ui_hud_tips.cpp). Shows `unit`'s weapons: sprites dropped, the four
     // regions' tips cleared; per weapon a sprite (0063BCC0, Rebirth-patched) and the tip of its
     // region (id 0x26 + slot): the name, damage range and type, the prototype's +0x6C and the
@@ -1139,6 +1155,17 @@ public:
         return reinterpret_cast<const int*>(reinterpret_cast<const std::uint8_t*>(this) + 0x16C)[index];
     }
 
+    // The vanilla bodies of the panel's Rebirth-patched functions (ui_hud_build.cpp; hooked in the
+    // vanilla launch only). 0063C800 (RET 8): the constructor: the window base, the entries array,
+    // the labels, the vtables, the rectangle (520, 500, 720, 600), four 50 x 50 regions along the
+    // bottom row from the right (x 670 .. 520) and four along the top row, with empty tips and no
+    // items, nothing selected, no unit, and the labels "infoitem_7" .. "_13", "_21", "_22", "_26"
+    // .. "_28". Returns this.
+    CHudQuickItems* Construct(CInterface3D* ui, CBattleScreen* owner);
+    // 0063CAE0 (RET 8). The next sprite (at most eight): `image` copied into the panel's texture
+    // (64 x 64 at (128 + 64 * (n / 4), 64 * (n % 4))), the model `model` turned over (pi about x)
+    // or a plain rectangle without one; its texture offsets, plain white; counted.
+    void AddItem(const char* model, const char* image);
     // 0063D2B0 (RET 4; ui_battle_update.cpp). Shows `unit`'s quick items: the sprites, tooltips and
     // entries are dropped; for each of the unit's four quick items (00531920) a sprite (0063CAE0,
     // Rebirth-patched) in the bottom row, an entry and its tooltip (0063CEE0); then, when the unit
@@ -1206,6 +1233,17 @@ public:
     void HighlightAt(int index, int on);   // through the original's address
     // 0063E7C0 (ui_hud_highlight.cpp). Every button unhighlighted, then selected_ = -1.
     void ClearHighlights();
+    // The vanilla bodies of the column's Rebirth-patched functions (ui_hud_build.cpp; hooked in
+    // the vanilla launch only). 0063E2A0 (RET 8): the constructor: the window base, the labels,
+    // the vtables, the rectangle (760, 190, 800, 510), no sprites or regions, nothing selected, no
+    // unit, and the labels "infoitem_7", "_18", "_8" .. "_13", "_21", "_22", "_26" .. "_28".
+    // Returns this.
+    CHudSpellColumn* Construct(CInterface3D* ui, CBattleScreen* owner);
+    // 0063E4B0 (RET 8). The next button: the regions and sprites so far move up one 40-high step,
+    // a region and the sprite of `model` (not checked) are added at the bottom (y 470 .. 510) with
+    // `image` copied into the column's texture (64 x 64 at (128 + 64 * (n / 4), 64 * (n % 4)));
+    // plain white, scale 1, colour 0xFF000000; counted, selected_ = its index.
+    void AddSpell(const char* model, const char* image);
     // 0063E820 (RET 4; ui_spell_column.cpp). Shows `unit`'s spells: sprites and regions dropped;
     // for each of the unit's eight spell slots that holds one, a sprite (0063E4B0, Rebirth-patched)
     // and the tooltip of region `index` (tip id 0x1E + index): the spell's name and, when it has
@@ -1248,6 +1286,17 @@ public:
     void HighlightAt(int index, int on);   // through the original's address
     // 0063F7A0 (ui_hud_highlight.cpp). As CHudSpellColumn::ClearHighlights.
     void ClearHighlights();
+    // The vanilla bodies of the column's Rebirth-patched functions (ui_hud_build.cpp; hooked in
+    // the vanilla launch only). 0063F300 (RET 8): the constructor: the window base, the actions
+    // array, the labels, the vtables, the rectangle (0, 250, 40, 510), six 40 x 40 regions from
+    // the bottom (y 470) up with empty tips, no sprites or actions, nothing selected, no unit, and
+    // the label "infoitem_16". Returns this.
+    CHudActionColumn* Construct(CInterface3D* ui, CBattleScreen* owner);
+    // 0063F500 (RET 0xC). The next button, above the ones so far: the sprite of `model` (not
+    // checked) at (20, 490 - 40 * count_) with `image` copied into the column's texture (64 x 64
+    // at (64 * (n / 4), 64 * (n % 4))); plain white, scale 1, colour 0xFF000000; `action` appended;
+    // counted, selected_ = its index.
+    void AddAction(const char* model, const char* image, int action);
     // 0063F800 (RET 8; ui_hud_tips.cpp). Shows `unit`'s actions: sprites and the action array
     // dropped, the six regions' tips cleared; with `extra` (its low byte) first a "skill0011"
     // button (tip 0x290E); with a unit the science button ("skill0009", action 0) whose tip is
