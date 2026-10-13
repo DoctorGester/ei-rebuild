@@ -36,8 +36,8 @@ IDirectDrawSurface7* SurfaceOf(const CTexture* texture) {
 // The skin texture: the first texture of the unit's client half (its material), or null.
 CTexture* SkinOf(CUnit* unit) {
     auto* half = static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
-    if (!half->material) return nullptr;
-    return static_cast<CTexture*>(*half->material);
+    if (!half->partSets[0]) return nullptr;
+    return half->partSets[0]->texture;
 }
 
 // The eye rectangle's numbers shared by both: the skin's scale (stored as a float) and the

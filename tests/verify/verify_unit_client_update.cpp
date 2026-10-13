@@ -1,5 +1,5 @@
 // Checks for unit_client_update.cpp and the weapon / arrow parts in unit_client_models.cpp (A-U).
-// - FirstDrawnPart (0051B6D0) / NextDrawnPart (0051B6F0) change only the cursor: the original
+// - FirstMaterial (0051B6D0) / NextMaterial (0051B6F0) change only the cursor: the original
 //   runs, the cursor is put back, ours runs; result and cursor compared.
 // - UpdateClient (005341A0; plays sounds, draws random numbers, changes parts): ours only. It
 //   returns 1, flags_ 8 follows the rule (computed before the call), the fade-in is at most 1 (or
@@ -29,33 +29,33 @@ void* s_unusedArrow;
 } // namespace
 
 // 0051B6D0: MOV EAX,[ECX+0x3C]; TEST EAX,EAX (5 bytes).
-static FigurePart*(__fastcall* s_firstDrawnPart)(CObject3DClientSpecific*);
-static FigurePart* __fastcall FirstDrawnPartVerify(CObject3DClientSpecific* self) {
-    int cursor = self->drawnPartCursor;
-    FigurePart* expected = s_firstDrawnPart(self);
-    int expectedCursor = self->drawnPartCursor;
-    self->drawnPartCursor = cursor;
-    FigurePart* actual = self->FirstDrawnPart();
-    ei::verify::Check("CObject3DClientSpecific::FirstDrawnPart", true,
-                      expected == actual && expectedCursor == self->drawnPartCursor, "%d parts", self->drawnPartCount);
+static CMaterial*(__fastcall* s_firstMaterial)(CObject3DClientSpecific*);
+static CMaterial* __fastcall FirstMaterialVerify(CObject3DClientSpecific* self) {
+    int cursor = self->materialCursor;
+    CMaterial* expected = s_firstMaterial(self);
+    int expectedCursor = self->materialCursor;
+    self->materialCursor = cursor;
+    CMaterial* actual = self->FirstMaterial();
+    ei::verify::Check("CObject3DClientSpecific::FirstMaterial", true,
+                      expected == actual && expectedCursor == self->materialCursor, "%d parts", self->materials.size);
     return actual;
 }
-EI_VERIFY(0x0051B6D0, FirstDrawnPartVerify, 5, s_firstDrawnPart);
+EI_VERIFY(0x0051B6D0, FirstMaterialVerify, 5, s_firstMaterial);
 
 // 0051B6F0: MOV EAX,[ECX+0x48]; INC EAX; MOV [ECX+0x48],EAX (7 bytes).
-static FigurePart*(__fastcall* s_nextDrawnPart)(CObject3DClientSpecific*);
-static FigurePart* __fastcall NextDrawnPartVerify(CObject3DClientSpecific* self) {
-    int cursor = self->drawnPartCursor;
-    FigurePart* expected = s_nextDrawnPart(self);
-    int expectedCursor = self->drawnPartCursor;
-    self->drawnPartCursor = cursor;
-    FigurePart* actual = self->NextDrawnPart();
-    ei::verify::Check("CObject3DClientSpecific::NextDrawnPart", true,
-                      expected == actual && expectedCursor == self->drawnPartCursor, "cursor %d of %d", cursor,
-                      self->drawnPartCount);
+static CMaterial*(__fastcall* s_nextMaterial)(CObject3DClientSpecific*);
+static CMaterial* __fastcall NextMaterialVerify(CObject3DClientSpecific* self) {
+    int cursor = self->materialCursor;
+    CMaterial* expected = s_nextMaterial(self);
+    int expectedCursor = self->materialCursor;
+    self->materialCursor = cursor;
+    CMaterial* actual = self->NextMaterial();
+    ei::verify::Check("CObject3DClientSpecific::NextMaterial", true,
+                      expected == actual && expectedCursor == self->materialCursor, "cursor %d of %d", cursor,
+                      self->materials.size);
     return actual;
 }
-EI_VERIFY(0x0051B6F0, NextDrawnPartVerify, 7, s_nextDrawnPart);
+EI_VERIFY(0x0051B6F0, NextMaterialVerify, 7, s_nextMaterial);
 
 static int __fastcall UpdateClientVerify(CUnitClientSpecific* self) {
     CUnit* unit = self->unit;
@@ -111,8 +111,8 @@ void* s_unusedWounds;
 
 bool PartsTake(CUnitClientSpecific* self, float alpha) {
     const auto* half = static_cast<const CObject3DClientSpecific*>(self->unit->Object3D()->attached);
-    for (int i = 0; i < half->drawnPartCount; ++i)
-        if (std::memcmp(&half->drawnParts[i]->alpha, &alpha, sizeof(float)) != 0) return false;
+    for (int i = 0; i < half->materials.size; ++i)
+        if (std::memcmp(&half->materials[i]->colors.diffuse.w, &alpha, sizeof(float)) != 0) return false;
     return true;
 }
 } // namespace

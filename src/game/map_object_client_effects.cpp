@@ -434,17 +434,17 @@ void CMapObjectClientSpecific::UpdateEffectSounds(bool first) {
 EI_REPLACE_METHOD(0x005112A0, CMapObjectClientSpecific::UpdateEffectSounds);
 
 void CObject3DClientSpecific::ResetPartAlpha() {
-    for (int i = 0; i < drawnPartCount; ++i) drawnParts[i]->alpha = 1.0f;
+    for (int i = 0; i < materials.size; ++i) materials[i]->colors.diffuse.w = 1.0f;
 }
 EI_REPLACE_METHOD(0x0051CCA0, CObject3DClientSpecific::ResetPartAlpha);
 
 void CObject3DClientSpecific::ClearPartTints() {
-    for (int i = 0; i < drawnPartCount; ++i) {
-        FigurePart* part = drawnParts[i];
-        part->tint[0] = 0.0f;
-        part->tint[1] = 0.0f;
-        part->tint[2] = 0.0f;
-        drawnParts[i]->flags_ &= ~kPartTinted;
+    for (int i = 0; i < materials.size; ++i) {
+        CMaterial* part = materials[i];
+        part->colors.specular.x = 0.0f;
+        part->colors.specular.y = 0.0f;
+        part->colors.specular.z = 0.0f;
+        materials[i]->flags_ &= ~kPartTinted;
     }
 }
 EI_REPLACE_METHOD(0x0051CD60, CObject3DClientSpecific::ClearPartTints);

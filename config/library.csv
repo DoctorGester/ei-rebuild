@@ -4422,3 +4422,7 @@ address,name,library,signature,notes
 006B2E00,"scalar deleting destructor (briefing record, body 006AF5A0)",compiler,,A-H25: as 006A9EF0
 00663570,operator delete of the block kept before a vector's elements ([this - 4]),compiler,,A-H25: called only from the unwind-only 00663410
 006B6CC0,"basic_string<char> default constructor (an 8-byte block, the terminator)",STLport,,A-H25: STLport; passed by address to the array constructor helper in 006B6A30
+0051C890,"MaterialStage::~MaterialStage (a wounds material's stage: texture released, name freed; reached only from exception unwind funclets 0071D9E9 / 0071DA09)",compiler,,A-U12: no caller but unwind funclets; the stage's destructor is inline in the rewritten code (map_object_shadow.h)
+0051E840,"stlp::deque<MaterialEntry>::_M_push_back_aux (16-byte elements; only caller CObject3DClientSpecific::SetLit)",STLport,,A-U12: STLport template instantiation; the rewritten SetLit uses stlp::deque::push_back (src/lib/stlp.h)
+0051EFD0,"stlp::__uninitialized_copy<MaterialStage*> (only caller the stage vector's _M_insert_overflow 0051E5D0)",STLport,,A-U12: STLport template instantiation (container plumbing) called only from library code
+0051F0D0,"stlp::__uninitialized_fill_n<MaterialStage*> (only caller the stage vector's _M_insert_overflow 0051E5D0)",STLport,,A-U12: STLport template instantiation (container plumbing) called only from library code

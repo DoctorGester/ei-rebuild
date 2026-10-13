@@ -56,16 +56,16 @@ bool DepthLess::Less(const int* a, const int* b) {
 }
 #pragma float_control(pop)
 
-// By the model's material (its address), then the figure (its address), then the view depth.
+// By the first part set's texture (its address), then the figure (its address), then the view depth.
 bool UnitOrderLess::Less(CEngineObject* a, CEngineObject* b) {
     if (!a || !b) return false;
     auto* groupA = static_cast<CObject3DClientSpecific*>(Object3D(a)->attached);
     auto* groupB = static_cast<CObject3DClientSpecific*>(Object3D(b)->attached);
     if (!groupA || !groupB) return false;
-    CEngineObject** rankA = groupA->material;
-    CEngineObject** rankB = groupB->material;
-    std::uint32_t ra = rankA ? reinterpret_cast<std::uint32_t>(*rankA) : 0;
-    std::uint32_t rb = rankB ? reinterpret_cast<std::uint32_t>(*rankB) : 0;
+    const TextureParts* rankA = groupA->partSets[0];
+    const TextureParts* rankB = groupB->partSets[0];
+    std::uint32_t ra = rankA ? reinterpret_cast<std::uint32_t>(rankA->texture) : 0;
+    std::uint32_t rb = rankB ? reinterpret_cast<std::uint32_t>(rankB->texture) : 0;
     if (rankB && ra < rb) return true;
     if (ra != rb) return false;
     auto sa = reinterpret_cast<std::uint32_t>(Object3D(a)->figure);

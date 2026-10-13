@@ -145,9 +145,9 @@ public:
     // 14: (name) client 0051B210: the part named (slot 16) taken out of the drawn part sets (+0x20,
     // +0x24) and released; returns it or null. Server 0051F290. Slots declared `void Name()` keep
     // their place in the order only (docs/notes/drafts/DR-C2.md).
-    virtual void RemoveFromPartSets();
+    virtual FigurePart* RemoveFromPartSets(const char* name);
     virtual int OnPartRemoved(FigurePart* part);    // 15: client 0051B160, server 0051F280 (0)
-    virtual void FindPart();                        // 16: client 0051B2E0 (a part by name, 005169A0)
+    virtual FigurePart* FindPart(const char* name); // 16: client 0051B2E0 (a part by name, 005169A0); server 0051F2B0 (0)
     virtual void FindPartById();                    // 17: client 0051B2D0 (a part by id, 00516920)
     // 18: the figure's extra scale: client +0xF0..+0xF8 (0051AD20), server 1, 1, 1 (0051AC30).
     virtual void GetScale(float* x, float* y, float* z);

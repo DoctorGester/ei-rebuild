@@ -40,6 +40,14 @@ __declspec(naked) inline void __fastcall IdListEraseOriginal(void* /*list*/, voi
 // object's kind (0079BD0C above 0 and the kind's switch; AL), 0051E280 drops its shadow (geometry, texture, bounds).
 __declspec(naked) inline bool __fastcall ShadowsShownOriginal(void* /*half*/) EI_ORIGINAL(0x0051E200)
 __declspec(naked) inline void __fastcall ShadowClearOriginal(void* /*half*/) EI_ORIGINAL(0x0051E280)
+// 005655D0 / 005655F0 (thiscall on the client world, RET 4): a new texture of `kind` from its texture manager (+0x18C,
+// 00691D40) / a new material from its material manager (+0x188, 0068E970); null without the manager.
+class CTexture;
+class CMaterial;
+__declspec(naked) inline CTexture* __fastcall WorldNewTextureOriginal(void* /*world*/, void*, int /*kind*/)
+    EI_ORIGINAL(0x005655D0)
+__declspec(naked) inline CMaterial* __fastcall WorldNewMaterialOriginal(void* /*world*/, void*, int /*kind*/)
+    EI_ORIGINAL(0x005655F0)
 // 0056F360 (library: STLport vector<12-byte texture record>::resize(count, value); thiscall, RET 8, no result).
 __declspec(naked) inline void __fastcall TextureRecordsResizeOriginal(void* /*vector*/, void*, unsigned /*count*/,
                                                                       const void* /*value*/) EI_ORIGINAL(0x0056F360)

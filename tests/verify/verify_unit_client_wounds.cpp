@@ -83,7 +83,7 @@ static int __fastcall ShowWoundsVerify(CObject3DClientSpecific* self, void*, con
         ok = self->woundsTexture && material && material->stages.size() >= 2 &&
              material->stages.back().texture == reinterpret_cast<CEngineObject*>(self->woundsTexture);
     } else {
-        ok = result == 0 && (!self->material || (!self->woundsTexture && !self->woundsMaterial));
+        ok = result == 0 && (!self->partSets[0] || (!self->woundsTexture && !self->woundsMaterial));
     }
     ei::verify::Check("CObject3DClientSpecific::ShowWounds", true, ok, "%s: %d", name, result);
     return result;

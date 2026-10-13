@@ -21,9 +21,10 @@ struct MaterialColors {
 };
 static_assert(sizeof(MaterialColors) == 0x44);
 
-// An element of the material's deque (16 bytes). Nothing found writes one yet.
+// An element of the material's deque (16 bytes): an emissive colour kept while the object's light
+// is on (CObject3DClientSpecific::SetLit, 0051C9F0, pushes and pops them).
 struct MaterialEntry {
-    std::uint32_t unknown[4];
+    Vector4 emissive;
 };
 static_assert(sizeof(MaterialEntry) == 0x10);
 
