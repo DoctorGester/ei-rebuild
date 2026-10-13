@@ -77,6 +77,11 @@ footer { color: var(--muted); font-size: 12px }
     <div class="tablewrap"><table id="cleanup"><thead><tr><th>Pattern</th><th class="r">Peak</th><th class="r">Now</th><th class="r">From peak</th></tr></thead><tbody></tbody></table></div>
   </section>
   <section>
+    <h2>Standalone readiness</h2>
+    <p class="sub">What still ties the code to the original exe, and the single-byte text sites a UTF-8 switch has to visit (docs/notes/standalone.md).</p>
+    <div class="tablewrap"><table id="standalone"><thead><tr><th>Tie</th><th class="r">Peak</th><th class="r">Now</th><th class="r">From peak</th></tr></thead><tbody></tbody></table></div>
+  </section>
+  <section>
     <h2>Over time</h2>
     <div class="zoombar"><span id="zoomtext"></span><button id="zoomreset" hidden>Show all</button></div>
     <div class="charts" id="charts"></div>
@@ -257,13 +262,27 @@ function render(data) {
     ['Hand-written vector maths', 'vector_maths'], ['Forwarder sites', 'forwarder_sites'],
     ['Functions forwarded from several files', 'forwarded_from_several_files'],
     ['__asm blocks', 'asm_blocks'], ['float_control pragmas', 'float_control']];
-  document.querySelector('#cleanup tbody').innerHTML = metrics.map(([name, key]) => {
-    const vals = h.map(p => p.cleanup && p.cleanup[key]).filter(v => v != null);
-    const peak = vals.length ? Math.max(...vals) : null, now = c.cleanup[key] ?? 0;
-    const change = peak ? Math.round(100 * (now - peak) / peak) : 0;
-    return `<tr><td>${name}</td><td class="r num">${peak == null ? '' : fmt(peak)}</td><td class="r num">${fmt(now)}</td>` +
-      `<td class="r num">${peak ? (change > 0 ? '+' : '') + change + '%' : ''}</td></tr>`;
+  const peakRows = (group, rows) => rows.map(([name, key]) => {
+    const vals = h.map(p => p[group] && p[group][key]).filter(v => v != null);
+    const peak = vals.length ? Math.max(...vals) : null, now = (c[group] || {})[key];
+    const change = peak && now != null ? Math.round(100 * (now - peak) / peak) : 0;
+    return `<tr><td>${name}</td><td class="r num">${peak == null ? '' : fmt(peak)}</td><td class="r num">${now == null ? '' : fmt(now)}</td>` +
+      `<td class="r num">${peak && now != null ? (change > 0 ? '+' : '') + change + '%' : ''}</td></tr>`;
   }).join('');
+  document.querySelector('#cleanup tbody').innerHTML = peakRows('cleanup', metrics);
+  document.querySelector('#standalone tbody').innerHTML = peakRows('standalone', [
+    ['Unported game functions', 'unported_functions'], ['of them under 5 bytes (cannot be hooked)', 'unported_unhookable'],
+    ['of them Rebirth-patched', 'unported_rebirth_patched'],
+    ['Forwarded addresses', 'forwarder_addresses'], ['to unported game code', 'forwarders_to_unported'],
+    ['to code already rewritten', 'forwarders_to_rewritten'], ['to library code (MFC, STLport, CRT)', 'forwarders_to_library'],
+    ['Game data addresses', 'data_addresses'],
+    ['MFC strings (CString)', 'mfc_strings'], ['MFC arrays', 'mfc_arrays'], ['MFC lists', 'mfc_lists'],
+    ['MFC maps', 'mfc_maps'], ['MFC files and archives', 'mfc_files'],
+    ['STLport uses', 'stlp_uses'], ['of them hash maps', 'stlp_hash_maps'],
+    ["The exe's allocator (new / delete)", 'crt_allocations'], ["Other calls into the exe's CRT", 'crt_other'],
+    ["Imports through the exe's table", 'import_uses'],
+    ['Text: case-insensitive compares and case changes', 'text_case_compares'], ['Text: fixed char buffers', 'text_fixed_buffers'],
+    ['Text: direct ANSI system calls', 'text_ansi_calls']]);
   const accent = css('--accent'), good = css('--good'), muted = css('--muted');
   const areaColors = ['#b5652a', '#3d7a52', '#4a6fa5', '#8a5aa0', '#a5793a', '#3a8a8a', '#a54a5a', '#6a7a3a', '#7a7a7a'];
   charts.length = 0; view.x0 = view.x1 = null;
@@ -294,6 +313,16 @@ function render(data) {
     lineChart(h, [{ name: '__asm blocks', color: muted, get: p => p.cleanup.asm_blocks },
                   { name: 'float_control pragmas', color: good, get: p => p.cleanup.float_control }],
       { title: 'Cleanup: x87', note: 'Inline assembly and precision pragmas, mostly kept for bit-exact x87 maths until the standalone build.' }),
+    lineChart(h, [{ name: 'To library code', color: accent, get: p => p.standalone && p.standalone.forwarders_to_library },
+                  { name: 'To code already rewritten', color: good, get: p => p.standalone && p.standalone.forwarders_to_rewritten },
+                  { name: 'To unported game code', color: '#4a6fa5', get: p => p.standalone && p.standalone.forwarders_to_unported },
+                  { name: 'Game data addresses', color: muted, get: p => p.standalone && p.standalone.data_addresses }],
+      { title: 'Standalone: ties to the exe', note: 'Distinct forwarded addresses by what they reach, and literal data addresses. All go to zero for a standalone exe.' }),
+    lineChart(h, [{ name: 'MFC strings', color: accent, get: p => p.standalone && p.standalone.mfc_strings },
+                  { name: 'MFC arrays, lists, maps, files', color: good, get: p => p.standalone && (p.standalone.mfc_arrays + p.standalone.mfc_lists + p.standalone.mfc_maps + p.standalone.mfc_files) },
+                  { name: 'STLport', color: '#4a6fa5', get: p => p.standalone && p.standalone.stlp_uses },
+                  { name: "The exe's CRT and allocator", color: muted, get: p => p.standalone && (p.standalone.crt_allocations + p.standalone.crt_other) }],
+      { title: 'Standalone: runtime uses', note: 'Uses of the shared MFC, STLport and CRT types. They rise with the port and move to our own classes, then standard types.' }),
     lineChart(h, [{ name: 'Verify wrappers', color: good, get: p => p.cleanup.verify_wrappers },
                   { name: 'Scenarios × 10', color: accent, get: p => (p.cleanup.scenarios || 0) * 10 }],
       { title: 'Test coverage', note: 'Checks comparing rewrites with the original, and in-game scenarios.' })
