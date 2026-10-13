@@ -1460,6 +1460,30 @@ public:
                       int u1, int v1);
     void SetFrame(float depth, float scale, float left, float top, float right, float bottom, float border,
                   int u0, int v0, int u1, int v1);
+    // 005E70E0 (RET 0x28; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
+    // only; ui_mesh_shapes.cpp; rewritten callers go through SetRectangle). A rectangle of two
+    // triangles: one packet of normals (0, 0, 1), four corners, the texels (u0, v0)-(u1, v1) as
+    // texture coordinates (v upwards; both u one less when u0 > u1; half a texel inwards), the
+    // quad (+-half width, +-half height) / scale about the origin, position_ the layout centre at
+    // `depth` (as Place), the three scales 0.48157 * depth * scale / 400; then Commit.
+    void SetRectangleVanilla(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0,
+                             int u1, int v1);
+    // The other shapes' vanilla bodies (Rebirth-patched like the rectangle; ui_mesh_shapes.cpp).
+    // 005E7680 (RET 0x30). A grid of columns x rows cells over the rectangle, each cell a quad
+    // showing the whole picture (u0, v0)-(u1, v1): (columns + 1) * (rows + 1) points a cell apart
+    // (in units of `scale`), four corners and six indices per cell; position_ the layout's top
+    // left corner at `depth`.
+    void SetGridVanilla(float depth, float scale, float left, float top, float right, float bottom, int u0, int v0, int u1,
+                        int v1, int columns, int rows);
+    // 005E7D60 (RET 0x2C). A frame `border` wide inside the rectangle: the outer and the inner
+    // rectangle's corners (two packets) joined by four quads, each showing the whole picture;
+    // position_ the layout centre at `depth`.
+    void SetFrameVanilla(float depth, float scale, float left, float top, float right, float bottom, float border, int u0,
+                         int v0, int u1, int v1);
+    // 005E99D0 (RET 0x38). A triangle: the first layout point is position_ (at `depth`), the
+    // other two are points relative to it in units of `scale`; the texels are floats here.
+    void SetTriangleVanilla(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2, float u0,
+                            float v0, float u1, float v1, float u2, float v2);
     // 005E6FA0 (RET 0xC; Rebirth-patched, its widescreen version replaces it; this is the vanilla
     // body, hooked in the vanilla launch only; ui_mesh_draw.cpp). Place: position_ =
     // ((x * 0.0025 - 1) * 0.4816 * depth, (y * 0.0025 - 0.75) * 0.4816 * depth, depth), the
