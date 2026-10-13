@@ -1714,6 +1714,12 @@ static_assert(offsetof(CHudUnitPanel, partLabels_) == 0x1B4);
 class CHudClock : public CUiWindow {
 public:
     void OnMouseDown(int buttons, int x, int y);   // 00648D30
+    // 00648D70 (RET 0xC; ui_hud.cpp, A-H26; Rebirth-patched, hooked in the vanilla launch only).
+    // The button released over the clock that took it: region 0 toggles the pause (with the
+    // clock's sound); regions 1 and 2 set the normal / fast speed (not on a network client: the
+    // pause lifted, fast_ 0 / 1, the world's update period 55 / 27 ms, the interface's fastGame_,
+    // the sound); region 3 opens the objectives (OpenObjectives).
+    void OnMouseUp(int buttons, int x, int y);
     void OnMouseMove(int buttons, int x, int y);   // 00649160
     // 006488E0 (slot 24, every frame): turns the face with the time of day, the hand and the
     // speed dial (scene objects 1-5), blinks while the game is paused (ui_hud_frame.cpp).
@@ -1722,6 +1728,7 @@ public:
     // pulsing, the click sound, and a new objectives window of the current zone (one button, no
     // exits, no zone list) opened on top.
     void OpenObjectives();
+    void CallOpenObjectives();                     // through 00648F10 (its verify wrapper)
 
     std::uint8_t unknown_148[4];
     float blink_;                    // +0x14C 0..1, the pause blink phase
@@ -1746,14 +1753,20 @@ public:
     // shows the button's state (scene object 5).
     void ToggleFlag();
     void CallToggleFlag();                         // through 00649810 (its verify wrapper)
-    // 00649910 (Rebirth-patched, not rewritten). Highlights mode `mode` (-1/-2: none).
+    // 00649910 (Rebirth-patched: through its address). Highlights mode `mode` (-1/-2: none).
     void ShowMode(int mode);
+    // 00649910 (RET 4; ui_hud.cpp, A-H26; the vanilla body, hooked in the vanilla launch only).
+    // mode_ = `mode`; the marker (scene object 0) shows for a mode of 0 or more; the four mode
+    // buttons (scene objects 1-4) are tinted 1 for the mode and 0.7 for the others, and the marker
+    // is turned about -z by (2 mode + 1) pi / 16 and placed on the circle of radius 73 about
+    // (0, 600) at depth 8.
+    void ShowModeVanilla(int mode);
 
     CBattleScreen* owner_;           // +0x148
-    std::uint8_t unknown_14C[4];
+    int mode_;                       // +0x14C the shown movement mode (-1, -2: none, mixed)
     int flag_;                       // +0x150 common +0x438 of the selected units (-1, -2: none, mixed)
 };
-static_assert(offsetof(CHudMovePanel, flag_) == 0x150);
+static_assert(offsetof(CHudMovePanel, mode_) == 0x14C && offsetof(CHudMovePanel, flag_) == 0x150);
 
 // Top panel (set up by 00649AF0, vtables 00742498 / 00742464; 180..620 x 0..100). Regions: 0
 // the sling button, 1 and 2 the two page buttons, 3 the whole panel.

@@ -161,6 +161,12 @@ inline void* ClientWorldObject() { return reinterpret_cast<void*>(0x007AF5B8); }
 inline void* ClientGlueObject() { return reinterpret_cast<void*>(0x007AFEA5); }
 // The game's glue object before it (007AFEA4; GameDirectoryOriginal and the like do not read it).
 inline void* GameGlueObject() { return reinterpret_cast<void*>(0x007AFEA4); }
+// 00578D50 (the game's glue, not read; AL): whether the game is paused. 00578D30 (RET 4): pauses
+// or resumes it (the low byte of `paused` is all its callee reads). The battle screen's keys and
+// the clock's buttons.
+__declspec(naked) inline bool __fastcall GameIsPausedOriginal(void* /*glue*/) EI_ORIGINAL(0x00578D50)
+__declspec(naked) inline void __fastcall GameSetPausedOriginal(void* /*glue*/, void*, int /*paused*/)
+    EI_ORIGINAL(0x00578D30)
 // A-X5. 0056C750 (CWorldClient::ProjectDecal, world_client_decals.cpp; called through its address so its
 // wrapper runs; thiscall on the client world, RET 0x24): lays a decal on the ground (the quad `corners`, one
 // 64-byte block of four corners, projected along `direction` from `point`) into the three arrays. Shadows
