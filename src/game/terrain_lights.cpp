@@ -242,7 +242,7 @@ EI_REPLACE_METHOD(0x006CAB50, Terrain::RelightArea);
 // ---- The light table -----------------------------------------------------------------------------
 
 void Terrain::AddLight(CLight* light) {
-    if (!unknown_100) return;
+    if (!mapLoaded) return;
     ++light->refCount_;
     LandscapeLight entry;
     entry.light = light;
@@ -257,7 +257,7 @@ void Terrain::AddLight(CLight* light) {
 EI_REPLACE_METHOD(0x006CA5D0, Terrain::AddLight);
 
 void Terrain::RemoveLight(CLight* light) {
-    if (!unknown_100) return;
+    if (!mapLoaded) return;
     // The original leaves the area uninitialised when the light was not registered (it loops over
     // whatever its stack held); ours then takes it off nothing and relights nothing.
     LightArea area = {0, 0, -1, -1, 0, 0, 0, 0};
@@ -273,7 +273,7 @@ void Terrain::RemoveLight(CLight* light) {
 EI_REPLACE_METHOD(0x006CA720, Terrain::RemoveLight);
 
 void Terrain::MoveLight(CLight* light, const Vector3* delta) {
-    if (!unknown_100) return;
+    if (!mapLoaded) return;
     // The original takes the entry's area without checking that the light is registered (an
     // unregistered light writes its area to address 4); ours does the same through a null entry.
     LightTable::Node* node = lights.Find(light->id_);

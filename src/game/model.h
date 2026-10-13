@@ -484,15 +484,26 @@ inline const PrintLook& LookOf(const PrintRecord2& r, bool second) {
 
 // prints.db (007C89C8, loaded at startup by 006D0630), indexed by the ground's surface class
 // (TerrainFields::SurfaceClass): chunk 1 blood and bloody footprints, chunk 2 footprints, chunk 3
-// scorch marks; each table is followed by a hash_map by name (not used here).
+// scorch marks; each table is followed by a hash_map by name (filled by the load, not read by the
+// rewritten code).
 struct PrintsDatabase {
+    template <typename Record> using NameIndex = stlp::hash_map<stlp::string, Record*, stlp::StringHash>;
+
+    // 006D0630 (RET 4; model_db_open.cpp, A-H26; Rebirth-patched, hooked in the vanilla launch
+    // only). "prints.db" of `folder` + "database.res": the three tables, each read through an
+    // archive of its own and filed under its records' names. 1; FatalError's result when the
+    // archive (reported as "databases.res") or the file cannot be opened.
+    int Load(const char* folder);
+
     stlp::vector<PrintRecord> blood;          // +0x00
-    std::uint8_t bloodByName[0x14];           // +0x0C
+    NameIndex<PrintRecord> bloodByName;       // +0x0C
     stlp::vector<PrintRecord2> footprints;    // +0x20
-    std::uint8_t footprintsByName[0x14];      // +0x2C
+    NameIndex<PrintRecord2> footprintsByName; // +0x2C
     stlp::vector<PrintRecord> scorch;         // +0x40
+    NameIndex<PrintRecord> scorchByName;      // +0x4C
 };
 static_assert(offsetof(PrintsDatabase, footprints) == 0x20 && offsetof(PrintsDatabase, scorch) == 0x40);
+static_assert(offsetof(PrintsDatabase, footprintsByName) == 0x2C && sizeof(PrintsDatabase) == 0x60);
 inline const PrintsDatabase& ThePrintsDatabase() { return *reinterpret_cast<const PrintsDatabase*>(0x007C89C8); }
 
 // ---- Water level changes (006D4400) ---------------------------------------------------------------

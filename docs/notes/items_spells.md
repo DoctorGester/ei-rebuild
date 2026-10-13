@@ -515,9 +515,9 @@ the static initialisers 00698E70..00698FB0 and 0065F580 (run before the hooks), 
 uninitialised stack byte: kept as the original), 0067E4E0 (the constructor of the global at 007C8478, called only by the static
 initialiser 0067E4C0, before the hooks), 006BFB00 / 006BFB20 / 006BFB80 (SectorData: their forwarders are in the terrain files of
 0x6C0000+), functions under 5 bytes, and two Ghidra artefacts (00646C25 is the body of 00646B90, 00656464 is inside an instruction).
-Rebirth-patched and still original: 00641F20, 00642930, 00642B40, 00645210, 006456E0, 00645F80, 006462A0, 00647FB0, 00648520,
+Rebirth-patched and still original then: 00641F20, 00642930, 00642B40, 00645210, 006456E0, 00645F80, 006462A0, 00647FB0, 00648520,
 00648D70, 00649190, 00649910, 006567A0, 00659420, 0065C2E0, 0065E580, 0066C180, 00684550, 0068E640, 00691500, 006A67A0, 006AE3A0,
-006B7110, 006BB3A0.
+006B7110, 006BB3A0 (A-H26 below ports their vanilla bodies).
 
 Library (config/library.csv): 006A5910, 006AF790, 006B0710, 006B0780, 006B09B0, 0069D0E0, 0069E350..0069E3D0 (STLport vector / uninitialised-copy
 helpers of the record tables and the stock) and the records' scalar deleting destructors 0069E540, 006A9EF0..006A9F90;
@@ -526,3 +526,81 @@ the code string's sort and reserve 0068C680..0068CE00, the trader stock's vector
 unwind-only vector destructors 0064AA40 / 0065A860 / 00663410 / 00675560, 00663660, 006726E0.
 
 **Next candidates** (after A-H23): 00693010, 00692D30 (composed textures), the material subsystem (CMaterial 0068DBC0 / 0068DE30 / 0068DF90 / 0068E040 with an STLport deque of 16-byte entries, CMaterialManager 0068E3F0 / 0068E540 / 0068E640 Rebirth-patched / 0068E900), the party container helpers 00664160 / 00664470 / 00664850 / 00664410 / 00664AC0 (CArray<PartyUnitRecord> destructor and friends; 00663410 is reached only from unwind funclets), 0069FB60 (items and their spells into two lists), the effect classes' 6-byte name / id getters in 0x675000-0x67E000; then the largest left in 0x640000-0x6C0000 (`python tools/progress.py`; it misses UI_INPUT_HANDLER registrations, so check `grep` before picking).
+
+## A-H26: the Rebirth-patched functions' vanilla bodies
+
+Each one is the function as the exe on disk has it. The installer skips a function whose bytes differ in memory, so these
+hook in the vanilla launch only and their wrappers run only there; our callers keep going through the EI_ORIGINAL forwarder
+(rule 9), which is why the UI ones are named `...Vanilla` beside a forwarder of the plain name. Patched callees are reached
+through their addresses: 00671730 / 006714A0 (resource open / destructor), 00480080 (FatalError), 005E6FA0 (sprite Place).
+V: S side by side, O ours only.
+
+| Address | Name, file | V and the scenario |
+|---|---|---|
+| 0066C180 | CPlayerManager::CreateSessionPlayer (player_manager.cpp): a player 0x300A with a connection 0x49 of the world's specific manager, refCount + 1, player id 0 | O; every start (the client world's construction), a server's new players |
+| 00691500 | CTextureManager::Create (slot 2, texture_manager_lifetime.cpp): the composed textures dropped, "textures.res", "redress.res", "menus.res" of the text folder (007AF45C) all tried, 1 only when all three opened | O: the three names listed in order; every start |
+| 006B7110 | CSoundManager::ListWaveFiles (sound_manager_lifetime.cpp): every wave source's ListFiles appended. Runs on the game's main thread (only caller 0053A8E0, UnitDatabase::CountSoundFiles) | S: the original into a scratch array, names by content; every start |
+| 00684550, 006A67A0 | itemdb::SpellDatabase::Load ("spells.sdb": spells, modifiers, three lists), ItemDatabase::Load ("items.idb": materials, weapons, armors, then quick items, loot, quest items); item_db_open.cpp | O: counts, every record's key leads to a record of that key; every start and each switch of the resource database (0057CB50) |
+| 006D0630, 006D7620 | PrintsDatabase::Load, acks::AckDatabase::Load (model_db_open.cpp; models.md) | O; every start |
+| 006AE3A0 | QuestDatabase::Load (quest_db_open.cpp; the database at 007C87A8 is now `QuestDatabase` in quest_records.h: quests + index, briefings + index) | O; every start |
+| 0068E640 | CMaterialManager::Create (slot 2, material.cpp): "materials.res" added, the eight kinds of the table at 00743BF8 (0x11 leather .. 0x17 magic, 0x19 metal again) entered with their file's 17 dwords, or diffuse 0.3 / alpha 1, ambient 0.7, specular 0.2, power 5 without the file; magic's emissive is 1 | O: each kind's colours against the file read again; every start |
+| 00648D70 | CHudClock::OnMouseUp (ui_hud.cpp): regions 0 pause, 1 / 2 normal / fast speed (not on a network client; update period 55 / 27 ms at 0078FF34), 3 the objectives | O: capture, handled flag, fast_, the period; no scenario clicks the clock yet |
+| 00649910 | CHudMovePanel::ShowModeVanilla (ui_hud.cpp; +0x14C is `mode_`): the marker turned by (2 mode + 1) pi / 16 about -z on a circle of 73 about (0, 600), the mode's button tinted 1, the others 0.7 | S (the original's writes put back before ours; floats CheckNear); every frame of the battle screen |
+| 00642930, 00645F80 | CHudMap::LayoutVanilla, CHudUnitPanel::LayoutVanilla (ui_hud_slide.cpp): the sprites, the text surface and the regions after the first at the slide offset (`offset_`, `travel_`, `slide_` named in both panels) | S; the battle screen's build (the setups call them) and every frame of a slide |
+| 00647FB0 | CHudUnitPanel::UpdateVanilla (slot 24): the slide (time x direction / 0.3 s, eased, _ftol of travel x eased), Layout, the sling button (scene object 2), a dead hover unit forgotten, the interface's +0x89 / +0x8C | S; every frame; the slide by ui_hud (the sling button twice) |
+| 00642B40 | CHudMap::UpdateVanilla (slot 24): zoom x or / 2.5^time towards zoomMax_ / 1 by view_, UpdateView, BuildMarkers (through their addresses), the slide as above (sling: scene object 5), +0x8B, the "camera north" time and its button's tint | O (it rebuilds the map's meshes): zoom, slide state, time and tint worked out from the state before; every frame; zoom by ui_hud; no scenario slides the map |
+| 00645210 | CHudMap::OnMouseUp (ui_hud.cpp): a held view button released (both tints back to 0.5); else by region: 0 the sling (direction turned, sliding), 1 / 2 a click on the map (the layout point through 005F7E00, relative to (700, 80), by the map's scale `unknown_174`, region 1 also by the zoom; inside the world the camera stops following and focuses there), 5 camera north (heading 0, the button lit for 0.5 s) | O: capture, the view reset, the handled flag, the sling's fields, the north time; ui_hud reaches only the view buttons' release (no scenario clicks the map, its sling or the north button) |
+| 0065E580 | CUiTooltip::OnMouseMoveVanilla (ui_tooltip.cpp; +0x17C is `timer_`): one step of the showing. State 1 (hovered): no lines or a zero delay (setting 20, 0079BE80) gives 0; the timer runs up to the delay; then the command's key (FindCommandByKey of `extra_`) measured with the first line, state 2, a surface (format 5) at the mouse + the cursor offset ((24, 24) screen pixels at 007C8258, set by the static initialiser 0065E310), pushed left off the right edge and above the mouse at the bottom. State 2 draws and becomes 4 (the appearing time 00742F2C is 0). State 3 draws while the timer is positive (it never is), then drops sprites and surface, state 0 | O (it makes the surface): the state reached from the state, timer and settings before, the surface count; every frame of a screen with region tooltips (ui_main_menu, ui_hud) |
+| 0065C2E0 | CUiEditField::DrawContentsVanilla (ui_edit_field.cpp; +0x15C is `centred_`): the caret clamped, the surface cleared, the text over the whole field (DT_NOPREFIX, + DT_CENTER when centred), the caret a pen line after the first caret_ characters (a centred text starts at width / 2 - text width / 2), not drawn outside the field | S (drawing twice leaves the same picture; the clamped caret compared, the pixels not); the screens with an edit field (ui_hero_screen, net_lobby) |
+| 00648520 | CHudClock::SetupVanilla (ui_hud_setup.cpp): rectangle (720, 520)-(800, 600); sprites 0 face disc, 1 hand, 2-5 "in25arrow", 6 / 7 discs; regions 0-2 the pi / 6 sectors between radius 35 and 80 about (800, 600), 3 the quarter disc of 34; tips 0x28A0, 0x28A2 / 0x28A3 (not on a network client), 0x28A1; fast, period 27 / 55, no blink | S (the original's regions and sprites recorded and dropped, the fields put back, then ours); every scenario that starts a game |
+| 00649190 | CHudMovePanel::SetupVanilla (slot 18, ui_hud_setup.cpp): rectangle (0, 520)-(80, 600); region 0 the quarter disc of 34 about (0, 600), 1-4 the pi / 8 sectors between 35 and 80 (tips 0x2904..0x2908, keys 0x1B, 0x17..0x1A); sprites 0 marker, 1-4 sector triangles (tint 0.7), 5 the disc (texture frame 0.48); ShowMode(-1), flag -1 | S as the clock; every scenario that starts a game |
+| 006567A0 | CSaveLoadWindow::RefreshListVanilla (ui_saveload_list.cpp): the caret clamped; into surface 0 up to sixteen rows from the scroll position (title, or the typed name for the selected row of a save window; the date "%d/%m, %H:%M" through CTime::Format 006FE795 but for a save window's new save), the caret (not for "saveq" / "savea" / "saveb"), the marker (scene object 4) on the selected row; then the selected save's allod, zone, day and time (_ftol(gameTime x 60) minutes: day + 1, h:mm) and folder | S (drawing twice leaves the same picture; the caret and the marker's visibility and place compared, the pixels not); ui_saveload, ui_saveload_delete, ui_hud (the Esc menu's Load and Save windows) |
+| 006456E0 | CHudUnitPanel::SetupVanilla (ui_hud_slide.cpp): rectangle (0, 0)-(185, 225), the slide at its far end when `slid` (offset 180); regions 0 the sling, 1-4 the body part buttons (tips 0x2775.., keys 0x2E..), 5 the panel; sprites 0 / 1 plain backgrounds, 2 the sling, 3-6 the part buttons, 7 the frame, 8 a strip of twenty cells, 9 "more effects", 10-13 health and mana bars, 14-25 the six parts' bars (tables 00742434 / 0074244C), 26-31 the effects' pictures; the text surface; "infounit_0..17" and the four "hl_" labels read into the two string arrays; Layout | S (regions, sprites, surface and strings dropped between the runs); every scenario that starts a game |
+| 00641F20 | CHudMap::SetupVanilla (ui_hud_slide.cpp; +0x174 is `halfSide_`, +0x178 `viewPolygon_` a point array; MapRecord's +0x10..+0x24 named): rectangle (615, 0)-(800, 165); the world's extent (the zone record's size x 32) and picture (referenced object 1; 32 x 32 and "battle00" without a record); scale 2 / size, zoom up to size x 0.05; regions 0 the sling, 1 the round map (sixteen points of radius 65 about (700, 80)), 2 the square, 3 / 4 the view buttons, 5 "camera north", 6 the panel; sprites 0 bounds, 1 the visible area's disc, 2 markers, 3 / 4 plain backgrounds, 5 the sling, 6 / 7 view buttons, 8 ring, 9 frame, 10 needle, 11 north; a 5 x 5 surface with one white pixel; the view polygon = the disc's sixteen corners; UpdateView, BuildMarkers, Layout | S (as above; the two point arrays dropped too, the picture's reference and place given back without a release so that the second run finds the same texture and its load is the manager's "already loaded" case); every scenario that starts a game |
+| 00659420 | CHelpWindow::ShowPageVanilla (ui_help_page.cpp; +0x18C is `pictures_`, a list of sprites): the window emptied and built again for page_. "tutorial <text_>" opened (else pending value 0), the page's "#screen" found; rectangle (200, 50)-(600, 560) or "#position left top right [rows]" (searched from the page on, not only inside it; at least 300 wide, rows x 16 + 110 high, at most 600); sprites 0 plain background, 1 frame, 2-4 previous / OK / next; a pulsing frame per "#rectangle l t r b"; an entry per "#text [picture]" whose next line's first word is the key. Surface 0 the title (font 2) and "title (page/pages)"; surface 1 the entries' "tutor <key>" texts wrapped ("\n\r" trimmed; 16 a line, at least 80 with a picture, indent 90 / 15), laid out twice unless rows are given: the first pass copies "tutorial_<picture>" into 64-pixel cells of referenced object 1 (at most 16), makes the pictures' sprites and gives the height; surface 2 the neighbours' titles and "show_tutorial_key" + the help key's name; regions 0-2 the buttons (tips 0x7595, 0x7594, 0x7596) | S (the function empties the window itself, so the second run replaces the first; regions, sprites, surfaces' places, the lists' sprites by index, the text reader's position, the pending value compared; pixels not); ui_help |
+| 006BB3A0 | CSoundManager::ReadStreamVanilla (sound_manager_lifetime.cpp; +0x120 is `streamBufferFrames`, +0x138 `streamLoopAt`, +0x13C `streamFrameBytes`, +0x140 `streamSilence`): fills the spare buffer. Idle: silence. Else the playing file's frames through the ASI codec (slots 1 read, 2 seek, 3 close, 0 open, 4 attribute; names at 11 / 12 / 13: output rate, bits, channels) up to the loop point (the first "Markers2" value; then seek 0, position 0, the rest from the beginning) or the switch point (mode 2: the whole buffer once the fade out has finished, the fader held for 4 s; mode 1: where the file ends); a file that ends early otherwise starts again, what it still lacks is silence. The switch: read position 0, state 0, soundPath + nextName opened through the stream reader (state 1, streamName under the name lock, "Markers1" / "Markers2" from the sound registry, the decoder closed and opened with the read callback 006BA950, the sample's type, rate, volume 127, pan 64, bytes per frame, frames per buffer, seek -1, read); no name or no file: silence, state 0, decoder closed, streamName empty | O (it decodes as it goes, so it cannot run twice): idle stays idle, a stream gone idle has no file, one with a file has a positive frame size that divides the buffer; runs on the game's stream thread only (see below); every start with sound on (the menu's music) |
+
+Shared: database_file.h (`dbfile::LocalResource`, `LocalStream`, `FillStream`, `LoadTable`, `OpenDatabase`, `ReportNoDatabase`;
+unit_db_load.cpp uses it too); `MappedResourceOpenOriginal`, `ChunkArchiveDestroyOriginal` (originals_engine.h);
+`GameIsPausedOriginal` / `GameSetPausedOriginal` moved from ui_battle_keys.cpp to originals_world.h. The tables' vector
+serialisers are called through their addresses so that their wrappers run.
+Kept: the folder-only loads (quests, prints, acks) open "database.res" but report "databases.res" when that fails; the
+serialisers' unused third argument is whatever the original's stack held (the file's size, its data, a table's address, or
+an unwritten slot: null in ours); ItemDatabase / SpellDatabase / AckDatabase file a repeated key over the earlier record
+(operator[]); CMaterialManager::Create ignores AddArchive's result and calls CloseFile with null for a missing file.
+Float notes (rule 7): the slides compare on the FPU stack in the original; an offset on a rounding edge may differ by one for
+a frame (the wrappers allow it and then skip the layout comparison).
+006BB3A0 (the stream reader) is called only by 006BB910 `StreamThread`, the game's own thread (AfxBeginThread), under the
+stream lock every 100 ms; not Miles' thread, so it has a wrapper (ours only; the fader's step 006B5EE0 is already checked
+on that thread). Kept: the original leaves its "from the beginning again" local unwritten when neither a loop point nor a
+switch point lies in the buffer and reads it in one such case, a mode 1 switch whose file ends in this buffer (whatever
+the stream thread's stack held decides between the switch and a restart); ours switches, which is what the mode asks for.
+The first file starts from state 2 with no decoder open: the frame size is then ResetStream's -1 and the buffer's frame
+count has not been set; neither is used, the whole buffer comes from the next file.
+
+Arc points (00648520, 00649190, 00641F20): the regions' vertices are `_ftol(cos(k x pi x step) x radius)` with every product
+and the cosine rounded to float, as the game's FPU does at its 24-bit precision: sin(pi / 2) is then exactly 1 and the vertex
+is the whole radius (35, 80, 34); a double sine gives 34.99.. and one less. `OnArc` in ui_hud_setup.cpp rounds each step with
+RoundToFloat, so it does not depend on the precision control. The map's outline is `(_ftol(700 - sin x 65), _ftol(cos x 65 +
+80))` the same way: its point under the centre is (635, 80), where doubles give (635, 79). New forwarders:
+`CUiRegion::CallAddPoint` (005FCA70) and `CUiMesh::SetTriangle` (005E99D0; ui_objectives.cpp's own forwarder now calls it),
+both in ui_layouts.cpp.
+
+Kept in 00659420: with a row count in "#position" the measuring pass is skipped and with it the pictures (their texts are
+still indented); the picture count runs on into the second pass, so with sixteen pictures every text is laid out unindented
+there; a page index below -1 would search "#screen" until the text ends.
+`tests/verify/ui_panel_shot.h` holds the setups' record of regions and sprites (verify_ui_hud_setup.cpp and
+verify_ui_help_page.cpp use it).
+
+006C68B0 `Terrain::LoadMap` (the map loader) is ported too: models.md, side by side, every zone load.
+
+Still original (Rebirth-patched): 006462A0 (unit panel draw) only.
+006462A0 stays forwarded: it drives the Direct3D device directly. Between the panel's background and the unit's figure, and
+again after the figure, it clears three screen rectangles' Z-buffer (and stencil when the device has one) with
+IDirect3DDevice7::Clear (the device at the renderer's +0x54, vtable +0x28) under the render lock 007AEE78, after flushing
+the renderer's two batches (004E7840, 004E7A40); in between it draws the unit's model (the unit's slot +0x58) with texture
+stage 0's mip filter (state 0x12) read, set to 1 and put back through the device (vtable +0x90 / +0x94).
+None of the ported ones drives the device directly (0065E580 makes an interface surface through 005FCDD0; 0065C2E0 and
+006567A0 draw GDI text and a pen line into one through its DC; 00641F20 sets one pixel through a surface's DC).
+Next candidates: none left of the ticket's list; 006462A0 once the device calls have a home (the renderer's Z clear and
+the texture stage state are behind the DDraw7 / D3D7 boundary).

@@ -87,6 +87,23 @@ void* CSoundManager::LoadWaveFile(const char* name, std::uint32_t* size, CMapped
 }
 EI_REPLACE_METHOD(0x006B8960, CSoundManager::LoadWaveFile);
 
+// 006B7110 (A-H26; Rebirth-patched: its ListFiles call is redirected, so this is the vanilla body,
+// hooked in the vanilla launch only). From the unit database's sound counts (0053A8E0), on the
+// game's main thread.
+void CSoundManager::ListWaveFiles(mfc::CStringArray* out, const char* pattern) {
+    out->SetSize(0, -1);
+    mfc::CStringArray names;
+    names.Construct();
+    for (auto* node = waveSources.head; node != nullptr;) {
+        CMappedResource* source = node->data;
+        node = node->next;
+        source->ListFiles(&names, pattern);
+        for (int i = 0; i < names.size; ++i) out->SetAtGrow(out->size, names[i]);
+    }
+    names.Destruct();
+}
+EI_REPLACE_METHOD(0x006B7110, CSoundManager::ListWaveFiles);
+
 // 006BAE20. Called at startup (00456440).
 int CSoundManager::SetPath(const char* folder, const char* registryPath) {
     if (enabled == 0) return 1;
@@ -264,9 +281,9 @@ void CSoundManager::ResetStream() {
     streamHalfBuffer[0] = -1;
     streamPosition = -1;
     streamSwitchAt = -1;
-    unknown138 = -1;
-    unknown13C = -1;
-    unknown140 = 0;
+    streamLoopAt = -1;
+    streamFrameBytes = -1;
+    streamSilence = 0;
     streamName = game::EmptyText();
     nextName = game::EmptyText();
     streamReadPosition = 0;
@@ -461,7 +478,7 @@ void CSoundManager::StreamThread() {
             std::int32_t& playing = streamHalfBuffer[half == 0 ? 0 : 1];
             streamSpareBuffer = playing;
             playing = buffer;
-            streamPosition += streamBufferBytes;
+            streamPosition += streamBufferFrames;
             AilLoadSampleBuffer()(streamSample, half, streamBuffers[buffer], streamBufferSize);
             ReadStreamOriginal(this, nullptr, StreamOf(this));
         }
@@ -470,6 +487,177 @@ void CSoundManager::StreamThread() {
     AfxEndThreadOriginal(0, 1);
 }
 EI_REPLACE_METHOD(0x006BB910, CSoundManager::StreamThread);
+
+// --- A-H26: the stream's reader -----------------------------------------------------------------------
+
+namespace {
+
+// The ASI codec's functions (Miles' ASI_stream_*; all __stdcall) and, after them, its attribute
+// names: what it decodes to.
+enum CodecSlot {
+    kCodecOpen = 0,
+    kCodecRead = 1,
+    kCodecSeek = 2,
+    kCodecClose = 3,
+    kCodecAttribute = 4,
+    kCodecOutputRate = 11,
+    kCodecOutputBits = 12,
+    kCodecOutputChannels = 13,
+};
+using CodecOpenFn = void*(__stdcall*)(void* /*user*/, void* /*read*/, int /*size*/);
+using CodecReadFn = int(__stdcall*)(void* /*file*/, void* /*buffer*/, int /*bytes*/);
+using CodecSeekFn = void(__stdcall*)(void* /*file*/, int /*position*/);
+using CodecCloseFn = void(__stdcall*)(void* /*file*/);
+using CodecAttributeFn = int(__stdcall*)(void* /*file*/, void* /*attribute*/);
+
+// The decoder's read callback, by its address (SoundStreamRead, hooked).
+constexpr std::uintptr_t kStreamReadCallback = std::uintptr_t(0x006BA950);
+constexpr std::uint32_t kSwitchHoldMs = 4000;
+constexpr int kNoLoop = 0x7FFFFFFF;
+constexpr int kNeverSwitch = -1;
+constexpr int kSeekKeep = -1;          // the decoder's "from where the file is"
+constexpr int kFullLevel = 0x7F;
+constexpr int kCentrePan = 0x40;
+constexpr std::uint8_t kSilence8 = 0x7F;
+constexpr int kStateSwitching = 2;
+constexpr int kSwitchAtEnd = 1;        // RequestStream's modes
+constexpr int kSwitchAfterFade = 2;
+const char* const kLoopMarkers = "Markers2";
+const char* const kSwitchMarkers = "Markers1";
+
+int CodecRead(CSoundManager* m, std::uint8_t* to, int bytes) {
+    return reinterpret_cast<CodecReadFn>(m->streamCodec[kCodecRead])(m->streamFile, to, bytes);
+}
+void CodecSeek(CSoundManager* m, int position) {
+    reinterpret_cast<CodecSeekFn>(m->streamCodec[kCodecSeek])(m->streamFile, position);
+}
+int CodecAttribute(CSoundManager* m, CodecSlot name) {
+    return reinterpret_cast<CodecAttributeFn>(m->streamCodec[kCodecAttribute])(m->streamFile, m->streamCodec[name]);
+}
+void CodecClose(CSoundManager* m) {
+    if (m->streamFile == nullptr) return;
+    reinterpret_cast<CodecCloseFn>(m->streamCodec[kCodecClose])(m->streamFile);
+    m->streamFile = nullptr;
+}
+void Silence(CSoundManager* m, std::uint8_t* to, int bytes) {
+    std::memset(to, m->streamSilence, static_cast<std::uint32_t>(bytes));
+}
+// `bytes` of the file; what it does not give is silence.
+void ReadOrSilence(CSoundManager* m, std::uint8_t* to, int bytes) {
+    int got = CodecRead(m, to, bytes);
+    if (got < bytes) Silence(m, to + got, bytes - got);
+}
+
+// The next file takes over: `bytes` of it (or silence) to `to`.
+void SwitchStream(CSoundManager* m, std::uint8_t* to, int bytes) {
+    m->streamReadPosition = 0;
+    m->streamState = 0;
+    mfc::CString path = m->soundPath + m->nextName;
+    if (CompareText(m->nextName, game::EmptyText()) == 0 ||
+        m->streamReader.OpenFile(path, reinterpret_cast<std::uint32_t*>(&m->streamFileSize)) == 0) {
+        Silence(m, to, bytes);
+        m->streamState = 0;
+        CodecClose(m);
+        gameapi::EnterCriticalSection(Lock(m->nameLock));
+        m->streamName = game::EmptyText();
+        gameapi::LeaveCriticalSection(Lock(m->nameLock));
+        return;
+    }
+    m->streamState = 1;
+    gameapi::EnterCriticalSection(Lock(m->nameLock));
+    m->streamName = m->nextName;
+    gameapi::LeaveCriticalSection(Lock(m->nameLock));
+    m->soundRegistry.GetIntArray(m->streamName, kSwitchMarkers, reinterpret_cast<DwordArray*>(&m->markers));
+    m->soundRegistry.GetIntArray(m->streamName, kLoopMarkers, reinterpret_cast<DwordArray*>(&m->markers2));
+    m->streamLoopAt = m->markers2.size > 0 ? m->markers2[0] : kNoLoop;
+    m->streamSwitchAt = kNeverSwitch;
+    CodecClose(m);
+    m->streamFile = reinterpret_cast<CodecOpenFn>(m->streamCodec[kCodecOpen])(m, reinterpret_cast<void*>(kStreamReadCallback), 0);
+    int rate = CodecAttribute(m, kCodecOutputRate);
+    int channels = CodecAttribute(m, kCodecOutputChannels);
+    int bits = CodecAttribute(m, kCodecOutputBits);
+    // DIG_F_16BITS_MASK with DIG_PCM_SIGN, or unsigned 8 bits; DIG_F_STEREO_MASK.
+    int format = 0;
+    int flags = 0;
+    if (bits == 16) {
+        format = 1;
+        flags = kSignedPcm;
+        m->streamSilence = 0;
+    } else {
+        m->streamSilence = kSilence8;
+    }
+    if (channels == 2) format |= 2;
+    AilSetSampleType()(m->streamSample, format, flags);
+    AilSetSamplePlaybackRate()(m->streamSample, rate);
+    AilSetSampleVolume()(m->streamSample, kFullLevel);
+    AilSetSamplePan()(m->streamSample, kCentrePan);
+    m->streamFrameBytes = static_cast<std::int32_t>(static_cast<std::uint32_t>(bits * channels) >> 3);
+    m->streamBufferFrames = m->streamBufferSize / m->streamFrameBytes;
+    m->streamPosition = 0;
+    CodecSeek(m, kSeekKeep);
+    ReadOrSilence(m, to, bytes);
+}
+
+} // namespace
+
+// The original leaves "from the beginning again" (a local) unwritten when neither a loop point
+// nor a switch point is in the buffer, and reads it in one such case: a switch at the file's end
+// (mode 1) when the file ends in this buffer. Here that case is the switch, which is what the
+// mode asks for.
+void CSoundManager::ReadStreamVanilla(void* /*stream*/) {
+    auto* const buffer = static_cast<std::uint8_t*>(streamBuffers[streamSpareBuffer]);
+    const std::int32_t state = streamState;
+    if (state == 0) {
+        Silence(this, buffer, streamBufferSize);
+        return;
+    }
+    const int frames = streamBufferFrames;
+    int current = frames;   // frames of the playing file as it goes
+    int rest = 0;           // frames after its loop point or the switch point
+    bool again = false;     // the rest is the playing file from its beginning
+    if (state == kStateSwitching && switchMode == kSwitchAfterFade && musicFader.finished != 0) {
+        current = 0;
+        rest = frames;
+        musicFader.SetHold(gameapi::timeGetTime() + kSwitchHoldMs);
+    } else if ((state == 1 || (state == kStateSwitching && streamSwitchAt > streamLoopAt)) && streamLoopAt >= streamPosition &&
+               streamLoopAt < streamPosition + frames) {
+        again = true;
+        current = streamLoopAt - streamPosition;
+        rest = frames - current;
+    } else if (state == kStateSwitching && streamSwitchAt >= streamPosition && streamSwitchAt < streamPosition + frames) {
+        current = streamSwitchAt - streamPosition;
+        rest = frames - current;
+    }
+    int currentBytes = current * streamFrameBytes;
+    int restBytes = rest * streamFrameBytes;
+    if (streamFile == nullptr) {
+        currentBytes = 0;
+        restBytes = streamBufferSize;
+        again = false;
+    } else {
+        int got = CodecRead(this, buffer, currentBytes);
+        if (got < currentBytes) {
+            if (streamState == kStateSwitching && switchMode == kSwitchAtEnd) {
+                // The file ended: the next one from here.
+                currentBytes = got;
+                restBytes = streamBufferSize - got;
+            } else {
+                CodecSeek(this, 0);
+                streamPosition = 0;
+                ReadOrSilence(this, buffer + got, currentBytes - got);
+            }
+        }
+    }
+    if (restBytes == 0) return;
+    if (again) {
+        CodecSeek(this, 0);
+        streamPosition = 0;
+        ReadOrSilence(this, buffer + currentBytes, restBytes);
+        return;
+    }
+    SwitchStream(this, buffer + currentBytes, restBytes);
+}
+EI_REPLACE_METHOD(0x006BB3A0, CSoundManager::ReadStreamVanilla);
 
 // 006B75E0 (A-H25; Miles calls it on its own thread when a voice's sample ends; registered by its
 // address in sound_manager.cpp). The voice (the sample's user data 1) is marked finished; the

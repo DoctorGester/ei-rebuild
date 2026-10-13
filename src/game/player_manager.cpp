@@ -3,6 +3,7 @@
 
 #include "originals_gameplay.h"
 #include "player_messages.h"
+#include "world.h"
 
 #include "../lib/crt.h"
 
@@ -11,6 +12,9 @@
 #include <new>
 
 namespace {
+
+constexpr int kPlayerType = 0x300A;      // a CPlayer
+constexpr int kConnectionType = 0x49;    // the side's player connection (CPlayerServer / CPlayerClient)
 
 // The player's connection: the server side of it (only the server's manager sends to all).
 CPlayerServer* Server(CEngineObject* player) {
@@ -38,6 +42,16 @@ CEngineObject* CPlayerManager::NewPlayer(int type) {
     return player;
 }
 
+CEngineObject* CPlayerManager::CreateSessionPlayer() {
+    auto* player = static_cast<CPlayer*>(CBaseManager::CreateObject(kPlayerType, -1));
+    if (!player) return nullptr;
+    CBaseManager* specific = static_cast<CWorld*>(context_)->SpecificManager();
+    player->SetConnection(static_cast<CPlayerConnection*>(specific->CreateObject(kConnectionType, -1)));
+    ++player->refCount_;
+    player->SetPlayerId(0);
+    return player;
+}
+
 void CPlayerManager::ReleasePlayer(CEngineObject* player) { player->Release(); }
 
 void CPlayerManager::ChangeId(CEngineObject* object, int id) {
@@ -59,6 +73,7 @@ void CPlayerManager::SendTextToAll(int unused, const char* text) {
 
 EI_REPLACE_METHOD(0x0066C0F0, CPlayerManager::CreatePlayers);
 EI_REPLACE_METHOD(0x0066C110, CPlayerManager::NewPlayer);
+EI_REPLACE_METHOD(0x0066C180, CPlayerManager::CreateSessionPlayer);
 EI_REPLACE_METHOD(0x0066C1D0, CPlayerManager::ReleasePlayer);
 EI_REPLACE_METHOD(0x0066C1E0, CPlayerManager::ChangeId);
 EI_REPLACE_METHOD(0x0066C340, CPlayerManager::SendValueToAll);

@@ -1294,8 +1294,8 @@ int CWorldClient::Setup() {
         terrain->textF8 = camera::EmptyStringData();
         terrain->textFC = camera::EmptyStringData();
         Construct570E40(&terrain->materials);
-        Construct56FD30(terrain->part13C);
-        Construct56FD30(terrain->part14C);
+        Construct56FD30(&terrain->textureClass);
+        Construct56FD30(&terrain->textureFrames);
         Construct6721D0(&terrain->archive);
         Construct570E70(&terrain->vertexTiles);
         Construct570EA0(&terrain->sectorCache, nullptr, 10);

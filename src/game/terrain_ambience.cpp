@@ -253,6 +253,24 @@ void Terrain::StopAmbience() {
     }
 }
 
+// The map loader's part (006C68B0, A-H26). The table is the game's own writable data; a class
+// that votes for another keeps its count.
+void terrain::CountAmbientVariants(const char* set) {
+    auto* classes = const_cast<AmbientSoundClass*>(SoundClasses());
+    for (int i = 0; i < kClasses; ++i) {
+        AmbientSoundClass& kind = classes[i];
+        if (kind.countsAs >= 0) continue;
+        kind.variants = 0;
+        for (;;) {
+            char name[260];
+            gamecrt::sprintf(name, "ambient\\%s\\%s\\day\\%i.wav", set, kind.name, kind.variants + 1);
+            if (sound::Manager()->LoadWaveFile(name, nullptr, nullptr) == nullptr) break;
+            ++kind.variants;
+        }
+    }
+}
+int terrain::AmbientVariants(int soundClass) { return SoundClasses()[soundClass].variants; }
+
 EI_REPLACE_METHOD(0x006CB390, Terrain::PlayAmbience);
 EI_REPLACE_METHOD(0x006CBC00, CWorldClient::AmbienceTimeOfDay);
 EI_REPLACE_METHOD(0x006CBCD0, Terrain::StopAmbience);

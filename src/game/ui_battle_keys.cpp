@@ -35,10 +35,6 @@ const char* QuickSaveName() { return GameText(0x007933AC); }  // "saveq"
 const char* FollowName() { return GameText(0x00787928); }     // "follow"
 const char* ScienceName() { return GameText(0x0078B8FC); }    // "science"
 
-// 00578D50 (the game's glue 007AFEA4, not read; AL): whether the game is paused. 00578D30 (RET 4):
-// pauses or resumes it (the low byte of `paused` is all its callee reads).
-__declspec(naked) bool __fastcall GameIsPausedOriginal(void* /*glue*/) EI_ORIGINAL(0x00578D50)
-__declspec(naked) void __fastcall GameSetPausedOriginal(void* /*glue*/, void*, int /*paused*/) EI_ORIGINAL(0x00578D30)
 // 006481D0 (plain RET): the unit panel shows which body part is selected (its four buttons' tints).
 __declspec(naked) void __fastcall UnitPanelShowPartOriginal(CHudUnitPanel*) EI_ORIGINAL(0x006481D0)
 

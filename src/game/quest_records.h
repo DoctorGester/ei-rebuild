@@ -66,6 +66,24 @@ struct QuestBriefingTable {
 };
 static_assert(offsetof(QuestBriefingTable, index) == 0x0C && sizeof(QuestBriefingTable) == 0x20);
 
+// The quest database (007C87A8): the quests and the briefings, each with its index by name
+// (script.h's QuestTable is the quests' half as the script commands read it).
+struct QuestDatabase {
+    using QuestIndex = stlp::hash_map<stlp::string, QuestRecord*, stlp::StringHash>;
+
+    // 006AE3A0 (RET 4; quest_db_open.cpp, A-H26; Rebirth-patched, hooked in the vanilla launch
+    // only; WinMain at startup). "quests.qdb" of `folder` + "database.res": the quests (chunk 1)
+    // and the briefings (chunk 2), each read through an archive of its own and filed under its
+    // records' names. 1; FatalError's result when the archive (reported as "databases.res") or the
+    // file cannot be opened.
+    int Load(const char* folder);
+
+    stlp::vector<QuestRecord> quests;   // +0x00
+    QuestIndex questsByName;            // +0x0C
+    QuestBriefingTable briefings;       // +0x20
+};
+static_assert(offsetof(QuestDatabase, briefings) == 0x20 && sizeof(QuestDatabase) == 0x40);
+
 class CFileRegistry;   // registry.h
 // 006AE740 (__fastcall registry, section; key and list on the stack, RET 8; quest_database.cpp,
 // A-H19). The registry's string list `section` / `key` into `list`: the list emptied, reserved for

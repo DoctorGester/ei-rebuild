@@ -153,8 +153,26 @@ int __stdcall StreamReadVerify(CSoundManager* manager, void* buffer, int size, i
                       manager->streamReadPosition);
     return result;
 }
+
+// 006B7110 (A-H26; the vanilla launch only, Rebirth patches it): the unit database's sound counts
+// at every start (0053A8E0, the game's main thread; not a Miles callback). Side by side: the
+// original lists into a scratch array, ours into the caller's; the same names in the same order.
+// PUSH -1 (2 bytes), PUSH imm32 (5).
+void(__fastcall* s_listWaveFiles)(CSoundManager*, void*, mfc::CStringArray*, const char*);
+void __fastcall ListWaveFilesVerify(CSoundManager* self, void*, mfc::CStringArray* out, const char* pattern) {
+    mfc::CStringArray scratch;
+    scratch.Construct();
+    s_listWaveFiles(self, nullptr, &scratch, pattern);
+    self->ListWaveFiles(out, pattern);
+    bool same = scratch.size == out->size;
+    for (int i = 0; same && i < scratch.size; ++i) same = std::strcmp(scratch[i], (*out)[i]) == 0;
+    ei::verify::Check("CSoundManager::ListWaveFiles", true, same, "\"%s\": %d vs %d names",
+                      pattern ? pattern : "(all)", scratch.size, out->size);
+    scratch.Destruct();
+}
 } // namespace
 
+EI_VERIFY(0x006B7110, ListWaveFilesVerify, 7, s_listWaveFiles);
 EI_VERIFY(0x006B6290, SoundNameVerify, 5, s_soundName);
 EI_VERIFY(0x006B62A0, SoundIdVerify, 5, s_soundId);
 EI_VERIFY(0x006B6D70, SoundCreateVerify, 0, s_unused);
@@ -293,12 +311,33 @@ void __fastcall StreamThreadVerify(CSoundManager* self) {
                       self->streamBufferSize, order);
     self->StreamThread();
 }
+// 006BB3A0 (A-H26; the vanilla launch only, Rebirth patches it). The stream's reader, called only
+// by the stream thread's loop above: the game's own thread (AfxBeginThread), under the stream
+// lock, for every half buffer Miles has played out; not a Miles callback, and the fader's step
+// (006B5EE0) is already checked on this thread. It decodes from the file as it goes, so it cannot
+// run twice: ours only, the state it leaves. Idle stays idle; a stream that went idle has no
+// file; one with a file has the frame size its buffer length was divided by, a position that is
+// not negative and one of the two silence bytes. Every scenario with music reaches it (the main
+// menu's theme at every start with sound on).
+void __fastcall ReadStreamVerify(CSoundManager* self, void*, void* stream) {
+    const int before = self->streamState;
+    self->ReadStreamVanilla(stream);
+    const int after = self->streamState;
+    bool ok = stream == const_cast<std::int32_t*>(&self->streamState) && after >= 0 && after <= 2 && (before != 0 || after == 0);
+    if (ok && before != 0 && after == 0) ok = self->streamFile == nullptr;
+    if (ok && after != 0 && self->streamFile != nullptr)
+        ok = self->streamFrameBytes > 0 && self->streamBufferFrames == self->streamBufferSize / self->streamFrameBytes &&
+             self->streamPosition >= 0 && (self->streamSilence == 0 || self->streamSilence == 0x7F);
+    ei::verify::Check("CSoundManager::ReadStream", true, ok, "state %d -> %d file %p position %d frame %d bytes, %d a buffer",
+                      before, after, self->streamFile, self->streamPosition, self->streamFrameBytes, self->streamBufferFrames);
+}
 // 006B75E0 (A-H25; Miles calls it from its timer thread, whenever a voice plays to its end) has no
 // wrapper on purpose: a check there logs, and that froze every vanilla run at the first sound that
 // ended (2026-10-13). The port is two user data reads and one store, compared with the original's
 // eight instructions by hand.
 } // namespace
 EI_VERIFY(0x006BB910, StreamThreadVerify, 0, s_unused);
+EI_VERIFY(0x006BB3A0, ReadStreamVerify, 0, s_unused);
 EI_VERIFY(0x006BAAC0, SoundOpenStreamVerify, 0, s_unused);
 EI_VERIFY(0x006BAC90, SoundCloseStreamVerify, 0, s_unused);
 EI_VERIFY(0x006B6A30, SoundOpenVerify, 0, s_unused);

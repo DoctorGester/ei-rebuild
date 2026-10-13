@@ -31,6 +31,32 @@ CTextureManager* __fastcall ConstructVerify(CTextureManager* self) {
     return result;
 }
 
+// Whether `text` ends with `tail`.
+bool EndsWith(const stlp::string& text, const char* tail) {
+    const std::size_t n = std::strlen(tail);
+    return text.size() >= n && std::memcmp(text.data() + text.size() - n, tail, n) == 0;
+}
+
+// 00691500 (A-H26; slot 2, the vanilla launch only: Rebirth patches it). The client world's
+// managers are created at every start (CBaseManager::Init). Ours only (it opens archives): a
+// success leaves the three texture archives in the list, in the original's order (an archive
+// already there is not added again).
+int __fastcall CreateVerify(CTextureManager* self) {
+    const int result = self->CTextureManager::Create();
+    const std::size_t count = self->archives_.size();
+    bool ok = result == 0 || result == 1;
+    if (result == 1) {
+        static const char* const kNames[] = {"textures.res", "redress.res", "menus.res"};
+        std::size_t found = 0;
+        for (std::size_t i = 0; i < count && found < 3; ++i)
+            if (EndsWith(self->archives_[i].name, kNames[found])) ++found;
+        ok = found == 3;
+    }
+    ei::verify::Check("CTextureManager::Create", true, ok, "manager %p result %d, %u archives", self, result,
+                      static_cast<unsigned>(count));
+    return result;
+}
+
 void __fastcall DestroyVerify(CTextureManager* self) {
     self->CTextureManager::Destroy();
     ei::verify::Check("CTextureManager::Destroy", true, Emptied(self), "manager %p", self);
@@ -78,6 +104,7 @@ const char* __fastcall FolderVerify(CTextureManager* self) {
 } // namespace
 
 EI_VERIFY(0x00691140, ConstructVerify, 0, s_unused);
+EI_VERIFY(0x00691500, CreateVerify, 0, s_unused);
 EI_VERIFY(0x00691630, DestroyVerify, 0, s_unused);
 EI_VERIFY(0x00691250, DestructVerify, 0, s_unused);
 EI_VERIFY(0x00691230, DeleteVerify, 0, s_unused);

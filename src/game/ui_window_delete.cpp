@@ -221,7 +221,7 @@ void CMpConnectScreen::DestroyBody() {
 EI_REPLACE_METHOD(0x00618570, CMpConnectScreen::DestroyBody);
 
 void CHelpWindow::DestroyBody() {
-    DestroyList(listB_, [](std::uint32_t*) {});
+    DestroyList(pictures_, [](CUiMesh**) {});
     DestroyList(pulsing_, [](CUiMesh**) {});
     lines_.Destruct();
     title_.~CString();

@@ -3,6 +3,7 @@
 #include "material.h"
 
 #include "game_strings.h"
+#include "world_data.h"   // TextPathString
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -133,6 +134,31 @@ CMaterialManager* CMaterialManager::DeletingDestruct(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x0068E520, CMaterialManager::DeletingDestruct);
 
+int CMaterialManager::Create() {
+    if (!CBaseManager::Create()) return 0;
+    const mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextPathString()));
+    AddArchive(folder + "materials.res");
+
+    const MaterialKindFile* const kinds = MaterialKindFileTable();
+    for (int i = 0; i < kMaterialKindFiles; ++i) {
+        MaterialColors colors;
+        std::memset(&colors, 0, sizeof(colors));
+        void* data = GetFile(kinds[i].file, nullptr);
+        if (!data) {
+            colors.diffuse = {0.3f, 0.3f, 0.3f, 1.0f};
+            colors.ambient.x = colors.ambient.y = colors.ambient.z = 0.7f;
+            colors.specular.x = colors.specular.y = colors.specular.z = 0.2f;
+            colors.power = 5.0f;
+        } else {
+            std::memcpy(&colors, MaterialFileColors(data), sizeof(colors));
+        }
+        CloseFile(data);
+        if (kinds[i].kind == kMagicMaterialKind) colors.emissive.x = colors.emissive.y = colors.emissive.z = 1.0f;
+        colors_[static_cast<unsigned>(kinds[i].kind)] = colors;
+    }
+    return 1;
+}
+
 CEngineObject* CMaterialManager::NewObject(int type) {
     void* block = gamecrt::operator_new(sizeof(CMaterial));
     if (!block) return nullptr;
@@ -169,8 +195,10 @@ EI_REPLACE(0x0068E500, MaterialManagerClassName);
 EI_REPLACE(0x0068E510, MaterialManagerClassId);
 
 namespace {
+int __fastcall MaterialManagerCreateHook(CMaterialManager* self) { return self->CMaterialManager::Create(); }
 CEngineObject* __fastcall MaterialManagerNewObjectHook(CMaterialManager* self, void*, int type) {
     return self->CMaterialManager::NewObject(type);
 }
 } // namespace
+EI_REPLACE(0x0068E640, MaterialManagerCreateHook);
 EI_REPLACE(0x0068E900, MaterialManagerNewObjectHook);

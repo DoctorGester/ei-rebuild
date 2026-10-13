@@ -475,7 +475,7 @@ EI_REBIRTH_IMPLEMENTS(0x00569E40, ei::rebirth::Patch::LandscapeDrawRadius);
 
 int CWorldClient::DrawPass() {
     Terrain* terrain = terrain_;
-    if (!terrain || !terrain->unknown_100) return 0;
+    if (!terrain || !terrain->mapLoaded) return 0;
     CTextureDevice* renderer = RenderDeviceObject();
     CTransformPipeline* device = ScenePipeline();
     std::uint32_t now = gameapi::timeGetTime();

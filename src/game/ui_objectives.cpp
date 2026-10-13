@@ -257,8 +257,10 @@ struct SpriteAt {
     // 005E70B0: the sprite's +0x23C, left in ST0.
     double Scale();
 };
-__declspec(naked) void SpriteAt::SetTriangle(float, float, float, float, float, float, float, float, float, float,
-                                             float, float, float, float) EI_ORIGINAL(0x005E99D0)
+void SpriteAt::SetTriangle(float depth, float size, float x0, float y0, float x1, float y1, float x2, float y2, float u0,
+                           float v0, float u1, float v1, float u2, float v2) {
+    reinterpret_cast<CUiMesh*>(this)->SetTriangle(depth, size, x0, y0, x1, y1, x2, y2, u0, v0, u1, v1, u2, v2);
+}
 double SpriteAt::Scale() { return SpriteScaleOriginal((void*)this); }
 
 struct ScrollbarAt {

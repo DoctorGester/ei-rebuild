@@ -326,6 +326,44 @@ static void __fastcall MapMouseDownVerify(void* input, void*, int buttons, int x
 }
 EI_VERIFY(0x00645060, MapMouseDownVerify, 0, s_unused);
 
+// 00645210 (A-H26; Rebirth-patched, so hooked in the vanilla launch only): the map's button
+// release. It plays sounds and moves the camera, so ours only; the wrapper works out from the
+// state before the call what the original's branches leave. ui_hud reaches the first branch (a
+// view button let go: its two clicks on the view buttons); no scenario clicks the sling button,
+// the map itself or "camera north" yet.
+static void __fastcall MapMouseUpVerify(void* input, void*, int buttons, int x, int y) {
+    auto* w = FromInput<CHudMap>(input);
+    void* capture = w->interface_->mouseCapture_;
+    const bool captured = capture == input;
+    const bool handled = w->inputHandled_;
+    const int view = w->view_;
+    const int region = w->RegionAt(x, y);
+    const int sliding = w->sliding_;
+    const std::uint32_t direction = Bits(w->slideDirection_);
+    const std::uint32_t north = Bits(w->unknown_1B0);
+    w->CHudMap::OnMouseUp(buttons, x, y);
+    bool ok = CaptureReleased(captured, capture, w->interface_->mouseCapture_);
+    const char* path = "not captured";
+    if (!captured) {
+        ok = ok && w->inputHandled_ == handled && w->view_ == view;
+    } else if (view != 0) {
+        path = "view button";
+        ok = ok && w->view_ == 0 && w->inputHandled_ == handled && TintsMatch(w, 6, 2, -1);
+    } else {
+        path = "region";
+        ok = ok && w->view_ == 0 && w->inputHandled_ == (region >= 0 ? true : handled);
+    }
+    const bool sling = captured && view == 0 && region == 0;
+    if (sling)
+        ok = ok && w->sliding_ == 1 && Bits(w->slideDirection_) == (direction ^ 0x80000000u);
+    else
+        ok = ok && w->sliding_ == sliding && Bits(w->slideDirection_) == direction;
+    const bool toNorth = captured && view == 0 && region == 5;
+    ok = ok && Bits(w->unknown_1B0) == (toNorth ? 0x3F000000u : north);
+    ei::verify::Check("CHudMap::OnMouseUp", true, ok, "(%d,%d) region %d view %d %s", x, y, region, view, path);
+}
+EI_VERIFY(0x00645210, MapMouseUpVerify, 0, s_unused);
+
 static void __fastcall UnitPanelMouseUpVerify(void* input, void*, int buttons, int x, int y) {
     auto* w = FromInput<CHudUnitPanel>(input);
     void* capture = w->interface_->mouseCapture_;
@@ -539,3 +577,89 @@ static void __fastcall ClockOpenObjectivesVerify(CHudClock* self) {
     ei::verify::Check("CHudClock::OpenObjectives", false, self->highlight_, "clock %p", static_cast<void*>(self));
 }
 EI_VERIFY(0x00648F10, ClockOpenObjectivesVerify, 0, s_unused);
+
+// 00648D70 (A-H26; Rebirth-patched, so hooked in the vanilla launch only): the clock's button
+// release. It plays sounds, pauses the game and opens a window, so ours only; the wrapper works out
+// from the state before the call what the original's branches leave. Reached by a click on the
+// clock (the pause button, the two speed buttons, the objectives button); no scenario clicks there
+// yet (ui_hud only moves the mouse over the clock).
+static void __fastcall ClockMouseUpVerify(void* input, void*, int buttons, int x, int y) {
+    auto* w = FromInput<CHudClock>(input);
+    void* capture = w->interface_->mouseCapture_;
+    const bool captured = capture == input;
+    const bool handled = w->inputHandled_;
+    const int region = w->RegionAt(x, y);
+    const int fast = w->fast_;
+    const int period = *reinterpret_cast<int*>(0x0078FF34);
+    const bool network = reinterpret_cast<bool(__cdecl*)()>(0x0057F440)();
+    w->CHudClock::OnMouseUp(buttons, x, y);
+    const bool hit = captured && region >= 0 && region <= 3;
+    bool ok = CaptureReleased(captured, capture, w->interface_->mouseCapture_) &&
+              w->inputHandled_ == (hit ? true : handled);
+    const int periodAfter = *reinterpret_cast<int*>(0x0078FF34);
+    if (hit && (region == 1 || region == 2) && !network)
+        ok = ok && w->fast_ == region - 1 && periodAfter == (region == 2 ? 27 : 55) &&
+             w->interface_->fastGame_ == w->fast_;
+    else
+        ok = ok && w->fast_ == fast && periodAfter == period;
+    if (hit && region == 3) ok = ok && !w->highlight_;
+    ei::verify::Check("CHudClock::OnMouseUp", true, ok, "(%d,%d) region %d captured %d fast %d->%d period %d->%d", x, y,
+                      region, captured, fast, w->fast_, period, periodAfter);
+}
+EI_VERIFY(0x00648D70, ClockMouseUpVerify, 0, s_unused);
+
+// 00649910 (A-H26; Rebirth-patched, so hooked in the vanilla launch only): MOV EAX,[ESP+4] (4),
+// SUB ESP,0x34 (3). Side by side: it writes only the panel's mode, the marker's visibility,
+// orientation and position (scene object 0) and the four mode buttons' tints; the original runs
+// first, what it wrote is recorded and put back, then ours. The floats (the marker's turn and
+// place) are compared within a few ULPs. Reached every frame of the battle screen
+// (CHudMovePanel::Update), so by every scenario that starts a game.
+namespace {
+struct MoveModeState {
+    int mode;
+    int visible;
+    Quaternion orientation;
+    Vector3 position;
+    std::uint32_t tints[4][3];
+};
+MoveModeState CaptureMoveMode(CHudMovePanel* w) {
+    MoveModeState s;
+    auto* marker = reinterpret_cast<CUiMesh*>(w->sceneObjects_.data[0]);
+    s.mode = w->mode_;
+    s.visible = marker->visible_;
+    s.orientation = marker->orientation_;
+    s.position = marker->position_;
+    for (int i = 0; i < 4; ++i)
+        for (int k = 0; k < 3; ++k) s.tints[i][k] = TintBits(w->sceneObjects_.data[1 + i], k);
+    return s;
+}
+void RestoreMoveMode(CHudMovePanel* w, const MoveModeState& s) {
+    auto* marker = reinterpret_cast<CUiMesh*>(w->sceneObjects_.data[0]);
+    w->mode_ = s.mode;
+    marker->visible_ = s.visible;
+    marker->orientation_ = s.orientation;
+    marker->position_ = s.position;
+    for (int i = 0; i < 4; ++i)
+        std::memcpy(reinterpret_cast<CUiMesh*>(w->sceneObjects_.data[1 + i])->tint_, s.tints[i], sizeof(s.tints[i]));
+}
+} // namespace
+static void(__fastcall* s_showMode)(CHudMovePanel*, void*, int);
+static void __fastcall MovePanelShowModeVerify(CHudMovePanel* self, void*, int mode) {
+    const MoveModeState before = CaptureMoveMode(self);
+    s_showMode(self, nullptr, mode);
+    const MoveModeState expected = CaptureMoveMode(self);
+    RestoreMoveMode(self, before);
+    self->ShowModeVanilla(mode);
+    const MoveModeState actual = CaptureMoveMode(self);
+    const bool same = expected.mode == actual.mode && expected.visible == actual.visible &&
+                      std::memcmp(expected.tints, actual.tints, sizeof(expected.tints)) == 0;
+    ei::verify::Check("CHudMovePanel::ShowMode", true, same, "mode %d: mode %d/%d visible %d/%d", mode, expected.mode,
+                      actual.mode, expected.visible, actual.visible);
+    const float* e = &expected.orientation.w;
+    const float* a = &actual.orientation.w;
+    for (int i = 0; i < 4; ++i) ei::verify::CheckNear("CHudMovePanel::ShowMode", e[i], a[i], "mode %d turn %d", mode, i);
+    ei::verify::CheckNear("CHudMovePanel::ShowMode", expected.position.x, actual.position.x, "mode %d x", mode);
+    ei::verify::CheckNear("CHudMovePanel::ShowMode", expected.position.y, actual.position.y, "mode %d y", mode);
+    ei::verify::CheckNear("CHudMovePanel::ShowMode", expected.position.z, actual.position.z, "mode %d depth", mode);
+}
+EI_VERIFY(0x00649910, MovePanelShowModeVerify, 7, s_showMode);

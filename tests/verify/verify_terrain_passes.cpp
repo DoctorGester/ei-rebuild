@@ -49,7 +49,7 @@ int(__fastcall* s_drawPages)(Terrain*, void*, CSceneRenderer*, int, int);
 
 int __fastcall DrawPagesVerify(Terrain* self, void*, CSceneRenderer* renderer, int firstPage, int lastPage) {
     const int result = self->DrawPages(renderer, firstPage, lastPage);
-    ei::verify::Check("Terrain::DrawPages", self->unknown_100 ? 1 : 0, result, "pages %d..%d of %d", firstPage,
+    ei::verify::Check("Terrain::DrawPages", self->mapLoaded ? 1 : 0, result, "pages %d..%d of %d", firstPage,
                       lastPage, self->pages);
     return result;
 }

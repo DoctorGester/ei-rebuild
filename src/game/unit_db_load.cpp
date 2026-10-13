@@ -4,12 +4,10 @@
 // vanilla functions and install in the vanilla launch only (rule 9). See docs/notes/units.md.
 #include "unit_db.h"
 
-#include "chunk_archive.h"
-#include "core_streams.h"
-#include "originals_engine.h"    // FatalErrorOriginal, MappedResourceDestroyOriginal
+#include "database_file.h"       // the archive file and the stream on the stack (shared with the other loads)
+#include "originals_engine.h"    // FatalErrorOriginal
 #include "originals_library.h"   // FigureMapAtOriginal
 #include "originals_units.h"     // PrototypeMapAtOriginal, SkillLevelVectorResizeOriginal
-#include "resource.h"
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
@@ -26,10 +24,11 @@ constexpr int kSkillLevelsChunk = 2;
 constexpr int kRecordChunk = 1;
 constexpr int kModelSlots = 6;
 
-using SerializeFn = void(__fastcall*)(ChunkArchive*, void*, int, void*, void*);
+using dbfile::FillStream;
+using dbfile::LocalResource;
+using dbfile::LocalStream;
+using dbfile::SerializeFn;
 
-// The chunk archive's out-of-line destructor (not rewritten).
-__declspec(naked) void __fastcall ArchiveDestroy(ChunkArchive*) EI_ORIGINAL(0x004645A0)
 // The tables' vector serialisers (RET 0xC: id, vector, unused; rewritten in unit_db.cpp) and the
 // skill level's chunk (RET 8: id, record), through their addresses so that their verify wrappers
 // run.
@@ -45,31 +44,6 @@ __declspec(naked) void __fastcall SkillLevelChunkAt(ChunkArchive*, void*, int, S
 __declspec(naked) void** __fastcall NpcMapAt(void* /*map*/, void*, const void* /*key*/) EI_ORIGINAL(0x0053C650)
 __declspec(naked) void** __fastcall LevelMapAt(void* /*map*/, void*, const void* /*key*/) EI_ORIGINAL(0x0053C8B0)
 __declspec(naked) void __fastcall SkillLevelsClear(void* /*vector*/) EI_ORIGINAL(0x00520C20)
-
-// The archive file, built in place: its constructor (00671280) directly, its destructor body
-// through its address (006714A0, which Rebirth patches).
-struct LocalResource {
-    LocalResource() { Get()->Construct(); }
-    ~LocalResource() { MappedResourceDestroyOriginal(Get()); }
-    CMappedResource* Get() { return reinterpret_cast<CMappedResource*>(storage); }
-    alignas(void*) unsigned char storage[sizeof(CMappedResource)];
-};
-
-// The memory stream the database file is copied into, built and destroyed as the originals
-// inline it.
-struct LocalStream {
-    LocalStream() { stream.Construct(); }
-    ~LocalStream() { stream.Destruct(); }
-    CMemoryStream stream;
-};
-
-// The file's bytes into `stream`, which is left at its start for reading.
-void FillStream(CMemoryStream& stream, const void* data, std::uint32_t size) {
-    stream.reading_ = 0;
-    stream.CMemoryStream::Write(data, size);
-    stream.CMemoryStream::Seek(0);
-    stream.reading_ = 1;
-}
 
 // Every record of [begin, end) entered into the name index under its name (operator[]: a record
 // of a name seen before replaces the earlier one).
@@ -93,7 +67,7 @@ void LoadTable(CMemoryStream* stream, int id, SerializeFn serialize, void* table
     serialize(&archive, nullptr, id, table, levels);
     archive.Close(stream);
     IndexNames(begin, end, index, at);
-    ArchiveDestroy(&archive);
+    ChunkArchiveDestroyOriginal(&archive);
 }
 
 // A prototype table's records, typed (unit_create.h keeps them as bytes).
@@ -128,7 +102,7 @@ EI_REPLACE_METHOD(0x0053D650, UnitLevelTable::FindByName);
 int UnitDatabase::Load(const char* folder, const char* archive) {
     mfc::CString path = mfc::CString(folder) + archive;
     LocalResource resource;
-    if (!MappedResourceOpenOriginal(resource.Get(), nullptr, path, 0))
+    if (!resource.Open(path))
         return FatalErrorOriginal("Can't open database file \"%s\"\n", static_cast<const char*>(path));
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("units.udb", &size);
@@ -173,7 +147,7 @@ EI_REPLACE_METHOD(0x0053A200, UnitDatabase::Load);
 int SkillDatabase::Load(const char* folder, const char* archive) {
     mfc::CString path = mfc::CString(folder) + archive;
     LocalResource resource;
-    if (!MappedResourceOpenOriginal(resource.Get(), nullptr, path, 0))
+    if (!resource.Open(path))
         return FatalErrorOriginal("Can't open database file \"%s\"\n", static_cast<const char*>(path));
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("perks.pdb", &size);

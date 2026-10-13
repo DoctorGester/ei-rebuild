@@ -266,14 +266,14 @@ static_assert(offsetof(SectorData, lastUsed) == 0x384);
 struct TerrainMaterial {
     int kind;                           // +0x00 4: water that keeps the ground's x, y
     Vector3 waveColour;                 // +0x04 specular of the wave crests (Animate)
-    std::uint8_t unknown_10[4];
-    float absorption;                   // +0x14 light lost per squared depth under water (lighting)
-    std::uint8_t byte18;                // +0x18
+    float opacity;                      // +0x10 as the map file has it
+    float absorption;                   // +0x14 light lost per squared depth under water (lighting): 1 / (1 - opacity)
+    std::uint8_t opacityByte;           // +0x18 opacity * 255
     std::uint8_t pad_19[3];
-    Vector3 colour;                     // +0x1C
-    std::uint8_t unknown_28[4];
+    Vector3 colour;                     // +0x1C waveColour * the file's light factor, each capped at 1
+    std::uint8_t unknown_28[4];         // not written by the map loader
     float priority;                     // +0x2C lowest wins where water materials meet; also scales the waves
-    std::uint8_t unknown_30[4];
+    float unknown_30;                   // +0x30 the file record's +0x1C
     float level;                        // +0x34 water level offset
 };
 static_assert(sizeof(TerrainMaterial) == 0x38);

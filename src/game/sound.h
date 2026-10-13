@@ -175,16 +175,20 @@ struct CSoundManager : CEngineObject {
     void** streamCodec;                 // +0x10C ASI codec functions (slot 3: close)
     void* streamBuffers[3];             // +0x110 Miles memory, streamBufferSize bytes each (OpenStream)
     std::int32_t streamBufferSize;      // +0x11C twice Miles' minimum buffer; -1 after ResetStream
-    std::int32_t streamBufferBytes;     // +0x120
+    std::int32_t streamBufferFrames;    // +0x120 frames in one buffer: streamBufferSize / streamFrameBytes
     // +0x124 which buffer each half of Miles' double buffer plays, +0x12C the third one (taken
     // next, and what 006BB3A0 fills): -1 after ResetStream; 0, 1 and 2 after OpenStream.
     std::int32_t streamHalfBuffer[2];
     std::int32_t streamSpareBuffer;
-    std::int32_t streamPosition;        // +0x130 bytes queued so far
+    std::int32_t streamPosition;        // +0x130 frames of the playing file queued so far
     std::int32_t streamSwitchAt;        // +0x134 position at which nextName starts
-    std::int32_t unknown138;            // +0x138, +0x13C -1 after ResetStream
-    std::int32_t unknown13C;
-    std::uint8_t unknown140;            // +0x140 0 after ResetStream
+    // +0x138 the position at which the playing file starts again from its beginning (the first
+    // "Markers2" value of its section in the sound registry; 0x7FFFFFFF without one), +0x13C the
+    // bytes in a frame (bits * channels / 8): both -1 after ResetStream. +0x140 the byte that is
+    // silence in the file's format (0 for 16 bits, else 0x7F; 0 after ResetStream).
+    std::int32_t streamLoopAt;
+    std::int32_t streamFrameBytes;
+    std::uint8_t streamSilence;
     std::uint8_t unknown141[3];
     SoundFader musicFader;              // +0x144 music volume (options) and fades
     mfc::CString streamName;            // +0x160 playing
@@ -287,6 +291,9 @@ struct CSoundManager : CEngineObject {
     // 006B8960 (RET 0xC). The first wave source holding `name`: its data (GetFile, size into
     // *size), the source into *source when not null. Null when none has it.
     void* LoadWaveFile(const char* name, std::uint32_t* size, CMappedResource** source);
+    // 006B7110 (RET 8; A-H26, Rebirth-patched: callers use SoundSystemListFilesOriginal). `out`
+    // emptied, then the names matching `pattern` of every wave source appended, source by source.
+    void ListWaveFiles(mfc::CStringArray* out, const char* pattern);
     // 006BAE20 (RET 8). The sound folder (a backslash appended when missing) and the sound
     // registry opened. 1 when sound is off; else whether the registry opened.
     int SetPath(const char* folder, const char* registryPath);
@@ -329,9 +336,20 @@ struct CSoundManager : CEngineObject {
     // 006BB910 (A-H25; the stream thread's entry 006B6A10 calls it). Until Close sets
     // threadsQuit, every 100 ms under the stream lock: a step of the music fader, its level as
     // the sample's volume, and for every half Miles has played out the spare buffer loaded into
-    // it (the two change places, the position moves on by streamBufferBytes) and the next one
+    // it (the two change places, the position moves on by streamBufferFrames) and the next one
     // read (006BB3A0). Ends the thread (AfxEndThread), so it does not return.
     void StreamThread();
+    // 006BB3A0 (A-H26; Rebirth-patched, so hooked in the vanilla launch only and called through
+    // its address; `stream` is the manager's +0x100). The stream thread's reader: fills the spare
+    // buffer with the next streamBufferFrames frames. Idle: silence. Else the playing file's
+    // frames up to its loop point (then from its beginning again) or, when a switch is asked, up
+    // to the switch point (mode 2: the whole buffer once the fade out has finished, the fade then
+    // held for 4 s; mode 1: where the file ends), and the rest from the next file: its name
+    // looked up in the sound folder, its markers read from the sound registry, the decoder opened
+    // on it and the sample set to its rate and format. No next file (or it does not open):
+    // silence, the stream idle and its name empty. A file that ends early otherwise starts again
+    // from its beginning.
+    void ReadStreamVanilla(void* stream);
 
     // 006B7D10 (A-H17, sound_manager.cpp; Play2D / Play3D). The first free voice; else the voice
     // with the lowest priority (the first of equals) when `priority` is above it: a looping sound
@@ -386,7 +404,7 @@ static_assert(offsetof(CSoundManager, streamReader) == 0x24 && offsetof(CSoundMa
 static_assert(offsetof(CSoundManager, archive074) == 0x74 && offsetof(CSoundManager, registry0CC) == 0xCC);
 static_assert(offsetof(CSoundManager, waveSources) == 0xE4);
 static_assert(offsetof(CSoundManager, streamReadPosition) == 0x1A8);
-static_assert(offsetof(CSoundManager, streamBufferSize) == 0x11C && offsetof(CSoundManager, unknown140) == 0x140);
+static_assert(offsetof(CSoundManager, streamBufferSize) == 0x11C && offsetof(CSoundManager, streamSilence) == 0x140);
 static_assert(offsetof(CSoundManager, markers2) == 0x178 && offsetof(CSoundManager, streamThread) == 0x1C8);
 static_assert(offsetof(CSoundManager, midiName) == 0x1DC && offsetof(CSoundManager, midiArray1F4) == 0x1F4);
 static_assert(offsetof(CSoundManager, midiFader) == 0x20C && offsetof(CSoundManager, midiLock) == 0x22C);

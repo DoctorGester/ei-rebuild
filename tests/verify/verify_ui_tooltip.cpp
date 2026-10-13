@@ -38,7 +38,7 @@ static CUiTooltip* __fastcall TooltipConstructVerify(CUiTooltip* self, void*, CI
     self->CUiTooltip::Construct(ui, region, text, flag, extra);
     bool ok = LinesOf(scratch) == LinesOf(self) && scratch->vtable_ == self->vtable_ &&
               scratch->inputVtable_ == self->inputVtable_ && scratch->region_ == self->region_ &&
-              scratch->state_ == self->state_ && scratch->unknown_17C == self->unknown_17C;
+              scratch->state_ == self->state_ && scratch->timer_ == self->timer_;
     if (text && *text)
         ok = ok && scratch->width_ == self->width_ && scratch->height_ == self->height_ &&
              scratch->lineHeight_ == self->lineHeight_ && scratch->flag_ == self->flag_ && scratch->extra_ == self->extra_ &&
@@ -79,3 +79,34 @@ static void __fastcall TooltipDestroyVerify(CUiTooltip* self) {
     ei::verify::Check("CUiTooltip::DestroyBody", true, ok, "");
 }
 EI_VERIFY(0x0065E4F0, TooltipDestroyVerify, 0, s_unused);
+
+// CUiTooltip::OnMouseMove (0065E580, A-H26; hooked in the vanilla launch only): ours only, as the
+// step makes or drops the tooltip's surface. The state it must reach follows from the state, the
+// timer and the two settings before; a shown tooltip gains one surface, a dropped one holds none.
+// Scenarios: every frame of a screen with region tooltips (ui_main_menu, ui_hud: the mouse rests on
+// the HUD's buttons between clicks and leaves them).
+static void __fastcall TooltipMouseMoveVerify(CUiTooltip* self, void*, int x, int y) {
+    const float delay = *reinterpret_cast<const float*>(std::uintptr_t(0x0079BE80));
+    const float appear = *reinterpret_cast<const float*>(std::uintptr_t(0x00742F2C));
+    const int state = self->state_;
+    const float timer = self->timer_;
+    const int surfaces = self->surfaces_.size;
+    int expected = state;
+    if (state == 1) expected = self->lines_.size == 0 || delay == 0.0f ? 0 : timer < delay ? 1 : 2;
+    if (state == 2) expected = timer < appear ? 2 : 4;
+    if (state == 3) expected = timer > 0.0f ? 3 : 0;
+    self->CUiTooltip::OnMouseMoveVanilla(x, y);
+    bool ok = self->state_ == expected;
+    if (state == 0 || state == 4) ok = ok && self->timer_ == timer && self->surfaces_.size == surfaces;
+    if (state == 1 && expected == 1) ok = ok && self->timer_ >= timer && self->surfaces_.size == surfaces;
+    if (state == 1 && expected == 2) {
+        ok = ok && self->timer_ == 0.0f && self->surfaces_.size == surfaces + 1 &&
+             (self->keyWidth_ == 0 || (self->keyName_ && self->keyWidth_ > 12));
+    }
+    if (state == 2 && expected == 4) ok = ok && self->timer_ == appear;
+    if (state == 3 && expected == 3) ok = ok && self->timer_ <= timer;
+    if (state == 3 && expected == 0) ok = ok && self->surfaces_.size == 0 && self->sceneObjects_.size == 0;
+    ei::verify::Check("CUiTooltip::OnMouseMove", true, ok, "(%d,%d) state %d -> %d (expected %d), timer %g -> %g, surfaces %d -> %d",
+                      x, y, state, self->state_, expected, timer, self->timer_, surfaces, self->surfaces_.size);
+}
+EI_VERIFY(0x0065E580, TooltipMouseMoveVerify, 0, s_unused);

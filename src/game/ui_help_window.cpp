@@ -1,7 +1,7 @@
 // The help / message window (CHelpWindow, ui.h; vtables 00740E28 / 00740DF4): its Build (slot
 // 25, 00658E10), Close (26), the pulse (Update, 24) and the input side's button and key handlers.
-// The page itself is drawn by 00659420 (Rebirth-patched, through its address). See
-// docs/notes/ui.md.
+// The page itself is built by 00659420 (Rebirth-patched, through its address; its vanilla body is
+// in ui_help_page.cpp). See docs/notes/ui.md.
 #include "ui.h"
 #include "ui_screens.h"
 
@@ -92,7 +92,7 @@ EI_REPLACE_METHOD(0x00658E10, CHelpWindow::Build);
 
 void CHelpWindow::Close() {
     pulsing_.ClearWith([](CUiMesh**) {});
-    listB_.ClearWith([](std::uint32_t*) {});
+    pictures_.ClearWith([](CUiMesh**) {});
     ClearSurfaces();
     ClearRegions();
     ClearSceneObjects();

@@ -98,7 +98,7 @@ void Terrain::ChooseDetail(SectorData* sector) {
 EI_REPLACE_METHOD(0x006C66E0, Terrain::ChooseDetail);
 
 int Terrain::DrawPages(CSceneRenderer* renderer, int firstPage, int lastPage) {
-    if (!unknown_100) return 0;
+    if (!mapLoaded) return 0;
     ForVisibleSectors(this, [&](SectorData* sector) {
         ChooseDetailAt(this, nullptr, sector);
         sector->ClipTest(renderer);

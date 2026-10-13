@@ -359,11 +359,16 @@ struct IndexedRecordTable {
     void LoadLoot(CStream* source, int field);
     void LoadQuestItems(CStream* source, int field);
 
+    // The name index, typed (the materials are filed under their key, +0x00).
+    using NameIndex = stlp::hash_map<stlp::string, char*, stlp::StringHash>;
+    NameIndex& ByName() { return *reinterpret_cast<NameIndex*>(index); }
+
     RecordTable records;            // +0x00 begin, end
     char* capacityEnd;              // +0x08
     std::uint8_t index[0x14];       // +0x0C
 };
 static_assert(sizeof(IndexedRecordTable) == 0x20);
+static_assert(sizeof(IndexedRecordTable::NameIndex) == 0x14);
 
 // The spell and spell modifier tables (007C8510 / 007C8530, 0x20 bytes each): the records and the
 // index by code (+0x0C; filled by the Rebirth-patched load 00684550).
@@ -378,8 +383,31 @@ struct CodeIndexedTable {
 };
 static_assert(sizeof(CodeIndexedTable) == 0x20);
 
+// The spell database (007C8510; reset by 0057CE80): the spells and the modifiers by code, and the
+// three lists of spells.sdb's chunks 3-5.
+struct SpellDatabase {
+    // 00684550 (RET 8; item_db_open.cpp, A-H26; Rebirth-patched, hooked in the vanilla launch
+    // only). "spells.sdb" of the archive `folder` + `archive`: the spells (chunk 1) and the
+    // modifiers (chunk 2), each read through an archive of its own and filed under its code, then
+    // the three lists through a third. 1; FatalError's result when the archive or the file cannot
+    // be opened.
+    int Load(const char* folder, const char* archive);
+
+    CodeIndexedTable spells;                    // +0x00 kSpellSize records
+    CodeIndexedTable modifiers;                 // +0x20 kSpellModifierSize
+    stlp::vector<SpellListRecord> lists[3];     // +0x40, +0x4C, +0x58
+};
+static_assert(offsetof(SpellDatabase, lists) == 0x40);
+static_assert(sizeof(SpellDatabase) == 0x64);
+
 // The item database (007C86D8; constructed by 0057E3D0, destroyed at exit through 006A6560).
 struct ItemDatabase {
+    // 006A67A0 (RET 8; item_db_open.cpp, A-H26; Rebirth-patched, hooked in the vanilla launch
+    // only). "items.idb" of the archive `folder` + `archive`: the materials (chunk 1, filed under
+    // their key), the weapons (2) and the armour (3), each through an archive of its own and filed
+    // under its name, then the quick items, loot and quest items (chunks 4-6, their loads). 1;
+    // FatalError's result when the archive or the file cannot be opened.
+    int Load(const char* folder, const char* archive);
     // 006A6570 (item_db_load.cpp, A-H18). The tables from the last to the first: the name index
     // emptied and its buckets freed, every record destroyed, the record storage freed.
     void DestructBody();

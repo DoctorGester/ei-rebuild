@@ -26,6 +26,7 @@
 #include "originals_units.h"
 #include "originals_world.h"
 
+#include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -75,6 +76,26 @@ void SetTint(CEngineObject* object, std::uint32_t bits) {
 }
 constexpr std::uint32_t kTintOn = 0x3F800000;    // 1.0f
 constexpr std::uint32_t kTintOff = 0x3F000000;   // 0.5f
+constexpr std::uint32_t kTintDim = 0x3F333333;   // 0.7f: the movement panel's other modes
+
+constexpr const char* kSoundClock = "buttons\\battle\\clock.wav";     // 0079447C
+// The world's update period in milliseconds: the game's speed.
+int& UpdatePeriod() { return *reinterpret_cast<int*>(std::uintptr_t(0x0078FF34)); }
+constexpr int kNormalPeriod = 55;
+constexpr int kFastPeriod = 27;
+
+// The constants the movement panel's marker is placed with, read where the original reads them.
+float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
+float Pi() { return GameFloat(0x007423F8); }
+float Sixteenth() { return GameFloat(0x0073D040); }      // 0.0625
+float MarkerRadius() { return GameFloat(0x00742B10); }   // 73
+float MarkerCentreY() { return GameFloat(0x00742B0C); }  // 600
+constexpr float kMarkerDepth = 8.0f;
+
+// The map's centre in the layout, and the camera flag a click on the map clears.
+constexpr int kMapCentreX = 700;
+constexpr int kMapCentreY = 80;
+constexpr std::uint32_t kCameraFollows = 8;
 
 // Shim from the input-side `this` to a panel member taking (buttons, x, y).
 #define UI_INPUT_HANDLER(addr, Class, Method)                                                     \
@@ -101,6 +122,7 @@ __declspec(naked) void CHudQuickItems::ItemTipAt(unsigned, void*) EI_ORIGINAL(0x
 __declspec(naked) void CHudSpellColumn::ClickAlternateAt(int) EI_ORIGINAL(0x0063EF60)
 __declspec(naked) void CHudMovePanel::CallToggleFlag() EI_ORIGINAL(0x00649810)
 __declspec(naked) void CHudMovePanel::ShowMode(int) EI_ORIGINAL(0x00649910)
+__declspec(naked) void CHudClock::CallOpenObjectives() EI_ORIGINAL(0x00648F10)
 __declspec(naked) void CHudTopPanel::CallShowPage() EI_ORIGINAL(0x0064A320)
 
 // --- Weapon bar --------------------------------------------------------------------------------
@@ -361,6 +383,62 @@ void CHudMap::OnMouseDown(int, int x, int y) {
 }
 UI_INPUT_HANDLER(0x00645060, CHudMap, OnMouseDown);
 
+void CHudMap::OnMouseUp(int, int x, int y) {
+    if (!ReleaseMouse()) return;
+    if (view_ != 0) {
+        // A view button was held: the zoom stops and both buttons go dim.
+        view_ = 0;
+        for (int i = 0; i < 2; ++i) SetTint(sceneObjects_.data[6 + i], view_ == i + 1 ? kTintOn : kTintOff);
+        return;
+    }
+    const int region = RegionAt(x, y);
+    switch (region) {
+    case 0:     // the sling button
+        interface_->PlaySound(kSoundSling, 0);
+        slideDirection_ = -slideDirection_;
+        sliding_ = 1;
+        inputHandled_ = true;
+        return;
+    case 1:     // the round map (zoomed)
+    case 2: {   // the map area
+        // The world point under the click; ScalePointFromScreen (005F7E00) is Rebirth-patched:
+        // through its address.
+        POINT point = {x, y};
+        interface_->CallScalePointFromScreen(&point);
+        float right = static_cast<float>(point.x - kMapCentreX) / halfSide_;
+        float down = static_cast<float>(point.y - kMapCentreY) / halfSide_;
+        if (region == 1) {
+            right /= zoom_;
+            down /= zoom_;
+        }
+        const float worldX = RoundToFloat(right / scale_ + centreX_);
+        const float worldY = RoundToFloat(centreY_ - down / scale_);
+        if (worldX > 0.0f && worldX < worldWidth_ && worldY > 0.0f && worldY < worldHeight_) {
+            // The camera stops following its unit and looks there.
+            CCamera* view = camera::TheCamera();
+            view->flags_ &= ~kCameraFollows;
+            view->SetTargetId(-1);
+            Vector3 focus = view->focus_;
+            focus.x = worldX;
+            focus.y = worldY;
+            view->SetFocus(&focus);
+        }
+        inputHandled_ = true;
+        return;
+    }
+    case 5:     // "camera north"
+        interface_->PlaySound(kSoundClick, 0);
+        camera::TheCamera()->SetHeading(0.0f);
+        unknown_1B0 = 0.5f;
+        inputHandled_ = true;
+        return;
+    default:
+        if (region >= 0) inputHandled_ = true;
+        return;
+    }
+}
+UI_INPUT_HANDLER(0x00645210, CHudMap, OnMouseUp);
+
 void CHudMap::OnMouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) inputHandled_ = true;
 }
@@ -415,6 +493,37 @@ void CHudClock::OnMouseDown(int, int x, int y) {
 }
 UI_INPUT_HANDLER(0x00648D30, CHudClock, OnMouseDown);
 
+void CHudClock::OnMouseUp(int, int x, int y) {
+    if (!ReleaseMouse()) return;
+    const int region = RegionAt(x, y);
+    switch (region) {
+    case 0: {   // the pause button
+        inputHandled_ = true;
+        interface_->PlaySound(kSoundClock, 0);
+        const bool paused = GameIsPausedOriginal(GameGlueObject());
+        GameSetPausedOriginal(GameGlueObject(), nullptr, paused ? 0 : 1);
+        return;
+    }
+    case 1:     // the normal speed
+    case 2:     // the fast speed
+        inputHandled_ = true;
+        if (IsNetworkClientOriginal()) return;
+        if (GameIsPausedOriginal(GameGlueObject())) GameSetPausedOriginal(GameGlueObject(), nullptr, 0);
+        fast_ = region - 1;
+        UpdatePeriod() = fast_ ? kFastPeriod : kNormalPeriod;
+        interface_->fastGame_ = fast_;
+        interface_->PlaySound(kSoundClock, 0);
+        return;
+    case 3:     // the objectives
+        inputHandled_ = true;
+        CallOpenObjectives();
+        return;
+    default:
+        return;
+    }
+}
+UI_INPUT_HANDLER(0x00648D70, CHudClock, OnMouseUp);
+
 void CHudClock::OnMouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) inputHandled_ = true;
 }
@@ -468,6 +577,30 @@ void CHudMovePanel::OnMouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) inputHandled_ = true;
 }
 UI_INPUT_HANDLER(0x00649750, CHudMovePanel, OnMouseMove);
+
+void CHudMovePanel::ShowModeVanilla(int mode) {
+    mode_ = mode;
+    auto* marker = reinterpret_cast<CUiMesh*>(sceneObjects_.data[0]);
+    marker->visible_ = mode < 0 ? 0 : 1;
+    for (int i = 0; i < 4; ++i) {
+        CEngineObject* button = sceneObjects_.data[1 + i];
+        if (mode_ != i) {
+            SetTint(button, kTintDim);
+            continue;
+        }
+        // The marker points at the mode's button: turned about -z and put on its circle. Place
+        // (005E6FA0) is Rebirth-patched: through its address.
+        const float angle = RoundToFloat(static_cast<float>(2 * i + 1) * Pi() * Sixteenth());
+        const Vector3 axis = {0.0f, 0.0f, -1.0f};
+        Quaternion turn;
+        marker->orientation_ = *QuaternionSetAxisAngleOriginal(&turn, nullptr, &axis, angle);
+        const float y = MarkerCentreY() - std::sin(angle) * MarkerRadius();
+        const float x = std::cos(angle) * MarkerRadius();
+        SpritePlaceOriginal(sceneObjects_.data[0], nullptr, x, y, kMarkerDepth);
+        SetTint(button, kTintOn);
+    }
+}
+EI_REPLACE_METHOD(0x00649910, CHudMovePanel::ShowModeVanilla);
 
 void CHudMovePanel::Update() {
     if (!WorldClient()->LocalView()) return;

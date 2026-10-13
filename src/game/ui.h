@@ -415,6 +415,7 @@ public:
     void SetTipString(const char* text, int a, int b);
     // Layout code calls SetRect through its original address: Rebirth patches it (rule 9).
     void CallSetRect(int left, int top, int right, int bottom);   // -> 005FC9E0
+    void CallAddPoint(int x, int y);                              // -> 005FCA70 (Rebirth-patched too)
     // 0062AC90 (RET 0x10; ui_main_menu.cpp). SetRect (through its original address) from a RECT
     // passed by value; the menus' layouts use it for their menus.reg rectangles.
     void SetRectFrom(RECT rect);
@@ -865,8 +866,16 @@ struct CUiTooltip : CUiWindow {
     // first flag_ lines in 0x31B3FF and the others in 0xA7D7E4; the first line followed by
     // "  ( <key> )" when keyName_ is set.
     void DrawLines();
-    // 0065E580 (Rebirth-patched, not rewritten). Tracks the mouse (layout coordinates).
+    // 0065E580 (RET 8; Rebirth-patched: the vanilla body is OnMouseMoveVanilla in ui_tooltip.cpp
+    // and callers use this forwarder, rule 9). One step of the showing, with the mouse at (x, y)
+    // in layout coordinates; the region has set the state to 1 (mouse inside) or 3 (left) before.
+    // State 1: no lines or a zero delay (setting 20) gives 0; the timer runs up to the delay, then
+    // the key of command extra_ is looked up and measured, the state becomes 2 and the surface is
+    // made at the mouse + the cursor offset, kept on the 800x600 layout. State 2 draws and becomes
+    // 4 (the appearing time is 0). State 3 draws while the timer is positive, then drops the
+    // sprites and the surface and becomes 0. States 0 and 4: nothing.
     void OnMouseMove(int x, int y);
+    void OnMouseMoveVanilla(int x, int y);
     // 0065EA50 (window slot 20; ui_menus.cpp). Draws only while shown; returns 1 otherwise.
     BOOL Draw(int pass);
     // 0065EA80 (slot 22). Redraws (005FECC0, the window's base slot 22) only while shown.
@@ -882,8 +891,8 @@ struct CUiTooltip : CUiWindow {
     CUiRegion* region_;              // +0x170 the region it belongs to
     int width_;                      // +0x174 widest line + 12 (a text only)
     int height_;                     // +0x178 the lines' heights + 8
-    int unknown_17C;                 // +0x17C 0 (0065E580: a float timer)
-    int state_;                      // +0x180 0, 1: idle/hovered; other values: shown
+    float timer_;                    // +0x17C seconds in the current state (0065E580)
+    int state_;                      // +0x180 0 idle, 1 hovered, 2 appearing, 3 disappearing, 4 shown
 };
 static_assert(offsetof(CUiTooltip, lines_) == 0x148);
 static_assert(offsetof(CUiTooltip, lineHeight_) == 0x15C);
@@ -1488,6 +1497,9 @@ public:
                       int u1, int v1);
     void SetFrame(float depth, float scale, float left, float top, float right, float bottom, float border,
                   int u0, int v0, int u1, int v1);
+    // 005E99D0 (Rebirth-patched: through its address; the vanilla body is SetTriangleVanilla).
+    void SetTriangle(float depth, float scale, float x0, float y0, float x1, float y1, float x2, float y2, float u0,
+                     float v0, float u1, float v1, float u2, float v2);
     // 005E70E0 (RET 0x28; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
     // only; ui_mesh_shapes.cpp; rewritten callers go through SetRectangle). A rectangle of two
     // triangles: one packet of normals (0, 0, 1), four corners, the texels (u0, v0)-(u1, v1) as
@@ -1614,6 +1626,14 @@ void __fastcall UiPointsSetSize(UiPointArray* points, void*, int size, int growB
 class CHudMap : public CUiWindow {
 public:
     void OnMouseDown(int buttons, int x, int y);   // 00645060: the view buttons
+    // 00645210 (RET 0xC; ui_hud.cpp, A-H26; Rebirth-patched, hooked in the vanilla launch only).
+    // The button released over the map that took it. A held view button is let go (view_ 0, both
+    // buttons dim; nothing else). Otherwise by region: 0 the sling (direction turned, the slide
+    // starts), 1 / 2 a point of the map (the layout point's offset from (700, 80) over halfSide_,
+    // on the round map also over the zoom, over scale_ about the centre; inside the world the
+    // camera stops following and focuses there), 5 "camera north" (heading 0, unknown_1B0 0.5);
+    // any region marks the input handled.
+    void OnMouseUp(int buttons, int x, int y);
     void OnMouseMove(int buttons, int x, int y);   // 00645610
     // 00645640: over region 0 the wheel zooms the map by 2.5^(delta / 1200) (ui_hud_map.cpp).
     BOOL OnWheel(int buttons, int delta, int x, int y);
@@ -1628,6 +1648,26 @@ public:
     // 00635CA0 (ui_hud_destroy.cpp; slot 0 00635C80 calls it). Destructor body: the visible
     // area's and the view polygon's aligned storage freed, then the window base's (005FE930).
     void DestroyBody();
+    // 00642930 (plain RET; ui_hud_slide.cpp, A-H26; Rebirth-patched, this is the vanilla body,
+    // hooked in the vanilla launch only; our callers go through CallLayout). Places the panel's
+    // parts (scene objects 0-4 and 6-11), its text surface and the regions after the first at the
+    // current slide offset.
+    void LayoutVanilla();
+    void CallLayout();                             // through 00642930
+    // 00642B40 (slot 24, every frame; ui_hud_slide.cpp, A-H26; Rebirth-patched, the vanilla body).
+    // The zoom grows (view 1, up to zoomMax_) or shrinks (view 2, down to 1) by 2.5 times a
+    // second; UpdateView and BuildMarkers; a running slide advances (0.3 s for the whole way,
+    // eased), the panel is laid out and the sling button (scene object 5) turned and placed for
+    // the direction; the interface's "map shown" flag (+0x8B) follows the direction; the "camera
+    // north" time (unknown_1B0) counts down, scene object 11 tinted 1 while it runs and 0.5 after.
+    void UpdateVanilla();
+    // 00641F20 (RET 8; ui_hud_slide.cpp, A-H26; Rebirth-patched, the vanilla body, hooked in the
+    // vanilla launch only; the battle screen's build calls it through the address). Sets the new
+    // panel up: the world's extent and the map's picture from the local player's zone record (32
+    // by 32 and "battle00" without one), the zoom (`zoom` up to zoomMax_), the slide at its far
+    // end when `slid`, the seven regions, the twelve sprites, the one-pixel surface at the centre
+    // and the view polygon (the disc's sixteen corners); then UpdateView, BuildMarkers and Layout.
+    void SetupVanilla(float zoom, std::uint8_t slid);
 
     CBattleScreen* owner_;           // +0x148
     float centreX_;                  // +0x14C world point at the map's centre (the camera's)
@@ -1640,24 +1680,24 @@ public:
     float scale_;                    // +0x168 world units to map units
     float zoom_;                     // +0x16C 1 .. zoomMax_ (the view buttons change it)
     float zoomMax_;                  // +0x170
-    std::uint8_t unknown_174[4];
-    UiPointF* viewPolygon_;          // +0x178 the round map's outline in map units
-    int viewPolygonCount_;           // +0x17C
-    std::uint8_t unknown_180[0x188 - 0x180];
+    float halfSide_;                 // +0x174 80: half the map's side in layout units (a click's offset over it)
+    UiPointArray viewPolygon_;       // +0x178 the round map's outline in map units (the disc's corners)
     UiPointArray visibleArea_;       // +0x188 the outline in world units, clipped to the world
     int sliding_;                    // +0x198 set when the sling button (or its key) starts the slide
-    std::uint8_t unknown_19C[0x1A8 - 0x19C];
+    int offset_;                     // +0x19C current slide offset in pixels (to the right)
+    int travel_;                     // +0x1A0 full slide distance
+    float slide_;                    // +0x1A4 0..1: how far the panel has slid (offset_ = travel_ eased)
     float slideDirection_;           // +0x1A8 +1 / -1
-    int view_;                       // +0x1AC 1 or 2 (scene objects 6 and 7 are the buttons)
+    int view_;                       // +0x1AC 1 or 2 while a view button is held (scene objects 6 and 7), else 0
     float unknown_1B0;               // +0x1B0 0.5 when the "camera north" key turns the camera; the
                                      //        frame update (00642B40) counts it down
 };
 static_assert(offsetof(CHudMap, centreX_) == 0x14C);
 static_assert(offsetof(CHudMap, scale_) == 0x168);
 static_assert(offsetof(CHudMap, zoomMax_) == 0x170);
-static_assert(offsetof(CHudMap, visibleArea_) == 0x188);
+static_assert(offsetof(CHudMap, viewPolygon_) == 0x178 && offsetof(CHudMap, visibleArea_) == 0x188);
 static_assert(offsetof(CHudMap, view_) == 0x1AC);
-static_assert(offsetof(CHudMap, sliding_) == 0x198);
+static_assert(offsetof(CHudMap, sliding_) == 0x198 && offsetof(CHudMap, slide_) == 0x1A4);
 static_assert(offsetof(CHudMap, slideDirection_) == 0x1A8);
 static_assert(offsetof(CHudMap, unknown_1B0) == 0x1B0);
 
@@ -1688,6 +1728,31 @@ public:
     // 00635D00 (ui_hud_destroy.cpp; slot 0 00635CE0 calls it). Destructor body: the part labels,
     // textsVtable_'s array, the two strings (+0x168 first), then the window base's (005FE930).
     void DestroyBody();
+    // 00645F80 (plain RET; ui_hud_slide.cpp, A-H26; Rebirth-patched, this is the vanilla body,
+    // hooked in the vanilla launch only; our callers go through CallLayout). Places the panel's
+    // parts (scene objects 0, 1, 3-7, 9-13, the six body parts' pairs 14-25 at the places of the
+    // tables 00742434 / 0074244C, the six effect pictures 26-31), its text surface and the
+    // regions after the first at the current slide offset.
+    void LayoutVanilla();
+    void CallLayout();                             // through 00645F80
+    // 00647FB0 (slot 24, every frame; ui_hud_slide.cpp, A-H26; Rebirth-patched, the vanilla body).
+    // A running slide advances (as the map's), the panel is laid out and the sling button (scene
+    // object 2) turned and placed for the direction; a dead hover unit is forgotten; the
+    // interface's "unit panel shown" flag (+0x89) follows the direction and its +0x8C is the
+    // selected body part.
+    void UpdateVanilla();
+    // 006456E0 (RET 8; ui_hud_slide.cpp, A-H26; Rebirth-patched: the vanilla body, hooked in the
+    // vanilla launch only; the battle screen calls it through its address). `slid` (the
+    // interface's +0x89) starts the panel at the far end of its slide: offset 180, slide 1,
+    // direction +1 (else 0, 0, -1). Rectangle (0, 0)-(185, 225); regions: 0 the sling button, 1-4 the body part buttons
+    // (tips 0x2774..0x2778), 5 the whole panel; scene objects 0 / 1 plain backgrounds, 2 the sling
+    // button, 3-6 the part buttons (the selected one tinted 1, the others 0.5), 7 the frame, 8 a
+    // strip of cells and 9 the "more effects" mark (both hidden), 10-13 the health and mana bars,
+    // 14-25 the body parts' bars (tables 00742434 / 0074244C), 26-31 the effects' pictures (the
+    // window's second texture); the text surface (20, 0)-(180, 220); Layout; no hover unit; the
+    // texts "infounit_0".."infounit_17" and the labels "hl_skull", "hl_torso", "hl_leg", "hl_arm"
+    // appended to the two string arrays; no effect pictures (-1).
+    void SetupVanilla(int bodyPart, std::uint8_t slid);
 
     CBattleScreen* owner_;           // +0x148
     std::uint8_t unknown_14C[0x150 - 0x14C];
@@ -1695,7 +1760,9 @@ public:
     std::uint8_t unknown_154[0x164 - 0x154];
     char* strings_[2];               // +0x164 CStrings
     int sliding_;                    // +0x16C set when the sling button starts the slide
-    std::uint8_t unknown_170[0x17C - 0x170];
+    int offset_;                     // +0x170 current slide offset in pixels (to the left)
+    int travel_;                     // +0x174 full slide distance
+    float slide_;                    // +0x178 0..1: how far the panel has slid (offset_ = travel_ eased)
     float slideDirection_;           // +0x17C +1 / -1
     int bodyPart_;                   // +0x180 selected body part 0-3 (scene objects 3-6)
     int effectIcons_[6];             // +0x184 the spell pictures in the icon texture's six places
@@ -1705,7 +1772,7 @@ public:
     mfc::CString* partLabels_;       // +0x1B4 four: the shown names of "skull", "torso", "leg", "arm"
 };
 static_assert(offsetof(CHudUnitPanel, hoverUnit_) == 0x150);
-static_assert(offsetof(CHudUnitPanel, slideDirection_) == 0x17C);
+static_assert(offsetof(CHudUnitPanel, slideDirection_) == 0x17C && offsetof(CHudUnitPanel, offset_) == 0x170);
 static_assert(offsetof(CHudUnitPanel, bodyPart_) == 0x180);
 static_assert(offsetof(CHudUnitPanel, textsVtable_) == 0x19C);
 static_assert(offsetof(CHudUnitPanel, partLabels_) == 0x1B4);
@@ -1714,6 +1781,12 @@ static_assert(offsetof(CHudUnitPanel, partLabels_) == 0x1B4);
 class CHudClock : public CUiWindow {
 public:
     void OnMouseDown(int buttons, int x, int y);   // 00648D30
+    // 00648D70 (RET 0xC; ui_hud.cpp, A-H26; Rebirth-patched, hooked in the vanilla launch only).
+    // The button released over the clock that took it: region 0 toggles the pause (with the
+    // clock's sound); regions 1 and 2 set the normal / fast speed (not on a network client: the
+    // pause lifted, fast_ 0 / 1, the world's update period 55 / 27 ms, the interface's fastGame_,
+    // the sound); region 3 opens the objectives (OpenObjectives).
+    void OnMouseUp(int buttons, int x, int y);
     void OnMouseMove(int buttons, int x, int y);   // 00649160
     // 006488E0 (slot 24, every frame): turns the face with the time of day, the hand and the
     // speed dial (scene objects 1-5), blinks while the game is paused (ui_hud_frame.cpp).
@@ -1722,6 +1795,16 @@ public:
     // pulsing, the click sound, and a new objectives window of the current zone (one button, no
     // exits, no zone list) opened on top.
     void OpenObjectives();
+    void CallOpenObjectives();                     // through 00648F10 (its verify wrapper)
+    // 00648520 (RET 4; ui_hud_setup.cpp, A-H26; Rebirth-patched: the vanilla body, hooked in the
+    // vanilla launch only; the battle screen calls it through its address). The clock's rectangle
+    // (720, 520)-(800, 600); scene objects: 0 the face (a disc of radius 65 about the layout's
+    // corner (800, 600)), 1 the hand (a triangle), 2-5 four "in25arrow" sprites (placed by
+    // Update), 6 and 7 two more discs (radius 32 and 80); regions 0-2: the three sectors of pi / 6
+    // between radius 35 and 80 about the corner (pause, normal, fast; the two speed tips not on a
+    // network client), region 3 the quarter disc of radius 34 (the objectives); then `fast`, the
+    // world's update period (27 ms fast, 55 normal), the interface's copy, no blink, no pulse.
+    void SetupVanilla(int fast);
 
     std::uint8_t unknown_148[4];
     float blink_;                    // +0x14C 0..1, the pause blink phase
@@ -1746,14 +1829,27 @@ public:
     // shows the button's state (scene object 5).
     void ToggleFlag();
     void CallToggleFlag();                         // through 00649810 (its verify wrapper)
-    // 00649910 (Rebirth-patched, not rewritten). Highlights mode `mode` (-1/-2: none).
+    // 00649910 (Rebirth-patched: through its address). Highlights mode `mode` (-1/-2: none).
     void ShowMode(int mode);
+    // 00649910 (RET 4; ui_hud.cpp, A-H26; the vanilla body, hooked in the vanilla launch only).
+    // mode_ = `mode`; the marker (scene object 0) shows for a mode of 0 or more; the four mode
+    // buttons (scene objects 1-4) are tinted 1 for the mode and 0.7 for the others, and the marker
+    // is turned about -z by (2 mode + 1) pi / 16 and placed on the circle of radius 73 about
+    // (0, 600) at depth 8.
+    void ShowModeVanilla(int mode);
+    // 00649190 (slot 18, the panel's Create; ui_hud_setup.cpp, A-H26; Rebirth-patched: the vanilla
+    // body, hooked in the vanilla launch only). The rectangle (0, 520)-(80, 600); region 0 the
+    // quarter disc of radius 34 about the layout's corner (0, 600), regions 1-4 the four sectors
+    // of pi / 8 between radius 35 and 80 (tips 0x2904..0x2908); scene objects: 0 the marker (a
+    // triangle), 1-4 the four sectors as triangles from the corner (tint 0.7), 5 the middle disc
+    // (radius 32); no mode shown (ShowMode(-1)), no flag (-1), the disc's texture frame 0.48.
+    void SetupVanilla();
 
     CBattleScreen* owner_;           // +0x148
-    std::uint8_t unknown_14C[4];
+    int mode_;                       // +0x14C the shown movement mode (-1, -2: none, mixed)
     int flag_;                       // +0x150 common +0x438 of the selected units (-1, -2: none, mixed)
 };
-static_assert(offsetof(CHudMovePanel, flag_) == 0x150);
+static_assert(offsetof(CHudMovePanel, mode_) == 0x14C && offsetof(CHudMovePanel, flag_) == 0x150);
 
 // Top panel (set up by 00649AF0, vtables 00742498 / 00742464; 180..620 x 0..100). Regions: 0
 // the sling button, 1 and 2 the two page buttons, 3 the whole panel.
@@ -2195,8 +2291,16 @@ public:
     void CallDeleteSave();
     void CallLoadSelected();
 
-    // Not rewritten.
-    void RefreshList();      // 006567A0 (Rebirth-patched)
+    // 006567A0 (Rebirth-patched: callers use this forwarder, rule 9; the vanilla body is
+    // RefreshListVanilla in ui_saveload_list.cpp, A-H26). Draws the list into surface 0: the caret
+    // clamped to the name; up to sixteen rows from firstVisible_, each the save's title (the typed
+    // name for the selected row of a save window) and, but for a save window's new save, its date
+    // ("%d/%m, %H:%M"); the selected row also gets the caret (a save window, not the quick or an
+    // automatic save) and the marker (scene object 4, hidden otherwise); then for a selected save
+    // that is not broken its allod, zone, the game's day and time ("save_day" d, h:mm from
+    // gameTime_ hours) and its folder.
+    void RefreshList();
+    void RefreshListVanilla();
 
     // ui_saveload.cpp. The window's two picture textures (256x256, 5:6:5): objects_[1] shows the
     // selected save's shot.sav, dialog_ the game for a new save. The Call* forms go through the
@@ -2562,9 +2666,14 @@ public:
     // text, the others with the caret at the end). Then the text is drawn again (0065C2E0) and
     // the key is marked used. Other keys: nothing.
     void OnKeyDown(int key, int repeat, int flags);
-    // 0065C2E0 (Rebirth-patched, not rewritten; called through its address). Draws the text and
-    // the caret. (Not named DrawText: windows.h makes that a macro.)
+    // 0065C2E0 (Rebirth-patched: callers use this forwarder, rule 9; the vanilla body is
+    // DrawContentsVanilla in ui_edit_field.cpp, A-H26). The caret is clamped to the text; with the
+    // surface's DC (nothing without one) the surface is cleared, the text drawn over the whole
+    // field in font_ and colour_ (centred when centred_), and the caret drawn as a line of
+    // caretColour_ over the field's height after the first caret_ characters, unless it falls
+    // outside the field. (Not named DrawText: windows.h makes that a macro.)
     void DrawContents();
+    void DrawContentsVanilla();
     mfc::CString& Text() { return *reinterpret_cast<mfc::CString*>(&text_); }
     // 0065C010 (RET 0x14; ui_edit_field.cpp, A-H19). Constructor: the window, an empty text,
     // vtables 00742DF4 / 00742DC0, every character class, font 1, at most 50 characters, colours
@@ -2590,7 +2699,7 @@ public:
 
     RECT area_;                      // +0x148 the surface's layout rectangle
     std::uint32_t charClasses_;      // +0x158 classes OnChar takes (1 digits, 2 letters / space, 4 others, 8 '.' ':')
-    std::uint8_t mode15C_;           // +0x15C 0 from the constructor; DrawContents offsets the text box when set
+    std::uint8_t centred_;           // +0x15C 0 from the constructor; SetLook's mode: the text is drawn centred
     std::uint8_t unknown_15D[3];
     int font_;                       // +0x160 interface font
     int maxLength_;                  // +0x164
@@ -2687,6 +2796,19 @@ public:
     void OnKeyDown(int key, int repeat, int flags);
     // 00659420 (Rebirth-patched; through its address). Shows page page_.
     void ShowPage();
+    // 00659420's vanilla body (plain RET; ui_help_page.cpp, A-H26; hooked in the vanilla launch
+    // only). Empties the two lists, the surfaces, regions and scene objects, opens "tutorial
+    // <text_>" (without it the pending value is set to 0) and goes to the page's "#screen" line.
+    // The page's rectangle is (200, 50)-(600, 560), or "#position left top right [rows]" (at least
+    // 300 wide, rows x 16 + 110 high, at most 600). Scene objects 0 the plain background, 1 the
+    // frame, 2 / 3 / 4 the previous, OK and next buttons; then one pulsing frame per "#rectangle
+    // left top right bottom" line and one entry per "#text [picture]" line (the next line's first
+    // word is the text's key). Surfaces: 0 the page's title and "title (page/pages)", 1 the
+    // entries' wrapped "tutor <key>" texts (laid out twice when no rows are given: the first pass
+    // makes the pictures, "tutorial_<picture>" copied into referenced object 1's 64-pixel cells,
+    // and gives the height), 2 the buttons' texts with the help key's name. Regions 0-2 the
+    // buttons.
+    void ShowPageVanilla();
 
     bool message_;                       // +0x164 a message window (ShowMessage), not help
     std::uint8_t unknown_165[3];
@@ -2695,7 +2817,7 @@ public:
     mfc::CStringArray lines_;            // +0x170 the pages' texts
     int page_;                           // +0x184 the page shown (the topic's or message's saved page)
     stlp::list<CUiMesh*> pulsing_;       // +0x188 sprites whose plain colour pulses (Update)
-    stlp::list<std::uint32_t> listB_;    // +0x18C
+    stlp::list<CUiMesh*> pictures_;      // +0x18C the entries' picture sprites
     float pulseTime_;                    // +0x190
 
 private:

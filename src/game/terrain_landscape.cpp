@@ -3,7 +3,10 @@
 // terrain_sector.cpp, height queries in terrain.cpp.
 #include "terrain.h"
 #include "terrain_sector.h"
+#include "console.h"
 #include "material.h"
+#include "originals_engine.h"
+#include "originals_library.h"
 #include "sound.h"
 #include "spell.h"
 #include "texture.h"
@@ -172,7 +175,7 @@ void Terrain::ClearMap() {
     }
     sectorsX = -1;
     sectorsY = -1;
-    unknown_100 = nullptr;
+    mapLoaded = 0;
     for (float*& table : uvTables) {
         if (table) gamecrt::operator_delete(table);
         table = nullptr;
@@ -241,12 +244,12 @@ void Terrain::Reset() {
     pageTextures.RemoveAll();
     pageMaterials.RemoveAll();
     std::memset(&worldMatrix, 0, sizeof(worldMatrix));
-    unknown_100 = nullptr;
+    mapLoaded = 0;
     AsString(textF8) = "none";
     sectorsX = -1;
     sectorsY = -1;
-    unknown_118 = -1;
-    unknown_120 = -1;
+    pageSize = -1;
+    tileSize = -1;
     perPage = -1;
     frame = 1;
     lightInterval = -1;
@@ -377,6 +380,207 @@ int Terrain::SetupPages(int count) {
     return 1;
 }
 EI_REPLACE_METHOD(0x006C5AA0, Terrain::SetupPages);
+
+// --- A-H26: the map loader ----------------------------------------------------------------------------
+
+namespace {
+
+// The map file (<map>.MP in the map's archive): this header, the materials, a class per tile
+// texture, then the animated textures.
+#pragma pack(push, 1)
+struct MapHeader {
+    std::uint32_t magic;
+    float heightRange;
+    std::int32_t sectorsX;
+    std::int32_t sectorsY;
+    std::int32_t pages;
+    std::int32_t pageSize;
+    std::int32_t textures;
+    std::int32_t tileSize;
+    std::uint16_t materials;
+    std::uint32_t animated;
+};
+#pragma pack(pop)
+static_assert(sizeof(MapHeader) == 0x26);
+
+struct MapMaterial {
+    int kind;
+    Vector3 colour;
+    float opacity;
+    float light;                    // +0x14 scales the colour
+    float priority;                 // +0x18
+    float unknown_1C;
+    std::uint8_t unknown_20[0xC];   // not read
+};
+static_assert(sizeof(MapMaterial) == 0x2C);
+
+struct MapAnimatedTexture {
+    std::uint16_t texture;
+    std::uint16_t frames;
+};
+
+constexpr std::uint32_t kMapMagic = 0xCE4AF672;
+constexpr std::uint32_t kMaterialDwords = sizeof(MapMaterial) / 4;
+constexpr int kSectorCells = 32;
+constexpr int kExtraTextures = 16;      // the two extra pages' textures, after the map's own
+constexpr int kExtraClass = 0xF;
+constexpr int kUvFloats = 18;           // per texture: 9 u, 9 v
+constexpr float kMarginPixels = 8.0f;   // 0073CE50
+constexpr double kByteScale = 255.0;    // 0073C370
+constexpr std::uint32_t kLowFlags = 0xFFFF;
+constexpr std::uintptr_t kFloatArrayVtable = std::uintptr_t(0x0073D3E8);   // CArray<float>
+
+// ".MP": the map file's extension, through the pointer the loader reads.
+const char* MapExtension() { return *reinterpret_cast<const char* const*>(std::uintptr_t(0x007441D4)); }
+
+// The original keeps 1 when its FCOMP finds 1 below the value, or the two unordered.
+float CappedAtOne(float value) { return value <= 1.0f ? value : 1.0f; }
+
+} // namespace
+
+void terrain::LevelArrayElements::Construct(mfc::CArray<float>* arrays, int count) {
+    std::memset(static_cast<void*>(arrays), 0, static_cast<std::size_t>(count) * sizeof(*arrays));
+    for (int i = 0; i < count; ++i) arrays[i].Construct(kFloatArrayVtable);
+}
+void terrain::LevelArrayElements::Destruct(mfc::CArray<float>* arrays, int count) {
+    for (int i = 0; i < count; ++i) {
+        arrays[i].vtable = reinterpret_cast<void*>(kFloatArrayVtable);
+        if (arrays[i].data) gamecrt::operator_delete(arrays[i].data);
+    }
+}
+
+// Float notes (rule 7): the original works on the FPU stack at the main thread's 24-bit precision,
+// so every quotient and product below is rounded to float where it is made.
+int Terrain::LoadMap(const char* path, const char* zone, char dungeon) {
+    ClearMapAt(this);
+    mfc::CString name(path);
+    if (!archive.OpenResource(name, 0)) return 0;
+    console::CStringArray files;
+    archive.ListFiles(&files, "*.mp");
+    int dot = name.ReverseFind('.');
+    if (dot > 0) AsString(textFC) = name.Left(dot);
+    else AsString(textFC) = name;
+    // (The original does not test for an archive without a map file either.)
+    const mfc::CString& first = files.data[0];
+    AsString(textF8) = first.Left(CStringFindCharOriginal(&first, nullptr, '.'));
+
+    // The messages are passed to FatalError as its format string, as the original does.
+    std::uint32_t size = 0;
+    const auto* file = static_cast<const std::uint8_t*>(archive.GetFile(AsString(textF8) + MapExtension(), &size));
+    if (!file) {
+        ClearMapAt(this);
+        return FatalErrorOriginal("Unable to open file \"" + name + "\"");
+    }
+    if (size < sizeof(MapHeader)) {
+        ClearMapAt(this);
+        return FatalErrorOriginal("Wrong file format: " + name);
+    }
+    MapHeader header;
+    std::memcpy(&header, file, sizeof(header));
+    const std::uint32_t dwords =
+        header.animated + header.materials * kMaterialDwords + static_cast<std::uint32_t>(header.textures);
+    if (header.magic != kMapMagic || size != dwords * 4 + sizeof(MapHeader)) {
+        ClearMapAt(this);
+        return FatalErrorOriginal("Wrong file format: " + name);
+    }
+
+    if (sectorGrid) {
+        for (int i = 0; i < sectorsX; ++i) gamecrt::operator_delete(sectorGrid[i]);
+        gamecrt::operator_delete(sectorGrid);
+        sectorGrid = nullptr;
+    }
+    sectorsX = header.sectorsX;
+    sectorsY = header.sectorsY;
+    sectorGrid = static_cast<SectorCache::Node***>(gamecrt::operator_new(static_cast<std::size_t>(sectorsX * 4)));
+    for (int i = 0; i < sectorsX; ++i) {
+        const std::size_t bytes = static_cast<std::size_t>(sectorsY * 4);
+        sectorGrid[i] = static_cast<SectorCache::Node**>(gamecrt::operator_new(bytes));
+        std::memset(sectorGrid[i], 0, bytes);
+    }
+    width = static_cast<float>(sectorsX * kSectorCells);
+    height = static_cast<float>(sectorsY * kSectorCells);
+    heightRange = header.heightRange;
+    pageSize = header.pageSize;
+    pages = header.pages;
+    tileSize = header.tileSize;
+    tilesPerRow = header.pageSize / header.tileSize;
+    perPage = tilesPerRow * tilesPerRow;
+
+    const std::uint8_t* cursor = file + sizeof(MapHeader);
+    const int materialCount = header.materials;
+    materials.SetSize(materialCount);
+    for (int i = 0; i < materialCount; ++i, cursor += sizeof(MapMaterial)) {
+        MapMaterial source;
+        std::memcpy(&source, cursor, sizeof(source));
+        terrain::TerrainMaterial& material = materials[i];
+        material.kind = source.kind;
+        material.waveColour = source.colour;
+        material.opacity = source.opacity;
+        material.absorption = RoundToFloat(1.0 / RoundToFloat(1.0 - source.opacity));
+        material.opacityByte = static_cast<std::uint8_t>(gamecrt::Ftol(RoundToFloat(material.opacity * kByteScale)));
+        material.colour.x = CappedAtOne(RoundToFloat(static_cast<double>(source.light) * material.waveColour.x));
+        material.colour.y = CappedAtOne(RoundToFloat(static_cast<double>(material.waveColour.y) * source.light));
+        material.colour.z = CappedAtOne(RoundToFloat(static_cast<double>(source.light) * material.waveColour.z));
+        material.priority = source.priority;
+        material.unknown_30 = source.unknown_1C;
+        material.level = 0.0f;
+    }
+
+    const int textures = header.textures;
+    const std::size_t classBytes = static_cast<std::size_t>(textures * 4);
+    textureClass.SetSize(textures + kExtraTextures);
+    std::memcpy(textureClass.data, cursor, classBytes);
+    for (int i = 0; i < kExtraTextures; ++i) textureClass[textures + i] = kExtraClass;
+    textureFrames.SetSize(textures);
+    std::memset(textureFrames.data, 0, classBytes);
+    const std::uint8_t* animated = cursor + classBytes;
+    for (int i = 0; i < static_cast<int>(header.animated); ++i, animated += sizeof(MapAnimatedTexture)) {
+        MapAnimatedTexture entry;
+        std::memcpy(&entry, animated, sizeof(entry));
+        textureFrames[entry.texture] = entry.frames;
+    }
+
+    if (!SetupPages(pages)) {
+        ClearMapAt(this);
+        return 0;
+    }
+
+    // A tile's side as a part of the page, and 8 pixels of the page inside each of its edges.
+    const float tileSide = RoundToFloat(1.0 / tilesPerRow);
+    const float margin = RoundToFloat(RoundToFloat(static_cast<double>(tileSide) / tileSize) * kMarginPixels);
+    const std::size_t tableBytes = static_cast<std::size_t>(perPage * kUvFloats * static_cast<int>(sizeof(float)));
+    for (int rotation = 0; rotation < 4; ++rotation) {
+        uvTables[rotation] = static_cast<float*>(gamecrt::operator_new(tableBytes));
+        int index = 0;
+        for (int row = 0; row < tilesPerRow; ++row)
+            for (int column = 0; column < tilesPerRow; ++column, ++index)
+                BuildTileUv(uvTables[rotation] + index * kUvFloats, rotation, column, row, tileSide, margin, 0);
+    }
+    for (int rotation = 0; rotation < 4; ++rotation) {
+        uvTablesLast[rotation] = static_cast<float*>(gamecrt::operator_new(tableBytes));
+        for (int column = 0; column < tilesPerRow; ++column)
+            BuildTileUv(uvTablesLast[rotation] + column * kUvFloats, rotation, column, 0, tileSide, margin, 1);
+    }
+    mapLoaded = 1;
+
+    const char* set = "Gipat";
+    if (dungeon) set = "Dungeon";
+    else if (gamecrt::stricmp(zone, "Ingos") == 0) set = "Ingos";
+    else if (gamecrt::stricmp(zone, "Suslanger") == 0) set = "Suslanger";
+    AsString(textAE0) = set;
+    terrain::CountAmbientVariants(textAE0);
+
+    const int sectors = sectorsY * sectorsX;
+    landscapeFlags |= kLowFlags;
+    waterLevels.SetSize(sectors);
+    for (int i = 0; i < sectorsY * sectorsX; ++i) {
+        mfc::CArray<float>& levels = waterLevels[i];
+        levels.SetSize(materials.size);
+        std::memset(levels.data, 0, static_cast<std::size_t>(levels.size) * sizeof(float));
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x006C68B0, Terrain::LoadMap);
 
 // ---- The world matrix, the light interval, water levels, tile texture coordinates -------------------
 

@@ -364,7 +364,7 @@ void __fastcall ClearMapVerify(Terrain* self) {
     self->ClearMap();
     bool empty = self->sectorCache.count == 0 && self->sectorCache.head == nullptr && self->sectorGrid == nullptr &&
                  self->pageTextures.size == 0 && self->pageMaterials.size == 0 && self->sectorsX == -1 &&
-                 self->sectorsY == -1 && self->unknown_100 == nullptr && self->ambientClasses[0] == -1;
+                 self->sectorsY == -1 && self->mapLoaded == 0 && self->ambientClasses[0] == -1;
     for (int i = 0; empty && i < 4; ++i) empty = !self->uvTables[i] && !self->uvTablesLast[i];
     ei::verify::Check("Terrain::ClearMap", true, empty, "cache %d pages %d / %d", self->sectorCache.count,
                       self->pageTextures.size, self->pageMaterials.size);

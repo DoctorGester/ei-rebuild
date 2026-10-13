@@ -29,7 +29,7 @@ EI_VERIFY(0x00658E10, BuildVerify, 0, s_unused);
 // 006590F0 (stolen 0): both lists, the surfaces, regions and scene objects empty.
 static void __fastcall CloseVerify(CHelpWindow* self) {
     self->Close();
-    bool ok = self->pulsing_.Empty() && self->listB_.Empty() && self->surfaces_.size == 0 && self->regions_.size == 0 &&
+    bool ok = self->pulsing_.Empty() && self->pictures_.Empty() && self->surfaces_.size == 0 && self->regions_.size == 0 &&
               self->sceneObjects_.size == 0;
     ei::verify::Check("CHelpWindow::Close", true, ok, "");
 }

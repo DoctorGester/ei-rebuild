@@ -9,6 +9,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 // A Direct3D material (D3DMATERIAL7): diffuse, ambient, specular and emissive colours (r, g, b, a)
 // and the specular power. 0x44 bytes; copied as dwords.
@@ -78,6 +79,14 @@ public:
     void Destruct();
     // 0068E520. Slot 0.
     CMaterialManager* DeletingDestruct(unsigned flags);
+    // 2: 0068E640 (A-H26; Rebirth-patched, hooked in the vanilla launch only). CBaseManager's
+    // Create (0 when it fails); the archive "materials.res" of the text folder (007AF45C) added;
+    // then the colours of each of the eight kinds of the table at 00743BF8 (0x11 leather, wood,
+    // metal, cloth, skin, stone, 0x17 magic, 0x19 metal again) entered under the kind: the
+    // file's colours (after its name: a 16-bit length and the text), or, without the file,
+    // diffuse 0.3 (alpha 1), ambient 0.7, specular 0.2, power 5 and the rest 0; kind 0x17's
+    // emissive colour is 1 either way. Returns 1.
+    int Create() override;
     // 14: 0068E900. A new CMaterial with type_ = `type`; null when the allocation fails.
     CEngineObject* NewObject(int type) override;
     // 0068E970 (RET 4). A material of `type` (slot 23 with id -1, flags_ |= 8 before the null
@@ -91,6 +100,23 @@ public:
     ColorTable colors_;     // +0xBC
 };
 static_assert(offsetof(CMaterialManager, colors_) == 0xBC && sizeof(CMaterialManager) == 0xD0);
+
+// The kinds the manager's Create enters and their files (00743BF8, eight of them).
+struct MaterialKindFile {
+    int kind;
+    const char* file;
+};
+constexpr int kMaterialKindFiles = 8;
+inline const MaterialKindFile* MaterialKindFileTable() {
+    return reinterpret_cast<const MaterialKindFile*>(std::uintptr_t(0x00743BF8));
+}
+constexpr int kMagicMaterialKind = 0x17;
+// The colours a material file holds: after its name (a 16-bit length, then the text).
+inline const void* MaterialFileColors(const void* data) {
+    std::uint16_t nameLength;
+    std::memcpy(&nameLength, data, sizeof(nameLength));
+    return static_cast<const char*>(data) + nameLength + 2;
+}
 
 // 0068E4F0 "materials", 0068E500 "CMaterialManager", 0068E510 0x27 (slots 25, 11, 12).
 const char* __fastcall MaterialManagerFolder(CMaterialManager* self);

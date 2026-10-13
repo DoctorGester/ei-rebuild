@@ -862,7 +862,7 @@ int CSoundManager::RequestStream(const char* name, int mode) {
         at = -1;
         bool found = false;
         if (n > 0) {
-            int pos = streamPosition + streamBufferBytes;
+            int pos = streamPosition + streamBufferFrames;
             for (int i = 0; i < n; ++i) {
                 if (markers[i] >= pos) {
                     at = markers[i];
@@ -879,7 +879,7 @@ int CSoundManager::RequestStream(const char* name, int mode) {
         break;
     }
     case 4:
-        at = streamPosition + streamBufferBytes;
+        at = streamPosition + streamBufferFrames;
         if (at == -1) {
             gameapi::LeaveCriticalSection(lock);
             return 1;

@@ -107,6 +107,10 @@ __declspec(naked) inline void __fastcall MappedResourceDestroyOriginal(CMappedRe
 // 00671730: CMappedResource::OpenResource (RET 8) at its address: Rebirth patches it (rule 9).
 __declspec(naked) inline int __fastcall MappedResourceOpenOriginal(CMappedResource*, void*, const char* /*path*/, int /*writable*/)
     EI_ORIGINAL(0x00671730)
+// 004645A0 (ChunkArchive::Destruct, chunk_archive.cpp), through its address: the chunk archive's out-of-line destructor
+// (the database loaders' archives).
+class ChunkArchive;
+__declspec(naked) inline void __fastcall ChunkArchiveDestroyOriginal(ChunkArchive*) EI_ORIGINAL(0x004645A0)
 // A-W13. 0040ECD0 (RET 8; Rebirth-patched, so always through this forwarder; rewritten as CCamera::LoadPath,
 // camera_path_load.cpp, A-E1): the camera loads the recorded path file `name` into its keys (+0x2F0, count +0x2F4);
 // 0 when it fails. The glue passes `flag` on (0 from 00578880).
