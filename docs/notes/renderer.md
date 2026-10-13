@@ -387,6 +387,9 @@ the list the renderer work starts from. The plain game code of the range (text m
 | (e) dead (`config/dead_code.csv`) | 6 | - | - |
 | under 5 bytes (cannot be hooked) | 8 | - | 8 |
 
+The counts are A-S11's. A-S12 then rewrote 13 more of class (b) and 6 of class (c) (below); the tables list
+what is still left.
+
 ### (c) Direct calls into DirectDraw / Direct3D 7: left forwarded
 
 The interface names are read off the vtable offsets of the indirect calls (and the imports); the object behind
@@ -417,26 +420,13 @@ the function plainly works on", to be confirmed when the function is replaced.
 | 004EEE30 | 1756 | the primary and back surfaces | IDirectDraw7::CreateSurface (through 004EFA60), IDirectDrawSurface7::GetAttachedSurface, GetSurfaceDesc |
 | 004EFA60 | 504 | a surface created (7 callers, the interface among them) | IDirectDraw7::CreateSurface, IDirectDrawSurface7::GetSurfaceDesc |
 | 004EFEA0 | 137 | a surface's description | IDirectDrawSurface7::GetSurfaceDesc |
-| 004F3C60 | 824 | CLinkMesh draw slot (through `DeviceDrawMesh`) | IDirect3DDevice7::SetRenderState (state 0x1D) |
-| 004F3FA0 | 428 | CLinkMesh draw slot | the same |
-| 004FCA60 | 438 | `CRenderHelper`'s constructor | AddRef / Release of the device |
-| 004FCD50 | 311 | `CRenderHelper`'s destructor body | Release; the state blocks through slot 3 |
-| 004FD2A0 | 1480 | `CRenderHelper` slot 1: a preset's state block recorded | IDirect3DDevice7::BeginStateBlock, EndStateBlock, SetRenderState, SetTextureStageState |
-| 004FD9D0 | 295 | `CRenderHelper` slot 3: a state block released | IDirect3DDevice7::DeleteStateBlock |
 
 ### (b) Through the renderer's own interfaces or pure: left
 
 | Address | Bytes | What | Why left |
 | --- | --- | --- | --- |
-| 004E1EB0 | 937 | a visibility fog's draw (cells into work arrays, `ClipTest`, the scene renderer's slot 17) | next candidate; owns static work arrays (007ABA30) with an exit handler |
-| 004E3C20 | 864 | the rain / snow buffers (from 00561E50) | next candidate (pure) |
-| 004E86B0, 004E8900 | 592, 1795 | the vertex bounds of `DeviceDrawMesh` / `DeviceDrawMesh2` (x87 minimum / maximum chains) | need a side-by-side run; float compares throughout |
 | 004ED610 | 358 | DirectDrawEnumerateExA's callback: a driver appended to the list | goes with 004EE4A0 |
 | 004ED820 | 517 | the device enumeration callback (from 004E5E50) | goes with 004E5E50 |
-| 004F0B90 | 535 | `CTransformPipeline`'s constructor: CPUID flags, `3DfpFPU.dll`, `GetTLPipeline` | throws a `GameError` through the game's `_CxxThrowException` |
-| 004F3870, 004F3AD0, 004F4150, 004F42D0, 004F4680, 004F4850 | 600, 390, 375, 774, 459, 730 | CLinkMesh slots (build, draws through `DeviceDrawMesh2` and the renderer's slots) | next candidates; reached through the vtable only |
-| 004F68C0 | 299 | `CLinkFigureLoader`'s constructor (`figures.res`, `menus.res`) | Rebirth-patched (ResOverride); vanilla launch only if ported |
-| 004FCE90 | 1004 | `CRenderHelper`: the built-in presets' state lists (a switch over the nine) | goes with 004FCA60 |
 
 ### Rewritten by A-S11 (class b)
 
@@ -463,6 +453,38 @@ the function plainly works on", to be confirmed when the function is replaced.
   negative index walks backwards through the end node as the original's loop does; the end node is the fatal
   error "Can't find driver by index."). Side by side: 004FDB50, 004FDBA0, 004FDBC0 (into a scratch vector),
   004EE6D0 for an index inside the list; the rest ours only (`verify_render_helper.cpp`).
+
+### Rewritten by A-S12
+
+Direct3D calls are ported as they are (`<d3d.h>` interfaces). All side by side unless said otherwise.
+
+- `link_mesh_draw.cpp`: CLinkMesh slots 7-14 (004F3870, 004F3AD0, 004F3C60, 004F3FA0, 004F4150, 004F42D0,
+  004F4680, 004F4850): flat colours, lighting, the four draws, the shadow's projection and rasteriser
+  (`verify_link_mesh_draw.cpp`; models, units, map_objects). No scenario reaches the two textured draws
+  004F4150 and 004F42D0 (their wrappers are in place); 004F3C60 only in models.
+- `render_helper.cpp`: `CRenderHelper`'s built-in state lists 004FCE90, constructor 004FCA60, destructor
+  004FCD50, slot 1 004FD2A0 (state blocks recorded) and slot 3 004FD9D0 (released). Compared on a recording
+  fake `IDirect3DDevice7` in three capability configurations at every start; on the real device ours only (a
+  state block cannot be recorded twice). `CTransformPipeline`'s constructor 004F0B90: the original builds a
+  second pipeline in a scratch block (`GetTLPipeline` returns the library's one object). Its failure throws the
+  game's `GameError*` (`GameThrowException`, originals_engine.h) after doing the original's unwinding by hand.
+- `effects_weather_draw.cpp`: the visibility fog's draw 004E1EB0 (static work arrays at 007ABA30 / 007ABA40,
+  their exit handlers stay in the exe; spells_hero reaches it with cells) and the rain / snow buffers 004E3C20.
+- `device_bounds.cpp`: the mesh draws' screen bounds 004E86B0 and 004E8900 (the second works in blocks of
+  four); every mesh drawn with flag 1, both with and without outcodes.
+- `link_loader_create.cpp`: `CLinkFigureLoader`'s constructor 004F68C0, the vanilla body, installed in the
+  vanilla launch only (ResOverride patches it); the original's loader is built, summed up and destroyed first.
+
+Original bugs kept: the helper's destructor walks on from a record it has just erased (it reads freed nodes,
+so its walk over more than one record is ours only); slot 1 tests a texture operation against the
+capability bits with `&` (operation number, not its bit). Not reproduced: fields the original leaves as stack
+contents (unset entries of a state list are zero here; the containers' padding bytes in the figure loader).
+
+Forwarders kept so the verify wrappers run: 004F0B90 (`renderer_base_create.cpp`), 004E86B0 / 004E8900
+(`device_mesh.cpp`), 004E1EB0 (`vis_fog_manager.cpp`), 004E3C20 (`world_client_maps.cpp`), 004FCA60
+(`renderer_init.cpp`), 004F68C0 (`world_client_setup.cpp`, Rebirth-patched). Could be unified later: the rain
+/ snow work arrays' element types (bytes in effects.h, typed views in `effects_weather_draw.cpp`) and
+`device_draw.cpp`'s `Technique` with `CRenderPreset`.
 
 ### (d), (e) and the rest
 
