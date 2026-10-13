@@ -78,6 +78,7 @@ EI_REPLACE(0x00598B00, FreeAnyGrid);
 EI_REPLACE(0x005B1450, FreeAnyGrid);
 EI_REPLACE(0x005BCC30, FreeAnyGrid);
 EI_REPLACE(0x005CD490, FreeAnyGrid);
+EI_REPLACE(0x0058AAB0, FreeAnyGrid);   // A-W14: only the world server's unwind funclets jump to it
 
 void __fastcall AllocateEventGrid(SearchGrid<AIEventCell>* grid) { AllocateGrid(*grid); }
 EI_REPLACE(0x005CD4B0, AllocateEventGrid);
@@ -99,6 +100,15 @@ void __fastcall CopyByteGrid(SearchGrid<std::uint8_t>* grid, void*, const Search
     if (count > 0) std::memcpy(grid->data, source->data, static_cast<std::size_t>(count));
 }
 EI_REPLACE(0x005CD410, CopyByteGrid);
+
+void __fastcall CopyNodeGrid(SearchGrid<SearchNode>* grid, void*, const SearchGrid<SearchNode>* source) {
+    grid->height = source->height;
+    grid->width = source->width;
+    AllocateGrid(*grid);
+    int count = grid->width * grid->height;
+    if (count > 0) std::memcpy(grid->data, source->data, static_cast<std::size_t>(count) * sizeof(SearchNode));
+}
+EI_REPLACE(0x005C4BA0, CopyNodeGrid);
 
 // ---- Constructors ---------------------------------------------------------------------------------
 

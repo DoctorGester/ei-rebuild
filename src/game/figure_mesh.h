@@ -97,6 +97,12 @@ public:
     // afterwards): data whose first dword starts with "FIG" through slot 20, other data through
     // slot 21.
     void LoadFromMemory(char** cursor, float s, float t, float u);
+    // 005A2480 (slot 19 of the base vtable 0073C224, class 0x44; RET 0x10; figure_mesh_life.cpp).
+    // The base has no mesh to read: only marks itself loaded (flags_ 0x20).
+    void LoadNothing(char** cursor, float s, float t, float u);
+    // 005A37C0 (the interface's item models, 005EBFB0; figure_mesh.cpp). Fits bounds_ around the
+    // vertices (the transform pipeline's slot 7); nothing without vertices.
+    void FitVertexBounds();
 
     // 005A2500 (vtable slot 20 of classes 0x42-0x44). Loads a "FIG" mesh from memory at *cursor
     // (advanced past it), morphing FIG8 vertices; once only (flag 0x20). RET 0x10.

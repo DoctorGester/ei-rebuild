@@ -386,7 +386,8 @@ struct FollowMode : AIMode {
     void Execute(AIBrain* brain);
     // 005D1DE0 (slot 10). Drops the leader when it is the deleted object.
     void OnObjectDeleted(CEngineObject* object);
-    // 005D1E80 (slot 12). Saves the leader's reference.
+    // 005D1E60 / 005D1E80 (slots 11 / 12). Loads / saves the leader's reference.
+    void Load(AIStream* stream);
     void Save(AIStream* stream);
 
     CEngineObject* leader;          // +0x08
@@ -425,7 +426,8 @@ struct AggressionMode : AIMode {
     // 005D2710 (slot 7). Forgets the noticed level when the enemy is gone or dead, drops the enemy,
     // clears busy; remark 4.
     void Leave(AIBrain* brain);
-    // 005D27A0 (slot 12).
+    // 005D2770 / 005D27A0 (slots 11 / 12). The enemy's reference and `fixed`.
+    void Load(AIStream* stream);
     void Save(AIStream* stream);
 
     CEngineObject* enemy;           // +0x08
@@ -455,6 +457,10 @@ struct FearMode : AIMode {
     // 005D2880 (slot 3; unit_ai_mode_lifetime.cpp). A new mode with this one's fields (references
     // 0; the abstract base's vtable stands while they are copied); null when the allocation fails.
     FearMode* Clone();
+    // 005D28F0 (slot 2; unit_ai_mode_lifetime.cpp). Destroyed and built again in place without
+    // the flag: Construct(0)'s stores after the root vtable (the count and +0x14 .. +0x20 stay).
+    // EAX is 0 on return.
+    int Reset();
     // 005D2960 (slot 4; unit_ai_fear.cpp). Remembers a seen object (notice 1000 / -2; `distance`
     // grows to 1.5 times its distance) and calms `spread` towards 3. 15000 when a ranged unit (size
     // class below 6, no spell in slot 0, not slowed, load factor above 0.6) has its nearest enemy
@@ -521,6 +527,10 @@ struct PlayerMode : AIMode {
     void Execute(AIBrain* brain);
     // 005D37A0 (slot 10). Drops either reference when it is the deleted object.
     void OnObjectDeleted(CEngineObject* object);
+    // 005D4CD0 (slot 11 of both vtables; unit_ai_modes.cpp, A-W14). The target's and the leader's
+    // references, the point and the state. Saves of versions 0x46 .. 0x5D hold a group of objects
+    // after them (ScriptGroup::Load), which is read and dropped.
+    void Load(AIStream* stream);
     // 005D4DB0 (slot 12).
     void Save(AIStream* stream);
 
@@ -788,6 +798,10 @@ struct AIViewer {
     // the distance hears a call of `kind` at the source unit's position (CallsHear; the text
     // "Unit %i heard unit %i from %fm distance" only with console filter bit 0).
     void Noise(UnitController* source, float loudness, int kind, const Vector3* at);
+    // 005C9770 (RET 8; unit_ai_hearing.cpp, A-W14; the controller's update every few frames). The
+    // noise of a moving unit: Noise of kind 0x1A at the unit, as loud as moveFactors[0] x
+    // valuesE0[3] x the noise of the ground at `position` (the AI map's terrain type). Returns 0.
+    int StepNoise(const Vector3* position, UnitController* source);
 
     CAIMap* map;                    // +0x00
     int tick;                       // +0x04 the world's event table: its tick (AIEventTable::Advance)
@@ -854,6 +868,12 @@ struct AIEventTable : AIViewer {
     void Clear();
     // 005C91F0 (the destructor). Every event of the wheel goes to the free list; the grid is freed.
     void Destroy();
+    // 005C9310 (RET 0xC; CAIMap::Load, 005B43C0; patched by Rebirth, so vanilla only; A-W14). The
+    // table for a map of sizeX x sizeY: Clear, the map kept, the grid 1 - trunc(size * -0.125)
+    // cells each way (reallocated unless it has that size) and emptied. Then the 4096 bytes of
+    // "normal.dat" in the text resources' "aiinfo.res" are copied to 007C43C4. Returns 1; a
+    // missing archive or file is a fatal error, whose result is returned.
+    int Setup(CAIMap* aiMap, float sizeX, float sizeY);
 
     // The cell of `event`, or null outside the grid.
     AIEventCell* CellOf(const AIEvent* event) const;
@@ -995,6 +1015,13 @@ struct AIBrain {
     // 005D6D20 (RET 8; the .mob loader 00481660). The records copied into `alarmRecords`, then the
     // first applied (slot 0).
     void SetAlarmRecords(const AIAlarmRecord* records, int count);
+    // 005D5940 (RET 4; the world's RaiseAlarm 00593FC0). The world alarm `slot` was raised: the
+    // behaviour record of that slot is applied (the first always, the others only with their
+    // +0x38 set) and the owner raises its own alarm to 7. Nothing for a slot without a record.
+    void HearAlarm(int slot);
+    // 005D7C30 (the script's ResetTarget). The perception memory emptied, then the behaviour
+    // record of the slot last applied (unknown_36) applied again.
+    void ResetBehaviour();
 
     // 005D7520. Action 2 (move) after arrival: run the queued looks, each turning then waiting.
     void UpdateMove();

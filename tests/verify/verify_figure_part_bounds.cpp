@@ -62,3 +62,19 @@ static void __fastcall DrawPartBoundsVerify(char* node, void*, void* renderer) {
     DrawPartBounds(node, nullptr, renderer);
 }
 EI_VERIFY(0x005A7290, DrawPartBoundsVerify, 7, s_original);
+
+// 005A75D0 (A-W14): the line batch's destructor: ours only (it frees the points' block): the batch
+// is left with -1 and an empty array. No scenario reaches it: only the unwind funclet of the
+// original DrawPartBounds calls it.
+void __fastcall LineBatchDestruct(void* batch);
+
+namespace {
+void* s_unused;
+void __fastcall LineBatchDestructVerify(void* batch) {
+    LineBatchDestruct(batch);
+    int fields[4];
+    std::memcpy(fields, batch, sizeof(fields));
+    ei::verify::Check("LineBatchDestruct", true, fields[0] == -1 && fields[1] == 0 && fields[2] == 0 && fields[3] == 0, "%p", batch);
+}
+} // namespace
+EI_VERIFY(0x005A75D0, LineBatchDestructVerify, 0, s_unused);

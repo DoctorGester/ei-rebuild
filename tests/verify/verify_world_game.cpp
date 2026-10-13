@@ -269,6 +269,33 @@ static void __stdcall PickZonesVerify(void* out, int id, const char* exclude) {
 }
 EI_VERIFY(0x0057F850, PickZonesVerify, 0, s_unused);
 
+// 0057F560 BuildZoneTable (A-W14; patched by Rebirth, so the vanilla launch only): it registers
+// quest folders, so only ours runs. A table that had entries keeps its size; every entry has a
+// name and the allod its map name gives (the three lists, else 3). Reached by
+// GameFlow::StartServer (through the forwarder at its address) whenever a game starts: newgame
+// and every scenario after it; the table is filled by the first one.
+static void __fastcall BuildZoneTableVerify(GameFlow* self) {
+    struct Entry {
+        const char* first;
+        const char* second;
+        int id;
+    };
+    auto* table = reinterpret_cast<Entry**>(0x007AFDE0);
+    const int before = static_cast<int>(table[1] - table[0]);
+    self->BuildZoneTable();
+    const int after = static_cast<int>(table[1] - table[0]);
+    bool ok = before == 0 || after == before;
+    for (const Entry* e = table[0]; e != table[1]; ++e) {
+        int allod = 3;
+        if (NameInList(reinterpret_cast<const char* const*>(0x00790270), e->second)) allod = 0;
+        else if (NameInList(reinterpret_cast<const char* const*>(0x00790298), e->second)) allod = 1;
+        else if (NameInList(reinterpret_cast<const char* const*>(0x007902C0), e->second)) allod = 2;
+        if (!e->first[0] || e->id != allod) ok = false;
+    }
+    ei::verify::Check("GameFlow::BuildZoneTable", true, ok, "%d -> %d zones", before, after);
+}
+EI_VERIFY(0x0057F560, BuildZoneTableVerify, 0, s_unused);
+
 // 00579E60: LoadSave has its own check; logged.
 static int __stdcall LoadMissionVerify(void* file) {
     int result = LoadMission(file);

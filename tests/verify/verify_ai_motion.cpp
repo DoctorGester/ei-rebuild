@@ -410,3 +410,20 @@ static void __fastcall LoadStateVerify(UnitMotion* self, void*, CStream* stream)
                       self->waypoints.size, self->stepSpeeds.size);
 }
 EI_VERIFY(0x005C7860, LoadStateVerify, 0, s_unused);
+
+// 005C6E30 MotionWaypointConstruct (A-W14; MOV EDX,[ESP+8]; MOV EAX,ECX: 6 bytes): the original
+// into a scratch waypoint, ours into the real one; the 12 bytes and the returned pointers compared.
+// No caller is left: UnitMotion::Build (rewritten) builds its corners in place.
+namespace {
+MotionWaypoint*(__fastcall* s_waypointConstruct)(MotionWaypoint*, void*, std::uint32_t, std::uint32_t);
+MotionWaypoint* __fastcall WaypointConstructVerify(MotionWaypoint* self, void*, std::uint32_t xBits, std::uint32_t yBits) {
+    MotionWaypoint scratch;
+    std::memcpy(&scratch, self, sizeof(scratch));
+    MotionWaypoint* expected = s_waypointConstruct(&scratch, nullptr, xBits, yBits);
+    MotionWaypoint* result = MotionWaypointConstruct(self, nullptr, xBits, yBits);
+    bool ok = expected == &scratch && result == self && std::memcmp(&scratch, self, sizeof(scratch)) == 0;
+    ei::verify::Check("MotionWaypointConstruct", true, ok, "%08X %08X", xBits, yBits);
+    return result;
+}
+} // namespace
+EI_VERIFY(0x005C6E30, WaypointConstructVerify, 6, s_waypointConstruct);

@@ -72,3 +72,5 @@ EI_REPLACE(0x004054F0, CleanupClear8);
 EI_REPLACE(0x00405530, CleanupClear8);
 EI_REPLACE(0x00689810, CleanupClear8);   // byte-identical copies called by unwind funclets (A-H24)
 EI_REPLACE(0x00689880, CleanupClear8);
+EI_REPLACE(0x0059AF10, CleanupClear8);   // the world server's (A-W14)
+EI_REPLACE(0x0059AFE0, CleanupClear8);

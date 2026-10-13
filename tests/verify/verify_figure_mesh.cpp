@@ -342,4 +342,22 @@ int __fastcall DrawOffsetVerify(CFigureMesh* self, void*, void* owner, void* a1,
 }
 EI_VERIFY(0x005A0CD0, DrawOffsetVerify, 0, s_drawOffset);
 
+// 005A37C0 (A-W14; PUSH EBX; PUSH ESI; MOV ESI,ECX; MOV EBX,[ESI+0x1C4]: 10 bytes). Differential on
+// bounds_ (all it writes, through the pipeline): the original first, the bounds put back, then
+// ours. Reached by the interface's item models (ItemModel, 005EBFB0): the inventory and shop
+// screens.
+void(__fastcall* s_fitVertexBounds)(CFigureMesh*);
+void __fastcall FitVertexBoundsVerify(CFigureMesh* self) {
+    ClipBounds before;
+    std::memcpy(&before, &self->bounds_, sizeof(before));
+    s_fitVertexBounds(self);
+    ClipBounds expected;
+    std::memcpy(&expected, &self->bounds_, sizeof(expected));
+    std::memcpy(&self->bounds_, &before, sizeof(before));
+    self->FitVertexBounds();
+    ei::verify::Check("CFigureMesh::FitVertexBounds", true, std::memcmp(&expected, &self->bounds_, sizeof(expected)) == 0,
+                      "mesh %p vertices %d", static_cast<void*>(self), self->vertices_.size);
+}
+EI_VERIFY(0x005A37C0, FitVertexBoundsVerify, 10, s_fitVertexBounds);
+
 } // namespace

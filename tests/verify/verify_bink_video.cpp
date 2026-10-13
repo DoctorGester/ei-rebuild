@@ -8,6 +8,7 @@
 #include <windows.h>
 
 #include <cstdint>
+#include <cstring>
 
 unsigned __fastcall BinkVideoFrame(CBinkVideo* self, void*, char toPrimary);
 
@@ -111,3 +112,46 @@ static char __fastcall BinkVideoOpenVerify(CBinkVideo* self, void*, const char* 
     return result;
 }
 EI_VERIFY(0x005DBA50, BinkVideoOpenVerify, 0, s_binkOpen);
+
+// --- Closing (A-W14) --------------------------------------------------------------------------------
+// 005DA3C0, 005DBF70 and 005DB350 close a Bink handle and release a surface: ours only, checked by
+// what they leave (no handle, no holder). 005DB340 (MOV EAX,ECX; MOV DWORD [EAX],0: 8 bytes) writes
+// two fields: the original on a copy of the object, ours on the object.
+// Reached: CloseLoadingMovie at the end of every zone load (the originals 00456440 / 00567AB0, both
+// patched by Rebirth, call it): newgame. Close when the titles end (CreditsDraw, 0062BD80:
+// ui_main_menu region 4, render_titles_present). Construct / Destruct with the hero screen (screen
+// 8: Screen8Construct / Screen8Destroy) and the main menu's click (00632D70): the menu scenarios
+// that open the new-game screen.
+static void* s_closeUnused;
+static void CloseLoadingMovieVerify() {
+    CloseLoadingMovie();
+    bool ok = *reinterpret_cast<BinkHeader**>(0x007C5550) == nullptr && *reinterpret_cast<void**>(0x007C551C) == nullptr;
+    ei::verify::Check("CloseLoadingMovie", true, ok, "handle and holder cleared");
+}
+EI_VERIFY(0x005DA3C0, CloseLoadingMovieVerify, 0, s_closeUnused);
+
+static void __fastcall BinkVideoCloseVerify(CBinkVideo* self) {
+    self->Close();
+    ei::verify::Check("CBinkVideo::Close", true, self->bink == nullptr && self->holder == nullptr, "%p", static_cast<void*>(self));
+}
+EI_VERIFY(0x005DBF70, BinkVideoCloseVerify, 0, s_closeUnused);
+
+static void __fastcall BinkVideoDestructVerify(CBinkVideo* self) {
+    self->Destruct();
+    ei::verify::Check("CBinkVideo::Destruct", true, self->bink == nullptr && self->holder == nullptr, "%p",
+                      static_cast<void*>(self));
+}
+EI_VERIFY(0x005DB350, BinkVideoDestructVerify, 0, s_closeUnused);
+
+static CBinkVideo*(__fastcall* s_binkConstruct)(CBinkVideo*);
+static CBinkVideo* __fastcall BinkVideoConstructVerify(CBinkVideo* self) {
+    CBinkVideo copy;
+    std::memcpy(&copy, self, sizeof(copy));
+    CBinkVideo* expected = s_binkConstruct(&copy);
+    CBinkVideo* result = self->Construct();
+    ei::verify::Check("CBinkVideo::Construct", true,
+                      expected == &copy && result == self && std::memcmp(&copy, self, sizeof(copy)) == 0, "%p",
+                      static_cast<void*>(self));
+    return result;
+}
+EI_VERIFY(0x005DB340, BinkVideoConstructVerify, 8, s_binkConstruct);

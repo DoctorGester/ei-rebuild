@@ -17,6 +17,7 @@
 #include "unit.h"
 #include "unit_ai.h"
 #include "unit_db.h"
+#include "world_map_files.h"
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -887,6 +888,51 @@ void CWorldServer::PrepareSave() {
         static_cast<CUnitController*>(controller)->RefreshVitals(0);   // slot 19 (+0x4C)
     }
 }
+
+// ---- NewZone (00595480, A-W14) ----------------------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kCantLoadGraph = std::uintptr_t(0x00790AD8);   // "CWorldServer::LoadMap.\n Can't load AIGraph.\n"
+constexpr std::uintptr_t kCantLoadMap = std::uintptr_t(0x00790AAC);     // "CWorldServer::NewZone()\n Can't load map.\n"
+
+// Whether the file `name` is neither there as named nor in the maps folder.
+bool MapFileMissing(const char* name) {
+    if (gamecrt::access(name, 0) != -1) return false;
+    mfc::CString folder;
+    MapsFolderAt(&folder);
+    mfc::CString path = folder + name;
+    return gamecrt::access(path, 0) == -1;
+}
+
+} // namespace
+
+int CWorldServer::NewZone(const char* map, const char* mob, const char* zone) {
+    unknownE0_ = 0;
+    PickLoadingMovie(this, nullptr, zone);
+    ShowLoadProgress(kProgressStart);
+    if (map && MapFileMissing(map)) return 0;
+    if (mob && MapFileMissing(mob)) return 0;
+    LocalMemoryStream graph;
+    if (!LoadAIGraph(this, nullptr, map, mob, &graph.stream))
+        return FatalErrorOriginal(reinterpret_cast<const char*>(kCantLoadGraph));
+    StringArraySetSize(&mobFiles_, nullptr, 0, -1);
+    AIMapBeginRefresh(AIMap(), nullptr);
+    loaded_ = 0;
+    std::memset(alarms_, 0, sizeof(alarms_));
+    AIMap()->refreshUnits = false;
+    if (!LoadMapAt(this, nullptr, map, mob, &graph.stream, 0))
+        return FatalErrorOriginal(reinterpret_cast<const char*>(kCantLoadMap));
+    ShowLoadProgress(kProgressObjects);
+    loaded_ = 1;
+    AIMapEndRefresh(AIMap(), nullptr);
+    AIMap()->refreshUnits = true;
+    ShowLoadProgress(kProgressDone);
+    if (zone) *reinterpret_cast<mfc::CString*>(&zoneName_) = zone;
+    unknown160_ = 0;
+    return 1;
+}
+EI_REPLACE_METHOD(0x00595480, CWorldServer::NewZone);
 
 EI_REPLACE_METHOD(0x005956E0, CWorldServer::PrepareSave);
 EI_REPLACE(0x00589CA0, LoadSharedObject);

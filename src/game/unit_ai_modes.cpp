@@ -4,6 +4,8 @@
 #include "unit_ai.h"
 
 #include "random.h"
+#include "script.h"
+#include "world.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -355,6 +357,9 @@ void FollowMode::OnObjectDeleted(CEngineObject* object) {
 }
 EI_REPLACE_METHOD(0x005D1DE0, FollowMode::OnObjectDeleted);
 
+void FollowMode::Load(AIStream* stream) { reinterpret_cast<AIRef*>(&leader)->Load(stream, WorldServer()); }
+EI_REPLACE_METHOD(0x005D1E60, FollowMode::Load);
+
 void FollowMode::Save(AIStream* stream) { reinterpret_cast<AIRef*>(&leader)->Save(stream); }
 EI_REPLACE_METHOD(0x005D1E80, FollowMode::Save);
 
@@ -567,6 +572,12 @@ void AggressionMode::Leave(AIBrain* brain) {
     brain->owner->Say(4);
 }
 EI_REPLACE_METHOD(0x005D2710, AggressionMode::Leave);
+
+void AggressionMode::Load(AIStream* stream) {
+    reinterpret_cast<AIRef*>(&enemy)->Load(stream, WorldServer());
+    stream->Read(&fixed, 1);
+}
+EI_REPLACE_METHOD(0x005D2770, AggressionMode::Load);
 
 void AggressionMode::Save(AIStream* stream) {
     reinterpret_cast<AIRef*>(&enemy)->Save(stream);
@@ -868,6 +879,26 @@ void PlayerMode::OnObjectDeleted(CEngineObject* object) {
     if (leader == object && leader) ReleaseRef(leader);
 }
 EI_REPLACE_METHOD(0x005D37A0, PlayerMode::OnObjectDeleted);
+
+void PlayerMode::Load(AIStream* stream) {
+    // The save versions that wrote a group of objects after the mode.
+    constexpr int kGroupFirst = 0x46, kGroupEnd = 0x5E;
+    reinterpret_cast<AIRef*>(&target)->Load(stream, WorldServer());
+    reinterpret_cast<AIRef*>(&leader)->Load(stream, WorldServer());
+    stream->Read(&point, sizeof(Vector3));
+    stream->Read(&state, 4);
+    if (stream->version >= kGroupFirst && stream->version < kGroupEnd) {
+        ScriptGroup group;
+        group.vtable = scriptvtable::kRefs;
+        group.data = nullptr;
+        group.size = 0;
+        group.maxSize = 0;
+        group.growBy = 0;
+        group.Load(reinterpret_cast<ScriptStream*>(stream));
+        group.DestructBody();
+    }
+}
+EI_REPLACE_METHOD(0x005D4CD0, PlayerMode::Load);
 
 void PlayerMode::Save(AIStream* stream) {
     reinterpret_cast<AIRef*>(&target)->Save(stream);

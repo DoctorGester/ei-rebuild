@@ -85,3 +85,32 @@ static void __fastcall SaveVerify(AIEventTable* self, void*, CStream* stream) {
 }
 // SUB ESP,0x14; MOV EAX,[ECX+0x10038] (9 bytes).
 EI_VERIFY(0x005CAFA0, SaveVerify, 9, s_save);
+
+// 005C9310 Setup (A-W14; MOV EAX,FS:[0]: 6 bytes; patched by Rebirth, so the vanilla launch only).
+// Side by side on the table itself: the original first; its result, the grid's size, the map and
+// the 4096 bytes it copies to 007C43C4 are noted and those bytes overwritten; then ours, which
+// starts from Clear (the grid back to 1 x 1), so it sizes the grid and reads the archive again.
+// The grid's cells must be empty afterwards. Reached by CAIMap::Load (the original 005B43C0) at
+// every zone load: newgame and every scenario after it.
+static int(__fastcall* s_setup)(AIEventTable*, void*, CAIMap*, float, float);
+static int __fastcall SetupVerify(AIEventTable* self, void*, CAIMap* map, float sizeX, float sizeY) {
+    auto* table = reinterpret_cast<std::uint8_t*>(0x007C43C4);
+    constexpr std::size_t kTableSize = 0x1000;
+    const int expected = s_setup(self, nullptr, map, sizeX, sizeY);
+    const int expectedWidth = self->width, expectedHeight = self->height;
+    const CAIMap* expectedMap = self->map;
+    const std::vector<std::uint8_t> expectedTable(table, table + kTableSize);
+    std::memset(table, 0xCC, kTableSize);
+    const int result = self->Setup(map, sizeX, sizeY);
+    bool empty = true;
+    const auto* cells = reinterpret_cast<const std::uint8_t*>(self->cells);
+    for (std::size_t i = 0; i < static_cast<std::size_t>(self->width * self->height) * sizeof(AIEventCell); ++i)
+        if (cells[i]) empty = false;
+    const bool ok = result == expected && self->width == expectedWidth && self->height == expectedHeight &&
+                    self->map == expectedMap && self->tick == -1 && empty &&
+                    std::memcmp(table, expectedTable.data(), kTableSize) == 0;
+    ei::verify::Check("AIEventTable::Setup", true, ok, "%g x %g: result %d/%d, grid %d x %d (expected %d x %d)", sizeX, sizeY,
+                      result, expected, self->width, self->height, expectedWidth, expectedHeight);
+    return result;
+}
+EI_VERIFY(0x005C9310, SetupVerify, 6, s_setup);

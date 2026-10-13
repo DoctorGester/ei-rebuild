@@ -46,6 +46,9 @@ struct MotionWaypoint {
     int cells;
 };
 static_assert(sizeof(MotionWaypoint) == 0x0C);
+// 005C6E30 (RET 8; ai_motion.cpp, A-W14). The constructor: the corner (x, y) (the floats moved as
+// dwords), no cells. Returns the waypoint. UnitMotion::Build builds its corners in place.
+MotionWaypoint* __fastcall MotionWaypointConstruct(MotionWaypoint* self, void*, std::uint32_t xBits, std::uint32_t yBits);
 
 // c0 + c1 u + c2 u^2 + c3 u^3: one coordinate of a trajectory segment.
 struct MotionCubic {

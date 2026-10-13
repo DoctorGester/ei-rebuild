@@ -19,6 +19,7 @@
 #include "player_messages.h"
 #include "unit.h"
 #include "unit_db.h"
+#include "world_map_files.h"
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -1060,7 +1061,7 @@ namespace {
 
 // 0041A500 (RET 8). A server command with an argument (9: drop a client).
 __declspec(naked) void __fastcall ServerCommand(void*, void*, int, const char*) EI_ORIGINAL(0x0041A500)
-// 00590C70 / 00591070 (RET 4). CWorldServer: sync a player's party records / after the copy.
+// 00590C70 (RET 4). CWorldServer: sync a player's party records.
 __declspec(naked) void __fastcall SyncPartyRecordsAt(void*, void*, WorldPlayer*) EI_ORIGINAL(0x00590C70)
 __declspec(naked) int __fastcall ViewRequestZoneAt(void*, void*, const char*, int) EI_ORIGINAL(0x0066B1B0)
 
@@ -1118,7 +1119,7 @@ void GameFlow::SwitchMultiplayerZone() {
     if (player && player->server->flag70_) {
         SyncPartyRecordsAt(World(), nullptr, player);
         PartyCopyFrom(&records.party, nullptr, player->Party());
-        WorldAfterPartyCopyOriginal(World(), nullptr, player);
+        World()->ClearPlayerItems(player);
     } else {
         PartyCopyFrom(&records.party, nullptr, GlobalParty());
     }
@@ -2290,6 +2291,83 @@ void SavedParties::Reload() {
     } while (gameapi::FindNextFileA(search, &found));
     gameapi::FindClose(search);
 }
+
+// ---- BuildZoneTable (0057F560, A-W14) -----------------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kQuestFilePattern = std::uintptr_t(0x007906D4);   // "*.mq"
+// The map names of the three allods, each list ended by an empty name.
+constexpr std::uintptr_t kGipatMaps = std::uintptr_t(0x00790270);       // zone2 .. zone9
+constexpr std::uintptr_t kIngosMaps = std::uintptr_t(0x00790298);       // zone12, zone13
+constexpr std::uintptr_t kSuslangerMaps = std::uintptr_t(0x007902C0);   // zone17, zone18
+const char* const* NameList(std::uintptr_t address) { return reinterpret_cast<const char* const*>(address); }
+
+// 00587480 (RET 0xC). The zone table's _M_insert_overflow(pos, value, count).
+__declspec(naked) void __fastcall ZoneTableInsertOverflow(ZoneTable*, void*, ZoneEntry* /*pos*/, const ZoneEntry* /*value*/,
+                                                         unsigned /*count*/) EI_ORIGINAL(0x00587480)
+
+mfc::CString& EntryText(const char*& text) { return *reinterpret_cast<mfc::CString*>(&text); }
+
+// The allod of a map name: the first list that has it.
+int AllodOfMap(const char* map) {
+    if (NameInList(NameList(kGipatMaps), map)) return 0;
+    if (NameInList(NameList(kIngosMaps), map)) return 1;
+    return NameInList(NameList(kSuslangerMaps), map) ? 2 : 3;
+}
+
+// push_back of an entry with two empty names (its id is not set, as in the original).
+void AppendEmptyEntry(ZoneTable& table) {
+    if (table.finish != table.end) {
+        if (table.finish) {
+            new (&EntryText(table.finish->first)) mfc::CString();
+            new (&EntryText(table.finish->second)) mfc::CString();
+        }
+        ++table.finish;
+        return;
+    }
+    ZoneEntry empty{};
+    new (&EntryText(empty.first)) mfc::CString();
+    new (&EntryText(empty.second)) mfc::CString();
+    ZoneTableInsertOverflow(&table, nullptr, table.finish, &empty, 1);
+    EntryText(empty.second).~CString();
+    EntryText(empty.first).~CString();
+}
+
+} // namespace
+
+void GameFlow::BuildZoneTable() {
+    ZoneTable& table = *reinterpret_cast<ZoneTable*>(std::uintptr_t(0x007AFDE0));
+    if (table.finish != table.start) return;
+    mfc::CFileFind find;
+    int more;
+    {
+        mfc::CString folder;
+        MapsFolderAt(&folder);
+        mfc::CString pattern = folder + reinterpret_cast<const char*>(kQuestFilePattern);
+        more = find.FindFile(pattern, 0);
+    }
+    while (more) {
+        more = CFileFindNext(&find);
+        mfc::CString name;
+        CFileFindTitle(&find, nullptr, &name);
+        name.MakeLower();
+        FlowRegisterQuests(this, nullptr, name);
+        UnloadQuestTexts();
+        mfc::CString map;
+        if (MapRecord* record = FindZone(name)) {
+            map = RecordMap(record);
+            const int allod = AllodOfMap(map);
+            AppendEmptyEntry(table);
+            ZoneEntry& entry = table.finish[-1];
+            EntryText(entry.first) = name;
+            EntryText(entry.second) = map;
+            entry.id = allod;
+        }
+    }
+    CFileFindCloseOriginal(&find);
+}
+EI_REPLACE_METHOD(0x0057F560, GameFlow::BuildZoneTable);
 
 EI_REPLACE_METHOD(0x0057B3B0, GameFlow::SaveGame);
 EI_REPLACE_METHOD(0x0057F0F0, GameFlow::ReturnLocalParty);

@@ -10,6 +10,7 @@
 #include "verify.h"
 
 #include "../../src/game/core_refcount.h"
+#include "../../src/game/engine_object.h"
 
 #include <cstring>
 
@@ -25,6 +26,8 @@ RefPtr* __fastcall RefPtrAssignObject(RefPtr* self, void*, CRefObject* object); 
 bool __fastcall RefIsUnique(const CRefObject* object);                            // refptr_copies.cpp
 int __fastcall RefDetachShutdown(CRefObject* object);                             // refptr_copies.cpp
 void __fastcall ObjectHolderRelease(void** self);                                 // refptr_copies.cpp
+void __fastcall ObjectHolderDrop(CEngineObject** self);                           // refptr_copies.cpp
+void __fastcall RefCountedDrop(CRefCounted* self);                                // refptr_copies.cpp
 void __fastcall ObjectHolderAssign(void** self, void*, void* object);             // refptr_copies.cpp
 void __fastcall RefPtrClear(RefPtr* self);                                        // refptr_copies.cpp
 RefPtr* __fastcall RefPtrNull(RefPtr* self);                                      // refptr_copies.cpp
@@ -362,6 +365,7 @@ EI_VERIFY(0x004215A0, PairReleaseVerify, 0, s_unused);
 EI_VERIFY(0x00438A30, PairReleaseVerify, 0, s_unused);
 EI_VERIFY(0x00438A50, PairReleaseVerify, 0, s_unused);
 EI_VERIFY(0x00438A70, PairReleaseVerify, 0, s_unused);
+EI_VERIFY(0x005B84E0, PairReleaseVerify, 0, s_unused);   // A-W14 copy (unwind funclets only)
 EI_VERIFY(0x0040A770, RawCountedVerify, 0, s_unused);
 EI_VERIFY(0x0041DD50, RawCountedVerify, 0, s_unused);
 EI_VERIFY(0x00421360, ClearVerify_00421360, 6, s_clear_00421360);
@@ -477,6 +481,22 @@ int __fastcall DetachShutdownVerify(CRefObject* object) {
     ei::verify::Check("RefDetachShutdown", true, (object->flags7_ & CRefObject::kDetached) != 0, "");
     return result;
 }
+// Ours only: the object loses exactly one reference and the holder ends up empty.
+void __fastcall HolderDropVerify(CEngineObject** self) {
+    CEngineObject* object = *self;
+    const int before = object ? object->refCount_ : 0;
+    ObjectHolderDrop(self);
+    ei::verify::Check("ObjectHolderDrop", true, *self == nullptr && (!object || object->refCount_ == before - 1), "%p", object);
+}
+// 005576B0, ours only: exactly one reference less. Reached when a combat mode list that still
+// holds entries is destroyed (its destructor 005575F0 stays the original): a unit with queued
+// modes removed, in the combat scenarios.
+void __fastcall RefCountedDropVerify(CRefCounted* self) {
+    const std::int16_t before = self->refs_;
+    RefCountedDrop(self);
+    ei::verify::Check("RefCountedDrop", static_cast<int>(static_cast<std::int16_t>(before - 1)), static_cast<int>(self->refs_),
+                      "%p", static_cast<void*>(self));
+}
 void __fastcall HolderReleaseVerify(void** self) {
     ObjectHolderRelease(self);
     ei::verify::Check("ObjectHolderRelease", true, true, "");
@@ -504,6 +524,10 @@ EI_VERIFY(0x00556AA0, HolderReleaseVerify, 0, s_unused);
 EI_VERIFY(0x00598960, HolderReleaseVerify, 0, s_unused);   // A-W12 copies
 EI_VERIFY(0x00598970, HolderReleaseVerify, 0, s_unused);
 EI_VERIFY(0x00598980, HolderReleaseVerify, 0, s_unused);
+EI_VERIFY(0x00598990, HolderReleaseVerify, 0, s_unused);   // A-W14 copy (unwind funclets only)
+EI_VERIFY(0x005647C0, HolderDropVerify, 0, s_unused);      // A-W14 (unwind funclets only)
+EI_VERIFY(0x00579350, HolderDropVerify, 0, s_unused);
+EI_VERIFY(0x005576B0, RefCountedDropVerify, 0, s_unused);   // A-W14
 EI_VERIFY(0x00429B50, HolderAssignVerify, 0, s_unused);
 EI_VERIFY(0x00511B90, HolderAssignVerify, 0, s_unused);
 EI_VERIFY(0x0052C690, HolderAssignVerify, 0, s_unused);

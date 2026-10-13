@@ -146,6 +146,20 @@ void __fastcall SetOwnerVerify(CFigureMesh* self, void*, CObject3D* owner) {
     ei::verify::Check("CFigureMesh::SetOwner", true, self->owner_ == owner, "mesh %p", self);
 }
 
+// 005A2480 (A-W14; MOV EAX,[ECX+8]; OR AL,0x20: 5 bytes), the base's slot 19. Differential on the
+// flags: the original first, the flags put back, then ours. Reached when a class 0x44 figure
+// (the base class, what the factory makes for that id) is loaded through its slot 19; the
+// figures of the scenarios are classes 0x41-0x43, so none is known to reach it.
+void(__fastcall* s_loadNothing)(CFigureMesh*, void*, char**, float, float, float);
+void __fastcall LoadNothingVerify(CFigureMesh* self, void*, char** cursor, float s, float t, float u) {
+    std::uint32_t before = self->flags_;
+    s_loadNothing(self, nullptr, cursor, s, t, u);
+    std::uint32_t expected = self->flags_;
+    self->flags_ = before;
+    self->LoadNothing(cursor, s, t, u);
+    ei::verify::Check("CFigureMesh::LoadNothing", expected, self->flags_, "mesh %p", self);
+}
+
 CFigureManager* __fastcall ManagerConstructVerify(CFigureManager* self) {
     CFigureManager* result = self->Construct();
     bool ok = result == self && VtableOf(self) == kFigureManagerVtable && self->models_.Size() == 0 &&
@@ -179,5 +193,6 @@ EI_VERIFY(0x005AACE0, DeletingDestructMeshVerify, 0, s_unused);
 EI_VERIFY(0x005AADA0, DeletingDestructSharedMeshVerify, 0, s_unused);
 EI_VERIFY(0x0059F390, SetDrawerVerify, 0, s_unused);
 EI_VERIFY(0x0059F3D0, SetOwnerVerify, 0, s_unused);
+EI_VERIFY(0x005A2480, LoadNothingVerify, 5, s_loadNothing);
 EI_VERIFY(0x005AA070, ManagerConstructVerify, 0, s_unused);
 EI_VERIFY(0x005AAE00, CreateFigureObjectVerify, 0, s_unused);

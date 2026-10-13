@@ -141,6 +141,15 @@ static_assert(sizeof(CItem) == 0x4C);
 struct CItemLink {
     static void* Vtable() { return reinterpret_cast<void*>(0x0073FA88); }
 
+    // item_link.cpp (A-W14). 0058FBB0: the constructor's last step, the vtable stored (the counted
+    // value's 00419720 ran before); returns this. The world server's CreateUnits and
+    // SyncPartyRecords inline it.
+    CItemLink* Construct();
+    // 0058FB90 (slot 2). Built again in place: the root vtable, then its own (the value stays).
+    void Reset();
+    // 0058FB60 (slot 3). A new link with this one's value and no references; null without memory.
+    CItemLink* Clone();
+
     void* vtable;
     std::int16_t references;        // +0x04
     std::uint16_t unknown_06;

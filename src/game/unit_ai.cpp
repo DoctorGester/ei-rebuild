@@ -1,6 +1,7 @@
 // The unit AI brain (005D0000-005DC000): the per-tick mode selection and the actions.
 #include "unit_ai.h"
 
+#include "ai_alarm.h"
 #include "random.h"
 
 #include "ei/hook.h"
@@ -66,11 +67,6 @@ __declspec(naked) void __stdcall DestructRefs(CEngineObject**, int) EI_ORIGINAL(
 
 // 006E79A0: the game's memmove.
 
-// The controller's voice (controller + 0xB10): 005AEA60 says remark `what`.
-struct AIVoice {
-    void Say(int what);
-};
-void AIVoice::Say(int a0) { VoiceSayOriginal((void*)this, nullptr, a0); }
 
 // The mode names of the "new motivation" message (the original pushes these addresses).
 const char* ModeName(int type) {
@@ -98,7 +94,7 @@ __declspec(naked) void UnitController::Idle() EI_ORIGINAL(0x00555180)
 __declspec(naked) void UnitController::StopQueued() EI_ORIGINAL(0x00555200)
 __declspec(naked) void UnitController::Turn(const Vector3*, float) EI_ORIGINAL(0x005546B0)
 void UnitController::Say(int what) {
-    reinterpret_cast<AIVoice*>(reinterpret_cast<char*>(this) + 0xB10)->Say(what);
+    reinterpret_cast<AIAlarm*>(reinterpret_cast<char*>(this) + 0xB10)->Raise(what);   // 005AEA60
 }
 
 void AIMode::Release() { RefObjectRelease((void*)this); }

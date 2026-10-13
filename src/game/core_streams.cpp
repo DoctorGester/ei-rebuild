@@ -42,6 +42,7 @@ EI_REPLACE(0x00412960, RefObjectDestructBase);   // byte-identical copy
 EI_REPLACE(0x004368C0, RefObjectDestructBase);   // byte-identical copy
 EI_REPLACE(0x00562770, RefObjectDestructBase);   // byte-identical copies (A-W12)
 EI_REPLACE(0x0058FBE0, RefObjectDestructBase);
+EI_REPLACE(0x005B3590, RefObjectDestructBase);   // A-W14: the unit shape's base destructor (005B3570 calls it)
 
 void* __fastcall RefObjectDeletingDestructor(void* self, void*, unsigned flags) {
     SetVtable(self, kRefObjectRootVtable);
@@ -159,6 +160,7 @@ void** __fastcall AlignedPointerArrayAlloc(int count) {
 EI_REPLACE(0x0047B940, AlignedPointerArrayAlloc);
 EI_REPLACE(0x004D9ED0, AlignedPointerArrayAlloc);   // byte-identical copy
 EI_REPLACE(0x0066BE00, AlignedPointerArrayAlloc);   // the same instructions (A-H15)
+EI_REPLACE(0x005A6F80, AlignedPointerArrayAlloc);   // the same instructions (A-W14; the old figure format's loader)
 
 void __fastcall AlignedObjectsClear(lib::AlignedArray<CEngineObject*>* objects) {
     // The size is read again after every call (a release may change the array).

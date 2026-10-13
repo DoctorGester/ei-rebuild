@@ -36,12 +36,18 @@ void(__fastcall* s_clearC)(void*);
 void(__fastcall* s_clearD)(void*);
 void __fastcall ClearCVerify(void* object) { CheckClear("CleanupClear8@00689810", s_clearC, object); }
 void __fastcall ClearDVerify(void* object) { CheckClear("CleanupClear8@00689880", s_clearD, object); }
+void(__fastcall* s_clearE)(void*);
+void(__fastcall* s_clearF)(void*);
+void __fastcall ClearEVerify(void* object) { CheckClear("CleanupClear8@0059AF10", s_clearE, object); }
+void __fastcall ClearFVerify(void* object) { CheckClear("CleanupClear8@0059AFE0", s_clearF, object); }
 } // namespace
 
 EI_VERIFY(0x004054F0, ClearAVerify, 7, s_clearA);
 EI_VERIFY(0x00405530, ClearBVerify, 7, s_clearB);
 EI_VERIFY(0x00689810, ClearCVerify, 7, s_clearC);   // A-H24 copies
 EI_VERIFY(0x00689880, ClearDVerify, 7, s_clearD);
+EI_VERIFY(0x0059AF10, ClearEVerify, 7, s_clearE);   // A-W14 copies (unwind funclets only)
+EI_VERIFY(0x0059AFE0, ClearFVerify, 7, s_clearF);
 
 EI_VERIFY(0x004128C0, DeleteVerify<0x004128E0>, 0, s_unused);
 EI_VERIFY(0x00412970, DeleteVerify<0x00412960>, 0, s_unused);

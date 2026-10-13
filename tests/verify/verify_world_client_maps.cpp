@@ -764,6 +764,17 @@ static void __fastcall UnitsInBoxVerify(CWorldClient* client, void*, const long*
 }
 EI_VERIFY(0x005656A0, UnitsInBoxVerify, 10, s_unitsInBox);
 
+// 00561800 PlatformSet::Clear (A-W14; slot 2 of the bridge manager, the client's Setup): the
+// list's blocks are freed, so ours only; the list is empty with no blocks and the answer 1.
+static int __fastcall PlatformSetClearVerify(PlatformSet* self) {
+    int result = self->Clear();
+    bool ok = result == 1 && self->list.head == nullptr && self->list.tail == nullptr && self->list.count == 0 &&
+              self->list.free == nullptr && self->list.blocks == nullptr;
+    ei::verify::Check("PlatformSet::Clear", true, ok, "count %d", self->list.count);
+    return result;
+}
+EI_VERIFY(0x00561800, PlatformSetClearVerify, 0, s_unused);
+
 // 00561A60 / 00561AE0 (the platform set's destructor): the list's blocks are freed, so ours only.
 // Checked: the list empty with no blocks, the engine object's vtable back; the deleting one returns
 // the object. The client world's teardown.

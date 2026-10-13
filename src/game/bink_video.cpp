@@ -510,3 +510,39 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
     return 1;
 }
 EI_REPLACE_METHOD(0x005DBA50, CBinkVideo::Open);
+
+// --- Closing (A-W14) --------------------------------------------------------------------------------
+
+void CloseLoadingMovie() {
+    LoadingMovie& movie = Loading();
+    BinkClose()(movie.bink);
+    CDXSurface* holder = movie.holder;
+    movie.bink = nullptr;
+    movie.holder = nullptr;
+    if (holder) holder->Release();
+    CursorShowOriginal(Cursor(), nullptr, 1);
+}
+EI_REPLACE(0x005DA3C0, CloseLoadingMovie);
+
+CBinkVideo* CBinkVideo::Construct() {
+    holder = nullptr;
+    bink = nullptr;
+    return this;
+}
+EI_REPLACE_METHOD(0x005DB340, CBinkVideo::Construct);
+
+void CBinkVideo::Close() {
+    if (bink) {
+        BinkClose()(bink);
+        bink = nullptr;
+    }
+    CDXSurface* old = holder;
+    holder = nullptr;
+    if (old) old->Release();
+    CursorSaveBackgroundOriginal(Cursor(), nullptr, 1);
+    CursorShowOriginal(Cursor(), nullptr, 1);
+}
+EI_REPLACE_METHOD(0x005DBF70, CBinkVideo::Close);
+
+void CBinkVideo::Destruct() { Close(); }
+EI_REPLACE_METHOD(0x005DB350, CBinkVideo::Destruct);

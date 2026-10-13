@@ -41,6 +41,8 @@ class CTexture;   // texture.h
 class CTextureManager;   // texture.h
 class Terrain;
 class CCamera;   // camera.h
+class CMaterial;   // material.h
+class CStream;   // core_streams.h
 class CParticleManager;   // effects.h
 struct FootprintPart;   // ai_map.h: a figure part's box (FigurePart +0x188)
 class CFileRegistry;   // registry.h
@@ -487,6 +489,13 @@ public:
     // 00590160 (RET 8; CollectParty). The items the player holds (WorldPlayer::items) put into
     // `party` (CParty::AddItem(item, 1, 1)) and released, the list emptied. Nothing without a player.
     void StorePlayerItems(WorldPlayer* player, class CParty* party);
+    // 00591070 (RET 4; world_quests.cpp; `this` is not read). After a player's party was sent again
+    // (the multiplayer zone switch 0057EE10, ResendParty 0066F450): every item of the player's
+    // party (+0x70) taken out (CParty::RemoveItem(first, 1)) until none is left.
+    void ClearPlayerItems(WorldPlayer* player);
+    // 00593FA0 (RET 0xC; world_small_calls.cpp; the script's SetWaterLevel). The water level `key`
+    // moves to `target` over `steps` ticks (TweenSetTarget on +0x70).
+    void SetWaterLevel(int key, float target, int steps);
     // 005939E0 (no caller in the exe; Rebirth's binaries refer to it). Every unit (class 0x50) of
     // the object map removed (RemoveObject by id; the walk steps on before each removal).
     void RemoveAllUnits();
@@ -583,6 +592,14 @@ public:
     // files, script queues, diplomacy, map objects, missiles and timed objects go, then the
     // base class's teardown (0055F890); the game result and kind are cleared.
     void TeardownZone();
+    // 00595480 (RET 0xC; world_save.cpp; patched by Rebirth, so vanilla only; A-W14). A new zone
+    // from the map `map` and the object file `mob`: the loading movie picked for `zone` and its
+    // first frame shown; 0 when a file is neither where its name says nor in the maps folder
+    // (null names are not looked for). The AI graph is read (ReadAIGraph; without it a fatal
+    // error, whose result is returned), the .mob list and the alarms are emptied and the map
+    // loaded between the AI map's BeginRefresh and EndRefresh (LoadMap; a failure is a fatal
+    // error too). The zone name is kept when given, +0x160 cleared. Returns 1.
+    int NewZone(const char* map, const char* mob, const char* zone);
     // 00595B50 (RET 8; world_map.cpp; the client's state block 00567AB0 through the glue 00578730).
     // Unless the zone's map and .mob are these already: NewZone(map, mob, null), then TeardownZone.
     void EnsureZone(const char* map, const char* mob);
@@ -877,6 +894,9 @@ struct PlatformSet {
     // R (pivot + offset) + position and the radius.
     void AddBox(int id, const FootprintPart* item, const Vector3* position, const Quaternion* rotation);
 
+    // 00561800 (slot 2, the engine object's Create; the client's Setup). The face list emptied (its
+    // blocks freed); returns 1. The set is the engine's CBridgeManager (vtable 0073F4FC, class 0x34).
+    int Clear();
     // 00561A60. The destructor's body: the face list emptied (its vtable 0073F548 back), then the
     // engine object's body.
     void DestructBody();
@@ -1015,6 +1035,21 @@ public:
     CRefObject* pendingLink_;           // +0x08 counted; handed over by slot 6
 };
 static_assert(offsetof(CWorldHandle, pendingLink_) == 0x08);
+
+// The client world's player source (CWorldClient + 0x1C8, vtable 0073F628, 8 bytes; Setup makes
+// it): it has no state of its own. world_sessions.cpp.
+class CClientHandle : public CPlayerSource {
+public:
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F628);
+
+    // 0: 00562750 (the counted value's deleting destructor); 4: 005626F0 (AL 0).
+    int OnShutdown() override;          // 2: 005626D0 (built again in place: the root vtable, then its own)
+    CClientHandle* Clone() override;    // 3: 005626B0 (a new handle, count 0; null without memory)
+    // 6: 00562700 (RET 4). The client takes no connections: every link of the list is released
+    // and the list emptied (its blocks freed).
+    void TakeNew(void* joined) override;
+};
+static_assert(sizeof(CClientHandle) == 8);
 
 // A window rectangle of the frame (the client's list +0xF0 and the hit vector +0xF4; 0x18 bytes).
 struct ScreenEntry {
@@ -1187,6 +1222,20 @@ public:
     std::uint8_t* LocalView();
     // 00566EC0. Whether the local view is in mode 2 (+0x20).
     bool IsLocalViewMode2();
+    // world_small_calls.cpp (A-W14).
+    // 005655D0 / 005655F0 (RET 4; the scene loader, 0051B2F0 / 0051B470). A new texture / material
+    // of class `type` from the world's managers (+0x18C NewTextureOfType, +0x188 NewMaterial);
+    // null without the manager.
+    CTexture* NewTexture(int type);
+    CMaterial* NewMaterial(int type);
+    // 00565670 (RET 4; the game start, 00456440). Takes `camera` as the view camera: the old one
+    // loses a reference (it is not released at zero), the new one gains one; either may be null.
+    void SetCamera(CCamera* camera);
+    // 00566C10 (RET 4). The dword of message 0x12 (CPlayerClient::OnWorldValue) stored at +0x7C0.
+    void SetWorldValue(int value);
+    // 005683B0 (RET 4). Message 0x73: the water levels (+0x70) read from `stream` and applied to
+    // the terrain (TweenLoad). Returns 1.
+    int ReadWaterLevels(CStream* stream);
     // 00566EF0. FALSE without a local view or while the local player's controller is busy.
     bool IsLocalPlayerIdle();
     // 00567440. Index of the exit whose area contains `point` and that leads somewhere.
@@ -1457,7 +1506,8 @@ public:
     CBaseManager* manager188_;            // +0x188 counted (constructor 0068E3F0)
     CTextureManager* textureManager_;     // +0x18C (slot 34) counted
     CBaseManager* manager190_;            // +0x190 counted (constructor 0068D850)
-    std::uint8_t unknown_194[0x19C - 0x194];
+    CEngineObject* manager194_;           // +0x194 (slot 37 returns it; not identified)
+    CEngineObject* manager198_;           // +0x198 (slot 38 returns it; not identified)
     CParticleManager* particleManager_;        // +0x19C counted
     ClientListManager* listManager_;      // +0x1A0 owned
     ClientArrayManager* arrayManager_;    // +0x1A4 owned
@@ -1505,7 +1555,8 @@ public:
     int unknown7A8_;                      // +0x7A8
     std::uint8_t unknown_7AC[0x7BC - 0x7AC];
     stlp::list<void*> list7BC_;           // +0x7BC (nodes of 0xC bytes; pool free 00498C40)
-    std::uint8_t unknown_7C0[0x7D0 - 0x7C0];
+    int worldValue_;                      // +0x7C0 -1; message 0x12 sets it (SetWorldValue); the exe never reads it
+    std::uint8_t unknown_7C4[0x7D0 - 0x7C4];
     void* cursor_;                        // +0x7D0 HCURSOR wincurs\Df0000.cur
 };
 static_assert(offsetof(CWorldClient, unknown84_) == 0x84);
@@ -1594,6 +1645,13 @@ struct GameFlow {
     // (the world, SaveWorld). Without scenario.sav the game goes back to the main menu. Returns 1
     // when saved.
     int SaveGame(const char* slot);
+    // 0057F560 (StartServer, before the sessions; patched by Rebirth, so vanilla only; A-W14).
+    // Fills the zone table (007AFDE0) once, while it is empty: for every "*.mq" file of the maps
+    // folder, its title in lower case is registered as a quest folder (RegisterQuests) and the
+    // quest texts loaded so far are unloaded again; a zone the map database knows gets an entry
+    // {the title, the record's map name, the allod}: 0 / 1 / 2 by the three map name lists
+    // (00790270 zone2..zone9, 00790298 zone12 / zone13, 007902C0 zone17 / zone18), else 3.
+    void BuildZoneTable();
     // 0057F190 (each network step). The local player's "z.MPGame1" variable, set to 1 or
     // removed: on a client, set unless the client session's +0x25EC is active; on the host, set
     // when more than one player is in (with +0x80) or unless the client's +0x25F4 is active.

@@ -140,10 +140,6 @@ __declspec(naked) inline const char* __fastcall GameExitZoneOriginal(void* /*glu
 // D3b. 00573080: CArray<ZoneExit>::SetSize(size, growBy) (RET 8, no result; -1 keeps growBy, new records constructed).
 __declspec(naked) inline void __fastcall ZoneExitsSetSizeOriginal(void* /*exits*/, void*, int /*size*/, int /*growBy*/)
     EI_ORIGINAL(0x00573080)
-// 00591070 (RET 4; A-H14, shared by world_game.cpp and player_server_handlers.cpp): CWorldServer's
-// step after a player's party records were synced and the party sent (the world in ECX).
-__declspec(naked) inline void __fastcall WorldAfterPartyCopyOriginal(void* /*world*/, void*, WorldPlayer* /*player*/)
-    EI_ORIGINAL(0x00591070)
 
 // The client world (007AF5B8; thiscall, RET 4, results not used by the callers so far):
 // 005651A0 (CWorldClient::RefreshPlatforms, called through its address for its wrapper) puts a filed object's platform

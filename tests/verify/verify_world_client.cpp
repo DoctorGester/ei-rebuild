@@ -176,6 +176,19 @@ static BOOL __fastcall ModelUseLessVerify(ModelUseLess* self, void*, Obj a, Obj 
 }
 EI_VERIFY(0x00573EE0, ModelUseLessVerify, 8, s_modelUseLess);
 
+// 005742F0 (A-W14): MOV EAX,[ECX+0x20]; TEST EAX,EAX (5 bytes; the JE after them sees the flags).
+// Pure. Its callers, the two model sorts above, are rewritten with the rank inlined, so no
+// scenario reaches it.
+class CObject3DClientSpecific;
+std::uint32_t __fastcall ModelMaterialRank(CObject3DClientSpecific* model);
+static std::uint32_t(__fastcall* s_materialRank)(CObject3DClientSpecific*);
+static std::uint32_t __fastcall ModelMaterialRankVerify(CObject3DClientSpecific* model) {
+    std::uint32_t expected = s_materialRank(model);
+    ei::verify::Check("ModelMaterialRank", expected, ModelMaterialRank(model), "%p", static_cast<void*>(model));
+    return expected;
+}
+EI_VERIFY(0x005742F0, ModelMaterialRankVerify, 5, s_materialRank);
+
 // ---- Cursor picking ------------------------------------------------------------------------------
 
 // 0056BF30 / 0056C350: PUSH EBP; MOV EBP,ESP; SUB ESP,0x30 (6 bytes). Output only: the original

@@ -667,7 +667,7 @@ void CPlayerServer::ResendParty() {
     auto* worldPlayer = reinterpret_cast<WorldPlayer*>(player);
     WorldServer()->SyncPartyRecords(worldPlayer);
     SendParty();
-    WorldAfterPartyCopyOriginal(WorldServer(), nullptr, worldPlayer);
+    WorldServer()->ClearPlayerItems(worldPlayer);
 }
 EI_REPLACE_METHOD(0x0066F450, CPlayerServer::ResendParty);
 
