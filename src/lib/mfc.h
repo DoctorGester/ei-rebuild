@@ -191,10 +191,14 @@ public:
     void Write(const void* buffer, unsigned bytes);       // 00708941
     unsigned long ReadCount();                            // 00708B3D
     void WriteCount(unsigned long count);                 // 00708B0F
+    void Flush();                                         // 007089D1
+    CFile* File() const { return file_; }
 
 private:
     std::uint8_t unknown_00[0x14];
     unsigned mode_;                 // +0x14
+    std::uint8_t unknown_18[8];
+    CFile* file_;                   // +0x20
 };
 
 template <typename T, typename Elements = PlainElements<T>>

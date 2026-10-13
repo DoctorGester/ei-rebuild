@@ -1,0 +1,29 @@
+# A save made while a script's water level change is still running, loaded back: TweenArray::Load
+# (006D45D0) applies each saved level through Terrain::SetWaterLevel (006CC7F0; docs/notes/models.md
+# "Landscape passes, light tests"). The change runs over 5000 world updates, so it is still pending
+# when the game is saved. The game runs ~5.5x faster.
+reject Script error
+wait 6000
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+waitline 15 Saved savea
+console @SetWaterLevel(0,0,5000)
+console @SetWaterLevel(1,0,5000)
+wait 1000
+
+# Escape menu, Save (as ground_prints.txt): OK (region 0) saves into save1; then loaded back.
+key esc
+wait 1000
+click 395 120
+wait 1500
+clickregion 0
+waitline 10 Saved save1
+console @AddUnitToServer("WaterMarker","WolfTutor","WaterMarker",Add(GetX(GetLeader()),8),GetY(GetLeader()),0)
+waitfor 5 IsAlive(GetObjectByName("WaterMarker"))
+load save1
+waitfor 15 Mul(Not(IsAlive(GetObjectByName("WaterMarker"))),IsGreater(HP(GetLeader()),0))
+wait 2000
+report
+quit

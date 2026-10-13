@@ -1177,7 +1177,7 @@ int CWorldClient::Setup() {
         Construct570E10(&terrain->pageMaterials);
         terrain->textF8 = camera::EmptyStringData();
         terrain->textFC = camera::EmptyStringData();
-        Construct570E40(terrain->part12C);
+        Construct570E40(&terrain->materials);
         Construct56FD30(terrain->part13C);
         Construct56FD30(terrain->part14C);
         Construct6721D0(&terrain->archive);
@@ -1188,7 +1188,7 @@ int CWorldClient::Setup() {
         Construct56FD30(&terrain->visibleColumnFirst);
         Construct56FD30(&terrain->visibleColumnLast);
         terrain->textAE0 = camera::EmptyStringData();
-        Construct5711C0(terrain->partAE8);
+        Construct5711C0(&terrain->waterLevels);
         ei::SetVtable(terrain, worlddata::kTerrainVtable);
         LandscapeResetOriginal(terrain);
     }

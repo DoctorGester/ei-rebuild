@@ -656,3 +656,6 @@ address,size,name,evidence
 00448720,688,(no Ghidra function),"A-S10: inside Ghidra's 00447F50 body; called only by itself (rel32 scan; no dword in the exe or the Rebirth binaries)"
 0049F890,1616,(no Ghidra function),"A-S10: inside Ghidra's 0049F810 body; keyframe track evaluator, called only from dead code 00448720 (no dword in the exe or the Rebirth binaries)"
 004BFC60,95,FUN_004bfc60,"A-S10: lookup by name in an array of 0xC0-byte records; called only from the dead script dumper 004D41C0"
+006C67E0,208,FUN_006c67e0,A-X6: landscape draw pass variant; its only reference is the call at 006CC944 inside the dead 006CC8D0 (rel32 and dword scan of the exe)
+006C42A0,112,FUN_006c42a0,A-X6: sector draw helper called only from the dead 006C67E0 (006C6874); no dword reference
+006C4310,784,FUN_006c4310,A-X6: sector draw body called only from the dead 006C42A0 (006C42B2); no dword reference

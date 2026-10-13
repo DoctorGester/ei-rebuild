@@ -255,4 +255,16 @@ void __fastcall SpeechFieldVerify(ChunkArchive* ar, void*, int id, SpeechRecord*
 }
 EI_VERIFY(0x006E4F40, SpeechFieldVerify, 5, s_speechField);
 
+// 006D8E30: PUSH ESI; MOV ESI,[ECX]; MOV ECX,[ECX+4] (6 bytes). Pure. From the loader 006D7620 at
+// startup (every scenario), per record of the extras' table.
+acks::ExtraAcks*(__fastcall* s_extraAt)(acks::AckTable<acks::ExtraAcks>*, void*, std::uint32_t);
+
+acks::ExtraAcks* __fastcall ExtraAtVerify(acks::AckTable<acks::ExtraAcks>* self, void*, std::uint32_t index) {
+    acks::ExtraAcks* expected = s_extraAt(self, nullptr, index);
+    ei::verify::Check("AckTable<ExtraAcks>::RecordAt", expected, self->RecordAt(index), "index %u of %u", index,
+                      static_cast<unsigned>(self->records.size()));
+    return expected;
+}
+EI_VERIFY(0x006D8E30, ExtraAtVerify, 6, s_extraAt);
+
 } // namespace

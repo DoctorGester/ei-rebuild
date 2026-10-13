@@ -371,4 +371,97 @@ void __fastcall ClearMapVerify(Terrain* self) {
 }
 EI_VERIFY(0x006C7750, ClearMapVerify, 0, s_clearMap);
 
+// ---- The world matrix, the light interval, water levels, tile texture coordinates (A-X6) -------------
+
+// 006C6070 (slot 14): PUSH EBP; MOV EBP,ESP; SUB ESP,0x28 (6 bytes). From the base's UpdateWorld
+// when the landscape is placed. It writes the world rotation and the world matrix: the original,
+// both put back (the parent may be the landscape's own rotation), ours; the 20 floats compared.
+void(__fastcall* s_combineRotation)(Terrain*, void*, const Quaternion*);
+
+void __fastcall CombineRotationVerify(Terrain* self, void*, const Quaternion* parent) {
+    struct Result {
+        Quaternion rotation;
+        Matrix4 matrix;
+    };
+    const Result before = {self->worldRotation_, self->worldMatrix};
+    s_combineRotation(self, nullptr, parent);
+    const Result expected = {self->worldRotation_, self->worldMatrix};
+    self->worldRotation_ = before.rotation;
+    self->worldMatrix = before.matrix;
+    self->Terrain::CombineRotation(*parent);
+    const Result actual = {self->worldRotation_, self->worldMatrix};
+    const int bad = FirstFar(&expected.rotation.w, &actual.rotation.w, sizeof(Result) / sizeof(float));
+    ei::verify::Check("Terrain::CombineRotation", -1, bad, "first differing float");
+}
+EI_VERIFY(0x006C6070, CombineRotationVerify, 6, s_combineRotation);
+
+// 006C9290: MOV EAX,[ESP+4]; TEST EAX,EAX (6 bytes). From the zone load 00567AB0. The original,
+// the two fields put back, ours; compared.
+void(__fastcall* s_setLightInterval)(Terrain*, void*, int);
+
+void __fastcall SetLightIntervalVerify(Terrain* self, void*, int frames) {
+    const int interval = self->lightInterval;
+    const int countdown = self->lightCountdown;
+    s_setLightInterval(self, nullptr, frames);
+    const int expectedInterval = self->lightInterval;
+    const int expectedCountdown = self->lightCountdown;
+    self->lightInterval = interval;
+    self->lightCountdown = countdown;
+    self->SetLightInterval(frames);
+    ei::verify::Check("Terrain::SetLightInterval", true,
+                      expectedInterval == self->lightInterval && expectedCountdown == self->lightCountdown,
+                      "frames %d: interval %d/%d countdown %d/%d", frames, expectedInterval, self->lightInterval,
+                      expectedCountdown, self->lightCountdown);
+}
+EI_VERIFY(0x006C9290, SetLightIntervalVerify, 6, s_setLightInterval);
+
+// 006CC7F0: PUSH EDI; MOV EDI,[ESP+8] (5 bytes). From TweenArray::Load (a save loaded while a
+// script's SetWaterLevel change is running: scenario terrain_water_load). It writes the material's
+// level and its entry of every sector's level table: the original, those floats put back, ours;
+// compared.
+void(__fastcall* s_setWaterLevel)(Terrain*, void*, int, float);
+
+void __fastcall SetWaterLevelVerify(Terrain* self, void*, int material, float level) {
+    constexpr int kMost = 4096;   // sectors compared
+    static float before[kMost + 1], expected[kMost + 1], actual[kMost + 1];
+    const bool known = material >= 0 && material < self->materials.size;
+    int sectors = known ? self->sectorsX * self->sectorsY : 0;
+    if (sectors > kMost) sectors = kMost;
+    if (sectors < 0) sectors = 0;
+    auto read = [&](float* out) {
+        if (!known) return;
+        out[0] = self->materials[material].level;
+        for (int i = 0; i < sectors; ++i) out[i + 1] = self->waterLevels[i][material];
+    };
+    read(before);
+    s_setWaterLevel(self, nullptr, material, level);
+    read(expected);
+    if (known) {
+        self->materials[material].level = before[0];
+        for (int i = 0; i < sectors; ++i) self->waterLevels[i][material] = before[i + 1];
+    }
+    self->SetWaterLevel(material, level);
+    read(actual);
+    const int bad = known ? FirstFar(expected, actual, sectors + 1) : -1;
+    ei::verify::Check("Terrain::SetWaterLevel", -1, bad, "material %d of %d level %g: first differing entry", material,
+                      self->materials.size, level);
+}
+EI_VERIFY(0x006CC7F0, SetWaterLevelVerify, 5, s_setWaterLevel);
+
+// 006C7940: PUSH EBX; MOV BL,[ESP+0x20] (5 bytes). From the map loader 006C68B0 (every zone load),
+// per tile texture and rotation. The original into a scratch table, ours into the caller's; the 18
+// floats compared.
+void(__fastcall* s_tileUv)(Terrain*, void*, float*, int, int, int, float, float, char);
+
+void __fastcall TileUvVerify(Terrain* self, void*, float* uv, int rotation, int column, int row, float size,
+                             float margin, char wholePage) {
+    float expected[18];
+    s_tileUv(self, nullptr, expected, rotation, column, row, size, margin, wholePage);
+    self->BuildTileUv(uv, rotation, column, row, size, margin, wholePage);
+    ei::verify::Check("Terrain::BuildTileUv", -1, FirstFar(expected, uv, 18),
+                      "rotation %d tile %d,%d size %g margin %g whole %d: first differing float", rotation, column, row,
+                      size, margin, wholePage);
+}
+EI_VERIFY(0x006C7940, TileUvVerify, 5, s_tileUv);
+
 } // namespace

@@ -56,6 +56,7 @@ __declspec(naked) unsigned CArchive::Read(void*, unsigned) EI_ORIGINAL(0x0070883
 __declspec(naked) void CArchive::Write(const void*, unsigned) EI_ORIGINAL(0x00708941)
 __declspec(naked) unsigned long CArchive::ReadCount() EI_ORIGINAL(0x00708B3D)
 __declspec(naked) void CArchive::WriteCount(unsigned long) EI_ORIGINAL(0x00708B0F)
+__declspec(naked) void CArchive::Flush() EI_ORIGINAL(0x007089D1)
 
 __declspec(naked) CPlex* __stdcall PlexCreate(CPlex*&, unsigned, unsigned) EI_ORIGINAL(0x006FE8EF)
 __declspec(naked) void __fastcall PlexFreeDataChain(CPlex*) EI_ORIGINAL(0x006FE90F)

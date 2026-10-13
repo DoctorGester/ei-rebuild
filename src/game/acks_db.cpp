@@ -59,6 +59,12 @@ EI_REPLACE_METHOD(0x006D9A30, AckTable<UnitAcks>::Find);
 EI_REPLACE_METHOD(0x006D9CE0, AckTable<ModelAcks>::Find);
 EI_REPLACE_METHOD(0x006D9F80, AckTable<ExtraAcks>::Find);
 
+template <typename Record>
+Record* AckTable<Record>::RecordAt(std::uint32_t index) {
+    return index < records.size() ? &records[index] : nullptr;
+}
+EI_REPLACE_METHOD(0x006D8E30, AckTable<ExtraAcks>::RecordAt);
+
 // The original gathers the eligible entries into a temporary vector first; counting them and
 // taking the chosen one by index gives the same speech and the same rand() draws.
 const SpeechRecord* __fastcall PickSpeech(const SpeechList* list, void*, int roll) {
