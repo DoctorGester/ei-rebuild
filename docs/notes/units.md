@@ -319,3 +319,50 @@ original, compared: unit 0x4DC, stats 0x704, vitals 0x58); C capture streams; ou
   declares virtual slots 13-41 (named, world.h), so a later non-virtual CWorldServer / CWorldClient member with one of these
   names silently overrides (check_thunks catches it when hooked). The serialisers' verify relies on loading being
   repeatable; `ComposeSkin` and `WearArmourModel` build CString / STLport temporaries in the original's order.
+
+## A-U12 (the range's leftovers, 0x00520000-0x00540000, and the Rebirth-patched loaders)
+
+After this ticket nothing in 0x00520000-0x00540000 is unported. Scenarios per wrapper: the head comments of
+`verify_unit_small_a12.cpp` and `verify_unit_db_load.cpp`.
+
+- **Statistics and database lookups** (`unit_stat_small.cpp`): UnitStats::StrengthRatio / DexterityRatio (00523CB0,
+  00523CC0), the packed vitals / params field wrappers (00523700-00523730), ExcessDamage 00522AE0 (only AX is a result:
+  its caller 005CF9A0 masks every use), MaxDamage 00522B20, SchoolPrice 00527FF0, AttackParams::ScaleForDifficulty
+  0052E0D0, SkillDatabase::SkillAt / LevelAt (00526FF0, 00524FA0), UnitModelAt 00539280, UnitPrototypeAt 0053AD30. All
+  side by side except the field wrappers (ours only; no scenario, the state writers are rewritten and call the field
+  themselves). SchoolPrice truncates a difference of powers: one apart on a rounding edge is accepted (rule 7).
+- **The controllers' base** (`unit_controller_slots.cpp`): the abstract controller's lifetime (00533D90, 00533DB0,
+  00533DD0, 00533DE0) and its empty / constant slots (00533B90-00533D80, 00534130, 00535580; most under five bytes, not
+  hookable), the client controller's path, class name and id (00533DF0, 00533E00, 00533E10),
+  CUnitClientSpecific::SetMarkers 00535240 and DropFaceTexture 00538EA0. Side by side: the names / ids and
+  FiguresLoaded; the rest ours only.
+- **The unit** (`unit_small_methods.cpp`, `unit_client_path.cpp`, `counted_ref.cpp`): the class name / id (0052E280,
+  0052E290), MotionSegmentConstruct 0052E230, CUnit::SetMotionSpeeds 0052EA40, HasPlayer 005301A0, DoubleHeight
+  00530560, WornItem 00530830, ClientMotionChanged 00535B20, CountedListLoad 0052AF20 (a saved game with magic traps or
+  brains). Side by side: the names, HasPlayer, DoubleHeight, WornItem; the rest ours only.
+- **The databases' loads** (`unit_db_load.cpp`; Rebirth patches both, at their file lookup, so these are the vanilla
+  functions and install in the vanilla launch only): UnitDatabase::Load 0053A200 and SkillDatabase::Load 00520220, with
+  the model / level tables' FindByName copies 0053D240 / 0053D650 (operator[] on the name index: an unknown name gets a
+  null entry). `UnitDatabase` (unit_db.h) is now four typed tables (prototypes +0x00, NPCs +0x20, models +0x40, level
+  records +0x60; 0x80 bytes). The unit load makes four passes over one memory stream of `units.udb`, each with an archive
+  of its own: level records (chunk 1), models (2), prototypes (3), NPCs (4), entering every record into its table's
+  name index; then each prototype's modelIndex is the place of the model named by modelName and each model slot's
+  levelIndex the place of the level record named by levelName (-1: none). The skill load reads `perks.pdb`: chunk 1 the
+  skills, chunk 2 the level records (inlined: clear, resize to the count of chunks 1, one chunk 1 per record). Both
+  return 1, or what the fatal error report (00480080) returns when the archive or the file is missing. They call the
+  patched callees through their addresses (OpenResource 00671730, the resource's destructor 006714A0, the fatal error
+  00480080) and the vector serialisers through theirs so that those wrappers still run. Verified ours only (every start
+  of a vanilla launch): the tables are non-empty, every record is found by name in its index, every resolved index lies
+  in its table and names the record it stands for. FindByName is side by side (reached when the original loader runs:
+  every start of a Rebirth launch).
+- **config/library.csv** (STLport / MFC instantiations and unwind-only helpers; each row says why): 00520EF0, 005214B0,
+  00521C40, 0052C6B0, 0052CC30, 0052C8E0, 0052CE20, 0052CEC0, 0052E2C0, 00533720, 005338A0, 005338D0, 00533E20, 00536E30,
+  00539870, 00539910, 00539980, 0053B340, 0053D930, 0053D940, 0053D970, 0053D990, 0053D9B0, 0053EFF0, 0053F010, 0053F020.
+- **Original oddities kept**: both loads return the fatal error report's result on failure and never close the archive
+  on that path (its destructor does); the lookups insert a null entry for every unknown model or level name.
+- **Risks**: the two loads were not run by this worker (no game runs in this session): a wrong step would show at once
+  as a start-up failure of the vanilla launch or in the wrapper's checks. Their temporaries (the key strings of the
+  name index, the archives) are built in the original's order, but the unwind frames are not reproduced.
+- **Still forwarded on purpose**: the name indexes' operator[] (005335E0, 0053C650, 0053C780, 0053C8B0), the vectors'
+  resize / clear and the records' destructors (STLport instantiations, library.csv), the chunk archive's out-of-line
+  destructor 004645A0 (not in this range).
