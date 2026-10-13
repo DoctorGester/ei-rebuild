@@ -6,6 +6,7 @@
 // ours. The lookups are pure and compared.
 #include "verify.h"
 
+#include "../../src/game/core_streams.h"
 #include "../../src/game/spell.h"
 #include "../../src/game/world.h"
 #include "ei/x87.h"
@@ -661,3 +662,29 @@ static void __fastcall ObjectsInRangeVerify(CWorldClient* client, void*, const f
                       p[2], radius, theirs.size(), mine.size());
 }
 EI_VERIFY(0x0056DAF0, ObjectsInRangeVerify, 6, s_inRange);
+
+// A-W13. The item and spell blocks of a zone's state (player_client.cpp's blocks 3 and 5): all ours
+// only (objects are released, created and loaded from the stream, which is consumed). Checked: the
+// results (LoadItemsAndSpells 1; the object reader 0 only on a failed stream; the block 5 reader
+// 0 or 1). Reached when a zone's state arrives: every new game and zone change.
+static int __fastcall LoadItemsAndSpellsVerify(CWorldClient* client, void*, CStream* block) {
+    int result = client->LoadItemsAndSpells(block);
+    ei::verify::Check("CWorldClient::LoadItemsAndSpells", 1, result, "result");
+    return result;
+}
+EI_VERIFY(0x00567A60, LoadItemsAndSpellsVerify, 0, s_unused);
+
+static int __fastcall LoadManagerObjectsVerify(CBaseManager* manager, CStream* stream) {
+    int result = LoadManagerObjects(manager, stream);
+    ei::verify::Check("LoadManagerObjects", true, result == 1 || (result == 0 && !stream->ok_), "result %d ok %d", result,
+                      stream->ok_);
+    return result;
+}
+EI_VERIFY(0x005679A0, LoadManagerObjectsVerify, 0, s_unused);
+
+static int __fastcall LoadNewItemsAndSpellsVerify(CWorldClient* client, void*, CStream* block) {
+    int result = client->LoadNewItemsAndSpells(block);
+    ei::verify::Check("CWorldClient::LoadNewItemsAndSpells", true, result == 0 || result == 1, "result %d", result);
+    return result;
+}
+EI_VERIFY(0x00567950, LoadNewItemsAndSpellsVerify, 0, s_unused);

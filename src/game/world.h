@@ -29,6 +29,9 @@ class CScript;   // script.h
 namespace netlink {
 class NetLink;   // net_link.h
 }
+namespace net {
+struct NetAddress;   // net_classes.h
+}
 class CBaseManager;
 struct CSoundManager;   // sound.h
 class CSectorMap;   // sector_map.h
@@ -1187,6 +1190,13 @@ public:
     // 00563190 (Teardown). The reverse: every item (slot 18's manager) and then every spell (slot
     // 22's) released (slot 4), each manager then emptied (its slot 15, DestroyAll).
     void ReleaseItemsAndSpells();
+    // 00567A60 (RET 4; a zone state's block 3, player_client.cpp; A-W13). The items and spells
+    // replaced: all released, then (a block with data) the spell and item managers loaded (slot 9,
+    // then their objects, 004047E0) and referenced again. Returns 1.
+    int LoadItemsAndSpells(CStream* block);
+    // 00567950 (RET 4; block 5). The block read from its start: the spells and then the items it
+    // lists (LoadManagerObjects). 0 when the block fails.
+    int LoadNewItemsAndSpells(CStream* block);
     // 00564BE0 (RET 4). Takes the object `id` out of the maps: the MFC list +0x1F0 entries for it,
     // its +0xBC node and +0xD8 entry, then (when it is in +0xB8) the +0xB4 entries of a hero with
     // a text-key id (and 00538EA0 on its +0x240 in a session of kind 3), its grid cell and +0xB8;
@@ -1506,6 +1516,12 @@ struct GameFlow {
     // then the server's name ("Server" when empty), +0x25E0, password, listing (not `unlisted`)
     // and +0x25FC are set; between 0057F560 and 0057EB10 (both patched by Rebirth).
     void StartServer(const char* name, int value25E0, int gameType, const char* password, char unlisted, int value25FC);
+    // 0057EA50 (A-W13). Joins as a client only: the server session dropped, a new client session,
+    // then 0057EB10.
+    void StartClient();
+    // 0057E970 (RET 8; `this` is not used). The client session joins the server at `address` with
+    // the password (20 bytes, zero-padded) as its hello.
+    void JoinServer(const net::NetAddress* address, const char* password);
     // The flow's requests (world_game.cpp): the state (+0) the flow's update acts on next, the
     // zone or save name (+4), +0x78 and, for 5 and 6, a copy of a party (+8, 00661300).
     void RequestState3();                                            // 005816C0
@@ -1530,6 +1546,12 @@ struct GameFlow {
     // ticks first; autoplay with +0x78), 3 new game (StartNewGame), 4 zone +4, 5 / 6 multiplayer
     // zone changes with the party copy at +8. Ends with the network pump (004122D0).
     void ProcessRequest();
+    // 0057DEE0 (RET 4; `this` is not used). The resource database follows `network`:
+    // "databaseLMP.res" in a network game, else "database.res". When the name differs from the
+    // last one (007AFDEC, "database.res" at first) the databases are switched (0057CB50, inlined in
+    // the original) and the difficulty (0079BEC0) is saved to 0079BEC4 and cleared (network) or
+    // taken back from it.
+    void UseResources(bool network);
     // 0057ABA0 (RET 4). Loads the game saved in saves\<slot>\ (not in multiplayer, 007B0098 2 or
     // 3): "exec autoexec.cfg", saves\current emptied, scenario.sav read back (the party; by
     // version the input, scripts and globals), the visited zones of the current map copied back
@@ -1723,3 +1745,15 @@ void __fastcall FinalSortByModelUse(CEngineObject** first, CEngineObject** last,
 struct ModelUseLess {
     BOOL Less(CEngineObject* a, CEngineObject* b);
 };
+
+// 005679A0 (ECX manager, EDX stream; world_client_maps.cpp, A-W13). Reads objects up to a zero
+// byte: after each mark an id, a class and the object's +0x18; an object registered under the id
+// is released first (its count raised to 1 when 0), then a new one is created (slot 23), loaded
+// (slot 9) and referenced. 1 at the end mark, 0 when a mark is read from a failed stream.
+int __fastcall LoadManagerObjects(CBaseManager* manager, CStream* stream);
+
+// 0057CB50 (ECX: the database's file name; world_game.cpp, A-W13). Every resource database destroyed
+// and constructed again in place (the compiler-generated resets 0057CBE0, 0057CD60, 0057CE80,
+// 0057D340) and loaded from "<resources (0079BC94)><name>": the units (0053A200, then their sound
+// file counts, 0053A8E0), the skills (00520220), the spell tables (00684550), the items (006A67A0).
+void __fastcall SwitchResourceDatabases(const char* name);

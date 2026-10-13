@@ -4348,3 +4348,6 @@ address,name,library,signature,notes
 00589860,"destructor of a record of two vectors of STLport strings (12-byte elements) and two 0043B310 members",compiler,,"A-W13 review: compiler-generated (00684390, 00684C50, 00589840 and unwinding)"
 00583CB0,"vector<string>::erase(first, last) (12-byte STLport strings: assigned down, the tail destroyed)",STLport,,"A-W13 review: STLport template instantiation"
 0056D080,"destructor of a record of three delete[] arrays, a counted pointer and an STLport vector block",compiler,,"A-W13 review: compiler-generated (00563290, 00572550, 00575540)"
+005896D0,"__uninitialized_fill_n (12-byte records: two CStrings and an int, copy-constructed n times)",STLport,,"A-W13 review: STLport template instantiation (vector insert 00587480)"
+00589610,"__uninitialized_copy (the same 12-byte records)",STLport,,"A-W13 review: STLport template instantiation (vector insert 00587480)"
+005CD5B0,"CList<TYPE,ARG_TYPE>::RemoveAt (elements of two counted pointers, released by the inlined FreeNode; RemoveAll when the list empties)",MFC,,"A-W13 review: MFC template instantiation (005CC020)"

@@ -13,6 +13,7 @@
 #include "base_manager.h"
 #include "camera.h"
 #include "console.h"
+#include "core_streams.h"
 #include "effects.h"
 #include "game_strings.h"
 #include "map_object.h"
@@ -1353,6 +1354,53 @@ void CWorldClient::ReleaseItemsAndSpells() {
         SpellManager()->DestroyAll();
     }
 }
+
+// ---- The item and spell blocks of a zone's state (00567A60, 00567950, 005679A0; A-W13) -----------
+
+int CWorldClient::LoadItemsAndSpells(CStream* block) {
+    ReleaseItemsAndSpells();
+    if (block->Size() != 0) {
+        manager4C_->Load(block);
+        itemManager_->Load(block);
+        static_cast<CBaseManager*>(manager4C_)->LoadObjects(block);
+        static_cast<CBaseManager*>(itemManager_)->LoadObjects(block);
+        ClientReferenceItemsAndSpellsOriginal(this);
+    }
+    return 1;
+}
+EI_REPLACE_METHOD(0x00567A60, CWorldClient::LoadItemsAndSpells);
+
+int __fastcall LoadManagerObjects(CBaseManager* manager, CStream* stream) {
+    for (;;) {
+        std::uint8_t more;
+        stream->Read(&more, 1);
+        if (more == 0) return 1;
+        if (!stream->ok_) return 0;
+        int id;
+        int type;
+        std::uint32_t extra;
+        stream->Read(&id, 4);
+        stream->Read(&type, 4);
+        stream->Read(&extra, 4);
+        if (CEngineObject* old = manager->FindObject(static_cast<unsigned>(id))) {
+            if (old->refCount_ == 0) old->refCount_ = 1;
+            old->Release();
+        }
+        CEngineObject* object = manager->CreateObject(type, id);
+        object->unknown_18 = extra;
+        object->Load(stream);
+        ++object->refCount_;
+    }
+}
+EI_REPLACE(0x005679A0, LoadManagerObjects);
+
+int CWorldClient::LoadNewItemsAndSpells(CStream* block) {
+    block->Seek(0);
+    block->ok_ = 1;
+    if (!ClientLoadManagerObjectsOriginal(SpellManager(), block)) return 0;
+    return ClientLoadManagerObjectsOriginal(static_cast<CBaseManager*>(ItemFactory()), block) != 0;
+}
+EI_REPLACE_METHOD(0x00567950, CWorldClient::LoadNewItemsAndSpells);
 
 EI_REPLACE_METHOD(0x00561E50, CWorldClient::Setup);
 EI_REPLACE_METHOD(0x00560650, PlatformSet::AddFace);

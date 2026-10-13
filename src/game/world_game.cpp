@@ -17,6 +17,7 @@
 #include "object_tables.h"
 #include "player_messages.h"
 #include "unit.h"
+#include "unit_db.h"
 
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -1188,6 +1189,27 @@ void GameFlow::StartServer(const char* name, int value25E0, int gameType, const 
     FlowAfterServer(this, nullptr);
 }
 
+void GameFlow::StartClient() {
+    net::NetLog() = reinterpret_cast<net::LogStream*>(kNetLogStream);
+    SessionRefAssign(&net::GameServer(), nullptr, nullptr);
+    void* memory = net::NewRefObject(sizeof(net::ClientSession));
+    net::ClientSession* client = memory ? ClientSessionNew(memory, nullptr) : nullptr;
+    SessionRefAssign(&net::GameClient(), nullptr, client);
+    FlowAfterServer(this, nullptr);
+}
+EI_REPLACE_METHOD(0x0057EA50, GameFlow::StartClient);
+
+void GameFlow::JoinServer(const net::NetAddress* address, const char* password) {
+    GameBuffer hello;
+    GrowingBufferConstruct(&hello);
+    char secret[kPasswordSize] = {};
+    if (password) GameStrncpy(secret, password, kPasswordSize);
+    BufferPut(&hello, nullptr, secret, static_cast<int>(kPasswordSize));
+    ClientConnect(net::GameClient(), nullptr, const_cast<net::NetAddress*>(address), &hello);
+    GrowingBufferDestruct(&hello);
+}
+EI_REPLACE_METHOD(0x0057E970, GameFlow::JoinServer);
+
 // ---- AcceptPlayers --------------------------------------------------------------------------------
 
 namespace {
@@ -1582,8 +1604,51 @@ std::uint8_t& LastResourcesGuard() { return *reinterpret_cast<std::uint8_t*>(0x0
 int& SavedSpectator() { return *reinterpret_cast<int*>(0x0079BEC4); }
 int& Spectator0() { return *reinterpret_cast<int*>(0x0079BEC0); }
 std::uint8_t& AutoplayOn() { return *reinterpret_cast<std::uint8_t*>(0x007B007C); }
+// The resource directory (the CString 0079BC94), the sound system (007AF784) and the spell tables /
+// item database globals the switch reloads.
+const char* ResourcesPath() { return *reinterpret_cast<const char* const*>(std::uintptr_t(0x0079BC94)); }
+void* SoundSystemObject() { return *reinterpret_cast<void* const*>(std::uintptr_t(0x007AF784)); }
+UnitDatabase* UnitDatabaseObject() { return reinterpret_cast<UnitDatabase*>(std::uintptr_t(0x007AF358)); }
+void* SpellTablesObject() { return reinterpret_cast<void*>(std::uintptr_t(0x007C8510)); }
+void* ItemDatabaseObject() { return reinterpret_cast<void*>(std::uintptr_t(0x007C86D8)); }
 
 } // namespace
+
+void __fastcall SwitchResourceDatabases(const char* name) {
+    UnitDatabase* units = UnitDatabaseObject();
+    UnitDatabaseResetOriginal(units);
+    UnitDatabaseLoadOriginal(units, nullptr, ResourcesPath(), name);
+    units->CountSoundFiles(SoundSystemObject());
+    SkillDatabaseResetOriginal(SkillDb());
+    SkillDatabaseLoadOriginal(SkillDb(), nullptr, ResourcesPath(), name);
+    SpellTablesResetOriginal(SpellTablesObject());
+    SpellTablesLoadOriginal(SpellTablesObject(), nullptr, ResourcesPath(), name);
+    ItemDatabaseResetOriginal(ItemDatabaseObject());
+    ItemDatabaseLoadOriginal(ItemDatabaseObject(), nullptr, ResourcesPath(), name);
+}
+EI_REPLACE(0x0057CB50, SwitchResourceDatabases);
+
+void GameFlow::UseResources(bool network) {
+    if (!(LastResourcesGuard() & 1)) {
+        LastResourcesGuard() |= 1;
+        new (&LastResources()) mfc::CString(Text(kResourcesSingle));
+        GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x0057E6A0));
+    }
+    mfc::CString wanted(Text(network ? kResourcesNetwork : kResourcesSingle));
+    if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(wanted)),
+                        reinterpret_cast<const unsigned char*>(static_cast<const char*>(LastResources()))) == 0)
+        return;
+    LastResources() = wanted;
+    SwitchResources(wanted);
+    if (network) {
+        int value = Spectator0();
+        Spectator0() = 0;
+        SavedSpectator() = value;
+    } else {
+        Spectator0() = SavedSpectator();
+    }
+}
+EI_REPLACE_METHOD(0x0057DEE0, GameFlow::UseResources);
 
 void GameFlow::ProcessRequest() {
     int& state = state_;
@@ -1601,27 +1666,8 @@ void GameFlow::ProcessRequest() {
     }
     InterfaceCloseAll(reinterpret_cast<void*>(0x007C7D50));
     WorldTeardownZone(World(), nullptr);
-    bool network = Active(net::GameClient());
-    if (!(LastResourcesGuard() & 1)) {
-        LastResourcesGuard() |= 1;
-        new (&LastResources()) mfc::CString(Text(kResourcesSingle));
-        GameAtExit(reinterpret_cast<void(__cdecl*)()>(0x0057E6A0));
-    }
-    {
-        mfc::CString wanted(Text(network ? kResourcesNetwork : kResourcesSingle));
-        if (gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(wanted)),
-                            reinterpret_cast<const unsigned char*>(static_cast<const char*>(LastResources()))) != 0) {
-            LastResources() = wanted;
-            SwitchResources(wanted);
-            if (network) {
-                int value = Spectator0();
-                Spectator0() = 0;
-                SavedSpectator() = value;
-            } else {
-                Spectator0() = SavedSpectator();
-            }
-        }
-    }
+    // (0057DEE0's body is inlined here in the original, with the databases' switch 0057CB50 out of line.)
+    UseResources(Active(net::GameClient()));
 
     auto* clientWorld = reinterpret_cast<void*>(0x007AF5B8);
     switch (state) {

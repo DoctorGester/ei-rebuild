@@ -2,6 +2,7 @@
 // and script state, so only ours runs and the result is checked.
 #include "verify.h"
 
+#include "../../src/game/unit_db.h"
 #include "../../src/game/world.h"
 
 #include "ei/rebirth.h"
@@ -226,6 +227,23 @@ static void __fastcall StartServerVerify(GameFlow* self, void*, const char* name
 }
 EI_VERIFY(0x0057E740, StartServerVerify, 0, s_unused);
 
+// A-W13. 0057EA50: afterwards there is no server session and a client session. 0057E970 sends the
+// join request: the client session is still there. Both ours only (sessions are created and a
+// connection is opened); reached from the multiplayer connect screens only.
+static void __fastcall StartClientVerify(GameFlow* self, void*) {
+    self->StartClient();
+    auto* server = *reinterpret_cast<std::uint8_t**>(0x0079B5DC);
+    auto* client = *reinterpret_cast<std::uint8_t**>(0x0079B5D8);
+    ei::verify::Check("GameFlow::StartClient", true, server == nullptr && client != nullptr, "%p %p", server, client);
+}
+EI_VERIFY(0x0057EA50, StartClientVerify, 0, s_unused);
+
+static void __fastcall JoinServerVerify(GameFlow* self, void*, const net::NetAddress* address, const char* password) {
+    self->JoinServer(address, password);
+    ei::verify::Check("GameFlow::JoinServer", true, *reinterpret_cast<void**>(0x0079B5D8) != nullptr, "%p", address);
+}
+EI_VERIFY(0x0057E970, JoinServerVerify, 0, s_unused);
+
 // 0058DAF0: no players are lost.
 static void __fastcall AcceptPlayersVerify(CWorldServer* self, void*, void* lobby) {
     auto count = [self] {
@@ -383,3 +401,24 @@ static int __fastcall LoadGameVerify(GameFlow* self, void*, const char* slot) {
     return result;
 }
 EI_VERIFY(0x0057ABA0, LoadGameVerify, 0, s_unused);
+
+// A-W13. 0057CB50 reloads the four resource databases (files read, every table rebuilt): ours only;
+// "database.res" and "databaseLMP.res" both hold unit models and skills. Reached when the database
+// changes: entering or leaving a network game (the multiplayer hero screen, back to the main menu).
+static void __fastcall SwitchResourceDatabasesVerify(const char* name) {
+    SwitchResourceDatabases(name);
+    const auto* units = reinterpret_cast<const UnitDatabase*>(0x007AF358);
+    bool ok = units->modelsBegin != units->modelsEnd && SkillDb()->skills.size() != 0;
+    ei::verify::Check("SwitchResourceDatabases", true, ok, "%s", name);
+}
+EI_VERIFY(0x0057CB50, SwitchResourceDatabasesVerify, 0, s_unused);
+
+// 0057DEE0: ours only (it may switch the databases). Afterwards the last database name (007AFDEC) is
+// the one asked for. The main menu's Create, the multiplayer hero screen and every request.
+static void __fastcall UseResourcesVerify(GameFlow* self, void*, bool network) {
+    self->UseResources(network);
+    const char* last = *reinterpret_cast<const char* const*>(0x007AFDEC);
+    const char* wanted = network ? "databaseLMP.res" : "database.res";
+    ei::verify::Check("GameFlow::UseResources", true, std::strcmp(last, wanted) == 0, "%s, wanted %s", last, wanted);
+}
+EI_VERIFY(0x0057DEE0, UseResourcesVerify, 0, s_unused);
