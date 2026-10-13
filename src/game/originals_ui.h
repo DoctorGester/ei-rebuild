@@ -469,6 +469,9 @@ __declspec(naked) inline void __fastcall GameRequestScreenOriginal(void* /*glue*
 // it (0058D280). The objectives window's exits and the global map's links call it before the zone change.
 __declspec(naked) inline void __fastcall PassTravelTimeOriginal(void* /*glue*/, void*, float /*distance*/)
     EI_ORIGINAL(0x00578700)
+// 0065C2D0 (thiscall on an edit window, RET 4): its editing switched on (1) or off (0). The multiplayer hero screen's
+// name and rename edit windows.
+__declspec(naked) inline void __fastcall EditFieldActivateOriginal(void* /*edit*/, void*, int /*on*/) EI_ORIGINAL(0x0065C2D0)
 // 006B4E20 (on the music system [007AF760], ECX not read): the sound manager's stream fades in (006BAFE0). 0066ED30
 // (rewritten as CPlayerServer::SendPosition04; through its address so the wrapper runs; RET 0xC): message 0x04, a
 // position and two dwords. 00592090 (rewritten as CWorldServer::CompleteBriefing; through its address so the wrapper

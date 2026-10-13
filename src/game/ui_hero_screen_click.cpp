@@ -52,7 +52,7 @@ __declspec(naked) void __fastcall ClampVoiceAt(CMpHeroScreen*) EI_ORIGINAL(0x006
 __declspec(naked) void __fastcall StatsSetHero(void*, void*, int, void*) EI_ORIGINAL(0x006232D0)
 __declspec(naked) void __fastcall TradeSetHero(void*, void*, int, int) EI_ORIGINAL(0x006255A0)
 void EditSetText(void* edit, void*, const void* text) { EditFieldSetTextOriginal(edit, nullptr, text); }
-__declspec(naked) void __fastcall EditActivate(void*, void*, int) EI_ORIGINAL(0x0065C2D0)
+void EditActivate(void* edit, void*, int on) { EditFieldActivateOriginal(edit, nullptr, on); }
 // Surfaces: 005FDC00 / 005FE2F0 / 005FDC60 (GetDC, clear, ReleaseDC), 005FD760 (RET 8) Freeze.
 struct SurfaceDraw {
     void* Begin() { return SurfaceGetDC(this); }   // 005FDC00

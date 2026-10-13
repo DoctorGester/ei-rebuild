@@ -445,6 +445,21 @@ public:
     // "<the highest number among the folder's *.mp titles + 1>.mp", given the local party and
     // saved (00662AC0); the list's scroll range, the list drawn, mode 9.
     void AddNewHero();
+    // 00615D30 (RET 4; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
+    // only; ui_hero_screen_mode.cpp; rewritten callers go through their forwarder). The screen
+    // laid out for `mode`. First everything off: the menu model's parts, the nine child windows,
+    // every sprite and surface, the regions after the ninth removed and the others' tips emptied.
+    // 9, the hero list: the model's "but03" and "button03_multiplayer", the list's scroll bar, all
+    // sprites but 7-9, the four frame quarters (sprites 3-6), the buttons' regions and tips,
+    // surfaces 0 and 1, the name edit off, the selection frame (sprite 2), ten list rows as
+    // regions and the selected hero shown. 10, the new hero: the voices' scroll bar, sprites 3-9,
+    // the quarters, the bars at 300, the statistics panel and both figure strips, the regions
+    // and tips, the name edit on and editing, surface 2, the selection frame, eleven voice rows
+    // and the voices drawn. 11, its statistics: sprites 7-9, the bars at 400, the equipment,
+    // spell, trade and statistics panels, two regions and three tips, surface 2, the name edit
+    // off, the trade panel's hero 0. Last, for every mode: the description panel emptied, the
+    // statistics panel's page `mode`, mode_.
+    void SetModeVanilla(int mode);
     // The hero list's scroll bar after the count changed (DeleteHero and AddNewHero inline it):
     // range count - 10 keeping the position, or 0 with the top row 0.
     void RefreshHeroScroll();
@@ -453,7 +468,8 @@ public:
     std::uint8_t unknown_148[0x164 - 0x148];
     CItemInfoPanel* descPanel_; // +0x164 the description panel
     std::uint8_t* hoveredItem_; // +0x168 the item under the mouse (set by Draw)
-    std::uint8_t unknown_16C[0x190 - 0x16C];
+    CItemIconWindow* iconWindow_;   // +0x16C the item screens' icon window (its two bars, PlaceBars)
+    std::uint8_t unknown_170[0x190 - 0x170];
     int mode_;                  // +0x190 9, 10, 11
     int heroIndex_;             // +0x194 selected hero
     void* heroScroll_;          // +0x198 scroll bar of the hero list
