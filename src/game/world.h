@@ -233,7 +233,8 @@ public:
     virtual CEngineObject* DuplicateItem(CEngineObject* item);
     virtual void TexturePath();           // 25: client 00561890 (the CString +0x224, "textures\"), server 0
     virtual int IsServer();               // 26: 1 for the server (0058A380), 0 for the client (0055EB30)
-    virtual void GridHeightAt();          // 27: the terrain height, (x, y) server CWorldServer::GridHeight 00594220, client 00563F70
+    // 27: the terrain height at (x, y), in ST0 (RET 8): server CWorldServer::GridHeight 00594220, client 00563F70.
+    virtual double GridHeightAt(float x, float y);
     // 28: the server's AI map height (0058A390), client 00564070; in ST0 (RET 8).
     virtual double RawSurfaceHeightAt(float x, float y);
     // 29 / 30: the ground height and the height of the water surface at (x, y), in ST0 (server
@@ -261,9 +262,15 @@ public:
     // unit_client_path.cpp reach it through VCall).
     virtual void MoveObject(CEngineObject* object, const float* position);
 
-    // 0055FC10 (not rewritten; world_client.cpp forwards it). Whether the hour of the day is
-    // before 6 or from 22 on.
+    // 0055FC10 (world_time.cpp). Whether the hour of the day is before 6 or from 22 on (a NaN
+    // counts as night).
     BOOL IsNight();
+    // 0055FBD0 (RET 8; world_time.cpp; the world's save and the players' time message). The time
+    // of day in hours and the time speed (1 / (seconds per tick * 15)), both stored as floats.
+    void GetTime(float* hours, float* speed);
+    // 0055FAE0 (RET 4; world_create.cpp; the client's slot 40). The map object manager's (slot 19)
+    // object with this id, or null.
+    CEngineObject* FindMapObject(int id);
     // 0055FCB0 (world_time.cpp). Stores the wind direction (+0x24) and strength (+0x30).
     void SetWind(const Vector3* direction, float strength);
     // 0055FB00 (RET 4; world_create.cpp). The world object with this id (slot 40) when it is a
@@ -583,6 +590,11 @@ public:
     // the item's count drops, and so does the count of the party's item it was made from (the
     // link at +0x1C) when the unit's player has a record for the unit.
     void UseItemUp(class CUnit* unit, class CItem* item);
+    // The server's height slots (world_server.cpp; ST0, RET 8). 0058A390 (slot 28): the AI map's
+    // top height at (x, y, 0). 0058A3D0 / 0058A3F0 (slots 29 / 30): slot 27 / slot 28 as they are.
+    double ServerRawSurfaceHeight(float x, float y);
+    double ServerGroundHeight(float x, float y);
+    double ServerSurfaceHeight(float x, float y);
     // 005951A0. After a fresh zone is loaded: the map objects that are not part of the map
     // (slot 29) move from the map-object maps to +0x12D88 and are sent, with the zone header
     // (+0x12E00, reset first), through a temporary player.
@@ -1318,6 +1330,25 @@ public:
     // 00564190 (RET 8; the server's message 0x72). The wind: stored (CWorld::SetWind), given to the
     // terrain's waves (a copy of the direction) and to the rain and snow (+0x6F4).
     void ApplyWind(const Vector3* direction, float strength);
+    // The client's height slots 29 / 30 (005618E0 / 00561930; ST0, RET 8): slot 27 / slot 28 at
+    // (x, y), stored as a float and raised to the platforms over the point (PlatformSet::
+    // SurfaceHeight).
+    double ClientGroundHeight(float x, float y);
+    double ClientSurfaceHeight(float x, float y);
+    // 0056CE40 (RET 0xC; the server's number messages, a living object's hit). A number over the
+    // unit with id `id` (the flying hit points, +0x1B4); nothing for another object or without them.
+    void ShowNumber(int id, int value, std::uint32_t kind);
+    // 0056DE80 (the client's game state 3). Every unit among the objects (+0xB8) has its
+    // controller load the face texture (00538DB0).
+    void LoadUnitFaces();
+    // 00578A60 (RET 4; the glue 00578A40). The target zone of exit `index` (the original copies
+    // the exit out of the array and returns the copy's text, which shares the element's buffer).
+    const char* ExitTarget(int index);
+    // 00567400 (RET 4; the glue 005789E0). Removes the units of a record array (each record's unit
+    // id, +0x1C) from the world.
+    void RemoveUnitsOf(const RecordPtrArray* records);
+    // 00566330 (RET 4; the glue 00578D30). The local client sends its message 0x10 with `value`.
+    int SendFlag10(int value);
     // 005662B0 (RET 4; the server's camera placement message). The camera looks at the point (x, y)
     // at its own focus height, with its view applied and kept above the objects. Returns 1.
     int CentreOn(const Vector3* point);

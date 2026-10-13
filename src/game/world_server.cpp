@@ -2,6 +2,7 @@
 // the id maps. See world.h.
 #include "world.h"
 
+#include "ai_map.h"
 #include "core_maths.h"
 #include "script.h"
 
@@ -286,6 +287,18 @@ CEngineObject* ObjectMapIterator::Next() {
 }
 EI_REPLACE_METHOD(0x0059AF80, ObjectMapIterator::Next);
 EI_REPLACE_METHOD(0x0059B050, ObjectMapIterator::Next);   // byte-identical instantiation
+
+double CWorldServer::ServerRawSurfaceHeight(float x, float y) {
+    Vector3 point = {x, y, 0.0f};
+    return AIMap()->TopHeightAt(&point);
+}
+EI_REPLACE_METHOD(0x0058A390, CWorldServer::ServerRawSurfaceHeight);
+
+double CWorldServer::ServerGroundHeight(float x, float y) { return GridHeightAt(x, y); }
+EI_REPLACE_METHOD(0x0058A3D0, CWorldServer::ServerGroundHeight);
+
+double CWorldServer::ServerSurfaceHeight(float x, float y) { return RawSurfaceHeightAt(x, y); }
+EI_REPLACE_METHOD(0x0058A3F0, CWorldServer::ServerSurfaceHeight);
 
 EI_REPLACE_METHOD(0x005935C0, CWorldServer::RemoveObject);
 EI_REBIRTH_IMPLEMENTS(0x005935C0, ei::rebirth::Patch::FixRemoveMapObject);

@@ -862,3 +862,37 @@ static int __fastcall CentreOnVerify(CWorldClient* self, void*, const Vector3* p
     return result;
 }
 EI_VERIFY(0x005662B0, CentreOnVerify, 0, s_unused);
+
+// A-W13. The client's height slots 005618E0 / 00561930: SUB ESP,0xC; MOV EAX,[ESP+0x10] (7 bytes).
+// Pure; compared as floats. The units' and effects' ground heights (`newgame`).
+using ClientHeightFn = double(__fastcall*)(CWorldClient*, void*, float, float);
+static ClientHeightFn s_clientGroundHeight, s_clientSurfaceHeight;
+static double __fastcall ClientGroundHeightVerify(CWorldClient* self, void*, float x, float y) {
+    float expected = static_cast<float>(s_clientGroundHeight(self, nullptr, x, y));
+    double result = self->ClientGroundHeight(x, y);
+    ei::verify::CheckNear("CWorldClient::ClientGroundHeight", expected, static_cast<float>(result), "(%g, %g)", x, y);
+    return result;
+}
+EI_VERIFY(0x005618E0, ClientGroundHeightVerify, 7, s_clientGroundHeight);
+
+static double __fastcall ClientSurfaceHeightVerify(CWorldClient* self, void*, float x, float y) {
+    float expected = static_cast<float>(s_clientSurfaceHeight(self, nullptr, x, y));
+    double result = self->ClientSurfaceHeight(x, y);
+    ei::verify::CheckNear("CWorldClient::ClientSurfaceHeight", expected, static_cast<float>(result), "(%g, %g)", x, y);
+    return result;
+}
+EI_VERIFY(0x00561930, ClientSurfaceHeightVerify, 7, s_clientSurfaceHeight);
+
+// 0056CE40 ShowNumber / 0056DE80 LoadUnitFaces: ours only (a number is queued; textures load);
+// logged. Hits and experience in a fight (`newgame` with a fight) / the client's game state 3.
+static void __fastcall ShowNumberVerify(CWorldClient* self, void*, int id, int value, std::uint32_t kind) {
+    self->ShowNumber(id, value, kind);
+    ei::verify::Check("CWorldClient::ShowNumber", true, true, "id %d value %d kind %u", id, value, kind);
+}
+EI_VERIFY(0x0056CE40, ShowNumberVerify, 0, s_unused);
+
+static void __fastcall LoadUnitFacesVerify(CWorldClient* self) {
+    self->LoadUnitFaces();
+    ei::verify::Check("CWorldClient::LoadUnitFaces", true, true, "");
+}
+EI_VERIFY(0x0056DE80, LoadUnitFacesVerify, 0, s_unused);

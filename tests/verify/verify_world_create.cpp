@@ -51,3 +51,13 @@ static CEngineObject* __fastcall FindUnitVerify(CWorld* self, void*, int id) {
     return actual;
 }
 EI_VERIFY(0x0055FB00, FindUnitVerify, 6, s_findUnit);
+
+// 0055FAE0 FindMapObject: MOV EAX,[ESP+4]; MOV EDX,[ECX] (6 bytes). Pure.
+static CEngineObject*(__fastcall* s_findMapObject)(CWorld*, void*, int);
+static CEngineObject* __fastcall FindMapObjectVerify(CWorld* self, void*, int id) {
+    CEngineObject* expected = s_findMapObject(self, nullptr, id);
+    CEngineObject* actual = self->FindMapObject(id);
+    ei::verify::Check("CWorld::FindMapObject", expected, actual, "id %d", id);
+    return actual;
+}
+EI_VERIFY(0x0055FAE0, FindMapObjectVerify, 6, s_findMapObject);

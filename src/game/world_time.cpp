@@ -44,6 +44,23 @@ double CWorld::NightLevel() {
 }
 EI_REPLACE_METHOD(0x0055FC50, CWorld::NightLevel);
 
+BOOL CWorld::IsNight() {
+    double hours = std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, kHoursPerDay);
+    // FCOM 22 and FCOMP 6, each with TEST AH,1: a NaN is below both.
+    if (hours >= 22.0) return 1;
+    if (!(hours >= 6.0)) return 1;
+    return 0;
+}
+EI_REPLACE_METHOD(0x0055FC10, CWorld::IsNight);
+
+void CWorld::GetTime(float* hours, float* speed) {
+    *hours = static_cast<float>(std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, kHoursPerDay));
+    // 1 / (seconds per tick * 15), the product formed first.
+    volatile double perSecond = static_cast<double>(secondsPerTick_) * 15.0;
+    *speed = static_cast<float>(1.0 / perSecond);
+}
+EI_REPLACE_METHOD(0x0055FBD0, CWorld::GetTime);
+
 void CWorld::SetWind(const Vector3* direction, float strength) {
     std::memcpy(unknown24_, direction, sizeof(unknown24_));
     std::memcpy(&unknown30_, &strength, sizeof(unknown30_));

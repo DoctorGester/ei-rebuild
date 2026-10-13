@@ -100,3 +100,8 @@ __declspec(naked) inline void* __fastcall NamedTableConstructOriginal(void* /*ta
 // 006714A0: CMappedResource's destructor body at its original address. Rebirth patches it (it then runs Rebirth's
 // version); in the vanilla launch the address leads to CMappedResource::Destroy.
 __declspec(naked) inline void __fastcall MappedResourceDestroyOriginal(CMappedResource*) EI_ORIGINAL(0x006714A0)
+// A-W13. 0040ECD0 (RET 8; not rewritten): the camera loads the recorded path file `name` into its keys (+0x2F0, count
+// +0x2F4; the old keys freed); 0 when it fails. The glue passes `flag` on (0 from 00578880).
+class CCamera;
+__declspec(naked) inline int __fastcall CameraLoadPathOriginal(CCamera* /*camera*/, void*, const char* /*name*/, int /*flag*/)
+    EI_ORIGINAL(0x0040ECD0)

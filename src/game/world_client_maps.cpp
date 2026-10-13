@@ -36,6 +36,9 @@
 #include "originals_world.h"
 #include "originals_units.h"
 #include "originals_gameplay.h"
+#include "player_client.h"
+#include "ui_flying_hit_points.h"
+#include "unit_client_models.h"
 
 #include <windows.h>
 
@@ -432,6 +435,44 @@ int CWorldClient::CentreOn(const Vector3* point) {
     camera_->ApplyView();
     camera_->ClampAboveObjects();
     return 1;
+}
+
+double CWorldClient::ClientGroundHeight(float x, float y) {
+    Vector3 point = {x, y, 0.0f};
+    float height = static_cast<float>(GridHeightAt(x, y));
+    return platforms_.SurfaceHeight(&point, height);
+}
+
+double CWorldClient::ClientSurfaceHeight(float x, float y) {
+    Vector3 point = {x, y, 0.0f};
+    float height = static_cast<float>(RawSurfaceHeightAt(x, y));
+    return platforms_.SurfaceHeight(&point, height);
+}
+
+void CWorldClient::ShowNumber(int id, int value, std::uint32_t kind) {
+    CEngineObject* object = static_cast<CBaseManager*>(MapObjectManager())->FindObject(static_cast<unsigned>(id));
+    if (!object || object->GetClassId() != world::kClassUnit) return;
+    if (numbers_) reinterpret_cast<CFlyingHitPoints*>(numbers_)->Add(id, value, kind);
+}
+
+void CWorldClient::LoadUnitFaces() {
+    for (SectorListNode* node = objects_.head->next; node != objects_.head; node = node->next) {
+        CEngineObject* object = node->data;
+        if (object->GetClassId() != world::kClassUnit) continue;
+        if (!node->data) continue;   // the original tests the pointer after the class call
+        static_cast<CUnitClientSpecific*>(static_cast<CUnit*>(node->data)->controller)->LoadFaceTexture();
+    }
+}
+
+const char* CWorldClient::ExitTarget(int index) { return exits_[index].target; }
+
+void CWorldClient::RemoveUnitsOf(const RecordPtrArray* records) {
+    for (int i = 0; i < records->size; ++i)
+        RemoveObject(static_cast<int>(reinterpret_cast<PartyUnitRecord*>(records->data[i])->unknown_01C));
+}
+
+int CWorldClient::SendFlag10(int value) {
+    return Session()->LocalClient()->SendFlag10(static_cast<std::uint8_t>(value));
 }
 
 void CWorldClient::DropShadows() {
@@ -1558,6 +1599,13 @@ EI_REPLACE_METHOD(0x005656A0, CWorldClient::UnitsInBox);
 EI_REPLACE_METHOD(0x0056D740, CWorldClient::MarkFootprintsInSight);
 EI_REPLACE_METHOD(0x00564190, CWorldClient::ApplyWind);
 EI_REPLACE_METHOD(0x005662B0, CWorldClient::CentreOn);
+EI_REPLACE_METHOD(0x00578A60, CWorldClient::ExitTarget);
+EI_REPLACE_METHOD(0x005618E0, CWorldClient::ClientGroundHeight);
+EI_REPLACE_METHOD(0x00561930, CWorldClient::ClientSurfaceHeight);
+EI_REPLACE_METHOD(0x0056CE40, CWorldClient::ShowNumber);
+EI_REPLACE_METHOD(0x0056DE80, CWorldClient::LoadUnitFaces);
+EI_REPLACE_METHOD(0x00567400, CWorldClient::RemoveUnitsOf);
+EI_REPLACE_METHOD(0x00566330, CWorldClient::SendFlag10);
 EI_REPLACE_METHOD(0x00570860, SectorGrid::Move);
 EI_REPLACE_METHOD(0x00570BB0, SectorGrid::Move2);
 EI_REPLACE(0x00571D50, MarkWithinRadius);

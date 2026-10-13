@@ -99,3 +99,25 @@ static double __fastcall NightLevelVerify(CWorld* self) {
     return result;
 }
 EI_VERIFY(0x0055FC50, NightLevelVerify, 7, s_nightLevel);
+
+// 0055FC10 IsNight: FILD [ECX+0x64]; FMUL [ECX+0x20] (6 bytes). Pure.
+static BOOL(__fastcall* s_isNight)(CWorld*);
+static BOOL __fastcall IsNightVerify(CWorld* self) {
+    BOOL expected = s_isNight(self);
+    BOOL result = self->IsNight();
+    ei::verify::Check("CWorld::IsNight", expected, result, "tick %d", self->tick_);
+    return result;
+}
+EI_VERIFY(0x0055FC10, IsNightVerify, 6, s_isNight);
+
+// 0055FBD0 GetTime: PUSH ESI; MOV ESI,ECX; FILD [ESI+0x64] (6 bytes). The original writes scratch
+// floats. The world's save and the players' time message.
+static void(__fastcall* s_getTime)(CWorld*, void*, float*, float*);
+static void __fastcall GetTimeVerify(CWorld* self, void*, float* hours, float* speed) {
+    float theirHours = 0.0f, theirSpeed = 0.0f;
+    s_getTime(self, nullptr, &theirHours, &theirSpeed);
+    self->GetTime(hours, speed);
+    ei::verify::CheckNear("CWorld::GetTime hours", theirHours, *hours, "tick %d", self->tick_);
+    ei::verify::CheckNear("CWorld::GetTime speed", theirSpeed, *speed, "tick %d", self->tick_);
+}
+EI_VERIFY(0x0055FBD0, GetTimeVerify, 6, s_getTime);

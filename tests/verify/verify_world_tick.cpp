@@ -226,3 +226,32 @@ EI_VERIFY(0x0059AF20, IterFirstVerifyA, 5, s_iterFirstA);
 EI_VERIFY(0x0059AFF0, IterFirstVerifyB, 5, s_iterFirstB);
 EI_VERIFY(0x0059AF80, IterNextVerifyA, 5, s_iterNextA);
 EI_VERIFY(0x0059B050, IterNextVerifyB, 5, s_iterNextB);
+
+// A-W13. The server's height slots: 0058A390 (SUB ESP,0xC; MOV EAX,[ESP+0x10], 7 bytes), 0058A3D0 /
+// 0058A3F0 (MOV EDX,[ESP+8]; MOV EAX,[ECX], 6 bytes). Pure; compared as floats. The units'
+// placement and movement (`newgame`).
+using HeightFn = double(__fastcall*)(CWorldServer*, void*, float, float);
+static HeightFn s_serverRawHeight, s_serverGroundHeight, s_serverSurfaceHeight;
+static double __fastcall ServerRawHeightVerify(CWorldServer* self, void*, float x, float y) {
+    float expected = static_cast<float>(s_serverRawHeight(self, nullptr, x, y));
+    double result = self->ServerRawSurfaceHeight(x, y);
+    ei::verify::CheckNear("CWorldServer::ServerRawSurfaceHeight", expected, static_cast<float>(result), "(%g, %g)", x, y);
+    return result;
+}
+EI_VERIFY(0x0058A390, ServerRawHeightVerify, 7, s_serverRawHeight);
+
+static double __fastcall ServerGroundHeightVerify(CWorldServer* self, void*, float x, float y) {
+    float expected = static_cast<float>(s_serverGroundHeight(self, nullptr, x, y));
+    double result = self->ServerGroundHeight(x, y);
+    ei::verify::CheckNear("CWorldServer::ServerGroundHeight", expected, static_cast<float>(result), "(%g, %g)", x, y);
+    return result;
+}
+EI_VERIFY(0x0058A3D0, ServerGroundHeightVerify, 6, s_serverGroundHeight);
+
+static double __fastcall ServerSurfaceHeightVerify(CWorldServer* self, void*, float x, float y) {
+    float expected = static_cast<float>(s_serverSurfaceHeight(self, nullptr, x, y));
+    double result = self->ServerSurfaceHeight(x, y);
+    ei::verify::CheckNear("CWorldServer::ServerSurfaceHeight", expected, static_cast<float>(result), "(%g, %g)", x, y);
+    return result;
+}
+EI_VERIFY(0x0058A3F0, ServerSurfaceHeightVerify, 6, s_serverSurfaceHeight);

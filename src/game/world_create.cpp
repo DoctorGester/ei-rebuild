@@ -132,3 +132,8 @@ CEngineObject* CWorld::FindUnit(int id) {
     return object->GetClassId() == world::kClassUnit ? object : nullptr;
 }
 EI_REPLACE_METHOD(0x0055FB00, CWorld::FindUnit);
+
+CEngineObject* CWorld::FindMapObject(int id) {
+    return static_cast<CBaseManager*>(MapObjectManager())->FindObject(static_cast<unsigned>(id));
+}
+EI_REPLACE_METHOD(0x0055FAE0, CWorld::FindMapObject);
