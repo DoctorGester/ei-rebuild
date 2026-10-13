@@ -190,6 +190,8 @@ __declspec(naked) inline CUiSurface* __fastcall SurfaceConstructOnRectOriginal(v
                                                                                     CInterface3D* /*ui*/,
                                                                                     const tagRECT* /*rect*/,
                                                                                     int /*format*/) EI_ORIGINAL(0x005FCDD0)
+// 005FDA80: CUiSurface's own draw (slot 0; rewritten as UiSurfaceBlit), for the classes that draw over it.
+__declspec(naked) inline void __fastcall SurfaceBlitOriginal(void* /*surface*/) EI_ORIGINAL(0x005FDA80)
 // 005FE2F0: CUiSurface fills its DC's surface with black (ECX, plain RET).
 __declspec(naked) inline void __fastcall SurfaceClearOriginal(void* /*surface*/) EI_ORIGINAL(0x005FE2F0)
 // The client glue objects (007AFEA4 / 007AFEA5 / 007AFEA6, thiscall; the object is not read): 00578DC0 the game's
