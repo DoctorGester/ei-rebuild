@@ -174,6 +174,9 @@ public:
     virtual void Unknown6();
     // 7: halves a square image (`width` is the new width).
     virtual void Halve(std::uint32_t* out, const std::uint32_t* in, unsigned width);
+    // 8: rasterises one triangle of a shadow: `target` starts with its three corners (a screen and
+    // a texture point each, pairs of ints) and goes on with the surface (004F4850, 005A0E80).
+    virtual void RasteriseTriangle(void* target);
 };
 inline CPixelConverter* PixelConverter() { return *reinterpret_cast<CPixelConverter**>(std::uintptr_t(0x007AF06C)); }
 constexpr std::uint32_t kMmpFormatPnt3 = 0x33544E50;   // "PNT3"
