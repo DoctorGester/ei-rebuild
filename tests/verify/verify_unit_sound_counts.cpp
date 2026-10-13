@@ -16,11 +16,11 @@ static void(__fastcall* s_countSoundFiles)(UnitDatabase*, void*, void*);
 static void __fastcall CountSoundFilesVerify(UnitDatabase* self, void*, void* sounds) {
     self->CountSoundFiles(sounds);
     std::vector<std::uint32_t> ours;
-    for (UnitModelRecord* m = self->modelsBegin; m != self->modelsEnd; ++m)
+    for (UnitModelRecord* m = self->models.begin; m != self->models.end; ++m)
         ours.insert(ours.end(), m->soundCounts, m->soundCountsEnd);
     s_countSoundFiles(self, nullptr, sounds);
     std::vector<std::uint32_t> original;
-    for (UnitModelRecord* m = self->modelsBegin; m != self->modelsEnd; ++m)
+    for (UnitModelRecord* m = self->models.begin; m != self->models.end; ++m)
         original.insert(original.end(), m->soundCounts, m->soundCountsEnd);
     std::size_t first = 0;
     while (first < ours.size() && first < original.size() && ours[first] == original[first]) ++first;
