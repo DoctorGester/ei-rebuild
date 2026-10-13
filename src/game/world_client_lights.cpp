@@ -1,6 +1,7 @@
 // The client world's light by the time of day (UpdateLighting, 00566360) and the zone exit
 // markers' colour (UpdateExitMarkers, 00567680). See world.h and docs/notes/world.md.
 #include "world.h"
+#include "world_data.h"
 
 #include "sky_object.h"   // before windows.h (GetClassName)
 
@@ -41,7 +42,7 @@ const float kPerHour = std::bit_cast<float>(0x3D2AAAABu);   // 0073F748: 1/24 (t
 const Vector3 kCaveSun = {0.5f, 0.5f, std::bit_cast<float>(0xBF3504E6u)};
 
 // 0078FF38: the hour (floored) the terrain's sun was last set for; -1 makes the next frame set it.
-float& LastLitHour() { return *reinterpret_cast<float*>(0x0078FF38); }
+using worlddata::LastLitHour;
 
 // 00500800 (RET 0x10; not rewritten, units range): the display's sun becomes `sun` (counted, the old
 // one released, handed to the transform object's slot 2) and the ambient colour (r, g, b in 0..1,

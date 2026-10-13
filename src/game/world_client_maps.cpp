@@ -9,6 +9,8 @@
 #include "world.h"
 #include "world_data.h"
 
+#include "sky_object.h"   // before windows.h (GetClassName)
+
 #include "ai_map.h"
 #include "base_manager.h"
 #include "camera.h"
@@ -26,6 +28,11 @@
 #include "unit.h"
 #include "unit_db.h"
 #include "world_effect.h"
+#include "originals_engine.h"
+#include "world_map_files.h"
+#include "world_glue.h"
+#include "unit_looks.h"
+#include "bink_video.h"
 #include "object_tables.h"
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -985,6 +992,23 @@ void EmptyList(stlp::list<T>& list, F free) {
     list.head->prev = list.head;
 }
 
+// The three ground print lists emptied (Teardown and the zone load inline this): each element
+// destroyed, its node returned to the pool.
+void ClearGroundPrints(stlp::list<BloodPrint>& blood, stlp::list<Footprint>& feet, stlp::list<GroundPrint>& scorch) {
+    EmptyList(blood, [](stlp::list<BloodPrint>::Node* node) {
+        Element1B8Destroy(&node->data);
+        Node1B8Free(node, 1);
+    });
+    EmptyList(feet, [](stlp::list<Footprint>::Node* node) {
+        Element1BCDestroy(&node->data, nullptr, 0);
+        if (node) stlp::deallocate(node, sizeof(*node));
+    });
+    EmptyList(scorch, [](stlp::list<GroundPrint>::Node* node) {
+        Element1C0Destroy(&node->data, nullptr, 0);
+        if (node) stlp::deallocate(node, sizeof(*node));
+    });
+}
+
 // An owned engine object deleted (its slot 0, the scalar deleting destructor, with 1) and cleared.
 template <typename T>
 void DeleteOwned(T*& slot) {
@@ -1021,18 +1045,7 @@ void CWorldClient::Teardown() {
     DeleteOwned(owned1B0_);
     ReleaseItemsAndSpells();
     CountedArraySetSize(&countedA0_, nullptr, 0, -1);
-    EmptyList(bloodPrints_, [](stlp::list<BloodPrint>::Node* node) {
-        Element1B8Destroy(&node->data);
-        Node1B8Free(node, 1);
-    });
-    EmptyList(footprints_, [](stlp::list<Footprint>::Node* node) {
-        Element1BCDestroy(&node->data, nullptr, 0);
-        if (node) stlp::deallocate(node, sizeof(*node));
-    });
-    EmptyList(scorchMarks_, [](stlp::list<GroundPrint>::Node* node) {
-        Element1C0Destroy(&node->data, nullptr, 0);
-        if (node) stlp::deallocate(node, sizeof(*node));
-    });
+    ClearGroundPrints(bloodPrints_, footprints_, scorchMarks_);
     ribbons_.Engine()->Destroy();
     platforms_.Engine()->Destroy();
     PlatformRemoveAll(&platforms_.list);
@@ -1068,7 +1081,7 @@ void CWorldClient::Teardown() {
     DropAndDelete(manager190_);
     DropAndDelete(manager188_);
     DropAndDelete(textureManager_);
-    DeleteOwned(owned1A8_);
+    DeleteOwned(music_);
     DropAndDelete(sounds_);
     DropAndDelete(texts_);
 }
@@ -1379,8 +1392,8 @@ int CWorldClient::Setup() {
     arrayManager_ = arrays;
     arrays->Init(this);
     std::uint8_t* memory = New(0x58);
-    auto* owned = static_cast<ClientObject1A8*>(memory ? Construct6B4350(memory) : nullptr);
-    owned1A8_ = owned;
+    auto* owned = static_cast<CMusicSystem*>(memory ? Construct6B4350(memory) : nullptr);
+    music_ = owned;
     owned->Create();
 
     Construct4E3C20(&ribbons_);
@@ -1579,6 +1592,180 @@ ClientArrayManager* ClientArrayManager::DeletingDestruct(unsigned flags) {
     return this;
 }
 EI_REPLACE_METHOD(0x00562DD0, ClientArrayManager::DeletingDestruct);
+
+// ---- The zone's state block (00567AB0, A-W15) ----------------------------------------------------
+
+namespace {
+
+// The callees only this load reaches, through their addresses: their verify wrappers keep running
+// when this rewrite is installed (the vanilla launch).
+__declspec(naked) void __fastcall FlowUpdateAndAcknowledgeAt(GameFlow*) EI_ORIGINAL(0x0057F150)
+__declspec(naked) void __fastcall ExitReadAt(ZoneExit*, void*, CStream*) EI_ORIGINAL(0x004E5750)
+__declspec(naked) void __fastcall ReadUnitLooksAt(CStream*, void* /*figured*/, void* /*dressed*/) EI_ORIGINAL(0x0055A190)
+__declspec(naked) void __stdcall GameEnsureZoneAt(const char* /*map*/, const char* /*mob*/) EI_ORIGINAL(0x00578730)
+__declspec(naked) void __fastcall ParticlesReleaseUnheldAt(CParticleManager*) EI_ORIGINAL(0x00498630)
+__declspec(naked) void __fastcall TexturesFreeCacheAt(CTextureManager*) EI_ORIGINAL(0x00692F00)
+__declspec(naked) void __fastcall TerrainSetLightIntervalAt(Terrain*, void*, int /*frames*/) EI_ORIGINAL(0x006C9290)
+__declspec(naked) void __fastcall CreateExitMarkersAt(CWorldClient*) EI_ORIGINAL(0x00567500)
+__declspec(naked) void __fastcall MusicSetZoneModeAt(CMusicSystem*, void*, const char* /*allod*/, int /*dungeon*/)
+    EI_ORIGINAL(0x006B4E30)
+__declspec(naked) void __fastcall ViewAppendReceivedAt(CPlayerClient*, void*, void* /*source*/) EI_ORIGINAL(0x00667B40)
+__declspec(naked) void __fastcall BuildUnitSkinsAt(CWorldClient*, void*, const void* /*figured*/, const void* /*dressed*/)
+    EI_ORIGINAL(0x00568800)
+__declspec(naked) int __fastcall ViewSendResumeAt(CPlayerClient*) EI_ORIGINAL(0x0066B300)
+
+constexpr int kSkyTextureKind = 0x3D;
+// The loading movie's progress steps of the zone load.
+constexpr int kProgressBlockRead = 8;
+constexpr int kProgressZoneCleared = 9;
+constexpr int kProgressMapFreed = 10;
+constexpr int kProgressZoneReady = 11;
+// A cave's reverb: room type, level and reflection time.
+constexpr float kCaveReverbRoom = 0.3f;
+constexpr float kCaveReverbLevel = 1.0f;
+constexpr float kCaveReverbTime = 3.0f;
+// The LightingFreq option counts milliseconds; the terrain counts frames of this many.
+constexpr int kFrameMilliseconds = 66;
+// Terrain flags the options and the cave decide.
+constexpr std::uint32_t kLandscapeWaves = 0x01;
+constexpr std::uint32_t kLandscapeSelfShadowing = 0x10;
+constexpr int kCave = 1;
+
+// A sector grid sized for the terrain, in cells of 16: emptied to one cell first, the new size
+// stored, then allocated.
+void FitGrid(SectorGrid& grid, void(__fastcall* resize)(SectorGrid*, void*, int, int), const Terrain* terrain) {
+    const std::uint32_t height = static_cast<std::uint32_t>(x87::fistp(terrain->height));
+    const std::uint32_t width = static_cast<std::uint32_t>(x87::fistp(terrain->width));
+    resize(&grid, nullptr, 1, 1);
+    grid.height_ = height >> 4;
+    grid.width_ = width >> 4;
+    resize(&grid, nullptr, static_cast<int>(width >> 4), static_cast<int>(height >> 4));
+}
+
+// The zone of the local player as the map database knows it, or null.
+MapRecord* LocalZoneRecord() {
+    alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
+    mfc::CString* zone = LocalPlayerName(reinterpret_cast<mfc::CString*>(storage));
+    MapRecord* record = GameMapDatabase()->FindMap(*zone);
+    zone->~CString();
+    return record;
+}
+
+// Whether the local player is in the last zone ("gz20g", compared as it is).
+bool InFinalZone() {
+    alignas(mfc::CString) std::uint8_t storage[sizeof(mfc::CString)];
+    mfc::CString* zone = LocalPlayerName(reinterpret_cast<mfc::CString*>(storage));
+    const bool final = gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(static_cast<const char*>(*zone)),
+                                       reinterpret_cast<const unsigned char*>(worlddata::FinalZoneText())) == 0;
+    zone->~CString();
+    return final;
+}
+
+} // namespace
+
+int CWorldClient::LoadZone(CStream* block) {
+    FlowUpdateAndAcknowledgeAt(TheGameFlow());
+    mfc::CString map;
+    mfc::CString mob;
+    sounds_->SetEffectsVolume(0);
+    sounds_->StopAll(1);
+    unknown6E4_ = 0;
+
+    // The block: the tick, the map and .mob names, the exits, the cave flag, the unit looks.
+    block->Read(&tick_, 4);
+    block->ReadInto(&map);
+    block->ReadInto(&mob);
+    int exitCount;
+    block->Read(&exitCount, 4);
+    ZoneExitsSetSizeOriginal(&exitsVtable_, nullptr, exitCount, -1);
+    for (int i = 0; i < exitCount_; ++i) ExitReadAt(&exits_[i], nullptr, block);
+    int cave;
+    block->Read(&cave, 4);
+    UnitLooks looks;
+    ReadUnitLooksAt(block, &looks.figured, &looks.dressed);
+    cave_ = cave;
+    GameEnsureZoneAt(map, mob);
+    ShowLoadingMovie(kProgressBlockRead);
+
+    // The old zone goes.
+    ClearGroundPrints(bloodPrints_, footprints_, scorchMarks_);
+    ResetZoneObjects();
+    ClearMaps();
+    ReleaseItemsAndSpells();
+    ParticlesReleaseUnheldAt(ClientParticleManager());
+    Session()->gameKind = 0;
+    ShowLoadingMovie(kProgressZoneCleared);
+    Terrain* terrain = terrain_;
+    if (map.GetLength() > 1 && map[1] != ':') {
+        mfc::CString folder;
+        MapsFolderAt(&folder);
+        map = folder + map;
+    }
+    terrain->ClearMap();
+    // The original fetches the texture manager (slot 34) for both calls; the first does not use it.
+    DeleteComposedTextures();
+    TexturesFreeCacheAt(TextureManager());
+    ShowLoadingMovie(kProgressMapFreed);
+
+    // The allod of the local player's zone names the texture pages, the lights and the music.
+    const MapRecord* zone = LocalZoneRecord();
+    mfc::CString& allod = *reinterpret_cast<mfc::CString*>(&zoneName_);
+    allod = worlddata::DefaultAllodText();
+    if (zone) allod = *reinterpret_cast<const mfc::CString*>(&zone->allod);
+    allod.MakeLower();
+    if (!LandscapeLoadMapOriginal(terrain, nullptr, map, allod, cave == kCave))
+        return FatalErrorOriginal(worlddata::CantLoadTerrainFormat(), static_cast<const char*>(map));
+
+    FitGrid(objectGrid_, GridResize, terrain);
+    FitGrid(secondGrid_, GridResize2, terrain);
+    if (!worlddata::WaterWavesOption()) terrain->landscapeFlags &= ~kLandscapeWaves;
+    if (cave == kCave) terrain->landscapeFlags |= kLandscapeWaves;
+    if (!worlddata::SelfShadowingOption()) terrain->landscapeFlags &= ~kLandscapeSelfShadowing;
+    TerrainSetLightIntervalAt(terrain, nullptr, worlddata::LightingFrequencyOption() / kFrameMilliseconds);
+    if (skyDome_) {
+        auto* holder = reinterpret_cast<CTexture**>(&skyDome_->texture);
+        if (cave == kCave) {
+            TextureHolderLoad(holder, nullptr, kSkyTextureKind, worlddata::CaveSkyText());
+            skyDome_->turns = 0;
+        } else {
+            TextureHolderLoad(holder, nullptr, kSkyTextureKind, worlddata::OpenSkyText());
+            skyDome_->turns = 1;
+        }
+    }
+    mfc::CString lights(worlddata::LightsPrefixText());
+    const bool effects = worlddata::AudioOption() && worlddata::VolumeSettingA();
+    if (cave_ == kCave) {
+        lights += worlddata::CaveText();
+        if (effects) sounds_->SetReverb(kCaveReverbRoom, kCaveReverbLevel, kCaveReverbTime);
+    } else if (effects) {
+        sounds_->reverb[0] = 0.0f;
+    }
+    {
+        mfc::CString table = lights + allod;
+        mfc::CString file = table + worlddata::IniSuffixText();
+        LoadLightsAt(this, nullptr, file);
+    }
+    CreateExitMarkersAt(this);
+    worlddata::LastLitHour() = -1.0f;
+    UpdateLighting();
+    if (worlddata::AudioOption() && worlddata::MovieVolumeSetting()) {
+        if (InFinalZone()) MusicSetZoneModeAt(music_, nullptr, worlddata::FinalMusicText(), cave_ == kCave);
+        else MusicSetZoneModeAt(music_, nullptr, allod, cave_ == kCave);
+    }
+
+    // The local server's pending messages follow this block in the view's stream.
+    ViewAppendReceivedAt(Session() ? Session()->LocalClient() : nullptr, nullptr, GameObject7C2D60());
+    ticksRun_ = 0;
+    BuildUnitSkinsAt(this, nullptr, &looks.figured, &looks.dressed);
+    // The wind option that is neither 0 nor a NaN sets the waves.
+    const float wind = worlddata::DefaultWindForceOption();
+    if (wind < 0.0f || wind > 0.0f) camera::TheTerrain()->SetWaveStrength(wind);
+    ShowLoadingMovie(kProgressZoneReady);
+    ViewSendResumeAt(Session() ? Session()->LocalClient() : nullptr);
+    CloseLoadingMovie();
+    return 1;
+}
+EI_REPLACE_METHOD(0x00567AB0, CWorldClient::LoadZone);
 
 EI_REPLACE_METHOD(0x00561E50, CWorldClient::Setup);
 EI_REPLACE_METHOD(0x00560650, PlatformSet::AddFace);

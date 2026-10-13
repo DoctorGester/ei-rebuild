@@ -152,6 +152,10 @@ __declspec(naked) inline void __fastcall ClientQueueObjectOriginal(void* /*world
 // A-X4. 006C5620: the landscape's Reset (Terrain::Reset, rewritten), called through its address by the
 // client world's Setup and by the landscape's Create / Destroy so that its verify wrapper runs.
 __declspec(naked) inline void __fastcall LandscapeResetOriginal(void* /*terrain*/) EI_ORIGINAL(0x006C5620)
+// A-W15. 006C68B0 (RET 0xC; not rewritten): the landscape loads the map file `path` (the old map freed first) with
+// the texture pages of `allod`; `cave` is read as a byte. All of EAX: 0 when the file or a page does not load.
+__declspec(naked) inline int __fastcall LandscapeLoadMapOriginal(void* /*terrain*/, void*, const char* /*path*/,
+                                                                const char* /*allod*/, bool /*cave*/) EI_ORIGINAL(0x006C68B0)
 inline void* ClientWorldObject() { return reinterpret_cast<void*>(0x007AF5B8); }
 // The local player's client glue object (007AFEA5; its thiscall methods 00578xxx do not read it).
 inline void* ClientGlueObject() { return reinterpret_cast<void*>(0x007AFEA5); }

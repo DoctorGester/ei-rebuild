@@ -1007,15 +1007,6 @@ struct OpaqueRecord {
 };
 
 
-// The client's +0x1A8 (0x58 bytes, vtable 00744098, constructor 006B4350; its names start as
-// "none"). Segment clears +0x44 on its 90th tick (earlier once the party fights, 007AFC9C 2).
-struct ClientObject1A8 : CEngineObject {
-    std::uint8_t unknown_1C[0x44 - 0x1C];
-    int unknown44_;                       // +0x44
-    std::uint8_t unknown_48[0x58 - 0x48];
-};
-static_assert(sizeof(ClientObject1A8) == 0x58);
-
 // The worlds' counted helpers (CWorld + 0x5C, vtable 0073F240, 0xC bytes; the client's +0x1C8,
 // 0073F628): player sources (player_source.h; Query AL 0, the client's Segment calls Pump every
 // tick). The server's hands its pending link over once (slot 6, 00478880). world_sessions.cpp.
@@ -1343,6 +1334,18 @@ public:
     // SetSize releases them), the second grid's cells cleared (counted elements released), every
     // timed object (slot 14's manager) released, the bird (+0x1B0) reset (slot 18).
     void ResetZoneObjects();
+    // 00567AB0 (RET 4; world_client_maps.cpp, A-W15; patched by Rebirth, so hooked in the vanilla
+    // launch only: the player's client reaches it through its address). The zone's state block:
+    // the flow acknowledges the server, sounds stop, then from `block` the tick, the map and .mob
+    // names, the exits, the cave flag and the unit looks; the local server makes sure it has the
+    // zone (00578730); the ground prints, ResetZoneObjects, ClearMaps, the items and spells and
+    // the idle particle sources go; the terrain loads the map (a name without a drive from the
+    // maps folder) with the allod of the local player's zone, the sector grids take its size
+    // (cells of 16), the sky, lights table, exit markers, lighting and music follow the cave
+    // flag, the local server's pending messages are appended to the view's, the unit skins are
+    // built and the view resumes. Loading movie steps 8-11, then closed. Returns 1, or the
+    // result of the fatal error when the map does not load.
+    int LoadZone(CStream* block);
     // 00566CE0 / 00566D30 / 00566D80 (RET 4; world_client_session.cpp). The local session takes a
     // new link: the single-player loopback pair for `player` (CWorld's teardown 0055F890 first), a
     // replay of the recording `path`, or a driver for the game client's first connection (false
@@ -1477,7 +1480,7 @@ public:
 
     int unknown84_;                       // +0x084 -100000 after Setup
     std::uint32_t debugFlags_;            // +0x088 the debug display's switches (bits 0-3: ShowFps ...)
-    std::uint8_t unknown_08C[0x90 - 0x8C];
+    void* exitsVtable_;                   // +0x08C CArray<ZoneExit> (ZoneExitArray) from here
     ZoneExit* exits_;                     // +0x090
     int exitCount_;                       // +0x094
     std::uint8_t unknown_098[0xA0 - 0x98];
@@ -1502,7 +1505,10 @@ public:
     SectorGrid secondGrid_;               // +0x150 (slot 42 moves objects in it)
     std::uint8_t unknown_168[0x180 - 0x168];
     Terrain* terrain_;                    // +0x180 counted
-    char* zoneName_;                      // +0x184 CString ("gipath" after Setup)
+    // +0x184 CString: the zone's allod in lower case ("gipath" after Setup; the zone load takes it from
+    // the map database's record of the local player's zone, "gipat" without one). It names the
+    // terrain's texture pages, the lights table and the music theme.
+    char* zoneName_;
     CBaseManager* manager188_;            // +0x188 counted (constructor 0068E3F0)
     CTextureManager* textureManager_;     // +0x18C (slot 34) counted
     CBaseManager* manager190_;            // +0x190 counted (constructor 0068D850)
@@ -1511,7 +1517,7 @@ public:
     CParticleManager* particleManager_;        // +0x19C counted
     ClientListManager* listManager_;      // +0x1A0 owned
     ClientArrayManager* arrayManager_;    // +0x1A4 owned
-    ClientObject1A8* owned1A8_;           // +0x1A8 owned (constructor 006B4350)
+    struct CMusicSystem* music_;          // +0x1A8 owned (sound.h; constructor 006B4350)
     struct CSky* skyDome_;                // +0x1AC the sky (owned; destructor body 005636A0; sky_object.h)
     CEngineObject* owned1B0_;             // +0x1B0 owned
     ClientNumbers* numbers_;              // +0x1B4 owned

@@ -9,6 +9,7 @@
 #include "net_link.h"
 #include "player_client.h"
 #include "terrain.h"
+#include "sound.h"
 #include "spell.h"
 #include "effects.h"
 #include "game_strings.h"
@@ -399,10 +400,10 @@ int CWorldClient::Segment() {
         SoundSetVolumeB(sounds_, nullptr, worlddata::VolumeSettingB());
         SoundSetVolumeC(sounds_, nullptr, worlddata::MovieVolumeSetting());
     } else if (frames == 90 || (frames < 90 && worlddata::FightState() == 2)) {
-        owned1A8_->unknown44_ = 0;
+        music_->holding = 0;
     }
     if (terrain_) terrain_->RunTick();
-    if (owned1A8_) owned1A8_->RunTick();
+    if (music_) music_->RunTick();
     if (sounds_) SoundTick(sounds_);
     if (!paused_) {
         if (arrayManager_) arrayManager_->RunTick();
