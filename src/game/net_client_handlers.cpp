@@ -2,11 +2,12 @@
 // client in ECX and the message in EDX) and the three party-screen entry points around them
 // (0041E0A0, 0041E270, 0041E3E0). Each keeps the replicated objects the server sends in one of the
 // client's lists and tells the interface or the game flow. 0041ECC0 (the file chunk handler for
-// channel 0) is patched by Rebirth and stays original. The messages are declared in
-// net_messages.h. See docs/notes/network.md.
+// channel 0) is patched by Rebirth: ours installs in the vanilla launch only. The messages are
+// declared in net_messages.h. See docs/notes/network.md.
 #include "net_messages.h"
 #include "core_refcount.h"
 #include "core_streams.h"
+#include "game_strings.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -52,6 +53,18 @@ __declspec(naked) void** __fastcall RequestsEnd(void*, void*, void**) EI_ORIGINA
 __declspec(naked) void** __fastcall RequestsInsert(void*, void*, void**, void*, const void*) EI_ORIGINAL(0x00424100)
 __declspec(naked) void** __fastcall RequestsErase(void*, void*, void**, void*) EI_ORIGINAL(0x00429650)
 __declspec(naked) void** __fastcall ObjectsErase(void*, void*, void**, void*) EI_ORIGINAL(0x00429610)
+__declspec(naked) void** __fastcall ChunksEnd(void*, void*, void**) EI_ORIGINAL(0x00420C30)
+__declspec(naked) void** __fastcall ChunksInsert(void*, void*, void**, void*, const void*) EI_ORIGINAL(0x00423F20)
+// std::sort of the chunk pointers by index, as the instantiation splits it: the introsort loop
+// (RET 0xC: a null type tag, twice the size's log2, the empty comparator) and the final insertion
+// sort (RET 4: the comparator).
+__declspec(naked) void __fastcall ChunksIntrosort(FileChunkMessage** /*first*/, FileChunkMessage** /*last*/, FileChunkMessage** /*tag*/,
+                                                  int /*depthLimit*/, int /*compare*/) EI_ORIGINAL(0x0042A020)
+__declspec(naked) void __fastcall ChunksInsertionSort(FileChunkMessage** /*first*/, FileChunkMessage** /*last*/, int /*compare*/)
+    EI_ORIGINAL(0x0042A150)
+// The game flow's map file writer (patched by Rebirth: through its address).
+__declspec(naked) void __fastcall FlowWriteMapFile(void* /*flow*/, void*, const char* /*name*/, GameBuffer* /*buffer*/)
+    EI_ORIGINAL(0x005813A0)
 __declspec(naked) void** __fastcall AwardsEnd(void*, void*, void**) EI_ORIGINAL(0x004210E0)
 __declspec(naked) void** __fastcall AwardsInsert(void*, void*, void**, void*, const void*) EI_ORIGINAL(0x00424720)
 void** __fastcall PartiesInsert(void* a0, void*, void** a2, void* a3, const void* a4) { return ListInsert423190Original(a0, nullptr, a2, a3, a4); }
@@ -164,6 +177,20 @@ void RemoveCounted(void* list, EraseFn erase, Message* message) {
     AddRef(object);
     RemoveValue(list, erase, object);
     ReleaseRef(object);
+}
+
+// Every request for `file` erased from +0x25E8 (the sentinel read once, the next node taken first).
+void DropRequestsFor(ClientSession* self, const Message* file) {
+    void* requests = &self->fileRequests_;
+    void** sentinel = static_cast<void**>(self->fileRequests_);
+    for (void** node = static_cast<void**>(sentinel[0]); node != sentinel;) {
+        void** next = static_cast<void**>(node[0]);
+        if (static_cast<FileRequestMessage*>(node[2])->FileRef().ptr == file) {
+            void* erased;
+            RequestsErase(requests, nullptr, &erased, node);
+        }
+        node = next;
+    }
 }
 
 // The owner's release of the party description (+0x260C) as the handlers inline it, then null.
@@ -339,18 +366,63 @@ void __fastcall ClientOnFile(ClientSession* self, FileMessage* message) {   // 0
 }
 void __fastcall ClientOnFileGone(ClientSession* self, Message* message) {   // 0041EBF0
     RemoveRaw(&self->files_, FilesErase, message);
-    void* requests = &self->fileRequests_;
-    void** sentinel = static_cast<void**>(self->fileRequests_);
-    for (void** node = static_cast<void**>(sentinel[0]); node != sentinel;) {
-        void** next = static_cast<void**>(node[0]);
-        if (static_cast<FileRequestMessage*>(node[2])->FileRef().ptr == message) {
-            void* erased;
-            RequestsErase(requests, nullptr, &erased, node);
-        }
-        node = next;
-    }
+    DropRequestsFor(self, message);
 }
-// The file chunks on +0x25E4 (the channel 0 handler 0041ECC0, which stores them, is Rebirth's).
+// 0041ECC0 (A-E2): a chunk of a shared file, kept on +0x25E4. When the list then holds as many
+// chunks of the file as the file message announces, they are sorted by index, their 64 bytes each
+// joined in a growing buffer cut to the file's size, the game flow writes the buffer as the map
+// file of that name, and the requests for the file leave +0x25E8. A file without a name (the text
+// at 0079B298) is only collected. Rebirth patches the name test (MQClient): this installs in the
+// vanilla launch only, and the constructor registers the handler by its address.
+void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message) {
+    AppendRaw(&self->chunks_, ChunksEnd, ChunksInsert, message);
+    auto* file = static_cast<FileMessage*>(message->file_.ptr);
+    const char* none = game::EmptyText();
+    const std::size_t noneLength = std::strlen(none);
+    if (static_cast<std::size_t>(file->name_.finish - file->name_.start) == noneLength &&
+        std::memcmp(file->name_.start, none, noneLength) == 0)
+        return;
+
+    stlp::vector<FileChunkMessage*> chunks;
+    int count = 0;
+    const auto& received = *reinterpret_cast<const stlp::list<FileChunkMessage*>*>(&self->chunks_);
+    for (auto* node = received.First(); node != received.End(); node = node->next) {
+        if (node->data->file_.ptr != file) continue;
+        ++count;
+        chunks.push_back(node->data);
+    }
+    if (count == file->chunkCount_) {
+        GameBuffer buffer;
+        buffer.ConstructGrowing();
+        // std::sort by the chunks' index (the instantiation's two halves).
+        if (chunks.begin() != chunks.end()) {
+            int depth = 0;
+            for (int n = static_cast<int>(chunks.size()); n != 1; n >>= 1) ++depth;
+            ChunksIntrosort(chunks.begin(), chunks.end(), nullptr, depth * 2, 0);
+            ChunksInsertionSort(chunks.begin(), chunks.end(), 0);
+        }
+        for (FileChunkMessage** chunk = chunks.begin(); chunk != chunks.end(); ++chunk) {
+            const std::uint8_t* data = (*chunk)->data_;
+            if (buffer.cur + FileChunkMessage::kDataSize <= buffer.end) {
+                buffer.flags |= 1;
+                std::memcpy(buffer.cur, data, FileChunkMessage::kDataSize);
+                buffer.cur += FileChunkMessage::kDataSize;
+            } else {
+                GrowingBufferWriteMore(&buffer, nullptr, data, FileChunkMessage::kDataSize);
+            }
+        }
+        // The buffer rewound and its written length set to the file's (the last chunk is padded).
+        buffer.cur = buffer.begin;
+        const std::int32_t size = file->size_;
+        buffer.high = buffer.begin + size;
+        if (buffer.high > buffer.end) buffer.Grow(static_cast<std::uint32_t>(size));
+        FlowWriteMapFile(Flow(), nullptr, file->name_.start, &buffer);
+        DropRequestsFor(self, file);
+        buffer.DestructGrowing();
+    }
+    chunks.FreeStorage();
+}
+EI_REPLACE(0x0041ECC0, ClientOnFileChunk);
 void __fastcall ClientOnObjectGone(ClientSession* self, Message* message) { RemoveRaw(&self->chunks_, ObjectsErase, message); }   // 0041EF10
 // The awards on +0x2608 (applied by the tick).
 void __fastcall ClientOnAward(ClientSession* self, Message* message) { AppendRaw(&self->awards_, AwardsEnd, AwardsInsert, message); }   // 0041EF90
