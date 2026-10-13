@@ -503,6 +503,7 @@ The spell manager's folder slot 00688940 (A-H24's last item) was complete. Wrapp
 | 00667B40 | CPlayerClient::AppendReceived (appends a stream to the received one, read position kept) | O |
 | 00646B90 | CHudUnitPanel::ShowEffects (Ghidra splits it at 00646C25; the unit's first six effects: the "spell <code>" text and ticks / 15 as two lines each, the spell's picture "spell%04d" (SpellRecord +0x60, now `icon`) copied into one of six places of the panel's icon texture, the places kept in +0x184 `effectIcons_`; scene objects 26 + i show them, 9 when there are more than six) | S (needs a shown unit with an effect) |
 | 00689820 | NextSpellContainer (a hash_map iterator's step returning the value) | P (no live caller left: Destroy 00688B40 is rewritten, 00688D70 is dead code) |
+| 006BAAC0, 006BAC90 | CSoundManager::OpenStream / CloseStream (on the manager's +0x100): the ASI codec for ".mp3" (RIB_find_file_provider, stdcall: mss32's RET 0xC), the playing sample and the decoding one (+0x1AC `streamDecoder`; `streamCodec` is its +0x144), three buffers +0x110 of +0x11C bytes (twice Miles' minimum for 44100 Hz stereo 16-bit), the order 0 / 1 / 2 at +0x124, the fader as SetHold(0) leaves it | O (Open at every start with sound on; CloseStream only when the stream cannot open) |
 
 Library, second batch: 0064EE90, 00652E30, 00652F80, 006581C0, 00675040, 00675690 (STLport); compiler: 00652FF0, 0067C5D0 (unwind only),
 the static initialisers 00698E70..00698FB0 and 0065F580 (run before the hooks), the scalar deleting destructors 006611B0, 006868D0,

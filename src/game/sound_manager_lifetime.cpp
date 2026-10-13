@@ -13,6 +13,7 @@
 #include "ei/hook.h"
 #include "ei/vcall.h"
 
+#include <cstring>
 #include <new>
 
 namespace {
@@ -251,13 +252,13 @@ void CSoundManager::DestructBody() {
 void CSoundManager::ResetStream() {
     streamState = 0;
     streamSample = nullptr;
-    unknown1AC = 0;
+    streamDecoder = nullptr;
     streamFile = nullptr;
     streamCodec = nullptr;
-    unknown118 = 0;
-    unknown114 = 0;
-    unknown110 = 0;
-    unknown11C = -1;
+    streamBuffers[2] = nullptr;
+    streamBuffers[1] = nullptr;
+    streamBuffers[0] = nullptr;
+    streamBufferSize = -1;
     unknown12C = -1;
     unknown128 = -1;
     unknown124 = -1;
@@ -311,8 +312,10 @@ constexpr std::uintptr_t kVoiceDestruct = std::uintptr_t(0x006B6D30);
 constexpr std::uintptr_t kDeviceCallback = std::uintptr_t(0x006B68A0);
 constexpr std::uintptr_t kStreamThreadEntry = std::uintptr_t(0x006B6A10);
 
-// The MP3 stream's open on the manager's +0x100 (RET 4): nonzero when it could start.
-__declspec(naked) int __fastcall StreamOpen(void* /*stream*/, void*, void* /*driver*/) EI_ORIGINAL(0x006BAAC0)
+// The MP3 stream's open and close on the manager's +0x100 (through their addresses: the verify
+// wrappers).
+__declspec(naked) int __fastcall OpenStreamThroughHook(void* /*stream*/, void*, void* /*driver*/) EI_ORIGINAL(0x006BAAC0)
+__declspec(naked) int __fastcall CloseStreamThroughHook(void* /*stream*/) EI_ORIGINAL(0x006BAC90)
 
 // DirectSound and Miles through game.exe's import table (all __stdcall).
 using EnumerateFn = long(__stdcall*)(void*, void*);
@@ -336,6 +339,38 @@ HandleFn AilReleaseSequence() { return *reinterpret_cast<HandleFn*>(std::uintptr
 HandleFn AilMemFree() { return *reinterpret_cast<HandleFn*>(std::uintptr_t(0x0073B7FC)); }
 HandleFn AilWaveOutClose() { return *reinterpret_cast<HandleFn*>(std::uintptr_t(0x0073B798)); }
 HandleFn AilMidiOutClose() { return *reinterpret_cast<HandleFn*>(std::uintptr_t(0x0073B79C)); }
+// The MP3 stream's (OpenStream).
+using FindProviderFn = void*(__stdcall*)(const char*, const char*, const char*);
+using BufferSizeFn = int(__stdcall*)(void*, int, int);
+using MemAllocFn = void*(__stdcall*)(int);
+using SampleIntFn = void(__stdcall*)(void*, int);
+using SampleTypeFn = void(__stdcall*)(void*, int, int);
+using SampleProcessorFn = void*(__stdcall*)(void*, int, void*);
+FindProviderFn RibFindFileProvider() { return *reinterpret_cast<FindProviderFn*>(std::uintptr_t(0x0073B7E4)); }
+BufferSizeFn AilMinimumSampleBufferSize() { return *reinterpret_cast<BufferSizeFn*>(std::uintptr_t(0x0073B7E0)); }
+MemAllocFn AilMemAllocLock() { return *reinterpret_cast<MemAllocFn*>(std::uintptr_t(0x0073B758)); }
+HandleFn AilInitSample() { return *reinterpret_cast<HandleFn*>(std::uintptr_t(0x0073B808)); }
+SampleTypeFn AilSetSampleType() { return *reinterpret_cast<SampleTypeFn*>(std::uintptr_t(0x0073B7DC)); }
+SampleIntFn AilSetSamplePlaybackRate() { return *reinterpret_cast<SampleIntFn*>(std::uintptr_t(0x0073B7B8)); }
+SampleIntFn AilSetSampleVolume() { return *reinterpret_cast<SampleIntFn*>(std::uintptr_t(0x0073B774)); }
+SampleIntFn AilSetSamplePan() { return *reinterpret_cast<SampleIntFn*>(std::uintptr_t(0x0073B77C)); }
+SampleProcessorFn AilSetSampleProcessor() { return *reinterpret_cast<SampleProcessorFn*>(std::uintptr_t(0x0073B78C)); }
+
+// Miles' sample (HSAMPLE), as far as the stream reads it: the functions of its codec stage.
+struct MilesSample {
+    std::uint8_t unknown_000[0x144];
+    void* codecFunctions[4];   // +0x144; slot 3 closes a stream
+};
+static_assert(offsetof(MilesSample, codecFunctions) == 0x144);
+
+constexpr int kStreamRate = 44100;
+constexpr int kStereo16 = 3;       // DIG_F_STEREO_16
+constexpr int kSignedPcm = 1;      // DIG_PCM_SIGN
+
+void* StreamOf(CSoundManager* manager) { return const_cast<std::int32_t*>(&manager->streamState); }
+CSoundManager* ManagerOf(void* stream) {
+    return reinterpret_cast<CSoundManager*>(static_cast<char*>(stream) - offsetof(CSoundManager, streamState));
+}
 
 // PCMWAVEFORMAT, as Open fills it.
 #pragma pack(push, 2)
@@ -353,6 +388,50 @@ static_assert(sizeof(PcmFormat) == 0x10);
 void WaitForThread(const mfc::CWinThread* thread) { gameapi::WaitForSingleObject(thread->thread, INFINITE); }
 
 } // namespace
+
+int CSoundManager::CloseStream() {
+    using CloseFn = void(__stdcall*)(void*);
+    if (streamFile != nullptr && streamCodec != nullptr) reinterpret_cast<CloseFn>(streamCodec[3])(streamFile);
+    if (streamSample != nullptr) AilReleaseSample()(streamSample);
+    if (streamDecoder != nullptr) AilReleaseSample()(streamDecoder);
+    for (void* buffer : streamBuffers)
+        if (buffer != nullptr) AilMemFree()(buffer);
+    ResetStream();
+    return 0;
+}
+
+int CSoundManager::OpenStream(void* driver) {
+    void* codec = RibFindFileProvider()("ASI codec", "Input file types", ".mp3");
+    streamSample = AilAllocateSample()(driver);
+    streamDecoder = AilAllocateSample()(driver);
+    if (codec == nullptr || streamSample == nullptr || streamDecoder == nullptr) return CloseStreamThroughHook(StreamOf(this));
+
+    streamBufferSize = AilMinimumSampleBufferSize()(driver, kStreamRate, kStereo16) * 2;
+    for (void*& buffer : streamBuffers) buffer = AilMemAllocLock()(streamBufferSize);
+    AilInitSample()(streamSample);
+    AilSetSampleType()(streamSample, kStereo16, kSignedPcm);
+    AilSetSamplePlaybackRate()(streamSample, kStreamRate);
+    AilSetSampleVolume()(streamSample, 0);
+    AilSetSamplePan()(streamSample, 0);
+    for (void* buffer : streamBuffers) std::memset(buffer, 0, static_cast<std::uint32_t>(streamBufferSize));
+    AilSetSampleProcessor()(streamDecoder, 0, codec);
+    AilInitSample()(streamDecoder);
+    // (The original also closes the stream when this address is null, which it cannot be.)
+    streamCodec = static_cast<MilesSample*>(streamDecoder)->codecFunctions;
+    unknown124 = 0;
+    unknown128 = 1;
+    unknown12C = 2;
+    streamPosition = 0;
+    streamState = 0;
+    // No fade and no hold; the level from the music volume.
+    musicFader.SetHold(0);
+    return 1;
+}
+
+int __fastcall SoundOpenStream(void* stream, void*, void* driver) { return ManagerOf(stream)->OpenStream(driver); }
+int __fastcall SoundCloseStream(void* stream) { return ManagerOf(stream)->CloseStream(); }
+EI_REPLACE(0x006BAAC0, SoundOpenStream);
+EI_REPLACE(0x006BAC90, SoundCloseStream);
 
 int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned rate, int /*bits*/) {
     Destroy();   // slot 3: Close
@@ -376,7 +455,7 @@ int CSoundManager::Open(void* window, int useReverb, int deviceIndex, unsigned r
         return 0;
     }
     AilSetDirectSoundWindow()(waveDriver, window);
-    if (StreamOpen(const_cast<std::int32_t*>(&streamState), nullptr, waveDriver) != 0)
+    if (OpenStreamThroughHook(StreamOf(this), nullptr, waveDriver) != 0)
         streamThread = static_cast<mfc::CWinThread*>(AfxBeginThreadOriginal(reinterpret_cast<void*>(kStreamThreadEntry),
                                                                             this, kStreamThreadPriority, 0, 0, nullptr));
     // operator new[]: the count, then the voices.

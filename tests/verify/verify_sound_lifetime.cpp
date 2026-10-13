@@ -242,7 +242,47 @@ void __fastcall SoundResetVerify(CSoundManager* self) {
     self->Reset();
     ei::verify::Check("CSoundManager::Reset", true, ResetState(self), "manager %p", self);
 }
+// A-H25: the MP3 stream's open (Open, so every start with sound on) and close (only when the
+// codec or a sample cannot be had: no scenario). They take and give back Miles samples and
+// memory: ours only, the state they leave.
+bool StreamClosed(const CSoundManager* m) {
+    return m->streamState == 0 && m->streamSample == nullptr && m->streamDecoder == nullptr && m->streamFile == nullptr &&
+           m->streamCodec == nullptr && m->streamBuffers[0] == nullptr && m->streamBuffers[1] == nullptr &&
+           m->streamBuffers[2] == nullptr && m->streamBufferSize == -1 && m->switchMode == 4;
+}
+bool StreamOpened(const CSoundManager* m) {
+    bool ok = m->streamState == 0 && m->streamSample != nullptr && m->streamDecoder != nullptr && m->streamCodec != nullptr &&
+              m->streamBufferSize > 0 && m->unknown124 == 0 && m->unknown128 == 1 && m->unknown12C == 2 &&
+              m->streamPosition == 0 && m->musicFader.factor == 1.0f && m->musicFader.mode == 0 &&
+              m->musicFader.finished == 0 && m->musicFader.holdUntil == 0 && m->musicFader.level >= 0 &&
+              m->musicFader.level <= 127;
+    for (void* buffer : m->streamBuffers) {
+        if (buffer == nullptr || !ok) return false;
+        const auto* bytes = static_cast<const std::uint8_t*>(buffer);
+        ok = bytes[0] == 0 && bytes[m->streamBufferSize - 1] == 0;
+    }
+    return ok;
+}
+CSoundManager* ManagerOfStream(void* stream) {
+    return reinterpret_cast<CSoundManager*>(static_cast<char*>(stream) - offsetof(CSoundManager, streamState));
+}
+int __fastcall SoundOpenStreamVerify(void* stream, void*, void* driver) {
+    CSoundManager* m = ManagerOfStream(stream);
+    int result = m->OpenStream(driver);
+    bool ok = result == 1 ? StreamOpened(m) : result == 0 && StreamClosed(m);
+    ei::verify::Check("CSoundManager::OpenStream", true, ok, "result %d buffers of %d level %d", result, m->streamBufferSize,
+                      m->musicFader.level);
+    return result;
+}
+int __fastcall SoundCloseStreamVerify(void* stream) {
+    CSoundManager* m = ManagerOfStream(stream);
+    int result = m->CloseStream();
+    ei::verify::Check("CSoundManager::CloseStream", true, result == 0 && StreamClosed(m), "result %d", result);
+    return result;
+}
 } // namespace
+EI_VERIFY(0x006BAAC0, SoundOpenStreamVerify, 0, s_unused);
+EI_VERIFY(0x006BAC90, SoundCloseStreamVerify, 0, s_unused);
 EI_VERIFY(0x006B6A30, SoundOpenVerify, 0, s_unused);
 EI_VERIFY(0x006B6D80, SoundCloseVerify, 0, s_unused);
 EI_VERIFY(0x006B73E0, SoundResetVerify, 0, s_unused);

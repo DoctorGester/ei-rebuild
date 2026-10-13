@@ -173,12 +173,10 @@ struct CSoundManager : CEngineObject {
     void* streamSample;                 // +0x104 HSAMPLE
     void* streamFile;                   // +0x108 ASI stream
     void** streamCodec;                 // +0x10C ASI codec functions (slot 3: close)
-    std::uint32_t unknown110;           // +0x110 0 after ResetStream
-    std::uint32_t unknown114;
-    std::uint32_t unknown118;
-    std::int32_t unknown11C;            // +0x11C -1 after ResetStream
+    void* streamBuffers[3];             // +0x110 Miles memory, streamBufferSize bytes each (OpenStream)
+    std::int32_t streamBufferSize;      // +0x11C twice Miles' minimum buffer; -1 after ResetStream
     std::int32_t streamBufferBytes;     // +0x120
-    std::int32_t unknown124;            // +0x124..+0x12C -1 after ResetStream
+    std::int32_t unknown124;            // +0x124..+0x12C -1 after ResetStream; 0, 1, 2 after OpenStream
     std::int32_t unknown128;
     std::int32_t unknown12C;
     std::int32_t streamPosition;        // +0x130 bytes queued so far
@@ -196,7 +194,7 @@ struct CSoundManager : CEngineObject {
     std::int32_t switchMode;            // +0x1A0 how nextName was requested (RequestStream mode)
     std::int32_t streamFileSize;        // +0x1A4 bytes of the open stream file (StreamRead)
     std::int32_t streamReadPosition;    // +0x1A8
-    std::uint32_t unknown1AC;
+    void* streamDecoder;                // +0x1AC HSAMPLE whose processor is the MP3 codec (streamCodec is in it)
     std::uint8_t streamLock[0x18];      // +0x1B0 CRITICAL_SECTION guarding the stream and musicFader
     mfc::CWinThread* streamThread;      // +0x1C8 006BB910's thread (Open), when the MP3 stream opened
     // The MIDI sequence (+0x1CC; 006BBA00-006BBDF0).
@@ -318,6 +316,15 @@ struct CSoundManager : CEngineObject {
     // sample, file or codec, the positions -1, both names empty, switch mode 4, no read
     // position, the music fader at volume 100 with no fade.
     void ResetStream();
+    // 006BAAC0 (RET 4; A-H25, sound_manager_lifetime.cpp; `this` is the manager's +0x100; Open).
+    // The MP3 stream on `driver`: Miles' ASI codec for ".mp3", a sample to play (16-bit stereo,
+    // 44100 Hz, silent) and one to decode with, three zeroed buffers, the buffer order 0 / 1 / 2,
+    // no position, state 0, the music fader at its volume with no fade. 1; or CloseStream's 0
+    // when the codec or a sample cannot be had.
+    int OpenStream(void* driver);
+    // 006BAC90 (A-H25; OpenStream's failure). The stream file closed through the codec, both
+    // samples released, the buffers freed, ResetStream. Returns 0.
+    int CloseStream();
 
     // 006B7D10 (A-H17, sound_manager.cpp; Play2D / Play3D). The first free voice; else the voice
     // with the lowest priority (the first of equals) when `priority` is above it: a looping sound
@@ -372,7 +379,7 @@ static_assert(offsetof(CSoundManager, streamReader) == 0x24 && offsetof(CSoundMa
 static_assert(offsetof(CSoundManager, archive074) == 0x74 && offsetof(CSoundManager, registry0CC) == 0xCC);
 static_assert(offsetof(CSoundManager, waveSources) == 0xE4);
 static_assert(offsetof(CSoundManager, streamReadPosition) == 0x1A8);
-static_assert(offsetof(CSoundManager, unknown11C) == 0x11C && offsetof(CSoundManager, unknown140) == 0x140);
+static_assert(offsetof(CSoundManager, streamBufferSize) == 0x11C && offsetof(CSoundManager, unknown140) == 0x140);
 static_assert(offsetof(CSoundManager, markers2) == 0x178 && offsetof(CSoundManager, streamThread) == 0x1C8);
 static_assert(offsetof(CSoundManager, midiName) == 0x1DC && offsetof(CSoundManager, midiArray1F4) == 0x1F4);
 static_assert(offsetof(CSoundManager, midiFader) == 0x20C && offsetof(CSoundManager, midiLock) == 0x22C);
