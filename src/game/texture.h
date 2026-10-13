@@ -180,6 +180,13 @@ struct MmpHeader {
     // the same DXT format, any other format), the surface's for 8888 converted to 16 bits
     // (00690B30), 16 for DXT decoded to 16 bits (00690D30); 32-bit arithmetic.
     std::uint32_t FilledBytes(const PixelFormat& surfaceFormat, unsigned mip, unsigned levels) const;
+    // 00693820 / 00693850 / 006938B0 / 00693910 (texture_slots.cpp, A-H25). The channel fields
+    // +0x18..+0x44 zeroed with format and bits per pixel 0; or 1:5:5:5, 4:4:4:4 (both 16 bits) or
+    // 8:8:8:8 (32 bits) with the format id.
+    void SetNoFormat();
+    void SetFormat5551();
+    void SetFormat4444();
+    void SetFormat8888();
 };
 static_assert(offsetof(MmpHeader, alphaKind) == 0x20);
 static_assert(offsetof(MmpHeader, blueBits) == 0x44);
@@ -253,6 +260,22 @@ public:
     // when already loaded); 0 when the .bmp cannot be opened or the surface locked or unlocked and
     // the report says stop.
     int LoadBmpFiles(CTextureDevice* device, const char* path, const char* alphaPath);
+
+    // texture_slots.cpp (A-H25).
+    // 2: 00691A00. Back to the constructed state: no name, the surface released, sizes and upload
+    // result 0, an empty format of size 0x20, the extra block freed; block_ is cleared without
+    // being freed. Returns 1.
+    int Create() override;
+    // 3: 00691A70. The block freed, the surface released, +0x64 and flags_ 0.
+    void Destroy() override;
+    // 00690FA0. Frees block_ (an aligned block) and clears it.
+    void FreeBlock();
+    // 00691950. The destructor body: Destroy's work, the extra block freed, the name destroyed,
+    // CEngineObject's destructor body. 00691930: slot 0.
+    void DestructBody();
+    CTexture* DeletingDestruct(unsigned flags);
+
+    mfc::CString* Name() { return reinterpret_cast<mfc::CString*>(&name_); }
 
     char* name_;                // +0x1C CString
     std::uint32_t width_;       // +0x20
@@ -362,6 +385,24 @@ public:
     // through the pixel converter's slot 5. A missing one goes to the debug log and is skipped;
     // one of another size is a fatal error (its result returned). Returns the layers drawn.
     int DrawLayers(std::uint32_t* image, const mfc::CStringArray* names, int width);
+
+    // texture_slots.cpp (A-H25).
+    // 00691CF0 (RET 4). GetFile(name) without the size.
+    void* GetFileData(const char* name);
+    // 00691D40 (RET 4). CreateObject(type, -1).
+    CTexture* NewTextureOfType(int type);
+    // 00691D00 (RET 8). FindTypedTexture(type, name), else a new texture of `type`; it is given
+    // `name` either way (no null check) and returned. Not loaded.
+    CTexture* FindOrCreate(int type, const char* name);
+    // 00693F10 (RET 8). FindTexture(name) as it is; else FindOrCreate's texture, loaded
+    // (LoadTexture). Returns it.
+    CTexture* FindOrLoad(int type, const char* name);
+    // 00693F60 (sets only AL). Every registered and every cached texture loses its loaded flag and
+    // is loaded again (after a lost device, 00504780); false when any LoadTexture fails.
+    bool ReloadAll();
+    // 00694020. While the cache holds more bytes than videoMemoryTenth_ (signed), its oldest
+    // texture is taken out and deleted (the world client, every 32 ticks).
+    void TrimCache();
 
     mfc::CTypedPtrList<CTexture> cache_;   // +0xBC released textures kept for reuse (vtable 00743D18)
     int cachedBytes_;           // +0xD8 the cached textures' byte sizes (CTexture::uploadResult_)

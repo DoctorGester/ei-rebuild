@@ -475,6 +475,10 @@ The spell manager's folder slot 00688940 (A-H24's last item) was complete. Wrapp
 | 006A6430..006A6470 | the item records' slot 0 (kind 0x3004 / 5 / 6 / 9 / 7) | P |
 | 00699080, 006990E0, 00699140, 006991A0, 00699200, 00699260 | ItemStock::AddArmor / AddWeapon / AddQuickItem / AddSpell / AddModifier / AddMaterial (`stlp::vector::push_back` on the stock's vectors) | O: present once, size +1 only when new |
 | 0067ECB0, 0067EF00 | CSpellEffect::Init (every cast), Forget (an object leaving the world during a cast) | O |
+| 00693820, 00693850, 006938B0, 00693910 | MmpHeader::SetNoFormat / SetFormat5551 / 4444 / 8888 (texture_slots.cpp; ComposeTexture keeps its forwarders so the wrappers run) | S: the original on the header, ours on a copy |
+| 00691A00, 00691A70, 00690FA0, 00691950, 00691930 | CTexture::Create (slot 2; block_ cleared, not freed), Destroy (slot 3), FreeBlock, DestructBody, DeletingDestruct | O |
+| 00691CF0, 00691D40, 00691D00, 00693F10 | CTextureManager::GetFileData, NewTextureOfType, FindOrCreate (named, not loaded; no null check), FindOrLoad | O |
+| 00693F60, 00694020 | CTextureManager::ReloadAll (after a lost device: no scenario), TrimCache (cached bytes against videoMemoryTenth_, signed; every 32 client ticks) | O |
 
 Library (config/library.csv): the by-name lookups 006AD580 / 0069D290 / 0069D380 (hash_map operator[](const char*), as 00613820),
 the code string's sort and reserve 0068C680..0068CE00, the trader stock's vector / list / pair helpers 0069BD60..0069E4E0,
