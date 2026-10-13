@@ -395,7 +395,7 @@ EI_VERIFY(0x005C91F0, DestroyEventsVerify, 0, s_unused);
 static void(__fastcall* s_buildOpenMarks)(CAIMap*);
 static void __fastcall BuildOpenMarksVerify(CAIMap* self) {
     s_buildOpenMarks(self);
-    int count = self->materialCount > 0 ? self->materialCount : 0;
+    int count = self->materials.size > 0 ? self->materials.size : 0;
     std::vector<std::uint32_t> expected(static_cast<std::size_t>(count));
     for (int i = 0; i < count; ++i) {
         expected[static_cast<std::size_t>(i)] = self->materials[i].openMarks;

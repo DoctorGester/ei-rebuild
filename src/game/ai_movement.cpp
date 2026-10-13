@@ -111,7 +111,7 @@ const int* CAIMap::CostContext(int sizeClass, PassCostContext* out) {
     out->shift = sizeClass * 4;
     const ClimbTable& climb = out->shift == 0 ? climbSmall : climbLarge;
     out->costs = passCosts;
-    out->climb = climb.costs + climb.count / 2;
+    out->climb = climb.data + climb.size / 2;
     return out->climb;
 }
 EI_REPLACE_METHOD(0x005B9510, CAIMap::CostContext);
@@ -121,7 +121,7 @@ void CAIMap::SetStepSpeeds(CUnit* unit, PathCellList* steps) {
     // of them, but never uses the results; the getter has no side effects.
     int shift = unit->sizeClass * 4;
     const ClimbTable& climbTable = shift == 0 ? climbSmall : climbLarge;
-    const int* climb = climbTable.costs + climbTable.count / 2;
+    const int* climb = climbTable.data + climbTable.size / 2;
         PassCostContext context;
     CostContext(unit->sizeClass, &context);
 

@@ -197,13 +197,9 @@ static_assert(offsetof(ZoneExit, unknown_38) == 0x38);
 // new records are constructed).
 using ZoneExitArray = mfc::CArray<ZoneExit>;
 
-// The client's digit sprites (+0x1B4, 8 bytes; constructor 005E1710): the "numbers" texture
-// (counted) and an STLport list (its sentinel).
-struct ClientNumbers {
-    CTexture* texture;
-    void* list;
-};
-static_assert(sizeof(ClientNumbers) == 8);
+// The client's flying numbers (+0x1B4, 8 bytes; constructor 005E1710): the "numbers" texture
+// (counted) and the list of the numbers shown.
+class CFlyingHitPoints;     // ui_flying_hit_points.h
 
 // A light colour of the client's tables (CWorldClient + 0x22C ...): r, g, b and 1.
 struct LightColour {
@@ -1010,15 +1006,6 @@ struct OpaqueRecord {
 };
 
 
-// The client's +0x1A8 (0x58 bytes, vtable 00744098, constructor 006B4350; its names start as
-// "none"). Segment clears +0x44 on its 90th tick (earlier once the party fights, 007AFC9C 2).
-struct ClientObject1A8 : CEngineObject {
-    std::uint8_t unknown_1C[0x44 - 0x1C];
-    int unknown44_;                       // +0x44
-    std::uint8_t unknown_48[0x58 - 0x48];
-};
-static_assert(sizeof(ClientObject1A8) == 0x58);
-
 // The worlds' counted helpers (CWorld + 0x5C, vtable 0073F240, 0xC bytes; the client's +0x1C8,
 // 0073F628): player sources (player_source.h; Query AL 0, the client's Segment calls Pump every
 // tick). The server's hands its pending link over once (slot 6, 00478880). world_sessions.cpp.
@@ -1107,15 +1094,9 @@ struct WorldSession : CEngineObject {
 static_assert(offsetof(WorldSession, localView) == 0x20);
 static_assert(offsetof(WorldSession, gameKind) == 0x100);
 
-// The client's ribbon effects (CWorldClient + 0x6F4, constructor 004E3C20; drawn by 004E5B10):
-// an engine object (Teardown calls its slot 3) that keeps the world at +0x20.
-struct ClientRibbons {
-    CEngineObject* Engine() { return reinterpret_cast<CEngineObject*>(this); }
-    std::uint8_t engineObject_[0x1C];
-    std::uint8_t unknown_1C[4];
-    class CWorldClient* world;            // +0x20
-};
-static_assert(offsetof(ClientRibbons, world) == 0x20);
+// The client's rain / snow layer (CWorldClient + 0x6F4, 0xC8 bytes; constructor 004E3C20, drawn by
+// 004E5680): an engine object (Teardown calls its slot 3) that keeps the world at +0x20.
+class CRainSnow;            // effects.h
 
 // The client's text resources (CWorldClient + 0x1D0, 0x2C bytes, vtable 0073F6F0; constructor
 // 004DED20 after the engine object fields and the table at +0x1C, 00562A80).
@@ -1347,6 +1328,18 @@ public:
     // SetSize releases them), the second grid's cells cleared (counted elements released), every
     // timed object (slot 14's manager) released, the bird (+0x1B0) reset (slot 18).
     void ResetZoneObjects();
+    // 00567AB0 (RET 4; world_client_maps.cpp, A-W15; patched by Rebirth, so hooked in the vanilla
+    // launch only: the player's client reaches it through its address). The zone's state block:
+    // the flow acknowledges the server, sounds stop, then from `block` the tick, the map and .mob
+    // names, the exits, the cave flag and the unit looks; the local server makes sure it has the
+    // zone (00578730); the ground prints, ResetZoneObjects, ClearMaps, the items and spells and
+    // the idle particle sources go; the terrain loads the map (a name without a drive from the
+    // maps folder) with the allod of the local player's zone, the sector grids take its size
+    // (cells of 16), the sky, lights table, exit markers, lighting and music follow the cave
+    // flag, the local server's pending messages are appended to the view's, the unit skins are
+    // built and the view resumes. Loading movie steps 8-11, then closed. Returns 1, or the
+    // result of the fatal error when the map does not load.
+    int LoadZone(CStream* block);
     // 00566CE0 / 00566D30 / 00566D80 (RET 4; world_client_session.cpp). The local session takes a
     // new link: the single-player loopback pair for `player` (CWorld's teardown 0055F890 first), a
     // replay of the recording `path`, or a driver for the game client's first connection (false
@@ -1481,7 +1474,7 @@ public:
 
     int unknown84_;                       // +0x084 -100000 after Setup
     std::uint32_t debugFlags_;            // +0x088 the debug display's switches (bits 0-3: ShowFps ...)
-    std::uint8_t unknown_08C[0x90 - 0x8C];
+    void* exitsVtable_;                   // +0x08C CArray<ZoneExit> (ZoneExitArray) from here
     ZoneExit* exits_;                     // +0x090
     int exitCount_;                       // +0x094
     std::uint8_t unknown_098[0xA0 - 0x98];
@@ -1506,7 +1499,10 @@ public:
     SectorGrid secondGrid_;               // +0x150 (slot 42 moves objects in it)
     std::uint8_t unknown_168[0x180 - 0x168];
     Terrain* terrain_;                    // +0x180 counted
-    char* zoneName_;                      // +0x184 CString ("gipath" after Setup)
+    // +0x184 CString: the zone's allod in lower case ("gipath" after Setup; the zone load takes it from
+    // the map database's record of the local player's zone, "gipat" without one). It names the
+    // terrain's texture pages, the lights table and the music theme.
+    char* zoneName_;
     CBaseManager* manager188_;            // +0x188 counted (constructor 0068E3F0)
     CTextureManager* textureManager_;     // +0x18C (slot 34) counted
     CBaseManager* manager190_;            // +0x190 counted (constructor 0068D850)
@@ -1515,10 +1511,10 @@ public:
     CParticleManager* particleManager_;        // +0x19C counted
     ClientListManager* listManager_;      // +0x1A0 owned
     ClientArrayManager* arrayManager_;    // +0x1A4 owned
-    ClientObject1A8* owned1A8_;           // +0x1A8 owned (constructor 006B4350)
+    struct CMusicSystem* music_;          // +0x1A8 owned (sound.h; constructor 006B4350)
     struct CSky* skyDome_;                // +0x1AC the sky (owned; destructor body 005636A0; sky_object.h)
     CEngineObject* owned1B0_;             // +0x1B0 owned
-    ClientNumbers* numbers_;              // +0x1B4 owned
+    CFlyingHitPoints* numbers_;           // +0x1B4 owned
     // +0x1B8 / +0x1BC / +0x1C0 the ground prints (ground_print.h; element destructors 0056D080,
     // 00575560, 00575580). Segment ticks them (slot 0) and colours the blood prints by the light.
     stlp::list<BloodPrint> bloodPrints_;
@@ -1554,10 +1550,12 @@ public:
     std::uint8_t unknown_6E8[0x6EC - 0x6E8];
     int ticksRun_;                        // +0x6EC Segment's count; AddObject fades units in (slot 43) when >= 1
     float tickFraction_;                  // +0x6F0 added to the tick for the units' time (network client)
-    ClientRibbons ribbons_;               // +0x6F4
-    std::uint8_t unknown_718[0x7A8 - 0x718];
-    int unknown7A8_;                      // +0x7A8
-    std::uint8_t unknown_7AC[0x7BC - 0x7AC];
+    // +0x6F4 the rain / snow layer. CRainSnow is abstract here like every engine object, so the
+    // world keeps its bytes and RainSnow() is the object. Its `mode` (+0x7A8 of the world: 1 rain,
+    // 2 snow) picks the ground prints' wet look and an environment flag.
+    alignas(4) std::uint8_t rainSnow_[0xC8];
+    CRainSnow* RainSnow() { return reinterpret_cast<CRainSnow*>(rainSnow_); }
+    const CRainSnow* RainSnow() const { return reinterpret_cast<const CRainSnow*>(rainSnow_); }
     stlp::list<void*> list7BC_;           // +0x7BC (nodes of 0xC bytes; pool free 00498C40)
     int worldValue_;                      // +0x7C0 -1; message 0x12 sets it (SetWorldValue); the exe never reads it
     std::uint8_t unknown_7C4[0x7D0 - 0x7C4];
@@ -1587,7 +1585,7 @@ static_assert(offsetof(CWorldClient, texturePath_) == 0x224);
 static_assert(offsetof(CWorldClient, unknown6DC_) == 0x6DC);
 static_assert(offsetof(CWorldClient, frameAmbient_) == 0x6AC && offsetof(CWorldClient, frameSun_) == 0x6CC);
 static_assert(offsetof(CWorldClient, ticksRun_) == 0x6EC);
-static_assert(offsetof(CWorldClient, ribbons_) == 0x6F4);
+static_assert(offsetof(CWorldClient, rainSnow_) == 0x6F4);
 static_assert(offsetof(CWorldClient, list7BC_) == 0x7BC);
 static_assert(offsetof(CWorldClient, cursor_) == 0x7D0);
 static_assert(offsetof(CWorldClient, exits_) == 0x90);
@@ -1600,7 +1598,6 @@ static_assert(offsetof(CWorldClient, textureManager_) == 0x18C);
 static_assert(offsetof(CWorldClient, numbers_) == 0x1B4);
 static_assert(offsetof(CWorldClient, sunlight_) == 0x22C);
 static_assert(offsetof(CWorldClient, sky_) == 0x52C);
-static_assert(offsetof(CWorldClient, unknown7A8_) == 0x7A8);
 
 // MatrixRows (the first three rows of a 4x4 matrix; Transform 00560E10) is in src/lib/vecmath.h.
 
@@ -1835,6 +1832,14 @@ int __stdcall RequestZone(const char* zone, int entrance);
 // 00580F10 (world_briefing.cpp). With the briefing texts loaded (007AF788): every quest text file
 // loaded so far (007AFDD0) is unloaded and the list emptied.
 void UnloadQuestTexts();
+
+// 005809D0 (RET 4, AL; ECX, the flow, is not read; world_briefing.cpp, A-W15). Loads the quest
+// texts of `zone`: false without the briefing texts (007AF788) or when the maps folder has no
+// "<zone>.mq" (CFileFind). A running game server (0079B5DC) first lists the file's bytes under
+// "<zone>.mq" for its clients (ShareFile); then a path not yet among the quest files (007AFDD0)
+// joins them and the briefing texts add it as a source. Rebirth patches it: hooked in the vanilla
+// launch only, and rewritten callers go through FlowLoadQuestsOriginal (originals_world.h).
+bool __stdcall LoadZoneQuests(const char* zone);
 
 // 0057F820 (ECX = list, EDX = name; world_game.cpp). Whether `name` is in `list` (an array of
 // names ended by an empty one), compared case-insensitively.

@@ -5,6 +5,11 @@
 // unordered counting as equal); a found value, or else a new object from the cache's slot 0 that
 // is stored under the handle (005BE090, the old value released as an owner and the new one
 // shared), becomes the handle's reference. Used for the unit shapes (007C2F70, ai_movement.cpp).
+//
+// The unit shapes' cache itself is constructed by a static initialiser (before the hooks are
+// installed) and destroyed at exit: UnitShapeCache::Construct and Destruct at the end of this file.
+#include "ai_shape_cache.h"
+
 #include "core_refcount.h"
 
 #include "ei/hook.h"
@@ -14,18 +19,11 @@
 
 namespace {
 
-struct CacheHandle {
-    void* cache;
-    CRefObject* ref;
-    std::uint32_t key;
-    float height;
-};
+using CacheHandle = ShapeCacheHandle;
+using CacheNode = UnitShapeCache::Map::Node;
 
-struct CacheNode {
-    CacheNode* next;
-    CacheHandle handle;
-    CRefObject* value;
-};
+constexpr std::uintptr_t kUnitShapeCacheVtable = std::uintptr_t(0x0073FD58);
+constexpr std::size_t kFirstBuckets = 100;
 
 // 005BE090 (RET 4): the map's value slot for a handle, inserted (empty) when missing.
 __declspec(naked) RefPtr* __fastcall CacheSlot(void*, void*, const CacheHandle*) EI_ORIGINAL(0x005BE090)
@@ -47,9 +45,9 @@ CRefObject* __fastcall CacheGet(std::uint8_t* cache, void*, void* handleIn) {
     CacheNode** end = *reinterpret_cast<CacheNode***>(cache + 0x10);
     auto count = static_cast<std::uint32_t>(end - begin);
     CacheNode* node = begin[handle->key % count];
-    while (node && !SameHeight(node->handle.height, handle->height)) node = node->next;
+    while (node && !SameHeight(node->key.height, handle->height)) node = node->next;
     if (node) {
-        CRefObject* value = node->value;
+        CRefObject* value = node->value.ptr;
         handle->cache = cache;
         reinterpret_cast<RefPtr*>(&handle->ref)->Assign(value);
         return value;
@@ -69,3 +67,20 @@ CRefObject* __fastcall CacheGet(std::uint8_t* cache, void*, void* handleIn) {
 #pragma float_control(pop)
 
 EI_REPLACE(0x005BD7F0, CacheGet);
+
+UnitShapeCache* UnitShapeCache::Construct() {
+    shapes.InitBuckets(kFirstBuckets);
+    vtable = reinterpret_cast<void*>(kUnitShapeCacheVtable);
+    return this;
+}
+EI_REPLACE_METHOD(0x005B32E0, UnitShapeCache::Construct);
+
+void UnitShapeCache::Destruct() {
+    shapes.ClearWith([](Map::Node* node) {
+        node->value.Destroy();
+        if (CRefObject* ref = node->key.ref) ref->Release();
+        stlp::deallocate(node, sizeof(Map::Node));
+    });
+    shapes.Destroy();
+}
+EI_REPLACE_METHOD(0x005B31F0, UnitShapeCache::Destruct);

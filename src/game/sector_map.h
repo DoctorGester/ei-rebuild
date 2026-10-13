@@ -66,12 +66,30 @@ struct RadiusTree {
     // where the radius is above the node's key, then the node index masked. The floats are
     // compared as integers, which orders non-negative values.
     int Find(float radius) const;
+    // 005BF5F0 (RET 8). The tree over `count` ascending values: the smallest depth (at least 1) with
+    // 2^depth >= count, the keys of every level filled from the values in order (past the last
+    // value, the last one). The bottom level holds the values themselves.
+    void Build(const float* values, int count);
 
     mfc::CArray<float> keys;    // +0x00
     int depth;                  // +0x14
     int mask;                   // +0x18
 };
 static_assert(sizeof(RadiusTree) == 0x1C);
+
+// A sector offset of the spiral.
+struct SpiralOffset {
+    std::int16_t x, y;
+};
+static_assert(sizeof(SpiralOffset) == 4);
+// The sector spiral's tables, built by the static initialiser 005BF8F0: the 441 offsets of a 21 x 21
+// square of sectors ordered by distance (007C2FF8), the number of offsets within each distinct
+// distance (007C2FC0) and the tree that finds a distance's place among them (007C2FD8).
+inline mfc::CArray<int>* SpiralLengthArray() { return reinterpret_cast<mfc::CArray<int>*>(0x007C2FC0); }
+inline RadiusTree* SpiralRadiusTree() { return reinterpret_cast<RadiusTree*>(0x007C2FD8); }
+inline mfc::CArray<SpiralOffset>* SpiralOffsetArray() { return reinterpret_cast<mfc::CArray<SpiralOffset>*>(0x007C2FF8); }
+// What 005BF8F0 does, on any three constructed tables (sector_map.cpp).
+void BuildSectorSpiralAt(mfc::CArray<int>* lengths, RadiusTree* tree, mfc::CArray<SpiralOffset>* offsets);
 
 class CSectorMap {
 public:

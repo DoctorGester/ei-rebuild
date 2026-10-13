@@ -10,6 +10,7 @@
 
 #include "camera.h"              // TheTerrain
 #include "core_streams.h"
+#include "effects.h"             // CRainSnow
 #include "figure_mesh.h"         // VertexPacket
 #include "ground_decal.h"        // DecalTexCoord
 #include "model.h"               // ThePrintsDatabase
@@ -378,7 +379,7 @@ void CWorldClient::AddBloodPrint(float x, float y, float halfSize, float fullSiz
     if (!BloodPrintsOn()) return;
     const PrintRecord* entry = EntryAt(ThePrintsDatabase().blood, this, x, y);
     if (!entry) return;
-    const PrintLook& look = LookOf(*entry, unknown7A8_ != 0);
+    const PrintLook& look = LookOf(*entry, RainSnow()->mode != 0);
     if (!(look.alpha > 0.0f) || look.life <= 0 || look.lifetime <= 0) return;
     std::uint32_t colour = ((Channel(frameSun_.r) | 0x100) << 8 | Channel(frameSun_.g)) << 8 | Channel(frameSun_.b);
     alignas(BloodPrint) unsigned char storage[sizeof(BloodPrint)];
@@ -409,9 +410,9 @@ int CWorldClient::AddFootprint(float x, float y, float halfWidth, float halfLeng
     const PrintsDatabase& prints = ThePrintsDatabase();
     const PrintLook* look = nullptr;
     if (bloodKind == -1) {
-        if (const PrintRecord2* entry = EntryAt(prints.footprints, this, x, y)) look = &LookOf(*entry, unknown7A8_ != 0);
+        if (const PrintRecord2* entry = EntryAt(prints.footprints, this, x, y)) look = &LookOf(*entry, RainSnow()->mode != 0);
     } else {
-        if (const PrintRecord* entry = EntryAt(prints.blood, this, x, y)) look = &LookOf(*entry, unknown7A8_ != 0);
+        if (const PrintRecord* entry = EntryAt(prints.blood, this, x, y)) look = &LookOf(*entry, RainSnow()->mode != 0);
     }
     if (look && look->alpha > 0.0f && look->life > 0 && look->lifetime > 0) {
         alignas(Footprint) unsigned char storage[sizeof(Footprint)];
@@ -429,7 +430,7 @@ void CWorldClient::AddScorchMark(float x, float y, float halfWidth, float halfLe
     if (!ScorchMarksOn()) return;
     const PrintRecord* entry = EntryAt(ThePrintsDatabase().scorch, this, x, y);
     if (!entry) return;
-    const PrintLook& look = LookOf(*entry, unknown7A8_ != 0);
+    const PrintLook& look = LookOf(*entry, RainSnow()->mode != 0);
     if (!(alpha > 0.0f) || look.life <= 0 || look.lifetime <= 0) return;
     alignas(GroundPrint) unsigned char storage[sizeof(GroundPrint)];
     auto* print = reinterpret_cast<GroundPrint*>(storage);

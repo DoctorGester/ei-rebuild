@@ -399,8 +399,8 @@ int __fastcall BindParticleTexture(void* renderer, void*, int stage, void** hold
 // stored just below; __fastcall.
 ParticleElement* __fastcall AllocateElements(int count);
 
-// The world's rain/snow layer (CWorldClient + 0x6F4; world.h declares it as ClientRibbons, an engine
-// object whose slot 3 is the thunk 005617B0 -> 004E3B80). Only the fields its rewritten members use.
+// The world's rain/snow layer (CWorldClient + 0x6F4, CWorldClient::RainSnow(); an engine object
+// whose slot 3 is the thunk 005617B0 -> 004E3B80). Only the fields its rewritten members use.
 class CRainSnow : public CEngineObject {
 public:
     static constexpr std::uintptr_t kRainSnowVtable = std::uintptr_t(0x0073F4C8);

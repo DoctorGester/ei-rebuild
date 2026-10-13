@@ -48,7 +48,7 @@ searches per leg) -> `BuildCellsTo` (005B9A20).
   unrounded). Virtual callbacks (layer Set / Merge) are free `__fastcall` functions called through the
   vtable (`ei::VCall`).
 - None of this area is in `docs/rebirth-patched-functions.txt` except `CSectorMap::Move` (005C11D0),
-  installed only in the vanilla run, and `CAIMap::Load` (005B43C0, not rewritten).
+  and `CAIMap::Load` (005B43C0, `ai_map_load.cpp`, A-W15), both installed only in the vanilla run.
 
 ## Rewritten
 
@@ -132,11 +132,12 @@ compared; ours only = consistency check.
 ## Skipped and why
 
 - 005C9310 (the event table's add, Rebirth-patched: ResOverride). 005D7970 (the fear order's operator=: only the original 005D30A0 calls it; our Fear inlines it).
-- Run only by the static initialiser 005C42A0 (before the hooks): the smoothing tables 005C42B0 and its helpers 005C3690, 005C3840, 005C3A00,
-  005C3E10, 005C4050, 005C4F30, 005C5930, 005C5AB0, 005C5A80.
+- Run only by static initialisers (before the hooks), ported in A-W15 and compared once at start-up with what the original built (`EI_STARTUP_CHECK`, verify_ai_static_tables.cpp; world.md "Rewritten"): the smoothing
+  tables 005C42B0 with 005C3690, 005C3840, 005C3A00, 005C3E10, 005C4050 (`ai_path_smooth.cpp`), the spiral 005BF8F0 / 005BF5F0 (`sector_map.cpp`), the shape cache 005B32E0 / 005B31F0 (`ai_shape_cache.cpp`). 005C4F30,
+  005C5930, 005C5AB0, 005C5A80 are MFC (library.csv).
 - Shape cache helpers 005BCCB0, 005BE320, 005BE450, 005BE730 (STLport hash_map instantiations) are in config/library.csv (A-W7).
 - CRegionMap has its members (ai_map.h: the two BlockSearch, the local search, `progress`, the per class grids).
-- 005B43C0 CAIMap::Load (Rebirth-patched). 005BF8F0 / 005BF5F0 (spiral table constructor) run from the static initializer 005BF8E0, before the hooks are installed. 005C6E30 (waypoint constructor) is inlined. 005A0000-005AF000
+- 005C6E30 (waypoint constructor) is inlined. 005A0000-005AF000
   (AI helpers of other systems: voice, groups) and 005C8xxx / 005C9xxx above 005C8D40 (time wheel, containers) are not movement code.
 
 ## Risks
