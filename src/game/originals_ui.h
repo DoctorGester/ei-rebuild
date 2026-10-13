@@ -36,6 +36,10 @@ __declspec(naked) inline void __fastcall EmptyTextureMap(void*) EI_ORIGINAL(0x00
 // without a DirectDraw surface) and the matching release. The surface is a CUiSurface.
 __declspec(naked) inline ui_gdi::GameDC* __fastcall SurfaceGetDC(void* /*surface*/) EI_ORIGINAL(0x005FDC00)
 __declspec(naked) inline void __fastcall SurfaceReleaseDC(void* /*surface*/) EI_ORIGINAL(0x005FDC60)
+// 005FD240: CUiSurface's pixel at (x, y) as 0x00RRGGBB (RET 8; rewritten as SurfacePixelAt,
+// ui_surface_pixels.cpp).
+__declspec(naked) inline std::uint32_t __fastcall SurfacePixelAtOriginal(void* /*surface*/, void*, int /*x*/, int /*y*/)
+    EI_ORIGINAL(0x005FD240)
 // CUiSurface::DrawText (RET 0x18; the surface is `this`): text into a rectangle with a format, colour and
 // two more ints. Returns the DrawText result (0 without a DirectDraw surface). RECT is `tagRECT`.
 __declspec(naked) inline int __fastcall SurfaceDrawText(void* /*surface*/, void*, const char* /*text*/, tagRECT* /*rect*/,

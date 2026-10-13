@@ -443,6 +443,17 @@ public:
     void OnRightDown(int buttons, int x, int y);
     void OnRightUp(int buttons, int x, int y);
     void OnDeactivate();
+    // 00630010 (input slot 4, RET 0xC; Rebirth-patched, this is the vanilla body, hooked in the
+    // vanilla launch only). The mouse moved. While dragging: the drag motion (007C7C60, printed
+    // to the stream 007C5760) turns the map: angle_ += dx / 300 (layout units), taken mod
+    // 007C8020, and turn_ = the tilt (pi * 0.8 about x) times the spin about z; the motion is
+    // cleared. Otherwise the zone or link under the mouse is selected (a link's region 3..; or,
+    // off every region, the zone read from the backdrop's pixel at half the point, on gipat its
+    // link when it has one; nothing while a turn button is held) and its tip shown: the first
+    // surface with the title and the titles of the zone's quests, the last two sprites behind
+    // it; a zone in state 0 or nothing hides the tip. A new name plays
+    // "buttons\globalmap\zone.wav". Regions past the links do nothing.
+    void OnMouseMove(int buttons, int x, int y);
     // 00630580 (slot 9, RET 0xC). The container's handler first; Esc opens the escape menu (built
     // inline: 0x168 bytes, container constructor 00600B20, vtables 007412A4 / 00741270) and marks
     // the key used; an unused key whose action (KeyActions) is '5' quick-saves ("saveq",
@@ -507,7 +518,7 @@ public:
     std::uint8_t unknown_265[3];
     POINT dragStart_;                // +0x268 where the drag began (layout)
     float dragAngle_;                // +0x270 angle_ when the drag began
-    std::uint8_t unknown_274[0x278 - 0x274];
+    char* shownName_;                // +0x274 CString: the zone or link whose tip is shown
     bool gipat_;                     // +0x278 the allod is gipat
     std::uint8_t unknown_279[3];
     int noCamp_;                     // +0x27C the player's "i.nocamp" (1: no camp button)
