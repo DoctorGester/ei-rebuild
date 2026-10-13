@@ -19,8 +19,30 @@
 class CLight;        // spell.h
 
 // The drawer of a figure mesh (CFigureMesh::drawer_; its draws 005A7A70 / 005A7640, 005A7160
-// advances its animation, 005A7290 finishes a draw). Only what the draws use.
+// advances its animation, 005A7290 finishes a draw). It is an engine object of class 0x36,
+// "CFigureClientSpecific" (0x3C bytes): the client-specific manager's factory 0042D700 makes one
+// for type 0x45 and CFigureManager::CreateFigureObject gives it to every new figure.
 struct FigureMeshDrawer {
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073FB10);
+    // Its base (slots 2, 3, 11 and 12 pure): the mesh pointer alone.
+    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073FB44);
+
+    // 005A7010 (figure_drawer.cpp, A-W14). The constructor body: the engine object's fields (no
+    // references, id -1, no owner), no mesh, the vtable. Returns this.
+    FigureMeshDrawer* Construct();
+    // 005A7080 / 005A70C0. The destructor bodies of the class and of its base: the base's vtable,
+    // no mesh (the class's own also clears the flags), then the engine object's body (00455930).
+    void Destruct();
+    void DestructBase();
+    // 005A7060 / 005A70A0 (slot 0 of the two vtables, RET 4): the bodies above, the memory freed
+    // when bit 0 of the flags is set. Return this.
+    FigureMeshDrawer* DeletingDestruct(unsigned flags);
+    FigureMeshDrawer* DeletingDestructBase(unsigned flags);
+    // 005A70E0 (slot 2). No flags; +0x30 becomes (1, 1, 1). Returns 1.
+    int Create();
+    // 005A7130 (slot 3). No mesh, no flags.
+    void Destroy();
+
     // 005A7160 (RET 4; figure_drawer.cpp; the draws call it through its address for the animated
     // mesh types 13..16). The texture offset of an animated mesh at `time` (truncated by _ftol):
     // type 13 cycles 8 frames over two rows (u = frame % 4 / 4, v = 0 or 0.5), 14 16 frames of a
@@ -32,8 +54,10 @@ struct FigureMeshDrawer {
     std::uint8_t unknown_0C[0x1C - 0x0C];
     CFigureMesh* mesh_;         // +0x1C the mesh it draws
     RECT screen_;               // +0x20 where the mesh was last drawn
+    Vector3 unknown_30;         // +0x30 (1, 1, 1) after Create
 };
 static_assert(offsetof(FigureMeshDrawer, mesh_) == 0x1C && offsetof(FigureMeshDrawer, screen_) == 0x20);
+static_assert(offsetof(FigureMeshDrawer, unknown_30) == 0x30 && sizeof(FigureMeshDrawer) == 0x3C);
 
 class CTextureDevice;   // texture.h
 class CTexture;         // texture.h

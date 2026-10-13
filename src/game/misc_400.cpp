@@ -2,6 +2,7 @@
 // (constructed by 005620D9; its deleting destructor and slot 14, the object factory, differ), a
 // cursor reset of the coder, an exception cleanup step and the aligned array allocations. See docs/notes/core.md.
 #include "base_manager.h"
+#include "link_figure.h"
 #include "net_coder.h"
 
 #include "ei/hook.h"
@@ -16,7 +17,8 @@ constexpr std::uintptr_t kManagerVtable = 0x0073BECC;
 
 // The constructors of the objects 0042D700 makes (outside this range; each returns this). Named by
 // the vtable each one sets.
-__declspec(naked) void* __fastcall Construct73FB10(void* /*memory*/) EI_ORIGINAL(0x005A7010)
+// 005A7010 (rewritten, figure_drawer.cpp): the figure drawer, CFigureClientSpecific.
+void* __fastcall Construct73FB10(void* memory) { return static_cast<FigureMeshDrawer*>(memory)->Construct(); }
 __declspec(naked) void* __fastcall Construct73DE90(void* /*memory*/) EI_ORIGINAL(0x0051AB00)
 __declspec(naked) void* __fastcall ConstructMapObjectClientSpecific(void* /*memory*/) EI_ORIGINAL(0x00510450)
 __declspec(naked) void* __fastcall Construct73ECD8(void* /*memory*/) EI_ORIGINAL(0x00533AD0)

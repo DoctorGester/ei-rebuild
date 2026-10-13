@@ -188,6 +188,9 @@ void __fastcall ObjectSpecDestruct(ObjectSpec* self) {
     SpecDestruct(&self->base);
 }
 EI_REPLACE(0x0046AEB0, ObjectSpecDestruct);
+// 0058EDF0: the destructor body of the quick item effect's record (vtable 0073FA58, no members of
+// its own): a jump to the one above (A-W14).
+EI_REPLACE(0x0058EDF0, ObjectSpecDestruct);
 
 // 0046A6F0 (slot 10).
 ObjectSpec* __fastcall ObjectSpecDelete(ObjectSpec* self, void*, unsigned flags) {
@@ -196,6 +199,7 @@ ObjectSpec* __fastcall ObjectSpecDelete(ObjectSpec* self, void*, unsigned flags)
     return self;
 }
 EI_REPLACE(0x0046A6F0, ObjectSpecDelete);
+EI_REPLACE(0x0058EDD0, ObjectSpecDelete);   // slot 10 of 0073FA58 (through 0058EDF0; A-W14)
 
 // 0046A710: copies `from` (the base fields but its kind and chunk state, then the object's).
 // The original goes through a temporary copy of the base record; CStrings share their data
