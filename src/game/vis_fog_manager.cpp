@@ -3,7 +3,8 @@
 // of the fog objects (CVisibilityFog, effects.h; one a player whose sight is drawn). Rewritten: its
 // factory (slot 14), Create / Destroy (slots 2 / 3), the tick (slot 6), the new fog (004E28D0) and
 // the draw (004E2700), which binds the texture and has every fog draw itself (004E1EB0, the fog's
-// own draw through the scene renderer: not rewritten). Main thread. See docs/notes/script.md (A-S11).
+// own draw through the scene renderer: effects_weather_draw.cpp). Main thread. See
+// docs/notes/script.md (A-S11).
 #include "effects.h"
 #include "model.h"     // CSceneRenderer
 #include "texture.h"   // TextureHolderEnsureLoaded, TextureHolderLoad
@@ -30,17 +31,9 @@ __declspec(naked) void __fastcall FogDrawOriginal(CEngineObject* /*fog*/, void*,
 constexpr int kFogTextureKind = 6;
 const char* FogTextureName() { return reinterpret_cast<const char*>(0x0078ADAC); }   // "VisionFog"
 
-// The texture coordinates of the fog texture's 4 x 4 tiles (007ABA58, 16 records, the fog's draw
-// reads them): a tile's u range, and its v range counted down from 1 a row.
-struct FogTile {
-    float u0;   // +0x00 column / 4
-    float v1;   // +0x04 v0 + 1/4
-    float u1;   // +0x08 u0 + 1/4
-    float v0;   // +0x0C 1 - (row + 1) / 4
-};
+// The fog texture's 4 x 4 tiles (FogTiles, effects.h): filled here, read by the fog's draw.
 constexpr int kFogTiles = 16;
 constexpr float kFogTileSize = 0.25f;
-FogTile* FogTiles() { return reinterpret_cast<FogTile*>(0x007ABA58); }
 
 constexpr std::size_t kFogBuckets = 100;   // the hint the cell map is created with
 

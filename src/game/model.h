@@ -238,7 +238,10 @@ public:
     // 15: 00501CE0 (RET 4). Draws a line list (0049B780 with the pipeline and the device object).
     virtual void DrawLineList(void* lines);
     virtual void Unknown16();
-    virtual void Unknown17();
+    // 17 (RET 0xC). Draws sprites facing the view with the bound texture: `points` an aligned array
+    // of centres and sizes (x, y, z, size), `sprites` a CArray of their colours and texture
+    // rectangles. The first argument is 0 at every call known.
+    virtual int DrawSprites(int unknown, void* points, void* sprites);
     virtual void Unknown18();
     // 19: 005041F0 (RET 0x18; renderer_rect.cpp). A black rectangle (left, top, right, bottom in
     // screen pixels) of `alpha` over the current blend state, with `outline` a white frame. Returns 1.

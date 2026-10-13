@@ -416,6 +416,9 @@ public:
     // 004E3B80 (slot 3 through 005617B0). The rain loop stopped, the texture released, wind, mode,
     // fade and world cleared, density 64.
     void Clear();
+    // 004E3C20 (effects_weather_draw.cpp; the client world's setup 00561E50). The drawing code's
+    // work arrays sized and their fixed parts filled.
+    void PrepareBuffers();
     // 004E3FC0 (RET 8; the weather messages 00669798). The texture "RainSnow" (kind 6) made sure of;
     // a running loop stopped unless `newMode` is 0; rain starts the looping "nature\rain\circle.wav";
     // the fade towards `newMode` starts now (the world's tick) over `duration` (0: at the next step).
@@ -457,6 +460,17 @@ struct FogCell {
 };
 static_assert(sizeof(FogCell) == 0x18);
 
+// The texture coordinates of the fog texture's 4 x 4 tiles (007ABA58, 16 records; the fog manager's
+// Create fills them, the fog's draw hands them to the renderer): a tile's u range, and its v range
+// counted down from 1 a row.
+struct FogTile {
+    float u0;   // +0x00 column / 4
+    float v1;   // +0x04 v0 + 1/4
+    float u1;   // +0x08 u0 + 1/4
+    float v0;   // +0x0C 1 - (row + 1) / 4
+};
+inline FogTile* FogTiles() { return reinterpret_cast<FogTile*>(0x007ABA58); }
+
 // The squares currently seen: rows of bytes, nonzero = visible.
 struct FogGrid {
     // World-side members (ai_fog_grid.cpp).
@@ -489,6 +503,9 @@ public:
     // base destructor. 004E24C0 (slot 0, RET 4): it, then operator delete on bit 0; returns this.
     void Destruct();
     CVisibilityFog* DeletingDestruct(int flags);
+    // 004E1EB0 (RET 4; effects_weather_draw.cpp). The cells as sprites through the scene renderer
+    // (its result); 1 without cells or when the bounds are out of view.
+    int Draw(class CSceneRenderer* renderer);
 
     // Not rewritten (forwarders).
     void* World();                                  // 00455950 (CEngineObject)
