@@ -54,6 +54,9 @@ void __fastcall ResizeByteGrid(SearchGrid<std::uint8_t>* grid, void*, int width,
 // 005CD410 (RET 4). Makes `grid` a copy of `source`: its size, a block and row table of its own,
 // the cells copied.
 void __fastcall CopyByteGrid(SearchGrid<std::uint8_t>* grid, void*, const SearchGrid<std::uint8_t>* source);
+// 005C4BA0 (RET 4; A-W14): the same for the local search's nodes (the original Recenter 005C25D0
+// keeps the old window in such a copy).
+void __fastcall CopyNodeGrid(SearchGrid<SearchNode>* grid, void*, const SearchGrid<SearchNode>* source);
 
 // The constructors for a size (RET 8; return the grid).
 SearchGrid<std::int8_t>* __fastcall ConstructByteGrid(SearchGrid<std::int8_t>* grid, void*, int width, int height);       // 005BCBD0

@@ -1,5 +1,6 @@
 #include "ai_map.h"
 
+#include "map_object.h"
 #include "sector_map.h"
 
 #include "ei/hook.h"
@@ -287,6 +288,14 @@ void* CAIMap::MaterialRecordAt(const Vector3* position) {
     return materials + (occluders[y][x] & 0x1F);
 }
 EI_REPLACE_METHOD(0x005BC1F0, CAIMap::MaterialRecordAt);
+
+void CAIMap::TurnObject(CEngineObject* object, const Quaternion* rotation) {
+    CSectorMap* map = SectorMap();
+    map->Remove(object);
+    static_cast<CMapObject*>(object)->orientation = *rotation;
+    map->Add(object);
+}
+EI_REPLACE_METHOD(0x005BC180, CAIMap::TurnObject);
 
 bool CAIMap::BridgeDeckAt(int x, int y, int* deckHeight) {
     int deck = 0;

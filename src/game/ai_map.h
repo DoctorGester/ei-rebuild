@@ -210,6 +210,10 @@ struct AIPath {
     // cell lists empty (blocks of 0x80), no points (vtable kPointsVtable), then Clear. Returns this.
     // The destructor body is 00546100 (AIPathDestructOriginal).
     AIPath* Construct();
+    // 0054EAC0 (ai_path_cells.cpp, A-W14). The constructor of a motion order (the first 0x3C bytes
+    // of a path): the step list empty, blocks of 0x80; the order itself is left as it is. Returns
+    // this.
+    AIPath* ConstructSteps();
     // 00546100 (combat_lifetime.cpp, A-U7). The destructor body: the points freed (vtable
     // 0073F07C), then both cell lists emptied with their vtable (0073EDB0).
     void Destruct();
@@ -247,7 +251,8 @@ class CSectorMap;
 struct AITerrainType {
     std::uint8_t unknown_000[0x104];
     int cost;                   // +0x104 what a cell of it costs (CellMark's starting cost)
-    std::uint8_t unknown_108[0x114 - 0x108];
+    std::uint8_t unknown_108[0x110 - 0x108];
+    float noise;                // +0x110 how loud steps on it are (AIViewer::StepNoise)
     std::uint32_t openMarks;    // +0x114 per size class nibble: the mark of a cell with nothing on it
 };
 static_assert(sizeof(AITerrainType) == 0x118);
@@ -673,6 +678,9 @@ public:
     bool HasKind3OccluderAt(const Vector3* position);
     // 005BBE40. Material index (0..31) of the cell at `position`, -1 outside the map.
     int MaterialAt(const Vector3* position);
+    // 005BC180 (RET 8; ai_map.cpp, A-W14; UnitSpecApply 0046C4D0). Gives `object` the orientation
+    // `rotation`: it is taken out of the sector map, turned and put back.
+    void TurnObject(CEngineObject* object, const Quaternion* rotation);
     // 005BC1F0. Material record (0x118 bytes) of the cell at `position`; the first one outside.
     void* MaterialRecordAt(const Vector3* position);
     // 005B64E0. Has cell (x, y) a bridge occluder? `height` (optional) gets the highest deck.

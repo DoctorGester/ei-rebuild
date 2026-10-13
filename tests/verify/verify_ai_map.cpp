@@ -204,3 +204,16 @@ static bool __fastcall FindFreeCellNearVerify(CAIMap* self, void*, CUnit* unit, 
     return actual;
 }
 EI_VERIFY(0x005BA9D0, FindFreeCellNearVerify, 6, s_findFree);
+
+// 005BC180 CAIMap::TurnObject (A-W14): ours only (the object leaves and enters the sector map's
+// lists); afterwards the object has the orientation handed in, bit for bit. Reached only by
+// UnitSpecApply 0046C4D0 (a unit record applied to a live unit); no scenario is known to run it.
+namespace {
+void* s_unusedTurn;
+void __fastcall TurnObjectVerify(CAIMap* self, void*, CEngineObject* object, const Quaternion* rotation) {
+    self->TurnObject(object, rotation);
+    bool ok = std::memcmp(reinterpret_cast<const unsigned char*>(object) + 0x34, rotation, sizeof(Quaternion)) == 0;
+    ei::verify::Check("CAIMap::TurnObject", true, ok, "object %p", object);
+}
+} // namespace
+EI_VERIFY(0x005BC180, TurnObjectVerify, 0, s_unusedTurn);

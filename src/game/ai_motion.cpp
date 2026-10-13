@@ -739,3 +739,11 @@ void UnitMotion::SaveState(CStream* stream) {
     }
 }
 EI_REPLACE_METHOD(0x005C79B0, UnitMotion::SaveState);
+
+MotionWaypoint* __fastcall MotionWaypointConstruct(MotionWaypoint* self, void*, std::uint32_t xBits, std::uint32_t yBits) {
+    std::memcpy(&self->x, &xBits, 4);
+    std::memcpy(&self->y, &yBits, 4);
+    self->cells = 0;
+    return self;
+}
+EI_REPLACE(0x005C6E30, MotionWaypointConstruct);

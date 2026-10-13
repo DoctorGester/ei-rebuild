@@ -101,6 +101,15 @@ void __fastcall CopyByteGrid(SearchGrid<std::uint8_t>* grid, void*, const Search
 }
 EI_REPLACE(0x005CD410, CopyByteGrid);
 
+void __fastcall CopyNodeGrid(SearchGrid<SearchNode>* grid, void*, const SearchGrid<SearchNode>* source) {
+    grid->height = source->height;
+    grid->width = source->width;
+    AllocateGrid(*grid);
+    int count = grid->width * grid->height;
+    if (count > 0) std::memcpy(grid->data, source->data, static_cast<std::size_t>(count) * sizeof(SearchNode));
+}
+EI_REPLACE(0x005C4BA0, CopyNodeGrid);
+
 // ---- Constructors ---------------------------------------------------------------------------------
 
 SearchGrid<std::int8_t>* __fastcall ConstructByteGrid(SearchGrid<std::int8_t>* grid, void*, int width, int height) {

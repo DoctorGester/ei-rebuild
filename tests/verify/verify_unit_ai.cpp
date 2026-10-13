@@ -7,9 +7,11 @@
 // runs ours only, followed by a consistency check.
 #include "verify.h"
 
+#include "../../src/game/ai_alarm.h"
 #include "../../src/game/unit_ai.h"
 
 #include <cstring>
+#include <initializer_list>
 #include <vector>
 
 namespace {
@@ -840,3 +842,122 @@ static void __fastcall SetSeenVerify(AIBrain* self, void*, CEngineObject* object
     ei::verify::Check("AIBrain::SetSeen", true, ok, "brain %p object %p", self, object);
 }
 EI_VERIFY(0x005D7E90, SetSeenVerify, 0, s_unused);
+
+// ---- A-W14: the modes' loads with references, the alarm state, two brain entries ---------------
+
+namespace {
+// A load that takes references (AIRef::Load releases and counts objects) runs ours only, the
+// bytes read recorded: what our Save writes afterwards must be the bytes read, except for an
+// object id that no longer names an object (the reference stays empty and is saved as -1).
+// `refs` are the offsets of the ids in the saved bytes; bytes past the saved ones (the old
+// versions' group) are not compared.
+template <typename Mode>
+void LoadThenSave(const char* name, Mode* self, AIStream* stream, std::initializer_list<std::size_t> refs) {
+    RecordStream record(stream);
+    self->Load(&record);
+    CaptureStream written(stream);
+    self->Save(&written);
+    bool ok = record.bytes.size() >= written.bytes.size();
+    for (std::size_t i = 0; ok && i < written.bytes.size(); ++i) {
+        if (record.bytes[i] == written.bytes[i]) continue;
+        bool emptied = false;
+        for (std::size_t at : refs) {
+            int saved;
+            if (i >= at && i < at + 4 && at + 4 <= written.bytes.size()) {
+                std::memcpy(&saved, written.bytes.data() + at, 4);
+                emptied = emptied || saved == -1;
+            }
+        }
+        ok = emptied;
+    }
+    ei::verify::Check(name, true, ok, "%p version %d: %u bytes read, %u saved", self, stream->version,
+                      static_cast<unsigned>(record.bytes.size()), static_cast<unsigned>(written.bytes.size()));
+}
+} // namespace
+
+// 005D1E60 / 005D2770 / 005D4CD0 (slot 11 of Follow, Aggression and Player / Tamed). Reached when
+// a save is loaded (AIBrain::Load creates each mode and calls its slot 11); current saves are
+// past version 0x5D, so the Player mode's old group is not read.
+static void __fastcall FollowLoadVerify(FollowMode* self, void*, AIStream* stream) {
+    LoadThenSave("FollowMode::Load", self, stream, {0});
+}
+EI_VERIFY(0x005D1E60, FollowLoadVerify, 0, s_unused);
+static void __fastcall AggressionLoadVerify(AggressionMode* self, void*, AIStream* stream) {
+    LoadThenSave("AggressionMode::Load", self, stream, {0});
+}
+EI_VERIFY(0x005D2770, AggressionLoadVerify, 0, s_unused);
+static void __fastcall PlayerLoadVerify(PlayerMode* self, void*, AIStream* stream) {
+    LoadThenSave("PlayerMode::Load", self, stream, {0, 4});
+}
+EI_VERIFY(0x005D4CD0, PlayerLoadVerify, 0, s_unused);
+
+// The alarm state (ai_alarm.h): 005AEA40 (XOR EAX,EAX; MOV [ECX],EAX; MOV [ECX+4],EAX: 7 bytes),
+// 005AEA50 (MOV EAX,ECX; XOR ECX,ECX; MOV [EAX],ECX: 6), 005AEA60 (MOV EAX,[ECX+4]; MOV
+// EDX,[ESP+4]: 7): the original on a copy of the 16 bytes, ours on the state. 005AEC40 / 005AEC80
+// (PUSH ESI; MOV ESI,[ESP+8]: 5): Load as the modes' (the original from the real stream into a
+// copy, ours from the recording), Save into capture streams.
+// Reached: Raise whenever an AI unit remarks on something (the modes' Enter / Leave, a hit), Reset
+// when a controller is reset (a unit dies or is revived) and in its update, Load / Save with every
+// unit of a saved game. Construct has no caller left (CUnitServer::Construct clears the state itself).
+static void(__fastcall* s_alarmReset)(AIAlarm*);
+static void __fastcall AlarmResetVerify(AIAlarm* self) {
+    SameWrites<int>("AIAlarm::Reset", self, sizeof(AIAlarm), [&] { self->Reset(); return 0; },
+                    [](void* copy) { s_alarmReset(static_cast<AIAlarm*>(copy)); return 0; });
+}
+EI_VERIFY(0x005AEA40, AlarmResetVerify, 7, s_alarmReset);
+
+static AIAlarm*(__fastcall* s_alarmConstruct)(AIAlarm*);
+static AIAlarm* __fastcall AlarmConstructVerify(AIAlarm* self) {
+    AIAlarm copy = *self;
+    AIAlarm* expected = s_alarmConstruct(&copy);
+    AIAlarm* result = self->Construct();
+    ei::verify::Check("AIAlarm::Construct", true, expected == &copy && result == self && std::memcmp(&copy, self, sizeof(copy)) == 0,
+                      "%p", self);
+    return result;
+}
+EI_VERIFY(0x005AEA50, AlarmConstructVerify, 6, s_alarmConstruct);
+
+static void(__fastcall* s_alarmRaise)(AIAlarm*, void*, int);
+static void __fastcall AlarmRaiseVerify(AIAlarm* self, void*, int level) {
+    SameWrites<int>("AIAlarm::Raise", self, sizeof(AIAlarm), [&] { self->Raise(level); return 0; },
+                    [&](void* copy) { s_alarmRaise(static_cast<AIAlarm*>(copy), nullptr, level); return 0; });
+}
+EI_VERIFY(0x005AEA60, AlarmRaiseVerify, 7, s_alarmRaise);
+
+static void(__fastcall* s_alarmLoad)(AIAlarm*, void*, AIStream*);
+static void __fastcall AlarmLoadVerify(AIAlarm* self, void*, AIStream* stream) {
+    SameLoad("AIAlarm::Load", self, stream, [](AIAlarm* a, AIStream* s) { s_alarmLoad(a, nullptr, s); });
+}
+EI_VERIFY(0x005AEC40, AlarmLoadVerify, 5, s_alarmLoad);
+
+static void(__fastcall* s_alarmSave)(AIAlarm*, void*, AIStream*);
+static void __fastcall AlarmSaveVerify(AIAlarm* self, void*, AIStream* stream) {
+    SameSave("AIAlarm::Save", self, stream, [](AIAlarm* a, AIStream* s) { s_alarmSave(a, nullptr, s); });
+}
+EI_VERIFY(0x005AEC80, AlarmSaveVerify, 5, s_alarmSave);
+
+// 005D5940 AIBrain::HearAlarm: ours only (ApplyBehaviour rebuilds the modes). A slot with a record
+// that applies leaves that slot as the applied one, and the owner's alarm pending at 7 or above;
+// a slot without a record changes nothing. Reached when a world alarm is raised (the world's
+// RaiseAlarm 00593FC0: a unit whose alarm countdown ends, the script's alarm commands).
+static void __fastcall HearAlarmVerify(AIBrain* self, void*, int slot) {
+    const bool inRange = slot >= 0 && slot < self->alarmRecords.size;
+    const bool applies = inRange && (self->alarmRecords.data[slot].unknown_38 != 0 || slot == 0);
+    const int before = self->unknown_36;
+    auto* alarm = reinterpret_cast<const AIAlarm*>(self->owner->brain + sizeof(self->owner->brain));
+    const int pendingBefore = alarm->pending;
+    self->HearAlarm(slot);
+    bool ok = applies ? self->unknown_36 == static_cast<std::int8_t>(slot) : self->unknown_36 == before;
+    ok = ok && (inRange ? alarm->pending >= 7 : alarm->pending == pendingBefore);
+    ei::verify::Check("AIBrain::HearAlarm", true, ok, "brain %p slot %d of %d", self, slot, self->alarmRecords.size);
+}
+EI_VERIFY(0x005D5940, HearAlarmVerify, 0, s_unused);
+
+// 005D7C30 AIBrain::ResetBehaviour: ours only; the applied slot stays, nothing is noticed any
+// more. Reached only by the script's ResetTarget command; no scenario is known to run it.
+static void __fastcall ResetBehaviourVerify(AIBrain* self) {
+    const int before = self->unknown_36;
+    self->ResetBehaviour();
+    ei::verify::Check("AIBrain::ResetBehaviour", true, self->unknown_36 == before, "brain %p slot %d", self, before);
+}
+EI_VERIFY(0x005D7C30, ResetBehaviourVerify, 0, s_unused);

@@ -6,6 +6,7 @@
 #include "map_object.h"
 #include "sector_map.h"
 #include "unit.h"
+#include "unit_ai.h"
 
 #include "lib/containers.h"
 #include "lib/crt.h"
@@ -42,7 +43,7 @@ __declspec(naked) bool __fastcall CountdownsTick(void*, void*) EI_ORIGINAL(0x006
 // 004BF000. Runs a script command queue (+0x12874 / +0x12A6C).
 __declspec(naked) void __fastcall CommandQueueRun(void*, void*) EI_ORIGINAL(0x004BF000)
 // 005D5940. An AI brain (unit controller + 0x980) hears alarm `index`.
-__declspec(naked) void __fastcall BrainHearAlarm(void*, void*, int /*index*/) EI_ORIGINAL(0x005D5940)
+void __fastcall BrainHearAlarm(void* brain, void*, int index) { static_cast<AIBrain*>(brain)->HearAlarm(index); }
 // The game's atexit (006E727B).
 
 constexpr int kSlotRelease60 = 4;     // the +0x60 object's slot 4, called after it is replaced

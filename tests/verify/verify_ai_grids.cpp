@@ -318,6 +318,23 @@ static void __fastcall CopyBytesVerify(SearchGrid<std::uint8_t>* grid, void*, co
 }
 EI_VERIFY(0x005CD410, CopyBytesVerify, 5, s_copyBytes);
 
+// 005C4BA0 CopyNodeGrid (A-W14; PUSH EBP; MOV EBP,[ESP+8]: 5 bytes): the original copies into a
+// probe, ours into the real grid; both must hold the source's nodes (compared by their bytes: the
+// copies are plain memory copies) in a block of their own. No caller is left: the original
+// Recenter 005C25D0 is rewritten and copies the window itself.
+static void(__fastcall* s_copyNodes)(SearchGrid<SearchNode>*, void*, const SearchGrid<SearchNode>*);
+static void __fastcall CopyNodesVerify(SearchGrid<SearchNode>* grid, void*, const SearchGrid<SearchNode>* source) {
+    SearchGrid<SearchNode> probe{nullptr, nullptr, -1, -1};
+    s_copyNodes(&probe, nullptr, source);
+    CopyNodeGrid(grid, nullptr, source);
+    auto sameBytes = [](const SearchNode& a, const SearchNode& b) { return std::memcmp(&a, &b, sizeof(SearchNode)) == 0; };
+    bool ok = RowsFit(probe) && RowsFit(*grid) && SameCells(probe, *grid, 1, sameBytes) &&
+              SameCells(*source, *grid, 1, sameBytes) && grid->data != source->data;
+    ei::verify::Check("CopyNodeGrid", true, ok, "%d x %d", source->width, source->height);
+    FreeProbe(probe);
+}
+EI_VERIFY(0x005C4BA0, CopyNodesVerify, 5, s_copyNodes);
+
 // 0058A8A0 / 0058A900 (the unit layers' destructors): the list's blocks are freed, so ours only.
 // Checked: the list empty with no blocks. Reached only when the AI map's construction unwinds.
 static void __fastcall UnitLayerDestructVerify(CUnitLayer* self) {

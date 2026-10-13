@@ -8,6 +8,7 @@
 #include "originals_ai.h"
 #include "originals_library.h"
 #include "unit.h"
+#include "world.h"
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
@@ -116,3 +117,13 @@ void AIViewer::Noise(UnitController* source, float loudness, int kind, const Vec
     units.RemoveAll();
 }
 EI_REPLACE_METHOD(0x005C98C0, AIViewer::Noise);
+
+int AIViewer::StepNoise(const Vector3* position, UnitController* source) {
+    constexpr int kStepNoise = 0x1A;
+    auto* ground = static_cast<const AITerrainType*>(WorldServer()->AIMap()->MaterialRecordAt(position));
+    float loudness = source->moveFactors[0] * source->stats.valuesE0[3].current;
+    loudness *= ground->noise;
+    Noise(source, loudness, kStepNoise, nullptr);
+    return 0;
+}
+EI_REPLACE_METHOD(0x005C9770, AIViewer::StepNoise);
