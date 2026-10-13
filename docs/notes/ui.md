@@ -204,10 +204,33 @@ Draw does not null-check its scratch party. Difference: the original's default a
 type, foreign, state and password as stack bytes, ours zero them (only the new game row's password flag survives
 RebuildList; ours 0). Forwarded: 0057E970 (the game flow joins a server).
 
-**Next in 005E0000-00640000:** the largest Rebirth-patched ones (vanilla only): 0060C870 (camp Create), 00613EA0 (hero
-screen Create), 0063A560 (battle keys); the connection screen's Create 0061B2C0 and list draw 0061D780 (called by address).
-Left otherwise: list / vector plumbing 005E38F0-005E3B60, 005F6080, 005FAF30, the twin assignments 00632490 / 006324E0 (a
-0x18-byte record with two CStrings), screen 9's slot 42 0062D100, the static initialiser 005F46A0, functions under 32 bytes.
+**A-I22 (2026-10): 005E0000-00640000 finished.** Every hookable game function of the range is ported, in library.csv or in
+dead_code.csv; what is left are 31 stubs of 1-3 bytes (plain RET / RET n, too short to hook). The Rebirth-patched ones are
+the VANILLA bodies: the installer hooks them in the vanilla launch only, rewritten callers keep their `EI_ORIGINAL`
+forwarders (rule 9), and none of Rebirth's patches is reproduced. The worker could not run the game: nothing below has run.
+
+| Group (file) | Addresses | Check; what reaches it |
+|---|---|---|
+| unpatched small members (`ui_small_members.cpp`, `ui_exchange.cpp`, `ui_credits.cpp`) | default slot answers 005E28B0, 005EE400, 005F6380, 005F63A0, 005F6400, 005F6430, 005F6440, 006157C0, 006316A0, 0062EE70; setters / readers 005F5FB0, 005F6B70, 005F65F0, 00621F20, 00625510, 005EE720, 005E7090, 005E70B0; constructors 005E6990, 005F46A0, 005E6D70, 005ED760, 005EC010, 005EC2F0, 005F6080, 005F5F90; handlers 005E3FC0, 005F7C60, 005F7C80, 0060F690, 00624A40, 0062FEF0, 0062ACB0, 0062BFD0, 00634D00; exchange slots 42 / 43 0062D100, 0062D200; place assignments 00632490, 006324E0 | O, the whole effect read back (`verify_ui_small_members.cpp`, which lists the scenario per address: any battle, `ui_camp`, `ui_container_input`, ...; the exchange slots by none) |
+| text and sprites (`ui_text_draw.cpp`, `ui_chat_overlay.cpp`, `ui_mesh_draw.cpp`, `ui_mesh_shapes.cpp`) | 005FDE20 surface DrawText, 005F8340 text extent, 005E3700 chat typed line, 005E6FA0 sprite Place; the shapes 005E70E0 rectangle, 005E7680 grid, 005E7D60 frame, 005E99D0 triangle | the shapes, 005F8340 and 005E6FA0 S (`verify_ui_mesh_shapes.cpp`, `verify_ui_text_draw.cpp`), 005FDE20 and 005E3700 O; every interface scenario in the vanilla launch |
+| interface (`ui_interface_create.cpp`, `ui_interface_draw.cpp`) | 005F4990 `CInterface3D::Create`, 005F5320 `DrawOverlays` | O; every vanilla start / every frame |
+| camera and global map (`ui_camera_input.cpp`, `ui_global_map_input.cpp`, `ui_global_map_paths.cpp`) | 005EB210 battle camera mouse move, 00630010 global map mouse move, 0062F950 its left press | S, S, O; any battle scenario, the global map of `ui_camp` |
+| battle panels (`ui_hud_build.cpp`, `ui_battle_keys.cpp`) | builders 0063BAB0, 0063BCC0, 0063C050 (weapon bar), 0063C800, 0063CAE0 (quick items), 0063E2A0, 0063E4B0 (spell column), 0063F300, 0063F500 (action column); 0063A560 the battle screen's key-down | O (counts and layout read back; the key handler: portrait pick and order keys), 0063C050 S; any battle scenario, every key pressed over the battle screen |
+| camp (`ui_camp_create.cpp`) | 0060C870 `CCampPages::Create` | O; `ui_camp`, `ui_camp_deals`, `ui_trade_*` |
+| hero screen (`ui_hero_screen_create.cpp`, `ui_hero_screen_mode.cpp`) | 00613EA0 `CMpHeroScreen::Create`, 00615D30 `SetModeVanilla` | O (regions, sprites, surfaces, mode; the figure lists' order); `ui_hero_screen`, `ui_hero_stats`, `ui_hero_delete` |
+| connection screen (`ui_connect_screen.cpp`, `ui_connect_list.cpp`) | 0061B2C0 `CMpConnectScreen::Create`, 0061D780 the list draw | O; no scenario opens the screen |
+
+CSV: library.csv 12 rows (the chat line list, help topic / cache map nodes, `CFont` / `CRect` inlines, EH-only
+destructors), dead_code.csv 0063C010, 0063F6E0. Forwarded on purpose: the Rebirth-patched callees (`CUiMesh::SetRectangle` /
+`SetFrame`, `CUiRegion::CallSetRect`, `SurfaceDrawText`, `CHudWeaponBar::Highlight` 0063C050, `CHudMovePanel::ShowMode`
+00649910, the list draw 0061D780, `HeroScreenSetModeOriginal` 00615D30, the saved heroes' reload 00662FB0), the library's
+sort pieces (0061A240 / 0061A300 over `vector<CString>`, 0061EF60 / 0061F6F0 / 0061FB00 over the address list), 00578D30 /
+00578D50 (pause), 006481D0 (unit panel part). Shared for this: `gamecrt::fmod` (006E95A0), `gamecrt::sscanf` (006EAEEC),
+originals_ui.h forwarders 00444CD0, 00462C10, 00444A70, 005F9810, 00578700, 0065C2D0, 005A6C80, 005F7E30, 005FD240,
+00615D30. Kept as the original: the hero screen's Create does not null-check a creature's unit prototype's figure (an
+unknown model name reads +0xE8 of null) nor a failed child allocation; its figure lists are sorted with the library's own
+introsort (the out-of-line loop does the same steps as the first level the original inlines) and the figure prototype is
+looked up with the out-of-line `operator[]` 0053C780 (the original inlines it over 0053D340).
 
 ## 4. Main menu, dialogs, escape menu, credits
 

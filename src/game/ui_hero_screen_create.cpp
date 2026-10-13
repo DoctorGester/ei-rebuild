@@ -1,8 +1,8 @@
 // The multiplayer hero screen's Create as the unpatched game does it (00613EA0, CMpHeroScreen slot
 // 25). Rebirth patches the function for its wide layout (docs/rebirth-patched-functions.txt), so
 // this body is hooked in the vanilla launch only; nothing in the rewritten code calls it but the
-// screen's vtable. See ui_screens.h and docs/notes/ui.md, section 5. Multiplayer only: no
-// scenario reaches the screen.
+// screen's vtable. See ui_screens.h and docs/notes/ui.md, section 5. Scenarios ui_hero_screen,
+// ui_hero_stats and ui_hero_delete open the screen (the main menu's Multiplayer button).
 #include "ui_screens.h"
 
 #include "core_transform.h"
