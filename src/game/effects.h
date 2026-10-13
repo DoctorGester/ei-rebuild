@@ -401,8 +401,15 @@ ParticleElement* __fastcall AllocateElements(int count);
 
 // The world's rain/snow layer (CWorldClient + 0x6F4; world.h declares it as ClientRibbons, an engine
 // object whose slot 3 is the thunk 005617B0 -> 004E3B80). Only the fields its rewritten members use.
-class CRainSnow {
+class CRainSnow : public CEngineObject {
 public:
+    static constexpr std::uintptr_t kRainSnowVtable = std::uintptr_t(0x0073F4C8);
+
+    // 005616C0. The destructor's body: Clear, the work arrays freed (last member first), the texture
+    // released, then the engine object's body.
+    void DestructBody();
+    // 005617E0 (slot 0, RET 4): DestructBody, then operator delete when flags bit 0 is set.
+    CRainSnow* DeletingDestruct(unsigned flags);
     void UpdateFade(float now);                     // 004E40B0
     void FinishFade();                              // 004E4050
     void SetWind(const Vector3& direction, float strength);    // 004E41F0
@@ -414,11 +421,17 @@ public:
     // the fade towards `newMode` starts now (the world's tick) over `duration` (0: at the next step).
     void Start(int newMode, float duration);
 
-    std::uint8_t unknown_000[0x1C];
     CEngineObject* texture;         // +0x01C counted texture ("RainSnow")
     class CWorld* world;            // +0x020 the client world (set after construction)
     int sound;                      // +0x024 rain loop handle in the sound manager (0: none)
-    std::uint8_t unknown_028[0xA4 - 0x28];
+    // The drawing code's work arrays (element types not worked out yet).
+    lib::AlignedArray<std::uint8_t> work028;    // +0x028
+    lib::AlignedArray<std::uint8_t> work038;    // +0x038
+    mfc::CArray<std::uint8_t> bytes048;         // +0x048 CByteArray
+    mfc::CArray<std::uint8_t> bytes05C;         // +0x05C CByteArray
+    lib::AlignedArray<std::uint8_t> work070;    // +0x070
+    mfc::CArray<std::uint16_t> words080;        // +0x080 CWordArray
+    lib::AlignedArray<std::uint8_t> work094;    // +0x094
     int unknown_0A4;                // +0x0A4 zeroed by Clear
     Vector3 wind;                   // +0x0A8
     int mode;                       // +0x0B4 0 off, 1 rain, 2 snow

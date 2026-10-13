@@ -4358,3 +4358,8 @@ address,name,library,signature,notes
 005783B0,"vcall thunk (jumps to the object's vtable slot 24)",compiler,,"A-W13 review: compiler-generated thunk for a pointer to a virtual member"
 0059A050,"CList<TYPE,ARG_TYPE>::RemoveAt (elements of one counted pointer, released by the inlined FreeNode; RemoveAll when the list empties)",MFC,,"A-W13 review: MFC template instantiation (CWorldServer::UpdateUnits 0058D670)"
 005894D0,"__median (three list nodes ordered by EntryIdLess 00589580, values through 00589230)",STLport,,"A-W13 review: STLport template instantiation (the introsort 00589160)"
+005BE370,"record copy constructor (a counted pointer shared, a handle cloned, plain fields copied)",compiler,,"A-W13 review: compiler-generated copy constructor (CAIMap::UnitShape)"
+00599CC0,"CList<TYPE,ARG_TYPE>::RemoveAt (elements destroyed by 0059B4B0 in the inlined FreeNode; RemoveAll when the list empties)",MFC,,"A-W13 review: MFC template instantiation (005935C0)"
+00577600,"__copy_backward (12-byte STLport strings, assigned element by element)",STLport,,"A-W13 review: STLport template instantiation (the vector insert 00575E50)"
+00583A60,"list<pair<CString, CString>>::~list (every node's two strings destroyed, the nodes and the sentinel freed)",STLport,,"A-W13 review: STLport template instantiation (unwinding only)"
+0055FF90,"list<T>::~list (nodes of one counted pointer released, the nodes and the sentinel freed)",STLport,,"A-W13 review: STLport template instantiation (unwinding only)"

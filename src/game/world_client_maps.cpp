@@ -1290,8 +1290,8 @@ int CWorldClient::Setup() {
     auto* arrays = reinterpret_cast<ClientArrayManager*>(New(sizeof(ClientArrayManager)));
     if (arrays) {
         ManagerBase(arrays);
-        arrays->unknown_B0 = 0;
-        Construct5715D0(arrays->list, nullptr, 10);
+        arrays->current = nullptr;
+        Construct5715D0(&arrays->list, nullptr, 10);
         ei::SetVtable(arrays, worlddata::kClientArrayManagerVtable);
     }
     arrayManager_ = arrays;
@@ -1422,6 +1422,39 @@ int CWorldClient::LoadNewItemsAndSpells(CStream* block) {
     return ClientLoadManagerObjectsOriginal(static_cast<CBaseManager*>(ItemFactory()), block) != 0;
 }
 EI_REPLACE_METHOD(0x00567950, CWorldClient::LoadNewItemsAndSpells);
+
+void ClientListManager::DestructBody() {
+    list.vtable = reinterpret_cast<void*>(worlddata::kClientListVtable);
+    for (auto* node = list.head; node; node = node->next)
+        if (node->data) node->data->Release();
+    list.RemoveAll();
+    CBaseManager::DestructBody();
+}
+EI_REPLACE_METHOD(0x00562EC0, ClientListManager::DestructBody);
+
+ClientListManager* ClientListManager::DeletingDestruct(unsigned flags) {
+    ClientListManagerDestructOriginal(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x00562EA0, ClientListManager::DeletingDestruct);
+
+void ClientArrayManager::DestructBody() {
+    ei::SetVtable(this, worlddata::kClientArrayManagerVtable);
+    ClientArrayManagerClearOriginal(this);
+    list.vtable = reinterpret_cast<void*>(worlddata::kClientArrayListVtable);
+    list.RemoveAll();
+    if (current) current->Release();
+    CBaseManager::DestructBody();
+}
+EI_REPLACE_METHOD(0x00562DF0, ClientArrayManager::DestructBody);
+
+ClientArrayManager* ClientArrayManager::DeletingDestruct(unsigned flags) {
+    ClientArrayManagerDestructOriginal(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x00562DD0, ClientArrayManager::DeletingDestruct);
 
 EI_REPLACE_METHOD(0x00561E50, CWorldClient::Setup);
 EI_REPLACE_METHOD(0x00560650, PlatformSet::AddFace);

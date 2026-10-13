@@ -37,3 +37,7 @@ int __stdcall RunScriptText(mfc::CString* text, char run, ScriptErrorInfo* error
 // `prefix` copied into `out` (NamedFloatTable::CopyPrefixed): the local player's as the client sees
 // them in a network game, else the server's player 0; `out` is emptied when there is no such player.
 void __stdcall PlayerZeroVariables(const char* prefix, NamedFloatTable* out);
+
+// 0055EA10 (the application's start-up 00456440). The start folder CString 007AF454 set to the
+// current directory with a backslash appended.
+void __cdecl StoreStartFolder();

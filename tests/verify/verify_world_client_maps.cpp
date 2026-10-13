@@ -688,3 +688,36 @@ static int __fastcall LoadNewItemsAndSpellsVerify(CWorldClient* client, void*, C
     return result;
 }
 EI_VERIFY(0x00567950, LoadNewItemsAndSpellsVerify, 0, s_unused);
+
+// A-W13. The client world's two small managers' destructors (00562EC0 / 00562DF0 bodies, 00562EA0 /
+// 00562DD0 deleting): they release objects and free the list blocks, so ours only. Checked: the
+// lists left empty with no blocks, the array manager's object dropped; the deleting ones return the
+// object. The client world's teardown (leaving the game).
+static void __fastcall ListManagerDestructVerify(ClientListManager* self) {
+    self->DestructBody();
+    bool ok = self->list.head == nullptr && self->list.count == 0 && self->list.blocks == nullptr;
+    ei::verify::Check("ClientListManager::DestructBody", true, ok, "count %d", self->list.count);
+}
+EI_VERIFY(0x00562EC0, ListManagerDestructVerify, 0, s_unused);
+
+static ClientListManager* __fastcall ListManagerDeleteVerify(ClientListManager* self, void*, unsigned flags) {
+    ClientListManager* result = self->DeletingDestruct(flags);
+    ei::verify::Check("ClientListManager::DeletingDestruct", true, result == self, "flags %u", flags);
+    return result;
+}
+EI_VERIFY(0x00562EA0, ListManagerDeleteVerify, 0, s_unused);
+
+static void __fastcall ArrayManagerDestructVerify(ClientArrayManager* self) {
+    self->DestructBody();
+    bool ok = self->list.head == nullptr && self->list.count == 0 && self->list.blocks == nullptr &&
+              self->current == nullptr;
+    ei::verify::Check("ClientArrayManager::DestructBody", true, ok, "count %d", self->list.count);
+}
+EI_VERIFY(0x00562DF0, ArrayManagerDestructVerify, 0, s_unused);
+
+static ClientArrayManager* __fastcall ArrayManagerDeleteVerify(ClientArrayManager* self, void*, unsigned flags) {
+    ClientArrayManager* result = self->DeletingDestruct(flags);
+    ei::verify::Check("ClientArrayManager::DeletingDestruct", true, result == self, "flags %u", flags);
+    return result;
+}
+EI_VERIFY(0x00562DD0, ArrayManagerDeleteVerify, 0, s_unused);

@@ -656,3 +656,16 @@ static void __stdcall PlayerZeroVariablesVerify(const char* prefix, NamedFloatTa
     ei::verify::Check("PlayerZeroVariables", true, ok, "\"%s\": %u entries", prefix, out->count);
 }
 EI_VERIFY(0x00578C40, PlayerZeroVariablesVerify, 0, s_unused);
+
+// A-W13. 0055EA10 stores the start folder: both run (the original first, its text copied), the
+// texts compared. PUSH -1; PUSH imm32 (7 bytes). The application's start-up, every run.
+static void(__cdecl* s_storeStartFolder)();
+static void __cdecl StoreStartFolderVerify() {
+    auto& folder = *reinterpret_cast<mfc::CString*>(0x007AF454);
+    s_storeStartFolder();
+    mfc::CString expected(folder);
+    StoreStartFolder();
+    ei::verify::Check("StoreStartFolder", true, std::strcmp(expected, folder) == 0, "\"%s\"",
+                      static_cast<const char*>(folder));
+}
+EI_VERIFY(0x0055EA10, StoreStartFolderVerify, 7, s_storeStartFolder);

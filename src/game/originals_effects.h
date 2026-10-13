@@ -38,3 +38,8 @@ __declspec(naked) inline void __fastcall LightMoveOriginal(void* /*lights*/, voi
 // +4..+0xC and fills its 256-entry table at +0x10; no result).
 __declspec(naked) inline void __fastcall WeatherSetRampOriginal(void* /*weather*/, void*, int /*start*/, int /*width*/,
                                                                 float /*exponent*/) EI_ORIGINAL(0x0049A010)
+
+// A-W13. 005616C0: the rain / snow layer's destructor body (CRainSnow::DestructBody, effects_weather.cpp), called
+// through its address by the deleting destructor.
+class CRainSnow;
+__declspec(naked) inline void __fastcall RainSnowDestructOriginal(CRainSnow* /*layer*/) EI_ORIGINAL(0x005616C0)

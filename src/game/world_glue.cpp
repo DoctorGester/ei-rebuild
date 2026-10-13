@@ -9,6 +9,7 @@
 #include "world_data.h"
 
 #include "ei/hook.h"
+#include "lib/gameapi.h"
 #include "lib/stlp.h"
 #include "originals_library.h"
 #include "originals_script.h"
@@ -64,3 +65,16 @@ void __stdcall PlayerZeroVariables(const char* prefix, NamedFloatTable* out) {
     reinterpret_cast<NamedFloatTable*>(player->variables)->CopyPrefixed(prefix, out);
 }
 EI_REPLACE(0x00578C40, PlayerZeroVariables);
+
+namespace {
+mfc::CString& StartFolder() { return *reinterpret_cast<mfc::CString*>(std::uintptr_t(0x007AF454)); }
+constexpr unsigned kFolderBufferSize = 0x400;
+} // namespace
+
+void __cdecl StoreStartFolder() {
+    char folder[kFolderBufferSize];
+    gameapi::GetCurrentDirectoryA(kFolderBufferSize, folder);
+    mfc::CString text(folder);
+    StartFolder() = static_cast<const char*>(PlusChar(text, '\\'));
+}
+EI_REPLACE(0x0055EA10, StoreStartFolder);

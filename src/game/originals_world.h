@@ -197,3 +197,11 @@ class CWorldClient;
 __declspec(naked) inline void __fastcall ClientReferenceItemsAndSpellsOriginal(CWorldClient* /*world*/) EI_ORIGINAL(0x005630B0)
 __declspec(naked) inline int __fastcall ClientLoadManagerObjectsOriginal(CBaseManager* /*manager*/, CStream* /*stream*/)
     EI_ORIGINAL(0x005679A0)
+// A-W13. The client world's two small managers (world.h): 004E2850 the array manager's Clear (plain RET: its object
+// and every listed one released, the list emptied); 00562EC0 / 00562DF0 their destructor bodies, called through their
+// addresses by the deleting destructors.
+struct ClientArrayManager;
+struct ClientListManager;
+__declspec(naked) inline void __fastcall ClientArrayManagerClearOriginal(ClientArrayManager* /*manager*/) EI_ORIGINAL(0x004E2850)
+__declspec(naked) inline void __fastcall ClientListManagerDestructOriginal(ClientListManager* /*manager*/) EI_ORIGINAL(0x00562EC0)
+__declspec(naked) inline void __fastcall ClientArrayManagerDestructOriginal(ClientArrayManager* /*manager*/) EI_ORIGINAL(0x00562DF0)
