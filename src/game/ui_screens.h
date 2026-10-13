@@ -642,6 +642,21 @@ public:
     void MasterRequest();
     // 0061D1C0. Writes the client's queries to config\addrbook.ini (a chunk archive, chunk 1).
     void SaveAddressBook();
+    // 0061D780 (Rebirth-patched, this is the vanilla body, hooked in the vanilla launch only;
+    // ui_connect_list.cpp; the screen's other members call it through its address). The list
+    // drawn on surface 0. With row 0 (the new game) selected its controls show: the player slider
+    // and the name edit enabled (and editing), sprites 4 and 5 and their regions' tips (0x9EA4 /
+    // 0x9EA5, set once: newGameTips_); otherwise they are off and the tips empty. Texts 10 and 11
+    // by the two buttons, the column titles (texts 12-15), the sort arrow (sprite 3: turned for an
+    // odd key, at its column while a key is set) and a line under the titles (a pen of the text
+    // colour); 15 rows from scrollTop_ in the colour of the entry's state (00793AD8: 1 0x31B3FF,
+    // 2 0x31E3EE, else 0xA7D7E4): the new game row "<text 7> <the name typed>", the others name,
+    // players "n/m", the game type's allod name ("?" for 4) and the ping; the selection frame
+    // (sprite 2) on the selected row. Then the selected entry's details at the right in 0xA7D7E4:
+    // for the new game the game type tabs (sprites 6-9) with their names, texts 0, 2 (with
+    // maxPlayers_), 3, 16 and 17; for a server its name, players, game type, the map's title
+    // wrapped over up to three lines, address, ping and, with a password, text 21.
+    void DrawListVanilla();
     // 0061D470. The list again: the client's servers (ServerAt) in order, sorted by sortKey_
     // (std::sort, 0061EF60 / 0061F6F0 / 0061FB00), the new game entry inserted first; the
     // selection follows its address (row 0 and address 0 when gone); the scroll bar's range is the
@@ -668,7 +683,8 @@ public:
     mfc::CStringArray texts_;      // +0x240 "lmp_connection %d" texts (22)
     int unknown_254;               // +0x254 0 from Create
     int sortKey_;                  // +0x258 0 none; 1..8 the column pairs (odd ascending)
-    std::uint8_t unknown_25C[4];   // +0x25C (byte 0 from Create)
+    bool newGameTips_;             // +0x25C the unlisted and password regions have their tips (DrawList; 0 from Create)
+    std::uint8_t unknown_25D[3];
 };
 static_assert(offsetof(CMpConnectScreen, refreshTimer_) == 0x164);
 static_assert(offsetof(CMpConnectScreen, selected_) == 0x174);

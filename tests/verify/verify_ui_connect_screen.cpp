@@ -206,3 +206,25 @@ static void __fastcall MasterBoxUpdateVerify(CMasterRequestBox* self) {
                       self->link_.state);
 }
 EI_VERIFY(0x0061E4E0, MasterBoxUpdateVerify, 0, s_unused);
+
+// 0061D780 CMpConnectScreen::DrawListVanilla (Rebirth-patched: the vanilla launch only): ours only
+// (it draws). Read back: the new game's sprites (4, 5) and its tips' flag follow row 0 being
+// selected, the game type tabs (6-9) too when the list has it; the selection frame (2) shows when
+// the selected row is one of the 15 drawn. Not reached (see above).
+static void __fastcall DrawListVerify(CMpConnectScreen* self) {
+    self->DrawListVanilla();
+    auto visible = [self](int index) { return reinterpret_cast<CUiMesh*>(self->sceneObjects_.data[index])->visible_ != 0; };
+    const unsigned rows = static_cast<unsigned>(self->entries_.size());
+    const unsigned selected = static_cast<unsigned>(self->selected_);
+    const unsigned top = static_cast<unsigned>(self->scrollTop_);
+    const bool newGame = self->selected_ == 0;
+    const bool drawn = selected < rows && selected >= top && selected - top < static_cast<unsigned>(CMpConnectScreen::kRows);
+    bool tabs = true;
+    for (int i = 6; i < 10; ++i) tabs = tabs && visible(i) == (newGame && rows > 0);
+    ei::verify::Check("CMpConnectScreen::DrawListVanilla", true,
+                      visible(4) == newGame && visible(5) == newGame && self->newGameTips_ == newGame && tabs &&
+                          visible(2) == drawn,
+                      "selected %d of %u top %u: new game %d %d tips %d tabs %d frame %d", self->selected_, rows, top,
+                      visible(4) ? 1 : 0, visible(5) ? 1 : 0, self->newGameTips_ ? 1 : 0, tabs ? 1 : 0, visible(2) ? 1 : 0);
+}
+EI_VERIFY(0x0061D780, DrawListVerify, 0, s_unused);
