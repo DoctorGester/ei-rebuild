@@ -19,7 +19,7 @@ bool FreshTip(const CUiRegion* region, int flag, int extra, bool emptyText) {
     const CUiTooltip* tip = region->tip_;
     if (!tip) return true;   // allocation failure: null, as in the original
     bool ok = reinterpret_cast<std::uintptr_t>(tip->vtable_) == kTooltipVtable && tip->region_ == region &&
-              tip->state_ == 0 && tip->unknown_17C == 0;
+              tip->state_ == 0 && tip->timer_ == 0.0f;
     if (tip->lines_.size > 0) ok = ok && tip->flag_ == flag && tip->extra_ == extra;
     if (emptyText) ok = ok && tip->lines_.size == 0;
     return ok;

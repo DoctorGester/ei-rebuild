@@ -326,6 +326,44 @@ static void __fastcall MapMouseDownVerify(void* input, void*, int buttons, int x
 }
 EI_VERIFY(0x00645060, MapMouseDownVerify, 0, s_unused);
 
+// 00645210 (A-H26; Rebirth-patched, so hooked in the vanilla launch only): the map's button
+// release. It plays sounds and moves the camera, so ours only; the wrapper works out from the
+// state before the call what the original's branches leave. ui_hud reaches the first branch (a
+// view button let go: its two clicks on the view buttons); no scenario clicks the sling button,
+// the map itself or "camera north" yet.
+static void __fastcall MapMouseUpVerify(void* input, void*, int buttons, int x, int y) {
+    auto* w = FromInput<CHudMap>(input);
+    void* capture = w->interface_->mouseCapture_;
+    const bool captured = capture == input;
+    const bool handled = w->inputHandled_;
+    const int view = w->view_;
+    const int region = w->RegionAt(x, y);
+    const int sliding = w->sliding_;
+    const std::uint32_t direction = Bits(w->slideDirection_);
+    const std::uint32_t north = Bits(w->unknown_1B0);
+    w->CHudMap::OnMouseUp(buttons, x, y);
+    bool ok = CaptureReleased(captured, capture, w->interface_->mouseCapture_);
+    const char* path = "not captured";
+    if (!captured) {
+        ok = ok && w->inputHandled_ == handled && w->view_ == view;
+    } else if (view != 0) {
+        path = "view button";
+        ok = ok && w->view_ == 0 && w->inputHandled_ == handled && TintsMatch(w, 6, 2, -1);
+    } else {
+        path = "region";
+        ok = ok && w->view_ == 0 && w->inputHandled_ == (region >= 0 ? true : handled);
+    }
+    const bool sling = captured && view == 0 && region == 0;
+    if (sling)
+        ok = ok && w->sliding_ == 1 && Bits(w->slideDirection_) == (direction ^ 0x80000000u);
+    else
+        ok = ok && w->sliding_ == sliding && Bits(w->slideDirection_) == direction;
+    const bool toNorth = captured && view == 0 && region == 5;
+    ok = ok && Bits(w->unknown_1B0) == (toNorth ? 0x3F000000u : north);
+    ei::verify::Check("CHudMap::OnMouseUp", true, ok, "(%d,%d) region %d view %d %s", x, y, region, view, path);
+}
+EI_VERIFY(0x00645210, MapMouseUpVerify, 0, s_unused);
+
 static void __fastcall UnitPanelMouseUpVerify(void* input, void*, int buttons, int x, int y) {
     auto* w = FromInput<CHudUnitPanel>(input);
     void* capture = w->interface_->mouseCapture_;

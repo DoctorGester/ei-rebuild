@@ -865,8 +865,16 @@ struct CUiTooltip : CUiWindow {
     // first flag_ lines in 0x31B3FF and the others in 0xA7D7E4; the first line followed by
     // "  ( <key> )" when keyName_ is set.
     void DrawLines();
-    // 0065E580 (Rebirth-patched, not rewritten). Tracks the mouse (layout coordinates).
+    // 0065E580 (RET 8; Rebirth-patched: the vanilla body is OnMouseMoveVanilla in ui_tooltip.cpp
+    // and callers use this forwarder, rule 9). One step of the showing, with the mouse at (x, y)
+    // in layout coordinates; the region has set the state to 1 (mouse inside) or 3 (left) before.
+    // State 1: no lines or a zero delay (setting 20) gives 0; the timer runs up to the delay, then
+    // the key of command extra_ is looked up and measured, the state becomes 2 and the surface is
+    // made at the mouse + the cursor offset, kept on the 800x600 layout. State 2 draws and becomes
+    // 4 (the appearing time is 0). State 3 draws while the timer is positive, then drops the
+    // sprites and the surface and becomes 0. States 0 and 4: nothing.
     void OnMouseMove(int x, int y);
+    void OnMouseMoveVanilla(int x, int y);
     // 0065EA50 (window slot 20; ui_menus.cpp). Draws only while shown; returns 1 otherwise.
     BOOL Draw(int pass);
     // 0065EA80 (slot 22). Redraws (005FECC0, the window's base slot 22) only while shown.
@@ -882,8 +890,8 @@ struct CUiTooltip : CUiWindow {
     CUiRegion* region_;              // +0x170 the region it belongs to
     int width_;                      // +0x174 widest line + 12 (a text only)
     int height_;                     // +0x178 the lines' heights + 8
-    int unknown_17C;                 // +0x17C 0 (0065E580: a float timer)
-    int state_;                      // +0x180 0, 1: idle/hovered; other values: shown
+    float timer_;                    // +0x17C seconds in the current state (0065E580)
+    int state_;                      // +0x180 0 idle, 1 hovered, 2 appearing, 3 disappearing, 4 shown
 };
 static_assert(offsetof(CUiTooltip, lines_) == 0x148);
 static_assert(offsetof(CUiTooltip, lineHeight_) == 0x15C);
@@ -1614,6 +1622,14 @@ void __fastcall UiPointsSetSize(UiPointArray* points, void*, int size, int growB
 class CHudMap : public CUiWindow {
 public:
     void OnMouseDown(int buttons, int x, int y);   // 00645060: the view buttons
+    // 00645210 (RET 0xC; ui_hud.cpp, A-H26; Rebirth-patched, hooked in the vanilla launch only).
+    // The button released over the map that took it. A held view button is let go (view_ 0, both
+    // buttons dim; nothing else). Otherwise by region: 0 the sling (direction turned, the slide
+    // starts), 1 / 2 a point of the map (the layout point's offset from (700, 80) over +0x174,
+    // on the round map also over the zoom, over scale_ about the centre; inside the world the
+    // camera stops following and focuses there), 5 "camera north" (heading 0, unknown_1B0 0.5);
+    // any region marks the input handled.
+    void OnMouseUp(int buttons, int x, int y);
     void OnMouseMove(int buttons, int x, int y);   // 00645610
     // 00645640: over region 0 the wheel zooms the map by 2.5^(delta / 1200) (ui_hud_map.cpp).
     BOOL OnWheel(int buttons, int delta, int x, int y);
@@ -1653,7 +1669,7 @@ public:
     float scale_;                    // +0x168 world units to map units
     float zoom_;                     // +0x16C 1 .. zoomMax_ (the view buttons change it)
     float zoomMax_;                  // +0x170
-    std::uint8_t unknown_174[4];
+    float unknown_174;               // +0x174 divides a click's offset from the map's centre (OnMouseUp)
     UiPointF* viewPolygon_;          // +0x178 the round map's outline in map units
     int viewPolygonCount_;           // +0x17C
     std::uint8_t unknown_180[0x188 - 0x180];
@@ -1663,7 +1679,7 @@ public:
     int travel_;                     // +0x1A0 full slide distance
     float slide_;                    // +0x1A4 0..1: how far the panel has slid (offset_ = travel_ eased)
     float slideDirection_;           // +0x1A8 +1 / -1
-    int view_;                       // +0x1AC 1 or 2 (scene objects 6 and 7 are the buttons)
+    int view_;                       // +0x1AC 1 or 2 while a view button is held (scene objects 6 and 7), else 0
     float unknown_1B0;               // +0x1B0 0.5 when the "camera north" key turns the camera; the
                                      //        frame update (00642B40) counts it down
 };

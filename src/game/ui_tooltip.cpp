@@ -1,11 +1,16 @@
 // A region's tooltip (CUiTooltip, 0065E320-0065EA50; A-H20): its constructor, which splits the text
-// into lines and measures them, the destructor body, SetText and the drawing of the lines. Showing it
-// (0065E580) is Rebirth-patched and stays original. See ui.h and docs/notes/items_spells.md.
+// into lines and measures them, the destructor body, SetText and the drawing of the lines; and its
+// showing (0065E580, A-H26: Rebirth-patched, so the vanilla body hooks in the vanilla launch only
+// and CUiRegion::OnMouseMove keeps calling it through its address). See ui.h and
+// docs/notes/items_spells.md.
 #include "ui.h"
 
 #include "ei/hook.h"
+#include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
+#include "lib/vecmath.h"
+#include "object_tables.h"       // FindCommandByKey
 #include "originals_library.h"
 #include "originals_ui.h"
 
@@ -32,6 +37,22 @@ const char* EmptyLineSample() { return reinterpret_cast<const char*>(std::uintpt
 const char* KeyOpen() { return reinterpret_cast<const char*>(std::uintptr_t(0x00794B68)); }
 const char* KeyClose() { return reinterpret_cast<const char*>(std::uintptr_t(0x00794B64)); }
 
+// Showing (0065E580).
+constexpr int kIdle = 0;
+constexpr int kHovered = 1;
+constexpr int kAppearing = 2;
+constexpr int kDisappearing = 3;
+constexpr int kShown = 4;
+constexpr int kLayoutWidth = 800;
+constexpr int kLayoutHeight = 600;
+constexpr int kSurfaceFormat = 5;
+// The game's setting 20 (the tooltips' delay in seconds; 0 turns them off), the appearing time
+// (0.0 in the exe) and the tooltip's offset from the mouse in screen pixels ((24, 24), written by
+// the static initialiser 0065E310).
+float ShowDelay() { return *reinterpret_cast<const float*>(std::uintptr_t(0x0079BE80)); }
+float AppearTime() { return *reinterpret_cast<const float*>(std::uintptr_t(0x00742F2C)); }
+POINT CursorOffset() { return *reinterpret_cast<const POINT*>(std::uintptr_t(0x007C8258)); }
+
 // The extent of `text` in interface font `font` (005F8340, Rebirth-patched: through its address; it
 // takes the CString by value and releases it, so a copy's data is handed over).
 SIZE TextExtent(CInterface3D* ui, const mfc::CString& text, int font) {
@@ -51,7 +72,7 @@ CUiTooltip* CUiTooltip::Construct(CInterface3D* ui, CUiRegion* region, const cha
     lines_.Construct();
     vtable_ = reinterpret_cast<void**>(kTooltipVtable);
     inputVtable_ = reinterpret_cast<void**>(kTooltipInputVtable);
-    unknown_17C = 0;
+    timer_ = 0.0f;
     state_ = 0;
     region_ = region;
     // An empty text leaves the measurements and the two arguments unwritten.
@@ -126,3 +147,70 @@ void CUiTooltip::DrawLines() {
     SurfaceReleaseDC(surface);
 }
 EI_REPLACE_METHOD(0x0065E880, CUiTooltip::DrawLines);
+
+void CUiTooltip::OnMouseMoveVanilla(int x, int y) {
+    switch (state_) {
+    case kHovered: {
+        const float delay = ShowDelay();
+        if (lines_.size == 0 || delay == 0.0f) {
+            state_ = kIdle;
+            return;
+        }
+        if (timer_ < delay) {
+            timer_ = RoundToFloat(WindowFrameTimeOriginal(this) + timer_);
+            return;
+        }
+        // Shown: the first line is measured again with the key of the tooltip's command.
+        keyWidth_ = 0;
+        if (extra_) {
+            keyName_ = static_cast<const char*>(FindCommandByKey(extra_));
+            if (keyName_) {
+                keyWidth_ = TextExtent(interface_, lines_[0] + KeyOpen() + keyName_ + KeyClose(), kFont).cx + kPaddingX;
+            }
+        }
+        state_ = kAppearing;
+        timer_ = 0.0f;
+        RECT rect{0, 0, width_ > keyWidth_ ? width_ : keyWidth_, height_};
+        POINT offset = CursorOffset();
+        interface_->CallScalePointFromScreen(&offset);
+        gameapi::OffsetRect(&rect, offset.x, offset.y);
+        gameapi::OffsetRect(&rect, x, y);
+        // Kept on the layout: pushed left from the right edge, and above the mouse at the bottom.
+        if (rect.right > kLayoutWidth) {
+            gameapi::OffsetRect(&rect, -(rect.right - kLayoutWidth), 0);
+            if (rect.left < 0) gameapi::OffsetRect(&rect, -rect.left, 0);
+        }
+        if (rect.bottom > kLayoutHeight) {
+            gameapi::OffsetRect(&rect, 0, -(rect.bottom - y));
+            if (rect.top < 0) gameapi::OffsetRect(&rect, 0, -rect.top);
+        }
+        void* memory = gamecrt::operator_new(sizeof(CUiSurface));
+        AddSurface(memory ? SurfaceConstructOnRectOriginal(memory, nullptr, interface_, &rect, kSurfaceFormat) : nullptr);
+        return;
+    }
+    case kAppearing:
+        // The appearing time is zero in the exe: the tooltip is fully shown on the next call.
+        if (timer_ < AppearTime()) {
+            DrawLines();
+            timer_ = RoundToFloat(WindowFrameTimeOriginal(this) + timer_);
+        } else {
+            state_ = kShown;
+            timer_ = AppearTime();
+            DrawLines();
+        }
+        return;
+    case kDisappearing:
+        if (timer_ > 0.0f) {
+            DrawLines();
+            timer_ = RoundToFloat(timer_ - WindowFrameTimeOriginal(this));
+        } else {
+            state_ = kIdle;
+            ClearSceneObjects();
+            ClearSurfaces();
+        }
+        return;
+    default:
+        return;
+    }
+}
+EI_REPLACE_METHOD(0x0065E580, CUiTooltip::OnMouseMoveVanilla);

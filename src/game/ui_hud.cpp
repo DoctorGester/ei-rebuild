@@ -92,6 +92,11 @@ float MarkerRadius() { return GameFloat(0x00742B10); }   // 73
 float MarkerCentreY() { return GameFloat(0x00742B0C); }  // 600
 constexpr float kMarkerDepth = 8.0f;
 
+// The map's centre in the layout, and the camera flag a click on the map clears.
+constexpr int kMapCentreX = 700;
+constexpr int kMapCentreY = 80;
+constexpr std::uint32_t kCameraFollows = 8;
+
 // Shim from the input-side `this` to a panel member taking (buttons, x, y).
 #define UI_INPUT_HANDLER(addr, Class, Method)                                                     \
     static void __fastcall Class##_##Method(void* input, void*, int buttons, int x, int y) {      \
@@ -377,6 +382,62 @@ void CHudMap::OnMouseDown(int, int x, int y) {
         SetTint(sceneObjects_.data[6 + i], view_ == i + 1 ? kTintOn : kTintOff);
 }
 UI_INPUT_HANDLER(0x00645060, CHudMap, OnMouseDown);
+
+void CHudMap::OnMouseUp(int, int x, int y) {
+    if (!ReleaseMouse()) return;
+    if (view_ != 0) {
+        // A view button was held: the zoom stops and both buttons go dim.
+        view_ = 0;
+        for (int i = 0; i < 2; ++i) SetTint(sceneObjects_.data[6 + i], view_ == i + 1 ? kTintOn : kTintOff);
+        return;
+    }
+    const int region = RegionAt(x, y);
+    switch (region) {
+    case 0:     // the sling button
+        interface_->PlaySound(kSoundSling, 0);
+        slideDirection_ = -slideDirection_;
+        sliding_ = 1;
+        inputHandled_ = true;
+        return;
+    case 1:     // the round map (zoomed)
+    case 2: {   // the map area
+        // The world point under the click; ScalePointFromScreen (005F7E00) is Rebirth-patched:
+        // through its address.
+        POINT point = {x, y};
+        interface_->CallScalePointFromScreen(&point);
+        float right = static_cast<float>(point.x - kMapCentreX) / unknown_174;
+        float down = static_cast<float>(point.y - kMapCentreY) / unknown_174;
+        if (region == 1) {
+            right /= zoom_;
+            down /= zoom_;
+        }
+        const float worldX = RoundToFloat(right / scale_ + centreX_);
+        const float worldY = RoundToFloat(centreY_ - down / scale_);
+        if (worldX > 0.0f && worldX < worldWidth_ && worldY > 0.0f && worldY < worldHeight_) {
+            // The camera stops following its unit and looks there.
+            CCamera* view = camera::TheCamera();
+            view->flags_ &= ~kCameraFollows;
+            view->SetTargetId(-1);
+            Vector3 focus = view->focus_;
+            focus.x = worldX;
+            focus.y = worldY;
+            view->SetFocus(&focus);
+        }
+        inputHandled_ = true;
+        return;
+    }
+    case 5:     // "camera north"
+        interface_->PlaySound(kSoundClick, 0);
+        camera::TheCamera()->SetHeading(0.0f);
+        unknown_1B0 = 0.5f;
+        inputHandled_ = true;
+        return;
+    default:
+        if (region >= 0) inputHandled_ = true;
+        return;
+    }
+}
+UI_INPUT_HANDLER(0x00645210, CHudMap, OnMouseUp);
 
 void CHudMap::OnMouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) inputHandled_ = true;
