@@ -13,6 +13,8 @@
 //    every start: 16 of them) and destructor body 004F0E10 (it unloads 3DfpFPU.dll; its only
 //    caller is the deleting destructor 004F0DF0, whose rewrite calls ours directly at the
 //    renderer's shutdown, so the wrapper itself is not reached).
+//    The pipeline's constructor 004F0B90 (A-S12; the renderer's creation, every start) is side by
+//    side: see at the wrapper.
 // A-S12, the rest of the helper (the renderer's creation, every start, and its shutdown):
 //  - Side by side: the built-in presets' state lists 004FCE90 (the original into a scratch vector;
 //    the fields a list sets must agree, the ones it leaves unset are stack contents there).
@@ -29,7 +31,10 @@
 #include "verify.h"
 
 #include "../../src/game/model.h"
+#include "../../src/game/processor_info.h"
 #include "../../src/game/texture.h"
+#include "../../src/lib/containers.h"
+#include "../../src/lib/gameapi.h"
 #include "../../src/lib/stlp.h"
 
 #include <d3d.h>
@@ -42,6 +47,7 @@
 bool __fastcall RenderHelperPresetStates(CRenderHelper* self, void*, CRenderPreset* preset,
                                          stlp::vector<RenderPresetRecord::State>* out);
 MatrixStack* __fastcall MatrixStackConstruct(MatrixStack* self);
+CTransformPipeline* __fastcall TransformPipelineConstruct(CTransformPipeline* self, void*, const char* folder);
 void __fastcall TransformPipelineDestruct(CTransformPipeline* self);
 void __fastcall RenderHelperReleasePreset(CRenderHelper* self, void*, CRenderPreset* preset);
 void* __fastcall RenderHelperPresetBlock(CRenderHelper* self, void*, CRenderPreset* preset);
@@ -451,6 +457,46 @@ void* __fastcall TlLibraryDeleteVerify(void* self, void*, unsigned flags) {
 
 // ---- The transform pipeline ----
 
+// 004F0B90: PUSH EBP (1), MOV EBP,ESP (2), PUSH -1 (2). Side by side: the original builds a second
+// pipeline in a scratch block first (its library reference and its stacks' blocks are given back
+// afterwards; GetTLPipeline returns the library's one object both times). Compared: the fields, the
+// stacks (empty, each with its own block) and the processor's globals (without the APIC id of the
+// core that happened to run CPUID).
+CTransformPipeline*(__fastcall* s_pipelineConstruct)(CTransformPipeline*, void*, const char*);
+processor::Info ComparableProcessor() {
+    processor::Info info = processor::Global();
+    info.brand &= 0x00FFFFFFu;
+    return info;
+}
+CTransformPipeline* __fastcall PipelineConstructVerify(CTransformPipeline* self, void*, const char* folder) {
+    alignas(4) unsigned char scratch[sizeof(CTransformPipeline)];
+    auto* theirs = reinterpret_cast<CTransformPipeline*>(scratch);
+    const processor::Info before = processor::Global();
+    s_pipelineConstruct(theirs, nullptr, folder);
+    const processor::Info expected = ComparableProcessor();
+    processor::Global() = before;
+
+    CTransformPipeline* result = TransformPipelineConstruct(self, nullptr, folder);
+    const processor::Info actual = ComparableProcessor();
+    bool same = result == self && self->vtable_ == theirs->vtable_ && self->refs_ == theirs->refs_ &&
+                std::memcmp(self->unknown_08, theirs->unknown_08, sizeof(self->unknown_08)) == 0 &&
+                self->transform_ == theirs->transform_ && self->library_ == theirs->library_ &&
+                std::memcmp(&expected, &actual, sizeof(expected)) == 0;
+    for (int i = 0; i < 16; ++i) {
+        const MatrixStack& mine = self->stacks_[i];
+        const MatrixStack& other = theirs->stacks_[i];
+        same = same && mine.count == other.count && mine.matrices && other.matrices && mine.matrices != other.matrices;
+    }
+    ei::verify::Check("CTransformPipeline constructor (004F0B90)", true, same,
+                      "\"%s\": library %p vs %p, transform %p vs %p, features %08X vs %08X", folder, theirs->library_,
+                      self->library_, static_cast<void*>(theirs->transform_), static_cast<void*>(self->transform_),
+                      expected.features, actual.features);
+
+    if (theirs->library_) gameapi::FreeLibrary(static_cast<HMODULE>(theirs->library_));
+    for (int i = 15; i >= 0; --i) lib::FreeAligned32(theirs->stacks_[i].matrices);
+    return result;
+}
+
 MatrixStack* __fastcall MatrixStackConstructVerify(MatrixStack* self) {
     MatrixStack* result = MatrixStackConstruct(self);
     bool good = result == self && self->count == 0 && self->matrices &&
@@ -502,6 +548,7 @@ EI_VERIFY(0x004FCC20, HelperDeleteVerify, 0, s_unused);
 EI_VERIFY(0x004F0DF0, TlLibraryDeleteVerify, 0, s_unused);
 EI_VERIFY(0x004F0DB0, MatrixStackConstructVerify, 0, s_unused);
 EI_VERIFY(0x004F0E10, PipelineDestructVerify, 0, s_unused);
+EI_VERIFY(0x004F0B90, PipelineConstructVerify, 5, s_pipelineConstruct);
 EI_VERIFY(0x004EE6D0, DriverAtVerify, 7, s_driverAt);
 EI_VERIFY(0x004FCE90, StateListVerify, 5, s_stateList);
 EI_VERIFY(0x004FD2A0, RecordVerify, 6, s_record);

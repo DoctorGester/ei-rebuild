@@ -78,4 +78,13 @@ void string::Append(const char* first, const char* last) {
     }
 }
 
+string Plus(const string& a, const char* text) {
+    const std::size_t n = std::strlen(text);
+    string joined;
+    string::Reserve(joined, a.size() + n + 1);
+    joined.Append(a.data(), a.data() + a.size());
+    joined.Append(text, text + n);
+    return string(joined);
+}
+
 } // namespace stlp

@@ -73,6 +73,10 @@ private:
 };
 static_assert(sizeof(string) == 12);
 
+// operator+(const string&, const char*) (00427D60): joined in a temporary with exactly the room,
+// which the result is a copy of (two blocks; the temporary's is freed once the result has its own).
+string Plus(const string& a, const char* text);
+
 // vector<T>: three pointers. Grows to size + max(size, 1) elements on overflow, copying elements
 // into the new block (_M_insert_overflow). T must provide copy construction and AssignFrom.
 template <typename T>

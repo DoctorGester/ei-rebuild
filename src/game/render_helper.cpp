@@ -3,10 +3,12 @@
 // Rewritten here: the helper (its constructor with the nine built-in presets' state lists, the
 // destructor, the state blocks' recording and release, and the slots that read its tables), its
 // preset's destructor, the Direct3D driver list's lookup by index, the "destructor body, then
-// operator delete" shells of five classes, and the transform pipeline's destructor with its matrix
-// stacks' constructor. The device object's and the DirectDraw holder's destructor bodies are not
+// operator delete" shells of five classes, and the transform pipeline's constructor and destructor
+// with its matrix stacks' constructor. The device object's and the DirectDraw holder's destructor bodies are not
 // here. See docs/notes/renderer.md (section 12).
+#include "dx_errors.h"
 #include "model.h"
+#include "processor_info.h"
 #include "texture.h"
 
 #include "ei/hook.h"
@@ -22,6 +24,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <optional>
 
 #pragma warning(disable : 4740) // naked forwarders
 
@@ -510,6 +513,70 @@ MatrixStack* __fastcall MatrixStackConstruct(MatrixStack* self) {
     return self;
 }
 EI_REPLACE(0x004F0DB0, MatrixStackConstruct);
+
+namespace {
+
+// 004F0DB0 through its address: the verify build's wrapper runs there.
+__declspec(naked) MatrixStack* __fastcall MatrixStackConstructOriginal(MatrixStack*) EI_ORIGINAL(0x004F0DB0)
+
+const char* TransformLibraryName() { return reinterpret_cast<const char*>(0x0078EC0C); }   // "3DfpFPU.dll"
+const char* TransformFunctionName() { return reinterpret_cast<const char*>(0x0078EBD4); }  // "GetTLPipeline"
+// The debug messages ("FPU Transform release library loaded." and "Acquiring geometry processor
+// from transform library.") and the errors' texts ("Can't load 3D transform library." and "Loaded
+// 3D transform library have no function "GetTLPipeline"."), each with a newline.
+const char* LibraryLoadedText() { return reinterpret_cast<const char*>(0x0078EBE4); }
+const char* AcquiringText() { return reinterpret_cast<const char*>(0x0078EB9C); }
+const char* NoLibraryText() { return reinterpret_cast<const char*>(0x0078EB38); }
+const char* NoFunctionText() { return reinterpret_cast<const char*>(0x0078EB5C); }
+
+// The constructor's failure: a new error object thrown (a GameError*, by the game's own throw).
+// What the original's unwinding does on the way out is done here first: the folder's string and
+// the stacks' blocks (from the last) freed, the counted base's vtable left. (The memory itself is
+// the caller's: the original's `new` frees it.)
+[[noreturn]] void ThrowPipelineError(CTransformPipeline* self, std::optional<stlp::string>& folder, const char* text) {
+    void* memory = gamecrt::operator_new(sizeof(GameError));
+    GameError* error = memory ? GameErrorConstruct(static_cast<GameError*>(memory), text) : nullptr;
+    folder.reset();
+    for (int i = kMatrixStacks - 1; i >= 0; --i) lib::FreeAligned32(self->stacks_[i].matrices);
+    ei::SetVtable(self, 0x0073D768);
+    GameThrowException(&error, GameErrorThrowInfo());
+    for (;;) {
+    }
+}
+
+} // namespace
+
+// 004F0B90 (RET 4; the renderer base's creation 00500540 news it with the game's work folder): the
+// counted base, the 16 matrix stacks, the processor's CPUID function 1 into the globals (as the
+// renderer does again), then 3DfpFPU.dll loaded from `folder` and its GetTLPipeline()'s transform
+// object taken. No library, or no such function in it (the library is unloaded again): throws.
+CTransformPipeline* __fastcall TransformPipelineConstruct(CTransformPipeline* self, void*, const char* folder) {
+    self->refs_ = 0;
+    std::memset(self->unknown_08, 0, sizeof(self->unknown_08));
+    ei::SetVtable(self, 0x0073D768);
+    for (int i = 0; i < kMatrixStacks; ++i) MatrixStackConstructOriginal(&self->stacks_[i]);
+    ei::SetVtable(self, 0x0073D778);
+
+    std::optional<stlp::string> path;   // freed by hand before a throw
+    path.emplace(folder);
+    processor::Read();
+    self->library_ = gameapi::LoadLibraryA(stlp::Plus(*path, TransformLibraryName()).data());
+    DebugMessageOriginal(LibraryLoadedText());
+    if (!self->library_) ThrowPipelineError(self, path, NoLibraryText());
+
+    using GetTLPipeline = ITransformPipeline*(__cdecl*)();
+    auto getPipeline = reinterpret_cast<GetTLPipeline>(
+        gameapi::GetProcAddress(static_cast<HMODULE>(self->library_), TransformFunctionName()));
+    if (!getPipeline) {
+        gameapi::FreeLibrary(static_cast<HMODULE>(self->library_));
+        self->library_ = nullptr;
+        ThrowPipelineError(self, path, NoFunctionText());
+    }
+    DebugMessageOriginal(AcquiringText());
+    self->transform_ = getPipeline();
+    return self;
+}
+EI_REPLACE(0x004F0B90, TransformPipelineConstruct);
 
 // 004F0E10: the destructor body: the transform object forgotten, 3DfpFPU.dll unloaded, the stacks'
 // blocks freed from the last to the first (004F0DE0 each), the counted base's vtable left.

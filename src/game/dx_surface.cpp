@@ -48,11 +48,9 @@ void SetBaseVtable(CDXSurface* holder) { ei::SetVtable(holder, 0x0073D768); }
 // 004800E0 / 00480080 (cdecl): DirectX error / fatal error reports (the second printf-like);
 // nonzero to go on.
 // The thrown error object: operator new (007005AF), its constructor (00480250, cdecl: object,
-// format, width, height) and _CxxThrowException (006E7819) with its throw info 00759908.
+// format, width, height) and _CxxThrowException with its throw info (originals_engine.h).
 __declspec(naked) void* __cdecl GameNew(unsigned) EI_ORIGINAL(0x007005AF)
 __declspec(naked) void* __cdecl ErrorObject(void*, const char*, int, int) EI_ORIGINAL(0x00480250)
-__declspec(naked) void __stdcall ThrowException(void*, const void*) EI_ORIGINAL(0x006E7819)
-const void* ErrorThrowInfo() { return reinterpret_cast<const void*>(0x00759908); }
 
 constexpr int kRelease = 2, kGetPixelFormat = 21, kGetSurfaceDesc = 22, kLock = 25, kUnlock = 32;   // IDirectDrawSurface7
 constexpr int kCreateSurface = 6, kGetDisplayMode = 12;                    // IDirectDraw7
@@ -113,7 +111,7 @@ bool MemoryOnly(bool client) {
 [[noreturn]] void ThrowCreateFailed(int width, int height) {
     void* object = GameNew(0xC);
     if (object) object = ErrorObject(object, Text(0x0078E89C), width, height);   // "Can't create DDSurface %d %d ..."
-    ThrowException(&object, ErrorThrowInfo());
+    GameThrowException(&object, GameErrorThrowInfo());
     for (;;) {
     }
 }
@@ -545,7 +543,7 @@ CDXSurface* __fastcall DXSurfaceFromPicture(CDXSurface* holder, void*, CTextureD
     if (!LoadPicture(holder, nullptr, picture, flag)) {
         void* object = GameNew(0xC);
         if (object) object = ErrorObjectText(object, Text(0x0078E918));   // "Can't load picture to surface"
-        ThrowException(&object, ErrorThrowInfo());
+        GameThrowException(&object, GameErrorThrowInfo());
     }
     if (render::Active()) render::PictureFromMmp(holder, picture);
     ++HolderCount();
