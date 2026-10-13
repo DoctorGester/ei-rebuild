@@ -14,6 +14,14 @@ class CAnimationNode;   // figure.h
 __declspec(naked) inline char* __fastcall AllocVertices(int) EI_ORIGINAL(0x004E5710)
 __declspec(naked) inline int __fastcall DrawMesh(char*, void*, const void*, int, std::uint32_t, int, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, int, int)
     EI_ORIGINAL(0x004E9010)
+// 004E9A50: the same with two textures' surfaces before the positions (RET 0x50).
+class CTextureDevice;
+struct CDXSurface;
+__declspec(naked) inline int __fastcall DrawMesh2(CTextureDevice*, void*, CDXSurface*, CDXSurface*, const void*, int,
+                                                  std::uint32_t, int, std::uint32_t, std::uint32_t, std::uint32_t,
+                                                  std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t,
+                                                  std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t,
+                                                  std::uint32_t, int, int) EI_ORIGINAL(0x004E9A50)
 __declspec(naked) inline void __cdecl ReportError(long, const char*) EI_ORIGINAL(0x004F0B00)
 __declspec(naked) inline void __fastcall LoadTextureOriginal(void** /*holder*/, void*, int /*kind*/, const char* /*name*/)
     EI_ORIGINAL(0x00500A00)

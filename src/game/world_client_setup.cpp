@@ -40,8 +40,9 @@ const char* FiguresResource() { return *reinterpret_cast<const char* const*>(0x0
 void* Renderer() { return *reinterpret_cast<void* const*>(0x007AF080); }
 UnitDatabase* Units() { return reinterpret_cast<UnitDatabase*>(0x007AF358); }
 
-// Not rewritten: the texture manager's device (006913A0, RET 4) and the figure loader's
-// constructor (004F68C0, RET 8, returns this; Rebirth-patched).
+// Through their addresses: the texture manager's device (006913A0, RET 4; not rewritten) and the
+// figure loader's constructor (004F68C0, RET 8, returns this; Rebirth-patched, its vanilla body is
+// in link_loader_create.cpp).
 // The sky (LoadSky, 00562F70) is called through its address so that its verify wrapper runs.
 __declspec(naked) void __fastcall TextureManagerSetDevice(CTextureManager*, void*, void* /*device*/) EI_ORIGINAL(0x006913A0)
 __declspec(naked) void __fastcall LoadSkyAt(CWorldClient*) EI_ORIGINAL(0x00562F70)

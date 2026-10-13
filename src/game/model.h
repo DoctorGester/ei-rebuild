@@ -125,35 +125,56 @@ class CTexture;   // texture.h
 class __declspec(novtable) CRenderPreset {
 public:
     virtual void* DeleteThis(unsigned flags);   // 0: 004FD880 (the destructor body 004FD8B0)
+    virtual unsigned Index();                   // 1: 004FD870 (too short to hook). index_.
 
-    int refs_;                          // +0x04
-    stlp::vector<std::uint32_t> items_; // +0x08 freed by the destructor (what it holds is not known)
+    int refs_;                           // +0x04
+    // +0x08 Direct3D state block handles: the texture stages' first, then one for each state from
+    // `stages_` on (its blend factors). The device's draws apply them (device_draw.cpp).
+    stlp::vector<std::uint32_t> blocks_;
+    int stages_;                         // +0x14 texture stages the first block sets
+    int index_;                          // +0x18 the index it was recorded with (below 9: built in)
 };
-static_assert(offsetof(CRenderPreset, items_) == 0x08);
+static_assert(offsetof(CRenderPreset, blocks_) == 0x08 && sizeof(CRenderPreset) == 0x1C);
 
-// What the helper keeps for a preset: the render states it sets (40-byte records, copied out by
-// slot 6) and a counted object slot 3 (004FD9D0) takes.
+// What the helper keeps for a preset: the states it was recorded from (copied out by slot 6) and
+// the preset itself, counted.
 struct RenderPresetRecord {
+    // One texture stage's operations and the blend factors of its pass. Direct3D's values
+    // (D3DTEXTUREOP, D3DTA_*, D3DBLEND).
     struct State {
-        std::uint32_t words[10];
+        bool enabled;               // +0x00 the stage's operations are set
+        std::uint32_t colourOp;     // +0x04
+        std::uint32_t colourArg1;   // +0x08
+        std::uint32_t colourArg2;   // +0x0C
+        std::uint32_t alphaOp;      // +0x10
+        std::uint32_t alphaArg1;    // +0x14
+        std::uint32_t alphaArg2;    // +0x18
+        bool blend;                 // +0x1C the blend factors are set
+        std::uint32_t sourceBlend;  // +0x20
+        std::uint32_t destBlend;    // +0x24
     };
     stlp::vector<State> states;   // +0x00
-    void* block;                  // +0x0C counted (the count at +4, slot 0 deletes)
+    CRenderPreset* preset;        // +0x0C counted
 };
 static_assert(sizeof(RenderPresetRecord) == 0x10 && sizeof(RenderPresetRecord::State) == 0x28);
+static_assert(offsetof(RenderPresetRecord::State, blend) == 0x1C);
 
-// render_helper.cpp (A-S11) has the slots that only read the helper's tables (2, 4, 5, 6, 7); the
-// others create, apply and delete Direct3D state blocks and are not rewritten.
+struct IDirect3DDevice7;
+
+// render_helper.cpp has all of it (A-S11 the slots that only read the tables, A-S12 the rest).
 class __declspec(novtable) CRenderHelper {
 public:
     static constexpr unsigned kPresetCount = 9;
 
     virtual void* DeleteThis(unsigned flags);   // 0: 004FCC20 (the destructor body 004FCD50)
-    virtual void Unknown1();                    // 1: 004FD2A0
-    // 2: 004FDB00 (RET 4). The record of `preset`, if there is one: slot 3 with its block.
+    // 1: 004FD2A0 (RET 0xC). Records the state blocks of `states` and keeps the new preset (as
+    // built-in preset `index` when that is below 9). `singleStage`: at most one texture stage.
+    virtual CRenderPreset* Record(const stlp::vector<RenderPresetRecord::State>* states, int index, bool singleStage);
+    // 2: 004FDB00 (RET 4). The record of `preset`, if there is one: slot 3 with its preset.
     virtual void ReleasePreset(CRenderPreset* preset);
-    virtual void ReleaseBlock(void* block);     // 3: 004FD9D0 (RET 4)
-    // 4: 004FDB50 (RET 4). The block of `preset`'s record, or null without a record.
+    // 3: 004FD9D0 (RET 4). Deletes the preset's state blocks and drops its record.
+    virtual void ReleaseBlock(CRenderPreset* preset);
+    // 4: 004FDB50 (RET 4). The preset of `preset`'s record, or null without a record.
     virtual void* PresetBlock(CRenderPreset* preset);
     // 5: 004FDBA0 (RET 4). Preset `index` of the nine at +0x10C, or null beyond them.
     virtual CRenderPreset* Preset(unsigned index);
@@ -163,12 +184,13 @@ public:
     virtual bool BuiltInStates(unsigned index, stlp::vector<RenderPresetRecord::State>* out);
 
     int refs_;   // +0x04
-    std::uint8_t unknown_08[0xF8 - 0x08];
+    IDirect3DDevice7* device_;          // +0x08 counted (AddRef / Release)
+    std::uint8_t caps_[0xEC];           // +0x0C the device's D3DDEVICEDESC7
     stlp::hash_map<CRenderPreset*, RenderPresetRecord, stlp::PointerHash> records_;   // +0xF8 by preset
-    CRenderPreset** presets_;           // +0x10C the nine built-in presets
-    std::uint8_t unknown_110[0x118 - 0x110];
+    stlp::vector<CRenderPreset*> presets_;   // +0x10C the nine built-in presets (not counted)
 };
 static_assert(offsetof(CRenderHelper, refs_) == 0x04 && sizeof(CRenderHelper) == 0x118);
+static_assert(offsetof(CRenderHelper, caps_) == 0x0C);
 static_assert(offsetof(CRenderHelper, records_) == 0xF8 && offsetof(CRenderHelper, presets_) == 0x10C);
 
 // The scene renderer (the global at 007AF060, vtable 0073D93C, 26 slots; 00500960 returns it).
@@ -216,7 +238,10 @@ public:
     // 15: 00501CE0 (RET 4). Draws a line list (0049B780 with the pipeline and the device object).
     virtual void DrawLineList(void* lines);
     virtual void Unknown16();
-    virtual void Unknown17();
+    // 17 (RET 0xC). Draws sprites facing the view with the bound texture: `points` an aligned array
+    // of centres and sizes (x, y, z, size), `sprites` a CArray of their colours and texture
+    // rectangles. The first argument is 0 at every call known.
+    virtual int DrawSprites(int unknown, void* points, void* sprites);
     virtual void Unknown18();
     // 19: 005041F0 (RET 0x18; renderer_rect.cpp). A black rectangle (left, top, right, bottom in
     // screen pixels) of `alpha` over the current blend state, with `outline` a white frame. Returns 1.

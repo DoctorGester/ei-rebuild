@@ -59,11 +59,7 @@ __declspec(naked) int __fastcall ClipTest(CTransformPipeline*, void*, const Clip
 // 0068D280 (CLight::SetLitColors): a light's colours for a material and the ambient level (float bits).
 __declspec(naked) void __fastcall LightForMaterial(CLight*, void*, FigureMaterial* /*material*/, std::uint32_t /*ambient*/)
     EI_ORIGINAL(0x0068D280)
-// The device's mesh draws (device_mesh.cpp).
-__declspec(naked) int __fastcall DrawMesh2(CTextureDevice*, void*, CDXSurface*, CDXSurface*, const void*, int, std::uint32_t,
-                                           int, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t,
-                                           std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t,
-                                           std::uint32_t, std::uint32_t, std::uint32_t, int, int) EI_ORIGINAL(0x004E9A50)
+// The device's mesh draws (device_mesh.cpp): DrawMesh / DrawMesh2, originals_render.h.
 // STLport string members: 004217E0 string(allocator), 00425080 the end-of-storage member from an
 // allocator and a value, 00428F10 assign(first, last), 0042A3D0 range initialisation (first, last,
 // tag), destructors 00425040 and 0040C770 (two instantiations).

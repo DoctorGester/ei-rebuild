@@ -65,10 +65,13 @@ struct FigureMeshDrawer;   // link_figure.h
 struct FigureMaterial {
     std::uint8_t unknown_00[8];
     std::uint8_t flags_;            // +0x08 0x10: the speculars are kept (draw flag 8)
-    std::uint8_t unknown_09[0x50 - 0x09];
+    std::uint8_t unknown_09[0x40 - 0x09];
+    float specularColour_[3];       // +0x40 red, green, blue in 0..1 (a kept specular's colour, 004F3870)
+    std::uint8_t unknown_4C[4];
     std::uint32_t lightVector_[3];  // +0x50 (moved as dwords)
 };
 static_assert(offsetof(FigureMaterial, flags_) == 0x08 && offsetof(FigureMaterial, lightVector_) == 0x50);
+static_assert(offsetof(FigureMaterial, specularColour_) == 0x40);
 
 class CLight;   // spell.h
 

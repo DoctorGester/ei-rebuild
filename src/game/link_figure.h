@@ -116,7 +116,10 @@ public:
     virtual void TransformPoints(const Matrix4* transposed, const VertexPacket* vertices, Vector4* out, int blocks);
     virtual void Unknown27();
     virtual void Unknown28();
-    virtual void Unknown29();
+    // 29: the `blocks` packets projected with `matrix` into `points` (x, y per vertex), `bounds`
+    // (min x, min y, max x, max y) grown around them (a shadow's points, 004F4680).
+    virtual void ProjectFlat(const float* matrix, const VertexPacket* vertices, float* points, int blocks,
+                             float* bounds);
     virtual void Unknown30();
     virtual void Unknown31();
     virtual void Unknown32();
@@ -193,13 +196,15 @@ public:
     // and index counts; false (nothing written) when there is no such part.
     virtual bool GetPartData(const stlp::string* name, VertexPacket** vertices, MeshCorner** corners,
                              std::uint16_t** indices, int* vertexCount, int* indexCount);
-    // 7-12: a figure mesh's part `name` drawn through this figure (CObject3D::figure; 005A7A70):
-    // 7 fills a flat part's colours and speculars, 8 lights it, 9-12 draw it (with the mesh's
-    // per-vertex offsets: 9 / 11; with two textures' surfaces: 11 / 12). The draws return 2 when
-    // nothing was drawn. `u`, `v` are the mesh's +0xCC / +0xD0.
-    virtual void FlatColours(const stlp::string* name, std::uint32_t colour, std::uint32_t specular,
+    // 7-12 (link_mesh_draw.cpp, A-S12): a figure mesh's part `name` drawn through this figure
+    // (CObject3D::figure; 005A7A70): 7 (004F3AD0) fills a flat part's colours and speculars, 8
+    // (004F3870) lights it (both AL: false when there is no such part), 9-12 (004F3C60, 004F3FA0,
+    // 004F42D0, 004F4150) draw it (with the mesh's per-vertex offsets: 9 / 11; with two textures'
+    // surfaces: 11 / 12). The draws return 2 when nothing was drawn. `u`, `v` are the mesh's
+    // +0xCC / +0xD0.
+    virtual bool FlatColours(const stlp::string* name, std::uint32_t colour, std::uint32_t specular,
                              lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars);
-    virtual void LightPart(const stlp::string* name, const FigureLights* lights, FigureMaterial* material, int alpha,
+    virtual bool LightPart(const stlp::string* name, const FigureLights* lights, FigureMaterial* material, int alpha,
                            lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars);
     virtual int DrawPartMoved(const stlp::string* name, int flags, lib::AlignedArray<std::uint32_t>* colours,
                               lib::AlignedArray<std::uint32_t>* speculars, lib::AlignedArray<Vector3>* offsets,
@@ -213,9 +218,10 @@ public:
     virtual int DrawPartTextured(const stlp::string* name, int flags, CDXSurface* first, CDXSurface* second,
                                  lib::AlignedArray<std::uint32_t>* colours, lib::AlignedArray<std::uint32_t>* speculars,
                                  std::uint32_t u, std::uint32_t v);
-    // 13 / 14: the shadow of part `name` (0051CE60): its points projected with `matrix` (the
-    // part's per-vertex offsets added) into `points`, growing `bounds`; then its projected points
-    // `pixels` rasterised into the shadow target. Both return the point count.
+    // 13 / 14 (004F4680, 004F4850): the shadow of part `name` (0051CE60): its points projected with
+    // `matrix` (the part's per-vertex offsets added) into `points`, growing `bounds`; then its
+    // projected points `pixels` rasterised into the shadow target. Both return the point count (0
+    // when there is no such part).
     virtual int ProjectPart(const stlp::string* name, lib::AlignedArray<Vector3>* offsets, const float* matrix,
                             float* points, float* bounds);
     virtual int RasterisePart(const stlp::string* name, int* pixels, void* target);
