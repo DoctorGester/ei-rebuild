@@ -56,6 +56,8 @@ Not started; both wait for the port. Counts are on the dashboard ("Standalone re
 
 ## Cleanup (docs/cleanup-plan.md)
 
+Next after the port is finished and before the standalone tickets (user, 2026-10-14). Judge each ticket: the simple mechanical ones go to Sonnet workers (`model: "sonnet"`), as many as possible; type recovery and tricky debugging stay on Opus.
+
 - C2 Phase 1 for the engine base and core networking (0x00400000-0x00440000): one declaration per class, members instead of At<>/offsets, virtual calls instead of VCall, named globals, duplicates merged; behaviour unchanged. Split per class family (C2d camera merged 2026-10-05); state and leftovers in cleanup-engine-base.md / cleanup-network.md.
 - C3: the forwarders whose declarations differ between files (docs/originals-report.md "differ" group; 261 left after C3l, 209 of them already rewritten): decide per address which declaration is right (RET n, callers, Ghidra) and keep one in originals_<area>.h; next the ui_* sites, then calling the rewritten ones directly. Batches of 50.
 - C5 C4 leftovers: UnitStream, SaveStream, FileStream, the unit_ai stream, verify_magic_trap's wrapper, the other per-file Text(0x...) helpers (docs/notes/cleanup-engine-base.md).
