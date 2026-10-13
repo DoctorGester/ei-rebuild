@@ -140,6 +140,13 @@ struct CItemLink {
 };
 static_assert(sizeof(CItemLink) == 0xC);
 
+// What an item's slot 21 fills in (three dwords; no caller is rewritten yet).
+struct ItemUse {
+    std::uint32_t kind;
+    std::uint32_t value;
+    std::uint32_t extra;
+};
+
 // vtable 00743DFC, GetClassId 0x11.
 class CItemWeapon : public CItem {
 public:
@@ -261,6 +268,9 @@ public:
     // 006A4570 / 006A4590 (slots 9 / 10; item_save.cpp). CItem's, then +0x4C.
     void LoadItem(CStream* stream);
     void SaveItem(CStream* stream);
+    // 006A43C0 (RET 4; slot 21; item_slots.cpp, A-H25). Fills `out` with (8, +0x4C, 0) and
+    // returns it; the other classes share 004623C0, which writes three zeros.
+    ItemUse* GetUse(ItemUse* out);
 
     std::uint32_t unknown_4C;
 };
@@ -270,6 +280,8 @@ class CItemSpell : public CItem {
 public:
     // 006A5820. Slot 19: "spell<+0x60 of the carried spell's prototype>" (no null checks).
     mfc::CString FigureName();
+    // 006A58E0 (A-H25). Slot 20: "initqi1item".
+    mfc::CString PictureName();
     // 006A57F0 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C.
     BOOL CopyTo(CItem* target, CSpellManager* spells);
     // 006A56E0 (item_lifetime.cpp). CItem's and the vtable (+0x4C is left as it is).
@@ -335,6 +347,12 @@ bool __fastcall WeaponBaseFigure(std::uint32_t index, mfc::CString* out);
 // first; left empty when either is out of range). The type code is copied into the stack slot of
 // `materialIndex`, so for a type without a code the index's own bytes are the code.
 void __fastcall ArmorModelName(mfc::CString* out, std::uint32_t armorIndex, std::uint32_t materialIndex);
+// 006A0AA0 (RET 4; A-H25). The same for weapon prototype `weaponIndex` ("sw", "ax", ...).
+void __fastcall WeaponModelName(mfc::CString* out, std::uint32_t weaponIndex, std::uint32_t materialIndex);
+// 006A0BF0 (RET 4; A-H25). The same from the records themselves (no null checks, `out` not
+// emptied first); for a type without a code the code is the bytes of `out`'s address.
+void __fastcall WeaponRecordModelName(mfc::CString* out, const itemdb::WeaponRecord* weapon,
+                                      const itemdb::MaterialRecordHead* material);
 
 // 006A3200. Armor prototype field +0xB8 by prototype index; 0 if out of range.
 int __fastcall ArmorFieldB8(std::uint32_t index);
@@ -361,6 +379,8 @@ public:
 
     // 006A5B20. The destructor body (vtable 00744020): Detach's work, then the base destructor.
     void DestructBody();
+    // 006A5B00 (slot 0; A-H25). DestructBody, then operator delete when bit 0 of `flags` is set.
+    CItemConstructor* DeletingDestruct(unsigned flags);
 
     // 006A5C00. Counts a reference to `manager` (+4), dropping the previous one's (no release).
     void SetManager(CEngineObject* manager);
@@ -450,6 +470,13 @@ struct CItemManager : CResourceManager {
     void ListArmorNames(mfc::CStringArray* names);
     void ListQuickItemNames(mfc::CStringArray* names);
 };
+// 006AC780 (slot 2; item_lifetime.cpp, A-H25). CBaseManager::Create's result as 0 / 1 (the
+// original also copies the text folder's name into a temporary it does not use).
+BOOL __fastcall ItemManagerCreate(CItemManager* self);
+// 006AC810 (slot 14, RET 4; item_lifetime.cpp, A-H25). The item factory: a new constructed item
+// for kind 0x3004 weapon, 0x3005 armour, 0x3006 quick, 0x3007 loot, 0x3008 scroll, 0x3009 quest,
+// its type_ set to the kind; null for another kind or without memory.
+CEngineObject* __fastcall ItemNewObject(CBaseManager* manager, void*, int kind);
 
 // --- Weapon model parts (item_parts.cpp)------------------------------------------------------
 

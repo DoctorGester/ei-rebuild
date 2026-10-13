@@ -480,8 +480,17 @@ The spell manager's folder slot 00688940 (A-H24's last item) was complete. Wrapp
 | 00691CF0, 00691D40, 00691D00, 00693F10 | CTextureManager::GetFileData, NewTextureOfType, FindOrCreate (named, not loaded; no null check), FindOrLoad | O |
 | 00675FB0 / 0067B390, 00676910 / 0067B430, 0067B050, 0067AA00, 00676900, 006773A0 | the effect base's out-of-line destructor, slot 0, constructor, missile Reset, default Tick, ReadSavedStrings (docs/notes/effects.md) | O; TickDefault P; constructor and ReadSavedStrings S |
 | 00693F60, 00694020 | CTextureManager::ReloadAll (after a lost device: no scenario), TrimCache (cached bytes against videoMemoryTenth_, signed; every 32 client ticks) | O |
+| 006A9370, 006A9770, 006AAE40, 006A9DA0 | ArmorRecord / QuickItemRecord / QuestItemRecord / LootItemRecord assignment (item_db_records.cpp) | O |
+| 006A63B0, 006A9E40 | ItemRecordHead::ConstructBase (vtable 00744060), MaterialRecordHead::CopyConstruct | S on scratch records |
+| 006A5950, 006A5990, 006A59D0, 006A5A10 | RecordTableAt<Stride> (armour 0x88, quick 0x80, 0x7C, 0x78): the record at an index | P |
+| 006A0AA0, 006A0BF0 | WeaponModelName (weapon index, material index), WeaponRecordModelName (records); the second compared only for weapon types 0..6 (beyond them the original reads past its code table) | P, texts |
+| 006A58E0, 006A43C0 | CItemSpell::PictureName ("initqi1item"), CItemQuest::GetUse (slot 21: kind 8, the value at +0x4C, 0) | P |
+| 006A5B00, 006AC780, 006AC810 | CItemConstructor::DeletingDestruct, the item manager's Create (slot 2) and NewObject (slot 14: kinds 0x3004..0x3009 to weapon / armour / quick / loot / scroll / quest items) | O: type and class id of the new object |
+| 0065EAD0, 0065EC30, 0065EC70, 0065ECB0 | CDirectInputMouse::Setup / Shutdown / SetActive / Poll (input_mouse.cpp; the game's own GUID copies and c_dfDIMouse at 00745D00; a failed step returns FatalDirectX's answer as 0 / 1) | O; SetActive S (acquire twice is harmless) |
 
-Library (config/library.csv): the by-name lookups 006AD580 / 0069D290 / 0069D380 (hash_map operator[](const char*), as 00613820),
+Library (config/library.csv): 006A5910, 006AF790, 006B0710, 006B0780, 006B09B0, 0069D0E0, 0069E350..0069E3D0 (STLport vector / uninitialised-copy
+helpers of the record tables and the stock) and the records' scalar deleting destructors 0069E540, 006A9EF0..006A9F90;
+the by-name lookups 006AD580 / 0069D290 / 0069D380 (hash_map operator[](const char*), as 00613820),
 the code string's sort and reserve 0068C680..0068CE00, the trader stock's vector / list / pair helpers 0069BD60..0069E4E0,
 unwind-only vector destructors 0064AA40 / 0065A860 / 00663410 / 00675560, 00663660, 006726E0.
 

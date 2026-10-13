@@ -143,10 +143,15 @@ void __fastcall TrimCacheVerify(CTextureManager* self) {
 
 } // namespace
 
-EI_VERIFY(0x00693820, NoFormatCheck::Verify, 5, NoFormatCheck::original);
-EI_VERIFY(0x00693850, Format5551Check::Verify, 5, Format5551Check::original);
-EI_VERIFY(0x006938B0, Format4444Check::Verify, 5, Format4444Check::original);
-EI_VERIFY(0x00693910, Format8888Check::Verify, 5, Format8888Check::original);
+// Plain names for the wrappers, so tools/check_stolen.py reads the registrations.
+static constexpr auto& NoFormatVerify = NoFormatCheck::Verify;
+static constexpr auto& Format5551Verify = Format5551Check::Verify;
+static constexpr auto& Format4444Verify = Format4444Check::Verify;
+static constexpr auto& Format8888Verify = Format8888Check::Verify;
+EI_VERIFY(0x00693820, NoFormatVerify, 5, NoFormatCheck::original);
+EI_VERIFY(0x00693850, Format5551Verify, 5, Format5551Check::original);
+EI_VERIFY(0x006938B0, Format4444Verify, 5, Format4444Check::original);
+EI_VERIFY(0x00693910, Format8888Verify, 5, Format8888Check::original);
 EI_VERIFY(0x00690FA0, FreeBlockVerify, 0, s_unused);
 EI_VERIFY(0x00691A00, CreateVerify, 0, s_unused);
 EI_VERIFY(0x00691A70, DestroyVerify, 0, s_unused);

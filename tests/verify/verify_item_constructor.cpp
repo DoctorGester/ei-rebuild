@@ -324,3 +324,21 @@ static bool __fastcall MagicCapacityVerify(CItemConstructor* self, void*, float*
     return expected;
 }
 EI_VERIFY(0x006A6480, MagicCapacityVerify, 6, s_magicCapacity);
+
+// A-H25. 006A5B00, the item constructor's slot 0 (a party's or the world's end): ours only, without
+// the free (the wrapper frees): CEngineObject's vtable, no owner, nothing held.
+#include "../../src/lib/crt.h"
+namespace {
+void* s_unusedDelete;
+CItemConstructor* __fastcall ConstructorDeleteVerify(CItemConstructor* self, void*, unsigned flags) {
+    CItemConstructor* result = self->DeletingDestruct(flags & ~1u);
+    std::uintptr_t vtable;
+    std::memcpy(&vtable, self, sizeof(vtable));
+    const bool ok = result == self && vtable == CEngineObject::kVtableAddress && self->owner_ == nullptr &&
+                    self->item_ == nullptr && self->spell_ == nullptr;
+    ei::verify::Check("CItemConstructor::DeletingDestruct", true, ok, "constructor %p", static_cast<void*>(self));
+    if (flags & 1) gamecrt::operator_delete(self);
+    return result;
+}
+} // namespace
+EI_VERIFY(0x006A5B00, ConstructorDeleteVerify, 0, s_unusedDelete);

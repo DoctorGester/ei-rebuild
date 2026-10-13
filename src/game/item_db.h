@@ -137,6 +137,11 @@ struct ItemRecordHead {
     // What the kinds' copy constructors do first: empty strings and string arrays, +0x68 = 1,
     // the kind's vtable.
     void ConstructHead(std::uintptr_t vtableAddress);
+    // 006A63B0 (A-H25). The base record's constructor out of line (the vectors' resize and insert
+    // build their default record with it): ConstructHead with the base vtable 00744060; returns
+    // this.
+    ItemRecordHead* ConstructBase();
+    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x00744060);
 
     void* vtable;                       // +0x00
     mfc::CString text04;                // +0x04
@@ -221,6 +226,9 @@ struct ArmorRecord : ItemRecordHead {
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744064);
     // +0x6C..+0xB4 (+0xB4..+0xC7 are not copied).
     void CopyOwn(const ArmorRecord* source);
+    // 006A9370 (RET 4; A-H25): operator= (the vector's inserts): the head's copy, then CopyOwn's
+    // bytes. Returns this. The other kinds': 006A9770, 006AAE40, 006A9DA0.
+    ArmorRecord* AssignArmor(const ArmorRecord* source);
     // 0069F8C0 (RET 4). The head, then the two 9-dword rows +0x6C / +0x90 and +0xB4..+0xC6.
     void Serialize(ChunkArchive* ar);
 
@@ -243,6 +251,7 @@ struct QuickItemRecord : ItemRecordHead {
     // +0x70 and +0x80..+0x8A; the category (+0x6C), +0x74..+0x7B and the string +0x7C are not
     // copied (the string is constructed empty).
     void CopyOwn(const QuickItemRecord* source);
+    QuickItemRecord* AssignQuick(const QuickItemRecord* source);   // 006A9770
     // 0069F940 (RET 4). The head, then +0x6C..+0x7B, the string +0x7C and +0x80..+0x8A.
     void Serialize(ChunkArchive* ar);
 
@@ -262,6 +271,7 @@ struct QuestItemRecord : ItemRecordHead {
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744058);
     // +0x6C only: the zone list is constructed empty, not copied.
     void CopyOwn(const QuestItemRecord* source);
+    QuestItemRecord* AssignQuest(const QuestItemRecord* source);   // 006AAE40 (the zone list is kept)
     // 0069F9C0 (RET 4). The head, the category, then the zone list as chunk 0x16 (InlineStrings).
     void Serialize(ChunkArchive* ar);
 
@@ -276,6 +286,7 @@ struct LootItemRecord : ItemRecordHead {
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00744054);
     // +0x6C..+0x77.
     void CopyOwn(const LootItemRecord* source);
+    LootItemRecord* AssignLoot(const LootItemRecord* source);      // 006A9DA0
     // 0069FA90 (RET 4). The head, then +0x6C, +0x70, +0x74.
     void Serialize(ChunkArchive* ar);
 
@@ -311,11 +322,20 @@ struct MaterialRecordHead {
 
     // 0069F620 (RET 4; item_db_serialize.cpp, A-H23). The three strings, then +0x0C..+0x4C.
     void Serialize(ChunkArchive* ar);
+    // 006A9E40 (RET 4; item_db_records.cpp, A-H25). The copy constructor (the material vector's
+    // resize and growth): the three strings copy-constructed, +0x0C..+0x4F copied. Returns this.
+    MaterialRecordHead* CopyConstruct(const MaterialRecordHead* source);
 };
 static_assert(sizeof(MaterialRecordHead) == kMaterialSize);
 static_assert(offsetof(MaterialRecordHead, quality) == 0x10);
 static_assert(offsetof(MaterialRecordHead, magicLevel) == 0x1C);
 static_assert(offsetof(MaterialRecordHead, unknown_2C) == 0x2C);
+
+// 006A5950 / 006A5990 / 006A59D0 / 006A5A10 (RET 4; item_db_records.cpp, A-H25): RecordTable::At
+// out of line for the armour, quick item, 0x7C and 0x78 tables (only the quick item's figure name
+// 006A3CD0 called them).
+template <int Stride>
+char* __fastcall RecordTableAt(const RecordTable* table, void*, std::uint32_t index);
 
 inline const RecordTable& Materials() { return *reinterpret_cast<const RecordTable*>(0x007C86D8); }
 inline const RecordTable& Weapons() { return *reinterpret_cast<const RecordTable*>(0x007C86F8); }

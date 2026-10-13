@@ -4336,3 +4336,21 @@ address,name,library,signature,notes
 00663660,stlp::_Vector_base<T>::~_Vector_base (0x74-byte elements),STLport,,A-H25: storage back to the node pool or operator delete
 006726E0,"stlp::hashtable<pair<const string,T>,...>::erase(iterator)",STLport,,"A-H25: the mapped resource's file table (CMappedResource::CloseFile 00671FC0); unlink, destroy 006727B0, node to the free list 0079B22C"
 00675560,stlp::vector<T>::~vector (16-byte elements: a string and a counted value),STLport,,A-H25: reached only from the unwind funclet 00731538; not game logic
+006A5910,stlp::vector<stlp::string>::push_back,STLport,,"A-H25: copy construction 004F5DF0 in place, else _M_insert_overflow 004DCE90 (the weapon part names 006A2400..006A2700)"
+006AF790,stlp::vector<CString>::push_back,STLport,,"A-H25: _Construct 0055C270 in place, else _M_insert_overflow 0051F790 (the quest database load 006AE8E0)"
+006B0710,stlp::vector<T>::push_back (0x38-byte records),STLport,,"A-H25: _Construct 006B1770 in place, else _M_insert_overflow 006B0EF0 (the quest database load)"
+006B0780,stlp::vector<T>::push_back (0x6C-byte records),STLport,,"A-H25: _Construct 006B1910 in place, else _M_insert_overflow 006B1480 (the quest database load)"
+006B09B0,"stlp::pair<const string, T>::pair(const string&, const T&)",STLport,,"A-H25: string copy from the node pool (length_error path), the dword value; the quest database's name index (006AE3A0)"
+0069D0E0,"stlp::hashtable<pair<const string,T>,...>::_M_skip_to_next",STLport,,"A-H25: __stl_hash_string of the node's key, then the next non-empty bucket; the trader stock's recipe map walk (0069A780)"
+0069E350,"stlp::find<T**, T*>",STLport,,"A-H25: linear find over a pointer vector (the trader stock's sell lists, 0069B5B0); five identical instantiations 0069E350..0069E3D0"
+0069E370,"stlp::find<T**, T*>",STLport,,A-H25: as 0069E350
+0069E390,"stlp::find<T**, T*>",STLport,,A-H25: as 0069E350
+0069E3B0,"stlp::find<T**, T*>",STLport,,A-H25: as 0069E350
+0069E3D0,"stlp::find<T**, T*>",STLport,,A-H25: as 0069E350
+0069E540,scalar deleting destructor (counted pointer),compiler,,"A-H25: releases the held object through its slot 4 when set, then operator delete on flag bit 0; the trader stock's temporaries (0069AC20, 0069B29A)"
+006A9EF0,scalar deleting destructor (0x50-byte material record),compiler,,"A-H25: the compiler-generated destructor 006A88F0, then operator delete on flag bit 0; the vectors' resize and the database's destructor"
+006A9F10,scalar deleting destructor (0xB4-byte weapon record),compiler,,A-H25: as 006A9EF0 with 006A8950
+006A9F30,scalar deleting destructor (0xC8-byte armour record),compiler,,A-H25: as 006A9EF0 with 006A89D0
+006A9F50,scalar deleting destructor (0x8C-byte quick item record),compiler,,A-H25: as 006A9EF0 with 006A8A50
+006A9F70,scalar deleting destructor (0x7C-byte record),compiler,,A-H25: as 006A9EF0 with 006A8AE0
+006A9F90,scalar deleting destructor (0x78-byte record),compiler,,A-H25: as 006A9EF0 with 006A8BD0

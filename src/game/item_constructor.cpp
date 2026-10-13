@@ -231,6 +231,13 @@ void CItemConstructor::DestructBody() {
 }
 EI_REPLACE_METHOD(0x006A5B20, CItemConstructor::DestructBody);
 
+CItemConstructor* CItemConstructor::DeletingDestruct(unsigned flags) {
+    DestructBody();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x006A5B00, CItemConstructor::DeletingDestruct);
+
 void CItemConstructor::SetManager(CEngineObject* manager) {
     if (manager_) --manager_->refCount_;
     manager_ = manager;
