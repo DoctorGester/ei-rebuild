@@ -629,6 +629,11 @@ void CFigureMesh::MirrorX() {
 }
 EI_REPLACE_METHOD(0x005A4B30, CFigureMesh::MirrorX);
 
+void CFigureMesh::FitVertexBounds() {
+    if (vertices_.size != 0) FitBounds(&bounds_, vertices_.data, vertices_.size);
+}
+EI_REPLACE_METHOD(0x005A37C0, CFigureMesh::FitVertexBounds);
+
 void CFigureMesh::MirrorY() {
     NegateBlock(vertices_, 1);
     NegateBlock(normals_, 1);

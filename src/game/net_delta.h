@@ -100,6 +100,9 @@ struct DeltaField {
     std::uint32_t ReadRaw(void* data, std::uint32_t size);
     // 0047E310. Reads a CString from the reader; returns `cstring`.
     void* ReadString(void* cstring);
+    // 0047E340 (RET 8; A-E1). Reads a string (ReadString) into `text`, a buffer of `size` bytes: a
+    // string of size - 1 characters or more leaves `text` empty instead.
+    void ReadText(char* text, int size);
     // 0047E190 (RET 4). BitStream::WriteStream of `from` into both outputs (inlined twice; the
     // pending bits stored before each).
     void WriteStreamBoth(BitStream* from);
@@ -157,6 +160,11 @@ struct DeltaState {
     void SetWriteMode(int deltaOnly);
     // 0047FD80. Reading: takes the field mask from `reader`; returns `second`.
     int BeginRead(int second, BitStream* reader);
+    // 0047FE90 (A-E1). Ends a write or a read. After a delta write the written fields join
+    // sentMask_ and become lastMask_, and each header is rebuilt: its mask (sentMask_ for channel
+    // 0, lastMask_ for channel 1), then the channel's output of every field in the mask. After a
+    // full write the headers and the masks are emptied. The state goes idle without a reader.
+    void Finish();
 };
 static_assert(offsetof(DeltaState, mask_) == 0x18);
 static_assert(offsetof(DeltaState, header_) == 0x24);

@@ -46,6 +46,19 @@ void* MemberAddress(T member) {
 // Installs every registered hook; returns the number installed. Implemented in hook.cpp.
 int InstallHooks();
 
+// A check that runs once, right after the hooks are installed (the entry of WinMain). For code that
+// only runs before that, the game's static initialisers: what they built is still there, and the
+// check compares it with what the port builds. Verification build only (tests/verify).
+struct StartupCheck {
+    void (*run)();
+    const char* name;
+    StartupCheck* next;
+};
+struct StartupCheckRegistrar {
+    StartupCheck entry;
+    StartupCheckRegistrar(void (*run)(), const char* name);
+};
+
 // Arranges for InstallHooks() to run when game.exe's WinMain is entered (after other mods patch).
 void InstallHooksAtWinMain();
 
@@ -67,6 +80,9 @@ void InstallHooksAtWinMain();
 // Verification build only (tests/verify_*.cpp): route `addr` to `wrapper`, and store a callable
 // pointer to the original code in `orig`.
 #define EI_VERIFY(addr, wrapper, stolen, orig)     static ::ei::HookRegistrar EI_CAT(ei_verify_, __LINE__)(         addr, reinterpret_cast<void*>(&wrapper), #wrapper, stolen, reinterpret_cast<void**>(&orig))
+
+// Verification build only: run `fn` (void()) once when the hooks have been installed.
+#define EI_STARTUP_CHECK(fn) static ::ei::StartupCheckRegistrar EI_CAT(ei_startup_, __LINE__)(&fn, #fn)
 
 #define EI_CAT_(a, b) a##b
 #define EI_CAT(a, b) EI_CAT_(a, b)

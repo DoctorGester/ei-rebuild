@@ -9,6 +9,7 @@
 #include "net_link.h"
 #include "player_client.h"
 #include "terrain.h"
+#include "sound.h"
 #include "spell.h"
 #include "effects.h"
 #include "game_strings.h"
@@ -320,13 +321,15 @@ std::uint32_t CWorldClient::EnvironmentFlags(CEngineObject* unit) {
     case 2: flags = 2; break;
     case 3: flags = 1; break;
     }
+    static_assert(sizeof(rainSnow_) == sizeof(CRainSnow) && offsetof(CWorldClient, rainSnow_) + offsetof(CRainSnow, mode) == 0x7A8);
     if (GameMbscmp(zoneName_, "gipat") == 0) flags |= 0x10;
     else if (GameMbscmp(zoneName_, "ingos") == 0) flags |= 0x20;
     else if (GameMbscmp(zoneName_, "suslanger") == 0) flags |= 0x40;
     flags |= IsNight() ? 0x100 : 0x80;
     flags |= cave_ == 1 ? 0x400 : 0x200;
-    if (unknown7A8_ == 1) return flags | 0x800;
-    if (unknown7A8_ == 2) return flags | 0x1000;
+    const int weather = RainSnow()->mode;
+    if (weather == 1) return flags | 0x800;
+    if (weather == 2) return flags | 0x1000;
     return flags | 0x2000;
 }
 
@@ -399,10 +402,10 @@ int CWorldClient::Segment() {
         SoundSetVolumeB(sounds_, nullptr, worlddata::VolumeSettingB());
         SoundSetVolumeC(sounds_, nullptr, worlddata::MovieVolumeSetting());
     } else if (frames == 90 || (frames < 90 && worlddata::FightState() == 2)) {
-        owned1A8_->unknown44_ = 0;
+        music_->holding = 0;
     }
     if (terrain_) terrain_->RunTick();
-    if (owned1A8_) owned1A8_->RunTick();
+    if (music_) music_->RunTick();
     if (sounds_) SoundTick(sounds_);
     if (!paused_) {
         if (arrayManager_) arrayManager_->RunTick();

@@ -217,7 +217,7 @@ public:
     // items changed); returns 1.
     virtual int RefreshEquipment();
     virtual void RefreshModel();            // 30: after a weapon change
-    virtual void RefreshWounds();           // 31: client 00537360, base 0 (00533C50)
+    virtual int RefreshWounds();            // 31: client 00537360 (1), base 0 (00533C50); CUnit's slot 58 (00446810) tail-jumps here
     virtual void SetArmourModels(const std::uint32_t* ids, std::uint32_t count);   // 32: client 00538140 (RET 8; count capped at 7), base empty (00533C60)
     virtual void SetWeaponModels(const std::uint32_t* ids, std::uint32_t count);   // 33: client 00538860 (RET 8; count capped at 4)
     virtual bool WeaponAdded(std::uint32_t itemId);     // 34: client 005388C0 (AddWeaponModel)
@@ -252,6 +252,9 @@ public:
     // base empty (00533D60).
     virtual void Say(const SpeechRecord* speech, int kind);
     virtual void StopSpeech();              // 52: client 00538040, base empty (00533D70)
+    // 53 (0xD4): server 00552F30 (CUnitServer::UpdateMoveFactorsSlot53, combat.h), base empty
+    // (00533D80). CUnit's slot 57 (00446870) tail-jumps here, so EAX passes on as it is.
+    virtual std::uintptr_t MoveFactorsChanged();
 
     CUnit* unit_;   // +0x1C the unit it controls (CUnit::AttachCompanion sets and clears it)
 };

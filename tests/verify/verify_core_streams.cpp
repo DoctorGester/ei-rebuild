@@ -74,6 +74,11 @@ void __fastcall RefDestruct6Verify(void* self) {
 void __fastcall RefDestruct7Verify(void* self) {
     CheckVoid("RefObjectDestructBase@0058FBE0", s_refDestruct7, RefObjectDestructBase, self);
 }
+// A-W14: the unit shape's base destructor (MOV [ECX],imm32: 6 bytes).
+VoidFn s_refDestruct8;
+void __fastcall RefDestruct8Verify(void* self) {
+    CheckVoid("RefObjectDestructBase@005B3590", s_refDestruct8, RefObjectDestructBase, self);
+}
 void __fastcall StreamDestructVerify(CStream* self) {
     CheckVoid("CStream::DestructBase", s_streamDestruct, [](void* p) { static_cast<CStream*>(p)->DestructBase(); }, self);
 }
@@ -216,6 +221,16 @@ void** __fastcall AlignedAlloc66Verify(int count) {
     return result;
 }
 
+// 005A6F80 (the same instructions; A-W14): ours only. The old figure format's loader (005A3800).
+void** __fastcall AlignedAlloc5AVerify(int count) {
+    void** result = AlignedPointerArrayAlloc(count);
+    auto aligned = reinterpret_cast<std::uintptr_t>(result);
+    auto block = reinterpret_cast<std::uintptr_t>(reinterpret_cast<void**>(result)[-1]);
+    bool ok = (aligned & 0x1F) == 0 && aligned - block >= 4 && aligned - block <= 0x23;
+    ei::verify::Check("AlignedPointerArrayAlloc@005A6F80", true, ok, "count %d", count);
+    return result;
+}
+
 void __fastcall AlignedClearVerify(lib::AlignedArray<CEngineObject*>* self) {
     AlignedObjectsClear(self);
     ei::verify::Check("AlignedObjectsClear", true, !self->data && !self->size && !self->capacity, "");
@@ -245,6 +260,8 @@ EI_VERIFY(0x00412960, RefDestruct3Verify, 6, s_refDestruct3);
 EI_VERIFY(0x004368C0, RefDestruct4Verify, 6, s_refDestruct4);
 EI_VERIFY(0x00562770, RefDestruct6Verify, 6, s_refDestruct6);   // A-W12 copies
 EI_VERIFY(0x0058FBE0, RefDestruct7Verify, 6, s_refDestruct7);
+EI_VERIFY(0x005B3590, RefDestruct8Verify, 6, s_refDestruct8);   // A-W14 copy
+EI_VERIFY(0x005A6F80, AlignedAlloc5AVerify, 0, s_unused);
 EI_VERIFY(0x00412730, RefDeleteVerify, 5, s_refDelete);
 EI_VERIFY(0x00419720, RefValueCtorVerify, 8, s_refValueCtor);
 EI_VERIFY(0x00412700, RefValueDeleteVerify, 0, s_unused);

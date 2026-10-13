@@ -1,5 +1,6 @@
 #include "ai_map.h"
 
+#include "map_object.h"
 #include "sector_map.h"
 
 #include "ei/hook.h"
@@ -153,7 +154,7 @@ bool CAIMap::CanLeaveCell(CUnit* unit) {
     if (x < 0 || y < 0 || x >= width || y >= height) return false;
     int sizeClass = unit->sizeClass;
     const ClimbTable& table = sizeClass == 0 ? climbSmall : climbLarge;
-    const int* climbCost = table.costs + table.count / 2;
+    const int* climbCost = table.data + table.size / 2;
     int here = cells[y][x].groundLevel;
     for (const auto& o : kOffsets) {
         int nx = o[0] + x, ny = y + o[1];
@@ -283,10 +284,18 @@ EI_REPLACE_METHOD(0x005BBE40, CAIMap::MaterialAt);
 
 void* CAIMap::MaterialRecordAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
-    if (x < 0 || y < 0 || x >= width || y >= height) return materials;
-    return materials + (occluders[y][x] & 0x1F);
+    if (x < 0 || y < 0 || x >= width || y >= height) return materials.data;
+    return materials.data + (occluders[y][x] & 0x1F);
 }
 EI_REPLACE_METHOD(0x005BC1F0, CAIMap::MaterialRecordAt);
+
+void CAIMap::TurnObject(CEngineObject* object, const Quaternion* rotation) {
+    CSectorMap* map = SectorMap();
+    map->Remove(object);
+    static_cast<CMapObject*>(object)->orientation = *rotation;
+    map->Add(object);
+}
+EI_REPLACE_METHOD(0x005BC180, CAIMap::TurnObject);
 
 bool CAIMap::BridgeDeckAt(int x, int y, int* deckHeight) {
     int deck = 0;

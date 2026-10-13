@@ -46,3 +46,18 @@ static void __fastcall UnitTextureRecordsVerify(char body, const void* record, v
     scratch.FreeStorage();
 }
 EI_VERIFY(0x005683D0, UnitTextureRecordsVerify, 10, s_textureRecords);
+
+// 005685C0 (A-W14) the texture record's constructor: MOV EAX,ECX; OR ECX,-1 (5 bytes). Differential:
+// the original on a scratch record, ours on the caller's. Its only caller, 005683D0, is rewritten and
+// builds the record itself, so no scenario reaches it.
+void* __fastcall TextureRecordConstruct(void* self);
+static void*(__fastcall* s_recordConstruct)(void*);
+static void* __fastcall TextureRecordConstructVerify(void* self) {
+    TextureRecord12 scratch = {1, 2, 3};
+    void* expected = s_recordConstruct(&scratch);
+    void* result = TextureRecordConstruct(self);
+    ei::verify::Check("TextureRecordConstruct", true,
+                      expected == &scratch && result == self && std::memcmp(&scratch, self, 12) == 0, "%p", self);
+    return result;
+}
+EI_VERIFY(0x005685C0, TextureRecordConstructVerify, 5, s_recordConstruct);

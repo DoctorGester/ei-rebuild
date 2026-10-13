@@ -87,6 +87,30 @@ inline const char* CursorFileText() { return reinterpret_cast<const char*>(std::
 // sets its flag 0x200.
 inline int ShadowSetting() { return *reinterpret_cast<const volatile int*>(std::uintptr_t(0x0079BD0C)); }
 
+// ---- The client world's zone load (00567AB0) ----------------------------------------------------
+
+inline const char* DefaultAllodText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0079014C)); }      // "gipat"
+// "Can't load terrain or map file "%s"." and a line end
+inline const char* CantLoadTerrainFormat() { return reinterpret_cast<const char*>(std::uintptr_t(0x00790124)); }
+inline const char* CaveSkyText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0079011C)); }           // "Sky01"
+inline const char* OpenSkyText() { return reinterpret_cast<const char*>(std::uintptr_t(0x00790114)); }           // "Sky00"
+inline const char* LightsPrefixText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0079010C)); }      // "Lights"
+inline const char* CaveText() { return reinterpret_cast<const char*>(std::uintptr_t(0x00790104)); }              // "Cave"
+inline const char* IniSuffixText() { return reinterpret_cast<const char*>(std::uintptr_t(0x007900FC)); }         // ".ini"
+inline const char* FinalZoneText() { return reinterpret_cast<const char*>(std::uintptr_t(0x007900F4)); }         // "gz20g"
+inline const char* FinalMusicText() { return reinterpret_cast<const char*>(std::uintptr_t(0x007900EC)); }        // "final"
+// Options (the object at 0079BC70; options.cpp): Audio, EnableWaterWaves, EnableSelfShadowing,
+// LightingFreq (milliseconds; the zone load turns it into frames at 66 ms each) and
+// DefaultWindForce. AudioStreaming / AudioSFX are MovieVolumeSetting / VolumeSettingA below.
+inline int AudioOption() { return *reinterpret_cast<const volatile int*>(std::uintptr_t(0x0079BCC0)); }
+inline int WaterWavesOption() { return *reinterpret_cast<const volatile int*>(std::uintptr_t(0x0079BD38)); }
+inline int SelfShadowingOption() { return *reinterpret_cast<const volatile int*>(std::uintptr_t(0x0079BD3C)); }
+inline int LightingFrequencyOption() { return *reinterpret_cast<const volatile int*>(std::uintptr_t(0x0079BD44)); }
+inline float DefaultWindForceOption() { return ExeFloat(std::uintptr_t(0x0079BE58)); }
+// 0078FF38: the hour the terrain's sun was last set for (world_client_lights.cpp); -1 makes the
+// next UpdateLighting set it.
+inline float& LastLitHour() { return *reinterpret_cast<float*>(std::uintptr_t(0x0078FF38)); }
+
 // Vtables Setup stores while it inlines the constructors.
 constexpr std::uintptr_t kClientTextsVtable = std::uintptr_t(0x0073F6F0);
 constexpr std::uintptr_t kTerrainVtable = std::uintptr_t(0x0073F6A8);

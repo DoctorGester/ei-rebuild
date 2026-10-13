@@ -360,3 +360,14 @@ fixed fraction per call); the main loop then runs no world, client or camera upd
 M2 [--mask-background]] [--exclude E1 E2 ...] [--exclude-grow N] [--diff OUT]`: per-pixel tolerance (default 8),
 differing fraction (default limit 0.1%), worst regions. Limits: what moves by itself between frames without the game's
 clocks (other threads) is not held; the harness's own waits use real time.
+
+### A-E1: line lists (line_batch.cpp)
+
+`LineBatch` (renderer_lines.h, 0x20 bytes): points four to a packet (x[4], y[4], z[4], w[4]) in an aligned
+array, a count and a colour. `AddPoint` (0049B140) appends a point with w 1 and repeats it through the rest of
+its packet, growing the array by one packet when full. `Draw` (0049B780) resizes the two work arrays in the
+exe's data (the projected points 007A9CB8 without keeping the contents, the outcodes 007A9CC8), projects with
+the top of the pipeline's clip stack through the transform object's `ProjectClipped` and, when that returns 0,
+hands the points to `DeviceDrawLineStrip` (0049B4B0); it never touches the Direct3D device itself. Returns 1.
+Users: the figure parts' debug bounds (005A7290) and the world client's line lists (00569D60); no scenario
+turns either on, so neither wrapper fires (AddPoint side by side on a copy, Draw ours only).

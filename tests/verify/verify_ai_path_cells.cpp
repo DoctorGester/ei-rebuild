@@ -8,6 +8,7 @@
 #include "../../src/game/ai_map.h"
 #include "../../src/lib/mfc.h"
 
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <vector>
@@ -129,3 +130,23 @@ static PathCell* __fastcall StepVerify(const PathCell* self, void*, PathCell* ou
     return result;
 }
 EI_VERIFY(0x005C5CC0, StepVerify, 8, s_step);
+
+// 0054EAC0 AIPath::ConstructSteps (A-W14; MOV EAX,ECX; XOR ECX,ECX; MOV [EAX+0x20],imm32: 11 bytes):
+// the original on a scratch copy of the path's first 0x3C bytes (the order and the step list; it
+// writes only the list), ours on the path; the bytes and the returned pointers compared. No caller
+// is left: the AI's test searches and PlanOrderRoute are rewritten and build the list themselves
+// (ai_scoped_path.h).
+namespace {
+AIPath*(__fastcall* s_constructSteps)(AIPath*);
+AIPath* __fastcall ConstructStepsVerify(AIPath* self) {
+    constexpr std::size_t kOrderSize = offsetof(AIPath, cells);
+    alignas(4) unsigned char scratch[sizeof(AIPath)];
+    std::memcpy(scratch, self, kOrderSize);
+    AIPath* expected = s_constructSteps(reinterpret_cast<AIPath*>(scratch));
+    AIPath* result = self->ConstructSteps();
+    bool ok = expected == reinterpret_cast<AIPath*>(scratch) && result == self && std::memcmp(scratch, self, kOrderSize) == 0;
+    ei::verify::Check("AIPath::ConstructSteps", true, ok, "%p", self);
+    return result;
+}
+} // namespace
+EI_VERIFY(0x0054EAC0, ConstructStepsVerify, 11, s_constructSteps);

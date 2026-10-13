@@ -174,6 +174,9 @@ void CFigureMesh::SetDrawer(FigureMeshDrawer* drawer) {
 }
 EI_REPLACE_METHOD(0x0059F390, CFigureMesh::SetDrawer);
 
+void CFigureMesh::LoadNothing(char**, float, float, float) { flags_ |= 0x20; }
+EI_REPLACE_METHOD(0x005A2480, CFigureMesh::LoadNothing);
+
 void CFigureMesh::SetOwner(CObject3D* owner) { owner_ = owner; }
 EI_REPLACE_METHOD(0x0059F3D0, CFigureMesh::SetOwner);
 

@@ -174,6 +174,13 @@ Every replacement gets a verify wrapper in `tests/verify/`, registered with
   0), then check the resulting state is consistent, ideally using the original's own read-only
   lookups (see `GetFileVerify`).
 
+- **Static initialisers** (code that only runs before the hooks are installed): no wrapper can see
+  them. Write the port so it can build into storage of your own, and register a `void()` check with
+  `EI_STARTUP_CHECK(fn)`: it runs once at the end of `InstallHooks`, when what the original built
+  is still untouched, and compares that with what the port builds (see
+  `verify_ai_static_tables.cpp`). Pure data only; skip a global that something may have used
+  already.
+
 - Never copy a game stream (or any `__declspec(novtable)` class) by value in a wrapper: the copy
   leaves the vtable pointer unwritten. Use `RawCopy` (tests/verify/fake_stream.h) or memcpy. Two
   wrappers broke this way (false mismatches in C4, a crash in X16).

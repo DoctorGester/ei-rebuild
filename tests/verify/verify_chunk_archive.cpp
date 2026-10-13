@@ -250,9 +250,22 @@ ChunkArchive* __fastcall ConstructVerify(ChunkArchive* self) {
     return result;
 }
 
+// 004645A0 (A-E1): ours only (it frees the containers). Afterwards both streams carry the stream
+// base's vtable (0073BDB0), as the original's inlined stream destructors leave them. Reached by
+// every scenario (the database loaders' archives at startup).
+void __fastcall DestructVerify(ChunkArchive* self) {
+    self->Destruct();
+    std::uintptr_t index, data;
+    std::memcpy(&index, &self->indexStream_, 4);
+    std::memcpy(&data, &self->dataStream_, 4);
+    ei::verify::Check("ChunkArchive::Destruct", true, index == 0x0073BDB0 && data == 0x0073BDB0, "%08X %08X",
+                      unsigned(index), unsigned(data));
+}
+
 } // namespace
 
 EI_VERIFY(0x0053A7B0, ConstructVerify, 0, s_unused);
+EI_VERIFY(0x004645A0, DestructVerify, 0, s_unused);
 
 EI_VERIFY(0x004093A0, CStringVerify, 5, s_cstring);
 EI_VERIFY(0x00409470, StringVerify, 5, s_string);

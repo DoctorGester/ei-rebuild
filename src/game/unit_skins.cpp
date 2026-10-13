@@ -18,6 +18,7 @@
 #include "../lib/stlp.h"
 #include "ei/hook.h"
 #include "originals_gameplay.h"
+#include "unit_looks.h"
 #include "originals_library.h"
 
 #include <cstdint>
@@ -53,36 +54,7 @@ const char* ModelPrefix(const UnitModelRecord* model) { return model->unknown_E8
 
 constexpr std::uint32_t kNone = 0xFFFFFFFFu;
 
-using IdList = stlp::vector<std::uint32_t>;
-
-// A dressed unit of the zone (the first list, 0x24 bytes): its prototype, the item ids (armour
-// type << 16 | material; kNone for none: [0] the helmet's row, [1] / [2] the weapons, [3..6] the
-// armour) and the extra weapons, one of which (`extraWeapon`) is shown.
-struct DressedUnitRecord {
-    std::uint16_t prototype;        // +0x00
-    std::uint16_t unknown_02;
-    IdList items;                   // +0x04
-    IdList extraWeapons;            // +0x10 weapon index << 16 | material index
-    std::int8_t extraWeapon;        // +0x1C
-    std::uint8_t unknown_1D[3];
-    int modelNumber;                // +0x20 -1: the textures are named after the prototype
-};
-static_assert(offsetof(DressedUnitRecord, extraWeapons) == 0x10);
-static_assert(sizeof(DressedUnitRecord) == 0x24);
-
-// Another unit of the zone (the second list, 0x3C bytes): its prototype, armour and weapon ids, the
-// figure's morph coefficients and the texture names (none: from the prototype, 00535CB0).
-struct FiguredUnitRecord {
-    std::uint16_t prototype;        // +0x00
-    std::uint16_t unknown_02;
-    IdList armourIds;               // +0x04
-    IdList weaponIds;               // +0x10
-    std::uint8_t unknown_1C[8];
-    float morph[3];                 // +0x24
-    stlp::vector<const char*> names;    // +0x30
-};
-static_assert(offsetof(FiguredUnitRecord, morph) == 0x24);
-static_assert(sizeof(FiguredUnitRecord) == 0x3C);
+using IdList = UnitIdList;
 
 // The byte distance between a vector's ends, as the original tests it (the count's bits, times 4).
 template <typename T>
@@ -349,8 +321,8 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
     const char* prefix = ModelPrefix(model);
     StringAssignSpan(name, nullptr, prefix, prefix + std::strlen(prefix));
     // The figure loader's slot 3 (LoadFigure; not fresh).
-    self->figureLoader_->LoadFigure(reinterpret_cast<const stlp::string*>(name), &first, record->morph[0], record->morph[1],
-                                    record->morph[2], false);
+    self->figureLoader_->LoadFigure(reinterpret_cast<const stlp::string*>(name), &first, record->morphS, record->morphT,
+                                    record->morphU, false);
     StringBufferFree(name);
 
     for (stlp::string* s = second.Start(); s != second.Finish(); ++s) StlStringDestroy(s);
@@ -419,3 +391,11 @@ void __fastcall UnitTextureRecords(char body, const void* recordPointer, void* l
         reinterpret_cast<const itemdb::WeaponRecord*>(itemdb::Weapons().At(weapon >> 16, itemdb::kWeaponSize))->type);
 }
 EI_REPLACE(0x005683D0, UnitTextureRecords);
+
+// 005685C0 (A-W14). The constructor of a texture record: no kind, no id, no type (`empty` above,
+// which the original builds through it). Returns the record.
+void* __fastcall TextureRecordConstruct(void* self) {
+    *static_cast<TextureRecord*>(self) = {0, kNone, kNone};
+    return self;
+}
+EI_REPLACE(0x005685C0, TextureRecordConstruct);

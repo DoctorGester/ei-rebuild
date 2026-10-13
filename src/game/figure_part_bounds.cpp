@@ -34,6 +34,9 @@ static_assert(sizeof(LineBatch) == 0x20);
 static inline char* ManagerContextAt(void* object) { return static_cast<char*>(ManagerContextOf(object)); }
 __declspec(naked) void __fastcall AddPoint(LineBatch*, void*, const float*) EI_ORIGINAL(0x0049B140)
 
+// The points' block goes back to the heap through the pointer kept in front of it.
+void FreeBlock(char* data) { GameDelete(reinterpret_cast<void**>(data)[-1]); }
+
 constexpr std::uint32_t kShowBounds = 0x4000;
 constexpr int kSlotDrawLines = 15;
 
@@ -59,9 +62,24 @@ void __fastcall DrawPartBounds(char* node, void*, void* renderer) {
     for (int index : kOrder) AddPoint(&lines, nullptr, corner[index]);
     using DrawLinesFn = void(__fastcall*)(void*, void*, LineBatch*);
     reinterpret_cast<DrawLinesFn>((*static_cast<void***>(renderer))[kSlotDrawLines])(renderer, nullptr, &lines);
-    if (lines.data) GameDelete(reinterpret_cast<void**>(lines.data)[-1]);
+    if (lines.data) FreeBlock(lines.data);
 }
 
 #pragma float_control(pop)
 
 EI_REPLACE(0x005A7290, DrawPartBounds);
+
+// 005A75D0 (A-W14): the line batch's destructor: unknown_00 -1, the points' block freed, the array
+// empty. Only the unwind funclet 00726C10 of the original DrawPartBounds calls it (the rewritten
+// one frees its batch itself).
+void __fastcall LineBatchDestruct(void* batch) {
+    auto* self = static_cast<LineBatch*>(batch);
+    self->unknown_00 = -1;
+    if (self->data) {
+        FreeBlock(self->data);
+        self->data = nullptr;
+    }
+    self->capacity = 0;
+    self->size = 0;
+}
+EI_REPLACE(0x005A75D0, LineBatchDestruct);

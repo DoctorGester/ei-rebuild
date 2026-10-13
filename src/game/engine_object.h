@@ -30,6 +30,11 @@ public:
     CEngineObject* DeletingDestruct(unsigned flags);
     // 00455940. The owning manager's context_ (the world, for the world's managers).
     void* ManagerContext() const;
+    // 00455950 (app_helpers.cpp). The world the object belongs to: the manager context's slot 13
+    // (the world returns itself, a party null), or null without a context.
+    void* World() const;
+    // 00457720 (app_helpers.cpp). Drops one reference; at zero the object is deleted (slot 0 with 1).
+    void ReleaseAndDelete();
     // 00455970. Sets the owner; returns the previous one.
     CBaseManager* SetOwner(CBaseManager* owner);
     // 00455930. The destructor body: the CEngineObject vtable back, no owner.

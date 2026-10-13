@@ -760,6 +760,12 @@ void CWorldServer::StorePlayerItems(WorldPlayer* player, CParty* party) {
     player->items.RemoveAll();
 }
 
+void CWorldServer::ClearPlayerItems(WorldPlayer* player) {
+    CParty* party = player->Party();
+    while (party->items_.size != 0) party->RemoveItem(static_cast<CItem*>(party->items_.data[0]), 1);
+}
+EI_REPLACE_METHOD(0x00591070, CWorldServer::ClearPlayerItems);
+
 void CWorldServer::TellParties(CEngineObject* unit, std::uint32_t value) {
     PlayerIterator it;
     for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next()) {

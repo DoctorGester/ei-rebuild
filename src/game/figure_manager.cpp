@@ -6,6 +6,7 @@
 #include "game_strings.h"
 #include "map_object_animation.h"
 #include "map_object_figures.h"
+#include "world_data.h"
 
 #include "ei/hook.h"
 #include "lib/mfc.h"
@@ -13,11 +14,19 @@
 
 #include <cstring>
 
+// 005ACE80 (menu_rects.cpp; thiscall on the manager, RET 4): the menus' button rectangles.
+int __fastcall LoadMenuRects(void* owner, void*, std::uint8_t* rects);
+
 namespace {
 
 constexpr int kFigureClass = 0x43;
 constexpr std::uint32_t kLoaded = 0x20;            // CFigureMesh::flags_
 constexpr std::uint32_t kFigMagic = 0x474946;      // "FIG"
+constexpr std::uintptr_t kFiguresArchive = std::uintptr_t(0x0078EC24);   // "figures.res"
+constexpr std::uintptr_t kMenusArchive = std::uintptr_t(0x0078EC18);     // "menus.res"
+constexpr std::uintptr_t kMenuRects = std::uintptr_t(0x007C8048);        // the menus' rectangles (menu_rects.cpp)
+const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
+constexpr int kSharedPartClass = 0x41;             // a part whose buffers point into the file data; 0x42 owns them
 
 // Copies `text` with its terminator to `end`; returns the new end (at the terminator).
 char* Append(char* end, const char* text) {
@@ -27,6 +36,31 @@ char* Append(char* end, const char* text) {
 }
 
 } // namespace
+
+void FigureModel::Open(const void* mod, const void* bon, const void* anm) {
+    if (mod) mesh->OpenFromMemory(mod);
+    if (bon) bones->OpenFromMemory(bon);
+    if (anm) animations->OpenFromMemory(anm);
+}
+
+int CFigureManager::CreateWithArchives() {
+    if (!CBaseManager::Create()) return 0;
+    mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextPathString()));
+    AddArchive(folder + Text(kFiguresArchive));
+    AddArchive(folder + Text(kMenusArchive));
+    LoadMenuRects(this, nullptr, reinterpret_cast<std::uint8_t*>(kMenuRects));
+    return 1;
+}
+EI_REPLACE_METHOD(0x005AA510, CFigureManager::CreateWithArchives);
+
+CEngineObject* CFigureManager::NewPart(const char* modelName, const char* partName, FigureModel*, std::uint32_t,
+                                       std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t attached) {
+    CEngineObject* object = CreateObject(kSharedPartClass + (attached != 0), -1);
+    auto* part = reinterpret_cast<CFigureMesh*>(object);
+    part->name_ = partName;
+    part->directory_ = modelName;
+    return object;
+}
 
 CEngineObject* CFigureManager::NewFigure(const char* name) {
     CEngineObject* object = CreateObject(kFigureClass, -1);
@@ -95,5 +129,7 @@ void CFigureMesh::LoadFromMemory(char** cursor, float s, float t, float u) {
 EI_REPLACE_METHOD(0x005A2490, CFigureMesh::LoadFromMemory);
 EI_REPLACE_METHOD(0x005A4CF0, CFigureMesh::LoadFromMemory);   // byte-identical (class 0x41's slot 19)
 EI_REPLACE_METHOD(0x005AC1A0, CFigureManager::NewFigure);
+EI_REPLACE_METHOD(0x005AC2B0, CFigureManager::NewPart);
+EI_REPLACE_METHOD(0x005A9EB0, FigureModel::Open);
 EI_REPLACE_METHOD(0x005AC2F0, CFigureManager::LoadPart);
 EI_REPLACE_METHOD(0x005ACA60, CFigureManager::LoadBoneAnimation);

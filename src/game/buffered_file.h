@@ -32,9 +32,7 @@ public:
     void DestructBody();
     // 00580E40 (RET 4): DestructBody, then operator delete when bit 0 of `flags` is set.
     BufferedStream* DeletingDestruct(unsigned deleteFlags);
-    // 00580EE0 (RET 4). Before `size` bytes are written in place: the unwritten bit set, room made
-    // (slot 1) when the window ends before them. Returns the cursor.
-    std::uint8_t* BeginWrite(std::int32_t size);
+    // BeginWrite (00580EE0) is GameBuffer's: the quest file loader calls it on a growing buffer.
 
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F8C8);
     static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073CA48);

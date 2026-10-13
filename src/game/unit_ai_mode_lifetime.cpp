@@ -146,6 +146,13 @@ FearMode* FearMode::Clone() {
 }
 EI_REPLACE_METHOD(0x005D2880, FearMode::Clone);
 
+int FearMode::Reset() {
+    Destruct();
+    Construct(0);
+    return 0;
+}
+EI_REPLACE_METHOD(0x005D28F0, FearMode::Reset);
+
 void FearMode::Destruct() { vtable = aimode::kRootVtable; }
 EI_REPLACE_METHOD(0x005D2950, FearMode::Destruct);
 

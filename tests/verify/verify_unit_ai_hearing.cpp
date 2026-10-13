@@ -140,3 +140,13 @@ static void __fastcall NoiseVerify(AIViewer* self, void*, UnitController* source
                       kind, wrong, heard);
 }
 EI_VERIFY(0x005C98C0, NoiseVerify, 0, s_unusedNoise);
+
+// 005C9770 AIViewer::StepNoise (A-W14): ours only (Noise adds calls to the hearers' memories; its
+// own wrapper above checks them); the result is 0 as the original's. Reached from the unit
+// controller's update (CUnitServer::UpdateServer, every few frames for each moving unit).
+static int __fastcall StepNoiseVerify(AIViewer* self, void*, const Vector3* position, UnitController* source) {
+    int result = self->StepNoise(position, source);
+    ei::verify::Check("AIViewer::StepNoise", 0, result, "source %p", source);
+    return result;
+}
+EI_VERIFY(0x005C9770, StepNoiseVerify, 0, s_unusedNoise);

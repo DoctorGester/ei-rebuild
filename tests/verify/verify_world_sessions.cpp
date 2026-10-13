@@ -160,6 +160,35 @@ int __fastcall HandleShutdownVerify(CWorldHandle* self) {
     return result;
 }
 
+// The client's handle (A-W14). Clone 005626B0 starts with PUSH 8; CALL (no 5 clean bytes): ours
+// only, a new handle with no references. OnShutdown 005626D0 (TEST ECX,ECX; MOV [ECX],imm32: 8
+// bytes): the original on a scratch copy. TakeNew 00562700: ours only, the list empty afterwards.
+// The client's Segment asks the handle every tick only through slots 4 / 5; slot 6 and these two
+// have no known caller in a single-player run.
+CClientHandle* __fastcall ClientHandleCloneVerify(CClientHandle* self) {
+    CClientHandle* copy = self->CClientHandle::Clone();
+    bool ok = copy && copy != self && VtableOf(copy) == CClientHandle::kVtableAddress && copy->refs_ == 0 &&
+              copy->flags6_ == 0 && copy->flags7_ == 0;
+    ei::verify::Check("CClientHandle::Clone", true, ok, "handle %p", self);
+    return copy;
+}
+int(__fastcall* s_clientHandleShutdown)(CClientHandle*);
+int __fastcall ClientHandleShutdownVerify(CClientHandle* self) {
+    std::uint8_t scratch[sizeof(CClientHandle)];
+    std::memcpy(scratch, self, sizeof(scratch));
+    s_clientHandleShutdown(reinterpret_cast<CClientHandle*>(scratch));
+    int result = self->CClientHandle::OnShutdown();
+    ei::verify::Check("CClientHandle::OnShutdown", true, std::memcmp(scratch, self, sizeof(scratch)) == 0, "");
+    return result;
+}
+void __fastcall ClientHandleTakeNewVerify(CClientHandle* self, void*, void* joined) {
+    auto* links = static_cast<mfc::CList<RefPtr>*>(joined);
+    int before = links->count;
+    self->CClientHandle::TakeNew(joined);
+    bool ok = links->head == nullptr && links->tail == nullptr && links->count == 0 && links->blocks == nullptr;
+    ei::verify::Check("CClientHandle::TakeNew", true, ok, "%d links", before);
+}
+
 void __fastcall HandleDestructVerify(CWorldHandle* self) {
     self->Destruct();
     ei::verify::Check("CWorldHandle::Destruct", kRefObjectRootVtable, VtableOf(self), "");
@@ -250,6 +279,9 @@ EI_VERIFY(0x0055F2F0, SourceDeleteVerify, 0, s_unused);
 EI_VERIFY(0x0055F1A0, HandleCloneVerify, 5, s_handleClone);
 EI_VERIFY(0x0055F1E0, HandleShutdownVerify, 0, s_unused);
 EI_VERIFY(0x0055F280, HandleDestructVerify, 0, s_unused);
+EI_VERIFY(0x005626B0, ClientHandleCloneVerify, 0, s_unused);
+EI_VERIFY(0x005626D0, ClientHandleShutdownVerify, 8, s_clientHandleShutdown);
+EI_VERIFY(0x00562700, ClientHandleTakeNewVerify, 0, s_unused);
 EI_VERIFY(0x0055F260, HandleDeleteVerify, 0, s_unused);
 EI_VERIFY(0x0055F550, SessionCloneVerify, 7, s_sessionClone);
 EI_VERIFY(0x0055F6B0, SessionShutdownVerify, 0, s_unused);

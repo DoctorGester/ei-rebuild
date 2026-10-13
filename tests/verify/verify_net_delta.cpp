@@ -8,6 +8,7 @@
 // The globals must match too (pointers into the copied field compared by their offset). The
 // copies' buffers are freed afterwards.
 #include "verify.h"
+#include "delta_snapshot.h"
 
 #include "../../src/game/ai_motion.h"
 #include "../../src/game/net_delta.h"
@@ -568,8 +569,51 @@ int __fastcall BeginReadVerify(DeltaState* self, void*, int second, BitStream* r
     return actual;
 }
 
+// 0047FE90 (A-E1): SUB ESP,0xC (3), PUSH EBX, PUSH EBP, PUSH ESI (3). Side by side on the state
+// itself: copied, the original run, its result copied, the first copy put back, ours run. A state
+// with a stream that is not a memory stream runs ours only. Every write of an object's network
+// state ends with it (the world's updates, main thread).
+void(__fastcall* s_finish)(DeltaState*);
+void __fastcall FinishVerify(DeltaState* self) {
+    deltasnap::StateCopy before(self);
+    if (!before.valid()) {
+        self->Finish();
+        return;
+    }
+    int mode = self->mode_;
+    s_finish(self);
+    deltasnap::StateCopy expected(self);
+    before.MoveInto(self);
+    self->Finish();
+    ei::verify::Check("DeltaState::Finish", true, expected.Same(self), "mode %d, %d fields", mode, self->fieldCount_);
+}
+
+// 0047E340 (A-E1): PUSH ECX (1), LEA EAX,[ESP] (4). The original reads a copy of the reader into a
+// buffer of the same size; the buffers are compared by content and the readers must end alike. The
+// unit and effect readers call it on the client's updates.
+void(__fastcall* s_readText)(DeltaField*, void*, char*, int);
+void __fastcall ReadTextVerify(DeltaField* self, void*, char* text, int size) {
+    BitStream* realReader = delta::Reader();
+    if (!realReader || size <= 0 || size > 0x10000 || !IsMemoryStream(realReader)) {
+        self->ReadText(text, size);
+        return;
+    }
+    StreamCopy reader(realReader);
+    auto* buffer = static_cast<char*>(gamecrt::operator_new(static_cast<std::size_t>(size)));
+    buffer[0] = '\0';
+    delta::Reader() = &reader.stream;
+    s_readText(self, nullptr, buffer, size);
+    delta::Reader() = realReader;
+    self->ReadText(text, size);
+    bool same = SameStream(&reader.stream, realReader) && std::strcmp(buffer, text) == 0;
+    ei::verify::Check("DeltaField::ReadText", true, same, "size %d: \"%.40s\" / \"%.40s\"", size, buffer, text);
+    gamecrt::operator_delete(buffer);
+}
+
 } // namespace
 
+EI_VERIFY(0x0047FE90, FinishVerify, 6, s_finish);
+EI_VERIFY(0x0047E340, ReadTextVerify, 5, s_readText);
 EI_VERIFY(0x0047DFC0, PutBitVerify, 5, s_putBit);
 EI_VERIFY(0x0047E6D0, WriteRawVerify, 6, s_writeRaw);
 EI_VERIFY(0x0047E5E0, WriteDiffVerify, 5, s_writeDiff);

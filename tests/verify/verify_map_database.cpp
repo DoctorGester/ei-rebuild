@@ -108,12 +108,15 @@ CMapDatabase* s_shadow;
 
 // 0045EA20: PUSH -1 (2), PUSH imm32 (5). Only AL is the result.
 int(__fastcall* s_load)(CMapDatabase*, void*, const char*);
-bool __fastcall LoadVerify(CMapDatabase* self, void*, const char* fileName) {
+void ShadowIfEmpty(CMapDatabase* self) {
     if (!s_shadow && self->allods.size == 0 && self->maps.size == 0 && !self->allods.data && !self->maps.data) {
         s_real = self;
         s_shadow = static_cast<CMapDatabase*>(gamecrt::operator_new(sizeof(CMapDatabase)));
         ConstructDatabase(s_shadow);
     }
+}
+bool __fastcall LoadVerify(CMapDatabase* self, void*, const char* fileName) {
+    ShadowIfEmpty(self);
     bool shadowed = self == s_real;
     bool expected = shadowed ? (s_load(s_shadow, nullptr, fileName) & 0xFF) != 0 : false;
     bool actual = self->Load(fileName);
@@ -129,6 +132,29 @@ bool __fastcall LoadVerify(CMapDatabase* self, void*, const char* fileName) {
     return actual;
 }
 
+// 0045EA00 (WinMain's load of both files; A-E1). Ours calls Load directly, so the loader's check
+// above is not reached from it: the original's two loads run on the shadow here (the same file
+// names, written out again), ours on the real database, and the two are compared in depth.
+void* s_unused;
+bool __fastcall LoadAllVerify(CMapDatabase* self) {
+    ShadowIfEmpty(self);
+    bool shadowed = self == s_real;
+    bool expected = false;
+    if (shadowed) {
+        s_load(s_shadow, nullptr, "map.txt");
+        expected = (s_load(s_shadow, nullptr, "map-LMP.txt") & 0xFF) != 0;
+    }
+    bool actual = self->LoadAll();
+    Diff d;
+    if (shadowed) {
+        if (expected != actual) d.Fail("result %d vs %d", expected, actual);
+        Compare(d, *s_shadow, *self);
+    }
+    ei::verify::Check(shadowed ? "CMapDatabase::LoadAll" : "CMapDatabase::LoadAll (ours only)", true, !d.failed, "%s", d.where);
+    return actual;
+}
+
 } // namespace
 
 EI_VERIFY(0x0045EA20, LoadVerify, 7, s_load);
+EI_VERIFY(0x0045EA00, LoadAllVerify, 0, s_unused);

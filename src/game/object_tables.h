@@ -84,6 +84,15 @@ struct CMapDatabase {
     // 0045EA20 (map_database.cpp). Adds the allods and maps of a map.txt-style text file. Returns
     // false if the file is not found.
     bool Load(const char* fileName);
+    // 0045EA00 (map_database.cpp, A-E1). Loads "map.txt", then "map-LMP.txt"; returns the second
+    // Load's result (WinMain does not read it).
+    bool LoadAll();
+    // 0045E820 (map_database.cpp, A-E1). The constructor: the two arrays empty with their vtables.
+    // It runs from the static initialiser 0045E6C0 on the database at 0079BF00, before the hooks
+    // are installed, so the hook on it never fires. Returns this.
+    CMapDatabase* Construct();
+    static constexpr std::uintptr_t kAllodArrayVtable = std::uintptr_t(0x0073C3DC);
+    static constexpr std::uintptr_t kMapArrayVtable = std::uintptr_t(0x0073C3E8);
 
     mfc::CArray<AllodRecord> allods;   // +0x00
     mfc::CArray<MapRecord> maps;       // +0x14

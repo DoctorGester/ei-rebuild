@@ -141,6 +141,15 @@ static_assert(sizeof(CItem) == 0x4C);
 struct CItemLink {
     static void* Vtable() { return reinterpret_cast<void*>(0x0073FA88); }
 
+    // item_link.cpp (A-W14). 0058FBB0: the constructor's last step, the vtable stored (the counted
+    // value's 00419720 ran before); returns this. The world server's CreateUnits and
+    // SyncPartyRecords inline it.
+    CItemLink* Construct();
+    // 0058FB90 (slot 2). Built again in place: the root vtable, then its own (the value stays).
+    void Reset();
+    // 0058FB60 (slot 3). A new link with this one's value and no references; null without memory.
+    CItemLink* Clone();
+
     void* vtable;
     std::int16_t references;        // +0x04
     std::uint16_t unknown_06;
@@ -436,7 +445,7 @@ static_assert(sizeof(CItemConstructor) == 0x34);
 // 13-24 are the same getters (CWorld, CParty). Declared up to the slot used here.
 class CManagerContext : public CEngineObject {
 public:
-    virtual void ThisWorld();                      // 13
+    virtual void* ThisWorld();                     // 13: the world (0055EB40 returns this), null for a party (0065F4B0)
     virtual void TimedObjectManager();             // 14
     virtual void FigureManager();                  // 15
     virtual CItemConstructor* ItemConstructor();   // 16

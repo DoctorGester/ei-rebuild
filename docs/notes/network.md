@@ -195,4 +195,51 @@ messages inline.
   0047D350, 0047D380 and the 0073CA10 slots.
 - Exception funclet targets and compiler-generated copy constructors of exception classes (0040C510, 0040C540,
   0040C570, 00429130, 0043AD60) are reached only through C++ exception tables.
-- 00478880 (vtable 0073F258), 0047A220 / 0047A230 (0073F3B8 / 0073F3C0): other classes.
+- 0047A220 (0073F3B8, the session's Query: 3 bytes, cannot be hooked).
+
+## A-E1: the leftovers of the delta code and the links
+
+- `DeltaState::Finish` (0047FE90, net_delta.cpp): ends a write or a read. After a delta write the written mask
+  joins `sentMask_` and becomes `lastMask_`, and both headers are rebuilt (the mask as 2 bytes, then each field's
+  output of that channel, byte aligned). After a full write the headers and the three masks are emptied. Main
+  thread (the world's update writes). Verified side by side on the state itself (`deltasnap::StateCopy` before,
+  the original run, its result copied, the first copy put back, ours run); the wrapper copies every field's
+  streams twice per call, which costs time in a verify run with many objects. Reached by every scenario that
+  runs a server world (each object's state write ends with it).
+- `DeltaField::ReadText` (0047E340): `ReadString` into a caller's buffer; a string of `size - 1` characters or
+  more leaves the buffer empty. Side by side on a copy of the reader, the texts compared by content. The unit
+  and effect readers of the client call it (a multiplayer or single-player client update with a named object).
+- The forwarders other files keep for these (`DeltaStateFinishOriginal` in originals_engine.h, `ReadText` in
+  world_effect_internal.h) reach the hooked code.
+- The player sources' slot 6 (`TakeNew`, player_sources.cpp; the server world's AcceptNewPlayers 0058DAF0 calls
+  it with an MFC list of counted links, main thread). `CWorldHandle::TakeNew` (00478880): the pending link is
+  appended to the list (one more reference) and the handle drops its own. `DriverSession::TakeNew` (0047A230):
+  the link of every holder that is not detached is appended, then the holders list is emptied (each reference
+  dropped, the nodes pushed on the allocator's 12-byte list, the sentinel linked to itself). Both side by side:
+  the original on a copy of the source (its references added) with an empty list of the same kind, ours on the
+  real one; the lists' elements, the emptied source and the link's count compared. Registered through shims (a
+  pointer to a virtual member would dispatch). By reading, the handle's is reached when a server world takes
+  its local player (a new game); the session's only on a network server.
+
+## A-E1: the server's master announcement and two handlers (net_server_handlers.cpp)
+
+All on the main thread (the session's tick from `net::Pump`); none is called from a library's thread.
+
+- `ServerSession::AnnounceToMaster` (0041AA10; the tick calls it through its address every announcement
+  interval while a master host name is set): a `GameInfoRecord` on the stack (name, the played map's title
+  from 005814C0 or "" without a map, players, maximum, kind, password flag, +0x25FC, the dword the master
+  last sent, the session magic) written into a growing buffer and sent from the session's socket to the
+  master's address. Ours only (it sends a datagram).
+- `ServerSession::OnMaster` (0041ACA0, slot 10): a kind -1 packet from the master's address (16 bytes
+  compared) whose first dword equals +0x25FC stores its second dword at +0x2578; the first dword is consumed
+  either way. Side by side (the kept dword and the cursor put back between the runs).
+- `ServerOnSay` (0041B1C0, ECX the server, EDX the SayMessage; registered by the server's constructor): the
+  first binding of the connection being read (0079B924) names the player; "^<number><name>^7: <text>" is
+  announced to everybody (`Announce` with no player). Nothing without a live connection or binding. Ours
+  only.
+- Rebirth: EI_Plugin's NewMaster has sites in 0041AA10 (0041ABDA, the send) and 0041ACA0 (0041ACB7), addon's
+  ChatLog one in 0041B1C0 (0041B25B, disabled in this install). The rewrites are the vanilla functions; the
+  installer does not hook a function with an active site. No scenario reaches any of the three (a master
+  server, or a second client's chat line, is needed).
+- Still in the exe: 0041ECC0 (the file chunk handler: collects a file's chunks, sorts and joins them and
+  hands the file to the game flow, 005813A0) and 00443080 (the login handler, FixProcessLogin).

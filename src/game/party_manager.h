@@ -52,6 +52,15 @@ struct PartyManager {
     // 004A8560 (RET 4). Writes the same archive into a memory stream (version `to`'s) and appends
     // it to `to` as a sized block (CStream::WriteSized).
     void Save(CMemoryStream* to);
+    // 004A5700 (A-E1; app_lifetime.cpp). The destructor the C runtime runs at exit: the templates
+    // and the records released and their vectors freed, the records' two strings, the entries, then
+    // every party of the map (the map's own node deleter) and the bucket array.
+    void Destruct();
+    // 004A5870 (A-E1; app_lifetime.cpp). The constructor: an empty party map of 193 buckets (the
+    // prime after 100), no entries, no records with two empty strings, no templates; unknown_20 is
+    // left as it is. It runs from the static initialiser 004A56D0 on the manager at 007AA5A0,
+    // before the hooks are installed, so the hook on it never fires. Returns this.
+    PartyManager* Construct();
 };
 static_assert(offsetof(PartyManager, entries) == 0x14);
 static_assert(offsetof(PartyManager, unknown_20) == 0x20);

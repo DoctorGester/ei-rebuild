@@ -19,6 +19,8 @@ __declspec(naked) void __cdecl CString::Format(const char*, ...) EI_ORIGINAL(0x0
 __declspec(naked) CString CString::Left(int) const EI_ORIGINAL(0x006FDAE9)
 __declspec(naked) CString CString::Right(int) const EI_ORIGINAL(0x006FDA6D)
 __declspec(naked) CString CString::Mid(int) const EI_ORIGINAL(0x006FD9B4)
+__declspec(naked) CString CString::Mid(int, int) const EI_ORIGINAL(0x006FD9D7)
+__declspec(naked) int CString::Remove(char) EI_ORIGINAL(0x006FD963)
 __declspec(naked) int CString::FindOneOf(const char*) const EI_ORIGINAL(0x00700ECC)
 __declspec(naked) int CString::ReverseFind(char) const EI_ORIGINAL(0x006FDBB7)
 __declspec(naked) int CString::Find(const char*) const EI_ORIGINAL(0x006FDBD9)

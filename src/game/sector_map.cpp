@@ -3,6 +3,7 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
+#include "originals_library.h"
 
 #include <cstring>
 
@@ -187,6 +188,111 @@ int RadiusTree::Find(float radius) const {
     return node & mask;
 }
 EI_REPLACE_METHOD(0x005BF7D0, RadiusTree::Find);
+
+void RadiusTree::Build(const float* values, int count) {
+    depth = 1;
+    if (count > 2) {
+        do ++depth;
+        while ((1 << depth) < count);
+    }
+    keys.SetSize(2 << depth, -1);
+    mask = (1 << depth) - 1;
+    for (int level = 0; level <= depth; ++level) {
+        const int width = 1 << level;
+        const int offset = depth == level ? 0 : (1 << (depth - level - 1)) - 1;
+        for (int k = 0; k < width; ++k) {
+            int index = (1 << (depth - level)) * k + offset;
+            if (index >= count) index = count - 1;
+            keys.data[width + k] = values[index];
+        }
+    }
+}
+EI_REPLACE_METHOD(0x005BF5F0, RadiusTree::Build);
+
+// ---- The spiral's tables ------------------------------------------------------------------------
+//
+// Built by a static initialiser, before the hooks are installed: the builder is registered at the
+// original's addresses, but a running game never calls it. What it builds is compared with the
+// original's tables once at start-up (tests/verify/verify_ai_static_tables.cpp).
+
+namespace {
+
+constexpr int kSpiralReach = 10;                                    // sectors either way
+constexpr int kSpiralCells = (kSpiralReach * 2 + 1) * (kSpiralReach * 2 + 1);
+constexpr float kBeyondSpiral = 1.0e30f;                            // 7149F2CA: the last radius
+// The vtables of the builder's own arrays: the cells (CArray of 8-byte records) and the radii.
+constexpr std::uintptr_t kSpiralCellArrayVtable = std::uintptr_t(0x0073FDE0);
+constexpr std::uintptr_t kFloatArrayVtable = std::uintptr_t(0x0073D3E8);
+
+// A sector of the square and how far it is: the gap between the sectors, in sectors.
+struct SpiralCell {
+    SpiralOffset offset;
+    float distance;
+};
+static_assert(sizeof(SpiralCell) == 8);
+
+// 005BFC10 (the sort's comparison): by distance, ascending.
+int __cdecl ByDistance(const void* a, const void* b) {
+    const float da = static_cast<const SpiralCell*>(a)->distance;
+    const float db = static_cast<const SpiralCell*>(b)->distance;
+    if (da > db) return 1;
+    return da == db ? 0 : -1;
+}
+
+// |v| - 1, 0 for 0: the whole sectors between two sectors `v` apart.
+int Gap(int v) { return v == 0 ? 0 : (v < 0 ? -v : v) - 1; }
+
+} // namespace
+
+void BuildSectorSpiralAt(mfc::CArray<int>* lengths, RadiusTree* tree, mfc::CArray<SpiralOffset>* offsets) {
+    mfc::CArray<SpiralCell> cells;
+    cells.Construct(kSpiralCellArrayVtable);
+    cells.SetSize(kSpiralCells, -1);
+    offsets->SetSize(kSpiralCells, -1);
+    int filled = 0;
+    for (int y = -kSpiralReach; y <= kSpiralReach; ++y) {
+        for (int x = -kSpiralReach; x <= kSpiralReach; ++x) {
+            // The original sums the squares as integers (FILD, FSQRT, stored as a float); the gaps
+            // are 9 at most, so the float sum is the same number.
+            const Vector2 gap{static_cast<float>(Gap(x)), static_cast<float>(Gap(y))};
+            SpiralCell& cell = cells.data[filled++];
+            cell.offset.x = static_cast<std::int16_t>(x);
+            cell.offset.y = static_cast<std::int16_t>(y);
+            cell.distance = Length2D(gap);
+        }
+    }
+    // The game's own qsort: it decides the order of the sectors at the same distance.
+    GameQsortOriginal(cells.data, static_cast<std::size_t>(cells.size), sizeof(SpiralCell), ByDistance);
+    for (int i = 0; i < cells.size; ++i) offsets->data[i] = cells.data[i].offset;
+
+    // A length per distinct distance: the offsets up to and including that distance.
+    mfc::CArray<float> radii;
+    radii.Construct(kFloatArrayVtable);
+    lengths->SetSize(0, -1);
+    radii.Add(0.0f);
+    lengths->Add(1);
+    for (int i = 0; i < cells.size; ++i) {
+        const float distance = cells.data[i].distance;
+        if (distance == radii.data[radii.size - 1]) {
+            lengths->data[lengths->size - 1] = i + 1;
+        } else {
+            radii.Add(distance);
+            lengths->Add(i + 1);
+        }
+    }
+    radii.Add(kBeyondSpiral);
+    lengths->Add(offsets->size);
+    tree->Build(radii.data, radii.size);
+    radii.FreeData();
+    cells.FreeData();
+}
+
+// 005BF8F0 (thiscall on the initialiser's own object at 007C2FB8, which has no fields; returns it).
+void* __fastcall BuildSectorSpiral(void* self) {
+    BuildSectorSpiralAt(SpiralLengthArray(), SpiralRadiusTree(), SpiralOffsetArray());
+    return self;
+}
+EI_REPLACE(0x005BF8F0, BuildSectorSpiral);
 
 void CSectorMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<CEngineObject>* result, float radius) {
     int length = SpiralLengths()[SpiralIndex(Spiral(), nullptr, radius * 0.03125f)];

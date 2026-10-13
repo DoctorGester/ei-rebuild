@@ -4,7 +4,11 @@
 #include "world.h"
 #include "game_strings.h"
 
+#include "buffered_file.h"
 #include "console.h"
+#include "item_db_text.h"
+#include "net_classes.h"
+#include "world_map_files.h"
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -126,17 +130,8 @@ namespace {
 // 004DEDD0 (RET 4). The briefing texts forget a loaded file.
 // 0040C720. STLport string destructor.
 
-// The quest text files loaded so far (007AFDD0: an STLport vector of 12-byte strings).
-struct LoadedFile {
-    const char* start;
-    const char* finish;
-    const char* end;
-};
-struct LoadedFiles {
-    LoadedFile* start;
-    LoadedFile* finish;
-    LoadedFile* end;
-};
+// The quest text files loaded so far (007AFDD0: an STLport vector of strings, the files' paths).
+using LoadedFiles = stlp::vector<stlp::string>;
 LoadedFiles& QuestFiles() { return *reinterpret_cast<LoadedFiles*>(0x007AFDD0); }
 
 } // namespace
@@ -153,11 +148,100 @@ void UnloadQuestTexts() {
     void* texts = BriefingTexts();
     if (!texts) return;
     LoadedFiles& files = QuestFiles();
-    for (LoadedFile* file = files.start; file != files.finish; ++file) TextsUnload(texts, nullptr, file->start);
-    // clear(): the original's inlined erase(begin(), end()) moves nothing and destroys them all.
-    for (LoadedFile* file = files.start; file != files.finish; ++file) StlStringDestroy(file);
-    files.finish = files.start;
+    for (stlp::string* file = files.begin(); file != files.end(); ++file) TextsUnload(texts, nullptr, file->data());
+    // The original's inlined erase(begin(), end()) moves nothing and destroys them all.
+    files.clear();
 }
+
+// ---- The quest file of a zone (005809D0, A-W15) ---------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kQuestFileSuffix = std::uintptr_t(0x00790774);   // ".mq"
+constexpr std::uintptr_t kReadBinary = std::uintptr_t(0x0078E998);        // "rb"
+// BufferedFile::Open's flags for a file that is only read.
+constexpr std::uint32_t kReadOnlyFlags = 2;
+
+// Whether a game server runs (bit 31 of its count word marks one shut down).
+bool ServerRuns() {
+    const net::ServerSession* server = net::GameServer();
+    return server && !(server->flags7_ & CRefCounted::kDetached);
+}
+
+// A buffered file on the stack, as the original's inlined constructor and destructor build it.
+struct LocalFile {
+    LocalFile() {
+        file.Construct();
+        ei::SetVtable(&file, BufferedFile::kFileVtableAddress);
+        file.file = nullptr;
+    }
+    ~LocalFile() { file.DestructFile(); }
+    BufferedFile file;
+};
+
+// A growing buffer on the stack. Raw storage: the game's constructor makes the object, and its
+// slots are called through the vtable that constructor stores.
+struct LocalBuffer {
+    LocalBuffer() { Get()->ConstructGrowing(); }
+    ~LocalBuffer() { Get()->DestructGrowing(); }
+    GameBuffer* Get() { return reinterpret_cast<GameBuffer*>(storage); }
+    alignas(GameBuffer) std::uint8_t storage[sizeof(GameBuffer)];
+};
+
+// The game server lists the file at `path` under `name` for its clients: the whole file, read
+// into a buffer through a buffered file.
+void ShareQuestFile(const char* path, const char* name) {
+    LocalBuffer local;
+    GameBuffer* data = local.Get();
+    LocalFile source;
+    source.file.Open(path, Text(kReadBinary), kReadOnlyFlags);
+    net::BufferUpdateHigh(&source.file);
+    const std::int32_t size = static_cast<std::int32_t>(source.file.high - source.file.begin) + source.file.base;
+    data->Seek(0);
+    std::uint8_t* to = data->BeginWrite(size);
+    net::BufferRead(&source.file, nullptr, to, static_cast<unsigned>(size));
+    data->cur = to + size;
+    data->Commit();
+    stlp::string listed(name);
+    net::GameServer()->ShareFile(reinterpret_cast<const net::StringRep*>(&listed), data);
+}
+
+// The path of the maps folder's file `file`.
+stlp::string MapFilePath(const mfc::CString& file) {
+    mfc::CString folder;
+    MapsFolderAt(&folder);
+    mfc::CString full = folder + file;
+    return stlp::string(static_cast<const char*>(full));
+}
+
+} // namespace
+
+bool __stdcall LoadZoneQuests(const char* zone) {
+    auto* texts = static_cast<CTextManager*>(BriefingTexts());
+    if (!texts) return false;
+    mfc::CString file = mfc::CString(zone) + Text(kQuestFileSuffix);
+    bool found;
+    {
+        mfc::CFileFind find;
+        mfc::CString folder;
+        MapsFolderAt(&folder);
+        mfc::CString pattern = folder + static_cast<const char*>(file);
+        found = find.FindFile(pattern, 0) != 0;
+    }
+    if (!found) return false;
+    stlp::string path = MapFilePath(file);
+    if (ServerRuns()) ShareQuestFile(path.data(), file);
+    // A file already loaded is not loaded again.
+    LoadedFiles& files = QuestFiles();
+    stlp::string* listed = files.begin();
+    while (listed != files.end() && !(*listed == path)) ++listed;
+    if (listed == files.end()) {
+        files.push_back(path);
+        texts->AddSource(path.data());
+    }
+    return true;
+}
+EI_REPLACE(0x005809D0, LoadZoneQuests);
 
 // ---- Quest variables ------------------------------------------------------------------------------
 

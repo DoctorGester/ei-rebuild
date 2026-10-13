@@ -8,6 +8,7 @@
 
 #include "../../src/game/core_streams.h"
 #include "../../src/game/spell.h"
+#include "../../src/game/terrain.h"
 #include "../../src/game/world.h"
 #include "ei/x87.h"
 
@@ -764,6 +765,17 @@ static void __fastcall UnitsInBoxVerify(CWorldClient* client, void*, const long*
 }
 EI_VERIFY(0x005656A0, UnitsInBoxVerify, 10, s_unitsInBox);
 
+// 00561800 PlatformSet::Clear (A-W14; slot 2 of the bridge manager, the client's Setup): the
+// list's blocks are freed, so ours only; the list is empty with no blocks and the answer 1.
+static int __fastcall PlatformSetClearVerify(PlatformSet* self) {
+    int result = self->Clear();
+    bool ok = result == 1 && self->list.head == nullptr && self->list.tail == nullptr && self->list.count == 0 &&
+              self->list.free == nullptr && self->list.blocks == nullptr;
+    ei::verify::Check("PlatformSet::Clear", true, ok, "count %d", self->list.count);
+    return result;
+}
+EI_VERIFY(0x00561800, PlatformSetClearVerify, 0, s_unused);
+
 // 00561A60 / 00561AE0 (the platform set's destructor): the list's blocks are freed, so ours only.
 // Checked: the list empty with no blocks, the engine object's vtable back; the deleting one returns
 // the object. The client world's teardown.
@@ -896,3 +908,30 @@ static void __fastcall LoadUnitFacesVerify(CWorldClient* self) {
     ei::verify::Check("CWorldClient::LoadUnitFaces", true, true, "");
 }
 EI_VERIFY(0x0056DE80, LoadUnitFacesVerify, 0, s_unused);
+
+// A-W15. 00567AB0 LoadZone (Rebirth-patched: this wrapper is installed in the vanilla launch only):
+// ours only, the load cannot run twice (it reads the block, frees the old zone and loads the map).
+// Checked: the result 1 and the state the load leaves: no ground prints, both grids sized for the
+// terrain (cells of 16), the tick count 0, +0x6E4 0, the sky turning unless the zone is a cave, the
+// exits' array as large as it says, and the allod's name in lower case and not empty. Reached by
+// the client's zone state block: `newgame` and every zone change.
+static int __fastcall LoadZoneVerify(CWorldClient* self, void*, CStream* block) {
+    const int result = self->LoadZone(block);
+    const Terrain* terrain = self->terrain_;
+    const std::uint32_t width = static_cast<std::uint32_t>(x87::fistp(terrain->width)) >> 4;
+    const std::uint32_t height = static_cast<std::uint32_t>(x87::fistp(terrain->height)) >> 4;
+    const bool grids = self->objectGrid_.width_ == width && self->objectGrid_.height_ == height &&
+                       self->secondGrid_.width_ == width && self->secondGrid_.height_ == height;
+    const bool prints = self->bloodPrints_.Empty() && self->footprints_.Empty() && self->scorchMarks_.Empty();
+    const bool sky = !self->skyDome_ || At<int>(self->skyDome_, 0xC) == (self->cave_ == 1 ? 0 : 1);
+    const char* allod = self->zoneName_;
+    bool lower = allod && *allod;
+    for (const char* c = allod; lower && *c; ++c) lower = !(*c >= 'A' && *c <= 'Z');
+    const bool ok = result == 1 && grids && prints && sky && lower && self->ticksRun_ == 0 && self->unknown6E4_ == 0 &&
+                    self->exitCount_ >= 0 && (self->exitCount_ == 0 || self->exits_ != nullptr);
+    ei::verify::Check("CWorldClient::LoadZone", true, ok, "result %d allod %s cave %d exits %d grid %ux%u (%d %d %d %d)",
+                      result, allod ? allod : "(null)", self->cave_, self->exitCount_, width, height, grids, prints, sky,
+                      lower);
+    return result;
+}
+EI_VERIFY(0x00567AB0, LoadZoneVerify, 0, s_unused);

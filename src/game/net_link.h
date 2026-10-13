@@ -279,6 +279,7 @@ public:
     // holders' links appended to the list).
     int OnShutdown() override;          // 2: 0055F6B0 (both lists emptied; built again in place)
     DriverSession* Clone() override;    // 3: 0055F550 (drivers shared, holders counted)
+    void TakeNew(void* joined) override;   // 6: 0047A230 (player_sources.cpp)
 
     // The constructor as 0055F410 inlines it on `memory` (0x10 bytes of operator new, the count
     // already cleared): both lists empty. Returns the session.

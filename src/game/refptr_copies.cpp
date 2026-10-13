@@ -2,6 +2,7 @@
 // 00470000-00480000: the compiler emitted one per template instantiation of the owning pointer, with
 // byte-identical code. They are registered with the core implementation.
 #include "core_refcount.h"
+#include "engine_object.h"
 
 #include <cstdint>
 
@@ -95,6 +96,7 @@ EI_REPLACE(0x004215A0, PairReleaseSecond);
 EI_REPLACE(0x00438A30, PairReleaseSecond);
 EI_REPLACE(0x00438A50, PairReleaseSecond);
 EI_REPLACE(0x00438A70, PairReleaseSecond);
+EI_REPLACE(0x005B84E0, PairReleaseSecond);   // the AI map's copy (A-W14; only unwind funclets call it)
 
 // The holder cleared without a release (MOV [ECX],0). 17 copies.
 void __fastcall RefPtrClear(RefPtr* self) { self->ptr = nullptr; }
@@ -246,6 +248,22 @@ EI_REPLACE(0x00556AA0, ObjectHolderRelease);
 EI_REPLACE(0x00598960, ObjectHolderRelease);   // byte-identical copies (A-W12)
 EI_REPLACE(0x00598970, ObjectHolderRelease);
 EI_REPLACE(0x00598980, ObjectHolderRelease);
+EI_REPLACE(0x00598990, ObjectHolderRelease);   // A-W14 (MOV ECX,[ECX] first; only unwind funclets call it)
+
+// 005647C0 / 00579350: the holder let go without slot 4: the object loses one reference and the
+// holder is cleared (the destructor of a local that only counts; called by unwind funclets only).
+void __fastcall ObjectHolderDrop(CEngineObject** self) {
+    CEngineObject* object = *self;
+    if (!object) return;
+    --object->refCount_;
+    *self = nullptr;
+}
+EI_REPLACE(0x005647C0, ObjectHolderDrop);
+EI_REPLACE(0x00579350, ObjectHolderDrop);
+// 005576B0 (A-W14): one reference less on a counted object (the 16-bit count), without the delete
+// at zero: the combat mode list's destructor (005575F0, MFC template code) tests the count itself.
+void __fastcall RefCountedDrop(CRefCounted* self) { --self->refs_; }
+EI_REPLACE(0x005576B0, RefCountedDrop);
 // 00429B50: assignment: the new object gains a reference, the old one is released.
 void __fastcall ObjectHolderAssign(void** self, void*, void* object) {
     void* previous = *self;

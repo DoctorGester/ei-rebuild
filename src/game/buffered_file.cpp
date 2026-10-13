@@ -78,14 +78,14 @@ BufferedStream* BufferedStream::DeletingDestruct(unsigned deleteFlags) {
 }
 EI_REPLACE_METHOD(0x00580E40, BufferedStream::DeletingDestruct);
 
-std::uint8_t* BufferedStream::BeginWrite(std::int32_t size) {
+std::uint8_t* GameBuffer::BeginWrite(std::int32_t size) {
     flags |= kFlagUnwritten;
     // An unsigned compare of the addresses.
     if (reinterpret_cast<std::uintptr_t>(cur) + static_cast<std::uint32_t>(size) > reinterpret_cast<std::uintptr_t>(end))
         ReserveWrite(size);
     return cur;
 }
-EI_REPLACE_METHOD(0x00580EE0, BufferedStream::BeginWrite);
+EI_REPLACE_METHOD(0x00580EE0, GameBuffer::BeginWrite);
 
 void BufferedStream::MoveWindow(std::int32_t position) {
     std::int32_t room = Capacity();

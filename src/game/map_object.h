@@ -391,6 +391,10 @@ public:
     // 17 (0x44): whether the object is dead (server 005156A0: hit points rounded to 16 bits <= 0;
     // client 005104D0: the unit's hit points <= 0).
     virtual int IsDead();
+    virtual int IsOverkilled();      // 18: server 005156C0, client 005104F0 (unit.h)
+    // 19 (0x4C, RET 4): client 00511A00 (CMapObjectClientSpecific::SetLightMode), server 00510700
+    // (empty). Neither sets a result; the objects' slot 47 (004467C0) passes EAX on as it is.
+    virtual std::uintptr_t SetLightMode(int mode);
 };
 
 // A unit's server half (CUnit::controller, +0x240: CUnitServer, class 0x3E) as callers reach it

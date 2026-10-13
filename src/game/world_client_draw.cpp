@@ -383,7 +383,7 @@ int CWorldClient::Render() {
         Flush(renderer);
         SetRenderState(RenderDeviceObject(), 19, 5);
         SetRenderState(RenderDeviceObject(), 20, 6);
-        RibbonsDraw(&ribbons_, nullptr, SceneContext());
+        RibbonsDraw(RainSnow(), nullptr, SceneContext());
         Flush(renderer);
         SetRenderState(renderer, 14, 1);
     }

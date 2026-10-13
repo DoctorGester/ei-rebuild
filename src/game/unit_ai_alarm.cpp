@@ -209,3 +209,19 @@ void AIBrain::SetAlarmRecords(const AIAlarmRecord* records, int count) {
     ApplyBehaviour(alarmRecords.data, 0);
 }
 EI_REPLACE_METHOD(0x005D6D20, AIBrain::SetAlarmRecords);
+
+void AIBrain::HearAlarm(int slot) {
+    constexpr int kAlarmHeard = 7;   // the remark level ("to Alarm!")
+    if (slot < 0 || slot >= alarmRecords.size) return;
+    const AIAlarmRecord* record = &alarmRecords.data[slot];
+    if (record->unknown_38 != 0 || slot == 0) ApplyBehaviour(record, slot);
+    owner->Say(kAlarmHeard);
+}
+EI_REPLACE_METHOD(0x005D5940, AIBrain::HearAlarm);
+
+void AIBrain::ResetBehaviour() {
+    ResetMemory();
+    int slot = unknown_36;
+    ApplyBehaviour(&alarmRecords.data[slot], slot);
+}
+EI_REPLACE_METHOD(0x005D7C30, AIBrain::ResetBehaviour);
