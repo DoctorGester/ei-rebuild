@@ -10,6 +10,7 @@
 // the original. See docs/notes/renderer.md (section 16).
 #include "texture.h"
 
+#include "dib.h"
 #include "dx_surface.h"
 #include "originals_engine.h"
 #include "originals_render.h"
@@ -52,31 +53,9 @@ constexpr std::uint32_t kDescFlags = 0x1007;              // CAPS | HEIGHT | WID
 constexpr std::uint32_t kCapsStaging = 0x1800;            // TEXTURE | SYSTEMMEMORY
 constexpr std::uint32_t kCapsTexture = 0x11000, kCaps2Texture = 0x20000;   // TEXTURE | ALLOCONLOAD; TEXTUREMANAGE
 
-// The game's .bmp reader (an MFC-style DIB class, vtable 00744288, 0x3C bytes): 006D4AA0 constructs
-// it, 006D5910 reads an open file (the BITMAPFILEHEADER, then the info header and palette, then the
-// bits; a short or non-"BM" file: a message box, nothing read), 006D4D10 gives its size (0 x 0
-// without a header), 006D4CD0 destroys it.
-struct GameBitmap {
-    void* vtable;
-    const void* palette;                   // +0x04
-    std::uint8_t unknown_08[4];
-    const std::uint8_t* bits;              // +0x0C
-    const BITMAPINFOHEADER* header;        // +0x10
-    std::uint8_t unknown_14[0x3C - 0x14];
-
-    GameBitmap* Construct();
-    void Destruct();
-    int Read(mfc::CFile* file);
-    SIZE* Size(SIZE* out) const;
-};
-static_assert(offsetof(GameBitmap, bits) == 0x0C);
-static_assert(offsetof(GameBitmap, header) == 0x10);
-static_assert(sizeof(GameBitmap) == 0x3C);
-
-__declspec(naked) GameBitmap* GameBitmap::Construct() EI_ORIGINAL(0x006D4AA0)
-__declspec(naked) void GameBitmap::Destruct() EI_ORIGINAL(0x006D4CD0)
-__declspec(naked) int GameBitmap::Read(mfc::CFile*) EI_ORIGINAL(0x006D5910)
-__declspec(naked) SIZE* GameBitmap::Size(SIZE*) const EI_ORIGINAL(0x006D4D10)
+// The game's .bmp reader (CDib, dib.h): Read takes an open file (a short or non-"BM" file: a message
+// box, nothing read), Size gives 0 x 0 without a header.
+using GameBitmap = CDib;
 
 // A GameBitmap constructed and destroyed with the scope (the original's locals).
 class Bitmap {

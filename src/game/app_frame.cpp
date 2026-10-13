@@ -2,6 +2,8 @@
 // a screenshot per frame while recording a movie) and the intro movies (00458270: the list read
 // from an .ini file, each played, the screen cleared through the primary surface's Blt). Every
 // callee is reached through its original address. See docs/notes/app.md.
+#include "dib.h"
+
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
@@ -51,8 +53,7 @@ CursorLock CursorLockAtCallSite() {
     return reinterpret_cast<CursorLock>(kCall + 5 + rel);
 }
 __declspec(naked) void __fastcall ScreenDraw(void*) EI_ORIGINAL(0x005E54A0)
-__declspec(naked) void* __fastcall CaptureSurface(void* /*surface*/, const std::uint32_t* /*rect*/) EI_ORIGINAL(0x006D6D40)
-__declspec(naked) void __fastcall BitmapWrite(void* /*bitmap*/, void*, mfc::CFile*) EI_ORIGINAL(0x006D5AC0)
+__declspec(naked) CDib* __fastcall CaptureSurface(void* /*surface*/, const std::uint32_t* /*rect*/) EI_ORIGINAL(0x006D6D40)
 
 // The movie list: CStringArray (library), the .ini reader, CString concatenation (AFXAPI), the
 // video player.
@@ -125,8 +126,8 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     rect[1] = 0;
     rect[2] = width;
     rect[3] = height;
-    void* bitmap = CaptureSurface(At<void*>(renderer, 0x14), rect);
-    BitmapWrite(bitmap, nullptr, &file);
+    CDib* bitmap = CaptureSurface(At<void*>(renderer, 0x14), rect);
+    bitmap->Write(&file);
     if (bitmap) ei::VCall<void>(bitmap, 1, 1);
     file.Close();
     ++Global<std::uint32_t>(0x0079BC58);

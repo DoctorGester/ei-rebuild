@@ -76,6 +76,9 @@ struct AckTable {
     // 006D9A30 / 006D9CE0 / 006D9F80 (RET 4): the record named `name`. The index's operator[], so
     // a missing name is added with a null record (and null is returned).
     Record* Find(const char* name);
+    // 006D8E30 (RET 4; the extras' table only, from the loader 006D7620): record `index`, null
+    // past the end.
+    Record* RecordAt(std::uint32_t index);
 
     stlp::vector<Record> records;                                   // +0x00
     stlp::hash_map<stlp::string, Record*, stlp::StringHash> byName; // +0x0C
