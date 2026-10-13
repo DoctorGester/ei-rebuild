@@ -130,6 +130,20 @@ int __fastcall ContainerIdVerify(CSpellContainer* self) {
 
 } // namespace
 
+// 00689820 (A-H25): MOV EAX,[ECX]; PUSH EDI; TEST EAX,EAX (5 bytes). Pure but for the walk it
+// moves: the original on a copy of the walk, then ours; the container and the place compared.
+// Nothing calls it now (its one live caller, the manager's Destroy, is rewritten).
+static CSpellContainer*(__fastcall* s_nextContainer)(SpellContainerWalk*);
+static CSpellContainer* __fastcall NextContainerVerify(SpellContainerWalk* walk) {
+    SpellContainerWalk copy = *walk;
+    CSpellContainer* expected = s_nextContainer(&copy);
+    CSpellContainer* actual = NextSpellContainer(walk);
+    ei::verify::Check("NextSpellContainer", true, expected == actual && copy.node == walk->node, "%p/%p node %p/%p",
+                      expected, actual, copy.node, walk->node);
+    return actual;
+}
+EI_VERIFY(0x00689820, NextContainerVerify, 5, s_nextContainer);
+
 EI_VERIFY(0x00688EC0, CreateSpellObjectVerify, 0, s_unused);
 EI_VERIFY(0x00688CD0, NewObjectVerify, 0, s_unused);
 EI_VERIFY(0x00688B30, CreateVerify, 0, s_unused);

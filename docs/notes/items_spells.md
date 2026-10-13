@@ -501,6 +501,8 @@ The spell manager's folder slot 00688940 (A-H24's last item) was complete. Wrapp
 | 006481D0 | CHudUnitPanel::ShowBodyPart (tints the four part buttons 3..6: 1 the chosen one, 0.5 the rest) | S |
 | 00662F80 | MpHeroRoster::Select (ui_screens.h: the multiplayer heroes at 007C82A0, folder + records + the current one) | O (no scenario opens the hero screen) |
 | 00667B40 | CPlayerClient::AppendReceived (appends a stream to the received one, read position kept) | O |
+| 00646B90 | CHudUnitPanel::ShowEffects (Ghidra splits it at 00646C25; the unit's first six effects: the "spell <code>" text and ticks / 15 as two lines each, the spell's picture "spell%04d" (SpellRecord +0x60, now `icon`) copied into one of six places of the panel's icon texture, the places kept in +0x184 `effectIcons_`; scene objects 26 + i show them, 9 when there are more than six) | S (needs a shown unit with an effect) |
+| 00689820 | NextSpellContainer (a hash_map iterator's step returning the value) | P (no live caller left: Destroy 00688B40 is rewritten, 00688D70 is dead code) |
 
 Library, second batch: 0064EE90, 00652E30, 00652F80, 006581C0, 00675040, 00675690 (STLport); compiler: 00652FF0, 0067C5D0 (unwind only),
 the static initialisers 00698E70..00698FB0 and 0065F580 (run before the hooks), the scalar deleting destructors 006611B0, 006868D0,

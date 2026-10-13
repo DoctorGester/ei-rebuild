@@ -1526,6 +1526,11 @@ public:
     // bodyPart_). The body part buttons (scene objects 3-6): tint 1 for the selected one, 0.5 for
     // the others.
     void ShowBodyPart();
+    // 00646B90 (RET 4; ui_hud_panels.cpp, A-H25; called by the panel's draw 006462A0). The first
+    // six effects on `unit`: each one's spell text and time left as two lines of the panel's
+    // text, and its spell's picture (scene objects 26 + i, cut from the panel's icon texture,
+    // where up to six pictures are kept: effectIcons_). Scene object 9 shows when there are more.
+    void ShowEffects(CUnit* unit);
     // 00635D00 (ui_hud_destroy.cpp; slot 0 00635CE0 calls it). Destructor body: the part labels,
     // textsVtable_'s array, the two strings (+0x168 first), then the window base's (005FE930).
     void DestroyBody();
@@ -1539,7 +1544,7 @@ public:
     std::uint8_t unknown_170[0x17C - 0x170];
     float slideDirection_;           // +0x17C +1 / -1
     int bodyPart_;                   // +0x180 selected body part 0-3 (scene objects 3-6)
-    std::uint8_t unknown_184[0x19C - 0x184];
+    int effectIcons_[6];             // +0x184 the spell pictures in the icon texture's six places
     void* textsVtable_;              // +0x19C CStringArray
     std::uint8_t unknown_1A0[0x1B0 - 0x1A0];
     void* partLabelsVtable_;         // +0x1B0 CStringArray (its data:)

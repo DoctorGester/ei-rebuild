@@ -158,6 +158,76 @@ void __fastcall ShowPartsVerify(CHudUnitPanel* self, void*, CUnit* unit) {
                       i < 0 ? 0.0 : expected[i].vOffset, i < 0 ? 0.0 : actual[i].vOffset);
 }
 
+// 00646B90 (A-H25): PUSH -1; PUSH imm32 (7 bytes). The effects list: the "more" mark (sprite 9),
+// the six icons (sprites 26..31: visibility and frame) and the kept pictures. Side by side like
+// the bars: the sprite fields are spoiled, the original runs, its result is recorded, the kept
+// pictures are put back and the fields spoiled again, ours runs; then the fields neither wrote
+// get their old values back. The texts are drawn and the pictures copied twice (the same ones at
+// the same places). Reached when the shown unit has an effect on it.
+struct EffectsState {
+    int more;
+    int kept[6];
+    int visible[6];
+    float u[6];
+    float v[6];
+};
+const int kSpoiledInt = -77;
+const float kSpoiledFloat = -77.0f;
+
+EffectsState TakeEffects(CHudUnitPanel* self) {
+    EffectsState state;
+    state.more = Sprite(self, 9)->visible_;
+    for (int i = 0; i < 6; ++i) {
+        state.kept[i] = self->effectIcons_[i];
+        state.visible[i] = Sprite(self, 26 + i)->visible_;
+        state.u[i] = Sprite(self, 26 + i)->uOffset_;
+        state.v[i] = Sprite(self, 26 + i)->vOffset_;
+    }
+    return state;
+}
+
+void SpoilEffects(CHudUnitPanel* self, const EffectsState& before) {
+    Sprite(self, 9)->visible_ = kSpoiledInt;
+    for (int i = 0; i < 6; ++i) {
+        self->effectIcons_[i] = before.kept[i];
+        Sprite(self, 26 + i)->visible_ = kSpoiledInt;
+        Sprite(self, 26 + i)->uOffset_ = kSpoiledFloat;
+        Sprite(self, 26 + i)->vOffset_ = kSpoiledFloat;
+    }
+}
+
+void(__fastcall* s_showEffects)(CHudUnitPanel*, void*, CUnit*);
+void __fastcall ShowEffectsVerify(CHudUnitPanel* self, void*, CUnit* unit) {
+    EffectsState before = TakeEffects(self);
+    SpoilEffects(self, before);
+    s_showEffects(self, nullptr, unit);
+    EffectsState expected = TakeEffects(self);
+    SpoilEffects(self, before);
+    self->ShowEffects(unit);
+    EffectsState actual = TakeEffects(self);
+    bool same = std::memcmp(&expected, &actual, sizeof(expected)) == 0;
+    // The fields left alone get their values back.
+    if (actual.more == kSpoiledInt) Sprite(self, 9)->visible_ = before.more;
+    for (int i = 0; i < 6; ++i) {
+        CUiMesh* icon = Sprite(self, 26 + i);
+        if (actual.visible[i] == kSpoiledInt) icon->visible_ = before.visible[i];
+        if (actual.u[i] == kSpoiledFloat) icon->uOffset_ = before.u[i];
+        if (actual.v[i] == kSpoiledFloat) icon->vOffset_ = before.v[i];
+    }
+    int first = -1;
+    for (int i = 5; i >= 0; --i)
+        if (expected.kept[i] != actual.kept[i] || expected.visible[i] != actual.visible[i] ||
+            expected.u[i] != actual.u[i] || expected.v[i] != actual.v[i])
+            first = i;
+    ei::verify::Check("CHudUnitPanel::ShowEffects", true, same,
+                      "%d effects, more %d/%d, icon %d: kept %d/%d visible %d/%d u %g/%g v %g/%g", unit->effectCount,
+                      expected.more, actual.more, first, first < 0 ? 0 : expected.kept[first],
+                      first < 0 ? 0 : actual.kept[first], first < 0 ? 0 : expected.visible[first],
+                      first < 0 ? 0 : actual.visible[first], first < 0 ? 0.0 : expected.u[first],
+                      first < 0 ? 0.0 : actual.u[first], first < 0 ? 0.0 : expected.v[first],
+                      first < 0 ? 0.0 : actual.v[first]);
+}
+
 // 00649810 (stolen 0): ours only. Afterwards every selected party unit has the panel's flag (0 or
 // 1), and the button shows it.
 void __fastcall ToggleFlagVerify(CHudMovePanel* self, void*) {
@@ -283,6 +353,7 @@ static void __fastcall ShowItemsVerify(CHudTopPanel* self) {
 
 EI_VERIFY(0x006477E0, ShowHealthVerify, 6, s_showHealth);
 EI_VERIFY(0x00647B70, ShowPartsVerify, 7, s_showParts);
+EI_VERIFY(0x00646B90, ShowEffectsVerify, 7, s_showEffects);
 EI_VERIFY(0x00649810, ToggleFlagVerify, 0, s_unused);
 EI_VERIFY(0x0064A320, ShowPageVerify, 8, s_showPage);
 EI_VERIFY(0x00649E20, LayoutVerify, 6, s_layout);

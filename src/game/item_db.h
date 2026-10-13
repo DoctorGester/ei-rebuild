@@ -71,7 +71,7 @@ struct SpellRecord {
     int skill;                          // +0x44 the school skill it needs
     stlp::vector<int> list48;           // +0x48 (chunk 16)
     stlp::vector<int> list54;           // +0x54 (chunk 17)
-    std::uint32_t unknown_60;           // +0x60
+    std::uint32_t icon;                 // +0x60 the number of its picture ("spell%04d")
     std::uint32_t unknown_64[5];        // +0x64..+0x74
     std::uint8_t bytes78[5];            // +0x78
     std::uint8_t unknown_7D[3];

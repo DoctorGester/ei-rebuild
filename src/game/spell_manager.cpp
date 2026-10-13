@@ -125,6 +125,13 @@ CSpellManager* CSpellManager::DeletingDestruct(unsigned flags) {
 }
 EI_REPLACE_METHOD(0x00688970, CSpellManager::DeletingDestruct);
 
+CSpellContainer* __fastcall NextSpellContainer(SpellContainerWalk* walk) {
+    if (!walk->node) return nullptr;
+    walk->node = walk->table->After(walk->node);
+    return walk->node ? walk->node->value : nullptr;
+}
+EI_REPLACE(0x00689820, NextSpellContainer);
+
 namespace {
 int __fastcall SpellManagerCreateHook(CSpellManager* self) { return self->CSpellManager::Create(); }
 void __fastcall SpellManagerDestroyHook(CSpellManager* self) { self->CSpellManager::Destroy(); }

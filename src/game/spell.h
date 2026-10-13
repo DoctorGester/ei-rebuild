@@ -344,6 +344,11 @@ struct SpellSequence {
     std::uint32_t maxLow;
 };
 static_assert(sizeof(SpellSequence) == 0x18);
+// 00689820 (spell_manager.cpp, A-H25). A walk over a sequence's containers one step on: the
+// container there, or null at the end (and when the walk had ended already). The manager's
+// Destroy 00688B40 (rewritten: it walks the table itself) and the unreferenced 00688D70 call it.
+using SpellContainerWalk = stlp::hash_map<std::uint32_t, CSpellContainer*, stlp::IntHash>::Iterator;
+CSpellContainer* __fastcall NextSpellContainer(SpellContainerWalk* walk);
 
 // The spell manager (GetClassName "CSpellManager", vtable 00743A14, 0xD4 bytes). Only what the
 // construction code uses; the context (context_, +0xAC) gives the spell constructor (its slot 17).
