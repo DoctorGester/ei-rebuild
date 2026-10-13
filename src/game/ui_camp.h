@@ -125,6 +125,28 @@ public:
     // 00638A10 (input slot 1; ui_battle_input.cpp). The screen loses the top: the order keys and
     // the press / box flags (+0x1C0, +0x1C1) cleared, then the container's slot 1.
     void OnDeactivate();
+    // 0063A560 (input side slot 9, RET 0xC; Rebirth-patched, this is the vanilla body, hooked in
+    // the vanilla launch only; ui_battle_keys.cpp). A key pressed. While a portrait click picks a
+    // player, Esc ends that and nothing else happens. On a network client Enter / Backspace go to
+    // the chat line (005F7C60 / 005F7C80) and the key is used. Otherwise the container's handler
+    // (00601820) first; a key nobody used and not repeating: Esc drops the pending action with
+    // every panel's highlight, or without one opens the escape menu (built inline: 0x168 bytes,
+    // vtables 007412A4 / 00741270); any other key by its action (KeyActions, by `flags & 0x1FF`):
+    // 1 pause (the clock's sound, 00578D30 with the opposite of 00578D50), 2 / 3 normal / fast
+    // speed (not while paused or on a network client: the clock's +0x154, the world's update
+    // period 55 / 27 ms, the interface's +0x94), 4 the objectives window of the player's zone,
+    // 0xB the camera follows the first selected member (or nobody), 0xC the camera faces north
+    // (the map's +0x1B0 0.5), 0x11..0x16 the order keys (orderKeys_), 0x17..0x1A the selected
+    // members' movement mode 0..3 and 0x1B their flag (the movement panel), 0x1C / 0x1D the
+    // action buttons "follow" / "science", 0x1E..0x25 spells 0..7 and 0x2A..0x2D quick items 0..3
+    // (cast or used at once with Ctrl or Alt), 0x26..0x29 weapons 0..3, 0x2E..0x31 the unit
+    // panel's body parts and 0x32 / 0x33 the top panel's pages (a panel slid away comes back, the
+    // choice already shown slides it away), 0x34 the map slides, 0x35 / 0x36 quick save / load
+    // ("saveq"), 0x37..0x39 party members 0..2 (ToggleMember; with Ctrl or Alt the camera follows
+    // the member), 0x3A every member selected (not on a network client), 0x3B the message window
+    // (005F8A80 with 1). Pause, the objectives, the movement keys, the message window and the
+    // escape menu mark the key used.
+    void OnKeyDown(int key, int repeat, int flags);
     // 0063B6D0 (input side slot 11, RET 0xC; ui_battle_input.cpp). A key released: unless a
     // portrait click picks a player, the container's key-up handler (006019A0), then the order
     // key of the key's action (0x11..0x16 of the key table, by `flags & 0x1FF`) is released.

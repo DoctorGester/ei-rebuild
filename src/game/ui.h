@@ -1645,14 +1645,21 @@ public:
     int viewPolygonCount_;           // +0x17C
     std::uint8_t unknown_180[0x188 - 0x180];
     UiPointArray visibleArea_;       // +0x188 the outline in world units, clipped to the world
-    std::uint8_t unknown_198[0x1AC - 0x198];
+    int sliding_;                    // +0x198 set when the sling button (or its key) starts the slide
+    std::uint8_t unknown_19C[0x1A8 - 0x19C];
+    float slideDirection_;           // +0x1A8 +1 / -1
     int view_;                       // +0x1AC 1 or 2 (scene objects 6 and 7 are the buttons)
+    float unknown_1B0;               // +0x1B0 0.5 when the "camera north" key turns the camera; the
+                                     //        frame update (00642B40) counts it down
 };
 static_assert(offsetof(CHudMap, centreX_) == 0x14C);
 static_assert(offsetof(CHudMap, scale_) == 0x168);
 static_assert(offsetof(CHudMap, zoomMax_) == 0x170);
 static_assert(offsetof(CHudMap, visibleArea_) == 0x188);
 static_assert(offsetof(CHudMap, view_) == 0x1AC);
+static_assert(offsetof(CHudMap, sliding_) == 0x198);
+static_assert(offsetof(CHudMap, slideDirection_) == 0x1A8);
+static_assert(offsetof(CHudMap, unknown_1B0) == 0x1B0);
 
 // Unit panel (set up by 006456E0, vtables 007426F8 / 007426C4; 0..185 x 0..225). Regions: 0
 // the sling button, 1-4 the body parts, 5 the whole panel.
