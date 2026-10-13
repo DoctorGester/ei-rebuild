@@ -2621,9 +2621,14 @@ public:
     // text, the others with the caret at the end). Then the text is drawn again (0065C2E0) and
     // the key is marked used. Other keys: nothing.
     void OnKeyDown(int key, int repeat, int flags);
-    // 0065C2E0 (Rebirth-patched, not rewritten; called through its address). Draws the text and
-    // the caret. (Not named DrawText: windows.h makes that a macro.)
+    // 0065C2E0 (Rebirth-patched: callers use this forwarder, rule 9; the vanilla body is
+    // DrawContentsVanilla in ui_edit_field.cpp, A-H26). The caret is clamped to the text; with the
+    // surface's DC (nothing without one) the surface is cleared, the text drawn over the whole
+    // field in font_ and colour_ (centred when centred_), and the caret drawn as a line of
+    // caretColour_ over the field's height after the first caret_ characters, unless it falls
+    // outside the field. (Not named DrawText: windows.h makes that a macro.)
     void DrawContents();
+    void DrawContentsVanilla();
     mfc::CString& Text() { return *reinterpret_cast<mfc::CString*>(&text_); }
     // 0065C010 (RET 0x14; ui_edit_field.cpp, A-H19). Constructor: the window, an empty text,
     // vtables 00742DF4 / 00742DC0, every character class, font 1, at most 50 characters, colours
@@ -2649,7 +2654,7 @@ public:
 
     RECT area_;                      // +0x148 the surface's layout rectangle
     std::uint32_t charClasses_;      // +0x158 classes OnChar takes (1 digits, 2 letters / space, 4 others, 8 '.' ':')
-    std::uint8_t mode15C_;           // +0x15C 0 from the constructor; DrawContents offsets the text box when set
+    std::uint8_t centred_;           // +0x15C 0 from the constructor; SetLook's mode: the text is drawn centred
     std::uint8_t unknown_15D[3];
     int font_;                       // +0x160 interface font
     int maxLength_;                  // +0x164

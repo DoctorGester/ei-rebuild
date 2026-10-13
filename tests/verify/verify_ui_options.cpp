@@ -288,11 +288,11 @@ struct EditLook {
     COLORREF caretColour;
 };
 EditLook TakeLook(const CUiEditField* w) {
-    return EditLook{w->charClasses_, w->mode15C_, w->font_, w->maxLength_, w->colour_, w->caretColour_};
+    return EditLook{w->charClasses_, w->centred_, w->font_, w->maxLength_, w->colour_, w->caretColour_};
 }
 void PutLook(CUiEditField* w, const EditLook& s) {
     w->charClasses_ = s.charClasses;
-    w->mode15C_ = s.mode;
+    w->centred_ = s.mode;
     w->font_ = s.font;
     w->maxLength_ = s.maxLength;
     w->colour_ = s.colour;
@@ -344,3 +344,20 @@ static void __fastcall EditSetFocusedVerify(CUiEditField* self, void*, bool focu
     ei::verify::Check("CUiEditField::SetFocused", expected, self->focused_, "focused %d", focused);
 }
 EI_VERIFY(0x0065C2D0, EditSetFocusedVerify, 10, s_editSetFocused);
+
+// 0065C2E0 (A-H26; hooked in the vanilla launch only): MOV EAX,FS:[0] (6 bytes). Side by side on
+// the real field: both clear the surface and draw the same text and caret, so the second run
+// leaves what the first drew; the caret (clamped by the function, uninitialised when the
+// constructor draws) is put back in between and compared. The pixels are not compared. Scenarios:
+// the screens with an edit field build and fill it (ui_hero_screen's name field, net_lobby).
+static void(__fastcall* s_editDraw)(CUiEditField*);
+static void __fastcall EditDrawVerify(CUiEditField* self) {
+    const int before = self->caret_;
+    s_editDraw(self);
+    const int expected = self->caret_;
+    self->caret_ = before;
+    self->CUiEditField::DrawContentsVanilla();
+    ei::verify::Check("CUiEditField::DrawContents", expected, self->caret_, "caret %d length %d", before,
+                      self->Text().GetLength());
+}
+EI_VERIFY(0x0065C2E0, EditDrawVerify, 6, s_editDraw);

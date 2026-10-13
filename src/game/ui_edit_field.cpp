@@ -1,9 +1,11 @@
 // The message box's edit field: its key handler (0065C610), constructor (0065C010) and character
-// handler (0065C930). See ui.h (CUiEditField) and docs/notes/items_spells.md (A-H19).
+// handler (0065C930), and its drawing (0065C2E0, A-H26: the vanilla body). See ui.h (CUiEditField) and
+// docs/notes/items_spells.md (A-H19).
 #include "ui.h"
 
 #include "originals_library.h"
 #include "originals_ui.h"
+#include "ui_gdi.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -23,7 +25,7 @@ constexpr int kKeyRight = 0x27;
 constexpr int kKeyDelete = 0x2E;
 } // namespace
 
-// 0065C2E0 (Rebirth-patched): through its address.
+// 0065C2E0 (Rebirth-patched): through its address; its vanilla body is DrawContentsVanilla below.
 __declspec(naked) void CUiEditField::DrawContents() EI_ORIGINAL(0x0065C2E0)
 
 // --- 0065C610 ------------------------------------------------------------------------------------
@@ -124,7 +126,7 @@ CUiEditField* CUiEditField::Construct(CInterface3D* ui, RECT rect) {
     vtable_ = reinterpret_cast<void**>(kEditFieldVtable);
     inputVtable_ = reinterpret_cast<void**>(kEditFieldInputVtable);
     charClasses_ = kClassDigit | kClassLetter | kClassOther | kClassSeparator;
-    mode15C_ = 0;
+    centred_ = 0;
     font_ = 1;
     maxLength_ = 50;
     colour_ = 0xFFFFFF;
@@ -188,7 +190,7 @@ EI_REPLACE(0x0065C930, EditFieldChar);
 void CUiEditField::SetLook(std::uint32_t charClasses, char mode, int font, int maxLength, COLORREF colour,
                            COLORREF caretColour) {
     charClasses_ = charClasses;
-    mode15C_ = static_cast<std::uint8_t>(mode);
+    centred_ = static_cast<std::uint8_t>(mode);
     font_ = font;
     maxLength_ = maxLength;
     colour_ = colour;
@@ -208,3 +210,38 @@ EI_REPLACE_METHOD(0x0065C290, CUiEditField::SetText);
 
 void CUiEditField::SetFocused(bool focused) { focused_ = focused; }
 EI_REPLACE_METHOD(0x0065C2D0, CUiEditField::SetFocused);
+
+// --- 0065C2E0 (A-H26): the text and the caret drawn ---------------------------------------------------
+
+void CUiEditField::DrawContentsVanilla() {
+    mfc::CString& text = Text();
+    if (caret_ > text.GetLength()) caret_ = text.GetLength();
+    if (caret_ < 0) caret_ = 0;
+    CUiSurface* surface = surfaces_.data[0];
+    ui_gdi::GameDC* dc = SurfaceGetDC(surface);
+    if (!dc) return;
+    surface->Clear();
+    const int width = area_.right - area_.left;
+    const int height = area_.bottom - area_.top;
+    RECT box{0, 0, width, height};
+    SurfaceDrawText(surface, nullptr, text, &box, font_, colour_, centred_ ? DT_NOPREFIX | DT_CENTER : DT_NOPREFIX, 1);
+    // The caret stands after the first caret_ characters; a centred text starts half its width left
+    // of the middle.
+    int caretX = TextWidth(interface_, text.Left(caret_), font_);
+    if (centred_) caretX += width / 2 - TextWidth(interface_, text, font_) / 2;
+    if (caretX >= 0 && caretX < width) {
+        ui_gdi::GamePen pen;
+        pen.Construct(PS_SOLID, 1, caretColour_);
+        void* oldPen = dc->SelectPen(&pen);
+        POINT top{caretX, 0};
+        POINT bottom{caretX, height};
+        interface_->CallScalePointToScreen(&top);
+        interface_->CallScalePointToScreen(&bottom);
+        dc->MoveTo(top.x, top.y);
+        dc->LineTo(bottom.x, bottom.y);
+        dc->SelectPen(oldPen);
+        pen.Destruct();
+    }
+    SurfaceReleaseDC(surface);
+}
+EI_REPLACE_METHOD(0x0065C2E0, CUiEditField::DrawContentsVanilla);
