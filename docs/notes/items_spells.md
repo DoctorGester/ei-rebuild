@@ -515,9 +515,9 @@ the static initialisers 00698E70..00698FB0 and 0065F580 (run before the hooks), 
 uninitialised stack byte: kept as the original), 0067E4E0 (the constructor of the global at 007C8478, called only by the static
 initialiser 0067E4C0, before the hooks), 006BFB00 / 006BFB20 / 006BFB80 (SectorData: their forwarders are in the terrain files of
 0x6C0000+), functions under 5 bytes, and two Ghidra artefacts (00646C25 is the body of 00646B90, 00656464 is inside an instruction).
-Rebirth-patched and still original: 00641F20, 00642930, 00642B40, 00645210, 006456E0, 00645F80, 006462A0, 00647FB0, 00648520,
+Rebirth-patched and still original then: 00641F20, 00642930, 00642B40, 00645210, 006456E0, 00645F80, 006462A0, 00647FB0, 00648520,
 00648D70, 00649190, 00649910, 006567A0, 00659420, 0065C2E0, 0065E580, 0066C180, 00684550, 0068E640, 00691500, 006A67A0, 006AE3A0,
-006B7110, 006BB3A0.
+006B7110, 006BB3A0 (A-H26 below ports their vanilla bodies).
 
 Library (config/library.csv): 006A5910, 006AF790, 006B0710, 006B0780, 006B09B0, 0069D0E0, 0069E350..0069E3D0 (STLport vector / uninitialised-copy
 helpers of the record tables and the stock) and the records' scalar deleting destructors 0069E540, 006A9EF0..006A9F90;
@@ -526,3 +526,49 @@ the code string's sort and reserve 0068C680..0068CE00, the trader stock's vector
 unwind-only vector destructors 0064AA40 / 0065A860 / 00663410 / 00675560, 00663660, 006726E0.
 
 **Next candidates** (after A-H23): 00693010, 00692D30 (composed textures), the material subsystem (CMaterial 0068DBC0 / 0068DE30 / 0068DF90 / 0068E040 with an STLport deque of 16-byte entries, CMaterialManager 0068E3F0 / 0068E540 / 0068E640 Rebirth-patched / 0068E900), the party container helpers 00664160 / 00664470 / 00664850 / 00664410 / 00664AC0 (CArray<PartyUnitRecord> destructor and friends; 00663410 is reached only from unwind funclets), 0069FB60 (items and their spells into two lists), the effect classes' 6-byte name / id getters in 0x675000-0x67E000; then the largest left in 0x640000-0x6C0000 (`python tools/progress.py`; it misses UI_INPUT_HANDLER registrations, so check `grep` before picking).
+
+## A-H26: the Rebirth-patched functions' vanilla bodies
+
+Each one is the function as the exe on disk has it. The installer skips a function whose bytes differ in memory, so these
+hook in the vanilla launch only and their wrappers run only there; our callers keep going through the EI_ORIGINAL forwarder
+(rule 9), which is why the UI ones are named `...Vanilla` beside a forwarder of the plain name. Patched callees are reached
+through their addresses: 00671730 / 006714A0 (resource open / destructor), 00480080 (FatalError), 005E6FA0 (sprite Place).
+V: S side by side, O ours only.
+
+| Address | Name, file | V and the scenario |
+|---|---|---|
+| 0066C180 | CPlayerManager::CreateSessionPlayer (player_manager.cpp): a player 0x300A with a connection 0x49 of the world's specific manager, refCount + 1, player id 0 | O; every start (the client world's construction), a server's new players |
+| 00691500 | CTextureManager::Create (slot 2, texture_manager_lifetime.cpp): the composed textures dropped, "textures.res", "redress.res", "menus.res" of the text folder (007AF45C) all tried, 1 only when all three opened | O: the three names listed in order; every start |
+| 006B7110 | CSoundManager::ListWaveFiles (sound_manager_lifetime.cpp): every wave source's ListFiles appended. Runs on the game's main thread (only caller 0053A8E0, UnitDatabase::CountSoundFiles) | S: the original into a scratch array, names by content; every start |
+| 00684550, 006A67A0 | itemdb::SpellDatabase::Load ("spells.sdb": spells, modifiers, three lists), ItemDatabase::Load ("items.idb": materials, weapons, armors, then quick items, loot, quest items); item_db_open.cpp | O: counts, every record's key leads to a record of that key; every start and each switch of the resource database (0057CB50) |
+| 006D0630, 006D7620 | PrintsDatabase::Load, acks::AckDatabase::Load (model_db_open.cpp; models.md) | O; every start |
+| 006AE3A0 | QuestDatabase::Load (quest_db_open.cpp; the database at 007C87A8 is now `QuestDatabase` in quest_records.h: quests + index, briefings + index) | O; every start |
+| 0068E640 | CMaterialManager::Create (slot 2, material.cpp): "materials.res" added, the eight kinds of the table at 00743BF8 (0x11 leather .. 0x17 magic, 0x19 metal again) entered with their file's 17 dwords, or diffuse 0.3 / alpha 1, ambient 0.7, specular 0.2, power 5 without the file; magic's emissive is 1 | O: each kind's colours against the file read again; every start |
+| 00648D70 | CHudClock::OnMouseUp (ui_hud.cpp): regions 0 pause, 1 / 2 normal / fast speed (not on a network client; update period 55 / 27 ms at 0078FF34), 3 the objectives | O: capture, handled flag, fast_, the period; no scenario clicks the clock yet |
+| 00649910 | CHudMovePanel::ShowModeVanilla (ui_hud.cpp; +0x14C is `mode_`): the marker turned by (2 mode + 1) pi / 16 about -z on a circle of 73 about (0, 600), the mode's button tinted 1, the others 0.7 | S (the original's writes put back before ours; floats CheckNear); every frame of the battle screen |
+| 00642930, 00645F80 | CHudMap::LayoutVanilla, CHudUnitPanel::LayoutVanilla (ui_hud_slide.cpp): the sprites, the text surface and the regions after the first at the slide offset (`offset_`, `travel_`, `slide_` named in both panels) | S; the battle screen's build (the setups call them) and every frame of a slide |
+| 00647FB0 | CHudUnitPanel::UpdateVanilla (slot 24): the slide (time x direction / 0.3 s, eased, _ftol of travel x eased), Layout, the sling button (scene object 2), a dead hover unit forgotten, the interface's +0x89 / +0x8C | S; every frame; the slide by ui_hud (the sling button twice) |
+| 00642B40 | CHudMap::UpdateVanilla (slot 24): zoom x or / 2.5^time towards zoomMax_ / 1 by view_, UpdateView, BuildMarkers (through their addresses), the slide as above (sling: scene object 5), +0x8B, the "camera north" time and its button's tint | O (it rebuilds the map's meshes): zoom, slide state, time and tint worked out from the state before; every frame; zoom by ui_hud; no scenario slides the map |
+
+Shared: database_file.h (`dbfile::LocalResource`, `LocalStream`, `FillStream`, `LoadTable`, `OpenDatabase`, `ReportNoDatabase`;
+unit_db_load.cpp uses it too); `MappedResourceOpenOriginal`, `ChunkArchiveDestroyOriginal` (originals_engine.h);
+`GameIsPausedOriginal` / `GameSetPausedOriginal` moved from ui_battle_keys.cpp to originals_world.h. The tables' vector
+serialisers are called through their addresses so that their wrappers run.
+Kept: the folder-only loads (quests, prints, acks) open "database.res" but report "databases.res" when that fails; the
+serialisers' unused third argument is whatever the original's stack held (the file's size, its data, a table's address, or
+an unwritten slot: null in ours); ItemDatabase / SpellDatabase / AckDatabase file a repeated key over the earlier record
+(operator[]); CMaterialManager::Create ignores AddArchive's result and calls CloseFile with null for a missing file.
+Float notes (rule 7): the slides compare on the FPU stack in the original; an offset on a rounding edge may differ by one for
+a frame (the wrappers allow it and then skip the layout comparison).
+006BB3A0 (the stream reader) is called only by 006BB910 `StreamThread`, the game's own thread (AfxBeginThread), under the
+stream lock every 100 ms; not Miles' thread. Not ported yet.
+
+Still original (Rebirth-patched): 00641F20 (map setup), 00645210 (the map's button release: sling, camera north, a click on the map moves the camera), 006456E0 (unit panel setup), 006462A0 (unit panel draw),
+00648520 (clock setup), 00649190 (movement panel setup), 006567A0 (save / load list), 00659420 (help page draw), 0065C2E0
+(edit field draw), 0065E580 (tooltip mouse move), 006BB3A0, and 006C68B0 (map loader, models.md). None of the ported ones
+drives the Direct3D / DirectDraw device directly; 006462A0, 00659420 and 0065C2E0 draw (through sprites, surfaces and GDI
+text) and were not reached.
+Next candidates: 00648520 and 00649190 (the clock's and the movement panel's setups: sprites through 005E8C60 Disc and the
+patched 005E99D0 SetTriangle, region polygons through the patched 005FCA70 AddPoint, whose points are `_ftol(cos x 35)`:
+sin(pi / 2) x 35 truncates to 35 only at the game's 24-bit FPU precision, so use float maths there), 0065E580, 0065C2E0,
+006BB3A0 (ours-only wrapper without logging in the loop), then the two big setups and 006C68B0.

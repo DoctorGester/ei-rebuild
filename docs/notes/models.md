@@ -342,7 +342,16 @@ reported and the capture goes on. They read the DirectDraw surface as before: a 
 switch-over) is not handled, as in the original. texture_bmp.cpp, app_frame.cpp and ui_interface_keys.cpp now use `CDib`
 and the shared capture forwarders instead of their own.
 
-Stay forwarded: 006C68B0, 006D0630, 006D7620 (Rebirth-patched); `CDib::Read` 006D5910 / `Write` 006D5AC0 (MFC TRY / CATCH
+A-H26: 006D0630 `PrintsDatabase::Load` and 006D7620 `acks::AckDatabase::Load` are ported as their vanilla bodies
+(model_db_open.cpp; hooked in the vanilla launch only, rule 9; wrappers ours only in verify_database_open.cpp, reached at
+every start): `folder` + "database.res" opened through 00671730 (a failure is reported as "databases.res"), the file copied
+into a memory stream, each table read through a ChunkArchive of its own (prints chunks 1 blood, 2 footprints, 3 scorch;
+acks chunks 1 units, 2 models, 3 extras) and filed under its records' names (`PrintsDatabase` gained `scorchByName` at
++0x4C; 0x60 bytes). The ack load then fills every record's kind map: units kinds 0..0x15 to lists 0..21, 0x16..0x1B entered
+as null, 0x1C..0x1F to 22..25, 0x20..0x22 to 28..30, 0x23 / 0x24 to 26 / 27, 0x27 / 0x28 to 31 / 32, 0x2A the named
+speeches; models 0x2E..0x32; extras 0x2C / 0x2D. 006C68B0 (the map loader, 3.7 KB) is still original.
+
+Stay forwarded: 006C68B0 (Rebirth-patched); `CDib::Read` 006D5910 / `Write` 006D5AC0 (MFC TRY / CATCH
 frames around the file calls, catching the game's MFC exceptions: as 004F0B90). Dead (config/dead_code.csv): 006C67E0,
 006C42A0, 006C4310 (a third draw pass reached only from the dead 006CC8D0). 50 rows in config/library.csv ("A-X6 review"): the landscape's CArray /
 aligned array element helpers and the prints / acks records' and databases' compiler-generated members. With these the
