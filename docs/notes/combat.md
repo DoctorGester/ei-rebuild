@@ -257,9 +257,8 @@ ours = consistency checks (most order / update code: run every tick).
   and of a call record (00558CA0, 00558CC0: the brain's memory arrays destroyed). The order checks 0054C8B0 / 0054C960
   were ported by A-W13 at the same time (CanReachAndPlan / CanReachAndPlanFrom, combat_tick.cpp); this ticket's copy
   was dropped when main was merged (both read the disassembly the same way).
-- **The maps folder** (`world_maps_folder.cpp`, 0055E990; Rebirth-patched, so the vanilla function, installed in the
-  vanilla launch only): the data path (CString 007AF460) with "maps\" appended, constructed at the caller's storage.
-  Side by side in the vanilla launch (every zone load), compared by content.
+- **The maps folder** (0055E990): A-W14 ported it at the same time (`world_map_files.cpp`, world.md); this ticket's
+  copy (`world_maps_folder.cpp`) was dropped by A-W15, since two definitions broke the link on main.
 - **config/library.csv**: 00545FD0, 005461E0, 00546200 (unwind-only destructors of locals), 005576B0 (an STLport count
   decrement whose only caller is library code).
 - **Left**: 0055E1B0-0055FF90 (the world's small slots and helpers; world.md) for the AI / world area. Nothing else in

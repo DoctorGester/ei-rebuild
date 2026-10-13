@@ -1,10 +1,10 @@
-// Checks for unit_db_load.cpp and world_maps_folder.cpp (A-U12).
+// Checks for unit_db_load.cpp (A-U12). The maps folder 0055E990 is checked in
+// verify_world_map_files.cpp (A-W14 ported it too; one copy kept).
 // Side by side:
 // - UnitModelTable::FindByName / UnitLevelTable::FindByName (0053D240, 0053D650): reached when
 //   the original loader 0053A200 runs, that is at every start of a Rebirth launch (in the vanilla
 //   launch our loader calls ours directly). A lookup leaves an entry for an unknown name, so ours
 //   runs first and the original then finds what ours left: the same record either way.
-// - MapsFolder (0055E990; the vanilla launch only, Rebirth patches it): every zone load.
 // Ours only (the vanilla launch only, Rebirth patches both; they fill the databases, which are
 // checked afterwards):
 // - UnitDatabase::Load (0053A200), SkillDatabase::Load (00520220): every start of the game, and each
@@ -14,8 +14,6 @@
 #include "../../src/game/unit_db.h"
 
 #include <cstring>
-
-mfc::CString* __stdcall MapsFolder(mfc::CString* out);
 
 namespace {
 void* s_unused;
@@ -109,19 +107,3 @@ static int __fastcall SkillDatabaseLoadVerify(SkillDatabase* self, void*, const 
     return result;
 }
 EI_VERIFY(0x00520220, SkillDatabaseLoadVerify, 0, s_unused);
-
-// PUSH -1 (2 bytes), PUSH imm32 (5). Both results are separate strings: compared by content, ours
-// destroyed.
-static mfc::CString*(__stdcall* s_MapsFolder)(mfc::CString*);
-static mfc::CString* __stdcall MapsFolderVerify(mfc::CString* out) {
-    mfc::CString* expected = s_MapsFolder(out);
-    alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
-    mfc::CString* actual = MapsFolder(reinterpret_cast<mfc::CString*>(storage));
-    ei::verify::Check("MapsFolder", true,
-                      expected == out && std::strcmp(static_cast<const char*>(*expected),
-                                                     static_cast<const char*>(*actual)) == 0,
-                      "%s / %s", static_cast<const char*>(*expected), static_cast<const char*>(*actual));
-    actual->~CString();
-    return expected;
-}
-EI_VERIFY(0x0055E990, MapsFolderVerify, 7, s_MapsFolder);
