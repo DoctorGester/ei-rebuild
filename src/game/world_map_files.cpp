@@ -16,10 +16,6 @@ namespace {
 const mfc::CString& DataFolder() { return *static_cast<const mfc::CString*>(worlddata::DataPathString()); }
 const char* MapsFolderName() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078FEE0)); }   // "maps\"
 
-// The maps folder through its address (Rebirth patches it): the CString is constructed over
-// `out`, which holds an empty one.
-__declspec(naked) mfc::CString* __stdcall MapsFolderAt(mfc::CString* /*out*/) EI_ORIGINAL(0x0055E990)
-
 // A file stream on the stack, as the original inlines its constructor and destructor.
 struct LocalFileStream {
     LocalFileStream() { stream.Construct(); }

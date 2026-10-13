@@ -868,6 +868,12 @@ struct AIEventTable : AIViewer {
     void Clear();
     // 005C91F0 (the destructor). Every event of the wheel goes to the free list; the grid is freed.
     void Destroy();
+    // 005C9310 (RET 0xC; CAIMap::Load, 005B43C0; patched by Rebirth, so vanilla only; A-W14). The
+    // table for a map of sizeX x sizeY: Clear, the map kept, the grid 1 - trunc(size * -0.125)
+    // cells each way (reallocated unless it has that size) and emptied. Then the 4096 bytes of
+    // "normal.dat" in the text resources' "aiinfo.res" are copied to 007C43C4. Returns 1; a
+    // missing archive or file is a fatal error, whose result is returned.
+    int Setup(CAIMap* aiMap, float sizeX, float sizeY);
 
     // The cell of `event`, or null outside the grid.
     AIEventCell* CellOf(const AIEvent* event) const;

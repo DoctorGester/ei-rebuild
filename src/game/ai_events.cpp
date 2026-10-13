@@ -5,10 +5,16 @@
 
 #include "combat.h"
 #include "core_streams.h"
+#include "originals_engine.h"
+#include "resource.h"
+#include "world_data.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
+#include "lib/crt.h"
 #include "lib/mfc.h"
+
+#include <cstring>
 
 namespace {
 
@@ -141,3 +147,68 @@ void AIEventTable::Save(CStream* stream) {
     stream->Write(&end, 1);
 }
 EI_REPLACE_METHOD(0x005CAFA0, AIEventTable::Save);
+
+// ---- Setup for a map (005C9310, A-W14) --------------------------------------------------------------
+
+namespace {
+
+constexpr std::uintptr_t kMinusCellScale = std::uintptr_t(0x0073FEB0);       // -0.125
+constexpr std::uintptr_t kAiInfoArchive = std::uintptr_t(0x0079185C);        // "aiinfo.res"
+constexpr std::uintptr_t kCantReadAiInfo = std::uintptr_t(0x0079183C);       // "Unable to read file aiinfo.res"
+constexpr std::uintptr_t kNormalFile = std::uintptr_t(0x007919F0);           // "normal.dat"
+constexpr std::uintptr_t kCantOpenNormal = std::uintptr_t(0x007919C4);       // "CAIMap::Load.\n Can't open file ..."
+constexpr std::uintptr_t kNormalTable = std::uintptr_t(0x007C43C4);          // the 4096 bytes of normal.dat
+constexpr std::size_t kNormalTableSize = 0x1000;
+
+const char* TextAt(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
+
+// CMappedResource::OpenResource at its address: Rebirth patches it.
+__declspec(naked) BOOL __fastcall ArchiveOpenAt(CMappedResource*, void*, const char* /*path*/, BOOL /*writable*/)
+    EI_ORIGINAL(0x00671730)
+
+} // namespace
+
+int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
+    Clear();
+    map = aiMap;
+    const float scale = *reinterpret_cast<const float*>(kMinusCellScale);
+    const int newWidth = 1 - static_cast<int>(gamecrt::Ftol(sizeX * scale));
+    const int newHeight = 1 - static_cast<int>(gamecrt::Ftol(sizeY * scale));
+    if (width != newWidth || height != newHeight) {
+        gamecrt::operator_delete(cells);
+        gamecrt::operator_delete(rows);
+        height = newHeight;
+        width = newWidth;
+        cells = static_cast<AIEventCell*>(
+            gamecrt::operator_new(static_cast<std::size_t>(newHeight * newWidth) * sizeof(AIEventCell)));
+        rows = static_cast<AIEventCell**>(gamecrt::operator_new(static_cast<std::size_t>(height) * sizeof(AIEventCell*)));
+        for (int i = 0; i < height; ++i) rows[i] = cells + width * i;
+    }
+    std::memset(cells, 0, static_cast<std::size_t>(height * width) * sizeof(AIEventCell));
+
+    alignas(CMappedResource) std::uint8_t storage[sizeof(CMappedResource)];
+    auto* archive = reinterpret_cast<CMappedResource*>(storage);
+    archive->Construct();
+    bool failed;
+    {
+        mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextPathString()));
+        mfc::CString path = folder + TextAt(kAiInfoArchive);
+        failed = ArchiveOpenAt(archive, nullptr, path, 0) == 0;
+    }
+    void* data = nullptr;
+    const char* error = TextAt(kCantReadAiInfo);
+    if (!failed) {
+        data = archive->CMappedResource::GetFile(TextAt(kNormalFile), nullptr);
+        error = TextAt(kCantOpenNormal);
+    }
+    if (!data) {
+        const int result = FatalErrorOriginal(error);
+        MappedResourceDestroyOriginal(archive);
+        return result;
+    }
+    std::memcpy(reinterpret_cast<void*>(kNormalTable), data, kNormalTableSize);
+    archive->CMappedResource::CloseFile(data);
+    MappedResourceDestroyOriginal(archive);
+    return 1;
+}
+EI_REPLACE_METHOD(0x005C9310, AIEventTable::Setup);

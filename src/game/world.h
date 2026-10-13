@@ -592,6 +592,14 @@ public:
     // files, script queues, diplomacy, map objects, missiles and timed objects go, then the
     // base class's teardown (0055F890); the game result and kind are cleared.
     void TeardownZone();
+    // 00595480 (RET 0xC; world_save.cpp; patched by Rebirth, so vanilla only; A-W14). A new zone
+    // from the map `map` and the object file `mob`: the loading movie picked for `zone` and its
+    // first frame shown; 0 when a file is neither where its name says nor in the maps folder
+    // (null names are not looked for). The AI graph is read (ReadAIGraph; without it a fatal
+    // error, whose result is returned), the .mob list and the alarms are emptied and the map
+    // loaded between the AI map's BeginRefresh and EndRefresh (LoadMap; a failure is a fatal
+    // error too). The zone name is kept when given, +0x160 cleared. Returns 1.
+    int NewZone(const char* map, const char* mob, const char* zone);
     // 00595B50 (RET 8; world_map.cpp; the client's state block 00567AB0 through the glue 00578730).
     // Unless the zone's map and .mob are these already: NewZone(map, mob, null), then TeardownZone.
     void EnsureZone(const char* map, const char* mob);

@@ -14,10 +14,17 @@
 // - CFigureManager::CreateWithArchives (005AA510), ours only (it opens archives): returns 1 and
 //   the manager then has the menus' "menus.reg". Reached when a world's managers are created
 //   (WorldCreateManagers): the start of the game and every new game.
+// - CWorldServer::NewZone (00595480), ours only (it loads a zone): 0, or 1 with the world marked
+//   loaded, the AI map refreshing its units again, +0x160 clear and the zone name kept when one
+//   was given. Reached by the game flow whenever a zone starts (GameFlow::StartZone and the menu
+//   map, through the forwarder at its address): the start of the game, newgame and every
+//   scenario after it.
 #include "verify.h"
 
 #include "../../src/game/figure_manager.h"
+#include "../../src/game/ai_map.h"
 #include "../../src/game/net_coder.h"
+#include "../../src/game/world.h"
 #include "../../src/game/world_map_files.h"
 
 #include <cstring>
@@ -79,8 +86,20 @@ int __fastcall CreateWithArchivesVerify(CFigureManager* self) {
     return result;
 }
 
+int __fastcall NewZoneVerify(CWorldServer* self, void*, const char* map, const char* mob, const char* zone) {
+    int result = self->NewZone(map, mob, zone);
+    bool ok = result == 0;
+    if (result == 1)
+        ok = self->loaded_ == 1 && self->AIMap()->refreshUnits && self->unknown160_ == 0 &&
+             (!zone || std::strcmp(self->zoneName_, zone) == 0);
+    ei::verify::Check("CWorldServer::NewZone", true, ok, "%s / %s / %s: result %d", map ? map : "(null)",
+                      mob ? mob : "(null)", zone ? zone : "(null)", result);
+    return result;
+}
+
 } // namespace
 
+EI_VERIFY(0x00595480, NewZoneVerify, 0, s_unused);
 EI_VERIFY(0x0055E990, MapsFolderVerify, 7, s_mapsFolder);
 EI_VERIFY(0x00595BA0, MapPathVerify, 7, s_mapPath);
 EI_VERIFY(0x005812F0, MapFileExistsVerify, 7, s_mapFileExists);
