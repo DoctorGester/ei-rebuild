@@ -16,11 +16,14 @@
 #include "engine_object.h"
 #include "maths.h"
 
+#include "lib/mfc.h"
+
 #include <cstddef>
 #include <cstdint>
 
 class CStream;              // core_streams.h
 struct DeltaState;          // net_delta.h
+class CMemoryStream;        // core_streams.h (net_delta.h: BitStream)
 struct UnitVitalsPacked;    // unit.h
 class CObject3D;            // map_object_figures.h
 
@@ -177,6 +180,33 @@ public:
     // 1, else 2. Returns slot 47's EAX.
     int SetVisibilityLevel(float level);
 
+    // map_object_stub_slots.cpp (A-U12). The slots a plain map object leaves empty are free
+    // functions there; these read the object.
+    // 0050E560 (slot 0, RET 4). DestructBody, then operator delete with flags bit 0. Returns this.
+    CMapObject* DeleteMapObject(unsigned flags);
+    // 0050E500 (slot 55). Whether the object is dead: the companion's slot 17 (a tail call).
+    int CompanionIsDead();
+    // 0050E930 (the sector map's Remove). The companion's slot 14 (empty in both); returns 1.
+    int NotifyCompanion();
+    // 0050E9B0 (slot 34, RET 4). The vitals of the prototype `prototype` (the owner's
+    // BuildFromPrototype, 005136D0, asked for no statistics) packed into +0x17C. The vitals are a
+    // local the original does not clear either.
+    void TakePrototype(const char* prototype);
+    // 0050EA40 / 0050EA70. The network state written in full / only its changed parts (the
+    // statistics, slot 32, repacked first when part 0 or 4 changed): the write mode, slot 50, the
+    // state finished (0047FE90); flags_ bit 1 cleared.
+    void WriteFullState();
+    void WriteChangedState();
+    // 0050EAB0 (RET 8). The network state read from `reader`: BeginRead, slot 49 with `first`, the
+    // state finished. Returns slot 49's EAX.
+    std::uint32_t ReadState(int first, CMemoryStream* reader);
+    // 0050F150 (RET 4). The second name (+0x1A8) becomes `text`. Returns the string.
+    mfc::CString* SetSecondName(const char* text);
+    // 00516350 / 00516360 (slots 16 / 17, RET 4; CObject3D's too). The transform written to /
+    // read from the MFC file (CTransformObject 00401510 / 00401540, called directly).
+    void SaveTransformSlot(void* file);
+    void LoadTransformSlot(void* file);
+
     // The object as the CObject3D it derives from in the original (map_object_figures.h).
     CObject3D* Object3D() { return reinterpret_cast<CObject3D*>(this); }
 
@@ -279,7 +309,7 @@ public:
     // 18 (0x48): whether the object may play the animation entry (FigureAnimation, map_object_figures.h);
     // 0050E400 for CObject3D / CMapObject, CUnit 00532DA0 (AcceptsTarget: its flags +0x18 for heroes).
     virtual bool AcceptsAnimation(const void* animation) = 0;
-    virtual void AttachObject() = 0;       // 19: 0050E890 (units 0052E870 AttachCompanion)
+    virtual void AttachObject(CEngineObject* object) = 0;   // 19 (RET 4): 0050E890 (units 0052E870 AttachCompanion)
     virtual void CopyFigure() = 0;         // 20: CObject3D 005161E0
     virtual bool InvisibleSlot() = 0;   // 21 (0x54): 0050FA10 IsInvisible
     // 22 / 23 / 24 (0x58 / 0x5C / 0x60, RET 4): draw the figure / draw it and collect its screen
@@ -312,7 +342,7 @@ public:
     // 35 (0x8C): 0050E480 empty; units 00530A20: a CUnitServer controller (class 0x3E) copies the
     // statistics (00552F40, CUnitServer::SetStats).
     virtual void SetStats(const UnitStats* stats) = 0;
-    virtual void SetServerData() = 0;      // 36: 0050F050
+    virtual void SetServerData(const void* vitals) = 0;   // 36 (RET 4): 0050F050
     // 37 (0x94): 0050E490 empty; units 00530A50, the controller's slot 23 (CUnitServer 00552FB0).
     virtual void UpdateSizeClasses() = 0;
     virtual int IsUsable() = 0;            // 38: 0 (0050F0C0); traps 1, levers NeedsKey 0052BB00
@@ -329,7 +359,7 @@ public:
     virtual void SetStunned() = 0;         // 46: 0050E4A0; units 0052F7F0 SetFlag1000000
     virtual int SetVisibilityMode(int mode) = 0;    // 47 (0xBC): 004467C0 hands it to the companion
     virtual Vector3* EyePoint(Vector3* out) = 0;        // 48 (0xC0): where the object sees from; returns `out`
-    virtual void ReadNetState() = 0;       // 49: 0050EC30 (units 0052EF90)
+    virtual std::uint32_t ReadNetState(int first) = 0;   // 49 (RET 4): 0050EC30 (units 0052EF90)
     virtual void WriteNetState() = 0;      // 50: 0050EAF0 (units 0052EC70)
     virtual void PlaceOnGround(float offset) = 0;   // 51 (RET 4): 0050F020 (units 0052F740) sets +0x24 to the ground height at (+0x1C, +0x20) plus `offset`
     // 52 (0xD0): where the object is at world time `time` (units: along their path; other objects
