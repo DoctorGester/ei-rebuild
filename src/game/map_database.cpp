@@ -331,3 +331,10 @@ bool CMapDatabase::LoadAll() {
     return Load(reinterpret_cast<const char*>(0x00785694));
 }
 EI_REPLACE_METHOD(0x0045EA00, CMapDatabase::LoadAll);
+
+CMapDatabase* CMapDatabase::Construct() {
+    allods.Construct(kAllodArrayVtable);
+    maps.Construct(kMapArrayVtable);
+    return this;
+}
+EI_REPLACE_METHOD(0x0045E820, CMapDatabase::Construct);

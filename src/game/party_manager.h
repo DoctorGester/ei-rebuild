@@ -56,6 +56,11 @@ struct PartyManager {
     // and the records released and their vectors freed, the records' two strings, the entries, then
     // every party of the map (the map's own node deleter) and the bucket array.
     void Destruct();
+    // 004A5870 (A-E1; app_lifetime.cpp). The constructor: an empty party map of 193 buckets (the
+    // prime after 100), no entries, no records with two empty strings, no templates; unknown_20 is
+    // left as it is. It runs from the static initialiser 004A56D0 on the manager at 007AA5A0,
+    // before the hooks are installed, so the hook on it never fires. Returns this.
+    PartyManager* Construct();
 };
 static_assert(offsetof(PartyManager, entries) == 0x14);
 static_assert(offsetof(PartyManager, unknown_20) == 0x20);

@@ -129,3 +129,16 @@ void PartyManager::Destruct() {
     static_cast<stlp::vector<void*>*>(parties.BucketVector())->FreeStorage();
 }
 EI_REPLACE_METHOD(0x004A5700, PartyManager::Destruct);
+
+PartyManager* PartyManager::Construct() {
+    parties.InitBuckets(100);
+    new (&entries) stlp::vector<PartyManagerEntry>();
+    new (&records.records) stlp::vector<PartyRecord*>();
+    new (&records.text0C) mfc::CString();
+    new (&records.text10) mfc::CString();
+    templates.start = nullptr;
+    templates.finish = nullptr;
+    templates.eos = nullptr;
+    return this;
+}
+EI_REPLACE_METHOD(0x004A5870, PartyManager::Construct);

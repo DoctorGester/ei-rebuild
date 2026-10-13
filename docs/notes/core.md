@@ -309,3 +309,19 @@ to which template:
   the nodes freed, the count and maxId cleared (the buckets stay). The world's object map (map close) and the
   player's two maps of sent objects call it through `ObjectMapClearOriginal`. Ours only (objects can go with
   their last reference); the map must end empty.
+- A-E1: `CCamera::LoadPath` (0040ECD0, RET 8, camera_path_load.cpp; Rebirth-patched at its file open
+  0040ED42, so the vanilla launch only): `<data folder>camera\<name>` opened with a CFile (0 when that fails),
+  the keys resized to length / 36 as the engine's aligned arrays are (+0x2F0..+0x2FC are an
+  `AlignedArray<CameraKey>`: data, size, capacity, grow step) and filled with one read. With the second
+  argument above 1 and below the key count, the first key among that many that is more than 500 time units
+  after its predecessor gives its position and rotation to every key before it. Side by side on the camera
+  itself (the original loads, the keys are copied, ours loads again; results, counts and key bytes compared).
+  Reached when a recorded path is played (the glue 00578820 / 00578880 calls it through its address).
+- A-E1: constructors of globals that run from static initialisers, before the hooks install (their hooks never
+  fire; written so the standalone build has them): `CMapDatabase::Construct` (0045E820, the database at
+  0079BF00: two empty CArrays with the vtables 0073C3DC / 0073C3E8), `LeverRecordTable::Construct` (004632A0,
+  the lever table at 0079C1A0: no records, an index of 193 buckets) and `PartyManager::Construct` (004A5870,
+  the party manager at 007AA5A0: a party map of 193 buckets, no entries, records or templates, two empty
+  strings; +0x20 is not written). The unused functor bytes the originals copy from uninitialised stack bytes
+  are not written. Ours-only wrappers in verify_static_constructors.cpp. Not ported: 00444740 (the debug
+  info panel at 0079B930, an interface class) and 00458870.

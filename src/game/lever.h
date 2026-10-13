@@ -50,6 +50,10 @@ struct LeverRecordTable {
     // enters every record into the index under its name. Returns 1, or the fatal error's result
     // when the archive or the file does not open.
     int Load(const char* folder);
+    // 004632A0 (lever_table_load.cpp, A-E1). The constructor: no records, an empty index of 193
+    // buckets (the prime after 100). It runs from the static initialiser 004630F0 on the table at
+    // 0079C1A0, before the hooks are installed, so the hook on it never fires. Returns this.
+    LeverRecordTable* Construct();
 
     LeverRecord* begin;             // +0x00
     LeverRecord* end;               // +0x04

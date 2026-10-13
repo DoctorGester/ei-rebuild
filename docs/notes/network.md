@@ -220,3 +220,26 @@ messages inline.
   real one; the lists' elements, the emptied source and the link's count compared. Registered through shims (a
   pointer to a virtual member would dispatch). By reading, the handle's is reached when a server world takes
   its local player (a new game); the session's only on a network server.
+
+## A-E1: the server's master announcement and two handlers (net_server_handlers.cpp)
+
+All on the main thread (the session's tick from `net::Pump`); none is called from a library's thread.
+
+- `ServerSession::AnnounceToMaster` (0041AA10; the tick calls it through its address every announcement
+  interval while a master host name is set): a `GameInfoRecord` on the stack (name, the played map's title
+  from 005814C0 or "" without a map, players, maximum, kind, password flag, +0x25FC, the dword the master
+  last sent, the session magic) written into a growing buffer and sent from the session's socket to the
+  master's address. Ours only (it sends a datagram).
+- `ServerSession::OnMaster` (0041ACA0, slot 10): a kind -1 packet from the master's address (16 bytes
+  compared) whose first dword equals +0x25FC stores its second dword at +0x2578; the first dword is consumed
+  either way. Side by side (the kept dword and the cursor put back between the runs).
+- `ServerOnSay` (0041B1C0, ECX the server, EDX the SayMessage; registered by the server's constructor): the
+  first binding of the connection being read (0079B924) names the player; "^<number><name>^7: <text>" is
+  announced to everybody (`Announce` with no player). Nothing without a live connection or binding. Ours
+  only.
+- Rebirth: EI_Plugin's NewMaster has sites in 0041AA10 (0041ABDA, the send) and 0041ACA0 (0041ACB7), addon's
+  ChatLog one in 0041B1C0 (0041B25B, disabled in this install). The rewrites are the vanilla functions; the
+  installer does not hook a function with an active site. No scenario reaches any of the three (a master
+  server, or a second client's chat line, is needed).
+- Still in the exe: 0041ECC0 (the file chunk handler: collects a file's chunks, sorts and joins them and
+  hands the file to the game flow, 005813A0) and 00443080 (the login handler, FixProcessLogin).

@@ -54,3 +54,12 @@ int LeverRecordTable::Load(const char* folder) {
     return 1;
 }
 EI_REPLACE_METHOD(0x00463390, LeverRecordTable::Load);
+
+LeverRecordTable* LeverRecordTable::Construct() {
+    begin = nullptr;
+    end = nullptr;
+    endOfStorage = nullptr;
+    byName.InitBuckets(100);
+    return this;
+}
+EI_REPLACE_METHOD(0x004632A0, LeverRecordTable::Construct);
