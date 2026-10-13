@@ -1,7 +1,7 @@
 // CDib (006D49E0-006D6AB0; MFC class "CDib", runtime class 00796CD0, vtable 00744288): a device
 // independent bitmap as a .bmp file holds one. The game reads loose textures\<name>.bmp overrides
 // with it (texture_bmp.cpp) and writes the screenshots and movie frames a surface capture
-// (006D6D40) fills. See docs/notes/models.md ("CDib").
+// (below) fills. See docs/notes/models.md ("CDib").
 #pragma once
 
 #include "lib/gameapi.h"
@@ -71,3 +71,15 @@ static_assert(offsetof(CDib, header) == 0x10);
 static_assert(offsetof(CDib, imageSize) == 0x20);
 static_assert(offsetof(CDib, palette) == 0x38);
 static_assert(sizeof(CDib) == 0x3C);
+
+struct CDXSurface;   // texture.h
+
+// 006D6D40 (ECX the holder, EDX the rectangle; surface_capture.cpp): a new bitmap of the surface's
+// pixels inside `rect`, in the surface's depth (16 and 32 bits with its channel masks), rows
+// bottom-up. The surface is locked for reading meanwhile.
+CDib* __fastcall CaptureSurfaceRect(CDXSurface* surface, const RECT* rect);
+// 006D6FC0 (thiscall): the same of the whole surface.
+CDib* __fastcall CaptureSurface(CDXSurface* surface);
+// The two through their addresses, so that their verify wrappers see the calls.
+CDib* __fastcall CallCaptureSurfaceRect(CDXSurface* surface, const RECT* rect);
+CDib* __fastcall CallCaptureSurface(CDXSurface* surface);

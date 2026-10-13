@@ -53,7 +53,6 @@ CursorLock CursorLockAtCallSite() {
     return reinterpret_cast<CursorLock>(kCall + 5 + rel);
 }
 __declspec(naked) void __fastcall ScreenDraw(void*) EI_ORIGINAL(0x005E54A0)
-__declspec(naked) CDib* __fastcall CaptureSurface(void* /*surface*/, const std::uint32_t* /*rect*/) EI_ORIGINAL(0x006D6D40)
 
 // The movie list: CStringArray (library), the .ini reader, CString concatenation (AFXAPI), the
 // video player.
@@ -126,7 +125,7 @@ void __fastcall FrameStep(bool draw, bool cursor) {
     rect[1] = 0;
     rect[2] = width;
     rect[3] = height;
-    CDib* bitmap = CaptureSurface(At<void*>(renderer, 0x14), rect);
+    CDib* bitmap = CallCaptureSurfaceRect(At<CDXSurface*>(renderer, 0x14), reinterpret_cast<const RECT*>(rect));
     bitmap->Write(&file);
     if (bitmap) ei::VCall<void>(bitmap, 1, 1);
     file.Close();

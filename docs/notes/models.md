@@ -303,7 +303,8 @@ coordinate counts, and at least vertices - 3 coordinates (it prints which part f
 
 ### Landscape passes, light tests, CDib (A-X6)
 
-Code: `terrain_passes.cpp`, `terrain_shadow.cpp`, `terrain_landscape.cpp` (tail), `dib.h/.cpp`, `acks_db.cpp`. Every scenario
+Code: `terrain_passes.cpp`, `terrain_shadow.cpp`, `terrain_landscape.cpp` (tail), `dib.h/.cpp`, `surface_capture.cpp`,
+`acks_db.cpp`. Every scenario
 that shows the world reaches the passes and light tests each frame; `terrain_water_load` (new: a save made while a script
 water change runs, loaded back) reaches SetWaterLevel; `camera` (Scroll Lock screenshot) reaches the CDib part marked *.
 
@@ -320,6 +321,8 @@ water change runs, loaded back) reaches SetWaterLevel; `camera` (Scroll Lock scr
 | 006D6AB0*, 006D54D0 | `CDib::AllocateBits`, `MakePalette` (the original's block / palette freed between the runs) | S |
 | 006D69B0*, 006D4CD0*, 006D4B10*, 006D5BB0 | `CDib::Empty`, `Destruct`, `Delete` (slot 1), `Serialize` (slot 2) | O |
 | 006D4D10, 006D4A60 | `CDib::Size`, `GetRuntimeClass` (slot 0) | P |
+| 006D6D40* | `CaptureSurfaceRect` (surface_capture.cpp: the surface read twice, the bitmaps' headers and pixels compared) | S |
+| 006D6FC0* | `CaptureSurface` (the whole surface, through 006D6D40) | O |
 | 006D8E30 | `acks::AckTable<ExtraAcks>::RecordAt` (from the loader at startup) | P |
 
 Facts. The two passes differ only in the page range: ground 0..pages+1, water pages+2..pages*2+3; a page's texture is
@@ -332,19 +335,21 @@ Terrain members named: `drawMatrix` +0x54, `worldMatrix` +0x98, `materials` +0x1
 `minDetail` +0xAA0, `waterLevels` +0xAE8 (per sector, per material). `CDib` (0x3C bytes, dib.h): colour table, bits,
 header, who owns them (1 new, 2 global memory), image size, mapped file handles, palette. Kept: AllocateBits sizes the
 block without row padding while Write writes `imageSize` (rows padded to four bytes): a screenshot whose row is not a
-multiple of four bytes is written from past the block's end. texture_bmp.cpp, app_frame.cpp and ui_interface_keys.cpp now use
-`CDib` instead of their own forwarders.
+multiple of four bytes is written from past the block's end. The captures (`CDXSurface` holder in ECX, the rectangle in
+EDX for 006D6D40): GetPixelFormat, a read Lock under the device lock 007AEE78, a new CDib in the surface's depth with its
+channel masks, the rows copied from the last to the first (16, 24 and 32 bits only), Unlock; a failed DirectDraw call is
+reported and the capture goes on. They read the DirectDraw surface as before: a holder without one (the renderer's
+switch-over) is not handled, as in the original. texture_bmp.cpp, app_frame.cpp and ui_interface_keys.cpp now use `CDib`
+and the shared capture forwarders instead of their own.
 
 Stay forwarded: 006C68B0, 006D0630, 006D7620 (Rebirth-patched); `CDib::Read` 006D5910 / `Write` 006D5AC0 (MFC TRY / CATCH
-frames around the file calls, catching the game's MFC exceptions: as 004F0B90); the surface captures 006D6D40 / 006D6FC0
-(`CDXSurface` methods: GetPixelFormat / Lock / Unlock of the DirectDraw frame surface, rows copied bottom-up into a new
-CDib; they go with the renderer's DirectDraw boundary). Dead (config/dead_code.csv): 006C67E0, 006C42A0, 006C4310 (a third
-draw pass reached only from the dead 006CC8D0). 50 rows in config/library.csv ("A-X6 review"): the landscape's CArray /
+frames around the file calls, catching the game's MFC exceptions: as 004F0B90). Dead (config/dead_code.csv): 006C67E0,
+006C42A0, 006C4310 (a third draw pass reached only from the dead 006CC8D0). 50 rows in config/library.csv ("A-X6 review"): the landscape's CArray /
 aligned array element helpers and the prints / acks records' and databases' compiler-generated members. With these the
 range has no other unported game code.
 
-Next: the two captures with the renderer's frame capture; `CDib::Read` / `Write` once the file layer is ours (no MFC
-exceptions to catch).
+Next: `CDib::Read` / `Write` once the file layer is ours (no MFC exceptions to catch); the captures need the new
+renderer's frame when the switch-over draws without a DirectDraw surface.
 
 ## Resources and the sound file reader (00671280-00675B40)
 

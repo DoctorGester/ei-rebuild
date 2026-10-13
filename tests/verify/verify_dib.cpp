@@ -6,6 +6,7 @@
 
 #include "../../src/game/dib.h"
 #include "../../src/lib/crt.h"
+#include "../../src/game/texture.h"
 
 #include <cstdint>
 #include <cstring>
@@ -213,5 +214,46 @@ std::uint8_t* __fastcall AllocateBitsVerify(CDib* self) {
     return actual;
 }
 EI_VERIFY(0x006D6AB0, AllocateBitsVerify, 6, s_allocateBits);
+
+// 006D6D40: PUSH -1; PUSH imm32 (7 bytes). From the screenshot (scenario camera) and the movie
+// recorder. Both read the surface (a read lock each; nothing draws in between); the two bitmaps'
+// headers and pixels compared, the original's deleted.
+CDib*(__fastcall* s_captureRect)(CDXSurface*, const RECT*);
+
+CDib* __fastcall CaptureRectVerify(CDXSurface* self, const RECT* rect) {
+    CDib* expected = s_captureRect(self, rect);
+    const long expectedResult = self->result;
+    CDib* actual = CaptureSurfaceRect(self, rect);
+    bool same = expected && actual && expectedResult == self->result && SameCreated(*expected, *actual) &&
+                (expected->bits != nullptr) == (actual->bits != nullptr) && expected->bitsOwner == actual->bitsOwner;
+    std::size_t bytes = 0;
+    if (same && expected->bits) {
+        const BITMAPINFOHEADER* header = expected->header;
+        const int pixelBytes = header->biBitCount == 16 || header->biBitCount == 24 || header->biBitCount == 32
+                                   ? header->biBitCount / 8
+                                   : 0;   // other depths: the block is left as allocated
+        bytes = static_cast<std::size_t>(header->biWidth) * header->biHeight * pixelBytes;
+        same = std::memcmp(expected->bits, actual->bits, bytes) == 0;
+    }
+    ei::verify::Check("CaptureSurfaceRect", true, same, "%ld,%ld-%ld,%ld of a %d-bit surface: %u bytes", rect->left,
+                      rect->top, rect->right, rect->bottom, self->bitsPerPixel, static_cast<unsigned>(bytes));
+    if (expected) expected->Delete(1);
+    return actual;
+}
+EI_VERIFY(0x006D6D40, CaptureRectVerify, 7, s_captureRect);
+
+// 006D6FC0: ours only (it calls the capture above through its address). Checked: a bitmap of the
+// surface's size.
+CDib*(__fastcall* s_capture)(CDXSurface*);
+
+CDib* __fastcall CaptureVerify(CDXSurface* self) {
+    CDib* result = CaptureSurface(self);
+    ei::verify::Check("CaptureSurface", true,
+                      result && result->header && result->header->biWidth == self->width &&
+                          result->header->biHeight == self->height,
+                      "%d x %d", self->width, self->height);
+    return result;
+}
+EI_VERIFY(0x006D6FC0, CaptureVerify, 0, s_capture);
 
 } // namespace

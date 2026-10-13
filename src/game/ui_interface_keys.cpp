@@ -21,9 +21,8 @@ void SetByte(void* p, int offset, std::uint8_t value) { static_cast<std::uint8_t
 // The scan code to character table (0079BF70, 0x200 entries).
 std::uint8_t KeyCharacter(int scan) { return reinterpret_cast<const std::uint8_t*>(0x0079BF70)[scan]; }
 
-// The screen capture (thiscall on [007AF080] + 0x18; 006D6FC0); the picture (dib.h) is written
-// with CDib::Write and deleted through its slot 1.
-__declspec(naked) CDib* __fastcall CaptureScreen(void*) EI_ORIGINAL(0x006D6FC0)
+// The screen capture (CallCaptureSurface on [007AF080] + 0x18); the picture (dib.h) is written with
+// CDib::Write and deleted through its slot 1.
 // CFile::CFile(name, flags) (0070108B, RET 8).
 __declspec(naked) void __fastcall ConstructFile(void*, void*, const char*, unsigned) EI_ORIGINAL(0x0070108B)
 
@@ -66,9 +65,9 @@ void CInterface3D::OnKeyDown(int key, int repeat, int flags) {
         return;
     case 0x46: {  // Scroll Lock: a screenshot
         void* holder = *reinterpret_cast<void* const*>(0x007AF080);
-        void* capturer;
+        CDXSurface* capturer;
         std::memcpy(&capturer, static_cast<std::uint8_t*>(holder) + 0x18, 4);
-        CDib* picture = CaptureScreen(capturer);
+        CDib* picture = CallCaptureSurface(capturer);
         if (!picture) return;
         mfc::CString name;
         name.Format(reinterpret_cast<const char*>(0x007930B4), ShotCounter());   // "shot%.4d.bmp"
