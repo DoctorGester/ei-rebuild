@@ -30,6 +30,7 @@
 #include "lib/mfc.h"
 #include "lib/vecmath.h"
 
+#include <bit>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -71,7 +72,7 @@ struct SectorHeader {
 };
 struct SectorFileVertex {
     std::int8_t offsetX, offsetY;
-    std::uint16_t altitude;             // +0x02 in 1/65535 of the map's highest point
+    std::uint16_t altitude;             // +0x02 in kAltitudeUnit of the map's highest point
     std::uint32_t normal;
 };
 #pragma pack(pop)
@@ -250,7 +251,14 @@ int ReadTerrainTypes(CAIMap& map) {
 
 // ---- The sectors -------------------------------------------------------------------------------------
 
-constexpr float kAltitudeUnit = 1.0f / 65535.0f;
+// A vertex's altitude as a fraction of the map's highest point. The game's constant (0073FD84,
+// which the landscape's sector loader uses too) is 1 / 65534 as a float, 2^-16 + 2^-31; not
+// 1 / 65535 (X31: with that the ground levels of a few dozen cells per map were one unit off).
+// Written as the exact fraction: /fp:fast folds `1.0f / 65534.0f` at double precision wherever the
+// constant meets a double, and the heights below are doubles.
+constexpr float kAltitudeUnit = 32769.0f / 2147483648.0f;
+static_assert(std::bit_cast<std::uint32_t>(kAltitudeUnit) == 0x37800100u);
+static_assert(static_cast<double>(kAltitudeUnit) == 32769.0 / 2147483648.0);
 
 // A grid of the map sized for it: reallocated (and filled as its element type's Allocate fills
 // it) unless it has that size already.
@@ -268,27 +276,65 @@ void ResizeGrid(SearchGrid<T>& grid, int width, int height, void(__fastcall* all
 // as allocated.
 void __fastcall AllocateBytes(SearchGrid<std::int8_t>* grid) { AllocateGrid(*grid); }
 
-// A vertex's height in world units. Every step is rounded to a float, as the 24-bit FPU of the
-// game's main thread rounds it.
-float VertexHeight(const SectorFileVertex& vertex, float maxZ) {
-    return RoundToFloat(RoundToFloat(static_cast<float>(vertex.altitude) * maxZ) * kAltitudeUnit);
+constexpr float kHalf = 0.5f;               // 0073B86C
+constexpr float kQuarter = 0.25f;           // 0073C3B0
+
+// The heights follow the original's x87 sequence value by value: a float below is one it stores
+// (FSTP to a float), a double one it keeps on the FPU stack. At the main thread's 24-bit precision
+// the two are the same number; told apart, the results are also the original's at 53 bits (and at
+// 64 while the compiler keeps the doubles in registers: nothing unrounded is alive across a call).
+
+// A vertex's height in world units as the original leaves it on the FPU stack: the altitude times
+// the map's highest point times the altitude unit, in that order, neither product stored.
+__forceinline double VertexHeight(const SectorFileVertex& vertex, float maxZ) {
+    return static_cast<double>(vertex.altitude) * maxZ * kAltitudeUnit;
 }
 
-// The heights of the four cells of a terrain square: [0] at its first vertex, [1] towards the next
-// vertex of the row, [2] towards the next row, [3] opposite. A cell takes half of its own corner's
-// height and a quarter of each of the two corners beside it.
+// Four floats of a terrain square, one per cell: [0] at its first vertex, [1] towards the next
+// vertex of the row, [2] towards the next row, [3] opposite.
 struct SquareHeights {
     float cell[4];
 };
-SquareHeights CellHeights(const SectorFileVertex* vertex, float maxZ) {
-    const float first = VertexHeight(vertex[0], maxZ);
-    const float next = VertexHeight(vertex[1], maxZ);
-    const float below = VertexHeight(vertex[kVertexRow], maxZ);
-    const float opposite = VertexHeight(vertex[kVertexRow + 1], maxZ);
-    const float sides = RoundToFloat((below + next) * 0.25f);
-    const float diagonal = RoundToFloat((first + opposite) * 0.25f);
-    return {{RoundToFloat(first * 0.5f + sides), RoundToFloat(next * 0.5f + diagonal),
-             RoundToFloat(below * 0.5f + diagonal), RoundToFloat(opposite * 0.5f + sides)}};
+
+// The ground's height at the four cells of a terrain square: half of the cell's own corner and a
+// quarter of each of the two corners beside it. The original stores the heights of the three other
+// corners and keeps the first one, and the quarter of the first and the opposite corner, on the
+// stack.
+SquareHeights LandHeights(const SectorFileVertex* vertex, float maxZ) {
+    const float next = RoundToFloat(VertexHeight(vertex[1], maxZ));
+    const float below = RoundToFloat(VertexHeight(vertex[kVertexRow], maxZ));
+    const float opposite = RoundToFloat(VertexHeight(vertex[kVertexRow + 1], maxZ));
+    const double first = VertexHeight(vertex[0], maxZ);
+    const float sides = RoundToFloat((below + next) * kQuarter);
+    SquareHeights heights;
+    heights.cell[0] = RoundToFloat(first * kHalf + sides);
+    const double diagonal = (first + opposite) * kQuarter;
+    heights.cell[1] = RoundToFloat(next * kHalf + diagonal);
+    heights.cell[2] = RoundToFloat(below * kHalf + diagonal);
+    heights.cell[3] = RoundToFloat(opposite * kHalf + sides);
+    return heights;
+}
+
+// The water's depth over the four cells of a terrain square: its surface, weighted like the ground,
+// less the ground `land`. Here the original keeps the third cell's surface on the stack as well
+// and subtracts the ground from it there.
+SquareHeights WaterDepths(const SectorFileVertex* vertex, float maxZ, const SquareHeights& land) {
+    const float next = RoundToFloat(VertexHeight(vertex[1], maxZ));
+    const float below = RoundToFloat(VertexHeight(vertex[kVertexRow], maxZ));
+    const float opposite = RoundToFloat(VertexHeight(vertex[kVertexRow + 1], maxZ));
+    const double first = VertexHeight(vertex[0], maxZ);
+    const float sides = RoundToFloat((below + next) * kQuarter);
+    const float surface0 = RoundToFloat(first * kHalf + sides);
+    const double diagonal = (first + opposite) * kQuarter;
+    const float surface1 = RoundToFloat(next * kHalf + diagonal);
+    const double surface2 = below * kHalf + diagonal;
+    const float surface3 = RoundToFloat(opposite * kHalf + sides);
+    SquareHeights depths;
+    depths.cell[0] = RoundToFloat(surface0 - land.cell[0]);
+    depths.cell[1] = RoundToFloat(surface1 - land.cell[1]);
+    depths.cell[2] = RoundToFloat(surface2 - land.cell[2]);
+    depths.cell[3] = RoundToFloat(surface3 - land.cell[3]);
+    return depths;
 }
 
 // A world height in the map's units (FISTP of the float product).
@@ -333,12 +379,12 @@ void StampSector(CAIMap& map, const MapDescription& description, const void* fil
             cells[1] = cells[0] + 1;
             cells[2] = &map.cells[y0 + row * 2 + 1][x0 + column * 2];
             cells[3] = cells[2] + 1;
-            const SquareHeights land = CellHeights(ground + vertex, maxZ);
+            const SquareHeights land = LandHeights(ground + vertex, maxZ);
             for (int i = 0; i < 4; ++i) cells[i]->groundLevel = static_cast<std::uint16_t>(HeightUnits(land.cell[i], scale));
             if (!hasWater) continue;
-            const SquareHeights surface = CellHeights(water + vertex, maxZ);
+            const SquareHeights depths = WaterDepths(water + vertex, maxZ, land);
             for (int i = 0; i < 4; ++i) {
-                int depth = HeightUnits(RoundToFloat(surface.cell[i] - land.cell[i]), scale);
+                int depth = HeightUnits(depths.cell[i], scale);
                 depth = depth >= kMaxDepth ? kMaxDepth : depth < 0 ? 0 : depth;
                 cells[i]->flags = static_cast<std::uint8_t>((cells[i]->flags & ~kCellDepthMask) | depth);
             }

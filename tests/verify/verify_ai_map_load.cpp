@@ -17,10 +17,13 @@
 // load wraps the load in a batch) the original's second step leaves the cells alone; when it is
 // not deferred the flags are skipped, the refresh having rewritten them.
 //
-// The float steps are the original's x87 sequence in plain C++, so at the main thread's 24-bit
-// precision every value is expected to be the same; "CAIMap::Load exact" checks that. "CAIMap::Load"
-// allows a height unit or a cost unit of difference where a float sat on a rounding edge (and the
-// water flag and water tile type of a cell whose depth is on such an edge).
+// The float steps are the original's x87 sequence in plain C++ (what it stores to a float is
+// rounded, what it keeps on the FPU stack is not), so every value is expected to be the same;
+// "CAIMap::Load exact" checks that. "CAIMap::Load" allows a height unit or a cost unit of
+// difference where a float sat on a rounding edge (and the water flag and water tile type of a
+// cell whose depth is on such an edge). X31: the first run failed the exact check on every map (a
+// few dozen ground levels one unit off): the altitude unit was taken as 1 / 65535, the game's
+// constant 0073FD84 is 1 / 65534.
 //
 // Reached by CWorldServer::LoadMap: `newgame` and every zone change of a hosted game.
 #include "verify.h"
@@ -116,9 +119,12 @@ bool SameSize(const SearchGrid<A>& a, const SearchGrid<B>& b) {
 }
 
 // What differs between the two loads: `wrong` beyond what a rounding edge explains, `edges` within it.
+// CompareCells also notes the first cell whose ground level differs.
 struct Differences {
     int wrong = 0;
     int edges = 0;
+    int firstX = -1, firstY = -1;
+    int firstExpected = 0, firstActual = 0;
     void Units(int expected, int actual) {
         const int difference = std::abs(expected - actual);
         if (difference > 1) ++wrong;
@@ -165,6 +171,12 @@ Differences CompareCells(CAIMap* expected, CAIMap* actual, bool flags) {
             const AIMapCell& a = expected->cells[y][x];
             const AIMapCell& b = actual->cells[y][x];
             result.Units(a.groundLevel, b.groundLevel);
+            if (a.groundLevel != b.groundLevel && result.firstX < 0) {
+                result.firstX = x;
+                result.firstY = y;
+                result.firstExpected = a.groundLevel;
+                result.firstActual = b.groundLevel;
+            }
             bool depthEdge = false;
             if (flags) {
                 const int depthA = a.flags & kDepthMask, depthB = b.flags & kDepthMask;
@@ -212,7 +224,9 @@ static int __fastcall LoadVerify(CAIMap* self, void*, const char* path) {
                       path, result, sizes, self->width, self->height, self->heightScale, ours->heightScale, climbLarge.wrong,
                       climbSmall.wrong, types.wrong, cells.wrong, deferred);
     ei::verify::Check("CAIMap::Load exact", true, ok && edges == 0 && self->heightScale == ours->heightScale,
-                      "%s on a rounding edge: climb %d %d cells %d", path, climbLarge.edges, climbSmall.edges, cells.edges);
+                      "%s on a rounding edge: climb %d %d cells %d; the first ground level at (%d, %d): %d / ours %d; scale %.9g", path,
+                      climbLarge.edges, climbSmall.edges, cells.edges, cells.firstX, cells.firstY, cells.firstExpected,
+                      cells.firstActual, self->heightScale);
     return expected;
 }
 EI_VERIFY(0x005B43C0, LoadVerify, 5, s_load);
