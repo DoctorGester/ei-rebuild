@@ -19,6 +19,8 @@ using dbfile::FillStream;
 using dbfile::LoadTable;
 using dbfile::LocalResource;
 using dbfile::LocalStream;
+using dbfile::OpenDatabase;
+using dbfile::ReportNoDatabase;
 
 // The chunks of prints.db and acks.db.
 constexpr int kBloodChunk = 1;
@@ -38,15 +40,6 @@ __declspec(naked) void __fastcall SerializeAcks3At(ChunkArchive*, void*, int, vo
 // AckTable<ExtraAcks>::RecordAt (RET 4; rewritten in acks_db.cpp), likewise.
 __declspec(naked) acks::ExtraAcks* __fastcall ExtraAcksAt(acks::AckTable<acks::ExtraAcks>*, void*, std::uint32_t)
     EI_ORIGINAL(0x006D8E30)
-
-// The archive `folder` + "database.res" opened into `resource`; false when it cannot be.
-bool OpenDatabase(LocalResource& resource, const mfc::CString& folder) {
-    return resource.Open(folder + "database.res") != 0;
-}
-// The report of a failed open. The original names "databases.res" here.
-int ReportNoDatabase(const mfc::CString& folder) {
-    return FatalErrorOriginal("Can't open database file \"%s\"\n", static_cast<const char*>(folder + "databases.res"));
-}
 
 // Every record of `records` filed in `index` under its name (the index's operator[]: a record of
 // a name seen before replaces the earlier one).

@@ -1,15 +1,18 @@
-// Checks for item_db_open.cpp and model_db_open.cpp (A-H26): the loads of the spell and item
-// databases (00684550, 006A67A0) and of prints.db and acks.db (006D0630, 006D7620).
-// All four are Rebirth-patched, so they are hooked in the vanilla launch only. Ours only (they
+// Checks for item_db_open.cpp, model_db_open.cpp and quest_db_open.cpp (A-H26): the loads of the
+// spell and item databases (00684550, 006A67A0), of prints.db and acks.db (006D0630, 006D7620) and
+// of the quest database (006AE3A0).
+// All five are Rebirth-patched, so they are hooked in the vanilla launch only. Ours only (they
 // fill the databases; a second load would replace every record): the tables are checked afterwards.
 // - SpellDatabase::Load, ItemDatabase::Load: every start of the game, and each switch of the
 //   resource database (entering or leaving a network game, 0057CB50).
-// - PrintsDatabase::Load, AckDatabase::Load: every start of the game (WinMain), on the main thread.
+// - PrintsDatabase::Load, AckDatabase::Load, QuestDatabase::Load: every start of the game
+//   (WinMain), on the main thread.
 #include "verify.h"
 
 #include "../../src/game/acks_db.h"
 #include "../../src/game/item_db.h"
 #include "../../src/game/model.h"
+#include "../../src/game/quest_records.h"
 
 #include <cstring>
 
@@ -144,8 +147,22 @@ int __fastcall AckDatabaseLoadVerify(acks::AckDatabase* self, void*, const char*
     return result;
 }
 
+int __fastcall QuestDatabaseLoadVerify(QuestDatabase* self, void*, const char* folder) {
+    const int result = self->Load(folder);
+    if (result != 1) return result;
+    const auto name = [](const auto& record) -> const stlp::string& { return record.name; };
+    ei::verify::Check("QuestDatabase::Load", true, self->quests.size() > 0 && self->briefings.records.size() > 0,
+                      "%u quests, %u briefings", static_cast<unsigned>(self->quests.size()),
+                      static_cast<unsigned>(self->briefings.records.size()));
+    ei::verify::Check("QuestDatabase::Load", 0, Unindexed(self->quests, self->questsByName, name), "quest names");
+    ei::verify::Check("QuestDatabase::Load", 0, Unindexed(self->briefings.records, self->briefings.index, name),
+                      "briefing names");
+    return result;
+}
+
 } // namespace
 
+EI_VERIFY(0x006AE3A0, QuestDatabaseLoadVerify, 0, s_unused);
 EI_VERIFY(0x00684550, SpellDatabaseLoadVerify, 0, s_unused);
 EI_VERIFY(0x006A67A0, ItemDatabaseLoadVerify, 0, s_unused);
 EI_VERIFY(0x006D0630, PrintsDatabaseLoadVerify, 0, s_unused);

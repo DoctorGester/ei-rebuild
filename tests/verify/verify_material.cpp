@@ -118,6 +118,37 @@ CMaterialManager* __fastcall ManagerDeleteVerify(CMaterialManager* self, void*, 
     return result;
 }
 
+// 0068E640 (A-H26; Rebirth-patched, so hooked in the vanilla launch only). Ours only (it opens the
+// archive and fills the table); afterwards every kind of the game's table must be entered with the
+// colours its file holds, read again here (the defaults without the file), magic's emissive 1.
+// Reached at every start of the game: the client world creates its managers.
+int __fastcall ManagerCreateVerify(CMaterialManager* self) {
+    const int result = self->CMaterialManager::Create();
+    if (result != 1) return result;
+    int bad = 0;
+    const MaterialKindFile* const kinds = MaterialKindFileTable();
+    // Backwards: a later kind of the same number would have replaced an earlier one (none repeats).
+    for (int i = kMaterialKindFiles - 1; i >= 0; --i) {
+        MaterialColors expected = {};
+        void* data = self->GetFile(kinds[i].file, nullptr);
+        if (data) {
+            std::memcpy(&expected, MaterialFileColors(data), sizeof(expected));
+        } else {
+            expected.diffuse = {0.3f, 0.3f, 0.3f, 1.0f};
+            expected.ambient = {0.7f, 0.7f, 0.7f, 0.0f};
+            expected.specular = {0.2f, 0.2f, 0.2f, 0.0f};
+            expected.power = 5.0f;
+        }
+        self->CloseFile(data);
+        if (kinds[i].kind == 0x17) expected.emissive.x = expected.emissive.y = expected.emissive.z = 1.0f;
+        auto* entry = self->colors_.Find(static_cast<unsigned>(kinds[i].kind));
+        if (!entry || std::memcmp(&entry->value, &expected, sizeof(expected)) != 0) ++bad;
+    }
+    ei::verify::Check("CMaterialManager::Create", 0, bad, "manager %p: %u kinds entered", self,
+                      static_cast<unsigned>(self->colors_.Size()));
+    return result;
+}
+
 CEngineObject* __fastcall NewObjectVerify(CMaterialManager* self, void*, int type) {
     CEngineObject* object = self->CMaterialManager::NewObject(type);
     const auto* material = static_cast<const CMaterial*>(object);
@@ -189,6 +220,7 @@ EI_VERIFY(0x0068DD10, MaterialIdVerify, 5, s_materialId);
 EI_VERIFY(0x0068E3F0, ManagerConstructVerify, 0, s_unused);
 EI_VERIFY(0x0068E540, ManagerDestructVerify, 0, s_unused);
 EI_VERIFY(0x0068E520, ManagerDeleteVerify, 0, s_unused);
+EI_VERIFY(0x0068E640, ManagerCreateVerify, 0, s_unused);
 EI_VERIFY(0x0068E900, NewObjectVerify, 0, s_unused);
 EI_VERIFY(0x0068E970, NewMaterialVerify, 0, s_unused);
 EI_VERIFY(0x0068EAF0, FillMaterialVerify, 8, s_fill);

@@ -11,6 +11,8 @@
 #include "originals_engine.h"   // MappedResourceOpenOriginal / DestroyOriginal, ChunkArchiveDestroyOriginal
 #include "resource.h"
 
+#include "lib/mfc.h"
+
 #include <cstdint>
 
 namespace dbfile {
@@ -39,6 +41,16 @@ inline void FillStream(CMemoryStream& stream, const void* data, std::uint32_t si
     stream.CMemoryStream::Write(data, size);
     stream.CMemoryStream::Seek(0);
     stream.reading_ = 1;
+}
+
+// The loads that take only a folder (quests, prints, acks) open `folder` + "database.res"; false
+// when it cannot be opened.
+inline bool OpenDatabase(LocalResource& resource, const mfc::CString& folder) {
+    return resource.Open(folder + "database.res") != 0;
+}
+// Their report of a failed open. The original names "databases.res" here.
+inline int ReportNoDatabase(const mfc::CString& folder) {
+    return FatalErrorOriginal("Can't open database file \"%s\"\n", static_cast<const char*>(folder + "databases.res"));
 }
 
 // A vector serialiser of the chunk archive through its address (RET 0xC: the chunk id, the vector,
