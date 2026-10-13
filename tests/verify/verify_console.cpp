@@ -9,7 +9,9 @@
 // ours only (inside a capture, replayed the same way) and are checked for consistency.
 #include "verify.h"
 
+#include "../../src/game/acks_db.h"
 #include "../../src/game/console.h"
+#include "../../src/game/world_glue.h"
 #include "../../src/lib/crt.h"
 
 #include "ei/rebirth.h"
@@ -538,5 +540,68 @@ void __fastcall SetRectVerify(ConsoleWindow* self, void*, const int* rect) {
                       rect[2], rect[3], expected.c_str(), actual.c_str());
 }
 EI_VERIFY(0x005E3E90, SetRectVerify, 8, s_setRect);
+
+// ---- generateacks (scenario console: `console generateacks`) -----------------------------------
+
+// A stand-in file for the line writers: only slot 21 (WriteString), which collects the text.
+struct LineSink {
+    void** vtable;
+    std::vector<std::string> lines;
+
+    static void __fastcall Write(LineSink* self, void*, const char* text) { self->lines.emplace_back(text); }
+    LineSink() {
+        static void* slots[22];
+        slots[21] = reinterpret_cast<void*>(&Write);
+        vtable = slots;
+    }
+    CStdioFileVirtuals* File() { return reinterpret_cast<CStdioFileVirtuals*>(this); }
+};
+
+// 005DFC20 / 005DFCE0: PUSH -1; PUSH imm32 (7). The original and ours each write into a stand-in
+// file; the lines are compared and ours' then written to the real file.
+template <typename List>
+void CompareLines(const char* name, void(__fastcall* original)(CStdioFileVirtuals*, const List*),
+                  void(__fastcall* ours)(CStdioFileVirtuals*, const List*), CStdioFileVirtuals* file, const List* list) {
+    LineSink expected, actual;
+    original(expected.File(), list);
+    ours(actual.File(), list);
+    ei::verify::Check(name, true, expected.lines == actual.lines, "%u vs %u lines",
+                      static_cast<unsigned>(expected.lines.size()), static_cast<unsigned>(actual.lines.size()));
+    for (const std::string& line : actual.lines) file->WriteString(line.c_str());
+}
+
+void(__fastcall* s_speechLines)(CStdioFileVirtuals*, const acks::SpeechList*);
+void __fastcall SpeechLinesVerify(CStdioFileVirtuals* file, const acks::SpeechList* list) {
+    CompareLines("WriteSpeechLines", s_speechLines, &commands::WriteSpeechLines, file, list);
+}
+EI_VERIFY(0x005DFC20, SpeechLinesVerify, 7, s_speechLines);
+
+void(__fastcall* s_environmentLines)(CStdioFileVirtuals*, const stlp::vector<acks::EnvironmentSpeech>*);
+void __fastcall EnvironmentLinesVerify(CStdioFileVirtuals* file, const stlp::vector<acks::EnvironmentSpeech>* list) {
+    CompareLines("WriteEnvironmentSpeechLines", s_environmentLines, &commands::WriteEnvironmentSpeechLines, file, list);
+}
+EI_VERIFY(0x005DFCE0, EnvironmentLinesVerify, 7, s_environmentLines);
+
+// 005DFDA0: PUSH -1; PUSH imm32 (7). Side by side: the original writes scenack.txt, the file is
+// summarised (length and a hash of its bytes) and emptied, ours writes it again.
+std::string AcksFilePath() { return Text(*GameDataPathString()) + GameText(0x00792C00); }
+std::string AcksFileSummary() {
+    mfc::CFile file;
+    if (!file.Open(AcksFilePath().c_str(), mfc::CFile::modeRead, nullptr)) return "no file";
+    std::string bytes(file.GetLength(), '\0');
+    unsigned read = bytes.empty() ? 0 : file.Read(bytes.data(), static_cast<unsigned>(bytes.size()));
+    file.Close();
+    std::uint32_t hash = 2166136261u;
+    for (unsigned i = 0; i < read; ++i) hash = (hash ^ static_cast<unsigned char>(bytes[i])) * 16777619u;
+    return Int(static_cast<int>(read)) + " bytes, hash " + Int(static_cast<int>(hash));
+}
+Handler s_generateAcks;
+void __fastcall GenerateAcksVerify(CStringArray* args) {
+    SideBySide("GenerateAcks", s_generateAcks, &commands::GenerateAcks, args, &AcksFileSummary, [] {
+        CStdioFile file;
+        if (file.Open(AcksFilePath().c_str(), CStdioFile::modeCreate | CStdioFile::modeWrite, nullptr)) file.Close();
+    });
+}
+EI_VERIFY(0x005DFDA0, GenerateAcksVerify, 7, s_generateAcks);
 
 } // namespace

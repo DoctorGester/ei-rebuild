@@ -172,6 +172,10 @@ struct AIMoveOrder {
     // 00545B20 (unit_ai_looks.cpp; the modes call it through Reset, its address). The point zeroed,
     // the looks' data freed, size and capacity 0 (step and vtable kept).
     void Clear();
+    // 005D7970 (RET 4; unit_ai_looks.cpp): operator=. The point, then the looks (the array's Copy
+    // inlined); returns this. Only the original fear mode 005D30A0 calls it (ours assigns the
+    // parts through the look array's address).
+    AIMoveOrder* Assign(const AIMoveOrder* other);
 
     Vector3 point;                  // +0x00
     AILookArray looks;              // +0x0C

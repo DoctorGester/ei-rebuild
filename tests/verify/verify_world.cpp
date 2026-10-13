@@ -5,6 +5,7 @@
 #include "../../src/game/map_object_figures.h"
 #include "../../src/game/script.h"
 #include "../../src/game/world.h"
+#include "../../src/game/world_glue.h"
 #include "../../src/lib/crt.h"
 #include "ei/x87.h"
 
@@ -568,6 +569,24 @@ static float __cdecl GameTimeVerify() {
     return expected;
 }
 EI_VERIFY(0x00578B40, GameTimeVerify, 6, s_gameTime);
+
+// 00578DB0 / 00578DC0: MOV EAX,imm32 (5 bytes). Pure. Every start (the key bindings file) and the
+// main menu's exit movie.
+static const mfc::CString*(__cdecl* s_dataPath)();
+static const mfc::CString* __cdecl DataPathVerify() {
+    const mfc::CString* expected = s_dataPath();
+    ei::verify::Check("GameDataPathString", expected, GameDataPathString(), "");
+    return expected;
+}
+EI_VERIFY(0x00578DB0, DataPathVerify, 5, s_dataPath);
+
+static const mfc::CString*(__cdecl* s_basePath)();
+static const mfc::CString* __cdecl BasePathVerify() {
+    const mfc::CString* expected = s_basePath();
+    ei::verify::Check("GameBasePathString", expected, GameBasePathString(), "");
+    return expected;
+}
+EI_VERIFY(0x00578DC0, BasePathVerify, 5, s_basePath);
 
 // 00578BA0 / 00578B50: MOV ECX,0x7AF5B8 (5 bytes). Pure.
 static std::uint8_t*(__cdecl* s_playerData)();
