@@ -25,8 +25,11 @@ CMapObject +0x144 is the extent.
 | 0067E170 | effect factory EffectNewObject (manager slot 14, RET 4; world_effect_lifetime.cpp) | ours only: slot 12 and type_ equal the request |
 
 Kept: Load and Unpack do not recompute the moving flag; Start copies the sound name unbounded.
-Not rewritten: 0067AA00 (missile Reset), 0067B390 / 0067B430 (its destructor; abstract vtable only), 0067B050 (unused
-out-of-line CEffect constructor).
+A-H25: 0067AA00 (CEffectMissile::ResetMissile, the abstract vtable's slot 18; Arrow and ArrowFigure Reset call it now),
+00675FB0 / 0067B390 (CEffect::DestructEffect, also the unwind funclets') with 00676910 / 0067B430 (slot 0 of the two
+abstract vtables), 0067B050 (CEffect::Construct out of line), 00676900 (TickDefault: 1), 006773A0 (ReadSavedStrings;
+callers keep the forwarder so its wrapper runs: the original into a scratch array, the stream sought back, texts
+compared). Nothing but unwinding reaches the first five.
 
 Sound sequences: the first name (when not empty) and the others go into a stack CStringArray handed to
 CSoundManager::AddSequence with a chooser for their count; an update moves the sequence through SetSoundPosition with

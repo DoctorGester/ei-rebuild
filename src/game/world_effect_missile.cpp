@@ -120,11 +120,15 @@ int CEffectArrow::Tick() {
     return flying;
 }
 
-void CEffectArrow::Reset() {
+void CEffectMissile::ResetMissile() {
     ResetBase();
     arrived_ = 0;
     targetId_ = -1;
     fromCaster_ = 0;
+}
+
+void CEffectArrow::Reset() {
+    ResetMissile();
     Particle().Reset();
     Light().Reset();
     Sound().Reset();
@@ -290,10 +294,7 @@ constexpr int kClassFigureObject = 0x38;   // the object manager's class of the 
 std::uintptr_t CEffectArrowFigure::Vtable() { return static_cast<std::uintptr_t>(0x007437B8); }
 
 void CEffectArrowFigure::Reset() {
-    ResetBase();
-    arrived_ = 0;
-    targetId_ = -1;
-    fromCaster_ = 0;
+    ResetMissile();
     if (figure_ != nullptr) WorldClient()->RemoveObject(figure_->id_);
     hit_ = DamageInfo{};
     hit_.multiplier = 1.0f;
@@ -458,6 +459,7 @@ EI_REPLACE_METHOD(0x0067AE30, CEffectArrow::Construct);
 EI_REPLACE_METHOD(0x0067B1C0, CEffectArrow::Destruct);
 EI_REPLACE_METHOD(0x0067B1A0, CEffectArrow::DeletingDestruct);
 EI_REPLACE_METHOD(0x0067AAB0, CEffectMissile::Steer);
+EI_REPLACE_METHOD(0x0067AA00, CEffectMissile::ResetMissile);
 EI_REPLACE_METHOD(0x0067AC70, CEffectMissile::SetTarget);
 EI_REPLACE_METHOD(0x0067AC90, CEffectArrow::Tick);
 EI_REPLACE_METHOD(0x0067AD10, CEffectArrow::Reset);

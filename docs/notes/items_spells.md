@@ -478,6 +478,7 @@ The spell manager's folder slot 00688940 (A-H24's last item) was complete. Wrapp
 | 00693820, 00693850, 006938B0, 00693910 | MmpHeader::SetNoFormat / SetFormat5551 / 4444 / 8888 (texture_slots.cpp; ComposeTexture keeps its forwarders so the wrappers run) | S: the original on the header, ours on a copy |
 | 00691A00, 00691A70, 00690FA0, 00691950, 00691930 | CTexture::Create (slot 2; block_ cleared, not freed), Destroy (slot 3), FreeBlock, DestructBody, DeletingDestruct | O |
 | 00691CF0, 00691D40, 00691D00, 00693F10 | CTextureManager::GetFileData, NewTextureOfType, FindOrCreate (named, not loaded; no null check), FindOrLoad | O |
+| 00675FB0 / 0067B390, 00676910 / 0067B430, 0067B050, 0067AA00, 00676900, 006773A0 | the effect base's out-of-line destructor, slot 0, constructor, missile Reset, default Tick, ReadSavedStrings (docs/notes/effects.md) | O; TickDefault P; constructor and ReadSavedStrings S |
 | 00693F60, 00694020 | CTextureManager::ReloadAll (after a lost device: no scenario), TrimCache (cached bytes against videoMemoryTenth_, signed; every 32 client ticks) | O |
 
 Library (config/library.csv): the by-name lookups 006AD580 / 0069D290 / 0069D380 (hash_map operator[](const char*), as 00613820),

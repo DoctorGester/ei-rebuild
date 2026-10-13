@@ -87,6 +87,25 @@ void CEffect::DestructEffect() {
     SetVtable(this, CTransformObject::kVtableAddress);
     DestructBase();
 }
+EI_REPLACE_METHOD(0x00675FB0, CEffect::DestructEffect);
+EI_REPLACE_METHOD(0x0067B390, CEffect::DestructEffect);   // the missile base's copy
+
+CEffect* CEffect::Construct() {
+    ConstructEffect();
+    return this;
+}
+EI_REPLACE_METHOD(0x0067B050, CEffect::Construct);
+
+CEffect* CEffect::DeletingDestructEffect(unsigned flags) {
+    DestructEffect();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x00676910, CEffect::DeletingDestructEffect);
+EI_REPLACE_METHOD(0x0067B430, CEffect::DeletingDestructEffect);
+
+int CEffect::TickDefault() { return 1; }
+EI_REPLACE_METHOD(0x00676900, CEffect::TickDefault);
 
 // --- CEffectSound --------------------------------------------------------------------------------
 
