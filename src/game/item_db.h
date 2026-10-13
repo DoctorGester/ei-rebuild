@@ -175,6 +175,13 @@ public:
     virtual int Kind() = 0;
 };
 inline ItemRecordSlots* RecordSlots(ItemRecordHead* record) { return reinterpret_cast<ItemRecordSlots*>(record); }
+// 006A6430 / 006A6440 / 006A6450 / 006A6460 / 006A6470 (item_db_records.cpp, A-H25): slot 0 of the
+// weapon / armour / quick / 0x7C / 0x78 records: 0x3004, 0x3005, 0x3006, 0x3009, 0x3007.
+int __fastcall WeaponRecordKind(ItemRecordHead*);
+int __fastcall ArmorRecordKind(ItemRecordHead*);
+int __fastcall QuickItemRecordKind(ItemRecordHead*);
+int __fastcall Record7CKind(ItemRecordHead*);
+int __fastcall Record78Kind(ItemRecordHead*);
 
 // A weapon prototype (kWeaponSize bytes): what CItemWeapon takes besides the head.
 // The record kinds' copy constructors, as STLport's uninitialized_copy (first, last, dest) and
@@ -294,7 +301,10 @@ struct MaterialRecordHead {
     const char* name;                   // +0x08 CString
     std::uint32_t unknown_0C;
     float quality;                      // +0x10 the trader stock's material draw (item_stock.cpp)
-    std::uint32_t unknown_14[6];        // +0x14
+    std::uint32_t unknown_14;           // +0x14
+    float magicPower;                   // +0x18 added to the prototype's charge (CItemConstructor::MagicCapacity)
+    std::uint32_t magicLevel;           // +0x1C added to the prototype's +0x44
+    std::uint32_t unknown_20[3];        // +0x20
     std::uint32_t unknown_2C[7];        // +0x2C one field
     std::uint32_t unknown_48;           // +0x48
     std::uint32_t unknown_4C;           // +0x4C
@@ -304,6 +314,8 @@ struct MaterialRecordHead {
 };
 static_assert(sizeof(MaterialRecordHead) == kMaterialSize);
 static_assert(offsetof(MaterialRecordHead, quality) == 0x10);
+static_assert(offsetof(MaterialRecordHead, magicLevel) == 0x1C);
+static_assert(offsetof(MaterialRecordHead, unknown_2C) == 0x2C);
 
 inline const RecordTable& Materials() { return *reinterpret_cast<const RecordTable*>(0x007C86D8); }
 inline const RecordTable& Weapons() { return *reinterpret_cast<const RecordTable*>(0x007C86F8); }

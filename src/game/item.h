@@ -389,6 +389,12 @@ public:
     // for a weapon or armor without a material, else 1.
     BOOL Build();
 
+    // 006A6480 (RET 8; sets only AL; A-H25). Whether the item being built can hold a spell: not a
+    // weapon or armour (class 0x11 / 0x12) without a material. `level` gets the prototype's +0x44
+    // plus the material's +0x1C (unsigned, as a float), `power` the prototype's charge plus the
+    // material's +0x18; without a material the prototype's values alone.
+    bool MagicCapacity(float* level, float* power);
+
     CEngineObject* manager_;  // +0x1C counted (+4) but never released
     char* material_;          // +0x20 material record or null
     char* prototype_;         // +0x24 prototype record
@@ -430,6 +436,19 @@ struct CItemManager : CResourceManager {
     // build reports FatalError and the original crashes; Rebirth's FixCreateItem returns null in
     // both cases without FatalError.
     CItem* CreateItem(const char* name);
+
+    // 006AD1E0 (RET 8; A-H25). A scroll ("spell container", kind 0x3008) holding the spell that
+    // `spells` builds from `spellText`; null when the spell or the item cannot be made (the spell
+    // is then left as it is).
+    CItem* CreateSpellItem(const char* spellText, CSpellManager* spells);
+
+    // 006AD260 / 006AD2F0 / 006AD380 / 006AD410 (RET 4; A-H25). `names` resized to the table's
+    // record count and filled with the records' names: the materials' keys (+0x00), the weapons',
+    // armours' and quick items' +0x04. `this` is not used.
+    void ListMaterialNames(mfc::CStringArray* names);
+    void ListWeaponNames(mfc::CStringArray* names);
+    void ListArmorNames(mfc::CStringArray* names);
+    void ListQuickItemNames(mfc::CStringArray* names);
 };
 
 // --- Weapon model parts (item_parts.cpp)------------------------------------------------------

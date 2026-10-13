@@ -206,6 +206,14 @@ struct CSpellEffect {
     CSpellEffect* Construct();
     void Destruct();
     CSpellEffect* DeletingDestruct(unsigned flags);
+    // 0067ECB0 (RET 0x1C; A-H25). A cast begins: `spell` copied into the embedded spell, the
+    // world, the position, the caster and the target (each counted; the one held before released),
+    // the target point, state 0 and the byte +0xA4.
+    void Init(char* world, CSpell* spell, CEngineObject* caster, const Vector3* position, CEngineObject* target,
+              const Vector3* targetPoint, std::uint8_t flagA4);
+    // 0067EF00 (RET 4; A-H25). `object` leaves the world: 0 when it is the target (the world then
+    // drops the effect); else 1, the caster released and cleared when it is `object`.
+    BOOL Forget(CEngineObject* object);
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0074399C);
     static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073BB68);
 
@@ -383,6 +391,11 @@ public:
     // unknown name is added to the map with a null record. Returns the new spell, or a fatal
     // error's result.
     CSpell* CreateSpellFromText(const char* text);
+
+    // 00689570 / 00689610 (RET 4; A-H25). `names` resized to the spell / spell modifier record
+    // count and filled with the records' names (+0x00). `this` is not used.
+    void ListSpellNames(mfc::CStringArray* names);
+    void ListModifierNames(mfc::CStringArray* names);
 
     // +0xBC: sequences by the high half of a packed id (keys with low half 0).
     stlp::hash_map<std::uint32_t, SpellSequence*, stlp::IntHash> sequences_;

@@ -94,3 +94,22 @@ EI_VERIFY(0x006AC240, CopyVerify<QuestItemRecord>, 0, s_unused);
 EI_VERIFY(0x006AC3B0, FillVerify<QuestItemRecord>, 0, s_unused);
 EI_VERIFY(0x006AC520, CopyVerify<LootItemRecord>, 0, s_unused);
 EI_VERIFY(0x006AC640, FillVerify<LootItemRecord>, 0, s_unused);
+
+// A-H25. The records' slot 0 (MOV EAX,imm32: 5 bytes) against the original. Reached by every item
+// built from a record (CItemManager::CreateItem's BeginCreateItem, the trader stock).
+namespace {
+template <int(__fastcall* Ours)(ItemRecordHead*)>
+struct KindCheck {
+    static inline int(__fastcall* original)(ItemRecordHead*);
+    static int __fastcall Verify(ItemRecordHead* self) {
+        int expected = original(self);
+        ei::verify::Check("item record kind slot", expected, Ours(self), "%p", static_cast<void*>(self));
+        return expected;
+    }
+};
+} // namespace
+EI_VERIFY(0x006A6430, KindCheck<itemdb::WeaponRecordKind>::Verify, 5, KindCheck<itemdb::WeaponRecordKind>::original);
+EI_VERIFY(0x006A6440, KindCheck<itemdb::ArmorRecordKind>::Verify, 5, KindCheck<itemdb::ArmorRecordKind>::original);
+EI_VERIFY(0x006A6450, KindCheck<itemdb::QuickItemRecordKind>::Verify, 5, KindCheck<itemdb::QuickItemRecordKind>::original);
+EI_VERIFY(0x006A6460, KindCheck<itemdb::Record7CKind>::Verify, 5, KindCheck<itemdb::Record7CKind>::original);
+EI_VERIFY(0x006A6470, KindCheck<itemdb::Record78Kind>::Verify, 5, KindCheck<itemdb::Record78Kind>::original);

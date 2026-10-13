@@ -99,3 +99,43 @@ EI_VERIFY(0x0068B2C0, SpellDestructVerify, 0, s_unused);
 EI_VERIFY(0x0067E5D0, CastDestructVerify, 0, s_unused);
 EI_VERIFY(0x0068B2A0, SpellDeleteVerify, 0, s_unused);
 EI_VERIFY(0x0067E5B0, CastDeleteVerify, 0, s_unused);
+
+// --- A-H25: CSpellEffect::Init / Forget (0067ECB0 / 0067EF00) -------------------------------------
+// Both count or release objects: ours only, the state left is checked. Init: every cast (the
+// world's CreateMissile 0058E670; spells, spells_cast). Forget: an object removed from the world
+// while a cast is alive (005935C0).
+namespace {
+
+void __fastcall CastInitVerify(CSpellEffect* self, void*, char* world, CSpell* spell, CEngineObject* caster,
+                               const Vector3* position, CEngineObject* target, const Vector3* targetPoint, int flagA4) {
+    bool newCaster = caster != self->caster;
+    // The caster's count is only predictable when the target slot does not hold or take it.
+    bool countable = caster && caster != target && caster != self->target;
+    int casterCount = caster ? caster->refCount_ : 0;
+    Vector3 from = *position, to = *targetPoint;
+    self->Init(world, spell, caster, position, target, targetPoint, static_cast<std::uint8_t>(flagA4));
+    bool ok = self->world == world && self->caster == caster && self->target == target && self->state == 0 &&
+              self->unknown_A4 == static_cast<std::uint8_t>(flagA4) &&
+              std::memcmp(&self->position, &from, sizeof(from)) == 0 &&
+              std::memcmp(&self->targetPoint, &to, sizeof(to)) == 0 &&
+              self->Spell()->unknown_18 == spell->unknown_18 &&
+              (!countable || caster->refCount_ == casterCount + (newCaster ? 1 : 0));
+    ei::verify::Check("CSpellEffect::Init", true, ok, "effect %p caster %p target %p", static_cast<void*>(self),
+                      static_cast<void*>(caster), static_cast<void*>(target));
+}
+
+BOOL __fastcall CastForgetVerify(CSpellEffect* self, void*, CEngineObject* object) {
+    bool wasTarget = self->target == object;
+    bool wasCaster = self->caster == object;
+    CEngineObject* caster = self->caster;
+    BOOL result = self->Forget(object);
+    bool ok = result == (wasTarget ? 0 : 1) &&
+              self->caster == (!wasTarget && wasCaster ? nullptr : caster);
+    ei::verify::Check("CSpellEffect::Forget", true, ok, "effect %p object %p -> %d", static_cast<void*>(self),
+                      static_cast<void*>(object), result);
+    return result;
+}
+
+} // namespace
+EI_VERIFY(0x0067ECB0, CastInitVerify, 0, s_unused);
+EI_VERIFY(0x0067EF00, CastForgetVerify, 0, s_unused);

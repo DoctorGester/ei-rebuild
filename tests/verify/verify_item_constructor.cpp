@@ -263,3 +263,64 @@ static CItem* __fastcall MakeItemVerify(CItemManager* self, void*, int kind, std
     return item;
 }
 EI_VERIFY(0x006AD000, MakeItemVerify, 0, s_makeItem);
+
+// --- A-H25 ----------------------------------------------------------------------------------------
+
+// 006AD1E0 creates a spell and an item: ours only. A made scroll is a spell container holding a
+// spell. Reached by every unit, hero or party record with start spells (new game: the hero's).
+static CItem* __fastcall CreateSpellItemVerify(CItemManager* self, void*, const char* spellText, CSpellManager* spells) {
+    CItem* item = self->CreateSpellItem(spellText, spells);
+    bool ok = !item || (item->type_ == 0x3008 && item->spell_ != nullptr);
+    ei::verify::Check("CItemManager::CreateSpellItem", true, ok, "%.60s -> %p type %X", spellText ? spellText : "(null)",
+                      item, item ? item->type_ : 0);
+    return item;
+}
+EI_VERIFY(0x006AD1E0, CreateSpellItemVerify, 0, s_makeItem);
+
+// 006AD260 / 006AD2F0 / 006AD380 / 006AD410 only write the array: the original fills a scratch
+// array, ours the caller's; sizes and texts compared (MOV ECX,[imm32]: 6 bytes). Reached by
+// ClassTemplateFill (004A7080: every new game) and the camp's item lists (00612CF0, ui_camp).
+namespace {
+using ListNamesFn = void(__fastcall*)(CItemManager*, void*, mfc::CStringArray*);
+template <void (CItemManager::*Ours)(mfc::CStringArray*)>
+struct ListNamesCheck {
+    static inline ListNamesFn original;
+    static void __fastcall Verify(CItemManager* self, void*, mfc::CStringArray* names) {
+        console::CStringArray expected;
+        original(self, nullptr, &expected);
+        (self->*Ours)(names);
+        bool same = expected.size == names->size;
+        for (int i = 0; same && i < expected.size; ++i)
+            same = std::strcmp(static_cast<const char*>(expected.data[i]), static_cast<const char*>(names->data[i])) == 0;
+        ei::verify::Check("CItemManager name list", true, same, "%d / %d names", expected.size, names->size);
+    }
+};
+} // namespace
+EI_VERIFY(0x006AD260, ListNamesCheck<&CItemManager::ListMaterialNames>::Verify, 6,
+          ListNamesCheck<&CItemManager::ListMaterialNames>::original);
+EI_VERIFY(0x006AD2F0, ListNamesCheck<&CItemManager::ListWeaponNames>::Verify, 6,
+          ListNamesCheck<&CItemManager::ListWeaponNames>::original);
+EI_VERIFY(0x006AD380, ListNamesCheck<&CItemManager::ListArmorNames>::Verify, 6,
+          ListNamesCheck<&CItemManager::ListArmorNames>::original);
+EI_VERIFY(0x006AD410, ListNamesCheck<&CItemManager::ListQuickItemNames>::Verify, 6,
+          ListNamesCheck<&CItemManager::ListQuickItemNames>::original);
+
+// 006A6480 only writes the two floats (SUB ESP,8; PUSH ESI; MOV ESI,ECX: 6 bytes): the original
+// into scratch copies, ours into the caller's. Reached by the trader stock's magic items
+// (0069B29A, trader_stock).
+static bool(__fastcall* s_magicCapacity)(CItemConstructor*, void*, float*, float*);
+static bool __fastcall MagicCapacityVerify(CItemConstructor* self, void*, float* level, float* power) {
+    float expectedLevel = *level, expectedPower = *power;
+    bool expected = s_magicCapacity(self, nullptr, &expectedLevel, &expectedPower);
+    bool actual = self->MagicCapacity(level, power);
+    ei::verify::Check("CItemConstructor::MagicCapacity", expected, actual, "prototype %p material %p", self->prototype_,
+                      self->material_);
+    if (expected && actual) {
+        ei::verify::CheckNear("CItemConstructor::MagicCapacity level", expectedLevel, *level, "prototype %p",
+                              self->prototype_);
+        ei::verify::CheckNear("CItemConstructor::MagicCapacity power", expectedPower, *power, "prototype %p",
+                              self->prototype_);
+    }
+    return expected;
+}
+EI_VERIFY(0x006A6480, MagicCapacityVerify, 6, s_magicCapacity);

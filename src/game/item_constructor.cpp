@@ -9,6 +9,7 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
+#include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "originals_library.h"
@@ -649,3 +650,66 @@ CItem* CItemManager::MakeItem(int kind, std::uint32_t index, std::uint32_t mater
 }
 EI_REPLACE_METHOD(0x006AD000, CItemManager::MakeItem);
 EI_REBIRTH_IMPLEMENTS(0x006AC970, ei::rebirth::Patch::FixCreateItem);
+
+// --- A-H25: the scroll of a spell text, the name lists, the constructor's magic capacity ----------
+
+// The "spell container" record is looked up by name each time; without one the index is that of a
+// null record (kept: MakeItem then finds no prototype).
+CItem* CItemManager::CreateSpellItem(const char* spellText, CSpellManager* spells) {
+    CSpell* spell = CallCreateSpellFromText(spells, nullptr, spellText);
+    if (!spell) return nullptr;
+    char* record = FindQuickNamed(kQuickTable, nullptr, kSpellContainer);
+    int index = static_cast<int>(record - QuickItems().begin) / kQuickItemSize;
+    CItem* item = ManagerMakeItem(this, nullptr, kKindSpellContainer, index, 0, -1);
+    if (item) CallItemAttachSpell(item, nullptr, spell);
+    return item;
+}
+EI_REPLACE_METHOD(0x006AD1E0, CItemManager::CreateSpellItem);
+
+namespace {
+
+// The lists' loop: the array takes the table's count, then every element the name of the record
+// with its index (the count is read again for each; a record out of range would be read at null).
+template <typename Record, typename NameOf>
+void ListRecordNames(const RecordTable& table, mfc::CStringArray* names, NameOf nameOf) {
+    names->SetSize(static_cast<int>(table.end - table.begin) / static_cast<int>(sizeof(Record)), -1);
+    for (int i = 0; i < names->size; ++i) {
+        auto* record = reinterpret_cast<const Record*>(table.At(static_cast<std::uint32_t>(i), sizeof(Record)));
+        names->data[i] = *nameOf(record);
+    }
+}
+
+const mfc::CString* HeadName(const ItemRecordHead* record) { return &record->text04; }
+
+} // namespace
+
+void CItemManager::ListMaterialNames(mfc::CStringArray* names) {
+    // The key is a CString (MaterialRecordHead declares its characters).
+    ListRecordNames<MaterialRecordHead>(Materials(), names, [](const MaterialRecordHead* record) {
+        return reinterpret_cast<const mfc::CString*>(&record->key);
+    });
+}
+void CItemManager::ListWeaponNames(mfc::CStringArray* names) { ListRecordNames<WeaponRecord>(Weapons(), names, HeadName); }
+void CItemManager::ListArmorNames(mfc::CStringArray* names) { ListRecordNames<ArmorRecord>(Armors(), names, HeadName); }
+void CItemManager::ListQuickItemNames(mfc::CStringArray* names) {
+    ListRecordNames<QuickItemRecord>(QuickItems(), names, HeadName);
+}
+EI_REPLACE_METHOD(0x006AD260, CItemManager::ListMaterialNames);
+EI_REPLACE_METHOD(0x006AD2F0, CItemManager::ListWeaponNames);
+EI_REPLACE_METHOD(0x006AD380, CItemManager::ListArmorNames);
+EI_REPLACE_METHOD(0x006AD410, CItemManager::ListQuickItemNames);
+
+bool CItemConstructor::MagicCapacity(float* level, float* power) {
+    if ((item_->GetClassId() == kClassWeapon || item_->GetClassId() == kClassArmor) && !material_) return false;
+    auto* prototype = reinterpret_cast<const ItemRecordHead*>(prototype_);
+    auto* material = reinterpret_cast<const MaterialRecordHead*>(material_);
+    if (material) {
+        *level = static_cast<float>(x87::FromUnsigned(prototype->value44 + material->magicLevel));
+        *power = prototype->charge + material->magicPower;
+    } else {
+        *level = static_cast<float>(x87::FromUnsigned(prototype->value44));
+        *power = prototype->charge;
+    }
+    return true;
+}
+EI_REPLACE_METHOD(0x006A6480, CItemConstructor::MagicCapacity);

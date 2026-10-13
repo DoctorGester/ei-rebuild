@@ -338,7 +338,7 @@ void ItemStock::GenerateItems(StockPtrVector* prototypes, int minCount, int maxC
         StockList spellList;
         char allocator = 0;
         SpellListConstruct(&spellList, nullptr, &allocator);
-        if (kind == 1 || kind == 3 || kind == 0) AddSpell(this, ctor, spellList);
+        if (kind == 1 || kind == 3 || kind == 0) ::AddSpell(this, ctor, spellList);
         CItem* item = ctor->EndCreateItem();
         ctor->SetManager(nullptr);
         AddReference(item);
@@ -971,3 +971,49 @@ void ItemStock::GenerateScrolls(int /*minCount*/, int /*maxCount*/, StockList* o
     DestroySpellList(list);
 }
 EI_REPLACE_METHOD(0x0069AC20, ItemStock::GenerateScrolls);
+
+// --- A-H25: the stock's lists filled by the class template (004A7080) ------------------------------
+
+namespace {
+
+// The stock's vectors are STLport vectors (push_back grows them as _M_insert_overflow does).
+stlp::vector<char*>& AsVector(StockPtrVector& v) { return reinterpret_cast<stlp::vector<char*>&>(v); }
+stlp::vector<StockMaterial>& AsVector(StockMaterialVector& v) {
+    return reinterpret_cast<stlp::vector<StockMaterial>&>(v);
+}
+static_assert(sizeof(stlp::vector<char*>) == sizeof(StockPtrVector));
+static_assert(sizeof(stlp::vector<StockMaterial>) == sizeof(StockMaterialVector));
+
+void AddUnlessPresent(StockPtrVector& list, char* record) {
+    if (!record) return;
+    char** p = list.start;
+    while (p != list.finish && *p != record) ++p;
+    if (p == list.finish) AsVector(list).push_back(record);
+}
+
+} // namespace
+
+void ItemStock::AddArmor(char* record) { AddUnlessPresent(armors, record); }
+void ItemStock::AddWeapon(char* record) { AddUnlessPresent(weapons, record); }
+void ItemStock::AddQuickItem(char* record) { AddUnlessPresent(quickItems, record); }
+void ItemStock::AddSpell(char* record) { AddUnlessPresent(spells, record); }
+void ItemStock::AddModifier(char* record) { AddUnlessPresent(modifiers, record); }
+EI_REPLACE_METHOD(0x00699080, ItemStock::AddArmor);
+EI_REPLACE_METHOD(0x006990E0, ItemStock::AddWeapon);
+EI_REPLACE_METHOD(0x00699140, ItemStock::AddQuickItem);
+EI_REPLACE_METHOD(0x006991A0, ItemStock::AddSpell);
+EI_REPLACE_METHOD(0x00699200, ItemStock::AddModifier);
+
+void ItemStock::AddMaterial(char* record, int minCount, int maxCount) {
+    if (!record) return;
+    StockMaterial* entry = materials.start;
+    while (entry != materials.finish && entry->record != record) ++entry;
+    if (entry == materials.finish) {
+        AsVector(materials).push_back(StockMaterial{record, minCount, maxCount, maxCount});
+        return;
+    }
+    entry->minCount = minCount;
+    entry->maxCount = maxCount;
+    entry->left = maxCount;
+}
+EI_REPLACE_METHOD(0x00699260, ItemStock::AddMaterial);

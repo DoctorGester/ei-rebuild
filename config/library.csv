@@ -4309,3 +4309,30 @@ address,name,library,signature,notes
 0052CA40,"stlp::hash_map<string, record>::operator[] (a temporary string key)",STLport,,"A-U11 review: the lever table's (0079C1A0) map lookup by model name, library code (unit_lever.cpp)"
 0052CB40,"stlp::hash_map<string, record>::operator[] (a temporary string key)",STLport,,"A-U11 review: the lever table's (0079C1A0) map lookup by model name, library code (unit_lever.cpp)"
 0052E010,"stlp::vector<CString>::clear",STLport,,"A-U11 review (units.md): erase(begin, end) of a vector<CString> (copy of an empty range, the CStrings destroyed), not game logic"
+006AD580,"stlp::hash_map<string,T*>::operator[](const char*) (0x7C record table 007C8758 +0xC)",STLport,,"A-H25: temporary string and pair, find_or_insert 006A7870; same kind as 00613820"
+0069D290,"stlp::hash_map<string,T*>::operator[](const char*) (material table 007C86D8 +0xC)",STLport,,"A-H25: temporary string and pair, find_or_insert 0069E1F0; same kind as 00613820"
+0069D380,"stlp::hash_map<string,T*>::operator[](const char*) (0x78 record table 007C8778 +0xC)",STLport,,"A-H25: temporary string and pair, find_or_insert 0069E2A0; same kind as 00613820"
+0068C680,stlp::basic_string<char>::reserve,STLport,,"A-H25: new block of max(size, n) + 1 from the node pool, copy, old block freed; length_error for npos"
+0068CA10,stlp::__introsort_loop<char*>,STLport,,"A-H25: std::sort of the spell container's code string (0068BF60): median of three, partition, heap sort at depth 0"
+0068CB30,stlp::__insertion_sort<char*>,STLport,,A-H25: std::sort of the spell container's code string
+0068CB90,stlp::__partial_sort<char*>,STLport,,A-H25: std::sort of the spell container's code string (heap sort fallback)
+0068CCE0,stlp::__linear_insert<char*>,STLport,,A-H25: std::sort of the spell container's code string
+0068CD30,stlp::__unguarded_linear_insert<char*>,STLport,,A-H25: std::sort of the spell container's code string
+0068CD50,stlp::make_heap<char*>,STLport,,A-H25: std::sort of the spell container's code string (called by 0068CA10)
+0068CE00,stlp::__adjust_heap<char*>,STLport,,A-H25: std::sort of the spell container's code string
+0069BD60,"stlp::vector<T>::erase(first, last) (16-byte elements)",STLport,,"A-H25: the trader stock's material entries; tail copied down, finish set"
+0069BF10,stlp::basic_string<char>::push_back,STLport,,"A-H25: reserve (0068C680) when full, then the character and the terminator"
+0069C1C0,"stlp::pair<const string, list<T>>::pair(const string&, const list<T>&)",STLport,,"A-H25: the trader stock's recipe map value (item_stock.cpp); string copy, list copy through 0069D680"
+0069D680,"stlp::list<T>::insert(pos, first, last) dispatch",STLport,,A-H25: forwards to 0069E4E0 with an iterator copy
+0069D6B0,"stlp::hashtable<pair<const string, list<T>>,...>::_M_new_node",STLport,,"A-H25: 0x18-byte node from the free list 0079B22C; string copy, list copy 0069D7C0"
+0069D7C0,stlp::list<T>::list(const list&),STLport,,"A-H25: sentinel from the free list 0079B228, elements through 0069D680"
+0069DB00,stlp::vector<T>::_M_allocate_and_copy (16-byte elements),STLport,,"A-H25: n elements from the node pool, uninitialized copy 0069F4E0"
+0069DC30,stlp::copy<T*> (16-byte elements),STLport,,"A-H25: the trader stock's material entries, four dwords each"
+0069E410,stlp::copy<T*> (16-byte elements; returns the end),STLport,,"A-H25: the trader stock's material entries, four dwords each"
+0069E4E0,"stlp::list<T>::_M_insert_dispatch(pos, first, last)",STLport,,A-H25: one insert (0069C2F0) per source node
+0064AA40,stlp::vector<T>::~vector (0x78-byte records with three CStrings),STLport,,A-H25: reached only from the unwind funclet 0072E158; not game logic
+0065A860,"stlp::list<pair<string, string>>::~list",STLport,,"A-H25: reached only from the unwind funclet 0072F9B9; every node's two strings destroyed (0040C720), nodes and sentinel back to the free list 0079B230"
+00663410,stlp::vector<T>::~vector (0x74-byte party file entries),STLport,,"A-H25: reached only from the unwind funclets 0072FEC8 / 0072FF98; elements destroyed inline, storage freed"
+00663660,stlp::_Vector_base<T>::~_Vector_base (0x74-byte elements),STLport,,A-H25: storage back to the node pool or operator delete
+006726E0,"stlp::hashtable<pair<const string,T>,...>::erase(iterator)",STLport,,"A-H25: the mapped resource's file table (CMappedResource::CloseFile 00671FC0); unlink, destroy 006727B0, node to the free list 0079B22C"
+00675560,stlp::vector<T>::~vector (16-byte elements: a string and a counted value),STLport,,A-H25: reached only from the unwind funclet 00731538; not game logic

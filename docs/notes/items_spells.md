@@ -463,4 +463,21 @@ records (Assign each). Byte-identical copies registered beside their rewrites: 0
 0069FD50 RefPtrRelease, 00689810 / 00689880 CleanupClear8. Left (under 5 bytes): CParty's slots 0065F4B0..0065F550,
 00661140..00661180, the empty `ret` slots of 00666EE0..00667670, 00691900, 0068DCF0.
 
+## A-H25
+
+The spell manager's folder slot 00688940 (A-H24's last item) was complete. Wrappers are in the area's verify files.
+
+| Address | Name | V |
+|---|---|---|
+| 006AD260, 006AD2F0, 006AD380, 006AD410; 00689570, 00689610 | CItemManager::ListMaterialNames / ListWeaponNames / ListArmorNames / ListQuickItemNames, CSpellManager::ListSpellNames / ListModifierNames (`this` unused; every new game through 004A7080) | S: the original into a scratch array, texts compared |
+| 006AD1E0 | CItemManager::CreateSpellItem (text, spell manager): the scroll of a spell text | O |
+| 006A6480 | CItemConstructor::MagicCapacity (item_constructor.cpp; trader_stock) | S on scratch floats |
+| 006A6430..006A6470 | the item records' slot 0 (kind 0x3004 / 5 / 6 / 9 / 7) | P |
+| 00699080, 006990E0, 00699140, 006991A0, 00699200, 00699260 | ItemStock::AddArmor / AddWeapon / AddQuickItem / AddSpell / AddModifier / AddMaterial (`stlp::vector::push_back` on the stock's vectors) | O: present once, size +1 only when new |
+| 0067ECB0, 0067EF00 | CSpellEffect::Init (every cast), Forget (an object leaving the world during a cast) | O |
+
+Library (config/library.csv): the by-name lookups 006AD580 / 0069D290 / 0069D380 (hash_map operator[](const char*), as 00613820),
+the code string's sort and reserve 0068C680..0068CE00, the trader stock's vector / list / pair helpers 0069BD60..0069E4E0,
+unwind-only vector destructors 0064AA40 / 0065A860 / 00663410 / 00675560, 00663660, 006726E0.
+
 **Next candidates** (after A-H23): 00693010, 00692D30 (composed textures), the material subsystem (CMaterial 0068DBC0 / 0068DE30 / 0068DF90 / 0068E040 with an STLport deque of 16-byte entries, CMaterialManager 0068E3F0 / 0068E540 / 0068E640 Rebirth-patched / 0068E900), the party container helpers 00664160 / 00664470 / 00664850 / 00664410 / 00664AC0 (CArray<PartyUnitRecord> destructor and friends; 00663410 is reached only from unwind funclets), 0069FB60 (items and their spells into two lists), the effect classes' 6-byte name / id getters in 0x675000-0x67E000; then the largest left in 0x640000-0x6C0000 (`python tools/progress.py`; it misses UI_INPUT_HANDLER registrations, so check `grep` before picking).
