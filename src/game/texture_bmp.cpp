@@ -113,16 +113,6 @@ void DescribeTexture(std::uint32_t (&desc)[kDescWords], const PixelFormat& forma
 
 } // namespace
 
-// 004EDC00 (not hooked: the scripts area's range; the same conversion in C++): each channel's top
-// bits of an A8R8G8B8 colour at the layout's shift (the shift counts masked as the x86 SHR / SHL do).
-std::uint32_t ChannelLayout::ToNative(std::uint32_t argb) const {
-    auto channel = [](std::uint32_t value, std::uint32_t bits, std::uint32_t shift) {
-        return (value >> ((8 - bits) & 31)) << (shift & 31);
-    };
-    return channel(argb >> 24, alphaBits, alphaShift) | channel((argb >> 8) & 0xFF, greenBits, greenShift) |
-           channel((argb >> 16) & 0xFF, redBits, redShift) | channel(argb & 0xFF, blueBits, blueShift);
-}
-
 // Original details kept: the loop runs over the width, then the height (a non-square .bmp overruns
 // the surface's rows; in the new renderer's memory the rows and pixels past it are left out); a
 // failed open of the alpha file is silent; a failed Lock whose report says go on writes through the

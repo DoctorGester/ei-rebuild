@@ -33,10 +33,7 @@ int BmpFormatFor(int type) {
 }
 } // namespace
 
-__declspec(naked) int CTextureDevice::ParseMmpHeader(const void*, PixelFormat*) EI_ORIGINAL(0x004E7C40)
-__declspec(naked) int CTextureDevice::FindFormat(int, PixelFormat*) EI_ORIGINAL(0x004E7DA0)
 __declspec(naked) int CTexture::CallCreateFromMmp(CTextureDevice*, const void*, unsigned) EI_ORIGINAL(0x00690430)
-__declspec(naked) int ChannelLayout::Split(const void*) EI_ORIGINAL(0x004EDAA0)
 
 int CTextureManager::LoadTexture(CTexture* texture) {
     if (!texture) {

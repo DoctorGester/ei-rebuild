@@ -11,6 +11,7 @@
 #include "ui.h"
 
 #include "dx_surface.h"
+#include "texture.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -73,16 +74,8 @@ constexpr int kDescRed = 0x16;      // +0x58
 constexpr int kDescGreen = 0x17;    // +0x5C
 constexpr int kDescBlue = 0x18;     // +0x60
 
-// Converts pixels of a DirectDraw format to and from 0x00RRGGBB (0x34 bytes).
-struct PixelConverter {
-    int Init(const void* format);              // 004EDAA0 (RET 4)
-    std::uint32_t FromNative(std::uint32_t);   // 004EDC70 (RET 4)
-    std::uint32_t ToNative(std::uint32_t);     // 004EDC00 (RET 4)
-    std::uint8_t state[0x34];
-};
-__declspec(naked) int PixelConverter::Init(const void*) EI_ORIGINAL(0x004EDAA0)
-__declspec(naked) std::uint32_t PixelConverter::FromNative(std::uint32_t) EI_ORIGINAL(0x004EDC70)
-__declspec(naked) std::uint32_t PixelConverter::ToNative(std::uint32_t) EI_ORIGINAL(0x004EDC00)
+// Pixels of a DirectDraw format go to and from 0xAARRGGBB through ChannelLayout (texture.h:
+// Split 004EDAA0, FromNative 004EDC70, ToNative 004EDC00).
 
 // SHL / SHR by CL (the count taken mod 32).
 std::uint32_t Shl(std::uint32_t v, int count) { return v << (count & 31); }
@@ -178,8 +171,8 @@ std::uint16_t* CUiSurface::Rgb565Copy(int width, int height) {
         if (hr != 0) FatalDirectX(hr, Text(0x0078E30C));   // "Can't lock surface"
     }
     int bytes = static_cast<int>(desc[kDescBits] >> 3);
-    PixelConverter converter;
-    converter.Init(&desc[kDescFormat]);
+    ChannelLayout converter;
+    converter.Split(&desc[kDescFormat]);
     const std::uint8_t* source = reinterpret_cast<const std::uint8_t*>(desc[kDescSurface]);
     std::uint16_t* out = pixels;
     if (count != 0) {
@@ -257,8 +250,8 @@ void CUiSurface::Greyscale() {
     if (!done) {
         // Any other format through the converter, a pixel of bits / 8 bytes at a time.
         auto* p = reinterpret_cast<std::uint8_t*>(desc[kDescSurface]);
-        PixelConverter converter;
-        converter.Init(&desc[kDescFormat]);
+        ChannelLayout converter;
+        converter.Split(&desc[kDescFormat]);
         int bytes = static_cast<int>(bits >> 3);
         if (count != 0) {
             do {
@@ -281,7 +274,7 @@ namespace {
 // 004EF7B0 (thiscall, RET 0xC): a surface holder's constructor (device, width, height).
 __declspec(naked) SurfaceHolder* __fastcall ConstructHolder(void*, void*, void*, int, int) EI_ORIGINAL(0x004EF7B0)
 // 004E6BA0 (thiscall): drops a holder reference.
-void __fastcall ReleaseHolder(SurfaceHolder* a0) { SurfaceHolderReleaseOriginal((void*)a0); }
+void ReleaseHolder(SurfaceHolder* holder) { reinterpret_cast<CDXSurface*>(holder)->Release(); }
 
 long GetSurfaceDesc(void** surface, std::uint32_t* desc) {
     using Fn = long(__stdcall*)(void**, void*);
@@ -405,8 +398,8 @@ std::uint32_t __fastcall SurfacePixelAt(CUiSurface* self, void*, int x, int y) {
     std::uint32_t at = desc[kDescSurface] + desc[kDescPitch] * static_cast<std::uint32_t>(y) +
                        static_cast<std::uint32_t>(bytes) * static_cast<std::uint32_t>(x);
     std::uint32_t value = bytes > 0 ? ReadPixel(reinterpret_cast<const std::uint8_t*>(at), bytes) : 0;
-    PixelConverter converter;
-    converter.Init(&desc[kDescFormat]);
+    ChannelLayout converter;
+    converter.Split(&desc[kDescFormat]);
     std::uint32_t rgb = converter.FromNative(value);
     holder = HolderOf(self);
     gameapi::LeaveCriticalSection(DeviceLock());
