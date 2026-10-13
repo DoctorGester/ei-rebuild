@@ -6,12 +6,12 @@ merging duplicate `EI_ORIGINAL` forwarders into one declaration per function (cl
 - 4,181 forwarder sites forward to 3,667 distinct original functions.
 - **316** of those functions are forwarded from more than one file; they are listed below (821 sites).
 - 9 more are forwarded several times inside a single file (not listed).
-- Of the 316: 233 already rewritten, 72 library code, 11 not yet ported.
+- Of the 316: 234 already rewritten, 72 library code, 10 not yet ported.
 - Signatures: 32 identical in every file, 46 the same apart from the helper name, 238 differ in return or parameter types or in the calling convention (these need a decision before merging).
 
 Files with the most shared forwarders: `src/game/originals_library.h` (37), `src/game/ui_camp.cpp` (27), `src/game/script_exec.cpp` (25), `src/game/world_game.cpp` (20), `src/lib/mfc.cpp` (18), `src/game/script_load.cpp` (17), `src/game/originals_ui.h` (16), `src/game/ui_battle_update.cpp` (16), `src/game/world_quests.cpp` (14), `src/game/world_units.cpp` (14), `src/game/combat_update.cpp` (12), `src/game/item_stock.cpp` (12), `src/game/combat_actions.cpp` (11), `src/game/unit_create_stats.cpp` (11), `src/game/originals_gameplay.h` (11).
 
-## Already rewritten (233)
+## Already rewritten (234)
 
 The function is ported here; callers can call it directly instead of through the original address.
 
@@ -1181,6 +1181,11 @@ Rewritten as `itemdb::CodeIndexedTable::FindByCode` (src/game/spell_db_lookup.cp
 - `src/game/item_stock.cpp:874`: `char* __fastcall FindModifierByCode(void*, void*, const char*)`
 - `src/game/spell_cast.cpp:46`: `char* __fastcall FindModifierByCode(void*, void*, const char*)`
 
+### 0x0068EAF0: 2 files, 2 sites, signatures differ
+Rewritten as `CMaterialManager::FillMaterial` (src/game/material.cpp).
+- `src/game/originals_render.h:99`: `int __fastcall MaterialRegisterOriginal(void* /*manager*/, void*, void* /*record*/, std::uint32_t /*key*/)`
+- `src/game/ui_window.cpp:483`: `void __fastcall RegisterMaterial(void*, void*, std::uint8_t*, int)`
+
 ### 0x00693180: 3 files, 3 sites, signatures differ
 Rewritten as `ComposeTexture` (src/game/texture_compose.cpp).
 - `src/game/originals_units.h:356`: `int __fastcall TextureManagerComposeOriginal(void* /*manager*/, void*, void* /*out*/, void* /*request*/, void* /*name*/, void* /*fallback*/, int /*mipCount*/, int /*fill*/, int /*format*/)`
@@ -1657,7 +1662,7 @@ STLport, MFC or CRT code; goes away with the library layer (cleanup plan, Phase 
 - `src/game/originals_library.h:487`: `void __fastcall DcFillSolidRectOriginal(void* /*dc*/, void*, int /*x*/, int /*y*/, int /*cx*/, int /*cy*/, std::uint32_t /*colour*/)`
 - `src/game/ui_console_window.cpp:421`: `void GameDC::FillSolidRect(int, int, int, int, COLORREF)`
 
-## Not yet ported (11)
+## Not yet ported (10)
 
 Declare once (src/game/originals.h), include everywhere, replace by the port later.
 
@@ -1692,10 +1697,6 @@ Declare once (src/game/originals.h), include everywhere, replace by the port lat
 - `src/game/ui_layouts.cpp:553`: `SIZE BoxMetricsAt::TextExtentRaw(char*, int)`
 - `src/game/ui_scroll_text.cpp:43`: `SIZE TextMetricsAt::TextExtentRaw(char*, int)`
 - `src/game/ui_text.cpp:34`: `SIZE TextMetricsAt::TextExtentRaw(char*, int)`
-
-### 0x0068EAF0: 2 files, 2 sites, signatures differ
-- `src/game/originals_render.h:99`: `int __fastcall MaterialRegisterOriginal(void* /*manager*/, void*, void* /*record*/, std::uint32_t /*key*/)`
-- `src/game/ui_window.cpp:483`: `void __fastcall RegisterMaterial(void*, void*, std::uint8_t*, int)`
 
 ### 0x0069D290: 2 files, 2 sites, identical
 - `src/game/item_constructor.cpp:450`: `char* __fastcall FindMaterialNamed(void*, void*, const char*)`
