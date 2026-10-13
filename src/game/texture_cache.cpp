@@ -148,3 +148,33 @@ CTexture* CTextureManager::FindTexture(const char* name) {
     return found;
 }
 EI_REPLACE_METHOD(0x00693C60, CTextureManager::FindTexture);
+
+// --- 00692D30 ----------------------------------------------------------------------------------------
+
+CTexture* CTextureManager::FindTypedTexture(int type, const char* name) {
+    ObjectListIterator registered{nullptr, nullptr};
+    CTexture* found = nullptr;
+    for (CEngineObject* object = registered.First(this); object; object = registered.Next()) {
+        if (object->type_ == type && std::strcmp(object->GetName(), name) == 0) {
+            found = static_cast<CTexture*>(object);
+            break;
+        }
+    }
+    if (!found) found = TakeFromCache(type, name);
+    if (registered.manager) --registered.manager->refCount_;
+    return found;
+}
+EI_REPLACE_METHOD(0x00692D30, CTextureManager::FindTypedTexture);
+
+// --- 00692F00 ----------------------------------------------------------------------------------------
+
+void CTextureManager::FreeCache() {
+    for (auto* node = cache_.head; node;) {
+        CTexture* texture = node->data;
+        node = node->next;
+        if (texture) delete texture;
+    }
+    cachedBytes_ = 0;
+    cache_.RemoveAll();
+}
+EI_REPLACE_METHOD(0x00692F00, CTextureManager::FreeCache);

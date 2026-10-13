@@ -124,6 +124,26 @@ static_assert(offsetof(CDXSurface, surface) == 0x10);
 static_assert(offsetof(CDXSurface, bitsPerPixel) == 0x1C);
 static_assert(sizeof(CDXSurface) == 0x20);
 
+// 2DintMMX's graphics processor, the pixel converter (*007AF06C, also CTextureDevice::converter_).
+// Its code is in the DLL; only the slots the rewritten code calls are named. Never constructed here.
+class CPixelConverter {
+public:
+    virtual void Unknown0();
+    virtual void Unknown1();
+    // 2: 32-bit pixels to 16 bits; `kind` 3 4:4:4:4, 2 1:5:5:5, 0 5:6:5.
+    virtual void ConvertTo16(std::uint16_t* out, const std::uint32_t* in, int kind, unsigned count);
+    virtual void Unknown3();
+    virtual void Unknown4();
+    // 5: an .mmp file's pixels (after its header and extra block) into 32-bit pixels; `pnt3` for a
+    // PNT3 file (MmpHeader::format "PNT3").
+    virtual void UnpackTo32(std::uint32_t* out, const void* in, unsigned count, int pnt3);
+    virtual void Unknown6();
+    // 7: halves a square image (`width` is the new width).
+    virtual void Halve(std::uint32_t* out, const std::uint32_t* in, unsigned width);
+};
+inline CPixelConverter* PixelConverter() { return *reinterpret_cast<CPixelConverter**>(std::uintptr_t(0x007AF06C)); }
+constexpr std::uint32_t kMmpFormatPnt3 = 0x33544E50;   // "PNT3"
+
 // A byte buffer aligned to 32 bytes (the engine's aligned array; its out-of-line SetSize is 00694300).
 using AlignedBuffer = lib::AlignedArray<std::uint8_t>;
 
@@ -331,6 +351,17 @@ public:
     // 00693C60 (texture_cache.cpp). The registered texture named `name`, else a cached one taken
     // back as TakeFromCache does (but cachedBytes_ is not lowered); null.
     CTexture* FindTexture(const char* name);
+    // 00692D30 (texture_cache.cpp; RET 8). The registered texture of `type` named `name`, else
+    // TakeFromCache's; null when neither has it.
+    CTexture* FindTypedTexture(int type, const char* name);
+    // 00692F00 (texture_cache.cpp). Deletes every cached texture (slot 0 with 1) and empties the
+    // cache; cachedBytes_ 0.
+    void FreeCache();
+    // 00693010 (texture_compose.cpp; RET 0xC). Draws the layer textures `names` (each a
+    // `width` x `width` .mmp from the archives, GetFile / CloseFile) into the 32-bit `image`
+    // through the pixel converter's slot 5. A missing one goes to the debug log and is skipped;
+    // one of another size is a fatal error (its result returned). Returns the layers drawn.
+    int DrawLayers(std::uint32_t* image, const mfc::CStringArray* names, int width);
 
     mfc::CTypedPtrList<CTexture> cache_;   // +0xBC released textures kept for reuse (vtable 00743D18)
     int cachedBytes_;           // +0xD8 the cached textures' byte sizes (CTexture::uploadResult_)

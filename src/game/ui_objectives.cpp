@@ -330,8 +330,8 @@ constexpr float kExitTurnDown = 3.1415927f; // 00742B24
 
 } // namespace
 
-__declspec(naked) void CObjectivesWindow::SelectExit(int) EI_ORIGINAL(0x0064E990)
-__declspec(naked) void CObjectivesWindow::RefreshQuests() EI_ORIGINAL(0x0064E8B0)
+__declspec(naked) void CObjectivesWindow::CallSelectExit(int) EI_ORIGINAL(0x0064E990)
+__declspec(naked) void CObjectivesWindow::CallRefreshQuests() EI_ORIGINAL(0x0064E8B0)
 
 // --- 0064CC10: the zone page ----------------------------------------------------------------------
 
@@ -455,7 +455,7 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         }
         region->CallSetRect(rect.left, rect.top, rect.right, rect.bottom);
     }
-    SelectExit(nearestExit_);
+    CallSelectExit(nearestExit_);
     if (twoButtons_ != 0 && !anyKnown) {
         reinterpret_cast<CUiMesh*>(sceneObjects_.data[0])->visible_ = 0;
         regions_.data[0]->SetTip(0, 1, 0);
@@ -498,8 +498,8 @@ void CObjectivesWindow::ShowZone(const char* zone) {
         int rows = quests->GetSize();
         reinterpret_cast<ScrollbarAt*>(bar_)->SetRange(rows > 5 ? rows - 5 : 0);
         bar_->CallSetPosition(0);
-        unknown_1C0 = 0;
-        RefreshQuests();
+        firstRow_ = 0;
+        CallRefreshQuests();
 
         // The zone's title and description ("zone <name>") on surface 1.
         {
@@ -777,7 +777,7 @@ void CObjectivesWindow::Build() {
     AddRect(this, 414, 384, 443, 404);
     AddRect(this, 717, 384, 746, 404);
     for (int top = 30; top < 150; top += 24) AddRect(this, 60, top, 360, top + 24)->SetTip(0x138EF, 1, 0);
-    unknown_1C8 = 0;
+    blinkTime_ = 0.0f;
 
     if (listZones_ == 0) {
         ShowZone(zoneName_);
@@ -857,7 +857,7 @@ void CObjectivesWindow::DrawQuestList() {
     SurfaceClearOriginal(surface);
     for (int i = 16; i < 21; ++i) mesh(i)->visible_ = 0;
     auto* quests = reinterpret_cast<CStringArray*>(quests_);
-    int row = unknown_1C0;
+    int row = firstRow_;
     int y = 13;
     for (int i = 16; i < 21 && row < quests->GetSize(); ++i, ++row, y += 24) {
         CUiMesh* mark = mesh(i);

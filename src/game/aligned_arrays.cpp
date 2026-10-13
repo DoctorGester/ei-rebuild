@@ -85,6 +85,9 @@ EI_REPLACE(0x0050E100, AllocateDwords);
 EI_REPLACE(0x00514D30, AllocateDwords);
 EI_REPLACE(0x0051A170, AllocateDwords);
 EI_REPLACE(0x0051EF90, AllocateDwords);
+// Byte-identical copies in the HUD / items range (A-H24).
+EI_REPLACE(0x00664910, AllocateDwords);
+EI_REPLACE(0x00671240, AllocateDwords);
 Blob<6>* __fastcall AllocateWords6(int count) { return lib::AlignedArray<Blob<6>>::Allocate(count); }
 EI_REPLACE(0x00452E90, AllocateWords6);
 Blob<8>* __fastcall AllocateQwords(int count) { return Qwords::Allocate(count); }

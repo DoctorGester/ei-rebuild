@@ -700,6 +700,12 @@ struct MpHeroRecord {
     MpHeroRecord* Construct();
     // 00619560. Destructor: the file name, then the party (006611D0).
     void Destruct();
+    // 00664AE0 (ui_hero_screen_click.cpp). Scalar deleting destructor (the vector's element
+    // destructor with flag 0). Returns this.
+    MpHeroRecord* DeletingDestruct(unsigned flags);
+    // 00664410 (ui_hero_screen_click.cpp; fastcall, the destination on the stack, RET 4). copy():
+    // [first, last) assigned (Assign) to dest onwards; returns the end of the destination.
+    static MpHeroRecord* __fastcall CopyRange(const MpHeroRecord* first, const MpHeroRecord* last, MpHeroRecord* dest);
     // 00662AC0 (RET 4; party_file.cpp). Writes the party to `folder` + file: a file name with no
     // '.' or with anything but digits before the last one is deleted instead. Otherwise the old
     // file is moved to `folder` + "temp.mp", the party saved (with its variables) into a memory

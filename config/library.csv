@@ -3475,7 +3475,11 @@ address,name,library,signature,notes
 0068C5A0,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_new_node",STLport,,inventory sweep: 16-byte node from the free list 0079B228; loose-family member of 00404C90 (reviewed)
 0068C620,stlp::_STLP_alloc_proxy<T>::_STLP_alloc_proxy,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0068C640,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,,"inventory sweep: n*sizeof(T) back to the node-pool free list, operator delete above 128 bytes; loose-family member of 00411B30 (reviewed)"
+0068DD40,"stlp::deque<T>::~deque (16-byte elements)",STLport,,A-H24: the material's deque; only unwind funclets call it (CMaterial::Destruct inlines it; stlp::deque<T>::Destroy)
+0068E0B0,"stlp::deque<T>::deque(alloc, n)",STLport,,A-H24: the material's deque (CMaterial::Construct; stlp::deque<T>::Construct)
 0068E150,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 2 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
+0068E1C0,"stlp::deque<T>::_M_initialize_map",STLport,,A-H24: the material's deque (stlp::deque<T>::Construct)
+0068E320,"stlp::deque<T>::_M_create_nodes",STLport,,A-H24: the material's deque (stlp::deque<T>::Construct)
 0068EBB0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0068EC00,stlp::_STLP_alloc_proxy<T>::_STLP_alloc_proxy,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0068EC20,stlp::vector<T>::reserve,STLport,,inventory sweep: returns if capacity suffices; else allocate_and_copy and free the old block to the node pool; loose-family member of 0040AF00 (reviewed)

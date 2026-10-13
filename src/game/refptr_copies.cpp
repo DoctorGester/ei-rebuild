@@ -84,6 +84,7 @@ EI_REPLACE(0x0047D7B0, RefPtrRelease);
 EI_REPLACE(0x00438A10, RefPtrRelease);
 EI_REPLACE(0x00439910, RefPtrRelease);
 EI_REPLACE(0x0059B4B0, RefPtrRelease);   // byte-identical copy (A-W12)
+EI_REPLACE(0x0069FD50, RefPtrRelease);   // byte-identical copy (A-H24; only unwind funclets call it)
 
 // The same release of the counted pointer at +4 (the destructor of a pair whose second member is
 // the RefPtr). 4 copies.

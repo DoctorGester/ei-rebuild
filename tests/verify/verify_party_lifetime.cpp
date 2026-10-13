@@ -82,6 +82,36 @@ void __fastcall DestructVerify(PartyUnitRecord* self) {
     ei::verify::Check("PartyUnitRecord::Destruct", true, ItemsCleared(*self) && Defaults(*self), "record %p", self);
 }
 
+// A-H24: the record's deleting destructor (party loading, 006618C0), DestructElements, the record
+// array's destructor body and slot 0 (party records destroyed: SavedParties::Reload). Ours only.
+PartyUnitRecord* __fastcall DeletingVerify(PartyUnitRecord* self, void*, unsigned flags) {
+    PartyUnitRecord* result = self->DeletingDestruct(flags & ~1u);
+    ei::verify::Check("PartyUnitRecord::DeletingDestruct", true, result == self && ItemsCleared(*self) && Defaults(*self),
+                      "record %p", self);
+    if (flags & 1) gamecrt::operator_delete(self);
+    return result;
+}
+
+void __stdcall DestructRecordsVerify(PartyUnitRecord* records, int count) {
+    DestructPartyUnitRecords(records, count);
+    bool ok = true;
+    for (int i = 0; ok && i < count; ++i) ok = ItemsCleared(records[i]) && Defaults(records[i]);
+    ei::verify::Check("DestructPartyUnitRecords", true, ok, "%d records at %p", count, records);
+}
+
+void __fastcall MemberArrayDestructVerify(PartyMemberArray* self) {
+    DestructPartyMemberArray(self);
+    ei::verify::Check("DestructPartyMemberArray", true, reinterpret_cast<std::uintptr_t>(self->vtable) == kPartyMemberArrayVtable, "array %p", self);
+}
+
+PartyMemberArray* __fastcall MemberArrayDeleteVerify(PartyMemberArray* self, void*, unsigned flags) {
+    PartyMemberArray* result = DeletePartyMemberArray(self, nullptr, flags & ~1u);
+    ei::verify::Check("DeletePartyMemberArray", true, result == self && reinterpret_cast<std::uintptr_t>(self->vtable) == kPartyMemberArrayVtable,
+                      "array %p", self);
+    if (flags & 1) gamecrt::operator_delete(self);
+    return result;
+}
+
 void __fastcall ClearItemsVerify(PartyUnitRecord* self) {
     self->ClearItems();
     ei::verify::Check("PartyUnitRecord::ClearItems", true, ItemsCleared(*self), "record %p", self);
@@ -251,6 +281,10 @@ EI_VERIFY(0x0065F5F0, ConstructVerify, 7, s_construct);
 EI_VERIFY(0x00664880, ConstructRecordsVerify, 6, s_constructRecords);
 EI_VERIFY(0x0065F740, DestructVerify, 0, s_unused);
 EI_VERIFY(0x0065F860, ClearItemsVerify, 0, s_unused);
+EI_VERIFY(0x00664AC0, DeletingVerify, 0, s_unused);
+EI_VERIFY(0x00664850, DestructRecordsVerify, 0, s_unused);
+EI_VERIFY(0x00664160, MemberArrayDestructVerify, 0, s_unused);
+EI_VERIFY(0x00664470, MemberArrayDeleteVerify, 0, s_unused);
 EI_VERIFY(0x00663FA0, MemberSetSizeVerify, 0, s_unused);
 EI_VERIFY(0x006641D0, MemberSerializeVerify, 0, s_unused);
 EI_VERIFY(0x00663960, ListSetSizeVerify, 0, s_unused);

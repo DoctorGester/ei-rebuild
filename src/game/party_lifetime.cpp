@@ -103,9 +103,32 @@ void __stdcall ConstructPartyUnitRecords(PartyUnitRecord* records, int count) {
 }
 EI_REPLACE(0x00664880, ConstructPartyUnitRecords);
 
-void PartyUnitRecordElements::Destruct(PartyUnitRecord* records, int count) {
-    for (int i = 0; i != count; ++i) records[i].Destruct();
+void __stdcall DestructPartyUnitRecords(PartyUnitRecord* records, int count) {
+    for (; count != 0; --count, ++records) records->Destruct();
 }
+EI_REPLACE(0x00664850, DestructPartyUnitRecords);
+
+void PartyUnitRecordElements::Destruct(PartyUnitRecord* records, int count) { DestructPartyUnitRecords(records, count); }
+
+PartyUnitRecord* PartyUnitRecord::DeletingDestruct(unsigned flags) {
+    Destruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x00664AC0, PartyUnitRecord::DeletingDestruct);
+
+void __fastcall DestructPartyMemberArray(PartyMemberArray* array) {
+    array->vtable = reinterpret_cast<void*>(kPartyMemberArrayVtable);
+    array->FreeData();
+}
+EI_REPLACE(0x00664160, DestructPartyMemberArray);
+
+PartyMemberArray* __fastcall DeletePartyMemberArray(PartyMemberArray* array, void*, unsigned flags) {
+    DestructPartyMemberArray(array);
+    if (flags & 1) gamecrt::operator_delete(array);
+    return array;
+}
+EI_REPLACE(0x00664470, DeletePartyMemberArray);
 
 // 00663FA0: CArray<PartyUnitRecord>::SetSize.
 EI_REPLACE_METHOD(0x00663FA0, PartyMemberArray::SetSize);

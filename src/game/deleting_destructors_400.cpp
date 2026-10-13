@@ -70,3 +70,5 @@ EI_REPLACE(0x0043FD20, DeletingDestructor<0x00438AE0>);
 
 EI_REPLACE(0x004054F0, CleanupClear8);
 EI_REPLACE(0x00405530, CleanupClear8);
+EI_REPLACE(0x00689810, CleanupClear8);   // byte-identical copies called by unwind funclets (A-H24)
+EI_REPLACE(0x00689880, CleanupClear8);

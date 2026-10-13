@@ -3,6 +3,7 @@
 
 #include "../../src/game/texture.h"
 #include "../../src/game/unit_client_models.h"
+#include "lib/crt.h"
 #include "lib/mfc.h"
 
 #include <cstdint>
@@ -51,3 +52,22 @@ static int __fastcall ComposeTextureVerify(void* manager, void*, mfc::CString* o
     return result;
 }
 EI_VERIFY(0x00693180, ComposeTextureVerify, 0, s_compose);
+
+// 00693010: PUSH -1 (2), PUSH imm32 (5). The original draws into a copy of the image (same starting
+// pixels), ours into the image; results and pixels compared. GetFile / CloseFile only read the
+// archives. Reached by ComposeTexture (party skins: every scenario with a new game).
+static int(__fastcall* s_drawLayers)(CTextureManager*, void*, std::uint32_t*, const mfc::CStringArray*, int);
+static int __fastcall DrawLayersVerify(CTextureManager* self, void*, std::uint32_t* image, const mfc::CStringArray* names,
+                                       int width) {
+    const std::size_t bytes = static_cast<std::size_t>(width) * static_cast<std::size_t>(width) * 4;
+    auto* copy = static_cast<std::uint32_t*>(gamecrt::operator_new(bytes));
+    std::memcpy(copy, image, bytes);
+    const int expected = s_drawLayers(self, nullptr, copy, names, width);
+    const int actual = self->DrawLayers(image, names, width);
+    const bool ok = expected == actual && std::memcmp(copy, image, bytes) == 0;
+    ei::verify::Check("CTextureManager::DrawLayers", true, ok, "%d layers, width %d: %d / %d", names->GetSize(), width,
+                      expected, actual);
+    gamecrt::operator_delete(copy);
+    return expected;
+}
+EI_VERIFY(0x00693010, DrawLayersVerify, 7, s_drawLayers);

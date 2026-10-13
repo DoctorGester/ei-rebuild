@@ -112,7 +112,7 @@ static void __fastcall ObjectivesDrawQuestListVerify(CObjectivesWindow* self, vo
     bool ok = true;
     bool cursor = false;
     for (int i = 0; i < 5; ++i) {
-        int row = self->unknown_1C0 + i;
+        int row = self->firstRow_ + i;
         bool shown = false;
         if (row < count) {
             mfc::CString variable;
@@ -125,6 +125,53 @@ static void __fastcall ObjectivesDrawQuestListVerify(CObjectivesWindow* self, vo
     }
     ok = ok && (reinterpret_cast<CUiMesh*>(self->sceneObjects_.data[2])->visible_ != 0) == cursor;
     ei::verify::Check("CObjectivesWindow::DrawQuestList", true, ok, "%d quests from %d, selected %d", count,
-                      self->unknown_1C0, self->selectedQuest_);
+                      self->firstRow_, self->selectedQuest_);
 }
 EI_VERIFY(0x0064D9B0, ObjectivesDrawQuestListVerify, 0, s_unused);
+
+// --- A-H24: SelectExit, RefreshQuests, Update (ours only: they move sprites and the bar) ------------
+
+namespace {
+CUiMesh* SpriteOf(const CObjectivesWindow* w, int index) { return reinterpret_cast<CUiMesh*>(w->sceneObjects_.data[index]); }
+} // namespace
+
+// 0064E990 (ShowZone and an exit click): the nearest exit and the markers' frames; sprites 4 / 5 hidden.
+static void __fastcall ObjectivesSelectExitVerify(CObjectivesWindow* self, void*, int index) {
+    self->SelectExit(index);
+    bool ok = self->nearestExit_ == index && SpriteOf(self, 4)->visible_ == 0 && SpriteOf(self, 5)->visible_ == 0;
+    for (int i = 0; ok && i < self->exitCount_; ++i) {
+        float u = SpriteOf(self, 21 + i)->uOffset_;
+        ok = i == index || self->exits_[i].flag_ ? u == 0.0f : u == -0.125f;
+    }
+    if (ok && index >= 0 && index < self->exitCount_) ok = self->blinkTime_ == 0.0f;
+    ei::verify::Check("CObjectivesWindow::SelectExit", true, ok, "exit %d of %d", index, self->exitCount_);
+}
+EI_VERIFY(0x0064E990, ObjectivesSelectExitVerify, 0, s_unused);
+
+// 0064E8B0 (the quest keys): with quests the selection within the list and the first shown row
+// within five above it.
+static void __fastcall ObjectivesRefreshQuestsVerify(CObjectivesWindow* self, void*) {
+    self->RefreshQuests();
+    int count = *reinterpret_cast<const int*>(self->quests_ + 8);
+    bool ok = count == 0 || (self->selectedQuest_ >= 0 && self->selectedQuest_ < count &&
+                             self->firstRow_ <= self->selectedQuest_ && self->selectedQuest_ < self->firstRow_ + 5);
+    ei::verify::Check("CObjectivesWindow::RefreshQuests", true, ok, "%d quests, selected %d from %d", count,
+                      self->selectedQuest_, self->firstRow_);
+}
+EI_VERIFY(0x0064E8B0, ObjectivesRefreshQuestsVerify, 0, s_unused);
+
+// 0064E760 (slot 24, every frame while the window is open): every marker and quest place drawn in
+// its plain colour, the nearest exit's white, the other exits' grey, the places' red.
+static void __fastcall ObjectivesUpdateVerify(CObjectivesWindow* self, void*) {
+    self->Update();
+    bool ok = true;
+    for (int i = 21; ok && i < self->sceneObjects_.size; ++i) {
+        const CUiMesh* sprite = SpriteOf(self, i);
+        std::uint32_t rgb = sprite->plainColour_ & 0xFFFFFF;
+        std::uint32_t expected = i >= 21 + self->exitCount_ ? 0xFF0000u : i - 21 == self->nearestExit_ ? 0xFFFFFFu : 0xC8C8C8u;
+        ok = (sprite->flags_ & 0x100) != 0 && rgb == expected;
+    }
+    ei::verify::Check("CObjectivesWindow::Update", true, ok, "%d sprites, %d exits", self->sceneObjects_.size,
+                      self->exitCount_);
+}
+EI_VERIFY(0x0064E760, ObjectivesUpdateVerify, 0, s_unused);

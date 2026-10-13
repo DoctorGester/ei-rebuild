@@ -201,6 +201,28 @@ static void __fastcall HeroDestructVerify(MpHeroRecord* self, void*) {
 }
 EI_VERIFY(0x00619560, HeroDestructVerify, 0, s_unused);
 
+// 00664AE0 / 00664410 (A-H24; the saved parties' vector in SavedParties::Reload, world_game.cpp,
+// and the hero list): ours only. The deleting destructor returns the record; the copy returns the
+// destination's end, every copied record's file name equal to its source's.
+static MpHeroRecord* __fastcall HeroDeletingVerify(MpHeroRecord* self, void*, unsigned flags) {
+    MpHeroRecord* result = self->DeletingDestruct(flags & ~1u);
+    ei::verify::Check("MpHeroRecord::DeletingDestruct", true, result == self, "flags %u", flags);
+    if (flags & 1) gamecrt::operator_delete(self);
+    return result;
+}
+EI_VERIFY(0x00664AE0, HeroDeletingVerify, 0, s_unused);
+static MpHeroRecord* __fastcall HeroCopyRangeVerify(const MpHeroRecord* first, const MpHeroRecord* last, MpHeroRecord* dest) {
+    const std::ptrdiff_t n = last > first ? last - first : 0;
+    // The names are compared only when the ranges are apart (an erase copies the tail down over itself).
+    const bool apart = dest + n <= first || first + n <= dest;
+    MpHeroRecord* result = MpHeroRecord::CopyRange(first, last, dest);
+    bool ok = result == dest + n;
+    for (std::ptrdiff_t i = 0; ok && apart && i < n; ++i) ok = std::strcmp(dest[i].file, first[i].file) == 0;
+    ei::verify::Check("MpHeroRecord::CopyRange", true, ok, "%d records", static_cast<int>(last - first));
+    return result;
+}
+EI_VERIFY(0x00664410, HeroCopyRangeVerify, 0, s_unused);
+
 static void __fastcall HeroDeleteVerify(CMpHeroScreen* self, void*) {
     std::uint32_t before = MpHeroTotal();
     int index = self->heroIndex_;

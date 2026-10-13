@@ -44,8 +44,9 @@ void ThisCall(void* object, int slot, Args... args) {
 __declspec(naked) void __fastcall FileWrite(mfc::CFile*, void*, const void*, unsigned) EI_ORIGINAL(0x0070133F)
 // The aligned byte allocation [004ECB50].
 std::uint8_t* __fastcall AllocBytes(int a0) { return (std::uint8_t*)AllocAligned32Original(a0); }
-// 00693010 [thiscall on the manager]: draws the request's layers into the `width` x `width` image
-// of 32-bit pixels [image, texture names, width]; 0 on failure.
+const char* const kCantFindLayer = Text(0x00795F74);    // "Can't find texture \"%s\" for layer composition.\n"
+const char* const kWrongLayerSize = Text(0x00795F4C);   // "Texture \"%s\" dimentions are incorrect.\n"
+// 00693010 (CTextureManager::DrawLayers), called through its address so its wrapper runs.
 __declspec(naked) int __fastcall DrawLayers(void*, void*, std::uint32_t*, const console::CStringArray*, int)
     EI_ORIGINAL(0x00693010)
 // The header's pixel format fields [thiscall on the header]: none (00693820), 1-5-5-5 (00693850),
@@ -168,6 +169,28 @@ void WriteLevels(mfc::CFile& file, const MmpHeader& header, std::uint32_t* image
 }
 
 } // namespace
+
+// --- 00693010 ----------------------------------------------------------------------------------------
+
+int CTextureManager::DrawLayers(std::uint32_t* image, const mfc::CStringArray* names, int width) {
+    CPixelConverter* converter = PixelConverter();
+    int drawn = 0;
+    for (int i = 0; i < names->GetSize(); ++i) {
+        const auto* data = static_cast<const MmpHeader*>(GetFile((*names)[i], nullptr));
+        if (!data) {
+            game::DebugLog(kCantFindLayer, static_cast<const char*>((*names)[i]));
+            continue;
+        }
+        if (data->width != static_cast<std::uint32_t>(width) || data->height != static_cast<std::uint32_t>(width))
+            return game::FatalError(kWrongLayerSize, static_cast<const char*>((*names)[i]));
+        const auto* pixels = reinterpret_cast<const std::uint8_t*>(data + 1) + data->extraSize;
+        converter->UnpackTo32(image, pixels, static_cast<unsigned>(width * width), data->format == kMmpFormatPnt3);
+        ++drawn;
+        CloseFile(const_cast<MmpHeader*>(data));
+    }
+    return drawn;
+}
+EI_REPLACE_METHOD(0x00693010, CTextureManager::DrawLayers);
 
 // 00693180. `out` receives the name of the texture used; `name` is the cache file to use, `fallback`
 // another one tried when `name` has no file. A cached file whose extra block equals the request's

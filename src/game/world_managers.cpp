@@ -107,6 +107,9 @@ EI_REPLACE(0x0055F360, EffectManagerClassName);
 EI_REPLACE(0x0055F370, EffectManagerClassId);
 EI_REPLACE(0x0055F3A0, EffectManagerDestruct);
 EI_REPLACE(0x0055F380, EffectManagerDelete);
+// 0067E150 (slot 2; A-H24): CBaseManager's Create, as 0 / 1 (slot 3 is a thunk to CBaseManager's).
+BOOL __fastcall EffectManagerCreate(CBaseManager* self) { return self->CBaseManager::Create() != 0 ? 1 : 0; }
+EI_REPLACE(0x0067E150, EffectManagerCreate);
 
 const char* __fastcall ItemManagerClassName(CItemManager*) { return reinterpret_cast<const char*>(kItemManagerName); }
 int __fastcall ItemManagerClassId(CItemManager*) { return kItemManagerId; }

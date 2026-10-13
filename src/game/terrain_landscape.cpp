@@ -365,12 +365,12 @@ int Terrain::SetupPages(int count) {
         pageMaterials[i] = material;
         ++material->refCount_;
         material->name = "Wood";
-        material->diffuse.x = material->diffuse.y = material->diffuse.z = 0.3f;
-        material->ambient.x = material->ambient.y = material->ambient.z = 0.7f;
-        material->specular.x = material->specular.y = material->specular.z = 0.2f;
-        material->emissive.x = material->emissive.y = material->emissive.z = 0.0f;
-        material->diffuse.w = 1.0f;
-        material->power = 5.0f;
+        material->colors.diffuse.x = material->colors.diffuse.y = material->colors.diffuse.z = 0.3f;
+        material->colors.ambient.x = material->colors.ambient.y = material->colors.ambient.z = 0.7f;
+        material->colors.specular.x = material->colors.specular.y = material->colors.specular.z = 0.2f;
+        material->colors.emissive.x = material->colors.emissive.y = material->colors.emissive.z = 0.0f;
+        material->colors.diffuse.w = 1.0f;
+        material->colors.power = 5.0f;
         if (!TextureLoadOriginal(Textures(), nullptr, pageTextures[i])) return 0;
     }
     return 1;

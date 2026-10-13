@@ -32,10 +32,16 @@ void CheckClear(const char* name, void(__fastcall* original)(void*), void* objec
 }
 void __fastcall ClearAVerify(void* object) { CheckClear("CleanupClear8@004054F0", s_clearA, object); }
 void __fastcall ClearBVerify(void* object) { CheckClear("CleanupClear8@00405530", s_clearB, object); }
+void(__fastcall* s_clearC)(void*);
+void(__fastcall* s_clearD)(void*);
+void __fastcall ClearCVerify(void* object) { CheckClear("CleanupClear8@00689810", s_clearC, object); }
+void __fastcall ClearDVerify(void* object) { CheckClear("CleanupClear8@00689880", s_clearD, object); }
 } // namespace
 
 EI_VERIFY(0x004054F0, ClearAVerify, 7, s_clearA);
 EI_VERIFY(0x00405530, ClearBVerify, 7, s_clearB);
+EI_VERIFY(0x00689810, ClearCVerify, 7, s_clearC);   // A-H24 copies
+EI_VERIFY(0x00689880, ClearDVerify, 7, s_clearD);
 
 EI_VERIFY(0x004128C0, DeleteVerify<0x004128E0>, 0, s_unused);
 EI_VERIFY(0x00412970, DeleteVerify<0x00412960>, 0, s_unused);

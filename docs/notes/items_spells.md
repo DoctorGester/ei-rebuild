@@ -335,7 +335,7 @@ ComposeTexture: the cache file `<game folder>textures\<name>.mmp` keeps the requ
 file is tried. No layer textures deletes the file (0); else the image is drawn by 00693010 (not rewritten) and written, each
 level converted to 16 bits by the pixel converter 007AF06C slot 2 [out, in, kind, count] (kind 3 for 4444, 2 for 5551, 0 for
 5650, else -1) and halved by slot 7. A file that cannot be created goes to FatalError (the image block leaks, as in the
-original). 00693970 and 0068F860 (a texture from a surface description; its one caller 00691D50 is dead) are dead. Not rewritten: 00693010 (the composed image's drawing), 00692D30, Rebirth-patched slot 2 00691500. The fills keep a reference on every attached
+original). 00693970 and 0068F860 (a texture from a surface description; its one caller 00691D50 is dead) are dead. A-H24: 00693010 CTextureManager::DrawLayers (S on an image copy; returns the layers drawn, the converter (CPixelConverter, texture.h) slot 5 per layer), 00692D30 FindTypedTexture and 00692F00 FreeCache (texture_cache.cpp, O). Not rewritten: Rebirth-patched slot 2 00691500. The fills keep a reference on every attached
 level they move to (never released, as in the original; the wrappers drop their second run's); a DXT file / surface pair
 without a decode mode passes the mip level as the mode (kept).
 
@@ -437,5 +437,30 @@ token's data pointer as its length should FatalError return, and it calls GetBuf
 heights by the token's font digit, fonts 3-9 read the original's other stack slots (font 3: its return address), ours 0; the
 tooltip's constructor leaves the measurements and both arguments unwritten for an empty text. Risks: the constructor wrappers
 are ours only; Layout's stand-in shares the sprites.
+
+## Materials (A-H24; material.cpp, verify_material: S = against the original on a scratch copy)
+
+| Address | Name | V |
+|---|---|---|
+| 0068DBC0, 0068DE30, 0068DD20 | CMaterial constructor (names "none", alpha 1, an empty deque; colours unwritten), destructor body, slot 0 | S / O / O |
+| 0068DF90, 0068E040, 0068DD00, 0068DD10 | CMaterial slots 2 (reset, 1), 3 (deque emptied), 11, 12 | O / O / P / P |
+| 0068E3F0, 0068E540, 0068E520, 0068E900 | CMaterialManager constructor (colour table of NextPrime(100) buckets), destructor body, slot 0, NewObject (slot 14) | O |
+| 0068E970, 0068EAF0 | NewMaterial (slot 23, flags_ 8, the table's colours for type_), FillMaterial (RET 8) | O / S |
+| 0068E4F0, 0068E500, 0068E510 | manager slots 25 "materials", 11, 12 | P |
+
+CMaterial (0x9C) is also the scene loader's helper record (SceneHelper, 00454E40 constructs arrays of them). The manager's
+table (+0xBC) maps a key to a D3DMATERIAL7 (MaterialColors); an absent key is entered with the key's bits in all 17 dwords
+(the original's default pair), and its Create 0068E640 (Rebirth-patched) fills it. The deque (16-byte elements, no writer
+found) is `stlp::deque<T>` now; its instantiations 0068DD40 / 0068E0B0 / 0068E1C0 / 0068E320 went to library.csv. Not
+hookable: 0068DCF0 (slot 7, 4 bytes). Differs: NewMaterial returns null on a failed creation (the original faults).
+
+**Small slots and copies (A-H24).** class_names_640.cpp: the name / id slots (11 / 12) of CParty, the twelve CEffect*
+classes, CSpell, CTexture, the six CItem* classes and CItemConstructor (P, verify_class_names_640.cpp); 00688940 the spell
+manager's folder, 0067E150 the effect manager's Create (world_managers.cpp, O). Party containers (party_lifetime.cpp, O):
+00664160 / 00664470 CArray<PartyUnitRecord> destructor body / slot 0, 00664850 DestructElements, 00664AC0 the record's
+deleting destructor; ui_hero_screen_click.cpp: 00664AE0 MpHeroRecord's deleting destructor, 00664410 copy() of hero
+records (Assign each). Byte-identical copies registered beside their rewrites: 00664910 / 00671240 AllocateDwords,
+0069FD50 RefPtrRelease, 00689810 / 00689880 CleanupClear8. Left (under 5 bytes): CParty's slots 0065F4B0..0065F550,
+00661140..00661180, the empty `ret` slots of 00666EE0..00667670, 00691900, 0068DCF0.
 
 **Next candidates** (after A-H23): 00693010, 00692D30 (composed textures), the material subsystem (CMaterial 0068DBC0 / 0068DE30 / 0068DF90 / 0068E040 with an STLport deque of 16-byte entries, CMaterialManager 0068E3F0 / 0068E540 / 0068E640 Rebirth-patched / 0068E900), the party container helpers 00664160 / 00664470 / 00664850 / 00664410 / 00664AC0 (CArray<PartyUnitRecord> destructor and friends; 00663410 is reached only from unwind funclets), 0069FB60 (items and their spells into two lists), the effect classes' 6-byte name / id getters in 0x675000-0x67E000; then the largest left in 0x640000-0x6C0000 (`python tools/progress.py`; it misses UI_INPUT_HANDLER registrations, so check `grep` before picking).

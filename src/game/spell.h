@@ -392,6 +392,7 @@ static_assert(offsetof(CSpellManager, sequences_) == 0xBC);
 // 00688950 / 00688960 (slots 11 / 12): "CSpellManager", class id 0x33.
 const char* __fastcall SpellManagerClassName(CSpellManager*);
 int __fastcall SpellManagerClassId(CSpellManager*);
+const char* __fastcall SpellManagerFolder(CSpellManager*);   // 00688940 (slot 25) "spells"
 static_assert(sizeof(CSpellManager) == 0xD4);
 
 // The spell constructor (GetClassName "CSpellConstructor", vtable 007439C8, 0x24 bytes).
