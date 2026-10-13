@@ -18,7 +18,7 @@ constexpr int kArmourSlots = 7;
 constexpr int kWeaponSlots = 4;
 
 // The skin texture of a part set (CObject3DClientSpecific +0x20 / +0x24), or null.
-CTexture* SkinTexture(CEngineObject** material) { return material ? static_cast<CTexture*>(*material) : nullptr; }
+CTexture* SkinTexture(const TextureParts* set) { return set ? set->texture : nullptr; }
 
 // `texture` takes `name` and is loaded again (the original's inlined common tail).
 void Reload(CTexture* texture, const mfc::CString& name) {
@@ -43,9 +43,9 @@ int CUnitClientSpecific::RefreshSkins() {
     mfc::CString name;
     if (unit->type_ != kUnitTypeHero) return 1;
     auto* half = static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
-    CTexture* detailed = SkinTexture(half->material);
+    CTexture* detailed = SkinTexture(half->partSets[0]);
     if (NeedsReload(ComposeSkin(1, &name), detailed, name, false)) Reload(detailed, name);
-    CTexture* simple = SkinTexture(half->secondMaterial);
+    CTexture* simple = SkinTexture(half->partSets[1]);
     if (NeedsReload(ComposeSkin(0, &name), simple, name, true) && simple) Reload(simple, name);
     return 1;
 }
@@ -55,7 +55,7 @@ int CUnitClientSpecific::RefreshSimpleSkin() {
     if (unit->type_ != kUnitTypeHero) return 1;
     mfc::CString name;
     auto* half = static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
-    CTexture* simple = SkinTexture(half->secondMaterial);
+    CTexture* simple = SkinTexture(half->partSets[1]);
     if (NeedsReload(ComposeSkin(0, &name), simple, name, true) && simple) Reload(simple, name);
     return 1;
 }

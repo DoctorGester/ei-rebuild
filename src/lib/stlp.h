@@ -264,6 +264,52 @@ public:
         finish_.cur = finish_.last - 1;
     }
 
+    // back(): the element before the finish (in the node before it when the finish opens a node).
+    T& back() {
+        T* p = finish_.cur != finish_.first ? finish_.cur : *(finish_.node - 1) + kPerNode;
+        return p[-1];
+    }
+
+    // push_back(x): constructed at the finish while the node has room for another after it; else
+    // _M_push_back_aux (e.g. 0051E840): the map makes room for one more node pointer
+    // (_M_reallocate_map(1, false), 004A39C0), a new node follows and the finish opens it.
+    void push_back(const T& x) {
+        if (finish_.cur != finish_.last - 1) {
+            if (finish_.cur) *finish_.cur = x;
+            ++finish_.cur;
+            return;
+        }
+        T value = x;
+        if (mapSize_ - static_cast<std::size_t>(finish_.node - map_) < 2) ReallocateMap(1, false);
+        finish_.node[1] = static_cast<T*>(allocate(kNodeBytes));
+        if (finish_.cur) *finish_.cur = value;
+        finish_.SetNode(finish_.node + 1);
+        finish_.cur = finish_.first;
+    }
+
+    // _M_reallocate_map (004A39C0): room for `add` more node pointers at the back (or the front):
+    // the used pointers are recentred in a map more than twice as large as needed, else moved to a
+    // new map of size + max(size, add) + 2 slots.
+    void ReallocateMap(std::size_t add, bool atFront) {
+        std::size_t oldNodes = static_cast<std::size_t>(finish_.node - start_.node) + 1;
+        std::size_t newNodes = oldNodes + add;
+        T** newStart;
+        if (mapSize_ > 2 * newNodes) {
+            newStart = map_ + (mapSize_ - newNodes) / 2 + (atFront ? add : 0);
+            std::memmove(newStart, start_.node, oldNodes * sizeof(T*));
+        } else {
+            std::size_t newSize = mapSize_ + (mapSize_ < add ? add : mapSize_) + 2;
+            T** newMap = static_cast<T**>(allocate(newSize * sizeof(T*)));
+            newStart = newMap + (newSize - newNodes) / 2 + (atFront ? add : 0);
+            std::memcpy(newStart, start_.node, oldNodes * sizeof(T*));
+            if (map_) deallocate(map_, mapSize_ * sizeof(T*));
+            map_ = newMap;
+            mapSize_ = newSize;
+        }
+        start_.SetNode(newStart);
+        finish_.SetNode(newStart + oldNodes - 1);
+    }
+
     // `while (!empty()) pop_back();`, as the game inlines it to empty a deque.
     void PopAll() {
         while (!empty()) pop_back();

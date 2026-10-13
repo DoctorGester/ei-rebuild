@@ -223,3 +223,47 @@ slots 3..6, client: any weapon model; they differ); CWorld 37 / 38 `ClientManage
 identified), 39 `Unused39`; CObject3DSpecific 25 `Unused25`. CLinkMesh's slot 4, declared `HasPiece`, is LoadPart
 (004F30D0 -> 004F7480). Placeholders still left (16): engine_object.h, map_spec.h, resource.h, ui_camp.h, unit_ai.h
 (`AIStream::Slot0` is CStream's deleting destructor).
+
+## A-U12 (the range's leftovers, 0x00500000-0x00520000)
+
+After this ticket nothing in 0x00500000-0x00520000 is unported. Every rewrite has a wrapper; the scenario that reaches
+each one is in the head comment of its verify file.
+
+- **The 3D object's halves** (`object3d_client_parts.cpp`, `object3d_halves.cpp`; `verify_object3d_client_parts.cpp`):
+  the client half's part sets, lifetime, skins, lit and shadow state (0051A370, 0051AAA0, 0051AB00, 0051AD70, 0051AD90,
+  0051AEC0, 0051AF70, 0051B050, 0051B160, 0051B210, 0051B2F0, 0051B470, 0051B5B0, 0051B630, 0051C250, 0051C9D0,
+  0051C9E0, 0051C9F0, 0051CB30, 0051C110, 0051E1C0, 0051E200, 0051E280, 0051E300), the base half's empty slots
+  (0051AC60-0051ACD0), the server half (0051F240-0051F330), the wounds material's destructors (0051C710, 0051C730) and
+  the named texture / material stage copies (0051C800, 0051E430, 0051E970, 0051E830). Side by side: FindMaterial,
+  ShadowsShown, ShadowInView, MatrixSetIdentity, the server half's name / id / Create; the rest ours only (zone load,
+  equipment changes, highlighting, wounds). The older files of the client unit (unit_client_*.cpp, map_object_draw /
+  shadow / client_effects, world_rules.cpp) now call these directly instead of through local forwarders.
+- **The map object's small slots** (`map_object_stub_slots.cpp`; `verify_map_object_stub_slots.cpp`): the empty and
+  constant slots (0050E400-0050E560, 0050E760, 0050F0C0-0050F110), DeleteMapObject 0050E560, NotifyCompanion 0050E930,
+  ScaleEffectChanged 0050E960, TakePrototype 0050E9B0, the network state wrappers 0050EA40 / 0050EA70 / 0050EAB0,
+  SetSecondName 0050F150, the transform slots 00516350 / 00516360. Side by side: CompanionIsDead, KeyId,
+  ScaleEffectChanged, MoveSpeed, Radius; the rest ours only (plain objects of any zone). The one-byte slots cannot be
+  hooked.
+- **The manager, the companions, the 3D object** (`map_object_manager.cpp`, `map_object_companion_slots.cpp`,
+  `object3d_small_methods.cpp`; `verify_map_object_manager.cpp`): CMapObjectManager's lifetime, names, CreateManager,
+  CreateMapObject, FindAnimation, GiveDefaults, PrototypeEquipment (005125E0-00512660, 00512A30, 00512B20, 00513630,
+  005143E0); the companions' lifetime and small slots (005104B0-00510760, 00510340, 00511290, 005117F0, 00512490,
+  005156E0-00515810); CObject3D's small methods (00515D50, 005161A0, 005174E0, 00517910, 00517950, 005187B0-00518860,
+  00519500, 00519530). Side by side: the class names / ids and the folder; the rest ours only (game start, zone load,
+  hits and effects on a hosted game's objects, interface models).
+- **0x00500000-0x0050E000** (`small_slots_500.cpp`, `scene_skin_lifetime.cpp`, `renderer_base_create.cpp`,
+  `renderer_init.cpp`; `verify_small_slots_500.cpp`): the animation classes' names and ids (0050A6E0, 0050A6F0,
+  0050B180-0050B1A0, 0050C6F0, 0050C700), VectorCopy 00503F20, RendererFrameTime 00500A90, the fake unit skin's lifetime
+  (scene::SceneSkin, 0x50 bytes: 00508700, 005087B0, 00508870, 005088E0, 00508930), CSceneRenderer::CreateBase 00500540
+  (the transform pipeline, CPUID(1) into the globals at 007CAED0, the MMX check and `2DintMMX.dll` from the work path; it
+  only goes through the renderer's own interfaces, no device calls), MatrixTransposeInPlace 00501980,
+  CTransformPipeline::Top 005019D0 and CSceneRenderer::SetView 005015A0 (slot 25 of a live vtable, never called).
+  Side by side: the names / ids, VectorCopy, MatrixTransposeInPlace, Top (no scenario reaches the last three); ours
+  only: the skin's lifetime (the main menu's figures), CreateBase (every start), SetView (none).
+- **config/library.csv**: 0051C890, 0051E840, 0051EFD0, 0051F0D0, 0050E580, 0050FBC0, 00510160, 005101A0, 005102A0,
+  00511FB0, 005124D0, 00512520, 00519FC0, 00500040, 005002D0, 00500320, 00500350, 00500380, 005003B0, 005003D0
+  (STLport / MFC instantiations and unwind-only helpers; each row says why). **config/dead_code.csv**: 00505410,
+  005054E0, 005055F0 (only called from the dead 0044A7B0), 0050BF00.
+- **Risks**: the lifetime and part-set functions are consistency checks only. CreateBase's CPU detection uses the
+  compiler's `__cpuid` / `__readeflags` where the original has inline CPUID; the globals it fills were compared by hand
+  with the disassembly, not by a run (this worker could not run the game).

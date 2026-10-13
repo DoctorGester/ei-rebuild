@@ -473,7 +473,7 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
         return false;
     }
     RasterTarget target{};
-    CEngineObject* material = self->material ? *self->material : nullptr;
+    CEngineObject* material = self->partSets[0] ? self->partSets[0]->texture : nullptr;
     target.colourKey = material && (material->flags_ & kMaterialKeyed) ? At<std::uint32_t>(material, 0x60) : 0;
     target.width = 0x200;
     target.pitch = description.pitch;
@@ -582,16 +582,16 @@ bool RenderShadow(CObject3DClientSpecific* self, ShadowDrawContext* context, int
     std::uint32_t radiusBits;
     std::memcpy(&radiusBits, &self->object->radius, 4);
     ProjectShadow(ShadowProjector(), nullptr, direction, point, radiusBits, &Quads(),
-                  &self->vertices, &self->indices, &self->texCoords, 0, keyedParts == 0);
+                  &self->vertices, &self->texCoords, &self->indices, 0, keyedParts == 0);
 
-    if (self->vertexCount != 0) {
-        ei::VCall<void>(sceneObject, 7, &self->sphere, self->vertices, self->vertexCount);
+    if (self->vertices.size != 0) {
+        ei::VCall<void>(sceneObject, 7, &self->sphere, self->vertices.data, self->vertices.size);
         const float* position = &self->object->position.x;
-        self->sphereCentre.x = static_cast<float>(static_cast<double>(self->sphereCentre.x) - position[0]);
-        self->sphereCentre.y = static_cast<float>(static_cast<double>(self->sphereCentre.y) - position[1]);
-        self->sphereCentre.z = static_cast<float>(static_cast<double>(self->sphereCentre.z) - position[2]);
+        self->sphere.center.x = static_cast<float>(static_cast<double>(self->sphere.center.x) - position[0]);
+        self->sphere.center.y = static_cast<float>(static_cast<double>(self->sphere.center.y) - position[1]);
+        self->sphere.center.z = static_cast<float>(static_cast<double>(self->sphere.center.z) - position[2]);
     } else {
-        self->sphere = 0;
+        self->sphere.flags = 0;
     }
     self->flags_ &= ~kFlagRefresh;
     if (lights.manager) --reinterpret_cast<CEngineObject*>(lights.manager)->refCount_;
@@ -619,7 +619,7 @@ int CObject3DClientSpecific::DrawShadow(ShadowDrawContext* context) {
         if (!RenderShadow(this, context, &failure)) return failure;
     }
 
-    if (vertexCount == 0) return 1;
+    if (vertices.size == 0) return 1;
     std::uint32_t colour = kDefaultColour;
     if (object->GetClassId() == kClassUnitObject) {
         auto* half = static_cast<CUnitClientSpecific*>(reinterpret_cast<CUnit*>(object)->controller);
@@ -628,7 +628,8 @@ int CObject3DClientSpecific::DrawShadow(ShadowDrawContext* context) {
     }
     SetTexture(TextureStages(), nullptr, 0, texture);
     std::uint8_t lit = IsLit(LightManager(), nullptr, &object->position.x);
-    DeviceDrawFlatOriginal(RenderDevice(), nullptr, vertices, indices, vertexCount, texCoords, primitiveCount, colour,
+    DeviceDrawFlatOriginal(RenderDevice(), nullptr, vertices.data, texCoords.data, vertices.size, indices.data, indices.size,
+                           colour,
                            static_cast<std::uint32_t>(static_cast<std::uint8_t>(lit)) << 24, nullptr,
                            std::bit_cast<float>(kDrawDepth));
     return 1;

@@ -46,8 +46,8 @@ __declspec(naked) void __fastcall OpenEyes(CUnitClientSpecific*, void*, int) EI_
 __declspec(naked) void __fastcall CallPlayStepSounds(CUnitClientSpecific*) EI_ORIGINAL(0x00534B60)
 __declspec(naked) void __fastcall CallShowWeaponParts(CUnitClientSpecific*, void*, bool) EI_ORIGINAL(0x00537CB0)
 __declspec(naked) void __fastcall CallUpdateArrow(CUnitClientSpecific*) EI_ORIGINAL(0x00538C20)
-__declspec(naked) FigurePart* __fastcall CallFirstDrawnPart(CObject3DClientSpecific*) EI_ORIGINAL(0x0051B6D0)
-__declspec(naked) FigurePart* __fastcall CallNextDrawnPart(CObject3DClientSpecific*) EI_ORIGINAL(0x0051B6F0)
+__declspec(naked) CMaterial* __fastcall CallFirstMaterial(CObject3DClientSpecific*) EI_ORIGINAL(0x0051B6D0)
+__declspec(naked) CMaterial* __fastcall CallNextMaterial(CObject3DClientSpecific*) EI_ORIGINAL(0x0051B6F0)
 
 // Is sound `handle` still playing or waiting to play?
 bool SoundBusy(int handle) {
@@ -64,21 +64,21 @@ void SetTalking(const CUnit* unit, bool talking) {
 }
 } // namespace
 
-FigurePart* CObject3DClientSpecific::FirstDrawnPart() {
-    if (drawnPartCount <= 0) {
-        drawnPartCursor = -1;
+CMaterial* CObject3DClientSpecific::FirstMaterial() {
+    if (materials.size <= 0) {
+        materialCursor = -1;
         return nullptr;
     }
-    drawnPartCursor = 0;
-    return drawnParts[0];
+    materialCursor = 0;
+    return materials[0];
 }
-EI_REPLACE_METHOD(0x0051B6D0, CObject3DClientSpecific::FirstDrawnPart);
+EI_REPLACE_METHOD(0x0051B6D0, CObject3DClientSpecific::FirstMaterial);
 
-FigurePart* CObject3DClientSpecific::NextDrawnPart() {
-    ++drawnPartCursor;
-    return drawnPartCount > drawnPartCursor ? drawnParts[drawnPartCursor] : nullptr;
+CMaterial* CObject3DClientSpecific::NextMaterial() {
+    ++materialCursor;
+    return materials.size > materialCursor ? materials[materialCursor] : nullptr;
 }
-EI_REPLACE_METHOD(0x0051B6F0, CObject3DClientSpecific::NextDrawnPart);
+EI_REPLACE_METHOD(0x0051B6F0, CObject3DClientSpecific::NextMaterial);
 
 int CUnitClientSpecific::UpdateClient() {
     if (unit->unknown_260 == 1) MotionPath()->ShiftTime(1);
@@ -99,7 +99,7 @@ int CUnitClientSpecific::UpdateClient() {
 
     if (!(fadeIn >= 1.0f)) {   // below 1, or NaN
         auto* half = static_cast<CObject3DClientSpecific*>(unit->Object3D()->attached);
-        for (FigurePart* part = CallFirstDrawnPart(half); part; part = CallNextDrawnPart(half)) part->alpha = fadeIn;
+        for (CMaterial* part = CallFirstMaterial(half); part; part = CallNextMaterial(half)) part->colors.diffuse.w = fadeIn;
         volatile float grown = fadeIn + kFadeStep;   // stored as a float before the compare
         float next = grown;
         fadeIn = !(next >= 1.0f) ? next : 1.0f;   // the original's select keeps a NaN
@@ -161,7 +161,7 @@ CObject3DClientSpecific* ClientHalf(CUnit* unit) {
 
 // The drawn parts take `alpha`.
 void SetPartsAlpha(CObject3DClientSpecific* half, float alpha) {
-    for (FigurePart* part = CallFirstDrawnPart(half); part; part = CallNextDrawnPart(half)) part->alpha = alpha;
+    for (CMaterial* part = CallFirstMaterial(half); part; part = CallNextMaterial(half)) part->colors.diffuse.w = alpha;
 }
 } // namespace
 

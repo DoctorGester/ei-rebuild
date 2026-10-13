@@ -13,6 +13,7 @@ class CEngineObject;
 class IsaacRandom;
 class CMappedResource;
 struct DeltaField;
+struct DeltaState;
 struct ParticleElement;
 
 __declspec(naked) inline void __fastcall DiplomacyOnAttack(void*, void*, CEngineObject*, CEngineObject*, int)
@@ -27,6 +28,9 @@ __declspec(naked) inline void __fastcall VariableRemove(void*, void*, const char
 __declspec(naked) inline int __fastcall IsTextKeyOriginal(int) EI_ORIGINAL(0x004613A0)
 __declspec(naked) inline void __fastcall SessionPump(void*, void*, void*) EI_ORIGINAL(0x00479E30)
 __declspec(naked) inline void* __fastcall FieldReadString(DeltaField*, void*, void*) EI_ORIGINAL(0x0047E310)
+// 0047FE90: ends a write or read of an object's network state (a delta write puts the changed fields into the
+// two headers); the state goes idle.
+__declspec(naked) inline void __fastcall DeltaStateFinishOriginal(DeltaState* /*state*/) EI_ORIGINAL(0x0047FE90)
 // 004800E0 (cdecl, printf style): reports a DirectX error (HRESULT, format, arguments) and exits; returns 0 if it comes back.
 __declspec(naked) inline int __cdecl FatalDirectX(long /*result*/, const char* /*format*/, ...) EI_ORIGINAL(0x004800E0)
 // 00480080 (rewritten as FatalError; cdecl, printf style, plain RET): reports a fatal error and exits; returns 0

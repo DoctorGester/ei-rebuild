@@ -42,12 +42,12 @@ static void __fastcall ServerExtraScaleVerify(void* self, void*, float* x, float
 EI_VERIFY(0x0051AC30, ServerExtraScaleVerify, 8, s_serverExtraScale);
 
 static void __fastcall RegisterPartMaterialsVerify(CObject3DClientSpecific* self) {
-    int cursorBefore = self->drawnPartCursor;
+    int cursorBefore = self->materialCursor;
     self->RegisterPartMaterials();
-    bool ok = self->drawnPartCount <= 0 ? self->drawnPartCursor == cursorBefore
-                                        : self->drawnPartCursor >= 0 && self->drawnPartCursor <= self->drawnPartCount;
+    bool ok = self->materials.size <= 0 ? self->materialCursor == cursorBefore
+                                        : self->materialCursor >= 0 && self->materialCursor <= self->materials.size;
     ei::verify::Check("CObject3DClientSpecific::RegisterPartMaterials", true, ok, "cursor %d of %d",
-                      self->drawnPartCursor, self->drawnPartCount);
+                      self->materialCursor, self->materials.size);
 }
 EI_VERIFY(0x0051C970, RegisterPartMaterialsVerify, 0, s_unusedRegister);
 

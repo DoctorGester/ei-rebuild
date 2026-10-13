@@ -36,18 +36,18 @@ struct PartSnapshot {
 
 std::vector<PartSnapshot> Snapshot(const CObject3DClientSpecific* half) {
     std::vector<PartSnapshot> parts;
-    for (int i = 0; i < half->drawnPartCount; ++i) {
-        const FigurePart* part = half->drawnParts[i];
-        parts.push_back({part->alpha, {part->tint[0], part->tint[1], part->tint[2]}, part->flags_});
+    for (int i = 0; i < half->materials.size; ++i) {
+        const CMaterial* part = half->materials[i];
+        parts.push_back({part->colors.diffuse.w, {part->colors.specular.x, part->colors.specular.y, part->colors.specular.z}, part->flags_});
     }
     return parts;
 }
 
 void Restore(CObject3DClientSpecific* half, const std::vector<PartSnapshot>& parts) {
-    for (int i = 0; i < half->drawnPartCount; ++i) {
-        FigurePart* part = half->drawnParts[i];
-        part->alpha = parts[i].alpha;
-        std::memcpy(part->tint, parts[i].tint, sizeof(part->tint));
+    for (int i = 0; i < half->materials.size; ++i) {
+        CMaterial* part = half->materials[i];
+        part->colors.diffuse.w = parts[i].alpha;
+        std::memcpy(&part->colors.specular, parts[i].tint, sizeof(parts[i].tint));
         part->flags_ = parts[i].flags;
     }
 }
@@ -71,7 +71,7 @@ void ComparePulse(const char* name, Pulse original, CObject3DClientSpecific* sel
                expected[i].flags == actual[i].flags;
         for (int k = 0; k < 3; ++k) same = same && ei::verify::NearlyEqual(expected[i].tint[k], actual[i].tint[k], 4, 1e-6f);
     }
-    ei::verify::Check(name, true, same, "clock %g + %g, %d parts", clock, frames, self->drawnPartCount);
+    ei::verify::Check(name, true, same, "clock %g + %g, %d parts", clock, frames, self->materials.size);
 }
 } // namespace
 

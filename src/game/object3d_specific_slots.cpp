@@ -22,14 +22,14 @@ void CObject3DClientSpecific::ExtraScale(float* x, float* y, float* z) {
 EI_REPLACE_METHOD(0x0051AD20, CObject3DClientSpecific::ExtraScale);
 
 void CObject3DClientSpecific::RegisterPartMaterials() {
-    void* materials = static_cast<CWorld*>(ManagerContext())->MaterialManager();
-    if (drawnPartCount <= 0) return;
-    drawnPartCursor = 0;
-    for (FigurePart* part = drawnParts[0]; part;) {
-        MaterialRegisterOriginal(materials, nullptr, part, static_cast<std::uint32_t>(part->type_));
-        ++drawnPartCursor;
-        if (drawnPartCount <= drawnPartCursor) break;
-        part = drawnParts[drawnPartCursor];
+    void* manager = static_cast<CWorld*>(ManagerContext())->MaterialManager();
+    if (materials.size <= 0) return;
+    materialCursor = 0;
+    for (CMaterial* material = materials[0]; material;) {
+        MaterialRegisterOriginal(manager, nullptr, material, static_cast<std::uint32_t>(material->type_));
+        ++materialCursor;
+        if (materials.size <= materialCursor) break;
+        material = materials[materialCursor];
     }
 }
 EI_REPLACE_METHOD(0x0051C970, CObject3DClientSpecific::RegisterPartMaterials);

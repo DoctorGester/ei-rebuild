@@ -59,9 +59,9 @@ void UnitDatabase::CountSoundFiles(void* sounds) {
     SoundSystemListFilesOriginal(sounds, nullptr, &files, kSoundPattern);
     for (int i = 0; i < files.size; ++i) reinterpret_cast<mfc::CString*>(files.data)[i].MakeLower();
 
-    int modelCount = static_cast<int>(modelsEnd - modelsBegin);
+    int modelCount = static_cast<int>(models.end - models.begin);
     for (int m = 0; m < modelCount; ++m) {
-        UnitModelRecord* model = &modelsBegin[m];
+        UnitModelRecord* model = &models.begin[m];
         std::size_t names = static_cast<std::size_t>(model->soundNames.end - model->soundNames.begin);
         ResizeCounts(model, names, 0);
         for (std::size_t n = 0; n < names; ++n) {

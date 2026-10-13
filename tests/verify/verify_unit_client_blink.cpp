@@ -21,7 +21,7 @@ void* s_unusedBlit;
 
 bool HasSkin(CUnitClientSpecific* self) {
     auto* half = static_cast<CObject3DClientSpecific*>(self->unit->Object3D()->attached);
-    return half->material && *half->material;
+    return half->partSets[0] && half->partSets[0]->texture;
 }
 
 void CheckBlink(const char* name, CUnitClientSpecific* self, bool force, bool close) {

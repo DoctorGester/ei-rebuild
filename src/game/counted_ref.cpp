@@ -47,3 +47,16 @@ void AIRef::Save(AIStream* stream) {
     stream->Write(&id, 4);
 }
 EI_REPLACE_METHOD(0x0050E290, AIRef::Save);
+
+// 0052AF20 (fastcall: ECX the list, EDX the stream; RET 4; A-U12): a count read, then that many
+// counted references added at the tail of the list, each loaded in `context` (the trap's units,
+// the brain's lists).
+void __fastcall CountedListLoad(mfc::CTypedPtrList<CEngineObject>* list, AIStream* stream, void* context) {
+    int count;
+    stream->Read(&count, 4);
+    while (count-- > 0) {
+        auto* node = list->AddTail(nullptr);
+        reinterpret_cast<AIRef*>(&node->data)->Load(stream, context);
+    }
+}
+EI_REPLACE(0x0052AF20, CountedListLoad);

@@ -549,6 +549,16 @@ public:
     // player loses it (00665B50), the new one gains it (00665A70), part 11 is marked and the
     // controller hears of it (slot 18).
     void SetPlayer(char* newPlayer);
+    // unit_small_methods.cpp (A-U12).
+    // 0052EA40 (RET 8; the client's path marker message). As RefreshMotion with the speeds given
+    // (the motion's speed scale and base turn rate) and no part marked.
+    void SetMotionSpeeds(float speed, float turnRate);
+    // 005301A0. Whether a player owns the unit (0 / 1 in EAX).
+    int HasPlayer() const;
+    // 00530560. Twice above.z (+0x14C), unrounded in ST0.
+    double DoubleHeight() const;
+    // 00530830 (RET 4). The armour piece worn in `slot` (armor[slot], unchecked).
+    CEngineObject* WornItem(int slot) const;
     // 0052E740. Virtual slot 5 (the release): SetPlayer(null), the controller's slot 5, every
     // item slot released and emptied (quick items, weapons, spells, armour), the carried items
     // released (no null test) and their array freed (grow-by kept).
@@ -882,6 +892,10 @@ struct UnitStats {
     // the FPU runs above 24-bit precision under Rebirth, see CItemWeapon::RollDamage).
     // 00523CD0. 25 / unknown_20.
     double Period20();
+    // unit_stat_small.cpp (A-U12; the item panel's lines). 00523CB0: stat10 over the setting at
+    // 007C5454; 00523CC0: stat18 over the one at 007C5468.
+    double StrengthRatio();
+    double DexterityRatio();
     // unit_stats_io.cpp (A-U4). 005287A0 (RET 4): pendingExperience 0, then the block read raw,
     // as long as the stream's format version knew it (below 0x45: 0x6F8 bytes, below 0x50: 0x6FC,
     // below 0x63: 0x700, else 0x704). Returns the stream's result.
@@ -1181,6 +1195,9 @@ public:
     // emptied, no map object.
     int CreateServer();
     void DestroyServer();
+    // map_object_companion_slots.cpp (A-U12). 00515700, virtual slot 0 (RET 4): DestructBody, then
+    // operator delete with flags bit 0. Returns this.
+    CMapObjectServer* DeleteServer(unsigned flags);
 
     std::uint8_t unknown_1C[0x20 - 0x1C];   // +0x1C the map object (map_object.h CompanionOwner)
     UnitVitals vitals;      // +0x20 hit points +0x28, maximum +0x2C
@@ -1201,6 +1218,12 @@ class CParticleSource;   // effects.h
 
 // One effect particle record of the client companion (CArray at +0x28, 0x10 bytes).
 struct EffectParticle {
+    // map_object_companion_slots.cpp (A-U12). 00512490 (RET 4): the assignment (the source
+    // referenced, the old one released). Returns this. 00511290: the destructor (the source
+    // released; the array's SetSize calls it).
+    EffectParticle* Assign(const EffectParticle* other);
+    void ReleaseSource();
+
     int type;                   // +0x00 the effect type
     int power;                  // +0x04 the effect's power byte
     CParticleSource* source;    // +0x08 counted; null when the effect has no lasting source
@@ -1245,6 +1268,12 @@ public:
     BOOL IsDead();
     // 005104F0. Virtual slot 18: the unit's hit points below -5 times its maximum.
     BOOL IsOverkilled();
+    // map_object_companion_slots.cpp (A-U12). 00510540, virtual slot 0 (RET 4): DestructBody, then
+    // operator delete with flags bit 0. Returns this.
+    CMapObjectClientSpecific* DeleteClientCompanion(unsigned flags);
+    // 005117F0, virtual slot 16 (RET 8): a hit of `damage` with the hit-kind bits `kind` on a
+    // living object flagged 0x400000 shows its number over it (the client world's 0056CE40).
+    void ShowHit(int damage, int kind);
 
     // object_small_slots.cpp (A-U2). 00510770, virtual slot 2 (Create): no light state (+0x20 /
     // +0x24), the particle array emptied (005121B0), no end sound (+0x54 = -1), no map object.

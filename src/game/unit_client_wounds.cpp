@@ -193,7 +193,7 @@ WoundsMaterial* NewWoundsMaterial() {
 } // namespace
 
 int CObject3DClientSpecific::ShowWounds(const char* name) {
-    if (!material) return 0;
+    if (!partSets[0]) return 0;
     void* manager = UiTextureManager();
     if (!woundsTexture) {
         AssignTexture(&woundsTexture, static_cast<CTexture*>(TextureFindOriginal(manager, nullptr, kWoundsTextureKind, name)));
@@ -220,7 +220,7 @@ int CObject3DClientSpecific::ShowWounds(const char* name) {
         AssignCountedRoot(&woundsMaterial, NewWoundsMaterial());
         CRenderHelper* helper = static_cast<CSceneRenderer*>(SceneContext())->helper_;
         AssignCountedRoot(&woundsMaterial->preset, helper->Preset(kWoundsPreset));
-        woundsMaterial->stages.push_back(MaterialStage(*material));
+        woundsMaterial->stages.push_back(MaterialStage(partSets[0]->texture));
         woundsMaterial->stages.push_back(MaterialStage(woundsTexture));
     }
     extra.FreeData();

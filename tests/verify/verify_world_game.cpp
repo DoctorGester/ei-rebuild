@@ -408,7 +408,7 @@ EI_VERIFY(0x0057ABA0, LoadGameVerify, 0, s_unused);
 static void __fastcall SwitchResourceDatabasesVerify(const char* name) {
     SwitchResourceDatabases(name);
     const auto* units = reinterpret_cast<const UnitDatabase*>(0x007AF358);
-    bool ok = units->modelsBegin != units->modelsEnd && SkillDb()->skills.size() != 0;
+    bool ok = units->models.begin != units->models.end && SkillDb()->skills.size() != 0;
     ei::verify::Check("SwitchResourceDatabases", true, ok, "%s", name);
 }
 EI_VERIFY(0x0057CB50, SwitchResourceDatabasesVerify, 0, s_unused);

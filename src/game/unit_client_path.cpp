@@ -137,3 +137,10 @@ void __fastcall ClientPlaceOnPath(std::uint8_t* controller, void*, float time, f
 }
 
 EI_REPLACE(0x00535850, ClientPlaceOnPath);
+
+// 00535B20 (slot 41 MotionChanged; A-U12): the unit placed on its new path at the time it was last
+// advanced to, without turning.
+void __fastcall ClientMotionChanged(CUnitClientSpecific* self) {
+    ClientPlaceOnPath(reinterpret_cast<std::uint8_t*>(self), nullptr, self->lastTime, 0.0f);
+}
+EI_REPLACE(0x00535B20, ClientMotionChanged);

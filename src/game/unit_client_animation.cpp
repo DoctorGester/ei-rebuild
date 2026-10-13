@@ -63,17 +63,17 @@ float Pulse(float& clock, float frames) {
 
 void CObject3DClientSpecific::InvisiblePulse(float frames) {
     float value = Pulse(pulseClock, frames);
-    for (int i = 0; i < drawnPartCount; ++i) drawnParts[i]->alpha = value;
+    for (int i = 0; i < materials.size; ++i) materials[i]->colors.diffuse.w = value;
 }
 EI_REPLACE_METHOD(0x0051CC20, CObject3DClientSpecific::InvisiblePulse);
 
 void CObject3DClientSpecific::StunnedPulse(float frames) {
     float value = Pulse(pulseClock, frames);
-    for (int i = 0; i < drawnPartCount; ++i) {
-        FigurePart* part = drawnParts[i];
-        part->tint[0] = value;
-        part->tint[1] = 0.0f;
-        part->tint[2] = 0.0f;
+    for (int i = 0; i < materials.size; ++i) {
+        CMaterial* part = materials[i];
+        part->colors.specular.x = value;
+        part->colors.specular.y = 0.0f;
+        part->colors.specular.z = 0.0f;
         part->flags_ |= kPartTinted;
     }
 }

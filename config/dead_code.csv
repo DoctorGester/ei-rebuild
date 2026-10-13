@@ -660,3 +660,7 @@ address,size,name,evidence
 006C67E0,208,FUN_006c67e0,A-X6: landscape draw pass variant; its only reference is the call at 006CC944 inside the dead 006CC8D0 (rel32 and dword scan of the exe)
 006C42A0,112,FUN_006c42a0,A-X6: sector draw helper called only from the dead 006C67E0 (006C6874); no dword reference
 006C4310,784,FUN_006c4310,A-X6: sector draw body called only from the dead 006C42A0 (006C42B2); no dword reference
+00505410,62,FUN_00505410,"referenced only from dead code 0044A7B0 (the animation exporter: calls at 0044A89D / 0044AD62); a key record writer"
+005054E0,75,FUN_005054e0,"referenced only from dead code 0044A7B0 (calls at 0044A865 / 0044ABEA); a key record writer"
+005055F0,83,FUN_005055f0,"referenced only from dead code 0044A7B0 (calls at 0044A8DC / 0044AF46); a key record writer"
+0050BF00,155,FUN_0050bf00,"no references (a figure bone's remove-child; no call/jmp, the dwords at 006240B9 / 0063BAFA are the bytes of adjacent immediates MOV EDX,0B4h / MOV EDI,50h)"

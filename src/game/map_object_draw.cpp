@@ -68,18 +68,6 @@ __declspec(naked) void __fastcall ReleaseTemporary(void*) EI_ORIGINAL(0x00457720
 // The light list being collected: aligned storage of light pointers.
 using LightList = lib::AlignedArray<CEngineObject*>;
 
-// A set of parts the object is drawn in (this + 0x20 / + 0x24): a material, then groups of parts.
-struct PartGroup {
-    void* material;                 // passed to the context's draw
-    FigurePart** parts;
-    int count;
-};
-struct PartSet {
-    void* material;                 // the context's texture check
-    PartGroup** groups;
-    int count;
-};
-
 // The scene's stack `index`: data at +0x14 + 8 * index, depth at +0x18 + 8 * index.
 int& StackDepth(void* scene, int index) { return At<int>(scene, 0x18 + 8 * index); }
 float* StackData(void* scene, int index) { return At<float*>(scene, 0x14 + 8 * index); }
@@ -204,9 +192,9 @@ int CObject3DClientSpecific::Draw(ShadowDrawContext* context, void* dirty) {
     std::uint32_t wasStatic = object->flags_ & kObjectStatic;
     RECT partRect;
     for (int k = 0; k < 2; ++k) {
-        auto* set = At<PartSet*>(this, 0x20 + 4 * k);
+        TextureParts* set = partSets[k];
         if (!set) continue;
-        if (!ei::VCall<int>(context, kTextureSlot, 0, set->material)) {
+        if (!ei::VCall<int>(context, kTextureSlot, 0, set->texture)) {
             int result = game::FatalError(reinterpret_cast<const char*>(0x0078F518));
             Finish(lights, list);
             return result;
@@ -215,9 +203,9 @@ int CObject3DClientSpecific::Draw(ShadowDrawContext* context, void* dirty) {
         SetDeviceTexture(*reinterpret_cast<void**>(0x007AF080), nullptr,
                          k == 0 ? At<CEngineObject*>(this, 0xDC) : temporary);
         if (k != 0 && temporary) ReleaseTemporary(temporary);   // never set
-        set = At<PartSet*>(this, 0x20 + 4 * k);
-        for (int g = 0; g < set->count; ++g) {
-            for (int p = 0; p < set->groups[g]->count; ++p) {
+        set = partSets[k];
+        for (int g = 0; g < set->groups.size; ++g) {
+            for (int p = 0; p < set->groups[g]->parts.size; ++p) {
                 FigurePart* part = set->groups[g]->parts[p];
                 if (PartTooFar(part)) continue;
                 if (!(object->flags_ & kObjectStatic)) part->flags_ &= ~kPartMoving;
@@ -227,7 +215,7 @@ int CObject3DClientSpecific::Draw(ShadowDrawContext* context, void* dirty) {
                 PushSceneMatrix(scene, nullptr, m, kStackView);
                 PushSceneMatrix(scene, nullptr, m, kStackWorld);
                 if (pushed) PushObjectMatrix(scene, m);
-                PartSet* current = At<PartSet*>(this, 0x20 + 4 * k);
+                TextureParts* current = partSets[k];
                 int drawn = ei::VCall<int>(context, kDrawSlot, part, &list, current->groups[g]->material,
                                            static_cast<std::uint32_t>(lit), dirty ? &partRect : nullptr, 0, 0);
                 if (!drawn) {

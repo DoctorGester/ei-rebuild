@@ -9,6 +9,7 @@
 #include "maths.h"
 
 #include "lib/stlp.h"
+#include "unit_create.h"   // UnitPrototypeTable, NpcPrototypeTable
 
 #include <cstddef>
 #include <cstdint>
@@ -211,20 +212,67 @@ struct UnitLevelRecord {
 };
 static_assert(offsetof(UnitLevelRecord, valuesB) == 0x24 && sizeof(UnitLevelRecord) == 0x44);
 
-// The unit database (global 007AF358): four 0x20-byte tables (prototypes, NPCs, models, ...;
-// unit_create.h / unit.h read them as their own tables). Only the models are named here.
+// The model table (0x20 bytes, the database's +0x40): the records (an STLport vector) and a
+// hash_map<string, record*> from their names at +0x0C, as the prototype tables (unit_create.h).
+struct UnitModelTable {
+    using NameIndex = stlp::hash_map<stlp::string, UnitModelRecord*, stlp::StringHash>;
+
+    // 0053D240 (RET 4; unit_db_load.cpp, A-U12; the database's load). The record named `name`:
+    // operator[] on the name index, so an unknown name is inserted with a null record (and null
+    // is returned).
+    UnitModelRecord* FindByName(const char* name);
+
+    UnitModelRecord* begin;
+    UnitModelRecord* end;
+    UnitModelRecord* endOfStorage;
+    NameIndex byName;               // +0x0C
+};
+static_assert(offsetof(UnitModelTable, byName) == 0x0C && sizeof(UnitModelTable) == 0x20);
+
+// The level record table (the database's +0x60), laid out the same way.
+struct UnitLevelTable {
+    using NameIndex = stlp::hash_map<stlp::string, UnitLevelRecord*, stlp::StringHash>;
+
+    // 0053D650 (RET 4; unit_db_load.cpp, A-U12). As UnitModelTable::FindByName.
+    UnitLevelRecord* FindByName(const char* name);
+
+    UnitLevelRecord* begin;
+    UnitLevelRecord* end;
+    UnitLevelRecord* endOfStorage;
+    NameIndex byName;               // +0x0C
+};
+static_assert(offsetof(UnitLevelTable, byName) == 0x0C && sizeof(UnitLevelTable) == 0x20);
+
+// The unit database (global 007AF358): four 0x20-byte tables.
 struct UnitDatabase {
     // 0053A8E0 (unit_sound_counts.cpp, RET 4). Lists the "*.wav" files of the sound system
     // `sounds` (006B7110), lower-cases them, then gives each model's sound names (lower-cased in
     // place) the number of files whose name starts with it (soundCounts, resized to the names).
     void CountSoundFiles(void* sounds);
+    // 0053A200 (RET 8; unit_db_load.cpp, A-U12; Rebirth-patched: the vanilla behaviour). Reads
+    // "units.udb" of the archive `folder` + `archive`: the level records (chunk 1), the models (2),
+    // the prototypes (3) and the NPCs (4), each from its own pass over the file with every record
+    // entered into its table's name index; then every prototype's modelIndex becomes the index of
+    // the model named by modelName, and every model slot's levelIndex the index of the level
+    // record named by levelName (-1 when there is none; the lookups leave a null entry for an
+    // unknown name). Returns 1, or what the fatal error report returns when the archive or the
+    // file cannot be opened.
+    int Load(const char* folder, const char* archive);
 
-    std::uint8_t unknown_00[0x40];
-    UnitModelRecord* modelsBegin;   // +0x40
-    UnitModelRecord* modelsEnd;     // +0x44
-    UnitModelRecord* modelsEndOfStorage;
+    UnitPrototypeTable prototypes;  // +0x00
+    NpcPrototypeTable npcs;         // +0x20
+    UnitModelTable models;          // +0x40
+    UnitLevelTable levels;          // +0x60
 };
-static_assert(offsetof(UnitDatabase, modelsBegin) == 0x40);
+static_assert(offsetof(UnitDatabase, npcs) == 0x20);
+static_assert(offsetof(UnitDatabase, models) == 0x40);
+static_assert(offsetof(UnitDatabase, levels) == 0x60);
+static_assert(sizeof(UnitDatabase) == 0x80);
+
+// unit_stat_small.cpp (A-U12). 00539280 (thiscall on the model table's vector, RET 4) / 0053AD30
+// (thiscall on the prototype table, RET 4): record `index`, or null past the end.
+UnitModelRecord* __fastcall UnitModelAt(UnitModelRecord** models, void*, std::uint32_t index);
+UnitPrototypeRecord* __fastcall UnitPrototypeAt(UnitPrototypeTable* table, void*, std::uint32_t index);
 
 // The skill (perk) database (global 007AF268; loaded from "perks.pdb" at startup by 00520220,
 // Rebirth-patched): the skills, then the skill level records (three per skill: levels 1..3).
@@ -268,6 +316,15 @@ struct SkillDatabase {
     int IndexOf(const char* levelName);
     // 0051FF00 (RET 4). The index of `record` among the level records, or -1.
     int IndexOfLevel(const SkillLevelRecord* record);
+    // unit_stat_small.cpp (A-U12). 00526FF0 / 00524FA0 (RET 4): skill / level record `index`, or
+    // null past the end.
+    SkillRecord* SkillAt(std::uint32_t index);
+    SkillLevelRecord* LevelAt(std::uint32_t index);
+    // 00520220 (RET 8; unit_db_load.cpp, A-U12; Rebirth-patched: the vanilla behaviour). Reads
+    // "perks.pdb" of the archive `folder` + `archive`: the skills (chunk 1) and the level records
+    // (chunk 2, one chunk 1 each). Returns 1, or what the fatal error report returns when the
+    // archive or the file cannot be opened.
+    int Load(const char* folder, const char* archive);
 
     stlp::vector<SkillRecord> skills;        // +0x00
     stlp::vector<SkillLevelRecord> levels;   // +0x0C

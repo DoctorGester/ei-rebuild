@@ -248,3 +248,19 @@ ours = consistency checks (most order / update code: run every tick).
   archer "Human Gipath Brigand A1" may walk up instead of shooting; a wrong prototype name fails `waitfor IsAlive`). An order
   given ~50 ms after AddUnitToServer / SetPlayer is sometimes dropped (about 1 run in 30 with 16 games in parallel):
   scenarios wait 1 s after the spawn, give the order, wait 1 s and give it again (`hp0` is read before the first order).
+
+## A-U12 (the server controller's leftovers, 0x00540000-0x00559000)
+
+- **Ported** (`combat_small_records.cpp`; `verify_combat_small_records.cpp`, all ours only): WorldTick 0054B220 (4
+  bytes, not hookable), MotionSegmentInit 0054E5D0 (TimeUntilAction), PathConstructSteps 0054EAC0 (PlanOrderRoute, the
+  AI's test paths), ArmourSpell::Assign 00558840 (RefreshItemSpells), the deleting destructors of a counted reference
+  and of a call record (00558CA0, 00558CC0: the brain's memory arrays destroyed). The order checks 0054C8B0 / 0054C960
+  were ported by A-W13 at the same time (CanReachAndPlan / CanReachAndPlanFrom, combat_tick.cpp); this ticket's copy
+  was dropped when main was merged (both read the disassembly the same way).
+- **The maps folder** (`world_maps_folder.cpp`, 0055E990; Rebirth-patched, so the vanilla function, installed in the
+  vanilla launch only): the data path (CString 007AF460) with "maps\" appended, constructed at the caller's storage.
+  Side by side in the vanilla launch (every zone load), compared by content.
+- **config/library.csv**: 00545FD0, 005461E0, 00546200 (unwind-only destructors of locals), 005576B0 (an STLport count
+  decrement whose only caller is library code).
+- **Left**: 0055E1B0-0055FF90 (the world's small slots and helpers; world.md) for the AI / world area. Nothing else in
+  0x00540000-0x00560000 was unported when this ticket ended.

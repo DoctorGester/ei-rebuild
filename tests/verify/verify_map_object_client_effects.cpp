@@ -38,11 +38,11 @@ struct PartState {
 
 std::vector<PartState> Parts(const CObject3DClientSpecific* half) {
     std::vector<PartState> parts;
-    for (int i = 0; i < half->drawnPartCount; ++i) {
-        const FigurePart* part = half->drawnParts[i];
+    for (int i = 0; i < half->materials.size; ++i) {
+        const CMaterial* part = half->materials[i];
         PartState state;
-        state.alpha = part->alpha;
-        std::memcpy(state.tint, part->tint, sizeof(state.tint));
+        state.alpha = part->colors.diffuse.w;
+        std::memcpy(state.tint, &part->colors.specular, sizeof(state.tint));
         state.flags = part->flags_;
         parts.push_back(state);
     }
@@ -50,10 +50,10 @@ std::vector<PartState> Parts(const CObject3DClientSpecific* half) {
 }
 
 void PutBack(CObject3DClientSpecific* half, const std::vector<PartState>& parts) {
-    for (int i = 0; i < half->drawnPartCount; ++i) {
-        FigurePart* part = half->drawnParts[i];
-        part->alpha = parts[i].alpha;
-        std::memcpy(part->tint, parts[i].tint, sizeof(part->tint));
+    for (int i = 0; i < half->materials.size; ++i) {
+        CMaterial* part = half->materials[i];
+        part->colors.diffuse.w = parts[i].alpha;
+        std::memcpy(&part->colors.specular, parts[i].tint, sizeof(parts[i].tint));
         part->flags_ = parts[i].flags;
     }
 }
@@ -70,7 +70,7 @@ void ComparePartReset(const char* name, PartReset original, CObject3DClientSpeci
     std::vector<PartState> actual = Parts(self);
     bool same = expected.size() == actual.size() &&
                 (expected.empty() || std::memcmp(expected.data(), actual.data(), expected.size() * sizeof(PartState)) == 0);
-    ei::verify::Check(name, true, same, "%d parts", self->drawnPartCount);
+    ei::verify::Check(name, true, same, "%d parts", self->materials.size);
 }
 
 bool Merges(int type) {
