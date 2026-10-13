@@ -225,6 +225,11 @@ struct AIEventPresence {
 // An entry of the armour spell list (CUnitServer + 0x91C; 005528F0 builds it): the item (a counted
 // reference), its countdown and whether it is still worn.
 struct ArmourSpell {
+    // 00558840 (RET 4; combat_order_checks.cpp, A-U12; the list's SetAt in RefreshItemSpells).
+    // The record assigned: `other`'s item referenced (the old one released after), its countdown
+    // and worn byte. Returns this.
+    ArmourSpell* Assign(const ArmourSpell* other);
+
     CEngineObject* item;
     int countdown;
     std::uint8_t worn;
@@ -548,6 +553,15 @@ public:
     // 0054C6B0. PlanAction into a scratch plan, with the target unit's flags_ bit 0x8000000 set
     // meanwhile. Callers test AL.
     bool CanPlanAction(const UnitAction* order);
+    // combat_order_checks.cpp (A-U12).
+    // 0054C8B0 (RET 4, AL). False for an attack (not with a bow or crossbow) or a use / skill on a
+    // living unit of size class 0 whose prototype's +0x24 plus height is at least 1.5 (too high
+    // to reach); else CanPlanAction. On the refusing path the original leaves the FPU status word
+    // in AH (callers test AL).
+    bool CheckOrder(const UnitAction* order);
+    // 0054C960 (RET 8, AL; the AI's checks). The same, with CanPlanAction run as if the unit
+    // stood at `from` (its position replaced meanwhile).
+    bool CheckOrderFrom(const UnitAction* order, const Vector3* from);
     // The same through the game's addresses (for the verify build's wrappers).
     bool CallCanActFrom(const UnitAction* order, const float* point, int time);
     bool CallPlanAction(const UnitAction* order, struct OrderPlan* plan);

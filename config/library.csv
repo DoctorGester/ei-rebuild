@@ -4468,3 +4468,7 @@ address,name,library,signature,notes
 0053EFF0,"stlp::_Destroy<CString> (a jump to CString::~CString 00700970)",STLport,,A-U12: STLport template helper (a thunk)
 0053F010,"stlp::_Destroy<CString> (a second jump to CString::~CString 00700970; its address is also passed as an element destructor)",STLport,,A-U12: STLport template helper (a thunk)
 0053F020,"stlp::vector<CString>::~vector (each string destroyed, the block freed or returned to the node allocator)",STLport,,A-U12: STLport template instantiation (250 callers: the unit databases' record destructors)
+00545FD0,"destructor of a local order (its target at +8 released through its slot 4 and cleared); reached only from exception unwind funclets",compiler,,A-U12: no caller but unwind funclets (12) of the server controller's functions
+005461E0,"destructor of a local order (its target at +8 released through its slot 4 and cleared; a second copy of 00545FD0); reached only from exception unwind funclets",compiler,,A-U12: no caller but unwind funclets (4)
+00546200,"destructor of a local record's object (the object at +4 released through its slot 4); reached only from exception unwind funclets",compiler,,A-U12: no caller but unwind funclets (2)
+005576B0,"STLport reference count decrement (DEC WORD [ECX+4])",STLport,,A-U12: its only caller is the library function 005575F0
