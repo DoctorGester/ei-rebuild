@@ -11,7 +11,7 @@ stream thread); scenario `tests/scenarios/sound.txt`.
 | 006B4350-006B5BC0 | CMusicSystem (vtable 00744098): Create 006B4710 (slot 2, reads `music.reg`), Update 006B5350 (slot 6), theme CArray 006B56C0..006B5BC0 |
 | 006B5CD0-006B5FF0 | `SoundSlot::End`; SoundFader (0x1C). 006B5D20 / 006B5DB0 have no callers (inlined everywhere) |
 | 006B6040-006B73E0 | CSoundManager (vtable 007440F0, one instance at `*007AF784`): Open 006B6A30 (DirectSound, `_AIL_waveOutOpen`, MP3 stream 006BAAC0, stream thread via AfxBeginThread 007022A0 entry 006B6A10 -> 006BB910; 006B6A20 -> 006BBCB0 is the MIDI thread entry; 15 voices); 006B7110 is Rebirth-patched |
-| 006B75E0 | Miles end-of-sample callback (Miles timer thread): sets the voice's `finished` |
+| 006B75E0 | Miles end-of-sample callback (Miles timer thread): sets the voice's `finished`. Rewritten without a verify wrapper: a check (it logs) inside a Miles callback froze every vanilla run |
 | 006B7610-006B9AA0 | voices, Play2D/3D, LoadSample, AllocateVoice 006B7D10 (steals the lowest priority voice, deferring a looping one), emitters. 006B7610 has no callers |
 | 006B9B10 | Tick (every world frame, from 005641F0) |
 | 006BA140-006BA7C0 | 3D sound sequences |
