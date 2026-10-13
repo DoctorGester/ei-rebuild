@@ -52,6 +52,9 @@ struct ClassTemplate {
     ItemStock magic;                // +0x1D4 the same layout: spells and modifiers only
 };
 static_assert(sizeof(ClassTemplate) == 0x28C);
+// 00457850 (A-E1; app_lifetime.cpp). A new template with no references (operator new and
+// Construct). The application's start registers it with the class registry at 0079B270 as class 1.
+ClassTemplate* __cdecl CreateClassTemplate();
 static_assert(offsetof(ClassTemplate, weights) == 0x10);
 static_assert(offsetof(ClassTemplate, unknown_34) == 0x34);
 static_assert(offsetof(ClassTemplate, flag38) == 0x38);

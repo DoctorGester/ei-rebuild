@@ -349,6 +349,9 @@ void ChunkArchive::DestructLocal() {
     indexStream_.Destruct();
 }
 
+void ChunkArchive::Destruct() { DestructLocal(); }
+EI_REPLACE_METHOD(0x004645A0, ChunkArchive::Destruct);
+
 // ---- Whole archives over a CStream ---------------------------------------------------------------
 
 bool __fastcall ReadStreamChunk(CStream* in, char* id, CMemoryStream* to) {

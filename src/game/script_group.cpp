@@ -326,6 +326,26 @@ void ScriptGroup::InsertAll(const mfc::CTypedPtrList<CEngineObject>* list) {
 }
 EI_REPLACE_METHOD(0x004B31D0, ScriptGroup::InsertAll);
 
+void ScriptGroup::CopyToList(mfc::CTypedPtrList<CEngineObject>* list) const {
+    for (auto* node = list->head; node; node = node->next) {
+        if (node->data) node->data->Release();
+        node->data = nullptr;
+    }
+    list->RemoveAll();
+    for (int i = 0; i < size; ++i) {
+        CEngineObject* object = data[i].object;
+        auto* node = list->NewNode(list->tail, nullptr);
+        if (object != node->data) {   // a new node's element is null: nothing to release
+            AddRef(object);
+            node->data = object;
+        }
+        if (list->tail) list->tail->next = node;
+        else list->head = node;
+        list->tail = node;
+    }
+}
+EI_REPLACE_METHOD(0x004B3200, ScriptGroup::CopyToList);
+
 BOOL ScriptGroup::Contains(CEngineObject* object) const {
     for (int i = 0; i < size; ++i)
         if (data[i].object == object) return 1;

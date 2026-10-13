@@ -292,3 +292,36 @@ to which template:
   the standalone build replaces them (`cleanup-plan.md`, phase 2).
 - Static initialisers and `WinMain` (00456440) cannot run through the hook; 004632A0 (lever table constructor), 00444740
   (debug panel), 00458870 (GameOptions) and 0045E820 are examples.
+
+## A-E1: text helpers and the object id map
+
+- text_helpers.cpp. `TextTokenizer` (00445D20 `Start`, 00445D30 `Next`): splits a CString at a separator
+  string; `Next` returns the word's text and moves past the separator, the last word runs to the end of the
+  text, and a position at the end gives null. `RemoveCarriageReturns` (004461E0, CString::Remove of 0x0D).
+  `FindListedName` (00447F50): the entry of a CStringArray that equals a name ignoring case (`_mbsicmp`), else
+  the name; the name comes by value and is destroyed by the callee, which a C++ by-value `mfc::CString`
+  parameter reproduces. `mfc::CString` gained `Mid(first, count)` (006FD9D7) and `Remove(ch)` (006FD963).
+  Checks: `Next` and `FindListedName` side by side by content; `Start` against the original `Next` on a rewound
+  copy (its own original would enter `Next`'s wrapper); `RemoveCarriageReturns` ours only. The credits screen
+  (0062B7D0) is the only user of the first three and the scene registry of the fourth; no scenario reaches them.
+  ui_layouts.cpp and scene_registry.cpp keep their forwarders, which reach the hooked code.
+- `ObjectIdMap::ReleaseAll` (0047B670, object_id_map.cpp): every object released up to the first empty entry,
+  the nodes freed, the count and maxId cleared (the buckets stay). The world's object map (map close) and the
+  player's two maps of sent objects call it through `ObjectMapClearOriginal`. Ours only (objects can go with
+  their last reference); the map must end empty.
+- A-E1: `CCamera::LoadPath` (0040ECD0, RET 8, camera_path_load.cpp; Rebirth-patched at its file open
+  0040ED42, so the vanilla launch only): `<data folder>camera\<name>` opened with a CFile (0 when that fails),
+  the keys resized to length / 36 as the engine's aligned arrays are (+0x2F0..+0x2FC are an
+  `AlignedArray<CameraKey>`: data, size, capacity, grow step) and filled with one read. With the second
+  argument above 1 and below the key count, the first key among that many that is more than 500 time units
+  after its predecessor gives its position and rotation to every key before it. Side by side on the camera
+  itself (the original loads, the keys are copied, ours loads again; results, counts and key bytes compared).
+  Reached when a recorded path is played (the glue 00578820 / 00578880 calls it through its address).
+- A-E1: constructors of globals that run from static initialisers, before the hooks install (their hooks never
+  fire; written so the standalone build has them): `CMapDatabase::Construct` (0045E820, the database at
+  0079BF00: two empty CArrays with the vtables 0073C3DC / 0073C3E8), `LeverRecordTable::Construct` (004632A0,
+  the lever table at 0079C1A0: no records, an index of 193 buckets) and `PartyManager::Construct` (004A5870,
+  the party manager at 007AA5A0: a party map of 193 buckets, no entries, records or templates, two empty
+  strings; +0x20 is not written). The unused functor bytes the originals copy from uninitialised stack bytes
+  are not written. Ours-only wrappers in verify_static_constructors.cpp. Not ported: 00444740 (the debug
+  info panel at 0079B930, an interface class) and 00458870.

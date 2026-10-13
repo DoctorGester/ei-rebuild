@@ -23,8 +23,17 @@ struct PartyRecord {
     // 004A5AF0 (virtual slot 1 Serialize, RET 4; party_manager.cpp). The name as string field 1,
     // the party (SaveParty / LoadParty with variables) as stream field 2.
     void Serialize(ChunkArchive* ar);
+    // 004577E0 (A-E1; app_lifetime.cpp). Destructor body: the vtable, the party destroyed (slot
+    // 3), the name, the party's destructor body, the root vtable.
+    void Destruct();
+    // 004577C0 (slot 0, RET 4). Destruct, then operator delete when bit 0 of `flags` is set.
+    PartyRecord* DeletingDestruct(unsigned flags);
 };
 static_assert(sizeof(PartyRecord) == 0x7C);
+// 00457740 (A-E1; app_lifetime.cpp). A new unnamed record with no references (operator new and the
+// constructor: the party constructed and created, an empty name). The application's start
+// registers it with the class registry at 0079B270 as class 2.
+PartyRecord* __cdecl CreatePartyRecord();
 static_assert(offsetof(PartyRecord, name) == 0x78);
 
 // The named records (007AA5A0 +0x24): an STLport vector of counted pointers, then two strings.

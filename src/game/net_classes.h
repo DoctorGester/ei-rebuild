@@ -484,6 +484,12 @@ public:
     void ShareFile(const StringRep* name, GameBuffer* data);
     // 00417E10 (net_server_entry.cpp). Whether the server is announced to the master server (port 28004).
     void SetPublic(bool announce);
+    // 0041AA10 (net_server_handlers.cpp, A-E1; EI_Plugin's NewMaster patches its send at 0041ABDA,
+    // so it is hooked only where that feature is off). Sends the master server this game's record:
+    // the name, the played map's title (empty without a map), the players and their maximum, the
+    // game kind, whether a password is set, +0x25FC, the dword the master last sent (+0x2578) and
+    // the session magic.
+    void AnnounceToMaster();
     // 0041A310 (net_server_chat.cpp). Keeps a chat or system line for the clients (`player` null
     // for the server's own; at most 50 lines).
     void Announce(const char* text, CRefObject* player);

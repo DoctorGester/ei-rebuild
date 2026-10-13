@@ -45,3 +45,54 @@ and the `PeekMessageA` return addresses (00457119 / 00457610) are in WinMain (00
 - Dead: 00442F00, the animation exporter's writer and six unreferenced functions.
 - The fake unit scene loader (00471A90-004775F0, slot 62 of CFakeUnit via 00446BA0 -> 00446C10 ->
   00471B10) and 00477B00 (applies a unit record to a new unit, from 005927C0) are in `objects.md`.
+
+## A-E1: the leftovers of 0x00440000-0x00480000
+
+Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the main thread):
+
+- 00455A90 `app::DiskFreeSpace` (path in ECX, a double in ST0): GetDiskFreeSpaceExA looked up in kernel32 on every call
+  (GetModuleHandleA + GetProcAddress), its free-bytes-for-the-caller as a signed 64-bit value; without it
+  sectors x bytes x free clusters (each zero-extended, `x87::FromUnsigned`); 0 when the call fails. Side by side; a
+  difference is compared with a second run of the original (the free space can change). Save and load screens.
+- 00455F10 `SetQuitAllowed` (CL to the byte 00784751), 00455F20 `QuitGame` (PostQuitMessage and 1 when the byte is set,
+  else 0; ours only, it posts the message), 00455E20 `MovieMode` (the byte 00784752; side by side).
+- 00455B50 `DelayedProtectionCheck` (CPlayerClient::OnNewObject calls it for every new object): rand() * 100 / 0x7FFF
+  % 100 < 1, then the STLport list at 0079BC2C (built empty by the static initialiser 00455E50, freed by 00455F00) is
+  searched for an entry whose byte is 0; one such entry runs 00455BA0 `ScrambleObjects` (the options back to their
+  defaults, every object of the object manager 007AF5F8 given rand() * 0x1000 / 0x7FFF % 0x1000 as its companion
+  (0050E8F0) and as its specific half (005161A0)). Nothing in the exe adds to the list, so the scramble never runs; both
+  ours only (rand is drawn), the check wrapper also checks that the list is empty.
+- 00455950 `CEngineObject::World` (the manager context's slot 13, `CManagerContext::ThisWorld`, now declared with its
+  result; null without a context) side by side, on every unit's updates; 00457720 `CEngineObject::ReleaseAndDelete` (one
+  reference less, `delete` at zero) ours only.
+- 0045EA00 `CMapDatabase::LoadAll` ("map.txt", then "map-LMP.txt"; WinMain). Ours calls `Load` directly, so the loader's
+  own check is no longer reached from it; `verify_map_database.cpp` runs the original's two loads on the shadow database
+  and compares the databases in depth after `LoadAll`.
+- 004645A0 `ChunkArchive::Destruct` (the out-of-line destructor the database loaders call; `DestructLocal`'s steps):
+  ours only, both streams must carry the stream base's vtable afterwards.
+- app_lifetime.cpp: the DirectInput mouse's destructor (004578D0: Shutdown, the two counted pointers'
+  releases, the root vtable 0073C368; slot 0 004578B0) and the root class's slot 0 (00457950). Ours only; the
+  application drops the mouse at exit. The party record and class template creators and the party manager's
+  destructor in the same file are described in script.md.
+- small_accessors.cpp: the counted pointer's destructor (00455C80, with the identical copies 00455610 and
+  004BB050): one reference dropped (`--refCount_`, no delete), the pointer cleared. Ours only (its prologue is a
+  short jump); the world server's tick and the object list iterators' owners call it. 00455610 is called by
+  unwind funclets only.
+- A-E1 library rows (config/library.csv, 60 rows; each row says why): STLport instantiations (hash map
+  operator[] 00464750, node deallocators 00464730 / 00499800, list and pair destructors 0049C6E0, 004824B0,
+  00483D40, 00464DF0, the aligned allocators and vector helpers 004A2BF0, 004A3090, 004A3060, 004A2FC0,
+  00455890, 00482DD0, 004991C0, 004991E0, 00482790), MFC template helpers (the element constructors /
+  destructors / zero fills of the CArray and CList instantiations at 004763C0-00477530, 00499350, 0049BB10,
+  00475F20, 00498C80, 00498E30, 004553F0, 00462230, the CString thunks 004563A0 and 004B9F20, 0049F810) and
+  compiler-generated helpers (the four-dword buffer constructors 00474C70 / 00475F10 / 00498E20, the pointer
+  holder constructors 004983F0 / 004BB040, operator= 00474C50, the delete wrapper 00462520 and the helpers
+  only unwind funclets call: 00445FC0, 00481E50, 00447F40, 0047A3D0, 0047A3E0, 00455820, 00462610, 00482E90,
+  00498E50, 00457940, 004688F0, 00481560).
+- Rebirth-patched functions ported by A-E1 (vanilla behaviour, vanilla launch only): 00468A00 the lightning
+  noise table's load (objects.md), 00463390 the lever table's load (units.md), 0040ECD0 the camera's path
+  file load (core.md); and the network 0041AA10, 0041ACA0, 0041B1C0 (network.md).
+- Not ported in 0x00400000-0x004C0000 after A-E1: the Rebirth-patched 0041ECC0, 00443080 and 00456440
+  (the application's start-up, 4832 bytes); the static initialisers 00444740 and 00458870 (they run
+  before the hooks install); 004560D0 (the message box: it flips the DirectDraw surface to GDI); and 69
+  functions under five bytes. 0049F7B1 is listed as a
+  function but is the tail of `IsaacRandom::Seed` (0049F660, random.cpp) after its catch block.

@@ -366,3 +366,19 @@ After this ticket nothing in 0x00520000-0x00540000 is unported. Scenarios per wr
 - **Still forwarded on purpose**: the name indexes' operator[] (005335E0, 0053C650, 0053C780, 0053C8B0), the vectors'
   resize / clear and the records' destructors (STLport instantiations, library.csv), the chunk archive's out-of-line
   destructor 004645A0 (not in this range).
+
+## A-E1: the lever table's load (lever_table_load.cpp)
+
+`LeverRecordTable::Load` (00463390, RET 4; Rebirth-patched at its file lookup call 00463474, so it installs in
+the vanilla launch only): `<folder>database.res` opened in an archive of its own (the fatal error names
+"databases.res" when that fails, as the original), `Levers.ldb` fetched (missing: "Can't open Levers
+database"), copied into a memory stream, the records read as chunk 1 of a chunk archive opened for loading
+(00465090 through its address; the file's size is its unread third argument), then every record entered into
+the name index (lever.h now gives the table its layout: an STLport vector of LeverRecord and a hash map of
+string to record, the same instantiation shape as the unit database's indexes). The archive, the file, the
+stream and the resource are closed in the original's order. Side by side on the table itself: the original
+loads, the records are copied by content, ours loads again (records emptied and read anew, index entries of
+the same names overwritten) and both contents are compared; every record must be found under its name.
+Reached once at each start of the game from the application's start-up (00456440, in the exe).
+`resource_local.h` holds the stack archive and stream the two A-E1 loaders share (unit_db_load.cpp keeps its
+own copies).

@@ -324,3 +324,17 @@ bool CMapDatabase::Load(const char* fileName) {
     return true;
 }
 EI_REPLACE_METHOD(0x0045EA20, CMapDatabase::Load);
+
+// 007856A0 "map.txt", 00785694 "map-LMP.txt".
+bool CMapDatabase::LoadAll() {
+    Load(reinterpret_cast<const char*>(0x007856A0));
+    return Load(reinterpret_cast<const char*>(0x00785694));
+}
+EI_REPLACE_METHOD(0x0045EA00, CMapDatabase::LoadAll);
+
+CMapDatabase* CMapDatabase::Construct() {
+    allods.Construct(kAllodArrayVtable);
+    maps.Construct(kMapArrayVtable);
+    return this;
+}
+EI_REPLACE_METHOD(0x0045E820, CMapDatabase::Construct);

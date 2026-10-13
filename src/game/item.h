@@ -445,7 +445,7 @@ static_assert(sizeof(CItemConstructor) == 0x34);
 // 13-24 are the same getters (CWorld, CParty). Declared up to the slot used here.
 class CManagerContext : public CEngineObject {
 public:
-    virtual void ThisWorld();                      // 13
+    virtual void* ThisWorld();                     // 13: the world (0055EB40 returns this), null for a party (0065F4B0)
     virtual void TimedObjectManager();             // 14
     virtual void FigureManager();                  // 15
     virtual CItemConstructor* ItemConstructor();   // 16

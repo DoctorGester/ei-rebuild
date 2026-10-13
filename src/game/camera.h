@@ -11,6 +11,7 @@
 #include "maths.h"
 
 #include "ei/hook.h"
+#include "lib/containers.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 
@@ -242,10 +243,20 @@ public:
     float farDistance_;         // +0x2E4
     float fieldOfView_;         // +0x2E8
     mfc::CString fileName_;     // +0x2EC the camera file being recorded
+    // 0040ECD0 (RET 8; camera_path_load.cpp, A-E1; Rebirth-patched, so the vanilla launch only and
+    // callers use CameraLoadPathOriginal). Reads the recorded path <data folder>camera\<name> into
+    // the keys (as many as the file holds whole). With `settle` above 1 and below the key count,
+    // the keys before the first gap of more than 500 time units among the first `settle` take
+    // the pose of the key after the gap. Returns 0 when the file does not open, else 1.
+    int LoadPath(const char* name, int settle);
+    // The keys as the engine's aligned array they are (+0x2F0..+0x2FC: data, size, capacity,
+    // grow step).
+    lib::AlignedArray<CameraKey>* KeyArray() { return reinterpret_cast<lib::AlignedArray<CameraKey>*>(&keys_); }
+
     CameraKey* keys_;           // +0x2F0 (the block start is kept in the dword before the keys)
     int keyCount_;              // +0x2F4
-    std::uint32_t unknown_2F8;  // +0x2F8
-    std::uint32_t unknown_2FC;  // +0x2FC
+    std::uint32_t unknown_2F8;  // +0x2F8 the keys' capacity
+    std::uint32_t unknown_2FC;  // +0x2FC the keys' grow step (0: an eighth of the size, 4..1024)
     float timeOffset_;          // +0x300
     int keyIndex_;              // +0x304
 };

@@ -11,6 +11,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 
+#include <climits>
 #include <cmath>
 #include <cstring>
 
@@ -20,6 +21,7 @@ namespace {
 constexpr int kClassSound = 0x48;       // CEffectSound
 constexpr int kClassParticles = 0x4A;   // CEffectParticle
 constexpr int kClassLightning = 0x4D;   // CEffectLightning
+constexpr int kCommandCreateFxSource = 0x16;   // CreateRandomizedFXSource is 0x18
 
 // The world's manager of timed objects (spells and effects; CWorld::manager48_, 007AFFA8).
 CBaseManager* EffectManager() { return static_cast<CBaseManager*>(WorldServer()->manager48_); }
@@ -87,6 +89,67 @@ void __fastcall ScriptCreateFx(CScript*, void*, const SSCCmd* cmd) {
     const char* name = cmd->stringArgs.data[0];
     std::memcpy(sound->name_, name, Length(name) + 1);
     WorldServer()->AddTimedObject(sound);
+}
+
+// 004BD310: CreateFXSource / CreateRandomizedFXSource (script.h). A new source's element is the
+// list's NewNode's (zeroed, the name empty); the original then copies a stack temporary over it
+// whose object is null, whose name is empty and whose other fields were never written. Every field
+// is written below except, for CreateFXSource, spread, the delays and the countdown: the tick
+// (004BF000) counts such a source down and replaces its sound at zero, so a zero countdown would
+// replace the sound on every tick; INT_MAX keeps the sound, as a positive residue does.
+void __fastcall ScriptCreateFxSource(CScript* script, void*, const SSCCmd* cmd) {
+    const float* f = cmd->floatArgs.data;
+    int id = static_cast<int>(std::lrint(f[0]));
+    if (id < 0) id = script->nextFxId_--;
+
+    mfc::CList<ScriptFxSource>& list = script->fxSources_;
+    ScriptFxSource* source = nullptr;
+    for (auto* node = list.head; node; node = node->next) {
+        if (node->data.id == id) {
+            source = &node->data;
+            break;
+        }
+    }
+    if (source) {
+        DropEffect(&source->object);
+    } else {
+        auto* node = static_cast<mfc::CList<ScriptFxSource>::Node*>(
+            ScriptFxListNewNodeOriginal(&list, nullptr, list.tail, nullptr));
+        node->data.object = nullptr;
+        node->data.countdown = INT_MAX;
+        if (list.tail) list.tail->next = node;
+        else list.head = node;
+        list.tail = node;
+        source = &node->data;
+    }
+
+    source->id = id;
+    source->position[0] = f[1];
+    source->position[1] = f[2];
+    source->position[2] = f[3];
+    std::memcpy(&source->volume, &f[4], 4);
+    std::memcpy(&source->radius, &f[5], 4);
+    source->name = cmd->stringArgs.data[0];
+
+    if (cmd->id != kCommandCreateFxSource) {
+        source->object = nullptr;
+        source->minDelay = static_cast<int>(std::lrint(f[6]));
+        source->maxDelay = static_cast<int>(std::lrint(f[7]));
+        source->countdown = 0;
+        std::memcpy(&source->spread, &f[8], 4);
+        source->idle = 1;
+        return;
+    }
+    auto* sound = static_cast<CEffectSound*>(EffectManager()->CreateObject(kClassSound, -1));
+    source->object = sound;
+    sound->localPosition_ = {source->position[0], source->position[1], source->position[2]};
+    std::memcpy(&sound->volume_, &source->volume, 4);
+    std::memcpy(&sound->radius_, &source->radius, 4);
+    const char* name = source->name;
+    std::memcpy(sound->name_, name, Length(name) + 1);
+    WorldServer()->AddTimedObject(sound);
+    source->idle = 0;
+    ++source->object->refCount_;
 }
 
 // 004BCFF0: CreateLightning(id, x1, y1, z1, x2, y2, z2, width). A negative (or NaN) id takes the
@@ -278,6 +341,7 @@ EI_REPLACE(0x004B1820, ScriptLightningDestruct);
 EI_REPLACE(0x004B1850, ScriptParticleSourceDestruct);
 EI_REPLACE(0x004B1880, ScriptFxSourceDropSound);
 EI_REPLACE(0x004BD260, ScriptCreateFx);
+EI_REPLACE(0x004BD310, ScriptCreateFxSource);
 EI_REPLACE(0x004BCFF0, ScriptCreateLightning);
 EI_REPLACE(0x004BD540, ScriptFxSourceDestruct);
 EI_REPLACE(0x004BD9A0, ScriptCreateParticleSource);

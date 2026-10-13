@@ -62,6 +62,9 @@ struct ObjectIdMap {
     // 005999E0 and 00599BD0 (identical code, different template instantiations): map[key] = value
     // and raise maxId.
     void Set(const unsigned& key, CEngineObject* const& value);
+    // 0047B670 (A-E1; object_id_map.cpp). Releases every object up to the first empty entry, frees
+    // the nodes (the buckets stay) and clears maxId. The player's maps of sent objects use it too.
+    void ReleaseAll();
 };
 static_assert(sizeof(ObjectIdMap) == 0x18);
 
@@ -1026,6 +1029,7 @@ public:
     // 0: 0055F260 (DeletingDestruct)
     int OnShutdown() override;          // 2: 0055F1E0 (the link released; built again in place)
     CWorldHandle* Clone() override;     // 3: 0055F1A0 (the same link, counted)
+    void TakeNew(void* joined) override;   // 6: 00478880 (the pending link appended, then dropped here; player_sources.cpp)
 
     // 0055F280. The link released, the root vtable left.
     void Destruct();

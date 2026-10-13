@@ -37,6 +37,11 @@ public:
     // through the address so the wrapper runs.
     const LONG* Poll(int unused);
     const LONG* PollThroughHook(int unused) { return DirectInputMousePollOriginal(this, nullptr, unused); }
+    // 004578D0 (A-E1; app_lifetime.cpp). Destructor body: the vtable, Shutdown, the two counted
+    // pointers' releases (both already null), the root vtable (0073C368).
+    void Destruct();
+    // 004578B0 (slot 0, RET 4). Destruct, then operator delete when bit 0 of `flags` is set.
+    CDirectInputMouse* DeletingDestruct(unsigned flags);
 
     void* vtable_;                   // +0x00
     std::uint32_t unknown_04;        // +0x04

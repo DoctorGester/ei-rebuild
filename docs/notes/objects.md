@@ -283,3 +283,44 @@ verify_player_server_orders.cpp: result 1 and bytes consumed, 0x04's state 2 and
   unrewritten CString / CArray / stream code. 00458010 (frame present + screenshot), 00458270 (startup movies; the harness empties
   the list), 0045E310 (DirectX version probe), 00458570 (hash_map registration): mapped, not rewritten.
 
+
+## A-E1: small slots (class_slots.cpp)
+
+`__fastcall` shims on the slots' addresses, as object.cpp's getters:
+
+- CHoover (0073C434): slot 0 00461C60 (deleting destructor), slot 2 00461C90 (Create: 1), slots 11 / 12
+  00461C40 / 00461C50 ("CHoover", class 0x1F).
+- CLightning (0073C550): slot 0 004687F0, slots 11 / 12 004687D0 / 004687E0 ("CLightning", 0x1E).
+  `LightningSegment::Destruct` (00468920, the element destructor of the bolt's branches): the points' block
+  freed. `CLightningManager::Create` (004689D0, slot 2): the noise table loaded on the first call (flag
+  007A9694; the loader 00468A00 is Rebirth-patched and is called through `LoadLightningNoiseOriginal`), then
+  the base manager's Create.
+- CFakeUnit (0073BFE8): slot 2 00446AF0 (the skin created and given the unit, then `CUnit::CreateUnit`), slot
+  11 004468D0 ("CFakeUnit").
+- CUnit slots the fake unit shares: 31 004467F0 (the hit passed to the controller's slot 20), 56 00446850 (the
+  controller's ObjectDeleted), 59 004468B0 (the forward one of `GetMoveSpeeds`), 61 00446830 (the script name
+  assigned; returns the CString).
+- Checks: the names, ids, CHoover's Create and the forward speed side by side; the rest ours only (they free,
+  create or make one call that must not run twice). All are reached through vtables; which scenarios call them
+  was not established (no run).
+- Three more (class_slots.cpp): 004467C0 (slot 47 of the unit, the fake unit and nine other map object
+  classes, RET 4: the mode handed to the companion's slot 19, `SetLightMode`; EAX passed on), 00446810 (the
+  unit's slot 58: a tail jump to the controller's slot 31, `RefreshWounds`, now declared with its int result)
+  and 00446870 (slot 57: a tail jump to the controller's slot 53, declared as `MoveFactorsChanged`; the
+  server's is 00552F30). `CMapObjectCompanion` gained slots 18 and 19. Ours only (one virtual call each). By
+  reading, not run: slot 58 is called when a unit's hit points change in a state update and slot 47 by the
+  vision update, so the combat scenarios should reach both; no caller of slot 57 is known.
+- CItem's base slots (vtables 00743DA4 and 0073C474; class_slots.cpp): 17-20 are four identical copies
+  (00462300, 00462330, 00462360, 00462390) returning an empty text, 21 (004623C0) zeroes the caller's ItemUse;
+  every class but the quest item keeps slot 21. Side by side (the original into the caller's result, ours into
+  a local). Slot 16 (004622F0) is four bytes.
+- small_accessors.cpp: 00471A90 (a Vector3 from three parts, a second copy of 00401DE0) and the scene
+  helper's vector setters 00471AB0 / 00471AD0 / 00471AF0 (+0x20, +0x30, +0x40), which `SceneInfo::Load` calls
+  per helper; side by side. The loader is rewritten (scene_loader.cpp), so the hooks fire only if it still
+  calls them through the exe.
+- `LoadLightningNoise` (00468A00, lightning_load.cpp; Rebirth-patched, so vanilla launch only): `<text
+  folder>gfx.res` opened in an archive of its own (0 when that fails, no message), `lightning.dat` fetched
+  (missing: the fatal error "Unable to open file gfx.res\lightning.dat"), copied into a memory stream and read
+  back as 32 rows of 0x640 bytes into the noise table 0079CE78; the file closed, the stream and the archive
+  destroyed. Rebirth's patch is the file lookup call at 00468B16. Side by side (the table put back between the
+  runs, results and tables compared); reached once, from the first lightning manager's Create.
