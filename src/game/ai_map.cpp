@@ -284,7 +284,7 @@ EI_REPLACE_METHOD(0x005BBE40, CAIMap::MaterialAt);
 void* CAIMap::MaterialRecordAt(const Vector3* position) {
     int x = WorldToCell(position->x), y = WorldToCell(position->y);
     if (x < 0 || y < 0 || x >= width || y >= height) return materials;
-    return materials + (occluders[y][x] & 0x1F) * 0x118;
+    return materials + (occluders[y][x] & 0x1F);
 }
 EI_REPLACE_METHOD(0x005BC1F0, CAIMap::MaterialRecordAt);
 

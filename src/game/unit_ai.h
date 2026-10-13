@@ -844,6 +844,13 @@ struct AIEventTable : AIViewer {
     // each cell's events by side (byte 1, x / y, +0x08, expiry, +0x14, source, side), then byte 0.
     void Load(CStream* stream);
     void Save(CStream* stream);
+    // 005B3F40 (the constructor; the AI map's 005B3C30). A 1 x 1 grid, then Clear. Returns this.
+    AIEventTable* Construct();
+    // 005C9250. Tick -1, the wheel emptied (its events are not freed), the grid back to 1 x 1
+    // (reallocated unless it is) and its cell emptied.
+    void Clear();
+    // 005C91F0 (the destructor). Every event of the wheel goes to the free list; the grid is freed.
+    void Destroy();
 
     // The cell of `event`, or null outside the grid.
     AIEventCell* CellOf(const AIEvent* event) const;
@@ -851,7 +858,7 @@ struct AIEventTable : AIViewer {
     void Free(AIEvent* event, int side);
 
     AIEvent* slots[0x400][16];      // +0x02C by tick & 0x3FF, then side
-    std::uint32_t unknown_1002C;
+    AIEventCell* cells;             // +0x1002C the grid's block
     AIEventCell** rows;             // +0x10030 the grid rows (each `width` cells)
     int width;                      // +0x10034
     int height;                     // +0x10038

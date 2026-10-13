@@ -6,10 +6,41 @@
 // Names provisional; layout static_asserted below.
 
 #include "ai_map.h"
+#include "core_refcount.h"
 #include "unit.h"
 
 #include <cstddef>
 #include <cstdint>
+
+// A unit's footprint on the layers (0x10C bytes, vtable 0073FD5C): 16 x 16 cell levels around the
+// unit, shared by radius through the shape cache (007C2F70, ai_shape_cache.cpp; its handles are
+// UnitShapeHandle). Methods in ai_unit_shape.cpp. Names provisional.
+class __declspec(novtable) CUnitShape : public CRefObject {
+public:
+    // 005B3440 (RET 4; the constructor). The levels of a disc: per cell (2 + radius - half its
+    // distance from the middle cell (8, 8)) x 16, rounded; cells where that is not above 0 stay 0.
+    // Returns this.
+    CUnitShape* Construct(float radius);
+    // 005B3540 (slot 2, OnShutdown). Constructed again empty: no levels, radius -1. Returns 0.
+    int Empty();
+    // 005B34F0 (slot 3, Clone). A new shape with the same levels and radius (no references yet).
+    CUnitShape* Copy();
+
+    std::uint8_t levels[16][16];    // +0x008 rows of 16
+    float radius;                   // +0x108
+};
+static_assert(offsetof(CUnitShape, levels) == 8);
+static_assert(sizeof(CUnitShape) == 0x10C);
+constexpr std::uintptr_t kUnitShapeVtable = std::uintptr_t(0x0073FD5C);
+
+struct UnitShapeHandle {
+    void* cache;
+    CRefObject* ref;
+    std::uint32_t key;
+    float radius;
+};
+// 005B33D0 (the shape cache's slot 0, RET 4). A new shape for the handle's radius.
+CUnitShape* __fastcall CreateUnitShape(void* cache, void*, const UnitShapeHandle* handle);
 
 // A 4x4-cell block of one unit's levels (0x1C bytes).
 struct UnitLayerNode {
@@ -35,6 +66,9 @@ public:
     // 005B3890. Removes `unit`'s nodes from the 5x5 blocks from block (x >> 2, y >> 2); for each
     // block it had, virtual slot 0 gets the block with the other units' levels merged (maximum).
     void Remove(CUnit* unit, int x, int y);
+    // 005B4110 (the base constructor; ai_grids.cpp). The empty node list (blocks of 0x400), the
+    // base vtable 0073FD7C, no buckets, no free nodes. `map` is the owner's to set. Returns this.
+    CUnitLayer* Construct();
 
     void* vtable;
     // +0x04 CList<UnitLayerNode>
