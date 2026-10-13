@@ -259,9 +259,9 @@ void CSoundManager::ResetStream() {
     streamBuffers[1] = nullptr;
     streamBuffers[0] = nullptr;
     streamBufferSize = -1;
-    unknown12C = -1;
-    unknown128 = -1;
-    unknown124 = -1;
+    streamSpareBuffer = -1;
+    streamHalfBuffer[1] = -1;
+    streamHalfBuffer[0] = -1;
     streamPosition = -1;
     streamSwitchAt = -1;
     unknown138 = -1;
@@ -372,6 +372,20 @@ CSoundManager* ManagerOf(void* stream) {
     return reinterpret_cast<CSoundManager*>(static_cast<char*>(stream) - offsetof(CSoundManager, streamState));
 }
 
+// The stream thread's (StreamThread).
+using BufferReadyFn = int(__stdcall*)(void*);
+using LoadBufferFn = void(__stdcall*)(void*, int, void*, int);
+using UserDataFn = std::intptr_t(__stdcall*)(void*, unsigned);
+BufferReadyFn AilSampleBufferReady() { return *reinterpret_cast<BufferReadyFn*>(std::uintptr_t(0x0073B7E8)); }
+LoadBufferFn AilLoadSampleBuffer() { return *reinterpret_cast<LoadBufferFn*>(std::uintptr_t(0x0073B7EC)); }
+UserDataFn AilSampleUserData() { return *reinterpret_cast<UserDataFn*>(std::uintptr_t(0x0073B7B4)); }
+constexpr std::uint32_t kStreamPeriodMs = 100;
+constexpr int kNoHalfReady = -1;
+// The music fader's step (rewritten as SoundFader::Update; through its address: the verify
+// wrapper) and the stream's reader (RET 4, Rebirth-patched): decodes the next buffer.
+__declspec(naked) void __fastcall FaderUpdateThroughHook(SoundFader*) EI_ORIGINAL(0x006B5EE0)
+__declspec(naked) void __fastcall ReadStreamOriginal(CSoundManager*, void*, void* /*stream*/) EI_ORIGINAL(0x006BB3A0)
+
 // PCMWAVEFORMAT, as Open fills it.
 #pragma pack(push, 2)
 struct PcmFormat {
@@ -418,15 +432,53 @@ int CSoundManager::OpenStream(void* driver) {
     AilInitSample()(streamDecoder);
     // (The original also closes the stream when this address is null, which it cannot be.)
     streamCodec = static_cast<MilesSample*>(streamDecoder)->codecFunctions;
-    unknown124 = 0;
-    unknown128 = 1;
-    unknown12C = 2;
+    streamHalfBuffer[0] = 0;
+    streamHalfBuffer[1] = 1;
+    streamSpareBuffer = 2;
     streamPosition = 0;
     streamState = 0;
     // No fade and no hold; the level from the music volume.
     musicFader.SetHold(0);
     return 1;
 }
+
+void CSoundManager::StreamThread() {
+    std::uint32_t last = gameapi::timeGetTime();
+    while (threadsQuit == 0) {
+        std::uint32_t now = gameapi::timeGetTime();
+        std::uint32_t elapsed = now - last;
+        last = now;
+        if (elapsed < kStreamPeriodMs) gameapi::Sleep(kStreamPeriodMs - elapsed);
+
+        gameapi::EnterCriticalSection(Lock(streamLock));
+        FaderUpdateThroughHook(&musicFader);
+        AilSetSampleVolume()(streamSample, musicFader.level);
+        for (;;) {
+            int half = AilSampleBufferReady()(streamSample);
+            if (half == kNoHalfReady) break;
+            // The spare buffer goes into that half; the one it played becomes the spare.
+            int buffer = streamSpareBuffer;
+            std::int32_t& playing = streamHalfBuffer[half == 0 ? 0 : 1];
+            streamSpareBuffer = playing;
+            playing = buffer;
+            streamPosition += streamBufferBytes;
+            AilLoadSampleBuffer()(streamSample, half, streamBuffers[buffer], streamBufferSize);
+            ReadStreamOriginal(this, nullptr, StreamOf(this));
+        }
+        gameapi::LeaveCriticalSection(Lock(streamLock));
+    }
+    AfxEndThreadOriginal(0, 1);
+}
+EI_REPLACE_METHOD(0x006BB910, CSoundManager::StreamThread);
+
+// 006B75E0 (A-H25; Miles calls it on its own thread when a voice's sample ends; registered by its
+// address in sound_manager.cpp). The voice (the sample's user data 1) is marked finished; the
+// original also reads user data 0 (the manager) and drops it.
+void __stdcall SoundEndOfSample(void* sample) {
+    AilSampleUserData()(sample, 0);
+    reinterpret_cast<SoundSlot*>(AilSampleUserData()(sample, 1))->finished = 1;
+}
+EI_REPLACE(0x006B75E0, SoundEndOfSample);
 
 int __fastcall SoundOpenStream(void* stream, void*, void* driver) { return ManagerOf(stream)->OpenStream(driver); }
 int __fastcall SoundCloseStream(void* stream) { return ManagerOf(stream)->CloseStream(); }

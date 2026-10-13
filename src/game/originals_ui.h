@@ -253,6 +253,9 @@ __declspec(naked) inline const long* __fastcall DirectInputMousePollOriginal(voi
 __declspec(naked) inline void* __stdcall AfxBeginThreadOriginal(void* /*procedure*/, void* /*parameter*/, int /*priority*/,
                                                                 unsigned /*stack*/, unsigned long /*flags*/,
                                                                 void* /*security*/) EI_ORIGINAL(0x007022A0)
+// 00702380: MFC's AfxEndThread(exit code, delete the thread object) (__stdcall; does not return).
+__declspec(naked) inline void __stdcall AfxEndThreadOriginal(unsigned /*exitCode*/, int /*deleteThread*/)
+    EI_ORIGINAL(0x00702380)
 // 00637500 / 00637750 (rewritten as CBattleScreenSetup::UseOnUnit / UseAtPoint; through their addresses so the
 // wrappers run): the pending spell or quick item used on `target` (thiscall, RET 0xC: target, quick (low byte), ctrl)
 // or at the point (RET 0x14: x, y, z, unit, quick (low byte)); no result.

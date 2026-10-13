@@ -504,10 +504,20 @@ The spell manager's folder slot 00688940 (A-H24's last item) was complete. Wrapp
 | 00646B90 | CHudUnitPanel::ShowEffects (Ghidra splits it at 00646C25; the unit's first six effects: the "spell <code>" text and ticks / 15 as two lines each, the spell's picture "spell%04d" (SpellRecord +0x60, now `icon`) copied into one of six places of the panel's icon texture, the places kept in +0x184 `effectIcons_`; scene objects 26 + i show them, 9 when there are more than six) | S (needs a shown unit with an effect) |
 | 00689820 | NextSpellContainer (a hash_map iterator's step returning the value) | P (no live caller left: Destroy 00688B40 is rewritten, 00688D70 is dead code) |
 | 006BAAC0, 006BAC90 | CSoundManager::OpenStream / CloseStream (on the manager's +0x100): the ASI codec for ".mp3" (RIB_find_file_provider, stdcall: mss32's RET 0xC), the playing sample and the decoding one (+0x1AC `streamDecoder`; `streamCodec` is its +0x144), three buffers +0x110 of +0x11C bytes (twice Miles' minimum for 44100 Hz stereo 16-bit), the order 0 / 1 / 2 at +0x124, the fader as SetHold(0) leaves it | O (Open at every start with sound on; CloseStream only when the stream cannot open) |
+| 006BB910 | CSoundManager::StreamThread (every 100 ms under the stream lock: the fader's step, the level as the sample's volume, each played-out half of Miles' double buffer gets the spare buffer (+0x124 `streamHalfBuffer[2]`, +0x12C `streamSpareBuffer`) and 006BB3A0 reads the next; AfxEndThread when threadsQuit is set) | O: the state it starts from (it does not return) |
+| 006B75E0 | SoundEndOfSample (Miles' end-of-sample callback, on Miles' thread: the voice in user data 1 is finished) | O: the voice is the sample's (the mark is taken by the game's thread at once) |
 
 Library, second batch: 0064EE90, 00652E30, 00652F80, 006581C0, 00675040, 00675690 (STLport); compiler: 00652FF0, 0067C5D0 (unwind only),
 the static initialisers 00698E70..00698FB0 and 0065F580 (run before the hooks), the scalar deleting destructors 006611B0, 006868D0,
 006868F0, 006B2DE0, 006B2E00, and 00663570; 006B6CC0 (STLport string default constructor).
+
+**Left in 0x640000-0x6C0000 after A-H25** (apart from the Rebirth-patched ones): 0066D730 (CPlayerServer's message 0x12 sends an
+uninitialised stack byte: kept as the original), 0067E4E0 (the constructor of the global at 007C8478, called only by the static
+initialiser 0067E4C0, before the hooks), 006BFB00 / 006BFB20 / 006BFB80 (SectorData: their forwarders are in the terrain files of
+0x6C0000+), functions under 5 bytes, and two Ghidra artefacts (00646C25 is the body of 00646B90, 00656464 is inside an instruction).
+Rebirth-patched and still original: 00641F20, 00642930, 00642B40, 00645210, 006456E0, 00645F80, 006462A0, 00647FB0, 00648520,
+00648D70, 00649190, 00649910, 006567A0, 00659420, 0065C2E0, 0065E580, 0066C180, 00684550, 0068E640, 00691500, 006A67A0, 006AE3A0,
+006B7110, 006BB3A0.
 
 Library (config/library.csv): 006A5910, 006AF790, 006B0710, 006B0780, 006B09B0, 0069D0E0, 0069E350..0069E3D0 (STLport vector / uninitialised-copy
 helpers of the record tables and the stock) and the records' scalar deleting destructors 0069E540, 006A9EF0..006A9F90;

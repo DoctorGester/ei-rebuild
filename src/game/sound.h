@@ -176,9 +176,10 @@ struct CSoundManager : CEngineObject {
     void* streamBuffers[3];             // +0x110 Miles memory, streamBufferSize bytes each (OpenStream)
     std::int32_t streamBufferSize;      // +0x11C twice Miles' minimum buffer; -1 after ResetStream
     std::int32_t streamBufferBytes;     // +0x120
-    std::int32_t unknown124;            // +0x124..+0x12C -1 after ResetStream; 0, 1, 2 after OpenStream
-    std::int32_t unknown128;
-    std::int32_t unknown12C;
+    // +0x124 which buffer each half of Miles' double buffer plays, +0x12C the third one (taken
+    // next, and what 006BB3A0 fills): -1 after ResetStream; 0, 1 and 2 after OpenStream.
+    std::int32_t streamHalfBuffer[2];
+    std::int32_t streamSpareBuffer;
     std::int32_t streamPosition;        // +0x130 bytes queued so far
     std::int32_t streamSwitchAt;        // +0x134 position at which nextName starts
     std::int32_t unknown138;            // +0x138, +0x13C -1 after ResetStream
@@ -325,6 +326,12 @@ struct CSoundManager : CEngineObject {
     // 006BAC90 (A-H25; OpenStream's failure). The stream file closed through the codec, both
     // samples released, the buffers freed, ResetStream. Returns 0.
     int CloseStream();
+    // 006BB910 (A-H25; the stream thread's entry 006B6A10 calls it). Until Close sets
+    // threadsQuit, every 100 ms under the stream lock: a step of the music fader, its level as
+    // the sample's volume, and for every half Miles has played out the spare buffer loaded into
+    // it (the two change places, the position moves on by streamBufferBytes) and the next one
+    // read (006BB3A0). Ends the thread (AfxEndThread), so it does not return.
+    void StreamThread();
 
     // 006B7D10 (A-H17, sound_manager.cpp; Play2D / Play3D). The first free voice; else the voice
     // with the lowest priority (the first of equals) when `priority` is above it: a looping sound
