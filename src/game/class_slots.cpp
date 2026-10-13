@@ -132,6 +132,24 @@ const mfc::CString* __fastcall UnitSetScriptName(CUnit* unit, void*, const char*
 }
 EI_REPLACE(0x00446830, UnitSetScriptName);
 
+// 00446810, slot 58: a tail jump to the controller's slot 31 (RefreshWounds: 1 from the client's,
+// 0 from the base's).
+int __fastcall UnitRefreshWounds(CUnit* unit) { return unit->Controller()->RefreshWounds(); }
+EI_REPLACE(0x00446810, UnitRefreshWounds);
+
+// 00446870, slot 57: a tail jump to the controller's slot 53 (the server's recomputes the move
+// factors); what that leaves in EAX is passed on.
+std::uintptr_t __fastcall UnitMoveFactorsChanged(CUnit* unit) { return unit->Controller()->MoveFactorsChanged(); }
+EI_REPLACE(0x00446870, UnitMoveFactorsChanged);
+
+// 004467C0, slot 47 (RET 4) of the unit, the fake unit and nine other map object classes (eleven
+// vtables): the visibility mode is handed to the companion's slot 19 (the client's shows or hides
+// the object's light); what that leaves in EAX is passed on.
+std::uintptr_t __fastcall MapObjectSetVisibilityMode(CMapObject* object, void*, int mode) {
+    return static_cast<CMapObjectCompanion*>(object->companion)->SetLightMode(mode);
+}
+EI_REPLACE(0x004467C0, MapObjectSetVisibilityMode);
+
 // ---- CItem's base bodies of slots 17-21 (vtables 00743DA4 and 0073C474) ---------------------------
 
 // 00462300 / 00462330 / 00462360 / 00462390 (RET 4; four identical copies), slots 17-20: the names

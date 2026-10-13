@@ -6,6 +6,12 @@
 //    FakeUnitCreate: ours only (they free or create); what can be read afterwards is checked.
 //  - The unit's TakeHit, ObjectDeleted and SetScriptName slots: ours only (one call on the
 //    controller or one assignment; running it twice would hit twice); the result or the text.
+//  - The unit's RefreshWounds (00446810) and MoveFactorsChanged (00446870) slots and the map
+//    objects' SetVisibilityMode (004467C0): ours only (one virtual call each, which redraws the
+//    wounds, recomputes the move factors or switches the light). By reading, not run: slot 58 is
+//    called when a unit's hit points change in a state update (net_state.cpp) and slot 47 by the
+//    unit's vision update (unit_vision.cpp), so the combat scenarios should reach both; no caller
+//    of slot 57 is known.
 //  - CItem's base slots 17-21: side by side (the original into the caller's result, ours into a
 //    local). Reached through the item vtables only; which scenarios call them is not known (no
 //    run).
@@ -13,6 +19,7 @@
 
 #include "../../src/game/item.h"
 #include "../../src/game/lightning.h"
+#include "../../src/game/map_object.h"
 #include "../../src/game/object.h"
 #include "../../src/game/scene_loader.h"
 #include "../../src/game/spell.h"
@@ -35,6 +42,9 @@ int __fastcall UnitTakeHit(CUnit* unit, void*, DamageInfo* hit, CEngineObject* a
 void __fastcall UnitObjectDeleted(CUnit* unit, void*, CEngineObject* object);
 float __fastcall UnitForwardSpeed(CUnit* unit);
 const mfc::CString* __fastcall UnitSetScriptName(CUnit* unit, void*, const char* name);
+int __fastcall UnitRefreshWounds(CUnit* unit);
+std::uintptr_t __fastcall UnitMoveFactorsChanged(CUnit* unit);
+std::uintptr_t __fastcall MapObjectSetVisibilityMode(CMapObject* object, void*, int mode);
 mfc::CString* __fastcall ItemNoName(CItem*, void*, mfc::CString* out);
 ItemUse* __fastcall ItemNoUse(CItem*, void*, ItemUse* out);
 
@@ -148,6 +158,26 @@ const mfc::CString* __fastcall SetScriptNameVerify(CUnit* self, void*, const cha
     return result;
 }
 
+int __fastcall RefreshWoundsVerify(CUnit* self) {
+    int result = UnitRefreshWounds(self);
+    ei::verify::Check("CUnit slot 58 (RefreshWounds)", true, result == 0 || result == 1, "result %d", result);
+    return result;
+}
+
+std::uintptr_t __fastcall MoveFactorsChangedVerify(CUnit* self) {
+    CEngineObject* controller = self->controller;
+    std::uintptr_t result = UnitMoveFactorsChanged(self);
+    ei::verify::Check("CUnit slot 57 (MoveFactorsChanged)", true, self->controller == controller, "");
+    return result;
+}
+
+std::uintptr_t __fastcall SetVisibilityModeVerify(CMapObject* self, void*, int mode) {
+    CEngineObject* companion = self->companion;
+    std::uintptr_t result = MapObjectSetVisibilityMode(self, nullptr, mode);
+    ei::verify::Check("map object slot 47 (SetVisibilityMode)", true, self->companion == companion, "mode %d", mode);
+    return result;
+}
+
 // 00462300 / 30 / 60 / 90: PUSH ECX (1), PUSH ESI (1), MOV ESI,[ESP+0xC] (4).
 void CheckNoName(int slot, CItem* self, const mfc::CString* expected) {
     alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
@@ -216,3 +246,6 @@ EI_VERIFY(0x00446AF0, FakeUnitCreateVerify, 0, s_unused);
 EI_VERIFY(0x004467F0, TakeHitVerify, 0, s_unused);
 EI_VERIFY(0x00446850, ObjectDeletedVerify, 0, s_unused);
 EI_VERIFY(0x00446830, SetScriptNameVerify, 0, s_unused);
+EI_VERIFY(0x00446810, RefreshWoundsVerify, 0, s_unused);
+EI_VERIFY(0x00446870, MoveFactorsChangedVerify, 0, s_unused);
+EI_VERIFY(0x004467C0, SetVisibilityModeVerify, 0, s_unused);

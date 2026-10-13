@@ -93,6 +93,6 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
   file load (core.md); and the network 0041AA10, 0041ACA0, 0041B1C0 (network.md).
 - Not ported in 0x00400000-0x004C0000 after A-E1: the Rebirth-patched 0041ECC0, 00443080 and 00456440
   (the application's start-up, 4832 bytes); the static initialisers 00444740 and 00458870 (they run
-  before the hooks install); 004560D0 (the message box: it flips the DirectDraw surface to GDI); the unit
-  slots 004467C0, 00446810, 00446870 (objects.md); and 69 functions under five bytes. 0049F7B1 is listed as a
+  before the hooks install); 004560D0 (the message box: it flips the DirectDraw surface to GDI); and 69
+  functions under five bytes. 0049F7B1 is listed as a
   function but is the tail of `IsaacRandom::Seed` (0049F660, random.cpp) after its catch block.
