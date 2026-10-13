@@ -155,7 +155,7 @@ char* __fastcall UiSurfaceFromPicture(char* raw, void*, void* ui, mfc::CString n
     CDXSurface* previous = self->holder_;
     self->holder_ = made;
     if (made) ++made->refCount;
-    if (previous) SurfaceHolderReleaseOriginal(previous);
+    if (previous) previous->Release();   // 004E6BA0
     manager->CloseFile(picture);
     CDXSurface* holder = self->holder_;
     self->width_ = holder->width;

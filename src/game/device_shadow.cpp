@@ -13,6 +13,7 @@
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_render.h"
+#include "texture.h"
 
 #include <cstdint>
 #include <cstring>
@@ -34,10 +35,9 @@ using devicebuffers::Vertices;
 // 004F2650: the pipeline projects `blocks` blocks of positions with outcodes [positions, out,
 // outcodes, blocks, last]; 0 on screen, 1 crossing, 2 outside.
 __declspec(naked) int __fastcall ProjectBlocks(void*, void*, const void*, void*, void*, int, std::uint32_t) EI_ORIGINAL(0x004F2650)
-// The device [thiscall]: a vertex buffer for n vertices [004E7820, always null], its draw
-// [004E7E00: indices, count], the indexed draw [004EB550: primitive, FVF, vertices, count, indices,
+// The device [thiscall]: the indexed draw [004EB550: primitive, FVF, vertices, count, indices,
 // count, flags].
-void __fastcall DrawVertexBuffer(char* a0, void*, const void* a2, int a3) { DeviceDrawVertexBufferOriginal((void*)a0, nullptr, a2, a3); }
+CTextureDevice* DeviceObject(char* device) { return reinterpret_cast<CTextureDevice*>(device); }
 __declspec(naked) int __fastcall DrawPrimitive(char*, void*, int, int, void*, int, const void*, int, int) EI_ORIGINAL(0x004EB550)
 
 template <typename R, typename... Args>
@@ -116,7 +116,8 @@ int DrawFlat(char* device, const void* positions, const char* uvs, int blocks, c
         HandOver(device, positions, uvs, count, indices, indexCount, colours, &zScale, visibility == 1);
 
     if (visibility == 0) {
-        TLVertex* target = static_cast<TLVertex*>(LockVertexBuffer(device, nullptr, count));
+        // The device's vertex-buffer batch (004E7820: never available).
+        TLVertex* target = static_cast<TLVertex*>(DeviceObject(device)->LockVertexBuffer(count));
         if (!target) {
             Vertices().SetSizeDiscard(count);
             target = Vertices().data;
@@ -127,8 +128,8 @@ int DrawFlat(char* device, const void* positions, const char* uvs, int blocks, c
             DrawPrimitive(device, nullptr, 4, 0x1C4, Vertices().data, count, indices, indexCount, 0);
             return 0;
         }
-        DrawVertexBuffer(device, nullptr, indices, indexCount);
-        At<int>(device, 0xE0) += count;
+        DeviceObject(device)->AppendBatchIndices(indices, indexCount);
+        DeviceObject(device)->batchBaseVertex_ += count;
         return 0;
     }
     if (visibility == 2) return 2;

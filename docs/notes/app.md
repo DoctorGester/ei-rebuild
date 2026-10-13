@@ -95,4 +95,5 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
   (the application's start-up, 4832 bytes); the static initialisers 00444740 and 00458870 (they run
   before the hooks install); 004560D0 (the message box: it flips the DirectDraw surface to GDI); and 69
   functions under five bytes. 0049F7B1 is listed as a
-  function but is the tail of `IsaacRandom::Seed` (0049F660, random.cpp) after its catch block.
+  function but is the tail of `IsaacRandom::Seed` (0049F660, random.cpp) after its catch block (A-S11 gave it a
+  `compiler` row in config/library.csv, so it is no longer counted).

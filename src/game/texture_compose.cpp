@@ -43,7 +43,7 @@ void ThisCall(void* object, int slot, Args... args) {
 // CFile::Write [0070133F] (not in lib/mfc.h).
 __declspec(naked) void __fastcall FileWrite(mfc::CFile*, void*, const void*, unsigned) EI_ORIGINAL(0x0070133F)
 // The aligned byte allocation [004ECB50].
-std::uint8_t* __fastcall AllocBytes(int a0) { return (std::uint8_t*)AllocAligned32Original(a0); }
+std::uint8_t* AllocBytes(int count) { return lib::AlignedArray<std::uint8_t>::Allocate(count); }
 const char* const kCantFindLayer = Text(0x00795F74);    // "Can't find texture \"%s\" for layer composition.\n"
 const char* const kWrongLayerSize = Text(0x00795F4C);   // "Texture \"%s\" dimentions are incorrect.\n"
 // 00693010 (CTextureManager::DrawLayers), called through its address so its wrapper runs.

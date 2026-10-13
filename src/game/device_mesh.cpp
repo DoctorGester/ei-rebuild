@@ -16,6 +16,7 @@
 #include "originals_core.h"
 #include "originals_library.h"
 #include "originals_render.h"
+#include "texture.h"
 
 #include <cstdint>
 #include <cstring>
@@ -73,16 +74,12 @@ using devicebuffers::Projected;
 using devicebuffers::CornerOutcodes;
 using devicebuffers::Outcodes;
 
-// SetSize keeping the contents (thiscall: size, growth or -1): TL vertices 004EC790, words 0044FA90.
-__declspec(naked) void __fastcall VerticesSetSize(lib::AlignedArray<TLVertex>*, void*, int, int) EI_ORIGINAL(0x004EC790)
-__declspec(naked) void __fastcall WordsSetSize(lib::AlignedArray<std::uint16_t>*, void*, int, int) EI_ORIGINAL(0x0044FA90)
 // The device (thiscall): the screen bounds of projected vertices (004E8900, the array and 0) or of
-// clipped TL vertices (004E86B0, the array and their outcodes); a vertex buffer for n vertices
-// (004E7820, always null) and its draw (004E7E00: indices, count); the draws with one (004EB550) or
+// clipped TL vertices (004E86B0, the array and their outcodes); the draws with one (004EB550) or
 // two textures (004EB370): primitive, FVF, vertices, count, indices, count, flags.
 __declspec(naked) void __fastcall BoundsOfProjected(char*, void*, lib::AlignedArray<ProjectedVertex>*, int) EI_ORIGINAL(0x004E8900)
 __declspec(naked) void __fastcall BoundsOfVertices(char*, void*, lib::AlignedArray<TLVertex>*, std::uint8_t*) EI_ORIGINAL(0x004E86B0)
-void __fastcall DrawVertexBuffer(char* a0, void*, std::uint16_t* a2, int a3) { DeviceDrawVertexBufferOriginal((void*)a0, nullptr, (const void*)a2, a3); }
+CTextureDevice* DeviceObject(char* device) { return reinterpret_cast<CTextureDevice*>(device); }
 __declspec(naked) int __fastcall DrawPrimitive(char*, void*, int, int, void*, int, std::uint16_t*, int, int)
     EI_ORIGINAL(0x004EB550)
 __declspec(naked) int __fastcall DrawPrimitive2(char*, void*, void*, void*, int, int, void*, int, std::uint16_t*, int,
@@ -152,13 +149,14 @@ void FillCorners(const MeshArgs& a) {
     }
 }
 
-// Hands the vertices to a vertex buffer (never available: 004E7820 returns null) or draws them.
+// Hands the vertices to the device's vertex-buffer batch (never available: 004E7820 returns null)
+// or draws them.
 void Submit(char* device, const Textures* textures, std::uint16_t* indices, int indexCount) {
     int count = Vertices().size;
-    if (void* buffer = LockVertexBuffer(device, nullptr, count)) {
+    if (void* buffer = DeviceObject(device)->LockVertexBuffer(count)) {
         std::memcpy(buffer, Vertices().data, static_cast<std::size_t>(count) * sizeof(TLVertex));
-        DrawVertexBuffer(device, nullptr, indices, indexCount);
-        At<int>(device, 0xE0) += count;
+        DeviceObject(device)->AppendBatchIndices(indices, indexCount);
+        DeviceObject(device)->batchBaseVertex_ += count;
         return;
     }
     if (textures) {
@@ -193,8 +191,8 @@ void DrawClipped(char* device, void* transform, const MeshArgs& a, const Texture
     ThisCall<int>(transform, 37, static_cast<void*>(Vertices().data), static_cast<void*>(CornerOutcodes().data),
                   a.indices, static_cast<void*>(ClipIndices().data), &vertexCount, &indexCount);
     if (indexCount == 0 || vertexCount == 0) return;
-    VerticesSetSize(&Vertices(), nullptr, vertexCount, -1);
-    WordsSetSize(&ClipIndices(), nullptr, indexCount, -1);
+    Vertices().SetSize(vertexCount);       // 004EC790
+    ClipIndices().SetSize(indexCount);     // 0044FA90
     ThisCall<void>(transform, 34, static_cast<void*>(Vertices().data), Vertices().size);
     if (At<int>(device, 0x158)) ThisCall<void>(transform, 35, static_cast<void*>(Vertices().data), Vertices().size);
     if (a.flags & 1) BoundsOfVertices(device, nullptr, &Vertices(), CornerOutcodes().data);

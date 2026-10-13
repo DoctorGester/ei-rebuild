@@ -144,3 +144,13 @@ void __fastcall ScriptCmdClear(SSCCmd* cmd) {
     cmd->calledScript = nullptr;
 }
 EI_REPLACE(0x004B5F70, ScriptCmdClear);
+
+// 004D0AF0 (A-S11): a nested call's record emptied for the next parameter: no type, no argument,
+// its command cleared (a tail jump to 004B5F70). Only the original LoadFunction calls it (ours,
+// script_parse_load.cpp, has the same three steps inline).
+void __fastcall ScriptSubCallClear(ScriptSubCall* call) {
+    call->type = 0;
+    call->argIndex = 0;
+    ScriptCmdClear(call->cmd);
+}
+EI_REPLACE(0x004D0AF0, ScriptSubCallClear);

@@ -31,11 +31,11 @@ namespace {
 
 // --- Forwarders ----------------------------------------------------------------------------------
 
-// The Direct3D driver list (007AEE64): 004EE4A0 enumerates, 004EE5D0 the first hardware driver,
-// 004EE6D0 the driver with an index (ECX), null when missing (both FatalErrorOriginal on failure).
+// The Direct3D driver list (007AEE64): 004EE4A0 enumerates, 004EE5D0 the first hardware driver
+// (FatalErrorOriginal and null when there is none); DriverAt (004EE6D0, render_helper.cpp) the
+// driver with an index.
 __declspec(naked) int __cdecl EnumerateDrivers() EI_ORIGINAL(0x004EE4A0)
 __declspec(naked) DirectDrawDriver* __cdecl FirstHardwareDriver() EI_ORIGINAL(0x004EE5D0)
-__declspec(naked) DirectDrawDriver* __fastcall DriverAt(int /*index*/) EI_ORIGINAL(0x004EE6D0)
 // 004E5E50: the device object's constructor (0x17C bytes, ten arguments).
 __declspec(naked) CTextureDevice* __fastcall DeviceConstruct(void*, void*, void* /*window*/, GUID* /*driver*/,
                                                             int /*full screen*/, int /*width*/, int /*height*/,
@@ -44,9 +44,14 @@ __declspec(naked) CTextureDevice* __fastcall DeviceConstruct(void*, void*, void*
 // 00504E20: the renderer's counted device holder (+0x20) takes the device.
 __declspec(naked) void __fastcall HolderAssign(CTextureDevice** /*holder*/, void*, CTextureDevice* /*device*/)
     EI_ORIGINAL(0x00504E20)
-// 004EBE80: the device's pipeline holder (+0xAC) takes the pipeline.
-__declspec(naked) void __fastcall DeviceSetPipeline(CTransformPipeline** /*holder*/, void*, CTransformPipeline*)
-    EI_ORIGINAL(0x004EBE80)
+// 004EBE80: the device's pipeline holder (+0xAC) takes the pipeline: counted first, then the old
+// one released.
+void DeviceSetPipeline(CTransformPipeline** holder, CTransformPipeline* pipeline) {
+    CTransformPipeline* previous = *holder;
+    *holder = pipeline;
+    if (pipeline) ++pipeline->refs_;
+    if (previous) previous->Release();
+}
 // Matrices (model.cpp, called through their addresses): 004F0E80 projection, 004F1370 viewport,
 // 004F1330 the axis swap (x, -y, z; patched by Rebirth); 004D9880 the product (MatrixMultiplyOriginal).
 __declspec(naked) Matrix4* __stdcall ProjectionMatrixOriginal(Matrix4*, float /*fov*/, float /*aspect*/, float /*near*/,
@@ -284,7 +289,7 @@ void __fastcall RendererCreate(CSceneRenderer* renderer, void*, void* window, Ga
                                  settings->resolutionY_, settings->colourDepth_, 0, 1, settings->zBufferDepth_, 0);
     }
     HolderAssign(&renderer->device_, nullptr, device);
-    DeviceSetPipeline(&renderer->device_->pipeline_, nullptr, renderer->pipeline_);
+    DeviceSetPipeline(&renderer->device_->pipeline_, renderer->pipeline_);
 
     FillMatrixStacks(renderer);
     SetViewport(renderer, settings);

@@ -53,6 +53,7 @@ __declspec(naked) void CStringArray::SetAtGrow(int, const CString&) EI_ORIGINAL(
 __declspec(naked) void CStringArray::SetAtGrow(int, const char*) EI_ORIGINAL(0x006FEBCE)
 __declspec(naked) void CStringArray::RemoveAt(int, int) EI_ORIGINAL(0x006FED3C)
 __declspec(naked) void CStringArray::Copy(const CStringArray&) EI_ORIGINAL(0x006FEB61)
+__declspec(naked) int CStringArray::Append(const CStringArray&) EI_ORIGINAL(0x006FEB01)
 
 __declspec(naked) unsigned CArchive::Read(void*, unsigned) EI_ORIGINAL(0x00708832)
 __declspec(naked) void CArchive::Write(const void*, unsigned) EI_ORIGINAL(0x00708941)

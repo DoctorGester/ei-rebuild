@@ -3,6 +3,7 @@
 #include "item_db_text.h"
 #include "resource.h"
 
+#include "console.h"   // console::CStringArray
 #include "engine_object.h"
 
 #include "ei/hook.h"
@@ -19,6 +20,18 @@ bool SameName(const TextSourceNode* node, const char* path) {
     std::size_t length = std::strlen(path);
     return node->data.name.size() == length && std::memcmp(node->data.name.data(), path, length) == 0;
 }
+
+// 004DEC40 through its address: Rebirth patches it (rule 9).
+__declspec(naked) void __fastcall TextSourcesListKeysOriginal(TextSourceList*, void*, mfc::CStringArray*, const char*)
+    EI_ORIGINAL(0x004DEC40)
+
+// The game's C runtime: setlocale [006EA234] and _setmbcp [006E9E30] (cdecl).
+__declspec(naked) char* __cdecl GameSetLocale(int /*category*/, const char* /*locale*/) EI_ORIGINAL(0x006EA234)
+__declspec(naked) int __cdecl GameSetMbcp(int /*codePage*/) EI_ORIGINAL(0x006E9E30)
+constexpr int kLocaleCtype = 2;     // LC_CTYPE
+constexpr int kMbcpLocale = -4;     // _MB_CP_LOCALE
+// The locale name the text manager sets: a pointer nothing writes (null).
+const char* LocaleName() { return *reinterpret_cast<const char* const*>(0x0079BE94); }
 
 void CloseAndDelete(CMappedResource* source) {
     source->CloseResource();
@@ -96,6 +109,36 @@ CTextManager* CTextManager::DeletingDestruct(unsigned flags) {
     if (flags & 1) gamecrt::operator_delete(this);
     return this;
 }
+
+void* __fastcall TextSourcesFind(TextSourceList* list, void*, const char* key, std::uint32_t* size) {
+    for (TextSourceNode* node = list->head->next; node != list->head; node = node->next) {
+        if (void* data = node->data.source->GetFile(key, size)) return data;
+    }
+    return nullptr;
+}
+EI_REPLACE(0x004DEBC0, TextSourcesFind);
+
+void __fastcall TextSourcesListKeys(TextSourceList* list, void*, mfc::CStringArray* out, const char* pattern) {
+    console::CStringArray found;
+    out->SetSize(0, -1);
+    for (TextSourceNode* node = list->head->next; node != list->head; node = node->next) {
+        node->data.source->ListFiles(&found, pattern);
+        out->Append(found);
+    }
+}
+EI_REPLACE(0x004DEC40, TextSourcesListKeys);
+
+void CTextManager::ListKeys(mfc::CStringArray* out, const char* pattern) {
+    TextSourcesListKeysOriginal(&sources_, nullptr, out, pattern);
+}
+EI_REPLACE_METHOD(0x004DEFA0, CTextManager::ListKeys);
+
+int CTextManager::Create() {
+    GameSetLocale(kLocaleCtype, LocaleName());
+    GameSetMbcp(kMbcpLocale);
+    return 1;
+}
+EI_REPLACE_METHOD(0x004DED20, CTextManager::Create);
 
 EI_REPLACE(0x004DE930, TextSourcesAdd);
 EI_REPLACE(0x004DEAF0, TextSourcesRemove);

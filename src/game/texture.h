@@ -3,6 +3,7 @@
 #include "engine_object.h"
 #include "resource_manager.h"
 #include "lib/containers.h"
+#include "lib/stlp.h"
 
 #include <windows.h>
 
@@ -20,8 +21,27 @@ class CTransformPipeline;
 // interface, the primary surface's and the render target's holders and the screen rectangle.
 class CTextureDevice {
 public:
-    int ParseMmpHeader(const void* data, PixelFormat* format);   // 004E7C40
-    int FindFormat(int id, PixelFormat* format);                 // 004E7DA0
+    // pixel_formats.cpp (A-S11).
+    // 004E7C40 (RET 8). The texture format for an .mmp file's header: the format its id names
+    // (formats_); for a DXT id the device does not have, the format its channel bit counts name
+    // (5:6:5, 5:5:5, 1:5:5:5, 4:4:4:4, 8:8:8:8; anything else looks id 0 up). 1 with `format`
+    // filled, 0 with it untouched.
+    int ParseMmpHeader(const void* data, PixelFormat* format);
+    // 004E7DA0 (RET 8). The texture format registered under `id` (0x5650, 0x5551, 0x4444, 0x8888,
+    // a DXT four-character code): 1 with `format` filled, 0 with it untouched.
+    int FindFormat(int id, PixelFormat* format);
+    // 004E6BC0 (RET 4). `format` describes a depth buffer (DDPF_ZBUFFER and / or
+    // DDPF_STENCILBUFFER with the bit depths wanted): the first enumerated depth format with the
+    // same depth bits (when DDPF_ZBUFFER is asked) and stencil bits (when DDPF_STENCILBUFFER is)
+    // replaces it. 1 when one was found, else 0 with `format` untouched.
+    int FindDepthFormat(PixelFormat* format);
+    // 004E7820 (RET 4; device_helpers.cpp). A vertex buffer for a batch of `count` vertices: always
+    // null (the batch below is never used).
+    void* LockVertexBuffer(int count);
+    // 004E7E00 (RET 8; device_helpers.cpp). Appends `count` indices to the batch (batchIndices_),
+    // each raised by batchBaseVertex_ when that is not 0, then sets the array's size (the indices
+    // are written before the array grows: the caller has made room).
+    void AppendBatchIndices(const std::uint16_t* indices, int count);
 
     // Holders count references to it (the cursor): one more, or one less with the deleting
     // destructor (vtable slot 0, with 1) at zero.
@@ -58,7 +78,16 @@ public:
     std::uint32_t stencilBits_;        // +0x9C
     std::uint8_t unknown_A0[0xAC - 0xA0];
     CTransformPipeline* pipeline_;   // +0xAC the scene renderer's pipeline (model.h)
-    std::uint8_t unknown_B0[0x12C - 0xB0];
+    std::uint8_t unknown_B0[4];
+    stlp::list<PixelFormat> depthFormats_;   // +0xB4 the enumerated depth buffer formats (004E6C30 picks one)
+    std::uint8_t unknown_B8[4];
+    // +0xBC the texture formats by id (filled by 004E6EE0 from the Direct3D device's enumeration);
+    // the values point at formats the device keeps.
+    stlp::hash_map<int, PixelFormat*, stlp::IntHash> formats_;
+    std::uint8_t unknown_D0[0x10];
+    int batchBaseVertex_;            // +0xE0 the vertex-buffer batch's vertex count (never used: 004E7820 gives no buffer)
+    lib::AlignedArray<std::uint16_t> batchIndices_;   // +0xE4 the batch's indices
+    std::uint8_t unknown_F4[0x12C - 0xF4];
     CDXSurface* stageSurfaces_[8];   // +0x12C the surface holder bound to each texture stage (00501AF0, 004EBAF0)
     void* material_;                 // +0x14C the current material (004EB170)
     std::uint32_t colour_;           // +0x150 the renderer's draw colour (00501CC0; mesh draw flag 4)
@@ -77,6 +106,8 @@ static_assert(offsetof(CTextureDevice, zEnable_) == 0x60);
 static_assert(offsetof(CTextureDevice, unknown_158) == 0x158);
 static_assert(offsetof(CTextureDevice, depthFormatFlags_) == 0x90 && offsetof(CTextureDevice, stencilBits_) == 0x9C);
 static_assert(offsetof(CTextureDevice, stageSurfaces_) == 0x12C && offsetof(CTextureDevice, colour_) == 0x150);
+static_assert(offsetof(CTextureDevice, depthFormats_) == 0xB4 && offsetof(CTextureDevice, formats_) == 0xBC);
+static_assert(offsetof(CTextureDevice, batchBaseVertex_) == 0xE0 && offsetof(CTextureDevice, batchIndices_) == 0xE4);
 
 // The renderer's device object (the global pointer at 007AF080).
 inline CTextureDevice* RenderDeviceObject() { return *reinterpret_cast<CTextureDevice* const*>(0x007AF080); }
@@ -96,6 +127,9 @@ struct DirectDrawDriver {
     GUID* guid;                 // +0x10 for DirectDrawCreateEx
 };
 static_assert(offsetof(DirectDrawDriver, guid) == 0x10);
+// 004EE6D0 (the index in ECX; render_helper.cpp). The driver `index` steps after the list's first;
+// past the last: a fatal error ("Can't find driver by index.") and null.
+DirectDrawDriver* __fastcall DriverAt(int index);
 
 // A DirectDraw surface wrapper (004EFA60 constructs it from a DDSURFACEDESC2, 004EF7B0 for an
 // off-screen surface of the screen's format; 0x20 bytes): vtable (slot 0 the deleting destructor),
@@ -192,19 +226,24 @@ static_assert(offsetof(MmpHeader, alphaKind) == 0x20);
 static_assert(offsetof(MmpHeader, blueBits) == 0x44);
 static_assert(sizeof(MmpHeader) == 0x4C);
 
-// 004EDAA0 (thiscall, RET 4) fills it: a DDPIXELFORMAT's channels as mask, bit count and shift
-// (0x34 bytes, zeroed first; it stops early for a format without DDPF_RGB, logging "Format have no
-// RGB information", or with a channel wider than 8 bits). Returns 1 when the four were split.
+// A DDPIXELFORMAT's channels as mask, bit count and shift (0x34 bytes); pixel_formats.cpp.
 struct ChannelLayout {
     std::uint32_t unknown_00;                         // zeroed, never written
     std::uint32_t alphaMask, alphaBits, alphaShift;   // +0x04
     std::uint32_t redMask, redBits, redShift;         // +0x10
     std::uint32_t greenMask, greenBits, greenShift;   // +0x1C
     std::uint32_t blueMask, blueBits, blueShift;      // +0x28
+    // 004EDAA0 (RET 4). Zeroes the layout, then splits `format`'s alpha, red, green and blue masks
+    // in that order. 0 for a null format, for one without DDPF_RGB (logged: "Format have no RGB
+    // information") and at the first channel wider than 8 bits (the channels before it stay
+    // filled); else 1.
     int Split(const void* format);
-    // 004EDC00's conversion (texture_bmp.cpp; 004EDC00 itself is not hooked): an A8R8G8B8 colour
-    // into a pixel of this layout, each channel's top bits at its shift.
+    // 004EDC00 (RET 4). An A8R8G8B8 colour into a pixel of this layout, each channel's top bits
+    // at its shift.
     std::uint32_t ToNative(std::uint32_t argb) const;
+    // 004EDC70 (RET 4). A pixel of this layout as A8R8G8B8: each channel's bits moved to the top
+    // of its byte (the low bits stay 0).
+    std::uint32_t FromNative(std::uint32_t pixel) const;
 };
 static_assert(sizeof(ChannelLayout) == 0x34);
 
