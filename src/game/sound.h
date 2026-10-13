@@ -287,6 +287,9 @@ struct CSoundManager : CEngineObject {
     // 006B8960 (RET 0xC). The first wave source holding `name`: its data (GetFile, size into
     // *size), the source into *source when not null. Null when none has it.
     void* LoadWaveFile(const char* name, std::uint32_t* size, CMappedResource** source);
+    // 006B7110 (RET 8; A-H26, Rebirth-patched: callers use SoundSystemListFilesOriginal). `out`
+    // emptied, then the names matching `pattern` of every wave source appended, source by source.
+    void ListWaveFiles(mfc::CStringArray* out, const char* pattern);
     // 006BAE20 (RET 8). The sound folder (a backslash appended when missing) and the sound
     // registry opened. 1 when sound is off; else whether the registry opened.
     int SetPath(const char* folder, const char* registryPath);

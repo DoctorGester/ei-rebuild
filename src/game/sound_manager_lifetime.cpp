@@ -87,6 +87,23 @@ void* CSoundManager::LoadWaveFile(const char* name, std::uint32_t* size, CMapped
 }
 EI_REPLACE_METHOD(0x006B8960, CSoundManager::LoadWaveFile);
 
+// 006B7110 (A-H26; Rebirth-patched: its ListFiles call is redirected, so this is the vanilla body,
+// hooked in the vanilla launch only). From the unit database's sound counts (0053A8E0), on the
+// game's main thread.
+void CSoundManager::ListWaveFiles(mfc::CStringArray* out, const char* pattern) {
+    out->SetSize(0, -1);
+    mfc::CStringArray names;
+    names.Construct();
+    for (auto* node = waveSources.head; node != nullptr;) {
+        CMappedResource* source = node->data;
+        node = node->next;
+        source->ListFiles(&names, pattern);
+        for (int i = 0; i < names.size; ++i) out->SetAtGrow(out->size, names[i]);
+    }
+    names.Destruct();
+}
+EI_REPLACE_METHOD(0x006B7110, CSoundManager::ListWaveFiles);
+
 // 006BAE20. Called at startup (00456440).
 int CSoundManager::SetPath(const char* folder, const char* registryPath) {
     if (enabled == 0) return 1;

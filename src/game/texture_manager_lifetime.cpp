@@ -2,6 +2,8 @@
 // docs/notes/items_spells.md ("Textures").
 #include "texture.h"
 
+#include "world_data.h"   // the text resources' folder
+
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/crt.h"
@@ -58,6 +60,15 @@ static void ReleaseTextures(CTextureManager* manager) {
     if (device) device->Release();
 }
 
+int CTextureManager::Create() {
+    if (!CBaseManager::Create()) return 0;
+    DeleteComposedTextures();
+    const mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextPathString()));
+    BOOL opened = AddArchive(folder + "textures.res");
+    opened = AddArchive(folder + "redress.res") && opened ? 1 : 0;
+    return AddArchive(folder + "menus.res") && opened ? 1 : 0;
+}
+
 void CTextureManager::Destroy() {
     ReleaseTextures(this);
     CResourceManager::Destroy();
@@ -89,11 +100,13 @@ CEngineObject* CTextureManager::CreateObject(int type, int id) {
 }
 
 namespace {
+int __fastcall TextureManagerCreateHook(CTextureManager* self) { return self->CTextureManager::Create(); }
 void __fastcall TextureManagerDestroyHook(CTextureManager* self) { self->CTextureManager::Destroy(); }
 CEngineObject* __fastcall TextureManagerCreateObjectHook(CTextureManager* self, void*, int type, int id) {
     return self->CTextureManager::CreateObject(type, id);
 }
 } // namespace
+EI_REPLACE(0x00691500, TextureManagerCreateHook);
 EI_REPLACE(0x00691630, TextureManagerDestroyHook);
 EI_REPLACE(0x00691AA0, TextureManagerCreateObjectHook);
 

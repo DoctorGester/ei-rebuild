@@ -44,6 +44,20 @@ CEngineObject* __fastcall NewPlayerVerify(CPlayerManager* self, void*, int type)
     ei::verify::Check("CPlayerManager::NewPlayer", true, ok, "manager %p type %d", self, type);
     return result;
 }
+// 0066C180 (A-H26; the vanilla launch only, Rebirth patches it): the client world's local session
+// at every start (CWorldClient's construction), the server's AcceptNewPlayers and its temporary
+// player at every new game. Ours only (it registers two objects): the player is filed under its
+// id with a reference, number 0, and owns the connection it got (a null one is taken as it is).
+CEngineObject* __fastcall CreateSessionPlayerVerify(CPlayerManager* self) {
+    CEngineObject* result = self->CreateSessionPlayer();
+    auto* player = static_cast<CPlayer*>(result);
+    bool ok = !player || (*reinterpret_cast<std::uintptr_t*>(player) == CPlayer::kVtableAddress &&
+                          player->type_ == 0x300A && self->FindObject(static_cast<unsigned>(player->id_)) == player &&
+                          player->playerId_ == 0 && player->refCount_ >= 1 &&
+                          (player->connection_ == nullptr || player->connection_->player_ == player));
+    ei::verify::Check("CPlayerManager::CreateSessionPlayer", true, ok, "manager %p player %p", self, result);
+    return result;
+}
 void __fastcall ReleasePlayerVerify(CPlayerManager* self, void*, CEngineObject* player) {
     self->ReleasePlayer(player);
     ei::verify::Check("CPlayerManager::ReleasePlayer", true, true, "manager %p", self);
@@ -71,6 +85,7 @@ void __fastcall SendTextVerify(CPlayerManager* self, void*, int unused, const ch
 
 EI_VERIFY(0x0066C0F0, CreatePlayersVerify, 0, s_unused);
 EI_VERIFY(0x0066C110, NewPlayerVerify, 0, s_unused);
+EI_VERIFY(0x0066C180, CreateSessionPlayerVerify, 0, s_unused);
 EI_VERIFY(0x0066C1D0, ReleasePlayerVerify, 0, s_unused);
 EI_VERIFY(0x0066C1E0, ChangeIdVerify, 0, s_unused);
 EI_VERIFY(0x0066C340, SendValueVerify, 0, s_unused);

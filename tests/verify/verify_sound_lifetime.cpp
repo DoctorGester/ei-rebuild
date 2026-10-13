@@ -153,8 +153,26 @@ int __stdcall StreamReadVerify(CSoundManager* manager, void* buffer, int size, i
                       manager->streamReadPosition);
     return result;
 }
+
+// 006B7110 (A-H26; the vanilla launch only, Rebirth patches it): the unit database's sound counts
+// at every start (0053A8E0, the game's main thread; not a Miles callback). Side by side: the
+// original lists into a scratch array, ours into the caller's; the same names in the same order.
+// PUSH -1 (2 bytes), PUSH imm32 (5).
+void(__fastcall* s_listWaveFiles)(CSoundManager*, void*, mfc::CStringArray*, const char*);
+void __fastcall ListWaveFilesVerify(CSoundManager* self, void*, mfc::CStringArray* out, const char* pattern) {
+    mfc::CStringArray scratch;
+    scratch.Construct();
+    s_listWaveFiles(self, nullptr, &scratch, pattern);
+    self->ListWaveFiles(out, pattern);
+    bool same = scratch.size == out->size;
+    for (int i = 0; same && i < scratch.size; ++i) same = std::strcmp(scratch[i], (*out)[i]) == 0;
+    ei::verify::Check("CSoundManager::ListWaveFiles", true, same, "\"%s\": %d vs %d names",
+                      pattern ? pattern : "(all)", scratch.size, out->size);
+    scratch.Destruct();
+}
 } // namespace
 
+EI_VERIFY(0x006B7110, ListWaveFilesVerify, 7, s_listWaveFiles);
 EI_VERIFY(0x006B6290, SoundNameVerify, 5, s_soundName);
 EI_VERIFY(0x006B62A0, SoundIdVerify, 5, s_soundId);
 EI_VERIFY(0x006B6D70, SoundCreateVerify, 0, s_unused);

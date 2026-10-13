@@ -327,6 +327,11 @@ public:
     // 00691230: slot 0.
     void Destruct();
     CTextureManager* DeletingDestruct(unsigned flags);
+    // 2: 00691500 (A-H26; Rebirth-patched, hooked in the vanilla launch only). CBaseManager's
+    // Create (0 when it fails), the composed textures deleted, then the three texture archives of
+    // the text resources' folder added (slot 16): "textures.res", "redress.res", "menus.res". All
+    // three are tried; 1 only when every one opened.
+    int Create() override;
     // 3: 00691630. As the destructor up to CResourceManager::Destroy (without SetDevice).
     void Destroy() override;
     // 23: 00691AA0. CBaseManager::CreateObject, then flags_ by type: 0x3E 0x80, 0x3F 0x100, 0x40
