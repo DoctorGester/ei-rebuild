@@ -242,8 +242,8 @@ __declspec(naked) inline void __fastcall CursorSetHeldOriginal(void* /*cursor*/,
 __declspec(naked) inline void __fastcall FigureCreateOriginal(void* /*figure*/) EI_ORIGINAL(0x005A6C70)
 // 00708D79: MFC's CDC::FromHandle (static, stdcall): the temporary CDC of `dc`.
 __declspec(naked) inline void* __stdcall CdcFromHandleOriginal(void* /*dc*/) EI_ORIGINAL(0x00708D79)
-// 0065ECB0: the DirectInput mouse's state read (thiscall, RET 4; the argument is not read; returns the DIMOUSESTATE
-// inside the object).
+// 0065ECB0 (CDirectInputMouse::Poll, input_mouse.cpp): the DirectInput mouse's state read (thiscall, RET 4; the
+// argument is not read; returns the DIMOUSESTATE inside the object).
 __declspec(naked) inline const long* __fastcall DirectInputMousePollOriginal(void* /*mouse*/, void*, int /*unused*/)
     EI_ORIGINAL(0x0065ECB0)
 // 007022A0: MFC's AfxBeginThread(procedure, parameter, priority, stack size, flags, security) (__stdcall; returns the
