@@ -4442,3 +4442,29 @@ address,name,library,signature,notes
 00500380,"stlp::uninitialized_fill_n of 40-byte records",STLport,,A-U12: STLport template helper; its callers are the vector<40-byte record> instantiations
 005003B0,"stlp::uninitialized_copy<int*>",STLport,,A-U12: STLport template helper; its callers are the vector<int> instantiations
 005003D0,"stlp::uninitialized_fill_n<int*>",STLport,,A-U12: STLport template helper; its callers are the vector<int> instantiations
+00520EF0,"empty STLport helper (a single RET: the destroy of a range of trivially destructible elements)",STLport,,A-U12: its 62 callers are all STLport instantiations (vector / hash table code of the unit databases)
+005214B0,"stlp::_Destroy<CString*> (fastcall first, last: each string's destructor 00700970)",STLport,,A-U12: STLport template helper; the unit database's table destructors reach it through its forwarder (unit_db_destroy.cpp)
+00521C40,"STLport helper returning 0 (XOR EAX,EAX; RET)",STLport,,A-U12: its 61 callers are all STLport instantiations
+0052C6B0,"CList<counted reference>::~CList (vtable 0073E730: every node's object released through its slot 4 and forgotten, the blocks freed)",MFC,,A-U12: MFC template instantiation (RemoveAll inlined); the brain's and the magic trap's destructors call it, and its scalar deleting destructor 0052CC30
+0052CC30,"CList<counted reference> scalar deleting destructor (vtable 0073E730 slot 1)",MFC,,A-U12: MFC template instantiation (compiler-generated; calls 0052C6B0)
+0052C8E0,"CArray<8-byte point>::SetSize (the magic trap's points; ConstructElements 0046F110)",MFC,,A-U12: MFC CArray::SetSize instantiation (the stock body: grow by an eighth clamped to 4..1024)
+0052CE20,"CList<counted reference>::FreeNode (the node's object released and forgotten, the node onto the free list, RemoveAll when the list empties)",MFC,,A-U12: MFC template instantiation
+0052CEC0,"DestructElements<counted reference> (each object released through its slot 4 and the slot cleared)",MFC,,A-U12: MFC template helper of the CList<counted reference> instantiations; the brain's destructor inlines the list walk and calls it per node
+0052E2C0,"destructor of three consecutive CArrays (vtables 0073EBA8 / 0073EBB4 / 0073D3E8 at +0x00 / +0x14 / +0x28: each block freed); reached only from exception unwind funclets",compiler,,A-U12: no caller but unwind funclets
+00533720,"ConstructElements<4-byte element> (zeroes count * 4 bytes)",MFC,,A-U12: MFC template helper; called from the CArray SetSize bodies inlined in CUnit::LoadUnit
+005338A0,"ConstructElements<28-byte element> (zeroes count * 28 bytes)",MFC,,A-U12: MFC template helper; its callers are the CArray<28-byte> instantiations (00532E70) and the SetSize inlined in UnitMotion::SubdivideSegment
+005338D0,"ConstructElements<12-byte element> (zeroes count * 12 bytes)",MFC,,A-U12: MFC template helper; its callers are CArray instantiations (00533030 / 005C8400)
+00533E20,"destructor of the client controller's list at +0x20 (vtable 0073EDB0: RemoveAll, the blocks freed); reached only from exception unwind funclets",compiler,,A-U12: no caller but unwind funclets (30 of them)
+00536E30,"destructor of a local { aligned array, CStringArray } pair; reached only from exception unwind funclets",compiler,,A-U12: no caller but unwind funclets
+00539870,"CList scalar deleting destructor (vtable 0073EDB0 slot 1; calls 00539890)",MFC,,A-U12: MFC template instantiation (compiler-generated)
+00539910,"ConstructElements<12-byte record> (zeroes the block, then each record {0, -1, -1})",MFC,,A-U12: MFC template helper; called from the CArray instantiation 00539580 and the SetSize inlined in CUnitClientSpecific::BuildSkinLayers
+00539980,"ConstructElements<PathCell> (zeroes the block, then each cell's two words)",MFC,,A-U12: MFC template helper; called from the CArray / CList<PathCell> instantiations and the copies inlined in the path search (through its forwarder ConstructPathCells)
+0053B340,"stlp::vector<68-byte record>::~vector (each record's string destroyed, the block returned to the node allocator); reached only from exception unwind funclets",STLport,,A-U12: STLport template instantiation; no caller but unwind funclets
+0053D930,"STLport helper returning 0 (XOR EAX,EAX; RET)",STLport,,A-U12: its 22 callers are all STLport instantiations
+0053D940,"empty STLport helper (RET 4)",STLport,,A-U12: its 22 callers are all STLport instantiations
+0053D970,"scalar deleting destructor of an STLport vector base (the storage freed by 005146C0)",STLport,,A-U12: compiler-generated for an STLport template; the prototype table's destructor calls it with flags 0 through its forwarder
+0053D990,"scalar deleting destructor of an STLport vector base (the storage freed by 00514700)",STLport,,A-U12: compiler-generated for an STLport template; the NPC table's destructor calls it through its forwarder
+0053D9B0,"scalar deleting destructor of an STLport vector base (the storage freed by 0053C9E0)",STLport,,A-U12: compiler-generated for an STLport template; the model table's destructor calls it through its forwarder
+0053EFF0,"stlp::_Destroy<CString> (a jump to CString::~CString 00700970)",STLport,,A-U12: STLport template helper (a thunk)
+0053F010,"stlp::_Destroy<CString> (a second jump to CString::~CString 00700970; its address is also passed as an element destructor)",STLport,,A-U12: STLport template helper (a thunk)
+0053F020,"stlp::vector<CString>::~vector (each string destroyed, the block freed or returned to the node allocator)",STLport,,A-U12: STLport template instantiation (250 callers: the unit databases' record destructors)

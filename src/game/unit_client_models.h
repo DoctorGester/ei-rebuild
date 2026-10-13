@@ -339,6 +339,14 @@ public:
     // heroes, else 64) is composed by the texture manager (00693180) as "mo<id>w". Returns its
     // result, or 0 without wounds.
     int ComposeWoundsTexture();
+    // unit_controller_slots.cpp (A-U12).
+    // 00535240 (RET 8; the path marker message). The two marker sources (sources[1], sources[2])
+    // stopped (00485380), released and forgotten, then `path` and `marker` kept in their place
+    // (each referenced; null: none).
+    void SetMarkers(CParticleSource* path, CParticleSource* marker);
+    // 00538EA0 (the client world's RemoveObject). The face texture forgotten, then released; no
+    // blinks.
+    void DropFaceTexture();
 
     AIPath* MotionPath() { return reinterpret_cast<AIPath*>(motionOrder); }
 

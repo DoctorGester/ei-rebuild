@@ -157,6 +157,10 @@ static_assert(sizeof(MoveModeState) == 8);
 // What a unit attacks with (0x20 bytes), filled by CUnitServer::GetAttackParams (vtable slot 50).
 // Floats and ints mixed, as the original stores them.
 struct AttackParams {
+    // 0052E0D0 (RET 4; unit_stat_small.cpp, A-U12). Unless `keyed`: attack and defence times the
+    // difficulty's factors (007C54AC / 007C54B8 at the difficulty 0079BEC0), truncated.
+    void ScaleForDifficulty(int keyed);
+
     int weaponType;             // +0x00 CItemWeapon::GetType, or the natural weapon (stats +0xAC)
     int damageType;             // +0x04 0..6
     float speed;                // +0x08 item +0x34 / stats +0x80

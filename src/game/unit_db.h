@@ -268,6 +268,10 @@ struct SkillDatabase {
     int IndexOf(const char* levelName);
     // 0051FF00 (RET 4). The index of `record` among the level records, or -1.
     int IndexOfLevel(const SkillLevelRecord* record);
+    // unit_stat_small.cpp (A-U12). 00526FF0 / 00524FA0 (RET 4): skill / level record `index`, or
+    // null past the end.
+    SkillRecord* SkillAt(std::uint32_t index);
+    SkillLevelRecord* LevelAt(std::uint32_t index);
 
     stlp::vector<SkillRecord> skills;        // +0x00
     stlp::vector<SkillLevelRecord> levels;   // +0x0C

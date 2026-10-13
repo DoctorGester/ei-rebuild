@@ -549,6 +549,16 @@ public:
     // player loses it (00665B50), the new one gains it (00665A70), part 11 is marked and the
     // controller hears of it (slot 18).
     void SetPlayer(char* newPlayer);
+    // unit_small_methods.cpp (A-U12).
+    // 0052EA40 (RET 8; the client's path marker message). As RefreshMotion with the speeds given
+    // (the motion's speed scale and base turn rate) and no part marked.
+    void SetMotionSpeeds(float speed, float turnRate);
+    // 005301A0. Whether a player owns the unit (0 / 1 in EAX).
+    int HasPlayer() const;
+    // 00530560. Twice above.z (+0x14C), unrounded in ST0.
+    double DoubleHeight() const;
+    // 00530830 (RET 4). The armour piece worn in `slot` (armor[slot], unchecked).
+    CEngineObject* WornItem(int slot) const;
     // 0052E740. Virtual slot 5 (the release): SetPlayer(null), the controller's slot 5, every
     // item slot released and emptied (quick items, weapons, spells, armour), the carried items
     // released (no null test) and their array freed (grow-by kept).
@@ -882,6 +892,10 @@ struct UnitStats {
     // the FPU runs above 24-bit precision under Rebirth, see CItemWeapon::RollDamage).
     // 00523CD0. 25 / unknown_20.
     double Period20();
+    // unit_stat_small.cpp (A-U12; the item panel's lines). 00523CB0: stat10 over the setting at
+    // 007C5454; 00523CC0: stat18 over the one at 007C5468.
+    double StrengthRatio();
+    double DexterityRatio();
     // unit_stats_io.cpp (A-U4). 005287A0 (RET 4): pendingExperience 0, then the block read raw,
     // as long as the stream's format version knew it (below 0x45: 0x6F8 bytes, below 0x50: 0x6FC,
     // below 0x63: 0x700, else 0x704). Returns the stream's result.
