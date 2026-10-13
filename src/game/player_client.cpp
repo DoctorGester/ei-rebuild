@@ -117,8 +117,6 @@ void RefreshQuestLog() {
 // 00665550 (plain RET): the player runs its connection's slot 18 and empties its list at +0xE0.
 // 0056CE40 (RET 0xC): the client world shows a number over a unit (id, value, kind).
 __declspec(naked) void __fastcall PlayerQuestItemsOriginal(void* /*player*/) EI_ORIGINAL(0x00665550)
-__declspec(naked) void __fastcall ClientShowNumber(void* /*world*/, void*, int /*id*/, int /*value*/, int /*kind*/)
-    EI_ORIGINAL(0x0056CE40)
 constexpr int kNumberExperience = 8;
 
 // The experience shown for `amount`: amount * 0073E128 ^ (+0x33E - 0073E124), stored to a float,
@@ -325,7 +323,7 @@ int CPlayerClient::OnExperienceAll() {
     CPlayer::ObjectMap& units = Owner()->units_;
     for (CPlayer::ObjectMap::Node* node = units.First(); node && node->value; node = units.After(node)) {
         auto* unit = static_cast<CUnit*>(node->value);
-        ClientShowNumber(WorldClient(), nullptr, unit->id_, ScaledExperience(unit, amount), kNumberExperience);
+        ClientShowNumberOriginal(WorldClient(), nullptr, unit->id_, ScaledExperience(unit, amount), kNumberExperience);
     }
     return 1;
 }
@@ -336,7 +334,7 @@ int CPlayerClient::OnExperience() {
     in_.Read(&id, 4);
     in_.Read(&amount, 4);
     auto* unit = static_cast<CUnit*>(WorldFindUnit(WorldClient(), nullptr, id));
-    if (unit != nullptr) ClientShowNumber(WorldClient(), nullptr, id, ScaledExperience(unit, amount), kNumberExperience);
+    if (unit != nullptr) ClientShowNumberOriginal(WorldClient(), nullptr, id, ScaledExperience(unit, amount), kNumberExperience);
     return 1;
 }
 

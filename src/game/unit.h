@@ -1181,6 +1181,9 @@ public:
     // emptied, no map object.
     int CreateServer();
     void DestroyServer();
+    // map_object_companion_slots.cpp (A-U12). 00515700, virtual slot 0 (RET 4): DestructBody, then
+    // operator delete with flags bit 0. Returns this.
+    CMapObjectServer* DeleteServer(unsigned flags);
 
     std::uint8_t unknown_1C[0x20 - 0x1C];   // +0x1C the map object (map_object.h CompanionOwner)
     UnitVitals vitals;      // +0x20 hit points +0x28, maximum +0x2C
@@ -1201,6 +1204,12 @@ class CParticleSource;   // effects.h
 
 // One effect particle record of the client companion (CArray at +0x28, 0x10 bytes).
 struct EffectParticle {
+    // map_object_companion_slots.cpp (A-U12). 00512490 (RET 4): the assignment (the source
+    // referenced, the old one released). Returns this. 00511290: the destructor (the source
+    // released; the array's SetSize calls it).
+    EffectParticle* Assign(const EffectParticle* other);
+    void ReleaseSource();
+
     int type;                   // +0x00 the effect type
     int power;                  // +0x04 the effect's power byte
     CParticleSource* source;    // +0x08 counted; null when the effect has no lasting source
@@ -1245,6 +1254,12 @@ public:
     BOOL IsDead();
     // 005104F0. Virtual slot 18: the unit's hit points below -5 times its maximum.
     BOOL IsOverkilled();
+    // map_object_companion_slots.cpp (A-U12). 00510540, virtual slot 0 (RET 4): DestructBody, then
+    // operator delete with flags bit 0. Returns this.
+    CMapObjectClientSpecific* DeleteClientCompanion(unsigned flags);
+    // 005117F0, virtual slot 16 (RET 8): a hit of `damage` with the hit-kind bits `kind` on a
+    // living object flagged 0x400000 shows its number over it (the client world's 0056CE40).
+    void ShowHit(int damage, int kind);
 
     // object_small_slots.cpp (A-U2). 00510770, virtual slot 2 (Create): no light state (+0x20 /
     // +0x24), the particle array emptied (005121B0), no end sound (+0x54 = -1), no map object.

@@ -173,3 +173,6 @@ __declspec(naked) inline void __fastcall ClientProjectDecalOriginal(void* /*worl
                                                                     lib::AlignedArray<std::uint16_t>* /*indices*/,
                                                                     int /*skipOnPlatform*/, int /*objects*/)
     EI_ORIGINAL(0x0056C750)
+// 0056CE40 (RET 0xC): the client world shows a number over the unit with id `id` (the value, the kind bits).
+__declspec(naked) inline void __fastcall ClientShowNumberOriginal(void* /*world*/, void*, int /*id*/, int /*value*/,
+                                                                int /*kind*/) EI_ORIGINAL(0x0056CE40)

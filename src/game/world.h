@@ -209,7 +209,7 @@ public:
     virtual CBaseManager* PlayerList();   // 20: 0055EB50 (+0x38, players_)
     // 21: 0055EB80 (+0x44): the side-specific halves' manager (the client's is a
     // CClientSpecificManager, 0042D690; it makes the class 0x45 objects of CFakeUnit's figures).
-    virtual void SpecificManager();
+    virtual CBaseManager* SpecificManager();
     virtual CSpellManager* SpellManager();   // 22: 0055EBA0 (+0x4C)
     virtual class CFigureCache* FigureCache();   // 23: the figure cache (+0x5C; map_object_figures.h)
     // 24: a copy of an item (client 0055E940 as CParty::CopyItem; server 00594CE0, CWorldServer::

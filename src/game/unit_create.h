@@ -4,12 +4,14 @@
 // server controller's statistics hand-over. Names provisional. See docs/notes/units.md
 // ("Fourth round").
 
+#include "lib/mfc.h"
 #include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>
 
 class CEngineObject;
+struct FigureAnimation;   // map_object_figures.h
 class CUnit;
 struct UnitStats;
 struct UnitVitals;
@@ -91,6 +93,36 @@ struct CMapObjectManager {
     // (a weapon is added even then: AddWeapon(null) returns 0, so +0x270 becomes 0). Without the
     // prototype a FatalError message and 0; else 1.
     int GiveStartingEquipment(CUnit* unit, const char* name);
+
+    // map_object_manager.cpp (A-U12).
+    // 005125E0. The constructor: the resource manager's (00674D90), then the vtable 0073DCD8.
+    // Returns this.
+    CMapObjectManager* Construct();
+    // 00512650. The destructor body: the vtable, then the resource manager's (00674DF0).
+    void Destruct();
+    // 00512630 (slot 0, RET 4). Destruct, then operator delete with flags bit 0. Returns this.
+    CMapObjectManager* DeletingDestruct(unsigned flags);
+    // 00512660 (slot 2). The base manager's Create (00403020; 0 when it fails), then the archive
+    // "<text folder>database.res" added (slot 16). Returns 1.
+    int CreateManager();
+    // 00512A30 (slot 23, RET 8). The base manager's CreateObject (00403730); a new object gets an
+    // animation state (the figure manager's class 0x300D) and its side halves from the world's
+    // specific manager: classes 0x46 and 0x47 (through the object's slot 19), then 0x48 for the
+    // three unit classes (0x32-0x34) and 0x4B for classes 0x36-0x39. Returns the object or null.
+    CEngineObject* CreateMapObject(int classId, int id);
+    // 00512B20 (RET 8). The entry of the animation database "<figure>.adb" (slot 19) matching
+    // `key`: the same bits above 0x7FFF and, of the low bits, none of the key's missing (a key
+    // without low bits takes only an entry without). Null (with a debug message when there is no
+    // database).
+    FigureAnimation* FindAnimation(const mfc::CString* figure, std::uint32_t key);
+    // 00513630 (RET 4). The defaults of an object without a prototype (SetDefaults): a unit
+    // (class 0x50) gets the statistics (its slot 35), any other object the vitals (slot 36); then
+    // slot 33 with 0 and no prototype index (+0x18). Returns 1.
+    int GiveDefaults(CEngineObject* object);
+    // 005143E0 (RET 0x14). The starting equipment's names of prototype `name`: the armour pieces,
+    // the two weapons and the spells. 1, or FatalError's result without the prototype.
+    int PrototypeEquipment(const char* name, mfc::CStringArray* armour, mfc::CString* weapon,
+                           mfc::CString* secondWeapon, mfc::CStringArray* spells);
 };
 
 namespace unitdb {

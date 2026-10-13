@@ -31,17 +31,16 @@ struct FootprintPart;   // ai_map.h: a figure part's box (0x38 bytes)
 // reads: its position relative to the object, the piece's offset and box in the figure.
 struct FigurePart : CEngineObject {
     Vector3 position;               // +0x01C
-    std::uint8_t unknown_028[0x2C - 0x28];
-    float alpha;                    // +0x02C (a unit's fade-in, CUnitClientSpecific +0x78)
-    std::uint8_t unknown_030[0x40 - 0x30];
-    float tint[3];                  // +0x040 a colour the client half sets (stunned: red, 0, 0)
-    std::uint8_t unknown_04C[0x74 - 0x4C];
+    std::uint8_t unknown_028[0x74 - 0x28];
     Vector3 pivot;                  // +0x074 copied to the object's part box (FootprintPart::pivot)
     std::uint8_t unknown_080[0x94 - 0x80];
     // +0x094 the part's own mesh (a CLinkMesh, link_figure.h) when flags_ 0x40 is set; its screen
     // rectangle (+0x20) is where the part was last drawn (the flying hit points, 005E18E0).
     class CLinkMesh* mesh;
-    std::uint8_t unknown_098[0x128 - 0x98];
+    std::uint8_t unknown_098[0xD4 - 0x98];
+    std::uint32_t unknown_0D4;      // +0x0D4 \ set for every part of an object by 00519500 / 00519530
+    std::uint32_t unknown_0D8;      // +0x0D8 / (the interface's model view, 006462A0)
+    std::uint8_t unknown_0DC[0x128 - 0xDC];
     lib::AlignedArray<Vector3> offsets;    // +0x128 per-vertex offsets (CFigureMesh::offsets_)
     std::uint8_t unknown_138[0x158 - 0x138];
     std::uint32_t piece158;         // +0x158 from the piece record's +0x20 (00517240)
@@ -57,7 +56,7 @@ struct FigurePart : CEngineObject {
     Vector3 boxPivot;               // +0x1B4 the part's position when it was loaded
 };
 static_assert(offsetof(FigurePart, position) == 0x1C);
-static_assert(offsetof(FigurePart, tint) == 0x40);
+static_assert(offsetof(FigurePart, unknown_0D4) == 0xD4);
 static_assert(offsetof(FigurePart, offset) == 0x18C);
 static_assert(offsetof(FigurePart, boxMin) == 0x19C);
 static_assert(offsetof(FigurePart, boxMax) == 0x1A8);
@@ -559,6 +558,31 @@ public:
     int DrawFigure(void* context);
     int DrawCollectDirty(void* context);
     int DrawFigureShadow(void* context);
+
+    // object3d_small_methods.cpp (A-U12).
+    // 00515D50 (slot 0, RET 4). DestructBody, then operator delete with flags bit 0. Returns this.
+    CObject3D* DeleteObject3D(unsigned flags);
+    // 005161A0 (RET 4). `half` (of any type, or null) replaces the attached half: the old one is
+    // detached (+0x1C cleared) and released, the new one points back here and gains a reference.
+    void SetSpecific(CObject3DSpecific* half);
+    // 00517910 / 00517950 (RET 4). Every part's flags_ gains / loses the bits of `mask`.
+    void SetPartFlags(std::uint32_t mask);
+    void ClearPartFlags(std::uint32_t mask);
+    // 00519500 / 00519530 (RET 4). Every part's +0xD4 / +0xD8 becomes `value`.
+    void SetPartsUnknownD4(std::uint32_t value);
+    void SetPartsUnknownD8(std::uint32_t value);
+    // 005187D0 (RET 4). `state` (or null) replaces the animation state: the old one loses its
+    // owner and is released, the new one gains a reference and this owner.
+    void SetAnimationState(CFigureAnimationState* state);
+    // 005187B0 (RET 8). The animation state (if any) plays `animation`; `unused` is not read.
+    void PlayAnimation(FigureAnimation* animation, int unused);
+    // 00518840 (RET 8). The same with the arguments the other way round. Returns 1.
+    int PlayAnimationSecond(int unused, FigureAnimation* animation);
+    // 00518820 (RET 4). The animation state's bone named as `part` carries it (AttachMesh); 0
+    // without a state.
+    int AttachPartMesh(CEngineObject* part);
+    // 00518860. The animation state (if any) goes to frame 0 and places the skeleton.
+    void RestartPose();
 
     // The side-specific half (+0x94).
     CObject3DSpecific* Specific() const { return static_cast<CObject3DSpecific*>(attached); }
