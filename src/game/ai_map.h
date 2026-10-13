@@ -196,6 +196,10 @@ struct AIPath {
     void ReadState(DeltaField* field);
     // 005B23A0. Empties the path, the steps and the order.
     void Clear();
+    // 005B22C0 (RET 4; ai_path_cells.cpp). The path as a motion order in `out` (its step list
+    // constructed): the order, the steps; and for an order that follows steps (kind 2) the rest
+    // of the path appended, repeats removed, every step's speed 0x200 and the target set.
+    void ToMotionOrder(AIPath* out) const;
     // 005C8230 / 005C8370 (RET 4; ai_path_save.cpp). The order and its steps in the save stream:
     // kind, x / y, angle, start time and the three arguments (4, 8, 4, 4, 0xC bytes), the steps'
     // count, then each step (8 bytes). Loading appends that many steps and reads over every step
@@ -436,6 +440,9 @@ struct CRegionMap {
     // 005B1180 (RET 4, AL; ai_region_reach.cpp). Reads the block grids of every size class from
     // the AI graph stream (width and height 1..256 first); returns the stream's state byte (+5).
     bool LoadBlocks(CStream* stream);
+    // 005B1380 (RET 4; the save, 00597BD0). The block grids as LoadBlocks reads them: width and
+    // height, then per size class each row's edge words, representative cells and regions.
+    void SaveBlocks(CStream* stream);
     // 005AF900 (RET 0xC; ai_region_reach.cpp). Per size class the representative cell of block
     // (bx, by): (3, 3) unless a passable cell in rings from the middle is better (005AF7B0).
     void PickRepresentatives(class CAIMap* map, int bx, int by);
@@ -758,6 +765,10 @@ public:
 
     CRegionMap* Regions() { return &regionMap; }
 
+    // 005B9BC0 (RET 4; PlanPath; ai_path_cells.cpp). Clears the marks of the cells around the
+    // blocks of `chain` (8 x 8 cells each): their bounding box widened by four blocks, clipped to
+    // the map. Nothing for an empty chain.
+    void ClearMarksAround(const PathCellList* chain);
     // 005B8620 (CAIMap::Load; ai_grids.cpp). Every terrain type's `openMarks`: per size class the
     // passability by its cost (up to 1: 14, 2: 13, up to 9: 10, up to 34: 6, up to 70: 3, above:
     // 0; the table 0079118C); size class 0 always gets 14.
@@ -849,5 +860,9 @@ int WorldToCell(float world);
 int __stdcall LevelForSizeClass(int sizeClass);
 // 005B7B70. Standing level of `unit`: (2 - standingHeight) * 16, at least 0.
 int __stdcall StandingLevel(const CUnit* unit);
+// 005B30B0 (thiscall on the bridge map CAIMap + 0x10C, RET 0x10; ai_bridges.cpp). Puts back what
+// the cell's bridge map entry saved (ground level, object height, the occluder word's low five
+// bits) and erases the entry; nothing without one. x and y are read as shorts.
+void __fastcall RestoreBridgeCell(void* map, void*, int x, int y, AIMapCell* cell, std::uint32_t* occluder);
 // 005B3160. Bridge deck height of cell (x, y) from the hash map at CAIMap + 0x10C, 0 if none.
 int __fastcall BridgeHeight(const void* map, void*, short x, short y);

@@ -45,12 +45,27 @@ std::uint32_t BridgeKey(int x, int y) {
 
 // 005BCDE0 (RET 4). hash_map::operator[]: the node's value slot for the key (inserted when new).
 __declspec(naked) std::uint32_t* __fastcall BridgeSlot(void*, void*, const std::uint32_t*) EI_ORIGINAL(0x005BCDE0)
-// 005B30B0 (RET 0x10). Restores a cell from its bridge map entry (x, y, cell, occluder word).
+// 005B30B0 (RestoreBridgeCell below), through its address so its wrapper sees the calls.
 __declspec(naked) void __fastcall RestoreFromBridge(void*, void*, int, int, AIMapCell*, std::uint32_t*) EI_ORIGINAL(0x005B30B0)
+// 005BCE60 (RET 8). hashtable::erase(iterator): the iterator {node, table} by value.
+__declspec(naked) void __fastcall EraseBridge(void*, void*, BridgeNode*, void*) EI_ORIGINAL(0x005BCE60)
 
 std::uint16_t& FlagsWord(AIMapCell* cell) { return *reinterpret_cast<std::uint16_t*>(&cell->flags); }
 
 } // namespace
+
+// 005B30B0 (thiscall on the bridge map, RET 0x10; x and y are read as shorts). A cell that has an
+// entry gets back its ground level, its object height (flags & 0x3F) and the occluder word's low
+// five bits; the entry is erased.
+void __fastcall RestoreBridgeCell(void* map, void*, int x, int y, AIMapCell* cell, std::uint32_t* occluder) {
+    BridgeNode* node = FindBridge(map, BridgeKey(x, y));
+    if (!node) return;
+    cell->groundLevel = static_cast<std::uint16_t>(node->value);
+    FlagsWord(cell) = static_cast<std::uint16_t>((FlagsWord(cell) & 0xFFC0) | ((node->value >> 16) & 0x3F));
+    *occluder = (*occluder & 0xFFFFFFE0u) | ((node->value >> 24) & 0x1F);
+    EraseBridge(map, nullptr, node, map);
+}
+EI_REPLACE(0x005B30B0, RestoreBridgeCell);
 
 bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
     if (remove) {

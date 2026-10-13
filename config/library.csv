@@ -4339,3 +4339,6 @@ address,name,library,signature,notes
 005BEE40,"hashtable::_M_new_node (24-byte nodes from the node allocator's free list 0079B22C: key, two counted pointers, two ints)",STLport,,"A-W13 review (world.md, Open items): STLport template instantiation (005BE730 / 005BE090, the unit shape cache's map)"
 00582D80,"vector<T>::~vector (200-byte records: two CStringArrays and three CStrings destroyed per element, then the block freed)",STLport,,"A-W13 review (world.md, Open items): STLport template instantiation (the item database's rebuild 0057D340 and unwinding)"
 005B3570,"unit shape scalar deleting destructor (vtable 0073FD5C slot 0; the base destructor 005B3590)",compiler,,"A-W13 review: compiler-generated (CUnitShape, ai_unit_layer.h)"
+005AE820,"__uninitialized_copy (16-byte records: an STLport string and an int)",STLport,,"A-W13 review: STLport template instantiation (the vector growth 005AD680)"
+005AE8E0,"__uninitialized_fill_n (16-byte records: an STLport string and an int)",STLport,,"A-W13 review: STLport template instantiation (the vector growth 005AD680)"
+005AE030,"copy constructor of a 16-byte record (an STLport string, copied inline, and an int)",compiler,,"A-W13 review: compiler-generated (005AA360, 00675050)"

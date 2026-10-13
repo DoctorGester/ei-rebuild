@@ -10,3 +10,8 @@
 // 00578DB0 / 00578DC0: the data folder CString 007AF460 / the base folder CString 007AF458.
 const mfc::CString* GameDataPathString();
 const mfc::CString* GameBasePathString();
+
+// 0057FB90 (RET 4; the scripts' QuestComplete in a network game). With a live game server: its
+// FinishMap for the map named `name` (the held map message dropped, "name_3" queued), 1 when it
+// did; else 0.
+int __stdcall FinishQuestMap(const char* name);

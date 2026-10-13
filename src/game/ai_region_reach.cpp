@@ -373,6 +373,21 @@ bool CRegionMap::LoadBlocks(CStream* stream) {
     return ok;
 }
 
+void CRegionMap::SaveBlocks(CStream* stream) {
+    int width = BlocksWide(this), height = BlocksHigh(this);
+    stream->Write(&width, 4);
+    stream->Write(&height, 4);
+    auto rowBytes = static_cast<std::uint32_t>(width);
+    for (int c = 0; c < 8; ++c) {
+        for (int y = 0; y < BlocksHigh(this); ++y) {
+            stream->Write(edges[c].rows[y], rowBytes * 16);
+            stream->Write(cells[c].rows[y], rowBytes);
+            stream->Write(regions[c].rows[y], rowBytes * 2);
+        }
+    }
+}
+EI_REPLACE_METHOD(0x005B1380, CRegionMap::SaveBlocks);
+
 void CRegionMap::PickRepresentatives(CAIMap* map, int bx, int by) {
     for (int c = 0; c < 8; ++c) {
         std::uint8_t& cell = cells[c].rows[by][bx];
