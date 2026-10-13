@@ -452,6 +452,9 @@ struct FearMode : AIMode {
     // operator delete when `flags` bit 0 is set; returns this.
     void Destruct();
     FearMode* DeletingDestruct(int flags);
+    // 005D2880 (slot 3; unit_ai_mode_lifetime.cpp). A new mode with this one's fields (references
+    // 0; the abstract base's vtable stands while they are copied); null when the allocation fails.
+    FearMode* Clone();
     // 005D2960 (slot 4; unit_ai_fear.cpp). Remembers a seen object (notice 1000 / -2; `distance`
     // grows to 1.5 times its distance) and calms `spread` towards 3. 15000 when a ranged unit (size
     // class below 6, no spell in slot 0, not slowed, load factor above 0.6) has its nearest enemy

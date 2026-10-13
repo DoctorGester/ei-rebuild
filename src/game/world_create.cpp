@@ -103,3 +103,25 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     return 1;
 }
 EI_REPLACE(0x0055EE40, WorldCreateManagers);
+
+CWorld* CWorld::ConstructBase() {
+    ClearFields();
+    figureLoader_ = nullptr;
+    shared5C_.ptr = nullptr;
+    unknown60_ = nullptr;
+    reinterpret_cast<mfc::CArray<int>*>(countdowns_)->Construct(kCountdownsVtable);
+    ei::SetVtable(this, kBaseVtableAddress);
+    players_ = nullptr;
+    manager3C_ = nullptr;
+    manager40_ = nullptr;
+    manager44_ = nullptr;
+    manager48_ = nullptr;
+    manager4C_ = nullptr;
+    manager50_ = nullptr;
+    itemManager_ = nullptr;
+    manager58_ = nullptr;
+    timeBase_ = 0.0f;
+    secondsPerTick_ = 0.0f;
+    return this;
+}
+EI_REPLACE_METHOD(0x0055EAB0, CWorld::ConstructBase);

@@ -99,7 +99,16 @@ public:
     // width * height (SetSize inlined), then the AI map.
     void Init(int cellsX, int cellsY, CAIMap* map);
 
-    std::uint32_t unknown_00;
+    // 0058A700 (reached by the AI map's unwinding and the deleting destructor). The destructor's
+    // body: every sector destroyed (its slot 0, flags 0) and the array's storage freed.
+    void DestructBody();
+    // 0058A780 (slot 0, RET 4): DestructBody, then operator delete when flags bit 0 is set.
+    CSectorMap* DeletingDestruct(unsigned flags);
+
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F9DC);
+    static constexpr std::uintptr_t kSectorArrayVtable = std::uintptr_t(0x0073F9EC);
+
+    void* vtable;           // +0x00 (one slot: the deleting destructor)
     int width;              // +0x04 in sectors
     int height;             // +0x08
     int added;              // +0x0C successful Add calls (Remove does not decrement it)

@@ -272,6 +272,62 @@ static AITerrainType* __fastcall TerrainTypeAtVerify(AITerrainType** types, void
 }
 EI_VERIFY(0x005BDD50, TerrainTypeAtVerify, 6, s_terrainTypeAt);
 
+// A-W13. 005CD490: another copy of the grids' destructor (the event table's cells).
+EI_VERIFY(0x005CD490, FreeGridVerify, 0, s_unused);
+
+// 005CD4B0: PUSH ESI; MOV ESI,ECX; MOV EAX,[ESI+8] (6). The event table's cells, as the other
+// allocations (the cells stay as allocated). Reached by the event table's resize (every zone load).
+static void(__fastcall* s_allocateEvents)(SearchGrid<AIEventCell>*);
+static void __fastcall AllocateEventsVerify(SearchGrid<AIEventCell>* grid) {
+    CompareAllocate("AllocateEventGrid", grid, s_allocateEvents, AllocateEventGrid, 1, Any<AIEventCell>);
+}
+EI_VERIFY(0x005CD4B0, AllocateEventsVerify, 6, s_allocateEvents);
+
+// 005CD3A0: PUSH EBX; MOV EBX,[ESP+0xC] (5). The original resizes a probe of the grid's size (its
+// own blocks), ours the real grid; both end with the size asked and fitting rows, and a call for
+// the size the grid has leaves the pointers alone. The visibility marks (the AI's sight checks).
+static void(__fastcall* s_resizeBytes)(SearchGrid<std::uint8_t>*, void*, int, int);
+static void __fastcall ResizeBytesVerify(SearchGrid<std::uint8_t>* grid, void*, int width, int height) {
+    SearchGrid<std::uint8_t> before = *grid;
+    SearchGrid<std::uint8_t> probe{nullptr, nullptr, grid->width, grid->height};
+    AllocateByteGrid(&probe);
+    SearchGrid<std::uint8_t> probeBefore = probe;
+    s_resizeBytes(&probe, nullptr, width, height);
+    ResizeByteGrid(grid, nullptr, width, height);
+    bool same = before.width == width && before.height == height;
+    bool ok = probe.width == width && probe.height == height && grid->width == width && grid->height == height &&
+              RowsFit(probe) && RowsFit(*grid) && (!same || (probe.data == probeBefore.data && grid->data == before.data &&
+                                                             grid->rows == before.rows));
+    ei::verify::Check("ResizeByteGrid", true, ok, "%d x %d -> %d x %d", before.width, before.height, width, height);
+    FreeProbe(probe);
+}
+EI_VERIFY(0x005CD3A0, ResizeBytesVerify, 5, s_resizeBytes);
+
+// 005CD410: PUSH EBP; MOV EBP,[ESP+8] (5). The original copies into a probe, ours into the real
+// grid; the sizes and every cell compared with the source. Growing the visibility marks.
+static void(__fastcall* s_copyBytes)(SearchGrid<std::uint8_t>*, void*, const SearchGrid<std::uint8_t>*);
+static void __fastcall CopyBytesVerify(SearchGrid<std::uint8_t>* grid, void*, const SearchGrid<std::uint8_t>* source) {
+    SearchGrid<std::uint8_t> probe{nullptr, nullptr, -1, -1};
+    s_copyBytes(&probe, nullptr, source);
+    CopyByteGrid(grid, nullptr, source);
+    bool ok = RowsFit(probe) && RowsFit(*grid) && SameCells(probe, *grid, 1, Equal<std::uint8_t>) &&
+              SameCells(*source, *grid, 1, Equal<std::uint8_t>) && grid->data != source->data;
+    ei::verify::Check("CopyByteGrid", true, ok, "%d x %d", source->width, source->height);
+    FreeProbe(probe);
+}
+EI_VERIFY(0x005CD410, CopyBytesVerify, 5, s_copyBytes);
+
+// 0058A8A0 / 0058A900 (the unit layers' destructors): the list's blocks are freed, so ours only.
+// Checked: the list empty with no blocks. Reached only when the AI map's construction unwinds.
+static void __fastcall UnitLayerDestructVerify(CUnitLayer* self) {
+    self->Destruct();
+    bool ok = self->head == nullptr && self->tail == nullptr && self->count == 0 && self->free == nullptr &&
+              self->blocks == nullptr;
+    ei::verify::Check("CUnitLayer::Destruct", true, ok, "count %d", self->count);
+}
+EI_VERIFY(0x0058A8A0, UnitLayerDestructVerify, 0, s_unused);
+EI_VERIFY(0x0058A900, UnitLayerDestructVerify, 0, s_unused);
+
 namespace {
 bool EventTableEmpty(const AIEventTable* table) {
     if (table->tick != -1 || table->width != 1 || table->height != 1 || !table->cells || table->rows[0] != table->cells)

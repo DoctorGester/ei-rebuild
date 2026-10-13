@@ -77,6 +77,28 @@ EI_REPLACE(0x00598AA0, FreeAnyGrid);
 EI_REPLACE(0x00598B00, FreeAnyGrid);
 EI_REPLACE(0x005B1450, FreeAnyGrid);
 EI_REPLACE(0x005BCC30, FreeAnyGrid);
+EI_REPLACE(0x005CD490, FreeAnyGrid);
+
+void __fastcall AllocateEventGrid(SearchGrid<AIEventCell>* grid) { AllocateGrid(*grid); }
+EI_REPLACE(0x005CD4B0, AllocateEventGrid);
+
+void __fastcall ResizeByteGrid(SearchGrid<std::uint8_t>* grid, void*, int width, int height) {
+    if (grid->width == width && grid->height == height) return;
+    FreeGrid(*grid);
+    grid->width = width;
+    grid->height = height;
+    AllocateGrid(*grid);
+}
+EI_REPLACE(0x005CD3A0, ResizeByteGrid);
+
+void __fastcall CopyByteGrid(SearchGrid<std::uint8_t>* grid, void*, const SearchGrid<std::uint8_t>* source) {
+    grid->height = source->height;
+    grid->width = source->width;
+    AllocateGrid(*grid);
+    int count = grid->width * grid->height;
+    if (count > 0) std::memcpy(grid->data, source->data, static_cast<std::size_t>(count));
+}
+EI_REPLACE(0x005CD410, CopyByteGrid);
 
 // ---- Constructors ---------------------------------------------------------------------------------
 
@@ -139,7 +161,7 @@ LocalSearch* LocalSearch::Construct(CAIMap* owner) {
 EI_REPLACE_METHOD(0x005B3FF0, LocalSearch::Construct);
 
 CUnitLayer* CUnitLayer::Construct() {
-    listVtable = reinterpret_cast<void*>(std::uintptr_t(0x0073F9F8));
+    listVtable = reinterpret_cast<void*>(kNodeListVtable);
     count = 0;
     free = nullptr;
     tail = nullptr;
@@ -152,6 +174,18 @@ CUnitLayer* CUnitLayer::Construct() {
     return this;
 }
 EI_REPLACE_METHOD(0x005B4110, CUnitLayer::Construct);
+
+void CUnitLayer::Destruct() {
+    listVtable = reinterpret_cast<void*>(kNodeListVtable);
+    count = 0;
+    free = nullptr;
+    tail = nullptr;
+    head = nullptr;
+    mfc::PlexFreeDataChain(static_cast<mfc::CPlex*>(blocks));
+    blocks = nullptr;
+}
+EI_REPLACE_METHOD(0x0058A8A0, CUnitLayer::Destruct);
+EI_REPLACE_METHOD(0x0058A900, CUnitLayer::Destruct);   // the other layer class's byte-identical copy
 
 void AIDirtyRect::Reset() {
     minX = 10000;

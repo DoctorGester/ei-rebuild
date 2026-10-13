@@ -43,8 +43,17 @@ void __fastcall AllocateCellGrid(SearchGrid<AIMapCell>* grid);
 // bits are left as allocated.
 void __fastcall AllocateOccluderGrid(SearchGrid<std::uint32_t>* grid);
 
-// 005BD010 and its twelve copies (00598400 .. 00598B00, 005B1450, 005BCC30): the destructor.
+// 005BD010 and its copies (00598400 .. 00598B00, 005B1450, 005BCC30, 005CD490): the destructor.
 void __fastcall FreeAnyGrid(SearchGrid<std::uint8_t>* grid);
+// 005CD4B0: the event table's cells (the Rebirth-patched resize 005C9310 calls it).
+struct AIEventCell;   // unit_ai.h
+void __fastcall AllocateEventGrid(SearchGrid<AIEventCell>* grid);
+// 005CD3A0 (RET 8; the visibility marks, VisibilityGrid + 8). Reallocated to width x height (the
+// cells are not kept or cleared) unless the grid already has that size.
+void __fastcall ResizeByteGrid(SearchGrid<std::uint8_t>* grid, void*, int width, int height);
+// 005CD410 (RET 4). Makes `grid` a copy of `source`: its size, a block and row table of its own,
+// the cells copied.
+void __fastcall CopyByteGrid(SearchGrid<std::uint8_t>* grid, void*, const SearchGrid<std::uint8_t>* source);
 
 // The constructors for a size (RET 8; return the grid).
 SearchGrid<std::int8_t>* __fastcall ConstructByteGrid(SearchGrid<std::int8_t>* grid, void*, int width, int height);       // 005BCBD0

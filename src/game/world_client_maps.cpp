@@ -605,6 +605,23 @@ CEngineObject* CWorldClient::UnitAt(const long* point) {
     return picked ? FirstUnitHit(this, picked) : nullptr;
 }
 
+CEngineObject* CWorldClient::UnitAt2(const long* point) {
+    CEngineObject* picked = PickAt2(point);
+    return picked ? FirstUnitHit(this, picked) : nullptr;
+}
+
+void CWorldClient::UnitsInBox(const long* rect, SectorList* out) {
+    for (ScreenEntryNode* node = screenEntries_.head->next; node != screenEntries_.head; node = node->next) {
+        CEngineObject* object = static_cast<CBaseManager*>(manager40_)->FindObject(node->data.objectId);
+        if (!object) continue;
+        if (!MapObjectOf(object)->Object3D()->Specific()->PartsIntersectRect(rect)) continue;
+        SectorListNode* end;
+        PlainOps::End(out, nullptr, &end);
+        SectorListNode* inserted;
+        PlainOps::Insert(out, nullptr, &inserted, end, object);
+    }
+}
+
 // ---- The party's units (00566F70) ----------------------------------------------------------------
 
 namespace {
@@ -1423,6 +1440,42 @@ int CWorldClient::LoadNewItemsAndSpells(CStream* block) {
 }
 EI_REPLACE_METHOD(0x00567950, CWorldClient::LoadNewItemsAndSpells);
 
+void PlatformSet::DestructBody() {
+    list.vtable = reinterpret_cast<void*>(worlddata::kPlatformListVtable);
+    list.RemoveAll();
+    Engine()->DestructBase();
+}
+EI_REPLACE_METHOD(0x00561A60, PlatformSet::DestructBody);
+
+PlatformSet* PlatformSet::DeletingDestruct(unsigned flags) {
+    PlatformSetDestructOriginal(this);
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x00561AE0, PlatformSet::DeletingDestruct);
+
+// 0055E8A0 (ECX the list, EDX the stream; the items a player is given, CPlayerServer::SendItemsGiven).
+// What LoadManagerObjects reads back: per object a 1, its id, type and +0x18, then its own Save;
+// a 0 ends the list.
+void __fastcall SaveListedObjects(mfc::CList<CEngineObject*>* list, CStream* stream) {
+    for (auto* node = list->head; node;) {
+        CEngineObject* object = node->data;
+        node = node->next;
+        std::uint8_t more = 1;
+        stream->Write(&more, 1);
+        int id = object->id_;
+        stream->Write(&id, 4);
+        int type = object->type_;
+        stream->Write(&type, 4);
+        std::uint32_t extra = object->unknown_18;
+        stream->Write(&extra, 4);
+        object->Save(stream);
+    }
+    std::uint8_t more = 0;
+    stream->Write(&more, 1);
+}
+EI_REPLACE(0x0055E8A0, SaveListedObjects);
+
 void ClientListManager::DestructBody() {
     list.vtable = reinterpret_cast<void*>(worlddata::kClientListVtable);
     for (auto* node = list.head; node; node = node->next)
@@ -1476,6 +1529,8 @@ EI_REPLACE(0x005726B0, ReleaseIfIdentified);
 EI_REPLACE_METHOD(0x00565790, CWorldClient::PickAt);
 EI_REPLACE_METHOD(0x005659D0, CWorldClient::PickAt2);
 EI_REPLACE_METHOD(0x00565E40, CWorldClient::UnitAt);
+EI_REPLACE_METHOD(0x00565D00, CWorldClient::UnitAt2);
+EI_REPLACE_METHOD(0x005656A0, CWorldClient::UnitsInBox);
 EI_REPLACE_METHOD(0x00570860, SectorGrid::Move);
 EI_REPLACE_METHOD(0x00570BB0, SectorGrid::Move2);
 EI_REPLACE(0x00571D50, MarkWithinRadius);

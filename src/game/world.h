@@ -269,6 +269,13 @@ public:
     // 005942C0 (the server's, from the pause request 0x10) / 00566350 (the client's copy, from
     // message 0x60), byte-identical (world_server.cpp): stores paused_ (+0x6C).
     void SetPaused(std::uint8_t value);
+    // 0055EAB0 (world_create.cpp; the two worlds' constructors 005612F0 / 00589ED0). The base
+    // constructor: the engine object's fields, the base vtable 0073F18C, no figure loader, helper,
+    // session or managers, the clock at 0 and the empty countdown array. Returns this.
+    CWorld* ConstructBase();
+
+    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073F18C);
+    static constexpr std::uintptr_t kCountdownsVtable = std::uintptr_t(0x0073F234);
 
     float timeBase_;                   // +0x1C
     float secondsPerTick_;                // +0x20
@@ -444,6 +451,18 @@ public:
     // 0058DC90. Records how the game ended (+0x138, only the first time); results 2 and 3 also
     // replace +0x60 (0055F410) and call its slot 4.
     void SetGameResult(int result);
+    // 0058D340 (RET 8; the alarm's remarks). Every player with `unit` among its party units
+    // (CPlayerServer::IsPartyUnit) is sent the unit's message 0x0B with `value` (SendObject0B).
+    void TellParties(CEngineObject* unit, std::uint32_t value);
+    // 00593AF0 (RET 4; a unit's death becoming final). Every player with `unit` among its party
+    // units is sent the unit's message 0x43 (SendObject43).
+    void TellPartiesGone(CEngineObject* unit);
+    // 00590160 (RET 8; CollectParty). The items the player holds (WorldPlayer::items) put into
+    // `party` (CParty::AddItem(item, 1, 1)) and released, the list emptied. Nothing without a player.
+    void StorePlayerItems(WorldPlayer* player, class CParty* party);
+    // 005939E0 (no caller in the exe; Rebirth's binaries refer to it). Every unit (class 0x50) of
+    // the object map removed (RemoveObject by id; the walk steps on before each removal).
+    void RemoveAllUnits();
 
     // world_zone.cpp
     // 005915E0 (RET 4). Replaces the zone exits (+0xEC) with copies of `source`'s records that
@@ -818,6 +837,12 @@ struct PlatformSet {
     // face normals rotated, and every face that points up added with the id, the centre
     // R (pivot + offset) + position and the radius.
     void AddBox(int id, const FootprintPart* item, const Vector3* position, const Quaternion* rotation);
+
+    // 00561A60. The destructor's body: the face list emptied (its vtable 0073F548 back), then the
+    // engine object's body.
+    void DestructBody();
+    // 00561AE0 (slot 0, RET 4): DestructBody, then operator delete when flags bit 0 is set.
+    PlatformSet* DeletingDestruct(unsigned flags);
 
     // The set as the engine object it starts with (its vtable is not declared here).
     CEngineObject* Engine() { return reinterpret_cast<CEngineObject*>(this); }
@@ -1254,6 +1279,25 @@ public:
     // the others and those whose object is gone); failing that the same from PickAt's. Null if
     // none.
     CEngineObject* UnitAt(const long* point);
+    // 00565D00 (RET 4). The same from PickAt2's object only (no second pick).
+    CEngineObject* UnitAt2(const long* point);
+    // 005656A0 (RET 8; the battle screen's selection box). Every object of the frame's window list
+    // (+0xF0) that still exists and whose side half has a drawn part meeting the screen rectangle
+    // `rect` (slot 23) is appended to `out`.
+    void UnitsInBox(const long* rect, stlp::list<CEngineObject*>* out);
+
+    // The debug display's switches (the console's debug commands; bits 0-3 of +0x88): the frame
+    // rate 00569A10 / 00569A20, the render counters 00569A40 / 00569A50, the managers' lines
+    // 00569A90 / 00569AA0 and the world's 00569B10 / 00569B20. Switching one off also takes its
+    // lines out of the debug info panel (0079B930).
+    void ShowFps();
+    void HideFps();
+    void ShowRenderInfo();
+    void HideRenderInfo();
+    void ShowManagers();
+    void HideManagers();
+    void ShowWorldData();
+    void HideWorldData();
     // 00566F70 (RET 8). Creates the party's heroes from their records (+0x14 prototype, +0x18
     // second prototype, +0x1C id, +8 model, +0x10 skin, +0x20 stats, +0x724 position, +0x730 /
     // +0x740 / +0x750 weapons, quick items and armour as pointer arrays with their counts after):
@@ -1316,7 +1360,8 @@ public:
     WorldSession* Session() const { return reinterpret_cast<WorldSession*>(session_); }
 
     int unknown84_;                       // +0x084 -100000 after Setup
-    std::uint8_t unknown_088[0x90 - 0x88];
+    std::uint32_t debugFlags_;            // +0x088 the debug display's switches (bits 0-3: ShowFps ...)
+    std::uint8_t unknown_08C[0x90 - 0x8C];
     ZoneExit* exits_;                     // +0x090
     int exitCount_;                       // +0x094
     std::uint8_t unknown_098[0xA0 - 0x98];
@@ -1785,6 +1830,9 @@ struct ModelUseLess {
 // is released first (its count raised to 1 when 0), then a new one is created (slot 23), loaded
 // (slot 9) and referenced. 1 at the end mark, 0 when a mark is read from a failed stream.
 int __fastcall LoadManagerObjects(CBaseManager* manager, CStream* stream);
+// 0055E8A0 (ECX list, EDX stream; world_client_maps.cpp). Writes what LoadManagerObjects reads:
+// per listed object a 1, its id, type and +0x18, then its own Save (slot 10); a 0 at the end.
+void __fastcall SaveListedObjects(mfc::CList<CEngineObject*>* list, CStream* stream);
 
 // 0057BC30 (world_game.cpp, A-W13; the save screens). 1000000 plus the sizes (low dwords) of the
 // files in saves\current.

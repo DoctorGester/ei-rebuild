@@ -255,6 +255,21 @@ void CWorldServer::RemoveObject(unsigned id) {
     }
 }
 
+void CWorldServer::RemoveAllUnits() {
+    auto* node = objects_.map.First();
+    if (!node) return;
+    // The next object is read before the current one is removed, as the original does.
+    CEngineObject* object = node->value;
+    do {
+        unsigned id = static_cast<unsigned>(object->id_);
+        bool isUnit = object->GetClassId() == world::kClassUnit;
+        node = objects_.map.After(node);
+        object = node ? node->value : nullptr;
+        if (isUnit) RemoveObject(id);
+    } while (node);
+}
+EI_REPLACE_METHOD(0x005939E0, CWorldServer::RemoveAllUnits);
+
 EI_REPLACE_METHOD(0x005935C0, CWorldServer::RemoveObject);
 EI_REBIRTH_IMPLEMENTS(0x005935C0, ei::rebirth::Patch::FixRemoveMapObject);
 EI_REPLACE_METHOD(0x00593AA0, CWorldServer::FindObject);

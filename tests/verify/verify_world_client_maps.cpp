@@ -721,3 +721,102 @@ static ClientArrayManager* __fastcall ArrayManagerDeleteVerify(ClientArrayManage
     return result;
 }
 EI_VERIFY(0x00562DD0, ArrayManagerDeleteVerify, 0, s_unused);
+
+// A-W13. 00565D00 UnitAt2: MOV EAX,[ESP+4]; PUSH ESI (5 bytes). As UnitAt: the original first (its
+// pick rebuilds the hits), the unit and the cursor compared. The battle screen's hover.
+static PickFn s_unitAt2;
+static CEngineObject* __fastcall UnitAt2Verify(CWorldClient* client, void*, const long* point) {
+    long pt[2] = {point[0], point[1]};
+    CEngineObject* theirs = s_unitAt2(client, nullptr, pt);
+    std::ptrdiff_t theirsCursor = client->hitCursor_ - client->hits_.start;
+    CEngineObject* mine = client->UnitAt2(pt);
+    std::ptrdiff_t mineCursor = client->hitCursor_ - client->hits_.start;
+    bool ok = theirs == mine && (!mine || theirsCursor == mineCursor);
+    ei::verify::Check("CWorldClient::UnitAt2", true, ok, "(%ld, %ld): %p vs %p", pt[0], pt[1],
+                      static_cast<void*>(theirs), static_cast<void*>(mine));
+    return mine;
+}
+EI_VERIFY(0x00565D00, UnitAt2Verify, 5, s_unitAt2);
+
+// 005656A0 UnitsInBox: PUSH ESI; PUSH EDI; MOV EDI,ECX; MOV EAX,[EDI+0xF0] (10 bytes). The original
+// fills a scratch list, ours the caller's; the objects appended are compared in order. The battle
+// screen's selection box (dragging a box over units).
+static void(__fastcall* s_unitsInBox)(CWorldClient*, void*, const long*, stlp::list<CEngineObject*>*);
+static void __fastcall UnitsInBoxVerify(CWorldClient* client, void*, const long* rect, stlp::list<CEngineObject*>* out) {
+    using List = stlp::list<CEngineObject*>;
+    List scratch;
+    scratch.Construct();
+    s_unitsInBox(client, nullptr, rect, &scratch);
+    List::Node* last = out->head->prev;
+    client->UnitsInBox(rect, out);
+    bool ok = true;
+    int count = 0;
+    List::Node* mine = last->next;
+    for (List::Node* theirs = scratch.First(); theirs != scratch.End(); theirs = theirs->next, mine = mine->next, ++count) {
+        if (mine == out->head || mine->data != theirs->data) {
+            ok = false;
+            break;
+        }
+    }
+    if (ok && mine != out->head) ok = false;
+    ei::verify::Check("CWorldClient::UnitsInBox", true, ok, "%d objects", count);
+    scratch.Destroy();
+}
+EI_VERIFY(0x005656A0, UnitsInBoxVerify, 10, s_unitsInBox);
+
+// 00561A60 / 00561AE0 (the platform set's destructor): the list's blocks are freed, so ours only.
+// Checked: the list empty with no blocks, the engine object's vtable back; the deleting one returns
+// the object. The client world's teardown.
+static void __fastcall PlatformSetDestructVerify(PlatformSet* self) {
+    self->DestructBody();
+    bool ok = self->list.head == nullptr && self->list.count == 0 && self->list.blocks == nullptr &&
+              *reinterpret_cast<std::uintptr_t*>(self) == CEngineObject::kVtableAddress;
+    ei::verify::Check("PlatformSet::DestructBody", true, ok, "count %d", self->list.count);
+}
+EI_VERIFY(0x00561A60, PlatformSetDestructVerify, 0, s_unused);
+
+static PlatformSet* __fastcall PlatformSetDeleteVerify(PlatformSet* self, void*, unsigned flags) {
+    PlatformSet* result = self->DeletingDestruct(flags);
+    ei::verify::Check("PlatformSet::DeletingDestruct", true, result == self, "flags %u", flags);
+    return result;
+}
+EI_VERIFY(0x00561AE0, PlatformSetDeleteVerify, 0, s_unused);
+
+// 0055E8A0 SaveListedObjects: SUB ESP,8; PUSH EBP; MOV EBP,[ECX+4] (7 bytes). The original writes
+// into a scratch memory stream, ours into the caller's; the bytes written are compared (the caller's
+// stream is a memory stream: CPlayerServer::SendItemsGiven). Items given to a player (trading, loot).
+static void(__fastcall* s_saveListed)(mfc::CList<CEngineObject*>*, CStream*);
+static void __fastcall SaveListedObjectsVerify(mfc::CList<CEngineObject*>* list, CStream* stream) {
+    alignas(4) unsigned char bytes[sizeof(CMemoryStream)];
+    auto* scratch = reinterpret_cast<CMemoryStream*>(bytes);
+    scratch->Construct();
+    s_saveListed(list, scratch);
+    auto* real = static_cast<CMemoryStream*>(stream);
+    std::uint32_t before = real->position_;
+    SaveListedObjects(list, stream);
+    std::uint32_t written = real->position_ - before;
+    bool ok = written == scratch->size_ &&
+              (written == 0 || std::memcmp(real->data_ + before, scratch->data_, written) == 0);
+    ei::verify::Check("SaveListedObjects", true, ok, "%u bytes vs %u", written, scratch->size_);
+    scratch->Destruct();
+}
+EI_VERIFY(0x0055E8A0, SaveListedObjectsVerify, 7, s_saveListed);
+
+// 00566030 Select: ours only (it lights the object and edits the selection list). Checked: the
+// object is highlighted (flag 0x10) and its id is listed exactly once when it was not listed before
+// (as often as before otherwise). The battle screen's selection (`clickunit`, ui_battle_commands).
+static void __fastcall SelectVerify(CWorldClient* client, void*, CEngineObject* object) {
+    stlp::list<void*>& selected = client->list7BC_;
+    const auto id = reinterpret_cast<void*>(static_cast<std::intptr_t>(object ? object->id_ : 0));
+    auto count = [&] {
+        int n = 0;
+        for (auto* node = selected.head->next; node != selected.head; node = node->next) n += node->data == id;
+        return n;
+    };
+    const int before = object ? count() : 0;
+    client->Select(object);
+    const int after = object ? count() : 0;
+    const bool ok = !object || ((object->flags_ & 0x10) != 0 && after == (before > 0 ? before : 1));
+    ei::verify::Check("CWorldClient::Select", true, ok, "object %d: %d -> %d", object ? object->id_ : -1, before, after);
+}
+EI_VERIFY(0x00566030, SelectVerify, 0, s_unused);

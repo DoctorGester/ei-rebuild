@@ -69,6 +69,11 @@ public:
     // 005B4110 (the base constructor; ai_grids.cpp). The empty node list (blocks of 0x400), the
     // base vtable 0073FD7C, no buckets, no free nodes. `map` is the owner's to set. Returns this.
     CUnitLayer* Construct();
+    // 0058A8A0 / 0058A900 (the two layer classes' destructors, reached by the AI map's unwinding
+    // only; ai_grids.cpp). The node list emptied and its blocks freed.
+    void Destruct();
+
+    static constexpr std::uintptr_t kNodeListVtable = std::uintptr_t(0x0073F9F8);
 
     void* vtable;
     // +0x04 CList<UnitLayerNode>

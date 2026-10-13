@@ -87,6 +87,40 @@ static void __fastcall RemoveObjectVerify(CWorldServer* self, void*, unsigned id
 }
 EI_VERIFY(0x005935C0, RemoveObjectVerify, 0, s_unused);
 
+// A-W13. 005939E0 (world_server.cpp) removes every unit: ours only. Afterwards no unit (class 0x50)
+// is a world object. No caller in the exe (Rebirth's binaries refer to it), no scenario.
+static void __fastcall RemoveAllUnitsVerify(CWorldServer* self) {
+    self->RemoveAllUnits();
+    int units = 0;
+    self->objects_.map.ForEach([&](const auto* node) { units += node->value && node->value->GetClassId() == 0x50; });
+    ei::verify::Check("CWorldServer::RemoveAllUnits", 0, units, "%u objects left",
+                      static_cast<unsigned>(self->objects_.map.Size()));
+}
+EI_VERIFY(0x005939E0, RemoveAllUnitsVerify, 0, s_unused);
+
+// 0058D340 / 00593AF0 (world_quests.cpp) send a unit's message to the players whose party has it,
+// 00590160 moves a player's held items into its party: ours only. Checked for the last: the list is
+// empty afterwards. The alarm's remarks; a unit's death; every zone change (CollectParty).
+static void __fastcall TellPartiesVerify(CWorldServer* self, void*, CEngineObject* unit, std::uint32_t value) {
+    self->TellParties(unit, value);
+    ei::verify::Check("CWorldServer::TellParties", true, unit != nullptr, "value %u", value);
+}
+EI_VERIFY(0x0058D340, TellPartiesVerify, 0, s_unused);
+
+static void __fastcall TellPartiesGoneVerify(CWorldServer* self, void*, CEngineObject* unit) {
+    self->TellPartiesGone(unit);
+    ei::verify::Check("CWorldServer::TellPartiesGone", true, unit != nullptr, "unit %d", unit ? unit->id_ : -1);
+}
+EI_VERIFY(0x00593AF0, TellPartiesGoneVerify, 0, s_unused);
+
+static void __fastcall StorePlayerItemsVerify(CWorldServer* self, void*, WorldPlayer* player, class CParty* party) {
+    int before = player ? player->items.count : 0;
+    self->StorePlayerItems(player, party);
+    bool ok = !player || (player->items.head == nullptr && player->items.count == 0 && player->items.blocks == nullptr);
+    ei::verify::Check("CWorldServer::StorePlayerItems", true, ok, "%d items", before);
+}
+EI_VERIFY(0x00590160, StorePlayerItemsVerify, 0, s_unused);
+
 // 0058D3D0: PUSH EBP; MOV EBP,ESP; SUB ESP,0x20 (6 bytes). Only adds to the update map: the
 // original runs first, its entries are recorded, the map is put back (new keys erased, old values
 // and the highest id restored), ours runs, and the entries and highest id must match.

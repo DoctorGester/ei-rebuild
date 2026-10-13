@@ -92,6 +92,22 @@ void CSectorMap::Init(int cellsX, int cellsY, CAIMap* map) {
 }
 EI_REPLACE_METHOD(0x005C06F0, CSectorMap::Init);
 
+void CSectorMap::DestructBody() {
+    vtable = reinterpret_cast<void*>(kVtableAddress);
+    sectors.vtable = reinterpret_cast<void*>(kSectorArrayVtable);
+    if (!sectors.data) return;
+    SectorElements::Destruct(sectors.data, sectors.size);
+    gamecrt::operator_delete(sectors.data);
+}
+EI_REPLACE_METHOD(0x0058A700, CSectorMap::DestructBody);
+
+CSectorMap* CSectorMap::DeletingDestruct(unsigned flags) {
+    DestructBody();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
+}
+EI_REPLACE_METHOD(0x0058A780, CSectorMap::DeletingDestruct);
+
 bool CSectorMap::Add(CEngineObject* object) {
     int cellX = x87::fistp(1.0f / (kCellSize * 0.5f) * PosX(object) - 0.5f);
     int cellY = x87::fistp(1.0f / (kCellSize * 0.5f) * PosY(object) - 0.5f);

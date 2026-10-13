@@ -4,6 +4,8 @@
 
 #include "../../src/game/world.h"
 
+#include <cstring>
+
 namespace {
 void* s_unused;
 }
@@ -21,3 +23,20 @@ static int __fastcall WorldCreateManagersVerify(CWorld* world) {
     return result;
 }
 EI_VERIFY(0x0055EE40, WorldCreateManagersVerify, 0, s_unused);
+
+// A-W13. 0055EAB0 (the base constructor) only stores fields: both versions run on scratch blocks
+// that start with the same bytes, and the blocks are compared. 7 stolen bytes: MOV EAX,ECX;
+// XOR ECX,ECX; MOV [EAX+4],ECX. Its callers are the two worlds' static-initialiser constructors,
+// so it runs before the first frame.
+static CWorld*(__fastcall* s_constructBase)(CWorld*);
+static CWorld* __fastcall ConstructBaseVerify(CWorld* self) {
+    alignas(4) unsigned char expected[0x84], actual[0x84];
+    std::memset(expected, 0xA5, sizeof(expected));
+    std::memset(actual, 0xA5, sizeof(actual));
+    auto* a = reinterpret_cast<CWorld*>(expected);
+    auto* b = reinterpret_cast<CWorld*>(actual);
+    bool same = s_constructBase(a) == a && b->ConstructBase() == b && std::memcmp(expected, actual, sizeof(expected)) == 0;
+    ei::verify::Check("CWorld::ConstructBase", true, same, "");
+    return self->ConstructBase();
+}
+EI_VERIFY(0x0055EAB0, ConstructBaseVerify, 7, s_constructBase);

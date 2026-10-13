@@ -205,3 +205,7 @@ struct ClientListManager;
 __declspec(naked) inline void __fastcall ClientArrayManagerClearOriginal(ClientArrayManager* /*manager*/) EI_ORIGINAL(0x004E2850)
 __declspec(naked) inline void __fastcall ClientListManagerDestructOriginal(ClientListManager* /*manager*/) EI_ORIGINAL(0x00562EC0)
 __declspec(naked) inline void __fastcall ClientArrayManagerDestructOriginal(ClientArrayManager* /*manager*/) EI_ORIGINAL(0x00562DF0)
+// 00561A60: the platform set's destructor body (PlatformSet::DestructBody), called through its address by the
+// deleting destructor.
+struct PlatformSet;
+__declspec(naked) inline void __fastcall PlatformSetDestructOriginal(PlatformSet* /*set*/) EI_ORIGINAL(0x00561A60)

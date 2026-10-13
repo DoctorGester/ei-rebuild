@@ -95,6 +95,7 @@ constexpr std::uintptr_t kClientHandleVtable = std::uintptr_t(0x0073F628);
 constexpr std::uintptr_t kClientListVtable = std::uintptr_t(0x0073F61C);   // the list manager's CList
 constexpr std::uintptr_t kClientListManagerVtable = std::uintptr_t(0x0073F5B8);
 constexpr std::uintptr_t kClientArrayManagerVtable = std::uintptr_t(0x0073F554);
+constexpr std::uintptr_t kPlatformListVtable = std::uintptr_t(0x0073F548);       // the platform set's CList
 constexpr std::uintptr_t kClientArrayListVtable = std::uintptr_t(0x0073F73C);   // the array manager's CList
 
 // ---- WorldCreateManagers (0055EE40) -----------------------------------------------------------
