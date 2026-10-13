@@ -3,6 +3,12 @@
 // close-all is pending; after the fade's an active fade has its alpha in 0..255 and the depth test
 // is on again. Every scenario, every frame (the fade's step and draw only while a script fades:
 // zone changes, movies, the game's end).
+//
+// 005F5320 CInterface3D::DrawOverlays (Rebirth-patched: the vanilla launch only): ours only (it
+// draws and blits). Read back: a backdrop asked for is made (mode 1 -> 2 with the small copy kept,
+// 3 -> 4 with the old backdrop put aside), other modes stay; the frame count went up by one or
+// started again. Every frame of every scenario; the backdrop modes when a window opens over the
+// screen or over another window (ui_screens: the Esc menu and its dialogs).
 #include "verify.h"
 
 #include "../../src/game/model.h"
@@ -19,6 +25,25 @@ static int __fastcall InterfaceDrawVerify(CInterface3D* self) {
     return result;
 }
 EI_VERIFY(0x005F5220, InterfaceDrawVerify, 0, s_unused);
+
+static void __fastcall InterfaceOverlaysVerify(CInterface3D* self) {
+    const int mode = self->backdropMode_;
+    CUiSurface* backdrop = self->backdrop_;
+    const int frames = self->fpsFrames_;
+    self->DrawOverlays();
+    bool ok = self->fpsFrames_ == frames + 1 || self->fpsFrames_ == 0;
+    if (mode == 1)
+        ok = ok && self->backdropMode_ == 2 && self->backdrop_ != nullptr && self->block5C_ != nullptr &&
+             (backdrop == nullptr || self->backdrop_ == backdrop);
+    else if (mode == 3)
+        ok = ok && self->backdropMode_ == 4 && self->backdrop_ != nullptr && self->backdrop_ != backdrop &&
+             self->secondBackdrop_ == backdrop;
+    else
+        ok = ok && self->backdropMode_ == mode && self->backdrop_ == backdrop;
+    ei::verify::Check("CInterface3D::DrawOverlays", true, ok, "mode %d -> %d, frames %d -> %d", mode, self->backdropMode_,
+                      frames, self->fpsFrames_);
+}
+EI_VERIFY(0x005F5320, InterfaceOverlaysVerify, 0, s_unused);
 
 static int __fastcall FadeDrawVerify(CScreenFade* self, void*, CSceneRenderer* renderer) {
     const int result = self->Draw(renderer);
