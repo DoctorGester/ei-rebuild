@@ -2,9 +2,10 @@
 // map<string, string> at +4 with a setter (slot 0) and a remover (slot 1), drawn as "key  value"
 // lines (shadowed, 15 pixels apart) into a panel surface of the interface at most twice a second.
 // 004447D0 returns the panel. The map's algorithms and the MFC CFont members are library code. The
-// constructor (00444740) runs from a static initialiser before the hooks are installed and is not
-// rewritten. See docs/notes/app.md.
+// constructor (00444740) runs from a static initialiser before the hooks are installed; a start-up
+// check compares what it built (tests/verify/verify_static_initialisers.cpp). See docs/notes/app.md.
 #include "ei/hook.h"
+#include "ei/vcall.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
@@ -147,6 +148,19 @@ void __fastcall StringTableDestruct(void* self) {
     }
 }
 EI_REPLACE(0x00444690, StringTableDestruct);
+
+// 00444740 (A-E2; thiscall, returns the panel): the constructor. The static initialiser 00444660
+// runs it on the global before WinMain and registers the destructor above with atexit. The base's
+// vtable (0073BFAC, abstract) first, the empty map (its header node from the node pool), then the
+// panel's vtable; the interface, surface and font are PanelInit's. The map's compare byte is an
+// uninitialised stack byte in the original and is left as it is here.
+void* __fastcall StringTableConstruct(void* self) {
+    CDebugPanel* panel = Panel(self);
+    panel->entries_.Construct();
+    ei::SetVtable(panel, 0x0073BFA4);
+    return panel;
+}
+EI_REPLACE(0x00444740, StringTableConstruct);
 
 // ---- The panel ---------------------------------------------------------------------------------
 

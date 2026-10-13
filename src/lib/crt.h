@@ -29,6 +29,7 @@ int __cdecl isdigit(int c);                                        // 006E9379
 int __cdecl isprint(int c);                                        // 006E944C
 int __cdecl sprintf(char* buffer, const char* format, ...);        // 006E8715
 int __cdecl sscanf(const char* text, const char* format, ...);     // 006EAEEC
+char* __cdecl itoa(int value, char* buffer, int radix);            // 006E9B36 _itoa (returns `buffer`)
 int __cdecl mbsicmp(const unsigned char* a, const unsigned char* b); // 006E8767 _mbsicmp
 int __cdecl mbscmp(const unsigned char* a, const unsigned char* b);  // 006E848B _mbscmp
 
