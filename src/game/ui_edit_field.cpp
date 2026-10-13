@@ -128,7 +128,7 @@ CUiEditField* CUiEditField::Construct(CInterface3D* ui, RECT rect) {
     font_ = 1;
     maxLength_ = 50;
     colour_ = 0xFFFFFF;
-    unknown_16C = 0xFF;
+    caretColour_ = 0xFF;
     ClearSurfaces();
     area_ = rect;
     void* memory = gamecrt::operator_new(sizeof(CUiSurface));
@@ -182,3 +182,29 @@ void __fastcall EditFieldChar(void* input, void*, int key, int repeat, int flags
 } // namespace
 
 EI_REPLACE(0x0065C930, EditFieldChar);
+
+// --- 0065C1A0 / 0065C290 / 0065C2D0 (A-H25): the look, the text and the focus -----------------------
+
+void CUiEditField::SetLook(std::uint32_t charClasses, char mode, int font, int maxLength, COLORREF colour,
+                           COLORREF caretColour) {
+    charClasses_ = charClasses;
+    mode15C_ = static_cast<std::uint8_t>(mode);
+    font_ = font;
+    maxLength_ = maxLength;
+    colour_ = colour;
+    caretColour_ = caretColour;
+    DrawContents();
+}
+EI_REPLACE_METHOD(0x0065C1A0, CUiEditField::SetLook);
+
+void CUiEditField::SetText(const char* text) {
+    editing_ = false;
+    Text() = text;
+    changed_ = true;
+    caret_ = Text().GetLength();
+    DrawContents();
+}
+EI_REPLACE_METHOD(0x0065C290, CUiEditField::SetText);
+
+void CUiEditField::SetFocused(bool focused) { focused_ = focused; }
+EI_REPLACE_METHOD(0x0065C2D0, CUiEditField::SetFocused);

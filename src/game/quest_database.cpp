@@ -142,6 +142,8 @@ __declspec(naked) void __fastcall BriefingPushBack(void*, void*, const void*) EI
 __declspec(naked) void __fastcall BriefingIndexClear(void*) EI_ORIGINAL(0x006B0590)
 inline void** __fastcall BriefingIndexAt(void* a0, void*, const void* a2) { return (void**)MapRegistryFindOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall BriefingAdd(void*, void*, const void*) EI_ORIGINAL(0x006B0600)
+// The briefing index's find by a record's name [006B0930, RET 8: out iterator (node, table), key].
+__declspec(naked) void __fastcall BriefingFindNode(void*, void*, void**, const void*) EI_ORIGINAL(0x006B0930)
 // MFC: CString TrimLeft / TrimRight of one character [006FE1D3 / 006FE0DD]; the game's splitter of
 // a string at a separator into a CStringArray [004DBE40, __fastcall: text, out; separator]; atof.
 void __fastcall TrimLeftChar(mfc::CString* a0, void*, char a2) { CStringTrimLeftCharOriginal((void*)a0, nullptr, a2); }
@@ -336,3 +338,20 @@ void __fastcall ReadStringList(CFileRegistry* registry, const char* section, con
     }
 }
 EI_REPLACE(0x006AE740, ReadStringList);
+
+// --- 006B0600 (A-H25): a briefing added unless its name is there ---------------------------------------
+
+bool QuestBriefingTable::Add(const QuestBriefingRecord* record) {
+    if (!record) return false;
+    void* iterator[2];
+    BriefingFindNode(&index, nullptr, iterator, record);
+    const Index::Node* node = static_cast<const Index::Node*>(iterator[0]);
+    if (node && node->value) return false;
+    BriefingPushBack(&records, nullptr, record);
+    BriefingIndexClear(&index);
+    for (QuestBriefingRecord* r = records.begin(); r != records.end(); ++r) {
+        *BriefingIndexAt(&index, nullptr, r) = r;
+    }
+    return true;
+}
+EI_REPLACE_METHOD(0x006B0600, QuestBriefingTable::Add);

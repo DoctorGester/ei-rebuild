@@ -94,3 +94,117 @@ EI_VERIFY(0x006AC240, CopyVerify<QuestItemRecord>, 0, s_unused);
 EI_VERIFY(0x006AC3B0, FillVerify<QuestItemRecord>, 0, s_unused);
 EI_VERIFY(0x006AC520, CopyVerify<LootItemRecord>, 0, s_unused);
 EI_VERIFY(0x006AC640, FillVerify<LootItemRecord>, 0, s_unused);
+
+// A-H25. The records' slot 0 (MOV EAX,imm32: 5 bytes) against the original. Reached by every item
+// built from a record (CItemManager::CreateItem's BeginCreateItem, the trader stock).
+namespace {
+template <int(__fastcall* Ours)(ItemRecordHead*)>
+struct KindCheck {
+    static inline int(__fastcall* original)(ItemRecordHead*);
+    static int __fastcall Verify(ItemRecordHead* self) {
+        int expected = original(self);
+        ei::verify::Check("item record kind slot", expected, Ours(self), "%p", static_cast<void*>(self));
+        return expected;
+    }
+};
+} // namespace
+// Plain names for the wrappers, so tools/check_stolen.py reads the registrations.
+static constexpr auto& WeaponKindVerify = KindCheck<itemdb::WeaponRecordKind>::Verify;
+static constexpr auto& ArmorKindVerify = KindCheck<itemdb::ArmorRecordKind>::Verify;
+static constexpr auto& QuickKindVerify = KindCheck<itemdb::QuickItemRecordKind>::Verify;
+static constexpr auto& Record7CKindVerify = KindCheck<itemdb::Record7CKind>::Verify;
+static constexpr auto& Record78KindVerify = KindCheck<itemdb::Record78Kind>::Verify;
+EI_VERIFY(0x006A6430, WeaponKindVerify, 5, KindCheck<itemdb::WeaponRecordKind>::original);
+EI_VERIFY(0x006A6440, ArmorKindVerify, 5, KindCheck<itemdb::ArmorRecordKind>::original);
+EI_VERIFY(0x006A6450, QuickKindVerify, 5, KindCheck<itemdb::QuickItemRecordKind>::original);
+EI_VERIFY(0x006A6460, Record7CKindVerify, 5, KindCheck<itemdb::Record7CKind>::original);
+EI_VERIFY(0x006A6470, Record78KindVerify, 5, KindCheck<itemdb::Record78Kind>::original);
+
+// A-H25. The other kinds' operator= (stolen 0, as the weapon's: only a vector insert in the middle
+// reaches them), the base record's constructor and the material's copy constructor (the vectors'
+// resize and growth while the databases load: every run), RecordTable::At out of line (no caller
+// left: 006A3CD0 is rewritten).
+namespace {
+template <typename R, R* (R::*Assign)(const R*)>
+struct AssignCheck {
+    static R* __fastcall Verify(R* self, void*, const R* source) {
+        // What the kind's copy leaves alone must stay: the quick item's string, the quest item's zones.
+        R* result = (self->*Assign)(source);
+        ei::verify::Check("item record operator=", true, result == self && SameHead(self, source) && Own(self, source),
+                          "0x%X bytes, number %d", static_cast<unsigned>(sizeof(R)), source->number);
+        return result;
+    }
+    static bool Own(const ArmorRecord* a, const ArmorRecord* b) { return SameOwn(a, b); }
+    static bool Own(const LootItemRecord* a, const LootItemRecord* b) { return SameOwn(a, b); }
+    static bool Own(const QuickItemRecord* a, const QuickItemRecord* b) {
+        return a->value70 == b->value70 && SameBytes(a, b, 0x80, 0x8B);
+    }
+    static bool Own(const QuestItemRecord* a, const QuestItemRecord* b) { return a->category == b->category; }
+};
+using AssignArmorCheck = AssignCheck<ArmorRecord, &ArmorRecord::AssignArmor>;
+using AssignQuickCheck = AssignCheck<QuickItemRecord, &QuickItemRecord::AssignQuick>;
+using AssignQuestCheck = AssignCheck<QuestItemRecord, &QuestItemRecord::AssignQuest>;
+using AssignLootCheck = AssignCheck<LootItemRecord, &LootItemRecord::AssignLoot>;
+
+// 006A63B0: PUSH -1; PUSH imm32 (7). The original on a scratch copy of the memory, ours on the
+// record; every byte compared (nothing is allocated: empty strings and arrays).
+ItemRecordHead*(__fastcall* s_constructBase)(ItemRecordHead*);
+ItemRecordHead* __fastcall ConstructBaseVerify(ItemRecordHead* self) {
+    alignas(4) unsigned char scratch[sizeof(ItemRecordHead)];
+    std::memcpy(scratch, self, sizeof(scratch));
+    auto* expected = s_constructBase(reinterpret_cast<ItemRecordHead*>(scratch));
+    ItemRecordHead* result = self->ConstructBase();
+    ei::verify::Check("ItemRecordHead::ConstructBase", true,
+                      result == self && expected == reinterpret_cast<ItemRecordHead*>(scratch) &&
+                          std::memcmp(scratch, self, sizeof(scratch)) == 0,
+                      "record %p", static_cast<void*>(self));
+    return result;
+}
+
+// 006A9E40: PUSH -1; PUSH imm32 (7). The original into a scratch record (its three strings
+// destroyed afterwards), ours into the real one: the strings' texts and the bytes from +0x0C.
+MaterialRecordHead*(__fastcall* s_materialCopy)(MaterialRecordHead*, void*, const MaterialRecordHead*);
+MaterialRecordHead* __fastcall MaterialCopyVerify(MaterialRecordHead* self, void*, const MaterialRecordHead* source) {
+    alignas(4) unsigned char raw[sizeof(MaterialRecordHead)];
+    auto* scratch = reinterpret_cast<MaterialRecordHead*>(raw);
+    auto* expected = s_materialCopy(scratch, nullptr, source);
+    MaterialRecordHead* result = self->CopyConstruct(source);
+    const bool same = result == self && expected == scratch && std::strcmp(scratch->key, self->key) == 0 &&
+                      std::strcmp(scratch->soundName, self->soundName) == 0 && std::strcmp(scratch->name, self->name) == 0 &&
+                      SameBytes(scratch, self, offsetof(MaterialRecordHead, unknown_0C), sizeof(MaterialRecordHead));
+    ei::verify::Check("MaterialRecordHead::CopyConstruct", true, same, "material '%s'", source->key);
+    for (const char** text : {&scratch->key, &scratch->soundName, &scratch->name})
+        reinterpret_cast<mfc::CString*>(text)->~CString();
+    return result;
+}
+
+// 006A5950..006A5A10: PUSH ESI; MOV ESI,[ECX]; MOV ECX,[ECX+4] (6). Pure.
+template <int Stride>
+struct TableAtCheck {
+    static inline char*(__fastcall* original)(const RecordTable*, void*, std::uint32_t);
+    static char* __fastcall Verify(const RecordTable* table, void*, std::uint32_t index) {
+        char* expected = original(table, nullptr, index);
+        ei::verify::Check("RecordTable::At", true, expected == RecordTableAt<Stride>(table, nullptr, index),
+                          "stride 0x%X index %u", static_cast<unsigned>(Stride), index);
+        return expected;
+    }
+};
+using ArmorAtCheck = TableAtCheck<kArmorSize>;
+using QuickAtCheck = TableAtCheck<kQuickItemSize>;
+using Record7CAtCheck = TableAtCheck<kLootSize>;
+using Record78AtCheck = TableAtCheck<kQuestItemSize>;
+} // namespace
+EI_VERIFY(0x006A9370, AssignArmorCheck::Verify, 0, s_unused);
+EI_VERIFY(0x006A9770, AssignQuickCheck::Verify, 0, s_unused);
+EI_VERIFY(0x006AAE40, AssignQuestCheck::Verify, 0, s_unused);
+EI_VERIFY(0x006A9DA0, AssignLootCheck::Verify, 0, s_unused);
+EI_VERIFY(0x006A63B0, ConstructBaseVerify, 7, s_constructBase);
+EI_VERIFY(0x006A9E40, MaterialCopyVerify, 7, s_materialCopy);
+static constexpr auto& ArmorAtVerify = ArmorAtCheck::Verify;
+static constexpr auto& QuickAtVerify = QuickAtCheck::Verify;
+static constexpr auto& Record7CAtVerify = Record7CAtCheck::Verify;
+static constexpr auto& Record78AtVerify = Record78AtCheck::Verify;
+EI_VERIFY(0x006A5950, ArmorAtVerify, 6, ArmorAtCheck::original);
+EI_VERIFY(0x006A5990, QuickAtVerify, 6, QuickAtCheck::original);
+EI_VERIFY(0x006A59D0, Record7CAtVerify, 6, Record7CAtCheck::original);
+EI_VERIFY(0x006A5A10, Record78AtVerify, 6, Record78AtCheck::original);

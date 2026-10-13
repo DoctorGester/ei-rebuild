@@ -206,6 +206,14 @@ struct CSpellEffect {
     CSpellEffect* Construct();
     void Destruct();
     CSpellEffect* DeletingDestruct(unsigned flags);
+    // 0067ECB0 (RET 0x1C; A-H25). A cast begins: `spell` copied into the embedded spell, the
+    // world, the position, the caster and the target (each counted; the one held before released),
+    // the target point, state 0 and the byte +0xA4.
+    void Init(char* world, CSpell* spell, CEngineObject* caster, const Vector3* position, CEngineObject* target,
+              const Vector3* targetPoint, std::uint8_t flagA4);
+    // 0067EF00 (RET 4; A-H25). `object` leaves the world: 0 when it is the target (the world then
+    // drops the effect); else 1, the caster released and cleared when it is `object`.
+    BOOL Forget(CEngineObject* object);
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0074399C);
     static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073BB68);
 
@@ -336,6 +344,11 @@ struct SpellSequence {
     std::uint32_t maxLow;
 };
 static_assert(sizeof(SpellSequence) == 0x18);
+// 00689820 (spell_manager.cpp, A-H25). A walk over a sequence's containers one step on: the
+// container there, or null at the end (and when the walk had ended already). The manager's
+// Destroy 00688B40 (rewritten: it walks the table itself) and the unreferenced 00688D70 call it.
+using SpellContainerWalk = stlp::hash_map<std::uint32_t, CSpellContainer*, stlp::IntHash>::Iterator;
+CSpellContainer* __fastcall NextSpellContainer(SpellContainerWalk* walk);
 
 // The spell manager (GetClassName "CSpellManager", vtable 00743A14, 0xD4 bytes). Only what the
 // construction code uses; the context (context_, +0xAC) gives the spell constructor (its slot 17).
@@ -383,6 +396,11 @@ public:
     // unknown name is added to the map with a null record. Returns the new spell, or a fatal
     // error's result.
     CSpell* CreateSpellFromText(const char* text);
+
+    // 00689570 / 00689610 (RET 4; A-H25). `names` resized to the spell / spell modifier record
+    // count and filled with the records' names (+0x00). `this` is not used.
+    void ListSpellNames(mfc::CStringArray* names);
+    void ListModifierNames(mfc::CStringArray* names);
 
     // +0xBC: sequences by the high half of a packed id (keys with low half 0).
     stlp::hash_map<std::uint32_t, SpellSequence*, stlp::IntHash> sequences_;
@@ -468,6 +486,17 @@ public:
     // 0068D0A0 (RET 8). A directional light (kind 3) of `color` along `direction`, which the light
     // also tilts towards (CTransformObject::TiltTowards); flags_ bit 3. Returns 1.
     BOOL SetDirectional(const Vector3* color, const Vector3* direction);
+    // A-H25 (light.cpp; the terrain's vertex lighting 006C36B0 / 006C31C0). A colour (r, g, b in
+    // x, y, z) lit by the light: `base` plus the light's colour times `scale` and a factor, each
+    // channel clamped at 1; w is not written then (the original stores an unset local, which its
+    // callers do not read). Unlit, `out` is `base` (all four).
+    // 0068D310 (RET 0x10): the factor is minus the cosine between `normal` and direction_; unlit
+    // when it is not above 0.
+    // 0068D5A0 (RET 0x18): the factor is 1 - distance^2 / range^2 (unlit below 0), times 1 + the
+    // cosine between `normal` and `toLight` when that is not above 0.
+    void AddDirectional(Vector4* out, float scale, const Vector4* base, const Vector3* normal) const;
+    void AddPoint(Vector4* out, float scale, const Vector4* base, const Vector3* normal, const Vector3* toLight,
+                  float distance) const;
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743AFC);
 
     // The first 0x54 bytes are a CTransformObject (core_transform.h; its destructor's vtable is

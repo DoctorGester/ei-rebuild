@@ -463,4 +463,66 @@ records (Assign each). Byte-identical copies registered beside their rewrites: 0
 0069FD50 RefPtrRelease, 00689810 / 00689880 CleanupClear8. Left (under 5 bytes): CParty's slots 0065F4B0..0065F550,
 00661140..00661180, the empty `ret` slots of 00666EE0..00667670, 00691900, 0068DCF0.
 
+## A-H25
+
+The spell manager's folder slot 00688940 (A-H24's last item) was complete. Wrappers are in the area's verify files.
+
+| Address | Name | V |
+|---|---|---|
+| 006AD260, 006AD2F0, 006AD380, 006AD410; 00689570, 00689610 | CItemManager::ListMaterialNames / ListWeaponNames / ListArmorNames / ListQuickItemNames, CSpellManager::ListSpellNames / ListModifierNames (`this` unused; every new game through 004A7080) | S: the original into a scratch array, texts compared |
+| 006AD1E0 | CItemManager::CreateSpellItem (text, spell manager): the scroll of a spell text | O |
+| 006A6480 | CItemConstructor::MagicCapacity (item_constructor.cpp; trader_stock) | S on scratch floats |
+| 006A6430..006A6470 | the item records' slot 0 (kind 0x3004 / 5 / 6 / 9 / 7) | P |
+| 00699080, 006990E0, 00699140, 006991A0, 00699200, 00699260 | ItemStock::AddArmor / AddWeapon / AddQuickItem / AddSpell / AddModifier / AddMaterial (`stlp::vector::push_back` on the stock's vectors) | O: present once, size +1 only when new |
+| 0067ECB0, 0067EF00 | CSpellEffect::Init (every cast), Forget (an object leaving the world during a cast) | O |
+| 00693820, 00693850, 006938B0, 00693910 | MmpHeader::SetNoFormat / SetFormat5551 / 4444 / 8888 (texture_slots.cpp; ComposeTexture keeps its forwarders so the wrappers run) | S: the original on the header, ours on a copy |
+| 00691A00, 00691A70, 00690FA0, 00691950, 00691930 | CTexture::Create (slot 2; block_ cleared, not freed), Destroy (slot 3), FreeBlock, DestructBody, DeletingDestruct | O |
+| 00691CF0, 00691D40, 00691D00, 00693F10 | CTextureManager::GetFileData, NewTextureOfType, FindOrCreate (named, not loaded; no null check), FindOrLoad | O |
+| 00675FB0 / 0067B390, 00676910 / 0067B430, 0067B050, 0067AA00, 00676900, 006773A0 | the effect base's out-of-line destructor, slot 0, constructor, missile Reset, default Tick, ReadSavedStrings (docs/notes/effects.md) | O; TickDefault P; constructor and ReadSavedStrings S |
+| 00693F60, 00694020 | CTextureManager::ReloadAll (after a lost device: no scenario), TrimCache (cached bytes against videoMemoryTenth_, signed; every 32 client ticks) | O |
+| 006A9370, 006A9770, 006AAE40, 006A9DA0 | ArmorRecord / QuickItemRecord / QuestItemRecord / LootItemRecord assignment (item_db_records.cpp) | O |
+| 006A63B0, 006A9E40 | ItemRecordHead::ConstructBase (vtable 00744060), MaterialRecordHead::CopyConstruct | S on scratch records |
+| 006A5950, 006A5990, 006A59D0, 006A5A10 | RecordTableAt<Stride> (armour 0x88, quick 0x80, 0x7C, 0x78): the record at an index | P |
+| 006A0AA0, 006A0BF0 | WeaponModelName (weapon index, material index), WeaponRecordModelName (records); the second compared only for weapon types 0..6 (beyond them the original reads past its code table) | P, texts |
+| 006A58E0, 006A43C0 | CItemSpell::PictureName ("initqi1item"), CItemQuest::GetUse (slot 21: kind 8, the value at +0x4C, 0) | P |
+| 006A5B00, 006AC780, 006AC810 | CItemConstructor::DeletingDestruct, the item manager's Create (slot 2) and NewObject (slot 14: kinds 0x3004..0x3009 to weapon / armour / quick / loot / scroll / quest items) | O: type and class id of the new object |
+| 0065EAD0, 0065EC30, 0065EC70, 0065ECB0 | CDirectInputMouse::Setup / Shutdown / SetActive / Poll (input_mouse.cpp; the game's own GUID copies and c_dfDIMouse at 00745D00; a failed step returns FatalDirectX's answer as 0 / 1) | O; SetActive S (acquire twice is harmless) |
+| 0065ED30, 0065EDE0, 0065EDC0, 0065EF80, 0065F170 | CUiScrollingSurface (the titles' RTF text; ui_scrolling_surface.cpp): Construct ("Riched20.dll", a hidden RichEdit20A child), DestructBody, DeletingDestruct, LoadRtf (EM_STREAMIN from the block: our own reader replaces the CMemFile and its callback 0065EF10), Draw (slot 0: offset += game time passed x speed, _ftol) | O; Draw: the offset the game time gives, within 1 |
+| 0065EF30, 0065F1C0 | CUiScrollingSurface::Load (archive file, LoadRtf, closed), Start (speed, from below the surface) | S: the original, the members put back, ours |
+| 0065C1A0, 0065C290, 0065C2D0 | CUiEditField::SetLook / SetText / SetFocused (ui_edit_field.cpp; +0x16C is the caret colour) | S (no scenario types into an edit field) |
+| 0065BFD0 | CUiSpin::OnLButtonDown (input slot 2: the OK sound, the next value) | O |
+| 0064BE40, 0064D990 | CObjectivesWindow::Setup, HelpTopic (slot 41: "quest_global_map" with two buttons, else "quest_mission") | S; P |
+| 00648F10 | CHudClock::OpenObjectives (from the Rebirth-patched click 00648D70: its inlined window constructor is 0063B5D0) | O |
+| 00660840 | PartyUnitRecord::CarriedWeight (CItem +0x34 is the weight; weapons, quick items, spells, armour in one running float sum) | P, CheckNear |
+| 0068D310, 0068D5A0 | CLight::AddDirectional / AddPoint (the terrain's vertex lighting): base + colour x scale x factor, clamped at 1; the alpha is not written when lit (the original stores an unset local its callers do not read) | P: r, g, b with CheckNear |
+| 006B0600 | QuestBriefingTable::Add (quest_records.h: the database's +0x20, vector + index by name; push_back 006B0780, clear 006B0590, find 006B0930 through their addresses) | O |
+| 00688530 | MapEffect::Tick | S |
+| 006617F0 | CParty::ArchiveParty (a memory stream as the archive's stream field 1; loading takes the archive's version) | O (SaveParty draws a new key each time) |
+| 006481D0 | CHudUnitPanel::ShowBodyPart (tints the four part buttons 3..6: 1 the chosen one, 0.5 the rest) | S |
+| 00662F80 | MpHeroRoster::Select (ui_screens.h: the multiplayer heroes at 007C82A0, folder + records + the current one) | O (no scenario opens the hero screen) |
+| 00667B40 | CPlayerClient::AppendReceived (appends a stream to the received one, read position kept) | O |
+| 00646B90 | CHudUnitPanel::ShowEffects (Ghidra splits it at 00646C25; the unit's first six effects: the "spell <code>" text and ticks / 15 as two lines each, the spell's picture "spell%04d" (SpellRecord +0x60, now `icon`) copied into one of six places of the panel's icon texture, the places kept in +0x184 `effectIcons_`; scene objects 26 + i show them, 9 when there are more than six) | S (needs a shown unit with an effect) |
+| 00689820 | NextSpellContainer (a hash_map iterator's step returning the value) | P (no live caller left: Destroy 00688B40 is rewritten, 00688D70 is dead code) |
+| 006BAAC0, 006BAC90 | CSoundManager::OpenStream / CloseStream (on the manager's +0x100): the ASI codec for ".mp3" (RIB_find_file_provider, stdcall: mss32's RET 0xC), the playing sample and the decoding one (+0x1AC `streamDecoder`; `streamCodec` is its +0x144), three buffers +0x110 of +0x11C bytes (twice Miles' minimum for 44100 Hz stereo 16-bit), the order 0 / 1 / 2 at +0x124, the fader as SetHold(0) leaves it | O (Open at every start with sound on; CloseStream only when the stream cannot open) |
+| 006BB910 | CSoundManager::StreamThread (every 100 ms under the stream lock: the fader's step, the level as the sample's volume, each played-out half of Miles' double buffer gets the spare buffer (+0x124 `streamHalfBuffer[2]`, +0x12C `streamSpareBuffer`) and 006BB3A0 reads the next; AfxEndThread when threadsQuit is set) | O: the state it starts from (it does not return) |
+| 006B75E0 | SoundEndOfSample (Miles' end-of-sample callback, on Miles' thread: the voice in user data 1 is finished) | O: the voice is the sample's (the mark is taken by the game's thread at once) |
+
+Library, second batch: 0064EE90, 00652E30, 00652F80, 006581C0, 00675040, 00675690 (STLport); compiler: 00652FF0, 0067C5D0 (unwind only),
+the static initialisers 00698E70..00698FB0 and 0065F580 (run before the hooks), the scalar deleting destructors 006611B0, 006868D0,
+006868F0, 006B2DE0, 006B2E00, and 00663570; 006B6CC0 (STLport string default constructor).
+
+**Left in 0x640000-0x6C0000 after A-H25** (apart from the Rebirth-patched ones): 0066D730 (CPlayerServer's message 0x12 sends an
+uninitialised stack byte: kept as the original), 0067E4E0 (the constructor of the global at 007C8478, called only by the static
+initialiser 0067E4C0, before the hooks), 006BFB00 / 006BFB20 / 006BFB80 (SectorData: their forwarders are in the terrain files of
+0x6C0000+), functions under 5 bytes, and two Ghidra artefacts (00646C25 is the body of 00646B90, 00656464 is inside an instruction).
+Rebirth-patched and still original: 00641F20, 00642930, 00642B40, 00645210, 006456E0, 00645F80, 006462A0, 00647FB0, 00648520,
+00648D70, 00649190, 00649910, 006567A0, 00659420, 0065C2E0, 0065E580, 0066C180, 00684550, 0068E640, 00691500, 006A67A0, 006AE3A0,
+006B7110, 006BB3A0.
+
+Library (config/library.csv): 006A5910, 006AF790, 006B0710, 006B0780, 006B09B0, 0069D0E0, 0069E350..0069E3D0 (STLport vector / uninitialised-copy
+helpers of the record tables and the stock) and the records' scalar deleting destructors 0069E540, 006A9EF0..006A9F90;
+the by-name lookups 006AD580 / 0069D290 / 0069D380 (hash_map operator[](const char*), as 00613820),
+the code string's sort and reserve 0068C680..0068CE00, the trader stock's vector / list / pair helpers 0069BD60..0069E4E0,
+unwind-only vector destructors 0064AA40 / 0065A860 / 00663410 / 00675560, 00663660, 006726E0.
+
 **Next candidates** (after A-H23): 00693010, 00692D30 (composed textures), the material subsystem (CMaterial 0068DBC0 / 0068DE30 / 0068DF90 / 0068E040 with an STLport deque of 16-byte entries, CMaterialManager 0068E3F0 / 0068E540 / 0068E640 Rebirth-patched / 0068E900), the party container helpers 00664160 / 00664470 / 00664850 / 00664410 / 00664AC0 (CArray<PartyUnitRecord> destructor and friends; 00663410 is reached only from unwind funclets), 0069FB60 (items and their spells into two lists), the effect classes' 6-byte name / id getters in 0x675000-0x67E000; then the largest left in 0x640000-0x6C0000 (`python tools/progress.py`; it misses UI_INPUT_HANDLER registrations, so check `grep` before picking).

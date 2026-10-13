@@ -190,6 +190,8 @@ __declspec(naked) inline CUiSurface* __fastcall SurfaceConstructOnRectOriginal(v
                                                                                     CInterface3D* /*ui*/,
                                                                                     const tagRECT* /*rect*/,
                                                                                     int /*format*/) EI_ORIGINAL(0x005FCDD0)
+// 005FDA80: CUiSurface's own draw (slot 0; rewritten as UiSurfaceBlit), for the classes that draw over it.
+__declspec(naked) inline void __fastcall SurfaceBlitOriginal(void* /*surface*/) EI_ORIGINAL(0x005FDA80)
 // 005FE2F0: CUiSurface fills its DC's surface with black (ECX, plain RET).
 __declspec(naked) inline void __fastcall SurfaceClearOriginal(void* /*surface*/) EI_ORIGINAL(0x005FE2F0)
 // The client glue objects (007AFEA4 / 007AFEA5 / 007AFEA6, thiscall; the object is not read): 00578DC0 the game's
@@ -242,8 +244,8 @@ __declspec(naked) inline void __fastcall CursorSetHeldOriginal(void* /*cursor*/,
 __declspec(naked) inline void __fastcall FigureCreateOriginal(void* /*figure*/) EI_ORIGINAL(0x005A6C70)
 // 00708D79: MFC's CDC::FromHandle (static, stdcall): the temporary CDC of `dc`.
 __declspec(naked) inline void* __stdcall CdcFromHandleOriginal(void* /*dc*/) EI_ORIGINAL(0x00708D79)
-// 0065ECB0: the DirectInput mouse's state read (thiscall, RET 4; the argument is not read; returns the DIMOUSESTATE
-// inside the object).
+// 0065ECB0 (CDirectInputMouse::Poll, input_mouse.cpp): the DirectInput mouse's state read (thiscall, RET 4; the
+// argument is not read; returns the DIMOUSESTATE inside the object).
 __declspec(naked) inline const long* __fastcall DirectInputMousePollOriginal(void* /*mouse*/, void*, int /*unused*/)
     EI_ORIGINAL(0x0065ECB0)
 // 007022A0: MFC's AfxBeginThread(procedure, parameter, priority, stack size, flags, security) (__stdcall; returns the
@@ -251,6 +253,9 @@ __declspec(naked) inline const long* __fastcall DirectInputMousePollOriginal(voi
 __declspec(naked) inline void* __stdcall AfxBeginThreadOriginal(void* /*procedure*/, void* /*parameter*/, int /*priority*/,
                                                                 unsigned /*stack*/, unsigned long /*flags*/,
                                                                 void* /*security*/) EI_ORIGINAL(0x007022A0)
+// 00702380: MFC's AfxEndThread(exit code, delete the thread object) (__stdcall; does not return).
+__declspec(naked) inline void __stdcall AfxEndThreadOriginal(unsigned /*exitCode*/, int /*deleteThread*/)
+    EI_ORIGINAL(0x00702380)
 // 00637500 / 00637750 (rewritten as CBattleScreenSetup::UseOnUnit / UseAtPoint; through their addresses so the
 // wrappers run): the pending spell or quick item used on `target` (thiscall, RET 0xC: target, quick (low byte), ctrl)
 // or at the point (RET 0x14: x, y, z, unit, quick (low byte)); no result.

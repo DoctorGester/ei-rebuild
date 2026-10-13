@@ -65,7 +65,7 @@ struct LocalArchive {
 
 } // namespace
 
-__declspec(naked) void CParty::ArchiveParty(ChunkArchive*) EI_ORIGINAL(0x006617F0)
+__declspec(naked) void CParty::ArchivePartyThroughHook(ChunkArchive*) EI_ORIGINAL(0x006617F0)
 // 0069BAC0 (rewritten as ItemStock::SaveLists) through its address so its wrapper runs.
 __declspec(naked) void __fastcall SaveStockLists(ItemStock*, void*, void* /*stream*/) EI_ORIGINAL(0x0069BAC0)
 
@@ -94,7 +94,7 @@ void ChunkArchive::SerializeParties(int id, PartyMap* parties, void*) {
             }
             auto* party = static_cast<CParty*>(PartyMapAtOriginal(parties, nullptr, &key));
             if (EnterChunk(2)) {
-                party->ArchiveParty(this);
+                party->ArchivePartyThroughHook(this);
                 LeaveChunk();
             }
         }
@@ -106,7 +106,7 @@ void ChunkArchive::SerializeParties(int id, PartyMap* parties, void*) {
                 LeaveChunk();
             }
             if (EnterChunk(2)) {
-                node->value.Get()->ArchiveParty(this);
+                node->value.Get()->ArchivePartyThroughHook(this);
                 LeaveChunk();
             }
         }

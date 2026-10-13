@@ -24,6 +24,18 @@ void CopyBytes(R* target, const R* source, std::size_t from, std::size_t to) {
 
 } // namespace
 
+// The records' slot 0 (A-H25): the item kind each record makes.
+int __fastcall itemdb::WeaponRecordKind(ItemRecordHead*) { return 0x3004; }
+int __fastcall itemdb::ArmorRecordKind(ItemRecordHead*) { return 0x3005; }
+int __fastcall itemdb::QuickItemRecordKind(ItemRecordHead*) { return 0x3006; }
+int __fastcall itemdb::Record7CKind(ItemRecordHead*) { return 0x3009; }
+int __fastcall itemdb::Record78Kind(ItemRecordHead*) { return 0x3007; }
+EI_REPLACE(0x006A6430, itemdb::WeaponRecordKind);
+EI_REPLACE(0x006A6440, itemdb::ArmorRecordKind);
+EI_REPLACE(0x006A6450, itemdb::QuickItemRecordKind);
+EI_REPLACE(0x006A6460, itemdb::Record7CKind);
+EI_REPLACE(0x006A6470, itemdb::Record78Kind);
+
 ItemRecordHead* ItemRecordHead::Assign(const ItemRecordHead* source) {
     text04 = source->text04;
     text08 = source->text08;
@@ -59,9 +71,63 @@ WeaponRecord* WeaponRecord::AssignWeapon(const WeaponRecord* source) {
 }
 EI_REPLACE_METHOD(0x006A8FB0, WeaponRecord::AssignWeapon);
 
+ItemRecordHead* ItemRecordHead::ConstructBase() {
+    ConstructHead(kBaseVtableAddress);
+    return this;
+}
+EI_REPLACE_METHOD(0x006A63B0, ItemRecordHead::ConstructBase);
+
 void ArmorRecord::CopyOwn(const ArmorRecord* source) {
     CopyBytes(this, source, offsetof(ArmorRecord, category), 0xB4);
 }
+
+// The other kinds' operator= (A-H25), as the weapon's.
+ArmorRecord* ArmorRecord::AssignArmor(const ArmorRecord* source) {
+    Assign(source);
+    CopyOwn(source);
+    return this;
+}
+EI_REPLACE_METHOD(0x006A9370, ArmorRecord::AssignArmor);
+
+QuickItemRecord* QuickItemRecord::AssignQuick(const QuickItemRecord* source) {
+    Assign(source);
+    CopyOwn(source);
+    return this;
+}
+EI_REPLACE_METHOD(0x006A9770, QuickItemRecord::AssignQuick);
+
+QuestItemRecord* QuestItemRecord::AssignQuest(const QuestItemRecord* source) {
+    Assign(source);
+    CopyOwn(source);
+    return this;
+}
+EI_REPLACE_METHOD(0x006AAE40, QuestItemRecord::AssignQuest);
+
+LootItemRecord* LootItemRecord::AssignLoot(const LootItemRecord* source) {
+    Assign(source);
+    CopyOwn(source);
+    return this;
+}
+EI_REPLACE_METHOD(0x006A9DA0, LootItemRecord::AssignLoot);
+
+MaterialRecordHead* MaterialRecordHead::CopyConstruct(const MaterialRecordHead* source) {
+    const auto text = [](const char* const* field) { return reinterpret_cast<const mfc::CString*>(field); };
+    new (&key) mfc::CString(*text(&source->key));
+    new (&soundName) mfc::CString(*text(&source->soundName));
+    new (&name) mfc::CString(*text(&source->name));
+    CopyBytes(this, source, offsetof(MaterialRecordHead, unknown_0C), sizeof(MaterialRecordHead));
+    return this;
+}
+EI_REPLACE_METHOD(0x006A9E40, MaterialRecordHead::CopyConstruct);
+
+template <int Stride>
+char* __fastcall itemdb::RecordTableAt(const RecordTable* table, void*, std::uint32_t index) {
+    return table->At(index, Stride);
+}
+EI_REPLACE(0x006A5950, itemdb::RecordTableAt<kArmorSize>);
+EI_REPLACE(0x006A5990, itemdb::RecordTableAt<kQuickItemSize>);
+EI_REPLACE(0x006A59D0, itemdb::RecordTableAt<kLootSize>);
+EI_REPLACE(0x006A5A10, itemdb::RecordTableAt<kQuestItemSize>);
 
 void QuickItemRecord::CopyOwn(const QuickItemRecord* source) {
     value70 = source->value70;

@@ -41,6 +41,9 @@ struct MapEffect {
     // 00688510 (spell_lifetime.cpp): type, power, ticksLeft, value and ending cleared (unknown_0C
     // not). Returns this.
     MapEffect* Construct();
+    // 00688530 (spell_lifetime.cpp, A-H25; the server object's update). One tick less; whether
+    // any are left (0 / 1).
+    int Tick();
     // 00688550 / 006885A0 (spell_save.cpp; RET 4): type, power, ticksLeft, value and unknown_0C,
     // read or written one by one (`ending` is not saved).
     void Load(CStream* stream);

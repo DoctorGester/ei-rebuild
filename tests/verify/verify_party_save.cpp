@@ -184,3 +184,19 @@ EI_VERIFY(0x00661C10, PartySaveVerify, 6, s_partySave);
 EI_VERIFY(0x006618C0, PartyLoadVerify, 0, s_unused);
 EI_VERIFY(0x00661300, AssignVerify, 0, s_unused);
 EI_VERIFY(0x006613C0, CopyConstructVerify, 0, s_unused);
+
+// --- 006617F0 (A-H25): CParty::ArchiveParty -----------------------------------------------------------
+// It writes a field into the archive or loads the party from one (saving and loading a game: the
+// save scenarios), and SaveParty draws a fresh key each time, so ours only: the archive keeps its
+// direction and version.
+#include "../../src/game/chunk_archive.h"
+
+static void __fastcall ArchivePartyVerify(CParty* self, void*, ChunkArchive* ar) {
+    const std::uint8_t loading = ar->loading_;
+    const std::int32_t version = ar->version_;
+    self->ArchiveParty(ar);
+    ei::verify::Check("CParty::ArchiveParty", true, ar->loading_ == loading && ar->version_ == version, "loading %d",
+                      loading);
+}
+static void* s_archivePartyUnused;
+EI_VERIFY(0x006617F0, ArchivePartyVerify, 0, s_archivePartyUnused);

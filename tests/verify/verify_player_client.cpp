@@ -322,3 +322,18 @@ EI_VERIFY(0x00666F90, ClientNameVerify, 5, s_clientName);
 EI_VERIFY(0x00666FA0, ClientIdVerify, 5, s_clientId);
 EI_VERIFY(0x00666EC0, ConnectionDestructVerify, 0, s_unused);
 EI_VERIFY(0x00666F70, ConnectionDeleteVerify, 0, s_unused);
+
+// 00667B40 (A-H25; every frame of a single-player game: the local server's messages): it appends
+// to the received stream, so ours only: the read position stays, the stream grew by the source's
+// size and ends with its bytes, the source is rewound.
+static void __fastcall AppendReceivedVerify(CPlayerClient* self, void*, BitStream* source) {
+    const std::uint32_t position = self->in_.position_;
+    const std::uint32_t size = self->in_.size_;
+    self->AppendReceived(source);
+    const std::uint32_t added = source->size_;
+    const bool ok = self->in_.position_ == position && self->in_.size_ == size + added && source->position_ == 0 &&
+                    (added == 0 || std::memcmp(self->in_.data_ + size, source->data_, added) == 0);
+    ei::verify::Check("CPlayerClient::AppendReceived", true, ok, "%u + %u -> %u bytes, position %u -> %u", size, added,
+                      self->in_.size_, position, self->in_.position_);
+}
+EI_VERIFY(0x00667B40, AppendReceivedVerify, 0, s_unused);

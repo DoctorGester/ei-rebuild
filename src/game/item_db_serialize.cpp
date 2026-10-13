@@ -22,7 +22,10 @@ void MaterialRecordHead::Serialize(ChunkArchive* ar) {
     ar->CStringField(2, AsCString(&name));
     ar->Field(3, &unknown_0C, 4);
     ar->Field(4, &quality, 4);
-    for (int i = 0; i < 6; ++i) ar->Field(5 + i, &unknown_14[i], 4);
+    ar->Field(5, &unknown_14, 4);
+    ar->Field(6, &magicPower, 4);
+    ar->Field(7, &magicLevel, 4);
+    for (int i = 0; i < 3; ++i) ar->Field(8 + i, &unknown_20[i], 4);
     ar->Field(11, unknown_2C, sizeof(unknown_2C));
     ar->Field(12, &unknown_48, 4);
     ar->Field(13, &unknown_4C, 4);

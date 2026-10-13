@@ -89,6 +89,9 @@ struct PartyUnitRecord {
     // 00664950 (RET 4). operator=: the strings assigned, everything else copied (the item lists'
     // pointers too: the lists are shared, not copied). Returns this.
     PartyUnitRecord* Assign(const PartyUnitRecord* source);
+    // 00660840 (party_items.cpp, A-H25). The weights (CItem +0x34) of the entries of the four
+    // lists added up: weapons, quick items, spells, armour (empty entries skipped). In ST0.
+    float CarriedWeight() const;
 
     // 0065F9B0 (RET 4; party_save.cpp). ClearItems and the defaults, then texts 0, 2-5 (text 6
     // becomes a copy of text 5), +0x1C, the stats (005287A0), +0x724..0x72F and the four lists

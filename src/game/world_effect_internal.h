@@ -163,7 +163,8 @@ inline void WriteCopy(void* stream, const void* field) {
 
 // --- MFC strings --------------------------------------------------------------------------------
 
-// 006773A0: reads a count and that many CStrings from a save stream, appending them (ECX array, EDX stream).
+// 006773A0 (ReadSavedStrings, world_effect.cpp; through its address so its wrapper runs): reads a
+// count and that many CStrings from a save stream, appending them (ECX array, EDX stream).
 __declspec(naked) inline void __fastcall ReadStringArray(mfc::CStringArray*, void* /*stream*/) EI_ORIGINAL(0x006773A0)
 // 004E5840: reads a CString from a save stream (thiscall on the stream).
 inline void __fastcall ReadStreamCString(void* a0, void*, void* a2) { StreamReadCStringOriginal(a0, nullptr, a2); }

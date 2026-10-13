@@ -945,3 +945,15 @@ int CPlayerClient::OnPartyState() {
     return 1;
 }
 EI_REPLACE_METHOD(0x00668C50, CPlayerClient::OnPartyState);
+
+// --- 00667B40 (A-H25): messages appended to the received stream ---------------------------------------
+
+void CPlayerClient::AppendReceived(BitStream* source) {
+    const std::uint32_t position = in_.Position();
+    in_.Seek(in_.Size());
+    in_.EndBits();
+    source->Seek(0);
+    in_.Write(source->data_, source->Size());
+    in_.Seek(position);
+}
+EI_REPLACE_METHOD(0x00667B40, CPlayerClient::AppendReceived);

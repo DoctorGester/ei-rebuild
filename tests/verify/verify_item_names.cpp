@@ -74,3 +74,8 @@ static bool __fastcall WeaponBaseFigureVerify(std::uint32_t index, mfc::CString*
     return expected;
 }
 EI_VERIFY(0x006A0CC0, WeaponBaseFigureVerify, 5, s_weaponBaseFigure);
+
+// A-H25. 006A58E0 (PUSH ECX; PUSH ESI; MOV ESI,[ESP+0xC]: 6), the scroll's picture name (the camp's
+// and the trader's item pictures: ui_camp, spells_hero).
+EI_NAME_WRAPPER(CItemSpell, PictureName)
+EI_VERIFY(0x006A58E0, CItemSpellPictureNameVerify, 6, s_CItemSpellPictureName);

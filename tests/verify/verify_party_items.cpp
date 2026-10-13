@@ -214,3 +214,54 @@ static void __fastcall ArmorModelNameVerify(mfc::CString* out, std::uint32_t arm
                       materialIndex, static_cast<const char*>(expected), static_cast<const char*>(*out));
 }
 EI_VERIFY(0x006A3480, ArmorModelNameVerify, 8, s_armorModelName);
+
+// A-H25. 006A0AA0 (as 006A3480: 8 bytes), the weapon's texture name by indices: pure, the original
+// into a scratch CString. 006A0BF0 (PUSH ECX; MOV EAX,[EDX+0xC]; PUSH EBX; PUSH EBP; PUSH ESI: 7),
+// from the records: the same, compared for the types that have a code (another type's code is the
+// bytes of the result's address, which differ between the two calls). Reached when a unit holding
+// a weapon is dressed (units, models, ui_camp).
+static void(__fastcall* s_weaponModelName)(mfc::CString*, std::uint32_t, std::uint32_t);
+static void __fastcall WeaponModelNameVerify(mfc::CString* out, std::uint32_t weaponIndex, std::uint32_t materialIndex) {
+    mfc::CString expected;
+    s_weaponModelName(&expected, weaponIndex, materialIndex);
+    WeaponModelName(out, weaponIndex, materialIndex);
+    ei::verify::Check("WeaponModelName", true, std::strcmp(expected, *out) == 0, "%u / %u: '%s' vs '%s'", weaponIndex,
+                      materialIndex, static_cast<const char*>(expected), static_cast<const char*>(*out));
+}
+EI_VERIFY(0x006A0AA0, WeaponModelNameVerify, 8, s_weaponModelName);
+
+static void(__fastcall* s_weaponRecordModelName)(mfc::CString*, const itemdb::WeaponRecord*, const itemdb::MaterialRecordHead*);
+static void __fastcall WeaponRecordModelNameVerify(mfc::CString* out, const itemdb::WeaponRecord* weapon,
+                                                   const itemdb::MaterialRecordHead* material) {
+    mfc::CString expected;
+    s_weaponRecordModelName(&expected, weapon, material);
+    WeaponRecordModelName(out, weapon, material);
+    if (static_cast<std::uint32_t>(weapon->type) > 6) return;
+    ei::verify::Check("WeaponRecordModelName", true, std::strcmp(expected, *out) == 0, "type %d: '%s' vs '%s'",
+                      weapon->type, static_cast<const char*>(expected), static_cast<const char*>(*out));
+}
+EI_VERIFY(0x006A0BF0, WeaponRecordModelNameVerify, 7, s_weaponRecordModelName);
+
+// --- 00660840 (A-H25): the carried weight ----------------------------------------------------------
+// Pure (the hero's panel in the camp and the shop draws it: ui_main_menu's new game, the camp
+// scenarios): compared against the original, which leaves the sum in ST0.
+// 00660840: MOV EDX,[ECX+0x734] (6 bytes).
+static bool WeightIsNaN(float value) {
+    std::uint32_t bits;
+    std::memcpy(&bits, &value, sizeof(bits));
+    return (bits & 0x7F800000u) == 0x7F800000u && (bits & 0x007FFFFFu) != 0;
+}
+static double(__fastcall* s_carriedWeight)(const PartyUnitRecord*);
+static double __fastcall CarriedWeightVerify(const PartyUnitRecord* self) {
+    const double expected = s_carriedWeight(self);
+    const float expectedFloat = static_cast<float>(expected);
+    const float actual = self->CarriedWeight();
+    if (WeightIsNaN(expectedFloat) || WeightIsNaN(actual)) {
+        ei::verify::Check("PartyUnitRecord::CarriedWeight", WeightIsNaN(expectedFloat), WeightIsNaN(actual), "not a number");
+    } else {
+        ei::verify::CheckNear("PartyUnitRecord::CarriedWeight", expectedFloat, actual, "%u + %u + %u + %u items",
+                              self->weaponCount, self->quickItemCount, self->spellCount, self->armorCount);
+    }
+    return expected;
+}
+EI_VERIFY(0x00660840, CarriedWeightVerify, 6, s_carriedWeight);

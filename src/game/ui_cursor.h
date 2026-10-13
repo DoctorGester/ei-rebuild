@@ -15,13 +15,37 @@
 class CTextureDevice;
 struct CDXSurface;
 
-// The DirectInput mouse (the class of 0065EAD0): only its poll is used here.
+struct IDirectInput7A;
+struct IDirectInputDevice7A;
+
+// The DirectInput mouse (*0079BA08, vtable 0073C350; made by the application's start 00456440,
+// which also sets it up). 0x20 bytes. input_mouse.cpp (A-H25).
 class CDirectInputMouse {
 public:
-    // 0065ECB0 (RET 4; not rewritten). Reads the device state (DIMOUSESTATE: lX, lY, lZ, buttons;
-    // zeroed when the read fails) into the object and returns it. The argument is not read.
-    const LONG* Poll(int unused) { return DirectInputMousePollOriginal(this, nullptr, unused); }
+    // 0065EAD0 (RET 8). DirectInput 7 for `instance`, its system mouse device with the mouse data
+    // format, non-exclusive in the background for `window`, acquired (a failed Acquire is reported
+    // and passed over). Each other failure is reported (FatalErrorCode) and gives its result as
+    // 0 / 1; success sets only AL.
+    int Setup(HWND window, HINSTANCE instance);
+    // 0065EC30. The device unacquired and released, DirectInput released.
+    void Shutdown();
+    // 0065EC70 (RET 4; sets only AL unless Acquire fails). Acquires or unacquires the device with
+    // the window's activation; 0 without a device, the report's result as 0 / 1 when Acquire fails.
+    int SetActive(char active);
+    // 0065ECB0 (RET 4). Reads the device state (DIMOUSESTATE: lX, lY, lZ, buttons; zeroed when the
+    // read fails) into the object and returns it. The argument is not read. PollThroughHook goes
+    // through the address so the wrapper runs.
+    const LONG* Poll(int unused);
+    const LONG* PollThroughHook(int unused) { return DirectInputMousePollOriginal(this, nullptr, unused); }
+
+    void* vtable_;                   // +0x00
+    std::uint32_t unknown_04;        // +0x04
+    IDirectInput7A* input_;          // +0x08 counted
+    IDirectInputDevice7A* device_;   // +0x0C counted
+    LONG state_[4];                  // +0x10 DIMOUSESTATE
 };
+static_assert(offsetof(CDirectInputMouse, device_) == 0x0C);
+static_assert(sizeof(CDirectInputMouse) == 0x20);
 
 // The cursor's image (what +0x10 points at; made by 005E4EB0 for every cursor shape, from 005E63F0):
 // its surface holder (the picture: `frames` square frames side by side), a frame's size, the frame

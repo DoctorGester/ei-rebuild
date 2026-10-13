@@ -88,3 +88,19 @@ EI_VERIFY(0x006A3070, ArmorInitVerify, 6, s_armorInit);
 EI_VERIFY(0x006A3BE0, QuickInitVerify, 7, s_quickInit);
 EI_VERIFY(0x006A44D0, QuestInitVerify, 7, s_questInit);
 EI_VERIFY(0x006A4AB0, LootInitVerify, 7, s_lootInit);
+
+// A-H25. 006A43C0 (MOV EAX,[ESP+4]; MOV ECX,[ECX+0x4C]: 7), the quest item's slot 21: pure, the
+// original into the caller's triple, ours into a local.
+namespace {
+ItemUse*(__fastcall* s_questUse)(CItemQuest*, void*, ItemUse*);
+ItemUse* __fastcall QuestUseVerify(CItemQuest* self, void*, ItemUse* out) {
+    ItemUse* expected = s_questUse(self, nullptr, out);
+    ItemUse ours{~0u, ~0u, ~0u};
+    ItemUse* result = self->GetUse(&ours);
+    ei::verify::Check("CItemQuest::GetUse", true,
+                      expected == out && result == &ours && std::memcmp(out, &ours, sizeof(ours)) == 0,
+                      "%u %u %u vs %u %u %u", out->kind, out->value, out->extra, ours.kind, ours.value, ours.extra);
+    return expected;
+}
+} // namespace
+EI_VERIFY(0x006A43C0, QuestUseVerify, 7, s_questUse);

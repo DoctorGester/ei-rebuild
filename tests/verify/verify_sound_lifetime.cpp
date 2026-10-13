@@ -177,6 +177,7 @@ EI_VERIFY(0x006B4E20, MusicFadeInVerify, 0, s_unused);
 // A-H15: the sound manager's constructor / destructor body (startup / exit) and the stream reset
 // 006BA9C0 (Reset 006B73E0 at startup and every zone load, the stream close 006BAC90): ours only.
 void __fastcall SoundResetStream(void* stream);
+void __stdcall SoundEndOfSample(void* sample);
 namespace {
 CSoundManager* __fastcall SoundConstructVerify(CSoundManager* self) {
     CSoundManager* result = self->Construct();
@@ -242,7 +243,70 @@ void __fastcall SoundResetVerify(CSoundManager* self) {
     self->Reset();
     ei::verify::Check("CSoundManager::Reset", true, ResetState(self), "manager %p", self);
 }
+// A-H25: the MP3 stream's open (Open, so every start with sound on) and close (only when the
+// codec or a sample cannot be had: no scenario). They take and give back Miles samples and
+// memory: ours only, the state they leave.
+bool StreamClosed(const CSoundManager* m) {
+    return m->streamState == 0 && m->streamSample == nullptr && m->streamDecoder == nullptr && m->streamFile == nullptr &&
+           m->streamCodec == nullptr && m->streamBuffers[0] == nullptr && m->streamBuffers[1] == nullptr &&
+           m->streamBuffers[2] == nullptr && m->streamBufferSize == -1 && m->switchMode == 4;
+}
+bool StreamOpened(const CSoundManager* m) {
+    bool ok = m->streamState == 0 && m->streamSample != nullptr && m->streamDecoder != nullptr && m->streamCodec != nullptr &&
+              m->streamBufferSize > 0 && m->streamHalfBuffer[0] == 0 && m->streamHalfBuffer[1] == 1 &&
+              m->streamSpareBuffer == 2 &&
+              m->streamPosition == 0 && m->musicFader.factor == 1.0f && m->musicFader.mode == 0 &&
+              m->musicFader.finished == 0 && m->musicFader.holdUntil == 0 && m->musicFader.level >= 0 &&
+              m->musicFader.level <= 127;
+    for (void* buffer : m->streamBuffers) {
+        if (buffer == nullptr || !ok) return false;
+        const auto* bytes = static_cast<const std::uint8_t*>(buffer);
+        ok = bytes[0] == 0 && bytes[m->streamBufferSize - 1] == 0;
+    }
+    return ok;
+}
+CSoundManager* ManagerOfStream(void* stream) {
+    return reinterpret_cast<CSoundManager*>(static_cast<char*>(stream) - offsetof(CSoundManager, streamState));
+}
+int __fastcall SoundOpenStreamVerify(void* stream, void*, void* driver) {
+    CSoundManager* m = ManagerOfStream(stream);
+    int result = m->OpenStream(driver);
+    bool ok = result == 1 ? StreamOpened(m) : result == 0 && StreamClosed(m);
+    ei::verify::Check("CSoundManager::OpenStream", true, ok, "result %d buffers of %d level %d", result, m->streamBufferSize,
+                      m->musicFader.level);
+    return result;
+}
+int __fastcall SoundCloseStreamVerify(void* stream) {
+    CSoundManager* m = ManagerOfStream(stream);
+    int result = m->CloseStream();
+    ei::verify::Check("CSoundManager::CloseStream", true, result == 0 && StreamClosed(m), "result %d", result);
+    return result;
+}
+// 006BB910 (A-H25; the stream thread, started by Open at every start with sound on). It loops
+// until the game closes the sound and then ends its thread, so there is nothing to compare: ours
+// only, and what it starts from is checked (an opened stream whose three buffers are told apart).
+void __fastcall StreamThreadVerify(CSoundManager* self) {
+    auto bit = [](int buffer) { return buffer >= 0 && buffer <= 2 ? 1 << buffer : 0; };
+    int order = bit(self->streamHalfBuffer[0]) | bit(self->streamHalfBuffer[1]) | bit(self->streamSpareBuffer);
+    bool ok = self->streamSample != nullptr && self->streamBuffers[0] != nullptr && self->streamBuffers[1] != nullptr &&
+              self->streamBuffers[2] != nullptr && self->streamBufferSize > 0 && order == 7;
+    ei::verify::Check("CSoundManager::StreamThread", true, ok, "sample %p buffers of %d order %d", self->streamSample,
+                      self->streamBufferSize, order);
+    self->StreamThread();
+}
+// 006B75E0 (A-H25; Miles' thread, whenever a voice plays to its end): ours only. The voice it
+// marks is the sample's; the mark itself is not checked (the game's thread takes it at once).
+void __stdcall EndOfSampleVerify(void* sample) {
+    SoundEndOfSample(sample);
+    using UserDataFn = std::intptr_t(__stdcall*)(void*, unsigned);
+    auto* slot = reinterpret_cast<SoundSlot*>((*reinterpret_cast<UserDataFn*>(std::uintptr_t(0x0073B7B4)))(sample, 1));
+    ei::verify::Check("SoundEndOfSample", true, slot != nullptr && slot->sample == sample, "sample %p slot %p", sample, slot);
+}
 } // namespace
+EI_VERIFY(0x006BB910, StreamThreadVerify, 0, s_unused);
+EI_VERIFY(0x006B75E0, EndOfSampleVerify, 0, s_unused);
+EI_VERIFY(0x006BAAC0, SoundOpenStreamVerify, 0, s_unused);
+EI_VERIFY(0x006BAC90, SoundCloseStreamVerify, 0, s_unused);
 EI_VERIFY(0x006B6A30, SoundOpenVerify, 0, s_unused);
 EI_VERIFY(0x006B6D80, SoundCloseVerify, 0, s_unused);
 EI_VERIFY(0x006B73E0, SoundResetVerify, 0, s_unused);

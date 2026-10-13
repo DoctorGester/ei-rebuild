@@ -153,3 +153,38 @@ EI_VERIFY(0x006A3B10, DeletingVerify, 0, s_unused);
 EI_VERIFY(0x006A4400, DeletingVerify, 0, s_unused);
 EI_VERIFY(0x006A49E0, DeletingVerify, 0, s_unused);
 EI_VERIFY(0x006A5720, DeletingVerify, 0, s_unused);
+
+// A-H25. The item manager's Create (slot 2: a world's or party's item manager set up) and its
+// factory (slot 14: every item made that no spare covers). Ours only: Create empties the tables,
+// the factory allocates; a new item reports the kind's class and carries the kind in type_.
+namespace {
+BOOL __fastcall ManagerCreateVerify(CItemManager* self) {
+    BOOL result = ItemManagerCreate(self);
+    ei::verify::Check("ItemManagerCreate", true, result == 0 || result == 1, "manager %p -> %d", static_cast<void*>(self),
+                      result);
+    return result;
+}
+
+int ClassOfKind(int kind) {
+    switch (kind) {
+    case 0x3004: return 0x11;
+    case 0x3005: return 0x12;
+    case 0x3006: return 0x13;
+    case 0x3007: return 0x15;
+    case 0x3008: return 0x16;
+    case 0x3009: return 0x14;
+    default: return -1;
+    }
+}
+
+CEngineObject* __fastcall NewObjectVerify(CBaseManager* manager, void*, int kind) {
+    CEngineObject* object = ItemNewObject(manager, nullptr, kind);
+    const int expectedClass = ClassOfKind(kind);
+    const bool ok = expectedClass < 0 ? object == nullptr
+                                      : object == nullptr || (object->type_ == kind && object->GetClassId() == expectedClass);
+    ei::verify::Check("ItemNewObject", true, ok, "kind %X object %p", kind, static_cast<void*>(object));
+    return object;
+}
+} // namespace
+EI_VERIFY(0x006AC780, ManagerCreateVerify, 0, s_unused);
+EI_VERIFY(0x006AC810, NewObjectVerify, 0, s_unused);

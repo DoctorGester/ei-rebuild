@@ -559,3 +559,57 @@ static void __fastcall SaveListsVerify(ItemStock* self, void*, void* stream) {
 }
 // 0069BAC0: PUSH -1; PUSH 007337C8 (7).
 EI_VERIFY(0x0069BAC0, SaveListsVerify, 7, s_saveLists);
+
+// --- A-H25: the list adds (00699080..00699260) -----------------------------------------------------
+// They grow STLport vectors: ours only. The record is in the list exactly once afterwards, the list
+// one longer only when it was not there; a material entry has the range and the units asked for.
+// Reached by ClassTemplateFill (004A7080: every new game).
+namespace {
+
+void* s_unusedAdd;
+
+template <StockPtrVector ItemStock::*List, void (ItemStock::*Ours)(char*)>
+struct AddCheck {
+static void __fastcall Verify(ItemStock* self, void*, char* record) {
+    StockPtrVector& list = self->*List;
+    std::size_t before = list.size();
+    std::size_t had = 0;
+    for (char** p = list.start; p != list.finish; ++p) had += *p == record;
+    (self->*Ours)(record);
+    std::size_t has = 0;
+    for (char** p = list.start; p != list.finish; ++p) has += *p == record;
+    bool ok = record ? has == (had ? had : 1) && list.size() == before + (had ? 0 : 1)
+                     : list.size() == before;
+    ei::verify::Check("ItemStock list add", true, ok, "record %p: %u -> %u entries", record,
+                      static_cast<unsigned>(before), static_cast<unsigned>(list.size()));
+}
+};
+using AddArmorCheck = AddCheck<&ItemStock::armors, &ItemStock::AddArmor>;
+using AddWeaponCheck = AddCheck<&ItemStock::weapons, &ItemStock::AddWeapon>;
+using AddQuickItemCheck = AddCheck<&ItemStock::quickItems, &ItemStock::AddQuickItem>;
+using AddSpellCheck = AddCheck<&ItemStock::spells, &ItemStock::AddSpell>;
+using AddModifierCheck = AddCheck<&ItemStock::modifiers, &ItemStock::AddModifier>;
+
+void __fastcall AddMaterialVerify(ItemStock* self, void*, char* record, int minCount, int maxCount) {
+    std::size_t before = self->materials.size();
+    bool had = false;
+    for (StockMaterial* e = self->materials.start; e != self->materials.finish; ++e) had = had || e->record == record;
+    self->AddMaterial(record, minCount, maxCount);
+    bool ok = self->materials.size() == before + (record && !had ? 1 : 0);
+    if (record) {
+        const StockMaterial* found = nullptr;
+        for (StockMaterial* e = self->materials.start; e != self->materials.finish && !found; ++e)
+            if (e->record == record) found = e;
+        ok = ok && found && found->minCount == minCount && found->maxCount == maxCount && found->left == maxCount;
+    }
+    ei::verify::Check("ItemStock::AddMaterial", true, ok, "record %p [%d, %d]: %u -> %u entries", record, minCount,
+                      maxCount, static_cast<unsigned>(before), static_cast<unsigned>(self->materials.size()));
+}
+
+} // namespace
+EI_VERIFY(0x00699080, AddArmorCheck::Verify, 0, s_unusedAdd);
+EI_VERIFY(0x006990E0, AddWeaponCheck::Verify, 0, s_unusedAdd);
+EI_VERIFY(0x00699140, AddQuickItemCheck::Verify, 0, s_unusedAdd);
+EI_VERIFY(0x006991A0, AddSpellCheck::Verify, 0, s_unusedAdd);
+EI_VERIFY(0x00699200, AddModifierCheck::Verify, 0, s_unusedAdd);
+EI_VERIFY(0x00699260, AddMaterialVerify, 0, s_unusedAdd);

@@ -27,6 +27,7 @@
 #include <cstdint>
 
 class CItemInfoPanel;
+class CMappedResource;
 class CParty;
 
 // Offset of the input sub-object (the second vtable) inside every window.
@@ -723,6 +724,20 @@ struct MpHeroRecord {
 };
 static_assert(sizeof(MpHeroRecord) == kMpHeroSize);
 
+// The multiplayer heroes (007C82A0; constructed by the static initialiser 0065F580): their folder,
+// the records (MpHeroes() above) and the current hero.
+struct MpHeroRoster {
+    // 00662F80 (RET 4; ui_hero_screen_click.cpp, A-H25). `hero` becomes the current one
+    // (MpHeroRecord's assignment, inlined in the original).
+    void Select(const MpHeroRecord* hero);
+
+    mfc::CString folder;                    // +0x00
+    stlp::vector<MpHeroRecord> records;     // +0x04
+    MpHeroRecord current;                   // +0x10
+};
+static_assert(offsetof(MpHeroRoster, records) == 0x04 && offsetof(MpHeroRoster, current) == 0x10 &&
+              sizeof(MpHeroRoster) == 0x84);
+
 // --- In-game escape menu ----------------------------------------------------------------------
 //
 // Opened by Esc during a game (vtables 00741270/007412A4). Regions, built from the EscMenu layout
@@ -762,15 +777,34 @@ struct TitleLine {
 };
 static_assert(sizeof(TitleLine) == 0x10);
 
-// The titles' scrolling text surface (0x58 bytes, constructor 0065ED30; not rewritten).
+// The titles' scrolling text surface (0x58 bytes, vtable 00742FD8: slot 0 Draw, slot 1 the deleting
+// destructor; ui_scrolling_surface.cpp).
 class CUiScrollingSurface : public CUiSurface {
 public:
-    // 0065EF30 (RET 8). Loads the text file `name` of `archive` (a CMappedResource) into the
-    // surface; whether it was found.
-    bool Load(void* archive, const char* name);
+    // 0065ED30 (RET 8). A surface of format 5 over the layout rectangle; "Riched20.dll" loaded and
+    // a hidden multi-line "RichEdit20A" child of the game window created; white background, the
+    // offsets and the speed 0 (startTime_ and textLength_ are left as they were). Returns this.
+    CUiScrollingSurface* Construct(CInterface3D* ui, const RECT* rect);
+    // 0065EDE0. Destructor body: the control destroyed, the library freed, the surface released.
+    void DestructBody();
+    // 0065EDC0 (slot 1, RET 4).
+    CUiScrollingSurface* DeletingDestruct(unsigned deleteFlags);
+    // 0065EF30 (RET 8). Loads the text file `name` of `archive` into the surface (LoadRtf) and
+    // closes it; whether it was found.
+    bool Load(CMappedResource* archive, const char* name);
+    // 0065EF80 (RET 8). Streams the RTF block into the control (EM_STREAMIN; the character count
+    // into textLength_), the offset 0, the text rendered. Returns true.
+    bool LoadRtf(const void* data, std::uint32_t size);
+    // 0065F170 (slot 0). While the speed is not 0 the offset moves by the game time passed times
+    // the speed (truncated) and the text is rendered again; then the surface's own draw (005FDA80).
+    void Draw();
     // 0065F1C0 (RET 8). Starts the text at `speed` (0: still), from below the surface when
-    // `fromBelow`; the start time is the game time.
+    // `fromBelow` (the offset minus the surface's height in twips; the DC taken and released for
+    // its resolution); the end offset 0, the start time the game time.
     void Start(float speed, char fromBelow);
+    // Load and Start through their addresses (the checks run): ui_credits.cpp.
+    bool LoadThroughHook(void* archive, const char* name);
+    void StartThroughHook(float speed, char fromBelow);
     // 0065F020 (ui_scrolling_surface.cpp, A-H17). Renders the RichEdit's text into the surface:
     // the DC held, the surface cleared, the background colour (+0x34) set (EM_SETBKGNDCOLOR), the
     // whole text formatted (EM_FORMATRANGE) into the surface's size in twips shifted by the scroll
@@ -786,7 +820,9 @@ public:
     float speed_;               // +0x48 0 once the text has scrolled through
     int textLength_;            // +0x4C characters (set when the text is loaded)
     int endOffset_;             // +0x50 offset_ when the end of the text came into view (0: not yet)
-    std::uint8_t unknown_54[0x58 - 0x54];
+    HMODULE richEditLibrary_;   // +0x54 "Riched20.dll" (null when it did not load)
+
+    static constexpr std::uintptr_t kScrollingVtableAddress = std::uintptr_t(0x00742FD8);
 };
 static_assert(offsetof(CUiScrollingSurface, richEdit_) == 0x38);
 static_assert(offsetof(CUiScrollingSurface, endOffset_) == 0x50);

@@ -37,10 +37,10 @@ DisplayColour* Display() { return static_cast<DisplayColour*>(DisplayObject()); 
 
 } // namespace
 
-// --- 0065EF30 / 0065F1C0: the scrolling surface (not rewritten) ---------------------------------------
+// --- 0065EF30 / 0065F1C0: the scrolling surface (ui_scrolling_surface.cpp), through their addresses ---
 
-__declspec(naked) bool CUiScrollingSurface::Load(void*, const char*) EI_ORIGINAL(0x0065EF30)
-__declspec(naked) void CUiScrollingSurface::Start(float, char) EI_ORIGINAL(0x0065F1C0)
+__declspec(naked) bool CUiScrollingSurface::LoadThroughHook(void*, const char*) EI_ORIGINAL(0x0065EF30)
+__declspec(naked) void CUiScrollingSurface::StartThroughHook(float, char) EI_ORIGINAL(0x0065F1C0)
 
 // --- 0062BCB0: a script line's destructor ---------------------------------------------------------
 
@@ -61,10 +61,10 @@ BOOL CCreditsScreen::Draw(int pass) {
             finished_ = true;
         } else {
             const TitleLine& line = currentLine_->data;
-            textSurface_->Load(archive_, line.style);
-            textSurface_->Start(0.0f, 0);
+            textSurface_->LoadThroughHook(archive_, line.style);
+            textSurface_->StartThroughHook(0.0f, 0);
             if (line.scroll) {
-                textSurface_->Start(line.speed, 1);
+                textSurface_->StartThroughHook(line.speed, 1);
                 SurfaceGetDC(headerSurface_);
                 SurfaceClearOriginal(headerSurface_);
                 RECT rect = {0, 0, 0, 0};

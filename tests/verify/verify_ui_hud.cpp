@@ -531,3 +531,11 @@ static void __fastcall OrderAtVerify(CBattleScreen* self, void*, float x, float 
                       *reinterpret_cast<int*>(bytes + 0x188));
 }
 EI_VERIFY(0x00636F10, OrderAtVerify, 0, s_unused);
+
+// 00648F10 (A-H25; a click on the clock's objectives button, from the Rebirth-patched 00648D70):
+// plays a sound and opens a window, so ours only: the pause button no longer pulses.
+static void __fastcall ClockOpenObjectivesVerify(CHudClock* self) {
+    self->CHudClock::OpenObjectives();
+    ei::verify::Check("CHudClock::OpenObjectives", false, self->highlight_, "clock %p", static_cast<void*>(self));
+}
+EI_VERIFY(0x00648F10, ClockOpenObjectivesVerify, 0, s_unused);

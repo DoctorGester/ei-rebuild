@@ -65,6 +65,15 @@ public:
     // The base destructor every effect destructor inlines: the state field's streams, then the
     // transform object's vtable and CEngineObject's destructor body (00455930).
     void DestructEffect();
+    // 0067B050. ConstructEffect out of line (the original's CEffectArrow constructor builds its
+    // embedded light and sound with it); returns this.
+    CEffect* Construct();
+    // 00676910 / 0067B430 (slot 0 of the abstract effect and missile vtables, which no live object
+    // has): DestructEffect (out of line at 00675FB0 / 0067B390, otherwise reached only from unwind
+    // funclets), then operator delete when bit 0 of `flags` is set.
+    CEffect* DeletingDestructEffect(unsigned flags);
+    // 00676900 (slot 6 of the base and of CEffectAmbientSound). 1: the effect stays.
+    int TickDefault();
 
     std::uint8_t unknown_54[0x94 - 0x54];
     int startTick_;            // +0x94 game tick the effect began (particles: warm-up and lifetime)
@@ -73,6 +82,9 @@ public:
     DeltaField state_;         // +0xA8 the replicated state (see net_delta.h)
     int changeStamp_;          // +0x148 global 007AFFC8 when last changed, -1 after Reset
 };
+// 006773A0 (ECX array, EDX stream; world_effect.cpp). Reads a count and that many strings
+// (CStream::ReadString) from a save stream, each appended to `array`.
+void __fastcall ReadSavedStrings(mfc::CStringArray* array, CStream* stream);
 static_assert(offsetof(CEffect, startTick_) == 0x94);
 static_assert(offsetof(CEffect, state_) == 0xA8);
 static_assert(sizeof(CEffect) == 0x14C);
@@ -286,6 +298,9 @@ public:
     int Steer();
     // 0067AC70. A new target: arrived_ cleared.
     void SetTarget(int objectId);
+    // 0067AA00 (slot 18 of the abstract missile vtable; the subclasses' Reset inline it).
+    // ResetBase, not arrived, no target, not from the caster.
+    void ResetMissile();
 
     int arrived_;              // +0x14C
     int targetId_;             // +0x150 world object id, -1: none
