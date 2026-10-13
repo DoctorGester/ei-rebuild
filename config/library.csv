@@ -2891,14 +2891,19 @@ address,name,library,signature,notes
 005E24E0,stlp::list<T>::insert,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 005E2520,"stlp::hashtable<V,K,HF,ExK,EqK,A>::_M_new_node",STLport,,inventory sweep: 24-byte node from the free list 0079B22C; loose-family member of 0040AE70 (reviewed)
 005E25B0,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 10 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
+005E38F0,"CFont::~CFont (inline: vtable 007463D4, then CGdiObject::DeleteObject 0070A0CC)",MFC,,"A-I22: MFC inline destructor emitted in the game's range; called by the library's scalar deleting destructor 006E6963 and by exception unwind funclets (00728FB0, 00729220, 0072C768, 0072F3B0, 0072FC30) only"
+005E3980,"stlp::list<ChatLine>::~list (every node's value destroyed through 005E2670, nodes and the sentinel back to the 0x18-byte free list 0079B22C)",STLport,,"A-I22: compiler-generated container destructor; reached only from exception unwind funclets (00728E18, 00728E58)"
+005E3A10,"stlp::list<ChatLine>::insert(iterator, const T& = T()) (a default ChatLine built on the stack, 005E3B20 links the node, the temporary destroyed; RET 8)",STLport,,"A-I22: container plumbing; one caller, the chat overlay's AddLine 005E2A30, whose rewrite inserts through stlp::list"
 005E3AD0,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 27 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 005E3B20,stlp::list<T>::insert,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 005E3B50,stlp::list<T>::iterator copy,STLport,,A-I15 sweep: identical instruction stream to 0040A950 (code addresses masked)
+005E3B60,"stlp::list<ChatLine>::_M_create_node (0x18-byte node from the free list 0079B22C or a chunk of 20, the value copy-constructed: two CStrings and two dwords; RET 4)",STLport,,"A-I22: container plumbing; called only by the library insert 005E3B20"
 005E67F0,"RefPtr<T>::~RefPtr (decrement, slot 0 with 1 at zero; reached only from exception unwind funclet 00729240)",STLport,,"A-I18: compiler-generated smart pointer destructor, EH unwinding only"
 005EBBE0,"CArray<TYPE,ARG_TYPE> destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 007402AC (GetRuntimeClass 007005E3, Serialize 005EBC00 identified); touches no other vtable; callees library only"
 005EBC00,"CArray<TYPE,ARG_TYPE>::Serialize",MFC,,inventory sweep: CArchive::WriteCount/ReadCount + inlined SetSize + SerializeElements (CArchive::Read/Write); loose-family member of 004511F0 (reviewed)
 005EBD90,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 007402AC (GetRuntimeClass 007005E3, Serialize 005EBC00 identified); touches no other vtable; callees library only"
 005EBDB0,"CArray<TYPE,ARG_TYPE>::SetSize",MFC,,"inventory sweep: MFC SetSize: nGrowBy update, delete/new[] buffer, ConstructElements/DestructElements, grow by max(4,min(1024,n/8)); loose-family member of 00453790 (reviewed)"
+005EC9F0,"CRect::CRect(int l, int t, int r, int b)",MFC,,"A-I22: MFC inline constructor emitted out of line (four stores, returns this; RET 0x10); Ghidra's function ID names it CRect; callers 005EC7D0, 005EC8BC, 0062F1DC, 0063BF18 build temporaries with it"
 005F3000,"stlp::map<stlp::string,T>::operator[] (lower_bound by length-limited byte compare, insert of a default pair)",STLport,,"A-I18: called by the item description code 005ECA10 / 005ED7B0; container plumbing"
 005F3140,stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection),STLport,,A-I15 sweep: identical instruction stream to 00437D40 (code addresses masked)
 005F3160,stlp::list<T>::iterator copy,STLport,,A-I15 sweep: identical instruction stream to 0040A950 (code addresses masked)
@@ -2994,6 +2999,7 @@ address,name,library,signature,notes
 005FAB80,"stlp::_Rb_tree<K,V,KoV,C,A>::insert_unique(iterator,const value_type&)",STLport,,inventory sweep: hinted insert (_mbscmp key compare); loose-family member of 005E0E90 (reviewed)
 005FAE90,stlp container instantiation (list / _Rb_tree / map / pair plumbing of Connection),STLport,,A-I15 sweep: identical instruction stream to 0043C3A0 (code addresses masked)
 005FAEA0,"stlp::map<CString,int>::find (lower_bound by _mbscmp; the interface help topics, OpenHelp 005F86F0)",STLport,,"A-I18: container plumbing"
+005FAF30,"stlp::_Rb_tree<CString,pair<const CString,int>,...>::lower_bound (walks left / right by _mbscmp 006E848B; RET 8, the iterator written to the first argument)",STLport,,"A-I22: container plumbing of the interface's help topic map (CInterface3D +0x98); callers 005F86F0 and the library operator[] 0065A770"
 005FAF80,"CArray<TYPE,ARG_TYPE> constructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 007402AC (GetRuntimeClass 007005E3, Serialize 005EBC00 identified); touches no other vtable; callees library only"
 005FAFA0,"stlp::_Rb_tree<K,V,KoV,C,A>::_M_erase",STLport,,"inventory sweep: recursive right subtree, iterative left; nodes back to the free list 0079B22C; loose-family member of 0043BB70 (reviewed)"
 005FAFF0,"stlp::_Rb_tree<K,V,KoV,C,A>::_M_erase",STLport,,"inventory sweep: recursive right subtree, iterative left; nodes back to the free list 0079B22C; loose-family member of 0043BB70 (reviewed)"
@@ -3009,6 +3015,9 @@ address,name,library,signature,notes
 005FB850,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 00740BFC (GetRuntimeClass 007005E3, Serialize 005FB120 identified); touches no other vtable; callees library only"
 005FB870,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 00740BF0 (GetRuntimeClass 007005E3, Serialize 005FB380 identified); touches no other vtable; callees library only"
 005FB890,"CArray<TYPE,ARG_TYPE> scalar deleting destructor",MFC,,"inventory sweep: installs/belongs to MFC collection vtable 00740BE4 (GetRuntimeClass 007005E3, Serialize 005FB5F0 identified); touches no other vtable; callees library only"
+005FB8B0,"stlp::_Rb_tree<CString,pair<const CString,int>,...>::_M_destroy_node (the key's CString destructor 005F9680, the 0x18-byte node back to the free list 0079B22C; RET 4)",STLport,,"A-I22: container plumbing; one caller, the interface's destructor body 005F4790 (the help topic map's header)"
+005FB8E0,"stlp::_Rb_tree<stlp::string,...>::_M_destroy_node (the key's storage through 005F32D0, the 0x28-byte node back to the free list 0079B234; RET 4)",STLport,,"A-I22: container plumbing; one caller, the item screens' destructor body 005F6470 (the texture cache's header)"
+005FB910,"stlp::_Rb_tree<stlp::string,...>::_M_destroy_node (the key's storage through 005F3310, the 0x28-byte node back to the free list 0079B234; RET 4)",STLport,,"A-I22: container plumbing; one caller, the item screens' destructor body 005F6470 (the model cache's header)"
 005FB940,"stlp::_Rb_tree<K,V,KoV,C,A>::_M_insert",STLport,,"inventory sweep: creates the node (_mbscmp compare), links it, rebalances; loose-family member of 005E11F0 (reviewed)"
 005FBB20,"stlp::_Rb_tree<K,V,KoV,C,A>::insert_unique(const value_type&)",STLport,,"inventory sweep: descend from the root (_mbscmp compare), then _M_insert; loose-family member of 005E13D0 (reviewed)"
 005FBD30,"compiler-generated destructor of a global map record (two CStrings)",MFC,,"A-I18: element destructor of the CArray 005FB120 (Serialize) and the global map destructor 005F6920"
@@ -3022,6 +3031,7 @@ address,name,library,signature,notes
 005FC010,"ConstructElements<T> (24-byte records, two CStrings at +0x10 / +0x14 set empty)",MFC,,"A-I18: called by the library CArray code 005FB5F0 / 00631FF0"
 005FC070,stlp::uninitialized_copy<T*>,STLport,,A-I15 sweep: identical instruction stream to 0042B6C0 (code addresses masked)
 005FC090,stlp::uninitialized_fill_n<T*>,STLport,,A-I15 sweep: identical instruction stream to 0042B6E0 (code addresses masked)
+005FE900,"UiInputSide::~UiInputSide (compiler-generated: the base input side's vtable 007401D0 written, nothing else)",compiler,,"A-I22: compiler-generated destructor, 7 bytes; reached only from exception unwind funclets (0072A8E0, 0072A948)"
 00601B10,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: returns the storage to the node pool (operator delete above 128 bytes); loose-family member of 00421500 (reviewed)
 00601B70,stlp::vector<T>::_M_insert_overflow,STLport,,"inventory sweep: new length size+max(size,n); node-pool allocate; copy; free old block to the pool; loose-family member of 00428C50 (reviewed)"
 00601E30,stlp::uninitialized_copy<T*>,STLport,,A-I15 sweep: identical instruction stream to 0042B6C0 (code addresses masked)
@@ -3091,6 +3101,7 @@ address,name,library,signature,notes
 0060C510,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
 0060C670,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
 0060C6A0,stlp container instantiation (hero screen / lobby),STLport,,A-I15 review: STLport template instantiation (vector / list / map / sort / heap over the lobby and hero screen records and CStrings), not game logic
+0060F460,"compiler-generated destructor of a CString member at +0x14 (ADD ECX,0x14; JMP CString::~CString 00700970)",compiler,,"A-I22: 8 bytes; reached only from exception unwind funclets (0072B860, 0072BD20)"
 006133E0,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 00613400,stlp/MFC container template instantiation (unreviewed family),STLport,,inventory sweep: loose family of 2 identical instruction skeletons; uses the node pool/CPlex/CArchive count; calls only library code
 006134F0,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
@@ -3165,6 +3176,7 @@ address,name,library,signature,notes
 0062B6B0,stlp::_Vector_base<T>::~_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0062B700,stlp::_STLP_alloc_proxy<T>::deallocate,STLport,,"inventory sweep: n*sizeof(T) back to the node-pool free list, operator delete above 128 bytes; loose-family member of 004251B0 (reviewed)"
 0062BC90,exception::~exception,CRT,,A-I15 sweep: identical instruction stream to 0040C4A0 (code addresses masked)
+0062BCA0,"compiler-generated destructor of a CString member at +0x0C (ADD ECX,0xC; JMP CString::~CString 00700970)",compiler,,"A-I22: 8 bytes; reached only from exception unwind funclets (0072D000, 0072D018)"
 0062C090,stlp::list<T>::insert,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
 0062C0C0,"stlp::list<T>::_M_create_node (0x18-byte node: a byte, a dword and two CStrings)",STLport,,"A-I18: called only by the library list insert 0062C090"
 006316C0,stlp::_Vector_base<T>::_Vector_base,STLport,,inventory sweep: identical instruction stream to an existing library.csv entry (code addresses masked)
