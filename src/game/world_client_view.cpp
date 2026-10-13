@@ -367,10 +367,10 @@ BOOL ModelUseLess::Less(CEngineObject* a, CEngineObject* b) {
 }
 
 // 005742F0 (A-W14). The rank the model sorts compare first: the first dword of the model's
-// material holder (+0x20), 0 without one. UnitOrderLess::Less has it inlined.
+// first part set (+0x20), 0 without one. UnitOrderLess::Less has it inlined.
 std::uint32_t __fastcall ModelMaterialRank(CObject3DClientSpecific* model) {
-    CEngineObject** material = model->material;
-    return material ? reinterpret_cast<std::uint32_t>(*material) : 0;
+    const TextureParts* first = model->partSets[0];
+    return first ? *reinterpret_cast<const std::uint32_t*>(first) : 0;
 }
 EI_REPLACE(0x005742F0, ModelMaterialRank);
 
