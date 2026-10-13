@@ -31,9 +31,6 @@ namespace {
 
 // --- Forwarders ----------------------------------------------------------------------------------
 
-// 00500540: the window part of the creation (thiscall: window, settings).
-__declspec(naked) void __fastcall CreateWindowPart(CSceneRenderer*, void*, void* /*window*/, GameOptions* /*settings*/)
-    EI_ORIGINAL(0x00500540)
 // The Direct3D driver list (007AEE64): 004EE4A0 enumerates, 004EE5D0 the first hardware driver,
 // 004EE6D0 the driver with an index (ECX), null when missing (both FatalErrorOriginal on failure).
 __declspec(naked) int __cdecl EnumerateDrivers() EI_ORIGINAL(0x004EE4A0)
@@ -268,7 +265,7 @@ void CreateHelper(CSceneRenderer* renderer, const GameOptions* settings) {
 // 00500B70 (thiscall, RET 8).
 void __fastcall RendererCreate(CSceneRenderer* renderer, void*, void* window, GameOptions* settings) {
     render::state::Reset();   // a new device: nothing it has is known yet
-    CreateWindowPart(renderer, nullptr, window, settings);
+    renderer->CreateBase(window, settings);
     EnumerateDrivers();
     DirectDrawDriver* driver = FirstHardwareDriver();
     if (!driver) {
@@ -334,3 +331,54 @@ void __fastcall RendererCreate(CSceneRenderer* renderer, void*, void* window, Ga
     CreateHelper(renderer, settings);
 }
 EI_REPLACE(0x00500B70, RendererCreate);
+
+// 00501980 (ECX = the matrix; only SetView calls it). Transposes a 4x4 matrix in place.
+void __fastcall MatrixTransposeInPlace(float* m) { Transpose(m); }
+EI_REPLACE(0x00501980, MatrixTransposeInPlace);
+
+EI_REPLACE_METHOD(0x005019D0, CTransformPipeline::Top);
+
+void CSceneRenderer::SetView(const tagRECT* screen, float fieldOfView) {
+    CTransformPipeline* pipeline = pipeline_;
+    MatrixStack* stacks = pipeline->stacks_;
+    for (int i = 15; i >= 0; --i) stacks[i].count = 0;
+    const CCamera* cam = camera::TheCamera();
+    float zNear, zFar, fov;
+    std::memcpy(&zNear, &cam->nearDistance_, 4);
+    std::memcpy(&zFar, &cam->farDistance_, 4);
+    std::memcpy(&fov, &cam->fieldOfView_, 4);
+    // Any field of view but 0 (and NaN) replaces the camera's.
+    if (fieldOfView < 0.0f || fieldOfView > 0.0f) std::memcpy(&fov, &fieldOfView, 4);
+    const int width = screen->right - screen->left;
+    const int height = screen->bottom - screen->top;
+    Matrix4 m;
+    ProjectionMatrixOriginal(&m, fov, static_cast<float>(width) / static_cast<float>(height), zNear, zFar);
+    StackPush(stacks[kProjection], &m);
+    ViewportMatrixOriginal(&m, screen);
+    StackPush(stacks[kViewport], &m);
+    AxisSwapMatrix(&m);
+    StackPush(stacks[kAxisSwap], &m);
+    // Unlike the creation, only the viewport and axis swap products are inlined; the rest go
+    // through the pipeline's own push (004D9B80).
+    StackPush(stacks[kStackA], StackTop(stacks[kViewport]));
+    StackPush(stacks[kStackA], StackTop(stacks[kAxisSwap]));
+    StackPush(stacks[kStackA], StackTop(stacks[kProjection]));
+    StackPush(stacks[kStackB], StackTop(stacks[kViewport]));
+    StackPush(stacks[kStackB], StackTop(stacks[kAxisSwap]));
+    pipeline_->PushMatrix(StackTop(pipeline_->stacks_[kProjection])->m, kStackB);
+    for (int stack : kSwapStacks) {
+        pipeline = pipeline_;
+        pipeline->PushMatrix(pipeline->Top(kAxisSwap)->m, stack);
+        pipeline = pipeline_;
+        pipeline->PushMatrix(pipeline->Top(kProjection)->m, stack);
+    }
+    Matrix4 transposed;
+    std::memcpy(&transposed, pipeline_->Top(kProjection), sizeof(Matrix4));
+    Transpose(transposed.m);
+    Matrix4 copy;
+    std::memcpy(&copy, &transposed, sizeof(Matrix4));
+    pipeline_->transform_->SetProjection(copy.m);
+    pipeline_->transform_->SetViewportSize(static_cast<float>(screen->right - screen->left),
+                                           static_cast<float>(screen->bottom - screen->top));
+}
+EI_REPLACE_METHOD(0x005015A0, CSceneRenderer::SetView);

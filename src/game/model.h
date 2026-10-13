@@ -81,7 +81,8 @@ public:
         const int depth = ++stack.count;
         MatrixMultiply(stack.matrices[depth - 1].m, nullptr, stack.matrices[depth - 2].m, m.m);
     }
-    // The top of stack `index` (matrices[count - 1], as the original computes it even when empty).
+    // 005019D0 (RET 4; also inlined). The top of stack `index` (matrices[count - 1], as the original
+    // computes it even when empty).
     const Matrix4* Top(int index) const { return stacks_[index].matrices + (stacks_[index].count - 1); }
     // 0051C110 (RET 4; also inlined): drops the top of stack `index` unless it is empty.
     void PopMatrix(int index) {
@@ -100,9 +101,10 @@ public:
     std::uint8_t unknown_08[4];
     ITransformPipeline* transform_;   // +0x0C 3DfpFPU.dll's transform object (projects and clips vertices)
     std::uint8_t unknown_10[4];
-    MatrixStack stacks_[15];    // +0x14 (models.md: stacks 0-2, 5-10 and 14 are in use)
+    MatrixStack stacks_[16];    // +0x14 (models.md: stacks 0-2, 5-10 and 14 are in use)
 };
 static_assert(offsetof(CTransformPipeline, stacks_) == 0x14 && offsetof(CTransformPipeline, transform_) == 0x0C);
+static_assert(sizeof(CTransformPipeline) == 0x94);   // as 00500540 allocates it
 
 // The scene's pipeline (the global pointer at 007AF068; world_client_view.cpp calls it the render
 // device): stacks 1 and 2 take the scene matrices (004D9B80), 5 the world draw's, 9 the views.
@@ -110,6 +112,9 @@ inline CTransformPipeline* ScenePipeline() { return *reinterpret_cast<CTransform
 
 struct tagRECT;
 class CTextureDevice;
+namespace options {
+class GameOptions;
+}
 class CLight;   // spell.h
 class CTexture;   // texture.h
 
@@ -192,6 +197,17 @@ public:
     // renderer_lifetime.cpp (A-U11). The base class (CVisualizator in the original's messages, vtable
     // 0073D8A0: slots 1 00500460, 2 00500540, 3 005006E0, 7 00500740, the rest pure) owns +0x04 ..
     // +0x1C; these are its methods, named apart from the renderer's.
+    // 00500540 (base slot 2, RET 8; renderer_base_create.cpp, A-U12; the renderer's creation calls
+    // it first). A new transform pipeline (004F0B90, with the options' work path) replaces the held
+    // one; CPUID function 1 goes to the globals at 007CAED0 and a processor without MMX is fatal
+    // ("MMX required in this version !!!."); then <work path>2DintMMX.dll is loaded and its
+    // GetGraphicsProcessor() kept (fatal when either is missing). `window` is not read. Returns the
+    // graphics processor.
+    void* CreateBase(void* window, options::GameOptions* settings);
+    // 005015A0 (virtual slot 25, RET 8; renderer_init.cpp, A-U12; nothing calls it). The pipeline's
+    // matrix stacks emptied and filled again for `screen` and a field of view (0: the camera's), as
+    // the creation fills them, then the transform object's projection and viewport size.
+    void SetView(const tagRECT* screen, float fieldOfView);
     // 00500440. Base constructor: vtable 0073D8A0, flags_, pipeline_ and sun_ cleared. Returns this.
     CSceneRenderer* ConstructBase();
     // 00500480. Base destructor body: vtable 0073D8A0, then DestroyBase.

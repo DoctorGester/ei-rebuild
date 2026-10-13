@@ -11,6 +11,7 @@
 #include "originals_engine.h"
 #include "originals_units.h"
 #include "originals_library.h"
+#include "scene_loader.h"   // SceneSkin
 
 #include <cstdint>
 #include <cstring>
@@ -44,10 +45,8 @@ constexpr ArrayInfo kArrays[] = {
 
 __declspec(naked) void __fastcall UnitConstruct(void*) EI_ORIGINAL(0x0052E110)
 __declspec(naked) void __fastcall UnitDestroy(void*) EI_ORIGINAL(0x0052E590)
-__declspec(naked) void __fastcall MemberConstruct(void*) EI_ORIGINAL(0x00508700)
-__declspec(naked) void __fastcall MemberDestruct(void*) EI_ORIGINAL(0x005087B0)
-__declspec(naked) void __fastcall MemberClear(void*) EI_ORIGINAL(0x005088E0)
-__declspec(naked) void __fastcall MemberRelease(void*, void*, int) EI_ORIGINAL(0x00508930)
+// The member at +0x4E0: the skin (scene_skin_lifetime.cpp).
+scene::SceneSkin* Skin(std::uint8_t* self) { return reinterpret_cast<scene::SceneSkin*>(self + 0x4E0); }
 // CArray<CFigure>::SetSize (library).
 void __fastcall FiguresSetSize(void* a0, void*, int a2, int a3) { FigureArraySetSizeOriginal(a0, nullptr, a2, a3); }
 __declspec(naked) void* __fastcall FakeUnitDestructAt(void*) EI_ORIGINAL(0x00446910)
@@ -58,8 +57,8 @@ __declspec(naked) void __fastcall FigureAttach(void* /*figure*/, void*, void*) E
 // The member at +0x4E0 emptied and the unit's own Destroy (the start of both the destructor and
 // slot 3).
 void ReleaseParts(std::uint8_t* self) {
-    MemberClear(self + 0x4E0);
-    MemberRelease(self + 0x4E0, nullptr, 0);
+    Skin(self)->Clear();
+    Skin(self)->SetUnknown00(0);
     UnitDestroy(self);
 }
 
@@ -68,7 +67,7 @@ void ReleaseParts(std::uint8_t* self) {
 // 004466D0: the unit, the member, four empty arrays.
 void* __fastcall FakeUnitConstruct(std::uint8_t* self) {
     UnitConstruct(self);
-    MemberConstruct(self + 0x4E0);
+    Skin(self)->Construct();
     for (int i = 3; i >= 0; --i) {
         auto& a = At<Array>(self, kArrays[i].offset);
         SetVtable(&a, kArrays[i].vtable);
@@ -97,7 +96,7 @@ void __fastcall FakeUnitDestruct(std::uint8_t* self) {
         for (int i = 0, n = a.size; i < n; ++i) ei::VCall<void*>(a.data + i * info.elementSize, info.destructorSlot, 0);
         gamecrt::operator_delete(a.data);
     }
-    MemberDestruct(self + 0x4E0);
+    Skin(self)->Destruct();
     UnitDestructBody(self);
 }
 EI_REPLACE(0x00446910, FakeUnitDestruct);

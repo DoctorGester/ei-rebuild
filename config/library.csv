@@ -4435,3 +4435,10 @@ address,name,library,signature,notes
 005124D0,"ConstructElements<EffectParticle> (zeroes the block, then each record: no source, type 0, power 0x10, not present)",MFC,,A-U12: MFC template helper; called only from the CArray<EffectParticle> instantiations 00511C30 / 005121B0
 00512520,"ConstructElements<EffectSoundRecord> (zeroes the block, then each record: kind 0, -1, handle -1, timer 0, flag 0)",MFC,,A-U12: MFC template helper; called only from the CArray<EffectSoundRecord> instantiations 00511E20 / 00512330
 00519FC0,"ConstructElements<FootprintPart> (zeroes the block, then each 0x38-byte box again)",MFC,,A-U12: MFC template helper; called from the CArray<FootprintPart> instantiation 00519B50 and the SetSize inlined in CObject3D::SetUpAnimatedFigure
+00500040,"stlp::copy<int*> (the 4-byte elements of a vector copied forward; returns the end)",STLport,,A-U12: STLport template helper; called from the vector<int> instantiations and ChunkArchive::IntVectorField's inlined assignment
+005002D0,"stlp::copy of 40-byte records (forward, field by field; returns the end)",STLport,,A-U12: STLport template helper; the one caller is 004FDBC0 (a vector assignment inlined there)
+00500320,"stlp::uninitialized_copy of 40-byte records (each constructed in place from the range)",STLport,,A-U12: STLport template helper; called from the vector<40-byte record> instantiations 004FE9A0 / 004FEDE0 and the vector copies inlined in 004FD2A0 / 004FDBC0
+00500350,"stlp::uninitialized_copy of 40-byte records (the second instantiation, const iterators)",STLport,,A-U12: STLport template helper; its callers are the vector<40-byte record> instantiations
+00500380,"stlp::uninitialized_fill_n of 40-byte records",STLport,,A-U12: STLport template helper; its callers are the vector<40-byte record> instantiations
+005003B0,"stlp::uninitialized_copy<int*>",STLport,,A-U12: STLport template helper; its callers are the vector<int> instantiations
+005003D0,"stlp::uninitialized_fill_n<int*>",STLport,,A-U12: STLport template helper; its callers are the vector<int> instantiations

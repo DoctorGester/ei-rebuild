@@ -295,16 +295,36 @@ struct SceneSkin {
     // 00508BF0 (RET 4, EAX 1; skin_rewind.cpp, A-U11). The root (when there is one) binds the parts
     // (CAnimationNode::AttachMeshes).
     int BindMeshes(const lib::AlignedArray<void*>* parts);
+    // scene_skin_lifetime.cpp (A-U12).
+    // 00508700. The constructor: empty arrays and names, no root, the clock -1. Returns this.
+    SceneSkin* Construct();
+    // 005087B0. The destructor: the root bone destroyed and deleted (the bone list emptied), the
+    // names emptied and destroyed, the arrays' blocks freed.
+    void Destruct();
+    // 00508870. The root bone destroyed and deleted (the bone list's block freed), the clock 0, the
+    // name "none", no names, +0x4C 0. Returns 1.
+    int Create();
+    // 005088E0. The root bone destroyed and deleted (the bone list emptied), +0x00 0, no names.
+    void Clear();
+    // 00508930 (RET 4). +0x00 becomes `value`.
+    void SetUnknown00(std::uint32_t value);
 
     std::uint32_t unknown_00;
     lib::AlignedArray<CAnimationNode*> bones;   // +0x04 every bone, in build order (SetAtGrow 00452C40)
     CAnimationNode* root;                       // +0x14
     // +0x18 the clock (the unused 00508A30 stores its float argument here as a double, then zeroes it).
     std::uint32_t clock[2];
+    mfc::CString name;                          // +0x20 "none" after Create
+    mfc::CStringArray names;                    // +0x24
+    std::uint32_t unknown_38;                   // +0x38 0 after the constructor
+    lib::AlignedArray<void*> unknown_3C;        // +0x3C (only emptied and freed here)
+    std::uint32_t unknown_4C;                   // +0x4C 0 after Create
 };
 static_assert(offsetof(SceneSkin, bones) == 0x04);
 static_assert(offsetof(SceneSkin, root) == 0x14);
-static_assert(sizeof(SceneSkin) == 0x20);
+static_assert(offsetof(SceneSkin, name) == 0x20);
+static_assert(offsetof(SceneSkin, unknown_3C) == 0x3C);
+static_assert(sizeof(SceneSkin) == 0x50);
 
 // 004492F0 (scene_bones.cpp; __fastcall, RET 8). Adds `bone` to the skin's list and builds it (and
 // its children) from `node`; the low word of `frames` is the animation's frame count.
@@ -366,8 +386,7 @@ static_assert(sizeof(SceneHelper) == helper::kSize);
 // (map_object_figures.h) up to +0x4E0, then the skin and the scene's arrays.
 struct FakeUnitScene {
     std::uint8_t object3D_[0x4E0];      // the CObject3D part: Object3D()
-    SceneSkin skin;                     // +0x4E0
-    std::uint8_t unknown_500[0x530 - 0x500];
+    SceneSkin skin;                     // +0x4E0 (0x50 bytes)
     VtArray figures;                    // +0x530 CFigureMesh records (0x220, constructed by 00453240)
     VtArray meshes;                     // +0x544 SceneMesh records
     VtArray boneLinks;                  // +0x558 per figure a CArray of NodeFrame records (0x14 each)
