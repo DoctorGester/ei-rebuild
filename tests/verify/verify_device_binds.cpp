@@ -4,8 +4,9 @@
 //    and its count of texture changes are put back, then ours runs; the three and the result are
 //    compared (the same texture set twice on a stage changes nothing in Direct3D). For 004EB1D0 the
 //    texture the original looked up is forgotten in between, and the reference ours takes for the
-//    second look-up is dropped afterwards. Reached by every scene (004EB300 / 004EBAF0: any draw
-//    with a texture) and by the ground prints (004EB1D0: ground_prints.txt).
+//    second look-up is dropped afterwards. Reached by every scene (004EB300: any draw with a
+//    texture) and by the ground prints (004EB1D0). No scenario reaches 004EBAF0: only the device's
+//    multi-pass material draw calls it, for a stage whose texture is still to be found by name.
 //  - Ours only: the batch flushes 004E7840 / 004E7A40. No vertex buffer is ever locked (004E7820
 //    returns none), so only their first test runs, in the original as well; the wrapper checks that
 //    the batch is left without a buffer. Reached by every texture change and frame part.
