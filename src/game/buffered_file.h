@@ -25,6 +25,19 @@ public:
     void Flush();
     // 004DAC80. Flush, then the block freed (begin = null; the other pointers left).
     void ReleaseBlock();
+    // 00580DD0 (the quest registration 005809D0). Constructor: this vtable, no block, base 0,
+    // flags 0 (the other pointers are left). Returns this.
+    BufferedStream* Construct();
+    // 00580DF0. Destructor body: this vtable, ReleaseBlock, then the view base's vtable.
+    void DestructBody();
+    // 00580E40 (RET 4): DestructBody, then operator delete when bit 0 of `flags` is set.
+    BufferedStream* DeletingDestruct(unsigned deleteFlags);
+    // 00580EE0 (RET 4). Before `size` bytes are written in place: the unwritten bit set, room made
+    // (slot 1) when the window ends before them. Returns the cursor.
+    std::uint8_t* BeginWrite(std::int32_t size);
+
+    static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F8C8);
+    static constexpr std::uintptr_t kBaseVtableAddress = std::uintptr_t(0x0073CA48);
     // 004DB040 (slot 2). Moves the window so that it starts at the cursor's file position (Flush,
     // then a reload there) unless it already does.
     void Rebase();
@@ -68,6 +81,12 @@ public:
     // 004DB700 (RET 0xC). Close, flags = `newFlags`, then fopen(path, mode): on success a 0x400-byte
     // window at file position 0 with `high` at the file's size, loaded; on failure error bit 3.
     void Open(const char* path, const char* mode, std::uint32_t newFlags);
+    // 00580E60. Destructor body: this vtable, Close, then BufferedStream's.
+    void DestructFile();
+    // 00580EC0 (RET 4): DestructFile, then operator delete when bit 0 of `flags` is set.
+    BufferedFile* DeletingDestructFile(unsigned deleteFlags);
+
+    static constexpr std::uintptr_t kFileVtableAddress = std::uintptr_t(0x0073F8A4);
 
     gamecrt::CrtFile* file;   // +0x1C
 };

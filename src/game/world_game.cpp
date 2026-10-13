@@ -868,6 +868,23 @@ int __stdcall RequestZone(const char* zone, int entrance) {
     return ViewRequestZone(WorldClient()->LocalView(), nullptr, zone, entrance);
 }
 
+void GameFlow::DropSessions() {
+    SessionsOpen() = 0;
+    net::ServerSession*& server = net::GameServer();
+    net::ServerSession* oldServer = server;
+    server = nullptr;
+    ReleaseSession(oldServer);
+    net::ClientSession*& client = net::GameClient();
+    net::ClientSession* oldClient = client;
+    client = nullptr;
+    ReleaseSession(oldClient);
+}
+
+void GameFlow::EndSession() {
+    DropSessions();
+    UseResources(false);
+}
+
 void GameFlow::CloseSessions() {
     SessionsOpen() = 0;
     net::ServerSession*& server = net::GameServer();
@@ -2291,6 +2308,8 @@ EI_REPLACE_METHOD(0x0057F390, GameFlow::RecreateClientSession);
 EI_REPLACE_METHOD(0x00581610, GameFlow::SaveGameThunk);
 EI_REPLACE(0x00581630, RequestZone);
 EI_REPLACE_METHOD(0x00581660, GameFlow::CloseSessions);
+EI_REPLACE_METHOD(0x0057ECA0, GameFlow::DropSessions);
+EI_REPLACE_METHOD(0x0057ED00, GameFlow::EndSession);
 EI_REPLACE_METHOD(0x005816C0, GameFlow::RequestState3);
 EI_REPLACE_METHOD(0x005816D0, GameFlow::RequestLoad);
 EI_REPLACE_METHOD(0x00581700, GameFlow::RequestZoneChange);

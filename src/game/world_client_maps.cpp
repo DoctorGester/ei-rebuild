@@ -410,6 +410,30 @@ bool CWorldClient::QueueSynchronised(CEngineObject* object) {
     return true;
 }
 
+void CWorldClient::MarkFootprintsInSight(const float* point, float range) {
+    Vector3 functor;   // for_each's functor (x, y, range) comes back by value
+    MarkWithinRadius(&functor.x, nullptr, reinterpret_cast<std::uint8_t*>(footprints_.First()),
+                     reinterpret_cast<std::uint8_t*>(footprints_.End()), point[0], point[1], range);
+}
+
+void CWorldClient::ApplyWind(const Vector3* direction, float strength) {
+    SetWind(direction, strength);
+    if (terrain_) {
+        Vector3 copy = *direction;
+        terrain_->SetWaves(&copy, strength);
+    }
+    reinterpret_cast<CRainSnow*>(&ribbons_)->SetWind(*direction, strength);
+}
+
+int CWorldClient::CentreOn(const Vector3* point) {
+    Vector3 focus = *point;
+    focus.z = camera_->focus_.z;
+    camera_->SetFocus(&focus);
+    camera_->ApplyView();
+    camera_->ClampAboveObjects();
+    return 1;
+}
+
 void CWorldClient::DropShadows() {
     PlainList& objects = objects_;
     for (SectorListNode* node = objects.head->next; node != objects.head; node = node->next) {
@@ -1531,6 +1555,9 @@ EI_REPLACE_METHOD(0x005659D0, CWorldClient::PickAt2);
 EI_REPLACE_METHOD(0x00565E40, CWorldClient::UnitAt);
 EI_REPLACE_METHOD(0x00565D00, CWorldClient::UnitAt2);
 EI_REPLACE_METHOD(0x005656A0, CWorldClient::UnitsInBox);
+EI_REPLACE_METHOD(0x0056D740, CWorldClient::MarkFootprintsInSight);
+EI_REPLACE_METHOD(0x00564190, CWorldClient::ApplyWind);
+EI_REPLACE_METHOD(0x005662B0, CWorldClient::CentreOn);
 EI_REPLACE_METHOD(0x00570860, SectorGrid::Move);
 EI_REPLACE_METHOD(0x00570BB0, SectorGrid::Move2);
 EI_REPLACE(0x00571D50, MarkWithinRadius);

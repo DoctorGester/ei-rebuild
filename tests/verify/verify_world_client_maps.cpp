@@ -820,3 +820,45 @@ static void __fastcall SelectVerify(CWorldClient* client, void*, CEngineObject* 
     ei::verify::Check("CWorldClient::Select", true, ok, "object %d: %d -> %d", object ? object->id_ : -1, before, after);
 }
 EI_VERIFY(0x00566030, SelectVerify, 0, s_unused);
+
+// A-W13. 0056D740 MarkFootprintsInSight: SUB ESP,0xC; MOV EAX,[ESP+0x10] (7 bytes). The original
+// runs first, its marks are kept and the marks from before put back, then ours runs and the marks
+// are compared. Every party unit's time step (`newgame`).
+static void(__fastcall* s_markFootprints)(CWorldClient*, void*, const float*, float);
+static void __fastcall MarkFootprintsVerify(CWorldClient* self, void*, const float* point, float range) {
+    std::vector<std::uint8_t*> marks;
+    std::vector<std::uint8_t> before, theirs;
+    for (auto* node = self->footprints_.First(); node != self->footprints_.End(); node = node->next) {
+        marks.push_back(&At<std::uint8_t>(node, 0xD));
+        before.push_back(*marks.back());
+    }
+    s_markFootprints(self, nullptr, point, range);
+    for (std::size_t i = 0; i < marks.size(); ++i) {
+        theirs.push_back(*marks[i]);
+        *marks[i] = before[i];
+    }
+    self->MarkFootprintsInSight(point, range);
+    bool same = true;
+    for (std::size_t i = 0; i < marks.size(); ++i) same = same && theirs[i] == *marks[i];
+    ei::verify::Check("CWorldClient::MarkFootprintsInSight", true, same, "%zu prints, (%g, %g) range %g", marks.size(),
+                      point[0], point[1], range);
+}
+EI_VERIFY(0x0056D740, MarkFootprintsVerify, 7, s_markFootprints);
+
+// 00564190 ApplyWind: ours only (the terrain and the weather take the wind). Checked: the world
+// keeps the direction and the strength. The server's wind message (0x72).
+static void __fastcall ApplyWindVerify(CWorldClient* self, void*, const Vector3* direction, float strength) {
+    self->ApplyWind(direction, strength);
+    bool ok = std::memcmp(self->unknown24_, direction, 12) == 0 && std::memcmp(&self->unknown30_, &strength, 4) == 0;
+    ei::verify::Check("CWorldClient::ApplyWind", true, ok, "strength %g", strength);
+}
+EI_VERIFY(0x00564190, ApplyWindVerify, 0, s_unused);
+
+// 005662B0 CentreOn: ours only (the camera moves; its three functions have their own wrappers).
+// Checked: the result is 1. The server's camera placement message.
+static int __fastcall CentreOnVerify(CWorldClient* self, void*, const Vector3* point) {
+    int result = self->CentreOn(point);
+    ei::verify::Check("CWorldClient::CentreOn", 1, result, "(%g, %g)", point->x, point->y);
+    return result;
+}
+EI_VERIFY(0x005662B0, CentreOnVerify, 0, s_unused);

@@ -4379,3 +4379,8 @@ address,name,library,signature,notes
 005DA1C0,"CList<T>::NewNode (0x14-byte nodes, the element constructed by 005DA2B0)",MFC,,"A-W13 review: MFC template instantiation"
 005895A0,"__partition step of the EntryIdLess introsort 00589160",STLport,,"A-W13 review: STLport template instantiation (the introsort 00589160)"
 005636A0,"destructor of three counted pointers (CWorldClient + 0x1AC)",compiler,,"A-W13 review: compiler-generated member destructor"
+005842C0,"_Vector_base<T>::~_Vector_base (0x8C-byte elements; the node allocator's deallocate)",STLport,,"A-W13 review: STLport template instantiation"
+00584340,"_Vector_base<T>::~_Vector_base (0x7C-byte elements; the node allocator's deallocate)",STLport,,"A-W13 review: STLport template instantiation"
+005776D0,"__unguarded_linear_insert (pointers ordered by the unsigned +0x94 -> +0xEC)",STLport,,"A-W13 review: STLport template instantiation (the sort called from 00573F93)"
+0059B7D0,"hashtable iterator operator++ (the next node, else the next non-empty bucket)",STLport,,"A-W13 review: STLport template instantiation"
+0059B8A0,"hashtable iterator operator++ (byte-identical to 0059B7D0)",STLport,,"A-W13 review: STLport template instantiation"

@@ -457,3 +457,24 @@ static void __fastcall FlowDestructVerify(GameFlow* self) {
     ei::verify::Check("GameFlow::Destruct", true, true, "%p", self);
 }
 EI_VERIFY(0x005784D0, FlowDestructVerify, 0, s_unused);
+
+// A-W13. 0057ECA0 DropSessions / 0057ED00 EndSession: ours only (they release the sessions).
+// Afterwards both sessions are gone, 007C7DD8 is clear and the flow's state is as it was. Leaving a
+// network game (the menus and the hero screens); no scenario reaches them.
+static bool SessionsGone() {
+    return *reinterpret_cast<void**>(0x0079B5DC) == nullptr && *reinterpret_cast<void**>(0x0079B5D8) == nullptr &&
+           *reinterpret_cast<char*>(0x007C7DD8) == 0;
+}
+static void __fastcall DropSessionsVerify(GameFlow* self, void*) {
+    int state = *reinterpret_cast<int*>(self);
+    self->DropSessions();
+    ei::verify::Check("GameFlow::DropSessions", true, SessionsGone() && *reinterpret_cast<int*>(self) == state, "");
+}
+EI_VERIFY(0x0057ECA0, DropSessionsVerify, 0, s_unused);
+
+static void __fastcall EndSessionVerify(GameFlow* self, void*) {
+    int state = *reinterpret_cast<int*>(self);
+    self->EndSession();
+    ei::verify::Check("GameFlow::EndSession", true, SessionsGone() && *reinterpret_cast<int*>(self) == state, "");
+}
+EI_VERIFY(0x0057ED00, EndSessionVerify, 0, s_unused);

@@ -35,6 +35,15 @@ void CWorld::SetTimeSpeed(float speed) {
 void __fastcall WorldSetTimeSpeedHook(CWorld* self, void*, float speed) { self->CWorld::SetTimeSpeed(speed); }
 EI_REPLACE(0x0055FB50, WorldSetTimeSpeedHook);
 
+double CWorld::NightLevel() {
+    double hours = std::fmod(static_cast<double>(tick_) * secondsPerTick_ + timeBase_, kHoursPerDay);
+    // FCOM 20 with TEST AH,0x41, then FCOMP 8 with TEST AH,1: a NaN counts as night.
+    if (hours > 20.0) return (hours - 20.0) * 0.25;
+    if (!(hours >= 8.0)) return 1.0;
+    return 0.0;
+}
+EI_REPLACE_METHOD(0x0055FC50, CWorld::NightLevel);
+
 void CWorld::SetWind(const Vector3* direction, float strength) {
     std::memcpy(unknown24_, direction, sizeof(unknown24_));
     std::memcpy(&unknown30_, &strength, sizeof(unknown30_));

@@ -40,3 +40,14 @@ static CWorld* __fastcall ConstructBaseVerify(CWorld* self) {
     return self->ConstructBase();
 }
 EI_VERIFY(0x0055EAB0, ConstructBaseVerify, 7, s_constructBase);
+
+// 0055FB00 FindUnit: MOV EDX,[ESP+4]; MOV EAX,[ECX] (6 bytes). Pure. The scripts' and the
+// interface's unit lookups (`newgame`).
+static CEngineObject*(__fastcall* s_findUnit)(CWorld*, void*, int);
+static CEngineObject* __fastcall FindUnitVerify(CWorld* self, void*, int id) {
+    CEngineObject* expected = s_findUnit(self, nullptr, id);
+    CEngineObject* actual = self->FindUnit(id);
+    ei::verify::Check("CWorld::FindUnit", expected, actual, "id %d", id);
+    return actual;
+}
+EI_VERIFY(0x0055FB00, FindUnitVerify, 6, s_findUnit);

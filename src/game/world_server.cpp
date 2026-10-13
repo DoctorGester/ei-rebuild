@@ -270,6 +270,23 @@ void CWorldServer::RemoveAllUnits() {
 }
 EI_REPLACE_METHOD(0x005939E0, CWorldServer::RemoveAllUnits);
 
+CEngineObject* ObjectMapIterator::First(ObjectIdMap* objects) {
+    map = objects;
+    node = objects->map.First();
+    table = objects;
+    return node ? node->value : nullptr;
+}
+EI_REPLACE_METHOD(0x0059AF20, ObjectMapIterator::First);
+EI_REPLACE_METHOD(0x0059AFF0, ObjectMapIterator::First);   // byte-identical instantiation
+
+CEngineObject* ObjectMapIterator::Next() {
+    if (!node) return nullptr;
+    node = table->map.After(node);
+    return node ? node->value : nullptr;
+}
+EI_REPLACE_METHOD(0x0059AF80, ObjectMapIterator::Next);
+EI_REPLACE_METHOD(0x0059B050, ObjectMapIterator::Next);   // byte-identical instantiation
+
 EI_REPLACE_METHOD(0x005935C0, CWorldServer::RemoveObject);
 EI_REBIRTH_IMPLEMENTS(0x005935C0, ei::rebirth::Patch::FixRemoveMapObject);
 EI_REPLACE_METHOD(0x00593AA0, CWorldServer::FindObject);

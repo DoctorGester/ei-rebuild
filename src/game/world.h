@@ -147,6 +147,19 @@ struct PlayerIterator {
 };
 static_assert(sizeof(PlayerIterator) == 8);
 
+// Walks an object map's values (world_server.cpp; two byte-identical instantiations): the current
+// node, then the map twice. First gives the first object or null, Next the one after it (null at
+// the end and for an iterator already at its end).
+struct ObjectMapIterator {
+    stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash>::Node* node;
+    ObjectIdMap* table;
+    ObjectIdMap* map;
+
+    CEngineObject* First(ObjectIdMap* objects);   // 0059AF20 / 0059AFF0 (RET 4)
+    CEngineObject* Next();                        // 0059AF80 / 0059B050
+};
+static_assert(sizeof(ObjectMapIterator) == 12);
+
 // A zone exit as the world server keeps it (0x3C bytes); the client keeps the same records.
 struct ZoneExit {
     std::uint32_t unknown_00[5];          // +0x00 (saved as five dwords)
@@ -253,6 +266,13 @@ public:
     BOOL IsNight();
     // 0055FCB0 (world_time.cpp). Stores the wind direction (+0x24) and strength (+0x30).
     void SetWind(const Vector3* direction, float strength);
+    // 0055FB00 (RET 4; world_create.cpp). The world object with this id (slot 40) when it is a
+    // unit (class 0x50), else null.
+    CEngineObject* FindUnit(int id);
+    // 0055FC50 (world_time.cpp; the units' sight, the weather, the HUD's unit panel). How dark the
+    // time of day is, in ST0: 1 before 8 o'clock (and for a NaN), 0 until 20, then rising to 1 by
+    // midnight ((hours - 20) / 4).
+    double NightLevel();
     // 0055F8E0 (world_managers.cpp, A-U7). Slot 3 (Destroy) of the base vtable 0073F18C, also
     // called by the client 00563290 and the server 0058B020: every object of the spell manager
     // (slot 22) gets its slot 5 (ClearState), then the managers are deleted whatever their counts
@@ -556,6 +576,13 @@ public:
     // files, script queues, diplomacy, map objects, missiles and timed objects go, then the
     // base class's teardown (0055F890); the game result and kind are cleared.
     void TeardownZone();
+    // 00595B50 (RET 8; world_map.cpp; the client's state block 00567AB0 through the glue 00578730).
+    // Unless the zone's map and .mob are these already: NewZone(map, mob, null), then TeardownZone.
+    void EnsureZone(const char* map, const char* mob);
+    // 00595020 (RET 8; world_party.cpp; `this` is not read). `unit` used one of `item` (a scroll):
+    // the item's count drops, and so does the count of the party's item it was made from (the
+    // link at +0x1C) when the unit's player has a record for the unit.
+    void UseItemUp(class CUnit* unit, class CItem* item);
     // 005951A0. After a fresh zone is loaded: the map objects that are not part of the map
     // (slot 29) move from the map-object maps to +0x12D88 and are sent, with the zone header
     // (+0x12E00, reset first), through a temporary player.
@@ -1285,6 +1312,15 @@ public:
     // (+0xF0) that still exists and whose side half has a drawn part meeting the screen rectangle
     // `rect` (slot 23) is appended to `out`.
     void UnitsInBox(const long* rect, stlp::list<CEngineObject*>* out);
+    // 0056D740 (RET 8; a party unit's time step, unit_vision.cpp). Marks the footprints (+0x1BC)
+    // within their scale times `range` of the point (x, y): MarkWithinRadius over the list.
+    void MarkFootprintsInSight(const float* point, float range);
+    // 00564190 (RET 8; the server's message 0x72). The wind: stored (CWorld::SetWind), given to the
+    // terrain's waves (a copy of the direction) and to the rain and snow (+0x6F4).
+    void ApplyWind(const Vector3* direction, float strength);
+    // 005662B0 (RET 4; the server's camera placement message). The camera looks at the point (x, y)
+    // at its own focus height, with its view applied and kept above the objects. Returns 1.
+    int CentreOn(const Vector3* point);
 
     // The debug display's switches (the console's debug commands; bits 0-3 of +0x88): the frame
     // rate 00569A10 / 00569A20, the render counters 00569A40 / 00569A50, the managers' lines
@@ -1564,6 +1600,12 @@ struct GameFlow {
     // 00581660. Releases both network sessions (server 0079B5DC, then client 0079B5D8), clears
     // 007C7DD8 and sets the state to 1.
     void CloseSessions();
+    // 0057ECA0 (the menus and the interface on leaving a network game). As CloseSessions without
+    // the state: 007C7DD8 cleared, the server and the client session released.
+    void DropSessions();
+    // 0057ED00 (the hero screens). DropSessions, then the resources go back to the local database
+    // (UseResources(false)).
+    void EndSession();
     // 00580840 (RET 4; world_briefing.cpp). A player variable changed (event +8: the record,
     // name at +0x0C, value at +0x18): "q." variables go to the quest log (007C7D50) and the
     // client world.

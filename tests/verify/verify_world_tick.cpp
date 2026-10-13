@@ -189,3 +189,40 @@ static void __fastcall SetGameResultVerify(CWorldServer* self, void*, int result
     ei::verify::Check("CWorldServer::SetGameResult", expected, self->gameResult_, "result %d (was %d)", result, before);
 }
 EI_VERIFY(0x0058DC90, SetGameResultVerify, 0, s_unused);
+
+// A-W13. ObjectMapIterator: First 0059AF20 / 0059AFF0 (MOV EAX,[ESP+4]; PUSH EBX, 5 bytes) and Next
+// 0059AF80 / 0059B050 (MOV EAX,[ECX]; PUSH EDI; TEST EAX,EAX, 5 bytes) only read the map, so the
+// original runs on a scratch iterator and the two are compared. Their callers in the exe are
+// rewritten and walk the maps themselves, so these run only for code outside the rewrite.
+using IterFirstFn = CEngineObject*(__fastcall*)(ObjectMapIterator*, void*, ObjectIdMap*);
+using IterNextFn = CEngineObject*(__fastcall*)(ObjectMapIterator*);
+static CEngineObject* CheckedIterFirst(IterFirstFn original, ObjectMapIterator* self, ObjectIdMap* objects) {
+    ObjectMapIterator theirs;
+    CEngineObject* expected = original(&theirs, nullptr, objects);
+    CEngineObject* actual = self->First(objects);
+    bool same = expected == actual && theirs.node == self->node && theirs.table == self->table && theirs.map == self->map;
+    ei::verify::Check("ObjectMapIterator::First", true, same, "%p vs %p", expected, actual);
+    return actual;
+}
+static CEngineObject* CheckedIterNext(IterNextFn original, ObjectMapIterator* self) {
+    ObjectMapIterator theirs = *self;
+    CEngineObject* expected = original(&theirs);
+    CEngineObject* actual = self->Next();
+    bool same = expected == actual && theirs.node == self->node && theirs.table == self->table && theirs.map == self->map;
+    ei::verify::Check("ObjectMapIterator::Next", true, same, "%p vs %p", expected, actual);
+    return actual;
+}
+static IterFirstFn s_iterFirstA, s_iterFirstB;
+static IterNextFn s_iterNextA, s_iterNextB;
+static CEngineObject* __fastcall IterFirstVerifyA(ObjectMapIterator* self, void*, ObjectIdMap* objects) {
+    return CheckedIterFirst(s_iterFirstA, self, objects);
+}
+static CEngineObject* __fastcall IterFirstVerifyB(ObjectMapIterator* self, void*, ObjectIdMap* objects) {
+    return CheckedIterFirst(s_iterFirstB, self, objects);
+}
+static CEngineObject* __fastcall IterNextVerifyA(ObjectMapIterator* self) { return CheckedIterNext(s_iterNextA, self); }
+static CEngineObject* __fastcall IterNextVerifyB(ObjectMapIterator* self) { return CheckedIterNext(s_iterNextB, self); }
+EI_VERIFY(0x0059AF20, IterFirstVerifyA, 5, s_iterFirstA);
+EI_VERIFY(0x0059AFF0, IterFirstVerifyB, 5, s_iterFirstB);
+EI_VERIFY(0x0059AF80, IterNextVerifyA, 5, s_iterNextA);
+EI_VERIFY(0x0059B050, IterNextVerifyB, 5, s_iterNextB);

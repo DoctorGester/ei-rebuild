@@ -88,3 +88,14 @@ static void __fastcall ChangeWindVerify(CWorldServer* self, void*, const Vector3
     ei::verify::Check("CWorldServer::ChangeWind", true, ok, "strength %f -> %f", strength, stored);
 }
 EI_VERIFY(0x0058EE20, ChangeWindVerify, 0, s_unused);
+
+// A-W13. 0055FC50 NightLevel: PUSH ECX; FILD [ECX+0x64]; FMUL [ECX+0x20] (7 bytes). Pure; compared
+// as the float its callers store. Every party unit's time step (`newgame`).
+static double(__fastcall* s_nightLevel)(CWorld*);
+static double __fastcall NightLevelVerify(CWorld* self) {
+    float expected = static_cast<float>(s_nightLevel(self));
+    double result = self->NightLevel();
+    ei::verify::CheckNear("CWorld::NightLevel", expected, static_cast<float>(result), "tick %d", self->tick_);
+    return result;
+}
+EI_VERIFY(0x0055FC50, NightLevelVerify, 7, s_nightLevel);

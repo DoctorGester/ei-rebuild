@@ -214,3 +214,14 @@ static void __fastcall ArmorModelNameVerify(mfc::CString* out, std::uint32_t arm
                       materialIndex, static_cast<const char*>(expected), static_cast<const char*>(*out));
 }
 EI_VERIFY(0x006A3480, ArmorModelNameVerify, 8, s_armorModelName);
+
+// A-W13. 0055E940 MakeCopyOf (slot 24 of the party and of the client world): ours only (it makes an
+// item). Checked: the copy has the item's kind and packed id. Items put into a party (AddItem) and
+// the HUD's item lists (`newgame`).
+static CItem* __fastcall MakeCopyOfVerify(CParty* self, void*, CItem* item) {
+    CItem* copy = self->MakeCopyOf(item);
+    bool ok = copy && copy->type_ == item->type_ && copy->unknown_18 == item->unknown_18;
+    ei::verify::Check("CParty::MakeCopyOf", true, ok, "kind %d id %08x", item->type_, item->unknown_18);
+    return copy;
+}
+EI_VERIFY(0x0055E940, MakeCopyOfVerify, 0, s_unused);

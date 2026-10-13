@@ -224,3 +224,60 @@ EI_VERIFY(0x004DB680, CloseVerify, 0, s_unused);
 EI_VERIFY(0x004DB700, OpenVerify, 0, s_unused);
 EI_VERIFY(0x004DA580, ViewReserveVerify, 0, s_unused);
 EI_VERIFY(0x004DA590, ViewReserveVerify, 0, s_unused);
+
+// A-W13. 00580DD0 Construct: MOV EAX,ECX; XOR ECX,ECX; MOV [EAX+0x14],ECX (7 bytes). It only
+// stores fields: both versions run on scratch blocks with the same bytes. The quest registration
+// (005809D0, `newgame`) reaches all six.
+static BufferedStream*(__fastcall* s_streamConstruct)(BufferedStream*);
+static BufferedStream* __fastcall StreamConstructVerify(BufferedStream* self) {
+    alignas(4) unsigned char expected[sizeof(BufferedStream)], actual[sizeof(BufferedStream)];
+    std::memset(expected, 0xA5, sizeof(expected));
+    std::memset(actual, 0xA5, sizeof(actual));
+    auto* a = reinterpret_cast<BufferedStream*>(expected);
+    auto* b = reinterpret_cast<BufferedStream*>(actual);
+    bool same = s_streamConstruct(a) == a && b->Construct() == b && std::memcmp(expected, actual, sizeof(expected)) == 0;
+    ei::verify::Check("BufferedStream::Construct", true, same, "");
+    return self->Construct();
+}
+EI_VERIFY(0x00580DD0, StreamConstructVerify, 7, s_streamConstruct);
+
+// 00580EE0 BeginWrite: ours only (it may replace the block). Checked: the cursor is returned, the
+// unwritten bit is set and the window has room for `size` bytes.
+static std::uint8_t* __fastcall BeginWriteVerify(BufferedStream* self, void*, std::int32_t size) {
+    std::uint8_t* result = self->BeginWrite(size);
+    bool ok = result == self->cur && (self->flags & 1) != 0 && self->cur + size <= self->end;
+    ei::verify::Check("BufferedStream::BeginWrite", true, ok, "size %d", size);
+    return result;
+}
+EI_VERIFY(0x00580EE0, BeginWriteVerify, 0, s_unused);
+
+// 00580DF0 / 00580E40 and 00580E60 / 00580EC0 (the destructors): ours only (the block is freed and
+// the file closed). Checked: no block, the view base's vtable; the deleting ones return the object.
+static bool StreamGone(BufferedStream* self) {
+    return self->begin == nullptr && *reinterpret_cast<std::uintptr_t*>(self) == BufferedStream::kBaseVtableAddress;
+}
+static void __fastcall StreamDestructVerify(BufferedStream* self) {
+    self->DestructBody();
+    ei::verify::Check("BufferedStream::DestructBody", true, StreamGone(self), "");
+}
+EI_VERIFY(0x00580DF0, StreamDestructVerify, 0, s_unused);
+
+static BufferedStream* __fastcall StreamDeleteVerify(BufferedStream* self, void*, unsigned flags) {
+    BufferedStream* result = self->DeletingDestruct(flags);
+    ei::verify::Check("BufferedStream::DeletingDestruct", true, result == self, "flags %u", flags);
+    return result;
+}
+EI_VERIFY(0x00580E40, StreamDeleteVerify, 0, s_unused);
+
+static void __fastcall FileDestructVerify(BufferedFile* self) {
+    self->DestructFile();
+    ei::verify::Check("BufferedFile::DestructFile", true, StreamGone(self) && self->file == nullptr, "");
+}
+EI_VERIFY(0x00580E60, FileDestructVerify, 0, s_unused);
+
+static BufferedFile* __fastcall FileDeleteVerify(BufferedFile* self, void*, unsigned flags) {
+    BufferedFile* result = self->DeletingDestructFile(flags);
+    ei::verify::Check("BufferedFile::DeletingDestructFile", true, result == self, "flags %u", flags);
+    return result;
+}
+EI_VERIFY(0x00580EC0, FileDeleteVerify, 0, s_unused);

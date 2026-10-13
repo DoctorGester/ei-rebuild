@@ -6,6 +6,8 @@
 // resulting state is checked.
 #include "verify.h"
 
+#include "../../src/game/item.h"
+#include "../../src/game/unit.h"
 #include "../../src/game/world.h"
 
 #include <cstdlib>
@@ -130,3 +132,12 @@ static void __fastcall RedeployVerify(CWorldServer* self, void*, WorldPlayer* pl
                       deploys ? "deployed" : "not deployed", player->mercCount, player->lastTick);
 }
 EI_VERIFY(0x00590700, RedeployVerify, 0, s_unused);
+
+// A-W13. 00595020 UseItemUp: ours only (it changes the counts). Checked: the item's count is one
+// lower. A unit casting from a scroll (combat_orders.cpp); no scenario reaches it.
+static void __fastcall UseItemUpVerify(CWorldServer* self, void*, CUnit* unit, CItem* item) {
+    std::uint32_t before = item->unknown_48;
+    self->UseItemUp(unit, item);
+    ei::verify::Check("CWorldServer::UseItemUp", before - 1, item->unknown_48, "item %d", item->id_);
+}
+EI_VERIFY(0x00595020, UseItemUpVerify, 0, s_unused);
