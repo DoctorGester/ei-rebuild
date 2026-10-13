@@ -51,6 +51,21 @@ static_assert(offsetof(QuestBriefingRecord, lists) == 0x14);
 static_assert(offsetof(QuestBriefingRecord, text) == 0x5C);
 static_assert(sizeof(QuestBriefingRecord) == 0x6C);
 
+// The quest database's briefings (its +0x20): the records and their index by name.
+struct QuestBriefingTable {
+    using Index = stlp::hash_map<stlp::string, QuestBriefingRecord*, stlp::StringHash>;
+
+    // 006B0600 (RET 4; quest_database.cpp, A-H25; the "reject" and "complete" briefings of a
+    // quest file). Appends a copy of `record` unless its name is indexed with a record; the index
+    // is then emptied and filled again over the whole vector (the push_back may have moved the
+    // records). False for null or a name already there.
+    bool Add(const QuestBriefingRecord* record);
+
+    stlp::vector<QuestBriefingRecord> records;   // +0x00
+    Index index;                                 // +0x0C
+};
+static_assert(offsetof(QuestBriefingTable, index) == 0x0C && sizeof(QuestBriefingTable) == 0x20);
+
 class CFileRegistry;   // registry.h
 // 006AE740 (__fastcall registry, section; key and list on the stack, RET 8; quest_database.cpp,
 // A-H19). The registry's string list `section` / `key` into `list`: the list emptied, reserved for

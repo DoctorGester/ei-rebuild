@@ -481,6 +481,17 @@ public:
     // 0068D0A0 (RET 8). A directional light (kind 3) of `color` along `direction`, which the light
     // also tilts towards (CTransformObject::TiltTowards); flags_ bit 3. Returns 1.
     BOOL SetDirectional(const Vector3* color, const Vector3* direction);
+    // A-H25 (light.cpp; the terrain's vertex lighting 006C36B0 / 006C31C0). A colour (r, g, b in
+    // x, y, z) lit by the light: `base` plus the light's colour times `scale` and a factor, each
+    // channel clamped at 1; w is not written then (the original stores an unset local, which its
+    // callers do not read). Unlit, `out` is `base` (all four).
+    // 0068D310 (RET 0x10): the factor is minus the cosine between `normal` and direction_; unlit
+    // when it is not above 0.
+    // 0068D5A0 (RET 0x18): the factor is 1 - distance^2 / range^2 (unlit below 0), times 1 + the
+    // cosine between `normal` and `toLight` when that is not above 0.
+    void AddDirectional(Vector4* out, float scale, const Vector4* base, const Vector3* normal) const;
+    void AddPoint(Vector4* out, float scale, const Vector4* base, const Vector3* normal, const Vector3* toLight,
+                  float distance) const;
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x00743AFC);
 
     // The first 0x54 bytes are a CTransformObject (core_transform.h; its destructor's vtable is

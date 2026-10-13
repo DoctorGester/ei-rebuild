@@ -152,3 +152,11 @@ BOOL CSpellEffect::Forget(CEngineObject* object) {
     return 1;
 }
 EI_REPLACE_METHOD(0x0067EF00, CSpellEffect::Forget);
+
+// --- 00688530 (A-H25): an effect's tick --------------------------------------------------------------
+
+int MapEffect::Tick() {
+    --ticksLeft;
+    return ticksLeft > 0 ? 1 : 0;
+}
+EI_REPLACE_METHOD(0x00688530, MapEffect::Tick);

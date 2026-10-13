@@ -139,3 +139,20 @@ BOOL __fastcall CastForgetVerify(CSpellEffect* self, void*, CEngineObject* objec
 } // namespace
 EI_VERIFY(0x0067ECB0, CastInitVerify, 0, s_unused);
 EI_VERIFY(0x0067EF00, CastForgetVerify, 0, s_unused);
+
+// --- 00688530 (A-H25): MapEffect::Tick ---------------------------------------------------------------
+// The original, the count put back, then ours (every world update of a server object with effects:
+// the scenarios that cast a spell).
+// 00688530: MOV EAX,[ECX+4]; DEC EAX; MOV [ECX+4],EAX (7 bytes).
+static BOOL(__fastcall* s_effectTick)(MapEffect*);
+static BOOL __fastcall EffectTickVerify(MapEffect* self) {
+    const int before = self->ticksLeft;
+    BOOL expected = s_effectTick(self);
+    const int expectedLeft = self->ticksLeft;
+    self->ticksLeft = before;
+    BOOL actual = self->Tick();
+    ei::verify::Check("MapEffect::Tick", true, expected == actual && expectedLeft == self->ticksLeft, "%d -> %d / %d",
+                      before, expectedLeft, self->ticksLeft);
+    return expected;
+}
+EI_VERIFY(0x00688530, EffectTickVerify, 7, s_effectTick);

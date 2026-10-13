@@ -494,6 +494,14 @@ The spell manager's folder slot 00688940 (A-H24's last item) was complete. Wrapp
 | 0064BE40, 0064D990 | CObjectivesWindow::Setup, HelpTopic (slot 41: "quest_global_map" with two buttons, else "quest_mission") | S; P |
 | 00648F10 | CHudClock::OpenObjectives (from the Rebirth-patched click 00648D70: its inlined window constructor is 0063B5D0) | O |
 | 00660840 | PartyUnitRecord::CarriedWeight (CItem +0x34 is the weight; weapons, quick items, spells, armour in one running float sum) | P, CheckNear |
+| 0068D310, 0068D5A0 | CLight::AddDirectional / AddPoint (the terrain's vertex lighting): base + colour x scale x factor, clamped at 1; the alpha is not written when lit (the original stores an unset local its callers do not read) | P: r, g, b with CheckNear |
+| 006B0600 | QuestBriefingTable::Add (quest_records.h: the database's +0x20, vector + index by name; push_back 006B0780, clear 006B0590, find 006B0930 through their addresses) | O |
+| 00688530 | MapEffect::Tick | S |
+| 006617F0 | CParty::ArchiveParty (a memory stream as the archive's stream field 1; loading takes the archive's version) | O (SaveParty draws a new key each time) |
+
+Library, second batch: 0064EE90, 00652E30, 00652F80, 006581C0, 00675040, 00675690 (STLport); compiler: 00652FF0, 0067C5D0 (unwind only),
+the static initialisers 00698E70..00698FB0 and 0065F580 (run before the hooks), the scalar deleting destructors 006611B0, 006868D0,
+006868F0, 006B2DE0, 006B2E00, and 00663570.
 
 Library (config/library.csv): 006A5910, 006AF790, 006B0710, 006B0780, 006B09B0, 0069D0E0, 0069E350..0069E3D0 (STLport vector / uninitialised-copy
 helpers of the record tables and the stock) and the records' scalar deleting destructors 0069E540, 006A9EF0..006A9F90;

@@ -4354,3 +4354,23 @@ address,name,library,signature,notes
 006A9F50,scalar deleting destructor (0x8C-byte quick item record),compiler,,A-H25: as 006A9EF0 with 006A8A50
 006A9F70,scalar deleting destructor (0x7C-byte record),compiler,,A-H25: as 006A9EF0 with 006A8AE0
 006A9F90,scalar deleting destructor (0x78-byte record),compiler,,A-H25: as 006A9EF0 with 006A8BD0
+0064EE90,"hash_map<string, T>::operator[] (find or insert; the objectives' quest index)",STLport,,A-H25: STLport hashtable find_or_insert with the string key's hash and compare inlined (as 00613820)
+00652E30,"copy(first, last, result) over the options' key rows (0x18 bytes)",STLport,,A-H25: STLport __copy; the row's assignment (vector<int> and two CStrings) inlined
+00652F80,"copy(first, last, result) over 0x14-byte elements (four dwords and a CString)",STLport,,A-H25: STLport __copy with the element's assignment inlined
+00652FF0,"the options' key row copy constructor (0x18 bytes: an int, vector<int>, two CStrings)",compiler,,A-H25: compiler-generated memberwise copy (ui.h notes it); only the STLport vector copy and CString copies
+006581C0,__insertion_sort<SaveEntry*> (0x44-byte elements; __linear_insert 006584E0),STLport,,A-H25: STLport sort helper of the save list (00657F10)
+00675040,"_Construct<char>(char*, const char&)",STLport,,A-H25: STLport construct helper (one byte copied)
+00675690,"basic_string::append(first, last) entry",STLport,,A-H25: STLport; forwards to 0042B700
+0067C5D0,"unwind-only destructor freeing two blocks (+8, +0xC)",compiler,,A-H25: reached only from Unwind@00731AB6
+00698E70,static initialiser: an empty vector at 007C8680,compiler,,A-H25: three zero dwords; runs before the hooks are installed
+00698EC0,static initialiser: an empty vector at 007C8670,compiler,,A-H25: as 00698E70
+00698F10,static initialiser: an empty vector,compiler,,A-H25: as 00698E70
+00698F60,static initialiser: an empty vector,compiler,,A-H25: as 00698E70
+00698FB0,static initialiser: an empty vector,compiler,,A-H25: as 00698E70
+0065F580,"constructor of the multiplayer heroes global (two CStrings, a vector, a CParty 00661050)",compiler,,"A-H25: only the members' constructors; called from the static initialiser 0065F2A5, before the hooks are installed"
+006611B0,scalar deleting destructor of CParty's base (vtable 0074306C slot 0; body 0055ED90 -> 00455930),compiler,,A-H25: compiler-generated; the base vtable is only in place inside CParty's constructor and destructor
+006868D0,"scalar deleting destructor (spell record, body 00685AA0)",compiler,,A-H25: as 006A9EF0
+006868F0,"scalar deleting destructor (spell modifier record, body 00685B70)",compiler,,A-H25: as 006A9EF0
+006B2DE0,"scalar deleting destructor (quest record, body 006AF4D0)",compiler,,A-H25: as 006A9EF0
+006B2E00,"scalar deleting destructor (briefing record, body 006AF5A0)",compiler,,A-H25: as 006A9EF0
+00663570,operator delete of the block kept before a vector's elements ([this - 4]),compiler,,A-H25: called only from the unwind-only 00663410
