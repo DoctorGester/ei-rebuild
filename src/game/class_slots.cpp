@@ -2,6 +2,8 @@
 // manager, CFakeUnit, and the CUnit slots the fake unit shares. Each is a __fastcall shim on the
 // slot's address (this in ECX), as object.cpp's getters are: the classes' own virtual interfaces
 // are not declared in C++. Main thread. See docs/notes/objects.md ("A-E1: small slots").
+#include "game_strings.h"
+#include "item.h"
 #include "lightning.h"
 #include "map_object.h"
 #include "object.h"
@@ -15,6 +17,7 @@
 #include "lib/mfc.h"
 
 #include <cstdint>
+#include <new>
 
 namespace {
 
@@ -128,3 +131,25 @@ const mfc::CString* __fastcall UnitSetScriptName(CUnit* unit, void*, const char*
     return &(*text = name);
 }
 EI_REPLACE(0x00446830, UnitSetScriptName);
+
+// ---- CItem's base bodies of slots 17-21 (vtables 00743DA4 and 0073C474) ---------------------------
+
+// 00462300 / 00462330 / 00462360 / 00462390 (RET 4; four identical copies), slots 17-20: the names
+// a plain item does not have. An empty text built in the caller's result, which is returned.
+mfc::CString* __fastcall ItemNoName(CItem*, void*, mfc::CString* out) {
+    return new (out) mfc::CString(game::EmptyText());
+}
+EI_REPLACE(0x00462300, ItemNoName);
+EI_REPLACE(0x00462330, ItemNoName);
+EI_REPLACE(0x00462360, ItemNoName);
+EI_REPLACE(0x00462390, ItemNoName);
+
+// 004623C0 (RET 4), slot 21, which every class but the quest item keeps: the caller's result
+// zeroed and returned. (Slot 16, 004622F0, is four bytes and cannot be hooked.)
+ItemUse* __fastcall ItemNoUse(CItem*, void*, ItemUse* out) {
+    out->kind = 0;
+    out->value = 0;
+    out->extra = 0;
+    return out;
+}
+EI_REPLACE(0x004623C0, ItemNoUse);

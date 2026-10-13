@@ -307,3 +307,11 @@ verify_player_server_orders.cpp: result 1 and bytes consumed, 0x04's state 2 and
   (slot 58: a tail jump to the controller's slot 31) and 00446870 (slot 57: a tail jump to the controller's
   slot 53). They need the companion's slot 19, the return type of the controller's slot 31 and its slot 53
   declared in unit.h first.
+- CItem's base slots (vtables 00743DA4 and 0073C474; class_slots.cpp): 17-20 are four identical copies
+  (00462300, 00462330, 00462360, 00462390) returning an empty text, 21 (004623C0) zeroes the caller's ItemUse;
+  every class but the quest item keeps slot 21. Side by side (the original into the caller's result, ours into
+  a local). Slot 16 (004622F0) is four bytes.
+- small_accessors.cpp: 00471A90 (a Vector3 from three parts, a second copy of 00401DE0) and the scene
+  helper's vector setters 00471AB0 / 00471AD0 / 00471AF0 (+0x20, +0x30, +0x40), which `SceneInfo::Load` calls
+  per helper; side by side. The loader is rewritten (scene_loader.cpp), so the hooks fire only if it still
+  calls them through the exe.

@@ -396,3 +396,13 @@ work), `CSysInfo` 004DDCB0-004DE8B0 (static initialiser table 00783310: standalo
   exit-time destructor (004A5700: templates and records released, the strings, the entries, every party through
   the map's own node deleter 004ABA70, the bucket array). All ours only: a party's Create is not repeatable
   side by side and the rest destroy. The creators are reached when a saved party manager is loaded.
+- small_accessors.cpp: the accessors the interpreter calls out of line, as `__fastcall` shims: 004B2520 (the
+  referenced map object's companion, null without an object), 004B9F50 / 004B9F60 (bits of the object's flags
+  set / cleared), 004B9F90 (the map object's position), 004B9FD0 (a counted object exists and is not
+  detached; asked of the game server), 004BA010 (FISTP of a number), 004BA030 (`CItem::Repair`), 004BA060
+  (the unit's controller), 004BA070 / 004BA080 (the carried items' count and element), 004BA9C0 (the
+  controller's statistics), 004BAA20 (`ObjectListIterator::First`), 004BC1F0 (a CString written to a stream
+  with its terminator; the definition's Save). Their only callers are Execute (004B6760) and
+  ScriptDefinitionSave (004BBFE0), both rewritten with the same work inline, so no scenario reaches the
+  hooks. Side by side where the prologue allows (the field put back between the runs); 004B2520, 004B9FD0,
+  004BAA20 and 004BC1F0 ours only.

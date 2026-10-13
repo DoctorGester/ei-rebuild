@@ -6,8 +6,12 @@
 //    FakeUnitCreate: ours only (they free or create); what can be read afterwards is checked.
 //  - The unit's TakeHit, ObjectDeleted and SetScriptName slots: ours only (one call on the
 //    controller or one assignment; running it twice would hit twice); the result or the text.
+//  - CItem's base slots 17-21: side by side (the original into the caller's result, ours into a
+//    local). Reached through the item vtables only; which scenarios call them is not known (no
+//    run).
 #include "verify.h"
 
+#include "../../src/game/item.h"
 #include "../../src/game/lightning.h"
 #include "../../src/game/object.h"
 #include "../../src/game/scene_loader.h"
@@ -31,6 +35,8 @@ int __fastcall UnitTakeHit(CUnit* unit, void*, DamageInfo* hit, CEngineObject* a
 void __fastcall UnitObjectDeleted(CUnit* unit, void*, CEngineObject* object);
 float __fastcall UnitForwardSpeed(CUnit* unit);
 const mfc::CString* __fastcall UnitSetScriptName(CUnit* unit, void*, const char* name);
+mfc::CString* __fastcall ItemNoName(CItem*, void*, mfc::CString* out);
+ItemUse* __fastcall ItemNoUse(CItem*, void*, ItemUse* out);
 
 namespace {
 void* s_unused;
@@ -141,8 +147,60 @@ const mfc::CString* __fastcall SetScriptNameVerify(CUnit* self, void*, const cha
     ei::verify::Check("CUnit slot 61 (SetScriptName)", true, good, "\"%.40s\"", name ? name : "(null)");
     return result;
 }
+
+// 00462300 / 30 / 60 / 90: PUSH ECX (1), PUSH ESI (1), MOV ESI,[ESP+0xC] (4).
+void CheckNoName(int slot, CItem* self, const mfc::CString* expected) {
+    alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
+    auto* ours = reinterpret_cast<mfc::CString*>(storage);
+    mfc::CString* result = ItemNoName(self, nullptr, ours);
+    bool same = result == ours && std::strcmp(*expected, *ours) == 0 && ours->GetLength() == 0;
+    ei::verify::Check("CItem base name slot", true, same, "slot %d: \"%.40s\"", slot,
+                      static_cast<const char*>(*expected));
+    ours->~CString();
+}
+using NoNameFunction = mfc::CString*(__fastcall*)(CItem*, void*, mfc::CString*);
+NoNameFunction s_noName17;
+mfc::CString* __fastcall NoName17Verify(CItem* self, void*, mfc::CString* out) {
+    s_noName17(self, nullptr, out);
+    CheckNoName(17, self, out);
+    return out;
+}
+NoNameFunction s_noName18;
+mfc::CString* __fastcall NoName18Verify(CItem* self, void*, mfc::CString* out) {
+    s_noName18(self, nullptr, out);
+    CheckNoName(18, self, out);
+    return out;
+}
+NoNameFunction s_noName19;
+mfc::CString* __fastcall NoName19Verify(CItem* self, void*, mfc::CString* out) {
+    s_noName19(self, nullptr, out);
+    CheckNoName(19, self, out);
+    return out;
+}
+NoNameFunction s_noName20;
+mfc::CString* __fastcall NoName20Verify(CItem* self, void*, mfc::CString* out) {
+    s_noName20(self, nullptr, out);
+    CheckNoName(20, self, out);
+    return out;
+}
+
+// 004623C0: MOV EAX,[ESP+4] (4), PUSH ESI (1).
+ItemUse*(__fastcall* s_noUse)(CItem*, void*, ItemUse*);
+ItemUse* __fastcall NoUseVerify(CItem* self, void*, ItemUse* out) {
+    ItemUse expected;
+    ItemUse* expectedResult = s_noUse(self, nullptr, &expected);
+    ItemUse* result = ItemNoUse(self, nullptr, out);
+    bool same = expectedResult == &expected && result == out && std::memcmp(&expected, out, sizeof expected) == 0;
+    ei::verify::Check("CItem base slot 21 (no use)", true, same, "");
+    return result;
+}
 } // namespace
 
+EI_VERIFY(0x00462300, NoName17Verify, 6, s_noName17);
+EI_VERIFY(0x00462330, NoName18Verify, 6, s_noName18);
+EI_VERIFY(0x00462360, NoName19Verify, 6, s_noName19);
+EI_VERIFY(0x00462390, NoName20Verify, 6, s_noName20);
+EI_VERIFY(0x004623C0, NoUseVerify, 5, s_noUse);
 EI_VERIFY(0x00461C90, HooverCreateVerify, 5, s_hooverCreate);
 EI_VERIFY(0x00461C40, HooverNameVerify, 5, s_hooverName);
 EI_VERIFY(0x00461C50, HooverIdVerify, 5, s_hooverId);

@@ -74,3 +74,23 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
   releases, the root vtable 0073C368; slot 0 004578B0) and the root class's slot 0 (00457950). Ours only; the
   application drops the mouse at exit. The party record and class template creators and the party manager's
   destructor in the same file are described in script.md.
+- small_accessors.cpp: the counted pointer's destructor (00455C80, with the identical copies 00455610 and
+  004BB050): one reference dropped (`--refCount_`, no delete), the pointer cleared. Ours only (its prologue is a
+  short jump); the world server's tick and the object list iterators' owners call it. 00455610 is called by
+  unwind funclets only.
+- A-E1 library rows (config/library.csv, 60 rows; each row says why): STLport instantiations (hash map
+  operator[] 00464750, node deallocators 00464730 / 00499800, list and pair destructors 0049C6E0, 004824B0,
+  00483D40, 00464DF0, the aligned allocators and vector helpers 004A2BF0, 004A3090, 004A3060, 004A2FC0,
+  00455890, 00482DD0, 004991C0, 004991E0, 00482790), MFC template helpers (the element constructors /
+  destructors / zero fills of the CArray and CList instantiations at 004763C0-00477530, 00499350, 0049BB10,
+  00475F20, 00498C80, 00498E30, 004553F0, 00462230, the CString thunks 004563A0 and 004B9F20, 0049F810) and
+  compiler-generated helpers (the four-dword buffer constructors 00474C70 / 00475F10 / 00498E20, the pointer
+  holder constructors 004983F0 / 004BB040, operator= 00474C50, the delete wrapper 00462520 and the helpers
+  only unwind funclets call: 00445FC0, 00481E50, 00447F40, 0047A3D0, 0047A3E0, 00455820, 00462610, 00482E90,
+  00498E50, 00457940, 004688F0, 00481560).
+- Not ported in 0x00400000-0x004C0000 after A-E1: the Rebirth-patched 0040ECD0, 0041ECC0, 00443080, 00456440,
+  00463390, 00468A00 and the network 0041AA10, 0041ACA0, 0041B1C0 (vanilla launch only; group 3 of the
+  ticket, not started); the static initialisers 00444740, 00458870, 0045E820, 004632A0, 004A5870 (they run
+  before the hooks install); 004560D0 (the message box: it flips the DirectDraw surface to GDI); the unit
+  slots 004467C0, 00446810, 00446870 (objects.md); and 69 functions under five bytes. 0049F7B1 is listed as a
+  function but is the tail of `IsaacRandom::Seed` (0049F660, random.cpp) after its catch block.

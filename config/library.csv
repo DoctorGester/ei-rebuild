@@ -4558,3 +4558,63 @@ address,name,library,signature,notes
 005849F0,"__stl_next_prime (lower_bound in the 28 primes at 0073B914)",STLport,,"A-W13 review: STLport template instantiation"
 00584A40,"__stl_next_prime (byte-identical to 005849F0)",STLport,,"A-W13 review: STLport template instantiation"
 005755E0,"list<counted pointer>::erase (the node unlinked, its object released through slot 4, the node to the free list)",STLport,,"A-W13 review: STLport template instantiation"
+00464750,"stlp::hash_map<string,T>::operator[] (the lever table's records by name)",STLport,,"A-E1: STLport template instantiation: the key string built from the argument, resize(count + 1) 00464F30, the bucket chain compared by length and bytes, a new node from 00464E10 linked at the bucket's head; returns the value at node+0x10 (RET 4). Callers 00463390 and Lever::SetState (unit_lever.cpp, through its forwarder)"
+00464730,stlp::_STLP_alloc_proxy<T>::deallocate (one 12-byte node),STLport,,A-E1: a non-null node pushed on the node pool's 12-byte list 0079B228 (RET 4); called by the chunk archive's destructor 004645A0 (rewritten)
+00499800,stlp::_STLP_alloc_proxy<T>::deallocate (one 12-byte node),STLport,,A-E1: byte-identical to 00464730; called by the particle manager's destructor 00497FE0 (rewritten)
+0049C6E0,stlp::list<vector<T>>::~list (16-byte elements with a trivial destructor),STLport,,"A-E1: every node's vector destroyed (elements through the one-byte 0049E3D0, storage through 0049C8B0), the 20-byte nodes and the sentinel pushed on 0079B22C; called only from Unwind@0071686B"
+004824B0,"stlp::pair<string,list<T>>::~pair (0x18-byte list nodes)",STLport,,"A-E1: compiler-generated from two STLport members: the list at +0x0C cleared and its sentinel freed (0x18 bytes each), then the byte buffer at +0x00 (eos - start bytes); the value destructor of the rb-tree 00482EA0 / 00482730 (library), of 00483D40 and of Unwind@00716359"
+00483D40,"stlp::pair<string,list<T>> scalar deleting destructor (004824B0)",STLport,,"A-E1: 004824B0, then operator delete with flags bit 0 (RET 4); called by the rb-tree clear 00481E60 (library)"
+004A2BF0,stlp::_Deque_iterator<T> copy constructor,STLport,,A-E1: four dwords copied (RET 4); called by the deque destroy helpers 004A2FC0 / 004A3060 and 0068DE30
+004A3090,"stlp::__destroy_aux (deque iterators, 16-byte elements with a trivial destructor)",STLport,,A-E1: walks first to last across the 0x200-byte blocks and destroys nothing (RET 0x24); called by 004A3060
+004A3060,stlp::__destroy (deque iterators),STLport,,A-E1: copies both iterators (004A2BF0) and calls 004A3090 (RET 0x20); called by 004A2FC0
+004A2FC0,stlp::_Destroy (deque iterators),STLport,,A-E1: copies both iterators (004A2BF0) and calls 004A3060 (RET 0x20); the deque<T> of 16-byte elements of 004A2C80 / 0068DD40 / 0068DE30 and two catch blocks
+00455890,stlp::_Ht_iterator::_Ht_iterator,STLport,,"A-E1: byte-identical to 00404D50 (library): two dwords stored, returns this (RET 8)"
+00482DD0,stlp::_Ht_iterator::_Ht_iterator,STLport,,"A-E1: byte-identical to 00404D50 (library): two dwords stored, returns this (RET 8)"
+004991C0,stlp::_Ht_iterator::_Ht_iterator,STLport,,"A-E1: byte-identical to 00404D50 (library): two dwords stored, returns this (RET 8)"
+004991E0,stlp::_Ht_iterator::_Ht_iterator,STLport,,"A-E1: byte-identical to 00404D50 (library): two dwords stored, returns this (RET 8)"
+00482790,stlp node deallocate guard (one 0x20-byte node),STLport,,"A-E1: a non-null node pushed on the node pool's list 0079B230; called only from unwind funclets (Unwind@007163A6, Unwind@007163F0)"
+004763C0,"CArray<TYPE,ARG_TYPE> destructor (vtable 0073C80C; 0x1C-byte elements)",MFC,,"A-E1: array template instantiation of the scene loader: each element destroyed through its slot 1 with 0, the block freed; scene_loader.cpp forwards to it (DestroyMapArray); also 00476D70 and two unwind funclets"
+00476D70,"CArray<TYPE,ARG_TYPE> scalar deleting destructor (004763C0)",MFC,,"A-E1: 004763C0, then operator delete with flags bit 0 (RET 4); slot 1 of 0073C80C"
+004553F0,"ConstructElements ({dword, CString} elements)",MFC,"void __stdcall(void*,int)","A-E1: MFC template instantiation: zero fill, then each CString set to the empty string (RET 8); scene_registry.cpp forwards to it (ConstructNamed)"
+00462230,"ConstructElements (4-byte elements, zero fill)",MFC,,"A-E1: MFC template instantiation: memset(p, 0, n * sizeof(T)) (RET 8); called by 00461CB0 and 00621570"
+00477190,"ConstructElements (0x1C-byte elements, zero fill)",MFC,,"A-E1: MFC template instantiation: memset(p, 0, n * sizeof(T)) (RET 8); called by the scene loader"
+00477220,"ConstructElements (8-byte elements, zero fill)",MFC,,"A-E1: MFC template instantiation: memset(p, 0, n * sizeof(T)) (RET 8); called by the scene loader"
+00477130,"ConstructElements (12-byte elements, zero fill)",MFC,,"A-E1: MFC template instantiation: memset(p, 0, n * sizeof(T)) (RET 8); called by the scene loader"
+00477160,"ConstructElements (12-byte elements, zero fill)",MFC,,"A-E1: MFC template instantiation: memset(p, 0, n * sizeof(T)) (RET 8); called by the scene loader"
+004771C0,"ConstructElements (20-byte elements, zero fill)",MFC,,"A-E1: MFC template instantiation: memset(p, 0, n * sizeof(T)) (RET 8); called by the scene loader"
+004771F0,"ConstructElements (24-byte elements, zero fill)",MFC,,"A-E1: MFC template instantiation: memset(p, 0, n * sizeof(T)) (RET 8); called by the scene loader"
+00477530,"ConstructElements (20-byte elements, zero fill)",MFC,,"A-E1: MFC template instantiation: memset(p, 0, n * sizeof(T)) (RET 8); called by the scene loader"
+00499350,"ConstructElements (8-byte elements, zero fill)",MFC,,"A-E1: MFC template instantiation: memset(p, 0, n * sizeof(T)) (RET 8); called by 00498EA0 and 00499200"
+00476F50,"DestructElements (0x18C-byte elements, each through its slot 0 with 0)",MFC,,A-E1: MFC template instantiation (RET 8); called by the scene loader
+00477100,"DestructElements (0x120-byte elements, destructor 004543E0)",MFC,,A-E1: MFC template instantiation (RET 8); called by the scene loader
+00476F20,"DestructElements (0x18-byte elements, destructor 00454C50)",MFC,,A-E1: MFC template instantiation (RET 8); called by the scene loader
+00477340,"CMap<KEY,ARG_KEY,VALUE,ARG_VALUE>::GetAssocAt (4-byte keys, HashKey = key >> 4)",MFC,,"A-E1: MFC template instantiation (CMap::GetAssocAt), as 00453C60; scene_loader.cpp forwards to it (DwordMap::GetAssocAt)"
+00476EF0,aligned array allocate (0x34-byte elements),MFC,void* __fastcall(int),"A-E1: instantiation helper as 00468F70: operator new(n*0x34+0x24), aligned to 32, raw pointer stored before the data; called by the scene loader"
+00477250,aligned array allocate (12-byte elements),MFC,void* __fastcall(int),"A-E1: instantiation helper as 00468F70: operator new(n*12+0x24), aligned to 32, raw pointer stored before the data; called by the scene loader"
+0049BB10,aligned array allocate (24-byte elements),MFC,void* __fastcall(int),"A-E1: instantiation helper as 00468F70: operator new(n*24+0x24), aligned to 32, raw pointer stored before the data; called by the line strip draws 0049B4B0 and 005045D0"
+00475F20,aligned array free,MFC,void __thiscall(),A-E1: instantiation helper: a non-null block freed through the raw pointer stored before the data; called by the scene loader and four unwind funclets
+00498C80,aligned array free,MFC,void __thiscall(),"A-E1: byte-identical to 00475F20; called only from unwind funclets (Unwind@0071667B, Unwind@007166C8)"
+00498E30,aligned array free,MFC,void __thiscall(),"A-E1: byte-identical to 00475F20; called only from unwind funclets (Unwind@00716697, Unwind@007166E4)"
+004563A0,CString::~CString (thunk),MFC,void __thiscall(),A-E1: JMP 00700970; called only from unwind funclets
+0049F810,AfxTryCleanup (thunk),MFC,,A-E1: JMP 0070212F; called only from unwind funclets
+00474C70,aligned buffer constructor,compiler,,"A-E1: four dwords cleared, returns this; as 0056FCC0. Called by the scene loader, 004A0350 and 004D9110"
+00475F10,aligned buffer constructor,compiler,,A-E1: byte-identical to 00474C70; called by the scene loader
+00498E20,aligned buffer constructor,compiler,,A-E1: byte-identical to 00474C70; called by 004981B0
+00462520,operator delete(this) wrapper,compiler,void __thiscall(),A-E1: PUSH ECX / CALL operator delete (007005D8): the deallocate(p) of an allocator instantiation; 12 callers
+00445FC0,member destructor thunk (the CString at +0x0C),compiler,,"A-E1: compiler-generated; called only from unwind funclets (Unwind@00713210): ADD ECX,0xC / JMP CString::~CString, the text tokenizer's word"
+00481E50,member destructor thunk (the CStringArray at +0x1000),compiler,,"A-E1: compiler-generated; called only from unwind funclets (Unwind@007162EB): ADD ECX,0x1000 / JMP 006FE958"
+00447F40,unwind helper: clears the pointer at ECX,compiler,,A-E1: compiler-generated; called only from unwind funclets (Unwind@00713346)
+0047A3D0,unwind helper: clears the pointer at ECX,compiler,,"A-E1: compiler-generated; called only from unwind funclets (Unwind@0071603B, Unwind@0071606B)"
+0047A3E0,unwind helper: clears the pointer at ECX,compiler,,A-E1: compiler-generated; called only from unwind funclets (Unwind@00716043)
+00455820,unwind helper: clears the dword at +8,compiler,,"A-E1: compiler-generated; called only from unwind funclets (12, from Unwind@00713C70)"
+00462610,unwind helper: clears the dword at +8,compiler,,A-E1: compiler-generated; called only from unwind funclets (Unwind@007146E0)
+00482E90,unwind helper: clears the dword at +8,compiler,,A-E1: compiler-generated; called only from unwind funclets (Unwind@00716301)
+00498E50,unwind helper: clears the dword at +8,compiler,,A-E1: compiler-generated; called only from unwind funclets (Unwind@00716640)
+00457940,unwind helper: stores the root vtable 0073C368,compiler,,"A-E1: compiler-generated; called only from unwind funclets (6, from Unwind@00713DA0): the destructor of the one-slot counted root"
+004688F0,unwind helper: releases the object a pointer holds (slot 4),compiler,,"A-E1: compiler-generated; called only from unwind funclets (12, from Unwind@00714C93): the destructor of a counted object pointer"
+00481560,unwind helper: destructor of the array class 0073CAB0,compiler,,"A-E1: compiler-generated; called only from unwind funclets (Unwind@00716270, Unwind@00716290): the vtable stored, the block at +4 freed"
+004983F0,pointer holder constructor,compiler,,"A-E1: *this = 0, returns this; called by 004981B0 and 005612F0"
+004BB040,pointer holder constructor,compiler,,A-E1: byte-identical to 004983F0; called by the script interpreter 004B6760 (rewritten)
+00464DF0,stlp::_Vector_base<T> scalar deleting destructor (00464890),STLport,,"A-E1: the base destructor 00464890 (library), then operator delete when bit 0 of the flags is set (RET 4); the node value deleter of the lever table (lever_table.cpp forwards to it)"
+00474C50,"operator= of a {CString, CStringArray} record (0x18 bytes)",compiler,,"A-E1: compiler-generated member-wise assignment: CString::operator= 00700AA9, then 006FF3ED (the CStringArray copy) on +4; returns this (RET 4). Called by SceneInfo::Load at 00474536"
+004B9F20,"CString::CompareNoCase (inline, emitted out of line)",MFC,int __thiscall(const char*),"A-E1: _mbsicmp(m_pchData, arg) (RET 4), the MFC header's inline; called by the script interpreter 004B6760 (rewritten)"
