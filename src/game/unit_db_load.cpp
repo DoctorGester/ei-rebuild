@@ -28,9 +28,6 @@ constexpr int kModelSlots = 6;
 
 using SerializeFn = void(__fastcall*)(ChunkArchive*, void*, int, void*, void*);
 
-// CMappedResource::OpenResource (RET 8) through its address: Rebirth patches it (rule 9).
-__declspec(naked) BOOL __fastcall OpenResourceAt(CMappedResource*, void*, const char* /*path*/, BOOL /*writable*/)
-    EI_ORIGINAL(0x00671730)
 // The chunk archive's out-of-line destructor (not rewritten).
 __declspec(naked) void __fastcall ArchiveDestroy(ChunkArchive*) EI_ORIGINAL(0x004645A0)
 // The tables' vector serialisers (RET 0xC: id, vector, unused; rewritten in unit_db.cpp) and the
@@ -131,7 +128,7 @@ EI_REPLACE_METHOD(0x0053D650, UnitLevelTable::FindByName);
 int UnitDatabase::Load(const char* folder, const char* archive) {
     mfc::CString path = mfc::CString(folder) + archive;
     LocalResource resource;
-    if (!OpenResourceAt(resource.Get(), nullptr, path, 0))
+    if (!MappedResourceOpenOriginal(resource.Get(), nullptr, path, 0))
         return FatalErrorOriginal("Can't open database file \"%s\"\n", static_cast<const char*>(path));
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("units.udb", &size);
@@ -176,7 +173,7 @@ EI_REPLACE_METHOD(0x0053A200, UnitDatabase::Load);
 int SkillDatabase::Load(const char* folder, const char* archive) {
     mfc::CString path = mfc::CString(folder) + archive;
     LocalResource resource;
-    if (!OpenResourceAt(resource.Get(), nullptr, path, 0))
+    if (!MappedResourceOpenOriginal(resource.Get(), nullptr, path, 0))
         return FatalErrorOriginal("Can't open database file \"%s\"\n", static_cast<const char*>(path));
     std::uint32_t size;
     void* data = resource.Get()->CMappedResource::GetFile("perks.pdb", &size);

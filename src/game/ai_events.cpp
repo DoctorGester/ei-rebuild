@@ -162,9 +162,6 @@ constexpr std::size_t kNormalTableSize = 0x1000;
 
 const char* TextAt(std::uintptr_t address) { return reinterpret_cast<const char*>(address); }
 
-// CMappedResource::OpenResource at its address: Rebirth patches it.
-__declspec(naked) BOOL __fastcall ArchiveOpenAt(CMappedResource*, void*, const char* /*path*/, BOOL /*writable*/)
-    EI_ORIGINAL(0x00671730)
 
 } // namespace
 
@@ -193,7 +190,7 @@ int AIEventTable::Setup(CAIMap* aiMap, float sizeX, float sizeY) {
     {
         mfc::CString folder(*static_cast<const mfc::CString*>(worlddata::TextPathString()));
         mfc::CString path = folder + TextAt(kAiInfoArchive);
-        failed = ArchiveOpenAt(archive, nullptr, path, 0) == 0;
+        failed = MappedResourceOpenOriginal(archive, nullptr, path, 0) == 0;
     }
     void* data = nullptr;
     const char* error = TextAt(kCantReadAiInfo);
