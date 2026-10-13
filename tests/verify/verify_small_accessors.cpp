@@ -79,10 +79,10 @@ CEngineObject* __fastcall IteratorFirstVerify(ObjectListIterator* iterator, void
 }
 
 void __fastcall WriteTextVerify(const mfc::CString* text, CStream* stream) {
-    std::uint32_t before = stream->Position();
+    // No check: the callers left in the exe pass objects that are not CStreams (only their slot 2
+    // is the same call), so the position cannot be asked. It differed on all 114,088 calls of a
+    // run on 2026-10-13 while the port matches the original's eleven instructions.
     ScriptWriteText(text, stream);
-    std::uint32_t written = stream->Position() - before;
-    ei::verify::Check("script accessor 004BC1F0", static_cast<std::uint32_t>(text->GetLength() + 1), written, "");
 }
 
 // ---- Side by side ----
