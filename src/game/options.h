@@ -91,4 +91,7 @@ static_assert(offsetof(GameOptions, driverIndex_) == 0x2C && offsetof(GameOption
 
 inline GameOptions* TheOptions() { return reinterpret_cast<GameOptions*>(0x0079BC70); }
 
+// 00458DA0 (options_defaults.cpp). The options' defaults.
+void __fastcall OptionsResetDefaults(GameOptions* self);
+
 } // namespace options

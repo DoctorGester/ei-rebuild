@@ -45,3 +45,28 @@ and the `PeekMessageA` return addresses (00457119 / 00457610) are in WinMain (00
 - Dead: 00442F00, the animation exporter's writer and six unreferenced functions.
 - The fake unit scene loader (00471A90-004775F0, slot 62 of CFakeUnit via 00446BA0 -> 00446C10 ->
   00471B10) and 00477B00 (applies a unit record to a new unit, from 005927C0) are in `objects.md`.
+
+## A-E1: the leftovers of 0x00440000-0x00480000
+
+Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the main thread):
+
+- 00455A90 `app::DiskFreeSpace` (path in ECX, a double in ST0): GetDiskFreeSpaceExA looked up in kernel32 on every call
+  (GetModuleHandleA + GetProcAddress), its free-bytes-for-the-caller as a signed 64-bit value; without it
+  sectors x bytes x free clusters (each zero-extended, `x87::FromUnsigned`); 0 when the call fails. Side by side; a
+  difference is compared with a second run of the original (the free space can change). Save and load screens.
+- 00455F10 `SetQuitAllowed` (CL to the byte 00784751), 00455F20 `QuitGame` (PostQuitMessage and 1 when the byte is set,
+  else 0; ours only, it posts the message), 00455E20 `MovieMode` (the byte 00784752; side by side).
+- 00455B50 `DelayedProtectionCheck` (CPlayerClient::OnNewObject calls it for every new object): rand() * 100 / 0x7FFF
+  % 100 < 1, then the STLport list at 0079BC2C (built empty by the static initialiser 00455E50, freed by 00455F00) is
+  searched for an entry whose byte is 0; one such entry runs 00455BA0 `ScrambleObjects` (the options back to their
+  defaults, every object of the object manager 007AF5F8 given rand() * 0x1000 / 0x7FFF % 0x1000 as its companion
+  (0050E8F0) and as its specific half (005161A0)). Nothing in the exe adds to the list, so the scramble never runs; both
+  ours only (rand is drawn), the check wrapper also checks that the list is empty.
+- 00455950 `CEngineObject::World` (the manager context's slot 13, `CManagerContext::ThisWorld`, now declared with its
+  result; null without a context) side by side, on every unit's updates; 00457720 `CEngineObject::ReleaseAndDelete` (one
+  reference less, `delete` at zero) ours only.
+- 0045EA00 `CMapDatabase::LoadAll` ("map.txt", then "map-LMP.txt"; WinMain). Ours calls `Load` directly, so the loader's
+  own check is no longer reached from it; `verify_map_database.cpp` runs the original's two loads on the shadow database
+  and compares the databases in depth after `LoadAll`.
+- 004645A0 `ChunkArchive::Destruct` (the out-of-line destructor the database loaders call; `DestructLocal`'s steps):
+  ours only, both streams must carry the stream base's vtable afterwards.
