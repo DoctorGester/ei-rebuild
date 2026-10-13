@@ -544,6 +544,13 @@ public:
     // 0054C6B0. PlanAction into a scratch plan, with the target unit's flags_ bit 0x8000000 set
     // meanwhile. Callers test AL.
     bool CanPlanAction(const UnitAction* order);
+    // 0054C8B0 (RET 4; combat_tick.cpp; the AI's and the players' order checks). False for an
+    // attack without a ranged weapon, or a skill, on a living unit of size class 0 that is too
+    // high to reach (its prototype's height plus its z at 1.5 or above); else CanPlanAction.
+    // Callers test AL.
+    bool CanReachAndPlan(const UnitAction* order);
+    // 0054C960 (RET 8). The same, planning with the unit placed at `point` meanwhile.
+    bool CanReachAndPlanFrom(const UnitAction* order, const Vector3* point);
     // The same through the game's addresses (for the verify build's wrappers).
     bool CallCanActFrom(const UnitAction* order, const float* point, int time);
     bool CallPlanAction(const UnitAction* order, struct OrderPlan* plan);

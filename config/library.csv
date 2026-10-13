@@ -4342,3 +4342,6 @@ address,name,library,signature,notes
 005AE820,"__uninitialized_copy (16-byte records: an STLport string and an int)",STLport,,"A-W13 review: STLport template instantiation (the vector growth 005AD680)"
 005AE8E0,"__uninitialized_fill_n (16-byte records: an STLport string and an int)",STLport,,"A-W13 review: STLport template instantiation (the vector growth 005AD680)"
 005AE030,"copy constructor of a 16-byte record (an STLport string, copied inline, and an int)",compiler,,"A-W13 review: compiler-generated (005AA360, 00675050)"
+00577E90,"make_heap (pointers ordered by the unsigned value at [[p + 0x94] + 0xEC]: the model use sort's heap)",STLport,,"A-W13 review: STLport template instantiation (IntroSortByModelUse 00573EA1's caller chain)"
+00582030,"vector<T>::~vector (68-byte records: four CStrings destroyed per element, then the block freed)",STLport,,"A-W13 review: STLport template instantiation (0057DEE0)"
+0059A3C0,"CList<TYPE,ARG_TYPE>::~CList (vtable 0073FA10; RemoveAll with the elements' CArray members destroyed inline, CPlex::FreeDataChain)",MFC,,"A-W13 review: MFC template instantiation (0059B4F0 and unwinding)"

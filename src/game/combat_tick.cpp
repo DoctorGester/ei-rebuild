@@ -645,6 +645,24 @@ bool OutOfReachUp(CUnitServer* self, const UnitAction* order) {
 }
 } // namespace
 
+bool CUnitServer::CanReachAndPlan(const UnitAction* order) {
+    if (OutOfReachUp(this, order)) return false;
+    return CallCanPlanAction(order);
+}
+EI_REPLACE_METHOD(0x0054C8B0, CUnitServer::CanReachAndPlan);
+
+bool CUnitServer::CanReachAndPlanFrom(const UnitAction* order, const Vector3* point) {
+    if (OutOfReachUp(this, order)) return false;
+    // The position is swapped bitwise, as the original does.
+    Vector3 saved;
+    std::memcpy(&saved, &unit->position, sizeof(saved));
+    std::memcpy(&unit->position, point, sizeof(saved));
+    bool result = CallCanPlanAction(order);
+    std::memcpy(&unit->position, &saved, sizeof(saved));
+    return result;
+}
+EI_REPLACE_METHOD(0x0054C960, CUnitServer::CanReachAndPlanFrom);
+
 void CUnitServer::ExecuteOrder() {
     int now = WorldTick(this);
     unknown_18E = 0;
