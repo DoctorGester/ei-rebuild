@@ -557,6 +557,7 @@ V: S side by side, O ours only.
 | 006567A0 | CSaveLoadWindow::RefreshListVanilla (ui_saveload_list.cpp): the caret clamped; into surface 0 up to sixteen rows from the scroll position (title, or the typed name for the selected row of a save window; the date "%d/%m, %H:%M" through CTime::Format 006FE795 but for a save window's new save), the caret (not for "saveq" / "savea" / "saveb"), the marker (scene object 4) on the selected row; then the selected save's allod, zone, day and time (_ftol(gameTime x 60) minutes: day + 1, h:mm) and folder | S (drawing twice leaves the same picture; the caret and the marker's visibility and place compared, the pixels not); ui_saveload, ui_saveload_delete, ui_hud (the Esc menu's Load and Save windows) |
 | 006456E0 | CHudUnitPanel::SetupVanilla (ui_hud_slide.cpp): rectangle (0, 0)-(185, 225), the slide at its far end when `slid` (offset 180); regions 0 the sling, 1-4 the body part buttons (tips 0x2775.., keys 0x2E..), 5 the panel; sprites 0 / 1 plain backgrounds, 2 the sling, 3-6 the part buttons, 7 the frame, 8 a strip of twenty cells, 9 "more effects", 10-13 health and mana bars, 14-25 the six parts' bars (tables 00742434 / 0074244C), 26-31 the effects' pictures; the text surface; "infounit_0..17" and the four "hl_" labels read into the two string arrays; Layout | S (regions, sprites, surface and strings dropped between the runs); every scenario that starts a game |
 | 00641F20 | CHudMap::SetupVanilla (ui_hud_slide.cpp; +0x174 is `halfSide_`, +0x178 `viewPolygon_` a point array; MapRecord's +0x10..+0x24 named): rectangle (615, 0)-(800, 165); the world's extent (the zone record's size x 32) and picture (referenced object 1; 32 x 32 and "battle00" without a record); scale 2 / size, zoom up to size x 0.05; regions 0 the sling, 1 the round map (sixteen points of radius 65 about (700, 80)), 2 the square, 3 / 4 the view buttons, 5 "camera north", 6 the panel; sprites 0 bounds, 1 the visible area's disc, 2 markers, 3 / 4 plain backgrounds, 5 the sling, 6 / 7 view buttons, 8 ring, 9 frame, 10 needle, 11 north; a 5 x 5 surface with one white pixel; the view polygon = the disc's sixteen corners; UpdateView, BuildMarkers, Layout | S (as above; the two point arrays dropped too, the picture's reference and place given back without a release so that the second run finds the same texture and its load is the manager's "already loaded" case); every scenario that starts a game |
+| 00659420 | CHelpWindow::ShowPageVanilla (ui_help_page.cpp; +0x18C is `pictures_`, a list of sprites): the window emptied and built again for page_. "tutorial <text_>" opened (else pending value 0), the page's "#screen" found; rectangle (200, 50)-(600, 560) or "#position left top right [rows]" (searched from the page on, not only inside it; at least 300 wide, rows x 16 + 110 high, at most 600); sprites 0 plain background, 1 frame, 2-4 previous / OK / next; a pulsing frame per "#rectangle l t r b"; an entry per "#text [picture]" whose next line's first word is the key. Surface 0 the title (font 2) and "title (page/pages)"; surface 1 the entries' "tutor <key>" texts wrapped ("\n\r" trimmed; 16 a line, at least 80 with a picture, indent 90 / 15), laid out twice unless rows are given: the first pass copies "tutorial_<picture>" into 64-pixel cells of referenced object 1 (at most 16), makes the pictures' sprites and gives the height; surface 2 the neighbours' titles and "show_tutorial_key" + the help key's name; regions 0-2 the buttons (tips 0x7595, 0x7594, 0x7596) | S (the function empties the window itself, so the second run replaces the first; regions, sprites, surfaces' places, the lists' sprites by index, the text reader's position, the pending value compared; pixels not); ui_help |
 
 Shared: database_file.h (`dbfile::LocalResource`, `LocalStream`, `FillStream`, `LoadTable`, `OpenDatabase`, `ReportNoDatabase`;
 unit_db_load.cpp uses it too); `MappedResourceOpenOriginal`, `ChunkArchiveDestroyOriginal` (originals_engine.h);
@@ -579,8 +580,13 @@ RoundToFloat, so it does not depend on the precision control. The map's outline 
 `CUiRegion::CallAddPoint` (005FCA70) and `CUiMesh::SetTriangle` (005E99D0; ui_objectives.cpp's own forwarder now calls it),
 both in ui_layouts.cpp.
 
-Still original (Rebirth-patched): 006462A0 (unit panel draw), 00659420 (the help window's page), 006BB3A0, and 006C68B0
-(map loader, models.md).
+Kept in 00659420: with a row count in "#position" the measuring pass is skipped and with it the pictures (their texts are
+still indented); the picture count runs on into the second pass, so with sixteen pictures every text is laid out unindented
+there; a page index below -1 would search "#screen" until the text ends.
+`tests/verify/ui_panel_shot.h` holds the setups' record of regions and sprites (verify_ui_hud_setup.cpp and
+verify_ui_help_page.cpp use it).
+
+Still original (Rebirth-patched): 006462A0 (unit panel draw), 006BB3A0, and 006C68B0 (map loader, models.md).
 006462A0 stays forwarded: it drives the Direct3D device directly. Between the panel's background and the unit's figure, and
 again after the figure, it clears three screen rectangles' Z-buffer (and stencil when the device has one) with
 IDirect3DDevice7::Clear (the device at the renderer's +0x54, vtable +0x28) under the render lock 007AEE78, after flushing
@@ -588,6 +594,4 @@ the renderer's two batches (004E7840, 004E7A40); in between it draws the unit's 
 stage 0's mip filter (state 0x12) read, set to 1 and put back through the device (vtable +0x90 / +0x94).
 None of the ported ones drives the device directly (0065E580 makes an interface surface through 005FCDD0; 0065C2E0 and
 006567A0 draw GDI text and a pen line into one through its DC; 00641F20 sets one pixel through a surface's DC).
-Next candidates: 00659420 (4.3 KB: the page's "#position" / "#rectangle" / "#text" lines, an STLport list of string pairs,
-sprites, three surfaces, three regions; no device calls, so a side-by-side wrapper as the setups' fits), 006BB3A0 (ours-only
-wrapper without logging in the loop), 006C68B0.
+Next candidates: 006BB3A0 (ours-only wrapper without logging in the loop), 006C68B0.
