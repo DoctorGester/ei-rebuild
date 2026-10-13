@@ -121,27 +121,55 @@ class CTexture;   // texture.h
 // The renderer's counted helper object (0x118 bytes, vtable 0073D840, constructor 004FCA60 with the
 // Direct3D device and a flag). Slot 0 is the deleting destructor.
 // A render state preset the helper keeps (counted; slot 0 is the deleting destructor).
+// (vtable 0073D880; its base's, 0073D888, has the pure slot 1.)
 class __declspec(novtable) CRenderPreset {
 public:
-    virtual void* DeleteThis(unsigned flags);   // 0
+    virtual void* DeleteThis(unsigned flags);   // 0: 004FD880 (the destructor body 004FD8B0)
 
-    int refs_;   // +0x04
+    int refs_;                          // +0x04
+    stlp::vector<std::uint32_t> items_; // +0x08 freed by the destructor (what it holds is not known)
 };
+static_assert(offsetof(CRenderPreset, items_) == 0x08);
 
+// What the helper keeps for a preset: the render states it sets (40-byte records, copied out by
+// slot 6) and a counted object slot 3 (004FD9D0) takes.
+struct RenderPresetRecord {
+    struct State {
+        std::uint32_t words[10];
+    };
+    stlp::vector<State> states;   // +0x00
+    void* block;                  // +0x0C counted (the count at +4, slot 0 deletes)
+};
+static_assert(sizeof(RenderPresetRecord) == 0x10 && sizeof(RenderPresetRecord::State) == 0x28);
+
+// render_helper.cpp (A-S11) has the slots that only read the helper's tables (2, 4, 5, 7); the
+// others create, apply and delete Direct3D state blocks and are not rewritten.
 class __declspec(novtable) CRenderHelper {
 public:
-    virtual void* DeleteThis(unsigned flags);   // 0
+    static constexpr unsigned kPresetCount = 9;
+
+    virtual void* DeleteThis(unsigned flags);   // 0: 004FCC20 (the destructor body 004FCD50)
     virtual void Unknown1();                    // 1: 004FD2A0
-    virtual void Unknown2();                    // 2: 004FDB00
-    virtual void Unknown3();                    // 3: 004FD9D0
-    virtual void Unknown4();                    // 4: 004FDB50
+    // 2: 004FDB00 (RET 4). The record of `preset`, if there is one: slot 3 with its block.
+    virtual void ReleasePreset(CRenderPreset* preset);
+    virtual void ReleaseBlock(void* block);     // 3: 004FD9D0 (RET 4)
+    // 4: 004FDB50 (RET 4). The block of `preset`'s record, or null without a record.
+    virtual void* PresetBlock(CRenderPreset* preset);
     // 5: 004FDBA0 (RET 4). Preset `index` of the nine at +0x10C, or null beyond them.
     virtual CRenderPreset* Preset(unsigned index);
+    // 6: 004FDBC0 (RET 8). The states of `preset`'s record copied into `out`; false without a record.
+    virtual bool PresetStates(CRenderPreset* preset, stlp::vector<RenderPresetRecord::State>* out);
+    // 7: 004FDD80 (RET 8). Slot 6 for preset `index`; false beyond the nine or for a null one.
+    virtual bool BuiltInStates(unsigned index, stlp::vector<RenderPresetRecord::State>* out);
 
     int refs_;   // +0x04
-    std::uint8_t unknown_08[0x118 - 0x08];
+    std::uint8_t unknown_08[0xF8 - 0x08];
+    stlp::hash_map<CRenderPreset*, RenderPresetRecord, stlp::PointerHash> records_;   // +0xF8 by preset
+    CRenderPreset** presets_;           // +0x10C the nine built-in presets
+    std::uint8_t unknown_110[0x118 - 0x110];
 };
 static_assert(offsetof(CRenderHelper, refs_) == 0x04 && sizeof(CRenderHelper) == 0x118);
+static_assert(offsetof(CRenderHelper, records_) == 0xF8 && offsetof(CRenderHelper, presets_) == 0x10C);
 
 // The scene renderer (the global at 007AF060, vtable 0073D93C, 26 slots; 00500960 returns it).
 // Only the slots rewritten code calls are named. The game's code stores the vtable (novtable).

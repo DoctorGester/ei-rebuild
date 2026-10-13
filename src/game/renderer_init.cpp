@@ -31,11 +31,11 @@ namespace {
 
 // --- Forwarders ----------------------------------------------------------------------------------
 
-// The Direct3D driver list (007AEE64): 004EE4A0 enumerates, 004EE5D0 the first hardware driver,
-// 004EE6D0 the driver with an index (ECX), null when missing (both FatalErrorOriginal on failure).
+// The Direct3D driver list (007AEE64): 004EE4A0 enumerates, 004EE5D0 the first hardware driver
+// (FatalErrorOriginal and null when there is none); DriverAt (004EE6D0, render_helper.cpp) the
+// driver with an index.
 __declspec(naked) int __cdecl EnumerateDrivers() EI_ORIGINAL(0x004EE4A0)
 __declspec(naked) DirectDrawDriver* __cdecl FirstHardwareDriver() EI_ORIGINAL(0x004EE5D0)
-__declspec(naked) DirectDrawDriver* __fastcall DriverAt(int /*index*/) EI_ORIGINAL(0x004EE6D0)
 // 004E5E50: the device object's constructor (0x17C bytes, ten arguments).
 __declspec(naked) CTextureDevice* __fastcall DeviceConstruct(void*, void*, void* /*window*/, GUID* /*driver*/,
                                                             int /*full screen*/, int /*width*/, int /*height*/,

@@ -127,6 +127,9 @@ struct DirectDrawDriver {
     GUID* guid;                 // +0x10 for DirectDrawCreateEx
 };
 static_assert(offsetof(DirectDrawDriver, guid) == 0x10);
+// 004EE6D0 (the index in ECX; render_helper.cpp). The driver `index` steps after the list's first;
+// past the last: a fatal error ("Can't find driver by index.") and null.
+DirectDrawDriver* __fastcall DriverAt(int index);
 
 // A DirectDraw surface wrapper (004EFA60 constructs it from a DDSURFACEDESC2, 004EF7B0 for an
 // off-screen surface of the screen's format; 0x20 bytes): vtable (slot 0 the deleting destructor),

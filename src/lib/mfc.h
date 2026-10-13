@@ -543,6 +543,7 @@ struct CStringArray {
     void SetAtGrow(int index, const char* text);        // 006FEBCE
     void RemoveAt(int index, int count = 1);            // 006FED3C
     void Copy(const CStringArray& source);              // 006FEB61
+    int Append(const CStringArray& source);             // 006FEB01: the old size
 
     int GetSize() const { return size; }
     CString& operator[](int index) { return data[index]; }

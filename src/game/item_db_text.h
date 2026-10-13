@@ -61,6 +61,13 @@ public:
     BOOL AddSource(const char* path);
     void RemoveSource(const char* path);
     void ClearSources();
+    // A-S11 (text_sources.cpp). 004DEFA0 (RET 8): the names matching `pattern` ("pers *") of every
+    // archive into `out` (004DEC40 on sources_). 004DED20 (vtable slot 2, Create; the client
+    // world's set-up also calls it directly): the C runtime's multibyte code page set to the
+    // locale's (after a setlocale of LC_CTYPE with the null pointer at 0079BE94, a query that
+    // changes nothing); returns 1.
+    void ListKeys(mfc::CStringArray* out, const char* pattern);
+    int Create();
 
     // The text manager is an engine object (the first 0x1C bytes) with this vtable.
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073F6F0);
@@ -104,6 +111,13 @@ void __fastcall TextSourcesRemove(TextSourceList* list, void*, const char* path)
 void __fastcall TextSourcesClear(TextSourceList* list);
 // 005628E0 (plain RET; the list's owner unwinding). TextSourcesClear, then the list's own destructor.
 void __fastcall TextSourcesDestruct(TextSourceList* list);
+// A-S11. 004DEBC0 (RET 8): the data of file `key` from the first archive that has it (GetFile:
+// its size written to `size`), or null. 004DEC40 (RET 8): `out` emptied, then the names matching
+// `pattern` of every archive appended in list order (ListFiles; a name in two archives is listed
+// twice). Rebirth patches 004DEC40 (ResOverride redirects the ListFiles call): ours is the vanilla
+// function and installs in the vanilla launch only.
+void* __fastcall TextSourcesFind(TextSourceList* list, void*, const char* key, std::uint32_t* size);
+void __fastcall TextSourcesListKeys(TextSourceList* list, void*, mfc::CStringArray* out, const char* pattern);
 
 // 004E1540. Copies an iterator (thiscall: *out = *this).
 struct TextSourceIterator {
