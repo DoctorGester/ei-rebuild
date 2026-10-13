@@ -1753,12 +1753,23 @@ public:
     // texts "infounit_0".."infounit_17" and the labels "hl_skull", "hl_torso", "hl_leg", "hl_arm"
     // appended to the two string arrays; no effect pictures (-1).
     void SetupVanilla(int bodyPart, std::uint8_t slid);
+    // 006462A0 (slot 20, RET 4; ui_hud_unit_draw.cpp, A-E2; Rebirth replaces the whole function
+    // with its wide-layout version: this is the vanilla body, hooked in the vanilla launch only).
+    // The panel's draw: the background (scene object 0), then for the hover unit, else the selected
+    // one, while the panel is not slid away: its model in the panel (not on the info page 2), the
+    // device's depth buffer set to 0 around the panel's area for the draw and back to 1 after it,
+    // its name, the page's bars and texts (ShowHealth / ShowParts / DrawUnitInfo / ShowEffects),
+    // then the window's base draw. Returns 1.
+    BOOL DrawVanilla(int pass);
 
     CBattleScreen* owner_;           // +0x148
-    std::uint8_t unknown_14C[0x150 - 0x14C];
+    CUnit* shownUnit_;               // +0x14C the first selected unit (RefreshSelection), or null
     CUnit* hoverUnit_;               // +0x150 the unit under the mouse (HoverUnit), or null
-    std::uint8_t unknown_154[0x164 - 0x154];
-    char* strings_[2];               // +0x164 CStrings
+    // The model's view for the selected unit [0] and the hover unit [1], from the units'
+    // prototypes (UnitPrototypeRecord +0x24 / +0x20; the battle screen copies them as dwords).
+    float viewHeight_[2];            // +0x154 how far up the panel the model stands, in units of its size
+    float viewSize_[2];              // +0x15C the model's size: it is drawn 1 / size (times its animation's ratio)
+    char* strings_[2];               // +0x164 CStrings: the selected and the hover unit's names (00637940)
     int sliding_;                    // +0x16C set when the sling button starts the slide
     int offset_;                     // +0x170 current slide offset in pixels (to the left)
     int travel_;                     // +0x174 full slide distance
@@ -1771,7 +1782,7 @@ public:
     void* partLabelsVtable_;         // +0x1B0 CStringArray (its data:)
     mfc::CString* partLabels_;       // +0x1B4 four: the shown names of "skull", "torso", "leg", "arm"
 };
-static_assert(offsetof(CHudUnitPanel, hoverUnit_) == 0x150);
+static_assert(offsetof(CHudUnitPanel, hoverUnit_) == 0x150 && offsetof(CHudUnitPanel, strings_) == 0x164);
 static_assert(offsetof(CHudUnitPanel, slideDirection_) == 0x17C && offsetof(CHudUnitPanel, offset_) == 0x170);
 static_assert(offsetof(CHudUnitPanel, bodyPart_) == 0x180);
 static_assert(offsetof(CHudUnitPanel, textsVtable_) == 0x19C);

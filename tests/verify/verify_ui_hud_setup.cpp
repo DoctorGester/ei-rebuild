@@ -146,7 +146,7 @@ UnitPanelFields TakeFields(const CHudUnitPanel* p) {
     f.slide = p->slide_;
     f.direction = p->slideDirection_;
     f.bodyPart = p->bodyPart_;
-    std::memcpy(f.unknown14C, p->unknown_14C, sizeof(f.unknown14C));
+    std::memcpy(f.unknown14C, &p->shownUnit_, sizeof(f.unknown14C));
     f.hoverUnit = p->hoverUnit_;
     std::memcpy(f.effectIcons, p->effectIcons_, sizeof(f.effectIcons));
     return f;
@@ -159,7 +159,7 @@ void PutFields(CHudUnitPanel* p, const UnitPanelFields& f) {
     p->slide_ = f.slide;
     p->slideDirection_ = f.direction;
     p->bodyPart_ = f.bodyPart;
-    std::memcpy(p->unknown_14C, f.unknown14C, sizeof(f.unknown14C));
+    std::memcpy(&p->shownUnit_, f.unknown14C, sizeof(f.unknown14C));
     p->hoverUnit_ = f.hoverUnit;
     std::memcpy(p->effectIcons_, f.effectIcons, sizeof(f.effectIcons));
 }
