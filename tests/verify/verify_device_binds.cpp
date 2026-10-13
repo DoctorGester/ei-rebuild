@@ -9,7 +9,10 @@
 //  - Ours only: the batch flushes 004E7840 / 004E7A40. No vertex buffer is ever locked (004E7820
 //    returns none), so only their first test runs, in the original as well; the wrapper checks that
 //    the batch is left without a buffer. Reached by every texture change and frame part.
+//  - The first bind or flush also writes the device object's state to the log, once
+//    (verify_device_state.h).
 #include "verify.h"
+#include "verify_device_state.h"
 
 #include "../../src/game/ground_print.h"
 #include "../../src/game/texture.h"
@@ -38,6 +41,7 @@ void Restore(CTextureDevice* device, int stage, const StageState& state) {
 // 004EB300: PUSH EBX (1), MOV EBX,[ESP+0xC] (4).
 int(__fastcall* s_bindSurface)(CTextureDevice*, void*, int, CDXSurface*);
 int __fastcall BindSurfaceVerify(CTextureDevice* self, void*, int stage, CDXSurface* holder) {
+    DumpDeviceStateOnce(self);
     const StageState before = Capture(self, stage);
     const int expected = s_bindSurface(self, nullptr, stage, holder);
     const StageState original = Capture(self, stage);
@@ -97,6 +101,7 @@ bool Emptied(const DeviceVertexBatch& batch, bool locked) {
 }
 
 void __fastcall FlushBatchVerify(CTextureDevice* self) {
+    DumpDeviceStateOnce(self);
     const bool locked = self->batch_.buffer != nullptr;
     self->FlushBatch();
     ei::verify::Check("CTextureDevice::FlushBatch (004E7840)", true, Emptied(self->batch_, locked), "locked %d",

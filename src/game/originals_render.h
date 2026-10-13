@@ -104,3 +104,24 @@ __declspec(naked) inline void __fastcall DeviceSetCooperativeLevelOriginal(void*
 __declspec(naked) inline void __fastcall DeviceSetDisplayModeOriginal(void* /*device*/, void*, int /*width*/, int /*height*/,
                                                                       int /*bits*/, int) EI_ORIGINAL(0x004EEBC0)
 __declspec(naked) inline bool __fastcall TextureManagerRestoreOriginal(void* /*manager*/) EI_ORIGINAL(0x00693F60)
+
+// A-S13 (directdraw_holder.cpp, device_object.cpp, dx_surface.cpp): the parts of the device object's start-up, called
+// through their addresses so each one's verify wrapper stays in the path. 004EDD70: the DirectDraw base's constructor
+// (RET 0x24: window, driver GUID, full screen, width, height, bits per pixel, refresh rate, back buffers, for 3D; returns
+// the object). 004EEA90: the DirectDraw object of a driver and its display modes (RET 4). 004EEE30: the primary and
+// render target surfaces (RET 8: back buffers, for 3D). 004E6EE0: the texture format table (plain RET). 004E6C30: the
+// depth buffer (RET 8: depth bits, stencil bits). 004EFEA0: a surface holder's size from its surface (plain RET; 1, or 0
+// when the report of a failure said stop).
+__declspec(naked) inline void* __fastcall DirectDrawBaseConstructOriginal(void* /*device*/, void*, void* /*window*/,
+                                                                         void* /*driver*/, int /*fullScreen*/,
+                                                                         int /*width*/, int /*height*/, int /*bits*/,
+                                                                         int /*refreshRate*/, unsigned /*backBuffers*/,
+                                                                         int /*for3D*/) EI_ORIGINAL(0x004EDD70)
+__declspec(naked) inline void __fastcall DeviceCreateDirectDrawOriginal(void* /*device*/, void*, void* /*driver*/)
+    EI_ORIGINAL(0x004EEA90)
+__declspec(naked) inline void __fastcall DeviceCreateSurfacesOriginal(void* /*device*/, void*, unsigned /*backBuffers*/,
+                                                                      int /*for3D*/) EI_ORIGINAL(0x004EEE30)
+__declspec(naked) inline void __fastcall DeviceBuildFormatTableOriginal(void* /*device*/) EI_ORIGINAL(0x004E6EE0)
+__declspec(naked) inline void __fastcall DeviceCreateDepthBufferOriginal(void* /*device*/, void*, int /*depthBits*/,
+                                                                         int /*stencilBits*/) EI_ORIGINAL(0x004E6C30)
+__declspec(naked) inline int __fastcall DXSurfaceDescribeOriginal(void* /*holder*/) EI_ORIGINAL(0x004EFEA0)

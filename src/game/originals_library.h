@@ -67,6 +67,9 @@ __declspec(naked) inline int __cdecl IsLeadByte(int) EI_ORIGINAL(0x006E9A6C)
 __declspec(naked) inline double __cdecl Hypot(double /*x*/, double /*y*/) EI_ORIGINAL(0x006FD026)
 __declspec(naked) inline mfc::CString __stdcall PlusChar(const mfc::CString&, char) EI_ORIGINAL(0x006FD56E)
 __declspec(naked) inline void __cdecl GameDelete(void*) EI_ORIGINAL(0x007005D8)
+// The CRT's _CxxThrowException (stdcall: the address of the thrown object, its throw info). Does not return.
+__declspec(naked) inline void __stdcall CxxThrowException(void* /*object*/, const void* /*throwInfo*/)
+    EI_ORIGINAL(0x006E7819)
 // MFC CStringArray constructor (006FE925, mfc::CStringArray::Construct). Returns `this`.
 inline void* __fastcall StringArrayConstruct(void* array) {
     static_cast<mfc::CStringArray*>(array)->Construct();

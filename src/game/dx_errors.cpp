@@ -5,6 +5,7 @@
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
+#include "originals_library.h"   // CxxThrowException
 
 #include <algorithm>
 #include <cstdarg>
@@ -247,6 +248,32 @@ GameError* __cdecl GameErrorConstructResult(GameError* error, long result, const
     return error;
 }
 EI_REPLACE(0x00480300, GameErrorConstructResult);
+
+namespace {
+[[noreturn]] void Throw(GameError* error) {
+    CxxThrowException(&error, reinterpret_cast<const void*>(0x00759908));
+    for (;;) {
+    }
+}
+} // namespace
+
+void ThrowGameError(const char* format, ...) {
+    auto* error = static_cast<GameError*>(gamecrt::operator_new(sizeof(GameError)));
+    va_list args;
+    va_start(args, format);
+    if (error) GameErrorFormat(error, format, args);
+    va_end(args);
+    Throw(error);
+}
+
+void ThrowGameErrorResult(long result, const char* format, ...) {
+    auto* error = static_cast<GameError*>(gamecrt::operator_new(sizeof(GameError)));
+    va_list args;
+    va_start(args, format);
+    if (error) GameErrorFormatResult(error, result, format, args);
+    va_end(args);
+    Throw(error);
+}
 
 void __fastcall GameErrorDestruct(GameError* error) {
     error->vtable = ErrorBaseVtable();

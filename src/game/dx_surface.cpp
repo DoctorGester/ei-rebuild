@@ -17,6 +17,7 @@
 // manager makes for the CPU (00691D80, texture_blank.cpp) gets a holder with only such memory
 // (NewMemoryTextureHolder, ticket R8). See docs/notes/renderer.md (sections 5, 10, 14, 15).
 #include "dx_surface.h"
+#include "device.h"
 #include "texture.h"
 
 #include "ei/hook.h"
@@ -30,6 +31,7 @@
 #include <cstdint>
 #include <cstring>
 #include "originals_engine.h"
+#include "originals_library.h"   // CxxThrowException
 
 namespace {
 
@@ -51,7 +53,7 @@ void SetBaseVtable(CDXSurface* holder) { ei::SetVtable(holder, 0x0073D768); }
 // format, width, height) and _CxxThrowException (006E7819) with its throw info 00759908.
 __declspec(naked) void* __cdecl GameNew(unsigned) EI_ORIGINAL(0x007005AF)
 __declspec(naked) void* __cdecl ErrorObject(void*, const char*, int, int) EI_ORIGINAL(0x00480250)
-__declspec(naked) void __stdcall ThrowException(void*, const void*) EI_ORIGINAL(0x006E7819)
+void ThrowException(void* object, const void* throwInfo) { CxxThrowException(object, throwInfo); }
 const void* ErrorThrowInfo() { return reinterpret_cast<const void*>(0x00759908); }
 
 constexpr int kRelease = 2, kGetPixelFormat = 21, kGetSurfaceDesc = 22, kLock = 25, kUnlock = 32;   // IDirectDrawSurface7
@@ -552,6 +554,48 @@ CDXSurface* __fastcall DXSurfaceFromPicture(CDXSurface* holder, void*, CTextureD
     return holder;
 }
 EI_REPLACE(0x004EFC60, DXSurfaceFromPicture);
+
+// 004EFEA0 (A-S13; thiscall on the holder, plain RET). The surface's width, height and bits per
+// pixel into the holder (GetSurfaceDesc, the result in +8). 1; 0 with the sizes zero when that
+// failed and the report ("Can't get surface description.") said stop.
+int __fastcall DXSurfaceDescribe(CDXSurface* holder) { return ReadSize(holder) ? 1 : 0; }
+EI_REPLACE(0x004EFEA0, DXSurfaceDescribe);
+
+// 004EFA60 (A-S13; thiscall on the holder, RET 8). The holder's constructor from a surface
+// description: the surface made by the device's DirectDraw object under the device lock (the result
+// in the device's +8) and described. No surface, or a failed description whose report said stop:
+// the error "Can't create DDSurface %d:%d with default BPP." is thrown (with the holder's sizes,
+// zero by then). Returns the holder.
+// Original details kept: the surface is described twice; without a device ("no DXDD", reported) a
+// report that says go on reads through the null surface.
+CDXSurface* __fastcall DXSurfaceFromDesc(CDXSurface* holder, void*, CTextureDevice* device, const std::uint32_t* desc) {
+    holder->refCount = 0;
+    holder->result = 0;
+    holder->device = device;
+    holder->surface = nullptr;
+    holder->width = 0;
+    holder->height = 0;
+    holder->bitsPerPixel = 0;
+    SetHolderVtable(holder);
+    bool made;
+    if (!device) {
+        made = FatalErrorOriginal(Text(0x0078E8CC)) != 0;   // "... Can't create DDSurface - no DXDD."
+    } else {
+        IDirectDrawSurface7* surface = nullptr;
+        gameapi::EnterCriticalSection(DeviceLock());
+        device->lastLoadResult_ = device::DDraw(device)->CreateSurface(
+            reinterpret_cast<DDSURFACEDESC2*>(const_cast<std::uint32_t*>(desc)), &surface, nullptr);
+        gameapi::LeaveCriticalSection(DeviceLock());
+        holder->surface = device->lastLoadResult_ == 0 ? surface : nullptr;
+        if (!holder->surface) ThrowCreateFailed(holder->width, holder->height);
+        made = ReadSize(holder);
+    }
+    if (!made) ThrowCreateFailed(holder->width, holder->height);
+    ReadSize(holder);
+    ++HolderCount();
+    return holder;
+}
+EI_REPLACE(0x004EFA60, DXSurfaceFromDesc);
 
 // 004EFD20. Releases the surface (when the holder has one) and the new renderer's memory, clears
 // the device, counts the holder out and leaves the base class's vtable.

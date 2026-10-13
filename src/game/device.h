@@ -11,7 +11,25 @@
 
 #include <cstdint>
 
+// A Direct3D device of the driver, as IDirect3D7::EnumDevices lists them (0x104 bytes; the
+// device object's list at +0xB0).
+struct Direct3DDeviceRecord {
+    stlp::string description;   // +0x00
+    stlp::string name;          // +0x0C
+    D3DDEVICEDESC7 desc;        // +0x18
+};
+static_assert(sizeof(Direct3DDeviceRecord) == 0x104 && offsetof(Direct3DDeviceRecord, desc) == 0x18);
+
 namespace device {
+
+// DDRAW.dll through game.exe's import table (as lib/gameapi.h for the other libraries).
+inline auto& DirectDrawEnumerateExA = *reinterpret_cast<decltype(&::DirectDrawEnumerateExA)*>(0x0073B038);
+inline auto& DirectDrawCreateEx = *reinterpret_cast<decltype(&::DirectDrawCreateEx)*>(0x0073B03C);
+// The interface and device ids as game.exe has them.
+inline const GUID& IidDirectDraw7() { return *reinterpret_cast<const GUID*>(0x00745C90); }
+inline const GUID& IidDirect3D7() { return *reinterpret_cast<const GUID*>(0x00745A80); }
+inline const GUID& IidHalDevice() { return *reinterpret_cast<const GUID*>(0x00745A50); }
+inline const GUID& IidTnLHalDevice() { return *reinterpret_cast<const GUID*>(0x00745A10); }
 
 // The game's device lock (007AEE78), held around Direct3D draws and surface locks.
 inline CRITICAL_SECTION* Lock() { return reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78); }
@@ -25,5 +43,14 @@ inline const char* Text(std::uintptr_t address) { return reinterpret_cast<const 
 inline IDirect3DDevice7* D3D(const CTextureDevice* device) { return static_cast<IDirect3DDevice7*>(device->d3dDevice_); }
 inline IDirectDraw7* DDraw(const CTextureDevice* device) { return static_cast<IDirectDraw7*>(device->ddraw_); }
 inline IDirectDrawSurface7* Surface(const CDXSurface* holder) { return static_cast<IDirectDrawSurface7*>(holder->surface); }
+inline IDirect3D7* Direct3D(const CTextureDevice* device) { return static_cast<IDirect3D7*>(device->d3d_); }
+
+// A counted holder pointer's assignment: the new holder counted, the old one released.
+inline void AssignHolder(CDXSurface*& slot, CDXSurface* holder) {
+    CDXSurface* old = slot;
+    slot = holder;
+    if (holder) ++holder->refCount;
+    if (old) old->Release();
+}
 
 } // namespace device
