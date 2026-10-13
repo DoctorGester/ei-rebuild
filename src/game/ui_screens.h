@@ -724,6 +724,20 @@ struct MpHeroRecord {
 };
 static_assert(sizeof(MpHeroRecord) == kMpHeroSize);
 
+// The multiplayer heroes (007C82A0; constructed by the static initialiser 0065F580): their folder,
+// the records (MpHeroes() above) and the current hero.
+struct MpHeroRoster {
+    // 00662F80 (RET 4; ui_hero_screen_click.cpp, A-H25). `hero` becomes the current one
+    // (MpHeroRecord's assignment, inlined in the original).
+    void Select(const MpHeroRecord* hero);
+
+    mfc::CString folder;                    // +0x00
+    stlp::vector<MpHeroRecord> records;     // +0x04
+    MpHeroRecord current;                   // +0x10
+};
+static_assert(offsetof(MpHeroRoster, records) == 0x04 && offsetof(MpHeroRoster, current) == 0x10 &&
+              sizeof(MpHeroRoster) == 0x84);
+
 // --- In-game escape menu ----------------------------------------------------------------------
 //
 // Opened by Esc during a game (vtables 00741270/007412A4). Regions, built from the EscMenu layout

@@ -498,10 +498,13 @@ The spell manager's folder slot 00688940 (A-H24's last item) was complete. Wrapp
 | 006B0600 | QuestBriefingTable::Add (quest_records.h: the database's +0x20, vector + index by name; push_back 006B0780, clear 006B0590, find 006B0930 through their addresses) | O |
 | 00688530 | MapEffect::Tick | S |
 | 006617F0 | CParty::ArchiveParty (a memory stream as the archive's stream field 1; loading takes the archive's version) | O (SaveParty draws a new key each time) |
+| 006481D0 | CHudUnitPanel::ShowBodyPart (tints the four part buttons 3..6: 1 the chosen one, 0.5 the rest) | S |
+| 00662F80 | MpHeroRoster::Select (ui_screens.h: the multiplayer heroes at 007C82A0, folder + records + the current one) | O (no scenario opens the hero screen) |
+| 00667B40 | CPlayerClient::AppendReceived (appends a stream to the received one, read position kept) | O |
 
 Library, second batch: 0064EE90, 00652E30, 00652F80, 006581C0, 00675040, 00675690 (STLport); compiler: 00652FF0, 0067C5D0 (unwind only),
 the static initialisers 00698E70..00698FB0 and 0065F580 (run before the hooks), the scalar deleting destructors 006611B0, 006868D0,
-006868F0, 006B2DE0, 006B2E00, and 00663570.
+006868F0, 006B2DE0, 006B2E00, and 00663570; 006B6CC0 (STLport string default constructor).
 
 Library (config/library.csv): 006A5910, 006AF790, 006B0710, 006B0780, 006B09B0, 0069D0E0, 0069E350..0069E3D0 (STLport vector / uninitialised-copy
 helpers of the record tables and the stock) and the records' scalar deleting destructors 0069E540, 006A9EF0..006A9F90;

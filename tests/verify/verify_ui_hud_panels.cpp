@@ -287,3 +287,25 @@ EI_VERIFY(0x00649810, ToggleFlagVerify, 0, s_unused);
 EI_VERIFY(0x0064A320, ShowPageVerify, 8, s_showPage);
 EI_VERIFY(0x00649E20, LayoutVerify, 6, s_layout);
 EI_VERIFY(0x0064A7A0, ShowItemsVerify, 0, s_unused);
+
+// 006481D0 (A-H25; the keys that pick a body part in a game): it only tints four buttons. The
+// original, its tints kept and the buttons' tints overwritten, then ours; compared.
+// 006481D0: SUB ESP,0x18; XOR EDX,EDX (5 bytes).
+static void(__fastcall* s_showBodyPart)(CHudUnitPanel*);
+static void __fastcall ShowBodyPartVerify(CHudUnitPanel* self) {
+    s_showBodyPart(self);
+    float expected[4][3];
+    for (int i = 0; i < 4; ++i) {
+        CUiMesh* button = reinterpret_cast<CUiMesh*>(self->sceneObjects_.data[3 + i]);
+        std::memcpy(expected[i], button->tint_, sizeof(expected[i]));
+        button->tint_[0] = button->tint_[1] = button->tint_[2] = -1.0f;
+    }
+    self->ShowBodyPart();
+    bool ok = true;
+    for (int i = 0; i < 4; ++i) {
+        CUiMesh* button = reinterpret_cast<CUiMesh*>(self->sceneObjects_.data[3 + i]);
+        ok = ok && std::memcmp(expected[i], button->tint_, sizeof(expected[i])) == 0;
+    }
+    ei::verify::Check("CHudUnitPanel::ShowBodyPart", true, ok, "part %d", self->bodyPart_);
+}
+EI_VERIFY(0x006481D0, ShowBodyPartVerify, 5, s_showBodyPart);

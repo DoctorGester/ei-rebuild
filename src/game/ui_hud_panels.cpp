@@ -163,6 +163,21 @@ void CHudMovePanel::ToggleFlag() {
 }
 EI_REPLACE_METHOD(0x00649810, CHudMovePanel::ToggleFlag);
 
+// --- Unit panel: the body part buttons (006481D0) -------------------------------------------------
+
+void CHudUnitPanel::ShowBodyPart() {
+    constexpr int kFirstPartButton = 3;
+    constexpr int kPartButtons = 4;
+    for (int i = 0; i < kPartButtons; ++i) {
+        float tint = bodyPart_ == i ? 1.0f : 0.5f;
+        CUiMesh* button = Sprite(this, kFirstPartButton + i);
+        button->tint_[0] = tint;
+        button->tint_[1] = tint;
+        button->tint_[2] = tint;
+    }
+}
+EI_REPLACE_METHOD(0x006481D0, CHudUnitPanel::ShowBodyPart);
+
 // --- Top panel -----------------------------------------------------------------------------------
 
 void CHudTopPanel::ShowPage() {

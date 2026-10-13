@@ -1522,6 +1522,10 @@ public:
     void OnMouseUp(int buttons, int x, int y);     // 00648370
     void OnMouseMove(int buttons, int x, int y);   // 006484C0
     BOOL OnWheel(int buttons, int delta, int x, int y);   // 006484F0
+    // 006481D0 (ui_hud_panels.cpp, A-H25; the battle screen's keys 0063A560 call it after setting
+    // bodyPart_). The body part buttons (scene objects 3-6): tint 1 for the selected one, 0.5 for
+    // the others.
+    void ShowBodyPart();
     // 00635D00 (ui_hud_destroy.cpp; slot 0 00635CE0 calls it). Destructor body: the part labels,
     // textsVtable_'s array, the two strings (+0x168 first), then the window base's (005FE930).
     void DestroyBody();

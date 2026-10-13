@@ -4374,3 +4374,4 @@ address,name,library,signature,notes
 006B2DE0,"scalar deleting destructor (quest record, body 006AF4D0)",compiler,,A-H25: as 006A9EF0
 006B2E00,"scalar deleting destructor (briefing record, body 006AF5A0)",compiler,,A-H25: as 006A9EF0
 00663570,operator delete of the block kept before a vector's elements ([this - 4]),compiler,,A-H25: called only from the unwind-only 00663410
+006B6CC0,"basic_string<char> default constructor (an 8-byte block, the terminator)",STLport,,A-H25: STLport; passed by address to the array constructor helper in 006B6A30
