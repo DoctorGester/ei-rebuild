@@ -2274,8 +2274,16 @@ public:
     void CallDeleteSave();
     void CallLoadSelected();
 
-    // Not rewritten.
-    void RefreshList();      // 006567A0 (Rebirth-patched)
+    // 006567A0 (Rebirth-patched: callers use this forwarder, rule 9; the vanilla body is
+    // RefreshListVanilla in ui_saveload_list.cpp, A-H26). Draws the list into surface 0: the caret
+    // clamped to the name; up to sixteen rows from firstVisible_, each the save's title (the typed
+    // name for the selected row of a save window) and, but for a save window's new save, its date
+    // ("%d/%m, %H:%M"); the selected row also gets the caret (a save window, not the quick or an
+    // automatic save) and the marker (scene object 4, hidden otherwise); then for a selected save
+    // that is not broken its allod, zone, the game's day and time ("save_day" d, h:mm from
+    // gameTime_ hours) and its folder.
+    void RefreshList();
+    void RefreshListVanilla();
 
     // ui_saveload.cpp. The window's two picture textures (256x256, 5:6:5): objects_[1] shows the
     // selected save's shot.sav, dialog_ the game for a new save. The Call* forms go through the

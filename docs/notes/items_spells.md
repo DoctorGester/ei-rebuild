@@ -554,6 +554,7 @@ V: S side by side, O ours only.
 | 0065C2E0 | CUiEditField::DrawContentsVanilla (ui_edit_field.cpp; +0x15C is `centred_`): the caret clamped, the surface cleared, the text over the whole field (DT_NOPREFIX, + DT_CENTER when centred), the caret a pen line after the first caret_ characters (a centred text starts at width / 2 - text width / 2), not drawn outside the field | S (drawing twice leaves the same picture; the clamped caret compared, the pixels not); the screens with an edit field (ui_hero_screen, net_lobby) |
 | 00648520 | CHudClock::SetupVanilla (ui_hud_setup.cpp): rectangle (720, 520)-(800, 600); sprites 0 face disc, 1 hand, 2-5 "in25arrow", 6 / 7 discs; regions 0-2 the pi / 6 sectors between radius 35 and 80 about (800, 600), 3 the quarter disc of 34; tips 0x28A0, 0x28A2 / 0x28A3 (not on a network client), 0x28A1; fast, period 27 / 55, no blink | S (the original's regions and sprites recorded and dropped, the fields put back, then ours); every scenario that starts a game |
 | 00649190 | CHudMovePanel::SetupVanilla (slot 18, ui_hud_setup.cpp): rectangle (0, 520)-(80, 600); region 0 the quarter disc of 34 about (0, 600), 1-4 the pi / 8 sectors between 35 and 80 (tips 0x2904..0x2908, keys 0x1B, 0x17..0x1A); sprites 0 marker, 1-4 sector triangles (tint 0.7), 5 the disc (texture frame 0.48); ShowMode(-1), flag -1 | S as the clock; every scenario that starts a game |
+| 006567A0 | CSaveLoadWindow::RefreshListVanilla (ui_saveload_list.cpp): the caret clamped; into surface 0 up to sixteen rows from the scroll position (title, or the typed name for the selected row of a save window; the date "%d/%m, %H:%M" through CTime::Format 006FE795 but for a save window's new save), the caret (not for "saveq" / "savea" / "saveb"), the marker (scene object 4) on the selected row; then the selected save's allod, zone, day and time (_ftol(gameTime x 60) minutes: day + 1, h:mm) and folder | S (drawing twice leaves the same picture; the caret and the marker's visibility and place compared, the pixels not); ui_saveload, ui_saveload_delete, ui_hud (the Esc menu's Load and Save windows) |
 
 Shared: database_file.h (`dbfile::LocalResource`, `LocalStream`, `FillStream`, `LoadTable`, `OpenDatabase`, `ReportNoDatabase`;
 unit_db_load.cpp uses it too); `MappedResourceOpenOriginal`, `ChunkArchiveDestroyOriginal` (originals_engine.h);
@@ -574,11 +575,11 @@ whole radius (35, 80, 34); a double sine gives 34.99.. and one less. `OnArc` in 
 RoundToFloat, so it does not depend on the precision control. New forwarders: `CUiRegion::CallAddPoint` (005FCA70) and
 `CUiMesh::SetTriangle` (005E99D0; ui_objectives.cpp's own forwarder now calls it), both in ui_layouts.cpp.
 
-Still original (Rebirth-patched): 00641F20 (map setup), 006456E0 (unit panel setup), 006462A0 (unit panel draw), 006567A0
-(save / load list), 00659420 (help page draw), 006BB3A0, and 006C68B0 (map loader, models.md). None of the ported ones
+Still original (Rebirth-patched): 00641F20 (map setup), 006456E0 (unit panel setup), 006462A0 (unit panel draw), 00659420
+(help page draw), 006BB3A0, and 006C68B0 (map loader, models.md). None of the ported ones
 drives the Direct3D / DirectDraw device directly (0065E580 makes an interface surface through 005FCDD0, 0065C2E0 draws GDI
 text and a pen line into one through its DC); 006462A0 and 00659420 draw through sprites, surfaces and GDI text and were
 not reached.
-Next candidates: 006BB3A0 (ours-only wrapper without logging in the loop), 006567A0, then the two big setups (00641F20,
+Next candidates: 006BB3A0 (ours-only wrapper without logging in the loop), then the two big setups (00641F20,
 006456E0: about 2.5 KB each, the same sprite and region calls as the two small setups, so the side-by-side wrapper of
 verify_ui_hud_setup.cpp fits them), 006462A0, 00659420 and 006C68B0.
