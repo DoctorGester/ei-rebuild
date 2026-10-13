@@ -18,7 +18,8 @@ T& At(void* p, int offset) {
     return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(p) + offset);
 }
 
-// Not rewritten (float-heavy particle placement), reached through their addresses.
+// Reached through their addresses (the fade's step is CRainSnow::UpdateFade, the two draws are in
+// weather_particles.cpp; their verify wrappers stay in the path).
 __declspec(naked) void __fastcall WeatherStep(void*, void*, float /*time*/) EI_ORIGINAL(0x004E40B0)
 void __fastcall TextureTouch(void* a0) { TextureEnsureLoadedOriginal(a0); }
 __declspec(naked) int __fastcall DrawRain(void*, void*, void* /*renderer*/) EI_ORIGINAL(0x004E4240)

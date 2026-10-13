@@ -166,7 +166,7 @@ int CSceneRenderer::ClearFrame() {
     const std::uint32_t colour = fogColour_;
     CTextureDevice* device = device_;
     DWORD flags = D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER;
-    if ((device->depthFormatFlags_ & DDPF_STENCILBUFFER) && device->stencilBits_ != 0) flags |= D3DCLEAR_STENCIL;
+    if ((device->depthFormat_.words[1] & DDPF_STENCILBUFFER) && device->depthFormat_.words[4] != 0) flags |= D3DCLEAR_STENCIL;
     gameapi::EnterCriticalSection(GameDeviceLock());
     device->lastLoadResult_ = D3DDevice(device)->Clear(0, nullptr, flags, colour, 1.0f, 0);
     gameapi::LeaveCriticalSection(GameDeviceLock());

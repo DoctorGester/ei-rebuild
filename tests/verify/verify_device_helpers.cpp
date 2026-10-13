@@ -161,9 +161,9 @@ void* __fastcall LockVertexBufferVerify(CTextureDevice* self, void*, int count) 
 }
 
 void __fastcall AppendBatchIndicesVerify(CTextureDevice* self, void*, const std::uint16_t* indices, int count) {
-    int before = self->batchIndices_.size;
+    int before = self->batch_.indices.size;
     self->AppendBatchIndices(indices, count);
-    ei::verify::Check("CTextureDevice::AppendBatchIndices (004E7E00)", before + count, self->batchIndices_.size,
+    ei::verify::Check("CTextureDevice::AppendBatchIndices (004E7E00)", before + count, self->batch_.indices.size,
                       "count %d", count);
 }
 

@@ -153,7 +153,7 @@ void CRainSnow::Clear() {
     if (old) old->Release();
     wind = Vector3{0.0f, 0.0f, 0.0f};
     world = nullptr;
-    unknown_0A4 = 0;
+    particleCount = 0;
     mode = 0;
     targetMode = 0;
     fadeStart = 0.0f;
@@ -179,13 +179,13 @@ EI_REPLACE_METHOD(0x004E3FC0, CRainSnow::Start);
 void CRainSnow::DestructBody() {
     ei::SetVtable(this, kRainSnowVtable);
     Clear();
-    work094.FreeData();
-    WordArrayDestructOriginal(&words080);
-    work070.FreeData();
-    ByteArrayDestructOriginal(&bytes05C);
-    ByteArrayDestructOriginal(&bytes048);
-    work038.FreeData();
-    work028.FreeData();
+    offsets.FreeData();
+    WordArrayDestructOriginal(&indices);
+    vertices.FreeData();
+    ByteArrayDestructOriginal(&frames);
+    ByteArrayDestructOriginal(&outcodes);
+    positions.FreeData();
+    projected.FreeData();
     if (texture) texture->Release();
     DestructBase();
 }

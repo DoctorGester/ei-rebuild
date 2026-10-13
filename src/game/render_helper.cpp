@@ -18,6 +18,7 @@
 #include "lib/gameapi.h"
 #include "lib/stlp.h"
 #include "originals_engine.h"
+#include "originals_library.h"   // CxxThrowException
 
 #include <d3d.h>
 
@@ -539,7 +540,7 @@ const char* NoFunctionText() { return reinterpret_cast<const char*>(0x0078EB5C);
     folder.reset();
     for (int i = kMatrixStacks - 1; i >= 0; --i) lib::FreeAligned32(self->stacks_[i].matrices);
     ei::SetVtable(self, 0x0073D768);
-    GameThrowException(&error, GameErrorThrowInfo());
+    CxxThrowException(&error, GameErrorThrowInfo());
     for (;;) {
     }
 }

@@ -14,7 +14,40 @@ struct PixelFormat {
 static_assert(sizeof(PixelFormat) == 32);
 
 struct CDXSurface;
+class CTexture;
 class CTransformPipeline;
+struct NamedTexture;   // ground_print.h
+struct Direct3DDeviceRecord;   // device.h
+struct _DDSURFACEDESC2;        // ddraw.h (DDSURFACEDESC2)
+
+// A vertex buffer's holder, as the device's batches keep them (counted; slot 0 the deleting
+// destructor). Nothing makes one (004E7820 gives no buffer); only what the flushes read.
+struct CVertexBufferHolder {
+    void* vtable;
+    int refCount;               // +0x04
+    long result;                // +0x08 the last Direct3D result
+    std::uint8_t unknown_0C[0x10];
+    void* buffer;               // +0x1C IDirect3DVertexBuffer7*
+
+    // Drops a reference; the deleting destructor (vtable slot 0, with 1) at zero.
+    void Release() {
+        if (--refCount != 0) return;
+        using Destroy = void(__fastcall*)(CVertexBufferHolder*, void*, int);
+        (*static_cast<Destroy*>(vtable))(this, nullptr, 1);
+    }
+};
+static_assert(offsetof(CVertexBufferHolder, buffer) == 0x1C);
+
+// One of the device's two vertex-buffer batches (0x20 bytes): triangles gathered in a locked
+// vertex buffer and drawn in one call (004E7840 / 004E7A40). Never used: no buffer is ever locked.
+struct DeviceVertexBatch {
+    stlp::list<CVertexBufferHolder*> used;      // +0x00 the buffers drawn (counted)
+    CVertexBufferHolder* buffer;                // +0x04 the locked buffer (counted)
+    void* vertices;                             // +0x08 its memory
+    int vertexCount;                            // +0x0C vertices written (added to appended indices)
+    lib::AlignedArray<std::uint16_t> indices;   // +0x10
+};
+static_assert(sizeof(DeviceVertexBatch) == 0x20 && offsetof(DeviceVertexBatch, indices) == 0x10);
 
 // Owns the Direct3D texture formats; held by CTextureManager. Name provisional; not rewritten yet.
 // The same object is the renderer's device object (the global at 007AF080): its DirectDraw
@@ -38,10 +71,80 @@ public:
     // 004E7820 (RET 4; device_helpers.cpp). A vertex buffer for a batch of `count` vertices: always
     // null (the batch below is never used).
     void* LockVertexBuffer(int count);
-    // 004E7E00 (RET 8; device_helpers.cpp). Appends `count` indices to the batch (batchIndices_),
-    // each raised by batchBaseVertex_ when that is not 0, then sets the array's size (the indices
+    // 004E7E00 (RET 8; device_helpers.cpp). Appends `count` indices to the batch (batch_.indices),
+    // each raised by batch_.vertexCount when that is not 0, then sets the array's size (the indices
     // are written before the array grows: the caller has made room).
     void AppendBatchIndices(const std::uint16_t* indices, int count);
+
+    // device_binds.cpp (A-S13).
+    // 004E7840 / 004E7A40 (plain RET). A batch drawn: its vertex buffer unlocked (the device lock,
+    // held since the buffer's Lock, left; a failure is "Can't unlock vertex buffer."), the indexed
+    // triangles drawn from it (DrawIndexedPrimitiveVB under the device lock, the result in
+    // lastLoadResult_, the frame's counts raised), the buffer moved to the batch's list and the
+    // batch emptied. Nothing without a locked buffer, which is always.
+    void FlushBatch();
+    void FlushBatch2();
+    // 004EB300 (RET 8). `holder`'s surface (or none) on texture stage `stage`, when the stage has
+    // another holder: the batch flushed, SetTexture (the result in lastLoadResult_), the change
+    // counted. Returns 1.
+    int BindSurface(int stage, CDXSurface* holder);
+    // 004EBAF0 (RET 8). The same for a texture's surface holder (a null texture: none).
+    int BindTexture(int stage, CTexture* texture);
+    // 004EB1D0 (RET 8). The same for a texture kept by name: one not looked up yet is found by
+    // its name among the texture manager's registered and cached textures (FindTexture; an empty
+    // name is not looked up) and kept, counted.
+    int BindNamedTexture(int stage, NamedTexture* named);
+
+    // directdraw_holder.cpp (A-S13): the object's DirectDraw base class (vtable 0073D770, the
+    // members up to +0x50). A failed DirectDraw call throws the game's error object (dx_errors.h).
+    // 004EDD70 (RET 0x24). The base's constructor: the processor's CPUID words into 007CAED0 (no
+    // MMX: a fatal error and exit), 2DintMMX.dll loaded and its graphics processor taken, the
+    // DirectDraw object of `driver` made with its display modes (CreateDirectDraw), the
+    // cooperative level, for full screen the display mode, the primary and back surfaces, and the
+    // YUV formats the driver can make an off-screen and an overlay surface of. Returns this.
+    CTextureDevice* ConstructDirectDraw(HWND window, GUID* driver, int fullScreen, int width, int height,
+                                        int bitsPerPixel, int refreshRate, unsigned backBuffers, int for3D);
+    // 004EE330 (plain RET). The base's destructor body: the display mode restored (full screen),
+    // the library freed, the clipper, both surface holders and the DirectDraw object released, the
+    // display modes freed.
+    void DestructDirectDraw();
+    // 004EEA90 (RET 4). The DirectDraw object of `driver` (DirectDrawCreateEx) and the list of its
+    // display modes (EnumDisplayModes; the old list dropped first).
+    void CreateDirectDraw(GUID* driver);
+    // 004EEBC0 (RET 0x10). IDirectDraw7::SetDisplayMode with no flags.
+    void SetDisplayMode(int width, int height, int bitsPerPixel, int refreshRate);
+    // 004EEC60 (plain RET). The display mode restored, in full screen only.
+    void RestoreDisplayMode();
+    // 004EECF0 (RET 8). The cooperative level of the window: exclusive full screen or normal, with
+    // DDSCL_FPUSETUP | DDSCL_MULTITHREADED; `screen` (or an empty rectangle) becomes screen_.
+    void SetCooperativeLevel(int fullScreen, const RECT* screen);
+    // 004EEE30 (RET 8). The primary surface's holder and the render target's. Full screen: a
+    // primary with `backBuffers` back buffers (a flipping chain), the render target its first back
+    // buffer (the primary itself without back buffers). Windowed: a plain primary and, with
+    // `backBuffers`, an off-screen video-memory surface of the screen rectangle's size in the
+    // primary's format (else the primary again). `for3D` asks for DDSCAPS_3DDEVICE.
+    void CreateSurfaces(unsigned backBuffers, int for3D);
+
+    // device_object.cpp (A-S13): the device object itself (vtable 0073D760).
+    // 004E5E50 (RET 0x28). The constructor: the base (one back buffer asked as the caller says,
+    // for 3D), IDirect3D7 from the DirectDraw object, its devices listed, the HAL device made on
+    // the render target, the texture formats (BuildFormatTable) and depth formats listed, the
+    // depth buffer (CreateDepthBuffer), the render target and viewport set, and four state blocks
+    // of stage 0's colour and alpha operations recorded (007AEDD0 .. 007AEDDC). Returns this.
+    CTextureDevice* Construct(HWND window, GUID* driver, int fullScreen, int width, int height, int bitsPerPixel,
+                              int refreshRate, unsigned backBuffers, int depthBits, int stencilBits);
+    // 004E68A0 (plain RET). The destructor body: the four state blocks deleted, the batches'
+    // buffers, the depth surfaces and the pipeline dropped, the Direct3D device and object
+    // released, the members destroyed, then the base's destructor body.
+    void Destruct();
+    // 004E6C30 (RET 8). The depth buffer: a format with the render target's bit depth and
+    // `stencilBits` (FindDepthFormat; else one of `depthBits`, else the error is thrown), a surface
+    // of the render target's size attached to the render target, and a second one like it.
+    void CreateDepthBuffer(int depthBits, int stencilBits);
+    // 004E6EE0 (plain RET). The texture formats: the Direct3D device's formats listed again and
+    // formats_ filled from them: DXT1 .. DXT5 by their four-character codes, 5:6:5, 5:5:5 (0x5550),
+    // 1:5:5:5, 4:4:4:4 and 8:8:8:8 by their ids; largestFormatId_ is the largest id stored.
+    void BuildFormatTable();
 
     // Holders count references to it (the cursor): one more, or one less with the deleting
     // destructor (vtable slot 0, with 1) at zero.
@@ -56,38 +159,45 @@ public:
     int refs_;                  // +0x04
     int lastLoadResult_;        // +0x08 result of the last IDirect3DDevice7::Load (and other calls)
     void* ddraw_;               // +0x0C IDirectDraw7*
-    std::uint8_t unknown_10[4];
+    GUID* driver_;              // +0x10 the driver the DirectDraw object was made for
     CDXSurface* primary_;       // +0x14 the primary surface's holder
     CDXSurface* renderTarget_;  // +0x18 the render target's holder
-    std::uint8_t unknown_1C[4];
-    std::uint8_t flags_;        // +0x20 bit 0: full screen (the present flips)
-    std::uint8_t unknown_21[3];
+    void* clipper_;             // +0x1C IDirectDrawClipper* of the window (004EF510)
+    std::uint32_t flags_;       // +0x20 the cooperative level; bit 0: full screen (the present flips)
     RECT screen_;               // +0x24 the screen rectangle
-    std::uint8_t unknown_34[0x4C - 0x34];
+    HWND window_;               // +0x34
+    stlp::list<_DDSURFACEDESC2> modes_;   // +0x38 the driver's display modes
+    std::uint32_t videoFourCC_;     // +0x3C the YUV format an off-screen video-memory surface can have (0: none)
+    std::uint32_t overlayFourCC_;   // +0x40 the YUV format an overlay can have (0: none)
+    bool overlayStretch_;       // +0x44 DDCAPS_OVERLAYSTRETCH
+    std::uint8_t unknown_45[3];
+    HMODULE converterLibrary_;  // +0x48 2DintMMX.dll
     void* converter_;           // +0x4C 2DintMMX's graphics processor (pixel conversions)
-    std::uint8_t unknown_50[4];
+    void* d3d_;                 // +0x50 IDirect3D7*
     void* d3dDevice_;           // +0x54 IDirect3DDevice7*
     CDXSurface* depth_;         // +0x58 the depth surface's holder (restored with the primary, 00504780)
-    std::uint8_t unknown_5C[4];
+    CDXSurface* depth2_;        // +0x5C a second depth surface like it (not attached)
     std::uint32_t zEnable_;     // +0x60 the z-buffer setting render state 7 goes back to (00569E40)
-    std::uint8_t unknown_64[0x90 - 0x64];
-    // +0x90 / +0x9C: read as the depth format's DDPIXELFORMAT flags and stencil bits (the frame clear,
-    // 00501A40, clears the stencil too when DDPF_STENCILBUFFER is set and the bits are nonzero).
-    std::uint32_t depthFormatFlags_;   // +0x90
-    std::uint8_t unknown_94[8];
-    std::uint32_t stencilBits_;        // +0x9C
-    std::uint8_t unknown_A0[0xAC - 0xA0];
+    std::uint8_t unknown_64[0x7C - 0x64];
+    GUID deviceGuid_;           // +0x7C the Direct3D device's GUID
+    // +0x8C the depth buffer's format (a DDPIXELFORMAT). The frame clear (00501A40) clears the
+    // stencil too when its flags (words[1]) have DDPF_STENCILBUFFER and its stencil bits
+    // (words[4]) are nonzero.
+    PixelFormat depthFormat_;
     CTransformPipeline* pipeline_;   // +0xAC the scene renderer's pipeline (model.h)
-    std::uint8_t unknown_B0[4];
+    stlp::list<Direct3DDeviceRecord> devices_;   // +0xB0 the Direct3D devices of the driver
     stlp::list<PixelFormat> depthFormats_;   // +0xB4 the enumerated depth buffer formats (004E6C30 picks one)
-    std::uint8_t unknown_B8[4];
+    stlp::list<PixelFormat> textureFormats_; // +0xB8 the enumerated texture formats
     // +0xBC the texture formats by id (filled by 004E6EE0 from the Direct3D device's enumeration);
-    // the values point at formats the device keeps.
+    // the values point at textureFormats_'s elements.
     stlp::hash_map<int, PixelFormat*, stlp::IntHash> formats_;
-    std::uint8_t unknown_D0[0x10];
-    int batchBaseVertex_;            // +0xE0 the vertex-buffer batch's vertex count (never used: 004E7820 gives no buffer)
-    lib::AlignedArray<std::uint16_t> batchIndices_;   // +0xE4 the batch's indices
-    std::uint8_t unknown_F4[0x12C - 0xF4];
+    std::uint32_t largestFormatId_;  // +0xD0 the largest id in formats_
+    DeviceVertexBatch batch_;        // +0xD4 the vertex-buffer batch (never used: 004E7820 gives no buffer)
+    DeviceVertexBatch batch2_;       // +0xF4 the second one
+    // +0x114: a third set the constructor makes and the destructor frees; nothing else reads it.
+    stlp::list<CVertexBufferHolder*> spareBuffers_;   // +0x114 counted holders
+    CVertexBufferHolder* spareBuffer_;                // +0x118 counted
+    lib::AlignedArray<std::uint8_t> spareArray_;      // +0x11C
     CDXSurface* stageSurfaces_[8];   // +0x12C the surface holder bound to each texture stage (00501AF0, 004EBAF0)
     void* material_;                 // +0x14C the current material (004EB170)
     std::uint32_t colour_;           // +0x150 the renderer's draw colour (00501CC0; mesh draw flag 4)
@@ -104,10 +214,13 @@ static_assert(offsetof(CTextureDevice, drawnRect_) == 0x15C && offsetof(CTexture
 static_assert(sizeof(CTextureDevice) == 0x17C);
 static_assert(offsetof(CTextureDevice, zEnable_) == 0x60);
 static_assert(offsetof(CTextureDevice, unknown_158) == 0x158);
-static_assert(offsetof(CTextureDevice, depthFormatFlags_) == 0x90 && offsetof(CTextureDevice, stencilBits_) == 0x9C);
+static_assert(offsetof(CTextureDevice, deviceGuid_) == 0x7C && offsetof(CTextureDevice, depthFormat_) == 0x8C);
+static_assert(offsetof(CTextureDevice, window_) == 0x34 && offsetof(CTextureDevice, converterLibrary_) == 0x48);
+static_assert(offsetof(CTextureDevice, devices_) == 0xB0 && offsetof(CTextureDevice, largestFormatId_) == 0xD0);
+static_assert(offsetof(CTextureDevice, spareBuffers_) == 0x114 && offsetof(CTextureDevice, spareArray_) == 0x11C);
 static_assert(offsetof(CTextureDevice, stageSurfaces_) == 0x12C && offsetof(CTextureDevice, colour_) == 0x150);
 static_assert(offsetof(CTextureDevice, depthFormats_) == 0xB4 && offsetof(CTextureDevice, formats_) == 0xBC);
-static_assert(offsetof(CTextureDevice, batchBaseVertex_) == 0xE0 && offsetof(CTextureDevice, batchIndices_) == 0xE4);
+static_assert(offsetof(CTextureDevice, batch_) == 0xD4 && offsetof(CTextureDevice, batch2_) == 0xF4);
 
 // The renderer's device object (the global pointer at 007AF080).
 inline CTextureDevice* RenderDeviceObject() { return *reinterpret_cast<CTextureDevice* const*>(0x007AF080); }
@@ -121,12 +234,32 @@ static_assert(offsetof(CTextureDevice, d3dDevice_) == 0x54);
 static_assert(offsetof(CTextureDevice, pipeline_) == 0xAC);
 
 // A Direct3D driver of the device list (the STLport list at 007AEE64, filled by 004EE4A0; 004EE5D0
-// returns the first hardware one, 004EE6D0 the one with an index). Only what the renderer reads.
+// returns the first hardware one, 004EE6D0 the one with an index). 0x30 bytes.
 struct DirectDrawDriver {
-    std::uint8_t unknown_00[0x10];
-    GUID* guid;                 // +0x10 for DirectDrawCreateEx
+    GUID guidValue;             // +0x00 the driver's GUID (unset for the primary display driver)
+    GUID* guid;                 // +0x10 for DirectDrawCreateEx: &guidValue, or null (the primary display driver)
+    stlp::string name;          // +0x14
+    stlp::string description;   // +0x20
+    HMONITOR monitor;           // +0x2C
 };
-static_assert(offsetof(DirectDrawDriver, guid) == 0x10);
+static_assert(offsetof(DirectDrawDriver, guid) == 0x10 && offsetof(DirectDrawDriver, description) == 0x20);
+static_assert(sizeof(DirectDrawDriver) == 0x30);
+// The driver list (007AEE64).
+inline stlp::list<DirectDrawDriver>& DirectDrawDrivers() {
+    return *reinterpret_cast<stlp::list<DirectDrawDriver>*>(0x007AEE64);
+}
+// directdraw_holder.cpp (A-S13).
+// 004EE4A0 (cdecl). The driver list emptied and filled again (DirectDrawEnumerateExA with attached
+// secondary and non-display devices; DriverEnumCallback appends each). 1; a failure is the fatal
+// error "Can't enumerate direct draw drivers." and its result.
+int __cdecl EnumerateDirectDrawDrivers();
+// 004ED610 (stdcall, RET 0x14: DirectDrawEnumerateExA's callback). Appends a driver to the list
+// `context`: its name, description, GUID and monitor. Returns 1 (go on).
+BOOL __stdcall DriverEnumCallback(GUID* guid, char* description, char* name, void* context, HMONITOR monitor);
+// 004EE5D0 (cdecl). The hardware 3D driver to use: of the listed drivers whose DirectDraw object
+// has DDCAPS_3D and can make textures, the first with non-local video memory (DDCAPS2_NONLOCALVIDMEM),
+// else the last. None: the fatal error "Can't find any driver with HW 3D." and exit(-1).
+DirectDrawDriver* __cdecl FirstHardwareDirectDrawDriver();
 // 004EE6D0 (the index in ECX; render_helper.cpp). The driver `index` steps after the list's first;
 // past the last: a fatal error ("Can't find driver by index.") and null.
 DirectDrawDriver* __fastcall DriverAt(int index);

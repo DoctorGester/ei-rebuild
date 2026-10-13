@@ -68,6 +68,7 @@ int __fastcall DrawFigurePart(FigureMeshDrawer* node, void*, CTextureDevice* dev
 int __fastcall DrawFigurePartPlain(char* node, void*, char* device, int, int, int, int alpha, RECT* rect);
 
 struct CDXSurface;   // texture.h
+struct TLVertex;     // clip.h
 
 // The transform object of 3DfpFPU.dll (GetTLPipeline; CTransformPipeline::transform_), as far as
 // rewritten code calls it.
@@ -122,10 +123,14 @@ public:
                              float* bounds);
     virtual void Unknown30();
     virtual void Unknown31();
-    virtual void Unknown32();
+    // 32: `count` projected vertices (x, y, z, w in the first 16 bytes) to the screen: 1 / w kept as
+    // rhw, x and y scaled to the viewport, z divided (the rain and snow draws).
+    virtual void ToScreen(TLVertex* vertices, int count);
     virtual void Unknown33();
     virtual void Unknown34();
-    virtual void Unknown35();
+    // 35: the distance fog of `count` screen vertices: the specular's alpha lowered to the fog
+    // factor of the depth (the device object's draws when its +0x158 is set).
+    virtual void FogVertices(TLVertex* vertices, int count);
     virtual void Unknown36();
     virtual void Unknown37();
     virtual void Unknown38();

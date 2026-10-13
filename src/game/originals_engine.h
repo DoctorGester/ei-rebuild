@@ -61,9 +61,7 @@ __declspec(naked) inline void __fastcall StreamResizeOriginal(void* /*stream*/, 
 // 0044C470: the game's debug message (cdecl, printf style, a bare RET; the caller's EAX comes back unchanged, and
 // bink_video.cpp masks it, so it is declared to return a value). src/lib/crt.cpp keeps its own copy.
 __declspec(naked) inline unsigned __cdecl DebugMessageOriginal(const char*, ...) EI_ORIGINAL(0x0044C470)
-// 006E7819: the CRT's _CxxThrowException (stdcall: the address of the thrown value, its throw info; does not return),
-// and the throw info of a thrown GameError* (dx_errors.h), 00759908.
-__declspec(naked) inline void __stdcall GameThrowException(void* /*thrown*/, const void* /*throwInfo*/) EI_ORIGINAL(0x006E7819)
+// The throw info of a thrown GameError* (dx_errors.h), 00759908; thrown with CxxThrowException (originals_library.h).
 inline const void* GameErrorThrowInfo() { return reinterpret_cast<const void*>(0x00759908); }
 
 // C3i. 004ABD00: spell name map operator[](key) (RET 4; inserts a null record for a missing name; EAX is the address of the

@@ -51,3 +51,11 @@ CDXSurface* NewMemoryTextureHolder(CTextureDevice* device, int width, int height
 // (the texture manager's .mmp textures, 00690430: render::TextureFromMmp keyed by the holder).
 // Nothing of the game writes or locks such a texture. Null outside the switch-over.
 CDXSurface* NewDecodedTextureHolder(CTextureDevice* device, int width, int height, const std::uint32_t* pixelFormat);
+
+// 004EFA60 (thiscall on the holder, RET 8): the holder's constructor from a DDSURFACEDESC2 (as
+// dwords): the surface made by the device's DirectDraw object and described. Throws the game's
+// error object when there is no surface. Returns the holder.
+CDXSurface* __fastcall DXSurfaceFromDesc(CDXSurface* holder, void*, CTextureDevice* device, const std::uint32_t* desc);
+// 004EFEA0 (thiscall on the holder): the surface's width, height and bits per pixel into the
+// holder. 1; 0 when GetSurfaceDesc failed and its report said stop.
+int __fastcall DXSurfaceDescribe(CDXSurface* holder);

@@ -142,14 +142,14 @@ EI_REPLACE_METHOD(0x004E7820, CTextureDevice::LockVertexBuffer);
 // inclusive (one index more than `count` is read and written); the indices are written past the
 // array's size before it grows, so a reallocation would drop them.
 void CTextureDevice::AppendBatchIndices(const std::uint16_t* indices, int count) {
-    std::uint16_t* out = batchIndices_.data + batchIndices_.size;
-    if (batchBaseVertex_ != 0) {
+    std::uint16_t* out = batch_.indices.data + batch_.indices.size;
+    if (batch_.vertexCount != 0) {
         for (const std::uint16_t* in = indices; in <= indices + count; ++in)
-            *out++ = static_cast<std::uint16_t>(*in + static_cast<std::uint16_t>(batchBaseVertex_));
+            *out++ = static_cast<std::uint16_t>(*in + static_cast<std::uint16_t>(batch_.vertexCount));
     } else {
         std::memcpy(out, indices, static_cast<std::size_t>(count) * sizeof(std::uint16_t));
     }
-    batchIndices_.SetSize(batchIndices_.size + count);
+    batch_.indices.SetSize(batch_.indices.size + count);
 }
 EI_REPLACE_METHOD(0x004E7E00, CTextureDevice::AppendBatchIndices);
 

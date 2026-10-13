@@ -25,6 +25,12 @@ GameError* __cdecl GameErrorConstructResult(GameError* error, long result, const
 // The two constructors' bodies with the arguments as a va_list (the verify wrappers call them).
 GameError* GameErrorFormat(GameError* error, const char* format, va_list args);
 GameError* GameErrorFormatResult(GameError* error, long result, const char* format, va_list args);
+// The original's `throw new CError(...)`: the object from operator new, constructed by 00480250 /
+// 00480300, thrown by pointer (_CxxThrowException, throw info 00759908). WinMain catches it. The
+// frames of ours it passes are not unwound member by member as the original's are (what a failed
+// constructor had built stays); every such throw ends the game.
+[[noreturn]] void ThrowGameError(const char* format, ...);
+[[noreturn]] void ThrowGameErrorResult(long result, const char* format, ...);
 // 004815D0. The base vtable, the message freed.
 void __fastcall GameErrorDestruct(GameError* error);
 // 004815B0 / 00481580 (slot 0 of 0073CAB4 / 0073CAB0, RET 4): the destructor (the base's inlined),

@@ -24,6 +24,9 @@
 #include <cstdint>
 
 class CMemoryStream;   // core_streams.h
+class CSceneRenderer;  // model.h
+struct TLVertex;       // clip.h
+struct VertexPacket;   // figure_mesh.h
 
 // One particle (0x64 bytes, allocated by the source's pool 00498870). The source's tick saves the
 // "prev" fields before calling the update callback and restores them when it returns 0. The
@@ -423,19 +426,34 @@ public:
     // a running loop stopped unless `newMode` is 0; rain starts the looping "nature\rain\circle.wav";
     // the fade towards `newMode` starts now (the world's tick) over `duration` (0: at the next step).
     void Start(int newMode, float duration);
+    // weather_particles.cpp (A-S13). 004E4240 (rain) / 004E4C80 (snow), RET 4, EAX 1; the layer's
+    // draw 004E5680 (weather_draw.cpp) calls the one of the mode. The particles of the 81 x 81 grid
+    // cells around the point the wind carries them to the camera from, each cell's place and time
+    // hashed, `density` of 64 of them shown: a rain drop is a thin triangle along the wind, a
+    // snowflake a point swayed by the five sway tables that becomes a small triangle on screen.
+    // Projected with the pipeline's stack 2 and drawn as pre-transformed triangles through
+    // `indices` with the device's current state.
+    int DrawRain(CSceneRenderer* renderer);
+    int DrawSnow(CSceneRenderer* renderer);
+    // Their two halves (the original has them in one piece): the vertices of the particles on
+    // screen built (returns their count, three per particle), and those drawn (the distance fog
+    // when the device has it on, DrawIndexedPrimitive under the device lock, the frame's counts).
+    int BuildRain(CSceneRenderer* renderer);
+    int BuildSnow(CSceneRenderer* renderer);
+    void DrawParticles(CSceneRenderer* renderer, int vertexCount);
 
     CEngineObject* texture;         // +0x01C counted texture ("RainSnow")
     class CWorld* world;            // +0x020 the client world (set after construction)
     int sound;                      // +0x024 rain loop handle in the sound manager (0: none)
-    // The drawing code's work arrays (element types not worked out yet).
-    lib::AlignedArray<std::uint8_t> work028;    // +0x028
-    lib::AlignedArray<std::uint8_t> work038;    // +0x038
-    mfc::CArray<std::uint8_t> bytes048;         // +0x048 CByteArray
-    mfc::CArray<std::uint8_t> bytes05C;         // +0x05C CByteArray
-    lib::AlignedArray<std::uint8_t> work070;    // +0x070
-    mfc::CArray<std::uint16_t> words080;        // +0x080 CWordArray
-    lib::AlignedArray<std::uint8_t> work094;    // +0x094
-    int unknown_0A4;                // +0x0A4 zeroed by Clear
+    // The draws' work arrays.
+    lib::AlignedArray<Vector4> projected;       // +0x028 the positions projected (four per packet)
+    lib::AlignedArray<VertexPacket> positions;  // +0x038 the particles' corners (w not written)
+    mfc::CArray<std::uint8_t> outcodes;         // +0x048 CByteArray: a clip outcode per position
+    mfc::CArray<std::uint8_t> frames;           // +0x05C CByteArray: a texture frame (0..3) per particle
+    lib::AlignedArray<TLVertex> vertices;       // +0x070 what is drawn (colours never written)
+    mfc::CArray<std::uint16_t> indices;         // +0x080 CWordArray: 0, 1, 2, ... (filled elsewhere)
+    lib::AlignedArray<int> offsets;             // +0x094 the grid's 81 cell offsets (filled elsewhere)
+    int particleCount;              // +0x0A4 positions built by the last draw
     Vector3 wind;                   // +0x0A8
     int mode;                       // +0x0B4 0 off, 1 rain, 2 snow
     int targetMode;                 // +0x0B8
@@ -444,7 +462,8 @@ public:
     float fadeDuration;             // +0x0C4 0: no fade running
 };
 static_assert(offsetof(CRainSnow, texture) == 0x1C);
-static_assert(offsetof(CRainSnow, unknown_0A4) == 0xA4);
+static_assert(offsetof(CRainSnow, particleCount) == 0xA4 && offsetof(CRainSnow, projected) == 0x28);
+static_assert(offsetof(CRainSnow, vertices) == 0x70 && offsetof(CRainSnow, offsets) == 0x94);
 static_assert(offsetof(CRainSnow, wind) == 0xA8);
 static_assert(sizeof(CRainSnow) == 0xC8);
 

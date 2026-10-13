@@ -141,8 +141,12 @@ console #IsFileExists("../escape.txt")
 console #IsFileExists("no such file.txt")
 console @ShowAllUnits(0) ShowAllUnits(1)
 console @PauseGame(0) PauseGame(1)
+# Rain, then snow: the layer's draws (004E4240 / 004E4C80; a change fades over 20 / 40 ticks, the
+# snow starting when the rain has faded into it).
 console @SetWeather("rain")
-wait 500
+wait 1500
+console @SetWeather("snow")
+wait 2000
 console @SetWeather("clear")
 console @GiveUnitWeapon(GetLeader(),"Axe.steel",1)
 console @GiveUnitArmor(GetLeader(),"UniqueGipatHadagan Helm.Iron",0) GiveUnitArmor(GetLeader(),"no such armour",1)
