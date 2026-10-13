@@ -165,3 +165,8 @@ __declspec(naked) inline void __fastcall ClientProjectDecalOriginal(void* /*worl
                                                                     lib::AlignedArray<std::uint16_t>* /*indices*/,
                                                                     int /*skipOnPlatform*/, int /*objects*/)
     EI_ORIGINAL(0x0056C750)
+// A-W13. CFigureMesh::Create 0059F210 (returns 1) and Clear 0059F2B0 (figure_mesh_life.cpp), called through
+// their addresses by the rewritten constructor, clear and destructor bodies so that their wrappers run.
+class CFigureMesh;
+__declspec(naked) inline int __fastcall FigureMeshCreateOriginal(CFigureMesh* /*mesh*/) EI_ORIGINAL(0x0059F210)
+__declspec(naked) inline void __fastcall FigureMeshClearOriginal(CFigureMesh* /*mesh*/) EI_ORIGINAL(0x0059F2B0)

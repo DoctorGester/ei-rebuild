@@ -4345,3 +4345,6 @@ address,name,library,signature,notes
 00577E90,"make_heap (pointers ordered by the unsigned value at [[p + 0x94] + 0xEC]: the model use sort's heap)",STLport,,"A-W13 review: STLport template instantiation (IntroSortByModelUse 00573EA1's caller chain)"
 00582030,"vector<T>::~vector (68-byte records: four CStrings destroyed per element, then the block freed)",STLport,,"A-W13 review: STLport template instantiation (0057DEE0)"
 0059A3C0,"CList<TYPE,ARG_TYPE>::~CList (vtable 0073FA10; RemoveAll with the elements' CArray members destroyed inline, CPlex::FreeDataChain)",MFC,,"A-W13 review: MFC template instantiation (0059B4F0 and unwinding)"
+00589860,"destructor of a record of two vectors of STLport strings (12-byte elements) and two 0043B310 members",compiler,,"A-W13 review: compiler-generated (00684390, 00684C50, 00589840 and unwinding)"
+00583CB0,"vector<string>::erase(first, last) (12-byte STLport strings: assigned down, the tail destroyed)",STLport,,"A-W13 review: STLport template instantiation"
+0056D080,"destructor of a record of three delete[] arrays, a counted pointer and an STLport vector block",compiler,,"A-W13 review: compiler-generated (00563290, 00572550, 00575540)"
