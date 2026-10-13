@@ -10,7 +10,9 @@
 
 #include "../../src/game/ui.h"
 
+#include <cstdarg>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <string>
 #include <vector>
@@ -135,6 +137,89 @@ inline int FirstSpriteDifference(const PanelShot& a, const PanelShot& b) {
         if (!same) return static_cast<int>(i);
     }
     return -1;
+}
+
+// What differs first, for the check's message: the region's or sprite's index, the field and the
+// two values (the original's / ours); "nothing" when both records agree.
+inline std::string Text(const char* format, ...) {
+    char text[256];
+    va_list arguments;
+    va_start(arguments, format);
+    std::vsnprintf(text, sizeof(text), format, arguments);
+    va_end(arguments);
+    return text;
+}
+
+inline std::string DescribeRegionDifference(const PanelShot& a, const PanelShot& b) {
+    const int index = FirstRegionDifference(a, b);
+    if (index < 0) return "nothing";
+    if (a.regions.size() != b.regions.size())
+        return Text("%d / %d regions", static_cast<int>(a.regions.size()), static_cast<int>(b.regions.size()));
+    const RegionShot& x = a.regions[static_cast<std::size_t>(index)];
+    const RegionShot& y = b.regions[static_cast<std::size_t>(index)];
+    if (x.points.size() != y.points.size())
+        return Text("region %d: %d / %d points", index, static_cast<int>(x.points.size()), static_cast<int>(y.points.size()));
+    for (std::size_t k = 0; k < x.points.size(); ++k)
+        if (x.points[k].x != y.points[k].x || x.points[k].y != y.points[k].y)
+            return Text("region %d point %d: (%d, %d) / (%d, %d)", index, static_cast<int>(k), x.points[k].x, x.points[k].y,
+                        y.points[k].x, y.points[k].y);
+    if (std::memcmp(&x.bounds, &y.bounds, sizeof(RECT)) != 0)
+        return Text("region %d bounds: (%ld, %ld, %ld, %ld) / (%ld, %ld, %ld, %ld)", index, x.bounds.left, x.bounds.top,
+                    x.bounds.right, x.bounds.bottom, y.bounds.left, y.bounds.top, y.bounds.right, y.bounds.bottom);
+    if (x.rectOnly != y.rectOnly) return Text("region %d rectangle-only flag: %d / %d", index, x.rectOnly, y.rectOnly);
+    if (x.enabled != y.enabled) return Text("region %d enabled: %d / %d", index, x.enabled, y.enabled);
+    if (x.tip != y.tip) return Text("region %d has a tooltip: %d / %d", index, x.tip, y.tip);
+    if (x.lines != y.lines) {
+        if (x.lines.size() != y.lines.size())
+            return Text("region %d tooltip: %d / %d lines", index, static_cast<int>(x.lines.size()), static_cast<int>(y.lines.size()));
+        for (std::size_t k = 0; k < x.lines.size(); ++k)
+            if (x.lines[k] != y.lines[k])
+                return Text("region %d tooltip line %d: \"%.80s\" / \"%.80s\"", index, static_cast<int>(k), x.lines[k].c_str(),
+                            y.lines[k].c_str());
+    }
+    if (x.tipFlag != y.tipFlag) return Text("region %d tooltip flag: %d / %d", index, x.tipFlag, y.tipFlag);
+    if (x.tipExtra != y.tipExtra) return Text("region %d tooltip key: %d / %d", index, x.tipExtra, y.tipExtra);
+    return Text("region %d offset: (%d, %d) / (%d, %d)", index, x.offset[0], x.offset[1], y.offset[0], y.offset[1]);
+}
+
+inline std::string DescribeSpriteDifference(const PanelShot& a, const PanelShot& b) {
+    const int index = FirstSpriteDifference(a, b);
+    if (index < 0) return "nothing";
+    if (a.sprites.size() != b.sprites.size())
+        return Text("%d / %d sprites", static_cast<int>(a.sprites.size()), static_cast<int>(b.sprites.size()));
+    const SpriteShot& x = a.sprites[static_cast<std::size_t>(index)];
+    const SpriteShot& y = b.sprites[static_cast<std::size_t>(index)];
+    struct Float {
+        const char* name;
+        float expected;
+        float actual;
+    };
+    const Float floats[] = {
+        {"position x", x.position.x, y.position.x},          {"position y", x.position.y, y.position.y},
+        {"position z", x.position.z, y.position.z},          {"texture frame u", x.frame[0], y.frame[0]},
+        {"texture frame v", x.frame[1], y.frame[1]},         {"tint r", x.tint[0], y.tint[0]},
+        {"tint g", x.tint[1], y.tint[1]},                    {"tint b", x.tint[2], y.tint[2]},
+        {"scale", x.scale, y.scale},                         {"orientation w", x.orientation.w, y.orientation.w},
+        {"orientation x", x.orientation.x, y.orientation.x}, {"orientation y", x.orientation.y, y.orientation.y},
+        {"orientation z", x.orientation.z, y.orientation.z},
+    };
+    for (const Float& value : floats)
+        if (!Near(value.expected, value.actual))
+            return Text("sprite %d %s: %.9g / %.9g", index, value.name, value.expected, value.actual);
+    static const char* const kSizes[4] = {"quads", "vertices", "indices", "texels"};
+    for (int k = 0; k < 4; ++k)
+        if (x.sizes[k] != y.sizes[k]) return Text("sprite %d %s: %d / %d", index, kSizes[k], x.sizes[k], y.sizes[k]);
+    if (x.visible != y.visible) return Text("sprite %d visible: %d / %d", index, x.visible, y.visible);
+    if (x.flags != y.flags) return Text("sprite %d flags: %08X / %08X", index, x.flags, y.flags);
+    if (x.plainColour != y.plainColour) return Text("sprite %d plain colour: %08X / %08X", index, x.plainColour, y.plainColour);
+    if (x.texture != y.texture) return Text("sprite %d texture: %p / %p", index, x.texture, y.texture);
+    if (x.shape.size() != y.shape.size())
+        return Text("sprite %d is a rectangle: %d / %d", index, !x.shape.empty(), !y.shape.empty());
+    for (std::size_t k = 0; k < x.shape.size(); ++k)
+        if (!Near(x.shape[k], y.shape[k]))
+            return Text("sprite %d rectangle float %d (corners, then texels): %.9g / %.9g", index, static_cast<int>(k), x.shape[k],
+                        y.shape[k]);
+    return Text("sprite %d", index);
 }
 
 } // namespace ui_shot

@@ -107,12 +107,13 @@ static void __fastcall ShowPageVerify(CHelpWindow* self) {
     const bool rest = SamePage(expectedPage, actualPage);
     ei::verify::Check("CHelpWindow::ShowPage", true, region < 0 && sprite < 0 && rest,
                       "page %d of %d: regions %d / %d (first difference %d), sprites %d / %d (first difference %d), surfaces %d / "
-                      "%d, pulsing %d / %d, pictures %d / %d, the rest %d",
+                      "%d, pulsing %d / %d, pictures %d / %d, the rest %d; differs (the original's / ours) in %s; in %s",
                       self->page_, self->lines_.size, static_cast<int>(expected.regions.size()),
                       static_cast<int>(actual.regions.size()), region, static_cast<int>(expected.sprites.size()),
                       static_cast<int>(actual.sprites.size()), sprite, static_cast<int>(expectedPage.surfaces.size()),
                       static_cast<int>(actualPage.surfaces.size()), static_cast<int>(expectedPage.pulsing.size()),
                       static_cast<int>(actualPage.pulsing.size()), static_cast<int>(expectedPage.pictures.size()),
-                      static_cast<int>(actualPage.pictures.size()), rest);
+                      static_cast<int>(actualPage.pictures.size()), rest, DescribeRegionDifference(expected, actual).c_str(),
+                      DescribeSpriteDifference(expected, actual).c_str());
 }
 EI_VERIFY(0x00659420, ShowPageVerify, 6, s_showPage);

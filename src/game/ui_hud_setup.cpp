@@ -47,10 +47,13 @@ constexpr float kArrowDepth = 8.2060862f;
 
 // The angle of `turn` steps, as the original computes it (each product a float).
 float ArcAngle(int turn, float step) { return RoundToFloat(RoundToFloat(static_cast<float>(turn) * Pi()) * step); }
-// The cosine / sine as the game's FPU leaves them at its 24-bit precision: sin(pi / 2) is 1 there,
-// so the truncations below give the whole radius (a double sine would give one less).
-float ArcCos(float angle) { return RoundToFloat(std::cos(static_cast<double>(angle))); }
-float ArcSin(float angle) { return RoundToFloat(std::sin(static_cast<double>(angle))); }
+// The cosine / sine as FCOS / FSIN leave them: the precision control does not reach them (only
+// add, subtract, multiply, divide and square root), so they stay unrounded and it is their product
+// with the radius that the FPU rounds to float at its 24-bit precision. That is what makes
+// sin(pi / 2) x radius the whole radius below, and cos(pi / 3) x 34 exactly 17 (a cosine rounded
+// to float first gives 16.999998 and 16: X33).
+double ArcCos(float angle) { return std::cos(static_cast<double>(angle)); }
+double ArcSin(float angle) { return std::sin(static_cast<double>(angle)); }
 
 // The point at `turn` steps on the circle of `radius` about the origin, truncated (_ftol).
 struct ArcPoint {

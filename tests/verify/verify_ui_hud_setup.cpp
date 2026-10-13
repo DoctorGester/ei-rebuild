@@ -76,9 +76,11 @@ static void __fastcall ClockSetupVerify(CHudClock* self, void*, int fast) {
                         self->dial_ == expectedDial && self->fast_ == expectedFast && self->highlight_ == expectedHighlight &&
                         UpdatePeriod() == expectedPeriod && self->interface_->fastGame_ == expectedInterfaceFast;
     ei::verify::Check("CHudClock::Setup", true, region < 0 && sprite < 0 && fields,
-                      "fast %d: regions %d / %d (first difference %d), sprites %d / %d (first difference %d), fields %d", fast,
-                      static_cast<int>(expected.regions.size()), static_cast<int>(actual.regions.size()), region,
-                      static_cast<int>(expected.sprites.size()), static_cast<int>(actual.sprites.size()), sprite, fields);
+                      "fast %d: regions %d / %d (first difference %d), sprites %d / %d (first difference %d), fields %d; "
+                      "differs (the original's / ours) in %s; in %s",
+                      fast, static_cast<int>(expected.regions.size()), static_cast<int>(actual.regions.size()), region,
+                      static_cast<int>(expected.sprites.size()), static_cast<int>(actual.sprites.size()), sprite, fields,
+                      DescribeRegionDifference(expected, actual).c_str(), DescribeSpriteDifference(expected, actual).c_str());
 }
 EI_VERIFY(0x00648520, ClockSetupVerify, 6, s_clockSetup);
 
@@ -112,9 +114,11 @@ static void __fastcall MovePanelSetupVerify(CHudMovePanel* self) {
     const bool fields = std::memcmp(&expected.rect, &actual.rect, sizeof(RECT)) == 0 && self->mode_ == expectedMode &&
                         self->flag_ == expectedFlag;
     ei::verify::Check("CHudMovePanel::Setup", true, region < 0 && sprite < 0 && fields,
-                      "regions %d / %d (first difference %d), sprites %d / %d (first difference %d), fields %d",
+                      "regions %d / %d (first difference %d), sprites %d / %d (first difference %d), fields %d; differs (the "
+                      "original's / ours) in %s; in %s",
                       static_cast<int>(expected.regions.size()), static_cast<int>(actual.regions.size()), region,
-                      static_cast<int>(expected.sprites.size()), static_cast<int>(actual.sprites.size()), sprite, fields);
+                      static_cast<int>(expected.sprites.size()), static_cast<int>(actual.sprites.size()), sprite, fields,
+                      DescribeRegionDifference(expected, actual).c_str(), DescribeSpriteDifference(expected, actual).c_str());
 }
 EI_VERIFY(0x00649190, MovePanelSetupVerify, 5, s_movePanelSetup);
 
@@ -215,9 +219,10 @@ static void __fastcall UnitPanelSetupVerify(CHudUnitPanel* self, void*, int body
                       StringsOf(PartLabels(self)) == expectedLabels;
     ei::verify::Check("CHudUnitPanel::Setup", true, region < 0 && sprite < 0 && fields && rest,
                       "part %d slid %d: regions %d / %d (first difference %d), sprites %d / %d (first difference %d), fields %d, "
-                      "surfaces and texts %d",
+                      "surfaces and texts %d; differs (the original's / ours) in %s; in %s",
                       bodyPart, slid, static_cast<int>(expected.regions.size()), static_cast<int>(actual.regions.size()), region,
-                      static_cast<int>(expected.sprites.size()), static_cast<int>(actual.sprites.size()), sprite, fields, rest);
+                      static_cast<int>(expected.sprites.size()), static_cast<int>(actual.sprites.size()), sprite, fields, rest,
+                      DescribeRegionDifference(expected, actual).c_str(), DescribeSpriteDifference(expected, actual).c_str());
 }
 EI_VERIFY(0x006456E0, UnitPanelSetupVerify, 7, s_unitPanelSetup);
 
@@ -330,8 +335,9 @@ static void __fastcall MapSetupVerify(CHudMap* self, void*, float zoom, std::uin
                       SamePoints(expectedVisible, PointsOf(self->visibleArea_));
     ei::verify::Check("CHudMap::Setup", true, region < 0 && sprite < 0 && fields && rest,
                       "zoom %g slid %d: regions %d / %d (first difference %d), sprites %d / %d (first difference %d), fields %d, "
-                      "surface, picture and polygons %d",
+                      "surface, picture and polygons %d; differs (the original's / ours) in %s; in %s",
                       zoom, slid, static_cast<int>(expected.regions.size()), static_cast<int>(actual.regions.size()), region,
-                      static_cast<int>(expected.sprites.size()), static_cast<int>(actual.sprites.size()), sprite, fields, rest);
+                      static_cast<int>(expected.sprites.size()), static_cast<int>(actual.sprites.size()), sprite, fields, rest,
+                      DescribeRegionDifference(expected, actual).c_str(), DescribeSpriteDifference(expected, actual).c_str());
 }
 EI_VERIFY(0x00641F20, MapSetupVerify, 5, s_mapSetup);

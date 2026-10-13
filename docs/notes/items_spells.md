@@ -578,10 +578,16 @@ the stream thread's stack held decides between the switch and a restart); ours s
 The first file starts from state 2 with no decoder open: the frame size is then ResetStream's -1 and the buffer's frame
 count has not been set; neither is used, the whole buffer comes from the next file.
 
-Arc points (00648520, 00649190, 00641F20): the regions' vertices are `_ftol(cos(k x pi x step) x radius)` with every product
-and the cosine rounded to float, as the game's FPU does at its 24-bit precision: sin(pi / 2) is then exactly 1 and the vertex
-is the whole radius (35, 80, 34); a double sine gives 34.99.. and one less. `OnArc` in ui_hud_setup.cpp rounds each step with
-RoundToFloat, so it does not depend on the precision control. The map's outline is `(_ftol(700 - sin x 65), _ftol(cos x 65 +
+Arc points (00648520, 00649190, 00641F20): the regions' vertices are `_ftol(cos(k x pi x step) x radius)` with every
+product rounded to float, as the game's FPU does at its 24-bit precision, but not the cosine or sine themselves: the
+precision control reaches FADD / FSUB / FMUL / FDIV / FSQRT only, FCOS and FSIN leave the full result on the stack. So
+sin(pi / 2) x 34 = 33.99999.. rounds to 34 and the vertex is the whole radius (35, 80, 34; in doubles one less), and
+cos(pi / 3) x 34 = 16.9999991 rounds to 17. X33 (the first run): the port rounded the cosine to float first, which gives
+0.49999997 x 34 = 16.999998 and 16, so the clock's middle region had its third arc point at (784, 571) where the original
+has (783, 571); nothing else of the three functions changes with the fix (the same slip cannot show with radius 35 or 80, or
+with the movement panel's and the map's eighths). `OnArc` in ui_hud_setup.cpp rounds each product with RoundToFloat, so it
+does not depend on the precision control. The setups' wrappers now name the region or sprite field that differs and both
+values (`DescribeRegionDifference` / `DescribeSpriteDifference`, tests/verify/ui_panel_shot.h). The map's outline is `(_ftol(700 - sin x 65), _ftol(cos x 65 +
 80))` the same way: its point under the centre is (635, 80), where doubles give (635, 79). New forwarders:
 `CUiRegion::CallAddPoint` (005FCA70) and `CUiMesh::SetTriangle` (005E99D0; ui_objectives.cpp's own forwarder now calls it),
 both in ui_layouts.cpp.

@@ -414,15 +414,15 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     CUiRegion* sling = AddRegion();
     sling->CallSetRect(780, 0, 800, 30);
     sling->SetTip(0x283C, 1, 0x34);
-    // The round map's outline: each product, the cosine and the sine are floats on the game's FPU
-    // (24-bit precision), so the point under the centre is 80 down, not 79 (see OnArc in
-    // ui_hud_setup.cpp).
+    // The round map's outline: each product and sum is a float on the game's FPU (24-bit
+    // precision; FCOS / FSIN themselves are not rounded), so the point under the centre is 80
+    // down, not 79 (see OnArc in ui_hud_setup.cpp).
     CUiRegion* round = AddRegion();
     for (int i = 0; i < kOutlinePoints; ++i) {
         const float angle = RoundToFloat(RoundToFloat(static_cast<float>(i) * Pi()) * OutlineStep());
-        const float down = RoundToFloat(RoundToFloat(std::cos(static_cast<double>(angle))) * OutlineRadius());
+        const float down = RoundToFloat(std::cos(static_cast<double>(angle)) * OutlineRadius());
         const int y = static_cast<int>(gamecrt::Ftol(RoundToFloat(down + OutlineCentreY())));
-        const float across = RoundToFloat(RoundToFloat(std::sin(static_cast<double>(angle))) * OutlineRadius());
+        const float across = RoundToFloat(std::sin(static_cast<double>(angle)) * OutlineRadius());
         const int x = static_cast<int>(gamecrt::Ftol(RoundToFloat(OutlineCentreX() - across)));
         round->CallAddPoint(x, y);
     }
