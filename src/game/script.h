@@ -103,6 +103,9 @@ struct ScriptGroup : mfc::CArray<ScriptObjectRef> {
     void RemoveDeleted();
     // 004B31D0. Inserts every object of a pointer list.
     void InsertAll(const mfc::CTypedPtrList<CEngineObject>* list);
+    // 004B3200 (RET 4; A-E1). The group's objects replace the contents of a pointer list of counted
+    // references: every element released and the list emptied, then one counted element per object.
+    void CopyToList(mfc::CTypedPtrList<CEngineObject>* list) const;
     // 004B3330. Whether `object` is in the group (linear search).
     BOOL Contains(CEngineObject* object) const;
     // 004B3360. Reads a count and that many object ids, then sorts.

@@ -62,6 +62,9 @@ struct LightningSegment {
     // 00466CE0. Recomputes the points at `time`: the line plus the noise curves, each curve tilted
     // so that it is zero at both ends.
     void Animate(float time, float amplitude);
+    // 00468920 (A-E1; class_slots.cpp). The destructor (the bolt's vector destructor iterator runs
+    // it on the branches): the points' block freed.
+    void Destruct();
 };
 static_assert(offsetof(LightningSegment, sideKeys) == 0x30);
 static_assert(offsetof(LightningSegment, noiseTime) == 0x90);
@@ -112,12 +115,17 @@ static_assert(offsetof(CLightning, branches_) == 0x104);
 static_assert(offsetof(CLightning, branchPos_) == 0x4F4);
 static_assert(offsetof(CLightning, power_) == 0x50C);
 static_assert(sizeof(CLightning) == 0x514);
+// 00468810 (lightning_start.cpp). The bolt's destructor body.
+void __fastcall LightningDestruct(CLightning* self);
 
 class CLightningManager : public CBaseManager {
 public:
     // 00468940. Draws every bolt it owns (its object list, CBaseManager +0x34), then drops the
     // references of the new-bolt list and empties it. Returns 1.
     int DrawAll(void* device);
+    // 004689D0, slot 2 (A-E1; class_slots.cpp). Loads the lightning types on the first call (the
+    // flag at 007A9694, the loader 00468A00), then the base manager's Create.
+    int Create() override;
 
     mfc::CTypedPtrList<CLightning> newBolts_;   // +0xB0 (each entry holds a reference)
 };

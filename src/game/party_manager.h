@@ -52,6 +52,10 @@ struct PartyManager {
     // 004A8560 (RET 4). Writes the same archive into a memory stream (version `to`'s) and appends
     // it to `to` as a sized block (CStream::WriteSized).
     void Save(CMemoryStream* to);
+    // 004A5700 (A-E1; app_lifetime.cpp). The destructor the C runtime runs at exit: the templates
+    // and the records released and their vectors freed, the records' two strings, the entries, then
+    // every party of the map (the map's own node deleter) and the bucket array.
+    void Destruct();
 };
 static_assert(offsetof(PartyManager, entries) == 0x14);
 static_assert(offsetof(PartyManager, unknown_20) == 0x20);

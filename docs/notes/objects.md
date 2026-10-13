@@ -283,3 +283,27 @@ verify_player_server_orders.cpp: result 1 and bytes consumed, 0x04's state 2 and
   unrewritten CString / CArray / stream code. 00458010 (frame present + screenshot), 00458270 (startup movies; the harness empties
   the list), 0045E310 (DirectX version probe), 00458570 (hash_map registration): mapped, not rewritten.
 
+
+## A-E1: small slots (class_slots.cpp)
+
+`__fastcall` shims on the slots' addresses, as object.cpp's getters:
+
+- CHoover (0073C434): slot 0 00461C60 (deleting destructor), slot 2 00461C90 (Create: 1), slots 11 / 12
+  00461C40 / 00461C50 ("CHoover", class 0x1F).
+- CLightning (0073C550): slot 0 004687F0, slots 11 / 12 004687D0 / 004687E0 ("CLightning", 0x1E).
+  `LightningSegment::Destruct` (00468920, the element destructor of the bolt's branches): the points' block
+  freed. `CLightningManager::Create` (004689D0, slot 2): the lightning types loaded on the first call (flag
+  007A9694; the loader 00468A00 is Rebirth-patched and is called through `LoadLightningTypesOriginal`), then
+  the base manager's Create.
+- CFakeUnit (0073BFE8): slot 2 00446AF0 (the skin created and given the unit, then `CUnit::CreateUnit`), slot
+  11 004468D0 ("CFakeUnit").
+- CUnit slots the fake unit shares: 31 004467F0 (the hit passed to the controller's slot 20), 56 00446850 (the
+  controller's ObjectDeleted), 59 004468B0 (the forward one of `GetMoveSpeeds`), 61 00446830 (the script name
+  assigned; returns the CString).
+- Checks: the names, ids, CHoover's Create and the forward speed side by side; the rest ours only (they free,
+  create or make one call that must not run twice). All are reached through vtables; which scenarios call them
+  was not established (no run).
+- Left: 004467C0 (slot 47 of CUnit and the map objects: the companion's slot 19 with one argument), 00446810
+  (slot 58: a tail jump to the controller's slot 31) and 00446870 (slot 57: a tail jump to the controller's
+  slot 53). They need the companion's slot 19, the return type of the controller's slot 31 and its slot 53
+  declared in unit.h first.

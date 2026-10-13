@@ -292,3 +292,20 @@ to which template:
   the standalone build replaces them (`cleanup-plan.md`, phase 2).
 - Static initialisers and `WinMain` (00456440) cannot run through the hook; 004632A0 (lever table constructor), 00444740
   (debug panel), 00458870 (GameOptions) and 0045E820 are examples.
+
+## A-E1: text helpers and the object id map
+
+- text_helpers.cpp. `TextTokenizer` (00445D20 `Start`, 00445D30 `Next`): splits a CString at a separator
+  string; `Next` returns the word's text and moves past the separator, the last word runs to the end of the
+  text, and a position at the end gives null. `RemoveCarriageReturns` (004461E0, CString::Remove of 0x0D).
+  `FindListedName` (00447F50): the entry of a CStringArray that equals a name ignoring case (`_mbsicmp`), else
+  the name; the name comes by value and is destroyed by the callee, which a C++ by-value `mfc::CString`
+  parameter reproduces. `mfc::CString` gained `Mid(first, count)` (006FD9D7) and `Remove(ch)` (006FD963).
+  Checks: `Next` and `FindListedName` side by side by content; `Start` against the original `Next` on a rewound
+  copy (its own original would enter `Next`'s wrapper); `RemoveCarriageReturns` ours only. The credits screen
+  (0062B7D0) is the only user of the first three and the scene registry of the fourth; no scenario reaches them.
+  ui_layouts.cpp and scene_registry.cpp keep their forwarders, which reach the hooked code.
+- `ObjectIdMap::ReleaseAll` (0047B670, object_id_map.cpp): every object released up to the first empty entry,
+  the nodes freed, the count and maxId cleared (the buckets stay). The world's object map (map close) and the
+  player's two maps of sent objects call it through `ObjectMapClearOriginal`. Ours only (objects can go with
+  their last reference); the map must end empty.

@@ -70,3 +70,7 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
   and compares the databases in depth after `LoadAll`.
 - 004645A0 `ChunkArchive::Destruct` (the out-of-line destructor the database loaders call; `DestructLocal`'s steps):
   ours only, both streams must carry the stream base's vtable afterwards.
+- app_lifetime.cpp: the DirectInput mouse's destructor (004578D0: Shutdown, the two counted pointers'
+  releases, the root vtable 0073C368; slot 0 004578B0) and the root class's slot 0 (00457950). Ours only; the
+  application drops the mouse at exit. The party record and class template creators and the party manager's
+  destructor in the same file are described in script.md.

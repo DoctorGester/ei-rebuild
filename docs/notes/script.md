@@ -386,3 +386,13 @@ work), `CSysInfo` 004DDCB0-004DE8B0 (static initialiser table 00783310: standalo
   allocations equal) never fire in the hooked game. The rewrite is for the standalone build.
 - 00456360 `CScript::GetError` (text copy-constructed at `out`, code, line; `ScriptErrorInfo` of world_glue.h): side by
   side, reached only when the command line's script fails to load.
+- 004B3200 `ScriptGroup::CopyToList` (script_group.cpp): the group's objects replace a pointer list of counted
+  references (each old element released, the list emptied, one counted element per object). Side by side on a
+  shadow list holding the same elements (counted once more). The only caller is the server's party sync of a
+  player without a party copy (player_sync.cpp, through `ScriptGroupToListOriginal`).
+- app_lifetime.cpp: the creators the application's start registers with the class registry 0079B270 (00457850
+  a class template as class 1, 00457740 a party record as class 2; both clear the count's dword before the null
+  check, as the original), the party record's destructor (004577E0, slot 0 004577C0) and the party manager's
+  exit-time destructor (004A5700: templates and records released, the strings, the entries, every party through
+  the map's own node deleter 004ABA70, the bucket array). All ours only: a party's Create is not repeatable
+  side by side and the rest destroy. The creators are reached when a saved party manager is loaded.

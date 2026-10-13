@@ -195,7 +195,7 @@ messages inline.
   0047D350, 0047D380 and the 0073CA10 slots.
 - Exception funclet targets and compiler-generated copy constructors of exception classes (0040C510, 0040C540,
   0040C570, 00429130, 0043AD60) are reached only through C++ exception tables.
-- 00478880 (vtable 0073F258), 0047A220 / 0047A230 (0073F3B8 / 0073F3C0): other classes.
+- 0047A220 (0073F3B8, the session's Query: 3 bytes, cannot be hooked).
 
 ## A-E1: the leftovers of the delta code and the links
 
@@ -211,3 +211,12 @@ messages inline.
   and effect readers of the client call it (a multiplayer or single-player client update with a named object).
 - The forwarders other files keep for these (`DeltaStateFinishOriginal` in originals_engine.h, `ReadText` in
   world_effect_internal.h) reach the hooked code.
+- The player sources' slot 6 (`TakeNew`, player_sources.cpp; the server world's AcceptNewPlayers 0058DAF0 calls
+  it with an MFC list of counted links, main thread). `CWorldHandle::TakeNew` (00478880): the pending link is
+  appended to the list (one more reference) and the handle drops its own. `DriverSession::TakeNew` (0047A230):
+  the link of every holder that is not detached is appended, then the holders list is emptied (each reference
+  dropped, the nodes pushed on the allocator's 12-byte list, the sentinel linked to itself). Both side by side:
+  the original on a copy of the source (its references added) with an empty list of the same kind, ours on the
+  real one; the lists' elements, the emptied source and the link's count compared. Registered through shims (a
+  pointer to a virtual member would dispatch). By reading, the handle's is reached when a server world takes
+  its local player (a new game); the session's only on a network server.

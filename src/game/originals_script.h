@@ -97,3 +97,8 @@ __declspec(naked) inline void __fastcall LinkRangeMapEraseOriginal(stlp::map<stl
 // (0042D4E0 grows it). Used by the .mob script decoder and CWorldServer::LoadZoneScripts.
 __declspec(naked) inline void __fastcall CharVectorResizeOriginal(stlp::vector<char>* /*v*/, void*, unsigned /*n*/,
                                                                   const char* /*value*/) EI_ORIGINAL(0x004D8EB0)
+
+// A-E1. 004ABA70 (RET 4): hashtable<pair<const int, CParty>>::_M_delete_node on the party manager's map: the node's
+// party destroyed, the node back to the node pool.
+__declspec(naked) inline void __fastcall PartyMapDeleteNodeOriginal(void* /*map*/, void*, void* /*node*/)
+    EI_ORIGINAL(0x004ABA70)
