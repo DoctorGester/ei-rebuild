@@ -118,12 +118,21 @@ static_assert(sizeof(CLightning) == 0x514);
 // 00468810 (lightning_start.cpp). The bolt's destructor body.
 void __fastcall LightningDestruct(CLightning* self);
 
+// 0079CE78: the noise table, 32 rows of 400 floats (rows 0..15 for the stored keys, 16..31 for the
+// key drawn for each sample), read from gfx.res\lightning.dat by LoadLightningNoise.
+constexpr int kLightningNoiseRows = 32;
+constexpr int kLightningNoiseRowLength = 400;
+inline float* LightningNoiseTable() { return reinterpret_cast<float*>(0x0079CE78); }
+// 00468A00 (cdecl; lightning_load.cpp, A-E1; Rebirth-patched: callers use LoadLightningNoiseOriginal).
+// Fills the noise table from the archive; 0 when gfx.res does not open, else 1.
+int __cdecl LoadLightningNoise();
+
 class CLightningManager : public CBaseManager {
 public:
     // 00468940. Draws every bolt it owns (its object list, CBaseManager +0x34), then drops the
     // references of the new-bolt list and empties it. Returns 1.
     int DrawAll(void* device);
-    // 004689D0, slot 2 (A-E1; class_slots.cpp). Loads the lightning types on the first call (the
+    // 004689D0, slot 2 (A-E1; class_slots.cpp). Loads the noise table on the first call (the
     // flag at 007A9694, the loader 00468A00), then the base manager's Create.
     int Create() override;
 

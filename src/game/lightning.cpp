@@ -38,7 +38,7 @@ double Unsigned(std::uint32_t value) {
 IsaacRandom* Rng() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 
 // The noise table: 32 rows of 400 floats (rows 0..15 for the stored keys, 16..31 for the key drawn
-// for each sample), filled at start-up by 004660B0.
+// for each sample), read from gfx.res\lightning.dat by LoadLightningNoise (00468A00).
 const float* NoiseTable() { return reinterpret_cast<const float*>(0x0079CE78); }
 constexpr int kNoiseRowLength = 400;
 

@@ -88,9 +88,11 @@ Small helpers (`app_helpers.cpp`, checks in `verify_app_helpers.cpp`; all on the
   holder constructors 004983F0 / 004BB040, operator= 00474C50, the delete wrapper 00462520 and the helpers
   only unwind funclets call: 00445FC0, 00481E50, 00447F40, 0047A3D0, 0047A3E0, 00455820, 00462610, 00482E90,
   00498E50, 00457940, 004688F0, 00481560).
-- Not ported in 0x00400000-0x004C0000 after A-E1: the Rebirth-patched 0040ECD0, 0041ECC0, 00443080, 00456440,
-  00463390, 00468A00 and the network 0041AA10, 0041ACA0, 0041B1C0 (vanilla launch only; group 3 of the
-  ticket, not started); the static initialisers 00444740, 00458870, 0045E820, 004632A0, 004A5870 (they run
+- Rebirth-patched functions ported by A-E1 (vanilla behaviour, vanilla launch only): 00468A00 the lightning
+  noise table's load (objects.md), 00463390 the lever table's load (units.md).
+- Not ported in 0x00400000-0x004C0000 after A-E1: the Rebirth-patched 0040ECD0, 0041ECC0, 00443080, 00456440 and the
+  network 0041AA10, 0041ACA0, 0041B1C0 (vanilla launch only); the static initialisers 00444740, 00458870,
+  0045E820, 004632A0, 004A5870 (they run
   before the hooks install); 004560D0 (the message box: it flips the DirectDraw surface to GDI); the unit
   slots 004467C0, 00446810, 00446870 (objects.md); and 69 functions under five bytes. 0049F7B1 is listed as a
   function but is the tail of `IsaacRandom::Seed` (0049F660, random.cpp) after its catch block.

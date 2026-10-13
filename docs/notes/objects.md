@@ -292,8 +292,8 @@ verify_player_server_orders.cpp: result 1 and bytes consumed, 0x04's state 2 and
   00461C40 / 00461C50 ("CHoover", class 0x1F).
 - CLightning (0073C550): slot 0 004687F0, slots 11 / 12 004687D0 / 004687E0 ("CLightning", 0x1E).
   `LightningSegment::Destruct` (00468920, the element destructor of the bolt's branches): the points' block
-  freed. `CLightningManager::Create` (004689D0, slot 2): the lightning types loaded on the first call (flag
-  007A9694; the loader 00468A00 is Rebirth-patched and is called through `LoadLightningTypesOriginal`), then
+  freed. `CLightningManager::Create` (004689D0, slot 2): the noise table loaded on the first call (flag
+  007A9694; the loader 00468A00 is Rebirth-patched and is called through `LoadLightningNoiseOriginal`), then
   the base manager's Create.
 - CFakeUnit (0073BFE8): slot 2 00446AF0 (the skin created and given the unit, then `CUnit::CreateUnit`), slot
   11 004468D0 ("CFakeUnit").
@@ -315,3 +315,9 @@ verify_player_server_orders.cpp: result 1 and bytes consumed, 0x04's state 2 and
   helper's vector setters 00471AB0 / 00471AD0 / 00471AF0 (+0x20, +0x30, +0x40), which `SceneInfo::Load` calls
   per helper; side by side. The loader is rewritten (scene_loader.cpp), so the hooks fire only if it still
   calls them through the exe.
+- `LoadLightningNoise` (00468A00, lightning_load.cpp; Rebirth-patched, so vanilla launch only): `<text
+  folder>gfx.res` opened in an archive of its own (0 when that fails, no message), `lightning.dat` fetched
+  (missing: the fatal error "Unable to open file gfx.res\lightning.dat"), copied into a memory stream and read
+  back as 32 rows of 0x640 bytes into the noise table 0079CE78; the file closed, the stream and the archive
+  destroyed. Rebirth's patch is the file lookup call at 00468B16. Side by side (the table put back between the
+  runs, results and tables compared); reached once, from the first lightning manager's Create.

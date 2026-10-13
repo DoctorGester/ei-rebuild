@@ -4,6 +4,7 @@
 #include "map_object.h"
 #include "unit.h"   // LockKey
 
+#include "lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -38,6 +39,24 @@ static_assert(sizeof(LeverRecord) == 0x2C);
 
 // The lever table (0079C1A0; lever_table.cpp); 0052CA40 finds a record (originals_units.h).
 inline void* LeverTable() { return reinterpret_cast<void*>(0x0079C1A0); }
+
+// The lever table's layout: the records (an STLport vector) and their index by model name. Its
+// constructor (004632A0) is a static initialiser, its destructor 00463120 (lever_table.cpp).
+struct LeverRecordTable {
+    using NameIndex = stlp::hash_map<stlp::string, LeverRecord*, stlp::StringHash>;
+
+    // 00463390 (RET 4; lever_table_load.cpp, A-E1; Rebirth-patched, so the vanilla launch only).
+    // Reads Levers.ldb of <folder>database.res into the records (chunk 1 of a chunk archive) and
+    // enters every record into the index under its name. Returns 1, or the fatal error's result
+    // when the archive or the file does not open.
+    int Load(const char* folder);
+
+    LeverRecord* begin;             // +0x00
+    LeverRecord* end;               // +0x04
+    LeverRecord* endOfStorage;      // +0x08
+    NameIndex byName;               // +0x0C
+};
+static_assert(offsetof(LeverRecordTable, byName) == 0x0C && sizeof(LeverRecordTable) == 0x20);
 
 // The lever part of a zone file's lever record (map_spec.h LeverSpec + 0x8C), what SetUp reads.
 struct LeverSetup {

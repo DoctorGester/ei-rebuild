@@ -109,6 +109,14 @@ __declspec(naked) inline void __fastcall MappedResourceDestroyOriginal(CMappedRe
 class CCamera;
 __declspec(naked) inline int __fastcall CameraLoadPathOriginal(CCamera* /*camera*/, void*, const char* /*name*/, int /*flag*/)
     EI_ORIGINAL(0x0040ECD0)
-// A-E1. 00468A00 (cdecl, no arguments; Rebirth-patched, so always through this forwarder): loads the lightning types.
+// A-E1. 00468A00 (cdecl, no arguments; Rebirth-patched, so always through this forwarder; rewritten as
+// LoadLightningNoise, lightning_load.cpp): loads the lightning noise table. Its result is not read.
 // Its only caller is the lightning manager's Create (004689D0).
-__declspec(naked) inline void __cdecl LoadLightningTypesOriginal() EI_ORIGINAL(0x00468A00)
+__declspec(naked) inline void __cdecl LoadLightningNoiseOriginal() EI_ORIGINAL(0x00468A00)
+// A-E1. 00465090 (RET 0xC; rewritten as app::DeviceListArchive, app_device_list.cpp): the lever table's records as
+// chunk `id` of the archive, one chunk 1 per record (the list emptied and resized when loading). The third argument
+// is not read. Through its address so that its verify wrapper runs.
+class ChunkArchive;
+__declspec(naked) inline void __fastcall LeverRecordsArchiveOriginal(ChunkArchive* /*archive*/, void*, int /*id*/,
+                                                                    void* /*records*/, std::uint32_t /*unused*/)
+    EI_ORIGINAL(0x00465090)
