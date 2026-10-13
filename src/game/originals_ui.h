@@ -16,6 +16,7 @@ namespace mfc { class CString; }
 namespace ui_gdi { struct GameDC; }
 struct ItemObjectCache;
 struct tagRECT;
+struct tagPOINT;
 struct Vector3;
 struct PersonTextNode;
 
@@ -179,6 +180,9 @@ __declspec(naked) inline void __fastcall InterfaceResetSavedStateOriginal(CInter
 __declspec(naked) inline void* __fastcall InterfaceTextExtentOriginal(CInterface3D*, void*, void* /*out SIZE*/,
                                                                       char* /*text, owned*/, int /*font*/)
     EI_ORIGINAL(0x005F8340)
+// 005F7E30 (Rebirth-patched; the second copy of the screen-to-layout point scaling; thiscall, RET 4): returns the new y.
+__declspec(naked) inline int __fastcall InterfacePointFromScreenCopyOriginal(const CInterface3D*, void*, tagPOINT* /*point*/)
+    EI_ORIGINAL(0x005F7E30)
 __declspec(naked) inline void __fastcall ContainerAddInputOriginal(void* /*container*/, void*, void* /*input*/)
     EI_ORIGINAL(0x00600CC0)
 // 0062AC90 (rewritten as CUiRegion::SetRectFrom): the region's SetRect from a RECT passed by value (RET 0x10).

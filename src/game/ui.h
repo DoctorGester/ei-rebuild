@@ -153,6 +153,11 @@ public:
     // empties the chat lines (ClearLines).
     void ChatKeyEnter();
     void ChatKeyBackspace();
+    // 005F8340 (RET 0xC; Rebirth-patched, this is the vanilla body; ui_text_draw.cpp; rewritten
+    // callers go through InterfaceTextExtentOriginal). The extent of `text` (a CString taken by
+    // value) in interface font `font`, measured on the game window's DC (GetTextExtentPoint32)
+    // and scaled to the layout: cx * 800 / width, cy * 600 / height. Returns `out`.
+    SIZE* TextExtent(SIZE* out, mfc::CString text, int font);
     // 005F46A0 (ui_small_members.cpp). The constructor of the interface object 007C7D50, run by
     // its static initialiser (005F4680) before the hook is installed: the window stack empty, the
     // message list's sentinel and the help topic map's header from the node pool, the two texts
@@ -414,6 +419,14 @@ public:
     // (ui_text.cpp).
     int DrawWrappedText(const char* text, const RECT* rect, int maxLines, int font, COLORREF colour, int format,
                         int flag);
+    // 005FDE20 (RET 0x18; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
+    // only; ui_text_draw.cpp; rewritten callers go through SurfaceDrawText). Draws `text` in
+    // interface font `font` and `colour` into `rect` (layout coordinates scaled to the screen,
+    // 005F7CA0, then two pixels wider and higher; an empty rect is the whole surface) with the
+    // DrawText `format`, transparent; with `shadow` first in 0x080808 one pixel right and down.
+    // The DC must be held. Returns DrawText's height scaled back to the layout (005F7E30), or 0
+    // without a surface.
+    int DrawTextIn(const char* text, const RECT* rect, int font, COLORREF colour, UINT format, int shadow);
     // 005FD120 (ui_surface_create.cpp). Destructor body: releases the DirectDraw surface.
     void ReleaseContents();
     // 005FD760 (RET 8; ui_window.cpp). Sets (`frozen` nonzero) or clears the shown flag (4 of
@@ -1398,6 +1411,11 @@ public:
                       int u1, int v1);
     void SetFrame(float depth, float scale, float left, float top, float right, float bottom, float border,
                   int u0, int v0, int u1, int v1);
+    // 005E6FA0 (RET 0xC; Rebirth-patched, its widescreen version replaces it; this is the vanilla
+    // body, hooked in the vanilla launch only; ui_mesh_draw.cpp). Place: position_ =
+    // ((x * 0.0025 - 1) * 0.4816 * depth, (y * 0.0025 - 0.75) * 0.4816 * depth, depth), the
+    // constants read from 0074015C, 0073B84C, 0073C524 and 00740158; `depth` copied as bits.
+    void PlaceVanilla(float x, float y, float depth);
     // 005E7060 (RET 4; ui_hud_highlight.cpp). The three scale fields = `scale` (copied as bits;
     // EAX is left holding them, callers do not read it).
     void SetScale(float scale);
@@ -2594,6 +2612,13 @@ public:
     void SetOpen(bool open);
     // 005E3930. Every line destroyed and its node returned to the pool; the list left empty.
     void ClearLines();
+    // 005E3700 (Rebirth-patched, this is the vanilla body, hooked in the vanilla launch only;
+    // rewritten callers go through ChatOverlayDrawTypedOriginal). The typed line's surface hidden
+    // while the chat is closed; else shown, the caret clamped to the line, the surface cleared,
+    // the line drawn (font 1, white, DT_NOPREFIX, shadowed) over (0, 0)-(783, 17) and, while the
+    // text before the caret is narrower than 780, the caret as a white line at its width from y
+    // 0 to 16 (layout points scaled to the screen).
+    void DrawTyped();
     // Input side (ui_chat_overlay.cpp; nothing while the chat is closed). 005E3230 (slot 9, RET
     // 0xC): every key is marked used; Backspace / Delete remove the character before / at the
     // caret, Home / End / Left / Right move it (unclamped; the draw clamps it), Enter sends a
