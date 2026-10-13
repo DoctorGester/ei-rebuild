@@ -1628,6 +1628,19 @@ public:
     // 00635CA0 (ui_hud_destroy.cpp; slot 0 00635C80 calls it). Destructor body: the visible
     // area's and the view polygon's aligned storage freed, then the window base's (005FE930).
     void DestroyBody();
+    // 00642930 (plain RET; ui_hud_slide.cpp, A-H26; Rebirth-patched, this is the vanilla body,
+    // hooked in the vanilla launch only; our callers go through CallLayout). Places the panel's
+    // parts (scene objects 0-4 and 6-11), its text surface and the regions after the first at the
+    // current slide offset.
+    void LayoutVanilla();
+    void CallLayout();                             // through 00642930
+    // 00642B40 (slot 24, every frame; ui_hud_slide.cpp, A-H26; Rebirth-patched, the vanilla body).
+    // The zoom grows (view 1, up to zoomMax_) or shrinks (view 2, down to 1) by 2.5 times a
+    // second; UpdateView and BuildMarkers; a running slide advances (0.3 s for the whole way,
+    // eased), the panel is laid out and the sling button (scene object 5) turned and placed for
+    // the direction; the interface's "map shown" flag (+0x8B) follows the direction; the "camera
+    // north" time (unknown_1B0) counts down, scene object 11 tinted 1 while it runs and 0.5 after.
+    void UpdateVanilla();
 
     CBattleScreen* owner_;           // +0x148
     float centreX_;                  // +0x14C world point at the map's centre (the camera's)
@@ -1646,7 +1659,9 @@ public:
     std::uint8_t unknown_180[0x188 - 0x180];
     UiPointArray visibleArea_;       // +0x188 the outline in world units, clipped to the world
     int sliding_;                    // +0x198 set when the sling button (or its key) starts the slide
-    std::uint8_t unknown_19C[0x1A8 - 0x19C];
+    int offset_;                     // +0x19C current slide offset in pixels (to the right)
+    int travel_;                     // +0x1A0 full slide distance
+    float slide_;                    // +0x1A4 0..1: how far the panel has slid (offset_ = travel_ eased)
     float slideDirection_;           // +0x1A8 +1 / -1
     int view_;                       // +0x1AC 1 or 2 (scene objects 6 and 7 are the buttons)
     float unknown_1B0;               // +0x1B0 0.5 when the "camera north" key turns the camera; the
@@ -1657,7 +1672,7 @@ static_assert(offsetof(CHudMap, scale_) == 0x168);
 static_assert(offsetof(CHudMap, zoomMax_) == 0x170);
 static_assert(offsetof(CHudMap, visibleArea_) == 0x188);
 static_assert(offsetof(CHudMap, view_) == 0x1AC);
-static_assert(offsetof(CHudMap, sliding_) == 0x198);
+static_assert(offsetof(CHudMap, sliding_) == 0x198 && offsetof(CHudMap, slide_) == 0x1A4);
 static_assert(offsetof(CHudMap, slideDirection_) == 0x1A8);
 static_assert(offsetof(CHudMap, unknown_1B0) == 0x1B0);
 
@@ -1688,6 +1703,19 @@ public:
     // 00635D00 (ui_hud_destroy.cpp; slot 0 00635CE0 calls it). Destructor body: the part labels,
     // textsVtable_'s array, the two strings (+0x168 first), then the window base's (005FE930).
     void DestroyBody();
+    // 00645F80 (plain RET; ui_hud_slide.cpp, A-H26; Rebirth-patched, this is the vanilla body,
+    // hooked in the vanilla launch only; our callers go through CallLayout). Places the panel's
+    // parts (scene objects 0, 1, 3-7, 9-13, the six body parts' pairs 14-25 at the places of the
+    // tables 00742434 / 0074244C, the six effect pictures 26-31), its text surface and the
+    // regions after the first at the current slide offset.
+    void LayoutVanilla();
+    void CallLayout();                             // through 00645F80
+    // 00647FB0 (slot 24, every frame; ui_hud_slide.cpp, A-H26; Rebirth-patched, the vanilla body).
+    // A running slide advances (as the map's), the panel is laid out and the sling button (scene
+    // object 2) turned and placed for the direction; a dead hover unit is forgotten; the
+    // interface's "unit panel shown" flag (+0x89) follows the direction and its +0x8C is the
+    // selected body part.
+    void UpdateVanilla();
 
     CBattleScreen* owner_;           // +0x148
     std::uint8_t unknown_14C[0x150 - 0x14C];
@@ -1695,7 +1723,9 @@ public:
     std::uint8_t unknown_154[0x164 - 0x154];
     char* strings_[2];               // +0x164 CStrings
     int sliding_;                    // +0x16C set when the sling button starts the slide
-    std::uint8_t unknown_170[0x17C - 0x170];
+    int offset_;                     // +0x170 current slide offset in pixels (to the left)
+    int travel_;                     // +0x174 full slide distance
+    float slide_;                    // +0x178 0..1: how far the panel has slid (offset_ = travel_ eased)
     float slideDirection_;           // +0x17C +1 / -1
     int bodyPart_;                   // +0x180 selected body part 0-3 (scene objects 3-6)
     int effectIcons_[6];             // +0x184 the spell pictures in the icon texture's six places
@@ -1705,7 +1735,7 @@ public:
     mfc::CString* partLabels_;       // +0x1B4 four: the shown names of "skull", "torso", "leg", "arm"
 };
 static_assert(offsetof(CHudUnitPanel, hoverUnit_) == 0x150);
-static_assert(offsetof(CHudUnitPanel, slideDirection_) == 0x17C);
+static_assert(offsetof(CHudUnitPanel, slideDirection_) == 0x17C && offsetof(CHudUnitPanel, offset_) == 0x170);
 static_assert(offsetof(CHudUnitPanel, bodyPart_) == 0x180);
 static_assert(offsetof(CHudUnitPanel, textsVtable_) == 0x19C);
 static_assert(offsetof(CHudUnitPanel, partLabels_) == 0x1B4);
