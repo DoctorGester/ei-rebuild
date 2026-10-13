@@ -14,11 +14,15 @@
 // A Direct3D device of the driver, as IDirect3D7::EnumDevices lists them (0x104 bytes; the
 // device object's list at +0xB0).
 struct Direct3DDeviceRecord {
-    stlp::string description;   // +0x00
-    stlp::string name;          // +0x0C
+    stlp::string name;          // +0x00 e.g. "Direct3D HAL"
+    stlp::string description;   // +0x0C
     D3DDEVICEDESC7 desc;        // +0x18
 };
 static_assert(sizeof(Direct3DDeviceRecord) == 0x104 && offsetof(Direct3DDeviceRecord, desc) == 0x18);
+
+// device_object.cpp. 004ED820 (stdcall, RET 0x10: IDirect3D7::EnumDevices's callback): appends the
+// device to the list `context` (a stlp::list<Direct3DDeviceRecord>). Returns 1 (go on).
+HRESULT CALLBACK Direct3DDeviceEnumCallback(char* description, char* name, D3DDEVICEDESC7* desc, void* context);
 
 namespace device {
 

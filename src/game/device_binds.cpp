@@ -40,10 +40,7 @@ void Flush(CTextureDevice* device, DeviceVertexBatch& batch) {
     if (batch.buffer) ++batch.buffer->refCount;
     CVertexBufferHolder* old = batch.buffer;
     batch.buffer = nullptr;
-    if (old && --old->refCount == 0) {
-        using Destroy = void(__fastcall*)(CVertexBufferHolder*, void*, int);
-        (*static_cast<Destroy*>(old->vtable))(old, nullptr, 1);
-    }
+    if (old) old->Release();
     batch.vertices = nullptr;
     batch.vertexCount = 0;
     batch.indices.SetSizeDiscard(0);

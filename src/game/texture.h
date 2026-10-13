@@ -28,6 +28,13 @@ struct CVertexBufferHolder {
     long result;                // +0x08 the last Direct3D result
     std::uint8_t unknown_0C[0x10];
     void* buffer;               // +0x1C IDirect3DVertexBuffer7*
+
+    // Drops a reference; the deleting destructor (vtable slot 0, with 1) at zero.
+    void Release() {
+        if (--refCount != 0) return;
+        using Destroy = void(__fastcall*)(CVertexBufferHolder*, void*, int);
+        (*static_cast<Destroy*>(vtable))(this, nullptr, 1);
+    }
 };
 static_assert(offsetof(CVertexBufferHolder, buffer) == 0x1C);
 

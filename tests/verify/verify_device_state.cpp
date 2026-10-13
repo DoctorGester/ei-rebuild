@@ -109,8 +109,8 @@ void DumpDeviceStateOnce(const CTextureDevice* device) {
     int devices = 0;
     for (auto* node = device->devices_.First(); node != device->devices_.End(); node = node->next, ++devices) {
         const Direct3DDeviceRecord& record = node->data;
-        ei::Log("device-state: d3d device %d: '%s' '%s' %s description hash %08X", devices, record.description.data(),
-                record.name.data(), Guid(&record.desc.deviceGUID).c_str(), Hash(&record.desc, sizeof(record.desc)));
+        ei::Log("device-state: d3d device %d: '%s' '%s' %s description hash %08X", devices, record.name.data(),
+                record.description.data(), Guid(&record.desc.deviceGUID).c_str(), Hash(&record.desc, sizeof(record.desc)));
     }
     ei::Log("device-state: d3d devices %d", devices);
 
