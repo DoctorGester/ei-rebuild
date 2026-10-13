@@ -1045,6 +1045,27 @@ void CWorldClient::Deselect(CEngineObject* object) {
     if (object->flags_ & 0x10) Unhighlight(object);
 }
 
+// ---- Selecting (00566030; A-W13) -----------------------------------------------------------------
+
+void CWorldClient::Select(CEngineObject* object) {
+    if (!object) return;
+    MapObjectOf(object)->Object3D()->UpdatePartBounds();
+    if (!(object->flags_ & 0x10)) {
+        if (!(object->flags_ & 0x100)) static_cast<CObject3DSpecific*>(MapObjectOf(object)->attached)->SetLit(1);
+        object->flags_ |= 0x10;
+        static_cast<CObject3DSpecific*>(MapObjectOf(object)->attached)->Unused25(1);
+    }
+    stlp::list<void*>& selected = list7BC_;
+    using Node = stlp::list<void*>::Node;
+    const auto id = reinterpret_cast<void*>(static_cast<std::intptr_t>(object->id_));
+    Node* node = selected.head->next;
+    while (node != selected.head && node->data != id) node = node->next;   // 00571960 find
+    if (node != selected.head) return;
+    void* unused;
+    ListInsert404A40Original(&selected, nullptr, &unused, selected.head, &id);
+}
+EI_REPLACE_METHOD(0x00566030, CWorldClient::Select);
+
 // ---- Set up (00561E50) ---------------------------------------------------------------------------
 
 namespace {

@@ -400,6 +400,14 @@ int CWorldClient::Render() {
     return 1;
 }
 EI_REPLACE_METHOD(0x00569E40, CWorldClient::Render);
+
+// 00569D60 (A-W13).
+int CWorldClient::DrawLineLists() {
+    for (auto* node = lineLists_.First(); node; node = lineLists_.After(node))
+        LineListDrawOriginal(node->value, nullptr, ScenePipeline(), RenderDeviceObject());
+    return 1;
+}
+EI_REPLACE_METHOD(0x00569D60, CWorldClient::DrawLineLists);
 EI_REBIRTH_IMPLEMENTS(0x00569E40, ei::rebirth::Patch::LandscapeDrawRadius);
 
 // ---- DrawPass (0056AFE0) ------------------------------------------------------------------------

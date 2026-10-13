@@ -3,6 +3,7 @@
 
 #include "../../src/game/effects.h"
 #include "../../src/game/map_object_figures.h"
+#include "../../src/game/object_tables.h"
 #include "../../src/game/script.h"
 #include "../../src/game/world.h"
 #include "../../src/game/world_glue.h"
@@ -628,3 +629,30 @@ static mfc::CString* __stdcall PlayerNameVerify(mfc::CString* out) {
     return out;
 }
 EI_VERIFY(0x00578A90, PlayerNameVerify, 7, s_playerName);
+
+// A-W13. 005785D0 loads and may run a script: ours only. Checked: the result is Load's 0 / 1 and the
+// error copied out is the command script's (code, line, text by content). The console's script
+// command.
+static int __stdcall RunScriptTextVerify(mfc::CString* text, char run, ScriptErrorInfo* error) {
+    int result = RunScriptText(text, run, error);
+    auto* script = reinterpret_cast<CScript*>(0x007C29CC);
+    bool ok = (result == 0 || result == 1) &&
+              (!error || (error->code == script->ErrorCode() && error->line == script->ErrorLine() &&
+                          std::strcmp(error->text, script->ErrorText()) == 0));
+    ei::verify::Check("RunScriptText", true, ok, "result %d", result);
+    return result;
+}
+EI_VERIFY(0x005785D0, RunScriptTextVerify, 0, s_unused);
+
+// 00578C40 fills `out` (emptied first; its nodes are allocated): ours only. Checked: every name
+// copied starts with the prefix. The quest and briefing screens (every game with quests).
+static void __stdcall PlayerZeroVariablesVerify(const char* prefix, NamedFloatTable* out) {
+    PlayerZeroVariables(prefix, out);
+    std::size_t length = std::strlen(prefix);
+    bool ok = true;
+    for (NamedFloatTable::Node** bucket = out->buckets; bucket != out->finish; ++bucket)
+        for (NamedFloatTable::Node* node = *bucket; node; node = node->next)
+            if (std::strncmp(node->key, prefix, length) != 0) ok = false;
+    ei::verify::Check("PlayerZeroVariables", true, ok, "\"%s\": %u entries", prefix, out->count);
+}
+EI_VERIFY(0x00578C40, PlayerZeroVariablesVerify, 0, s_unused);

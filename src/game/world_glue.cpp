@@ -3,10 +3,15 @@
 #include "world_glue.h"
 
 #include "net_classes.h"
+#include "object_tables.h"
+#include "script.h"
+#include "world.h"
 #include "world_data.h"
 
 #include "ei/hook.h"
 #include "lib/stlp.h"
+#include "originals_library.h"
+#include "originals_script.h"
 
 const mfc::CString* GameDataPathString() {
     return static_cast<const mfc::CString*>(worlddata::DataFolderString());
@@ -25,3 +30,37 @@ int __stdcall FinishQuestMap(const char* name) {
     return server->FinishMap(reinterpret_cast<const net::StringRep*>(&text)) ? 1 : 0;
 }
 EI_REPLACE(0x0057FB90, FinishQuestMap);
+
+namespace {
+CScript* CommandScript() { return reinterpret_cast<CScript*>(std::uintptr_t(0x007C29CC)); }
+} // namespace
+
+int __stdcall RunScriptText(mfc::CString* text, char run, ScriptErrorInfo* error) {
+    CScript* script = CommandScript();
+    int loaded = ScriptLoadLine(script, nullptr, text, 1);
+    if (loaded && run) ScriptTick(script);
+    if (error) {
+        // (00456360, inlined here: a copy of the script's error record.)
+        ScriptErrorInfo last{script->ErrorText(), script->ErrorCode(), script->ErrorLine()};
+        error->text = last.text;
+        error->code = last.code;
+        error->line = last.line;
+    }
+    return loaded;
+}
+EI_REPLACE(0x005785D0, RunScriptText);
+
+void __stdcall PlayerZeroVariables(const char* prefix, NamedFloatTable* out) {
+    WorldPlayer* player;
+    if (IsMultiplayerClient()) {
+        player = reinterpret_cast<LocalViewData*>(WorldClient()->LocalView())->player;
+    } else {
+        player = WorldServer()->GetPlayer(0);
+        if (!player) {
+            FloatTableClearOriginal(out);
+            return;
+        }
+    }
+    reinterpret_cast<NamedFloatTable*>(player->variables)->CopyPrefixed(prefix, out);
+}
+EI_REPLACE(0x00578C40, PlayerZeroVariables);

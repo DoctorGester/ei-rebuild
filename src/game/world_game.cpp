@@ -15,6 +15,7 @@
 #include "net_messages.h"
 #include "object.h"
 #include "object_tables.h"
+#include "party.h"
 #include "player_messages.h"
 #include "unit.h"
 #include "unit_db.h"
@@ -1867,6 +1868,49 @@ int GameFlow::LoadGame(const char* slot) {
     OstreamManipulate(OstreamPutChar(console, nullptr, '\n'), nullptr, kFlush);
     return 1;
 }
+
+// ---- The flow's object, the network zone, the current save's size (A-W13) -----------------------
+
+GameFlow* GameFlow::Construct() {
+    new (&AsCString(requestTarget_)) mfc::CString();
+    RequestPartyObject()->Construct();
+    new (&AsCString(zone7C_)) mfc::CString();
+    state_ = 0;
+    return this;
+}
+EI_REPLACE_METHOD(0x00578460, GameFlow::Construct);
+
+void GameFlow::Destruct() {
+    AsCString(zone7C_).~CString();
+    RequestPartyObject()->DestructBody();
+    AsCString(requestTarget_).~CString();
+}
+EI_REPLACE_METHOD(0x005784D0, GameFlow::Destruct);
+
+void GameFlow::SetNetworkZone(const char* zone) {
+    mfc::CString folder;
+    folder.Format(Text(kCurrentFolder), GameFolder());
+    ClearSaveFolderAt(folder);
+    AsCString(zone7C_) = zone;
+    if (Active(net::GameServer()) && !Active(net::GameClient()) && zone) StartNetworkZoneAt(zone);
+}
+EI_REPLACE_METHOD(0x0057ED60, GameFlow::SetNetworkZone);
+
+int CurrentSaveSize() {
+    mfc::CFileFind find;
+    mfc::CString pattern;
+    pattern.Format(Text(kCurrentFiles), GameFolder());
+    int total = 1000000;
+    if (find.FindFile(pattern, 0)) {
+        int more;
+        do {
+            more = CFileFindNext(&find);
+            total += static_cast<int>(find.GetLength());
+        } while (more);
+    }
+    return total;
+}
+EI_REPLACE(0x0057BC30, CurrentSaveSize);
 
 // ---- After starting the sessions (0057EB10) -----------------------------------------------------
 

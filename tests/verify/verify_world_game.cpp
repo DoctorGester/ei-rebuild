@@ -422,3 +422,38 @@ static void __fastcall UseResourcesVerify(GameFlow* self, void*, bool network) {
     ei::verify::Check("GameFlow::UseResources", true, std::strcmp(last, wanted) == 0, "%s, wanted %s", last, wanted);
 }
 EI_VERIFY(0x0057DEE0, UseResourcesVerify, 0, s_unused);
+
+// A-W13. 0057BC30 only lists files: PUSH -1; PUSH 0x7237D0 (7 bytes); both run and the sizes are
+// compared. The save screens.
+static int(__cdecl* s_currentSaveSize)();
+static int __cdecl CurrentSaveSizeVerify() {
+    int expected = s_currentSaveSize();
+    ei::verify::Check("CurrentSaveSize", expected, CurrentSaveSize(), "bytes");
+    return expected;
+}
+EI_VERIFY(0x0057BC30, CurrentSaveSizeVerify, 7, s_currentSaveSize);
+
+// 0057ED60 empties saves\current and may start the zone: ours only; the multiplayer zone (+0x7C)
+// is then the name given (empty for none). The session messages of a network game.
+static void __fastcall SetNetworkZoneVerify(GameFlow* self, void*, const char* zone) {
+    self->SetNetworkZone(zone);
+    ei::verify::Check("GameFlow::SetNetworkZone", true, std::strcmp(self->zone7C_, zone ? zone : "") == 0, "%s",
+                      zone ? zone : "(null)");
+}
+EI_VERIFY(0x0057ED60, SetNetworkZoneVerify, 0, s_unused);
+
+// 00578460 / 005784D0: the flow's constructor and destructor bodies (the static initialiser of
+// 007AFE20 and its atexit function): ours only. The constructor leaves no request and empty names.
+static GameFlow* __fastcall FlowConstructVerify(GameFlow* self) {
+    GameFlow* result = self->Construct();
+    bool ok = result == self && self->state_ == 0 && self->requestTarget_[0] == 0 && self->zone7C_[0] == 0;
+    ei::verify::Check("GameFlow::Construct", true, ok, "%p", self);
+    return result;
+}
+EI_VERIFY(0x00578460, FlowConstructVerify, 0, s_unused);
+
+static void __fastcall FlowDestructVerify(GameFlow* self) {
+    self->Destruct();
+    ei::verify::Check("GameFlow::Destruct", true, true, "%p", self);
+}
+EI_VERIFY(0x005784D0, FlowDestructVerify, 0, s_unused);

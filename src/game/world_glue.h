@@ -15,3 +15,25 @@ const mfc::CString* GameBasePathString();
 // FinishMap for the map named `name` (the held map message dropped, "name_3" queued), 1 when it
 // did; else 0.
 int __stdcall FinishQuestMap(const char* name);
+
+class CScript;            // script.h
+struct NamedFloatTable;   // object_tables.h
+
+// A script's last error as callers take it (00456360 copies it out of the script): the text, the
+// code and the line.
+struct ScriptErrorInfo {
+    mfc::CString text;
+    int code;
+    int line;
+};
+static_assert(sizeof(ScriptErrorInfo) == 0xC);
+
+// 005785D0 (RET 0xC; the console's script command 005DD800). Loads `text` into the command script
+// (007C29CC; CScript::Load with the WorldScript started), runs it when it loaded and `run` is set
+// (ScriptTick), and copies the script's last error into `error` when given. Returns Load's result.
+int __stdcall RunScriptText(mfc::CString* text, char run, ScriptErrorInfo* error);
+
+// 00578C40 (RET 8; the quest and briefing screens). Player zero's variables whose names start with
+// `prefix` copied into `out` (NamedFloatTable::CopyPrefixed): the local player's as the client sees
+// them in a network game, else the server's player 0; `out` is emptied when there is no such player.
+void __stdcall PlayerZeroVariables(const char* prefix, NamedFloatTable* out);

@@ -1184,6 +1184,14 @@ public:
     // selection list +0x7BC, its highlight off (flags 0x110 cleared, side half slots 25 / 26 with
     // 0) when it was on; with null every listed object's highlight goes off and the list empties.
     void Deselect(CEngineObject* object);
+    // 00566030 (RET 4; A-W13). Adds `object` (not null) to the selection list: its part bounds
+    // refreshed (CObject3D::UpdatePartBounds), the highlight on (flag 0x10; side half slot 26 with 1
+    // unless flag 0x100 is set, then slot 25 with 1) when it was off, and its id appended unless
+    // it is listed already.
+    void Select(CEngineObject* object);
+    // 00569D60 (Render calls it last; A-W13). Draws every line list of lineLists_ (0049B780 with the
+    // scene pipeline and the renderer). Returns 1.
+    int DrawLineLists();
     // 005630B0 (00567A60). One more reference on every item (slot 18's manager) and, when the item
     // factory exists (tested again, not the spell manager), on every spell (slot 22's).
     void ReferenceItemsAndSpells();
@@ -1312,7 +1320,9 @@ public:
     stlp::list<ScreenEntry> screenEntries_;   // +0x0F0 the window rectangles of the frame
     ScreenHits hits_;                     // +0x0F4 the entries under the point (PickAt)
     ScreenEntry* hitCursor_;              // +0x100 PickAt's walk, left on the entry it returns
-    std::uint8_t unknown_104[0x120 - 0x104];
+    std::uint8_t unknown_104[0x108 - 0x104];
+    stlp::hash_map<unsigned, void*, stlp::IntHash> lineLists_;   // +0x108 line lists by key (DrawLineLists)
+    std::uint8_t unknown_11C[0x120 - 0x11C];
     SectorGrid objectGrid_;               // +0x120 the objects by sector (slot 41 moves them)
     // +0x138 ObjectsInRange's cell range and its walk's cursor.
     std::uint32_t rangeFirstX_, rangeFirstY_, rangeLastX_, rangeLastY_, rangeX_, rangeY_;
@@ -1573,6 +1583,18 @@ struct GameFlow {
 
     // The party records of a request (PartyRecords, unit.h; RequestPartyZone5 / 6 copy one in).
     PartyRecords* RequestParty() { return reinterpret_cast<PartyRecords*>(requestParty_); }
+    // The same bytes as the party object they are (party.h): the constructor and destructor run on it.
+    class CParty* RequestPartyObject() { return reinterpret_cast<class CParty*>(requestParty_); }
+
+    // 00578460 / 005784D0 (A-W13; the static initialiser of the flow 007AFE20 and its atexit
+    // function call them). The constructor body: empty names, the party constructed (00661050), no
+    // request; returns this. The destructor body: the names and the party (006611D0).
+    GameFlow* Construct();
+    void Destruct();
+    // 0057ED60 (RET 4; the session messages 004186F0 / 00418CC0). saves\current emptied, the
+    // multiplayer zone (+0x7C) named; a host without an active client session starts it (0057BDF0)
+    // when there is a name.
+    void SetNetworkZone(const char* zone);
 
     int state_;                           // +0x00 the pending request (1..6; ProcessRequest runs it)
     char* requestTarget_;                 // +0x04 CString: the request's zone or save name
@@ -1751,6 +1773,10 @@ struct ModelUseLess {
 // is released first (its count raised to 1 when 0), then a new one is created (slot 23), loaded
 // (slot 9) and referenced. 1 at the end mark, 0 when a mark is read from a failed stream.
 int __fastcall LoadManagerObjects(CBaseManager* manager, CStream* stream);
+
+// 0057BC30 (world_game.cpp, A-W13; the save screens). 1000000 plus the sizes (low dwords) of the
+// files in saves\current.
+int CurrentSaveSize();
 
 // 0057CB50 (ECX: the database's file name; world_game.cpp, A-W13). Every resource database destroyed
 // and constructed again in place (the compiler-generated resets 0057CBE0, 0057CD60, 0057CE80,
