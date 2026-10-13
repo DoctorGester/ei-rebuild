@@ -196,3 +196,18 @@ messages inline.
 - Exception funclet targets and compiler-generated copy constructors of exception classes (0040C510, 0040C540,
   0040C570, 00429130, 0043AD60) are reached only through C++ exception tables.
 - 00478880 (vtable 0073F258), 0047A220 / 0047A230 (0073F3B8 / 0073F3C0): other classes.
+
+## A-E1: the leftovers of the delta code and the links
+
+- `DeltaState::Finish` (0047FE90, net_delta.cpp): ends a write or a read. After a delta write the written mask
+  joins `sentMask_` and becomes `lastMask_`, and both headers are rebuilt (the mask as 2 bytes, then each field's
+  output of that channel, byte aligned). After a full write the headers and the three masks are emptied. Main
+  thread (the world's update writes). Verified side by side on the state itself (`deltasnap::StateCopy` before,
+  the original run, its result copied, the first copy put back, ours run); the wrapper copies every field's
+  streams twice per call, which costs time in a verify run with many objects. Reached by every scenario that
+  runs a server world (each object's state write ends with it).
+- `DeltaField::ReadText` (0047E340): `ReadString` into a caller's buffer; a string of `size - 1` characters or
+  more leaves the buffer empty. Side by side on a copy of the reader, the texts compared by content. The unit
+  and effect readers of the client call it (a multiplayer or single-player client update with a named object).
+- The forwarders other files keep for these (`DeltaStateFinishOriginal` in originals_engine.h, `ReadText` in
+  world_effect_internal.h) reach the hooked code.

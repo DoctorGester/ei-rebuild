@@ -309,6 +309,19 @@ void DeltaField::WriteStreamBoth(BitStream* from) {
 }
 EI_REPLACE_METHOD(0x0047E190, DeltaField::WriteStreamBoth);
 
+void DeltaField::ReadText(char* text, int size) {
+    alignas(mfc::CString) unsigned char storage[sizeof(mfc::CString)];
+    auto* string = static_cast<mfc::CString*>(ReadString(storage));
+    if (string->GetLength() < size - 1) {
+        const char* from = *string;
+        std::memcpy(text, from, std::strlen(from) + 1);
+    } else {
+        text[0] = '\0';
+    }
+    string->~CString();
+}
+EI_REPLACE_METHOD(0x0047E340, DeltaField::ReadText);
+
 int DeltaField::ReadStream(BitStream* to) { return delta::Reader()->ReadStream(to); }
 EI_REPLACE_METHOD(0x0047E240, DeltaField::ReadStream);
 
@@ -580,3 +593,41 @@ int DeltaState::BeginRead(int second, BitStream* reader) {
     return second;
 }
 EI_REPLACE_METHOD(0x0047FD80, DeltaState::BeginRead);
+
+namespace {
+// One channel's header: the mask, then the channel's output of every field in it.
+void RebuildHeader(DeltaState* state, int channel, std::uint16_t mask) {
+    BitStream& header = state->header_[channel];
+    header.Resize(0);
+    header.Write(&mask, 2);
+    for (int i = 0; i < state->fieldCount_; ++i) {
+        if (!(mask & (1 << i))) continue;
+        BitStream& out = state->fields_[i].out[channel];
+        header.EndBits();
+        out.Seek(0);
+        const std::uint8_t* data = out.data_;
+        header.Write(data, out.Size());
+    }
+}
+} // namespace
+
+void DeltaState::Finish() {
+    if (mode_ == kWriteDelta) {
+        std::uint16_t written = mask_;
+        sentMask_ |= written;
+        lastMask_ = written;
+        mask_ = 0;
+        RebuildHeader(this, 0, sentMask_);
+        RebuildHeader(this, 1, lastMask_);
+    }
+    if (mode_ == kWriteFull) {
+        header_[0].Resize(0);
+        header_[1].Resize(0);
+        sentMask_ = 0;
+        lastMask_ = 0;
+        mask_ = 0;
+    }
+    mode_ = kIdle;
+    reader_ = nullptr;
+}
+EI_REPLACE_METHOD(0x0047FE90, DeltaState::Finish);
