@@ -24,6 +24,11 @@ struct FigureModel {
     CMappedResource* bones;               // +0x04
     CMappedResource* animations;          // +0x08
     std::uint8_t unknown_0C[0x20 - 0x0C]; // +0x0C hash_map<string, entry> (FindModelAnimation)
+
+    // 005A9EB0 (RET 0xC; the link figure loader's sets, 004FAB00; A-W14). Opens the three archives
+    // from the images of the figure's .mod / .bon / .anm files (OpenFromMemory); a null image
+    // leaves its archive alone.
+    void Open(const void* mod, const void* bon, const void* anm);
 };
 static_assert(sizeof(FigureModel) == 0x20);
 
@@ -60,6 +65,12 @@ public:
     // (s, t, u); returns 1. Missing data: FatalError("Can't open file ...") and what it returns.
     // The data is not closed.
     int LoadPart(CFigureMesh* part, FigureModel* model, float s, float t, float u);
+    // 005AC2B0 (RET 0x20; CObject3D::LoadPart, 00517240; A-W14). A new figure part object
+    // (CreateObject with id -1: class 0x42 when `attached`, else 0x41) named `partName` (+0x120)
+    // of the model `modelName` (+0x124). The cached model, the scale (three float bit patterns)
+    // and `arg` are not read. Returns the part (a null part faults, as in the original).
+    CEngineObject* NewPart(const char* modelName, const char* partName, FigureModel* model, std::uint32_t scaleX,
+                           std::uint32_t scaleY, std::uint32_t scaleZ, std::uint32_t arg, std::uint32_t attached);
     // 005ACA60 (RET 0xC). The bone's animation `animation` from "<bone's model name (+0x24)><bone's
     // name (slot 7)><animation>.ast" (slot 19) into `animator` (LoadKeyFrames); 0 without an
     // animation or the file. The path is built in a 0x200-byte buffer without a bounds check; the

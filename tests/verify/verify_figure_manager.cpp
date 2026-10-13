@@ -55,10 +55,40 @@ void __fastcall LoadFromMemoryVerify(CFigureMesh* self, void*, char** cursor, fl
     ei::verify::Check("CFigureMesh::LoadFromMemory", true, (self->flags_ & kLoaded) != 0, "mesh %p", static_cast<void*>(self));
 }
 
+// 005AC2B0 (A-W14), ours only (it creates an object): the part has the class asked for and the
+// two names. Reached by CObject3D::LoadPart (00517240) for every part of every unit and object
+// figure: each new game.
+CEngineObject* __fastcall NewPartVerify(CFigureManager* self, void*, const char* modelName, const char* partName,
+                                       FigureModel* model, std::uint32_t x, std::uint32_t y, std::uint32_t z,
+                                       std::uint32_t arg, std::uint32_t attached) {
+    CEngineObject* object = self->NewPart(modelName, partName, model, x, y, z, arg, attached);
+    auto* part = reinterpret_cast<CFigureMesh*>(object);
+    bool ok = part->type_ == (attached ? 0x42 : 0x41) && std::strcmp(part->name_, partName ? partName : "") == 0 &&
+              std::strcmp(part->directory_, modelName ? modelName : "") == 0;
+    ei::verify::Check("CFigureManager::NewPart", true, ok, "%s / %s attached %u", modelName ? modelName : "(null)",
+                      partName ? partName : "(null)", attached);
+    return object;
+}
+
+// 005A9EB0 (A-W14), ours only (an archive opened twice would close its files in between): each
+// archive given an image has that image's header afterwards. Reached by the link figure loader
+// (FindFigureSet, 004FAB00) the first time a figure with its own .mod archive is asked for: the
+// menus' and the game's unit figures.
+void __fastcall ModelOpenVerify(FigureModel* self, void*, const void* mod, const void* bon, const void* anm) {
+    self->Open(mod, bon, anm);
+    auto same = [](const CMappedResource* archive, const void* image) {
+        return !image || std::memcmp(&archive->header_, image, sizeof(archive->header_)) == 0;
+    };
+    ei::verify::Check("FigureModel::Open", true, same(self->mesh, mod) && same(self->bones, bon) && same(self->animations, anm),
+                      "model %p: %p %p %p", static_cast<void*>(self), mod, bon, anm);
+}
+
 } // namespace
 
 EI_VERIFY(0x005A2490, LoadFromMemoryVerify, 0, s_unused);
 EI_VERIFY(0x005A4CF0, LoadFromMemoryVerify, 0, s_unused);
 EI_VERIFY(0x005AC1A0, NewFigureVerify, 0, s_unused);
+EI_VERIFY(0x005AC2B0, NewPartVerify, 0, s_unused);
+EI_VERIFY(0x005A9EB0, ModelOpenVerify, 0, s_unused);
 EI_VERIFY(0x005AC2F0, LoadPartVerify, 0, s_unused);
 EI_VERIFY(0x005ACA60, LoadBoneAnimationVerify, 0, s_unused);

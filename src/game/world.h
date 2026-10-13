@@ -41,6 +41,8 @@ class CTexture;   // texture.h
 class CTextureManager;   // texture.h
 class Terrain;
 class CCamera;   // camera.h
+class CMaterial;   // material.h
+class CStream;   // core_streams.h
 class CParticleManager;   // effects.h
 struct FootprintPart;   // ai_map.h: a figure part's box (FigurePart +0x188)
 class CFileRegistry;   // registry.h
@@ -491,6 +493,9 @@ public:
     // (the multiplayer zone switch 0057EE10, ResendParty 0066F450): every item of the player's
     // party (+0x70) taken out (CParty::RemoveItem(first, 1)) until none is left.
     void ClearPlayerItems(WorldPlayer* player);
+    // 00593FA0 (RET 0xC; world_small_calls.cpp; the script's SetWaterLevel). The water level `key`
+    // moves to `target` over `steps` ticks (TweenSetTarget on +0x70).
+    void SetWaterLevel(int key, float target, int steps);
     // 005939E0 (no caller in the exe; Rebirth's binaries refer to it). Every unit (class 0x50) of
     // the object map removed (RemoveObject by id; the walk steps on before each removal).
     void RemoveAllUnits();
@@ -1209,6 +1214,20 @@ public:
     std::uint8_t* LocalView();
     // 00566EC0. Whether the local view is in mode 2 (+0x20).
     bool IsLocalViewMode2();
+    // world_small_calls.cpp (A-W14).
+    // 005655D0 / 005655F0 (RET 4; the scene loader, 0051B2F0 / 0051B470). A new texture / material
+    // of class `type` from the world's managers (+0x18C NewTextureOfType, +0x188 NewMaterial);
+    // null without the manager.
+    CTexture* NewTexture(int type);
+    CMaterial* NewMaterial(int type);
+    // 00565670 (RET 4; the game start, 00456440). Takes `camera` as the view camera: the old one
+    // loses a reference (it is not released at zero), the new one gains one; either may be null.
+    void SetCamera(CCamera* camera);
+    // 00566C10 (RET 4). The dword of message 0x12 (CPlayerClient::OnWorldValue) stored at +0x7C0.
+    void SetWorldValue(int value);
+    // 005683B0 (RET 4). Message 0x73: the water levels (+0x70) read from `stream` and applied to
+    // the terrain (TweenLoad). Returns 1.
+    int ReadWaterLevels(CStream* stream);
     // 00566EF0. FALSE without a local view or while the local player's controller is busy.
     bool IsLocalPlayerIdle();
     // 00567440. Index of the exit whose area contains `point` and that leads somewhere.
@@ -1528,7 +1547,8 @@ public:
     int unknown7A8_;                      // +0x7A8
     std::uint8_t unknown_7AC[0x7BC - 0x7AC];
     stlp::list<void*> list7BC_;           // +0x7BC (nodes of 0xC bytes; pool free 00498C40)
-    std::uint8_t unknown_7C0[0x7D0 - 0x7C0];
+    int worldValue_;                      // +0x7C0 -1; message 0x12 sets it (SetWorldValue); the exe never reads it
+    std::uint8_t unknown_7C4[0x7D0 - 0x7C4];
     void* cursor_;                        // +0x7D0 HCURSOR wincurs\Df0000.cur
 };
 static_assert(offsetof(CWorldClient, unknown84_) == 0x84);
