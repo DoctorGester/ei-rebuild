@@ -44,6 +44,18 @@ inline void* const kGroups = reinterpret_cast<void*>(0x0073D304);       // Scrip
 inline void* const kGroupsBase = reinterpret_cast<void*>(0x0073D310);
 inline void* const kCmds = reinterpret_cast<void*>(0x0073D4A8);         // CArray<SSCCmd> (loader arrays)
 inline void* const kIfThen = reinterpret_cast<void*>(0x0073D430);       // CArray<ScriptIfThen>
+// The CScript members' (the constructor 004BDE40 installs them; A-E1).
+inline void* const kPointLights = reinterpret_cast<void*>(0x0073D394);  // CArray<ScriptPointLight>
+inline void* const kParticleList = reinterpret_cast<void*>(0x0073D388);
+inline void* const kFxSourceList = reinterpret_cast<void*>(0x0073D37C);
+inline void* const kLightningList = reinterpret_cast<void*>(0x0073D370);
+inline void* const kBlockList = reinterpret_cast<void*>(0x0073D364);    // blocks_ and worldBlocks_
+inline void* const kDefinitions = reinterpret_cast<void*>(0x0073D358);  // CArray<ScriptDefinition>
+inline void* const kInstanceList = reinterpret_cast<void*>(0x0073D34C);
+inline void* const kRunList = reinterpret_cast<void*>(0x0073D340);
+inline void* const kAreas = reinterpret_cast<void*>(0x0073D334);        // CArray<ScriptArea>
+inline void* const kTempGroupList = reinterpret_cast<void*>(0x0073D43C);
+inline void* const kTempObjectList = reinterpret_cast<void*>(0x0073D448);
 } // namespace scriptvtable
 
 // A counted reference to a world object: holding one keeps the object's refCount_ raised. Objects
@@ -239,6 +251,10 @@ struct ScriptDefinition;
 struct ScriptRun;
 struct ScriptArea;
 
+// A script's error as CScript::GetError hands it out (world_glue.h): the text (constructed in the
+// caller's storage; the caller destroys it), the code and the line.
+struct ScriptErrorInfo;
+
 // The script interpreter state passed to every evaluation ("CScript" in the loader's messages).
 // The world has two (+0x12874, and +0x12A6C = 007C29CC, the mission script the console uses).
 class CScript {
@@ -249,6 +265,13 @@ public:
     mfc::CArray<ScriptAreaPart>* FindArea(int id);
 
     ScriptVars* Globals() { return &globals_; }
+    // 004BDE40 (script_construct.cpp, A-E1). The constructor: every container empty with its
+    // vtable (lists in blocks of 10), 256 zeroed point light slots, one empty temporary group and
+    // one null temporary reference, an empty error text, then the reset (ScriptReset). Returns this.
+    // Only the world's constructor calls it, from a static initialiser (before the hooks).
+    CScript* Construct();
+    // 00456360 (RET 4). The error text (copy-constructed at `out`), code and line; returns out.
+    ScriptErrorInfo* GetError(ScriptErrorInfo* out);
 
     // ---- Loader and parser (script_parse.cpp, script_parse_load.cpp) ----------------------------
     // Every Load* function returns 1 on success; on failure it returns what Error returned (0).
@@ -813,6 +836,14 @@ void __fastcall ScriptFxSourceDropSound(ScriptFxSource* source);
 // 004BD260. CreateFX(x, y, z, volume, radius, name): a new sound object (class 0x48, not looping)
 // added to the world's timed objects; the script keeps nothing.
 void __fastcall ScriptCreateFx(CScript* script, void* edx, const SSCCmd* cmd);
+// 004BD310 (A-E1). CreateFXSource(id, x, y, z, volume, radius, name) and CreateRandomizedFXSource
+// (the same, then min delay, max delay, spread): the id (FISTP; negative: nextFxId_) finds an
+// existing source, whose sound is dropped, or a new one at the tail; position, volume, radius and
+// name from the command. CreateFXSource (command 0x16) makes the sound (class 0x48) at once and
+// clears idle; the other keeps no sound, takes the delays and the spread, countdown 0, idle 1.
+// For a new id CreateFXSource leaves spread, the delays and the countdown as stack residue in the
+// original; here they are 0, 0, 0 and INT_MAX (docs/notes/script.md).
+void __fastcall ScriptCreateFxSource(CScript* script, void* edx, const SSCCmd* cmd);
 // 004BCFF0. CreateLightning(id, from xyz, to xyz, width): a new bolt (class 0x4D) appended to
 // lightning_ (a negative or NaN id takes nextParticleId_, others are truncated; existing ids are
 // not looked up).

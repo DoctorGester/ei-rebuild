@@ -365,3 +365,24 @@ work), `CSysInfo` 004DDCB0-004DE8B0 (static initialiser table 00783310: standalo
   0066E2E0), the accessors 004B9F20-004BA080 / 004BA9C0 (from 004B6760). Left: 004BD310 / 004BDE40 (skipped, above).
 - Standalone build: `CSysInfo`, the party manager's static constructor 004A5870 and exit destructor 004A5700, CTorchObjectSpec
   Create / Destroy 0052C610 / 0052C680 (not ported; slots 13-15 004D6B20/30/40 are a bare RET).
+
+### A-E1: the script leftovers below 0x004C0000
+
+- 004BD310 `ScriptCreateFxSource` (`script_effects.cpp`; CreateFXSource 0x16 and CreateRandomizedFXSource 0x18). The id
+  is FISTP-rounded, a negative one takes `nextFxId_` (then counted down). An existing source's sound is dropped; a new
+  source is a `NewNode` at the tail. Position, volume, radius and name come from the command. 0x16 makes the sound at once
+  (class 0x48 from the effect manager, the source's position, volume, radius and name, added to the timed objects, one
+  more reference) and clears `idle`; 0x18 keeps no sound, takes min delay, max delay (FISTP) and spread, countdown 0,
+  idle 1. Decision: for a new id 0x16 leaves spread, the delays and the countdown as whatever the stack held (the
+  temporary element at EBP-0x50 is copied whole into the node, 004CB220); the tick (004BF000) counts such a source down
+  and replaces its sound when the countdown reaches zero. Ours writes 0, 0, 0 and INT_MAX: the sound stays, as with any
+  positive residue (zero would replace it on every tick). Until now the original ran from our `Execute`, so the residue
+  was already ours. Ours only (`verify_script_effects.cpp`): the source and its sound against the command. script_fx.
+- 004BDE40 `CScript::Construct` (`script_construct.cpp`): the member vtables (`scriptvtable::kPointLights` ..
+  `kTempObjectList` in script.h), lists in blocks of 10, the four global variable sets, 256 zeroed light slots, one empty
+  temporary group (004C8CE0) and one null temporary reference (004C9210), an empty error text, then `ScriptReset`. Only
+  the world's constructor 00589ED0 calls it (twice), from the static initialiser 00589BE0, before the hooks: the hook
+  and its side-by-side check (a shadow script constructed by the original; every dword but the scripts' own
+  allocations equal) never fire in the hooked game. The rewrite is for the standalone build.
+- 00456360 `CScript::GetError` (text copy-constructed at `out`, code, line; `ScriptErrorInfo` of world_glue.h): side by
+  side, reached only when the command line's script fails to load.

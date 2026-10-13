@@ -92,6 +92,53 @@ void __fastcall CreateFxVerify(CScript* script, void*, const SSCCmd* cmd) {
                       EffectManager()->lastId_);
 }
 
+mfc::CList<ScriptFxSource>::Node* FindFxSource(CScript* script, int id) {
+    for (auto* node = script->fxSources_.head; node; node = node->next)
+        if (node->data.id == id) return node;
+    return nullptr;
+}
+
+// 004BD310 CreateFXSource / CreateRandomizedFXSource (A-E1): ours only. The source with the id (the
+// next automatic one for a negative id) has the command's position, volume, radius (bits) and name;
+// the list grew by one exactly when the id was new. CreateFXSource (0x16): the source holds the
+// newest effect (a sound, class 0x48, with the same position, volume, radius and name, referenced
+// by the source and the world) and is not idle. The other: no sound was made, the delays (FISTP),
+// the spread (bits), countdown 0, idle 1. Scenario: script_fx.
+void __fastcall CreateFxSourceVerify(CScript* script, void*, const SSCCmd* cmd) {
+    const float* f = cmd->floatArgs.data;
+    const char* name = cmd->stringArgs.data[0];
+    int count = script->fxSources_.count;
+    int nextId = script->nextFxId_;
+    int last = EffectManager()->lastId_;
+    int id = static_cast<int>(std::lrint(f[0]));
+    bool automatic = id < 0;
+    if (automatic) id = nextId;
+    bool existed = FindFxSource(script, id) != nullptr;
+
+    ScriptCreateFxSource(script, nullptr, cmd);
+
+    auto* node = FindFxSource(script, id);
+    bool ok = node && script->fxSources_.count == count + (existed ? 0 : 1) &&
+              script->nextFxId_ == (automatic ? nextId - 1 : nextId) && (existed || node == script->fxSources_.tail);
+    if (ok) {
+        const ScriptFxSource& s = node->data;
+        ok = SameBits(s.position, &f[1], 12) && SameBits(&s.volume, &f[4], 4) && SameBits(&s.radius, &f[5], 4) &&
+             std::strcmp(s.name, name) == 0;
+        if (ok && cmd->id == 0x16) {
+            auto* sound = static_cast<CEffectSound*>(s.object);
+            ok = sound && sound == NewestEffect() && sound->GetClassId() == 0x48 && s.idle == 0 &&
+                 SameBits(&sound->localPosition_, &f[1], 12) && SameBits(&sound->volume_, &f[4], 4) &&
+                 SameBits(&sound->radius_, &f[5], 4) && std::strcmp(sound->name_, name) == 0 && sound->refCount_ >= 2;
+        } else if (ok) {
+            ok = !s.object && s.idle == 1 && s.countdown == 0 && s.minDelay == static_cast<int>(std::lrint(f[6])) &&
+                 s.maxDelay == static_cast<int>(std::lrint(f[7])) && SameBits(&s.spread, &f[8], 4) &&
+                 EffectManager()->lastId_ == last;
+        }
+    }
+    ei::verify::Check("ScriptCreateFxSource", true, ok, "command %d \"%s\" id %d, %d -> %d sources", cmd->id, name, id,
+                      count, script->fxSources_.count);
+}
+
 // 004BCFF0 CreateLightning: one more node at the tail with the new bolt (class 0x4D, referenced by the
 // node and the world), its id (the next automatic one for a negative or NaN argument, which is then
 // counted down; else truncated) and the bolt's ends and width as the arguments.
@@ -207,4 +254,5 @@ EI_VERIFY(0x004CD690, LightningElementsDestructVerify, 0, s_unused);
 EI_VERIFY(0x004B1850, ParticleDestructVerify, 0, s_unused);
 EI_VERIFY(0x004B1880, FxDropVerify, 0, s_unused);
 EI_VERIFY(0x004BD260, CreateFxVerify, 0, s_unused);
+EI_VERIFY(0x004BD310, CreateFxSourceVerify, 0, s_unused);
 EI_VERIFY(0x004BCFF0, CreateLightningVerify, 0, s_unused);
