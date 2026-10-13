@@ -320,7 +320,7 @@ const CellOffset* SteepOffsets() { return reinterpret_cast<const CellOffset*>(0x
 // less one.
 int MaxStep(const ClimbTable& table) {
     int n = 0;
-    while (table.costs[table.count / 2 + n] > -1) ++n;
+    while (table.data[table.size / 2 + n] > -1) ++n;
     return n - 1;
 }
 } // namespace

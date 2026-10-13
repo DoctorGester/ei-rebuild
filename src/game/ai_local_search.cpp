@@ -399,7 +399,7 @@ void CAIMap::CostContextFor(CUnit* unit, PassCostContext* out) {
     out->unknown_10 = 10.0f;
     out->shift = unit->sizeClass * 4;
     const ClimbTable& climb = out->shift == 0 ? climbSmall : climbLarge;
-    out->climb = climb.costs + climb.count / 2;
+    out->climb = climb.data + climb.size / 2;
     out->costs = passCosts;
     unit->GetMoveSpeeds(&out->forwardSpeed, &out->backwardSpeed);
     out->costs = unit->unknown_43C ? passCostsAlt : passCosts;

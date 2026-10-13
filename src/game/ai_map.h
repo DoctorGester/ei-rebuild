@@ -4,6 +4,7 @@
 #include "maths.h"
 #include "unit.h"
 
+#include "lib/containers.h"
 #include "lib/mfc.h"
 
 #include <cstddef>
@@ -157,11 +158,9 @@ struct CRegionMap;
 
 
 // Per size class tables of the cost of a height step between neighbouring cells, indexed from the
-// middle (negative steps down, positive up). Layout provisional.
-struct ClimbTable {
-    int* costs;
-    int count;
-};
+// middle (negative steps down, positive up): an MFC CArray<int> of 1023 costs in 1/1024, -1 for a
+// step that cannot be taken (CAIMap::Load fills them).
+using ClimbTable = mfc::CArray<int>;
 
 
 // A unit's path (name and layout provisional). Its methods at 005C7xxx steer along `steps`.
@@ -247,14 +246,18 @@ class CAIMap;
 class CSectorMap;
 
 // A terrain type of the AI map (0x118 bytes; CAIMap::materials, indexed by the low 5 bits of a
-// cell's occluder word). Name provisional.
+// cell's occluder word): a section of tileDesc.reg in the text resources' aiinfo.res, whose name
+// is the type's number (CAIMap::Load reads them). Name provisional.
 struct AITerrainType {
-    std::uint8_t unknown_000[0x104];
-    int cost;                   // +0x104 what a cell of it costs (CellMark's starting cost)
-    std::uint8_t unknown_108[0x110 - 0x108];
-    float noise;                // +0x110 how loud steps on it are (AIViewer::StepNoise)
+    char name[0x100];           // +0x000 "Name"
+    int speed;                  // +0x100 "Speed" (-1 without one)
+    int cost;                   // +0x104 "CostMul": what a cell of it costs (CellMark's starting cost)
+    float look;                 // +0x108 "StepLook" in hundredths
+    float smell;                // +0x10C "StepSmell" in hundredths
+    float noise;                // +0x110 "StepSound" in hundredths: how loud steps on it are (AIViewer::StepNoise)
     std::uint32_t openMarks;    // +0x114 per size class nibble: the mark of a cell with nothing on it
 };
+static_assert(offsetof(AITerrainType, cost) == 0x104 && offsetof(AITerrainType, noise) == 0x110);
 static_assert(sizeof(AITerrainType) == 0x118);
 
 // A cell of the local search's window (0x14 bytes). Name provisional.
@@ -590,10 +593,36 @@ struct PathSmoother {
 };
 static_assert(sizeof(PathSmoother) == 0x2C);
 
+struct AIEventTable;   // unit_ai.h
+
 // The navigation grid of the current map, loaded by CAIMap::Load (005B43C0, patched by Rebirth).
 // Name from the game's error strings; layout provisional.
 class CAIMap {
 public:
+    // 005B43C0 (RET 4; ai_map_load.cpp, A-W15). Rebirth patches it: this is the vanilla body, and it
+    // is installed in the vanilla launch only (callers reach it through its address). Loads the map
+    // archive `path`: LoadTerrain, then AttachTerrain. Returns 1; 0 when the archive cannot be
+    // opened; any other failure is a fatal error, whose result is returned.
+    int Load(const char* path);
+    // Load's first part: the archive's .mp file (header, materials, tile types) gives the height
+    // scale and the climb tables; tileDesc.reg in the text resources' aiinfo.res gives the terrain
+    // types; the three cell grids are sized for the map (64 x 64 cells per sector) and every sector
+    // file stamped into the cells (ground level, water depth, water flag) and the occluder words
+    // (terrain type). It touches nothing else of the map, so the verify wrapper runs it on a copy.
+    int LoadTerrain(const char* path);
+    // Load's second part: the map counts as loaded, units are not re-registered by refreshes; the
+    // open marks and cost tables, the water depths zeroed (the grid sized for the map), both local
+    // searches, the region map, the AI events and the sector map attached to the new size, and the
+    // whole map refreshed (or added to the dirty rectangle while batching).
+    void AttachTerrain();
+
+    // The cells', the occluder words' and the water depths' grids as the grid template sees them
+    // (block, rows, width, height), and the AI events that follow the map in the world.
+    SearchGrid<AIMapCell>& CellGrid() { return *reinterpret_cast<SearchGrid<AIMapCell>*>(&cellBlock); }
+    SearchGrid<std::uint32_t>& OccluderGrid() { return *reinterpret_cast<SearchGrid<std::uint32_t>*>(&occluderBlock); }
+    SearchGrid<std::int8_t>& WaterGrid() { return *reinterpret_cast<SearchGrid<std::int8_t>*>(&waterBlock); }
+    AIEventTable* Events() { return reinterpret_cast<AIEventTable*>(this + 1); }
+
     // The sector map embedded at +0x124 (sector_map.h).
     CSectorMap* SectorMap() { return reinterpret_cast<CSectorMap*>(&unknown_124); }
     // script_runtime_helpers.cpp (A-S4): the sector map (+0x124) as the script runtime calls it.
@@ -785,7 +814,7 @@ public:
     // Refresh the rectangle now, or add it to the dirty rectangle while batching.
     void QueueRefresh(int minX, int maxX, int minY, int maxY);
 
-    std::uint8_t unknown_000;
+    bool loaded;                        // +0x000 set by Load
     bool batching;                      // +0x001 refreshes collect into the dirty rectangle
     bool refreshUnits;                  // +0x002 a refresh also re-registers the units around it
     std::uint8_t unknown_003;
@@ -794,14 +823,9 @@ public:
     int passCosts[16];                  // +0x014 cost per passability nibble (1/1024)
     int passCostsAlt[16];               // +0x054 the same for units with CUnit::unknown_43C set
     int stepCosts[16];                  // +0x094 step speeds per nibble (SetStepSpeeds)
-    std::uint8_t unknown_0D4[0xD8 - 0xD4];
-    ClimbTable climbLarge;              // +0x0D8 size classes other than 0
-    std::uint8_t unknown_0E0[0xEC - 0xE0];
-    ClimbTable climbSmall;              // +0x0EC size class 0
-    std::uint8_t unknown_0F4[0xFC - 0xF4];
-    AITerrainType* materials;           // +0x0FC the terrain types (the game's own array: data, count)
-    int materialCount;                  // +0x100
-    std::uint8_t unknown_104[0x10C - 0x104];
+    ClimbTable climbLarge;              // +0x0D4 size classes other than 0: no step steeper than 40 degrees
+    ClimbTable climbSmall;              // +0x0E8 size class 0: up to 60 degrees, every step at the flat cost
+    lib::AlignedArray<AITerrainType> materials;     // +0x0FC the terrain types (16 after Load)
     std::uint8_t bridgeHeights[0x14];   // +0x10C hash_map<int, uint16> keyed (short)x << 16 | (short)y
     float heightScale;                  // +0x120 world z to AI height units
     std::uint32_t unknown_124;          // +0x124 the sector map (CSectorMap) starts here
@@ -811,9 +835,10 @@ public:
     std::uint8_t unknown_13C[0x14C - 0x13C];
     FootprintCellSet footprint;         // +0x14C scratch for MarkFootprint
     FootprintCellSet bridges;           // +0x1A0
-    std::uint8_t unknown_1F4[0x1F8 - 0x1F4];
+    std::int8_t* waterBlock;            // +0x1F4 the water depths' grid (WaterGrid) from here
     std::int8_t** waterDepth;           // +0x1F8 rows of per-cell water depth
-    std::uint8_t unknown_1FC[0x27C - 0x1FC];
+    int waterWidth, waterHeight;        // +0x1FC
+    std::uint8_t unknown_204[0x27C - 0x204];
     std::uint8_t unitLayerSmall[0x12A4 - 0x27C];    // +0x27C unit occupancy (005B36B0 / 005B3890)
     std::uint8_t unitLayerLarge[0x22CC - 0x12A4];   // +0x12A4
     PathSmoother smoother;                          // +0x22CC
@@ -821,19 +846,22 @@ public:
     LocalSearch forwardSearch;                      // +0x2594
     LocalSearch backwardSearch;                     // +0x2614
     int lastFootprintOwner;             // +0x2694 set by StampFootprint
-    std::uint32_t unknown_2698;
+    AIMapCell* cellBlock;               // +0x2698 the cells' grid (CellGrid) from here
     AIMapCell** cells;                  // +0x269C rows of cells
     int width;                          // +0x26A0
     int height;                         // +0x26A4
-    std::uint32_t unknown_26A8;
+    std::uint32_t* occluderBlock;       // +0x26A8 the occluder words' grid (OccluderGrid) from here
     std::uint32_t** occluders;          // +0x26AC rows of per-cell occluder words (see LineOfSight)
-    std::uint8_t unknown_26B0[0x26B8 - 0x26B0];
+    int occluderWidth, occluderHeight;  // +0x26B0
     SearchGrid<std::int8_t> marks;      // +0x26B8 per-cell marks: path directions (BuildCellsTo), reach answers
 };
 static_assert(offsetof(CAIMap, passCosts) == 0x14);
 static_assert(offsetof(CAIMap, stepCosts) == 0x94);
-static_assert(offsetof(CAIMap, climbLarge) == 0xD8);
-static_assert(offsetof(CAIMap, climbSmall) == 0xEC);
+static_assert(offsetof(CAIMap, climbLarge) == 0xD4);
+static_assert(offsetof(CAIMap, climbSmall) == 0xE8);
+static_assert(offsetof(CAIMap, materials) == 0xFC);
+static_assert(offsetof(CAIMap, waterBlock) == 0x1F4);
+static_assert(offsetof(CAIMap, cellBlock) == 0x2698 && offsetof(CAIMap, occluderBlock) == 0x26A8);
 static_assert(offsetof(CAIMap, bridgeHeights) == 0x10C);
 static_assert(offsetof(CAIMap, heightScale) == 0x120);
 static_assert(offsetof(CAIMap, footprint) == 0x14C);
@@ -848,6 +876,7 @@ static_assert(offsetof(CAIMap, lastFootprintOwner) == 0x2694);
 static_assert(offsetof(CAIMap, cells) == 0x269C);
 static_assert(offsetof(CAIMap, occluders) == 0x26AC);
 static_assert(offsetof(CAIMap, marks) == 0x26B8);
+static_assert(sizeof(CAIMap) == 0x26C8);   // the AI events follow (Events)
 
 // A cached lookup in the global spiral of cell offsets (pairs of int16 dx, dy ordered by distance).
 struct SpiralCache {
@@ -863,6 +892,8 @@ struct SpiralCache {
 // rounded to float, then FISTP (round to nearest).
 int WorldToCell(float world);
 
+// 005B6070 (thiscall on the map; ai_cost_tables.cpp). The cost tables per passability nibble.
+void __fastcall InitCostTables(std::uint8_t* map);
 // 005B7B20. Standing level of size class `sizeClass` (0..7): (2 - height) * 16, at least 0. Outside
 // 0..7 the original returns only AL = 0 (the rest of EAX is the argument), reproduced here.
 int __stdcall LevelForSizeClass(int sizeClass);
