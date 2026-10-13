@@ -547,9 +547,31 @@ struct SmoothStep {
     int direction;
 };
 static_assert(sizeof(SmoothStep) == 0x24);
+// A state of the smoother's trellis as the tables' builder sees it (0x14 bytes): a move between two
+// cells around a path cell, from (x0, y0) to (x1, y1) relative to it. `index` is its place among the
+// cell's states.
+struct SmoothEdge {
+    int x0, y0;
+    int x1, y1;
+    int index;
+};
+static_assert(sizeof(SmoothEdge) == 0x14);
+using SmoothEdgeArray = mfc::CArray<SmoothEdge>;     // vtable 0073FE28
+
 // One of the 81 transition tables (previous direction * 9 + next direction; 0 at the path's end),
 // built by the static initialiser 005C42B0 at 007C3058.
 struct SmoothTable {
+    // The three arrays empty: what the initialiser's vector constructor (005C41C0, callback
+    // 005C4210) leaves in each table before 005C42B0 fills them.
+    void Construct();
+    // 005C4250 (the callback of the vector destructor the initialiser registers with atexit). The
+    // three arrays' storage freed, the last member first.
+    void Destruct();
+    // 005C3E10 (RET 8). The table between a cell with the states `from` and the next one with the
+    // states `to`: a copy for every state both have, a step from every `from` state to every `to`
+    // state that starts where it ends, and the same between the `to` states themselves.
+    void Build(const SmoothEdgeArray* from, const SmoothEdgeArray* to);
+
     mfc::CArray<SmoothCopy> copies;       // +0x00
     mfc::CArray<SmoothStep> steps;        // +0x14 from the previous cell's states
     mfc::CArray<SmoothStep> chained;      // +0x28 between the new states
@@ -569,6 +591,14 @@ inline SmoothPool& SmoothNodePool() { return *reinterpret_cast<SmoothPool*>(0x00
 inline const SmoothTable* SmoothTables() { return reinterpret_cast<const SmoothTable*>(0x007C3058); }
 // The direction (1..8, 0 for none) of the step (dx, dy) in -1..1: DirectionSteps()[dy * 3 + dx].
 inline const int* DirectionSteps() { return reinterpret_cast<const int*>(0x00791988); }
+// 005C3690 (thiscall on the array, RET 8; ai_path_smooth.cpp). The states of a cell the path crosses
+// in `direction` (1..8): seven moves for a straight step, nine for a diagonal one. Direction 0 (the
+// path's ends) gives the eight moves from the cell to its neighbours, or from the neighbours to it
+// when `incoming`.
+void __fastcall BuildSmoothEdges(SmoothEdgeArray* edges, void*, int direction, bool incoming);
+// What 005C42B0 does, on any 81 constructed tables: for every pair of directions the states of the
+// previous step (moved back by that step) against those of the next.
+void BuildSmoothTablesAt(SmoothTable* tables);
 
 // The path smoother at CAIMap + 0x22CC (0x2C bytes; ai_path_smooth.cpp). Name provisional.
 struct PathSmoother {

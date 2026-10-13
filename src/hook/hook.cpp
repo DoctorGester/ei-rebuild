@@ -27,6 +27,12 @@ HookRegistrar::HookRegistrar(std::uintptr_t address, void* wrapper, const char* 
     g_hooks = &entry;
 }
 
+static StartupCheck* g_startupChecks = nullptr;
+
+StartupCheckRegistrar::StartupCheckRegistrar(void (*run)(), const char* name) : entry{run, name, g_startupChecks} {
+    g_startupChecks = &entry;
+}
+
 // Functions listed in verified.txt (next to the DLL) have passed verification and run without
 // their verify wrapper: the plain replacement is installed instead. One hex address per line.
 static std::vector<std::uintptr_t> g_verified;
@@ -288,6 +294,11 @@ int InstallHooks() {
         FlushInstructionCache(GetCurrentProcess(), target, 5);
         Log(h->verify ? "verifying %s at %08X -> %p" : "hooked %s at %08X -> %p", h->name, static_cast<unsigned>(h->address), h->replacement);
         ++installed;
+    }
+    // The game's static initialisers have run and nothing else yet: their results are compared now.
+    for (StartupCheck* check = g_startupChecks; check; check = check->next) {
+        Log("startup check %s", check->name);
+        check->run();
     }
     return installed;
 }
