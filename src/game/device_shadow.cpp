@@ -129,7 +129,7 @@ int DrawFlat(char* device, const void* positions, const char* uvs, int blocks, c
             return 0;
         }
         DeviceObject(device)->AppendBatchIndices(indices, indexCount);
-        DeviceObject(device)->batchBaseVertex_ += count;
+        DeviceObject(device)->batch_.vertexCount += count;
         return 0;
     }
     if (visibility == 2) return 2;

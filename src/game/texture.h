@@ -14,7 +14,31 @@ struct PixelFormat {
 static_assert(sizeof(PixelFormat) == 32);
 
 struct CDXSurface;
+class CTexture;
 class CTransformPipeline;
+struct NamedTexture;   // ground_print.h
+
+// A vertex buffer's holder, as the device's batches keep them (counted; slot 0 the deleting
+// destructor). Nothing makes one (004E7820 gives no buffer); only what the flushes read.
+struct CVertexBufferHolder {
+    void* vtable;
+    int refCount;               // +0x04
+    long result;                // +0x08 the last Direct3D result
+    std::uint8_t unknown_0C[0x10];
+    void* buffer;               // +0x1C IDirect3DVertexBuffer7*
+};
+static_assert(offsetof(CVertexBufferHolder, buffer) == 0x1C);
+
+// One of the device's two vertex-buffer batches (0x20 bytes): triangles gathered in a locked
+// vertex buffer and drawn in one call (004E7840 / 004E7A40). Never used: no buffer is ever locked.
+struct DeviceVertexBatch {
+    stlp::list<CVertexBufferHolder*> used;      // +0x00 the buffers drawn (counted)
+    CVertexBufferHolder* buffer;                // +0x04 the locked buffer (counted)
+    void* vertices;                             // +0x08 its memory
+    int vertexCount;                            // +0x0C vertices written (added to appended indices)
+    lib::AlignedArray<std::uint16_t> indices;   // +0x10
+};
+static_assert(sizeof(DeviceVertexBatch) == 0x20 && offsetof(DeviceVertexBatch, indices) == 0x10);
 
 // Owns the Direct3D texture formats; held by CTextureManager. Name provisional; not rewritten yet.
 // The same object is the renderer's device object (the global at 007AF080): its DirectDraw
@@ -38,10 +62,29 @@ public:
     // 004E7820 (RET 4; device_helpers.cpp). A vertex buffer for a batch of `count` vertices: always
     // null (the batch below is never used).
     void* LockVertexBuffer(int count);
-    // 004E7E00 (RET 8; device_helpers.cpp). Appends `count` indices to the batch (batchIndices_),
-    // each raised by batchBaseVertex_ when that is not 0, then sets the array's size (the indices
+    // 004E7E00 (RET 8; device_helpers.cpp). Appends `count` indices to the batch (batch_.indices),
+    // each raised by batch_.vertexCount when that is not 0, then sets the array's size (the indices
     // are written before the array grows: the caller has made room).
     void AppendBatchIndices(const std::uint16_t* indices, int count);
+
+    // device_binds.cpp (A-S13).
+    // 004E7840 / 004E7A40 (plain RET). A batch drawn: its vertex buffer unlocked (the device lock,
+    // held since the buffer's Lock, left; a failure is "Can't unlock vertex buffer."), the indexed
+    // triangles drawn from it (DrawIndexedPrimitiveVB under the device lock, the result in
+    // lastLoadResult_, the frame's counts raised), the buffer moved to the batch's list and the
+    // batch emptied. Nothing without a locked buffer, which is always.
+    void FlushBatch();
+    void FlushBatch2();
+    // 004EB300 (RET 8). `holder`'s surface (or none) on texture stage `stage`, when the stage has
+    // another holder: the batch flushed, SetTexture (the result in lastLoadResult_), the change
+    // counted. Returns 1.
+    int BindSurface(int stage, CDXSurface* holder);
+    // 004EBAF0 (RET 8). The same for a texture's surface holder (a null texture: none).
+    int BindTexture(int stage, CTexture* texture);
+    // 004EB1D0 (RET 8). The same for a texture kept by name: one not looked up yet is found by
+    // its name among the texture manager's registered and cached textures (FindTexture; an empty
+    // name is not looked up) and kept, counted.
+    int BindNamedTexture(int stage, NamedTexture* named);
 
     // Holders count references to it (the cursor): one more, or one less with the deleting
     // destructor (vtable slot 0, with 1) at zero.
@@ -84,10 +127,10 @@ public:
     // +0xBC the texture formats by id (filled by 004E6EE0 from the Direct3D device's enumeration);
     // the values point at formats the device keeps.
     stlp::hash_map<int, PixelFormat*, stlp::IntHash> formats_;
-    std::uint8_t unknown_D0[0x10];
-    int batchBaseVertex_;            // +0xE0 the vertex-buffer batch's vertex count (never used: 004E7820 gives no buffer)
-    lib::AlignedArray<std::uint16_t> batchIndices_;   // +0xE4 the batch's indices
-    std::uint8_t unknown_F4[0x12C - 0xF4];
+    std::uint8_t unknown_D0[4];
+    DeviceVertexBatch batch_;        // +0xD4 the vertex-buffer batch (never used: 004E7820 gives no buffer)
+    DeviceVertexBatch batch2_;       // +0xF4 the second one
+    std::uint8_t unknown_114[0x12C - 0x114];
     CDXSurface* stageSurfaces_[8];   // +0x12C the surface holder bound to each texture stage (00501AF0, 004EBAF0)
     void* material_;                 // +0x14C the current material (004EB170)
     std::uint32_t colour_;           // +0x150 the renderer's draw colour (00501CC0; mesh draw flag 4)
@@ -107,7 +150,7 @@ static_assert(offsetof(CTextureDevice, unknown_158) == 0x158);
 static_assert(offsetof(CTextureDevice, depthFormatFlags_) == 0x90 && offsetof(CTextureDevice, stencilBits_) == 0x9C);
 static_assert(offsetof(CTextureDevice, stageSurfaces_) == 0x12C && offsetof(CTextureDevice, colour_) == 0x150);
 static_assert(offsetof(CTextureDevice, depthFormats_) == 0xB4 && offsetof(CTextureDevice, formats_) == 0xBC);
-static_assert(offsetof(CTextureDevice, batchBaseVertex_) == 0xE0 && offsetof(CTextureDevice, batchIndices_) == 0xE4);
+static_assert(offsetof(CTextureDevice, batch_) == 0xD4 && offsetof(CTextureDevice, batch2_) == 0xF4);
 
 // The renderer's device object (the global pointer at 007AF080).
 inline CTextureDevice* RenderDeviceObject() { return *reinterpret_cast<CTextureDevice* const*>(0x007AF080); }

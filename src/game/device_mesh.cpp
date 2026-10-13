@@ -156,7 +156,7 @@ void Submit(char* device, const Textures* textures, std::uint16_t* indices, int 
     if (void* buffer = DeviceObject(device)->LockVertexBuffer(count)) {
         std::memcpy(buffer, Vertices().data, static_cast<std::size_t>(count) * sizeof(TLVertex));
         DeviceObject(device)->AppendBatchIndices(indices, indexCount);
-        DeviceObject(device)->batchBaseVertex_ += count;
+        DeviceObject(device)->batch_.vertexCount += count;
         return;
     }
     if (textures) {
