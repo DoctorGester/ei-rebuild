@@ -11,6 +11,7 @@
 #include "net_classes.h"
 #include "net_messages.h"
 #include "player_client.h"
+#include "ui_briefing.h"
 #include "ui_cursor.h"
 #include "ei/hook.h"
 #include "render/render_state.h"
@@ -418,6 +419,19 @@ void CHudClock::OnMouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) inputHandled_ = true;
 }
 UI_INPUT_HANDLER(0x00649160, CHudClock, OnMouseMove);
+
+void CHudClock::OpenObjectives() {
+    highlight_ = false;
+    interface_->PlaySound(kSoundClick, 0);
+    void* memory = gamecrt::operator_new(sizeof(CObjectivesWindow));
+    void* window = memory ? ObjectivesConstructOriginal(memory, nullptr, interface_) : nullptr;
+    {
+        BriefingPlayerName zone;
+        ObjectivesSetupOriginal(window, nullptr, zone, nullptr, 0, 0);
+    }
+    InterfacePushWindowOriginal(interface_, nullptr, window, 1, 1);
+}
+EI_REPLACE_METHOD(0x00648F10, CHudClock::OpenObjectives);
 
 // --- Movement panel ----------------------------------------------------------------------------
 

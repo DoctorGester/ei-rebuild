@@ -241,3 +241,27 @@ static void __fastcall WeaponRecordModelNameVerify(mfc::CString* out, const item
                       weapon->type, static_cast<const char*>(expected), static_cast<const char*>(*out));
 }
 EI_VERIFY(0x006A0BF0, WeaponRecordModelNameVerify, 7, s_weaponRecordModelName);
+
+// --- 00660840 (A-H25): the carried weight ----------------------------------------------------------
+// Pure (the hero's panel in the camp and the shop draws it: ui_main_menu's new game, the camp
+// scenarios): compared against the original, which leaves the sum in ST0.
+// 00660840: MOV EDX,[ECX+0x734] (6 bytes).
+static bool WeightIsNaN(float value) {
+    std::uint32_t bits;
+    std::memcpy(&bits, &value, sizeof(bits));
+    return (bits & 0x7F800000u) == 0x7F800000u && (bits & 0x007FFFFFu) != 0;
+}
+static double(__fastcall* s_carriedWeight)(const PartyUnitRecord*);
+static double __fastcall CarriedWeightVerify(const PartyUnitRecord* self) {
+    const double expected = s_carriedWeight(self);
+    const float expectedFloat = static_cast<float>(expected);
+    const float actual = self->CarriedWeight();
+    if (WeightIsNaN(expectedFloat) || WeightIsNaN(actual)) {
+        ei::verify::Check("PartyUnitRecord::CarriedWeight", WeightIsNaN(expectedFloat), WeightIsNaN(actual), "not a number");
+    } else {
+        ei::verify::CheckNear("PartyUnitRecord::CarriedWeight", expectedFloat, actual, "%u + %u + %u + %u items",
+                              self->weaponCount, self->quickItemCount, self->spellCount, self->armorCount);
+    }
+    return expected;
+}
+EI_VERIFY(0x00660840, CarriedWeightVerify, 6, s_carriedWeight);

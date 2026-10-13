@@ -175,3 +175,44 @@ static void __fastcall ObjectivesUpdateVerify(CObjectivesWindow* self, void*) {
                       self->exitCount_);
 }
 EI_VERIFY(0x0064E760, ObjectivesUpdateVerify, 0, s_unused);
+
+// --- 0064BE40 / 0064D990 (A-H25) -------------------------------------------------------------------
+// Setup (every opening of the window: TAB in a zone, the clock's button, the briefing keys, a zone
+// exit) only stores its arguments: the original, then ours from the same members, compared (the
+// zone by its text). HelpTopic (F1 over the window) is pure.
+
+// 0064BE40: MOV EAX,[ESP+4]; PUSH ESI (5 bytes).
+static void(__fastcall* s_objectivesSetup)(CObjectivesWindow*, void*, const char*, void*, int, int);
+static void __fastcall ObjectivesSetupVerify(CObjectivesWindow* self, void*, const char* zone, void* exitDistances,
+                                             int twoButtons, int listZones) {
+    mfc::CString& name = *reinterpret_cast<mfc::CString*>(&self->zoneName_);
+    const mfc::CString nameBefore = name;
+    const int twoBefore = self->twoButtons_;
+    void* const distancesBefore = self->exitDistances_;
+    const int listBefore = self->listZones_;
+    s_objectivesSetup(self, nullptr, zone, exitDistances, twoButtons, listZones);
+    const mfc::CString expectedName = name;
+    const int expectedTwo = self->twoButtons_;
+    void* const expectedDistances = self->exitDistances_;
+    const int expectedList = self->listZones_;
+    name = nameBefore;
+    self->twoButtons_ = twoBefore;
+    self->exitDistances_ = distancesBefore;
+    self->listZones_ = listBefore;
+    self->CObjectivesWindow::Setup(zone, exitDistances, twoButtons, listZones);
+    const bool ok = std::strcmp(expectedName, name) == 0 && expectedTwo == self->twoButtons_ &&
+                    expectedDistances == self->exitDistances_ && expectedList == self->listZones_;
+    ei::verify::Check("CObjectivesWindow::Setup", true, ok, "'%s' two %d list %d", zone, twoButtons, listZones);
+}
+EI_VERIFY(0x0064BE40, ObjectivesSetupVerify, 5, s_objectivesSetup);
+
+// 0064D990: MOV EAX,[ECX+0x174] (6 bytes).
+static const char*(__fastcall* s_objectivesHelpTopic)(const CObjectivesWindow*);
+static const char* __fastcall ObjectivesHelpTopicVerify(const CObjectivesWindow* self) {
+    const char* expected = s_objectivesHelpTopic(self);
+    const char* actual = self->CObjectivesWindow::HelpTopic();
+    ei::verify::Check("CObjectivesWindow::HelpTopic", true, std::strcmp(expected, actual) == 0, "'%s' / '%s'", expected,
+                      actual);
+    return expected;
+}
+EI_VERIFY(0x0064D990, ObjectivesHelpTopicVerify, 6, s_objectivesHelpTopic);

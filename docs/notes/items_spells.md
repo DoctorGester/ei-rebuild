@@ -487,6 +487,13 @@ The spell manager's folder slot 00688940 (A-H24's last item) was complete. Wrapp
 | 006A58E0, 006A43C0 | CItemSpell::PictureName ("initqi1item"), CItemQuest::GetUse (slot 21: kind 8, the value at +0x4C, 0) | P |
 | 006A5B00, 006AC780, 006AC810 | CItemConstructor::DeletingDestruct, the item manager's Create (slot 2) and NewObject (slot 14: kinds 0x3004..0x3009 to weapon / armour / quick / loot / scroll / quest items) | O: type and class id of the new object |
 | 0065EAD0, 0065EC30, 0065EC70, 0065ECB0 | CDirectInputMouse::Setup / Shutdown / SetActive / Poll (input_mouse.cpp; the game's own GUID copies and c_dfDIMouse at 00745D00; a failed step returns FatalDirectX's answer as 0 / 1) | O; SetActive S (acquire twice is harmless) |
+| 0065ED30, 0065EDE0, 0065EDC0, 0065EF80, 0065F170 | CUiScrollingSurface (the titles' RTF text; ui_scrolling_surface.cpp): Construct ("Riched20.dll", a hidden RichEdit20A child), DestructBody, DeletingDestruct, LoadRtf (EM_STREAMIN from the block: our own reader replaces the CMemFile and its callback 0065EF10), Draw (slot 0: offset += game time passed x speed, _ftol) | O; Draw: the offset the game time gives, within 1 |
+| 0065EF30, 0065F1C0 | CUiScrollingSurface::Load (archive file, LoadRtf, closed), Start (speed, from below the surface) | S: the original, the members put back, ours |
+| 0065C1A0, 0065C290, 0065C2D0 | CUiEditField::SetLook / SetText / SetFocused (ui_edit_field.cpp; +0x16C is the caret colour) | S (no scenario types into an edit field) |
+| 0065BFD0 | CUiSpin::OnLButtonDown (input slot 2: the OK sound, the next value) | O |
+| 0064BE40, 0064D990 | CObjectivesWindow::Setup, HelpTopic (slot 41: "quest_global_map" with two buttons, else "quest_mission") | S; P |
+| 00648F10 | CHudClock::OpenObjectives (from the Rebirth-patched click 00648D70: its inlined window constructor is 0063B5D0) | O |
+| 00660840 | PartyUnitRecord::CarriedWeight (CItem +0x34 is the weight; weapons, quick items, spells, armour in one running float sum) | P, CheckNear |
 
 Library (config/library.csv): 006A5910, 006AF790, 006B0710, 006B0780, 006B09B0, 0069D0E0, 0069E350..0069E3D0 (STLport vector / uninitialised-copy
 helpers of the record tables and the stock) and the records' scalar deleting destructors 0069E540, 006A9EF0..006A9F90;

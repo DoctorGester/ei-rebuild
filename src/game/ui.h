@@ -1555,6 +1555,10 @@ public:
     // 006488E0 (slot 24, every frame): turns the face with the time of day, the hand and the
     // speed dial (scene objects 1-5), blinks while the game is paused (ui_hud_frame.cpp).
     void Update();
+    // 00648F10 (ui_hud.cpp, A-H25; from the clock's click 00648D70). The pause button stops
+    // pulsing, the click sound, and a new objectives window of the current zone (one button, no
+    // exits, no zone list) opened on top.
+    void OpenObjectives();
 
     std::uint8_t unknown_148[4];
     float blink_;                    // +0x14C 0..1, the pause blink phase
@@ -1940,6 +1944,9 @@ public:
     // 0065BE10 (ui_control_delete.cpp, A-H20). Destructor body: the spin's vtables, the texts
     // (006FE958), then the window's.
     void DestroyBody();
+    // 0065BFD0 (input side slot 2, RET 0xC; ui_spin.cpp, A-H25). A click: the message box's OK
+    // sound and the next value (SetValue: back to the first past the last text).
+    void OnLButtonDown(int flags, int x, int y);
 
     mfc::CStringArray texts_;        // +0x148
     int value_;                      // +0x15C
@@ -2209,6 +2216,12 @@ public:
     // Through their addresses (ui_objectives.cpp), so the wrappers run.
     void CallSelectExit(int index);
     void CallRefreshQuests();
+    // A-H25 (ui_objectives.cpp). 0064BE40 (RET 0x10): what the window is opened for, before it
+    // opens: the zone, the exits' distances (or null), the two buttons and the zone list.
+    // 0064D990 (slot 41): the help topic, "quest_global_map" with two buttons, else
+    // "quest_mission".
+    void Setup(const char* zone, void* exitDistances, int twoButtons, int listZones);
+    const char* HelpTopic() const;
 
     char** zonesBegin_;             // +0x164 STLport vector<CString> of the zones listed
     char** zonesEnd_;                // +0x168
@@ -2405,6 +2418,12 @@ public:
     // empty text; it is inserted at the caret when the text is shorter than maxLength_ and the new
     // text is narrower than area_ in font_ (005F8340), then the text is drawn and the key used.
     void OnChar(int key, int repeat, int flags);
+    // A-H25 (ui_edit_field.cpp). 0065C1A0 (RET 0x18): the character classes, the mode, the font,
+    // the length limit and the two colours, then the text drawn. 0065C290 (RET 4): the text (not
+    // editing, changed, the caret at its end), drawn. 0065C2D0 (RET 4): whether keys are taken.
+    void SetLook(std::uint32_t charClasses, char mode, int font, int maxLength, COLORREF colour, COLORREF caretColour);
+    void SetText(const char* text);
+    void SetFocused(bool focused);
 
     RECT area_;                      // +0x148 the surface's layout rectangle
     std::uint32_t charClasses_;      // +0x158 classes OnChar takes (1 digits, 2 letters / space, 4 others, 8 '.' ':')
@@ -2413,7 +2432,7 @@ public:
     int font_;                       // +0x160 interface font
     int maxLength_;                  // +0x164
     COLORREF colour_;                // +0x168 the text's colour
-    COLORREF unknown_16C;            // +0x16C 0xFF from the constructor
+    COLORREF caretColour_;           // +0x16C SetLook's last argument (0xFF from the constructor)
     const char* text_;               // +0x170 CString: the text typed
     int caret_;                      // +0x174 caret position in text_
     bool editing_;                   // +0x178 an edit key was pressed (the first one sets it)

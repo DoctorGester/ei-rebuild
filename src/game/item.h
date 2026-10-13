@@ -10,6 +10,8 @@
 #include "resource_manager.h"
 #include "../lib/mfc.h"
 
+#include <cstring>
+
 class CSpell;
 class CSpellManager;
 class CStream;
@@ -100,6 +102,12 @@ public:
     void SetSpell(CSpell* spell);
     // The condition back to its maximum (+0x20 = +0x24; the camp's repairs).
     void Repair() { unknown_20 = unknown_24; }
+    // The item's weight (+0x34; PartyUnitRecord::CarriedWeight adds them up).
+    float Weight() const {
+        float weight;
+        std::memcpy(&weight, &unknown_34, sizeof(weight));
+        return weight;
+    }
 
     std::uint32_t unknown_1C;
     std::uint32_t unknown_20;     // +0x20 both set from prototype +0x48
@@ -107,7 +115,7 @@ public:
     float charge_;                // +0x28
     float chargeMax_;             // +0x2C prototype +0x40
     float chargeRate_;            // +0x30 0.001 by default
-    std::uint32_t unknown_34;
+    std::uint32_t unknown_34;     // +0x34 the weight's bits (a float: Weight())
     float price_;                 // +0x38 includes the attached spell's price
     std::uint32_t unknown_3C;
     std::uint32_t unknown_40;

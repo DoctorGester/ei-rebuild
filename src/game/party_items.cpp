@@ -216,3 +216,24 @@ void PartyUnitRecord::RemoveArmor(CItem* entry) { RemoveEntry(armor, entry); }
 EI_REPLACE_METHOD(0x00660E10, PartyUnitRecord::RemoveArmor);
 void PartyUnitRecord::RemoveSpell(CItem* entry) { RemoveEntry(spells, entry); }
 EI_REPLACE_METHOD(0x00660FF0, PartyUnitRecord::RemoveSpell);
+
+// --- 00660840 (A-H25): the weight a unit record carries ---------------------------------------------
+
+namespace {
+// One running sum over the lists, in the original's order.
+void AddListWeight(float& weight, CEngineObject* const* list, std::uint32_t count) {
+    for (int i = 0; i < static_cast<int>(count); ++i) {
+        if (list[i]) weight += static_cast<const CItem*>(list[i])->Weight();
+    }
+}
+} // namespace
+
+float PartyUnitRecord::CarriedWeight() const {
+    float weight = 0.0f;
+    AddListWeight(weight, weapons, weaponCount);
+    AddListWeight(weight, quickItems, quickItemCount);
+    AddListWeight(weight, spells, spellCount);
+    AddListWeight(weight, armor, armorCount);
+    return weight;
+}
+EI_REPLACE_METHOD(0x00660840, PartyUnitRecord::CarriedWeight);

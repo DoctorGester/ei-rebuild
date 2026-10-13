@@ -55,3 +55,14 @@ static void __fastcall SpinSetValueVerify(CUiSpin* self, void*, int value) {
     ei::verify::Check("CUiSpin::SetValue", true, ok, "%d of %d -> %d", value, self->texts_.size, self->value_);
 }
 EI_VERIFY(0x0065BEE0, SpinSetValueVerify, 0, s_unused);
+
+// 0065BFD0 (A-H25; a click on an options row's setting): a sound and a redraw, so ours only: the
+// next value, or the first past the last text; changed.
+static void __fastcall SpinLeftDownVerify(void* input, void*, int flags, int x, int y) {
+    CUiSpin* self = reinterpret_cast<CUiSpin*>(static_cast<std::uint8_t*>(input) - offsetof(CUiWindow, inputVtable_));
+    const int value = self->value_;
+    self->CUiSpin::OnLButtonDown(flags, x, y);
+    bool ok = self->value_ == (value + 1 < self->texts_.size ? value + 1 : 0) && self->changed_;
+    ei::verify::Check("CUiSpin::OnLButtonDown", true, ok, "%d of %d -> %d", value, self->texts_.size, self->value_);
+}
+EI_VERIFY(0x0065BFD0, SpinLeftDownVerify, 0, s_unused);
