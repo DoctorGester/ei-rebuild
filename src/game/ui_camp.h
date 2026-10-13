@@ -62,6 +62,17 @@ inline PartyUnitRecord* ShownHero(CUiWindow* screen) {
 inline const char* const* SkillNames() { return reinterpret_cast<const char* const*>(0x00793BD4); }
 inline const char* const* AttributeNames() { return reinterpret_cast<const char* const*>(0x00793BF0); }
 
+// What the battle screen's hover asks a target's slot 42 with (0xC bytes, the screen's +0x220).
+struct BattleTargetQuery {
+    // 005F5F90 (ui_small_members.cpp). Constructor: {1, 0, 0}. Returns this.
+    BattleTargetQuery* Construct();
+
+    int kind;                        // +0x00 1
+    int unknown_4;                   // +0x04 0
+    int unknown_8;                   // +0x08 0
+};
+static_assert(sizeof(BattleTargetQuery) == 0xC);
+
 // The in-game screen (CreateScreen id 1, vtables 00740764 / 00740730, 0x230 bytes). Its Create
 // (slot 25, 00635250) builds the HUD panels as children (ui_battle_setup.cpp). Children, in
 // order: weapon bar, quick items, spell column, action column, portraits, unit panel, map,
@@ -245,6 +256,9 @@ public:
         int* capacity;
     };
     struct PartyIds {
+        // 005F6080 (ui_small_members.cpp). Constructor: both id vectors empty (begin, end and
+        // capacity null); the camera id is not written. Returns this.
+        PartyIds* Construct();
         // 006381E0 (RET 4; ui_battle_update.cpp). Both id vectors hold the same ids in the same
         // order (the camera's id is not compared). AL.
         bool Equals(const PartyIds& other) const;
@@ -294,7 +308,7 @@ public:
     IdVector partyWithUnit_;         // +0x204
     int unknown_210;                 // +0x210 -1
     IdVector partyWithout_;          // +0x214
-    std::uint8_t unknown_220[0x22C - 0x220];
+    BattleTargetQuery targetQuery_;  // +0x220 passed to a hovered target's slot 42
     int portraitMode_;               // +0x22C 0
 };
 static_assert(offsetof(CBattleScreenSetup, pressX_) == 0x1C4);
@@ -338,6 +352,12 @@ void __fastcall GlobalMapZonesSetAtGrow(GlobalMapZoneArray* zones, void*, int in
 
 // A quest place or a link (an "edge" zone) on the map (0x18 bytes, CArrays at +0x1A0 / +0x1B4).
 struct GlobalMapPlace {
+    // 00632490 / 006324E0 (identical copies, the links' and the quests' arrays' one; RET 4;
+    // ui_small_members.cpp). The element assignment: zone and position copied, the two strings
+    // assigned as CStrings (00700AA9). Returns this.
+    GlobalMapPlace* Assign(const GlobalMapPlace& from);
+    GlobalMapPlace* AssignCopy(const GlobalMapPlace& from);
+
     int zone;                        // +0x00 index into the zones
     Vector3 position;                // +0x04 on the map model
     char* name;                      // +0x10 CString

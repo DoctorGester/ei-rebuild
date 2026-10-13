@@ -362,3 +362,42 @@ namespace {
 BOOL __fastcall ExchangeDraw(CExchangeScreen* self, void*, int pass) { return self->Draw(pass); }
 } // namespace
 EI_REPLACE(0x0062C9C0, ExchangeDraw);
+
+// --- 0062D100 / 0062D200: an item clicked in the strip or the grid (slots 42 / 43) -------------------
+
+namespace {
+const char* const kPutOnSound = reinterpret_cast<const char*>(0x007937B0);     // "buttons\camp\put_on.wav"
+const char* const kPutOffSound = reinterpret_cast<const char*>(0x007937C8);    // "buttons\camp\put_off.wav"
+constexpr int kSlotCanMove = 43;
+constexpr int kOfferLimit = 8;
+} // namespace
+
+bool CExchangeScreen::CanMove(CItem*, int) { return true; }
+EI_REPLACE_METHOD(0x0062D200, CExchangeScreen::CanMove);
+
+void CExchangeScreen::MoveOffered(CItem* item, int mode) {
+    using CanMoveFn = bool(__thiscall*)(CExchangeScreen*, CItem*, int);
+    if (!reinterpret_cast<CanMoveFn>(vtable_[kSlotCanMove])(this, item, mode)) {
+        uiorig::PlayUiSound(interface_, kCancelSound, 0);
+        return;
+    }
+    if (mode == kStripActionTake) {
+        uiorig::PlayUiSound(interface_, kPutOnSound, 0);
+        CParty* local = LocalParty();
+        ItemScreenMoveItemOriginal(this, nullptr, item, ownOffer_, local, kOfferLimit, 1, 0);
+        ClientPublishPartyOriginal(net::GameClient());
+        return;
+    }
+    if (mode != kGridMode) return;
+    const AlignedPtrArray& offered = ownOffer_->items_;
+    for (int i = 0; i < offered.size; ++i) {
+        if (offered.data[i] != item) continue;
+        uiorig::PlayUiSound(interface_, kPutOffSound, 0);
+        CParty* offer = ownOffer_;
+        CItem* held = ItemScreenMoveItemOriginal(this, nullptr, item, LocalParty(), offer, 0, 1, 0);
+        ItemStripScrollToItemOriginal(strip_, nullptr, held);
+        ClientPublishPartyOriginal(net::GameClient());
+        return;
+    }
+}
+EI_REPLACE_METHOD(0x0062D100, CExchangeScreen::MoveOffered);

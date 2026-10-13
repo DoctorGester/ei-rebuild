@@ -945,6 +945,15 @@ public:
     // acceptance back (cancel sound and 0041E180, when it is accepted), 2 leave (the transit
     // sound and 0041E3E0). The event is not marked used.
     void OnLButtonDown(int buttons, int x, int y);
+    // 0062D100 (slot 42, RET 8; ui_exchange.cpp; what the strip and the grid call with their mode).
+    // Refused by slot 43: the cancel sound. Mode 1 (the strip): the put_on sound, `item` moves from
+    // the local party into our offer (MoveItem with limit 8, merging) and the offer is published
+    // (0041DA50). Mode 5 (the grid), only for an item of our offer: the put_off sound, the item
+    // moves back to the local party, the strip scrolls to what the party now holds (00621570) and
+    // the offer is published. Other modes nothing.
+    void MoveOffered(CItem* item, int mode);
+    // 0062D200 (slot 43, RET 8). Whether `item` may move with `mode`: always (AL 1).
+    bool CanMove(CItem* item, int mode);
 
     CParty* scratch_;                // +0x190 a party of the screen's own (made by Create, deleted by Close)
     CParty* partnerOffer_;           // +0x194 the client's parties_[1]
