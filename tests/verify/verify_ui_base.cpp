@@ -224,6 +224,7 @@ using ei::verify::gdi::PixelDiff;
 int(__thiscall* s_drawWrapped)(CUiSurface*, const char*, const RECT*, int, int, COLORREF, int, int);
 int __fastcall DrawWrappedVerify(CUiSurface* self, void*, const char* text, const RECT* rect, int maxLines, int font,
                                  COLORREF colour, int format, int flag) {
+    ei::verify::PixelComparisonScope scope;
     HDC dc = *reinterpret_cast<HDC*>(reinterpret_cast<std::uint8_t*>(self) + 0x08);
     int width = self->rect_.right - self->rect_.left;
     int height = self->rect_.bottom - self->rect_.top;

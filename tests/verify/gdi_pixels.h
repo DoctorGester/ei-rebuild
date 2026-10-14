@@ -98,6 +98,7 @@ struct DrawComparison {
 // `copy(read, write)` reads the pixels into *read or writes *write (CopySurfaceDC on some DC).
 template <class Copy, class Original, class Ours>
 DrawComparison CompareDrawsWith(Copy&& copy, int width, Original&& original, Ours&& ours) {
+    PixelComparisonScope scope;
     DrawComparison out;
     GdiPixels before, expected, actual;
     bool pixels = copy(&before, nullptr);

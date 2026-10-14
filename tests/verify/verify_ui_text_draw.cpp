@@ -13,8 +13,9 @@
 //   and the pixels are compared. Only the rows of the text's rectangle (scaled as the draw scales it,
 //   a few rows more for the shadow) are read: reading the whole surface for every text made the camp's
 //   trade lists, which draw hundreds of texts and are redrawn by their own wrapper, take 40 s. A draw
-//   without clipping (DT_NOCLIP) reads the whole surface. Every text on a surface (ui_main_menu,
-//   ui_camp, ui_hud).
+//   without clipping (DT_NOCLIP) reads the whole surface. Inside another wrapper's pixel comparison
+//   (pixel_settle.h: the trade lists, the wrapped text, the edit field) ours only. Every text on a
+//   surface (ui_main_menu, ui_camp, ui_hud).
 // 005E3700: side by side: the state it leaves (the shown flag, the caret) and, with the line open,
 //   the surface's pixels (ui_surface_pixels.h). The chat overlay's constructor draws the closed line
 //   when the interface is created (every launch); the harness's "chat 1" opens it
@@ -79,11 +80,11 @@ EI_VERIFY(0x005E6FA0, MeshPlaceVerify, 7, s_place);
 static int(__fastcall* s_surfaceDrawText)(CUiSurface*, void*, const char*, const RECT*, int, COLORREF, UINT, int);
 static int __fastcall SurfaceDrawTextVerify(CUiSurface* self, void*, const char* text, const RECT* rect, int font,
                                             COLORREF colour, UINT format, int shadow) {
-    if (!self->holder_ || !self->dc_) {
+    if (!self->holder_ || !self->dc_ || ei::verify::PixelComparisonDepth() > 0) {
         RECT before = *rect;
         int result = self->DrawTextIn(text, rect, font, colour, format, shadow);
         bool ok = (self->holder_ || result == 0) && std::memcmp(&before, rect, sizeof(RECT)) == 0;
-        ei::verify::Check("CUiSurface::DrawTextIn", true, ok, "result %d (no surface or DC)", result);
+        ei::verify::Check("CUiSurface::DrawTextIn", true, ok, "result %d (ours only)", result);
         return result;
     }
     const RECT asked = *rect;
