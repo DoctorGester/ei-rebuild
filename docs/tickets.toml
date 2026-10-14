@@ -810,12 +810,13 @@ done = "2026-10-15"
 id = "WB7"
 title = "Scheduler: a batch whose arguments it cannot parse fails visibly instead of waiting"
 group = "harness"
-status = "review"
+status = "done"
 size = 0.15
 model = "sonnet"
 files = ["tools/work_sched.py"]
 note = "Seen 2026-10-15: the scheduler started before SV1 merged had an old run_all without --clock, so batch_args() returned None for SV1a's and SV1d's batches and they sat queued 18 min with no message while later batches ran. A batch whose args do not parse should finish as failed with the parse error in its summary (shown on the board), not be skipped forever. WB6's restart-on-new-code makes this rarer, not impossible."
 started = "2026-10-15"
+done = "2026-10-15"
 
 # ---------------------------------------------------------------- cleanup
 
