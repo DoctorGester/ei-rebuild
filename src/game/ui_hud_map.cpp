@@ -132,7 +132,7 @@ public:
         float mapY = MapY(worldY);
         float zoomedX = Store(mapX * Zoom());
         float zoomedY = Store(D(mapY) * Zoom());
-        if (!(D(zoomedY) * D(zoomedY) + D(zoomedX) * D(zoomedX) > kInnerRadius2)) {
+        if (!(LengthSquared2DUnrounded<double>(zoomedY, zoomedX) > kInnerRadius2)) {
             *x = zoomedX;
             *y = zoomedY;
             return true;
@@ -220,7 +220,7 @@ void PutArrow(UiQuadBlock& b, const CUnit* unit, float x, float y) {
     rotation->AxisY(&second);
     float dirY = second.y;
 
-    double length2 = D(dirY) * D(dirY) + D(dirX) * D(dirX);
+    double length2 = LengthSquared2DUnrounded<double>(dirY, dirX);
     double nx;
     double ny;
     if (length2 >= kTinyLength2) {
@@ -431,7 +431,7 @@ void CHudMap::UpdateView() {
         camera->localRotation_.AxisZ(&axis);
         facingY_ = axis.y;
     }
-    double length2 = D(facingX_) * D(facingX_) + D(facingY_) * D(facingY_);
+    double length2 = LengthSquared2DUnrounded<double>(facingX_, facingY_);
     if (length2 >= kTinyLength2) {
         double length = x87::fsqrt(length2);
         facingX_ = Store(D(facingX_) / length);

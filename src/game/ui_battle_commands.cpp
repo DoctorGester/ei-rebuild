@@ -67,8 +67,8 @@ using SlotEvent = void(__thiscall*)(void*, int, int, int);
 // (slot, member, &point, 0).
 __declspec(naked) void __fastcall ViewSpellOnUnit(void*, void*, int, CUnit*, CUnit*, int) EI_ORIGINAL(0x0066AC70)
 __declspec(naked) void __fastcall ViewQuickOnUnit(void*, void*, int, CUnit*, CUnit*, int) EI_ORIGINAL(0x0066AD40)
-__declspec(naked) void __fastcall ViewSpellAtPoint(void*, void*, int, CUnit*, float*, int) EI_ORIGINAL(0x0066ACD0)
-__declspec(naked) void __fastcall ViewQuickAtPoint(void*, void*, int, CUnit*, float*, int) EI_ORIGINAL(0x0066ADD0)
+__declspec(naked) void __fastcall ViewSpellAtPoint(void*, void*, int, CUnit*, Vector3*, int) EI_ORIGINAL(0x0066ACD0)
+__declspec(naked) void __fastcall ViewQuickAtPoint(void*, void*, int, CUnit*, Vector3*, int) EI_ORIGINAL(0x0066ADD0)
 // CUnit::CanCastSpell (0052F820) / CanUseQuickItem (0052F8B0) (thiscall, RET 8; rewritten),
 // CHudQuickItems::SetUnit (0063D2B0, RET 4; rewritten), through their addresses.
 // The HUD panels (thiscall, RET 8): quick items 0063CD20 (slot, 0), spells 0063E750 (index, 0),
@@ -234,16 +234,16 @@ void CBattleScreenSetup::UseOnUnit(CUnit* target, char quick, int ctrl) {
     for (int i = 0; i < party->size; ++i) {
         CUnit* member = unitAt(i);
         if (!member || !(member->flags_ & kFlagSelected)) continue;
-        float position[3];   // the target's position, passed to the (unused) argument of the checks
-        std::memcpy(position, &target->position, sizeof(position));
+        Vector3 position;   // the target's position, passed to the (unused) argument of the checks
+        std::memcpy(&position, &target->position, sizeof(position));
         int refused;
         if (quick == 0) {
             ViewSpellOnUnit(LocalView(kWorld), nullptr, pendingSlot_, member, target, ctrl & 0xFF);
-            refused = UnitCanCastSpell(unitAt(i), nullptr, pendingSlot_, position);
+            refused = UnitCanCastSpell(unitAt(i), nullptr, pendingSlot_, &position.x);
         } else {
             ViewQuickOnUnit(LocalView(kWorld), nullptr, pendingSlot_, member, target, ctrl & 0xFF);
             QuickItemsSetUnit(quickItems_, nullptr, unitAt(i));
-            refused = UnitCanUseQuickItem(unitAt(i), nullptr, pendingSlot_, position);
+            refused = UnitCanUseQuickItem(unitAt(i), nullptr, pendingSlot_, &position.x);
         }
         if (refused == 0) NodPortrait(this, i);
     }
@@ -255,7 +255,7 @@ void CBattleScreenSetup::UseAtPoint(float x, float y, float z, CUnit* unit, char
     auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
     auto unitAt = [party](int i) { return reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i])); };
     // The original works on its argument slots, so the shift below stays for the later members.
-    float point[3] = {x, y, z};
+    Vector3 point = {x, y, z};
     for (int i = 0; i < party->size; ++i) {
         CUnit* member = unitAt(i);
         if (!member || !(member->flags_ & kFlagSelected)) continue;
@@ -263,18 +263,18 @@ void CBattleScreenSetup::UseAtPoint(float x, float y, float z, CUnit* unit, char
             Vector3 axis;
             unit->orientation.AxisY(&axis);
             const float k = *reinterpret_cast<const volatile float*>(0x0073B850);   // 0.1
-            point[0] = point[0] + -axis.x * k;
-            point[1] = point[1] + -axis.y * k;
-            point[2] = point[2] + -axis.z * k;
+            point.x = point.x + -axis.x * k;
+            point.y = point.y + -axis.y * k;
+            point.z = point.z + -axis.z * k;
         }
         int refused;
         if (quick != 0) {
-            ViewQuickAtPoint(LocalView(kWorld), nullptr, pendingSlot_, unitAt(i), point, 0);
+            ViewQuickAtPoint(LocalView(kWorld), nullptr, pendingSlot_, unitAt(i), &point, 0);
             QuickItemsSetUnit(quickItems_, nullptr, unitAt(i));
-            refused = UnitCanUseQuickItem(unitAt(i), nullptr, pendingSlot_, point);
+            refused = UnitCanUseQuickItem(unitAt(i), nullptr, pendingSlot_, &point.x);
         } else {
-            ViewSpellAtPoint(LocalView(kWorld), nullptr, pendingSlot_, unitAt(i), point, 0);
-            refused = UnitCanCastSpell(unitAt(i), nullptr, pendingSlot_, point);
+            ViewSpellAtPoint(LocalView(kWorld), nullptr, pendingSlot_, unitAt(i), &point, 0);
+            refused = UnitCanCastSpell(unitAt(i), nullptr, pendingSlot_, &point.x);
         }
         if (refused == 0) NodPortrait(this, i);
     }

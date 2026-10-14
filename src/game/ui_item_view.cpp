@@ -256,7 +256,7 @@ Quaternion HalfTurn(float ax, float ay, float az) {
 // The two products the original inlines (a * b), each with its own order of the w sum.
 Quaternion ProductA(const Quaternion& a, const Quaternion& b) {   // weapons
     Quaternion r;
-    r.w = Store(D(a.w) * D(b.w) - ((D(a.y) * D(b.y) + D(a.x) * D(b.x)) + D(b.z) * D(a.z)));
+    r.w = Store(D(a.w) * D(b.w) - DotUnrounded<Sum3::XYZ, double>(a.x, a.y, a.z, b.x, b.y, b.z));
     r.x = Store(((D(b.y) * D(a.z) - D(a.y) * D(b.z)) + D(a.w) * D(b.x)) + D(a.x) * D(b.w));
     r.y = Store(((D(a.x) * D(b.z) - D(b.x) * D(a.z)) + D(a.w) * D(b.y)) + D(a.y) * D(b.w));
     r.z = Store(((D(a.y) * D(b.x) - D(a.x) * D(b.y)) + D(b.w) * D(a.z)) + D(a.w) * D(b.z));
@@ -264,7 +264,7 @@ Quaternion ProductA(const Quaternion& a, const Quaternion& b) {   // weapons
 }
 Quaternion ProductB(const Quaternion& a, const Quaternion& b) {   // other items
     Quaternion r;
-    r.w = Store(D(a.w) * D(b.w) - ((D(b.z) * D(a.z) + D(b.y) * D(a.y)) + D(b.x) * D(a.x)));
+    r.w = Store(D(a.w) * D(b.w) - DotUnrounded<Sum3::ZYX, double>(a.x, a.y, a.z, b.x, b.y, b.z));
     r.x = Store(((D(b.y) * D(a.z) - D(b.z) * D(a.y)) + D(a.w) * D(b.x)) + D(b.w) * D(a.x));
     r.y = Store(((D(b.z) * D(a.x) - D(b.x) * D(a.z)) + D(a.w) * D(b.y)) + D(b.w) * D(a.y));
     r.z = Store(((D(b.x) * D(a.y) - D(b.y) * D(a.x)) + D(a.z) * D(b.w)) + D(a.w) * D(b.z));
