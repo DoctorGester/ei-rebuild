@@ -304,7 +304,8 @@ void* UnitStats::RefillSlots() {
     for (UnitStatSlot& slot : slots) {
         if (slot.kind >= 2) std::memcpy(&slot.current, &slot.maximum, sizeof(float));   // dword copy
     }
-    return reinterpret_cast<char*>(this) + 0x1F8 + 6 * sizeof(UnitStatSlot);
+    UnitStatSlot* end = slots + 6;
+    return &end->maximum;   // where the original's loop pointer stops
 }
 EI_REPLACE_METHOD(0x00525AF0, UnitStats::RefillSlots);
 
@@ -315,7 +316,8 @@ void* UnitStats::RestoreSlots() {
             std::memcpy(&slot.current, &slot.maximum, sizeof(float));
         }
     }
-    return reinterpret_cast<char*>(this) + 0x1F0 + 6 * sizeof(UnitStatSlot);
+    UnitStatSlot* end = slots + 6;
+    return &end->kind;   // where the original's loop pointer stops
 }
 EI_REPLACE_METHOD(0x00523C80, UnitStats::RestoreSlots);
 
@@ -578,8 +580,6 @@ bool RaiseLevel(UnitStats* stats, std::uint8_t* levels, int index, int amount, C
     return true;
 }
 
-float* BaseScale(CUnit* unit) { return reinterpret_cast<float*>(reinterpret_cast<char*>(unit) + 0x1AC); }
-float* FigureScale(CUnit* unit) { return reinterpret_cast<float*>(reinterpret_cast<char*>(unit) + 0xC4); }
 } // namespace
 
 void UnitStats::GainExperience(CUnit* unit, float amount) {
@@ -612,8 +612,8 @@ bool UnitStats::RaiseStrength(int amount, CUnit* unit) {
     vitals->maxMana = static_cast<float>(UnitStatsManaCurve(this));
     CallScaleSlotMaxima(this, nullptr, vitals->maxHitPoints);
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
-    BaseScale(unit)[0] = BaseScale(unit)[0] + kPointTwo;
-    FigureScale(unit)[0] = FigureScale(unit)[0] + kPointTwo;
+    unit->baseScale.x = unit->baseScale.x + kPointTwo;
+    unit->scale.x = unit->scale.x + kPointTwo;
     unit->MarkChanged(1);
     UnitStatsRecompute(this, nullptr, vitals, unit);
     unit->MarkChanged(4);
@@ -640,12 +640,12 @@ bool UnitStats::RaiseDexterity(int amount, CUnit* unit) {
         static_cast<float>((CallSkillLevelValueCopy(this, nullptr, kSkillMana) * kPercent + kOne) * scaled);
     CallScaleSlotMaxima(this, nullptr, vitals->maxHitPoints);
     vitals->hitPoints = static_cast<float>(Reduce(vitals->maxHitPoints));
-    volatile float lowered = BaseScale(unit)[1] - kPointTwo;
+    volatile float lowered = unit->baseScale.y - kPointTwo;
     float l = lowered;
-    BaseScale(unit)[1] = LessOrUnordered(kZero, l, l, kZero);
-    lowered = FigureScale(unit)[1] - kPointTwo;
+    unit->baseScale.y = LessOrUnordered(kZero, l, l, kZero);
+    lowered = unit->scale.y - kPointTwo;
     l = lowered;
-    FigureScale(unit)[1] = LessOrUnordered(kZero, l, l, kZero);
+    unit->scale.y = LessOrUnordered(kZero, l, l, kZero);
     unit->MarkChanged(1);
     UnitStatsRecompute(this, nullptr, vitals, unit);
     unit->MarkChanged(4);

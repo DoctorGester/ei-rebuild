@@ -3,9 +3,10 @@
 // object they made at +0x1C and its effect at +0x4C, are kept above the terrain when moved, and
 // save as chunks DD01 / AA01 / CC01. See docs/notes/objects.md ("Sixth round").
 #include "map_spec.h"
+#include "core_transform.h"
+#include "world_effect.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -25,7 +26,6 @@ constexpr std::uintptr_t kEffectVtable = 0x0073C728;
 constexpr std::uintptr_t kParticleVtable = 0x0073C758;
 constexpr std::uintptr_t kLightVtable = 0x0073C788;
 constexpr std::uintptr_t kSoundVtable = 0x0073C7B8;
-constexpr int kSlotApply = 7;
 
 void __fastcall EffectRestart(void* a0) { ObjectMarkNewOriginal(a0); }
 // 0046D4D0 (below), through its address: the two strings are passed by value (destroyed there).
@@ -112,7 +112,7 @@ EI_REPLACE_METHOD(0x0046D3D0, EffectSpec::EffectSpecWorldObject);
 // 0046D3F0 / 0046E490 (slot 11): shows or hides the world object (flag 0x40 hides).
 void EffectSpec::EffectSpecSetVisible(std::uint8_t newVisible) {
     visible = newVisible;
-    std::uint32_t& flags = *reinterpret_cast<std::uint32_t*>(static_cast<std::uint8_t*>(base.object) + 8);
+    std::uint32_t& flags = static_cast<CEngineObject*>(base.object)->flags_;
     if (newVisible != 0) flags &= ~0x40u;
     else flags |= 0x40;
 }
@@ -127,7 +127,7 @@ void EffectSpec::EffectSpecMove(float dx, float dy, float dz) {
     p.z = dz + p.z;
     double ground = TerrainHeightAtOriginal(*reinterpret_cast<Terrain**>(0x007AF738), nullptr, p.x, p.y, 0);
     if (ground > p.z) p.z = static_cast<float>(ground);
-    ei::VCall<void>(this, kSlotApply);
+    base.Record()->ApplyObject();
 }
 EI_REPLACE_METHOD(0x0046D420, EffectSpec::EffectSpecMove);
 
@@ -198,12 +198,12 @@ void ParticleSpec::ParticleSpecApply() {
         if (type) MakeEffect(&effect);
         return;
     }
-    auto* effectBytes = static_cast<std::uint8_t*>(effect.effect);
-    std::memcpy(static_cast<std::uint8_t*>(b.object) + 0x1C, &b.position, 12);
-    std::memcpy(effectBytes + 0x15C, &scale, 4);
-    std::memcpy(effectBytes + 0x158, &type, 4);
-    std::memcpy(effectBytes + 0x1C, &b.position, 12);
-    EffectRestart(effectBytes);
+    auto* particle = static_cast<CEffectParticle*>(effect.effect);
+    std::memcpy(&static_cast<CTransformObject*>(b.object)->localPosition_, &b.position, 12);
+    std::memcpy(&particle->size_, &scale, 4);
+    std::memcpy(&particle->type_, &type, 4);
+    std::memcpy(&particle->localPosition_, &b.position, 12);
+    EffectRestart(particle);
 }
 EI_REPLACE_METHOD(0x0046D870, ParticleSpec::ParticleSpecApply);
 
@@ -272,12 +272,12 @@ void LightSpec::LightSpecApply() {
         MakeEffect(&effect);
         return;
     }
-    auto* effectBytes = static_cast<std::uint8_t*>(effect.effect);
-    std::memcpy(effectBytes + 0x14C, &colour, 12);
-    std::memcpy(effectBytes + 0x158, &radius, 4);
-    std::memcpy(effectBytes + 0x1C, &b.position, 12);
-    std::memcpy(static_cast<std::uint8_t*>(b.object) + 0x1C, &b.position, 12);
-    EffectRestart(effectBytes);
+    auto* light = static_cast<CEffectPointLight*>(effect.effect);
+    std::memcpy(&light->color_, &colour, 12);
+    std::memcpy(&light->range_, &radius, 4);
+    std::memcpy(&light->localPosition_, &b.position, 12);
+    std::memcpy(&static_cast<CTransformObject*>(b.object)->localPosition_, &b.position, 12);
+    EffectRestart(light);
 }
 EI_REPLACE_METHOD(0x0046DD70, LightSpec::LightSpecApply);
 
@@ -380,7 +380,7 @@ void SoundSpec::SoundSpecApply() {
         if (sounds.size > 0) MakeEffect(&effect);
         return;
     }
-    std::memcpy(static_cast<std::uint8_t*>(b.object) + 0x1C, &b.position, 12);
+    std::memcpy(&static_cast<CTransformObject*>(b.object)->localPosition_, &b.position, 12);
     if (effect.effect) WorldRemoveTimed(World(), nullptr, b.id);
     if (sounds.size > 0) MakeEffect(&effect);
     else effect.effect = nullptr;

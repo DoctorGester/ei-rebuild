@@ -8,6 +8,7 @@
 #include "item_stock.h"
 #include "lib/stlp.h"
 
+class CParty;   // party.h
 class ChunkArchive;
 
 #include <cstddef>
@@ -34,6 +35,9 @@ struct ClassTemplate {
     // 0069B5B0), field 6 flag38 (1 byte).
     void Serialize(ChunkArchive* ar);
 
+    CParty* ItemsParty() { return reinterpret_cast<CParty*>(items); }
+    CParty* SpellsParty() { return reinterpret_cast<CParty*>(spells); }
+
     void* vtable;                   // 0073D0C4 (base 0073BB68)
     std::int16_t refCount;          // +0x04 counted pointers (the dword is cleared before construction)
     std::int16_t unknown_06;
@@ -45,8 +49,10 @@ struct ClassTemplate {
     std::uint8_t unknown_34[4];
     std::uint8_t flag38;            // +0x38 set by the constructor and by a quest completion (004A88E0)
     std::uint8_t unknown_39[3];
-    std::uint8_t items[0x70];       // +0x3C party object (00661050); slot 18: its item manager (+0x1C)
-    std::uint8_t spells[0x70];      // +0xAC party object; slot 22: its spell manager (+0x24)
+    // +0x3C / +0xAC the party objects (CParty, constructor 00661050), held as storage because the
+    // class is abstract in its C++ declaration: ItemsParty / SpellsParty.
+    std::uint8_t items[0x70];
+    std::uint8_t spells[0x70];
     ItemStock allowed;              // +0x11C everything the class may use (vectors at +0x08 armors,
                                     //   +0x14 weapons, +0x20 quick items, +0x2C the fourth kind
                                     //   (16-byte entries), +0x38 spells, +0x44 modifiers)

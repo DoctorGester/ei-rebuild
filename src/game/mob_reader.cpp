@@ -187,7 +187,7 @@ bool __fastcall LoadMobFile(Chunk* root, void*, void*, int keepIds) {
     records.maxId = 0;
     alignas(ZoneDiplomacy) std::uint8_t diplomacyStorage[sizeof(ZoneDiplomacy)];
     auto* diplomacy = reinterpret_cast<ZoneDiplomacy*>(diplomacyStorage);
-    DiplomacyConstruct(diplomacy->relations[0]);
+    DiplomacyConstruct(diplomacy);
     alignas(mfc::CString) std::uint8_t scriptsStorage[sizeof(mfc::CString)];   // destroyed by hand, in order
     auto* scripts = new (scriptsStorage) mfc::CString();
 

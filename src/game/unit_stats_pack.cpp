@@ -111,11 +111,10 @@ void UnitStats::Pack(CUnit*, UnitParams* params) {
     params->rate = static_cast<std::uint8_t>(RoundStored(rate));
     params->capacity = static_cast<std::int16_t>(RoundStored(capacity));
     params->movementKind = static_cast<std::uint8_t>(unknown_060);
-    const float* combat = reinterpret_cast<const float*>(reinterpret_cast<const char*>(this) + 0x70);
     for (int i = 0; i < 5; ++i) params->combat[i] = static_cast<std::uint8_t>(RoundStored(combat[i]));
-    params->damage = static_cast<std::uint8_t>(GameFtol(combat[5]));         // +0x84, truncated
-    params->damageSpread = static_cast<std::uint8_t>(GameFtol(combat[6]));   // +0x88
-    params->naturalWeapon = *(reinterpret_cast<const std::uint8_t*>(this) + 0xAC);
+    params->damage = static_cast<std::uint8_t>(GameFtol(damage));         // truncated
+    params->damageSpread = static_cast<std::uint8_t>(GameFtol(damageSpread));
+    params->naturalWeapon = static_cast<std::uint8_t>(naturalWeapon);   // its low byte
     for (int i = 0; i < 6; ++i) {
         params->valuesB0[i] = static_cast<std::uint8_t>(RoundStored(valuesB0[i].current));
         params->valuesE0[i] = static_cast<std::uint8_t>(RoundStored(valuesE0[i].current));
@@ -170,12 +169,12 @@ int UnitStats::Reset() {
     speedBase = speed = kZero;
     rateBase = rate = kZero;
     capacity = kZero;
-    char* bytes = reinterpret_cast<char*>(this);
-    float* combat = reinterpret_cast<float*>(bytes + 0x70);   // reach .. +0x88 (combat.h)
-    for (int i = 0; i < 7; ++i) combat[i] = kZero;
-    combat[2] = kOne;                                         // +0x78
-    std::memset(bytes + 0x90, 0, 7 * sizeof(float));          // natural attack weights
-    *reinterpret_cast<int*>(bytes + 0xAC) = kNoNaturalWeapon;
+    for (float& value : combat) value = kZero;
+    damage = kZero;
+    damageSpread = kZero;
+    combat[2] = kOne;   // attack spread
+    std::memset(damageWeights, 0, sizeof(damageWeights));
+    naturalWeapon = kNoNaturalWeapon;
     std::memset(valuesB0, 0, sizeof(valuesB0));
     std::memset(valuesE0, 0, sizeof(valuesE0));
     for (UnitStatSlot& slot : slots) {

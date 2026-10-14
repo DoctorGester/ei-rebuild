@@ -7,10 +7,13 @@
 #include "class_templates.h"
 
 #include "console.h"
+#include "core_refcount.h"
+#include "item_db.h"
+#include "party.h"
+#include "party_manager.h"
 #include "lib/crt.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 
 #include <cstring>
 #include "originals_library.h"
@@ -88,19 +91,23 @@ __declspec(naked) void __fastcall AddFourthKind(void*, void*, void*, int, int) E
 void AddSpell(void* list, void*, void* record) { StockAddSpellOriginal(list, nullptr, record); }
 void AddModifier(void* list, void*, void* record) { StockAddModifierOriginal(list, nullptr, record); }
 
-template <typename T>
-T& At(void* base, std::size_t offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(base) + offset);
-}
-
 // The bit of the template's class (+0x08) in a record's class mask (SHL by CL: modulo 32).
-bool Allowed(const ClassTemplate* t, const void* record, std::size_t maskOffset) {
+bool Allowed(const ClassTemplate* t, std::uint32_t classMask) {
     std::uint32_t bit = 1u << ((static_cast<unsigned>(t->type) - 1) & 31);
-    return (At<std::uint32_t>(const_cast<void*>(record), maskOffset) & bit) != 0;
+    return (classMask & bit) != 0;
+}
+bool Allowed(const ClassTemplate* t, const void* itemRecord) {
+    return Allowed(t, static_cast<const itemdb::ItemRecordHead*>(itemRecord)->classMask);
 }
 
-void* AllList(ClassTemplate* t) { return reinterpret_cast<char*>(t) + 0x11C; }
-void* MagicList(ClassTemplate* t) { return reinterpret_cast<char*>(t) + 0x1D4; }
+void* AllList(ClassTemplate* t) { return &t->allowed; }
+void* MagicList(ClassTemplate* t) { return &t->magic; }
+
+// A modifier map entry: hash_map<string, record*>'s value pair (the inlined operator[]'s key).
+struct ModifierPair {
+    RawString name;
+    itemdb::SpellModifierRecord* record;   // +0x0C
+};
 
 } // namespace
 
@@ -108,19 +115,19 @@ void* MagicList(ClassTemplate* t) { return reinterpret_cast<char*>(t) + 0x1D4; }
 
 void __fastcall ClassTemplateFill(ClassTemplate* t) {
     console::CStringArray names;
-    void* items = ei::VCall<void*>(reinterpret_cast<char*>(t) + 0x3C, 18);
-    void* spells = ei::VCall<void*>(reinterpret_cast<char*>(t) + 0xAC, 22);
+    void* items = t->ItemsParty()->ItemManager();
+    void* spells = t->SpellsParty()->SpellManager();
     char alloc = 0;   // the allocator argument (an empty object passed by address)
 
     ListWeapons(items, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
         void* record = FindWeapon(kWeapons, nullptr, names.data[i]);
-        if (record && Allowed(t, record, 0x64)) AddWeapon(AllList(t), nullptr, record);
+        if (record && Allowed(t, record)) AddWeapon(AllList(t), nullptr, record);
     }
     ListArmors(items, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
         void* record = FindArmor(kArmors, nullptr, names.data[i]);
-        if (record && Allowed(t, record, 0x64)) AddArmor(AllList(t), nullptr, record);
+        if (record && Allowed(t, record)) AddArmor(AllList(t), nullptr, record);
     }
     ListQuickItems(items, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
@@ -128,7 +135,7 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
         StringFromChars(&key, nullptr, names.data[i], &alloc);
         void* record = *QuickItemAt(kQuickItemMap, nullptr, &key);
         StlStringDestroy(&key);
-        if (record && Allowed(t, record, 0x64)) AddQuickItem(AllList(t), nullptr, record);
+        if (record && Allowed(t, record)) AddQuickItem(AllList(t), nullptr, record);
     }
     ListFourthKind(items, nullptr, &names);
     for (int i = 0; i < names.size; ++i) {
@@ -136,7 +143,7 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
         StringFromChars(&key, nullptr, names.data[i], &alloc);
         void* record = *FourthKindAt(kFourthKindMap, nullptr, &key);
         StlStringDestroy(&key);
-        if (record && Allowed(t, record, 0x4C)) AddFourthKind(AllList(t), nullptr, record, 0x14, 0x32);
+        if (record && Allowed(t, static_cast<itemdb::MaterialRecordHead*>(record)->classMask)) AddFourthKind(AllList(t), nullptr, record, 0x14, 0x32);
     }
 
     // Spells and modifiers: the name's code is the key; allowed ones go to both lists.
@@ -148,7 +155,7 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
         StringAssignSpan(&key, nullptr, code, code + std::strlen(code));
         void* record = *SpellAt(kSpellMap, nullptr, &key);
         StlStringDestroy(&key);
-        if (record && Allowed(t, record, 0x80)) {
+        if (record && Allowed(t, static_cast<itemdb::SpellRecord*>(record)->classMask)) {
             AddSpell(MagicList(t), nullptr, record);
             AddSpell(AllList(t), nullptr, record);
         }
@@ -160,17 +167,14 @@ void __fastcall ClassTemplateFill(ClassTemplate* t) {
         // find_or_insert, the pair and the string destroyed.
         RawString key{};
         StringAssignSpan(&key, nullptr, code, code + std::strlen(code));
-        struct {
-            RawString name;
-            void* record;
-        } pair;
+        ModifierPair pair;
         StringCopy(&pair.name, nullptr, &key);
         pair.record = nullptr;
-        char* element = ModifierFindOrInsert(kModifierMap, nullptr, &pair);
+        auto* element = reinterpret_cast<ModifierPair*>(ModifierFindOrInsert(kModifierMap, nullptr, &pair));
         StlStringDestroy(&pair.name);
-        void* record = At<void*>(element, 0xC);
+        itemdb::SpellModifierRecord* record = element->record;
         StringBufferFree(&key);
-        if (record && Allowed(t, record, 0x20)) {
+        if (record && Allowed(t, record->classMask)) {
             AddModifier(MagicList(t), nullptr, record);
             AddModifier(AllList(t), nullptr, record);
         }
@@ -191,8 +195,9 @@ constexpr std::uint32_t kZeroWeights[9] = {};
 // and weights set, filled, then appended to the vector through a temporary counted pointer.
 void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uint8_t flag0D,
                  const std::uint32_t (&weights)[9], CopyConstructFn copyConstruct) {
-    void* memory = gamecrt::operator_new(0x28C);
-    At<std::uint32_t>(memory, 4) = 0;
+    auto* memory = static_cast<ClassTemplate*>(gamecrt::operator_new(sizeof(ClassTemplate)));
+    memory->refCount = 0;
+    memory->unknown_06 = 0;
     ClassTemplate* t = memory ? TemplateConstruct(memory) : nullptr;
     t->type = type;
     t->flag0C = flag0C;
@@ -208,7 +213,7 @@ void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uin
         if (v->Finish()) copyConstruct(v->Finish(), nullptr, &temp);
         ++v->Finish();
     }
-    if (temp && --temp->refCount == 0 && temp) ei::VCall<void>(temp, 0, 1);
+    if (temp && --temp->refCount == 0 && temp) delete reinterpret_cast<CRefCounted*>(temp);   // slot 0 with 1
 }
 
 } // namespace
@@ -241,7 +246,7 @@ ClassTemplate* __fastcall ClassTemplatesFind(const ClassTemplateVector* v, void*
 EI_REPLACE(0x004A74F0, ClassTemplatesFind);
 
 unsigned __fastcall ClassTemplatesQuestCompleted(void* manager) {
-    auto* v = reinterpret_cast<ClassTemplateVector*>(static_cast<char*>(manager) + 0x38);
+    ClassTemplateVector* v = &static_cast<PartyManager*>(manager)->templates;
     unsigned i = 0;
     while (i < static_cast<unsigned>(v->size())) {
         ++i;

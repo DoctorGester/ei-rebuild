@@ -35,7 +35,7 @@ std::uint64_t HeadDigest(const ItemRecordHead* r) {
     Mix(d, &r->type, 4);
     Mix(d, &r->unknown_14, 12);
     Mix(d, &r->price, offsetof(ItemRecordHead, list50) - offsetof(ItemRecordHead, price));
-    Mix(d, &r->unknown_64, 5);
+    Mix(d, &r->classMask, 5);
     return d;
 }
 std::uint64_t Digest(const ItemRecordHead* r) { return HeadDigest(r); }

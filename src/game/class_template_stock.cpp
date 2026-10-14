@@ -13,10 +13,6 @@
 
 namespace {
 
-// The template's two party objects (0x70 bytes each, built by the template's constructor).
-CParty* ItemsParty(ClassTemplate* t) { return reinterpret_cast<CParty*>(t->items); }
-CParty* SpellsParty(ClassTemplate* t) { return reinterpret_cast<CParty*>(t->spells); }
-
 // list<CItem*>'s constructor (004A9CD0 inlined): a sentinel node from the node pool linked to itself.
 void ListConstruct(StockList* list) {
     auto* head = static_cast<StockListNode*>(stlp::allocate(sizeof(StockListNode)));
@@ -85,13 +81,13 @@ EI_REPLACE_METHOD(0x004A66C0, ItemStock::Construct);
 
 ClassTemplate* ClassTemplate::Construct() {
     vtable = reinterpret_cast<void*>(kBaseVtableAddress);
-    ItemsParty(this)->Construct();
-    SpellsParty(this)->Construct();
-    allowed.Construct(ItemsParty(this));
-    magic.Construct(SpellsParty(this));
+    ItemsParty()->Construct();
+    SpellsParty()->Construct();
+    allowed.Construct(ItemsParty());
+    magic.Construct(SpellsParty());
     vtable = reinterpret_cast<void*>(kVtableAddress);
-    ItemsParty(this)->Create();
-    SpellsParty(this)->Create();
+    ItemsParty()->Create();
+    SpellsParty()->Create();
     type = -1;
     flag0C = 0;
     flag0D = 0;
@@ -115,12 +111,12 @@ void ItemStock::Destruct() {
 
 void ClassTemplate::Destruct() {
     vtable = reinterpret_cast<void*>(kVtableAddress);
-    ItemsParty(this)->Destroy();
-    SpellsParty(this)->Destroy();
+    ItemsParty()->Destroy();
+    SpellsParty()->Destroy();
     magic.Destruct();
     allowed.Destruct();
-    SpellsParty(this)->DestructBody();
-    ItemsParty(this)->DestructBody();
+    SpellsParty()->DestructBody();
+    ItemsParty()->DestructBody();
     vtable = reinterpret_cast<void*>(kBaseVtableAddress);
 }
 EI_REPLACE_METHOD(0x004A6A90, ClassTemplate::Destruct);
@@ -142,7 +138,7 @@ void __fastcall ClassTemplateGenerateItems(ClassTemplate* t) {
     if (!t->flag0C) return;
     StockList list;
     ListConstruct(&list);
-    ItemsParty(t)->Clear(1, 0);
+    t->ItemsParty()->Clear(1, 0);
     ItemStock& stock = t->allowed;
     stock.classIndex = t->type - 1;
     stock.CopyMagic(&t->magic);
@@ -154,7 +150,7 @@ void __fastcall ClassTemplateGenerateItems(ClassTemplate* t) {
     stock.GenerateArmorInstructions(1, 3, &list);
     stock.GenerateQuickItemInstructions(1, 3, &list);
     stock.GenerateMaterials(20, 50, &list);
-    HandOverAndFree(&list, ItemsParty(t));
+    HandOverAndFree(&list, t->ItemsParty());
 }
 EI_REPLACE(0x004A6DF0, ClassTemplateGenerateItems);
 
@@ -162,12 +158,12 @@ void __fastcall ClassTemplateGenerateMagic(ClassTemplate* t) {
     if (!t->flag0D) return;
     StockList list;
     ListConstruct(&list);
-    SpellsParty(t)->Clear(1, 0);
+    t->SpellsParty()->Clear(1, 0);
     ItemStock& stock = t->magic;
     stock.classIndex = t->type - 1;
     stock.GenerateScrolls(40, 50, &list);
     stock.GenerateSpellInstructions(1, 3, &list);
     stock.GenerateModifierInstructions(20, 50, &list);
-    HandOverAndFree(&list, SpellsParty(t));
+    HandOverAndFree(&list, t->SpellsParty());
 }
 EI_REPLACE(0x004A6F60, ClassTemplateGenerateMagic);

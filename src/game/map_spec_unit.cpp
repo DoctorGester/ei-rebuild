@@ -3,9 +3,10 @@
 // read and write those (vtables 0073C710 waypoint, 0073C718 patrol, 0073C720 behaviour) and the
 // patrol array's copy. See docs/notes/objects.md ("Sixth round").
 #include "map_spec.h"
+#include "core_streams.h"
+#include "unit.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/crt.h"
 
 #include <cstring>
@@ -42,7 +43,6 @@ constexpr std::uintptr_t kPatrolsDeadVtable = 0x0073C394;
 constexpr std::uintptr_t kWaypointsDeadVtable = 0x0073C388;
 constexpr std::uintptr_t kBehaviourConstruct = 0x0045D5B0;
 constexpr std::uintptr_t kBehaviourDestruct = 0x0046C290;
-constexpr int kObjectSlotUpdate = 30;
 
 // CRT eh vector constructor / destructor iterators.
 void __stdcall VectorConstruct(void* a0, unsigned a1, int a2, std::uintptr_t a3, std::uintptr_t a4) { EhVectorConstructorIterator(a0, a1, a2, (void*)a3, (void*)a4); }
@@ -63,8 +63,6 @@ void __fastcall UnitResetMotion(void* a0) { ControllerRepositionOriginal(a0); }
 __declspec(naked) void __fastcall BehaviourWriteAt(TargetChunk*) EI_ORIGINAL(0x0046C900)
 
 void SetVtable(void* p, std::uintptr_t vtable) { std::memcpy(p, &vtable, 4); }
-template <typename T>
-T& At(void* base, std::size_t offset) { return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(base) + offset); }
 std::uint32_t Bits(float f) {
     std::uint32_t b;
     std::memcpy(&b, &f, 4);
@@ -374,14 +372,15 @@ void __fastcall UnitSpecApply(UnitSpec* self) {
     }
     SectorMapMove(reinterpret_cast<void*>(0x007B01F4), nullptr, AsEngineObject(b.object), &b.position);
     SelectionTurnObject(reinterpret_cast<void*>(0x007B00D0), nullptr, b.object, &b.rotation);
-    std::memcpy(static_cast<std::uint8_t*>(b.object) + 0x34, &b.rotation, 16);
+    auto* unit = static_cast<CUnit*>(b.object);
+    std::memcpy(&unit->orientation, &b.rotation, 16);
     ObjectSetFigureScaleOriginal(b.object, nullptr, &self->object.scale.x);
-    std::memcpy(static_cast<std::uint8_t*>(b.object) + 0x1AC, &self->object.scale, 12);
-    ei::VCall<void>(b.object, kObjectSlotUpdate);
-    std::uint32_t& flags = At<std::uint32_t>(b.object, 8);
+    std::memcpy(&unit->baseScale, &self->object.scale, 12);
+    unit->ApplyBaseScale();
+    std::uint32_t& flags = unit->flags_;
     if (!self->object.visible) flags |= 8;
     else flags &= ~8u;
-    UnitResetMotion(At<void*>(b.object, 0x240));
+    UnitResetMotion(unit->controller);
     UnitMarkChanged(b.object, nullptr, 1);
 }
 EI_REPLACE(0x0046C4D0, UnitSpecApply);
@@ -445,13 +444,11 @@ void __fastcall UnitSpecOnChunk(UnitSpec* self) {
 EI_REPLACE(0x0046D080, UnitSpecOnChunk);
 
 // ---- Behaviour records in a stream (saved games) -----------------------------------------------
-// The stream's slot 1 reads (data, size), slot 2 writes; its +8 is the file version.
+// The stream (CStream, core_streams.h) reads and writes through its vtable (slots 1 and 2).
 
 namespace {
-constexpr int kStreamRead = 1;
-constexpr int kStreamWrite = 2;
-void StreamRead(void* stream, void* data, unsigned size) { ei::VCall<unsigned>(stream, kStreamRead, data, size); }
-void StreamWrite(void* stream, const void* data, unsigned size) { ei::VCall<unsigned>(stream, kStreamWrite, data, size); }
+void StreamRead(void* stream, void* data, unsigned size) { static_cast<CStream*>(stream)->Read(data, size); }
+void StreamWrite(void* stream, const void* data, unsigned size) { static_cast<CStream*>(stream)->Write(data, size); }
 __declspec(naked) void __stdcall ConstructWaypoints(Waypoint*, int) EI_ORIGINAL(0x0045E130)
 __declspec(naked) void __fastcall WaypointsReadAt(Array<Waypoint>*, void* /*stream*/) EI_ORIGINAL(0x0045DE30)
 __declspec(naked) void __fastcall WaypointsWriteAt(const Array<Waypoint>*, void* /*stream*/) EI_ORIGINAL(0x0045DFB0)
@@ -526,7 +523,7 @@ void __fastcall BehaviourRead(Behaviour* self, void*, void* stream) {
     StreamRead(stream, &self->callRadius, 4);
     StreamRead(stream, &self->alertMode, 4);
     StreamRead(stream, &self->alarmDelay, 4);
-    if (*reinterpret_cast<int*>(static_cast<std::uint8_t*>(stream) + 8) >= 0x53) {
+    if (static_cast<std::int32_t>(static_cast<CStream*>(stream)->version_) >= 0x53) {
         StreamRead(stream, &self->alarm, 4);
         return;
     }
@@ -551,8 +548,10 @@ void __fastcall BehaviourStreamWrite(Behaviour* self, void*, void* stream) {
     }
     StreamWrite(stream, &self->guard, 12);
     std::uint32_t value;
-    for (std::size_t offset : {0x24u, 0x28u, 0x2Cu, 0x34u, 0x38u, 0x3Cu}) {
-        std::memcpy(&value, reinterpret_cast<std::uint8_t*>(self) + offset, 4);
+    for (const void* field : {static_cast<const void*>(&self->loop), static_cast<const void*>(&self->flags),
+                              static_cast<const void*>(&self->guardRadius), static_cast<const void*>(&self->alarmKind),
+                              static_cast<const void*>(&self->unknown_38), static_cast<const void*>(&self->callRadius)}) {
+        std::memcpy(&value, field, 4);
         StreamWrite(stream, &value, 4);
     }
     StreamWrite(stream, &self->alertMode, 4);

@@ -26,7 +26,6 @@ src/game/camera_motion.cpp,0,0,0,1,0,0,0,0,0,0,9
 src/game/camera_object.cpp,0,1,0,1,0,0,0,0,0,0,0
 src/game/chunk_stream.cpp,0,5,1,0,0,0,0,0,0,0,0
 src/game/chunk_stream.h,0,0,0,0,2,0,0,0,0,0,0
-src/game/class_templates.cpp,3,3,0,0,0,0,0,5,0,0,0
 src/game/clip.cpp,0,0,1,1,0,0,0,0,0,0,0
 src/game/combat.cpp,0,0,3,1,1,0,0,0,0,0,1
 src/game/combat_actions.cpp,0,0,1,1,0,0,0,0,0,0,4
@@ -56,7 +55,7 @@ src/game/effects.cpp,0,0,2,0,1,0,0,0,0,0,0
 src/game/effects_weather.cpp,0,1,0,0,1,0,0,0,0,0,1
 src/game/engine_object.h,0,0,0,0,1,0,0,0,0,0,0
 src/game/face_normal.cpp,0,0,0,0,0,0,0,0,0,0,3
-src/game/fake_unit.cpp,7,4,0,0,5,0,0,0,0,0,0
+src/game/fake_unit.cpp,0,0,0,0,5,0,0,0,0,0,0
 src/game/figure_mesh.cpp,0,0,0,4,0,0,0,0,0,0,3
 src/game/figure_mesh.h,0,0,0,0,0,0,0,0,0,0,2
 src/game/figure_mesh_file.cpp,0,0,3,2,0,0,0,0,0,0,1
@@ -66,7 +65,6 @@ src/game/figure_part_draw_plain.cpp,0,0,2,0,0,0,0,0,0,0,0
 src/game/figure_rasterise.cpp,0,0,0,2,0,0,0,0,0,0,0
 src/game/game_strings.h,0,0,0,0,1,0,0,0,0,0,0
 src/game/ground_decal.cpp,0,0,0,0,0,0,0,0,0,0,3
-src/game/hoover_loot.cpp,3,1,0,0,0,0,0,0,0,0,0
 src/game/item_constructor.cpp,0,0,1,0,0,0,0,0,0,0,0
 src/game/item_names.cpp,0,0,0,0,5,0,0,0,0,0,0
 src/game/key_bindings.cpp,0,0,0,0,1,0,0,0,0,0,0
@@ -85,10 +83,9 @@ src/game/map_object_draw.cpp,0,0,0,1,0,0,0,0,0,0,3
 src/game/map_object_figures.cpp,0,1,0,1,0,0,0,0,0,0,2
 src/game/map_object_parts.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/map_object_shadow.cpp,0,2,0,1,0,0,0,0,0,0,11
-src/game/map_spec.cpp,1,8,0,0,9,0,0,3,0,0,3
-src/game/map_spec.h,0,0,0,0,0,0,1,0,0,0,0
-src/game/map_spec_effect.cpp,0,1,0,0,7,0,0,3,0,0,0
-src/game/map_spec_unit.cpp,2,3,0,0,9,0,0,2,0,0,0
+src/game/map_spec.cpp,0,0,0,0,9,0,0,0,0,0,3
+src/game/map_spec_effect.cpp,0,0,0,0,7,0,0,0,0,0,0
+src/game/map_spec_unit.cpp,0,0,0,0,9,0,0,0,0,0,0
 src/game/maths.cpp,0,0,0,0,0,0,0,0,0,0,3
 src/game/menu_rects.cpp,0,1,0,0,36,0,0,0,0,0,0
 src/game/misc_400.cpp,0,0,0,0,1,0,0,0,0,0,0
@@ -245,7 +242,7 @@ src/game/unit_client_effects.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/unit_client_path.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/unit_client_sounds.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/unit_create.cpp,0,0,0,0,1,0,0,0,0,0,0
-src/game/unit_create_stats.cpp,12,5,3,1,19,0,0,1,0,0,1
+src/game/unit_create_stats.cpp,0,0,3,1,19,0,0,0,0,0,1
 src/game/unit_db_destroy.cpp,0,0,0,0,1,0,0,0,0,0,0
 src/game/unit_equipment.cpp,0,0,0,0,5,0,0,0,0,0,0
 src/game/unit_figure_queries.cpp,0,0,0,0,0,0,0,0,0,0,4
@@ -254,9 +251,9 @@ src/game/unit_motion_tick.cpp,0,0,8,0,1,0,0,0,0,0,0
 src/game/unit_record.cpp,0,0,2,0,0,0,0,0,0,0,0
 src/game/unit_skill_price.cpp,0,0,0,0,4,0,0,0,0,0,0
 src/game/unit_stats.cpp,0,0,0,1,0,0,0,0,0,0,0
-src/game/unit_stats_pack.cpp,0,0,1,1,1,0,0,2,0,0,0
+src/game/unit_stats_pack.cpp,0,0,1,1,1,0,0,0,0,0,0
 src/game/unit_update.cpp,0,0,1,1,1,0,0,0,0,0,0
-src/game/unit_vitals.cpp,0,0,4,1,24,0,0,4,0,0,0
+src/game/unit_vitals.cpp,0,0,4,1,24,0,0,0,0,0,0
 src/game/view_matrices.cpp,0,0,0,0,0,0,0,0,0,0,5
 src/game/weather_draw.cpp,10,0,0,0,0,0,0,1,0,0,0
 src/game/world.h,0,0,0,0,0,0,0,0,0,0,5
@@ -282,7 +279,6 @@ src/game/world_units.cpp,0,0,4,2,1,0,0,0,0,0,3
 src/game/world_update.cpp,0,0,0,2,0,0,0,0,0,0,0
 src/game/world_weather.cpp,0,0,0,2,3,0,0,0,0,0,0
 src/game/world_zone.cpp,0,0,0,0,6,0,0,0,0,0,0
-src/game/zone_records.cpp,3,0,0,0,1,0,0,1,0,0,0
 src/render/render.cpp,0,0,0,0,0,0,0,1,0,0,0
 src/render/render_blit.cpp,0,0,0,0,0,0,0,1,0,0,0
 src/render/render_game.h,0,0,0,0,4,0,0,0,0,0,0
