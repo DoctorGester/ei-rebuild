@@ -1,6 +1,7 @@
 // The 3D object's Create / Destroy slots, its effect sources and the counted figure reference.
 // See map_object_figures.h and docs/notes/map_objects.md ("Figures").
 #include "map_object_figures.h"
+#include "link_figure.h"   // CLinkMesh: the figure
 
 #include "lib/crt.h"
 
@@ -17,13 +18,13 @@ const float* DefaultFigureScale() { return reinterpret_cast<const float*>(0x007A
 // Not rewritten, forwarder: 0050D3A0, the animation state lets go of every part (plain RET).
 __declspec(naked) int __fastcall AnimationReleaseParts(CFigureAnimationState* /*state*/) EI_ORIGINAL(0x0050D3A0)
 
-void DropReference(CEngineObject* object) {
-    if (object && --object->refCount_ == 0) delete object;
+void DropReference(CLinkMesh* object) {
+    if (object && --object->refCount_ == 0) object->DeleteThis(1);
 }
 } // namespace
 
-void CountedRef::Assign(CEngineObject* value) {
-    CEngineObject* old = object;
+void CountedRef::Assign(CLinkMesh* value) {
+    CLinkMesh* old = object;
     object = value;
     if (value) ++value->refCount_;
     DropReference(old);
@@ -40,7 +41,7 @@ int CObject3D::Create3D() {
     spare09C = 0;
     animations = nullptr;
     std::memset(&scale, 0, sizeof(scale));
-    CEngineObject* old = figure;
+    CLinkMesh* old = figure;
     figure = nullptr;
     DropReference(old);
     std::memcpy(&defaultScale, DefaultFigureScale(), sizeof(defaultScale));

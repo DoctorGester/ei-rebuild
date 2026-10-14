@@ -164,9 +164,9 @@ std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
     if (!Differs(scale.x, newScale[0]) && !Differs(scale.y, newScale[1]) && !Differs(scale.z, newScale[2]))
         return 0;   // the original leaves the FPU status word in AX here
     std::memcpy(&scale, newScale, sizeof(scale));
-    if (CEngineObject* current = figure) {
+    if (CLinkMesh* current = figure) {
         CFigureCache* cache = static_cast<CWorld*>(ManagerContext())->FigureCache();
-        CEngineObject* rebuilt = cache->ScaledFigure(current, Bits(scale.x), Bits(scale.y), Bits(scale.z));
+        CLinkMesh* rebuilt = cache->ScaledFigure(current, Bits(scale.x), Bits(scale.y), Bits(scale.z));
         FigureRef().Assign(rebuilt);   // 00519580
         for (int i = 0; i < parts.size; ++i) {
             auto* part = static_cast<CFigureMesh*>(parts.data[i]);
@@ -174,7 +174,7 @@ std::uintptr_t CObject3D::SetFigureScale(const float* newScale) {
             const LinkHeaderMap::Node* piece;
             {
                 stlp::string key(pieceName);
-                FindPiece(reinterpret_cast<CFigureInstance*>(figure)->pieces, nullptr, &piece, &key);
+                FindPiece(&figure->headers_, nullptr, &piece, &key);
             }
             part = static_cast<CFigureMesh*>(parts.data[i]);
             const ClipBounds& bounds = piece->second.bounds;

@@ -383,11 +383,11 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
         ObjectWorldMatrix(&part->localRotation_, &part->localPosition_, &part->worldMatrix_);
         view = PartAt(self->object, i)->worldMatrix_;
         pipeline->PushMatrixProduct(view, kShadowStack);
-        if (CEngineObject* figure = self->object->figure) {
+        if (CLinkMesh* figure = self->object->figure) {
             const char* name = PartAt(self->object, i)->GetName();
             stlp::string key(name);
-            count += reinterpret_cast<CLinkMesh*>(figure)->ProjectPart(&key, &PartAt(self->object, i)->offsets_,
-                                                                       TopMatrix(pipeline), PointAt(count), self->bounds);
+            count += figure->ProjectPart(&key, &PartAt(self->object, i)->offsets_, TopMatrix(pipeline), PointAt(count),
+                                         self->bounds);
         } else {
             count += ProjectPart(PartAt(self->object, i), nullptr, pipeline, const_cast<float*>(TopMatrix(pipeline)),
                                  PointAt(count), self->bounds);
@@ -443,10 +443,10 @@ bool RenderShadow(CObject3DClientSpecific* self, CSceneRenderer* context, int* f
         if (PartTooFar(part)) continue;
         keyedParts |= (part->bounds_.flags >> 10) & 1;
         if (part->flags_ & kPartHidden) continue;
-        if (CEngineObject* figure = self->object->figure) {
+        if (CLinkMesh* figure = self->object->figure) {
             const char* name = PartAt(self->object, i)->GetName();
             stlp::string key(name);
-            count += reinterpret_cast<CLinkMesh*>(figure)->RasterisePart(&key, PixelAt(count), &target);
+            count += figure->RasterisePart(&key, PixelAt(count), &target);
         } else {
             count += RasterisePart(part, nullptr, device, PixelAt(count), &target);
         }

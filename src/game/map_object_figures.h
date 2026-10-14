@@ -17,6 +17,7 @@
 #include <cstdint>
 
 class CObject3D;
+class CLinkMesh;          // link_figure.h: an object's figure (+0xF0)
 class CTransformObject;   // core_transform.h
 struct tagRECT;           // windows.h
 
@@ -308,22 +309,6 @@ static_assert(offsetof(CFigureAnimationState, morphS) == 0x68);
 static_assert(offsetof(CFigureAnimationState, changed) == 0x74);
 static_assert(sizeof(CFigureAnimationState) == 0x78);
 
-// The figure an object holds at +0xF0 (counted; slot 0 deletes): a CLinkMesh (link_figure.h,
-// vtable 0073D790), seen from CObject3D::LoadPart. Slots 1-3 keep their place only.
-class CFigureInstance {
-public:
-    virtual void DeletingDestructor(unsigned flags);   // 0
-    virtual void UpdateScreenRect();   // 1: 004F45E0
-    virtual void HasPart();            // 2: 004F3040 (name)
-    virtual void CollectPartNames();   // 3: 004F2FB0 (out)
-    virtual bool HasPiece(const void* name);   // 4: the piece map (+0x14) holds `name` (an stlp::string)
-
-    int refCount;                   // +0x04
-    std::uint8_t unused_08[0x14 - 0x08];
-    std::uint8_t pieces[0x10];      // +0x14 STLport map<string, LinkPartHeader> (CLinkMesh::headers_; find 005197B0)
-};
-static_assert(offsetof(CFigureInstance, pieces) == 0x14);
-
 // The figure cache (the world's slot 23): builds the figures objects hold at +0xF0; the
 // CLinkFigureLoader (model.h, vtable 0073D808) as the 3D object calls it, the scale passed as
 // float bits. Slots 0-2 keep their place only.
@@ -334,25 +319,26 @@ public:
     virtual void CacheBytes();   // 2: 004FAAA0
     // 3: the figure of model `name` (an stlp::string) made of the pieces `pieceNames` (an STLport
     // vector<string>), at the scale; referenced by the caller.
-    virtual CFigureInstance* BuildFigure(const void* name, const void* pieceNames, std::uint32_t x, std::uint32_t y,
-                                         std::uint32_t z, int flag);
+    virtual CLinkMesh* BuildFigure(const void* name, const void* pieceNames, std::uint32_t x, std::uint32_t y,
+                                   std::uint32_t z, int flag);
     // 4: the whole figure of model `name` at the scale.
-    virtual CFigureInstance* BuildWholeFigure(const void* name, std::uint32_t x, std::uint32_t y, std::uint32_t z,
-                                              int flag);
+    virtual CLinkMesh* BuildWholeFigure(const void* name, std::uint32_t x, std::uint32_t y, std::uint32_t z, int flag);
     virtual void Clear();   // 5: 004F7020 (every cached figure released, the cache emptied)
     // 6: 004F75E0. `figure` (one this cache built) at the scale (raw float bits): with fewer than 3
     // references its pieces are rebuilt in place and it is returned (null for null), otherwise a new
     // whole figure of its model is built through slot 4.
-    virtual CEngineObject* ScaledFigure(CEngineObject* figure, std::uint32_t x, std::uint32_t y, std::uint32_t z);
+    virtual CLinkMesh* ScaledFigure(CLinkMesh* figure, std::uint32_t x, std::uint32_t y, std::uint32_t z);
 };
 
-// A counted reference: the pointer slot is the `this` of 00519580.
+// A counted figure reference: the pointer slot is the `this` of 00519580.
 struct CountedRef {
-    // 00519580 (object3d_lifetime.cpp). object = `value`: the new object gains a reference, the
-    // old one loses one and is deleted (its slot 0 with 1) when that was the last.
-    void Assign(CEngineObject* value);
+    // 00519580 (object3d_lifetime.cpp). object = `value`: the new figure gains a reference, the
+    // old one loses one and is deleted (its slot 0 with 1) when that was the last. The same code
+    // serves the byte-identical copies 0051E4F0 / 0051E570 (the client half's wounds material and
+    // its helper preset, 0051C3D0): any counted object (count +0x04, slot 0 deletes).
+    void Assign(CLinkMesh* value);
 
-    CEngineObject* object;
+    CLinkMesh* object;
 };
 
 class CObject3D : public CEngineObject {
@@ -572,7 +558,9 @@ public:
     Vector3 scale;                  // +0x0C4
     AlignedPtrArray parts;          // +0x0D0 CFigureMesh*
     AlignedPtrArray pendingParts;   // +0x0E0 CFigureMesh*, built by LoadFigures
-    CEngineObject* figure;          // +0x0F0 counted reference (slot 0 deletes)
+    // +0x0F0 the figure (counted; slot 0 deletes), made by the figure cache: the parts' piece
+    // headers (LoadPart, SetFigureScale) and the meshes the parts draw and shadow through.
+    CLinkMesh* figure;
     Vector3 defaultScale;           // +0x0F4 from 007AF1D0 (constructor, Create3D)
     int dirtyRect[4];               // +0x100 RECT: the screen area the last DrawCollectDirty covered
     void* partNameArrayVtable;      // +0x110 \ CStringArray of the part names

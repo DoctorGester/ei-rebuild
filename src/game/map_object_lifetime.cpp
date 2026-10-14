@@ -6,6 +6,7 @@
 #include "combat.h"
 #include "core_streams.h"
 #include "core_transform.h"
+#include "link_figure.h"     // CLinkMesh: the figure
 #include "map_object.h"
 #include "map_object_figures.h"
 #include "net_delta.h"     // DeltaState
@@ -179,8 +180,8 @@ void CObject3D::DestructBody() {
     partBoxArrayVtable = reinterpret_cast<void*>(kFrameArrayVtable);
     if (partBoxes) gamecrt::operator_delete(partBoxes);
     StringArrayDestruct(&partNameArrayVtable);
-    if (CEngineObject* current = figure) {
-        if (--current->refCount_ == 0 && current) delete current;   // slot 0 with 1
+    if (CLinkMesh* current = figure) {
+        if (--current->refCount_ == 0 && current) current->DeleteThis(1);
     }
     if (pendingParts.data) gamecrt::operator_delete(pendingParts.data[-1]);
     if (parts.data) gamecrt::operator_delete(parts.data[-1]);

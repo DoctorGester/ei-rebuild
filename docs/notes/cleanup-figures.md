@@ -110,3 +110,22 @@ Each layout now has one declaration:
 Release objects were compared with dumpbin (function by function, hook numbers and names normalized). Eleven
 objects differ, all in names, commuted FADD operands, instruction scheduling, a helper that is now inlined
 (`AsObject`, `FreeBlock`), or unreferenced inline COMDATs (`ei::SetVtable`, an `AlignedArray::operator[]`).
+
+## F4c: CFigureInstance folded into CLinkMesh (2026-10-14)
+
+`CFigureInstance` (map_object_figures.h) was a view of the figure a CObject3D holds at +0xF0. Every offset it used
+matches CLinkMesh (link_figure.h, vtable 0073D790): refCount +0x04 (`refCount_`), the piece map +0x14 (`headers_`),
+slot 0 the deleting destructor (`DeleteThis`). Its slot 4 `HasPiece` is CLinkMesh slot 4 `LoadPart` (004F30D0):
+Ghidra shows 00517240 calling `[vtable+0x10]` on the figure, which loads the piece through the loader (004F7480)
+unless the mesh has it; the local in CObject3D::LoadPart is now `loaded`. The view is gone:
+- `CObject3D::figure` is `CLinkMesh*`; `CountedRef` (00519580 and its copies) holds a `CLinkMesh*` and releases it
+  through `DeleteThis(1)`. CObject3D's destructor body and Create3D do the same.
+- `CFigureCache` slots 3, 4 and 6 return (and slot 6 takes) `CLinkMesh*`. The cache itself is still a view of
+  CLinkFigureLoader (model.h): its scale arguments are float bits (see F4d).
+- map_object_shadow.cpp lost its two `reinterpret_cast<CLinkMesh*>(figure)`. figure_part_draw.cpp:681 still casts
+  `owner->figure` to the type it already has (left alone: not this ticket's file).
+No CLinkMesh virtual is replaced, so no slot name became an override.
+
+Release objects of the six files that touch the figure were compared with dumpbin (function by function, hook
+numbers and names normalized): identical. The first try reread `figure` after the slot 4 call in LoadPart (as the
+original does); a local keeps the old code.

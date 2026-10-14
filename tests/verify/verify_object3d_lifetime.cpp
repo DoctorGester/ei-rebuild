@@ -16,6 +16,7 @@
 #include "verify.h"
 
 #include "../../src/game/map_object_figures.h"
+#include "../../src/game/link_figure.h"
 
 #include <cstring>
 
@@ -83,7 +84,7 @@ static void __fastcall RemoveEffectSourceVerify(CObject3D* self, void*, CEngineO
 }
 EI_VERIFY(0x00518AE0, RemoveEffectSourceVerify, 0, s_unusedRemove);
 
-static void __fastcall CountedRefAssignVerify(CountedRef* self, void*, CEngineObject* value) {
+static void __fastcall CountedRefAssignVerify(CountedRef* self, void*, CLinkMesh* value) {
     bool same = self->object == value;
     int references = value ? value->refCount_ : 0;
     self->Assign(value);

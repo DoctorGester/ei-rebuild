@@ -244,18 +244,18 @@ CFigureMesh* CObject3D::LoadPart(const char* partName, void* model, std::uint32_
         game::DebugLog(kCantLoadPart, partName, name);
         return nullptr;
     }
-    if (figure) {
-        auto* instance = static_cast<CFigureInstance*>(static_cast<void*>(figure));
-        bool known;
+    if (CLinkMesh* current = figure) {
+        // The figure gets the piece (its slot 4 loads it unless it has it).
+        bool loaded;
         {
             stlp::string key(partName, partName + std::strlen(partName));
-            known = instance->HasPiece(&key);
+            loaded = current->LoadPart(&key);
         }
-        if (!known) return nullptr;   // the part is kept, unreleased (as the original)
+        if (!loaded) return nullptr;   // the part is kept, unreleased (as the original)
         void* node;
         {
             stlp::string key(partName, partName + std::strlen(partName));
-            StringMapFindOriginal(instance->pieces, nullptr, &node, &key);
+            StringMapFindOriginal(&current->headers_, nullptr, &node, &key);
         }
         const LinkPartHeader& piece = static_cast<const LinkHeaderMap::Node*>(node)->second;
         part->materialValue_ = piece.materialValue;
@@ -360,22 +360,22 @@ int CObject3D::MakeFigure(const char* model, void* partList, std::uint32_t arg) 
     if (names->size == 0 && animation) {
         AnimationStatePartNamesOriginal(animation, nullptr, partList);
         stlp::string key(model, model + std::strlen(model));
-        CFigureInstance* made = FigureCacheOf(this)->BuildWholeFigure(
+        CLinkMesh* made = FigureCacheOf(this)->BuildWholeFigure(
             &key, std::bit_cast<std::uint32_t>(scale.x), std::bit_cast<std::uint32_t>(scale.y),
             std::bit_cast<std::uint32_t>(scale.z), 0);
-        FigureRef().Assign(static_cast<CEngineObject*>(static_cast<void*>(made)));
+        FigureRef().Assign(made);
     } else {
         PieceNames pieces = MakePieceNames(names);
         {
             stlp::string key(model, model + std::strlen(model));
-            CFigureInstance* made = FigureCacheOf(this)->BuildFigure(
+            CLinkMesh* made = FigureCacheOf(this)->BuildFigure(
                 &key, &pieces, std::bit_cast<std::uint32_t>(scale.x), std::bit_cast<std::uint32_t>(scale.y),
                 std::bit_cast<std::uint32_t>(scale.z), 0);
-            auto* old = static_cast<CFigureInstance*>(static_cast<void*>(figure));
-            figure = static_cast<CEngineObject*>(static_cast<void*>(made));
-            if (made) ++made->refCount;
+            CLinkMesh* old = figure;
+            figure = made;
+            if (made) ++made->refCount_;
             // 00457720: the old figure loses a reference and is deleted at the last one.
-            if (old && --old->refCount == 0) old->DeletingDestructor(1);
+            if (old && --old->refCount_ == 0) old->DeleteThis(1);
         }
         FreePieceNames(pieces);
     }
