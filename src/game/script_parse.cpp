@@ -142,10 +142,11 @@ void __fastcall ClassifyToken(const char* text, int* id, int* rest) {
     if (id) *id = 0;
     int best = -1;
     const bool addon = scriptaddon::Enabled();
+    const int* fold = gamecrt::CaseFoldTable();
     for (const ScriptKeyword* k = KeywordTable(); k->name; ++k) {
         int length = static_cast<int>(std::strlen(k->name));
         if (length < best) continue;
-        if (gamecrt::strnicmp(p, k->name, length) != 0) continue;
+        if (!gamecrt::SameIgnoringCase(fold, p, k->name, length)) continue;
         best = length;
         // AddNewScriptCommands (hook at 004CF6F0, after the instructions that set the best
         // length): an identifier-like match must end the identifier.

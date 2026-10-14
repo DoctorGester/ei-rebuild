@@ -33,6 +33,23 @@ char* __cdecl itoa(int value, char* buffer, int radix);            // 006E9B36 _
 int __cdecl mbsicmp(const unsigned char* a, const unsigned char* b); // 006E8767 _mbsicmp
 int __cdecl mbscmp(const unsigned char* a, const unsigned char* b);  // 006E848B _mbscmp
 
+// A table of the game CRT's own tolower (006EBA53) for every byte, for the CRT's current LC_CTYPE
+// locale (rebuilt when its locale handle or code page changes). strnicmp sends every upper-case
+// byte through LCMapStringW under the game's locale; callers that compare many names use this
+// instead (docs/notes/script.md, PF1; docs/notes/units.md, PF1a).
+const int* CaseFoldTable();
+// strnicmp(a, b, n) == 0 with the table above, without a CRT call per byte: a zero byte in either
+// string ends the compare (equal only when both are), otherwise the bytes' folds must match.
+inline bool SameIgnoringCase(const int* fold, const char* a, const char* b, int n) {
+    for (; n > 0; --n, ++a, ++b) {
+        const unsigned char ca = static_cast<unsigned char>(*a);
+        const unsigned char cb = static_cast<unsigned char>(*b);
+        if (ca == 0 || cb == 0) return ca == cb;
+        if (ca != cb && fold[ca] != fold[cb]) return false;
+    }
+    return true;
+}
+
 // acos / asin: the C entries of the bodies behind _CIacos 006E7320 / _CIasin 006E83C0 (same code
 // from the FLD of the argument on; the result is left unrounded in ST0).
 double __cdecl acos(double c);                                // 006E7334

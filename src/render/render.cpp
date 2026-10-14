@@ -408,115 +408,6 @@ void ShowFrame() {
     DrawFrameInto(g_swapView, width, clientHeight, source);
 }
 
-// --- The game window's swap chain (the switch-over without DirectDraw) ------------------------------------
-
-// A flip-model swap chain on the game window (no DirectDraw or Direct3D 7 has touched it), its back
-// buffer the window's client size; the frame is drawn into it stretched (one to one when the
-// sizes agree) and presented with the vertical blank (no faster than the screen shows frames).
-// The window keeps its size and style: the full-screen mode change, the gamma ramp and lost
-// devices are ticket R9c's (docs/notes/renderer.md, section 9).
-IDXGISwapChain1* g_windowChain = nullptr;
-ID3D11RenderTargetView* g_windowView = nullptr;
-int g_windowWidth = 0, g_windowHeight = 0;
-bool g_windowFailed = false;
-int g_windowPresentFailures = 0;
-// Present waits for the vertical blank (sync interval 1) unless the harness's virtual clock runs
-// the game, where a frame's length no longer depends on the display.
-bool g_waitForVsync = true;
-
-void ReleaseWindowView() {
-    if (g_windowView) g_windowView->Release();
-    g_windowView = nullptr;
-}
-
-bool CreateWindowView() {
-    ID3D11Texture2D* buffer = nullptr;
-    if (FAILED(g_windowChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&buffer)))) return false;
-    HRESULT hr = g_device->CreateRenderTargetView(buffer, nullptr, &g_windowView);
-    buffer->Release();
-    return SUCCEEDED(hr);
-}
-
-bool CreateWindowChain(HWND window, int width, int height) {
-    IDXGIDevice* dxgiDevice = nullptr;
-    IDXGIAdapter* adapter = nullptr;
-    IDXGIFactory2* factory = nullptr;
-    bool ok = SUCCEEDED(g_device->QueryInterface(__uuidof(IDXGIDevice), reinterpret_cast<void**>(&dxgiDevice))) &&
-              SUCCEEDED(dxgiDevice->GetAdapter(&adapter)) &&
-              SUCCEEDED(adapter->GetParent(__uuidof(IDXGIFactory2), reinterpret_cast<void**>(&factory)));
-    if (ok) {
-        DXGI_SWAP_CHAIN_DESC1 sd{};
-        sd.Width = static_cast<UINT>(width);
-        sd.Height = static_cast<UINT>(height);
-        sd.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-        sd.SampleDesc.Count = 1;
-        sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-        sd.BufferCount = 2;
-        sd.Scaling = DXGI_SCALING_STRETCH;
-        sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-        sd.AlphaMode = DXGI_ALPHA_MODE_IGNORE;
-        HRESULT hr = factory->CreateSwapChainForHwnd(g_device, window, &sd, nullptr, nullptr, &g_windowChain);
-        if (FAILED(hr)) {
-            ei::Log("render: CreateSwapChainForHwnd failed (%08lX)", static_cast<unsigned long>(hr));
-            g_windowChain = nullptr;
-            ok = false;
-        }
-        // The game handles Alt+Enter and its window itself.
-        if (ok) factory->MakeWindowAssociation(window, DXGI_MWA_NO_ALT_ENTER | DXGI_MWA_NO_WINDOW_CHANGES);
-    }
-    if (factory) factory->Release();
-    if (adapter) adapter->Release();
-    if (dxgiDevice) dxgiDevice->Release();
-    if (!ok) return false;
-    if (!CreateWindowView()) return false;
-    if (!g_blitPipeline.id && !CreateShowPipeline()) return false;
-    g_windowWidth = width;
-    g_windowHeight = height;
-    ei::Log("render: presenting on the game window through a flip-model swap chain (%dx%d)", width, height);
-    return true;
-}
-
-// The frame into the window's back buffer (made or resized to the client area first). False when
-// there is nothing to present into (no window, minimised, the swap chain failed). The client area is
-// in physical pixels: the hook makes the game system DPI aware at WinMain (src/hook/hook.cpp), so
-// Windows does not stretch the window and the whole back buffer shows.
-bool DrawToWindow() {
-    if (g_windowFailed || !g_colour.id) return false;
-    HWND window = GameWindow();
-    RECT client{};
-    if (!window || !GetClientRect(window, &client)) return false;
-    int width = client.right - client.left, height = client.bottom - client.top;
-    if (width <= 0 || height <= 0) return false;
-    if (!g_windowChain) {
-        if (!CreateWindowChain(window, width, height)) {
-            ei::Log("render: cannot present on the game window; nothing is shown (captures still work)");
-            g_windowFailed = true;
-            return false;
-        }
-    }
-    if (width != g_windowWidth || height != g_windowHeight) {
-        ReleaseWindowView();
-        sg_reset_state_cache();
-        if (FAILED(g_windowChain->ResizeBuffers(0, static_cast<UINT>(width), static_cast<UINT>(height), DXGI_FORMAT_UNKNOWN, 0)) ||
-            !CreateWindowView()) {
-            ei::Log("render: cannot resize the game window's swap chain to %dx%d", width, height);
-            g_windowFailed = true;
-            return false;
-        }
-        g_windowWidth = width;
-        g_windowHeight = height;
-    }
-    const float whole[4] = {0.0f, 0.0f, 1.0f, 1.0f};
-    DrawFrameInto(g_windowView, width, height, whole);
-    return true;
-}
-
-void PresentWindow() {
-    HRESULT hr = g_windowChain->Present(g_waitForVsync ? 1 : 0, 0);
-    if (FAILED(hr) && g_windowPresentFailures++ < 10)
-        ei::Log("render: the game window's Present failed (%08lX)", static_cast<unsigned long>(hr));
-}
-
 // --- The frame -----------------------------------------------------------------------------------------
 
 Frame g_frame;
@@ -556,6 +447,17 @@ Frame& CurrentFrame() { return g_frame; }
 std::uint32_t FrameNumber() { return g_frameNumber; }
 std::uint32_t CommitNumber() { return g_commits; }
 bool Started() { return EnsureStarted(); }
+
+// For the game window's swap chain (render_window.cpp).
+ID3D11Device* D3DDevice() { return g_device; }
+ID3D11DeviceContext* D3DContext() { return g_context; }
+sg_image FrameImage() { return g_colour; }
+sg_view FrameTexture() { return g_colourTexture; }
+bool FrameSize(int* width, int* height) {
+    *width = g_width;
+    *height = g_height;
+    return g_colour.id != 0;
+}
 
 CTextureDevice* DeviceObject() { return *reinterpret_cast<CTextureDevice**>(game::Where().deviceObject); }
 
@@ -686,8 +588,6 @@ bool StartPresenting() {
 }
 
 bool PresentsItself() { return g_presentsItself; }
-
-void SetWaitForVsync(bool on) { g_waitForVsync = on; }
 
 bool DrawOldTerrain() {
     EnsureConfigured();

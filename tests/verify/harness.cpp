@@ -67,6 +67,8 @@
 //                             opens with, as a base dialogue's "constrN" answer (006064E0) sets it
 //                             (classes 1, 3, 4, 5 after a new game); fails when there is no such
 //                             class template
+//   chat 1|0                  open the chat line (the interface's root) as a multiplayer client's Enter
+//                             does, so that its typed line and caret are drawn; or close it
 //   zone <name> [exit]        leave the zone as its exits do: the server's LeaveToZone (0066F310) for
 //                             the local player, to map.txt zone <name> (gz2g, bz1g, ...), the party
 //                             arriving at that zone's exit <exit> (from 0: map.txt's "#exit n" minus
@@ -109,6 +111,16 @@
 //                             animation, while the frames keep being drawn. Do not "check"/"waitfor"
 //                             while frozen (script output needs world updates); a scenario that
 //                             freezes also sees a fixed date (as in deterministic mode)
+//   focus off|on              the focus lost (WM_ACTIVATE inactive, the window minimised) or given
+//                             back (restored, WM_ACTIVATE click-active), as Windows does it
+//   windowsize <w> <h>        resize the game window (its client area) to <w> x <h>
+//   fullscreen 0|1            answer the game's FullScreen setting for this run (harness_starter.h)
+//   waitpresent <seconds> [gamma]
+//                             wait until the switch-over has presented a frame on the game window
+//                             (its own swap chain); with "gamma" also until the verify build has
+//                             checked a presented frame against a gamma ramp that is not the
+//                             identity (one to one only; fails on a difference). Fails after
+//                             <seconds> or when the swap chain failed
 //   render <spec>             the new renderer for this run (src/render/render.h; the format of
 //                             EI_RENDER, e.g. "new" or "new,split"). Read before the game starts.
 //                             With it, "capture" also writes frames\<name>.new.bmp
@@ -158,6 +170,7 @@
 
 #include <windows.h>
 #include <psapi.h>
+#include <tlhelp32.h>
 #include <intrin.h>
 
 #include <cctype>
@@ -316,6 +329,13 @@ unsigned g_frames = 0;
 bool g_waitingFrames = false;
 unsigned g_waitFramesUntil = 0;
 Deadline g_waitFramesDeadline;   // real time only: 10 s plus 100 ms a frame
+// A pending "waitpresent" (R9c): the game window's presents when it started, its deadline, whether it
+// waits for a gamma ramp check too, and the ramp checks a previous one has seen.
+bool g_waitingPresent = false;
+bool g_waitPresentGamma = false;
+std::uint32_t g_waitPresentFrom = 0;
+Deadline g_waitPresentDeadline;
+int g_rampChecksSeen = 0;
 // A pending "waitwindow": the window's vtables (either of a window's two), its name, when it
 // started and gives up, and the frame from which it has been ready (kNotReady: not ready now).
 constexpr unsigned kNotReady = ~0u;
@@ -673,6 +693,33 @@ LONG WINAPI SkippedRegSetValue(HKEY, LPCSTR name, DWORD, DWORD, const BYTE*, DWO
     return ERROR_SUCCESS;
 }
 
+// Font smoothing is a setting of the whole desktop: the credits screen (0062B7D0 / 0062BD00) switches
+// it off and "restores" a value it never read (off), so a harness game left it off for every program
+// on the machine, and text in runs before and after differed (GDI's grey edges or none: the
+// widescreen comparison of two runs). Harness runs leave the setting alone, and the game's fonts are
+// created without smoothing (NONANTIALIASED_QUALITY), as they look once the titles have switched it
+// off, whatever the desktop's setting and other programs do to it during the run.
+constexpr std::uintptr_t kSystemParametersInfoASlot = 0x0073B4C0;   // game.exe import table
+constexpr std::uintptr_t kCreateFontIndirectASlot = 0x0073B068;     // game.exe import table
+constexpr UINT kSetFontSmoothing = 0x4B;                             // SPI_SETFONTSMOOTHING
+decltype(&::SystemParametersInfoA) g_systemParametersInfo;
+decltype(&::CreateFontIndirectA) g_createFontIndirect;
+
+BOOL WINAPI HarnessSystemParametersInfo(UINT action, UINT uiParam, PVOID pvParam, UINT winIni) {
+    if (action != kSetFontSmoothing) return g_systemParametersInfo(action, uiParam, pvParam, winIni);
+    static bool logged = false;
+    if (!logged) Log("harness: font smoothing left as the desktop has it (the game asked for %u)", uiParam);
+    logged = true;
+    return TRUE;
+}
+
+HFONT WINAPI HarnessCreateFontIndirect(const LOGFONTA* font) {
+    if (!font) return g_createFontIndirect(font);
+    LOGFONTA plain = *font;
+    plain.lfQuality = NONANTIALIASED_QUALITY;
+    return g_createFontIndirect(&plain);
+}
+
 // The "show tutorial" option (options object 0079BC70 + 0x208, registry value ShowTutorial). With it
 // off, tutorial windows open only where the game forces them (005F86F0, 005F8A80). The harness
 // clears it every frame, since the options are reloaded when a game starts.
@@ -941,12 +988,28 @@ void PostKey(const std::string& name) {
     PostMessageA(GameWindow(), WM_KEYUP, vk, 1 | (scan << 16) | 0xC0000000u);
 }
 
-void PostMouse(const std::string& verb, int x, int y) {
+// The client area mouse steps aim at: the game window's, or in the switch-over the frame's
+// (render::FrameInWindow: the frame may be scaled into a larger window, R9c); a point of it reaches
+// the window through ToWindow.
+RECT GameClient() {
     RECT client{};
+    int width = 0, height = 0;
+    render::Rect placed{};
+    if (render::FrameInWindow(&width, &height, &placed)) return RECT{0, 0, width, height};
     GetClientRect(GameWindow(), &client);
-    LPARAM at = MAKELPARAM(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
-    g_mouseX = x * (client.right - client.left) / 800;
-    g_mouseY = y * (client.bottom - client.top) / 600;
+    return client;
+}
+POINT ToWindow(int x, int y) {
+    render::FrameToWindow(&x, &y);
+    return POINT{x, y};
+}
+
+void PostMouse(const std::string& verb, int x, int y) {
+    RECT client = GameClient();
+    POINT window = ToWindow(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
+    LPARAM at = MAKELPARAM(window.x, window.y);
+    g_mouseX = window.x;
+    g_mouseY = window.y;
     PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, at);
     if (verb == "click") {
         PostMessageA(GameWindow(), WM_LBUTTONDOWN, MK_LBUTTON, at);
@@ -974,9 +1037,8 @@ void PostMouse(const std::string& verb, int x, int y) {
 
 // A wheel turn at (x, y) in the 800x600 layout. WM_MOUSEWHEEL carries screen coordinates.
 void PostWheel(int x, int y, int delta) {
-    RECT client{};
-    GetClientRect(GameWindow(), &client);
-    POINT point{x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600};
+    RECT client = GameClient();
+    POINT point = ToWindow(x * (client.right - client.left) / 800, y * (client.bottom - client.top) / 600);
     PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, MAKELPARAM(point.x, point.y));
     ClientToScreen(GameWindow(), &point);
     PostMessageA(GameWindow(), WM_MOUSEWHEEL, MAKEWPARAM(0, static_cast<short>(delta)), MAKELPARAM(point.x, point.y));
@@ -999,12 +1061,12 @@ void PostRegionMouse(const std::string& verb, int index) {
     Log("harness: %s %d: window %p region (%d,%d)-(%d,%d) enabled %d", verb.c_str(), index, window,
         region->bounds_.left, region->bounds_.top, region->bounds_.right, region->bounds_.bottom, region->enabled_);
     ui->CallScalePointToScreen(&point);
-    RECT client{};
-    GetClientRect(GameWindow(), &client);
+    RECT client = GameClient();
     if (ui->width_ > 0 && ui->height_ > 0) {
         point.x = point.x * (client.right - client.left) / ui->width_;
         point.y = point.y * (client.bottom - client.top) / ui->height_;
     }
+    point = ToWindow(point.x, point.y);
     LPARAM at = MAKELPARAM(point.x, point.y);
     PostMessageA(GameWindow(), WM_MOUSEMOVE, 0, at);
     if (verb == "clickregion") {
@@ -1096,6 +1158,7 @@ std::string PostUnitMouse(const std::string& argument) {
         (flags & kPickableUnit) ? "" : " (no 0x400000: the battle screen ignores it)");
     // The battle screen reads the message's coordinates as they are (the pick space is the client
     // area); the harness's cursor follows them.
+    at = ToWindow(at.x, at.y);   // the frame's pixel in the window (R9c)
     g_mouseX = at.x;
     g_mouseY = at.y;
     LPARAM where = MAKELPARAM(at.x, at.y);
@@ -1290,7 +1353,8 @@ std::string DescribeTopWindow() {
 bool IsInputStep(const std::string& verb) {
     return verb == "key" || verb == "click" || verb == "rclick" || verb == "move" || verb == "wheel" ||
            verb == "dblclick" || verb == "rdblclick" || verb == "ldown" || verb == "lup" ||
-           verb == "clickregion" || verb == "rclickregion" || verb == "moveregion" || verb == "clickunit";
+           verb == "clickregion" || verb == "rclickregion" || verb == "moveregion" || verb == "clickunit" ||
+           verb == "focus" || verb == "windowsize";
 }
 
 // Unhandled exceptions end the run with a failure. Installed at start and re-asserted every step:
@@ -1371,6 +1435,9 @@ void HotPatch(const char* name, void* replacement) {
     VirtualProtect(p - 5, 7, old, &old);
     FlushInstructionCache(GetCurrentProcess(), p - 5, 7);
 }
+
+std::string FocusStep(const std::string& argument);
+std::string WindowSizeStep(const std::string& argument);
 
 void RunSteps() {
     SetUnhandledExceptionFilter(&HarnessUnhandled);
@@ -1491,6 +1558,36 @@ void RunSteps() {
             g_failures.push_back(what);
         }
         g_waitingFrames = false;
+    }
+    if (g_waitingPresent) {
+        render::WindowPresentInfo now = render::WindowPresents();
+        bool presented = now.presents > g_waitPresentFrom;
+        bool checked = !g_waitPresentGamma ||
+                       (now.rampChecks > g_rampChecksSeen && !now.rampCheckPending && !now.rampIdentity);
+        if (presented && checked) {
+            Log("harness: waitpresent: %u frames presented on the game window%s", now.presents - g_waitPresentFrom,
+                g_waitPresentGamma ? " and the gamma ramp checked" : "");
+            if (g_waitPresentGamma) {
+                g_rampChecksSeen = now.rampChecks;
+                if (now.rampDiffering) {
+                    char what[160];
+                    std::snprintf(what, sizeof(what), "waitpresent: %d of %d points of the presented frame differ from the gamma ramp",
+                                  now.rampDiffering, now.rampPoints);
+                    g_failures.push_back(what);
+                }
+            }
+            g_waitingPresent = false;
+        } else if (now.failed || g_waitPresentDeadline.Passed()) {
+            char what[200];
+            std::snprintf(what, sizeof(what), "waitpresent: %s (%u presented, %d ramp checks, one pending %d, identity %d)",
+                          now.failed ? "the game window's swap chain failed" : "timed out", now.presents - g_waitPresentFrom,
+                          now.rampChecks, now.rampCheckPending, now.rampIdentity);
+            Log("harness: %s", what);
+            g_failures.push_back(what);
+            g_waitingPresent = false;
+        } else {
+            return;
+        }
     }
     if (g_waitingWindow) {
         // Ready on two frames in a row, and done in an input loop pass (input steps follow).
@@ -1647,6 +1744,17 @@ void RunSteps() {
                 if (id == 5) SetCurrentConstructor(static_cast<float>(constr));
                 RequestScreen(id);
             }
+        } else if (s.verb == "chat") {
+            // The chat line (the interface's root, CChatOverlay) opened as a multiplayer client's Enter
+            // opens it (005F7C60: SetOpen 005E36C0, which draws it, 005E3700), or closed.
+            auto* ui = reinterpret_cast<CInterface3D*>(0x007C7D50);
+            if (!ui->root_) {
+                g_failures.push_back("chat: the interface has no chat overlay");
+            } else if (std::atoi(s.argument.c_str()) != 0) {
+                ChatKeyEnterOriginal(ui);
+            } else {
+                ui->root_->SetOpen(false);
+            }
         } else if (s.verb == "zone") {
             // What a zone exit does (00670C20): the server's LeaveToZone for the local player.
             char name[64] = "";
@@ -1759,6 +1867,18 @@ void RunSteps() {
             render::SetDrawOldObjects(s.argument != "off");
         } else if (s.verb == "oldinterface") {
             render::SetDrawOldInterface(s.argument != "off");
+        } else if (s.verb == "waitpresent") {
+            int seconds = 10;
+            char what[16] = "";
+            sscanf_s(s.argument.c_str(), "%d %15s", &seconds, what, unsigned(sizeof(what)));
+            g_waitPresentFrom = render::WindowPresents().presents;
+            g_waitPresentGamma = std::strcmp(what, "gamma") == 0;
+            g_waitPresentDeadline.Set(static_cast<DWORD>(seconds) * 1000);
+            g_waitingPresent = true;
+            return;
+        } else if (s.verb == "focus" || s.verb == "windowsize") {
+            std::string error = s.verb == "focus" ? FocusStep(s.argument) : WindowSizeStep(s.argument);
+            if (!error.empty()) g_failures.push_back(error);
         } else if (s.verb == "freeze" || s.verb == "unfreeze") {
             clock::Freeze(s.verb == "freeze");
         } else if (s.verb == "reject") {
@@ -1790,6 +1910,83 @@ void RunSteps() {
 constexpr DWORD kDefaultTimeLimitMs = 60000;
 DWORD g_budget = kDefaultTimeLimitMs;
 
+// A timed-out run: where the main thread (the process's oldest thread) is, for ei_hook.log: its
+// instruction pointer and the return addresses on its stack (words after a CALL, in any loaded
+// module), as module+offset.
+bool DescribeAddress(std::uintptr_t a, char* out, std::size_t size) {
+    HMODULE m = nullptr;
+    if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                            reinterpret_cast<LPCSTR>(a), &m))
+        return false;
+    char name[MAX_PATH] = "";
+    GetModuleFileNameA(m, name, MAX_PATH);
+    const char* file = std::strrchr(name, '\\');
+    std::snprintf(out, size, "%s+%X", file ? file + 1 : name, unsigned(a - reinterpret_cast<std::uintptr_t>(m)));
+    return true;
+}
+
+bool AfterCallInstruction(std::uintptr_t a) {
+    MEMORY_BASIC_INFORMATION mbi{};
+    constexpr DWORD kExecutable = PAGE_EXECUTE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE | PAGE_EXECUTE_WRITECOPY;
+    if (!VirtualQuery(reinterpret_cast<const void*>(a - 7), &mbi, sizeof(mbi)) || !(mbi.Protect & kExecutable)) return false;
+    const auto* p = reinterpret_cast<const unsigned char*>(a);
+    if (p[-5] == 0xE8) return true;   // CALL rel32
+    for (int n = 2; n <= 7; ++n)
+        if (p[-n] == 0xFF && ((p[-n + 1] >> 3) & 7) == 2) return true;   // CALL r/m32
+    return false;
+}
+
+void LogMainThreadStack() {
+    HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+    if (snapshot == INVALID_HANDLE_VALUE) return;
+    DWORD mainId = 0;
+    ULONGLONG oldest = ~0ull;
+    THREADENTRY32 entry{};
+    entry.dwSize = sizeof(entry);
+    for (BOOL more = Thread32First(snapshot, &entry); more; more = Thread32Next(snapshot, &entry)) {
+        if (entry.th32OwnerProcessID != GetCurrentProcessId()) continue;
+        HANDLE t = OpenThread(THREAD_QUERY_LIMITED_INFORMATION, FALSE, entry.th32ThreadID);
+        if (!t) continue;
+        FILETIME created, exited, kernel, user;
+        if (GetThreadTimes(t, &created, &exited, &kernel, &user)) {
+            const ULONGLONG when = (ULONGLONG(created.dwHighDateTime) << 32) | created.dwLowDateTime;
+            if (when < oldest) {
+                oldest = when;
+                mainId = entry.th32ThreadID;
+            }
+        }
+        CloseHandle(t);
+    }
+    CloseHandle(snapshot);
+    HANDLE thread = mainId ? OpenThread(THREAD_SUSPEND_RESUME | THREAD_GET_CONTEXT, FALSE, mainId) : nullptr;
+    if (!thread) return;
+    std::vector<std::uintptr_t> stack(4096);
+    std::size_t words = 0;
+    CONTEXT context{};
+    context.ContextFlags = CONTEXT_CONTROL;
+    if (SuspendThread(thread) != DWORD(-1)) {
+        MEMORY_BASIC_INFORMATION mbi{};
+        if (GetThreadContext(thread, &context) && VirtualQuery(reinterpret_cast<const void*>(context.Esp), &mbi, sizeof(mbi))) {
+            const std::uintptr_t end = reinterpret_cast<std::uintptr_t>(mbi.BaseAddress) + mbi.RegionSize;
+            words = (end - context.Esp) / sizeof(std::uintptr_t);
+            if (words > stack.size()) words = stack.size();
+            std::memcpy(stack.data(), reinterpret_cast<const void*>(context.Esp), words * sizeof(std::uintptr_t));
+        }
+        ResumeThread(thread);
+    }
+    CloseHandle(thread);
+    char where[MAX_PATH + 16] = "?";
+    DescribeAddress(context.Eip, where, sizeof(where));
+    Log("harness: main thread %lu at %08X %s; return addresses on its stack:", mainId, unsigned(context.Eip), where);
+    int logged = 0;
+    for (std::size_t i = 0; i < words && logged < 48; ++i) {
+        const std::uintptr_t a = stack[i];
+        if (a < 0x10000 || !DescribeAddress(a, where, sizeof(where)) || !AfterCallInstruction(a)) continue;
+        Log("  %08X %s", unsigned(a), where);
+        ++logged;
+    }
+}
+
 DWORD WINAPI Watchdog(void*) {
     const DWORD start = GetTickCount();
     for (;;) {
@@ -1806,6 +2003,7 @@ DWORD WINAPI Watchdog(void*) {
             std::snprintf(what, sizeof(what), "scenario exceeded its %lu s time limit at step %u of %u",
                           g_budget / 1000, unsigned(g_next), unsigned(g_steps.size()));
             g_failures.push_back(what);
+            LogMainThreadStack();
             // Write the report from another thread and end the game whether or not that finishes:
             // a crashed or deadlocked main thread may hold a lock the report needs.
             if (HANDLE writer = CreateThread(nullptr, 0, [](void*) -> DWORD { WriteReport(); return 0; }, nullptr, 0, nullptr)) {
@@ -1913,6 +2111,42 @@ void ActivateWithoutDirectDraw(HWND window) {
     if (*reinterpret_cast<std::uint8_t*>(0x0079BC5C)) return;
     Log("harness: the game window activated (the switch-over has no DirectDraw to activate it)");
     SendMessageA(window, WM_ACTIVATE, WA_ACTIVE, 0);
+}
+
+// focus off: what Windows sends the game when another window takes the focus (WM_ACTIVATE
+// WA_INACTIVE, which AlwaysActiveWindowProc otherwise keeps from it): the game deactivates and asks
+// to be minimised, which ShowWithoutActivating leaves out, so the step minimises the window itself
+// (activating nothing). focus on: the window restored (not activated) and the activation Windows
+// sends when the user comes back (WA_CLICKACTIVE). Ticket R9c.
+std::string FocusStep(const std::string& argument) {
+    HWND window = GameWindow();
+    if (!window || !g_gameWindowProc) return "focus: no game window yet";
+    if (argument == "off") {
+        Log("harness: focus off (WM_ACTIVATE inactive, the window minimised)");
+        CallWindowProcA(g_gameWindowProc, window, WM_ACTIVATE, WA_INACTIVE, 0);
+        g_showWindow(window, SW_SHOWMINNOACTIVE);
+        return "";
+    }
+    if (argument == "on") {
+        Log("harness: focus on (the window restored, WM_ACTIVATE click-active)");
+        g_showWindow(window, SW_SHOWNOACTIVATE);
+        CallWindowProcA(g_gameWindowProc, window, WM_ACTIVATE, WA_CLICKACTIVE, 0);
+        return "";
+    }
+    return "focus needs off or on";
+}
+
+// windowsize <width> <height>: the game window resized (it is a WS_POPUP: its size is the client
+// area's), as the user or a display change could; the switch-over scales the frame into it.
+std::string WindowSizeStep(const std::string& argument) {
+    int width = 0, height = 0;
+    if (sscanf_s(argument.c_str(), "%d %d", &width, &height) != 2 || width <= 0 || height <= 0)
+        return "windowsize needs <width> <height>";
+    HWND window = GameWindow();
+    if (!window) return "windowsize: no game window yet";
+    Log("harness: windowsize %dx%d", width, height);
+    SetWindowPos(window, nullptr, 0, 0, width, height, SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
+    return "";
 }
 
 void KeepGameWindowActive() {
@@ -2116,6 +2350,8 @@ struct Harness {
         PatchSlot(kGetFileAttributesASlot, &RedirectedGetFileAttributes, g_getFileAttributes);
         PatchSlot(kSetFileAttributesASlot, &RedirectedSetFileAttributes, g_setFileAttributes);
         PatchSlot(kRegSetValueExASlot, &SkippedRegSetValue, g_regSetValue);
+        PatchSlot(kSystemParametersInfoASlot, &HarnessSystemParametersInfo, g_systemParametersInfo);
+        PatchSlot(kCreateFontIndirectASlot, &HarnessCreateFontIndirect, g_createFontIndirect);
         PatchSlot(kGetPrivateProfileStringASlot, &HarnessGetProfileString, g_getProfileString);
         PatchSlot(kGetPrivateProfileSectionASlot, &RedirectedGetProfileSection, g_getProfileSection);
         PatchSlot(kGetPrivateProfileIntASlot, &RedirectedGetProfileInt, g_getProfileInt);

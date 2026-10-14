@@ -178,6 +178,7 @@ EI_VERIFY(0x00625880, TradeBuildListsVerify, 7, s_buildLists);
 
 static void(__fastcall* s_drawLists)(CTradePanel*);
 static void __fastcall TradeDrawListsVerify(CTradePanel* self) {
+    ei::verify::PixelComparisonScope scope;
     void* surface = self->surfaces_.size > 0 ? self->surfaces_.data[0] : nullptr;
     Pixels before;
     bool pixels = AccessPixels(surface, before, false);

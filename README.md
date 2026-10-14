@@ -110,6 +110,9 @@ game sees those files under its `saves\` (e.g. `magic_traps.txt` and `tools/make
 Timing runs: `EI_PLAIN=1` installs no verify wrappers, `EI_PROFILE=1` samples the main thread into the run's
 `profile.txt` (`python tools\profile_report.py <run folder>`: time per function between harness steps), and
 `EI_BUILD_DIR` points run_all at another verify build.
+Hook installation (PF2) takes about 50 ms for the ~6000 hooks (it was ~200 ms: per-hook list scans, two VirtualProtect calls
+per hook, one VirtualAlloc per trampoline); measure it as the time from the first `hooked`/`verifying` line to the first
+`startup check` line in `ei_hook.log`. What remains is mostly the per-line log flush.
 
 Add `--no-hooks` to run the same scenario on the original code only, as a baseline. Add
 `--rebirth all` (or patch names, comma-separated) to turn on the Rebirth patch flags in the rewritten
@@ -117,13 +120,15 @@ code (`include/ei/rebirth.h`, `docs/notes/rebirth.md`); `ei_rebirth.ini` next to
 permanently, and a scenario can ask with `rebirthflags <names>`. A scenario's `resolution <WxH|desktop>`
 and `widescreen 0|1` (or `EI_RESOLUTION` / `EI_WIDESCREEN`) answer the starter's settings the game and
 Rebirth read for the run, without writing them (`tests/verify/harness_starter.h`; `python tools\run_all.py
---widescreen` compares Rebirth's WideScreen with ours, `docs/notes/rebirth.md`). Harness runs
+--widescreen` compares Rebirth's WideScreen with ours, `docs/notes/rebirth.md`; `chat 1|0` opens and closes the
+chat line, which a single player game does not show). Harness runs
 need no clicks and leave the install alone: startup movies are skipped, the tutorial option is off,
 saves and `config\tutorial.ini` go to `build\verify\harness_saves`, every other file the game writes under
 its folder (the composed-skin cache `textures\*.mmp`, `config\keyboard.ini`, `config\addrbook.ini`,
 `mp\*.mp`, ...) goes to a copy-on-write overlay there (reads prefer the overlay copy), settings are not written to the
 registry, and a game that hangs on exit (Rebirth) is ended 3 s after the scenario quits. When the game crashes,
-the stack is in `ei_hook.log`; `python tools\resolve_crash.py` names the functions.
+the stack is in `ei_hook.log`; `python tools\resolve_crash.py` names the functions. A run that exceeds its time
+limit logs where the main thread waits (instruction pointer and return addresses, as module+offset).
 
     harness.cmd tests\scenarios\sandbox_actions.txt
 

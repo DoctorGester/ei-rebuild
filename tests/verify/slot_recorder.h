@@ -43,6 +43,8 @@ public:
         table_[1 + Slot] = reinterpret_cast<void*>(Recorder<Slot, Args>::Get());
     }
     static const SlotCall& Call() { return s_call; }
+    // The real vtable of the object the innermost recorder stands in for (null when none).
+    static void** RealVtable() { return s_real; }
 
 private:
     template <int Slot, int Args>

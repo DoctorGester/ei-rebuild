@@ -510,6 +510,7 @@ static_assert(sizeof(LinkArchiveNode) == 0x18);
 // (CFigureManager::models_, 005AA5F0) and the link figure loader (its figure sets, 004FAB00) cache
 // them by name.
 struct FigureModel {
+    CMappedResource* FindAnimation(const stlp::string* name);
     using AnimationMap = stlp::hash_map<stlp::string, CMappedResource*, stlp::StringHash>;
 
     CMappedResource* mesh;          // +0x00 the .mod archive
@@ -538,6 +539,9 @@ struct VertexPacket;
 
 class __declspec(novtable) CLinkFigureLoader {
 public:
+    // 004F68C0 (link_loader_create.cpp, RET 8). Constructor: the renderer held, the cache and the figure
+    // and menu archives of `folder` opened (a failure is only logged). Returns this.
+    CLinkFigureLoader* Construct(CTextureDevice* renderer, const stlp::string* folder);
     // 0: 004F6A30 (RET 4, returns this; A-S8). Destruct; freed when flags bit 0 is set.
     virtual void* DeleteThis(unsigned flags);
     virtual int CacheSize();                    // 1: 004F6A20 (cache_'s count)

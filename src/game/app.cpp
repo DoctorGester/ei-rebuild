@@ -7,6 +7,7 @@
 #include "app.h"
 #include "dx_errors.h"
 #include "game_strings.h"
+#include "present_window.h"
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
@@ -231,6 +232,9 @@ LRESULT __stdcall WindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lP
 EI_REPLACE(0x00457D40, WindowProc);
 
 LRESULT __fastcall DispatchInput(UINT message, WPARAM wParam, LPARAM lParam) {
+    // The switch-over with the frame scaled into the window: the mouse's coordinates as the frame's
+    // (present_window.h; unchanged otherwise). The game's own wheel message (0xCC54) is not mapped.
+    lParam = present_window::MouseToGame(message, lParam);
     Input* input = TheInput();
     input->Update();
     int w = static_cast<int>(wParam);

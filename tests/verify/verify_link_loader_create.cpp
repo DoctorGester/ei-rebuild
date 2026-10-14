@@ -17,8 +17,6 @@
 #include <string>
 #include <vector>
 
-CLinkFigureLoader* __fastcall LinkFigureLoaderConstruct(CLinkFigureLoader* self, void*, CTextureDevice* renderer,
-                                                        const stlp::string* folder);
 
 namespace {
 
@@ -66,7 +64,7 @@ CLinkFigureLoader* __fastcall ConstructVerify(CLinkFigureLoader* self, void*, CT
     const Summary expected = Summarise(theirs);
     theirs->Destruct();
 
-    CLinkFigureLoader* result = LinkFigureLoaderConstruct(self, nullptr, renderer, folder);
+    CLinkFigureLoader* result = self->Construct(renderer, folder);
     const Summary actual = Summarise(self);
     ei::verify::Check("CLinkFigureLoader constructor (004F68C0)", true, returnedThis && result == self && expected == actual,
                       "\"%s\": %u vs %u archives, %u vs %u buckets, device references %d vs %d", folder->data(),

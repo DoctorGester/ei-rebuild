@@ -316,7 +316,7 @@ game has no DirectDraw object, display mode, primary, render target, depth buffe
 - 004E5E50 takes the IDirect3DDevice7 stand-in (HAL id, no depth formats, no depth buffer, no render target set),
   sets the main thread's x87 precision to 24 bits as Direct3D 7's CreateDevice did (the game passes
   DDSCL_FPUSETUP), builds the format table from the stand-in's fixed list (5:6:5, 1:5:5:5, 4:4:4:4, 8:8:8:8, DXT1,
-  DXT3: what dgVoodoo listed, minus DXT2/4/5), sets the viewport and records the four state blocks on it (handles
+  DXT3: what dgVoodoo listed, minus DXT2/4/5; R9c added those back), sets the viewport and records the four state blocks on it (handles
   1..4, which `render::state::Block` knows by their addresses as before).
 - `src/game/device_null.cpp`: the two stand-ins in the device object's +0x0C / +0x54. They draw nothing; the
   IDirect3DDevice7 one keeps the render and stage states (Direct3D 7 defaults at the start), feeds them to the mirror
@@ -416,7 +416,8 @@ Alt+Tab, the Scroll Lock screenshot and the movie recorder from the new frame.
   device object's). Tried and dropped: returning 0x800 without probing hung every native run in sound init (after
   `CSoundManager::Close`, before `Open`): the probe's side effects (DirectMusic through CoCreateInstance, DDRAW.DLL
   left loaded) matter to the sound code there. The probe fails now and then in native runs with several games on the
-  machine, ending the run at the "DirectX 7 or later" message; seen before R9b too (follow-up R9b1).
+  machine, ending the run at the "DirectX 7 or later" message; seen before R9b too (follow-up R9b1). Since PF3
+  (below) native runs skip it; the sound hang did not come back.
 - `tools/old_device_calls.py [run folders]` lists the stand-ins' log by calling function (default: every
   `build/verify/runs/*present*`). The four present scenarios, vanilla and native: 73 calling places in 46 functions
   before, 4 in 1 after: WinMain's original (00456440: GetAvailableVidMem at 00456DA2 / 00456DC6 / 00456E0D,
@@ -428,6 +429,75 @@ Alt+Tab, the Scroll Lock screenshot and the movie recorder from the new frame.
   the mode changes and restores, the cursor thread's WaitForVerticalBlank.
 - Left on the stand-ins: code of game.exe that is not rewritten or not installed (WinMain in harness runs; in a
   Rebirth launch the Rebirth-patched originals the rewrites leave in place, e.g. 006462A0, 0060C870).
+
+### R9c: everything the player sees through the new renderer's present (done)
+
+- Rebirth's crash in `present` (NullDirect3DDevice7::SetTexture with surface 0x7463 from CUiMesh::Draw) and the
+  CBattleScreenSetup::Create verify mismatch (2 objects of 3) had one cause: the stand-in's texture formats left out
+  DXT2/4/5, and Rebirth's battle00 (1536x1536) and footprints are DXT5. ParseMmpHeader found no format, the texture
+  load failed, Rebirth's DisableExitOnCrashReport made FatalError carry on, and the battle screen kept a garbage
+  texture pointer. The list (`device_null.cpp` kTextureFormats) now has DXT1-5 as dgVoodoo did. Nothing for R9b2.
+- `src/render/render_window.cpp` (moved out of render.cpp; render.cpp keeps `EndFrame` and gives the module its
+  device, context and frame through `render_internal.h`): the game window's swap chain. The frame is drawn by a
+  full-screen triangle (shader "ei-present") into the client area with its aspect kept, centred, black bars
+  (`render::FrameInWindow`, `WindowToFrame`, `FrameToWindow`). A failed `ResizeBuffers` (other than a lost device)
+  makes the swap chain again once. A lost device (removed, reset, hung, driver error from Present or ResizeBuffers)
+  is logged with `GetDeviceRemovedReason` and the window shows nothing more; nothing is recreated (follow-up).
+- Gamma as a shader step: 00504A60 (`renderer_gamma.cpp` SetGamma) without DirectDraw keeps the three values,
+  builds the ramp as before (BuildRamp, full scale 65280) and hands it to `render::SetGammaRamp`: a 256x1 lookup
+  texture the present shader reads per channel (each entry v*255/65280, rounded). Result true, as with a primary that
+  has DDCAPS2_PRIMARYGAMMA. The ramp applies only to what is presented, not to the frame (captures, ReadFrame), as
+  the hardware ramp did not change surface reads. Verify build: after a ramp change the presented back buffer is read
+  back at a 17x17 grid (one-to-one placement only) and compared with the frame through the ramp ("render: gamma ramp
+  check: N points ..." / "render: MISMATCH gamma ramp"). The verify wrapper (`verify_renderer_gamma.cpp`) without
+  DirectDraw: result true, the values kept, the ramp never decreasing, the identity for 0, 0, 0.
+- Full screen (device flags_ bit 0, registry FullScreen 1) without a display mode change (`present_window.cpp`,
+  called from each present in device_present.cpp): the WS_POPUP window is moved over the monitor it is on (not while
+  minimised; again after someone else resized it, e.g. a display mode change), and the frame is scaled into it.
+  Windowed, a window resized by the user scales the frame the same way.
+- The game's mouse coordinates when the frame does not fill the window one to one: GetCursorPos / SetCursorPos (the
+  cursor 005E52E0, the global map 0062F050 take screen coordinates as a window at 0, 0 the resolution's size) through
+  replaced import slots; WM_MOUSEMOVE .. WM_MBUTTONDBLCLK (client) and WM_MOUSEWHEEL (screen) mapped at the top of the
+  input dispatcher (00457970, app.cpp). The game's own wheel message (0xCC54) carries no position. One to one at 0, 0
+  nothing changes.
+- Focus loss and return (Alt+Tab, minimise): the WM_ACTIVATE path is the game's own (app.cpp OnActivate): inactive
+  deactivates the device (004EEC60, RestoreDisplayMode on the stand-in), the sound and the network and minimises;
+  active restores, and in full screen 00504780 (returns at once without DirectDraw) and the interface reset 005DAE70
+  (cursor rebuilt). Minimised the client area is empty and nothing is presented; on return the swap chain is resized
+  to the restored window. DXGI_STATUS_OCCLUDED counts as success.
+- Movies and the loading screen already reach `render::Present` through 004EF610 (R9a2). The software cursor:
+  the cursor thread (005E5690) draws nothing without DirectDraw; the renderer draws the cursor in each frame, and the
+  movie players and 005DA400 hide it, so it does not move during movies and loading. Drawing it between frames needs
+  a present from another thread (follow-up).
+- The harness: `fullscreen 0|1` (starter: the registry's FullScreen), `focus off|on` (WM_ACTIVATE inactive through
+  the game's window procedure and SW_SHOWMINNOACTIVE; SW_SHOWNOACTIVATE and WA_CLICKACTIVE), `windowsize <w> <h>`,
+  `waitpresent <seconds> [gamma]` (a frame presented on the game window; with gamma, checked against a ramp that is
+  not the identity). The mouse steps aim at frame pixels mapped into the window.
+- Scenarios: render_present_window (windowed 800x600: the options' gamma slider held, the ramp checked; the window
+  resized to 1600x900 and the options reached through the mapped clicks) and render_present_fullscreen (full screen
+  at 800x600 on the desktop's monitor: the menus and the battle screen through the mapping, focus lost and given
+  back, the window resized from outside and covering the monitor again). Both set a resolution, so run_all runs
+  them alone.
+
+### PF3: no DirectDraw probes at startup in native runs (R9b1)
+
+User's decision (2026-10-14): only native runs (EI_RENDER "present" on the system's DirectDraw, run/native) and the
+standalone exe change; vanilla and Rebirth runs keep the original's probes and verify against them.
+- 0045E310 (`app_dxversion.cpp` GetDxVersion): in a native run (`render::Presenting()` and the DDRAW.DLL the game
+  imports is not in game.exe's folder, i.e. no dgVoodoo) it probes nothing and returns 0x800 (what the probe gives on
+  current Windows); "app: native run: DirectX 7 taken as given, the version probe (0045E310) skipped" in ei_hook.log.
+  Elsewhere it probes as before. The verify wrapper (ours only) accepts 0x800.
+- The driver choice needs nothing: in `present` mode RendererCreate (00500B70) already lists no drivers and calls
+  neither 004EE5D0 (FirstHardwareDirectDrawDriver) nor 004EEA90 (CreateDirectDraw), so a native run now makes no
+  DirectDraw object at all. Under dgVoodoo (vanilla, Rebirth) all four DirectDrawCreateEx stay (~0.6 s).
+- Time (EI_PROFILE=1, ui_main_menu, native): WinMain to AIL_startup 562 ms before, 57-68 ms after (three runs); the
+  menu shows about 1.5 s after WinMain. The probe's own DirectDrawCreate alone was ~140 ms, its DirectMusic part ~50 ms.
+- R9b1: the baseline native suite (77 runs, 4 at once) ended 8+ runs at the "DirectX 7 or later" box; with the
+  skip none. R9b's "every native run hangs in sound init without the probe" did not reproduce: three native suites
+  without the probe, one with 6 timeouts at step 0 in AIL_waveOutOpen (four scenarios at the same time, two of them
+  passing on retry; the machine was shared with other workers' games), two with none. A timed-out harness run now
+  logs the main thread's instruction pointer and return addresses (module+offset, `LogMainThreadStack` in
+  harness.cpp), so the next such hang shows where it waits.
 
 ### Before R9a (reference)
 

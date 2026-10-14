@@ -1,0 +1,125 @@
+# Rebirth's WideScreen, part two (ticket W2; ui_widescreen.txt is part one, docs/notes/rebirth.md
+# "WideScreen"): the places addon scales without the margin and the shapes, on screen for
+# comparison with Rebirth's own frames:
+#   python tools\run_all.py --widescreen
+# runs ui_widescreen and this under Rebirth with our hooks and with --no-hooks (addon's code only)
+# and compares the frames. Same settings as part one (the desktop's mode, WideScreen on, the
+# virtual clock); a frame with a "_later" twin is compared without what moved between the two.
+# On screen: every text (005FDE20, 005F8340) and sprite shape (005E70E0 / 005E7680 / 005E7D60 /
+# 005E99D0); the multiplayer hero screen's name field (the edit field 0065C2E0); a tooltip at the
+# battle screen's right edge (0065E580); the console; the Esc menu's Save window with the new
+# save's caret (the list 006567A0). The battle screen's panels are built while addon's panel
+# builders set the panel offset (the shapes' x). The chat line (005E3700) is opened by the harness
+# for its verify wrapper, which compares its pixels with addon's: a single player game does not
+# show it. The Save window pauses the world: what moved in save_moving / save_moving_later, captured
+# before it opened, is left out of its frame (run_all).
+deterministic
+resolution desktop
+widescreen 1
+rebirthflags WideScreen
+reject Script error
+wait 6000
+
+# The multiplayer hero screen (main menu region 5), a new hero (its region 5) with the name field;
+# Esc back to the list and to the main menu. Nothing touches the network (ui_hero_screen).
+clickregion 5
+wait 2000
+clickregion 5
+wait 1500
+move 400 20
+wait 300
+freeze
+capture hero
+unfreeze
+wait 700
+freeze
+capture hero_later
+unfreeze
+key esc
+wait 1500
+key esc
+wait 2000
+
+# The hero on zone1, the camera settled.
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+move 400 20
+wait 2000
+
+# A tooltip: the mouse resting on the right column's buttons (they reach the screen's right edge),
+# then on the left column's.
+move 785 447
+wait 2500
+freeze
+capture tooltip
+unfreeze
+wait 700
+freeze
+capture tooltip_later
+unfreeze
+move 15 447
+wait 2500
+freeze
+capture tooltip2
+unfreeze
+wait 700
+freeze
+capture tooltip2_later
+unfreeze
+move 400 20
+wait 1000
+
+# The chat line, opened as a multiplayer client's Enter does (drawn with its caret), and closed.
+chat 1
+wait 500
+chat 0
+wait 500
+
+# The console (its window, the typed line and the history).
+key grave
+wait 1000
+freeze
+capture console
+unfreeze
+wait 700
+freeze
+capture console_later
+unfreeze
+key grave
+wait 1000
+
+# The Esc menu's Save window (rectangles from menus.reg, ui_saveload): the new save's entry
+# selected with the caret after its name; Cancel (region 1), then Esc closes the menu. The unit
+# panel is slid out first (its sling button, as ui_hud): the window's picture, a copy of the screen,
+# then has no animated hero in it.
+click 10 15
+wait 1500
+freeze
+capture save_moving
+unfreeze
+wait 700
+freeze
+capture save_moving_later
+unfreeze
+key esc
+wait 1000
+click 395 120
+wait 1500
+move 400 20
+wait 300
+freeze
+capture save
+unfreeze
+wait 700
+freeze
+capture save_later
+unfreeze
+clickregion 1
+wait 800
+key esc
+wait 1000
+report
+quit

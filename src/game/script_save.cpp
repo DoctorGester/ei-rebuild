@@ -61,8 +61,8 @@ int ObjectId(const ScriptObjectRef& ref) { return ref.object ? ref.object->id_ :
 // A ScriptVars as the definition and run savers write it: floats, strings and objects inline (the
 // pieces of their savers; objects through ScriptObjectRef::Save), groups through 004C4330.
 void WriteVars(ScriptStream* stream, const ScriptVars* vars) {
-    ScriptFloatsSave(reinterpret_cast<const ScriptNamedValues<float>*>(&vars->floats), nullptr, stream);
-    ScriptStringsSave(reinterpret_cast<const ScriptNamedValues<mfc::CString>*>(&vars->strings), nullptr, stream);
+    (reinterpret_cast<const ScriptNamedValues<float>*>(&vars->floats))->Save(stream);
+    (reinterpret_cast<const ScriptNamedValues<mfc::CString>*>(&vars->strings))->Save(stream);
     WriteInt(stream, vars->objects.size);
     for (int i = 0; i < vars->objects.size; ++i) {
         RefSave(&vars->objects.data[i], nullptr, stream);
@@ -84,51 +84,51 @@ void WriteList(ScriptStream* stream, const List& list, Save save) {
 
 } // namespace
 
-void __fastcall ScriptDeclSave(const ScriptDecl* block, void*, ScriptStream* stream) {
-    stream->Write(&block->id, 4);
-    WriteInt(stream, block->commands.size);
-    for (int i = 0; i < block->commands.size; ++i) CmdSave(&block->commands.data[i], nullptr, stream);
+void ScriptDecl::Save(ScriptStream* stream) const {
+    stream->Write(&id, 4);
+    WriteInt(stream, commands.size);
+    for (int i = 0; i < commands.size; ++i) CmdSave(&commands.data[i], nullptr, stream);
 }
-EI_REPLACE(0x004C1230, ScriptDeclSave);
+EI_REPLACE_METHOD(0x004C1230, ScriptDecl::Save);
 
-void __fastcall ScriptFloatsSave(const ScriptNamedValues<float>* vars, void*, ScriptStream* stream) {
-    WriteInt(stream, vars->values.size);
-    for (int i = 0; i < vars->values.size; ++i) {
-        stream->Write(&vars->values.data[i], 4);
-        WriteName(stream, vars->names, i);
+template <> void ScriptNamedValues<float>::Save(ScriptStream* stream) const {
+    WriteInt(stream, values.size);
+    for (int i = 0; i < values.size; ++i) {
+        stream->Write(&values.data[i], 4);
+        WriteName(stream, names, i);
     }
 }
-EI_REPLACE(0x004C2EF0, ScriptFloatsSave);
+EI_REPLACE_METHOD(0x004C2EF0, ScriptNamedValues<float>::Save);
 
-void __fastcall ScriptStringsSave(const ScriptNamedValues<mfc::CString>* vars, void*, ScriptStream* stream) {
-    WriteInt(stream, vars->values.size);
-    for (int i = 0; i < vars->values.size; ++i) {
-        WriteString(stream, vars->values.data[i]);
-        WriteName(stream, vars->names, i);
+template <> void ScriptNamedValues<mfc::CString>::Save(ScriptStream* stream) const {
+    WriteInt(stream, values.size);
+    for (int i = 0; i < values.size; ++i) {
+        WriteString(stream, values.data[i]);
+        WriteName(stream, names, i);
     }
 }
-EI_REPLACE(0x004C33C0, ScriptStringsSave);
+EI_REPLACE_METHOD(0x004C33C0, ScriptNamedValues<mfc::CString>::Save);
 
-void __fastcall ScriptObjectsSave(const ScriptNamedValues<ScriptObjectRef>* vars, void*, ScriptStream* stream) {
-    WriteInt(stream, vars->values.size);
-    for (int i = 0; i < vars->values.size; ++i) {
-        WriteInt(stream, ObjectId(vars->values.data[i]));
-        WriteName(stream, vars->names, i);
+template <> void ScriptNamedValues<ScriptObjectRef>::Save(ScriptStream* stream) const {
+    WriteInt(stream, values.size);
+    for (int i = 0; i < values.size; ++i) {
+        WriteInt(stream, ObjectId(values.data[i]));
+        WriteName(stream, names, i);
     }
 }
-EI_REPLACE(0x004C38C0, ScriptObjectsSave);
+EI_REPLACE_METHOD(0x004C38C0, ScriptNamedValues<ScriptObjectRef>::Save);
 
-void __fastcall ScriptGroupsSave(const ScriptNamedValues<ScriptGroup>* vars, void*, ScriptStream* stream) {
-    WriteInt(stream, vars->values.size);
-    for (int i = 0; i < vars->values.size; ++i) {
-        const ScriptGroup& group = vars->values.data[i];
+template <> void ScriptNamedValues<ScriptGroup>::Save(ScriptStream* stream) const {
+    WriteInt(stream, values.size);
+    for (int i = 0; i < values.size; ++i) {
+        const ScriptGroup& group = values.data[i];
         int size = group.size;   // read once
         WriteInt(stream, size);
         for (int k = 0; k < size; ++k) WriteInt(stream, ObjectId(group.data[k]));
-        WriteName(stream, vars->names, i);
+        WriteName(stream, names, i);
     }
 }
-EI_REPLACE(0x004C4330, ScriptGroupsSave);
+EI_REPLACE_METHOD(0x004C4330, ScriptNamedValues<ScriptGroup>::Save);
 
 void __fastcall ScriptAreasSave(const mfc::CArray<ScriptArea>* areas, ScriptStream* stream) {
     WriteInt(stream, areas->size);
@@ -142,69 +142,69 @@ void __fastcall ScriptAreasSave(const mfc::CArray<ScriptArea>* areas, ScriptStre
 EI_REPLACE(0x004CAEC0, ScriptAreasSave);
 
 // A definition (CScript::definitions_) or an instance (instances_). The pairs' blocks are not null-checked.
-void __fastcall ScriptDefinitionSave(const ScriptDefinition* definition, void*, ScriptStream* stream) {
-    stream->Write(&definition->index, 4);
-    WriteString(stream, definition->name);
-    WriteString(stream, definition->params);
-    WriteInt(stream, definition->ifThen.size);
-    for (int i = 0; i < definition->ifThen.size; ++i) {
-        const ScriptIfThen& pair = definition->ifThen.data[i];
+void ScriptDefinition::Save(ScriptStream* stream) const {
+    stream->Write(&index, 4);
+    WriteString(stream, name);
+    WriteString(stream, params);
+    WriteInt(stream, ifThen.size);
+    for (int i = 0; i < ifThen.size; ++i) {
+        const ScriptIfThen& pair = ifThen.data[i];
         WriteInt(stream, pair.conditions->id);
         WriteInt(stream, pair.commands->id);
     }
-    WriteVars(stream, &definition->vars);
+    WriteVars(stream, &vars);
 }
-EI_REPLACE(0x004BBFE0, ScriptDefinitionSave);
+EI_REPLACE_METHOD(0x004BBFE0, ScriptDefinition::Save);
 
 // A run (CScript::runs_). Its instance is found by the address of the killed flag (the node's
 // data) in the list of the script being saved; the WorldScript's runs (no flag) write -1.
-void __fastcall ScriptRunSave(const ScriptRun* run, void*, ScriptStream* stream) {
-    WriteInt(stream, run->block->id);
-    stream->Write(&run->index, 4);
-    stream->Write(&run->ticks, 4);
-    stream->Write(&run->sleepStart, 4);
+void ScriptRun::Save(ScriptStream* stream) const {
+    WriteInt(stream, block->id);
+    stream->Write(&index, 4);
+    stream->Write(&ticks, 4);
+    stream->Write(&sleepStart, 4);
     int instance = 0;
     const auto* node = SavingScript()->instances_.head;
     for (; node; node = node->next, ++instance) {
-        if (static_cast<const void*>(run->killFlag) == &node->data) break;
+        if (static_cast<const void*>(killFlag) == &node->data) break;
     }
     WriteInt(stream, node ? instance : -1);
-    WriteVars(stream, &run->vars);
+    WriteVars(stream, &vars);
 }
-EI_REPLACE(0x004BB320, ScriptRunSave);
+EI_REPLACE_METHOD(0x004BB320, ScriptRun::Save);
 
-void __fastcall ScriptSave(CScript* script, void*, ScriptStream* stream) {
-    SavingScript() = script;
+void CScript::SaveState(ScriptStream* stream) {
+    SavingScript() = this;
 
-    const auto& lights = script->pointLights_;
+    const auto& lights = pointLights_;
     WriteInt(stream, lights.size);
     for (int i = 0; i < lights.size; ++i) PointLightSave(&lights.data[i], nullptr, stream);
 
-    WriteList(stream, script->particles_, ParticleSourceSave);
-    WriteList(stream, script->fxSources_, FxSourceSave);
-    WriteList(stream, script->lightning_, LightningSave);
-    stream->Write(&script->nextParticleId_, 4);
-    stream->Write(&script->nextFxId_, 4);
-    WriteList(stream, script->blocks_, DeclSaveOrig);
-    WriteList(stream, script->worldBlocks_, DeclSaveOrig);
+    WriteList(stream, particles_, ParticleSourceSave);
+    WriteList(stream, fxSources_, FxSourceSave);
+    WriteList(stream, lightning_, LightningSave);
+    stream->Write(&nextParticleId_, 4);
+    stream->Write(&nextFxId_, 4);
+    WriteList(stream, blocks_, DeclSaveOrig);
+    WriteList(stream, worldBlocks_, DeclSaveOrig);
 
-    const auto& scripts = script->definitions_;
+    const auto& scripts = definitions_;
     WriteInt(stream, scripts.size);
     for (int i = 0; i < scripts.size; ++i) DefinitionSave(&scripts.data[i], nullptr, stream);
 
-    const ScriptVars& globals = script->globals_;
+    const ScriptVars& globals = globals_;
     FloatsSaveOrig(&globals.floats, nullptr, stream);
     StringsSaveOrig(&globals.strings, nullptr, stream);
     ObjectsSaveOrig(&globals.objects, nullptr, stream);
     GroupsSaveOrig(&globals.groups, nullptr, stream);
 
     // Instances (copies of definitions) and runs.
-    WriteList(stream, script->instances_, DefinitionSave);
-    WriteList(stream, script->runs_, RunSave);
+    WriteList(stream, instances_, DefinitionSave);
+    WriteList(stream, runs_, RunSave);
 
-    stream->Write(&script->loaded_, 4);
-    stream->Write(&script->fileCount_, 4);
+    stream->Write(&loaded_, 4);
+    stream->Write(&fileCount_, 4);
     SavingScript() = nullptr;
-    AreasSaveOrig(&script->areas_, stream);
+    AreasSaveOrig(&areas_, stream);
 }
-EI_REPLACE(0x004C0F90, ScriptSave);
+EI_REPLACE_METHOD(0x004C0F90, CScript::SaveState);

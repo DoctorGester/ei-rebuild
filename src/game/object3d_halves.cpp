@@ -206,13 +206,13 @@ EI_REPLACE(0x0051C800, NamedTextureDestruct);
 
 // 0051E430 (RET 4). A named texture's copy constructor: the name copied (a block of its length +
 // 1), the texture referenced. Returns the copy.
-NamedTexture* __fastcall NamedTextureCopy(NamedTexture* self, void*, const NamedTexture* other) {
-    new (&self->name) stlp::string(other->name);
-    self->texture = other->texture;
-    if (self->texture) ++self->texture->refCount_;
-    return self;
+NamedTexture* NamedTexture::Copy(const NamedTexture* other) {
+    new (&name) stlp::string(other->name);
+    texture = other->texture;
+    if (texture) ++texture->refCount_;
+    return this;
 }
-EI_REPLACE(0x0051E430, NamedTextureCopy);
+EI_REPLACE_METHOD(0x0051E430, NamedTexture::Copy);
 
 // 0051E970 (ECX = the place, EDX = the stage). A material stage copied into `place` unless it is
 // null (the placement copy the stage vector's growth uses).

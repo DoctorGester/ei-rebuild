@@ -15,8 +15,13 @@
 // extra), the layout-to-screen scaling 005F7CA0 / 005F7D20 (+ margin), the screen-to-layout scaling
 // 005F7DA0 / 005F7E00 / 005F7E30 (- margin; addon's entries 005F7D9E / 005F7DFE in front of the
 // first two run them without it; every one is without the margin when called with ECX 0), CUiRegion::SetRect / AddPoint and the sprites' Place 005E6FA0 (x +
-// the panel offset). The panel builders that set the panel offset, the sprite shapes, the camp and
-// hero screens, the console, minimap and cursor rectangles are W2-W4 (docs/notes/rebirth.md).
+// the panel offset). Ticket W2: the sprite shapes 005E70E0 / 005E7680 / 005E7D60 / 005E99D0 (x moved
+// by the panel offset), the text extent 005F8340 (TextExtentToLayout), and the places addon scales
+// without the margin (ECX 0: the text surfaces' draw 005FDE20, the edit field 0065C2E0, the
+// connection list 0061D780, the save / load list 006567A0, the chat line 005E3700 and the tooltip
+// 0065E580 with its right edge LayoutRight; CInterface3D::CallScale*NoMargin, ui.h). The panel
+// builders that set the panel offset, the camp and hero screens, minimap and cursor rectangles are
+// W3-W4 (docs/notes/rebirth.md).
 //
 // With the flag off, or a mode addon would refuse, everything is the original's.
 
@@ -54,6 +59,15 @@ int RectToScreen(RECT* rect, bool margin);
 int PointToScreen(POINT* point, bool margin);
 int RectFromScreen(RECT* rect, bool margin);
 int PointFromScreen(POINT* point, bool margin);
+
+// The interface's text extent (005F8340, addon's 80 bytes at 005F83CF): GetTextExtentPoint32's
+// pixels to layout units, the width by the 4:3 part's width (not the screen's) and the height by the
+// mode's height (IMUL / IDIV, 64-bit products).
+SIZE TextExtentToLayout(SIZE pixels);
+
+// The layout's right edge with the wide layout, 800 + extra: addon's operands at 0065E7C3 / 0065E7CA
+// (the tooltip kept on the layout, 0065E580).
+int LayoutRight();
 
 // What 00742B08 and 007428AC held when Startup ran (before it wrote ours): in a Rebirth launch,
 // addon's values (the verify build compares them with ours).

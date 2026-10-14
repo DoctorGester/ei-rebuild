@@ -1,11 +1,13 @@
 // A region's tooltip (CUiTooltip, 0065E320-0065EA50; A-H20): its constructor, which splits the text
 // into lines and measures them, the destructor body, SetText and the drawing of the lines; and its
-// showing (0065E580, A-H26: Rebirth-patched, so the vanilla body hooks in the vanilla launch only
+// showing (0065E580, A-H26: Rebirth-patched; its WideScreen is reproduced behind the flag, W2,
 // and CUiRegion::OnMouseMove keeps calling it through its address). See ui.h and
 // docs/notes/items_spells.md.
 #include "ui.h"
+#include "ui_widescreen.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -172,12 +174,15 @@ void CUiTooltip::OnMouseMoveVanilla(int x, int y) {
         timer_ = 0.0f;
         RECT rect{0, 0, width_ > keyWidth_ ? width_ : keyWidth_, height_};
         POINT offset = CursorOffset();
-        interface_->CallScalePointFromScreen(&offset);
+        // WideScreen (0065E77E: XOR ECX,ECX): without the margin; the layout's right edge 800 + extra
+        // (addon's operands at 0065E7C3 / 0065E7CA).
+        interface_->CallScalePointFromScreenNoMargin(&offset);
+        const int layoutRight = widescreen::Active() ? widescreen::LayoutRight() : kLayoutWidth;
         gameapi::OffsetRect(&rect, offset.x, offset.y);
         gameapi::OffsetRect(&rect, x, y);
         // Kept on the layout: pushed left from the right edge, and above the mouse at the bottom.
-        if (rect.right > kLayoutWidth) {
-            gameapi::OffsetRect(&rect, -(rect.right - kLayoutWidth), 0);
+        if (rect.right > layoutRight) {
+            gameapi::OffsetRect(&rect, -(rect.right - layoutRight), 0);
             if (rect.left < 0) gameapi::OffsetRect(&rect, -rect.left, 0);
         }
         if (rect.bottom > kLayoutHeight) {
@@ -214,3 +219,4 @@ void CUiTooltip::OnMouseMoveVanilla(int x, int y) {
     }
 }
 EI_REPLACE_METHOD(0x0065E580, CUiTooltip::OnMouseMoveVanilla);
+EI_REBIRTH_IMPLEMENTS(0x0065E580, ei::rebirth::Patch::WideScreen);

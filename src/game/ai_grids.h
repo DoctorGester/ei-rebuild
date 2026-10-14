@@ -48,21 +48,6 @@ void __fastcall FreeAnyGrid(SearchGrid<std::uint8_t>* grid);
 // 005CD4B0: the event table's cells (the Rebirth-patched resize 005C9310 calls it).
 struct AIEventCell;   // unit_ai.h
 void __fastcall AllocateEventGrid(SearchGrid<AIEventCell>* grid);
-// 005CD3A0 (RET 8; the visibility marks, VisibilityGrid + 8). Reallocated to width x height (the
-// cells are not kept or cleared) unless the grid already has that size.
-void __fastcall ResizeByteGrid(SearchGrid<std::uint8_t>* grid, void*, int width, int height);
-// 005CD410 (RET 4). Makes `grid` a copy of `source`: its size, a block and row table of its own,
-// the cells copied.
-void __fastcall CopyByteGrid(SearchGrid<std::uint8_t>* grid, void*, const SearchGrid<std::uint8_t>* source);
-// 005C4BA0 (RET 4; A-W14): the same for the local search's nodes (the original Recenter 005C25D0
-// keeps the old window in such a copy).
-void __fastcall CopyNodeGrid(SearchGrid<SearchNode>* grid, void*, const SearchGrid<SearchNode>* source);
-
-// The constructors for a size (RET 8; return the grid).
-SearchGrid<std::int8_t>* __fastcall ConstructByteGrid(SearchGrid<std::int8_t>* grid, void*, int width, int height);       // 005BCBD0
-SearchGrid<SearchNode>* __fastcall ConstructNodeGrid(SearchGrid<SearchNode>* grid, void*, int width, int height);         // 005BCC50
-SearchGrid<AIMapCell>* __fastcall ConstructCellGrid(SearchGrid<AIMapCell>* grid, void*, int width, int height);           // 005BCEE0
-SearchGrid<std::uint32_t>* __fastcall ConstructOccluderGrid(SearchGrid<std::uint32_t>* grid, void*, int width, int height);   // 005BCF00
 // 005AF5A0: the region grids' default constructor (1 x 1; the region map's constructor hands it
 // to the vector constructor iterator).
 void __fastcall ConstructRegionGrid(SearchGrid<std::uint16_t>* grid);

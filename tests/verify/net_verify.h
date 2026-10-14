@@ -26,13 +26,21 @@ struct BuiltCompare {
     const std::uint8_t* actual;
     std::size_t size;
     std::vector<std::pair<std::uint32_t, std::uint32_t>> pairs;   // expected pointer -> actual pointer
+    std::vector<std::size_t> skipped;                              // dword offsets Range leaves out
     char detail[256] = "";
     bool ok = true;
+    int failures = 0;
 
     static bool InImage(std::uint32_t v) { return v >= 0x00400000u && v < 0x00800000u; }
+    static bool HeapPointer(std::uint32_t v) { return v >= 0x10000u && !InImage(v); }
 
+    // The first four differences are listed.
     void Fail(std::size_t offset, std::uint32_t e, std::uint32_t a) {
-        if (ok) std::snprintf(detail, sizeof(detail), "+0x%X: expected %08X, got %08X", unsigned(offset), e, a);
+        if (failures++ < 4) {
+            std::size_t used = std::strlen(detail);
+            std::snprintf(detail + used, sizeof(detail) - used, "%s+0x%X: expected %08X, got %08X", used ? "; " : "",
+                          unsigned(offset), e, a);
+        }
         ok = false;
     }
 
@@ -46,6 +54,22 @@ struct BuiltCompare {
         return true;
     }
 
+    // An STLport string's or vector's finish or end of storage (the dword 4 or 8 bytes after its
+    // start): the same distance from the start in both objects. Not paired: the pool hands out
+    // blocks one after another, so an end often equals the next block's start in one object and
+    // not in the other, which depends only on the pool's free list (the original builds first,
+    // then ours; the connect screen's client and the host's server and messages, ui_mp_host).
+    bool SameEnd(std::size_t offset, std::uint32_t e, std::uint32_t a) const {
+        for (std::size_t back : {std::size_t(4), std::size_t(8)}) {
+            if (offset < back) continue;
+            std::uint32_t es, as;
+            std::memcpy(&es, expected + offset - back, 4);
+            std::memcpy(&as, actual + offset - back, 4);
+            if (HeapPointer(es) && HeapPointer(as) && e > es && e - es <= 0x10000u && e - es == a - as) return true;
+        }
+        return false;
+    }
+
     // Compares the dword at `offset` of both objects.
     void Word(std::size_t offset) {
         std::uint32_t e, a;
@@ -54,28 +78,31 @@ struct BuiltCompare {
         if (e == a) return;
         auto eb = reinterpret_cast<std::uint32_t>(expected), ab = reinterpret_cast<std::uint32_t>(actual);
         if (e - eb <= size && a - ab <= size && e - eb == a - ab) return;   // into the object itself
-        if (e >= 0x10000u && a >= 0x10000u && !InImage(e) && !InImage(a) && Pair(e, a)) return;
+        if (SameEnd(offset, e, a)) return;
+        if (HeapPointer(e) && HeapPointer(a) && Pair(e, a)) return;
         Fail(offset, e, a);
     }
 
-    // Compares [from, to) except the dword offsets listed in `skip`.
+    // Compares [from, to) except the dword offsets listed in `skip` and in `skipped`.
     void Range(std::size_t from, std::size_t to, std::initializer_list<std::size_t> skip = {}) {
         for (std::size_t o = from; o + 4 <= to; o += 4) {
-            bool skipped = false;
-            for (std::size_t s : skip) skipped |= s == o;
-            if (!skipped) Word(o);
+            bool left = false;
+            for (std::size_t s : skip) left |= s == o;
+            for (std::size_t s : skipped) left |= s == o;
+            if (!left) Word(o);
         }
     }
 
-    // Compares two other objects (e.g. ones both objects point to) with the same pointer pairing.
-    void Nested(const void* e, const void* a, std::size_t n, const char* what) {
+    // Compares two other objects (e.g. ones both objects point to) with the same pointer pairing,
+    // except the dword offsets in `skip`.
+    void Nested(const void* e, const void* a, std::size_t n, const char* what, std::initializer_list<std::size_t> skip = {}) {
         if (!e || !a) {
             if (e != a) Note(what);
             return;
         }
         BuiltCompare inner{static_cast<const std::uint8_t*>(e), static_cast<const std::uint8_t*>(a), n};
         inner.pairs = pairs;
-        inner.Range(0, n);
+        inner.Range(0, n, skip);
         pairs = inner.pairs;
         if (!inner.ok) Note(what, inner.detail);
     }
@@ -85,6 +112,12 @@ struct BuiltCompare {
         ok = false;
     }
 };
+
+// The first dwords of the type registry's two hash tables (+0x2C, +0x40): the empty hash and equality
+// functors' bytes and their padding, which the constructors fill from whatever their stack held
+// (the connect screen's client differs there, ui_mp_host). Session checks skip them;
+// CompareSessionTables compares the tables' contents.
+constexpr std::size_t kRegistryFunctors[] = {0x2C, 0x40};
 
 // The handler tables and the type registry of two sessions must hold the same entries in the same
 // order (the containers themselves are distinct allocations).

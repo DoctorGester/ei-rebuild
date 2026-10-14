@@ -47,7 +47,7 @@ __declspec(naked) void __fastcall LoadBonesOther(FigureBone*, void*, void*) EI_O
 
 } // namespace
 
-int __fastcall LoadSkeletonLinks(CFigureManager* manager, void*, CFigureAnimationState* state, const char* name) {
+int CFigureManager::LoadSkeletonLinks(CFigureAnimationState* state, const char* name) {
     StringSlot key;
     key.start = nullptr;
     key.finish = nullptr;
@@ -55,7 +55,7 @@ int __fastcall LoadSkeletonLinks(CFigureManager* manager, void*, CFigureAnimatio
     int zero = 0;
     StringEndOfStorage(&key.eos, nullptr, &allocatorTag, &zero);
     StringAssignSpan(&key, nullptr, name, name + std::strlen(name));
-    auto* model = static_cast<FigureModel*>(FigureManagerFindModelOriginal(manager, nullptr, &key));
+    auto* model = static_cast<FigureModel*>(FigureManagerFindModelOriginal(this, nullptr, &key));
     StringBufferFree(&key);
 
     std::uint32_t* data;
@@ -64,7 +64,7 @@ int __fastcall LoadSkeletonLinks(CFigureManager* manager, void*, CFigureAnimatio
     } else {
         mfc::CString base(name);
         mfc::CString path = base + reinterpret_cast<const char*>(0x0078EC70);   // ".lnk"
-        data = static_cast<std::uint32_t*>(manager->GetFile(path, nullptr));
+        data = static_cast<std::uint32_t*>(GetFile(path, nullptr));
     }
     if (!data) return game::FatalError(reinterpret_cast<const char*>(0x00790D70), name);
 
@@ -78,19 +78,19 @@ int __fastcall LoadSkeletonLinks(CFigureManager* manager, void*, CFigureAnimatio
         }
         FinishLinks(state);
         if (model) model->mesh->CloseFile(data);
-        else manager->CloseFile(data);
+        else CloseFile(data);
     }
     return 1;
 }
 
-EI_REPLACE(0x005AC880, LoadSkeletonLinks);
+EI_REPLACE_METHOD(0x005AC880, CFigureManager::LoadSkeletonLinks);
 
 // 005ACB80 (thiscall on the figure manager, RET 8): a bone's cage. The data comes from the cached
 // model's bones archive (GetFile with the bone's name and the size out) or from the file
 // "<bone's model name (name3)><bone's name (slot 7)>.bon" (the manager's GetFile with the size
 // out); none returns 0. 0x48 bytes go to the bone's 0050BC00, other sizes to 0050B8C0, as
 // {data, size}. The data is not released here. Returns 1.
-int __fastcall LoadFigureBones(CFigureManager* manager, void*, FigureModel* model, FigureBone* bone) {
+int CFigureManager::LoadFigureBones(FigureModel* model, FigureBone* bone) {
     struct {
         void* data;
         std::uint32_t size;
@@ -101,11 +101,11 @@ int __fastcall LoadFigureBones(CFigureManager* manager, void*, FigureModel* mode
         mfc::CString name(bone->GetName());
         mfc::CString directory(bone->name3);
         mfc::CString path = (directory + name) + reinterpret_cast<const char*>(0x00784640);   // ".bon"
-        bones.data = manager->GetFile(path, &bones.size);
+        bones.data = GetFile(path, &bones.size);
     }
     if (!bones.data) return 0;
     if (bones.size == 0x48) LoadBones48(bone, nullptr, &bones);
     else LoadBonesOther(bone, nullptr, &bones);
     return 1;
 }
-EI_REPLACE(0x005ACB80, LoadFigureBones);
+EI_REPLACE_METHOD(0x005ACB80, CFigureManager::LoadFigureBones);

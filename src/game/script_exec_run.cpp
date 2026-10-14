@@ -239,22 +239,21 @@ void Unlink(mfc::CList<T>& list, typename mfc::CList<T>::Node* node) {
 
 // ---- Script instances ---------------------------------------------------------------------------
 
-void __fastcall ScriptBindCall(ScriptDefinition* instance, void*, const SSCCmd* call) {
-    ScriptVars& vars = instance->vars;
+void ScriptDefinition::BindCall(const SSCCmd* call) {
     if (call->floatArgs.size - 1 != vars.floats.size) {
-        game::FatalError(kWrongFloatCount, static_cast<const char*>(instance->name));
+        game::FatalError(kWrongFloatCount, static_cast<const char*>(name));
         return;
     }
     if (call->stringArgs.size - 1 != vars.strings.size) {
-        game::FatalError(kWrongStringCount, static_cast<const char*>(instance->name));
+        game::FatalError(kWrongStringCount, static_cast<const char*>(name));
         return;
     }
     if (call->objectArgs.size != vars.objects.size) {
-        game::FatalError(kWrongObjectCount, static_cast<const char*>(instance->name));
+        game::FatalError(kWrongObjectCount, static_cast<const char*>(name));
         return;
     }
     if (call->groupArgs.size != vars.groups.size) {
-        game::FatalError(kWrongGroupCount, static_cast<const char*>(instance->name));
+        game::FatalError(kWrongGroupCount, static_cast<const char*>(name));
         return;
     }
     // Float 0 and string 0 name the script; the rest are the parameters.
@@ -270,20 +269,20 @@ void __fastcall ScriptBindCall(ScriptDefinition* instance, void*, const SSCCmd* 
     }
     for (int i = 0; i < call->groupArgs.size; ++i) GroupCopy(&vars.groups.data[i], nullptr, call->groupArgs.data[i]);
 }
-EI_REPLACE(0x004BB6A0, ScriptBindCall);
+EI_REPLACE_METHOD(0x004BB6A0, ScriptDefinition::BindCall);
 
-void __fastcall ScriptIfThenRun(const ScriptIfThen* pair, void*, CScript* script, ScriptDefinition* instance) {
-    for (int i = 0; i < pair->conditions->commands.size; ++i) {
+void ScriptIfThen::Run(CScript* script, ScriptDefinition* instance) const {
+    for (int i = 0; i < conditions->commands.size; ++i) {
         float result;
-        CalcFloatOrig(&pair->conditions->commands.data[i], nullptr, script, &instance->vars, &result);
+        CalcFloatOrig(&conditions->commands.data[i], nullptr, script, &instance->vars, &result);
         FreeTemporariesOrig(script);
         if (ZeroOrNaN(result)) return;
     }
-    RunCommandsOrig(script, nullptr, pair->commands, instance);
+    RunCommandsOrig(script, nullptr, commands, instance);
 }
-EI_REPLACE(0x004BB520, ScriptIfThenRun);
+EI_REPLACE_METHOD(0x004BB520, ScriptIfThen::Run);
 
-void __fastcall ScriptRunCommands(CScript* script, void*, ScriptDecl* block, ScriptDefinition* instance) {
+void CScript::RunCommands(ScriptDecl* block, ScriptDefinition* instance) {
     alignas(4) unsigned char storage[sizeof(ScriptRun)];
     auto* run = reinterpret_cast<ScriptRun*>(storage);
     run->block = nullptr;
@@ -304,10 +303,10 @@ void __fastcall ScriptRunCommands(CScript* script, void*, ScriptDecl* block, Scr
     run->ticks = 0;
     run->sleepStart = -1;
     run->killFlag = reinterpret_cast<int*>(instance);
-    if (ExecuteOrig(run, nullptr, script)) {
+    if (ExecuteOrig(run, nullptr, this)) {
         // Not finished: a copy goes to the head of the run list (AddHead inlined; the original
         // also inlines NewNode, which is 004CDA30's code).
-        RunList& runs = script->runs_;
+        RunList& runs = runs_;
         RunList::Node* node = RunListNewNode(&runs, nullptr, runs.head);
         RunAssign(&node->data, nullptr, run);
         if (runs.head) runs.head->prev = node;
@@ -316,7 +315,7 @@ void __fastcall ScriptRunCommands(CScript* script, void*, ScriptDecl* block, Scr
     }
     VarsDestruct(&run->vars);
 }
-EI_REPLACE(0x004BC420, ScriptRunCommands);
+EI_REPLACE_METHOD(0x004BC420, CScript::RunCommands);
 
 void __fastcall ScriptRunWorldScript(CScript* script, void*, ScriptDecl* block) {
     alignas(4) unsigned char storage[sizeof(ScriptRun)];

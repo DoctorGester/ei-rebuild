@@ -18,6 +18,7 @@ using ei::Log;
 
 char g_resolution[32];      // "WxH", empty: the registry's
 int g_wideScreen = -1;      // 0 / 1, -1: the registry's
+int g_fullScreen = -1;      // 0 / 1, -1: the registry's
 
 bool SetResolution(const char* text) {
     if (_stricmp(text, "desktop") == 0) {
@@ -40,6 +41,13 @@ bool Answer(const char* name, DWORD* type, const BYTE** data, DWORD* size, DWORD
         *type = REG_SZ;
         *data = reinterpret_cast<const BYTE*>(g_resolution);
         *size = static_cast<DWORD>(std::strlen(g_resolution) + 1);
+        return true;
+    }
+    if (g_fullScreen >= 0 && _stricmp(name, "FullScreen") == 0) {
+        *dword = static_cast<DWORD>(g_fullScreen);
+        *type = REG_DWORD;
+        *data = reinterpret_cast<const BYTE*>(dword);
+        *size = 4;
         return true;
     }
     if (g_wideScreen >= 0 && _stricmp(name, "WideScreen") == 0) {
@@ -136,6 +144,10 @@ bool ParseStep(const std::string& verb, const std::string& argument) {
         g_wideScreen = std::atoi(argument.c_str()) != 0 ? 1 : 0;
         return true;
     }
+    if (verb == "fullscreen") {
+        g_fullScreen = std::atoi(argument.c_str()) != 0 ? 1 : 0;
+        return true;
+    }
     return false;
 }
 
@@ -146,9 +158,10 @@ void Install() {
         Log("harness: EI_RESOLUTION %s: not WxH or desktop", value);
     n = GetEnvironmentVariableA("EI_WIDESCREEN", value, sizeof(value));
     if (g_wideScreen < 0 && n && n < sizeof(value)) g_wideScreen = std::atoi(value) != 0 ? 1 : 0;
-    if (!g_resolution[0] && g_wideScreen < 0) return;
-    Log("harness: starter settings for this run: resolution %s, WideScreen %s", g_resolution[0] ? g_resolution : "(registry)",
-        g_wideScreen < 0 ? "(registry)" : g_wideScreen ? "1" : "0");
+    if (!g_resolution[0] && g_wideScreen < 0 && g_fullScreen < 0) return;
+    Log("harness: starter settings for this run: resolution %s, WideScreen %s, FullScreen %s",
+        g_resolution[0] ? g_resolution : "(registry)", g_wideScreen < 0 ? "(registry)" : g_wideScreen ? "1" : "0",
+        g_fullScreen < 0 ? "(registry)" : g_fullScreen ? "1" : "0");
     PatchSlot(reinterpret_cast<decltype(&::RegQueryValueExA)*>(kRegQueryValueExASlot), &QueryA, g_queryA);
     if (void** slot = Advapi32QueryWSlot())
         PatchSlot(reinterpret_cast<decltype(&::RegQueryValueExW)*>(slot), &QueryW, g_queryW);

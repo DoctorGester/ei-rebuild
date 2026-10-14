@@ -1,0 +1,33 @@
+# The global map's pick picture and the frame rate surface (docs/notes/ui-census.md): the map's
+# mouse move off its regions reads the zone under the mouse from the pick picture (CGlobalMap's
+# backdrop, drawn by RefreshSelection) with CUiSurface::PixelAt 005FD240 (ui_global_map_input.cpp);
+# "fps on" (a public console command) makes the interface's frame rate surface (ShowFps 005F5700),
+# redrawn every 400 ms by DrawOverlays 005F5320 ("FPS:" and the rate), "fps off" frees it.
+reject Script error
+waitmenu
+console fps on
+console thingamabob
+newgame
+speed 10
+waitfor 15 IsGreater(HP(GetLeader()),0)
+console @BlockUnit(GetLeader(),0)
+waitwindow 15 battle
+wait 1000
+screen 4
+waitwindow 15 map
+move 300 250
+frames 5
+move 400 300
+frames 5
+move 500 350
+frames 5
+move 350 400
+frames 5
+move 450 200
+frames 5
+move 250 300
+frames 5
+console fps off
+frames 5
+report
+quit

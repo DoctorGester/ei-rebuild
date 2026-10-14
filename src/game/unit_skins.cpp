@@ -334,13 +334,13 @@ void FigureUnit(CWorldClient* self, FiguredUnitRecord* record) {
 
 // 00568800 (thiscall, RET 8). `others` and `dressed` are vectors of unit records (0x3C / 0x24
 // bytes); the dressed units (the second argument) come first.
-void __fastcall BuildUnitSkins(CWorldClient* self, void*, const void* othersVector, const void* dressedVector) {
+void CWorldClient::BuildUnitSkins(const void* othersVector, const void* dressedVector) {
     auto* dressed = static_cast<stlp::vector<DressedUnitRecord>*>(const_cast<void*>(dressedVector));
-    for (DressedUnitRecord* r = dressed->Start(); r != dressed->Finish(); ++r) DressUnit(self, r);
+    for (DressedUnitRecord* r = dressed->Start(); r != dressed->Finish(); ++r) DressUnit(this, r);
     auto* others = static_cast<stlp::vector<FiguredUnitRecord>*>(const_cast<void*>(othersVector));
-    for (FiguredUnitRecord* r = others->Start(); r != others->Finish(); ++r) FigureUnit(self, r);
+    for (FiguredUnitRecord* r = others->Start(); r != others->Finish(); ++r) FigureUnit(this, r);
 }
-EI_REPLACE(0x00568800, BuildUnitSkins);
+EI_REPLACE_METHOD(0x00568800, CWorldClient::BuildUnitSkins);
 
 // The list is emptied; nothing more for a unit without items. The body list has eight records:
 // [0] the body (0x32, the prototype), [1] empty (0, -1, -1), [2..7] the armour pieces of

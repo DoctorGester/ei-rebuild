@@ -135,7 +135,7 @@ void __fastcall SubCallDestructVerify(ScriptSubCall* self) {
 using FindNameFn = int(__fastcall*)(const ScriptNamedValues<float>*, void*, const char*);
 int CheckFindName(FindNameFn original, const char* label, const ScriptNamedValues<float>* vars, const char* name) {
     int expected = original(vars, nullptr, name);
-    int actual = ScriptFindVariableName(vars, nullptr, name);
+    int actual = vars->FindName(name);
     ei::verify::Check(label, expected, actual, "\"%s\" in %d names: %d / %d", name, vars->names.size, expected, actual);
     return expected;
 }
@@ -238,18 +238,22 @@ ScriptNamedValues<T>* CopyConstructCheck(const char* name, NamedCopyFn<T> origin
     ei::verify::Check(name, true, ok, "%d values, %d names", other->values.size, other->names.size);
     return self;
 }
+template <typename T>
+ScriptNamedValues<T>* __fastcall NamedCopyOurs(ScriptNamedValues<T>* self, void*, const ScriptNamedValues<T>* other) {
+    return self->CopyConstruct(other);
+}
 NamedCopyFn<float> s_floatsCopyConstruct;
 ScriptNamedValues<float>* __fastcall FloatsCopyConstructVerify(ScriptNamedValues<float>* self, void*,
                                                                const ScriptNamedValues<float>* other) {
     return CopyConstructCheck<float>(
-        "ScriptFloatsCopyConstruct", s_floatsCopyConstruct, ScriptFloatsCopyConstruct, ScriptFloatsDestruct,
+        "ScriptFloatsCopyConstruct", s_floatsCopyConstruct, NamedCopyOurs<float>, ScriptFloatsDestruct,
         [](const mfc::CArray<float>& a, const mfc::CArray<float>& b) { return SamePlain(a, b, true); }, self, other);
 }
 NamedCopyFn<mfc::CString> s_stringsCopyConstruct;
 ScriptNamedValues<mfc::CString>* __fastcall StringsCopyConstructVerify(ScriptNamedValues<mfc::CString>* self, void*,
                                                                        const ScriptNamedValues<mfc::CString>* other) {
     return CopyConstructCheck<mfc::CString>(
-        "ScriptStringsCopyConstruct", s_stringsCopyConstruct, ScriptStringsCopyConstruct, ScriptStringsDestruct,
+        "ScriptStringsCopyConstruct", s_stringsCopyConstruct, NamedCopyOurs<mfc::CString>, ScriptStringsDestruct,
         [](const mfc::CArray<mfc::CString>& a, const mfc::CArray<mfc::CString>& b) { return SameStrings(a, b, true); },
         self, other);
 }

@@ -83,7 +83,7 @@ def main():
         futures = {}
         for n, i, hooks, k in runs:
             folder = f'{n}-{i}-{"ours" if hooks else "original"}{k}'
-            futures[pool.submit(run_all.run, n, i, hooks, folder, args.clock)] = (n, i, hooks, k, folder)
+            futures[pool.submit(run_all.run, n, i, hooks, folder, clock=args.clock)] = (n, i, hooks, k, folder)
         for future in concurrent.futures.as_completed(futures):
             n, i, hooks, k, folder = futures[future]
             result, seconds, failures, counts, notes = future.result()

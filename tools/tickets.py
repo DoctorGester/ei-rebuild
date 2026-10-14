@@ -16,14 +16,48 @@ Every change rewrites docs/tickets.md and tickets.json. Workers read their ticke
 A queued ticket is "ready" when every ticket it depends on is done, else "waiting". The board
 (tools/tickets_board/index.html) reads tickets.json; it is republished whenever tickets.toml changes.
 """
-import argparse, datetime, json, os, subprocess, sys, tomllib
+import argparse, contextlib, datetime, json, os, subprocess, sys, time, tomllib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SOURCE = os.path.join(ROOT, 'docs', 'tickets.toml')
 MARKDOWN = os.path.join(ROOT, 'docs', 'tickets.md')
 STATUSES = ('running', 'review', 'queued', 'later', 'watch', 'done')
 STATES = ('running', 'review', 'ready', 'waiting', 'watch', 'later', 'done')
+LOCK = os.path.join(ROOT, 'build', 'tickets', 'tickets.lock')
 FIELDS = {'id', 'title', 'group', 'status', 'size', 'model', 'depends', 'files', 'doc', 'started', 'done', 'note'}
+
+
+@contextlib.contextmanager
+def toml_lock(timeout=120):
+    """Holds this checkout's lock file around a read-modify-write of tickets.toml and the files written
+    from it, so two tickets.py running at once never both read the old file and drop one change.
+    A byte lock: the system drops it when the process ends, so a killed run never leaves it taken."""
+    os.makedirs(os.path.dirname(LOCK), exist_ok=True)
+    f = open(LOCK, 'a+b')
+    deadline = time.time() + timeout
+    while True:
+        try:
+            if os.name == 'nt':
+                import msvcrt
+                f.seek(0)
+                msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+            else:
+                import fcntl
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            break
+        except OSError:
+            if time.time() > deadline:
+                f.close()
+                sys.exit(f'tickets.py: {LOCK} still held after {timeout} s')
+            time.sleep(0.05)
+    try:
+        yield
+    finally:
+        if os.name == 'nt':
+            import msvcrt
+            f.seek(0)
+            msvcrt.locking(f.fileno(), msvcrt.LK_UNLCK, 1)
+        f.close()
 
 
 def load():
@@ -222,7 +256,13 @@ def main():
         p.add_argument(opt)
     p.add_argument('--status', choices=STATUSES, default='queued')
     args = ap.parse_args()
+    if args.cmd in ('check', 'show', 'list'):
+        return command(args)
+    with toml_lock():     # everything else reads, changes and rewrites the files
+        return command(args)
 
+
+def command(args):
     if args.cmd == 'check':
         problems = load()[3]
         for p in problems:
