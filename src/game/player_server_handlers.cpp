@@ -149,11 +149,11 @@ AIPath* AIPath::Construct() {
     cells = {};
     cells.vtable = PathCellListVtable();
     cells.blockSize = 0x80;
-    pointsVtable = reinterpret_cast<void*>(kPointsVtable);
-    points = nullptr;
-    pointCount = 0;
-    pointMax = 0;
-    pointGrowBy = 0;
+    excludedBlocks.vtable = reinterpret_cast<void*>(kExcludedBlocksVtable);
+    excludedBlocks.data = nullptr;
+    excludedBlocks.size = 0;
+    excludedBlocks.maxSize = 0;
+    excludedBlocks.growBy = 0;
     Clear();
     return this;
 }

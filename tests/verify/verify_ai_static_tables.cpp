@@ -107,14 +107,18 @@ void SectorSpiralStartupCheck() {
 EI_STARTUP_CHECK(SectorSpiralStartupCheck);
 
 void UnitShapeCacheStartupCheck() {
-    static UnitShapeCache ours;
+    // Raw storage: the class's C++ vtable is never instantiated (Construct stores the game's).
+    alignas(UnitShapeCache) static unsigned char storage[sizeof(UnitShapeCache)];
+    UnitShapeCache& ours = *reinterpret_cast<UnitShapeCache*>(storage);
     ours.Construct();
     const UnitShapeCache* theirs = UnitShapes();
-    const bool same = theirs->vtable == ours.vtable && theirs->shapes.BucketCount() == kShapeBuckets &&
+    void* theirVtable = *reinterpret_cast<void* const*>(theirs);
+    void* ourVtable = *reinterpret_cast<void* const*>(&ours);
+    const bool same = theirVtable == ourVtable && theirs->shapes.BucketCount() == kShapeBuckets &&
                       ours.shapes.BucketCount() == kShapeBuckets && theirs->shapes.Size() == 0 && ours.shapes.Size() == 0 &&
                       !theirs->shapes.First() && !ours.shapes.First();
     ei::verify::Check("static initialiser: unit shape cache 005B32E0", true, same,
-                      "vtable %p / %p buckets %u / %u shapes %u / %u", theirs->vtable, ours.vtable,
+                      "vtable %p / %p buckets %u / %u shapes %u / %u", theirVtable, ourVtable,
                       static_cast<unsigned>(theirs->shapes.BucketCount()), static_cast<unsigned>(ours.shapes.BucketCount()),
                       static_cast<unsigned>(theirs->shapes.Size()), static_cast<unsigned>(ours.shapes.Size()));
     ours.Destruct();

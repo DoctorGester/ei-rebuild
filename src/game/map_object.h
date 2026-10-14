@@ -162,7 +162,9 @@ public:
     virtual bool ApplyScience(int first, int second);
     // 42 (0xA8): whether `key` fits: 0 (0050F110, RET 4); levers KeyOpens, traps KeyFits.
     virtual int AcceptsKey(const LockKey* key);
-    virtual void KeepsMapFlag();       // 43: AL 1 (004467B0); levers +0x261 (0052B2C0). Best guess
+    // 43 (0xAC): AL 1 (004467B0); levers +0x261 (0052B2C0). Best guess. The AI map's MarkFootprint
+    // (005B6A80) refreshes units' passage around the object only when it is true.
+    virtual bool KeepsMapFlag();
     // 44 (0xB0, RET 8): the spots a user of radius `userRadius` may use the object from, into the
     // CArray<Vector3> `out`: 0050F120 FreeArray (none); levers 0052BBE0 Lever::CollectUseSpots.
     virtual void UseSpots(void* out, float userRadius);

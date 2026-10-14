@@ -20,21 +20,23 @@ bool SameCell(const FootprintCell& a, const FootprintCell& b) {
 // grow or free it.
 FootprintCellSet Clone(const FootprintCellSet& set) {
     FootprintCellSet copy = set;
-    if (set.cells) {
+    if (set.cells.data) {
         auto raw = reinterpret_cast<std::uintptr_t>(
-            gamecrt::operator_new(set.capacity * sizeof(FootprintCell) + 0x24));
+            gamecrt::operator_new(set.cells.capacity * sizeof(FootprintCell) + 0x24));
         auto* aligned = reinterpret_cast<FootprintCell*>((raw + 0x23) & ~std::uintptr_t{0x1F});
         reinterpret_cast<std::uintptr_t*>(aligned)[-1] = raw;
-        std::memcpy(aligned, set.cells, set.count * sizeof(FootprintCell));
-        copy.cells = aligned;
+        std::memcpy(aligned, set.cells.data, set.cells.size * sizeof(FootprintCell));
+        copy.cells.data = aligned;
     }
     return copy;
 }
 
 bool SameSet(const FootprintCellSet& a, const FootprintCellSet& b, int cellsToCompare) {
-    if (a.count != b.count || a.capacity != b.capacity || a.growBy != b.growBy || a.hashed != b.hashed) return false;
+    if (a.cells.size != b.cells.size || a.cells.capacity != b.cells.capacity || a.cells.growBy != b.cells.growBy ||
+        a.hashed != b.hashed)
+        return false;
     if (std::memcmp(a.buckets, b.buckets, sizeof(a.buckets)) != 0) return false;
-    if ((a.cells == nullptr) != (b.cells == nullptr)) return false;
+    if ((a.cells.data == nullptr) != (b.cells.data == nullptr)) return false;
     for (int i = 0; i < cellsToCompare; ++i) {
         if (!SameCell(a.cells[i], b.cells[i])) return false;
     }
@@ -48,8 +50,8 @@ constexpr int kMaxClonedCells = 4096;
 // 005BD350: MOV EAX,[ESP+8]; PUSH EBX (5 bytes). Deep copy: original on the clone, ours on the set.
 static void(__fastcall* s_setSize)(FootprintCellSet*, void*, int, int);
 static void __fastcall SetSizeVerify(FootprintCellSet* self, void*, int size, int growBy) {
-    if (self->count > kMaxClonedCells) return self->SetSize(size, growBy);
-    int before = self->count;
+    if (self->cells.size > kMaxClonedCells) return self->SetSize(size, growBy);
+    int before = self->cells.size;
     FootprintCellSet clone = Clone(*self);
     s_setSize(&clone, nullptr, size, growBy);
     self->SetSize(size, growBy);
@@ -66,12 +68,12 @@ static AddFn s_addTop, s_addBottom;
 
 static void CheckAdd(const char* name, AddFn original, void (FootprintCellSet::*ours)(int, int, int, std::int8_t, std::int8_t),
                      FootprintCellSet* self, int x, int y, int height, std::int8_t kind, std::int8_t transparency) {
-    if (self->count > kMaxClonedCells) return (self->*ours)(x, y, height, kind, transparency);
+    if (self->cells.size > kMaxClonedCells) return (self->*ours)(x, y, height, kind, transparency);
     FootprintCellSet clone = Clone(*self);
     original(&clone, nullptr, x, y, height, kind, transparency);
     (self->*ours)(x, y, height, kind, transparency);
-    ei::verify::Check(name, true, SameSet(clone, *self, self->count), "(%d,%d) z %d, %d cells", x, y, height,
-                      self->count);
+    ei::verify::Check(name, true, SameSet(clone, *self, self->cells.size), "(%d,%d) z %d, %d cells", x, y, height,
+                      self->cells.size);
     clone.SetSize(0, -1);
 }
 
@@ -95,7 +97,7 @@ static void __fastcall GetBoundsVerify(const FootprintCellSet* self, void*, int*
     s_getBounds(self, nullptr, expected);
     self->GetBounds(bounds);
     ei::verify::Check("FootprintCellSet::GetBounds", true, std::memcmp(expected, bounds, sizeof(expected)) == 0,
-                      "%d cells", self->count);
+                      "%d cells", self->cells.size);
 }
 EI_VERIFY(0x005B2F40, GetBoundsVerify, 7, s_getBounds);
 
@@ -115,14 +117,14 @@ struct Capture {
 } g_capture;
 
 void Snapshot(const FootprintCellSet* set, std::vector<FootprintCell>& cells, int* buckets) {
-    cells.assign(set->cells, set->cells + set->count);
+    cells.assign(set->cells.data, set->cells.data + set->cells.size);
     std::memcpy(buckets, set->buckets, sizeof(set->buckets));
 }
 
 bool SameAsSnapshot(const FootprintCellSet& set, const std::vector<FootprintCell>& cells, const int* buckets) {
-    if (set.count != static_cast<int>(cells.size())) return false;
+    if (set.cells.size != static_cast<int>(cells.size())) return false;
     if (std::memcmp(set.buckets, buckets, sizeof(set.buckets)) != 0) return false;
-    for (int i = 0; i < set.count; ++i) {
+    for (int i = 0; i < set.cells.size; ++i) {
         if (!SameCell(set.cells[i], cells[i])) return false;
     }
     return true;
@@ -130,7 +132,7 @@ bool SameAsSnapshot(const FootprintCellSet& set, const std::vector<FootprintCell
 
 void PrepareScratch(FootprintCellSet* scratch, const FootprintCellSet& real) {
     std::memset(scratch, 0, sizeof(*scratch));
-    scratch->growBy = real.growBy;
+    scratch->cells.growBy = real.cells.growBy;
     scratch->hashed = real.hashed;
     std::memcpy(scratch->buckets, real.buckets, sizeof(real.buckets));
     if (scratch->hashed) {
@@ -149,13 +151,13 @@ static bool __fastcall ApplyFootprintVerify(CAIMap* self, void*, FootprintCellSe
     // A stamped cell with a non-empty height range must hold an occluder afterwards.
     bool ok = true;
     if (result && !remove) {
-        for (int i = 0; i < set->count && ok; ++i) {
+        for (int i = 0; i < set->cells.size && ok; ++i) {
             const FootprintCell& c = set->cells[i];
             if (c.x < 0 || c.y < 0 || c.x >= self->width || c.y >= self->height || !(c.low < c.high)) continue;
             ok = !(self->occluders[c.y][c.x] & 0x100);
         }
     }
-    ei::verify::Check("CAIMap::ApplyFootprint", true, ok, "%d cells, remove %d", set->count, remove);
+    ei::verify::Check("CAIMap::ApplyFootprint", true, ok, "%d cells, remove %d", set->cells.size, remove);
     return result;
 }
 EI_VERIFY(0x005B65B0, ApplyFootprintVerify, 0, s_unused);
@@ -172,7 +174,7 @@ static bool __fastcall ApplyBridgesSpy(CAIMap* self, void*, FootprintCellSet* se
     }
     bool result = self->ApplyBridgeDecks(set, remove);
     bool ok = true;
-    for (int i = 0; i < set->count && ok; ++i) {
+    for (int i = 0; i < set->cells.size && ok; ++i) {
         const FootprintCell& c = set->cells[i];
         if (c.x < 0 || c.y < 0 || c.x >= self->width || c.y >= self->height || !(c.low < c.high)) continue;
         if (!remove && !result) break;
@@ -183,7 +185,7 @@ static bool __fastcall ApplyBridgesSpy(CAIMap* self, void*, FootprintCellSet* se
                  (self->occluders[c.y][c.x] & 7) == 7;
         }
     }
-    ei::verify::Check("CAIMap::ApplyBridgeDecks", true, ok, "%d cells, remove %d -> %d", set->count, remove, result);
+    ei::verify::Check("CAIMap::ApplyBridgeDecks", true, ok, "%d cells, remove %d -> %d", set->cells.size, remove, result);
     return result;
 }
 EI_VERIFY(0x005B6740, ApplyBridgesSpy, 7, s_applyBridges);
@@ -208,7 +210,7 @@ static bool __fastcall MarkFootprintVerify(CAIMap* self, void*, CEngineObject* o
                 SameAsSnapshot(footprint, g_capture.footprint, g_capture.footprintBuckets) &&
                 (!hasBridge || SameAsSnapshot(bridges, g_capture.bridges, g_capture.bridgeBuckets));
     ei::verify::Check("CAIMap::MarkFootprint", true, same, "remove %d: %d/%d cells, bridges %d/%d", remove,
-                      footprint.count, static_cast<int>(g_capture.footprint.size()), hasBridge, g_capture.bridgesSeen);
+                      footprint.cells.size, static_cast<int>(g_capture.footprint.size()), hasBridge, g_capture.bridgesSeen);
     footprint.SetSize(0, -1);
     bridges.SetSize(0, -1);
     return result;
@@ -229,7 +231,7 @@ EI_VERIFY(0x005B7820, StampFootprintVerify, 0, s_unused);
 static bool __fastcall ClearFootprintVerify(CAIMap* self, void*, FootprintCellSet* set) {
     bool refreshUnits = self->refreshUnits;
     bool result = self->ClearFootprint(set);
-    ei::verify::Check("CAIMap::ClearFootprint", true, self->refreshUnits == refreshUnits, "%d cells", set->count);
+    ei::verify::Check("CAIMap::ClearFootprint", true, self->refreshUnits == refreshUnits, "%d cells", set->cells.size);
     return result;
 }
 EI_VERIFY(0x005B78F0, ClearFootprintVerify, 0, s_unused);

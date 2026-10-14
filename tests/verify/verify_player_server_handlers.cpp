@@ -92,7 +92,7 @@ Vector3* __fastcall AimPointVerify(const AIOrder* self, void*, Vector3* out) {
 AIPath* __fastcall ConstructVerify(AIPath* self) {
     AIPath* result = self->Construct();
     bool ok = result == self && self->steps.count == 0 && self->cells.count == 0 && self->steps.blockSize == 0x80 &&
-              self->cells.blockSize == 0x80 && self->points == nullptr && self->pointCount == 0;
+              self->cells.blockSize == 0x80 && self->excludedBlocks.data == nullptr && self->excludedBlocks.size == 0;
     ei::verify::Check("AIPath::Construct", true, ok, "path %p", self);
     return result;
 }

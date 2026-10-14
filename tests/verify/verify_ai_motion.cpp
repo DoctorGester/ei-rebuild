@@ -113,9 +113,9 @@ bool ListIsEmpty(const PathCellList& list) {
 // --- Trajectory -----------------------------------------------------------------------------------
 
 // 005C7430: PUSH EBP; MOV EBP,ESP; SUB ESP,0x28 (6 bytes).
-static bool(__fastcall* s_sample)(UnitMotion*, void*, void*, MotionOrder*, float, bool*, float*, float*, float*,
+static bool(__fastcall* s_sample)(UnitMotion*, void*, CWorld*, MotionOrder*, float, bool*, float*, float*, float*,
                                   int*, int*);
-static bool __fastcall SampleVerify(UnitMotion* self, void*, void* world, MotionOrder* order, float time, bool* turning,
+static bool __fastcall SampleVerify(UnitMotion* self, void*, CWorld* world, MotionOrder* order, float time, bool* turning,
                                     float* position, float* direction, float* speed, int* cellX, int* cellY) {
     UnitMotion copy;
     std::memcpy(&copy, self, sizeof(copy));     // the arrays are only read: shared

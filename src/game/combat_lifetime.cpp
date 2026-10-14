@@ -120,8 +120,8 @@ CUnitServer* CUnitServer::Construct() {
     idleKey = kNoAnimationKey;
     InitSteps(idleAnimation);
     idleAnimation.extra = -1;
-    reinterpret_cast<AIBrain*>(brain)->Construct();
-    std::memset(voice, 0, sizeof(voice));   // 005AEA50
+    brain.Construct();
+    std::memset(&voice, 0, sizeof(voice));   // 005AEA50
     ei::SetVtable(this, kUnitServerVtable);
     ResetController();
     return this;
@@ -131,8 +131,8 @@ EI_REPLACE_METHOD(0x00545580, CUnitServer::Construct);
 // --- AIPath -------------------------------------------------------------------------------------
 
 void AIPath::Destruct() {
-    pointsVtable = reinterpret_cast<void*>(kPointsVtable);
-    if (points) gamecrt::operator_delete(points);
+    excludedBlocks.vtable = reinterpret_cast<void*>(kExcludedBlocksVtable);
+    if (excludedBlocks.data) gamecrt::operator_delete(excludedBlocks.data);
     cells.vtable = PathCellListVtable();
     cells.RemoveAll();
     steps.vtable = PathCellListVtable();

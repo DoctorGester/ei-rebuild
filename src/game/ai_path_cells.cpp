@@ -90,7 +90,7 @@ EI_REPLACE(0x005C6000, PathCellsRemoveRepeats);
 
 void AIPath::ToMotionOrder(AIPath* out) const {
     constexpr int kFollowSteps = 2;
-    std::memcpy(out->unknown_00, unknown_00, sizeof(unknown_00));
+    std::memcpy(&out->motionOrder, &motionOrder, sizeof(motionOrder));
     out->steps.RemoveAll();
     PathCellsAppend(&out->steps, nullptr, &steps);
     if (OrderOf(out)->kind != kFollowSteps) return;

@@ -57,7 +57,7 @@ EI_REPLACE(0x005B30B0, RestoreBridgeCell);
 
 bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
     if (remove) {
-        for (int i = 0; i < set->count; ++i) {
+        for (int i = 0; i < set->cells.size; ++i) {
             FootprintCell& c = set->cells[i];
             int x = c.x, y = c.y;
             if (x < 0 || y < 0 || x >= width || y >= height || c.low >= c.high) continue;
@@ -78,7 +78,7 @@ bool CAIMap::ApplyBridgeDecks(FootprintCellSet* set, bool remove) {
         }
         return true;
     }
-    for (int i = 0; i < set->count; ++i) {
+    for (int i = 0; i < set->cells.size; ++i) {
         FootprintCell& c = set->cells[i];
         int x = c.x, y = c.y;
         if (x < 0 || y < 0 || x >= width || y >= height || c.low >= c.high) continue;

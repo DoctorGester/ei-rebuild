@@ -92,7 +92,7 @@ struct OrderResult {
     std::vector<PathCell> steps;
 
     explicit OrderResult(const AIPath* out) {
-        std::memcpy(order, out->unknown_00, sizeof(order));
+        std::memcpy(order, &out->motionOrder, sizeof(order));
         for (const PathCellList::Node* node = out->steps.head; node; node = node->next) steps.push_back(node->data);
     }
     bool operator==(const OrderResult& o) const {

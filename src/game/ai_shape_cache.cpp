@@ -22,7 +22,6 @@ namespace {
 using CacheHandle = ShapeCacheHandle;
 using CacheNode = UnitShapeCache::Map::Node;
 
-constexpr std::uintptr_t kUnitShapeCacheVtable = std::uintptr_t(0x0073FD58);
 constexpr std::size_t kFirstBuckets = 100;
 
 // 005BE090 (RET 4): the map's value slot for a handle, inserted (empty) when missing.
@@ -37,14 +36,12 @@ bool SameHeight(float a, float b) {
 
 #pragma float_control(precise, on, push)
 
-CRefObject* __fastcall CacheGet(std::uint8_t* cache, void*, void* handleIn) {
+CRefObject* __fastcall CacheGet(UnitShapeCache* cache, void*, void* handleIn) {
     auto* handle = static_cast<CacheHandle*>(handleIn);
     if (handle->cache == cache && handle->ref && !(handle->ref->flags7_ & CRefObject::kDetached)) return handle->ref;
 
-    CacheNode** begin = *reinterpret_cast<CacheNode***>(cache + 0xC);
-    CacheNode** end = *reinterpret_cast<CacheNode***>(cache + 0x10);
-    auto count = static_cast<std::uint32_t>(end - begin);
-    CacheNode* node = begin[handle->key % count];
+    auto count = static_cast<std::uint32_t>(cache->shapes.BucketCount());
+    CacheNode* node = cache->shapes.Bucket(handle->key % count);
     while (node && !SameHeight(node->key.height, handle->height)) node = node->next;
     if (node) {
         CRefObject* value = node->value.ptr;
@@ -53,8 +50,8 @@ CRefObject* __fastcall CacheGet(std::uint8_t* cache, void*, void* handleIn) {
         return value;
     }
 
-    CRefObject* created = ei::VCall<CRefObject*>(cache, 0, handle);
-    RefPtr* slot = CacheSlot(cache + 8, nullptr, handle);
+    CRefObject* created = cache->CreateShape(handle);
+    RefPtr* slot = CacheSlot(&cache->shapes, nullptr, handle);
     if (created != slot->ptr) {
         slot->Destroy();
         slot->Share(created);
@@ -70,7 +67,7 @@ EI_REPLACE(0x005BD7F0, CacheGet);
 
 UnitShapeCache* UnitShapeCache::Construct() {
     shapes.InitBuckets(kFirstBuckets);
-    vtable = reinterpret_cast<void*>(kUnitShapeCacheVtable);
+    ei::SetVtable(this, kVtableAddress);
     return this;
 }
 EI_REPLACE_METHOD(0x005B32E0, UnitShapeCache::Construct);

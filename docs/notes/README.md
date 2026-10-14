@@ -22,3 +22,4 @@ history is in git. Each fact lives in one file; others link to it by file name a
 - `inventory.md` (library / dead code classification), `cleanup-tooling.md` (checks, progress counts, shared forwarder
   headers), `cleanup-engine-base.md` / `cleanup-network.md` / `cleanup-map-objects.md` / `cleanup-units.md` / `cleanup-items.md` / `cleanup-effects.md` / `cleanup-ui.md` /
   `cleanup-world.md` / `cleanup-figures.md` (how those classes are declared after cleanup phase 1).
+  `cleanup-world.md` / `cleanup-ai.md` (how those classes are declared after cleanup phase 1).

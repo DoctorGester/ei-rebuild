@@ -56,7 +56,6 @@ constexpr std::uint32_t kFarBits = 0x49742400u;                 // 1e6
 constexpr int kMessageModeBlocked = 0x0D;
 constexpr int kMessageCannotDo = 0x0E;
 constexpr int kMessagePartial = 0x01;
-constexpr int kBrainModeSilent = 6;   // AIBrain::action: no path reports
 
 // --- Forwarders (thiscall as __fastcall with the unused EDX) --------------------------------------
 
@@ -692,7 +691,7 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
         if (member == unit) continue;
         auto* controller = reinterpret_cast<CUnitServer*>(member->controller);
         bool lift = moving && (controller->action.kind == kOrderMove || controller->action2.kind == kOrderMove);
-        if (!lift) lift = BrainLeaderOrFollowedOriginal(controller->brain) == unit;
+        if (!lift) lift = BrainLeaderOrFollowedOriginal(&controller->brain) == unit;
         if (!lift) continue;
         auto* added = static_cast<UnitList::Node*>(ListNewNode(list, nullptr, list->tail, nullptr));
         added->data = member;
@@ -705,7 +704,7 @@ void CUnitServer::LiftNearby(void* listIn, const float* point, char moving) {
 EI_REPLACE_METHOD(0x005468D0, CUnitServer::LiftNearby);
 
 void CUnitServer::ReportPath(void* pathIn, char partial) {
-    if (reinterpret_cast<AIBrain*>(brain)->action == kBrainModeSilent) return;
+    if (brain.action == AIBrain::kActionFollow) return;   // following reports nothing
     auto* path = static_cast<AIPath*>(pathIn);
     CUnit* self = unit;
     const float* goal = &path->goal.x;
@@ -715,7 +714,7 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
     int message;
     if (!partial) {
         if (self->player) PlayerPathMessage(PlayerOf(self)->connection_, nullptr, self, &end, goal, 3, 1, kFarBits);
-        if (BrainLeaderOrFollowedOriginal(brain)) return;
+        if (BrainLeaderOrFollowedOriginal(&brain)) return;
         self = unit;
         if (!self->player) return;
         message = kMessageCannotDo;
@@ -731,7 +730,7 @@ void CUnitServer::ReportPath(void* pathIn, char partial) {
         bool far = reached * *reinterpret_cast<const float*>(0x0073F0B8) > left;   // unordered: not far
         if (self->player)
             PlayerPathMessage(PlayerOf(self)->connection_, nullptr, self, &end, goal, 0, far ? 0 : 1, kFarBits);
-        if (BrainLeaderOrFollowedOriginal(brain)) return;
+        if (BrainLeaderOrFollowedOriginal(&brain)) return;
         self = unit;
         if (!self->player) return;
         message = far ? kMessagePartial : kMessageCannotDo;
@@ -879,8 +878,8 @@ void CUnitServer::ResetController() {
     followedLeader = nullptr;
     if (waited) waited->Release();
     unknown_18E = 0;
-    BrainResetAll(brain);
-    AlarmReset(voice);
+    BrainResetAll(&brain);
+    AlarmReset(&voice);
     unknown_918 = nullptr;
     moveFactors[0] = 1.0f;
     moveFactors[2] = 1.0f;

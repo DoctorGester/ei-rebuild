@@ -17,58 +17,13 @@
 // --- Footprint cell sets -------------------------------------------------------------------------
 
 FootprintCellSet* FootprintCellSet::Construct() {
-    cells = nullptr;
-    growBy = 0;
-    capacity = 0;
-    count = 0;
+    cells.Construct();
     hashed = true;
     return this;
 }
 EI_REPLACE_METHOD(0x0067E4E0, FootprintCellSet::Construct);
 
-void FootprintCellSet::SetSize(int size, int grow) {
-    if (grow != -1) growBy = grow;
-    if (size == 0) {
-        if (cells) {
-            gamecrt::operator_delete(reinterpret_cast<void**>(cells)[-1]);
-            cells = nullptr;
-        }
-        capacity = 0;
-        count = 0;
-        return;
-    }
-    // 32-byte aligned storage; the raw block is kept just before it.
-    auto allocate = [](int n) {
-        auto raw = reinterpret_cast<std::uintptr_t>(gamecrt::operator_new(n * sizeof(FootprintCell) + 0x24));
-        auto* aligned = reinterpret_cast<FootprintCell*>((raw + 0x23) & ~std::uintptr_t{0x1F});
-        reinterpret_cast<std::uintptr_t*>(aligned)[-1] = raw;
-        return aligned;
-    };
-    if (!cells) {
-        cells = allocate(size);
-        capacity = size;
-        count = size;
-        return;
-    }
-    if (size <= capacity) {
-        count = size;
-        return;
-    }
-    int step = growBy;
-    if (step == 0) {
-        step = count / 8;
-        if (step < 4) step = 4;
-        else if (step > 0x400) step = 0x400;
-    }
-    int newCapacity = capacity + step;
-    if (!(size < newCapacity)) newCapacity = size;
-    FootprintCell* grown = allocate(newCapacity);
-    std::memcpy(grown, cells, count * sizeof(FootprintCell));
-    gamecrt::operator_delete(reinterpret_cast<void**>(cells)[-1]);
-    cells = grown;
-    count = size;
-    capacity = newCapacity;
-}
+void FootprintCellSet::SetSize(int size, int grow) { cells.SetSize(size, grow); }
 EI_REPLACE_METHOD(0x005BD350, FootprintCellSet::SetSize);
 
 namespace {
@@ -81,11 +36,11 @@ FootprintCell* FindCell(FootprintCellSet* set, int x, int y) {
 
 void AppendCell(FootprintCellSet* set, const FootprintCell& cell) {
     int bucket = (cell.x + cell.y) & 15;
-    int index = set->count;
+    int index = set->cells.size;
     set->SetSize(index + 1, -1);
     set->cells[index] = cell;
-    set->cells[set->count - 1].next = set->buckets[bucket];
-    set->buckets[bucket] = set->count - 1;
+    set->cells[set->cells.size - 1].next = set->buckets[bucket];
+    set->buckets[bucket] = set->cells.size - 1;
 }
 } // namespace
 
@@ -118,7 +73,7 @@ void FootprintCellSet::GetBounds(int* bounds) const {
     bounds[2] = 100000;
     bounds[3] = 0;
     bounds[1] = 0;
-    for (int i = 0; i < count; ++i) {
+    for (int i = 0; i < cells.size; ++i) {
         int x = cells[i].x, y = cells[i].y;
         if (!(bounds[0] < x)) bounds[0] = x;
         if (!(bounds[2] < y)) bounds[2] = y;
@@ -152,10 +107,9 @@ CMapObject* MapObject(CEngineObject* object) { return static_cast<CMapObject*>(o
 // "Bodypart \"%s\" for object \"%s\" not found\n"
 const char* PartNotFoundFormat() { return reinterpret_cast<const char*>(0x0079189C); }
 
-// Unit and object virtuals used by MarkFootprint (names provisional).
-int IsDead(CEngineObject* unit) { return ei::VCall<int>(unit, 0xDC / 4); }
-int IsLarge(CEngineObject* unit) { return ei::VCall<int>(unit, 0xD8 / 4); }
-bool AffectsUnits(CEngineObject* object) { return ei::VCall<bool>(object, 0xAC / 4); }
+// A CStringArray (MFC: vtable, CString data, size, capacity, grow-by), as the server companion and the
+// 3D object lay theirs out by hand (unit.h, map_object_figures.h).
+using NameArray = mfc::CArray<mfc::CString>;
 
 void ResetCellSet(FootprintCellSet* set) {
     set->SetSize(0, -1);
@@ -178,12 +132,15 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
     matrix[12] = 0.0f;
     matrix[15] = 1.0f;
 
-    // Part names: the figure's list if it has one, else the object's own (CStringArray, size at +8).
-    char* names = reinterpret_cast<char*>(mapObject->companion) + 0x80;
-    if (*reinterpret_cast<int*>(names + 8) == 0) names = reinterpret_cast<char*>(&mapObject->partNameArrayVtable);
+    // Part names: the server companion's string array (+0x80) if it has any, else the object's own.
+    // The AI map lives on the server, so the companion is a CMapObjectServer (the client one is 0x58
+    // bytes).
+    auto* server = static_cast<CMapObjectServer*>(mapObject->companion);
+    const NameArray* names = reinterpret_cast<const NameArray*>(&server->stringsVtable);
+    if (names->size == 0) names = reinterpret_cast<const NameArray*>(&mapObject->partNameArrayVtable);
 
     bool hasBridge = false;
-    for (int n = 0; n < *reinterpret_cast<int*>(names + 8); ++n) {
+    for (int n = 0; n < names->size; ++n) {
         char* name;
         int index = ObjectFindPartIndexOriginal(object, nullptr, *StringArrayGetAt(names, nullptr, &name, n));
         DestroyString(&name);
@@ -308,10 +265,10 @@ bool CAIMap::MarkFootprint(CEngineObject* object, bool remove) {
 
     if (object->GetClassId() == kClassUnit) {
         auto* unit = static_cast<CUnit*>(object);
-        if (IsDead(unit)) return true;
+        if (unit->IsDead()) return true;
         void* shape = UnitShape(unit->standingHeight);
         if (!shape) return true;
-        auto* layer = reinterpret_cast<CUnitLayer*>(IsLarge(unit) ? unitLayerLarge : unitLayerSmall);
+        CUnitLayer* layer = unit->IsLargeUnit() ? &unitLayerLarge : &unitLayerSmall;
         if (remove) UnitLayerRemoveOriginal(layer, nullptr, unit, cellX - 8, cellY - 8);
         else UnitLayerAddOriginal(layer, nullptr, unit, shape, cellX - 8, cellY - 8);
         return true;
@@ -329,7 +286,7 @@ bool CAIMap::MarkFootprint(CEngineObject* object, bool remove) {
     int maxY = a[3] > b[3] ? a[3] : b[3];
 
     bool savedRefreshUnits = refreshUnits;
-    refreshUnits = savedRefreshUnits && AffectsUnits(object);
+    refreshUnits = savedRefreshUnits && MapObject(object)->KeepsMapFlag();
     QueueRefresh(minX - 3, maxX + 3, minY - 3, maxY + 3);
     refreshUnits = savedRefreshUnits;
     return fits;
@@ -338,10 +295,10 @@ EI_REPLACE_METHOD(0x005B6A80, CAIMap::MarkFootprint);
 
 bool CAIMap::ApplyFootprint(FootprintCellSet* set, bool remove) {
     if (remove) {
-        for (int i = 0; i < set->count; ++i) ClearOccluder(&set->cells[i]);
+        for (int i = 0; i < set->cells.size; ++i) ClearOccluder(&set->cells[i]);
         return true;
     }
-    for (int i = 0; i < set->count; ++i) {
+    for (int i = 0; i < set->cells.size; ++i) {
         if (!AddOccluder(&set->cells[i])) {
             for (int j = 0; j < i; ++j) ClearOccluder(&set->cells[j]);
             return false;

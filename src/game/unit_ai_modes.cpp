@@ -3,6 +3,7 @@
 // targets, so every mode object of the game runs these.
 #include "unit_ai.h"
 
+#include "player_messages.h"
 #include "random.h"
 #include "script.h"
 #include "world.h"
@@ -31,6 +32,13 @@ constexpr float kDecayBase = std::bit_cast<float>(0x3F4CCCCDu);
 const std::uint32_t* Diplomacy() { return reinterpret_cast<const std::uint32_t*>(0x007C2BC4); }
 
 IsaacRandom* GameRandom() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
+
+// The server side of a unit's player (CPlayer::connection_, a CPlayerServer here; CUnit::player is
+// kept as bytes in unit.h). Its refreshPending_ == 2 is what the modes take as the player
+// controlling the unit directly.
+inline const CPlayerServer* PlayerServerOf(const char* player) {
+    return reinterpret_cast<const CPlayerServer*>(reinterpret_cast<const CPlayer*>(player)->connection_);
+}
 
 void ReleaseRef(CEngineObject*& ref) {
     if (ref) {
@@ -374,7 +382,7 @@ int SuspectionMode::Evaluate(AIBrain* brain) {
         }
         if (!allied) {
             Vector3 where;
-            std::memcpy(&where, reinterpret_cast<const char*>(brain->seen) + 0x1C, sizeof(Vector3));   // position
+            std::memcpy(&where, &static_cast<const CMapObject*>(brain->seen)->position, sizeof(Vector3));
             brain->Notice(&where, 1000, -2);
         }
     }
@@ -513,7 +521,7 @@ EI_REPLACE_METHOD(0x005D2390, AggressionMode::Evaluate);
 void AggressionMode::Execute(AIBrain* brain) {
     if (GameRandom()->Next() % 1001 == 1) brain->owner->Say(2);
     if (!chosen) return;
-    brain->CallAllies(reinterpret_cast<const Vector3*>(reinterpret_cast<char*>(chosen) + 0x1C));
+    brain->CallAllies(&static_cast<CMapObject*>(chosen)->position);
     int attack[2] = {-1, 0};        // {part, object} the brain is attacking now
     brain->CurrentAttack(attack);
     if (reinterpret_cast<CEngineObject*>(attack[1]) == chosen && attack[0] == enemyPart) return;
@@ -591,7 +599,7 @@ int CorpseWatcherMode::Evaluate(AIBrain* brain) {
     if (brain->corpses.count != 0) {
         AIRef corpse;
         AIRef* popped = brain->PopCorpse(&corpse);
-        brain->Notice(reinterpret_cast<const Vector3*>(reinterpret_cast<char*>(popped->object) + 0x1C), 800, -3);
+        brain->Notice(&static_cast<CMapObject*>(popped->object)->position, 800, -3);
         if (corpse.object) corpse.object->Release();
     }
     return kNoPriority;
@@ -635,9 +643,9 @@ EI_REPLACE_METHOD(0x005D36F0, FearMode::Save);
 
 void PlayerMode::Execute(AIBrain* brain) {
     CUnit* unit = brain->owner->unit;
-    // The player controls this unit directly (player + 0x20, +0x5120 == 2).
+    // The player controls this unit directly.
     bool direct = false;
-    if (unit->player) direct = *reinterpret_cast<const int*>(*reinterpret_cast<char* const*>(unit->player + 0x20) + 0x5120) == 2;
+    if (unit->player) direct = PlayerServerOf(unit->player)->refreshPending_ == 2;
     if (brain->seen && unit->unknown_438 != 1) ControllerShout(reinterpret_cast<CUnitServer*>(brain->owner), nullptr, 0x20);
 
     switch (state) {
@@ -670,7 +678,7 @@ void PlayerMode::Execute(AIBrain* brain) {
             return;
         }
         // While the leader itself carries out a command (its Player mode in state 1), only follow.
-        auto* leaderBrain = reinterpret_cast<AIBrain*>(reinterpret_cast<char*>(static_cast<CUnit*>(leader)->controller) + 0x980);
+        AIBrain* leaderBrain = reinterpret_cast<UnitController*>(static_cast<CUnit*>(leader)->controller)->Brain();
         for (auto* node = leaderBrain->modes.head; node;) {
             AIMode* mode = node->data;     // 005D9830 (GetNext)
             node = node->next;
@@ -724,10 +732,10 @@ EI_REPLACE_METHOD(0x005D4A90, PlayerMode::Execute);
 
 
 namespace {
-// Does the player control the unit directly (player + 0x20, +0x5120 == 2)?
+// Does the player control the unit directly?
 bool DirectControl(const AIBrain* brain) {
     const char* player = brain->owner->unit->player;
-    return player && *reinterpret_cast<const int*>(*reinterpret_cast<char* const*>(player + 0x20) + 0x5120) == 2;
+    return player && PlayerServerOf(player)->refreshPending_ == 2;
 }
 
 // Common start of CommandWalk / CommandGoTo: the point (moved by `offset` when the way is clear),

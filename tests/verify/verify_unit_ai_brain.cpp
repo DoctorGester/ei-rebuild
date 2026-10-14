@@ -218,7 +218,7 @@ static void __fastcall CallAlliesVerify(AIBrain* self, void*, const Vector3* poi
         auto* other = static_cast<CUnit*>(node->data);
         if (other == unit || !(GameDiplomacy()->allied_[unit->side] & (1u << (other->side & 31)))) continue;
         ++allies;
-        auto* brain = reinterpret_cast<AIBrain*>(static_cast<CUnitServer*>(other->controller)->brain);
+        AIBrain* brain = &static_cast<CUnitServer*>(other->controller)->brain;
         const AICallArray& calls = brain->calls;
         const AICallRecord* last = calls.size > 0 ? &calls.data[calls.size - 1] : nullptr;
         ok = ok && last && SamePoint(last->point, point) && last->kind == 0x1A && last->unknown_10 == 0;

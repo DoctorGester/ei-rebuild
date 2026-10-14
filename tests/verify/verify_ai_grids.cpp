@@ -339,9 +339,10 @@ EI_VERIFY(0x005C4BA0, CopyNodesVerify, 5, s_copyNodes);
 // Checked: the list empty with no blocks. Reached only when the AI map's construction unwinds.
 static void __fastcall UnitLayerDestructVerify(CUnitLayer* self) {
     self->Destruct();
-    bool ok = self->head == nullptr && self->tail == nullptr && self->count == 0 && self->free == nullptr &&
-              self->blocks == nullptr;
-    ei::verify::Check("CUnitLayer::Destruct", true, ok, "count %d", self->count);
+    const mfc::CList<UnitLayerNode>& nodes = self->nodes;
+    bool ok = nodes.head == nullptr && nodes.tail == nullptr && nodes.count == 0 && nodes.free == nullptr &&
+              nodes.blocks == nullptr;
+    ei::verify::Check("CUnitLayer::Destruct", true, ok, "count %d", nodes.count);
 }
 EI_VERIFY(0x0058A8A0, UnitLayerDestructVerify, 0, s_unused);
 EI_VERIFY(0x0058A900, UnitLayerDestructVerify, 0, s_unused);

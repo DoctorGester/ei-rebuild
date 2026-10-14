@@ -305,7 +305,7 @@ int ResolveBlocker(CUnitServer* c, CUnit* blocker, bool* liftBlocker, int reason
     CUnit* self = UnitOf(c);
     char* selfPlayer = self->player;
     if (selfPlayer && blocker->player == selfPlayer &&
-        BrainLeaderOrFollowedOriginal(ServerControllerOf(blocker)->brain) == self && CurrentFrame() < c->waitFrame + 2) {
+        BrainLeaderOrFollowedOriginal(&ServerControllerOf(blocker)->brain) == self && CurrentFrame() < c->waitFrame + 2) {
         return kBlockedWait;   // a party member following this unit
     }
     if (c->followsLeader && c->followedLeader == blocker) return kBlockedWait;

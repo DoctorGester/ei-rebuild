@@ -27,7 +27,7 @@ struct Snapshot {
 
 Snapshot Take(const FootprintCellSet* set) {
     Snapshot s;
-    for (int i = 0; i < set->count; ++i) {
+    for (int i = 0; i < set->cells.size; ++i) {
         FootprintCell c = set->cells[i];
         c.unknown_13 = 0;
         c.next = 0;

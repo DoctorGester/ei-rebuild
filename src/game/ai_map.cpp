@@ -109,8 +109,7 @@ EI_REPLACE_METHOD(0x005B79D0, CAIMap::IsPassable);
 
 bool CAIMap::IsPassableWithoutSelf(CUnit* unit, const Vector3* position) {
     if (unit->GetClassId() != kClassUnit) return true;
-    auto* sectorMap = reinterpret_cast<CSectorMap*>(reinterpret_cast<char*>(this) + 0x124);
-    sectorMap->Remove(unit);
+    sectorMap.Remove(unit);
     int y = WorldToCell(position->y);
     int x = WorldToCell(position->x);
     bool passable = true;
@@ -119,7 +118,7 @@ bool CAIMap::IsPassableWithoutSelf(CUnit* unit, const Vector3* position) {
         passable = CanStandAt(unit, x, y, &reason) &&
                    ((cells[y][x].passable >> ((unit->sizeClass * 4) & 31)) & 0xF) != 0;
     }
-    sectorMap->Add(unit);
+    sectorMap.Add(unit);
     return passable;
 }
 EI_REPLACE_METHOD(0x005B7A40, CAIMap::IsPassableWithoutSelf);
@@ -225,24 +224,15 @@ bool CAIMap::CellFlag80At(const Vector3* position) {
 EI_REPLACE_METHOD(0x005BBC70, CAIMap::CellFlag80At);
 
 namespace {
-// An occluder record in a sector's list (sector + 0x44), for cells holding more than one.
-#pragma pack(push, 1)
-struct OccluderRecord {
-    std::int16_t high;          // bits 12-21 of a single-occluder word
-    std::int16_t low;           // bits 22-31
-    std::int8_t kind;           // bits 9-11
-    std::int8_t transparency;   // bits 5-6
-    std::int16_t next;          // < 0 ends the chain
-};
-#pragma pack(pop)
-static_assert(sizeof(OccluderRecord) == 8);
-
 constexpr std::uint32_t kOccluderNone = 0x100;
 constexpr std::uint32_t kOccluderChain = 0x80;
 
-const OccluderRecord* OccluderRecords(const CAIMap* map, int x, int y) {
-    int sector = (y / 32) * map->sectorsPerRow + x / 32;
-    return *reinterpret_cast<OccluderRecord* const*>(map->sectors + sector * 0x54 + 0x44);
+// The occluder records of the sector holding cell (x, y), for cells holding more than one: `top`
+// is bits 12-21 of a single-occluder word, `bottom` bits 22-31, `kind` bits 9-11, `transparency`
+// bits 5-6.
+const SectorOccluder* OccluderRecords(const CAIMap* map, int x, int y) {
+    const CSectorMap& sectors = map->sectorMap;
+    return sectors.sectors.data[(y / 32) * sectors.width + x / 32].occluders.data;
 }
 } // namespace
 
@@ -250,7 +240,7 @@ bool CAIMap::HasKind3Occluder(int x, int y) {
     std::uint32_t word = occluders[y][x];
     if (word & kOccluderNone) return false;
     if (!(word & kOccluderChain)) return (word & 0xE00) == 0x600;
-    const OccluderRecord* records = OccluderRecords(this, x, y);
+    const SectorOccluder* records = OccluderRecords(this, x, y);
     for (int index = (word >> 9) & 0xFFFFF; index >= 0; index = records[index].next) {
         if (records[index].kind == 3) return true;
     }
@@ -293,10 +283,10 @@ bool CAIMap::BridgeDeckAt(int x, int y, int* deckHeight) {
     std::uint32_t word = occluders[y][x];
     if (!(word & kOccluderNone)) {
         if (word & kOccluderChain) {
-            const OccluderRecord* records = OccluderRecords(this, x, y);
+            const SectorOccluder* records = OccluderRecords(this, x, y);
             for (int index = (word >> 9) & 0xFFFFF; index >= 0; index = records[index].next) {
                 if (records[index].kind == 4) {
-                    if (!(deck > records[index].high)) deck = records[index].high;
+                    if (!(deck > records[index].top)) deck = records[index].top;
                     found = true;
                 }
             }
@@ -360,10 +350,10 @@ float CAIMap::LineOfSight(const Vector3* from, const Vector3* to) {
             continue;
         }
         // Several occluders: a chain in the sector's record list.
-        const OccluderRecord* records = OccluderRecords(this, cx, cy);
+        const SectorOccluder* records = OccluderRecords(this, cx, cy);
         for (int index = (word >> 9) & 0xFFFFF; index >= 0; index = records[index].next) {
-            const OccluderRecord& o = records[index];
-            if (o.high < cz || o.low > cz) continue;
+            const SectorOccluder& o = records[index];
+            if (o.top < cz || o.bottom > cz) continue;
             visibility *= Transparency()[o.transparency];
             if (!(visibility >= kMinVisibility)) return kMinVisibility;
         }

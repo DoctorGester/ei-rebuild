@@ -49,7 +49,7 @@ EI_REPLACE(0x004D6340, ScriptDefinesDestruct);
 // ---- The AI map's sector map ------------------------------------------------------------------------
 
 namespace {
-CSectorMap* Sectors(CAIMap* map) { return reinterpret_cast<CSectorMap*>(&map->unknown_124); }
+CSectorMap* Sectors(CAIMap* map) { return &map->sectorMap; }
 } // namespace
 
 std::uint8_t CAIMap::SetRefreshUnits(int on) {

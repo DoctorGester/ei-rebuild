@@ -9,7 +9,6 @@
 #include "core_streams.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 
 #include <cstdint>
 #include "originals_library.h"
@@ -20,72 +19,61 @@ namespace {
 // advanced).
 __declspec(naked) void __fastcall AppendCell(PathCellList*, void*, const PathCell*) EI_ORIGINAL(0x005BD2A0)
 __declspec(naked) PathCell* __fastcall NextCell(PathCellList*, void*, PathCellList::Node**) EI_ORIGINAL(0x005BD340)
-// 005B16D0 (RET 8): the excluded regions' SetSize.
-inline void __fastcall ExcludedSetSize(void* a, void*, int n, int g) { PointArraySetSizeOriginal(a, nullptr, n, g); }
-
-void Read(void* stream, void* buffer, int size) { ei::VCall<void>(stream, 1, buffer, size); }
-void Write(void* stream, const void* buffer, int size) { ei::VCall<void>(stream, 2, buffer, size); }
-
-struct Excluded {
-    void* vtable;
-    int* data;   // {x, y} pairs
-    int size;
-};
+// 005B16D0 (RET 8): the excluded blocks' SetSize.
+inline void __fastcall ExcludedSetSize(BlockPointArray* a, void*, int n, int g) { PointArraySetSizeOriginal(a, nullptr, n, g); }
 
 } // namespace
 
-void __fastcall LoadPath(AIPath* path, void*, void* stream) {
+void __fastcall LoadPath(AIPath* path, void*, CStream* stream) {
     int count;
-    Read(stream, &count, 4);
+    stream->Read(&count, 4);
     for (int i = 0; i < count; ++i) {
         // The original's cell has an uninitialised second dword; it is read over below.
         PathCell cell{0, 0, 0, 0};
         AppendCell(&path->cells, nullptr, &cell);
     }
     for (PathCellList::Node* position = path->cells.head; position;)
-        Read(stream, NextCell(&path->cells, nullptr, &position), 8);
-    path->LoadOrder(static_cast<CStream*>(stream));
-    auto* base = reinterpret_cast<std::uint8_t*>(path);
-    Read(stream, base + 0x58, 8);
-    Read(stream, base + 0x60, 0xC);
-    Read(stream, base + 0x6C, 1);
-    Read(stream, base + 0x6D, 1);
-    Read(stream, base + 0x6E, 1);
-    Read(stream, base + 0x6F, 1);
-    auto* excluded = reinterpret_cast<Excluded*>(base + 0x70);
-    Read(stream, &count, 4);
+        stream->Read(NextCell(&path->cells, nullptr, &position), 8);
+    path->LoadOrder(stream);
+    stream->Read(&path->targetX, 8);
+    stream->Read(&path->goal, 0xC);
+    stream->Read(&path->reached, 1);
+    stream->Read(&path->failed, 1);
+    stream->Read(&path->flag6E, 1);
+    stream->Read(&path->flag6F, 1);
+    BlockPointArray* excluded = &path->excludedBlocks;
+    stream->Read(&count, 4);
     ExcludedSetSize(excluded, nullptr, count, -1);
     for (int i = 0; i < excluded->size; ++i) {
-        Read(stream, &excluded->data[i * 2], 4);
-        Read(stream, &excluded->data[i * 2 + 1], 4);
+        stream->Read(&excluded->data[i].x, 4);
+        stream->Read(&excluded->data[i].y, 4);
     }
-    Read(stream, base + 0x84, 4);
+    stream->Read(&path->smoothing, 4);
 }
 
-void __fastcall SavePath(AIPath* path, void*, void* stream) {
+void __fastcall SavePath(AIPath* path, void*, CStream* stream) {
     int count = path->cells.count;
-    Write(stream, &count, 4);
+    stream->Write(&count, 4);
     for (PathCellList::Node* position = path->cells.head; position;)
-        Write(stream, NextCell(&path->cells, nullptr, &position), 8);
-    path->SaveOrder(static_cast<CStream*>(stream));
-    auto* base = reinterpret_cast<std::uint8_t*>(path);
-    Write(stream, base + 0x58, 8);
-    Write(stream, base + 0x60, 0xC);
-    Write(stream, base + 0x6C, 1);
-    Write(stream, base + 0x6D, 1);
-    Write(stream, base + 0x6E, 1);
-    Write(stream, base + 0x6F, 1);
-    auto* excluded = reinterpret_cast<Excluded*>(base + 0x70);
+        stream->Write(NextCell(&path->cells, nullptr, &position), 8);
+    path->SaveOrder(stream);
+    stream->Write(&path->targetX, 8);
+    stream->Write(&path->goal, 0xC);
+    stream->Write(&path->reached, 1);
+    stream->Write(&path->failed, 1);
+    stream->Write(&path->flag6E, 1);
+    stream->Write(&path->flag6F, 1);
+    const BlockPointArray* excluded = &path->excludedBlocks;
     count = excluded->size;
-    Write(stream, &count, 4);
+    stream->Write(&count, 4);
     for (int i = 0; i < excluded->size; ++i) {
-        int x = excluded->data[i * 2];
-        Write(stream, &x, 4);
-        int y = excluded->data[i * 2 + 1];
-        Write(stream, &y, 4);
+        int x = excluded->data[i].x;
+        stream->Write(&x, 4);
+        int y = excluded->data[i].y;
+        stream->Write(&y, 4);
     }
     int smoothing = path->smoothing;
-    Write(stream, &smoothing, 4);
+    stream->Write(&smoothing, 4);
 }
 
 // ---- The order (005C8230 / 005C8370) ----------------------------------------------------------

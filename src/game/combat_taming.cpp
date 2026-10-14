@@ -105,7 +105,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
             ModePlayerConstruct(mode);
             ei::SetVtable(mode, std::uintptr_t(0x0073F0C4));   // the player mode's vtable
         }
-        BrainAddMode(brain, nullptr, mode);
+        BrainAddMode(&brain, nullptr, mode);
         ClearReferenceList<false>(Brain()->unknown_12C);
         ClearReferenceList<true>(Brain()->corpses);
         Stage(this) = 3;
@@ -115,7 +115,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
         break;
     }
     tamerSide = tamer->side;
-    BrainStopActionOriginal(brain);
+    BrainStopActionOriginal(&brain);
     if (action.kind != 0 && action2.kind != 7 && action2.kind != 8) {
         action2.kind = kOrderNone;
         ReferenceRelease(&action2.target);
@@ -135,7 +135,7 @@ EI_REPLACE_METHOD(0x00551AE0, CUnitServer::TryTame);
 
 void CUnitServer::UndoTaming() {
     if (Stage(this) == 0) return;
-    BrainRemoveMode(brain, nullptr, kModeTamed);   // unit_ai.h: the tamed mode (8)
+    BrainRemoveMode(&brain, nullptr, kModeTamed);   // unit_ai.h: the tamed mode (8)
     UnitSetPlayer(unit, nullptr, nullptr);
     UnitSetRelationsB(unit, nullptr, 0xFFFFFFFFu);
     if (Stage(this) > 1) UnitSetSide(unit, nullptr, ownSide);

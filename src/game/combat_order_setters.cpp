@@ -126,7 +126,7 @@ EI_REPLACE_METHOD(0x00555630, CUnitServer::OrderSearchBody);
 
 bool CUnitServer::TargetBusy(CEngineObject* target) {
     if (target->flags_ & kFlagShared) return !WorldServer()->IsObjectShared(target->id_, unit->id_);
-    auto* ai = reinterpret_cast<AIBrain*>(brain);
+    AIBrain* ai = &brain;
     for (auto* node = ai->unknown_0F4.head; node; node = node->next) {
         auto* other = static_cast<CUnit*>(node->data);
         if (!other || ObjectSlots(other)->IsDead() != 0) continue;

@@ -6,6 +6,7 @@
 // Names provisional; layout static_asserted below.
 
 #include "ai_map.h"
+#include "ai_shape_cache.h"
 #include "core_refcount.h"
 #include "unit.h"
 
@@ -33,64 +34,10 @@ static_assert(offsetof(CUnitShape, levels) == 8);
 static_assert(sizeof(CUnitShape) == 0x10C);
 constexpr std::uintptr_t kUnitShapeVtable = std::uintptr_t(0x0073FD5C);
 
-struct UnitShapeHandle {
-    void* cache;
-    CRefObject* ref;
-    std::uint32_t key;
-    float radius;
-};
+// The shape cache's handle (ai_shape_cache.h); its height is the shape's radius.
+using UnitShapeHandle = ShapeCacheHandle;
 // 005B33D0 (the shape cache's slot 0, RET 4). A new shape for the handle's radius.
 CUnitShape* __fastcall CreateUnitShape(void* cache, void*, const UnitShapeHandle* handle);
-
-// A 4x4-cell block of one unit's levels (0x1C bytes).
-struct UnitLayerNode {
-    UnitLayerNode* next;        // next in the bucket, or in the free list
-    int key;                    // (block y << 16) + block x, blocks of 4 cells
-    std::int8_t levels[16];     // rows of 4
-    CUnit* owner;               // +0x18
-};
-static_assert(sizeof(UnitLayerNode) == 0x1C);
-
-class CUnitLayer {
-public:
-    // MFC CList<UnitLayerNode> node: the storage of every node ever allocated.
-    struct ListNode {
-        ListNode* next;
-        ListNode* prev;
-        UnitLayerNode data;
-    };
-
-    // 005B36B0. Stamps `unit`'s shape (16x16 levels at shape + 8) with its top-left cell at
-    // (x, y): one node per non-empty 4x4 block, each announced through virtual slot 1.
-    void Add(CUnit* unit, const std::uint8_t* shape, int x, int y);
-    // 005B3890. Removes `unit`'s nodes from the 5x5 blocks from block (x >> 2, y >> 2); for each
-    // block it had, virtual slot 0 gets the block with the other units' levels merged (maximum).
-    void Remove(CUnit* unit, int x, int y);
-    // 005B4110 (the base constructor; ai_grids.cpp). The empty node list (blocks of 0x400), the
-    // base vtable 0073FD7C, no buckets, no free nodes. `map` is the owner's to set. Returns this.
-    CUnitLayer* Construct();
-    // 0058A8A0 / 0058A900 (the two layer classes' destructors, reached by the AI map's unwinding
-    // only; ai_grids.cpp). The node list emptied and its blocks freed.
-    void Destruct();
-
-    static constexpr std::uintptr_t kNodeListVtable = std::uintptr_t(0x0073F9F8);
-
-    void* vtable;
-    // +0x04 CList<UnitLayerNode>
-    void* listVtable;
-    ListNode* head;             // +0x08
-    ListNode* tail;             // +0x0C
-    int count;                  // +0x10
-    ListNode* free;             // +0x14
-    void* blocks;               // +0x18
-    int blockSize;              // +0x1C
-    UnitLayerNode* buckets[1024];   // +0x20 by (key x * 17 + key y) & 0x3FF
-    UnitLayerNode* freeNodes;       // +0x1020 unused nodes
-    CAIMap* map;                    // +0x1024
-};
-static_assert(offsetof(CUnitLayer, buckets) == 0x20);
-static_assert(offsetof(CUnitLayer, freeNodes) == 0x1020);
-static_assert(sizeof(CUnitLayer) == 0x1028);
 
 // The layers' virtual slots 0 (Set: the block's levels replace the map's) and 1 (Merge: the
 // map keeps the larger level). The small-unit layer (vtable 0073FD74) writes AIMapCell::level

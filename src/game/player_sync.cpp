@@ -55,7 +55,7 @@ const char* TextUnknownType() { return reinterpret_cast<const char*>(0x00794E7C)
 constexpr std::uint32_t kNoPartyCopy = 0xFFFFFFFF;   // CPlayerServer::unknown24_
 
 // The brain embedded in a unit's controller (CUnitServer + 0x980).
-AIBrain* BrainOf(CUnit* unit) { return reinterpret_cast<AIBrain*>(static_cast<CUnitServer*>(unit->controller)->brain); }
+AIBrain* BrainOf(CUnit* unit) { return &static_cast<CUnitServer*>(unit->controller)->brain; }
 
 // 2.0 (0073CDB8): a unit level at most this asks the client to refresh the party.
 float LowLevel() { return *reinterpret_cast<const float*>(0x0073CDB8); }

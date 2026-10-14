@@ -71,7 +71,7 @@ static CUnitShape* __fastcall CreateVerify(void* cache, void*, const UnitShapeHa
     CUnitShape* expected = s_create(cache, nullptr, handle);
     CUnitShape* actual = CreateUnitShape(cache, nullptr, handle);
     ei::verify::Check("CreateUnitShape", true, expected && actual && SameShape(expected, actual),
-                      "radius %g: %d levels differ", static_cast<double>(handle->radius),
+                      "radius %g: %d levels differ", static_cast<double>(handle->height),
                       expected && actual ? DifferentLevels(expected, actual) : -1);
     gamecrt::operator_delete(expected);
     return actual;

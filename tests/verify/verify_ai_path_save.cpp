@@ -10,8 +10,8 @@
 #include <cstdint>
 #include <vector>
 
-void __fastcall LoadPath(AIPath* path, void*, void* stream);
-void __fastcall SavePath(AIPath* path, void*, void* stream);
+void __fastcall LoadPath(AIPath* path, void*, CStream* stream);
+void __fastcall SavePath(AIPath* path, void*, CStream* stream);
 
 namespace {
 using SaveFn = void(__fastcall*)(AIPath*, void*, void*);
@@ -41,10 +41,11 @@ void SaveInto(SaveFn fn, AIPath* path, std::vector<std::uint8_t>& out) {
 } // namespace
 
 // 005B2570.
-static void __fastcall SavePathVerify(AIPath* path, void*, void* stream) {
+static void __fastcall SavePathOurs(AIPath* path, void*, void* stream) { SavePath(path, nullptr, static_cast<CStream*>(stream)); }
+static void __fastcall SavePathVerify(AIPath* path, void*, CStream* stream) {
     std::vector<std::uint8_t> expected, actual;
     SaveInto(s_originalSave, path, expected);
-    SaveInto(&SavePath, path, actual);
+    SaveInto(&SavePathOurs, path, actual);
     ei::verify::Check("SavePath", true, actual == expected, "%d bytes (original %d)", static_cast<int>(actual.size()),
                       static_cast<int>(expected.size()));
     SavePath(path, nullptr, stream);
@@ -80,7 +81,7 @@ static void __fastcall LoadOrderVerify(AIPath* path, void*, CStream* stream) {
 EI_VERIFY(0x005C8230, LoadOrderVerify, 0, s_unused);
 
 // 005B2430.
-static void __fastcall LoadPathVerify(AIPath* path, void*, void* stream) {
+static void __fastcall LoadPathVerify(AIPath* path, void*, CStream* stream) {
     int before = path->cells.count;
     LoadPath(path, nullptr, stream);
     ei::verify::Check("LoadPath", true, path->cells.count >= before, "%d cells", path->cells.count);
