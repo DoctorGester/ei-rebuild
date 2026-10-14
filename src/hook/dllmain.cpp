@@ -5,6 +5,7 @@
 
 #include <cstdarg>
 #include <cstdio>
+#include <share.h>
 
 namespace ei {
 
@@ -28,19 +29,26 @@ void OutputPath(const char* name, char* out) {
 // DllMain runs.
 static void InitLogPath() { OutputPath("ei_hook.log", g_logPath); }
 
+// The file stays open for the whole run and each line is flushed as it is written (a crash loses
+// nothing). Opening and closing it per line made the antivirus scan it on every close: about 10,000
+// scans per harness run, most of its scanning during the suite.
 void Log(const char* fmt, ...) {
-    if (!g_logPath[0]) InitLogPath();
-    FILE* f = nullptr;
-    if (fopen_s(&f, g_logPath, "a") != 0 || !f) return;
+    static FILE* f = [] {
+        if (!g_logPath[0]) InitLogPath();
+        return _fsopen(g_logPath, "a", _SH_DENYNO);
+    }();
+    if (!f) return;
     SYSTEMTIME t;
     GetLocalTime(&t);
+    _lock_file(f);
     std::fprintf(f, "[%02d:%02d:%02d.%03d] ", t.wHour, t.wMinute, t.wSecond, t.wMilliseconds);
     va_list ap;
     va_start(ap, fmt);
     std::vfprintf(f, fmt, ap);
     va_end(ap);
     std::fputc('\n', f);
-    std::fclose(f);
+    std::fflush(f);
+    _unlock_file(f);
 }
 
 } // namespace ei
