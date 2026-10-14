@@ -215,7 +215,7 @@ bool __fastcall LoadMobFile(Chunk* root, void*, void*, int keepIds) {
         bool skip = spec->id == 2 && GameMbscmp(object->texture, "unmoco2") == 0;
         if (!skip && spec->kind == kKindUnit && spec->object) {
             auto* controller = static_cast<CUnitServer*>(static_cast<CUnit*>(spec->object)->controller);
-            BrainSetAlarmRecords(controller->brain, nullptr, UnitSpecBehaviours(reinterpret_cast<UnitSpec*>(spec)),
+            BrainSetAlarmRecords(&controller->brain, nullptr, UnitSpecBehaviours(reinterpret_cast<UnitSpec*>(spec)),
                                  kBehaviourCount);
         }
         reinterpret_cast<SpecRecord*>(spec)->DeleteRecord(1);

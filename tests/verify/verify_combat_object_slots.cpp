@@ -12,7 +12,7 @@
 namespace {
 int UnitId(const CUnitServer* self) { return self->unit ? self->unit->id_ : -1; }
 
-const AICallArray& CallsOf(const CUnitServer* self) { return reinterpret_cast<const AIBrain*>(self->brain)->calls; }
+const AICallArray& CallsOf(const CUnitServer* self) { return self->brain.calls; }
 } // namespace
 
 // 00552D00. Ours only. The mask joined the claims; the memory heard one more call, of kind 0x1E

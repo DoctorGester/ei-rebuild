@@ -220,7 +220,7 @@ static void __fastcall WitnessVerify(CUnitServer* self, void*, void* witnesses, 
         CUnit* other = node->unit;
         if (!(diplomacy->allied_[other->side] & bit)) continue;
         auto* controller = reinterpret_cast<CUnitServer*>(other->controller);
-        const void* watched = controller->brain + 0x110;
+        const void* watched = &controller->brain.visible;
         if (ListContains(watched, victim) && !ListContains(watched, murderer)) bad = other->id_;
     }
     ei::verify::Check("CUnitServer::WitnessMurder", -1, bad, "unit %d victim %d murderer %d: witness %d",

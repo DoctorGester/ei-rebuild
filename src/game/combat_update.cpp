@@ -262,8 +262,8 @@ int CUnitServer::UpdateServer() {
                 }
             }
         }
-        AlarmStep(voice, nullptr, this);
-        BrainThink(brain);
+        AlarmStep(&voice, nullptr, this);
+        BrainThink(&brain);
         unit->flags_ &= ~kFlagSeen8000;
         CtlPropagateHostility(this);
         if ((unit->flags_ & kFlagFrozen) == 0 && keepHitDirection == 0 && state >= 0 &&
@@ -299,8 +299,8 @@ int CUnitServer::UpdateServer() {
         if (player && PlayerHasUnit(player, nullptr, unit) != 0) {
             ConnectionOf(player)->LeaderDied();
         } else {
-            BrainReset(brain);
-            AlarmReset(voice);
+            BrainReset(&brain);
+            AlarmReset(&voice);
         }
         EmptyAction(&action);
         EmptyAction(&action2);

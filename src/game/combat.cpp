@@ -718,7 +718,7 @@ BOOL CUnitServer::TakeHit(DamageInfo* hit, CUnit* attacker, CUnit* source) {
         auto* diplomacy = &static_cast<CWorldServer*>(ManagerContext())->diplomacy_;
         diplomacy->OnAttack(attacker, unit, 10);
     }
-    BrainSetSeenOriginal(brain, nullptr, attacker);
+    BrainSetSeenOriginal(&brain, nullptr, attacker);
     return 0;
 }
 EI_REPLACE_METHOD(0x00553F40, CUnitServer::TakeHit);

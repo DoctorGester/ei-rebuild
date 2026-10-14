@@ -120,8 +120,8 @@ CUnitServer* CUnitServer::Construct() {
     idleKey = kNoAnimationKey;
     InitSteps(idleAnimation);
     idleAnimation.extra = -1;
-    reinterpret_cast<AIBrain*>(brain)->Construct();
-    std::memset(voice, 0, sizeof(voice));   // 005AEA50
+    brain.Construct();
+    std::memset(&voice, 0, sizeof(voice));   // 005AEA50
     ei::SetVtable(this, kUnitServerVtable);
     ResetController();
     return this;

@@ -22,7 +22,7 @@ inline const float* DefenceFactors() { return reinterpret_cast<const float*>(0x0
 
 UnitVitals& VitalsOf(CUnit* unit) { return static_cast<CMapObjectServer*>(unit->MapObject()->companion)->vitals; }
 
-AIBrain* BrainOf(CUnitServer* self) { return reinterpret_cast<AIBrain*>(self->brain); }
+AIBrain* BrainOf(CUnitServer* self) { return &self->brain; }
 
 } // namespace
 

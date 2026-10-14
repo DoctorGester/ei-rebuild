@@ -211,8 +211,8 @@ void CUnitServer::LoadServer(UnitStream* stream) {
     stream->Read(&tamerSide, 4);
     stream->Read(&speedClass, 4);
     stream->Read(&claimedHostile, 4);
-    BrainLoad(brain, nullptr, stream);
-    VoiceLoad(voice, nullptr, stream);
+    BrainLoad(&brain, nullptr, stream);
+    VoiceLoad(&voice, nullptr, stream);
     stream->Read(&unknown_18C, 1);
     stream->Read(&unknown_18D, 1);
     stream->Read(&unknown_8F4, 4);
@@ -273,8 +273,8 @@ void CUnitServer::SaveServer(UnitStream* stream) {
     WriteCopy(stream, tamerSide);
     WriteCopy(stream, speedClass);
     WriteCopy(stream, claimedHostile);
-    BrainSave(brain, nullptr, stream);
-    VoiceSave(voice, nullptr, stream);
+    BrainSave(&brain, nullptr, stream);
+    VoiceSave(&voice, nullptr, stream);
     WriteCopy(stream, unknown_18C);
     WriteCopy(stream, unknown_18D);
     stream->Write(&unknown_8F4, 4);   // the float's bits

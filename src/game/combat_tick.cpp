@@ -519,7 +519,7 @@ void CUnitServer::UpdateOrders() {
         if (state != kStateChasing) return;
         if (stoodBlocked) {
             unknown_18C = 1;
-            if (!BrainLeaderOrFollowedOriginal(brain) && unit->player) TellParty(unit, kMessageCannotDo);
+            if (!BrainLeaderOrFollowedOriginal(&brain) && unit->player) TellParty(unit, kMessageCannotDo);
         }
         if (action.kind != kOrderNone && action2.kind != kOrderAnimation && action2.kind != kOrderEmote)
             DropQueuedOrder();

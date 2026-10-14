@@ -678,7 +678,7 @@ void CWorldServer::StoreParty(void* recordsArg, void* partyRecords, void* placem
         for (int i = 0; i < list->size; ++i) {
             auto* record = reinterpret_cast<PartyUnitRecord*>(list->data[i]);
             CEngineObject* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unknown_01C));
-            CEngineObject* leader = BrainLeaderOrFollowedOriginal(ControllerOf(unit)->brain);
+            CEngineObject* leader = BrainLeaderOrFollowedOriginal(&ControllerOf(unit)->brain);
             record->unknown_77C = leader ? leader->id_ : -1;
         }
     }

@@ -8,6 +8,7 @@
 #include "ai_map.h"
 #include "spell.h"
 #include "unit.h"
+#include "unit_ai.h"    // AIBrain, AIAlarm (unit_ai.h does not include this header)
 
 #include <cstddef>
 #include <cstdint>
@@ -842,13 +843,12 @@ public:
     AnimationSteps idleAnimation;   // +0x960 the idle animation (IdleAnimation; extra +0x974 its time)
     void* actionDone;               // +0x978 run when state 3 ends; cleared by the reset
     std::uint32_t claimedHostile;   // +0x97C players the unit has claimed as enemies
-    // +0x980 the AI brain (AIBrain in unit_ai.h, 0x190 bytes); combat_actions.cpp reads its
-    // +0x38 (claim radius), +0xD0 (perception memory), +0xF4 (CList of nearby units, head at
-    // +0xF8) and +0x110 (CList of units the unit watches).
-    std::uint8_t brain[0x190];
-    std::int32_t voice[4];          // +0xB10 the voice / alarm (005AEA50 zeroes it, 005AEA60 Say)
+    // +0x980 the AI brain (unit_ai.h, 0x190 bytes); combat_actions.cpp reads its call radius, its
+    // perception memory, its nearby units (unknown_0F4) and the units in sight (visible).
+    AIBrain brain;
+    AIAlarm voice;                  // +0xB10 the voice / alarm (005AEA50 zeroes it, 005AEA60 Say)
 
-    AIBrain* Brain() { return reinterpret_cast<AIBrain*>(brain); }
+    AIBrain* Brain() { return &brain; }
 
     // combat_lifetime.cpp. 00545580. The constructor: the base controller (vtable 0073EDBC) and
     // the members (empty lists, orders of kind 9, the AI brain 00545990, the voice), then this

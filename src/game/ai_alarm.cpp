@@ -78,7 +78,7 @@ void __fastcall StepAlarm(int* stateIn, void*, std::uint8_t* owner) {
     for (auto* node = server->Brain()->unknown_0F4.head; node; node = node->next) {
         auto* member = static_cast<CUnit*>(node->data);
         if (!(allies & (1u << (member->side & 31)))) continue;
-        int& alarm = static_cast<CUnitServer*>(member->controller)->voice[0];
+        int& alarm = static_cast<CUnitServer*>(member->controller)->voice.level;
         if (alarm <= active) alarm = active;
     }
 }

@@ -177,7 +177,7 @@ EI_VERIFY(0x005535F0, RefreshEquipmentVerify, 0, s_unusedRefreshEquipment);
 static void* s_unusedForgetClaims;
 static void __fastcall ForgetClaimsVerify(CUnitServer* self) {
     self->ForgetClaims();
-    const AICallArray& calls = reinterpret_cast<const AIBrain*>(self->brain)->calls;
+    const AICallArray& calls = self->brain.calls;
     int masked = 0;
     for (int i = 0; i < calls.size; ++i)
         if (calls.data[i].unknown_10 != 0) ++masked;

@@ -45,7 +45,7 @@ __declspec(naked) void __fastcall ReportsRemoveAtAt(AIReportArray*, void*, int, 
 
 namespace {
 AIBrain* BrainOf(CUnit* unit) {
-    return reinterpret_cast<AIBrain*>(static_cast<CUnitServer*>(unit->controller)->brain);
+    return &static_cast<CUnitServer*>(unit->controller)->brain;
 }
 
 const Vector3* PositionOf(CUnit* unit) { return &unit->position; }

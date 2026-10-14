@@ -53,11 +53,6 @@ constexpr int kMessageScienceFailed = 0x11;
 constexpr int kMessageStealFailed = 0x22;
 constexpr int kMessageTameFailed = 0x16;
 
-// Offsets in the AI brain (CUnitServer::brain, +0x980).
-constexpr int kBrainClaimRadius = 0x38;     // +0x9B8 float
-constexpr int kBrainMemory = 0xD0;          // +0xA50
-constexpr int kBrainNearby = 0xF4;          // +0xA74 CList of nearby units
-constexpr int kBrainWatched = 0x110;        // +0xA90 CList of units watched
 
 CUnitServer* ControllerOf(const CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 
@@ -356,8 +351,8 @@ void CUnitServer::WitnessMurder(void* witnesses, CUnit* victim, CUnit* murderer)
         if (!(diplomacy->allied_[other->side] & bit)) continue;
         other->flags_ |= 0x2000000;
         CUnitServer* controller = ControllerOf(other);
-        AIEventsUpdateMemory(AIEventsOf(world), nullptr, controller, controller->brain + kBrainMemory);
-        auto* watched = reinterpret_cast<UnitList*>(controller->brain + kBrainWatched);
+        AIEventsUpdateMemory(AIEventsOf(world), nullptr, controller, controller->brain.memory);
+        auto* watched = reinterpret_cast<UnitList*>(&controller->brain.visible);
         if (!ListContains(watched, victim)) continue;
         if (!ListContains(watched, murderer)) {
             UnitListNode* added = UnitListNewNode(watched, nullptr, watched->tail, nullptr);
@@ -388,13 +383,13 @@ void CUnitServer::PropagateHostility() {
     unit->flags_ &= ~0x80000u;
     claimedHostile |= unit->relationsA;
     void* world = ManagerContext();
-    double radius = *reinterpret_cast<const float*>(brain + kBrainClaimRadius);
+    double radius = brain.callRadius;
     // The squared radius goes through a global (007AF40C) and is compared as an int.
     volatile float* limit = reinterpret_cast<volatile float*>(0x007AF40C);
     *limit = static_cast<float>(radius * radius);
     CDiplomacy* diplomacy = DiplomacyOf(world);
     int side = unit->side;
-    UnitListNode* node = reinterpret_cast<UnitList*>(brain + kBrainNearby)->head;
+    UnitListNode* node = reinterpret_cast<UnitList*>(&brain.unknown_0F4)->head;
     while (node) {
         CUnit* other = node->data;
         node = node->next;
@@ -426,7 +421,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     if (CompanionSlots(ServerObjectOf(unit))->IsDead() == 0) {
         CallTriggerItemSpells(0);
         if (attacker && attacker->GetClassId() == kClassUnit) DiplomacyOf(world)->OnAttack(attacker, unit, 10);
-        BrainSetSeenOriginal(brain, nullptr, attacker);
+        BrainSetSeenOriginal(&brain, nullptr, attacker);
         unit->flags_ |= 0x80000;
         CtlPropagateHostility(this);
         std::uint32_t direction = CallHitDirection(attacker, hitKind);
@@ -441,13 +436,13 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
             if (killer->player)
                 PlayerMessage(reinterpret_cast<WorldPlayer*>(killer->player)->server, nullptr, killer, kMessageKilled);
         } else if (unit->player) {
-            VoiceSay(ControllerOf(attacker)->voice, nullptr, 9);
+            VoiceSay(&ControllerOf(attacker)->voice, nullptr, 9);
         }
         if (attacker->GetClassId() == kClassUnit) {
             ManagerContext();
             CUnitServer* theirs = ControllerOf(attacker);
-            CallWitnessMurder(brain + kBrainNearby, unit, attacker);
-            CallWitnessMurder(theirs->brain + kBrainNearby, attacker, attacker);
+            CallWitnessMurder(&brain.unknown_0F4, unit, attacker);
+            CallWitnessMurder(&theirs->brain.unknown_0F4, attacker, attacker);
         }
     }
     MapObjectClearEffectsOriginal(unit);
@@ -468,7 +463,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     AIEventsDied(AIEventsOf(world), nullptr, this);
     if (char* player = unit->player) {
         if (CUnit* member = FirstOtherPartyMember(reinterpret_cast<WorldPlayer*>(player), unit))
-            MemoryPartyMemberDied(ControllerOf(member)->brain + kBrainMemory, nullptr, member, unit);
+            MemoryPartyMemberDied(ControllerOf(member)->brain.memory, nullptr, member, unit);
         if (IsMultiplayerClient() & 0xFF) unit->flags_ |= 0x20000000;
     }
     animation.vtable = kAnimationStepsBaseVtable;

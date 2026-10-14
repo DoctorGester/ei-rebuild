@@ -285,7 +285,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
 
         // A player-controlled AI, standing on a free cell near the requested position.
         CEngineObject* controller = AsUnit(unit)->controller;
-        void* brain = static_cast<CUnitServer*>(controller)->brain;
+        void* brain = &static_cast<CUnitServer*>(controller)->brain;
         BrainClearModes(brain, nullptr);
         void* memory = gamecrt::operator_new(0x24);
         static_cast<std::uint32_t*>(memory)[1] = 0;   // +4, written before the null test
@@ -346,7 +346,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
             if (!unit) continue;
             CEngineObject* controller = AsUnit(unit)->controller;
             if (record->unknown_77C <= 0) continue;
-            void* brain = static_cast<CUnitServer*>(controller)->brain;
+            void* brain = &static_cast<CUnitServer*>(controller)->brain;
             void* follow = BrainFindFollowMode(brain, nullptr);
             if (!follow) continue;
             FollowModeSetLeader(follow, nullptr, brain, WorldFindUnit(this, nullptr, record->unknown_77C));
