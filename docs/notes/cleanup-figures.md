@@ -88,3 +88,25 @@ reads it"; gaps of view structs take the real class's member names.
 - `ChannelLayout` +0x00 `bitCount` is read by the texture upload's size but never written, so that size is
   always 0 (the original's behaviour, kept).
 
+
+## F4a: view structs folded into their classes (2026-10-14)
+
+Each layout now has one declaration:
+- `FigurePart` (map_object_figures.h) is `CFigureMesh`, and `CFigureMesh` now derives from `CTransformObject`
+  (CEngineObject +0x00..0x1B, local/world position and rotation +0x1C..0x53). Its own slot bodies have new names
+  so none of them overrides a base virtual (EI_REPLACE_METHOD would then register a vcall thunk): slot 2 is
+  `CreateMesh` (0059F210), slot 18 `CopyFigure` (0059F0F0), and 0059F3D0 is `SetObject`. The CObject3D pointer at
+  +0x98 is `object_`. The +0x94 drawer is `FigureMeshDrawer`, not CLinkMesh, though both have the screen RECT at
+  +0x20. Box fields +0x160..0x1B3 are `bounds_` (ClipBounds) and +0x1B4 is `boxPivot_`. `using FigurePart =
+  CFigureMesh` stays only for ui_model.cpp, player_client.cpp and verify_ui_model.cpp (W2 / F5 had them open).
+- `FigurePieceRecord` is `LinkHeaderMap::Node`, whose `second` is `LinkPartHeader` (node 0x6C bytes, header at
+  +0x1C, bounds +0x24, pivot +0x50, the same offsets the record used).
+- `FigureMaterial` and `SceneHelper` are `CMaterial`. Ghidra: 00454E40 builds 0x27-dword elements with
+  `CMaterial::Construct` (0068DBC0). The helper colour setters are `MaterialSetDiffuse / Ambient / Specular`.
+- `TerrainFields` is `Terrain`, `TerrainSector` is `terrain::SectorData`, and the bounds file's local `LineBatch`
+  is renderer_lines.h's. `TileUv` and `SurfaceClass` are now `Terrain` members.
+- ui_flying_hit_points.cpp got a one-line rename (`part->drawer_->screen_`) although it is W2's area.
+
+Release objects were compared with dumpbin (function by function, hook numbers and names normalized). Eleven
+objects differ, all in names, commuted FADD operands, instruction scheduling, a helper that is now inlined
+(`AsObject`, `FreeBlock`), or unreferenced inline COMDATs (`ei::SetVtable`, an `AlignedArray::operator[]`).
