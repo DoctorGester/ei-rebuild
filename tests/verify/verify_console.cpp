@@ -317,18 +317,18 @@ bool FindCommand(CommandMap* map, const char* key, CommandHandler* handler) {
     auto less = [](const char* a, const char* b) {
         return gamecrt::mbscmp(reinterpret_cast<const unsigned char*>(a), reinterpret_cast<const unsigned char*>(b)) < 0;
     };
-    CommandNode* header = map->header;
+    CommandNode* header = map->end();
     CommandNode* y = header;
     for (CommandNode* x = header->parent; x;) {
-        if (!less(x->key, key)) {
+        if (!less(x->first, key)) {
             y = x;
             x = x->left;
         } else {
             x = x->right;
         }
     }
-    if (y == header || less(key, y->key)) return false;
-    *handler = y->handler;
+    if (y == header || less(key, y->first)) return false;
+    *handler = y->second;
     return true;
 }
 

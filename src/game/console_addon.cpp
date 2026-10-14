@@ -186,7 +186,7 @@ void __fastcall NoGui(CStringArray* args) {
 
 void Register(CommandMap* map, const char* name, CommandHandler handler) {
     mfc::CString key(name);
-    *map->Index(key) = handler;
+    *CommandIndex(map, nullptr, key) = handler;
 }
 
 // The AutoExec lines, read once (addon reads them when it loads).
@@ -240,7 +240,7 @@ const AddonCommandRegistration kAddonCommandRegistrations[6] = {
 };
 
 void RegisterAddonCommands() {
-    g_gameHelp = *CheatCommands()->Index(mfc::CString("help"));
+    g_gameHelp = *CommandIndex(CheatCommands(), nullptr, mfc::CString("help"));
     for (const AddonCommandRegistration& r : kAddonCommandRegistrations)
         Register(r.cheat ? CheatCommands() : PublicCommands(), r.name, r.handler);
 }

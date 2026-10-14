@@ -42,7 +42,7 @@ GameOStream& GameOStream::operator<<(int a0) { return *static_cast<GameOStream*>
 GameOStream& GameOStream::operator<<(double v) { return *static_cast<GameOStream*>(OstreamPutDoubleOriginal(this, nullptr, v)); }
 GameOStream& GameOStream::Apply(void* manipulator) { return *static_cast<GameOStream*>(OstreamManipulate(this, nullptr, manipulator)); }
 
-__declspec(naked) CommandHandler* CommandMap::Index(const mfc::CString&) EI_ORIGINAL(0x005E0B20)
+__declspec(naked) CommandHandler* __fastcall CommandIndex(CommandMap*, void*, const mfc::CString&) EI_ORIGINAL(0x005E0B20)
 
 namespace {
 
@@ -186,7 +186,7 @@ const CommandRegistration kCommandRegistrations[27] = {
 void __fastcall Execute(const char* text) {
     for (const CommandRegistration& r : kCommandRegistrations) {
         mfc::CString name(GameText(r.name));
-        *(r.cheat ? CheatCommands() : PublicCommands())->Index(name) = reinterpret_cast<CommandHandler>(r.handler);
+        *CommandIndex(r.cheat ? CheatCommands() : PublicCommands(), nullptr, name) = reinterpret_cast<CommandHandler>(r.handler);
     }
 
     mfc::CString command;
@@ -219,8 +219,8 @@ void __fastcall Execute(const char* text) {
         QuitGame(0);
         return;
     }
-    if (*PublicCommands()->Index(command)) {
-        (*PublicCommands()->Index(command))(&args);
+    if (*CommandIndex(PublicCommands(), nullptr, command)) {
+        (*CommandIndex(PublicCommands(), nullptr, command))(&args);
         return;
     }
     if (!CheatEnabled()) {
@@ -232,8 +232,8 @@ void __fastcall Execute(const char* text) {
             PrintLine(GameText(0x00792388));   // "Activated!"
             return;
         }
-    } else if (*CheatCommands()->Index(command)) {
-        if (!NetworkGame()) (*CheatCommands()->Index(command))(&args);
+    } else if (*CommandIndex(CheatCommands(), nullptr, command)) {
+        if (!NetworkGame()) (*CommandIndex(CheatCommands(), nullptr, command))(&args);
         return;
     }
     PrintLine(GameText(0x0078D848));   // "Unknown command"
