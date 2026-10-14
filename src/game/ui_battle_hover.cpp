@@ -60,7 +60,6 @@ __declspec(naked) BOOL __fastcall HoverFindExit(void*, void*, const float*, int*
 // CanCastSpell(index, point) and 0052F8B0 CanUseQuickItem(index, point) (RET 8; 0 = can),
 // 00531920 the quick item (RET 4); 006A4230 an item's category.
 static std::uint8_t* HoverPrototype(CUnit* unit) { return static_cast<std::uint8_t*>(::UnitPrototypeOf(unit)); }
-__declspec(naked) void* __fastcall HoverQuickItem(CUnit*, void*, int) EI_ORIGINAL(0x00531920)
 __declspec(naked) int __fastcall HoverItemCategory(void*) EI_ORIGINAL(0x006A4230)
 // 0063B920 (thiscall on the battle screen, RET 8): shows `unit` in the unit panel block `block`.
 void __fastcall HoverShowPanelUnit(void* a0, void*, CUnit* a2, void* a3) { BattleShowPanelUnitOriginal(a0, nullptr, (void*)a2, a3); }
@@ -203,7 +202,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         if (!unit || unitDead(unit)) break;
         Point3 at = unitPosition(unit);
         if (!first || UnitCanUseQuickItem(first, nullptr, Field<int>(this, 0x180), at.v) != 0) break;
-        void* item = HoverQuickItem(first, nullptr, Field<int>(this, 0x180));
+        void* item = UnitQuickItem(first, nullptr, Field<int>(this, 0x180));
         if (item && HoverItemCategory(item) == kCategoryWand && unit != first) break;
         shape = kCursorCast;
         break;

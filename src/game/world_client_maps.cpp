@@ -709,7 +709,6 @@ NamePair* __fastcall NameMapFindOrInsert(void* a0, void*, const NamePair* a2) { 
 // CUnit: the second prototype by name [005308D0], the figure made from a model and its part names
 // [00516DA0], 00518840 / 00518860 after it, 0050EA40, the position [00517700], the items
 // [005315B0 release all, 00531070 weapon, 00530730 armour, 00531180 quick item].
-__declspec(naked) void __fastcall UnitSetPrototype2(void*, void*, const char*) EI_ORIGINAL(0x005308D0)
 int __fastcall UnitMakeFigure(void* a0, void*, const char* a2, console::CStringArray* a3, int a4) {
     return Object3DMakeFigureOriginal(a0, nullptr, a2, a3, a4);
 }
@@ -717,7 +716,6 @@ void __fastcall Unit518840(void* a0, void*, const char* a2, int a3) { Object3DSe
 void __fastcall Unit518860(void* a0) { Object3DRestartAnimationOriginal(a0); }
 void __fastcall Unit50EA40(void* a0) { ObjectPrepareOriginal(a0); }
 __declspec(naked) void __fastcall UnitSetPosition(void*, void*, const float*) EI_ORIGINAL(0x00517700)
-__declspec(naked) void __fastcall UnitReleaseAllItems(void*) EI_ORIGINAL(0x005315B0)
 void __fastcall UnitAddWeapon(void* a0, void*, void* a2) { UnitAddWeaponOriginal(a0, nullptr, a2); }
 void __fastcall UnitEquipArmour(void* a0, void*, void* a2) { UnitEquipArmourOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall UnitAddQuickItem(void*, void*, void*) EI_ORIGINAL(0x00531180)
@@ -771,7 +769,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
             prototype ? static_cast<int>(prototype - reinterpret_cast<std::uint8_t*>(unitdb::Prototypes().begin)) /
                             unitdb::kPrototypeSize
                       : -1);
-        UnitSetPrototype2(unit, nullptr, record->texts[6]);
+        UnitSetPrototype23CByName(unit, nullptr, record->texts[6]);
         unit->flags_ |= 0x4000000;
         if (!UnitMakeFigure(unit, nullptr, record->texts[2], &parts, 1)) return;
         CEngineObject* figure = unit->Object3D()->attached;

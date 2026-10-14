@@ -46,7 +46,7 @@ void MissileImpact(CSpellEffect* e, int particleType, const char* sound, bool ar
     std::memcpy(&e->targetPoint, &At<Vector3>(target, kUnitPosition), 12);
     Vector3 at;
     std::memcpy(&at, &At<Vector3>(target, kUnitPosition), 12);
-    at.z = static_cast<float>(UnitModeSpeed(target));
+    at.z = static_cast<float>(UnitModeSpeed(reinterpret_cast<CUnit*>(target)));
     at.z = GroundPlus(e, kWorldSlotGridHeight, e->targetPoint, &at.z);
     float size = PowerScaled(e, kSplashScale);
     e->CreateParticle(0, particleType, &kZeroVector, size, 1.0f, &kZeroVector, e->target);

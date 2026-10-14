@@ -24,6 +24,7 @@
 #include "originals_render.h"
 #include "originals_ui.h"
 #include "originals_core.h"
+#include "originals_units.h"
 
 #include <cstdint>
 #include <cstring>
@@ -513,7 +514,6 @@ namespace {
 
 // hash_map<string, record*>::operator[] of the unit prototypes (007AF364, 005335E0) and of the
 // figure prototypes (007AF3A4, 0053C780); both insert a null entry for an unknown name.
-__declspec(naked) char** __fastcall UnitPrototypeAt(void*, void*, const stlp::string*) EI_ORIGINAL(0x005335E0)
 char** FigurePrototypeAt(void* map, void*, const stlp::string* key) { return FigureMapAtOriginal(map, nullptr, key); }
 
 // 00506C70 (__fastcall, RET 4): out = a * b.
@@ -536,7 +536,7 @@ void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CSt
     char* unit;
     {
         stlp::string key(prototype);
-        unit = *UnitPrototypeAt(reinterpret_cast<void*>(0x007AF364), nullptr, &key);
+        unit = static_cast<char*>(*PrototypeMapAtOriginal(reinterpret_cast<void*>(0x007AF364), nullptr, &key));
     }
     char* figure;
     {

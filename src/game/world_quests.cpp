@@ -515,10 +515,7 @@ CEngineObject* __fastcall RecordAddWorn(PartyUnitRecord* a0, void*, void* a2) { 
 CEngineObject* __fastcall RecordAddBelt(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)RecordAddBeltEntryOriginal((void*)a0, nullptr, a2); }
 CEngineObject* __fastcall RecordAddSpell(PartyUnitRecord* a0, void*, void* a2) { return (CEngineObject*)RecordAddSpellEntryOriginal((void*)a0, nullptr, a2); }
 // The unit's slots: quick (005318B0), worn (00530830), belt (00531920), spells (005319A0).
-__declspec(naked) CEngineObject* __fastcall UnitQuickItem(CEngineObject*, void*, int) EI_ORIGINAL(0x005318B0)
 CEngineObject* __fastcall UnitWornItem(CEngineObject* a0, void*, int a2) { return UnitWornItemOriginal((const void*)a0, nullptr, a2); }
-__declspec(naked) CEngineObject* __fastcall UnitBeltItem(CEngineObject*, void*, int) EI_ORIGINAL(0x00531920)
-__declspec(naked) CEngineObject* __fastcall UnitSpell(CEngineObject*, void*, int) EI_ORIGINAL(0x005319A0)
 // 00553360 (RET 4). The controller copies its statistics into a record's (+0x20).
 __declspec(naked) void __fastcall ControllerStoreStats(CUnitServer*, void*, void*) EI_ORIGINAL(0x00553360)
 __declspec(naked) void* __fastcall RefValueConstruct(void*, void*) EI_ORIGINAL(0x00419720)
@@ -561,7 +558,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CEngineObject* unit) {
     ClearRecordItems(record);
 
     for (int slot = 0; slot < kQuickSlots; ++slot) {
-        CEngineObject* item = UnitQuickItem(unit, nullptr, slot);
+        CEngineObject* item = UnitWeapon(static_cast<CUnit*>(unit), nullptr, slot);
         if (!item) continue;
         CEngineObject* entry = AddToRecord(party, record, item, RecordAddQuick);
         ItemSourceRef* ref = NewItemRecord(false);
@@ -577,7 +574,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CEngineObject* unit) {
         RefPtrAssign(&static_cast<CItem*>(item)->unknown_1C, nullptr, ref);
     }
     for (int slot = 0; slot < kBeltSlots; ++slot) {
-        auto* item = static_cast<CItem*>(UnitBeltItem(unit, nullptr, slot));
+        auto* item = static_cast<CItem*>(UnitQuickItem(static_cast<CUnit*>(unit), nullptr, slot));
         if (!item || static_cast<int>(item->unknown_48) <= 0) continue;
         CItem* entry = PartyCopy(party, item);
         entry->unknown_48 = item->unknown_48;   // before the null test
@@ -594,7 +591,7 @@ void SyncRecord(CParty* party, PartyUnitRecord* record, CEngineObject* unit) {
         if (old) RefRelease(old, nullptr);
     }
     for (int slot = 0; slot < kSpellSlots; ++slot) {
-        CEngineObject* spell = UnitSpell(unit, nullptr, slot);
+        CEngineObject* spell = UnitSpell(static_cast<CUnit*>(unit), nullptr, slot);
         if (!spell) continue;
         AddToRecord(party, record, spell, RecordAddSpell);
     }
@@ -651,11 +648,11 @@ void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CE
     CUnitServer* controller = ControllerOf(unit);
     ClearRecordItems(record);
     for (int slot = 0; slot < kQuickSlots; ++slot)
-        if (CEngineObject* item = UnitQuickItem(unit, nullptr, slot)) AddToRecord(party, record, item, RecordAddQuick);
+        if (CEngineObject* item = UnitWeapon(static_cast<CUnit*>(unit), nullptr, slot)) AddToRecord(party, record, item, RecordAddQuick);
     for (int slot = 0; slot < kWornSlots; ++slot)
         if (CEngineObject* item = UnitWornItem(unit, nullptr, slot)) AddToRecord(party, record, item, RecordAddWorn);
     for (int slot = 0; slot < kBeltSlots; ++slot) {
-        auto* item = static_cast<CItem*>(UnitBeltItem(unit, nullptr, slot));
+        auto* item = static_cast<CItem*>(UnitQuickItem(static_cast<CUnit*>(unit), nullptr, slot));
         if (!item || static_cast<int>(item->unknown_48) <= 0) continue;
         CItem* entry = PartyCopy(party, item);
         std::uint32_t amount = item->unknown_48;
@@ -668,7 +665,7 @@ void StoreRecord(CWorldServer* world, CParty* party, PartyUnitRecord* record, CE
         if (entry) entry->Release();
     }
     for (int slot = 0; slot < kSpellSlots; ++slot)
-        if (CEngineObject* spell = UnitSpell(unit, nullptr, slot)) AddToRecord(party, record, spell, RecordAddSpell);
+        if (CEngineObject* spell = UnitSpell(static_cast<CUnit*>(unit), nullptr, slot)) AddToRecord(party, record, spell, RecordAddSpell);
     ControllerStoreStats(controller, nullptr, record->stats);
     if (world->unknown12D64_ == 1) {
         record->unknown_770 = unit->moveMode2;

@@ -152,7 +152,6 @@ __declspec(naked) double __fastcall StatsWeaponSkillBonus(UnitStats*, void*, int
 __declspec(naked) double __fastcall UnitLoad(CUnit*) EI_ORIGINAL(0x005304A0)
 // 0052E0D0. Scales AttackParams::attack and ::defence by the difficulty unless `keyed`.
 // 00530A60. Is the unit behind `target` (facing test)? Only AL is meaningful.
-__declspec(naked) int __fastcall UnitIsBehind(CUnit*, void*, CEngineObject*) EI_ORIGINAL(0x00530A60)
 // 005254B0. Applies `hit` (with the attacker's `weapon`, may be null) to the unit's server stats;
 // 0 when it did nothing.
 __declspec(naked) int __fastcall StatsApplyHit(UnitStats*, void*, CUnit*, void*, DamageInfo*, CEngineObject*)

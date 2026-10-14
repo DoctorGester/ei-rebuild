@@ -1136,7 +1136,6 @@ inline int __fastcall PlayerTakeItem(std::uint8_t* a0, void*, std::uint8_t* a2, 
 // 006A39E0 (thiscall on an armour item): its body part type. 00530840 (thiscall on a unit, RET
 // 4): takes off the armour of that type.
 __declspec(naked) int __fastcall ArmourType(std::uint8_t*) EI_ORIGINAL(0x006A39E0)
-__declspec(naked) void __fastcall UnitUnequipArmour(std::uint8_t*, void*, int) EI_ORIGINAL(0x00530840)
 // 005232B0 / 005230C0 (thiscall on the hero's statistics, record + 0x20): clears the outer
 // layers / adds one (RET 4).
 __declspec(naked) void __fastcall StatsClearOuterLayers(std::uint8_t*) EI_ORIGINAL(0x005232B0)
@@ -1178,7 +1177,7 @@ int CCampPages::TakeOff(std::uint8_t* item) {
     case 0x3005: {
         if (heroes_[hero_]) {
             int type = ArmourType(item);
-            UnitUnequipArmour(heroes_[hero_], nullptr, type);
+            UnitUnequipArmour(reinterpret_cast<CUnit*>(heroes_[hero_]), nullptr, type);
             using IntFn = void(__thiscall*)(void*, int);
             using VoidFn = void(__thiscall*)(void*);
             void* figure = CampField<void*>(heroes_[hero_], 0x240);
@@ -1498,7 +1497,6 @@ EI_REPLACE(0x00610AD0, CampMoveItem);
 namespace {
 // The unit (thiscall): 005310D0 clears weapon slot n, 00531070 gives a weapon (RET 4), 00531110
 // finishes; 00532A20 takes statistics (RET 4).
-__declspec(naked) void __fastcall UnitClearWeapon(std::uint8_t*, void*, int) EI_ORIGINAL(0x005310D0)
 void __fastcall UnitGiveWeapon(std::uint8_t* a0, void*, std::uint8_t* a2) { UnitAddWeaponOriginal((void*)a0, nullptr, (void*)a2); }
 void UnitWeaponsDone(std::uint8_t* unit) { UnitSendEquipmentOriginal(unit); }
 __declspec(naked) void __fastcall UnitTakeStats(std::uint8_t*, void*, std::uint8_t*) EI_ORIGINAL(0x00532A20)
@@ -1520,7 +1518,7 @@ void CCampPages::RefreshWeapons() {
     std::uint8_t* hero = reinterpret_cast<HeroFn>(vtable_[51])(this);
     std::uint8_t* unit = heroes_[hero_];
     FigureCall(unit, 25, -1);
-    for (int slot = 0; slot < 4; ++slot) UnitClearWeapon(unit, nullptr, slot);
+    for (int slot = 0; slot < 4; ++slot) UnitRemoveWeaponOriginal(reinterpret_cast<CUnit*>(unit), nullptr, slot);
     for (int i = 0; i < CampField<int>(hero, 0x734); ++i)
         UnitGiveWeapon(unit, nullptr, CampField<std::uint8_t**>(hero, 0x730)[i]);
     UnitWeaponsDone(unit);

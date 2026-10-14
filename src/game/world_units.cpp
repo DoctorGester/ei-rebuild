@@ -100,13 +100,11 @@ void __fastcall ControllerReposition(void* a0, void*) { ControllerRepositionOrig
 inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { UnitSetControllerOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall UnitSet780(CEngineObject*, void*, std::uint32_t) EI_ORIGINAL(0x0052E9B0)
 __declspec(naked) void __fastcall UnitRefreshStats(CEngineObject*, void*) EI_ORIGINAL(0x0050F080)
-__declspec(naked) void __fastcall UnitAfterStats(CEngineObject*, void*) EI_ORIGINAL(0x005315B0)
 void __fastcall UnitGiveItem(CEngineObject* a0, void*, CEngineObject* a2) { UnitAddWeaponOriginal((void*)a0, nullptr, (void*)a2); }
 void __fastcall UnitAddQuickItem(CEngineObject* a0, void*, CEngineObject* a2) { UnitEquipArmourOriginal((void*)a0, nullptr, (void*)a2); }
 __declspec(naked) void __fastcall UnitWear(CEngineObject*, void*, CEngineObject*) EI_ORIGINAL(0x00531180)
 __declspec(naked) void __fastcall UnitAddSpell(CEngineObject*, void*, CEngineObject*) EI_ORIGINAL(0x00531820)
 // 005308D0 (RET 4): the record's text 6 (a CString's characters, handed on as a dword).
-__declspec(naked) void __fastcall UnitSet18(CEngineObject*, void*, const char*) EI_ORIGINAL(0x005308D0)
 __declspec(naked) void __fastcall UnitSetPose(CEngineObject*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0052EB10)
 // Items: the counted record at item + 0x1C (ItemSourceRef, item.h).
 __declspec(naked) void* __fastcall RefValueConstruct(void*, void*) EI_ORIGINAL(0x00419720)
@@ -312,7 +310,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         UnitSet780(unit, nullptr, static_cast<std::uint32_t>(record->unknown_780));
         UnitRefreshStats(unit, nullptr);
         slots->SetStats(reinterpret_cast<const UnitStats*>(record->stats));
-        UnitAfterStats(unit, nullptr);
+        UnitReleaseAllItems(AsUnit(unit));
 
         // Equipment: weapons, then the controller's slot 25 (ShowWeapon 0), armour
         // (UnitEquipArmourOriginal), quick items (two fields copied from the record's), spells.
@@ -332,7 +330,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
 
         slots->UpdateSizeClasses();
         slots->ScaleEffectChanged(0);
-        UnitSet18(unit, nullptr, record->texts[6]);
+        UnitSetPrototype23CByName(AsUnit(unit), nullptr, record->texts[6]);
         line.Format(worlddata::AddToHeroesFormat(), unit->id_);
         script += line;
         if (unknown12D64_ == kKindSinglePlayer && !atStart) AsUnit(unit)->moveMode2 = record->unknown_770;

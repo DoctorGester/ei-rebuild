@@ -141,7 +141,6 @@ inline void __fastcall PtrListRemoveAll(void* l) { PtrListRemoveAllOriginal(l); 
 __declspec(naked) void __fastcall MotionTurn(void*, void*, int, CUnit*, const float*, int) EI_ORIGINAL(0x005B1DE0)
 // CUnit: 0052E9D0 path speeds, 00530570 size class, 00530A60 IsBehind (unit_hits.cpp),
 // 0052FBC0 ScaledValue (unit.cpp; ST0).
-__declspec(naked) BOOL __fastcall UnitIsBehind(CUnit*, void*, CEngineObject*) EI_ORIGINAL(0x00530A60)
 __declspec(naked) double __fastcall UnitScaledValue(CUnit*, void*, float) EI_ORIGINAL(0x0052FBC0)
 // The AI map's cell flag 0x80 under a point (005BBC70), the sector map (CSectorMap::Remove /
 // Add, sector_map.cpp), the world's timed objects (0058E5D0, world_server.cpp), the brain's

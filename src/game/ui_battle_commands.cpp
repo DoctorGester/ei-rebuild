@@ -60,7 +60,6 @@ __declspec(naked) void __fastcall WorldControlUnit(void*, void*, CUnit*) EI_ORIG
 // LocalViewSendAttackOriginal), 0066AB80 a dead unit (units, target, ctrl; RET 0xC).
 __declspec(naked) void __fastcall ViewOrderDead(void*, void*, OrderUnits*, CUnit*, int) EI_ORIGINAL(0x0066AB80)
 // 00532D40 (thiscall; rewritten as CUnit::Level): the unit's level.
-__declspec(naked) int __fastcall UnitLevelAt(CUnit*) EI_ORIGINAL(0x00532D40)
 // 00637DC0 (thiscall; rewritten): the selection's refresh, through its address.
 __declspec(naked) void __fastcall RefreshSelectionAt(CBattleScreenSetup*) EI_ORIGINAL(0x00637DC0)
 
@@ -211,8 +210,8 @@ void CBattleScreenSetup::AttackUnit(CUnit* target, int ctrl) {
         HudPortraitSlot& slot = static_cast<CHudPortraits*>(portraits_)->slots_[i];
         slot.wobbleTime_ = PortraitDelay(UiRandom().Next());
         static_cast<CHudPortraits*>(portraits_)->slots_[i].wobbleKind_ = 1;
-        int targetLevel = UnitLevelAt(target);
-        int memberLevel = UnitLevelAt(unitAt(i));
+        int targetLevel = UnitLevel(target);
+        int memberLevel = UnitLevel(unitAt(i));
         if (targetLevel - memberLevel > 5) reinterpret_cast<SlotEvent>(vtable_[0x80 / 4])(this, unitAt(i)->id_, 10, 0);
     }
     if (units.size != 0) LocalViewSendAttackOriginal(LocalView(kWorld), nullptr, &units, target, kind, ctrl & 0xFF);

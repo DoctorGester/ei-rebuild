@@ -302,14 +302,12 @@ struct UnitCalls {
     void SetHostileMask(std::uint32_t mask);             // 0052E970
     void SetController(WorldPlayer* player);             // 005300D0
     void GiveQuestItem(CEngineObject* item);             // 00531220
-    void RemoveQuestItem(int index);                     // 005313B0
     void AddSpell(CEngineObject* spell);                 // 00531820
     void MarkChanged(int what);                          // 0050E9F0
 };
 void UnitCalls::SetHostileMask(std::uint32_t a0) { UnitSetHostileMaskOriginal((void*)this, nullptr, a0); }
 void UnitCalls::SetController(WorldPlayer* player) { UnitSetControllerOriginal(this, nullptr, player); }
 __declspec(naked) void UnitCalls::GiveQuestItem(CEngineObject*) EI_ORIGINAL(0x00531220)
-__declspec(naked) void UnitCalls::RemoveQuestItem(int) EI_ORIGINAL(0x005313B0)
 __declspec(naked) void UnitCalls::AddSpell(CEngineObject*) EI_ORIGINAL(0x00531820)
 void UnitCalls::MarkChanged(int what) { UnitMarkChanged(this, nullptr, what); }
 UnitCalls* UnitOf(CEngineObject* unit) { return reinterpret_cast<UnitCalls*>(unit); }
@@ -1148,7 +1146,7 @@ BOOL ScriptRun::Execute(CScript* script) {
             for (int i = 0; i < count; ++i) {
                 auto* item = static_cast<CItemQuest*>(static_cast<CUnit*>(unit)->carried[i]);
                 if (static_cast<int>(item->unknown_4C) == id) {
-                    UnitOf(unit)->RemoveQuestItem(i);
+                    UnitRemoveCarried(static_cast<CUnit*>(unit), nullptr, i);
                     break;
                 }
             }

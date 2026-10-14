@@ -73,7 +73,6 @@ constexpr int kRemarkBored = 0x29;
 // speeds, 00401F00 CTransformObject::TurnUpTowards. (005301A0 "has a player" is inlined.)
 __declspec(naked) void __fastcall UnitSet25C(CUnit*, void*, int) EI_ORIGINAL(0x0052EAD0)
 __declspec(naked) void __fastcall UnitSet260(CUnit*, void*, int) EI_ORIGINAL(0x0052EAF0)
-__declspec(naked) char* __fastcall UnitPrototypeModel(CUnit*) EI_ORIGINAL(0x00530970)
 inline void __fastcall UnitSetPlayer(CUnit* a0, void*, char* a2) { UnitSetControllerOriginal((void*)a0, nullptr, (void*)a2); }
 // 0040F560 Quaternion::AxisY (core_maths.cpp).
 // UnitVitals::Regenerate 00523740 and UnitStats::Recompute 00524560 (unit_vitals.cpp).
@@ -731,7 +730,6 @@ constexpr std::uint32_t kSpellPeriodic = 0x20000;   // spell +0x3C
 // (NewNode / FreeNode of the spell list), 00558840 (its element's assignment), 00429B50 (a
 // reference's assignment).
 __declspec(naked) void __fastcall UnitCollectItems(CUnit*, void*, ItemList*, ItemList*) EI_ORIGINAL(0x005316F0)
-__declspec(naked) CEngineObject* __fastcall UnitWeapon(CUnit*, void*, std::uint32_t) EI_ORIGINAL(0x005318B0)
 __declspec(naked) void __fastcall ItemListFreeNode(ItemList*, void*, ItemList::Node*) EI_ORIGINAL(0x00558C00)
 void __fastcall ItemListBDestroy(ItemList* a0) { ItemListRemoveAllOriginal((void*)a0); }
 inline void __fastcall ItemListADestroy(ItemList* a0) { PtrListRemoveAllNodesOriginal((void*)a0); }

@@ -47,7 +47,6 @@ constexpr int kLevelDifferenceLimit = 25;
 __declspec(naked) double __fastcall MoveSpeedFor(void*, void*, int) EI_ORIGINAL(0x0052FAF0)
 __declspec(naked) double __fastcall MoveSpeed(void*) EI_ORIGINAL(0x0052FA20)
 static char* UnitPrototype(void* unit) { return static_cast<char*>(::UnitPrototypeOf(unit)); }
-__declspec(naked) int __fastcall UnitLevel(void*) EI_ORIGINAL(0x00532D40)
 // The world (007AF5B8): the time of day [0055FC50, ST0].
 double __fastcall WorldDayTime(void* a0) { return WorldDayTimeOriginal(a0); }
 // The unit's parameters (+0x330) [thiscall]: the vision range at a time of day [005271E0, ST0;
@@ -192,7 +191,7 @@ void __fastcall DrawUnitInfo(char* self, void*, char* unit) {
         char* group = At<char*>(self, 0x148);
         if (At<int>(group, 0x170) > 0) {
             void* leader = At<void**>(group, 0x16C)[0];
-            int difference = UnitLevel(unit) - UnitLevel(leader);
+            int difference = UnitLevel(reinterpret_cast<CUnit*>(unit)) - UnitLevel(static_cast<CUnit*>(leader));
             if (difference > kLevelDifferenceLimit) {
                 suffix.Format(kStronger, kLevelDifferenceLimit);
             } else if (difference < -kLevelDifferenceLimit) {

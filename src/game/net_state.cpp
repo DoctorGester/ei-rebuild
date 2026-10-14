@@ -228,7 +228,6 @@ namespace {
 // the motion's 005C67D0 (path) on +0x27C; a player's unit list remove / add [00665B50 / 00665A70
 // (unit)]; the object's manager context [00455940] and the client's local view [005699F0]; the
 // field reader's CString [0047E310 (out)], CString operator= [00700AA9] and destructor [00700970].
-__declspec(naked) void __fastcall UnitReleaseAllItems(void*) EI_ORIGINAL(0x005315B0)
 __declspec(naked) void __fastcall UnitMoveSpeeds(void*, void*, float*, float*) EI_ORIGINAL(0x0052F920)
 // (005C7FC0: PathReadOriginal, originals_ai.h.)
 __declspec(naked) void __fastcall PathSetOwner(void*, void*, int) EI_ORIGINAL(0x005C7C90)

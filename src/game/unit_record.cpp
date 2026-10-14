@@ -16,16 +16,12 @@ namespace {
 // The unit's methods used here, through their original addresses (006AC970 is patched by Rebirth;
 // the others may be rewritten elsewhere).
 struct Unit {
-    void ReleaseAllItems();                 // 005315B0
-    char* GetPrototypeModel();              // 00530970
     int AddQuickItem(void* item);           // 00531180
     int AddCarried(void* item);             // 00531220
     int AddSpell(void* spell);              // 00531820
     void* EquipArmour(void* item);          // 00530730
     int AddWeapon(void* item);              // 00531070
 };
-__declspec(naked) void Unit::ReleaseAllItems() EI_ORIGINAL(0x005315B0)
-__declspec(naked) char* Unit::GetPrototypeModel() EI_ORIGINAL(0x00530970)
 __declspec(naked) int Unit::AddQuickItem(void*) EI_ORIGINAL(0x00531180)
 __declspec(naked) int Unit::AddCarried(void*) EI_ORIGINAL(0x00531220)
 __declspec(naked) int Unit::AddSpell(void*) EI_ORIGINAL(0x00531820)
@@ -127,7 +123,7 @@ void UnitRecord::ApplyTo(CUnit* target) {
         return;
     }
 
-    unit->ReleaseAllItems();
+    UnitReleaseAllItems(target);
     char* u = reinterpret_cast<char*>(target);
     char* stats = *reinterpret_cast<char**>(u + kUnitStats);
     char* controller = *reinterpret_cast<char**>(u + kUnitController);
@@ -150,7 +146,7 @@ void UnitRecord::ApplyTo(CUnit* target) {
 
     // Seven model values scaled by the record's byte, each stored twice.
     for (std::size_t k = 0; k < 7; ++k) {
-        char* model = unit->GetPrototypeModel();
+        char* model = UnitPrototypeModel(target);
         StoreScaledTwice(stats + 0x40 + k * 8, stats + 0x44 + k * 8, static_cast<std::uint8_t>(r[field::kModelScale]),
                          model + 0x6C + k * 4);
     }

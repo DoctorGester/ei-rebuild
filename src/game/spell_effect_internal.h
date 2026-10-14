@@ -121,7 +121,6 @@ inline void* SpellFootprint() { return reinterpret_cast<void*>(0x007C8478); }   
 // The later states' callees.
 __declspec(naked) inline void __fastcall ParticleSetColors(CEngineObject*, void*, float /*a*/, float /*b*/) EI_ORIGINAL(0x006792E0)
 // 005302F0 CUnit::ModeSpeed (unit.cpp); left unrounded in ST0.
-__declspec(naked) inline double __fastcall UnitModeSpeed(CEngineObject*) EI_ORIGINAL(0x005302F0)
 __declspec(naked) inline void __fastcall EffectHitUnitsInRadius(CSpellEffect*) EI_ORIGINAL(0x00683600)
 __declspec(naked) inline void __fastcall EffectHitUnitsAlong(CSpellEffect*, void*, const Vector3*) EI_ORIGINAL(0x00683730)
 // 005C98C0 (world + 0x2838, the AI events): a noise of `loudness` and `kind` made by `source` at `at`.
