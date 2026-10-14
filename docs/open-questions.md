@@ -21,27 +21,44 @@ Things to come back to. Remove an entry once it is resolved.
   The vanilla launch (`launch-vanilla.cmd`) exited cleanly with all hooks active on 2026-10-02, so
   the hang is likely Rebirth-specific.
 
-## Deterministic harness runs (parked, 2026-10-03)
+## Harness runs that do not repeat on the virtual clock (2026-10-14, SV1)
 
-`deterministic` in a scenario (tests/verify/harness.cpp) makes timeGetTime/GetTickCount a virtual
-clock that advances four world updates per main-loop frame, fixes the date, and replaces the ISAAC
-seeding (0049F660, which seeds from timeGetTime and 0x400 bytes of a random file under C:\). The goal
-is `tools/compare.py`: run a scenario with and without hooks and diff the console output.
+Harness runs use the virtual clock by default (tests/verify/harness_clock.h; a `realtime` line opts a
+scenario out, none does). `python tools\compare.py --runs 3` on the vanilla suite, 2026-10-14: 61 of
+77 scenarios repeat on both sides and match; of the other 16, ten only failed on dgVoodoo's minimise
+(below; run_all.py now runs those again). What is left:
 
-It does not repeat yet: the same scenario run twice on the original code diverges. Seen so far:
-- A new game sometimes never finishes loading under the virtual clock (loading waits on something
-  real-time; the fallback advances the clock by 1 ms per 10000 off-loop reads), and otherwise takes
-  a different number of frames each run.
-- A second thread (sound, 006B5xxx-006BBxxx) reads the clock on its own schedule. Mapped since
-  (docs/notes/sound.md): the sound threads draw no random numbers and touch no game state; the
-  "Delayed sound" / "hear delayed sound" events are the AI brain's own countdowns (005CB700 ->
-  005CC9D0, world thread). What does shift the shared random generator (007A9D40) between runs is
-  main-thread sound code driven by the wall clock: CSoundManager::Tick's ambient emitters (every
-  100 ms of GetTickCount), the music's calm delay and track choice (timeGetTime), random sound
-  sequences, Play2D/Play3D's random start position and the terrain ambience 006CB390.
-Next steps would be: find what the loader waits on; keep the virtual clock for GetTickCount /
-timeGetTime on the main thread too, or run harness games with sound disabled (CSoundManager +0x898
-= 0 makes all of the above return early).
+- **combat, combat_more, sound: neither side repeats.** The runs part in a fight (which hits land,
+  `skill=` +-3.4e38 in "was attacked", and whether an AI unit's GuardMode goes idle or a "Delayed
+  sound" line comes before or after a hit). Random traces (`--clock virtual,randtrace`) are the same
+  draw for draw up to where they part, and no clock read, step or sound start/end differs before it
+  (clocktrace and the trace's notes). Not explained yet; a guess is memory layout (an order by heap
+  address, or an unwritten field read). SV2's state digest would name the first field that differs.
+- **units, sandbox_actions: both sides repeat, ours differs.** The wolf that the hero fights dies
+  sooner in ours: `waitfor 20 Not(IsAlive(GetObjectByName("Enemy1")))` is done after 400 ms of virtual
+  time in ours and 700 ms in the original, every run (one "0" fewer in the console). A behaviour
+  difference in the rewritten combat or AI. To find it: random traces side by side by value (the
+  verify build draws more, its wrappers run the original on scratch copies), or SV2's digest.
+- **rebirth_flags** fails on the original by design (its `rebirthflags` steps need our code). Ours
+  passes but does not repeat either, and that is a lead for the combat case: the script variables
+  it prints list the units of a group in a different order from run to run (`Peasans : group =
+  <CUnit:1884>, <CUnit:702>, <CUnit:699>`, then `..., 699, 702`; a loop's last unit `i` with them),
+  on both installs. An order that changes between runs with the same clock and draws points to an
+  order by heap address.
+- **dgVoodoo's minimise.** A game that Windows gave the foreground (when the game in front closed)
+  and that lost it to a starting game is minimised by dgVoodoo; each time it came twice within
+  ~100 ms, the first time taking the surfaces (the harness restores them, harness.cpp
+  RestoreAfterMinimise) and the second the exclusive mode, which a background window does not get
+  back (the renderer's own restore, 00504780, hung). The run ends on "Can't begin scene" / "Can't lock
+  surface" (DDERR_SURFACELOST). Seen only in ours, on the last run of a scenario (it lives longest).
+  run_all.run runs such a run again, up to twice. A cure would keep harness games from ever taking
+  the foreground (dgVoodoo's own activation at SetCooperativeLevel gives it to them).
+- **Start-up hangs on a busy machine.** With many games on the machine (other workers' suites), some
+  runs on either side and either clock hang before the main menu until the 60 s limit: the main
+  thread is in DirectSound's device open inside Miles' waveOutOpen (mss32 -> DSOUND, stack at the
+  timeout). Environmental; run_all's retry usually passes them.
+- Rebirth (`compare.py --rebirth --runs 3`, the 19 scenarios config/rebirth_scenarios.csv runs there):
+  18 repeat and match; rebirth_flags as above. Three runs were run again after the minimise and passed.
 
 ## Rare Rebirth crash in the unit sort during new-game load (seen once, 2026-10-03)
 

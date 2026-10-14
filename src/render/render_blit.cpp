@@ -549,6 +549,23 @@ void CursorBlit(const std::vector<std::uint8_t>& rgba, int w, int h, const Rect&
 }
 } // namespace
 
+namespace detail {
+void DropBlits() {
+    RetireFrameImages();
+    for (auto& entry : g_movies) {
+        if (entry.second.view.id) sg_destroy_view(entry.second.view);
+        if (entry.second.image.id) sg_destroy_image(entry.second.image);
+    }
+    g_movies.clear();   // a movie shows again from its next frame
+    for (CachedImage& c : g_cache) {
+        if (c.view.id) sg_destroy_view(c.view);
+        if (c.image.id) sg_destroy_image(c.image);
+    }
+    g_cache.clear();
+    DestroyBlits();
+}
+} // namespace detail
+
 void SurfaceBlit(const void* holder, const Rect& destination, const Rect* source, bool keyed, std::uint32_t key) {
     if (!holder || !Active() || !Started()) return;
     FpuGuard fpu;

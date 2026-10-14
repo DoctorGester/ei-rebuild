@@ -122,10 +122,11 @@ done = "2026-10-14"
 id = "R9b1"
 title = "GetDxVersion probe failing in native runs with several games"
 group = "renderer"
-status = "queued"
+status = "done"
 model = "sonnet"
 depends = ["R9b"]
 note = "Native present runs end now and then at the 'DirectX 7 or later' message (seen before R9b too). Skipping the probe in present mode hung sound init (renderer.md R9b): find which side effect the sound code needs (DirectMusic / DDRAW.DLL) before guarding."
+done = "2026-10-14"
 
 [[ticket]]
 id = "R9b2"
@@ -140,19 +141,21 @@ note = "The harness patches the CALL at 00457595, so WinMain 00456440's original
 id = "PF3"
 title = "Create DirectDraw once at startup"
 group = "renderer"
-status = "running"
+status = "done"
 note = "Profile 2026-10-14: under dgVoodoo every DirectDrawCreateEx builds a D3D12 device (~190 ms, with driver signature checks). Startup does it four times: GetDxVersion's two probes (~390 ms), FirstHardwareDirectDrawDriver (~195 ms) and CTextureDevice::CreateDirectDraw (the one kept). Skipping the probes (DirectX 7 is a given) and reusing the enumerated object saves ~0.6 s of the ~1.8 s to the main menu, but changes what the original does; also fixes R9b1. Waits on the user's decision (flag, native only, or standalone only). Decided (user 2026-10-14): only in native runs (EI_RENDER present, run/native) and the standalone exe; vanilla and Rebirth runs keep the original's probes."
 started = "2026-10-14"
+done = "2026-10-14"
 
 [[ticket]]
 id = "R9c1"
 title = "Lost Direct3D 11 device: make the device, swap chain and textures again"
 group = "renderer"
-status = "running"
+status = "done"
 model = "opus"
 depends = ["R9c"]
 note = "R9c logs a removed / reset / hung device (GetDeviceRemovedReason) and stops presenting; nothing is recreated. Recreate sokol's device and every image, reupload textures from the decoded copies (renderer.md section 9, R9c)."
 started = "2026-10-14"
+done = "2026-10-14"
 
 [[ticket]]
 id = "R9c2"
@@ -180,6 +183,21 @@ status = "queued"
 model = "opus"
 depends = ["R9c"]
 note = "R9c covers a window resized from outside (the window covers the monitor again, the swap chain resizes). The game's own device re-creation on a resolution change in the options, and a desktop mode change while running, are not exercised by any scenario (renderer.md section 9, R9c)."
+
+[[ticket]]
+id = "PF3a"
+title = "render_scene / render_terrain fail samecapture in native runs"
+group = "renderer"
+status = "queued"
+note = "Seen by PF3 on its base and branch (2026-10-14): run_all --native, samecapture world world_again differs on ~2.9% of the pixels (largest 60-74) in both scenarios, every run; vanilla/rebirth pass. Probably something that moves by itself in the new frame (water phase, weather) between the two captures; decide whether the scenario's tolerance or the renderer is wrong."
+
+[[ticket]]
+id = "R9c5"
+title = "Lost device test through a real removal"
+group = "renderer"
+status = "queued"
+depends = ["R9c1"]
+note = "R9c1 tests the recreation with render::LoseDevice (Present reported DXGI_ERROR_DEVICE_REMOVED without a real removal). A real one without a driver reset: a test-only device made through D3D11On12CreateDevice whose ID3D12Device5::RemoveDevice removes it (Windows 10 1809+, no install); check the swap chain works with an 11on12 device first (renderer.md section 9, R9c1)."
 
 # ---------------------------------------------------------------- native interface drawing
 
@@ -366,20 +384,22 @@ done = "2026-10-14"
 id = "N0b"
 title = "ui_help opens help: H, not F1"
 group = "native-ui"
-status = "running"
+status = "done"
 size = 0.25
 files = ["tests/scenarios/ui_help.txt"]
 note = "ui_help presses F1, which is select1 in keyboard.ini; the help key is H (tutorial_script), so it never opened the help window (N0a, ui-census.md Coverage). Switch it to H on a topic with a tutorial text, or fold it into ui_help_page, and keep its checks."
 started = "2026-10-14"
+done = "2026-10-14"
 
 [[ticket]]
 id = "N0c"
 title = "ui_mp_host under Rebirth: disconnect box after the chat line"
 group = "native-ui"
-status = "queued"
+status = "running"
 size = 0.5
 files = ["tests/scenarios/ui_mp_host.txt"]
 note = "Under Rebirth a 'disconnect' message box (disconnect_msg) sometimes appears on the briefing about a second after the chat line is sent in ui_mp_host; the scenario still passes. Find whether EI_Plugin.asi / Rebirth's net patches or our client/server cause it (vanilla never shows it)."
+started = "2026-10-14"
 
 [[ticket]]
 id = "N0d"
@@ -434,11 +454,12 @@ note = "Also camera mouse moves and 004F1330. Seen 2026-10-14 by the user in a v
 id = "W2a"
 title = "Connect list 0061D780 under Rebirth: ExtendedServerName with WideScreen"
 group = "widescreen"
-status = "queued"
+status = "running"
 size = 0.5
 model = "sonnet"
 depends = ["W2"]
 note = "W2 rewrote its WideScreen caret (+0x38E/+0x3BE) but the Rebirth launch skips the hook: the function also holds ExtendedServerName (+0x27C, not reproduced). Reproduce that site too (EI_REBIRTH_IMPLEMENTS both), then compare in a Rebirth launch (net_lobby's connect list)."
+started = "2026-10-14"
 
 # ---------------------------------------------------------------- unknown fields
 
@@ -493,10 +514,11 @@ done = "2026-10-14"
 id = "SV1"
 title = "Virtual game clock: runs that repeat"
 group = "verification"
-status = "running"
+status = "done"
 started = "2026-10-14"
 size = 1.5
 note = "Zone loading and the sound code's clocks on the virtual clock; every scenario passes compare.py --runs 3 on both sides."
+done = "2026-10-14"
 
 [[ticket]]
 id = "SV2"
@@ -530,6 +552,27 @@ group = "verification"
 status = "queued"
 size = 1
 depends = ["SV3"]
+
+[[ticket]]
+id = "SV1a"
+title = "units and sandbox_actions: our wolf dies 300 ms of virtual time sooner than the original"
+group = "verification"
+status = "running"
+size = 0.5
+model = "opus"
+files = ["tests/scenarios/units.txt", "tests/scenarios/sandbox_actions.txt", "tests/verify/harness_clock.cpp"]
+note = "From SV1 (2026-10-14): both repeat on the virtual clock on each side, but ours kills the wolf at 400 ms against 700 ms in the original, every run. CRT rand() sequence identical; where the draws fall drifts by about two frames. Compare randtrace side by side by value (or SV2's state digest) to find the first differing draw."
+started = "2026-10-14"
+
+[[ticket]]
+id = "SV1b"
+title = "combat, combat_more, sound and rebirth_flags do not repeat on the virtual clock"
+group = "verification"
+status = "queued"
+size = 0.5
+model = "opus"
+files = ["docs/open-questions.md"]
+note = "From SV1: random draws identical up to where runs part, no clock read, step or sound event differs before it; rebirth_flags' unit group order changes run to run. Guess: an order that depends on heap addresses. SV2's digest would name the first field that differs. Listed in open-questions.md under 'Harness runs that do not repeat on the virtual clock'."
 
 # ---------------------------------------------------------------- harness and suite
 
@@ -690,6 +733,62 @@ note = "Worker brief: work.py start at the beginning, note at milestones, test i
 started = "2026-10-14"
 done = "2026-10-14"
 
+[[ticket]]
+id = "WB5"
+title = "work.py test passes environment variables (EI_PROFILE, EI_PLAIN, ...) to the games"
+group = "harness"
+status = "done"
+size = 0.3
+model = "sonnet"
+files = ["tools/work_sched.py", "tools/work.py", "tools/work_board/"]
+note = "PF3 had to use run_all directly for profile runs: the scheduler runs games with its own environment. Record the submitter's EI_* variables in the batch (new MIGRATIONS entry) and set them for that batch's games; show them on the test-runs page."
+started = "2026-10-14"
+done = "2026-10-14"
+
+[[ticket]]
+id = "WB6"
+title = "Machine-wide expected run times, keyed by the scenario's last-change commit"
+group = "harness"
+status = "done"
+size = 0.4
+model = "sonnet"
+depends = ["WB5"]
+files = ["tools/work_sched.py", "tools/run_all.py", "tools/work.py"]
+note = "Asked 2026-10-14 (user): one shared store of run times instead of each build's run_times.json, keyed by the commit that last changed the scenario. A new MIGRATIONS entry adds timing(scenario, install, scenario_rev, seconds, time, batch); every finished run appends a row (scheduler runs, and plain run_all too). scenario_rev = git log -1 --format=%H -- tests/scenarios/<name>.txt in the run's checkout. Expected = median of the last few rows for (scenario, install, scenario_rev); else the same without rev; else the build's run_times.json. Fresh worktrees then get estimates; a changed scenario drops its old ones. Keep run_times.json writes for plain run_all users. Also: the scheduler is long-lived, so merged scheduler changes only take effect once it idles out. Make it notice when tools/work_sched.py or tools/run_all.py on main changed since it started and, once no game of its own is running, exit so the next waiting test restarts it from the new code (never kill games for this)."
+started = "2026-10-14"
+done = "2026-10-14"
+
+[[ticket]]
+id = "SV1c"
+title = "Keep harness games from taking the foreground, then drop the minimise rerun"
+group = "harness"
+status = "queued"
+size = 0.4
+model = "sonnet"
+files = ["tests/verify/harness.cpp", "tools/run_all.py"]
+note = "From SV1: a game that got the foreground and lost it to a starting game is minimised twice by dgVoodoo and loses exclusive mode; run_all.run reruns such runs (MINIMISED). Block the activation so no harness game is ever foreground, then remove the rerun."
+
+[[ticket]]
+id = "SV1d"
+title = "A stalled game outlived its scenario limit and ei_launch"
+group = "harness"
+status = "running"
+size = 0.3
+model = "sonnet"
+files = ["tests/verify/harness.cpp"]
+note = "From SV1: a sandbox_map-vanilla game stalled at 23:20 on 2026-10-14 and was not ended by the 80 s scenario limit or ei_launch; killed by hand 25 min later. Three older games (from 15:45 and 19:05) also survived Stop-Process. Find which state the watchdog misses; ei_launch should end the game when the limit plus a margin passes. Related: start-up hangs under load in DirectSound's device open inside Miles' waveOutOpen (both sides, either clock)."
+started = "2026-10-14"
+
+[[ticket]]
+id = "SV1e"
+title = "Native runs fail at start-up with 'DirectX 7 or higher required' on the real clock"
+group = "harness"
+status = "queued"
+size = 0.2
+model = "sonnet"
+files = ["tools/run_all.py"]
+note = "From SV1: 51 of 77 real-clock native runs failed at 0 s with that box. PF3 (native skips the GetDxVersion probe) may already cover it: check on current main first, close if so."
+
 # ---------------------------------------------------------------- cleanup
 
 [[ticket]]
@@ -747,9 +846,9 @@ note = "Left from C9 (models.md, \"Layouts\")."
 id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
-status = "running"
+status = "queued"
 model = "sonnet"
-note = "Counts 2026-10-14: 497 __fastcall self shims, 368 constexpr game addresses; per-file At() copies already 0. Batches of about 100 shims, one area at a time. Batch 1 (2026-10-14): 63 shims converted to member functions (1,274 -> 1,211 by tools/progress.py; the ticket's 497 does not match that metric). Class A (body moved into the member) plus class B (forwarders deleted, member registered: transform math, unit_ai_*, 16 AlignedArray instances, ObjectSet). Skipped: ui_/net_ callers (text_reader Open/ReadLine/ReadToHash/Split/FindLine, ClassTemplate::SetLevels, RefPtrShareReturn), virtual-slot shims, aliases of lib/mfc templates, DrawLightning (virtual Draw clash), UnitPrototypeAt (name collision), FindFigureAnimation (F4a header), QuaternionRotate (src/lib). Left: 1,211 two-slot shims; next the ui/net callers after W2/F5. See docs/notes/cleanup-units.md. Batch 1 merged 2026-10-14: 63 shims (progress.py count 1,274 -> 1,211); skipped ui_/net_ callers until W2/F5, see cleanup-units.md 'C11 batch 1'."
+note = "Counts 2026-10-14: 497 __fastcall self shims, 368 constexpr game addresses; per-file At() copies already 0. Batches of about 100 shims, one area at a time. Batch 1 (2026-10-14): 63 shims converted to member functions (1,274 -> 1,211 by tools/progress.py; the ticket's 497 does not match that metric). Class A (body moved into the member) plus class B (forwarders deleted, member registered: transform math, unit_ai_*, 16 AlignedArray instances, ObjectSet). Skipped: ui_/net_ callers (text_reader Open/ReadLine/ReadToHash/Split/FindLine, ClassTemplate::SetLevels, RefPtrShareReturn), virtual-slot shims, aliases of lib/mfc templates, DrawLightning (virtual Draw clash), UnitPrototypeAt (name collision), FindFigureAnimation (F4a header), QuaternionRotate (src/lib). Left: 1,211 two-slot shims; next the ui/net callers after W2/F5. See docs/notes/cleanup-units.md. Batch 1 merged 2026-10-14: 63 shims (progress.py count 1,274 -> 1,211); skipped ui_/net_ callers until W2/F5, see cleanup-units.md 'C11 batch 1'. Batch 2 (2026-10-14): 76 more shims to members (progress.py 1,211 -> 1,135): scripts (CScript, ScriptNamedValues<T> Load/Save/Append/CopyConstruct/FindName, SSCCmd, ScriptSubCall, ScriptRun, ScriptVars), CUnitLayer, SearchGrid<T> specializations, CFigureManager, hash400::Table, CMaterial and small ones. Fewer than 100 because the pool is used up: what is left is ui/net/renderer files, void* selfs, call-throughs to originals, virtual slots and lib aliases. Skipped: ClassTemplate::SetLevels, RefPtrShareReturn (ui/net callers), Quaternion::Rotate (namespace), CFigureMesh::Rasterise (windows.h via texture.h), CScript NewWorldScript/RunWorldScript/AddParameter (member signatures differ). See cleanup-units.md 'C11 batch 2'."
 started = "2026-10-14"
 
 [[ticket]]

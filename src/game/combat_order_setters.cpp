@@ -145,7 +145,7 @@ void CUnitServer::PlayAnimation(const char* name) {
     {
         mfc::CString figure(unit->name);
         auto* world = static_cast<CWorld*>(ManagerContext());
-        entry = FindFigureAnimation(static_cast<CBaseManager*>(world->MapObjectManager()), nullptr, figure, name);
+        entry = (static_cast<CBaseManager*>(world->MapObjectManager()))->FindFigureAnimation(figure, name);
     }
     if (!entry) return;
     action2.Reset();
@@ -190,12 +190,12 @@ BOOL CUnitServer::HasMainArmour() {
 }
 EI_REPLACE_METHOD(0x005567E0, CUnitServer::HasMainArmour);
 
-FigureAnimation* __fastcall FindFigureAnimation(CBaseManager* manager, void*, const mfc::CString& figure, const char* name) {
+FigureAnimation* CBaseManager::FindFigureAnimation(const mfc::CString& figure, const char* name) {
     AnimationDatabase* database;
     {
         mfc::CString file(figure);
         file += ".adb";
-        database = static_cast<AnimationDatabase*>(manager->GetFile(file, nullptr));
+        database = static_cast<AnimationDatabase*>(GetFile(file, nullptr));
     }
     if (!database) {
         game::DebugLog("Can't find animation database file for \"%s\".\n", static_cast<const char*>(figure));
@@ -205,4 +205,4 @@ FigureAnimation* __fastcall FindFigureAnimation(CBaseManager* manager, void*, co
         if (gamecrt::stricmp(database->animations[i].name, name) == 0) return &database->animations[i];
     return nullptr;
 }
-EI_REPLACE(0x00512F60, FindFigureAnimation);
+EI_REPLACE_METHOD(0x00512F60, CBaseManager::FindFigureAnimation);

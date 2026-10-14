@@ -93,6 +93,7 @@ struct LockKey;      // unit.h
 // bodies of map_object_stub_slots.cpp. Names and evidence: docs/notes/map_objects.md ("Virtual slot names").
 class __declspec(novtable) CMapObject : public CObject3D {
 public:
+    void SetScriptPosition(const Vector3* point);
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073DAA0);
 
     virtual void CopyTransform();      // 13: CTransformObject 00401490

@@ -6,9 +6,6 @@
 
 #include <cstdint>
 
-int __fastcall LoadFigureBounds(CFigureManager* manager, void*, ClipBounds* out, FigureModel* model,
-                                const char* directory, const char* name, std::uint32_t s, std::uint32_t t,
-                                std::uint32_t u);
 
 namespace {
 void* s_unused;
@@ -18,7 +15,7 @@ void* s_unused;
 static int __fastcall LoadFigureBoundsVerify(CFigureManager* manager, void*, ClipBounds* out, FigureModel* model,
                                              const char* directory, const char* name, std::uint32_t s, std::uint32_t t,
                                              std::uint32_t u) {
-    int result = LoadFigureBounds(manager, nullptr, out, model, directory, name, s, t, u);
+    int result = manager->LoadFigureBounds(out, model, directory, name, s, t, u);
     std::uint32_t flags = out->flags;
     bool ok = result == 0 || (result == 1 && (flags & 1));
     ei::verify::Check("LoadFigureBounds", true, ok, "%s -> %d (flags %x)", name, result, flags);

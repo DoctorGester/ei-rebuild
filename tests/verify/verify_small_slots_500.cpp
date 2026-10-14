@@ -29,7 +29,6 @@ const char* __fastcall FigureBoneClassName(FigureBone*);
 int __fastcall FigureBoneClassId(FigureBone*);
 const char* __fastcall AnimationStateClassName(CFigureAnimationState*);
 int __fastcall AnimationStateClassId(CFigureAnimationState*);
-void __fastcall VectorCopy(Vector3* self, void*, const Vector3* other);
 void __fastcall MatrixTransposeInPlace(float* m);
 
 using scene::SceneSkin;
@@ -98,7 +97,7 @@ static void(__fastcall* s_VectorCopy)(Vector3*, void*, const Vector3*);
 static void __fastcall VectorCopyVerify(Vector3* self, void*, const Vector3* other) {
     Vector3 expected;
     s_VectorCopy(&expected, nullptr, other);
-    VectorCopy(self, nullptr, other);
+    self->Assign(other);
     ei::verify::Check("VectorCopy", true, std::memcmp(&expected, self, sizeof(Vector3)) == 0, "");
 }
 EI_VERIFY(0x00503F20, VectorCopyVerify, 6, s_VectorCopy);

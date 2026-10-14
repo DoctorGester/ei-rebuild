@@ -40,31 +40,31 @@ EI_REPLACE(0x004BB050, DropObjectReference);
 // ---- Scene loader ---------------------------------------------------------------------------------
 
 // 00471A90 (RET 0xC): a Vector3 from its three parts (a second copy of 00401DE0); returns it.
-Vector3* __fastcall Vector3FromParts(Vector3* self, void*, float x, float y, float z) {
-    self->x = x;
-    self->y = y;
-    self->z = z;
-    return self;
+Vector3* Vector3::ConstructScene(float x_, float y_, float z_) {
+    x = x_;
+    y = y_;
+    z = z_;
+    return this;
 }
-EI_REPLACE(0x00471A90, Vector3FromParts);
+EI_REPLACE_METHOD(0x00471A90, Vector3::ConstructScene);
 
 // 00471AB0 / 00471AD0 / 00471AF0 (RET 4): a scene helper's (a CMaterial's) diffuse, ambient and
 // specular red, green and blue, set from `value` (SceneInfo::Load builds each from three numbers
 // of the file with 00471A90); the alphas stay.
-void __fastcall MaterialSetDiffuse(CMaterial* helper, void*, const Vector3* value) {
-    std::memcpy(&helper->colors.diffuse, value, sizeof(Vector3));
+void CMaterial::SetDiffuse(const Vector3* value) {
+    std::memcpy(&colors.diffuse, value, sizeof(Vector3));
 }
-EI_REPLACE(0x00471AB0, MaterialSetDiffuse);
+EI_REPLACE_METHOD(0x00471AB0, CMaterial::SetDiffuse);
 
-void __fastcall MaterialSetAmbient(CMaterial* helper, void*, const Vector3* value) {
-    std::memcpy(&helper->colors.ambient, value, sizeof(Vector3));
+void CMaterial::SetAmbient(const Vector3* value) {
+    std::memcpy(&colors.ambient, value, sizeof(Vector3));
 }
-EI_REPLACE(0x00471AD0, MaterialSetAmbient);
+EI_REPLACE_METHOD(0x00471AD0, CMaterial::SetAmbient);
 
-void __fastcall MaterialSetSpecular(CMaterial* helper, void*, const Vector3* value) {
-    std::memcpy(&helper->colors.specular, value, sizeof(Vector3));
+void CMaterial::SetSpecular(const Vector3* value) {
+    std::memcpy(&colors.specular, value, sizeof(Vector3));
 }
-EI_REPLACE(0x00471AF0, MaterialSetSpecular);
+EI_REPLACE_METHOD(0x00471AF0, CMaterial::SetSpecular);
 
 // ---- Effects --------------------------------------------------------------------------------------
 
@@ -97,10 +97,10 @@ void CEngineObject::ClearFlagBits(std::uint32_t bits) {
 EI_REPLACE_METHOD(0x004B9F60, CEngineObject::ClearFlagBits);
 
 // 004B9F90 (RET 4): the map object's position.
-void __fastcall ScriptObjectSetPosition(CMapObject* object, void*, const Vector3* point) {
-    object->position = *point;
+void CMapObject::SetScriptPosition(const Vector3* point) {
+    position = *point;
 }
-EI_REPLACE(0x004B9F90, ScriptObjectSetPosition);
+EI_REPLACE_METHOD(0x004B9F90, CMapObject::SetScriptPosition);
 
 // 004B9FD0: 1 when the counted object exists and its owner has not shut it down (the commands ask
 // it of the game server), else 0.

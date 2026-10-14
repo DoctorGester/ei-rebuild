@@ -1,72 +1,106 @@
-"""Runs a harness scenario on the original code and on ours, and compares what the game printed.
+r"""Runs harness scenarios on the original code and on ours, and compares what the game printed.
 
-The scenario should contain a "deterministic" line (virtual clock, fixed seeds), so both runs take
-the same course; then any difference in the console output is a behaviour difference. Use it for
-code whose verify wrappers can only check plausibility (functions that run once per call: AI ticks,
-TakeHit, loaders).
+On the virtual clock (tests/verify/harness_clock.h) a scenario takes the same course every time, so
+any difference in the console output is a behaviour difference. Use it for code whose verify
+wrappers can only check plausibility (functions that run once per call: AI ticks, TakeHit, loaders).
 
-usage: python tools/compare.py tests/scenarios/<scenario>.txt [--rebirth] [--runs N]
-  --rebirth  run under Rebirth instead of the vanilla install
+usage: python tools/compare.py [scenario names or paths...] [--rebirth | --both] [--runs N] [--jobs N]
+                               [--clock virtual|real[,clocktrace][,randtrace]]
+  scenarios  names in tests/scenarios (default: all); with --rebirth and no names, those that
+             config/rebirth_scenarios.csv runs under Rebirth
+  --rebirth  run under Rebirth instead of the vanilla install; --both: vanilla, then Rebirth
   --runs N   run each side N times (default 1); with N > 1 it also checks each side repeats itself
-exit code: 0 same output, 1 different, 2 a run failed to produce a report
+  --jobs N   games at once (default 4; run_all.py's machine-wide slots apply)
+  --clock    override the scenarios' clock (default: as each scenario says); randtrace writes every
+             random draw to randtrace.txt in each run's folder (find where two runs part)
+Each run writes to build\verify\runs\<scenario>-<install>-<original|ours><n>. A scenario's verdict
+is printed as soon as its runs are done.
+exit code: 0 every scenario repeats and matches, 1 otherwise, 2 a run produced no report
 """
-import argparse, difflib, os, subprocess, sys
+import argparse, concurrent.futures, difflib, glob, os, sys, time
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-BUILD = os.path.join(ROOT, 'build', 'verify')
-LAUNCH = os.path.join(BUILD, 'ei_launch.exe')
-REPORT = os.path.join(BUILD, 'harness_report.txt')
+import run_all
+
+ROOT = run_all.ROOT
 
 
-def run(scenario, hooks, rebirth):
-    cmd = [LAUNCH, '--harness', scenario]
-    if not rebirth:
-        cmd += ['--game', r'F:\games\EvilIslands', '--exe', os.path.join(ROOT, 'run', 'vanilla', 'game.exe')]
-    if not hooks:
-        cmd.append('--no-hooks')
-    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    if not os.path.exists(REPORT):
-        return None, None
-    lines = open(REPORT, encoding='cp1251', errors='replace').read().splitlines()
-    result = next((l for l in lines if l.startswith('RESULT:')), 'RESULT: ?')
-    try:
-        start = lines.index('console output:') + 1
-    except ValueError:
-        return [], result
-    console = [l for l in lines[start:] if l.startswith('  ')]
-    return console, result
+def diff(a, b, name_a, name_b, limit=12):
+    lines = list(difflib.unified_diff(a, b, name_a, name_b, lineterm='', n=1))
+    shown = lines[:limit]
+    if len(lines) > limit:
+        shown.append(f'... ({len(lines) - limit} more diff lines)')
+    return ['    ' + l for l in shown]
+
+
+def verdict(n, i, results, runs):
+    """(verdict, detail lines, exit code) of one scenario in one install."""
+    lines, verdicts, consoles, code = [], [], {}, 0
+    for hooks in (False, True):
+        side = 'ours' if hooks else 'original'
+        outs = [results[(n, i, hooks, k)] for k in range(1, runs + 1)]
+        if any(r[0] == 'NO REPORT' for r in outs):
+            verdicts.append(f'{side}: no report')
+            code = 2
+            continue
+        consoles[side] = outs[0][3]
+        bad = [k for k in range(2, runs + 1) if outs[k - 1][3] != outs[0][3]]
+        lines.append(f'  {side}: {" ".join(r[0] for r in outs)}; {len(outs[0][3])} console lines; '
+                     f'{max(r[1] for r in outs):.0f}s at most')
+        for r in outs:
+            lines += [f'    {r[0]}: {f}' for f in r[2][:2]]
+        if bad:
+            verdicts.append(f'{side} does not repeat')
+            lines += diff(outs[0][3], outs[bad[0] - 1][3], f'{side} run 1', f'{side} run {bad[0]}')
+    if len(consoles) == 2 and consoles['original'] != consoles['ours']:
+        verdicts.append('ours differs from the original')
+        lines += diff(consoles['original'], consoles['ours'], 'original', 'ours')
+    text = '; '.join(verdicts) or ('REPEATS, SAME' if runs > 1 else 'SAME')
+    return text, lines, max(code, 1 if verdicts else 0)
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('scenario')
+    ap.add_argument('scenarios', nargs='*')
     ap.add_argument('--rebirth', action='store_true')
+    ap.add_argument('--both', action='store_true')
     ap.add_argument('--runs', type=int, default=1)
+    ap.add_argument('--jobs', type=int, default=4)
+    ap.add_argument('--clock')
     args = ap.parse_args()
-    scenario = os.path.abspath(args.scenario)
-    if 'deterministic' not in open(scenario).read().split():
-        print('warning: the scenario has no "deterministic" line; runs will not repeat exactly')
+    names = [os.path.splitext(os.path.basename(s))[0] for s in args.scenarios] or sorted(
+        os.path.splitext(os.path.basename(p))[0] for p in glob.glob(os.path.join(ROOT, 'tests', 'scenarios', '*.txt')))
+    installs = ['vanilla', 'rebirth'] if args.both else ['rebirth'] if args.rebirth else ['vanilla']
+    rebirth = set(names) if args.scenarios else run_all.rebirth_scenarios(names)
+    cases = [(n, i) for i in installs for n in names if i != 'rebirth' or n in rebirth]
+    runs = [(n, i, hooks, k) for n, i in cases for hooks in (False, True) for k in range(1, args.runs + 1)]
 
-    outputs = {}
-    for hooks in (False, True):
-        side = 'ours' if hooks else 'original'
-        for i in range(args.runs):
-            console, result = run(scenario, hooks, args.rebirth)
-            if console is None:
-                print(f'{side} run {i + 1}: no report')
-                return 2
-            print(f'{side} run {i + 1}: {result}, {len(console)} console lines')
-            if side in outputs and outputs[side] != console:
-                print(f'{side} does not repeat itself between runs: the scenario is not deterministic')
-                sys.stdout.writelines(l + '\n' for l in difflib.unified_diff(outputs[side], console, 'run 1', f'run {i + 1}', lineterm='', n=1))
-                return 1
-            outputs[side] = console
-    if outputs['original'] == outputs['ours']:
-        print('SAME: the console output matches the original')
-        return 0
-    print('DIFFERENT:')
-    sys.stdout.writelines(l + '\n' for l in difflib.unified_diff(outputs['original'], outputs['ours'], 'original', 'ours', lineterm='', n=2))
-    return 1
+    started = time.time()
+    results = {}
+    pending = {case: 2 * args.runs for case in cases}
+    code = 0
+    good = 0
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.jobs)) as pool:
+        futures = {}
+        for n, i, hooks, k in runs:
+            folder = f'{n}-{i}-{"ours" if hooks else "original"}{k}'
+            futures[pool.submit(run_all.run, n, i, hooks, folder, clock=args.clock)] = (n, i, hooks, k, folder)
+        for future in concurrent.futures.as_completed(futures):
+            n, i, hooks, k, folder = futures[future]
+            result, seconds, failures, counts, notes = future.result()
+            results[(n, i, hooks, k)] = (result, seconds, failures, run_all.console_of(folder))
+            pending[(n, i)] -= 1
+            if pending[(n, i)]:
+                continue
+            text, lines, case_code = verdict(n, i, results, args.runs)
+            code = max(code, case_code)
+            good += case_code == 0
+            print(f'{n:<26} {i:<8} {text}')
+            if case_code:
+                for l in lines:
+                    print(l)
+            sys.stdout.flush()
+    print(f'\n{good} of {len(cases)} scenario runs repeat and match ({len(runs)} games in {time.time() - started:.0f}s)')
+    return code
 
 
 if __name__ == '__main__':

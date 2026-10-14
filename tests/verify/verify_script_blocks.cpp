@@ -90,8 +90,9 @@ ScriptDecl* CheckBlock(const char* name, BlockFn original, BlockFn ours, CScript
 
 // 004BF540 / 004BF900: PUSH -1; PUSH 0x718a40 / 0x718b20 (7 bytes).
 BlockFn s_newCommandList;
+ScriptDecl* __fastcall NewCommandListOurs(CScript* self, void*) { return self->NewCommandList(); }
 ScriptDecl* __fastcall NewCommandListVerify(CScript* self, void*) {
-    return CheckBlock("ScriptNewCommandList", s_newCommandList, ScriptNewCommandList, self, 0x70);
+    return CheckBlock("ScriptNewCommandList", s_newCommandList, NewCommandListOurs, self, 0x70);
 }
 BlockFn s_newWorldScript;
 ScriptDecl* __fastcall NewWorldScriptVerify(CScript* self, void*) {
@@ -115,7 +116,7 @@ mfc::CArray<ScriptAreaPart>* __fastcall FindAreaVerify(CScript* self, void*, int
     int oldSize = areas.size;
 
     mfc::CArray<ScriptAreaPart>* expected = s_findArea(scratch.Script(), nullptr, id);
-    mfc::CArray<ScriptAreaPart>* actual = ScriptFindArea(self, nullptr, id);
+    mfc::CArray<ScriptAreaPart>* actual = self->FindArea(id);
 
     int expectedIndex = static_cast<int>(reinterpret_cast<ScriptArea*>(expected) - copy.data);
     int actualIndex = static_cast<int>(reinterpret_cast<ScriptArea*>(actual) - areas.data);
@@ -142,7 +143,7 @@ ScriptObjectRef* __fastcall NewTempObjectVerify(CScript* self, void*) {
     ScriptListNode* oldHead = list.head;
 
     ScriptObjectRef* expected = s_newTempObject(scratch.Script(), nullptr);
-    ScriptObjectRef* actual = ScriptNewTempObject(self, nullptr);
+    ScriptObjectRef* actual = self->NewTempObject();
 
     ScriptList& scratchList = Field<ScriptList>(scratch.bytes, 0x1CC);
     bool linked = LinkedAtTail(list, NodeOf(actual), oldTail, oldHead);

@@ -182,6 +182,11 @@ bool SameGroup(const ScriptGroup& a, const ScriptGroup& b) {
 template <typename T>
 using VarsLoadFn = void(__fastcall*)(ScriptNamedValues<T>*, void*, ScriptStream*);
 
+template <typename T>
+void __fastcall VarsLoadOurs(ScriptNamedValues<T>* self, void*, ScriptStream* stream) {
+    self->Load(stream);
+}
+
 // Runs the record / replay check for one variable loader; `same` compares the values, `destroy`
 // frees the scratch values (the names are freed here).
 template <typename T, typename Same, typename Destroy>
@@ -211,7 +216,7 @@ void VarsVerify(const char* name, VarsLoadFn<T> original, VarsLoadFn<T> ours, Sc
 VarsLoadFn<float> s_floats;
 void __fastcall FloatsLoadVerify(ScriptNamedValues<float>* self, void*, ScriptStream* stream) {
     VarsVerify<float>(
-        "ScriptFloatsLoad", s_floats, &ScriptFloatsLoad, self, stream,
+        "ScriptFloatsLoad", s_floats, VarsLoadOurs<float>, self, stream,
         [](const float& a, const float& b) { return std::memcmp(&a, &b, 4) == 0; },
         [](mfc::CArray<float>& a) { gamecrt::operator_delete(a.data); });
 }
@@ -220,7 +225,7 @@ void __fastcall FloatsLoadVerify(ScriptNamedValues<float>* self, void*, ScriptSt
 VarsLoadFn<mfc::CString> s_strings;
 void __fastcall StringsLoadVerify(ScriptNamedValues<mfc::CString>* self, void*, ScriptStream* stream) {
     VarsVerify<mfc::CString>(
-        "ScriptStringsLoad", s_strings, &ScriptStringsLoad, self, stream, SameString,
+        "ScriptStringsLoad", s_strings, VarsLoadOurs<mfc::CString>, self, stream, SameString,
         [](mfc::CArray<mfc::CString>& a) { FreeNames(a); });
 }
 
@@ -228,7 +233,7 @@ void __fastcall StringsLoadVerify(ScriptNamedValues<mfc::CString>* self, void*, 
 VarsLoadFn<ScriptObjectRef> s_objects;
 void __fastcall ObjectsLoadVerify(ScriptNamedValues<ScriptObjectRef>* self, void*, ScriptStream* stream) {
     VarsVerify<ScriptObjectRef>(
-        "ScriptObjectsLoad", s_objects, &ScriptObjectsLoad, self, stream,
+        "ScriptObjectsLoad", s_objects, VarsLoadOurs<ScriptObjectRef>, self, stream,
         [](const ScriptObjectRef& a, const ScriptObjectRef& b) { return a.object == b.object; },
         [](mfc::CArray<ScriptObjectRef>& a) {
             if (a.data) {
@@ -242,7 +247,7 @@ void __fastcall ObjectsLoadVerify(ScriptNamedValues<ScriptObjectRef>* self, void
 VarsLoadFn<ScriptGroup> s_groups;
 void __fastcall GroupsLoadVerify(ScriptNamedValues<ScriptGroup>* self, void*, ScriptStream* stream) {
     VarsVerify<ScriptGroup>(
-        "ScriptGroupsLoad", s_groups, &ScriptGroupsLoad, self, stream,
+        "ScriptGroupsLoad", s_groups, VarsLoadOurs<ScriptGroup>, self, stream,
         SameGroup,
         [](mfc::CArray<ScriptGroup>& a) {
             if (a.data) {
@@ -280,7 +285,7 @@ bool SameVars(const ScriptVars& a, const ScriptVars& b) {
 void(__fastcall* s_vars)(ScriptVars*, void*, ScriptStream*);
 void __fastcall VarsLoadVerify(ScriptVars* self, void*, ScriptStream* stream) {
     if (!EmptyVars(*self)) {
-        ScriptVarsLoad(self, nullptr, stream);
+        self->Load(stream);
         ei::verify::Check("ScriptVarsLoad", true,
                           self->floats.size == self->floatNames.size && self->strings.size == self->stringNames.size &&
                               self->objects.size == self->objectNames.size && self->groups.size == self->groupNames.size,
@@ -293,7 +298,7 @@ void __fastcall VarsLoadVerify(ScriptVars* self, void*, ScriptStream* stream) {
     RecordStream record(stream);
     s_vars(scratch, nullptr, record.AsScript());
     ReplayStream replay(stream, record);
-    ScriptVarsLoad(self, nullptr, replay.AsScript());
+    self->Load(replay.AsScript());
     char what[96];
     std::snprintf(what, sizeof(what), "%d/%d/%d/%d vs %d/%d/%d/%d variables", scratch->floats.size,
                   scratch->strings.size, scratch->objects.size, scratch->groups.size, self->floats.size,
@@ -337,7 +342,7 @@ bool SameLoadedCmd(const SSCCmd& a, const SSCCmd& b) {
 void(__fastcall* s_cmd)(SSCCmd*, void*, ScriptStream*);
 void __fastcall CmdLoadVerify(SSCCmd* self, void*, ScriptStream* stream) {
     if (!EmptyCmd(*self)) {
-        ScriptCmdLoad(self, nullptr, stream);
+        self->Load(stream);
         ei::verify::Check("ScriptCmdLoad", true, NullSlots(self->objectArgs) && NullSlots(self->groupArgs),
                           "ours only: command %d", self->id);
         return;
@@ -347,7 +352,7 @@ void __fastcall CmdLoadVerify(SSCCmd* self, void*, ScriptStream* stream) {
     RecordStream record(stream);
     s_cmd(scratch, nullptr, record.AsScript());
     ReplayStream replay(stream, record);
-    ScriptCmdLoad(self, nullptr, replay.AsScript());
+    self->Load(replay.AsScript());
     bool ok = SameLoadedCmd(*scratch, *self);
     char what[64];
     std::snprintf(what, sizeof(what), "command %d vs %d", scratch->id, self->id);
@@ -366,7 +371,7 @@ void __fastcall SubCallLoadVerify(ScriptSubCall* self, void*, ScriptStream* stre
     RecordStream record(stream);
     s_subCall(&scratch, nullptr, record.AsScript());
     ReplayStream replay(stream, record);
-    ScriptSubCallLoad(self, nullptr, replay.AsScript());
+    self->Load(replay.AsScript());
     bool ok = scratch.type == self->type && scratch.argIndex == self->argIndex && self->cmd &&
               SameLoadedCmd(*scratch.cmd, *self->cmd);
     char what[96];
@@ -443,7 +448,7 @@ void __fastcall PairLoadVerify(ScriptIfThen* self, void*, ScriptStream* stream) 
     RecordStream record(stream);
     s_pair(&scratch, nullptr, record.AsScript());
     ReplayStream replay(stream, record);
-    ScriptIfThenPairLoad(self, nullptr, replay.AsScript());
+    self->Load(replay.AsScript());
     char what[96];
     std::snprintf(what, sizeof(what), "blocks %p %p vs %p %p", static_cast<void*>(scratch.conditions),
                   static_cast<void*>(scratch.commands), static_cast<void*>(self->conditions),
@@ -457,7 +462,7 @@ void __fastcall PairLoadVerify(ScriptIfThen* self, void*, ScriptStream* stream) 
 ScriptDecl*(__fastcall* s_findBlock)(const CScript*, void*, int);
 ScriptDecl* __fastcall FindBlockVerify(const CScript* self, void*, int id) {
     ScriptDecl* expected = s_findBlock(self, nullptr, id);
-    ScriptDecl* actual = ScriptFindBlock(self, nullptr, id);
+    ScriptDecl* actual = self->FindBlock(id);
     ei::verify::Check("ScriptFindBlock", expected, actual, "id %d", id);
     return expected;
 }
@@ -602,7 +607,7 @@ void __fastcall RunsVerify(ScriptList* self, ScriptStream* stream) {
 
 // Ours only: the loading pointer is cleared again and every list is well formed.
 void __fastcall LoadVerify(CScript* self, void*, ScriptStream* stream) {
-    ScriptLoad(self, nullptr, stream);
+    self->LoadState(stream);
     char* base = reinterpret_cast<char*>(self);
     bool ok = *reinterpret_cast<CScript**>(0x007AA620) == nullptr;
     const int lists[] = {0x14, 0x30, 0x4C, 0x70, 0x140, 0x15C, 0x178};

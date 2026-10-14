@@ -7,7 +7,6 @@
 
 #include <cstdint>
 
-FigureModel* __fastcall FindFigureModel(CFigureManager* manager, void*, const stlp::string* name);
 
 namespace {
 using ModelMap = stlp::hash_map<stlp::string, FigureModel*, stlp::StringHash>;
@@ -26,14 +25,13 @@ void* s_unused;
 // 005AA5F0.
 static FigureModel* __fastcall FindModelVerify(CFigureManager* manager, void*, const stlp::string* name) {
     FigureModel* before = Cached(manager, name);
-    FigureModel* result = FindFigureModel(manager, nullptr, name);
+    FigureModel* result = manager->FindModel(name);
     bool ok = Cached(manager, name) == result && (!before || before == result);
     ei::verify::Check("FindFigureModel", true, ok, "%p (cached %p)", result, before);
     return result;
 }
 EI_VERIFY(0x005AA5F0, FindModelVerify, 0, s_unused);
 
-CMappedResource* __fastcall FindModelAnimation(FigureModel* model, void*, const stlp::string* name);
 
 namespace {
 using AnimationMap = FigureModel::AnimationMap;
@@ -51,7 +49,7 @@ CMappedResource* CachedAnimation(FigureModel* model, const stlp::string* name) {
 // 005A9EF0: loads resources, so ours only; as above for the model's animation map.
 static CMappedResource* __fastcall FindAnimationVerify(FigureModel* model, void*, const stlp::string* name) {
     CMappedResource* before = CachedAnimation(model, name);
-    CMappedResource* result = FindModelAnimation(model, nullptr, name);
+    CMappedResource* result = model->FindAnimation(name);
     bool ok = CachedAnimation(model, name) == result && (!before || before == result);
     ei::verify::Check("FindModelAnimation", true, ok, "%p (cached %p)", result, before);
     return result;

@@ -50,6 +50,11 @@ void Write(CUnitLayer* layer, const UnitLayerNode* block, bool large, const Bloc
 
 using Callback = void(__fastcall*)(CUnitLayer*, void*, const UnitLayerNode*);
 
+void __fastcall SmallSetOurs(CUnitLayer* self, void*, const UnitLayerNode* block) { self->SetSmall(block); }
+void __fastcall SmallMergeOurs(CUnitLayer* self, void*, const UnitLayerNode* block) { self->MergeSmall(block); }
+void __fastcall LargeSetOurs(CUnitLayer* self, void*, const UnitLayerNode* block) { self->SetLarge(block); }
+void __fastcall LargeMergeOurs(CUnitLayer* self, void*, const UnitLayerNode* block) { self->MergeLarge(block); }
+
 // Run the original, record the block's bytes, put the old ones back, run ours, compare.
 void CheckCallback(const char* name, Callback original, Callback ours, bool large, CUnitLayer* self,
                    const UnitLayerNode* block) {
@@ -67,28 +72,28 @@ void CheckCallback(const char* name, Callback original, Callback ours, bool larg
 // 005B39D0: PUSH ECX; PUSH EBX; PUSH EBP; PUSH ESI; PUSH EDI (5 bytes).
 static Callback s_smallSet;
 static void __fastcall SmallSetVerify(CUnitLayer* self, void*, const UnitLayerNode* block) {
-    CheckCallback("CUnitLayer::SmallSet", s_smallSet, SmallLayerSet, false, self, block);
+    CheckCallback("CUnitLayer::SmallSet", s_smallSet, SmallSetOurs, false, self, block);
 }
 EI_VERIFY(0x005B39D0, SmallSetVerify, 5, s_smallSet);
 
 // 005B3A70: SUB ESP,8; MOV EDX,ECX (5 bytes).
 static Callback s_smallMerge;
 static void __fastcall SmallMergeVerify(CUnitLayer* self, void*, const UnitLayerNode* block) {
-    CheckCallback("CUnitLayer::SmallMerge", s_smallMerge, SmallLayerMerge, false, self, block);
+    CheckCallback("CUnitLayer::SmallMerge", s_smallMerge, SmallMergeOurs, false, self, block);
 }
 EI_VERIFY(0x005B3A70, SmallMergeVerify, 5, s_smallMerge);
 
 // 005B3B20: PUSH EBX; MOV EDX,[ECX+0x1024] (7 bytes).
 static Callback s_largeSet;
 static void __fastcall LargeSetVerify(CUnitLayer* self, void*, const UnitLayerNode* block) {
-    CheckCallback("CUnitLayer::LargeSet", s_largeSet, LargeLayerSet, true, self, block);
+    CheckCallback("CUnitLayer::LargeSet", s_largeSet, LargeSetOurs, true, self, block);
 }
 EI_VERIFY(0x005B3B20, LargeSetVerify, 7, s_largeSet);
 
 // 005B3B90: PUSH ECX; PUSH EBP; MOV EBP,[ESP+0xC] (6 bytes).
 static Callback s_largeMerge;
 static void __fastcall LargeMergeVerify(CUnitLayer* self, void*, const UnitLayerNode* block) {
-    CheckCallback("CUnitLayer::LargeMerge", s_largeMerge, LargeLayerMerge, true, self, block);
+    CheckCallback("CUnitLayer::LargeMerge", s_largeMerge, LargeMergeOurs, true, self, block);
 }
 EI_VERIFY(0x005B3B90, LargeMergeVerify, 6, s_largeMerge);
 

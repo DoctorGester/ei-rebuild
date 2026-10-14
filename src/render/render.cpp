@@ -170,6 +170,10 @@ bool CreateDevice() {
     sg_setup(&desc);
     if (!sg_isvalid()) {
         ei::Log("render: sg_setup failed; the new renderer stays off");
+        g_context->Release();
+        g_device->Release();
+        g_context = nullptr;
+        g_device = nullptr;
         return false;
     }
     ei::Log("render: Direct3D 11 device ready (feature level %X)", static_cast<unsigned>(got));
@@ -408,6 +412,19 @@ void ShowFrame() {
     DrawFrameInto(g_swapView, width, clientHeight, source);
 }
 
+void DropShowWindow() {
+    ReleaseSwapView();
+    if (g_swapChain) g_swapChain->Release();
+    g_swapChain = nullptr;
+    if (g_blitPipeline.id) sg_destroy_pipeline(g_blitPipeline);
+    if (g_blitShader.id) sg_destroy_shader(g_blitShader);
+    g_blitPipeline = sg_pipeline{};
+    g_blitShader = sg_shader{};
+    if (g_view) DestroyWindow(g_view);   // made again with a swap chain of the new device
+    g_view = nullptr;
+    g_viewWidth = g_viewHeight = 0;
+}
+
 // --- The frame -----------------------------------------------------------------------------------------
 
 Frame g_frame;
@@ -428,6 +445,102 @@ bool EnsureStarted() {
     }
     g_started = true;
     return true;
+}
+
+// --- A lost device -------------------------------------------------------------------------------------
+
+bool g_deviceLost = false;     // seen (a DXGI error, GetDeviceRemovedReason): made again at the present
+bool g_simulateLoss = false;   // render::LoseDevice
+int g_losses = 0, g_recoveries = 0;
+ID3D11Texture2D* g_staging = nullptr;   // the frame's readback copy (MapTarget, below)
+UINT g_stagingWidth = 0, g_stagingHeight = 0;
+
+// Everything made on the lost device is released (sokol's resources through each module, then
+// sg_shutdown), the device and context with them; a new device gets sokol again and the pipelines.
+// The frame target, the window's swap chain, window surfaces and textures are made again as the
+// next frames ask for them: from the game's memory, or (the switch-over's .mmp textures) from the
+// file levels kept for them. False when no new device could be made: the new renderer is off.
+bool RecreateDevice() {
+    FpuGuard fpu;
+    ++g_losses;
+    std::size_t kept = 0, keptBytes = 0;
+    DropWindow();
+    DropShowWindow();
+    DestroyTarget();
+    if (g_staging) g_staging->Release();
+    g_staging = nullptr;
+    g_stagingWidth = g_stagingHeight = 0;
+    DestroyTerrain();
+    DestroyMeshes();
+    DropBlits();
+    DropTextures(&kept, &keptBytes);
+    sg_shutdown();
+    g_context->ClearState();
+    g_context->Flush();
+    g_context->Release();
+    ULONG left = g_device->Release();
+    g_context = nullptr;
+    g_device = nullptr;
+    ei::Log("render: the lost Direct3D 11 device released (%lu references left); making a new one (%zu textures to make "
+            "again from %zu KB of their files)",
+            static_cast<unsigned long>(left), kept, keptBytes / 1024);
+    // A device right after a driver reset may not be available at once.
+    bool made = false;
+    for (int attempt = 0; attempt < 5 && !made; ++attempt) {
+        if (attempt) Sleep(200);
+        made = CreateDevice();
+    }
+    if (!made || !CreateTerrainPipelines() || !CreateMeshShader() || !CreateBlitPipeline()) {
+        ei::Log("render: no new Direct3D 11 device; the new renderer is off");
+        g_failed = true;
+        return false;
+    }
+    ++g_recoveries;
+    g_deviceLost = false;
+    return true;
+}
+
+} // namespace
+
+namespace detail {
+
+void ReportDeviceLost() { g_deviceLost = true; }
+bool DeviceIsLost() { return g_deviceLost; }
+
+bool TakeSimulatedLoss() {
+    if (!g_simulateLoss) return false;
+    g_simulateLoss = false;
+    ei::Log("render: the device's loss asked for (render::LoseDevice): taken as DXGI_ERROR_DEVICE_REMOVED");
+    return true;
+}
+
+void DeviceLossCounts(int* losses, int* recoveries) {
+    *losses = g_losses;
+    *recoveries = g_recoveries;
+}
+
+} // namespace detail
+
+void LoseDevice() {
+    if (!Active() || !g_started) return;
+    g_simulateLoss = true;
+}
+
+namespace {
+
+// The end of a presented frame (nothing of it holds sokol resources any more): a loss reported
+// during the frame, asked for, or found by GetDeviceRemovedReason (a loss nothing reported: no swap
+// chain of ours, "new" without "present") makes everything again.
+void CheckDevice() {
+    if (TakeSimulatedLoss()) ReportDeviceLost();
+    if (!g_deviceLost && g_device) {
+        HRESULT reason = g_device->GetDeviceRemovedReason();
+        if (FAILED(reason)) {
+            ei::Log("render: the Direct3D 11 device was lost (GetDeviceRemovedReason %08lX)", static_cast<unsigned long>(reason));
+            ReportDeviceLost();
+        }
+    }
+    if (g_deviceLost) RecreateDevice();
 }
 
 } // namespace
@@ -688,9 +801,8 @@ bool DrawPending() {
 }
 
 // A staging copy of the off-screen target's `box`, mapped for reading: `rows` and `pitch` until
-// UnmapTarget. The staging texture is kept (the full frame is read every frame with "present").
-ID3D11Texture2D* g_staging = nullptr;
-UINT g_stagingWidth = 0, g_stagingHeight = 0;
+// UnmapTarget. The staging texture (g_staging) is kept (the full frame is read every frame with
+// "present").
 
 bool MapTarget(const D3D11_BOX& box, const std::uint8_t** rows, UINT* pitch) {
     sg_d3d11_image_info info = sg_d3d11_query_image_info(g_colour);
@@ -877,6 +989,7 @@ void Present() {
         RetireTextures();
         RetireBuffers();
         RetireFrameImages();
+        CheckDevice();
     }
     ++g_frameNumber;
 }

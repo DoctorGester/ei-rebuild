@@ -72,7 +72,7 @@ void(__fastcall* s_save)(CScript*, void*, ScriptStream*);
 void __fastcall SaveVerifyScript(CScript* self, void*, ScriptStream* stream) {
     CaptureStream expected, actual;
     s_save(self, nullptr, &expected);
-    ScriptSave(self, nullptr, &actual);
+    self->SaveState(&actual);
     Compare("CScript::Save", expected, actual);
     expected.Forward(stream);
 }
@@ -80,27 +80,27 @@ void __fastcall SaveVerifyScript(CScript* self, void*, ScriptStream* stream) {
 // 004C1230: PUSH ESI; MOV ESI,ECX; PUSH EDI; MOV EDI,[ESP+0xC] (8 bytes).
 void(__fastcall* s_declSave)(const ScriptDecl*, void*, ScriptStream*);
 void __fastcall DeclSaveVerify(const ScriptDecl* self, void*, ScriptStream* stream) {
-    SaveVerify("ScriptDeclSave", s_declSave, &ScriptDeclSave, self, stream);
+    SaveVerify("ScriptDeclSave", s_declSave, &ScriptDecl::Save, self, stream);
 }
 
 // 004C2EF0 / 004C33C0: SUB ESP,8; PUSH ESI; MOV ESI,[ESP+0x10] (8 bytes).
 void(__fastcall* s_floatsSave)(const ScriptNamedValues<float>*, void*, ScriptStream*);
 void __fastcall FloatsSaveVerify(const ScriptNamedValues<float>* self, void*, ScriptStream* stream) {
-    SaveVerify("ScriptFloatsSave", s_floatsSave, &ScriptFloatsSave, self, stream);
+    SaveVerify("ScriptFloatsSave", s_floatsSave, &ScriptNamedValues<float>::Save, self, stream);
 }
 void(__fastcall* s_stringsSave)(const ScriptNamedValues<mfc::CString>*, void*, ScriptStream*);
 void __fastcall StringsSaveVerify(const ScriptNamedValues<mfc::CString>* self, void*, ScriptStream* stream) {
-    SaveVerify("ScriptStringsSave", s_stringsSave, &ScriptStringsSave, self, stream);
+    SaveVerify("ScriptStringsSave", s_stringsSave, &ScriptNamedValues<mfc::CString>::Save, self, stream);
 }
 // 004C38C0: SUB ESP,8; PUSH ESI; MOV ESI,ECX (6 bytes).
 void(__fastcall* s_objectsSave)(const ScriptNamedValues<ScriptObjectRef>*, void*, ScriptStream*);
 void __fastcall ObjectsSaveVerify(const ScriptNamedValues<ScriptObjectRef>* self, void*, ScriptStream* stream) {
-    SaveVerify("ScriptObjectsSave", s_objectsSave, &ScriptObjectsSave, self, stream);
+    SaveVerify("ScriptObjectsSave", s_objectsSave, &ScriptNamedValues<ScriptObjectRef>::Save, self, stream);
 }
 // 004C4330: SUB ESP,0xC; PUSH EBP; MOV EBP,ECX (6 bytes).
 void(__fastcall* s_groupsSave)(const ScriptNamedValues<ScriptGroup>*, void*, ScriptStream*);
 void __fastcall GroupsSaveVerify(const ScriptNamedValues<ScriptGroup>* self, void*, ScriptStream* stream) {
-    SaveVerify("ScriptGroupsSave", s_groupsSave, &ScriptGroupsSave, self, stream);
+    SaveVerify("ScriptGroupsSave", s_groupsSave, &ScriptNamedValues<ScriptGroup>::Save, self, stream);
 }
 
 // 004CAEC0 (__fastcall): SUB ESP,8; PUSH EBX; MOV EBX,ECX (6 bytes).
@@ -117,13 +117,13 @@ void __fastcall AreasSaveVerify(const mfc::CArray<ScriptArea>* self, ScriptStrea
 // with definitions or instances (the new game's autosave, script_copy's save).
 void(__fastcall* s_definitionSave)(const ScriptDefinition*, void*, ScriptStream*);
 void __fastcall DefinitionSaveVerify(const ScriptDefinition* self, void*, ScriptStream* stream) {
-    SaveVerify("ScriptDefinitionSave", s_definitionSave, &ScriptDefinitionSave, self, stream);
+    SaveVerify("ScriptDefinitionSave", s_definitionSave, &ScriptDefinition::Save, self, stream);
 }
 
 // 004BB320: SUB ESP,8; PUSH EBX; PUSH ESI (5 bytes). Reached by saves with waiting runs.
 void(__fastcall* s_runSave)(const ScriptRun*, void*, ScriptStream*);
 void __fastcall RunSaveVerify(const ScriptRun* self, void*, ScriptStream* stream) {
-    SaveVerify("ScriptRunSave", s_runSave, &ScriptRunSave, self, stream);
+    SaveVerify("ScriptRunSave", s_runSave, &ScriptRun::Save, self, stream);
 }
 
 // The effect savers (src/game/script_effects.cpp), reached by saves of a script with point lights,

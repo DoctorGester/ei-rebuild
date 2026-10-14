@@ -52,9 +52,15 @@ stream that `filter all` shows.
 Sound draws from the shared ISAAC generator (007A9D40) on wall-clock schedules: Tick's ambient
 emitters (every 100 ms of GetTickCount, 0..4 draws per firing emitter), the music's calm delay and
 track choices (timeGetTime), random sequences (PlayNext) and the random start position of
-Play2D/Play3D when CSoundManager + 0x8BC is set, terrain ambience 006CB390. Freeze the clocks (the
-harness's virtual clock covers timeGetTime / GetTickCount) or run with sound off (`enabled` 0: all of
-these return early).
+Play2D/Play3D when CSoundManager + 0x8BC is set, terrain ambience 006CB390. All of these run on the
+main thread, so the harness's virtual clock (tests/verify/harness_clock.cpp, ticket SV1) covers them.
+Two more things made runs part and are handled there too: sample ends (Miles' end-of-sample callback
+006B75E0 on its timer thread sets the slot's `finished`, which ends a unit's speech flag and frees
+voices) are fired from the main loop once the sample's length has passed on the virtual clock, and
+the music's WaitAndEndAfter (PlayJingle / calm music) busy-waits on the main thread for the stream
+thread, which other threads let through by reading the virtual time plus the real time since the
+main thread last moved it. The sound threads themselves (stream, fader, Miles' timer) draw no random
+numbers and touch no game state.
 
 ## Rewritten (names provisional)
 

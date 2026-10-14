@@ -158,14 +158,14 @@ void* __fastcall ScriptGroupDestroy(void* group, void*, int flags) {
 EI_REPLACE(0x004CE210, ScriptGroupDestroy);
 
 // A nested call: its command destroyed and deleted.
-void* __fastcall ScriptSubCallElementDestroy(ScriptSubCall* call, void*, int flags) {
-    if (SSCCmd* cmd = call->cmd) {
-        cmd->Destruct();
-        gamecrt::operator_delete(cmd);
+void* ScriptSubCall::DestroyElement(int flags) {
+    if (SSCCmd* command = cmd) {
+        command->Destruct();
+        gamecrt::operator_delete(command);
     }
-    return Finish(call, flags);
+    return Finish(this, flags);
 }
-EI_REPLACE(0x004CE230, ScriptSubCallElementDestroy);
+EI_REPLACE_METHOD(0x004CE230, ScriptSubCall::DestroyElement);
 
 // A particle source's object: removed from the world's timed objects, then released.
 void* __fastcall ScriptParticleDestroy(CEngineObject** slot, void*, int flags) {
@@ -190,8 +190,8 @@ void* __fastcall ScriptWorldBlockDestroy(void* block, void*, int flags) {
 }
 EI_REPLACE(0x004CE2D0, ScriptWorldBlockDestroy);
 
-void* __fastcall ScriptCmdElementDestroy(SSCCmd* cmd, void*, int flags) {
-    cmd->Destruct();
-    return Finish(cmd, flags);
+void* SSCCmd::DestroyElement(int flags) {
+    Destruct();
+    return Finish(this, flags);
 }
-EI_REPLACE(0x004BF620, ScriptCmdElementDestroy);
+EI_REPLACE_METHOD(0x004BF620, SSCCmd::DestroyElement);

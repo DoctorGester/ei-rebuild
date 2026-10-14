@@ -202,3 +202,53 @@ the slot A's game freed; both ALL PASS. A plain `run_all.py smoke --vanilla-only
 **Not done / risks.** Games of a cancelled batch are not killed. A killed scheduler leaves its games running
 and the next one runs them again (its run folders are emptied under them). The pid check can be fooled by
 pid reuse (only delays a cancel). A batch from an old work.py is read by whichever scheduler is running.
+
+## WB5: the submitter's EI_* variables reach the games (2026-10-14)
+
+`work.py test` records `run_all.game_environment()` (every EI_* variable of its environment except
+EI_BUILD_DIR, EI_HARNESS_SLOTS, EI_OUT_DIR, EI_HARNESS: the build, the slots and what ei_launch sets itself; so
+EI_PROFILE, EI_PLAIN, EI_RENDER, EI_COVER, EI_UI_CENSUS, EI_REBIRTH, EI_NO_HOOKS, EI_GAME_ROOT, EI_RESOLUTION,
+EI_WIDESCREEN, ...) as JSON in the new `batch.env` column (MIGRATIONS entry 2, `ALTER TABLE`). The scheduler's
+`real_runner` passes it as `run_all.run(game_env=...)`: the game subprocess gets this process's environment
+without its own game variables plus the batch's, so the scheduler's own shell (EI_PLAIN set where it was
+started) never leaks into a batch and batches running at once do not see each other's; `os.environ` is not
+touched. `run_all.run(game_env=None)` (plain run_all) inherits as before; native still forces EI_RENDER.
+A batch with `env` NULL (submitted before) inherits the scheduler's environment as before. The test-runs
+page shows `env: EI_PLAIN=1 EI_PROFILE=1` under the arguments of queued/running batches and in the history row.
+Risk: an older scheduler process already running ignores `env` (its games inherit its own environment) until
+it idles out (120 s) and the next `test` starts the new one.
+Tested: tools/test_work_sched.py (`test_game_environment_per_batch`: env per batch, scheduler's own EI_PROFILE
+not leaking, NULL/no column inherit); real: `EI_PLAIN=1 EI_PROFILE=1 python tools/work.py test WB5 ui_main_menu --native`.
+
+## WB6: machine-wide expected run times; the scheduler leaves for new code (2026-10-14)
+
+**Timing table** (MIGRATIONS entry 3): `timing(id, scenario, install, scenario_rev, seconds, time, batch)`, index on
+(scenario, install, scenario_rev, id). Every finished game appends a row: the scheduler in `collect()` (batch = its
+id, root = the batch's worktree) and plain `run_all.py` in its result loop (batch NULL; `run_all.timing_db()` opens
+the same work.db through `work.connect()`, and every failure there is swallowed: a run never fails because of it).
+Runs that ended `ERROR` or `NO REPORT` are not times. `scenario_rev` = the commit that last changed
+`tests/scenarios/<name>.txt` in the run's checkout (`work.scenario_revs(root)`: one `git log --name-only` walk for all
+scenarios, stopped when every file has its commit, cached 30 s per checkout), `<hash>+dirty` while the file has
+uncommitted edits, `''` outside a repository.
+
+**Expected time** (`work.expected_seconds`): median of the last 5 rows for (scenario, install, rev); else of the last 5
+for (scenario, install) at any rev; else the build's run_times.json entry; else unknown (1000 s, as before). A
+`+dirty` scenario skips the first step. Used by `work.py test` (`run.expected`) and by plain run_all's ordering; the
+scheduler orders by the stored `run.expected` as before. run_times.json is still written (scheduler's `finish`,
+run_all's `main`). So a fresh worktree has estimates from its first run, and a changed scenario drops its old ones
+until it has run once.
+
+**Restart on new code.** The scheduler hashes (sha1 of content) the main checkout's tools/work_sched.py, run_all.py and
+work.py at start. Every 5 s (the heartbeat pass) it compares; on a change it logs it, starts no new game
+(`Scheduler.stale`; slots gathered for a display-mode run are let go) and, once none of its own games runs
+(`should_restart()`), deletes its process row, releases the lock and exits 0. Running games are never touched and
+queued runs stay queued; a waiting `work.py test` starts a scheduler again within 5 s from the new code (a batch
+needs a waiting `test`, which is also what cancels it when its submitter dies). `WORK_SCHED_CODE` (paths, os.pathsep)
+replaces the watched files (tests). A scheduler started before this merge does not know any of it and leaves only by
+its idle exit (120 s with nothing queued), so the first restart on this code is by hand or at a quiet moment.
+
+**Risk at merge.** The first work.py that connects after the merge migrates the shared database to schema 3; a
+work.py from a branch that has not merged main refuses a newer schema ("merge main") until it does.
+
+Tested: tools/test_work_sched.py (lookup fallbacks, git revs on a temporary repository, rows from the scheduler, the
+class's and the process's exit on new code with queued runs left queued).

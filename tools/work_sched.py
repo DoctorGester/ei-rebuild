@@ -18,11 +18,14 @@ collides:
 - each game is run_all.run() pointed at the batch's checkout and build (run folders and run_times.json
   stay where run_all puts them), retried as run_all.run_with_retries() does, in the same slot;
 - results go into the run rows, the summary and exit code into the batch row;
+- every finished game adds a row to the timing table (expected times: work.expected_times, WB6);
+- when main's tools/work_sched.py, run_all.py or work.py change, no new game starts and, once its own games
+  have ended, it exits so the next waiting `work.py test` starts it from the new code (queued runs stay queued);
 - a batch whose `work.py test` process is gone is cancelled (its queued runs; started games finish).
 Every database write is a short transaction in the scheduler's main loop; games run in threads.
 docs/notes/work-board.md, 'Scheduler' and 'WB2'.
 """
-import collections, ctypes, datetime, io, json, os, queue, subprocess, sys, threading, time, traceback
+import collections, ctypes, datetime, hashlib, io, json, os, queue, subprocess, sys, threading, time, traceback
 
 import run_all
 import work
@@ -30,6 +33,7 @@ import work
 IDLE_EXIT = float(os.environ.get('WORK_SCHED_IDLE', '120'))
 TICK = 0.5           # seconds between scheduling passes
 CHECK_EVERY = 5      # seconds between heartbeats and submitter checks
+CODE_FILES = ('work_sched.py', 'run_all.py', 'work.py')    # in the main checkout's tools: a change restarts the scheduler
 UNKNOWN_SECONDS = 1000   # expected time of a run run_times.json does not have (as run_all: new ones first)
 
 
@@ -69,6 +73,27 @@ def pid_alive(pid):
         _kernel32.CloseHandle(h)
 
 
+def code_files():
+    """The files whose change makes a running scheduler leave: the main checkout's tools/work_sched.py, run_all.py and
+    work.py (WORK_SCHED_CODE: other paths, os.pathsep-separated; tests)."""
+    if os.environ.get('WORK_SCHED_CODE'):
+        return os.environ['WORK_SCHED_CODE'].split(os.pathsep)
+    tools = os.path.join(work.main_checkout(), 'tools')
+    return [os.path.join(tools, f) for f in CODE_FILES]
+
+
+def code_signature(paths):
+    """Content hashes of the files (None for one that is missing): equal while the code is the code that was loaded."""
+    out = []
+    for p in paths:
+        try:
+            with open(p, 'rb') as f:
+                out.append(hashlib.sha1(f.read()).hexdigest())
+        except OSError:
+            out.append(None)
+    return out
+
+
 def seconds_since(stamp):
     if not stamp:
         return 0.0
@@ -78,11 +103,13 @@ def seconds_since(stamp):
 
 # ---- batches in the database (shared by `test` and the scheduler)
 
-def submit(db, ticket, worktree, build, argv, runs, submitter=None):
-    """A new batch; runs: dicts with scenario, install, hooks, alone, expected, folder. Its id."""
+def submit(db, ticket, worktree, build, argv, runs, submitter=None, env=None):
+    """A new batch; runs: dicts with scenario, install, hooks, alone, expected, folder. env: the submitter's
+    game variables ({name: value}, run_all.game_environment()); its games run with exactly these. Its id."""
     with work.transaction(db):
-        cur = db.execute('INSERT INTO batch (ticket, worktree, build, args, submitted, submitter) VALUES (?, ?, ?, ?, ?, ?)',
-                         (ticket, worktree, build, json.dumps(argv), work.now(), submitter))
+        cur = db.execute('INSERT INTO batch (ticket, worktree, build, args, submitted, submitter, env) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                         (ticket, worktree, build, json.dumps(argv), work.now(), submitter,
+                          json.dumps(env, sort_keys=True) if env is not None else None))
         batch = cur.lastrowid
         db.executemany('INSERT INTO run (batch, scenario, install, hooks, alone, expected, folder) VALUES (?, ?, ?, ?, ?, ?, ?)',
                        [(batch, r['scenario'], r['install'], int(r['hooks']), int(r['alone']), r['expected'], r['folder'])
@@ -157,13 +184,25 @@ class SlotPool:
 
 # ---- running games
 
+def batch_env(batch):
+    """The batch's game variables {name: value}, or None for a batch from before they were recorded (its games
+    inherit the scheduler's environment)."""
+    try:
+        text = batch['env']
+    except (KeyError, IndexError):
+        return None
+    return json.loads(text) if text else None
+
+
 def real_runner(batch, run, retries, on_attempt):
     """run_all.run_with_retries() of one run row, in the batch's checkout and build, in a slot we hold."""
     attempts = iter(range(retries + 1))
+    env = batch_env(batch)
 
     def one(name, install, hooks, folder):
         on_attempt(next(attempts))
-        return run_all.run(name, install, hooks, folder, root=batch['worktree'], build=batch['build'], take_slot=False)
+        return run_all.run(name, install, hooks, folder, root=batch['worktree'], build=batch['build'], take_slot=False,
+                           game_env=env)
     return run_all.run_with_retries(run['scenario'], run['install'].split('-')[0], bool(run['hooks']), retries,
                                     os.path.basename(run['folder']), runner=one)
 
@@ -175,8 +214,13 @@ def order_key(run):
 
 
 class Scheduler:
-    def __init__(self, db, runner=real_runner, slots=None, log=None):
+    def __init__(self, db, runner=real_runner, slots=None, log=None, code=None):
+        """code: paths of the scheduler's own code (default code_files()); when their content changes, no new game
+        starts and should_restart() turns True once the running ones have ended."""
         self.db = db
+        self.code = code if code is not None else code_files()
+        self.code_at_start = code_signature(self.code)
+        self.stale = False
         self.runner = runner
         self.pool = slots or SlotPool()
         self.log = log or (lambda text: None)
@@ -192,6 +236,7 @@ class Scheduler:
             self.last_check = time.time()
             self.heartbeat()
             self.check_submitters()
+            self.check_code()
         self.schedule()
         self.finish_batches()
         return bool(self.games) or self.db.execute(
@@ -209,6 +254,15 @@ class Scheduler:
     def heartbeat(self):
         with work.transaction(self.db):
             self.db.execute("UPDATE process SET heartbeat = ? WHERE name = 'scheduler' AND pid = ?", (work.now(), os.getpid()))
+
+    def check_code(self):
+        if not self.stale and code_signature(self.code) != self.code_at_start:
+            self.stale = True
+            self.log('scheduler code changed on main; starting no new games, leaving when the running ones end')
+
+    def should_restart(self):
+        """The code changed and none of our games runs: leave (queued runs stay queued, the next `test` starts a new one)."""
+        return self.stale and not self.games
 
     def check_submitters(self):
         for b in self.db.execute("SELECT id, submitter FROM batch WHERE state IN ('queued', 'running')").fetchall():
@@ -237,6 +291,11 @@ class Scheduler:
                 self.db.execute("UPDATE run SET state = 'finished', seconds = ?, result = ?, failures = ?, counts = ?, notes = ? "
                                 "WHERE id = ?", (seconds, result, json.dumps(failures),
                                                  json.dumps({fn: list(c) for fn, c in counts.items()}), json.dumps(notes), run_id))
+            if result not in ('ERROR', 'NO REPORT'):
+                try:
+                    work.record_time(self.db, game['scenario'], game['install'], game['root'], seconds, game['batch'])
+                except Exception:
+                    self.log(traceback.format_exc())     # never costs the run
             self.log(f'batch #{game["batch"]}: {os.path.basename(game["folder"])} {result} {seconds:.0f}s')
 
     def schedule(self):
@@ -252,8 +311,8 @@ class Scheduler:
 
     def _schedule(self):
         """Starts what can start now; True while gathering every slot for a display-mode run."""
-        if any(g['alone'] for g in self.games.values()):
-            return False                                     # it has the machine to itself
+        if self.stale or any(g['alone'] for g in self.games.values()):
+            return False                                     # new code to load first / it has the machine to itself
         batches = self.db.execute("SELECT * FROM batch WHERE state IN ('queued', 'running') ORDER BY id").fetchall()
         queued = collections.defaultdict(list)
         for r in self.db.execute("SELECT run.* FROM run JOIN batch ON batch.id = run.batch "
@@ -300,7 +359,8 @@ class Scheduler:
             return False
         thread = threading.Thread(target=self.play, args=(dict(batch), dict(run), args.retries), daemon=True)
         self.games[run['id']] = {'batch': batch['id'], 'slots': slots, 'folder': run['folder'],
-                                 'alone': bool(run['alone']), 'thread': thread}
+                                 'alone': bool(run['alone']), 'thread': thread, 'scenario': run['scenario'],
+                                 'install': run['install'], 'root': batch['worktree']}
         self.log(f'batch #{batch["id"]}: {os.path.basename(run["folder"])} started in slot {slots[0]}'
                  + (' (alone)' if run['alone'] else ''))
         thread.start()
@@ -413,9 +473,15 @@ def cmd_scheduler(db, args):
         idle, errors = time.time(), 0
         while True:
             try:
-                if s.tick():
+                busy = s.tick()
+                if busy:
                     idle = time.time()
-                elif time.time() - idle > IDLE_EXIT:
+                if s.should_restart():      # no game of ours runs; queued runs stay queued for the next scheduler
+                    with work.transaction(db):
+                        db.execute("DELETE FROM process WHERE name = 'scheduler' AND pid = ?", (os.getpid(),))
+                    log('new scheduler code; exiting (the next waiting `work.py test` starts a new scheduler)')
+                    return 0
+                if not busy and time.time() - idle > IDLE_EXIT:
                     with work.transaction(db):    # a batch submitted just now keeps it (else `test` starts another)
                         leave = not db.execute("SELECT 1 FROM batch WHERE state IN ('queued', 'running') LIMIT 1").fetchone()
                         if leave:
@@ -443,16 +509,17 @@ def cmd_test(db, args):
     root, build = work.norm(run_all.ROOT), work.norm(run_all.BUILD)
     if not os.path.exists(os.path.join(build, 'ei_launch.exe')):
         sys.exit(f'work.py: {build}/ei_launch.exe is missing; build.cmd verify first')
-    times = run_all.load_times()
+    expected = work.expected_times(db, root, jobs, run_all.load_times())    # timing table, else run_times.json
     runs = []
     for name, install in jobs:
         scenario = os.path.join(root, 'tests', 'scenarios', name + '.txt')
         if not os.path.exists(scenario):
             sys.exit(f'work.py: no scenario {name} ({scenario})')
         runs.append({'scenario': name, 'install': install, 'hooks': run_all.uses_hooks(install, ra),
-                     'alone': run_all.sets_display_mode(scenario), 'expected': times.get(f'{name}-{install}'),
+                     'alone': run_all.sets_display_mode(scenario), 'expected': expected[(name, install)],
                      'folder': work.norm(os.path.join(build, 'runs', f'{name}-{install}'))})
-    batch = submit(db, args.id, root, build, argv, runs, os.getpid())
+    env = run_all.game_environment()
+    batch = submit(db, args.id, root, build, argv, runs, os.getpid(), env=env)
     ahead = db.execute("SELECT count(*) FROM batch WHERE id < ? AND state IN ('queued', 'running')", (batch,)).fetchone()[0]
     print(f'batch #{batch} ({args.id}): {len(runs)} runs, {ahead} batch(es) ahead (work.py status shows the queue)')
     ensure_scheduler()

@@ -208,7 +208,7 @@ CEngineObject* AcquireById(int id) {
 const CScript* SavedScript() { return reinterpret_cast<const CScript*>(0x007C27D4); }
 
 // CScript::FindBlock on the saved script, as the loaders inline it.
-ScriptDecl* FindBlock(int id) { return ScriptFindBlock(SavedScript(), nullptr, id); }
+ScriptDecl* FindBlock(int id) { return SavedScript()->FindBlock(id); }
 
 // The loaders of this file, called from each other through their addresses (verify wrappers run).
 __declspec(naked) void __fastcall FloatsLoadOrig(void*, void*, ScriptStream*) EI_ORIGINAL(0x004C2D40)
@@ -236,36 +236,36 @@ void LoadVariables(ScriptVars* vars, ScriptStream* stream) {
 
 // ---- Variables -------------------------------------------------------------------------------------
 
-void __fastcall ScriptFloatsLoad(ScriptNamedValues<float>* vars, void*, ScriptStream* stream) {
+template <> void ScriptNamedValues<float>::Load(ScriptStream* stream) {
     int count = ReadInt(stream);
-    InlineSetSize(Raw(&vars->values), count, kFloats);
-    NamesSetSizeOriginal(&vars->names, nullptr, count, -1);
-    for (int i = 0; i < vars->values.size; ++i) {
-        stream->Read(&vars->values.data[i], 4);
-        StringLoad(&vars->names.data[i], stream);
+    InlineSetSize(Raw(&values), count, kFloats);
+    NamesSetSizeOriginal(&names, nullptr, count, -1);
+    for (int i = 0; i < values.size; ++i) {
+        stream->Read(&values.data[i], 4);
+        StringLoad(&names.data[i], stream);
     }
 }
-EI_REPLACE(0x004C2D40, ScriptFloatsLoad);
+EI_REPLACE_METHOD(0x004C2D40, ScriptNamedValues<float>::Load);
 
-void __fastcall ScriptStringsLoad(ScriptNamedValues<mfc::CString>* vars, void*, ScriptStream* stream) {
+template <> void ScriptNamedValues<mfc::CString>::Load(ScriptStream* stream) {
     int count = ReadInt(stream);
-    InlineSetSize(Raw(&vars->values), count, kStrings);
-    NamesSetSizeOriginal(&vars->names, nullptr, count, -1);
-    for (int i = 0; i < vars->values.size; ++i) {
-        StringLoad(&vars->values.data[i], stream);
-        StringLoad(&vars->names.data[i], stream);
+    InlineSetSize(Raw(&values), count, kStrings);
+    NamesSetSizeOriginal(&names, nullptr, count, -1);
+    for (int i = 0; i < values.size; ++i) {
+        StringLoad(&values.data[i], stream);
+        StringLoad(&names.data[i], stream);
     }
 }
-EI_REPLACE(0x004C3200, ScriptStringsLoad);
+EI_REPLACE_METHOD(0x004C3200, ScriptNamedValues<mfc::CString>::Load);
 
 // An object variable: the world's object with the saved id (FindObject), -1 = none. The old
 // reference is released after the lookup.
-void __fastcall ScriptObjectsLoad(ScriptNamedValues<ScriptObjectRef>* vars, void*, ScriptStream* stream) {
+template <> void ScriptNamedValues<ScriptObjectRef>::Load(ScriptStream* stream) {
     int count = ReadInt(stream);
-    InlineSetSize(Raw(&vars->values), count, kRefs);
-    NamesSetSizeOriginal(&vars->names, nullptr, count, -1);
-    for (int i = 0; i < vars->values.size; ++i) {
-        ScriptObjectRef* ref = &vars->values.data[i];
+    InlineSetSize(Raw(&values), count, kRefs);
+    NamesSetSizeOriginal(&names, nullptr, count, -1);
+    for (int i = 0; i < values.size; ++i) {
+        ScriptObjectRef* ref = &values.data[i];
         int id = 0;
         stream->Read(&id, 4);
         if (id == -1) {
@@ -277,19 +277,19 @@ void __fastcall ScriptObjectsLoad(ScriptNamedValues<ScriptObjectRef>* vars, void
             if (object) ++object->refCount_;
             ref->object = object;
         }
-        StringLoad(&vars->names.data[i], stream);
+        StringLoad(&names.data[i], stream);
     }
 }
-EI_REPLACE(0x004C36B0, ScriptObjectsLoad);
+EI_REPLACE_METHOD(0x004C36B0, ScriptNamedValues<ScriptObjectRef>::Load);
 
 // A group variable: its size, the member ids (each assigned in place, missing objects stay null),
 // then sorted.
-void __fastcall ScriptGroupsLoad(ScriptNamedValues<ScriptGroup>* vars, void*, ScriptStream* stream) {
+template <> void ScriptNamedValues<ScriptGroup>::Load(ScriptStream* stream) {
     int count = ReadInt(stream);
-    InlineSetSize(Raw(&vars->values), count, kGroups);
-    NamesSetSizeOriginal(&vars->names, nullptr, count, -1);
-    for (int i = 0; i < vars->values.size; ++i) {
-        ScriptGroup* group = &vars->values.data[i];
+    InlineSetSize(Raw(&values), count, kGroups);
+    NamesSetSizeOriginal(&names, nullptr, count, -1);
+    for (int i = 0; i < values.size; ++i) {
+        ScriptGroup* group = &values.data[i];
         int size = 0;
         stream->Read(&size, 4);
         GroupSetSize(group, nullptr, size, -1);
@@ -301,10 +301,10 @@ void __fastcall ScriptGroupsLoad(ScriptNamedValues<ScriptGroup>* vars, void*, Sc
             RefAssign(&group->data[k], nullptr, object);
         }
         GroupSort(group);
-        StringLoad(&vars->names.data[i], stream);
+        StringLoad(&names.data[i], stream);
     }
 }
-EI_REPLACE(0x004C40D0, ScriptGroupsLoad);
+EI_REPLACE_METHOD(0x004C40D0, ScriptNamedValues<ScriptGroup>::Load);
 
 // ---- SSCCmd::Load -----------------------------------------------------------------------------------
 
@@ -312,43 +312,43 @@ EI_REPLACE(0x004C40D0, ScriptGroupsLoad);
 // slots are made and left null (the original inlines the object array's SetSize, not the group
 // array's). The called block is found with 004BFA50 in the lists of 007C27D4 (-1, an unset block,
 // finds a WorldScript block with id -1 if any).
-void __fastcall ScriptCmdLoad(SSCCmd* cmd, void*, ScriptStream* stream) {
-    stream->Read(&cmd->id, 4);
+void SSCCmd::Load(ScriptStream* stream) {
+    stream->Read(&id, 4);
 
-    FloatArgsSetSize(&cmd->floatArgs, nullptr, ReadInt(stream), -1);
-    for (int i = 0; i < cmd->floatArgs.size; ++i) stream->Read(&cmd->floatArgs.data[i], 4);
+    FloatArgsSetSize(&floatArgs, nullptr, ReadInt(stream), -1);
+    for (int i = 0; i < floatArgs.size; ++i) stream->Read(&floatArgs.data[i], 4);
 
-    NamesSetSizeOriginal(&cmd->stringArgs, nullptr, ReadInt(stream), -1);
-    for (int i = 0; i < cmd->stringArgs.size; ++i) StringLoad(&cmd->stringArgs.data[i], stream);
+    NamesSetSizeOriginal(&stringArgs, nullptr, ReadInt(stream), -1);
+    for (int i = 0; i < stringArgs.size; ++i) StringLoad(&stringArgs.data[i], stream);
 
     int objects = ReadInt(stream);
-    InlineSetSize(Raw(&cmd->objectArgs), objects, kPointers);
-    for (int i = 0; i < objects; ++i) cmd->objectArgs.data[i] = nullptr;
+    InlineSetSize(Raw(&objectArgs), objects, kPointers);
+    for (int i = 0; i < objects; ++i) objectArgs.data[i] = nullptr;
 
     int groups = ReadInt(stream);
-    GroupArgsSetSize(&cmd->groupArgs, nullptr, groups, -1);
-    for (int i = 0; i < groups; ++i) cmd->groupArgs.data[i] = nullptr;
+    GroupArgsSetSize(&groupArgs, nullptr, groups, -1);
+    for (int i = 0; i < groups; ++i) groupArgs.data[i] = nullptr;
 
-    BindingsSetSize(&cmd->localBindings, nullptr, ReadInt(stream), -1);
-    for (int i = 0; i < cmd->localBindings.size; ++i) stream->Read(&cmd->localBindings.data[i], 12);
-    BindingsSetSize(&cmd->globalBindings, nullptr, ReadInt(stream), -1);
-    for (int i = 0; i < cmd->globalBindings.size; ++i) stream->Read(&cmd->globalBindings.data[i], 12);
+    BindingsSetSize(&localBindings, nullptr, ReadInt(stream), -1);
+    for (int i = 0; i < localBindings.size; ++i) stream->Read(&localBindings.data[i], 12);
+    BindingsSetSize(&globalBindings, nullptr, ReadInt(stream), -1);
+    for (int i = 0; i < globalBindings.size; ++i) stream->Read(&globalBindings.data[i], 12);
 
-    SubCallsSetSize(&cmd->subCalls, nullptr, ReadInt(stream), -1);
-    for (int i = 0; i < cmd->subCalls.size; ++i) SubCallLoad(&cmd->subCalls.data[i], nullptr, stream);
+    SubCallsSetSize(&subCalls, nullptr, ReadInt(stream), -1);
+    for (int i = 0; i < subCalls.size; ++i) SubCallLoad(&subCalls.data[i], nullptr, stream);
 
-    cmd->calledScript = FindBlockOrig(SavedScript(), nullptr, ReadInt(stream));
+    calledScript = FindBlockOrig(SavedScript(), nullptr, ReadInt(stream));
 }
-EI_REPLACE(0x004B5FE0, ScriptCmdLoad);
+EI_REPLACE_METHOD(0x004B5FE0, SSCCmd::Load);
 
 // One nested call element (SSCCmd::Load calls it per element): type, argument index, then the
 // element's command through SSCCmd::Load's address.
-void __fastcall ScriptSubCallLoad(ScriptSubCall* call, void*, ScriptStream* stream) {
-    stream->Read(&call->type, 4);
-    stream->Read(&call->argIndex, 4);
-    CmdLoad(call->cmd, nullptr, stream);
+void ScriptSubCall::Load(ScriptStream* stream) {
+    stream->Read(&type, 4);
+    stream->Read(&argIndex, 4);
+    CmdLoad(cmd, nullptr, stream);
 }
-EI_REPLACE(0x004B6330, ScriptSubCallLoad);
+EI_REPLACE_METHOD(0x004B6330, ScriptSubCall::Load);
 
 // A string: read into a temporary CString (00461190 constructs it), assigned, the temporary destroyed.
 void __fastcall ScriptStringLoad(mfc::CString* out, ScriptStream* stream) {
@@ -385,18 +385,18 @@ void __fastcall ScriptIfThenLoad(mfc::CArray<ScriptIfThen>* pairs, ScriptStream*
 EI_REPLACE(0x004CA000, ScriptIfThenLoad);
 
 // One pair of an instance (the instance loader calls it per pair): as ScriptIfThenLoad's loop.
-void __fastcall ScriptIfThenPairLoad(ScriptIfThen* pair, void*, ScriptStream* stream) {
+void ScriptIfThen::Load(ScriptStream* stream) {
     int id = -1;
     stream->Read(&id, 4);
-    pair->conditions = FindBlock(id);
+    conditions = FindBlock(id);
     stream->Read(&id, 4);   // the same variable: keeps the first id when the read leaves it
-    pair->commands = FindBlock(id);
+    commands = FindBlock(id);
 }
-EI_REPLACE(0x004BB590, ScriptIfThenPairLoad);
+EI_REPLACE_METHOD(0x004BB590, ScriptIfThen::Load);
 
 // The block lists are MFC CLists of ScriptDecl; the id is compared as the block's +0x14.
-ScriptDecl* __fastcall ScriptFindBlock(const CScript* script, void*, int id) {
-    const auto& list = id < 0 ? script->worldBlocks_ : script->blocks_;
+ScriptDecl* CScript::FindBlock(int id) const {
+    const auto& list = id < 0 ? worldBlocks_ : blocks_;
     for (auto* node = list.head; node;) {
         auto* block = &node->data;
         node = node->next;
@@ -404,7 +404,7 @@ ScriptDecl* __fastcall ScriptFindBlock(const CScript* script, void*, int id) {
     }
     return nullptr;
 }
-EI_REPLACE(0x004BFA50, ScriptFindBlock);
+EI_REPLACE_METHOD(0x004BFA50, CScript::FindBlock);
 
 // ---- ScriptVars::Load ------------------------------------------------------------------------------
 
@@ -412,31 +412,31 @@ EI_REPLACE(0x004BFA50, ScriptFindBlock);
 // 004C2510, 004C2050, 004C3980), objects assigned through 004B24D0 and group members read with
 // ScriptObjectRef::Load. One stack variable holds the float count and index and then receives every
 // object id and group size (it is never reset in between); the other counts start at 0.
-void __fastcall ScriptVarsLoad(ScriptVars* vars, void*, ScriptStream* stream) {
+void ScriptVars::Load(ScriptStream* stream) {
     int slot = 0;
     stream->Read(&slot, 4);
-    FloatsSetSize(&vars->floats, nullptr, slot, -1);
-    NamesSetSizeOriginal(&vars->floatNames, nullptr, slot, -1);
-    for (slot = 0; slot < vars->floats.size; ++slot) {
-        stream->Read(&vars->floats.data[slot], 4);
-        StringLoad(&vars->floatNames.data[slot], stream);
+    FloatsSetSize(&floats, nullptr, slot, -1);
+    NamesSetSizeOriginal(&floatNames, nullptr, slot, -1);
+    for (slot = 0; slot < floats.size; ++slot) {
+        stream->Read(&floats.data[slot], 4);
+        StringLoad(&floatNames.data[slot], stream);
     }
 
     int count = 0;
     stream->Read(&count, 4);
-    NamesSetSizeOriginal(&vars->strings, nullptr, count, -1);
-    NamesSetSizeOriginal(&vars->stringNames, nullptr, count, -1);
-    for (int i = 0; i < vars->strings.size; ++i) {
-        StringLoad(&vars->strings.data[i], stream);
-        StringLoad(&vars->stringNames.data[i], stream);
+    NamesSetSizeOriginal(&strings, nullptr, count, -1);
+    NamesSetSizeOriginal(&stringNames, nullptr, count, -1);
+    for (int i = 0; i < strings.size; ++i) {
+        StringLoad(&strings.data[i], stream);
+        StringLoad(&stringNames.data[i], stream);
     }
 
     count = 0;
     stream->Read(&count, 4);
-    GroupSetSize(static_cast<ScriptGroup*>(static_cast<void*>(&vars->objects)), nullptr, count, -1);
-    NamesSetSizeOriginal(&vars->objectNames, nullptr, count, -1);
-    for (int i = 0; i < vars->objects.size; ++i) {
-        ScriptObjectRef* ref = &vars->objects.data[i];
+    GroupSetSize(static_cast<ScriptGroup*>(static_cast<void*>(&objects)), nullptr, count, -1);
+    NamesSetSizeOriginal(&objectNames, nullptr, count, -1);
+    for (int i = 0; i < objects.size; ++i) {
+        ScriptObjectRef* ref = &objects.data[i];
         stream->Read(&slot, 4);
         if (slot == -1) {
             RefReset(ref);
@@ -444,23 +444,23 @@ void __fastcall ScriptVarsLoad(ScriptVars* vars, void*, ScriptStream* stream) {
         } else {
             RefAssign(ref, nullptr, WorldFindObjectOriginal(reinterpret_cast<void*>(0x007AFF60), nullptr, slot));
         }
-        StringLoad(&vars->objectNames.data[i], stream);
+        StringLoad(&objectNames.data[i], stream);
     }
 
     count = 0;
     stream->Read(&count, 4);
-    GroupValuesSetSize(&vars->groups, nullptr, count, -1);
-    NamesSetSizeOriginal(&vars->groupNames, nullptr, count, -1);
-    for (int i = 0; i < vars->groups.size; ++i) {
-        ScriptGroup* group = &vars->groups.data[i];
+    GroupValuesSetSize(&groups, nullptr, count, -1);
+    NamesSetSizeOriginal(&groupNames, nullptr, count, -1);
+    for (int i = 0; i < groups.size; ++i) {
+        ScriptGroup* group = &groups.data[i];
         stream->Read(&slot, 4);
         GroupSetSize(group, nullptr, slot, -1);
         for (int k = 0; k < slot; ++k) RefLoad(&group->data[k], nullptr, stream);
         GroupSort(group);
-        StringLoad(&vars->groupNames.data[i], stream);
+        StringLoad(&groupNames.data[i], stream);
     }
 }
-EI_REPLACE(0x004B3AD0, ScriptVarsLoad);
+EI_REPLACE_METHOD(0x004B3AD0, ScriptVars::Load);
 
 // ---- Lists ---------------------------------------------------------------------------------------
 // Each list loader reads the count, appends that many default nodes, then reads every node of the
@@ -646,33 +646,33 @@ EI_REPLACE(0x004CAC00, ScriptRunsLoad);
 
 // Reads what ScriptSave (004C0F90) wrote, in the same order. Sets 007AA620 to the script while
 // the runs are read. Areas are read only from stream version 0x57 on.
-void __fastcall ScriptLoad(CScript* script, void*, ScriptStream* stream) {
-    LoadingScript() = script;
+void CScript::LoadState(ScriptStream* stream) {
+    LoadingScript() = this;
 
     // Point lights (+0x00; 0x20-byte slots).
-    auto* lights = Raw(&script->pointLights_);
+    auto* lights = Raw(&pointLights_);
     LightsSetSize(lights, nullptr, ReadInt(stream), -1);
     for (int i = 0; i < lights->size; ++i) PointLightLoad(lights->data + i * 0x20, nullptr, stream);
 
-    ParticlesLoadOrig(reinterpret_cast<RawList*>(&script->particles_), stream);
-    FxSourcesLoadOrig(reinterpret_cast<RawList*>(&script->fxSources_), stream);
-    LightningLoadOrig(reinterpret_cast<RawList*>(&script->lightning_), stream);
-    stream->Read(&script->nextParticleId_, 4);
-    stream->Read(&script->nextFxId_, 4);
+    ParticlesLoadOrig(reinterpret_cast<RawList*>(&particles_), stream);
+    FxSourcesLoadOrig(reinterpret_cast<RawList*>(&fxSources_), stream);
+    LightningLoadOrig(reinterpret_cast<RawList*>(&lightning_), stream);
+    stream->Read(&nextParticleId_, 4);
+    stream->Read(&nextFxId_, 4);
 
     // Command blocks (+0x70): created empty, then each block's id and commands.
     int blocks = ReadInt(stream);
-    for (int i = 0; i < blocks; ++i) script->NewCommandList();
-    for (auto* node = script->blocks_.head; node;) {
+    for (int i = 0; i < blocks; ++i) NewCommandList();
+    for (auto* node = blocks_.head; node;) {
         auto* block = &node->data;
         node = node->next;
         stream->Read(&block->id, 4);
         DeclCommandsLoadOrig(block, stream);
     }
-    WorldBlocksLoadOrig(reinterpret_cast<RawList*>(&script->worldBlocks_), stream);
+    WorldBlocksLoadOrig(reinterpret_cast<RawList*>(&worldBlocks_), stream);
 
     // Definitions (+0x8C).
-    auto& scripts = script->definitions_;
+    auto& scripts = definitions_;
     DefinitionsSetSize(&scripts, nullptr, ReadInt(stream), -1);
     for (int i = 0; i < scripts.size; ++i) {
         ScriptDefinition* definition = &scripts.data[i];
@@ -683,15 +683,15 @@ void __fastcall ScriptLoad(CScript* script, void*, ScriptStream* stream) {
         VarsLoad(&definition->vars, nullptr, stream);
     }
 
-    LoadVariables(script->Globals(), stream);
-    InstancesLoadOrig(reinterpret_cast<RawList*>(&script->instances_), stream);
-    RunsLoadOrig(reinterpret_cast<RawList*>(&script->runs_), stream);
-    stream->Read(&script->loaded_, 4);
-    stream->Read(&script->fileCount_, 4);
+    LoadVariables(Globals(), stream);
+    InstancesLoadOrig(reinterpret_cast<RawList*>(&instances_), stream);
+    RunsLoadOrig(reinterpret_cast<RawList*>(&runs_), stream);
+    stream->Read(&loaded_, 4);
+    stream->Read(&fileCount_, 4);
     LoadingScript() = nullptr;
 
     if (StreamVersion(stream) < 0x57) return;
-    auto& areas = script->areas_;
+    auto& areas = areas_;
     AreasSetSize(&areas, nullptr, ReadInt(stream), -1);
     for (int i = 0; i < areas.size; ++i) {
         ScriptArea* area = &areas.data[i];
@@ -700,4 +700,4 @@ void __fastcall ScriptLoad(CScript* script, void*, ScriptStream* stream) {
         for (int k = 0; k < area->parts.size; ++k) stream->Read(&area->parts.data[k], sizeof(ScriptAreaPart));
     }
 }
-EI_REPLACE(0x004C0D00, ScriptLoad);
+EI_REPLACE_METHOD(0x004C0D00, CScript::LoadState);

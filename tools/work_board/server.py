@@ -51,6 +51,15 @@ def jlist(text):
         return []
 
 
+def jdict(text):
+    """The batch's recorded game variables (WB5), {} for a batch from before."""
+    try:
+        v = json.loads(text) if text else {}
+        return v if isinstance(v, dict) else {}
+    except ValueError:
+        return {}
+
+
 class Board:
     """The data behind the endpoints. One instance; the caches are shared by the request threads."""
 
@@ -111,7 +120,7 @@ class Board:
         failed = [r for r in done if r['result'] not in PASSED]
         out = {
             'id': b['id'], 'ticket': b['ticket'], 'worktree': os.path.basename(b['worktree'] or ''), 'state': b['state'],
-            'args': jlist(b['args']), 'submitted': b['submitted'], 'started': b['started'], 'finished': b['finished'],
+            'args': jlist(b['args']), 'env': jdict(b['env'] if 'env' in b.keys() else None), 'submitted': b['submitted'], 'started': b['started'], 'finished': b['finished'],
             'exit_code': b['exit_code'], 'summary': b['summary'],
             'queued_for': span(b['submitted'], b['started']) if b['started'] else seconds_since(b['submitted']) if b['state'] == 'queued' else None,
             'elapsed': span(b['started'], b['finished']) if b['finished'] else seconds_since(b['started']) if b['state'] == 'running' else None,

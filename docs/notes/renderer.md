@@ -416,7 +416,8 @@ Alt+Tab, the Scroll Lock screenshot and the movie recorder from the new frame.
   device object's). Tried and dropped: returning 0x800 without probing hung every native run in sound init (after
   `CSoundManager::Close`, before `Open`): the probe's side effects (DirectMusic through CoCreateInstance, DDRAW.DLL
   left loaded) matter to the sound code there. The probe fails now and then in native runs with several games on the
-  machine, ending the run at the "DirectX 7 or later" message; seen before R9b too (follow-up R9b1).
+  machine, ending the run at the "DirectX 7 or later" message; seen before R9b too (follow-up R9b1). Since PF3
+  (below) native runs skip it; the sound hang did not come back.
 - `tools/old_device_calls.py [run folders]` lists the stand-ins' log by calling function (default: every
   `build/verify/runs/*present*`). The four present scenarios, vanilla and native: 73 calling places in 46 functions
   before, 4 in 1 after: WinMain's original (00456440: GetAvailableVidMem at 00456DA2 / 00456DC6 / 00456E0D,
@@ -441,7 +442,7 @@ Alt+Tab, the Scroll Lock screenshot and the movie recorder from the new frame.
   full-screen triangle (shader "ei-present") into the client area with its aspect kept, centred, black bars
   (`render::FrameInWindow`, `WindowToFrame`, `FrameToWindow`). A failed `ResizeBuffers` (other than a lost device)
   makes the swap chain again once. A lost device (removed, reset, hung, driver error from Present or ResizeBuffers)
-  is logged with `GetDeviceRemovedReason` and the window shows nothing more; nothing is recreated (follow-up).
+  is logged with `GetDeviceRemovedReason`; R9c1 (below) makes everything again.
 - Gamma as a shader step: 00504A60 (`renderer_gamma.cpp` SetGamma) without DirectDraw keeps the three values,
   builds the ramp as before (BuildRamp, full scale 65280) and hands it to `render::SetGammaRamp`: a 256x1 lookup
   texture the present shader reads per channel (each entry v*255/65280, rounded). Result true, as with a primary that
@@ -477,6 +478,57 @@ Alt+Tab, the Scroll Lock screenshot and the movie recorder from the new frame.
   at 800x600 on the desktop's monitor: the menus and the battle screen through the mapping, focus lost and given
   back, the window resized from outside and covering the monitor again). Both set a resolution, so run_all runs
   them alone.
+
+### PF3: no DirectDraw probes at startup in native runs (R9b1)
+
+User's decision (2026-10-14): only native runs (EI_RENDER "present" on the system's DirectDraw, run/native) and the
+standalone exe change; vanilla and Rebirth runs keep the original's probes and verify against them.
+- 0045E310 (`app_dxversion.cpp` GetDxVersion): in a native run (`render::Presenting()` and the DDRAW.DLL the game
+  imports is not in game.exe's folder, i.e. no dgVoodoo) it probes nothing and returns 0x800 (what the probe gives on
+  current Windows); "app: native run: DirectX 7 taken as given, the version probe (0045E310) skipped" in ei_hook.log.
+  Elsewhere it probes as before. The verify wrapper (ours only) accepts 0x800.
+- The driver choice needs nothing: in `present` mode RendererCreate (00500B70) already lists no drivers and calls
+  neither 004EE5D0 (FirstHardwareDirectDrawDriver) nor 004EEA90 (CreateDirectDraw), so a native run now makes no
+  DirectDraw object at all. Under dgVoodoo (vanilla, Rebirth) all four DirectDrawCreateEx stay (~0.6 s).
+- Time (EI_PROFILE=1, ui_main_menu, native): WinMain to AIL_startup 562 ms before, 57-68 ms after (three runs); the
+  menu shows about 1.5 s after WinMain. The probe's own DirectDrawCreate alone was ~140 ms, its DirectMusic part ~50 ms.
+- R9b1: the baseline native suite (77 runs, 4 at once) ended 8+ runs at the "DirectX 7 or later" box; with the
+  skip none. R9b's "every native run hangs in sound init without the probe" did not reproduce: three native suites
+  without the probe, one with 6 timeouts at step 0 in AIL_waveOutOpen (four scenarios at the same time, two of them
+  passing on retry; the machine was shared with other workers' games), two with none. A timed-out harness run now
+  logs the main thread's instruction pointer and return addresses (module+offset, `LogMainThreadStack` in
+  harness.cpp), so the next such hang shows where it waits.
+
+### R9c1: a lost Direct3D 11 device made again (done)
+
+- Seen as before (DXGI_ERROR_DEVICE_REMOVED / RESET / HUNG / DRIVER_INTERNAL_ERROR from the swap chain's Present or
+  ResizeBuffers, `render_window.cpp`), and now also by `GetDeviceRemovedReason` at the end of every presented frame
+  (a loss nothing reported: `new` without `present`, minimised). Nothing more is drawn into the swap chain in that
+  frame; at the end of `render::Present` (the frame's commands cleared, so nothing holds a sokol id),
+  `RecreateDevice` (render.cpp): each module destroys what it made (`DropWindow`: swap chain, present pipeline, gamma
+  lookup; the `show` child window and its swap chain; the frame target and readback copy; `DestroyTerrain`,
+  `DestroyMeshes`; `DropBlits`: pipelines, movie images, the cursor / fill cache; `DropTextures`), then
+  `sg_shutdown`, the context cleared and released, the device released (the log gives the references left: 0 in the
+  runs), a new device (up to five tries 200 ms apart), `sg_setup` and the pipelines. Then the next frames make the
+  frame target, the swap chain (the game's gamma ramp is kept: the lookup table is no longer reset to the identity
+  when the present pipeline is made, which also keeps a ramp set before the first present), window surfaces and
+  memory textures (read again from the game's memory), DirectDraw-surface textures (outside the switch-over: read
+  again from the surface). A movie shows again from its next frame. No new device: the new renderer is off
+  (`Active()` false), as when it failed at the start.
+- The switch-over's .mmp textures (`owned`: the holder has no surface and no memory) had only their GPU image. Each
+  keeps what it was decoded from (`TextureSource`, render_textures.cpp): the header and the file's bytes of the levels
+  decoded (DXT stays compressed: about what DirectDraw's managed texture kept in system memory), or the RGBA8 level
+  of `TexturePixels` for a holder without surface; `SurfaceView` makes the image again from it at its next use
+  (`Remake`, once a frame). The log at a loss gives the count and size: 20 / 8.6 MB in the main menu, 47-57 / 20 MB in
+  zone1 and the camp (vanilla), 32-61 / 27-48 MB under Rebirth (its larger battle textures). game.exe is not large
+  address aware: this is address space the switch-over had freed when R8 dropped the DirectDraw textures.
+- Test: `render::LoseDevice` (harness step `losedevice [seconds]`) makes the next swap chain Present report
+  DXGI_ERROR_DEVICE_REMOVED without calling it (without a swap chain of ours, the end of the frame takes it); the rest
+  is the real path. A real removal needs a driver reset (a TDR from a hung shader would hit every game on the
+  machine) or the Graphics Tools' `dxcap -forcetdr`, which is not installed; Direct3D 11 has no RemoveDevice. The
+  step waits until the device is made again and a frame presented on it. Scenario render_device_lost (vanilla and
+  Rebirth): at one frozen moment in the main menu, in zone1 and in the camp (textures loaded after the first loss),
+  the frame before the loss and after it match (samecapture: 0 pixels over 8, largest difference 0-7).
 
 ### Before R9a (reference)
 

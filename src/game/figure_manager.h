@@ -13,12 +13,17 @@
 #include <cstdint>
 
 struct AnimationTrack;
+class CFigureAnimationState;
 struct FigureBone;
 
 // FigureModel, the cached model, is in model.h.
 
 class CFigureManager : public CResourceManager {
 public:
+    int LoadSkeletonLinks(CFigureAnimationState* state, const char* name);
+    int LoadFigureBones(FigureModel* model, FigureBone* bone);
+    int LoadFigureBounds(ClipBounds* out, FigureModel* model, const char* directory, const char* name, std::uint32_t s, std::uint32_t t, std::uint32_t u);
+    FigureModel* FindModel(const stlp::string* name);
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073FB88);
 
     // 005AA070 (figure_mesh_life.cpp, A-W13). The constructor body: CResourceManager's, an empty

@@ -73,19 +73,19 @@ void* AlignedNew(std::size_t bytes) {
 void* __fastcall AlignedWords(int count) { return AlignedNew(static_cast<std::size_t>(count * 2 + 0x24)); }
 void* __fastcall AlignedDwords(int count) { return AlignedNew(static_cast<std::size_t>(count * 4 + 0x24)); }
 
-// 00430FC0: a cursor started at `p` (no byte reserved, no pending bits; the accumulator is left
-// alone). The two other arguments are not used. Returns 0.
-std::uint32_t __fastcall CursorStart(BufferCursor* self, void*, std::uint8_t* p, std::uint32_t, std::uint32_t) {
-    self->p = p;
-    self->bits = 0;
-    self->bytePtr = nullptr;
-    return 0;
-}
-
 // 00433F10: an exception cleanup step: the pointer ECX points at is cleared where it points.
 void __fastcall ClearPointee(void** self) { *static_cast<void**>(*self) = nullptr; }
 
 } // namespace misc400
+
+// 00430FC0: a cursor started at `p` (no byte reserved, no pending bits; the accumulator is left
+// alone). The two other arguments are not used. Returns 0.
+std::uint32_t BufferCursor::Start(std::uint8_t* first, std::uint32_t, std::uint32_t) {
+    p = first;
+    bits = 0;
+    bytePtr = nullptr;
+    return 0;
+}
 
 EI_REPLACE(0x0042D690, misc400::ManagerConstruct);
 EI_REPLACE(0x0042D6F0, misc400::ManagerDestruct);
@@ -94,5 +94,5 @@ EI_REPLACE(0x0042D6C0, misc400::ManagerClassId);
 EI_REPLACE(0x0042D700, misc400::ManagerNewObject);
 EI_REPLACE(0x00406B30, misc400::AlignedWords);
 EI_REPLACE(0x00406B50, misc400::AlignedDwords);
-EI_REPLACE(0x00430FC0, misc400::CursorStart);
+EI_REPLACE_METHOD(0x00430FC0, BufferCursor::Start);
 EI_REPLACE(0x00433F10, misc400::ClearPointee);
