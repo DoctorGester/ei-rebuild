@@ -14,7 +14,7 @@ qualified member).
   DeletingDestruct are members; the receive step is `SessionBase::Tick`), `ServerBase` (0073BBB4: pending joins) and `ClientBase` (0073BE30: lobby fields,
   retry timer and interval, servers, queries, waiting addresses), `ServerSession` / `ClientSession` on top with their lists and counted pointers named
   from what the handlers do with them. `Message : CRefObject` (0073BC10, virtual Write / Read, `version_` +8), `ServerEntryBase` (0073BB40) /
-  `ServerEntry` (0073BB28), `Query` / `QueryVector`, `NetAddress` (sockaddr_in: Parse 00440440, Format 00440690, ToString 00435010), `SocketDriver` members,
+  `ServerEntry` (0073BB28), `Query` / `ClientQueries`, `NetAddress` (sockaddr_in: Parse 00440440, Format 00440690, ToString 00435010), `SocketDriver` members,
   `TypeRegistry` over two `stlp::hash_map`s (`Bucket` / `LinkAtHead` added to stlp.h for the inlined insert that still calls the game's resize / new node),
   one `LogStream`, and the session globals declared once (`NetLog()`, `CurrentSession()`, `CurrentConnection()`, `SendBuffer()`, `ReceiveBuffer()`,
   `GameServer()`, `GameClient()`).
@@ -74,8 +74,6 @@ The six counts (duplicate forwarders, `At<>` / `Field<>`, `VCall`, byte offset a
 
 ## Left
 
-- `QueryVector` (an STLport vector of `Query` and a dword) keeps its own layout: the connect screen (`ui_connect_screen.cpp`, interface owner)
-  reads `begin` / `end` / `eos` / `extra` by name; it can become `stlp::vector<Query>` plus the dword when that file moves with it.
 - The `ClientSession` / `ServerSession` / `ClientBase` list members are still `void*` sentinels, typed at the use sites (`RefNode`, `TimedNode`,
   `TradeRecordNode`); typing the members touches `ui_chat_window.cpp` (`ClientList(client->offers_)`). `net_lobby.cpp` walks its lists
   (servers, waiting addresses, pending joins) through a links-only `Node`; `net_client_handlers.cpp`'s `Append` / `RemoveValue` take `void*` lists.
@@ -89,3 +87,11 @@ The six counts (duplicate forwarders, `At<>` / `Field<>`, `VCall`, byte offset a
   bodies (the view's Seek / destructors in `net_coder.cpp`) are free functions; the growing buffer's forwarders (004DA7F0 ...) are declared per file.
 - `StringRep` (raw STLport string layout) vs `stlp::string`; `hash_tables_400.cpp`'s own view
   of the type registry (004368F0); the world object the pump reads players from (+0x28) and the manager 0079B5DC.
+
+## C2z: the client's queries
+
+`QueryVector` became `ClientQueries` (`net_classes.h`): `stlp::vector<Query> list` plus the `extra` dword saved with it (+0x0C). The
+original's vector functions are the game's `stlp::vector<Query>` instantiation and are forwarded with it as their `this`: 004439C0
+`_M_insert_overflow`, 00443BF0 `operator=`, 004442B0 `erase(first, last)`, 00444090 `resize`. `Ask` and `Forget` keep the inlined push_back /
+erase over `Finish()` / `EndOfStorage()`; `ui_connect_screen.cpp`'s address book and the verify wrappers follow (the constructor's wrapper copies
+raw bytes: the vector has no copy). The per-file vector struct count is 0.
