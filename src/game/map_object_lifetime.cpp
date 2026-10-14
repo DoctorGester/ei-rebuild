@@ -101,10 +101,8 @@ __declspec(naked) void __fastcall Controller91CDestroy(void*) EI_ORIGINAL(0x0055
 // 005233B0 UnitVitalsPacked::Reset, 00523370 UnitVitals::Reset, 00523550 UnitParams::Reset,
 // 00455930 CEngineObject::DestructBase, and this file's constructors and destructor bodies.
 __declspec(naked) int __fastcall ResetPackedVitals(void*) EI_ORIGINAL(0x005233B0)
-__declspec(naked) int __fastcall ResetParams(void*) EI_ORIGINAL(0x00523550)
 __declspec(naked) CObject3D* __fastcall ConstructObject3DAt(void*) EI_ORIGINAL(0x00515BD0)
 __declspec(naked) void __fastcall DestructObject3DAt(void*) EI_ORIGINAL(0x00515D70)
-__declspec(naked) CMapObject* __fastcall ConstructMapObjectAt(void*) EI_ORIGINAL(0x0050E2D0)
 __declspec(naked) void __fastcall ResetUnitAt(void*) EI_ORIGINAL(0x0052E5B0)
 
 // The engine object fields every constructor here sets (the base constructor inlined).
@@ -265,7 +263,7 @@ EI_REPLACE_METHOD(0x0050E660, CMapObject::DestructBody);
 // --- CUnit ------------------------------------------------------------------------------------
 
 CUnit* CUnit::Construct() {
-    ConstructMapObjectAt(this);
+    MapObjectConstructOriginal(this);
     ConstructString(&scriptName);
     // The unit's motion (+0x27C): two arrays, then the step speeds and the segment part.
     UnitMotion* m = Motion();
@@ -329,7 +327,7 @@ void CUnit::Reset() {
     dead = 0;
     unknown_278 = 0;
     activeWeapon = 0xFFFFFFFFu;
-    ResetParams(Params());
+    UnitParamsResetOriginal(Params());
     std::memset(weapons, 0, sizeof(weapons));
     std::memset(quickItems, 0, sizeof(quickItems));
     std::memset(armor, 0, sizeof(armor));

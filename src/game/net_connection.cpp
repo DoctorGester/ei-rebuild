@@ -9,6 +9,7 @@
 #include "lib/stlp.h"
 
 #include <cstring>
+#include "originals_core.h"
 #include "originals_library.h"
 
 namespace net {
@@ -95,7 +96,6 @@ __declspec(naked) void* __fastcall PriorityMakePair(void* /*pair*/, void*, Repli
 __declspec(naked) std::uint32_t __fastcall PriorityErase(EntryMap* /*tree*/, void*, ReplicaEntry* const* /*key*/) EI_ORIGINAL(0x0043C900)
 __declspec(naked) RefPtr* __fastcall RefPtrNull(RefPtr* /*p*/) EI_ORIGINAL(0x00438F50)
 // 0041DD50: a RefPtr from a raw pointer, adding a reference.
-__declspec(naked) RefPtr* __fastcall RefPtrRaw(RefPtr* /*p*/, void*, CRefObject* /*object*/) EI_ORIGINAL(0x0041DD50)
 // The static vector of 004346D0: constructor, erase of a range, introsort loop and final insertion
 // sort by object, atexit.
 __declspec(naked) void* __fastcall ReplicatedConstruct(ReplicatedVector* /*v*/, void*, const void* /*alloc*/) EI_ORIGINAL(0x00439E10)
@@ -532,7 +532,7 @@ void Connection::Track(Replicated* item) {
     std::memcpy(reinterpret_cast<std::uint8_t*>(entry) + 4, &zero, 4);
     if (entry) {
         ei::SetVtable(entry, kRefValueVtable);
-        RefPtrRaw(&entry->object_, nullptr, nullptr);
+        RefPtrFromRawOriginal(&entry->object_, nullptr, nullptr);
         ei::SetVtable(entry, ReplicaEntry::kVtableAddress);
         entry->version_ = 0;
         entry->id_ = 0;

@@ -20,12 +20,12 @@ namespace {
 // The text manager (item_db_text.h) as the loader uses it. Not rewritten.
 struct TextReader {
     mfc::BOOL Open(const char* name);                          // 004DEFC0: finds the text, cursor at its start
-    mfc::BOOL NextLine(int flag);                              // 004DF030: false at the end
+    mfc::BOOL NextHeader();                                    // 004DF030 (null key): the next "#" line; false at the end
     int Split(console::CStringArray* words, int flag);         // 004DFCB0: the current line's words
     mfc::BOOL Close();                                         // 004DF020
 };
 mfc::BOOL TextReader::Open(const char* key) { return ::TextsOpenSection(this, nullptr, key); }
-__declspec(naked) mfc::BOOL TextReader::NextLine(int) EI_ORIGINAL(0x004DF030)
+mfc::BOOL TextReader::NextHeader() { return ::TextFindLineOriginal(this, nullptr, nullptr); }
 int TextReader::Split(console::CStringArray* words, int flag) {
     return ReaderSplit(reinterpret_cast<CTextManager*>(this), nullptr, words, flag);
 }
@@ -322,7 +322,7 @@ bool CMapDatabase::Load(const char* fileName) {
     TextReader* reader = TheTextReader();
     Loader loader(this, reader);
     if (!reader->Open(fileName)) return false;
-    while (reader->NextLine(0)) loader.Line();
+    while (reader->NextHeader()) loader.Line();
     reader->Close();
     return true;
 }

@@ -106,7 +106,6 @@ char** __fastcall PrototypeNameMapAt(void* a0, void*, const RawString* a2) { ret
 // Rewritten elsewhere, called through their game addresses: 00594180 CWorldServer::GetPlayer
 // (world_server.cpp), 00523550 UnitParams::Reset (unit_stats_pack.cpp), 00403F40
 // CBaseManager::FindObject (base_manager.cpp).
-__declspec(naked) void __fastcall UnitParamsResetAt(void* /*params*/) EI_ORIGINAL(0x00523550)
 
 // Reads a string and assigns it to `target` (the original's temporary is destroyed at once).
 void ReadStringInto(UnitStream* stream, mfc::CString& target) {
@@ -227,7 +226,7 @@ void CUnit::LoadUnit(UnitStream* stream) {
     stream->Read(&heightOffset, 4);
     stream->Read(&sizeClass, 4);
     stream->Read(&At<int>(this, kField328), 4);
-    UnitParamsResetAt(reinterpret_cast<char*>(this) + kParams);
+    UnitParamsResetOriginal(reinterpret_cast<char*>(this) + kParams);
     stream->Read(&activeWeapon, 4);             // saved twice; the second copy wins
 
     ReadItems(this, stream, weapons, 4);

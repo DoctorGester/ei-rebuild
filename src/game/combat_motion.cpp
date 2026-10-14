@@ -65,7 +65,6 @@ constexpr int kBrainModeSilent = 6;   // AIBrain::action: no path reports
 // UnitStats (unit_vitals.cpp / unit_stats_pack.cpp): 005241C0 the stamina state for a movement
 // (1: running), 005233E0 Reset.
 __declspec(naked) int __fastcall StatsMovementState(UnitStats*, void*, int) EI_ORIGINAL(0x005241C0)
-__declspec(naked) void __fastcall StatsReset(UnitStats*) EI_ORIGINAL(0x005233E0)
 // The AI map (world + 0x170, ai_map.cpp / ai_movement.cpp / ai_path.cpp): 005BA6E0
 // IsUnitCellPassable, 005BA830 CanLeaveCell, 005BA5A0 StandsOnCheapCell, 005BB350 FindPath.
 __declspec(naked) bool __fastcall MapCellPassable(void*, void*, CUnit*) EI_ORIGINAL(0x005BA6E0)
@@ -95,7 +94,6 @@ void __fastcall PlayerPathMessage(void* a0, void*, CUnit* a2, const void* a3, co
 }
 // The controller's functions rewritten elsewhere, through their game addresses (combat_update.cpp,
 // combat_steps.cpp, combat_tick.cpp).
-__declspec(naked) bool __fastcall CtlPopFinishedSteps(CUnitServer*) EI_ORIGINAL(0x00546B40)
 __declspec(naked) std::uint32_t __fastcall CtlWeaponTypeMask(CUnitServer*) EI_ORIGINAL(0x00550050)
 __declspec(naked) std::uint32_t __fastcall CtlMoveModeMask(CUnitServer*, void*, const MoveModeState*) EI_ORIGINAL(0x005500A0)
 // And the functions of this file.
@@ -890,7 +888,7 @@ void CUnitServer::ResetController() {
     moveFactors[2] = 1.0f;
     moveFactors[3] = 1.0f;
     moveFactors[1] = 1.0f;
-    StatsReset(&stats);
+    UnitStatsResetOriginal(&stats);
     tameStage = 0;
     ownSide = -1;
     tamerSide = -1;

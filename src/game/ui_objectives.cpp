@@ -534,7 +534,6 @@ void CObjectivesWindow::ShowZone(const char* zone) {
 namespace {
 
 // The text reader's line steps (text_reader.cpp; called through their addresses).
-__declspec(naked) BOOL __fastcall ReaderNextLine(CTextManager*, void*, int) EI_ORIGINAL(0x004DF030)
 // The quest log (the window's first child) [thiscall]: clear [0065D450], set the text
 // [0065CFE0, LogSetTextOriginal].
 __declspec(naked) void __fastcall LogClear(CUiWindow*) EI_ORIGINAL(0x0065D450)
@@ -614,7 +613,7 @@ void CObjectivesWindow::ShowQuest() {
             text += part;
         }
     }
-    while (ReaderNextLine(texts, nullptr, 0)) {
+    while (TextFindLineOriginal(texts, nullptr, nullptr)) {
         ReaderSplit(texts, nullptr, &fields, 1);
         if (fields.GetSize() < 2) continue;
         if (SameText(fields[0], GameText(0x007946DC))) break;      // "#quest"

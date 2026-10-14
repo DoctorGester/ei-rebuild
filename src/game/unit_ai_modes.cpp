@@ -763,7 +763,7 @@ void PlayerMode::CommandGoTo(AIBrain* brain, const Vector3* to, int unknown, int
     PrepareWalk(this, brain, to, runArg, offset);
     if (!DirectControl(brain) && !PlayerStaysWithPartyOriginal(this, nullptr, brain, true)) {
         std::memset(&point.z, 0, 4);
-        brain->owner->TurnTo(&point, unknown, 0, kMoveTime);
+        ControllerPlanMoveOriginal(brain->owner, nullptr, &point.x, unknown, 0, kMoveTime);
         return;
     }
     constexpr std::uint32_t kOneBits = 0x3F800000u;

@@ -663,3 +663,7 @@ __declspec(naked) inline int __fastcall ReaderSplit(CTextManager*, void*, consol
 __declspec(naked) inline int __fastcall TextManagerItemTexts(CTextManager*, void*, CEngineObject* /*item*/,
                                                              mfc::CString* /*name*/, mfc::CString* /*description*/,
                                                              mfc::CString* /*kind*/) EI_ORIGINAL(0x004E0150)
+// C3o. 004DF030 (rewritten as TextFindLine; thiscall on the text reader, RET 4): moves to the line that starts with
+// `key`; a null key finds the next "#..." header. 1 when found, else 0 (the cursor at the end).
+__declspec(naked) inline int __fastcall TextFindLineOriginal(void* /*texts*/, void*, const char* /*key*/)
+    EI_ORIGINAL(0x004DF030)

@@ -9,6 +9,7 @@
 #include <cstdint>
 
 class CEngineObject;
+struct Vector3;
 
 // 00498400: the particle manager (*007AF754) makes a source of `type` (RET 4; EAX the source, referenced).
 inline void* ParticleManagerObject() { return *reinterpret_cast<void* const*>(0x007AF754); }
@@ -43,3 +44,9 @@ __declspec(naked) inline void __fastcall WeatherSetRampOriginal(void* /*weather*
 // through its address by the deleting destructor.
 class CRainSnow;
 __declspec(naked) inline void __fastcall RainSnowDestructOriginal(CRainSnow* /*layer*/) EI_ORIGINAL(0x005616C0)
+
+// C3o. 004113A0 (rewritten as CCamera::Shake; thiscall on the camera 0079B2A8, RET 0x10): a shake from an event at
+// `source` (ignored 20 or more away). The three floats are pushed as floats.
+__declspec(naked) inline void __fastcall CameraShakeOriginal(void* /*camera*/, void*, const Vector3* /*source*/,
+                                                             float /*duration*/, float /*amplitude*/, float /*decay*/)
+    EI_ORIGINAL(0x004113A0)

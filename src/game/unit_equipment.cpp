@@ -41,7 +41,6 @@ __declspec(naked) CEngineObject* __fastcall CreateItemAt(void*, void*, const cha
 CEngineObject* __fastcall CreateSpellAt(void* a0, void*, const char* a2, void* a3) { return (CEngineObject*)FactoryCreateSpellOriginal(a0, nullptr, a2, a3); }
 CEngineObject* __fastcall EquipArmourAt(CUnit* a0, void*, CEngineObject* a2) { return (CEngineObject*)UnitEquipArmourOriginal((void*)a0, nullptr, (void*)a2); }
 int __fastcall AddWeaponAt(CUnit* a0, void*, CEngineObject* a2) { return UnitAddWeaponOriginal((void*)a0, nullptr, (void*)a2); }
-__declspec(naked) int __fastcall AddSpellAt(CUnit*, void*, CEngineObject*) EI_ORIGINAL(0x00531820)
 
 std::uint32_t Count(const CStringVector& names) { return static_cast<std::uint32_t>(names.end - names.begin); }
 
@@ -86,7 +85,7 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
     }
     for (std::uint32_t i = 0; i < Count(prototype->spellNames); ++i) {
         CEngineObject* spell = CreateSpellAt(items, nullptr, prototype->spellNames.begin[i], spellOwner);
-        if (spell) AddSpellAt(unit, nullptr, spell);
+        if (spell) UnitAddSpellOriginal(unit, nullptr, spell);
         else game::FatalError(Text(kNoSpell), static_cast<const char*>(prototype->spellNames.begin[i]), name);
     }
     return 1;

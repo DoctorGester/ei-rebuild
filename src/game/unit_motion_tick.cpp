@@ -35,7 +35,6 @@ namespace {
 // 00546B40 / 00546C10 restart the animation queue, 00549D00 whether an animation of `ticks` can be
 // played now, 00546C40 play steps, 005511A0 the current animation as steps, 00550F30 the idle
 // animation, 00547280 / 00547090 / 005467B0 motion updates, 00548520 the end of the tick.
-__declspec(naked) void __fastcall RestartQueueA(CUnitServer*) EI_ORIGINAL(0x00546B40)
 __declspec(naked) bool __fastcall CanPlayFor(CUnitServer*, void*, int /*ticks*/) EI_ORIGINAL(0x00549D00)
 // 00550A80 CUnitServer::BuildDeathAnimation (combat_steps.cpp).
 // Animation lists: 00556850 constructor, 00557E70 destructor, 005483C0 assign (the queue +0x24 and
@@ -235,7 +234,7 @@ void QueueNextAnimation(CUnitServer* c) {
     QueueStart(c) = next->extra;
     StepsCopyB(Queue(c), nullptr, next);
     if (QueueStart(c) == -1) QueueStart(c) = WorldTime(ObjectWorld(c));
-    RestartQueueA(c);
+    CtlPopFinishedSteps(c);
     CtlShowCurrentStep(c);
     c->movingAnimation = 1;
 }
@@ -294,7 +293,7 @@ void HitWhileMoving(CUnitServer* c) {
     StepsCopyB(Queue(c), nullptr, &fall);
     StepsCopyB(Queue(c), nullptr, &fall);
     if (QueueStart(c) == -1) QueueStart(c) = WorldTime(ObjectWorld(c));
-    RestartQueueA(c);
+    CtlPopFinishedSteps(c);
     CtlShowCurrentStep(c);
     StepsDestroy(&fall);
     StepsDestroy(&current);

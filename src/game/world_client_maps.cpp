@@ -715,10 +715,8 @@ int __fastcall UnitMakeFigure(void* a0, void*, const char* a2, console::CStringA
 void __fastcall Unit518840(void* a0, void*, const char* a2, int a3) { Object3DSetAnimationsOriginal(a0, nullptr, a2, a3); }
 void __fastcall Unit518860(void* a0) { Object3DRestartAnimationOriginal(a0); }
 void __fastcall Unit50EA40(void* a0) { ObjectPrepareOriginal(a0); }
-__declspec(naked) void __fastcall UnitSetPosition(void*, void*, const float*) EI_ORIGINAL(0x00517700)
 void __fastcall UnitAddWeapon(void* a0, void*, void* a2) { UnitAddWeaponOriginal(a0, nullptr, a2); }
 void __fastcall UnitEquipArmour(void* a0, void*, void* a2) { UnitEquipArmourOriginal(a0, nullptr, a2); }
-__declspec(naked) void __fastcall UnitAddQuickItem(void*, void*, void*) EI_ORIGINAL(0x00531180)
 // The figure's 0051C970 and its texture swap [0051C250: from, to (null: none)]; an armour's type
 // [006A39E0, on the item].
 void __fastcall Figure51C970(void* a0) { FigureLoadTexturesOriginal(a0); }
@@ -781,7 +779,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         Unit50EA40(unit);
         CMapObjectVirtuals* slots = ObjectSlots(unit);
         slots->SetStats(reinterpret_cast<const UnitStats*>(record->stats));
-        UnitSetPosition(unit, nullptr, &record->unknown_724);
+        ObjectSetFigureScaleOriginal(unit, nullptr, &record->unknown_724);
         std::memcpy(&unit->MapObject()->baseScale, &record->unknown_724, 12);
         slots->ApplyBaseScale();
         UnitReleaseAllItems(unit);
@@ -794,7 +792,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
             if (allArmour || ArmourType(armour) != 0) UnitEquipArmour(unit, nullptr, armour);
         }
         for (int j = 0; j < static_cast<int>(record->quickItemCount); ++j)
-            UnitAddQuickItem(unit, nullptr, record->quickItems[j]);
+            UnitAddQuickItemOriginal(unit, nullptr, record->quickItems[j]);
         unit->Controller()->RefreshEquipment();
         unit->Controller()->RefreshModel();
         slots->SetScriptName(record->texts[0]);
@@ -1186,12 +1184,10 @@ __declspec(naked) void* __fastcall Construct42D690(void*) EI_ORIGINAL(0x0042D690
 __declspec(naked) void* __fastcall Construct691140(void*) EI_ORIGINAL(0x00691140)
 __declspec(naked) void* __fastcall Construct68E3F0(void*) EI_ORIGINAL(0x0068E3F0)
 __declspec(naked) void* __fastcall Construct68D850(void*) EI_ORIGINAL(0x0068D850)
-__declspec(naked) void __fastcall ManagerBase(void*) EI_ORIGINAL(0x00402B20)
 __declspec(naked) void __fastcall Construct56FD40(void*, void*, int) EI_ORIGINAL(0x0056FD40)
 __declspec(naked) void __fastcall Construct5725E0(void*) EI_ORIGINAL(0x005725E0)
 __declspec(naked) void __fastcall Construct4981A0(void*) EI_ORIGINAL(0x004981A0)
 void* __fastcall SessionFor(void* a0) { return PlayerCreateOriginal(a0); }
-__declspec(naked) void __fastcall Construct419720(void*) EI_ORIGINAL(0x00419720)
 __declspec(naked) void __fastcall Construct5715D0(void*, void*, int) EI_ORIGINAL(0x005715D0)
 __declspec(naked) void* __fastcall Construct6B4350(void*) EI_ORIGINAL(0x006B4350)
 __declspec(naked) void __fastcall Construct4E3C20(void*) EI_ORIGINAL(0x004E3C20)
@@ -1319,7 +1315,7 @@ int CWorldClient::Setup() {
 
     auto* manager = reinterpret_cast<CParticleManager*>(New(sizeof(CParticleManager)));
     if (manager) {
-        ManagerBase(manager);
+        ManagerConstructBaseOriginal(manager);
         Construct56FD40(&manager->freeParticles, nullptr, 10);
         Construct5725E0(&manager->held_);
         manager->maxHeldId_ = 0;
@@ -1338,7 +1334,7 @@ int CWorldClient::Setup() {
     handle->flags7_ = 0;
     CRefObject* created = nullptr;
     if (handle) {
-        Construct419720(handle);
+        RefValueConstructOriginal(handle);
         ei::SetVtable(handle, worlddata::kClientHandleVtable);
         created = handle;
     }
@@ -1365,7 +1361,7 @@ int CWorldClient::Setup() {
     // The list manager: the base, then its CList's fields (in the original's order).
     auto* lists = reinterpret_cast<ClientListManager*>(New(sizeof(ClientListManager)));
     if (lists) {
-        ManagerBase(lists);
+        ManagerConstructBaseOriginal(lists);
         lists->list.vtable = reinterpret_cast<void*>(worlddata::kClientListVtable);
         lists->list.count = 0;
         lists->list.free = nullptr;
@@ -1379,7 +1375,7 @@ int CWorldClient::Setup() {
     lists->Init(this);
     auto* arrays = reinterpret_cast<ClientArrayManager*>(New(sizeof(ClientArrayManager)));
     if (arrays) {
-        ManagerBase(arrays);
+        ManagerConstructBaseOriginal(arrays);
         arrays->current = nullptr;
         Construct5715D0(&arrays->list, nullptr, 10);
         ei::SetVtable(arrays, worlddata::kClientArrayManagerVtable);

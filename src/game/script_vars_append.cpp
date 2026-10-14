@@ -30,7 +30,6 @@ ScriptGroup* __fastcall GroupAt(const void* a0, void*, void* a2, int a3) { retur
 // Rewritten script helpers, called through their addresses.
 void __fastcall GroupSetSize(ScriptGroup* a0, void*, int a2, int a3) { PtrArraySetSize((void*)a0, nullptr, a2, a3); }
 // 004CE1E0: a reference's destructor (__thiscall (flags)).
-__declspec(naked) void __fastcall RefDestroy(void*, void*, int) EI_ORIGINAL(0x004CE1E0)
 
 // The float is copied through the FPU (FLD / FSTP), as the original does: a signalling NaN
 // becomes quiet.
@@ -124,7 +123,7 @@ void __fastcall ScriptGroupsAppend(ScriptNamedValues<ScriptGroup>* self, void*,
         // The copy's destructor (vtable 0073D11C): each reference destroyed, the array freed.
         copy.vtable = reinterpret_cast<void*>(0x0073D11C);
         if (copy.data) {
-            for (int k = 0; k < copy.size; ++k) RefDestroy(&copy.data[k], nullptr, 0);
+            for (int k = 0; k < copy.size; ++k) ScriptRefDestroyOriginal(&copy.data[k], nullptr, 0);
             gamecrt::operator_delete(copy.data);
         }
     }

@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_core.h"
 #include "originals_library.h"
 
 namespace {
@@ -26,7 +27,6 @@ namespace {
 // MFC CString::operator=(LPCTSTR) on the path globals.
 inline void* __fastcall CStringAssign(void* s, void*, const char* t) { return CStringAssignTextOriginal(s, nullptr, t); }
 // The managers' constructors (thiscall, no arguments; they return this).
-__declspec(naked) void* __fastcall ObjectBaseConstruct(void*) EI_ORIGINAL(0x00402B20)
 __declspec(naked) void* __fastcall Manager5125E0(void*) EI_ORIGINAL(0x005125E0)
 __declspec(naked) void* __fastcall Manager5AA070(void*) EI_ORIGINAL(0x005AA070)
 __declspec(naked) void* __fastcall Manager683FF0(void*) EI_ORIGINAL(0x00683FF0)
@@ -71,13 +71,13 @@ int __fastcall WorldCreateManagers(CWorld* world) {
     world->updateCount_ = 0;
     world->unknown30_ = 0;
 
-    world->players_ = Make(sizeof(CBaseManager), ObjectBaseConstruct, worlddata::kPlayerListVtable);
+    world->players_ = Make(sizeof(CBaseManager), ManagerConstructBaseOriginal, worlddata::kPlayerListVtable);
     Attach(world->players_, world);
     world->manager40_ = Make(0xBC, Manager5125E0, 0);
     Attach(world->manager40_, world);
     world->manager3C_ = Make(0xD0, Manager5AA070, 0);
     Attach(world->manager3C_, world);
-    world->manager48_ = Make(sizeof(CBaseManager), ObjectBaseConstruct, worlddata::kTimedObjectsVtable);
+    world->manager48_ = Make(sizeof(CBaseManager), ManagerConstructBaseOriginal, worlddata::kTimedObjectsVtable);
     Attach(world->manager48_, world);
     world->manager50_ = Make(0x24, Manager683FF0, 0);
     world->manager50_->Create();

@@ -749,10 +749,8 @@ public:
     // back and the result reported (ReportPath).
     void PlanMove(const float* point, int moving, int run, float range);
 
-    // The same through the game's addresses (combat_orders.cpp):
-    // 00554830 (PlanMove).
-    void TurnTo(const float* point, int walk, int run, std::uint32_t z);
-    // 0054E600 (PlanOrderRoute).
+    // The same through the game's address (combat_orders.cpp; 00554830 PlanMove is
+    // ControllerPlanMoveOriginal in originals_units.h): 0054E600 (PlanOrderRoute).
     bool PlanOrder(UnitAction* order, int arg);
 
     // combat_object_slots.cpp (A-U5).

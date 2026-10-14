@@ -32,7 +32,6 @@ __declspec(naked) int __fastcall CallMapObjectUpdate(CUnit*) EI_ORIGINAL(0x0050F
 __declspec(naked) std::uintptr_t __fastcall CallRecomputeScale(CUnit*) EI_ORIGINAL(0x0050F2D0)
 // 00517700, CObject3D::SetFigureScale: the figures' scale from `scale`, three floats. Rewritten in
 // map_object_figures.cpp, called through its address.
-__declspec(naked) std::uintptr_t __fastcall CallSetFigureScale(CUnit*, void*, const Vector3*) EI_ORIGINAL(0x00517700)
 // 00517500, CObject3D::LoadFigures, slot 26: loads the figures. map_object_figures.cpp.
 __declspec(naked) std::uintptr_t __fastcall CallLoadFigures(CUnit*) EI_ORIGINAL(0x00517500)
 // 0050E890, CMapObject::AttachObject, slot 19: attaches a companion of another type. map_object.cpp.
@@ -76,7 +75,7 @@ std::uintptr_t CUnit::EffectsChanged() { return Controller()->EffectsChanged(); 
 EI_REPLACE_METHOD(0x00532AB0, CUnit::EffectsChanged);
 
 std::uintptr_t CUnit::ResetUnitScale() {
-    return CallSetFigureScale(this, nullptr, &MapObject()->baseScale);
+    return ObjectSetFigureScaleOriginal(this, nullptr, &MapObject()->baseScale.x);
 }
 EI_REPLACE_METHOD(0x00532AA0, CUnit::ResetUnitScale);
 

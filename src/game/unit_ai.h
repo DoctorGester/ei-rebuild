@@ -85,7 +85,6 @@ struct UnitController {
     // 0054C960 (RET 8). The same check with the unit moved to `point` meanwhile (only AL).
     bool CheckOrderAt(const AIOrder* order, const Vector3* point);
     void CastAt(int spell, const Vector3* point, int run);  // 00554D00
-    void TurnTo(const Vector3* point, int time, int unused, float limit);   // 00554830
     void UseOnPoint(CEngineObject* object, int a, int b);   // 00555570
     void UseOnUnit(CEngineObject* unit, int b);             // 005553B0
     void UseOnUnit2(CEngineObject* unit, int b);            // 00555480

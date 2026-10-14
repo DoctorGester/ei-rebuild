@@ -17,14 +17,14 @@ namespace {
 // the others may be rewritten elsewhere).
 struct Unit {
     int AddQuickItem(void* item);           // 00531180
-    int AddCarried(void* item);             // 00531220
+    void AddCarried(void* item);            // 00531220
     int AddSpell(void* spell);              // 00531820
     void* EquipArmour(void* item);          // 00530730
     int AddWeapon(void* item);              // 00531070
 };
-__declspec(naked) int Unit::AddQuickItem(void*) EI_ORIGINAL(0x00531180)
-__declspec(naked) int Unit::AddCarried(void*) EI_ORIGINAL(0x00531220)
-__declspec(naked) int Unit::AddSpell(void*) EI_ORIGINAL(0x00531820)
+int Unit::AddQuickItem(void* a0) { return UnitAddQuickItemOriginal(this, nullptr, a0); }
+void Unit::AddCarried(void* a0) { UnitAddCarriedOriginal(this, nullptr, a0); }
+int Unit::AddSpell(void* a0) { return UnitAddSpellOriginal(this, nullptr, a0); }
 void* Unit::EquipArmour(void* a0) { return UnitEquipArmourOriginal((void*)this, nullptr, a0); }
 int Unit::AddWeapon(void* a0) { return UnitAddWeaponOriginal((void*)this, nullptr, a0); }
 
@@ -34,7 +34,7 @@ struct Slots {
     void* RefillSlots();                                   // 00525AF0
 };
 __declspec(naked) void Slots::SetSlotMaxima(std::uint32_t) EI_ORIGINAL(0x00525A00)
-__declspec(naked) void* Slots::RefillSlots() EI_ORIGINAL(0x00525AF0)
+void* Slots::RefillSlots() { return UnitStatsRefillSlotsOriginal(this); }
 
 // The item and spell factory (global pointer at 007AFFB4).
 struct Factory {

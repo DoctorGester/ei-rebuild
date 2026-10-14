@@ -101,13 +101,9 @@ inline void __fastcall UnitSetController(CEngineObject* a0, void*, void* a2) { U
 __declspec(naked) void __fastcall UnitSet780(CEngineObject*, void*, std::uint32_t) EI_ORIGINAL(0x0052E9B0)
 __declspec(naked) void __fastcall UnitRefreshStats(CEngineObject*, void*) EI_ORIGINAL(0x0050F080)
 void __fastcall UnitGiveItem(CEngineObject* a0, void*, CEngineObject* a2) { UnitAddWeaponOriginal((void*)a0, nullptr, (void*)a2); }
-void __fastcall UnitAddQuickItem(CEngineObject* a0, void*, CEngineObject* a2) { UnitEquipArmourOriginal((void*)a0, nullptr, (void*)a2); }
-__declspec(naked) void __fastcall UnitWear(CEngineObject*, void*, CEngineObject*) EI_ORIGINAL(0x00531180)
-__declspec(naked) void __fastcall UnitAddSpell(CEngineObject*, void*, CEngineObject*) EI_ORIGINAL(0x00531820)
 // 005308D0 (RET 4): the record's text 6 (a CString's characters, handed on as a dword).
 __declspec(naked) void __fastcall UnitSetPose(CEngineObject*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0052EB10)
 // Items: the counted record at item + 0x1C (ItemSourceRef, item.h).
-__declspec(naked) void* __fastcall RefValueConstruct(void*, void*) EI_ORIGINAL(0x00419720)
 // 004D23A0 (RET 8). Queues a script command line on the first command queue.
 int __fastcall CommandQueueAdd(void* a0, void*, const mfc::CString* a2, int a3) { return ScriptLoadLine(a0, nullptr, a2, a3); }
 
@@ -204,7 +200,7 @@ CEngineObject* MakeItem(CWorldServer* world, CEngineObject* itemRecord, bool ref
     ItemSourceRef* record = nullptr;
     if (memory) {
         if (refValueBase) {
-            RefValueConstruct(memory, nullptr);
+            RefValueConstructOriginal(memory);
             memory->vtable = reinterpret_cast<void*>(worlddata::kItemSourceRefVtable);
             record = memory;
         } else {
@@ -318,15 +314,15 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
             UnitGiveItem(unit, nullptr, MakeItem(this, record->weapons[n], false));
         AsUnit(unit)->Controller()->ShowWeapon(0);
         for (int n = 0; n < static_cast<int>(record->armorCount); ++n)
-            UnitAddQuickItem(unit, nullptr, MakeItem(this, record->armor[n], true));
+            UnitEquipArmourOriginal(unit, nullptr, MakeItem(this, record->armor[n], true));
         for (int n = 0; n < static_cast<int>(record->quickItemCount); ++n) {
             auto* item = static_cast<CItem*>(MakeItem(this, record->quickItems[n], true));
             item->unknown_48 = static_cast<CItem*>(record->quickItems[n])->unknown_48;
             std::memcpy(&item->charge_, &item->chargeMax_, 4);
-            UnitWear(unit, nullptr, item);
+            UnitAddQuickItemOriginal(unit, nullptr, item);
         }
         for (int n = 0; n < static_cast<int>(record->spellCount); ++n)
-            UnitAddSpell(unit, nullptr, MakeItem(this, record->spells[n], true));
+            UnitAddSpellOriginal(unit, nullptr, MakeItem(this, record->spells[n], true));
 
         slots->UpdateSizeClasses();
         slots->ScaleEffectChanged(0);
@@ -406,7 +402,6 @@ namespace {
 // Object setup, through the original addresses (thiscall as fastcall).
 void __fastcall ObjectMarkNew(CEngineObject* a0, void*) { ObjectPrepareOriginal((void*)a0); }
 void __fastcall ObjectAnnounce(CEngineObject* a0, void*) { MapObjectSendDeltaOriginal(a0); }
-__declspec(naked) void __fastcall ObjectSetMovement(CEngineObject*, void*, const void*) EI_ORIGINAL(0x00517700)
 void __fastcall ObjectSetName(CEngineObject* a0, void*, const char* a2) { ObjectSetupFigureOriginal((void*)a0, nullptr, a2); }
 __declspec(naked) void __fastcall ObjectSetSecondName(CEngineObject*, void*, const char*) EI_ORIGINAL(0x0050F150)
 __declspec(naked) void __fastcall ManagerRegister(void*, void*, CEngineObject*) EI_ORIGINAL(0x00513630)
@@ -475,7 +470,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         ObjectMarkNew(object, nullptr);
     };
     auto place = [spec](CMapObject* object) {
-        ObjectSetMovement(object, nullptr, &spec->scale);
+        ObjectSetFigureScaleOriginal(object, nullptr, &spec->scale.x);
         Copy(&object->baseScale, &spec->scale, 12);
         ObjectSlots(object)->ApplyBaseScale();
         Copy(&object->position.x, &spec->base.position, 12);
@@ -597,7 +592,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             const mfc::CStringArray& worn = unitSpec->lists[1];
             for (int i = 0; i < worn.size; ++i) {
                 const char* name = worn.data[i];
-                UnitWear(object, nullptr, ItemsCreateItem(ItemFactory(), nullptr, name));
+                UnitAddQuickItemOriginal(object, nullptr, ItemsCreateItem(ItemFactory(), nullptr, name));
             }
             UnitRecordApply(unitSpec->stats, nullptr, object);
             // The model's six values (UnitModelRecord +0x2C) go to the unit's +0x4B0.
