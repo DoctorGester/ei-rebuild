@@ -1,7 +1,9 @@
 // The battle HUD's unit panel: its draw (006462A0, slot 20 of CHudUnitPanel). A-E2.
-// Rebirth replaces the whole function with its wide-layout version, so this is the vanilla body and
-// installs in the vanilla launch only (rule 9); the callees Rebirth patches too (the sprites' Place
-// 005E6FA0, the layout scaling 005F7CA0) are called through their addresses. The function drives
+// Rebirth patches it for its WideScreen layout, reproduced behind the flag (W3, ui_widescreen.h):
+// the panel offset while it draws (until the window's base draw), the model's x moved left by
+// EdgeShift, the depth buffer's rectangles scaled without the margin. The callees Rebirth patches
+// too (the sprites' Place 005E6FA0, the layout scaling 005F7CA0) are called through their
+// addresses. The function drives
 // the Direct3D device itself (IDirect3DDevice7::Clear, Get / SetTextureStageState): those calls are
 // made as they are, and mirrored to the new renderer as the hero preview's are (ui_hero_preview.cpp).
 // See ui.h (CHudUnitPanel) and docs/notes/items_spells.md ("A-H26").
@@ -12,9 +14,11 @@
 #include "map_object_figures.h"
 #include "map_object_shadow.h"   // CObject3DClientSpecific::figureScale
 #include "texture.h"             // the renderer's device object
+#include "ui_widescreen.h"
 #include "unit.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/gameapi.h"
 #include "lib/vecmath.h"
 #include "originals_render.h"    // QuaternionSetAxisAngleOriginal, the batch flushes
@@ -107,6 +111,7 @@ void ClearDepthRects(UiRenderer* renderer, RECT* rects, float z) {
 } // namespace
 
 BOOL CHudUnitPanel::DrawVanilla(int pass) {
+    widescreen::EnterLeftPanel();    // addon's 100232F4
     Quaternion savedOrientation = {1.0f, 0.0f, 0.0f, 0.0f};
     Vector3 savedPosition = {};
     Sprite(this, kHeightBar)->visible_ = 0;
@@ -144,9 +149,10 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
             RECT right = {180 - offset_, 0, 400 - offset_, 220};
             RECT strip = {0, 0, 20 - offset_, 220};
             RECT below = {0, 220, 400 - offset_, 300};
-            interface_->CallScaleRectToScreen(&right);
-            interface_->CallScaleRectToScreen(&strip);
-            interface_->CallScaleRectToScreen(&below);
+            // WideScreen (0064644C / 0064648E / 00646499: XOR ECX,ECX): without the margin.
+            interface_->CallScaleRectToScreenNoMargin(&right);
+            interface_->CallScaleRectToScreenNoMargin(&strip);
+            interface_->CallScaleRectToScreenNoMargin(&below);
             RECT rects[kClearedRects] = {right, below, strip};
             ClearDepthRects(interface_->renderer_, rects, 0.0f);
 
@@ -156,8 +162,9 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
 
             // In front of the interface camera, at the layout's x = 100 less the slide, lowered so
             // that its height (in units of its size) stands a quarter of the view below the centre.
-            const float x =
-                RoundToFloat((static_cast<float>(100 - offset_) * LayoutUnit() - One()) * DepthUnit() * ModelDepth());
+            // WideScreen: 100 - shift (00646608).
+            const float x = RoundToFloat((static_cast<float>(100 - widescreen::EdgeShift() - offset_) * LayoutUnit() - One()) *
+                                         DepthUnit() * ModelDepth());
             const float y = RoundToFloat(height / size - DepthUnit() * ModelDepth() * ModelDrop());
             model->position = Vector3{x, y, ModelDepth()};
             // Turned with the sling buttons' angle: about z, about x, about z again.
@@ -230,7 +237,9 @@ BOOL CHudUnitPanel::DrawVanilla(int pass) {
     }
 
     SurfaceReleaseDC(surfaces_.data[0]);
+    widescreen::LeavePanel();        // addon's 10023312, before the base draw
     DrawBase(pass);
     return 1;
 }
 EI_REPLACE_METHOD(0x006462A0, CHudUnitPanel::DrawVanilla);
+EI_REBIRTH_IMPLEMENTS(0x006462A0, ei::rebirth::Patch::WideScreen);

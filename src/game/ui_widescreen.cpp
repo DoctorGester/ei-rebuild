@@ -96,8 +96,8 @@ void WriteFloat(std::uintptr_t address, float value) {
 
 // addon's CUiRegion::SetRect (the target of its JMP at 005FC9E0) adds its panel offset with
 // ADD ECX,[offset] ... ADD EAX,[offset]: the variable's address is that operand. Only while addon's
-// code is there (a Rebirth launch, before our hooks): our SetRect / AddPoint / Place then read the
-// value addon's own panel builders set.
+// code is there (a Rebirth launch, before our hooks): our builders then write that variable, and
+// addon's builders run by the verify build's side-by-side wrappers set the one our callees read.
 int* AddonPanelOffset() {
     constexpr std::uintptr_t kSetRect = std::uintptr_t(0x005FC9E0);
     const auto* start = reinterpret_cast<const std::uint8_t*>(kSetRect);
@@ -144,7 +144,7 @@ void Startup() {
             ReadFloat(kLayoutWidthAddress), ReadFloat(kPanelRightAddress));
     if (int* addon = AddonPanelOffset()) {
         g_panelOffsetAt = addon;
-        ei::Log("WideScreen: addon.dll's panel builders set its panel offset at %p: shared", static_cast<void*>(addon));
+        ei::Log("WideScreen: addon.dll's panel offset at %p: shared", static_cast<void*>(addon));
     }
 }
 EI_STARTUP_ACTION(Startup);
@@ -166,6 +166,23 @@ const Layout& Get() {
 
 int PanelOffset() { return *g_panelOffsetAt; }
 void SetPanelOffset(int offset) { *g_panelOffsetAt = offset; }
+
+int EdgeShift() {
+    const Layout& l = Get();
+    return l.active ? l.extra : 0;
+}
+
+// addon's entry handlers (e.g. 10023344 at 00641F20: MOV EAX,[extra]; MOV [offset],EAX; 100232AF at
+// 00645F80: NEG EAX first) and exit handlers (10023359: MOV [offset],0).
+void EnterLeftPanel() {
+    if (Active()) SetPanelOffset(-Get().extra);
+}
+void EnterRightPanel() {
+    if (Active()) SetPanelOffset(Get().extra);
+}
+void LeavePanel() {
+    if (Active()) SetPanelOffset(0);
+}
 
 // 10023213 (addon's 005F7CA0): x scaled by the 4:3 part's width plus the margin (when ECX is
 // nonzero), y by the mode's height.

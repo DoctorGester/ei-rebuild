@@ -13,6 +13,7 @@
 #include "player_client.h"
 #include "ui_briefing.h"
 #include "ui_cursor.h"
+#include "ui_widescreen.h"
 #include "ei/hook.h"
 #include "render/render_state.h"
 #include "ei/rebirth.h"
@@ -404,7 +405,8 @@ void CHudMap::OnMouseUp(int, int x, int y) {
         // through its address.
         POINT point = {x, y};
         interface_->CallScalePointFromScreen(&point);
-        float right = static_cast<float>(point.x - kMapCentreX) / halfSide_;
+        // WideScreen (006452ED / 00645432): the centre moved right by the shift.
+        float right = static_cast<float>(point.x - (kMapCentreX + widescreen::EdgeShift())) / halfSide_;
         float down = static_cast<float>(point.y - kMapCentreY) / halfSide_;
         if (region == 1) {
             right /= zoom_;
@@ -437,6 +439,7 @@ void CHudMap::OnMouseUp(int, int x, int y) {
     }
 }
 UI_INPUT_HANDLER(0x00645210, CHudMap, OnMouseUp);
+EI_REBIRTH_IMPLEMENTS(0x00645210, ei::rebirth::Patch::WideScreen);
 
 void CHudMap::OnMouseMove(int, int x, int y) {
     if (RegionAt(x, y) >= 0) inputHandled_ = true;
@@ -578,6 +581,7 @@ void CHudMovePanel::OnMouseMove(int, int x, int y) {
 UI_INPUT_HANDLER(0x00649750, CHudMovePanel, OnMouseMove);
 
 void CHudMovePanel::ShowModeVanilla(int mode) {
+    widescreen::EnterLeftPanel();    // addon's 100233C7; 100233E0 at the end
     mode_ = mode;
     auto* marker = reinterpret_cast<CUiMesh*>(sceneObjects_.data[0]);
     marker->visible_ = mode < 0 ? 0 : 1;
@@ -598,8 +602,10 @@ void CHudMovePanel::ShowModeVanilla(int mode) {
         SpritePlaceOriginal(sceneObjects_.data[0], nullptr, x, y, kMarkerDepth);
         SetTint(button, kTintOn);
     }
+    widescreen::LeavePanel();
 }
 EI_REPLACE_METHOD(0x00649910, CHudMovePanel::ShowModeVanilla);
+EI_REBIRTH_IMPLEMENTS(0x00649910, ei::rebirth::Patch::WideScreen);
 
 void CHudMovePanel::Update() {
     if (!WorldClient()->LocalView()) return;

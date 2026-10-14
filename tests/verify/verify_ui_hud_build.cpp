@@ -1,20 +1,25 @@
-// Checks for the vanilla bodies of the battle screen's four item panels (A-I22,
-// src/game/ui_hud_build.cpp): the constructors 0063BAB0, 0063C800, 0063E2A0, 0063F300, the
-// functions that add a slot's sprite 0063BCC0, 0063CAE0, 0063E4B0, 0063F500 and the weapon bar's
-// highlight 0063C050. Rebirth patches all nine, so the installer hooks them in the vanilla launch
-// only and these wrappers run there.
+// Checks for the battle screen's four item panels (A-I22, src/game/ui_hud_build.cpp): the
+// constructors 0063BAB0, 0063C800, 0063E2A0, 0063F300, the functions that add a slot's sprite
+// 0063BCC0, 0063CAE0, 0063E4B0, 0063F500 and the weapon bar's highlight 0063C050. Rebirth patches
+// all nine for its WideScreen layout, which the rewrites reproduce behind the flag (W3): in a
+// Rebirth launch they are hooked too and compare with addon's code (the side-by-side one) or
+// check ours with the wide layout's numbers; with the flag on in a vanilla launch the comparing
+// wrapper is not installed.
 //
 // 0063C050: side by side (it places one sprite and one region; both are put back between the
 //   runs). Reached whenever a unit with weapons is shown or a weapon slot is picked: ui_hud,
-//   ui_battle_commands.
+//   ui_battle_commands, and in a Rebirth launch every scenario's battle screen (wide).
 // The constructors: ours only (they allocate the regions and the labels). Every battle screen
 //   made: ui_hud and every scenario that enters a map.
 // The Add functions: ours only (each adds a sprite and copies a picture into the panel's
 //   texture). The panels' SetUnit calls them for the unit shown: ui_hud (weapons, actions),
 //   ui_quick_items (items), ui_battle_spells (spells).
+// Every one leaves the panel offset at 0 (ui_widescreen.h: addon's handlers clear it at each
+// return of the builders that set it).
 #include "verify.h"
 
 #include "../../src/game/ui.h"
+#include "../../src/game/ui_widescreen.h"
 #include "../../src/lib/mfc.h"
 
 #include <cstdint>
@@ -32,6 +37,9 @@ CUiMesh* Sprite(CUiWindow* window, int index) { return reinterpret_cast<CUiMesh*
 int LabelCount(void** labels) { return reinterpret_cast<mfc::CStringArray*>(labels)->size; }
 bool SameRect(const RECT& rect, int left, int top, int right, int bottom) {
     return rect.left == left && rect.top == top && rect.right == right && rect.bottom == bottom;
+}
+void CheckOffsetCleared(const char* name) {
+    ei::verify::Check(name, 0, widescreen::PanelOffset(), "the panel offset after the call");
 }
 
 // What the weapon bar's highlight writes.
@@ -70,12 +78,16 @@ void CheckIcon(const char* name, CUiMesh* sprite, int n, int firstColumn) {
 static CHudWeaponBar* __fastcall WeaponBarConstructVerify(CHudWeaponBar* self, void*, CInterface3D* ui,
                                                           CBattleScreen* owner) {
     CHudWeaponBar* result = self->Construct(ui, owner);
-    bool ok = result == self && self->owner_ == owner && self->interface_ == ui && self->regions_.size == 4 &&
+    // WideScreen: the rectangle less the shift, and the regions from 80 - shift up to x 240.
+    const int shift = widescreen::EdgeShift();
+    const int regions = (240 - (80 - shift) + 39) / 40;
+    bool ok = result == self && self->owner_ == owner && self->interface_ == ui && self->regions_.size == regions &&
               self->sceneObjects_.size == 0 && self->count_ == 0 && self->selected_ == -1 && !self->unit_ &&
-              LabelCount(&self->labelsVtable_) == 4 && SameRect(self->rect_, 80, 520, 240, 600);
+              LabelCount(&self->labelsVtable_) == 4 && SameRect(self->rect_, 80 - shift, 520, 240 - shift, 600);
     for (int i = 0; ok && i < 4; ++i) ok = self->regions_.data[i]->tip_ != nullptr;
     ei::verify::Check("CHudWeaponBar::Construct", true, ok, "regions %d sprites %d labels %d", self->regions_.size,
                       self->sceneObjects_.size, LabelCount(&self->labelsVtable_));
+    CheckOffsetCleared("CHudWeaponBar::Construct");
     return result;
 }
 EI_VERIFY(0x0063BAB0, WeaponBarConstructVerify, 0, s_unused);
@@ -109,6 +121,7 @@ static void __fastcall WeaponHighlightVerify(CHudWeaponBar* self, void*, int ind
     ei::verify::Check("CHudWeaponBar::HighlightVanilla region", true,
                       std::memcmp(&expected.bounds, &actual.bounds, sizeof(RECT)) == 0, "slot %d on %d: top %ld / %ld", index,
                       on, expected.bounds.top, actual.bounds.top);
+    CheckOffsetCleared("CHudWeaponBar::HighlightVanilla");
 }
 EI_VERIFY(0x0063C050, WeaponHighlightVerify, 6, s_weaponHighlight);
 
@@ -129,6 +142,7 @@ static void __fastcall WeaponBarAddVerify(CHudWeaponBar* self, void*, const char
     ei::verify::Check("CHudWeaponBar::AddWeapon shown", true,
                       sprite->plainColour_ == kWhite && (sprite->flags_ & kPlainFlag) != 0 && sprite->colour_ == kColourOff,
                       "slot %d colour %08X", count, sprite->colour_);
+    CheckOffsetCleared("CHudWeaponBar::AddWeapon");
 }
 EI_VERIFY(0x0063BCC0, WeaponBarAddVerify, 0, s_unused);
 
@@ -140,10 +154,11 @@ static CHudQuickItems* __fastcall QuickItemsConstructVerify(CHudQuickItems* self
     bool ok = result == self && self->owner_ == owner && self->interface_ == ui && self->regions_.size == 8 &&
               self->sceneObjects_.size == 0 && self->unknown_14C == 0 && self->selected_ == -1 && !self->unit_ &&
               !self->entries_ && self->entryCount_ == 0 && LabelCount(&self->labelsVtable_) == 12 &&
-              SameRect(self->rect_, 520, 500, 720, 600);
+              SameRect(self->rect_, 520 + widescreen::EdgeShift(), 500, 720 + widescreen::EdgeShift(), 600);
     for (int i = 0; ok && i < 8; ++i) ok = self->regions_.data[i]->tip_ != nullptr && self->regionItem_[i] == -1;
     ei::verify::Check("CHudQuickItems::Construct", true, ok, "regions %d sprites %d labels %d", self->regions_.size,
                       self->sceneObjects_.size, LabelCount(&self->labelsVtable_));
+    CheckOffsetCleared("CHudQuickItems::Construct");
     return result;
 }
 EI_VERIFY(0x0063C800, QuickItemsConstructVerify, 0, s_unused);
@@ -172,7 +187,8 @@ static CHudSpellColumn* __fastcall SpellColumnConstructVerify(CHudSpellColumn* s
     CHudSpellColumn* result = self->Construct(ui, owner);
     bool ok = result == self && self->owner_ == owner && self->interface_ == ui && self->regions_.size == 0 &&
               self->sceneObjects_.size == 0 && self->count_ == 0 && self->selected_ == -1 && !self->unit_ &&
-              LabelCount(&self->labelsVtable_) == 13 && SameRect(self->rect_, 760, 190, 800, 510);
+              LabelCount(&self->labelsVtable_) == 13 &&
+              SameRect(self->rect_, 760 + widescreen::EdgeShift(), 190, 800 + widescreen::EdgeShift(), 510);
     ei::verify::Check("CHudSpellColumn::Construct", true, ok, "regions %d sprites %d labels %d", self->regions_.size,
                       self->sceneObjects_.size, LabelCount(&self->labelsVtable_));
     return result;
@@ -192,6 +208,7 @@ static void __fastcall SpellColumnAddVerify(CHudSpellColumn* self, void*, const 
     if (count < 8) CheckIcon("CHudSpellColumn::AddSpell picture", Sprite(self, sprites), count, 0x80);
     if (count < self->sceneObjects_.size)
         ei::verify::Check("CHudSpellColumn::AddSpell colour", kColourOff, Sprite(self, count)->colour_, "button %d", count);
+    CheckOffsetCleared("CHudSpellColumn::AddSpell");
 }
 EI_VERIFY(0x0063E4B0, SpellColumnAddVerify, 0, s_unused);
 
@@ -202,10 +219,12 @@ static CHudActionColumn* __fastcall ActionColumnConstructVerify(CHudActionColumn
     CHudActionColumn* result = self->Construct(ui, owner);
     bool ok = result == self && self->owner_ == owner && self->interface_ == ui && self->regions_.size == 6 &&
               self->sceneObjects_.size == 0 && self->count_ == 0 && self->selected_ == -1 && !self->unit_ &&
-              self->actions_.size == 0 && LabelCount(&self->labelsVtable_) == 1 && SameRect(self->rect_, 0, 250, 40, 510);
+              self->actions_.size == 0 && LabelCount(&self->labelsVtable_) == 1 &&
+              SameRect(self->rect_, -widescreen::EdgeShift(), 250, 40 - widescreen::EdgeShift(), 510);
     for (int i = 0; ok && i < 6; ++i) ok = self->regions_.data[i]->tip_ != nullptr;
     ei::verify::Check("CHudActionColumn::Construct", true, ok, "regions %d sprites %d labels %d", self->regions_.size,
                       self->sceneObjects_.size, LabelCount(&self->labelsVtable_));
+    CheckOffsetCleared("CHudActionColumn::Construct");
     return result;
 }
 EI_VERIFY(0x0063F300, ActionColumnConstructVerify, 0, s_unused);

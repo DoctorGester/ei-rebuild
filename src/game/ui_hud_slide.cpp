@@ -1,11 +1,13 @@
 // The battle HUD's two sliding side panels, the map (CHudMap) and the unit panel (CHudUnitPanel):
 // their layouts at the current slide offset (00642930, 00645F80), their per-frame updates
 // (00642B40, 00647FB0, slot 24) and their setups (00641F20, 006456E0). A-H26.
-// Rebirth patches all of them (its widescreen layout), so these are the vanilla bodies and install
-// in the vanilla launch only (rule 9); the callees Rebirth patches too (the sprites' Place
-// 005E6FA0 and shapes 005E70E0 / 005E7680 / 005E7D60, the regions' SetRect 005FC9E0 and AddPoint
-// 005FCA70) are called through their addresses. See ui.h ("Battle screen and its HUD panels") and
-// docs/notes/items_spells.md ("A-H26").
+// Rebirth patches all of them for its WideScreen layout, reproduced behind the flag (W3,
+// ui_widescreen.h): the map at the screen's right edge, the unit panel at its left (the panel
+// offset while the setups and layouts run, their layout constants moved by EdgeShift). The callees
+// Rebirth patches too (the sprites' Place 005E6FA0 and shapes 005E70E0 / 005E7680 / 005E7D60, the
+// regions' SetRect 005FC9E0 and AddPoint 005FCA70) are called through their addresses. See ui.h
+// ("Battle screen and its HUD panels"), docs/notes/items_spells.md ("A-H26") and
+// docs/notes/rebirth.md ("WideScreen").
 #include "ui.h"
 
 #include "item_db_text.h"       // GameTexts
@@ -13,10 +15,12 @@
 #include "object_tables.h"      // MapRecord, GameMapDatabase
 #include "ui_gdi.h"
 #include "ui_mesh_build.h"
+#include "ui_widescreen.h"
 #include "unit.h"
 #include "world.h"              // LocalPlayerName
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
@@ -71,6 +75,11 @@ float FromBits(std::uint32_t bits) {
 // A float argument would convert to an integer first: callers pass raw bits only.
 template <std::floating_point T> float FromBits(T) = delete;
 
+// WideScreen's layout constants (addon's operands, exact integers as floats): moved right for the
+// map, left for the unit panel.
+float RightEdge(float x) { return x + static_cast<float>(widescreen::EdgeShift()); }
+float LeftEdge(float x) { return x - static_cast<float>(widescreen::EdgeShift()); }
+
 void Place(CUiWindow* window, int index, float x, float y, float depth) {
     SpritePlaceOriginal(window->sceneObjects_.data[index], nullptr, x, y, depth);
 }
@@ -124,6 +133,7 @@ void PlaceSling(CEngineObject* sling, float angle, float x) {
 // --- The map -------------------------------------------------------------------------------------
 
 void CHudMap::LayoutVanilla() {
+    widescreen::EnterRightPanel();   // addon's 10023366
     const float offset = static_cast<float>(offset_);
     const float centre = offset + MapCentreX();
     const float buttons = offset + MapButtonsX();
@@ -138,10 +148,12 @@ void CHudMap::LayoutVanilla() {
     Place(this, 9, offset + MapFrameX(), 80.0f, 10.0f);
     Place(this, 10, offset + MapNeedleX(), 84.0f, FromBits(kSlingDepthBits));
     Place(this, 11, buttons, 85.0f, 10.0f);
-    surfaces_.data[0]->MoveTo(offset_ + 700, 80);
+    surfaces_.data[0]->MoveTo(offset_ + 700 + widescreen::EdgeShift(), 80);   // WideScreen: 00642AFC
+    widescreen::LeavePanel();        // addon's 1002337E, before the regions
     MoveRegions(this, offset_);
 }
 EI_REPLACE_METHOD(0x00642930, CHudMap::LayoutVanilla);
+EI_REBIRTH_IMPLEMENTS(0x00642930, ei::rebirth::Patch::WideScreen);
 
 void CHudMap::UpdateVanilla() {
     // The zoom runs towards the chosen view's end: up to zoomMax_ (view 1) or down to 1 (view 2).
@@ -162,10 +174,11 @@ void CHudMap::UpdateVanilla() {
         AdvanceSlide(this);
         CallLayout();
         // The sling button (scene object 5).
+        // WideScreen: 00642D23 / 00642D7F.
         if (slideDirection_ == 1.0f)
-            PlaceSling(sceneObjects_.data[5], SlingTurn(), 713.0f);
+            PlaceSling(sceneObjects_.data[5], SlingTurn(), RightEdge(713.0f));
         else
-            PlaceSling(sceneObjects_.data[5], -SlingTurn(), 850.0f);
+            PlaceSling(sceneObjects_.data[5], -SlingTurn(), RightEdge(850.0f));
     }
     interface_->hudPanelsIn_[2] = slideDirection_ > 0.0f ? 1 : 0;
 
@@ -174,10 +187,12 @@ void CHudMap::UpdateVanilla() {
     SetTint(sceneObjects_.data[11], unknown_1B0 > 0.0f ? 1.0f : 0.5f);
 }
 EI_REPLACE_METHOD(0x00642B40, CHudMap::UpdateVanilla);
+EI_REBIRTH_IMPLEMENTS(0x00642B40, ei::rebirth::Patch::WideScreen);
 
 // --- The unit panel ------------------------------------------------------------------------------
 
 void CHudUnitPanel::LayoutVanilla() {
+    widescreen::EnterLeftPanel();    // addon's 100232AF
     const float offset = static_cast<float>(offset_);
     const float edge = UnitEdgeX() - offset;
     const float middle = UnitMiddleX() - offset;
@@ -202,26 +217,30 @@ void CHudUnitPanel::LayoutVanilla() {
     }
     // The effects' pictures (scene objects 26-31), 30 apart downwards.
     for (int i = 0; i < kEffects; ++i) Place(this, 26 + i, UnitEffectX() - offset, static_cast<float>(50 + 30 * i), 5.0f);
-    surfaces_.data[0]->MoveTo(20 - offset_, 0);
+    surfaces_.data[0]->MoveTo(20 - widescreen::EdgeShift() - offset_, 0);   // WideScreen: 00646251
     MoveRegions(this, -offset_);
+    widescreen::LeavePanel();        // addon's 100232E9
 }
 EI_REPLACE_METHOD(0x00645F80, CHudUnitPanel::LayoutVanilla);
+EI_REBIRTH_IMPLEMENTS(0x00645F80, ei::rebirth::Patch::WideScreen);
 
 void CHudUnitPanel::UpdateVanilla() {
     if (sliding_) {
         AdvanceSlide(this);
         CallLayout();
         // The sling button (scene object 2).
+        // WideScreen: 006480EB / 00648147.
         if (slideDirection_ == -1.0f)
-            PlaceSling(sceneObjects_.data[2], SlingTurn(), -50.0f);
+            PlaceSling(sceneObjects_.data[2], SlingTurn(), LeftEdge(-50.0f));
         else
-            PlaceSling(sceneObjects_.data[2], -SlingTurn(), 87.0f);
+            PlaceSling(sceneObjects_.data[2], -SlingTurn(), LeftEdge(87.0f));
     }
     if (hoverUnit_ && ObjectSlots(hoverUnit_)->IsDead() != 0) hoverUnit_ = nullptr;
     interface_->hudPanelsIn_[0] = slideDirection_ > 0.0f ? 1 : 0;
     interface_->hudBodyPart_ = bodyPart_;
 }
 EI_REPLACE_METHOD(0x00647FB0, CHudUnitPanel::UpdateVanilla);
+EI_REBIRTH_IMPLEMENTS(0x00647FB0, ei::rebirth::Patch::WideScreen);
 
 // --- 006456E0: the unit panel's setup ----------------------------------------------------------------
 
@@ -238,6 +257,8 @@ constexpr std::uintptr_t kPartLabelKeys[4] = {
 // The strip's scale: 100 / 0.48157 (the layout's half height at depth 1), both read from the exe.
 float StripScale() { return RoundToFloat(GameFloat(0x0073BAB0) / GameFloat(0x007423FC)); }
 constexpr int kUnitTravel = 180;
+constexpr int kWideUnitLeft = -133;   // WideScreen's rectangle (addon's constants, whatever the margin)
+constexpr int kWideUnitRight = 52;
 constexpr int kInfoTexts = 18;
 constexpr std::uint32_t kPlainColour = 0x100;             // CUiMesh::flags_: drawn in plainColour_
 } // namespace
@@ -246,8 +267,16 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     offset_ = slid ? kUnitTravel : 0;
     slide_ = slid ? 1.0f : 0.0f;
     slideDirection_ = slid ? 1.0f : -1.0f;
-    rect_ = RECT{0, 0, 185, 225};
-    sliding_ = 1;
+    if (widescreen::Active()) {
+        // addon's 10023068 (at 00645719, over the fields' stores): the panel offset, and its own
+        // rectangle and slide state.
+        widescreen::EnterLeftPanel();
+        rect_ = RECT{kWideUnitLeft, 0, kWideUnitRight, 225};
+        sliding_ = 0;
+    } else {
+        rect_ = RECT{0, 0, 185, 225};
+        sliding_ = 1;
+    }
     travel_ = kUnitTravel;
 
     // Regions: the sling button, the four body part buttons, the whole panel.
@@ -341,8 +370,10 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
         labels->SetAtGrow(labels->size, text);
     }
     for (int& icon : effectIcons_) icon = -1;
+    widescreen::LeavePanel();        // addon's 100230E2
 }
 EI_REPLACE_METHOD(0x006456E0, CHudUnitPanel::SetupVanilla);
+EI_REBIRTH_IMPLEMENTS(0x006456E0, ei::rebirth::Patch::WideScreen);
 
 // --- 00641F20: the map's setup ----------------------------------------------------------------------
 
@@ -385,7 +416,9 @@ void SetPlain(CUiMesh* sprite, std::uint32_t colour) {
 } // namespace
 
 void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
-    rect_ = RECT{615, 0, 800, 165};
+    widescreen::EnterRightPanel();   // addon's 10023344
+    const int shift = widescreen::EdgeShift();
+    rect_ = RECT{615 + shift, 0, 800 + shift, 165};   // WideScreen: 00641F51 / 00641F61
     halfSide_ = 80.0f;
 
     // The world's extent and the map's picture (referenced object 1), from the zone's record.
@@ -507,5 +540,7 @@ void CHudMap::SetupVanilla(float zoom, std::uint8_t slid) {
     for (int i = 0; i < 2; ++i) SetTint(sceneObjects_.data[6 + i], view_ == i + 1 ? 1.0f : 0.5f);
     CallLayout();
     unknown_1B0 = 0.0f;
+    widescreen::LeavePanel();        // addon's 10023359
 }
 EI_REPLACE_METHOD(0x00641F20, CHudMap::SetupVanilla);
+EI_REBIRTH_IMPLEMENTS(0x00641F20, ei::rebirth::Patch::WideScreen);

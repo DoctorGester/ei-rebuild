@@ -1,6 +1,8 @@
 // Checks for the HUD panels' setups (A-H26): the clock's and the movement panel's (00648520,
 // 00649190; ui_hud_setup.cpp), the unit panel's and the map's (006456E0, 00641F20;
-// ui_hud_slide.cpp). All are Rebirth-patched, so they are hooked in the vanilla launch only.
+// ui_hud_slide.cpp). All are Rebirth-patched for WideScreen, which the rewrites
+// reproduce behind the flag (W3): in a Rebirth launch (every one is wide: the starter's settings
+// here) they are hooked too and the side-by-side runs compare with addon's code.
 // Each runs side by side on the real panel, which is new and empty when the battle screen sets it
 // up: the original first, its regions (vertices, bounds, flags, offsets, tooltip lines and
 // arguments), its sprites (position, orientation, texture frame, tint, scale, flags, plain colour,
