@@ -5,6 +5,7 @@
 
 #include "crt.h"
 
+#include <cstdarg>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -26,6 +27,7 @@ public:
 
     // 006FDF5F. printf-style; MFC declares it __cdecl, so `this` is the first stack argument.
     void __cdecl Format(const char* format, ...);
+    void FormatV(const char* format, va_list arguments);   // 006FDC12
 
     void Empty();                                 // 007008FB
     char* GetBufferSetLength(int length);         // 00700E17
@@ -141,6 +143,17 @@ public:
     virtual BOOL MatchesMask(unsigned long mask) const;     // 14: 006E6513 (file attribute bits)
     virtual BOOL IsDots() const;                            // 15: 006E661A
 };
+
+// CTime (a time_t). No constructor, so it can be a plain local: Construct is the constructor.
+class CTime {
+public:
+    // 006FE3BB (RET 0x1C). CTime(year, month, day, hour, minute, second, dst) through mktime.
+    // Returns this.
+    CTime* Construct(int year, int month, int day, int hour, int minute, int second, int dst);
+
+    long time_;
+};
+static_assert(sizeof(CTime) == 4);
 
 // CPlex: the block allocator behind MFC's lists and maps.
 struct CPlex {

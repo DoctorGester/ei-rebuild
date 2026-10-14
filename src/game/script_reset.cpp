@@ -19,11 +19,6 @@
 
 namespace {
 
-template <typename T>
-T& Field(void* object, std::size_t offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
-}
-
 // ---- Original code ------------------------------------------------------------------------------
 
 // CList::RemoveHead / RemoveTail instantiations (__thiscall, the element returned through a
@@ -56,13 +51,11 @@ struct World {
 void World::RemoveTimedObject(int id) { ::WorldRemoveTimed(this, nullptr, id); }
 World* TheWorld() { return reinterpret_cast<World*>(0x007AFF60); }
 
-ScriptList& ListAt(CScript* script, std::size_t offset) { return Field<ScriptList>(script, offset); }
-
 // CList::RemoveAll as the reset inlines it: each element destroyed in place, the list emptied
 // and its blocks freed.
-template <typename Destroy>
-void RemoveAll(ScriptList& list, Destroy destroy) {
-    for (ScriptListNode* node = list.head; node; node = node->next) destroy(node->data.bytes);
+template <typename List, typename Destroy>
+void RemoveAll(List& list, Destroy destroy) {
+    for (auto* node = list.head; node; node = node->next) destroy(&node->data);
     list.count = 0;
     list.free = nullptr;
     list.tail = nullptr;
@@ -79,62 +72,63 @@ void __fastcall ScriptReset(CScript* script) {
     script->ErrorText() = reinterpret_cast<const char*>(0x0078BBDC);   // "Unknown error"
     script->ErrorLine() = 0;
 
-    // Instances (+0x140) and runs (+0x15C), removed from the head; a run's destructor is its
-    // variables' (+0x14).
-    alignas(4) unsigned char element[0xC0];
-    while (ListAt(script, 0x140).count != 0) {
-        InstancesRemoveHead(&ListAt(script, 0x140), nullptr, element);
+    // Instances and runs, removed from the head; a run's destructor is its variables'.
+    alignas(4) unsigned char element[sizeof(ScriptDefinition)];
+    static_assert(sizeof(ScriptDefinition) >= sizeof(ScriptRun));
+    while (script->instances_.count != 0) {
+        InstancesRemoveHead(&script->instances_, nullptr, element);
         DefinitionDestruct(reinterpret_cast<ScriptDefinition*>(element));
     }
-    while (ListAt(script, 0x15C).count != 0) {
-        RunsRemoveHead(&ListAt(script, 0x15C), nullptr, element);
-        VarsDestruct(reinterpret_cast<ScriptVars*>(element + 0x14));
+    while (script->runs_.count != 0) {
+        RunsRemoveHead(&script->runs_, nullptr, element);
+        VarsDestruct(&reinterpret_cast<ScriptRun*>(element)->vars);
     }
 
-    RemoveAll(ListAt(script, 0x178), [](char* data) { WorldBlockDestroy(data, nullptr, 0); });
+    RemoveAll(script->worldBlocks_, [](ScriptDecl* block) { WorldBlockDestroy(block, nullptr, 0); });
 
     ScriptVars* globals = script->Globals();
     FloatsClear(&globals->floats);
     StringsClear(&globals->strings);
     ObjectsClear(&globals->objects);
     GroupsClear(&globals->groups);
-    Field<int>(script, 0x1E8) = 0;
+    script->forDepth_ = 0;
 
     // Temporaries: every entry but one dropped, the last one emptied.
-    ScriptList& groups = ListAt(script, 0x1B0);
+    auto& groups = script->tempGroups_;
     while (groups.count > 1) {
         TempGroupsRemoveTail(&groups, nullptr, element);
         GroupDestruct(element);
     }
-    GroupSetSize(groups.tail->data.bytes, nullptr, 0, -1);
-    ScriptList& objects = ListAt(script, 0x1CC);
+    GroupSetSize(&groups.tail->data, nullptr, 0, -1);
+    auto& objects = script->tempObjects_;
     while (objects.count > 1) {
         TempObjectsRemoveTail(&objects, nullptr, element);
         RefReset(reinterpret_cast<ScriptObjectRef*>(element));
     }
-    RefAssign(reinterpret_cast<ScriptObjectRef*>(objects.tail->data.bytes), nullptr, nullptr);
+    RefAssign(&objects.tail->data, nullptr, nullptr);
 
-    // Point lights (+0x04 data, +0x08 count; 0x20-byte slots): objects released, slots zeroed.
-    for (int i = 0; i < Field<int>(script, 0x08); ++i) {
-        CEngineObject* object = Field<CEngineObject**>(script, 0x04)[i * 8];
+    // Point lights: objects released, slots zeroed.
+    auto& lights = script->pointLights_;
+    for (int i = 0; i < lights.size; ++i) {
+        CEngineObject* object = lights.data[i].object;
         if (!object) continue;
         TheWorld()->RemoveTimedObject(object->id_);
-        Field<CEngineObject**>(script, 0x04)[i * 8]->Release();
+        lights.data[i].object->Release();
     }
-    std::memset(Field<void*>(script, 0x04), 0, static_cast<unsigned>(Field<int>(script, 0x08)) * 0x20);
+    std::memset(lights.data, 0, static_cast<unsigned>(lights.size) * sizeof(ScriptPointLight));
 
-    RemoveAll(ListAt(script, 0x30), [](char* data) { FxSourceDestroy(data, nullptr, 0); });
-    RemoveAll(ListAt(script, 0x14), [](char* data) { ParticleDestroy(data, nullptr, 0); });
-    RemoveAll(ListAt(script, 0x4C), [](char* data) { LightningElementsDestruct(data, 1); });
+    RemoveAll(script->fxSources_, [](ScriptFxSource* source) { FxSourceDestroy(source, nullptr, 0); });
+    RemoveAll(script->particles_, [](ScriptParticleSource* source) { ParticleDestroy(source, nullptr, 0); });
+    RemoveAll(script->lightning_, [](ScriptLightning* bolt) { LightningElementsDestruct(bolt, 1); });
 
-    AreasSetSize(&Field<char>(script, 0x194), nullptr, 0, -1);
-    Field<int>(script, 0x68) = -2;
-    Field<int>(script, 0x6C) = -2;
-    DefinitionsSetSize(&Field<char>(script, 0x8C), nullptr, 0, -1);
+    AreasSetSize(&script->areas_, nullptr, 0, -1);
+    script->nextParticleId_ = -2;
+    script->nextFxId_ = -2;
+    DefinitionsSetSize(&script->definitions_, nullptr, 0, -1);
 
-    // Command blocks (+0x70), removed from the head.
-    while (ListAt(script, 0x70).count != 0) {
-        BlocksRemoveHead(&ListAt(script, 0x70), nullptr, element);
+    // Command blocks, removed from the head.
+    while (script->blocks_.count != 0) {
+        BlocksRemoveHead(&script->blocks_, nullptr, element);
         DeclDestruct(element);
     }
 }

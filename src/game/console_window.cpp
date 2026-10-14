@@ -11,19 +11,6 @@
 
 namespace console {
 
-namespace {
-
-struct WindowAt : ConsoleWindow {
-    void Show(bool shown);   // 005E3FD0: creates (or releases) the surface and redraws
-};
-__declspec(naked) void WindowAt::Show(bool) EI_ORIGINAL(0x005E3FD0)
-
-// 004DBE40: splits `text` at `separator` into `out`.
-
-WindowAt* At(ConsoleWindow* w) { return static_cast<WindowAt*>(w); }
-
-} // namespace
-
 // 005E3E90: the rectangle in pixels, clamped to at least 76x69 and at most the screen; the number
 // of 15-pixel lines that fit below the 24-pixel margin, less one; the clamped rectangle back in
 // 800x600 coordinates. A shown window gets a new surface.
@@ -52,8 +39,8 @@ void ConsoleWindow::SetRect(const int* rect) {
     InterfaceScaleRectFromScreenOriginal(reinterpret_cast<CInterface3D*>(screen_), nullptr,
                                          reinterpret_cast<tagRECT*>(rect_));
     if (shown_) {
-        At(this)->Show(false);
-        At(this)->Show(true);
+        Show(false);
+        Show(true);
     }
 }
 EI_REPLACE_METHOD(0x005E3E90, ConsoleWindow::SetRect);

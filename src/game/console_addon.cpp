@@ -8,6 +8,7 @@
 //   (0057ABE1, 0057BD30, 0057C9A3; the host functions are not rewritten yet).
 // The texts are addon's. Its own state (the two log levels, the GUI flags) lives here.
 #include "console.h"
+#include "script.h"
 
 #include "../lib/crt.h"
 #include "../lib/mfc.h"
@@ -25,6 +26,7 @@
 #include <vector>
 
 #include <windows.h>
+#undef GetClassName   // CEngineObject::GetClassName
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -34,14 +36,10 @@ namespace {
 
 // 004D36F0 (the script loader 007C27D4: load a file) and 004BF000 (run what was loaded, ScriptsRun).
 // 006002A0. CUiWindow::SetEnabled(enabled, notify).
-// 006FDC12. CString::FormatV(format, arguments).
-struct FormatVAt : mfc::CString {
-    void FormatV(const char* format, va_list arguments);
-};
-__declspec(naked) void FormatVAt::FormatV(const char*, va_list) EI_ORIGINAL(0x006FDC12)
 // 005DC620 through its address.
 
-void* const kScripts = reinterpret_cast<void*>(0x007C27D4);
+// The saved / console script (the world's command script).
+CScript* const kScripts = reinterpret_cast<CScript*>(0x007C27D4);
 void* const kRenderer = reinterpret_cast<void*>(0x007C7BD8);
 int* const kSpectator = reinterpret_cast<int*>(0x0079BE6C);
 void* const kFlushManipulator = reinterpret_cast<void*>(0x00435000);
@@ -60,30 +58,28 @@ void __cdecl SayFormat(const char* format, ...) {
     mfc::CString text;
     va_list args;
     va_start(args, format);
-    static_cast<FormatVAt&>(text).FormatV(format, args);
+    text.FormatV(format, args);
     va_end(args);
     Say(text);
 }
 
-// listgvar's object text: "null", or "<" class name (slot 11) ":" id ">".
-std::string ObjectText(void* const* slot) {
-    void* object = *slot;
+// listgvar's object text: "null", or "<" class name ":" id ">".
+std::string ObjectText(const ScriptObjectRef& ref) {
+    CEngineObject* object = ref.object;
     if (!object) return "null";
-    using NameFn = const char*(__thiscall*)(void*);
-    const char* name = reinterpret_cast<NameFn>((*static_cast<void***>(object))[11])(object);
+    const char* name = object->GetClassName();
     char id[16];
-    std::snprintf(id, sizeof(id), "%d", *reinterpret_cast<int*>(static_cast<std::uint8_t*>(object) + 0xC));
+    std::snprintf(id, sizeof(id), "%d", object->id_);
     return std::string("<") + name + ":" + id + ">";
 }
-// A group (0x14 bytes: objects at +4, count at +8): "empty" or the objects joined by ", ".
-std::string GroupText(const std::uint8_t* group) {
-    int count = *reinterpret_cast<const int*>(group + 8);
+// A group: "empty" or the objects joined by ", ".
+std::string GroupText(const ScriptGroup& group) {
+    int count = group.size;
     if (count == 0) return "empty";
-    void* const* objects = *reinterpret_cast<void* const* const*>(group + 4);
     std::string text;
     for (int i = 0; i < count; ++i) {
         if (i > 0) text += ", ";
-        text += ObjectText(&objects[i]);
+        text += ObjectText(group.data[i]);
     }
     return text;
 }
@@ -138,28 +134,27 @@ void __fastcall Addon(CStringArray* args) {
 // execs file: loads a script file into the script loader and runs it.
 void __fastcall Execs(CStringArray* args) {
     if (LoadScriptFile(kScripts, nullptr, (*args)[0])) {
-        ScriptsRun(static_cast<CScript*>(kScripts));
+        ScriptsRun(kScripts);
         return;
     }
-    SayFormat("Script error: line %d: %s", *reinterpret_cast<int*>(0x007C29C8), *reinterpret_cast<const char**>(0x007C29C0));
+    SayFormat("Script error: line %d: %s", kScripts->errorLine_, static_cast<const char*>(kScripts->errorText_));
 }
 
 // listgvar: the global script variables (floats, strings, objects, groups).
 void __fastcall ListGlobals(CStringArray*) {
-    auto count = [](std::uintptr_t a) { return *reinterpret_cast<int*>(a); };
-    for (int i = 0; i < count(0x007C287C); ++i)
-        SayFormat("%s : float = %f", (*reinterpret_cast<const char***>(0x007C288C))[i],
-                  static_cast<double>((*reinterpret_cast<float**>(0x007C2878))[i]));
-    for (int i = 0; i < count(0x007C28A4); ++i)
-        SayFormat("%s : string = \"%s\"", (*reinterpret_cast<const char***>(0x007C28B4))[i],
-                  (*reinterpret_cast<const char***>(0x007C28A0))[i]);
-    for (int i = 0; i < count(0x007C28CC); ++i) {
-        std::string text = ObjectText(&(*reinterpret_cast<void***>(0x007C28C8))[i]);
-        SayFormat("%s : object = %s", (*reinterpret_cast<const char***>(0x007C28DC))[i], text.c_str());
+    const ScriptVars& globals = kScripts->globals_;
+    auto name = [](const mfc::CArray<mfc::CString>& names, int i) { return static_cast<const char*>(names.data[i]); };
+    for (int i = 0; i < globals.floats.size; ++i)
+        SayFormat("%s : float = %f", name(globals.floatNames, i), static_cast<double>(globals.floats.data[i]));
+    for (int i = 0; i < globals.strings.size; ++i)
+        SayFormat("%s : string = \"%s\"", name(globals.stringNames, i), name(globals.strings, i));
+    for (int i = 0; i < globals.objects.size; ++i) {
+        std::string text = ObjectText(globals.objects.data[i]);
+        SayFormat("%s : object = %s", name(globals.objectNames, i), text.c_str());
     }
-    for (int i = 0; i < count(0x007C28F4); ++i) {
-        std::string text = GroupText(*reinterpret_cast<std::uint8_t**>(0x007C28F0) + i * 0x14);
-        SayFormat("%s : group = %s", (*reinterpret_cast<const char***>(0x007C2904))[i], text.c_str());
+    for (int i = 0; i < globals.groups.size; ++i) {
+        std::string text = GroupText(globals.groups.data[i]);
+        SayFormat("%s : group = %s", name(globals.groupNames, i), text.c_str());
     }
 }
 

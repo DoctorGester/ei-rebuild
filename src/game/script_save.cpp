@@ -39,15 +39,6 @@ __declspec(naked) void __fastcall RefSave(const ScriptObjectRef*, void*, ScriptS
 // The script being saved; the run saver (004BB320) finds a run's instance through it.
 CScript*& SavingScript() { return *reinterpret_cast<CScript**>(0x007AA620); }
 
-template <typename T>
-const T& Field(const CScript* script, std::size_t offset) {
-    return *reinterpret_cast<const T*>(reinterpret_cast<const char*>(script) + offset);
-}
-
-using List = ScriptList;
-using ListNode = ScriptListNode;
-const void* NodeData(const ListNode* node) { return node->data.bytes; }
-
 void WriteInt(ScriptStream* stream, int value) { stream->Write(&value, 4); }
 
 int Length(const mfc::CString& s) { return reinterpret_cast<const int*>(static_cast<const char*>(s))[-2]; }
@@ -81,13 +72,12 @@ void WriteVars(ScriptStream* stream, const ScriptVars* vars) {
 }
 
 // A list's count, then each element through `save`.
-template <typename Save>
-void WriteList(ScriptStream* stream, const CScript* script, std::size_t offset, Save save) {
-    const List& list = Field<List>(script, offset);
+template <typename List, typename Save>
+void WriteList(ScriptStream* stream, const List& list, Save save) {
     WriteInt(stream, list.count);
-    for (const ListNode* node = list.head; node;) {
-        const ListNode* next = node->next;
-        save(NodeData(node), nullptr, stream);
+    for (const auto* node = list.head; node;) {
+        const auto* next = node->next;
+        save(&node->data, nullptr, stream);
         node = next;
     }
 }
@@ -151,7 +141,7 @@ void __fastcall ScriptAreasSave(const mfc::CArray<ScriptArea>* areas, ScriptStre
 }
 EI_REPLACE(0x004CAEC0, ScriptAreasSave);
 
-// A definition (CScript +0x8C) or an instance (+0x140). The pairs' blocks are not null-checked.
+// A definition (CScript::definitions_) or an instance (instances_). The pairs' blocks are not null-checked.
 void __fastcall ScriptDefinitionSave(const ScriptDefinition* definition, void*, ScriptStream* stream) {
     stream->Write(&definition->index, 4);
     WriteString(stream, definition->name);
@@ -166,7 +156,7 @@ void __fastcall ScriptDefinitionSave(const ScriptDefinition* definition, void*, 
 }
 EI_REPLACE(0x004BBFE0, ScriptDefinitionSave);
 
-// A run (CScript +0x15C). Its instance is found by the address of the killed flag (the node's
+// A run (CScript::runs_). Its instance is found by the address of the killed flag (the node's
 // data) in the list of the script being saved; the WorldScript's runs (no flag) write -1.
 void __fastcall ScriptRunSave(const ScriptRun* run, void*, ScriptStream* stream) {
     WriteInt(stream, run->block->id);
@@ -174,9 +164,9 @@ void __fastcall ScriptRunSave(const ScriptRun* run, void*, ScriptStream* stream)
     stream->Write(&run->ticks, 4);
     stream->Write(&run->sleepStart, 4);
     int instance = 0;
-    const ListNode* node = Field<List>(SavingScript(), 0x140).head;
+    const auto* node = SavingScript()->instances_.head;
     for (; node; node = node->next, ++instance) {
-        if (static_cast<const void*>(run->killFlag) == NodeData(node)) break;
+        if (static_cast<const void*>(run->killFlag) == &node->data) break;
     }
     WriteInt(stream, node ? instance : -1);
     WriteVars(stream, &run->vars);
@@ -186,46 +176,35 @@ EI_REPLACE(0x004BB320, ScriptRunSave);
 void __fastcall ScriptSave(CScript* script, void*, ScriptStream* stream) {
     SavingScript() = script;
 
-    // Point lights: the CArray at +0x00 (data +0x04, size +0x08; 0x20-byte slots).
-    const auto& lights = Field<mfc::CArray<std::uint8_t[0x20]>>(script, 0x00);
+    const auto& lights = script->pointLights_;
     WriteInt(stream, lights.size);
-    for (int i = 0; i < lights.size; ++i) PointLightSave(lights.data[i], nullptr, stream);
+    for (int i = 0; i < lights.size; ++i) PointLightSave(&lights.data[i], nullptr, stream);
 
-    WriteList(stream, script, 0x14, ParticleSourceSave);
-    WriteList(stream, script, 0x30, FxSourceSave);
-    WriteList(stream, script, 0x4C, LightningSave);
-    stream->Write(&Field<int>(script, 0x68), 4);
-    stream->Write(&Field<int>(script, 0x6C), 4);
-    WriteList(stream, script, 0x70, [](const void* block, void*, ScriptStream* s) {
-        DeclSaveOrig(static_cast<const ScriptDecl*>(block), nullptr, s);
-    });
-    WriteList(stream, script, 0x178, [](const void* block, void*, ScriptStream* s) {
-        DeclSaveOrig(static_cast<const ScriptDecl*>(block), nullptr, s);
-    });
+    WriteList(stream, script->particles_, ParticleSourceSave);
+    WriteList(stream, script->fxSources_, FxSourceSave);
+    WriteList(stream, script->lightning_, LightningSave);
+    stream->Write(&script->nextParticleId_, 4);
+    stream->Write(&script->nextFxId_, 4);
+    WriteList(stream, script->blocks_, DeclSaveOrig);
+    WriteList(stream, script->worldBlocks_, DeclSaveOrig);
 
-    // Definitions (+0x8C).
-    const auto& scripts = Field<mfc::CArray<ScriptDefinition>>(script, 0x8C);
+    const auto& scripts = script->definitions_;
     WriteInt(stream, scripts.size);
     for (int i = 0; i < scripts.size; ++i) DefinitionSave(&scripts.data[i], nullptr, stream);
 
-    // Globals (+0xA0).
-    const char* globals = reinterpret_cast<const char*>(script) + 0xA0;
-    FloatsSaveOrig(globals + 0x00, nullptr, stream);
-    StringsSaveOrig(globals + 0x28, nullptr, stream);
-    ObjectsSaveOrig(globals + 0x50, nullptr, stream);
-    GroupsSaveOrig(globals + 0x78, nullptr, stream);
+    const ScriptVars& globals = script->globals_;
+    FloatsSaveOrig(&globals.floats, nullptr, stream);
+    StringsSaveOrig(&globals.strings, nullptr, stream);
+    ObjectsSaveOrig(&globals.objects, nullptr, stream);
+    GroupsSaveOrig(&globals.groups, nullptr, stream);
 
-    // Instances (+0x140, copies of definitions) and runs (+0x15C).
-    WriteList(stream, script, 0x140, [](const void* instance, void*, ScriptStream* s) {
-        DefinitionSave(static_cast<const ScriptDefinition*>(instance), nullptr, s);
-    });
-    WriteList(stream, script, 0x15C, [](const void* run, void*, ScriptStream* s) {
-        RunSave(static_cast<const ScriptRun*>(run), nullptr, s);
-    });
+    // Instances (copies of definitions) and runs.
+    WriteList(stream, script->instances_, DefinitionSave);
+    WriteList(stream, script->runs_, RunSave);
 
-    stream->Write(&Field<int>(script, 0x1A8), 4);
-    stream->Write(&Field<int>(script, 0x1AC), 4);
+    stream->Write(&script->loaded_, 4);
+    stream->Write(&script->fileCount_, 4);
     SavingScript() = nullptr;
-    AreasSaveOrig(&Field<mfc::CArray<ScriptArea>>(script, 0x194), stream);
+    AreasSaveOrig(&script->areas_, stream);
 }
 EI_REPLACE(0x004C0F90, ScriptSave);

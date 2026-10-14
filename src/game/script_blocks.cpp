@@ -23,15 +23,13 @@
 
 namespace {
 
-template <typename T>
-T& Field(void* object, std::size_t offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
-}
-
 // ---- Original code (MFC template instantiations, config/library.csv) ------------------------------
 
 // CList<ScriptDecl>::NewNode (__thiscall (prev, next)); the element is constructed (vtable 0073D3DC).
-ScriptListNode* __fastcall NewBlockNode(ScriptList* a0, void*, ScriptListNode* a2, ScriptListNode* a3) { return (ScriptListNode*)ScriptBlockListNewNodeOriginal((void*)a0, nullptr, (void*)a2, (void*)a3); }
+using BlockList = mfc::CList<ScriptDecl>;
+BlockList::Node* NewBlockNode(BlockList* list, BlockList::Node* prev, BlockList::Node* next) {
+    return static_cast<BlockList::Node*>(ScriptBlockListNewNodeOriginal(list, nullptr, prev, next));
+}
 // CArray<ScriptArea>::SetSize (__thiscall (size, growBy)); CArray<ScriptAreaPart>::Copy.
 __declspec(naked) void __fastcall PartsCopy(void*, void*, const void*) EI_ORIGINAL(0x004CE2F0)
 // SetSize of SSCCmd's arrays (__thiscall (size, growBy)): strings, object pointers, group pointers,
@@ -44,10 +42,10 @@ constexpr std::uintptr_t kPartsVtable = 0x0073D328;     // CArray<ScriptAreaPart
 // CList::AddTail of an empty ScriptDecl, as 004BF540 / 004BF900 inline it: the node after the tail,
 // the empty temporary's commands copied in (004CC0C0), linked; the id is the list's count (the
 // field right after the tail) with `idBits`.
-ScriptDecl* AppendBlock(ScriptList* list, std::uint32_t idBits) {
+ScriptDecl* AppendBlock(BlockList* list, std::uint32_t idBits) {
     mfc::CArray<SSCCmd> empty{reinterpret_cast<void*>(kCommandsVtable), nullptr, 0, 0, 0};
-    ScriptListNode* node = NewBlockNode(list, nullptr, list->tail, nullptr);
-    auto* block = reinterpret_cast<ScriptDecl*>(node->data.bytes);
+    BlockList::Node* node = NewBlockNode(list, list->tail, nullptr);
+    ScriptDecl* block = &node->data;
     CommandsCopy(&block->commands, nullptr, &empty);
     if (list->tail) list->tail->next = node;
     else list->head = node;
@@ -60,13 +58,13 @@ ScriptDecl* AppendBlock(ScriptList* list, std::uint32_t idBits) {
 
 // 004BF540 CScript::NewCommandList.
 ScriptDecl* __fastcall ScriptNewCommandList(CScript* script, void*) {
-    return AppendBlock(&Field<ScriptList>(script, 0x70), 0);
+    return AppendBlock(&script->blocks_, 0);
 }
 EI_REPLACE(0x004BF540, ScriptNewCommandList);
 
 // 004BF900 CScript::NewWorldScript.
 ScriptDecl* __fastcall ScriptNewWorldScript(CScript* script, void*) {
-    return AppendBlock(&Field<ScriptList>(script, 0x178), 0x80000000u);
+    return AppendBlock(&script->worldBlocks_, 0x80000000u);
 }
 EI_REPLACE(0x004BF900, ScriptNewWorldScript);
 
@@ -74,7 +72,7 @@ EI_REPLACE(0x004BF900, ScriptNewWorldScript);
 // 004CDB30 constructs the slot), the empty temporary's parts are copied in (004CE2F0) and the last
 // slot gets the id.
 mfc::CArray<ScriptAreaPart>* __fastcall ScriptFindArea(CScript* script, void*, int id) {
-    auto& areas = Field<mfc::CArray<ScriptArea>>(script, 0x194);
+    auto& areas = script->areas_;
     for (int i = 0; i < areas.size; ++i) {
         if (areas.data[i].id == id) return &areas.data[i].parts;
     }
@@ -91,23 +89,25 @@ EI_REPLACE(0x004BCE10, ScriptFindArea);
 // CPlex block of `blockSize` 12-byte nodes is chained onto the free list (last node first) when
 // it is empty; the element is constructed (004CC800) and then assigned null (released if set).
 ScriptObjectRef* __fastcall ScriptNewTempObject(CScript* script, void*) {
-    auto& list = Field<ScriptList>(script, 0x1CC);
-    ScriptListNode* tail = list.tail;
+    using Node = mfc::CList<ScriptObjectRef>::Node;
+    static_assert(sizeof(Node) == 0xC);
+    auto& list = script->tempObjects_;
+    Node* tail = list.tail;
     if (!list.free) {
-        mfc::CPlex* block = mfc::PlexCreate(list.blocks, static_cast<unsigned>(list.blockSize), 0xC);
-        char* first = reinterpret_cast<char*>(block + 1);
+        mfc::CPlex* block = mfc::PlexCreate(list.blocks, static_cast<unsigned>(list.blockSize), sizeof(Node));
+        Node* first = reinterpret_cast<Node*>(block + 1);
         for (int i = list.blockSize - 1; i >= 0; --i) {
-            auto* node = reinterpret_cast<ScriptListNode*>(first + i * 0xC);
+            Node* node = first + i;
             node->next = list.free;
             list.free = node;
         }
     }
-    ScriptListNode* node = list.free;
+    Node* node = list.free;
     list.free = node->next;
     node->prev = tail;
     node->next = nullptr;
     ++list.count;
-    auto* ref = reinterpret_cast<ScriptObjectRef*>(node->data.bytes);
+    ScriptObjectRef* ref = &node->data;
     ConstructRefs(ref, 1);
     if (ref->object) ref->object->Release();
     ref->object = nullptr;

@@ -1,5 +1,6 @@
 // Script object references and groups (sets of object references). See script.h.
 #include "script.h"
+#include "unit.h"
 
 #include "ei/hook.h"
 #include "lib/crt.h"
@@ -20,7 +21,6 @@ ObjectRegistry* Registry() { return reinterpret_cast<ObjectRegistry*>(0x007AFF60
 // The game's CRT.
 void __cdecl GameQsort(void* a0, std::size_t a1, std::size_t a2, int(__cdecl* a3)(const void*, const void*)) { GameQsortOriginal(a0, a1, a2, a3); }
 
-constexpr int kClassUnit = 0x50;          // CEngineObject::GetClassId() of units
 constexpr std::uint32_t kDeleted = 1;     // CEngineObject::flags_: removed from the world
 
 std::uintptr_t Address(const CEngineObject* object) { return reinterpret_cast<std::uintptr_t>(object); }
@@ -78,7 +78,7 @@ EI_REPLACE_METHOD(0x004B2530, ScriptObjectRef::AsUnit);
 
 void* ScriptObjectRef::GetUnitPerception() const {
     CEngineObject* o = object;
-    if (o && o->GetClassId() == kClassUnit) return *reinterpret_cast<void**>(reinterpret_cast<char*>(o) + 0x240);
+    if (o && o->GetClassId() == kClassUnit) return static_cast<CUnit*>(o)->controller;
     return nullptr;
 }
 EI_REPLACE_METHOD(0x004B2550, ScriptObjectRef::GetUnitPerception);

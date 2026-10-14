@@ -17,6 +17,7 @@ __declspec(naked) const CString& CString::operator=(const char*) EI_ORIGINAL(0x0
 __declspec(naked) const CString& CString::operator=(const CString&) EI_ORIGINAL(0x00700AA9)
 
 __declspec(naked) void __cdecl CString::Format(const char*, ...) EI_ORIGINAL(0x006FDF5F)
+__declspec(naked) void CString::FormatV(const char*, va_list) EI_ORIGINAL(0x006FDC12)
 __declspec(naked) CString CString::Left(int) const EI_ORIGINAL(0x006FDAE9)
 __declspec(naked) CString CString::Right(int) const EI_ORIGINAL(0x006FDA6D)
 __declspec(naked) CString CString::Mid(int) const EI_ORIGINAL(0x006FD9B4)
@@ -42,6 +43,8 @@ __declspec(naked) BOOL CFile::Open(const char*, unsigned, void*) EI_ORIGINAL(0x0
 __declspec(naked) unsigned CFile::GetLength() EI_ORIGINAL(0x007014E2)
 __declspec(naked) unsigned CFile::Read(void*, unsigned) EI_ORIGINAL(0x00701305)
 __declspec(naked) void CFile::Close() EI_ORIGINAL(0x00701403)
+
+__declspec(naked) CTime* CTime::Construct(int, int, int, int, int, int, int) EI_ORIGINAL(0x006FE3BB)
 
 __declspec(naked) CFileFind::CFileFind() EI_ORIGINAL(0x006E6370)
 __declspec(naked) CFileFind::~CFileFind() EI_ORIGINAL(0x006E63AD)
