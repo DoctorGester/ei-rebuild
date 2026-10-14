@@ -280,9 +280,13 @@ void InstallSampleTimers() {
     PatchSlot(kAilEndSampleSlot, &TimedEndSample, g_ailEndSample);
 }
 
+// Main-thread sleeps since the last frame (see VirtualSleep).
+int g_sleepsSinceFrame = 0;
+
 DWORD WINAPI VirtualTimeGetTime() {
     if (!OnMainThread()) return OtherThreadsNow();
     if (IsMainLoopTime(CallerOf(_ReturnAddress()))) {
+        g_sleepsSinceFrame = 0;
         Advance(kUpdatesPerFrame * *g_tickLength);
         CallSampleEnds();
     }
@@ -292,10 +296,14 @@ DWORD WINAPI VirtualGetTickCount() { return OnMainThread() ? g_now : OtherThread
 
 // The main thread's sleeps and timed waits take no real time: the clock moves by what they would
 // have waited. Other threads wait for real (and only read the clock).
+// A main thread that sleeps over and over without a frame between is waiting for another thread (the
+// music's WaitAndEndAfter, the sound start-up): Sleep(0) lets only threads of its own priority run,
+// and on a busy machine the one it waits for got no time (games hung at start-up for the 60 s
+// limit, before the sound was open). After the first 50 such sleeps each one sleeps 1 ms for real.
 void WINAPI VirtualSleep(DWORD ms) {
     if (!OnMainThread()) return g_sleep(ms);
     Advance(ms);
-    g_sleep(0);   // still let other threads run
+    g_sleep(++g_sleepsSinceFrame > 50 ? 1 : 0);
 }
 DWORD WINAPI VirtualWaitForSingleObject(HANDLE object, DWORD ms) {
     if (!OnMainThread() || ms == 0 || ms == INFINITE) return g_waitForSingleObject(object, ms);
