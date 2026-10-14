@@ -415,10 +415,11 @@ done = "2026-10-14"
 id = "W3"
 title = "Battle-screen panel builders"
 group = "widescreen"
-status = "queued"
+status = "running"
 model = "opus"
 depends = ["W2"]
 note = "Then widescreen::SetPanelOffset replaces addon's variable."
+started = "2026-10-14"
 
 [[ticket]]
 id = "W4"
