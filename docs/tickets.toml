@@ -531,8 +531,9 @@ note = "Ghidra reported cut-short bodies (0040D710 555 -> 60); the file is hand-
 id = "X39"
 title = "Native runs: DirectX 7 critical error box at startup"
 group = "harness"
-status = "watch"
-note = "About one native (EI_RENDER=new,present) run in two shows the CRITICAL ERROR ... DirectX 7 message box at startup (seen by N5 on base and branch, 2026-10-14); passes on retry; looks load-related. R9b / R9c should find the failing device call."
+status = "done"
+note = "About one native (EI_RENDER=new,present) run in two shows the CRITICAL ERROR ... DirectX 7 message box at startup (seen by N5 on base and branch, 2026-10-14); passes on retry; looks load-related. R9b / R9c should find the failing device call. Tracked as R9b1 (renderer) since R9b."
+done = "2026-10-14"
 
 # ---------------------------------------------------------------- cleanup
 

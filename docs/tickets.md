@@ -81,11 +81,11 @@ Scenarios, run_all and the tools around them; X tickets are problems seen in run
 - **X30** sandbox_actions / combat / world vanilla time out once in a while (watch). waitfor Not(IsAlive(Enemy1)) or the AlarmTime check; 0 mismatches; pass alone. SV1's virtual clock may settle it.
 - **X27** CPlayerClient::SendLeave04 state check mismatched once (watch). 1 of 44 effects_bow Rebirth runs, which also timed out.
 - **X22** render_present crashed once under 16 parallel runs (watch). Null call in DDRAW.dll from render::CopyFrameTo <- DevicePresentVerify <- ShowLoadingMovie (2026-10-07). If it recurs, guard CopyFrameTo against a lost surface.
-- **X39** Native runs: DirectX 7 critical error box at startup (watch). About one native (EI_RENDER=new,present) run in two shows the CRITICAL ERROR ... DirectX 7 message box at startup (seen by N5 on base and branch, 2026-10-14); passes on retry; looks load-related. R9b / R9c should find the failing device call.
 - **X38** Regenerate function_sizes.inc from a whole Ghidra database (later). Ghidra reported cut-short bodies (0040D710 555 -> 60); the file is hand-patched for two sizes and gen_function_sizes.py no longer reproduces it.
 - **T1** Scenarios wait on state instead of fixed times (done 2026-10-14). waitmenu / waitwindow / waitunit / frames; about 40% fewer game-seconds per suite.
 - **X36** Display-mode scenarios run alone (done 2026-10-14). A `resolution` step took the other games' surfaces ("Can't begin scene", untextured models). run_all takes every slot for it; runners wait while it waits, so it no longer starves. Message boxes end a run at once with text and stack.
 - **X35** Machine-wide cap of 16 harness games (done 2026-10-14). Windows crashed twice (NVIDIA hang, bugcheck 0x133) with 24 games; EI_HARNESS_SLOTS.
+- **X39** Native runs: DirectX 7 critical error box at startup (done 2026-10-14). About one native (EI_RENDER=new,present) run in two shows the CRITICAL ERROR ... DirectX 7 message box at startup (seen by N5 on base and branch, 2026-10-14); passes on retry; looks load-related. R9b / R9c should find the failing device call. Tracked as R9b1 (renderer) since R9b.
 
 ## Cleanup (docs/cleanup-plan.md)
 
