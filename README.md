@@ -126,7 +126,8 @@ need no clicks and leave the install alone: startup movies are skipped, the tuto
 saves and `config\tutorial.ini` go to `build\verify\harness_saves`, every other file the game writes under
 its folder (the composed-skin cache `textures\*.mmp`, `config\keyboard.ini`, `config\addrbook.ini`,
 `mp\*.mp`, ...) goes to a copy-on-write overlay there (reads prefer the overlay copy), settings are not written to the
-registry, and a game that hangs on exit (Rebirth) is ended 3 s after the scenario quits. When the game crashes,
+registry, every game hosts and joins on a UDP port of its own instead of 8888 (`tests/verify/harness_net.h`: games run
+side by side otherwise join each other's servers), and a game that hangs on exit (Rebirth) is ended 3 s after the scenario quits. When the game crashes,
 the stack is in `ei_hook.log`; `python tools\resolve_crash.py` names the functions. A run that exceeds its time
 limit logs where the main thread waits (instruction pointer and return addresses, as module+offset). No game outlives its limit:
 the watchdog thread in the game ends it at the scenario's `timeout` (60 s unless the scenario says more); if that

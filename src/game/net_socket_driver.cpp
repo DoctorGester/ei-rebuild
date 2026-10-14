@@ -9,6 +9,7 @@
 
 #include "ei/hook.h"
 #include "originals_library.h"
+#include "../hook/log.h"
 
 #include <cstdint>
 #include <cstring>
@@ -189,6 +190,10 @@ bool SocketDriver::Open(int port) {
     a.family = 2;
     a.port = WsHtons(static_cast<std::uint16_t>(port));
     if (port > 0 && WsBind(socket, &a, 0x10) != 0) {
+        // Not the game's: a second game on the machine holding the port leaves this session without a
+        // socket, and its local client then talks to that game's server (N0c). The verify build's
+        // check of the server's constructor builds a second server, which always gets this.
+        ei::Log("net: UDP port %d is taken (bind failed): this session gets no socket", port);
         WsCloseSocket(socket);
         socket = kNoSocket;
         return false;

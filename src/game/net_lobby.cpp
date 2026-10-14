@@ -15,6 +15,7 @@
 #include "ei/x87.h"
 #include "originals_script.h"
 #include "originals_library.h"
+#include "../hook/log.h"
 
 #include <cstdint>
 #include <cstring>
@@ -388,6 +389,7 @@ void ClientBase::RemoveClient(ClientNode* node) {
     SessionBase::RemoveClient(node);
     if (clients_->next != clients_) return;
     LogLine(0x007841C4);   // "CONNECTION LOST"
+    ei::Log("net: the client lost its connection to the host");   // not the game's (N0c)
     joinState_ = kNotJoined;
 }
 
