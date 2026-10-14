@@ -65,9 +65,18 @@ __declspec(naked) inline void __fastcall FigureModelLoadOriginal(void* /*model*/
     EI_ORIGINAL(0x005A9EB0)
 __declspec(naked) inline void __fastcall MenuFrame578910(void*) EI_ORIGINAL(0x00578910)
 __declspec(naked) inline double __fastcall HoverPlayerVariable(void*, void*, const char*) EI_ORIGINAL(0x00578B50)
-// 005927C0 (RET 4): the server makes (or updates) the world object of a .mob record. Patched by Rebirth.
-__declspec(naked) inline void __fastcall WorldMakeObjectOriginal(void* /*world*/, void*, void* /*spec*/)
+// 005927C0 (rewritten as CWorldServer::CreateObject; RET 4): the server makes (or updates) the world object of a .mob
+// record; EAX the object's id. Patched by Rebirth.
+__declspec(naked) inline int __fastcall WorldMakeObjectOriginal(void* /*world*/, void*, void* /*spec*/)
     EI_ORIGINAL(0x005927C0)
+// 005942D0 (rewritten as CWorldServer::Loot; RET 8, patched by Rebirth): `player` takes what the dead body or
+// container `object` holds; AL whether there was anything to take. Called on the global server (007AFF60).
+__declspec(naked) inline bool __fastcall WorldLootOriginal(void* /*world*/, void*, CEngineObject* /*object*/,
+                                                           WorldPlayer* /*player*/) EI_ORIGINAL(0x005942D0)
+// 00595AB0 (rewritten as CWorldServer::LoadMobFile; RET 4): loads a .mob file's objects once; EAX 1 when loaded (or
+// already loaded), else the fatal error's result.
+__declspec(naked) inline int __fastcall WorldLoadMobFileOriginal(void* /*world*/, void*, const char* /*file*/)
+    EI_ORIGINAL(0x00595AB0)
 __declspec(naked) inline void __fastcall WorldPrepareMap(void* /*world*/, void*, const char* /*name*/)
     EI_ORIGINAL(0x0057ED60)
 // 005800C0 (rewritten as GameFlow::UpdateFromServer; patched by Rebirth, so called here): the game

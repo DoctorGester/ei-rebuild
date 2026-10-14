@@ -101,11 +101,9 @@ bool LoadingGame() { return *reinterpret_cast<const int*>(0x007AFE1C) != 0; }
 // The world server (007AFF60) through the game object's helpers.
 struct GameObjects {
     void SetServerFlag(std::uint8_t flag);      // 00578D10 (on 007AFEA4)
-    void ResetView(int a, int b);               // 005786A0 (on 007AFEA6)
     void MarkInterfaceChanged();                // 00578950 (on 007AFEA5)
 };
 void GameObjects::SetServerFlag(std::uint8_t f) { SetServerFlagOriginal(f); }
-__declspec(naked) void GameObjects::ResetView(int, int) EI_ORIGINAL(0x005786A0)
 void GameObjects::MarkInterfaceChanged() { GameMarkInterfaceChangedOriginal(this); }
 GameObjects* GameAt(std::uintptr_t address) { return reinterpret_cast<GameObjects*>(address); }
 
@@ -314,7 +312,7 @@ void CBattleScreenSetup::Create() {
     *reinterpret_cast<std::uint32_t*>(0x0079B2B0) &= ~0x40u;
     unknown_17C = 0;
     unknown_180 = -1;
-    GameAt(0x007AFEA6)->ResetView(0, 0);
+    GameSetWeatherOriginal(GameAt(0x007AFEA6), nullptr, 0, 0.0f);   // clear weather
     GameAt(0x007AFEA5)->MarkInterfaceChanged();
     PartyArraySetSizeOriginal(partyArray_, nullptr, 0, -1);
     unknown_1C0 = false;

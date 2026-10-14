@@ -210,10 +210,6 @@ private:
 };
 
 // The rest (not rewritten).
-struct GameObjects {
-    void ResetView(int a, int b);                       // 005786A0 (on 007AFEA6)
-};
-__declspec(naked) void GameObjects::ResetView(int, int) EI_ORIGINAL(0x005786A0)
 struct SaveStream {
     void Resize(int size);                              // 004A54D0 (the save stream 007AFDF8)
 };
@@ -653,7 +649,7 @@ void CGlobalMap::Create() {
     selectPending_ = 1;
     GlobalMapSelectZoneOriginal(this, nullptr, -1, 0);
     dragging_ = false;
-    reinterpret_cast<GameObjects*>(0x007AFEA6)->ResetView(0, 0);
+    GameSetWeatherOriginal(reinterpret_cast<void*>(0x007AFEA6), nullptr, 0, 0.0f);   // clear weather
     (*reinterpret_cast<SoundMixer**>(0x007AF760))->ResetMusic();
     {
         WeatherObject* weather = static_cast<WeatherObject*>(gamecrt::operator_new(0x34));

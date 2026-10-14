@@ -11,8 +11,10 @@
 #include <cstring>
 #include <initializer_list>
 #include <new>
+#include "originals_ai.h"
 #include "originals_library.h"
 #include "originals_units.h"
+#include "originals_world.h"
 
 namespace mapspec {
 
@@ -53,10 +55,8 @@ __declspec(naked) void __stdcall DestructPatrols(Patrol*, int) EI_ORIGINAL(0x004
 __declspec(naked) Patrol* __fastcall PatrolDelete(Patrol*, void*, unsigned) EI_ORIGINAL(0x0046F160)
 __declspec(naked) Patrol* __fastcall PatrolAt(const Array<Patrol>*, void*, Patrol* /*out*/, int) EI_ORIGINAL(0x0046EAB0)
 __declspec(naked) Waypoint* __fastcall WaypointAt(const Array<Waypoint>*, void*, Waypoint* /*out*/, int) EI_ORIGINAL(0x0046EFA0)
-// The world server (007AFF60) makes an object; the editor's object lists (007B01F4) and selection
-// (007B00D0) move it; the world object's updates.
-__declspec(naked) void __fastcall WorldMakeObject(void*, void*, Spec*) EI_ORIGINAL(0x005927C0)
-__declspec(naked) void __fastcall ListsMoveObject(void*, void*, void* /*object*/, const Vector3*) EI_ORIGINAL(0x005C11D0)
+// The world server's sector map (007B01F4, world + 0x170 + 0x124) and the selection (007B00D0) move and turn an
+// object; the world object's updates.
 __declspec(naked) void __fastcall SelectionTurnObject(void*, void*, void* /*object*/, const Quaternion*) EI_ORIGINAL(0x005BC180)
 void __fastcall UnitResetMotion(void* a0) { ControllerRepositionOriginal(a0); }
 // The behaviour writer, through its address (rewritten below).
@@ -369,10 +369,10 @@ EI_REPLACE(0x0046C2F0, UnitStatsDestruct);
 void __fastcall UnitSpecApply(UnitSpec* self) {
     Spec& b = self->object.base;
     if (!b.object) {
-        WorldMakeObject(reinterpret_cast<void*>(0x007AFF60), nullptr, &b);
+        WorldMakeObjectOriginal(reinterpret_cast<void*>(0x007AFF60), nullptr, &b);
         return;
     }
-    ListsMoveObject(reinterpret_cast<void*>(0x007B01F4), nullptr, b.object, &b.position);
+    SectorMapMove(reinterpret_cast<void*>(0x007B01F4), nullptr, AsEngineObject(b.object), &b.position);
     SelectionTurnObject(reinterpret_cast<void*>(0x007B00D0), nullptr, b.object, &b.rotation);
     std::memcpy(static_cast<std::uint8_t*>(b.object) + 0x34, &b.rotation, 16);
     ObjectSetFigureScaleOriginal(b.object, nullptr, &self->object.scale.x);

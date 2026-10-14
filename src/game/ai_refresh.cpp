@@ -35,7 +35,6 @@ int AreaList(int level) {
 }
 
 // 005B8BA0 (RET 0x14, AL). The mark of cell (x, y) for a level and its height (scratch: 0x34 bytes).
-__declspec(naked) std::uint8_t __fastcall CellMarkAt(CAIMap*, void*, void* /*scratch*/, int, int, int, int) EI_ORIGINAL(0x005B8BA0)
 // 005B89F0 (RET 0x1C). A level's special area over the inner rectangle.
 __declspec(naked) void __fastcall ApplyArea(CAIMap*, void*, int, int, int, int, int, int, int) EI_ORIGINAL(0x005B89F0)
 // 005B8710 (RET 0x10). The second pass over the inner rectangle.
@@ -78,7 +77,7 @@ void CAIMap::RefreshArea(int x0, int x1, int y0, int y1) {
         for (int y = oy0; y <= oy1; ++y)
             for (int x = ox0; x <= ox1; ++x) {
                 std::int8_t* row = marks.rows[y];
-                row[x] = static_cast<std::int8_t>(CellMarkAt(this, nullptr, scratch, level, levelHeight, x, y));
+                row[x] = static_cast<std::int8_t>(AIMapCellMarkOriginal(this, nullptr, scratch, level, levelHeight, x, y));
             }
         int shift = level * 4;
         std::uint32_t keep = ~(0xFu << shift);

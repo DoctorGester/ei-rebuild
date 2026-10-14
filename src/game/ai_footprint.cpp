@@ -8,6 +8,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_ai.h"
 #include "originals_render.h"
 #include "originals_units.h"
 
@@ -135,12 +136,6 @@ __declspec(naked) bool CAIMap::ClearOccluder(FootprintCell*) EI_ORIGINAL(0x005B6
 __declspec(naked) void CAIMap::Refresh(int, int, int, int) EI_ORIGINAL(0x005B8FA0)
 
 namespace {
-// The unit occupancy layers at CAIMap + 0x27C and + 0x12A4 (ai_unit_layer.cpp), through their
-// original addresses so the verify build's wrappers see the calls.
-__declspec(naked) void __fastcall UnitLayerAdd(CUnitLayer*, void*, CUnit*, void*, int, int)
-    EI_ORIGINAL(0x005B36B0)
-__declspec(naked) void __fastcall UnitLayerRemove(CUnitLayer*, void*, CUnit*, int, int) EI_ORIGINAL(0x005B3890)
-
 // Object model helpers not rewritten yet.
 void __fastcall QuaternionToMatrix(const void* a0, void*, void* a2) { QuaternionToMatrixOriginal(a0, nullptr, (float*)a2); }
 __declspec(naked) Vector3* __fastcall TransformVector(const void*, void*, Vector3*, const Vector3*)
@@ -317,8 +312,8 @@ bool CAIMap::MarkFootprint(CEngineObject* object, bool remove) {
         void* shape = UnitShape(unit->standingHeight);
         if (!shape) return true;
         auto* layer = reinterpret_cast<CUnitLayer*>(IsLarge(unit) ? unitLayerLarge : unitLayerSmall);
-        if (remove) UnitLayerRemove(layer, nullptr, unit, cellX - 8, cellY - 8);
-        else UnitLayerAdd(layer, nullptr, unit, shape, cellX - 8, cellY - 8);
+        if (remove) UnitLayerRemoveOriginal(layer, nullptr, unit, cellX - 8, cellY - 8);
+        else UnitLayerAddOriginal(layer, nullptr, unit, shape, cellX - 8, cellY - 8);
         return true;
     }
 
