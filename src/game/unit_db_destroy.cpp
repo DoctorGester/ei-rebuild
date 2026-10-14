@@ -19,11 +19,7 @@
 namespace unitdb {
 
 // An STLport vector, its element type left open (sizes are passed explicitly).
-struct RawVector {
-    char* begin;
-    char* end;
-    char* eos;
-};
+using RawVector = stlp::vector<char>;
 static_assert(sizeof(RawVector) == 0xC);
 
 // A bucket chain node of the name tables: next, then the value (a CString key and the index).
@@ -157,14 +153,14 @@ void DestroyString(mfc::CString* s) { s->~CString(); }
 // The storage of `v` (elements of `size` bytes) back to the node pool, the byte count rounded
 // down to whole elements (signed division, as the original's IMUL).
 void FreeStorage(RawVector* v, int size) {
-    if (!v->begin) return;
-    int count = static_cast<int>(v->eos - v->begin) / size;
-    stlp::deallocate(v->begin, static_cast<std::size_t>(count * size));
+    if (!v->begin()) return;
+    int count = static_cast<int>(v->EndOfStorage() - v->begin()) / size;
+    stlp::deallocate(v->begin(), static_cast<std::size_t>(count * size));
 }
 
 // The inline ~vector<CString> of the records: _Destroy, then the storage.
 void DestroyStringVector(CStringVector* v) {
-    DestroyStrings(v->begin, v->end);
+    DestroyStrings(v->begin(), v->end());
     StringVectorFree(v);
 }
 
@@ -197,29 +193,29 @@ void __fastcall DestroyUnitDatabase(UnitDatabase* self) {
     RecordTable& levels = self->levels;
     LevelNamesClear(&levels.names);
     LevelBucketsFree(&levels.names.buckets);
-    for (char *p = levels.records.begin, *end = levels.records.end; p != end; p += 0x44)
+    for (char *p = levels.records.begin(), *end = levels.records.end(); p != end; p += 0x44)
         LevelRecordDestroy(p, nullptr, 0);
-    LevelsDeallocate(&levels.records.eos, nullptr, levels.records.begin,
-                     static_cast<int>(levels.records.eos - levels.records.begin) / 0x44);
+    LevelsDeallocate(&levels.records.EndOfStorage(), nullptr, levels.records.begin(),
+                     static_cast<int>(levels.records.EndOfStorage() - levels.records.begin()) / 0x44);
 
     RecordTable& models = self->models;
     ModelNamesClear(&models.names);
     ModelBucketsFree(&models.names.buckets);
-    for (char *p = models.records.begin, *end = models.records.end; p != end; p += 0x168)
+    for (char *p = models.records.begin(), *end = models.records.end(); p != end; p += 0x168)
         ModelRecordDestroy(p);
     ModelsFree(&models.records);
 
     RecordTable& npcs = self->npcs;
     NpcNamesClear(&npcs.names);
     NpcBucketsFree(&npcs.names.buckets);
-    for (char *p = npcs.records.begin, *end = npcs.records.end; p != end; p += 0x60)
+    for (char *p = npcs.records.begin(), *end = npcs.records.end(); p != end; p += 0x60)
         NpcRecordDestroy(p);
     NpcsFree(&npcs.records);
 
     RecordTable& prototypes = self->prototypes;
     PrototypeNamesClear(&prototypes.names);
     PrototypeBucketsFree(&prototypes.names.buckets);
-    for (char *p = prototypes.records.begin, *end = prototypes.records.end; p != end; p += 0x120)
+    for (char *p = prototypes.records.begin(), *end = prototypes.records.end(); p != end; p += 0x120)
         PrototypeRecordDestroy(p, nullptr, 0);
     PrototypesFree(&prototypes.records);
 }
@@ -230,7 +226,7 @@ void __fastcall DestroyUnitDatabase(UnitDatabase* self) {
 // and the storage freed. The original leaves junk in EAX; nothing reads it.
 void __fastcall DestroyNpcTable(RecordTable* self) {
     DestroyNames(self->names, NameValueDestroy, NameNodeDeallocate);
-    for (char *p = self->records.begin, *end = self->records.end; p != end; p += sizeof(UnitNpcRecord)) {
+    for (char *p = self->records.begin(), *end = self->records.end(); p != end; p += sizeof(UnitNpcRecord)) {
         auto* record = reinterpret_cast<UnitNpcRecord*>(p);
         DestroyStringVector(&record->startSpells);
         DestroyStringVector(&record->startQuickItems);
@@ -245,7 +241,7 @@ void __fastcall DestroyNpcTable(RecordTable* self) {
 // records (the string vector, then the two CStrings) and their storage (the node pool's
 // deallocate inlined; the same code as 00404D70).
 void __fastcall DestroySkillDatabase(SkillDatabase* self) {
-    for (char *p = self->skills.begin, *end = self->skills.end; p != end; p += sizeof(SkillRecord)) {
+    for (char *p = self->skills.begin(), *end = self->skills.end(); p != end; p += sizeof(SkillRecord)) {
         auto* record = reinterpret_cast<SkillRecord*>(p);
         DestroyString(&record->unknown_14);
         DestroyString(&record->unknown_0C);
@@ -253,7 +249,7 @@ void __fastcall DestroySkillDatabase(SkillDatabase* self) {
         DestroyString(&record->name);
     }
     FreeStorage(&self->skills, sizeof(SkillRecord));
-    for (char *p = self->levels.begin, *end = self->levels.end; p != end; p += sizeof(SkillLevelRecord)) {
+    for (char *p = self->levels.begin(), *end = self->levels.end(); p != end; p += sizeof(SkillLevelRecord)) {
         auto* record = reinterpret_cast<SkillLevelRecord*>(p);
         DestroyStringVector(&record->unknown_0C);
         DestroyString(&record->unknown_04);
@@ -271,10 +267,10 @@ constexpr std::uintptr_t kModelSlotDestructor = 0x0053F010;
 // The record's inline ~vector<CString> with the storage freed by the node pool (00404D70 when
 // begin is set; 00520F60 for the sound names does the same test itself), the end read once.
 void DestroyStringsAndFree(CStringVector* v) {
-    for (mfc::CString *p = v->begin, *end = v->end; p != end; ++p) DestroyString(p);
-    if (v->begin)
-        stlp::deallocate(v->begin, static_cast<std::size_t>((static_cast<int>(reinterpret_cast<char*>(v->endOfStorage) -
-                                                                              reinterpret_cast<char*>(v->begin)) >> 2) * 4));
+    for (mfc::CString *p = v->begin(), *end = v->end(); p != end; ++p) DestroyString(p);
+    if (v->begin())
+        stlp::deallocate(v->begin(), static_cast<std::size_t>((static_cast<int>(reinterpret_cast<char*>(v->EndOfStorage()) -
+                                                                                reinterpret_cast<char*>(v->begin())) >> 2) * 4));
 }
 } // namespace
 
@@ -284,7 +280,7 @@ void DestroyStringsAndFree(CStringVector* v) {
 // vector destructor iterator) and the name.
 void __fastcall DestroyModelRecord(UnitModelRecord* record) {
     auto* counts = reinterpret_cast<RawVector*>(&record->soundCounts);
-    if (counts->begin) stlp::deallocate(counts->begin, static_cast<std::size_t>((static_cast<int>(counts->eos - counts->begin) >> 2) * 4));
+    if (counts->begin()) stlp::deallocate(counts->begin(), static_cast<std::size_t>((static_cast<int>(counts->EndOfStorage() - counts->begin()) >> 2) * 4));
     DestroyStringsAndFree(&record->soundNames);
     DestroyString(&record->soundFolder);
     DestroyString(&record->hitMaterial);
@@ -323,13 +319,13 @@ void __fastcall DestroyNpcRecord(UnitNpcRecord* record) {
 // leaves junk in EAX; nothing reads it.
 void __fastcall DestroyPrototypeTable(RecordTable* self) {
     DestroyNames(self->names, PrototypeNameValueDestroy, PrototypeNameNodeDeallocate);
-    for (char *p = self->records.begin, *end = self->records.end; p != end; p += sizeof(UnitPrototypeRecord))
+    for (char *p = self->records.begin(), *end = self->records.end(); p != end; p += sizeof(UnitPrototypeRecord))
         DestroyPrototypeRecord(reinterpret_cast<UnitPrototypeRecord*>(p));
     FreeStorage(&self->records, sizeof(UnitPrototypeRecord));
 }
 void __fastcall DestroyModelTable(RecordTable* self) {
     DestroyNames(self->names, ModelNameValueDestroy, ModelNameNodeDeallocate);
-    for (char *p = self->records.begin, *end = self->records.end; p != end; p += sizeof(UnitModelRecord))
+    for (char *p = self->records.begin(), *end = self->records.end(); p != end; p += sizeof(UnitModelRecord))
         DestroyModelRecord(reinterpret_cast<UnitModelRecord*>(p));
     FreeStorage(&self->records, sizeof(UnitModelRecord));
 }

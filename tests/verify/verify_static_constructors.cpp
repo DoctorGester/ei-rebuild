@@ -39,7 +39,7 @@ PartyManager* __fastcall PartyManagerConstructVerify(PartyManager* self) {
     bool good = result == self && self->parties.Size() == 0 && self->parties.BucketCount() == stlp::NextPrime(100) &&
                 self->entries.begin() == self->entries.end() && self->records.records.size() == 0 &&
                 std::strcmp(self->records.text0C, "") == 0 && std::strcmp(self->records.text10, "") == 0 &&
-                !self->templates.start && !self->templates.finish && !self->templates.eos;
+                !self->templates.begin() && !self->templates.end() && !self->templates.EndOfStorage();
     ei::verify::Check("PartyManager::Construct", true, good, "");
     return result;
 }

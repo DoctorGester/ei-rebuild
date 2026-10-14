@@ -202,11 +202,11 @@ void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uin
 
     ClassTemplate* temp = t;
     if (temp) ++temp->refCount;
-    if (v->finish == v->eos) {
-        VectorInsertOverflow(v, nullptr, v->finish, &temp, 1);
+    if (v->Finish() == v->EndOfStorage()) {
+        VectorInsertOverflow(v, nullptr, v->Finish(), &temp, 1);
     } else {
-        if (v->finish) copyConstruct(v->finish, nullptr, &temp);
-        ++v->finish;
+        if (v->Finish()) copyConstruct(v->Finish(), nullptr, &temp);
+        ++v->Finish();
     }
     if (temp && --temp->refCount == 0 && temp) ei::VCall<void>(temp, 0, 1);
 }
@@ -214,7 +214,7 @@ void AddTemplate(ClassTemplateVector* v, int type, std::uint8_t flag0C, std::uin
 } // namespace
 
 void __fastcall ClassTemplatesBuild(ClassTemplateVector* v, void*, unsigned fourClasses) {
-    VectorErase(v, nullptr, v->start, v->finish);
+    VectorErase(v, nullptr, v->begin(), v->end());
     if (static_cast<std::uint8_t>(fourClasses)) {
         AddTemplate(v, 1, 1, 1, kDefaultWeights, CopyConstructA);
         AddTemplate(v, 3, 1, 1, kDefaultWeights, CopyConstructA);
@@ -233,9 +233,9 @@ EI_REPLACE(0x004A7630, ClassTemplatesBuild);
 // ---- Small members ----------------------------------------------------------------------------------
 
 ClassTemplate* __fastcall ClassTemplatesFind(const ClassTemplateVector* v, void*, int type) {
-    unsigned count = static_cast<unsigned>(v->finish - v->start);
+    unsigned count = static_cast<unsigned>(v->size());
     for (unsigned i = 0; i < count; ++i)
-        if (v->start[i]->type == type) return v->start[i];
+        if ((*v)[i]->type == type) return (*v)[i];
     return nullptr;
 }
 EI_REPLACE(0x004A74F0, ClassTemplatesFind);
@@ -243,9 +243,9 @@ EI_REPLACE(0x004A74F0, ClassTemplatesFind);
 unsigned __fastcall ClassTemplatesQuestCompleted(void* manager) {
     auto* v = reinterpret_cast<ClassTemplateVector*>(static_cast<char*>(manager) + 0x38);
     unsigned i = 0;
-    while (i < static_cast<unsigned>(v->finish - v->start)) {
+    while (i < static_cast<unsigned>(v->size())) {
         ++i;
-        v->start[i - 1]->flag38 = 1;
+        (*v)[i - 1]->flag38 = 1;
     }
     return i;
 }

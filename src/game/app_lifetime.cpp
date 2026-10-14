@@ -116,9 +116,8 @@ EI_REPLACE(0x00457950, CountedRootDeletingDestruct);
 // ---- The party manager ----------------------------------------------------------------------------
 
 void PartyManager::Destruct() {
-    for (ClassTemplate** p = templates.start; p != templates.finish; ++p) ReleaseCounted(*p);
-    if (templates.start)
-        stlp::deallocate(templates.start, static_cast<std::size_t>(templates.eos - templates.start) * sizeof(ClassTemplate*));
+    for (ClassTemplate** p = templates.begin(); p != templates.end(); ++p) ReleaseCounted(*p);
+    templates.FreeStorage();
     records.text10.~CString();
     records.text0C.~CString();
     for (PartyRecord** p = records.records.begin(); p != records.records.end(); ++p) ReleaseCounted(*p);
@@ -136,9 +135,7 @@ PartyManager* PartyManager::Construct() {
     new (&records.records) stlp::vector<PartyRecord*>();
     new (&records.text0C) mfc::CString();
     new (&records.text10) mfc::CString();
-    templates.start = nullptr;
-    templates.finish = nullptr;
-    templates.eos = nullptr;
+    new (&templates) stlp::vector<ClassTemplate*>();
     return this;
 }
 EI_REPLACE_METHOD(0x004A5870, PartyManager::Construct);

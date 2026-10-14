@@ -192,7 +192,7 @@ void __fastcall DrawUnitInfo(char* self, void*, char* unit) {
     if (outside) {
         if (!IsEmpty(lines[1])) panel.DrawLabelled(11, lines[1]);
         auto* prototype = static_cast<const UnitPrototypeRecord*>(::UnitPrototypeOf(unit));
-        if (prototype->spellNames.end != prototype->spellNames.begin) panel.DrawLine(panel.labels[5]);
+        if (prototype->spellNames.end() != prototype->spellNames.begin()) panel.DrawLine(panel.labels[5]);
         char* group = reinterpret_cast<char*>(hud->owner_);
         if (At<int>(group, 0x170) > 0) {
             void* leader = At<void**>(group, 0x16C)[0];

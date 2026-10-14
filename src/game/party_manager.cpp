@@ -146,20 +146,20 @@ void ChunkArchive::SerializePartyEntries(int id, stlp::vector<PartyManagerEntry>
 }
 EI_REPLACE_METHOD(0x004AD0C0, ChunkArchive::SerializePartyEntries);
 
-void ChunkArchive::SerializeClassTemplates(int id, ClassTemplateVector* templates, void*) {
+void ChunkArchive::SerializeClassTemplates(int id, stlp::vector<ClassTemplate*>* templates, void*) {
     if (!EnterChunk(id)) return;
     int count;
     if (loading_) {
-        for (ClassTemplate** p = templates->start; p != templates->finish; ++p) Release(*p);
-        templates->finish = templates->start;
+        for (ClassTemplate** p = templates->begin(); p != templates->end(); ++p) Release(*p);
+        templates->Finish() = templates->Start();
         count = CountChunks(1);
         TemplatesResize(templates, nullptr, static_cast<unsigned>(count));
     } else {
-        count = static_cast<int>(templates->finish - templates->start);
+        count = static_cast<int>(templates->size());
     }
     for (int i = 0; i < count; ++i) {
         Current()->occurrence = i + 1;
-        ClassTemplate*& slot = templates->start[i];
+        ClassTemplate*& slot = (*templates)[i];
         if (loading_) AssignCounted(slot, ObjectRef(1));
         else SaveObjectRef(1, AsRefObject(slot));
     }

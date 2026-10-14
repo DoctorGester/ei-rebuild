@@ -59,9 +59,9 @@ void __fastcall LoadVerify(PartyManager* self, void*, CMemoryStream* from) {
     std::uint32_t start = from->position_;
     self->Load(from);
     bool ok = from->position_ > start;
-    int templates = static_cast<int>(self->templates.finish - self->templates.start);
+    int templates = static_cast<int>(self->templates.size());
     for (int i = 0; ok && i < templates; ++i) {
-        const ClassTemplate* t = self->templates.start[i];
+        const ClassTemplate* t = self->templates[i];
         ok = t && t->type >= 1 && t->type <= 5 && t->refCount >= 1;
     }
     int records = static_cast<int>(self->records.records.size());

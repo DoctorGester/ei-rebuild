@@ -129,7 +129,7 @@ static BOOL __fastcall EquipFromPrototypeVerify(CParty* self, void*, PartyUnitRe
     BOOL result = self->EquipFromPrototype(record);
     auto* node = unitdb::NpcTable().byName.Find(stlp::string(record->texts[5]));
     auto* npc = node ? reinterpret_cast<const UnitNpcRecord*>(node->value) : nullptr;
-    auto count = [](const CStringVector& names) { return static_cast<std::uint32_t>(names.end - names.begin); };
+    auto count = [](const CStringVector& names) { return static_cast<std::uint32_t>(names.size()); };
     bool ok = npc ? result == 1 && record->spellCount == count(npc->startSpells) && record->weaponCount == count(npc->startWeapons) &&
                         record->quickItemCount == quickBefore + count(npc->startQuickItems) &&
                         self->Money() == moneyBefore + npc->startMoney && std::strcmp(record->texts[6], record->texts[5]) == 0

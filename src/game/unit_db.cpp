@@ -40,11 +40,11 @@ void InlineStrings(ChunkArchive* ar, int id, CStringVector* strings) {
         count = ArchiveCount(ar, nullptr, 1);
         StringsResize(strings, nullptr, static_cast<std::uint32_t>(count));
     } else {
-        count = static_cast<int>(strings->end - strings->begin);
+        count = static_cast<int>(strings->size());
     }
     for (int i = 0; i < count; ++i) {
         ar->Current()->occurrence = i + 1;
-        ArchiveString(ar, nullptr, 1, &strings->begin[i]);
+        ArchiveString(ar, nullptr, 1, &strings->begin()[i]);
     }
     ArchiveLeave(ar);
 }
@@ -189,7 +189,7 @@ void UnitLevelRecord::Serialize(ChunkArchive* ar) {
 }
 EI_REPLACE_METHOD(0x0052DEE0, UnitLevelRecord::Serialize);
 
-void ChunkArchive::SerializeCStrings(int id, CStringVector* strings, void*) { InlineStrings(this, id, strings); }
+void ChunkArchive::SerializeCStrings(int id, stlp::vector<mfc::CString>* strings, void*) { InlineStrings(this, id, strings); }
 EI_REPLACE_METHOD(0x0052DF40, ChunkArchive::SerializeCStrings);
 
 namespace {

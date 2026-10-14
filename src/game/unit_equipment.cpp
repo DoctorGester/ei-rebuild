@@ -40,7 +40,7 @@ CEngineObject* __fastcall CreateSpellAt(void* a0, void*, const char* a2, void* a
 CEngineObject* __fastcall EquipArmourAt(CUnit* a0, void*, CEngineObject* a2) { return (CEngineObject*)UnitEquipArmourOriginal((void*)a0, nullptr, (void*)a2); }
 int __fastcall AddWeaponAt(CUnit* a0, void*, CEngineObject* a2) { return UnitAddWeaponOriginal((void*)a0, nullptr, (void*)a2); }
 
-std::uint32_t Count(const CStringVector& names) { return static_cast<std::uint32_t>(names.end - names.begin); }
+std::uint32_t Count(const CStringVector& names) { return static_cast<std::uint32_t>(names.size()); }
 
 // A weapon name other than "none" (_mbscmp) and not empty.
 bool Named(const mfc::CString& name) {
@@ -69,9 +69,9 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
     if (unit->type_ == kTypeArmed) {
         // The loop bounds are read again on every pass, as in the original.
         for (std::uint32_t i = 0; i < Count(prototype->armourNames); ++i) {
-            CEngineObject* armour = CreateItemAt(items, nullptr, prototype->armourNames.begin[i]);
+            CEngineObject* armour = CreateItemAt(items, nullptr, prototype->armourNames.begin()[i]);
             if (armour) EquipArmourAt(unit, nullptr, armour);
-            else game::FatalError(Text(kNoArmour), static_cast<const char*>(prototype->armourNames.begin[i]), name);
+            else game::FatalError(Text(kNoArmour), static_cast<const char*>(prototype->armourNames.begin()[i]), name);
         }
         if (Named(prototype->weaponName)) {
             // Added even when it could not be made: AddWeapon(null) returns 0, which becomes the slot.
@@ -82,9 +82,9 @@ int CMapObjectManager::GiveStartingEquipment(CUnit* unit, const char* name) {
             AddWeaponAt(unit, nullptr, MakeWeapon(items, prototype->secondWeaponName, name));
     }
     for (std::uint32_t i = 0; i < Count(prototype->spellNames); ++i) {
-        CEngineObject* spell = CreateSpellAt(items, nullptr, prototype->spellNames.begin[i], spellOwner);
+        CEngineObject* spell = CreateSpellAt(items, nullptr, prototype->spellNames.begin()[i], spellOwner);
         if (spell) UnitAddSpellOriginal(unit, nullptr, spell);
-        else game::FatalError(Text(kNoSpell), static_cast<const char*>(prototype->spellNames.begin[i]), name);
+        else game::FatalError(Text(kNoSpell), static_cast<const char*>(prototype->spellNames.begin()[i]), name);
     }
     return 1;
 }

@@ -47,8 +47,8 @@ Snapshot Take(const void* record, const Layout& layout) {
     }
     for (int i = 0; i < layout.vectorCount; ++i) {
         const auto* v = reinterpret_cast<const CStringVector*>(base + layout.vectors[i]);
-        s.digest = (s.digest ^ static_cast<std::uint64_t>(v->end - v->begin)) * 0x100000001B3ull;
-        for (const mfc::CString* text = v->begin; text != v->end; ++text) Mix(s.digest, *text);
+        s.digest = (s.digest ^ static_cast<std::uint64_t>(v->size())) * 0x100000001B3ull;
+        for (const mfc::CString* text = v->begin(); text != v->end(); ++text) Mix(s.digest, *text);
         std::memset(s.bytes + layout.vectors[i], 0, sizeof(CStringVector));
     }
     return s;
@@ -287,7 +287,7 @@ static void __fastcall CStringsVerify(ChunkArchive* ar, void*, int id, CStringVe
     ar->SerializeCStrings(id, strings, unused);
     if (!ar->loading_) return;
     int fields = RecordChunks(ar, id);
-    ei::verify::Check("ChunkArchive::SerializeCStrings", fields, static_cast<int>(strings->end - strings->begin),
+    ei::verify::Check("ChunkArchive::SerializeCStrings", fields, static_cast<int>(strings->size()),
                       "%d strings", fields);
 }
 EI_VERIFY(0x0052DF40, CStringsVerify, 0, s_unusedUnitVectors);

@@ -28,7 +28,7 @@ bool Named(const mfc::CString& name) {
     return name.GetLength() != 0 && std::strcmp(name, reinterpret_cast<const char*>(0x007846F0)) != 0;   // "none"
 }
 
-int Count(const CStringVector& names) { return static_cast<int>(names.end - names.begin); }
+int Count(const CStringVector& names) { return static_cast<int>(names.size()); }
 } // namespace
 
 static int __fastcall GiveStartingEquipmentVerify(CMapObjectManager* self, void*, CUnit* unit, const char* name) {

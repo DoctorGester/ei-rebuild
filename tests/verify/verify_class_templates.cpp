@@ -71,10 +71,10 @@ void __fastcall BuildVerify(ClassTemplateVector* self, void*, unsigned fourClass
     bool four = static_cast<std::uint8_t>(fourClasses) != 0;
     const int* types = four ? kFour : kFive;
     int expected = four ? 4 : 5;
-    int count = static_cast<int>(self->finish - self->start);
+    int count = static_cast<int>(self->size());
     bool ok = count == expected;
     for (int i = 0; ok && i < count; ++i) {
-        const ClassTemplate* t = self->start[i];
+        const ClassTemplate* t = (*self)[i];
         ok = t && t->type == types[i] && t->refCount == 1;
     }
     ei::verify::Check("ClassTemplatesBuild", true, ok, "%d templates (expected %d)", count, expected);
@@ -92,8 +92,8 @@ ClassTemplate* __fastcall FindVerify(const ClassTemplateVector* self, void*, int
 unsigned __fastcall QuestCompletedVerify(void* manager) {
     unsigned r = ClassTemplatesQuestCompleted(manager);
     auto* v = reinterpret_cast<ClassTemplateVector*>(static_cast<char*>(manager) + 0x38);
-    bool ok = r == static_cast<unsigned>(v->finish - v->start);
-    for (ClassTemplate** t = v->start; ok && t != v->finish; ++t) ok = reinterpret_cast<std::uint8_t*>(*t)[0x38] == 1;
+    bool ok = r == static_cast<unsigned>(v->size());
+    for (ClassTemplate** t = v->begin(); ok && t != v->end(); ++t) ok = reinterpret_cast<std::uint8_t*>(*t)[0x38] == 1;
     ei::verify::Check("ClassTemplatesQuestCompleted", true, ok, "%u templates", r);
     return r;
 }

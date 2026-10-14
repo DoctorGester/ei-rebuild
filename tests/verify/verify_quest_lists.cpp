@@ -15,19 +15,19 @@ namespace {
 // 006AE740: PUSH -1 (2), PUSH imm32 (5).
 void(__fastcall* s_readList)(CFileRegistry*, const char*, const char*, CStringVector*);
 void __fastcall ReadListVerify(CFileRegistry* registry, const char* section, const char* key, CStringVector* list) {
-    CStringVector scratch{nullptr, nullptr, nullptr};
+    CStringVector scratch;
     s_readList(registry, section, key, &scratch);
     ReadStringList(registry, section, key, list);
-    int expected = static_cast<int>(scratch.end - scratch.begin);
-    int actual = static_cast<int>(list->end - list->begin);
+    int expected = static_cast<int>(scratch.size());
+    int actual = static_cast<int>(list->size());
     int bad = -1;
     for (int i = 0; i < expected && i < actual && bad < 0; ++i)
-        if (std::strcmp(scratch.begin[i], list->begin[i]) != 0) bad = i;
+        if (std::strcmp(scratch.begin()[i], list->begin()[i]) != 0) bad = i;
     ei::verify::Check("ReadStringList", true, expected == actual && bad < 0, "'%s' '%s': %d / %d strings, first difference %d",
                       section, key, expected, actual, bad);
     CStringVectorClearOriginal(&scratch);
-    if (scratch.begin)
-        stlp::deallocate(scratch.begin, static_cast<std::size_t>(scratch.endOfStorage - scratch.begin) * sizeof(mfc::CString));
+    if (scratch.begin())
+        stlp::deallocate(scratch.begin(), static_cast<std::size_t>(scratch.EndOfStorage() - scratch.begin()) * sizeof(mfc::CString));
 }
 
 } // namespace
