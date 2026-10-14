@@ -393,9 +393,10 @@ done = "2026-10-14"
 id = "F5"
 title = "Unknown fields: the rest (~105)"
 group = "fields"
-status = "review"
+status = "done"
 files = ["map_spec.h", "net_*", "player_*", "sound*", "script*", "app_*", "bink_video.cpp", "quest_records.h", "base_manager.h", "src/lib"]
 started = "2026-10-14"
+done = "2026-10-14"
 
 # ---------------------------------------------------------------- standalone verification
 
