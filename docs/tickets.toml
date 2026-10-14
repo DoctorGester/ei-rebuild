@@ -517,12 +517,13 @@ note = "0063EF60 / 0063E020 need them (ui.md section 6)."
 id = "X37"
 title = "Build warnings C4244 / C4458"
 group = "harness"
-status = "review"
+status = "done"
 model = "sonnet"
 size = 0.2
 files = ["src/game/world_rules.cpp", "src/game/map_object_client_effects.cpp"]
 note = "C4244 at world_rules.cpp:48-49, C4458 in map_object_client_effects.cpp."
 started = "2026-10-14"
+done = "2026-10-14"
 
 [[ticket]]
 id = "X38"
@@ -672,9 +673,10 @@ done = "2026-10-14"
 id = "F4e"
 title = "ShowWounds' AssignCountedRoot onto CountedRef<T>"
 group = "cleanup"
-status = "queued"
+status = "running"
 depends = ["F4d"]
 note = "unit_client_wounds.cpp (0051C3D0) keeps its own AssignCountedRoot template (inlined) for the wounds material and its preset; CountedRef<WoundsMaterial> / <CRenderPreset> (map_object_figures.h, object3d_lifetime.cpp, F4d) are the same code out of line. Either call those (release code changes from inlined to a call) or make CountedRef::Assign inline in a header that sees the counted types. party.h slot 23 is still named FigureCache (null in CParty)."
+started = "2026-10-14"
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
