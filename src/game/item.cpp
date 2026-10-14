@@ -131,7 +131,11 @@ float CItemLoot::GetPrice() {
     default: return -1.0f;
     }
 }
-EI_REPLACE_METHOD(0x006A5470, CItemLoot::GetPrice);
+namespace {
+// Slot 16's entry point (rule 4).
+float __fastcall LootGetPriceHook(CItemLoot* self) { return self->CItemLoot::GetPrice(); }
+} // namespace
+EI_REPLACE(0x006A5470, LootGetPriceHook);
 
 namespace {
 WeaponRecord* WeaponOf(std::uint32_t packedId) { return WeaponAt(PrototypeIndex(packedId)); }

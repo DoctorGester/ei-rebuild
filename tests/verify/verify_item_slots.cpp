@@ -96,7 +96,7 @@ ItemUse*(__fastcall* s_questUse)(CItemQuest*, void*, ItemUse*);
 ItemUse* __fastcall QuestUseVerify(CItemQuest* self, void*, ItemUse* out) {
     ItemUse* expected = s_questUse(self, nullptr, out);
     ItemUse ours{~0u, ~0u, ~0u};
-    ItemUse* result = self->GetUse(&ours);
+    ItemUse* result = self->CItemQuest::GetUse(&ours);
     ei::verify::Check("CItemQuest::GetUse", true,
                       expected == out && result == &ours && std::memcmp(out, &ours, sizeof(ours)) == 0,
                       "%u %u %u vs %u %u %u", out->kind, out->value, out->extra, ours.kind, ours.value, ours.extra);

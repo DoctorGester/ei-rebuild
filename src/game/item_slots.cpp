@@ -29,7 +29,6 @@ ItemUse* CItemQuest::GetUse(ItemUse* out) {
     *out = ItemUse{8, questItemId_, 0};
     return out;
 }
-EI_REPLACE_METHOD(0x006A43C0, CItemQuest::GetUse);
 
 // --- Slot 14 -----------------------------------------------------------------------------------
 
@@ -112,6 +111,7 @@ void CItemLoot::InitFromRecord(const ItemRecordHead* record) {
 // --- The virtual slots' entry points (rule 4) -----------------------------------------------------
 
 namespace {
+ItemUse* __fastcall QuestGetUseHook(CItemQuest* self, void*, ItemUse* out) { return self->CItemQuest::GetUse(out); }
 BOOL __fastcall ItemIsSameAsHook(CItem* self, void*, CItem* other) { return self->CItem::IsSameAs(other); }
 BOOL __fastcall ArmorIsSameAsHook(CItemArmor* self, void*, CItem* other) { return self->CItemArmor::IsSameAs(other); }
 BOOL __fastcall QuickIsSameAsHook(CItemQuick* self, void*, CItem* other) { return self->CItemQuick::IsSameAs(other); }
@@ -133,6 +133,7 @@ void __fastcall LootInitFromRecordHook(CItemLoot* self, void*, const ItemRecordH
     self->CItemLoot::InitFromRecord(record);
 }
 } // namespace
+EI_REPLACE(0x006A43C0, QuestGetUseHook);
 EI_REPLACE(0x0069FE90, ItemIsSameAsHook);
 EI_REPLACE(0x006A30D0, ArmorIsSameAsHook);
 EI_REPLACE(0x006A3C20, QuickIsSameAsHook);

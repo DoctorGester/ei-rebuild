@@ -29,7 +29,14 @@ enum ItemKind : int {
 inline std::uint32_t PrototypeIndex(std::uint32_t packedId) { return packedId >> 16; }
 inline std::uint32_t MaterialIndex(std::uint32_t packedId) { return packedId & 0xFFFF; }
 
-// Base of every item (vtable 00743DA4).
+// What an item's slot 21 fills in (three dwords; no caller is rewritten yet).
+struct ItemUse {
+    std::uint32_t kind;
+    std::uint32_t value;
+    std::uint32_t extra;
+};
+
+// Base of every item (vtable 00743DA4, 22 slots).
 class CItem : public CEngineObject {
 public:
     // Virtual slots 13-15 after CEngineObject's (vtable 00743DA4; the subclasses override them and
@@ -48,6 +55,19 @@ public:
     // of the attached spell (CSpell::Clone with `spells`; or none) and a count (+0x48) of 1.
     // Returns 0 for another kind, else 1.
     virtual BOOL CopyTo(CItem* target, CSpellManager* spells);
+    // 004622F0 (four bytes, not hooked). Slot 16: the base price (CItemLoot's depends on what it
+    // stands for).
+    virtual float GetPrice();
+    // 00462300 / 00462330 / 00462360 / 00462390 (class_slots.cpp: ItemNoName). Slots 17-20: the
+    // model, first list, figure and picture names (item_names.cpp); "" for a plain item. Each is
+    // built in the caller's result.
+    virtual mfc::CString ModelName();
+    virtual mfc::CString FirstListName();
+    virtual mfc::CString FigureName();
+    virtual mfc::CString PictureName();
+    // 004623C0 (class_slots.cpp: ItemNoUse). Slot 21: fills `out` (zeros; the quest item's has its
+    // id) and returns it.
+    virtual ItemUse* GetUse(ItemUse* out);
     // The first name of slot 14, still used by ui_screens.cpp (another ticket's file).
     BOOL IsSameAsSlot(CItem* other) { return IsSameAs(other); }
 
@@ -163,13 +183,6 @@ struct CItemLink {
 };
 static_assert(sizeof(CItemLink) == 0xC);
 
-// What an item's slot 21 fills in (three dwords; no caller is rewritten yet).
-struct ItemUse {
-    std::uint32_t kind;
-    std::uint32_t value;
-    std::uint32_t extra;
-};
-
 // vtable 00743DFC, GetClassId 0x11.
 class CItemWeapon : public CItem {
 public:
@@ -192,10 +205,10 @@ public:
     // name "<type>_<number>.<material name>.<variant>" (type "sw", "ax", ...; empty without a
     // prototype or material). Slot 18: the first string of the prototype's string list (+0x20),
     // else "". Slot 19: "unhuma" + slot 17. Slot 20: the picture name "initwe<type><number>weapon".
-    mfc::CString ModelName();       // 006A0840
-    mfc::CString FirstListName();   // 006A0F70
-    mfc::CString FigureName();      // 006A2750
-    mfc::CString PictureName();     // 006A27E0
+    mfc::CString ModelName() override;       // 006A0840
+    mfc::CString FirstListName() override;   // 006A0F70
+    mfc::CString FigureName() override;      // 006A2750
+    mfc::CString PictureName() override;     // 006A27E0
 
     // 006A0730 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C..+0x58.
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
@@ -225,10 +238,10 @@ public:
 
     // The same four names as CItemWeapon's (item_names.cpp), with the armor types ("hl", "pl",
     // ...) and the picture name "initar<type><number>armor".
-    mfc::CString ModelName();       // 006A3240
-    mfc::CString FirstListName();   // 006A36A0
-    mfc::CString FigureName();      // 006A3720
-    mfc::CString PictureName();     // 006A37B0
+    mfc::CString ModelName() override;       // 006A3240
+    mfc::CString FirstListName() override;   // 006A36A0
+    mfc::CString FigureName() override;      // 006A3720
+    mfc::CString PictureName() override;     // 006A37B0
 
     // 006A3140 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then absorb_ and layerMask_.
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
@@ -256,9 +269,9 @@ class CItemQuick : public CItem {
 public:
     // 006A3CD0. Slot 19: "qitem<number>.<material name>" when the prototype's +0x10 name is not
     // "none" ("uq" for a material out of range), else "qitem<number>" (-1 without a prototype).
-    mfc::CString FigureName();
+    mfc::CString FigureName() override;
     // 006A4040. Slot 20: "initqi<number>item".
-    mfc::CString PictureName();
+    mfc::CString PictureName() override;
     // 006A3C50 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C.
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
     // 006A3AD0 (item_lifetime.cpp). CItem's and the vtable (+0x4C is left as it is).
@@ -278,8 +291,8 @@ static_assert(sizeof(CItemQuick) == 0x50);
 // vtable 00743F04, GetClassId 0x14.
 class CItemQuest : public CItem {
 public:
-    mfc::CString FigureName();      // 006A45C0 "quitem<number>"
-    mfc::CString PictureName();     // 006A47B0 "initqu<number>item"
+    mfc::CString FigureName() override;    // 006A45C0 "quitem<number>"
+    mfc::CString PictureName() override;   // 006A47B0 "initqu<number>item"
     // 006A4540 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C.
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
     // 006A43A0 (item_lifetime.cpp). CItem's and the vtable (+0x4C is left as it is).
@@ -293,7 +306,7 @@ public:
     void SaveItem(CStream* stream);
     // 006A43C0 (RET 4; slot 21; item_slots.cpp, A-H25). Fills `out` with (8, the id, 0) and
     // returns it; the other classes share 004623C0, which writes three zeros.
-    ItemUse* GetUse(ItemUse* out);
+    ItemUse* GetUse(ItemUse* out) override;
 
     // +0x4C the quest item's id (the prototype's category): RemoveQuestItem(unit, id), the
     // player's quest items, the zone's wanted list.
@@ -306,9 +319,9 @@ static_assert(offsetof(CItemQuest, questItemId_) == 0x4C);
 class CItemSpell : public CItem {
 public:
     // 006A5820. Slot 19: "spell<+0x60 of the carried spell's prototype>" (no null checks).
-    mfc::CString FigureName();
+    mfc::CString FigureName() override;
     // 006A58E0 (A-H25). Slot 20: "initqi1item".
-    mfc::CString PictureName();
+    mfc::CString PictureName() override;
     // 006A57F0 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then +0x4C.
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
     // 006A56E0 (item_lifetime.cpp). CItem's and the vtable (+0x4C is left as it is).
@@ -322,16 +335,16 @@ class CItemLoot : public CItem {
 public:
     // 006A5470. Virtual slot 16: the base price. Depends on what the loot stands for (kind_):
     // itself (price_), a material, or a record of another database (recordType_).
-    float GetPrice();
+    float GetPrice() override;
 
     // 006A4B90. Slot 19, by kind_: a record's name ("<type>_<number>.<variant>" for weapons and
     // armors, "qitem", "prototype" (spells, +0x60), "modifier" + number), "material<index>", or
     // "litem<number>" for the loot itself.
-    mfc::CString FigureName();
+    mfc::CString FigureName() override;
     // 006A5030. Slot 20, the picture: "initwe..." / "initar..." / "initqi..." for records,
     // "initqi1item" for spells and modifiers, "initlimt<index>item" for materials,
     // "initlitr<number>item" for the loot itself.
-    mfc::CString PictureName();
+    mfc::CString PictureName() override;
     // 006A4B50 (RET 8; slot 15; party_items.cpp). CItem::CopyTo, then kind_, recordType_, index_.
     BOOL CopyTo(CItem* target, CSpellManager* spells) override;
     // 006A49A0 (item_lifetime.cpp). CItem's and the vtable (kind, record type and index are left

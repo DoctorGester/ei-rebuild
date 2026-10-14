@@ -131,7 +131,7 @@ EI_VERIFY(0x006A31A0, ArmorGroupVerify, 6, s_armorGroup);
 static float(__fastcall* s_lootPrice)(CItemLoot*);
 static float __fastcall LootPriceVerify(CItemLoot* self) {
     float expected = s_lootPrice(self);
-    ei::verify::Check("CItemLoot::GetPrice", Bits(expected), Bits(self->GetPrice()), "kind %u type %u index %u",
+    ei::verify::Check("CItemLoot::GetPrice", Bits(expected), Bits(self->CItemLoot::GetPrice()), "kind %u type %u index %u",
                       self->kind_, self->recordType_, self->index_);
     return expected;
 }
