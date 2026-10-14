@@ -7,6 +7,10 @@
 // docs/notes/app.md.
 #include "ei/hook.h"
 #include "lib/gameapi.h"
+#include "render/render.h"
+#include "../hook/log.h"
+#include <cstring>
+#include <cstdlib>
 
 #include <cstdint>
 
@@ -34,6 +38,30 @@ using DirectDrawCreateEx = long(__stdcall*)(void*, void**, const void*, void*);
 } // namespace
 
 std::uint32_t __cdecl GetDxVersion() {
+    {   // PF3 EXPERIMENT
+        char mode[32] = {};
+        if (GetEnvironmentVariableA("EI_PF3_MODE", mode, sizeof(mode)) > 0) {
+            ei::Log("PF3 experiment: %s", mode);
+            if (std::strchr(mode, 'c')) {
+                void* music = nullptr;
+                gameapi::CoInitialize(nullptr);
+                if (gameapi::CoCreateInstance(*static_cast<const CLSID*>(Id(0x00744930)), nullptr, 1, *static_cast<const IID*>(Id(0x00744900)), &music) >= 0) {
+                    Com(music, kRelease);
+                    gameapi::CoUninitialize();
+                }
+            }
+            if (std::strchr(mode, 'd')) {
+                void* dd = nullptr;
+                FARPROC create = gameapi::GetProcAddress(gameapi::GetModuleHandleA("ddraw.dll"), Text(0x00785660));
+                if (reinterpret_cast<DirectDrawCreate>(create)(nullptr, &dd, nullptr) >= 0) Com(dd, kRelease);
+            }
+            if (std::strchr(mode, 'i')) {
+                gameapi::FreeLibrary(gameapi::LoadLibraryA(Text(0x00785604)));
+            }
+            ei::Log("PF3 experiment done");
+            return 0x700;
+        }
+    }
     void* ddraw = nullptr;     // IDirectDraw
     void* ddraw2 = nullptr;
     void* surface = nullptr;   // IDirectDrawSurface
