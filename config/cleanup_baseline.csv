@@ -2,7 +2,7 @@ file,offset access (At<>/Field<>),VCall slot call,__asm block,float_control prag
 src/game/ai_alarm.cpp,14,0,0,0,10,0,0,0,0,0,0
 src/game/ai_area_lists.cpp,0,0,0,0,6,0,0,1,0,0,0
 src/game/ai_bridges.cpp,0,0,0,0,0,0,0,0,0,1,0
-src/game/ai_footprint.cpp,15,3,0,0,0,0,0,1,0,0,2
+src/game/ai_footprint.cpp,0,3,0,0,0,0,0,1,0,0,2
 src/game/ai_footprint_shapes.cpp,0,0,0,2,3,0,0,0,0,0,4
 src/game/ai_join.cpp,0,0,0,0,1,0,0,0,0,0,0
 src/game/ai_line_step.cpp,0,0,0,2,6,0,0,0,0,0,1

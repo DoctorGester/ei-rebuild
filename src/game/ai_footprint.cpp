@@ -151,10 +151,8 @@ __declspec(naked) char** __fastcall StringArrayGetAt(const void*, void*, char**,
 
 void DestroyString(char** s) { reinterpret_cast<mfc::CString*>(s)->~CString(); }
 
-template <typename T>
-T& Field(CEngineObject* object, int offset) {
-    return *reinterpret_cast<T*>(reinterpret_cast<char*>(object) + offset);
-}
+// The map objects and units the footprint code reads share the CObject3D layout.
+CMapObject* MapObject(CEngineObject* object) { return static_cast<CMapObject*>(object); }
 
 // "Bodypart \"%s\" for object \"%s\" not found\n"
 const char* PartNotFoundFormat() { return reinterpret_cast<const char*>(0x0079189C); }
@@ -174,19 +172,20 @@ void ResetCellSet(FootprintCellSet* set) {
 
 bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprintSet, FootprintCellSet* bridgeSet) {
     // The object's transform: rotation from its orientation, translation from its position.
-    float* matrix = &Field<float>(object, 0x54);
-    QuaternionToMatrix(&Field<float>(object, 0x34), nullptr, matrix);
-    std::memcpy(&matrix[11], &Field<float>(object, 0x24), 4);
-    std::memcpy(&matrix[3], &Field<float>(object, 0x1C), 4);
-    std::memcpy(&matrix[7], &Field<float>(object, 0x20), 4);
+    CMapObject* mapObject = MapObject(object);
+    float* matrix = mapObject->worldMatrix.m;
+    QuaternionToMatrix(&mapObject->orientation, nullptr, matrix);
+    std::memcpy(&matrix[11], &mapObject->position.z, 4);
+    std::memcpy(&matrix[3], &mapObject->position.x, 4);
+    std::memcpy(&matrix[7], &mapObject->position.y, 4);
     matrix[14] = 0.0f;
     matrix[13] = 0.0f;
     matrix[12] = 0.0f;
     matrix[15] = 1.0f;
 
     // Part names: the figure's list if it has one, else the object's own (CStringArray, size at +8).
-    char* names = Field<char*>(object, 0x170) + 0x80;
-    if (*reinterpret_cast<int*>(names + 8) == 0) names = &Field<char>(object, 0x110);
+    char* names = reinterpret_cast<char*>(mapObject->companion) + 0x80;
+    if (*reinterpret_cast<int*>(names + 8) == 0) names = reinterpret_cast<char*>(&mapObject->partNameArrayVtable);
 
     bool hasBridge = false;
     for (int n = 0; n < *reinterpret_cast<int*>(names + 8); ++n) {
@@ -194,12 +193,12 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
         int index = ObjectFindPartIndexOriginal(object, nullptr, *StringArrayGetAt(names, nullptr, &name, n));
         DestroyString(&name);
         if (index < 0) {
-            const char* objectName = Field<const char*>(object, 0xA4);
+            const char* objectName = mapObject->name;
             game::FatalError(PartNotFoundFormat(), *StringArrayGetAt(names, nullptr, &name, n), objectName);
             DestroyString(&name);
             continue;
         }
-        const FootprintPart* part = &Field<FootprintPart*>(object, 0x160)[index];
+        const FootprintPart* part = &mapObject->partBoxes[index];
         std::uint32_t flags = part->flags;
         if (flags & 0x800) continue;
         std::int8_t kind = static_cast<std::int8_t>((flags >> 3) & 7);
@@ -217,10 +216,10 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
                              {hi.x, hi.y, hi.z}, {hi.x, lo.y, hi.z}, {hi.x, lo.y, lo.z}, {lo.x, lo.y, lo.z}};
         Vector3 normal[6] = {{0, 0, -1}, {-1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 0}, {0, -1, 0}};
         Vector3 position;
-        std::memcpy(&position, &Field<Vector3>(object, 0x1C), sizeof(position));
+        std::memcpy(&position, &mapObject->position, sizeof(position));
 
         // Stand the object on the ground (or bridge deck) under its centre.
-        int cx = WorldToCell(Field<float>(object, 0x1C)), cy = WorldToCell(Field<float>(object, 0x20));
+        int cx = WorldToCell(mapObject->position.x), cy = WorldToCell(mapObject->position.y);
         float ground;
         if (cx < 0 || cy < 0 || cx >= width || cy >= height) {
             ground = 0.0f;
@@ -233,7 +232,7 @@ bool CAIMap::CollectFootprint(CEngineObject* object, FootprintCellSet* footprint
         position.z = ground + position.z;
 
         for (Vector3& p : corner) {
-            const FootprintPart* placed = &Field<FootprintPart*>(object, 0x160)[index];
+            const FootprintPart* placed = &mapObject->partBoxes[index];
             float y = placed->pivot.y + p.y;
             float z = placed->pivot.z + p.z;
             float x = p.x + placed->pivot.x + placed->offset.x;
@@ -307,8 +306,8 @@ void CAIMap::QueueRefresh(int minX, int maxX, int minY, int maxY) {
 }
 
 bool CAIMap::MarkFootprint(CEngineObject* object, bool remove) {
-    int cellX = WorldToCell(Field<float>(object, 0x1C));
-    int cellY = WorldToCell(Field<float>(object, 0x20));
+    int cellX = WorldToCell(MapObject(object)->position.x);
+    int cellY = WorldToCell(MapObject(object)->position.y);
     ResetCellSet(&footprint);
     ResetCellSet(&bridges);
 
