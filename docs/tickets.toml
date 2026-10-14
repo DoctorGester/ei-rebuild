@@ -581,10 +581,11 @@ note = "2,377 sites; with the standalone work (changes what the verify wrappers 
 id = "F4a"
 title = "View structs into their classes (F4 follow-up)"
 group = "cleanup"
-status = "queued"
+status = "running"
 depends = ["F4"]
 files = ["map_object_figures.h", "figure_mesh.h", "link_figure.h", "scene_loader.h", "material.h", "terrain.h", "terrain_sector.h", "figure_part_bounds.cpp", "renderer_lines.h"]
 note = "F4 named the gaps of views after the real classes; merge them: FigurePart -> CFigureMesh (piece158 / piece15C are materialValue_ / meshType_), FigurePieceRecord's piece -> LinkPartHeader, FigureMaterial and SceneHelper -> CMaterial, TerrainFields -> Terrain, TerrainSector -> terrain::SectorData, the two LineBatch declarations into renderer_lines.h's."
+started = "2026-10-14"
 
 # ---------------------------------------------------------------- standalone and UTF-8
 
