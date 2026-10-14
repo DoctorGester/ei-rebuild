@@ -113,14 +113,12 @@ namespace {
 // Not rewritten (forwarders), as __fastcall with the unused EDX for __thiscall:
 // 00455950 the object's world; 0066D6E0 party messages; 00552780 the unit shouts.
 __declspec(naked) void __fastcall TickMessage(void*, void*, CUnit*, int) EI_ORIGINAL(0x0066D6E0)
-__declspec(naked) void __fastcall ControllerShout(CUnitServer*, void*, int) EI_ORIGINAL(0x00552780)
 // CUnitServer helpers: 0054A150 follow the path (true while moving), 00550F30 the idle animation
 // (+0x960), 00546C40 play it, 00547280 / 00547090 / 005474B0 / 0054EB30 / 005467B0 movement and
 // motion updates, 00548700 plan a path to a point, 005468D0 take nearby units off the sector map
 // into a list, 005494D0 start the planned action, 00548DE0 / 00548FA0 play an animation list
 // (taken by value), 00549690 the end of an order.
 __declspec(naked) bool __fastcall TickFollowPath(CUnitServer*) EI_ORIGINAL(0x0054A150)
-__declspec(naked) void __fastcall TickPlayIdle(CUnitServer*, void*, AnimationSteps*) EI_ORIGINAL(0x00546C40)
 __declspec(naked) void __fastcall TickMotion5474B0(CUnitServer*) EI_ORIGINAL(0x005474B0)
 __declspec(naked) void __fastcall TickStartAction(CUnitServer*, void*, int, int) EI_ORIGINAL(0x005494D0)
 __declspec(naked) void __fastcall TickPlaySteps(CUnitServer*, void*, AnimationSteps) EI_ORIGINAL(0x00548DE0)
@@ -154,9 +152,6 @@ __declspec(naked) bool __fastcall PartySees(void*, void*, CEngineObject*) EI_ORI
 __declspec(naked) bool __fastcall TickCanCast(CUnitServer*, void*, const UnitAction*) EI_ORIGINAL(0x0054BF80)
 __declspec(naked) BOOL __fastcall TickBuildHit(CUnitServer*, void*, DamageInfo*, int, int, char) EI_ORIGINAL(0x0054F630)
 __declspec(naked) BOOL __fastcall TickResolveHit(CUnitServer*, void*, DamageInfo*, CUnit*) EI_ORIGINAL(0x00553DF0)
-__declspec(naked) int __fastcall TickAnimationDuration(CUnitServer*, void*, std::uint32_t) EI_ORIGINAL(0x00551A40)
-__declspec(naked) void __fastcall TickOrderSteps(CUnitServer*, void*, AnimationSteps*, int*, int, std::uint32_t)
-    EI_ORIGINAL(0x00550100)
 } // namespace
 
 __declspec(naked) bool CUnitServer::CallStartQueuedOrder() EI_ORIGINAL(0x0054A900)
@@ -256,7 +251,7 @@ bool CanStillDo(CUnitServer* self, UnitAction* order) {
             }
         }
     }
-    return self->CallCanPlanAction(order);
+    return CtlCanPlanAction(self, nullptr, order);
 }
 } // namespace
 
@@ -317,7 +312,7 @@ void StandIdle(CUnitServer* self) {
             int now = WorldTick(self);
             idle->extra = now - static_cast<int>(IsaacRandom::Global().Next() % 0x33);
         }
-        TickPlayIdle(self, nullptr, idle);
+        CtlPlaySteps(self, nullptr, idle);
     }
     CtlStandStill(self);
     CtlSetState(self, nullptr, 2);
@@ -449,7 +444,7 @@ bool CUnitServer::StartQueuedOrder() {
         StepsSetSize(&steps, nullptr, 0, -1);
         steps.extra = -1;
         std::uint8_t animation = static_cast<std::uint8_t>(action.unknown_1C);
-        int duration = TickAnimationDuration(this, nullptr, animation);
+        int duration = CtlAnimationDuration(this, nullptr, animation);
         StepsAddStepTick(&steps, nullptr, animation, duration);
         AnimationSteps copy;
         StepsCopy(&copy, nullptr, &steps);
@@ -479,7 +474,7 @@ bool CUnitServer::StartQueuedOrder() {
         std::memset(&steps, 0, sizeof(steps));
         steps.vtable = kAnimationStepsVtable;
         int duration;
-        TickOrderSteps(this, nullptr, &steps, &duration, kOrderSkill, 0);
+        CtlBuildOrderSteps(this, nullptr, &steps, &duration, kOrderSkill, 0);
         int now = WorldTick(this);
         AnimationSteps copy;
         StepsCopy(&copy, nullptr, &steps);
@@ -646,7 +641,7 @@ bool OutOfReachUp(CUnitServer* self, const UnitAction* order) {
 
 bool CUnitServer::CanReachAndPlan(const UnitAction* order) {
     if (OutOfReachUp(this, order)) return false;
-    return CallCanPlanAction(order);
+    return CtlCanPlanAction(this, nullptr, order);
 }
 EI_REPLACE_METHOD(0x0054C8B0, CUnitServer::CanReachAndPlan);
 
@@ -656,7 +651,7 @@ bool CUnitServer::CanReachAndPlanFrom(const UnitAction* order, const Vector3* po
     Vector3 saved;
     std::memcpy(&saved, &unit->position, sizeof(saved));
     std::memcpy(&unit->position, point, sizeof(saved));
-    bool result = CallCanPlanAction(order);
+    bool result = CtlCanPlanAction(this, nullptr, order);
     std::memcpy(&unit->position, &saved, sizeof(saved));
     return result;
 }
@@ -787,7 +782,7 @@ void CUnitServer::ApproachTarget() {
                 Vector3 saved;
                 std::memcpy(&saved, &unit->position.x, sizeof(saved));
                 std::memcpy(&unit->position.x, &heading, sizeof(saved));
-                bool ok = CallCanPlanAction(&action);
+                bool ok = CtlCanPlanAction(this, nullptr, &action);
                 std::memcpy(&unit->position.x, &saved, sizeof(saved));
                 if (ok) return;
             }

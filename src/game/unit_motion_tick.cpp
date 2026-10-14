@@ -37,9 +37,7 @@ namespace {
 // animation, 00547280 / 00547090 / 005467B0 motion updates, 00548520 the end of the tick.
 __declspec(naked) void __fastcall RestartQueueA(CUnitServer*) EI_ORIGINAL(0x00546B40)
 __declspec(naked) bool __fastcall CanPlayFor(CUnitServer*, void*, int /*ticks*/) EI_ORIGINAL(0x00549D00)
-__declspec(naked) void __fastcall PlaySteps(CUnitServer*, void*, AnimationSteps*) EI_ORIGINAL(0x00546C40)
 // 00550A80 CUnitServer::BuildDeathAnimation (combat_steps.cpp).
-__declspec(naked) void __fastcall DeathAnimation(CUnitServer*, void*, AnimationSteps*, std::uint32_t, int, int) EI_ORIGINAL(0x00550A80)
 // Animation lists: 00556850 constructor, 00557E70 destructor, 005483C0 assign (the queue +0x24 and
 // the copy +0x148), 00556950 append, 00544E40 total duration (-1 if a step is open-ended), 00558920
 // GetAt into `out`, 00544D50 add an emote, 00544CE0 add a step, 00558950 SetAtGrow.
@@ -248,11 +246,11 @@ void HitWhileTurning(CUnitServer* c) {
     AnimationSteps steps;
     StepsConstruct(&steps);
     if (c->moveMode.mode != 0 || c->state != 0) {
-        DeathAnimation(c, nullptr, &steps, c->hitDirection, 0, 0);
+        CtlBuildDeathAnimation(c, nullptr, &steps, c->hitDirection, 0, 0);
         if (CanPlayFor(c, nullptr, StepsDuration(&steps))) {
             c->keepHitDirection = 1;
             StepsCopyB(&c->savedQueue, nullptr, Queue(c));
-            PlaySteps(c, nullptr, &steps);
+            CtlPlaySteps(c, nullptr, &steps);
             c->unknown_021 = 1;
         }
     }
@@ -277,7 +275,7 @@ void HitWhileMoving(CUnitServer* c) {
     AnimationSteps fall;
     StepsConstruct(&fall);
     CtlBuildMoveSteps(c, nullptr, &current, 0);
-    DeathAnimation(c, nullptr, &fall, c->hitDirection, 0, 1);
+    CtlBuildDeathAnimation(c, nullptr, &fall, c->hitDirection, 0, 1);
     for (int i = 0; i < current.count; ++i) {
         AnimationStep step;
         StepsGetAt(&current, nullptr, &step, i);
@@ -382,7 +380,7 @@ void MotionOver(CUnitServer* c, CWorldServer* world) {
     UnitPathSpeeds(UnitOf(c));
     int state = c->state;
     if (state >= 0 && (state <= 1 || state == 2)) return;
-    PlaySteps(c, nullptr, CtlIdleAnimation(c));
+    CtlPlaySteps(c, nullptr, CtlIdleAnimation(c));
 }
 
 // Replans the path to the order's goal (+0x9C; its z, +0xA4, holds the range PathTo asked for), with
@@ -413,7 +411,7 @@ void Replan(CUnitServer* c, CWorldServer* world, bool liftBlocker, const Vector3
         UnitPathSpeeds(UnitOf(c));
         int state = c->state;
         if (state >= 0 && (state <= 1 || state == 2)) return;
-        PlaySteps(c, nullptr, CtlIdleAnimation(c));
+        CtlPlaySteps(c, nullptr, CtlIdleAnimation(c));
         return;
     }
     std::uint8_t wasFlag = FailedByte(c) == 1;

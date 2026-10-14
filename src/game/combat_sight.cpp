@@ -160,8 +160,6 @@ __declspec(naked) double __fastcall UnitEyeHeight(CUnit*) EI_ORIGINAL(0x00530370
 
 __declspec(naked) bool CUnitServer::CallCanActFrom(const UnitAction*, const float*, int) EI_ORIGINAL(0x0054C2F0)
 __declspec(naked) bool CUnitServer::CallPlanAction(const UnitAction*, OrderPlan*) EI_ORIGINAL(0x0054CA40)
-__declspec(naked) bool CUnitServer::CallCanPlanAction(const UnitAction*) EI_ORIGINAL(0x0054C6B0)
-__declspec(naked) bool CUnitServer::CallFindSightTarget(const UnitAction*, SightTarget*) EI_ORIGINAL(0x0054BCB0)
 
 // --- What must be seen -----------------------------------------------------------------------
 
@@ -287,7 +285,7 @@ bool CUnitServer::CanActFrom(const UnitAction* order, const float* point, int ti
     }
 
     SightTarget sight;
-    if (!CallFindSightTarget(order, &sight)) return true;
+    if (!CtlFindSightTarget(this, nullptr, order, &sight)) return true;
     if (sight.unit) {
         // A unit target is seen at `point`, at its own height above the ground there.
         std::memcpy(&sight.point, point, sizeof(sight.point));
@@ -380,7 +378,7 @@ bool CUnitServer::PlanAction(const UnitAction* order, OrderPlan* plan) {
     if (kind == kOrderAttack) {
         CallBuildAttackSteps(plan, &steps, &duration, order->target);
     } else if (kind < kOrderCast || kind > kOrderCastAt) {
-        CallBuildOrderSteps(&steps, &duration, kind, order->source);
+        CtlBuildOrderSteps(this, nullptr, &steps, &duration, kind, order->source);
     } else {
         spell = SpellOfSource(order->source);
         int value = 0;

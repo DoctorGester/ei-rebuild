@@ -185,7 +185,6 @@ __declspec(naked) void __fastcall PlayerMessage(void*, void*, CUnit*, int) EI_OR
 __declspec(naked) CItem* __fastcall UnitTakeRandomItem(CUnit*) EI_ORIGINAL(0x00531400)
 // 00551AE0. CUnitServer (the target's): tries to be tamed by `tamer` with skill `skill`; 0 when it
 // worked.
-__declspec(naked) int __fastcall ControllerTame(void*, void*, CUnit*, float) EI_ORIGINAL(0x00551AE0)
 // 005AEA60. The controller's voice (+0xB10): says remark `what`.
 void __fastcall VoiceSay(void* a0, void*, int a2) { VoiceSayOriginal(a0, nullptr, a2); }
 // 005C98C0 / 005C97B0 / 005CAA00 (world + 0x2838, the AI events): a noise of `loudness` and
@@ -209,17 +208,14 @@ __declspec(naked) void __fastcall ControllerPlayAnimation(CUnitServer*, void*, A
     EI_ORIGINAL(0x00548DE0)
 // 00545F40. UnitAction: kind 9, target released, flag18 cleared (+0x1C/+0x20 left alone).
 
-__declspec(naked) void CUnitServer::CallBuildDeathAnimation(void*, std::uint32_t, int, int) EI_ORIGINAL(0x00550A80)
 
 // Calls between the rewritten functions go through the game's addresses (which jump to the
 // rewrites) so that the verify build's wrappers see them: most of these have no other callers.
 __declspec(naked) void CUnitServer::CallDeliverAttack(CEngineObject*, DamageInfo*) EI_ORIGINAL(0x0054F450)
 __declspec(naked) void CUnitServer::CallTriggerWeaponSpell(CEngineObject*) EI_ORIGINAL(0x0054F850)
 __declspec(naked) void CUnitServer::CallTriggerItemSpells(char) EI_ORIGINAL(0x0054F8E0)
-__declspec(naked) void CUnitServer::CallUseItemCharge(CItem*, float) EI_ORIGINAL(0x00552C60)
 __declspec(naked) void CUnitServer::CallOnDamaged(CUnit*, int) EI_ORIGINAL(0x00553AC0)
 __declspec(naked) void CUnitServer::CallWitnessMurder(void*, CUnit*, CUnit*) EI_ORIGINAL(0x005538D0)
-__declspec(naked) void CUnitServer::CallPropagateHostility() EI_ORIGINAL(0x00552E00)
 __declspec(naked) std::uint32_t CUnitServer::CallHitDirection(CUnit*, int) EI_ORIGINAL(0x005518F0)
 __declspec(naked) void CUnitServer::CallUseSkill(CEngineObject*) EI_ORIGINAL(0x0054F000)
 __declspec(naked) void CUnitServer::CallSetDead(int) EI_ORIGINAL(0x00546720)
@@ -325,7 +321,7 @@ void CUnitServer::TriggerWeaponSpell(CEngineObject* target) {
     if (!spell || !(spell->targetFlags_ & kSpellOnWeapon)) return;
     float cost = std::bit_cast<float>(spell->unknown_40);
     if (cost > weapon->charge_) return;
-    CallUseItemCharge(weapon, cost);
+    CtlUseItemCharge(this, nullptr, weapon, cost);
     CUnit* self = unit;
     Vector3 point;
     const void* at = ei::VCall<const Vector3*>(target, kUnitSlotAimPoint, &point);
@@ -344,7 +340,7 @@ void CUnitServer::TriggerItemSpells(char onHit) {
         if (cost > item->charge_) continue;
         bool fires = (spell->unknown_18 & 0xFFFF0000u) == kSpellNotOnHit ? onHit == 0 : onHit != 0;
         if (!fires) continue;
-        CallUseItemCharge(item, cost);
+        CtlUseItemCharge(this, nullptr, item, cost);
         CUnit* self = unit;
         WorldCastSpell(WorldServer(), nullptr, spell, self, &self->position.x, self, &self->position.x, 0);
     }
@@ -492,7 +488,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
         if (attacker && attacker->GetClassId() == kClassUnit) DiplomacyOf(world)->OnAttack(attacker, unit, 10);
         RememberAttacker(brain, nullptr, attacker);
         unit->flags_ |= 0x80000;
-        CallPropagateHostility();
+        CtlPropagateHostility(this);
         std::uint32_t direction = CallHitDirection(attacker, hitKind);
         if (!keepHitDirection) hitDirection = direction;
         return;
@@ -521,7 +517,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     AnimationListConstruct(&animation);
     animation.vtable = kAnimationStepsVtable;
     std::uint32_t direction = CallHitDirection(attacker, hitKind);
-    CallBuildDeathAnimation(&animation, direction, 1, 0);
+    CtlBuildDeathAnimation(this, nullptr, &animation, direction, 1, 0);
     unknown_021 = 0;
     unknown_020 = 0;
     AnimationSteps copy;
@@ -629,7 +625,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     case 2: {
         // Not reached: skill 2 returned above (sic).
         if (!other) return;
-        if (ControllerTame(other->controller, nullptr, unit, mine) != 0) return;
+        if (ControllerTame(static_cast<CUnitServer*>(other->controller), nullptr, unit, mine) != 0) return;
         if (!unit->player) return;
         message = kMessageTameFailed;
         break;

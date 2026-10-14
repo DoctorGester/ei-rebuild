@@ -140,11 +140,7 @@ __declspec(naked) double __fastcall UnitAnimationSpeed(CUnit*, void*, const void
 
 __declspec(naked) bool CUnitServer::CallBuildAttackSteps(OrderPlan*, AnimationSteps*, int*, CEngineObject*)
     EI_ORIGINAL(0x0054F970)
-__declspec(naked) void CUnitServer::CallBuildOrderSteps(AnimationSteps*, int*, int, std::uint32_t) EI_ORIGINAL(0x00550100)
 __declspec(naked) void CUnitServer::CallBuildCastSteps(AnimationSteps*, int*, int, int) EI_ORIGINAL(0x00550620)
-__declspec(naked) bool CUnitServer::CallBuildTransition(AnimationSteps*, const MoveModeState*, const MoveModeState*)
-    EI_ORIGINAL(0x005516D0)
-__declspec(naked) int CUnitServer::CallAnimationDuration(std::uint32_t) EI_ORIGINAL(0x00551A40)
 __declspec(naked) int CUnitServer::CallAnimationMoment(std::uint32_t) EI_ORIGINAL(0x00551A90)
 
 namespace {
@@ -317,7 +313,7 @@ void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, int kind
         ScratchSteps out;
         MoveModeState to{};
         to.mode = 1;
-        if (CallBuildTransition(&out.steps, &moveMode, &to)) {
+        if (CtlBuildTransition(this, nullptr, &out.steps, &moveMode, &to)) {
             AppendFirst(steps, &out.steps);
             *duration += out.steps.steps[0].duration;
         }
@@ -335,7 +331,7 @@ void CUnitServer::BuildOrderSteps(AnimationSteps* steps, int* duration, int kind
         ScratchSteps back;
         MoveModeState from{};
         from.mode = 1;
-        if (CallBuildTransition(&back.steps, &from, &moveMode)) AppendFirst(steps, &back.steps);
+        if (CtlBuildTransition(this, nullptr, &back.steps, &from, &moveMode)) AppendFirst(steps, &back.steps);
     }
 }
 EI_REPLACE_METHOD(0x00550100, CUnitServer::BuildOrderSteps);
@@ -365,7 +361,7 @@ void CUnitServer::BuildCastSteps(AnimationSteps* steps, int* duration, int kind,
 
     if (value <= EntryTicks(unit, index, 0x20)) {
         // The cast fits in the animation.
-        StepsAddStep(steps, nullptr, index, CallAnimationDuration(index));
+        StepsAddStep(steps, nullptr, index, CtlAnimationDuration(this, nullptr, index));
         *duration = CallAnimationMoment(index);
         return;
     }
@@ -456,7 +452,7 @@ double RandomHeight(double to, float from, float low, float high) {
 bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* duration, CEngineObject* target) {
     if (target->GetClassId() != kClassUnit) {
         plan->unknown_2C = 1;
-        CallBuildOrderSteps(steps, duration, kOrderAttack, kKeyNoTarget);
+        CtlBuildOrderSteps(this, nullptr, steps, duration, kOrderAttack, kKeyNoTarget);
         return true;
     }
     CUnit* victim = static_cast<CUnit*>(target);
@@ -578,7 +574,7 @@ bool CUnitServer::BuildAttackSteps(OrderPlan* plan, AnimationSteps* steps, int* 
     if (order.target) order.target->Release();
     order.target = nullptr;
 
-    CallBuildOrderSteps(steps, duration, kOrderAttack, key);
+    CtlBuildOrderSteps(this, nullptr, steps, duration, kOrderAttack, key);
     return true;
 }
 EI_REPLACE_METHOD(0x0054F970, CUnitServer::BuildAttackSteps);

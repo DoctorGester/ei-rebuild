@@ -103,11 +103,7 @@ __declspec(naked) void __fastcall ParticleAttach(CEngineObject*, void*, int) EI_
 // ones not rewritten: 00548700 plan a path to a point.
 __declspec(naked) void __fastcall CtlUpdateOrders(CUnitServer*) EI_ORIGINAL(0x0054B390)
 __declspec(naked) void __fastcall CtlMovementTick(CUnitServer*) EI_ORIGINAL(0x00547890)
-__declspec(naked) void __fastcall CtlPropagateHostility(CUnitServer*) EI_ORIGINAL(0x00552E00)
 __declspec(naked) void __fastcall CtlFinishAction(CUnitServer*, void*, int, int) EI_ORIGINAL(0x00549EC0)
-__declspec(naked) void __fastcall CtlUseItemCharge(CUnitServer*, void*, CItem*, float) EI_ORIGINAL(0x00552C60)
-__declspec(naked) void __fastcall CtlDeathAnimation(CUnitServer*, void*, AnimationSteps*, std::uint32_t, int, int)
-    EI_ORIGINAL(0x00550A80)
 __declspec(naked) void* __fastcall CtlSpellOfSource(CUnitServer*, void*, std::uint32_t) EI_ORIGINAL(0x0054B880)
 // The functions of this file, through their game addresses (for the verify build's wrappers).
 __declspec(naked) void __fastcall CtlUpdateState(CUnitServer*) EI_ORIGINAL(0x005499F0)
@@ -117,7 +113,6 @@ __declspec(naked) bool __fastcall CtlActionInReach(CUnitServer*) EI_ORIGINAL(0x0
 __declspec(naked) bool __fastcall CtlPopFinishedSteps(CUnitServer*) EI_ORIGINAL(0x00546B40)
 __declspec(naked) void __fastcall CtlPlayHitReaction(CUnitServer*) EI_ORIGINAL(0x00547100)
 __declspec(naked) void __fastcall CtlTickAction(CUnitServer*) EI_ORIGINAL(0x00549160)
-__declspec(naked) void __fastcall CtlPlaySteps(CUnitServer*, void*, AnimationSteps*) EI_ORIGINAL(0x00546C40)
 // Animation lists (MFC CArray<AnimationStep> instantiations): 00556950 / 005483C0 Copy (the same
 // code twice), 00556870 copy constructor, 00557B60 constructor, 00557E70 destructor, 00557B80
 // SetSize, 00557E20 RemoveAt; 00544FD0 OrderPlan's reset.
@@ -523,7 +518,7 @@ EI_REPLACE_METHOD(0x00547280, CUnitServer::StandStill);
 void CUnitServer::PlayHitReaction() {
     LocalSteps reaction;
     if (moveMode.mode == 0 && state == kStateIdle) return;
-    CtlDeathAnimation(this, nullptr, &reaction.steps, hitDirection, 0, 0);
+    CtlBuildDeathAnimation(this, nullptr, &reaction.steps, hitDirection, 0, 0);
     int duration = TotalDuration(reaction.steps);
     if (action.kind == kOrderAttack && state == kStateTurning &&
         TickOf(ObjectWorld(this)) + duration > nextAttackTime)

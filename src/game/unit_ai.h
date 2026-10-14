@@ -78,7 +78,6 @@ struct UnitController {
     void Turn(const Vector3* direction, float time);        // 005546B0
     void Say(int what);                                     // 005AEA60 on this + 0xB10 (see Voice)
     void MoveTo(const Vector3* point, int run, int unused, float time);    // 00554740
-    void Shout(int message);                                // 00552780 (party units only)
     // 00554B30. Starts attacking `target`.
     void Attack(CEngineObject* target, int how, int unknown, int flags);
     // 0054C8B0. Whether the player's order check accepts `order` (see AttackTarget).

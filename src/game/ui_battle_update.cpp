@@ -157,7 +157,6 @@ void __fastcall ShowPanelUnit(CBattleScreenSetup* a0, void*, CUnit* a2, void* a3
 // The world (007AF5B8, thiscall): 0055FB00 the unit with an id (RET 4), 00566030 (RET 4) makes
 // `unit` the controlled one, 005656A0 (RET 8) the units inside a selection box into a list.
 static CUnit* FindUnit(void* world, void*, int id) { return reinterpret_cast<CUnit*>(::WorldFindUnit(world, nullptr, id)); }
-__declspec(naked) void __fastcall WorldControl(void*, void*, CUnit*) EI_ORIGINAL(0x00566030)
 __declspec(naked) void __fastcall UnitsInBox(void*, void*, const void*, void*) EI_ORIGINAL(0x005656A0)
 constexpr std::uintptr_t kWorld = 0x007AF5B8;
 
@@ -292,7 +291,7 @@ void RebuildClientParty(CBattleScreenSetup* screen) {
             CUnit* unit = FindUnit(reinterpret_cast<void*>(kWorld), nullptr, unitId);
             if (!unit) continue;
             if (unitId == ids.camera) {
-                WorldControl(reinterpret_cast<void*>(kWorld), nullptr, unit);
+                ClientWorldControlUnitOriginal(reinterpret_cast<void*>(kWorld), nullptr, unit);
                 // Insert at the front (the original's inlined InsertAt).
                 int n = party->size;
                 if (n <= 0) {
@@ -483,7 +482,6 @@ namespace {
 // The world (007AF5B8, thiscall): 00565E40 (RET 4) the unit at a screen point (x, y), 00566100
 // (RET 4) with 0 clears the selection (the selected units' flag 0x10 and marks).
 CUnit* UnitAtPoint(void* world, void*, int* point) { return WorldUnitAtPointOriginal(world, nullptr, point); }
-__declspec(naked) void __fastcall WorldSelect(void*, void*, CUnit*) EI_ORIGINAL(0x00566100)
 // 00638EF0 (thiscall on the battle screen, RET 0xC; Rebirth-patched, rewritten in ui_hud.cpp):
 // the click on a unit or a point.
 __declspec(naked) void __fastcall SelectUnitAt(CBattleScreenSetup*, void*, CUnit*, int, int) EI_ORIGINAL(0x00638EF0)
@@ -528,7 +526,7 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
             }
         }
         if (first >= 0) {
-            WorldSelect(world, nullptr, nullptr);
+            ClientWorldSelectOriginal(world, nullptr, nullptr);
             using MarkFn = void(__thiscall*)(void*, int);
             // Portrait i's selection marker (scene object 5 i + 4) and face state.
             auto marker = [&](int i) { return reinterpret_cast<CUiMesh*>(portraits_->sceneObjects_.data[i * 5 + 4]); };
@@ -553,7 +551,7 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
                 Quaternion turn;
                 turn.SetAxisAngle(axis, angle);
                 slot(i).restB_ = turn;
-                WorldControl(world, nullptr, unitAt(static_cast<int>(node->data)));
+                ClientWorldControlUnitOriginal(world, nullptr, unitAt(static_cast<int>(node->data)));
             }
             int id = At<int>(unitAt(first), 0xC);
             using EventFn = void(__thiscall*)(void*, int, int, int);

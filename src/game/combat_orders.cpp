@@ -118,7 +118,7 @@ void CUnitServer::FinishCast() {
             action.source = kNoSource;
             return;
         }
-        CallUseItemCharge(carrier, cost);
+        CtlUseItemCharge(this, nullptr, carrier, cost);
     } else if (unit->player) {     // 005301A0
         float cost = std::bit_cast<float>(spell->unknown_40);
         char* server = reinterpret_cast<char*>(ServerObjectOf(unit));
