@@ -152,10 +152,10 @@ int CMapObjectManager::PrototypeEquipment(const char* name, mfc::CStringArray* a
                                           mfc::CString* secondWeapon, mfc::CStringArray* spells) {
     auto* prototype = reinterpret_cast<UnitPrototypeRecord*>(unitdb::PrototypeTable().FindByName(name));
     if (!prototype) return game::FatalError(Text(kNoPrototypeText), name);
-    armour->SetSize(static_cast<int>(prototype->armourNames.end - prototype->armourNames.begin), -1);
-    for (int i = 0; i < armour->size; ++i) armour->data[i] = prototype->armourNames.begin[i];
-    spells->SetSize(static_cast<int>(prototype->spellNames.end - prototype->spellNames.begin), -1);
-    for (int i = 0; i < spells->size; ++i) spells->data[i] = prototype->spellNames.begin[i];
+    armour->SetSize(static_cast<int>(prototype->armourNames.size()), -1);
+    for (int i = 0; i < armour->size; ++i) armour->data[i] = prototype->armourNames.begin()[i];
+    spells->SetSize(static_cast<int>(prototype->spellNames.size()), -1);
+    for (int i = 0; i < spells->size; ++i) spells->data[i] = prototype->spellNames.begin()[i];
     *weapon = prototype->weaponName;
     *secondWeapon = prototype->secondWeaponName;
     return 1;

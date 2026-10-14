@@ -19,11 +19,7 @@ class ChunkArchive;
 
 // An STLport vector<CString> (0xC bytes); 0052DF40 serialises it as chunk `id` holding one field
 // 1 per string.
-struct CStringVector {
-    mfc::CString* begin;
-    mfc::CString* end;
-    mfc::CString* endOfStorage;
-};
+using CStringVector = stlp::vector<mfc::CString>;
 static_assert(sizeof(CStringVector) == 0xC);
 
 // 0052D6A0 (thiscall on the values, RET 4; unit_db.cpp, A-U11). Four dwords as fields 0..3.

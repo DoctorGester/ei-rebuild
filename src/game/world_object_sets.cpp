@@ -8,6 +8,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "lib/containers.h"
 #include "lib/crt.h"
 
 #include <cstdint>
@@ -16,53 +17,10 @@
 
 // {data, size, capacity, growBy}; the elements are compared as unsigned words (the objects'
 // addresses).
-struct ObjectSet {
-    std::uint32_t* data;
-    int size;
-    int capacity;
-    int growBy;
-};
+using ObjectSet = lib::AlignedArray<std::uint32_t>;
 static_assert(sizeof(ObjectSet) == 0x10);
 
 namespace {
-
-std::uint32_t* AllocWords(int count) {
-    return reinterpret_cast<std::uint32_t*>(AlignedPointerArrayAlloc(count));
-}
-void FreeWords(std::uint32_t* data) { gamecrt::operator_delete(reinterpret_cast<void**>(data)[-1]); }
-
-int GrowStep(const ObjectSet& a) {
-    if (a.growBy != 0) return a.growBy;
-    int grow = a.size / 8;
-    return grow < 4 ? 4 : grow > 0x400 ? 0x400 : grow;
-}
-
-// SetSize(n) as the callers inline it (the growth step kept as it is).
-void InlineSetSize(ObjectSet& a, int n) {
-    if (n == 0) {
-        if (a.data) {
-            FreeWords(a.data);
-            a.data = nullptr;
-        }
-        a.capacity = 0;
-        a.size = 0;
-    } else if (!a.data) {
-        a.data = AllocWords(n);
-        a.capacity = n;
-        a.size = n;
-    } else if (n <= a.capacity) {
-        a.size = n;
-    } else {
-        int capacity = a.capacity + GrowStep(a);
-        if (n >= capacity) capacity = n;
-        std::uint32_t* fresh = AllocWords(capacity);
-        std::memcpy(fresh, a.data, static_cast<std::size_t>(a.size) * 4);
-        FreeWords(a.data);
-        a.data = fresh;
-        a.size = n;
-        a.capacity = capacity;
-    }
-}
 
 // The sort's scratch array (a function static at 007A9738, guard bit 1 of 007A9748, freed at exit
 // by 0047B1D0).
@@ -88,32 +46,12 @@ void CountingPass(int shift, const ObjectSet& src, ObjectSet& dst) {
 } // namespace
 
 // 0047B770 (RET 8): SetSize(n, growBy): 0 frees the block; growing copies the elements.
-void __fastcall ObjectSetSetSize(ObjectSet* self, void*, int n, int growBy) {
-    if (growBy != -1) self->growBy = growBy;
-    InlineSetSize(*self, n);
-}
+void __fastcall ObjectSetSetSize(ObjectSet* self, void*, int n, int growBy) { self->SetSize(n, growBy); }
 EI_REPLACE(0x0047B770, ObjectSetSetSize);
 
 // 0047B880 (RET 8): the sort's SetSize(n, growBy): no special case for 0 (an empty block is
 // allocated), and growing does not keep the elements.
-void __fastcall ObjectSetResize(ObjectSet* self, void*, int n, int growBy) {
-    if (growBy != -1) self->growBy = growBy;
-    if (!self->data) {
-        self->data = AllocWords(n);
-        self->capacity = n;
-        self->size = n;
-    } else if (n <= self->capacity) {
-        self->size = n;
-    } else {
-        int capacity = self->capacity + GrowStep(*self);
-        if (n >= capacity) capacity = n;
-        std::uint32_t* fresh = AllocWords(capacity);
-        FreeWords(self->data);
-        self->capacity = capacity;
-        self->data = fresh;
-        self->size = n;
-    }
-}
+void __fastcall ObjectSetResize(ObjectSet* self, void*, int n, int growBy) { self->SetSizeDiscardStep(n, growBy); }
 EI_REPLACE(0x0047B880, ObjectSetResize);
 
 // 0047B120 (ECX shift, EDX source, RET 4): one counting pass of the radix sort.
@@ -126,15 +64,11 @@ void __fastcall ObjectSetSortUnique(ObjectSet* self) {
     if (self->size < 2) return;
     if (!(ScratchGuard() & 1)) {
         ScratchGuard() |= 1;
-        ObjectSet& s = Scratch();
-        s.data = nullptr;
-        s.growBy = 0;
-        s.capacity = 0;
-        s.size = 0;
+        Scratch().Construct();
         GameAtExit(reinterpret_cast<void (__cdecl*)()>(0x0047B1D0));
     }
     ObjectSet& scratch = Scratch();
-    InlineSetSize(scratch, self->size);
+    scratch.SetSize(self->size);
     CountingPass(0, *self, scratch);
     CountingPass(8, scratch, *self);
     CountingPass(16, *self, scratch);
@@ -157,9 +91,9 @@ EI_REPLACE(0x0047ADF0, ObjectSetSortUnique);
 void __fastcall DiffObjectSets(ObjectSet* sent, ObjectSet* current, ObjectSet* added, ObjectSet* gone, ObjectSet* same) {
     ObjectSetSortUnique(current);
     int most = current->size > sent->size ? current->size : sent->size;
-    InlineSetSize(*added, most);
-    InlineSetSize(*gone, most);
-    InlineSetSize(*same, most);
+    added->SetSize(most);
+    gone->SetSize(most);
+    same->SetSize(most);
 
     const std::uint32_t* s = sent->data;
     const std::uint32_t* c = current->data;

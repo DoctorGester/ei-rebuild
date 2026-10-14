@@ -682,7 +682,7 @@ EI_VERIFY(0x006B5CD0, SlotEndVerify, 0, s_unusedSlotEnd);
 // it is only logged.)
 static VoidFn s_unusedTick;
 static void __fastcall TickVerify(CSoundManager* self, void*) {
-    int deferredBefore = self->enabled != 0 ? self->deferred.count : 0;
+    int deferredBefore = self->enabled != 0 ? self->deferred.Size() : 0;
     self->CSoundManager::Tick();
     if (self->enabled == 0) {
         ei::verify::Check("CSoundManager::Tick", true, true, "");
@@ -693,7 +693,7 @@ static void __fastcall TickVerify(CSoundManager* self, void*) {
         if (self->sequences[k].active != 0 && (self->sequences[k].id & 0xFF) != k) ok = false;
     std::uint32_t now = gameapi::GetTickCount();
     if (now - self->emitterTick > 0x7FFFFFFFu) ok = false;
-    ei::verify::Check("CSoundManager::Tick", true, ok, "deferred %d -> %d", deferredBefore, self->deferred.count);
+    ei::verify::Check("CSoundManager::Tick", true, ok, "deferred %d -> %d", deferredBefore, self->deferred.Size());
 }
 EI_VERIFY(0x006B9B10, TickVerify, 0, s_unusedTick);
 
@@ -796,7 +796,7 @@ using StopAllFn = void(__fastcall*)(CSoundManager*, void*, bool);
 static StopAllFn s_unusedStopAll;
 static void __fastcall StopAllVerify(CSoundManager* self, void*, bool stopStream) {
     self->CSoundManager::StopAll(stopStream);
-    bool ok = self->nextHandle == 0 && self->deferred.count == 0;
+    bool ok = self->nextHandle == 0 && self->deferred.Size() == 0;
     if (self->slots != nullptr)
         for (int i = 0; i < 15; ++i)
             if (self->slots[i].playing != 0) ok = false;

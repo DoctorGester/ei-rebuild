@@ -997,11 +997,8 @@ int __fastcall PendingMapLookup(const PendingMap* map, void*, const std::uint32_
 // (005719B0) and SetAtGrow stay the instantiation's own (RecordArraySetSizeOriginal /
 // RecordArraySetAtGrowOriginal, originals_library.h).
 using RecordPtrArray = mfc::CArray<std::uint8_t*>;
-struct RecordVector {
-    const std::uint8_t* start;
-    const std::uint8_t* finish;
-    const std::uint8_t* eos;
-};
+using RecordVector = stlp::vector<std::uint8_t>;
+static_assert(sizeof(RecordVector) == 12);
 const std::uint8_t* __fastcall RecordAt50(const RecordVector* records, void*, std::uint32_t index);
 const std::uint8_t* __fastcall RecordAtB4(const RecordVector* records, void*, std::uint32_t index);
 

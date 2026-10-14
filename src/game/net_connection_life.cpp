@@ -20,9 +20,9 @@ namespace net {
 
 namespace {
 
-using ObjectMap = TreeMap<CRefObject*, RefPtr>;
-using SentIdMap = TreeMap<std::uint32_t, RefPtr>;
-using AttachedMap = TreeMap<CRefObject*, AttachedId>;
+using ObjectMap = stlp::map<CRefObject*, RefPtr>;
+using SentIdMap = stlp::map<std::uint32_t, RefPtr>;
+using AttachedMap = stlp::map<CRefObject*, AttachedId>;
 
 float Store(double v) {
     volatile float r = static_cast<float>(v);
@@ -124,12 +124,12 @@ Connection* Connection::Construct(std::uint32_t id) {
     HistoryListConstruct(&acknowledged_, nullptr, &tags[3]);
     // The trees' comparison byte is copied from the stack slot of the id argument.
     RecordsBaseConstruct(&records_, nullptr, &tags[3]);
-    records_.count = 0;
-    records_.compare = static_cast<std::uint8_t>(id);
+    records_.Count() = 0;
+    records_.Compare() = static_cast<std::uint8_t>(id);
     RecordsEmpty(&records_);
     AttachedBaseConstruct(&attached_, nullptr, &tags[3]);
-    attached_.compare = static_cast<std::uint8_t>(id);
-    attached_.count = 0;
+    attached_.Compare() = static_cast<std::uint8_t>(id);
+    attached_.Count() = 0;
     AttachedEmpty(&attached_);
     HeaderListConstruct(&headers_, nullptr, &tags[3]);
     std::uint32_t zero = 0;
@@ -205,9 +205,9 @@ void Connection::Destruct() {
     HistorySentinelFree(history_, 1);
     VectorDtorIterator(priorities_, sizeof(EntryMap), 11, kPriorityDtor);
     ByObjectClear(&byObject_);
-    ByObjectHeaderFree(&byObject_, nullptr, byObject_.header, 1);
+    ByObjectHeaderFree(&byObject_, nullptr, byObject_.end(), 1);
     BySentIdClear(&bySentId_);
-    BySentIdHeaderFree(&bySentId_, nullptr, bySentId_.header, 1);
+    BySentIdHeaderFree(&bySentId_, nullptr, bySentId_.end(), 1);
     FreedClear(&freedIds_);
     FreedSentinelFreeB(freedIds_, 1);
     VectorDtorIterator(idPools_, sizeof(IdPool), kMessageTypes, kIdPoolDtor);

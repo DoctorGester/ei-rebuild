@@ -18,14 +18,13 @@
 #include <cstdint>
 
 class CRefObject;
-struct ClassTemplateVector;
+struct ClassTemplate;
 struct PartyInPlace;
 struct PartyManagerEntry;
 struct QuestBriefingRecord;
 struct QuestRecord;
 struct SkillLevelRecord;
 struct SkillRecord;
-struct CStringVector;
 struct UnitLevelRecord;
 struct UnitModelRecord;
 struct UnitNpcRecord;
@@ -134,7 +133,7 @@ public:
     // chunk 3 holding one chunk 1 (field 1) per id.
     void SerializePartyEntries(int id, stlp::vector<PartyManagerEntry>* entries, void* unused);
     // 004ACDC0. The class templates (counted pointers) as object references (field 1 per chunk 1).
-    void SerializeClassTemplates(int id, ClassTemplateVector* templates, void* unused);
+    void SerializeClassTemplates(int id, stlp::vector<ClassTemplate*>* templates, void* unused);
     // 004AD2C0 (RET 8). Field(id, value, 4).
     void IntField(int id, int* value);
 
@@ -183,7 +182,7 @@ public:
     void SerializeModels(int id, stlp::vector<UnitModelRecord>* records, void* unused);
     void SerializeUnitLevels(int id, stlp::vector<UnitLevelRecord>* records, void* unused);
     // 0052DF40 (RET 0xC; unit_db.cpp, A-U11). A vector<CString> as chunk `id` (InlineStrings).
-    void SerializeCStrings(int id, CStringVector* strings, void* unused);
+    void SerializeCStrings(int id, stlp::vector<mfc::CString>* strings, void* unused);
 
     // An archive built and destroyed inline on a function's stack, as 004A8310 / 004A8560 do
     // (0053A7B0 is the out-of-line constructor): two empty memory streams, the containers'

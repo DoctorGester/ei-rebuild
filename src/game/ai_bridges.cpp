@@ -13,6 +13,7 @@
 #include "ai_map.h"
 
 #include "ei/hook.h"
+#include "lib/stlp.h"
 
 #include <cstdint>
 
@@ -20,24 +21,11 @@ namespace {
 
 // The bridge map's node: {next, key, value}; the original reads the low 16 bits of the value and
 // stores a whole dword (ground, object height, occluder kind).
-struct BridgeNode {
-    BridgeNode* next;
-    std::uint32_t key;
-    std::uint32_t value;
-};
-struct BridgeMap {
-    std::uint32_t unknown_0;
-    BridgeNode** bucketsBegin;
-    BridgeNode** bucketsEnd;
-};
+using BridgeMap = stlp::hash_map<std::uint32_t, std::uint32_t, stlp::IntHash>;
+using BridgeNode = BridgeMap::Node;
+static_assert(sizeof(BridgeMap) == 0x14);
 
-BridgeNode* FindBridge(void* map, std::uint32_t key) {
-    auto* m = static_cast<BridgeMap*>(map);
-    auto count = static_cast<std::uint32_t>(m->bucketsEnd - m->bucketsBegin);
-    BridgeNode* node = m->bucketsBegin[key % count];
-    while (node && node->key != key) node = node->next;
-    return node;
-}
+BridgeNode* FindBridge(void* map, std::uint32_t key) { return static_cast<BridgeMap*>(map)->Find(key); }
 
 std::uint32_t BridgeKey(int x, int y) {
     return static_cast<std::uint32_t>((static_cast<int>(static_cast<short>(x)) << 16) + static_cast<short>(y));

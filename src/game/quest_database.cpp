@@ -208,7 +208,7 @@ void ReadListInline(Registry& reg, std::uintptr_t section, int list, QuestBriefi
     reg.GetStringArray(Text(section), Text(kListKeys[list]), &strings);
     CStringVector* v = List(briefing, list);
     if (erase) {
-        ListErase(v, nullptr, v->begin, v->end);
+        ListErase(v, nullptr, v->begin(), v->end());
     } else {
         ListClear(v);
     }
@@ -293,7 +293,7 @@ EI_REPLACE(0x006AE8E0, QuestDatabaseLoad);
 void __fastcall ReadStringList(CFileRegistry* registry, const char* section, const char* key, CStringVector* list) {
     console::CStringArray strings;
     registry->GetStringArray(section, key, &strings);
-    ListErase(list, nullptr, list->begin, list->end);
+    ListErase(list, nullptr, list->begin(), list->end());
     ListReserve(list, nullptr, strings.GetSize());
     for (int i = 0; i < strings.GetSize(); ++i) {
         if (Length(strings[i]) != 0) ListPushBack(list, nullptr, &strings[i]);

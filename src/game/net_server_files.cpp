@@ -74,20 +74,20 @@ void ServerSession::ShareFile(const StringRep* name, GameBuffer* data) {
     RefPtr filler;
     filler.Share(chunk);
     RefVector& chunks = file->chunks_;
-    std::uint32_t have = static_cast<std::uint32_t>(chunks.finish - chunks.start);
+    std::uint32_t have = static_cast<std::uint32_t>(chunks.size());
     if (static_cast<std::uint32_t>(chunkCount) < have)
-        ChunkVectorErase(&chunks, nullptr, chunks.start + chunkCount, chunks.finish);
+        ChunkVectorErase(&chunks, nullptr, chunks.begin() + chunkCount, chunks.end());
     else
-        ChunkVectorInsert(&chunks, nullptr, chunks.finish, static_cast<std::uint32_t>(chunkCount) - have, &filler);
+        ChunkVectorInsert(&chunks, nullptr, chunks.end(), static_cast<std::uint32_t>(chunkCount) - have, &filler);
     filler.Destroy();
 
     ei::VCall<int>(data, 6, 0);   // Seek(0)
     std::int32_t remaining = size;
     for (std::int32_t i = 0; i < chunkCount; ++i) {
-        static_cast<FileChunkMessage*>(chunks.start[i].ptr)->file_.Assign(file);
-        static_cast<FileChunkMessage*>(chunks.start[i].ptr)->index_ = static_cast<std::uint16_t>(i);
+        static_cast<FileChunkMessage*>(chunks.begin()[i].ptr)->file_.Assign(file);
+        static_cast<FileChunkMessage*>(chunks.begin()[i].ptr)->index_ = static_cast<std::uint16_t>(i);
         unsigned n = static_cast<unsigned>(remaining > kChunkSize ? kChunkSize : remaining);
-        std::uint8_t* to = static_cast<FileChunkMessage*>(chunks.start[i].ptr)->data_;
+        std::uint8_t* to = static_cast<FileChunkMessage*>(chunks.begin()[i].ptr)->data_;
         if (data->cur + n > data->high) {
             BufferReadPastEnd(data, nullptr, to, n);
         } else if (data->cur + n > data->end) {

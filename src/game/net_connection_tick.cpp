@@ -163,7 +163,7 @@ __declspec(naked) Connection::EntryMap::Node** __fastcall PriorityFind(Connectio
                                                                        ReplicaEntry* const* /*key*/) EI_ORIGINAL(0x0043C9A0)
 __declspec(naked) void __fastcall PriorityEraseAt(Connection::EntryMap* /*tree*/, void*,
                                                   Connection::EntryMap::Node* /*position*/) EI_ORIGINAL(0x00437EF0)
-__declspec(naked) std::uint32_t __fastcall BySentIdErase(TreeMap<std::uint32_t, RefPtr>* /*map*/, void*,
+__declspec(naked) std::uint32_t __fastcall BySentIdErase(stlp::map<std::uint32_t, RefPtr>* /*map*/, void*,
                                                          const std::uint32_t* /*key*/) EI_ORIGINAL(0x0043BE60)
 // vector<FreedId> of a freed-id batch: construct in place (4 bytes), insert when full.
 __declspec(naked) void __fastcall FreedConstruct(FreedId* /*at*/, const FreedId* /*value*/) EI_ORIGINAL(0x0043D7F0)
@@ -193,7 +193,7 @@ void Connection::Delivered(std::uint8_t* historyData) {
             EntryMap* tree = &priorities_[entry->flags_ >> 1];
             EntryMap::Node* found;
             PriorityFind(tree, nullptr, &found, &entry);
-            if (found != tree->header) {
+            if (found != tree->end()) {
                 entry = item->entry;
                 std::uint32_t key = (static_cast<std::uint32_t>(entry->type_) << 16) + entry->id_;
                 BySentIdErase(&bySentId_, nullptr, &key);

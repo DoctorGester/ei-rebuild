@@ -5,6 +5,7 @@
 // and the command handlers. See docs/notes/console.md.
 
 #include "../lib/mfc.h"
+#include "../lib/stlp.h"
 
 #include <cstddef>
 #include <cstdint>
@@ -214,22 +215,12 @@ inline ConsoleWindow* TheConsoleWindow() { return *reinterpret_cast<ConsoleWindo
 using CommandHandler = void(__fastcall*)(CStringArray* args);
 
 // STLport map<CString, CommandHandler> (red-black tree). The header node's parent is the root.
-struct CommandNode {
-    int color;
-    CommandNode* parent;
-    CommandNode* left;
-    CommandNode* right;
-    char* key;                 // CString
-    CommandHandler handler;
-};
+using CommandMap = stlp::map<mfc::CString, CommandHandler>;
+using CommandNode = CommandMap::Node;
 static_assert(sizeof(CommandNode) == 0x18);
 
-struct CommandMap {
-    CommandNode* header;
-    unsigned count;
-    // 005E0B20: operator[]: the handler slot for `key`, inserted with a null handler if missing.
-    CommandHandler* Index(const mfc::CString& key);
-};
+// 005E0B20: operator[]: the handler slot for `key`, inserted with a null handler if missing.
+CommandHandler* __fastcall CommandIndex(CommandMap* map, void*, const mfc::CString& key);
 
 // 007C7B28: commands always available; 007C7B38: commands after the cheat word.
 inline CommandMap* PublicCommands() { return reinterpret_cast<CommandMap*>(0x007C7B28); }

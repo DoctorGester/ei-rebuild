@@ -10,6 +10,7 @@
 #include "ei/x87.h"
 #include "originals_effects.h"
 #include "originals_engine.h"
+#include "lib/stlp.h"
 #include "originals_library.h"
 #include "originals_render.h"
 
@@ -56,16 +57,12 @@ __declspec(naked) void __fastcall SoundSetVolume(void* /*manager*/, void*, int /
 
 // vector<uint32> as the fog's static list of cells to drop (007ABB58), with the original's
 // constructor (004E2BA0) and insert-overflow (004E2FA0).
-struct KeyVector {
-    std::uint32_t* begin;
-    std::uint32_t* finish;
-    std::uint32_t* eos;
-
-    void Construct(const char* allocator);
-    void InsertOverflow(std::uint32_t* pos, const std::uint32_t* value, std::uint32_t count);
-};
-__declspec(naked) void KeyVector::Construct(const char*) EI_ORIGINAL(0x004E2BA0)
-void KeyVector::InsertOverflow(std::uint32_t* a0, const std::uint32_t* a1, std::uint32_t a2) { DwordVectorInsertOverflowOriginal(this, nullptr, a0, a1, a2); }
+using KeyVector = stlp::vector<std::uint32_t>;
+static_assert(sizeof(KeyVector) == 12);
+__declspec(naked) void __fastcall KeyVectorConstruct(KeyVector*, void*, const char* /*allocator*/) EI_ORIGINAL(0x004E2BA0)
+void KeyVectorInsertOverflow(KeyVector* v, std::uint32_t* pos, const std::uint32_t* value, std::uint32_t count) {
+    DwordVectorInsertOverflowOriginal(v, nullptr, pos, value, count);
+}
 
 KeyVector& DeadCells() { return *reinterpret_cast<KeyVector*>(0x007ABB58); }
 std::uint8_t& DeadCellsGuard() { return *reinterpret_cast<std::uint8_t*>(0x007ABB64); }
@@ -254,10 +251,10 @@ int CVisibilityFog::UpdateCells() {
     if (!(DeadCellsGuard() & 1)) {
         DeadCellsGuard() |= 1;
         char allocator;
-        dead.Construct(&allocator);
+        KeyVectorConstruct(&dead, nullptr, &allocator);
         GameAtExit(reinterpret_cast<void (*)()>(kDeadCellsDestructor));
     }
-    dead.finish = dead.begin;
+    dead.Finish() = dead.Start();
     World();   // called and ignored, as in the original
     cells.ForEach([&dead](CellMap::Node* n) {
         FogCell& cell = n->value;
@@ -266,17 +263,17 @@ int CVisibilityFog::UpdateCells() {
         else
             cell.alpha = cell.alpha * kHalf;
         if (LessOrUnordered(Load(cell.alpha), kFogMinAlpha)) {
-            if (dead.finish == dead.eos) {
-                dead.InsertOverflow(dead.finish, &n->key, 1);
+            if (dead.Finish() == dead.EndOfStorage()) {
+                KeyVectorInsertOverflow(&dead, dead.Finish(), &n->key, 1);
             } else {
-                if (dead.finish) *dead.finish = n->key;
-                ++dead.finish;
+                if (dead.Finish()) *dead.Finish() = n->key;
+                ++dead.Finish();
             }
         }
         cell.frame = static_cast<std::int8_t>((cell.frame + 1) % 15);
     });
-    std::uint32_t* end = dead.finish;
-    for (std::uint32_t* key = dead.begin; key != end; ++key) {
+    std::uint32_t* end = dead.end();
+    for (std::uint32_t* key = dead.begin(); key != end; ++key) {
         std::uint32_t copy = *key;
         Calls(&cells)->Erase(&copy);
     }

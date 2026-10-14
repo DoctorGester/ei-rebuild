@@ -62,11 +62,11 @@ void UnitDatabase::CountSoundFiles(void* sounds) {
     int modelCount = static_cast<int>(models.end - models.begin);
     for (int m = 0; m < modelCount; ++m) {
         UnitModelRecord* model = &models.begin[m];
-        std::size_t names = static_cast<std::size_t>(model->soundNames.end - model->soundNames.begin);
+        std::size_t names = static_cast<std::size_t>(model->soundNames.size());
         ResizeCounts(model, names, 0);
         for (std::size_t n = 0; n < names; ++n) {
             model->soundCounts[n] = 0;
-            mfc::CString& name = model->soundNames.begin[n];
+            mfc::CString& name = model->soundNames.begin()[n];
             name.MakeUpper();
             for (int f = 0; f < files.size; ++f) {
                 if (StartsWith(files.data[f], name)) ++model->soundCounts[n];

@@ -133,8 +133,8 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
 
     // What 005143E0 copies out of the prototype: armour names, the two weapon names, spell names.
     const CStringVector& armour = prototype->armourNames;
-    for (int i = 0; i < static_cast<int>(armour.end - armour.begin); ++i) {
-        CItem* item = MakeItem(this, armour.begin[i]);
+    for (int i = 0; i < static_cast<int>(armour.size()); ++i) {
+        CItem* item = MakeItem(this, armour.begin()[i]);
         CItem* copy = CountedClone(item);
         ItemList(record->armor).SetAtGrow(static_cast<int>(record->armorCount), copy);
         Drop(item);
@@ -147,9 +147,9 @@ BOOL CParty::FillFromPrototype(PartyUnitRecord* record) {
         Drop(item);
     }
     const CStringVector& spellNames = prototype->spellNames;
-    for (int i = 0; i < static_cast<int>(spellNames.end - spellNames.begin); ++i) {
+    for (int i = 0; i < static_cast<int>(spellNames.size()); ++i) {
         CSpellManager* owner = SpellManager();
-        auto* spell = static_cast<CItem*>(FactoryCreateSpellOriginal(ItemManager(), nullptr, spellNames.begin[i], owner));
+        auto* spell = static_cast<CItem*>(FactoryCreateSpellOriginal(ItemManager(), nullptr, spellNames.begin()[i], owner));
         CItem* copy = CountedClone(spell);
         AlignedPtrArray& list = ItemList(record->spells);
         int index = list.size;
@@ -174,22 +174,22 @@ BOOL CParty::EquipFromPrototype(PartyUnitRecord* record) {
     if (!npc) return 0;
 
     const CStringVector& spellNames = npc->startSpells;
-    for (unsigned i = 0; i < static_cast<unsigned>(spellNames.end - spellNames.begin); ++i) {
+    for (unsigned i = 0; i < static_cast<unsigned>(spellNames.size()); ++i) {
         CSpellManager* owner = SpellManager();
-        auto* spell = static_cast<CItem*>(FactoryCreateSpellOriginal(ItemManager(), nullptr, spellNames.begin[i], owner));
+        auto* spell = static_cast<CItem*>(FactoryCreateSpellOriginal(ItemManager(), nullptr, spellNames.begin()[i], owner));
         ItemList(record->spells).Add(CountedClone(spell));
         Drop(spell);
     }
     const CStringVector& quickNames = npc->startQuickItems;
-    for (unsigned i = 0; i < static_cast<unsigned>(quickNames.end - quickNames.begin); ++i) {
-        CItem* item = MakeItem(this, quickNames.begin[i]);
+    for (unsigned i = 0; i < static_cast<unsigned>(quickNames.size()); ++i) {
+        CItem* item = MakeItem(this, quickNames.begin()[i]);
         CItem* copy = CountedClone(item);
         ItemList(record->quickItems).SetAtGrow(static_cast<int>(record->quickItemCount), copy);
         Drop(item);
     }
     const CStringVector& weaponNames = npc->startWeapons;
-    for (unsigned i = 0; i < static_cast<unsigned>(weaponNames.end - weaponNames.begin); ++i) {
-        CItem* item = MakeItem(this, weaponNames.begin[i]);
+    for (unsigned i = 0; i < static_cast<unsigned>(weaponNames.size()); ++i) {
+        CItem* item = MakeItem(this, weaponNames.begin()[i]);
         CItem* copy = CountedClone(item);
         ItemList(record->weapons).SetAtGrow(static_cast<int>(record->weaponCount), copy);
         Drop(item);

@@ -21,31 +21,6 @@
 
 namespace net {
 
-// A node of an STLport red-black tree (map<Key, Value>): color, parent, children, then the pair.
-template <typename Key, typename Value>
-struct TreeNode {
-    std::uint32_t color;
-    TreeNode* parent;
-    TreeNode* left;
-    TreeNode* right;
-    Key key;                   // +0x10
-    Value value;               // +0x14
-};
-
-// An STLport red-black tree (map / set; 0xC bytes): the header node (its parent is the root, its
-// children the leftmost and rightmost nodes), the element count, the comparison (empty).
-template <typename Key, typename Value>
-struct TreeMap {
-    using Node = TreeNode<Key, Value>;
-
-    Node* header;              // +0x00
-    std::uint32_t count;       // +0x04
-    std::uint8_t compare;      // +0x08
-    std::uint8_t unknown_09[3];
-
-    Node* Begin() const { return header->left; }
-};
-
 // A free-list of message ids for one message type (16 bytes): returned ids, then the next new id.
 struct IdPool {
     std::uint16_t* begin;      // +0x00 vector<uint16_t> of free ids
@@ -164,8 +139,8 @@ class __declspec(novtable) Connection : public CRefObject {
 public:
     static constexpr std::uintptr_t kVtableAddress = 0x0073BF38;
 
-    using EntryMap = TreeMap<ReplicaEntry*, RefPtr>;
-    using RecordMap = TreeMap<std::int32_t, Record>;
+    using EntryMap = stlp::map<ReplicaEntry*, RefPtr>;
+    using RecordMap = stlp::map<std::int32_t, Record>;
 
     // 0: 004334C0 deleting destructor (DeletingDestruct); 1: Serialize (empty).
     // 2: 00433320 (net_connection_life.cpp). Destroyed and built again with id 0; returns what
@@ -261,13 +236,13 @@ public:
     IdPool idPools_[kMessageTypes];     // +0x0054 one per message type
     FreedBatch* freedIds_;              // +0x1054 list of batches of ids returned to the pools later
     float freedTimer_;                  // +0x1058
-    TreeMap<std::uint32_t, RefPtr> bySentId_;   // +0x105C type << 16 | id -> entry
-    TreeMap<CRefObject*, RefPtr> byObject_;     // +0x1068 object -> entry
+    stlp::map<std::uint32_t, RefPtr> bySentId_;   // +0x105C type << 16 | id -> entry
+    stlp::map<CRefObject*, RefPtr> byObject_;     // +0x1068 object -> entry
     EntryMap priorities_[11];           // +0x1074 per priority: entry -> entry
     HistoryNode* history_;              // +0x10F8 packets sent, waiting for an acknowledgement
     HistoryNode* acknowledged_;         // +0x10FC lost packets, kept a while for late acknowledgements
     RecordMap records_;                 // +0x1100 objects received (key type << 16 | id)
-    TreeMap<CRefObject*, AttachedId> attached_;   // +0x110C received object -> (type, id)
+    stlp::map<CRefObject*, AttachedId> attached_;   // +0x110C received object -> (type, id)
     std::uint16_t headerSequence_;      // +0x1118 sequence of the next reliable chunk sent
     std::uint16_t incomingSequence_;    // +0x111A sequence of the next reliable chunk expected
     HeaderNode* headers_;               // +0x111C reliable chunks waiting to be sent

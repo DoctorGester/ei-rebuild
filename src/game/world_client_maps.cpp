@@ -226,14 +226,14 @@ int __fastcall PendingMapLookup(const PendingMap* map, void*, const std::uint32_
 }
 
 const std::uint8_t* __fastcall RecordAt50(const RecordVector* records, void*, std::uint32_t index) {
-    int count = static_cast<int>((records->finish - records->start) / 0x50);
-    if (index < static_cast<std::uint32_t>(count)) return records->start + index * 0x50;
+    int count = static_cast<int>(records->size() / 0x50);
+    if (index < static_cast<std::uint32_t>(count)) return records->begin() + index * 0x50;
     return nullptr;
 }
 
 const std::uint8_t* __fastcall RecordAtB4(const RecordVector* records, void*, std::uint32_t index) {
-    int count = static_cast<int>((records->finish - records->start) / 0xB4);
-    if (index < static_cast<std::uint32_t>(count)) return records->start + index * 0xB4;
+    int count = static_cast<int>(records->size() / 0xB4);
+    if (index < static_cast<std::uint32_t>(count)) return records->begin() + index * 0xB4;
     return nullptr;
 }
 

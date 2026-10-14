@@ -105,9 +105,9 @@ void AssignEmptyText(StringRep& s) {
 
 // An empty vector of counted pointers.
 void ClearRefs(RefVector& v) {
-    v.start = nullptr;
-    v.finish = nullptr;
-    v.eos = nullptr;
+    v.Start() = nullptr;
+    v.Finish() = nullptr;
+    v.EndOfStorage() = nullptr;
 }
 
 // The byte cursor.
@@ -697,20 +697,20 @@ FileMessage* FileMessage::Clone() {   // 00416220
     StringCopy(p->name_, name_);
     const RefVector& from = chunks_;
     RefVector& to = p->chunks_;
-    std::size_t n = static_cast<std::size_t>(from.finish - from.start);
+    std::size_t n = static_cast<std::size_t>(from.size());
     ClearRefs(to);
     auto* block = static_cast<RefPtr*>(stlp::allocate(n * sizeof(RefPtr)));
-    to.start = block;
-    to.finish = block;
-    to.eos = block + n;
-    to.finish = SharedRefsCopy(from.start, from.finish, block, 0);
+    to.Start() = block;
+    to.Finish() = block;
+    to.EndOfStorage() = block + n;
+    to.Finish() = SharedRefsCopy(from.begin(), from.end(), block, 0);
     ei::SetVtable(p, kVtableAddress);
     return p;
 }
 int FileMessage::OnShutdown() {   // 00416390
     ei::SetVtable(this, kVtableAddress);
-    for (RefPtr *p = chunks_.start, *end = chunks_.finish; p != end; ++p) FileRefDestroy(p, nullptr, 0);
-    FileRefsDeallocate(&chunks_.eos, nullptr, chunks_.start, static_cast<std::size_t>(chunks_.eos - chunks_.start));
+    for (RefPtr *p = chunks_.begin(), *end = chunks_.end(); p != end; ++p) FileRefDestroy(p, nullptr, 0);
+    FileRefsDeallocate(&chunks_.EndOfStorage(), nullptr, chunks_.begin(), static_cast<std::size_t>(chunks_.EndOfStorage() - chunks_.begin()));
     StringFree(name_);
     ei::SetVtable(this, kRefObjectRootVtable);
     FreshHeader(this);
@@ -731,8 +731,8 @@ void FileMessage::Read(BufferCursor* cursor) {   // 00416530
 }
 void FileMessage::Destruct() {   // 00416640
     ei::SetVtable(this, kVtableAddress);
-    for (RefPtr *p = chunks_.start, *end = chunks_.finish; p != end; ++p) p->Destroy();
-    stlp::deallocate(chunks_.start, static_cast<std::size_t>(chunks_.eos - chunks_.start) * sizeof(RefPtr));
+    for (RefPtr *p = chunks_.begin(), *end = chunks_.end(); p != end; ++p) p->Destroy();
+    stlp::deallocate(chunks_.begin(), static_cast<std::size_t>(chunks_.EndOfStorage() - chunks_.begin()) * sizeof(RefPtr));
     StringFree(name_);
     ei::SetVtable(this, kRefObjectRootVtable);
 }
@@ -1008,8 +1008,8 @@ PartyMessage* PartyMessage::Clone() {   // 004176A0
     CloneHeader(p, this);
     std::uint8_t allocator = 0;
     const void* copy = RefsGetAllocator(&members_, nullptr, &allocator);
-    VectorBaseConstruct(&p->members_, nullptr, static_cast<std::size_t>(members_.finish - members_.start), copy);
-    p->members_.finish = UninitializedCopy(members_.start, members_.finish, p->members_.start, 0);
+    VectorBaseConstruct(&p->members_, nullptr, static_cast<std::size_t>(members_.size()), copy);
+    p->members_.Finish() = UninitializedCopy(members_.begin(), members_.end(), p->members_.begin(), 0);
     p->partyValue_ = partyValue_;
     p->accepted_ = accepted_;
     p->acceptedRevision_ = acceptedRevision_;
@@ -1024,17 +1024,17 @@ int PartyMessage::OnShutdown() {   // 004177A0
     ei::SetVtable(this, kVtableAddress);
     ReleaseCounted(partner_);
     ReleaseCounted(player_);
-    for (RefPtr *p = members_.start, *end = members_.finish; p != end; ++p) RefPtrDestroyAt(p, nullptr, 0);
-    RefsDeallocate(&members_.eos, nullptr, members_.start, static_cast<std::size_t>(members_.eos - members_.start));
+    for (RefPtr *p = members_.begin(), *end = members_.end(); p != end; ++p) RefPtrDestroyAt(p, nullptr, 0);
+    RefsDeallocate(&members_.EndOfStorage(), nullptr, members_.begin(), static_cast<std::size_t>(members_.EndOfStorage() - members_.begin()));
     ei::SetVtable(this, kRefObjectRootVtable);
     version_ = 1;
     InitParty(this);
     return 0;
 }
 void PartyMessage::Write(BufferCursor* cursor) {   // 00412AC0
-    std::int32_t count = static_cast<std::int32_t>(members_.finish - members_.start);
+    std::int32_t count = static_cast<std::int32_t>(members_.size());
     Put(cursor, count);
-    for (std::int32_t i = 0; i < count; ++i) PutObject(cursor, members_.start[i]);
+    for (std::int32_t i = 0; i < count; ++i) PutObject(cursor, members_.begin()[i]);
     Put(cursor, partyValue_);
     Put(cursor, accepted_);
     Put(cursor, acceptedRevision_);
@@ -1047,7 +1047,7 @@ void PartyMessage::Read(BufferCursor* cursor) {   // 00412B70
     Take(cursor, count);
     RefsResize(&members_, nullptr, static_cast<std::size_t>(count));
     for (std::int32_t i = 0; i < count; ++i) {
-        RefPtr& slot = members_.start[i];
+        RefPtr& slot = members_.begin()[i];
         AssignCounted(slot, CurrentConnection()->ReadObjectRef(cursor));
     }
     Take(cursor, partyValue_);
@@ -1061,9 +1061,9 @@ void PartyMessage::Destruct() {   // 004178F0
     ei::SetVtable(this, kVtableAddress);
     ReleaseCounted(partner_);
     ReleaseCounted(player_);
-    for (RefPtr *p = members_.start, *end = members_.finish; p != end; ++p)
+    for (RefPtr *p = members_.begin(), *end = members_.end(); p != end; ++p)
         if (p->ptr) p->ptr->Release();
-    stlp::deallocate(members_.start, static_cast<std::size_t>(members_.eos - members_.start) * sizeof(RefPtr));
+    stlp::deallocate(members_.begin(), static_cast<std::size_t>(members_.EndOfStorage() - members_.begin()) * sizeof(RefPtr));
     ei::SetVtable(this, kRefObjectRootVtable);
 }
 

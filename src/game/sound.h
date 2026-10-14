@@ -9,6 +9,7 @@
 
 #include "../lib/containers.h"
 #include "../lib/mfc.h"
+#include "../lib/stlp.h"
 #include "registry.h"
 #include "resource_stream.h"
 
@@ -121,21 +122,10 @@ struct SoundSequence {
 static_assert(sizeof(SoundSequence) == 0x4C);
 
 // The STLport hash_map<int, DeferredSound*> at CSoundManager + 0x884.
-struct DeferredNode {
-    DeferredNode* next;
-    std::int32_t key;
-    DeferredSound* value;
-};
-struct DeferredMap {
-    std::uint32_t unknown0;
-    DeferredNode** buckets;     // +0x04 (CSoundManager + 0x888)
-    DeferredNode** bucketsEnd;  // +0x08
-    std::uint32_t unknownC;
-    std::int32_t count;         // +0x10 (CSoundManager + 0x894)
-
-    DeferredNode* Find(std::int32_t key) const;  // the inlined bucket walk (006BC440)
-    void Clear();                                // the inlined clear(): nodes freed, buckets kept
-};
+// Find is the inlined bucket walk (006BC440), Clear the inlined clear() (nodes freed, buckets kept);
+// the buckets are at CSoundManager + 0x888, the count at + 0x894.
+using DeferredMap = stlp::hash_map<std::int32_t, DeferredSound*, stlp::IntHash>;
+using DeferredNode = DeferredMap::Node;
 static_assert(sizeof(DeferredMap) == 0x14);
 
 // The wave cache (006B89F0): a list of loaded waves, most recently used first, and a hash_map from

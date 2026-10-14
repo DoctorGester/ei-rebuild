@@ -60,8 +60,8 @@ Snapshot Take(const QuestBriefingRecord* r) {
     Mix(s.digest, r->name.data(), r->name.size());
     Mix(s.digest, r->text.data(), r->text.size());
     for (const CStringVector& list : r->lists) {
-        s.digest = (s.digest ^ static_cast<std::uint64_t>(list.end - list.begin)) * 0x100000001B3ull;
-        for (const mfc::CString* text = list.begin; text != list.end; ++text)
+        s.digest = (s.digest ^ static_cast<std::uint64_t>(list.size())) * 0x100000001B3ull;
+        for (const mfc::CString* text = list.begin(); text != list.end(); ++text)
             Mix(s.digest, static_cast<const char*>(*text), static_cast<std::size_t>(text->GetLength()));
     }
     return s;

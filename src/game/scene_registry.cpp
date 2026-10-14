@@ -66,7 +66,7 @@ __declspec(naked) void __fastcall DestroyNamed(void*, void*, int /*flags*/) EI_O
 // The local CMap<DWORD, DWORD> of texture coordinates already moved (vtable 0073C16C; the
 // DwordMap layout): its GetAssocAt (00453C60), InitHashTable (00453B90) and NewAssoc (00453C00).
 using SeenMap = DwordMap;
-std::uintptr_t SeenMapVtable() { return std::uintptr_t(0x0073C16C); }
+void* SeenMapVtable() { return reinterpret_cast<void*>(0x0073C16C); }
 __declspec(naked) MapAssoc* __fastcall MapGetAssocAt(SeenMap*, void*, const std::uint32_t*, std::uint32_t*)
     EI_ORIGINAL(0x00453C60)
 __declspec(naked) void __fastcall MapInitHashTable(SeenMap*, void*, std::uint32_t, int) EI_ORIGINAL(0x00453B90)

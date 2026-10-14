@@ -6,6 +6,7 @@
 // provisional.
 
 #include "item_stock.h"
+#include "lib/stlp.h"
 
 class ChunkArchive;
 
@@ -63,11 +64,8 @@ static_assert(offsetof(ClassTemplate, magic) == 0x1D4);
 static_assert(sizeof(ItemStock) == 0xB8);
 
 // STLport vector of counted pointers (start, finish, end of storage).
-struct ClassTemplateVector {
-    ClassTemplate** start;
-    ClassTemplate** finish;
-    ClassTemplate** eos;
-};
+using ClassTemplateVector = stlp::vector<ClassTemplate*>;
+static_assert(sizeof(ClassTemplateVector) == 12);
 
 // 004A7080 (__thiscall). Adds to the template's lists every weapon, armor, quick item, fourth-kind
 // record, spell and modifier whose class mask has the template's bit (spells and modifiers to

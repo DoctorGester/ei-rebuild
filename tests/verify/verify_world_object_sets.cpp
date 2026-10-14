@@ -4,15 +4,12 @@
 // sent set equal to the current one.
 #include "verify.h"
 
+#include "../../src/lib/containers.h"
+
 #include <cstdint>
 #include <cstring>
 
-struct ObjectSet {
-    std::uint32_t* data;
-    int size;
-    int capacity;
-    int growBy;
-};
+using ObjectSet = lib::AlignedArray<std::uint32_t>;
 
 void __fastcall ObjectSetSetSize(ObjectSet* self, void*, int n, int growBy);
 void __fastcall ObjectSetResize(ObjectSet* self, void*, int n, int growBy);

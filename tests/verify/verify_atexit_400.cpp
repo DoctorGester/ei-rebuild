@@ -65,7 +65,8 @@ net::IdPool* __fastcall IdPoolVerify(net::IdPool* self) {
 }
 void*(__fastcall* s_handlerVector)(net::HandlerVector*);
 void* __fastcall HandlerVectorVerify(net::HandlerVector* self) {
-    net::HandlerVector expected = *self;
+    net::HandlerVector expected;
+    std::memcpy(&expected, self, sizeof(expected));
     void* expectedResult = s_handlerVector(&expected);
     void* result = net::HandlerVectorConstruct(self);
     ei::verify::Check("HandlerVectorConstruct", true,

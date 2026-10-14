@@ -41,7 +41,7 @@ void __fastcall PublishPartyVerify(net::ClientSession* self) {
     const std::uint8_t* base = reinterpret_cast<const std::uint8_t*>(self);
     std::int32_t members;
     std::memcpy(&members, base + 0x2664, 4);
-    std::int32_t messages = static_cast<std::int32_t>(state->members_.finish - state->members_.start);
+    std::int32_t messages = static_cast<std::int32_t>(state->members_.size());
     ei::verify::Check("ClientPublishParty", true, messages == (members > 0 ? members : 0) && state->accepted_ == 0,
                       "members %d, messages %d", members, messages);
 }

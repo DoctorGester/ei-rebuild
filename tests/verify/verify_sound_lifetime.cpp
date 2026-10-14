@@ -253,7 +253,7 @@ int __fastcall SoundOpenVerify(CSoundManager* self, void*, void* window, int rev
 }
 void __fastcall SoundCloseVerify(CSoundManager* self) {
     self->Close();
-    bool ok = ResetState(self) && self->cacheList.count == 0 && self->deferred.count == 0 && self->waveSources.count == 0;
+    bool ok = ResetState(self) && self->cacheList.count == 0 && self->deferred.Size() == 0 && self->waveSources.count == 0;
     ei::verify::Check("CSoundManager::Close", true, ok, "manager %p", self);
 }
 void __fastcall SoundResetVerify(CSoundManager* self) {

@@ -27,7 +27,7 @@ const SkillLevelRecord* LevelRecord(const UnitParams* params, int type) {
 // 'i'). The record is read unchecked (an empty skill table faults as in the original).
 char StatLetter(int skill) {
     auto* record = reinterpret_cast<const SkillRecord*>(unitdb::Skills().At(static_cast<std::uint32_t>(skill), unitdb::kSkillSize));
-    const char* name = record->statNames.begin[0];
+    const char* name = record->statNames.begin()[0];
     return name[0];
 }
 

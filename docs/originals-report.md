@@ -123,7 +123,7 @@ Rewritten as `CMaterialManager::FillMaterial` (src/game/material.cpp).
 Rewritten as `CFileRegistry::Construct` (src/game/registry.cpp).
 - `src/game/menu_rects.cpp:43`: `void __fastcall RegConstruct(void*, void*)`
 - `src/game/quest_database.cpp:64`: `CFileRegistry* Registry::Construct()`
-- `src/game/scene_loader.cpp:620`: `void __fastcall ConstructRegistry(void*)`
+- `src/game/scene_loader.cpp:614`: `void __fastcall ConstructRegistry(void*)`
 - `src/game/scene_registry.cpp:48`: `CFileRegistry* Registry::Construct()`
 - `src/game/sound_music.cpp:71`: `CFileRegistry* Registry::Construct()`
 
