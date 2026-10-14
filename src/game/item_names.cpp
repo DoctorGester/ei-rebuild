@@ -15,11 +15,6 @@ using namespace itemdb;
 
 namespace {
 
-// The two-letter type codes of weapons (007963E0..007963F4, "hm" at 00784524) and armors
-// (00796534..0079654C), by type.
-constexpr const char* kWeaponCodes[7] = {"sw", "ax", "dg", "sp", "hm", "bw", "cb"};
-constexpr const char* kArmorCodes[7] = {"hl", "pl", "lg", "sh", "pt", "bt", "gl"};
-
 // The code of `type`. The original copies it into a 4-byte stack buffer and leaves the buffer
 // uninitialised for any other type (never the case in the databases); "" stands in for that.
 const char* TypeCode(const char* const (&codes)[7], int type) {
@@ -191,7 +186,7 @@ mfc::CString CItemQuest::PictureName() {
 
 mfc::CString CItemSpell::FigureName() {
     const auto* spell = static_cast<const CEngineObject*>(spell_);
-    auto* prototype = reinterpret_cast<const SpellRecord*>(Spells().At(PrototypeIndex(spell->unknown_18), kSpellSize));
+    const SpellRecord* prototype = SpellAt(PrototypeIndex(spell->unknown_18));
     mfc::CString name;
     name.Format(kSpellFigure, prototype->icon);
     return name;
@@ -225,7 +220,7 @@ mfc::CString CItemLoot::FigureName() {
             name.Format(kQuickFigure, Head(QuickItems().At(index_, kQuickItemSize))->number);
             break;
         case kRecordSpell:
-            name.Format(kPrototypeFigure, reinterpret_cast<const SpellRecord*>(Spells().At(index_, kSpellSize))->icon);
+            name.Format(kPrototypeFigure, SpellAt(index_)->icon);
             break;
         case kRecordModifier:
             name.Format(kModifierFigure, index_);

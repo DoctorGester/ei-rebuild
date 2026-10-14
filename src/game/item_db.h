@@ -382,6 +382,25 @@ inline const RecordTable& Loot() { return *reinterpret_cast<const RecordTable*>(
 inline const RecordTable& Spells() { return *reinterpret_cast<const RecordTable*>(0x007C8510); }
 inline const RecordTable& SpellModifiers() { return *reinterpret_cast<const RecordTable*>(0x007C8530); }
 
+// The records of those tables typed (null when the index is out of range).
+inline MaterialRecordHead* MaterialAt(std::uint32_t index) {
+    return reinterpret_cast<MaterialRecordHead*>(Materials().At(index, kMaterialSize));
+}
+inline WeaponRecord* WeaponAt(std::uint32_t index) { return reinterpret_cast<WeaponRecord*>(Weapons().At(index, kWeaponSize)); }
+inline ArmorRecord* ArmorAt(std::uint32_t index) { return reinterpret_cast<ArmorRecord*>(Armors().At(index, kArmorSize)); }
+inline QuickItemRecord* QuickItemAt(std::uint32_t index) {
+    return reinterpret_cast<QuickItemRecord*>(QuickItems().At(index, kQuickItemSize));
+}
+inline SpellRecord* SpellAt(std::uint32_t index) { return reinterpret_cast<SpellRecord*>(Spells().At(index, kSpellSize)); }
+inline SpellModifierRecord* SpellModifierAt(std::uint32_t index) {
+    return reinterpret_cast<SpellModifierRecord*>(SpellModifiers().At(index, kSpellModifierSize));
+}
+
+// The two-letter type codes of weapons (007963E0..007963F4, "hm" at 00784524) and armours
+// (00796534..0079654C), by type (the model and picture names).
+inline constexpr const char* kWeaponCodes[7] = {"sw", "ax", "dg", "sp", "hm", "bw", "cb"};
+inline constexpr const char* kArmorCodes[7] = {"hl", "pl", "lg", "sh", "pt", "bt", "gl"};
+
 // A table of the item database (0x20 bytes from 007C86D8: materials, weapons, armors, quick items,
 // quest items, loot) as its load (006A67A0, Rebirth-patched) fills it: the STLport vector of
 // records and the name index (+0x0C, hash_map<string, record*>; records with the same name: the

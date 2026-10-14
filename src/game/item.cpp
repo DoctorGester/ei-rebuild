@@ -16,16 +16,6 @@ constexpr float kZero = 0.0f;   // 0073B858
 
 // FCOMP; TEST AH,0x40: ZF set when equal or unordered (a NaN compares "equal").
 bool EqualOrUnordered(float a, float b) { return !(a < b) && !(a > b); }
-
-// The records of the item database, typed (null when the index is out of range).
-WeaponRecord* WeaponAt(std::uint32_t index) { return reinterpret_cast<WeaponRecord*>(Weapons().At(index, kWeaponSize)); }
-ArmorRecord* ArmorAt(std::uint32_t index) { return reinterpret_cast<ArmorRecord*>(Armors().At(index, kArmorSize)); }
-QuickItemRecord* QuickItemAt(std::uint32_t index) {
-    return reinterpret_cast<QuickItemRecord*>(QuickItems().At(index, kQuickItemSize));
-}
-MaterialRecordHead* MaterialAt(std::uint32_t index) {
-    return reinterpret_cast<MaterialRecordHead*>(Materials().At(index, kMaterialSize));
-}
 } // namespace
 
 char* CItem::GetPrototype() {
@@ -130,8 +120,8 @@ float CItemLoot::GetPrice() {
     case 0: return WeaponAt(index_)->price;
     case 1: return ArmorAt(index_)->price;
     case 2: return QuickItemAt(index_)->price;
-    case 3: return reinterpret_cast<const SpellRecord*>(Spells().At(index_, kSpellSize))->price;
-    case 4: return reinterpret_cast<const SpellModifierRecord*>(SpellModifiers().At(index_, kSpellModifierSize))->price;
+    case 3: return SpellAt(index_)->price;
+    case 4: return SpellModifierAt(index_)->price;
     default: return -1.0f;
     }
 }
