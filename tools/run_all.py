@@ -11,7 +11,7 @@ usage: python tools/run_all.py [scenario names...] [--vanilla-only | --rebirth-o
                    EI_RENDER=new,present: the game has no DirectDraw or Direct3D 7 device and the new
                    renderer presents through its own swap chain (docs/notes/renderer.md section 9)
   --widescreen     Rebirth's WideScreen against our rewrite of it (docs/notes/rebirth.md, "WideScreen"):
-                   the scenarios (default ui_widescreen; they set the wide mode with the harness's
+                   the scenarios (default ui_widescreen and ui_widescreen_more; they set the wide mode with the harness's
                    "resolution" / "widescreen" steps) under Rebirth twice, with our hooks
                    (<scenario>-rebirth) and without (<scenario>-rebirth-nohooks: addon's code only),
                    then tools/compare_frames.py on the two runs' frames
@@ -138,8 +138,16 @@ def compare_widescreen(name):
         cmd = [sys.executable, os.path.join(ROOT, 'tools', 'compare_frames.py'), a, b, '--worst', '4',
                '--diff', os.path.join(diffs, frame + '.bmp')]
         later_a, later_b = os.path.join(ours, frame + '_later.bmp'), os.path.join(addons, frame + '_later.bmp')
+        excludes = []
         if os.path.exists(later_a) and os.path.exists(later_b):
-            cmd += ['--exclude', a, later_a, '--exclude', b, later_b, '--exclude-grow', '8']
+            excludes += ['--exclude', a, later_a, '--exclude', b, later_b]
+        # A window that pauses the world (the Esc menu's): what moved in <f>_moving / <f>_moving_later,
+        # captured before it opened, is left out of <f> too.
+        moving = [os.path.join(d, frame + s) for d in (ours, addons) for s in ('_moving.bmp', '_moving_later.bmp')]
+        if all(os.path.exists(m) for m in moving):
+            excludes += ['--exclude', moving[0], moving[1], '--exclude', moving[2], moving[3]]
+        if excludes:
+            cmd += excludes + ['--exclude-grow', '8']
         sys.stdout.flush()
         ok = subprocess.run(cmd).returncode == 0 and ok
     return ok
@@ -182,7 +190,7 @@ def main():
     rebirth = set(names) if args.scenarios or args.all_rebirth or args.rebirth_only else rebirth_scenarios(names)
     jobs = [(name, install) for name in names for install in installs if install != 'rebirth' or name in rebirth]
     if args.widescreen:
-        names = args.scenarios or ['ui_widescreen']
+        names = args.scenarios or ['ui_widescreen', 'ui_widescreen_more']
         jobs = [(name, install) for name in names for install in ('rebirth', 'rebirth-nohooks')]
     try:
         times = json.load(open(TIMES))

@@ -49,6 +49,8 @@
 //                             opens with, as a base dialogue's "constrN" answer (006064E0) sets it
 //                             (classes 1, 3, 4, 5 after a new game); fails when there is no such
 //                             class template
+//   chat 1|0                  open the chat line (the interface's root) as a multiplayer client's Enter
+//                             does, so that its typed line and caret are drawn; or close it
 //   zone <name> [exit]        leave the zone as its exits do: the server's LeaveToZone (0066F310) for
 //                             the local player, to map.txt zone <name> (gz2g, bz1g, ...), the party
 //                             arriving at that zone's exit <exit> (from 0: map.txt's "#exit n" minus
@@ -1440,6 +1442,17 @@ void RunSteps() {
             } else {
                 if (id == 5) SetCurrentConstructor(static_cast<float>(constr));
                 RequestScreen(id);
+            }
+        } else if (s.verb == "chat") {
+            // The chat line (the interface's root, CChatOverlay) opened as a multiplayer client's Enter
+            // opens it (005F7C60: SetOpen 005E36C0, which draws it, 005E3700), or closed.
+            auto* ui = reinterpret_cast<CInterface3D*>(0x007C7D50);
+            if (!ui->root_) {
+                g_failures.push_back("chat: the interface has no chat overlay");
+            } else if (std::atoi(s.argument.c_str()) != 0) {
+                ChatKeyEnterOriginal(ui);
+            } else {
+                ui->root_->SetOpen(false);
             }
         } else if (s.verb == "zone") {
             // What a zone exit does (00670C20): the server's LeaveToZone for the local player.
