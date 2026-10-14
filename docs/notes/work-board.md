@@ -51,6 +51,12 @@ The page polls every few seconds; nothing is published.
 WB1 database + work.py start/note/status/done; WB2 scheduler + `work.py test`; WB3 server and pages;
 WB4 worker brief and area-worker switched to work.py, coordinator habits (start at spawn, done at merge).
 
+Coordinator: at spawn, `work.py start <ID>` if the worker has not registered (`work.py status` shows it);
+`work.py done <ID>` at merge; `work.py serve` for the live page (http://127.0.0.1:8765/). The worker side is
+in docs/worker-brief.md and .claude/agents/area-worker.md (untracked: .claude/ is ignored): start first,
+note at milestones, `work.py test` for every game run, a single scenario too (it queues fairly and shows on
+the board; its few seconds of scheduler start are the only cost). run_all.py directly only if work.py is broken.
+
 ## WB1: the database and work.py start / note / status / done (2026-10-14)
 
 Built: tools/work.py (standard library only) and the lock in tools/tickets.py.
