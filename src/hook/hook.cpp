@@ -237,6 +237,10 @@ int InstallHooks() {
         action->run();
     }
 
+    // EI_PLAIN=1: no verify wrappers at all, every rewrite runs as it will without them (for timing runs).
+    char plainValue[4];
+    const bool plain = GetEnvironmentVariableA("EI_PLAIN", plainValue, sizeof(plainValue)) && plainValue[0] == '1';
+    if (plain) Log("EI_PLAIN set: no verify wrappers");
     int installed = 0;
     for (HookEntry* h = g_hooks; h; h = h->next) {
         if (IsDisabled(h->address)) continue;
@@ -248,7 +252,7 @@ int InstallHooks() {
         // lacks (a vanilla launch with the flag on): then the plain replacement runs. Wrappers that
         // run ours only and check the state keep running.
         HookEntry* verifyEntry = VerifyEntry(h->address);
-        bool wrapper = verifyEntry && !IsVerified(h->address);
+        bool wrapper = verifyEntry && !IsVerified(h->address) && !plain;
         char why[256];
         if (wrapper && verifyEntry->stolen > 0 && orig && size &&
             rebirth_hook::FlagWithoutOriginal(h->address, size, orig, why, sizeof(why))) {
@@ -317,6 +321,7 @@ int InstallHooks() {
 // patches from a hook on the WinMain call, and they must be in place before we compare bytes.
 static constexpr std::uintptr_t kWinMain = 0x00456440;
 void InstallCoverage();   // cover.cpp
+void InstallProfiler();   // profile.cpp
 static unsigned char g_winMainBytes[5];
 
 static void __stdcall OnWinMain() {
@@ -333,6 +338,7 @@ static void __stdcall OnWinMain() {
     FlushInstructionCache(GetCurrentProcess(), p, 5);
     Log("%d hook(s) installed", InstallHooks());
     InstallCoverage();
+    InstallProfiler();
 }
 
 __declspec(naked) static void WinMainStub() {
