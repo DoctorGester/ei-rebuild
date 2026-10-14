@@ -9,6 +9,7 @@
 #include "../../src/game/map_object.h"
 #include "../../src/game/map_object_figures.h"
 #include "../../src/game/net_delta.h"
+#include "../../src/game/torch.h"
 #include "../../src/game/unit.h"
 
 #include <cstdint>
@@ -40,12 +41,12 @@ static int __fastcall CreateUnitVerify(CUnit* unit) {
 }
 EI_VERIFY(0x0052E400, CreateUnitVerify, 0, s_unusedUnit);
 
-static int __fastcall TorchCreateVerify(CMapObject* torch) {
-    int result = TorchCreate(torch);
-    const char* problem = result != 1 ? "result" : CheckState(NetState(torch), 5);
-    if (!problem && *reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(torch) + 0x238)) problem = "+0x238";
-    ei::verify::Check("TorchCreate", true, problem == nullptr, "object %d: %s (fields %d)", torch->id_,
-                      problem ? problem : "", NetState(torch)->fieldCount_);
+static int __fastcall TorchCreateVerify(CTorchObject* torch) {
+    int result = torch->CreateTorch();
+    const char* problem = result != 1 ? "result" : CheckState(torch->NetState(), 5);
+    if (!problem && torch->spec) problem = "spec";
+    ei::verify::Check("CTorchObject::CreateTorch", true, problem == nullptr, "object %d: %s (fields %d)", torch->id_,
+                      problem ? problem : "", torch->NetState()->fieldCount_);
     return result;
 }
 EI_VERIFY(0x0052BFC0, TorchCreateVerify, 0, s_unusedTorch);

@@ -595,6 +595,8 @@ public:
 
     // The side-specific half (+0x94).
     CObject3DSpecific* Specific() const { return static_cast<CObject3DSpecific*>(attached); }
+    // The figure (+0xF0) as the counted reference 00519580 assigns.
+    CountedRef& FigureRef() { return *reinterpret_cast<CountedRef*>(&figure); }
     // The object as the CTransformObject it starts with (core_transform.h).
     CTransformObject* Transform() { return reinterpret_cast<CTransformObject*>(this); }
     const CTransformObject* Transform() const { return reinterpret_cast<const CTransformObject*>(this); }

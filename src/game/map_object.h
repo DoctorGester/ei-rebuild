@@ -320,8 +320,9 @@ public:
     virtual int DrawFigureShadow(void* context) = 0;
     virtual void AdvanceTime(float time) = 0;   // 25: 0050E410 empty; units 0052FC40
     virtual void LoadFigures() = 0;        // 26: CObject3D 00517500 (units 0052E910)
-    virtual void RecomputeScale() = 0;     // 27: 0050F2D0 (units 00532A80)
-    virtual void EffectsChanged() = 0;     // 28: 0050E420 empty; units 00532AB0
+    // 27 / 28: 0050F2D0 (units 00532A80) / 0050E420 empty (units 00532AB0). Callers use EAX.
+    virtual std::uintptr_t RecomputeScale() = 0;
+    virtual std::uintptr_t EffectsChanged() = 0;
     // 29 (AL): flags_ 0x20000 (0050E430, bit 17 as 0 / 1); units (004467E0), levers, traps,
     // torches 1. False ones leave the server's map-object maps after the zone loads
     // (SendFreshObjects). The world server creates such objects only with its +0x11D set, the
@@ -356,7 +357,7 @@ public:
     // CArray<Vector3> `out`: 0050F120 FreeArray (none); levers 0052BBE0 UseSpots.
     virtual void UseSpots(void* out, float userRadius) = 0;
     virtual void AddEffect() = 0;          // 45: 0050F1E0
-    virtual void SetStunned() = 0;         // 46: 0050E4A0; units 0052F7F0 SetFlag1000000
+    virtual void SetStunned(int on) = 0;   // 46 (RET 4): 0050E4A0 ignores it; units 0052F7F0 SetFlag1000000
     virtual int SetVisibilityMode(int mode) = 0;    // 47 (0xBC): 004467C0 hands it to the companion
     virtual Vector3* EyePoint(Vector3* out) = 0;        // 48 (0xC0): where the object sees from; returns `out`
     virtual std::uint32_t ReadNetState(int first) = 0;   // 49 (RET 4): 0050EC30 (units 0052EF90)
@@ -380,6 +381,7 @@ public:
 };
 
 // A map object's companion (CMapObjectServer / CMapObjectClientSpecific) as the base class calls it.
+// The two classes (unit.h) do not derive from it; CompanionSlots reaches a companion through it.
 class CMapObjectCompanion : public CEngineObject {
 public:
     virtual void EffectsChanged(int first);   // 13: client 005117D0, server 005106D0 (empty, RET 4)
@@ -395,7 +397,13 @@ public:
     // 19 (0x4C, RET 4): client 00511A00 (CMapObjectClientSpecific::SetLightMode), server 00510700
     // (empty). Neither sets a result; the objects' slot 47 (004467C0) passes EAX on as it is.
     virtual std::uintptr_t SetLightMode(int mode);
+
+    CMapObject* owner;              // +0x1C the map object (CMapObject::AttachCompanion sets it)
 };
+static_assert(offsetof(CMapObjectCompanion, owner) == 0x1C);
+inline CMapObjectCompanion* CompanionSlots(CEngineObject* companion) {
+    return static_cast<CMapObjectCompanion*>(companion);
+}
 
 // A unit's server half (CUnit::controller, +0x240: CUnitServer, class 0x3E) as callers reach it
 // through its vtable (the slots as unit.h's CUnitController names them).
@@ -448,12 +456,6 @@ inline CUnitServerVirtuals* ServerSlots(CEngineObject* controller) { return stat
 inline CMapObjectVirtuals* ObjectSlots(CEngineObject* object) { return static_cast<CMapObjectVirtuals*>(object); }
 
 // The companion's back pointer (+0x1C of CMapObjectServer / CMapObjectClientSpecific).
-inline CMapObject*& CompanionOwner(CEngineObject* companion) {
-    return *reinterpret_cast<CMapObject**>(reinterpret_cast<char*>(companion) + 0x1C);
-}
+inline CMapObject*& CompanionOwner(CEngineObject* companion) { return CompanionSlots(companion)->owner; }
 
-// map_object_create.cpp (U6). 0052BFC0, virtual slot 2
-// (Create) of CTorchObject (class id 0x3A, 0x23C bytes, vtable 0073E834, constructor 0052BEE0):
-// the map object's Create (0050E770), the object at +0x238 released and cleared, 5 network fields
-// (the DeltaState at +0x1C4, SetSize 0050FA30 inlined), then DeltaState::Reset. Returns 1.
-int __fastcall TorchCreate(CMapObject* torch);
+// CTorchObject::CreateTorch (0052BFC0, torch Create): torch.h, map_object_create.cpp.

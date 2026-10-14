@@ -1202,7 +1202,7 @@ public:
     // operator delete with flags bit 0. Returns this.
     CMapObjectServer* DeleteServer(unsigned flags);
 
-    std::uint8_t unknown_1C[0x20 - 0x1C];   // +0x1C the map object (map_object.h CompanionOwner)
+    CMapObject* owner;      // +0x1C the map object (map_object.h CompanionOwner)
     UnitVitals vitals;      // +0x20 hit points +0x28, maximum +0x2C
     mfc::CString name78;    // +0x78
     mfc::CString name7C;    // +0x7C
@@ -1215,7 +1215,7 @@ public:
 static_assert(offsetof(CMapObjectServer, name78) == 0x78);
 static_assert(offsetof(CMapObjectServer, stringCount) == 0x88);
 static_assert(sizeof(CMapObjectServer) == 0x94);
-static_assert(offsetof(CMapObjectServer, vitals) == 0x20);
+static_assert(offsetof(CMapObjectServer, vitals) == 0x20 && sizeof(UnitVitals) == 0x58);
 
 class CParticleSource;   // effects.h
 
