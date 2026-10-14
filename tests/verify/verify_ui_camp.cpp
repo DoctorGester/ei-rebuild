@@ -50,7 +50,7 @@ static void __fastcall BattleScreenCreateVerify(CBattleScreenSetup* self, void*)
     bool owners = true;
     for (CUiWindow* p : {self->unitPanel_, self->map_, self->clock_, self->movePanel_, self->topPanel_})
         owners = owners && *reinterpret_cast<CUiWindow**>(reinterpret_cast<std::uint8_t*>(p) + 0x148) == self;
-    bool fields = self->unknown_210 == -1 && self->unknown_17C == 0 && self->unknown_180 == -1 &&
+    bool fields = self->unknown_210 == -1 && self->pendingAction_ == 0 && self->pendingSlot_ == -1 &&
                   self->portraitMode_ == 0 && self->unknown_164 == 0 && self->unknown_1FC == 0 &&
                   !self->unknown_1C0 && !self->unknown_1C1 &&
                   (*reinterpret_cast<const std::uint32_t*>(0x0079B2B0) & 0x40) == 0;

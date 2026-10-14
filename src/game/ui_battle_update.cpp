@@ -2,6 +2,8 @@
 // its quest variable notice (006369D0, slot 33), the selection's refresh (00637DC0) and the quick
 // item panel's unit (0063D2B0). See docs/notes/ui.md ("Ninth pass", "Fourteenth pass", "Fifteenth
 // pass").
+#include "item.h"
+#include "map_object.h"
 #include "map_object_figures.h"
 #include "net_classes.h"
 #include "net_messages.h"
@@ -10,9 +12,9 @@
 #include "text_reader.h"
 #include "ui_camp.h"
 #include "unit.h"
+#include "unit_db.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -73,7 +75,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         EntriesSetSize(&entriesVtable_, nullptr, unknown_14C, -1);
         Entry& entry = entries_[unknown_14C - 1];
         entry.own = own;
-        entry.id = *reinterpret_cast<const int*>(reinterpret_cast<const std::uint8_t*>(item) + 0xC);
+        entry.id = item->id_;
         entry.item = item;
     };
     // The sprite just added: placed in its row (x from 007428AC, 695; Rebirth moves it), its
@@ -90,8 +92,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         if (last >= 0 && last < unknown_14C) {
             CEngineObject* shown = sceneObjects_.data[last];
             SpriteScale(shown, nullptr, slot < 4 ? 0.55f : 0.85f);
-            std::uint32_t opaque = 0xFF000000;
-            std::memcpy(reinterpret_cast<std::uint8_t*>(shown) + 0xD8, &opaque, 4);
+            SceneMesh(last)->colour_ = 0xFF000000;
         }
     };
 
@@ -124,7 +125,7 @@ void CHudQuickItems::SetUnit(CUnit* unit) {
         if (slot - 4 >= 4) break;
         CEngineObject* item = *reinterpret_cast<CEngineObject**>(node + 8);
         node = *reinterpret_cast<std::uint8_t**>(node + 4);
-        if (!item || *reinterpret_cast<const int*>(reinterpret_cast<const std::uint8_t*>(item) + 0x10) != 0x3009)
+        if (!item || item->type_ != kItemQuest)
             continue;
         {
             ReturnedString image;
@@ -153,7 +154,15 @@ __declspec(naked) void __fastcall WeaponBarSetUnit(CUiWindow*, void*, CUnit*) EI
 __declspec(naked) void __fastcall SpellsSetUnit(CUiWindow*, void*, CUnit*) EI_ORIGINAL(0x0063E820)
 __declspec(naked) void __fastcall ActionsSetUnit(CUiWindow*, void*, CUnit*, int) EI_ORIGINAL(0x0063F800)
 // 00530930 (__fastcall on a unit): its prototype record.
-static std::uint8_t* UnitPrototype(CUnit* unit) { return static_cast<std::uint8_t*>(::UnitPrototypeOf(unit)); }
+static const UnitPrototypeRecord* UnitPrototype(CUnit* unit) {
+    return static_cast<const UnitPrototypeRecord*>(::UnitPrototypeOf(unit));
+}
+// The unit panel's model view for the unit it now shows, copied from the prototype as dwords: the
+// size from `first`'s (+0x20), the height from the shown unit's (+0x24; the same unit).
+void ShowPanelView(CHudUnitPanel* panel, CUnit* first) {
+    std::memcpy(&panel->viewSize_[0], &UnitPrototype(first)->unknown_20, 4);
+    std::memcpy(&panel->viewHeight_[0], &UnitPrototype(panel->shownUnit_)->unknown_24, 4);
+}
 // 0063B920 (thiscall on the battle screen, RET 8): shows `unit` in the unit panel (its +0x164).
 void __fastcall ShowPanelUnit(CBattleScreenSetup* a0, void*, CUnit* a2, void* a3) { BattleShowPanelUnitOriginal((void*)a0, nullptr, (void*)a2, a3); }
 // 0057F440 (thiscall on the session 007AFE20): whether this is a network client (AL).
@@ -212,11 +221,6 @@ void*& NodeFreeList() { return *reinterpret_cast<void**>(0x0079B228); }   // the
 // An MFC CArray<void*> as the update builds them on the stack (vtable 0073FAA4).
 using PtrArray = mfc::CArray<void*>;
 
-template <typename T>
-T& At(void* p, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(p) + offset);
-}
-
 // push_back of `*value`: the constructing helper, or the reallocating insert when full.
 void PushId(IdVector* ids, const int* value) {
     if (ids->end != ids->capacity) {
@@ -265,7 +269,7 @@ void RebuildClientParty(CBattleScreenSetup* screen) {
             }
             PushId(&ids.withUnit, unitId);
             net::BindingMessage* camera = static_cast<net::BindingMessage*>(session->binding_);
-            if (camera && !(At<std::uint32_t>(camera, 4) & 0x80000000u) &&
+            if (camera && !(camera->flags7_ & CRefCounted::kDetached) &&
                 camera->first_.ptr == player)
                 ids.camera = *unitId;
         } else {
@@ -327,7 +331,7 @@ void FreeListNodes(List* list) {
 } // namespace
 
 void CBattleScreenSetup::Update() {
-    // The one selected party unit's request (its slot 55): the panels lose their unit and the
+    // The one selected party unit is dead (its slot 55, IsDead): the panels lose their unit and the
     // unit panel shows it.
     auto* party = reinterpret_cast<UiDwordArray*>(partyArray_);
     CUnit* first = nullptr;
@@ -340,8 +344,7 @@ void CBattleScreenSetup::Update() {
         }
     }
     if (first) {
-        using AskFn = int(__thiscall*)(CUnit*);
-        if (reinterpret_cast<AskFn>((*reinterpret_cast<void***>(first))[55])(first) && selected == 1) {
+        if (first->IsDead() && selected == 1) {
             WeaponBarSetUnit(weaponBar_, nullptr, nullptr);
             QuickItemsSetUnit(quickItems_, nullptr, nullptr);
             SpellsSetUnit(spellColumn_, nullptr, nullptr);
@@ -349,8 +352,7 @@ void CBattleScreenSetup::Update() {
             CHudUnitPanel* panel = static_cast<CHudUnitPanel*>(unitPanel_);
             if (first != panel->shownUnit_) {
                 panel->shownUnit_ = first;
-                At<int>(panel, 0x15C) = At<int>(UnitPrototype(first), 0x20);
-                At<int>(panel, 0x154) = At<int>(UnitPrototype(panel->shownUnit_), 0x24);
+                ShowPanelView(panel, first);
                 ShowPanelUnit(reinterpret_cast<CBattleScreenSetup*>(panel->owner_), nullptr, panel->shownUnit_,
                               panel->strings_);
             }
@@ -683,7 +685,6 @@ namespace {
 void __fastcall QuickSlotHighlight(CUiWindow* a0, void*, int a2, int a3) { QuickPanelSetOriginal((void*)a0, nullptr, a2, a3); }
 void __fastcall SpellHighlight(CUiWindow* a0, void*, int a2, int a3) { SpellPanelSetOriginal((void*)a0, nullptr, a2, a3); }
 void __fastcall ActionHighlight(CUiWindow* a0, void*, int a2, int a3) { ActionPanelSetOriginal((void*)a0, nullptr, a2, a3); }
-constexpr int kSlotIsDead = 55;   // object slot 55 (+0xDC): non-zero for a dead unit
 
 } // namespace
 
@@ -700,7 +701,7 @@ void CBattleScreenSetup::RefreshSelection() {
     // Exactly one living unit selected: the panels show it; otherwise they are emptied. The action
     // column's extra button stays while anyone is selected (the original pushes SETG DL there with
     // EDX's upper bytes left over; the callee reads the low byte only).
-    CUnit* shown = (first && ei::VCall<int>(first, kSlotIsDead) == 0 && selected == 1) ? first : nullptr;
+    CUnit* shown = (first && first->IsDead() == 0 && selected == 1) ? first : nullptr;
     WeaponBarSetUnit(weaponBar_, nullptr, shown);
     QuickItemsSetUnit(quickItems_, nullptr, shown);
     SpellsSetUnit(spellColumn_, nullptr, shown);
@@ -711,17 +712,16 @@ void CBattleScreenSetup::RefreshSelection() {
     if (first != panel->shownUnit_) {
         panel->shownUnit_ = first;
         if (first) {
-            At<int>(panel, 0x15C) = At<int>(UnitPrototype(first), 0x20);
-            At<int>(panel, 0x154) = At<int>(UnitPrototype(panel->shownUnit_), 0x24);
+            ShowPanelView(panel, first);
             ShowPanelUnit(reinterpret_cast<CBattleScreenSetup*>(panel->owner_), nullptr, panel->shownUnit_,
                           panel->strings_);
         }
     }
 
     // No pending action; every highlight cleared.
-    unknown_180 = -1;
-    unknown_17C = 0;
-    At<int>(this, 0x184) = -1;
+    pendingSlot_ = -1;
+    pendingAction_ = 0;
+    pendingItem_ = -1;
     CHudQuickItems* quick = static_cast<CHudQuickItems*>(quickItems_);
     for (int i = 0; i < 8; ++i) QuickSlotHighlight(quick, nullptr, i, 0);
     quick->selected_ = -1;

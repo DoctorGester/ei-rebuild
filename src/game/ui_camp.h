@@ -97,8 +97,8 @@ public:
     // +0x1C1), a mouse move at the current position, clears the depth (and stencil) buffer, then
     // the panels (00600EF0). Rebirth's AddNewConsoleCommands applies "nogui" first. Returns 1.
     BOOL Draw(void* target);
-    // 00638280 (slot 24, every frame; ui_battle_update.cpp). When the one selected party unit asks
-    // for it (its slot 55), empties the weapon, quick item, spell and action panels and shows the
+    // 00638280 (slot 24, every frame; ui_battle_update.cpp). When the one selected party unit is
+    // dead (its slot 55, IsDead), empties the weapon, quick item, spell and action panels and shows the
     // unit in the unit panel; a multiplayer client rebuilds the party from the session's players
     // (sorted ids; the camera's player first); the children's update, the next queued message;
     // the "leave_zone" box when a saved zone exit is pending (+0x18C); with a selection box
@@ -309,9 +309,11 @@ public:
 
     int unknown_164;                 // +0x164 cleared by Create
     std::uint8_t partyArray_[0x14];  // +0x168 the party units (CArray; SetSize 005EBDB0)
-    int unknown_17C;                 // +0x17C 0
-    int unknown_180;                 // +0x180 -1
-    std::uint8_t unknown_184[4];
+    // The pending action (CBattleScreen::pendingAction_ / pendingSlot_ / pendingItem_): what the
+    // next click on the view does, its spell, quick item or action slot, and the item.
+    int pendingAction_;              // +0x17C 0
+    int pendingSlot_;                // +0x180 -1
+    int pendingItem_;                // +0x184 -1
     int savedSelection_;             // +0x188 -1, or read from the save (version 0x62)
     std::uint8_t savedFlag_;         // +0x18C
     // +0x18D the order modifier keys held: key actions 0x11..0x16 (key table 0079BF70) set by the

@@ -1620,12 +1620,19 @@ public:
     float vOffset_;                  // +0xD0 sprite sheet: the HUD buttons' states, the bars' colours)
     std::uint32_t plainColour_;      // +0xD4 ARGB (the global map's layers and its pick render)
     std::uint32_t colour_;           // +0xD8 ARGB (the HUD buttons: 0xFF404040 highlighted, 0xFF000000 not)
-    std::uint8_t unknown_0DC[0x1C0 - 0xDC];
+    std::uint8_t unknown_0DC[0x138 - 0xDC];
+    // The figure mesh's per-normal colour arrays (CFigureMesh::colorsA_ / colorsB_, figure_mesh.h);
+    // the shape builders size them to four entries.
+    lib::AlignedArray<std::uint32_t> colorsA_;   // +0x138
+    lib::AlignedArray<std::uint32_t> colorsB_;   // +0x148
+    std::uint8_t unknown_158[0x1C0 - 0x158];
     UiQuadBlock* quads_;             // +0x1C0
     int quadCount_;                  // +0x1C4
     int quadCapacity_;               // +0x1C8
     int quadGrowBy_;                 // +0x1CC
-    std::uint8_t unknown_1D0[0x1E0 - 0x1D0];
+    // The normal packets (CFigureMesh::normals_): the shape builders keep one, (0, 0, 1) for the
+    // four corners with w 1.
+    lib::AlignedArray<UiQuadBlock> normals_;     // +0x1D0
     UiMeshVertex* vertices_;         // +0x1E0
     int vertexCount_;                // +0x1E4
     int vertexCapacity_;             // +0x1E8
@@ -1654,7 +1661,8 @@ public:
 static_assert(offsetof(CUiMesh, colour_) == 0xD8);
 static_assert(offsetof(CUiMesh, scaleMatrix_) == 0x23C && offsetof(CUiMesh, material_) == 0x27C);
 static_assert(offsetof(CUiMesh, position_) == 0x1C && offsetof(CUiMesh, placement_) == 0x54);
-static_assert(offsetof(CUiMesh, quads_) == 0x1C0);
+static_assert(offsetof(CUiMesh, colorsA_) == 0x138 && offsetof(CUiMesh, colorsB_) == 0x148);
+static_assert(offsetof(CUiMesh, quads_) == 0x1C0 && offsetof(CUiMesh, normals_) == 0x1D0);
 static_assert(offsetof(CUiMesh, vertices_) == 0x1E0);
 static_assert(offsetof(CUiMesh, indices_) == 0x200);
 static_assert(offsetof(CUiMesh, uvs_) == 0x210 && offsetof(CUiMesh, uvGrowBy_) == 0x21C);

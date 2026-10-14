@@ -310,8 +310,8 @@ void CBattleScreenSetup::Create() {
     reinterpret_cast<ContainerInputs*>(this)->AddInput(memory ? Raw(memory)->ConstructViewInput(interface_) : nullptr);
 
     *reinterpret_cast<std::uint32_t*>(0x0079B2B0) &= ~0x40u;
-    unknown_17C = 0;
-    unknown_180 = -1;
+    pendingAction_ = 0;
+    pendingSlot_ = -1;
     GameSetWeatherOriginal(GameAt(0x007AFEA6), nullptr, 0, 0.0f);   // clear weather
     GameAt(0x007AFEA5)->MarkInterfaceChanged();
     PartyArraySetSizeOriginal(partyArray_, nullptr, 0, -1);
