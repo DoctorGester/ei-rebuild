@@ -248,7 +248,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         message->behaviour[0].unknown_38 = 1;
         message->behaviour[0].flags = 0;
         base.kind = 5;
-        std::memcpy(&object.scale, &record->unknown_724, 12);
+        std::memcpy(&object.scale, &record->scaleX, 12);
         object.visible = 1;
         object.unknown_6E = 0;
         object.parentIname = record->texts[3];
@@ -259,7 +259,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         object.parentId = type;   // +0x50: the object's type
         if (type == kTypeHero) FillHeroParts(message, prototypeName, line);
 
-        int id = static_cast<int>(record->unknown_01C);
+        int id = static_cast<int>(record->unitId);
         base.id = id;
         if (ObjectWithId(id)) WorldRemoveObject(this, nullptr, base.id);
 
@@ -300,7 +300,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
 
         UnitSetController(unit, nullptr, player);
         slots->SetScriptName(record->texts[0]);
-        UnitSet780(unit, nullptr, static_cast<std::uint32_t>(record->unknown_780));
+        UnitSet780(unit, nullptr, static_cast<std::uint32_t>(record->fightAtWill));
         UnitRefreshStats(unit, nullptr);
         slots->SetStats(reinterpret_cast<const UnitStats*>(record->stats));
         UnitReleaseAllItems(AsUnit(unit));
@@ -326,7 +326,7 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
         UnitSetPrototype23CByName(AsUnit(unit), nullptr, record->texts[6]);
         line.Format(worlddata::AddToHeroesFormat(), unit->id_);
         script += line;
-        if (unknown12D64_ == kKindSinglePlayer && !atStart) AsUnit(unit)->moveMode2 = record->unknown_770;
+        if (unknown12D64_ == kKindSinglePlayer && !atStart) AsUnit(unit)->moveMode2 = record->moveMode2;
         if (placement) {
             bool flagged = IsPassableForClassOriginal(aiMap_, nullptr, 1, &AsUnit(unit)->position);
             if (flagged) UnitSetPose(unit, nullptr, placement->value20, placement->value20);
@@ -342,14 +342,14 @@ void CWorldServer::CreateUnits(void* player, void* recordsArg, const Vector3* po
     if (unknown12D64_ == kKindSinglePlayer) {
         for (int i = 0; i < records->size; ++i) {
             auto* record = reinterpret_cast<PartyUnitRecord*>(records->data[i]);
-            CEngineObject* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unknown_01C));
+            CEngineObject* unit = WorldFindUnit(this, nullptr, static_cast<int>(record->unitId));
             if (!unit) continue;
             CEngineObject* controller = AsUnit(unit)->controller;
-            if (record->unknown_77C <= 0) continue;
+            if (record->leaderId <= 0) continue;
             void* brain = &static_cast<CUnitServer*>(controller)->brain;
             void* follow = BrainFindFollowMode(brain, nullptr);
             if (!follow) continue;
-            FollowModeSetLeader(follow, nullptr, brain, WorldFindUnit(this, nullptr, record->unknown_77C));
+            FollowModeSetLeader(follow, nullptr, brain, WorldFindUnit(this, nullptr, record->leaderId));
         }
     }
 

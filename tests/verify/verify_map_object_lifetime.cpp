@@ -84,7 +84,7 @@ EI_VERIFY(0x00510450, ConstructClientVerify, 7, s_constructClient);
 static void __fastcall ResetUnitVerify(CUnit* self) {
     self->Reset();
     bool ok = !self->controller && !self->player && !self->carried && self->carriedCount == 0 &&
-              self->prototype23C == -1 && self->unknown_438 == 1 && self->activeWeapon == 0xFFFFFFFFu &&
+              self->prototype23C == -1 && self->fightAtWill == 1 && self->activeWeapon == 0xFFFFFFFFu &&
               !self->weapons[0] && !self->armor[6] && !self->spells[7];
     ei::verify::Check("CUnit::Reset", true, ok, "unit %d", self->id_);
 }
@@ -173,8 +173,8 @@ static void __fastcall DestructMemoryVerify(std::uint8_t* memory) {
     brain->DestructMemory();
     bool ok = brain->calls.vtable == reinterpret_cast<void*>(0x0073F064) &&
               brain->reports.vtable == reinterpret_cast<void*>(0x0073F058) &&
-              ObjectListDestroyed(brain->unknown_0F4) && ObjectListDestroyed(brain->visible) &&
-              ObjectListDestroyed(brain->unknown_12C) && ObjectListDestroyed(brain->corpses);
+              ObjectListDestroyed(brain->nearby) && ObjectListDestroyed(brain->visible) &&
+              ObjectListDestroyed(brain->seenCorpses) && ObjectListDestroyed(brain->corpses);
     ei::verify::Check("AIBrain::DestructMemory", true, ok, "");
 }
 EI_VERIFY(0x00545CB0, DestructMemoryVerify, 0, s_unused);

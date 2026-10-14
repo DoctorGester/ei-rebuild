@@ -475,7 +475,7 @@ const char* CWorldClient::ExitTarget(int index) { return exits_[index].target; }
 
 void CWorldClient::RemoveUnitsOf(const RecordPtrArray* records) {
     for (int i = 0; i < records->size; ++i)
-        RemoveObject(static_cast<int>(reinterpret_cast<PartyUnitRecord*>(records->data[i])->unknown_01C));
+        RemoveObject(static_cast<int>(reinterpret_cast<PartyUnitRecord*>(records->data[i])->unitId));
 }
 
 int CWorldClient::SendFlag10(int value) {
@@ -759,7 +759,7 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
             }
         }
         auto* manager = static_cast<CBaseManager*>(MapObjectManager());
-        auto* unit = static_cast<CUnit*>(manager->CreateObject(kTypeHero, static_cast<int>(record->unknown_01C)));
+        auto* unit = static_cast<CUnit*>(manager->CreateObject(kTypeHero, static_cast<int>(record->unitId)));
         if (!unit) return;   // (the original leaves the loop: the same as returning here)
         auto* prototype = reinterpret_cast<std::uint8_t*>(UnitPrototypeFindCopy(&unitdb::PrototypeTable(), nullptr, record->texts[5]));
         unit->unknown_18 = static_cast<std::uint32_t>(
@@ -778,8 +778,8 @@ void CWorldClient::CreatePartyUnits(const RecordPtrArray* party, char allArmour)
         Unit50EA40(unit);
         CMapObjectVirtuals* slots = ObjectSlots(unit);
         slots->SetStats(reinterpret_cast<const UnitStats*>(record->stats));
-        ObjectSetFigureScaleOriginal(unit, nullptr, &record->unknown_724);
-        std::memcpy(&unit->MapObject()->baseScale, &record->unknown_724, 12);
+        ObjectSetFigureScaleOriginal(unit, nullptr, &record->scaleX);
+        std::memcpy(&unit->MapObject()->baseScale, &record->scaleX, 12);
         slots->ApplyBaseScale();
         UnitReleaseAllItems(unit);
         for (int j = 0; j < static_cast<int>(record->weaponCount); ++j)
@@ -945,7 +945,7 @@ void PlatformSet::AddBox(int id, const FootprintPart* item, const Vector3* posit
         record->x = rotated.x + position->x;
         record->y = rotated.y + position->y;
         record->z = rotated.z + position->z;
-        std::memcpy(&record->radius, &item->unknown_10, 4);   // a dword move
+        std::memcpy(&record->radius, &item->radius, 4);   // a dword move
     }
 }
 

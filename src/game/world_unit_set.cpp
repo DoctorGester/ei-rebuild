@@ -163,8 +163,8 @@ void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* 
         Get(stream, &record->prototype, 2);
         GetIds(stream, record->armourIds);
         GetIds(stream, record->weaponIds);
-        Get(stream, &record->unknown_1C, 1);
-        Get(stream, &record->unknown_20, 4);
+        Get(stream, &record->extraWeapon, 1);
+        Get(stream, &record->modelNumber, 4);
         Get(stream, &record->morphS, 4);
         Get(stream, &record->morphT, 4);
         Get(stream, &record->morphU, 4);

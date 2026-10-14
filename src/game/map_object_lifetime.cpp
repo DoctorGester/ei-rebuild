@@ -284,7 +284,7 @@ CUnit* CUnit::Construct() {
     UnitMotionClearOriginal(m);
     SetBits(m->speedScale, kTenth);
     SetBits(m->baseTurnRate, kTenth);
-    unknown_49C = static_cast<std::uint32_t>(kCarriedArrayVtable);
+    carriedVtable = static_cast<std::uint32_t>(kCarriedArrayVtable);
     carried = nullptr;
     carriedGrowBy = 0;
     carriedCapacity = 0;
@@ -323,7 +323,7 @@ void CUnit::Reset() {
     moveMode2 = 2;
     pendingWeapon = -1;
     dead = 0;
-    unknown_278 = 0;
+    obstacle = 0;
     activeWeapon = 0xFFFFFFFFu;
     UnitParamsResetOriginal(Params());
     std::memset(weapons, 0, sizeof(weapons));
@@ -336,9 +336,9 @@ void CUnit::Reset() {
     }
     carriedCapacity = 0;
     carriedCount = 0;
-    unknown_43C = 0;
+    altPassCosts = 0;
     ResetNetRecords(MapObject()->NetState());
-    unknown_438 = 1;
+    fightAtWill = 1;
 }
 EI_REPLACE_METHOD(0x0052E5B0, CUnit::Reset);
 
@@ -350,7 +350,7 @@ void CUnit::DestructBody() {
     reinterpret_cast<const Slot*>(CUnit::kVtableAddress)[5](this);
     MapObjectDestroy(this);
     ResetUnitAt(this);
-    unknown_49C = static_cast<std::uint32_t>(kCarriedArrayVtable);
+    carriedVtable = static_cast<std::uint32_t>(kCarriedArrayVtable);
     if (carried) gamecrt::operator_delete(carried);
     UnitMotion* m = Motion();
     DestroyArray(m->stepSpeeds, kMotionSpeedsEndVtable);
@@ -414,16 +414,16 @@ CMapObjectClientSpecific* CMapObjectClientSpecific::Construct() {
     sounds.size = 0;
     light = nullptr;
     SetVtable(this, CMapObjectClientSpecific::kVtableAddress);
-    unknown_20 = 0;
-    unknown_24 = 0;
+    lightStateA = 0;
+    lightStateB = 0;
     return this;
 }
 EI_REPLACE_METHOD(0x00510450, CMapObjectClientSpecific::Construct);
 
 void CMapObjectClientSpecific::DestructBody() {
     SetVtable(this, CMapObjectClientSpecific::kVtableAddress);
-    unknown_20 = 0;
-    unknown_24 = 0;
+    lightStateA = 0;
+    lightStateB = 0;
     SetParticleCount(&particles, nullptr, 0, -1);
     if (light) {
         light->flags_ &= ~0x200u;

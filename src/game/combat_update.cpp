@@ -156,10 +156,10 @@ void SwitchWeaponIfWanted(CUnit* unit) {
 void SetStandingFlag(CUnitServer* self, int standing) {
     void* world = ManagerContextOf(self);
     CUnit* unit = self->unit;
-    if (static_cast<int>(unit->unknown_278) == standing) return;
+    if (static_cast<int>(unit->obstacle) == standing) return;
     CSectorMap* sectors = static_cast<CWorldServer*>(world)->Sectors();
     SectorMapRemove(sectors, nullptr, unit);
-    self->unit->unknown_278 = static_cast<std::uint32_t>(standing);
+    self->unit->obstacle = static_cast<std::uint32_t>(standing);
     SectorMapAdd(sectors, nullptr, self->unit);
     UnitMarkChanged(self->unit, nullptr, 7);
 }
@@ -582,7 +582,7 @@ void CUnitServer::TickAction() {
         StartQueueIfUnset(this);
         CtlPopFinishedSteps(this);
         CtlShowCurrentStep(this);
-        if (plan.isCast != 0 && reinterpret_cast<const UnitModelRecord*>(UnitPrototypeModel(unit))->unknown_114 != 0) {
+        if (plan.isCast != 0 && reinterpret_cast<const UnitModelRecord*>(UnitPrototypeModel(unit))->castEffect != 0) {
             // The world's timed object manager (+0x48) creates the effect.
             auto* objects = static_cast<CBaseManager*>(WorldServer()->manager48_);
             CEngineObject* effect = objects->CreateObject(kCastEffectKind, -1);

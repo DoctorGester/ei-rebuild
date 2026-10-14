@@ -102,7 +102,7 @@ void __fastcall UnitWriteNetState(std::uint8_t* object) {
     if (DeltaField* field = state->BeginField(7)) {
         // +0x278 (1 bit), +0x274 dead (1 bit), +0x260 (3 bits), +0x25C (3 bits): their low bytes.
         std::uint8_t bits = static_cast<std::uint8_t>(
-            (static_cast<std::uint8_t>((static_cast<std::uint8_t>(static_cast<std::uint8_t>(unit->unknown_278) << 1) |
+            (static_cast<std::uint8_t>((static_cast<std::uint8_t>(static_cast<std::uint8_t>(unit->obstacle) << 1) |
                                         (static_cast<std::uint8_t>(unit->dead) & 1))
                                        << 3) |
              (static_cast<std::uint8_t>(unit->pathTimeShift) & 7))
@@ -140,7 +140,7 @@ void __fastcall UnitWriteNetState(std::uint8_t* object) {
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(13)) {
-        field->WriteDelta(&unit->unknown_438, 4);
+        field->WriteDelta(&unit->fightAtWill, 4);
         field->EndField();
     }
 }
@@ -325,7 +325,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
         unit->motionMode = static_cast<signed char>(bits << 5) >> 5;
         unit->pathTimeShift = static_cast<signed char>(bits << 2) >> 5;
         unit->dead = static_cast<signed char>(bits << 1) >> 7;
-        unit->unknown_278 = static_cast<std::uint32_t>(static_cast<signed char>(bits) >> 7);
+        unit->obstacle = static_cast<std::uint32_t>(static_cast<signed char>(bits) >> 7);
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(8)) {
@@ -399,7 +399,7 @@ std::uint32_t __fastcall UnitReadNetState(std::uint8_t* object, void*, int first
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(13)) {
-        field->ReadDelta(&unit->unknown_438, 4);
+        field->ReadDelta(&unit->fightAtWill, 4);
         field->EndField();
     }
     if (DeltaField* field = state->BeginField(3)) {

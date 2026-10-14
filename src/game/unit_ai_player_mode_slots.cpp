@@ -14,7 +14,7 @@ constexpr int kTamedPriority = 100000000;
 PlayerMode* CloneWith(const PlayerMode* self, void* vtable) {
     auto* copy = static_cast<PlayerMode*>(gamecrt::operator_new(sizeof(PlayerMode)));
     copy->refs = 0;   // written before the test, as the original does
-    copy->unknown_06 = 0;
+    copy->refsHigh = 0;
     if (!copy) return nullptr;
     copy->vtable = aimode::kActionBaseVtable;
     copy->target = nullptr;

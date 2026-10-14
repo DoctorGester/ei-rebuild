@@ -273,10 +273,10 @@ BOOL UnitStats::RegenerateSlots(UnitVitals* vitals) {
 EI_REPLACE_METHOD(0x00525930, UnitStats::RegenerateSlots);
 
 void UnitStats::SetSlotMaxima(float maxHitPoints) {
-    volatile float ratio = maxHitPoints / slots[1].unknown_EC;
+    volatile float ratio = maxHitPoints / slots[1].share;
     for (UnitStatSlot& slot : slots) {
         if (slot.kind <= 0) continue;
-        volatile float limit = ratio * slot.unknown_EC;
+        volatile float limit = ratio * slot.share;
         slot.maximum = limit;
         float m = limit;
         float current = slot.current;
@@ -286,10 +286,10 @@ void UnitStats::SetSlotMaxima(float maxHitPoints) {
 EI_REPLACE_METHOD(0x00525A00, UnitStats::SetSlotMaxima);
 
 void UnitStats::ScaleSlotMaxima(float maxHitPoints) {
-    volatile float ratio = maxHitPoints / slots[1].unknown_EC;
+    volatile float ratio = maxHitPoints / slots[1].share;
     for (UnitStatSlot& slot : slots) {
         if (slot.kind <= 0) continue;
-        double limit = ratio * slot.unknown_EC;   // kept on the FPU stack for the proportion
+        double limit = ratio * slot.share;   // kept on the FPU stack for the proportion
         volatile float factor = static_cast<float>(limit / slot.maximum);
         slot.maximum = static_cast<float>(limit);
         float m = static_cast<float>(limit);
@@ -454,10 +454,10 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
 
     float limit = ScaledAtLeastOne(unit, kHitPointEffect, vitals->maxHitPoints);
     vitals->maxHitPoints = limit;
-    volatile float ratio = limit / slots[1].unknown_EC;
+    volatile float ratio = limit / slots[1].share;
     for (UnitStatSlot& slot : slots) {
         if (slot.kind <= 0) continue;
-        volatile float slotLimit = ratio * slot.unknown_EC;
+        volatile float slotLimit = ratio * slot.share;
         slot.maximum = slotLimit;
         float m = slotLimit;
         float current = slot.current;
@@ -466,14 +466,14 @@ void UnitStats::Recompute(UnitVitals* vitals, CUnit* unit) {
 
     if (keyed) {
         double strength = stat10 * kTwelve;
-        std::memcpy(&unknown_044, &kKeyedUnknown044, sizeof(float));
+        std::memcpy(&sightCone, &kKeyedUnknown044, sizeof(float));
         capacity = static_cast<float>((LevelValueOf(this, kSkillCapacity) * kPercent + kOne) * strength);
     } else {
         std::memcpy(&capacity, &kNoCapacity, sizeof(float));
     }
     load = static_cast<float>(unit->TotalItemWeight());
     int unusedArg = keyed ? 1 : 0;   // the original passes the text-key byte (upper bytes garbage)
-    loadFactor = unknown_060 == 1 ? LegsFactorAt(this, nullptr, unusedArg) : kOne;
+    loadFactor = movementKind == 1 ? LegsFactorAt(this, nullptr, unusedArg) : kOne;
     speed = speedBase * loadFactor;
     float arms = ArmsFactorAt(this, nullptr, unusedArg);
     armsFactor = arms;

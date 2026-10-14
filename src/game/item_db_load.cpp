@@ -209,9 +209,9 @@ void itemdb::SpellRecord::Serialize(ChunkArchive* ar) {
     ar->CStringField(1, &code);
     ar->CStringField(2, &text08);
     ar->Field(3, &price, 4);
-    ar->Field(4, &unknown_10, 4);
+    ar->Field(4, &castType, 4);
     ar->Field(5, &mana, 4);
-    for (int i = 0; i < 9; ++i) ar->Field(6 + i, &unknown_1C[i], 4);
+    for (int i = 0; i < 9; ++i) ar->Field(6 + i, &effectValues[i], 4);
     ar->Field(15, &needsSight, 4);
     IntVectorFieldAt(ar, nullptr, 16, &list48, ar);
     IntVectorFieldAt(ar, nullptr, 17, &list54, ar);
@@ -220,7 +220,7 @@ void itemdb::SpellRecord::Serialize(ChunkArchive* ar) {
     ar->Field(20, bytes78, 5);
     ar->Field(21, &skill, 4);
     ar->Field(22, &classMask, 4);
-    for (int i = 0; i < 5; ++i) ar->Field(23 + i, &unknown_64[i], 4);
+    for (int i = 0; i < 5; ++i) ar->Field(23 + i, &extraValues[i], 4);
 }
 EI_REPLACE_METHOD(0x00683B80, itemdb::SpellRecord::Serialize);
 

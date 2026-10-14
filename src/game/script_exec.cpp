@@ -649,7 +649,7 @@ void RedeployParty(const SSCCmd* cmd) {
     PartyManagerEndRedeploy(ThePartyManager(), nullptr, party);
     // One slot and one party unit: the slot gets the unit's id.
     const PartyMemberArray& members = player->Party()->members_;
-    if (slots.size == 1 && members.size == 1) slots.data[0].unitId = static_cast<int>(members.data[0].unknown_01C);
+    if (slots.size == 1 && members.size == 1) slots.data[0].unitId = static_cast<int>(members.data[0].unitId);
     state->PrepareRedeploy();
     player->server->lastPosition_.z = -1313.0f;
     TheWorld()->Redeploy(player, &slots, 0);

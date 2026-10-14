@@ -85,7 +85,7 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, void* world, char* uni
     char* prototype = UnitPrototype(unit);
     *gold = 0;
     if (prototype) {
-        const CStringVector& itemNames = reinterpret_cast<const UnitPrototypeRecord*>(prototype)->unknown_E8;
+        const CStringVector& itemNames = reinterpret_cast<const UnitPrototypeRecord*>(prototype)->lootItems;
         auto names = [&] { return reinterpret_cast<const char* const*>(itemNames.begin()); };
         auto bytes = [&] { return reinterpret_cast<std::intptr_t>(itemNames.end()) - reinterpret_cast<std::intptr_t>(itemNames.begin()); };
         auto count = [&] { return static_cast<std::uint32_t>(bytes() >> 2); };

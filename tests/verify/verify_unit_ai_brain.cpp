@@ -43,14 +43,14 @@ bool Empty(const mfc::CTypedPtrList<T>& list) {
 }
 
 bool MemoryEmpty(const AIBrain* brain) {
-    return Empty(brain->unknown_0F4) && Empty(brain->visible) && Empty(brain->unknown_12C) && Empty(brain->corpses) &&
+    return Empty(brain->nearby) && Empty(brain->visible) && Empty(brain->seenCorpses) && Empty(brain->corpses) &&
            brain->noticedX == 0.0f && brain->noticedY == 0.0f && brain->noticedLevel == 0 && brain->noticedKind == 0 &&
            brain->nearbyCountdown == 0;
 }
 
 bool ModesCleared(const AIBrain* brain) {
-    return Empty(brain->modes) && brain->current == nullptr && brain->unknown_44 == 100000.0f &&
-           brain->unknown_48 == 100000.0f && brain->decay == 1.0f;
+    return Empty(brain->modes) && brain->current == nullptr && brain->nearX == 100000.0f &&
+           brain->nearY == 100000.0f && brain->decay == 1.0f;
 }
 } // namespace
 
@@ -221,7 +221,7 @@ static void __fastcall CallAlliesVerify(AIBrain* self, void*, const Vector3* poi
         AIBrain* brain = &static_cast<CUnitServer*>(other->controller)->brain;
         const AICallArray& calls = brain->calls;
         const AICallRecord* last = calls.size > 0 ? &calls.data[calls.size - 1] : nullptr;
-        ok = ok && last && SamePoint(last->point, point) && last->kind == 0x1A && last->unknown_10 == 0;
+        ok = ok && last && SamePoint(last->point, point) && last->kind == 0x1A && last->hostileMask == 0;
     }
     units.RemoveAll();
     ei::verify::Check("AIBrain::CallAllies", true, ok, "brain %p: %d allies", self, allies);
@@ -268,7 +268,7 @@ EI_VERIFY(0x005CBBE0, NoticeVerify, 6, s_notice);
 static void __fastcall ForgetVerify(std::uint8_t* memory, void*, CEngineObject* object) {
     AIBrain* brain = BrainOfMemory(memory);
     brain->Forget(object);
-    bool ok = !brain->unknown_0F4.Find(object) && !brain->visible.Find(object) && !brain->unknown_12C.Find(object) &&
+    bool ok = !brain->nearby.Find(object) && !brain->visible.Find(object) && !brain->seenCorpses.Find(object) &&
               !brain->corpses.Find(object) && !ReportsContains(&brain->reports, nullptr, object);
     ei::verify::Check("AIBrain::Forget", true, ok || object == nullptr, "brain %p object %p", brain, object);
 }

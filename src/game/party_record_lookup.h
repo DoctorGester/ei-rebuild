@@ -11,7 +11,7 @@ struct PartyRecords {
     // 006621B0. The record whose +0x1C is `unitId`, or null.
     std::uint8_t* Find(int unitId) const;
 
-    std::uint8_t unknown_00[0x30];
+    std::uint8_t unused_00[0x30];
     std::uint8_t* records;          // +0x30
     int count;                      // +0x34
 };

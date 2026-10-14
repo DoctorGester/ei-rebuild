@@ -215,11 +215,11 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     // A lost game sends the party back to this zone's first exit.
     if (gameResult_ == kGameResultLost) {
         party->zone_ = *reinterpret_cast<const mfc::CString*>(&zoneName_);
-        party->unknown_6C = 0;
+        party->entrance_ = 0;
     }
 
     // The party arrives at the centre of its entrance's deploy rectangle (the target zone's exit
-    // `unknown_6C`), facing away from the map's centre unless the exit gives a heading.
+    // `entrance_`), facing away from the map's centre unless the exit gives a heading.
     double cell = static_cast<double>(CellSize()) * Half();
     float centreX = StoreFloat(static_cast<float>(gridWidth_ * cell * Half()));
     float centreY = StoreFloat(static_cast<float>(gridHeight_ * cell * Half()));
@@ -229,7 +229,7 @@ void CWorldServer::Redeploy(WorldPlayer* player, void* placements, char runScrip
     std::uint32_t startValue = 0;
     const MapExit* exit = nullptr;
     const MapRecord* zone = FindZone(party->zone_);
-    int entrance = static_cast<int>(party->unknown_6C);
+    int entrance = static_cast<int>(party->entrance_);
     if (zone && entrance >= 0 && entrance < zone->exits.size) {
         exit = &zone->exits.data[entrance];
         start.x = StoreFloat(static_cast<float>((static_cast<double>(exit->deploy[2]) + exit->deploy[0]) * Half()));

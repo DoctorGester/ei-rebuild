@@ -86,7 +86,7 @@ EI_REPLACE_METHOD(0x006A2DE0, CItemWeapon::RollDamage);
 BOOL CItemWeapon::IsSameAs(CItem* item) {
     if (!CItem::IsSameAs(item)) return 0;
     auto* other = static_cast<CItemWeapon*>(item);
-    if (other->unknown_4C != unknown_4C) return 0;
+    if (other->actionValue_ != actionValue_) return 0;
     if (!EqualOrUnordered(other->damage_, damage_)) return 0;
     if (!EqualOrUnordered(other->damageSpread_, damageSpread_)) return 0;
     if (!EqualOrUnordered(other->reach_, reach_)) return 0;

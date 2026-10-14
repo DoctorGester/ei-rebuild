@@ -27,7 +27,7 @@ std::vector<CallModel> Snapshot(const AICallArray* calls) {
     std::vector<CallModel> out;
     for (int i = 0; i < calls->size; ++i) {
         const AICallRecord& c = calls->data[i];
-        out.push_back({c.point, c.kind, c.unknown_10, c.text ? c.text : ""});
+        out.push_back({c.point, c.kind, c.hostileMask, c.text ? c.text : ""});
     }
     return out;
 }
@@ -39,7 +39,7 @@ bool Matches(const AICallArray* calls, const std::vector<CallModel>& expected, b
         const CallModel& e = expected[i];
         bool last = i + 1 == calls->size;
         if (!(skipLastPoint && last) && std::memcmp(&c.point, &e.point, sizeof(Vector3)) != 0) return false;
-        if (c.kind != e.kind || c.unknown_10 != e.mask || e.text != (c.text ? c.text : "")) return false;
+        if (c.kind != e.kind || c.hostileMask != e.mask || e.text != (c.text ? c.text : "")) return false;
     }
     return true;
 }
@@ -101,7 +101,7 @@ static void __fastcall MemoryClaimVerify(std::uint8_t* memory, void*, std::uint3
     MemoryAddClaim(memory, nullptr, mask, kind, text);
     const AICallArray& calls = BrainOfMemory(memory)->calls;
     ei::verify::Check("AIPerception::AddClaim", true,
-                      calls.size > 0 && calls.data[calls.size - 1].unknown_10 == static_cast<int>(mask), "memory %p mask %08X",
+                      calls.size > 0 && calls.data[calls.size - 1].hostileMask == static_cast<int>(mask), "memory %p mask %08X",
                       memory, mask);
 }
 EI_VERIFY(0x005CBBC0, MemoryClaimVerify, 0, s_unusedMemoryClaim);
@@ -131,7 +131,7 @@ static void __fastcall NoiseVerify(AIViewer* self, void*, UnitController* source
         ++heard;
         const AICallArray& calls = brain->calls;
         const AICallRecord* last = calls.size ? &calls.data[calls.size - 1] : nullptr;
-        if (!last || last->kind != kind || last->unknown_10 != 0 ||
+        if (!last || last->kind != kind || last->hostileMask != 0 ||
             std::memcmp(&last->point, &unit->position, sizeof(Vector3)) != 0)
             ++wrong;
     }

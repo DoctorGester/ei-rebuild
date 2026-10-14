@@ -52,7 +52,7 @@ bool BuiltItem(const CItem* item) {
     bool ok = item->refCount_ == 0 && item->flags_ == 0 && item->id_ == -1 && item->type_ == 0 &&
               item->owner_ == nullptr && item->unknown_18 == 0 && item->link_ == 0 && item->spell_ == nullptr &&
               item->count_ == 1;
-    const std::uint32_t* fields[] = {&item->condition_, &item->conditionMax_, &item->weight_, &item->unknown_3C};
+    const std::uint32_t* fields[] = {&item->condition_, &item->conditionMax_, &item->weight_, &item->value3C_};
     for (const std::uint32_t* f : fields) ok = ok && *f == minusOne;
     ok = ok && Bits(&item->charge_) == minusOne && Bits(&item->chargeMax_) == minusOne &&
          Bits(&item->chargeRate_) == minusOne && Bits(&item->price_) == minusOne;
@@ -69,7 +69,7 @@ CItemArmor* __fastcall ArmorCtorVerify(CItemArmor* self) {
 
 CItemWeapon* __fastcall WeaponCtorVerify(CItemWeapon* self) {
     CItemWeapon* result = self->Construct();
-    bool extra = self->unknown_4C == 0 && Bits(&self->damage_) == 0xBF800000 &&
+    bool extra = self->actionValue_ == 0 && Bits(&self->damage_) == 0xBF800000 &&
                  Bits(&self->damageSpread_) == 0xBF800000 && Bits(&self->reach_) == 0xBF800000;
     ei::verify::Check("CItemWeapon::Construct", true,
                       result == self && VtableOf(self) == 0x00743DFC && BuiltItem(self) && extra, "object %p", self);

@@ -304,7 +304,7 @@ void Possession(CSpellEffect* e) {
         ScriptGroup* group = &ServerOf(player)->group50F8_;
         GroupInsert(group, nullptr, target);
         GroupInsertAll(group, nullptr, &server->Brain()->visible);
-        GroupInsertAll(group, nullptr, &server->Brain()->unknown_12C);
+        GroupInsertAll(group, nullptr, &server->Brain()->seenCorpses);
         ServerOf(player)->unknown24_ = target->id_;
         target->flags_ |= 0x2000000;
         float sight = server->moveFactors[3] * server->stats.valuesB0[0].current;

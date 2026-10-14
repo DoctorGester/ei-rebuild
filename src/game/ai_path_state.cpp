@@ -56,7 +56,7 @@ void AIPath::WriteState(DeltaField* field) {
         std::uint16_t flags = cell.flags > kMaxStepFlags ? kMaxStepFlags : cell.flags;
         std::uint16_t xCode = StepCodeFor(cell.x, previousX);
         std::uint16_t yCode = StepCodeFor(cell.y, previousY);
-        std::uint16_t header = static_cast<std::uint16_t>(flags << 6 | (cell.unknown_6 & 3) << 4 | yCode << 2 | xCode);
+        std::uint16_t header = static_cast<std::uint16_t>(flags << 6 | (cell.terrainBits & 3) << 4 | yCode << 2 | xCode);
         previousX = cell.x;
         previousY = cell.y;
         field->WriteBoth(&header, 2);
@@ -88,7 +88,7 @@ void AIPath::ReadState(DeltaField* field) {
         PathCell& cell = steps.AddTail(PathCell{})->data;
         std::uint16_t header = 0;
         field->ReadRaw(&header, 2);
-        cell.unknown_6 = static_cast<std::uint16_t>((header >> 4) & 3);
+        cell.terrainBits = static_cast<std::uint16_t>((header >> 4) & 3);
         cell.flags = static_cast<std::uint16_t>(header >> 6);
         const std::uint16_t xCode = header & 3;
         if (xCode == kStepWritten) field->ReadRaw(&cell.x, 2);

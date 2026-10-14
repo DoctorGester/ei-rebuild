@@ -51,7 +51,7 @@ struct Constructor : ItemConstructorManagerOriginal {
     int Cancel();                                   // 006A5D30
     bool MagicCapacity(float* level, float* power); // 006A6480
 
-    std::uint8_t unknown_00[0x30];
+    std::uint8_t unused_00[0x30];
     int count;                                      // +0x30 the stack size (CItemConstructor::count_)
 };
 __declspec(naked) int Constructor::Cancel() EI_ORIGINAL(0x006A5D30)

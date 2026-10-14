@@ -16,7 +16,7 @@ class ChunkArchive;
 struct PartyRecord {
     void* vtable;
     std::int16_t refCount;      // +0x04 counted pointers (the dword is cleared before construction)
-    std::int16_t unknown_06;
+    std::int16_t refsHigh;              // +0x06 the reference dword's high half (zeroed with it)
     char party[0x70];           // +0x08 the party (constructor 00661050)
     mfc::CString name;          // +0x78 "" for the unnamed record
 

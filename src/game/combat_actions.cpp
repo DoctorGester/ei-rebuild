@@ -382,7 +382,7 @@ void CUnitServer::PropagateHostility() {
     *limit = static_cast<float>(radius * radius);
     CDiplomacy* diplomacy = DiplomacyOf(world);
     int side = unit->side;
-    UnitListNode* node = reinterpret_cast<UnitList*>(&brain.unknown_0F4)->head;
+    UnitListNode* node = reinterpret_cast<UnitList*>(&brain.nearby)->head;
     while (node) {
         CUnit* other = node->data;
         node = node->next;
@@ -434,8 +434,8 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
         if (attacker->GetClassId() == kClassUnit) {
             ManagerContext();
             CUnitServer* theirs = ControllerOf(attacker);
-            CallWitnessMurder(&brain.unknown_0F4, unit, attacker);
-            CallWitnessMurder(&theirs->brain.unknown_0F4, attacker, attacker);
+            CallWitnessMurder(&brain.nearby, unit, attacker);
+            CallWitnessMurder(&theirs->brain.nearby, attacker, attacker);
         }
     }
     MapObjectClearEffectsOriginal(unit);

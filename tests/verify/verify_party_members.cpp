@@ -55,8 +55,8 @@ static PartyUnitRecord* __fastcall AssignVerify(PartyUnitRecord* self, void*, co
     auto* x = reinterpret_cast<const unsigned char*>(self);
     auto* y = reinterpret_cast<const unsigned char*>(source);
     bool ok = result == self && SameTexts(*self, *source) &&
-              std::memcmp(x + 0x1C, y + 0x1C, offsetof(PartyUnitRecord, unknown_779) - 0x1C) == 0 &&
-              std::memcmp(x + offsetof(PartyUnitRecord, unknown_77C), y + offsetof(PartyUnitRecord, unknown_77C), 8) == 0;
+              std::memcmp(x + 0x1C, y + 0x1C, offsetof(PartyUnitRecord, unused_779) - 0x1C) == 0 &&
+              std::memcmp(x + offsetof(PartyUnitRecord, leaderId), y + offsetof(PartyUnitRecord, leaderId), 8) == 0;
     ei::verify::Check("PartyUnitRecord::Assign", true, ok, "record %p from %p", self, source);
     return result;
 }
@@ -84,7 +84,7 @@ static PartyUnitRecord* __fastcall AddMemberVerify(CParty* self, void*, const ch
     bool ok = self->members_.size == before + 1 && record == &self->members_.data[before] &&
               std::strcmp(record->texts[1], nameCopy) == 0 && std::strcmp(record->texts[5], prototypeCopy) == 0 &&
               std::strcmp(record->texts[6], prototypeCopy) == 0 && std::strcmp(record->texts[0], extraCopy) == 0 &&
-              (nameCopy.GetLength() != 0 || record->unknown_01C == 0xFFFFFFFFu);
+              (nameCopy.GetLength() != 0 || record->unitId == 0xFFFFFFFFu);
     ei::verify::Check("CParty::AddMember", true, ok, "\"%s\" (%s): %d records", static_cast<const char*>(nameCopy),
                       static_cast<const char*>(prototypeCopy), self->members_.size);
     return record;
@@ -110,10 +110,10 @@ static BOOL __fastcall RemoveMemberVerify(CParty* self, void*, int key) {
     int before = self->members_.size;
     int found = -1;
     for (int i = 0; i < before && found < 0; ++i)
-        if (static_cast<int>(self->members_.data[i].unknown_01C) == key) found = i;
+        if (static_cast<int>(self->members_.data[i].unitId) == key) found = i;
     BOOL result = self->RemoveMember(key);
     bool ok = found < 0 ? result == 0 && self->members_.size == before : result == 1 && self->members_.size == before - 1;
-    for (int i = 0; ok && found >= 0 && i < found; ++i) ok = static_cast<int>(self->members_.data[i].unknown_01C) != key;
+    for (int i = 0; ok && found >= 0 && i < found; ++i) ok = static_cast<int>(self->members_.data[i].unitId) != key;
     ei::verify::Check("CParty::RemoveMember", true, ok, "key %08X: %d -> %d records", key, before, self->members_.size);
     return result;
 }

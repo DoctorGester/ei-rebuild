@@ -82,7 +82,7 @@ void __fastcall BeginRedeployVerify(NamedPartyRecords* self, void*, CParty* part
     bool ok = true;
     for (PartyRecord* record : self->records) {
         auto* p = reinterpret_cast<CParty*>(record->party);
-        ok = ok && SameText(p->zone_, party->zone_) && p->unknown_6C == party->unknown_6C &&
+        ok = ok && SameText(p->zone_, party->zone_) && p->entrance_ == party->entrance_ &&
              p->variables_.Size() == party->variables_.Size();
     }
     ei::verify::Check("NamedPartyRecords::BeginRedeploy", true, ok, "%d records", static_cast<int>(self->records.size()));
@@ -94,8 +94,8 @@ void __fastcall EndRedeployVerify(NamedPartyRecords* self, void*, CParty* party)
     auto* found = static_cast<CParty*>(PartyRecordsFind(self, nullptr, self->text0C));
     self->EndRedeploy(party);
     bool ok = SameText(self->text10, self->text0C);
-    if (found) ok = ok && SameText(party->zone_, found->zone_) && party->unknown_50 == found->unknown_50;
-    else ok = ok && party->zone_.GetLength() == 0 && party->unknown_50 == 0;
+    if (found) ok = ok && SameText(party->zone_, found->zone_) && party->money_ == found->money_;
+    else ok = ok && party->zone_.GetLength() == 0 && party->money_ == 0;
     ei::verify::Check("NamedPartyRecords::EndRedeploy", true, ok, "record found: %d", found != nullptr);
 }
 

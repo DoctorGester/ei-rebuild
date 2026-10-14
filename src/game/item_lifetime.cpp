@@ -47,7 +47,7 @@ CItem* CItem::Construct() {
     SetMinusOne(chargeRate_);
     SetMinusOne(weight_);
     SetMinusOne(price_);
-    SetMinusOne(unknown_3C);
+    SetMinusOne(value3C_);
     count_ = 1;
     DropSpell(spell_);
     return this;
@@ -111,7 +111,7 @@ CItemWeapon* CItemWeapon::Construct() {
     SetMinusOne(damage_);
     SetMinusOne(damageSpread_);
     SetMinusOne(reach_);
-    unknown_4C = 0;
+    actionValue_ = 0;
     return this;
 }
 EI_REPLACE_METHOD(0x006A0540, CItemWeapon::Construct);

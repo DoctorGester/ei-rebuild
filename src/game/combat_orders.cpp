@@ -144,7 +144,7 @@ void CUnitServer::FinishCast() {
         unit->MarkChanged(0);
     }
     WorldCastSpellOriginal(world, nullptr, spell, unit, &unit->position, action.target, &at, 0);
-    if (SpellPrototype(spell)->unknown_10 != 1) {
+    if (SpellPrototype(spell)->castType != 1) {
         float loudness = static_cast<float>(static_cast<double>(Combat().noise) * kCastNoiseScale);
         AIEventsNoise(AIEventsOf(world), nullptr, this, loudness, kNoiseKind, 0);
     }
@@ -206,7 +206,7 @@ void CUnitServer::OrderAttack(CEngineObject* target, int location, int calledSho
             if (!ranged) {
                 auto* victim = static_cast<CUnit*>(other);
                 double height =
-                    static_cast<double>(std::bit_cast<float>(UnitPrototypeOf(victim)->unknown_24)) + victim->position.z;
+                    static_cast<double>(std::bit_cast<float>(UnitPrototypeOf(victim)->height)) + victim->position.z;
                 if (!LessOrUnordered(height, kReachHeight)) {
                     TellParty(unit, kMessageOutOfReach);
                     action2.kind = 9;

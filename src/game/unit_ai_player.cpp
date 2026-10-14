@@ -16,7 +16,7 @@
 #include <cstdint>
 
 namespace {
-constexpr int kStandby = 1;                                     // CUnit::unknown_438: may fight
+constexpr int kStandby = 1;                                     // CUnit::fightAtWill: may fight
 constexpr int kAttackHow = 6;
 constexpr int kAttackFlags = 0x1C;
 constexpr int kDirectControl = 2;                               // CPlayerServer::refreshPending_
@@ -92,7 +92,7 @@ void Attack(AIBrain* brain, CEngineObject* object, bool clearTwice) {
 
 void PlayerMode::UpdateCombat(AIBrain* brain) {
     CUnit* unit = brain->owner->unit;
-    if (unit->unknown_438 != kStandby) return;
+    if (unit->fightAtWill != kStandby) return;
 
     // The commanded target first, when it can be reached from here.
     if (target && MapObject(target)->IsDead() == 0) {

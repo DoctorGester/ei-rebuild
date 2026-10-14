@@ -290,7 +290,7 @@ static void __fastcall RemoveUnitsOfVerify(CWorldClient* self, void*, const Reco
     self->RemoveUnitsOf(records);
     bool gone = true;
     for (int i = 0; i < records->size; ++i)
-        gone = gone && !self->FindUnit(static_cast<int>(reinterpret_cast<PartyUnitRecord*>(records->data[i])->unknown_01C));
+        gone = gone && !self->FindUnit(static_cast<int>(reinterpret_cast<PartyUnitRecord*>(records->data[i])->unitId));
     ei::verify::Check("CWorldClient::RemoveUnitsOf", true, gone, "%d records", records->size);
 }
 EI_VERIFY(0x00567400, RemoveUnitsOfVerify, 0, s_unused);
