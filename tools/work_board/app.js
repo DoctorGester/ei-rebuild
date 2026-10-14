@@ -65,6 +65,10 @@ function freshness(t) {
   const quiet = Math.min(...stamps);
   return { cls: quiet < 1200 ? 'live' : quiet < 3600 ? 'slow' : 'quiet', html: 'active ' + tick(Date.now() - quiet * 1000) + ' ago' };
 }
+// A note or commit line is cut to fit; clicking it shows all of it (kept open across redraws).
+function actLine(cls, key, what, when, title) {
+  return `<div class="act ${cls}${open.has(key) ? ' expanded' : ''}" data-act="${esc(key)}" title="${esc(title)}"><span class="what">${what}</span><span class="when">${when}</span></div>`;
+}
 function ticketCard(t) {
   const a = t.assignment, c = t.commit, n = t.notes[0], b = t.batch;
   const f = freshness(t);
@@ -76,15 +80,15 @@ function ticketCard(t) {
   }
   if (t.group_name) sub.push(esc(t.group_name));
   const act = [];
-  if (n) act.push(`<div class="act note"><span class="what">${esc(n.text)}</span><span class="when">${ageOf(n.time)}</span></div>`);
+  if (n) act.push(actLine('note', `n-${t.id}-${n.time}`, esc(n.text), ageOf(n.time), 'Click to show it all'));
   if (a && c) {
     const merge = /^Merge /.test(c.subject || '');
-    act.push(`<div class="act commit${merge ? ' merge' : ''}" title="${esc(c.subject)}"><span class="what"><span class="hash">${esc(c.hash)}</span>${esc(c.subject)}</span><span class="when">${ageOf(c.time)}</span></div>`);
+    act.push(actLine('commit' + (merge ? ' merge' : ''), `c-${t.id}-${c.hash}`, `<span class="hash">${esc(c.hash)}</span>${esc(c.subject)}`, ageOf(c.time), c.subject));
   }
   if (b) act.push(`<div class="act tests">${progress(b)}<span class="txt">${batchSummary(b)}</span></div>`);
   const more = t.notes.slice(1);
   const moreNotes = more.length ? details('n-' + t.id, `${more.length} earlier note${more.length > 1 ? 's' : ''}`,
-    more.map(m => `<div class="act note old"><span class="what">${esc(m.text)}</span><span class="when">${ageOf(m.time)}</span></div>`).join('')) : '';
+    more.map(m => actLine('note old', `n-${t.id}-${m.time}`, esc(m.text), ageOf(m.time), 'Click to show it all')).join('')) : '';
   const fails = b && b.failed ? details('f-' + t.id, `<span class="bad">${b.failed} failed game${b.failed > 1 ? 's' : ''}</span>`,
     `<ul class="failures">${b.failures.map(g => `<li>${esc(g.scenario)} (${esc(g.install)}): ${esc(g.result || '')}${g.failures[0] ? ' - ' + esc(g.failures[0]) : ''}</li>`).join('')}</ul>`) : '';
   return `<article class="card s-${t.state} f-${f.cls}">
@@ -199,6 +203,12 @@ async function poll() {
   } catch (e) { document.getElementById('error').textContent = 'Could not load /api/status: ' + e; }
 }
 document.addEventListener('click', e => {
+  const act = e.target.closest('.act[data-act]');
+  if (act && !getSelection().toString()) {
+    const k = act.dataset.act;
+    open.has(k) ? open.delete(k) : open.add(k);
+    act.classList.toggle('expanded', open.has(k));
+  }
   const tab = e.target.closest('.tab');
   if (tab) { state.view = tab.dataset.view; location.hash = state.view; render(); }
 });
