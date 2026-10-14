@@ -2,7 +2,7 @@
 // box (CMasterRequestBox, 0061E2F0 / 0061E4E0) and the address list's vector members (0061E5A0-
 // 0061EE80). See ui_screens.h and docs/notes/ui.md, section 3. Multiplayer only: no scenario
 // reaches the screen. Its Create (0061B2C0) is Rebirth-patched: the vanilla body is here, hooked in
-// the vanilla launch only; the list draw 0061D780 (ui_connect_list.cpp) likewise.
+// the vanilla launch only; the list draw 0061D780 (ui_connect_list.cpp) reproduces its patches.
 #include "ui_screens.h"
 
 #include "chunk_archive.h"
