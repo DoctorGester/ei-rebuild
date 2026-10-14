@@ -43,7 +43,6 @@ __declspec(naked) void __fastcall ChildrenSetSize(lib::AlignedArray<CAnimationNo
 // Vector helpers, __fastcall out in ECX: b - a [00448A10 scales instead: v * t, t as float bits],
 // a + b [0040CDC0]. Each component is one rounded operation.
 __declspec(naked) Vector3* __fastcall VectorSubtract(Vector3*, const Vector3* /*b*/, const Vector3* /*a*/) EI_ORIGINAL(0x0044A230)
-__declspec(naked) Vector3* __fastcall VectorScale(Vector3*, const Vector3*, std::uint32_t /*t*/) EI_ORIGINAL(0x00448A10)
 
 // --- x87 -----------------------------------------------------------------------------------------
 
@@ -150,15 +149,13 @@ void BuildMorphFrames(CAnimationNode* bone, const SceneNode* node) {
             PointsCopy(&frames.data[index].points, nullptr, &KeyPoints(node, key - 1));
             continue;
         }
-        std::uint32_t tBits;
-        std::memcpy(&tBits, &toNext, 4);
         for (int j = 0; j < frames.data[index].points.size; ++j) {
             Vector3* p = &frames.data[index].points.data[j];
             const Vector3* a = &KeyPoints(node, key - 1).data[j];
             const Vector3* b = &KeyPoints(node, key).data[j];
             Vector3 d, s, r;
             VectorSubtract(&d, b, a);
-            VectorScale(&s, &d, tBits);
+            VectorScaleCopyOriginal(&s, &d, toNext);
             const Vector3* sum = VectorAdd(&r, a, &s);
             std::memcpy(p, sum, sizeof(Vector3));
         }

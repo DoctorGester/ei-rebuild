@@ -107,7 +107,6 @@ __declspec(naked) void __fastcall UnitAddSpell(CEngineObject*, void*, CEngineObj
 // 005308D0 (RET 4): the record's text 6 (a CString's characters, handed on as a dword).
 __declspec(naked) void __fastcall UnitSetPose(CEngineObject*, void*, std::uint32_t, std::uint32_t) EI_ORIGINAL(0x0052EB10)
 // Items: the counted record at item + 0x1C (ItemSourceRef, item.h).
-__declspec(naked) void* __fastcall RefValueConstruct(void*, void*) EI_ORIGINAL(0x00419720)
 // 004D23A0 (RET 8). Queues a script command line on the first command queue.
 int __fastcall CommandQueueAdd(void* a0, void*, const mfc::CString* a2, int a3) { return ScriptLoadLine(a0, nullptr, a2, a3); }
 
@@ -204,7 +203,7 @@ CEngineObject* MakeItem(CWorldServer* world, CEngineObject* itemRecord, bool ref
     ItemSourceRef* record = nullptr;
     if (memory) {
         if (refValueBase) {
-            RefValueConstruct(memory, nullptr);
+            RefValueConstructOriginal(memory);
             memory->vtable = reinterpret_cast<void*>(worlddata::kItemSourceRefVtable);
             record = memory;
         } else {

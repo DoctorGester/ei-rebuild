@@ -100,7 +100,6 @@ void __fastcall StringAssign(void* a0, void*, const void* a2) { CStringAssignOri
 // The original's out-of-line Vector3 helpers (all __fastcall: out in ECX, first vector in EDX).
 __declspec(naked) Vector3* __fastcall VectorMake(Vector3*, void*, float, float, float) EI_ORIGINAL(0x00401DE0)
 __declspec(naked) Vector3* __fastcall VectorCross(Vector3*, const Vector3*, const Vector3*) EI_ORIGINAL(0x004489D0)
-__declspec(naked) Vector3* __fastcall VectorScaleCopy(Vector3*, const Vector3*, float) EI_ORIGINAL(0x00448A10)
 __declspec(naked) Vector3* __fastcall VectorScale(Vector3*, const Vector3*, float) EI_ORIGINAL(0x00410770)
 // A float copied through the FPU (FLD / FSTP), as the original copies +0x28 to +0x110.
 __declspec(naked) void __fastcall FpuCopy(const float* /*from*/, float* /*to*/) {
@@ -159,7 +158,7 @@ void CFigureMesh::SetPose(const float* q, const float* offset) {
     float w = q[0];
     Vector3 cross, turned, scaled, sum, rotated;
     VectorCross(&cross, &v, p);
-    VectorScaleCopy(&turned, &cross, StoreFloat(static_cast<float>(static_cast<double>(w) + w)));
+    VectorScaleCopyOriginal(&turned, &cross, StoreFloat(static_cast<float>(static_cast<double>(w) + w)));
     float ww = StoreFloat(static_cast<float>(static_cast<double>(w) * w));
     float k = StoreFloat(static_cast<float>(ww - DotRaw(&v, &v)));
     VectorScale(&scaled, p, k);

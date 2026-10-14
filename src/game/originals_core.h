@@ -10,6 +10,7 @@
 
 class CBaseManager;
 class CEngineObject;
+class CRefObject;
 class CTransformObject;
 struct RefPtr;
 struct Quaternion;
@@ -81,3 +82,20 @@ __declspec(naked) inline void __fastcall ReferenceAssign(CEngineObject** /*slot*
 __declspec(naked) inline void __fastcall EngineObjectDestructBase(CEngineObject* /*object*/) EI_ORIGINAL(0x00455930)
 // C3n. 00461360 (rewritten as TextKeyFromName; fastcall on the text): the numeric key of a name in the game's texts.
 __declspec(naked) inline int __fastcall TextKeyOf(const char* /*name*/) EI_ORIGINAL(0x00461360)
+// C3o. 00402B20 (rewritten as CBaseManager::ConstructBase; thiscall, plain RET): the manager base constructor; returns
+// this (EAX = ECX at the end).
+__declspec(naked) inline void* __fastcall ManagerConstructBaseOriginal(void* /*manager*/) EI_ORIGINAL(0x00402B20)
+// C3o. 00405350 (rewritten as hash400::PositionsRemoveKey; thiscall, RET 4): an id -> pointer hash map (STLport
+// hash_map<int, T*>) removes `*key`; EAX the removed value, or null when the key was not there.
+__declspec(naked) inline void* __fastcall IdMapRemoveKeyOriginal(void* /*map*/, void*, const int* /*key*/)
+    EI_ORIGINAL(0x00405350)
+// C3o. 00419720 (rewritten as RefValueConstructBase; thiscall, plain RET, no argument besides ECX): sets the counted
+// value base vtable; returns this.
+__declspec(naked) inline void* __fastcall RefValueConstructOriginal(void* /*object*/) EI_ORIGINAL(0x00419720)
+// C3o. 0041DD50 (rewritten as RefPtrFromRawCounted; thiscall, RET 4): a counted pointer constructed from a raw object
+// (its count raised when not null); returns the pointer.
+__declspec(naked) inline RefPtr* __fastcall RefPtrFromRawOriginal(RefPtr* /*p*/, void*, CRefObject* /*object*/)
+    EI_ORIGINAL(0x0041DD50)
+// C3o. 00448A10 (rewritten as ScaleVector; fastcall: ECX out, EDX v, RET 4 the float): out = v * s; returns out.
+__declspec(naked) inline Vector3* __fastcall VectorScaleCopyOriginal(Vector3* /*out*/, const Vector3* /*v*/, float /*s*/)
+    EI_ORIGINAL(0x00448A10)

@@ -1,15 +1,10 @@
 # Functions still forwarded from more than one file (tools/check_forwarders.py).
 # Only shrinks: new code uses src/game/originals_<area>.h.
-00402B20
 004049D0
 00404A40
 00404A70
-00405350
 004113A0
 00411850
-00419720
-0041DD50
-00448A10
 0044C470
 00460500
 004614C0

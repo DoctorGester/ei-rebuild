@@ -518,7 +518,6 @@ CEngineObject* __fastcall RecordAddSpell(PartyUnitRecord* a0, void*, void* a2) {
 CEngineObject* __fastcall UnitWornItem(CEngineObject* a0, void*, int a2) { return UnitWornItemOriginal((const void*)a0, nullptr, a2); }
 // 00553360 (RET 4). The controller copies its statistics into a record's (+0x20).
 __declspec(naked) void __fastcall ControllerStoreStats(CUnitServer*, void*, void*) EI_ORIGINAL(0x00553360)
-__declspec(naked) void* __fastcall RefValueConstruct(void*, void*) EI_ORIGINAL(0x00419720)
 void __fastcall RefRelease(void* a0, void*) { RefObjectRelease(a0); }
 
 // The party's copy of an item (CParty slot 24; the record entry's source).
@@ -540,7 +539,7 @@ ItemSourceRef* NewItemRecord(bool refValueBase) {
     memory->refs = 0;   // before the null test
     if (!memory) return nullptr;
     if (!refValueBase) return static_cast<ItemSourceRef*>(ItemRecordConstruct(memory, nullptr));
-    RefValueConstruct(memory, nullptr);
+    RefValueConstructOriginal(memory);
     memory->vtable = reinterpret_cast<void*>(worlddata::kItemSourceRefVtable);
     return memory;
 }

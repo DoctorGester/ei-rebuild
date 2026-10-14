@@ -24,6 +24,7 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/x87.h"
+#include "originals_core.h"
 #include "originals_engine.h"
 #include "originals_world.h"
 #include "originals_library.h"
@@ -348,7 +349,6 @@ __declspec(naked) void __fastcall SessionUpdate(WorldSession*) EI_ORIGINAL(0x006
 void __fastcall SessionDisconnect(WorldSession* session) { PlayerDisconnectOriginal(session); }
 __declspec(naked) int __fastcall PendingLookup(PendingMap*, void*, const int*, void**) EI_ORIGINAL(0x0056FC60)
 __declspec(naked) void __fastcall PendingListRemoveAt(mfc::CList<CEngineObject*>*, void*, void*) EI_ORIGINAL(0x005704A0)
-__declspec(naked) void __fastcall PendingRemoveKey(PendingMap*, void*, const int*) EI_ORIGINAL(0x00405350)
 __declspec(naked) int __fastcall ParticlesTickAt(CParticleManager*, void*, char) EI_ORIGINAL(0x00498480)
 __declspec(naked) void __fastcall EffectListErase0(void*, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x00572550)
 __declspec(naked) void __fastcall EffectListErase1(void*, void*, void** /*out*/, void* /*node*/) EI_ORIGINAL(0x00572580)
@@ -439,7 +439,7 @@ int CWorldClient::Segment() {
             void* position = nullptr;
             if (PendingLookup(&dynamicNodes_, nullptr, &key, &position)) {
                 PendingListRemoveAt(&dynamicObjects_, nullptr, position);
-                PendingRemoveKey(&dynamicNodes_, nullptr, &key);
+                IdMapRemoveKeyOriginal(&dynamicNodes_, nullptr, &key);
             }
         }
         for (CEngineObject* object = objectsIt.First(TimedObjectManager()); object; object = objectsIt.Next())

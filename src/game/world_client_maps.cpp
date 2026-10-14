@@ -1186,12 +1186,10 @@ __declspec(naked) void* __fastcall Construct42D690(void*) EI_ORIGINAL(0x0042D690
 __declspec(naked) void* __fastcall Construct691140(void*) EI_ORIGINAL(0x00691140)
 __declspec(naked) void* __fastcall Construct68E3F0(void*) EI_ORIGINAL(0x0068E3F0)
 __declspec(naked) void* __fastcall Construct68D850(void*) EI_ORIGINAL(0x0068D850)
-__declspec(naked) void __fastcall ManagerBase(void*) EI_ORIGINAL(0x00402B20)
 __declspec(naked) void __fastcall Construct56FD40(void*, void*, int) EI_ORIGINAL(0x0056FD40)
 __declspec(naked) void __fastcall Construct5725E0(void*) EI_ORIGINAL(0x005725E0)
 __declspec(naked) void __fastcall Construct4981A0(void*) EI_ORIGINAL(0x004981A0)
 void* __fastcall SessionFor(void* a0) { return PlayerCreateOriginal(a0); }
-__declspec(naked) void __fastcall Construct419720(void*) EI_ORIGINAL(0x00419720)
 __declspec(naked) void __fastcall Construct5715D0(void*, void*, int) EI_ORIGINAL(0x005715D0)
 __declspec(naked) void* __fastcall Construct6B4350(void*) EI_ORIGINAL(0x006B4350)
 __declspec(naked) void __fastcall Construct4E3C20(void*) EI_ORIGINAL(0x004E3C20)
@@ -1319,7 +1317,7 @@ int CWorldClient::Setup() {
 
     auto* manager = reinterpret_cast<CParticleManager*>(New(sizeof(CParticleManager)));
     if (manager) {
-        ManagerBase(manager);
+        ManagerConstructBaseOriginal(manager);
         Construct56FD40(&manager->freeParticles, nullptr, 10);
         Construct5725E0(&manager->held_);
         manager->maxHeldId_ = 0;
@@ -1338,7 +1336,7 @@ int CWorldClient::Setup() {
     handle->flags7_ = 0;
     CRefObject* created = nullptr;
     if (handle) {
-        Construct419720(handle);
+        RefValueConstructOriginal(handle);
         ei::SetVtable(handle, worlddata::kClientHandleVtable);
         created = handle;
     }
@@ -1365,7 +1363,7 @@ int CWorldClient::Setup() {
     // The list manager: the base, then its CList's fields (in the original's order).
     auto* lists = reinterpret_cast<ClientListManager*>(New(sizeof(ClientListManager)));
     if (lists) {
-        ManagerBase(lists);
+        ManagerConstructBaseOriginal(lists);
         lists->list.vtable = reinterpret_cast<void*>(worlddata::kClientListVtable);
         lists->list.count = 0;
         lists->list.free = nullptr;
@@ -1379,7 +1377,7 @@ int CWorldClient::Setup() {
     lists->Init(this);
     auto* arrays = reinterpret_cast<ClientArrayManager*>(New(sizeof(ClientArrayManager)));
     if (arrays) {
-        ManagerBase(arrays);
+        ManagerConstructBaseOriginal(arrays);
         arrays->current = nullptr;
         Construct5715D0(&arrays->list, nullptr, 10);
         ei::SetVtable(arrays, worlddata::kClientArrayManagerVtable);

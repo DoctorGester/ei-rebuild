@@ -24,7 +24,6 @@ __declspec(naked) void __fastcall RefPtrConstructCopy(RefPtr* /*at*/, const RefP
 __declspec(naked) void __fastcall VectorInsertOverflow(RefVector* /*vector*/, void*, RefPtr* /*pos*/, const RefPtr* /*value*/, std::size_t /*n*/) EI_ORIGINAL(0x00426F00)
 __declspec(naked) RefPtr* __fastcall RefPtrCopyRange(RefPtr* /*first*/, RefPtr* /*last*/, RefPtr* /*result*/) EI_ORIGINAL(0x00429080)
 __declspec(naked) void __fastcall VectorDeallocate(RefPtr* /*p*/, std::size_t /*n*/) EI_ORIGINAL(0x00426490)
-__declspec(naked) void __fastcall RefPtrRaw(RefPtr* /*p*/, void*, CRefObject* /*object*/) EI_ORIGINAL(0x0041DD50)
 __declspec(naked) void* __fastcall MemoryStreamConstructAt(CMemoryStream* /*stream*/) EI_ORIGINAL(0x0041DD70)
 
 // vector<CEngineObject*> with counted elements (library), the +0x2614 list erase, the party's
@@ -112,7 +111,7 @@ void __fastcall ClientPublishParty(ClientSession* self) {
             ei::SetVtable(message, PartyMemberMessage::kVtableAddress);
         }
         RefPtr ref;
-        RefPtrRaw(&ref, nullptr, message);
+        RefPtrFromRawOriginal(&ref, nullptr, message);
         CStream* stream = StreamOf(ref.ptr);
         auto* member = static_cast<std::uint8_t*>(static_cast<void**>(GetPtr(base, 0x2660))[i]);
         stream->Clear();
