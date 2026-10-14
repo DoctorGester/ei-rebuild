@@ -139,13 +139,6 @@ double HeightFactor(float h) {
 
 // --- Shared pieces ------------------------------------------------------------------------------
 
-DeferredNode* DeferredMap::Find(std::int32_t key) const {
-    std::uint32_t n = static_cast<std::uint32_t>(bucketsEnd - buckets);
-    DeferredNode* node = buckets[static_cast<std::uint32_t>(key) % n];
-    while (node != nullptr && node->key != key) node = node->next;
-    return node;
-}
-
 // The volume of a 2D voice (0..127), inlined in every volume setter.
 int CSoundManager::FlatVolume(int level, int fade, int isSpeech) const {
     double v = level;
@@ -668,7 +661,7 @@ void CSoundManager::Tick() {
     }
 
     for (int i = 0; i < 15; ++i) {
-        if (deferred.count == 0) break;
+        if (deferred.Size() == 0) break;
         if (slots[i].playing != 0) continue;
         // The highest priority (the first one met on ties).
         DeferredIter it;
@@ -940,19 +933,6 @@ void CSoundManager::StopStream(int mode) {
 EI_REPLACE_METHOD(0x006BB240, CSoundManager::StopStream);
 
 // --- Stopping everything, wave lengths (A-H14) -------------------------------------------------------
-
-void DeferredMap::Clear() {
-    std::uint32_t n = static_cast<std::uint32_t>(bucketsEnd - buckets);
-    for (std::uint32_t i = 0; i < n; ++i) {
-        for (DeferredNode* node = buckets[i]; node != nullptr;) {
-            DeferredNode* next = node->next;
-            stlp::deallocate(node, sizeof(DeferredNode));
-            node = next;
-        }
-        buckets[i] = nullptr;
-    }
-    count = 0;
-}
 
 // 006B71C0. Loading a game, leaving a zone, the main menu: every voice and deferred sound goes.
 void CSoundManager::StopAll(bool stopStream) {

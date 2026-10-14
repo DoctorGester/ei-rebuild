@@ -237,7 +237,7 @@ void CSoundManager::DestructBody() {
     Close();
     AilShutdown()();
     DeferredMapClear(&deferred);
-    DeferredBucketsDestruct(&deferred.buckets);
+    DeferredBucketsDestruct(deferred.BucketVector());
     CacheMapClear(cache);
     CacheBucketsDestruct(cacheBuckets);
     cacheList.vtable = reinterpret_cast<void*>(kCacheListVtable);
