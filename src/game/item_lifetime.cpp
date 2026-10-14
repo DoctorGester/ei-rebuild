@@ -3,6 +3,7 @@
 #include "item.h"
 
 #include "core_refcount.h"
+#include "spell.h"
 #include "../lib/crt.h"
 
 #include "ei/hook.h"
@@ -26,8 +27,8 @@ void SetMinusOne(T& field) {
 CRefCounted* Link(std::uint32_t value) { return reinterpret_cast<CRefCounted*>(static_cast<std::uintptr_t>(value)); }
 
 // The spell let go through its slot 4 (Release) after the pointer is cleared.
-void DropSpell(void*& spell) {
-    auto* old = static_cast<CEngineObject*>(spell);
+void DropSpell(CSpell*& spell) {
+    CSpell* old = spell;
     spell = nullptr;
     if (old != nullptr) old->Release();
 }
@@ -78,7 +79,7 @@ void CItem::DestructBody() {
     SetVtable(this, kVtableAddress);
     CItem::Destroy();
     // The members' destructors: the spell released and the link's count dropped, without clearing.
-    if (spell_ != nullptr) static_cast<CEngineObject*>(spell_)->Release();
+    if (spell_ != nullptr) spell_->Release();
     CRefCounted* link = Link(link_);
     if (link != nullptr && --link->refs_ == 0) delete link;
     DestructBase();

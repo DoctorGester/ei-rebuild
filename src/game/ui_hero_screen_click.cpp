@@ -760,7 +760,7 @@ void CMpHeroScreen::AddNewHero() {
     hero->weaponIndex = static_cast<int>(hero->weaponCount) > 0 ? 0 : 0xFFFFFFFFu;
     if (static_cast<int>(hero->spellCount) > 0) {
         auto* container = static_cast<CItem*>(hero->spells[0]);
-        auto* spell = static_cast<char*>(container->spell_);
+        auto* spell = reinterpret_cast<char*>(container->spell_);
         if (spell && !HeroCanUseSpell(hero->stats, spell)) {
             PartyAddItemOriginal(LocalPlayerData(), nullptr, container, 0, 1);
             RecordRemoveSpellEntryOriginal(hero, nullptr, container);

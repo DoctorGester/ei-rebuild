@@ -132,7 +132,7 @@ void CHudQuickItems::ItemTip(unsigned index, void* out) {
     text->Empty();
     // (The original passes one CString as the description and the kind.)
     TextManagerItemTexts(Texts(), nullptr, item, text, &line, &line);
-    auto* data = static_cast<std::uint8_t*>(item->spell_);
+    auto* data = reinterpret_cast<std::uint8_t*>(item->spell_);
     if (!data) return;
     const float one = *reinterpret_cast<const volatile float*>(0x0073B84C);
     const float pi = *reinterpret_cast<const volatile float*>(0x007423F8);

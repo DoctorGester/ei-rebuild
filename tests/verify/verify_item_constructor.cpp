@@ -57,7 +57,7 @@ EI_VERIFY(0x006A0490, InitFromRecordVerify, 7, s_initFromRecord);
 // from the old spell's to the new one's (the same float operations, repeated here).
 static void* s_attachSpell;
 static void __fastcall AttachSpellVerify(CItem* self, void*, CSpell* spell) {
-    const char* previous = static_cast<const char*>(self->spell_);
+    const char* previous = reinterpret_cast<const char*>(self->spell_);
     volatile float price = self->price_;
     if (previous) price = price - Field<float>(previous, 0x48);
     if (spell) price = Field<float>(reinterpret_cast<const char*>(spell), 0x48) + price;

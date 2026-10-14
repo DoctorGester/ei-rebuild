@@ -164,7 +164,7 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
         ReadItemText(this, mfc::CString(kQuickItem) + recordName + kSpace + materialName, name, description);
         // Only wands (category 5) get a kind; their name is followed by the spell's name.
         if (item->GetCategory() != 5) break;
-        if (auto* spell = static_cast<CSpell*>(item->spell_)) {
+        if (CSpell* spell = item->spell_) {
             mfc::CString spellName(kUnknown);
             bool found;
             {
@@ -225,7 +225,7 @@ BOOL CTextManager::GetItemTexts(CItem* item, mfc::CString* name, mfc::CString* d
         break;
     }
     case kItemSpell: {
-        auto* spell = static_cast<CSpell*>(item->spell_);
+        CSpell* spell = item->spell_;
         if (!spell) break;
         ReadItemText(this, mfc::CString(kSpell) + StringAt(spell->GetPrototype(), 4), name, description);
         kindKey = "item_spell";

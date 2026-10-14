@@ -76,9 +76,9 @@ BOOL CItem::CopyTo(CItem* target, CSpellManager* spells) {
     target->unknown_18 = unknown_18;
     // +0x20..+0x40 copied as dwords.
     std::memcpy(&target->condition_, &condition_, offsetof(CItem, spell_) - offsetof(CItem, condition_));
-    auto* previous = static_cast<CEngineObject*>(target->spell_);
+    CSpell* previous = target->spell_;
     if (spell_) {
-        CSpell* spell = static_cast<CSpell*>(spell_)->Clone(spells);
+        CSpell* spell = spell_->Clone(spells);
         target->spell_ = spell;
         if (spell) ++spell->refCount_;
     } else {

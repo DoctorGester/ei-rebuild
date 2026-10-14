@@ -37,8 +37,8 @@ void CItem::Load(void* data) {
     std::uint32_t id = StreamSlot(stream);
     stream->Read(&id, kDword);
     CEngineObject* spell = id == 0xFFFFFFFFu ? nullptr : spells->FindObject(id);
-    auto* previous = static_cast<CEngineObject*>(spell_);
-    spell_ = spell;
+    CSpell* previous = spell_;
+    spell_ = static_cast<CSpell*>(spell);
     if (spell != nullptr) ++spell->refCount_;
     if (previous != nullptr) previous->Release();
     stream->Read(&count_, kDword);
@@ -56,7 +56,7 @@ void CItem::Save(void* data) {
     stream->Write(&weight_, kDword);
     stream->Write(&price_, kDword);
     stream->Write(&unknown_3C, kDword);
-    std::int32_t spellId = spell_ != nullptr ? static_cast<CEngineObject*>(spell_)->id_ : -1;
+    std::int32_t spellId = spell_ != nullptr ? spell_->id_ : -1;
     stream->Write(&spellId, kDword);
     stream->Write(&count_, kDword);
     stream->Write(&magicLevel_, kDword);

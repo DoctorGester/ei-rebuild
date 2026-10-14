@@ -41,8 +41,8 @@ BOOL CItem::IsSameAs(CItem* other) {
         !EqualOrUnordered(unknown_3C, other->unknown_3C))
         return 0;
     if (magicLevel_ != other->magicLevel_) return 0;
-    auto* spell = static_cast<const CSpell*>(spell_);
-    auto* otherSpell = static_cast<const CSpell*>(other->spell_);
+    const CSpell* spell = spell_;
+    const CSpell* otherSpell = other->spell_;
     if (spell == nullptr || otherSpell == nullptr) return spell == otherSpell ? 1 : 0;
     if (spell->unknown_18 != otherSpell->unknown_18) return 0;
     return std::memcmp(spell->modifiers_, otherSpell->modifiers_, sizeof(spell->modifiers_)) == 0 ? 1 : 0;

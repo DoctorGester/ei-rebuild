@@ -144,7 +144,7 @@ public:
     // +0x40 the level of spell the item can hold (the prototype's magicLevel plus the material's;
     // CItemConstructor::MagicCapacity).
     std::uint32_t magicLevel_;
-    void* spell_;                 // +0x44 CSpell carried by the item (scrolls, wands)
+    CSpell* spell_;               // +0x44 the spell carried by the item (scrolls, wands)
     std::uint32_t count_;         // +0x48 the stack's count
 };
 // The counted record an item's link_ (a RefPtr slot) points at when the world

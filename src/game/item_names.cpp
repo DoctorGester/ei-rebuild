@@ -3,6 +3,7 @@
 // "initwesw3weapon", "qitem0012.uq". Each returns a new CString (by hidden pointer, as MFC does).
 #include "item.h"
 #include "game_strings.h"
+#include "spell.h"
 
 #include "console.h"
 #include "ei/hook.h"
@@ -185,8 +186,7 @@ mfc::CString CItemQuest::PictureName() {
 }
 
 mfc::CString CItemSpell::FigureName() {
-    const auto* spell = static_cast<const CEngineObject*>(spell_);
-    const SpellRecord* prototype = SpellAt(PrototypeIndex(spell->unknown_18));
+    const SpellRecord* prototype = SpellAt(PrototypeIndex(spell_->unknown_18));
     mfc::CString name;
     name.Format(kSpellFigure, prototype->icon);
     return name;

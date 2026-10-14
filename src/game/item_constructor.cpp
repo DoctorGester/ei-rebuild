@@ -163,17 +163,17 @@ void __fastcall ItemInitFromRecordHook(CItem* self, void*, const ItemRecordHead*
 EI_REPLACE(0x006A0490, ItemInitFromRecordHook);
 
 void CItem::AttachSpell(CSpell* spell) {
-    auto* previous = static_cast<CSpell*>(spell_);
+    CSpell* previous = spell_;
     if (previous) price_ = price_ - std::bit_cast<float>(previous->price_);
     spell_ = spell;
     if (spell) ++spell->refCount_;
     if (previous) previous->Release();
-    if (spell_) price_ = std::bit_cast<float>(static_cast<const CSpell*>(spell_)->price_) + price_;
+    if (spell_) price_ = std::bit_cast<float>(spell_->price_) + price_;
 }
 EI_REPLACE_METHOD(0x006A04D0, CItem::AttachSpell);
 
 void CItem::SetSpell(CSpell* spell) {
-    auto* previous = static_cast<CSpell*>(spell_);
+    CSpell* previous = spell_;
     spell_ = spell;
     if (spell) ++spell->refCount_;
     if (previous) previous->Release();
