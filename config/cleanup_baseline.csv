@@ -223,7 +223,7 @@ src/game/texture_mmp.cpp,0,3,0,0,0,0,0,0,0,0,0
 src/game/ui.h,0,0,0,0,0,0,0,1,0,0,2
 src/game/ui_alpha_draws.cpp,5,0,0,0,0,0,0,0,0,0,0
 src/game/ui_battle_commands.cpp,15,0,0,0,0,0,0,3,0,0,2
-src/game/ui_battle_hover.cpp,23,7,0,0,0,0,0,0,0,0,2
+src/game/ui_battle_hover.cpp,6,7,0,0,0,0,0,0,0,0,2
 src/game/ui_battle_setup.cpp,0,2,0,0,2,0,0,5,0,0,0
 src/game/ui_battle_update.cpp,10,1,0,0,1,0,0,3,0,0,0
 src/game/ui_briefing.h,0,0,0,0,0,0,0,0,0,0,2

@@ -1100,6 +1100,7 @@ static_assert(offsetof(CBattleScreen, portraits_) == 0x1A4);
 static_assert(offsetof(CBattleScreen, itemUseKey_) == 0x220);
 static_assert(offsetof(CBattleScreen, party_) == 0x16C);
 static_assert(offsetof(CBattleScreen, pendingAction_) == 0x17C);
+static_assert(offsetof(CBattleScreen, pendingSlot_) == 0x180);
 static_assert(offsetof(CBattleScreen, pendingItem_) == 0x184);
 static_assert(offsetof(CBattleScreen, quickItems_) == 0x198);
 static_assert(offsetof(CBattleScreen, actionColumn_) == 0x1A0);

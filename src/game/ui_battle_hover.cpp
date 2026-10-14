@@ -95,18 +95,17 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
 
     // The unit panel's hover block (+0x150 the unit, +0x160 / +0x158 from its prototype, +0x168).
     // A unit without flag 0x400000 counts as none below; a dead one is kept.
-    void* panel = Field<void*>(this, 0x1A8);
+    CHudUnitPanel* panel = static_cast<CHudUnitPanel*>(Field<void*>(this, 0x1A8));
     if (unit && !(unit->flags_ & kFlagShowInPanel)) unit = nullptr;
     if (unit && !unitDead(unit)) {
-        if (unit != Field<CUnit*>(panel, 0x150)) {
-            Field<CUnit*>(panel, 0x150) = unit;
+        if (unit != panel->hoverUnit_) {
+            panel->hoverUnit_ = unit;
             Field<int>(panel, 0x160) = Field<int>(HoverPrototype(unit), 0x20);
-            Field<int>(panel, 0x158) = Field<int>(HoverPrototype(Field<CUnit*>(panel, 0x150)), 0x24);
-            HoverShowPanelUnit(Field<void*>(panel, 0x148), nullptr, Field<CUnit*>(panel, 0x150),
-                               &Field<std::uint8_t>(panel, 0x168));
+            Field<int>(panel, 0x158) = Field<int>(HoverPrototype(panel->hoverUnit_), 0x24);
+            HoverShowPanelUnit(panel->owner_, nullptr, panel->hoverUnit_, &panel->strings_[1]);
         }
-    } else if (Field<CUnit*>(panel, 0x150)) {
-        Field<CUnit*>(panel, 0x150) = nullptr;
+    } else if (panel->hoverUnit_) {
+        panel->hoverUnit_ = nullptr;
     }
 
     int count = partyCount_;
@@ -130,7 +129,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         return;
     }
     for (int i = 0; i < 6; ++i) {
-        if (Field<std::uint8_t>(this, 0x18D + i)) {
+        if (orderKeys_[i]) {
             SetCursor(kCursorFlagBase + i);
             return;
         }
@@ -140,7 +139,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         return;
     }
 
-    switch (Field<int>(this, 0x17C)) {
+    switch (pendingAction_) {
     case 0:   // plain
         if (unit) {
             if (unitDead(unit)) {
@@ -181,7 +180,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             break;
         }
         Point3 at = unitPosition(unit);
-        if (!first || HoverCanCast(first, nullptr, Field<int>(this, 0x180), at.v) != 0) {
+        if (!first || HoverCanCast(first, nullptr, pendingSlot_, at.v) != 0) {
             shape = kCursorCantCast;
             break;
         }
@@ -195,8 +194,8 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             shape = kCursorCantCast;
             break;
         }
-        int refused = Field<int>(this, 0x17C) == 2 ? HoverCanCast(first, nullptr, Field<int>(this, 0x180), at.v)
-                                                    : HoverCanUseQuick(first, nullptr, Field<int>(this, 0x180), at.v);
+        int refused = pendingAction_ == 2 ? HoverCanCast(first, nullptr, pendingSlot_, at.v)
+                                                    : HoverCanUseQuick(first, nullptr, pendingSlot_, at.v);
         shape = refused ? kCursorCantCast : kCursorCast;
         break;
     }
@@ -204,8 +203,8 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         shape = kCursorCantCast;
         if (!unit || unitDead(unit)) break;
         Point3 at = unitPosition(unit);
-        if (!first || HoverCanUseQuick(first, nullptr, Field<int>(this, 0x180), at.v) != 0) break;
-        void* item = HoverQuickItem(first, nullptr, Field<int>(this, 0x180));
+        if (!first || HoverCanUseQuick(first, nullptr, pendingSlot_, at.v) != 0) break;
+        void* item = HoverQuickItem(first, nullptr, pendingSlot_);
         if (item && HoverItemCategory(item) == kCategoryWand && unit != first) break;
         shape = kCursorCast;
         break;
@@ -218,7 +217,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     case 6: {   // a spell on an object
         CUnit* target = unit ? unit : objectAt();
         shape = (target && first && ei::VCall<int>(target, kSlotCanTarget) != 0 &&
-                 ei::VCall<int>(target, kSlotAcceptsSpell, &Field<std::uint8_t>(this, 0x220)) != 0)
+                 ei::VCall<int>(target, kSlotAcceptsSpell, &itemUseKey_) != 0)
                     ? kCursorUse
                     : kCursorNo;
         break;
