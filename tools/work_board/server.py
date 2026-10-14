@@ -157,6 +157,12 @@ class Board:
         latest = {}
         for b in db.execute('SELECT * FROM batch WHERE id IN (SELECT max(id) FROM batch WHERE ticket IS NOT NULL GROUP BY ticket)'):
             latest[b['ticket']] = self.batch_json(db, b)
+        # The last finished batch too, while a newer one is still queued or running.
+        previous = {}
+        for b in db.execute("SELECT * FROM batch WHERE id IN (SELECT max(id) FROM batch WHERE ticket IS NOT NULL "
+                            "AND state IN ('finished', 'cancelled') GROUP BY ticket)"):
+            if latest.get(b['ticket'], {}).get('state') in ('queued', 'running'):
+                previous[b['ticket']] = self.batch_json(db, b)
 
         def assignment(a):
             return {'agent': a['agent'], 'worktree': a['worktree'], 'branch': a['branch'], 'started': a['started'],
@@ -170,7 +176,8 @@ class Board:
                         'depends': t.get('depends', []), 'note': t.get('note', ''), 'files': t.get('files', []),
                         'started': t.get('started'), 'done': t.get('done'),
                         'assignment': assignment(a) if a else None, 'notes': notes.get(t['id'], []),
-                        'commit': branches.get(a['branch']) if a else None, 'batch': latest.get(t['id'])})
+                        'commit': branches.get(a['branch']) if a else None, 'batch': latest.get(t['id']),
+                        'previous': previous.get(t['id'])})
         known = {t['id'] for t in tickets}
         for tid, a in assign.items():       # assigned with `work.py start --force`: an id the toml does not have
             if tid not in known:

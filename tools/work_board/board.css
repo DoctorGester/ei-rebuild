@@ -108,3 +108,4 @@ details summary { cursor: pointer; font-size: 12px; color: var(--muted) }
 footer, #error { color: var(--muted); font-size: 12px }
 #error { color: var(--accent) }
 #view { display: grid; gap: 22px }
+.act.tests.prev::before { background: var(--line) }

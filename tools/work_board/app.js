@@ -33,6 +33,14 @@ function progress(b) {
   return `<div class="progress" title="${b.passed} passed, ${b.failed} failed, ${b.running} running, ${b.queued} queued">` +
     `<i class="p" style="width:${w(b.passed)}"></i><i class="f" style="width:${w(b.failed)}"></i><i class="r" style="width:${w(b.running)}"></i></div>`;
 }
+// Checks run_all makes after the games (widescreen frame comparisons): their FAIL lines in the summary.
+const checkFailures = b => String(b.summary || '').split(/\r?\n/).filter(l => /: FAIL$/.test(l.trim()));
+// Failed games and failed checks of a batch, as a list.
+function failureList(b) {
+  return `<ul class="failures">${b.failures.map(g => `<li>${esc(g.scenario)} (${esc(g.install)}): ${esc(g.result || '')}${g.failures[0] ? ' - ' + esc(g.failures.slice(0, 3).join(' | ')) : ''}</li>`).join('')}` +
+    checkFailures(b).map(l => `<li>${esc(l.trim())}</li>`).join('') + '</ul>';
+}
+const failCount = b => b.failed + checkFailures(b).length;
 function batchSummary(b, withId = true) {
   const parts = withId ? [`#${b.id}`, esc(b.state)] : [esc(b.state)];
   if (b.total) parts.push(`${b.done}/${b.total} games`);
@@ -41,7 +49,11 @@ function batchSummary(b, withId = true) {
   const time = b.state === 'running' ? 'for ' + fromFetch(b.elapsed || 0)
     : b.state === 'queued' ? 'waiting ' + fromFetch(b.queued_for || 0) : b.finished ? dur(b.elapsed) + ', ' + ageOf(b.finished) + ' ago' : '';
   if (time) parts.push(time);
-  const bad = b.failed ? ` <span class="bad">${b.failed} failed</span>` : b.state === 'finished' && b.total ? ' <span class="ok">all passed</span>' : '';
+  const checks = checkFailures(b);
+  const bad = b.failed ? ` <span class="bad">${b.failed} failed</span>`
+    : checks.length ? ` <span class="bad">${checks.length} check${checks.length > 1 ? 's' : ''} failed after the games</span>`
+    : b.exit_code ? ` <span class="bad">exit ${b.exit_code}</span>`
+    : b.state === 'finished' && b.total ? ' <span class="ok">all passed</span>' : '';
   return parts.join(' · ') + bad;
 }
 
@@ -86,11 +98,14 @@ function ticketCard(t) {
     act.push(actLine('commit' + (merge ? ' merge' : ''), `c-${t.id}-${c.hash}`, `<span class="hash">${esc(c.hash)}</span>${esc(c.subject)}`, ageOf(c.time), c.subject));
   }
   if (b) act.push(`<div class="act tests">${progress(b)}<span class="txt">${batchSummary(b)}</span></div>`);
+  // While a new batch waits or runs, the previous result stays in view.
+  const prev = t.previous;
+  if (prev) act.push(`<div class="act tests prev"><span class="txt">previous ${batchSummary(prev)}</span></div>`);
   const more = t.notes.slice(1);
   const moreNotes = more.length ? details('n-' + t.id, `${more.length} earlier note${more.length > 1 ? 's' : ''}`,
     more.map(m => actLine('note old', `n-${t.id}-${m.time}`, esc(m.text), ageOf(m.time), 'Click to show it all')).join('')) : '';
-  const fails = b && b.failed ? details('f-' + t.id, `<span class="bad">${b.failed} failed game${b.failed > 1 ? 's' : ''}</span>`,
-    `<ul class="failures">${b.failures.map(g => `<li>${esc(g.scenario)} (${esc(g.install)}): ${esc(g.result || '')}${g.failures[0] ? ' - ' + esc(g.failures[0]) : ''}</li>`).join('')}</ul>`) : '';
+  const shown = [b, prev].find(x => x && failCount(x));
+  const fails = shown ? details(`f-${t.id}-${shown.id}`, `<span class="bad">what failed in #${shown.id}</span>`, failureList(shown)) : '';
   return `<article class="card s-${t.state} f-${f.cls}">
     <div class="top"><span class="id">${esc(t.id)}</span><span class="title">${esc(t.title)}</span></div>
     <div class="tags"><span class="pill st">${esc(t.state)}</span>${t.model ? `<span class="pill">${esc(t.model)}</span>` : ''}<span class="fresh">${f.html}</span></div>
@@ -171,11 +186,13 @@ function runsView() {
     (r.queued.length ? r.queued.map((b, i) => batchPanel(b, i + 1)).join('') : '<p class="empty">Queue empty.</p>') + '</section>');
   const rows = r.history.map(b => {
     const key = 'h-' + b.id;
-    const fails = b.failures.length ? details(key, `<span class="bad">${b.failed} failed</span>`,
-      `<ul class="failures">${b.failures.map(g => `<li>${esc(g.scenario)} (${esc(g.install)}) ${esc(g.result || '')}${g.failures.length ? ': ' + esc(g.failures.slice(0, 3).join(' | ')) : ''}</li>`).join('')}</ul>`) : '';
-    const result = b.state === 'cancelled' ? 'cancelled' : `<span class="${b.failed || (b.exit_code ?? 0) ? 'bad' : 'ok'}">${b.passed}/${b.total} passed</span>`;
+    const n = failCount(b), checks = checkFailures(b).length;
+    const fails = n ? details(key, `<span class="bad">what failed</span>`, failureList(b)) : '';
+    const games = `<span class="${b.failed ? 'bad' : 'ok'}">${b.passed}/${b.total} games passed</span>`;
+    const result = b.state === 'cancelled' ? 'cancelled'
+      : games + (checks ? `, <span class="bad">${checks} check${checks > 1 ? 's' : ''} failed</span>` : '');
     return `<tr><td class="num">#${b.id}</td><td>${esc(b.ticket || '-')}</td><td class="mono">${esc(b.worktree)}</td><td class="num">${ageOf(b.finished)}</td>` +
-      `<td class="num">${dur(b.elapsed)}</td><td>${result}${b.exit_code ? ` <span class="pill down">exit ${b.exit_code}</span>` : ''}</td><td>${fails}</td></tr>`;
+      `<td class="num">${dur(b.elapsed)}</td><td>${result}${b.exit_code && !n ? ` <span class="pill down">exit ${b.exit_code}</span>` : ''}</td><td>${fails}</td></tr>`;
   }).join('');
   out.push(`<section class="lane"><h2>History<span class="n">${r.history.length}</span></h2>` + (rows ?
     `<div class="panel scroll"><table><thead><tr><th class="num">Batch</th><th>Ticket</th><th>Worktree</th><th class="num">Ago</th><th class="num">Took</th><th>Result</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` :
