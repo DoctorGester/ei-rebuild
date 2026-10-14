@@ -1984,11 +1984,7 @@ const TextOpsAt& Ops(const mfc::CString& s) { return static_cast<const TextOpsAt
 // (00584720), insert overflow (00587700: position, value, count) and storage release (00584A90:
 // ECX storage, EDX capacity); the stamp sort (00589160 introsort with ECX first, EDX last, then a
 // dummy, the depth limit and the comparator; 00589240 the final insertion sort; world_stamp_sort.cpp).
-struct NodeVector {
-    void** start;
-    void** finish;
-    void** eos;
-};
+using NodeVector = stlp::vector<void*>;
 __declspec(naked) void __fastcall NodeVectorConstruct(NodeVector*, void*, const void*) EI_ORIGINAL(0x00584720)
 __declspec(naked) void __fastcall NodeVectorInsertOverflow(NodeVector*, void*, void**, void* const*, unsigned)
     EI_ORIGINAL(0x00587700)
@@ -2124,21 +2120,21 @@ void GameFlow::UpdateFromServer() {
             if (ServerStamp() <= NodeStamp(node)) ServerStamp() = NodeStamp(node);
             unsigned stamp = NodeStamp(node);
             if (stamp >= AppliedStamp() || stamp < previous) continue;
-            if (changed.finish != changed.eos) {
-                if (changed.finish) *changed.finish = node;
-                ++changed.finish;
+            if (changed.Finish() != changed.EndOfStorage()) {
+                if (changed.Finish()) *changed.Finish() = node;
+                ++changed.Finish();
             } else {
                 void* value = node;
-                NodeVectorInsertOverflow(&changed, nullptr, changed.finish, &value, 1);
+                NodeVectorInsertOverflow(&changed, nullptr, changed.Finish(), &value, 1);
             }
         }
-        if (changed.start != changed.finish) {
+        if (changed.begin() != changed.end()) {
             int depth = 0;
-            for (int n = static_cast<int>(changed.finish - changed.start); n != 1; n >>= 1) ++depth;
-            StampIntroSortAt(changed.start, changed.finish, 0, depth * 2, variables);
-            StampInsertionSortAt(changed.start, changed.finish, variables);
+            for (int n = static_cast<int>(changed.size()); n != 1; n >>= 1) ++depth;
+            StampIntroSortAt(changed.begin(), changed.end(), 0, depth * 2, variables);
+            StampInsertionSortAt(changed.begin(), changed.end(), variables);
         }
-        for (void** it = changed.start; it != changed.finish; ++it) FlowVariableChanged(*it, nullptr, *it);
+        for (void** it = changed.begin(); it != changed.end(); ++it) FlowVariableChanged(*it, nullptr, *it);
         bool settled;
         do {
             settled = true;
@@ -2153,7 +2149,7 @@ void GameFlow::UpdateFromServer() {
                 VariableSetBits(variables, nullptr, record->name_.start, ValueBits(record));
             }
         } while (!settled);
-        NodeVectorFree(changed.start, static_cast<unsigned>(changed.eos - changed.start));
+        NodeVectorFree(changed.begin(), static_cast<unsigned>(changed.EndOfStorage() - changed.begin()));
     } else {
         for (VariableNode* node = VariableList()->next; node != VariableList(); node = node->next) {
             if (ServerStamp() <= NodeStamp(node)) ServerStamp() = NodeStamp(node);

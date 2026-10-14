@@ -286,11 +286,7 @@ void __fastcall StringVectorInsertOverflow(void* a0, void*, stlp::string* a2, co
 void __fastcall TextsReadLine(void* a0, void*, mfc::CString* a2, int a3) { TextsReadLineOriginal(a0, nullptr, a2, a3); }
 
 // The quest folders registered so far (007AFDC0: an STLport vector of strings).
-struct StringVector {
-    stlp::string* start;
-    stlp::string* finish;
-    stlp::string* end;
-};
+using StringVector = stlp::vector<stlp::string>;
 StringVector& QuestFolders() { return *reinterpret_cast<StringVector*>(0x007AFDC0); }
 
 bool Equal(const stlp::string& s, const char* text) {
@@ -307,7 +303,7 @@ void GameFlow::RegisterQuests(const char* folder) {
     if (!texts) return;
     if (!FlowLoadQuestFolder(this, nullptr, folder)) return;
     StringVector& folders = QuestFolders();
-    for (stlp::string* s = folders.start; s != folders.finish; ++s)
+    for (stlp::string* s = folders.begin(); s != folders.end(); ++s)
         if (Equal(*s, folder)) return;
     bool registered;
     {
@@ -324,11 +320,11 @@ void GameFlow::RegisterQuests(const char* folder) {
     }
     // push_back(folder)
     stlp::string name(folder);
-    if (folders.finish != folders.end) {
-        new (folders.finish) stlp::string(name);
-        ++folders.finish;
+    if (folders.Finish() != folders.EndOfStorage()) {
+        new (folders.Finish()) stlp::string(name);
+        ++folders.Finish();
     } else {
-        StringVectorInsertOverflow(&folders, nullptr, folders.finish, &name, 1);
+        StringVectorInsertOverflow(&folders, nullptr, folders.Finish(), &name, 1);
     }
 }
 
