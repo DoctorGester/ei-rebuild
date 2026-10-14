@@ -771,11 +771,12 @@ note = "From SV1: a game that got the foreground and lost it to a starting game 
 id = "SV1d"
 title = "A stalled game outlived its scenario limit and ei_launch"
 group = "harness"
-status = "queued"
+status = "review"
 size = 0.3
 model = "sonnet"
 files = ["tests/verify/harness.cpp"]
 note = "From SV1: a sandbox_map-vanilla game stalled at 23:20 on 2026-10-14 and was not ended by the 80 s scenario limit or ei_launch; killed by hand 25 min later. Three older games (from 15:45 and 19:05) also survived Stop-Process. Find which state the watchdog misses; ei_launch should end the game when the limit plus a margin passes. Related: start-up hangs under load in DirectSound's device open inside Miles' waveOutOpen (both sides, either clock)."
+started = "2026-10-14"
 
 [[ticket]]
 id = "SV1e"

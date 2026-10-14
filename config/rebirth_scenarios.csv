@@ -77,3 +77,6 @@ world_load,0,88
 zone_base_bz1g,0,88
 zone_gz2g_traps,0,87
 zone_gz3g,0,87
+watchdog_dump,0,0
+watchdog_ei_launch,0,0
+watchdog_main,0,0

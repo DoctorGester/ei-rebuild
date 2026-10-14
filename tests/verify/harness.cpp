@@ -78,7 +78,13 @@
 //   check <expression>        print the script expression through the console ("#<expression>")
 //                             and require a nonzero result (waits up to 3 s for the output)
 //   timeout <seconds>         the whole scenario's time limit (default 60 s); past it the run
-//                             fails and the game is closed
+//                             fails and the game is closed (the watchdog thread; if that cannot run,
+//                             ei_launch reads this line too and ends the game 20 s later)
+//   hang main|dump|all        TEST ONLY, for the time limit's own checks (tests/scenarios/watchdog_*.txt,
+//                             "# expect: TIMEOUT"): block the main thread for good; "dump" also blocks
+//                             the thread that logs the main thread's stack (a main thread that cannot
+//                             be suspended does that), "all" stops the watchdog thread as well, so only
+//                             ei_launch can end the game
 //   waitline <seconds> <text> wait until the console has printed <text> (at any time in the run)
 //   waitexpect <seconds> <text>  like expect, but waits up to <seconds> for <text> to appear (for
 //                             output that follows posted keys, which a busy machine handles later)
@@ -292,6 +298,8 @@ struct Deadline {
 };
 Deadline g_waitUntil;   // "wait"
 volatile bool g_quitting = false;
+volatile bool g_watchdogStopped = false;   // "hang all": the in-game watchdog does nothing
+volatile bool g_stackDumpHangs = false;    // "hang dump": the thread that logs the main thread's stack never returns
 bool g_running = false;
 bool g_inStep = false;
 char g_reportPath[MAX_PATH];
@@ -1920,6 +1928,11 @@ void RunSteps() {
         } else if (s.verb == "focus" || s.verb == "windowsize") {
             std::string error = s.verb == "focus" ? FocusStep(s.argument) : WindowSizeStep(s.argument);
             if (!error.empty()) g_failures.push_back(error);
+        } else if (s.verb == "hang") {
+            g_stackDumpHangs = s.argument == "dump" || s.argument == "all";
+            g_watchdogStopped = s.argument == "all";
+            Log("harness: hang %s (a test of the time limit): the main thread blocks for good", s.argument.c_str());
+            Sleep(INFINITE);
         } else if (s.verb == "freeze" || s.verb == "unfreeze") {
             clock::Freeze(s.verb == "freeze");
         } else if (s.verb == "reject") {
@@ -2028,10 +2041,27 @@ void LogMainThreadStack() {
     }
 }
 
+// The stack dump runs on a thread of its own and the watchdog waits 2 s for it: suspending the main
+// thread and reading its context waits until the thread is actually suspended, which a thread stuck
+// in a driver call (DirectSound's device open inside Miles' waveOutOpen under load) never is. The
+// watchdog itself must reach TerminateProcess whatever the main thread is doing (SV1d).
+void LogMainThreadStackBounded() {
+    HANDLE dump = CreateThread(nullptr, 0, [](void*) -> DWORD {
+        if (g_stackDumpHangs) Sleep(INFINITE);
+        LogMainThreadStack();
+        return 0;
+    }, nullptr, 0, nullptr);
+    if (!dump) return;
+    if (WaitForSingleObject(dump, 2000) == WAIT_TIMEOUT)
+        Log("harness: the main thread's stack could not be read in 2 s (it cannot be suspended)");
+    CloseHandle(dump);
+}
+
 DWORD WINAPI Watchdog(void*) {
     const DWORD start = GetTickCount();
     for (;;) {
         Sleep(250);
+        if (g_watchdogStopped) Sleep(INFINITE);
         if (g_quitting) {
             Sleep(5000);
             Log("harness: the game did not exit 5 s after quit; terminating it");
@@ -2044,7 +2074,7 @@ DWORD WINAPI Watchdog(void*) {
             std::snprintf(what, sizeof(what), "scenario exceeded its %lu s time limit at step %u of %u",
                           g_budget / 1000, unsigned(g_next), unsigned(g_steps.size()));
             g_failures.push_back(what);
-            LogMainThreadStack();
+            LogMainThreadStackBounded();
             // Write the report from another thread and end the game whether or not that finishes:
             // a crashed or deadlocked main thread may hold a lock the report needs.
             if (HANDLE writer = CreateThread(nullptr, 0, [](void*) -> DWORD { WriteReport(); return 0; }, nullptr, 0, nullptr)) {

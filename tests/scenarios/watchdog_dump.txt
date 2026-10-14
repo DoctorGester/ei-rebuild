@@ -1,0 +1,5 @@
+# Time limit, main thread blocked and its stack dump blocked too (a thread stuck in a driver call cannot be
+# suspended, and the dump waits for that): the watchdog thread still ends the game 2 s after the 10 s limit. SV1d.
+# expect: TIMEOUT
+timeout 10
+hang dump
