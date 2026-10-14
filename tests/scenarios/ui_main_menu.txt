@@ -54,10 +54,11 @@ waitwindow 10 msgbox
 key esc
 waitwindow 10 menu
 
-# The titles; a click ends them.
+# The titles; a click ends them. (Kept at about the old 2.5 s: three of six loaded suite runs had
+# the vanilla game stop on "Can't begin scene" (surface memory gone) here with 1 s.)
 clickregion 4
 waitwindow 10 titles
-wait 1000
+wait 2000
 click 400 300
 waitwindow 15 menu
 wait 500
