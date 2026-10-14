@@ -29,6 +29,22 @@ void* s_unusedLoadPart;
 void* s_unusedLoadParts;
 
 bool Near(float a, float b) { return ei::verify::NearlyEqual(a, b, 8, 1e-5f); }
+
+// PF1a: the BASE / CROWN / EMPTY tests use gamecrt::SameIgnoringCase (a table of the game CRT's
+// tolower) instead of the game CRT's _strnicmp. For a part name, each keyword is tested both ways
+// (ours against the original), and the flag the box got must be set wherever the original matches.
+void CheckPartNameFold(const char* partName, std::uint32_t boxFlags) {
+    static const struct { const char* keyword; int length; std::uint32_t flag; } kKeywords[] = {
+        {"BASE", 4, 0x400}, {"CROWN", 5, 0x90}, {"EMPTY", 5, 0x890}};
+    const int* fold = gamecrt::CaseFoldTable();
+    for (const auto& k : kKeywords) {
+        const bool original = gamecrt::strnicmp(partName, k.keyword, k.length) == 0;
+        const bool ours = gamecrt::SameIgnoringCase(fold, partName, k.keyword, k.length);
+        ei::verify::Check("object3d_figure_setup part name fold", true,
+                          ours == original && (!original || (boxFlags & k.flag) == k.flag),
+                          "%s %s: strnicmp %d, ours %d, flags %X", partName, k.keyword, original, ours, boxFlags);
+    }
+}
 } // namespace
 
 static void __fastcall SetUpAnimatedFigureVerify(CObject3D* self, void*, const char* model) {
@@ -48,6 +64,7 @@ static void __fastcall SetUpAnimatedFigureVerify(CObject3D* self, void*, const c
         for (int i = 0; i < parts; ++i) {
             const FootprintPart& box = self->partBoxes[i];
             ok = ok && (box.flags & 4) != 0;
+            CheckPartNameFold(self->partNames[i], box.flags);
             const float pivot[3] = {box.pivot.x, box.pivot.y, box.pivot.z};
             const float mn[3] = {box.boxMin.x, box.boxMin.y, box.boxMin.z};
             const float mx[3] = {box.boxMax.x, box.boxMax.y, box.boxMax.z};
@@ -95,6 +112,7 @@ static CFigureMesh* __fastcall LoadPartVerify(CObject3D* self, void*, const char
         ok = listed && (part->bounds_.flags & 4) != 0 && part->boxPivot_.x == part->localPosition_.x &&
              part->boxPivot_.y == part->localPosition_.y && part->boxPivot_.z == part->localPosition_.z;
     }
+    if (part && partName) CheckPartNameFold(partName, part->bounds_.flags);
     ei::verify::Check("CObject3D::LoadPart", true, ok, "%s: %p", partName ? partName : "-", static_cast<void*>(part));
     return part;
 }

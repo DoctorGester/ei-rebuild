@@ -29,6 +29,35 @@ int __cdecl mbscmp(const unsigned char* a, const unsigned char* b) {
     return GameMbscmp(reinterpret_cast<const char*>(a), reinterpret_cast<const char*>(b));
 }
 
+namespace {
+
+struct CaseFold {
+    bool built = false;
+    unsigned localeHandle = 0;
+    unsigned codePage = 0;
+    int fold[256];
+};
+
+unsigned CtypeHandle() { return *reinterpret_cast<const unsigned*>(0x007CABF0); }   // __lc_handle[LC_CTYPE]
+unsigned CodePage() { return *reinterpret_cast<const unsigned*>(0x007CAC00); }      // __lc_codepage
+
+CaseFold caseFold;
+
+} // namespace
+
+const int* CaseFoldTable() {
+    CaseFold& table = caseFold;
+    const unsigned handle = CtypeHandle();
+    const unsigned codePage = CodePage();
+    if (!table.built || table.localeHandle != handle || table.codePage != codePage) {
+        for (int c = 0; c < 256; ++c) table.fold[c] = tolower(c);
+        table.localeHandle = handle;
+        table.codePage = codePage;
+        table.built = true;
+    }
+    return table.fold;
+}
+
 __declspec(naked) double __cdecl acos(double) EI_ORIGINAL(0x006E7334)
 __declspec(naked) double __cdecl asin(double) EI_ORIGINAL(0x006E83D4)
 __declspec(naked) double __cdecl fmod(double, double) EI_ORIGINAL(0x006E95A0)

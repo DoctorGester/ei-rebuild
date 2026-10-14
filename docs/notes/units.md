@@ -382,3 +382,17 @@ the same names overwritten) and both contents are compared; every record must be
 Reached once at each start of the game from the application's start-up (00456440, in the exe).
 `resource_local.h` holds the stack archive and stream the two A-E1 loaders share (unit_db_load.cpp keeps its
 own copies).
+
+**PF1a, part-name tests without a CRT call per byte.** `CObject3D::SetUpAnimatedFigure` (per bone) and `LoadPart` test each
+part name against BASE / CROWN / EMPTY; the game CRT's `_strnicmp` sends every upper-case byte through LCMapStringW under
+the game's locale. The case-fold table PF1 built for ClassifyToken (docs/notes/script.md) now lives in `src/lib/crt`
+(`gamecrt::CaseFoldTable`, `gamecrt::SameIgnoringCase`) and these tests use it. Profile first (EI_PLAIN=1 EI_PROFILE=1,
+world_load / models / net_lobby vanilla, about 2800-4900 samples of 2 ms each): `_strnicmp` was on the stack in 6 / 4 / 3
+samples, almost all of it under figure setup (`LoadFigureBounds`, `SetUpAnimatedFigure`) and `FindEntry`; after the change
+2 / 3 / 0, nearly all of them under `CMappedResource::FindEntry` (it compares the name of every resource it finds). The gain is
+about 10 ms of a 625 ms zone load. Skipped as not hot: `CMappedResource::FindEntry` (resource.cpp; 5 samples over the three
+runs after the change, ~4 ms per run) and `ServerSession::FindGuestConnection` (net_server_players.cpp; 0 samples). Verified:
+the part-name wrappers (SetUpAnimatedFigure, LoadPart) compare each part name against all three keywords both ways
+(`gamecrt::strnicmp` and ours) and require the flag where the original matches: "object3d_figure_setup part name fold"
+0 mismatches in 14k-23k checks per run over script_parse, models, world_load, units, unit_create and levers on both installs;
+the all-byte-pairs check "ClassifyToken case fold" (65536 pairs against `_strnicmp`) still 0 differ.
