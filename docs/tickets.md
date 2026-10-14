@@ -75,7 +75,7 @@ The SV loop comes before any standalone ticket (user 2026-10-14).
 
 Scenarios, run_all and the tools around them; X tickets are problems seen in runs.
 
-- **PF2** Faster hook installation (running since 2026-10-14; sonnet, 0.5 sessions). Profile 2026-10-14: installing ~6000 hooks costs ~300 ms per launch: ThunkEntryAt and VerifyEntry scan the whole hook list per hook (O(n^2), 130 ms), two VirtualProtect calls per hook (page-table work, ~160 ms), and one VirtualAlloc (a 64 KB granule) per trampoline. Index hooks by address, unprotect .text once, allocate trampolines from one block. Harness only, every run benefits. Files: `src/hook/hook.cpp`.
+- **PF2** Faster hook installation (review since 2026-10-14; sonnet, 0.5 sessions). Profile 2026-10-14: installing ~6000 hooks costs ~300 ms per launch: ThunkEntryAt and VerifyEntry scan the whole hook list per hook (O(n^2), 130 ms), two VirtualProtect calls per hook (page-table work, ~160 ms), and one VirtualAlloc (a 64 KB granule) per trampoline. Index hooks by address, unprotect .text once, allocate trampolines from one block. Harness only, every run benefits. Files: `src/hook/hook.cpp`.
 - **T2** T1 follow-ups: remaining fixed waits and weak scenarios (ready). 8-10 s waits in ground_prints, sandbox_map, particles, map_objects, movement; world_client waits for the battle window; ui_help's clickregion hits a window with no regions; ui_hero_delete's question never appears; run_all keeps the first attempt's log on retry; ui_widescreen's wait 6000 (after SV1). No longer reached reliably: ScriptFloats/Strings/Objects/GroupsConstruct on load, acks::PickEnvironmentSpeech, CUnitServer::EndOrder. After: T1.
 - **I11** Harness step for clicks with modifier keys held (ready). 0063EF60 / 0063E020 need them (ui.md section 6).
 - **X32** Rebirth runs: game still running 10 s after quit (watch). Since 2026-10-13; runs pass. Suspects: wrappers that fire at exit (PartyManager::Destruct, mouse destructor, UnitShapeCache / SmoothTable Destruct). Not a dialog (message boxes are caught).
@@ -141,4 +141,4 @@ Finished 2026-10-14: every hookable game function is rewritten (99.97% of game c
 
 ## Docs
 
-- **D2** Retarget code comments that cite removed sections (running since 2026-10-14; sonnet). About 150 comments citing "Nth round", "pass", old renderer section numbers, items_spells.md "(A-H17)"; tools/progress.py misses UI_INPUT_HANDLER / UI_WHEEL_HANDLER registrations.
+- **D2** Retarget code comments that cite removed sections (review since 2026-10-14; sonnet). About 150 comments citing "Nth round", "pass", old renderer section numbers, items_spells.md "(A-H17)"; tools/progress.py misses UI_INPUT_HANDLER / UI_WHEEL_HANDLER registrations.

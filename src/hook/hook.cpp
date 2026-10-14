@@ -10,6 +10,8 @@
 #include <cstring>
 #include <algorithm>
 #include <iterator>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace ei {
@@ -41,7 +43,7 @@ StartupCheckRegistrar::StartupCheckRegistrar(void (*run)(), const char* name) : 
 
 // Functions listed in verified.txt (next to the DLL) have passed verification and run without
 // their verify wrapper: the plain replacement is installed instead. One hex address per line.
-static std::vector<std::uintptr_t> g_verified;
+static std::unordered_set<std::uintptr_t> g_verified;
 
 static void LoadVerifiedList() {
     char path[MAX_PATH];
@@ -55,14 +57,14 @@ static void LoadVerifiedList() {
     char line[256];
     while (std::fgets(line, sizeof(line), f)) {
         unsigned long a = std::strtoul(line, nullptr, 16);
-        if (a) g_verified.push_back(a);
+        if (a) g_verified.insert(a);
     }
     std::fclose(f);
 }
 
 // Functions listed in disabled.txt (next to the DLL, from tests/verify/disabled.txt) are not hooked
 // at all: the original runs. For rewrites found broken in game, until they are fixed.
-static std::vector<std::uintptr_t> g_disabled;
+static std::unordered_set<std::uintptr_t> g_disabled;
 
 static void LoadDisabledList() {
     char path[MAX_PATH];
@@ -76,22 +78,34 @@ static void LoadDisabledList() {
     char line[256];
     while (std::fgets(line, sizeof(line), f)) {
         unsigned long a = std::strtoul(line, nullptr, 16);
-        if (a) g_disabled.push_back(a);
+        if (a) g_disabled.insert(a);
     }
     std::fclose(f);
 }
 
 static bool IsDisabled(std::uintptr_t address) {
-    return std::find(g_disabled.begin(), g_disabled.end(), address) != g_disabled.end();
+    return g_disabled.count(address) != 0;
 }
 
 static bool IsVerified(std::uintptr_t address) {
-    return std::find(g_verified.begin(), g_verified.end(), address) != g_verified.end();
+    return g_verified.count(address) != 0;
 }
 
+// The registered hooks by address, each address's entries in list order (the order the list is
+// walked in), so the lookups below do not scan the whole list per hook.
+static std::unordered_map<std::uintptr_t, std::vector<HookEntry*>> g_hooksByAddress;
+
+static void IndexHooks() {
+    g_hooksByAddress.clear();
+    for (HookEntry* h = g_hooks; h; h = h->next) g_hooksByAddress[h->address].push_back(h);
+}
+
+// The first verify entry registered for `address`.
 static HookEntry* VerifyEntry(std::uintptr_t address) {
-    for (HookEntry* h = g_hooks; h; h = h->next)
-        if (h->verify && h->address == address) return h;
+    auto it = g_hooksByAddress.find(address);
+    if (it == g_hooksByAddress.end()) return nullptr;
+    for (HookEntry* h : it->second)
+        if (h->verify) return h;
     return nullptr;
 }
 
@@ -107,16 +121,33 @@ static bool IsVirtualCallThunk(const void* replacement) {
 
 // The first entry registered for `address` whose replacement or wrapper is such a thunk.
 static const HookEntry* ThunkEntryAt(std::uintptr_t address) {
-    for (const HookEntry* h = g_hooks; h; h = h->next)
-        if (h->address == address && IsVirtualCallThunk(h->replacement)) return h;
+    auto it = g_hooksByAddress.find(address);
+    if (it == g_hooksByAddress.end()) return nullptr;
+    for (const HookEntry* h : it->second)
+        if (IsVirtualCallThunk(h->replacement)) return h;
     return nullptr;
 }
 
 // Copies the first `stolen` bytes of the original function into executable memory followed by a
 // JMP back to the rest of it, giving a callable copy of the original.
+// Trampolines are 64-byte slots cut from executable blocks (one VirtualAlloc, a 64 KB granule, per block).
+static void* AllocTrampoline() {
+    static constexpr std::size_t kSlot = 64, kBlock = 64 * 1024;
+    static unsigned char* next = nullptr;
+    static unsigned char* end = nullptr;
+    if (next == end) {
+        next = static_cast<unsigned char*>(
+            VirtualAlloc(nullptr, kBlock, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE));
+        if (!next) return nullptr;
+        end = next + kBlock;
+    }
+    void* slot = next;
+    next += kSlot;
+    return slot;
+}
+
 static void* MakeTrampoline(std::uintptr_t address, int stolen) {
-    auto* t = static_cast<unsigned char*>(
-        VirtualAlloc(nullptr, 64, MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE));
+    auto* t = static_cast<unsigned char*>(AllocTrampoline());
     if (!t) return nullptr;
     std::memcpy(t, reinterpret_cast<void*>(address), stolen);
     t[stolen] = 0xE9;
@@ -190,6 +221,54 @@ static void DumpPatchedFunctions(const std::vector<unsigned char>& file) {
     Log("%d game function(s) differ from game.exe on disk (patched_functions.txt)", count);
 }
 
+// Makes the image's code section(s) writable for the whole installation (one VirtualProtect per
+// region instead of two per hook) and puts the protections back afterwards.
+class TextUnprotect {
+public:
+    explicit TextUnprotect(IMAGE_NT_HEADERS32* nt) {
+        const IMAGE_SECTION_HEADER* sec = IMAGE_FIRST_SECTION(nt);
+        for (WORD i = 0; i < nt->FileHeader.NumberOfSections; ++i) {
+            if (!(sec[i].Characteristics & IMAGE_SCN_MEM_EXECUTE)) continue;
+            std::uintptr_t lo = kImageBase + sec[i].VirtualAddress;
+            std::uintptr_t hi = lo + sec[i].Misc.VirtualSize;
+            if (m_end == 0) { m_begin = lo; m_end = hi; }
+            else { m_begin = (std::min)(m_begin, lo); m_end = (std::max)(m_end, hi); }
+        }
+        // The regions as they are now (they can differ from the section's flags), each made writable.
+        for (std::uintptr_t a = m_begin; a < m_end;) {
+            MEMORY_BASIC_INFORMATION mbi;
+            if (!VirtualQuery(reinterpret_cast<void*>(a), &mbi, sizeof(mbi))) { m_begin = m_end = 0; break; }
+            Region r{a, (std::min<std::uintptr_t>)(m_end, reinterpret_cast<std::uintptr_t>(mbi.BaseAddress) + mbi.RegionSize), mbi.Protect};
+            a = r.end;
+            m_regions.push_back(r);
+        }
+        for (Region& r : m_regions) {
+            DWORD old;
+            if (!VirtualProtect(reinterpret_cast<void*>(r.begin), r.end - r.begin, PAGE_EXECUTE_READWRITE, &old)) {
+                m_begin = m_end = 0; // the hooks fall back to protecting each patch site
+                r.protect = 0;
+            }
+        }
+    }
+    ~TextUnprotect() { Restore(); }
+    bool Contains(std::uintptr_t address, std::size_t size) const {
+        return m_end != 0 && address >= m_begin && address + size <= m_end;
+    }
+    void Restore() {
+        for (Region& r : m_regions) {
+            if (!r.protect) continue;
+            DWORD old;
+            VirtualProtect(reinterpret_cast<void*>(r.begin), r.end - r.begin, r.protect, &old);
+            r.protect = 0;
+        }
+        m_end = 0;
+    }
+private:
+    struct Region { std::uintptr_t begin, end; DWORD protect; };
+    std::uintptr_t m_begin = 0, m_end = 0;
+    std::vector<Region> m_regions;
+};
+
 int InstallHooks() {
     // EI_NO_HOOKS=1 (ei_launch --no-hooks): run the original code only, as a baseline for harness runs.
     char noHooks[4];
@@ -241,6 +320,8 @@ int InstallHooks() {
     char plainValue[4];
     const bool plain = GetEnvironmentVariableA("EI_PLAIN", plainValue, sizeof(plainValue)) && plainValue[0] == '1';
     if (plain) Log("EI_PLAIN set: no verify wrappers");
+    IndexHooks();
+    TextUnprotect text(nt);
     int installed = 0;
     for (HookEntry* h = g_hooks; h; h = h->next) {
         if (IsDisabled(h->address)) continue;
@@ -298,17 +379,19 @@ int InstallHooks() {
                 continue;
             }
         }
-        DWORD old;
-        VirtualProtect(target, 5, PAGE_EXECUTE_READWRITE, &old);
+        DWORD old = 0;
+        const bool inText = text.Contains(h->address, 5);
+        if (!inText) VirtualProtect(target, 5, PAGE_EXECUTE_READWRITE, &old);
         target[0] = 0xE9; // JMP rel32
         std::int32_t rel = static_cast<std::int32_t>(
             reinterpret_cast<std::uintptr_t>(h->replacement) - (h->address + 5));
         std::memcpy(target + 1, &rel, 4);
-        VirtualProtect(target, 5, old, &old);
+        if (!inText) VirtualProtect(target, 5, old, &old);
         FlushInstructionCache(GetCurrentProcess(), target, 5);
         Log(h->verify ? "verifying %s at %08X -> %p" : "hooked %s at %08X -> %p", h->name, static_cast<unsigned>(h->address), h->replacement);
         ++installed;
     }
+    text.Restore();
     // The game's static initialisers have run and nothing else yet: their results are compared now.
     for (StartupCheck* check = g_startupChecks; check; check = check->next) {
         Log("startup check %s", check->name);
