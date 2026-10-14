@@ -3,6 +3,11 @@
 // 10012C7C-10012CC6). A unit's data object is its +0x240 (addon's 10010E2D).
 #include "script_addon_handlers.h"
 
+#include "combat.h"
+#include "map_object.h"
+#include "unit.h"
+#include "world.h"
+
 #include "ei/hook.h"
 #include "ei/vcall.h"
 #include "lib/mfc.h"
@@ -69,11 +74,11 @@ void ForObjectsNear(float x, float y, float radius, Visit visit) {
 }
 
 // A float field of the unit's data object, 0 and invalid arguments without one.
-bool DataField(Call* call, std::size_t offset, const char* function) {
-    void* data = UnitData(ObjectArg(call, 0));
+bool DataField(Call* call, float UnitStats::* field, const char* function) {
+    auto* data = static_cast<CUnitServer*>(UnitData(ObjectArg(call, 0)));
     *FloatResult(call) = 0.0f;
     if (!data) return InvalidArguments(function);
-    Store(FloatResult(call), Field<float>(data, offset));
+    Store(FloatResult(call), data->stats.*field);
     return true;
 }
 
@@ -101,27 +106,27 @@ bool GetPlayerOfUnit(Call* call) {
     CEngineObject* unit = ObjectArg(call, 0)->object;
     if (!unit) return Report("GetPlayerOfUnit", "Unit doesn't exists");
     if (!IsUnit(unit)) return Report("GetPlayerOfUnit", "Object with ID %d must be a Unit", unit->id_);
-    void* party = Field<void*>(unit, 0x24C);
+    auto* party = reinterpret_cast<WorldPlayer*>(static_cast<CUnit*>(unit)->player);
     if (!party) return Report("GetPlayerOfUnit", "Unit doesn't have associated player: ID = %d", unit->id_);
-    Store(FloatResult(call), static_cast<float>(Field<int>(party, 0x24)));
+    Store(FloatResult(call), static_cast<float>(party->id));
     return true;
 }
 
 // GetUnitExp(unit, [what]): "max" (default), "spent", "penalty" or "real" (max + penalty).
 bool GetUnitExp(Call* call) {
-    void* data = UnitData(ObjectArg(call, 0));
+    auto* data = static_cast<CUnitServer*>(UnitData(ObjectArg(call, 0)));
     const char* what = call->cmd->stringArgs.size == 0 ? "max" : static_cast<const char*>(call->cmd->stringArgs.data[0]);
     *FloatResult(call) = 0.0f;
     if (!data) return InvalidArguments("GetUnitExp");
     float value;
     if (Stricmp(what, "max") == 0) {
-        value = Field<float>(data, 0x1E4);
+        value = data->stats.experience;
     } else if (Stricmp(what, "spent") == 0) {
-        value = Field<float>(data, 0x1E8);
+        value = data->stats.spentExperience;
     } else if (Stricmp(what, "penalty") == 0) {
-        value = Field<float>(data, 0x8E0);
+        value = data->stats.pendingExperience;
     } else if (Stricmp(what, "real") == 0) {
-        volatile float sum = Field<float>(data, 0x8E0) + Field<float>(data, 0x1E4);
+        volatile float sum = data->stats.pendingExperience + data->stats.experience;
         value = sum;
     } else {
         return InvalidArguments("GetUnitExp");
@@ -130,11 +135,10 @@ bool GetUnitExp(Call* call) {
     return true;
 }
 
-// GetArmor(unit, kind, part): part 0..6; kind 0..5 sums three values of the unit's data (+0x2FC,
-// kind * 0x3D + part floats in, every 0x12 floats); a negative kind takes the part from the block
+// GetArmor(unit, kind, part): part 0..6; kind 0..5 sums the slot's three layers' absorb values for the part; a negative kind takes the part from the block
 // the unit's parameters compute.
 bool GetArmor(Call* call) {
-    void* data = UnitData(ObjectArg(call, 0));
+    auto* data = static_cast<CUnitServer*>(UnitData(ObjectArg(call, 0)));
     const float* f = call->cmd->floatArgs.data;
     int kind = Ftol(f[0]);
     int part = Ftol(f[1]);
@@ -142,13 +146,13 @@ bool GetArmor(Call* call) {
     if (static_cast<unsigned>(part) > 6 || kind > 5 || !data) return InvalidArguments("GetArmor");
     if (kind >= 0) {
         volatile float sum = 0.0f;
-        const float* value = &Field<float>(data, 0x2FC + (kind * 0x3D + part) * 4);
-        for (int i = 0; i < 3; ++i, value += 0x12) sum = *value + sum;
+        const UnitStatSlot& slot = data->stats.slots[kind];
+        for (int i = 0; i < 3; ++i) sum = slot.layers[i].absorb[part] + sum;
         Store(FloatResult(call), sum);
     } else {
-        char* unit = Field<char*>(data, 0x1C);
+        char* unit = reinterpret_cast<char*>(data->unit);
         float block[7];
-        UnitParameterBlock(unit + 0x330, nullptr, unit + 0x17C, block, Field<int>(unit, 0xC) >= 1000000000 ? 1 : 0);
+        UnitParameterBlock(unit + 0x330, nullptr, unit + 0x17C, block, data->unit->id_ >= 1000000000 ? 1 : 0);
         Store(FloatResult(call), block[part]);
     }
     return true;
@@ -167,7 +171,7 @@ bool NearestUnit(Call* call) {
     CEngineObject* best = nullptr;
     ForObjectsNear(x, y, radius, [&](CEngineObject* object) {
         if (!PassesFilter(object, units, others, living)) return;
-        float distance = Distance(Field<float>(object, 0x1C), Field<float>(object, 0x20), x, y);
+        float distance = Distance(static_cast<CMapObject*>(object)->position.x, static_cast<CMapObject*>(object)->position.y, x, y);
         if (Status(radius, distance) & 0x41) return;
         best = object;
         radius = distance;
@@ -210,28 +214,29 @@ bool PlayerExists(Call* call) {
     return true;
 }
 
-bool GetDexterity(Call* call) { return DataField(call, 0x1F8, "GetDexterity"); }
-bool GetIntelligence(Call* call) { return DataField(call, 0x200, "GetIntelligence"); }
-bool GetStrength(Call* call) { return DataField(call, 0x1F0, "GetStrength"); }
-bool GetActions(Call* call) { return DataField(call, 0x210, "GetActions"); }
-bool GetActionsBase(Call* call) { return DataField(call, 0x20C, "GetActionsBase"); }
-bool GetEncumbrance(Call* call) { return DataField(call, 0x230, "GetEncumbrance"); }
-bool GetMaxEncumbrance(Call* call) { return DataField(call, 0x234, "GetMaxEncumbrance"); }
+bool GetDexterity(Call* call) { return DataField(call, &UnitStats::stat18, "GetDexterity"); }
+bool GetIntelligence(Call* call) { return DataField(call, &UnitStats::stat20, "GetIntelligence"); }
+bool GetStrength(Call* call) { return DataField(call, &UnitStats::stat10, "GetStrength"); }
+bool GetActions(Call* call) { return DataField(call, &UnitStats::rate, "GetActions"); }
+bool GetActionsBase(Call* call) { return DataField(call, &UnitStats::rateBase, "GetActionsBase"); }
+bool GetEncumbrance(Call* call) { return DataField(call, &UnitStats::load, "GetEncumbrance"); }
+bool GetMaxEncumbrance(Call* call) { return DataField(call, &UnitStats::capacity, "GetMaxEncumbrance"); }
 
 // GetSkill(unit, name): a skill byte of the unit's data.
 bool GetSkill(Call* call) {
-    void* data = UnitData(ObjectArg(call, 0));
+    auto* data = static_cast<CUnitServer*>(UnitData(ObjectArg(call, 0)));
     const char* name = call->cmd->stringArgs.data[0];
     *FloatResult(call) = 0.0f;
     if (!data) return InvalidArguments("GetSkill");
     static const struct {
         const char* name;
-        std::size_t offset;
-    } kSkills[] = {{"science", 0x8A8}, {"melee", 0x8AB}, {"archery", 0x8AC},
-                   {"elemental", 0x8AE}, {"sense", 0x8AF}, {"astral", 0x8B0}};
+        bool attribute;   // UnitStats::attributes (else skills)
+        int index;
+    } kSkills[] = {{"science", true, 0}, {"melee", false, 0}, {"archery", false, 1},
+                   {"elemental", false, 3}, {"sense", false, 4}, {"astral", false, 5}};
     for (const auto& skill : kSkills)
         if (Stricmp(name, skill.name) == 0) {
-            Store(FloatResult(call), static_cast<float>(static_cast<int>(Field<std::uint8_t>(data, skill.offset))));
+            Store(FloatResult(call), static_cast<float>(static_cast<int>(skill.attribute ? data->stats.attributes[skill.index] : data->stats.skills[skill.index])));
             return true;
         }
     return InvalidArguments("GetSkill");
@@ -239,7 +244,7 @@ bool GetSkill(Call* call) {
 
 // GetPerk(unit, name): a perk byte of the unit's data (+0x8B3 + the perk's index).
 bool GetPerk(Call* call) {
-    void* data = UnitData(ObjectArg(call, 0));
+    auto* data = static_cast<CUnitServer*>(UnitData(ObjectArg(call, 0)));
     const char* name = call->cmd->stringArgs.data[0];
     *FloatResult(call) = 0.0f;
     if (!data) return InvalidArguments("GetPerk");
@@ -250,7 +255,7 @@ bool GetPerk(Call* call) {
                                          "dexterity", "intelligence"};
     for (int i = 0; i < static_cast<int>(sizeof(kPerks) / sizeof(kPerks[0])); ++i)
         if (Stricmp(name, kPerks[i]) == 0) {
-            Store(FloatResult(call), static_cast<float>(static_cast<int>(Field<std::uint8_t>(data, 0x8B3 + i))));
+            Store(FloatResult(call), static_cast<float>(static_cast<int>(data->stats.skillLevels[i])));
             return true;
         }
     return InvalidArguments("GetPerk");
@@ -258,17 +263,17 @@ bool GetPerk(Call* call) {
 
 // The unit's prototype name / race (no check that the unit has a prototype, as in addon).
 bool GetPrototype(Call* call) {
-    void* data = UnitData(ObjectArg(call, 0));
+    auto* data = static_cast<CUnitServer*>(UnitData(ObjectArg(call, 0)));
     if (!data) return InvalidArguments("GetPrototype");
-    char* prototype = UnitPrototype(Field<void*>(data, 0x1C));
+    char* prototype = UnitPrototype(data->unit);
     *static_cast<mfc::CString*>(call->result) = Field<const char*>(prototype, 0);
     return true;
 }
 
 bool GetRace(Call* call) {
-    void* data = UnitData(ObjectArg(call, 0));
+    auto* data = static_cast<CUnitServer*>(UnitData(ObjectArg(call, 0)));
     if (!data) return InvalidArguments("GetRace");
-    char* prototype = UnitPrototype(Field<void*>(data, 0x1C));
+    char* prototype = UnitPrototype(data->unit);
     *static_cast<mfc::CString*>(call->result) = Field<const char*>(prototype, 4);
     return true;
 }
@@ -308,7 +313,7 @@ bool GetObjectsOnMap(Call* call) {
 bool IsPlayer(Call* call) {
     *FloatResult(call) = 0.0f;
     CEngineObject* unit = ObjectArg(call, 0)->object;
-    if (unit && IsUnit(unit) && unit->id_ >= 1000000000 && Field<void*>(unit, 0x24C)) Store(FloatResult(call), 1.0f);
+    if (unit && IsUnit(unit) && unit->id_ >= 1000000000 && static_cast<CUnit*>(unit)->player) Store(FloatResult(call), 1.0f);
     return true;
 }
 

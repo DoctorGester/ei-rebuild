@@ -188,7 +188,7 @@ src/game/scene_skeleton.cpp,0,0,0,0,0,0,0,0,0,0,3
 src/game/scene_weld.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/script.h,0,0,0,0,0,0,0,0,0,0,3
 src/game/script_addon.cpp,0,0,5,0,1,0,0,1,0,0,0
-src/game/script_addon_units.cpp,22,1,0,0,0,0,0,0,0,0,1
+src/game/script_addon_units.cpp,4,1,0,0,0,0,0,0,0,0,1
 src/game/script_blocks.cpp,4,0,0,0,2,0,0,0,0,0,0
 src/game/script_copy.cpp,0,0,1,0,8,0,0,0,0,0,0
 src/game/script_destroy.cpp,0,0,0,0,10,0,0,0,0,0,0
