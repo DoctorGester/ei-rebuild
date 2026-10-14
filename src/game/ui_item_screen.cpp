@@ -2,6 +2,7 @@
 // the caches' trimming (005F2F20 / 005F2F90), the base Create (005EDD80) and the icon window's
 // frame (005F2A90, its slot 18). See ui_item_info.h and docs/notes/ui.md ("Item descriptions").
 #include "ui_item_info.h"
+#include "ui_camp.h"
 #include "core_streams.h"
 
 #include "ei/hook.h"
@@ -247,14 +248,11 @@ void __fastcall ItemScreenDestroy(CItemScreen* self) {
 EI_REPLACE(0x005F6470, ItemScreenDestroy);
 
 void __fastcall CampScreenDestroy(CItemScreen* self) {
-    auto* bytes = reinterpret_cast<std::uint8_t*>(self);
-    StringArrayDestruct(bytes + 0x240);
-    // The heroes CArray (+0x19C, vtable 007402AC).
-    std::uint32_t vtable = 0x007402AC;
-    std::memcpy(bytes + 0x19C, &vtable, 4);
-    void* heroes;
-    std::memcpy(&heroes, bytes + 0x1A0, 4);
-    if (heroes) gamecrt::operator_delete(heroes);
+    auto* camp = static_cast<CCampPages*>(self);
+    StringArrayDestruct(&camp->pageTitles_);
+    // The heroes CArray (vtable 007402AC).
+    camp->heroes_.vtable = reinterpret_cast<void*>(0x007402AC);
+    if (camp->heroes_.data) gamecrt::operator_delete(camp->heroes_.data);
     ReleaseObjects(&self->textures_);
     DestroyCache(&self->textures_, EraseTextures, DestroyTextureNode, FreeTextureHeader, false);
     ReleaseObjects(&self->models_);

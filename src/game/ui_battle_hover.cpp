@@ -4,9 +4,9 @@
 #include "ui.h"
 
 #include "unit.h"
+#include "unit_db.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
@@ -20,14 +20,6 @@
 
 namespace {
 
-template <typename T> T& Field(void* base, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(base) + offset);
-}
-
-constexpr int kSlotIsDead = 55;             // object slot 55 (+0xDC): non-zero for a dead unit
-constexpr int kSlotCanTarget = 38;          // slot 38 (+0x98)
-constexpr int kSlotSlot39 = 39;             // slot 39 (+0x9C)
-constexpr int kSlotAcceptsSpell = 42;       // slot 42 (+0xA8), with the screen's +0x220
 constexpr std::uint32_t kFlagSelected = 0x10;
 constexpr std::uint32_t kFlagShowInPanel = 0x400000;
 constexpr int kCategoryWand = 8;
@@ -60,7 +52,9 @@ __declspec(naked) BOOL __fastcall HoverFindExit(void*, void*, const float*, int*
 // Units: 00530930 the prototype record (__fastcall), 00530150 IsHostileTo (RET 4), 0052F820
 // CanCastSpell(index, point) and 0052F8B0 CanUseQuickItem(index, point) (RET 8; 0 = can),
 // 00531920 the quick item (RET 4); 006A4230 an item's category.
-static std::uint8_t* HoverPrototype(CUnit* unit) { return static_cast<std::uint8_t*>(::UnitPrototypeOf(unit)); }
+static const UnitPrototypeRecord* HoverPrototype(CUnit* unit) {
+    return static_cast<const UnitPrototypeRecord*>(::UnitPrototypeOf(unit));
+}
 // 0063B920 (thiscall on the battle screen, RET 8): shows `unit` in the unit panel block `block`.
 void __fastcall HoverShowPanelUnit(void* a0, void*, CUnit* a2, void* a3) { BattleShowPanelUnitOriginal(a0, nullptr, (void*)a2, a3); }
 
@@ -78,7 +72,7 @@ struct Point3 {
 } // namespace
 
 void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
-    auto unitDead = [](CUnit* u) { return ei::VCall<int>(u, kSlotIsDead) != 0; };
+    auto unitDead = [](CUnit* u) { return u->IsDead() != 0; };
     auto pick = [x, y]() {
         float out[3];
         float* p = HoverPickSurface(kClientWorld, nullptr, out, x, y);
@@ -88,17 +82,22 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         int point[2] = {x, y};
         return HoverObjectAt(kClientWorld, nullptr, point);
     };
-    auto unitPosition = [](CUnit* u) { return Field<Point3>(u, 0x1C); };
+    auto unitPosition = [](CUnit* u) {
+        Point3 at;
+        std::memcpy(at.v, &u->position, sizeof(at.v));
+        return at;
+    };
 
-    // The unit panel's hover block (+0x150 the unit, +0x160 / +0x158 from its prototype, +0x168).
-    // A unit without flag 0x400000 counts as none below; a dead one is kept.
-    CHudUnitPanel* panel = static_cast<CHudUnitPanel*>(Field<void*>(this, 0x1A8));
+    // The unit panel's hover block (hoverUnit_, viewSize_[1] / viewHeight_[1] copied as dwords from
+    // its prototype's +0x20 / +0x24, strings_[1]). A unit without flag 0x400000 counts as none
+    // below; a dead one is kept.
+    CHudUnitPanel* panel = unitPanel_;
     if (unit && !(unit->flags_ & kFlagShowInPanel)) unit = nullptr;
     if (unit && !unitDead(unit)) {
         if (unit != panel->hoverUnit_) {
             panel->hoverUnit_ = unit;
-            Field<int>(panel, 0x160) = Field<int>(HoverPrototype(unit), 0x20);
-            Field<int>(panel, 0x158) = Field<int>(HoverPrototype(panel->hoverUnit_), 0x24);
+            std::memcpy(&panel->viewSize_[1], &HoverPrototype(unit)->unknown_20, 4);
+            std::memcpy(&panel->viewHeight_[1], &HoverPrototype(panel->hoverUnit_)->unknown_24, 4);
             HoverShowPanelUnit(panel->owner_, nullptr, panel->hoverUnit_, &panel->strings_[1]);
         }
     } else if (panel->hoverUnit_) {
@@ -150,7 +149,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
         }
         {
             CUnit* object = objectAt();
-            if (object && ei::VCall<int>(object, kSlotCanTarget) != 0 && ei::VCall<int>(object, kSlotSlot39) == 0 &&
+            if (object && object->IsUsable() != 0 && object->IsDirectUseBlocked() == 0 &&
                 selected == 1) {
                 shape = kCursorUse;
                 break;
@@ -208,13 +207,12 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
     }
     case 5: {   // an item on an object
         CUnit* target = unit ? unit : objectAt();
-        shape = (target && first && ei::VCall<int>(target, kSlotCanTarget) != 0) ? kCursorUse : kCursorNo;
+        shape = (target && first && target->IsUsable() != 0) ? kCursorUse : kCursorNo;
         break;
     }
     case 6: {   // a spell on an object
         CUnit* target = unit ? unit : objectAt();
-        shape = (target && first && ei::VCall<int>(target, kSlotCanTarget) != 0 &&
-                 ei::VCall<int>(target, kSlotAcceptsSpell, &itemUseKey_) != 0)
+        shape = (target && first && target->IsUsable() != 0 && target->AcceptsKey(&itemUseKey_) != 0)
                     ? kCursorUse
                     : kCursorNo;
         break;
@@ -232,7 +230,7 @@ void CBattleScreen::HoverUnit(CUnit* unit, int x, int y) {
             break;
         }
         CUnit* target = objectAt();
-        shape = (target && first && ei::VCall<int>(target, kSlotCanTarget) != 0) ? kCursorUse : kCursorNo;
+        shape = (target && first && target->IsUsable() != 0) ? kCursorUse : kCursorNo;
         break;
     }
     default:

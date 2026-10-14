@@ -93,20 +93,17 @@ void Sprite::SetRectangle(float a0, float a1, float a2, float a3, float a4, floa
 void Sprite::Draw(int pass) { SpriteDrawOriginal(this, nullptr, pass); }
 Sprite* AsSprite(void* p) { return static_cast<Sprite*>(p); }
 
-// The caches' STLport map (thiscall; library code) and their trimming (game code, not rewritten).
-struct CacheMap {
-    ItemObjectCache::Node** Find(ItemObjectCache::Node** out, const stlp::string* key);
-    ItemObjectCache::Node** FindTexture(ItemObjectCache::Node** out, const stlp::string* key);
-    void** Slot(const stlp::string* key);          // operator[]: the value {object, time}
-    void** TextureSlot(const stlp::string* key);
-};
-__declspec(naked) ItemObjectCache::Node** CacheMap::Find(ItemObjectCache::Node**, const stlp::string*)
-    EI_ORIGINAL(0x005F3730)
-__declspec(naked) ItemObjectCache::Node** CacheMap::FindTexture(ItemObjectCache::Node**, const stlp::string*)
-    EI_ORIGINAL(0x005F3B50)
-__declspec(naked) void** CacheMap::Slot(const stlp::string*) EI_ORIGINAL(0x005F3000)
-__declspec(naked) void** CacheMap::TextureSlot(const stlp::string*) EI_ORIGINAL(0x005F3170)
-CacheMap* MapOf(ItemObjectCache* cache) { return reinterpret_cast<CacheMap*>(cache); }
+// The caches' STLport map (thiscall on the cache; library code): find into `out` (RET 8; the
+// model and the texture cache's own instantiations) and operator[] (RET 4; the value {object,
+// time}). Their trimming is game code, not rewritten.
+__declspec(naked) ItemObjectCache::Node** __fastcall CacheFind(ItemObjectCache*, void*, ItemObjectCache::Node** /*out*/,
+                                                               const stlp::string* /*key*/) EI_ORIGINAL(0x005F3730)
+__declspec(naked) ItemObjectCache::Node** __fastcall CacheFindTexture(ItemObjectCache*, void*,
+                                                                      ItemObjectCache::Node** /*out*/,
+                                                                      const stlp::string* /*key*/) EI_ORIGINAL(0x005F3B50)
+__declspec(naked) void** __fastcall CacheSlot(ItemObjectCache*, void*, const stlp::string* /*key*/) EI_ORIGINAL(0x005F3000)
+__declspec(naked) void** __fastcall CacheTextureSlot(ItemObjectCache*, void*, const stlp::string* /*key*/)
+    EI_ORIGINAL(0x005F3170)
 
 // 005EBFB0 / 005EC020 (__fastcall): an item's model (counted) and its figure texture, or null.
 __declspec(naked) void* __fastcall CreateModel(const char*) EI_ORIGINAL(0x005EBFB0)
@@ -126,9 +123,9 @@ void* CachedObject(ItemObjectCache* cache, const char* name, bool textures) {
     {
         stlp::string key(name);
         if (textures)
-            MapOf(cache)->FindTexture(&node, &key);
+            CacheFindTexture(cache, nullptr, &node, &key);
         else
-            MapOf(cache)->Find(&node, &key);
+            CacheFind(cache, nullptr, &node, &key);
     }
     if (node != cache->header) {
         node->lastUse = gameapi::timeGetTime();
@@ -139,7 +136,7 @@ void* CachedObject(ItemObjectCache* cache, const char* name, bool textures) {
     std::uint32_t time = gameapi::timeGetTime();
     {
         stlp::string key(name);
-        void** value = textures ? MapOf(cache)->TextureSlot(&key) : MapOf(cache)->Slot(&key);
+        void** value = textures ? CacheTextureSlot(cache, nullptr, &key) : CacheSlot(cache, nullptr, &key);
         value[0] = object;
         value[1] = reinterpret_cast<void*>(static_cast<std::uintptr_t>(time));
     }
@@ -309,7 +306,7 @@ std::uint8_t* CItemScreen::CachedModel(CItem* item) {
     ItemName(item, 20, &name);
     ItemObjectCache::Node* node;
     stlp::string key(static_cast<const char*>(name));
-    MapOf(&models_)->Find(&node, &key);
+    CacheFind(&models_, nullptr, &node, &key);
     return node != models_.header ? static_cast<std::uint8_t*>(node->object) : nullptr;
 }
 
@@ -547,7 +544,7 @@ void CItemScreen::FaceNames(const char* prototype, mfc::CString* model, mfc::CSt
 std::uint8_t* CItemScreen::CachedModelNamed(const char* name) {
     ItemObjectCache::Node* node;
     stlp::string key(name);
-    MapOf(&models_)->Find(&node, &key);
+    CacheFind(&models_, nullptr, &node, &key);
     return node != models_.header ? static_cast<std::uint8_t*>(node->object) : nullptr;
 }
 

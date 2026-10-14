@@ -96,7 +96,7 @@ CUiMesh* Sprite(CEngineObject* object) { return reinterpret_cast<CUiMesh*>(objec
 using SpriteQuery = SpritePositionOriginal;   // 005E7010: the sprite's layout position (x, y) and depth
 
 Quaternion* RotationOf(CEngineObject* object) {
-    return reinterpret_cast<Quaternion*>(reinterpret_cast<std::uint8_t*>(object) + 0x34);
+    return &Sprite(object)->orientation_;
 }
 
 // A bar: its right edge (x of vertices 2 and 3) moves with the fraction, its texture follows.
@@ -190,8 +190,7 @@ void CHudPortraits::Update() {
                             ? static_cast<double>(hitPoints) / static_cast<double>(unit->packedVitals.maxHitPoints)
                             : 0.0;
         SetBar(object(2), health, kHealthV0, kHealthV1);
-        std::uint16_t maxMana;
-        std::memcpy(&maxMana, reinterpret_cast<const std::uint8_t*>(unit) + 0x184, 2);
+        std::uint16_t maxMana = unit->packedVitals.maxMana;
         double mana = 0.0;
         if (maxMana != 0) {
             float current = static_cast<float>(unit->packedVitals.mana);   // exact (16 bits)
@@ -215,7 +214,7 @@ void CHudPortraits::Update() {
             Sprite(flash)->visible_ = 1;
             int alpha = GameFtol(D(slot.flash_) * kFlashAlpha);
             std::uint32_t colour = static_cast<std::uint32_t>(alpha) << 24 | 0xFF0000u;
-            std::memcpy(reinterpret_cast<std::uint8_t*>(flash) + 0xD4, &colour, 4);
+            Sprite(flash)->plainColour_ = colour;
         } else {
             Sprite(flash)->visible_ = 0;
         }
@@ -232,8 +231,7 @@ void CHudPortraits::Update() {
             state = slot.faceMode_;
         }
         if (state == 0) {
-            std::uint16_t maximum;
-            std::memcpy(&maximum, reinterpret_cast<const std::uint8_t*>(unit) + 0x184, 2);
+            std::uint16_t maximum = unit->packedVitals.maxMana;
             if (maximum == 0 ||
                 !(static_cast<double>(static_cast<int>(unit->packedVitals.mana)) / static_cast<double>(static_cast<int>(maximum)) >=
                   kLowMana))
@@ -244,9 +242,8 @@ void CHudPortraits::Update() {
             ShowFaceAt(i, state);
         }
 
-        // The face model follows the unit's build (+0xC8): thin, medium or fat.
-        float build;
-        std::memcpy(&build, reinterpret_cast<const std::uint8_t*>(unit) + 0xC8, 4);
+        // The face model follows the unit's build (its scale's y): thin, medium or fat.
+        float build = unit->scale.y;
         if (slot.build_ < build || slot.build_ > build) {
             slot.build_ = build;
             mfc::CString name(reinterpret_cast<const char*>(0x007844A8));   // "me"

@@ -35,10 +35,10 @@ static void __fastcall CampCreateVerify(CCampPages* self) {
 
     bool built = self->regions_.size == 12 && self->sceneObjects_.size == 10 && self->surfaces_.size == 2 &&
                  self->descPanel_ && self->statsPanel_ && self->helpPanel_ && self->itemStrip_ && self->equipment_ &&
-                 self->equipment2_ && self->trade_ && self->pageTitleCount_ == 8 && self->turning_ == 0 &&
+                 self->equipment2_ && self->trade_ && self->pageTitles_.size == 8 && self->turning_ == 0 &&
                  !self->itemMade_ && !self->spellMade_;
     ei::verify::Check("CCampPages::Create built", true, built, "regions %d sprites %d surfaces %d titles %d",
-                      self->regions_.size, self->sceneObjects_.size, self->surfaces_.size, self->pageTitleCount_);
+                      self->regions_.size, self->sceneObjects_.size, self->surfaces_.size, self->pageTitles_.size);
 
     bool offered = (!self->spellConstructor_ || (self->spellStrip_ && self->spellConstructor1_ && self->spellConstructor2_)) &&
                    (!self->itemConstructor_ || (self->partStrip_ && self->itemConstructor1_ && self->itemConstructor2_ &&

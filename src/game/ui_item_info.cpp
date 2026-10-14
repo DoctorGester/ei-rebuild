@@ -697,7 +697,7 @@ void CItemInfoPanel::DescribeBlueprint() {
                   static_cast<int>(head->materialUnits));   // "%s %s x %d"
     w.Text(w.line);
     w.Down();
-    w.Number(0, FtolOf(FloatOf(head->value38)));
+    w.Number(0, FtolOf(head->value38));
     if (sort <= 2) {
         w.Number(2, FtolOf(head->charge));
         w.Number(14, static_cast<int>(head->magicLevel));

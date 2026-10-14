@@ -22,7 +22,6 @@
 #include "unit.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "lib/gameapi.h"
 #include "render/render.h"
@@ -34,16 +33,11 @@
 namespace {
 
 template <typename T>
-T& At(void* p, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(p) + offset);
-}
-template <typename T>
 T GameValue(std::uintptr_t address) {
     return *reinterpret_cast<const T*>(address);
 }
 
 constexpr int kD3DClear = 10;            // IDirect3DDevice7::Clear
-constexpr int kD3DSetRenderState = 20;   // SetRenderState
 constexpr int kD3DApplyStateBlock = 39;  // ApplyStateBlock
 constexpr std::uint32_t kAlphaRef = 0x18;
 constexpr std::uintptr_t kStateBlockAlpha = 0x007AEDD8;   // texture x diffuse, colour and alpha
@@ -88,8 +82,7 @@ void Flush(UiRenderer* device) {
 // 00602BF0 / 00632A90 share this: the depth buffer cleared to 1, then the container draw.
 int ScreenDraw(CUiWindow* self, int pass, bool mouseMove) {
     MenuFrame578910(reinterpret_cast<void*>(0x007AFEA5));
-    if (mouseMove)
-        ei::VCall<void>(self->InputSide(), 4, 0, GameValue<int>(0x007C7C50), GameValue<int>(0x007C7C54));
+    if (mouseMove) self->InputMouseMove(0, GameValue<int>(0x007C7C50), GameValue<int>(0x007C7C54));
     ClearDepth(DeviceOf(self), 0, nullptr, 1.0f);
     return ContainerDrawOriginal(self, nullptr, pass);
 }
@@ -107,7 +100,7 @@ int __fastcall UiContainerDraw(CUiWindow* self, void*, int pass) {
     CUiContainer* container = static_cast<CUiContainer*>(self);
     for (int i = 0; i < container->children_.size; ++i) {
         CUiWindow* child = container->children_.data[i];
-        if (child->enabled_) ei::VCall<int>(child, 0x50 / 4, pass);
+        if (child->enabled_) child->VirtualDraw(pass);
     }
     return 1;
 }
@@ -126,7 +119,7 @@ EI_REPLACE(0x00632A90, UiScreen2Draw);
 // worn armour, +0x774 the selected quick slot. The panel: +0x108 the two highlight frames, +0x148
 // the strip mode, +0x150 the body shown, +0x154 the selected slot of the right part. Returns 1.
 int __fastcall HeroEquipPanelDraw(CHeroEquipPanel* self, void*, int pass) {
-    auto* hero = ei::VCall<PartyUnitRecord*>(self->owner_, 0xCC / 4);
+    PartyUnitRecord* hero = ShownHero(self->owner_);
     auto frame = [self](int i) { return reinterpret_cast<CUiMesh*>(self->sceneObjects_.data[i]); };
     std::uint32_t quick = hero->weaponIndex;
     if (quick < hero->weaponCount) {
@@ -183,10 +176,10 @@ int __fastcall HeroEquipPanelDraw(CHeroEquipPanel* self, void*, int pass) {
 }
 EI_REPLACE(0x00622420, HeroEquipPanelDraw);
 
-// 0064D970. Returns SetRenderState's result (not stored in the device object).
+// 0064D970 (the objectives window's). Returns SetRenderState's result (not stored in the device object).
 long __fastcall WindowSetAlphaRef(CUiWindow* self) {
-    std::uint32_t value = At<std::uint32_t>(self, 0x1EC);
-    long hr = ComCall(DeviceOf(self)->device_, kD3DSetRenderState, kAlphaRef, value);
+    std::uint32_t value = static_cast<CObjectivesWindow*>(self)->savedAlphaRef_;
+    long hr = DeviceOf(self)->device_->SetRenderState(kAlphaRef, value);
     render::state::Render(kAlphaRef, value);
     return hr;
 }

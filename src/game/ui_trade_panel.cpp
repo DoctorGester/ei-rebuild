@@ -413,8 +413,8 @@ void CTradePanel::Build() {
     void* table = reinterpret_cast<TextGlue*>(0x007AFEA4)->Table();
     {
         mfc::CString text;
-        void* titles = &textsVtable_;
-        auto* size = reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(this) + 0x1AC);
+        void* titles = &texts_;
+        int* size = &texts_.size;
         TextsGetString(table, nullptr, GameText(0x00793E58), &text);   // "skills"
         TitlesSetAtGrow(titles, nullptr, *size, &text);
         TextsGetString(table, nullptr, GameText(0x00793E50), &text);   // "perks"

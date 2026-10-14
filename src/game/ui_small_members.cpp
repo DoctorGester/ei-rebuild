@@ -14,6 +14,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <initializer_list>
 #include <new>
 
 namespace {
@@ -34,8 +35,11 @@ constexpr int kSlotRelease = 4;
 // --- 005F6080 / 005F5F90: the battle screen's members constructed by CreateScreen 1 ---------------------
 
 CBattleScreenSetup::PartyIds* CBattleScreenSetup::PartyIds::Construct() {
-    withUnit = IdVector{nullptr, nullptr, nullptr};
-    without = IdVector{nullptr, nullptr, nullptr};
+    for (IdVector* ids : {&withUnit, &without}) {
+        ids->Start() = nullptr;
+        ids->Finish() = nullptr;
+        ids->EndOfStorage() = nullptr;
+    }
     return this;
 }
 EI_REPLACE_METHOD(0x005F6080, CBattleScreenSetup::PartyIds::Construct);

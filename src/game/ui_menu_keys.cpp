@@ -267,9 +267,8 @@ void COptionsWindow::OnKeyDown(int key, int repeat, int flags) {
             mfc::CString message;
             Texts()->GetString(Text(kKeyMappedText), &format);
             message.Format(format, pressed->name_, static_cast<const char*>(other->name_));
-            // The box's text (+0x168; a null box is written through, as in the original).
-            *reinterpret_cast<mfc::CString*>(reinterpret_cast<std::uint8_t*>(box) + 0x168) =
-                static_cast<const char*>(message);
+            // The box's text (a null box is written through, as in the original).
+            *reinterpret_cast<mfc::CString*>(&static_cast<CMessageBox*>(box)->text_) = static_cast<const char*>(message);
             InterfacePushWindowOriginal(interface_, nullptr, box, 1, 1);
             return;
         }

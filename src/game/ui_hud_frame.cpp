@@ -77,11 +77,13 @@ float TimeOfDay() {
 // 00600270 (not rewritten): time since the last frame in seconds, unrounded in ST0.
 inline double __fastcall WindowFrameTime(CUiWindow* w) { return WindowFrameTimeOriginal(w); }
 
+CUiMesh* Sprite(CEngineObject* object) { return reinterpret_cast<CUiMesh*>(object); }
+
 void SetTint(CEngineObject* object, float value) {
-    auto* p = reinterpret_cast<std::uint8_t*>(object) + 0x224;
-    std::memcpy(p, &value, 4);
-    std::memcpy(p + 4, &value, 4);
-    std::memcpy(p + 8, &value, 4);
+    float* tint = Sprite(object)->tint_;
+    std::memcpy(&tint[0], &value, 4);
+    std::memcpy(&tint[1], &value, 4);
+    std::memcpy(&tint[2], &value, 4);
 }
 
 // Turns a sprite about `axis` (z or -z) by `angle`.
@@ -89,10 +91,8 @@ void Turn(CEngineObject* object, float axisZ, float angle) {
     Vector3 axis = {0.0f, 0.0f, axisZ};
     Quaternion q;
     q.SetAxisAngle(axis, angle);
-    std::memcpy(reinterpret_cast<std::uint8_t*>(object) + 0x34, &q, sizeof(q));
+    std::memcpy(&Sprite(object)->orientation_, &q, sizeof(q));
 }
-
-CUiMesh* Sprite(CEngineObject* object) { return reinterpret_cast<CUiMesh*>(object); }
 
 std::uint32_t Bits(float f) {
     std::uint32_t u;
@@ -115,7 +115,7 @@ __declspec(naked) int __cdecl GameFtol(double) {
 void CUiMesh::Place(float a0, float a1, float a2) { SpritePlaceOriginal((void*)this, nullptr, a0, a1, a2); }
 
 void CHudClock::Update() {
-    *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(interface_) + 0x94) = fast_;
+    interface_->fastGame_ = fast_;
     float hours = TimeOfDay();
     CEngineObject** objects = sceneObjects_.data;
     CEngineObject* face = objects[0];
@@ -226,13 +226,12 @@ void CHudTopPanel::Update() {
             Turn(sling, 1.0f, Pi());
             y = kSlingInY;
         } else {
-            std::memcpy(reinterpret_cast<std::uint8_t*>(sling) + 0x34, SlingRestRotation(), 16);
+            std::memcpy(&Sprite(sling)->orientation_, SlingRestRotation(), 16);
             y = kSlingOutY;
         }
         Sprite(sling)->Place(kSlingX, y, FloatFromBits(kSpriteDepth));
     }
-    auto* shared = reinterpret_cast<std::uint8_t*>(interface_);
-    shared[0x8A] = slideDirection_ > 0.0f ? 1 : 0;   // the panel is (coming) in
-    std::memcpy(shared + 0x90, &page_, 4);
+    interface_->hudPanelsIn_[1] = slideDirection_ > 0.0f ? 1 : 0;   // the panel is (coming) in
+    interface_->hudTopPage_ = page_;
 }
 EI_REPLACE_METHOD(0x00649FF0, CHudTopPanel::Update);

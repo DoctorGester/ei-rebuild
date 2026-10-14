@@ -34,26 +34,14 @@ static_assert(sizeof(VtablePair) == 8 && offsetof(VtablePair, input) == 4);
 // --- Battle screen --------------------------------------------------------------------------
 //
 // The battle screen's "pers" texts (an STLport map<int, CString> at +0x1F0): a person's text by
-// its text key id. The header node's parent is the tree's root.
-struct PersonTextNode {
-    int colour;
-    PersonTextNode* parent;
-    PersonTextNode* left;
-    PersonTextNode* right;
-    int key;                         // +0x10
-    mfc::CString text;               // +0x14
-};
-struct PersonTextMap {
-    PersonTextNode* header;
-    // find(key) as the original inlines it (ui_battle_mouse.cpp): the lower bound of `key`, or
-    // the header when that is the header or holds a greater key.
-    const PersonTextNode* Find(int key) const;
-    // The "pers <name>" texts read in (ui_person_texts.cpp): every text section "pers <name>"
-    // gives its first line to the key of <name> (inserted, or replaced). The battle screen's setup
-    // does it inline; the briefing screen in 00607720.
-    void Load();
-};
-static_assert(offsetof(PersonTextNode, text) == 0x14);
+// its text key id. find(key) is what the original inlines (ui_battle_mouse.cpp).
+using PersonTextMap = stlp::map<int, mfc::CString>;
+using PersonTextNode = PersonTextMap::Node;
+static_assert(offsetof(PersonTextNode, second) == 0x14);
+// The "pers <name>" texts read in (ui_person_texts.cpp): every text section "pers <name>" gives its
+// first line to the key of <name> (inserted, or replaced). The battle screen's setup does it
+// inline; the briefing screen in 00607720.
+void LoadPersonTexts(PersonTextMap* map);
 
 // The pixels the mouse must move with the button down on the view before the battle screen
 // starts a selection box (an interface option; 0 or less: never).
@@ -97,8 +85,8 @@ public:
     // +0x1C1), a mouse move at the current position, clears the depth (and stencil) buffer, then
     // the panels (00600EF0). Rebirth's AddNewConsoleCommands applies "nogui" first. Returns 1.
     BOOL Draw(void* target);
-    // 00638280 (slot 24, every frame; ui_battle_update.cpp). When the one selected party unit asks
-    // for it (its slot 55), empties the weapon, quick item, spell and action panels and shows the
+    // 00638280 (slot 24, every frame; ui_battle_update.cpp). When the one selected party unit is
+    // dead (its slot 55, IsDead), empties the weapon, quick item, spell and action panels and shows the
     // unit in the unit panel; a multiplayer client rebuilds the party from the session's players
     // (sorted ids; the camera's player first); the children's update, the next queued message;
     // the "leave_zone" box when a saved zone exit is pending (+0x18C); with a selection box
@@ -289,11 +277,7 @@ public:
 
     // The client's party ids (STLport vector<int>s): the ids of players with a unit, the camera's
     // player's id, the ids of the others. Compared and copied as a whole (006381E0, 0064AF30).
-    struct IdVector {
-        int* begin;
-        int* end;
-        int* capacity;
-    };
+    using IdVector = stlp::vector<int>;
     struct PartyIds {
         // 005F6080 (ui_small_members.cpp). Constructor: both id vectors empty (begin, end and
         // capacity null); the camera id is not written. Returns this.
@@ -309,9 +293,11 @@ public:
 
     int unknown_164;                 // +0x164 cleared by Create
     std::uint8_t partyArray_[0x14];  // +0x168 the party units (CArray; SetSize 005EBDB0)
-    int unknown_17C;                 // +0x17C 0
-    int unknown_180;                 // +0x180 -1
-    std::uint8_t unknown_184[4];
+    // The pending action (CBattleScreen::pendingAction_ / pendingSlot_ / pendingItem_): what the
+    // next click on the view does, its spell, quick item or action slot, and the item.
+    int pendingAction_;              // +0x17C 0
+    int pendingSlot_;                // +0x180 -1
+    int pendingItem_;                // +0x184 -1
     int savedSelection_;             // +0x188 -1, or read from the save (version 0x62)
     std::uint8_t savedFlag_;         // +0x18C
     // +0x18D the order modifier keys held: key actions 0x11..0x16 (key table 0079BF70) set by the
@@ -338,8 +324,6 @@ public:
     RECT selectionBox_;              // +0x1CC the box (passed to 005656A0)
     UiDwordArray heroes_;            // +0x1DC ids of the heroes shown (saved with the game)
     PersonTextMap personTexts_;      // +0x1F0 the "pers" texts by person
-    std::uint32_t personTextCount_;  // +0x1F4 the map's node count
-    std::uint8_t unknown_1F8[0x1FC - 0x1F8];
     int unknown_1FC;                 // +0x1FC 0; the quest sound to play (1 quest, 2 part done, 3 done)
     bool hasHero_;                   // +0x200 a hero id was added (new game)
     std::uint8_t unknown_201[3];
@@ -750,14 +734,14 @@ public:
     TradeRecords records_;           // +0x190 one per party member
     int heldRegion_;                 // +0x19C the school / science row held after a purchase (-1 after Build)
     float holdTime_;                 // +0x1A0 from -0.5 s (0 after Build)
-    void* textsVtable_;              // +0x1A4 CStringArray: the titles
-    char** texts_;                   // +0x1A8
+    mfc::CStringArray texts_;        // +0x1A4 the titles
 };
 static_assert(offsetof(CTradePanel, owner_) == 0x14C);
 static_assert(offsetof(CTradePanel, learnable_) == 0x15C);
 static_assert(offsetof(CTradePanel, science_) == 0x180);
 static_assert(offsetof(CTradePanel, experience_) == 0x18C);
-static_assert(offsetof(CTradePanel, texts_) == 0x1A8);
+static_assert(offsetof(CTradePanel, texts_) == 0x1A4);
+static_assert(sizeof(CTradePanel) == 0x1B8);
 static_assert(offsetof(CTradePanel, records_) == 0x190);
 static_assert(offsetof(CTradePanel, holdTime_) == 0x1A0);
 
@@ -993,10 +977,7 @@ public:
     std::uint8_t* itemMade_;         // +0x214 the item the item constructor would make, or null
     std::uint8_t* spellMade_;        // +0x218 the spell the spell constructor would make, or null
     std::uint32_t priceWeights_[9];  // +0x21C the constructor's price multipliers (floats; ClassTemplate::weights)
-    void* pageTitlesVtable_;         // +0x240 CStringArray: the seven pages' titles and "quit"
-    char** pageTitles_;              // +0x244 its data
-    int pageTitleCount_;             // +0x248
-    std::uint8_t unknown_24C[0x254 - 0x24C];
+    mfc::CStringArray pageTitles_;   // +0x240 the seven pages' titles and "quit"
     bool noConstructor_;             // +0x254 the player's "i.noconstr" = 1: second pages hidden
     std::uint8_t unknown_255[0x258 - 0x255];
     std::uint32_t heroTurn_;         // +0x258 passed to the hero preview (005EC300)
@@ -1009,7 +990,7 @@ static_assert(offsetof(CCampPages, spellResults_) == 0x1D4);
 static_assert(offsetof(CCampPages, statsPanel_) == 0x1D8);
 static_assert(offsetof(CCampPages, trade_) == 0x1F4);
 static_assert(offsetof(CCampPages, itemConstructor3_) == 0x208);
-static_assert(offsetof(CCampPages, pageTitles_) == 0x244);
+static_assert(offsetof(CCampPages, pageTitles_) == 0x240);
 static_assert(offsetof(CCampPages, heroes_) == 0x19C);
 static_assert(offsetof(CCampPages, priceWeights_) == 0x21C);
 static_assert(offsetof(CCampPages, noConstructor_) == 0x254);
@@ -1079,16 +1060,14 @@ public:
     int heroIndex_;                  // +0x150 passed to the owner's slot 50
     char* title_;                    // +0x154 CString
     int page_;                       // +0x158
-    void* textsVtable_;              // +0x15C CStringArray
-    char** texts_;                   // +0x160 its data: weapon labels, the points texts, ...
-    std::uint8_t unknown_164[0x170 - 0x164];
+    mfc::CStringArray texts_;        // +0x15C weapon labels, the points texts, ...
     int points_;                     // +0x170 skill points left (page 10); SetHero puts the height * 100 here
     int heldRegion_;                 // +0x174 the -/+ button held on page 10 (-1 none)
     float holdTime_;                 // +0x178 seconds it has been held (from -0.5)
 };
 static_assert(offsetof(CHeroStatsPanel, owner_) == 0x14C);
 static_assert(offsetof(CHeroStatsPanel, page_) == 0x158);
-static_assert(offsetof(CHeroStatsPanel, texts_) == 0x160);
+static_assert(offsetof(CHeroStatsPanel, texts_) == 0x15C);
 static_assert(offsetof(CHeroStatsPanel, points_) == 0x170);
 static_assert(sizeof(CHeroStatsPanel) == 0x17C);
 
@@ -1244,10 +1223,7 @@ public:
     // memory freed when bit 0 of `flags` is set; returns this.
     CSpellMakerPage* SpellMakerDelete(unsigned flags);
 
-    void* textsVtable_;              // +0x158
-    const char** texts_;             // +0x15C CString data
-    int textCount_;                  // +0x160
-    std::uint8_t unknown_164[0x16C - 0x164];
+    mfc::CStringArray texts_;        // +0x158
 };
-static_assert(offsetof(CSpellMakerPage, texts_) == 0x15C);
+static_assert(offsetof(CSpellMakerPage, texts_) == 0x158);
 static_assert(sizeof(CSpellMakerPage) == 0x16C);

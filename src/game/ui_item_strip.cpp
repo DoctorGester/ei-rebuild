@@ -120,16 +120,10 @@ void CUiItemStrip::Build(char top) {
     CUiMesh* frame = window.AddSprite(0);
     StripFrame(frame, nullptr, scale_ * GameFloat(0x0073CD70), 100.0f, -40.0f, -40.0f, 40.0f, 40.0f, 5.0f, 0, 0, 0x100,
                0x100);
-    auto* bytes = reinterpret_cast<std::uint8_t*>(frame);
-    std::uint32_t flags;
-    std::memcpy(&flags, bytes + 0x08, 4);
-    flags |= 0x100;
-    std::memcpy(bytes + 0x08, &flags, 4);
-    const std::uint32_t colour = 0xFF8B8B37;
-    const std::uint32_t zero = 0;
-    std::memcpy(bytes + 0xD4, &colour, 4);
-    std::memcpy(bytes + 0x280, &zero, 4);
-    std::memcpy(bytes + 0x220, &zero, 4);
+    frame->flags_ |= 0x100;
+    frame->plainColour_ = 0xFF8B8B37;
+    frame->texture_ = nullptr;
+    frame->visible_ = 0;
     // The background: eight cells between the ends (depth scale * 2), then a frame per 100 pixels.
     StripCells(window.AddSprite(0), nullptr, scale_ + scale_, 100.0f, 50.0f, y, 850.0f, y + hundred, 0xE, 0xE, 0x72, 0x72,
                8, 1);

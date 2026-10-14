@@ -205,11 +205,11 @@ void AllowedMembers(CBattleScreenSetup* self, bool quick, bool* allowed, int cou
     const float none[3] = {};
     for (int i = 0; i < count; ++i) {
         CUnit* member = Member(self, i);
-        allowed[i] = member && (member->flags_ & 0x10) && check(member, self->unknown_180, none) == 0;
+        allowed[i] = member && (member->flags_ & 0x10) && check(member, self->pendingSlot_, none) == 0;
     }
 }
 bool NothingPending(CBattleScreenSetup* self) {
-    return self->unknown_17C == 0 && self->unknown_180 == -1 && Get<int>(self, 0x184) == -1 &&
+    return self->pendingAction_ == 0 && self->pendingSlot_ == -1 && self->pendingItem_ == -1 &&
            Get<int>(self->quickItems_, 0x150) == -1 && Get<int>(self->spellColumn_, 0x150) == -1 &&
            Get<int>(self->actionColumn_, 0x150) == -1;
 }
@@ -222,13 +222,13 @@ static void* s_useOnUnit;
 static void __fastcall UseOnUnitVerify(CBattleScreenSetup* self, void*, CUnit* target, char quick, int ctrl) {
     bool allowed[kMaxParty] = {};
     int count = PartySize(self);
-    int slot = self->unknown_180;
+    int slot = self->pendingSlot_;
     AllowedMembers(self, quick != 0, allowed, count);
     self->UseOnUnit(target, quick, ctrl);
     int wrong = FirstNotNodding(self, allowed, count);
     ei::verify::Check("CBattleScreenSetup::UseOnUnit", true, wrong < 0 && NothingPending(self),
                       "target %p quick %d slot %d: member %d not nodding, pending %d/%d", target, quick, slot, wrong,
-                      self->unknown_17C, self->unknown_180);
+                      self->pendingAction_, self->pendingSlot_);
 }
 EI_VERIFY(0x00637500, UseOnUnitVerify, 0, s_useOnUnit);
 
@@ -239,12 +239,12 @@ static void* s_useAtPoint;
 static void __fastcall UseAtPointVerify(CBattleScreenSetup* self, void*, float x, float y, float z, CUnit* unit, char quick) {
     bool allowed[kMaxParty] = {};
     int count = PartySize(self);
-    int slot = self->unknown_180;
+    int slot = self->pendingSlot_;
     AllowedMembers(self, quick != 0, allowed, count);
     self->UseAtPoint(x, y, z, unit, quick);
     int wrong = FirstNotNodding(self, allowed, count);
     ei::verify::Check("CBattleScreenSetup::UseAtPoint", true, wrong < 0 && NothingPending(self),
                       "unit %p quick %d slot %d: member %d not nodding, pending %d/%d", unit, quick, slot, wrong,
-                      self->unknown_17C, self->unknown_180);
+                      self->pendingAction_, self->pendingSlot_);
 }
 EI_VERIFY(0x00637750, UseAtPointVerify, 0, s_useAtPoint);

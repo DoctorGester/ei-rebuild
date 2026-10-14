@@ -395,11 +395,11 @@ EI_REPLACE_METHOD(0x005FFF40, CUiWindow::ClearModels);
 
 namespace {
 // 005AC1A0: a new object of the model manager by name, or null.
-std::uint8_t* NewModelObject(const char* name) {
-    return reinterpret_cast<std::uint8_t*>(ModelManagerNewObjectOriginal(UiModelManager(), nullptr, name));
+CEngineObject* NewModelObject(const char* name) {
+    return reinterpret_cast<CEngineObject*>(ModelManagerNewObjectOriginal(UiModelManager(), nullptr, name));
 }
 // 0059F3D0 (thiscall on the object): attaches it to the window.
-void __fastcall AttachToWindow(std::uint8_t* a0, void*, CUiWindow* a2) { FigurePartSetOwnerOriginal((void*)a0, nullptr, (void*)a2); }
+void __fastcall AttachToWindow(CEngineObject* a0, void*, CUiWindow* a2) { FigurePartSetOwnerOriginal((void*)a0, nullptr, (void*)a2); }
 // 005E70B0 (thiscall): the sprite's scale (+0x23C) in ST0; 005E7060 sets it.
 double __fastcall SpriteScale(void* a0) { return SpriteScaleOriginal((const void*)a0); }
 void __fastcall SetSpriteScale(void* a0, void*, float a2) { SpriteSetScaleOriginal(a0, nullptr, std::bit_cast<std::uint32_t>(a2)); }
@@ -418,22 +418,19 @@ void CopyFloat(void* to, const void* from) {
 CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* name) {
     for (int i = 0; i < sceneObjects_.size; ++i) {
         if (sceneObjects_.data[i] != object) continue;
-        std::uint8_t* made = NewModelObject(name);
+        CEngineObject* made = NewModelObject(name);
         if (!made) return nullptr;
-        int references;
-        std::memcpy(&references, made + 4, 4);
-        ++references;
-        std::memcpy(made + 4, &references, 4);
+        ++made->refCount_;
         AttachToWindow(made, nullptr, this);
-        auto* old = reinterpret_cast<std::uint8_t*>(object);
-        std::memcpy(made + 0x27C, reinterpret_cast<std::uint8_t*>(this) + 0xEC, 4);
-        CEngineObject* texture = objects_.size > 0 ? objects_.data[0] : nullptr;
-        std::memcpy(made + 0x280, &texture, 4);
-        std::memcpy(made + 0x1C, old + 0x1C, 12);
-        CopyFloat(made + 0xCC, old + 0xCC);
-        CopyFloat(made + 0xD0, old + 0xD0);
-        std::memcpy(made + 0x34, old + 0x34, 16);
-        std::memcpy(made + 0x280, old + 0x280, 4);
+        auto* sprite = reinterpret_cast<CUiMesh*>(made);
+        auto* old = reinterpret_cast<CUiMesh*>(object);
+        sprite->material_ = blackMaterial_;
+        sprite->texture_ = objects_.size > 0 ? objects_.data[0] : nullptr;
+        std::memcpy(&sprite->position_, &old->position_, 12);
+        CopyFloat(&sprite->uOffset_, &old->uOffset_);
+        CopyFloat(&sprite->vOffset_, &old->vOffset_);
+        std::memcpy(&sprite->orientation_, &old->orientation_, 16);
+        sprite->texture_ = old->texture_;
         volatile float scale = static_cast<float>(SpriteScale(old));
         SetSpriteScale(made, nullptr, scale);
         sceneObjects_.RemoveAt(i);
@@ -448,8 +445,8 @@ CEngineObject* CUiWindow::ReplaceSceneObject(CEngineObject* object, const char* 
         } else {
             sceneObjects_.SetSize(i + 1, -1);
         }
-        sceneObjects_.data[i] = reinterpret_cast<CEngineObject*>(made);
-        return reinterpret_cast<CEngineObject*>(made);
+        sceneObjects_.data[i] = made;
+        return made;
     }
     return nullptr;
 }
@@ -458,14 +455,14 @@ EI_REPLACE_METHOD(0x005FF460, CUiWindow::ReplaceSceneObject);
 // --- 005FF3C0: AddSprite ---------------------------------------------------------------------------
 
 CUiMesh* CUiWindow::AddSprite(const char* name) {
-    auto* object = reinterpret_cast<CEngineObject*>(NewModelObject(name));
+    CEngineObject* object = NewModelObject(name);
     if (!object) return nullptr;
     bool listed = false;
     for (int i = 0; i < sceneObjects_.size && !listed; ++i) listed = sceneObjects_.data[i] == object;
     if (!listed) {
         sceneObjects_.SetAtGrow(sceneObjects_.size, object);
         ++object->refCount_;
-        AttachToWindow(reinterpret_cast<std::uint8_t*>(object), nullptr, this);
+        AttachToWindow(object, nullptr, this);
     }
     auto* sprite = reinterpret_cast<CUiMesh*>(object);
     sprite->material_ = blackMaterial_;

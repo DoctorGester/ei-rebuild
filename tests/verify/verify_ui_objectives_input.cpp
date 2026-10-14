@@ -20,9 +20,9 @@ void(__fastcall* s_fillQuestPlaces)(CObjectivesWindow*, void*, const char*);
 
 void __fastcall FillQuestPlacesVerify(CObjectivesWindow* self, void*, const char* name) {
     s_fillQuestPlaces(self, nullptr, name);
-    std::vector<UiPointF> expected(self->QuestPlaces().begin(), self->QuestPlaces().end());
+    std::vector<UiPointF> expected(self->questPlaces_.begin(), self->questPlaces_.end());
     self->LoadQuestPlaces(name);
-    stlp::vector<UiPointF>& places = self->QuestPlaces();
+    stlp::vector<UiPointF>& places = self->questPlaces_;
     bool ok = places.size() == expected.size() &&
               (expected.empty() || std::memcmp(places.begin(), expected.data(), expected.size() * sizeof(UiPointF)) == 0);
     ei::verify::Check("CObjectivesWindow::LoadQuestPlaces", true, ok, "%s: %u places vs %u", name,
@@ -33,8 +33,8 @@ void __fastcall LButtonDownVerify(void* input, void*, int buttons, int x, int y)
     auto* self = WindowFromInput<CObjectivesWindow>(input);
     int selected = self->selectedQuest_;
     self->OnLButtonDown(buttons, x, y);
-    int zones = static_cast<int>(self->zonesEnd_ - self->zonesBegin_);
-    int quests = reinterpret_cast<mfc::CStringArray*>(self->quests_)->GetSize();
+    int zones = static_cast<int>(self->zones_.end() - self->zones_.begin());
+    int quests = self->quests_.GetSize();
     bool ok = (zones == 0 || (self->zoneIndex_ >= 0 && self->zoneIndex_ < zones)) &&
               (self->selectedQuest_ == selected || (self->selectedQuest_ >= 0 && self->selectedQuest_ < quests));
     ei::verify::Check("CObjectivesWindow::OnLButtonDown", true, ok, "(%d, %d): zone %d of %d, quest %d of %d", x, y,

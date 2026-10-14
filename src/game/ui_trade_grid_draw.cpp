@@ -6,11 +6,11 @@
 // than one, and unless +0x160 its price (+0x14C slot 54 with the kind +0x158 / +0x15C). Last the
 // depth buffer is cleared to 1 again. The new renderer (src/render) gets the depth clears. See
 // docs/notes/ui.md ("Camp") and docs/notes/renderer.md.
+#include "item.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "lib/gameapi.h"
 #include "lib/mfc.h"
 #include "render/render.h"
@@ -20,10 +20,6 @@
 
 namespace {
 
-template <typename T>
-T& At(void* p, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(p) + offset);
-}
 float GameFloat(std::uintptr_t address) { return *reinterpret_cast<const float*>(address); }
 
 constexpr int kD3DClear = 10;               // IDirect3DDevice7::Clear
@@ -70,14 +66,14 @@ void DrawItems(CTradeGrid* grid, int pass, UiItemList* list, SurfaceText* surfac
         ItemCell cell{items[i], static_cast<float>(x) + GameFloat(0x0073BF48), static_cast<float>(y) + yOffset,
                       i <= 3 ? bigSize : smallSize, 100.0f, grid->mode_};
         ItemScreenDrawItemOriginal(reinterpret_cast<CItemScreen*>(grid->owner_), nullptr, pass, &cell);
-        int pieces = At<int>(cell.item, 0x48);
+        int pieces = static_cast<int>(cell.item->count_);
         if (pieces > 1) {
             text.Format(Text(0x0078EEEC), pieces);
             RECT r{x + 15, y + countTop, x + 0x55, y + countTop + 20};
             surface->Draw(text, &r, 1, kTextColour, 2, 1);
         }
         if (!grid->flag_) {
-            int price = ei::VCall<int>(grid->owner_, 0xD8 / 4, cell.item, kind);
+            int price = static_cast<CCampPages*>(grid->owner_)->VirtualPrice(cell.item, kind);   // the camp
             text.Format(Text(0x0078EEEC), price);
             RECT r{x + 15, y + priceTop, x + 0x55, y + priceTop + 20};
             surface->Draw(text, &r, 1, kTextColour, 1, 1);

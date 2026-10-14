@@ -88,20 +88,6 @@ EI_REPLACE(0x00638A40, BattleScreenLButtonDown);
 
 // --- 0063B920: a unit's name line --------------------------------------------------------------
 
-const PersonTextNode* PersonTextMap::Find(int key) const {
-    const PersonTextNode* bound = header;
-    for (const PersonTextNode* node = header->parent; node;) {
-        if (node->key < key) {
-            node = node->right;
-        } else {
-            bound = node;
-            node = node->left;
-        }
-    }
-    if (bound == header || key < bound->key) return header;
-    return bound;
-}
-
 void CBattleScreenSetup::UnitName(CUnit* unit, mfc::CString* out) {
     CTextManager* texts = GameTexts();
     mfc::CString name;
@@ -111,11 +97,11 @@ void CBattleScreenSetup::UnitName(CUnit* unit, mfc::CString* out) {
         return;
     }
     if (IsTextKey(unit->id_)) {
-        const PersonTextNode* node = personTexts_.Find(unit->id_);
-        if (node == personTexts_.header)
+        const PersonTextNode* node = personTexts_.find(unit->id_);
+        if (node == personTexts_.end())
             out->Empty();
         else
-            *out = node->text;
+            *out = node->second;
         return;
     }
     out->Empty();

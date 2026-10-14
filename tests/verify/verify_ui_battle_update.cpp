@@ -223,7 +223,7 @@ static void __fastcall RefreshSelectionVerify(CBattleScreenSetup* self) {
     bool panels = Get<void*>(self->weaponBar_, 0x154) == shown && Get<void*>(self->quickItems_, 0x154) == shown &&
                   Get<void*>(self->spellColumn_, 0x154) == shown && Get<void*>(self->actionColumn_, 0x154) == shown;
     bool panel = panelUnit == first;
-    bool cleared = self->unknown_17C == 0 && self->unknown_180 == -1 && Get<int>(self, 0x184) == -1 &&
+    bool cleared = self->pendingAction_ == 0 && self->pendingSlot_ == -1 && self->pendingItem_ == -1 &&
                    Get<int>(self->quickItems_, 0x150) == -1 && Get<int>(self->spellColumn_, 0x150) == -1 &&
                    Get<int>(self->actionColumn_, 0x150) == -1;
     ei::verify::Check("CBattleScreenSetup::RefreshSelection", true, panels && panel && cleared,
@@ -240,8 +240,8 @@ static bool __fastcall PartyIdsEqualVerify(const PartyIds* self, void*, const Pa
     bool expected = s_partyIdsEqual(self, nullptr, other);
     bool actual = self->Equals(*other);
     ei::verify::Check("PartyIds::Equals", expected, actual, "sizes %d / %d",
-                      static_cast<int>(self->withUnit.end - self->withUnit.begin),
-                      static_cast<int>(other->withUnit.end - other->withUnit.begin));
+                      static_cast<int>(self->withUnit.end() - self->withUnit.begin()),
+                      static_cast<int>(other->withUnit.end() - other->withUnit.begin()));
     return expected;
 }
 EI_VERIFY(0x006381E0, PartyIdsEqualVerify, 5, s_partyIdsEqual);

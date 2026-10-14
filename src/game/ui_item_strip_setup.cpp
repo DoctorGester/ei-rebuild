@@ -115,7 +115,7 @@ BOOL CUiItemStrip::DrawFigures(int pass) {
     for (int i = 0; i < 8; ++i) {
         int index = first + i;
         if (index < 0 || index >= count_) continue;
-        name = *reinterpret_cast<const mfc::CString*>(&figures_->begin[index]);
+        name = *reinterpret_cast<const mfc::CString*>(&figures_->begin()[index]);
         HeroFaceCell cell;
         cell.prototype = name;
         cell.x = ((static_cast<float>(i) - frac) + kOne) * kCell;
@@ -131,7 +131,7 @@ BOOL __fastcall FigureStripDraw(CUiItemStrip* self, void*, int pass) { return se
 } // namespace
 EI_REPLACE(0x00629AF0, FigureStripDraw);
 
-void CUiItemStrip::CountFigures() { count_ = static_cast<int>(figures_->end - figures_->begin); }
+void CUiItemStrip::CountFigures() { count_ = static_cast<int>(figures_->end() - figures_->begin()); }
 EI_REPLACE_METHOD(0x00629AD0, CUiItemStrip::CountFigures);
 
 void CUiItemStrip::OnFigureClick(int buttons, int x, int y) {
@@ -142,7 +142,7 @@ void CUiItemStrip::OnFigureClick(int buttons, int x, int y) {
     int index = static_cast<int>(static_cast<double>(point.x - 50) * kSlotsPerPixel + position_[tab_]);   // _ftol
     if (index < 0 || index >= count_) return;
     uiorig::PlayUiSound(window.interface_, OnOffSound(), 0);
-    ChooseFigure(owner_, figures_->begin[index]);
+    ChooseFigure(owner_, figures_->begin()[index]);
 }
 namespace {
 void __fastcall FigureStripClick(void* input, void*, int buttons, int x, int y) {

@@ -108,7 +108,7 @@ static void __fastcall ItemsPickedVerify(CBattleScreenSetup* self, void*, mfc::C
     int count = items->count;
     self->OnItemsPicked(items, money, crippled);
     // RefreshSelection drops the pending action; the list is not changed.
-    bool ok = items->count == count && self->unknown_17C == 0 && self->unknown_180 == -1;
+    bool ok = items->count == count && self->pendingAction_ == 0 && self->pendingSlot_ == -1;
     ei::verify::Check("CBattleScreenSetup::OnItemsPicked", true, ok, "%d items, money %d", count, money);
 }
 EI_VERIFY(0x00636150, ItemsPickedVerify, 0, s_unused);

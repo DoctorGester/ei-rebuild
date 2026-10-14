@@ -258,7 +258,7 @@ void CCampPages::Create() {
     auto* stats = reinterpret_cast<CHeroStatsPanel*>(NewPanel(sizeof(CHeroStatsPanel), interface_, this, ItemPanelVtables()));
     if (stats) {
         new (&stats->title_) mfc::CString;
-        reinterpret_cast<mfc::CStringArray*>(&stats->textsVtable_)->Construct();
+        stats->texts_.Construct();
         SetVtables(stats, StatsPanelVtables());
     }
     statsPanel_ = stats;
@@ -301,7 +301,7 @@ void CCampPages::Create() {
         trade->schools_ = {};
         trade->science_ = {};
         trade->records_ = {};
-        reinterpret_cast<mfc::CStringArray*>(&trade->textsVtable_)->Construct();
+        trade->texts_.Construct();
         SetVtables(trade, TradePanelVtables());
     }
     trade_ = trade;
@@ -326,7 +326,7 @@ void CCampPages::Create() {
 
         auto* maker = static_cast<CSpellMakerPage*>(NewPanel(kSpellMakerSize, interface_, this, ItemPanelVtables()));
         if (maker) {
-            reinterpret_cast<mfc::CStringArray*>(&maker->textsVtable_)->Construct();
+            maker->texts_.Construct();
             SetVtables(maker, SpellMakerVtables());
         }
         spellConstructor2_ = maker;
@@ -413,7 +413,7 @@ void CCampPages::Create() {
     // The pages' titles.
     auto* texts = static_cast<CTextManager*>(GameFlowOriginal());
     mfc::CString title;
-    auto& titles = *reinterpret_cast<mfc::CStringArray*>(&pageTitlesVtable_);
+    auto& titles = pageTitles_;
     const char* const titleKeys[] = {
         GameText(0x0079364C),   // "mode_weapons"
         GameText(0x00793640),   // "mode_spells"

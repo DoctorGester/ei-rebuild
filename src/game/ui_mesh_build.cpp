@@ -35,32 +35,22 @@ constexpr std::uintptr_t kLayoutY = 0x0074015C;     // 1 / 400
 constexpr std::uintptr_t kThreeQuarters = 0x0073C524;
 constexpr std::uintptr_t kView = 0x00740158;        // 0.48157 (the interface camera's half view)
 
-// The aligned arrays inside the sprite: 0x40-byte colour blocks (+0x1D0; SetSize 0044F960), the
-// two dword arrays (+0x138, +0x148; 005A6E70) and the 16-bit indices (+0x200; SetSize 0044FA90,
-// SetAtGrow 00452FC0). All are lib::AlignedArray instantiations (aligned_arrays.cpp).
-struct ColourBlock {
-    float values[16];
-};
-using BlockArray = lib::AlignedArray<ColourBlock>;
-using DwordArray = lib::AlignedArray<std::uint32_t>;
+// The aligned arrays inside the sprite: the 0x40-byte normal packets (normals_; SetSize 0044F960),
+// the two colour arrays (colorsA_, colorsB_; 005A6E70) and the 16-bit indices (+0x200; SetSize
+// 0044FA90, SetAtGrow 00452FC0). All are lib::AlignedArray instantiations (aligned_arrays.cpp).
 using IndexArray = lib::AlignedArray<std::uint16_t>;
 
-template <typename T>
-T* At(CUiMesh* mesh, int offset) {
-    return reinterpret_cast<T*>(reinterpret_cast<std::uint8_t*>(mesh) + offset);
-}
-
-// The common start: the +0x1D0 block (four 0s, four 0s, four 1s, four 1s) and the two 4-entry arrays.
+// The common start: one normal packet (four 0s, four 0s, four 1s, four 1s) and the two 4-entry arrays.
 void ResetVertexColours(CUiMesh* mesh) {
-    At<BlockArray>(mesh, 0x1D0)->SetSize(1, -1);
-    At<DwordArray>(mesh, 0x138)->SetSize(4, -1);
-    At<DwordArray>(mesh, 0x148)->SetSize(4, -1);
-    auto* block = *At<float*>(mesh, 0x1D0);
+    mesh->normals_.SetSize(1, -1);
+    mesh->colorsA_.SetSize(4, -1);
+    mesh->colorsB_.SetSize(4, -1);
+    UiQuadBlock& block = mesh->normals_[0];
     for (int i = 0; i < 4; ++i) {
-        block[i] = 0.0f;
-        block[4 + i] = 0.0f;
-        block[8 + i] = 1.0f;
-        block[12 + i] = 1.0f;
+        block.x[i] = 0.0f;
+        block.y[i] = 0.0f;
+        block.z[i] = 1.0f;
+        block.w[i] = 1.0f;
     }
 }
 
@@ -94,17 +84,17 @@ void NudgeAndCommit(CUiMesh* mesh) {
 // The scale every builder sets: 0.48157 * depth * scale * 0.0025, in the three scale fields.
 void SetBuildScale(CUiMesh* mesh, float depth, float scale) {
     float s = Store(D(GameFloat(kView)) * D(depth) * D(scale) * D(GameFloat(kLayoutY)));
-    *At<float>(mesh, 0x23C) = s;
-    *At<float>(mesh, 0x250) = s;
-    *At<float>(mesh, 0x264) = s;
+    mesh->ScaleX() = s;
+    mesh->ScaleY() = s;
+    mesh->ScaleZ() = s;
 }
 
 // The position from a layout point: ((x * 2/1600 - 1) * 0.48157 * depth, (y / 400 - 0.75) *
 // 0.48157 * depth, depth) (the rectangle builder adds the two edges first).
 void SetPosition(CUiMesh* mesh, double x, double y, float depth) {
-    *At<float>(mesh, 0x1C) = Store((x - D(GameFloat(kOne))) * D(GameFloat(kView)) * D(depth));
-    *At<float>(mesh, 0x20) = Store((y - D(GameFloat(kThreeQuarters))) * D(GameFloat(kView)) * D(depth));
-    std::memcpy(At<float>(mesh, 0x24), &depth, 4);
+    mesh->position_.x = Store((x - D(GameFloat(kOne))) * D(GameFloat(kView)) * D(depth));
+    mesh->position_.y = Store((y - D(GameFloat(kThreeQuarters))) * D(GameFloat(kView)) * D(depth));
+    std::memcpy(&mesh->position_.z, &depth, 4);
 }
 
 // --- Points on a circle, as the original computes them on the FPU ------------------------------------

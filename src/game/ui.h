@@ -320,10 +320,12 @@ public:
     std::uint8_t unknown_82[0x84 - 0x82];
     stlp::list<mfc::CString> messages_;   // +0x84 queued message texts (ShowMessage takes the first)
     bool disconnected_;              // +0x88 a network client lost the server (the frame shows a message)
-    // +0x89..+0x97: the state saved with a game (LoadState), cleared by ResetSavedState.
-    std::uint8_t unknown_89[3];
-    int unknown_8C;
-    int unknown_90;
+    // +0x89..+0x97: the state saved with a game (LoadState), cleared by ResetSavedState. The HUD
+    // panels keep theirs here every frame: in (or coming in) for the unit panel, the top panel and
+    // the map, the unit panel's body part and the top panel's page.
+    std::uint8_t hudPanelsIn_[3];    // +0x89 [0] the unit panel, [1] the top panel, [2] the map
+    int hudBodyPart_;                // +0x8C CHudUnitPanel::bodyPart_
+    int hudTopPage_;                 // +0x90 CHudTopPanel::page_
     int fastGame_;                   // +0x94 the fast game speed (the clock's +0x154)
     // +0x98 help topics seen: topic name -> times (or the page the help window was closed on; see ui_help_window.cpp) (config\tutorial.ini, "name count" lines; read
     // by Create 005F4990, written by Shutdown, counted by OpenHelp 005F86F0).
@@ -357,6 +359,8 @@ public:
 };
 static_assert(offsetof(CInterface3D, mouseCapture_) == 0x0C);
 static_assert(offsetof(CInterface3D, doubleClick_) == 0x7F);
+static_assert(offsetof(CInterface3D, hudPanelsIn_) == 0x89 && offsetof(CInterface3D, hudTopPage_) == 0x90);
+static_assert(offsetof(CInterface3D, fastGame_) == 0x94 && offsetof(CInterface3D, messages_) == 0x84);
 static_assert(offsetof(CInterface3D, stackBegin_) == 0x34);
 static_assert(offsetof(CInterface3D, pendingValue_) == 0x48);
 static_assert(offsetof(CInterface3D, mouseX_) == 0x68);
@@ -367,7 +371,7 @@ static_assert(offsetof(CInterface3D, drawing_) == 0x30);
 static_assert(offsetof(CInterface3D, closeAll_) == 0x44);
 static_assert(offsetof(CInterface3D, rightDown_) == 0x80 && offsetof(CInterface3D, pollTop_) == 0x81 &&
               offsetof(CInterface3D, disconnected_) == 0x88);
-static_assert(offsetof(CInterface3D, unknown_8C) == 0x8C);
+static_assert(offsetof(CInterface3D, hudBodyPart_) == 0x8C);
 static_assert(offsetof(CInterface3D, fastGame_) == 0x94);
 static_assert(offsetof(CInterface3D, fpsSurface_) == 0x20 && offsetof(CInterface3D, queuedWindow_) == 0x40);
 static_assert(offsetof(CInterface3D, statusSurface_) == 0x64);
@@ -831,6 +835,16 @@ public:
         using Fn = BOOL(__thiscall*)(CUiWindow*, void*);
         return reinterpret_cast<Fn>(vtable_[20])(this, pass);
     }
+    BOOL VirtualDraw(int pass) {
+        using Fn = BOOL(__thiscall*)(CUiWindow*, int);
+        return reinterpret_cast<Fn>(vtable_[20])(this, pass);
+    }
+    // Slot 21 (+0x54): the draw a window with child windows (00600F70) gives each enabled child,
+    // with the pass.
+    void VirtualDrawChild(int pass) {
+        using Fn = void(__thiscall*)(CUiWindow*, int);
+        reinterpret_cast<Fn>(vtable_[21])(this, pass);
+    }
     void VirtualRedraw() { CallVirtual(22); }
     void VirtualRedrawTips() { CallVirtual(23); }
     void VirtualUpdate() { CallVirtual(24); }
@@ -1024,6 +1038,7 @@ class CHudSpellColumn;
 class CHudActionColumn;
 class CHudWeaponBar;
 class CHudPortraits;
+class CHudUnitPanel;
 
 // An MFC CDWordArray. Its SetSize is the instantiation's (0059C660, not rewritten; `growBy` -1
 // keeps the step), through UiDwordsSetSize (ui_battle_setup.cpp).
@@ -1035,7 +1050,31 @@ void __fastcall UiDwordsSetSize(UiDwordArray* array, void*, int size, int growBy
 
 // The interface's renderer (CInterface3D +0x08), only as the HUD uses it.
 struct UiD3DDevice {
-    void** vtable_;   // IDirect3DDevice7: slot 20 SetRenderState, 21 GetRenderState
+    // IDirect3DDevice7 slots 20 / 21 (stdcall).
+    // Slot 10: Clear(count, rects, flags, colour, z, stencil).
+    long Clear(DWORD count, void* rects, DWORD flags, DWORD colour, float z, DWORD stencil) {
+        using Fn = long(__stdcall*)(UiD3DDevice*, DWORD, void*, DWORD, DWORD, float, DWORD);
+        return reinterpret_cast<Fn>(vtable_[10])(this, count, rects, flags, colour, z, stencil);
+    }
+    // Slots 36 / 37: Get / SetTextureStageState(stage, type, value).
+    long GetTextureStageState(DWORD stage, DWORD type, std::uint32_t* value) {
+        using Fn = long(__stdcall*)(UiD3DDevice*, DWORD, DWORD, std::uint32_t*);
+        return reinterpret_cast<Fn>(vtable_[36])(this, stage, type, value);
+    }
+    long SetTextureStageState(DWORD stage, DWORD type, DWORD value) {
+        using Fn = long(__stdcall*)(UiD3DDevice*, DWORD, DWORD, DWORD);
+        return reinterpret_cast<Fn>(vtable_[37])(this, stage, type, value);
+    }
+    long SetRenderState(std::uint32_t state, std::uint32_t value) {
+        using Fn = long(__stdcall*)(UiD3DDevice*, std::uint32_t, std::uint32_t);
+        return reinterpret_cast<Fn>(vtable_[20])(this, state, value);
+    }
+    long GetRenderState(std::uint32_t state, std::uint32_t* value) {
+        using Fn = long(__stdcall*)(UiD3DDevice*, std::uint32_t, std::uint32_t*);
+        return reinterpret_cast<Fn>(vtable_[21])(this, state, value);
+    }
+
+    void** vtable_;   // IDirect3DDevice7
 };
 struct UiRenderer {
     // 004E7840 / 004E7A40 (not rewritten). Flush the two batched vertex buffers.
@@ -1110,7 +1149,8 @@ public:
     CHudSpellColumn* spellColumn_;   // +0x19C
     CHudActionColumn* actionColumn_; // +0x1A0
     CHudPortraits* portraits_;       // +0x1A4
-    std::uint8_t unknown_1A8[0x220 - 0x1A8];
+    CHudUnitPanel* unitPanel_;       // +0x1A8
+    std::uint8_t unknown_1AC[0x220 - 0x1AC];
     // +0x220 the key a player's item gives (its slot 21) when it starts mode 6; SelectUnit hands
     // it to the target's AcceptsKey (map object slot 42).
     LockKey itemUseKey_;
@@ -1233,7 +1273,8 @@ public:
     // Item of the region at `index` (-1: empty). The original indexes this with the result of
     // RegionAt unchecked, so index -1 reads the dword before the array (+0x168).
     int RegionItem(int index) const {
-        return reinterpret_cast<const int*>(reinterpret_cast<const std::uint8_t*>(this) + 0x16C)[index];
+        const int* items = regionItem_;   // declared below
+        return items[index];
     }
 
     // The vanilla bodies of the panel's Rebirth-patched functions (ui_hud_build.cpp; hooked in the
@@ -1620,12 +1661,19 @@ public:
     float vOffset_;                  // +0xD0 sprite sheet: the HUD buttons' states, the bars' colours)
     std::uint32_t plainColour_;      // +0xD4 ARGB (the global map's layers and its pick render)
     std::uint32_t colour_;           // +0xD8 ARGB (the HUD buttons: 0xFF404040 highlighted, 0xFF000000 not)
-    std::uint8_t unknown_0DC[0x1C0 - 0xDC];
+    std::uint8_t unknown_0DC[0x138 - 0xDC];
+    // The figure mesh's per-normal colour arrays (CFigureMesh::colorsA_ / colorsB_, figure_mesh.h);
+    // the shape builders size them to four entries.
+    lib::AlignedArray<std::uint32_t> colorsA_;   // +0x138
+    lib::AlignedArray<std::uint32_t> colorsB_;   // +0x148
+    std::uint8_t unknown_158[0x1C0 - 0x158];
     UiQuadBlock* quads_;             // +0x1C0
     int quadCount_;                  // +0x1C4
     int quadCapacity_;               // +0x1C8
     int quadGrowBy_;                 // +0x1CC
-    std::uint8_t unknown_1D0[0x1E0 - 0x1D0];
+    // The normal packets (CFigureMesh::normals_): the shape builders keep one, (0, 0, 1) for the
+    // four corners with w 1.
+    lib::AlignedArray<UiQuadBlock> normals_;     // +0x1D0
     UiMeshVertex* vertices_;         // +0x1E0
     int vertexCount_;                // +0x1E4
     int vertexCapacity_;             // +0x1E8
@@ -1654,7 +1702,8 @@ public:
 static_assert(offsetof(CUiMesh, colour_) == 0xD8);
 static_assert(offsetof(CUiMesh, scaleMatrix_) == 0x23C && offsetof(CUiMesh, material_) == 0x27C);
 static_assert(offsetof(CUiMesh, position_) == 0x1C && offsetof(CUiMesh, placement_) == 0x54);
-static_assert(offsetof(CUiMesh, quads_) == 0x1C0);
+static_assert(offsetof(CUiMesh, colorsA_) == 0x138 && offsetof(CUiMesh, colorsB_) == 0x148);
+static_assert(offsetof(CUiMesh, quads_) == 0x1C0 && offsetof(CUiMesh, normals_) == 0x1D0);
 static_assert(offsetof(CUiMesh, vertices_) == 0x1E0);
 static_assert(offsetof(CUiMesh, indices_) == 0x200);
 static_assert(offsetof(CUiMesh, uvs_) == 0x210 && offsetof(CUiMesh, uvGrowBy_) == 0x21C);
@@ -1788,7 +1837,7 @@ public:
     // where up to six pictures are kept: effectIcons_). Scene object 9 shows when there are more.
     void ShowEffects(CUnit* unit);
     // 00635D00 (ui_hud_destroy.cpp; slot 0 00635CE0 calls it). Destructor body: the part labels,
-    // textsVtable_'s array, the two strings (+0x168 first), then the window base's (005FE930).
+    // texts_, the two strings (+0x168 first), then the window base's (005FE930).
     void DestroyBody();
     // 00635CE0 (slot 0, the deleting destructor; ui_window_delete.cpp). DestroyBody, then the
     // memory freed when bit 0 of `flags` is set; returns this.
@@ -1842,17 +1891,14 @@ public:
     float slideDirection_;           // +0x17C +1 / -1
     int bodyPart_;                   // +0x180 selected body part 0-3 (scene objects 3-6)
     int effectIcons_[6];             // +0x184 the spell pictures in the icon texture's six places
-    void* textsVtable_;              // +0x19C CStringArray
-    std::uint8_t unknown_1A0[0x1B0 - 0x1A0];
-    void* partLabelsVtable_;         // +0x1B0 CStringArray (its data:)
-    mfc::CString* partLabels_;       // +0x1B4 four: the shown names of "skull", "torso", "leg", "arm"
+    mfc::CStringArray texts_;        // +0x19C "infounit_0".."infounit_17": the info lines' labels
+    mfc::CStringArray partLabels_;   // +0x1B0 four: the shown names of "skull", "torso", "leg", "arm"
 };
+static_assert(offsetof(CHudUnitPanel, texts_) == 0x19C && offsetof(CHudUnitPanel, partLabels_) == 0x1B0);
 static_assert(offsetof(CHudUnitPanel, owner_) == 0x148 && offsetof(CHudUnitPanel, shownUnit_) == 0x14C);
 static_assert(offsetof(CHudUnitPanel, hoverUnit_) == 0x150 && offsetof(CHudUnitPanel, strings_) == 0x164);
 static_assert(offsetof(CHudUnitPanel, slideDirection_) == 0x17C && offsetof(CHudUnitPanel, offset_) == 0x170);
 static_assert(offsetof(CHudUnitPanel, bodyPart_) == 0x180);
-static_assert(offsetof(CHudUnitPanel, textsVtable_) == 0x19C);
-static_assert(offsetof(CHudUnitPanel, partLabels_) == 0x1B4);
 
 // Game clock (set up by 00648520, vtables 007425C8 / 00742594; 720..800 x 520..600).
 class CHudClock : public CUiWindow {
@@ -1883,7 +1929,7 @@ public:
     // world's update period (27 ms fast, 55 normal), the interface's copy, no blink, no pulse.
     void SetupVanilla(int fast);
 
-    std::uint8_t unknown_148[4];
+    CBattleScreen* owner_;           // +0x148 (Create sets it; the clock does not read it)
     float blink_;                    // +0x14C 0..1, the pause blink phase
     float dial_;                     // +0x150 speed dial angle (wraps at pi / 6)
     int fast_;                       // +0x154 fast game speed (copied to CInterface3D +0x94)
@@ -2570,13 +2616,6 @@ public:
     // (its float pairs), otherwise from map.txt's "#quest <name>" entry (the second line after
     // it, its words as x y pairs).
     void LoadQuestPlaces(const char* name);
-    // The quest places (+0x1CC) as the STLport vector they are.
-    stlp::vector<UiPointF>& QuestPlaces() { return reinterpret_cast<stlp::vector<UiPointF>&>(questPlacesBegin_); }
-    // The other containers as what they are (the fields below are their parts).
-    stlp::vector<mfc::CString>& Zones() { return reinterpret_cast<stlp::vector<mfc::CString>&>(zonesBegin_); }
-    mfc::CArray<ObjectiveExit>& Exits() { return reinterpret_cast<mfc::CArray<ObjectiveExit>&>(exitsVtable_); }
-    mfc::CStringArray& Quests() { return reinterpret_cast<mfc::CStringArray&>(quests_); }
-    mfc::CStringArray& ObjectiveTexts() { return reinterpret_cast<mfc::CStringArray&>(objectiveTexts_); }
     // ui_objectives_input.cpp (A-H24).
     // 0064E990 (RET 4). Exit `index` becomes the nearest (+0x19C): its marker (sprite 21 + index)
     // 1.2 times markerScale_ and the first frame, the blink restarted; the others markerScale_ and
@@ -2602,38 +2641,32 @@ public:
     void Setup(const char* zone, void* exitDistances, int twoButtons, int listZones);
     const char* HelpTopic() const;
 
-    char** zonesBegin_;             // +0x164 STLport vector<CString> of the zones listed
-    char** zonesEnd_;                // +0x168
-    char** zonesCapacity_;           // +0x16C
+    stlp::vector<mfc::CString> zones_;   // +0x164 the zones listed
     char* zoneName_;                 // +0x170 CString: the zone it was opened for
     int twoButtons_;                 // +0x174 OK on the left and a second button (else OK centred)
     stlp::map<int, float>* exitDistances_;   // +0x178 exit -> distance, or null
     int listZones_;                  // +0x17C list the zones of the zone's allod with quests
     int zoneIndex_;                  // +0x180 the zone shown
     char* shownZone_;                // +0x184 CString
-    void* exitsVtable_;              // +0x188 CArray<ObjectiveExit>
-    ObjectiveExit* exits_;           // +0x18C
-    int exitCount_;                  // +0x190
-    int exitCapacity_;               // +0x194
-    int exitGrowBy_;                 // +0x198
+    mfc::CArray<ObjectiveExit> exits_;   // +0x188 (vtable 00741264)
     int nearestExit_;                // +0x19C
     int selectedQuest_;              // +0x1A0 row of the quest named by the global at 007C8178
     int shownQuest_;                 // +0x1A4 the row ShowQuest last showed (-1: none)
-    std::uint8_t quests_[0x14];      // +0x1A8 CStringArray (data +0x1AC, size +0x1B0)
+    mfc::CStringArray quests_;       // +0x1A8
     CUiScrollbar* bar_;              // +0x1BC
     int firstRow_;                   // +0x1C0 the first quest row shown (the bar's position)
     float markerScale_;              // +0x1C4
     float blinkTime_;                // +0x1C8 seconds since the exit was selected (the markers' blink)
-    // +0x1CC STLport vector of the selected quest's places (8-byte points); RefreshQuests
-    // (0064DC60) gives each a sprite and a region after the exits'.
-    UiPointF* questPlacesBegin_;     // +0x1CC
-    UiPointF* questPlacesEnd_;       // +0x1D0
-    UiPointF* questPlacesCapacity_;  // +0x1D4
-    std::uint8_t objectiveTexts_[0x14];   // +0x1D8 CStringArray of obj_0..obj_2
+    // +0x1CC the selected quest's places; ShowQuest (0064DC60) gives each a sprite and a region
+    // after the exits'.
+    stlp::vector<UiPointF> questPlaces_;
+    mfc::CStringArray objectiveTexts_;   // +0x1D8 obj_0..obj_2
     std::uint32_t savedAlphaRef_;    // +0x1EC
 };
-static_assert(offsetof(CObjectivesWindow, zonesBegin_) == 0x164);
-static_assert(offsetof(CObjectivesWindow, exits_) == 0x18C);
+static_assert(offsetof(CObjectivesWindow, zones_) == 0x164);
+static_assert(offsetof(CObjectivesWindow, exits_) == 0x188 && offsetof(CObjectivesWindow, nearestExit_) == 0x19C);
+static_assert(offsetof(CObjectivesWindow, quests_) == 0x1A8 && offsetof(CObjectivesWindow, questPlaces_) == 0x1CC);
+static_assert(offsetof(CObjectivesWindow, objectiveTexts_) == 0x1D8 && offsetof(CObjectivesWindow, savedAlphaRef_) == 0x1EC);
 static_assert(offsetof(CObjectivesWindow, bar_) == 0x1BC);
 static_assert(sizeof(CObjectivesWindow) == 0x1F0);
 

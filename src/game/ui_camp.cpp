@@ -693,7 +693,7 @@ namespace {
 
 // 0052C690 (thiscall on a counted pointer, RET 4; a copy of ObjectHolderAssign): the slot takes
 // `object` with a reference and releases the one it held.
-__declspec(naked) void __fastcall CountedSlotAssign(void** slot, void*, void* object) EI_ORIGINAL(0x0052C690)
+__declspec(naked) void __fastcall CountedSlotAssign(void** /*slot*/, void*, void* /*object*/) EI_ORIGINAL(0x0052C690)
 
 void ReleaseObject(void* object) {
     if (object) static_cast<CEngineObject*>(object)->Release();
@@ -890,7 +890,7 @@ void DestroyRows(TradeRows& rows) {
 
 void __fastcall TradePanelDestroy(CUiWindow* window) {
     auto* self = static_cast<CTradePanel*>(window);
-    StringArrayDestruct(&self->textsVtable_);
+    StringArrayDestruct(&self->texts_);
     FreeBlock3C(self->records_.begin, static_cast<int>(self->records_.capacity - self->records_.begin));
     DestroyRows(self->science_);
     DestroyRows(self->schools_);
@@ -1359,7 +1359,7 @@ CCampPages* CCampPages::Construct(CInterface3D* ui, int fromHeroScreen) {
     inputVtable_ = reinterpret_cast<void**>(0x007409F8);
     std::memcpy(&fromHeroScreen_, &compare, 1);   // the byte as it is
     heroes_.Construct(0x007402AC);
-    StringArrayConstruct(&pageTitlesVtable_);
+    StringArrayConstruct(&pageTitles_);
     vtable_ = reinterpret_cast<void**>(0x0074091C);
     inputVtable_ = reinterpret_cast<void**>(0x007408E8);
     return this;

@@ -5,6 +5,7 @@
 
 #include "../../src/game/dx_surface.h"
 #include "../../src/game/texture.h"
+#include "../../src/game/ui.h"
 #include "../../src/lib/mfc.h"
 #include "../../src/render/render.h"
 
@@ -15,8 +16,8 @@
 
 CDXSurface* __fastcall DXSurfaceConstruct(CDXSurface* holder, void*, CTextureDevice* device, int width, int height);
 void __fastcall DXSurfaceDestroy(CDXSurface* holder);
-void* __fastcall UiSurfaceGetDC(char* surface);
-void __fastcall UiSurfaceReleaseDC(char* surface);
+void* __fastcall UiSurfaceGetDC(CUiSurface* surface);
+void __fastcall UiSurfaceReleaseDC(CUiSurface* surface);
 
 namespace {
 // The holder has its pixels: a DirectDraw surface, or (in the switch-over with "cpuwindows",
@@ -199,9 +200,9 @@ EI_VERIFY(0x004EFD20, DXSurfaceDestroyVerify, 0, s_destroy);
 
 // 005FDC00: with a surface and a CDC returned, the HDC is in +8.
 static void* s_getDc;
-static void* __fastcall UiSurfaceGetDCVerify(char* surface) {
+static void* __fastcall UiSurfaceGetDCVerify(CUiSurface* surface) {
     void* result = UiSurfaceGetDC(surface);
-    bool ok = !result || *reinterpret_cast<HDC*>(surface + 8) != nullptr;
+    bool ok = !result || surface->dc_ != nullptr;
     ei::verify::Check("UiSurfaceGetDC", true, ok, "surface %p", static_cast<void*>(surface));
     return result;
 }
@@ -209,9 +210,9 @@ EI_VERIFY(0x005FDC00, UiSurfaceGetDCVerify, 0, s_getDc);
 
 // 005FDC60: +8 cleared.
 static void* s_releaseDc;
-static void __fastcall UiSurfaceReleaseDCVerify(char* surface) {
+static void __fastcall UiSurfaceReleaseDCVerify(CUiSurface* surface) {
     UiSurfaceReleaseDC(surface);
-    ei::verify::Check("UiSurfaceReleaseDC", true, *reinterpret_cast<HDC*>(surface + 8) == nullptr, "surface %p",
+    ei::verify::Check("UiSurfaceReleaseDC", true, surface->dc_ == nullptr, "surface %p",
                       static_cast<void*>(surface));
 }
 EI_VERIFY(0x005FDC60, UiSurfaceReleaseDCVerify, 0, s_releaseDc);

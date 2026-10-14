@@ -170,8 +170,8 @@ std::vector<std::string> StringsOf(const mfc::CStringArray* array) {
     return strings;
 }
 
-mfc::CStringArray* InfoTexts(CHudUnitPanel* p) { return reinterpret_cast<mfc::CStringArray*>(&p->textsVtable_); }
-mfc::CStringArray* PartLabels(CHudUnitPanel* p) { return reinterpret_cast<mfc::CStringArray*>(&p->partLabelsVtable_); }
+mfc::CStringArray* InfoTexts(CHudUnitPanel* p) { return &p->texts_; }
+mfc::CStringArray* PartLabels(CHudUnitPanel* p) { return &p->partLabels_; }
 
 } // namespace
 

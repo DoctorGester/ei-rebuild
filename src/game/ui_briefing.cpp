@@ -264,5 +264,5 @@ EI_REPLACE_METHOD(0x00606F40, CBriefingScreen::OnMessageResult);
 
 // --- 00607720 -----------------------------------------------------------------------------------
 
-void CBriefingScreen::LoadPersonTexts() { personTexts_.Load(); }
+void CBriefingScreen::LoadPersonTexts() { ::LoadPersonTexts(&personTexts_); }
 EI_REPLACE_METHOD(0x00607720, CBriefingScreen::LoadPersonTexts);

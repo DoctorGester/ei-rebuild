@@ -22,22 +22,9 @@ struct PersonTextPair {
     mfc::CString text;
 };
 
-PersonTextNode* LowerBound(const PersonTextMap* map, int key) {
-    PersonTextNode* bound = map->header;
-    for (PersonTextNode* node = map->header->parent; node;) {
-        if (!(node->key < key)) {
-            bound = node;
-            node = node->left;
-        } else {
-            node = node->right;
-        }
-    }
-    return bound;
-}
-
 } // namespace
 
-void PersonTextMap::Load() {
+void LoadPersonTexts(PersonTextMap* map) {
     CTextManager* texts = GameTexts();
     console::CStringArray keys;
     mfc::CString line;
@@ -50,13 +37,13 @@ void PersonTextMap::Load() {
             mfc::CString name = console::Ops(keys[i]).Mid(kPersonPrefixLength);
             key = TextKeyFromName(name);
         }
-        PersonTextNode* node = LowerBound(this, key);
-        if (node == header || key < node->key) {
+        PersonTextNode* node = map->lower_bound(key);
+        if (node == map->end() || key < node->first) {
             mfc::CString empty;
             PersonTextPair pair{key, empty};
-            PersonTextNode* inserted;
-            node = *PersonMapInsertHintOriginal(this, nullptr, &inserted, node, &pair);
+            void* inserted;
+            node = static_cast<PersonTextNode*>(*PersonMapInsertHintOriginal(map, nullptr, &inserted, node, &pair));
         }
-        node->text = line;
+        node->second = line;
     }
 }
