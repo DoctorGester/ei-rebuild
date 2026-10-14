@@ -257,8 +257,8 @@ FigurePart* CObject3D::LoadPart(const char* partName, void* model, std::uint32_t
             StringMapFindOriginal(instance->pieces, nullptr, &node, &key);
         }
         const auto* record = static_cast<const FigurePieceRecord*>(node);
-        part->piece158 = record->unknown_20;
-        part->piece15C = record->unknown_1C;
+        part->piece158 = record->materialValue;
+        part->piece15C = record->meshType;
         std::memcpy(&part->boxFlags, &record->boxFlags, sizeof(FootprintPart));
     }
     if (gamecrt::strnicmp(partName, "BASE", 4) == 0) part->boxFlags |= kBoxBase;

@@ -37,7 +37,7 @@ int CObject3D::Create3D() {
     orientation = IdentityOrientation();
     attached = nullptr;
     flags_ = 0;
-    unknown_09C = 0;
+    spare09C = 0;
     animations = nullptr;
     std::memset(&scale, 0, sizeof(scale));
     CEngineObject* old = figure;
@@ -89,7 +89,7 @@ void CObject3D::Destroy3D() {
     pendingParts.size = 0;
     if (attached) attached->Release();
     attached = nullptr;
-    unknown_09C = 0;
+    spare09C = 0;
     animations = nullptr;
     flags_ = 0;
 }

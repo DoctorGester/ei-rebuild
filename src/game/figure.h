@@ -88,15 +88,17 @@ public:
     // is placed at the pose with the morph points as its offsets (005A0B10).
     int AttachMeshes(const lib::AlignedArray<void*>* parts);
 
-    std::uint32_t unknown_000;
+    // +0x000, +0x008..+0x018, +0x034: cleared (the names constructed and destroyed) by the
+    // constructor and the destructor; nothing reads them.
+    std::uint32_t spare000_;
     mfc::CString name_;                                  // +0x004
-    mfc::CString unknown_008;                            // +0x008
-    mfc::CString unknown_00C;                            // +0x00C
-    std::uint32_t unknown_010[3];
+    mfc::CString spareName008_;                          // +0x008
+    mfc::CString spareName00C_;                          // +0x00C
+    std::uint32_t spare010_[3];                          // +0x010
     CAnimationNode* parent_;                             // +0x01C
     lib::AlignedArray<CAnimationNode*> children_;        // +0x020
     class CFigureMesh* mesh_;                            // +0x030 the part the node places, or null
-    std::uint32_t unknown_034;
+    std::uint32_t spare034_;                             // +0x034
     std::uint32_t clock_[2];                             // +0x038 cleared by Rewind (a double?)
     int frameCount_;                                     // +0x040 the animation's frames (a short)
     lib::AlignedArray<AnimationRotationKey> rotationKeys_;   // +0x044
@@ -107,8 +109,8 @@ public:
     int normalCursor_;                                   // +0x080 the same
     mfc::CArray<AnimationMorphFrame, AnimationMorphFrameElements> morphFrames_;   // +0x084 (vtable 0073D9BC)
     int morphCursor_;                                    // +0x098 the same
-    Quaternion unknown_09C;                              // +0x09C from 007AF0E0 (constructor)
-    Vector3 unknown_0AC;                                 // +0x0AC from 007AF0F0
+    Quaternion defaultRotation_;                         // +0x09C 007AF0E0 (constructor); nothing reads it
+    Vector3 defaultPosition_;                            // +0x0AC 007AF0F0 (constructor); nothing reads it
     Quaternion poseRotation_;                            // +0x0B8 the node's rotation in the figure
     Vector3 posePosition_;                               // +0x0C8 its position in the figure
     lib::AlignedArray<Vector3> pointsB_;                 // +0x0D4 one per morph point, zeroed
@@ -134,7 +136,7 @@ static_assert(offsetof(CAnimationNode, pointsB_) == 0xD4);
 static_assert(offsetof(CAnimationNode, mesh_) == 0x30 && offsetof(CAnimationNode, clock_) == 0x38);
 static_assert(offsetof(CAnimationNode, rotationCursor_) == 0x54 && offsetof(CAnimationNode, morphCursor_) == 0x98);
 static_assert(offsetof(CAnimationNode, poseRotation_) == 0xB8 && offsetof(CAnimationNode, posePosition_) == 0xC8);
-static_assert(offsetof(CAnimationNode, restRotation_) == 0xE4 && offsetof(CAnimationNode, unknown_0AC) == 0xAC);
+static_assert(offsetof(CAnimationNode, restRotation_) == 0xE4 && offsetof(CAnimationNode, defaultPosition_) == 0xAC);
 static_assert(offsetof(CAnimationNode, restPosition_) == 0xF4);
 static_assert(offsetof(CAnimationNode, pointsA_) == 0x100);
 static_assert(offsetof(CAnimationNode, position_) == 0x110);

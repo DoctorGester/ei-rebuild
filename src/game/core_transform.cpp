@@ -148,8 +148,8 @@ void CCamera::SetTiltRate(float rate) {
 }
 EI_REPLACE_METHOD(0x0040F3C0, CCamera::SetTiltRate);
 
-void CCamera::SetUnknownD0(std::uint32_t value) { unknownD0_ = value; }
-EI_REPLACE_METHOD(0x0040F420, CCamera::SetUnknownD0);
+void CCamera::SetZoomTarget(std::uint32_t value) { zoomTarget_ = value; }
+EI_REPLACE_METHOD(0x0040F420, CCamera::SetZoomTarget);
 
 void CCamera::SetTarget(const CEngineObject* target) {
     if (!target) {

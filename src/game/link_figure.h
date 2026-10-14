@@ -49,15 +49,15 @@ struct FigureMeshDrawer {
     // 4 x 4 sheet, 16 32 frames of 8 x 4 (u = column / 4 or / 8, v = 1 - row / 4); 15 none.
     void Animate(float time);
 
-    std::uint8_t unknown_00[8];
+    std::uint8_t unused_00[8];
     std::uint32_t flags_;       // +0x08 gets the bits of 00790C0C when the mesh is animated
-    std::uint8_t unknown_0C[0x1C - 0x0C];
+    std::uint8_t unused_0C[0x1C - 0x0C];
     CFigureMesh* mesh_;         // +0x1C the mesh it draws
     RECT screen_;               // +0x20 where the mesh was last drawn
-    Vector3 unknown_30;         // +0x30 (1, 1, 1) after Create
+    Vector3 spare30_;           // +0x30 (1, 1, 1) after Create; nothing reads it
 };
 static_assert(offsetof(FigureMeshDrawer, mesh_) == 0x1C && offsetof(FigureMeshDrawer, screen_) == 0x20);
-static_assert(offsetof(FigureMeshDrawer, unknown_30) == 0x30 && sizeof(FigureMeshDrawer) == 0x3C);
+static_assert(offsetof(FigureMeshDrawer, spare30_) == 0x30 && sizeof(FigureMeshDrawer) == 0x3C);
 
 class CTextureDevice;   // texture.h
 class CTexture;         // texture.h
@@ -73,10 +73,12 @@ struct CDXSurface;   // texture.h
 // A part's header in the mesh's map +0x14 (map<string, LinkPartHeader>; 0x50 bytes, zeroed when
 // the map inserts it).
 struct LinkPartHeader {
-    std::uint32_t unknown_00;   // +0x00 the second dword after the FIG header
-    std::uint32_t unknown_04;   // +0x04 the first one
+    // +0x00 / +0x04 the second / first dword after the FIG header: the part's CFigureMesh::meshType_
+    // and materialValue_ (the figure's parts copy them, FigurePieceRecord).
+    std::uint32_t meshType;
+    std::uint32_t materialValue;
     ClipBounds bounds;          // +0x08 fitted to the part's morphed vertices
-    std::uint8_t unknown_34[0x0C];
+    Vector3 pivot;              // +0x34 the part's position when loaded (FigurePart::boxPivot)
     RECT screen;                // +0x40 where the part was last drawn (empty: not drawn)
 };
 static_assert(offsetof(LinkPartHeader, screen) == 0x40);

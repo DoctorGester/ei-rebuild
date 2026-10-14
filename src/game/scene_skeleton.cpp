@@ -190,8 +190,8 @@ int __fastcall BuildSkeleton(VtArray* meshArray, VtArray* nodeArray, int frames,
             NodeFrame* first = records.data;
             first->pivot = node->pivot;
             first->rotation = node->rotation;
-            node->unknown_010 = 0;
-            node->unknown_014 = 0;
+            node->spare010 = 0;
+            node->spare014 = 0;
         }
     }
     return 1;

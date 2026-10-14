@@ -51,11 +51,11 @@ Rebirth's WideScreen patch folded in (100 sites), one Opus ticket at a time; `ru
 
 Every unknown_XXX member becomes a real name or unused_XXX (same type and offset; renames only, layout unchanged). check_cleanup counts `unknown field` (727 in 97 files on 2026-10-14) and `unused field accessed` (stays 0). Rebirth's DLL may read a field we call unused.
 
-- **F4** Unknown fields: scene, figures, terrain, map objects, textures (~140) (running since 2026-10-14). Files: `scene_loader.*`, `map_object_figures.h`, `terrain*`, `figure*`, `camera.h`, `texture.h`, `map_object*`, `link_figure.h`, `object_tables.h`, `material.h`, `model.h`, `renderer_lines.h`.
 - **F5** Unknown fields: the rest (~105) (review since 2026-10-14). Files: `map_spec.h`, `net_*`, `player_*`, `sound*`, `script*`, `app_*`, `bink_video.cpp`, `quest_records.h`, `base_manager.h`, `src/lib`.
 - **F3** Unknown fields: interface (~125) (ready). Coordinate with W2 (ui.h) and the P tickets: renames only. Files: `ui.h`, `ui_camp.h`, `ui_screens.h`, `ui_briefing.h`, `ui_*`.
 - **F1** Unknown fields: world, combat, effects, spells (done 2026-10-14). 181 named or unused_XXX (with F2: 727 -> 374); notes in cleanup-world.md / cleanup-effects.md. Follow-ups: CSpellEffect and world.h's Projectile as one declaration (CSpellEffect::targetCount is really the duration); ZoneExit and MapExit as one declaration; the dead aiPresence / AIEventPresence path (005C9770 always returns 0). Files: `world.h`, `combat.h`, `spell.h`, `effects.h`, `world_effect.h`, `sky_object.h`, `lightning / trap / lever / cage`, `particle_emitters.cpp`.
 - **F2** Unknown fields: units, AI, items (done 2026-10-14). 172 named or unused_XXX (727 -> 555); meanings in cleanup-units.md. Follow-ups: CombatStats +0x60 / +0x64 / +0x8C take UnitStats' names; SetUnknown438 -> SetFightAtWill; unit_db_destroy.cpp's local skill record structs have swapped names; a Ghidra pass on the archive fields named fieldN. Files: `unit.h`, `unit_db.h`, `unit_ai.h`, `ai_map.h`, `ai_*`, `item_db.h`, `item*`, `unit_looks.h`, `unit_client_*`, `class_templates.h`, `party*`.
+- **F4** Unknown fields: scene, figures, terrain, map objects, textures (~140) (done 2026-10-14). Done 2026-10-14: 143 named (90) or unused_XXX (53), 374 -> 231; meanings in cleanup-figures.md (F4 section). Files: `scene_loader.*`, `map_object_figures.h`, `terrain*`, `figure*`, `camera.h`, `texture.h`, `map_object*`, `link_figure.h`, `object_tables.h`, `material.h`, `model.h`, `renderer_lines.h`.
 
 ## Standalone verification (docs/notes/standalone-verification.md)
 
@@ -88,6 +88,7 @@ Scenarios, run_all and the tools around them; X tickets are problems seen in run
 
 After the port and before the standalone exe. Mechanical tickets go to Sonnet (spelling only, never a signature or grouping change); type recovery and tricky debugging to Opus.
 
+- **F4a** View structs into their classes (F4 follow-up) (running since 2026-10-14). F4 named the gaps of views after the real classes; merge them: FigurePart -> CFigureMesh (piece158 / piece15C are materialValue_ / meshType_), FigurePieceRecord's piece -> LinkPartHeader, FigureMaterial and SceneHelper -> CMaterial, TerrainFields -> Terrain, TerrainSector -> terrain::SectorData, the two LineBatch declarations into renderer_lines.h's. Files: `map_object_figures.h`, `figure_mesh.h`, `link_figure.h`, `scene_loader.h`, `material.h`, `terrain.h`, `terrain_sector.h`, `figure_part_bounds.cpp`, `renderer_lines.h`. After: F4.
 - **C3** Forwarders whose declarations differ between files (ready; opus). docs/originals-report.md "differ" group (261 after C3l, 209 already rewritten): one declaration per address in originals_<area>.h (RET n, callers, Ghidra); the ui_* sites next. Batches of 50.
 - **C5** C4 leftovers: per-file streams and Text helpers (ready). UnitStream, SaveStream, FileStream, the unit_ai stream, verify_magic_trap's wrapper, the per-file Text(0x...) helpers (cleanup-engine-base.md).
 - **C9b** map_object_shadow.cpp raw offsets (ready). Left from C9 (models.md, "Layouts").

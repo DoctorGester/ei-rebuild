@@ -58,7 +58,7 @@ __declspec(naked) void __fastcall FigureAttach(void* /*figure*/, void*, void*) E
 // The skin emptied and the unit's own Destroy (the start of both the destructor and slot 3).
 void ReleaseParts(FakeUnitScene* self) {
     self->skin.Clear();
-    self->skin.SetUnknown00(0);
+    self->skin.SetOwner(0);
     UnitDestroy(self);
 }
 

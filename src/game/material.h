@@ -55,9 +55,9 @@ public:
     MaterialColors colors;                  // +0x20
     stlp::deque<MaterialEntry> entries;     // +0x64
     mfc::CString name2;                     // +0x8C (the scene file's second name)
-    int unknown_90;                         // +0x90
+    int spare90;                            // +0x90 0 after Create; nothing reads it
     mfc::CString name3;                     // +0x94 (the scene file's third name)
-    int unknown_98;                         // +0x98
+    int spare98;                            // +0x98 0 after Create; nothing reads it
 };
 static_assert(offsetof(CMaterial, name) == 0x1C && offsetof(CMaterial, colors) == 0x20 &&
               offsetof(CMaterial, entries) == 0x64 && offsetof(CMaterial, name2) == 0x8C &&

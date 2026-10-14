@@ -47,7 +47,7 @@ void CFigureMesh::SaveToFile(mfc::CFileVirtuals* file) {
     Write(file, &boxMin_, 12);
     Write(file, &boxMax_, 12);
     Write(file, &radius_, 4);
-    Write(file, &unknown_158, 4);
+    Write(file, &materialValue_, 4);
     Write(file, &meshType_, 4);
 }
 
@@ -78,7 +78,7 @@ void CFigureMesh::LoadFromFile(mfc::CFileVirtuals* file) {
     Read(file, &boxMin_, 12);
     Read(file, &boxMax_, 12);
     Read(file, &radius_, 4);
-    Read(file, &unknown_158, 4);
+    Read(file, &materialValue_, 4);
     Read(file, &meshType_, 4);
 }
 
@@ -116,12 +116,12 @@ void CFigureMesh::CopyFrom(const CFigureMesh* other) {
     buffers_.texCoordCount = other->buffers_.texCoordCount;
     textureOffsetU_ = 0;
     textureOffsetV_ = 0;
-    unknown_0DC = other->unknown_0DC;
+    spareDC_ = other->spareDC_;
     center_ = other->center_;
     boxMin_ = other->boxMin_;
     boxMax_ = other->boxMax_;
     std::memcpy(&radius_, &other->radius_, 4);
-    unknown_158 = other->unknown_158;
+    materialValue_ = other->materialValue_;
     meshType_ = other->meshType_;
 }
 

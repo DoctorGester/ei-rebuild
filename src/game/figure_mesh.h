@@ -64,13 +64,20 @@ struct FigureMeshDrawer;   // link_figure.h
 
 // The material a figure part is drawn with (005A7A70's fourth argument): its flags, the colours the
 // lights scale (CLight::SetLitColors, +0x20 / +0x40) and the vector the transform object lights with.
+// The layout is CMaterial's (material.h: the engine object, the name, then the colours from +0x20:
+// diffuse, ambient, specular, emissive); the members not used here take its names.
 struct FigureMaterial {
-    std::uint8_t unknown_00[8];
+    void* vtable_;                  // +0x00
+    int refCount_;                  // +0x04
     std::uint8_t flags_;            // +0x08 0x10: the speculars are kept (draw flag 8)
-    std::uint8_t unknown_09[0x40 - 0x09];
+    std::uint8_t flagsHigh_[3];     // +0x09 the rest of CEngineObject::flags_
+    std::uint8_t engineObject_[0x1C - 0x0C];   // +0x0C CEngineObject's id_, type_, owner_, +0x18
+    const char* name_;              // +0x1C CString (CMaterial::name)
+    float diffuse_[4];              // +0x20 CMaterial::colors.diffuse
+    float ambient_[4];              // +0x30 colors.ambient
     float specularColour_[3];       // +0x40 red, green, blue in 0..1 (a kept specular's colour, 004F3870)
-    std::uint8_t unknown_4C[4];
-    std::uint32_t lightVector_[3];  // +0x50 (moved as dwords)
+    float specularAlpha_;           // +0x4C colors.specular's alpha
+    std::uint32_t lightVector_[3];  // +0x50 (moved as dwords; colors.emissive)
 };
 static_assert(offsetof(FigureMaterial, flags_) == 0x08 && offsetof(FigureMaterial, lightVector_) == 0x50);
 static_assert(offsetof(FigureMaterial, specularColour_) == 0x40);
@@ -196,12 +203,12 @@ public:
     int id_;                            // +0x00C (CEngineObject: -1 until a manager registers it)
     int type_;                          // +0x010 the class id (0x41-0x44)
     CBaseManager* manager_;             // +0x014 (CEngineObject: the manager that owns it)
-    std::uint32_t unknown_018;
+    std::uint32_t spare18_;             // +0x018 (CEngineObject's +0x18) 0 when constructed; nothing reads it
     Vector3 position_;                  // +0x01C (CTransformObject: local position)
     Vector3 worldPosition_;             // +0x028 (CTransformObject; SetPose's moved position)
     Quaternion rotation_;               // +0x034 (CTransformObject: local rotation; a bone places it, 0050C230)
     Quaternion worldRotation_;          // +0x044 (CTransformObject)
-    std::uint8_t unknown_054[0x94 - 0x54];
+    Matrix4 worldMatrix_;               // +0x054 part -> object (FigurePart::worldMatrix, map_object_figures.h)
     FigureMeshDrawer* drawer_;          // +0x094 (00501D00 draws through it)
     CObject3D* owner_;                  // +0x098 the object whose figure (+0xF0) may draw the mesh
     MeshBuffers buffers_;               // +0x09C
@@ -211,7 +218,7 @@ public:
     std::uint32_t textureOffsetV_;
     std::uint32_t flatColour_;          // +0x0D4 every colour of a flat mesh (flags_ 0x100)
     std::uint32_t flatSpecular_;        // +0x0D8 every specular of a flat mesh
-    std::uint32_t unknown_0DC;          // +0x0DC cleared by Create, copied by CopyFrom
+    std::uint32_t spareDC_;             // +0x0DC cleared by Create, copied by CopyFrom; nothing reads it
     // +0x0E0 the pose matrix (row-major): SetPose's rotation, its translation row (+0x110) the
     // moved position.
     Matrix4 poseMatrix_;
@@ -220,14 +227,16 @@ public:
     lib::AlignedArray<Vector3> offsets_;     // +0x128 per-vertex offsets added when drawing (005A0B10 / 005A0CD0)
     lib::AlignedArray<std::uint32_t> colorsA_;   // +0x138 one per normal (lit colours)
     lib::AlignedArray<std::uint32_t> colorsB_;   // +0x148 one per normal
-    std::uint32_t unknown_158;          // +0x158 from the file header
+    // +0x158 from the file header (before meshType_): the material value of the scene's mesh
+    // (SceneMesh::materialValue, the number in its material group's name; scene_registry.cpp).
+    std::uint32_t materialValue_;
     std::uint32_t meshType_;            // +0x15C from the file header; 13..16: animated (005A7A70)
     Vector3 center_;                    // +0x160
     Vector3 boxMin_;                    // +0x16C
     Vector3 boxMax_;                    // +0x178
     float radius_;                      // +0x184
     ClipBounds bounds_;                 // +0x188
-    std::uint8_t unknown_1B4[0x1C0 - 0x1B4];
+    Vector3 boxPivot_;                  // +0x1B4 cleared with the bounds (FigurePart::boxPivot)
     lib::AlignedArray<VertexPacket> vertices_;     // +0x1C0
     lib::AlignedArray<NormalPacket> normals_;    // +0x1D0
     // Class 0x41 ends here (0x1E0 bytes).
@@ -243,7 +252,7 @@ static_assert(offsetof(CFigureMesh, textureOffsetU_) == 0xCC && offsetof(CFigure
 static_assert(offsetof(CFigureMesh, worldPosition_) == 0x28 && offsetof(CFigureMesh, poseMatrix_) == 0xE0);
 static_assert(offsetof(CFigureMesh, name_) == 0x120 && offsetof(CFigureMesh, meshType_) == 0x15C);
 static_assert(offsetof(CFigureMesh, colorsA_) == 0x138);
-static_assert(offsetof(CFigureMesh, unknown_158) == 0x158);
+static_assert(offsetof(CFigureMesh, materialValue_) == 0x158 && offsetof(CFigureMesh, worldMatrix_) == 0x54);
 static_assert(offsetof(CFigureMesh, center_) == 0x160);
 static_assert(offsetof(CFigureMesh, radius_) == 0x184);
 static_assert(offsetof(CFigureMesh, bounds_) == 0x188);
@@ -274,7 +283,7 @@ struct FigHeader {
     int indexCount;
     int cornerCount;
     int wordCount;
-    std::uint32_t unknown_1C;
+    std::uint32_t unused_1C;
 };
 static_assert(sizeof(FigHeader) == 0x20);
 

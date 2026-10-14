@@ -528,7 +528,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         objects_.Set(static_cast<unsigned>(id), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
         if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
-        object->unknown_174 = UpdateCountdown(object);
+        object->updateCountdown = UpdateCountdown(object);
         updateMap_.Set(static_cast<unsigned>(object->id_), object);
         SectorMapAdd(AsSectorMap(sectorMap_), nullptr, object);
         int result = object->id_;
@@ -549,7 +549,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         objects_.Set(static_cast<unsigned>(object->id_), object);
         mapObjects_.Set(static_cast<unsigned>(object->id_), object);
         if (object->GetClassId() != world::kClassUnit) otherMapObjects_.Set(static_cast<unsigned>(object->id_), object);
-        object->unknown_174 = UpdateCountdown(object);
+        object->updateCountdown = UpdateCountdown(object);
         updateMap_.Set(static_cast<unsigned>(object->id_), object);
         int result = object->id_;
         if (object->flags_ & 2) ObjectAnnounce(object, nullptr);
@@ -640,7 +640,7 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
         int result = object->id_;
         if (object->flags_ & 2) ObjectAnnounce(object, nullptr);
         if (type >= 8 && type <= 9) {
-            object->unknown_174 = UpdateCountdown(object);
+            object->updateCountdown = UpdateCountdown(object);
             updateMap_.Set(static_cast<unsigned>(object->id_), object);
         }
         if (*object->name2 != 0) namedObjects_.Set(static_cast<unsigned>(object->id_), object);

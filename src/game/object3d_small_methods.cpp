@@ -53,15 +53,15 @@ void CObject3D::ClearPartFlags(std::uint32_t mask) {
 }
 EI_REPLACE_METHOD(0x00517950, CObject3D::ClearPartFlags);
 
-void CObject3D::SetPartsUnknownD4(std::uint32_t value) {
-    for (int i = 0; i < parts.size; ++i) PartAt(this, i)->unknown_0D4 = value;
+void CObject3D::SetPartsFlatColour(std::uint32_t value) {
+    for (int i = 0; i < parts.size; ++i) PartAt(this, i)->flatColour = value;
 }
-EI_REPLACE_METHOD(0x00519500, CObject3D::SetPartsUnknownD4);
+EI_REPLACE_METHOD(0x00519500, CObject3D::SetPartsFlatColour);
 
-void CObject3D::SetPartsUnknownD8(std::uint32_t value) {
-    for (int i = 0; i < parts.size; ++i) PartAt(this, i)->unknown_0D8 = value;
+void CObject3D::SetPartsFlatSpecular(std::uint32_t value) {
+    for (int i = 0; i < parts.size; ++i) PartAt(this, i)->flatSpecular = value;
 }
-EI_REPLACE_METHOD(0x00519530, CObject3D::SetPartsUnknownD8);
+EI_REPLACE_METHOD(0x00519530, CObject3D::SetPartsFlatSpecular);
 
 void CObject3D::SetAnimationState(CFigureAnimationState* state) {
     if (animation) {

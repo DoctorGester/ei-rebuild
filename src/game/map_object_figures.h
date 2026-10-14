@@ -29,39 +29,55 @@ struct FigurePart;
 struct FootprintPart;   // ai_map.h: a figure part's box (0x38 bytes)
 
 // A part of an object's figure (a scene node; names provisional). Only what the figure code
-// reads: its position relative to the object, the piece's offset and box in the figure.
+// reads: its position relative to the object, the piece's offset and box in the figure. The part
+// is a CFigureMesh (figure_mesh.h); the members the figure code does not use take its names.
 struct FigurePart : CEngineObject {
     Vector3 position;               // +0x01C relative to the object
-    std::uint8_t unknown_028[0x34 - 0x28];
+    Vector3 worldPosition;          // +0x028 CFigureMesh::worldPosition_
     Quaternion orientation;         // +0x034 (CFigureMesh::rotation_)
-    std::uint8_t unknown_044[0x54 - 0x44];
+    Quaternion worldRotation;       // +0x044 CFigureMesh::worldRotation_
     // +0x054 part -> object: the rotation, the position as column 3 (the draws build it,
     // ObjectWorldMatrix in map_object_shadow.h).
     Matrix4 worldMatrix;
     // +0x094 the part's own mesh (a CLinkMesh, link_figure.h) when flags_ 0x40 is set; its screen
     // rectangle (+0x20) is where the part was last drawn (the flying hit points, 005E18E0).
     class CLinkMesh* mesh;
-    std::uint8_t unknown_098[0xD4 - 0x98];
-    std::uint32_t unknown_0D4;      // +0x0D4 \ set for every part of an object by 00519500 / 00519530
-    std::uint32_t unknown_0D8;      // +0x0D8 / (the interface's model view, 006462A0)
-    std::uint8_t unknown_0DC[0x128 - 0xDC];
+    CObject3D* owner;               // +0x098 CFigureMesh::owner_
+    std::uint8_t buffers[0xCC - 0x9C];   // +0x09C CFigureMesh::buffers_ (MeshBuffers)
+    std::uint32_t textureOffsetU;   // +0x0CC CFigureMesh::textureOffsetU_
+    std::uint32_t textureOffsetV;   // +0x0D0
+    // +0x0D4 / +0x0D8 every colour / specular of a flat part (CFigureMesh::flatColour_ /
+    // flatSpecular_); set for every part of an object by 00519500 / 00519530 (the interface's
+    // model view, 006462A0).
+    std::uint32_t flatColour;
+    std::uint32_t flatSpecular;
+    std::uint32_t spareDC;          // +0x0DC CFigureMesh::spareDC_
+    Matrix4 poseMatrix;             // +0x0E0 CFigureMesh::poseMatrix_
+    const char* name;               // +0x120 CString (CFigureMesh::name_)
+    const char* directory;          // +0x124 CString (CFigureMesh::directory_)
     lib::AlignedArray<Vector3> offsets;    // +0x128 per-vertex offsets (CFigureMesh::offsets_)
-    std::uint8_t unknown_138[0x158 - 0x138];
-    std::uint32_t piece158;         // +0x158 from the piece record's +0x20 (00517240)
-    std::uint32_t piece15C;         // +0x15C from its +0x1C
-    std::uint8_t unknown_160[0x188 - 0x160];
+    lib::AlignedArray<std::uint32_t> colorsA;   // +0x138 CFigureMesh::colorsA_
+    lib::AlignedArray<std::uint32_t> colorsB;   // +0x148 CFigureMesh::colorsB_
+    std::uint32_t piece158;         // +0x158 from the piece record's +0x20 (00517240; materialValue)
+    std::uint32_t piece15C;         // +0x15C from its +0x1C (meshType)
+    // +0x160..+0x188 the mesh's own bounds (CFigureMesh::center_, boxMin_, boxMax_, radius_).
+    Vector3 meshCenter;
+    Vector3 meshBoxMin;             // +0x16C
+    Vector3 meshBoxMax;             // +0x178
+    float meshRadius;               // +0x184
     // +0x188..+0x1C0: the part's box, laid out as a FootprintPart (ai_map.h); copied whole from
     // the piece record (FigurePieceRecord::boxFlags on).
     std::uint32_t boxFlags;         // +0x188 4 loaded, 0x400 "BASE", 0x90 "CROWN" / "EMPTY", 0x800 "EMPTY"
     Vector3 offset;                 // +0x18C the piece's place in the figure
-    float unknown_198;              // +0x198
+    float radius;                   // +0x198 the box's radius (ClipBounds::radius; the blood's size)
     Vector3 boxMin;                 // +0x19C
     Vector3 boxMax;                 // +0x1A8
     Vector3 boxPivot;               // +0x1B4 the part's position when it was loaded
 };
 static_assert(offsetof(FigurePart, position) == 0x1C);
 static_assert(offsetof(FigurePart, orientation) == 0x34 && offsetof(FigurePart, worldMatrix) == 0x54);
-static_assert(offsetof(FigurePart, unknown_0D4) == 0xD4);
+static_assert(offsetof(FigurePart, flatColour) == 0xD4 && offsetof(FigurePart, poseMatrix) == 0xE0);
+static_assert(offsetof(FigurePart, colorsB) == 0x148 && offsetof(FigurePart, meshRadius) == 0x184);
 static_assert(offsetof(FigurePart, offset) == 0x18C);
 static_assert(offsetof(FigurePart, boxMin) == 0x19C);
 static_assert(offsetof(FigurePart, boxMax) == 0x1A8);
@@ -71,14 +87,16 @@ static_assert(offsetof(FigurePart, boxFlags) == 0x188);
 static_assert(offsetof(FigurePart, boxPivot) == 0x1B4);
 
 // A node of the figure's piece map (an STLport map<string, piece> at figure + 0x14: the key at
-// +0x10, the piece from +0x1C); offsets are from the node. Only these fields reach the parts.
+// +0x10, the piece from +0x1C); offsets are from the node. Only these fields reach the parts. The
+// piece is a LinkPartHeader (link_figure.h).
 struct FigurePieceRecord {
-    std::uint8_t unknown_00[0x1C];
-    std::uint32_t unknown_1C;       // +0x1C -> part +0x15C (00517240)
-    std::uint32_t unknown_20;       // +0x20 -> part +0x158
+    std::uint8_t links[0x10];       // +0x00 the tree node's colour and links
+    std::uint8_t key[0x1C - 0x10];  // +0x10 the part's name (an stlp::string)
+    std::uint32_t meshType;         // +0x1C -> part +0x15C (00517240)
+    std::uint32_t materialValue;    // +0x20 -> part +0x158
     std::uint32_t boxFlags;         // +0x24 -> part +0x188 (0x38 bytes copied from here)
     Vector3 offset;                 // +0x28 -> part +0x18C
-    float unknown_34;               // +0x34 -> part +0x198
+    float radius;                   // +0x34 -> part +0x198
     Vector3 boxMin;                 // +0x38 -> part +0x19C
     Vector3 boxMax;                 // +0x44 -> part +0x1A8
     Vector3 pivot;                  // +0x50 -> part +0x1B4
@@ -89,12 +107,14 @@ static_assert(offsetof(FigurePieceRecord, boxMax) == 0x44);
 struct FigureAnimation {
     char name[0x10];                // +0x00 (the figure manager's 005ACCF0 takes the entry as its name)
     std::uint8_t index;             // +0x10 its index in the database (a unit keeps it at +0x254 / +0x255)
-    std::uint8_t unknown_11[3];
+    std::uint8_t unused_11[3];
     std::uint32_t key;              // +0x14 animation key bits (docs/notes/combat.md): kind 0x3C0000, number 0x3FC00000
     std::uint32_t flags;            // +0x18 bit 0: a bow's arrow shows from frame arrowFrom to arrowTo
     std::uint32_t chance;           // +0x1C percent (005190C0 drops entries below a random percent)
     std::uint32_t frameCount;       // +0x20 the animation's length in frames
-    std::uint8_t unknown_24[0x28 - 0x24];
+    // +0x24 the distance one play of the animation moves the unit (0: the speed comes from the
+    // unit instead; ClientPlaceOnPath, unit_client_path.cpp).
+    float stride;
     std::uint32_t arrowFrom;        // +0x28
     std::uint32_t arrowTo;          // +0x2C
     std::uint32_t stepFrames[4];    // +0x30 the footsteps' frames + 1 (0 ends the list)
@@ -109,9 +129,9 @@ static_assert(sizeof(FigureAnimation) == 0x58);
 // A figure's animation database: the data of "<figure name>.adb" as the object's manager
 // returns it (CBaseManager::GetFile), kept at CObject3D + 0xA0.
 struct AnimationDatabase {
-    std::uint8_t unknown_00[4];
+    std::uint8_t unused_00[4];
     std::uint32_t count;            // +0x04 animations
-    std::uint8_t unknown_08[0x20 - 0x08];
+    std::uint8_t unused_08[0x20 - 0x08];
     float start;                    // +0x20 \ the animation time factor maps t to
     float length;                   // +0x24 | (start + (end - start) * t) / length
     float end;                      // +0x28 /
@@ -371,7 +391,7 @@ public:
     virtual bool HasPiece(const void* name);   // 4: the piece map (+0x14) holds `name` (an stlp::string)
 
     int refCount;                   // +0x04
-    std::uint8_t unknown_08[0x14 - 0x08];
+    std::uint8_t unused_08[0x14 - 0x08];
     std::uint8_t pieces[0x10];      // +0x14 STLport map<string, FigurePieceRecord> (find 005197B0)
 };
 static_assert(offsetof(CFigureInstance, pieces) == 0x14);
@@ -581,9 +601,9 @@ public:
     // 00517910 / 00517950 (RET 4). Every part's flags_ gains / loses the bits of `mask`.
     void SetPartFlags(std::uint32_t mask);
     void ClearPartFlags(std::uint32_t mask);
-    // 00519500 / 00519530 (RET 4). Every part's +0xD4 / +0xD8 becomes `value`.
-    void SetPartsUnknownD4(std::uint32_t value);
-    void SetPartsUnknownD8(std::uint32_t value);
+    // 00519500 / 00519530 (RET 4). Every part's flatColour / flatSpecular becomes `value`.
+    void SetPartsFlatColour(std::uint32_t value);
+    void SetPartsFlatSpecular(std::uint32_t value);
     // 005187D0 (RET 4). `state` (or null) replaces the animation state: the old one loses its
     // owner and is released, the new one gains a reference and this owner.
     void SetAnimationState(CFigureAnimationState* state);
@@ -615,7 +635,7 @@ public:
     Matrix4 worldMatrix;            // +0x054 object -> world: the rotation, the position as column 3
     CEngineObject* attached;        // +0x094 the object slot 19 accepts (type 0x46)
     CFigureAnimationState* animation;   // +0x098 the figure's animation state
-    std::uint32_t unknown_09C;      // +0x09C cleared by Create3D / Destroy3D
+    std::uint32_t spare09C;         // +0x09C cleared by Create3D / Destroy3D; nothing reads it
     AnimationDatabase* animations;  // +0x0A0 loaded on first use (00518CA0)
     const char* name;               // +0x0A4 CString: the figure's name
     // +0x0A8 the particle sources attached to the object (MFC CPtrList, vtable 0073DE4C, block
@@ -630,16 +650,17 @@ public:
     void* partNameArrayVtable;      // +0x110 \ CStringArray of the part names
     char** partNames;               // +0x114 the figure's part names (00517990), in the order of
     int partNameCount;              // +0x118 the part boxes (CUnit::partBoxes, +0x160)
-    std::uint8_t unknown_11C[0x124 - 0x11C];
+    int partNameCapacity;           // +0x11C | (the CStringArray's)
+    int partNameGrowBy;             // +0x120 /
     std::uint32_t boundsFlags;      // +0x124 1 and 2: the bounds are valid
     Vector3 center;                 // +0x128
     float radius;                   // +0x134
     Vector3 below;                  // +0x138 box minimum - centre
     Vector3 above;                  // +0x144 box maximum - centre
-    std::uint8_t unknown_150[0x158 - 0x150];   // cleared with the bounds
+    std::uint8_t unused_150[0x158 - 0x150];    // cleared with the bounds
     // +0x158 cleared with the bounds; a part's piece record sets it (LoadPart). The AI adds it to a
     // unit's eye height (005CA410).
-    float unknown_158;
+    float eyeHeight;
     void* partBoxArrayVtable;       // +0x15C \ CArray of the part boxes (vtable 0073DE40)
     FootprintPart* partBoxes;       // +0x160 | (ai_map.h)
     int partBoxCount;               // +0x164 |
@@ -665,5 +686,5 @@ static_assert(offsetof(CObject3D, center) == 0x128);
 static_assert(offsetof(CObject3D, radius) == 0x134);
 static_assert(offsetof(CObject3D, below) == 0x138);
 static_assert(offsetof(CObject3D, above) == 0x144);
-static_assert(offsetof(CObject3D, unknown_158) == 0x158);
+static_assert(offsetof(CObject3D, eyeHeight) == 0x158);
 static_assert(sizeof(CObject3D) == 0x170);

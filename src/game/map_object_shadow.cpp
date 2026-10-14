@@ -275,9 +275,9 @@ bool PartTooFar(const FigurePart* part) { return LengthSquaredUnrounded<Sum3::XY
 
 FigurePart* PartAt(const CObject3D* object, int i) { return static_cast<FigurePart*>(object->parts.data[i]); }
 
-// The bits a part is rasterised into: unknown_00 is the callee's, the rest the target surface.
+// The bits a part is rasterised into: unused_00 is the callee's, the rest the target surface.
 struct RasterTarget {
-    std::uint8_t unknown_00[0x30];
+    std::uint8_t unused_00[0x30];
     std::uint32_t colourKey;   // +0x30
     void* bits;                // +0x34
     int width;                 // +0x38 0x200
@@ -286,18 +286,28 @@ struct RasterTarget {
 static_assert(sizeof(RasterTarget) == 0x40);
 
 // The surface description the lock fills (only the pitch and the bits are read).
-struct SurfaceDescription {   // DDSURFACEDESC2
-    std::uint8_t unknown_00[0x10];
+struct SurfaceDescription {   // DDSURFACEDESC2 (the members not read take its names)
+    std::uint32_t size;        // +0x00 dwSize
+    std::uint32_t flags;       // +0x04 dwFlags
+    std::uint32_t height;      // +0x08 dwHeight
+    std::uint32_t width;       // +0x0C dwWidth
     int pitch;                 // +0x10
-    std::uint8_t unknown_14[0x24 - 0x14];
+    std::uint32_t backBufferCount;   // +0x14 dwBackBufferCount
+    std::uint32_t mipMapCount; // +0x18 dwMipMapCount
+    std::uint32_t alphaBitDepth;     // +0x1C dwAlphaBitDepth
+    std::uint32_t reserved;    // +0x20 dwReserved
     void* bits;                // +0x24
-    std::uint8_t unknown_28[0x54 - 0x28];
+    std::uint32_t colourKeys[8];     // +0x28 ddckCKDestOverlay, ddckCKDestBlt, ddckCKSrcOverlay, ddckCKSrcBlt
+    std::uint32_t formatSize;  // +0x48 ddpfPixelFormat.dwSize
+    std::uint32_t formatFlags; // +0x4C ddpfPixelFormat.dwFlags
+    std::uint32_t fourCC;      // +0x50 ddpfPixelFormat.dwFourCC
     int bitsPerPixel;          // +0x54 ddpfPixelFormat.dwRGBBitCount
     std::uint32_t redMask;     // +0x58
     std::uint32_t greenMask;   // +0x5C
     std::uint32_t blueMask;    // +0x60
     std::uint32_t alphaMask;   // +0x64
-    std::uint8_t unknown_68[0x7C - 0x68];
+    std::uint32_t caps[4];     // +0x68 ddsCaps
+    std::uint32_t textureStage;   // +0x78 dwTextureStage
 };
 static_assert(sizeof(SurfaceDescription) == 0x7C);
 

@@ -111,7 +111,7 @@ void __fastcall ClientPlaceOnPath(std::uint8_t* controller, void*, float time, f
         return;
     }
     float length;
-    std::memcpy(&length, animation->unknown_24, sizeof(length));   // +0x24, a float
+    std::memcpy(&length, &animation->stride, sizeof(length));
     // FCOMP + TEST AH,0x40: equal to 0 (or unordered).
     if (x87::IsNaN(length) || length == 0.0f) {
         unit->animationSpeed = static_cast<float>(UnitResistanceToOriginal(unit, nullptr, animation));

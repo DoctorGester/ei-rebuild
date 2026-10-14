@@ -79,12 +79,12 @@ void DrawPass(Terrain* terrain, CSceneRenderer* renderer, int firstPage, int las
 
 } // namespace
 
-void SectorData::SetDetail(int level) { unknown_170 = level; }
+void SectorData::SetDetail(int level) { detail = level; }
 EI_REPLACE_METHOD(0x006C1390, SectorData::SetDetail);
 
 // --- The sector's part of the passes (006BFB00-006BFC7B; A-Z1) -------------------------------------
 
-int SectorData::IsDrawn() const { return unknown_060 == 0 || unknown_060 == terrain::kCrossing ? 1 : 0; }
+int SectorData::IsDrawn() const { return clipMode == 0 || clipMode == terrain::kCrossing ? 1 : 0; }
 EI_REPLACE_METHOD(0x006BFB00, SectorData::IsDrawn);
 
 void SectorData::ClipTest(CSceneRenderer* renderer) {
@@ -93,28 +93,28 @@ void SectorData::ClipTest(CSceneRenderer* renderer) {
         const int where = renderer->pipeline_->ClipTest(terrain::BoundsOf(bounds));
         return where == -1 ? terrain::kCulled : where;
     };
-    unknown_060 = verdict(box);
-    if (unknown_060 == terrain::kCulled) return;
+    clipMode = verdict(box);
+    if (clipMode == terrain::kCulled) return;
     for (int q = 0; q < 4; ++q) quarterMode[q] = verdict(quarters[q]);
 }
 EI_REPLACE_METHOD(0x006BFB20, SectorData::ClipTest);
 
 void SectorData::FindSeams() {
-    unknown_178 = 0;
-    unknown_174 = 0;
+    seamAfter = 0;
+    seamBefore = 0;
     // A lit neighbour drawn at the next coarser level: this sector's edge towards it is drawn with
     // the seam triangles (terrain_draw.cpp). The lookup does not load anything (create 0).
     const auto coarser = [&](int nx, int ny, int detail) {
         const SectorData* neighbour = SectorAtAt(reinterpret_cast<Terrain*>(owner), nullptr, nx, ny, kLit, 0);
-        return neighbour && neighbour->unknown_170 == detail && neighbour->IsDrawn();
+        return neighbour && neighbour->detail == detail && neighbour->IsDrawn();
     };
-    if (unknown_170 == 0) {
-        if (coarser(sx, sy - 1, 1)) unknown_174 = 1;
-        if (coarser(sx, sy + 1, 1)) unknown_178 = 1;
+    if (detail == 0) {
+        if (coarser(sx, sy - 1, 1)) seamBefore = 1;
+        if (coarser(sx, sy + 1, 1)) seamAfter = 1;
     }
-    if (unknown_170 == 1) {
-        if (coarser(sx - 1, sy, 2)) unknown_174 = 1;
-        if (coarser(sx + 1, sy, 2)) unknown_178 = 1;
+    if (detail == 1) {
+        if (coarser(sx - 1, sy, 2)) seamBefore = 1;
+        if (coarser(sx + 1, sy, 2)) seamAfter = 1;
     }
 }
 EI_REPLACE_METHOD(0x006BFB80, SectorData::FindSeams);
