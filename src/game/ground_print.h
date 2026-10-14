@@ -23,6 +23,7 @@ struct DecalTexCoord;   // ground_decal.h
 // A texture by name (0x10 bytes; constructed in place by 006CF900, an empty name with room for 8
 // bytes). The device binds it with 004EB1D0, which looks the texture up again by name.
 struct NamedTexture {
+    NamedTexture* Copy(const NamedTexture* other);
     stlp::string name;      // +0x00
     CTexture* texture;      // +0x0C counted
 };

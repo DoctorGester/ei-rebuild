@@ -255,7 +255,7 @@ EI_VERIFY(0x004B6760, ExecuteVerify, 0, s_unused);
 // The instance's parameters hold the call's arguments (when the counts match; otherwise the
 // original reports a fatal error).
 static void __fastcall BindCallVerify(ScriptDefinition* self, void*, const SSCCmd* call) {
-    ScriptBindCall(self, nullptr, call);
+    self->BindCall(call);
     ScriptVars& vars = self->vars;
     bool counts = call->floatArgs.size - 1 == vars.floats.size && call->stringArgs.size - 1 == vars.strings.size &&
                   call->objectArgs.size == vars.objects.size && call->groupArgs.size == vars.groups.size;
@@ -277,7 +277,7 @@ EI_VERIFY(0x004BB6A0, BindCallVerify, 0, s_unused);
 // After the conditions (and the commands, if they all held) the temporaries are freed and the run
 // list is still well formed.
 static void __fastcall IfThenRunVerify(const ScriptIfThen* self, void*, CScript* script, ScriptDefinition* instance) {
-    ScriptIfThenRun(self, nullptr, script, instance);
+    self->Run(script, instance);
     bool ok = TemporariesFreed(script) && ListConsistent(script->Field(0x15C));
     ei::verify::Check("ScriptIfThenRun", true, ok, "%s", instance ? static_cast<const char*>(instance->name) : "");
 }
@@ -287,7 +287,7 @@ EI_VERIFY(0x004BB520, IfThenRunVerify, 0, s_unused);
 // kill flag and a copy of the instance's variables, after its first Execute.
 static void __fastcall RunCommandsVerify(CScript* script, void*, ScriptDecl* block, ScriptDefinition* instance) {
     int runs = Field<int>(script, 0x168);
-    ScriptRunCommands(script, nullptr, block, instance);
+    script->RunCommands(block, instance);
     int added = Field<int>(script, 0x168) - runs;
     bool ok = (added == 0 || added == 1) && ListConsistent(script->Field(0x15C));
     if (ok && added == 1) {
@@ -423,7 +423,7 @@ static void __fastcall DeleteAreaVerify(CScript* script, void*, int id) {
         char* area = Field<char*>(script, 0x198) + i * 0x18;
         if (Field<int>(area, 0x14) != id) expected.push_back({Field<int>(area, 0x14), Field<void*>(area, 4)});
     }
-    ScriptDeleteArea(script, nullptr, id);
+    script->DeleteArea(id);
     bool ok = Field<int>(script, 0x19C) == static_cast<int>(expected.size());
     for (int i = 0; ok && i < Field<int>(script, 0x19C); ++i) {
         char* area = Field<char*>(script, 0x198) + i * 0x18;
@@ -436,7 +436,7 @@ EI_VERIFY(0x004BCF30, DeleteAreaVerify, 0, s_unused);
 // Ours only (creates an effect object): the light with the id holds the new object at the point,
 // with the radius, not moving.
 static void __fastcall CreateLightVerify(CScript* script, void*, const SSCCmd* cmd) {
-    ScriptCreatePointLight(script, nullptr, cmd);
+    script->CreatePointLight(cmd);
     const float* f = cmd->floatArgs.data;
     int i = FindLight(script, x87::fistp(f[0]));
     bool ok = i >= 0;
@@ -461,7 +461,7 @@ static void __fastcall MoveLightVerify(CScript* script, void*, const SSCCmd* cmd
     Field<char*>(standIn, 0x04) = copy.data();
     Field<int>(standIn, 0x08) = count;
     s_moveLight(reinterpret_cast<CScript*>(standIn), nullptr, cmd);
-    ScriptMovePointLight(script, nullptr, cmd);
+    script->MovePointLight(cmd);
     bool ok = std::memcmp(copy.data(), Field<char*>(script, 0x04), count * 0x20) == 0;
     ei::verify::Check("ScriptMovePointLight", true, ok, "id %d", x87::fistp(cmd->floatArgs.data[0]));
 }
@@ -470,7 +470,7 @@ EI_VERIFY(0x004BD820, MoveLightVerify, 6, s_moveLight);
 // Ours only (releases the object): the first light with the id is gone.
 static void __fastcall DeleteLightVerify(CScript* script, void*, const SSCCmd* cmd) {
     int i = FindLight(script, x87::fistp(cmd->floatArgs.data[0]));
-    ScriptDeletePointLight(script, nullptr, cmd);
+    script->DeletePointLight(cmd);
     bool ok = i < 0 || Field<void*>(Field<char*>(script, 0x04) + i * 0x20, 0) == nullptr;
     ei::verify::Check("ScriptDeletePointLight", true, ok, "slot %d", i);
 }

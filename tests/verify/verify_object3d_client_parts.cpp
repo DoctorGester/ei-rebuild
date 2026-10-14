@@ -51,7 +51,6 @@ int __fastcall Object3DServerClassId(CObject3DSpecific*);
 void __fastcall WoundsMaterialDestruct(WoundsMaterial* self);
 WoundsMaterial* __fastcall WoundsMaterialDelete(WoundsMaterial* self, void*, unsigned flags);
 void __fastcall NamedTextureDestruct(NamedTexture* self);
-NamedTexture* __fastcall NamedTextureCopy(NamedTexture* self, void*, const NamedTexture* other);
 void __fastcall MaterialStageCopy(MaterialStage* place, const MaterialStage* stage);
 
 namespace {
@@ -427,7 +426,7 @@ EI_VERIFY(0x0051C800, NamedTextureDestructVerify, 0, s_unused);
 
 static NamedTexture* __fastcall NamedTextureCopyVerify(NamedTexture* self, void*, const NamedTexture* other) {
     int before = other->texture ? other->texture->refCount_ : 0;
-    NamedTexture* result = NamedTextureCopy(self, nullptr, other);
+    NamedTexture* result = self->Copy(other);
     bool ok = result == self && self->name == other->name && self->name.data() != other->name.data() &&
               self->texture == other->texture && (!self->texture || self->texture->refCount_ == before + 1);
     ei::verify::Check("NamedTexture::Copy", true, ok, "");

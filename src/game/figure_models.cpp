@@ -72,15 +72,15 @@ FigureModel** ModelSlot(ModelMap* map, const stlp::string* name, void (__fastcal
 
 } // namespace
 
-FigureModel* __fastcall FindFigureModel(CFigureManager* manager, void*, const stlp::string* name) {
-    ModelMap* map = &manager->models_;
+FigureModel* CFigureManager::FindModel(const stlp::string* name) {
+    ModelMap* map = &models_;
     ModelMap::Iterator found;
     MapFind(map, nullptr, &found, name);
     if (found.node) return found.node->value;
 
-    void* mesh = OpenPart(manager, name, 0x0078EC88);        // ".mod"
-    void* bones = OpenPart(manager, name, 0x00784640);       // ".bon"
-    void* animation = OpenPart(manager, name, 0x0078EC80);   // ".anm"
+    void* mesh = OpenPart(this, name, 0x0078EC88);        // ".mod"
+    void* bones = OpenPart(this, name, 0x00784640);       // ".bon"
+    void* animation = OpenPart(this, name, 0x0078EC80);   // ".anm"
     if (!mesh) return nullptr;
 
     void* memory = gamecrt::operator_new(sizeof(FigureModel));
@@ -94,18 +94,18 @@ FigureModel* __fastcall FindFigureModel(CFigureManager* manager, void*, const st
     return found.node ? found.node->value : nullptr;
 }
 
-EI_REPLACE(0x005AA5F0, FindFigureModel);
+EI_REPLACE_METHOD(0x005AA5F0, CFigureManager::FindModel);
 
 // 005A9EF0 (thiscall on a model, RET 4): the model's animation of a name, loaded on first use from
 // its animation archive (GetFile, slot 5, with the name) into a new archive over that data
 // (OpenFromMemory, slot 2); without data nothing is created. The cached entry is looked up again
 // either way.
-CMappedResource* __fastcall FindModelAnimation(FigureModel* model, void*, const stlp::string* name) {
-    AnimationMap* map = &model->animationCache;
+CMappedResource* FigureModel::FindAnimation(const stlp::string* name) {
+    AnimationMap* map = &animationCache;
     AnimationMap::Iterator found;
     AnimFind(map, nullptr, &found, name);
     if (found.node) return found.node->value;
-    void* data = model->animations->GetFile(name->data(), nullptr);
+    void* data = animations->GetFile(name->data(), nullptr);
     if (data) {
         void* memory = gamecrt::operator_new(0x6C);
         CMappedResource* animation = memory ? MmioResourceConstructOriginal(memory) : nullptr;
@@ -122,7 +122,7 @@ CMappedResource* __fastcall FindModelAnimation(FigureModel* model, void*, const 
     AnimFind(map, nullptr, &found, name);
     return found.node ? found.node->value : nullptr;
 }
-EI_REPLACE(0x005A9EF0, FindModelAnimation);
+EI_REPLACE_METHOD(0x005A9EF0, FigureModel::FindAnimation);
 
 // 005A9A50 (thiscall, returns this): the model's constructor. The animation map is built as
 // STLport's hashtable constructor inlines it: empty functors (the original copies an

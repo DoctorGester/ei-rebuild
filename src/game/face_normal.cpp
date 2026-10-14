@@ -26,11 +26,11 @@ constexpr double kMinimumSquare = 1e-10;
 
 } // namespace
 
-void __fastcall ComputeFaceNormal(MeshFace* face, void*, const PointBuffer* positions) {
+void MeshFace::ComputeNormal(const PointBuffer* positions) {
     const auto* points = reinterpret_cast<const Vector3*>(positions->data);
-    const Vector3& origin = points[face->vertex[1]];
-    const Vector3& p2 = points[face->vertex[2]];
-    const Vector3& p0 = points[face->vertex[0]];
+    const Vector3& origin = points[vertex[1]];
+    const Vector3& p2 = points[vertex[2]];
+    const Vector3& p0 = points[vertex[0]];
 
     double ax = static_cast<double>(p2.x) - origin.x;
     double ay = static_cast<double>(p2.y) - origin.y;
@@ -54,25 +54,25 @@ void __fastcall ComputeFaceNormal(MeshFace* face, void*, const PointBuffer* posi
         bz *= inverse;
     }
 
-    face->normal.x = StoreFloat(bz * ay - by * az);
-    face->normal.y = StoreFloat(az * bx - bz * ax);
-    face->normal.z = StoreFloat(by * ax - ay * bx);
+    normal.x = StoreFloat(bz * ay - by * az);
+    normal.y = StoreFloat(az * bx - bz * ax);
+    normal.z = StoreFloat(by * ax - ay * bx);
 
-    const double x = face->normal.x;
-    const double y = face->normal.y;
-    const double z = face->normal.z;
+    const double x = normal.x;
+    const double y = normal.y;
+    const double z = normal.z;
     const double length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(x, y, z));
     if (length == 0.0 || x87::IsNaN(static_cast<float>(length))) {   // FCOM 0; C3: equal or unordered
-        std::memcpy(&face->normal, &DegenerateNormal(), sizeof(Vector3));
+        std::memcpy(&normal, &DegenerateNormal(), sizeof(Vector3));
     } else {
         double inverse = 1.0 / length;
-        face->normal.x = StoreFloat(inverse * face->normal.x);
-        face->normal.y = StoreFloat(inverse * face->normal.y);
-        face->normal.z = StoreFloat(inverse * face->normal.z);
+        normal.x = StoreFloat(inverse * normal.x);
+        normal.y = StoreFloat(inverse * normal.y);
+        normal.z = StoreFloat(inverse * normal.z);
     }
-    const Vector3& at = points[face->vertex[1]];
-    face->distance = StoreFloat(DotZYX(at, face->normal));
+    const Vector3& at = points[vertex[1]];
+    distance = StoreFloat(DotZYX(at, normal));
 }
-EI_REPLACE(0x0049AEC0, ComputeFaceNormal);
+EI_REPLACE_METHOD(0x0049AEC0, MeshFace::ComputeNormal);
 
 } // namespace scene

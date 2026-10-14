@@ -39,13 +39,5 @@ using UnitShapeHandle = ShapeCacheHandle;
 // 005B33D0 (the shape cache's slot 0, RET 4). A new shape for the handle's radius.
 CUnitShape* __fastcall CreateUnitShape(void* cache, void*, const UnitShapeHandle* handle);
 
-// The layers' virtual slots 0 (Set: the block's levels replace the map's) and 1 (Merge: the
-// map keeps the larger level). The small-unit layer (vtable 0073FD74) writes AIMapCell::level
-// (unsigned maximum), the large-unit one (vtable 0073FD6C) the signed bytes at CAIMap + 0x1F8.
-void __fastcall SmallLayerSet(CUnitLayer* self, void*, const UnitLayerNode* block);     // 005B39D0
-void __fastcall SmallLayerMerge(CUnitLayer* self, void*, const UnitLayerNode* block);   // 005B3A70
-void __fastcall LargeLayerSet(CUnitLayer* self, void*, const UnitLayerNode* block);     // 005B3B20
-void __fastcall LargeLayerMerge(CUnitLayer* self, void*, const UnitLayerNode* block);   // 005B3B90
-
 // The bucket of a block key.
 inline int UnitLayerBucket(int blockX, int blockY) { return (blockX * 17 + blockY) & 0x3FF; }

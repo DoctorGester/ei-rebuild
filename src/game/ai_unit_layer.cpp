@@ -109,48 +109,48 @@ bool BlockInMap(const CAIMap* map, const UnitLayerNode* block, int* x, int* y) {
 }
 } // namespace
 
-void __fastcall SmallLayerSet(CUnitLayer* self, void*, const UnitLayerNode* block) {
+void CUnitLayer::SetSmall(const UnitLayerNode* block) {
     int x, y;
-    if (!BlockInMap(self->map, block, &x, &y)) return;
+    if (!BlockInMap(map, block, &x, &y)) return;
     for (int r = 0; r < 4; ++r) {
         for (int c = 0; c < 4; ++c) {
-            self->map->cells[y + r][x + c].level = static_cast<std::uint8_t>(block->levels[r * 4 + c]);
+            map->cells[y + r][x + c].level = static_cast<std::uint8_t>(block->levels[r * 4 + c]);
         }
     }
 }
-EI_REPLACE(0x005B39D0, SmallLayerSet);
+EI_REPLACE_METHOD(0x005B39D0, CUnitLayer::SetSmall);
 
-void __fastcall SmallLayerMerge(CUnitLayer* self, void*, const UnitLayerNode* block) {
+void CUnitLayer::MergeSmall(const UnitLayerNode* block) {
     int x, y;
-    if (!BlockInMap(self->map, block, &x, &y)) return;
+    if (!BlockInMap(map, block, &x, &y)) return;
     for (int r = 0; r < 4; ++r) {
         for (int c = 0; c < 4; ++c) {
-            std::uint8_t& level = self->map->cells[y + r][x + c].level;
+            std::uint8_t& level = map->cells[y + r][x + c].level;
             std::uint8_t value = static_cast<std::uint8_t>(block->levels[r * 4 + c]);
             if (level > value) value = level;
             level = value;
         }
     }
 }
-EI_REPLACE(0x005B3A70, SmallLayerMerge);
+EI_REPLACE_METHOD(0x005B3A70, CUnitLayer::MergeSmall);
 
-void __fastcall LargeLayerSet(CUnitLayer* self, void*, const UnitLayerNode* block) {
+void CUnitLayer::SetLarge(const UnitLayerNode* block) {
     int x, y;
-    if (!BlockInMap(self->map, block, &x, &y)) return;
-    for (int r = 0; r < 4; ++r) std::memcpy(self->map->waterDepth[y + r] + x, &block->levels[r * 4], 4);
+    if (!BlockInMap(map, block, &x, &y)) return;
+    for (int r = 0; r < 4; ++r) std::memcpy(map->waterDepth[y + r] + x, &block->levels[r * 4], 4);
 }
-EI_REPLACE(0x005B3B20, LargeLayerSet);
+EI_REPLACE_METHOD(0x005B3B20, CUnitLayer::SetLarge);
 
-void __fastcall LargeLayerMerge(CUnitLayer* self, void*, const UnitLayerNode* block) {
+void CUnitLayer::MergeLarge(const UnitLayerNode* block) {
     int x, y;
-    if (!BlockInMap(self->map, block, &x, &y)) return;
+    if (!BlockInMap(map, block, &x, &y)) return;
     for (int r = 0; r < 4; ++r) {
         for (int c = 0; c < 4; ++c) {
-            std::int8_t& level = self->map->waterDepth[y + r][x + c];
+            std::int8_t& level = map->waterDepth[y + r][x + c];
             std::int8_t value = block->levels[r * 4 + c];
             if (level > value) value = level;
             level = value;
         }
     }
 }
-EI_REPLACE(0x005B3B90, LargeLayerMerge);
+EI_REPLACE_METHOD(0x005B3B90, CUnitLayer::MergeLarge);

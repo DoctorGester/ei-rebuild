@@ -510,6 +510,7 @@ static_assert(sizeof(LinkArchiveNode) == 0x18);
 // (CFigureManager::models_, 005AA5F0) and the link figure loader (its figure sets, 004FAB00) cache
 // them by name.
 struct FigureModel {
+    CMappedResource* FindAnimation(const stlp::string* name);
     using AnimationMap = stlp::hash_map<stlp::string, CMappedResource*, stlp::StringHash>;
 
     CMappedResource* mesh;          // +0x00 the .mod archive

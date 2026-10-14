@@ -57,10 +57,10 @@ ScriptDecl* AppendBlock(BlockList* list, std::uint32_t idBits) {
 } // namespace
 
 // 004BF540 CScript::NewCommandList.
-ScriptDecl* __fastcall ScriptNewCommandList(CScript* script, void*) {
-    return AppendBlock(&script->blocks_, 0);
+ScriptDecl* CScript::NewCommandList() {
+    return AppendBlock(&blocks_, 0);
 }
-EI_REPLACE(0x004BF540, ScriptNewCommandList);
+EI_REPLACE_METHOD(0x004BF540, CScript::NewCommandList);
 
 // 004BF900 CScript::NewWorldScript.
 ScriptDecl* __fastcall ScriptNewWorldScript(CScript* script, void*) {
@@ -71,8 +71,8 @@ EI_REPLACE(0x004BF900, ScriptNewWorldScript);
 // 004BCE10 CScript::FindArea. A linear search by id; when absent the array grows by one (SetSize
 // 004CDB30 constructs the slot), the empty temporary's parts are copied in (004CE2F0) and the last
 // slot gets the id.
-mfc::CArray<ScriptAreaPart>* __fastcall ScriptFindArea(CScript* script, void*, int id) {
-    auto& areas = script->areas_;
+mfc::CArray<ScriptAreaPart>* CScript::FindArea(int id) {
+    auto& areas = areas_;
     for (int i = 0; i < areas.size; ++i) {
         if (areas.data[i].id == id) return &areas.data[i].parts;
     }
@@ -83,15 +83,15 @@ mfc::CArray<ScriptAreaPart>* __fastcall ScriptFindArea(CScript* script, void*, i
     areas.data[areas.size - 1].id = id;
     return &areas.data[areas.size - 1].parts;
 }
-EI_REPLACE(0x004BCE10, ScriptFindArea);
+EI_REPLACE_METHOD(0x004BCE10, CScript::FindArea);
 
 // 004B59F0 CScript::NewTempObject: CList<ScriptObjectRef>::AddTail(null reference) inlined. A new
 // CPlex block of `blockSize` 12-byte nodes is chained onto the free list (last node first) when
 // it is empty; the element is constructed (004CC800) and then assigned null (released if set).
-ScriptObjectRef* __fastcall ScriptNewTempObject(CScript* script, void*) {
+ScriptObjectRef* CScript::NewTempObject() {
     using Node = mfc::CList<ScriptObjectRef>::Node;
     static_assert(sizeof(Node) == 0xC);
-    auto& list = script->tempObjects_;
+    auto& list = tempObjects_;
     Node* tail = list.tail;
     if (!list.free) {
         mfc::CPlex* block = mfc::PlexCreate(list.blocks, static_cast<unsigned>(list.blockSize), sizeof(Node));
@@ -116,7 +116,7 @@ ScriptObjectRef* __fastcall ScriptNewTempObject(CScript* script, void*) {
     list.tail = node;
     return ref;
 }
-EI_REPLACE(0x004B59F0, ScriptNewTempObject);
+EI_REPLACE_METHOD(0x004B59F0, CScript::NewTempObject);
 
 // 004B5F70 SSCCmd::Clear. The float array is emptied inline (its growBy kept), the others through
 // their SetSize(0, -1).

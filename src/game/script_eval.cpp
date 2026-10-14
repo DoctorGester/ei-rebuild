@@ -236,8 +236,6 @@ void Store(ScriptObjectRef* slot, CEngineObject* object) {
 
 // ---- CScript forwarders -------------------------------------------------------------------------
 
-__declspec(naked) ScriptObjectRef* CScript::NewTempObject() EI_ORIGINAL(0x004B59F0)
-__declspec(naked) mfc::CArray<ScriptAreaPart>* CScript::FindArea(int) EI_ORIGINAL(0x004BCE10)
 
 // ---- SSCCmd -------------------------------------------------------------------------------------
 

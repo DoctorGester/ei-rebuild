@@ -23,9 +23,7 @@ constexpr std::uint32_t kFigMagic = 0x474946;   // "FIG"
 
 } // namespace
 
-int __fastcall LoadFigureBounds(CFigureManager* manager, void*, ClipBounds* out, FigureModel* model,
-                                const char* directory, const char* name, std::uint32_t s, std::uint32_t t,
-                                std::uint32_t u) {
+int CFigureManager::LoadFigureBounds(ClipBounds* out, FigureModel* model, const char* directory, const char* name, std::uint32_t s, std::uint32_t t, std::uint32_t u) {
     std::uint8_t* data;
     if (model) {
         data = static_cast<std::uint8_t*>(model->mesh->GetFile(name, nullptr));
@@ -37,16 +35,16 @@ int __fastcall LoadFigureBounds(CFigureManager* manager, void*, ClipBounds* out,
         std::size_t nameLength = std::strlen(name);
         std::memcpy(path + length, name, nameLength);
         std::memcpy(path + length + nameLength, reinterpret_cast<const char*>(0x0078EC78), 5);   // ".fig"
-        data = static_cast<std::uint8_t*>(manager->GetFile(path, nullptr));
+        data = static_cast<std::uint8_t*>(GetFile(path, nullptr));
     }
     if (!data) return 0;
     std::uint32_t magic;
     std::memcpy(&magic, data, 4);
-    if ((magic & 0xFFFFFF) == kFigMagic) MorphFig(manager, nullptr, out, data + 0x28, s, t, u, magic);
-    else MorphPlain(manager, nullptr, out, data + 8, s, t, u);
+    if ((magic & 0xFFFFFF) == kFigMagic) MorphFig(this, nullptr, out, data + 0x28, s, t, u, magic);
+    else MorphPlain(this, nullptr, out, data + 8, s, t, u);
     if (model) model->mesh->CloseFile(data);
-    else manager->CloseFile(data);
+    else CloseFile(data);
     return 1;
 }
 
-EI_REPLACE(0x005AC010, LoadFigureBounds);
+EI_REPLACE_METHOD(0x005AC010, CFigureManager::LoadFigureBounds);

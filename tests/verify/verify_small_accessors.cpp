@@ -27,12 +27,8 @@
 // small_accessors.cpp (no header declares the shims).
 void __fastcall DropObjectReference(CEngineObject** slot);
 Vector3* __fastcall Vector3FromParts(Vector3* self, void*, float x, float y, float z);
-void __fastcall MaterialSetDiffuse(CMaterial* helper, void*, const Vector3* value);
-void __fastcall MaterialSetAmbient(CMaterial* helper, void*, const Vector3* value);
-void __fastcall MaterialSetSpecular(CMaterial* helper, void*, const Vector3* value);
 void __fastcall ParticleManagerClearQuietStart(CParticleManager* manager);
 CEngineObject* __fastcall ScriptRefCompanion(const ScriptObjectRef* ref);
-void __fastcall ScriptObjectSetPosition(CMapObject* object, void*, const Vector3* point);
 int __fastcall ScriptSessionActive(const CRefCounted* session);
 int __fastcall ScriptRound(void*, void*, float value);
 void __fastcall ScriptItemRepair(CItem* item);
@@ -109,19 +105,22 @@ void CheckHelperSetter(const char* name, HelperSetter original, HelperSetter our
     ours(helper, nullptr, value);
     ei::verify::Check(name, true, SameVector(expected, rgb), "");
 }
+void __fastcall DiffuseOurs(CMaterial* helper, void*, const Vector3* value) { helper->SetDiffuse(value); }
+void __fastcall AmbientOurs(CMaterial* helper, void*, const Vector3* value) { helper->SetAmbient(value); }
+void __fastcall SpecularOurs(CMaterial* helper, void*, const Vector3* value) { helper->SetSpecular(value); }
 HelperSetter s_setVectorB;
 void __fastcall SetVectorBVerify(CMaterial* helper, void*, const Vector3* value) {
-    CheckHelperSetter("scene helper setter 00471AB0", s_setVectorB, MaterialSetDiffuse, helper, value,
+    CheckHelperSetter("scene helper setter 00471AB0", s_setVectorB, DiffuseOurs, helper, value,
                       &MaterialColors::diffuse);
 }
 HelperSetter s_setVectorA;
 void __fastcall SetVectorAVerify(CMaterial* helper, void*, const Vector3* value) {
-    CheckHelperSetter("scene helper setter 00471AD0", s_setVectorA, MaterialSetAmbient, helper, value,
+    CheckHelperSetter("scene helper setter 00471AD0", s_setVectorA, AmbientOurs, helper, value,
                       &MaterialColors::ambient);
 }
 HelperSetter s_setVectorC;
 void __fastcall SetVectorCVerify(CMaterial* helper, void*, const Vector3* value) {
-    CheckHelperSetter("scene helper setter 00471AF0", s_setVectorC, MaterialSetSpecular, helper, value,
+    CheckHelperSetter("scene helper setter 00471AF0", s_setVectorC, SpecularOurs, helper, value,
                       &MaterialColors::specular);
 }
 
@@ -166,7 +165,7 @@ void __fastcall SetPositionVerify(CMapObject* object, void*, const Vector3* poin
     s_setPosition(object, nullptr, &input);
     Vector3 expected = object->position;
     object->position = saved;
-    ScriptObjectSetPosition(object, nullptr, point);
+    object->SetScriptPosition(point);
     ei::verify::Check("script accessor 004B9F90", true, SameVector(expected, object->position), "");
 }
 

@@ -187,7 +187,7 @@ ScriptNamedValues<ScriptObjectRef>* __fastcall ObjectsCopyVerify(ScriptNamedValu
                                                                  const ScriptNamedValues<ScriptObjectRef>* other) {
     std::vector<CEngineObject*> objects = Objects(other->values);
     std::vector<std::string> names = Strings(other->names);
-    ScriptObjectsCopyConstruct(self, nullptr, other);
+    self->CopyConstruct(other);
     bool ok = Objects(self->values) == objects && Strings(self->names) == names &&
               HasVtable(self->values, 0x0073D110) && HasVtable(self->names, 0x0073D2D4);
     ei::verify::Check("ScriptObjectsCopyConstruct", true, ok, "%d objects", other->values.size);
@@ -199,7 +199,7 @@ ScriptNamedValues<ScriptGroup>* __fastcall GroupsCopyVerify(ScriptNamedValues<Sc
     std::vector<std::vector<CEngineObject*>> groups;
     for (int i = 0; i < other->values.size; ++i) groups.push_back(Objects(other->values.data[i]));
     std::vector<std::string> names = Strings(other->names);
-    ScriptGroupsCopyConstruct(self, nullptr, other);
+    self->CopyConstruct(other);
     bool ok = self->values.size == static_cast<int>(groups.size()) && Strings(self->names) == names &&
               HasVtable(self->values, 0x0073D304) && HasVtable(self->names, 0x0073D2D4);
     for (int i = 0; ok && i < self->values.size; ++i)

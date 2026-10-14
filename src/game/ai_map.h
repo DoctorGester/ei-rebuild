@@ -681,11 +681,19 @@ static_assert(sizeof(UnitLayerNode) == 0x1C);
 // Two slots: 0 Set (the block's levels replace the map's) and 1 Merge (the map keeps the larger
 // level), _purecall in the base vtable 0073FD7C. The small-unit layer (vtable 0073FD74) writes
 // AIMapCell::level (unsigned maximum), the large-unit one (vtable 0073FD6C) the signed bytes of
-// CAIMap::waterDepth; their bodies are the __fastcall functions in ai_unit_layer.h, registered by
+// CAIMap::waterDepth; their bodies are the SetSmall / MergeSmall / SetLarge / MergeLarge members below, registered by
 // address. The game builds the layers (the AI map's constructor stores the vtables), so the class
 // is novtable and the slots are only declared.
 class __declspec(novtable) CUnitLayer {
 public:
+    // The bodies of the derived layers' slots 0 (Set: the block's levels replace the map's) and 1 (Merge:
+    // the map keeps the larger level), registered by address (ai_unit_layer.cpp). The small-unit layer
+    // (vtable 0073FD74) writes AIMapCell::level (unsigned maximum), the large-unit one (vtable 0073FD6C)
+    // the signed bytes of CAIMap::waterDepth.
+    void SetSmall(const UnitLayerNode* block);     // 005B39D0
+    void MergeSmall(const UnitLayerNode* block);   // 005B3A70
+    void SetLarge(const UnitLayerNode* block);     // 005B3B20
+    void MergeLarge(const UnitLayerNode* block);   // 005B3B90
     static constexpr std::uintptr_t kVtableAddress = std::uintptr_t(0x0073FD7C);
     static constexpr std::uintptr_t kSmallVtableAddress = std::uintptr_t(0x0073FD74);
     static constexpr std::uintptr_t kLargeVtableAddress = std::uintptr_t(0x0073FD6C);
