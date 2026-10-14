@@ -335,6 +335,42 @@ Scroll Lock screenshot from the new frame, the movie recorder. When R9a was writ
 run (the worker could not run the game): Rebirth's patches (EI_Plugin) may call DirectDraw themselves, and the
 stand-ins' log is the first thing to read.
 
+### R9a2: the switch-over's scenarios run (done)
+
+R9a had never run a game. What the five `present` scenarios (render_present, render_movie_present,
+render_present_cpuwindows, render_titles_present, ui_saveload) hit, on the default suite and on `run_all --native`:
+- 00458270's screen clears with no primary surface (app_frame.cpp: nothing to fill, result 0).
+- The movie holders (bink_video.cpp `NewMovieHolder`, the players 005DB3F0 / 005DA400 / 005DBA50): 00784756 is
+  written by the game start (00456E35) from GetAvailableVidMem, and the stand-in's 256 MB clears it, so the
+  holders asked 004EFA60 for a video-memory surface, which the stand-in refused; the throw (no catch in the
+  rewrite) ended in the game's error box (hang at step 0). Without DirectDraw the holder is 004EF7B0's (only the
+  new renderer's memory); each Bink frame is copied into memory the renderer owns (`render::MovieFrame`) and
+  presented through 004EF610 -> `render::Present` on the window's swap chain.
+- Pictures loaded with the video-memory flag (004F0060, e.g. a 768x32 one at the game start) get the new
+  renderer's memory as the system-memory ones do (dx_surface.cpp).
+- The harness: windows are shown and made without activating them; dgVoodoo's exclusive cooperative level
+  activated the game window anyway, without DirectDraw nothing did, so the game's active flag (0079BC5C) and the
+  renderer's bit 0 stayed 0 and no frame was drawn ("no frame presented within 10 s"). The harness now sends one
+  WM_ACTIVATE (active) once the device object exists, only without DirectDraw (harness.cpp
+  `ActivateWithoutDirectDraw`). A player's own start is in the foreground and gets the activation from Windows.
+- Verify wrappers whose originals need DirectDraw run ours only without it: 004F0060 (its original's
+  CreateSurface is refused and it crashed), 005EC020 and 00655D40 (they write a texture lent through
+  `memory_texture::Lend`, which now refuses at once: `memory_texture::CanLend`, logged once), and through Lend's
+  refusal 005FFFB0 and 00656E10 as before.
+- The swap chain sizes itself to the client rectangle each frame; the hook makes the process system DPI aware at
+  WinMain (09ead405), so that rectangle is in physical pixels.
+
+Captures (compare_frames, tolerance 8): the new frames show the same scenes as the old path's (frames_basic,
+render_movie); the differences are what moves by itself (water, the global map's clouds, the clock, rain streaks:
+weather is not in the new frame), about 6% for after_movie against render_movie's own new frame and 20% between
+two `present` runs (vanilla / native: the water's phase). The old-device log of these runs (73 calling places,
+no refusals left) is R9b's list: state setting, state blocks, BeginScene / EndScene / Clear / SetTexture from the
+rewritten draws, the capability, display mode and memory queries, 0045715A's RestoreAllSurfaces.
+
+Still R9c's: the loading screen and the movie players still reach the present through 004EF610 (fine: it only
+ends the frame); full screen without a display mode change, gamma, lost Direct3D 11 devices, resolution changes,
+Alt+Tab, the Scroll Lock screenshot and the movie recorder from the new frame.
+
 ### Before R9a (reference)
 
 The old device existed in the switch-over: the DirectDraw object (004EDD70), primary surface, render target and

@@ -3,6 +3,7 @@
 // which runs the original on a scratch holder.
 #include "verify.h"
 
+#include "../../src/game/device.h"
 #include "../../src/game/dx_surface.h"
 #include "../../src/game/texture.h"
 #include "../../src/game/ui.h"
@@ -152,14 +153,15 @@ bool SamePixels(char* expected, char* actual, int rowBytes, int height, int* fir
 // read-only Lock; ours from the new renderer's memory when it has some, else a Lock), then the
 // scratch surface is released. With "cpuwindows" a system-memory request must have got that memory,
 // and in the switch-over no DirectDraw surface besides it (ticket R7). Other calls (errors, a holder
-// with a surface: only the dead 004EFF30 / 004EFFF0) ours only.
+// with a surface: only the dead 004EFF30 / 004EFFF0) ours only; so is every call when the game has no
+// DirectDraw device (device.h: the original's CreateSurface is refused and it crashes; ticket R9a2).
 int __fastcall DXSurfaceLoadPicture(CDXSurface* holder, void*, const void* data, int flag);
 static void* s_loadPicture;
 static int __fastcall DXSurfaceLoadPictureVerify(char* holder, void*, const void* data, int flag) {
     auto* surfaceHolder = reinterpret_cast<CDXSurface*>(holder);
     const auto* header = static_cast<const std::uint32_t*>(data);
     bool compare = header && header[4] == 0x8888 && !*reinterpret_cast<void**>(holder + 0x10) &&
-                   !render::SurfaceMemoryOf(holder) && *reinterpret_cast<char**>(holder + 0xC);
+                   !render::SurfaceMemoryOf(holder) && *reinterpret_cast<char**>(holder + 0xC) && !device::WithoutDirectDraw();
     if (!compare) return DXSurfaceLoadPicture(surfaceHolder, nullptr, data, flag);
     alignas(4) char scratch[0x20];
     std::memcpy(scratch, holder, sizeof(scratch));
