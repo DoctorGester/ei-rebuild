@@ -241,5 +241,12 @@ All on the main thread (the session's tick from `net::Pump`); none is called fro
   ChatLog one in 0041B1C0 (0041B25B, disabled in this install). The rewrites are the vanilla functions; the
   installer does not hook a function with an active site. No scenario reaches any of the three (a master
   server, or a second client's chat line, is needed).
-- Still in the exe: 0041ECC0 (the file chunk handler: collects a file's chunks, sorts and joins them and
-  hands the file to the game flow, 005813A0) and 00443080 (the login handler, FixProcessLogin).
+- A-E2 (vanilla bodies, vanilla launch only; ours only, no scenario reaches them):
+  - 0041ECC0 `ClientOnFileChunk` (`net_client_handlers.cpp`; Rebirth's MQClient): collects a file's chunks,
+    sorts and joins them and hands the file to the game flow (005813A0).
+  - 00443080 `ServerBase::OnLogin` (`net_lobby.cpp`; Rebirth's FixProcessLogin): a wrong magic is ignored; the
+    rate is cut to the address's limit; a connected client's login is ignored ("ERROR: Ignoring login..."); a
+    pending join is accepted again (a new id replaces the old with "WARNING: LinkID mismatch"); otherwise
+    `Admit` decides: accepted (a pending join appended, packet 6 with the id) or refused (packet 7 with the id
+    and the reason). The original leaves the new join's age as stack garbage (Rebirth's patch clears it); ours
+    writes 0.

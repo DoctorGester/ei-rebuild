@@ -16,8 +16,7 @@ namespace {
 // CRT and MFC routines of the game.
 // _findfirst: the game never closes the handle it returns.
 __declspec(naked) long __cdecl FindFirst(const char* /*path*/, void* /*findData*/) EI_ORIGINAL(0x006EB832)
-__declspec(naked) void __cdecl SplitPath(const char* /*path*/, char* /*drive*/, char* /*dir*/, char* /*name*/,
-                                         char* /*ext*/) EI_ORIGINAL(0x006E8BEE)
+void SplitPath(const char* path, char* drive, char* dir, char* name, char* ext) { gamecrt::splitpath(path, drive, dir, name, ext); }
 void __fastcall StringArraySetAtGrow(void* a0, void*, int a2, const char* a3) { StringArraySetAtGrowTextOriginal(a0, nullptr, a2, a3); }
 
 // CMappedResource::FindEntry (resource.cpp), through its game address.

@@ -1,5 +1,5 @@
 // CDib (dib.h): construction, the header of a new bitmap, its memory and its palette. The file
-// reader and writer stay the original's (MFC TRY / CATCH frames).
+// reader and writer are in dib_file.cpp.
 #include "dib.h"
 
 #include "ei/hook.h"
@@ -38,8 +38,7 @@ EI_REPLACE(0x006D49E0, CreateDib);
 
 } // namespace
 
-__declspec(naked) int CDib::Read(mfc::CFile*) EI_ORIGINAL(0x006D5910)
-__declspec(naked) int CDib::Write(mfc::CFile*) EI_ORIGINAL(0x006D5AC0)
+std::uint32_t DibImageSize(const BITMAPINFOHEADER* header) { return ImageSize(header); }
 
 CDib* CDib::Construct() {
     vtable = DibVtable();

@@ -1609,9 +1609,9 @@ void __fastcall InterfaceCloseAll(void* a0) { InterfaceCloseAllOriginal(a0); }
 __declspec(naked) void __fastcall SwitchResources(const char*) EI_ORIGINAL(0x0057CB50)
 // The client world (007AF5B8): its tick (005641F0), a zone check (00566D80, AL); the server's
 // update (0058DFF0); the network pump (004122D0).
-__declspec(naked) int __fastcall ClientSegmentAt(void*) EI_ORIGINAL(0x005641F0)
+int __fastcall ClientSegmentAt(void* client) { return ClientSegmentOriginal(client); }
 __declspec(naked) bool __fastcall ClientHasZone(void*, void*, const char*) EI_ORIGINAL(0x00566D80)
-__declspec(naked) int __fastcall ServerUpdateAt(CWorldServer*) EI_ORIGINAL(0x0058DFF0)
+int __fastcall ServerUpdateAt(CWorldServer* server) { return ServerUpdateOriginal(server); }
 // The local view: autoplay on (00669710, name) / off (00669750); the local player takes the
 // flow's party copy (00665CC0, +8).
 __declspec(naked) void __fastcall ViewAutoplayOn(void*, void*, const char*) EI_ORIGINAL(0x00669710)

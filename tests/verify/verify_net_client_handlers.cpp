@@ -36,6 +36,7 @@ void __fastcall ClientOnVariableChanged(ClientSession* self, Message* message);
 void __fastcall ClientOnVariableGone(ClientSession* self, Message* message);
 void __fastcall ClientOnFile(ClientSession* self, FileMessage* message);
 void __fastcall ClientOnFileGone(ClientSession* self, Message* message);
+void __fastcall ClientOnFileChunk(ClientSession* self, FileChunkMessage* message);
 void __fastcall ClientOnObjectGone(ClientSession* self, Message* message);
 void __fastcall ClientOnAward(ClientSession* self, Message* message);
 void __fastcall ClientOnParty(ClientSession* self, Message* message);
@@ -108,6 +109,26 @@ void __fastcall FileGoneVerify(net::ClientSession* s, net::Message* m) {
     for (void** node = static_cast<void**>(sentinel[0]); node != sentinel; node = static_cast<void**>(node[0]))
         if (static_cast<net::FileRequestMessage*>(node[2])->FileRef().ptr == m) request = true;
     ei::verify::Check("ClientOnFileGone", false, Holds(s->files_, m) || request, "");
+}
+
+// 0041ECC0 (A-E2): the chunk is on the list; once the list holds every chunk of a named file, no
+// request for the file is left. Only a multiplayer client that is sent a map file reaches it (and
+// only in the vanilla launch: Rebirth patches the original); no scenario does.
+void __fastcall FileChunkVerify(net::ClientSession* s, net::Message* m) {
+    auto* chunk = static_cast<net::FileChunkMessage*>(m);
+    auto* file = static_cast<net::FileMessage*>(chunk->file_.ptr);
+    net::ClientOnFileChunk(s, chunk);
+    int count = 0;
+    void** chunks = static_cast<void**>(s->chunks_);
+    for (void** node = static_cast<void**>(chunks[0]); node != chunks; node = static_cast<void**>(node[0]))
+        if (static_cast<net::FileChunkMessage*>(node[2])->file_.ptr == file) ++count;
+    bool request = false;
+    void** requests = static_cast<void**>(s->fileRequests_);
+    for (void** node = static_cast<void**>(requests[0]); node != requests; node = static_cast<void**>(node[0]))
+        if (static_cast<net::FileRequestMessage*>(node[2])->FileRef().ptr == file) request = true;
+    const bool complete = file->name_.finish != file->name_.start && count == file->chunkCount_;
+    ei::verify::Check("ClientOnFileChunk", true, Holds(s->chunks_, m) && !(complete && request), "%d of %u chunks, request %d", count,
+                      static_cast<unsigned>(file->chunkCount_), request);
 }
 
 // Handlers that only notify.
@@ -203,6 +224,7 @@ EI_VERIFY(0x0041EA10, VariableChangedVerify, 0, s_unused);
 EI_VERIFY(0x0041EA20, VariableGoneVerify, 0, s_unused);
 EI_VERIFY(0x0041EAC0, FileVerify, 0, s_unused);
 EI_VERIFY(0x0041EBF0, FileGoneVerify, 0, s_unused);
+EI_VERIFY(0x0041ECC0, FileChunkVerify, 0, s_unused);
 EI_VERIFY(0x0041EF10, ObjectGoneVerify, 0, s_unused);
 EI_VERIFY(0x0041EF90, AwardVerify, 0, s_unused);
 EI_VERIFY(0x0041EFF0, PartyVerify, 0, s_unused);

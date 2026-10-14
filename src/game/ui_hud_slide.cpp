@@ -317,7 +317,7 @@ void CHudUnitPanel::SetupVanilla(int bodyPart, std::uint8_t slid) {
     bodyPart_ = bodyPart;
     for (int i = 0; i < 4; ++i) SetTint(sceneObjects_.data[3 + i], bodyPart_ == i ? 1.0f : 0.5f);
     CallLayout();
-    std::memset(unknown_14C, 0, sizeof(unknown_14C));
+    shownUnit_ = nullptr;
     hoverUnit_ = nullptr;
 
     // The panel's texts "infounit_0".."infounit_17" and the four body part labels.

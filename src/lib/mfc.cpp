@@ -1,4 +1,5 @@
 ﻿#include "mfc.h"
+#include "mfc_try.h"
 
 #include "ei/hook.h"
 
@@ -67,5 +68,12 @@ __declspec(naked) void __fastcall PlexFreeDataChain(CPlex*) EI_ORIGINAL(0x006FE9
 __declspec(naked) CString __stdcall operator+(const CString&, const char*) EI_ORIGINAL(0x00700C05)
 __declspec(naked) CString __stdcall operator+(const char*, const CString&) EI_ORIGINAL(0x00700C79)
 __declspec(naked) CString __stdcall operator+(const CString&, const CString&) EI_ORIGINAL(0x00700B9F)
+
+// AFX_EXCEPTION_LINK (mfc_try.h): the constructor, and AfxTryCleanup for the destructor.
+__declspec(naked) ExceptionLink::ExceptionLink() EI_ORIGINAL(0x007020F1)
+namespace {
+__declspec(naked) void __cdecl TryCleanup() EI_ORIGINAL(0x0070212F)
+}
+ExceptionLink::~ExceptionLink() { TryCleanup(); }
 
 } // namespace mfc

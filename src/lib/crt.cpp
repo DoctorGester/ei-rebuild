@@ -21,6 +21,7 @@ __declspec(naked) int __cdecl isdigit(int) EI_ORIGINAL(0x006E9379)
 __declspec(naked) int __cdecl isprint(int) EI_ORIGINAL(0x006E944C)
 __declspec(naked) int __cdecl sprintf(char*, const char*, ...) EI_ORIGINAL(0x006E8715)
 __declspec(naked) int __cdecl sscanf(const char*, const char*, ...) EI_ORIGINAL(0x006EAEEC)
+__declspec(naked) char* __cdecl itoa(int, char*, int) EI_ORIGINAL(0x006E9B36)
 __declspec(naked) int __cdecl mbsicmp(const unsigned char*, const unsigned char*) EI_ORIGINAL(0x006E8767)
 __declspec(naked) int __cdecl access(const char*, int) EI_ORIGINAL(0x006EAF20)
 __declspec(naked) static int __cdecl MbscmpOriginal(const char*, const char*) EI_ORIGINAL(0x006E848B)
@@ -38,6 +39,7 @@ __declspec(naked) long __cdecl lseek(int, long, int) EI_ORIGINAL(0x006EB284)
 __declspec(naked) int __cdecl read(int, void*, unsigned) EI_ORIGINAL(0x006EB046)
 __declspec(naked) int __cdecl write(int, const void*, unsigned) EI_ORIGINAL(0x006EB642)
 __declspec(naked) int __cdecl close(int) EI_ORIGINAL(0x006EAF66)
+__declspec(naked) long __cdecl filelength(int) EI_ORIGINAL(0x006E904C)
 
 __declspec(naked) CrtFile* __cdecl fopen(const char*, const char*) EI_ORIGINAL(0x006E9107)
 __declspec(naked) int __cdecl fclose(CrtFile*) EI_ORIGINAL(0x006E8EB8)
@@ -45,6 +47,10 @@ __declspec(naked) int __cdecl fseek(CrtFile*, long, int) EI_ORIGINAL(0x006E95D2)
 __declspec(naked) long __cdecl ftell(CrtFile*) EI_ORIGINAL(0x006E97C4)
 __declspec(naked) std::size_t __cdecl fread(void*, std::size_t, std::size_t, CrtFile*) EI_ORIGINAL(0x006E8F35)
 __declspec(naked) std::size_t __cdecl fwrite(const void*, std::size_t, std::size_t, CrtFile*) EI_ORIGINAL(0x006E968B)
+
+__declspec(naked) void __cdecl splitpath(const char*, char*, char*, char*, char*) EI_ORIGINAL(0x006E8BEE)
+__declspec(naked) double __cdecl ceil(double) EI_ORIGINAL(0x006E8B1F)
+__declspec(naked) NewHandler __cdecl set_new_handler(NewHandler) EI_ORIGINAL(0x006E8D35)
 
 } // namespace gamecrt
 

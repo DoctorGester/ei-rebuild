@@ -610,3 +610,10 @@ __declspec(naked) inline void __fastcall ClientCommitPartyOriginal(void* /*clien
 __declspec(naked) inline void __fastcall ClientDropPartyOriginal(void* /*client*/) EI_ORIGINAL(0x0041E3E0)
 __declspec(naked) inline void __fastcall ClientPublishPartyOriginal(void* /*client*/) EI_ORIGINAL(0x0041DA50)
 
+// A-E2. 005DA400 (ECX the step; rewritten as ShowLoadingMovie): the loading screen's movie at a progress step.
+// 005DAEA0 (fastcall, RET 8; rewritten as SetUpCursors): the cursor (007C7BD8) initialised and given its shapes.
+// 005E62E0 (rewritten as CCursor::Shutdown): its drawing thread stopped and the shapes released.
+__declspec(naked) inline void __fastcall ShowLoadingMovieOriginal(int /*step*/) EI_ORIGINAL(0x005DA400)
+__declspec(naked) inline void __fastcall SetUpCursorsOriginal(bool /*modeTwo*/, int /*context*/, int /*smallCursors*/, int /*flags*/)
+    EI_ORIGINAL(0x005DAEA0)
+__declspec(naked) inline void __fastcall CursorShutdownOriginal(void* /*cursor*/) EI_ORIGINAL(0x005E62E0)

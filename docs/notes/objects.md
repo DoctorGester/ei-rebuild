@@ -67,7 +67,8 @@ range are in `network.md`, `app.md` and `core.md`; the party (CParty, party reco
   from `data + j * 12` on a 12-byte element pointer) was fixed in C10.
 - **Options**: ~120 values under HKCU\<path>\<subkey> through the game's registry helper (006972A0-006988A0); the writer uses the
   setter matching each getter (00697D40 int, 00697CA0 dword, 00697E80 floats as REG_BINARY bits, 00697FC0 strings). 00458870
-  (constructor) runs from a static initializer before the hooks exist.
+  (constructor; `options_construct.cpp`, A-E2) runs from a static initializer before the hooks exist: ours is compared at
+  WinMain's entry with the object it built. The layout is named in options.h.
 - **Unit record**: `UnitRecord::ApplyTo` (00477B00) applies the world server's unit record (005927C0): stats, controller fields,
   protection from the prototype model, items, spells, armour, weapons; a record without stats gives only the items.
 - **Player messages**: each player's server connection queues messages for its client in the CMemoryStream at +0x48 (a type byte

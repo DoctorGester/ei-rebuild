@@ -89,3 +89,4 @@ address,size,note
 00670A90,132,server session: message 0x39 handler: follow (table +0xE4; no Ghidra function)
 00670B20,51,server session: message 0x40 handler: two dwords to +0x38 / +0x3C (table +0x100; no Ghidra function)
 00670CE0,191,server session: message 0x04 handler: party collected (table +0x10; no Ghidra function)
+00455A30,93,operator new handler installed by WinMain (referenced only by address; no Ghidra function)

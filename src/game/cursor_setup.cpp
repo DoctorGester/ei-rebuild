@@ -2,6 +2,7 @@
 // initialised and given its 25 shapes, the "sm_" set when the small cursors are on. The cursor
 // object itself (005E5xxx-005E6xxx) is not rewritten yet.
 #include "ei/hook.h"
+#include "originals_ui.h"
 
 #include <cstdint>
 
@@ -17,9 +18,11 @@ __declspec(naked) void __fastcall CursorAddShape(void*, void*, const char*, int,
 // 005E6260: shows shape 0 and (unless mode 1) starts the drawing thread. 005E62E0: stops the
 // thread and releases the shapes.
 __declspec(naked) void __fastcall CursorStart(void*) EI_ORIGINAL(0x005E6260)
-__declspec(naked) void __fastcall CursorShutdown(void*) EI_ORIGINAL(0x005E62E0)
+void __fastcall CursorShutdown(void* cursor) { CursorShutdownOriginal(cursor); }
 // 005DAEA0 through its address (the verify build's wrapper sees the call from the reset).
-__declspec(naked) void __fastcall SetUpCursorsAt(bool, int, int, int) EI_ORIGINAL(0x005DAEA0)
+void __fastcall SetUpCursorsAt(bool modeTwo, int context, int smallCursors, int flags) {
+    SetUpCursorsOriginal(modeTwo, context, smallCursors, flags);
+}
 
 struct CursorShape {
     const char* name;

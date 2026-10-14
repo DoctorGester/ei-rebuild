@@ -43,11 +43,13 @@ struct CDib {
     // padding, while `imageSize` (what Write writes) counts rows padded to four bytes. Returns
     // `bits` (unchanged without a header).
     std::uint8_t* AllocateBits();
-    // 006D5910 (RET 4), not rewritten (an MFC TRY / CATCH around the file's reads): the file header,
-    // the info header with its colours, the bits. A short or non-"BM" file: a message box and 0.
+    // 006D5910 (RET 4; dib_file.cpp): the bitmap emptied, then the file header, the info header
+    // with what follows it up to the bits (masks or colours), the bits; the colour count and the
+    // palette. A short or non-"BM" file, or an MFC exception from the reads (inside TRY / CATCH): a
+    // message box and 0. Returns 1.
     int Read(mfc::CFile* file);
-    // 006D5AC0 (RET 4), not rewritten (an MFC TRY / CATCH around the file's writes): the file
-    // header, the info header with the masks, `imageSize` bytes of bits. Returns 1.
+    // 006D5AC0 (RET 4; dib_file.cpp): the file header, the info header with the masks, `imageSize`
+    // bytes of bits. An MFC exception from the writes: a message box and 0. Returns 1.
     int Write(mfc::CFile* file);
 
     const void* vtable;              // 00744288: GetRuntimeClass, Delete, Serialize
@@ -71,6 +73,9 @@ static_assert(offsetof(CDib, header) == 0x10);
 static_assert(offsetof(CDib, imageSize) == 0x20);
 static_assert(offsetof(CDib, palette) == 0x38);
 static_assert(sizeof(CDib) == 0x3C);
+
+// The bytes of a header's pixels: its biSizeImage, or (when that is 0) its rows padded to four bytes.
+std::uint32_t DibImageSize(const BITMAPINFOHEADER* header);
 
 struct CDXSurface;   // texture.h
 

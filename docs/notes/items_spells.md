@@ -600,13 +600,14 @@ verify_ui_help_page.cpp use it).
 
 006C68B0 `Terrain::LoadMap` (the map loader) is ported too: models.md, side by side, every zone load.
 
-Still original (Rebirth-patched): 006462A0 (unit panel draw) only.
-006462A0 stays forwarded: it drives the Direct3D device directly. Between the panel's background and the unit's figure, and
+006462A0 (unit panel draw) was ported by A-E2 (`ui_hud_unit_draw.cpp`, `CHudUnitPanel::DrawVanilla`: Rebirth
+replaces the whole function, so vanilla launch only; ours only, every map frame): the device calls are made as
+they are and mirrored to the new renderer, as the hero preview's are.
+It drives the Direct3D device directly. Between the panel's background and the unit's figure, and
 again after the figure, it clears three screen rectangles' Z-buffer (and stencil when the device has one) with
 IDirect3DDevice7::Clear (the device at the renderer's +0x54, vtable +0x28) under the render lock 007AEE78, after flushing
 the renderer's two batches (004E7840, 004E7A40); in between it draws the unit's model (the unit's slot +0x58) with texture
 stage 0's mip filter (state 0x12) read, set to 1 and put back through the device (vtable +0x90 / +0x94).
 None of the ported ones drives the device directly (0065E580 makes an interface surface through 005FCDD0; 0065C2E0 and
 006567A0 draw GDI text and a pen line into one through its DC; 00641F20 sets one pixel through a surface's DC).
-Next candidates: none left of the ticket's list; 006462A0 once the device calls have a home (the renderer's Z clear and
-the texture stage state are behind the DDraw7 / D3D7 boundary).
+Next candidates: none left of the ticket's list.

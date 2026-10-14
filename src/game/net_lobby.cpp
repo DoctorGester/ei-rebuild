@@ -42,7 +42,7 @@ inline void __fastcall GameBufferGrow(GameBuffer* a0, void*, std::uint32_t a2) {
 
 // STLport containers (library): the servers list (004436C0 end, 004437A0 insert of a counted
 // pointer, 004436D0 erase), the waiting addresses (0041FCD0 end, 00421AF0 insert, 004437D0
-// erase), the server's joins (00443730 erase); the query vector (00443E30 construct, 004439C0
+// erase), the server's joins (00443730 erase, 00443800 insert); the query vector (00443E30 construct, 004439C0
 // insert overflow, 00443FF0 copy, 00443BF0 assign, 004442B0 erase, 00444090 resize).
 __declspec(naked) Node** __fastcall ServersEnd(void* /*list*/, void*, Node** /*out*/) EI_ORIGINAL(0x004436C0)
 __declspec(naked) Node** __fastcall ServersInsert(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/, const RefPtr* /*value*/) EI_ORIGINAL(0x004437A0)
@@ -51,6 +51,7 @@ Node** __fastcall WaitingEnd(void* a0, void*, Node** a2) { return (Node**)ListEn
 Node** __fastcall WaitingInsert(void* a0, void*, Node** a2, Node* a3, const NetAddress* a4) { return (Node**)ListInsert421AF0Original(a0, nullptr, (void**)a2, (void*)a3, (const void*)a4); }
 __declspec(naked) Node** __fastcall WaitingErase(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/) EI_ORIGINAL(0x004437D0)
 __declspec(naked) Node** __fastcall JoinsErase(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/) EI_ORIGINAL(0x00443730)
+__declspec(naked) Node** __fastcall JoinsInsert(void* /*list*/, void*, Node** /*out*/, Node* /*pos*/, const PendingJoin* /*value*/) EI_ORIGINAL(0x00443800)
 __declspec(naked) void __fastcall QueryConstructAt(Query* /*p*/) EI_ORIGINAL(0x00443E30)
 __declspec(naked) void __fastcall QueriesInsertOverflow(QueryVector*, void*, Query* /*pos*/, const Query* /*value*/, unsigned /*n*/) EI_ORIGINAL(0x004439C0)
 __declspec(naked) Query* __fastcall QueriesCopy(Query* /*first*/, Query* /*last*/, Query* /*dest*/, const void* /*unused*/, int /*unused*/) EI_ORIGINAL(0x00443FF0)
@@ -730,6 +731,89 @@ void ServerBase::Tick(double dt) {
 }
 
 namespace {
+// "Accepted" (packet 6) with the join's id, to `to`.
+void SendAccepted(ServerBase* self, const NetAddress* to, std::uint32_t id) {
+    GameBuffer b;
+    GrowingBufferConstruct(&b);
+    std::uint8_t kind = 6;
+    BufferWrite(&b, nullptr, &kind, 1);
+    BufferWrite(&b, nullptr, &id, 4);
+    self->Send(to, &b);
+    GrowingBufferDestruct(&b);
+}
+} // namespace
+
+// 00443080 (slot 5, packet 4): a login. The magic must be the session's; the id and the rate
+// follow (the rate is cut to what the session allows for the address, compared signed). A peer
+// that is connected already is ignored. One that was told to join before is told again (its id
+// and rate replaced). Anybody else is asked about (slot 16) and either put on the joins list and
+// accepted, or refused with the reason slot 16 gave.
+//
+// The original builds the new join on the stack and never sets its age (+0x18): the list gets
+// whatever the stack held, so the time the join may wait for its first update (ServerBase::Tick)
+// is not defined. Rebirth's FixProcessLogin (a jump at 004433D6) clears it; so does this body,
+// which is installed in the vanilla launch only.
+void ServerBase::OnLogin(const NetAddress* from, BufferCursor* cursor) {
+    std::uint32_t magic;
+    cursor->ReadBytes(&magic, 4);
+    if (magic != magic_) return;
+    std::uint32_t id;
+    cursor->ReadBytes(&id, 4);
+    std::int32_t rate;
+    cursor->ReadBytes(&rate, 4);
+    const std::int32_t limit = static_cast<std::int32_t>(RateFor(from));
+    if (rate >= limit) rate = limit;
+
+    ClientNode* client;
+    FindClient(&client, from);
+    if (client != clients_) {
+        LogAddressLine(std::uintptr_t(0x00784260), from);   // "ERROR: Ignoring login request for active session from "
+        return;
+    }
+
+    Node* sentinel = Sentinel(joins_);
+    Node* node = sentinel->next;
+    while (node != sentinel && !SameAddress(&ValueOf<PendingJoin>(node).address, from)) node = node->next;
+    if (node != sentinel) {
+        PendingJoin& join = ValueOf<PendingJoin>(node);
+        if (id != join.id) {
+            join.id = id;
+            LogAddressLine(std::uintptr_t(0x00784240), from);   // "WARNING: LinkID mismatch from "
+        }
+        join.rate = rate;
+        LogAddressLine(std::uintptr_t(0x00784224), from);   // "Reaccepting client from "
+        SendAccepted(this, from, id);
+        return;
+    }
+
+    std::uint8_t reason;
+    if (Admit(static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(from)), reinterpret_cast<const std::uint8_t**>(cursor), &reason)) {
+        LogAddressLine(std::uintptr_t(0x0078420C), from);   // "Accepting client from "
+        PendingJoin join;
+        join.address = *from;
+        join.id = id;
+        join.rate = rate;
+        join.age = 0.0f;
+        Node* out;
+        JoinsInsert(&joins_, nullptr, &out, Sentinel(joins_), &join);
+        SendAccepted(this, from, id);
+        return;
+    }
+
+    GameBuffer b;
+    GrowingBufferConstruct(&b);
+    std::uint8_t kind = 7;
+    BufferWrite(&b, nullptr, &kind, 1);
+    BufferWrite(&b, nullptr, &id, 4);
+    BufferWrite(&b, nullptr, &reason, 1);
+    Send(from, &b);
+    GrowingBufferDestruct(&b);
+}
+
+namespace {
+void __fastcall ServerOnLoginHook(ServerBase* self, void*, const NetAddress* from, BufferCursor* cursor) {
+    self->ServerBase::OnLogin(from, cursor);
+}
 void __fastcall ServerOnGetInfoHook(ServerBase* self, void*, const NetAddress* from, BufferCursor* cursor) {
     self->ServerBase::OnGetInfo(from, cursor);
 }
@@ -741,6 +825,7 @@ bool __fastcall ServerOnUpdateHook(ServerBase* self, void*, const NetAddress* fr
 }
 void __fastcall ServerBaseTickHook(ServerBase* self, void*, double dt) { self->ServerBase::Tick(dt); }
 } // namespace
+EI_REPLACE(0x00443080, ServerOnLoginHook);
 EI_REPLACE(0x00443060, ServerOnGetInfoHook);
 EI_REPLACE(0x00443050, ServerAdmitAllHook);
 EI_REPLACE(0x004434F0, ServerOnUpdateHook);

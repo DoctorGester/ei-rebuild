@@ -16,6 +16,9 @@
 #include "originals_script.h"
 #include "originals_world.h"
 #include "originals_ui.h"
+#include "texture.h"            // the renderer's device object
+
+#include <ddraw.h>
 
 #include <cstdarg>
 #include <cstdint>
@@ -195,7 +198,7 @@ struct ScriptError {
 __declspec(naked) ScriptError* __fastcall GetScriptError(void*, void*, ScriptError*) EI_ORIGINAL(0x00456360)
 
 __declspec(naked) void __fastcall MenuPrepare(void*) EI_ORIGINAL(0x00581660)
-__declspec(naked) void __fastcall MenuOpen(void*) EI_ORIGINAL(0x0057C700)
+void __fastcall MenuOpen(void* flow) { FlowProcessRequestOriginal(flow); }
 int __fastcall WorldLoadMap(void* a0, void*, const char* a2, const char* a3, int a4) { return WorldNewZoneOriginal(a0, nullptr, a2, a3, (const char*)a4); }
 __declspec(naked) void __fastcall WorldSetGameResult(void*, void*, int) EI_ORIGINAL(0x0058DC90)
 __declspec(naked) std::uint8_t* __fastcall ClientLocalView(void*) EI_ORIGINAL(0x005699F0)
@@ -342,10 +345,26 @@ EI_REPLACE(0x00456140, StartFirstMap);
 // ---- FatalError (00480080) ---------------------------------------------------------------------
 
 namespace {
+const char* FlipFailedText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078476C)); }   // "Can't flip to GDI surface.\n"
+const char* WindowTitle() { return reinterpret_cast<const char*>(std::uintptr_t(0x0079BB24)); }      // the game window's title (a buffer)
+} // namespace
 
-// 004560D0 (ECX text, EDX MessageBox flags). The game's message box over the main window.
-__declspec(naked) int __fastcall ShowMessageBox(const char*, int) EI_ORIGINAL(0x004560D0)
-// 006E8DA7. exit.
+// 004560D0 (A-E2).
+int __fastcall ShowMessageBox(const char* text, int flags) {
+    HCURSOR cursor = gameapi::GetCursor();
+    CTextureDevice* device = RenderDeviceObject();
+    if (device && (device->flags_ & 1)) {
+        long result = static_cast<IDirectDraw7*>(device->ddraw_)->FlipToGDISurface();
+        device->lastLoadResult_ = result;
+        if (result != 0) FatalErrorCode(result, FlipFailedText());
+    }
+    int answer = gameapi::MessageBoxA(MainWindow(), text, WindowTitle(), static_cast<UINT>(flags));
+    gameapi::SetCursor(cursor);
+    return answer;
+}
+EI_REPLACE(0x004560D0, ShowMessageBox);
+
+namespace {
 
 constexpr int kErrorBoxFlags = 0x10;   // MB_ICONHAND
 using ErrorHook = void(__fastcall*)(const char* text);
@@ -398,5 +417,18 @@ int __cdecl FatalErrorCode(long result, const char* format, ...) {
     return value;
 }
 EI_REPLACE(0x004800E0, FatalErrorCode);
+
+// ---- The operator new handler (00455A30) -------------------------------------------------------
+
+namespace {
+const char* MemoryDepletedText() { return reinterpret_cast<const char*>(std::uintptr_t(0x0078475C)); }   // "Memory depleted"
+} // namespace
+
+// 00455A30 (A-E2). The body is the message box 004560D0's, inlined.
+int __cdecl OutOfMemory(std::size_t) {
+    ShowMessageBox(MemoryDepletedText(), kErrorBoxFlags);
+    return 0;
+}
+EI_REPLACE(0x00455A30, OutOfMemory);
 
 } // namespace app
