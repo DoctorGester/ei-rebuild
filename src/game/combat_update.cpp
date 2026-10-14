@@ -23,6 +23,7 @@
 #include "lib/crt.h"
 
 #include "ei/hook.h"
+#include "originals_effects.h"
 #include "originals_ai.h"
 #include "originals_engine.h"
 #include "originals_library.h"
@@ -90,8 +91,6 @@ __declspec(naked) void __fastcall BrainReset(void*) EI_ORIGINAL(0x005D4E80)
 // object (world_server.cpp); 00665440 does the player still have the unit.
 __declspec(naked) void __fastcall WorldUnitDied(void*, void*, CUnit*) EI_ORIGINAL(0x00593AF0)
 int __fastcall PlayerHasUnit(void* a0, void*, CUnit* a2) { return PlayerOwnsUnitOriginal(a0, nullptr, a2); }
-// 00679280 CEffectParticle::SetAttachedTo (world_effect_visual.cpp).
-__declspec(naked) void __fastcall ParticleAttach(CEngineObject*, void*, int) EI_ORIGINAL(0x00679280)
 // The sector map (world + 0x294): 005C1010 Remove, 005C0DF0 Add.
 // The motion (+0x3C, an AIPath; ai_motion.cpp): 005C7CB0 ShiftTime, 005B23A0 Clear, 005C7B00
 // Start, and 005C7430 UnitMotion::Sample on CUnit + 0x27C.
@@ -600,7 +599,7 @@ void CUnitServer::TickAction() {
             auto* particle = reinterpret_cast<CEffectParticle*>(effect);
             particle->type_ = (kind >= 0 && kind <= 7) ? kEffects[kind] : 0x200B;
             particle->size_ = 1.0f;
-            ParticleAttach(effect, nullptr, unit->id_);
+            ParticleSetAttachedToOriginal(effect, nullptr, unit->id_);
             WorldAddTimed(world, nullptr, effect);
             CEngineObject* old = effectObject;
             effectObject = effect;

@@ -406,7 +406,6 @@ __declspec(naked) void __fastcall ObjectSetSecondName(CEngineObject*, void*, con
 __declspec(naked) void __fastcall ManagerRegister(void*, void*, CEngineObject*) EI_ORIGINAL(0x00513630)
 __declspec(naked) void __fastcall ManagerRegisterUnit(void*, void*, CEngineObject*, const char*) EI_ORIGINAL(0x00513B60)
 __declspec(naked) void __fastcall ManagerRegisterUnit2(void*, void*, CEngineObject*, const char*) EI_ORIGINAL(0x005141F0)
-__declspec(naked) CEngineObject* __fastcall SpellsFromText(void*, void*, const char*) EI_ORIGINAL(0x00689030)
 inline void __fastcall TextAssignChars(mfc::CString* s, void*, const char* t) { CStringAssignTextOriginal(s, nullptr, t); }
 void __fastcall TextAssign(mfc::CString* a0, void*, const mfc::CString* a2) { CStringAssignOriginal((void*)a0, nullptr, (const void*)a2); }
 void __fastcall TextArrayCopy(void* a0, void*, const void* a2) { StringArrayCopyOriginal(a0, nullptr, a2); }
@@ -503,7 +502,8 @@ int CWorldServer::CreateObject(std::uint8_t* message) {
             at[2] = flame->offset.z + base.position.z;
             at[1] = flame->offset.y + base.position.y;
             at[0] = flame->offset.x + base.position.x;
-            CEngineObject* spell = SpellsFromText(SpellManager(), nullptr, worlddata::CampfireText());
+            CEngineObject* spell = reinterpret_cast<CEngineObject*>(SpellManagerCreateSpellFromTextOriginal(
+                reinterpret_cast<CSpellManager*>(SpellManager()), nullptr, worlddata::CampfireText()));
             if (spell) ++spell->refCount_;
             WorldCastSpellOriginal(this, nullptr, spell, nullptr, reinterpret_cast<const Vector3*>(const_cast<float*>(at)), nullptr,
                                    reinterpret_cast<const Vector3*>(const_cast<float*>(at)), 0);

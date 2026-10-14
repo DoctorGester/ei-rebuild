@@ -548,12 +548,18 @@ struct RegistryOriginals {
     mfc::BOOL GetSectionNames(console::CStringArray* out);                                         // 00694880
     mfc::CString GetString(const char* section, const char* key, StringArg defaultValue);          // 00694D20
     mfc::BOOL GetStringArray(const char* section, const char* key, console::CStringArray* out);    // 006958E0
+    // C3n batch 4. 00694540 (CFileRegistry::Destroy; plain RET) the destructor body; 00694610 (CFileRegistry::Attach; RET 4)
+    // reads the registry from the loaded file image (1 when it is a registry, else 0).
+    void Destroy();                                                                                // 00694540
+    mfc::BOOL Attach(const void* image);                                                           // 00694610
 };
 __declspec(naked) inline mfc::BOOL RegistryOriginals::Open(const char*) EI_ORIGINAL(0x006945A0)
 __declspec(naked) inline mfc::BOOL RegistryOriginals::GetSectionNames(console::CStringArray*) EI_ORIGINAL(0x00694880)
 __declspec(naked) inline mfc::CString RegistryOriginals::GetString(const char*, const char*, StringArg) EI_ORIGINAL(0x00694D20)
 __declspec(naked) inline mfc::BOOL RegistryOriginals::GetStringArray(const char*, const char*, console::CStringArray*)
     EI_ORIGINAL(0x006958E0)
+__declspec(naked) inline void RegistryOriginals::Destroy() EI_ORIGINAL(0x00694540)
+__declspec(naked) inline mfc::BOOL RegistryOriginals::Attach(const void*) EI_ORIGINAL(0x00694610)
 // C3n. 00406A10 (rewritten as hash400::PositionAt): hash_map<int, T*>::operator[](key); the slot of `key`, inserted when
 // missing (thiscall on the map, RET 4). One instruction sequence serves every instantiation with pointer values.
 __declspec(naked) inline void** __fastcall HashMapAt(void* /*map*/, void*, const int* /*key*/) EI_ORIGINAL(0x00406A10)

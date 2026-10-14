@@ -11,6 +11,7 @@
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
+#include "originals_effects.h"
 #include "originals_ai.h"
 #include "originals_engine.h"
 #include "originals_gameplay.h"
@@ -52,9 +53,6 @@ void __fastcall UnitListFreeNode(UnitList* a0, void*, UnitList::Node* a2) { Unit
 __declspec(naked) bool __fastcall SpellReaches(CWorldServer*, const void* /*spell*/, CEngineObject* /*caster*/,
                                                const Vector3* /*from*/, CEngineObject* /*target*/,
                                                const Vector3* /*at*/) EI_ORIGINAL(0x0054BBC0)
-// 0068B4C0 (RET 8). Whether the spell affects `target` at all.
-__declspec(naked) bool __fastcall SpellAffects(const void* /*spell*/, void*, CEngineObject* /*caster*/,
-                                               CEngineObject* /*target*/) EI_ORIGINAL(0x0068B4C0)
 // 0058E670, CreateMissile, through its address (rewritten here).
 __declspec(naked) void __fastcall CreateMissileAt(CWorldServer*, void*, const void*, CEngineObject*, Vector3,
                                                   CEngineObject*, const Vector3*, int) EI_ORIGINAL(0x0058E670)
@@ -63,7 +61,6 @@ __declspec(naked) void __fastcall MissileInit(Projectile*, void*, CWorldServer*,
                                               CEngineObject* /*caster*/, const Vector3* /*from*/,
                                               CEngineObject* /*target*/, const Vector3* /*to*/, int)
     EI_ORIGINAL(0x0067ECB0)
-__declspec(naked) int __fastcall MissileUpdate(Projectile*, void*) EI_ORIGINAL(0x0067E6D0)
 // 005D7E90 (BrainSetSeenOriginal, RET 4). The target's AI brain is attacked by `caster`.
 // 00455680 (RET 0xC). CDiplomacy: `a` attacked `b` (strength).
 
@@ -114,7 +111,7 @@ void CWorldServer::CreateMissile(const void* spell, CEngineObject* caster, Vecto
     static_cast<Projectile*>(memory)->references = 0;   // written before the null test
     Projectile* missile = memory ? ProjectileConstruct(memory, nullptr) : nullptr;
     MissileInit(missile, nullptr, this, spell, caster, &from, target, &end, extra);
-    if (MissileUpdate(missile, nullptr)) {
+    if (SpellEffectUpdateOriginal(reinterpret_cast<CSpellEffect*>(missile), nullptr)) {
         auto& list = projectiles_;
         ProjectileList::Node* node = ProjectileNewNode(&projectiles_, nullptr, list.tail, nullptr);
         Projectile* old = node->data;
@@ -239,7 +236,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
         if (!hit) continue;
         Vector3* at = &static_cast<CUnit*>(best)->position;
         if (!SpellReaches(this, spell, caster, from, best, at)) continue;
-        if (!SpellAffects(spell, nullptr, caster, best)) continue;
+        if (!SpellCanAffectOriginal(static_cast<const CSpell*>(spell), nullptr, caster, best)) continue;
         CreateMissileAt(this, nullptr, spell, caster, *from, best, at, extra);
         --targets;
     }

@@ -9,6 +9,11 @@
 #include <cstdint>
 
 class CEngineObject;
+class CSpell;
+class CSpellConstructor;
+class CSpellManager;
+struct CSpellEffect;
+struct DamageInfo;
 struct Vector3;
 
 // 00498400: the particle manager (*007AF754) makes a source of `type` (RET 4; EAX the source, referenced).
@@ -50,3 +55,31 @@ __declspec(naked) inline void __fastcall RainSnowDestructOriginal(CRainSnow* /*l
 __declspec(naked) inline void __fastcall CameraShakeOriginal(void* /*camera*/, void*, const Vector3* /*source*/,
                                                              float /*duration*/, float /*amplitude*/, float /*decay*/)
     EI_ORIGINAL(0x004113A0)
+
+// C3n batch 4. Spell effects and spells at their addresses (thiscall, so the verify wrappers and Rebirth's patches run):
+// 00679280 (rewritten as CEffectParticle::SetAttachedTo; RET 4) the particle follows the object with the id;
+// 0067E6D0 (CSpellEffect::Update) the effect's step, 0 when it is done; 00683950 (CSpellEffect::GetDamage; RET 4) the damage
+// it deals into the DamageInfo; 0068B4C0 (CSpell::CanAffect; RET 8) whether the spell affects `target` cast by `caster`;
+// 0068BA20 (CSpell::GetPrototype) the spell's prototype record; 0068B410 (CSpell::Clone; RET 4) a copy made with the manager.
+__declspec(naked) inline void __fastcall ParticleSetAttachedToOriginal(CEngineObject* /*particle*/, void*, int /*id*/)
+    EI_ORIGINAL(0x00679280)
+__declspec(naked) inline int __fastcall SpellEffectUpdateOriginal(CSpellEffect* /*effect*/, void*) EI_ORIGINAL(0x0067E6D0)
+__declspec(naked) inline int __fastcall SpellEffectGetDamageOriginal(CSpellEffect* /*effect*/, void*, DamageInfo* /*out*/)
+    EI_ORIGINAL(0x00683950)
+__declspec(naked) inline bool __fastcall SpellCanAffectOriginal(const CSpell* /*spell*/, void*, const CEngineObject* /*caster*/,
+                                                                CEngineObject* /*target*/) EI_ORIGINAL(0x0068B4C0)
+__declspec(naked) inline char* __fastcall SpellGetPrototypeOriginal(CSpell* /*spell*/) EI_ORIGINAL(0x0068BA20)
+__declspec(naked) inline CSpell* __fastcall SpellCloneOriginal(CSpell* /*spell*/, void*, CSpellManager* /*manager*/)
+    EI_ORIGINAL(0x0068B410)
+// The spell constructor (CSpellConstructor; thiscall): 006841A0 SetManager (RET 4), 006841E0 BeginConstruct (RET 4: the
+// prototype record) and 006842A0 AddModifier (RET 4: the modifier record), both 1 on success; 00689030 (the spell manager's
+// CSpellManager::CreateSpellFromText, RET 4) makes a spell from its text.
+__declspec(naked) inline void __fastcall SpellConstructorSetManagerOriginal(CSpellConstructor* /*constructor*/, void*,
+                                                                           CSpellManager* /*manager*/) EI_ORIGINAL(0x006841A0)
+__declspec(naked) inline int __fastcall SpellConstructorBeginOriginal(CSpellConstructor* /*constructor*/, void*,
+                                                                     char* /*prototype*/) EI_ORIGINAL(0x006841E0)
+__declspec(naked) inline int __fastcall SpellConstructorAddModifierOriginal(CSpellConstructor* /*constructor*/, void*,
+                                                                           char* /*modifier*/) EI_ORIGINAL(0x006842A0)
+__declspec(naked) inline CSpell* __fastcall SpellManagerCreateSpellFromTextOriginal(CSpellManager* /*manager*/, void*,
+                                                                                   const char* /*text*/)
+    EI_ORIGINAL(0x00689030)

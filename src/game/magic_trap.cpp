@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_effects.h"
 #include "originals_ai.h"
 #include "originals_core.h"
 #include "originals_engine.h"
@@ -202,7 +203,6 @@ EI_REPLACE_METHOD(0x0052A4B0, MagicTrap::CastAtUnits);
 namespace {
 // The spell manager's CreateSpellFromText (00689030, RET 4; not rewritten); the two arrays'
 // SetSize(n, -1) (0046EAD0 for the circles, 0052C8E0 for the points; MFC template code, RET 8).
-__declspec(naked) void* __fastcall CreateSpellFromText(void* /*manager*/, void*, const char*) EI_ORIGINAL(0x00689030)
 void __fastcall CirclesSetSize(TrapArea* a0, void*, int a2, int a3) { Array12SetSizeOriginal((void*)a0, nullptr, a2, a3); }
 __declspec(naked) void __fastcall PointsSetSize(TrapPoints*, void*, int /*n*/, int /*grow*/) EI_ORIGINAL(0x0052C8E0)
 // The map object context's (the world's) slot 22.
@@ -230,7 +230,7 @@ void MagicTrap::SetUp(const MagicTrapRecord* record) {
     sides = record->sides;
     const char* text = record->spell;
     void* manager = SpellManagerOf(ManagerContextOf(this));
-    auto* made = static_cast<CEngineObject*>(CreateSpellFromText(manager, nullptr, text));
+    auto* made = static_cast<CEngineObject*>(SpellManagerCreateSpellFromTextOriginal(static_cast<CSpellManager*>(manager), nullptr, text));
     CEngineObject* old = spell;
     spell = made;
     if (made) ++made->refCount_;

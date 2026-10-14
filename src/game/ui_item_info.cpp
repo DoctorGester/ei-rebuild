@@ -24,6 +24,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include "originals_effects.h"
 #include "originals_ui.h"
 #include "originals_engine.h"
 #include "originals_gameplay.h"
@@ -283,10 +284,9 @@ __declspec(naked) void ItemAt::DamageTypes(float*) EI_ORIGINAL(0x006A0770)
 ItemAt* Of(CItem* item) { return reinterpret_cast<ItemAt*>(item); }
 
 struct SpellAt {
-    char* Prototype();                      // 0068BA20
+    char* Prototype() { return SpellGetPrototypeOriginal(reinterpret_cast<CSpell*>(this)); }   // 0068BA20
     int ModifierCount();                    // 0068BA60
 };
-__declspec(naked) char* SpellAt::Prototype() EI_ORIGINAL(0x0068BA20)
 __declspec(naked) int SpellAt::ModifierCount() EI_ORIGINAL(0x0068BA60)
 SpellAt* Of(void* spell) { return static_cast<SpellAt*>(spell); }
 

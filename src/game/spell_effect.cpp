@@ -11,6 +11,7 @@
 #include "lib/mfc.h"
 
 #include <cstring>
+#include "originals_effects.h"
 #include "originals_ai.h"
 
 #pragma float_control(precise, on)
@@ -26,10 +27,6 @@ using UnitList = mfc::CTypedPtrList<CEngineObject>;
 
 // 005C0BD0 CSectorMap::FindUnitsInRadius (rewritten in sector_map.cpp; through its address so its
 // verify wrapper sees the call).
-// 0068B4C0 CSpell::CanAffect (rewritten in spell.cpp), through its address. Returns AL.
-__declspec(naked) bool __fastcall SpellCanAffect(CSpell*, void*, const CEngineObject*, CEngineObject*)
-    EI_ORIGINAL(0x0068B4C0)
-
 CSectorMap* SectorMapOf(const CSpellEffect* effect) {
     return reinterpret_cast<CSectorMap*>(effect->world + 0x170 + 0x124);
 }
@@ -60,13 +57,13 @@ bool AcceptsAreaSpells(CEngineObject* object) {
 
 // Delivers `hit` to `unit` unless the spell may not affect it (the loops' common tail).
 void Deliver(CSpellEffect* effect, DamageInfo* hit, CEngineObject* unit) {
-    if (effect->caster && !SpellCanAffect(effect->Spell(), nullptr, effect->caster, unit)) return;
+    if (effect->caster && !SpellCanAffectOriginal(effect->Spell(), nullptr, effect->caster, unit)) return;
     CEngineObject* attacker = (effect->flags & 1) ? nullptr : effect->caster;
     ei::VCall<int>(unit, kSlotUnitHit, hit, attacker, effect->caster);
 }
 } // namespace
 
-__declspec(naked) BOOL CSpellEffect::CallGetDamage(DamageInfo*) EI_ORIGINAL(0x00683950)
+BOOL CSpellEffect::CallGetDamage(DamageInfo* out) { return SpellEffectGetDamageOriginal(this, nullptr, out); }
 
 int __fastcall IsSpellTarget(CEngineObject* unit) { return AcceptsAreaSpells(unit) ? 1 : 0; }
 EI_REPLACE(0x00681B80, IsSpellTarget);

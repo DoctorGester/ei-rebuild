@@ -56,16 +56,12 @@ StringArg Copy(const char* text) {
 // The registry, through its game addresses (registry.cpp).
 struct Registry : RegistryOriginals {
     CFileRegistry* Construct();                                                       // 00694520
-    void Destroy();                                                                   // 00694540
-    mfc::BOOL Attach(const void* image);                                              // 00694610
     double GetFloat(const char* section, const char* key, std::uint32_t defaultBits); // 00694C80
     int GetInt(const char* section, const char* key, int defaultValue);              // 00694B90
 
     std::uint8_t storage[sizeof(CFileRegistry)];
 };
 __declspec(naked) CFileRegistry* Registry::Construct() EI_ORIGINAL(0x00694520)
-__declspec(naked) void Registry::Destroy() EI_ORIGINAL(0x00694540)
-__declspec(naked) mfc::BOOL Registry::Attach(const void*) EI_ORIGINAL(0x00694610)
 __declspec(naked) double Registry::GetFloat(const char*, const char*, std::uint32_t) EI_ORIGINAL(0x00694C80)
 __declspec(naked) int Registry::GetInt(const char*, const char*, int) EI_ORIGINAL(0x00694B90)
 

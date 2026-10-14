@@ -12,6 +12,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_effects.h"
 #include "originals_library.h"
 #include "originals_ui.h"
 #include "originals_units.h"
@@ -799,13 +800,18 @@ namespace {
 
 // The spell constructor (CSpellConstructor, not rewritten; thiscall).
 struct SpellConstructorAt {
-    void SetManager(void* manager);           // 006841A0
-    BOOL Begin(const void* spell);            // 006841E0
-    BOOL AddModifier(const void* modifier);   // 006842A0
+    void SetManager(void* manager) {   // 006841A0
+        SpellConstructorSetManagerOriginal(reinterpret_cast<CSpellConstructor*>(this), nullptr, static_cast<CSpellManager*>(manager));
+    }
+    BOOL Begin(const void* spell) {   // 006841E0
+        return SpellConstructorBeginOriginal(reinterpret_cast<CSpellConstructor*>(this), nullptr,
+                                             static_cast<char*>(const_cast<void*>(spell)));
+    }
+    BOOL AddModifier(const void* modifier) {   // 006842A0
+        return SpellConstructorAddModifierOriginal(reinterpret_cast<CSpellConstructor*>(this), nullptr,
+                                                   static_cast<char*>(const_cast<void*>(modifier)));
+    }
 };
-__declspec(naked) void SpellConstructorAt::SetManager(void*) EI_ORIGINAL(0x006841A0)
-__declspec(naked) BOOL SpellConstructorAt::Begin(const void*) EI_ORIGINAL(0x006841E0)
-__declspec(naked) BOOL SpellConstructorAt::AddModifier(const void*) EI_ORIGINAL(0x006842A0)
 
 // The item constructor (not rewritten; thiscall).
 struct ItemConstructorAt : ItemConstructorManagerOriginal {
@@ -823,9 +829,11 @@ __declspec(naked) std::uint8_t* ItemConstructorAt::Make() EI_ORIGINAL(0x006A5CF0
 
 // 0068B410 (thiscall on a spell): a copy of the spell made with `manager`.
 struct SpellAt {
-    std::uint8_t* Clone(void* manager);
+    std::uint8_t* Clone(void* manager) {
+        return reinterpret_cast<std::uint8_t*>(
+            SpellCloneOriginal(reinterpret_cast<CSpell*>(this), nullptr, static_cast<CSpellManager*>(manager)));
+    }
 };
-__declspec(naked) std::uint8_t* SpellAt::Clone(void*) EI_ORIGINAL(0x0068B410)
 
 // 0052C690: a reference-counted pointer's assignment (takes a reference, releases the old one).
 struct RefPtrAt {

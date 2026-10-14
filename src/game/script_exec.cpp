@@ -29,6 +29,7 @@
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
+#include "originals_effects.h"
 #include "originals_library.h"
 #include "originals_script.h"
 #include "originals_gameplay.h"
@@ -449,17 +450,18 @@ EventCalls* TheEvents() { return reinterpret_cast<EventCalls*>(WorldServer()->pl
 
 // The world's spell manager (CWorld::manager4C_).
 struct SpellManagerCalls {
-    CEngineObject* CreateSpellFromText(const char* text);   // 00689030
+    CEngineObject* CreateSpellFromText(const char* text) {   // 00689030
+        return reinterpret_cast<CEngineObject*>(
+            SpellManagerCreateSpellFromTextOriginal(reinterpret_cast<CSpellManager*>(this), nullptr, text));
+    }
 };
-__declspec(naked) CEngineObject* SpellManagerCalls::CreateSpellFromText(const char*) EI_ORIGINAL(0x00689030)
 SpellManagerCalls* TheSpellManager() { return reinterpret_cast<SpellManagerCalls*>(WorldServer()->manager4C_); }
 
 // A particle source's effect (ScriptParticleSource::object, a CEffectParticle).
 struct ParticleCalls {
-    void AttachTo(int objectId);                         // 00679280
+    void AttachTo(int objectId) { ParticleSetAttachedToOriginal(reinterpret_cast<CEngineObject*>(this), nullptr, objectId); }   // 00679280
     void SetSize(float size);                            // 006792B0
 };
-__declspec(naked) void ParticleCalls::AttachTo(int) EI_ORIGINAL(0x00679280)
 __declspec(naked) void ParticleCalls::SetSize(float) EI_ORIGINAL(0x006792B0)
 ParticleCalls* ParticleOf(ScriptParticleSource* source) { return reinterpret_cast<ParticleCalls*>(source->object); }
 
