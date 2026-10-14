@@ -5,6 +5,7 @@
 // FPU stack, Store where it stores to a float. Compiled with precise semantics so that the order
 // of operations and the NaN compares stay as written.
 #include "effects.h"
+#include "map_object_figures.h"   // CObject3D
 
 #include "random.h"
 
@@ -304,7 +305,7 @@ Vector3 ModifierAxis(CParticleSource* s, float twiceRadius) {
     case 6:
     case 7: {
         Vector3 y;
-        reinterpret_cast<const Quaternion*>(static_cast<const std::uint8_t*>(s->attachedTo) + 0x34)->AxisY(&y);
+        static_cast<const CObject3D*>(s->attachedTo)->orientation.AxisY(&y);
         std::memcpy(&axis, &y, sizeof(axis));
         break;
     }

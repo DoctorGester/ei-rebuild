@@ -12,7 +12,7 @@
 #include "lib/crt.h"
 
 void __fastcall DestroyFigureManager(char* manager);   // figure_model_destroy.cpp (005AA1C0)
-void __fastcall ObjectHolderRelease(void** self);      // refptr_copies.cpp
+void __fastcall ObjectHolderRelease(CEngineObject** self);   // refptr_copies.cpp
 
 namespace {
 
@@ -57,7 +57,7 @@ mapspec::Behaviour* __fastcall BehaviourDelete(mapspec::Behaviour* self, void*, 
 EI_REPLACE(0x005DA290, BehaviourDelete);
 
 CEngineObject** __fastcall ObjectHolderDelete(CEngineObject** self, void*, unsigned flags) {
-    return DestroyAndFree(self, flags, [](CEngineObject** holder) { ObjectHolderRelease(reinterpret_cast<void**>(holder)); });
+    return DestroyAndFree(self, flags, [](CEngineObject** holder) { ObjectHolderRelease(holder); });
 }
 EI_REPLACE(0x005754E0, ObjectHolderDelete);
 EI_REPLACE(0x00575510, ObjectHolderDelete);

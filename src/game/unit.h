@@ -202,7 +202,8 @@ public:
     // (ScaleEffectChanged, 0052EB30) passes its whole dword argument on.
     virtual int RefreshVitals(int withHitPoints);
     virtual void TakeHit();                 // 20: server 00553F40 (map_object.h CUnitServerVirtuals)
-    virtual void Heal();                    // 21: (float amount) server 005543B0
+    // 21: server 005543B0 (1): heals by a float amount, which callers push as raw bits.
+    virtual int Heal(std::uint32_t amountBits);
     virtual void RepackStats();             // 22: server 00553500
     virtual std::uintptr_t UpdateSizeClasses();   // 23: server 00552FB0 (CUnit 00530A50 passes EAX on)
     virtual int Level();                    // 24: server 00556760, client 00539160

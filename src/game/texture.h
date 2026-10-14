@@ -332,6 +332,11 @@ public:
     virtual void RasteriseTriangle(void* target);
     // 9: the same for a target with a colour key (RasterTriangle::colourKey; 005A0E80).
     virtual void RasteriseKeyedTriangle(void* target);
+    virtual void Unknown10();   // 10: a 16-bit block operation
+    // 11 / 12: the two passes of the shadow's blur over a 16-bit image of `width` x `height` pixels
+    // (shadow mode 2 runs both on the shadow texture's pixels; map_object_shadow.cpp).
+    virtual void BlurShadow(void* pixels, int width, int height);
+    virtual void BlurShadow2(void* pixels, int width, int height);
 };
 inline CPixelConverter* PixelConverter() { return *reinterpret_cast<CPixelConverter**>(std::uintptr_t(0x007AF06C)); }
 constexpr std::uint32_t kMmpFormatPnt3 = 0x33544E50;   // "PNT3"

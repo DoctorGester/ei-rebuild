@@ -391,6 +391,11 @@ public:
     // 4: the whole figure of model `name` at the scale.
     virtual CFigureInstance* BuildWholeFigure(const void* name, std::uint32_t x, std::uint32_t y, std::uint32_t z,
                                               int flag);
+    virtual void Clear();   // 5: 004F7020 (every cached figure released, the cache emptied)
+    // 6: 004F75E0. `figure` (one this cache built) at the scale (raw float bits): with fewer than 3
+    // references its pieces are rebuilt in place and it is returned (null for null), otherwise a new
+    // whole figure of its model is built through slot 4.
+    virtual CEngineObject* ScaledFigure(CEngineObject* figure, std::uint32_t x, std::uint32_t y, std::uint32_t z);
 };
 
 // A counted reference: the pointer slot is the `this` of 00519580.

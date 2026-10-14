@@ -2,13 +2,14 @@
 // the script commands' helpers to find (004A5E10), add (004A5E90) and remove (004A5FA0) a record
 // by name. See party_records.h and docs/notes/world.md ("Party records and class templates").
 #include "party_records.h"
+#include "core_refcount.h"
 #include "game_strings.h"
+#include "party.h"
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "originals_gameplay.h"
 #include "originals_engine.h"
 #include "originals_library.h"
@@ -53,12 +54,13 @@ PartyRecord* NewRecord() {
     PartyConstruct(record->party);
     *reinterpret_cast<void**>(&record->name) = *reinterpret_cast<void**>(0x00796E48);   // afxEmptyString
     record->vtable = reinterpret_cast<void*>(0x0073C360);
-    ei::VCall<void>(record->party, 2);
+    reinterpret_cast<CParty*>(record->party)->Create();   // slot 2
     return record;
 }
 
 void Release(PartyRecord* record) {
-    if (record && --record->refCount == 0 && record) ei::VCall<void>(record, 0, 1);
+    // A counted object (base vtable 0073BB68): slot 0, the deleting destructor, with 1 at zero.
+    if (record && --record->refCount == 0) delete reinterpret_cast<CRefCounted*>(record);
 }
 
 const char* NameOf(const PartyRecord* record) { return *reinterpret_cast<const char* const*>(&record->name); }

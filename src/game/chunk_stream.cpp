@@ -6,7 +6,7 @@
 #include "console.h"   // CStringArray
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
+#include "ei/vcall.h"   // ei::SetVtable
 #include "lib/stlp.h"
 #include "originals_engine.h"
 
@@ -15,19 +15,15 @@
 
 namespace {
 
-// MFC CFile slots (library: mfc::CFile declares no virtuals).
-constexpr int kFileGetPosition = 3;
-constexpr int kFileOpen = 8;   // Open(path, flags, exception)
-constexpr int kFileSeek = 10;
-constexpr int kFileRead = 13;
-constexpr int kFileWrite = 14;
 constexpr std::uint32_t kSeekCurrent = 1;
 constexpr int kHeader = 8;
 
-std::uint32_t FileRead(void* file, void* data, std::uint32_t size) { return ei::VCall<std::uint32_t>(file, kFileRead, data, size); }
-void FileWrite(void* file, const void* data, std::uint32_t size) { ei::VCall<void>(file, kFileWrite, data, size); }
-std::uint32_t FilePosition(void* file) { return ei::VCall<std::uint32_t>(file, kFileGetPosition); }
-void FileSeek(void* file, std::int32_t offset, std::uint32_t from) { ei::VCall<std::uint32_t>(file, kFileSeek, offset, from); }
+// The file's MFC CFile slots, through its vtable (mfc::CFile itself declares no virtuals).
+mfc::CFileVirtuals* AsFile(void* file) { return static_cast<mfc::CFileVirtuals*>(file); }
+std::uint32_t FileRead(void* file, void* data, std::uint32_t size) { return AsFile(file)->Read(data, size); }
+void FileWrite(void* file, const void* data, std::uint32_t size) { AsFile(file)->Write(data, size); }
+std::uint32_t FilePosition(void* file) { return AsFile(file)->GetPosition(); }
+void FileSeek(void* file, std::int32_t offset, std::uint32_t from) { AsFile(file)->Seek(offset, from); }
 
 // FLD + FSTP of a float, as the original copies some values it read (a signalling NaN comes out
 // quiet).
@@ -378,7 +374,7 @@ EI_REPLACE_METHOD(0x0042CB80, Chunk::WriteStringArray);
 // --- The root chunk ------------------------------------------------------------------------------
 
 int RootChunk::Open(mfc::CString path, unsigned flags) {
-    return ei::VCall<int>(&file_, kFileOpen, static_cast<const char*>(path), flags & 0xFFFF, static_cast<void*>(nullptr));
+    return AsFile(&file_)->Open(static_cast<const char*>(path), flags & 0xFFFF, nullptr);
 }
 EI_REPLACE_METHOD(0x0042D160, RootChunk::Open);
 

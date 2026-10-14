@@ -301,7 +301,9 @@ public:
     void* owner_;                   // +0x014
     std::uint32_t unknown_018;
     Vector3 position;               // +0x01C local position
-    std::uint8_t unknown_028[0x94 - 0x28];
+    std::uint8_t unknown_028[0x34 - 0x28];
+    Quaternion orientation;         // +0x034 the identity after Reset (the transform's local rotation)
+    std::uint8_t unknown_044[0x94 - 0x44];
     void* attachedTo;               // +0x094
     Vector3 origin;                 // +0x098 world emission point
     Vector3 motion;                 // +0x0A4 movement since the last tick
@@ -357,6 +359,7 @@ public:
     void* texture;                  // +0x1EC texture holder (bound by 00497CE0)
 };
 static_assert(offsetof(CParticleSource, attachedTo) == 0x94);
+static_assert(offsetof(CParticleSource, orientation) == 0x34);
 static_assert(offsetof(CParticleSource, emitChance) == 0xCC);
 static_assert(offsetof(CParticleSource, size) == 0x10C);
 static_assert(offsetof(CParticleSource, extent) == 0x130);
