@@ -11,13 +11,14 @@
 #include "item.h"
 #include "maths.h"
 #include "object_diplomacy.h"
+#include "party.h"
+#include "resource_manager.h"
 #include "world.h"
 
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_ai.h"
 #include "originals_gameplay.h"
@@ -46,16 +47,6 @@ constexpr std::uint32_t kSpellNotOnHit = 0x180000;      // spell prototype 0x18:
 constexpr int kMissileObject = 0x5B;                    // object factory kind of a missile
 constexpr int kQuickItemConsumable = 2;                 // category used up by order kind 10
 
-constexpr int kWorldSlotFactory = 14;   // CWorldServer slot 14: the object factory (+0x48)
-constexpr int kWorldSlotItems = 18;     // slot 18: the item manager (+0x54), a CBaseManager
-constexpr int kFactorySlotCreate = 23;  // factory slot 23: Create(kind, id)
-constexpr int kServerSlotIsDead = 17;   // CMapObjectServer slot 17
-constexpr int kUnitSlotHit = 31;        // CUnit slot 31: forwards a hit to its controller's TakeHit
-constexpr int kUnitSlotPosition = 48;   // CUnit slot 48: Vector3* (Vector3* out)
-constexpr int kUnitSlotAimPoint = 53;   // slot 53: Vector3* (Vector3* out), where spells aim
-constexpr int kSlotRecord = 21;         // slot 21 of the science target record: int* (int* out)
-constexpr int kSlotStudy = 41;          // slot 41 of the science target: bool (record*, CUnit*)
-
 // Party messages (0066D6E0 codes).
 constexpr int kMessageKilled = 0x30;
 constexpr int kMessageScienceFailed = 0x11;
@@ -67,19 +58,13 @@ constexpr int kBrainClaimRadius = 0x38;     // +0x9B8 float
 constexpr int kBrainMemory = 0xD0;          // +0xA50
 constexpr int kBrainNearby = 0xF4;          // +0xA74 CList of nearby units
 constexpr int kBrainWatched = 0x110;        // +0xA90 CList of units watched
-constexpr int kVoice = 0xB10;               // CUnitServer + 0xB10
-
-// CUnit + 0x274: dead (CUnit slot 55 reads it).
-int& DeadFlag(CUnit* unit) { return *reinterpret_cast<int*>(reinterpret_cast<char*>(unit) + 0x274); }
 
 CUnitServer* ControllerOf(const CUnit* unit) { return reinterpret_cast<CUnitServer*>(unit->controller); }
 
-CDiplomacy* DiplomacyOf(void* world) {
-    return reinterpret_cast<CDiplomacy*>(static_cast<char*>(world) + 0x12C64);
-}
+CDiplomacy* DiplomacyOf(void* world) { return &static_cast<CWorldServer*>(world)->diplomacy_; }
 
-// The AI event manager at world + 0x2838.
-void* AIEventsOf(void* world) { return static_cast<char*>(world) + 0x2838; }
+// The world's AI events.
+AIEventTable* AIEventsOf(void* world) { return static_cast<CWorldServer*>(world)->AIEvents(); }
 
 // x87 FCOM: "ST < operand or unordered".
 bool LessOrUnordered(double a, double b) { return !(a >= b); }
@@ -106,59 +91,20 @@ bool ListContains(const UnitList* list, const CUnit* unit) {
     return false;
 }
 
-// A party's members: an STLport hash_map<id, CUnit*> at player + 0x40 (as in object_diplomacy.cpp).
-struct PartyNode {
-    PartyNode* next;
-    std::uint32_t key;
-    CUnit* unit;
-};
-struct PartyMembers {
-    std::uint32_t functors;
-    PartyNode** buckets;
-    PartyNode** finish;
-};
-
-std::uint32_t BucketCount(const PartyMembers* map) {
-    return static_cast<std::uint32_t>(static_cast<int>(reinterpret_cast<std::uintptr_t>(map->finish) -
-                                                       reinterpret_cast<std::uintptr_t>(map->buckets)) >> 2);
-}
-
-// 00455830 (hashtable::begin).
-PartyNode* FirstNode(const PartyMembers* map) {
-    for (std::uint32_t i = 0; i < BucketCount(map); ++i)
-        if (map->buckets[i]) return map->buckets[i];
-    return nullptr;
-}
-
-// operator++ (004558B0 when the chain ends).
-PartyNode* NextNode(const PartyMembers* map, const PartyNode* node) {
-    if (node->next) return node->next;
-    std::uint32_t bucket = node->key % BucketCount(map);
-    for (;;) {
-        ++bucket;
-        if (BucketCount(map) <= bucket) return nullptr;
-        if (PartyNode* head = map->buckets[bucket]) return head;
-    }
-}
-
-// OnDamaged's search of the party: the first member that is not `self`; a null member ends it.
-CUnit* FirstOtherPartyMember(char* player, const CUnit* self) {
-    auto* map = reinterpret_cast<const PartyMembers*>(player + 0x40);
-    for (PartyNode* node = FirstNode(map); node; node = NextNode(map, node)) {
-        if (!node->unit) return nullptr;
-        if (node->unit != self) return node->unit;
+// OnDamaged's search of the party (the player's units, walked as 00455830 begin() and 004558B0
+// operator++ do): the first member that is not `self`; a null member ends it.
+CUnit* FirstOtherPartyMember(WorldPlayer* player, const CUnit* self) {
+    const auto& map = player->units.map;
+    for (auto* node = map.First(); node; node = map.After(node)) {
+        auto* member = static_cast<CUnit*>(node->value);
+        if (!member) return nullptr;
+        if (member != self) return member;
     }
     return nullptr;
 }
 
 void* const kPtrListVtable = reinterpret_cast<void*>(0x0073BE80);   // CPtrList
 
-// What science (skill 0) passes the studied object: three ints, the third raised by the skill.
-struct ScienceRecord {
-    int a;
-    int b;
-    int c;
-};
 } // namespace
 
 // Not rewritten (forwarders), as __fastcall with the unused EDX for __thiscall.
@@ -171,7 +117,7 @@ __declspec(naked) void __fastcall WorldUseQuickItem(void*, void*, CItem*, CUnit*
 __declspec(naked) void __fastcall WorldItemChanged(void*, void*, CItem*) EI_ORIGINAL(0x00594F30)
 // 005935C0 (patched by Rebirth). CWorldServer::RemoveObject (world_server.cpp): removes object `id`.
 // 00665BE0. Player: an inventory item changed.
-__declspec(naked) void __fastcall PlayerItemChanged(char*, void*, CItem*) EI_ORIGINAL(0x00665BE0)
+__declspec(naked) void __fastcall PlayerItemChanged(WorldPlayer*, void*, CItem*) EI_ORIGINAL(0x00665BE0)
 // 00665470. Player: receives the items in `list` (a CPtrList).
 void __fastcall PlayerReceiveItems(char* a0, void*, void* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, a2, a3); }
 // 0066D6E0. Player messages (player + 0x20 points at it): message `code` about `unit`.
@@ -237,11 +183,10 @@ void CUnitServer::FinishAction(int location, char) {
         CEngineObject* target = action.target;
         if (!target || target->GetClassId() != kClassUnit) return;
         if (location >= 6) return;
-        // The kind (+0xE0 of the 0xF4-byte slot) of the target's body part `location`: 3 means it
-        // can still be aimed at (OrderAttack aims at "all" otherwise); when it is no longer 3 the
-        // order aimed at it now aims at "all" (6).
-        const char* slots = reinterpret_cast<const char*>(static_cast<CUnit*>(target)->controller) + 0x3D0;
-        if (*reinterpret_cast<const int*>(slots + location * 0xF4) == 3) return;
+        // The kind of the target's body slot `location`: 3 means it can still be aimed at
+        // (OrderAttack aims at "all" otherwise); when it is no longer 3 the order aimed at it now
+        // aims at "all" (6).
+        if (ControllerOf(static_cast<CUnit*>(target))->stats.slots[location].kind == 3) return;
         if (location != static_cast<int>(action.source)) return;
         action.source = 6;
         return;
@@ -285,11 +230,11 @@ void CUnitServer::DeliverAttack(CEngineObject* target, DamageInfo* hit) {
     void* world = ManagerContext();
     auto* weapon = static_cast<CItemWeapon*>(unit->GetWeapon(unit->activeWeapon));
     if (weapon && (weapon->GetType() == kWeaponBow || weapon->GetType() == kWeaponCrossbow)) {
-        auto* factory = ei::VCall<CEngineObject*>(world, kWorldSlotFactory);
-        auto* missile = ei::VCall<CEngineObject*>(factory, kFactorySlotCreate, kMissileObject, -1);
+        CBaseManager* factory = static_cast<CWorld*>(world)->TimedObjectManager();
+        CEngineObject* missile = factory->CreateObject(kMissileObject, -1);
         if (!missile) return;
         Vector3 position;
-        const Vector3* from = ei::VCall<const Vector3*>(unit, kUnitSlotPosition, &position);
+        const Vector3* from = unit->EyePoint(&position);
         char* bytes = reinterpret_cast<char*>(missile);
         std::memcpy(bytes + 0x1C, from, sizeof(Vector3));
         MissileSetTarget(missile, nullptr, target->id_);
@@ -298,7 +243,7 @@ void CUnitServer::DeliverAttack(CEngineObject* target, DamageInfo* hit) {
         std::memcpy(bytes + 0x160, hit, sizeof(DamageInfo));
         static_cast<CWorldServer*>(world)->AddTimedObject(missile);
     } else {
-        ei::VCall<void>(target, kUnitSlotHit, hit, unit, unit);
+        ObjectSlots(target)->ReceiveHit(hit, unit, unit);
     }
     CallTriggerWeaponSpell(target);
     if (std::bit_cast<std::uint32_t>(hit->unknown_34) == kOneBits) {
@@ -319,7 +264,7 @@ void CUnitServer::TriggerWeaponSpell(CEngineObject* target) {
     CtlUseItemCharge(this, nullptr, weapon, cost);
     CUnit* self = unit;
     Vector3 point;
-    const Vector3* at = ei::VCall<const Vector3*>(target, kUnitSlotAimPoint, &point);
+    const Vector3* at = ObjectSlots(target)->AimPoint(&point);
     WorldCastSpellOriginal(WorldServer(), nullptr, spell, self, &self->position, target, at, 0);
 }
 EI_REPLACE_METHOD(0x0054F850, CUnitServer::TriggerWeaponSpell);
@@ -347,11 +292,11 @@ void CUnitServer::UseItemCharge(CItem* item, float cost) {
     void* world = ManagerContext();
     item->charge_ = item->charge_ - cost;
     WorldItemChanged(world, nullptr, item);
-    char* player = unit->player;
-    const char* ref = reinterpret_cast<const char*>(static_cast<std::uintptr_t>(item->link_));
-    if (!player || !ref) return;
-    auto* items = ei::VCall<CBaseManager*>(player + 0x70, kWorldSlotItems);
-    auto* copy = static_cast<CItem*>(items->FindObject(Field<std::uint32_t>(ref, 8)));
+    auto* player = reinterpret_cast<WorldPlayer*>(unit->player);
+    const auto* link = reinterpret_cast<const CItemLink*>(static_cast<std::uintptr_t>(item->link_));
+    if (!player || !link) return;
+    CResourceManager* items = player->Party()->ItemManager();
+    auto* copy = static_cast<CItem*>(items->FindObject(link->value));
     if (!copy) return;
     FpuCopy(&copy->charge_, &item->charge_);
     PlayerItemChanged(player, nullptr, copy);
@@ -375,7 +320,7 @@ std::uint32_t CUnitServer::HitDirection(CUnit* attacker, int hitKind) {
     float dx = attacker->position.x - self->position.x;
     float dy = attacker->position.y - self->position.y;
     float dz = attacker->position.z - self->position.z;
-    const auto* rotation = reinterpret_cast<const Quaternion*>(reinterpret_cast<const char*>(self) + 0x34);
+    const Quaternion* rotation = &self->orientation;
     Vector3 axisY;
     rotation->AxisY(&axisY);
     // The unit's Y axis points backwards: "front" is the negated projection on it.
@@ -478,7 +423,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
         unit->flags_ |= 1;
         return;
     }
-    if (ei::VCall<int>(ServerObjectOf(unit), kServerSlotIsDead) == 0) {
+    if (CompanionSlots(ServerObjectOf(unit))->IsDead() == 0) {
         CallTriggerItemSpells(0);
         if (attacker && attacker->GetClassId() == kClassUnit) DiplomacyOf(world)->OnAttack(attacker, unit, 10);
         BrainSetSeenOriginal(brain, nullptr, attacker);
@@ -493,9 +438,10 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     if (attacker) {
         if (attacker->player) {     // 005301A0
             CUnit* killer = ControllerOf(attacker)->unit;
-            if (killer->player) PlayerMessage(*reinterpret_cast<void**>(killer->player + 0x20), nullptr, killer, kMessageKilled);
+            if (killer->player)
+                PlayerMessage(reinterpret_cast<WorldPlayer*>(killer->player)->server, nullptr, killer, kMessageKilled);
         } else if (unit->player) {
-            VoiceSay(reinterpret_cast<char*>(attacker->controller) + kVoice, nullptr, 9);
+            VoiceSay(ControllerOf(attacker)->voice, nullptr, 9);
         }
         if (attacker->GetClassId() == kClassUnit) {
             ManagerContext();
@@ -521,7 +467,7 @@ void CUnitServer::OnDamaged(CUnit* attacker, int hitKind) {
     CtlPlayAnimationOrder(this, nullptr, copy);
     AIEventsDied(AIEventsOf(world), nullptr, this);
     if (char* player = unit->player) {
-        if (CUnit* member = FirstOtherPartyMember(player, unit))
+        if (CUnit* member = FirstOtherPartyMember(reinterpret_cast<WorldPlayer*>(player), unit))
             MemoryPartyMemberDied(ControllerOf(member)->brain + kBrainMemory, nullptr, member, unit);
         if (IsMultiplayerClient() & 0xFF) unit->flags_ |= 0x20000000;
     }
@@ -570,20 +516,21 @@ void CUnitServer::UseSkill(CEngineObject* target) {
     int message;
     switch (skill) {
     case 0: {
-        ScienceRecord record = {1, 0, 0};
-        auto* items = ei::VCall<CBaseManager*>(world, kWorldSlotItems);
+        ItemUse record = {1, 0, 0};
+        auto* items = static_cast<CBaseManager*>(static_cast<CWorld*>(world)->ItemFactory());
         CEngineObject* studied = items->FindObject(action.unknown_1C);
         record = {1, 0, 0};
         if (studied) {
-            ScienceRecord scratch;
-            if (*ei::VCall<const int*>(studied, kSlotRecord, &scratch) != 0) {
-                ScienceRecord scratch2;
-                const auto* found = ei::VCall<const ScienceRecord*>(studied, kSlotRecord, &scratch2);
+            ItemUse scratch;
+            if (static_cast<CItem*>(studied)->GetUse(&scratch)->kind != 0) {
+                ItemUse scratch2;
+                const ItemUse* found = static_cast<CItem*>(studied)->GetUse(&scratch2);
                 record = *found;
             }
         }
-        record.c += x87::fistp(mine);
-        if (ei::VCall<int>(target, kSlotStudy, &record, unit) & 0xFF) return;
+        record.extra += x87::fistp(mine);
+        // Slot 41 (declared with two ints) takes the use record and the unit.
+        if (ObjectSlots(target)->ApplyScience(reinterpret_cast<int>(&record), reinterpret_cast<int>(unit))) return;
         if (!unit->player) return;
         message = kMessageScienceFailed;
         break;
@@ -629,7 +576,7 @@ void CUnitServer::UseSkill(CEngineObject* target) {
         return;
     }
     CUnit* self = unit;
-    PlayerMessage(*reinterpret_cast<void**>(self->player + 0x20), nullptr, self, message);
+    PlayerMessage(reinterpret_cast<WorldPlayer*>(self->player)->server, nullptr, self, message);
 }
 EI_REPLACE_METHOD(0x0054F000, CUnitServer::UseSkill);
 
@@ -642,11 +589,11 @@ EI_REPLACE_METHOD(0x00555180, CUnitServer::Idle);
 
 void CUnitServer::SetDead(int dead) {
     auto* world = static_cast<CWorldServer*>(ManagerContext());
-    if (DeadFlag(unit) == dead) return;
-    void* units = reinterpret_cast<char*>(world) + 0x294;
-    SectorMapRemove(AsSectorMap(units), nullptr, unit);
-    DeadFlag(unit) = dead;
-    SectorMapAdd(AsSectorMap(units), nullptr, unit);
+    if (unit->dead == dead) return;
+    CSectorMap* units = world->Sectors();
+    SectorMapRemove(units, nullptr, unit);
+    unit->dead = dead;
+    SectorMapAdd(units, nullptr, unit);
     if (dead && effectObject) {
         world->RemoveTimedObject(effectObject->id_);
         CEngineObject* old = effectObject;

@@ -74,7 +74,7 @@ void __fastcall StepAlarm(int* stateIn, void*, std::uint8_t* owner) {
         return;
     }
     int side = server->unit->side;
-    std::uint32_t allies = reinterpret_cast<CDiplomacy*>(reinterpret_cast<CWorldServer*>(world)->diplomacy_)->allied_[side];
+    std::uint32_t allies = reinterpret_cast<CWorldServer*>(world)->diplomacy_.allied_[side];
     for (auto* node = server->Brain()->unknown_0F4.head; node; node = node->next) {
         auto* member = static_cast<CUnit*>(node->data);
         if (!(allies & (1u << (member->side & 31)))) continue;

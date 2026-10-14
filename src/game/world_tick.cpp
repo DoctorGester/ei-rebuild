@@ -13,7 +13,6 @@
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 
 #include <cstring>
@@ -46,9 +45,6 @@ __declspec(naked) bool __fastcall CountdownsTick(void*, void*) EI_ORIGINAL(0x006
 void __fastcall BrainHearAlarm(void* brain, void*, int index) { static_cast<AIBrain*>(brain)->HearAlarm(index); }
 // The game's atexit (006E727B).
 
-constexpr int kSlotRelease60 = 4;     // the +0x60 object's slot 4, called after it is replaced
-constexpr int kBrainOffset = 0x980;   // AI brain inside the unit controller
-constexpr int kBrainAlarmed = 0x37;   // brain byte: reacting to an alarm
 
 // WakeUnitsAround's function-local static: a SpiralCache at 007AFF08 (guard bit 007AFF10 & 1,
 // destructor 0058D5C0 registered with atexit).
@@ -212,9 +208,9 @@ void CWorldServer::InvokeAlarm(int index, const float* point, char force) {
         if (object->GetClassId() == world::kClassUnit) {
             auto* unit = static_cast<CUnit*>(object);
             if (!unit->player) {
-                auto* brain = reinterpret_cast<std::uint8_t*>(unit->controller) + kBrainOffset;
+                AIBrain* brain = reinterpret_cast<UnitController*>(unit->controller)->Brain();
                 BrainHearAlarm(brain, nullptr, index);
-                if (brain[kBrainAlarmed]) AddToUpdateMap(object);
+                if (brain->unknown_37) AddToUpdateMap(object);   // reacting to the alarm
             }
         }
         node = objects.After(node);
@@ -227,7 +223,7 @@ void CWorldServer::SetGameResult(int result) {
     gameResult_ = result;
     if (result == 2 || result == 3) {
         ServerReplace60(this, nullptr);
-        ei::VCall<void>(unknown60_, kSlotRelease60);
+        static_cast<CPlayerSource*>(unknown60_)->Query();   // the new session's slot 4 (result unused)
     }
 }
 

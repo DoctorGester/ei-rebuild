@@ -4,11 +4,12 @@
 
 #include "ai_map.h"
 #include "core_maths.h"
+#include "map_object.h"
 #include "script.h"
+#include "world_effect.h"
 
 #include "ei/hook.h"
 #include "ei/rebirth.h"
-#include "ei/vcall.h"
 #include "ei/x87.h"
 #include "originals_ai.h"
 #include "originals_world.h"
@@ -16,12 +17,6 @@
 #include "originals_units.h"
 
 namespace {
-
-// Vtable slots of the world classes used here.
-constexpr int kSlotPlayers = 20;      // 0055EB50: the player list (+0x38)
-constexpr int kSlotFindObject = 40;   // 00593AA0 on the server
-// Units: slot 55 (+0xDC) is non-zero for dead units.
-constexpr int kSlotUnitIsDead = 55;
 
 // The game server object of a multiplayer session (null or flagged inactive otherwise).
 struct GameServer {
@@ -72,8 +67,6 @@ __declspec(naked) void __fastcall ProjectileRemoveAt(ProjectileList*, void*, Pro
 __declspec(naked) void __fastcall PlayerStateForget(void*, void*, CEngineObject*) EI_ORIGINAL(0x0066DC90)
 
 constexpr int kClassNoSector = 0x61;     // objects of this class are not in the sector map
-constexpr int kSlotRemoved = 5;          // object slot 5 (+0x14): it leaves the server
-constexpr int kSlotForget = 56;          // object slot 56 (+0xE0): another object is removed
 
 // find + erase(iterator), as the original inlines it for each map.
 void EraseId(ObjectIdMap& map, unsigned id) {
@@ -100,7 +93,7 @@ CEngineObject* CWorldServer::FindObject(unsigned id) {
 
 WorldPlayer* CWorldServer::GetPlayer(int id) {
     PlayerIterator it;
-    for (WorldPlayer* player = it.First(ei::VCall<CEngineObject*>(this, kSlotPlayers)); player; player = it.Next())
+    for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next())
         if (player->id == id) return player;
     return nullptr;
 }
@@ -121,7 +114,7 @@ int CWorldServer::CountLivingMercs(int id) {
     for (int i = 0; i < player->mercCount; ++i) {
         unsigned unitId = *reinterpret_cast<unsigned*>(player->mercs + i * 0x784 + 0x1C);
         CEngineObject* unit = reinterpret_cast<WorldBase*>(this)->FindUnit(unitId);
-        if (unit && ei::VCall<int>(unit, kSlotUnitIsDead) == 0) ++living;
+        if (unit && ObjectSlots(unit)->IsDead() == 0) ++living;
     }
     return living - 1;
 }
@@ -148,7 +141,7 @@ void CWorldServer::CollectSharedObjects(int playerId, ScriptGroup* group) {
 
 void CWorldServer::MarkPlayersDirty(std::uint32_t mask) {
     PlayerIterator it;
-    for (WorldPlayer* player = it.First(ei::VCall<CEngineObject*>(this, kSlotPlayers)); player; player = it.Next())
+    for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next())
         player->dirty |= mask;
 }
 
@@ -179,7 +172,8 @@ BOOL CWorldServer::GetZoneExit(int index, mfc::CString* target, int* entrance) {
 }
 
 void CWorldServer::AddTimedObject(CEngineObject* object) {
-    *reinterpret_cast<int*>(reinterpret_cast<std::uint8_t*>(object) + 0x94) = tick_;
+    // The timed objects are the world's effects (world_effect.h): the tick they began.
+    static_cast<CEffect*>(object)->startTick_ = tick_;
     ++object->refCount_;
     reinterpret_cast<NewObjectMark*>(object)->Apply();
     unsigned id = static_cast<unsigned>(object->id_);
@@ -197,8 +191,8 @@ void CWorldServer::RemoveTimedObject(unsigned id) {
 }
 
 void CWorldServer::AddToUpdateMap(CEngineObject* unit) {
-    auto* raw = reinterpret_cast<std::uint8_t*>(unit);
-    *reinterpret_cast<int*>(raw + 0x174) = ((reinterpret_cast<int>(unit) >> 5) & 0xF) + 0x80;
+    // The unit's update slot.
+    ObjectSlots(unit)->unknown_174 = ((reinterpret_cast<int>(unit) >> 5) & 0xF) + 0x80;
     unsigned id = static_cast<unsigned>(unit->id_);
     updateMap_.Set(id, unit);
 }
@@ -225,7 +219,7 @@ void CWorldServer::RemoveObject(unsigned id) {
         if (otherMapObjects_.map.Find(id)) EraseId(otherMapObjects_, id);
     }
 
-    ei::VCall<void>(object, kSlotRemoved);
+    object->ClearState();   // slot 5: it leaves the server
     bool unit = object->GetClassId() == world::kClassUnit;
     ++object->refCount_;   // held to the end, released twice there (with the maps' reference)
     if (unit) UnitSetController(object, nullptr, nullptr);
@@ -235,7 +229,7 @@ void CWorldServer::RemoveObject(unsigned id) {
 
     // Every world object forgets it (the walk stops at an entry without an object).
     for (auto* node = objects_.map.First(); node && node->value; node = objects_.map.After(node))
-        ei::VCall<void>(node->value, kSlotForget, object);
+        ObjectSlots(node->value)->ForgetObject(object);
     // The missiles it shot are dropped; those aimed at it lose their target.
     for (auto* node = projectiles_.head; node;) {
         auto* current = node;
@@ -244,8 +238,8 @@ void CWorldServer::RemoveObject(unsigned id) {
     }
     {
         PlayerIterator players;
-        for (WorldPlayer* player = players.First(ei::VCall<CEngineObject*>(this, kSlotPlayers)); player; player = players.Next())
-            PlayerStateForget(*reinterpret_cast<void**>(reinterpret_cast<std::uint8_t*>(player) + 0x20), nullptr, object);
+        for (WorldPlayer* player = players.First(PlayerList()); player; player = players.Next())
+            PlayerStateForget(player->server, nullptr, object);
         object->Release();
         object->Release();
     }

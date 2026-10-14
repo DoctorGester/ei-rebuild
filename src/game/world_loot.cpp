@@ -2,27 +2,23 @@
 // world.h and docs/notes/world.md.
 #include "world.h"
 
+#include "map_object.h"
+#include "party.h"
+
 #include "lib/crt.h"
 #include "lib/mfc.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "originals_world.h"
 #include "originals_gameplay.h"
 #include "originals_library.h"
 
 namespace {
 
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
-}
-
 constexpr std::uintptr_t kPtrListVtable = 0x0073BE80;     // CPtrList of objects
 constexpr std::uintptr_t kLootListVtable = 0x0073F12C;    // the third output list of 00461CB0
 constexpr std::uint32_t kFlagSharedLoot = 0x20000000;     // flags_: the loot is on the shared list
 constexpr int kClassQuestItem = 0x14;                     // given to player 0 in multiplayer
-constexpr int kPlayerGold = 0xC0;                         // WorldPlayer: money
 
 using ObjectList = mfc::CTypedPtrList<CEngineObject>;
 
@@ -44,12 +40,10 @@ __declspec(naked) int __fastcall UnitHasOwner(CEngineObject*, void*) EI_ORIGINAL
 // 00665470 (RET 8). The player receives the objects of a list.
 void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, ObjectList* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, (void*)a2, a3); }
 // 00461CB0 (RET 0x18). The objects (items, loot, gold) `object` holds for the taker (ECX = the
-// world's +0x140); 0 when there is nothing to take.
+// world's hoover); 0 when there is nothing to take.
 __declspec(naked) int __fastcall CollectLoot(void*, void*, CWorldServer*, CEngineObject*, ObjectList* /*items*/,
                                              ObjectList* /*second*/, ObjectList* /*third*/, int* /*gold*/)
     EI_ORIGINAL(0x00461CB0)
-
-constexpr int kSlotIsDead = 55;
 
 void InitList(ObjectList& list, std::uintptr_t vtable) {
     list.vtable = reinterpret_cast<void*>(vtable);
@@ -91,7 +85,7 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
         abandon();
         return false;
     }
-    if (UnitHasOwner(object, nullptr) && ei::VCall<int>(object, kSlotIsDead) == 0) {
+    if (UnitHasOwner(object, nullptr) && ObjectSlots(object)->IsDead() == 0) {
         abandon();
         return false;   // a living unit of a player
     }
@@ -113,7 +107,7 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
             else items.head = entry;
             items.tail = entry;
         }
-        At<int>(player, kPlayerGold) += static_cast<int>(node->data.unknown_08);
+        player->Party()->Money() += static_cast<int>(node->data.unknown_08);
         PlayerGiveItems(player, nullptr, &items, 0);
         if (node == list.head) list.head = node->next;
         else node->prev->next = node->next;
@@ -124,7 +118,7 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
         return true;
     }
 
-    if (!CollectLoot(At<void*>(this, 0x140), nullptr, this, object, &items, &second, &third, &gold)) {
+    if (!CollectLoot(hoover_, nullptr, this, object, &items, &second, &third, &gold)) {
         destroy();
         return false;
     }
@@ -133,7 +127,7 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
         WorldPlayer* first = nullptr;
         {
             PlayerIterator it;
-            for (WorldPlayer* p = it.First(ei::VCall<CEngineObject*>(this, 20)); p; p = it.Next()) {
+            for (WorldPlayer* p = it.First(PlayerList()); p; p = it.Next()) {
                 if (p->id == 0) {
                     first = p;
                     break;
@@ -158,7 +152,7 @@ bool CWorldServer::Loot(CEngineObject* object, WorldPlayer* player) {
             PtrListDestruct(&quest, nullptr);
         }
     }
-    At<int>(player, kPlayerGold) += gold;
+    player->Party()->Money() += gold;
     PlayerGiveItems(player, nullptr, &items, 0);
     for (ObjectList::Node* position = items.head; position;)
         (*PtrListGetNext(&items, nullptr, &position))->Release();
@@ -226,7 +220,7 @@ void CWorldServer::LootDeadUnits() {
     WorldPlayer* local = nullptr;
     {
         PlayerIterator it;
-        for (WorldPlayer* player = it.First(ei::VCall<CEngineObject*>(this, 20)); player; player = it.Next())
+        for (WorldPlayer* player = it.First(PlayerList()); player; player = it.Next())
             if (player->id == 0) {
                 local = player;
                 break;
@@ -236,7 +230,7 @@ void CWorldServer::LootDeadUnits() {
 
     IdList dead;
     while (node) {
-        if (object->GetClassId() == world::kClassUnit && ei::VCall<int>(object, kSlotIsDead)) {
+        if (object->GetClassId() == world::kClassUnit && ObjectSlots(object)->IsDead()) {
             WorldLootOriginal(WorldServer(), nullptr, object, local);
             dead.PushBack(static_cast<unsigned>(object->id_));
         }

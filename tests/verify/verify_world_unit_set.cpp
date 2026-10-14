@@ -35,24 +35,24 @@ static void __fastcall WriteVerify(UnitSet* set, void*, void* stream) {
     RecordingStream theirs;
     s_write(set, nullptr, &theirs);
     RecordingStream mine;
-    set->Write(&mine);
+    set->Write(reinterpret_cast<CStream*>(&mine));
     ei::verify::Check("UnitSet::Write", true, theirs.bytes == mine.bytes, "%zu vs %zu bytes", theirs.bytes.size(),
                       mine.bytes.size());
-    set->Write(stream);
+    set->Write(static_cast<CStream*>(stream));
 }
 EI_VERIFY(0x00559E60, WriteVerify, 5, s_write);
 
 // 00558FA0 (A-U7): PUSH ECX; PUSH ESI; MOV ESI,ECX; PUSH EDI (5 bytes). Both into recording
 // streams, bytes compared; then the original's bytes go to the real stream. Reached through
 // UnitSet::Write (SendZone: zone changes, zone_gz2g_traps).
-using WriteHeadFn = void(__fastcall*)(UnitSetEntryHead*, void*, void*);
+using WriteHeadFn = void(__fastcall*)(DressedUnitRecord*, void*, void*);
 static WriteHeadFn s_writeHead;
-static void __fastcall WriteHeadVerify(UnitSetEntryHead* head, void*, void* stream) {
+static void __fastcall WriteHeadVerify(DressedUnitRecord* head, void*, void* stream) {
     RecordingStream theirs;
     s_writeHead(head, nullptr, &theirs);
     RecordingStream mine;
-    head->Write(&mine);
-    ei::verify::Check("UnitSetEntryHead::Write", true, theirs.bytes == mine.bytes, "%zu vs %zu bytes",
+    head->Write(reinterpret_cast<CStream*>(&mine));
+    ei::verify::Check("DressedUnitRecord::Write", true, theirs.bytes == mine.bytes, "%zu vs %zu bytes",
                       theirs.bytes.size(), mine.bytes.size());
     s_writeHead(head, nullptr, stream);
 }
@@ -130,7 +130,8 @@ static ReadLooksFn s_readLooks;
 static void __fastcall ReadUnitLooksVerify(void* stream, void* first, void* second) {
     ProxyStream recorder;
     recorder.real = stream;
-    ReadUnitLooks(&recorder, first, second);
+    ReadUnitLooks(reinterpret_cast<CStream*>(&recorder), static_cast<stlp::vector<FiguredUnitRecord>*>(first),
+                  static_cast<stlp::vector<DressedUnitRecord>*>(second));
     ProxyStream replay;
     replay.bytes = recorder.bytes;
     alignas(4) std::uint8_t scratchFirst[12] = {};

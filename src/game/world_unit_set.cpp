@@ -1,10 +1,10 @@
-// The unit set's writer (00559E60), used by the server's SendZone (world_sync.cpp). See
-// docs/notes/world.md ("Client maps", the unit set). The set's three STLport hash_maps are walked
-// with the original's iterator helpers, so the order matches theirs.
+// The unit set's writer (00559E60), used by the server's SendZone (world_sync.cpp), and the
+// client's reader of the unit looks (0055A190). See docs/notes/world.md ("Client maps", the unit
+// set). The set's three STLport hash_maps are walked with the original's iterator helpers, so the
+// order matches theirs.
 #include "world.h"
 
 #include "ei/hook.h"
-#include "ei/vcall.h"
 #include "originals_engine.h"
 #include "originals_library.h"
 
@@ -13,126 +13,116 @@
 
 namespace {
 
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
-}
+using FiguredGroups = stlp::hash_map<unsigned, FiguredUnitMap, stlp::IntHash>;
+using DressedMap = stlp::hash_map<unsigned, DressedUnitRecord, stlp::IntHash>;
 
-// A hashtable iterator: the node and its table.
-struct Iterator {
-    std::uint8_t* node;
-    void* table;
-};
+// begin() of the groups map [0055AB50], of a group's figured map [0055ADF0] and of the dressed
+// map [0055AE50]; the iterators' step to the next bucket's head when a chain ends [0055B9D0
+// groups, 0055B500 figured]; the dressed map's hash of a key [0055C5C0] (bucket index).
+__declspec(naked) FiguredGroups::Iterator* __fastcall GroupsBegin(FiguredGroups*, void*, FiguredGroups::Iterator*)
+    EI_ORIGINAL(0x0055AB50)
+__declspec(naked) FiguredUnitMap::Iterator* __fastcall FiguredBegin(FiguredUnitMap*, void*, FiguredUnitMap::Iterator*)
+    EI_ORIGINAL(0x0055ADF0)
+__declspec(naked) DressedMap::Iterator* __fastcall DressedBegin(DressedMap*, void*, DressedMap::Iterator*)
+    EI_ORIGINAL(0x0055AE50)
+__declspec(naked) FiguredGroups::Node* __fastcall GroupsNextBucket(FiguredGroups::Iterator*) EI_ORIGINAL(0x0055B9D0)
+__declspec(naked) FiguredUnitMap::Node* __fastcall FiguredNextBucket(FiguredUnitMap::Iterator*) EI_ORIGINAL(0x0055B500)
+__declspec(naked) std::uint32_t __fastcall DressedBucketOf(const DressedMap*, void*, const unsigned* /*key*/)
+    EI_ORIGINAL(0x0055C5C0)
+// A record's head written to the stream [00558FA0, on the record].
+__declspec(naked) void __fastcall WriteRecordHead(void* /*record*/, void*, CStream*) EI_ORIGINAL(0x00558FA0)
 
-// begin() of the outer map [0055AB50], of a node's unit map [0055ADF0] and of the third map
-// [0055AE50]; the iterators' step to the next bucket's head when a chain ends [0055B9D0 outer,
-// 0055B500 units]; the third map's hash of a key [0055C5C0] (bucket index).
-__declspec(naked) Iterator* __fastcall OuterBegin(void*, void*, Iterator*) EI_ORIGINAL(0x0055AB50)
-__declspec(naked) Iterator* __fastcall UnitsBegin(void*, void*, Iterator*) EI_ORIGINAL(0x0055ADF0)
-__declspec(naked) Iterator* __fastcall ThirdBegin(void*, void*, Iterator*) EI_ORIGINAL(0x0055AE50)
-__declspec(naked) std::uint8_t* __fastcall OuterNextBucket(Iterator*) EI_ORIGINAL(0x0055B9D0)
-__declspec(naked) std::uint8_t* __fastcall UnitsNextBucket(Iterator*) EI_ORIGINAL(0x0055B500)
-__declspec(naked) std::uint32_t __fastcall ThirdBucketOf(void*, void*, const void* /*key*/) EI_ORIGINAL(0x0055C5C0)
-// A unit entry's head written to the stream [00558FA0, on the entry].
-__declspec(naked) void __fastcall WriteEntryHead(void*, void*, void* /*stream*/) EI_ORIGINAL(0x00558FA0)
+void Put(CStream* stream, const void* data, std::uint32_t size) { stream->Write(data, size); }
 
-constexpr int kSlotWrite = 2;   // stream: (data, size)
-
-void Put(void* stream, const void* data, std::uint32_t size) { ei::VCall<void>(stream, kSlotWrite, data, size); }
-
-void PutWord(void* stream, std::uint32_t value) { Put(stream, &value, 4); }
+void PutWord(CStream* stream, std::uint32_t value) { Put(stream, &value, 4); }
 
 // ++iterator: the chain's next node, else the helper's next bucket head.
-std::uint8_t* Step(Iterator& it, std::uint8_t* (__fastcall* nextBucket)(Iterator*)) {
-    std::uint8_t* next = *reinterpret_cast<std::uint8_t**>(it.node);
+template <typename Iterator, typename Node>
+Node* Step(Iterator& it, Node* (__fastcall* nextBucket)(Iterator*)) {
+    Node* next = it.node->next;
     return next ? next : nextBucket(&it);
 }
 
 } // namespace
 
-void UnitSetEntryHead::Write(void* stream) {
-    std::int16_t word = key;
+void DressedUnitRecord::Write(CStream* stream) {
+    std::int16_t word = static_cast<std::int16_t>(prototype);
     Put(stream, &word, 2);
-    PutWord(stream, static_cast<std::uint32_t>(first.size()));
-    Put(stream, first.begin(), static_cast<std::uint32_t>(first.size() * sizeof(int)));
-    PutWord(stream, static_cast<std::uint32_t>(second.size()));
-    Put(stream, second.begin(), static_cast<std::uint32_t>(second.size() * sizeof(int)));
-    std::uint8_t byte = flag;
+    PutWord(stream, static_cast<std::uint32_t>(items.size()));
+    Put(stream, items.begin(), static_cast<std::uint32_t>(items.size() * sizeof(int)));
+    PutWord(stream, static_cast<std::uint32_t>(extraWeapons.size()));
+    Put(stream, extraWeapons.begin(), static_cast<std::uint32_t>(extraWeapons.size() * sizeof(int)));
+    std::uint8_t byte = static_cast<std::uint8_t>(extraWeapon);
     Put(stream, &byte, 1);
-    PutWord(stream, value);
+    PutWord(stream, static_cast<std::uint32_t>(modelNumber));
 }
-EI_REPLACE_METHOD(0x00558FA0, UnitSetEntryHead::Write);
+EI_REPLACE_METHOD(0x00558FA0, DressedUnitRecord::Write);
 
-void UnitSet::Write(void* stream) {
-    // The number of unit entries over every node's unit map.
+void UnitSet::Write(CStream* stream) {
+    // The number of figured records over every group.
     std::uint32_t count = 0;
-    Iterator outer;
-    OuterBegin(this, nullptr, &outer);
-    while (outer.node) {
-        Iterator units;
-        UnitsBegin(outer.node + 8, nullptr, &units);
-        while (units.node) {
+    FiguredGroups::Iterator group;
+    GroupsBegin(&figured, nullptr, &group);
+    while (group.node) {
+        FiguredUnitMap::Iterator unit;
+        FiguredBegin(&group.node->value, nullptr, &unit);
+        while (unit.node) {
             ++count;
-            units.node = Step(units, UnitsNextBucket);
+            unit.node = Step(unit, FiguredNextBucket);
         }
-        outer.node = Step(outer, OuterNextBucket);
+        group.node = Step(group, GroupsNextBucket);
     }
     PutWord(stream, count);
 
-    OuterBegin(this, nullptr, &outer);
-    while (outer.node) {
-        Iterator units;
-        UnitsBegin(outer.node + 8, nullptr, &units);
-        while (units.node) {
-            std::uint8_t* entry = units.node + 8;
-            WriteEntryHead(entry, nullptr, stream);
-            PutWord(stream, At<std::uint32_t>(entry, 0x24));
-            PutWord(stream, At<std::uint32_t>(entry, 0x28));
-            PutWord(stream, At<std::uint32_t>(entry, 0x2C));
-            auto strings = [entry](std::uint32_t i) { return At<const char**>(entry, 0x30)[i]; };
-            auto stringCount = [entry] {
-                return static_cast<std::uint32_t>((At<std::uint8_t*>(entry, 0x34) - At<std::uint8_t*>(entry, 0x30)) >> 2);
-            };
-            PutWord(stream, stringCount());
-            for (std::uint32_t i = 0; i < stringCount(); ++i) {
-                const char* text = strings(i);
+    GroupsBegin(&figured, nullptr, &group);
+    while (group.node) {
+        FiguredUnitMap::Iterator unit;
+        FiguredBegin(&group.node->value, nullptr, &unit);
+        while (unit.node) {
+            FiguredUnitRecord& record = unit.node->value;
+            WriteRecordHead(&record, nullptr, stream);
+            PutWord(stream, reinterpret_cast<const std::uint32_t&>(record.morphS));
+            PutWord(stream, reinterpret_cast<const std::uint32_t&>(record.morphT));
+            PutWord(stream, reinterpret_cast<const std::uint32_t&>(record.morphU));
+            auto names = [&record](std::uint32_t i) { return record.names[i]; };
+            auto nameCount = [&record] { return static_cast<std::uint32_t>(record.names.size()); };
+            PutWord(stream, nameCount());
+            for (std::uint32_t i = 0; i < nameCount(); ++i) {
+                const char* text = names(i);
                 Put(stream, text, static_cast<std::uint32_t>(std::strlen(text) + 1));
             }
-            units.node = Step(units, UnitsNextBucket);
+            unit.node = Step(unit, FiguredNextBucket);
         }
-        outer.node = Step(outer, OuterNextBucket);
+        group.node = Step(group, GroupsNextBucket);
     }
-    PutWord(stream, At<std::uint32_t>(this, 0x24));
+    PutWord(stream, static_cast<std::uint32_t>(dressed.Size()));
 
-    Iterator third;
-    ThirdBegin(reinterpret_cast<std::uint8_t*>(this) + 0x14, nullptr, &third);
-    while (third.node) {
-        std::uint8_t* entry = third.node + 8;
-        std::uint32_t key = At<std::uint16_t>(entry, 0);   // two bytes written
+    DressedMap::Iterator it;
+    DressedBegin(&dressed, nullptr, &it);
+    while (it.node) {
+        DressedUnitRecord* record = &it.node->value;
+        std::uint32_t key = record->prototype;   // two bytes written
         Put(stream, &key, 2);
-        UnitSetEntryHead* head = reinterpret_cast<UnitSetEntryHead*>(entry);
-        auto counted = [stream](const stlp::vector<int>& list) {
+        auto counted = [stream](const UnitIdList& list) {
             std::uint32_t n = static_cast<std::uint32_t>(list.size());
             PutWord(stream, n);
             n = static_cast<std::uint32_t>(list.size());
             Put(stream, list.begin(), n << 2);
         };
-        counted(head->first);
-        counted(head->second);
-        std::uint32_t flag = head->flag;
+        counted(record->items);
+        counted(record->extraWeapons);
+        std::uint32_t flag = static_cast<std::uint8_t>(record->extraWeapon);
         Put(stream, &flag, 1);
-        PutWord(stream, head->value);
+        PutWord(stream, static_cast<std::uint32_t>(record->modelNumber));
 
-        std::uint8_t* next = *reinterpret_cast<std::uint8_t**>(third.node);
+        DressedMap::Node* next = it.node->next;
         if (!next) {
-            std::uint32_t bucket = ThirdBucketOf(third.table, nullptr, third.node + 4);
-            std::uint8_t** buckets = At<std::uint8_t**>(third.table, 4);
-            std::uint32_t buckets_n = static_cast<std::uint32_t>(
-                (At<std::uint8_t*>(third.table, 8) - At<std::uint8_t*>(third.table, 4)) >> 2);
-            while (++bucket < buckets_n && !(next = buckets[bucket])) {
+            std::uint32_t bucket = DressedBucketOf(it.table, nullptr, &it.node->key);
+            std::uint32_t buckets_n = static_cast<std::uint32_t>(it.table->BucketCount());
+            while (++bucket < buckets_n && !(next = it.table->Bucket(bucket))) {
             }
         }
-        third.node = next;
+        it.node = next;
     }
 }
 
@@ -140,63 +130,58 @@ void UnitSet::Write(void* stream) {
 
 namespace {
 
-// vector<0x3C record>::resize [0055A400], vector<0x24 record>::resize [0055A580], vector<int>::
-// resize(n, value) [004FE0C0], vector<CString>::resize [0051F5B0], the stream's CString reader
-// [004E5840, on the stream].
-__declspec(naked) void __fastcall ResizeLooks(void*, void*, std::uint32_t) EI_ORIGINAL(0x0055A400)
-__declspec(naked) void __fastcall ResizeLooks2(void*, void*, std::uint32_t) EI_ORIGINAL(0x0055A580)
-__declspec(naked) void __fastcall ResizeInts(void*, void*, std::uint32_t, const int*) EI_ORIGINAL(0x004FE0C0)
+// vector<FiguredUnitRecord>::resize [0055A400], vector<DressedUnitRecord>::resize [0055A580],
+// vector<int>::resize(n, value) [004FE0C0], vector<CString>::resize [0051F5B0], the stream's
+// CString reader [004E5840, on the stream].
+__declspec(naked) void __fastcall ResizeFigured(stlp::vector<FiguredUnitRecord>*, void*, std::uint32_t)
+    EI_ORIGINAL(0x0055A400)
+__declspec(naked) void __fastcall ResizeDressed(stlp::vector<DressedUnitRecord>*, void*, std::uint32_t)
+    EI_ORIGINAL(0x0055A580)
+__declspec(naked) void __fastcall ResizeIds(UnitIdList*, void*, std::uint32_t, const std::uint32_t*) EI_ORIGINAL(0x004FE0C0)
 void __fastcall ResizeStrings(void* a0, void*, std::uint32_t a2) { CStringVectorResizeOriginal(a0, nullptr, a2); }
 void __fastcall ReadCString(void* a0, void*, void* a2) { StreamReadCStringOriginal(a0, nullptr, a2); }
 
-constexpr int kSlotRead = 1;   // stream: (data, size)
-
-void Get(void* stream, void* data, std::uint32_t size) { ei::VCall<void>(stream, kSlotRead, data, size); }
-
-std::uint32_t Count(void* vector) {
-    return static_cast<std::uint32_t>((At<std::uint8_t*>(vector, 4) - At<std::uint8_t*>(vector, 0)) >> 2);
-}
+void Get(CStream* stream, void* data, std::uint32_t size) { stream->Read(data, size); }
 
 // A counted dword array: the count, the vector resized (new entries 0), the data.
-void GetInts(void* stream, stlp::vector<int>& list) {
+void GetIds(CStream* stream, UnitIdList& list) {
     std::uint32_t n;
     Get(stream, &n, 4);
-    int zero = 0;
-    ResizeInts(&list, nullptr, n, &zero);
+    std::uint32_t zero = 0;
+    ResizeIds(&list, nullptr, n, &zero);
     Get(stream, list.begin(), static_cast<std::uint32_t>(list.size()) << 2);
 }
 
 } // namespace
 
-void __fastcall ReadUnitLooks(void* stream, void* first, void* second) {
+void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* figured,
+                              stlp::vector<DressedUnitRecord>* dressed) {
     std::uint32_t count;
     Get(stream, &count, 4);
-    ResizeLooks(first, nullptr, count);
-    for (std::uint8_t* record = At<std::uint8_t*>(first, 0); record != At<std::uint8_t*>(first, 4); record += 0x3C) {
-        Get(stream, record, 2);
-        UnitSetEntryHead* head = reinterpret_cast<UnitSetEntryHead*>(record);
-        GetInts(stream, head->first);
-        GetInts(stream, head->second);
-        Get(stream, &head->flag, 1);
-        Get(stream, &head->value, 4);
-        Get(stream, record + 0x24, 4);
-        Get(stream, record + 0x28, 4);
-        Get(stream, record + 0x2C, 4);
-        std::uint32_t strings;
-        Get(stream, &strings, 4);
-        ResizeStrings(record + 0x30, nullptr, strings);
-        for (std::uint32_t i = 0; i < Count(record + 0x30); ++i)
-            ReadCString(stream, nullptr, At<std::uint8_t*>(record, 0x30) + i * 4);
+    ResizeFigured(figured, nullptr, count);
+    for (FiguredUnitRecord* record = figured->begin(); record != figured->end(); ++record) {
+        Get(stream, &record->prototype, 2);
+        GetIds(stream, record->armourIds);
+        GetIds(stream, record->weaponIds);
+        Get(stream, &record->unknown_1C, 1);
+        Get(stream, &record->unknown_20, 4);
+        Get(stream, &record->morphS, 4);
+        Get(stream, &record->morphT, 4);
+        Get(stream, &record->morphU, 4);
+        std::uint32_t names;
+        Get(stream, &names, 4);
+        ResizeStrings(&record->names, nullptr, names);
+        for (std::uint32_t i = 0; i < static_cast<std::uint32_t>(record->names.size()); ++i)
+            ReadCString(stream, nullptr, &record->names[i]);
     }
     Get(stream, &count, 4);
-    ResizeLooks2(second, nullptr, count);
-    stlp::vector<UnitSetEntryHead>& looks = *static_cast<stlp::vector<UnitSetEntryHead>*>(second);
-    for (UnitSetEntryHead* record = looks.begin(); record != looks.end(); ++record) {
-        Get(stream, &record->key, 2);
-        GetInts(stream, record->first);
-        GetInts(stream, record->second);
-        Get(stream, &record->flag, 1);
-        Get(stream, &record->value, 4);
+    ResizeDressed(dressed, nullptr, count);
+    for (DressedUnitRecord* record = dressed->begin(); record != dressed->end(); ++record) {
+        Get(stream, &record->prototype, 2);
+        GetIds(stream, record->items);
+        GetIds(stream, record->extraWeapons);
+        Get(stream, &record->extraWeapon, 1);
+        Get(stream, &record->modelNumber, 4);
     }
 }
 

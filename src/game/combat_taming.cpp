@@ -79,7 +79,7 @@ BOOL CUnitServer::TryTame(CUnit* tamer, float roll) {
     if (unit->player || limit >= roll) {   // FCOMP: C0 (limit below the roll, or unordered) succeeds
         // A unit with a player cannot be tamed; a roll not above the limit fails. Either way an attack.
         UndoIfTamedBy(this, tamer);
-        DiplomacyOnAttack(static_cast<CWorldServer*>(ManagerContextOf(this))->diplomacy_, nullptr, tamer, unit, 10);
+        DiplomacyOnAttack(&static_cast<CWorldServer*>(ManagerContextOf(this))->diplomacy_, nullptr, tamer, unit, 10);
         return 0;
     }
     char* tamerPlayer = tamer->player;

@@ -13,6 +13,10 @@
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "ei/vcall.h"
+#include "map_object.h"
+#include "net_delta.h"
+#include "party.h"
+#include "unit.h"
 
 #include <cstring>
 #include <new>
@@ -23,11 +27,6 @@
 #include "originals_gameplay.h"
 
 namespace {
-
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
-}
 
 // ---- Game data --------------------------------------------------------------------------------
 
@@ -53,9 +52,6 @@ Quaternion DefaultRotation() {
 constexpr std::uintptr_t kPtrArrayVtable = 0x0073FAA4;      // CArray of record pointers
 constexpr std::uintptr_t kMapObjectFileVtable = 0x0073FAD4; // the .mob root chunk (inline constructor)
 
-constexpr int kSlotStreamWrite = 2;   // stream slot 2: Write(data, size)
-constexpr int kSlotFileClose = 19;    // MFC CFile slot 19 (+0x4C): Close
-
 // ---- Callees not rewritten (EI_ORIGINAL forwarders; __thiscall called as __fastcall) ----------
 
 
@@ -76,20 +72,20 @@ __declspec(naked) void* __fastcall CountedPtrDestroy(void** /*slot*/, void*, uns
 // 00530930. CUnit::GetPrototype: the unit's prototype record (its name first).
 static char** UnitPrototype(CEngineObject* object, void*) { return static_cast<char**>(::UnitPrototypeOf(object)); }
 
-// The unit record AddUnitToServer builds on its stack (0x70 bytes; a pointer to the 0x784-byte
-// unit record CreateUnits takes at +0x30).
+// The unit record AddUnitToServer builds on its stack: a CParty (party.h; constructor 00661050,
+// destructor 006611D0) given one member by 006628D0 (RET 0xC); CreateUnits takes a pointer to the
+// member's 0x784-byte record.
 struct UnitRecordBuilder {
-    std::uint8_t bytes[0x70];
+    alignas(4) std::uint8_t storage[sizeof(CParty)];
 
-    void* Construct();                                                       // 00661050
-    void Fill(const char* text, const char* prototype, const char* name);    // 006628D0 (RET 0xC)
-    void Destruct();                                                         // 006611D0
-    void* Record() { return At<void*>(this, 0x30); }
+    CParty* Party() { return reinterpret_cast<CParty*>(storage); }
+    void Construct() { PartyRecordsConstructOriginal(Party()); }
+    void Fill(const char* text, const char* prototype, const char* name) {
+        PartyAddMemberOriginal(Party(), nullptr, text, prototype, name);
+    }
+    void Destruct() { PartyRecordsDestructOriginal(Party()); }
+    PartyUnitRecord* Record() { return Party()->members_.data; }
 };
-static_assert(sizeof(UnitRecordBuilder) == 0x70);
-void* UnitRecordBuilder::Construct() { return PartyRecordsConstructOriginal((void*)this); }
-void UnitRecordBuilder::Fill(const char* a0, const char* a1, const char* a2) { PartyAddMemberOriginal((void*)this, nullptr, a0, a1, a2); }
-void UnitRecordBuilder::Destruct() { PartyRecordsDestructOriginal((void*)this); }
 
 } // namespace
 
@@ -140,10 +136,10 @@ void CWorldServer::AddUnitToServer(unsigned id, const char* prototype, const cha
     records.growBy = 0;
     records.maxSize = 0;
     records.size = 0;
-    auto* record = static_cast<std::uint8_t*>(builder.Record());
+    PartyUnitRecord* record = builder.Record();
     RecordArraySetSizeOriginal(&records, nullptr, 1, -1);
-    records.data[0] = record;
-    At<unsigned>(records.data[0], 0x1C) = id;
+    records.data[0] = reinterpret_cast<std::uint8_t*>(record);
+    record->unknown_01C = id;   // the unit's id
     WorldCreateUnitsOriginal(this, nullptr, nullptr, &records, position, DefaultRotation(), nullptr);
     records.vtable = reinterpret_cast<void*>(kPtrArrayVtable);
     if (records.data) gamecrt::operator_delete(records.data);
@@ -159,7 +155,7 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
     auto* root = reinterpret_cast<RootChunk*>(storage);
     root->Construct(nullptr);
     new (&root->file_) mfc::CFile();
-    void* fileObject = &root->file_;
+    auto* fileObject = reinterpret_cast<mfc::CFileVirtuals*>(&root->file_);
     ei::SetVtable(root, kMapObjectFileVtable);
 
     mfc::CString path;
@@ -169,7 +165,7 @@ int CWorldServer::LoadMapObjects(const char* file, int keepIds) {
         result = game::FatalError(Text(kCantOpenObjects), file);
     } else {
         bool read = ReadMapObjectFile(root, nullptr, this, keepIds);
-        ei::VCall<void>(fileObject, kSlotFileClose);
+        fileObject->Close();
         result = read ? 1 : game::FatalError(Text(kCantReadObjects), file);
     }
     root->Destruct();
@@ -234,22 +230,24 @@ void CWorldServer::ClearMapObjects() {
 }
 
 void CWorldServer::SaveMapObjects(void* stream) {
+    auto* out = static_cast<CStream*>(stream);
     for (auto* node = mapObjects_.map.First(); node; node = mapObjects_.map.After(node)) {
         CEngineObject* object = node->value;
         if (!object) break;
+        auto* mapObject = static_cast<CMapObject*>(object);
         int id = object->id_;
-        ei::VCall<void>(stream, kSlotStreamWrite, static_cast<const void*>(&id), 4u);
+        out->Write(&id, 4u);
         const char* prototype =
-            object->GetClassId() == world::kClassUnit ? *UnitPrototype(object, nullptr) : At<char*>(object, 0xA4);
-        ei::VCall<void>(stream, kSlotStreamWrite, static_cast<const void*>(prototype),
-                        static_cast<unsigned>(std::strlen(prototype) + 1));
+            object->GetClassId() == world::kClassUnit ? *UnitPrototype(object, nullptr) : mapObject->name;
+        out->Write(prototype, static_cast<unsigned>(std::strlen(prototype) + 1));
         object->Save(stream);
-        std::uint32_t flags = static_cast<std::uint32_t>(At<std::uint16_t>(object, 0x1DC)) |
-                              static_cast<std::uint32_t>(At<std::uint16_t>(object, 0x1D8));
-        ei::VCall<void>(stream, kSlotStreamWrite, static_cast<const void*>(&flags), 4u);
+        // The parts changed and those already sent (the network state's mask).
+        std::uint32_t flags = static_cast<std::uint32_t>(mapObject->changedParts) |
+                              static_cast<std::uint32_t>(mapObject->NetState()->sentMask_);
+        out->Write(&flags, 4u);
     }
     int end = -1;
-    ei::VCall<void>(stream, kSlotStreamWrite, static_cast<const void*>(&end), 4u);
+    out->Write(&end, 4u);
 }
 
 // ---- Loading movie (00595080) -------------------------------------------------------------------

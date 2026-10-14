@@ -3,18 +3,16 @@
 // See world.h and docs/notes/world.md.
 #include "world.h"
 
+#include "combat.h"
+#include "party.h"
 #include "random.h"
+#include "unit.h"
 
 #include "ei/hook.h"
 
 #include <cstdint>
 
 namespace {
-
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
-}
 
 IsaacRandom& Random() { return *reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 
@@ -31,7 +29,6 @@ std::uint32_t& GlobalGold() { return *reinterpret_cast<std::uint32_t*>(0x007C830
 
 constexpr int kRecordSize = 0x784;
 constexpr int kRecordGuarded = 0x20;   // the 0x704 bytes from +0x20 of a party record
-constexpr int kStatsGuarded = 0x1E0;   // the 0x704 bytes from +0x1E0 of a unit's controller
 constexpr int kGuardedBytes = 0x704;
 
 void XorRange(std::uint8_t* first, std::uint32_t key) {
@@ -49,13 +46,16 @@ void __fastcall GuardPlayers(CEngineObject* players, char units, std::uint32_t k
     if (!players) return;
     PlayerIterator it;
     for (WorldPlayer* player = it.First(players); player; player = it.Next()) {
-        At<std::uint32_t>(player, 0xC0) ^= key;   // gold
+        player->Party()->Money() ^= static_cast<int>(key);   // gold
         for (int i = 0; i < player->mercCount; ++i) XorRange(player->mercs + i * kRecordSize + kRecordGuarded, key);
         if (!units) continue;
-        // The player's units (a hash map at +0x40; the walk stops at an empty entry).
-        auto& map = At<stlp::hash_map<unsigned, CEngineObject*, stlp::IntHash>>(player, 0x40);
-        for (auto* node = map.First(); node && node->value; node = map.After(node))
-            XorRange(At<std::uint8_t*>(node->value, 0x240) + kStatsGuarded, key);
+        // The player's units (the walk stops at an empty entry): the 0x704 bytes of their
+        // controllers' statistics.
+        auto& map = player->units.map;
+        for (auto* node = map.First(); node && node->value; node = map.After(node)) {
+            auto* controller = reinterpret_cast<CUnitServer*>(static_cast<CUnit*>(node->value)->controller);
+            XorRange(reinterpret_cast<std::uint8_t*>(&controller->stats), key);
+        }
     }
 }
 

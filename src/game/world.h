@@ -14,7 +14,9 @@
 #include "core_streams.h"
 #include "engine_object.h"
 #include "ground_print.h"
+#include "object_diplomacy.h"
 #include "player_source.h"
+#include "unit_looks.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
 #include "maths.h"
@@ -27,6 +29,7 @@ class CAIMap;       // ai_map.h
 class CPlayerServer;   // player_messages.h
 class CPlayerConnection;   // player_messages.h
 class CScript;   // script.h
+struct AIEventTable;   // unit_ai.h
 namespace netlink {
 class NetLink;   // net_link.h
 }
@@ -789,11 +792,12 @@ public:
     int gridHeight_;                      // +0x2814
     std::uint8_t unknown_2818[0x2838 - 0x2818];
     std::uint8_t timeWheel_[0x12874 - 0x2838]; // +0x2838 the AI events (AIEventTable, unit_ai.h: time wheel, grid)
+    AIEventTable* AIEvents() { return reinterpret_cast<AIEventTable*>(timeWheel_); }
     std::uint8_t commandsA_[0x12A6C - 0x12874]; // +0x12874 script command queue (004BF000)
     // commandsA_ is the zone's CScript (script.h, 0x1F8 bytes): its globals_ hold the "Heroes" group.
     CScript* MainScript() { return reinterpret_cast<CScript*>(commandsA_); }
     std::uint8_t commandsB_[0x12C64 - 0x12A6C]; // +0x12A6C script command queue (004BF000)
-    std::uint8_t diplomacy_[0x12D64 - 0x12C64]; // +0x12C64 CDiplomacy (object_diplomacy.h)
+    CDiplomacy diplomacy_;                // +0x12C64 (object_diplomacy.h)
     int unknown12D64_;                    // +0x12D64 1 or 3: SaveWorld updates the players' "gtime" first
     char* mobName_;                       // +0x12D68 CString: the zone's .mob file
     char* mapName_;                       // +0x12D6C CString: the zone's map
@@ -914,44 +918,33 @@ struct PlatformSet {
 static_assert(offsetof(PlatformSet, list) == 0x1C);
 static_assert(sizeof(PlatformSet) == 0x38);
 
-// The unit set the server's SendZone fills (world_sync.cpp; 005593D0 adds a unit): an STLport
-// hash_map whose nodes hold a second hash_map of unit entries (node + 8), a word at +0x24 and a
-// third hash_map at +0x14. Only the writer is rewritten (world_unit_set.cpp).
+// The unit set the server's SendZone fills (world_sync.cpp; constructor 005985E0, destructor
+// 005986B0, 005593D0 adds a unit) and the client reads back as its unit looks (unit_looks.h): the
+// figured records grouped by prototype (each group an STLport hash_map keyed by three packed
+// 10-bit values), and the dressed records by prototype. All three maps hash a key to itself
+// (0055C5C0 and the iterators' 0055B9D0 / 0055B500). Only the writer is rewritten
+// (world_unit_set.cpp).
+using FiguredUnitMap = stlp::hash_map<unsigned, FiguredUnitRecord, stlp::IntHash>;
 struct UnitSet {
-    // 00559E60 (RET 4). Writes the set to `stream` (its slot 2 writes bytes): the number of unit
-    // entries; per entry its head (00558FA0), the words at +0x24 / +0x28 / +0x2C, its string count
-    // and each string with its terminator; the word +0x24; per third-map entry a 16-bit key, two
-    // counted dword arrays, a byte and a dword.
-    void Write(void* stream);
-};
+    // 00559E60 (RET 4). Writes the set to `stream` (its slot 2 writes bytes): the number of figured
+    // records; per record its head (00558FA0), the morph coefficients, its name count and each
+    // name with its terminator; the number of dressed records and per record a 16-bit prototype,
+    // two counted dword arrays, a byte and a dword.
+    void Write(CStream* stream);
 
-// The head of a unit set entry (and of the 0x24-byte look records): a 16-bit key, two dword
-// vectors, a byte and a dword.
-struct UnitSetEntryHead {
-    // 00558FA0 (RET 4; world_unit_set.cpp, A-U7). Writes the key (2 bytes), each vector's count and
-    // dwords (the data written even when empty), the byte and the dword through `stream`'s slot 2.
-    void Write(void* stream);
-
-    std::int16_t key;                     // +0x00
-    std::uint8_t unknown_02[2];
-    stlp::vector<int> first;              // +0x04
-    stlp::vector<int> second;             // +0x10
-    std::uint8_t flag;                    // +0x1C
-    std::uint8_t unknown_1D[3];
-    std::uint32_t value;                  // +0x20
+    stlp::hash_map<unsigned, FiguredUnitMap, stlp::IntHash> figured;   // +0x00
+    stlp::hash_map<unsigned, DressedUnitRecord, stlp::IntHash> dressed; // +0x14
 };
-static_assert(offsetof(UnitSetEntryHead, first) == 0x04);
-static_assert(offsetof(UnitSetEntryHead, second) == 0x10);
-static_assert(offsetof(UnitSetEntryHead, flag) == 0x1C);
-static_assert(sizeof(UnitSetEntryHead) == 0x24);
-static_assert(offsetof(UnitSetEntryHead, value) == 0x20);
+static_assert(offsetof(UnitSet, dressed) == 0x14);
+static_assert(sizeof(UnitSet) == 0x28);
 
 // 0055A190 (ECX stream, EDX first list, RET 4; called by the client's zone load 00567AB0). Reads
-// the zone's two unit look lists from `stream` (slot 1 reads bytes): a count, then per 0x3C-byte
-// record a 16-bit key, two counted dword arrays (+4, +0x10), a byte (+0x1C), four dwords (+0x20 ..
-// +0x2C) and a counted list of strings (+0x30); then a count and per 0x24-byte record of `second`
-// the key, the two arrays, the byte and a dword (+0x20). Both vectors are resized to the counts.
-void __fastcall ReadUnitLooks(void* stream, void* first, void* second);
+// the zone's two unit look lists from `stream` (slot 1 reads bytes): a count, then per figured
+// record a 16-bit prototype, two counted dword arrays, a byte, a dword, the three morph
+// coefficients and a counted list of names; then a count and per dressed record the prototype,
+// the two arrays, the byte and a dword. Both vectors are resized to the counts.
+void __fastcall ReadUnitLooks(CStream* stream, stlp::vector<FiguredUnitRecord>* figured,
+                              stlp::vector<DressedUnitRecord>* dressed);
 
 // The client's sector grids (CWorldClient +0x120 for the objects, +0x150 the second one;
 // world_client_maps.cpp): an STLport list of counted pointers per 16x16 cell.
