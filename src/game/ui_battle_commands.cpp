@@ -9,6 +9,8 @@
 #include "text_reader.h"
 #include "ui_camp.h"
 #include "unit.h"
+#include "unit_client_models.h"
+#include "world.h"
 
 #include "ei/hook.h"
 #include "ei/x87.h"
@@ -96,29 +98,30 @@ constexpr int kQuickSlots = 8;
 // After a spell or quick item was used: no pending action and no highlighted slot in the quick
 // item panel (0063CD20 per slot). The spell and action panels: 00637500 resets each sprite inline
 // (scale 1, colour opaque, the highlight index walking along), 00637750 calls their setters.
+template <typename Column>
+void DropColumn(Column* panel, bool inlinePanels, void(__fastcall* setPanel)(CUiWindow*, void*, int, int)) {
+    for (int i = 0; i < panel->count_; ++i) {
+        if (inlinePanels) {
+            CUiMesh* sprite = reinterpret_cast<CUiMesh*>(panel->sceneObjects_.data[i]);
+            SpriteSetScale(sprite, nullptr, kScaleOne);
+            sprite->colour_ = kSpriteOpaque;
+            panel->selected_ = i;
+        } else {
+            setPanel(panel, nullptr, i, 0);
+        }
+    }
+    panel->selected_ = -1;
+}
+
 void DropPendingAction(CBattleScreenSetup* self, bool inlinePanels) {
-    CUiWindow* quick = self->quickItems_;
+    CHudQuickItems* quick = static_cast<CHudQuickItems*>(self->quickItems_);
     self->unknown_180 = -1;
     self->unknown_17C = 0;
     Field<int>(self, 0x184) = -1;
     for (int i = 0; i < kQuickSlots; ++i) QuickPanelSet(quick, nullptr, i, 0);
-    Field<int>(quick, 0x150) = -1;
-    CUiWindow* const panels[2] = {self->spellColumn_, self->actionColumn_};
-    for (CUiWindow* panel : panels) {
-        for (int i = 0; i < Field<int>(panel, 0x14C); ++i) {
-            if (inlinePanels) {
-                void* sprite = Field<void**>(panel, 0x108)[i];
-                SpriteSetScale(sprite, nullptr, kScaleOne);
-                Field<std::uint32_t>(sprite, 0xD8) = kSpriteOpaque;
-                Field<int>(panel, 0x150) = i;
-            } else if (panel == self->spellColumn_) {
-                SpellPanelSet(panel, nullptr, i, 0);
-            } else {
-                ActionPanelSet(panel, nullptr, i, 0);
-            }
-        }
-        Field<int>(panel, 0x150) = -1;
-    }
+    quick->selected_ = -1;
+    DropColumn(static_cast<CHudSpellColumn*>(self->spellColumn_), inlinePanels, SpellPanelSet);
+    DropColumn(static_cast<CHudActionColumn*>(self->actionColumn_), inlinePanels, ActionPanelSet);
 }
 
 // Member i's portrait nods after a random delay (as the orders' nod).
@@ -175,13 +178,13 @@ void CBattleScreenSetup::ToggleMember(int index) {
     // Single player: the local player's unit records (0x784 bytes, +0x1C the unit id) keep the
     // members' selection (+0x778), record i against member i.
     if (*reinterpret_cast<const int*>(0x007B0098) == 1) {
-        if (auto* player = static_cast<std::uint8_t*>(WorldGetPlayer(kServerWorld, nullptr, 0))) {
-            for (int i = 0; i < Field<int>(player, 0xA4); ++i) {
+        if (auto* player = static_cast<WorldPlayer*>(WorldGetPlayer(kServerWorld, nullptr, 0))) {
+            for (int i = 0; i < player->mercCount; ++i) {
                 if (i >= party->size) continue;
-                std::uint8_t* record = Field<std::uint8_t*>(player, 0xA0) + i * 0x784;
+                PartyUnitRecord* record = &reinterpret_cast<PartyUnitRecord*>(player->mercs)[i];
                 CUnit* member = unitAt(i);
                 if (member->id_ == Field<int>(record, 0x1C))
-                    Field<std::uint8_t>(record, 0x778) = static_cast<std::uint8_t>((member->flags_ >> 4) & 1);
+                    record->unknown_778 = static_cast<std::uint8_t>((member->flags_ >> 4) & 1);
             }
         }
     }
@@ -307,7 +310,7 @@ void CBattleScreenSetup::OnUnitSpeech(int id, unsigned event, char* extra) {
         UnitNameLine(this, nullptr, unit, &line);
         line += reinterpret_cast<const char*>(0x00794314);   // ":\n"
         CTextManager* texts = TextTable(kTextGlue);
-        const char* name = Field<const char*>(phrase, 0x1C);
+        const char* name = reinterpret_cast<const SpeechRecord*>(phrase)->name.data();
         BOOL found;
         {
             mfc::CString say(reinterpret_cast<const char*>(0x0079430C));   // "say "
@@ -320,12 +323,9 @@ void CBattleScreenSetup::OnUnitSpeech(int id, unsigned event, char* extra) {
             text += reinterpret_cast<const char*>(0x00784340);           // "\n"
             // Both go to the top panel's text and, unless its +0x160, the message log.
             auto post = [this](const char* part) {
-                CUiWindow* top = topPanel_;
-                *reinterpret_cast<mfc::CString*>(reinterpret_cast<std::uint8_t*>(top) + 0x164) += part;
-                if (Field<int>(top, 0x160) == 0) {
-                    CUiWindow* screen = Field<CUiWindow*>(top, 0x148);
-                    LogAddLine(Field<CUiWindow**>(screen, 0x148)[9], nullptr, part);
-                }
+                CHudTopPanel* top = static_cast<CHudTopPanel*>(topPanel_);
+                top->PageText(0) += part;
+                if (top->page_ == 0) LogAddLine(top->owner_->children_.data[9], nullptr, part);
             };
             post(line);
             post(text);

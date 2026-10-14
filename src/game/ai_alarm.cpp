@@ -6,7 +6,10 @@
 // its controller's alarm (+0x240 -> +0xB10) raised to the level. See docs/notes/ai.md.
 #include "ai_alarm.h"
 
+#include "combat.h"
+#include "object_diplomacy.h"
 #include "unit_ai.h"
+#include "world.h"
 
 #include "ei/hook.h"
 
@@ -15,11 +18,6 @@
 #include "originals_library.h"
 
 namespace {
-
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(object) + offset);
-}
 
 // The game's ostream (MSVC 6 iostream).
 struct AiLogStream {
@@ -39,34 +37,29 @@ const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(
 static inline std::uint8_t* ManagerContextAt(void* object) { return static_cast<std::uint8_t*>(ManagerContextOf(object)); }
 __declspec(naked) void __fastcall SayRemark(void*, void*, void*, int) EI_ORIGINAL(0x0058D340)
 
-struct GroupNode {
-    GroupNode* next;
-    GroupNode* prev;
-    std::uint8_t* member;
-};
-
 } // namespace
 
 void __fastcall StepAlarm(int* stateIn, void*, std::uint8_t* owner) {
     auto* state = reinterpret_cast<AIAlarm*>(stateIn);
+    auto* server = reinterpret_cast<CUnitServer*>(owner);
     std::uint8_t* world = ManagerContextAt(owner);
     if (state->pending != 0) {
         if (state->pending > state->level) {
             state->active = state->pending;
             state->timer = 20;
-            std::uint8_t* unit = At<std::uint8_t*>(owner, 0x1C);
-            AlarmLog()->Write(Text(0x0078FDBC))->Write(static_cast<long>(At<int>(unit, 0xC)))->Write(Text(0x007910E0));
+            CUnit* unit = server->unit;
+            AlarmLog()->Write(Text(0x0078FDBC))->Write(static_cast<long>(unit->id_))->Write(Text(0x007910E0));
             std::uintptr_t what;
             switch (state->active) {
-            case 1: SayRemark(world, nullptr, At<void*>(owner, 0x1C), 0x31); what = 0x007910CC; break;
-            case 2: SayRemark(world, nullptr, At<void*>(owner, 0x1C), 0x32); what = 0x007910CC; break;
+            case 1: SayRemark(world, nullptr, server->unit, 0x31); what = 0x007910CC; break;
+            case 2: SayRemark(world, nullptr, server->unit, 0x32); what = 0x007910CC; break;
             case 3: what = 0x007910B4; break;   // "back from Suspection"
             case 4: what = 0x0079109C; break;   // "back from Aggression"
-            case 5: SayRemark(world, nullptr, At<void*>(owner, 0x1C), 0x2F); what = 0x0079108C; break;
-            case 6: SayRemark(world, nullptr, At<void*>(owner, 0x1C), 0x2E); what = 0x0079107C; break;
+            case 5: SayRemark(world, nullptr, server->unit, 0x2F); what = 0x0079108C; break;
+            case 6: SayRemark(world, nullptr, server->unit, 0x2E); what = 0x0079107C; break;
             case 7: what = 0x00791070; break;   // "to Alarm!"
             case 8: what = 0x0079105C; break;   // "ALARM ALARM ALARM"
-            case 9: SayRemark(world, nullptr, At<void*>(owner, 0x1C), 0x30); what = 0x0079104C; break;
+            case 9: SayRemark(world, nullptr, server->unit, 0x30); what = 0x0079104C; break;
             default: what = 0x00791040; break;  // "error... :)"
             }
             AlarmLog()->Write(Text(what))->Put(10)->Apply(reinterpret_cast<void*>(0x00435000));
@@ -80,12 +73,12 @@ void __fastcall StepAlarm(int* stateIn, void*, std::uint8_t* owner) {
         state->active = 0;
         return;
     }
-    int side = At<int>(At<std::uint8_t*>(owner, 0x1C), 0x250);
-    std::uint32_t allies = At<std::uint32_t>(world, 0x12C64 + side * 4);
-    for (GroupNode* node = At<GroupNode*>(owner, 0xA78); node; node = node->next) {
-        std::uint8_t* member = node->member;
-        if (!(allies & (1u << (At<int>(member, 0x250) & 31)))) continue;
-        int& alarm = At<int>(At<std::uint8_t*>(member, 0x240), 0xB10);
+    int side = server->unit->side;
+    std::uint32_t allies = reinterpret_cast<CDiplomacy*>(reinterpret_cast<CWorldServer*>(world)->diplomacy_)->allied_[side];
+    for (auto* node = server->Brain()->unknown_0F4.head; node; node = node->next) {
+        auto* member = static_cast<CUnit*>(node->data);
+        if (!(allies & (1u << (member->side & 31)))) continue;
+        int& alarm = static_cast<CUnitServer*>(member->controller)->voice[0];
         if (alarm <= active) alarm = active;
     }
 }

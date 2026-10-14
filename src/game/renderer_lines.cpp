@@ -12,6 +12,9 @@
 //   the scenarios. Its vertices go to a growing buffer in the exe's data (007A9CE0).
 #include "renderer_lines.h"
 
+#include "model.h"
+#include "texture.h"
+
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -22,11 +25,6 @@
 #include <cstring>
 
 namespace {
-
-template <typename T>
-T& At(void* object, int offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
-}
 
 // IDirect3DDevice7 slots and the states these draws touch.
 constexpr int kSetRenderState = 20;
@@ -54,22 +52,22 @@ LineVertex* NewVertices(int count) {
 void DeleteVertices(LineVertex* data) { gamecrt::operator_delete(reinterpret_cast<void**>(data)[-1]); }
 
 // The draw itself, under the device lock, after the new renderer has taken it.
-void DrawStrip(char* device, LineVertex* vertices, int count) {
+void DrawStrip(CTextureDevice* device, LineVertex* vertices, int count) {
     if (render::TlDraw(device, vertices, static_cast<int>(kFvf), count, nullptr, 0, static_cast<int>(kLineStrip))) {
         gameapi::EnterCriticalSection(DeviceLock());
-        At<long>(device, 8) = ComCall(At<void*>(device, 0x54), kDrawPrimitive, kLineStrip, kFvf, static_cast<void*>(vertices),
-                                      static_cast<unsigned long>(count), 0ul);
+        device->lastLoadResult_ = ComCall(device->d3dDevice_, kDrawPrimitive, kLineStrip, kFvf, static_cast<void*>(vertices),
+                                          static_cast<unsigned long>(count), 0ul);
         gameapi::LeaveCriticalSection(DeviceLock());
     }
-    At<int>(device, 0x16C) += count;
-    At<unsigned>(device, 0x170) += static_cast<unsigned>(count) / 3;
-    At<int>(device, 0x174) += 1;
+    device->vertexCount_ += count;
+    device->primitiveCount_ += static_cast<unsigned>(count) / 3;
+    device->drawCount_ += 1;
 }
 
-void SetStageOps(char* device, unsigned long op) {
-    At<long>(device, 8) = ComCall(At<void*>(device, 0x54), kSetTextureStageState, 0ul, kColourOp, op);
+void SetStageOps(CTextureDevice* device, unsigned long op) {
+    device->lastLoadResult_ = ComCall(device->d3dDevice_, kSetTextureStageState, 0ul, kColourOp, op);
     render::state::Stage(0, kColourOp, op);
-    At<long>(device, 8) = ComCall(At<void*>(device, 0x54), kSetTextureStageState, 0ul, kAlphaOp, op);
+    device->lastLoadResult_ = ComCall(device->d3dDevice_, kSetTextureStageState, 0ul, kAlphaOp, op);
     render::state::Stage(0, kAlphaOp, op);
 }
 
@@ -90,9 +88,10 @@ int __fastcall RendererPolyline(char* renderer, void*, const ScreenPoints* point
         v.colour = colour | 0xFF000000u;
         v.specular = 0xFF000000u;
     }
-    SetStageOps(At<char*>(renderer, 0x20), kOpDisable);
-    DrawStrip(At<char*>(renderer, 0x20), vertices, count);
-    SetStageOps(At<char*>(renderer, 0x20), kOpModulate);
+    CTextureDevice* device = reinterpret_cast<CSceneRenderer*>(renderer)->device_;
+    SetStageOps(device, kOpDisable);
+    DrawStrip(device, vertices, count);
+    SetStageOps(device, kOpModulate);
     DeleteVertices(vertices);
     return 1;
 }
@@ -100,7 +99,8 @@ EI_REPLACE(0x005045D0, RendererPolyline);
 
 // 0049B4B0 (fastcall: the device object, the points; `colour` on the stack, RET 4). Flat shaded
 // (Gouraud again after); returns the last SetRenderState's result.
-long __fastcall DeviceDrawLineStrip(char* device, const ProjectedPoints* points, std::uint32_t colour) {
+long __fastcall DeviceDrawLineStrip(char* deviceBytes, const ProjectedPoints* points, std::uint32_t colour) {
+    CTextureDevice* device = reinterpret_cast<CTextureDevice*>(deviceBytes);
     LineBuffer& buffer = LineVertices();
     int count = points->count;
     if (!buffer.data) {
@@ -125,7 +125,7 @@ long __fastcall DeviceDrawLineStrip(char* device, const ProjectedPoints* points,
         buffer.size = count;
     }
 
-    ComCall(At<void*>(device, 0x54), kSetRenderState, kShadeMode, kShadeFlat);
+    ComCall(device->d3dDevice_, kSetRenderState, kShadeMode, kShadeFlat);
     render::state::Render(kShadeMode, kShadeFlat);
     SetStageOps(device, kOpDisable);
     for (int i = 0; i < points->count; ++i) {
@@ -136,7 +136,7 @@ long __fastcall DeviceDrawLineStrip(char* device, const ProjectedPoints* points,
     }
     DrawStrip(device, buffer.data, buffer.size);
     SetStageOps(device, kOpModulate);
-    long hr = ComCall(At<void*>(device, 0x54), kSetRenderState, kShadeMode, kShadeGouraud);
+    long hr = ComCall(device->d3dDevice_, kSetRenderState, kShadeMode, kShadeGouraud);
     render::state::Render(kShadeMode, kShadeGouraud);
     return hr;
 }

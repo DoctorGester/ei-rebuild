@@ -70,6 +70,12 @@ void CopyDword(char* record, int offset, const char* source, int sourceOffset) {
 
 float F(const char* record, int offset) { return Field<float>(record, offset); }
 
+// The prototype and material records, read without a null check where the original reads them
+// without one.
+const ItemRecordHead* Head(const char* record) { return reinterpret_cast<const ItemRecordHead*>(record); }
+const WeaponRecord* Weapon(const char* record) { return reinterpret_cast<const WeaponRecord*>(record); }
+const MaterialRecordHead* Material(const char* record) { return reinterpret_cast<const MaterialRecordHead*>(record); }
+
 // A float copied with FLD / FSTP (a signalling NaN arrives quieted, as in the original).
 void FpuCopy(void* destination, const void* source) {
     __asm {
@@ -179,10 +185,11 @@ void CItem::InitFromRecord(const char* record) {
     std::memcpy(&chargeRate_, &kDefaultChargeRate, 4);
     FpuCopy(&chargeMax_, record + 0x40);
     FpuCopy(&charge_, record + 0x40);
-    unknown_34 = Field<std::uint32_t>(record, 0x38);
+    const auto* head = reinterpret_cast<const ItemRecordHead*>(record);
+    unknown_34 = head->value38;
     std::memcpy(&price_, record + 0x34, 4);
-    unknown_3C = Field<std::uint32_t>(record, 0x3C);
-    unknown_40 = Field<std::uint32_t>(record, 0x44);
+    unknown_3C = head->value3C;
+    unknown_40 = head->value44;
 }
 EI_REPLACE_METHOD(0x006A0490, CItem::InitFromRecord);
 
@@ -330,15 +337,15 @@ void FillCommon(char* record, const char* prototype, const char* material) {
     // Every operand is read before the arithmetic so that no partial result leaves the FPU (the
     // original keeps them in ST0). Price: the prototype's +0x4C (an unsigned count, FILD qword)
     // times the material's price, plus the prototype's price.
-    std::int64_t units = Field<std::uint32_t>(prototype, 0x4C);
-    float materialPrice = F(material, 0x10), price = F(prototype, 0x34);
+    std::int64_t units = Head(prototype)->unknown_4C;
+    float materialPrice = Material(material)->quality, price = Head(prototype)->price;
     Put<float>(record, 0x34, static_cast<float>(static_cast<double>(units) * materialPrice + price));
     float value38 = F(prototype, 0x38), factor38 = F(material, 0x14);
     Put<float>(record, 0x38, value38 * factor38);
     CopyDword(record, 0x3C, prototype, 0x3C);
-    float charge = F(prototype, 0x40), extraCharge = F(material, 0x18);
+    float charge = Head(prototype)->charge, extraCharge = Material(material)->magicPower;
     Put<float>(record, 0x40, charge + extraCharge);
-    float value48 = F(prototype, 0x48), factor48 = F(material, 0x20);
+    float value48 = Head(prototype)->value48, factor48 = F(material, 0x20);
     Put<float>(record, 0x48, value48 * factor48);
     Put<int>(record, 0x44, Field<int>(prototype, 0x44) + Field<int>(material, 0x1C));
     CopyDword(record, 0x4C, prototype, 0x4C);
@@ -349,15 +356,15 @@ std::uint32_t FillClass(int classId, char* record, const char* prototype, const 
     switch (classId) {
     case kClassWeapon: {
         CopyDword(record, 0x8C, prototype, 0x8C);
-        float damage = F(prototype, 0x90), factor = F(material, 0x28);
+        float damage = Weapon(prototype)->damage, factor = F(material, 0x28);
         Put<float>(record, 0x90, damage * factor);
-        float spread = F(prototype, 0x94), factor2 = F(material, 0x28);
+        float spread = Weapon(prototype)->damageSpread, factor2 = F(material, 0x28);
         Put<float>(record, 0x94, spread * factor2);
         return IndexIn(Weapons(), prototype, kWeaponSize);
     }
     case kClassArmor:
-        Put<std::uint32_t>(record, 0x8C, Field<std::uint32_t>(prototype, 0x8C) | Field<std::uint32_t>(material, 0x48));
-        Put<std::uint32_t>(record, 0xB0, Field<std::uint32_t>(prototype, 0xB0) | Field<std::uint32_t>(material, 0x48));
+        Put<std::uint32_t>(record, 0x8C, Field<std::uint32_t>(prototype, 0x8C) | Material(material)->unknown_48);
+        Put<std::uint32_t>(record, 0xB0, Field<std::uint32_t>(prototype, 0xB0) | Material(material)->unknown_48);
         // Seven protection values in two groups, each scaled by the material's factor for its
         // type and by a group factor of the prototype (+0x6C and +0x90).
         for (int k = 0; k < 7; ++k) {
@@ -402,7 +409,7 @@ BOOL CItemConstructor::Build() {
     if (item_->GetClassId() == kClassQuick && Field<int>(prototype_, field::kItemCategory) == kCategoryWand) {
         void* context = *reinterpret_cast<void* const*>(reinterpret_cast<const char*>(manager_) + 0xAC);
         void* spellManager = ei::VCall<void*>(context, kContextSlotSpellManager);
-        CSpell* spell = CallCreateSpellFromText(spellManager, nullptr, Field<const char*>(prototype_, 0x7C));
+        CSpell* spell = CallCreateSpellFromText(spellManager, nullptr, static_cast<const char*>(reinterpret_cast<const QuickItemRecord*>(prototype_)->text7C));
         spell_ = spell;
         CallItemSetSpell(item_, nullptr, spell);
     } else if (spell_) {
@@ -411,7 +418,7 @@ BOOL CItemConstructor::Build() {
     if (record) DeleteRecord(record);
 
     if (material_)
-        item_->unknown_18 = (Field<std::uint32_t>(material_, 0x0C) & 0xFFFF) | index << 16;
+        item_->unknown_18 = (Material(material_)->unknown_0C & 0xFFFF) | index << 16;
     else
         item_->unknown_18 = index << 16;
     item_->unknown_48 = static_cast<std::uint32_t>(count_);

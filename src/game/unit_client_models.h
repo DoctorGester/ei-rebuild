@@ -37,6 +37,7 @@ struct SpeechRecord {
     stlp::string text;              // +0x10
     stlp::string name;              // +0x1C named speeches (006D8A40)
 };
+static_assert(offsetof(SpeechRecord, name) == 0x1C);
 static_assert(sizeof(SpeechRecord) == 0x28);
 
 struct ClientSpeech {

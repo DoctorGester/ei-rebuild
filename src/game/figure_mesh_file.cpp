@@ -129,9 +129,9 @@ void CFigureMesh::CopyFrom(const CFigureMesh* other) {
     buffers_.indexCount = other->buffers_.indexCount;
     buffers_.texCoords = other->buffers_.texCoords;
     buffers_.texCoordCount = other->buffers_.texCoordCount;
-    Field<std::uint32_t>(this, 0xCC) = 0;
-    Field<std::uint32_t>(this, 0xD0) = 0;
-    Field<std::uint32_t>(this, 0xDC) = Field<std::uint32_t>(const_cast<CFigureMesh*>(other), 0xDC);
+    unknown_0CC = 0;
+    unknown_0D0 = 0;
+    unknown_0DC = other->unknown_0DC;
     center_ = other->center_;
     boxMin_ = other->boxMin_;
     boxMax_ = other->boxMax_;
@@ -181,8 +181,7 @@ void CFigureMesh::SetPose(const float* q, const float* offset) {
     std::memcpy(&m[10], &one, 4);
     std::memcpy(&m[5], &one, 4);
     std::memcpy(&m[0], &one, 4);
-    float qw = Field<float>(this, 0x44), qx = Field<float>(this, 0x48), qy = Field<float>(this, 0x4C),
-          qz = Field<float>(this, 0x50);
+    float qw = worldRotation_.w, qx = worldRotation_.x, qy = worldRotation_.y, qz = worldRotation_.z;
     double x2 = static_cast<double>(qx) + qx;
     float y2 = StoreFloat(static_cast<float>(static_cast<double>(qy) + qy));
     float z2 = StoreFloat(static_cast<float>(static_cast<double>(qz) + qz));

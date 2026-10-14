@@ -43,6 +43,7 @@ struct CDiplomacy {
     std::uint32_t allied_[32];    // +0x00 bit q of row p: p is allied with q
     std::uint32_t hostile_[32];   // +0x80 bit q of row p: p is hostile to q
 };
+static_assert(offsetof(CDiplomacy, allied_) == 0x00);
 static_assert(offsetof(CDiplomacy, hostile_) == 0x80);
 static_assert(sizeof(CDiplomacy) == 0x100);
 

@@ -15,6 +15,8 @@
 #include "acks_db.h"
 #include "world_glue.h"
 #include "originals_units.h"
+#include "unit.h"
+#include "world.h"
 
 #pragma warning(disable : 4740) // naked forwarders: no optimisation to suppress
 
@@ -88,6 +90,7 @@ inline WorldAt* World() { return reinterpret_cast<WorldAt*>(0x007AFF60); }
 // (hash_map<const char*, float>).
 template <typename T>
 T& Field(char* base, int offset) { return *reinterpret_cast<T*>(base + offset); }
+WorldPlayer* AsPlayer(char* player) { return reinterpret_cast<WorldPlayer*>(player); }
 
 struct PlayerStateAt {
     void SetVariable(const char* name, float value);   // 0066EE10
@@ -299,7 +302,7 @@ void __fastcall LoadVar(CStringArray* args) {
     if (args->GetSize() < 2) return PrintLine(GameText(0x007926E4));   // usage
     char* player = World()->GetPlayer(GameAtoi((*args)[0]));
     if (!player) return PrintLine(GameText(0x00792690));   // "Wrong player number"
-    auto* state = Field<PlayerStateAt*>(player, 0x20);
+    auto* state = reinterpret_cast<PlayerStateAt*>(AsPlayer(player)->server);
     if (!state) return PrintLine(GameText(0x00792690));
 
     mfc::CString line;
@@ -362,7 +365,7 @@ void __fastcall Give(CStringArray* args) {
     }
     char* player = World()->GetPlayer(GameAtoi((*args)[0]));
     if (!player) return PrintLine(GameText(0x00792690));   // "Wrong player number"
-    auto* state = Field<PlayerStateAt*>(player, 0x20);
+    auto* state = reinterpret_cast<PlayerStateAt*>(AsPlayer(player)->server);
     if (!state) return PrintLine(GameText(0x00792690));
     if (ArgIs(args, 1, 0x00792760) && args->GetSize() > 2) {   // money
         int amount = GameAtoi((*args)[2]);
@@ -370,11 +373,11 @@ void __fastcall Give(CStringArray* args) {
         return state->Refresh();
     }
     if (ArgIs(args, 1, 0x0079275C) && args->GetSize() > 2) {   // exp
-        int count = Field<int>(player, 0xA4);
+        int count = AsPlayer(player)->mercCount;
         // Rounded to float once, as the original stores it (volatile: /fp:fast would keep a double).
         volatile float share = static_cast<float>(GameAtof((*args)[2]) / count);
         for (int i = 0; i < count; ++i)
-            UnitStatsAddExperience(reinterpret_cast<UnitStats*>(Field<char*>(player, 0xA0) + i * 0x784 + 0x20), nullptr, share);
+            UnitStatsAddExperience(reinterpret_cast<UnitStats*>(reinterpret_cast<PartyUnitRecord*>(AsPlayer(player)->mercs)[i].stats), nullptr, share);
         return state->Refresh();
     }
     if (ArgIs(args, 1, 0x00792750)) {   // assortment
@@ -521,7 +524,7 @@ EI_REPLACE(0x005E00D0, Days);
 
 // 005E0570: partyresend.
 void __fastcall PartyResend(CStringArray*) {
-    if (char* player = World()->GetPlayer(0)) Field<PlayerStateAt*>(player, 0x20)->ResendParty();
+    if (char* player = World()->GetPlayer(0)) reinterpret_cast<PlayerStateAt*>(AsPlayer(player)->server)->ResendParty();
 }
 EI_REPLACE(0x005E0570, PartyResend);
 

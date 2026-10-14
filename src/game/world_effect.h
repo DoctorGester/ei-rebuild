@@ -196,6 +196,8 @@ public:
     CEngineObject* light_;     // +0x15C the CLight (reference counted), null: none
     std::uint32_t lightFlags_; // +0x160 ored into the light's flags
 };
+static_assert(offsetof(CEffectPointLight, color_) == 0x14C);
+static_assert(offsetof(CEffectPointLight, range_) == 0x158);
 static_assert(offsetof(CEffectPointLight, light_) == 0x15C);
 static_assert(sizeof(CEffectPointLight) == 0x164);
 

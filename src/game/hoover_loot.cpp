@@ -6,6 +6,8 @@
 // is looted once (flag 0x100000). Plain float maths for the amounts (rule 7). See
 // docs/notes/objects.md ("Sixth round").
 #include "random.h"
+#include "unit.h"
+#include "unit_db.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -43,7 +45,7 @@ IsaacRandom* Rng() { return reinterpret_cast<IsaacRandom*>(0x007A9D40); }
 
 // An object referenced once more and appended to `list`.
 void Append(PtrList* list, void* object) {
-    ++At<int>(object, 4);
+    ++static_cast<CEngineObject*>(object)->refCount_;
     PtrListNode* node = NewNode(list, nullptr, list->tail, nullptr);
     node->data = object;
     if (list->tail) list->tail->next = node;
@@ -82,18 +84,18 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, void* world, char* uni
                                  void* /*unused*/, int* gold) {
     auto* drops = static_cast<PtrList*>(dropList);
     auto* items = static_cast<PtrList*>(itemList);
-    bool keyed = IsTextKeyOriginal(At<int>(unit, 0xC)) & 0xFF;
-    if (At<std::uint32_t>(unit, 8) & 0x100000) return 0;
+    auto* cunit = reinterpret_cast<CUnit*>(unit);
+    bool keyed = IsTextKeyOriginal(cunit->id_) & 0xFF;
+    if (cunit->flags_ & 0x100000) return 0;
     void* manager = ei::VCall<void*>(world, 18);
     char* prototype = UnitPrototype(unit);
-    auto* cunit = reinterpret_cast<CUnit*>(unit);
     *gold = 0;
     if (prototype) {
-        auto names = [&] { return At<const char**>(prototype, 0xE8); };
-        auto count = [&] {
-            return static_cast<std::uint32_t>((At<std::intptr_t>(prototype, 0xEC) - At<std::intptr_t>(prototype, 0xE8)) >> 2);
-        };
-        if ((At<std::intptr_t>(prototype, 0xEC) - At<std::intptr_t>(prototype, 0xE8)) & ~std::intptr_t{3}) {
+        const CStringVector& itemNames = reinterpret_cast<const UnitPrototypeRecord*>(prototype)->unknown_E8;
+        auto names = [&] { return reinterpret_cast<const char* const*>(itemNames.begin); };
+        auto bytes = [&] { return reinterpret_cast<std::intptr_t>(itemNames.end) - reinterpret_cast<std::intptr_t>(itemNames.begin); };
+        auto count = [&] { return static_cast<std::uint32_t>(bytes() >> 2); };
+        if (bytes() & ~std::intptr_t{3}) {
             for (std::uint32_t i = 0; i < count(); ++i) {
                 void* item = CreateItem(manager, nullptr, names()[i]);
                 if (!item) continue;
@@ -109,10 +111,10 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, void* world, char* uni
         if (void* item = UnitQuickItem(cunit, nullptr, slot)) Append(drops, item);
         UnitRemoveQuickItem(unit, nullptr, slot);
     }
-    for (int i = 0; i < At<int>(unit, 0x4A4); ++i) {
-        if (void* item = At<void**>(unit, 0x4A0)[i]) Append(drops, item);
+    for (int i = 0; i < cunit->carriedCount; ++i) {
+        if (void* item = cunit->carried[i]) Append(drops, item);
     }
-    while (At<int>(unit, 0x4A4) != 0) UnitRemoveCarried(cunit, nullptr, 0);
+    while (cunit->carriedCount != 0) UnitRemoveCarried(cunit, nullptr, 0);
     if (keyed) {
         for (int slot = 0; slot < 7; ++slot) {
             void* armour = UnitArmour(unit, nullptr, slot);
@@ -127,7 +129,7 @@ int __fastcall HooverCollectLoot(void* /*hoover*/, void*, void* world, char* uni
             UnitRemoveWeaponOriginal(cunit, nullptr, slot);
         }
     }
-    At<std::uint32_t>(unit, 8) |= 0x100000;
+    cunit->flags_ |= 0x100000;
     return 1;
 }
 EI_REPLACE(0x00461CB0, HooverCollectLoot);
