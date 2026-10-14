@@ -17,7 +17,7 @@ commits it already measured from the previous data.json (history points carry th
 so only new commits and the working tree are measured. The old file is not reused when this script or
 tools/check_cleanup.py changed since it was written (their hash is stored in it as `version`).
 """
-import argparse, csv, hashlib, io, json, os, re, subprocess, sys
+import argparse, csv, hashlib, io, json, os, re, subprocess, sys, tokenize
 from collections import defaultdict
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -256,10 +256,15 @@ def measure(tree):
 
 
 def metrics_version():
-    """Hash of the code that decides the numbers; a cache made by other code is not reused."""
+    """Hash of the code that decides the numbers; a cache made by other code is not reused. Comments,
+    blank lines and indentation-only changes do not count, so editing an explanation keeps the cache."""
     h = hashlib.sha1()
     for name in ('dashboard_data.py', 'check_cleanup.py'):
-        h.update(open(os.path.join(ROOT, 'tools', name), 'rb').read())
+        with open(os.path.join(ROOT, 'tools', name), 'rb') as f:
+            for tok in tokenize.tokenize(f.readline):
+                if tok.type not in (tokenize.COMMENT, tokenize.NL, tokenize.NEWLINE, tokenize.INDENT,
+                                    tokenize.DEDENT, tokenize.ENCODING):
+                    h.update(tok.string.encode() + b'\0')
     return h.hexdigest()
 
 
