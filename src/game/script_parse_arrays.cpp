@@ -64,27 +64,27 @@ int __fastcall ScriptSubCallsAdd(mfc::CArray<ScriptSubCall>* array, void*, const
     ScriptSubCall& element = array->data[index];
     element.type = call->type;
     element.argIndex = call->argIndex;
-    ScriptCmdAssign(element.cmd, nullptr, call->cmd);
+    element.cmd->ScriptCmdAssign(call->cmd);
     return index;
 }
 EI_REPLACE(0x004D5CB0, ScriptSubCallsAdd);
 
 int __fastcall ScriptCmdsAdd(mfc::CArray<SSCCmd>* array, void*, const SSCCmd* cmd) {
     int index = Append(array, kCmds);
-    ScriptCmdAssign(&array->data[index], nullptr, cmd);
+    array->data[index].ScriptCmdAssign(cmd);
     return index;
 }
 EI_REPLACE(0x004D5ED0, ScriptCmdsAdd);
 
 void __fastcall ScriptCmdsSetAtGrow(mfc::CArray<SSCCmd>* array, void*, int index, const SSCCmd* cmd) {
     if (index >= array->size) InlineSetSize(Raw(array), index + 1, kCmds);
-    ScriptCmdAssign(&array->data[index], nullptr, cmd);
+    array->data[index].ScriptCmdAssign(cmd);
 }
 EI_REPLACE(0x004D65E0, ScriptCmdsSetAtGrow);
 
 int __fastcall ScriptDefinitionsAdd(mfc::CArray<ScriptDefinition>* array, void*, const ScriptDefinition* definition) {
     int index = Append(array, kDefinitions);
-    ScriptDefinitionAssign(&array->data[index], nullptr, definition);   // inlined in the original
+    array->data[index].ScriptDefinitionAssign(definition);   // inlined in the original
     return index;
 }
 EI_REPLACE(0x004D6100, ScriptDefinitionsAdd);

@@ -132,7 +132,7 @@ float FxOffsetPlus(float radius, std::uint32_t random, float origin) {
 struct ParticleSourceElements {
     static void Construct(ScriptParticleSource*, int) {}
     static void Destruct(ScriptParticleSource* sources, int count) {
-        for (int i = 0; i < count; ++i) ScriptParticleSourceDestruct(&sources[i]);
+        for (int i = 0; i < count; ++i) sources[i].ScriptParticleSourceDestruct();
     }
 };
 using ParticleSources = mfc::CList<ScriptParticleSource, ParticleSourceElements>;

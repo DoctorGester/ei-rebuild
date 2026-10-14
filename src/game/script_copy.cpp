@@ -61,43 +61,43 @@ void AssignVars(ScriptVars* to, const ScriptVars* from) {
 
 } // namespace
 
-ScriptVars* __fastcall ScriptVarsAssign(ScriptVars* self, void*, const ScriptVars* other) {
-    AssignVars(self, other);
-    return self;
+ScriptVars* ScriptVars::ScriptVarsAssign(const ScriptVars* other) {
+    AssignVars(this, other);
+    return this;
 }
-EI_REPLACE(0x004CBAE0, ScriptVarsAssign);
+EI_REPLACE_METHOD(0x004CBAE0, ScriptVars::ScriptVarsAssign);
 
-ScriptRun* __fastcall ScriptRunAssign(ScriptRun* self, void*, const ScriptRun* other) {
-    self->block = other->block;
-    self->index = other->index;
-    self->ticks = other->ticks;
-    self->sleepStart = other->sleepStart;
-    self->killFlag = other->killFlag;
-    AssignVars(&self->vars, &other->vars);
-    return self;
+ScriptRun* ScriptRun::ScriptRunAssign(const ScriptRun* other) {
+    block = other->block;
+    index = other->index;
+    ticks = other->ticks;
+    sleepStart = other->sleepStart;
+    killFlag = other->killFlag;
+    AssignVars(&vars, &other->vars);
+    return this;
 }
-EI_REPLACE(0x004CB570, ScriptRunAssign);
+EI_REPLACE_METHOD(0x004CB570, ScriptRun::ScriptRunAssign);
 
-SSCCmd* __fastcall ScriptCmdAssign(SSCCmd* self, void*, const SSCCmd* other) {
-    self->id = other->id;
-    CopyFloats(&self->floatArgs, &other->floatArgs, FloatArgsSetSize);
-    StringsCopyOriginal(&self->stringArgs, nullptr, &other->stringArgs);
-    CopyPlain(&self->objectArgs, &other->objectArgs, ObjectArgsSetSize);
-    CopyPlain(&self->groupArgs, &other->groupArgs, GroupArgsSetSize);
-    CopyPlain(&self->localBindings, &other->localBindings, BindingsSetSize);
-    CopyPlain(&self->globalBindings, &other->globalBindings, BindingsSetSize);
-    SubCallsCopy(&self->subCalls, nullptr, &other->subCalls);   // nested commands deep-copied
-    self->calledScript = other->calledScript;
-    return self;
+SSCCmd* SSCCmd::ScriptCmdAssign(const SSCCmd* other) {
+    id = other->id;
+    CopyFloats(&floatArgs, &other->floatArgs, FloatArgsSetSize);
+    StringsCopyOriginal(&stringArgs, nullptr, &other->stringArgs);
+    CopyPlain(&objectArgs, &other->objectArgs, ObjectArgsSetSize);
+    CopyPlain(&groupArgs, &other->groupArgs, GroupArgsSetSize);
+    CopyPlain(&localBindings, &other->localBindings, BindingsSetSize);
+    CopyPlain(&globalBindings, &other->globalBindings, BindingsSetSize);
+    SubCallsCopy(&subCalls, nullptr, &other->subCalls);   // nested commands deep-copied
+    calledScript = other->calledScript;
+    return this;
 }
-EI_REPLACE(0x004C6BC0, ScriptCmdAssign);
+EI_REPLACE_METHOD(0x004C6BC0, SSCCmd::ScriptCmdAssign);
 
-ScriptDecl* __fastcall ScriptDeclAssign(ScriptDecl* self, void*, const ScriptDecl* other) {
-    CommandsCopy(&self->commands, nullptr, &other->commands);
-    self->id = other->id;
-    return self;
+ScriptDecl* ScriptDecl::ScriptDeclAssign(const ScriptDecl* other) {
+    CommandsCopy(&commands, nullptr, &other->commands);
+    id = other->id;
+    return this;
 }
-EI_REPLACE(0x004CB2D0, ScriptDeclAssign);
+EI_REPLACE_METHOD(0x004CB2D0, ScriptDecl::ScriptDeclAssign);
 
 // The FX source element (0x34 bytes): words copied, the name (+0x08) assigned.
 void* __fastcall ScriptFxSourceAssign(void* self, void*, const void* other) {
@@ -292,52 +292,52 @@ EI_REPLACE(0x004CBEF0, ScriptGroupsCopyConstruct);
 
 // ScriptVars' copy constructor: names through 004CBA00, string values through 004C2510 / GetAt,
 // objects through the reference helpers, groups assigned (004C1290) from GetAt copies.
-ScriptVars* __fastcall ScriptVarsCopyConstruct(ScriptVars* self, void*, const ScriptVars* other) {
-    InitArray(&self->floats, kVarFloatsVtable);
-    CopyFloats(&self->floats, &other->floats, FloatsSetSize);
-    NamesCopyConstructAt(&self->floatNames, nullptr, &other->floatNames);
-    CopyConstructStrings(&self->strings, &other->strings);
-    NamesCopyConstructAt(&self->stringNames, nullptr, &other->stringNames);
+ScriptVars* ScriptVars::ScriptVarsCopyConstruct(const ScriptVars* other) {
+    InitArray(&floats, kVarFloatsVtable);
+    CopyFloats(&floats, &other->floats, FloatsSetSize);
+    NamesCopyConstructAt(&floatNames, nullptr, &other->floatNames);
+    CopyConstructStrings(&strings, &other->strings);
+    NamesCopyConstructAt(&stringNames, nullptr, &other->stringNames);
 
-    InitArray(&self->objects, kRefsVtable);
-    RefsSetSize(&self->objects, nullptr, other->objects.size, -1);
+    InitArray(&objects, kRefsVtable);
+    RefsSetSize(&objects, nullptr, other->objects.size, -1);
     for (int i = 0; i < other->objects.size; ++i) {
         ScriptObjectRef value;
         RefAt(&other->objects, nullptr, &value, i);
-        ScriptObjectRef* slot = &self->objects.data[i];
+        ScriptObjectRef* slot = &objects.data[i];
         RefReset(slot);
         RefConstruct(slot, nullptr, &value);
         RefReset(&value);
     }
-    NamesCopyConstructAt(&self->objectNames, nullptr, &other->objectNames);
+    NamesCopyConstructAt(&objectNames, nullptr, &other->objectNames);
 
-    InitArray(&self->groups, kGroupsVtable);
-    GroupValuesSetSize(&self->groups, nullptr, other->groups.size, -1);
+    InitArray(&groups, kGroupsVtable);
+    GroupValuesSetSize(&groups, nullptr, other->groups.size, -1);
     for (int i = 0; i < other->groups.size; ++i) {
         ScriptGroup copy;
         GroupAt(&other->groups, nullptr, &copy, i);
-        RefsCopy(&self->groups.data[i], nullptr, &copy);
+        RefsCopy(&groups.data[i], nullptr, &copy);
         GroupDestruct(&copy);
     }
-    NamesCopyConstructAt(&self->groupNames, nullptr, &other->groupNames);
-    return self;
+    NamesCopyConstructAt(&groupNames, nullptr, &other->groupNames);
+    return this;
 }
-EI_REPLACE(0x004CB7E0, ScriptVarsCopyConstruct);
+EI_REPLACE_METHOD(0x004CB7E0, ScriptVars::ScriptVarsCopyConstruct);
 
 // ScriptVars' default constructor (004C00D0): each array's base constructor (004C24F0 / 004C2030 /
 // 004C3960: fields 0, base vtable) then its derived vtable, in member order; returns the set.
-ScriptVars* __fastcall ScriptVarsConstruct(ScriptVars* self) {
-    InitArray(&self->floats, kVarFloatsVtable);
-    InitArray(&self->floatNames, kStringsVtable);
-    InitArray(&self->strings, kStringsVtable);
-    InitArray(&self->stringNames, kStringsVtable);
-    InitArray(&self->objects, kRefsVtable);
-    InitArray(&self->objectNames, kStringsVtable);
-    InitArray(&self->groups, kGroupsVtable);
-    InitArray(&self->groupNames, kStringsVtable);
-    return self;
+ScriptVars* ScriptVars::ScriptVarsConstruct() {
+    InitArray(&floats, kVarFloatsVtable);
+    InitArray(&floatNames, kStringsVtable);
+    InitArray(&strings, kStringsVtable);
+    InitArray(&stringNames, kStringsVtable);
+    InitArray(&objects, kRefsVtable);
+    InitArray(&objectNames, kStringsVtable);
+    InitArray(&groups, kGroupsVtable);
+    InitArray(&groupNames, kStringsVtable);
+    return this;
 }
-EI_REPLACE(0x004C00D0, ScriptVarsConstruct);
+EI_REPLACE_METHOD(0x004C00D0, ScriptVars::ScriptVarsConstruct);
 
 // Float values: the values through their SetSize (004C2880) and the FPU, then the names as
 // ScriptNamesCopyConstruct builds them (inlined in the original).
@@ -361,13 +361,13 @@ EI_REPLACE(0x004CBCA0, ScriptStringsCopyConstruct);
 
 // ScriptDefinition::operator=: the pairs read straight from the source (no GetAt), the variables as
 // ScriptVars::operator= (inlined in the original).
-ScriptDefinition* __fastcall ScriptDefinitionAssign(ScriptDefinition* self, void*, const ScriptDefinition* other) {
-    self->index = other->index;
-    self->name = other->name;
-    self->params = other->params;
-    IfThenArraySetSizeOriginal(&self->ifThen, nullptr, other->ifThen.size, -1);
-    for (int i = 0; i < other->ifThen.size; ++i) self->ifThen.data[i] = other->ifThen.data[i];
-    AssignVars(&self->vars, &other->vars);
-    return self;
+ScriptDefinition* ScriptDefinition::ScriptDefinitionAssign(const ScriptDefinition* other) {
+    index = other->index;
+    name = other->name;
+    params = other->params;
+    IfThenArraySetSizeOriginal(&ifThen, nullptr, other->ifThen.size, -1);
+    for (int i = 0; i < other->ifThen.size; ++i) ifThen.data[i] = other->ifThen.data[i];
+    AssignVars(&vars, &other->vars);
+    return this;
 }
-EI_REPLACE(0x004CB460, ScriptDefinitionAssign);
+EI_REPLACE_METHOD(0x004CB460, ScriptDefinition::ScriptDefinitionAssign);

@@ -54,27 +54,27 @@ Spec* NewRecord(std::uint32_t id) {
     switch (id) {
     case 0xB001:
         if (void* p = gamecrt::operator_new(sizeof(ObjectSpec)))
-            return &ObjectSpecConstruct(static_cast<ObjectSpec*>(p))->base;
+            return &static_cast<ObjectSpec*>(p)->ObjectSpecConstruct()->base;
         return nullptr;
     case 0xAA01:
         if (void* p = gamecrt::operator_new(0x68))
-            return reinterpret_cast<Spec*>(LightSpecConstruct(static_cast<LightSpec*>(p)));
+            return reinterpret_cast<Spec*>(static_cast<LightSpec*>(p)->LightSpecConstruct());
         return nullptr;
     case 0xCC01:
         if (void* p = gamecrt::operator_new(0x88))
-            return reinterpret_cast<Spec*>(SoundSpecConstruct(static_cast<SoundSpec*>(p)));
+            return reinterpret_cast<Spec*>(static_cast<SoundSpec*>(p)->SoundSpecConstruct());
         return nullptr;
     case 0xDD01:
         if (void* p = gamecrt::operator_new(0x5C))
-            return reinterpret_cast<Spec*>(ParticleSpecConstruct(static_cast<ParticleSpec*>(p)));
+            return reinterpret_cast<Spec*>(static_cast<ParticleSpec*>(p)->ParticleSpecConstruct());
         return nullptr;
     case 0xBBAB0000:
         if (void* p = gamecrt::operator_new(sizeof(TrapSpec)))
-            return &TrapSpecConstruct(static_cast<TrapSpec*>(p))->object.base;
+            return &static_cast<TrapSpec*>(p)->TrapSpecConstruct()->object.base;
         return nullptr;
     case 0xBBAC0000:
         if (void* p = gamecrt::operator_new(sizeof(LeverSpec)))
-            return &LeverSpecConstruct(static_cast<LeverSpec*>(p))->object.base;
+            return &static_cast<LeverSpec*>(p)->LeverSpecConstruct()->object.base;
         return nullptr;
     case 0xBBBB0000:
         if (void* p = gamecrt::operator_new(0x324))
@@ -82,7 +82,7 @@ Spec* NewRecord(std::uint32_t id) {
         return nullptr;
     case 0xBBBF0000:
         if (void* p = gamecrt::operator_new(sizeof(FlameSpec)))
-            return &FlameSpecConstruct(static_cast<FlameSpec*>(p))->object.base;
+            return &static_cast<FlameSpec*>(p)->FlameSpecConstruct()->object.base;
         return nullptr;
     default:
         return nullptr;

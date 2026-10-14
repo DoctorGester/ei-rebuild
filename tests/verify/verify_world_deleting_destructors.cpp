@@ -7,6 +7,7 @@
 // at process exit (005754E0 from the client world's, 0059DD70 from the server's).
 #include "verify.h"
 
+#include "../../src/game/map_spec.h"
 #include "../../src/game/world_deleting_destructors.h"
 
 namespace {
@@ -44,19 +45,13 @@ EI_VERIFY(0x0059DDB0, ObjectHolderDeleteVerify, 0, s_unused);
 // 0058EDD0 / 0058EDF0: the quick item effect's record (vtable 0073FA58) shares the object record's
 // destructors (map_spec.cpp): ours only. No scenario reaches them: UseQuickItem (rewritten) keeps
 // the record on its stack and destroys it through 0046AEB0.
-namespace mapspec {
-struct ObjectSpec;
-void __fastcall ObjectSpecDestruct(ObjectSpec* self);
-ObjectSpec* __fastcall ObjectSpecDelete(ObjectSpec* self, void*, unsigned flags);
-} // namespace mapspec
-
 namespace {
 void __fastcall QuickSpecDestructVerify(mapspec::ObjectSpec* self) {
-    mapspec::ObjectSpecDestruct(self);
+    self->ObjectSpecDestruct();
     ei::verify::Check("ObjectSpecDestruct@0058EDF0", true, true, "");
 }
 mapspec::ObjectSpec* __fastcall QuickSpecDeleteVerify(mapspec::ObjectSpec* self, void*, unsigned flags) {
-    mapspec::ObjectSpec* result = mapspec::ObjectSpecDelete(self, nullptr, flags);
+    mapspec::ObjectSpec* result = self->ObjectSpecDelete(flags);
     ei::verify::Check("ObjectSpecDelete@0058EDD0", true, result == self, "flags %u", flags);
     return result;
 }

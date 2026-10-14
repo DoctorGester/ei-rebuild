@@ -19,10 +19,6 @@ namespace mapspec {
 
 // EffectSpec, ParticleSpec, LightSpec and SoundSpec: map_spec.h.
 
-// Rewritten in map_spec.cpp.
-Spec* __fastcall SpecConstruct(Spec* self);
-void __fastcall SpecDestruct(Spec* self);
-
 namespace {
 
 constexpr std::uintptr_t kEffectVtable = 0x0073C728;
@@ -82,61 +78,60 @@ void MakeEffect(EffectSpec* self) {
 // ---- The base (0073C728) ------------------------------------------------------------------------
 
 // 0046D370 / 0046D5A0 / 0046DA20: the destructor bodies (the base record's).
-void __fastcall EffectSpecDestruct(EffectSpec* self) { SpecDestruct(&self->base); }
-EI_REPLACE(0x0046D370, EffectSpecDestruct);
-void __fastcall ParticleSpecDestruct(ParticleSpec* self) { SpecDestruct(&self->effect.base); }
-EI_REPLACE(0x0046D5A0, ParticleSpecDestruct);
-void __fastcall LightSpecDestruct(LightSpec* self) { SpecDestruct(&self->effect.base); }
-EI_REPLACE(0x0046DA20, LightSpecDestruct);
+void EffectSpec::EffectSpecDestruct() { base.SpecDestruct(); }
+EI_REPLACE_METHOD(0x0046D370, EffectSpec::EffectSpecDestruct);
+void ParticleSpec::ParticleSpecDestruct() { effect.base.SpecDestruct(); }
+EI_REPLACE_METHOD(0x0046D5A0, ParticleSpec::ParticleSpecDestruct);
+void LightSpec::LightSpecDestruct() { effect.base.SpecDestruct(); }
+EI_REPLACE_METHOD(0x0046DA20, LightSpec::LightSpecDestruct);
 
 // 0046D350 / 0046D580 / 0046DA00 (slot 10).
-EffectSpec* __fastcall EffectSpecDelete(EffectSpec* self, void*, unsigned flags) {
-    EffectSpecDestruct(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+EffectSpec* EffectSpec::EffectSpecDelete(unsigned flags) {
+    EffectSpecDestruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x0046D350, EffectSpecDelete);
-ParticleSpec* __fastcall ParticleSpecDelete(ParticleSpec* self, void*, unsigned flags) {
-    ParticleSpecDestruct(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+EI_REPLACE_METHOD(0x0046D350, EffectSpec::EffectSpecDelete);
+ParticleSpec* ParticleSpec::ParticleSpecDelete(unsigned flags) {
+    ParticleSpecDestruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x0046D580, ParticleSpecDelete);
-LightSpec* __fastcall LightSpecDelete(LightSpec* self, void*, unsigned flags) {
-    LightSpecDestruct(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+EI_REPLACE_METHOD(0x0046D580, ParticleSpec::ParticleSpecDelete);
+LightSpec* LightSpec::LightSpecDelete(unsigned flags) {
+    LightSpecDestruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x0046DA00, LightSpecDelete);
+EI_REPLACE_METHOD(0x0046DA00, LightSpec::LightSpecDelete);
 
 // 0046D3D0 (slot 2): effects are managed under -3001 - id.
-void* __fastcall EffectSpecWorldObject(EffectSpec* self) {
-    return ManagerFindObject(*reinterpret_cast<void**>(0x007AF5F8), nullptr, -3001 - self->base.id);
+void* EffectSpec::EffectSpecWorldObject() {
+    return ManagerFindObject(*reinterpret_cast<void**>(0x007AF5F8), nullptr, -3001 - base.id);
 }
-EI_REPLACE(0x0046D3D0, EffectSpecWorldObject);
+EI_REPLACE_METHOD(0x0046D3D0, EffectSpec::EffectSpecWorldObject);
 
 // 0046D3F0 / 0046E490 (slot 11): shows or hides the world object (flag 0x40 hides).
-void __fastcall EffectSpecSetVisible(EffectSpec* self, void*, std::uint8_t visible) {
-    self->visible = visible;
-    std::uint32_t& flags = *reinterpret_cast<std::uint32_t*>(static_cast<std::uint8_t*>(self->base.object) + 8);
-    if (visible != 0) flags &= ~0x40u;
+void EffectSpec::EffectSpecSetVisible(std::uint8_t newVisible) {
+    visible = newVisible;
+    std::uint32_t& flags = *reinterpret_cast<std::uint32_t*>(static_cast<std::uint8_t*>(base.object) + 8);
+    if (newVisible != 0) flags &= ~0x40u;
     else flags |= 0x40;
 }
-EI_REPLACE(0x0046D3F0, EffectSpecSetVisible);
-void __fastcall SoundSpecSetVisible(EffectSpec* self, void*, std::uint8_t visible) { EffectSpecSetVisible(self, nullptr, visible); }
-EI_REPLACE(0x0046E490, SoundSpecSetVisible);
+EI_REPLACE_METHOD(0x0046D3F0, EffectSpec::EffectSpecSetVisible);
+EI_REPLACE_METHOD(0x0046E490, EffectSpec::EffectSpecSetVisible);   // the sound record's slot 11 (the same code)
 
 // 0046D420 (slot 5): moves the record, not below the terrain, then slot 7.
-void __fastcall EffectSpecMove(EffectSpec* self, void*, float dx, float dy, float dz) {
-    Vector3& p = self->base.position;
+void EffectSpec::EffectSpecMove(float dx, float dy, float dz) {
+    Vector3& p = base.position;
     p.x = dx + p.x;
     p.y = dy + p.y;
     p.z = dz + p.z;
     double ground = TerrainHeight(*reinterpret_cast<void**>(0x007AF738), nullptr, p.x, p.y, 0);
     if (ground > p.z) p.z = static_cast<float>(ground);
-    ei::VCall<void>(self, kSlotApply);
+    ei::VCall<void>(this, kSlotApply);
 }
-EI_REPLACE(0x0046D420, EffectSpecMove);
+EI_REPLACE_METHOD(0x0046D420, EffectSpec::EffectSpecMove);
 
 // 0046D4D0: takes the two strings (by value) and only destroys them.
 void __fastcall EffectNotify(void*, void*, std::uintptr_t kind, std::uintptr_t family) {
@@ -148,250 +143,250 @@ EI_REPLACE(0x0046D4D0, EffectNotify);
 // ---- Particle sources (0073C758) ------------------------------------------------------------------
 
 // 0046D520. Returns this.
-ParticleSpec* __fastcall ParticleSpecConstruct(ParticleSpec* self) {
-    SpecConstruct(&self->effect.base);
-    self->effect.visible = 1;
-    self->effect.base.object = nullptr;
-    self->effect.effect = nullptr;
-    self->type = 0;
-    SetVtable(self, kParticleVtable);
-    self->effect.base.kind = 4;
-    self->scale = 1.0f;
-    return self;
+ParticleSpec* ParticleSpec::ParticleSpecConstruct() {
+    effect.base.SpecConstruct();
+    effect.visible = 1;
+    effect.base.object = nullptr;
+    effect.effect = nullptr;
+    type = 0;
+    SetVtable(this, kParticleVtable);
+    effect.base.kind = 4;
+    scale = 1.0f;
+    return this;
 }
-EI_REPLACE(0x0046D520, ParticleSpecConstruct);
+EI_REPLACE_METHOD(0x0046D520, ParticleSpec::ParticleSpecConstruct);
 
 // 0046D550 (slot 4): "Particle source".
-mfc::CString* __fastcall ParticleSpecTypeName(ParticleSpec*, void*, mfc::CString* out) {
+mfc::CString* ParticleSpec::ParticleSpecTypeName(mfc::CString* out) {
     new (out) mfc::CString(Text(0x00787DF0));
     return out;
 }
-EI_REPLACE(0x0046D550, ParticleSpecTypeName);
+EI_REPLACE_METHOD(0x0046D550, ParticleSpec::ParticleSpecTypeName);
 
 // 0046D680 (slot 9): chunk DD01.
-void __fastcall ParticleSpecSave(ParticleSpec* self) {
-    Chunk& c = self->effect.base.chunk;
+void ParticleSpec::ParticleSpecSave() {
+    Chunk& c = effect.base.chunk;
     c.BeginWrite(0xDD01);
-    c.WriteInt(0xDD02, self->effect.base.id);
-    WriteVector(c, 0xDD03, self->effect.base.position);
-    c.WriteString(0xDD05, self->effect.base.name);
-    c.WriteString(0xDD04, self->effect.base.comment);
-    c.WriteInt(0xDD06, self->type);
-    c.WriteFloat(0xDD07, Bits(self->scale));
+    c.WriteInt(0xDD02, effect.base.id);
+    WriteVector(c, 0xDD03, effect.base.position);
+    c.WriteString(0xDD05, effect.base.name);
+    c.WriteString(0xDD04, effect.base.comment);
+    c.WriteInt(0xDD06, type);
+    c.WriteFloat(0xDD07, Bits(scale));
     c.EndWrite();
 }
-EI_REPLACE(0x0046D680, ParticleSpecSave);
+EI_REPLACE_METHOD(0x0046D680, ParticleSpec::ParticleSpecSave);
 
 // 0046D730 (slot 0).
-void __fastcall ParticleSpecOnChunk(ParticleSpec* self) {
-    Chunk& c = self->effect.base.chunk;
+void ParticleSpec::ParticleSpecOnChunk() {
+    Chunk& c = effect.base.chunk;
     switch (c.id_) {
-    case 0xDD02: self->effect.base.id = c.ReadInt(); break;
-    case 0xDD03: ReadVector(c, self->effect.base.position); break;
-    case 0xDD04: ReadInto(c, self->effect.base.comment); break;
-    case 0xDD05: ReadInto(c, self->effect.base.name); break;
-    case 0xDD06: self->type = c.ReadInt(); break;
-    case 0xDD07: self->scale = c.ReadFloat(); break;
+    case 0xDD02: effect.base.id = c.ReadInt(); break;
+    case 0xDD03: ReadVector(c, effect.base.position); break;
+    case 0xDD04: ReadInto(c, effect.base.comment); break;
+    case 0xDD05: ReadInto(c, effect.base.name); break;
+    case 0xDD06: type = c.ReadInt(); break;
+    case 0xDD07: scale = c.ReadFloat(); break;
     default: break;
     }
 }
-EI_REPLACE(0x0046D730, ParticleSpecOnChunk);
+EI_REPLACE_METHOD(0x0046D730, ParticleSpec::ParticleSpecOnChunk);
 
 // 0046D870 (slot 7): makes the source (when it has a type) or updates its effect.
-void __fastcall ParticleSpecApply(ParticleSpec* self) {
-    Spec& b = self->effect.base;
+void ParticleSpec::ParticleSpecApply() {
+    Spec& b = effect.base;
     if (!b.object) {
-        Notify(self, 0x00787E00, 0x00787E08);   // "efcu3", "particles"
-        if (self->type) MakeEffect(&self->effect);
+        Notify(this, 0x00787E00, 0x00787E08);   // "efcu3", "particles"
+        if (type) MakeEffect(&effect);
         return;
     }
-    auto* effect = static_cast<std::uint8_t*>(self->effect.effect);
+    auto* effectBytes = static_cast<std::uint8_t*>(effect.effect);
     std::memcpy(static_cast<std::uint8_t*>(b.object) + 0x1C, &b.position, 12);
-    std::memcpy(effect + 0x15C, &self->scale, 4);
-    std::memcpy(effect + 0x158, &self->type, 4);
-    std::memcpy(effect + 0x1C, &b.position, 12);
-    EffectRestart(effect);
+    std::memcpy(effectBytes + 0x15C, &scale, 4);
+    std::memcpy(effectBytes + 0x158, &type, 4);
+    std::memcpy(effectBytes + 0x1C, &b.position, 12);
+    EffectRestart(effectBytes);
 }
-EI_REPLACE(0x0046D870, ParticleSpecApply);
+EI_REPLACE_METHOD(0x0046D870, ParticleSpec::ParticleSpecApply);
 
 // ---- Lights (0073C788) -----------------------------------------------------------------------------
 
 // 0046D960. Returns this.
-LightSpec* __fastcall LightSpecConstruct(LightSpec* self) {
-    SpecConstruct(&self->effect.base);
-    self->effect.base.object = nullptr;
-    self->colour.x = 1.0f;
-    self->effect.effect = nullptr;
-    self->colour.y = 1.0f;
-    self->effect.visible = 1;
-    self->shadows = 1;
-    SetVtable(self, kLightVtable);
-    self->effect.base.kind = 2;
-    self->radius = 10.0f;
-    self->colour.z = 1.0f;
-    return self;
+LightSpec* LightSpec::LightSpecConstruct() {
+    effect.base.SpecConstruct();
+    effect.base.object = nullptr;
+    colour.x = 1.0f;
+    effect.effect = nullptr;
+    colour.y = 1.0f;
+    effect.visible = 1;
+    shadows = 1;
+    SetVtable(this, kLightVtable);
+    effect.base.kind = 2;
+    radius = 10.0f;
+    colour.z = 1.0f;
+    return this;
 }
-EI_REPLACE(0x0046D960, LightSpecConstruct);
+EI_REPLACE_METHOD(0x0046D960, LightSpec::LightSpecConstruct);
 
 // 0046D9D0 (slot 4): "Light".
-mfc::CString* __fastcall LightSpecTypeName(LightSpec*, void*, mfc::CString* out) {
+mfc::CString* LightSpec::LightSpecTypeName(mfc::CString* out) {
     new (out) mfc::CString(Text(0x00787E14));
     return out;
 }
-EI_REPLACE(0x0046D9D0, LightSpecTypeName);
+EI_REPLACE_METHOD(0x0046D9D0, LightSpec::LightSpecTypeName);
 
 // 0046DB20 (slot 9): chunk AA01.
-void __fastcall LightSpecSave(LightSpec* self) {
-    Chunk& c = self->effect.base.chunk;
+void LightSpec::LightSpecSave() {
+    Chunk& c = effect.base.chunk;
     c.BeginWrite(0xAA01);
-    c.WriteInt(0xAA05, self->effect.base.id);
-    c.WriteByte(0xAA06, self->shadows);
-    WriteVector(c, 0xAA04, self->effect.base.position);
-    WriteVector(c, 0xAA07, self->colour);
-    c.WriteFloat(0xAA02, Bits(self->radius));
-    c.WriteString(0xAA03, self->effect.base.name);
-    c.WriteString(0xAA08, self->effect.base.comment);
+    c.WriteInt(0xAA05, effect.base.id);
+    c.WriteByte(0xAA06, shadows);
+    WriteVector(c, 0xAA04, effect.base.position);
+    WriteVector(c, 0xAA07, colour);
+    c.WriteFloat(0xAA02, Bits(radius));
+    c.WriteString(0xAA03, effect.base.name);
+    c.WriteString(0xAA08, effect.base.comment);
     c.EndWrite();
 }
-EI_REPLACE(0x0046DB20, LightSpecSave);
+EI_REPLACE_METHOD(0x0046DB20, LightSpec::LightSpecSave);
 
 // 0046DBF0 (slot 0).
-void __fastcall LightSpecOnChunk(LightSpec* self) {
-    Chunk& c = self->effect.base.chunk;
+void LightSpec::LightSpecOnChunk() {
+    Chunk& c = effect.base.chunk;
     switch (c.id_) {
-    case 0xAA02: self->radius = c.ReadFloat(); break;
-    case 0xAA03: ReadInto(c, self->effect.base.name); break;
-    case 0xAA04: ReadVector(c, self->effect.base.position); break;
-    case 0xAA05: self->effect.base.id = c.ReadInt(); break;
-    case 0xAA06: self->shadows = c.ReadByte() != 0; break;
-    case 0xAA07: ReadVector(c, self->colour); break;
-    case 0xAA08: ReadInto(c, self->effect.base.comment); break;
+    case 0xAA02: radius = c.ReadFloat(); break;
+    case 0xAA03: ReadInto(c, effect.base.name); break;
+    case 0xAA04: ReadVector(c, effect.base.position); break;
+    case 0xAA05: effect.base.id = c.ReadInt(); break;
+    case 0xAA06: shadows = c.ReadByte() != 0; break;
+    case 0xAA07: ReadVector(c, colour); break;
+    case 0xAA08: ReadInto(c, effect.base.comment); break;
     default: break;
     }
 }
-EI_REPLACE(0x0046DBF0, LightSpecOnChunk);
+EI_REPLACE_METHOD(0x0046DBF0, LightSpec::LightSpecOnChunk);
 
 // 0046DD70 (slot 7): makes the light or updates its effect (colour, radius, position).
-void __fastcall LightSpecApply(LightSpec* self) {
-    Spec& b = self->effect.base;
+void LightSpec::LightSpecApply() {
+    Spec& b = effect.base;
     if (!b.object) {
-        Notify(self, 0x00787E1C, 0x00787E24);   // "efcu0", "light"
-        MakeEffect(&self->effect);
+        Notify(this, 0x00787E1C, 0x00787E24);   // "efcu0", "light"
+        MakeEffect(&effect);
         return;
     }
-    auto* effect = static_cast<std::uint8_t*>(self->effect.effect);
-    std::memcpy(effect + 0x14C, &self->colour, 12);
-    std::memcpy(effect + 0x158, &self->radius, 4);
-    std::memcpy(effect + 0x1C, &b.position, 12);
+    auto* effectBytes = static_cast<std::uint8_t*>(effect.effect);
+    std::memcpy(effectBytes + 0x14C, &colour, 12);
+    std::memcpy(effectBytes + 0x158, &radius, 4);
+    std::memcpy(effectBytes + 0x1C, &b.position, 12);
     std::memcpy(static_cast<std::uint8_t*>(b.object) + 0x1C, &b.position, 12);
-    EffectRestart(effect);
+    EffectRestart(effectBytes);
 }
-EI_REPLACE(0x0046DD70, LightSpecApply);
+EI_REPLACE_METHOD(0x0046DD70, LightSpec::LightSpecApply);
 
 // ---- Sounds (0073C7B8) -------------------------------------------------------------------------------
 
 // 0046DE70. Returns this.
-SoundSpec* __fastcall SoundSpecConstruct(SoundSpec* self) {
-    SpecConstruct(&self->effect.base);
-    SetVtable(self, kEffectVtable);
-    self->effect.base.object = nullptr;
-    self->effect.effect = nullptr;
-    self->effect.visible = 1;
-    StringArrayConstruct(&self->sounds);
-    SetVtable(self, kSoundVtable);
-    self->effect.base.kind = 3;
-    StringArraySetSize(&self->sounds, nullptr, 0, -1);
-    self->unknown_68 = 10;
-    self->unknown_6C = 15;
-    self->unknown_70 = 1;
-    self->unknown_74 = 1500;
-    self->unknown_78 = 3000;
-    self->unknown_7C = 0;
-    self->unknown_80 = 0;
-    self->unknown_84 = 0;
-    return self;
+SoundSpec* SoundSpec::SoundSpecConstruct() {
+    effect.base.SpecConstruct();
+    SetVtable(this, kEffectVtable);
+    effect.base.object = nullptr;
+    effect.effect = nullptr;
+    effect.visible = 1;
+    StringArrayConstruct(&sounds);
+    SetVtable(this, kSoundVtable);
+    effect.base.kind = 3;
+    StringArraySetSize(&sounds, nullptr, 0, -1);
+    unknown_68 = 10;
+    unknown_6C = 15;
+    unknown_70 = 1;
+    unknown_74 = 1500;
+    unknown_78 = 3000;
+    unknown_7C = 0;
+    unknown_80 = 0;
+    unknown_84 = 0;
+    return this;
 }
-EI_REPLACE(0x0046DE70, SoundSpecConstruct);
+EI_REPLACE_METHOD(0x0046DE70, SoundSpec::SoundSpecConstruct);
 
 // 0046DF70: the destructor body.
-void __fastcall SoundSpecDestruct(SoundSpec* self) {
-    SetVtable(self, kSoundVtable);
-    StringArrayDestruct(&self->sounds);
-    SpecDestruct(&self->effect.base);
+void SoundSpec::SoundSpecDestruct() {
+    SetVtable(this, kSoundVtable);
+    StringArrayDestruct(&sounds);
+    effect.base.SpecDestruct();
 }
-EI_REPLACE(0x0046DF70, SoundSpecDestruct);
+EI_REPLACE_METHOD(0x0046DF70, SoundSpec::SoundSpecDestruct);
 
 // 0046DF50 (slot 10).
-SoundSpec* __fastcall SoundSpecDelete(SoundSpec* self, void*, unsigned flags) {
-    SoundSpecDestruct(self);
-    if (flags & 1) gamecrt::operator_delete(self);
-    return self;
+SoundSpec* SoundSpec::SoundSpecDelete(unsigned flags) {
+    SoundSpecDestruct();
+    if (flags & 1) gamecrt::operator_delete(this);
+    return this;
 }
-EI_REPLACE(0x0046DF50, SoundSpecDelete);
+EI_REPLACE_METHOD(0x0046DF50, SoundSpec::SoundSpecDelete);
 
 // 0046DF20 (slot 4): "Sound".
-mfc::CString* __fastcall SoundSpecTypeName(SoundSpec*, void*, mfc::CString* out) {
+mfc::CString* SoundSpec::SoundSpecTypeName(mfc::CString* out) {
     new (out) mfc::CString(Text(0x00787E2C));
     return out;
 }
-EI_REPLACE(0x0046DF20, SoundSpecTypeName);
+EI_REPLACE_METHOD(0x0046DF20, SoundSpec::SoundSpecTypeName);
 
 // 0046E090 (slot 9): chunk CC01.
-void __fastcall SoundSpecSave(SoundSpec* self) {
-    Chunk& c = self->effect.base.chunk;
+void SoundSpec::SoundSpecSave() {
+    Chunk& c = effect.base.chunk;
     c.BeginWrite(0xCC01);
-    c.WriteStringArray(0xCC0A, &self->sounds);
-    c.WriteInt(0xCC02, self->effect.base.id);
-    WriteVector(c, 0xCC03, self->effect.base.position);
-    c.WriteInt(0xCC04, self->unknown_68);
-    c.WriteInt(0xCC0B, self->unknown_6C);
-    c.WriteString(0xCC05, self->effect.base.name);
-    c.WriteString(0xCC08, self->effect.base.comment);
-    c.WriteInt(0xCC06, self->unknown_74);
-    c.WriteInt(0xCC07, self->unknown_78);
-    c.WriteByte(0xCC0D, self->unknown_84);
-    c.WriteByte(0xCC0E, self->unknown_85);
+    c.WriteStringArray(0xCC0A, &sounds);
+    c.WriteInt(0xCC02, effect.base.id);
+    WriteVector(c, 0xCC03, effect.base.position);
+    c.WriteInt(0xCC04, unknown_68);
+    c.WriteInt(0xCC0B, unknown_6C);
+    c.WriteString(0xCC05, effect.base.name);
+    c.WriteString(0xCC08, effect.base.comment);
+    c.WriteInt(0xCC06, unknown_74);
+    c.WriteInt(0xCC07, unknown_78);
+    c.WriteByte(0xCC0D, unknown_84);
+    c.WriteByte(0xCC0E, unknown_85);
     c.EndWrite();
 }
-EI_REPLACE(0x0046E090, SoundSpecSave);
+EI_REPLACE_METHOD(0x0046E090, SoundSpec::SoundSpecSave);
 
 // 0046E190 (slot 0).
-void __fastcall SoundSpecOnChunk(SoundSpec* self) {
-    Chunk& c = self->effect.base.chunk;
+void SoundSpec::SoundSpecOnChunk() {
+    Chunk& c = effect.base.chunk;
     switch (c.id_) {
-    case 0xCC02: self->effect.base.id = c.ReadInt(); break;
-    case 0xCC03: ReadVector(c, self->effect.base.position); break;
-    case 0xCC04: self->unknown_68 = c.ReadInt(); break;
-    case 0xCC05: ReadInto(c, self->effect.base.name); break;
-    case 0xCC06: self->unknown_74 = c.ReadInt(); break;
-    case 0xCC07: self->unknown_78 = c.ReadInt(); break;
-    case 0xCC08: ReadInto(c, self->effect.base.comment); break;
+    case 0xCC02: effect.base.id = c.ReadInt(); break;
+    case 0xCC03: ReadVector(c, effect.base.position); break;
+    case 0xCC04: unknown_68 = c.ReadInt(); break;
+    case 0xCC05: ReadInto(c, effect.base.name); break;
+    case 0xCC06: unknown_74 = c.ReadInt(); break;
+    case 0xCC07: unknown_78 = c.ReadInt(); break;
+    case 0xCC08: ReadInto(c, effect.base.comment); break;
     case 0xCC0A:
-        StringArraySetSize(&self->sounds, nullptr, 0, -1);
-        c.ReadStringArray(&self->sounds);
+        StringArraySetSize(&sounds, nullptr, 0, -1);
+        c.ReadStringArray(&sounds);
         break;
-    case 0xCC0B: self->unknown_6C = c.ReadInt(); break;
-    case 0xCC0D: self->unknown_84 = c.ReadByte() == 1; break;
-    case 0xCC0E: self->unknown_85 = c.ReadByte() == 1; break;
+    case 0xCC0B: unknown_6C = c.ReadInt(); break;
+    case 0xCC0D: unknown_84 = c.ReadByte() == 1; break;
+    case 0xCC0E: unknown_85 = c.ReadByte() == 1; break;
     default: break;
     }
 }
-EI_REPLACE(0x0046E190, SoundSpecOnChunk);
+EI_REPLACE_METHOD(0x0046E190, SoundSpec::SoundSpecOnChunk);
 
 // 0046E380 (slot 7): makes the sound (when it has sounds); otherwise moves the world object and
 // makes its effect again.
-void __fastcall SoundSpecApply(SoundSpec* self) {
-    Spec& b = self->effect.base;
+void SoundSpec::SoundSpecApply() {
+    Spec& b = effect.base;
     if (!b.object) {
-        Notify(self, 0x00787E34, 0x00787E3C);   // "efcu2", "sound"
-        if (self->sounds.size > 0) MakeEffect(&self->effect);
+        Notify(this, 0x00787E34, 0x00787E3C);   // "efcu2", "sound"
+        if (sounds.size > 0) MakeEffect(&effect);
         return;
     }
     std::memcpy(static_cast<std::uint8_t*>(b.object) + 0x1C, &b.position, 12);
-    if (self->effect.effect) WorldRemoveTimed(World(), nullptr, b.id);
-    if (self->sounds.size > 0) MakeEffect(&self->effect);
-    else self->effect.effect = nullptr;
+    if (effect.effect) WorldRemoveTimed(World(), nullptr, b.id);
+    if (sounds.size > 0) MakeEffect(&effect);
+    else effect.effect = nullptr;
 }
-EI_REPLACE(0x0046E380, SoundSpecApply);
+EI_REPLACE_METHOD(0x0046E380, SoundSpec::SoundSpecApply);
 
 } // namespace mapspec

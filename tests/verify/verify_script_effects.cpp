@@ -33,10 +33,10 @@ bool SameBits(const void* a, const void* b, std::size_t n) { return std::memcmp(
 // count down by one or two (two when it was still a timed object), read only when it cannot have
 // reached zero.
 template <typename T>
-void DestructVerify(const char* name, void(__fastcall* ours)(T*), T* self) {
+void DestructVerify(const char* name, void (T::*ours)(), T* self) {
     CEngineObject* object = self->object;
     int before = object ? object->refCount_ : 0;
-    ours(self);
+    (self->*ours)();
     bool ok = self->object == nullptr;
     if (object && before > 2) ok = ok && (object->refCount_ == before - 1 || object->refCount_ == before - 2);
     ei::verify::Check(name, true, ok, "object %p, count %d before", static_cast<void*>(object), before);
@@ -44,11 +44,11 @@ void DestructVerify(const char* name, void(__fastcall* ours)(T*), T* self) {
 
 // 004B17F0: point light slots (0059DD70, the slot array's Serialize).
 void __fastcall PointLightDestructVerify(ScriptPointLight* self) {
-    DestructVerify("ScriptPointLightDestruct", &ScriptPointLightDestruct, self);
+    DestructVerify("ScriptPointLightDestruct", &ScriptPointLight::ScriptPointLightDestruct, self);
 }
 // 004B1820: lightning (CreateLightning's temporary, the list's RemoveAll 0059C1F0, 004BEB00).
 void __fastcall LightningDestructVerify(ScriptLightning* self) {
-    DestructVerify("ScriptLightningDestruct", &ScriptLightningDestruct, self);
+    DestructVerify("ScriptLightningDestruct", &ScriptLightning::ScriptLightningDestruct, self);
 }
 // 004CD690: DestructElements of the lightning list (the CScript reset 004BE6E0: every new game and
 // load; script_fx). Ours only, per element as above.
@@ -65,11 +65,11 @@ void __stdcall LightningElementsDestructVerify(ScriptLightning* first, int count
 }
 // 004B1850: particle sources (the list's RemoveAll 0059C1A0).
 void __fastcall ParticleDestructVerify(ScriptParticleSource* self) {
-    DestructVerify("ScriptParticleSourceDestruct", &ScriptParticleSourceDestruct, self);
+    DestructVerify("ScriptParticleSourceDestruct", &ScriptParticleSource::ScriptParticleSourceDestruct, self);
 }
 // 004B1880: CreateFXSource's temporary.
 void __fastcall FxDropVerify(ScriptFxSource* self) {
-    DestructVerify("ScriptFxSourceDropSound", &ScriptFxSourceDropSound, self);
+    DestructVerify("ScriptFxSourceDropSound", &ScriptFxSource::ScriptFxSourceDropSound, self);
 }
 
 // ---- Commands -----------------------------------------------------------------------------------------
@@ -78,7 +78,7 @@ void __fastcall FxDropVerify(ScriptFxSource* self) {
 // looping.
 void __fastcall CreateFxVerify(CScript* script, void*, const SSCCmd* cmd) {
     int last = EffectManager()->lastId_;
-    ScriptCreateFx(script, nullptr, cmd);
+    script->ScriptCreateFx(cmd);
     CEngineObject* object = NewestEffect();
     bool ok = EffectManager()->lastId_ != last && object && object->GetClassId() == 0x48;
     if (ok) {
@@ -115,7 +115,7 @@ void __fastcall CreateFxSourceVerify(CScript* script, void*, const SSCCmd* cmd) 
     if (automatic) id = nextId;
     bool existed = FindFxSource(script, id) != nullptr;
 
-    ScriptCreateFxSource(script, nullptr, cmd);
+    script->ScriptCreateFxSource(cmd);
 
     auto* node = FindFxSource(script, id);
     bool ok = node && script->fxSources_.count == count + (existed ? 0 : 1) &&
@@ -145,7 +145,7 @@ void __fastcall CreateFxSourceVerify(CScript* script, void*, const SSCCmd* cmd) 
 void __fastcall CreateLightningVerify(CScript* script, void*, const SSCCmd* cmd) {
     int count = script->lightning_.count;
     int nextId = script->nextParticleId_;
-    ScriptCreateLightning(script, nullptr, cmd);
+    script->ScriptCreateLightning(cmd);
     const float* f = cmd->floatArgs.data;
     bool automatic = !(f[0] >= 0.0f);
     auto* node = script->lightning_.tail;
@@ -165,7 +165,7 @@ void __fastcall CreateLightningVerify(CScript* script, void*, const SSCCmd* cmd)
 // 004BD540: the FX source's destructor body (the list's RemoveAt 004C6370, the element destructor
 // 004CE2B0, 004BEB00). Ours only, as above (the name is destroyed too).
 void __fastcall FxDestructVerify(ScriptFxSource* self) {
-    DestructVerify("ScriptFxSourceDestruct", &ScriptFxSourceDestruct, self);
+    DestructVerify("ScriptFxSourceDestruct", &ScriptFxSource::ScriptFxSourceDestruct, self);
 }
 
 mfc::CList<ScriptParticleSource>::Node* FindParticleSource(CScript* script, int id) {
@@ -192,7 +192,7 @@ void __fastcall CreateParticleSourceVerify(CScript* script, void*, const SSCCmd*
     if (automatic) id = nextId;
     bool existed = type && FindParticleSource(script, id) != nullptr;
 
-    ScriptCreateParticleSource(script, nullptr, cmd);
+    script->ScriptCreateParticleSource(cmd);
 
     bool ok;
     if (!type) {
@@ -223,7 +223,7 @@ void __fastcall MoveParticleSourceVerify(CScript* script, void*, const SSCCmd* c
     auto* node = FindParticleSource(script, static_cast<int>(std::lrint(cmd->floatArgs.data[0])));
     if (!node) {
         int count = script->particles_.count;
-        ScriptMoveParticleSource(script, nullptr, cmd);
+        script->ScriptMoveParticleSource(cmd);
         ei::verify::Check("ScriptMoveParticleSource", count, script->particles_.count, "no source");
         return;
     }
@@ -231,7 +231,7 @@ void __fastcall MoveParticleSourceVerify(CScript* script, void*, const SSCCmd* c
     s_moveParticles(script, nullptr, cmd);
     ScriptParticleSource expected = node->data;
     node->data = before;
-    ScriptMoveParticleSource(script, nullptr, cmd);
+    script->ScriptMoveParticleSource(cmd);
     const ScriptParticleSource& actual = node->data;
     ei::verify::Check("ScriptMoveParticleSource", true,
                       expected.object == actual.object && expected.id == actual.id &&

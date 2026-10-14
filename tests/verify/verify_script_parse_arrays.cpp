@@ -257,7 +257,7 @@ ScriptNamedValues<mfc::CString>* __fastcall StringsCopyConstructVerify(ScriptNam
 // 004CB460 (CList<ScriptDefinition>::Serialize 004C7F60 only; no scenario reaches it): ours only,
 // the definition equals the source afterwards.
 ScriptDefinition* __fastcall DefinitionAssignVerify(ScriptDefinition* self, void*, const ScriptDefinition* other) {
-    ScriptDefinitionAssign(self, nullptr, other);
+    self->ScriptDefinitionAssign(other);
     ei::verify::Check("ScriptDefinitionAssign", true, SameDefinition(*self, *other, false), "\"%s\"",
                       static_cast<const char*>(other->name));
     return self;

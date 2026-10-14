@@ -56,6 +56,17 @@ void SaveVerify(const char* name, void(__fastcall* original)(const T*, void*, Sc
     expected.Forward(stream);
 }
 
+// The same for a rewritten member (const, with the stream).
+template <typename T>
+void SaveVerify(const char* name, void(__fastcall* original)(const T*, void*, ScriptStream*),
+                void (T::*ours)(ScriptStream*) const, const T* self, ScriptStream* stream) {
+    CaptureStream expected, actual;
+    original(self, nullptr, &expected);
+    (self->*ours)(&actual);
+    Compare(name, expected, actual);
+    expected.Forward(stream);
+}
+
 // 004C0F90: PUSH ECX; PUSH EBX; PUSH ESI; MOV ESI,[ESP+0x10] (7 bytes).
 void(__fastcall* s_save)(CScript*, void*, ScriptStream*);
 void __fastcall SaveVerifyScript(CScript* self, void*, ScriptStream* stream) {
@@ -120,19 +131,19 @@ void __fastcall RunSaveVerify(const ScriptRun* self, void*, ScriptStream* stream
 // PUSH ESI; PUSH EDI; MOV EDI,ECX (5 bytes). 004B1C50: PUSH ECX; PUSH EBX; MOV EBX,ECX; PUSH EBP (5).
 void(__fastcall* s_pointLightSave)(const ScriptPointLight*, void*, ScriptStream*);
 void __fastcall PointLightSaveVerify(const ScriptPointLight* self, void*, ScriptStream* stream) {
-    SaveVerify("ScriptPointLightSave", s_pointLightSave, &ScriptPointLightSave, self, stream);
+    SaveVerify("ScriptPointLightSave", s_pointLightSave, &ScriptPointLight::ScriptPointLightSave, self, stream);
 }
 void(__fastcall* s_particleSave)(const ScriptParticleSource*, void*, ScriptStream*);
 void __fastcall ParticleSaveVerify(const ScriptParticleSource* self, void*, ScriptStream* stream) {
-    SaveVerify("ScriptParticleSourceSave", s_particleSave, &ScriptParticleSourceSave, self, stream);
+    SaveVerify("ScriptParticleSourceSave", s_particleSave, &ScriptParticleSource::ScriptParticleSourceSave, self, stream);
 }
 void(__fastcall* s_fxSave)(const ScriptFxSource*, void*, ScriptStream*);
 void __fastcall FxSaveVerify(const ScriptFxSource* self, void*, ScriptStream* stream) {
-    SaveVerify("ScriptFxSourceSave", s_fxSave, &ScriptFxSourceSave, self, stream);
+    SaveVerify("ScriptFxSourceSave", s_fxSave, &ScriptFxSource::ScriptFxSourceSave, self, stream);
 }
 void(__fastcall* s_lightningSave)(const ScriptLightning*, void*, ScriptStream*);
 void __fastcall LightningSaveVerify(const ScriptLightning* self, void*, ScriptStream* stream) {
-    SaveVerify("ScriptLightningSave", s_lightningSave, &ScriptLightningSave, self, stream);
+    SaveVerify("ScriptLightningSave", s_lightningSave, &ScriptLightning::ScriptLightningSave, self, stream);
 }
 
 } // namespace
