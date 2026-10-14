@@ -101,10 +101,10 @@ src/game/map_object_animation.cpp,0,0,0,1,0,0,0,0,0,0,0
 src/game/map_object_cage.cpp,0,0,0,1,0,0,0,0,0,0,0
 src/game/map_object_companion.cpp,0,5,0,1,0,0,0,7,0,0,3
 src/game/map_object_create.cpp,1,0,0,0,0,0,0,0,0,0,0
-src/game/map_object_draw.cpp,21,3,0,1,0,0,0,0,0,0,4
+src/game/map_object_draw.cpp,0,0,0,1,0,0,0,0,0,0,3
 src/game/map_object_figures.cpp,0,8,0,1,0,0,0,1,0,0,2
 src/game/map_object_parts.cpp,0,0,0,0,0,0,0,0,0,0,2
-src/game/map_object_shadow.cpp,8,4,1,1,0,0,0,0,0,0,15
+src/game/map_object_shadow.cpp,0,2,1,1,0,0,0,0,0,0,11
 src/game/map_spec.cpp,1,8,0,0,9,0,0,3,0,0,3
 src/game/map_spec.h,0,0,0,0,0,0,1,0,0,0,0
 src/game/map_spec_effect.cpp,0,1,0,0,7,0,0,3,0,0,0
