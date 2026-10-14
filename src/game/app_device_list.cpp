@@ -2,6 +2,8 @@
 // a chunk archive (a name, a GUID, three dwords, three more strings): the record's fields, its
 // compiler-made members and the list's archiving. The list is an STLport vector (its algorithms
 // are library code). See docs/notes/app.md.
+#include "chunk_archive.h"
+
 #include "ei/hook.h"
 #include "lib/crt.h"
 #include "originals_engine.h"
@@ -94,7 +96,7 @@ void __fastcall DeviceListArchive(void* archive, void*, int id, DeviceVector* li
     ChunkArchive* ar = static_cast<ChunkArchive*>(archive);
     if (!ArchiveEnter(ar, nullptr, id)) return;
     int n;
-    if (*(static_cast<std::uint8_t*>(archive) + 0x58)) {
+    if (ar->loading_) {
         DeviceRecord* end = list->end();
         DeviceRecord* kept = RecordsCopy(end, end, list->begin(), list, 0);
         for (DeviceRecord* r = kept; r != list->end(); ++r) RecordDestructAt(r);
@@ -105,8 +107,7 @@ void __fastcall DeviceListArchive(void* archive, void*, int id, DeviceVector* li
         n = static_cast<int>(list->size());
     }
     for (int i = 0; i < n; ++i) {
-        void* chunk = *reinterpret_cast<void**>(*reinterpret_cast<std::uint8_t**>(static_cast<std::uint8_t*>(archive) + 0x50) + 4);
-        *reinterpret_cast<int*>(static_cast<std::uint8_t*>(chunk) + 0x14) = i + 1;
+        ar->Current()->occurrence = i + 1;
         DeviceRecord* record = list->begin() + i;
         if (!ArchiveEnter(ar, nullptr, 1)) continue;
         RecordArchiveAt(record, nullptr, archive);

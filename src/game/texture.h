@@ -319,7 +319,10 @@ static_assert(sizeof(RasterTriangle::Point) == 8 && offsetof(RasterTriangle, col
 class CPixelConverter {
 public:
     virtual void Unknown0();
-    virtual void Unknown1();
+    // 1: the 16-bit format slot 2 writes for `kind` (2 1:5:5:5, 1 5:5:5, 0 5:6:5; -1 none of them)
+    // and its channel masks (dx_surface.cpp, the picture copy into a surface).
+    virtual void SetChannelMasks(int kind, std::uint32_t alphaMask, std::uint32_t redMask, std::uint32_t greenMask,
+                                 std::uint32_t blueMask);
     // 2: 32-bit pixels to 16 bits; `kind` 3 4:4:4:4, 2 1:5:5:5, 0 5:6:5.
     virtual void ConvertTo16(std::uint16_t* out, const std::uint32_t* in, int kind, unsigned count);
     virtual void Unknown3();

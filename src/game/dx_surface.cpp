@@ -396,10 +396,11 @@ void FillPicture(CDXSurface* holder, const MmpHeader* picture, const std::uint32
                 target = 0;
             }
         }
-        void* converter = holder->device->converter_;
-        ei::VCall<void>(converter, 1, target, layout.alphaMask, layout.redMask, layout.greenMask, layout.blueMask);
+        auto* converter = static_cast<CPixelConverter*>(holder->device->converter_);
+        converter->SetChannelMasks(target, layout.alphaMask, layout.redMask, layout.greenMask, layout.blueMask);
         for (std::uint32_t row = 0; row < picture->height; ++row) {
-            ei::VCall<void>(converter, 2, static_cast<void*>(out), source, target, picture->width);
+            converter->ConvertTo16(reinterpret_cast<std::uint16_t*>(out), reinterpret_cast<const std::uint32_t*>(source), target,
+                                   picture->width);
             out += static_cast<std::int32_t>(desc[kPitch]);
             source += picture->width * 4;
         }
