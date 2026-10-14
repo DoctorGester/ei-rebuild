@@ -517,11 +517,12 @@ note = "0063EF60 / 0063E020 need them (ui.md section 6)."
 id = "X37"
 title = "Build warnings C4244 / C4458"
 group = "harness"
-status = "queued"
+status = "running"
 model = "sonnet"
 size = 0.2
 files = ["src/game/world_rules.cpp", "src/game/map_object_client_effects.cpp"]
 note = "C4244 at world_rules.cpp:48-49, C4458 in map_object_client_effects.cpp."
+started = "2026-10-14"
 
 [[ticket]]
 id = "X38"
@@ -661,10 +662,11 @@ done = "2026-10-14"
 id = "F4d"
 title = "CFigureCache into CLinkFigureLoader (F4c follow-up)"
 group = "cleanup"
-status = "review"
+status = "done"
 depends = ["F4c"]
 note = "CFigureCache (map_object_figures.h; CWorld slot 23 in world.h) is a view of CLinkFigureLoader (model.h, vtable 0073D808): slots 3 LoadFigure, 4 LoadLink, 6 Remorph. The view passes the scale as float bits (std::uint32_t) where the loader takes float s, t, u and bool fresh; check the release code of CObject3D::MakeFigure (00516DA0) and SetFigureScale (00517700) stays the same with floats (the original pushes the dwords with MOV/PUSH). The hand-made PieceNames vector in object3d_figure_setup.cpp is the loader's stlp::vector<stlp::string>. CountedRef (00519580) could become a counted-pointer template: its copies 0051E4F0 / 0051E570 hold the client half's wounds material and its helper preset (0051C3D0)."
 started = "2026-10-14"
+done = "2026-10-14"
 
 [[ticket]]
 id = "F4e"
