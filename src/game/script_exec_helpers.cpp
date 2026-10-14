@@ -3,6 +3,7 @@
 // docs/notes/script.md.
 #include "script.h"
 #include "game_strings.h"
+#include "world_effect.h"
 
 #include "ei/hook.h"
 #include "ei/vcall.h"
@@ -18,11 +19,6 @@
 #pragma warning(disable : 4740) // inline assembly: no optimisation across it
 
 namespace {
-
-template <typename T>
-T& Field(void* object, std::size_t offset) {
-    return *reinterpret_cast<T*>(static_cast<char*>(object) + offset);
-}
 
 // 004BCF10: an area's destructor (vtable 0073D31C, frees the parts).
 __declspec(naked) void __fastcall AreaDestruct(void*) EI_ORIGINAL(0x004BCF10)
@@ -82,30 +78,19 @@ void AddPart(mfc::CArray<ScriptAreaPart>* parts, const ScriptAreaPart& part) {
     parts->data[at] = part;
 }
 
-// A point light slot (CScript +0x04, 256 of them).
-struct PointLight {
-    CEngineObject* object;  // +0x00 effect object (class 0x4B)
-    int id;                 // +0x04
-    int removeWhenDone;     // +0x08
-    int active;             // +0x0C moving
-    int stepsLeft;          // +0x10
-    float dx, dy, dz;       // +0x14 step
-};
-static_assert(sizeof(PointLight) == 0x20);
-
-PointLight* Lights(CScript* script) { return Field<PointLight*>(script, 0x04); }
-int LightCount(CScript* script) { return Field<int>(script, 0x08); }
+ScriptPointLight* Lights(CScript* script) { return script->pointLights_.data; }
+int LightCount(CScript* script) { return script->pointLights_.size; }
 
 // MovePointLight's step: (target - position) / steps per axis. The x difference stays in the FPU,
 // the y and z differences are rounded to float first, as the original computes them.
-void LightStep(PointLight* light, const float* target, const float* position) {
+void LightStep(ScriptPointLight* light, const float* target, const float* position) {
     float y;
     float z;
     float dy;
     float dz;
     float inverse;
-    float* destination = &light->dx;
-    int* steps = &light->stepsLeft;
+    float* destination = light->step;
+    int* steps = &light->steps;
     __asm {
         mov eax, target
         mov edx, position
@@ -164,17 +149,17 @@ EI_REPLACE(0x004B2070, ScriptAreaAddRound);
 
 void __fastcall ScriptDeleteArea(CScript* script, void*, int id) {
     // CArray of areas at +0x194 (data +0x198, size +0x19C): {parts (CArray), id}, 0x18 each.
-    constexpr int kAreaSize = 0x18;
-    for (int i = 0; i < Field<int>(script, 0x19C); ++i) {
-        char* areas = Field<char*>(script, 0x198);
-        if (Field<int>(areas + i * kAreaSize, 0x14) != id) continue;
-        int after = Field<int>(script, 0x19C) - i - 1;
-        AreaDestruct(areas + i * kAreaSize);
+    constexpr int kAreaSize = sizeof(ScriptArea);
+    for (int i = 0; i < script->areas_.size; ++i) {
+        ScriptArea* areas = script->areas_.data;
+        if (areas[i].id != id) continue;
+        int after = script->areas_.size - i - 1;
+        AreaDestruct(&areas[i]);
         if (after) {
-            areas = Field<char*>(script, 0x198);
-            GameMemmove(areas + i * kAreaSize, areas + (i + 1) * kAreaSize, after * kAreaSize);
+            areas = script->areas_.data;
+            GameMemmove(&areas[i], &areas[i + 1], after * kAreaSize);
         }
-        --Field<int>(script, 0x19C);
+        --script->areas_.size;
         --i;   // the next area moved into this slot
     }
 }
@@ -189,7 +174,7 @@ void __fastcall ScriptCreatePointLight(CScript* script, void*, const SSCCmd* cmd
     // a free slot is not found).
     int i = 0;
     for (; i < LightCount(script); ++i) {
-        PointLight* light = &Lights(script)[i];
+        ScriptPointLight* light = &Lights(script)[i];
         if (!light->object) break;
         if (light->id == id) {
             TheWorld()->RemoveTimedObject(Lights(script)[i].object->id_);
@@ -197,32 +182,32 @@ void __fastcall ScriptCreatePointLight(CScript* script, void*, const SSCCmd* cmd
             break;
         }
     }
-    Lights(script)[i].active = 0;
+    Lights(script)[i].moving = 0;
     Lights(script)[i].id = id;
     Lights(script)[i].removeWhenDone = 0;
-    PointLight* slot = &Lights(script)[i];
+    ScriptPointLight* slot = &Lights(script)[i];
     void* factory = *reinterpret_cast<void**>(0x007AFFA8);
     slot->object = ei::VCall<CEngineObject*>(factory, 0x5C / 4, 0x4B, -1);
-    CEngineObject* object = Lights(script)[i].object;
+    CEffectPointLight* object = static_cast<CEffectPointLight*>(Lights(script)[i].object);
     ++object->refCount_;
     f = cmd->floatArgs.data;
     const float scale = *reinterpret_cast<const float*>(0x0073C36C);   // 1 / 255
     float red = f[5] * scale;
     float green = f[6] * scale;
     float blue = f[7] * scale;
-    Field<float>(object, 0x14C) = red;
-    Field<float>(object, 0x150) = green;
-    Field<float>(object, 0x154) = blue;
-    Field<float>(object, 0x1C) = f[1];
-    Field<float>(object, 0x20) = f[2];
-    Field<float>(object, 0x24) = f[3];
-    std::memcpy(&Field<float>(object, 0x158), &f[4], 4);   // radius
+    object->color_.x = red;
+    object->color_.y = green;
+    object->color_.z = blue;
+    object->localPosition_.x = f[1];
+    object->localPosition_.y = f[2];
+    object->localPosition_.z = f[3];
+    std::memcpy(&object->range_, &f[4], 4);   // radius
     TheWorld()->AddTimedObject(object);
     slot = &Lights(script)[i];
-    slot->dx = 0.0f;
-    slot->dy = 0.0f;
-    slot->dz = 0.0f;
-    slot->stepsLeft = 0;
+    slot->step[0] = 0.0f;
+    slot->step[1] = 0.0f;
+    slot->step[2] = 0.0f;
+    slot->steps = 0;
 }
 EI_REPLACE(0x004BD6A0, ScriptCreatePointLight);
 
@@ -232,21 +217,21 @@ void __fastcall ScriptMovePointLight(CScript* script, void*, const SSCCmd* cmd) 
     int i = 0;
     for (;; ++i) {
         if (i >= LightCount(script)) return;
-        PointLight* light = &Lights(script)[i];
+        ScriptPointLight* light = &Lights(script)[i];
         if (light->object && light->id == id) break;
     }
-    PointLight* light = &Lights(script)[i];
-    light->active = 1;
+    ScriptPointLight* light = &Lights(script)[i];
+    light->moving = 1;
     light->removeWhenDone = x87::fistp(f[5]);
-    light->stepsLeft = x87::fistp(f[4]);
-    LightStep(light, &f[1], &Field<float>(light->object, 0x1C));
+    light->steps = x87::fistp(f[4]);
+    LightStep(light, &f[1], &static_cast<CEffectPointLight*>(light->object)->localPosition_.x);
 }
 EI_REPLACE(0x004BD820, ScriptMovePointLight);
 
 void __fastcall ScriptDeletePointLight(CScript* script, void*, const SSCCmd* cmd) {
     int id = x87::fistp(cmd->floatArgs.data[0]);
     for (int i = 0; i < LightCount(script); ++i) {
-        PointLight* light = &Lights(script)[i];
+        ScriptPointLight* light = &Lights(script)[i];
         if (!light->object || light->id != id) continue;
         TheWorld()->RemoveTimedObject(light->object->id_);
         Lights(script)[i].object->Release();

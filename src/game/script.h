@@ -209,6 +209,9 @@ struct ScriptPointLight {
     int steps;              // +0x10 moves left
     float step[3];          // +0x14 added to the position on every move
 };
+static_assert(offsetof(ScriptPointLight, moving) == 0x0C);
+static_assert(offsetof(ScriptPointLight, steps) == 0x10);
+static_assert(offsetof(ScriptPointLight, step) == 0x14);
 static_assert(sizeof(ScriptPointLight) == 0x20);
 
 // A particle source (CScript::particles_; CreateParticleSource / MoveParticleSource).
@@ -657,6 +660,7 @@ struct ScriptArea {
     mfc::CArray<ScriptAreaPart> parts;
     int id;     // +0x14
 };
+static_assert(offsetof(ScriptArea, id) == 0x14);
 static_assert(sizeof(ScriptArea) == 0x18);
 
 // 004C0F90 (CScript::Save, the savegame): point lights, particle / FX / lightning sources, +0x68 /
