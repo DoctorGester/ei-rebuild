@@ -547,10 +547,11 @@ note = "V1-V3g: 507 -> 0 (vector-math.md \"V3 status\"); V3g did SectorPosition,
 id = "C3"
 title = "Forwarders whose declarations differ between files"
 group = "cleanup"
-status = "running"
+status = "done"
 model = "opus"
-note = "docs/originals-report.md \"differ\" group (261 after C3l, 209 already rewritten): one declaration per address in originals_<area>.h (RET n, callers, Ghidra); the ui_* sites next. Batches of 50."
+note = "docs/originals-report.md \"differ\" group (261 after C3l, 209 already rewritten): one declaration per address in originals_<area>.h (RET n, callers, Ghidra); the ui_* sites next. Batches of 50. Found already at 0 on 2026-10-14 (docs/originals-report.md: no function forwarded from more than one file, 0 differing declarations); finished by C3n-C3p."
 started = "2026-10-14"
+done = "2026-10-14"
 
 [[ticket]]
 id = "C5"
@@ -570,9 +571,10 @@ note = "Left from C9 (models.md, \"Layouts\")."
 id = "C11"
 title = "Shims, constexpr addresses and per-file At() copies"
 group = "cleanup"
-status = "queued"
+status = "running"
 model = "sonnet"
-note = "`__fastcall Fn(T* self, void*)` shims into members (1,281) per file; `constexpr uintptr_t kX = 0x00...` (371) into the subsystem's named globals; per-file At() copies (60) replaced by the shared one."
+note = "Counts 2026-10-14: 497 __fastcall self shims, 368 constexpr game addresses; per-file At() copies already 0. Batches of about 100 shims, one area at a time."
+started = "2026-10-14"
 
 [[ticket]]
 id = "C12"
