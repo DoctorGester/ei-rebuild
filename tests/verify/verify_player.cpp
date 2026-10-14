@@ -50,7 +50,7 @@ bool Cleared(const CPlayer* p) {
 // What DestroyPlayer leaves.
 bool Destroyed(const CPlayer* p) {
     return Cleared(p) && p->link_ == nullptr && p->connection_ == nullptr && p->playerId_ == -1 &&
-           p->unknown_110 == -1 && p->unknown_130 == 0 && p->unknown_108 == 0 && p->sessionKind100_ == 0 &&
+           p->unknown_110 == -1 && p->dirty_ == 0 && p->unknown_108 == 0 && p->sessionKind100_ == 0 &&
            p->unknown_104 == 0;
 }
 } // namespace
@@ -177,7 +177,7 @@ EI_VERIFY(0x00665A10, PlayerDisconnectVerify, 0, s_unused);
 static void __fastcall PlayerForgetKnownVerify(CPlayer* self) {
     self->ForgetKnownObjects();
     bool ok = self->knownObjects_.Size() == 0 && self->knownTimed_.Size() == 0 && self->maxObjectId_ == 0 &&
-              self->maxTimedId_ == 0 && self->unknown_130 == -1;
+              self->maxTimedId_ == 0 && self->dirty_ == -1;
     ei::verify::Check("CPlayer::ForgetKnownObjects", true, ok, "player %p", self);
 }
 EI_VERIFY(0x006651D0, PlayerForgetKnownVerify, 0, s_unused);

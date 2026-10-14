@@ -30,9 +30,14 @@
 #include "player_source.h"
 
 #include "ei/vcall.h"
+#include "lib/mfc.h"
 
 #include <cstddef>
 #include <cstdint>
+
+namespace net {
+class SessionBase;   // net_classes.h
+}
 
 namespace netlink {
 
@@ -68,24 +73,20 @@ public:
     // it opened (inlined by its users).
     bool Open(const char* path, unsigned flags, std::uint8_t reading) {
         reading_ = reading;
-        ok_ = ei::VCall<int>(file_, kFileOpen, path, flags, static_cast<void*>(nullptr)) != 0;
+        ok_ = File()->Open(path, flags, nullptr) != 0;
         return ok_ != 0;
     }
     // The CFile's virtual Close (slot 19).
-    void Close() { ei::VCall<void>(file_, kFileClose); }
+    void Close() { File()->Close(); }
 
-    // MFC 4.2 CFile slots: 3 GetPosition, 8 Open, 10 Seek, 12 GetLength, 13 Read, 14 Write, 19 Close.
-    static constexpr int kFileGetPosition = 3;
-    static constexpr int kFileOpen = 8;
-    static constexpr int kFileSeek = 10;
-    static constexpr int kFileGetLength = 12;
-    static constexpr int kFileRead = 13;
-    static constexpr int kFileWrite = 14;
-    static constexpr int kFileClose = 19;
+    // The CFile called through its own vtable (MFC 4.2 slots: 3 GetPosition, 8 Open, 10 Seek,
+    // 12 GetLength, 13 Read, 14 Write, 19 Close).
+    mfc::CFileVirtuals* File() { return reinterpret_cast<mfc::CFileVirtuals*>(file_); }
+
     static constexpr unsigned kOpenRead = 0;         // CFile::modeRead
     static constexpr unsigned kOpenWrite = 0x1001;   // CFile::modeCreate | modeWrite
 
-    alignas(4) std::uint8_t file_[0x10];   // +0x0C mfc::CFile
+    alignas(4) std::uint8_t file_[0x10];   // +0x0C mfc::CFile (constructed in place by Construct)
 };
 static_assert(offsetof(FileStream, file_) == 0xC);
 static_assert(sizeof(FileStream) == 0x1C);
@@ -292,9 +293,9 @@ public:
     DriverNode* drivers_;        // +0x08 list<RefPtr> (owning)
     DriverNode* holders_;        // +0x0C list of plain holders (released, not detached)
 
-    // 00479E30 (RET 4). A driver for every new player of `world` with something queued; then each
-    // driver pumped, and those whose player is gone erased.
-    void PumpDrivers(CRefObject* world);
+    // 00479E30 (RET 4). A driver for every new connection of `session` (the game client or server)
+    // with something queued; then each driver pumped, and those whose player is gone erased.
+    void PumpDrivers(net::SessionBase* session);
     // 0047A080 (RET 4). Both lists emptied, then one driver for `player`, started and drained.
     DriverLink* Start(net::Connection* player);
 };

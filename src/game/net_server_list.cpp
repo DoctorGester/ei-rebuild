@@ -56,7 +56,7 @@ void __fastcall ServerListRead(void* client, void*, GameBuffer* in) {
     alignas(4) std::uint8_t coder[kCoderSize];   // CoderState
     CoderConstruct(coder);
     auto* coderCursor = reinterpret_cast<BufferCursor*>(coder + 0x2800);
-    ei::VCall<int>(in, 6, 0);   // Seek(0)
+    in->Seek(0);
     std::uint32_t size;
     ReadBytes(in, &size, 4);
     if (in->cur > in->high) in->high = in->cur;

@@ -145,7 +145,7 @@ int __fastcall JoinedVerify(CPlayerServer* self) {
     int state = self->state_;
     int result = RunHandler("CPlayerServer::OnJoined", self, &CPlayerServer::OnJoined, 0, 0);
     bool ok = result == (state == 2 ? 1 : 0) &&
-              (result == 0 || (self->state_ == 1 && (self->Owner()->unknown_130 & 0x10) != 0));
+              (result == 0 || (self->state_ == 1 && (self->Owner()->dirty_ & 0x10) != 0));
     ei::verify::Check("CPlayerServer::OnJoined state", true, ok, "state %d -> %d", state, self->state_);
     return result;
 }

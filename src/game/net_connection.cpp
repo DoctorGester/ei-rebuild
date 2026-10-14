@@ -315,7 +315,7 @@ bool Connection::SendUpdate(int budget) {
     c.Reset(nullptr, 0, 0);
     c.sink = nullptr;
     GameBuffer* out = SendBuffer();
-    ei::VCall<void>(out, 6, 0);   // Seek(0)
+    out->Seek(0);
     c.BeginWrite(out, budget + 0x400);
 
     *c.p = 0;   // packet kind: update
@@ -885,12 +885,12 @@ void Connection::ProcessHeaders() {
             if (node->data.Sequence() == incomingSequence_) {
                 GameBuffer* in = &reliableIn_;
                 if (in->cur > in->high) in->high = in->cur;
-                ei::VCall<int>(in, 6, in->base - static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(in->begin)) +
-                                          static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(in->high)));
+                in->Seek(in->base - static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(in->begin)) +
+                         static_cast<std::int32_t>(reinterpret_cast<std::uintptr_t>(in->high)));
                 std::uint32_t size = node->data.Size();
                 const std::uint8_t* from = node->data.bytes + 3;
                 if (in->cur + size > in->end) {
-                    ei::VCall<int>(in, 4, from, size);
+                    in->WriteMore(from, size);
                 } else {
                     in->flags |= 1;
                     std::memcpy(in->cur, from, size);

@@ -182,7 +182,7 @@ static void __fastcall SendState73Verify(CPlayerServer* self, void*, void* sourc
     ei::verify::Check("CPlayerServer::SendState73", true, ok, "player %p", self);
 }
 EI_VERIFY(0x0066F240, SendState73Verify, 0, s_unused);
-static void __fastcall WriteToVerify(CPlayerServer* self, void*, void* target) { self->WriteTo(target); }
+static void __fastcall WriteToVerify(CPlayerServer* self, void*, CStream* target) { self->WriteTo(target); }
 EI_VERIFY(0x0066D230, WriteToVerify, 0, s_unused);
 
 // 006221B0: MOV EDX,[ECX+34h]; XOR EAX,EAX (5 bytes). Pure.

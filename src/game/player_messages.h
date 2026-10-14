@@ -81,7 +81,7 @@ public:
     void SendValue12(std::uint32_t unused, std::uint32_t value);
     void SendText13(std::uint32_t unused, const char* text);        // 0066D770: the text is the 2nd argument
     void SendText(std::uint8_t type, const char* text);             // 0066D7B0
-    void WriteTo(void* target);                                     // 0066D230: target's slot 7 (stream)
+    void WriteTo(CStream* target);                                  // 0066D230: target->CopyFrom(out_) (slot 7)
     void SetDisconnect();                                           // 0066D250: state 4
     void SetFlag70(std::uint8_t value);                             // 0066D260
 
@@ -446,7 +446,7 @@ public:
     int logTraffic_;                            // +0x10C logs the size of every flush
     int unknown_110;                            // +0x110 -1 after Create
     mfc::CTypedPtrList<void> objects_;          // +0x114 ids of items recharging (vtable 00743138)
-    int unknown_130;                            // +0x130 0 after Create, -1 after 006651D0
+    int dirty_;                                 // +0x130 state to send (bits the server's state messages clear); -1 after 006651D0
 };
 static_assert(offsetof(CPlayer, link_) == 0x1C);
 static_assert(offsetof(CPlayer, knownObjects_) == 0x28);
