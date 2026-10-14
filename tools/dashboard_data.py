@@ -107,10 +107,14 @@ class Tree:
 
     def __init__(self, commit, batch):
         self.commit, self.batch = commit, batch
+        self.blobs = {}   # path -> blob id (commits only), the key of FILE_CACHE
         if commit:
-            out = subprocess.run(['git', 'ls-tree', '-r', '--name-only', commit], cwd=ROOT,
-                                 capture_output=True, text=True).stdout
-            self.paths = out.split('\n')
+            out = subprocess.run(['git', 'ls-tree', '-r', commit], cwd=ROOT, capture_output=True, text=True).stdout
+            for line in out.split('\n'):
+                meta, _, path = line.partition('\t')
+                if path:
+                    self.blobs[path] = meta.split()[-1]
+            self.paths = list(self.blobs)
         else:
             self.paths = []
             for top in ('src', 'tests', 'config'):
@@ -122,7 +126,7 @@ class Tree:
         if not self.commit:
             p = os.path.join(ROOT, path)
             return open(p, encoding='utf-8', errors='replace').read() if os.path.exists(p) else None
-        return self.batch.read(f'{self.commit}:{path}')
+        return self.batch.read(self.blobs.get(path) or f'{self.commit}:{path}')
 
 
 class Batch:
@@ -150,6 +154,41 @@ def addresses(text, column='address'):
     return {int(r[column], 16) for r in csv.DictReader(io.StringIO(text)) if HEX.match(r.get(column) or '')}
 
 
+# Per-file numbers keyed by (blob id, path): consecutive commits share most files, so each version
+# of a file is scanned once per run instead of once per commit (~3 s per late commit before).
+FILE_CACHE = {}
+
+
+def file_stats(path, text):
+    """One file's share of measure(): its loc part and lines, rewritten addresses, one EI_ORIGINAL
+    target per site, cleanup counts, standalone counts and data addresses."""
+    replaced, origins, cleanup, standalone, data = set(), [], defaultdict(int), defaultdict(int), set()
+    part = ('tests/scenarios' if path.startswith('tests/scenarios') else 'tests/verify'
+            if path.startswith('tests/') else '/'.join(path.split('/')[:2]))
+    if path.startswith('tests/scenarios') and path.endswith('.txt'):
+        cleanup['scenarios'] += 1
+    if path.endswith(('.cpp', '.h')):
+        code = COMMENT.sub('', text)
+        if path.startswith('src/'):
+            replaced |= {int(a, 16) for a in REPLACE.findall(code)}
+            replaced |= {int(a, 16) for a in HANDLER.findall(code)}
+            for a in ORIGINAL.findall(code):
+                cleanup['forwarder_sites'] += 1
+                origins.append(int(a, 16))
+            if not path.startswith('src/hook/'):
+                for k, rx in CLEANUP.items():
+                    cleanup[k] += len(rx.findall(code))
+                for k, n in ratchet_counts(path, text).items():
+                    cleanup[k] += n
+                data |= {a for a in (int(m, 16) for m in DATA_LITERAL.findall(code)) if 0x730000 <= a <= 0x8FFFFF}
+                if not path.startswith('src/lib/'):
+                    for k, rx in STANDALONE.items():
+                        standalone[k] += len(rx.findall(code))
+        else:
+            cleanup['verify_wrappers'] += len(re.findall(r'\bEI_VERIFY\s*\(', code))
+    return part, text.count('\n'), replaced, origins, dict(cleanup), dict(standalone), data
+
+
 def measure(tree):
     sizes = {}
     for line in (tree.read('src/hook/function_sizes.inc') or '').splitlines():
@@ -170,34 +209,25 @@ def measure(tree):
             continue
         if not (path.startswith('src/') or path.startswith('tests/')):
             continue
-        text = tree.read(path)
-        if text is None:
-            continue
-        part = ('tests/scenarios' if path.startswith('tests/scenarios') else 'tests/verify'
-                if path.startswith('tests/') else '/'.join(path.split('/')[:2]))
-        loc[part] += text.count('\n')
-        if path.startswith('tests/scenarios') and path.endswith('.txt'):
-            cleanup['scenarios'] += 1
-        if not path.endswith(('.cpp', '.h')):
-            continue
-        code = COMMENT.sub('', text)
-        if path.startswith('src/'):
-            replaced |= {int(a, 16) for a in REPLACE.findall(code)}
-            replaced |= {int(a, 16) for a in HANDLER.findall(code)}
-            for a in ORIGINAL.findall(code):
-                cleanup['forwarder_sites'] += 1
-                origin_files[int(a, 16)].add(path)
-            if not path.startswith('src/hook/'):
-                for k, rx in CLEANUP.items():
-                    cleanup[k] += len(rx.findall(code))
-                for k, n in ratchet_counts(path, text).items():
-                    cleanup[k] += n
-                data |= {a for a in (int(m, 16) for m in DATA_LITERAL.findall(code)) if 0x730000 <= a <= 0x8FFFFF}
-                if not path.startswith('src/lib/'):
-                    for k, rx in STANDALONE.items():
-                        standalone[k] += len(rx.findall(code))
-        else:
-            cleanup['verify_wrappers'] += len(re.findall(r'\bEI_VERIFY\s*\(', code))
+        key = (tree.blobs.get(path), path)
+        f = FILE_CACHE.get(key) if key[0] else None
+        if f is None:
+            text = tree.read(path)
+            if text is None:
+                continue
+            f = file_stats(path, text)
+            if key[0]:
+                FILE_CACHE[key] = f
+        part, lines, replaced_here, origins, counts, stand, data_here = f
+        loc[part] += lines
+        replaced |= replaced_here
+        for a in origins:
+            origin_files[a].add(path)
+        for k, n in counts.items():
+            cleanup[k] += n
+        for k, n in stand.items():
+            standalone[k] += n
+        data |= data_here
     cleanup['forwarded_from_several_files'] = sum(1 for f in origin_files.values() if len(f) > 1)
 
     total = sum(sizes.get(a, 0) for a in game)
