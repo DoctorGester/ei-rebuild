@@ -535,11 +535,7 @@ __declspec(naked) inline net::HistoryNode** __fastcall HistoryErase(net::History
 __declspec(naked) inline net::FreedBatch** __fastcall FreedInsert(net::FreedBatch** /*list*/, void*, net::FreedBatch** /*out*/,
                                                            net::FreedBatch* /*pos*/) EI_ORIGINAL(0x00439000)
 
-// C3m. A CString passed by value: the caller copy-constructs it into the argument slot, the callee destroys it. Naked
-// forwarders cannot take a class by value, so the slot is a raw pointer.
-struct StringArg {
-    char* data;
-};
+#include "string_arg.h"   // StringArg
 // The registry's thiscall members through their game addresses (rewritten in registry.cpp as CFileRegistry::Open /
 // GetSectionNames / GetString / GetStringArray; the verify wrappers stay in the path). Base of the views of the registry.
 struct RegistryOriginals {
