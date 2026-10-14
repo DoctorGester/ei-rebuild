@@ -109,7 +109,6 @@ src/game/menu_rects.cpp,0,1,0,0,36,0,0,0,0,0,0
 src/game/misc_400.cpp,0,0,0,0,1,0,0,0,0,0,0
 src/game/model.cpp,0,0,0,4,0,0,0,0,0,0,0
 src/game/model.h,0,0,0,0,0,0,0,0,0,1,0
-src/game/model_db.cpp,0,0,0,0,0,0,0,0,0,1,0
 src/game/net_classes.h,0,0,0,0,8,0,0,0,0,1,0
 src/game/net_client.cpp,0,2,0,0,0,0,0,0,0,0,0
 src/game/net_client_awards.cpp,8,5,1,1,4,0,0,0,0,0,0

@@ -4,6 +4,7 @@
 
 #include "ei/hook.h"
 #include "lib/crt.h"
+#include "lib/stlp.h"
 
 #include <cstring>
 
@@ -13,11 +14,7 @@
 namespace {
 
 // vector<T> as three pointers, for record types only original code constructs.
-struct RawVector {
-    char* start;
-    char* finish;
-    char* eos;
-};
+using RawVector = stlp::vector<char>;
 
 using RecordFn = void(__fastcall*)(void* record, void*);                       // destructor body
 using ResizeFn = void(__fastcall*)(void* vector, void*, unsigned count);        // vector::resize
@@ -57,17 +54,17 @@ void SerializeArray(ChunkArchive* ar, int id, RawVector* v, int size, RecordFn d
     int count;
     if (ar->loading_) {
         // erase(begin(), end()): the tail copy is empty; the old records are destroyed in order.
-        char* end = v->finish;
-        for (char* p = v->start; p != end; p += size) destroy(p, nullptr);
-        v->finish = v->start;
+        char* end = v->end();
+        for (char* p = v->begin(); p != end; p += size) destroy(p, nullptr);
+        v->Finish() = v->Start();
         count = ar->CountChunks(1);
         resize(v, nullptr, static_cast<unsigned>(count));
     } else {
-        count = static_cast<int>(v->finish - v->start) / size;
+        count = static_cast<int>(v->size()) / size;
     }
     for (int i = 0; i < count; ++i) {
         ar->Current()->occurrence = i + 1;
-        char* record = v->start + i * size;
+        char* record = v->begin() + i * size;
         if (ar->EnterChunk(1)) {
             serialize(record, ar);
             ar->LeaveChunk();
