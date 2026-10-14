@@ -268,7 +268,7 @@ src/game/ui_surface_blit.cpp,9,0,0,0,0,0,0,0,0,0,0
 src/game/ui_surface_dc.cpp,12,0,0,0,0,0,0,0,0,0,0
 src/game/ui_surface_pixels.cpp,0,0,0,0,0,0,0,4,0,0,0
 src/game/ui_text.cpp,0,0,0,0,2,2,0,1,0,0,0
-src/game/ui_trade_grid_draw.cpp,18,1,0,0,0,0,0,0,0,0,0
+src/game/ui_trade_grid_draw.cpp,1,1,0,0,0,0,0,0,0,0,0
 src/game/ui_trade_panel.cpp,0,0,0,0,1,0,0,1,0,0,0
 src/game/ui_view_screen.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/ui_window.cpp,0,0,1,0,0,0,0,1,0,0,0
