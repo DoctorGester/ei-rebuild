@@ -1,7 +1,8 @@
-// The multiplayer hero screen's Create as the unpatched game does it (00613EA0, CMpHeroScreen slot
-// 25). Rebirth patches the function for its wide layout (docs/rebirth-patched-functions.txt), so
-// this body is hooked in the vanilla launch only; nothing in the rewritten code calls it but the
-// screen's vtable. See ui_screens.h and docs/notes/ui.md, section 5. Scenarios ui_hero_screen,
+// The multiplayer hero screen's Create (00613EA0, CMpHeroScreen slot 25). Rebirth's WideScreen
+// replaces the function with the original followed by two hidden curtain sprites over the screen's
+// margins (widescreen::AddCurtains), which this reproduces; EI_Plugin.asi patches it too
+// (EiPluginFixes, not reproduced), so it is hooked in the vanilla launch only; nothing in the
+// rewritten code calls it but the screen's vtable. See ui_screens.h and docs/notes/ui.md, section 5. Scenarios ui_hero_screen,
 // ui_hero_stats and ui_hero_delete open the screen (the main menu's Multiplayer button).
 #include "ui_screens.h"
 
@@ -9,11 +10,13 @@
 #include "item_db_text.h"
 #include "ui_camp.h"
 #include "ui_item_info.h"
+#include "ui_widescreen.h"
 #include "unit_create.h"
 #include "unit_db.h"
 #include "world.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "lib/crt.h"
 #include "lib/mfc.h"
 #include "lib/stlp.h"
@@ -437,5 +440,10 @@ void CMpHeroScreen::Create() {
     CallDrawHeroList();
     heroIndex_ = heroes->records.size() == 0 ? -1 : 0;
     HeroScreenSetModeOriginal(this, nullptr, kModeHeroList);
+    // Rebirth's WideScreen (addon's handler after the original): the curtains, hidden (sprites 19, 20).
+    widescreen::AddCurtains(&window, 0);
 }
 EI_REPLACE_METHOD(0x00613EA0, CMpHeroScreen::Create);
+// In a Rebirth launch EI_Plugin.asi also patches the function (EiPluginFixes at +D15 / +E7B), which
+// is not reproduced: the installer skips it there and addon's code runs.
+EI_REBIRTH_IMPLEMENTS(0x00613EA0, ei::rebirth::Patch::WideScreen);

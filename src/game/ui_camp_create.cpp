@@ -1,7 +1,7 @@
-// The camp's Create as the unpatched game does it (0060C870, CCampPages slot 25). Rebirth patches
-// the function for its wide layout (docs/rebirth-patched-functions.txt), so this body is hooked in
-// the vanilla launch only; nothing in the rewritten code calls it but the screen's vtable. See
-// ui_camp.h and docs/notes/ui.md, section 3.
+// The camp's Create (0060C870, CCampPages slot 25). Rebirth's WideScreen replaces the function with
+// the original followed by two curtain sprites over the screen's margins (widescreen::AddCurtains),
+// which this reproduces, so it is hooked in both launches; nothing in the rewritten code calls it
+// but the screen's vtable. See ui_camp.h and docs/notes/ui.md, section 3.
 #include "device.h"   // the old device's calls
 #include "ui_camp.h"
 
@@ -16,10 +16,12 @@
 #include "ui_briefing.h"
 #include "ui_item_info.h"
 #include "ui_screens.h"
+#include "ui_widescreen.h"
 #include "unit.h"
 #include "world.h"
 
 #include "ei/hook.h"
+#include "ei/rebirth.h"
 #include "ei/x87.h"
 #include "lib/crt.h"
 #include "lib/gameapi.h"
@@ -161,6 +163,11 @@ double FramesNow() {
 } // namespace
 
 void CCampPages::Create() {
+    BuildPages();
+    widescreen::AddCurtains(this, 1);
+}
+
+void CCampPages::BuildPages() {
     spellConstructor_ = false;
     itemConstructor_ = false;
     spellParts_[0] = nullptr;
@@ -476,3 +483,4 @@ void CCampPages::Create() {
     if (records.data) gamecrt::operator_delete(records.data);
 }
 EI_REPLACE_METHOD(0x0060C870, CCampPages::Create);
+EI_REBIRTH_IMPLEMENTS(0x0060C870, ei::rebirth::Patch::WideScreen);

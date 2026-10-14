@@ -444,8 +444,8 @@ public:
     // "<the highest number among the folder's *.mp titles + 1>.mp", given the local party and
     // saved (00662AC0); the list's scroll range, the list drawn, mode 9.
     void AddNewHero();
-    // 00615D30 (RET 4; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
-    // only; ui_hero_screen_mode.cpp; rewritten callers go through their forwarder). The screen
+    // 00615D30 (RET 4; Rebirth-patched; ui_hero_screen_mode.cpp, reproducing WideScreen, so hooked
+    // in both launches; rewritten callers go through their forwarder). The screen
     // laid out for `mode`. First everything off: the menu model's parts, the nine child windows,
     // every sprite and surface, the regions after the ninth removed and the others' tips emptied.
     // 9, the hero list: the model's "but03" and "button03_multiplayer", the list's scroll bar, all
@@ -457,10 +457,11 @@ public:
     // and the voices drawn. 11, its statistics: sprites 7-9, the bars at 400, the equipment,
     // spell, trade and statistics panels, two regions and three tips, surface 2, the name edit
     // off, the trade panel's hero 0. Last, for every mode: the description panel emptied, the
-    // statistics panel's page `mode`, mode_.
+    // statistics panel's page `mode`, mode_. With Rebirth's WideScreen the curtains (sprites 19 and
+    // 20, when there are 21) are then shown in modes 10 and 11 and hidden in 9.
     void SetModeVanilla(int mode);
-    // 00613EA0 (slot 25; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
-    // only; ui_hero_screen_create.cpp). The game's resources taken for a network game
+    // 00613EA0 (slot 25; Rebirth-patched; ui_hero_screen_create.cpp, reproducing WideScreen; hooked
+    // in the vanilla launch only, as EI_Plugin.asi patches it too in a Rebirth launch). The game's resources taken for a network game
     // (0057DEE0 with 1); the menu model with its multiplayer button; nine regions; the item
     // screen's base (005EDD80); the sprites (0, 1 the buttons, 2 the selection frame, 3-6 the
     // quarters "campm1".."campm4" around the figure, 7-9 the new hero's buttons, 10-12 frames,
@@ -473,7 +474,8 @@ public:
     // scroll bar; four surfaces (the list, its commands with the four "lmp_pers_..." texts, the
     // voices, the name being changed, hidden); the saved heroes reloaded from <data>"mp\"
     // (00662FB0), the list's scroll range, the list drawn, the first hero selected (-1 without
-    // one) and mode 9 (00615D30).
+    // one) and mode 9 (00615D30); with Rebirth's WideScreen then the two curtains over the
+    // screen's margins, hidden (widescreen::AddCurtains; sprites 19 and 20).
     void Create();
     // The hero list's scroll bar after the count changed (DeleteHero and AddNewHero inline it):
     // range count - 10 keeping the position, or 0 with the top row 0.

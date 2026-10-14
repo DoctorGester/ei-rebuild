@@ -35,6 +35,8 @@
 
 #include <windows.h>
 
+class CUiWindow;
+
 namespace widescreen {
 
 // addon's values (its globals at 100BD094..100BD0A8), valid when `active`.
@@ -101,6 +103,18 @@ float FontScale();
 // mouse move and click call in place of the pick picture's pixel read 005FD240: the half-size
 // picture's x is (x / 2) - margin / 2. margin / 2 while Active(), else 0.
 int PickShift();
+
+// addon's handlers after the camp's and the multiplayer hero screen's Creates (100234AB at 0060C870,
+// 100235BA at 00613EA0): two more sprites of `window` over the screen's margins, the left one the
+// layout rectangle (-margin, 0)-(0, 600) showing texels (0xE3, 0x3E)-(0x100, 0xB0), the right one
+// (800, 0)-(800 + margin, 600) the same texels mirrored (addon takes the margin's pixels as layout
+// units: wider than the margins, harmless), both at depth 2, scale 100, tint 0.3, shown `visible`
+// (the camp 1, the hero screen 0). Nothing while not Active() (addon installs them only then).
+void AddCurtains(CUiWindow* window, int visible);
+// addon's handler after the hero screen's mode 00615D30 (100236C3): when the window has exactly 21
+// sprites (the 19 of the hero screen and the curtains), the curtains (19, 20) are shown in every
+// mode but the hero list (9). Nothing while not Active().
+void ShowHeroCurtains(CUiWindow* window, int mode);
 
 // The layout's right edge with the wide layout, 800 + extra: addon's operands at 0065E7C3 / 0065E7CA
 // (the tooltip kept on the layout, 0065E580).

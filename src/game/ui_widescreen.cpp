@@ -2,6 +2,8 @@
 // scaling. See ui_widescreen.h.
 #include "ui_widescreen.h"
 
+#include "ui.h"
+
 #include "ei/hook.h"
 #include "ei/rebirth.h"
 #include "hook/log.h"
@@ -242,6 +244,36 @@ float AxisScale() { return Active() ? Get().axisScale : 1.0f; }
 float FontScale() { return Active() ? Get().fontScale : *reinterpret_cast<const volatile float*>(std::uintptr_t(0x0073D09C)); }
 
 int PickShift() { return Active() ? Get().margin / 2 : 0; }
+
+namespace {
+constexpr int kHeroScreenSprites = 21;   // the hero screen's 19 and the two curtains
+constexpr int kHeroListMode = 9;
+
+void SetCurtainLook(CUiMesh* curtain, int visible) {
+    curtain->tint_[0] = curtain->tint_[1] = curtain->tint_[2] = 0.3f;
+    curtain->visible_ = visible;
+}
+} // namespace
+
+// 100234AB / 100235BA: AddSprite(0) (005FF3C0) and SetRectangle (005E70E0) through their addresses;
+// FILD margin; FCHS for the left edge, FILD margin; FADD 800.0 (a double) for the right one.
+void AddCurtains(CUiWindow* window, int visible) {
+    if (!Active()) return;
+    const int margin = Get().margin;
+    CUiMesh* left = window->AddSprite(nullptr);
+    left->SetRectangle(2.0f, 100.0f, static_cast<float>(-margin), 0.0f, 0.0f, 600.0f, 0xE3, 0x3E, 0x100, 0xB0);
+    SetCurtainLook(left, visible);
+    CUiMesh* right = window->AddSprite(nullptr);
+    right->SetRectangle(2.0f, 100.0f, 800.0f, 0.0f, static_cast<float>(margin + 800.0), 600.0f, 0x100, 0xB0, 0xE3, 0x3E);
+    SetCurtainLook(right, visible);
+}
+
+void ShowHeroCurtains(CUiWindow* window, int mode) {
+    if (!Active() || window->sceneObjects_.size != kHeroScreenSprites) return;
+    const int shown = mode != kHeroListMode ? 1 : 0;
+    window->SceneMesh(kHeroScreenSprites - 2)->visible_ = shown;
+    window->SceneMesh(kHeroScreenSprites - 1)->visible_ = shown;
+}
 
 // addon's apply function: 0x320 + extra written at 0065E7C3, -0x320 - extra at 0065E7CA.
 int LayoutRight() { return kLayoutWidth + Get().extra; }

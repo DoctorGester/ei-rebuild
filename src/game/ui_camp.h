@@ -758,9 +758,13 @@ static_assert(offsetof(CTradePanel, holdTime_) == 0x1A0);
 // its other pages, 7 leave the camp.
 class CCampPages : public CItemScreen {
 public:
-    // 0060C870 (slot 25; Rebirth-patched, this is the vanilla body, hooked in the vanilla launch
-    // only; ui_camp_create.cpp). Builds the camp: the server flag set; the constructor's class
-    // template from the player's "constr.current" (none found: back to the world, nothing built)
+    // 0060C870 (slot 25; Rebirth-patched; ui_camp_create.cpp, reproducing WideScreen, so hooked in
+    // both launches). BuildPages, then with Rebirth's WideScreen the two curtains over the
+    // screen's margins, shown (widescreen::AddCurtains; sprites 10 and 11).
+    void Create();
+    // The original Create's body (not a function of the game). Builds the camp: the server flag
+    // set; the constructor's class template from the player's "constr.current" (none found: back
+    // to the world, nothing built)
     // with its flags, price weights and part lists; the player's "i.noconstr" / "i.off..." /
     // "i.on..." switches; texture "campinfo", twelve regions (the two action buttons, the two
     // hero turn areas, the eight page buttons) and ten button sprites; the item screen's base;
@@ -772,7 +776,7 @@ public:
     // 0); a constructor's stock made on its first visit (flag38) from the party's lowest and
     // highest skill per spell school; the allod's constructor music; antialiasing (render state 2
     // = 2) when the device sorts independently.
-    void Create();
+    void BuildPages();
     // 0060E9E0. Shows page `page` (regions 4-11 and Esc call it): hides every page's panels,
     // shows the page's ones, its title and the strip that goes with it; a constructor page the
     // camp does not offer falls back to the current page. Page 7 gives the constructors' unused
