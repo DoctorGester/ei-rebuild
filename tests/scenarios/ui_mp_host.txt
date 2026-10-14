@@ -1,0 +1,76 @@
+# Hosting a multiplayer game from the menus (docs/notes/ui-census.md): main menu region 5 (the hero
+# screen), a new hero (region 5; the defaults first, region 4, as they clear the name; then the name
+# typed, create, region 1, and the statistics page's next, region 1, which writes 1.mp into the
+# run's overlay and selects it), Enter continues to the connection screen (CMpConnectScreen
+# 00741CD0: Create starts the client). Its list (0061D780, ui_connect_list.cpp; Rebirth's own body
+# under Rebirth) is drawn again by the row clicks (region 14: row 0, the new game entry), the keys
+# and the sort columns (regions 6 / 7); region 0 then hosts the new game (GameFlow::StartServer).
+# On the base screen (briefing) of the network client the player list (CChatWindow) is shown, and
+# Enter opens the chat line (CChatOverlay, 005E36C0; its typed line 005E3700): typed, edited,
+# sent (the server's SayMessage handler adds the line, the client's LineMessage handler shows it,
+# 005E2A30); Backspace with the line closed clears the lines. Nothing reaches another machine.
+reject Script error
+waitmenu
+clickregion 5
+waitwindow 15 heroes
+wait 500
+clickregion 5
+frames 10
+clickregion 4
+frames 5
+key t
+frames 3
+key e
+frames 3
+key s
+frames 3
+key t
+frames 5
+clickregion 1
+frames 10
+clickregion 1
+frames 10
+key enter
+waitwindow 15 00741CD0
+
+# The list: row 0, the selection keys, the sort columns (the name twice: reversed), row 0 again.
+clickregion 14
+frames 5
+key down
+frames 5
+key up
+frames 5
+clickregion 6
+frames 5
+clickregion 6
+frames 5
+clickregion 7
+frames 5
+clickregion 14
+frames 5
+
+# Host.
+clickregion 0
+waitwindow 25 briefing
+frames 10
+
+# The chat line: opened, typed, edited, sent; then the lines cleared.
+key enter
+frames 5
+key h
+key e
+key l
+key l
+key o
+frames 5
+key left
+key home
+key end
+key backspace
+frames 5
+key enterchar
+wait 1500
+key backspace
+frames 5
+report
+quit
