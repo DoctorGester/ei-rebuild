@@ -14,8 +14,8 @@ namespace {
 __declspec(naked) bool __fastcall MarkFootprint(CAIMap*, void*, CEngineObject*, bool) EI_ORIGINAL(0x005B6A80)
 
 // The world position of an object (+0x1C, +0x20; common to all objects in the sector map).
-float PosX(const CEngineObject* o) { return *reinterpret_cast<const float*>(reinterpret_cast<const char*>(o) + 0x1C); }
-float PosY(const CEngineObject* o) { return *reinterpret_cast<const float*>(reinterpret_cast<const char*>(o) + 0x20); }
+float PosX(const CEngineObject* o) { return static_cast<const CMapObject*>(o)->position.x; }
+float PosY(const CEngineObject* o) { return static_cast<const CMapObject*>(o)->position.y; }
 CUnit* AsUnit(CEngineObject* o) { return static_cast<CUnit*>(o); }
 
 constexpr float kCellSize = 1.0f;   // 0073FDD0
@@ -306,7 +306,7 @@ void CSectorMap::FindUnitsInRadius(const Vector3* position, mfc::CTypedPtrList<C
     float px = position->x, py = position->y;
 
     // The units live in the AI map's own sector grid.
-    auto* grid = reinterpret_cast<CSectorMap*>(reinterpret_cast<char*>(aiMap) + 0x124);
+    CSectorMap* grid = &aiMap->sectorMap;
     for (int i = 0; i < length; ++i, offset += 2) {
         int gx = offset[0] + sx, gy = offset[1] + sy;
         if (gx < 0 || gy < 0 || gx >= grid->width || gy >= grid->height) continue;
@@ -327,7 +327,7 @@ bool CSectorMap::Move(CEngineObject* object, const Vector3* position) {
     if (ei::rebirth::Enabled(ei::rebirth::Patch::FixMoveObject) && (!(position->x >= kZero) || !(position->y >= kZero)))
         return false;
     CUnit* unit = AsUnit(object);
-    Vector3& current = *reinterpret_cast<Vector3*>(reinterpret_cast<char*>(object) + 0x1C);
+    Vector3& current = static_cast<CMapObject*>(object)->position;
     int cellX = x87::fistp(1.0f / (kCellSize * 0.5f) * position->x - 0.5f);
     int cellY = x87::fistp(1.0f / (kCellSize * 0.5f) * position->y - 0.5f);
     Vector3 saved;

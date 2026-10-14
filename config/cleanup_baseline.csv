@@ -187,7 +187,7 @@ src/game/script_reset.cpp,11,0,0,0,0,0,0,0,0,0,0
 src/game/script_save.cpp,9,0,0,0,0,0,0,1,0,0,0
 src/game/script_vars.cpp,0,0,1,0,0,0,0,1,0,0,0
 src/game/script_vars_append.cpp,0,0,1,0,0,0,0,0,0,0,0
-src/game/sector_map.cpp,0,0,0,0,0,0,0,4,0,0,1
+src/game/sector_map.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/sky_object.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/sound.h,0,0,0,0,0,0,0,0,0,0,6
 src/game/sound_manager.cpp,0,0,1,1,0,0,0,1,0,0,3
