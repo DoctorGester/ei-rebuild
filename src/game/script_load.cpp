@@ -38,8 +38,6 @@ __declspec(naked) void __fastcall IfThenPairLoad(ScriptIfThen*, void*, ScriptStr
 __declspec(naked) void __fastcall StringLoad(mfc::CString*, ScriptStream*) EI_ORIGINAL(0x004B3D10)
 // 00461190 (__thiscall on the stream, RET 4; rewritten in core_streams.cpp, called through its
 // address): bytes up to a zero (or a failed read) into a CString constructed at `out`; returns out.
-// 004BF540 CScript::NewCommandList: a new empty command block in the +0x70 list.
-__declspec(naked) ScriptDecl* __fastcall NewCommandList(CScript*) EI_ORIGINAL(0x004BF540)
 // 004BFA50 CScript::FindBlock (rewritten below; SSCCmd::Load calls it out of line).
 __declspec(naked) ScriptDecl* __fastcall FindBlockOrig(const CScript*, void*, int) EI_ORIGINAL(0x004BFA50)
 // ScriptObjectRef::Load (rewritten in script_group.cpp) and the group values' SetSize.
@@ -51,8 +49,6 @@ __declspec(naked) CEngineObject* __fastcall WorldFindObject(void*, void*, int) E
 CEngineObject* RegistryObject(int id) { return ManagerFindObject(*reinterpret_cast<void**>(0x007AFFA8), nullptr, id); }
 
 // Rewritten script helpers, called through their addresses (their verify wrappers run).
-__declspec(naked) void __fastcall RefReset(ScriptObjectRef*) EI_ORIGINAL(0x004B24B0)
-__declspec(naked) void __fastcall RefAssign(ScriptObjectRef*, void*, CEngineObject*) EI_ORIGINAL(0x004B24D0)
 __declspec(naked) void __fastcall GroupSort(ScriptGroup*) EI_ORIGINAL(0x004B2D60)
 void __fastcall GroupSetSize(ScriptGroup* a0, void*, int a2, int a3) { PtrArraySetSize((void*)a0, nullptr, a2, a3); }
 
@@ -63,10 +59,7 @@ void __fastcall CmdsSetSize(void* a0, void*, int a2, int a3) { CmdArraySetSizeOr
 void __fastcall IfThenSetSize(void* a0, void*, int a2, int a3) { IfThenArraySetSizeOriginal(a0, nullptr, a2, a3); }
 // Copies (CArray::Copy / ScriptVars assignment), __thiscall (source).
 __declspec(naked) void __fastcall IfThenCopy(void*, void*, const void*) EI_ORIGINAL(0x004CC4A0)
-__declspec(naked) void __fastcall VarsCopy(void*, void*, const void*) EI_ORIGINAL(0x004CBAE0)
 // ScriptVars constructor / destructor body.
-__declspec(naked) void __fastcall VarsConstruct(ScriptVars*) EI_ORIGINAL(0x004C00D0)
-__declspec(naked) void __fastcall VarsDestruct(ScriptVars*) EI_ORIGINAL(0x004BE090)
 
 // ConstructElements / DestructElements instantiations (__stdcall (first, count)) and element
 // destructors (__thiscall (flags); 0 = destroy in place).
@@ -588,7 +581,7 @@ void __fastcall ScriptInstancesLoad(RawList* list, ScriptStream* stream) {
             instance->name = temp.name;
             instance->params = temp.params;
             IfThenCopy(&instance->ifThen, nullptr, &temp.ifThen);
-            VarsCopy(&instance->vars, nullptr, &temp.vars);
+            VarsAssign(&instance->vars, nullptr, &temp.vars);
         });
         VarsDestruct(&temp.vars);
     }
@@ -622,7 +615,7 @@ void __fastcall ScriptRunsLoad(RawList* list, ScriptStream* stream) {
             run->ticks = temp.ticks;
             run->sleepStart = temp.sleepStart;
             run->killFlag = temp.killFlag;
-            VarsCopy(&run->vars, nullptr, &temp.vars);
+            VarsAssign(&run->vars, nullptr, &temp.vars);
         });
         VarsDestruct(&temp.vars);
     }
@@ -673,7 +666,7 @@ void __fastcall ScriptLoad(CScript* script, void*, ScriptStream* stream) {
 
     // Command blocks (+0x70): created empty, then each block's id and commands.
     int blocks = ReadInt(stream);
-    for (int i = 0; i < blocks; ++i) NewCommandList(script);
+    for (int i = 0; i < blocks; ++i) script->NewCommandList();
     for (ListNode* node = At<RawList>(script, 0x70).head; node;) {
         auto* block = reinterpret_cast<ScriptDecl*>(node->data.bytes);
         node = node->next;

@@ -15,6 +15,7 @@
 
 #include <cstring>
 #include "originals_library.h"
+#include "originals_script.h"
 
 // The distances keep the original's operation order: no reassociation in this file.
 #pragma float_control(precise, on, push)
@@ -47,7 +48,6 @@ inline void __fastcall UnitListRemoveAll(UnitList* l, void*) { PtrListRemoveAllO
 UnitList::Node* __fastcall UnitListNewNode(UnitList* a0, void*, UnitList::Node* a2, UnitList::Node* a3) { return (UnitList::Node*)PtrListNewNode52CEF0Original((void*)a0, nullptr, (void*)a2, (void*)a3); }
 void __fastcall UnitListFreeNode(UnitList* a0, void*, UnitList::Node* a2) { UnitListFreeNodeOriginal((void*)a0, nullptr, (void*)a2); }
 // 004B3330 (RET 4). ScriptGroup::Contains (script_group.cpp), through its address.
-__declspec(naked) int __fastcall GroupContains(const void*, void*, CEngineObject*) EI_ORIGINAL(0x004B3330)
 // 0054BBC0 (RET 0x10). Whether the spell (EDX) may hit `target` (ECX = the world).
 __declspec(naked) bool __fastcall SpellReaches(CWorldServer*, const void* /*spell*/, CEngineObject* /*caster*/,
                                                const Vector3* /*from*/, CEngineObject* /*target*/,
@@ -224,7 +224,7 @@ void CWorldServer::CastSpell(const void* spell, CEngineObject* caster, const Vec
         if (!caster) {
             hit = true;
         } else if (heroes) {
-            hit = GroupContains(static_cast<std::uint8_t*>(heroes) + 0x510C, nullptr, best) != 0;
+            hit = GroupContains(reinterpret_cast<const ScriptGroup*>(static_cast<std::uint8_t*>(heroes) + 0x510C), nullptr, best) != 0;
         } else {
             // The caster's friends (a list at controller +0xA94), else diplomacy says.
             auto* friends = At<UnitList::Node*>(At<void*>(caster, 0x240), 0xA94);

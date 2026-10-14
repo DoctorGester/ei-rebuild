@@ -59,7 +59,6 @@ ScriptObjectRef* __fastcall GroupGetAt(const ScriptGroup* a0, void*, ScriptObjec
 void __stdcall RefsRelease(ScriptObjectRef* a0, int a1) { ScriptRefElementsDestruct((void*)a0, a1); }
 __declspec(naked) void* __fastcall RefDestruct(ScriptObjectRef*, void*, unsigned /*flags*/) EI_ORIGINAL(0x004CE1E0)
 void __fastcall GroupSetSize(ScriptGroup* a0, void*, int a2, int a3) { PtrArraySetSize((void*)a0, nullptr, a2, a3); }
-__declspec(naked) void __fastcall RefReset(ScriptObjectRef*, void*) EI_ORIGINAL(0x004B24B0)
 // The network log's ostream (007C56B0).
 inline void* __fastcall OstreamPutLong(void* s, void*, long v) { return OstreamPutLongOriginal(s, nullptr, v); }
 
@@ -168,9 +167,9 @@ int CWorldServer::Update() {
             ScriptObjectRef copy;
             ScriptObjectRef* ref = GroupGetAt(&heroes, nullptr, &copy, i);
             ScriptObjectRef* slot = &state->partyUnits_.data[i];
-            RefReset(slot, nullptr);
+            RefReset(slot);
             RefConstruct(slot, nullptr, ref);
-            RefReset(&copy, nullptr);
+            RefReset(&copy);
         }
     }
     heroes.vtable = scriptvtable::kRefsBase;

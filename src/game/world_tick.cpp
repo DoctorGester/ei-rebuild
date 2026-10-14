@@ -19,6 +19,7 @@
 #include <cstring>
 #include "originals_library.h"
 #include "originals_world.h"
+#include "originals_script.h"
 
 namespace {
 
@@ -40,8 +41,6 @@ __declspec(naked) void __fastcall ServerReplace60(CWorldServer*, void*) EI_ORIGI
 __declspec(naked) void __fastcall TimeWheelAdvance(void*, void*, int /*tick*/) EI_ORIGINAL(0x005C9530)
 // 006D44E0. Counts every countdown (+0x70) down; true (AL) when one was still running.
 __declspec(naked) bool __fastcall CountdownsTick(void*, void*) EI_ORIGINAL(0x006D44E0)
-// 004BF000. Runs a script command queue (+0x12874 / +0x12A6C).
-__declspec(naked) void __fastcall CommandQueueRun(void*, void*) EI_ORIGINAL(0x004BF000)
 // 005D5940. An AI brain (unit controller + 0x980) hears alarm `index`.
 void __fastcall BrainHearAlarm(void* brain, void*, int index) { static_cast<AIBrain*>(brain)->HearAlarm(index); }
 // The game's atexit (006E727B).
@@ -166,8 +165,8 @@ void CWorldServer::Tick(char force) {
         ProjectileFreeNode(&projectiles_, nullptr, current);
     }
 
-    if (unknown160_ != 0 || force) CommandQueueRun(commandsA_, nullptr);
-    CommandQueueRun(commandsB_, nullptr);
+    if (unknown160_ != 0 || force) ScriptsRun(MainScript());
+    ScriptsRun(reinterpret_cast<CScript*>(commandsB_));
     ServerUpdateUnits(this, nullptr);
 }
 

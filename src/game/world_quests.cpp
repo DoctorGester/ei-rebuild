@@ -182,9 +182,8 @@ inline mfc::CTypedPtrList<CEngineObject>::Node* __fastcall PtrListNewNode(mfc::C
 void __fastcall PlayerGiveItems(WorldPlayer* a0, void*, mfc::CTypedPtrList<CEngineObject>* a2, int a3) { PlayerGiveItemsOriginal((void*)a0, nullptr, (void*)a2, a3); }
 void __fastcall PlayerEraseQuestItem(WorldPlayer* a0, void*, int a2) { PlayerEraseQuestItemOriginal(a0, nullptr, a2); }
 __declspec(naked) void __fastcall StateSetVariableMax(CPlayerServer*, void*, const char*, float) EI_ORIGINAL(0x0066EE80)
-// 004D23A0 (RET 8) / 004BF000. The first command queue: add a line, run once.
+// 004D23A0 (RET 8). The first command queue: add a line (ScriptsRun runs it once).
 int __fastcall CommandQueueAdd(void* a0, void*, const mfc::CString* a2, int a3) { return ScriptLoadLine(a0, nullptr, a2, a3); }
-__declspec(naked) void __fastcall CommandQueueRun(void*, void*) EI_ORIGINAL(0x004BF000)
 
 // The item named `name`, with the original's unused temporary lists around the creation (built
 // in the order `firstAt`, then the other).
@@ -291,7 +290,7 @@ void CWorldServer::CompleteBriefing(int playerId, const char* name) {
     script.Format(worlddata::BriefingCompleteScript(), playerId, name, playerId, name);
     CommandQueueAdd(commandsA_, nullptr, &script, 1);
     if (unknown12D64_ == kKindNoRangeTest)
-        for (int i = 0; i < 5; ++i) CommandQueueRun(commandsA_, nullptr);
+        for (int i = 0; i < 5; ++i) ScriptsRun(MainScript());
 }
 
 // ---- ApplyMercBriefing ------------------------------------------------------------------------

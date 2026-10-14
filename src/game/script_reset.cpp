@@ -34,8 +34,6 @@ __declspec(naked) void* __fastcall BlocksRemoveHead(void*, void*, void* /*out*/)
 void* __fastcall TempGroupsRemoveTail(void* a0, void*, void* a2) { return TempGroupsRemoveTailOriginal(a0, nullptr, a2); }
 void* __fastcall TempObjectsRemoveTail(void* a0, void*, void* a2) { return TempObjectsRemoveTailOriginal(a0, nullptr, a2); }
 // Element destructors (__thiscall): ScriptDefinition, ScriptVars, ScriptDecl, group.
-__declspec(naked) void __fastcall DefinitionDestruct(void*) EI_ORIGINAL(0x004BE9D0)
-__declspec(naked) void __fastcall VarsDestruct(void*) EI_ORIGINAL(0x004BE090)
 __declspec(naked) void __fastcall DeclDestruct(void*) EI_ORIGINAL(0x004C54A0)
 inline void __fastcall GroupDestruct(void* a0) { ScriptGroupDestructOriginal((void*)a0); }
 // Node element destructors (__thiscall (flags), 0 = in place): WorldScript block (0x18), FX
@@ -46,9 +44,6 @@ __declspec(naked) void __fastcall ParticleDestroy(void*, void*, int) EI_ORIGINAL
 __declspec(naked) void __stdcall LightningElementsDestruct(void*, int) EI_ORIGINAL(0x004CD690)
 // CArray::SetSize (__thiscall (size, growBy)): areas, definitions; a temporary group.
 void __fastcall GroupSetSize(void* a0, void*, int a2, int a3) { PtrArraySetSize(a0, nullptr, a2, a3); }
-// Rewritten, called through their addresses (their verify wrappers run).
-__declspec(naked) void __fastcall RefReset(void*) EI_ORIGINAL(0x004B24B0)
-__declspec(naked) void __fastcall RefAssign(void*, void*, CEngineObject*) EI_ORIGINAL(0x004B24D0)
 __declspec(naked) void __fastcall FloatsClear(void*) EI_ORIGINAL(0x004C1650)
 __declspec(naked) void __fastcall StringsClear(void*) EI_ORIGINAL(0x004C16B0)
 __declspec(naked) void __fastcall ObjectsClear(void*) EI_ORIGINAL(0x004C1700)
@@ -89,11 +84,11 @@ void __fastcall ScriptReset(CScript* script) {
     alignas(4) unsigned char element[0xC0];
     while (ListAt(script, 0x140).count != 0) {
         InstancesRemoveHead(&ListAt(script, 0x140), nullptr, element);
-        DefinitionDestruct(element);
+        DefinitionDestruct(reinterpret_cast<ScriptDefinition*>(element));
     }
     while (ListAt(script, 0x15C).count != 0) {
         RunsRemoveHead(&ListAt(script, 0x15C), nullptr, element);
-        VarsDestruct(element + 0x14);
+        VarsDestruct(reinterpret_cast<ScriptVars*>(element + 0x14));
     }
 
     RemoveAll(ListAt(script, 0x178), [](char* data) { WorldBlockDestroy(data, nullptr, 0); });
@@ -115,9 +110,9 @@ void __fastcall ScriptReset(CScript* script) {
     ScriptList& objects = ListAt(script, 0x1CC);
     while (objects.count > 1) {
         TempObjectsRemoveTail(&objects, nullptr, element);
-        RefReset(element);
+        RefReset(reinterpret_cast<ScriptObjectRef*>(element));
     }
-    RefAssign(objects.tail->data.bytes, nullptr, nullptr);
+    RefAssign(reinterpret_cast<ScriptObjectRef*>(objects.tail->data.bytes), nullptr, nullptr);
 
     // Point lights (+0x04 data, +0x08 count; 0x20-byte slots): objects released, slots zeroed.
     for (int i = 0; i < Field<int>(script, 0x08); ++i) {

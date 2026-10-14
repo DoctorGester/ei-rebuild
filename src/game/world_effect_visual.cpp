@@ -350,7 +350,7 @@ Vector3* CEffectParticle::Position(void* group) {
     if (attachedTo_ == -1) return &localPosition_;
     auto* object = static_cast<CEngineObject*>(ObjectById(effect::ManagerContext(this), attachedTo_));
     if (object == nullptr) return &localPosition_;
-    if (GroupContains(group, nullptr, object) == 0) {
+    if (GroupContains(static_cast<const ScriptGroup*>(group), nullptr, object) == 0) {
         // Not in the group: far away.
         worldPosition_.x = FromBits(0xC9742400u);   // -1e6
         worldPosition_.y = FromBits(0xC9742400u);

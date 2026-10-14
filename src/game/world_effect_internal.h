@@ -13,6 +13,7 @@
 #include "originals_engine.h"
 #include "originals_library.h"
 #include "originals_world.h"
+#include "originals_script.h"
 
 #include <cstdint>
 #include <cstring>
@@ -100,8 +101,6 @@ inline void* FindUnit(void* world, void*, int id) { return ::WorldFindUnit(world
 inline void* FindObject(void* manager, void*, int id) { return ManagerFindObject(manager, nullptr, id); }
 // 00532860 (unit). A point of the unit (its effect origin); returns `out`.
 __declspec(naked) inline Vector3* __fastcall UnitEffectPoint(void* /*unit*/, void*, Vector3* /*out*/) EI_ORIGINAL(0x00532860)
-// 004B3330 (rewritten in script_group.cpp). Whether the group holds the object.
-__declspec(naked) inline int __fastcall GroupContains(void* /*group*/, void*, void* /*object*/) EI_ORIGINAL(0x004B3330)
 
 // Virtual slots used on objects whose classes are not declared here.
 inline void* ObjectById(void* holder, int id) { return ei::VCall<void*>(holder, 40, id); }       // slot 40 (+0xA0)

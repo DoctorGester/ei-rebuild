@@ -32,8 +32,7 @@ namespace console {
 
 namespace {
 
-// 004D36F0 (the script loader 007C27D4: load a file) and 004BF000 (run what was loaded).
-__declspec(naked) void __fastcall ScriptsRun(void*) EI_ORIGINAL(0x004BF000)
+// 004D36F0 (the script loader 007C27D4: load a file) and 004BF000 (run what was loaded, ScriptsRun).
 // 006002A0. CUiWindow::SetEnabled(enabled, notify).
 // 006FDC12. CString::FormatV(format, arguments).
 struct FormatVAt : mfc::CString {
@@ -139,7 +138,7 @@ void __fastcall Addon(CStringArray* args) {
 // execs file: loads a script file into the script loader and runs it.
 void __fastcall Execs(CStringArray* args) {
     if (LoadScriptFile(kScripts, nullptr, (*args)[0])) {
-        ScriptsRun(kScripts);
+        ScriptsRun(static_cast<CScript*>(kScripts));
         return;
     }
     SayFormat("Script error: line %d: %s", *reinterpret_cast<int*>(0x007C29C8), *reinterpret_cast<const char**>(0x007C29C0));

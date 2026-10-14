@@ -80,8 +80,6 @@ using devicebuffers::Outcodes;
 __declspec(naked) void __fastcall BoundsOfProjected(char*, void*, lib::AlignedArray<ProjectedVertex>*, int) EI_ORIGINAL(0x004E8900)
 __declspec(naked) void __fastcall BoundsOfVertices(char*, void*, lib::AlignedArray<TLVertex>*, std::uint8_t*) EI_ORIGINAL(0x004E86B0)
 CTextureDevice* DeviceObject(char* device) { return reinterpret_cast<CTextureDevice*>(device); }
-__declspec(naked) int __fastcall DrawPrimitive(char*, void*, int, int, void*, int, std::uint16_t*, int, int)
-    EI_ORIGINAL(0x004EB550)
 __declspec(naked) int __fastcall DrawPrimitive2(char*, void*, void*, void*, int, int, void*, int, std::uint16_t*, int,
                                                 int) EI_ORIGINAL(0x004EB370)
 

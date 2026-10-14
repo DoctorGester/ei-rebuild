@@ -78,16 +78,12 @@ struct VarsAt : ScriptVars {
     void AppendFrom(const ScriptVars* other);   // 004B3900: adds the other set's variables
     void ResetValuesAt();                       // 004B35E0
     void Clear();                               // 004C0020: removes every variable
-    void Construct();                           // 004C00D0
-    void Destruct();                            // 004BE090
 };
 __declspec(naked) BOOL VarsAt::FindVariableAt(const char*, int*, int*) EI_ORIGINAL(0x004B37D0)
 __declspec(naked) BOOL VarsAt::HasVariableAt(const char*) EI_ORIGINAL(0x004B36D0)
 __declspec(naked) void VarsAt::AppendFrom(const ScriptVars*) EI_ORIGINAL(0x004B3900)
 __declspec(naked) void VarsAt::ResetValuesAt() EI_ORIGINAL(0x004B35E0)
 __declspec(naked) void VarsAt::Clear() EI_ORIGINAL(0x004C0020)
-__declspec(naked) void VarsAt::Construct() EI_ORIGINAL(0x004C00D0)
-__declspec(naked) void VarsAt::Destruct() EI_ORIGINAL(0x004BE090)
 VarsAt* Vars(ScriptVars* vars) { return static_cast<VarsAt*>(vars); }
 
 // CArray template members of the loader's arrays (MFC code, not rewritten; thiscall on the array).
@@ -108,10 +104,8 @@ void IfThensSetSize(mfc::CArray<ScriptIfThen>* pairs, int size, int growBy) {
 
 struct DefinitionAt : ScriptDefinition {
     void Reset();      // 004D3320: empties everything (name and parameters too)
-    void Destruct();   // 004BE9D0
 };
 __declspec(naked) void DefinitionAt::Reset() EI_ORIGINAL(0x004D3320)
-__declspec(naked) void DefinitionAt::Destruct() EI_ORIGINAL(0x004BE9D0)
 
 // 004D6100: the definitions' Add (copies the definition).
 __declspec(naked) int __fastcall DefinitionsAdd(mfc::CArray<ScriptDefinition>*, void*, const ScriptDefinition*)
@@ -267,8 +261,8 @@ struct LocalCmd {
 // A ScriptVars on the stack.
 struct LocalVars {
     alignas(4) unsigned char storage[sizeof(ScriptVars)];
-    LocalVars() { Vars(Get())->Construct(); }
-    ~LocalVars() { Vars(Get())->Destruct(); }
+    LocalVars() { VarsConstruct(Get()); }
+    ~LocalVars() { VarsDestruct(Get()); }
     ScriptVars* Get() { return reinterpret_cast<ScriptVars*>(storage); }
 };
 
@@ -284,10 +278,10 @@ struct LocalDefinition {
         d->ifThen.size = 0;
         d->ifThen.maxSize = 0;
         d->ifThen.growBy = 0;
-        Vars(&d->vars)->Construct();
+        VarsConstruct(&d->vars);
         d->index = 0;
     }
-    ~LocalDefinition() { static_cast<DefinitionAt*>(Get())->Destruct(); }
+    ~LocalDefinition() { DefinitionDestruct(Get()); }
     ScriptDefinition* Get() { return reinterpret_cast<ScriptDefinition*>(storage); }
 };
 

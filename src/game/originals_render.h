@@ -17,6 +17,8 @@ __declspec(naked) inline int __fastcall DrawMesh(char*, void*, const void*, int,
     EI_ORIGINAL(0x004E9010)
 // 004E9A50: the same with two textures' surfaces before the positions (RET 0x50).
 class CTextureDevice;
+class CTransformPipeline;
+struct ClipBounds;
 struct CDXSurface;
 __declspec(naked) inline int __fastcall DrawMesh2(CTextureDevice*, void*, CDXSurface*, CDXSurface*, const void*, int,
                                                   std::uint32_t, int, std::uint32_t, std::uint32_t, std::uint32_t,
@@ -138,3 +140,13 @@ __declspec(naked) inline int __fastcall DXSurfaceDescribeOriginal(void* /*holder
 // a scene node's bone and, recursively, its children.
 __declspec(naked) inline void __fastcall BuildBoneAt(scene::SceneSkin*, CAnimationNode*, const scene::SceneNode*, int)
     EI_ORIGINAL(0x004492F0)
+
+// C3n. 004EB550 (rewritten as DeviceDrawIndexed; thiscall on the device, RET 0x1C): draws indexed primitives with the
+// current material (primitive type, FVF, vertices, vertex count, 16-bit indices, index count, flags); returns 1.
+// 004F16A0 (rewritten as CTransformPipeline::ClipTest; RET 4): 2 = the bounds are outside the view, 1 = crossing it.
+__declspec(naked) inline int __fastcall DrawPrimitive(char* /*device*/, void*, int /*primitive*/, int /*fvf*/,
+                                                      void* /*vertices*/, int /*vertexCount*/,
+                                                      const std::uint16_t* /*indices*/, int /*indexCount*/, int /*flags*/)
+    EI_ORIGINAL(0x004EB550)
+__declspec(naked) inline int __fastcall ClipTest(CTransformPipeline* /*pipeline*/, void*, const ClipBounds* /*bounds*/)
+    EI_ORIGINAL(0x004F16A0)
