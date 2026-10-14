@@ -50,9 +50,9 @@ src/game/core_transform.h,0,0,0,0,1,0,0,0,0,0,0
 src/game/core_transform_math.cpp,0,0,8,1,1,0,0,0,0,0,12
 src/game/deleting_destructors_400.cpp,0,0,0,0,33,0,0,0,0,0,0
 src/game/device_buffers.h,0,0,0,0,0,0,0,0,0,0,1
-src/game/device_mesh.cpp,9,0,1,0,0,0,0,0,0,0,0
+src/game/device_mesh.cpp,0,0,1,0,0,0,0,0,0,0,0
 src/game/device_present.cpp,8,0,0,0,0,0,0,0,0,0,0
-src/game/device_shadow.cpp,5,0,1,0,0,0,0,0,0,0,0
+src/game/device_shadow.cpp,0,0,1,0,0,0,0,0,0,0,0
 src/game/device_states.cpp,12,0,0,0,0,0,0,0,0,0,0
 src/game/dx_surface.cpp,0,2,0,0,0,0,0,0,0,0,0
 src/game/effects.cpp,0,0,2,0,1,0,0,0,0,0,0

@@ -309,7 +309,7 @@ void CRainSnow::DrawParticles(CSceneRenderer* renderer, int vertexCount) {
     CTextureDevice* device = renderer->device_;
     TLVertex* data = vertices.data;
     const int count = vertices.size;
-    if (device->unknown_158) device->pipeline_->transform_->FogVertices(data, count);
+    if (device->distanceFog_) device->pipeline_->transform_->FogVertices(data, count);
     gameapi::EnterCriticalSection(device::Lock());
     device->lastLoadResult_ = device::D3D(device)->DrawIndexedPrimitive(
         D3DPT_TRIANGLELIST, D3DFVF_TLVERTEX, data, static_cast<DWORD>(count), indices.data, static_cast<DWORD>(vertexCount), 0);

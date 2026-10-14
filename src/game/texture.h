@@ -202,7 +202,9 @@ public:
     void* material_;                 // +0x14C the current material (004EB170)
     std::uint32_t colour_;           // +0x150 the renderer's draw colour (00501CC0; mesh draw flag 4)
     std::uint8_t unknown_154[4];
-    int unknown_158;            // +0x158 cleared around the sky and hit point draws (00569E40), else 1
+    // +0x158 the draws fog their screen vertices by distance (the transform object's FogVertices)
+    // when set; cleared around the sky and hit point draws (00569E40), else 1.
+    int distanceFog_;
     RECT drawnRect_;            // +0x15C the screen rectangle of the last mesh draw (004E9010 / 004E9A50)
     // +0x16C .. +0x178: the frame's counts, cleared by the renderer's BeginScene (00503F40).
     int vertexCount_;           // +0x16C vertices drawn
@@ -216,7 +218,7 @@ static_assert(offsetof(CTextureDevice, primitiveCount_) == 0x170 && offsetof(CTe
 static_assert(offsetof(CTextureDevice, textureChanges_) == 0x178);
 static_assert(sizeof(CTextureDevice) == 0x17C);
 static_assert(offsetof(CTextureDevice, zEnable_) == 0x60);
-static_assert(offsetof(CTextureDevice, unknown_158) == 0x158);
+static_assert(offsetof(CTextureDevice, distanceFog_) == 0x158);
 static_assert(offsetof(CTextureDevice, deviceGuid_) == 0x7C && offsetof(CTextureDevice, depthFormat_) == 0x8C);
 static_assert(offsetof(CTextureDevice, window_) == 0x34 && offsetof(CTextureDevice, converterLibrary_) == 0x48);
 static_assert(offsetof(CTextureDevice, devices_) == 0xB0 && offsetof(CTextureDevice, largestFormatId_) == 0xD0);

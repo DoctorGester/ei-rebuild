@@ -302,7 +302,7 @@ EI_REPLACE(0x00502AC0, EmitSection);
 int __fastcall DrawTlTriangles(char* holder, void*, TLVertex* vertices, int vertexCount, std::uint16_t* indices,
                                int indexCount) {
     auto* device = reinterpret_cast<CTextureDevice*>(holder);
-    if (device->unknown_158) {
+    if (device->distanceFog_) {
         void* tracker = device->pipeline_->transform_;
         ThisCall<void>(tracker, 35, vertices, vertexCount);
     }

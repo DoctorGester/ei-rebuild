@@ -268,7 +268,7 @@ bool Draw(char* renderer, int vertexCount, int indexCount) {
     CTextureDevice* holder = Renderer(renderer)->device_;
     TLVertex* vertices = CornerData();
     std::uint16_t* indices = IndexData();
-    if (holder->unknown_158) {
+    if (holder->distanceFog_) {
         void* tracker = holder->pipeline_->transform_;
         ThisCall<void>(tracker, 35, static_cast<void*>(vertices), vertexCount);
     }
