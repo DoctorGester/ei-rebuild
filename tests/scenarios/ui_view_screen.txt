@@ -4,24 +4,24 @@
 # the party left the world with the request, so no unit is picked), Ctrl its cursor keys
 # (005EBB80 / 005EBBC0) and Space toggles the server's pause flag twice.
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 screen 7
-wait 3000
+waitwindow 15 view
 click 400 300
-wait 300
+frames 5
 click 200 200
-wait 300
+frames 5
 key ctrl
-wait 300
+frames 5
 key space
-wait 300
+frames 5
 key space
-wait 300
+frames 5
 rclick 400 300
-wait 300
+frames 5
 report
 quit

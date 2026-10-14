@@ -11,50 +11,50 @@
 # old and new frames use "render new,cpuwindows" instead (the old path then draws the textures).
 render new,present
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10
 waitline 15 Saved savea
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
-wait 1000
+waitwindow 15 battle
 
 # Escape menu, Save (rectangles from menus.reg): the new save's entry is selected.
 key esc
-wait 1000
+waitwindow 10 escmenu
 click 395 120
-wait 1500
+waitwindow 10 saveload
 move 400 20
-wait 300
+frames 5
 freeze
 capture save
 unfreeze
 # OK (region 0) saves into a new folder and closes the windows.
 clickregion 0
 waitline 15 Saved save1
-wait 1500
+waitwindow 10 battle
 
 # Escape menu, Load: the first save is selected and its picture shown; then the second.
 key esc
-wait 1000
+waitwindow 10 escmenu
 click 395 187
-wait 1500
+waitwindow 10 saveload
 move 400 20
-wait 300
+frames 5
 freeze
 capture load
 unfreeze
 clickregion 4
-wait 500
+frames 10
 freeze
 capture load2
 unfreeze
 # Cancel (region 1), then Esc closes the menu.
 clickregion 1
-wait 800
+frames 10
 key esc
-wait 1000
+frames 10
 check IsAlive(GetLeader())
 report
 quit

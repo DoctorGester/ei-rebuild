@@ -4,7 +4,7 @@
 # PlaybackStart / PlaybackStep). keyboard.ini: F9-F12 camera1-4, N camera_norm, arrows scroll
 # (F5 / F8 are quicksave / quickload: not used).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10
@@ -23,23 +23,23 @@ console @SetCameraOrientation(1)
 
 # Pan with the arrow keys, then the saved views and the normal camera.
 key left
-wait 300
+frames 5
 key up
-wait 300
+frames 5
 key right
-wait 300
+frames 5
 key down
-wait 300
+frames 5
 key f9
-wait 300
+frames 5
 key f10
-wait 300
+frames 5
 key f11
-wait 300
+frames 5
 key f12
-wait 300
+frames 5
 key n
-wait 500
+frames 5
 
 # Walk back west: the camera keeps updating after the view changes.
 console @MoveToPoint(GetLeader(),GSGetVar(0,"x0"),GetY(GetLeader()))
@@ -49,7 +49,7 @@ waitfor 20 IsLess(GetX(GetLeader()),Add(GSGetVar(0,"x0"),1))
 console @PlayCamera("bz3g.cam")
 console #IsCameraPlaying()
 waitfor 20 Not(IsCameraPlaying())
-wait 500
+frames 5
 check IsAlive(GetLeader())
 report
 quit

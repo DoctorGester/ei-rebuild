@@ -12,7 +12,7 @@
 #   on the console stream that "filter all" opens. The expect below matches both spellings.
 # The game runs ~5.5x faster (10 ms per world update).
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 console filter all on
 newgame

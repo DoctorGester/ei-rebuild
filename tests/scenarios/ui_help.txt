@@ -4,33 +4,33 @@
 # with OK (region 1), Esc and the help key itself (006592C0 / 00659190, Close 006590F0). A topic
 # without a "tutorial" text closes at once (Build's SetPendingValue(0)). Nothing is saved.
 reject Script error
-wait 6000
+waitmenu
 console thingamabob
 newgame
 speed 10
 waitfor 15 IsGreater(HP(GetLeader()),0)
 console @BlockUnit(GetLeader(),0)
-wait 1500
+waitwindow 15 battle
 
 key f1
-wait 1500
+frames 10
 key enter
-wait 500
+frames 5
 clickregion 2
-wait 500
+frames 5
 clickregion 0
-wait 500
+frames 5
 clickregion 1
-wait 1500
+frames 10
 
 key f1
-wait 1500
+frames 10
 key esc
-wait 1500
+waitwindow 10 escmenu
 
 key f1
-wait 1500
+frames 10
 key f1
-wait 1500
+wait 500
 report
 quit
