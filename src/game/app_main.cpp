@@ -526,17 +526,27 @@ float CameraSeconds(std::uint32_t milliseconds) {
     return RoundToFloat(x87::FromUnsigned(milliseconds) * ExeFloat(0x0073C348));
 }
 
-// The frame's last camera update goes through the target of the original CALL at 00457595 (the
-// update 0040FB30 unless something redirected it): the verify harness redirects that call to hold
-// the camera still while a scenario is frozen (tests/verify/harness.cpp), and keeps working with
-// this rewrite. The original body stays in place behind the hook's jump.
-using CameraUpdate = void(__fastcall*)(CCamera*, void*, float);
-CameraUpdate FrameCameraUpdate() {
-    const auto* call = &Global<const unsigned char>(0x00457595);
-    if (call[0] != 0xE8) return &CameraUpdateAt;
+// Some calls of the loop go through the target of the original's CALL at the same point (the
+// function it calls unless something redirected it), so that the verify harness's redirections
+// (tests/verify/harness.cpp) keep working with this rewrite; the original body stays in place behind
+// the hook's jump. The frame's last camera update (00457595 -> 0040FB30) is held still while a
+// scenario is frozen; the server's update (00457314 -> 0058DFF0) and the client's tick
+// (00457368 -> 005641F0) are followed by the harness's "speed" hold.
+template <typename Fn>
+Fn CallTarget(const unsigned char& call, Fn fallback) {
+    if ((&call)[0] != 0xE8) return fallback;
     std::int32_t relative;
-    std::memcpy(&relative, call + 1, sizeof(relative));
-    return reinterpret_cast<CameraUpdate>(reinterpret_cast<std::uintptr_t>(call) + 5 + relative);
+    std::memcpy(&relative, &call + 1, sizeof(relative));
+    return reinterpret_cast<Fn>(reinterpret_cast<std::uintptr_t>(&call) + 5 + relative);
+}
+using CameraUpdate = void(__fastcall*)(CCamera*, void*, float);
+CameraUpdate FrameCameraUpdate() { return CallTarget<CameraUpdate>(Global<const unsigned char>(0x00457595), &CameraUpdateAt); }
+using WorldUpdate = int(__fastcall*)(void*, void*);
+WorldUpdate ServerUpdate() {
+    return CallTarget(Global<const unsigned char>(0x00457314), reinterpret_cast<WorldUpdate>(&ServerUpdateOriginal));
+}
+WorldUpdate ClientSegment() {
+    return CallTarget(Global<const unsigned char>(0x00457368), reinterpret_cast<WorldUpdate>(&ClientSegmentOriginal));
 }
 
 // A change of the window's activation taken up: active again, every surface is restored (when the
@@ -584,12 +594,12 @@ bool RunWorlds() {
         bool settled = true;
         if (ServerBacklog() >= TickLength()) {
             settled = false;
-            if (!ServerUpdateOriginal(Server())) return false;
+            if (!ServerUpdate()(Server(), nullptr)) return false;
             ServerBacklog() -= TickLength();
             NetworkTimers();
         }
         if (ClientBacklog() >= TickLength() && (ClientHasIncomingAt(Client()) || !ClientViewModeTwoAt(Client()))) {
-            if (!ClientSegmentOriginal(Client())) return false;
+            if (!ClientSegment()(Client(), nullptr)) return false;
             const std::uint32_t tick = TickLength();
             ClientBacklog() -= tick;
             CameraUpdateAt(Camera(), nullptr, CameraSeconds(tick));

@@ -89,7 +89,10 @@
 //   reject <text>             fail if <text> appears in the console output from now on
 //   report                    write the verify totals to harness_report.txt
 //   quit                      write the report and exit the game through the console
-//   deterministic             virtual game clock, fixed seeds: runs repeat exactly (see below)
+//   realtime, deterministic   the game on real time, or (the default) on the virtual game clock
+//                             with fixed seeds, where runs repeat exactly (see below)
+//   clocktrace, randtrace     log every clock read and wait (ei_hook.log), every random draw
+//                             (randtrace.txt; harness_clock.h)
 //   vanilla <step>, rebirth <step>   run the step only in that install
 //   rebirthflags <spec>       turn Rebirth patch flags on for this run (include/ei/rebirth.h): "all",
 //                             or patch names, each optionally =0/=1. Read before the hooks are
@@ -671,75 +674,33 @@ LONG WINAPI SkippedRegSetValue(HKEY, LPCSTR name, DWORD, DWORD, const BYTE*, DWO
 int& g_showTutorial = *reinterpret_cast<int*>(0x0079BE78);
 
 // Game speed. The main loop runs one world update per 0078FF34 milliseconds of real time (55 by
-// default; the game's own speed-up key, keypad +, sets 27). "speed <ms>" holds it at <ms>: the
-// game's own writes (the battle clock's set-up 00648520, CBattleScreenSetup::Close 00635E60 on
-// leaving a screen such as the camp) are undone at once by a write watchpoint (HoldTickLength), and
-// every frame sets it again. 0 = leave it to the game.
-// At once, not at the next frame: those can run inside the main loop's client loop, after the loop
-// has tested its backlog against
-// the held 10 and before it subtracts the new 55, and the unsigned backlog (10..54) wraps to about
-// 4.29e9: the loop then runs some 78 million client updates (minutes). Real-time runs mostly got away
-// with it by timing; on the virtual clock ui_camp_deals, ui_trade_hold, effects_bow, ... hung every
-// time.
+// default; the game's own speed-up key, keypad +, sets 27). "speed <ms>" holds it at <ms> every
+// frame, since loading a zone resets it, and again after every world update (HeldServerUpdate,
+// HeldClientSegment): the battle clock's set-up (00648520) and CBattleScreenSetup::Close (00635E60,
+// on leaving a screen such as the camp) set 55 inside the client's tick, and the main loop's client
+// loop, which tested its backlog against the held 10 before the tick, subtracts the 55 it reads
+// after it: the unsigned backlog (10..54) wraps to about 4.29e9 and the loop runs some 78 million
+// client ticks (minutes). Real-time runs mostly got away with it by timing; on the virtual clock
+// ui_camp_deals, ui_trade_hold, effects_bow, ... hung every time. 0 = leave it to the game.
 unsigned& g_tickLength = *reinterpret_cast<unsigned*>(0x0078FF34);
 unsigned g_heldTickLength = 0;
 
-// The watchpoint: debug register 0 on the main thread, set from a helper thread while the main
-// thread is suspended (a thread cannot reliably set its own debug registers), and a vectored
-// handler that puts the held length back after each write and logs each new writer once.
-LONG CALLBACK TickLengthWritten(EXCEPTION_POINTERS* info) {
-    if (info->ExceptionRecord->ExceptionCode != EXCEPTION_SINGLE_STEP || !(info->ContextRecord->Dr6 & 1))
-        return EXCEPTION_CONTINUE_SEARCH;
-    info->ContextRecord->Dr6 = 0;
-    const unsigned written = g_tickLength;
-    if (g_heldTickLength && written != g_heldTickLength) {
-        g_tickLength = g_heldTickLength;
-        static std::vector<DWORD> logged;
-        const DWORD at = info->ContextRecord->Eip;
-        if (std::find(logged.begin(), logged.end(), at) == logged.end()) {
-            logged.push_back(at);
-            const bool ours = at >= g_selfBase && at < g_selfEnd;
-            Log("harness: speed: the game set the update length to %u (before %s%X); held at %u", written,
-                ours ? "ei_hook+" : "", unsigned(ours ? at - g_selfBase : at), g_heldTickLength);
-        }
-    }
-    return EXCEPTION_CONTINUE_EXECUTION;
+// The main loop's calls of the server's update and the client's tick (thiscall, EAX 0 stops the
+// frame), redirected here (the rewritten loop calls through the same CALLs' targets, app_main.cpp).
+constexpr std::uintptr_t kServerUpdateCall = 0x00457314;
+constexpr std::uintptr_t kServerUpdate = 0x0058DFF0;
+constexpr std::uintptr_t kClientSegmentCall = 0x00457368;
+constexpr std::uintptr_t kClientSegment = 0x005641F0;
+using WorldUpdate = int(__fastcall*)(void*, void*);
+int __fastcall HeldServerUpdate(void* server, void*) {
+    const int result = reinterpret_cast<WorldUpdate>(kServerUpdate)(server, nullptr);
+    if (g_heldTickLength) g_tickLength = g_heldTickLength;
+    return result;
 }
-
-DWORD WINAPI SetTickLengthWatchpoint(LPVOID mainThread) {
-    HANDLE thread = static_cast<HANDLE>(mainThread);
-    if (SuspendThread(thread) == static_cast<DWORD>(-1)) return 1;
-    CONTEXT context{};
-    context.ContextFlags = CONTEXT_DEBUG_REGISTERS;
-    BOOL ok = GetThreadContext(thread, &context);
-    if (ok) {
-        context.Dr0 = reinterpret_cast<DWORD>(&g_tickLength);
-        constexpr DWORD kLocal0 = 1, kWrite0 = 1u << 16, kFourBytes0 = 3u << 18;
-        context.Dr7 = (context.Dr7 & ~0xF0003u) | kLocal0 | kWrite0 | kFourBytes0;
-        ok = SetThreadContext(thread, &context);
-    }
-    ResumeThread(thread);
-    return ok ? 0 : 1;
-}
-
-void HoldTickLength() {
-    static bool installed = false;
-    g_tickLength = g_heldTickLength;
-    if (installed) return;
-    installed = true;
-    AddVectoredExceptionHandler(1, &TickLengthWritten);
-    HANDLE self = nullptr;
-    DuplicateHandle(GetCurrentProcess(), GetCurrentThread(), GetCurrentProcess(), &self,
-                    THREAD_SUSPEND_RESUME | THREAD_GET_CONTEXT | THREAD_SET_CONTEXT, FALSE, 0);
-    DWORD code = 1;
-    if (HANDLE helper = CreateThread(nullptr, 0, &SetTickLengthWatchpoint, self, 0, nullptr)) {
-        ::WaitForSingleObject(helper, INFINITE);
-        GetExitCodeThread(helper, &code);
-        CloseHandle(helper);
-    }
-    if (self) CloseHandle(self);
-    Log(code == 0 ? "harness: speed: update length held by a write watchpoint"
-                  : "harness: speed: no watchpoint (the length is held once a frame)");
+int __fastcall HeldClientSegment(void* client, void*) {
+    const int result = reinterpret_cast<WorldUpdate>(kClientSegment)(client, nullptr);
+    if (g_heldTickLength) g_tickLength = g_heldTickLength;
+    return result;
 }
 
 // Startup movies: config\movie.ini lists them per section ("Start": 1C.bik, Nival.bik), read with
@@ -846,12 +807,14 @@ void WriteReport() {
     Log("harness: report written (%lu mismatches, %u failures)", mismatches, unsigned(g_failures.size()));
 }
 
-// Deterministic mode (a "deterministic" line anywhere in the scenario): the virtual clock
-// (harness_clock.h; every frame of the main loop runs exactly five world updates, the main thread's
-// sleeps and timed waits take no real time), a fixed date and fixed random seeds, so two runs of the
-// same scenario take the same course, and a run with and without hooks (tools/compare.py) must print
-// the same console output. The harness's waits count virtual time too.
-bool g_deterministic = false;
+// Deterministic mode, the default (a "realtime" line anywhere in the scenario turns it off,
+// "deterministic" back on; EI_HARNESS_CLOCK overrides both): the virtual clock (harness_clock.h;
+// every frame of the main loop runs exactly five world updates, the main thread's sleeps and timed
+// waits take no real time, sample ends come on virtual time), a fixed date and fixed random seeds,
+// so two runs of the same scenario take the same course, and a run with and without hooks
+// (tools/compare.py) must print the same console output. The harness's waits count virtual time
+// too, each with a real-time safety limit. Scenarios that do not repeat yet: docs/open-questions.md.
+bool g_deterministic = true;
 // "clocktrace": log the game's clock reads and waits (harness_clock.h).
 bool g_clockTrace = false;
 // "randtrace": log every random draw (harness_clock.h), installed at the first message loop pass.
@@ -1719,7 +1682,7 @@ void RunSteps() {
             return;
         } else if (s.verb == "speed") {
             g_heldTickLength = std::strtoul(s.argument.c_str(), nullptr, 10);
-            if (g_heldTickLength) HoldTickLength();
+            if (g_heldTickLength) g_tickLength = g_heldTickLength;
         } else if (s.verb == "waitline" || s.verb == "waitexpect") {
             char* rest = nullptr;
             unsigned long seconds = std::strtoul(s.argument.c_str(), &rest, 10);
@@ -1880,7 +1843,42 @@ int WINAPI TracedAilStartup() {
 // front, so the harness keeps every game active: it subclasses the window and drops the
 // deactivation (and minimise) messages.
 WNDPROC g_gameWindowProc;
+// A game that Windows gave the foreground (when the window in front closed) and that then loses it
+// to a starting game is minimised by dgVoodoo, in the middle of a pass, and its surfaces are lost:
+// the pass's BeginScene failed with DDERR_SURFACELOST ("Can't begin scene") and the run ended on the
+// game's error box. The game itself restores its surfaces only when it is activated again (the main
+// loop's RestoreAllSurfaces, 00457140), which the harness's always-active window never sees. So the
+// harness notes the minimise (WM_SIZE, sent from inside a PeekMessageA while dgVoodoo handles the
+// deactivation) and, once that PeekMessageA has returned and dgVoodoo is done, puts the window back
+// without activating it and restores the surfaces as that code does (under the device lock, the
+// result in the device's lastLoadResult_), after every peek for the next 50 (surfaces still lost
+// right after the minimise were seen to fail the next BeginScene even so).
+HWND g_minimised;
+int g_restoresLeft;
+void RestoreAfterMinimise() {
+    if (!g_minimised) return;
+    if (g_restoresLeft == 50) {
+        g_showWindow(g_minimised, SW_SHOWNOACTIVATE);
+        Log("harness: the game window was minimised (it had the foreground and lost it): shown again");
+    }
+    CTextureDevice* device = RenderDeviceObject();
+    if (device && device->ddraw_) {
+        auto* lock = reinterpret_cast<CRITICAL_SECTION*>(0x007AEE78);   // the render device's lock
+        EnterCriticalSection(lock);
+        const HRESULT result = static_cast<IDirectDraw7*>(device->ddraw_)->RestoreAllSurfaces();
+        device->lastLoadResult_ = result;
+        LeaveCriticalSection(lock);
+        if (g_restoresLeft == 50 || result != DD_OK) Log("harness: surfaces restored (%08X)", unsigned(result));
+    }
+    if (--g_restoresLeft <= 0) g_minimised = nullptr;
+}
+
 LRESULT CALLBACK AlwaysActiveWindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam) {
+    if (message == WM_SIZE && wParam == SIZE_MINIMIZED) {
+        g_minimised = window;
+        g_restoresLeft = 50;
+        return 0;
+    }
     if (message == WM_ACTIVATE && (LOWORD(wParam) == WA_INACTIVE || HIWORD(wParam) != 0)) return 0;
     if (message == WM_ACTIVATEAPP && !wParam) return 0;
     return CallWindowProcA(g_gameWindowProc, window, message, wParam, lParam);
@@ -1958,7 +1956,9 @@ BOOL WINAPI PeekMessageHook(LPMSG msg, HWND hwnd, UINT min, UINT max, UINT remov
         RunSteps();
         g_inStep = false;
     }
-    return g_peekMessage(msg, hwnd, min, max, remove);
+    const BOOL result = g_peekMessage(msg, hwnd, min, max, remove);
+    RestoreAfterMinimise();
+    return result;
 }
 
 bool LoadScenario(const char* path) {
@@ -1978,8 +1978,10 @@ bool LoadScenario(const char* path) {
             g_steps.pop_back();
             continue;
         }
-        if (g_steps.back().verb == "deterministic" || g_steps.back().verb == "clocktrace") {
-            (g_steps.back().verb == "deterministic" ? g_deterministic : g_clockTrace) = true;
+        if (g_steps.back().verb == "deterministic" || g_steps.back().verb == "realtime" ||
+            g_steps.back().verb == "clocktrace") {
+            if (g_steps.back().verb == "clocktrace") g_clockTrace = true;
+            else g_deterministic = g_steps.back().verb == "deterministic";
             g_steps.pop_back();
             continue;
         }
@@ -2108,6 +2110,8 @@ struct Harness {
         }
         if (g_clockTrace) clock::InstallTrace();
         if (g_freezeUsed) RedirectCall(kFrameCameraUpdateCall, kCameraUpdate, reinterpret_cast<const void*>(&HeldCameraUpdate));
+        RedirectCall(kServerUpdateCall, kServerUpdate, reinterpret_cast<const void*>(&HeldServerUpdate));
+        RedirectCall(kClientSegmentCall, kClientSegment, reinterpret_cast<const void*>(&HeldClientSegment));
         for (const Step& step : g_steps)
             if (step.verb == "capture") {
                 capture::Install();
