@@ -22,7 +22,10 @@ reject Script error
 reject zc never
 wait 500
 
+# The leader of the running game has HP too: wait for the load itself (the request, then the
+# battle screen of the loaded game).
 load savea
+waitwindow 30 battle
 waitfor 20 IsGreater(HP(GetLeader()),0)
 check IsAlive(GetLeader())
 report
