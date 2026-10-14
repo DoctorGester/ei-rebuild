@@ -111,7 +111,7 @@ done = "2026-10-14"
 id = "R9c"
 title = "Movies, loading screen, full screen, gamma and lost device through Present"
 group = "renderer"
-status = "running"
+status = "review"
 model = "opus"
 depends = ["R9b"]
 note = "Movies and the loading screen through Present, full screen / resize, gamma as a shader step, lost device / WM_ACTIVATE, the software cursor between frames. Present under Rebirth crashes: NullDirect3DDevice7::SetTexture with surface 0x7463 from CUiMesh::Draw, plus a CBattleScreenSetup::Create verify mismatch in the same runs (seen on main 2026-10-14)."
@@ -142,6 +142,42 @@ group = "renderer"
 status = "running"
 note = "Profile 2026-10-14: under dgVoodoo every DirectDrawCreateEx builds a D3D12 device (~190 ms, with driver signature checks). Startup does it four times: GetDxVersion's two probes (~390 ms), FirstHardwareDirectDrawDriver (~195 ms) and CTextureDevice::CreateDirectDraw (the one kept). Skipping the probes (DirectX 7 is a given) and reusing the enumerated object saves ~0.6 s of the ~1.8 s to the main menu, but changes what the original does; also fixes R9b1. Waits on the user's decision (flag, native only, or standalone only). Decided (user 2026-10-14): only in native runs (EI_RENDER present, run/native) and the standalone exe; vanilla and Rebirth runs keep the original's probes."
 started = "2026-10-14"
+
+[[ticket]]
+id = "R9c1"
+title = "Lost Direct3D 11 device: make the device, swap chain and textures again"
+group = "renderer"
+status = "queued"
+model = "opus"
+depends = ["R9c"]
+note = "R9c logs a removed / reset / hung device (GetDeviceRemovedReason) and stops presenting; nothing is recreated. Recreate sokol's device and every image, reupload textures from the decoded copies (renderer.md section 9, R9c)."
+
+[[ticket]]
+id = "R9c2"
+title = "Software cursor moving between frames (movies, loading) without DirectDraw"
+group = "renderer"
+status = "queued"
+model = "opus"
+depends = ["R9c"]
+note = "The cursor thread 005E5690 draws nothing in present mode; the cursor is drawn in each frame and hidden during movies and loading. Moving it between frames needs a present from the cursor thread (thread-safe sokol use or a separate overlay) or a hardware cursor (renderer.md section 9, R9c)."
+
+[[ticket]]
+id = "R9c3"
+title = "Scroll Lock screenshot and movie recorder from the new frame"
+group = "renderer"
+status = "queued"
+model = "sonnet"
+depends = ["R9c"]
+note = "006D6D40 gives no bitmap for a holder without a surface (logged since R9a); take the picture from render::ReadFrame instead (renderer.md section 9)."
+
+[[ticket]]
+id = "R9c4"
+title = "Resolution change and real display mode change in present mode"
+group = "renderer"
+status = "queued"
+model = "opus"
+depends = ["R9c"]
+note = "R9c covers a window resized from outside (the window covers the monitor again, the swap chain resizes). The game's own device re-creation on a resolution change in the options, and a desktop mode change while running, are not exercised by any scenario (renderer.md section 9, R9c)."
 
 # ---------------------------------------------------------------- native interface drawing
 

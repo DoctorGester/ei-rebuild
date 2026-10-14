@@ -14,6 +14,8 @@
 #include <vector>
 
 class CTextureDevice;   // game/texture.h
+struct ID3D11Device;
+struct ID3D11DeviceContext;
 
 namespace render::detail {
 
@@ -155,6 +157,17 @@ CTextureDevice* DeviceObject();
 bool GameTargetSize(int* width, int* height);
 // sokol is set up (creates the device on first use); false when the sidecar is off or failed.
 bool Started();
+// The Direct3D 11 device and context behind sokol, the off-screen frame target (image, texture view,
+// size: false before the first frame).
+ID3D11Device* D3DDevice();
+ID3D11DeviceContext* D3DContext();
+sg_image FrameImage();
+sg_view FrameTexture();
+bool FrameSize(int* width, int* height);
+// The switch-over's present (render_window.cpp): the frame into the game window's swap chain (false:
+// nothing to present into: no window, minimised, the swap chain or device failed), then Present.
+bool DrawToWindow();
+void PresentWindow();
 
 // A vertex or index buffer filled with sg_append_buffer, so that a frame can be drawn in several
 // passes (a copy of the frame taken in its middle, CopyFrameTo); replaced by a larger one when an

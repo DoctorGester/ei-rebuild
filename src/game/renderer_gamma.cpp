@@ -8,6 +8,7 @@
 #include "texture.h"   // CTextureDevice, CDXSurface
 
 #include "ei/hook.h"
+#include "render/render.h"
 #include "ei/x87.h"
 
 #include <ddraw.h>
@@ -57,6 +58,18 @@ void BuildRamp(DDGAMMARAMP& ramp, float brightness, float contrast, float gamma)
 bool CSceneRenderer::SetGamma(float brightness, float contrast, float gamma) {
     CTextureDevice* device = device_;
     if (!device) return false;
+    if (device::WithoutDirectDraw()) {
+        // The switch-over (ticket R9c): no primary surface; the new renderer applies the ramp as
+        // the frame goes to the window (render::SetGammaRamp), so there is always gamma control.
+        brightness_ = brightness;
+        contrast_ = contrast;
+        gamma_ = gamma;
+        DDGAMMARAMP ramp;
+        BuildRamp(ramp, Clamp(brightness, -1.0f, 1.0f) * 0.5f, Clamp(contrast, -1.0f, 1.0f) * 0.5f,
+                  Clamp(gamma, -1.0f, 1.0f) * 0.5f);
+        render::SetGammaRamp(ramp.red, ramp.green, ramp.blue);
+        return true;
+    }
     DDCAPS driverCaps{}, emulatedCaps{};
     driverCaps.dwSize = sizeof(DDCAPS);
     emulatedCaps.dwSize = sizeof(DDCAPS);

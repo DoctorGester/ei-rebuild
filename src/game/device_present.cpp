@@ -4,6 +4,7 @@
 // primary at the client rectangle's corner. The new renderer (src/render) ends its frame here.
 // See docs/notes/renderer.md.
 #include "device.h"
+#include "present_window.h"
 
 #include "ei/hook.h"
 #include "lib/gameapi.h"
@@ -12,7 +13,9 @@
 // 004EF610. Returns the DirectDraw result (0 when there is nothing to present).
 long __fastcall DevicePresent(CTextureDevice* device) {
     // With "present" the new renderer copies its frame into the render target here, which the old
-    // present then shows; without DirectDraw (device.h) it has shown the frame itself.
+    // present then shows; without DirectDraw (device.h) it has shown the frame itself, on the game
+    // window placed first (full screen over its monitor, present_window.h).
+    if (device::WithoutDirectDraw()) present_window::Update(device);
     render::Present();
     if (device::WithoutDirectDraw()) return 0;
     IDirectDrawSurface7* primary = device::Surface(device->primary_);
