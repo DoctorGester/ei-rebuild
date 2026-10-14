@@ -376,7 +376,7 @@ void CMpHeroScreen::Create() {
     // The edit windows: a listed hero's new name, and the new hero's name.
     {
         CUiEditField* edit = NewEditField(window.interface_, RECT{558, 110, 695, 126});
-        renameEdit_ = reinterpret_cast<std::uint8_t*>(edit);
+        renameEdit_ = edit;
         AsContainer(this)->AddChild(edit);
         edit->SetLook(3, 0, 1, kNameLength, kRenameColour, kCaretColour);
         edit->SetEnabled(0, 1);

@@ -354,6 +354,7 @@ public:
     // Called through the vtable, as the original does.
     char* Hero();                       // slot 51 (+0xCC)
     void Refresh();                     // slot 47 (+0xBC), 00618850 here
+    void VirtualChooseFigure(const char* prototype);   // slot 52 (+0xD0), ChooseFigure here
     // 00616910 (RET 4; ui_hero_screen.cpp). The local player's first record handed to the client
     // world; hero `index` (when in the list; else none, -1) copied into the local party and made
     // current; the preview rebuilt (00616E20 with 1); the hero's unit re-armed (four slots
@@ -512,8 +513,8 @@ public:
     MpStringVector names_;      // +0x1D4 STLport vector<CString>
     float turn_;                // +0x1E0 the preview's turn
     int rotating_;              // +0x1E4 0, 1 or 2 while a rotate arrow is held
-    std::uint8_t* renameEdit_;  // +0x1E8 the hero list's rename edit window (+0x179: editing)
-    void* nameEdit_;            // +0x1EC the new hero's name edit window (0065C290 sets its text)
+    CUiEditField* renameEdit_;  // +0x1E8 the hero list's rename edit window (focused_ while renaming)
+    CUiEditField* nameEdit_;    // +0x1EC the new hero's name edit window (0065C290 sets its text)
     void* voiceScroll_;         // +0x1F0
     const char* text_;          // +0x1F4 CString
     MpVoiceVector voiceLists_[2];   // +0x1F8, +0x204 (voices_ points at one of them)

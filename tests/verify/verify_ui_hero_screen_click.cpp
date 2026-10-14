@@ -39,7 +39,7 @@ int HeroCount() {
 static void __fastcall HeroButtonDownVerify(void* input, void*, int flags, int x, int y) {
     auto* self = WindowFromInput<CMpHeroScreen>(input);
     CInterface3D* ui = self->window.interface_;
-    bool editing = self->renameEdit_[0x179] != 0;
+    bool editing = self->renameEdit_->focused_;
     int mode = self->mode_;
     int region = self->window.RegionAt(x, y);
     void* capture = UiCapture(ui);
@@ -89,7 +89,7 @@ static void __fastcall HeroKeyDownVerify(void* input, void*, int key, int repeat
     auto* self = WindowFromInput<CMpHeroScreen>(input);
     CInterface3D* ui = self->window.interface_;
     int mode = self->mode_;
-    bool renaming = self->renameEdit_[0x179] != 0;
+    bool renaming = self->renameEdit_->focused_;
     self->OnKeyDown(key, repeat, flags);
     bool ok = true;
     if (key == VK_RETURN || key == VK_ESCAPE) ok = UiHandled(self);
@@ -118,11 +118,11 @@ EI_VERIFY(0x00618A10, HeroKeyDownVerify, 0, s_unused);
 // enabled; without one nothing changes. Region 6 of the list (not in a scenario yet).
 static void __fastcall HeroRenameVerify(CMpHeroScreen* self) {
     bool valid = self->heroIndex_ >= 0 && self->heroIndex_ < HeroCount();
-    std::uint8_t editing = self->renameEdit_[0x179];
+    bool editing = self->renameEdit_->focused_;
     self->Rename();
-    bool ok = valid ? self->renameEdit_[0x179] != 0 : self->renameEdit_[0x179] == editing;
+    bool ok = valid ? self->renameEdit_->focused_ : self->renameEdit_->focused_ == editing;
     ei::verify::Check("CMpHeroScreen::Rename", true, ok, "hero %d, editing %d", self->heroIndex_,
-                      self->renameEdit_[0x179]);
+                      self->renameEdit_->focused_);
 }
 EI_VERIFY(0x00618060, HeroRenameVerify, 0, s_unused);
 

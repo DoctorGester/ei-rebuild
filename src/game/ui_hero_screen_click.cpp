@@ -48,10 +48,10 @@ __declspec(naked) void __fastcall PlayVoiceAt(CMpHeroScreen*) EI_ORIGINAL(0x0061
 // wrappers run; plain RET).
 __declspec(naked) void __fastcall ClampHeroAt(CMpHeroScreen*) EI_ORIGINAL(0x00618FF0)
 __declspec(naked) void __fastcall ClampVoiceAt(CMpHeroScreen*) EI_ORIGINAL(0x00619090)
-// The panels: 006232D0 (StatsPanelSetHeroOriginal), 006255A0 the trade panel's
-// (RET 8), 006229E0 / 00622A30 / 00622BC0 the equipment panels' weapon, armour and spell
-// container (RET 4); 0065C290 an edit window's text (RET 4), 0065C2D0 its editing (RET 4).
-__declspec(naked) void __fastcall TradeSetHero(void*, void*, int, int) EI_ORIGINAL(0x006255A0)
+// The panels: 006232D0 (StatsPanelSetHeroOriginal), 006255A0 the trade panel's settling
+// (TradePanelSettleOriginal, RET 8), 006229E0 / 00622A30 / 00622BC0 the equipment panels' weapon,
+// armour and spell container (RET 4); 0065C290 an edit window's text (RET 4), 0065C2D0 its
+// editing (RET 4).
 void EditSetText(void* edit, void*, const void* text) { EditFieldSetTextOriginal(edit, nullptr, text); }
 void EditActivate(void* edit, void*, int on) { EditFieldActivateOriginal(edit, nullptr, on); }
 // Surfaces: 005FDC00 / 005FE2F0 / 005FDC60 (GetDC, clear, ReleaseDC), 005FD760 (RET 8) Freeze.
@@ -81,60 +81,46 @@ void* __fastcall MessageBoxConstruct(void* a0, void*, CInterface3D* a2, const ch
 __declspec(naked) void __fastcall TreeBaseConstruct(void*, void*, const void*, const void*) EI_ORIGINAL(0x00619750)
 __declspec(naked) void* __fastcall TreeAllocateNodes(void*, void*, int, const void*) EI_ORIGINAL(0x00619770)
 
-template <typename Fn>
-Fn VirtualAt(void* object, int slot) {
-    return reinterpret_cast<Fn>((*static_cast<void***>(object))[slot]);
-}
-
-template <typename T>
-T& At(void* p, int offset) {
-    return *reinterpret_cast<T*>(static_cast<std::uint8_t*>(p) + offset);
-}
 
 int HeroCount() {
     const RecordTable& heroes = MpHeroes();
     return static_cast<int>(heroes.end - heroes.begin) / kMpHeroSize;
 }
 
-// The first entry of a hero record's array (data, size), or null when it is empty.
-char* FirstOf(char* hero, int dataOffset) {
-    return At<int>(hero, dataOffset + 4) > 0 ? *At<char**>(hero, dataOffset) : nullptr;
+// The first entry of one of a hero record's item arrays (data, count), or null when it is empty.
+char* FirstOf(CEngineObject** const& data, const std::uint32_t& count) {
+    return static_cast<int>(count) > 0 ? reinterpret_cast<char*>(*data) : nullptr;
 }
 
 // `flags` is the handler's first argument: the original hands its stack slot to the model cache
 // as the allocator and keeps its low byte as the trees' (empty) compare objects.
-void* BuildCamp(CInterface3D* ui, const int* flags) {
-    auto* camp = static_cast<std::uint8_t*>(gamecrt::operator_new(0x260));
+CCampPages* BuildCamp(CInterface3D* ui, const int* flags) {
+    auto* camp = static_cast<CCampPages*>(gamecrt::operator_new(sizeof(CCampPages)));
     if (!camp) return nullptr;
     ConstructContainerAt(camp, nullptr, ui);
-    At<int>(camp, 0x168) = 0;
+    camp->hoveredItem_ = nullptr;
     std::uint8_t compare = *reinterpret_cast<const std::uint8_t*>(flags);
-    std::uint8_t* models = camp + 0x170;
+    ItemObjectCache* models = &camp->models_;
     ConstructModelMap(models, nullptr, flags);
-    At<int>(models, 4) = 0;
-    models[8] = compare;
+    models->count = 0;
+    models->compare = compare;
     EmptyModelMap(models);
-    At<int>(models, 0xC) = 50;
-    std::uint8_t* textures = camp + 0x180;
+    models->limit = 50;
+    ItemObjectCache* textures = &camp->textures_;
     void* header = nullptr;
     TreeBaseConstruct(textures, nullptr, &models, &header);
-    At<void*>(textures, 0) = TreeAllocateNodes(textures, nullptr, 1, nullptr);
-    At<int>(textures, 4) = 0;
-    textures[8] = compare;
+    textures->header = static_cast<ItemObjectCache::Node*>(TreeAllocateNodes(textures, nullptr, 1, nullptr));
+    textures->count = 0;
+    textures->compare = compare;
     EmptyTextureMap(textures);
-    At<int>(textures, 0xC) = 50;
-    At<std::uint32_t>(camp, 0) = 0x00740A2C;
-    At<std::uint32_t>(camp, 0x94) = 0x007409F8;
-    camp[0x194] = 1;   // opened from the hero screen
-    At<std::uint32_t>(camp, 0x19C) = 0x007402AC;
-    At<int>(camp, 0x1A0) = 0;
-    auto* pages = reinterpret_cast<CCampPages*>(camp);
-    pages->heroes_.growBy = 0;
-    pages->heroes_.maxSize = 0;
-    pages->heroes_.size = 0;
-    StringArrayConstruct(camp + 0x240);
-    At<std::uint32_t>(camp, 0) = 0x0074091C;
-    At<std::uint32_t>(camp, 0x94) = 0x007408E8;
+    textures->limit = 50;
+    camp->vtable_ = reinterpret_cast<void**>(0x00740A2C);
+    camp->inputVtable_ = reinterpret_cast<void**>(0x007409F8);
+    camp->fromHeroScreen_ = true;   // opened from the hero screen
+    camp->heroes_.Construct(0x007402AC);
+    StringArrayConstruct(&camp->pageTitlesVtable_);
+    camp->vtable_ = reinterpret_cast<void**>(0x0074091C);
+    camp->inputVtable_ = reinterpret_cast<void**>(0x007408E8);
     return camp;
 }
 
@@ -156,6 +142,9 @@ const char* RenameBar() { return GameText(0x00793AA4); }         // "|"
 constexpr int kModeList = 9;
 constexpr int kModeNewHero = 10;
 constexpr int kModeStats = 11;
+// The hero record the screen is making (slot 51).
+PartyUnitRecord* HeroRecordOf(CMpHeroScreen* screen) { return reinterpret_cast<PartyUnitRecord*>(screen->Hero()); }
+
 // A multiplayer hero's name: the text 0 of its party's first member record (the original reads
 // the members' data pointer at +0x30 and takes the CString there).
 mfc::CString& MpHeroName(int index) {
@@ -177,13 +166,13 @@ void CMpHeroScreen::BackToNewHero() {
     reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Begin();
     reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Clear();
     reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->End();
-    TradeSetHero(tradePanel_, nullptr, 0, 0);
+    TradePanelSettleOriginal(tradePanel_, nullptr, 0, 0);
     SetMode(this, nullptr, kModeNewHero);
-    EditSetText(nameEdit_, nullptr, *reinterpret_cast<void**>(Hero()));
+    EditSetText(nameEdit_, nullptr, static_cast<const char*>(HeroRecordOf(this)->texts[0]));
 }
 
 void CMpHeroScreen::FinishRename() {
-    mfc::CString typed(reinterpret_cast<CUiEditField*>(renameEdit_)->text_);
+    mfc::CString typed(renameEdit_->text_);
     CStringTrimLeftOriginal(&typed);
     CStringTrimRightOriginal(&typed);
     if (typed.GetLength() != 0) typed = mfc::CString(RenameSeparator()) + typed;
@@ -208,7 +197,7 @@ void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
     InputOf(this)->BaseKeyDown(key, repeat, flags);
     if (UiHandled(this)) return;
     CInterface3D* ui = window.interface_;
-    bool renaming = renameEdit_[0x179] != 0;
+    bool renaming = renameEdit_->focused_;
     int heroStep = 0;
     int voiceStep = 0;
     switch (key) {
@@ -272,12 +261,11 @@ void CMpHeroScreen::OnKeyDown(int key, int repeat, int flags) {
 }
 
 void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
-    if (renameEdit_[0x179]) return;
+    if (renameEdit_->focused_) return;
     InputOf(this)->BaseLButtonDown(flags, x, y);
     if (UiHandled(this)) return;
     CInterface3D* ui = window.interface_;
     int region = window.RegionAt(x, y);
-    using StoreFn = void(__thiscall*)(CMpHeroScreen*, void*);
     auto rotate = [&](int direction) {
         uiorig::PlayUiSound(ui, GameText(kSoundTurn), 0);
         rotating_ = direction;
@@ -303,8 +291,8 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         case 4: {
             // Back to the defaults: the attributes 25, +0x72C 0.7.
             uiorig::PlayUiSound(ui, GameText(kSoundCancel), 0);
-            VirtualAt<StoreFn>(this, 52)(this, *defaults_);
-            auto* hero = reinterpret_cast<PartyUnitRecord*>(Hero());
+            VirtualChooseFigure(static_cast<const char*>(*defaults_));
+            PartyUnitRecord* hero = HeroRecordOf(this);
             auto* stats = reinterpret_cast<UnitStats*>(hero->stats);
             stats->stat10Base = 25.0f;
             stats->stat10 = 25.0f;
@@ -325,12 +313,12 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         // A voice row: the hero takes its file.
         int index = voiceTop_ + region - 9;
         if (index < 0) return;
-        auto** voices = reinterpret_cast<std::uint8_t**>(voices_);
-        if (static_cast<unsigned>(index) >= static_cast<unsigned>((voices[1] - voices[0]) >> 3)) return;
+        MpVoiceVector& voices = Voices();
+        if (static_cast<unsigned>(index) >= static_cast<unsigned>(voices.end - voices.begin)) return;
         uiorig::PlayUiSound(ui, GameText(kSoundSelect), 0);
         voiceIndex_ = index;
-        const mfc::CString& file = *reinterpret_cast<const mfc::CString*>(voices[0] + index * 8);
-        *reinterpret_cast<mfc::CString*>(Hero() + 0x18) = file;
+        const mfc::CString& file = *reinterpret_cast<const mfc::CString*>(&voices.begin[index].file);
+        HeroRecordOf(this)->texts[6] = file;
         PlayVoiceAt(this);
         CallDrawVoices();
         return;
@@ -345,13 +333,13 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         } else if (region == 4) {
             // Take the equipment back: the hero's first weapon, armour and spell container.
             uiorig::PlayUiSound(ui, GameText(kSoundCancel), 0);
-            TradeSetHero(tradePanel_, nullptr, 0, 0);
-            char* hero = Hero();
-            weapon_ = FirstOf(hero, 0x730);
+            TradePanelSettleOriginal(tradePanel_, nullptr, 0, 0);
+            PartyUnitRecord* hero = HeroRecordOf(this);
+            weapon_ = FirstOf(hero->weapons, hero->weaponCount);
             ShowWeapon(weaponPanel_, nullptr, weapon_);
-            armor_ = FirstOf(hero, 0x740);
+            armor_ = FirstOf(hero->quickItems, hero->quickItemCount);
             ShowArmour(weaponPanel_, nullptr, armor_);
-            spellContainer_ = FirstOf(hero, 0x760);
+            spellContainer_ = FirstOf(hero->spells, hero->spellCount);
             ShowContainer(spellPanel_, nullptr, spellContainer_);
         }
         return;
@@ -360,7 +348,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     if (mode_ != 9) return;
     // The hero list. A click while a hero is being renamed ends the renaming first (only reached
     // when the base handler started it: the handler returns at once while renaming).
-    if (region >= 0 && renameEdit_[0x179]) CloseRenameEdit();
+    if (region >= 0 && renameEdit_->focused_) CloseRenameEdit();
     switch (region) {
     case 0:
         BackToMainMenu(ui);
@@ -377,7 +365,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
     case 5:
         // A new hero.
         uiorig::PlayUiSound(ui, GameText(kSoundSelect), 0);
-        VirtualAt<StoreFn>(this, 52)(this, *defaults_);
+        VirtualChooseFigure(static_cast<const char*>(*defaults_));
         StatsPanelSetHeroOriginal(statsPanel_, nullptr, 0, const_cast<char*>(game::EmptyText()));
         reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Begin();
         reinterpret_cast<SurfaceDraw*>(window.surfaces_.data[0])->Clear();
@@ -405,7 +393,7 @@ void CMpHeroScreen::OnLButtonDown(int flags, int x, int y) {
         // The hero's inventory: the camp screen.
         uiorig::PlayUiSound(ui, GameText(kSoundSelect), 0);
         if (heroIndex_ < 0 || static_cast<unsigned>(heroIndex_) >= static_cast<unsigned>(HeroCount())) return;
-        void* camp = BuildCamp(window.interface_, &flags);
+        CCampPages* camp = BuildCamp(window.interface_, &flags);
         InterfacePushWindowOriginal(window.interface_, nullptr, camp, 0, 1);
         return;
     }
