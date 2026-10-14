@@ -21,7 +21,7 @@ using RawArray = mfc::CArray<std::uint8_t>;
 } // namespace
 
 bool CMapObject::ApplyScience(int, int) {
-    DebugMessageOriginal("Science is applied on wrong object");
+    game::DebugLog("Science is applied on wrong object");
     return false;
 }
 bool __fastcall ApplyScienceHook(CMapObject* self, void*, int first, int second) {

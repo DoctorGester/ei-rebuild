@@ -10,7 +10,7 @@
 #include "device.h"
 
 #include "dx_errors.h"
-#include "originals_engine.h"    // FatalDirectX, game::FatalError, DebugMessageOriginal
+#include "originals_engine.h"    // FatalDirectX, game::FatalError
 #include "originals_library.h"   // ExitGame
 #include "originals_render.h"
 #include "sys_info.h"   // ProcessorInfo
@@ -222,7 +222,7 @@ EI_REPLACE_METHOD(0x004EECF0, CTextureDevice::SetCooperativeLevel);
 void CTextureDevice::CreateSurfaces(unsigned backBuffers, int for3D) {
     // "Probably, this is a PROGRAMMERS ERROR - too many back buffer surfaces requested (>10).\n"
     if (backBuffers > 10) ThrowGameError(Text(0x0078E7D0));
-    if (backBuffers > 3) DebugMessageOriginal(Text(0x0078E7A0));   // "Check correctness of the back buffer count!\n"
+    if (backBuffers > 3) game::DebugLog(Text(0x0078E7A0));   // "Check correctness of the back buffer count!\n"
     DDSURFACEDESC2 desc = {};
     desc.dwSize = sizeof(desc);
     desc.dwFlags = DDSD_CAPS;
@@ -331,14 +331,14 @@ CTextureDevice* CTextureDevice::ConstructDirectDraw(HWND window, GUID* driver, i
     }
 
     converterLibrary_ = gameapi::LoadLibraryA(Text(0x0078E46C));   // "2DintMMX.dll"
-    DebugMessageOriginal(Text(0x0078E444));                        // "MMX graphics release library loaded.\n"
+    game::DebugLog(Text(0x0078E444));                        // "MMX graphics release library loaded.\n"
     if (!converterLibrary_) ThrowGameError(Text(0x0078E36C));      // "Can't load 2D graphics library.\n"
     using GetGraphicsProcessor = void*(__cdecl*)();
     const auto getProcessor = reinterpret_cast<GetGraphicsProcessor>(
         gameapi::GetProcAddress(converterLibrary_, Text(0x0078E42C)));   // "GetGraphicsProcessor"
     // "Loaded 2D graphics library have no function \"GetGraphicsProcessor\".\n"
     if (!getProcessor) ThrowGameError(Text(0x0078E390));
-    DebugMessageOriginal(Text(0x0078E3F4));   // "Acquiring graphics processor from graphics library.\n"
+    game::DebugLog(Text(0x0078E3F4));   // "Acquiring graphics processor from graphics library.\n"
     converter_ = getProcessor();
 
     DeviceCreateDirectDrawOriginal(this, nullptr, driver);

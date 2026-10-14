@@ -55,9 +55,6 @@ __declspec(naked) inline int __fastcall TextsReadLineOriginal(void* /*texts*/, v
 // 004A54D0: CMemoryStream::Resize(size), makes room for `size` bytes (RET 4, EAX not a result).
 __declspec(naked) inline void __fastcall StreamResizeOriginal(void* /*stream*/, void*, std::uint32_t /*size*/)
     EI_ORIGINAL(0x004A54D0)
-// 0044C470: the game's debug message (cdecl, printf style, a bare RET; the caller's EAX comes back unchanged, and
-// bink_video.cpp masks it, so it is declared to return a value). src/lib/crt.cpp keeps its own copy.
-__declspec(naked) inline unsigned __cdecl DebugMessageOriginal(const char*, ...) EI_ORIGINAL(0x0044C470)
 // The throw info of a thrown GameError* (dx_errors.h), 00759908; thrown with CxxThrowException (originals_library.h).
 inline const void* GameErrorThrowInfo() { return reinterpret_cast<const void*>(0x00759908); }
 

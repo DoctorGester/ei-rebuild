@@ -29,8 +29,8 @@ constexpr char kListSeparator = ',';
 struct TextOps : mfc::CString {
     int Find(char c) const;                     // 00700E91 Find(TCHAR)
     int Find(char c, int start) const;          // 00700E9F Find(TCHAR, int)
-    void TrimRight();                           // 006FE216
-    void TrimLeft();                            // 006FE11F
+    void TrimLeft();                            // 006FE216
+    void TrimRight();                           // 006FE11F
     void AppendChar(char c);                    // 00700D73 operator+=(TCHAR)
 };
 TextOps& Ops(mfc::CString& s) { return static_cast<TextOps&>(s); }
@@ -53,8 +53,6 @@ void SetSizeUInts(mfc::CArray<std::uint32_t>* a, int n) { UIntArraySetSizeOrigin
 // nested calls).
 __declspec(naked) mfc::CString* __fastcall CallGetString(const CIniFile*, void*, mfc::CString*, const char*, const char*,
                                                          const char*) EI_ORIGINAL(0x00696030)
-__declspec(naked) BOOL __fastcall CallGetList(CIniFile*, void*, const char*, const char*, console::CStringArray*, int)
-    EI_ORIGINAL(0x00696090)
 __declspec(naked) double __fastcall CallGetDouble(CIniFile*, void*, const char*, const char*, double)
     EI_ORIGINAL(0x00695F80)
 __declspec(naked) BOOL __fastcall CallWriteInt(CIniFile*, void*, const char*, const char*, int) EI_ORIGINAL(0x00696F50)
@@ -88,7 +86,7 @@ mfc::CString ReadString(const CIniFile* ini, const char* section, const char* ke
 // Returns 0 when the value is empty (the temporary then stays empty).
 BOOL ReadIntTemp(CIniFile* ini, const char* section, const char* key, DwordArray& temp) {
     console::CStringArray codes;
-    if (!CallGetList(ini, nullptr, section, key, &codes, kListSeparator)) return 0;
+    if (!IniGetListOriginal(ini, nullptr, section, key, &codes, kListSeparator)) return 0;
     DwordsSetSize(&temp, nullptr, codes.GetSize(), -1);
     for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(GameAtoi(codes[i]));
     return 1;
@@ -116,7 +114,7 @@ BOOL ReadMfcVia(CIniFile* ini, const char* section, const char* key, mfc::CArray
     BOOL ok;
     {
         console::CStringArray codes;
-        ok = CallGetList(ini, nullptr, section, key, &codes, kListSeparator);
+        ok = IniGetListOriginal(ini, nullptr, section, key, &codes, kListSeparator);
         if (ok) {
             DWordArraySetSize(&temp, nullptr, codes.GetSize(), -1);
             for (int i = 0; i < temp.size; ++i) temp.data[i] = static_cast<std::uint32_t>(GameAtoi(codes[i]));
@@ -134,8 +132,8 @@ BOOL ReadMfcVia(CIniFile* ini, const char* section, const char* key, mfc::CArray
 
 int TextOps::Find(char c) const { return CStringFindCharOriginal(this, nullptr, c); }
 int TextOps::Find(char c, int start) const { return CStringFindCharFromOriginal(this, nullptr, c, start); }
-__declspec(naked) void TextOps::TrimRight() EI_ORIGINAL(0x006FE216)
-__declspec(naked) void TextOps::TrimLeft() EI_ORIGINAL(0x006FE11F)
+void TextOps::TrimLeft() { CStringTrimLeftOriginal(this); }
+void TextOps::TrimRight() { CStringTrimRightOriginal(this); }
 void TextOps::AppendChar(char a0) { CStringAppendCharOriginal((void*)this, nullptr, a0); }
 
 // --- Construction ----------------------------------------------------------------------------------
@@ -175,8 +173,8 @@ BOOL CIniFile::GetKeyNames(const char* section, console::CStringArray* out) {
         int equals = Ops(item).Find('=');
         if (equals != -1) {
             item = item.Left(equals);
-            Ops(item).TrimRight();
             Ops(item).TrimLeft();
+            Ops(item).TrimRight();
         }
         out->SetAtGrow(out->GetSize(), item);
         start = buffer + i + 1;
@@ -226,8 +224,8 @@ BOOL CIniFile::GetList(const char* section, const char* key, console::CStringArr
     int start = 0;
     for (int end = Ops(value).Find(separator); end != -1; end = Ops(value).Find(separator, start)) {
         item = Ops(value).Mid(start, end - start);
-        Ops(item).TrimRight();
         Ops(item).TrimLeft();
+        Ops(item).TrimRight();
         out->SetAtGrow(out->GetSize(), item);
         start = end + 1;
     }
@@ -252,7 +250,7 @@ EI_REPLACE_METHOD(0x00696610, CIniFile::GetShortArray);
 
 BOOL CIniFile::GetIntArray(const char* section, const char* key, DwordArray* out) {
     console::CStringArray codes;
-    if (!CallGetList(this, nullptr, section, key, &codes, kListSeparator)) return 0;
+    if (!IniGetListOriginal(this, nullptr, section, key, &codes, kListSeparator)) return 0;
     int count = codes.GetSize();
     out->SetSize(count);
     for (int i = 0; i < count; ++i) out->data[i] = static_cast<std::uint32_t>(GameAtoi(codes[i]));
@@ -277,7 +275,7 @@ EI_REPLACE_METHOD(0x00696C50, CIniFile::GetMfcUIntArray);
 
 BOOL CIniFile::GetMfcDWordArray(const char* section, const char* key, mfc::CArray<std::uint32_t>* out) {
     console::CStringArray codes;
-    if (!CallGetList(this, nullptr, section, key, &codes, kListSeparator)) return 0;
+    if (!IniGetListOriginal(this, nullptr, section, key, &codes, kListSeparator)) return 0;
     DWordArraySetSize(out, nullptr, codes.GetSize(), -1);
     for (int i = 0; i < codes.GetSize(); ++i)
         out->data[i] = static_cast<std::uint32_t>(GameAtoi(codes[i]));

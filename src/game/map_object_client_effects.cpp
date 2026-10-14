@@ -78,7 +78,7 @@ int ParticleSourceType(int type) {
     case 0x21: return 0x204B;
     case 0x22: return 0x204A;
     default:
-        DebugMessageOriginal("ERROR: Spell effect on map object with unknown particle effect");
+        game::DebugLog("ERROR: Spell effect on map object with unknown particle effect");
         return kFallbackSource;
     }
 }

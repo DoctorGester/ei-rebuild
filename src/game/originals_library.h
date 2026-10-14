@@ -11,6 +11,7 @@
 #include "lib/mfc.h"
 
 struct AnimationSteps;
+class CFileRegistry;
 class CStream;
 struct RefPtr;
 namespace lib { template <typename T> struct AlignedArray; }
@@ -425,13 +426,14 @@ __declspec(naked) inline void* __fastcall OstreamPutSignedLongOriginal(void* /*s
 __declspec(naked) inline void* __fastcall OstreamPutDoubleOriginal(void* /*stream*/, void*, double /*value*/)
     EI_ORIGINAL(0x006FC7FA)
 // MFC CString operator+(const CString&, const CString&) 00700B9F / (const CString&, const char*) 00700C05 (__stdcall, RET 0xC:
-// the result slot, left, right; EAX = the result slot). src/lib/mfc.cpp keeps its operator+ members.
-__declspec(naked) inline mfc::CString* __stdcall CStringConcatOriginal(mfc::CString* /*out*/, const mfc::CString* /*left*/,
-                                                                       const mfc::CString* /*right*/)
-    EI_ORIGINAL(0x00700B9F)
-__declspec(naked) inline mfc::CString* __stdcall CStringConcatTextOriginal(mfc::CString* /*out*/, const mfc::CString* /*left*/,
-                                                                           const char* /*right*/)
-    EI_ORIGINAL(0x00700C05)
+// the result slot, left, right; EAX = the result slot): src/lib/mfc.cpp's operator+. These build the result in `out` (raw
+// storage), passed as the hidden result slot.
+inline mfc::CString* __stdcall CStringConcatOriginal(mfc::CString* out, const mfc::CString* left, const mfc::CString* right) {
+    return ::new (out) mfc::CString(*left + *right);
+}
+inline mfc::CString* __stdcall CStringConcatTextOriginal(mfc::CString* out, const mfc::CString* left, const char* right) {
+    return ::new (out) mfc::CString(*left + right);
+}
 // 006FD4DE: CString(const char*, int count) (RET 8, returns this). 006FE1D3: CString::TrimLeft(char) (RET 4, no result).
 __declspec(naked) inline void* __fastcall CStringConstructCountOriginal(void* /*string*/, void*, const char* /*text*/,
                                                                         int /*count*/) EI_ORIGINAL(0x006FD4DE)
@@ -470,12 +472,15 @@ __declspec(naked) inline void __fastcall CountedPtrArrayDestructOriginal(void* /
 __declspec(naked) inline void __stdcall CountedRangeReleaseOriginal(void* /*first*/, int /*count*/) EI_ORIGINAL(0x0059C890)
 // MFC CFileFind (find handle at +0x0C): 006E6370 constructor (plain RET, returns this), 006E63AD destructor (plain RET, no
 // result), 006E63E9 Close (plain RET, no result), 006E6433 FindFile(name, flags) (RET 8, EAX 1, or 0 when the search fails),
-// 006E6722 GetFilePath(out) (RET 4, EAX = out). The constructor, destructor and FindFile are mfc::CFileFind's members.
+// 006E6722 GetFilePath(out) (RET 4, EAX = out). The constructor, destructor, FindFile and GetFilePath are mfc::CFileFind's
+// members.
 __declspec(naked) inline void __fastcall CFileFindCloseOriginal(void* /*find*/) EI_ORIGINAL(0x006E63E9)
 // 006E661A: CFileFind::IsDots (plain RET, EAX 0 / 1).
 __declspec(naked) inline int __fastcall CFileFindIsDotsOriginal(const void* /*find*/) EI_ORIGINAL(0x006E661A)
-__declspec(naked) inline mfc::CString* __fastcall CFileFindPathOriginal(const void* /*find*/, void*, mfc::CString* /*out*/)
-    EI_ORIGINAL(0x006E6722)
+// GetFilePath into `out` (raw storage): the CString result is built in place, `out` passed as the hidden result slot.
+inline mfc::CString* __fastcall CFileFindPathOriginal(const void* find, void*, mfc::CString* out) {
+    return ::new (out) mfc::CString(static_cast<const mfc::CFileFind*>(find)->GetFilePath());
+}
 // 006E684B: CFileFind::GetFileName(out) (RET 4, EAX = out).
 __declspec(naked) inline mfc::CString* __fastcall CFileFindNameOriginal(const void* /*find*/, void*, mfc::CString* /*out*/)
     EI_ORIGINAL(0x006E684B)
@@ -561,6 +566,8 @@ struct RegistryOriginals {
     // reads the registry from the loaded file image (1 when it is a registry, else 0).
     void Destroy();                                                                                // 00694540
     mfc::BOOL Attach(const void* image);                                                           // 00694610
+    // C3p. 00694520 (CFileRegistry::Construct; plain RET) the constructor (nothing open); returns this.
+    CFileRegistry* Construct();                                                                    // 00694520
 };
 __declspec(naked) inline mfc::BOOL RegistryOriginals::Open(const char*) EI_ORIGINAL(0x006945A0)
 __declspec(naked) inline mfc::BOOL RegistryOriginals::GetSectionNames(console::CStringArray*) EI_ORIGINAL(0x00694880)
@@ -569,6 +576,12 @@ __declspec(naked) inline mfc::BOOL RegistryOriginals::GetStringArray(const char*
     EI_ORIGINAL(0x006958E0)
 __declspec(naked) inline void RegistryOriginals::Destroy() EI_ORIGINAL(0x00694540)
 __declspec(naked) inline mfc::BOOL RegistryOriginals::Attach(const void*) EI_ORIGINAL(0x00694610)
+__declspec(naked) inline CFileRegistry* RegistryOriginals::Construct() EI_ORIGINAL(0x00694520)
+// C3p. 00696090 (rewritten as CIniFile::GetList; thiscall, RET 0x10): splits the .ini value at `separator` (a char) into
+// `out`; 0 when the value is empty.
+__declspec(naked) inline mfc::BOOL __fastcall IniGetListOriginal(void* /*ini*/, void*, const char* /*section*/,
+                                                                  const char* /*key*/, mfc::CStringArray* /*out*/,
+                                                                  char /*separator*/) EI_ORIGINAL(0x00696090)
 // C3n. 00406A10 (rewritten as hash400::PositionAt): hash_map<int, T*>::operator[](key); the slot of `key`, inserted when
 // missing (thiscall on the map, RET 4). One instruction sequence serves every instantiation with pointer values.
 __declspec(naked) inline void** __fastcall HashMapAt(void* /*map*/, void*, const int* /*key*/) EI_ORIGINAL(0x00406A10)

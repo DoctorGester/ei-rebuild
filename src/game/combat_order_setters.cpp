@@ -198,7 +198,7 @@ FigureAnimation* __fastcall FindFigureAnimation(CBaseManager* manager, void*, co
         database = static_cast<AnimationDatabase*>(manager->GetFile(file, nullptr));
     }
     if (!database) {
-        DebugMessageOriginal("Can't find animation database file for \"%s\".\n", static_cast<const char*>(figure));
+        game::DebugLog("Can't find animation database file for \"%s\".\n", static_cast<const char*>(figure));
         return nullptr;
     }
     for (int i = 0; i < static_cast<int>(database->count); ++i)

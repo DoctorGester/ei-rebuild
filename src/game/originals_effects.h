@@ -31,6 +31,12 @@ __declspec(naked) inline void __fastcall SoundManagerSetSpeechVolumeOriginal(CSo
     EI_ORIGINAL(0x006B78A0)
 __declspec(naked) inline void __fastcall SoundManagerSetMusicVolumeOriginal(CSoundManager* /*manager*/, void*, int /*volume*/)
     EI_ORIGINAL(0x006B7A00)
+// C3p. 006B8600 (rewritten as CSoundManager::Play3D; RET 0x1C): plays `name` at `position` heard from `nearDist` to
+// `farDist` (floats); EAX the sound's handle, -1 when it did not start.
+__declspec(naked) inline int __fastcall SoundManagerPlay3DOriginal(void* /*manager*/, void*, const char* /*name*/,
+                                                                   int /*priority*/, const float* /*position*/,
+                                                                   float /*nearDist*/, float /*farDist*/, int /*loop*/,
+                                                                   int /*speech*/) EI_ORIGINAL(0x006B8600)
 __declspec(naked) inline void __fastcall MusicSystemStopOriginal(CMusicSystem* /*music*/) EI_ORIGINAL(0x006B4F70)
 __declspec(naked) inline void __fastcall RemoveLight(void*, void*, CEngineObject* /*light*/) EI_ORIGINAL(0x006CA720)
 // 006CA5D0: the light manager (*007AF738) adds a light (RET 4, no result).

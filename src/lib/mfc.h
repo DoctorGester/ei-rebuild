@@ -112,6 +112,7 @@ public:
     ~CFileFind();                                                   // 006E63AD
     BOOL FindFile(const char* pattern, unsigned long flags);       // 006E6433
     unsigned long GetLength() const;                                // 006E68AA (the found file's size, low dword)
+    CString GetFilePath() const;                                    // 006E6722 (RET 4: the result slot)
 
 private:
     std::uint8_t data_[0x1C - 0];

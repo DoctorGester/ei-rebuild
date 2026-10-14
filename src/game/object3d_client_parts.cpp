@@ -256,7 +256,7 @@ CTexture* CObject3DClientSpecific::FindOrAddTexture(int kind) {
         textures[count] = set->texture;
         ++set->texture->refCount_;
     } else {
-        if (k == 0) DebugMessageOriginal(Text(kSecondPrimarySetText), object->name, object->id_);
+        if (k == 0) game::DebugLog(Text(kSecondPrimarySetText), object->name, object->id_);
         partSets[k]->texture->type_ = kind;
         set = partSets[k];
     }

@@ -12,10 +12,8 @@ using namespace effect;
 
 namespace {
 
-// The sound system (*007AF784), thiscall. Volumes and radii are passed as the floats' bits.
-// 006B8600: plays `name` at `position`; returns the handle.
-__declspec(naked) int __fastcall PlaySound(void*, void*, const char* /*name*/, int /*flags*/, const Vector3* /*position*/, std::uint32_t /*volume*/, std::uint32_t /*radius*/, int /*looping*/, int)
-    EI_ORIGINAL(0x006B8600)
+// The sound system (*007AF784), thiscall (006B8600 plays a sound: SoundManagerPlay3DOriginal). The
+// mover takes the volume and radius as the floats' bits.
 // 006B92F0: moves a playing sound.
 __declspec(naked) void __fastcall MoveSound(void*, void*, int /*sound*/, const Vector3* /*position*/, std::uint32_t /*volume*/, std::uint32_t /*radius*/) EI_ORIGINAL(0x006B92F0)
 // 006B94A0: stops a sound.
@@ -138,8 +136,8 @@ int CEffectSound::Tick() {
 
 void CEffectSound::Start(int update) {
     if (update == 0) {
-        sound_ = PlaySound(SoundSystem(), nullptr, name_, noFade_ != 0 ? 1000 : 0, &localPosition_, Bits(volume_),
-                           Bits(radius_), looping_, 0);
+        sound_ = SoundManagerPlay3DOriginal(SoundSystem(), nullptr, name_, noFade_ != 0 ? 1000 : 0, &localPosition_.x,
+                                            volume_, radius_, looping_, 0);
         return;
     }
     MoveSound(SoundSystem(), nullptr, sound_, &localPosition_, Bits(volume_), Bits(radius_));

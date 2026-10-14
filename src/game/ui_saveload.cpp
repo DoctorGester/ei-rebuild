@@ -142,14 +142,13 @@ __declspec(naked) void __fastcall EntriesFinalSort(SaveEntry*, SaveEntry*, int /
 struct FileFindOps : mfc::CFileFind {
     BOOL Next() { return CFileFindNext(this); }   // 006E6653 FindNextFile
     BOOL IsDots() const;               // 006E661A
-    mfc::CString FilePath() const;     // 006E6722 GetFilePath
+    mfc::CString FilePath() const { return GetFilePath(); }   // 006E6722
     mfc::CString FileName() const;     // 006E684B GetFileName
     void Close() { CFileFindCloseOriginal(this); }   // 006E63E9
     // MatchesMask(FILE_ATTRIBUTE_DIRECTORY), through the vtable as the original calls it.
     BOOL IsDirectory() const { return ei::VCall<BOOL>(this, kSlotMatchesMask, 0x10ul); }
 };
 BOOL FileFindOps::IsDots() const { return CFileFindIsDotsOriginal(this); }
-__declspec(naked) mfc::CString FileFindOps::FilePath() const EI_ORIGINAL(0x006E6722)
 mfc::CString FileFindOps::FileName() const {
     alignas(mfc::CString) unsigned char slot[sizeof(mfc::CString)];
     mfc::CString* name = CFileFindNameOriginal(this, nullptr, reinterpret_cast<mfc::CString*>(slot));

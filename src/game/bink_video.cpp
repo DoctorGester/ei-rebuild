@@ -117,7 +117,7 @@ const char* Text(std::uintptr_t address) { return reinterpret_cast<const char*>(
 
 // 004800E0 (cdecl): a DirectX error report; nonzero to go on.
 // 0044C470 (cdecl): an error message; returns a value whose low byte the caller clears.
-unsigned __cdecl ErrorMessage(const char* a0) { return DebugMessageOriginal(a0); }
+unsigned __cdecl ErrorMessage(const char* a0) { return game::DebugLog(a0); }
 
 // 005DB9E0 through its address (the verify wrapper sees the call).
 __declspec(naked) long __fastcall HolderFillAt(CDXSurface*, void*, RECT*, std::uint32_t) EI_ORIGINAL(0x005DB9E0)
@@ -293,7 +293,7 @@ char __fastcall PlayMovie(const char* name, unsigned frameTime, char keysEnd, ch
     if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), Sound()->milesDriver);
     BinkHeader* bink = BinkOpen()(file, 0);
     if (!bink) {
-        DebugMessageOriginal(Text(0x007922F8), file);   // "Can't open (or bad format) video file %s."
+        game::DebugLog(Text(0x007922F8), file);   // "Can't open (or bad format) video file %s."
         return 1;
     }
     BinkSetVolume()(bink, MovieVolume() * 0x7FF6 / 100);
@@ -412,7 +412,7 @@ void __fastcall ShowLoadingMovie(int progress) {
         }
         movie.bink = BinkOpen()(path.c_str(), 0);
         if (!movie.bink) {
-            DebugMessageOriginal(Text(0x00791EE4), path.c_str());   // "Can't open video file \"%s\""
+            game::DebugLog(Text(0x00791EE4), path.c_str());   // "Can't open video file \"%s\""
             return;
         }
         RECT screen;
@@ -483,7 +483,7 @@ char CBinkVideo::Open(const char* name, char loadingStep) {
     if (MovieSound()) BinkSetSoundSystem()(BinkOpenMiles(), Sound()->milesDriver);
     bink = BinkOpen()(name, 0);
     if (!bink) {
-        DebugMessageOriginal(Text(0x007922F8), name);   // "Can't open (or bad format) video file %s."
+        game::DebugLog(Text(0x007922F8), name);   // "Can't open (or bad format) video file %s."
         return 0;
     }
     CursorShowOriginal(Cursor(), nullptr, 0);

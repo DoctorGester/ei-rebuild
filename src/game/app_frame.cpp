@@ -58,7 +58,6 @@ __declspec(naked) void __fastcall ScreenDraw(void*) EI_ORIGINAL(0x005E54A0)
 __declspec(naked) void __fastcall IniConstruct(void*) EI_ORIGINAL(0x00695B80)
 __declspec(naked) int __fastcall IniSetPath(void*, void*, const char*) EI_ORIGINAL(0x00695BF0)
 __declspec(naked) void __fastcall IniDestruct(void*) EI_ORIGINAL(0x00695BE0)
-__declspec(naked) int __fastcall IniGetList(void*, void*, const char* /*section*/, const char* /*key*/, void* /*list*/, char) EI_ORIGINAL(0x00696090)
 mfc::CString* __stdcall ConcatText(mfc::CString* a0, const mfc::CString* a1, const char* a2) { return CStringConcatTextOriginal(a0, a1, a2); }
 mfc::CString* __stdcall ConcatString(mfc::CString* a0, const mfc::CString* a1, const mfc::CString* a2) { return CStringConcatOriginal(a0, a1, a2); }
 
@@ -146,7 +145,7 @@ void __fastcall PlayMovies(const char* section, bool clearFirst, bool clearAfter
         IniSetPath(ini, nullptr, *path);
         path->~CString();
     }
-    IniGetList(ini, nullptr, section, Text(0x00784A54), &list, ',');
+    IniGetListOriginal(ini, nullptr, section, Text(0x00784A54), &list, ',');
     if (clearFirst) ClearScreen();
     for (int i = 0; i < list.size; ++i) {
         alignas(mfc::CString) unsigned char dirRaw[sizeof(mfc::CString)];
