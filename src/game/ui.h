@@ -1246,6 +1246,7 @@ public:
 static_assert(offsetof(CHudQuickItems, entries_) == 0x15C);
 static_assert(offsetof(CHudQuickItems, labels_) == 0x190);
 static_assert(offsetof(CHudQuickItems, regionItem_) == 0x16C);
+static_assert(offsetof(CHudQuickItems, selected_) == 0x150);
 
 // Spell column on the right (constructor 0063E2A0, vtables 007428E4 / 007428B0;
 // 760..800 x 190..510).
@@ -1308,6 +1309,7 @@ public:
     char** labels_;                  // +0x15C
 };
 static_assert(offsetof(CHudSpellColumn, count_) == 0x14C);
+static_assert(offsetof(CHudSpellColumn, selected_) == 0x150);
 static_assert(offsetof(CHudSpellColumn, labels_) == 0x15C);
 
 // Action column on the left (constructor 0063F300, vtables 00742980 / 0074294C; six 40x40
@@ -1362,6 +1364,7 @@ public:
     char** labels_;                  // +0x170
 };
 static_assert(offsetof(CHudActionColumn, count_) == 0x14C);
+static_assert(offsetof(CHudActionColumn, selected_) == 0x150);
 static_assert(offsetof(CHudActionColumn, actions_) == 0x158);
 static_assert(offsetof(CHudActionColumn, labels_) == 0x170);
 
@@ -1790,6 +1793,7 @@ public:
     void* partLabelsVtable_;         // +0x1B0 CStringArray (its data:)
     mfc::CString* partLabels_;       // +0x1B4 four: the shown names of "skull", "torso", "leg", "arm"
 };
+static_assert(offsetof(CHudUnitPanel, owner_) == 0x148 && offsetof(CHudUnitPanel, shownUnit_) == 0x14C);
 static_assert(offsetof(CHudUnitPanel, hoverUnit_) == 0x150 && offsetof(CHudUnitPanel, strings_) == 0x164);
 static_assert(offsetof(CHudUnitPanel, slideDirection_) == 0x17C && offsetof(CHudUnitPanel, offset_) == 0x170);
 static_assert(offsetof(CHudUnitPanel, bodyPart_) == 0x180);
@@ -1919,6 +1923,7 @@ public:
     int page_;                       // +0x160
     char* pageTexts_[2];             // +0x164 CStrings: the message log's text of pages 0 and 1
 };
+static_assert(offsetof(CHudTopPanel, owner_) == 0x148);
 static_assert(offsetof(CHudTopPanel, slideDirection_) == 0x15C);
 static_assert(offsetof(CHudTopPanel, page_) == 0x160);
 

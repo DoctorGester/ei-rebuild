@@ -2,6 +2,9 @@
 // its quest variable notice (006369D0, slot 33), the selection's refresh (00637DC0) and the quick
 // item panel's unit (0063D2B0). See docs/notes/ui.md ("Ninth pass", "Fourteenth pass", "Fifteenth
 // pass").
+#include "map_object_figures.h"
+#include "net_classes.h"
+#include "net_messages.h"
 #include "originals_world.h"
 #include "text_reader.h"
 #include "ui_camp.h"
@@ -259,26 +262,26 @@ void SortIds(IdVector* ids) {
 
 // A multiplayer client: the party is the session's players' units, the camera's player first.
 void RebuildClientParty(CBattleScreenSetup* screen) {
-    std::uint8_t* session = *reinterpret_cast<std::uint8_t**>(0x0079B5D8);
-    ListNode** players = reinterpret_cast<ListNode**>(session + 0x25D8);
+    net::ClientSession* session = *reinterpret_cast<net::ClientSession**>(0x0079B5D8);
+    ListNode** players = reinterpret_cast<ListNode**>(&session->players_);
     PartyIds ids;
     std::uint8_t allocators[2] = {};
     IdsConstruct(&ids.withUnit, nullptr, &allocators[0]);
     IdsConstruct(&ids.without, nullptr, &allocators[1]);
     ids.camera = -1;
     for (ListNode* node = (*players)->next; node != *players; node = node->next) {
-        std::uint8_t* player = reinterpret_cast<std::uint8_t*>(node->data);
-        int* unitId = &At<int>(player, 0x2C);
-        int* playerId = &At<int>(player, 0x30);
-        if (At<int>(player, 0x24) == 0 && *unitId >= 0) {
+        net::PlayerMessage* player = reinterpret_cast<net::PlayerMessage*>(node->data);
+        int* unitId = &player->id_;
+        int* playerId = &player->serial_;
+        if (player->state_ == 0 && *unitId >= 0) {
             if (!FindUnit(reinterpret_cast<void*>(kWorld), nullptr, *unitId)) {
                 PushId(&ids.without, playerId);
                 continue;
             }
             PushId(&ids.withUnit, unitId);
-            std::uint8_t* camera = *reinterpret_cast<std::uint8_t**>(session + 0x25F0);
+            net::BindingMessage* camera = static_cast<net::BindingMessage*>(session->binding_);
             if (camera && !(At<std::uint32_t>(camera, 4) & 0x80000000u) &&
-                At<std::uint8_t*>(camera, 0xC) == player)
+                camera->first_.ptr == player)
                 ids.camera = *unitId;
         } else {
             PushIdInline(&ids.without, playerId);
@@ -346,7 +349,7 @@ void CBattleScreenSetup::Update() {
     int selected = 0;
     for (int i = 0; i < party->size; ++i) {
         auto* unit = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i]));
-        if (unit && (At<std::uint8_t>(unit, 8) & 0x10)) {
+        if (unit && (unit->flags_ & 0x10)) {
             if (!first) first = unit;
             ++selected;
         }
@@ -358,13 +361,13 @@ void CBattleScreenSetup::Update() {
             QuickItemsSetUnit(quickItems_, nullptr, nullptr);
             SpellsSetUnit(spellColumn_, nullptr, nullptr);
             ActionsSetUnit(actionColumn_, nullptr, nullptr, 0);
-            CUiWindow* panel = unitPanel_;
-            if (first != At<CUnit*>(panel, 0x14C)) {
-                At<CUnit*>(panel, 0x14C) = first;
+            CHudUnitPanel* panel = static_cast<CHudUnitPanel*>(unitPanel_);
+            if (first != panel->shownUnit_) {
+                panel->shownUnit_ = first;
                 At<int>(panel, 0x15C) = At<int>(UnitPrototype(first), 0x20);
-                At<int>(panel, 0x154) = At<int>(UnitPrototype(At<CUnit*>(panel, 0x14C)), 0x24);
-                ShowPanelUnit(At<CBattleScreenSetup*>(panel, 0x148), nullptr, At<CUnit*>(panel, 0x14C),
-                              &At<std::uint8_t>(panel, 0x164));
+                At<int>(panel, 0x154) = At<int>(UnitPrototype(panel->shownUnit_), 0x24);
+                ShowPanelUnit(reinterpret_cast<CBattleScreenSetup*>(panel->owner_), nullptr, panel->shownUnit_,
+                              panel->strings_);
             }
         }
     }
@@ -379,9 +382,9 @@ void CBattleScreenSetup::Update() {
         PtrArray records = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
         PtrArray second = {reinterpret_cast<void*>(0x0073FAA4), nullptr, 0, 0, 0};
         void* menu = reinterpret_cast<void*>(0x007AFEA5);
-        std::uint8_t* data = LocalPlayerData(menu);
-        for (int i = 0; i < At<int>(data, 0x34); ++i)
-            RecordArraySetAtGrowOriginal(&records, nullptr, records.size, At<std::uint8_t*>(data, 0x30) + i * 0x784);
+        PartyRecords* data = reinterpret_cast<PartyRecords*>(LocalPlayerData(menu));
+        for (int i = 0; i < data->count; ++i)
+            RecordArraySetAtGrowOriginal(&records, nullptr, records.size, data->records + i * 0x784);
         if (CanLeaveZone(menu, nullptr, &records, savedSelection_, &second)) {
             void* memory = gamecrt::operator_new(0x180);
             void* box = memory ? MessageBoxConstruct(memory, nullptr, interface_,
@@ -418,22 +421,22 @@ void CBattleScreenSetup::Update() {
         }
         using MarkFn = void(__thiscall*)(void*, int);
         auto mark = [](CUnit* unit, int on) {
-            void* figure = At<void*>(unit, 0x94);
+            void* figure = unit->Object3D()->attached;
             reinterpret_cast<MarkFn>((*reinterpret_cast<void***>(figure))[26])(figure, on);
         };
         for (int i = 0; i < party->size; ++i) {
             auto* unit = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i]));
-            std::uint32_t flags = At<std::uint32_t>(unit, 8);
+            std::uint32_t flags = unit->flags_;
             if (!(flags & 0x10) && (flags & 0x100)) {
-                At<std::uint32_t>(unit, 8) = flags & ~0x100u;
+                unit->flags_ = flags & ~0x100u;
                 mark(unit, 0);
             }
         }
         for (ListNode* node = inside.head->next; node != inside.head; node = node->next) {
             auto* unit = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[node->data]));
-            std::uint32_t flags = At<std::uint32_t>(unit, 8);
+            std::uint32_t flags = unit->flags_;
             if (!(flags & 0x10) && !(flags & 0x100)) {
-                At<std::uint32_t>(unit, 8) = flags | 0x100;
+                unit->flags_ = flags | 0x100;
                 mark(unit, 1);
             }
         }
@@ -505,7 +508,7 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
         // The original passes the address of its own (x, y) arguments and reads them back.
         int point[2] = {x, y};
         CUnit* unit = UnitAtPoint(world, nullptr, point);
-        if (unit && !(At<std::uint32_t>(unit, 8) & 0x400000)) unit = nullptr;
+        if (unit && !(unit->flags_ & 0x400000)) unit = nullptr;
         SelectUnitAt(this, nullptr, unit, point[0], point[1]);
         return;
     }
@@ -538,10 +541,10 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
             auto slot = [&](int i) -> HudPortraitSlot& { return static_cast<CHudPortraits*>(portraits_)->slots_[i]; };
             for (int i = 0; i < party->size; ++i) {
                 CUnit* unit = unitAt(i);
-                std::uint32_t flags = At<std::uint32_t>(unit, 8);
+                std::uint32_t flags = unit->flags_;
                 if (!(flags & 0x10) && (flags & 0x100)) {
-                    At<std::uint32_t>(unit, 8) = flags & ~0x100u;
-                    void* figure = At<void*>(unit, 0x94);
+                    unit->flags_ = flags & ~0x100u;
+                    void* figure = unit->Object3D()->attached;
                     reinterpret_cast<MarkFn>((*reinterpret_cast<void***>(figure))[26])(figure, 0);
                 }
                 marker(i)->visible_ = 0;
@@ -558,7 +561,7 @@ void CBattleScreenSetup::OnLButtonUp(int buttons, int x, int y) {
                 slot(i).restB_ = turn;
                 WorldControl(world, nullptr, unitAt(static_cast<int>(node->data)));
             }
-            int id = At<int>(unitAt(first), 0xC);
+            int id = unitAt(first)->id_;
             using EventFn = void(__thiscall*)(void*, int, int, int);
             reinterpret_cast<EventFn>(vtable_[0x80 / 4])(this, id, 0, 0);
         }
@@ -668,14 +671,14 @@ void CBattleScreenSetup::OnQuestVariable(const char* name, float value) {
     }
     text = text + GameText(0x00794318);   // colour code and a line end
 
-    CUiWindow* top = topPanel_;
+    CHudTopPanel* top = static_cast<CHudTopPanel*>(topPanel_);
     const char* line = text;
-    *reinterpret_cast<mfc::CString*>(reinterpret_cast<std::uint8_t*>(top) + 0x164) += line;
-    if (At<int>(top, 0x160) == 0) {
-        CUiWindow* screen = At<CUiWindow*>(top, 0x148);
-        LogAddText(At<CUiWindow**>(screen, 0x148)[9], nullptr, line);
+    top->PageText(0) += line;
+    if (top->page_ == 0) {
+        CBattleScreen* screen = top->owner_;
+        LogAddText(screen->children_[9], nullptr, line);
     }
-    At<std::uint8_t>(clock_, 0x158) = 1;
+    static_cast<CHudClock*>(clock_)->highlight_ = true;
     int sound = static_cast<int>(value);
     if (unknown_1FC > sound) sound = unknown_1FC;
     unknown_1FC = sound;
@@ -706,7 +709,7 @@ void CBattleScreenSetup::RefreshSelection() {
     int selected = 0;
     for (int i = 0; i < party->size; ++i) {
         auto* unit = reinterpret_cast<CUnit*>(static_cast<std::uintptr_t>(party->data[i]));
-        if (!unit || !(At<std::uint32_t>(unit, 8) & 0x10)) continue;
+        if (!unit || !(unit->flags_ & 0x10)) continue;
         if (!first) first = unit;
         ++selected;
     }
@@ -720,14 +723,14 @@ void CBattleScreenSetup::RefreshSelection() {
     ActionsSetUnit(actionColumn_, nullptr, shown, selected > 0 ? 1 : 0);
 
     // The unit panel shows the first selected unit (also a dead one, or the first of several).
-    CUiWindow* panel = unitPanel_;
-    if (first != At<CUnit*>(panel, 0x14C)) {
-        At<CUnit*>(panel, 0x14C) = first;
+    CHudUnitPanel* panel = static_cast<CHudUnitPanel*>(unitPanel_);
+    if (first != panel->shownUnit_) {
+        panel->shownUnit_ = first;
         if (first) {
             At<int>(panel, 0x15C) = At<int>(UnitPrototype(first), 0x20);
-            At<int>(panel, 0x154) = At<int>(UnitPrototype(At<CUnit*>(panel, 0x14C)), 0x24);
-            ShowPanelUnit(At<CBattleScreenSetup*>(panel, 0x148), nullptr, At<CUnit*>(panel, 0x14C),
-                          &At<std::uint8_t>(panel, 0x164));
+            At<int>(panel, 0x154) = At<int>(UnitPrototype(panel->shownUnit_), 0x24);
+            ShowPanelUnit(reinterpret_cast<CBattleScreenSetup*>(panel->owner_), nullptr, panel->shownUnit_,
+                          panel->strings_);
         }
     }
 
@@ -735,14 +738,14 @@ void CBattleScreenSetup::RefreshSelection() {
     unknown_180 = -1;
     unknown_17C = 0;
     At<int>(this, 0x184) = -1;
-    CUiWindow* quick = quickItems_;
+    CHudQuickItems* quick = static_cast<CHudQuickItems*>(quickItems_);
     for (int i = 0; i < 8; ++i) QuickSlotHighlight(quick, nullptr, i, 0);
-    At<int>(quick, 0x150) = -1;
-    CUiWindow* spells = spellColumn_;
-    for (int i = 0; i < At<int>(spells, 0x14C); ++i) SpellHighlight(spells, nullptr, i, 0);
-    At<int>(spells, 0x150) = -1;
-    CUiWindow* actions = actionColumn_;
-    for (int i = 0; i < At<int>(actions, 0x14C); ++i) ActionHighlight(actions, nullptr, i, 0);
-    At<int>(actions, 0x150) = -1;
+    quick->selected_ = -1;
+    CHudSpellColumn* spells = static_cast<CHudSpellColumn*>(spellColumn_);
+    for (int i = 0; i < spells->count_; ++i) SpellHighlight(spells, nullptr, i, 0);
+    spells->selected_ = -1;
+    CHudActionColumn* actions = static_cast<CHudActionColumn*>(actionColumn_);
+    for (int i = 0; i < actions->count_; ++i) ActionHighlight(actions, nullptr, i, 0);
+    actions->selected_ = -1;
 }
 EI_REPLACE_METHOD(0x00637DC0, CBattleScreenSetup::RefreshSelection);

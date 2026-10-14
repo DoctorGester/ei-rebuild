@@ -250,6 +250,7 @@ public:
 static_assert(offsetof(PlayerMessage, state_) == 0x24);
 static_assert(offsetof(PlayerMessage, host_) == 0x28);
 static_assert(offsetof(PlayerMessage, id_) == 0x2C);
+static_assert(offsetof(PlayerMessage, serial_) == 0x30);
 static_assert(offsetof(PlayerMessage, firstLine_) == 0x38);
 static_assert(sizeof(PlayerMessage) == 0x3C);
 

@@ -162,6 +162,7 @@ struct PartyRecords {
 };
 static_assert(offsetof(PartyRecords, recordArrayVtable) == 0x2C);
 static_assert(offsetof(PartyRecords, records) == 0x30);
+static_assert(offsetof(PartyRecords, count) == 0x34);
 static_assert(offsetof(PartyRecords, array40) == 0x40);
 static_assert(offsetof(PartyRecords, variables) == 0x54);
 static_assert(offsetof(PartyRecords, zone) == 0x68);
