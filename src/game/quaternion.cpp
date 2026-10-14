@@ -55,8 +55,7 @@ bool LessOrUnordered(double a, double b) { return !(a >= b); }
 void FromAngle(Quaternion* q, const Vector3& axis, float angle) {
     double half = D(angle) * D(EI_HALF_F);
     // The squared length stays unrounded (LengthSquaredXYZ would round it: the same at 24 bits).
-    double ax = axis.x, ay = axis.y, az = axis.z;
-    float factor = Store(x87::fsin(half) / x87::fsqrt(ax * ax + ay * ay + az * az));
+    float factor = Store(x87::fsin(half) / x87::fsqrt(LengthSquaredUnrounded<Sum3::XYZ, double>(axis)));
     q->w = Store(x87::fcos(half));
     Vector3 v = factor * axis;
     q->x = v.x;
@@ -90,7 +89,7 @@ void Quaternion::PreMultiplyConjugate(const Quaternion& r) {
     float nx = Store(((cy * qz - cz * qy) + cx * qw) + cw * qx);
     float ny = Store(((cz * qx - cx * qz) + cw * qy) + cy * qw);
     float nz = Store(((cx * qy - cy * qx) + cw * qz) + cz * qw);
-    float nw = Store(cw * qw - ((cz * qz + cy * qy) + cx * qx));
+    float nw = Store(cw * qw - SumOfProductsUnrounded<Sum3::ZYX>(cx, cy, cz, qx, qy, qz));
     y = ny;
     z = nz;
     w = nw;
@@ -107,7 +106,7 @@ Quaternion* __fastcall MultiplyByConjugate(Quaternion* out, const Quaternion& a,
     double nz = ((cx * ay - cy * ax) + cz * aw) + cw * az;
     double ny = ((cz * ax - cx * az) + cw * ay) + cy * aw;
     double nx = ((cy * az - cz * ay) + cw * ax) + cx * aw;
-    double nw = cw * aw - ((cy * ay + cx * ax) + cz * az);
+    double nw = cw * aw - SumOfProductsUnrounded<Sum3::XYZ>(cx, cy, cz, ax, ay, az);
     out->w = Store(nw);
     out->x = Store(nx);
     out->y = Store(ny);
@@ -120,7 +119,7 @@ EI_REPLACE(0x0049E950, MultiplyByConjugate);
 // negative); nearly equal rotations interpolate linearly. The weight of a is rounded to float, the
 // weight of b is not.
 void Quaternion::Slerp(float t, const Quaternion& a, const Quaternion& b) {
-    double cosine = ((D(a.w) * D(b.w) + D(b.z) * D(a.z)) + D(b.y) * D(a.y)) + D(b.x) * D(a.x);
+    double cosine = DotWZYXUnrounded<double>(a, b);
     Quaternion c;
     std::memcpy(&c, &b, sizeof(c));
     double stored = StoreDouble(cosine);

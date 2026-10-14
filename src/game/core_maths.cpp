@@ -53,7 +53,7 @@ void Quaternion::PreMultiply(const Quaternion& r) {
     float nx = ((z * r.y - r.z * y) + r.w * x) + r.x * w;
     float ny = ((r.z * x - r.x * z) + r.w * y) + w * r.y;
     float nz = ((r.x * y - r.y * x) + z * r.w) + r.z * w;
-    float nw = r.w * w - ((r.x * x + r.z * z) + r.y * y);
+    float nw = r.w * w - SumOfProductsUnrounded<Sum3::ZXY>(r.x, r.y, r.z, x, y, z);
     w = nw;
     x = nx;
     y = ny;
@@ -61,36 +61,21 @@ void Quaternion::PreMultiply(const Quaternion& r) {
 }
 EI_REPLACE_METHOD(0x004018A0, Quaternion::PreMultiply);
 
+// The rotated axes: vecmath.h's RotatedAxisX / Y / Z hold these functions' orders.
 Vector3* Quaternion::AxisX(Vector3* out) const {
-    float xx = RoundToFloat(x * x);   // the original keeps x*x in a float temporary
-    float rz = (x * z - y * w) * 2.0f;
-    float ry = (y * x + w * z) * 2.0f;
-    float rx = (w * w - ((z * z + y * y) + xx)) + xx * 2.0f;
-    out->x = rx;
-    out->y = ry;
-    out->z = rz;
+    *out = RotatedAxisX(*this);
     return out;
 }
 EI_REPLACE_METHOD(0x0040D940, Quaternion::AxisX);
 
 Vector3* Quaternion::AxisY(Vector3* out) const {
-    float rz = (y * z + x * w) * 2.0f;
-    float ry = (w * w - ((x * x + z * z) + y * y)) + y * y * 2.0f;
-    float rx = (x * y - w * z) * 2.0f;
-    out->x = rx;
-    out->y = ry;
-    out->z = rz;
+    *out = RotatedAxisY(*this);
     return out;
 }
 EI_REPLACE_METHOD(0x0040F560, Quaternion::AxisY);
 
 Vector3* Quaternion::AxisZ(Vector3* out) const {
-    float rz = (w * w - ((x * x + y * y) + z * z)) + z * z * 2.0f;
-    float ry = (z * y - w * x) * 2.0f;
-    float rx = (z * x + y * w) * 2.0f;
-    out->x = rx;
-    out->y = ry;
-    out->z = rz;
+    *out = RotatedAxisZ(*this);
     return out;
 }
 EI_REPLACE_METHOD(0x0040D6B0, Quaternion::AxisZ);

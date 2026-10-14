@@ -65,15 +65,15 @@ double UpX(const Quaternion& q) {
 }
 double UpY(const Quaternion& q) {
     double yy = D(q.y) * q.y;
-    double s = (D(q.z) * q.z + D(q.x) * q.x) + yy;
+    double s = LengthSquared2DUnrounded<double>(q.z, q.x) + yy;
     return (D(q.w) * q.w - s) + (yy + yy);
 }
 double UpZ(const Quaternion& q) {
-    double e = D(q.w) * q.x + D(q.y) * q.z;
+    double e = Dot2DUnrounded<double>(q.w, q.y, q.x, q.z);
     return e + e;
 }
 double ForwardX(const Quaternion& q) {
-    double e = D(q.w) * q.y + D(q.z) * q.x;
+    double e = Dot2DUnrounded<double>(q.w, q.z, q.y, q.x);
     return e + e;
 }
 double ForwardY(const Quaternion& q) {
@@ -82,7 +82,7 @@ double ForwardY(const Quaternion& q) {
 }
 double ForwardZ(const Quaternion& q) {
     double zz = D(q.z) * q.z;
-    double s = (D(q.y) * q.y + D(q.x) * q.x) + zz;
+    double s = LengthSquared2DUnrounded<double>(q.y, q.x) + zz;
     return (D(q.w) * q.w - s) + (zz + zz);
 }
 
@@ -103,7 +103,7 @@ void TowardsAxis(const Vector3& forward, const Vector3& dir, const Vector3& from
     Vector3 t = MakeVector(Store(D(side.y) * forward.z - D(side.z) * forward.y),
                            Store(D(side.z) * forward.x - D(forward.z) * side.x),
                            Store(D(forward.y) * side.x - D(side.y) * forward.x));
-    double inv = D(EI_ONE) / x87::fsqrt((D(t.z) * t.z + D(t.y) * t.y) + D(t.x) * t.x);
+    double inv = D(EI_ONE) / x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(t));
     t.x = Store(inv * t.x);
     t.y = Store(D(t.y) * inv);
     t.z = Store(D(t.z) * inv);
@@ -160,17 +160,17 @@ void CTransformObject::WorldMatrix(float* m) const {
 // No turn when the axis is shorter than 1e-5.
 void CTransformObject::TiltTowards(const Vector3& target) {
     const Quaternion& q = localRotation_;
-    float v[3];
-    std::memcpy(v, &target, sizeof(v));
+    Vector3 v;
+    std::memcpy(&v, &target, sizeof(v));
     double a = -UpX(q);
     double b = -D(Store(UpY(q)));
     double c = -D(Store(UpZ(q)));
-    double inv = D(EI_ONE) / x87::fsqrt((D(v[2]) * v[2] + D(v[1]) * v[1]) + D(v[0]) * v[0]);
-    float nx = Store(inv * v[0]);
-    float ny = Store(D(v[1]) * inv);
-    double nz = inv * v[2];
+    double inv = D(EI_ONE) / x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(v));
+    float nx = Store(inv * v.x);
+    float ny = Store(D(v.y) * inv);
+    double nz = inv * v.z;
     Vector3 axis = MakeVector(Store(nz * b - D(ny) * c), Store(c * nx - nz * a), Store(D(ny) * a - b * nx));
-    double length = x87::fsqrt((D(axis.z) * axis.z + D(axis.y) * axis.y) + D(axis.x) * axis.x);
+    double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(axis));
     double angle;
     if (!(length >= EI_MIN_AXIS)) {
         axis = MakeVector(1.0f, 0.0f, 0.0f);
@@ -192,17 +192,17 @@ void CTransformObject::TiltTowards(const Vector3& target) {
 // shorter than 1e-5.
 void CTransformObject::TurnTowards(const Vector3& target) {
     const Quaternion& q = localRotation_;
-    float v[3];
-    std::memcpy(v, &target, sizeof(v));
+    Vector3 v;
+    std::memcpy(&v, &target, sizeof(v));
     double a = ForwardX(q);
     float b = Store(ForwardY(q));
     float c = Store(ForwardZ(q));
-    double inv = D(EI_ONE) / x87::fsqrt((D(v[2]) * v[2] + D(v[1]) * v[1]) + D(v[0]) * v[0]);
-    float nx = Store(inv * v[0]);
-    float ny = Store(D(v[1]) * inv);
-    double nz = inv * v[2];
+    double inv = D(EI_ONE) / x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(v));
+    float nx = Store(inv * v.x);
+    float ny = Store(D(v.y) * inv);
+    double nz = inv * v.z;
     Vector3 r = MakeVector(Store(nz * b - D(ny) * c), Store(D(c) * nx - nz * a), Store(D(ny) * a - D(b) * nx));
-    double length = x87::fsqrt((D(r.z) * r.z + D(r.y) * r.y) + D(r.x) * r.x);
+    double length = x87::fsqrt(LengthSquaredUnrounded<Sum3::ZYX, double>(r));
     Vector3 axis;
     float angle;
     if (!(length >= EI_MIN_AXIS)) {
@@ -248,7 +248,7 @@ void CTransformObject::Rotate(const Vector3& axis, float angle) {
     double x = ((D(q.z) * r.y - D(q.y) * r.z) + D(q.w) * r.x) + D(r.w) * q.x;
     float y = Store(((D(q.x) * r.z - D(q.z) * r.x) + D(r.w) * q.y) + D(q.w) * r.y);
     float z = Store(((D(q.y) * r.x - D(r.y) * q.x) + D(r.w) * q.z) + D(q.w) * r.z);
-    double w = D(r.w) * q.w - ((D(r.y) * q.y + D(q.z) * r.z) + D(q.x) * r.x);
+    double w = D(r.w) * q.w - SumOfProductsUnrounded<Sum3::ZYX, double>(r.x, r.y, r.z, q.x, q.y, q.z);
     q.y = y;
     q.z = z;
     q.w = Store(w);

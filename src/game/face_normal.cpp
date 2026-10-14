@@ -35,7 +35,7 @@ void __fastcall ComputeFaceNormal(MeshFace* face, void*, const PointBuffer* posi
     double ax = static_cast<double>(p2.x) - origin.x;
     double ay = static_cast<double>(p2.y) - origin.y;
     float az = StoreFloat(static_cast<double>(p2.z) - origin.z);   // kept as a float
-    double lengthA = static_cast<double>(az) * az + ay * ay + ax * ax;
+    double lengthA = LengthSquaredUnrounded<Sum3::ZYX, double>(ax, ay, az);
     if (lengthA > kMinimumSquare) {
         double inverse = 1.0 / std::sqrt(lengthA);
         ax *= inverse;
@@ -46,7 +46,7 @@ void __fastcall ComputeFaceNormal(MeshFace* face, void*, const PointBuffer* posi
     double bx = static_cast<double>(p0.x) - origin.x;
     double by = static_cast<double>(p0.y) - origin.y;
     double bz = static_cast<double>(p0.z) - origin.z;
-    double lengthB = bz * bz + by * by + bx * bx;
+    double lengthB = LengthSquaredUnrounded<Sum3::ZYX>(bx, by, bz);
     if (lengthB > kMinimumSquare) {
         double inverse = 1.0 / std::sqrt(lengthB);
         bx *= inverse;
@@ -61,7 +61,7 @@ void __fastcall ComputeFaceNormal(MeshFace* face, void*, const PointBuffer* posi
     const double x = face->normal.x;
     const double y = face->normal.y;
     const double z = face->normal.z;
-    const double length = std::sqrt(x * x + y * y + z * z);
+    const double length = std::sqrt(LengthSquaredUnrounded<Sum3::XYZ>(x, y, z));
     if (length == 0.0 || x87::IsNaN(static_cast<float>(length))) {   // FCOM 0; C3: equal or unordered
         std::memcpy(&face->normal, &DegenerateNormal(), sizeof(Vector3));
     } else {

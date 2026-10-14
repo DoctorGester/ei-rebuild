@@ -37,11 +37,10 @@ src/game/combat_update.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/console.cpp,0,0,0,0,54,0,0,0,0,0,0
 src/game/console.h,0,0,0,0,3,0,0,0,0,0,0
 src/game/console_commands.cpp,0,0,0,0,34,0,0,0,0,0,0
-src/game/core_maths.cpp,0,0,0,2,0,0,0,0,0,0,7
+src/game/core_maths.cpp,0,0,0,2,0,0,0,0,0,0,0
 src/game/core_streams.h,0,0,0,0,4,0,0,0,0,0,0
-src/game/core_transform.cpp,0,0,0,0,0,0,0,0,0,0,5
 src/game/core_transform.h,0,0,0,0,1,0,0,0,0,0,0
-src/game/core_transform_math.cpp,0,0,8,1,1,0,0,0,0,0,12
+src/game/core_transform_math.cpp,0,0,8,1,1,0,0,0,0,0,0
 src/game/deleting_destructors_400.cpp,0,0,0,0,33,0,0,0,0,0,0
 src/game/device_buffers.h,0,0,0,0,0,0,0,0,0,0,1
 src/game/device_mesh.cpp,0,0,1,0,0,0,0,0,0,0,0
@@ -49,7 +48,6 @@ src/game/device_shadow.cpp,0,0,1,0,0,0,0,0,0,0,0
 src/game/effects.cpp,0,0,2,0,1,0,0,0,0,0,0
 src/game/effects_weather.cpp,0,0,0,0,1,0,0,0,0,0,1
 src/game/engine_object.h,0,0,0,0,1,0,0,0,0,0,0
-src/game/face_normal.cpp,0,0,0,0,0,0,0,0,0,0,3
 src/game/fake_unit.cpp,0,0,0,0,5,0,0,0,0,0,0
 src/game/figure_mesh.cpp,0,0,0,4,0,0,0,0,0,0,3
 src/game/figure_mesh.h,0,0,0,0,0,0,0,0,0,0,2
@@ -81,7 +79,6 @@ src/game/map_object_shadow.cpp,0,0,0,1,0,0,0,0,0,0,11
 src/game/map_spec.cpp,0,0,0,0,9,0,0,0,0,0,3
 src/game/map_spec_effect.cpp,0,0,0,0,7,0,0,0,0,0,0
 src/game/map_spec_unit.cpp,0,0,0,0,9,0,0,0,0,0,0
-src/game/maths.cpp,0,0,0,0,0,0,0,0,0,0,3
 src/game/menu_rects.cpp,0,0,0,0,36,0,0,0,0,0,0
 src/game/misc_400.cpp,0,0,0,0,1,0,0,0,0,0,0
 src/game/model.cpp,0,0,0,4,0,0,0,0,0,0,0
@@ -127,7 +124,7 @@ src/game/player_client.cpp,0,0,0,0,0,0,0,0,0,0,1
 src/game/player_messages.cpp,0,0,1,0,0,0,0,0,0,0,0
 src/game/player_server_handlers.cpp,0,0,0,0,0,0,0,0,0,0,2
 src/game/player_sync.cpp,0,0,0,0,0,0,0,0,0,0,1
-src/game/quaternion.cpp,0,0,4,1,1,0,0,0,0,0,4
+src/game/quaternion.cpp,0,0,4,1,1,0,0,0,0,0,0
 src/game/quest_database.cpp,0,0,0,0,16,0,0,0,0,0,0
 src/game/registry.cpp,0,0,1,0,1,0,0,0,0,0,0
 src/game/renderer_init.cpp,0,0,2,0,0,0,0,0,0,0,1
